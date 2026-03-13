@@ -64,7 +64,7 @@ function handleLine(line: string) {
 export async function spawnSidecar(): Promise<void> {
   if (child) return;
 
-  const command = Command.sidecar("binaries/evolveproprimer-sidecar");
+  const command = Command.sidecar("binaries/sdmbench-sidecar");
 
   command.stdout.on("data", (line: string) => {
     for (const part of line.split("\n")) {

@@ -1,8 +1,8 @@
 {
   "$schema": "https://raw.githubusercontent.com/nicedoc/schemas/main/tauri-v2.json",
-  "productName": "EvolveProprimer",
+  "productName": "SDMBench",
   "version": "0.1.0",
-  "identifier": "com.evolveproprimer.app",
+  "identifier": "com.sdmbench.app",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:1421",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "EvolveProprimer",
+        "title": "SDMBench",
         "width": 1200,
         "height": 800,
         "minWidth": 900,
@@ -35,7 +35,7 @@
       "icons/icon.ico"
     ],
     "externalBin": [
-      "binaries/evolveproprimer-sidecar"
+      "binaries/sdmbench-sidecar"
     ]
   },
   "plugins": {}

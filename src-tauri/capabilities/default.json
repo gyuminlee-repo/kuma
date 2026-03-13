@@ -1,6 +1,6 @@
 {
   "identifier": "default",
-  "description": "Default capabilities for EvolveProprimer",
+  "description": "Default capabilities for SDMBench",
   "windows": ["*"],
   "permissions": [
     "core:default",
@@ -13,7 +13,7 @@
       "identifier": "shell:allow-spawn",
       "allow": [
         {
-          "name": "binaries/evolveproprimer-sidecar",
+          "name": "binaries/sdmbench-sidecar",
           "sidecar": true
         }
       ]

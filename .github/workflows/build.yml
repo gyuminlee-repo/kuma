@@ -2,10 +2,7 @@ name: Build & Release
 
 on:
   push:
-    branches: [main]
     tags: ["v*"]
-  pull_request:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -39,12 +36,14 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             libwebkit2gtk-4.1-dev \
+            libjavascriptcoregtk-4.1-dev \
+            libsoup-3.0-dev \
             libappindicator3-dev \
             librsvg2-dev \
             patchelf \
             libgtk-3-dev
 
-      # --- Python ---
+      # --- Python + sidecar ---
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -52,7 +51,6 @@ jobs:
       - name: Install Python dependencies
         run: pip install primer3-py==2.3.0 biopython==1.84 openpyxl==3.1.5 pyinstaller
 
-      # --- Build Python sidecar ---
       - name: Build sidecar
         run: python build_sidecar.py --onefile
         working-directory: python-core
@@ -60,7 +58,7 @@ jobs:
       - name: Verify sidecar binary
         shell: bash
         run: |
-          SIDECAR="src-tauri/binaries/evolveproprimer-sidecar-${{ matrix.target }}${{ matrix.sidecar-ext }}"
+          SIDECAR="src-tauri/binaries/sdmbench-sidecar-${{ matrix.target }}${{ matrix.sidecar-ext }}"
           ls -la "$SIDECAR"
           test -f "$SIDECAR"
 
@@ -72,6 +70,9 @@ jobs:
       - name: Install npm dependencies
         run: npm ci
 
+      - name: Build frontend
+        run: npm run build
+
       # --- Rust ---
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -82,23 +83,36 @@ jobs:
           workspaces: src-tauri
 
       # --- Build Tauri ---
-      - uses: tauri-apps/tauri-action@v0
+      - name: Build Tauri app
+        run: npx tauri build --target ${{ matrix.target }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tagName: ${{ github.ref_name }}
-          releaseName: "SDMBench ${{ github.ref_name }}"
-          releaseBody: "See the assets for download links."
-          releaseDraft: true
-          prerelease: false
-          args: --target ${{ matrix.target }}
 
-      # --- Upload artifacts (for PRs / non-tag builds) ---
+      # --- Upload artifacts ---
       - name: Upload build artifacts
-        if: "!startsWith(github.ref, 'refs/tags/')"
         uses: actions/upload-artifact@v4
         with:
           name: sdmbench-${{ matrix.target }}
           path: |
             src-tauri/target/${{ matrix.target }}/release/bundle/**/*
-          retention-days: 7
+          retention-days: 14
+
+  # --- Create GitHub Release (only on tags) ---
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          files: artifacts/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

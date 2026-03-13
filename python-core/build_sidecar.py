@@ -18,7 +18,7 @@ SCRIPT_DIR = Path(__file__).parent.resolve()
 PROJECT_ROOT = SCRIPT_DIR.parent
 TAURI_BINARIES = PROJECT_ROOT / "src-tauri" / "binaries"
 ENTRY_POINT = SCRIPT_DIR / "sidecar_main.py"
-SIDECAR_NAME = "evolveproprimer-sidecar"
+SIDECAR_NAME = "sdmbench-sidecar"
 
 
 def get_target_triple() -> str:
