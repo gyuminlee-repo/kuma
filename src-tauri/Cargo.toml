@@ -1,11 +1,11 @@
 [package]
-name = "evolveproprimer"
+name = "sdmbench"
 version = "0.1.0"
-description = "EvolveProprimer - SDM Primer Design Tool"
+description = "SDMBench - Site-Directed Mutagenesis Primer Design Tool"
 edition = "2021"
 
 [lib]
-name = "evolveproprimer_lib"
+name = "sdmbench_lib"
 crate-type = ["lib", "cdylib", "staticlib"]
 
 [build-dependencies]

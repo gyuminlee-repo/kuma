@@ -133,7 +133,6 @@ def _validate_output_path(
 
 _POLYMERASE_META = {
     "Q5": {"manufacturer": "NEB", "fidelity": "high"},
-    "Q5": {"manufacturer": "NEB", "fidelity": "high"},
     "Phusion": {"manufacturer": "Thermo", "fidelity": "high"},
     "Taq": {"manufacturer": "Various", "fidelity": "low"},
     "DreamTaq": {"manufacturer": "Thermo", "fidelity": "low"},
@@ -172,16 +171,31 @@ def handle_load_fasta(params: dict) -> dict:
 
     header, sequence = load_fasta(resolved)
 
-    # Find all ATG positions
+    # Find all ATG positions and estimate ORF length for each
+    stop_codons = {"TAA", "TAG", "TGA"}
     atg_positions = []
+    orf_lengths = []
     for i in range(len(sequence) - 2):
         if sequence[i : i + 3] == "ATG":
             atg_positions.append(i)
+            # Scan downstream in-frame for first stop codon
+            orf_len = 0
+            for j in range(i + 3, len(sequence) - 2, 3):
+                codon = sequence[j : j + 3]
+                if codon in stop_codons:
+                    orf_len = j - i
+                    break
+            else:
+                orf_len = len(sequence) - i  # no stop found
+            orf_lengths.append(orf_len)
+            if len(atg_positions) >= 50:
+                break
 
     return {
         "header": header,
         "seq_length": len(sequence),
-        "atg_positions": atg_positions[:50],  # Limit to first 50
+        "atg_positions": atg_positions,
+        "orf_lengths": orf_lengths,
     }
 
 

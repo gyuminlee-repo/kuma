@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    evolveproprimer_lib::run()
+    sdmbench_lib::run()
 }

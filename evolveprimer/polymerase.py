@@ -81,6 +81,11 @@ class PolymeraseRegistry:
         self._load_builtin()
 
     def _load_builtin(self) -> None:
+        if not BUILTIN_PATH.exists():
+            raise FileNotFoundError(
+                f"Polymerase profiles not found: {BUILTIN_PATH}. "
+                "Ensure evolveprimer/resources/polymerase_profiles.json exists."
+            )
         with open(BUILTIN_PATH) as f:
             data = json.load(f)
         for name, profile_data in data.items():
@@ -89,6 +94,11 @@ class PolymeraseRegistry:
 
     def get(self, name: str) -> PolymeraseProfile:
         """Get a profile by name. Raises KeyError if not found."""
+        if name not in self._profiles:
+            available = ", ".join(sorted(self._profiles.keys()))
+            raise KeyError(
+                f"Polymerase '{name}' not found. Available: {available}"
+            )
         return self._profiles[name]
 
     def list_names(self) -> list[str]:

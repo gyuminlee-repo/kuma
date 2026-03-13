@@ -20,8 +20,8 @@ ECOLI_CODON_USAGE: dict[str, list[tuple[str, float]]] = {
     "G": [("GGC", 0.41), ("GGT", 0.34), ("GGG", 0.15), ("GGA", 0.11)],
     "H": [("CAC", 0.57), ("CAT", 0.43)],
     "I": [("ATT", 0.51), ("ATC", 0.42), ("ATA", 0.07)],
-    "L": [("CTG", 0.50), ("CTT", 0.10), ("CTC", 0.10), ("CTG", 0.50),
-          ("TTA", 0.13), ("TTG", 0.13)],
+    "L": [("CTG", 0.50), ("CTT", 0.10), ("CTC", 0.10),
+          ("TTG", 0.13), ("TTA", 0.13), ("CTA", 0.04)],
     "K": [("AAA", 0.76), ("AAG", 0.24)],
     "M": [("ATG", 1.00)],
     "F": [("TTT", 0.57), ("TTC", 0.43)],
@@ -34,17 +34,6 @@ ECOLI_CODON_USAGE: dict[str, list[tuple[str, float]]] = {
     "V": [("GTG", 0.37), ("GTT", 0.26), ("GTC", 0.22), ("GTA", 0.15)],
     "*": [("TAA", 0.61), ("TGA", 0.30), ("TAG", 0.09)],
 }
-
-# Fix L (leucine) — remove duplicate CTG entry
-ECOLI_CODON_USAGE["L"] = [
-    ("CTG", 0.50), ("TTA", 0.13), ("TTG", 0.13),
-    ("CTC", 0.10), ("CTT", 0.10), ("TTA", 0.04),
-]
-# Correct leucine frequencies (Kazusa E. coli K-12)
-ECOLI_CODON_USAGE["L"] = [
-    ("CTG", 0.50), ("CTT", 0.10), ("CTC", 0.10),
-    ("TTG", 0.13), ("TTA", 0.13), ("CTA", 0.04),
-]
 
 # Standard genetic code: codon -> amino acid
 CODON_TO_AA: dict[str, str] = {}

@@ -48,12 +48,8 @@ class SdmPrimerResult:
     def __post_init__(self) -> None:
         self.fwd_len = len(self.forward_seq)
         self.rev_len = len(self.reverse_seq)
-        if self.forward_seq:
-            gc_count = self.forward_seq.count("G") + self.forward_seq.count("C")
-            self.gc_fwd = gc_count / len(self.forward_seq) * 100
-        if self.reverse_seq:
-            gc_count = self.reverse_seq.count("G") + self.reverse_seq.count("C")
-            self.gc_rev = gc_count / len(self.reverse_seq) * 100
+        self.gc_fwd = _gc_percent(self.forward_seq)
+        self.gc_rev = _gc_percent(self.reverse_seq)
 
 
 def _calc_tm(

@@ -69,6 +69,11 @@ def parse_mutations(
 
     with open(csv_path) as f:
         reader = csv.DictReader(f)
+        if reader.fieldnames and "mutation" not in reader.fieldnames:
+            raise ValueError(
+                f"CSV file '{csv_path.name}' missing required 'mutation' column. "
+                f"Found columns: {reader.fieldnames}"
+            )
         for row in reader:
             raw = row["mutation"].strip()
             if not raw:

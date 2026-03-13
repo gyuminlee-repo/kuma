@@ -95,14 +95,29 @@ export const useAppStore = create<AppState>((set, get) => {
       try {
         set({ statusMessage: "Loading FASTA..." });
         const info = await sendRequest<FastaInfo>("load_fasta", { filepath });
+
+        // Auto-select: pick ATG with longest downstream ORF (no in-frame stop within sequence)
+        let bestAtg = info.atg_positions.length > 0 ? info.atg_positions[0] : 0;
+        if (info.atg_positions.length > 1 && info.orf_lengths) {
+          // sidecar provides orf_lengths parallel to atg_positions
+          let maxLen = 0;
+          for (let i = 0; i < info.atg_positions.length; i++) {
+            const orfLen = info.orf_lengths[i] ?? 0;
+            if (orfLen > maxLen) {
+              maxLen = orfLen;
+              bestAtg = info.atg_positions[i];
+            }
+          }
+        }
+
         set({
           fastaPath: filepath,
           fastaInfo: info,
-          cdsStart: info.atg_positions.length > 0 ? info.atg_positions[0] : 0,
-          statusMessage: `Loaded: ${info.header} (${info.seq_length} bp)`,
+          cdsStart: bestAtg,
+          statusMessage: `Loaded: ${info.header} (${info.seq_length} bp) — CDS Start auto-selected: ${bestAtg}`,
         });
       } catch (err) {
-        set({ statusMessage: `FASTA load failed: ${err}` });
+        set({ statusMessage: `FASTA load failed: ${String(err)}` });
       }
     },
 
@@ -122,7 +137,7 @@ export const useAppStore = create<AppState>((set, get) => {
         );
         set({ parsedMutations: parsed });
       } catch (err) {
-        set({ statusMessage: `Mutation parse failed: ${err}` });
+        set({ statusMessage: `Mutation parse failed: ${err instanceof Error ? err.message : String(err)}` });
       }
     },
 
@@ -175,7 +190,7 @@ export const useAppStore = create<AppState>((set, get) => {
           dedupInfo: plateResult.dedup_info,
         });
       } catch (err) {
-        set({ statusMessage: `Design failed: ${err}` });
+        set({ statusMessage: `Design failed: ${err instanceof Error ? err.message : String(err)}` });
       } finally {
         set({ isDesigning: false, progress: 100 });
       }
@@ -189,7 +204,7 @@ export const useAppStore = create<AppState>((set, get) => {
           dedupInfo: result.dedup_info,
         });
       } catch (err) {
-        set({ statusMessage: `Plate map failed: ${err}` });
+        set({ statusMessage: `Plate map failed: ${err instanceof Error ? err.message : String(err)}` });
       }
     },
 
@@ -198,7 +213,7 @@ export const useAppStore = create<AppState>((set, get) => {
         await sendRequest("export_tsv", { filepath });
         set({ statusMessage: `Exported TSV: ${filepath}` });
       } catch (err) {
-        set({ statusMessage: `TSV export failed: ${err}` });
+        set({ statusMessage: `TSV export failed: ${err instanceof Error ? err.message : String(err)}` });
       }
     },
 
@@ -207,7 +222,7 @@ export const useAppStore = create<AppState>((set, get) => {
         await sendRequest("export_excel", { filepath });
         set({ statusMessage: `Exported Excel: ${filepath}` });
       } catch (err) {
-        set({ statusMessage: `Excel export failed: ${err}` });
+        set({ statusMessage: `Excel export failed: ${err instanceof Error ? err.message : String(err)}` });
       }
     },
   };

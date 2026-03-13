@@ -10,6 +10,7 @@ export interface FastaInfo {
   header: string;
   seq_length: number;
   atg_positions: number[];
+  orf_lengths?: number[];
 }
 
 export interface ParsedMutation {

@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useAppStore } from "../../store/appStore";
 import { Button } from "../ui/button";
@@ -7,9 +8,24 @@ export function InputPanel() {
   const fastaInfo = useAppStore((s) => s.fastaInfo);
   const mutationInputMode = useAppStore((s) => s.mutationInputMode);
   const mutationText = useAppStore((s) => s.mutationText);
+  const parsedMutations = useAppStore((s) => s.parsedMutations);
   const setMutationInputMode = useAppStore((s) => s.setMutationInputMode);
   const setMutationText = useAppStore((s) => s.setMutationText);
+  const parseMutations = useAppStore((s) => s.parseMutations);
   const loadFasta = useAppStore((s) => s.loadFasta);
+
+  // Debounced mutation validation
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (mutationInputMode !== "text" || !mutationText.trim()) return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      parseMutations();
+    }, 500);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [mutationText, mutationInputMode, parseMutations]);
 
   async function handleBrowseFasta() {
     const path = await open({
@@ -141,6 +157,11 @@ export function InputPanel() {
                 .filter((l) => l.trim()).length
             }{" "}
             mutations entered
+            {parsedMutations.length > 0 && (
+              <span className="text-green-600 ml-1">
+                ({parsedMutations.length} validated)
+              </span>
+            )}
           </div>
         )}
       </div>

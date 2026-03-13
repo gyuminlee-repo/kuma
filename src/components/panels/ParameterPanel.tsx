@@ -33,11 +33,15 @@ export function ParameterPanel() {
             value={cdsStart}
             onChange={(e) => setCdsStart(Number(e.target.value))}
           >
-            {fastaInfo.atg_positions.map((pos) => (
-              <option key={pos} value={pos}>
-                ATG @ {pos}
-              </option>
-            ))}
+            {fastaInfo.atg_positions.map((pos, idx) => {
+              const orfLen = fastaInfo.orf_lengths?.[idx];
+              const orfAa = orfLen ? Math.floor(orfLen / 3) : 0;
+              return (
+                <option key={pos} value={pos}>
+                  ATG @ {pos}{orfAa > 0 ? ` (${orfAa} aa)` : ""}
+                </option>
+              );
+            })}
           </select>
         )}
       </label>
