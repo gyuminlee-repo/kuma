@@ -71,7 +71,7 @@ export const useAppStore = create<AppState>((set, get) => {
     mutationCsvPath: "",
     parsedMutations: [],
     cdsStart: 0,
-    selectedPolymerase: "Q5",
+    selectedPolymerase: "Benchling",
     overlapLen: 20,
     isDesigning: false,
     designResults: [],

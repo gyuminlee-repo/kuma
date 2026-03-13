@@ -132,6 +132,7 @@ def _validate_output_path(
 
 
 _POLYMERASE_META = {
+    "Benchling": {"manufacturer": "SantaLucia 1998", "fidelity": "standard"},
     "Q5": {"manufacturer": "NEB", "fidelity": "high"},
     "Phusion": {"manufacturer": "Thermo", "fidelity": "high"},
     "Taq": {"manufacturer": "Various", "fidelity": "low"},

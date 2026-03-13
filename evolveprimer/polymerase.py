@@ -34,6 +34,11 @@ class PolymeraseProfile:
     dntp_conc: float        # mM
     dna_conc: float         # nM
     max_tm_diff: float      # max Tm difference between F/R
+    # Asymmetric Tm targets (optional; fall back to opt_tm if not set)
+    opt_tm_fwd: float | None = None     # Forward non-overlap Tm target
+    opt_tm_rev: float | None = None     # Reverse non-overlap Tm target
+    opt_tm_overlap: float | None = None  # Overlap region Tm target
+    min_3prime_dist: int = 0             # Min distance from mutation to 3' end of overlap
 
 
 def _resource_path(relative_path: str) -> Path:
@@ -67,6 +72,10 @@ def _dict_to_profile(data: dict) -> PolymeraseProfile:
         dntp_conc=float(data["dntp_conc"]),
         dna_conc=float(data["dna_conc"]),
         max_tm_diff=float(data["max_tm_diff"]),
+        opt_tm_fwd=float(data["opt_tm_fwd"]) if "opt_tm_fwd" in data else None,
+        opt_tm_rev=float(data["opt_tm_rev"]) if "opt_tm_rev" in data else None,
+        opt_tm_overlap=float(data["opt_tm_overlap"]) if "opt_tm_overlap" in data else None,
+        min_3prime_dist=int(data.get("min_3prime_dist", 0)),
     )
 
 

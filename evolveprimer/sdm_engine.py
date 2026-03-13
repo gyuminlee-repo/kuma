@@ -87,6 +87,7 @@ def _extend_primer(
     start: int,
     direction: str,
     profile: PolymeraseProfile,
+    target_tm: float | None = None,
     min_len: int = 10,
     max_len: int = 35,
 ) -> tuple[str, float]:
@@ -99,14 +100,16 @@ def _extend_primer(
         seq: Template sequence.
         start: 0-based start position.
         direction: 'forward' or 'reverse'.
-        profile: Polymerase profile for Tm target.
+        profile: Polymerase profile for Tm calculations.
+        target_tm: Explicit Tm target (overrides profile.opt_tm).
         min_len: Minimum extension length.
         max_len: Maximum extension length.
 
     Returns:
         Tuple of (primer sequence, Tm).
     """
-    target_tm = profile.opt_tm
+    if target_tm is None:
+        target_tm = profile.opt_tm
     seq_len = len(seq)
 
     best_seq = ""
@@ -143,15 +146,20 @@ def _design_single_sdm(
 ) -> SdmPrimerResult | None:
     """Design SDM primers for a single mutation.
 
+    Supports asymmetric Tm targets: profile.opt_tm_fwd / opt_tm_rev for
+    non-overlap regions, and profile.opt_tm_overlap for the overlap region.
+    Falls back to profile.opt_tm when asymmetric fields are not set.
+
     Algorithm:
     1. Mutate the codon in the sequence
     2. Try multiple overlap lengths (adaptive: from overlap_len down to 15)
     3. For each overlap length, generate sliding window candidates
     4. For each window:
-       a. Forward primer = overlap_seq + downstream non-overlap extension
-       b. Reverse primer = rc(overlap_seq) + upstream non-overlap extension
-       c. Calculate Tm of non-overlap and overlap portions
-       d. Check Tm condition: Tm_no > Tm_overlap + 5
+       a. Check min_3prime_dist constraint (mutation → 3' end of overlap)
+       b. Forward primer = overlap_seq + downstream non-overlap extension
+       c. Reverse primer = rc(overlap_seq) + upstream non-overlap extension
+       d. Calculate Tm of non-overlap and overlap portions
+       e. Check Tm condition: Tm_no > Tm_overlap + 5
     5. Rank candidates and return best
 
     Returns:
@@ -160,11 +168,19 @@ def _design_single_sdm(
     mutated_seq = mutate_sequence(seq, mutation)
     seq_len = len(mutated_seq)
 
+    # Resolve asymmetric Tm targets
+    tm_target_fwd = profile.opt_tm_fwd if profile.opt_tm_fwd is not None else profile.opt_tm
+    tm_target_rev = profile.opt_tm_rev if profile.opt_tm_rev is not None else profile.opt_tm
+    tm_target_overlap = profile.opt_tm_overlap if profile.opt_tm_overlap is not None else 52.0
+    min_3p = profile.min_3prime_dist
+
     candidates: list[SdmPrimerResult] = []
 
-    # Try multiple overlap lengths: from requested down to 15bp
+    # Try multiple overlap lengths: from requested down to minimum
     # Shorter overlaps have lower Tm, making the Tm condition easier to meet
-    overlap_lengths = list(range(overlap_len, 14, -1))
+    # Allow shorter overlaps (down to 10bp) when targeting low overlap Tm
+    min_overlap = 10 if tm_target_overlap < 50.0 else 15
+    overlap_lengths = list(range(overlap_len, min_overlap - 1, -1))
 
     for ov_len in overlap_lengths:
         # Generate overlap window candidates
@@ -173,6 +189,15 @@ def _design_single_sdm(
         )
 
         for window in windows:
+            # Check min_3prime_dist: mutation codon must be >= min_3p bp
+            # from the 3' end of the overlap (forward direction)
+            if min_3p > 0:
+                codon_end = mutation.codon_start + 3
+                overlap_end = window.start + ov_len
+                dist_to_3prime = overlap_end - codon_end
+                if dist_to_3prime < min_3p:
+                    continue
+
             overlap_seq = window.sequence
             overlap_tm = _calc_tm(overlap_seq, profile)
 
@@ -190,6 +215,7 @@ def _design_single_sdm(
 
             fwd_binding, tm_no_fwd = _extend_primer(
                 downstream, 0, "forward", profile,
+                target_tm=tm_target_fwd,
                 min_len=10, max_len=min(30, len(downstream)),
             )
 
@@ -207,6 +233,7 @@ def _design_single_sdm(
 
             rev_binding, tm_no_rev = _extend_primer(
                 upstream, len(upstream) - 1, "reverse", profile,
+                target_tm=tm_target_rev,
                 min_len=10, max_len=min(30, len(upstream)),
             )
 
@@ -255,13 +282,17 @@ def _design_single_sdm(
     if not candidates:
         return None
 
-    # Rank candidates: prioritize Tm condition met, then minimize |Tm_fwd - Tm_rev|
+    # Rank candidates: prioritize Tm condition met, then Fwd/Rev Tm closeness
+    # to targets, then overlap Tm closeness to target
     def _score(r: SdmPrimerResult) -> tuple[int, float, float]:
         tm_ok = 0 if r.tm_condition_met else 1
-        tm_diff = abs(r.tm_no_fwd - r.tm_no_rev)
-        # Prefer overlap Tm closer to 50-55 range for good assembly
-        overlap_penalty = abs(r.tm_overlap - 52.0)
-        return (tm_ok, tm_diff, overlap_penalty)
+        # Penalize deviation from asymmetric Tm targets
+        fwd_dev = abs(r.tm_no_fwd - tm_target_fwd)
+        rev_dev = abs(r.tm_no_rev - tm_target_rev)
+        tm_deviation = fwd_dev + rev_dev
+        # Prefer overlap Tm closer to target (42°C for Benchling, 52°C default)
+        overlap_penalty = abs(r.tm_overlap - tm_target_overlap)
+        return (tm_ok, tm_deviation, overlap_penalty)
 
     candidates.sort(key=_score)
     return candidates[0]

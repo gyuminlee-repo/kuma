@@ -1,4 +1,26 @@
 {
+  "Benchling": {
+    "name": "Benchling",
+    "tm_method": "santalucia",
+    "salt_correction": "santalucia",
+    "opt_tm": 62.0,
+    "min_tm": 55.0,
+    "max_tm": 65.0,
+    "opt_size": 25,
+    "min_size": 19,
+    "max_size": 39,
+    "min_gc": 30.0,
+    "max_gc": 70.0,
+    "salt_monovalent": 50.0,
+    "salt_divalent": 1.5,
+    "dntp_conc": 0.8,
+    "dna_conc": 250.0,
+    "max_tm_diff": 5.0,
+    "opt_tm_fwd": 62.0,
+    "opt_tm_rev": 58.0,
+    "opt_tm_overlap": 42.0,
+    "min_3prime_dist": 4
+  },
   "Taq": {
     "name": "Taq",
     "tm_method": "breslauer",

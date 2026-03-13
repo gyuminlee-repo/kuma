@@ -42,7 +42,7 @@ npm run build:all
 2. **Browse** 버튼으로 FASTA 파일을 불러온다.
 3. CDS Start가 자동 선택된다 (가장 긴 ORF 기준). 필요 시 수동 변경.
 4. 변이 목록을 텍스트로 입력하거나 CSV 파일을 업로드한다.
-5. 폴리머라제를 선택한다 (기본값: Q5).
+5. 폴리머라제를 선택한다 (기본값: Benchling — Fwd 62°C / Rev 58°C / Overlap 42°C).
 6. **Design Primers** 클릭.
 7. 프라이머 테이블과 Plate Map이 자동 생성된다.
 8. File 메뉴에서 Export TSV 또는 Export Excel로 내보낸다.
@@ -140,20 +140,22 @@ ATG 시작 코돈의 0-based 위치. FASTA 로드 시 자동 선택되지만 수
 
 ### Polymerase
 
-내장 5종 프로필을 지원한다. 폴리머라제별로 Tm 계산 조건이 다르다.
+내장 6종 프로필을 지원한다. 폴리머라제별로 Tm 계산 조건이 다르다.
 
-| 폴리머라제 | 제조사 | Tm 방법 | Salt 보정 | Opt Tm | Mg2+ (mM) |
-|------------|--------|---------|-----------|--------|------------|
-| Q5 | NEB | SantaLucia | Owczarzy | 72.0 | 2.0 |
-| Phusion | Thermo | SantaLucia | Owczarzy | 72.0 | 1.5 |
-| KOD | Toyobo | SantaLucia | SantaLucia | 68.0 | 1.5 |
-| Taq | Generic | Breslauer | Schildkraut | 60.0 | 1.5 |
-| DreamTaq | Thermo | Breslauer | Schildkraut | 62.0 | 1.5 |
+| 폴리머라제 | Tm 방법 | Fwd Tm | Rev Tm | Overlap Tm | Mg2+ (mM) | 비대칭 |
+|------------|---------|--------|--------|------------|-----------|--------|
+| **Benchling** | SantaLucia | 62.0 | 58.0 | 42.0 | 1.5 | O |
+| Q5 | SantaLucia | 72.0 | 72.0 | — | 2.0 | X |
+| Phusion | SantaLucia | 72.0 | 72.0 | — | 1.5 | X |
+| KOD | SantaLucia | 68.0 | 68.0 | — | 1.5 | X |
+| Taq | Breslauer | 60.0 | 60.0 | — | 1.5 | X |
+| DreamTaq | Breslauer | 62.0 | 62.0 | — | 1.5 | X |
 
-- **Q5, Phusion**: high-fidelity 효소. SantaLucia 열역학 모델 + Owczarzy salt 보정 사용. Opt Tm이 72도로 높다.
-- **Taq, DreamTaq**: Breslauer 모델. Opt Tm이 60-62도로 낮다.
-- **KOD**: SantaLucia 모델이지만 Opt Tm이 68도로 중간.
-- 실험에 사용할 폴리머라제와 일치하는 프로필을 선택해야 Tm 계산이 정확하다.
+- **Benchling (기본)**: Landwehr et al. (2025, Nat Commun) 기반 비대칭 Tm 설계. Forward 62°C, Reverse 58°C, Overlap ~42°C. SantaLucia 1998 모델. Mutation → 3' 말단 최소 4 bp 거리 제약 포함. C1팀 실험 프로토콜과 동일한 조건.
+- **Q5, Phusion**: high-fidelity 효소. Owczarzy salt 보정 사용. Opt Tm이 72°C로 높아 대칭 설계.
+- **Taq, DreamTaq**: Breslauer 모델. Opt Tm이 60-62°C.
+- **KOD**: SantaLucia 모델, Opt Tm 68°C.
+- 비대칭 프로필(Benchling)은 Forward/Reverse에 서로 다른 Tm 목표를 적용하여, 실제 Benchling 기반 설계와 동일한 Tm 분포를 재현한다.
 
 ### Overlap Length
 
@@ -162,7 +164,7 @@ ATG 시작 코돈의 0-based 위치. FASTA 로드 시 자동 선택되지만 수
 - 기본값: 20 bp
 - 조절 범위: 15-40 bp
 - overlap이 길수록 Tm_overlap이 높아져 Tm 이중 조건을 충족하기 어려워진다
-- SDMBench는 지정된 overlap 길이에서 시작하여 15 bp까지 자동으로 줄여가며 Tm 조건을 충족하는 최적 길이를 탐색한다
+- SDMBench는 지정된 overlap 길이에서 시작하여 자동으로 줄여가며 Tm 조건을 충족하는 최적 길이를 탐색한다 (overlap Tm 목표 < 50°C인 Benchling 프로필은 10 bp까지, 기타 프로필은 15 bp까지)
 
 ---
 
@@ -267,7 +269,7 @@ python -m evolveprimer design \
   --fasta fixtures/pSHCE-dmpR.fa \
   --target-start 1790 \
   --mutations fixtures/mutation_list_insilico_test.csv \
-  --polymerase Q5 \
+  --polymerase Benchling \
   --overlap 20 \
   --output /tmp/sdm_test/
 ```
@@ -277,7 +279,7 @@ python -m evolveprimer design \
 | `--fasta` | 템플릿 FASTA 파일 경로 | (필수) |
 | `--target-start` | CDS 시작 코돈 0-based 위치 | (필수) |
 | `--mutations` | 변이 CSV 파일 경로 (`mutation` 열 필수) | (필수) |
-| `--polymerase` | 폴리머라제 프로필 이름 | Q5 |
+| `--polymerase` | 폴리머라제 프로필 이름 | Benchling |
 | `--overlap` | Overlap 길이 (bp) | 20 |
 | `--output` | 출력 디렉토리 | results/ |
 | `-v` | 상세 로그 출력 | off |
@@ -338,7 +340,7 @@ npm run dev
 
 **원인**: 지원되지 않는 폴리머라제 이름.
 
-**해결**: 사용 가능한 프로필: `Taq`, `Phusion`, `Q5`, `KOD`, `DreamTaq` (대소문자 정확히 입력)
+**해결**: 사용 가능한 프로필: `Benchling`, `Taq`, `Phusion`, `Q5`, `KOD`, `DreamTaq` (대소문자 정확히 입력)
 
 ### "CSV file missing required 'mutation' column"
 
@@ -377,10 +379,10 @@ python -m evolveprimer design \
   --fasta fixtures/pSHCE-dmpR.fa \
   --target-start 1790 \
   --mutations fixtures/mutation_list_insilico_test.csv \
-  --polymerase Q5 \
+  --polymerase Benchling \
   --overlap 20 \
   --output /tmp/sdm_test/
 
-# pytest 실행 (37 tests)
+# pytest 실행 (38 tests)
 python -m pytest tests/ -v
 ```
