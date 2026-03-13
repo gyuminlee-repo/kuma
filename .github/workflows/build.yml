@@ -1,0 +1,104 @@
+name: Build & Release
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-latest
+            target: x86_64-pc-windows-msvc
+            sidecar-ext: .exe
+          - platform: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            sidecar-ext: ""
+          - platform: macos-latest
+            target: aarch64-apple-darwin
+            sidecar-ext: ""
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # --- System dependencies (Linux only) ---
+      - name: Install Linux dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libgtk-3-dev
+
+      # --- Python ---
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: pip install primer3-py==2.3.0 biopython==1.84 openpyxl==3.1.5 pyinstaller
+
+      # --- Build Python sidecar ---
+      - name: Build sidecar
+        run: python build_sidecar.py --onefile
+        working-directory: python-core
+
+      - name: Verify sidecar binary
+        shell: bash
+        run: |
+          SIDECAR="src-tauri/binaries/evolveproprimer-sidecar-${{ matrix.target }}${{ matrix.sidecar-ext }}"
+          ls -la "$SIDECAR"
+          test -f "$SIDECAR"
+
+      # --- Node.js ---
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      # --- Rust ---
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      # --- Build Tauri ---
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "SDMBench ${{ github.ref_name }}"
+          releaseBody: "See the assets for download links."
+          releaseDraft: true
+          prerelease: false
+          args: --target ${{ matrix.target }}
+
+      # --- Upload artifacts (for PRs / non-tag builds) ---
+      - name: Upload build artifacts
+        if: "!startsWith(github.ref, 'refs/tags/')"
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdmbench-${{ matrix.target }}
+          path: |
+            src-tauri/target/${{ matrix.target }}/release/bundle/**/*
+          retention-days: 7

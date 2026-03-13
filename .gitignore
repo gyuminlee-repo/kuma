@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.env
+*.exe
+src-tauri/target/
+src-tauri/binaries/*.exe
+src-tauri/binaries/*-sidecar-*
+python-core/dist/
+python-core/build/
+python-core/*.spec
+__pycache__/
+*.pyc
+results/

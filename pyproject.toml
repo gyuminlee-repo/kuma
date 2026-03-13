@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "evolveprimer"
+version = "0.1.0"
+description = "EVOLVEpro SDM primer batch design tool"
+requires-python = ">=3.11"
+dependencies = [
+    "primer3-py==2.3.0",
+    "biopython==1.84",
+    "openpyxl==3.1.5",
+]
+
+[project.scripts]
+evolveprimer = "evolveprimer.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["evolveprimer*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
