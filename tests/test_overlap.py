@@ -26,21 +26,19 @@ class TestReverseComplement:
 class TestOverlapWindows:
     def test_window_count(self):
         seq = "A" * 100
-        # codon at position 50, overlap_len=20
-        # earliest start = 50 - 20 + 3 = 33, latest start = 50
-        # positions: 33, 34, ..., 50 = 18 windows
+        # Upstream-only: exactly 1 window per overlap_len
         windows = generate_overlap_windows(seq, codon_start=50, overlap_len=20)
-        assert len(windows) == 18
+        assert len(windows) == 1
 
-    def test_all_windows_contain_codon(self):
+    def test_window_is_upstream_of_codon(self):
         seq = "ACGT" * 100  # 400 bp
         codon_start = 150
         windows = generate_overlap_windows(seq, codon_start=codon_start, overlap_len=20)
         for w in windows:
-            # The codon (3 bases at codon_start) must be within the window
-            assert w.contains_mutation
-            # codon_offset should be valid
-            assert 0 <= w.codon_offset <= 17  # overlap_len - 3
+            # Overlap ends at codon_start (upstream only, mutation NOT inside)
+            assert w.end == codon_start
+            assert not w.contains_mutation
+            assert w.codon_offset == 20  # codon is right after the window
 
     def test_window_length(self):
         seq = "A" * 200
