@@ -299,11 +299,17 @@ def _design_single_sdm(
 
 
 def load_fasta(fasta_path: Path) -> tuple[str, str]:
-    """Load a single-record FASTA file.
+    """Load a sequence file (FASTA or SnapGene .dna).
 
     Returns:
         Tuple of (header, sequence).
     """
+    suffix = fasta_path.suffix.lower()
+
+    if suffix == ".dna":
+        return _load_snapgene(fasta_path)
+
+    # Default: plain FASTA
     header = ""
     seq_parts: list[str] = []
     with open(fasta_path) as f:
@@ -314,6 +320,20 @@ def load_fasta(fasta_path: Path) -> tuple[str, str]:
             elif line:
                 seq_parts.append(line)
     sequence = "".join(seq_parts).upper()
+    return header, sequence
+
+
+def _load_snapgene(dna_path: Path) -> tuple[str, str]:
+    """Load a SnapGene .dna file using Biopython SeqIO.
+
+    Returns:
+        Tuple of (header, sequence).
+    """
+    from Bio import SeqIO
+
+    record = SeqIO.read(dna_path, "snapgene")
+    header = record.description if record.description else record.id
+    sequence = str(record.seq).upper()
     return header, sequence
 
 

@@ -31,8 +31,8 @@ export function InputPanel() {
     const path = await open({
       filters: [
         {
-          name: "FASTA",
-          extensions: ["fa", "fasta", "fna", "fas"],
+          name: "Sequence (FASTA/SnapGene)",
+          extensions: ["fa", "fasta", "fna", "fas", "dna"],
         },
       ],
       multiple: false,
