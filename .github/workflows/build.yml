@@ -124,4 +124,9 @@ jobs:
           FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
         with:
           draft: true
-          files: artifacts/**/*
+          files: |
+            artifacts/**/*.dmg
+            artifacts/**/*.msi
+            artifacts/**/*.exe
+            artifacts/**/*.deb
+            artifacts/**/*.AppImage
