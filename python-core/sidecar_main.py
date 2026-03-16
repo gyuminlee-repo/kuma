@@ -318,16 +318,22 @@ def handle_design_sdm_primers(params: dict) -> dict:
 
 def _serialize_result(r: SdmPrimerResult) -> dict:
     """Serialize a single SdmPrimerResult for JSON-RPC."""
+    overlap_len = len(r.overlap_window.sequence)
     return {
         "mutation": r.mutation.raw,
+        "codon_pos": r.mutation.codon_start,
         "forward_seq": r.forward_seq,
         "reverse_seq": r.reverse_seq,
         "fwd_len": r.fwd_len,
         "rev_len": r.rev_len,
+        "overlap_len": overlap_len,
         "tm_no_fwd": round(r.tm_no_fwd, 1),
         "tm_no_rev": round(r.tm_no_rev, 1),
         "tm_overlap": round(r.tm_overlap, 1),
         "tm_condition_met": r.tm_condition_met,
+        "tolerance_used": r.tolerance_used,
+        "has_offtarget": r.has_offtarget,
+        "penalty": round(r.penalty, 1),
         "gc_fwd": round(r.gc_fwd, 1),
         "gc_rev": round(r.gc_rev, 1),
         "wt_codon": r.mutation.wt_codon,

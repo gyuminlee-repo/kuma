@@ -100,7 +100,7 @@ SDMBench/
 │   └── components/
 │       ├── layout/AppLayout.tsx  2컬럼 레이아웃 + 메뉴바
 │       ├── panels/               입력 + 파라미터 패널
-│       └── widgets/              ResultTable + PlateMap
+│       └── widgets/              ResultTable (overlap/mutation/downstream 색상 표시, 위치 그룹 배지) + PlateMap
 ├── src-tauri/                    Tauri v2 데스크톱 셸
 ├── python-core/                  사이드카 래퍼
 │   ├── sidecar_main.py           JSON-RPC 디스패처 (7개 메서드)
@@ -112,7 +112,7 @@ SDMBench/
 │   ├── plate_mapper.py           96-well plate mapping
 │   ├── polymerase.py             폴리머라제 프로필 (자체 내장)
 │   └── resources/                polymerase_profiles.json
-├── tests/                        pytest (10 tests)
+├── tests/                        pytest (38 tests)
 ├── fixtures/                     테스트 데이터
 └── .github/workflows/build.yml  크로스플랫폼 CI
 ```
@@ -133,7 +133,7 @@ SDMBench/
 
 ```bash
 python -m pytest tests/ -v
-# 10 passed
+# 38 passed
 ```
 
 ## 의존성

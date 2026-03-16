@@ -22,14 +22,19 @@ export interface ParsedMutation {
 
 export interface SdmPrimerResult {
   mutation: string;
+  codon_pos: number;
   forward_seq: string;
   reverse_seq: string;
   fwd_len: number;
   rev_len: number;
+  overlap_len: number;
   tm_no_fwd: number;
   tm_no_rev: number;
   tm_overlap: number;
   tm_condition_met: boolean;
+  tolerance_used: number;
+  has_offtarget: boolean;
+  penalty: number;
   gc_fwd: number;
   gc_rev: number;
   wt_codon: string;
