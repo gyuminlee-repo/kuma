@@ -394,6 +394,43 @@ def handle_export_excel(params: dict) -> dict:
     return {"success": True, "filepath": str(resolved)}
 
 
+def handle_load_evolvepro_csv(params: dict) -> dict:
+    """Load EVOLVEpro df_test.csv, sort by y_pred descending, return top-N variants."""
+    filepath = params.get("filepath", "")
+    if not filepath:
+        raise ValueError("filepath is required")
+
+    top_n = int(params.get("top_n", 96))
+
+    rows: list[tuple[str, float]] = []
+    with open(filepath, encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        columns = reader.fieldnames or []
+        if "variant" not in columns:
+            raise ValueError(
+                "EVOLVEpro CSV must have a 'variant' column. "
+                f"Found columns: {columns}"
+            )
+        has_ypred = "y_pred" in columns
+        for row in reader:
+            variant = row.get("variant", "").strip()
+            if not variant:
+                continue
+            y_pred = float(row["y_pred"]) if has_ypred and row.get("y_pred") else 0.0
+            rows.append((variant, y_pred))
+
+    if has_ypred:
+        rows.sort(key=lambda r: r[1], reverse=True)
+
+    selected = rows[:top_n]
+    return {
+        "variants": [v for v, _ in selected],
+        "y_preds": [round(y, 4) for _, y in selected],
+        "total_count": len(rows),
+        "selected_count": len(selected),
+    }
+
+
 # --- Dispatcher ---
 
 _METHODS = {
@@ -401,6 +438,7 @@ _METHODS = {
     "load_fasta": handle_load_fasta,
     "parse_mutations_text": handle_parse_mutations_text,
     "design_sdm_primers": handle_design_sdm_primers,
+    "load_evolvepro_csv": handle_load_evolvepro_csv,
     "get_plate_map": handle_get_plate_map,
     "export_tsv": handle_export_tsv,
     "export_excel": handle_export_excel,

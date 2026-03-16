@@ -8,6 +8,7 @@ import type {
   DesignResult,
   PlateMapping,
   PlateMapResult,
+  EvolveproLoadResult,
 } from "../types/models";
 
 interface AppState {
@@ -17,9 +18,10 @@ interface AppState {
   // Input
   fastaPath: string;
   fastaInfo: FastaInfo | null;
-  mutationInputMode: "text" | "csv";
+  mutationInputMode: "text" | "csv" | "evolvepro";
   mutationText: string;
   mutationCsvPath: string;
+  evolveproCsvPath: string;
   parsedMutations: ParsedMutation[];
 
   // Parameters
@@ -45,9 +47,10 @@ interface AppState {
   fetchPolymerases: () => Promise<void>;
   loadFasta: (filepath: string) => Promise<void>;
   setCdsStart: (start: number) => void;
-  setMutationInputMode: (mode: "text" | "csv") => void;
+  setMutationInputMode: (mode: "text" | "csv" | "evolvepro") => void;
   setMutationText: (text: string) => void;
   setMutationCsvPath: (path: string) => void;
+  loadEvolveproCsv: (filepath: string) => Promise<void>;
   setSelectedPolymerase: (name: string) => void;
   setOverlapLen: (len: number) => void;
   parseMutations: () => Promise<void>;
@@ -69,6 +72,7 @@ export const useAppStore = create<AppState>((set, get) => {
     mutationInputMode: "text",
     mutationText: "",
     mutationCsvPath: "",
+    evolveproCsvPath: "",
     parsedMutations: [],
     cdsStart: 0,
     selectedPolymerase: "KOD",
@@ -125,6 +129,24 @@ export const useAppStore = create<AppState>((set, get) => {
     setMutationInputMode: (mode) => set({ mutationInputMode: mode }),
     setMutationText: (text) => set({ mutationText: text }),
     setMutationCsvPath: (path) => set({ mutationCsvPath: path }),
+
+    loadEvolveproCsv: async (filepath: string) => {
+      try {
+        set({ statusMessage: "Loading EVOLVEpro CSV...", evolveproCsvPath: filepath });
+        const result = await sendRequest<EvolveproLoadResult>(
+          "load_evolvepro_csv",
+          { filepath, top_n: 96 },
+        );
+        const variantText = result.variants.join("\n");
+        set({
+          mutationText: variantText,
+          mutationInputMode: "evolvepro",
+          statusMessage: `EVOLVEpro: ${result.selected_count}/${result.total_count} variants loaded (top-96 by y_pred)`,
+        });
+      } catch (err) {
+        set({ statusMessage: `EVOLVEpro CSV load failed: ${err instanceof Error ? err.message : String(err)}` });
+      }
+    },
     setSelectedPolymerase: (name) => set({ selectedPolymerase: name }),
     setOverlapLen: (len) => set({ overlapLen: len }),
 
@@ -170,7 +192,7 @@ export const useAppStore = create<AppState>((set, get) => {
           fasta_path: fastaPath,
           target_start: cdsStart,
           mutations_csv_or_text:
-            mutationInputMode === "text" ? mutationText : mutationCsvPath,
+            mutationInputMode === "csv" ? mutationCsvPath : mutationText,
           polymerase: selectedPolymerase,
           overlap_len: overlapLen,
         });

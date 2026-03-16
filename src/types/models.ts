@@ -43,6 +43,13 @@ export interface SdmPrimerResult {
   warnings: string[];
 }
 
+export interface EvolveproLoadResult {
+  variants: string[];
+  y_preds: number[];
+  total_count: number;
+  selected_count: number;
+}
+
 export interface DesignResult {
   results: SdmPrimerResult[];
   success_count: number;

@@ -57,6 +57,18 @@ export function InputPanel() {
   }
 
   const mutationCsvPath = useAppStore((s) => s.mutationCsvPath);
+  const evolveproCsvPath = useAppStore((s) => s.evolveproCsvPath);
+  const loadEvolveproCsv = useAppStore((s) => s.loadEvolveproCsv);
+
+  async function handleBrowseEvolvepro() {
+    const path = await open({
+      filters: [{ name: "EVOLVEpro CSV", extensions: ["csv"] }],
+      multiple: false,
+    });
+    if (path) {
+      await loadEvolveproCsv(path as string);
+    }
+  }
 
   return (
     <div className="border border-gray-300 rounded p-3 space-y-3">
@@ -126,16 +138,28 @@ export function InputPanel() {
             />
             CSV
           </label>
+          <label className="flex items-center gap-1">
+            <input
+              type="radio"
+              name="mutInput"
+              checked={mutationInputMode === "evolvepro"}
+              onChange={() => setMutationInputMode("evolvepro")}
+              className="w-3 h-3"
+            />
+            EVOLVEpro
+          </label>
         </div>
 
-        {mutationInputMode === "text" ? (
+        {mutationInputMode === "text" && (
           <textarea
             className="w-full h-32 text-xs font-mono border border-gray-300 rounded p-2 resize-none focus:outline-none focus:ring-1 focus:ring-green-500"
             placeholder={"Q232A\nY233A\nE335A\n..."}
             value={mutationText}
             onChange={(e) => setMutationText(e.target.value)}
           />
-        ) : (
+        )}
+
+        {mutationInputMode === "csv" && (
           <div className="flex gap-1">
             <Button
               variant="outline"
@@ -153,7 +177,35 @@ export function InputPanel() {
           </div>
         )}
 
-        {mutationInputMode === "text" && mutationText.trim() && (
+        {mutationInputMode === "evolvepro" && (
+          <div className="space-y-1">
+            <div className="flex gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleBrowseEvolvepro}
+                className="flex-shrink-0"
+              >
+                Browse df_test.csv
+              </Button>
+              <span className="text-xs text-gray-500 truncate self-center">
+                {evolveproCsvPath
+                  ? evolveproCsvPath.split(/[\\/]/).pop()
+                  : "No file selected"}
+              </span>
+            </div>
+            {mutationText && (
+              <textarea
+                className="w-full h-32 text-xs font-mono border border-gray-300 rounded p-2 resize-none bg-gray-50"
+                value={mutationText}
+                onChange={(e) => setMutationText(e.target.value)}
+                title="Top-96 variants by y_pred (editable)"
+              />
+            )}
+          </div>
+        )}
+
+        {(mutationInputMode === "text" || mutationInputMode === "evolvepro") && mutationText.trim() && (
           <div className="text-xs text-gray-400">
             {
               mutationText
