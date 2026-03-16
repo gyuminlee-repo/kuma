@@ -35,10 +35,9 @@ function buildGroupColorMap(results: SdmPrimerResult[]): Map<number, string> {
 }
 
 /** Forward primer with overlap(blue) + mutation(red) + downstream(black) coloring */
-function ColoredFwdSeq({ seq, overlapLen, mtCodon }: {
+function ColoredFwdSeq({ seq, overlapLen }: {
   seq: string;
   overlapLen: number;
-  mtCodon: string;
 }) {
   const overlap = seq.slice(0, overlapLen);
   const codon = seq.slice(overlapLen, overlapLen + 3);
@@ -89,7 +88,6 @@ function makeColumns(groupColorMap: Map<number, string>) {
           <ColoredFwdSeq
             seq={info.getValue()}
             overlapLen={row.overlap_len ?? 0}
-            mtCodon={row.mt_codon}
           />
         );
       },
