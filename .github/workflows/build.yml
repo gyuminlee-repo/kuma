@@ -95,6 +95,8 @@ jobs:
       # --- Upload artifacts ---
       - name: Upload build artifacts
         uses: actions/upload-artifact@v5
+        env:
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
         with:
           name: sdmbench-${{ matrix.target }}
           path: |
@@ -110,13 +112,16 @@ jobs:
       - uses: actions/checkout@v5
 
       - uses: actions/download-artifact@v5
+        env:
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
         with:
           path: artifacts
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
         with:
           draft: true
           files: artifacts/**/*
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
