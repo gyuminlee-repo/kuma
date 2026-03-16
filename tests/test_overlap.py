@@ -35,9 +35,8 @@ class TestOverlapWindows:
         codon_start = 150
         windows = generate_overlap_windows(seq, codon_start=codon_start, overlap_len=20)
         for w in windows:
-            # Overlap ends at codon_start (upstream only, mutation NOT inside)
+            # Overlap ends at codon_start (upstream only)
             assert w.end == codon_start
-            assert not w.contains_mutation
             assert w.codon_offset == 20  # codon is right after the window
 
     def test_window_length(self):
@@ -58,7 +57,7 @@ class TestLinearizeCircular:
     def test_linearize_identity(self):
         seq = "ABCDEFGHIJ"
         window = OverlapWindow(
-            sequence="ABC", start=0, end=3, codon_offset=0, contains_mutation=True
+            sequence="ABC", start=0, end=3, codon_offset=0
         )
         linear, new_pos = linearize_circular(seq, window)
         assert linear == seq  # Cut at position 0 = no change
@@ -67,7 +66,7 @@ class TestLinearizeCircular:
     def test_linearize_middle(self):
         seq = "ABCDEFGHIJ"
         window = OverlapWindow(
-            sequence="EFGH", start=4, end=8, codon_offset=1, contains_mutation=True
+            sequence="EFGH", start=4, end=8, codon_offset=1
         )
         linear, new_pos = linearize_circular(seq, window)
         assert linear == "EFGHIJABCD"

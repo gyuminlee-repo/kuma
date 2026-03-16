@@ -77,28 +77,6 @@ class SdmPrimerResult:
         self.gc_rev = _gc_percent(self.reverse_seq)
 
 
-def _calc_tm(
-    seq: str,
-    profile: PolymeraseProfile,
-) -> float:
-    """Calculate Tm using primer3 with polymerase-specific parameters."""
-    tm_method = "santalucia" if profile.tm_method == "santalucia" else "breslauer"
-    salt_method = (
-        "owczarzy" if profile.salt_correction == "owczarzy"
-        else "santalucia" if profile.salt_correction == "santalucia"
-        else "schildkraut"
-    )
-    return primer3.calc_tm(
-        seq,
-        mv_conc=profile.salt_monovalent,
-        dv_conc=profile.salt_divalent,
-        dntp_conc=profile.dntp_conc,
-        dna_conc=profile.dna_conc,
-        tm_method=tm_method,
-        salt_corrections_method=salt_method,
-    )
-
-
 def _calc_sdm_tm(seq: str) -> float:
     """Calculate Tm using SantaLucia 1998 with Benchling default parameters.
 
@@ -128,7 +106,6 @@ def _extend_forward(
     overlap_seq: str,
     mutant_codon: str,
     downstream_seq: str,
-    profile: PolymeraseProfile,
     target_tm: float,
     tolerance: float,
     min_downstream: int = 4,
@@ -175,7 +152,6 @@ def _extend_forward(
 def _extend_reverse(
     overlap_seq: str,
     upstream_seq: str,
-    profile: PolymeraseProfile,
     target_tm: float,
     tolerance: float,
     rev_len_min: int = 12,
@@ -226,11 +202,16 @@ def check_offtarget(
     template: str,
     intended_start: int,
     intended_end: int,
-    profile: PolymeraseProfile,
     min_match: int = 15,
     tm_threshold: float = 45.0,
+    antisense_cache: str | None = None,
 ) -> list[OffTargetHit]:
-    """Check for off-target binding sites on the template."""
+    """Check for off-target binding sites on the template.
+
+    Args:
+        antisense_cache: Pre-computed rc(template.upper()) to avoid
+            recomputing for every primer in a batch.
+    """
     hits: list[OffTargetHit] = []
     p_upper = primer_seq.upper()
     t_upper = template.upper()
@@ -242,9 +223,11 @@ def check_offtarget(
 
     primer_3end = p_upper[-(min_match):]
 
+    rc_template = antisense_cache if antisense_cache else reverse_complement(t_upper)
+
     for strand_label, strand_seq in [
         ("sense", t_upper),
-        ("antisense", reverse_complement(t_upper)),
+        ("antisense", rc_template),
     ]:
         slen = len(strand_seq)
         for pos in range(slen - min_match + 1):
@@ -290,7 +273,6 @@ def _search_candidates(
     seq: str,
     mutated_seq: str,
     mutation: Mutation,
-    profile: PolymeraseProfile,
     overlap_len: int,
     tm_target_fwd: float,
     tm_target_rev: float,
@@ -318,7 +300,7 @@ def _search_candidates(
 
         fwd_result = _extend_forward(
             overlap_seq, mutation.mt_codon, downstream_seq,
-            profile, tm_target_fwd, tolerance, min_downstream,
+            tm_target_fwd, tolerance, min_downstream,
         )
         if fwd_result is None:
             continue
@@ -328,7 +310,7 @@ def _search_candidates(
         upstream_seq = mutated_seq[max(0, overlap_start - 35):overlap_start]
 
         rev_result = _extend_reverse(
-            overlap_seq, upstream_seq, profile, tm_target_rev, tolerance,
+            overlap_seq, upstream_seq, tm_target_rev, tolerance,
         )
         if rev_result is None:
             continue
@@ -406,24 +388,27 @@ def _design_single_sdm(
         all_candidates: list[SdmPrimerResult] = []
         for ov_len in overlap_lengths:
             candidates = _search_candidates(
-                seq, mutated_seq, mutation, profile, ov_len,
+                seq, mutated_seq, mutation, ov_len,
                 tm_target_fwd, tm_target_rev, tm_target_overlap,
                 tolerance=round(tol, 1), min_downstream=min_downstream,
             )
             all_candidates.extend(candidates)
 
         if all_candidates:
-            # Off-target check
+            # Off-target check (precompute antisense once)
+            rc_template = reverse_complement(seq.upper())
             for c in all_candidates:
                 fwd_start = c.overlap_window.start
                 fwd_end = fwd_start + c.fwd_len
                 c.offtarget_fwd = check_offtarget(
-                    c.forward_seq, seq, fwd_start, fwd_end, profile,
+                    c.forward_seq, seq, fwd_start, fwd_end,
+                    antisense_cache=rc_template,
                 )
                 rev_start = c.overlap_window.start - len(c.reverse_binding)
                 rev_end = c.overlap_window.end
                 c.offtarget_rev = check_offtarget(
-                    c.reverse_seq, seq, rev_start, rev_end, profile,
+                    c.reverse_seq, seq, rev_start, rev_end,
+                    antisense_cache=rc_template,
                 )
                 if c.offtarget_fwd or c.offtarget_rev:
                     c.has_offtarget = True

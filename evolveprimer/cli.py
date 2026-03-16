@@ -87,7 +87,6 @@ def cmd_plate_map(args: argparse.Namespace) -> None:
                 start=0,
                 end=0,
                 codon_offset=0,
-                contains_mutation=True,
             )
             r = SdmPrimerResult(
                 mutation=mut,
@@ -96,10 +95,10 @@ def cmd_plate_map(args: argparse.Namespace) -> None:
                 forward_binding="",
                 reverse_binding="",
                 overlap_window=window,
-                tm_no_fwd=float(row.get("Tm_NonOverlap_Fwd", 0)),
-                tm_no_rev=float(row.get("Tm_NonOverlap_Rev", 0)),
+                tm_fwd=float(row.get("Tm_Fwd", row.get("Tm_NonOverlap_Fwd", 0))),
+                tm_rev=float(row.get("Tm_Rev", row.get("Tm_NonOverlap_Rev", 0))),
                 tm_overlap=float(row.get("Tm_Overlap", 0)),
-                tm_condition_met=row.get("Tm_Condition_Met") == "YES",
+                tm_condition_met=row.get("Tm_Condition_Met", row.get("Off_Target", "")) != "YES",
             )
             results.append(r)
 

@@ -12,8 +12,7 @@ class OverlapWindow:
     sequence: str           # Overlap nucleotide sequence
     start: int              # 0-based start position in the (mutated) sequence
     end: int                # 0-based end position (exclusive)
-    codon_offset: int       # Offset of mutant codon within the overlap
-    contains_mutation: bool  # Always True for valid windows
+    codon_offset: int       # Offset of mutant codon (= overlap_len when upstream-only)
 
 
 def generate_overlap_windows(
@@ -59,7 +58,6 @@ def generate_overlap_windows(
         start=start_adj,
         end=codon_start,
         codon_offset=overlap_len,  # codon is right after the window
-        contains_mutation=False,   # mutation is OUTSIDE overlap
     )]
 
 
