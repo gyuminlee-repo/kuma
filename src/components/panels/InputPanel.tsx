@@ -34,6 +34,10 @@ export function InputPanel() {
           name: "Sequence (FASTA/SnapGene)",
           extensions: ["fa", "fasta", "fna", "fas", "dna"],
         },
+        {
+          name: "All Files",
+          extensions: ["*"],
+        },
       ],
       multiple: false,
     });

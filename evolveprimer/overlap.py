@@ -22,58 +22,45 @@ def generate_overlap_windows(
     overlap_len: int = 20,
     step: int = 1,
 ) -> list[OverlapWindow]:
-    """Generate sliding overlap windows centered around a mutation site.
+    """Generate overlap windows UPSTREAM of the mutation codon.
 
-    The overlap window must fully contain the mutant codon (3 bp).
-    Windows slide from (codon_start - overlap_len + 3) to codon_start,
-    ensuring the 3-bp codon is always within the window.
+    The overlap region ends at the mutation codon start (exclusive).
+    This follows the EVOLVEpro partially-overlapping primer design:
+      Forward = [overlap upstream] + [mutant codon] + [downstream extension]
+      Reverse = [upstream extension] + [rc(overlap)]
 
     Args:
         seq: Full DNA sequence (mutated).
         codon_start: 0-based start position of the mutant codon.
         overlap_len: Length of the overlap window in bp.
-        step: Sliding step size.
+        step: Sliding step size (unused, kept for API compat).
 
     Returns:
-        List of OverlapWindow candidates.
+        List of OverlapWindow candidates (one per overlap_len).
     """
     seq = seq.upper()
     seq_len = len(seq)
-    windows: list[OverlapWindow] = []
 
-    # The window must contain all 3 bases of the codon
-    # Window start ranges from (codon_start - overlap_len + 3) to codon_start
-    earliest_start = codon_start - overlap_len + 3
-    latest_start = codon_start
+    # Overlap ends at codon_start (upstream only, mutation NOT inside)
+    start = codon_start - overlap_len
+    if start < 0:
+        # Circular wrap
+        start_adj = start + seq_len
+        overlap_seq = seq[start_adj:] + seq[:codon_start]
+    else:
+        start_adj = start
+        overlap_seq = seq[start_adj:codon_start]
 
-    for start in range(earliest_start, latest_start + 1, step):
-        # Handle circular wrapping
-        if start < 0:
-            start_adj = start + seq_len
-        else:
-            start_adj = start
+    if len(overlap_seq) != overlap_len:
+        return []
 
-        end = start_adj + overlap_len
-
-        # Extract sequence (handle circular wrap)
-        if end <= seq_len:
-            overlap_seq = seq[start_adj:end]
-        else:
-            overlap_seq = seq[start_adj:] + seq[:end - seq_len]
-
-        codon_offset = codon_start - start  # can be negative if wrapped
-        if start < 0:
-            codon_offset = codon_start - start
-
-        windows.append(OverlapWindow(
-            sequence=overlap_seq,
-            start=start_adj,
-            end=end % seq_len if end > seq_len else end,
-            codon_offset=codon_offset if codon_offset >= 0 else codon_offset + overlap_len,
-            contains_mutation=True,
-        ))
-
-    return windows
+    return [OverlapWindow(
+        sequence=overlap_seq,
+        start=start_adj,
+        end=codon_start,
+        codon_offset=overlap_len,  # codon is right after the window
+        contains_mutation=False,   # mutation is OUTSIDE overlap
+    )]
 
 
 def linearize_circular(
