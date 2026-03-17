@@ -11,7 +11,8 @@
     "sidecar:build": "cd python-core && python build_sidecar.py --onefile",
     "sidecar:build:onedir": "cd python-core && python build_sidecar.py",
     "build:all": "npm run sidecar:build && npm run tauri build",
-    "capture-guide": "tsx --tsconfig tsconfig.scripts.json scripts/capture-guide.ts"
+    "capture-guide": "tsx --tsconfig tsconfig.scripts.json scripts/capture-guide.ts",
+    "record-tutorial": "tsx --tsconfig tsconfig.scripts.json scripts/record-tutorial.ts"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",
