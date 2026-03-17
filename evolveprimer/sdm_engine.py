@@ -586,8 +586,39 @@ def evaluate_custom_primer(
 
     # Off-target
     rc_template = reverse_complement(template.upper())
-    result.offtarget_fwd = check_offtarget(fwd_seq, template, 0, len(fwd_seq), antisense_cache=rc_template)
-    result.offtarget_rev = check_offtarget(rev_seq, template, 0, len(rev_seq), antisense_cache=rc_template)
+    tmpl_upper = template.upper()
+
+    # Determine intended binding positions from the actual binding site on the template.
+    # If the full sequence is not found (e.g. contains a mutation), fall back to the 3'
+    # half so that at least the annealing end is located.
+    def _find_binding_range(seq: str) -> tuple[int, int]:
+        pos = tmpl_upper.find(seq)
+        if pos != -1:
+            return pos, pos + len(seq)
+        half = seq[len(seq) // 2:]
+        pos2 = tmpl_upper.find(half)
+        if pos2 != -1:
+            start = max(0, pos2 - (len(seq) - len(half)))
+            return start, pos2 + len(half)
+        return 0, len(seq)  # last resort: original behaviour
+
+    fwd_start, fwd_end = _find_binding_range(fwd_seq)
+
+    rc_rev = reverse_complement(rev_seq)
+    rc_rev_pos = tmpl_upper.find(rc_rev)
+    if rc_rev_pos != -1:
+        rev_start, rev_end = rc_rev_pos, rc_rev_pos + len(rc_rev)
+    else:
+        half_rc = rc_rev[len(rc_rev) // 2:]
+        pos3 = tmpl_upper.find(half_rc)
+        if pos3 != -1:
+            s = max(0, pos3 - (len(rc_rev) - len(half_rc)))
+            rev_start, rev_end = s, pos3 + len(half_rc)
+        else:
+            rev_start, rev_end = 0, len(rev_seq)
+
+    result.offtarget_fwd = check_offtarget(fwd_seq, template, fwd_start, fwd_end, antisense_cache=rc_template)
+    result.offtarget_rev = check_offtarget(rev_seq, template, rev_start, rev_end, antisense_cache=rc_template)
     if result.offtarget_fwd or result.offtarget_rev:
         result.has_offtarget = True
 
