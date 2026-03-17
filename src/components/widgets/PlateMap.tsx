@@ -5,6 +5,12 @@ import type { PlateMapping } from "../../types/models";
 const ROWS = ["A", "B", "C", "D", "E", "F", "G", "H"];
 const COLS = Array.from({ length: 12 }, (_, i) => i + 1);
 
+function wellName(indexInPlate: number): string {
+  const col = Math.floor(indexInPlate / 8) + 1;
+  const row = indexInPlate % 8;
+  return `${ROWS[row]}${col}`;
+}
+
 interface WellEntry {
   well: string;
   label: string;
@@ -33,9 +39,39 @@ function toWellEntry(m: PlateMapping, shared: boolean): WellEntry {
 function buildPairsFromStore(
   mappings: PlateMapping[],
   dedupInfo: Record<string, string[]>,
+  sortedMutations: string[] | null,
 ): PlatePair[] {
   const fwdAll = mappings.filter((m) => m.primer_type === "forward");
   const revAll = mappings.filter((m) => m.primer_type === "reverse");
+
+  // Reorder fwd by sorted mutation order if provided
+  let orderedFwd = fwdAll;
+  if (sortedMutations && sortedMutations.length > 0) {
+    const fwdByMut = new Map<string, PlateMapping>();
+    for (const m of fwdAll) fwdByMut.set(m.mutation, m);
+    const reordered: PlateMapping[] = [];
+    for (const mut of sortedMutations) {
+      const m = fwdByMut.get(mut);
+      if (m) reordered.push(m);
+    }
+    // Reassign well names based on new order
+    orderedFwd = reordered.map((m, i) => ({ ...m, well: wellName(i) }));
+  }
+
+  // Reorder rev: deduplicate in order of first occurrence in orderedFwd
+  let orderedRev = revAll;
+  if (sortedMutations && sortedMutations.length > 0) {
+    const seenRevSeq = new Map<string, PlateMapping>();
+    for (const fwd of orderedFwd) {
+      // Find the rev mapping with the same mutation
+      const rev = revAll.find((r) => dedupInfo[r.sequence]?.includes(fwd.mutation));
+      if (rev && !seenRevSeq.has(rev.sequence)) {
+        seenRevSeq.set(rev.sequence, rev);
+      }
+    }
+    let revIdx = 0;
+    orderedRev = [...seenRevSeq.values()].map((m) => ({ ...m, well: wellName(revIdx++) }));
+  }
 
   // Determine shared reverse sequences
   const sharedSeqs = new Set<string>();
@@ -43,7 +79,6 @@ function buildPairsFromStore(
     if (muts.length > 1) sharedSeqs.add(seq);
   }
 
-  // Split into 96-well plates by well prefix (P2- etc.)
   function chunkByPlate(items: PlateMapping[]): PlateMapping[][] {
     const plates: PlateMapping[][] = [];
     let current: PlateMapping[] = [];
@@ -58,8 +93,8 @@ function buildPairsFromStore(
     return plates.length > 0 ? plates : [[]];
   }
 
-  const fwdPlates = chunkByPlate(fwdAll);
-  const revPlates = chunkByPlate(revAll);
+  const fwdPlates = chunkByPlate(orderedFwd);
+  const revPlates = chunkByPlate(orderedRev);
   const plateCount = Math.max(fwdPlates.length, revPlates.length);
 
   const pairs: PlatePair[] = [];
@@ -145,13 +180,32 @@ function PlateGrid({
   );
 }
 
+function useSortedMutations(): string[] | null {
+  const designResults = useAppStore((s) => s.designResults);
+  const tableSorting = useAppStore((s) => s.tableSorting);
+
+  return useMemo(() => {
+    if (tableSorting.length === 0) return null;
+    const sort = tableSorting[0];
+    if (sort.id !== "mutation") return null;
+    const sorted = [...designResults].sort((a, b) => {
+      const posA = a.aa_position ?? 0;
+      const posB = b.aa_position ?? 0;
+      return posA - posB;
+    });
+    const ordered = sort.desc ? sorted.reverse() : sorted;
+    return ordered.map((r) => r.mutation);
+  }, [designResults, tableSorting]);
+}
+
 export function PlateMap() {
   const plateMappings = useAppStore((s) => s.plateMappings);
   const dedupInfo = useAppStore((s) => s.dedupInfo);
+  const sortedMutations = useSortedMutations();
   const [activeTab, setActiveTab] = useState<"fwd" | "rev">("fwd");
   const [page, setPage] = useState(0);
 
-  const pairs = useMemo(() => buildPairsFromStore(plateMappings, dedupInfo), [plateMappings, dedupInfo]);
+  const pairs = useMemo(() => buildPairsFromStore(plateMappings, dedupInfo, sortedMutations), [plateMappings, dedupInfo, sortedMutations]);
   const safeIdx = Math.min(page, Math.max(0, pairs.length - 1));
   const pair = pairs[safeIdx];
 

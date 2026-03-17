@@ -494,7 +494,7 @@ const HEADER_TOOLTIPS: Record<string, string> = {
   wt_codon: "Wild-type codon at this position",
 };
 
-function makeColumns(groupColorMap: Map<number, string>, codonStrategy: "closest" | "optimal", swapped: Record<string, string>) {
+function makeColumns(groupColorMap: Map<number, string>, codonStrategy: "closest" | "optimal", swapped: Record<string, string>, customCandidates: Record<string, SdmPrimerResult[]>) {
   return [
     col.accessor("rank", {
       header: "#",
@@ -608,14 +608,17 @@ function makeColumns(groupColorMap: Map<number, string>, codonStrategy: "closest
       header: "Cand",
       size: 50,
       sortingFn: (a, b) => {
-        const aMax = Math.max(a.original.candidate_fwd_count ?? 0, a.original.candidate_rev_count ?? 0);
-        const bMax = Math.max(b.original.candidate_fwd_count ?? 0, b.original.candidate_rev_count ?? 0);
+        const customA = (customCandidates[a.original.mutation] ?? []).length;
+        const customB = (customCandidates[b.original.mutation] ?? []).length;
+        const aMax = Math.max((a.original.candidate_fwd_count ?? 0) + customA, (a.original.candidate_rev_count ?? 0) + customA);
+        const bMax = Math.max((b.original.candidate_fwd_count ?? 0) + customB, (b.original.candidate_rev_count ?? 0) + customB);
         return aMax - bMax;
       },
       cell: (info) => {
         const row = info.row.original;
-        const fc = row.candidate_fwd_count ?? 0;
-        const rc = row.candidate_rev_count ?? 0;
+        const customLen = (customCandidates[row.mutation] ?? []).length;
+        const fc = (row.candidate_fwd_count ?? 0) + customLen;
+        const rc = (row.candidate_rev_count ?? 0) + customLen;
         if (fc <= 0 && rc <= 0) return "\u2014";
         return <span className="text-[10px]">{fc}/{rc}</span>;
       },
@@ -708,9 +711,10 @@ export function ResultTable() {
 
   const codonStrategy = useAppStore((s) => s.codonStrategy);
   const manuallySwapped = useAppStore((s) => s.manuallySwapped);
+  const customCandidatesAll = useAppStore((s) => s.customCandidates);
   const columns = useMemo(
-    () => makeColumns(groupColorMap, codonStrategy, manuallySwapped),
-    [groupColorMap, codonStrategy, manuallySwapped],
+    () => makeColumns(groupColorMap, codonStrategy, manuallySwapped, customCandidatesAll),
+    [groupColorMap, codonStrategy, manuallySwapped, customCandidatesAll],
   );
 
   const table = useReactTable({

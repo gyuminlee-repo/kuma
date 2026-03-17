@@ -115,21 +115,24 @@ export function ParameterPanel() {
             <span className="w-20 text-gray-500">Tm Fwd:</span>
             <input type="number" className={numInput} value={tmFwdStr}
               onChange={(e) => setTmFwdStr(e.target.value)}
-              onBlur={() => setTmTargets(parseNum(tmFwdStr, 62), tmRev, tmOv)} />
+              onBlur={() => setTmTargets(parseNum(tmFwdStr, 62), tmRev, tmOv)}
+              onKeyDown={(e) => { if (e.key === "Enter") { (e.target as HTMLInputElement).blur(); setTmTargets(parseNum(tmFwdStr, 62), tmRev, tmOv); } }} />
             <span className="text-gray-400">°C</span>
           </div>
           <div className="flex items-center gap-2 text-xs">
             <span className="w-20 text-gray-500">Tm Rev:</span>
             <input type="number" className={numInput} value={tmRevStr}
               onChange={(e) => setTmRevStr(e.target.value)}
-              onBlur={() => setTmTargets(tmFwd, parseNum(tmRevStr, 58), tmOv)} />
+              onBlur={() => setTmTargets(tmFwd, parseNum(tmRevStr, 58), tmOv)}
+              onKeyDown={(e) => { if (e.key === "Enter") { (e.target as HTMLInputElement).blur(); setTmTargets(tmFwd, parseNum(tmRevStr, 58), tmOv); } }} />
             <span className="text-gray-400">°C</span>
           </div>
           <div className="flex items-center gap-2 text-xs">
             <span className="w-20 text-gray-500">Tm Overlap:</span>
             <input type="number" className={numInput} value={tmOvStr}
               onChange={(e) => setTmOvStr(e.target.value)}
-              onBlur={() => setTmTargets(tmFwd, tmRev, parseNum(tmOvStr, 42))} />
+              onBlur={() => setTmTargets(tmFwd, tmRev, parseNum(tmOvStr, 42))}
+              onKeyDown={(e) => { if (e.key === "Enter") { (e.target as HTMLInputElement).blur(); setTmTargets(tmFwd, tmRev, parseNum(tmOvStr, 42)); } }} />
             <span className="text-gray-400">°C</span>
           </div>
           <div className="flex items-center gap-2 text-xs">
@@ -138,13 +141,15 @@ export function ParameterPanel() {
               className={`${gcInputBase} ${gcInvalid ? "border-red-400 focus:ring-red-400" : "border-gray-300 focus:ring-green-500"}`}
               value={gcMinStr}
               onChange={(e) => setGcMinStr(e.target.value)}
-              onBlur={() => setGcRange(parseNum(gcMinStr, 40), gcMax)} />
+              onBlur={() => setGcRange(parseNum(gcMinStr, 40), gcMax)}
+              onKeyDown={(e) => { if (e.key === "Enter") { (e.target as HTMLInputElement).blur(); setGcRange(parseNum(gcMinStr, 40), gcMax); } }} />
             <span className="text-gray-400">~</span>
             <input type="number"
               className={`${gcInputBase} ${gcInvalid ? "border-red-400 focus:ring-red-400" : "border-gray-300 focus:ring-green-500"}`}
               value={gcMaxStr}
               onChange={(e) => setGcMaxStr(e.target.value)}
-              onBlur={() => setGcRange(gcMin, parseNum(gcMaxStr, 60))} />
+              onBlur={() => setGcRange(gcMin, parseNum(gcMaxStr, 60))}
+              onKeyDown={(e) => { if (e.key === "Enter") { (e.target as HTMLInputElement).blur(); setGcRange(gcMin, parseNum(gcMaxStr, 60)); } }} />
             <span className="text-gray-400">%</span>
           </div>
           {gcInvalid && (

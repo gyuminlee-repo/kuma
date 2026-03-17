@@ -313,7 +313,7 @@ export const useAppStore = create<AppState>((set, get) => {
       set({
         designResults: designResults.map((r) => {
           if (r.mutation === mutation) {
-            // Preserve original candidate counts (already incremented by addCustomCandidate)
+            // Preserve server-provided candidate counts (displayed count is server count + customCandidates.length)
             return {
               ...result,
               candidate_count: r.candidate_count,
@@ -332,38 +332,23 @@ export const useAppStore = create<AppState>((set, get) => {
     },
 
     addCustomCandidate: (mutation: string, result: SdmPrimerResult) => {
-      const { customCandidates, designResults } = get();
+      const { customCandidates } = get();
       const existing = customCandidates[mutation] ?? [];
+      // Count is computed dynamically in ResultTable from customCandidates length;
+      // do NOT mutate designResults here to avoid count drift on remove.
       set({
         customCandidates: { ...customCandidates, [mutation]: [...existing, result] },
-        // Increment candidate counts in designResults
-        designResults: designResults.map((r) => {
-          if (r.mutation !== mutation) return r;
-          return {
-            ...r,
-            candidate_fwd_count: (r.candidate_fwd_count ?? 0) + 1,
-            candidate_rev_count: (r.candidate_rev_count ?? 0) + 1,
-          };
-        }),
       });
     },
 
     removeCustomCandidate: (mutation: string, index: number) => {
-      const { customCandidates, designResults } = get();
+      const { customCandidates } = get();
       const existing = customCandidates[mutation] ?? [];
       set({
         customCandidates: {
           ...customCandidates,
           [mutation]: existing.filter((_, i) => i !== index),
         },
-        designResults: designResults.map((r) => {
-          if (r.mutation !== mutation) return r;
-          return {
-            ...r,
-            candidate_fwd_count: Math.max(0, (r.candidate_fwd_count ?? 1) - 1),
-            candidate_rev_count: Math.max(0, (r.candidate_rev_count ?? 1) - 1),
-          };
-        }),
       });
     },
 
