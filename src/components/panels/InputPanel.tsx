@@ -17,6 +17,7 @@ export function InputPanel() {
   const mutationInputMode = useAppStore((s) => s.mutationInputMode);
   const mutationText = useAppStore((s) => s.mutationText);
   const parsedMutations = useAppStore((s) => s.parsedMutations);
+  const parseErrors = useAppStore((s) => s.parseErrors);
   const setMutationInputMode = useAppStore((s) => s.setMutationInputMode);
   const setMutationText = useAppStore((s) => s.setMutationText);
   const parseMutations = useAppStore((s) => s.parseMutations);
@@ -38,7 +39,7 @@ export function InputPanel() {
   }, [mutationText, mutationInputMode, parseMutations]);
 
   const mutationCount = useMemo(
-    () => mutationText.split("\n").filter((l) => l.trim()).length,
+    () => mutationText.split("\n").filter((l) => l.trim() && !l.trim().startsWith("#")).length,
     [mutationText],
   );
 
@@ -156,6 +157,20 @@ export function InputPanel() {
                 ({parsedMutations.length} validated)
               </span>
             )}
+            {parseErrors.length > 0 && (
+              <span className="text-red-500 ml-1">
+                ({parseErrors.length} failed)
+              </span>
+            )}
+          </div>
+        )}
+        {parseErrors.length > 0 && (
+          <div className="text-[10px] text-red-500 bg-red-50 rounded px-2 py-1 space-y-0.5 max-h-16 overflow-auto">
+            {parseErrors.map((e) => (
+              <div key={e.line}>
+                L{e.line}: <span className="font-mono">{e.raw}</span> — {e.reason}
+              </div>
+            ))}
           </div>
         )}
       </div>

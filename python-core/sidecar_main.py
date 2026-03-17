@@ -8,6 +8,7 @@ import csv
 import json
 import logging
 import os
+from dataclasses import replace as dc_replace
 import re
 import sys
 import tempfile
@@ -23,6 +24,7 @@ from evolveprimer.sdm_engine import (
     GeneInfo,
     SdmPrimerResult,
     design_sdm_primers,
+    evaluate_custom_primer,
     export_results_tsv,
     load_fasta,
     load_sequence,
@@ -54,6 +56,13 @@ _ALLOWED_EXCEL_EXTENSIONS = {".xlsx"}
 _last_results: list[SdmPrimerResult] = []
 _last_candidates: dict[str, list[SdmPrimerResult]] = {}
 _last_plate_mappings: list[PlateMapping] = []
+_last_dedup_info: dict[str, list[str]] = {}
+_last_template: tuple[str, str] = ("", "")  # (fasta_path, sequence)
+
+_SWAP_FIELDS = {
+    "fwd": ["forward_seq", "forward_binding", "tm_fwd", "fwd_len", "gc_fwd"],
+    "rev": ["reverse_seq", "reverse_binding", "tm_rev", "rev_len", "gc_rev"],
+}
 
 
 def _send(obj: dict) -> None:
@@ -167,6 +176,7 @@ def handle_list_polymerases(_params: dict) -> list[dict]:
 
 def handle_load_fasta(params: dict) -> dict:
     """Load a sequence file and return sequence info with gene annotations."""
+    global _last_template
     filepath = params.get("filepath")
     resolved = _validate_filepath(filepath, allowed_extensions=_ALLOWED_FASTA_EXTENSIONS)
 
@@ -174,6 +184,7 @@ def handle_load_fasta(params: dict) -> dict:
         raise FileNotFoundError(f"File not found: {filepath}")
 
     header, sequence, genes = load_sequence(resolved)
+    _last_template = (str(resolved), sequence)
 
     return {
         "header": header,
@@ -191,14 +202,18 @@ def handle_load_fasta(params: dict) -> dict:
     }
 
 
-def handle_parse_mutations_text(params: dict) -> list[dict]:
-    """Parse mutation text (one per line) and validate format."""
+def handle_parse_mutations_text(params: dict) -> dict:
+    """Parse mutation text (one per line) and validate format.
+
+    Returns dict with 'parsed' list and 'errors' list for failed lines.
+    """
     text = params.get("text", "")
     if not text.strip():
         raise ValueError("No mutations provided")
 
     parsed = []
-    for line in text.strip().split("\n"):
+    errors = []
+    for line_num, line in enumerate(text.strip().split("\n"), 1):
         line = line.strip()
         if not line:
             continue
@@ -206,22 +221,31 @@ def handle_parse_mutations_text(params: dict) -> list[dict]:
         if line.startswith("#"):
             continue
 
-        wt_aa, position, mt_aa = parse_mutation_notation(line)
-        parsed.append(
-            {
-                "raw": line,
-                "wt_aa": wt_aa,
-                "position": position,
-                "mt_aa": mt_aa,
-            }
-        )
+        try:
+            wt_aa, position, mt_aa = parse_mutation_notation(line)
+            parsed.append(
+                {
+                    "raw": line,
+                    "wt_aa": wt_aa,
+                    "position": position,
+                    "mt_aa": mt_aa,
+                }
+            )
+        except (ValueError, IndexError) as e:
+            errors.append({"line": line_num, "raw": line, "reason": str(e)})
 
-    return parsed
+    return {"parsed": parsed, "errors": errors}
 
 
 def handle_design_sdm_primers(params: dict) -> dict:
     """Design SDM primers for a batch of mutations."""
-    global _last_results, _last_candidates, _last_plate_mappings
+    global _last_results, _last_candidates, _last_plate_mappings, _last_dedup_info, _last_template
+
+    # Clear previous state to free memory
+    _last_results = []
+    _last_candidates = {}
+    _last_plate_mappings = []
+    _last_dedup_info = {}
 
     fasta_path = params.get("fasta_path")
     if not fasta_path:
@@ -235,6 +259,20 @@ def handle_design_sdm_primers(params: dict) -> dict:
     mutations_input = params.get("mutations_csv_or_text", "")
     polymerase = params.get("polymerase", "Q5")
     overlap_len = int(params.get("overlap_len", 20))
+    codon_strategy = params.get("codon_strategy", "closest")
+    if codon_strategy not in ("closest", "optimal"):
+        raise ValueError(f"Invalid codon_strategy: '{codon_strategy}'. Must be 'closest' or 'optimal'.")
+
+    _raw_fwd = params.get("tm_fwd_target")
+    _raw_rev = params.get("tm_rev_target")
+    _raw_ov = params.get("tm_overlap_target")
+    tm_fwd_target = float(_raw_fwd) if _raw_fwd else None
+    tm_rev_target = float(_raw_rev) if _raw_rev else None
+    tm_overlap_target = float(_raw_ov) if _raw_ov else None
+    gc_min = float(params.get("gc_min", 40))
+    gc_max = float(params.get("gc_max", 60))
+    if gc_min >= gc_max:
+        raise ValueError(f"gc_min ({gc_min}) must be less than gc_max ({gc_max})")
 
     if not 15 <= overlap_len <= 40:
         raise ValueError(f"overlap_len must be 15-40, got {overlap_len}")
@@ -281,6 +319,12 @@ def handle_design_sdm_primers(params: dict) -> dict:
             polymerase=polymerase,
             overlap_len=overlap_len,
             return_all_candidates=True,
+            codon_strategy=codon_strategy,
+            tm_fwd_target=tm_fwd_target,
+            tm_rev_target=tm_rev_target,
+            tm_overlap_target=tm_overlap_target,
+            gc_min=gc_min,
+            gc_max=gc_max,
         )
     finally:
         if temp_csv is not None:
@@ -293,6 +337,7 @@ def handle_design_sdm_primers(params: dict) -> dict:
     # Auto-generate plate map (Fwd/Rev separate plates)
     fwd_map, rev_map = generate_plate_map(results, deduplicate_rev=True)
     _last_plate_mappings = fwd_map + rev_map
+    _last_dedup_info = deduplicate_reverse(results)
 
     _progress(100, "Design complete")
 
@@ -314,8 +359,7 @@ def handle_design_sdm_primers(params: dict) -> dict:
 
     return {
         "results": [
-            _serialize_result(r, len(_last_candidates.get(r.mutation.raw, [])))
-            for r in results
+            _serialize_result_with_counts(r) for r in results
         ],
         "success_count": len(results),
         "total_count": max(total_mutations, len(results)),
@@ -340,13 +384,31 @@ def _serialize_result(r: SdmPrimerResult, candidate_count: int | None = None) ->
         "tm_overlap": round(r.tm_overlap, 1),
         "tm_condition_met": r.tm_condition_met,
         "tolerance_used": r.tolerance_used,
+        "tolerance_fwd": round(r.tolerance_fwd, 1),
+        "tolerance_rev": round(r.tolerance_rev, 1),
         "has_offtarget": r.has_offtarget,
+        "offtarget_fwd": [
+            {"position": h.position, "strand": h.strand, "match_seq": h.match_seq, "tm": h.tm, "match_length": h.match_length}
+            for h in r.offtarget_fwd
+        ],
+        "offtarget_rev": [
+            {"position": h.position, "strand": h.strand, "match_seq": h.match_seq, "tm": h.tm, "match_length": h.match_length}
+            for h in r.offtarget_rev
+        ],
         "penalty": round(r.penalty, 1),
         "gc_fwd": round(r.gc_fwd, 1),
         "gc_rev": round(r.gc_rev, 1),
         "wt_codon": r.mutation.wt_codon,
         "mt_codon": r.mutation.mt_codon,
         "overlap_seq": r.overlap_window.sequence,
+        "hairpin_tm_fwd": round(r.hairpin_tm_fwd, 1),
+        "hairpin_tm_rev": round(r.hairpin_tm_rev, 1),
+        "homodimer_tm_fwd": round(r.homodimer_tm_fwd, 1),
+        "homodimer_tm_rev": round(r.homodimer_tm_rev, 1),
+        "hairpin_dg_fwd": round(r.hairpin_dg_fwd, 2),
+        "hairpin_dg_rev": round(r.hairpin_dg_rev, 2),
+        "homodimer_dg_fwd": round(r.homodimer_dg_fwd, 2),
+        "homodimer_dg_rev": round(r.homodimer_dg_rev, 2),
         "warnings": r.warnings,
     }
     if candidate_count is not None:
@@ -354,13 +416,27 @@ def _serialize_result(r: SdmPrimerResult, candidate_count: int | None = None) ->
     return result
 
 
+def _count_unique_fwd_rev(candidates: list[SdmPrimerResult]) -> tuple[int, int]:
+    """Count unique forward and reverse sequences among candidates."""
+    fwd_seqs = {c.forward_seq for c in candidates}
+    rev_seqs = {c.reverse_seq for c in candidates}
+    return len(fwd_seqs), len(rev_seqs)
+
+
+def _serialize_result_with_counts(r: SdmPrimerResult) -> dict:
+    """Serialize result with fwd/rev candidate counts."""
+    cands = _last_candidates.get(r.mutation.raw, [])
+    result = _serialize_result(r, len(cands))
+    fwd_count, rev_count = _count_unique_fwd_rev(cands) if cands else (0, 0)
+    result["candidate_fwd_count"] = fwd_count
+    result["candidate_rev_count"] = rev_count
+    return result
+
+
 def handle_get_plate_map(_params: dict) -> dict:
     """Return the plate map from last design."""
     if not _last_results:
         raise ValueError("No design available. Run design_sdm_primers first.")
-
-    dedup_info = deduplicate_reverse(_last_results)
-    dedup_serialized = {seq: names for seq, names in dedup_info.items()}
 
     return {
         "mappings": [
@@ -373,7 +449,7 @@ def handle_get_plate_map(_params: dict) -> dict:
             }
             for m in _last_plate_mappings
         ],
-        "dedup_info": dedup_serialized,
+        "dedup_info": _last_dedup_info,
     }
 
 
@@ -401,7 +477,7 @@ def handle_export_excel(params: dict) -> dict:
         filepath, allowed_extensions=_ALLOWED_EXCEL_EXTENSIONS
     )
 
-    export_plate_excel(_last_plate_mappings, resolved)
+    export_plate_excel(_last_plate_mappings, resolved, rev_groups=_last_dedup_info)
     return {"success": True, "filepath": str(resolved)}
 
 
@@ -459,6 +535,7 @@ def handle_swap_primer(params: dict) -> dict:
     global _last_results
     mutation = params.get("mutation", "")
     candidate_idx = int(params.get("candidate_idx", 0))
+    swap_type = params.get("swap_type", "both")  # "both", "fwd", "rev"
 
     candidates = _last_candidates.get(mutation)
     if not candidates:
@@ -466,12 +543,90 @@ def handle_swap_primer(params: dict) -> dict:
     if candidate_idx < 0 or candidate_idx >= len(candidates):
         raise ValueError(f"Invalid candidate index: {candidate_idx}")
 
-    new_best = candidates[candidate_idx]
-    _last_results = [
-        new_best if r.mutation.raw == mutation else r
-        for r in _last_results
-    ]
-    return _serialize_result(new_best)
+    source = candidates[candidate_idx]
+
+    if swap_type == "both":
+        new_best = source
+    else:
+        current = next((r for r in _last_results if r.mutation.raw == mutation), None)
+        if not current:
+            raise ValueError(f"No current result for mutation: {mutation}")
+        swap_dict = {f: getattr(source, f) for f in _SWAP_FIELDS[swap_type]}
+        new_best = dc_replace(current, **swap_dict)
+
+    target_pos = new_best.mutation.position
+    for i, r in enumerate(_last_results):
+        if r.mutation.raw == mutation:
+            _last_results[i] = new_best
+        elif swap_type in ("rev", "both") and r.mutation.position == target_pos:
+            # Propagate reverse to same-position mutations
+            _last_results[i] = dc_replace(
+                r,
+                reverse_seq=new_best.reverse_seq,
+                reverse_binding=new_best.reverse_binding,
+                tm_rev=new_best.tm_rev,
+                rev_len=new_best.rev_len,
+                gc_rev=new_best.gc_rev,
+            )
+    result = _serialize_result(new_best, len(candidates))
+    fwd_c, rev_c = _count_unique_fwd_rev(candidates)
+    result["candidate_fwd_count"] = fwd_c
+    result["candidate_rev_count"] = rev_c
+    return result
+
+
+def handle_evaluate_primer(params: dict) -> dict:
+    """Evaluate a user-provided primer pair."""
+    mutation = params.get("mutation", "custom")
+    fasta_path = params.get("fasta_path")
+    forward_seq = params.get("forward_seq", "")
+    reverse_seq = params.get("reverse_seq", "")
+    overlap_len = int(params.get("overlap_len", 20))
+
+    if not fasta_path:
+        raise ValueError("fasta_path is required")
+    if not forward_seq or not reverse_seq:
+        raise ValueError("Both forward_seq and reverse_seq are required")
+
+    resolved = _validate_filepath(fasta_path, allowed_extensions=_ALLOWED_FASTA_EXTENSIONS)
+
+    # Use cached template if same file
+    cached_path, cached_seq = _last_template
+    if cached_seq and cached_path == str(resolved):
+        template = cached_seq
+    else:
+        _header, template, _genes = load_sequence(resolved)
+
+    result = evaluate_custom_primer(
+        fwd_seq=forward_seq,
+        rev_seq=reverse_seq,
+        template=template,
+        mutation_raw=mutation,
+        overlap_len=overlap_len,
+    )
+    return _serialize_result(result)
+
+
+def handle_save_workspace(params: dict) -> dict:
+    """Save workspace JSON to file."""
+    filepath = params.get("filepath")
+    data = params.get("data")
+    if not filepath or data is None:
+        raise ValueError("filepath and data are required")
+    resolved = _validate_output_path(filepath, allowed_extensions={".json"})
+    with open(resolved, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    return {"success": True, "filepath": str(resolved)}
+
+
+def handle_load_workspace(params: dict) -> dict:
+    """Load workspace JSON from file."""
+    filepath = params.get("filepath")
+    resolved = _validate_filepath(filepath, allowed_extensions={".json"})
+    if not resolved.exists():
+        raise FileNotFoundError(f"File not found: {filepath}")
+    with open(resolved, encoding="utf-8") as f:
+        return json.load(f)
 
 
 # --- Dispatcher ---
@@ -487,6 +642,9 @@ _METHODS = {
     "swap_primer": handle_swap_primer,
     "export_tsv": handle_export_tsv,
     "export_excel": handle_export_excel,
+    "evaluate_primer": handle_evaluate_primer,
+    "save_workspace": handle_save_workspace,
+    "load_workspace": handle_load_workspace,
 }
 
 

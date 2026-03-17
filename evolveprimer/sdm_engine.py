@@ -50,7 +50,9 @@ class SdmPrimerResult:
     tm_rev: float               # Tm of WHOLE reverse primer
     tm_overlap: float           # Tm of overlap region
     tm_condition_met: bool      # Tm within tolerance
-    tolerance_used: float = 0.0 # Which tolerance step produced this candidate
+    tolerance_used: float = 0.0 # Max of fwd/rev tolerance (legacy)
+    tolerance_fwd: float = 0.0  # Fwd-specific tolerance step
+    tolerance_rev: float = 0.0  # Rev-specific tolerance step
     has_offtarget: bool = False
     offtarget_fwd: list[OffTargetHit] = field(default_factory=list)
     offtarget_rev: list[OffTargetHit] = field(default_factory=list)
@@ -59,6 +61,14 @@ class SdmPrimerResult:
     gc_fwd: float = 0.0
     gc_rev: float = 0.0
     penalty: float = 0.0
+    hairpin_tm_fwd: float = 0.0
+    hairpin_tm_rev: float = 0.0
+    homodimer_tm_fwd: float = 0.0
+    homodimer_tm_rev: float = 0.0
+    hairpin_dg_fwd: float = 0.0
+    hairpin_dg_rev: float = 0.0
+    homodimer_dg_fwd: float = 0.0
+    homodimer_dg_rev: float = 0.0
     warnings: list[str] = field(default_factory=list)
 
     # Legacy aliases for backward compatibility
@@ -92,6 +102,35 @@ def _calc_sdm_tm(seq: str) -> float:
         tm_method="santalucia",
         salt_corrections_method="santalucia",
     )
+
+
+_THERMO_PARAMS = dict(
+    mv_conc=50.0,
+    dv_conc=0.0,
+    dntp_conc=0.0,
+    dna_conc=250.0,
+)
+
+
+def _check_secondary_structure(result: SdmPrimerResult, warn_tm: float = 40.0) -> None:
+    """Check hairpin and homodimer for both fwd/rev primers using primer3."""
+    for label, seq, suffix in [("Fwd", result.forward_seq, "fwd"), ("Rev", result.reverse_seq, "rev")]:
+        hp = primer3.calc_hairpin(seq, **_THERMO_PARAMS)
+        hd = primer3.calc_homodimer(seq, **_THERMO_PARAMS)
+        hp_tm = hp.tm if hp.structure_found else 0.0
+        hd_tm = hd.tm if hd.structure_found else 0.0
+        hp_dg = hp.dg / 1000.0 if hp.structure_found else 0.0  # cal→kcal
+        hd_dg = hd.dg / 1000.0 if hd.structure_found else 0.0
+        setattr(result, f"hairpin_tm_{suffix}", round(hp_tm, 1))
+        setattr(result, f"homodimer_tm_{suffix}", round(hd_tm, 1))
+        setattr(result, f"hairpin_dg_{suffix}", round(hp_dg, 2))
+        setattr(result, f"homodimer_dg_{suffix}", round(hd_dg, 2))
+        if hp_tm > warn_tm:
+            result.warnings.append(f"{label} hairpin Tm={hp_tm:.1f}°C (dG={hp_dg:.1f} kcal/mol)")
+            result.penalty += (hp_tm - warn_tm) * 0.5
+        if hd_tm > warn_tm:
+            result.warnings.append(f"{label} homodimer Tm={hd_tm:.1f}°C (dG={hd_dg:.1f} kcal/mol)")
+            result.penalty += (hd_tm - warn_tm) * 0.5
 
 
 def _gc_percent(seq: str) -> float:
@@ -231,15 +270,6 @@ def check_offtarget(
     ]:
         slen = len(strand_seq)
         for pos in range(slen - min_match + 1):
-            if strand_label == "sense":
-                tpos, tpos_end = pos, pos + min_match
-            else:
-                tpos = tlen - pos - min_match
-                tpos_end = tlen - pos
-
-            if not (tpos_end <= intended_start or tpos >= intended_end):
-                continue
-
             if strand_seq[pos:pos + min_match] != primer_3end:
                 continue
 
@@ -255,13 +285,25 @@ def check_offtarget(
                 ext += 1
 
             match_start = pos - ext
-            match_seq = strand_seq[match_start:pos + min_match]
+            match_end = pos + min_match
+
+            # Convert to original template coordinates for intended range check
+            if strand_label == "sense":
+                tpos, tpos_end = match_start, match_end
+            else:
+                tpos = tlen - match_end
+                tpos_end = tlen - match_start
+
+            # Skip matches overlapping the intended binding site
+            if not (tpos_end <= intended_start or tpos >= intended_end):
+                continue
+
+            match_seq = strand_seq[match_start:match_end]
             tm = _calc_sdm_tm(match_seq)
 
             if tm >= tm_threshold:
-                hit_pos = match_start if strand_label == "sense" else tlen - (pos + min_match)
                 hits.append(OffTargetHit(
-                    position=hit_pos, strand=strand_label,
+                    position=tpos, strand=strand_label,
                     match_seq=match_seq, tm=round(tm, 1),
                     match_length=min_match + ext,
                 ))
@@ -279,6 +321,8 @@ def _search_candidates(
     tm_target_overlap: float,
     tolerance: float,
     min_downstream: int,
+    gc_min: float = 40.0,
+    gc_max: float = 60.0,
 ) -> list[SdmPrimerResult]:
     """Search for SDM primer candidates at a given tolerance.
 
@@ -338,16 +382,27 @@ def _search_candidates(
         gc_f = _gc_percent(fwd_full)
         gc_r = _gc_percent(rev_full)
         gc_penalty = 0.0
-        if gc_f < 40 or gc_f > 60:
-            gc_penalty += abs(gc_f - 50) * 0.1
-        if gc_r < 40 or gc_r > 60:
-            gc_penalty += abs(gc_r - 50) * 0.1
+        gc_half_range = (gc_max - gc_min) / 2
+        gc_center = (gc_min + gc_max) / 2
+        for gc_val in (gc_f, gc_r):
+            dev = abs(gc_val - gc_center)
+            if dev > gc_half_range:  # outside gc_min-gc_max
+                gc_penalty += dev * 0.3
+            if dev > gc_half_range + 10:  # harsh extra penalty
+                gc_penalty += (dev - gc_half_range - 10) * 1.0
+
+        # Codon hamming distance penalty: prefer fewer nucleotide changes
+        codon_changes = sum(
+            a != b for a, b in zip(mutation.wt_codon, mutation.mt_codon)
+        )
+        codon_penalty = (codon_changes - 1) * 2.0  # 1bp=0, 2bp=2, 3bp=4
 
         penalty = (
             abs(tm_fwd - tm_target_fwd)
             + abs(tm_rev - tm_target_rev)
             + abs(overlap_tm - tm_target_overlap)
             + gc_penalty
+            + codon_penalty
         )
 
         warnings: list[str] = []
@@ -355,9 +410,11 @@ def _search_candidates(
             warnings.append(f"Forward primer too long: {len(fwd_full)} bp")
         if len(rev_full) > 60:
             warnings.append(f"Reverse primer too long: {len(rev_full)} bp")
-        if gc_f < 35 or gc_f > 65:
+        gc_warn_min = gc_min - 5
+        gc_warn_max = gc_max + 5
+        if gc_f < gc_warn_min or gc_f > gc_warn_max:
             warnings.append(f"Fwd GC% out of range: {gc_f:.1f}%")
-        if gc_r < 35 or gc_r > 65:
+        if gc_r < gc_warn_min or gc_r > gc_warn_max:
             warnings.append(f"Rev GC% out of range: {gc_r:.1f}%")
 
         result = SdmPrimerResult(
@@ -372,6 +429,8 @@ def _search_candidates(
             tm_overlap=round(overlap_tm, 1),
             tm_condition_met=True,
             tolerance_used=round(max(tolerance, fwd_tol, rev_tol), 1),
+            tolerance_fwd=round(fwd_tol, 1),
+            tolerance_rev=round(rev_tol, 1),
             penalty=round(penalty, 2),
             warnings=warnings,
         )
@@ -386,6 +445,9 @@ def _design_single_sdm(
     profile: PolymeraseProfile,
     overlap_len: int = 20,
     num_return: int = 5,
+    codon_strategy: str = "closest",
+    gc_min: float = 40.0,
+    gc_max: float = 60.0,
 ) -> list[SdmPrimerResult]:
     """Design SDM primers for a single mutation.
 
@@ -400,7 +462,7 @@ def _design_single_sdm(
         List of SdmPrimerResult sorted by penalty (best first).
     """
     # Generate mutation variants for multiple codons (optimal + WT-closest)
-    alt_codons = mt_codons_for_design(mutation.wt_codon, mutation.mt_aa)
+    alt_codons = mt_codons_for_design(mutation.wt_codon, mutation.mt_aa, codon_strategy)
     mutations_to_try = []
     for mt_codon in alt_codons:
         m = Mutation(
@@ -438,6 +500,7 @@ def _design_single_sdm(
                     seq, mutated_seq, mut_variant, ov_len,
                     tm_target_fwd, tm_target_rev, tm_target_overlap,
                     tolerance=round(tol, 1), min_downstream=min_downstream,
+                    gc_min=gc_min, gc_max=gc_max,
                 )
                 all_candidates.extend(candidates)
 
@@ -462,6 +525,9 @@ def _design_single_sdm(
                     ot_count = len(c.offtarget_fwd) + len(c.offtarget_rev)
                     c.penalty = round(c.penalty + ot_count * 5.0, 2)
 
+                # Hairpin / homodimer check
+                _check_secondary_structure(c)
+
             all_candidates.sort(key=lambda r: r.penalty)
             return all_candidates[:num_return]
 
@@ -480,6 +546,66 @@ class GeneInfo:
     aa_length: int
 
 
+def evaluate_custom_primer(
+    fwd_seq: str,
+    rev_seq: str,
+    template: str,
+    mutation_raw: str = "custom",
+    overlap_len: int = 20,
+) -> dict:
+    """Evaluate a user-provided primer pair and return metrics.
+
+    Returns dict with Tm, GC%, hairpin, homodimer, off-target info.
+    """
+    from .overlap import OverlapWindow, reverse_complement
+
+    fwd_seq = fwd_seq.strip().upper()
+    rev_seq = rev_seq.strip().upper()
+    if not fwd_seq or not rev_seq:
+        raise ValueError("Both forward and reverse sequences are required")
+
+    tm_fwd = _calc_sdm_tm(fwd_seq)
+    tm_rev = _calc_sdm_tm(rev_seq)
+
+    # Estimate overlap from fwd start; if overlap_len is 0 or not given, try 20 bp default
+    effective_ov_len = overlap_len if overlap_len and overlap_len > 0 else min(20, len(fwd_seq))
+    ov_seq = fwd_seq[:effective_ov_len]
+    tm_ov = _calc_sdm_tm(ov_seq) if len(ov_seq) >= 8 else 0.0
+
+    # Create a minimal Mutation and OverlapWindow for the result
+    from .mutation import Mutation
+    dummy_mut = Mutation(
+        raw=mutation_raw, wt_aa="X", position=0, mt_aa="X",
+        codon_start=0, wt_codon="NNN", mt_codon="NNN",
+    )
+    dummy_ov = OverlapWindow(sequence=ov_seq, start=0, end=len(ov_seq), codon_offset=0)
+
+    result = SdmPrimerResult(
+        mutation=dummy_mut,
+        forward_seq=fwd_seq,
+        reverse_seq=rev_seq,
+        forward_binding=fwd_seq,
+        reverse_binding=rev_seq,
+        overlap_window=dummy_ov,
+        tm_fwd=round(tm_fwd, 1),
+        tm_rev=round(tm_rev, 1),
+        tm_overlap=round(tm_ov, 1),
+        tm_condition_met=(tm_fwd > tm_ov + 5 and tm_rev > tm_ov + 5),
+    )
+
+    # Off-target
+    rc_template = reverse_complement(template.upper())
+    result.offtarget_fwd = check_offtarget(fwd_seq, template, 0, len(fwd_seq), antisense_cache=rc_template)
+    result.offtarget_rev = check_offtarget(rev_seq, template, 0, len(rev_seq), antisense_cache=rc_template)
+    if result.offtarget_fwd or result.offtarget_rev:
+        result.has_offtarget = True
+
+    # Secondary structure
+    _check_secondary_structure(result)
+
+    return result
+
+
 def load_fasta(fasta_path: Path) -> tuple[str, str]:
     """Load a sequence file (FASTA or SnapGene .dna).
 
@@ -494,7 +620,7 @@ def load_fasta(fasta_path: Path) -> tuple[str, str]:
     # Default: plain FASTA
     header = ""
     seq_parts: list[str] = []
-    with open(fasta_path) as f:
+    with open(fasta_path, encoding="utf-8", errors="replace") as f:
         for line in f:
             line = line.strip()
             if line.startswith(">"):
@@ -521,6 +647,9 @@ def load_sequence(filepath: Path) -> tuple[str, str, list[GeneInfo]]:
     if suffix == ".dna":
         header, sequence = _load_snapgene(filepath)
         genes = _extract_genes_from_biopython(filepath, "snapgene")
+        if not genes:
+            # Fallback: detect ORFs when SnapGene file lacks CDS features
+            genes = _detect_orfs(sequence)
         return header, sequence, genes
 
     # Plain FASTA: no gene annotations
@@ -533,9 +662,21 @@ def _load_genbank(gb_path: Path) -> tuple[str, str, list[GeneInfo]]:
     """Load a GenBank file and extract CDS features."""
     from Bio import SeqIO
 
-    record = SeqIO.read(gb_path, "genbank")
+    try:
+        with open(gb_path, encoding="utf-8", errors="replace") as fh:
+            record = SeqIO.read(fh, "genbank")
+    except ValueError:
+        with open(gb_path, encoding="utf-8", errors="replace") as fh:
+            records = list(SeqIO.parse(fh, "genbank"))
+        if not records:
+            raise ValueError(f"No records found in GenBank file: {gb_path.name}")
+        record = records[0]
+        logger.info("Multi-record GenBank: using first record (%s)", record.id)
+
     header = record.description if record.description else record.id
     sequence = str(record.seq).upper()
+    if not sequence:
+        raise ValueError(f"Empty sequence in GenBank file: {gb_path.name}")
     genes = _extract_cds_features(record)
     return header, sequence, genes
 
@@ -568,7 +709,8 @@ def _extract_genes_from_biopython(filepath: Path, fmt: str) -> list[GeneInfo]:
     try:
         record = SeqIO.read(filepath, fmt)
         return _extract_cds_features(record)
-    except Exception:
+    except Exception as exc:
+        logger.warning("Failed to extract features from %s (%s): %s", filepath.name, fmt, exc)
         return []
 
 
@@ -623,6 +765,12 @@ def design_sdm_primers(
     overlap_len: int = 20,
     custom_profiles: Path | None = None,
     return_all_candidates: bool = False,
+    codon_strategy: str = "closest",
+    tm_fwd_target: float | None = None,
+    tm_rev_target: float | None = None,
+    tm_overlap_target: float | None = None,
+    gc_min: float = 40.0,
+    gc_max: float = 60.0,
 ) -> list[SdmPrimerResult] | tuple[list[SdmPrimerResult], dict[str, list[SdmPrimerResult]]]:
     """Design SDM primers for a batch of mutations.
 
@@ -637,8 +785,8 @@ def design_sdm_primers(
     Returns:
         List of SdmPrimerResult for each mutation.
     """
-    # Load template
-    header, sequence = load_fasta(fasta_path)
+    # Load template (supports FASTA, GenBank, SnapGene)
+    header, sequence, _genes = load_sequence(fasta_path)
     logger.info("Loaded template: %s (%d bp)", header, len(sequence))
 
     # Verify ATG at target_start
@@ -652,7 +800,18 @@ def design_sdm_primers(
     # Load polymerase profile
     registry = PolymeraseRegistry()
     profile = registry.get(polymerase)
-    logger.info("Using polymerase profile: %s", profile.name)
+    # Override Tm targets if provided
+    if tm_fwd_target is not None:
+        profile.opt_tm_fwd = tm_fwd_target
+    if tm_rev_target is not None:
+        profile.opt_tm_rev = tm_rev_target
+    if tm_overlap_target is not None:
+        profile.opt_tm_overlap = tm_overlap_target
+    logger.info("Using polymerase profile: %s (Fwd=%.1f, Rev=%.1f, Ov=%.1f)",
+                profile.name,
+                profile.opt_tm_fwd or 62.0,
+                profile.opt_tm_rev or 58.0,
+                profile.opt_tm_overlap or 42.0)
 
     # Parse mutations
     mutations = parse_mutations(mutations_csv, sequence, target_start)
@@ -663,7 +822,7 @@ def design_sdm_primers(
     all_candidates: dict[str, list[SdmPrimerResult]] = {}
     for mut in mutations:
         logger.info("Designing primers for %s ...", mut.raw)
-        candidates = _design_single_sdm(sequence, mut, profile, overlap_len)
+        candidates = _design_single_sdm(sequence, mut, profile, overlap_len, codon_strategy=codon_strategy, gc_min=gc_min, gc_max=gc_max)
         if not candidates:
             logger.warning("FAILED: %s - no valid primer pair found", mut.raw)
             continue

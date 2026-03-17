@@ -43,9 +43,11 @@ def cmd_design(args: argparse.Namespace) -> None:
     logging.info("Primer results saved to %s", tsv_path)
 
     # Export plate map
+    from .plate_mapper import deduplicate_reverse
+    rev_groups = deduplicate_reverse(results)
     plate_mappings = generate_plate_map(results, deduplicate_rev=True)
     xlsx_path = output_dir / "plate_mapping.xlsx"
-    export_plate_excel(plate_mappings, xlsx_path)
+    export_plate_excel(plate_mappings, xlsx_path, rev_groups=rev_groups)
     logging.info("Plate mapping saved to %s", xlsx_path)
 
     # Summary
@@ -66,7 +68,7 @@ def cmd_plate_map(args: argparse.Namespace) -> None:
     from .sdm_engine import SdmPrimerResult
     from .mutation import Mutation
     from .overlap import OverlapWindow
-    from .plate_mapper import export_plate_excel, generate_plate_map
+    from .plate_mapper import deduplicate_reverse, export_plate_excel, generate_plate_map
 
     # Read primer TSV
     results: list[SdmPrimerResult] = []
@@ -102,9 +104,10 @@ def cmd_plate_map(args: argparse.Namespace) -> None:
             )
             results.append(r)
 
+    rev_groups = deduplicate_reverse(results)
     mappings = generate_plate_map(results, deduplicate_rev=True)
     output_path = Path(args.output)
-    export_plate_excel(mappings, output_path)
+    export_plate_excel(mappings, output_path, rev_groups=rev_groups)
     logging.info("Plate mapping saved to %s", output_path)
 
 

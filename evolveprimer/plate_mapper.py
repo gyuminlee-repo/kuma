@@ -95,7 +95,7 @@ def generate_plate_map(
     if deduplicate_rev:
         rev_groups = deduplicate_reverse(results)
         for idx, (rev_seq, mut_names) in enumerate(rev_groups.items()):
-            label = "+".join(mut_names) if len(mut_names) > 1 else mut_names[0]
+            label = mut_names[0]
             well = _assign_well(idx, well_order)
             rev_mappings.append(PlateMapping(
                 well=well,
@@ -118,8 +118,26 @@ def generate_plate_map(
     return fwd_mappings, rev_mappings
 
 
-def _write_list_sheet(ws, mappings: list[PlateMapping], fill_color: str) -> None:
-    """Write a primer list sheet."""
+def _is_shared_rev(m: PlateMapping, rev_groups: dict[str, list[str]] | None) -> bool:
+    """Check if a reverse primer is shared by multiple mutations."""
+    if m.primer_type != "reverse" or rev_groups is None:
+        return False
+    return len(rev_groups.get(m.sequence, [])) > 1
+
+
+# Colors matching the UI: Fwd=green, Rev=orange, Shared=blue
+_COLOR_FWD = "C6EFCE"       # light green
+_COLOR_REV = "FCE4D6"       # light orange
+_COLOR_SHARED = "BDD7EE"    # light blue
+
+
+def _write_list_sheet(
+    ws,
+    mappings: list[PlateMapping],
+    fill_color: str,
+    rev_groups: dict[str, list[str]] | None = None,
+) -> None:
+    """Write a primer list sheet with row coloring."""
     from openpyxl.styles import Font, PatternFill
 
     headers = ["Well", "Primer Name", "Sequence", "Length", "Mutation"]
@@ -135,13 +153,24 @@ def _write_list_sheet(ws, mappings: list[PlateMapping], fill_color: str) -> None
         ws.cell(row=i, column=4, value=len(m.sequence))
         ws.cell(row=i, column=5, value=m.mutation)
 
+        # Row color: shared=blue, otherwise fill_color
+        row_color = _COLOR_SHARED if _is_shared_rev(m, rev_groups) else fill_color
+        row_fill = PatternFill(start_color=row_color, fill_type="solid")
+        for col_idx in range(1, 6):
+            ws.cell(row=i, column=col_idx).fill = row_fill
+
     for col in ws.columns:
         max_len = max(len(str(cell.value or "")) for cell in col)
         ws.column_dimensions[col[0].column_letter].width = min(max_len + 2, 60)
 
 
-def _write_plate_sheet(ws, mappings: list[PlateMapping], fill_color: str) -> None:
-    """Write a 96-well plate layout sheet."""
+def _write_plate_sheet(
+    ws,
+    mappings: list[PlateMapping],
+    fill_color: str,
+    rev_groups: dict[str, list[str]] | None = None,
+) -> None:
+    """Write a 96-well plate layout sheet with shared primers in blue."""
     from openpyxl.styles import Alignment, Font, PatternFill
 
     rows_label = "ABCDEFGH"
@@ -154,11 +183,12 @@ def _write_plate_sheet(ws, mappings: list[PlateMapping], fill_color: str) -> Non
     for r_idx, r_label in enumerate(rows_label):
         ws.cell(row=r_idx + 2, column=1, value=r_label).font = Font(bold=True)
 
-    fill = PatternFill(start_color=fill_color, fill_type="solid")
+    default_fill = PatternFill(start_color=fill_color, fill_type="solid")
+    shared_fill = PatternFill(start_color=_COLOR_SHARED, fill_type="solid")
 
     for m in mappings:
         if not m.well[0].isalpha():
-            continue  # skip overflow wells
+            continue
         row_letter = m.well[0]
         col_num = int(m.well[1:])
         if row_letter not in rows_label or col_num > 12:
@@ -166,45 +196,96 @@ def _write_plate_sheet(ws, mappings: list[PlateMapping], fill_color: str) -> Non
         r_idx = rows_label.index(row_letter) + 2
         c_idx = col_num + 1
 
-        cell = ws.cell(row=r_idx, column=c_idx, value=m.primer_name)
+        # Display mutation name (without _F/_R suffix) like the UI
+        display_name = m.primer_name.rsplit("_", 1)[0] if "_" in m.primer_name else m.primer_name
+
+        cell = ws.cell(row=r_idx, column=c_idx, value=display_name)
         cell.alignment = Alignment(horizontal="center", wrap_text=True)
-        cell.fill = fill
+        cell.fill = shared_fill if _is_shared_rev(m, rev_groups) else default_fill
 
     ws.column_dimensions["A"].width = 4
     for c in range(2, 14):
         ws.column_dimensions[chr(64 + c)].width = 14
 
 
+def _chunk_by_plate(mappings: list[PlateMapping]) -> list[list[PlateMapping]]:
+    """Split mappings into 96-well plate chunks."""
+    plates: list[list[PlateMapping]] = []
+    current: list[PlateMapping] = []
+    for m in mappings:
+        # Normalize well: strip overflow prefix like "P2-"
+        well = m.well
+        if "-" in well:
+            well = well.split("-", 1)[1]
+            m = PlateMapping(
+                well=well,
+                primer_name=m.primer_name,
+                sequence=m.sequence,
+                primer_type=m.primer_type,
+                mutation=m.mutation,
+            )
+        current.append(m)
+        if len(current) >= 96:
+            plates.append(current)
+            current = []
+    if current:
+        plates.append(current)
+    return plates if plates else [[]]
+
+
 def export_plate_excel(
     mappings: list[PlateMapping],
     output_path: Path,
+    rev_groups: dict[str, list[str]] | None = None,
 ) -> None:
-    """Export plate mappings to an Excel file with separate Fwd/Rev plates.
+    """Export plate mappings to Excel with per-plate sheets.
 
-    Creates four sheets:
-    1. 'Fwd List' - Forward primer list
-    2. 'Fwd Plate' - Forward 96-well plate layout (green)
-    3. 'Rev List' - Reverse primer list
-    4. 'Rev Plate' - Reverse 96-well plate layout (orange)
+    For N plates, creates sheets:
+    - 'Fwd List 1', 'Fwd Plate 1', 'Rev List 1', 'Rev Plate 1'
+    - 'Fwd List 2', 'Fwd Plate 2', ... (if multi-plate)
+
+    Single plate omits the number suffix.
+
+    Args:
+        rev_groups: Original reverse deduplication map (seq -> mutation names).
+            Used to detect shared reverse primers for blue coloring.
     """
     from openpyxl import Workbook
 
-    fwd = [m for m in mappings if m.primer_type == "forward"]
-    rev = [m for m in mappings if m.primer_type == "reverse"]
+    fwd_all = [m for m in mappings if m.primer_type == "forward"]
+    rev_all = [m for m in mappings if m.primer_type == "reverse"]
+
+    fwd_plates = _chunk_by_plate(fwd_all)
+    rev_plates = _chunk_by_plate(rev_all)
+    plate_count = max(len(fwd_plates), len(rev_plates))
+    suffix = plate_count > 1
 
     wb = Workbook()
+    first_sheet = True
 
-    ws_fwd_list = wb.active
-    ws_fwd_list.title = "Fwd List"
-    _write_list_sheet(ws_fwd_list, fwd, "C6EFCE")
+    for i in range(plate_count):
+        tag = f" {i + 1}" if suffix else ""
+        fwd_chunk = fwd_plates[i] if i < len(fwd_plates) else []
+        rev_chunk = rev_plates[i] if i < len(rev_plates) else []
 
-    ws_fwd_plate = wb.create_sheet("Fwd Plate")
-    _write_plate_sheet(ws_fwd_plate, fwd, "C6EFCE")
+        # Use original rev_groups for shared detection (covers deduplicated entries)
+        chunk_rev_groups = rev_groups or {}
 
-    ws_rev_list = wb.create_sheet("Rev List")
-    _write_list_sheet(ws_rev_list, rev, "FCE4D6")
+        if first_sheet:
+            ws = wb.active
+            ws.title = f"Fwd List{tag}"
+            first_sheet = False
+        else:
+            ws = wb.create_sheet(f"Fwd List{tag}")
+        _write_list_sheet(ws, fwd_chunk, _COLOR_FWD)
 
-    ws_rev_plate = wb.create_sheet("Rev Plate")
-    _write_plate_sheet(ws_rev_plate, rev, "FCE4D6")
+        ws = wb.create_sheet(f"Fwd Plate{tag}")
+        _write_plate_sheet(ws, fwd_chunk, _COLOR_FWD)
+
+        ws = wb.create_sheet(f"Rev List{tag}")
+        _write_list_sheet(ws, rev_chunk, _COLOR_REV, rev_groups=chunk_rev_groups)
+
+        ws = wb.create_sheet(f"Rev Plate{tag}")
+        _write_plate_sheet(ws, rev_chunk, _COLOR_REV, rev_groups=chunk_rev_groups)
 
     wb.save(output_path)

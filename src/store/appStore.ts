@@ -1,13 +1,15 @@
 import { create } from "zustand";
 import { sendRequest, setProgressHandler } from "../lib/ipc";
+import type { SortingState, Updater } from "@tanstack/react-table";
 
 function formatError(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 import type {
-  PolymeraseInfo,
   SequenceInfo,
   ParsedMutation,
+  ParseError,
+  ParseMutationsResult,
   SdmPrimerResult,
   DesignResult,
   FailedMutation,
@@ -17,9 +19,6 @@ import type {
 } from "../types/models";
 
 interface AppState {
-  // Sidecar
-  polymerases: PolymeraseInfo[];
-
   // Input
   fastaPath: string;
   seqInfo: SequenceInfo | null;
@@ -27,10 +26,17 @@ interface AppState {
   mutationText: string;
   evolveproCsvPath: string;
   parsedMutations: ParsedMutation[];
+  parseErrors: ParseError[];
 
   // Parameters
   selectedGene: string;
-  selectedPolymerase: string;
+  codonStrategy: "closest" | "optimal";
+  maxPrimers: number;
+  tmFwdTarget: number;
+  tmRevTarget: number;
+  tmOverlapTarget: number;
+  gcMin: number;
+  gcMax: number;
 
   // Design
   isDesigning: boolean;
@@ -46,23 +52,62 @@ interface AppState {
   // UI
   progress: number;
   statusMessage: string;
+  tableSorting: SortingState;
+  manuallySwapped: Record<string, "fwd" | "rev" | "both">;
+  customCandidates: Record<string, SdmPrimerResult[]>;
 
   // Actions
-  fetchPolymerases: () => Promise<void>;
   loadSequence: (filepath: string) => Promise<void>;
   setSelectedGene: (gene: string) => void;
   setMutationInputMode: (mode: "text" | "evolvepro") => void;
   setMutationText: (text: string) => void;
   loadEvolveproCsv: (filepath: string) => Promise<void>;
-  setSelectedPolymerase: (name: string) => void;
+  setCodonStrategy: (strategy: "closest" | "optimal") => void;
+  setMaxPrimers: (n: number) => void;
   parseMutations: () => Promise<void>;
   designPrimers: () => Promise<void>;
   getAlternatives: (mutation: string) => Promise<SdmPrimerResult[]>;
-  swapPrimer: (mutation: string, candidateIdx: number) => Promise<void>;
+  swapPrimer: (mutation: string, candidateIdx: number, swapType?: "both" | "fwd" | "rev") => Promise<void>;
+  applyCustomPrimer: (mutation: string, result: SdmPrimerResult) => void;
+  addCustomCandidate: (mutation: string, result: SdmPrimerResult) => void;
+  removeCustomCandidate: (mutation: string, index: number) => void;
   getPlateMap: () => Promise<void>;
   exportTsv: (filepath: string) => Promise<void>;
   exportExcel: (filepath: string) => Promise<void>;
+  setTableSorting: (updater: Updater<SortingState>) => void;
+  resetAll: () => void;
+  evaluateCustomPrimer: (mutation: string, fwdSeq: string, revSeq: string, overlapLen?: number) => Promise<SdmPrimerResult | null>;
 }
+
+const INITIAL_STATE = {
+  fastaPath: "",
+  seqInfo: null as SequenceInfo | null,
+  mutationInputMode: "text" as "text" | "evolvepro",
+  mutationText: "",
+  evolveproCsvPath: "",
+  parsedMutations: [] as ParsedMutation[],
+  parseErrors: [] as ParseError[],
+  selectedGene: "",
+  codonStrategy: "closest" as "closest" | "optimal",
+  maxPrimers: 95,
+  tmFwdTarget: 62,
+  tmRevTarget: 58,
+  tmOverlapTarget: 42,
+  gcMin: 40,
+  gcMax: 60,
+  isDesigning: false,
+  designResults: [] as SdmPrimerResult[],
+  successCount: 0,
+  totalCount: 0,
+  failedMutations: [] as FailedMutation[],
+  plateMappings: [] as PlateMapping[],
+  dedupInfo: {} as Record<string, string[]>,
+  progress: 0,
+  statusMessage: "Ready",
+  tableSorting: [] as import("@tanstack/react-table").SortingState,
+  manuallySwapped: {} as Record<string, "fwd" | "rev" | "both">,
+  customCandidates: {} as Record<string, SdmPrimerResult[]>,
+};
 
 export const useAppStore = create<AppState>((set, get) => {
   setProgressHandler((p) => {
@@ -70,33 +115,7 @@ export const useAppStore = create<AppState>((set, get) => {
   });
 
   return {
-    polymerases: [],
-    fastaPath: "",
-    seqInfo: null,
-    mutationInputMode: "text",
-    mutationText: "",
-    evolveproCsvPath: "",
-    parsedMutations: [],
-    selectedGene: "",
-    selectedPolymerase: "KOD",
-    isDesigning: false,
-    designResults: [],
-    successCount: 0,
-    totalCount: 0,
-    failedMutations: [],
-    plateMappings: [],
-    dedupInfo: {},
-    progress: 0,
-    statusMessage: "Ready",
-
-    fetchPolymerases: async () => {
-      try {
-        const list = await sendRequest<PolymeraseInfo[]>("list_polymerases");
-        set({ polymerases: list });
-      } catch (err) {
-        console.error("Failed to fetch polymerases:", err);
-      }
-    },
+    ...INITIAL_STATE,
 
     loadSequence: async (filepath: string) => {
       try {
@@ -134,28 +153,29 @@ export const useAppStore = create<AppState>((set, get) => {
         set({ statusMessage: "Loading EVOLVEpro CSV...", evolveproCsvPath: filepath });
         const result = await sendRequest<EvolveproLoadResult>(
           "load_evolvepro_csv",
-          { filepath, top_n: 96 },
+          { filepath, top_n: 9999 },
         );
         const variantText = result.variants.join("\n");
         set({
           mutationText: variantText,
           mutationInputMode: "evolvepro",
-          statusMessage: `EVOLVEpro: ${result.selected_count}/${result.total_count} variants loaded (top-96 by y_pred)`,
+          statusMessage: `EVOLVEpro: ${result.selected_count} variants loaded (y_pred sorted)`,
         });
       } catch (err) {
         set({ statusMessage: `EVOLVEpro CSV load failed: ${formatError(err)}` });
       }
     },
-    setSelectedPolymerase: (name) => set({ selectedPolymerase: name }),
+    setCodonStrategy: (strategy) => set({ codonStrategy: strategy }),
+    setMaxPrimers: (n) => set({ maxPrimers: Math.max(1, n) }),
 
     parseMutations: async () => {
       const { mutationText } = get();
       try {
-        const parsed = await sendRequest<ParsedMutation[]>(
+        const result = await sendRequest<ParseMutationsResult>(
           "parse_mutations_text",
           { text: mutationText },
         );
-        set({ parsedMutations: parsed });
+        set({ parsedMutations: result.parsed, parseErrors: result.errors });
       } catch (err) {
         set({ statusMessage: `Mutation parse failed: ${formatError(err)}` });
       }
@@ -166,7 +186,13 @@ export const useAppStore = create<AppState>((set, get) => {
         fastaPath,
         selectedGene,
         mutationText,
-        selectedPolymerase,
+        codonStrategy,
+        maxPrimers,
+        tmFwdTarget,
+        tmRevTarget,
+        tmOverlapTarget,
+        gcMin,
+        gcMax,
       } = get();
 
       if (!fastaPath) {
@@ -177,6 +203,11 @@ export const useAppStore = create<AppState>((set, get) => {
         set({ statusMessage: "No mutations entered" });
         return;
       }
+
+      // Limit mutations to maxPrimers
+      const allLines = mutationText.trim().split("\n").filter((l) => l.trim() && !l.trim().startsWith("#"));
+      const limitedLines = allLines.slice(0, maxPrimers);
+      const limitedText = limitedLines.join("\n");
 
       // Resolve CDS start from selected gene (selectedGene stores cds_start as string)
       const targetStart = selectedGene ? parseInt(selectedGene, 10) : 0;
@@ -193,8 +224,14 @@ export const useAppStore = create<AppState>((set, get) => {
         const result = await sendRequest<DesignResult>("design_sdm_primers", {
           fasta_path: fastaPath,
           target_start: targetStart,
-          mutations_csv_or_text: mutationText,
-          polymerase: selectedPolymerase,
+          mutations_csv_or_text: limitedText,
+          polymerase: "Benchling",
+          codon_strategy: codonStrategy,
+          tm_fwd_target: tmFwdTarget,
+          tm_rev_target: tmRevTarget,
+          tm_overlap_target: tmOverlapTarget,
+          gc_min: gcMin,
+          gc_max: gcMax,
         });
 
         set({
@@ -231,16 +268,97 @@ export const useAppStore = create<AppState>((set, get) => {
       return result.candidates;
     },
 
-    swapPrimer: async (mutation: string, candidateIdx: number) => {
+    swapPrimer: async (mutation: string, candidateIdx: number, swapType: "both" | "fwd" | "rev" = "both") => {
       const updated = await sendRequest<SdmPrimerResult>(
         "swap_primer",
-        { mutation, candidate_idx: candidateIdx },
+        { mutation, candidate_idx: candidateIdx, swap_type: swapType },
       );
-      const { designResults } = get();
+      const { designResults, manuallySwapped } = get();
+      const targetPos = updated.aa_position;
+      const revChanged = swapType === "rev" || swapType === "both";
+
+      // If swapping back to candidate #0 (default best), clear the highlight
+      const newSwapped = { ...manuallySwapped };
+      if (candidateIdx === 0) {
+        delete newSwapped[mutation];
+      } else {
+        newSwapped[mutation] = swapType === "both" ? "both" : (
+          manuallySwapped[mutation] === "both" ? "both" :
+          manuallySwapped[mutation] && manuallySwapped[mutation] !== swapType ? "both" : swapType
+        );
+      }
+
       set({
-        designResults: designResults.map((r) =>
-          r.mutation === mutation ? updated : r
-        ),
+        designResults: designResults.map((r) => {
+          if (r.mutation === mutation) return updated;
+          // Propagate reverse to same-position mutations
+          if (revChanged && r.aa_position === targetPos) {
+            return { ...r, reverse_seq: updated.reverse_seq, rev_len: updated.rev_len, tm_no_rev: updated.tm_no_rev, gc_rev: updated.gc_rev };
+          }
+          return r;
+        }),
+        manuallySwapped: newSwapped,
+      });
+    },
+
+    applyCustomPrimer: (mutation: string, result: SdmPrimerResult) => {
+      const { designResults, manuallySwapped } = get();
+      const targetPos = result.aa_position;
+
+      set({
+        designResults: designResults.map((r) => {
+          if (r.mutation === mutation) {
+            // Preserve original candidate counts (already incremented by addCustomCandidate)
+            return {
+              ...result,
+              candidate_count: r.candidate_count,
+              candidate_fwd_count: r.candidate_fwd_count,
+              candidate_rev_count: r.candidate_rev_count,
+            };
+          }
+          // Propagate reverse to same-position mutations
+          if (r.aa_position === targetPos) {
+            return { ...r, reverse_seq: result.reverse_seq, rev_len: result.rev_len, tm_no_rev: result.tm_no_rev, gc_rev: result.gc_rev };
+          }
+          return r;
+        }),
+        manuallySwapped: { ...manuallySwapped, [mutation]: "both" },
+      });
+    },
+
+    addCustomCandidate: (mutation: string, result: SdmPrimerResult) => {
+      const { customCandidates, designResults } = get();
+      const existing = customCandidates[mutation] ?? [];
+      set({
+        customCandidates: { ...customCandidates, [mutation]: [...existing, result] },
+        // Increment candidate counts in designResults
+        designResults: designResults.map((r) => {
+          if (r.mutation !== mutation) return r;
+          return {
+            ...r,
+            candidate_fwd_count: (r.candidate_fwd_count ?? 0) + 1,
+            candidate_rev_count: (r.candidate_rev_count ?? 0) + 1,
+          };
+        }),
+      });
+    },
+
+    removeCustomCandidate: (mutation: string, index: number) => {
+      const { customCandidates, designResults } = get();
+      const existing = customCandidates[mutation] ?? [];
+      set({
+        customCandidates: {
+          ...customCandidates,
+          [mutation]: existing.filter((_, i) => i !== index),
+        },
+        designResults: designResults.map((r) => {
+          if (r.mutation !== mutation) return r;
+          return {
+            ...r,
+            candidate_fwd_count: Math.max(0, (r.candidate_fwd_count ?? 1) - 1),
+            candidate_rev_count: Math.max(0, (r.candidate_rev_count ?? 1) - 1),
+          };
+        }),
       });
     },
 
@@ -271,6 +389,35 @@ export const useAppStore = create<AppState>((set, get) => {
         set({ statusMessage: `Exported Excel: ${filepath}` });
       } catch (err) {
         set({ statusMessage: `Excel export failed: ${formatError(err)}` });
+      }
+    },
+
+    setTableSorting: (updater: Updater<SortingState>) => {
+      const current = get().tableSorting;
+      const next = typeof updater === "function" ? updater(current) : updater;
+      set({ tableSorting: next });
+    },
+
+    resetAll: () => {
+      set({ ...INITIAL_STATE });
+    },
+
+    evaluateCustomPrimer: async (mutation: string, fwdSeq: string, revSeq: string, overlapLen?: number) => {
+      try {
+        const { fastaPath, selectedGene } = get();
+        const targetStart = selectedGene ? parseInt(selectedGene, 10) : 0;
+        const result = await sendRequest<SdmPrimerResult>("evaluate_primer", {
+          mutation,
+          fasta_path: fastaPath,
+          target_start: targetStart,
+          forward_seq: fwdSeq,
+          reverse_seq: revSeq,
+          overlap_len: overlapLen ?? 20,
+        });
+        return result;
+      } catch (err) {
+        set({ statusMessage: `Evaluate failed: ${formatError(err)}` });
+        return null;
       }
     },
   };

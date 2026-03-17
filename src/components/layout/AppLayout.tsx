@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
-import { save } from "@tauri-apps/plugin-dialog";
+import { useState } from "react";
+import { open, save } from "@tauri-apps/plugin-dialog";
+import { sendRequest } from "../../lib/ipc";
 import { useAppStore } from "../../store/appStore";
 import { useSidecar } from "../../hooks/useSidecar";
 import { InputPanel } from "../panels/InputPanel";
@@ -41,10 +42,106 @@ function MenuBar() {
     if (path) await useAppStore.getState().exportExcel(path);
   }
 
+  async function handleSaveWorkspace() {
+    const path = await save({
+      filters: [{ name: "KURO Workspace", extensions: ["kuro.json"] }],
+    });
+    if (!path) return;
+    const s = useAppStore.getState();
+    const workspace = {
+      version: 1,
+      fastaPath: s.fastaPath,
+      mutationInputMode: s.mutationInputMode,
+      mutationText: s.mutationText,
+      evolveproCsvPath: s.evolveproCsvPath,
+      selectedGene: s.selectedGene,
+      codonStrategy: s.codonStrategy,
+      maxPrimers: s.maxPrimers,
+      designResults: s.designResults,
+      successCount: s.successCount,
+      totalCount: s.totalCount,
+      failedMutations: s.failedMutations,
+      plateMappings: s.plateMappings,
+      dedupInfo: s.dedupInfo,
+      tableSorting: s.tableSorting,
+      manuallySwapped: s.manuallySwapped,
+      customCandidates: s.customCandidates,
+      tmFwdTarget: s.tmFwdTarget,
+      tmRevTarget: s.tmRevTarget,
+      tmOverlapTarget: s.tmOverlapTarget,
+      gcMin: s.gcMin,
+      gcMax: s.gcMax,
+    };
+    await sendRequest("save_workspace", { filepath: path, data: workspace });
+    useAppStore.setState({ statusMessage: `Workspace saved: ${path}` });
+  }
+
+  async function handleLoadWorkspace() {
+    const path = await open({
+      filters: [{ name: "KURO Workspace", extensions: ["kuro.json", "json"] }],
+      multiple: false,
+    });
+    if (!path) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ws: any = await sendRequest("load_workspace", { filepath: path as string });
+    if (ws.version !== 1) {
+      useAppStore.setState({ statusMessage: "Incompatible workspace version" });
+      return;
+    }
+    useAppStore.getState().resetAll();
+    useAppStore.setState({
+      mutationInputMode: ws.mutationInputMode ?? "text",
+      mutationText: ws.mutationText ?? "",
+      evolveproCsvPath: ws.evolveproCsvPath ?? "",
+      codonStrategy: ws.codonStrategy ?? "closest",
+      maxPrimers: ws.maxPrimers ?? 95,
+    });
+
+    // Restore sequence file + selectedGene
+    if (ws.fastaPath) {
+      await useAppStore.getState().loadSequence(ws.fastaPath as string);
+      // Validate selectedGene against loaded genes
+      if (ws.selectedGene) {
+        const seqInfo = useAppStore.getState().seqInfo;
+        const geneExists = seqInfo?.genes.some(
+          (g) => String(g.cds_start) === String(ws.selectedGene),
+        );
+        if (geneExists) {
+          useAppStore.setState({ selectedGene: ws.selectedGene as string });
+        }
+      }
+    }
+
+    // Restore UI state first (shows previous results immediately)
+    useAppStore.setState({
+      designResults: ws.designResults ?? [],
+      successCount: ws.successCount ?? 0,
+      totalCount: ws.totalCount ?? 0,
+      failedMutations: ws.failedMutations ?? [],
+      plateMappings: ws.plateMappings ?? [],
+      dedupInfo: ws.dedupInfo ?? {},
+      tableSorting: ws.tableSorting ?? [],
+      manuallySwapped: ws.manuallySwapped ?? {},
+      customCandidates: ws.customCandidates ?? {},
+      tmFwdTarget: ws.tmFwdTarget ?? 62,
+      tmRevTarget: ws.tmRevTarget ?? 58,
+      tmOverlapTarget: ws.tmOverlapTarget ?? 42,
+      gcMin: ws.gcMin ?? 40,
+      gcMax: ws.gcMax ?? 60,
+      statusMessage: `Workspace loaded. Re-designing to sync backend...`,
+    });
+
+    // Re-design to sync sidecar state (_last_results, _last_candidates)
+    // This enables Export and Candidate features
+    if (ws.mutationText && ws.fastaPath) {
+      await useAppStore.getState().designPrimers();
+    }
+  }
+
   return (
     <>
       <div className="flex items-center gap-1 px-4 py-1 bg-gray-100 border-b border-gray-300 text-xs">
-        <span className="font-bold text-sm mr-4 text-green-700">
+        <span className="font-black text-sm mr-4 text-gray-900 tracking-wide">
           KURO
         </span>
         <DropdownMenu>
@@ -54,6 +151,13 @@ function MenuBar() {
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start">
+            <DropdownMenuItem onClick={handleSaveWorkspace}>
+              Save Workspace...
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLoadWorkspace}>
+              Load Workspace...
+            </DropdownMenuItem>
+            <DropdownMenuItem className="h-px bg-gray-200 my-1 p-0" disabled />
             <DropdownMenuItem
               onClick={handleExportTsv}
               disabled={designResults.length === 0}
@@ -88,10 +192,9 @@ function MenuBar() {
           <DialogHeader>
             <DialogTitle>About KURO</DialogTitle>
             <DialogDescription>
-              KURO v0.1.0
+              KURO v0.6.0
               <br />
-              EVOLVEpro SDM primer batch design tool with Tm-guided overlap
-              extension.
+              SDM primer batch design tool with Tm-guided overlap extension.
               <br />
               <br />
               Built with Tauri + React + primer3-py
@@ -144,16 +247,11 @@ function StatusBar() {
 }
 
 export function AppLayout() {
-  const { status: sidecarStatus } = useSidecar();
-  const fetchPolymerases = useAppStore((s) => s.fetchPolymerases);
   const isDesigning = useAppStore((s) => s.isDesigning);
   const seqInfo = useAppStore((s) => s.seqInfo);
-
-  useEffect(() => {
-    if (sidecarStatus === "ready") {
-      fetchPolymerases();
-    }
-  }, [sidecarStatus, fetchPolymerases]);
+  const mutationText = useAppStore((s) => s.mutationText);
+  const designResults = useAppStore((s) => s.designResults);
+  const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
 
   return (
     <div className="flex flex-col h-screen">
@@ -168,9 +266,24 @@ export function AppLayout() {
           <Button
             className="w-full"
             onClick={() => useAppStore.getState().designPrimers()}
-            disabled={!seqInfo || isDesigning}
+            disabled={!seqInfo || isDesigning || !mutationText.trim()}
           >
             {isDesigning ? "Designing..." : "Design Primers"}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full text-gray-500"
+            onClick={() => {
+              if (designResults.length > 0) {
+                setClearConfirmOpen(true);
+              } else {
+                useAppStore.getState().resetAll();
+              }
+            }}
+            disabled={isDesigning}
+          >
+            Clear All
           </Button>
         </div>
 
@@ -186,6 +299,28 @@ export function AppLayout() {
       </div>
 
       <StatusBar />
+
+      <Dialog open={clearConfirmOpen} onOpenChange={setClearConfirmOpen}>
+        <DialogContent className="max-w-xs">
+          <DialogHeader>
+            <DialogTitle>Clear All</DialogTitle>
+            <DialogDescription>
+              All design results will be lost. Continue?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setClearConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button size="sm" variant="destructive" onClick={() => {
+              useAppStore.getState().resetAll();
+              setClearConfirmOpen(false);
+            }}>
+              Clear
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

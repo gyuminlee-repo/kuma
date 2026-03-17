@@ -85,13 +85,24 @@ def closest_codon(wt_codon: str, target_aa: str) -> str:
     return ranked[0][0]
 
 
-def mt_codons_for_design(wt_codon: str, target_aa: str) -> list[str]:
-    """Return distinct mutant codons: [optimal, closest] (deduplicated)."""
+def mt_codons_for_design(
+    wt_codon: str,
+    target_aa: str,
+    strategy: str = "closest",
+) -> list[str]:
+    """Return distinct mutant codons ordered by strategy.
+
+    Args:
+        strategy: "closest" (min nucleotide changes first) or
+                  "optimal" (highest E. coli usage first).
+    """
     optimal = best_codon(target_aa)
     closest = closest_codon(wt_codon, target_aa)
     if optimal == closest:
         return [optimal]
-    return [optimal, closest]
+    if strategy == "optimal":
+        return [optimal, closest]
+    return [closest, optimal]
 
 
 def codon_to_aa(codon: str) -> str:

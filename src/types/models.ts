@@ -27,6 +27,25 @@ export interface ParsedMutation {
   mt_aa: string;
 }
 
+export interface ParseError {
+  line: number;
+  raw: string;
+  reason: string;
+}
+
+export interface ParseMutationsResult {
+  parsed: ParsedMutation[];
+  errors: ParseError[];
+}
+
+export interface OffTargetHit {
+  position: number;
+  strand: "sense" | "antisense";
+  match_seq: string;
+  tm: number;
+  match_length: number;
+}
+
 export interface SdmPrimerResult {
   mutation: string;
   aa_position: number;
@@ -37,18 +56,32 @@ export interface SdmPrimerResult {
   rev_len: number;
   overlap_len: number;
   candidate_count?: number;
+  candidate_fwd_count?: number;
+  candidate_rev_count?: number;
   tm_no_fwd: number;
   tm_no_rev: number;
   tm_overlap: number;
   tm_condition_met: boolean;
   tolerance_used: number;
+  tolerance_fwd?: number;
+  tolerance_rev?: number;
   has_offtarget: boolean;
+  offtarget_fwd?: OffTargetHit[];
+  offtarget_rev?: OffTargetHit[];
   penalty: number;
   gc_fwd: number;
   gc_rev: number;
   wt_codon: string;
   mt_codon: string;
   overlap_seq: string;
+  hairpin_tm_fwd?: number;
+  hairpin_tm_rev?: number;
+  homodimer_tm_fwd?: number;
+  homodimer_tm_rev?: number;
+  hairpin_dg_fwd?: number;
+  hairpin_dg_rev?: number;
+  homodimer_dg_fwd?: number;
+  homodimer_dg_rev?: number;
   warnings: string[];
 }
 
