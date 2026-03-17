@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   createColumnHelper,
   flexRender,
@@ -70,12 +70,12 @@ function CandidatePopover({
   const swapPrimer = useAppStore((s) => s.swapPrimer);
 
   // Load candidates on mount
-  useState(() => {
+  useEffect(() => {
     getAlternatives(mutation).then((c) => {
       setCandidates(c);
       setLoading(false);
     }).catch(() => setLoading(false));
-  });
+  }, [mutation, getAlternatives]);
 
   async function handleSwap(idx: number) {
     await swapPrimer(mutation, idx);
@@ -184,6 +184,7 @@ const HEADER_TOOLTIPS: Record<string, string> = {
   tm_overlap: "Overlap region Tm - should be lower than Fwd/Rev Tm",
   tolerance_used: "Tm tolerance applied (starts at +/-0.5, widens by 0.5 up to +/-3.0)",
   penalty: "Sum of Tm deviations + GC% penalty (lower is better)",
+  candidate_count: "Number of alternative primer candidates for this mutation",
   has_offtarget: "Off-target binding detected on template strand",
   gc_fwd: "Forward primer GC content (40-60% recommended)",
   gc_rev: "Reverse primer GC content (40-60% recommended)",
@@ -291,6 +292,15 @@ function makeColumns(groupColorMap: Map<number, string>) {
       cell: (info) => {
         const val = info.getValue();
         return val != null ? val.toFixed(1) : "\u2014";
+      },
+    }),
+    col.accessor("candidate_count", {
+      header: "Cand",
+      size: 42,
+      enableSorting: false,
+      cell: (info) => {
+        const val = info.getValue();
+        return val != null && val > 0 ? val : "\u2014";
       },
     }),
     col.accessor("has_offtarget", {
@@ -409,7 +419,7 @@ export function ResultTable() {
               className="hover:bg-green-50 border-b border-gray-100"
             >
               {row.getVisibleCells().map((cell) => {
-                const isClickable = cell.column.id === "forward_seq" || cell.column.id === "reverse_seq";
+                const isClickable = !!(cell.column.columnDef.meta as Record<string, boolean> | undefined)?.clickable;
                 return (
                   <td
                     key={cell.id}
@@ -428,11 +438,17 @@ export function ResultTable() {
       {failedMutations.length > 0 && (
         <div className="border-t border-gray-200 bg-red-50 px-3 py-2">
           <div className="text-xs font-semibold text-red-700 mb-1">
-            Failed ({failedMutations.length}/{totalCount}) — no valid primer pair found
+            Failed ({failedMutations.length}/{totalCount})
           </div>
           <div className="text-[10px] text-red-600 font-mono flex flex-wrap gap-1">
-            {failedMutations.map((m) => (
-              <span key={m} className="bg-red-100 px-1.5 py-0.5 rounded">{m}</span>
+            {failedMutations.map((f) => (
+              <span
+                key={f.mutation}
+                className="bg-red-100 px-1.5 py-0.5 rounded cursor-help"
+                title={`#${f.rank} | ${f.reason}`}
+              >
+                #{f.rank} {f.mutation}
+              </span>
             ))}
           </div>
         </div>

@@ -41,17 +41,17 @@ def _well_name(index: int, order: str = "column") -> str:
     return f"{rows[row]}{col}"
 
 
+def _assign_well(index: int, well_order: str = "column") -> str:
+    """Generate well name with overflow to second plate."""
+    if index < 96:
+        return _well_name(index, well_order)
+    return f"P2-{_well_name(index - 96, well_order)}"
+
+
 def deduplicate_reverse(
     results: list[SdmPrimerResult],
 ) -> dict[str, list[str]]:
     """Find mutations sharing identical reverse primers.
-
-    Mutations at the same codon position with different substitutions
-    may share the same reverse primer (since the reverse primer binds
-    upstream of the mutation site).
-
-    Args:
-        results: List of SdmPrimerResult.
 
     Returns:
         Dict mapping reverse primer sequence to list of mutation names.
@@ -69,120 +69,142 @@ def generate_plate_map(
     results: list[SdmPrimerResult],
     well_order: str = "column",
     deduplicate_rev: bool = True,
-) -> list[PlateMapping]:
-    """Generate primer list mappings for SDM primers.
+) -> tuple[list[PlateMapping], list[PlateMapping]]:
+    """Generate separate Fwd and Rev plate mappings.
 
-    Each mutation produces a Fwd and Rev entry. Sequential numbering only,
-    no 96-well plate capacity limit.
-
-    Args:
-        results: SDM primer design results.
-        well_order: 'column' (A1->H1->A2) or 'row' (A1->A12->B1).
-        deduplicate_rev: If True, merge identical reverse primers.
+    Forward plate: one primer per mutation, sequential well assignment.
+    Reverse plate: deduplicated reverse primers, sequential well assignment.
 
     Returns:
-        List of PlateMapping assignments.
+        Tuple of (fwd_mappings, rev_mappings).
     """
-    mappings: list[PlateMapping] = []
-    idx = 0
-
-    def well_label() -> str:
-        nonlocal idx
-        label = _well_name(idx % 96, well_order) if idx < 96 else f"{idx + 1}"
-        idx += 1
-        return label
-
-    for r in results:
-        mappings.append(PlateMapping(
-            well=well_label(),
+    # Forward plate
+    fwd_mappings: list[PlateMapping] = []
+    for idx, r in enumerate(results):
+        well = _assign_well(idx, well_order)
+        fwd_mappings.append(PlateMapping(
+            well=well,
             primer_name=f"{r.mutation.raw}_F",
             sequence=r.forward_seq,
             primer_type="forward",
             mutation=r.mutation.raw,
         ))
-        mappings.append(PlateMapping(
-            well=well_label(),
-            primer_name=f"{r.mutation.raw}_R",
-            sequence=r.reverse_seq,
-            primer_type="reverse",
-            mutation=r.mutation.raw,
-        ))
 
-    return mappings
+    # Reverse plate (deduplicated)
+    rev_mappings: list[PlateMapping] = []
+    if deduplicate_rev:
+        rev_groups = deduplicate_reverse(results)
+        for idx, (rev_seq, mut_names) in enumerate(rev_groups.items()):
+            label = "+".join(mut_names) if len(mut_names) > 1 else mut_names[0]
+            well = _assign_well(idx, well_order)
+            rev_mappings.append(PlateMapping(
+                well=well,
+                primer_name=f"{label}_R",
+                sequence=rev_seq,
+                primer_type="reverse",
+                mutation=label,
+            ))
+    else:
+        for idx, r in enumerate(results):
+            well = _assign_well(idx, well_order)
+            rev_mappings.append(PlateMapping(
+                well=well,
+                primer_name=f"{r.mutation.raw}_R",
+                sequence=r.reverse_seq,
+                primer_type="reverse",
+                mutation=r.mutation.raw,
+            ))
+
+    return fwd_mappings, rev_mappings
+
+
+def _write_list_sheet(ws, mappings: list[PlateMapping], fill_color: str) -> None:
+    """Write a primer list sheet."""
+    from openpyxl.styles import Font, PatternFill
+
+    headers = ["Well", "Primer Name", "Sequence", "Length", "Mutation"]
+    for col_idx, h in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_idx, value=h)
+        cell.font = Font(bold=True)
+        cell.fill = PatternFill(start_color="D9E1F2", fill_type="solid")
+
+    for i, m in enumerate(mappings, 2):
+        ws.cell(row=i, column=1, value=m.well)
+        ws.cell(row=i, column=2, value=m.primer_name)
+        ws.cell(row=i, column=3, value=m.sequence)
+        ws.cell(row=i, column=4, value=len(m.sequence))
+        ws.cell(row=i, column=5, value=m.mutation)
+
+    for col in ws.columns:
+        max_len = max(len(str(cell.value or "")) for cell in col)
+        ws.column_dimensions[col[0].column_letter].width = min(max_len + 2, 60)
+
+
+def _write_plate_sheet(ws, mappings: list[PlateMapping], fill_color: str) -> None:
+    """Write a 96-well plate layout sheet."""
+    from openpyxl.styles import Alignment, Font, PatternFill
+
+    rows_label = "ABCDEFGH"
+
+    for c in range(1, 13):
+        cell = ws.cell(row=1, column=c + 1, value=c)
+        cell.font = Font(bold=True)
+        cell.alignment = Alignment(horizontal="center")
+
+    for r_idx, r_label in enumerate(rows_label):
+        ws.cell(row=r_idx + 2, column=1, value=r_label).font = Font(bold=True)
+
+    fill = PatternFill(start_color=fill_color, fill_type="solid")
+
+    for m in mappings:
+        if not m.well[0].isalpha():
+            continue  # skip overflow wells
+        row_letter = m.well[0]
+        col_num = int(m.well[1:])
+        if row_letter not in rows_label or col_num > 12:
+            continue
+        r_idx = rows_label.index(row_letter) + 2
+        c_idx = col_num + 1
+
+        cell = ws.cell(row=r_idx, column=c_idx, value=m.primer_name)
+        cell.alignment = Alignment(horizontal="center", wrap_text=True)
+        cell.fill = fill
+
+    ws.column_dimensions["A"].width = 4
+    for c in range(2, 14):
+        ws.column_dimensions[chr(64 + c)].width = 14
 
 
 def export_plate_excel(
     mappings: list[PlateMapping],
     output_path: Path,
 ) -> None:
-    """Export plate mappings to an Excel file.
+    """Export plate mappings to an Excel file with separate Fwd/Rev plates.
 
-    Creates two sheets:
-    1. 'Primer List' — linear list of all primers with well assignments
-    2. 'Plate Layout' — visual 96-well plate grid
-
-    Args:
-        mappings: List of PlateMapping.
-        output_path: Path for the output .xlsx file.
+    Creates four sheets:
+    1. 'Fwd List' - Forward primer list
+    2. 'Fwd Plate' - Forward 96-well plate layout (green)
+    3. 'Rev List' - Reverse primer list
+    4. 'Rev Plate' - Reverse 96-well plate layout (orange)
     """
     from openpyxl import Workbook
-    from openpyxl.styles import Alignment, Font, PatternFill
+
+    fwd = [m for m in mappings if m.primer_type == "forward"]
+    rev = [m for m in mappings if m.primer_type == "reverse"]
 
     wb = Workbook()
 
-    # Sheet 1: Primer List
-    ws1 = wb.active
-    ws1.title = "Primer List"
-    headers = ["Well", "Primer Name", "Sequence", "Length", "Type", "Mutation"]
-    for col, h in enumerate(headers, 1):
-        cell = ws1.cell(row=1, column=col, value=h)
-        cell.font = Font(bold=True)
-        cell.fill = PatternFill(start_color="D9E1F2", fill_type="solid")
+    ws_fwd_list = wb.active
+    ws_fwd_list.title = "Fwd List"
+    _write_list_sheet(ws_fwd_list, fwd, "C6EFCE")
 
-    for i, m in enumerate(mappings, 2):
-        ws1.cell(row=i, column=1, value=m.well)
-        ws1.cell(row=i, column=2, value=m.primer_name)
-        ws1.cell(row=i, column=3, value=m.sequence)
-        ws1.cell(row=i, column=4, value=len(m.sequence))
-        ws1.cell(row=i, column=5, value=m.primer_type)
-        ws1.cell(row=i, column=6, value=m.mutation)
+    ws_fwd_plate = wb.create_sheet("Fwd Plate")
+    _write_plate_sheet(ws_fwd_plate, fwd, "C6EFCE")
 
-    # Auto-adjust column widths
-    for col in ws1.columns:
-        max_len = max(len(str(cell.value or "")) for cell in col)
-        ws1.column_dimensions[col[0].column_letter].width = min(max_len + 2, 60)
+    ws_rev_list = wb.create_sheet("Rev List")
+    _write_list_sheet(ws_rev_list, rev, "FCE4D6")
 
-    # Sheet 2: Plate Layout
-    ws2 = wb.create_sheet("Plate Layout")
-    rows_label = "ABCDEFGH"
-
-    # Column headers (1-12)
-    for c in range(1, 13):
-        cell = ws2.cell(row=1, column=c + 1, value=c)
-        cell.font = Font(bold=True)
-        cell.alignment = Alignment(horizontal="center")
-
-    # Row headers (A-H)
-    for r_idx, r_label in enumerate(rows_label):
-        ws2.cell(row=r_idx + 2, column=1, value=r_label).font = Font(bold=True)
-
-    # Fill in primer names
-    fwd_fill = PatternFill(start_color="C6EFCE", fill_type="solid")
-    rev_fill = PatternFill(start_color="FCE4D6", fill_type="solid")
-
-    for m in mappings:
-        row_letter = m.well[0]
-        col_num = int(m.well[1:])
-        r_idx = rows_label.index(row_letter) + 2
-        c_idx = col_num + 1
-
-        cell = ws2.cell(row=r_idx, column=c_idx, value=m.primer_name)
-        cell.alignment = Alignment(horizontal="center", wrap_text=True)
-        cell.fill = fwd_fill if m.primer_type == "forward" else rev_fill
-
-    # Adjust widths
-    ws2.column_dimensions["A"].width = 4
-    for c in range(2, 14):
-        ws2.column_dimensions[chr(64 + c)].width = 14
+    ws_rev_plate = wb.create_sheet("Rev Plate")
+    _write_plate_sheet(ws_rev_plate, rev, "FCE4D6")
 
     wb.save(output_path)

@@ -1,6 +1,6 @@
 {
   "identifier": "default",
-  "description": "Default capabilities for SDMBench",
+  "description": "Default capabilities for KURO",
   "windows": ["*"],
   "permissions": [
     "core:default",
@@ -13,7 +13,7 @@
       "identifier": "shell:allow-spawn",
       "allow": [
         {
-          "name": "binaries/sdmbench-sidecar",
+          "name": "binaries/kuro-sidecar",
           "sidecar": true
         }
       ]

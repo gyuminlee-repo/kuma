@@ -45,7 +45,7 @@ function MenuBar() {
     <>
       <div className="flex items-center gap-1 px-4 py-1 bg-gray-100 border-b border-gray-300 text-xs">
         <span className="font-bold text-sm mr-4 text-green-700">
-          SDMBench
+          KURO
         </span>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -86,9 +86,9 @@ function MenuBar() {
       <Dialog open={aboutOpen} onOpenChange={setAboutOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>About SDMBench</DialogTitle>
+            <DialogTitle>About KURO</DialogTitle>
             <DialogDescription>
-              SDMBench v0.1.0
+              KURO v0.1.0
               <br />
               EVOLVEpro SDM primer batch design tool with Tm-guided overlap
               extension.

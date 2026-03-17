@@ -1,4 +1,4 @@
-"""JSON-RPC 2.0 dispatcher for EvolveProprimer sidecar.
+"""JSON-RPC 2.0 dispatcher for KURO sidecar.
 
 Communicates via stdin/stdout with the Tauri host.
 Protocol: one JSON object per line (newline-delimited JSON).
@@ -246,6 +246,7 @@ def handle_design_sdm_primers(params: dict) -> dict:
     # Determine if input is text or CSV path
     mutations_csv_path: Path
     temp_csv = None
+    lines: list[str] = []
 
     if os.path.isfile(mutations_input):
         mutations_csv_path = _validate_filepath(
@@ -289,43 +290,43 @@ def handle_design_sdm_primers(params: dict) -> dict:
     _last_candidates = all_cands
     _progress(80, "Generating plate map...")
 
-    # Auto-generate plate map
-    _last_plate_mappings = generate_plate_map(results, deduplicate_rev=True)
+    # Auto-generate plate map (Fwd/Rev separate plates)
+    fwd_map, rev_map = generate_plate_map(results, deduplicate_rev=True)
+    _last_plate_mappings = fwd_map + rev_map
 
     _progress(100, "Design complete")
 
-    total_mutations = len(
-        [
-            l
-            for l in mutations_input.strip().split("\n")
-            if l.strip() and not l.strip().startswith("#")
-        ]
-    ) if not os.path.isfile(mutations_input) else len(results)
+    # Reuse parsed lines for counting and failure detection
+    is_text_input = not os.path.isfile(mutations_input)
+    input_lines = lines if is_text_input else []
+    total_mutations = len(input_lines) if is_text_input else len(results)
 
-    # Identify failed mutations
     success_names = {r.mutation.raw for r in results}
-    if not os.path.isfile(mutations_input):
-        all_input = [
-            l.strip()
-            for l in mutations_input.strip().split("\n")
-            if l.strip() and not l.strip().startswith("#")
-        ]
-        failed = [m for m in all_input if m not in success_names]
-    else:
-        failed = []
+    failed: list[dict] = []
+    if is_text_input:
+        for idx, m in enumerate(input_lines):
+            if m not in success_names:
+                failed.append({
+                    "mutation": m,
+                    "rank": idx + 1,
+                    "reason": "No valid primer pair found within Tm tolerance +/-3.0",
+                })
 
     return {
-        "results": [_serialize_result(r) for r in results],
+        "results": [
+            _serialize_result(r, len(_last_candidates.get(r.mutation.raw, [])))
+            for r in results
+        ],
         "success_count": len(results),
         "total_count": max(total_mutations, len(results)),
         "failed_mutations": failed,
     }
 
 
-def _serialize_result(r: SdmPrimerResult) -> dict:
+def _serialize_result(r: SdmPrimerResult, candidate_count: int | None = None) -> dict:
     """Serialize a single SdmPrimerResult for JSON-RPC."""
     overlap_len = len(r.overlap_window.sequence)
-    return {
+    result = {
         "mutation": r.mutation.raw,
         "aa_position": r.mutation.position,
         "codon_pos": r.mutation.codon_start,
@@ -348,6 +349,9 @@ def _serialize_result(r: SdmPrimerResult) -> dict:
         "overlap_seq": r.overlap_window.sequence,
         "warnings": r.warnings,
     }
+    if candidate_count is not None:
+        result["candidate_count"] = candidate_count
+    return result
 
 
 def handle_get_plate_map(_params: dict) -> dict:
@@ -516,7 +520,7 @@ def main() -> None:
         sys.stdin.reconfigure(encoding="utf-8")
         sys.stderr.reconfigure(encoding="utf-8")
 
-    logger.info("EvolveProprimer sidecar started (pid=%d)", os.getpid())
+    logger.info("KURO sidecar started (pid=%d)", os.getpid())
     _send({"jsonrpc": "2.0", "method": "ready", "params": {}})
 
     for line in sys.stdin:

@@ -22,11 +22,15 @@ export function ParameterPanel() {
             value={selectedGene}
             onChange={(e) => setSelectedGene(e.target.value)}
           >
-            {seqInfo.genes.map((g) => (
-              <option key={g.cds_start} value={String(g.cds_start)}>
-                {g.gene} ({g.aa_length} aa){g.product ? ` - ${g.product}` : ""}
-              </option>
-            ))}
+            {seqInfo.genes.map((g) => {
+              const isNamed = g.gene !== "ORF1" && g.gene !== "unknown";
+              const label = isNamed ? `[${g.gene}]` : `(${g.gene})`;
+              return (
+                <option key={g.cds_start} value={String(g.cds_start)}>
+                  {label} {g.cds_start}-{g.cds_end} ({g.aa_length} aa){g.product ? ` ${g.product}` : ""}
+                </option>
+              );
+            })}
           </select>
         ) : (
           <span className="text-xs text-gray-400 italic">Load a sequence file first</span>

@@ -36,6 +36,7 @@ export interface SdmPrimerResult {
   fwd_len: number;
   rev_len: number;
   overlap_len: number;
+  candidate_count?: number;
   tm_no_fwd: number;
   tm_no_rev: number;
   tm_overlap: number;
@@ -58,11 +59,17 @@ export interface EvolveproLoadResult {
   selected_count: number;
 }
 
+export interface FailedMutation {
+  mutation: string;
+  rank: number;
+  reason: string;
+}
+
 export interface DesignResult {
   results: SdmPrimerResult[];
   success_count: number;
   total_count: number;
-  failed_mutations: string[];
+  failed_mutations: FailedMutation[];
 }
 
 export interface PlateMapping {

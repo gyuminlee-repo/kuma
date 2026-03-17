@@ -67,7 +67,7 @@ export async function spawnSidecar(): Promise<void> {
   if (spawnPromise) return spawnPromise;
 
   spawnPromise = (async () => {
-    const command = Command.sidecar("binaries/sdmbench-sidecar");
+    const command = Command.sidecar("binaries/kuro-sidecar");
 
     command.stdout.on("data", (line: string) => {
       for (const part of line.split("\n")) {

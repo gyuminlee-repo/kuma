@@ -86,8 +86,8 @@ def _calc_sdm_tm(seq: str) -> float:
     return primer3.calc_tm(
         seq,
         mv_conc=50.0,
-        dv_conc=1.5,
-        dntp_conc=0.2,
+        dv_conc=0.0,
+        dntp_conc=0.0,
         dna_conc=250.0,
         tm_method="santalucia",
         salt_corrections_method="santalucia",

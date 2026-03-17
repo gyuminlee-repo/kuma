@@ -1,11 +1,11 @@
 [package]
-name = "sdmbench"
-version = "0.4.0"
-description = "SDMBench - Site-Directed Mutagenesis Primer Design Tool"
+name = "kuro"
+version = "0.5.0"
+description = "KURO - KOD Upstream Region Oligodesigner"
 edition = "2021"
 
 [lib]
-name = "sdmbench_lib"
+name = "kuro_lib"
 crate-type = ["lib", "cdylib", "staticlib"]
 
 [build-dependencies]

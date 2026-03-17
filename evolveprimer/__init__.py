@@ -1,3 +1,3 @@
-"""EvolveProprimer — EVOLVEpro SDM primer batch design tool."""
+"""KURO — KOD Upstream Region Oligodesigner."""
 
 __version__ = "0.1.0"

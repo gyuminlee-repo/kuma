@@ -61,7 +61,7 @@ jobs:
       - name: Verify sidecar binary
         shell: bash
         run: |
-          SIDECAR="src-tauri/binaries/sdmbench-sidecar-${{ matrix.target }}${{ matrix.sidecar-ext }}"
+          SIDECAR="src-tauri/binaries/kuro-sidecar-${{ matrix.target }}${{ matrix.sidecar-ext }}"
           ls -la "$SIDECAR"
           test -f "$SIDECAR"
 
@@ -97,7 +97,7 @@ jobs:
         env:
           FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
         with:
-          name: sdmbench-${{ matrix.target }}
+          name: kuro-${{ matrix.target }}
           path: |
             src-tauri/target/${{ matrix.target }}/release/bundle/**/*
           retention-days: 14

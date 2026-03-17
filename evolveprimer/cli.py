@@ -1,4 +1,4 @@
-"""CLI interface for EvolveProprimer."""
+"""CLI interface for KURO."""
 
 from __future__ import annotations
 
@@ -52,7 +52,7 @@ def cmd_design(args: argparse.Namespace) -> None:
     total = len(results)
     tm_ok = sum(1 for r in results if r.tm_condition_met)
     print(f"\n{'='*60}")
-    print(f"EvolveProprimer Design Summary")
+    print(f"KURO Design Summary")
     print(f"{'='*60}")
     print(f"Mutations designed:    {total}")
     print(f"Tm condition met:      {tm_ok}/{total}")
@@ -112,7 +112,7 @@ def main() -> None:
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
         prog="evolveprimer",
-        description="EvolveProprimer — EVOLVEpro SDM primer batch design tool",
+        description="KURO — EVOLVEpro SDM primer batch design tool",
     )
     parser.add_argument(
         "-v", "--verbose", action="store_true", help="Enable verbose logging"

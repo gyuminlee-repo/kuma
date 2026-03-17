@@ -10,6 +10,7 @@ import type {
   ParsedMutation,
   SdmPrimerResult,
   DesignResult,
+  FailedMutation,
   PlateMapping,
   PlateMapResult,
   EvolveproLoadResult,
@@ -36,7 +37,7 @@ interface AppState {
   designResults: SdmPrimerResult[];
   successCount: number;
   totalCount: number;
-  failedMutations: string[];
+  failedMutations: FailedMutation[];
 
   // Plate Map
   plateMappings: PlateMapping[];
