@@ -75,6 +75,11 @@ interface AppState {
   exportTsv: (filepath: string) => Promise<void>;
   exportExcel: (filepath: string) => Promise<void>;
   setTableSorting: (updater: Updater<SortingState>) => void;
+  setStatus: (msg: string) => void;
+  setTmTargets: (fwd: number, rev: number, ov: number) => void;
+  setGcRange: (min: number, max: number) => void;
+  getWorkspaceSnapshot: () => import("../types/models").WorkspaceV1;
+  restoreWorkspace: (ws: import("../types/models").WorkspaceV1) => Promise<void>;
   resetAll: () => void;
   evaluateCustomPrimer: (mutation: string, fwdSeq: string, revSeq: string, overlapLen?: number) => Promise<SdmPrimerResult | null>;
 }
@@ -396,6 +401,83 @@ export const useAppStore = create<AppState>((set, get) => {
       const current = get().tableSorting;
       const next = typeof updater === "function" ? updater(current) : updater;
       set({ tableSorting: next });
+    },
+
+    setStatus: (msg: string) => set({ statusMessage: msg }),
+
+    setTmTargets: (fwd: number, rev: number, ov: number) => {
+      set({ tmFwdTarget: fwd, tmRevTarget: rev, tmOverlapTarget: ov });
+    },
+
+    setGcRange: (min: number, max: number) => {
+      set({ gcMin: min, gcMax: max });
+    },
+
+    getWorkspaceSnapshot: () => {
+      const s = get();
+      return {
+        version: 1 as const,
+        fastaPath: s.fastaPath,
+        mutationInputMode: s.mutationInputMode,
+        mutationText: s.mutationText,
+        evolveproCsvPath: s.evolveproCsvPath,
+        selectedGene: s.selectedGene,
+        codonStrategy: s.codonStrategy,
+        maxPrimers: s.maxPrimers,
+        designResults: s.designResults,
+        successCount: s.successCount,
+        totalCount: s.totalCount,
+        failedMutations: s.failedMutations,
+        plateMappings: s.plateMappings,
+        dedupInfo: s.dedupInfo,
+        tableSorting: s.tableSorting,
+        manuallySwapped: s.manuallySwapped,
+        customCandidates: s.customCandidates,
+        tmFwdTarget: s.tmFwdTarget,
+        tmRevTarget: s.tmRevTarget,
+        tmOverlapTarget: s.tmOverlapTarget,
+        gcMin: s.gcMin,
+        gcMax: s.gcMax,
+      };
+    },
+
+    restoreWorkspace: async (ws) => {
+      get().resetAll();
+      set({
+        mutationInputMode: ws.mutationInputMode ?? "text",
+        mutationText: ws.mutationText ?? "",
+        evolveproCsvPath: ws.evolveproCsvPath ?? "",
+        codonStrategy: ws.codonStrategy ?? "closest",
+        maxPrimers: ws.maxPrimers ?? 95,
+      });
+      if (ws.fastaPath) {
+        await get().loadSequence(ws.fastaPath);
+        if (ws.selectedGene) {
+          const seqInfo = get().seqInfo;
+          const geneExists = seqInfo?.genes.some((g) => String(g.cds_start) === String(ws.selectedGene));
+          if (geneExists) set({ selectedGene: ws.selectedGene });
+        }
+      }
+      set({
+        designResults: ws.designResults ?? [],
+        successCount: ws.successCount ?? 0,
+        totalCount: ws.totalCount ?? 0,
+        failedMutations: ws.failedMutations ?? [],
+        plateMappings: ws.plateMappings ?? [],
+        dedupInfo: ws.dedupInfo ?? {},
+        tableSorting: (ws.tableSorting ?? []) as SortingState,
+        manuallySwapped: (ws.manuallySwapped ?? {}) as Record<string, "fwd" | "rev" | "both">,
+        customCandidates: ws.customCandidates ?? {},
+        tmFwdTarget: ws.tmFwdTarget ?? 62,
+        tmRevTarget: ws.tmRevTarget ?? 58,
+        tmOverlapTarget: ws.tmOverlapTarget ?? 42,
+        gcMin: ws.gcMin ?? 40,
+        gcMax: ws.gcMax ?? 60,
+        statusMessage: "Workspace loaded. Re-designing to sync backend...",
+      });
+      if (ws.mutationText && ws.fastaPath) {
+        await get().designPrimers();
+      }
     },
 
     resetAll: () => {

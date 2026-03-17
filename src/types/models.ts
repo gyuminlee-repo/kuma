@@ -123,6 +123,31 @@ export interface ExportResult {
   filepath: string;
 }
 
+export interface WorkspaceV1 {
+  version: 1;
+  fastaPath: string;
+  mutationInputMode: "text" | "evolvepro";
+  mutationText: string;
+  evolveproCsvPath: string;
+  selectedGene: string;
+  codonStrategy: "closest" | "optimal";
+  maxPrimers: number;
+  designResults: SdmPrimerResult[];
+  successCount: number;
+  totalCount: number;
+  failedMutations: FailedMutation[];
+  plateMappings: PlateMapping[];
+  dedupInfo: Record<string, string[]>;
+  tableSorting: unknown[];
+  manuallySwapped: Record<string, string>;
+  customCandidates: Record<string, SdmPrimerResult[]>;
+  tmFwdTarget: number;
+  tmRevTarget: number;
+  tmOverlapTarget: number;
+  gcMin: number;
+  gcMax: number;
+}
+
 // JSON-RPC types
 
 export interface JsonRpcResponse<T = unknown> {

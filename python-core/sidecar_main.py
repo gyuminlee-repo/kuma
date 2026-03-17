@@ -8,11 +8,10 @@ import csv
 import json
 import logging
 import os
-from dataclasses import replace as dc_replace
+from dataclasses import dataclass, field, replace as dc_replace
 import re
 import sys
 import tempfile
-from dataclasses import asdict
 from pathlib import Path
 
 # Ensure evolveprimer package is importable
@@ -52,12 +51,24 @@ _ALLOWED_CSV_EXTENSIONS = {".csv", ".tsv", ".txt"}
 _ALLOWED_TSV_EXTENSIONS = {".tsv", ".txt", ".csv"}
 _ALLOWED_EXCEL_EXTENSIONS = {".xlsx"}
 
-# --- Global state ---
-_last_results: list[SdmPrimerResult] = []
-_last_candidates: dict[str, list[SdmPrimerResult]] = {}
-_last_plate_mappings: list[PlateMapping] = []
-_last_dedup_info: dict[str, list[str]] = {}
-_last_template: tuple[str, str] = ("", "")  # (fasta_path, sequence)
+# --- Session state ---
+@dataclass
+class SidecarState:
+    """Mutable session state shared across RPC handlers."""
+    results: list[SdmPrimerResult] = field(default_factory=list)
+    candidates: dict[str, list[SdmPrimerResult]] = field(default_factory=dict)
+    plate_mappings: list[PlateMapping] = field(default_factory=list)
+    dedup_info: dict[str, list[str]] = field(default_factory=dict)
+    template: tuple[str, str] = ("", "")  # (fasta_path, sequence)
+
+_state = SidecarState()
+
+# Legacy aliases for backward compat during transition
+_last_results = _state.results
+_last_candidates = _state.candidates
+_last_plate_mappings = _state.plate_mappings
+_last_dedup_info = _state.dedup_info
+_last_template = _state.template
 
 _SWAP_FIELDS = {
     "fwd": ["forward_seq", "forward_binding", "tm_fwd", "fwd_len", "gc_fwd"],
@@ -318,7 +329,6 @@ def handle_design_sdm_primers(params: dict) -> dict:
             mutations_csv=mutations_csv_path,
             polymerase=polymerase,
             overlap_len=overlap_len,
-            return_all_candidates=True,
             codon_strategy=codon_strategy,
             tm_fwd_target=tm_fwd_target,
             tm_rev_target=tm_rev_target,
@@ -379,8 +389,8 @@ def _serialize_result(r: SdmPrimerResult, candidate_count: int | None = None) ->
         "fwd_len": r.fwd_len,
         "rev_len": r.rev_len,
         "overlap_len": overlap_len,
-        "tm_no_fwd": round(r.tm_no_fwd, 1),
-        "tm_no_rev": round(r.tm_no_rev, 1),
+        "tm_no_fwd": round(r.tm_fwd, 1),
+        "tm_no_rev": round(r.tm_rev, 1),
         "tm_overlap": round(r.tm_overlap, 1),
         "tm_condition_met": r.tm_condition_met,
         "tolerance_used": r.tolerance_used,
@@ -568,11 +578,7 @@ def handle_swap_primer(params: dict) -> dict:
                 rev_len=new_best.rev_len,
                 gc_rev=new_best.gc_rev,
             )
-    result = _serialize_result(new_best, len(candidates))
-    fwd_c, rev_c = _count_unique_fwd_rev(candidates)
-    result["candidate_fwd_count"] = fwd_c
-    result["candidate_rev_count"] = rev_c
-    return result
+    return _serialize_result_with_counts(new_best)
 
 
 def handle_evaluate_primer(params: dict) -> dict:

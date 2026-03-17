@@ -71,15 +71,6 @@ class SdmPrimerResult:
     homodimer_dg_rev: float = 0.0
     warnings: list[str] = field(default_factory=list)
 
-    # Legacy aliases for backward compatibility
-    @property
-    def tm_no_fwd(self) -> float:
-        return self.tm_fwd
-
-    @property
-    def tm_no_rev(self) -> float:
-        return self.tm_rev
-
     def __post_init__(self) -> None:
         self.fwd_len = len(self.forward_seq)
         self.rev_len = len(self.reverse_seq)
@@ -764,14 +755,13 @@ def design_sdm_primers(
     polymerase: str = "Q5",
     overlap_len: int = 20,
     custom_profiles: Path | None = None,
-    return_all_candidates: bool = False,
     codon_strategy: str = "closest",
     tm_fwd_target: float | None = None,
     tm_rev_target: float | None = None,
     tm_overlap_target: float | None = None,
     gc_min: float = 40.0,
     gc_max: float = 60.0,
-) -> list[SdmPrimerResult] | tuple[list[SdmPrimerResult], dict[str, list[SdmPrimerResult]]]:
+) -> tuple[list[SdmPrimerResult], dict[str, list[SdmPrimerResult]]]:
     """Design SDM primers for a batch of mutations.
 
     Args:
@@ -841,9 +831,7 @@ def design_sdm_primers(
         "Design complete: %d/%d succeeded",
         len(results), len(mutations),
     )
-    if return_all_candidates:
-        return results, all_candidates
-    return results
+    return results, all_candidates
 
 
 def export_results_tsv(

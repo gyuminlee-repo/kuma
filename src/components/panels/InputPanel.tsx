@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useAppStore } from "../../store/appStore";
+import { basename } from "../../lib/utils";
 import { Button } from "../ui/button";
 
 async function browseFile(
@@ -69,7 +70,7 @@ export function InputPanel() {
           </Button>
           <span className="text-xs text-gray-500 truncate self-center">
             {fastaPath
-              ? fastaPath.split(/[\\/]/).pop()
+              ? basename(fastaPath)
               : "No file selected (.gb / .fasta / .dna)"}
           </span>
         </div>
@@ -134,7 +135,7 @@ export function InputPanel() {
               </Button>
               <span className="text-xs text-gray-500 truncate self-center">
                 {evolveproCsvPath
-                  ? evolveproCsvPath.split(/[\\/]/).pop()
+                  ? basename(evolveproCsvPath)
                   : "No file selected"}
               </span>
             </div>

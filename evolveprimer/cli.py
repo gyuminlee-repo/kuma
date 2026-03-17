@@ -25,7 +25,7 @@ def cmd_design(args: argparse.Namespace) -> None:
     output_dir = Path(args.output)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    results = design_sdm_primers(
+    results, _ = design_sdm_primers(
         fasta_path=Path(args.fasta),
         target_start=args.target_start,
         mutations_csv=Path(args.mutations),

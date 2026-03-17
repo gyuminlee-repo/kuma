@@ -18,13 +18,14 @@ from tests.conftest import FIXTURES_DIR, TARGET_START
 
 @pytest.fixture(scope="module")
 def sdm_results(fasta_path, mutations_csv) -> list[SdmPrimerResult]:
-    return design_sdm_primers(
+    results, _ = design_sdm_primers(
         fasta_path=fasta_path,
         target_start=TARGET_START,
         mutations_csv=mutations_csv,
         polymerase="Q5",
         overlap_len=20,
     )
+    return results
 
 
 class TestDeduplicateReverse:

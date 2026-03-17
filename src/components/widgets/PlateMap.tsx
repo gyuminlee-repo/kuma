@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAppStore } from "../../store/appStore";
-import type { SdmPrimerResult } from "../../types/models";
+import type { PlateMapping } from "../../types/models";
 
 const ROWS = ["A", "B", "C", "D", "E", "F", "G", "H"];
 const COLS = Array.from({ length: 12 }, (_, i) => i + 1);
@@ -10,30 +10,7 @@ interface WellEntry {
   label: string;
   sequence: string;
   mutation: string;
-  shared?: boolean; // Rev primer shared by multiple mutations
-}
-
-function wellName(indexInPlate: number): string {
-  const col = Math.floor(indexInPlate / 8) + 1;
-  const row = indexInPlate % 8;
-  return `${ROWS[row]}${col}`;
-}
-
-function useSortedResults(): SdmPrimerResult[] {
-  const designResults = useAppStore((s) => s.designResults);
-  const tableSorting = useAppStore((s) => s.tableSorting);
-
-  return useMemo(() => {
-    if (tableSorting.length === 0) return designResults;
-    const sort = tableSorting[0];
-    if (sort.id !== "mutation") return designResults;
-    const sorted = [...designResults].sort((a, b) => {
-      const posA = a.aa_position ?? 0;
-      const posB = b.aa_position ?? 0;
-      return posA !== posB ? posA - posB : 0;
-    });
-    return sort.desc ? sorted.reverse() : sorted;
-  }, [designResults, tableSorting]);
+  shared?: boolean;
 }
 
 interface PlatePair {
@@ -43,46 +20,64 @@ interface PlatePair {
   revCount: number;
 }
 
-function buildPlatePairs(sortedResults: SdmPrimerResult[]): PlatePair[] {
-  const plateCount = Math.max(1, Math.ceil(sortedResults.length / 96));
-  const pairs: PlatePair[] = [];
+function toWellEntry(m: PlateMapping, shared: boolean): WellEntry {
+  return {
+    well: m.well,
+    label: m.primer_name,
+    sequence: m.sequence,
+    mutation: m.mutation,
+    shared,
+  };
+}
 
-  for (let p = 0; p < plateCount; p++) {
-    const start = p * 96;
-    const end = Math.min(start + 96, sortedResults.length);
-    const chunk = sortedResults.slice(start, end);
+function buildPairsFromStore(
+  mappings: PlateMapping[],
+  dedupInfo: Record<string, string[]>,
+): PlatePair[] {
+  const fwdAll = mappings.filter((m) => m.primer_type === "forward");
+  const revAll = mappings.filter((m) => m.primer_type === "reverse");
 
-    const fwdGrid = new Map<string, WellEntry>();
-    for (let i = 0; i < chunk.length; i++) {
-      const r = chunk[i];
-      const well = wellName(i);
-      fwdGrid.set(well, { well, label: `${r.mutation}_F`, sequence: r.forward_seq, mutation: r.mutation });
-    }
+  // Determine shared reverse sequences
+  const sharedSeqs = new Set<string>();
+  for (const [seq, muts] of Object.entries(dedupInfo)) {
+    if (muts.length > 1) sharedSeqs.add(seq);
+  }
 
-    const seenSeq = new Map<string, { firstMut: string; seq: string; mutations: string[] }>();
-    for (const r of chunk) {
-      const existing = seenSeq.get(r.reverse_seq);
-      if (existing) {
-        existing.mutations.push(r.mutation);
-      } else {
-        seenSeq.set(r.reverse_seq, { firstMut: r.mutation, seq: r.reverse_seq, mutations: [r.mutation] });
+  // Split into 96-well plates by well prefix (P2- etc.)
+  function chunkByPlate(items: PlateMapping[]): PlateMapping[][] {
+    const plates: PlateMapping[][] = [];
+    let current: PlateMapping[] = [];
+    for (const m of items) {
+      current.push(m);
+      if (current.length >= 96) {
+        plates.push(current);
+        current = [];
       }
     }
-    const revGrid = new Map<string, WellEntry>();
-    let idx = 0;
-    for (const [revSeq, info] of seenSeq) {
-      const well = wellName(idx++);
-      const shared = info.mutations.length > 1;
-      revGrid.set(well, {
-        well,
-        label: `${info.firstMut}_R`,
-        sequence: revSeq,
-        mutation: info.mutations.join(", "),
-        shared,
-      });
+    if (current.length > 0) plates.push(current);
+    return plates.length > 0 ? plates : [[]];
+  }
+
+  const fwdPlates = chunkByPlate(fwdAll);
+  const revPlates = chunkByPlate(revAll);
+  const plateCount = Math.max(fwdPlates.length, revPlates.length);
+
+  const pairs: PlatePair[] = [];
+  for (let i = 0; i < plateCount; i++) {
+    const fwdChunk = fwdPlates[i] ?? [];
+    const revChunk = revPlates[i] ?? [];
+
+    const fwdGrid = new Map<string, WellEntry>();
+    for (const m of fwdChunk) {
+      fwdGrid.set(m.well, toWellEntry(m, false));
     }
 
-    pairs.push({ fwd: fwdGrid, rev: revGrid, fwdCount: chunk.length, revCount: seenSeq.size });
+    const revGrid = new Map<string, WellEntry>();
+    for (const m of revChunk) {
+      revGrid.set(m.well, toWellEntry(m, sharedSeqs.has(m.sequence)));
+    }
+
+    pairs.push({ fwd: fwdGrid, rev: revGrid, fwdCount: fwdChunk.length, revCount: revChunk.length });
   }
 
   return pairs;
@@ -151,19 +146,19 @@ function PlateGrid({
 }
 
 export function PlateMap() {
-  const designResults = useAppStore((s) => s.designResults);
-  const sortedResults = useSortedResults();
+  const plateMappings = useAppStore((s) => s.plateMappings);
+  const dedupInfo = useAppStore((s) => s.dedupInfo);
   const [activeTab, setActiveTab] = useState<"fwd" | "rev">("fwd");
   const [page, setPage] = useState(0);
 
-  const pairs = useMemo(() => buildPlatePairs(sortedResults), [sortedResults]);
+  const pairs = useMemo(() => buildPairsFromStore(plateMappings, dedupInfo), [plateMappings, dedupInfo]);
   const safeIdx = Math.min(page, Math.max(0, pairs.length - 1));
   const pair = pairs[safeIdx];
 
-  // Reset page when results change
-  useEffect(() => setPage(0), [sortedResults]);
+  // Reset page when mappings change
+  useEffect(() => setPage(0), [plateMappings]);
 
-  if (designResults.length === 0 || !pair) {
+  if (plateMappings.length === 0 || !pair) {
     return (
       <div className="flex items-center justify-center h-full text-gray-500 text-xs">
         Plate map will appear after primer design
@@ -171,7 +166,8 @@ export function PlateMap() {
     );
   }
 
-  const totalRevCount = pairs.reduce((s, p) => s + p.revCount, 0);
+  const totalFwd = pairs.reduce((s, p) => s + p.fwdCount, 0);
+  const totalRev = pairs.reduce((s, p) => s + p.revCount, 0);
 
   return (
     <div className="h-full overflow-auto p-2">
@@ -221,7 +217,6 @@ export function PlateMap() {
         )}
       </div>
 
-      {/* Fixed-height grid — always 8 rows × 12 cols */}
       {activeTab === "fwd" ? (
         <PlateGrid grid={pair.fwd} color="green" />
       ) : (
@@ -229,7 +224,7 @@ export function PlateMap() {
       )}
 
       <div className="flex items-center gap-3 text-[10px] text-gray-400 mt-1">
-        <span>Total: {sortedResults.length} fwd / {totalRevCount} rev</span>
+        <span>Total: {totalFwd} fwd / {totalRev} rev</span>
         {activeTab === "rev" && (
           <span className="flex items-center gap-1">
             <span className="w-3 h-3 bg-blue-100 border border-blue-300 rounded-sm inline-block" />

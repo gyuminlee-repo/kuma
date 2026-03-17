@@ -32,13 +32,14 @@ class TestDesignSdmPrimers:
 
     @pytest.fixture(scope="class")
     def sdm_results(self, fasta_path, mutations_csv) -> list[SdmPrimerResult]:
-        return design_sdm_primers(
+        results, _ = design_sdm_primers(
             fasta_path=fasta_path,
             target_start=TARGET_START,
             mutations_csv=mutations_csv,
             polymerase="Q5",
             overlap_len=20,
         )
+        return results
 
     def test_12_of_12_success(self, sdm_results):
         """All 12 mutations must produce valid primers."""
@@ -53,11 +54,11 @@ class TestDesignSdmPrimers:
     def test_tm_in_range(self, sdm_results):
         """Non-overlap Tm should be in a reasonable range (50-85°C)."""
         for r in sdm_results:
-            assert 50 <= r.tm_no_fwd <= 85, (
-                f"{r.mutation.raw} Tm_no_fwd={r.tm_no_fwd:.1f}"
+            assert 50 <= r.tm_fwd <= 85, (
+                f"{r.mutation.raw} Tm_no_fwd={r.tm_fwd:.1f}"
             )
-            assert 50 <= r.tm_no_rev <= 85, (
-                f"{r.mutation.raw} Tm_no_rev={r.tm_no_rev:.1f}"
+            assert 50 <= r.tm_rev <= 85, (
+                f"{r.mutation.raw} Tm_no_rev={r.tm_rev:.1f}"
             )
 
     def test_tm_within_tolerance(self, sdm_results):
@@ -96,7 +97,7 @@ class TestDesignSdmPrimers:
 
 class TestExportTsv:
     def test_export(self, fasta_path, mutations_csv, tmp_path):
-        results = design_sdm_primers(
+        results, _ = design_sdm_primers(
             fasta_path=fasta_path,
             target_start=TARGET_START,
             mutations_csv=mutations_csv,

@@ -47,33 +47,9 @@ function MenuBar() {
       filters: [{ name: "KURO Workspace", extensions: ["kuro.json"] }],
     });
     if (!path) return;
-    const s = useAppStore.getState();
-    const workspace = {
-      version: 1,
-      fastaPath: s.fastaPath,
-      mutationInputMode: s.mutationInputMode,
-      mutationText: s.mutationText,
-      evolveproCsvPath: s.evolveproCsvPath,
-      selectedGene: s.selectedGene,
-      codonStrategy: s.codonStrategy,
-      maxPrimers: s.maxPrimers,
-      designResults: s.designResults,
-      successCount: s.successCount,
-      totalCount: s.totalCount,
-      failedMutations: s.failedMutations,
-      plateMappings: s.plateMappings,
-      dedupInfo: s.dedupInfo,
-      tableSorting: s.tableSorting,
-      manuallySwapped: s.manuallySwapped,
-      customCandidates: s.customCandidates,
-      tmFwdTarget: s.tmFwdTarget,
-      tmRevTarget: s.tmRevTarget,
-      tmOverlapTarget: s.tmOverlapTarget,
-      gcMin: s.gcMin,
-      gcMax: s.gcMax,
-    };
+    const workspace = useAppStore.getState().getWorkspaceSnapshot();
     await sendRequest("save_workspace", { filepath: path, data: workspace });
-    useAppStore.setState({ statusMessage: `Workspace saved: ${path}` });
+    useAppStore.getState().setStatus(`Workspace saved: ${path}`);
   }
 
   async function handleLoadWorkspace() {
@@ -82,60 +58,12 @@ function MenuBar() {
       multiple: false,
     });
     if (!path) return;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const ws: any = await sendRequest("load_workspace", { filepath: path as string });
+    const ws = await sendRequest<import("../../types/models").WorkspaceV1>("load_workspace", { filepath: path as string });
     if (ws.version !== 1) {
-      useAppStore.setState({ statusMessage: "Incompatible workspace version" });
+      useAppStore.getState().setStatus("Incompatible workspace version");
       return;
     }
-    useAppStore.getState().resetAll();
-    useAppStore.setState({
-      mutationInputMode: ws.mutationInputMode ?? "text",
-      mutationText: ws.mutationText ?? "",
-      evolveproCsvPath: ws.evolveproCsvPath ?? "",
-      codonStrategy: ws.codonStrategy ?? "closest",
-      maxPrimers: ws.maxPrimers ?? 95,
-    });
-
-    // Restore sequence file + selectedGene
-    if (ws.fastaPath) {
-      await useAppStore.getState().loadSequence(ws.fastaPath as string);
-      // Validate selectedGene against loaded genes
-      if (ws.selectedGene) {
-        const seqInfo = useAppStore.getState().seqInfo;
-        const geneExists = seqInfo?.genes.some(
-          (g) => String(g.cds_start) === String(ws.selectedGene),
-        );
-        if (geneExists) {
-          useAppStore.setState({ selectedGene: ws.selectedGene as string });
-        }
-      }
-    }
-
-    // Restore UI state first (shows previous results immediately)
-    useAppStore.setState({
-      designResults: ws.designResults ?? [],
-      successCount: ws.successCount ?? 0,
-      totalCount: ws.totalCount ?? 0,
-      failedMutations: ws.failedMutations ?? [],
-      plateMappings: ws.plateMappings ?? [],
-      dedupInfo: ws.dedupInfo ?? {},
-      tableSorting: ws.tableSorting ?? [],
-      manuallySwapped: ws.manuallySwapped ?? {},
-      customCandidates: ws.customCandidates ?? {},
-      tmFwdTarget: ws.tmFwdTarget ?? 62,
-      tmRevTarget: ws.tmRevTarget ?? 58,
-      tmOverlapTarget: ws.tmOverlapTarget ?? 42,
-      gcMin: ws.gcMin ?? 40,
-      gcMax: ws.gcMax ?? 60,
-      statusMessage: `Workspace loaded. Re-designing to sync backend...`,
-    });
-
-    // Re-design to sync sidecar state (_last_results, _last_candidates)
-    // This enables Export and Candidate features
-    if (ws.mutationText && ws.fastaPath) {
-      await useAppStore.getState().designPrimers();
-    }
+    await useAppStore.getState().restoreWorkspace(ws);
   }
 
   return (
