@@ -70,9 +70,10 @@ def generate_plate_map(
     well_order: str = "column",
     deduplicate_rev: bool = True,
 ) -> list[PlateMapping]:
-    """Generate 96-well plate mappings for SDM primers.
+    """Generate primer list mappings for SDM primers.
 
-    Forward primers are placed first, followed by (deduplicated) reverse primers.
+    Each mutation produces a Fwd and Rev entry. Sequential numbering only,
+    no 96-well plate capacity limit.
 
     Args:
         results: SDM primer design results.
@@ -83,48 +84,29 @@ def generate_plate_map(
         List of PlateMapping assignments.
     """
     mappings: list[PlateMapping] = []
-    well_idx = 0
+    idx = 0
 
-    # Forward primers: one per mutation
+    def well_label() -> str:
+        nonlocal idx
+        label = _well_name(idx % 96, well_order) if idx < 96 else f"{idx + 1}"
+        idx += 1
+        return label
+
     for r in results:
-        if well_idx >= 96:
-            raise ValueError("Exceeded 96-well plate capacity")
         mappings.append(PlateMapping(
-            well=_well_name(well_idx, well_order),
+            well=well_label(),
             primer_name=f"{r.mutation.raw}_F",
             sequence=r.forward_seq,
             primer_type="forward",
             mutation=r.mutation.raw,
         ))
-        well_idx += 1
-
-    # Reverse primers: deduplicated or individual
-    if deduplicate_rev:
-        rev_groups = deduplicate_reverse(results)
-        for rev_seq, mut_names in rev_groups.items():
-            if well_idx >= 96:
-                raise ValueError("Exceeded 96-well plate capacity")
-            label = "+".join(mut_names) if len(mut_names) > 1 else mut_names[0]
-            mappings.append(PlateMapping(
-                well=_well_name(well_idx, well_order),
-                primer_name=f"{label}_R",
-                sequence=rev_seq,
-                primer_type="reverse",
-                mutation=label,
-            ))
-            well_idx += 1
-    else:
-        for r in results:
-            if well_idx >= 96:
-                raise ValueError("Exceeded 96-well plate capacity")
-            mappings.append(PlateMapping(
-                well=_well_name(well_idx, well_order),
-                primer_name=f"{r.mutation.raw}_R",
-                sequence=r.reverse_seq,
-                primer_type="reverse",
-                mutation=r.mutation.raw,
-            ))
-            well_idx += 1
+        mappings.append(PlateMapping(
+            well=well_label(),
+            primer_name=f"{r.mutation.raw}_R",
+            sequence=r.reverse_seq,
+            primer_type="reverse",
+            mutation=r.mutation.raw,
+        ))
 
     return mappings
 

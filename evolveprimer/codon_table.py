@@ -65,6 +65,35 @@ def best_codon(aa: str, organism: str = "ecoli") -> str:
     return max(codons, key=lambda x: x[1])[0]
 
 
+def closest_codon(wt_codon: str, target_aa: str) -> str:
+    """Return the codon for target_aa with minimum hamming distance to wt_codon.
+
+    Among codons with the same minimum distance, prefer higher E. coli usage frequency.
+    If closest == optimal, returns the optimal codon.
+    """
+    wt_codon = wt_codon.upper()
+    target_aa = target_aa.upper()
+    if target_aa not in ECOLI_CODON_USAGE:
+        raise ValueError(f"Invalid amino acid: {target_aa}")
+
+    def hamming(a: str, b: str) -> int:
+        return sum(c1 != c2 for c1, c2 in zip(a, b))
+
+    codons = ECOLI_CODON_USAGE[target_aa]
+    # Sort by: hamming distance (asc), then frequency (desc)
+    ranked = sorted(codons, key=lambda x: (hamming(wt_codon, x[0]), -x[1]))
+    return ranked[0][0]
+
+
+def mt_codons_for_design(wt_codon: str, target_aa: str) -> list[str]:
+    """Return distinct mutant codons: [optimal, closest] (deduplicated)."""
+    optimal = best_codon(target_aa)
+    closest = closest_codon(wt_codon, target_aa)
+    if optimal == closest:
+        return [optimal]
+    return [optimal, closest]
+
+
 def codon_to_aa(codon: str) -> str:
     """Translate a DNA codon to its amino acid.
 

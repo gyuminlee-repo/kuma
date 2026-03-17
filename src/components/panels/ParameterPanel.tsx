@@ -1,15 +1,12 @@
 import { useAppStore } from "../../store/appStore";
-import { Input } from "../ui/input";
 
 export function ParameterPanel() {
-  const cdsStart = useAppStore((s) => s.cdsStart);
+  const selectedGene = useAppStore((s) => s.selectedGene);
   const selectedPolymerase = useAppStore((s) => s.selectedPolymerase);
-  const overlapLen = useAppStore((s) => s.overlapLen);
   const polymerases = useAppStore((s) => s.polymerases);
-  const fastaInfo = useAppStore((s) => s.fastaInfo);
-  const setCdsStart = useAppStore((s) => s.setCdsStart);
+  const seqInfo = useAppStore((s) => s.seqInfo);
+  const setSelectedGene = useAppStore((s) => s.setSelectedGene);
   const setSelectedPolymerase = useAppStore((s) => s.setSelectedPolymerase);
-  const setOverlapLen = useAppStore((s) => s.setOverlapLen);
 
   return (
     <div className="border border-gray-300 rounded p-3 space-y-2">
@@ -18,31 +15,21 @@ export function ParameterPanel() {
       </h3>
 
       <label className="flex items-center gap-2 text-xs">
-        <span className="w-24 text-gray-600">CDS Start:</span>
-        <Input
-          type="number"
-          min={0}
-          value={cdsStart}
-          onChange={(e) => setCdsStart(Number(e.target.value))}
-          className="w-24 h-7 text-xs"
-          title="0-based position of ATG start codon"
-        />
-        {fastaInfo && fastaInfo.atg_positions.length > 1 && (
+        <span className="w-24 text-gray-600">Target Gene:</span>
+        {seqInfo && seqInfo.genes.length > 0 ? (
           <select
-            className="text-xs border border-gray-300 rounded px-1 py-0.5"
-            value={cdsStart}
-            onChange={(e) => setCdsStart(Number(e.target.value))}
+            className="flex-1 h-7 text-xs border border-gray-300 rounded px-2 focus:outline-none focus:ring-1 focus:ring-green-500"
+            value={selectedGene}
+            onChange={(e) => setSelectedGene(e.target.value)}
           >
-            {fastaInfo.atg_positions.map((pos, idx) => {
-              const orfLen = fastaInfo.orf_lengths?.[idx];
-              const orfAa = orfLen ? Math.floor(orfLen / 3) : 0;
-              return (
-                <option key={pos} value={pos}>
-                  ATG @ {pos}{orfAa > 0 ? ` (${orfAa} aa)` : ""}
-                </option>
-              );
-            })}
+            {seqInfo.genes.map((g) => (
+              <option key={g.cds_start} value={String(g.cds_start)}>
+                {g.gene} ({g.aa_length} aa){g.product ? ` - ${g.product}` : ""}
+              </option>
+            ))}
           </select>
+        ) : (
+          <span className="text-xs text-gray-400 italic">Load a sequence file first</span>
         )}
       </label>
 
@@ -63,19 +50,6 @@ export function ParameterPanel() {
             <option value={selectedPolymerase}>{selectedPolymerase}</option>
           )}
         </select>
-      </label>
-
-      <label className="flex items-center gap-2 text-xs">
-        <span className="w-24 text-gray-600">Overlap (bp):</span>
-        <Input
-          type="number"
-          min={15}
-          max={40}
-          value={overlapLen}
-          onChange={(e) => setOverlapLen(Number(e.target.value))}
-          className="w-20 h-7 text-xs"
-          title="Overlap window length (15-40 bp)"
-        />
       </label>
     </div>
   );

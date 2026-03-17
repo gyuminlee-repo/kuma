@@ -1,14 +1,16 @@
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   createColumnHelper,
   flexRender,
   getCoreRowModel,
+  getSortedRowModel,
   useReactTable,
+  type SortingState,
 } from "@tanstack/react-table";
 import { useAppStore } from "../../store/appStore";
 import type { SdmPrimerResult } from "../../types/models";
 
-const col = createColumnHelper<SdmPrimerResult>();
+const col = createColumnHelper<SdmPrimerResult & { rank: number }>();
 
 const GROUP_COLORS = [
   "#3b82f6", "#ef4444", "#f59e0b", "#10b981",
@@ -18,7 +20,7 @@ const GROUP_COLORS = [
 function buildGroupColorMap(results: SdmPrimerResult[]): Map<number, string> {
   const posCount = new Map<number, number>();
   for (const r of results) {
-    const pos = r.codon_pos;
+    const pos = r.aa_position;
     if (pos != null) {
       posCount.set(pos, (posCount.get(pos) ?? 0) + 1);
     }
@@ -44,10 +46,7 @@ function ColoredFwdSeq({ seq, overlapLen }: {
   const rest = seq.slice(overlapLen + 3);
 
   return (
-    <span className="font-mono text-[10px] break-all cursor-pointer"
-      title="Click to copy"
-      onClick={() => navigator.clipboard.writeText(seq)}
-    >
+    <span className="font-mono text-[10px] break-all">
       <span style={{ color: "#3b82f6" }}>{overlap}</span>
       <span style={{ color: "#ef4444", fontWeight: 600 }}>{codon}</span>
       <span>{rest}</span>
@@ -55,24 +54,174 @@ function ColoredFwdSeq({ seq, overlapLen }: {
   );
 }
 
+/** Candidate comparison popover */
+function CandidatePopover({
+  mutation,
+  current,
+  onClose,
+}: {
+  mutation: string;
+  current: SdmPrimerResult;
+  onClose: () => void;
+}) {
+  const [candidates, setCandidates] = useState<SdmPrimerResult[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const getAlternatives = useAppStore((s) => s.getAlternatives);
+  const swapPrimer = useAppStore((s) => s.swapPrimer);
+
+  // Load candidates on mount
+  useState(() => {
+    getAlternatives(mutation).then((c) => {
+      setCandidates(c);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  });
+
+  async function handleSwap(idx: number) {
+    await swapPrimer(mutation, idx);
+    onClose();
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-lg shadow-xl p-4 max-w-3xl max-h-[80vh] overflow-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center mb-3">
+          <h3 className="text-sm font-semibold">
+            {mutation} — {candidates?.length ?? "..."} candidates
+          </h3>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 text-lg px-2"
+          >
+            ×
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="text-xs text-gray-400 py-4 text-center">Loading...</div>
+        ) : !candidates || candidates.length === 0 ? (
+          <div className="text-xs text-gray-400 py-4 text-center">No candidates</div>
+        ) : (
+          <table className="w-full text-[10px] border-collapse">
+            <thead>
+              <tr className="bg-gray-50 text-gray-600 font-semibold">
+                <th className="px-2 py-1 text-left">#</th>
+                <th className="px-2 py-1 text-left">Forward</th>
+                <th className="px-2 py-1 text-left">Reverse</th>
+                <th className="px-2 py-1">Fwd</th>
+                <th className="px-2 py-1">Rev</th>
+                <th className="px-2 py-1">Tm F</th>
+                <th className="px-2 py-1">Tm R</th>
+                <th className="px-2 py-1">Tm Ov</th>
+                <th className="px-2 py-1">GC% F</th>
+                <th className="px-2 py-1">GC% R</th>
+                <th className="px-2 py-1">Tol</th>
+                <th className="px-2 py-1">Pen</th>
+                <th className="px-2 py-1"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {candidates.map((c, idx) => {
+                const isCurrent = c.forward_seq === current.forward_seq
+                  && c.reverse_seq === current.reverse_seq;
+                return (
+                  <tr
+                    key={idx}
+                    className={`border-b border-gray-100 ${isCurrent ? "bg-green-50 font-semibold" : "hover:bg-gray-50"}`}
+                  >
+                    <td className="px-2 py-1 text-center">{idx + 1}</td>
+                    <td className="px-2 py-1 font-mono break-all max-w-[160px]">
+                      <ColoredFwdSeq seq={c.forward_seq} overlapLen={c.overlap_len ?? 0} />
+                    </td>
+                    <td className="px-2 py-1 font-mono break-all max-w-[140px]">{c.reverse_seq}</td>
+                    <td className="px-2 py-1 text-center">{c.fwd_len}</td>
+                    <td className="px-2 py-1 text-center">{c.rev_len}</td>
+                    <td className="px-2 py-1 text-center">{c.tm_no_fwd.toFixed(1)}</td>
+                    <td className="px-2 py-1 text-center">{c.tm_no_rev.toFixed(1)}</td>
+                    <td className="px-2 py-1 text-center">{c.tm_overlap.toFixed(1)}</td>
+                    <td className="px-2 py-1 text-center">{c.gc_fwd.toFixed(1)}</td>
+                    <td className="px-2 py-1 text-center">{c.gc_rev.toFixed(1)}</td>
+                    <td className="px-2 py-1 text-center">{`\u00B1${c.tolerance_used.toFixed(1)}`}</td>
+                    <td className="px-2 py-1 text-center">{c.penalty.toFixed(1)}</td>
+                    <td className="px-2 py-1 text-center">
+                      {isCurrent ? (
+                        <span className="text-green-600 text-[9px]">current</span>
+                      ) : (
+                        <button
+                          className="px-2 py-0.5 bg-blue-500 text-white rounded text-[9px] hover:bg-blue-600"
+                          onClick={() => handleSwap(idx)}
+                        >
+                          Use
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const HEADER_TOOLTIPS: Record<string, string> = {
+  rank: "Input order (EVOLVEpro: y_pred descending rank)",
+  mutation: "Amino acid substitution. Click header to sort by aa position",
+  forward_seq: "Full forward primer (overlap + mutation codon + downstream). Click to compare candidates",
+  reverse_seq: "Full reverse primer. Click to compare candidates",
+  fwd_len: "Forward primer length (bp)",
+  rev_len: "Reverse primer length (bp)",
+  tm_no_fwd: "Forward whole-primer Tm (SantaLucia 1998)",
+  tm_no_rev: "Reverse whole-primer Tm (SantaLucia 1998)",
+  tm_overlap: "Overlap region Tm - should be lower than Fwd/Rev Tm",
+  tolerance_used: "Tm tolerance applied (starts at +/-0.5, widens by 0.5 up to +/-3.0)",
+  penalty: "Sum of Tm deviations + GC% penalty (lower is better)",
+  has_offtarget: "Off-target binding detected on template strand",
+  gc_fwd: "Forward primer GC content (40-60% recommended)",
+  gc_rev: "Reverse primer GC content (40-60% recommended)",
+  wt_codon: "Wild-type codon at this position",
+  mt_codon: "Mutant codon (E. coli optimal)",
+};
+
 function makeColumns(groupColorMap: Map<number, string>) {
   return [
+    col.accessor("rank", {
+      header: "#",
+      size: 35,
+      enableSorting: false,
+      cell: (info) => (
+        <span className="text-gray-400">{info.getValue()}</span>
+      ),
+    }),
     col.accessor("mutation", {
       header: "Mutation",
       size: 90,
+      sortingFn: (a, b) => {
+        const posA = a.original.aa_position ?? 0;
+        const posB = b.original.aa_position ?? 0;
+        if (posA !== posB) return posA - posB;
+        return a.original.rank - b.original.rank;
+      },
       cell: (info) => {
         const row = info.row.original;
-        const color = row.codon_pos != null ? groupColorMap.get(row.codon_pos) : undefined;
-        const aaPos = row.codon_pos != null ? Math.floor(row.codon_pos / 3) + 1 : null;
+        const color = row.aa_position != null ? groupColorMap.get(row.aa_position) : undefined;
         return (
           <span className="font-mono font-medium">
             {info.getValue()}
-            {color && aaPos && (
+            {color && (
               <span
                 className="inline-block ml-1 px-1 rounded text-[8px] font-semibold text-white align-middle"
                 style={{ backgroundColor: color }}
               >
-                Pos{aaPos}
+                Pos{row.aa_position}
               </span>
             )}
           </span>
@@ -82,6 +231,8 @@ function makeColumns(groupColorMap: Map<number, string>) {
     col.accessor("forward_seq", {
       header: "Forward Primer",
       size: 220,
+      enableSorting: false,
+      meta: { clickable: true },
       cell: (info) => {
         const row = info.row.original;
         return (
@@ -95,12 +246,10 @@ function makeColumns(groupColorMap: Map<number, string>) {
     col.accessor("reverse_seq", {
       header: "Reverse Primer",
       size: 200,
+      enableSorting: false,
+      meta: { clickable: true },
       cell: (info) => (
-        <span
-          className="font-mono text-[10px] break-all cursor-pointer"
-          title="Click to copy"
-          onClick={() => navigator.clipboard.writeText(info.getValue())}
-        >
+        <span className="font-mono text-[10px] break-all">
           {info.getValue()}
         </span>
       ),
@@ -133,7 +282,7 @@ function makeColumns(groupColorMap: Map<number, string>) {
       size: 50,
       cell: (info) => {
         const val = info.getValue();
-        return val != null ? `±${val.toFixed(1)}` : "—";
+        return val != null ? `\u00B1${val.toFixed(1)}` : "\u2014";
       },
     }),
     col.accessor("penalty", {
@@ -141,7 +290,7 @@ function makeColumns(groupColorMap: Map<number, string>) {
       size: 45,
       cell: (info) => {
         const val = info.getValue();
-        return val != null ? val.toFixed(1) : "—";
+        return val != null ? val.toFixed(1) : "\u2014";
       },
     }),
     col.accessor("has_offtarget", {
@@ -149,7 +298,7 @@ function makeColumns(groupColorMap: Map<number, string>) {
       size: 40,
       cell: (info) => {
         const val = info.getValue();
-        if (val == null) return "—";
+        if (val == null) return "\u2014";
         return val ? (
           <span className="inline-block px-1 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-700">!!</span>
         ) : (
@@ -182,6 +331,16 @@ function makeColumns(groupColorMap: Map<number, string>) {
 
 export function ResultTable() {
   const designResults = useAppStore((s) => s.designResults);
+  const failedMutations = useAppStore((s) => s.failedMutations);
+  const successCount = useAppStore((s) => s.successCount);
+  const totalCount = useAppStore((s) => s.totalCount);
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [popover, setPopover] = useState<{ mutation: string; current: SdmPrimerResult } | null>(null);
+
+  const rankedData = useMemo(
+    () => designResults.map((r, i) => ({ ...r, rank: i + 1 })),
+    [designResults],
+  );
 
   const groupColorMap = useMemo(
     () => buildGroupColorMap(designResults),
@@ -194,15 +353,24 @@ export function ResultTable() {
   );
 
   const table = useReactTable({
-    data: designResults,
+    data: rankedData,
     columns,
+    state: { sorting },
+    onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
   });
+
+  const handleCellClick = useCallback((row: SdmPrimerResult & { rank: number }, columnId: string) => {
+    if (columnId === "forward_seq" || columnId === "reverse_seq") {
+      setPopover({ mutation: row.mutation, current: row });
+    }
+  }, []);
 
   if (designResults.length === 0) {
     return (
       <div className="flex items-center justify-center h-full text-gray-400 text-sm">
-        Load a FASTA file and enter mutations to design SDM primers
+        Load a sequence file (FASTA / SnapGene) and enter mutations to design SDM primers
       </div>
     );
   }
@@ -216,13 +384,19 @@ export function ResultTable() {
               {hg.headers.map((header) => (
                 <th
                   key={header.id}
-                  className="px-2 py-1.5 text-left font-semibold text-gray-600 border-b border-gray-300"
+                  className={`px-2 py-1.5 text-left font-semibold text-gray-600 border-b border-gray-300 ${
+                    header.column.getCanSort() ? "cursor-pointer select-none hover:bg-gray-100" : ""
+                  }`}
                   style={{ width: header.getSize() }}
+                  title={HEADER_TOOLTIPS[header.column.id] ?? ""}
+                  onClick={header.column.getToggleSortingHandler()}
                 >
                   {flexRender(
                     header.column.columnDef.header,
                     header.getContext(),
                   )}
+                  {header.column.getIsSorted() === "asc" ? " \u25B2" : ""}
+                  {header.column.getIsSorted() === "desc" ? " \u25BC" : ""}
                 </th>
               ))}
             </tr>
@@ -234,15 +408,50 @@ export function ResultTable() {
               key={row.id}
               className="hover:bg-green-50 border-b border-gray-100"
             >
-              {row.getVisibleCells().map((cell) => (
-                <td key={cell.id} className="px-2 py-1">
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </td>
-              ))}
+              {row.getVisibleCells().map((cell) => {
+                const isClickable = cell.column.id === "forward_seq" || cell.column.id === "reverse_seq";
+                return (
+                  <td
+                    key={cell.id}
+                    className={`px-2 py-1 ${isClickable ? "cursor-pointer hover:bg-blue-50" : ""}`}
+                    onClick={isClickable ? () => handleCellClick(row.original, cell.column.id) : undefined}
+                  >
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </td>
+                );
+              })}
             </tr>
           ))}
         </tbody>
       </table>
+
+      {failedMutations.length > 0 && (
+        <div className="border-t border-gray-200 bg-red-50 px-3 py-2">
+          <div className="text-xs font-semibold text-red-700 mb-1">
+            Failed ({failedMutations.length}/{totalCount}) — no valid primer pair found
+          </div>
+          <div className="text-[10px] text-red-600 font-mono flex flex-wrap gap-1">
+            {failedMutations.map((m) => (
+              <span key={m} className="bg-red-100 px-1.5 py-0.5 rounded">{m}</span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {designResults.length > 0 && (
+        <div className="border-t border-gray-200 bg-gray-50 px-3 py-1.5 text-[10px] text-gray-500">
+          {successCount}/{totalCount} designed
+          {failedMutations.length > 0 && ` | ${failedMutations.length} failed`}
+        </div>
+      )}
+
+      {popover && (
+        <CandidatePopover
+          mutation={popover.mutation}
+          current={popover.current}
+          onClose={() => setPopover(null)}
+        />
+      )}
     </div>
   );
 }

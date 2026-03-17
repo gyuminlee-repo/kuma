@@ -76,13 +76,13 @@ class TestDesignSdmPrimers:
             assert 15 <= r.gc_rev <= 90, f"{r.mutation.raw} GC_rev={r.gc_rev:.1f}%"
 
     def test_codon_usage(self, sdm_results):
-        """Mutant codons should be E. coli optimal."""
-        from evolveprimer.codon_table import best_codon
+        """Mutant codons should encode the correct amino acid."""
+        from evolveprimer.codon_table import codon_to_aa
         for r in sdm_results:
-            expected = best_codon(r.mutation.mt_aa)
-            assert r.mutation.mt_codon == expected, (
-                f"{r.mutation.raw}: got {r.mutation.mt_codon}, "
-                f"expected {expected}"
+            actual_aa = codon_to_aa(r.mutation.mt_codon)
+            assert actual_aa == r.mutation.mt_aa, (
+                f"{r.mutation.raw}: codon {r.mutation.mt_codon} encodes "
+                f"{actual_aa}, expected {r.mutation.mt_aa}"
             )
 
     def test_forward_contains_mutation(self, sdm_results):

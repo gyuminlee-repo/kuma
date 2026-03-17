@@ -18,6 +18,7 @@ type PendingRequest = {
 };
 
 let child: Child | null = null;
+let spawnPromise: Promise<void> | null = null;
 let nextId = 1;
 const pending = new Map<number, PendingRequest>();
 let onProgress: ((p: ProgressNotification) => void) | null = null;
@@ -63,47 +64,56 @@ function handleLine(line: string) {
 
 export async function spawnSidecar(): Promise<void> {
   if (child) return;
+  if (spawnPromise) return spawnPromise;
 
-  const command = Command.sidecar("binaries/sdmbench-sidecar");
+  spawnPromise = (async () => {
+    const command = Command.sidecar("binaries/sdmbench-sidecar");
 
-  command.stdout.on("data", (line: string) => {
-    for (const part of line.split("\n")) {
-      handleLine(part);
-    }
-  });
+    command.stdout.on("data", (line: string) => {
+      for (const part of line.split("\n")) {
+        handleLine(part);
+      }
+    });
 
-  command.stderr.on("data", (line: string) => {
-    console.log("[sidecar]", line);
-  });
+    command.stderr.on("data", (line: string) => {
+      console.log("[sidecar]", line);
+    });
 
-  command.on("error", (error: string) => {
-    console.error("[sidecar] error:", error);
-    child = null;
-  });
+    command.on("error", (error: string) => {
+      console.error("[sidecar] error:", error);
+      child = null;
+    });
 
-  command.on("close", (data: { code: number | null }) => {
-    console.log("[sidecar] exited with code:", data.code);
-    child = null;
-    for (const [id, req] of pending) {
-      req.reject(new Error("Sidecar process exited"));
-      pending.delete(id);
-    }
-  });
+    command.on("close", (data: { code: number | null }) => {
+      console.log("[sidecar] exited with code:", data.code);
+      child = null;
+      for (const [id, req] of pending) {
+        req.reject(new Error("Sidecar process exited"));
+        pending.delete(id);
+      }
+    });
 
-  const spawned = await command.spawn();
-  child = spawned;
+    const spawned = await command.spawn();
+    child = spawned;
 
-  await new Promise<void>((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      onReady = null;
-      reject(new Error("Sidecar ready timeout (10s)"));
-    }, 10000);
-    onReady = () => {
-      clearTimeout(timeout);
-      resolve();
-    };
-  });
-  onReady = null;
+    await new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        onReady = null;
+        reject(new Error("Sidecar ready timeout (10s)"));
+      }, 10000);
+      onReady = () => {
+        clearTimeout(timeout);
+        resolve();
+      };
+    });
+    onReady = null;
+  })();
+
+  try {
+    await spawnPromise;
+  } finally {
+    spawnPromise = null;
+  }
 }
 
 export function setProgressHandler(
@@ -141,9 +151,16 @@ export async function sendRequest<T>(
 }
 
 export async function killSidecar(): Promise<void> {
+  spawnPromise = null;
   if (child) {
-    await child.kill();
+    const c = child;
     child = null;
+    onReady = null;
+    for (const [id, req] of pending) {
+      req.reject(new Error("Sidecar killed"));
+      pending.delete(id);
+    }
+    await c.kill();
   }
 }
 

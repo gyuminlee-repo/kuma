@@ -1,7 +1,7 @@
 # SDMBench 사용 가이드
 
 Site-Directed Mutagenesis (SDM) 프라이머 배치 설계 데스크톱 앱.
-변이 목록과 템플릿 플라스미드 FASTA를 입력하면 overlap extension 방식 SDM 프라이머 쌍을 자동 설계하고, 96-well plate mapping까지 생성한다.
+변이 목록(텍스트/EVOLVEpro CSV)과 템플릿 시퀀스(FASTA/SnapGene)를 입력하면 overlap extension 방식 SDM 프라이머 쌍을 자동 설계한다.
 
 ---
 
@@ -39,13 +39,14 @@ npm run build:all
 ### 첫 프라이머 설계 (GUI)
 
 1. 앱을 실행하면 사이드카(Python 백엔드)가 자동으로 연결된다. 상태 표시줄에 "Ready"가 나타날 때까지 대기.
-2. **Browse** 버튼으로 FASTA 파일을 불러온다.
-3. CDS Start가 자동 선택된다 (가장 긴 ORF 기준). 필요 시 수동 변경.
-4. 변이 목록을 텍스트로 입력하거나 CSV 파일을 업로드한다.
-5. 폴리머라제를 선택한다 (기본값: Benchling — Fwd 62°C / Rev 58°C / Overlap 42°C).
+2. **Browse** 버튼으로 시퀀스 파일(FASTA / SnapGene .dna)을 불러온다.
+3. CDS Start ATG가 자동 선택된다 (가장 긴 ORF 기준). 필요 시 드롭다운에서 변경.
+4. 변이 목록을 텍스트로 입력하거나 EVOLVEpro CSV를 로드한다.
+5. 폴리머라제를 선택한다 (기본값: KOD).
 6. **Design Primers** 클릭.
-7. 프라이머 테이블과 Plate Map이 자동 생성된다.
-8. File 메뉴에서 Export TSV 또는 Export Excel로 내보낸다.
+7. 프라이머 테이블이 생성된다. Mutation 컬럼 클릭 시 아미노산 위치 순 정렬 가능.
+8. Fwd/Rev 서열을 클릭하면 후보 비교 팝오버가 열린다. 현재 선택과 수치를 비교하고 교체할 수 있다.
+9. File 메뉴에서 Export TSV 또는 Export Excel로 내보낸다.
 
 ---
 
@@ -101,29 +102,13 @@ K200A
 - 위치는 1-based (CDS 첫 메티오닌 = 1)
 - 빈 줄은 무시됨
 
-### CSV 입력
+### EVOLVEpro CSV 입력
 
-`mutation` 열이 반드시 포함된 CSV 파일을 사용한다.
+EVOLVEpro 모드를 선택하고 Browse 버튼으로 `df_test.csv`를 로드한다.
 
-```csv
-mutation
-Q232A
-Y233A
-E335A
-E167A
-K200A
-F203A
-D227A
-G237A
-P240A
-Y155A
-H100A
-C175A
-```
-
-- 첫 행은 헤더 (반드시 `mutation` 열 포함)
-- 추가 열이 있어도 무방하나, `mutation` 열만 사용됨
-- 최대 96개 변이까지 지원 (96-well plate 용량 한도)
+- `variant`와 `y_pred` 열이 포함된 CSV
+- y_pred 내림차순으로 정렬하여 상위 96개 변이를 자동 선정
+- 로드 후 텍스트 영역에서 직접 편집 가능
 
 ---
 
@@ -131,11 +116,10 @@ C175A
 
 ### CDS Start
 
-ATG 시작 코돈의 0-based 위치. FASTA 로드 시 자동 선택되지만 수동 변경할 수 있다.
+시퀀스 로드 시 ATG 위치가 자동 감지되어 드롭다운으로 표시된다.
 
-- 서열 내 여러 ATG가 존재할 경우, 각 ATG에 대해 downstream ORF 길이를 계산
-- 가장 긴 ORF를 가진 ATG가 자동 선택됨
-- 자동 선택이 틀린 경우 드롭다운에서 직접 변경 가능
+- 가장 긴 ORF를 가진 ATG가 자동 선택됨 (aa 길이 표시)
+- 필요 시 드롭다운에서 다른 ATG 선택 가능
 - 잘못된 CDS Start 지정 시 WT 아미노산 검증에서 에러 발생
 
 ### Polymerase
@@ -157,15 +141,6 @@ ATG 시작 코돈의 0-based 위치. FASTA 로드 시 자동 선택되지만 수
 - **KOD**: SantaLucia 모델, Opt Tm 68°C.
 - 비대칭 프로필(Benchling)은 Forward/Reverse에 서로 다른 Tm 목표를 적용하여, 실제 Benchling 기반 설계와 동일한 Tm 분포를 재현한다.
 
-### Overlap Length
-
-변이 코돈을 포함하는 overlap 영역 길이 (bp).
-
-- 기본값: 20 bp
-- 조절 범위: 15-40 bp
-- overlap이 길수록 Tm_overlap이 높아져 Tm 이중 조건을 충족하기 어려워진다
-- SDMBench는 지정된 overlap 길이에서 시작하여 자동으로 줄여가며 Tm 조건을 충족하는 최적 길이를 탐색한다 (overlap Tm 목표 < 50°C인 Benchling 프로필은 10 bp까지, 기타 프로필은 15 bp까지)
-
 ---
 
 ## 5. 프라이머 테이블과 Tm 조건 해석
@@ -174,14 +149,17 @@ ATG 시작 코돈의 0-based 위치. FASTA 로드 시 자동 선택되지만 수
 
 | 열 | 설명 |
 |----|------|
-| Mutation | 변이 표기 (예: Q232A) |
-| Forward Primer | 전체 forward 프라이머 서열 (overlap + non-overlap) |
-| Reverse Primer | 전체 reverse 프라이머 서열 (rc(overlap) + non-overlap) |
+| # | 입력 순서 (EVOLVEpro y_pred 내림차순 기준) |
+| Mutation | 변이 표기 (예: Q232A). 헤더 클릭 시 aa 위치 순 정렬 |
+| Forward Primer | 전체 forward 프라이머 서열. 클릭 시 후보 비교 팝오버 |
+| Reverse Primer | 전체 reverse 프라이머 서열. 클릭 시 후보 비교 팝오버 |
 | Fwd / Rev | 프라이머 길이 (bp) |
-| Tm_no F / Tm_no R | non-overlap 영역 Tm (template-binding 부분) |
-| Tm_ov | overlap 영역 Tm |
-| Tm OK | Tm 이중 조건 충족 여부 |
-| GC% F / GC% R | 전체 프라이머 GC 함량 |
+| Tm F / Tm R | 전체 프라이머 Tm |
+| Tm Ov | overlap 영역 Tm |
+| Tol | 적용된 Tm tolerance (±값) |
+| Pen | penalty 점수 (Tm 편차 + GC% 편차 합산) |
+| OT | Off-target 검출 여부 |
+| GC% F / GC% R | 전체 프라이머 GC 함량 (40-60% 범위 권장) |
 | WT / MT | 야생형/변이 코돈 |
 
 ### Tm 이중 조건
@@ -197,8 +175,9 @@ SDM overlap extension PCR에서 primer-template annealing이 primer-primer annea
 
 ### GC 함량
 
-- 권장 범위: 20-80%
-- 극단적 GC 함량(20% 미만 또는 80% 초과)은 프라이머 합성 품질이나 annealing 효율에 영향을 줄 수 있다
+- 권장 범위: 40-60%
+- 40% 미만 또는 60% 초과 시 penalty가 부여된다
+- 35% 미만 또는 65% 초과 시 경고 메시지가 표시된다
 
 ### 경고 메시지
 
@@ -206,25 +185,25 @@ SDM overlap extension PCR에서 primer-template annealing이 primer-primer annea
 |------|------|
 | `Forward primer too long: N bp` | 프라이머 길이가 60 bp 초과. 합성 비용 증가 및 품질 저하 가능 |
 | `Reverse primer too long: N bp` | 동일 |
-| `Tm condition not met` | Tm 이중 조건 미충족. overlap 길이를 줄이거나 다른 폴리머라제 프로필 사용 권장 |
+| `Fwd GC% out of range: N%` | Forward 프라이머 GC%가 35% 미만 또는 65% 초과 |
+| `Rev GC% out of range: N%` | Reverse 프라이머 GC%가 35% 미만 또는 65% 초과 |
+| `Tm condition not met` | Tm 이중 조건 미충족. 다른 폴리머라제 프로필 사용 권장 |
 
 ---
 
-## 6. Plate Map
+## 6. 프라이머 후보 비교
 
-Design Primers 실행 후 자동으로 96-well plate 배치도가 생성된다.
+프라이머 테이블에서 Forward 또는 Reverse 서열을 클릭하면 후보 비교 팝오버가 열린다.
 
-### 배치 규칙
+### 비교 항목
 
-- **Forward 프라이머 (초록)**: 변이 순서대로 A1부터 column 방향 배치 (A1 → B1 → ... → H1 → A2 → ...)
-- **Reverse 프라이머 (주황)**: Forward 다음 위치부터 이어서 배치
-- Well 위에 마우스를 올리면 프라이머 이름과 서열이 tooltip으로 표시된다
+각 후보에 대해 아래 수치를 현재 선택과 나란히 비교할 수 있다:
+- Forward / Reverse 서열 및 길이
+- Tm (Fwd, Rev, Overlap)
+- GC% (Fwd, Rev)
+- Tolerance, Penalty
 
-### Reverse Primer 중복 제거
-
-같은 코돈 위치에 서로 다른 치환 변이가 있으면 reverse primer 서열이 동일할 수 있다. 예를 들어 Q232A와 Q232L은 upstream template-binding 영역이 같으므로 reverse primer가 동일하다.
-
-SDMBench는 동일한 reverse primer를 자동으로 병합하여 주문 수량을 줄인다. 병합된 reverse primer는 이름이 `Q232A+Q232L_R` 형식으로 표시된다.
+현재 선택된 후보는 초록 배경으로 표시되며, 다른 후보의 **Use** 버튼을 클릭하면 교체된다.
 
 ---
 
@@ -332,8 +311,8 @@ npm run dev
 **원인**: overlap 영역 Tm이 너무 높아 non-overlap Tm과 5도 차이를 확보하지 못함.
 
 **해결**:
-1. **Overlap 길이 줄이기**: 20 → 15 bp로 줄이면 Tm_overlap이 낮아진다. SDMBench가 자동 감소를 시도하지만, 시작 값을 15-18로 직접 설정하면 더 효과적이다.
-2. **다른 폴리머라제 선택**: Taq 계열(Opt Tm 60도)은 Q5/Phusion(Opt Tm 72도)보다 non-overlap 길이가 짧아 차이를 만들기 어렵다. high-fidelity 효소(Q5, Phusion)가 Tm 이중 조건에 더 유리하다.
+1. **다른 폴리머라제 선택**: Taq 계열(Opt Tm 60도)은 Q5/Phusion(Opt Tm 72도)보다 non-overlap 길이가 짧아 차이를 만들기 어렵다. high-fidelity 효소(Q5, Phusion)가 Tm 이중 조건에 더 유리하다.
+2. **후보 비교 활용**: Fwd/Rev 서열 클릭 → 후보 팝오버에서 Tm 조건이 더 나은 대안을 선택할 수 있다.
 3. GC 함량이 극단적으로 높은 영역에서는 조건 충족이 본질적으로 어렵다.
 
 ### "Polymerase 'X' not found"

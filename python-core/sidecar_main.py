@@ -20,10 +20,12 @@ _PROJECT_ROOT = _SCRIPT_DIR.parent
 sys.path.insert(0, str(_PROJECT_ROOT))
 
 from evolveprimer.sdm_engine import (
+    GeneInfo,
     SdmPrimerResult,
     design_sdm_primers,
     export_results_tsv,
     load_fasta,
+    load_sequence,
 )
 from evolveprimer.mutation import parse_mutation_notation
 from evolveprimer.polymerase import PolymeraseRegistry
@@ -43,13 +45,14 @@ logging.basicConfig(
 )
 logger = logging.getLogger("sidecar")
 
-_ALLOWED_FASTA_EXTENSIONS = {".fa", ".fasta", ".fna", ".fas", ".seq", ".dna"}
+_ALLOWED_FASTA_EXTENSIONS = {".fa", ".fasta", ".fna", ".fas", ".seq", ".dna", ".gb", ".gbff", ".gbk"}
 _ALLOWED_CSV_EXTENSIONS = {".csv", ".tsv", ".txt"}
 _ALLOWED_TSV_EXTENSIONS = {".tsv", ".txt", ".csv"}
 _ALLOWED_EXCEL_EXTENSIONS = {".xlsx"}
 
 # --- Global state ---
 _last_results: list[SdmPrimerResult] = []
+_last_candidates: dict[str, list[SdmPrimerResult]] = {}
 _last_plate_mappings: list[PlateMapping] = []
 
 
@@ -163,40 +166,28 @@ def handle_list_polymerases(_params: dict) -> list[dict]:
 
 
 def handle_load_fasta(params: dict) -> dict:
-    """Load a FASTA file and return sequence info."""
+    """Load a sequence file and return sequence info with gene annotations."""
     filepath = params.get("filepath")
     resolved = _validate_filepath(filepath, allowed_extensions=_ALLOWED_FASTA_EXTENSIONS)
 
     if not resolved.exists():
         raise FileNotFoundError(f"File not found: {filepath}")
 
-    header, sequence = load_fasta(resolved)
-
-    # Find all ATG positions and estimate ORF length for each
-    stop_codons = {"TAA", "TAG", "TGA"}
-    atg_positions = []
-    orf_lengths = []
-    for i in range(len(sequence) - 2):
-        if sequence[i : i + 3] == "ATG":
-            atg_positions.append(i)
-            # Scan downstream in-frame for first stop codon
-            orf_len = 0
-            for j in range(i + 3, len(sequence) - 2, 3):
-                codon = sequence[j : j + 3]
-                if codon in stop_codons:
-                    orf_len = j - i
-                    break
-            else:
-                orf_len = len(sequence) - i  # no stop found
-            orf_lengths.append(orf_len)
-            if len(atg_positions) >= 50:
-                break
+    header, sequence, genes = load_sequence(resolved)
 
     return {
         "header": header,
         "seq_length": len(sequence),
-        "atg_positions": atg_positions,
-        "orf_lengths": orf_lengths,
+        "genes": [
+            {
+                "gene": g.gene,
+                "product": g.product,
+                "cds_start": g.cds_start,
+                "cds_end": g.cds_end,
+                "aa_length": g.aa_length,
+            }
+            for g in genes
+        ],
     }
 
 
@@ -230,7 +221,7 @@ def handle_parse_mutations_text(params: dict) -> list[dict]:
 
 def handle_design_sdm_primers(params: dict) -> dict:
     """Design SDM primers for a batch of mutations."""
-    global _last_results, _last_plate_mappings
+    global _last_results, _last_candidates, _last_plate_mappings
 
     fasta_path = params.get("fasta_path")
     if not fasta_path:
@@ -282,18 +273,20 @@ def handle_design_sdm_primers(params: dict) -> dict:
 
     try:
         _progress(10, "Designing SDM primers...")
-        results = design_sdm_primers(
+        results, all_cands = design_sdm_primers(
             fasta_path=resolved_fasta,
             target_start=target_start,
             mutations_csv=mutations_csv_path,
             polymerase=polymerase,
             overlap_len=overlap_len,
+            return_all_candidates=True,
         )
     finally:
         if temp_csv is not None:
             os.unlink(temp_csv.name)
 
     _last_results = results
+    _last_candidates = all_cands
     _progress(80, "Generating plate map...")
 
     # Auto-generate plate map
@@ -309,10 +302,23 @@ def handle_design_sdm_primers(params: dict) -> dict:
         ]
     ) if not os.path.isfile(mutations_input) else len(results)
 
+    # Identify failed mutations
+    success_names = {r.mutation.raw for r in results}
+    if not os.path.isfile(mutations_input):
+        all_input = [
+            l.strip()
+            for l in mutations_input.strip().split("\n")
+            if l.strip() and not l.strip().startswith("#")
+        ]
+        failed = [m for m in all_input if m not in success_names]
+    else:
+        failed = []
+
     return {
         "results": [_serialize_result(r) for r in results],
         "success_count": len(results),
         "total_count": max(total_mutations, len(results)),
+        "failed_mutations": failed,
     }
 
 
@@ -321,6 +327,7 @@ def _serialize_result(r: SdmPrimerResult) -> dict:
     overlap_len = len(r.overlap_window.sequence)
     return {
         "mutation": r.mutation.raw,
+        "aa_position": r.mutation.position,
         "codon_pos": r.mutation.codon_start,
         "forward_seq": r.forward_seq,
         "reverse_seq": r.reverse_seq,
@@ -431,6 +438,38 @@ def handle_load_evolvepro_csv(params: dict) -> dict:
     }
 
 
+def handle_get_alternatives(params: dict) -> dict:
+    """Return all candidates for a specific mutation."""
+    mutation = params.get("mutation", "")
+    if not mutation:
+        raise ValueError("mutation is required")
+    candidates = _last_candidates.get(mutation, [])
+    return {
+        "mutation": mutation,
+        "candidates": [_serialize_result(c) for c in candidates],
+    }
+
+
+def handle_swap_primer(params: dict) -> dict:
+    """Swap the selected primer for a mutation with a different candidate."""
+    global _last_results
+    mutation = params.get("mutation", "")
+    candidate_idx = int(params.get("candidate_idx", 0))
+
+    candidates = _last_candidates.get(mutation)
+    if not candidates:
+        raise ValueError(f"No candidates for mutation: {mutation}")
+    if candidate_idx < 0 or candidate_idx >= len(candidates):
+        raise ValueError(f"Invalid candidate index: {candidate_idx}")
+
+    new_best = candidates[candidate_idx]
+    _last_results = [
+        new_best if r.mutation.raw == mutation else r
+        for r in _last_results
+    ]
+    return _serialize_result(new_best)
+
+
 # --- Dispatcher ---
 
 _METHODS = {
@@ -440,6 +479,8 @@ _METHODS = {
     "design_sdm_primers": handle_design_sdm_primers,
     "load_evolvepro_csv": handle_load_evolvepro_csv,
     "get_plate_map": handle_get_plate_map,
+    "get_alternatives": handle_get_alternatives,
+    "swap_primer": handle_swap_primer,
     "export_tsv": handle_export_tsv,
     "export_excel": handle_export_excel,
 }
@@ -473,6 +514,7 @@ def main() -> None:
     if sys.platform == "win32":
         sys.stdout.reconfigure(encoding="utf-8")
         sys.stdin.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
 
     logger.info("EvolveProprimer sidecar started (pid=%d)", os.getpid())
     _send({"jsonrpc": "2.0", "method": "ready", "params": {}})

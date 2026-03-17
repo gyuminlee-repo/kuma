@@ -147,7 +147,7 @@ export function AppLayout() {
   const { status: sidecarStatus } = useSidecar();
   const fetchPolymerases = useAppStore((s) => s.fetchPolymerases);
   const isDesigning = useAppStore((s) => s.isDesigning);
-  const fastaInfo = useAppStore((s) => s.fastaInfo);
+  const seqInfo = useAppStore((s) => s.seqInfo);
 
   useEffect(() => {
     if (sidecarStatus === "ready") {
@@ -168,7 +168,7 @@ export function AppLayout() {
           <Button
             className="w-full"
             onClick={() => useAppStore.getState().designPrimers()}
-            disabled={!fastaInfo || isDesigning}
+            disabled={!seqInfo || isDesigning}
           >
             {isDesigning ? "Designing..." : "Design Primers"}
           </Button>

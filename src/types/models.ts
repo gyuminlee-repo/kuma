@@ -6,11 +6,18 @@ export interface PolymeraseInfo {
   fidelity: string;
 }
 
-export interface FastaInfo {
+export interface GeneInfo {
+  gene: string;
+  product: string;
+  cds_start: number;
+  cds_end: number;
+  aa_length: number;
+}
+
+export interface SequenceInfo {
   header: string;
   seq_length: number;
-  atg_positions: number[];
-  orf_lengths?: number[];
+  genes: GeneInfo[];
 }
 
 export interface ParsedMutation {
@@ -22,6 +29,7 @@ export interface ParsedMutation {
 
 export interface SdmPrimerResult {
   mutation: string;
+  aa_position: number;
   codon_pos: number;
   forward_seq: string;
   reverse_seq: string;
@@ -54,6 +62,7 @@ export interface DesignResult {
   results: SdmPrimerResult[];
   success_count: number;
   total_count: number;
+  failed_mutations: string[];
 }
 
 export interface PlateMapping {

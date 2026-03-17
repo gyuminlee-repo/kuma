@@ -1,8 +1,12 @@
 import { create } from "zustand";
 import { sendRequest, setProgressHandler } from "../lib/ipc";
+
+function formatError(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
 import type {
   PolymeraseInfo,
-  FastaInfo,
+  SequenceInfo,
   ParsedMutation,
   SdmPrimerResult,
   DesignResult,
@@ -17,23 +21,22 @@ interface AppState {
 
   // Input
   fastaPath: string;
-  fastaInfo: FastaInfo | null;
-  mutationInputMode: "text" | "csv" | "evolvepro";
+  seqInfo: SequenceInfo | null;
+  mutationInputMode: "text" | "evolvepro";
   mutationText: string;
-  mutationCsvPath: string;
   evolveproCsvPath: string;
   parsedMutations: ParsedMutation[];
 
   // Parameters
-  cdsStart: number;
+  selectedGene: string;
   selectedPolymerase: string;
-  overlapLen: number;
 
   // Design
   isDesigning: boolean;
   designResults: SdmPrimerResult[];
   successCount: number;
   totalCount: number;
+  failedMutations: string[];
 
   // Plate Map
   plateMappings: PlateMapping[];
@@ -45,16 +48,16 @@ interface AppState {
 
   // Actions
   fetchPolymerases: () => Promise<void>;
-  loadFasta: (filepath: string) => Promise<void>;
-  setCdsStart: (start: number) => void;
-  setMutationInputMode: (mode: "text" | "csv" | "evolvepro") => void;
+  loadSequence: (filepath: string) => Promise<void>;
+  setSelectedGene: (gene: string) => void;
+  setMutationInputMode: (mode: "text" | "evolvepro") => void;
   setMutationText: (text: string) => void;
-  setMutationCsvPath: (path: string) => void;
   loadEvolveproCsv: (filepath: string) => Promise<void>;
   setSelectedPolymerase: (name: string) => void;
-  setOverlapLen: (len: number) => void;
   parseMutations: () => Promise<void>;
   designPrimers: () => Promise<void>;
+  getAlternatives: (mutation: string) => Promise<SdmPrimerResult[]>;
+  swapPrimer: (mutation: string, candidateIdx: number) => Promise<void>;
   getPlateMap: () => Promise<void>;
   exportTsv: (filepath: string) => Promise<void>;
   exportExcel: (filepath: string) => Promise<void>;
@@ -68,19 +71,18 @@ export const useAppStore = create<AppState>((set, get) => {
   return {
     polymerases: [],
     fastaPath: "",
-    fastaInfo: null,
+    seqInfo: null,
     mutationInputMode: "text",
     mutationText: "",
-    mutationCsvPath: "",
     evolveproCsvPath: "",
     parsedMutations: [],
-    cdsStart: 0,
+    selectedGene: "",
     selectedPolymerase: "KOD",
-    overlapLen: 20,
     isDesigning: false,
     designResults: [],
     successCount: 0,
     totalCount: 0,
+    failedMutations: [],
     plateMappings: [],
     dedupInfo: {},
     progress: 0,
@@ -95,40 +97,36 @@ export const useAppStore = create<AppState>((set, get) => {
       }
     },
 
-    loadFasta: async (filepath: string) => {
+    loadSequence: async (filepath: string) => {
       try {
-        set({ statusMessage: "Loading FASTA..." });
-        const info = await sendRequest<FastaInfo>("load_fasta", { filepath });
+        set({ statusMessage: "Loading sequence file..." });
+        const info = await sendRequest<SequenceInfo>("load_fasta", { filepath });
 
-        // Auto-select: pick ATG with longest downstream ORF (no in-frame stop within sequence)
-        let bestAtg = info.atg_positions.length > 0 ? info.atg_positions[0] : 0;
-        if (info.atg_positions.length > 1 && info.orf_lengths) {
-          // sidecar provides orf_lengths parallel to atg_positions
-          let maxLen = 0;
-          for (let i = 0; i < info.atg_positions.length; i++) {
-            const orfLen = info.orf_lengths[i] ?? 0;
-            if (orfLen > maxLen) {
-              maxLen = orfLen;
-              bestAtg = info.atg_positions[i];
+        // Auto-select: pick gene with longest aa_length
+        let bestGene = info.genes.length > 0 ? info.genes[0] : null;
+        if (info.genes.length > 1) {
+          for (const g of info.genes) {
+            if (!bestGene || g.aa_length > bestGene.aa_length) {
+              bestGene = g;
             }
           }
         }
 
+        const selectedKey = bestGene ? String(bestGene.cds_start) : "";
         set({
           fastaPath: filepath,
-          fastaInfo: info,
-          cdsStart: bestAtg,
-          statusMessage: `Loaded: ${info.header} (${info.seq_length} bp) — CDS Start auto-selected: ${bestAtg}`,
+          seqInfo: info,
+          selectedGene: selectedKey,
+          statusMessage: `Loaded: ${info.header} (${info.seq_length} bp) | ${info.genes.length} gene(s) | Target: ${bestGene?.gene ?? "none"}`,
         });
       } catch (err) {
-        set({ statusMessage: `FASTA load failed: ${String(err)}` });
+        set({ statusMessage: `Sequence file load failed: ${formatError(err)}` });
       }
     },
 
-    setCdsStart: (start: number) => set({ cdsStart: start }),
+    setSelectedGene: (gene: string) => set({ selectedGene: gene }),
     setMutationInputMode: (mode) => set({ mutationInputMode: mode }),
     setMutationText: (text) => set({ mutationText: text }),
-    setMutationCsvPath: (path) => set({ mutationCsvPath: path }),
 
     loadEvolveproCsv: async (filepath: string) => {
       try {
@@ -144,11 +142,10 @@ export const useAppStore = create<AppState>((set, get) => {
           statusMessage: `EVOLVEpro: ${result.selected_count}/${result.total_count} variants loaded (top-96 by y_pred)`,
         });
       } catch (err) {
-        set({ statusMessage: `EVOLVEpro CSV load failed: ${err instanceof Error ? err.message : String(err)}` });
+        set({ statusMessage: `EVOLVEpro CSV load failed: ${formatError(err)}` });
       }
     },
     setSelectedPolymerase: (name) => set({ selectedPolymerase: name }),
-    setOverlapLen: (len) => set({ overlapLen: len }),
 
     parseMutations: async () => {
       const { mutationText } = get();
@@ -159,25 +156,29 @@ export const useAppStore = create<AppState>((set, get) => {
         );
         set({ parsedMutations: parsed });
       } catch (err) {
-        set({ statusMessage: `Mutation parse failed: ${err instanceof Error ? err.message : String(err)}` });
+        set({ statusMessage: `Mutation parse failed: ${formatError(err)}` });
       }
     },
 
     designPrimers: async () => {
       const {
         fastaPath,
-        cdsStart,
-        mutationInputMode,
+        selectedGene,
         mutationText,
-        mutationCsvPath,
         selectedPolymerase,
-        overlapLen,
       } = get();
 
       if (!fastaPath) {
-        set({ statusMessage: "FASTA file not loaded" });
+        set({ statusMessage: "Sequence file not loaded" });
         return;
       }
+      if (!mutationText.trim()) {
+        set({ statusMessage: "No mutations entered" });
+        return;
+      }
+
+      // Resolve CDS start from selected gene (selectedGene stores cds_start as string)
+      const targetStart = selectedGene ? parseInt(selectedGene, 10) : 0;
 
       set({
         isDesigning: true,
@@ -190,32 +191,56 @@ export const useAppStore = create<AppState>((set, get) => {
       try {
         const result = await sendRequest<DesignResult>("design_sdm_primers", {
           fasta_path: fastaPath,
-          target_start: cdsStart,
-          mutations_csv_or_text:
-            mutationInputMode === "csv" ? mutationCsvPath : mutationText,
+          target_start: targetStart,
+          mutations_csv_or_text: mutationText,
           polymerase: selectedPolymerase,
-          overlap_len: overlapLen,
         });
 
         set({
           designResults: result.results,
           successCount: result.success_count,
           totalCount: result.total_count,
+          failedMutations: result.failed_mutations ?? [],
           statusMessage: `${result.success_count}/${result.total_count} designed | Tm condition: ${result.results.filter((r) => r.tm_condition_met).length}/${result.success_count}`,
         });
 
-        // Auto-fetch plate map
-        const plateResult =
-          await sendRequest<PlateMapResult>("get_plate_map");
-        set({
-          plateMappings: plateResult.mappings,
-          dedupInfo: plateResult.dedup_info,
-        });
+        // Auto-fetch plate map (non-fatal)
+        try {
+          const plateResult =
+            await sendRequest<PlateMapResult>("get_plate_map");
+          set({
+            plateMappings: plateResult.mappings,
+            dedupInfo: plateResult.dedup_info,
+          });
+        } catch (plateErr) {
+          console.warn("[plate map]", formatError(plateErr));
+        }
       } catch (err) {
-        set({ statusMessage: `Design failed: ${err instanceof Error ? err.message : String(err)}` });
+        set({ statusMessage: `Design failed: ${formatError(err)}` });
       } finally {
         set({ isDesigning: false, progress: 100 });
       }
+    },
+
+    getAlternatives: async (mutation: string) => {
+      const result = await sendRequest<{ candidates: SdmPrimerResult[] }>(
+        "get_alternatives",
+        { mutation },
+      );
+      return result.candidates;
+    },
+
+    swapPrimer: async (mutation: string, candidateIdx: number) => {
+      const updated = await sendRequest<SdmPrimerResult>(
+        "swap_primer",
+        { mutation, candidate_idx: candidateIdx },
+      );
+      const { designResults } = get();
+      set({
+        designResults: designResults.map((r) =>
+          r.mutation === mutation ? updated : r
+        ),
+      });
     },
 
     getPlateMap: async () => {
@@ -226,7 +251,7 @@ export const useAppStore = create<AppState>((set, get) => {
           dedupInfo: result.dedup_info,
         });
       } catch (err) {
-        set({ statusMessage: `Plate map failed: ${err instanceof Error ? err.message : String(err)}` });
+        set({ statusMessage: `Plate map failed: ${formatError(err)}` });
       }
     },
 
@@ -235,7 +260,7 @@ export const useAppStore = create<AppState>((set, get) => {
         await sendRequest("export_tsv", { filepath });
         set({ statusMessage: `Exported TSV: ${filepath}` });
       } catch (err) {
-        set({ statusMessage: `TSV export failed: ${err instanceof Error ? err.message : String(err)}` });
+        set({ statusMessage: `TSV export failed: ${formatError(err)}` });
       }
     },
 
@@ -244,7 +269,7 @@ export const useAppStore = create<AppState>((set, get) => {
         await sendRequest("export_excel", { filepath });
         set({ statusMessage: `Exported Excel: ${filepath}` });
       } catch (err) {
-        set({ statusMessage: `Excel export failed: ${err instanceof Error ? err.message : String(err)}` });
+        set({ statusMessage: `Excel export failed: ${formatError(err)}` });
       }
     },
   };

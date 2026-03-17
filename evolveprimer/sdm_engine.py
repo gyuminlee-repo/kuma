@@ -14,7 +14,7 @@ import primer3
 
 from .polymerase import PolymeraseProfile, PolymeraseRegistry
 
-from .codon_table import best_codon
+from .codon_table import best_codon, mt_codons_for_design
 from .mutation import Mutation, mutate_sequence, parse_mutations
 from .overlap import (
     OverlapWindow,
@@ -280,8 +280,11 @@ def _search_candidates(
     tolerance: float,
     min_downstream: int,
 ) -> list[SdmPrimerResult]:
-    """Search for SDM primer candidates at a given tolerance."""
-    seq_len = len(mutated_seq)
+    """Search for SDM primer candidates at a given tolerance.
+
+    Forward primer: mutation codon centered with balanced flanking.
+    Reverse primer: extends from overlap region upstream of codon.
+    """
     codon_start = mutation.codon_start
     codon_end = codon_start + 3
     downstream_seq = mutated_seq[codon_end:codon_end + 40]
@@ -291,6 +294,8 @@ def _search_candidates(
     ovl_tm_max = tm_target_overlap + tolerance
     candidates: list[SdmPrimerResult] = []
 
+    tol_step = 0.5
+
     for window in windows:
         overlap_seq = window.sequence
         overlap_tm = _calc_sdm_tm(overlap_seq)
@@ -298,10 +303,17 @@ def _search_candidates(
         if not (ovl_tm_min <= overlap_tm <= ovl_tm_max):
             continue
 
-        fwd_result = _extend_forward(
-            overlap_seq, mutation.mt_codon, downstream_seq,
-            tm_target_fwd, tolerance, min_downstream,
-        )
+        # Fwd: independent tolerance
+        fwd_result = None
+        fwd_tol = tol_step
+        while fwd_tol <= tolerance + 1e-9:
+            fwd_result = _extend_forward(
+                overlap_seq, mutation.mt_codon, downstream_seq,
+                tm_target_fwd, fwd_tol, min_downstream,
+            )
+            if fwd_result is not None:
+                break
+            fwd_tol += tol_step
         if fwd_result is None:
             continue
         fwd_full, fwd_binding, tm_fwd = fwd_result
@@ -309,17 +321,33 @@ def _search_candidates(
         overlap_start = codon_start - len(overlap_seq)
         upstream_seq = mutated_seq[max(0, overlap_start - 35):overlap_start]
 
-        rev_result = _extend_reverse(
-            overlap_seq, upstream_seq, tm_target_rev, tolerance,
-        )
+        # Rev: independent tolerance
+        rev_result = None
+        rev_tol = tol_step
+        while rev_tol <= tolerance + 1e-9:
+            rev_result = _extend_reverse(
+                overlap_seq, upstream_seq, tm_target_rev, rev_tol,
+            )
+            if rev_result is not None:
+                break
+            rev_tol += tol_step
         if rev_result is None:
             continue
         rev_full, rev_binding, tm_rev = rev_result
+
+        gc_f = _gc_percent(fwd_full)
+        gc_r = _gc_percent(rev_full)
+        gc_penalty = 0.0
+        if gc_f < 40 or gc_f > 60:
+            gc_penalty += abs(gc_f - 50) * 0.1
+        if gc_r < 40 or gc_r > 60:
+            gc_penalty += abs(gc_r - 50) * 0.1
 
         penalty = (
             abs(tm_fwd - tm_target_fwd)
             + abs(tm_rev - tm_target_rev)
             + abs(overlap_tm - tm_target_overlap)
+            + gc_penalty
         )
 
         warnings: list[str] = []
@@ -327,6 +355,10 @@ def _search_candidates(
             warnings.append(f"Forward primer too long: {len(fwd_full)} bp")
         if len(rev_full) > 60:
             warnings.append(f"Reverse primer too long: {len(rev_full)} bp")
+        if gc_f < 35 or gc_f > 65:
+            warnings.append(f"Fwd GC% out of range: {gc_f:.1f}%")
+        if gc_r < 35 or gc_r > 65:
+            warnings.append(f"Rev GC% out of range: {gc_r:.1f}%")
 
         result = SdmPrimerResult(
             mutation=mutation,
@@ -339,7 +371,7 @@ def _search_candidates(
             tm_rev=tm_rev,
             tm_overlap=round(overlap_tm, 1),
             tm_condition_met=True,
-            tolerance_used=tolerance,
+            tolerance_used=round(max(tolerance, fwd_tol, rev_tol), 1),
             penalty=round(penalty, 2),
             warnings=warnings,
         )
@@ -367,7 +399,20 @@ def _design_single_sdm(
     Returns:
         List of SdmPrimerResult sorted by penalty (best first).
     """
-    mutated_seq = mutate_sequence(seq, mutation)
+    # Generate mutation variants for multiple codons (optimal + WT-closest)
+    alt_codons = mt_codons_for_design(mutation.wt_codon, mutation.mt_aa)
+    mutations_to_try = []
+    for mt_codon in alt_codons:
+        m = Mutation(
+            raw=mutation.raw,
+            wt_aa=mutation.wt_aa,
+            position=mutation.position,
+            mt_aa=mutation.mt_aa,
+            codon_start=mutation.codon_start,
+            wt_codon=mutation.wt_codon,
+            mt_codon=mt_codon,
+        )
+        mutations_to_try.append(m)
 
     # Resolve Tm targets
     tm_target_fwd = profile.opt_tm_fwd if profile.opt_tm_fwd is not None else 62.0
@@ -386,13 +431,15 @@ def _design_single_sdm(
     tol = tol_step
     while tol <= tol_max + 1e-9:
         all_candidates: list[SdmPrimerResult] = []
-        for ov_len in overlap_lengths:
-            candidates = _search_candidates(
-                seq, mutated_seq, mutation, ov_len,
-                tm_target_fwd, tm_target_rev, tm_target_overlap,
-                tolerance=round(tol, 1), min_downstream=min_downstream,
-            )
-            all_candidates.extend(candidates)
+        for mut_variant in mutations_to_try:
+            mutated_seq = mutate_sequence(seq, mut_variant)
+            for ov_len in overlap_lengths:
+                candidates = _search_candidates(
+                    seq, mutated_seq, mut_variant, ov_len,
+                    tm_target_fwd, tm_target_rev, tm_target_overlap,
+                    tolerance=round(tol, 1), min_downstream=min_downstream,
+                )
+                all_candidates.extend(candidates)
 
         if all_candidates:
             # Off-target check (precompute antisense once)
@@ -423,6 +470,16 @@ def _design_single_sdm(
     return []
 
 
+@dataclass
+class GeneInfo:
+    """CDS gene annotation extracted from a sequence file."""
+    gene: str
+    product: str
+    cds_start: int  # 0-based
+    cds_end: int
+    aa_length: int
+
+
 def load_fasta(fasta_path: Path) -> tuple[str, str]:
     """Load a sequence file (FASTA or SnapGene .dna).
 
@@ -448,6 +505,102 @@ def load_fasta(fasta_path: Path) -> tuple[str, str]:
     return header, sequence
 
 
+def load_sequence(filepath: Path) -> tuple[str, str, list[GeneInfo]]:
+    """Load a sequence file and extract gene annotations if available.
+
+    Supports FASTA, SnapGene .dna, and GenBank (.gb, .gbff, .gbk).
+
+    Returns:
+        Tuple of (header, sequence, genes).
+    """
+    suffix = filepath.suffix.lower()
+
+    if suffix in {".gb", ".gbff", ".gbk"}:
+        return _load_genbank(filepath)
+
+    if suffix == ".dna":
+        header, sequence = _load_snapgene(filepath)
+        genes = _extract_genes_from_biopython(filepath, "snapgene")
+        return header, sequence, genes
+
+    # Plain FASTA: no gene annotations
+    header, sequence = load_fasta(filepath)
+    genes = _detect_orfs(sequence)
+    return header, sequence, genes
+
+
+def _load_genbank(gb_path: Path) -> tuple[str, str, list[GeneInfo]]:
+    """Load a GenBank file and extract CDS features."""
+    from Bio import SeqIO
+
+    record = SeqIO.read(gb_path, "genbank")
+    header = record.description if record.description else record.id
+    sequence = str(record.seq).upper()
+    genes = _extract_cds_features(record)
+    return header, sequence, genes
+
+
+def _extract_cds_features(record) -> list[GeneInfo]:
+    """Extract CDS features from a Biopython SeqRecord."""
+    genes: list[GeneInfo] = []
+    for feature in record.features:
+        if feature.type != "CDS":
+            continue
+        qualifiers = feature.qualifiers
+        gene_name = qualifiers.get("gene", qualifiers.get("locus_tag", ["unknown"]))[0]
+        product = qualifiers.get("product", [""])[0]
+        start = int(feature.location.start)
+        end = int(feature.location.end)
+        aa_len = (end - start) // 3
+        genes.append(GeneInfo(
+            gene=gene_name,
+            product=product,
+            cds_start=start,
+            cds_end=end,
+            aa_length=aa_len,
+        ))
+    return genes
+
+
+def _extract_genes_from_biopython(filepath: Path, fmt: str) -> list[GeneInfo]:
+    """Extract CDS features from any Biopython-readable format."""
+    from Bio import SeqIO
+    try:
+        record = SeqIO.read(filepath, fmt)
+        return _extract_cds_features(record)
+    except Exception:
+        return []
+
+
+def _detect_orfs(sequence: str) -> list[GeneInfo]:
+    """Detect ORFs from ATG positions as fallback for FASTA files."""
+    stop_codons = {"TAA", "TAG", "TGA"}
+    best_start = 0
+    best_len = 0
+    for i in range(len(sequence) - 2):
+        if sequence[i:i + 3] != "ATG":
+            continue
+        orf_len = 0
+        for j in range(i + 3, len(sequence) - 2, 3):
+            if sequence[j:j + 3] in stop_codons:
+                orf_len = j - i
+                break
+        else:
+            orf_len = len(sequence) - i
+        if orf_len > best_len:
+            best_len = orf_len
+            best_start = i
+    if best_len > 0:
+        return [GeneInfo(
+            gene="ORF1",
+            product="auto-detected longest ORF",
+            cds_start=best_start,
+            cds_end=best_start + best_len,
+            aa_length=best_len // 3,
+        )]
+    return []
+
+
 def _load_snapgene(dna_path: Path) -> tuple[str, str]:
     """Load a SnapGene .dna file using Biopython SeqIO.
 
@@ -469,7 +622,8 @@ def design_sdm_primers(
     polymerase: str = "Q5",
     overlap_len: int = 20,
     custom_profiles: Path | None = None,
-) -> list[SdmPrimerResult]:
+    return_all_candidates: bool = False,
+) -> list[SdmPrimerResult] | tuple[list[SdmPrimerResult], dict[str, list[SdmPrimerResult]]]:
     """Design SDM primers for a batch of mutations.
 
     Args:
@@ -506,16 +660,18 @@ def design_sdm_primers(
 
     # Design primers for each mutation
     results: list[SdmPrimerResult] = []
+    all_candidates: dict[str, list[SdmPrimerResult]] = {}
     for mut in mutations:
         logger.info("Designing primers for %s ...", mut.raw)
         candidates = _design_single_sdm(sequence, mut, profile, overlap_len)
         if not candidates:
-            logger.warning("FAILED: %s — no valid primer pair found", mut.raw)
+            logger.warning("FAILED: %s - no valid primer pair found", mut.raw)
             continue
         best = candidates[0]
+        all_candidates[mut.raw] = candidates
         logger.info(
             "  %s: Fwd=%d bp (Tm=%.1f), Rev=%d bp (Tm=%.1f), "
-            "Overlap Tm=%.1f, tol=±%.1f [%d candidates]",
+            "Overlap Tm=%.1f, tol=+/-%.1f [%d candidates]",
             mut.raw, best.fwd_len, best.tm_fwd,
             best.rev_len, best.tm_rev,
             best.tm_overlap, best.tolerance_used, len(candidates),
@@ -526,6 +682,8 @@ def design_sdm_primers(
         "Design complete: %d/%d succeeded",
         len(results), len(mutations),
     )
+    if return_all_candidates:
+        return results, all_candidates
     return results
 
 
