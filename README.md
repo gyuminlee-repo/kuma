@@ -2,7 +2,7 @@
 
 Gibson Assembly 기반 SDM 프라이머 배치 설계 데스크톱 앱.
 
-변이 목록(텍스트/EVOLVEpro CSV)과 템플릿 시퀀스(FASTA/SnapGene)를 입력하면, overlap extension 방식의 SDM 프라이머 쌍을 자동 설계한다.
+변이 목록(텍스트/EVOLVEpro CSV)과 템플릿 시퀀스(GenBank/SnapGene)를 입력하면, overlap extension 방식의 SDM 프라이머 쌍을 자동 설계한다.
 
 ## 주요 기능
 
@@ -70,7 +70,7 @@ npm run build:all
 
 ### GUI
 
-1. 시퀀스 파일 로드 (FASTA / GenBank / SnapGene .dna)
+1. 시퀀스 파일 로드 (GenBank .gb / SnapGene .dna)
 2. Target Gene 드롭다운에서 타겟 유전자 CDS 확인 (자동 선택)
 3. 변이 입력 (텍스트 직접 입력 또는 EVOLVEpro CSV 로드)
 4. 코돈 전략 선택 (Min. changes / Optimal)

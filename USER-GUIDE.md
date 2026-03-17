@@ -1,7 +1,7 @@
 # KURO 사용 가이드
 
 Site-Directed Mutagenesis (SDM) 프라이머 배치 설계 데스크톱 앱.
-변이 목록(텍스트/EVOLVEpro CSV)과 템플릿 시퀀스(FASTA/SnapGene)를 입력하면 overlap extension 방식 SDM 프라이머 쌍을 자동 설계한다.
+변이 목록(텍스트/EVOLVEpro CSV)과 템플릿 시퀀스(GenBank/SnapGene)를 입력하면 overlap extension 방식 SDM 프라이머 쌍을 자동 설계한다.
 
 ---
 
@@ -39,7 +39,7 @@ npm run build:all
 ### 첫 프라이머 설계 (GUI)
 
 1. 앱을 실행하면 사이드카(Python 백엔드)가 자동으로 연결된다. 상태 표시줄에 "Ready"가 나타날 때까지 대기.
-2. **Browse** 버튼으로 시퀀스 파일(FASTA / GenBank .gb / SnapGene .dna)을 불러온다.
+2. **Browse** 버튼으로 시퀀스 파일(GenBank .gb / SnapGene .dna)을 불러온다.
 3. CDS Start ATG가 자동 선택된다 (가장 긴 ORF 기준). 필요 시 드롭다운에서 변경.
 4. 변이 목록을 텍스트로 입력하거나 EVOLVEpro CSV를 로드한다.
 5. Codon 전략을 선택한다: Min. changes (WT 대비 최소 변이) 또는 Optimal (E. coli 최적 코돈).

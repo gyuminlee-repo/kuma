@@ -59,7 +59,7 @@ export function InputPanel() {
             size="sm"
             onClick={() => browseFile(
               [
-                { name: "Sequence (GenBank/FASTA/SnapGene)", extensions: ["gb", "gbff", "gbk", "fa", "fasta", "fna", "fas", "dna"] },
+                { name: "Sequence (GenBank/SnapGene)", extensions: ["gb", "gbff", "gbk", "dna"] },
                 { name: "All Files", extensions: ["*"] },
               ],
               loadSequence,
@@ -71,7 +71,7 @@ export function InputPanel() {
           <span className="text-xs text-gray-500 truncate self-center">
             {fastaPath
               ? basename(fastaPath)
-              : "No file selected (.gb / .fasta / .dna)"}
+              : "No file selected (.gb / .dna)"}
           </span>
         </div>
         {seqInfo && (

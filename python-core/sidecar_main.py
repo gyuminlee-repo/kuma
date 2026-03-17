@@ -46,7 +46,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("sidecar")
 
-_ALLOWED_FASTA_EXTENSIONS = {".fa", ".fasta", ".fna", ".fas", ".seq", ".dna", ".gb", ".gbff", ".gbk"}
+_ALLOWED_FASTA_EXTENSIONS = {".dna", ".gb", ".gbff", ".gbk"}
 _ALLOWED_CSV_EXTENSIONS = {".csv", ".tsv", ".txt"}
 _ALLOWED_TSV_EXTENSIONS = {".tsv", ".txt", ".csv"}
 _ALLOWED_EXCEL_EXTENSIONS = {".xlsx"}

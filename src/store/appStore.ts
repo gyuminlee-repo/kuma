@@ -223,6 +223,8 @@ export const useAppStore = create<AppState>((set, get) => {
         statusMessage: "Designing primers...",
         designResults: [],
         plateMappings: [],
+        customCandidates: {},
+        manuallySwapped: {},
       });
 
       try {
@@ -314,8 +316,13 @@ export const useAppStore = create<AppState>((set, get) => {
         designResults: designResults.map((r) => {
           if (r.mutation === mutation) {
             // Preserve server-provided candidate counts (displayed count is server count + customCandidates.length)
+            // Also preserve identity fields (mutation, aa_position, codon_pos) from the original row
+            // so that evaluate_custom_primer's dummy_mut.position=0 cannot corrupt sort order.
             return {
               ...result,
+              mutation: r.mutation,
+              aa_position: r.aa_position,
+              codon_pos: r.codon_pos,
               candidate_count: r.candidate_count,
               candidate_fwd_count: r.candidate_fwd_count,
               candidate_rev_count: r.candidate_rev_count,
