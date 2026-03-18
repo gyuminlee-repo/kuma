@@ -5,7 +5,9 @@
 
 Gibson Assembly 기반 SDM 프라이머 배치 설계 데스크톱 앱.
 
-![KURO Overview](docs/kuro_overview.svg)
+![KURO Overview](docs/kuro_overview.png)
+
+https://github.com/user-attachments/assets/f95e65ca-22d2-4479-a06b-8dcd553571be
 
 ![KURO — 설계 완료 화면](docs/screenshots/04-design-complete.png)
 
@@ -72,12 +74,6 @@ npm run sidecar:build
 # Tauri 앱 빌드 (사이드카 포함)
 npm run build:all
 ```
-
-## 데모
-
-<a href="https://youtu.be/R7k3p1K-OH8">
-  <img src="https://img.youtube.com/vi/R7k3p1K-OH8/hqdefault.jpg" alt="KURO Demo" width="600">
-</a>
 
 ## 사용법
 

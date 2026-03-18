@@ -4,7 +4,9 @@
 
 Desktop app for batch SDM primer design based on Gibson Assembly.
 
-![KURO Overview](docs/kuro_overview.svg)
+![KURO Overview](docs/kuro_overview.png)
+
+https://github.com/user-attachments/assets/f95e65ca-22d2-4479-a06b-8dcd553571be
 
 ![KURO — Design complete](docs/screenshots/04-design-complete.png)
 
@@ -71,12 +73,6 @@ npm run sidecar:build
 # Build Tauri app (with sidecar)
 npm run build:all
 ```
-
-## Demo
-
-<a href="https://youtu.be/R7k3p1K-OH8">
-  <img src="https://img.youtube.com/vi/R7k3p1K-OH8/hqdefault.jpg" alt="KURO Demo" width="600">
-</a>
 
 ## Usage
 
