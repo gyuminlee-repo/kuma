@@ -373,7 +373,8 @@ export const useAppStore = create<AppState>((set, get) => {
 
     exportExcel: async (filepath: string) => {
       try {
-        await sendRequest("export_excel", { filepath });
+        const { plateMappings, dedupInfo } = get();
+        await sendRequest("export_excel", { filepath, mappings: plateMappings, dedup_info: dedupInfo });
         set({ statusMessage: `Exported Excel: ${filepath}` });
       } catch (err) {
         set({ statusMessage: `Excel export failed: ${formatError(err)}` });

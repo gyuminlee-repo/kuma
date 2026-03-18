@@ -459,16 +459,30 @@ def handle_get_plate_map(_params: dict) -> dict:
 
 
 def handle_export_excel(params: dict) -> dict:
-    """Export plate map to Excel."""
-    if not _last_results:
-        raise ValueError("No design available")
+    """Export plate map to Excel.
 
+    Accepts optional 'mappings' and 'dedup_info' from the frontend to reflect
+    the current UI state (sorted order, custom additions from failed mutations).
+    Falls back to backend state when not provided (CLI usage).
+    """
     filepath = params.get("filepath")
     resolved = _validate_output_path(
         filepath, allowed_extensions=_ALLOWED_EXCEL_EXTENSIONS
     )
 
-    export_plate_excel(_last_plate_mappings, resolved, rev_groups=_last_dedup_info)
+    mappings_data = params.get("mappings")
+    dedup_data = params.get("dedup_info")
+
+    if mappings_data:
+        mappings = [PlateMapping(**m) for m in mappings_data]
+        rev_groups = dedup_data or {}
+    else:
+        if not _last_results:
+            raise ValueError("No design available")
+        mappings = _last_plate_mappings
+        rev_groups = _last_dedup_info
+
+    export_plate_excel(mappings, resolved, rev_groups=rev_groups)
     return {"success": True, "filepath": str(resolved)}
 
 
