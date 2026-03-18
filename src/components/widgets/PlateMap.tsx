@@ -1,15 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAppStore } from "../../store/appStore";
+import { reorderMappings, getSortedMutations, wellName } from "../../lib/plate-utils";
 import type { PlateMapping } from "../../types/models";
 
 const ROWS = ["A", "B", "C", "D", "E", "F", "G", "H"];
 const COLS = Array.from({ length: 12 }, (_, i) => i + 1);
-
-function wellName(indexInPlate: number): string {
-  const col = Math.floor(indexInPlate / 8) + 1;
-  const row = indexInPlate % 8;
-  return `${ROWS[row]}${col}`;
-}
 
 interface WellEntry {
   well: string;
@@ -41,37 +36,10 @@ function buildPairsFromStore(
   dedupInfo: Record<string, string[]>,
   sortedMutations: string[] | null,
 ): PlatePair[] {
-  const fwdAll = mappings.filter((m) => m.primer_type === "forward");
-  const revAll = mappings.filter((m) => m.primer_type === "reverse");
-
-  // Reorder fwd by sorted mutation order if provided
-  let orderedFwd = fwdAll;
-  if (sortedMutations && sortedMutations.length > 0) {
-    const fwdByMut = new Map<string, PlateMapping>();
-    for (const m of fwdAll) fwdByMut.set(m.mutation, m);
-    const reordered: PlateMapping[] = [];
-    for (const mut of sortedMutations) {
-      const m = fwdByMut.get(mut);
-      if (m) reordered.push(m);
-    }
-    // Reassign well names based on new order
-    orderedFwd = reordered.map((m, i) => ({ ...m, well: wellName(i) }));
-  }
-
-  // Reorder rev: deduplicate in order of first occurrence in orderedFwd
-  let orderedRev = revAll;
-  if (sortedMutations && sortedMutations.length > 0) {
-    const seenRevSeq = new Map<string, PlateMapping>();
-    for (const fwd of orderedFwd) {
-      // Find the rev mapping with the same mutation
-      const rev = revAll.find((r) => dedupInfo[r.sequence]?.includes(fwd.mutation));
-      if (rev && !seenRevSeq.has(rev.sequence)) {
-        seenRevSeq.set(rev.sequence, rev);
-      }
-    }
-    let revIdx = 0;
-    orderedRev = [...seenRevSeq.values()].map((m) => ({ ...m, well: wellName(revIdx++) }));
-  }
+  // Apply sort + well reassignment via shared utility
+  const ordered = reorderMappings(mappings, dedupInfo, sortedMutations);
+  const orderedFwd = ordered.filter((m) => m.primer_type === "forward");
+  const orderedRev = ordered.filter((m) => m.primer_type === "reverse");
 
   // Determine shared reverse sequences
   const sharedSeqs = new Set<string>();
@@ -202,19 +170,10 @@ function PlateGrid({
 function useSortedMutations(): string[] | null {
   const designResults = useAppStore((s) => s.designResults);
   const tableSorting = useAppStore((s) => s.tableSorting);
-
-  return useMemo(() => {
-    if (tableSorting.length === 0) return null;
-    const sort = tableSorting[0];
-    if (sort.id !== "mutation") return null;
-    const sorted = [...designResults].sort((a, b) => {
-      const posA = a.aa_position ?? 0;
-      const posB = b.aa_position ?? 0;
-      return posA - posB;
-    });
-    const ordered = sort.desc ? sorted.reverse() : sorted;
-    return ordered.map((r) => r.mutation);
-  }, [designResults, tableSorting]);
+  return useMemo(
+    () => getSortedMutations(designResults, tableSorting),
+    [designResults, tableSorting],
+  );
 }
 
 export function PlateMap() {

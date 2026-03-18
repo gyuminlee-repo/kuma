@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { sendRequest, setProgressHandler } from "../lib/ipc";
+import { getSortedMutations, reorderMappings } from "../lib/plate-utils";
 import type { SortingState, Updater } from "@tanstack/react-table";
 
 function formatError(err: unknown): string {
@@ -373,8 +374,10 @@ export const useAppStore = create<AppState>((set, get) => {
 
     exportExcel: async (filepath: string) => {
       try {
-        const { plateMappings, dedupInfo } = get();
-        await sendRequest("export_excel", { filepath, mappings: plateMappings, dedup_info: dedupInfo });
+        const { plateMappings, dedupInfo, designResults, tableSorting } = get();
+        const sortedMuts = getSortedMutations(designResults, tableSorting);
+        const ordered = reorderMappings(plateMappings, dedupInfo, sortedMuts);
+        await sendRequest("export_excel", { filepath, mappings: ordered, dedup_info: dedupInfo });
         set({ statusMessage: `Exported Excel: ${filepath}` });
       } catch (err) {
         set({ statusMessage: `Excel export failed: ${formatError(err)}` });
