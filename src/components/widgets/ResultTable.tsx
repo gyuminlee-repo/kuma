@@ -11,6 +11,16 @@ import type { SdmPrimerResult, FailedMutation } from "../../types/models";
 
 const col = createColumnHelper<SdmPrimerResult & { rank: number }>();
 
+const VALID_BASES = /^[ATGCatgc]*$/;
+function validateSeq(seq: string): string | null {
+  if (!seq) return null;
+  if (!VALID_BASES.test(seq)) {
+    const invalid = seq.replace(/[ATGCatgc]/g, "");
+    return `Invalid characters: ${[...new Set(invalid)].join(", ")}`;
+  }
+  return null;
+}
+
 function formatTolerance(tf?: number, tr?: number, fallback?: number): string {
   if (tf != null && tr != null) return `\u00B1${tf.toFixed(1)}/\u00B1${tr.toFixed(1)}`;
   if (fallback != null) return `\u00B1${fallback.toFixed(1)}`;
@@ -114,6 +124,7 @@ function CandidatePopover({
   const [customDownstream, setCustomDownstream] = useState("");
   const [customRev, setCustomRev] = useState("");
   const [evaluating, setEvaluating] = useState(false);
+  const [seqError, setSeqError] = useState<string | null>(null);
   const [otDetailCand, setOtDetailCand] = useState<SdmPrimerResult | null>(null);
   const getAlternatives = useAppStore((s) => s.getAlternatives);
   const swapPrimer = useAppStore((s) => s.swapPrimer);
@@ -142,10 +153,18 @@ function CandidatePopover({
     // Fill missing side with current primer sequence
     const fwdSeq = fwdInput || current.forward_seq;
     const revSeq = revInput || current.reverse_seq;
+    // Validate bases
+    const fwdErr = validateSeq(fwdInput);
+    const revErr = validateSeq(revInput);
+    if (fwdErr || revErr) {
+      setSeqError(`Invalid sequence: ${fwdErr || revErr}`);
+      return;
+    }
+    setSeqError(null);
     // Duplicate check
     const isDup = customCandidates.some((c) => c.forward_seq === fwdSeq && c.reverse_seq === revSeq);
     if (isDup) {
-      useAppStore.getState().setStatus("Duplicate custom primer — already added");
+      setSeqError("Duplicate custom primer — already added");
       return;
     }
     setEvaluating(true);
@@ -303,6 +322,9 @@ function CandidatePopover({
                 </button>
               </div>
             </div>
+            {seqError && (
+              <div className="text-[10px] text-red-600 bg-red-50 rounded px-2 py-1 mt-1">{seqError}</div>
+            )}
           </div>
           </>
         )}
@@ -491,6 +513,7 @@ function FailedMutationPopover({
   const [customDownstream, setCustomDownstream] = useState("");
   const [customRev, setCustomRev] = useState("");
   const [evaluating, setEvaluating] = useState(false);
+  const [seqError, setSeqError] = useState<string | null>(null);
   const evaluateCustomPrimer = useAppStore((s) => s.evaluateCustomPrimer);
   const addDesignResult = useAppStore((s) => s.addDesignResult);
 
@@ -498,6 +521,13 @@ function FailedMutationPopover({
     const fwdSeq = (customOverlap + customCodon + customDownstream).trim();
     const revSeq = customRev.trim();
     if (!fwdSeq || !revSeq) return;
+    const fwdErr = validateSeq(fwdSeq);
+    const revErr = validateSeq(revSeq);
+    if (fwdErr || revErr) {
+      setSeqError(`Invalid sequence: ${fwdErr || revErr}`);
+      return;
+    }
+    setSeqError(null);
     setEvaluating(true);
     const result = await evaluateCustomPrimer(
       failed.mutation,
@@ -590,6 +620,9 @@ function FailedMutationPopover({
               {evaluating ? "..." : "Evaluate"}
             </button>
           </div>
+          {seqError && (
+            <div className="text-[10px] text-red-600 bg-red-50 rounded px-2 py-1 mt-1">{seqError}</div>
+          )}
         </div>
       </div>
     </div>
@@ -616,7 +649,7 @@ const HEADER_TOOLTIPS: Record<string, string> = {
   wt_codon: "Wild-type codon at this position",
 };
 
-function makeColumns(groupColorMap: Map<number, string>, codonStrategy: "closest" | "optimal", swapped: Record<string, string>, customCandidates: Record<string, SdmPrimerResult[]>) {
+function makeColumns(groupColorMap: Map<number, string>, codonStrategy: "closest" | "optimal", swapped: Record<string, string>, customCandidates: Record<string, SdmPrimerResult[]>, rescuedMutations: Set<string>, removeDesignResult: (mutation: string, reason: string) => void) {
   return [
     col.accessor("rank", {
       header: "#",
@@ -638,16 +671,31 @@ function makeColumns(groupColorMap: Map<number, string>, codonStrategy: "closest
       cell: (info) => {
         const row = info.row.original;
         const color = row.aa_position != null ? groupColorMap.get(row.aa_position) : undefined;
+        const isRescued = rescuedMutations.has(row.mutation);
         return (
-          <span className="font-mono font-medium">
-            {info.getValue()}
-            {color && (
-              <span
-                className="inline-block ml-1 px-1 rounded text-[8px] font-semibold text-white align-middle"
-                style={{ backgroundColor: color }}
+          <span className="font-mono font-medium flex items-center gap-1">
+            <span>
+              {info.getValue()}
+              {color && (
+                <span
+                  className="inline-block ml-1 px-1 rounded text-[8px] font-semibold text-white align-middle"
+                  style={{ backgroundColor: color }}
+                >
+                  Pos{row.aa_position}
+                </span>
+              )}
+            </span>
+            {isRescued && (
+              <button
+                className="ml-1 px-1 py-0.5 bg-red-100 text-red-600 rounded text-[8px] hover:bg-red-200 leading-none"
+                title="Remove custom rescue — restore to Failed"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  removeDesignResult(row.mutation, "Manually removed custom rescue");
+                }}
               >
-                Pos{row.aa_position}
-              </span>
+                ✕
+              </button>
             )}
           </span>
         );
@@ -835,9 +883,11 @@ export function ResultTable() {
   const codonStrategy = useAppStore((s) => s.codonStrategy);
   const manuallySwapped = useAppStore((s) => s.manuallySwapped);
   const customCandidatesAll = useAppStore((s) => s.customCandidates);
+  const rescuedMutations = useAppStore((s) => s.rescuedMutations);
+  const removeDesignResult = useAppStore((s) => s.removeDesignResult);
   const columns = useMemo(
-    () => makeColumns(groupColorMap, codonStrategy, manuallySwapped, customCandidatesAll),
-    [groupColorMap, codonStrategy, manuallySwapped, customCandidatesAll],
+    () => makeColumns(groupColorMap, codonStrategy, manuallySwapped, customCandidatesAll, rescuedMutations, removeDesignResult),
+    [groupColorMap, codonStrategy, manuallySwapped, customCandidatesAll, rescuedMutations, removeDesignResult],
   );
 
   const table = useReactTable({

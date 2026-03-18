@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { sendRequest, setProgressHandler } from "../lib/ipc";
-import { getSortedMutations, reorderMappings } from "../lib/plate-utils";
+import { getSortedMutations, reorderMappings, wellName } from "../lib/plate-utils";
 import type { SortingState, Updater } from "@tanstack/react-table";
 
 function formatError(err: unknown): string {
@@ -56,6 +56,7 @@ interface AppState {
   tableSorting: SortingState;
   manuallySwapped: Record<string, "fwd" | "rev" | "both">;
   customCandidates: Record<string, SdmPrimerResult[]>;
+  rescuedMutations: Set<string>;
 
   // Actions
   loadSequence: (filepath: string) => Promise<void>;
@@ -83,6 +84,7 @@ interface AppState {
   resetAll: () => void;
   evaluateCustomPrimer: (mutation: string, fwdSeq: string, revSeq: string, overlapLen?: number) => Promise<SdmPrimerResult | null>;
   addDesignResult: (mutation: string, result: SdmPrimerResult) => void;
+  removeDesignResult: (mutation: string, reason: string) => void;
 }
 
 const INITIAL_STATE = {
@@ -113,6 +115,7 @@ const INITIAL_STATE = {
   tableSorting: [] as import("@tanstack/react-table").SortingState,
   manuallySwapped: {} as Record<string, "fwd" | "rev" | "both">,
   customCandidates: {} as Record<string, SdmPrimerResult[]>,
+  rescuedMutations: new Set<string>() as Set<string>,
 };
 
 export const useAppStore = create<AppState>((set, get) => {
@@ -492,12 +495,21 @@ export const useAppStore = create<AppState>((set, get) => {
 
     addDesignResult: (mutation: string, result: SdmPrimerResult) => {
       const { designResults, failedMutations, successCount, plateMappings, dedupInfo } = get();
-      const newDesignResults = [...designResults, result];
-      const nextFwdIdx = plateMappings.filter((m) => m.primer_type === "forward").length;
-      const wellName = (idx: number) => {
-        const rows = "ABCDEFGH";
-        return `${rows[idx % 8]}${Math.floor(idx / 8) + 1}`;
+      // Parse aa_position from mutation name (e.g. "V100F" → 100) if result has dummy position
+      let aaPos = result.aa_position;
+      if (!aaPos) {
+        const match = mutation.match(/[A-Z](\d+)[A-Z]/);
+        if (match) aaPos = parseInt(match[1], 10);
+      }
+      const fixedResult: SdmPrimerResult = {
+        ...result,
+        mutation,
+        aa_position: aaPos || 0,
+        candidate_fwd_count: result.candidate_fwd_count ?? 1,
+        candidate_rev_count: result.candidate_rev_count ?? 1,
       };
+      const newDesignResults = [...designResults, fixedResult];
+      const nextFwdIdx = plateMappings.filter((m) => m.primer_type === "forward").length;
       const newFwd: import("../types/models").PlateMapping = {
         well: wellName(nextFwdIdx),
         primer_name: `${mutation}_F`,
@@ -519,12 +531,47 @@ export const useAppStore = create<AppState>((set, get) => {
       const revSeq = result.reverse_seq;
       newDedupInfo[revSeq] = [...(newDedupInfo[revSeq] ?? []), mutation];
 
+      const newRescued = new Set(get().rescuedMutations);
+      newRescued.add(mutation);
       set({
         designResults: newDesignResults,
         failedMutations: failedMutations.filter((f) => f.mutation !== mutation),
         successCount: successCount + 1,
         plateMappings: [...plateMappings, newFwd, ...newRevMappings],
         dedupInfo: newDedupInfo,
+        rescuedMutations: newRescued,
+      });
+    },
+
+    removeDesignResult: (mutation: string, reason: string) => {
+      const { designResults, failedMutations, successCount, plateMappings, dedupInfo, rescuedMutations } = get();
+      const removed = designResults.find((r) => r.mutation === mutation);
+      if (!removed) return;
+      const newDesignResults = designResults.filter((r) => r.mutation !== mutation);
+      const newPlateMappings = plateMappings.filter((m) => m.mutation !== mutation);
+      // Rebuild dedupInfo: remove this mutation from all dedup lists
+      const newDedupInfo: Record<string, string[]> = {};
+      for (const [seq, muts] of Object.entries(dedupInfo)) {
+        const filtered = muts.filter((m) => m !== mutation);
+        if (filtered.length > 0) newDedupInfo[seq] = filtered;
+      }
+      // Restore to failedMutations (preserve original rank or use current rank)
+      const restoredRank = failedMutations.length > 0
+        ? Math.max(...failedMutations.map((f) => f.rank)) + 1
+        : newDesignResults.length + 1;
+      const newFailed: import("../types/models").FailedMutation[] = [
+        ...failedMutations,
+        { mutation, rank: restoredRank, reason },
+      ];
+      const newRescued = new Set(rescuedMutations);
+      newRescued.delete(mutation);
+      set({
+        designResults: newDesignResults,
+        failedMutations: newFailed,
+        successCount: Math.max(0, successCount - 1),
+        plateMappings: newPlateMappings,
+        dedupInfo: newDedupInfo,
+        rescuedMutations: newRescued,
       });
     },
   };
