@@ -42,10 +42,13 @@ def _well_name(index: int, order: str = "column") -> str:
 
 
 def _assign_well(index: int, well_order: str = "column") -> str:
-    """Generate well name with overflow to second plate."""
-    if index < 96:
-        return _well_name(index, well_order)
-    return f"P2-{_well_name(index - 96, well_order)}"
+    """Generate well name with overflow to additional plates."""
+    plate_num = index // 96
+    local_idx = index % 96
+    well = _well_name(local_idx, well_order)
+    if plate_num == 0:
+        return well
+    return f"P{plate_num + 1}-{well}"
 
 
 def deduplicate_reverse(
@@ -230,12 +233,57 @@ def _chunk_by_plate(mappings: list[PlateMapping]) -> list[list[PlateMapping]]:
     return plates if plates else [[]]
 
 
+def _pair_rev_per_plate(
+    fwd_plates: list[list[PlateMapping]],
+    rev_all: list[PlateMapping],
+    rev_groups: dict[str, list[str]] | None,
+) -> list[list[PlateMapping]]:
+    """Pair reverse primers with each fwd plate by mutation membership.
+
+    For each fwd plate chunk, collect the deduplicated reverse primers
+    that belong to that chunk's mutations, reassigning well names.
+    """
+    # Build mutation → rev sequence lookup
+    mut_to_rev_seq: dict[str, str] = {}
+    if rev_groups:
+        for seq, muts in rev_groups.items():
+            for mut in muts:
+                mut_to_rev_seq[mut] = seq
+
+    rev_by_seq = {r.sequence: r for r in rev_all}
+
+    paired: list[list[PlateMapping]] = []
+    for fwd_chunk in fwd_plates:
+        seen_seq: set[str] = set()
+        rev_chunk: list[PlateMapping] = []
+        well_idx = 0
+        for fwd_m in fwd_chunk:
+            rev_seq = mut_to_rev_seq.get(fwd_m.mutation)
+            if rev_seq and rev_seq not in seen_seq:
+                seen_seq.add(rev_seq)
+                rev_m = rev_by_seq.get(rev_seq)
+                if rev_m:
+                    rev_chunk.append(PlateMapping(
+                        well=_well_name(well_idx),
+                        primer_name=rev_m.primer_name,
+                        sequence=rev_m.sequence,
+                        primer_type="reverse",
+                        mutation=rev_m.mutation,
+                    ))
+                    well_idx += 1
+        paired.append(rev_chunk)
+    return paired
+
+
 def export_plate_excel(
     mappings: list[PlateMapping],
     output_path: Path,
     rev_groups: dict[str, list[str]] | None = None,
 ) -> None:
     """Export plate mappings to Excel with per-plate sheets.
+
+    Forward and reverse primers are paired per plate: Rev Plate N contains
+    only the reverse primers for Fwd Plate N's mutations.
 
     For N plates, creates sheets:
     - 'Fwd List 1', 'Fwd Plate 1', 'Rev List 1', 'Rev Plate 1'
@@ -245,7 +293,7 @@ def export_plate_excel(
 
     Args:
         rev_groups: Original reverse deduplication map (seq -> mutation names).
-            Used to detect shared reverse primers for blue coloring.
+            Used to pair rev with fwd plates and detect shared primers.
     """
     from openpyxl import Workbook
 
@@ -253,20 +301,18 @@ def export_plate_excel(
     rev_all = [m for m in mappings if m.primer_type == "reverse"]
 
     fwd_plates = _chunk_by_plate(fwd_all)
-    rev_plates = _chunk_by_plate(rev_all)
-    plate_count = max(len(fwd_plates), len(rev_plates))
+    rev_plates = _pair_rev_per_plate(fwd_plates, rev_all, rev_groups)
+    plate_count = len(fwd_plates)
     suffix = plate_count > 1
 
     wb = Workbook()
     first_sheet = True
+    chunk_rev_groups = rev_groups or {}
 
     for i in range(plate_count):
         tag = f" {i + 1}" if suffix else ""
-        fwd_chunk = fwd_plates[i] if i < len(fwd_plates) else []
+        fwd_chunk = fwd_plates[i]
         rev_chunk = rev_plates[i] if i < len(rev_plates) else []
-
-        # Use original rev_groups for shared detection (covers deduplicated entries)
-        chunk_rev_groups = rev_groups or {}
 
         if first_sheet:
             ws = wb.active
