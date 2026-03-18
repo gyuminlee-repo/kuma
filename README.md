@@ -72,6 +72,12 @@ npm run sidecar:build
 npm run build:all
 ```
 
+## Demo
+
+<a href="https://youtu.be/R7k3p1K-OH8">
+  <img src="https://img.youtube.com/vi/R7k3p1K-OH8/hqdefault.jpg" alt="KURO Demo" width="600">
+</a>
+
 ## Usage
 
 ### GUI
