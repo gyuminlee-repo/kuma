@@ -4,6 +4,8 @@
 
 Desktop app for batch SDM primer design based on Gibson Assembly.
 
+![KURO Overview](docs/kuro-overview.svg)
+
 ![KURO — Design complete](docs/screenshots/04-design-complete.png)
 
 Given a mutation list (plain text / EVOLVEpro CSV) and a template sequence (GenBank / SnapGene), KURO automatically designs SDM primer pairs using the overlap extension method.
