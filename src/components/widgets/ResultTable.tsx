@@ -7,7 +7,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { useAppStore } from "../../store/appStore";
-import type { SdmPrimerResult } from "../../types/models";
+import type { SdmPrimerResult, FailedMutation } from "../../types/models";
 
 const col = createColumnHelper<SdmPrimerResult & { rank: number }>();
 
@@ -478,6 +478,124 @@ function OffTargetDetail({
   );
 }
 
+/** Failed mutation popover — shows failure reason + custom primer input */
+function FailedMutationPopover({
+  failed,
+  onClose,
+}: {
+  failed: FailedMutation;
+  onClose: () => void;
+}) {
+  const [customOverlap, setCustomOverlap] = useState("");
+  const [customCodon, setCustomCodon] = useState("");
+  const [customDownstream, setCustomDownstream] = useState("");
+  const [customRev, setCustomRev] = useState("");
+  const [evaluating, setEvaluating] = useState(false);
+  const evaluateCustomPrimer = useAppStore((s) => s.evaluateCustomPrimer);
+  const addDesignResult = useAppStore((s) => s.addDesignResult);
+
+  async function handleEvaluate() {
+    const fwdSeq = (customOverlap + customCodon + customDownstream).trim();
+    const revSeq = customRev.trim();
+    if (!fwdSeq || !revSeq) return;
+    setEvaluating(true);
+    const result = await evaluateCustomPrimer(
+      failed.mutation,
+      fwdSeq,
+      revSeq,
+      customOverlap.trim().length,
+    );
+    if (result) {
+      addDesignResult(failed.mutation, result);
+      onClose();
+    }
+    setEvaluating(false);
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-lg shadow-xl p-4 min-w-[400px] max-w-lg"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center mb-3">
+          <h3 className="text-sm font-semibold text-red-700">
+            {failed.mutation} — Design Failed
+          </h3>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 text-lg px-2"
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="bg-red-50 rounded px-3 py-2 mb-3 text-xs text-red-700">
+          <span className="font-semibold">Reason:</span> {failed.reason}
+        </div>
+
+        <div className="text-[10px] font-semibold text-gray-600 mb-1">
+          Custom primer (manual design)
+        </div>
+        <div className="space-y-1">
+          <div className="flex items-center gap-0.5">
+            <span className="text-[9px] text-gray-400 w-6">Fwd:</span>
+            <input
+              className="flex-1 text-[10px] font-mono border border-blue-300 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              style={{ color: "#3b82f6" }}
+              placeholder="Overlap"
+              value={customOverlap}
+              onChange={(e) => setCustomOverlap(e.target.value.toUpperCase())}
+              aria-label="Overlap region"
+            />
+            <input
+              className="w-12 text-[10px] font-mono font-semibold border border-red-300 rounded px-1 py-1 text-center focus:outline-none focus:ring-1 focus:ring-red-400"
+              style={{ color: "#ef4444" }}
+              placeholder="Codon"
+              maxLength={3}
+              value={customCodon}
+              onChange={(e) => setCustomCodon(e.target.value.toUpperCase())}
+              aria-label="Mutation codon"
+            />
+            <input
+              className="flex-1 text-[10px] font-mono border border-gray-300 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-gray-400"
+              placeholder="Downstream"
+              value={customDownstream}
+              onChange={(e) => setCustomDownstream(e.target.value.toUpperCase())}
+              aria-label="Downstream sequence"
+            />
+          </div>
+          <div className="flex items-center gap-0.5">
+            <span className="text-[9px] text-gray-400 w-6">Rev:</span>
+            <input
+              className="flex-1 text-[10px] font-mono border border-orange-300 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-orange-400"
+              placeholder="Reverse sequence (5' → 3')"
+              value={customRev}
+              onChange={(e) => setCustomRev(e.target.value.toUpperCase())}
+              aria-label="Reverse primer sequence"
+            />
+            <button
+              className="px-3 py-1 bg-purple-500 text-white rounded text-[10px] hover:bg-purple-600 disabled:opacity-40"
+              disabled={
+                !(customOverlap + customCodon + customDownstream).trim() ||
+                !customRev.trim() ||
+                evaluating
+              }
+              onClick={handleEvaluate}
+            >
+              {evaluating ? "..." : "Evaluate"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const HEADER_TOOLTIPS: Record<string, string> = {
   rank: "Input order (EVOLVEpro: y_pred descending rank)",
   mutation: "Amino acid substitution. Click header to sort by aa position",
@@ -702,6 +820,7 @@ export function ResultTable() {
   const [popover, setPopover] = useState<{ mutation: string; current: SdmPrimerResult } | null>(null);
   const [hpDetail, setHpDetail] = useState<SdmPrimerResult | null>(null);
   const [otDetail, setOtDetail] = useState<SdmPrimerResult | null>(null);
+  const [failedPopover, setFailedPopover] = useState<FailedMutation | null>(null);
 
   const rankedData = useMemo(
     () => designResults.map((r, i) => ({ ...r, rank: i + 1 })),
@@ -752,13 +871,23 @@ export function ResultTable() {
             {failedMutations.map((f) => (
               <span
                 key={f.mutation}
-                className="bg-red-100 px-1.5 py-0.5 rounded cursor-help"
+                className="bg-red-100 px-1.5 py-0.5 rounded cursor-pointer hover:bg-red-200"
                 title={`#${f.rank} | ${f.reason}`}
+                onClick={() => setFailedPopover(f)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => e.key === "Enter" && setFailedPopover(f)}
               >
                 #{f.rank} {f.mutation}
               </span>
             ))}
           </div>
+          {failedPopover && (
+            <FailedMutationPopover
+              failed={failedPopover}
+              onClose={() => setFailedPopover(null)}
+            />
+          )}
         </div>
       );
     }
@@ -832,8 +961,12 @@ export function ResultTable() {
             {failedMutations.map((f) => (
               <span
                 key={f.mutation}
-                className="bg-red-100 px-1.5 py-0.5 rounded cursor-help"
+                className="bg-red-100 px-1.5 py-0.5 rounded cursor-pointer hover:bg-red-200"
                 title={`#${f.rank} | ${f.reason}`}
+                onClick={() => setFailedPopover(f)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => e.key === "Enter" && setFailedPopover(f)}
               >
                 #{f.rank} {f.mutation}
               </span>
@@ -868,6 +1001,13 @@ export function ResultTable() {
         <OffTargetDetail
           result={otDetail}
           onClose={() => setOtDetail(null)}
+        />
+      )}
+
+      {failedPopover && (
+        <FailedMutationPopover
+          failed={failedPopover}
+          onClose={() => setFailedPopover(null)}
         />
       )}
     </div>

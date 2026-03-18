@@ -32,7 +32,7 @@ class TestDesignSdmPrimers:
 
     @pytest.fixture(scope="class")
     def sdm_results(self, fasta_path, mutations_csv) -> list[SdmPrimerResult]:
-        results, _ = design_sdm_primers(
+        results, _, _f = design_sdm_primers(
             fasta_path=fasta_path,
             target_start=TARGET_START,
             mutations_csv=mutations_csv,
@@ -97,7 +97,7 @@ class TestDesignSdmPrimers:
 
 class TestExportTsv:
     def test_export(self, fasta_path, mutations_csv, tmp_path):
-        results, _ = design_sdm_primers(
+        results, _, _f = design_sdm_primers(
             fasta_path=fasta_path,
             target_start=TARGET_START,
             mutations_csv=mutations_csv,

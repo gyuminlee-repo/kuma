@@ -81,6 +81,7 @@ interface AppState {
   restoreWorkspace: (ws: import("../types/models").WorkspaceV1) => Promise<void>;
   resetAll: () => void;
   evaluateCustomPrimer: (mutation: string, fwdSeq: string, revSeq: string, overlapLen?: number) => Promise<SdmPrimerResult | null>;
+  addDesignResult: (mutation: string, result: SdmPrimerResult) => void;
 }
 
 const INITIAL_STATE = {
@@ -483,6 +484,44 @@ export const useAppStore = create<AppState>((set, get) => {
         set({ statusMessage: `Evaluate failed: ${formatError(err)}` });
         return null;
       }
+    },
+
+    addDesignResult: (mutation: string, result: SdmPrimerResult) => {
+      const { designResults, failedMutations, successCount, plateMappings, dedupInfo } = get();
+      const newDesignResults = [...designResults, result];
+      const nextFwdIdx = plateMappings.filter((m) => m.primer_type === "forward").length;
+      const wellName = (idx: number) => {
+        const rows = "ABCDEFGH";
+        return `${rows[idx % 8]}${Math.floor(idx / 8) + 1}`;
+      };
+      const newFwd: import("../types/models").PlateMapping = {
+        well: wellName(nextFwdIdx),
+        primer_name: `${mutation}_F`,
+        sequence: result.forward_seq,
+        primer_type: "forward",
+        mutation,
+      };
+      // Add rev only if not already present (dedup)
+      const revExists = plateMappings.some((m) => m.primer_type === "reverse" && m.sequence === result.reverse_seq);
+      const newRevMappings: import("../types/models").PlateMapping[] = revExists ? [] : [{
+        well: wellName(plateMappings.filter((m) => m.primer_type === "reverse").length),
+        primer_name: `${mutation}_R`,
+        sequence: result.reverse_seq,
+        primer_type: "reverse",
+        mutation,
+      }];
+      // Update dedup info
+      const newDedupInfo = { ...dedupInfo };
+      const revSeq = result.reverse_seq;
+      newDedupInfo[revSeq] = [...(newDedupInfo[revSeq] ?? []), mutation];
+
+      set({
+        designResults: newDesignResults,
+        failedMutations: failedMutations.filter((f) => f.mutation !== mutation),
+        successCount: successCount + 1,
+        plateMappings: [...plateMappings, newFwd, ...newRevMappings],
+        dedupInfo: newDedupInfo,
+      });
     },
   };
 });

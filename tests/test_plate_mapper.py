@@ -18,7 +18,7 @@ from tests.conftest import FIXTURES_DIR, TARGET_START
 
 @pytest.fixture(scope="module")
 def sdm_results(fasta_path, mutations_csv) -> list[SdmPrimerResult]:
-    results, _ = design_sdm_primers(
+    results, _, _f = design_sdm_primers(
         fasta_path=fasta_path,
         target_start=TARGET_START,
         mutations_csv=mutations_csv,

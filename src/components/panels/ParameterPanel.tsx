@@ -1,5 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ChangeEvent, type KeyboardEvent } from "react";
 import { useAppStore } from "../../store/appStore";
+
+/** Local string state synced with a numeric store value. Commits on blur/Enter. */
+function useLocalNum(storeVal: number, fallback: number, commit: (v: number) => void) {
+  const [str, setStr] = useState(String(storeVal));
+  useEffect(() => setStr(String(storeVal)), [storeVal]);
+  const onChange = (e: ChangeEvent<HTMLInputElement>) => setStr(e.target.value);
+  const onBlur = () => { const n = parseFloat(str); commit(isNaN(n) ? fallback : n); };
+  const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); };
+  return { value: str, onChange, onBlur, onKeyDown };
+}
 
 export function ParameterPanel() {
   const selectedGene = useAppStore((s) => s.selectedGene);
@@ -18,27 +28,15 @@ export function ParameterPanel() {
 
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  // Local string states for Tm inputs to allow typing without reset
-  const [tmFwdStr, setTmFwdStr] = useState(String(tmFwd));
-  const [tmRevStr, setTmRevStr] = useState(String(tmRev));
-  const [tmOvStr, setTmOvStr] = useState(String(tmOv));
-  const [gcMinStr, setGcMinStr] = useState(String(gcMin));
-  const [gcMaxStr, setGcMaxStr] = useState(String(gcMax));
-
-  // Sync local strings when store changes externally (e.g. workspace load)
-  useEffect(() => setTmFwdStr(String(tmFwd)), [tmFwd]);
-  useEffect(() => setTmRevStr(String(tmRev)), [tmRev]);
-  useEffect(() => setTmOvStr(String(tmOv)), [tmOv]);
-  useEffect(() => setGcMinStr(String(gcMin)), [gcMin]);
-  useEffect(() => setGcMaxStr(String(gcMax)), [gcMax]);
-
   const setTmTargets = useAppStore((s) => s.setTmTargets);
   const setGcRange = useAppStore((s) => s.setGcRange);
 
-  function parseNum(str: string, fallback: number): number {
-    const n = parseFloat(str);
-    return isNaN(n) ? fallback : n;
-  }
+  const tmFwdInput = useLocalNum(tmFwd, 62, (v) => setTmTargets(v, tmRev, tmOv));
+  const tmRevInput = useLocalNum(tmRev, 58, (v) => setTmTargets(tmFwd, v, tmOv));
+  const tmOvInput = useLocalNum(tmOv, 42, (v) => setTmTargets(tmFwd, tmRev, v));
+  const gcMinInput = useLocalNum(gcMin, 40, (v) => setGcRange(v, gcMax));
+  const gcMaxInput = useLocalNum(gcMax, 60, (v) => setGcRange(gcMin, v));
+  const maxPrimersInput = useLocalNum(maxPrimers, 95, setMaxPrimers);
 
   const gcInvalid = gcMin >= gcMax;
 
@@ -93,8 +91,7 @@ export function ParameterPanel() {
           min={1}
           max={960}
           className="w-20 h-7 text-xs border border-gray-300 rounded px-2 text-center focus:outline-none focus:ring-1 focus:ring-green-500"
-          value={maxPrimers}
-          onChange={(e) => setMaxPrimers(parseInt(e.target.value, 10) || 95)}
+          {...maxPrimersInput}
         />
         <span className="text-gray-400 text-[10px]">
           {Math.ceil(maxPrimers / 96)} plate(s)
@@ -113,43 +110,28 @@ export function ParameterPanel() {
         <div className="space-y-1.5 pl-2 border-l-2 border-gray-200">
           <div className="flex items-center gap-2 text-xs">
             <span className="w-20 text-gray-500">Tm Fwd:</span>
-            <input type="number" className={numInput} value={tmFwdStr}
-              onChange={(e) => setTmFwdStr(e.target.value)}
-              onBlur={() => setTmTargets(parseNum(tmFwdStr, 62), tmRev, tmOv)}
-              onKeyDown={(e) => { if (e.key === "Enter") { (e.target as HTMLInputElement).blur(); setTmTargets(parseNum(tmFwdStr, 62), tmRev, tmOv); } }} />
+            <input type="number" className={numInput} {...tmFwdInput} />
             <span className="text-gray-400">°C</span>
           </div>
           <div className="flex items-center gap-2 text-xs">
             <span className="w-20 text-gray-500">Tm Rev:</span>
-            <input type="number" className={numInput} value={tmRevStr}
-              onChange={(e) => setTmRevStr(e.target.value)}
-              onBlur={() => setTmTargets(tmFwd, parseNum(tmRevStr, 58), tmOv)}
-              onKeyDown={(e) => { if (e.key === "Enter") { (e.target as HTMLInputElement).blur(); setTmTargets(tmFwd, parseNum(tmRevStr, 58), tmOv); } }} />
+            <input type="number" className={numInput} {...tmRevInput} />
             <span className="text-gray-400">°C</span>
           </div>
           <div className="flex items-center gap-2 text-xs">
             <span className="w-20 text-gray-500">Tm Overlap:</span>
-            <input type="number" className={numInput} value={tmOvStr}
-              onChange={(e) => setTmOvStr(e.target.value)}
-              onBlur={() => setTmTargets(tmFwd, tmRev, parseNum(tmOvStr, 42))}
-              onKeyDown={(e) => { if (e.key === "Enter") { (e.target as HTMLInputElement).blur(); setTmTargets(tmFwd, tmRev, parseNum(tmOvStr, 42)); } }} />
+            <input type="number" className={numInput} {...tmOvInput} />
             <span className="text-gray-400">°C</span>
           </div>
           <div className="flex items-center gap-2 text-xs">
             <span className="w-20 text-gray-500">GC%:</span>
             <input type="number"
               className={`${gcInputBase} ${gcInvalid ? "border-red-400 focus:ring-red-400" : "border-gray-300 focus:ring-green-500"}`}
-              value={gcMinStr}
-              onChange={(e) => setGcMinStr(e.target.value)}
-              onBlur={() => setGcRange(parseNum(gcMinStr, 40), gcMax)}
-              onKeyDown={(e) => { if (e.key === "Enter") { (e.target as HTMLInputElement).blur(); setGcRange(parseNum(gcMinStr, 40), gcMax); } }} />
+              {...gcMinInput} />
             <span className="text-gray-400">~</span>
             <input type="number"
               className={`${gcInputBase} ${gcInvalid ? "border-red-400 focus:ring-red-400" : "border-gray-300 focus:ring-green-500"}`}
-              value={gcMaxStr}
-              onChange={(e) => setGcMaxStr(e.target.value)}
-              onBlur={() => setGcRange(gcMin, parseNum(gcMaxStr, 60))}
-              onKeyDown={(e) => { if (e.key === "Enter") { (e.target as HTMLInputElement).blur(); setGcRange(gcMin, parseNum(gcMaxStr, 60)); } }} />
+              {...gcMaxInput} />
             <span className="text-gray-400">%</span>
           </div>
           {gcInvalid && (

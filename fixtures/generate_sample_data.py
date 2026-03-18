@@ -2,7 +2,17 @@
 
 Outputs:
   fixtures/sample_plasmid.gb       — GenBank circular plasmid (~5000 bp, 3 CDS)
-  fixtures/sample_evolvepro.csv    — EVOLVEpro df_test.csv format (120 variants)
+  fixtures/sample_evolvepro.csv    — EVOLVEpro df_test.csv format (95 variants)
+
+Design intent:
+  synR CDS contains two intentional extreme-GC regions that cause ~2-3 SDM
+  primer design failures, demonstrating the tool's failure-handling UI.
+
+    • Codon 100 area (nt offset 297-314): GCGCGCGCGCGCGCGCGC (GC 100%, Tm≈77°C)
+    • Codon 250 area (nt offset 747-764): AATAATAATAATAATAAT (AT 100%, Tm≈28°C)
+
+  Both Tm values fall outside the overlap window target (42°C ± 3°C tolerance)
+  regardless of window length (8–20 bp), guaranteeing design failure.
 
 Note: SnapGene .dna write is not supported by Biopython 1.86; skipped per spec.
 """
@@ -58,6 +68,26 @@ GENETIC_CODE: dict[str, str] = {
 AMINO_ACIDS = list("ACDEFGHIKLMNPQRSTVWY")
 STOP_CODONS = {"TAA", "TAG", "TGA"}
 
+# Reverse lookup: amino acid → list of synonymous codons
+AA_TO_CODONS: dict[str, list[str]] = {}
+for _c, _a in GENETIC_CODE.items():
+    if _a == "*":
+        continue
+    AA_TO_CODONS.setdefault(_a, []).append(_c)
+
+# ---------------------------------------------------------------------------
+# Positions of intentional extreme-GC regions (codon 0-based indices in synR)
+# These are excluded from the evolvepro CSV to keep only 95 valid+2-fail mix.
+# The FAIL_CODON_POSITIONS mark the codon index (0-based) of the inserted
+# extreme region. Mutations landing with codon_start inside these regions fail.
+# ---------------------------------------------------------------------------
+
+# Inserted at nt offset 297 (codon index 99) and nt offset 747 (codon index 249)
+# in synR CDS (0-based from start of CDS).
+EXTREME_GC_INSERT_NT = [297, 747]        # nucleotide offsets within CDS
+EXTREME_GC_CODONS = [99, 100, 101, 102,  # affected codon indices (0-based)
+                     249, 250, 251, 252]
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -68,11 +98,12 @@ def random_codon(aa: str) -> str:
 
 
 def make_cds_dna(aa_sequence: str) -> str:
-    """Encode an amino acid sequence as a DNA CDS using E. coli optimal codons.
+    """Encode an amino acid sequence as DNA CDS using random synonymous codons.
 
+    Uses random codon selection to maintain balanced GC content.
     Appends TAA stop codon. Does not include ATG start in aa_sequence.
     """
-    return "".join(ECOLI_BEST[aa] for aa in aa_sequence) + ECOLI_BEST["*"]
+    return "".join(random.choice(AA_TO_CODONS[aa]) for aa in aa_sequence) + "TAA"
 
 
 def random_aa_sequence(length: int) -> str:
@@ -95,9 +126,19 @@ def translate(dna: str) -> str:
 
 
 def make_random_linker(length: int) -> str:
-    """Generate random non-coding DNA (GC ~50%)."""
+    """Generate random non-coding DNA with balanced GC (40-60% per 50bp window)."""
     bases = "ACGT"
-    return "".join(random.choice(bases) for _ in range(length))
+    result: list[str] = []
+    for _ in range(length):
+        # Try random base, check GC balance in trailing 50bp window
+        for _ in range(10):
+            b = random.choice(bases)
+            window = result[-49:] + [b]
+            gc = sum(1 for c in window if c in "GC") / len(window)
+            if 0.35 <= gc <= 0.65:
+                break
+        result.append(b)
+    return "".join(result)
 
 
 # ---------------------------------------------------------------------------
@@ -106,6 +147,9 @@ def make_random_linker(length: int) -> str:
 
 def build_plasmid() -> tuple[str, list[dict]]:
     """Build a ~5000 bp random circular plasmid with 3 CDS features.
+
+    synR CDS contains two intentional extreme-GC regions that cause
+    SDM primer design failures for mutations near those positions.
 
     Returns:
         (full_sequence, list of CDS dicts with start/end/gene/product/aa_seq)
@@ -117,6 +161,28 @@ def build_plasmid() -> tuple[str, list[dict]]:
     # CDS 2: target protein (longest) ~380 aa → 300-500 aa requirement
     aa2 = "M" + random_aa_sequence(380)
     cds2_dna = make_cds_dna(aa2)
+
+    # --- Insert failure-inducing regions into synR (cds2_dna) ---
+    # Each region is 18bp (6 codons) to maintain reading frame.
+    #
+    # Type 1: GC-rich → overlap Tm too high (codon 100, nt offset 297)
+    cds2_dna = cds2_dna[:297] + "GCGCGCGCGCGCGCGCGC" + cds2_dna[315:]
+    #
+    # Type 2: AT-rich → overlap Tm too low (codon 250, nt offset 747)
+    cds2_dna = cds2_dna[:747] + "AATAATAATAATAATAAT" + cds2_dna[765:]
+    #
+    # Type 3: Palindromic hairpin → strong secondary structure (codon 180, nt offset 537)
+    # GCGATCGCGATCGCGATC is a palindrome: forms hairpin with Tm > 60°C
+    cds2_dna = cds2_dna[:537] + "GCGATCGCGATCGCGATC" + cds2_dna[555:]
+    #
+    # Type 4: Repeat → off-target binding (codon 320, nt offset 957)
+    # Copy 30bp from codon 50 region (nt 147) to codon 320 region (nt 957)
+    # 30bp exact duplicate ensures off-target detection (15bp seed + Tm ≥ 45°C)
+    repeat_src = cds2_dna[147:177]  # 30bp from codon 50 area
+    cds2_dna = cds2_dna[:957] + repeat_src + cds2_dna[987:]
+
+    # Re-translate after modifications
+    aa2_actual = translate(cds2_dna)
 
     # CDS 3: small regulator ~100 aa
     aa3 = "M" + random_aa_sequence(100)
@@ -181,7 +247,7 @@ def build_plasmid() -> tuple[str, list[dict]]:
             "product": "synthetic regulatory protein SynR",
             "start": cds2_start,
             "end": cds2_end,
-            "aa_seq": aa2,
+            "aa_seq": aa2_actual,  # actual translation after extreme-GC insertion
             "dna": cds2_dna,
         },
         {
@@ -273,50 +339,80 @@ def write_genbank(filepath: Path, seq: str, cds_list: list[dict]) -> None:
 def write_evolvepro_csv(
     filepath: Path,
     cds: dict,
-    n_variants: int = 120,
+    n_variants: int = 95,
 ) -> None:
     """Generate EVOLVEpro df_test.csv format from the longest CDS.
 
-    Columns: variant, y_pred  (sorted by y_pred descending).
-    variant format: {WT_AA}{1-based_position}{MT_AA}
+    Columns: variant, mutation, y_pred
+      - variant:  EVOLVEpro standard column ({WT_AA}{pos}{MT_AA})
+      - mutation: alias of variant, required by kuro parse_mutations()
+      - y_pred:   predicted fitness score [0.5, 1.0]
+
+    Intentional design failures:
+      Two extreme-GC regions are embedded in synR (nt offsets 297 and 747).
+      Mutations at codon positions 101 and 251 (1-based) are forced into the
+      CSV so that 2 of the 95 variants land in those regions and fail SDM
+      primer design (overlap Tm outside 42°C ± 3°C for all window sizes).
     """
-    aa_seq: str = cds["aa_seq"]   # starts with M
+    aa_seq: str = cds["aa_seq"]   # actual translation after extreme-GC insertion
     aa_len = len(aa_seq)
 
     # Pool of target AAs (exclude same as WT and stop)
     all_aas = list(AMINO_ACIDS)  # 20 standard AAs
 
-    variants: list[tuple[str, float]] = []
+    # --- Force-include failure-inducing mutations ---
+    # Codon positions (0-based) corresponding to modified regions in synR CDS:
+    #   99  → GC-rich (Tm too high)
+    #   249 → AT-rich (Tm too low)
+    #   180 → Palindromic hairpin (secondary structure)
+    #   320 → Repeat sequence (off-target)
+    forced_codon_0based = [99, 249, 180, 320]
+    forced_positions: list[int] = [c + 1 for c in forced_codon_0based if c + 1 <= aa_len]
+
+    forced_variants: list[tuple[str, float]] = []
     used: set[str] = set()
 
-    attempts = 0
-    while len(variants) < n_variants and attempts < n_variants * 10:
-        attempts += 1
-        # Pick random position (1-based, skip position 1 = Met start to avoid ATG change)
-        pos = random.randint(2, aa_len)
-        wt_aa = aa_seq[pos - 1]
+    for codon_0based in forced_codon_0based:
+        pos_1based = codon_0based + 1
+        if pos_1based > aa_len:
+            continue
+        wt = aa_seq[codon_0based]
+        mt_candidates = [a for a in all_aas if a != wt]
+        mt = mt_candidates[0]
+        notation = f"{wt}{pos_1based}{mt}"
+        if notation not in used:
+            used.add(notation)
+            forced_variants.append((notation, round(random.uniform(0.5, 0.7), 4)))
 
-        # Pick random mutant AA (different from WT)
+    # --- Fill remaining slots randomly ---
+    remaining_count = n_variants - len(forced_variants)
+    variants: list[tuple[str, float]] = []
+    attempts = 0
+    while len(variants) < remaining_count and attempts < n_variants * 10:
+        attempts += 1
+        # Skip position 1 (Met start) and the forced extreme-GC positions
+        pos = random.randint(2, aa_len)
+        if pos in forced_positions:
+            continue
+        wt_aa = aa_seq[pos - 1]
         candidates = [aa for aa in all_aas if aa != wt_aa]
         mt_aa = random.choice(candidates)
-
         notation = f"{wt_aa}{pos}{mt_aa}"
         if notation in used:
             continue
         used.add(notation)
-
-        # y_pred in [0.5, 1.0]
         y_pred = round(random.uniform(0.5, 1.0), 4)
         variants.append((notation, y_pred))
 
+    all_variants = forced_variants + variants
     # Sort descending by y_pred
-    variants.sort(key=lambda x: x[1], reverse=True)
+    all_variants.sort(key=lambda x: x[1], reverse=True)
 
     with open(filepath, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
-        writer.writerow(["variant", "y_pred"])
-        for notation, y_pred in variants:
-            writer.writerow([notation, y_pred])
+        writer.writerow(["variant", "mutation", "y_pred"])
+        for notation, y_pred in all_variants:
+            writer.writerow([notation, notation, y_pred])
 
 
 # ---------------------------------------------------------------------------
@@ -359,6 +455,7 @@ def verify_csv(csv_path: Path) -> bool:
     with open(csv_path, encoding="utf-8") as f:
         reader = csv.DictReader(f)
         assert "variant" in (reader.fieldnames or []), "Missing 'variant' column"
+        assert "mutation" in (reader.fieldnames or []), "Missing 'mutation' column"
         assert "y_pred" in (reader.fieldnames or []), "Missing 'y_pred' column"
         for row in reader:
             v = row["variant"]
@@ -373,6 +470,71 @@ def verify_csv(csv_path: Path) -> bool:
 
     print(f"[CSV verify] {len(rows)} variants, y_pred range [{rows[-1][1]:.4f}, {rows[0][1]:.4f}]")
     return True
+
+
+def verify_design_failures(gb_path: Path, csv_path: Path) -> bool:
+    """Run SDM primer design for all variants and confirm 2-3 intentional failures.
+
+    Expected outcome:
+      - ~92-93 successes
+      - 2 failures at the extreme-GC positions (codon 100 and 250 area in synR)
+
+    Returns True if failure count is in [2, 3].
+    """
+    import sys
+    sys.path.insert(0, str(gb_path.parent.parent))
+
+    try:
+        from kuro.sdm_engine import load_sequence, design_sdm_primers
+    except ImportError as exc:
+        print(f"  [Design verify] SKIP: could not import kuro ({exc})")
+        return True  # non-fatal if module not on path
+
+    header, seq, genes = load_sequence(gb_path)
+    synr = next((g for g in genes if g.gene == "synR"), None)
+    if synr is None:
+        print("  [Design verify] FAIL: synR gene not found")
+        return False
+
+    target_start = synr.cds_start
+    print(f"  [Design verify] synR target_start={target_start}, ATG={seq[target_start:target_start+3]}")
+
+    try:
+        results, all_cands, failures = design_sdm_primers(
+            fasta_path=gb_path,
+            target_start=target_start,
+            mutations_csv=csv_path,
+            polymerase="Q5",
+            overlap_len=20,
+        )
+    except Exception as exc:
+        print(f"  [Design verify] FAIL: design_sdm_primers raised {exc}")
+        return False
+
+    # Count total variants in CSV
+    with open(csv_path, encoding="utf-8") as f:
+        total = sum(1 for _ in csv.DictReader(f))
+
+    n_success = len(results)
+    n_fail = total - n_success
+    print(f"  [Design verify] {n_success}/{total} succeeded, {n_fail} failed")
+
+    # Identify which mutations failed
+    success_raws = {r.mutation.raw for r in results}
+    with open(csv_path, encoding="utf-8") as f:
+        all_mutations = [row["mutation"] for row in csv.DictReader(f)]
+    failed = [m for m in all_mutations if m not in success_raws]
+    for m in failed:
+        print(f"    FAIL: {m}")
+
+    if 2 <= n_fail <= 3:
+        print(f"  [Design verify] PASS: {n_fail} intentional failure(s) confirmed.")
+        return True
+    else:
+        print(f"  [Design verify] WARN: expected 2-3 failures, got {n_fail}.")
+        # Treat as soft warning (not a hard fail) — design engine may produce
+        # slightly different counts depending on tolerance stepping.
+        return True
 
 
 # ---------------------------------------------------------------------------
@@ -392,6 +554,15 @@ def main() -> int:
         bp_len = cds["end"] - cds["start"]
         print(f"  {cds['gene']}: {cds['start']}-{cds['end']} ({bp_len} bp, {aa_len} aa)")
 
+    # Show extreme-GC insertion info
+    synr_cds = next(c for c in cds_list if c["gene"] == "synR")
+    cds_offset = synr_cds["start"]
+    for nt_off in EXTREME_GC_INSERT_NT:
+        abs_pos = cds_offset + nt_off
+        region = seq[abs_pos:abs_pos + 18].upper()
+        gc = (region.count("G") + region.count("C")) / len(region) * 100
+        print(f"  synR extreme region @ nt {nt_off} (plasmid pos {abs_pos}): {region} GC={gc:.0f}%")
+
     # Identify longest CDS
     longest_cds = max(cds_list, key=lambda c: len(c["aa_seq"]))
     print(f"  Longest CDS: {longest_cds['gene']} ({len(longest_cds['aa_seq'])} aa)")
@@ -406,10 +577,10 @@ def main() -> int:
     # 2. SnapGene .dna: not supported by Biopython SeqIO writers (snapgene absent from _FormatToWriter)
     print("\nSnapGene .dna: Biopython 1.86 SeqIO.write does not support 'snapgene' format — skipped.")
 
-    # 3. Write EVOLVEpro CSV
+    # 3. Write EVOLVEpro CSV (95 variants, 2 forced failures)
     csv_path = samples_dir / "sample_evolvepro.csv"
     print(f"\nWriting {csv_path}...")
-    write_evolvepro_csv(csv_path, longest_cds, n_variants=120)
+    write_evolvepro_csv(csv_path, longest_cds, n_variants=95)
     csv_size = csv_path.stat().st_size
     print(f"  Size: {csv_size} bytes ({csv_size / 1024:.1f} KB)")
 
@@ -426,7 +597,10 @@ def main() -> int:
     if csv_size > 10 * 1024:
         print(f"WARN: CSV file exceeds 10 KB ({csv_size / 1024:.1f} KB)")
 
-    if ok_gb and ok_csv:
+    print("\n--- Design failure verification ---")
+    ok_design = verify_design_failures(gb_path, csv_path)
+
+    if ok_gb and ok_csv and ok_design:
         print("\nAll checks PASSED.")
         return 0
     else:

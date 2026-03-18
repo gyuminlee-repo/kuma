@@ -834,9 +834,37 @@ def design_sdm_primers(
                 profile.opt_tm_rev or 58.0,
                 profile.opt_tm_overlap or 42.0)
 
-    # Parse mutations
-    mutations = parse_mutations(mutations_csv, sequence, target_start)
-    logger.info("Parsed %d mutations", len(mutations))
+    # Parse mutations (tolerant: individual failures are collected, not raised)
+    failed_reasons: dict[str, str] = {}
+    try:
+        mutations = parse_mutations(mutations_csv, sequence, target_start)
+    except ValueError:
+        # Fall back to line-by-line parsing when batch parse fails
+        mutations = []
+        import csv as _csv
+        with open(mutations_csv) as _f:
+            _reader = _csv.DictReader(_f)
+            col = "mutation" if _reader.fieldnames and "mutation" in _reader.fieldnames else "variant"
+            for _row in _reader:
+                _raw = _row.get(col, "").strip()
+                if not _raw:
+                    continue
+                try:
+                    from .mutation import parse_mutation_notation as _pmn, Mutation as _Mut
+                    from .codon_table import CODON_TO_AA as _C2A, best_codon as _bc
+                    _wt, _pos, _mt = _pmn(_raw)
+                    _cs = target_start + (_pos - 1) * 3
+                    _wc = sequence[_cs:_cs+3]
+                    _actual = _C2A.get(_wc)
+                    if _actual != _wt:
+                        failed_reasons[_raw] = f"expected WT amino acid {_wt} at position {_pos}, but codon {_wc} encodes {_actual}"
+                        continue
+                    _mc = _bc(_mt)
+                    mutations.append(_Mut(raw=_raw, wt_aa=_wt, position=_pos, mt_aa=_mt,
+                                          codon_start=_cs, wt_codon=_wc, mt_codon=_mc))
+                except (ValueError, IndexError) as e:
+                    failed_reasons[_raw] = str(e)
+    logger.info("Parsed %d mutations (%d parse failures)", len(mutations), len(failed_reasons))
 
     # Design primers for each mutation
     results: list[SdmPrimerResult] = []
@@ -845,6 +873,7 @@ def design_sdm_primers(
         logger.info("Designing primers for %s ...", mut.raw)
         candidates = _design_single_sdm(sequence, mut, profile, overlap_len, codon_strategy=codon_strategy, gc_min=gc_min, gc_max=gc_max)
         if not candidates:
+            failed_reasons[mut.raw] = "No valid primer pair found within Tm tolerance ±3.0°C"
             logger.warning("FAILED: %s - no valid primer pair found", mut.raw)
             continue
         best = candidates[0]
@@ -860,9 +889,9 @@ def design_sdm_primers(
 
     logger.info(
         "Design complete: %d/%d succeeded",
-        len(results), len(mutations),
+        len(results), len(mutations) + len(failed_reasons),
     )
-    return results, all_candidates
+    return results, all_candidates, failed_reasons
 
 
 def export_results_tsv(

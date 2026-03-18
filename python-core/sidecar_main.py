@@ -321,7 +321,7 @@ def handle_design_sdm_primers(params: dict) -> dict:
 
     try:
         _progress(10, "Designing SDM primers...")
-        results, all_cands = design_sdm_primers(
+        results, all_cands, engine_failures = design_sdm_primers(
             fasta_path=resolved_fasta,
             target_start=target_start,
             mutations_csv=mutations_csv_path,
@@ -349,28 +349,25 @@ def handle_design_sdm_primers(params: dict) -> dict:
 
     _progress(100, "Design complete")
 
-    # Reuse parsed lines for counting and failure detection
+    # Build failure list from engine + input line tracking
     is_text_input = not os.path.isfile(mutations_input)
     input_lines = lines if is_text_input else []
-    total_mutations = len(input_lines) if is_text_input else len(results)
-
-    success_names = {r.mutation.raw for r in results}
-    failed: list[dict] = []
+    total_mutations = len(results) + len(engine_failures)
     if is_text_input:
-        for idx, m in enumerate(input_lines):
-            if m not in success_names:
-                failed.append({
-                    "mutation": m,
-                    "rank": idx + 1,
-                    "reason": "No valid primer pair found within Tm tolerance +/-3.0",
-                })
+        total_mutations = max(total_mutations, len(input_lines))
+
+    failed: list[dict] = []
+    for idx, (mut_name, reason) in enumerate(engine_failures.items()):
+        # Find rank from input lines if available
+        rank = next((i + 1 for i, l in enumerate(input_lines) if l == mut_name), idx + len(results) + 1)
+        failed.append({"mutation": mut_name, "rank": rank, "reason": reason})
 
     return {
         "results": [
             _serialize_result_with_counts(r) for r in results
         ],
         "success_count": len(results),
-        "total_count": max(total_mutations, len(results)),
+        "total_count": total_mutations,
         "failed_mutations": failed,
     }
 
