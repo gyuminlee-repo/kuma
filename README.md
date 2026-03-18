@@ -4,6 +4,8 @@
 
 Desktop app for batch SDM primer design based on Gibson Assembly.
 
+![KURO — Design complete](docs/screenshots/04-design-complete.png)
+
 Given a mutation list (plain text / EVOLVEpro CSV) and a template sequence (GenBank / SnapGene), KURO automatically designs SDM primer pairs using the overlap extension method.
 
 ## Features
@@ -140,7 +142,8 @@ KURO/
 │   ├── polymerase.py             Polymerase profiles (built-in)
 │   └── resources/                polymerase_profiles.json
 ├── tests/                        pytest (38 tests)
-├── fixtures/                     Test data
+├── fixtures/                     Test data (pytest)
+├── samples/                      Demo files (sample_plasmid.gb, sample_evolvepro.csv)
 └── .github/workflows/build.yml  Cross-platform CI
 ```
 

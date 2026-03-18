@@ -381,8 +381,8 @@ def verify_csv(csv_path: Path) -> bool:
 
 def main() -> int:
     project_root = Path(__file__).resolve().parent.parent
-    fixtures_dir = project_root / "fixtures"
-    fixtures_dir.mkdir(exist_ok=True)
+    samples_dir = project_root / "samples"
+    samples_dir.mkdir(exist_ok=True)
 
     print("Building plasmid sequence...")
     seq, cds_list = build_plasmid()
@@ -397,7 +397,7 @@ def main() -> int:
     print(f"  Longest CDS: {longest_cds['gene']} ({len(longest_cds['aa_seq'])} aa)")
 
     # 1. Write GenBank
-    gb_path = fixtures_dir / "sample_plasmid.gb"
+    gb_path = samples_dir / "sample_plasmid.gb"
     print(f"\nWriting {gb_path}...")
     write_genbank(gb_path, seq, cds_list)
     gb_size = gb_path.stat().st_size
@@ -407,7 +407,7 @@ def main() -> int:
     print("\nSnapGene .dna: Biopython 1.86 SeqIO.write does not support 'snapgene' format — skipped.")
 
     # 3. Write EVOLVEpro CSV
-    csv_path = fixtures_dir / "sample_evolvepro.csv"
+    csv_path = samples_dir / "sample_evolvepro.csv"
     print(f"\nWriting {csv_path}...")
     write_evolvepro_csv(csv_path, longest_cds, n_variants=120)
     csv_size = csv_path.stat().st_size

@@ -410,9 +410,9 @@ The `fixtures/` directory in the project contains dummy files for testing.
 ```bash
 # Run full pipeline via CLI
 python -m kuro design \
-  --fasta fixtures/sample_plasmid.gb \
+  --fasta samples/sample_plasmid.gb \
   --target-start 1957 \
-  --mutations fixtures/sample_evolvepro.csv \
+  --mutations samples/sample_evolvepro.csv \
   --polymerase Benchling \
   --overlap 20 \
   --output results/

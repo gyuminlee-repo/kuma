@@ -2,7 +2,10 @@
 
 
 **한국어** | [English](README.md)
+
 Gibson Assembly 기반 SDM 프라이머 배치 설계 데스크톱 앱.
+
+![KURO — 설계 완료 화면](docs/screenshots/04-design-complete.png)
 
 변이 목록(텍스트/EVOLVEpro CSV)과 템플릿 시퀀스(GenBank/SnapGene)를 입력하면, overlap extension 방식의 SDM 프라이머 쌍을 자동 설계한다.
 
@@ -138,7 +141,8 @@ KURO/
 │   ├── polymerase.py             폴리머라제 프로필 (자체 내장)
 │   └── resources/                polymerase_profiles.json
 ├── tests/                        pytest (38 tests)
-├── fixtures/                     테스트 데이터
+├── fixtures/                     테스트 데이터 (pytest)
+├── samples/                      데모 파일 (sample_plasmid.gb, sample_evolvepro.csv)
 └── .github/workflows/build.yml  크로스플랫폼 CI
 ```
 

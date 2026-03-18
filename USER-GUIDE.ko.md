@@ -410,9 +410,9 @@ npm run dev
 ```bash
 # CLI로 전체 파이프라인 실행
 python -m kuro design \
-  --fasta fixtures/sample_plasmid.gb \
+  --fasta samples/sample_plasmid.gb \
   --target-start 1957 \
-  --mutations fixtures/sample_evolvepro.csv \
+  --mutations samples/sample_evolvepro.csv \
   --polymerase Benchling \
   --overlap 20 \
   --output results/
