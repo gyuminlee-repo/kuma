@@ -94,23 +94,42 @@ function buildPairsFromStore(
   }
 
   const fwdPlates = chunkByPlate(orderedFwd);
-  const revPlates = chunkByPlate(orderedRev);
-  const plateCount = Math.max(fwdPlates.length, revPlates.length);
+
+  // Build mutation → rev sequence lookup from dedupInfo
+  const mutToRevSeq = new Map<string, string>();
+  for (const [seq, muts] of Object.entries(dedupInfo)) {
+    for (const mut of muts) mutToRevSeq.set(mut, seq);
+  }
+  const revBySeq = new Map<string, PlateMapping>();
+  for (const r of orderedRev) revBySeq.set(r.sequence, r);
 
   const pairs: PlatePair[] = [];
-  for (let i = 0; i < plateCount; i++) {
+  for (let i = 0; i < fwdPlates.length; i++) {
     const fwdChunk = fwdPlates[i] ?? [];
-    const revChunk = revPlates[i] ?? [];
+
+    // Collect rev primers paired with this plate's fwd mutations (deduplicated, fwd order)
+    const seenRevSeq = new Set<string>();
+    const revChunk: PlateMapping[] = [];
+    for (const fwd of fwdChunk) {
+      const revSeq = mutToRevSeq.get(fwd.mutation);
+      if (revSeq && !seenRevSeq.has(revSeq)) {
+        seenRevSeq.add(revSeq);
+        const revEntry = revBySeq.get(revSeq);
+        if (revEntry) revChunk.push(revEntry);
+      }
+    }
 
     const fwdGrid = new Map<string, WellEntry>();
-    for (const m of fwdChunk) {
-      fwdGrid.set(m.well, toWellEntry(m, false));
-    }
+    fwdChunk.forEach((m, idx) => {
+      const key = wellName(idx);
+      fwdGrid.set(key, toWellEntry({ ...m, well: key }, false));
+    });
 
     const revGrid = new Map<string, WellEntry>();
-    for (const m of revChunk) {
-      revGrid.set(m.well, toWellEntry(m, sharedSeqs.has(m.sequence)));
-    }
+    revChunk.forEach((m, idx) => {
+      const key = wellName(idx);
+      revGrid.set(key, toWellEntry({ ...m, well: key }, sharedSeqs.has(m.sequence)));
+    });
 
     pairs.push({ fwd: fwdGrid, rev: revGrid, fwdCount: fwdChunk.length, revCount: revChunk.length });
   }
@@ -165,7 +184,7 @@ function PlateGrid({
                 >
                   {entry ? (
                     <span className="font-mono truncate block leading-tight">
-                      {entry.label.replace(/_[FR]$/, "")}
+                      {entry.label}
                     </span>
                   ) : (
                     <span>&middot;</span>

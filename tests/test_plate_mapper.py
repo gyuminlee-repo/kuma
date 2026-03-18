@@ -6,13 +6,13 @@ from pathlib import Path
 
 import pytest
 
-from evolveprimer.plate_mapper import (
+from kuro.plate_mapper import (
     PlateMapping,
     deduplicate_reverse,
     export_plate_excel,
     generate_plate_map,
 )
-from evolveprimer.sdm_engine import SdmPrimerResult, design_sdm_primers
+from kuro.sdm_engine import SdmPrimerResult, design_sdm_primers
 from tests.conftest import FIXTURES_DIR, TARGET_START
 
 

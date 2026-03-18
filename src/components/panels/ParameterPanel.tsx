@@ -81,8 +81,8 @@ export function ParameterPanel() {
           value={codonStrategy}
           onChange={(e) => setCodonStrategy(e.target.value as "closest" | "optimal")}
         >
-          <option value="closest">Min. changes (WT에서 최소 변이)</option>
-          <option value="optimal">Optimal (E. coli 최적 코돈)</option>
+          <option value="closest">Min. changes (fewest nt changes from WT)</option>
+          <option value="optimal">Optimal (E. coli codon usage)</option>
         </select>
       </label>
 

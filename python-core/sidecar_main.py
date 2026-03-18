@@ -14,12 +14,12 @@ import sys
 import tempfile
 from pathlib import Path
 
-# Ensure evolveprimer package is importable
+# Ensure kuro package is importable
 _SCRIPT_DIR = Path(__file__).parent.resolve()
 _PROJECT_ROOT = _SCRIPT_DIR.parent
 sys.path.insert(0, str(_PROJECT_ROOT))
 
-from evolveprimer.sdm_engine import (
+from kuro.sdm_engine import (
     GeneInfo,
     SdmPrimerResult,
     design_sdm_primers,
@@ -28,9 +28,9 @@ from evolveprimer.sdm_engine import (
     load_fasta,
     load_sequence,
 )
-from evolveprimer.mutation import parse_mutation_notation
-from evolveprimer.polymerase import PolymeraseRegistry
-from evolveprimer.plate_mapper import (
+from kuro.mutation import parse_mutation_notation
+from kuro.polymerase import PolymeraseRegistry
+from kuro.plate_mapper import (
     PlateMapping,
     deduplicate_reverse,
     export_plate_excel,

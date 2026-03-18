@@ -47,7 +47,7 @@ def _resource_path(relative_path: str) -> Path:
     Works both in development and when frozen by PyInstaller.
     """
     if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
-        base = Path(sys._MEIPASS) / "evolveprimer"
+        base = Path(sys._MEIPASS) / "kuro"
     else:
         base = Path(__file__).parent
     return base / relative_path
@@ -93,7 +93,7 @@ class PolymeraseRegistry:
         if not BUILTIN_PATH.exists():
             raise FileNotFoundError(
                 f"Polymerase profiles not found: {BUILTIN_PATH}. "
-                "Ensure evolveprimer/resources/polymerase_profiles.json exists."
+                "Ensure kuro/resources/polymerase_profiles.json exists."
             )
         with open(BUILTIN_PATH) as f:
             data = json.load(f)

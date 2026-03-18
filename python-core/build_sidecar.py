@@ -1,4 +1,4 @@
-"""Build EvolveProprimer sidecar binary using PyInstaller.
+"""Build KURO sidecar binary using PyInstaller.
 
 Builds sidecar_main.py into a standalone binary and copies it to
 src-tauri/binaries/ with the correct Tauri target-triple suffix.
@@ -47,9 +47,9 @@ def get_target_triple() -> str:
 
 def build_sidecar(onefile: bool = True) -> Path:
     """Run PyInstaller and return the path to the built binary."""
-    resources_dir = PROJECT_ROOT / "evolveprimer" / "resources"
+    resources_dir = PROJECT_ROOT / "kuro" / "resources"
     separator = ";" if platform.system() == "Windows" else ":"
-    add_data = f"{resources_dir}{separator}evolveprimer/resources"
+    add_data = f"{resources_dir}{separator}kuro/resources"
 
     cmd = [
         sys.executable,

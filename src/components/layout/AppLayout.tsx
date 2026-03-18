@@ -120,12 +120,17 @@ function MenuBar() {
           <DialogHeader>
             <DialogTitle>About KURO</DialogTitle>
             <DialogDescription>
-              KURO v0.6.0
+              KURO v{__APP_VERSION__}
               <br />
               SDM primer batch design tool with Tm-guided overlap extension.
               <br />
               <br />
               Built with Tauri + React + primer3-py
+              <br />
+              <br />
+              <a href="https://github.com/gyuminlee-repo/KURO" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                github.com/gyuminlee-repo/KURO
+              </a>
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

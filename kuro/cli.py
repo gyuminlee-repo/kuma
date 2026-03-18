@@ -114,7 +114,7 @@ def cmd_plate_map(args: argparse.Namespace) -> None:
 def main() -> None:
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
-        prog="evolveprimer",
+        prog="kuro",
         description="KURO — EVOLVEpro SDM primer batch design tool",
     )
     parser.add_argument(

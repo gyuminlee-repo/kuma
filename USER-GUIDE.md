@@ -1,98 +1,100 @@
-# KURO 사용 가이드
+# KURO User Guide
 
-Site-Directed Mutagenesis (SDM) 프라이머 배치 설계 데스크톱 앱.
-변이 목록(텍스트/EVOLVEpro CSV)과 템플릿 시퀀스(GenBank/SnapGene)를 입력하면 overlap extension 방식 SDM 프라이머 쌍을 자동 설계한다.
+[한국어](USER-GUIDE.ko.md) | **English**
+
+Desktop app for batch Site-Directed Mutagenesis (SDM) primer design.
+Given a mutation list (plain text / EVOLVEpro CSV) and a template sequence (GenBank / SnapGene), KURO automatically designs SDM primer pairs using the overlap extension method.
 
 ---
 
-## 1. 빠른 시작
+## 1. Quick Start
 
-### 사전 요구 사항
+### Prerequisites
 
-| 구분 | 최소 버전 |
-|------|-----------|
+| Item | Minimum Version |
+|------|----------------|
 | Node.js | 18+ |
-| Rust | Tauri v2 호환 |
+| Rust | Tauri v2 compatible |
 | Python | 3.11+ |
 
-### 개발 모드 실행
+### Development Mode
 
 ```bash
-# 의존성 설치
+# Install dependencies
 npm install
 pip install primer3-py==2.3.0 biopython==1.84 openpyxl==3.1.5
 
-# 개발 서버 (Vite, port 1421)
+# Start dev server (Vite, port 1421)
 npm run dev
 ```
 
-### 배포용 빌드
+### Production Build
 
 ```bash
-# Python 사이드카 바이너리 생성 (PyInstaller)
+# Generate Python sidecar binary (PyInstaller)
 npm run sidecar:build
 
-# Tauri 앱 + 사이드카 통합 빌드
+# Tauri app + sidecar integrated build
 npm run build:all
 ```
 
-### 첫 프라이머 설계 (GUI)
+### First Primer Design (GUI)
 
-1. 앱을 실행하면 사이드카(Python 백엔드)가 자동으로 연결된다. 상태 표시줄에 "Ready"가 나타날 때까지 대기.
-2. **Browse** 버튼으로 시퀀스 파일(GenBank .gb / SnapGene .dna)을 불러온다.
-3. CDS Start ATG가 자동 선택된다 (가장 긴 ORF 기준). 필요 시 드롭다운에서 변경.
-4. 변이 목록을 텍스트로 입력하거나 EVOLVEpro CSV를 로드한다.
-5. Codon 전략을 선택한다: Min. changes (WT 대비 최소 변이) 또는 Optimal (E. coli 최적 코돈).
-6. Mutations 개수를 설정한다 (기본 95, 96개 초과 시 multi-plate 자동 생성).
-7. (선택) Advanced Options에서 Tm 타겟, GC% 범위 조정.
-8. **Design Primers** 클릭.
-9. 프라이머 테이블이 생성된다. Mutation 컬럼 클릭 시 아미노산 위치 순 정렬 가능.
-10. Fwd/Rev 서열을 클릭하면 후보 비교 팝오버가 열린다. HP 컬럼을 클릭하면 hairpin/homodimer 상세 정보를 확인할 수 있다.
-11. File 메뉴에서 Export TSV / Export Excel / Save Workspace로 내보내거나 세션을 저장한다.
+1. When the app starts, the sidecar (Python backend) connects automatically. Wait until "Ready" appears in the status bar.
+2. Click the **Browse** button to load a sequence file (GenBank .gb / SnapGene .dna).
+3. The CDS start ATG is auto-selected (based on the longest ORF). Change it from the dropdown if needed.
+4. Enter a mutation list as text or load an EVOLVEpro CSV.
+5. Select a codon strategy: Min. changes (fewest changes from WT) or Optimal (E. coli-optimized codon).
+6. Set the Mutations count (default 95; multi-plate is auto-generated when count exceeds 96).
+7. (Optional) Adjust Tm targets and GC% range in Advanced Options.
+8. Click **Design Primers**.
+9. The primer table is generated. Click the Mutation column header to sort by amino acid position.
+10. Click a Fwd/Rev sequence to open the candidate comparison popover. Click the HP column to view hairpin/homodimer details.
+11. From the File menu, use Export TSV / Export Excel / Save Workspace to export or save the session.
 
-![초기 실행 화면](docs/screenshots/01-initial.png)
+![Initial screen](docs/screenshots/01-initial.png)
 
 ---
 
-## 2. FASTA 파일 준비
+## 2. Preparing the FASTA File
 
-### 형식 요구 사항
+### Format Requirements
 
-- Single record FASTA (레코드 1개만 포함)
-- 대문자 서열 권장 (소문자도 내부에서 자동 변환됨)
-- 플라스미드 전체 서열을 포함해야 한다 (CDS만 별도 추출하지 않음)
+- Single-record FASTA (must contain exactly one record)
+- Uppercase sequence recommended (lowercase is auto-converted internally)
+- Must include the full plasmid sequence (do not extract the CDS separately)
 
 ```
 >pSHCE-dmpR_20160502  (4532 bp)
 AAATTCCGGATGAGCATTCATCAGGCGGGCAAGAATGTGAATAAAGGCCGG...
 ```
 
-### CDS 시작 위치 확인 방법
+### Finding the CDS Start Position
 
-KURO는 CDS 시작 코돈(ATG) 위치를 0-based index로 받는다.
+KURO accepts the CDS start codon (ATG) position as a 0-based index.
 
-**SnapGene에서 확인:**
-1. 플라스미드 맵에서 타깃 유전자의 CDS feature를 클릭
-2. Feature 정보에서 시작 위치를 확인
-3. SnapGene는 1-based이므로, 표시된 값에서 1을 뺀다
+**In SnapGene:**
+1. Click the target gene CDS feature on the plasmid map
+2. Note the start position in the feature information
+3. SnapGene uses 1-based indexing, so subtract 1 from the displayed value
 
-**Benchling에서 확인:**
-1. Sequence Map에서 타깃 CDS annotation을 선택
-2. 시작 위치를 확인하고 1을 뺀다 (Benchling도 1-based)
+**In Benchling:**
+1. Select the target CDS annotation in the Sequence Map
+2. Note the start position and subtract 1 (Benchling is also 1-based)
 
-**텍스트 에디터에서 확인:**
-1. FASTA 서열에서 타깃 ATG를 찾는다
-2. 서열 첫 염기를 0으로 세어 ATG 위치를 계산한다
+**In a text editor:**
+1. Find the target ATG in the FASTA sequence
+2. Count from the first base (0-indexed) to calculate the ATG position
 
-KURO는 FASTA 로드 시 서열 내 모든 ATG 위치를 자동 탐색하고, 각 ATG에 대해 downstream ORF 길이를 계산하여 가장 긴 ORF를 가진 ATG를 자동 선택한다.
+When a FASTA is loaded, KURO automatically scans all ATG positions in the sequence, calculates the downstream ORF length for each ATG, and auto-selects the one with the longest ORF.
 
 ---
 
-## 3. 변이 입력
+## 3. Entering Mutations
 
-### 텍스트 입력
+### Text Input
 
-한 줄에 변이 하나씩 입력한다. 형식: `{WT아미노산}{위치}{MT아미노산}`
+Enter one mutation per line. Format: `{WT amino acid}{position}{MT amino acid}`
 
 ```
 Q232A
@@ -102,162 +104,162 @@ E167A
 K200A
 ```
 
-- 아미노산은 1-letter code 대문자
-- 위치는 1-based (CDS 첫 메티오닌 = 1)
-- 빈 줄은 무시됨
+- Amino acids in single-letter uppercase code
+- Position is 1-based (first methionine of CDS = 1)
+- Blank lines are ignored
 
-### EVOLVEpro CSV 입력
+### EVOLVEpro CSV Input
 
-EVOLVEpro 모드를 선택하고 Browse 버튼으로 `df_test.csv`를 로드한다.
+Select EVOLVEpro mode and use the Browse button to load an EVOLVEpro output CSV.
 
-- `variant`와 `y_pred` 열이 포함된 CSV
-- y_pred 내림차순으로 정렬하여 Mutations 설정값만큼 자동 선정 (기본 95개)
-- 로드 후 텍스트 영역에서 직접 편집 가능
+- CSV must contain `variant` and `y_pred` columns
+- Variants are sorted by y_pred descending; the number specified in the Mutations setting is auto-selected (default 95)
+- After loading, the text area can be edited directly
 
-![변이 목록 입력](docs/screenshots/03-mutations-entered.png)
+![Mutation list input](docs/screenshots/03-mutations-entered.png)
 
 ---
 
-## 4. 파라미터 설정
+## 4. Parameter Settings
 
 ### Target Gene
 
-시퀀스 로드 시 CDS 유전자가 자동 감지되어 드롭다운으로 표시된다.
+When a sequence is loaded, CDS genes are auto-detected and shown in a dropdown.
 
-- GenBank 파일: CDS feature에서 유전자명과 위치 자동 추출. `[유전자명] start-end (aa)` 형식
-- FASTA 파일: 가장 긴 ORF를 자동 감지. `(ORF1) start-end (aa)` 형식
-- 가장 긴 유전자가 자동 선택됨
-- 잘못된 유전자 선택 시 WT 아미노산 검증에서 에러 발생
+- GenBank file: gene name and position are auto-extracted from CDS features. Format: `[gene name] start-end (aa)`
+- FASTA file: the longest ORF is auto-detected. Format: `(ORF1) start-end (aa)`
+- The longest gene is auto-selected
+- Selecting the wrong gene will cause an error during WT amino acid validation
 
 ### Codon
 
-변이 코돈 선택 전략을 결정한다.
+Determines the mutation codon selection strategy.
 
-| 전략 | 설명 |
-|------|------|
-| **Min. changes** (기본) | WT 코돈 대비 최소 염기 변이 수를 가진 코돈을 우선 선택. 프라이머 내 변이 위치가 적어 합성 정확도에 유리 |
-| **Optimal** | E. coli K-12 codon usage frequency가 가장 높은 코돈을 우선 선택. 발현 최적화에 유리 |
+| Strategy | Description |
+|----------|-------------|
+| **Min. changes** (default) | Prefers the codon with the fewest base changes from the WT codon. Fewer mutation positions in the primer improve synthesis accuracy |
+| **Optimal** | Prefers the codon with the highest E. coli K-12 codon usage frequency. Suitable for expression optimization |
 
-두 전략 모두 대안 코돈도 후보로 시도하여 penalty가 낮은 프라이머 쌍을 선택한다.
+Both strategies also try alternative codons as candidates and select the primer pair with the lowest penalty.
 
 ### Mutations
 
-설계할 변이 개수 상한을 설정한다 (기본값 95). 입력된 변이 중 상위 N개만 설계에 사용된다. 96개 초과 시 Plate Map이 multi-plate로 자동 분할되며, ‹ › 버튼으로 plate 간 이동할 수 있다.
+Sets an upper limit on the number of mutations to design (default 95). Only the top N from the input are used. When count exceeds 96, the Plate Map is automatically split into multiple plates, and the ‹ › buttons navigate between plates. The Rev plate for each number contains only the reverse primers corresponding to the mutations in the matching Fwd plate.
 
 ### Advanced Options
 
-"Advanced options..." 링크를 클릭하면 접이식 패널이 펼쳐진다. 설정하지 않으면 기본값으로 설계된다.
+Click the "Advanced options..." link to expand the collapsible panel. If not set, default values are used.
 
-| 파라미터 | 기본값 | 설명 |
-|----------|--------|------|
-| Tm Fwd | 62°C | Forward 프라이머 전체 Tm 목표 |
-| Tm Rev | 58°C | Reverse 프라이머 전체 Tm 목표 |
-| Tm Overlap | 42°C | Overlap 영역 Tm 목표 |
-| GC% | 40-60% | GC 함량 허용 범위. 범위 밖 프라이머에 penalty 부여 |
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| Tm Fwd | 62°C | Target Tm for the full forward primer |
+| Tm Rev | 58°C | Target Tm for the full reverse primer |
+| Tm Overlap | 42°C | Target Tm for the overlap region |
+| GC% | 40-60% | Allowed GC content range. Primers outside range receive a penalty |
 
-Tm 계산은 SantaLucia 1998 모델을 사용하며, 폴리머라제 종류와 무관하게 동일한 계산 조건(mv_conc=50 mM, dna_conc=250 nM)을 적용한다. 프라이머는 한 번 설계되면 어떤 폴리머라제를 사용하든 동일한 서열을 주문하므로, Tm 계산 방법을 폴리머라제별로 변경할 필요가 없다.
-
----
-
-## 5. 프라이머 테이블과 Tm 조건 해석
-
-### 테이블 열 설명
-
-| 열 | 설명 |
-|----|------|
-| # | 입력 순서 (EVOLVEpro y_pred 내림차순 기준) |
-| Mutation | 변이 표기 (예: Q232A). 헤더 클릭 시 aa 위치 순 정렬 |
-| Forward Primer | 전체 forward 프라이머 서열. 클릭 시 후보 비교 팝오버 |
-| Reverse Primer | 전체 reverse 프라이머 서열. 클릭 시 후보 비교 팝오버 |
-| Fwd / Rev | 프라이머 길이 (bp) |
-| Tm F / Tm R | 전체 프라이머 Tm |
-| Tm Ov | overlap 영역 Tm |
-| Tol | 적용된 Tm tolerance (Fwd/Rev 각각 ±값으로 표시) |
-| Pen | penalty 점수 (Tm 편차 + GC% 편차 + 코돈 변이 수 + hairpin/homodimer 합산) |
-| Cand | 해당 변이의 프라이머 후보 개수. 클릭 시 정렬 가능 |
-| OT | Off-target 검출 여부. `!!` 클릭 시 결합 위치·strand·Tm 상세 팝오버 |
-| HP | Hairpin/Homodimer worst Tm. 클릭 시 상세 팝오버 (Tm, dG kcal/mol) |
-| GC% F / GC% R | 전체 프라이머 GC 함량 (40-60% 범위 권장) |
-| WT / MT | 야생형/변이 코돈. MT tooltip은 선택한 코돈 전략에 따라 변경됨 |
-
-### Tm 이중 조건
-
-SDM overlap extension PCR에서 primer-template annealing이 primer-primer annealing보다 강해야 한다.
-
-```
-조건: Tm_no_fwd > Tm_overlap + 5  AND  Tm_no_rev > Tm_overlap + 5
-```
-
-- **OK (초록)**: 두 non-overlap Tm 모두 overlap Tm보다 5도 이상 높다. 정상 PCR 조건에서 작동할 가능성이 높다.
-- **FAIL (빨강)**: 조건 미충족. overlap 영역에서 primer dimer가 형성될 위험이 있다.
-
-### GC 함량
-
-- 권장 범위: 40-60%
-- 40% 미만 또는 60% 초과 시 penalty가 부여된다
-- 35% 미만 또는 65% 초과 시 경고 메시지가 표시된다
-
-### 경고 메시지
-
-| 경고 | 의미 |
-|------|------|
-| `Forward primer too long: N bp` | 프라이머 길이가 60 bp 초과. 합성 비용 증가 및 품질 저하 가능 |
-| `Reverse primer too long: N bp` | 동일 |
-| `Fwd GC% out of range: N%` | Forward 프라이머 GC%가 35% 미만 또는 65% 초과 |
-| `Rev GC% out of range: N%` | Reverse 프라이머 GC%가 35% 미만 또는 65% 초과 |
-| `Tm condition not met` | Tm 이중 조건 미충족. 다른 폴리머라제 프로필 사용 권장 |
-| `Fwd hairpin Tm=X°C (dG=Y kcal/mol)` | Forward 프라이머 hairpin 구조 Tm이 40°C 초과 |
-| `Fwd homodimer Tm=X°C (dG=Y kcal/mol)` | Forward 프라이머 homodimer Tm이 40°C 초과 |
-
-![프라이머 설계 완료 — 결과 테이블](docs/screenshots/04-design-complete.png)
+Tm calculation uses the SantaLucia 1998 model with fixed conditions (mv_conc=50 mM, dna_conc=250 nM), independent of polymerase type. Because the same primer sequence is ordered regardless of which polymerase is used, the Tm calculation method does not need to change per polymerase.
 
 ---
 
-## 6. 프라이머 후보 비교
+## 5. Interpreting the Primer Table and Tm Conditions
 
-Forward 또는 Reverse 서열을 클릭하면 후보 비교 팝오버가 열린다. candidate가 1개뿐이어도 클릭하여 커스텀 프라이머를 입력할 수 있다.
+### Column Descriptions
 
-### 비교 항목
+| Column | Description |
+|--------|-------------|
+| # | Input order (based on EVOLVEpro y_pred descending) |
+| Mutation | Mutation notation (e.g., Q232A). Click header to sort by aa position |
+| Forward Primer | Full forward primer sequence. Click to open candidate comparison popover |
+| Reverse Primer | Full reverse primer sequence. Click to open candidate comparison popover |
+| Fwd / Rev | Primer length (bp) |
+| Tm F / Tm R | Full primer Tm |
+| Tm Ov | Overlap region Tm |
+| Tol | Applied Tm tolerance (shown as ±value for Fwd/Rev separately) |
+| Pen | Penalty score (sum of Tm deviation + GC% deviation + codon change count + hairpin/homodimer) |
+| Cand | Number of primer candidates for the mutation. Click to sort |
+| OT | Off-target detection status. Click `!!` to view a detailed popover with binding position, strand, and Tm |
+| HP | Hairpin/Homodimer worst Tm. Click to view details (Tm, dG kcal/mol) |
+| GC% F / GC% R | Full primer GC content (40-60% range recommended) |
+| WT / MT | Wild-type / mutant codon. MT tooltip changes based on the selected codon strategy |
 
-후보는 penalty 오름차순으로 정렬된다. #1이 자동 선택된 기본값(best)이며 초록 배경으로 표시된다.
+### Tm Dual Condition
 
-각 후보에 대해 아래 수치를 비교할 수 있다:
-- Forward / Reverse 서열 및 길이
+In SDM overlap extension PCR, primer-template annealing must be stronger than primer-primer annealing.
+
+```
+Condition: Tm_no_fwd > Tm_overlap + 5  AND  Tm_no_rev > Tm_overlap + 5
+```
+
+- **OK (green)**: Both non-overlap Tm values are at least 5°C higher than the overlap Tm. Likely to work under standard PCR conditions.
+- **FAIL (red)**: Condition not met. Risk of primer dimer formation in the overlap region.
+
+### GC Content
+
+- Recommended range: 40-60%
+- Primers below 40% or above 60% receive a penalty
+- Primers below 35% or above 65% trigger a warning message
+
+### Warning Messages
+
+| Warning | Meaning |
+|---------|---------|
+| `Forward primer too long: N bp` | Primer length exceeds 60 bp. Increased synthesis cost and potential quality issues |
+| `Reverse primer too long: N bp` | Same |
+| `Fwd GC% out of range: N%` | Forward primer GC% is below 35% or above 65% |
+| `Rev GC% out of range: N%` | Reverse primer GC% is below 35% or above 65% |
+| `Tm condition not met` | Tm dual condition not satisfied. Consider adjusting Tm targets |
+| `Fwd hairpin Tm=X°C (dG=Y kcal/mol)` | Forward primer hairpin Tm exceeds 40°C |
+| `Fwd homodimer Tm=X°C (dG=Y kcal/mol)` | Forward primer homodimer Tm exceeds 40°C |
+
+![Design complete — result table](docs/screenshots/04-design-complete.png)
+
+---
+
+## 6. Candidate Comparison
+
+Clicking a Forward or Reverse sequence opens the candidate comparison popover. Even with a single candidate, clicking it allows custom primer input.
+
+### Comparison Items
+
+Candidates are sorted by penalty ascending. #1 is the automatically selected default (best), shown with a green background.
+
+For each candidate, the following values can be compared:
+- Forward / Reverse sequence and length
 - Tm (Fwd, Rev, Overlap)
 - GC% (Fwd, Rev)
 - Tolerance (Fwd/Rev), Penalty, Off-target
 
-Penalty 셀에 마우스를 올리면 warnings (hairpin, homodimer, GC 등) 세부 항목이 tooltip으로 표시된다.
+Hovering over a Penalty cell shows a tooltip with detailed warning items (hairpin, homodimer, GC, etc.).
 
-### 수동 교체
+### Manual Swap
 
-각 후보에 3개 버튼이 표시된다:
-- **Both**: Forward + Reverse 모두 교체
-- **F**: Forward만 교체 (Reverse는 현재 값 유지)
-- **R**: Reverse만 교체 (Forward는 현재 값 유지)
+Three buttons are shown for each candidate:
+- **Both**: Replace both Forward and Reverse
+- **F**: Replace Forward only (Reverse remains unchanged)
+- **R**: Replace Reverse only (Forward remains unchanged)
 
-**Reverse 전파**: Reverse를 변경하면 동일 아미노산 위치의 모든 mutation에 자동 전파된다. 같은 위치의 mutation은 동일한 overlap 영역을 공유하므로 reverse primer도 동일해야 한다.
+**Reverse propagation**: Changing the Reverse primer automatically propagates to all mutations at the same amino acid position. Mutations at the same position share the same overlap region and therefore must use the same reverse primer.
 
-수동 교체된 프라이머는 결과 테이블에서 **amber 배경 하이라이트**로 표시되어 자동 선택과 구분된다.
+Manually swapped primers are shown with an **amber background highlight** in the result table to distinguish them from auto-selected primers.
 
-### 커스텀 프라이머 입력
+### Custom Primer Input
 
-팝오버 하단에서 Forward 서열을 3파트로 분리 입력한다:
-- **Overlap** (파란색 입력): 5' 말단 overlap 영역
-- **Codon** (빨간색 입력): 변이 코돈 (3bp)
-- **Downstream** (검정 입력): 3' 말단 downstream 영역
+At the bottom of the popover, enter the Forward sequence in three parts:
+- **Overlap** (blue input): 5' end overlap region
+- **Codon** (red input): Mutation codon (3 bp)
+- **Downstream** (black input): 3' end downstream region
 
-Reverse는 단일 입력. **Evaluate** 클릭 시 Tm, GC%, hairpin/homodimer, off-target이 계산되어 보라색 배경 "custom" 행으로 추가된다. 커스텀 후보는 팝오버를 닫아도 유지된다. **Use** 버튼으로 적용하거나 **×** 버튼으로 삭제할 수 있다.
+Reverse is entered as a single input. Click **Evaluate** to calculate Tm, GC%, hairpin/homodimer, and off-target. The result is added as a purple-background "custom" row. Custom candidates persist after closing the popover. Apply with the **Use** button or delete with the **×** button.
 
 ---
 
-## 7. 내보내기
+## 7. Export
 
 ### TSV (Tab-Separated Values)
 
-File 메뉴 > Export TSV
+File menu > Export TSV
 
-포함 열:
+Included columns:
 
 ```
 Mutation  Forward_Primer  Reverse_Primer  Fwd_Length  Rev_Length
@@ -265,191 +267,181 @@ Tm_NonOverlap_Fwd  Tm_NonOverlap_Rev  Tm_Overlap  Tm_Condition_Met
 GC_Fwd  GC_Rev  WT_Codon  MT_Codon  Overlap_Seq  Warnings
 ```
 
-- 모든 프라이머 정보가 한 파일에 포함된다
-- 스프레드시트 또는 LIMS에 바로 붙여넣기 가능
+- All primer information is included in a single file
+- Can be pasted directly into a spreadsheet or LIMS
 
 ### Excel (.xlsx)
 
-File 메뉴 > Export Excel
+File menu > Export Excel
 
-plate별로 4개 시트가 생성된다. 96개 초과 시 multi-plate로 분리 (Fwd List 1, Fwd Plate 1, Rev List 1, Rev Plate 1, ...).
+Four sheets are generated per plate. For more than 96 mutations, plates are split (Fwd List 1, Fwd Plate 1, Rev List 1, Rev Plate 1, ...). The Rev plate for each number contains only the reverse primers corresponding to the mutations in the matching Fwd plate (Fwd-Rev pairing).
 
-각 plate 시트 구성:
-1. **Fwd List** 시트: Forward 프라이머 리스트 (Well, 이름, 서열, 길이, 변이). 초록 배경.
-2. **Fwd Plate** 시트: Forward 96-well plate 배치. 초록 배경.
-3. **Rev List** 시트: Reverse 프라이머 리스트 (중복 제거됨). 주황 배경. 여러 mutation이 공유하는 프라이머는 파란 배경.
-4. **Rev Plate** 시트: Reverse 96-well plate 배치. 공유 프라이머 파란 배경.
+Sheet structure per plate:
+1. **Fwd List** sheet: Forward primer list (Well, name with `_F` suffix, sequence, length, mutation). Green background.
+2. **Fwd Plate** sheet: Forward 96-well plate layout (`mutation_F` format). Green background.
+3. **Rev List** sheet: Reverse primer list (deduplicated, `_R` suffix). Orange background. Primers shared across multiple mutations have a blue background.
+4. **Rev Plate** sheet: Reverse 96-well plate layout (`mutation_R` format). Shared primers in blue background.
 
-색상은 프로그램 UI와 동일:
-- 초록: Forward 프라이머
-- 주황: Reverse 프라이머 (단독)
-- 파란: Reverse 프라이머 (여러 mutation 공유)
+Colors match the program UI:
+- Green: Forward primers
+- Orange: Reverse primers (unique)
+- Blue: Reverse primers (shared across multiple mutations)
 
-올리고 합성 업체에 주문할 때 Fwd List / Rev List 시트를 바로 사용할 수 있다.
+The Fwd List / Rev List sheets can be submitted directly to an oligo synthesis vendor.
 
 ### Workspace (.kuro.json)
 
-File 메뉴 > Save Workspace
+File menu > Save Workspace
 
-현재 세션 상태를 `.kuro.json` 파일로 저장한다. 저장 항목:
-- 시퀀스 파일 경로, 선택된 유전자
-- 변이 목록, 입력 모드, 파라미터 (코돈 전략, 폴리머라제, 변이 개수)
-- 설계 결과 (프라이머 테이블, 실패 목록, plate map, 정렬 상태)
+Saves the current session state as a `.kuro.json` file. Saved items:
+- Sequence file path, selected gene
+- Mutation list, input mode, parameters (codon strategy, polymerase, mutation count)
+- Design output (primer table, failed list, plate map, sort state)
 
-File 메뉴 > Load Workspace로 저장된 세션을 복원하면 이전 화면이 그대로 표시된다.
+File menu > Load Workspace restores the saved session and displays the previous screen as-is.
 
-![Plate Map — 96-well 배치](docs/screenshots/05-plate-map.png)
+![Plate Map — 96-well layout](docs/screenshots/05-plate-map.png)
 
 ### Clear All
 
-사이드바 하단의 **Clear All** 버튼으로 모든 입력과 설계 결과를 초기화할 수 있다.
+Click the **Clear All** button at the bottom of the sidebar to reset all inputs and design output.
 
 ---
 
-## 8. CLI 사용법
+## 8. CLI Usage
 
-GUI 없이 커맨드라인에서도 동일한 설계 파이프라인을 실행할 수 있다.
+The same design pipeline can be run from the command line without the GUI.
 
-### 프라이머 설계
+### Primer Design
 
 ```bash
-python -m evolveprimer design \
-  --fasta fixtures/pSHCE-dmpR.fa \
-  --target-start 1790 \
-  --mutations fixtures/mutation_list_insilico_test.csv \
+python -m kuro design \
+  --fasta <your_sequence.gb> \
+  --target-start <cds_start> \
+  --mutations <mutations.csv> \
   --polymerase Benchling \
   --overlap 20 \
-  --output /tmp/sdm_test/
+  --output results/
 ```
 
-| 옵션 | 설명 | 기본값 |
-|------|------|--------|
-| `--fasta` | 템플릿 FASTA 파일 경로 | (필수) |
-| `--target-start` | CDS 시작 코돈 0-based 위치 | (필수) |
-| `--mutations` | 변이 CSV 파일 경로 (`mutation` 열 필수) | (필수) |
-| `--polymerase` | 폴리머라제 프로필 이름 | Benchling |
-| `--overlap` | Overlap 길이 (bp) | 20 |
-| `--output` | 출력 디렉토리 | results/ |
-| `-v` | 상세 로그 출력 | off |
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--fasta` | Template FASTA file path | (required) |
+| `--target-start` | CDS start codon position (0-based) | (required) |
+| `--mutations` | Mutation CSV file path (must contain `mutation` column) | (required) |
+| `--polymerase` | Polymerase profile name | Benchling |
+| `--overlap` | Overlap length (bp) | 20 |
+| `--output` | Output directory | results/ |
+| `-v` | Verbose log output | off |
 
-출력 파일:
-- `sdm_primers.tsv` — 전체 프라이머 정보
-- `plate_mapping.xlsx` — 96-well plate 배치 Excel
+Output files:
+- `sdm_primers.tsv` — Full primer information
+- `plate_mapping.xlsx` — 96-well plate layout Excel file
 
-### Plate Map 재생성
+### Regenerating the Plate Map
 
-기존 TSV 파일에서 plate map만 다시 생성할 수 있다.
+The plate map can be regenerated from an existing TSV file.
 
 ```bash
-python -m evolveprimer plate-map \
+python -m kuro plate-map \
   --primers results/sdm_primers.tsv \
   --output results/plate_mapping.xlsx
 ```
 
 ---
 
-## 9. 트러블슈팅
+## 9. Troubleshooting
 
 ### "expected WT amino acid X at position N, but codon YYY encodes Z"
 
-**원인**: CDS Start 위치가 잘못 지정되어 코돈 프레임이 어긋남.
+**Cause**: The CDS Start position is specified incorrectly, causing a codon frame shift.
 
-**해결**:
-1. CDS Start 값이 타깃 유전자의 ATG 위치(0-based)와 정확히 일치하는지 확인
-2. GUI에서 FASTA를 다시 로드하여 자동 선택된 ATG 목록 확인
-3. SnapGene/Benchling에서 CDS annotation 위치를 재확인 (1-based → 0-based 변환 필요)
+**Resolution**:
+1. Verify that the CDS Start value exactly matches the ATG position (0-based) of the target gene
+2. Reload the FASTA in the GUI and check the auto-detected ATG list
+3. Re-verify the CDS annotation position in SnapGene/Benchling (1-based → 0-based conversion required)
 
-### Sidecar 연결 실패 (앱 상태가 "error"에 머무는 경우)
+### Sidecar connection failure (app remains in "error" state)
 
-**원인**: Python 사이드카 바이너리가 없거나 손상됨.
+**Cause**: Python sidecar binary is missing or corrupted.
 
-**해결**:
+**Resolution**:
 ```bash
-# 사이드카 재빌드
+# Rebuild sidecar
 npm run sidecar:build
 
-# 재빌드 후 앱 재시작
+# Restart app after rebuild
 npm run dev
 ```
 
-- 사이드카는 최대 5회 자동 재연결을 시도한다 (3초 간격, 점진적 증가)
-- Python 의존성(`primer3-py`, `biopython`, `openpyxl`)이 올바르게 설치되어 있는지 확인
+- The sidecar attempts up to 5 automatic reconnections (3-second intervals, progressively increasing)
+- Verify that Python dependencies (`primer3-py`, `biopython`, `openpyxl`) are correctly installed
 
-### Tm 조건 미충족 (FAIL이 많은 경우)
+### Tm condition not met (many FAILs)
 
-**원인**: overlap 영역 Tm이 너무 높아 non-overlap Tm과 5도 차이를 확보하지 못함.
+**Cause**: Overlap region Tm is too high to maintain a 5°C margin from the non-overlap Tm.
 
-**해결**:
-1. **Tm 타겟 조정**: Advanced Options에서 Tm Fwd/Rev 타겟을 높이면 non-overlap 길이가 증가하여 overlap Tm과의 차이가 커진다.
-2. **후보 비교 활용**: Fwd/Rev 서열 클릭 → 후보 팝오버에서 Tm 조건이 더 나은 대안을 선택하거나 커스텀 프라이머를 입력할 수 있다.
-3. GC 함량이 극단적으로 높은 영역에서는 조건 충족이 본질적으로 어렵다.
+**Resolution**:
+1. **Adjust Tm targets**: Increasing the Tm Fwd/Rev targets in Advanced Options increases the non-overlap length, which widens the gap from the overlap Tm.
+2. **Use candidate comparison**: Click a Fwd/Rev sequence → in the candidate popover, select an alternative with a better Tm condition, or enter a custom primer.
+3. In regions with extremely high GC content, meeting this condition may be inherently difficult.
 
 ### "CSV file missing required 'mutation' column"
 
-**원인**: CSV 헤더에 `mutation` 열이 없음.
+**Cause**: The CSV header does not contain a `mutation` column.
 
-**해결**: 첫 행에 `mutation`이라는 열 이름이 정확히 포함되어야 한다. 대소문자 구분됨.
+**Resolution**: The first row must include a column named exactly `mutation`. The name is case-sensitive.
 
 ---
 
-## 10. 테스트 데이터
+## 10. Test Data
 
-프로젝트의 `fixtures/` 디렉토리에 테스트용 파일이 포함되어 있다.
+The `fixtures/` directory in the project contains dummy files for testing.
 
-### pSHCE-dmpR.fa
+| File | Contents |
+|------|----------|
+| `sample_plasmid.gb` | 5000 bp synthetic plasmid (GenBank). Contains 3 CDS features |
+| `sample_evolvepro.csv` | EVOLVEpro-format CSV. 120 variants (y_pred descending) |
+| `pSHCE-dmpR.fa` | 4532 bp plasmid (FASTA). For pytest |
+| `mutation_list_insilico_test.csv` | 12 alanine scanning mutations. For pytest |
 
-- 4532 bp 플라스미드
-- DmpR 전사 인자 (phenol-responsive transcriptional activator) 포함
-- CDS Start: 1790 (0-based)
-
-### mutation_list_insilico_test.csv
-
-12개 변이:
-
-```
-Q232A, Y233A, E335A, E167A, K200A, F203A,
-D227A, G237A, P240A, Y155A, H100A, C175A
-```
-
-모든 변이는 DmpR CDS 내 아미노산 위치에 대한 alanine scanning 변이이다.
-
-### 테스트 실행 예시
+### Test Run Example
 
 ```bash
-# CLI로 전체 파이프라인 실행
-python -m evolveprimer design \
-  --fasta fixtures/pSHCE-dmpR.fa \
-  --target-start 1790 \
-  --mutations fixtures/mutation_list_insilico_test.csv \
+# Run full pipeline via CLI
+python -m kuro design \
+  --fasta fixtures/sample_plasmid.gb \
+  --target-start 1957 \
+  --mutations fixtures/sample_evolvepro.csv \
   --polymerase Benchling \
   --overlap 20 \
-  --output /tmp/sdm_test/
+  --output results/
 
-# pytest 실행 (38 tests)
+# Run pytest (38 tests)
 python -m pytest tests/ -v
 ```
 
 ---
 
-## 11. 스크린샷 자동 캡처
+## 11. Screenshot Auto-capture
 
-USER-GUIDE 스크린샷은 Playwright를 사용하여 자동 캡처한다.
+USER-GUIDE screenshots are auto-captured using Playwright.
 
 ```bash
-# 의존성 설치 (최초 1회)
+# Install dependencies (first time only)
 npm install
 npx playwright install chromium
 
-# 캡처 실행 (MOCK_MODE로 Vite 서버 시작 후 자동 캡처)
+# Run capture (starts Vite server in MOCK_MODE, then auto-captures)
 npm run capture-guide
 ```
 
-캡처된 이미지는 `docs/screenshots/` 에 저장된다. UI 레이아웃이 변경된 후에는 위 명령을 재실행하여 스크린샷을 갱신한다.
+Captured images are saved to `docs/screenshots/`. After UI layout changes, re-run the command above to update the screenshots.
 
-| 파일 | 화면 상태 |
-|------|----------|
-| `01-initial.png` | 초기 빈 화면 |
-| `02-file-loaded.png` | GenBank 파일 로드 완료 |
-| `03-mutations-entered.png` | 변이 목록 입력 |
-| `04-design-complete.png` | 프라이머 설계 완료 (결과 테이블) |
-| `05-plate-map.png` | Plate Map 표시 |
+| File | Screen State |
+|------|-------------|
+| `01-initial.png` | Initial empty screen |
+| `02-file-loaded.png` | GenBank file loaded |
+| `03-mutations-entered.png` | Mutation list entered |
+| `04-design-complete.png` | Design complete (result table) |
+| `05-plate-map.png` | Plate Map displayed |

@@ -1,4 +1,4 @@
-/** TypeScript interfaces for EvolveProprimer JSON-RPC communication. */
+/** TypeScript interfaces for KURO JSON-RPC communication. */
 
 export interface PolymeraseInfo {
   name: string;

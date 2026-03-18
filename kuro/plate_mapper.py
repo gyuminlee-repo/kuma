@@ -196,10 +196,7 @@ def _write_plate_sheet(
         r_idx = rows_label.index(row_letter) + 2
         c_idx = col_num + 1
 
-        # Display mutation name (without _F/_R suffix) like the UI
-        display_name = m.primer_name.rsplit("_", 1)[0] if "_" in m.primer_name else m.primer_name
-
-        cell = ws.cell(row=r_idx, column=c_idx, value=display_name)
+        cell = ws.cell(row=r_idx, column=c_idx, value=m.primer_name)
         cell.alignment = Alignment(horizontal="center", wrap_text=True)
         cell.fill = shared_fill if _is_shared_rev(m, rev_groups) else default_fill
 

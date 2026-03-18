@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from evolveprimer.sdm_engine import (
+from kuro.sdm_engine import (
     SdmPrimerResult,
     design_sdm_primers,
     export_results_tsv,
@@ -78,7 +78,7 @@ class TestDesignSdmPrimers:
 
     def test_codon_usage(self, sdm_results):
         """Mutant codons should encode the correct amino acid."""
-        from evolveprimer.codon_table import codon_to_aa
+        from kuro.codon_table import codon_to_aa
         for r in sdm_results:
             actual_aa = codon_to_aa(r.mutation.mt_codon)
             assert actual_aa == r.mutation.mt_aa, (

@@ -128,8 +128,12 @@ function CandidatePopover({
     getAlternatives(mutation).then((c) => {
       setCandidates(c);
       setLoading(false);
-    }).catch(() => setLoading(false));
-  }, [mutation, getAlternatives]);
+    }).catch(() => {
+      // Fallback: show current primer as sole candidate (e.g. MOCK_MODE)
+      setCandidates([current]);
+      setLoading(false);
+    });
+  }, [mutation, getAlternatives, current]);
 
   async function handleEvaluate() {
     const fwdInput = (customOverlap + customCodon + customDownstream).trim();

@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from evolveprimer.codon_table import CODON_TO_AA, best_codon, codon_to_aa
-from evolveprimer.mutation import (
+from kuro.codon_table import CODON_TO_AA, best_codon, codon_to_aa
+from kuro.mutation import (
     Mutation,
     mutate_sequence,
     parse_mutation_notation,
@@ -30,7 +30,7 @@ class TestCodonTable:
             assert codon_to_aa(codon) == aa
 
     def test_codon_to_aa_roundtrip(self):
-        for aa_code, codons in __import__("evolveprimer.codon_table", fromlist=["ECOLI_CODON_USAGE"]).ECOLI_CODON_USAGE.items():
+        for aa_code, codons in __import__("kuro.codon_table", fromlist=["ECOLI_CODON_USAGE"]).ECOLI_CODON_USAGE.items():
             for codon, _ in codons:
                 assert CODON_TO_AA[codon] == aa_code
 
