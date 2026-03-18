@@ -9,8 +9,6 @@ Gibson Assembly 기반 SDM 프라이머 배치 설계 데스크톱 앱.
 
 https://github.com/user-attachments/assets/f95e65ca-22d2-4479-a06b-8dcd553571be
 
-![KURO — 설계 완료 화면](docs/screenshots/04-design-complete.png)
-
 변이 목록(텍스트/EVOLVEpro CSV)과 템플릿 시퀀스(GenBank/SnapGene)를 입력하면, overlap extension 방식의 SDM 프라이머 쌍을 자동 설계한다.
 
 ## 주요 기능
