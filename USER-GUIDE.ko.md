@@ -50,7 +50,7 @@ npm run build:all
 8. **Design Primers** 클릭.
 9. 프라이머 테이블이 생성된다. Mutation 컬럼 클릭 시 아미노산 위치 순 정렬 가능.
 10. Fwd/Rev 서열을 클릭하면 후보 비교 팝오버가 열린다. HP 컬럼을 클릭하면 hairpin/homodimer 상세 정보를 확인할 수 있다.
-11. File 메뉴에서 Export TSV / Export Excel / Save Workspace로 내보내거나 세션을 저장한다.
+11. File 메뉴에서 Export Excel / Save Workspace로 내보내거나 세션을 저장한다.
 
 ![초기 실행 화면](docs/screenshots/01-initial.png)
 
@@ -254,21 +254,6 @@ Reverse는 단일 입력. **Evaluate** 클릭 시 Tm, GC%, hairpin/homodimer, of
 ---
 
 ## 7. 내보내기
-
-### TSV (Tab-Separated Values)
-
-File 메뉴 > Export TSV
-
-포함 열:
-
-```
-Mutation  Forward_Primer  Reverse_Primer  Fwd_Length  Rev_Length
-Tm_NonOverlap_Fwd  Tm_NonOverlap_Rev  Tm_Overlap  Tm_Condition_Met
-GC_Fwd  GC_Rev  WT_Codon  MT_Codon  Overlap_Seq  Warnings
-```
-
-- 모든 프라이머 정보가 한 파일에 포함된다
-- 스프레드시트 또는 LIMS에 바로 붙여넣기 가능
 
 ### Excel (.xlsx)
 

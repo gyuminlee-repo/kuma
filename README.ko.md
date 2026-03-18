@@ -85,7 +85,7 @@ npm run build:all
 6. Design Primers 클릭
 7. Fwd/Rev 서열 클릭 → 후보 비교 팝오버에서 교체 가능
 8. HP 컬럼 클릭 → hairpin/homodimer 상세 (Tm, dG)
-9. File → Export TSV / Export Excel / Save Workspace
+9. File → Export Excel / Save Workspace
 
 ### Multi-plate 설계
 
@@ -159,7 +159,6 @@ KURO/
 | `get_alternatives` | `{mutation}` | `{mutation, candidates[]}` |
 | `swap_primer` | `{mutation, candidate_idx}` | 교체된 `SdmPrimerResult` |
 | `get_plate_map` | — | `{mappings[], dedup_info}` |
-| `export_tsv` | `filepath` | `{success, filepath}` |
 | `export_excel` | `filepath` | `{success, filepath}` |
 | `evaluate_primer` | `{mutation, fasta_path, forward_seq, reverse_seq}` | 커스텀 프라이머 평가 `SdmPrimerResult` |
 | `save_workspace` | `{filepath, data}` | `{success, filepath}` |

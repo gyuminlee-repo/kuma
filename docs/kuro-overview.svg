@@ -105,8 +105,8 @@
   <rect x="798" y="70" width="136" height="32" rx="8" fill="#ef4444"/>
   <rect x="798" y="94" width="136" height="8" fill="#ef4444"/>
   <text x="866" y="92" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">EXPORT</text>
-  <text x="866" y="122" text-anchor="middle" font-size="10" fill="#991b1b">TSV (all primers)</text>
-  <text x="866" y="140" text-anchor="middle" font-size="10" fill="#991b1b">Excel (plate map)</text>
+  <text x="866" y="122" text-anchor="middle" font-size="10" fill="#991b1b">Excel (plate map)</text>
+  <text x="866" y="140" text-anchor="middle" font-size="10" fill="#991b1b">Fwd/Rev plate sheets</text>
   <line x1="828" y1="152" x2="904" y2="152" stroke="#fecaca" stroke-width="1"/>
   <text x="866" y="170" text-anchor="middle" font-size="10" fill="#991b1b">96-well plate</text>
   <text x="866" y="188" text-anchor="middle" font-size="10" fill="#991b1b">Multi-plate</text>

@@ -28,13 +28,6 @@ function MenuBar() {
   const designResults = useAppStore((s) => s.designResults);
   const [aboutOpen, setAboutOpen] = useState(false);
 
-  async function handleExportTsv() {
-    const path = await save({
-      filters: [{ name: "TSV", extensions: ["tsv"] }],
-    });
-    if (path) await useAppStore.getState().exportTsv(path);
-  }
-
   async function handleExportExcel() {
     const path = await save({
       filters: [{ name: "Excel", extensions: ["xlsx"] }],
@@ -86,12 +79,6 @@ function MenuBar() {
               Load Workspace...
             </DropdownMenuItem>
             <DropdownMenuItem className="h-px bg-gray-200 my-1 p-0" disabled />
-            <DropdownMenuItem
-              onClick={handleExportTsv}
-              disabled={designResults.length === 0}
-            >
-              Export TSV...
-            </DropdownMenuItem>
             <DropdownMenuItem
               onClick={handleExportExcel}
               disabled={designResults.length === 0}

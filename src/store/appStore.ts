@@ -72,7 +72,6 @@ interface AppState {
   addCustomCandidate: (mutation: string, result: SdmPrimerResult) => void;
   removeCustomCandidate: (mutation: string, index: number) => void;
   getPlateMap: () => Promise<void>;
-  exportTsv: (filepath: string) => Promise<void>;
   exportExcel: (filepath: string) => Promise<void>;
   setTableSorting: (updater: Updater<SortingState>) => void;
   setStatus: (msg: string) => void;
@@ -368,15 +367,6 @@ export const useAppStore = create<AppState>((set, get) => {
         });
       } catch (err) {
         set({ statusMessage: `Plate map failed: ${formatError(err)}` });
-      }
-    },
-
-    exportTsv: async (filepath: string) => {
-      try {
-        await sendRequest("export_tsv", { filepath });
-        set({ statusMessage: `Exported TSV: ${filepath}` });
-      } catch (err) {
-        set({ statusMessage: `TSV export failed: ${formatError(err)}` });
       }
     },
 

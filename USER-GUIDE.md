@@ -50,7 +50,7 @@ npm run build:all
 8. Click **Design Primers**.
 9. The primer table is generated. Click the Mutation column header to sort by amino acid position.
 10. Click a Fwd/Rev sequence to open the candidate comparison popover. Click the HP column to view hairpin/homodimer details.
-11. From the File menu, use Export TSV / Export Excel / Save Workspace to export or save the session.
+11. From the File menu, use Export Excel / Save Workspace to export or save the session.
 
 ![Initial screen](docs/screenshots/01-initial.png)
 
@@ -254,21 +254,6 @@ Reverse is entered as a single input. Click **Evaluate** to calculate Tm, GC%, h
 ---
 
 ## 7. Export
-
-### TSV (Tab-Separated Values)
-
-File menu > Export TSV
-
-Included columns:
-
-```
-Mutation  Forward_Primer  Reverse_Primer  Fwd_Length  Rev_Length
-Tm_NonOverlap_Fwd  Tm_NonOverlap_Rev  Tm_Overlap  Tm_Condition_Met
-GC_Fwd  GC_Rev  WT_Codon  MT_Codon  Overlap_Seq  Warnings
-```
-
-- All primer information is included in a single file
-- Can be pasted directly into a spreadsheet or LIMS
 
 ### Excel (.xlsx)
 

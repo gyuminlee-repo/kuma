@@ -24,7 +24,6 @@ from kuro.sdm_engine import (
     SdmPrimerResult,
     design_sdm_primers,
     evaluate_custom_primer,
-    export_results_tsv,
     load_fasta,
     load_sequence,
 )
@@ -48,7 +47,6 @@ logger = logging.getLogger("sidecar")
 
 _ALLOWED_FASTA_EXTENSIONS = {".dna", ".gb", ".gbff", ".gbk"}
 _ALLOWED_CSV_EXTENSIONS = {".csv", ".tsv", ".txt"}
-_ALLOWED_TSV_EXTENSIONS = {".tsv", ".txt", ".csv"}
 _ALLOWED_EXCEL_EXTENSIONS = {".xlsx"}
 
 # --- Session state ---
@@ -463,20 +461,6 @@ def handle_get_plate_map(_params: dict) -> dict:
     }
 
 
-def handle_export_tsv(params: dict) -> dict:
-    """Export primer results to TSV."""
-    if not _last_results:
-        raise ValueError("No design available")
-
-    filepath = params.get("filepath")
-    resolved = _validate_output_path(
-        filepath, allowed_extensions=_ALLOWED_TSV_EXTENSIONS
-    )
-
-    export_results_tsv(_last_results, resolved)
-    return {"success": True, "filepath": str(resolved)}
-
-
 def handle_export_excel(params: dict) -> dict:
     """Export plate map to Excel."""
     if not _last_results:
@@ -646,7 +630,6 @@ _METHODS = {
     "get_plate_map": handle_get_plate_map,
     "get_alternatives": handle_get_alternatives,
     "swap_primer": handle_swap_primer,
-    "export_tsv": handle_export_tsv,
     "export_excel": handle_export_excel,
     "evaluate_primer": handle_evaluate_primer,
     "save_workspace": handle_save_workspace,

@@ -84,7 +84,7 @@ npm run build:all
 6. Click Design Primers
 7. Click a Fwd/Rev sequence → swap primers in the candidate comparison popover
 8. Click the HP column → hairpin/homodimer details (Tm, dG)
-9. File → Export TSV / Export Excel / Save Workspace
+9. File → Export Excel / Save Workspace
 
 For detailed usage instructions, see the [User Guide](USER-GUIDE.md).
 
@@ -160,7 +160,6 @@ KURO/
 | `get_alternatives` | `{mutation}` | `{mutation, candidates[]}` |
 | `swap_primer` | `{mutation, candidate_idx}` | Swapped `SdmPrimerResult` |
 | `get_plate_map` | — | `{mappings[], dedup_info}` |
-| `export_tsv` | `filepath` | `{success, filepath}` |
 | `export_excel` | `filepath` | `{success, filepath}` |
 | `evaluate_primer` | `{mutation, fasta_path, forward_seq, reverse_seq}` | Custom primer evaluation `SdmPrimerResult` |
 | `save_workspace` | `{filepath, data}` | `{success, filepath}` |
