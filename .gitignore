@@ -11,3 +11,9 @@ python-core/*.spec
 __pycache__/
 *.pyc
 results/
+
+# Generated/large files
+docs/tutorial.webm
+scripts/primer-data.json
+src-tauri/gen/
+*.bak
