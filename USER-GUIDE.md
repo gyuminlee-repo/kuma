@@ -304,7 +304,7 @@ python -m kuro design \
   --fasta <your_sequence.gb> \
   --target-start <cds_start> \
   --mutations <mutations.csv> \
-  --polymerase Benchling \
+  --polymerase Q5 \
   --overlap 20 \
   --output results/
 ```
@@ -314,7 +314,7 @@ python -m kuro design \
 | `--fasta` | Template FASTA file path | (required) |
 | `--target-start` | CDS start codon position (0-based) | (required) |
 | `--mutations` | Mutation CSV file path (must contain `mutation` column) | (required) |
-| `--polymerase` | Polymerase profile name | Benchling |
+| `--polymerase` | Polymerase profile name | Q5 |
 | `--overlap` | Overlap length (bp) | 20 |
 | `--output` | Output directory | results/ |
 | `-v` | Verbose log output | off |
@@ -381,14 +381,14 @@ npm run dev
 
 ## 10. Test Data
 
-The `fixtures/` directory in the project contains dummy files for testing.
+The project contains sample and test data files in two directories.
 
 | File | Contents |
 |------|----------|
-| `sample_plasmid.gb` | 5000 bp synthetic plasmid (GenBank). Contains 3 CDS features |
-| `sample_evolvepro.csv` | EVOLVEpro-format CSV. 120 variants (y_pred descending) |
-| `pSHCE-dmpR.fa` | 4532 bp plasmid (FASTA). For pytest |
-| `mutation_list_insilico_test.csv` | 12 alanine scanning mutations. For pytest |
+| `samples/sample_plasmid.gb` | 5000 bp synthetic plasmid (GenBank). Contains 3 CDS features |
+| `samples/sample_evolvepro.csv` | EVOLVEpro-format CSV. 120 variants (y_pred descending) |
+| `fixtures/pSHCE-dmpR.fa` | 4532 bp plasmid (FASTA). For pytest |
+| `fixtures/mutation_list_insilico_test.csv` | 12 alanine scanning mutations. For pytest |
 
 ### Test Run Example
 
@@ -398,7 +398,7 @@ python -m kuro design \
   --fasta samples/sample_plasmid.gb \
   --target-start 1957 \
   --mutations samples/sample_evolvepro.csv \
-  --polymerase Benchling \
+  --polymerase Q5 \
   --overlap 20 \
   --output results/
 

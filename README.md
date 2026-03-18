@@ -4,7 +4,7 @@
 
 Desktop app for batch SDM primer design based on Gibson Assembly.
 
-![KURO Overview](docs/kuro-overview.svg)
+![KURO Overview](docs/kuro_overview.svg)
 
 ![KURO — Design complete](docs/screenshots/04-design-complete.png)
 

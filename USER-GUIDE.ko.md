@@ -304,7 +304,7 @@ python -m kuro design \
   --fasta <your_sequence.gb> \
   --target-start <cds_start> \
   --mutations <mutations.csv> \
-  --polymerase Benchling \
+  --polymerase Q5 \
   --overlap 20 \
   --output results/
 ```
@@ -314,7 +314,7 @@ python -m kuro design \
 | `--fasta` | 템플릿 FASTA 파일 경로 | (필수) |
 | `--target-start` | CDS 시작 코돈 0-based 위치 | (필수) |
 | `--mutations` | 변이 CSV 파일 경로 (`mutation` 열 필수) | (필수) |
-| `--polymerase` | 폴리머라제 프로필 이름 | Benchling |
+| `--polymerase` | 폴리머라제 프로필 이름 | Q5 |
 | `--overlap` | Overlap 길이 (bp) | 20 |
 | `--output` | 출력 디렉토리 | results/ |
 | `-v` | 상세 로그 출력 | off |
@@ -381,14 +381,14 @@ npm run dev
 
 ## 10. 테스트 데이터
 
-프로젝트의 `fixtures/` 디렉토리에 테스트용 더미 파일이 포함되어 있다.
+프로젝트에 샘플 및 테스트 데이터 파일이 두 디렉토리에 분산되어 있다.
 
 | 파일 | 내용 |
 |------|------|
-| `sample_plasmid.gb` | 5000 bp 합성 플라스미드 (GenBank). CDS 3개 포함 |
-| `sample_evolvepro.csv` | EVOLVEpro 형식 CSV. 120개 variant (y_pred 내림차순) |
-| `pSHCE-dmpR.fa` | 4532 bp 플라스미드 (FASTA). pytest용 |
-| `mutation_list_insilico_test.csv` | 12개 alanine scanning 변이. pytest용 |
+| `samples/sample_plasmid.gb` | 5000 bp 합성 플라스미드 (GenBank). CDS 3개 포함 |
+| `samples/sample_evolvepro.csv` | EVOLVEpro 형식 CSV. 120개 variant (y_pred 내림차순) |
+| `fixtures/pSHCE-dmpR.fa` | 4532 bp 플라스미드 (FASTA). pytest용 |
+| `fixtures/mutation_list_insilico_test.csv` | 12개 alanine scanning 변이. pytest용 |
 
 ### 테스트 실행 예시
 
@@ -398,7 +398,7 @@ python -m kuro design \
   --fasta samples/sample_plasmid.gb \
   --target-start 1957 \
   --mutations samples/sample_evolvepro.csv \
-  --polymerase Benchling \
+  --polymerase Q5 \
   --overlap 20 \
   --output results/
 

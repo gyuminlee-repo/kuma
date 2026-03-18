@@ -5,7 +5,7 @@
 
 Gibson Assembly 기반 SDM 프라이머 배치 설계 데스크톱 앱.
 
-![KURO Overview](docs/kuro-overview.svg)
+![KURO Overview](docs/kuro_overview.svg)
 
 ![KURO — 설계 완료 화면](docs/screenshots/04-design-complete.png)
 
