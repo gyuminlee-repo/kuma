@@ -8,7 +8,7 @@ import csv
 import json
 import logging
 import os
-from dataclasses import dataclass, field, replace as dc_replace
+from dataclasses import dataclass, field, fields as dc_fields, replace as dc_replace
 import re
 import sys
 import tempfile
@@ -48,6 +48,7 @@ logger = logging.getLogger("sidecar")
 _ALLOWED_FASTA_EXTENSIONS = {".dna", ".gb", ".gbff", ".gbk"}
 _ALLOWED_CSV_EXTENSIONS = {".csv", ".tsv", ".txt"}
 _ALLOWED_EXCEL_EXTENSIONS = {".xlsx"}
+_VALID_DNA_BASES = re.compile(r"^[ATGC]+$")
 
 # --- Session state ---
 @dataclass
@@ -488,14 +489,15 @@ def handle_export_excel(params: dict) -> dict:
     if mappings_data:
         if not isinstance(mappings_data, list):
             raise ValueError("mappings must be a list")
-        _REQUIRED_MAPPING_FIELDS = {"well", "primer_name", "sequence", "primer_type", "mutation"}
+        required_fields = {f.name for f in dc_fields(PlateMapping)}
+        mappings = []
         for i, m in enumerate(mappings_data):
             if not isinstance(m, dict):
                 raise ValueError(f"mappings[{i}] must be an object")
-            missing = _REQUIRED_MAPPING_FIELDS - m.keys()
+            missing = required_fields - m.keys()
             if missing:
                 raise ValueError(f"mappings[{i}] missing fields: {sorted(missing)}")
-        mappings = [PlateMapping(**m) for m in mappings_data]
+            mappings.append(PlateMapping(**m))
         rev_groups = dedup_data or {}
     else:
         if not _last_results:
@@ -613,9 +615,8 @@ def handle_evaluate_primer(params: dict) -> dict:
         raise ValueError("Both forward_seq and reverse_seq are required")
 
     # Validate primer sequences: ATGC only, max 150bp
-    _VALID_BASES = re.compile(r"^[ATGC]+$")
     for label, seq in [("forward_seq", forward_seq), ("reverse_seq", reverse_seq)]:
-        if not _VALID_BASES.match(seq):
+        if not _VALID_DNA_BASES.match(seq):
             raise ValueError(f"{label} must contain only A, T, G, C characters")
         if len(seq) > 150:
             raise ValueError(f"{label} exceeds 150bp limit (got {len(seq)}bp)")
