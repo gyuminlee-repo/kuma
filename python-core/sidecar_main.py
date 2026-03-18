@@ -264,6 +264,8 @@ def handle_design_sdm_primers(params: dict) -> dict:
         target_start = int(params.get("target_start", 0))
     except (TypeError, ValueError) as exc:
         raise ValueError(f"Invalid target_start: {exc}") from exc
+    if target_start < 0:
+        raise ValueError(f"target_start must be non-negative, got {target_start}")
 
     mutations_input = params.get("mutations_csv_or_text", "")
     polymerase = params.get("polymerase", "Q5")
@@ -278,8 +280,18 @@ def handle_design_sdm_primers(params: dict) -> dict:
     tm_fwd_target = float(_raw_fwd) if _raw_fwd else None
     tm_rev_target = float(_raw_rev) if _raw_rev else None
     tm_overlap_target = float(_raw_ov) if _raw_ov else None
+
+    # Validate Tm ranges (20-80°C)
+    for label, val in [("tm_fwd_target", tm_fwd_target), ("tm_rev_target", tm_rev_target), ("tm_overlap_target", tm_overlap_target)]:
+        if val is not None and not (20 <= val <= 80):
+            raise ValueError(f"{label} must be between 20 and 80°C, got {val}")
+
     gc_min = float(params.get("gc_min", 40))
     gc_max = float(params.get("gc_max", 60))
+
+    # Validate GC% range (0-100%)
+    if not (0 <= gc_min <= 100) or not (0 <= gc_max <= 100):
+        raise ValueError(f"gc_min/gc_max must be between 0 and 100, got {gc_min}/{gc_max}")
     if gc_min >= gc_max:
         raise ValueError(f"gc_min ({gc_min}) must be less than gc_max ({gc_max})")
 
@@ -474,6 +486,15 @@ def handle_export_excel(params: dict) -> dict:
     dedup_data = params.get("dedup_info")
 
     if mappings_data:
+        if not isinstance(mappings_data, list):
+            raise ValueError("mappings must be a list")
+        _REQUIRED_MAPPING_FIELDS = {"well", "primer_name", "sequence", "primer_type", "mutation"}
+        for i, m in enumerate(mappings_data):
+            if not isinstance(m, dict):
+                raise ValueError(f"mappings[{i}] must be an object")
+            missing = _REQUIRED_MAPPING_FIELDS - m.keys()
+            if missing:
+                raise ValueError(f"mappings[{i}] missing fields: {sorted(missing)}")
         mappings = [PlateMapping(**m) for m in mappings_data]
         rev_groups = dedup_data or {}
     else:
@@ -491,6 +512,8 @@ def handle_load_evolvepro_csv(params: dict) -> dict:
     filepath = params.get("filepath", "")
     if not filepath:
         raise ValueError("filepath is required")
+    resolved = _validate_filepath(filepath, allowed_extensions=_ALLOWED_CSV_EXTENSIONS)
+    filepath = str(resolved)
 
     top_n = int(params.get("top_n", 96))
 
@@ -580,14 +603,22 @@ def handle_evaluate_primer(params: dict) -> dict:
     """Evaluate a user-provided primer pair."""
     mutation = params.get("mutation", "custom")
     fasta_path = params.get("fasta_path")
-    forward_seq = params.get("forward_seq", "")
-    reverse_seq = params.get("reverse_seq", "")
+    forward_seq = params.get("forward_seq", "").strip().upper()
+    reverse_seq = params.get("reverse_seq", "").strip().upper()
     overlap_len = int(params.get("overlap_len", 20))
 
     if not fasta_path:
         raise ValueError("fasta_path is required")
     if not forward_seq or not reverse_seq:
         raise ValueError("Both forward_seq and reverse_seq are required")
+
+    # Validate primer sequences: ATGC only, max 150bp
+    _VALID_BASES = re.compile(r"^[ATGC]+$")
+    for label, seq in [("forward_seq", forward_seq), ("reverse_seq", reverse_seq)]:
+        if not _VALID_BASES.match(seq):
+            raise ValueError(f"{label} must contain only A, T, G, C characters")
+        if len(seq) > 150:
+            raise ValueError(f"{label} exceeds 150bp limit (got {len(seq)}bp)")
 
     resolved = _validate_filepath(fasta_path, allowed_extensions=_ALLOWED_FASTA_EXTENSIONS)
 
@@ -627,7 +658,18 @@ def handle_load_workspace(params: dict) -> dict:
     if not resolved.exists():
         raise FileNotFoundError(f"File not found: {filepath}")
     with open(resolved, encoding="utf-8") as f:
-        return json.load(f)
+        data = json.load(f)
+
+    # Validate loaded workspace structure
+    if not isinstance(data, dict):
+        raise ValueError("Workspace file must contain a JSON object")
+    if "results" in data:
+        if not isinstance(data["results"], list):
+            raise ValueError("Workspace 'results' must be an array")
+        if len(data["results"]) > 10_000:
+            raise ValueError(f"Workspace contains {len(data['results'])} results, exceeding 10,000 limit")
+
+    return data
 
 
 # --- Dispatcher ---

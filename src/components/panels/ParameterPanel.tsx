@@ -6,7 +6,7 @@ function useLocalNum(storeVal: number, fallback: number, commit: (v: number) => 
   const [str, setStr] = useState(String(storeVal));
   useEffect(() => setStr(String(storeVal)), [storeVal]);
   const onChange = (e: ChangeEvent<HTMLInputElement>) => setStr(e.target.value);
-  const onBlur = () => { const n = parseFloat(str); commit(isNaN(n) ? fallback : n); };
+  const onBlur = () => { const n = parseFloat(str); commit(!isFinite(n) ? fallback : n); };
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); };
   return { value: str, onChange, onBlur, onKeyDown };
 }
