@@ -258,10 +258,9 @@ export const useAppStore = create<AppState>((set, get) => {
         return;
       }
 
-      // Limit mutations to maxPrimers
+      // Send all mutations — maxPrimers caps the final success count, not the input
       const allLines = mutationText.trim().split("\n").filter((l) => l.trim() && !l.trim().startsWith("#"));
-      const limitedLines = allLines.slice(0, maxPrimers);
-      const limitedText = limitedLines.join("\n");
+      const limitedText = allLines.join("\n");
 
       // Resolve CDS start from selected gene (selectedGene stores cds_start as string)
       const targetStart = selectedGene ? parseInt(selectedGene, 10) : 0;
@@ -296,20 +295,40 @@ export const useAppStore = create<AppState>((set, get) => {
           }),
         });
 
+        // Cap successful results to maxPrimers
+        const capped = result.results.slice(0, maxPrimers);
+        const failed = result.failed_mutations ?? [];
+        const tmMet = capped.filter((r) => r.tm_condition_met).length;
+        const extraSuccesses = result.results.length - capped.length;
+        const failedMsg = failed.length > 0 ? ` | ${failed.length} failed` : "";
+        const extraMsg = extraSuccesses > 0 ? ` | ${extraSuccesses} extra` : "";
+
         set({
-          designResults: result.results,
-          successCount: result.success_count,
+          designResults: capped,
+          successCount: capped.length,
           totalCount: result.total_count,
-          failedMutations: result.failed_mutations ?? [],
-          statusMessage: `${result.success_count}/${result.total_count} designed | Tm condition: ${result.results.filter((r) => r.tm_condition_met).length}/${result.success_count}`,
+          failedMutations: failed,
+          statusMessage: `${capped.length}/${result.total_count} designed | Tm: ${tmMet}/${capped.length}${failedMsg}${extraMsg}`,
         });
 
-        // Auto-fetch plate map (non-fatal)
+        // Auto-fetch plate map (non-fatal) — filter to capped mutations only
         try {
           const plateResult =
             await sendRequest<PlateMapResult>("get_plate_map");
+          const cappedMuts = new Set(capped.map((r) => r.mutation));
+          const filteredMappings = plateResult.mappings.filter((m) =>
+            m.primer_type === "reverse" || cappedMuts.has(m.mutation),
+          );
+          // Also filter reverse mappings: keep only those whose sequence is used by capped mutations
+          const cappedRevSeqs = new Set<string>();
+          for (const [seq, muts] of Object.entries(plateResult.dedup_info)) {
+            if (muts.some((mut) => cappedMuts.has(mut))) cappedRevSeqs.add(seq);
+          }
+          const finalMappings = filteredMappings.filter((m) =>
+            m.primer_type === "forward" || cappedRevSeqs.has(m.sequence),
+          );
           set({
-            plateMappings: plateResult.mappings,
+            plateMappings: finalMappings,
             dedupInfo: plateResult.dedup_info,
           });
         } catch (plateErr) {
