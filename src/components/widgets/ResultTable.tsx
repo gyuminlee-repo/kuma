@@ -811,6 +811,12 @@ function makeColumns(groupColorMap: Map<number, string>, codonStrategy: "closest
       id: "hairpin",
       header: "HP",
       size: 40,
+      enableSorting: true,
+      sortingFn: (a, b) => {
+        const worstA = Math.max(a.original.hairpin_tm_fwd ?? 0, a.original.hairpin_tm_rev ?? 0, a.original.homodimer_tm_fwd ?? 0, a.original.homodimer_tm_rev ?? 0);
+        const worstB = Math.max(b.original.hairpin_tm_fwd ?? 0, b.original.hairpin_tm_rev ?? 0, b.original.homodimer_tm_fwd ?? 0, b.original.homodimer_tm_rev ?? 0);
+        return worstA - worstB;
+      },
       meta: { clickable: true, clickType: "hairpin" },
       cell: (info) => {
         const row = info.row.original;

@@ -14,7 +14,7 @@ function wellName(idx: number): string {
 
 /**
  * Compute sorted mutation order from designResults + tableSorting.
- * Returns null if no mutation sort is active.
+ * Returns null if no sort is active.
  */
 export function getSortedMutations(
   results: SdmPrimerResult[],
@@ -22,10 +22,28 @@ export function getSortedMutations(
 ): string[] | null {
   if (sorting.length === 0) return null;
   const sort = sorting[0];
-  if (sort.id !== "mutation") return null;
-  const sorted = [...results].sort(
-    (a, b) => (a.aa_position ?? 0) - (b.aa_position ?? 0),
-  );
+
+  type R = SdmPrimerResult;
+  const numericKeys: Record<string, (r: R) => number> = {
+    mutation: (r) => r.aa_position ?? 0,
+    fwd_len: (r) => r.fwd_len,
+    rev_len: (r) => r.rev_len,
+    tm_no_fwd: (r) => r.tm_no_fwd,
+    tm_no_rev: (r) => r.tm_no_rev,
+    tm_overlap: (r) => r.tm_overlap,
+    tolerance_used: (r) => r.tolerance_used,
+    penalty: (r) => r.penalty,
+    gc_fwd: (r) => r.gc_fwd,
+    gc_rev: (r) => r.gc_rev,
+    has_offtarget: (r) => r.has_offtarget ? 1 : 0,
+    hairpin: (r) => Math.max(r.hairpin_tm_fwd ?? 0, r.hairpin_tm_rev ?? 0, r.homodimer_tm_fwd ?? 0, r.homodimer_tm_rev ?? 0),
+    candidate_count: (r) => r.candidate_count ?? 0,
+  };
+
+  const getter = numericKeys[sort.id];
+  if (!getter) return null;
+
+  const sorted = [...results].sort((a, b) => getter(a) - getter(b));
   if (sort.desc) sorted.reverse();
   return sorted.map((r) => r.mutation);
 }
