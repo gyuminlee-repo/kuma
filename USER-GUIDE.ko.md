@@ -114,6 +114,7 @@ EVOLVEpro 모드를 선택하고 Browse 버튼으로 EVOLVEpro 출력 CSV를 로
 
 - `variant`와 `y_pred` 열이 포함된 CSV
 - y_pred 내림차순으로 정렬하여 Mutations 설정값만큼 자동 선정 (기본 95개)
+- **위치 다양성(Position diversity)** (선택): 체크박스를 활성화하면 아미노산 위치당 최대 N개로 제한. 같은 위치에 고점수 변이가 집중될 때 (예: Q10A, Q10L, Q10V) 위치당 대표만 유지하여 탐색 범위를 다양화
 - 로드 후 텍스트 영역에서 직접 편집 가능
 
 ![변이 목록 입력](docs/screenshots/03-mutations-entered.png)
@@ -156,6 +157,7 @@ EVOLVEpro 모드를 선택하고 Browse 버튼으로 EVOLVEpro 출력 CSV를 로
 | Tm Rev | 58°C | Reverse 프라이머 전체 Tm 목표 |
 | Tm Overlap | 42°C | Overlap 영역 Tm 목표 |
 | GC% | 40-60% | GC 함량 허용 범위. 범위 밖 프라이머에 penalty 부여 |
+| Primer length limit | Off | 활성화 시 Fwd/Rev min/max 프라이머 길이(bp) 설정 가능. 기본값: Fwd 12-45, Rev 12-30 |
 
 Tm 계산은 SantaLucia 1998 모델을 사용하며, 폴리머라제 종류와 무관하게 동일한 계산 조건(mv_conc=50 mM, dna_conc=250 nM)을 적용한다. 프라이머는 한 번 설계되면 어떤 폴리머라제를 사용하든 동일한 서열을 주문하므로, Tm 계산 방법을 폴리머라제별로 변경할 필요가 없다.
 
@@ -262,9 +264,9 @@ File 메뉴 > Export Excel
 plate별로 4개 시트가 생성된다. 96개 초과 시 multi-plate로 분리 (Fwd List 1, Fwd Plate 1, Rev List 1, Rev Plate 1, ...). Rev plate는 같은 번호의 Fwd plate에 포함된 mutation에 대응하는 reverse primer만 포함된다 (Fwd-Rev 짝짓기).
 
 각 plate 시트 구성:
-1. **Fwd List** 시트: Forward 프라이머 리스트 (Well, 이름 `_F` 접미사, 서열, 길이, 변이). 초록 배경.
+1. **Fwd List** 시트: Forward 프라이머 리스트 (Well, Primer Name, Sequence, Length, Tm, Tm_Overlap, WT_Codon, MT_Codon, Mutation). 초록 배경.
 2. **Fwd Plate** 시트: Forward 96-well plate 배치 (`mutation_F` 형식). 초록 배경.
-3. **Rev List** 시트: Reverse 프라이머 리스트 (중복 제거됨, `_R` 접미사). 주황 배경. 여러 mutation이 공유하는 프라이머는 파란 배경.
+3. **Rev List** 시트: Reverse 프라이머 리스트 (중복 제거됨, `_R` 접미사, Fwd List와 동일 컬럼). 주황 배경. 여러 mutation이 공유하는 프라이머는 파란 배경.
 4. **Rev Plate** 시트: Reverse 96-well plate 배치 (`mutation_R` 형식). 공유 프라이머 파란 배경.
 
 색상은 프로그램 UI와 동일:

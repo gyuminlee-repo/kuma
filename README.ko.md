@@ -13,13 +13,14 @@ https://github.com/user-attachments/assets/f95e65ca-22d2-4479-a06b-8dcd553571be
 
 ## 주요 기능
 
-- **EVOLVEpro CSV 입력**: EVOLVEpro 출력 CSV 로드 → y_pred 내림차순 정렬 → 설정 개수만큼 자동 선정
+- **EVOLVEpro CSV 입력**: EVOLVEpro 출력 CSV 로드 → y_pred 내림차순 정렬 → 설정 개수만큼 자동 선정. **위치 다양성(position diversity)** 필터로 아미노산 위치당 최대 N개 제한 가능
 - **배치 변이 파싱**: `Q232A` 형식의 변이 목록 → 코돈 위치 자동 계산 + WT 코돈 검증
 - **코돈 전략 선택**: Min. changes (WT 대비 최소 염기 변이) 또는 Optimal (E. coli 최적 코돈) 중 선택 가능
 - **Overlap upstream 설계**: overlap 영역이 mutation codon 바로 앞(upstream)에 위치 (EVOLVEpro 방식)
 - **Tm 계산**: SantaLucia 1998 고정 (폴리머라제 무관). 기본 타겟 Fwd 62°C, Rev 58°C, Overlap 42°C. Advanced Options에서 변경 가능
 - **점진적 Tm tolerance**: Fwd/Rev 각각 ±0.5°C부터 시작, ±0.5씩 독립 확장 (최대 ±3.0°C)
 - **GC% 범위**: 기본 40-60% (Advanced Options에서 변경 가능). 범위 밖 프라이머에 패널티 부여
+- **프라이머 길이 제한**: Fwd/Rev min/max 길이 제약 (Advanced Options에서 선택적 활성화)
 - **Hairpin / Homodimer 검증**: primer3 calc_hairpin/calc_homodimer로 이차 구조 체크. Tm, dG(kcal/mol) 표시
 - **후보 비교 및 교체**: 프라이머 서열 클릭 시 후보 비교 팝오버 (candidate 1개여도 클릭 가능). 수동 교체 시 결과 테이블에 amber 하이라이트
 - **커스텀 프라이머 평가**: 후보 팝오버에서 직접 서열 입력 → Tm, GC%, hairpin, off-target 즉시 계산

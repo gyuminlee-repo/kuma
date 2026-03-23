@@ -17,6 +17,10 @@ class PlateMapping:
     sequence: str           # Primer sequence
     primer_type: str        # "forward" or "reverse"
     mutation: str           # Original mutation notation
+    tm: float | None = None          # Whole-primer Tm (Fwd or Rev)
+    tm_overlap: float | None = None  # Overlap Tm
+    wt_codon: str | None = None      # Wild-type codon
+    mt_codon: str | None = None      # Mutant codon
 
 
 def _well_name(index: int, order: str = "column") -> str:
@@ -143,23 +147,29 @@ def _write_list_sheet(
     """Write a primer list sheet with row coloring."""
     from openpyxl.styles import Font, PatternFill
 
-    headers = ["Well", "Primer Name", "Sequence", "Length", "Mutation"]
+    headers = ["Well", "Primer Name", "Sequence", "Length",
+               "Tm", "Tm_Overlap", "WT_Codon", "MT_Codon", "Mutation"]
     for col_idx, h in enumerate(headers, 1):
         cell = ws.cell(row=1, column=col_idx, value=h)
         cell.font = Font(bold=True)
         cell.fill = PatternFill(start_color="D9E1F2", fill_type="solid")
 
+    num_cols = len(headers)
     for i, m in enumerate(mappings, 2):
         ws.cell(row=i, column=1, value=m.well)
         ws.cell(row=i, column=2, value=m.primer_name)
         ws.cell(row=i, column=3, value=m.sequence)
         ws.cell(row=i, column=4, value=len(m.sequence))
-        ws.cell(row=i, column=5, value=m.mutation)
+        ws.cell(row=i, column=5, value=m.tm)
+        ws.cell(row=i, column=6, value=m.tm_overlap)
+        ws.cell(row=i, column=7, value=m.wt_codon)
+        ws.cell(row=i, column=8, value=m.mt_codon)
+        ws.cell(row=i, column=9, value=m.mutation)
 
         # Row color: shared=blue, otherwise fill_color
         row_color = _COLOR_SHARED if _is_shared_rev(m, rev_groups) else fill_color
         row_fill = PatternFill(start_color=row_color, fill_type="solid")
-        for col_idx in range(1, 6):
+        for col_idx in range(1, num_cols + 1):
             ws.cell(row=i, column=col_idx).fill = row_fill
 
     for col in ws.columns:
@@ -223,6 +233,10 @@ def _chunk_by_plate(mappings: list[PlateMapping]) -> list[list[PlateMapping]]:
                 sequence=m.sequence,
                 primer_type=m.primer_type,
                 mutation=m.mutation,
+                tm=m.tm,
+                tm_overlap=m.tm_overlap,
+                wt_codon=m.wt_codon,
+                mt_codon=m.mt_codon,
             )
         current.append(m)
         if len(current) >= 96:
@@ -269,6 +283,10 @@ def _pair_rev_per_plate(
                         sequence=rev_m.sequence,
                         primer_type="reverse",
                         mutation=rev_m.mutation,
+                        tm=rev_m.tm,
+                        tm_overlap=rev_m.tm_overlap,
+                        wt_codon=rev_m.wt_codon,
+                        mt_codon=rev_m.mt_codon,
                     ))
                     well_idx += 1
         paired.append(rev_chunk)

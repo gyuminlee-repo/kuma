@@ -90,6 +90,7 @@ export interface EvolveproLoadResult {
   y_preds: number[];
   total_count: number;
   selected_count: number;
+  filtered_count?: number;
 }
 
 export interface FailedMutation {
@@ -111,6 +112,10 @@ export interface PlateMapping {
   sequence: string;
   primer_type: "forward" | "reverse";
   mutation: string;
+  tm?: number;
+  tm_overlap?: number;
+  wt_codon?: string;
+  mt_codon?: string;
 }
 
 export interface PlateMapResult {
@@ -146,6 +151,11 @@ export interface WorkspaceV1 {
   tmOverlapTarget: number;
   gcMin: number;
   gcMax: number;
+  primerLenEnabled?: boolean;
+  fwdLenMin?: number;
+  fwdLenMax?: number;
+  revLenMin?: number;
+  revLenMax?: number;
 }
 
 // JSON-RPC types

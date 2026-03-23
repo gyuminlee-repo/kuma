@@ -314,6 +314,10 @@ def _search_candidates(
     min_downstream: int,
     gc_min: float = 40.0,
     gc_max: float = 60.0,
+    fwd_len_min: int = 12,
+    fwd_len_max: int = 45,
+    rev_len_min: int = 12,
+    rev_len_max: int = 30,
 ) -> list[SdmPrimerResult]:
     """Search for SDM primer candidates at a given tolerance.
 
@@ -345,6 +349,7 @@ def _search_candidates(
             fwd_result = _extend_forward(
                 overlap_seq, mutation.mt_codon, downstream_seq,
                 tm_target_fwd, fwd_tol, min_downstream,
+                fwd_len_min=fwd_len_min, fwd_len_max=fwd_len_max,
             )
             if fwd_result is not None:
                 break
@@ -362,6 +367,7 @@ def _search_candidates(
         while rev_tol <= tolerance + 1e-9:
             rev_result = _extend_reverse(
                 overlap_seq, upstream_seq, tm_target_rev, rev_tol,
+                rev_len_min=rev_len_min, rev_len_max=rev_len_max,
             )
             if rev_result is not None:
                 break
@@ -439,6 +445,10 @@ def _design_single_sdm(
     codon_strategy: str = "closest",
     gc_min: float = 40.0,
     gc_max: float = 60.0,
+    fwd_len_min: int = 12,
+    fwd_len_max: int = 45,
+    rev_len_min: int = 12,
+    rev_len_max: int = 30,
 ) -> list[SdmPrimerResult]:
     """Design SDM primers for a single mutation.
 
@@ -492,6 +502,8 @@ def _design_single_sdm(
                     tm_target_fwd, tm_target_rev, tm_target_overlap,
                     tolerance=round(tol, 1), min_downstream=min_downstream,
                     gc_min=gc_min, gc_max=gc_max,
+                    fwd_len_min=fwd_len_min, fwd_len_max=fwd_len_max,
+                    rev_len_min=rev_len_min, rev_len_max=rev_len_max,
                 )
                 all_candidates.extend(candidates)
 
@@ -792,6 +804,10 @@ def design_sdm_primers(
     tm_overlap_target: float | None = None,
     gc_min: float = 40.0,
     gc_max: float = 60.0,
+    fwd_len_min: int = 12,
+    fwd_len_max: int = 45,
+    rev_len_min: int = 12,
+    rev_len_max: int = 30,
 ) -> tuple[list[SdmPrimerResult], dict[str, list[SdmPrimerResult]]]:
     """Design SDM primers for a batch of mutations.
 
@@ -871,7 +887,7 @@ def design_sdm_primers(
     all_candidates: dict[str, list[SdmPrimerResult]] = {}
     for mut in mutations:
         logger.info("Designing primers for %s ...", mut.raw)
-        candidates = _design_single_sdm(sequence, mut, profile, overlap_len, codon_strategy=codon_strategy, gc_min=gc_min, gc_max=gc_max)
+        candidates = _design_single_sdm(sequence, mut, profile, overlap_len, codon_strategy=codon_strategy, gc_min=gc_min, gc_max=gc_max, fwd_len_min=fwd_len_min, fwd_len_max=fwd_len_max, rev_len_min=rev_len_min, rev_len_max=rev_len_max)
         if not candidates:
             failed_reasons[mut.raw] = "No valid primer pair found within Tm tolerance ±3.0°C"
             logger.warning("FAILED: %s - no valid primer pair found", mut.raw)

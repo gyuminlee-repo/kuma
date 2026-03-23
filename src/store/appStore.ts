@@ -26,6 +26,8 @@ interface AppState {
   mutationInputMode: "text" | "evolvepro";
   mutationText: string;
   evolveproCsvPath: string;
+  positionDiversityEnabled: boolean;
+  maxPerPosition: number;
   parsedMutations: ParsedMutation[];
   parseErrors: ParseError[];
 
@@ -38,6 +40,11 @@ interface AppState {
   tmOverlapTarget: number;
   gcMin: number;
   gcMax: number;
+  primerLenEnabled: boolean;
+  fwdLenMin: number;
+  fwdLenMax: number;
+  revLenMin: number;
+  revLenMax: number;
 
   // Design
   isDesigning: boolean;
@@ -63,6 +70,8 @@ interface AppState {
   setSelectedGene: (gene: string) => void;
   setMutationInputMode: (mode: "text" | "evolvepro") => void;
   setMutationText: (text: string) => void;
+  setPositionDiversityEnabled: (enabled: boolean) => void;
+  setMaxPerPosition: (n: number) => void;
   loadEvolveproCsv: (filepath: string) => Promise<void>;
   setCodonStrategy: (strategy: "closest" | "optimal") => void;
   setMaxPrimers: (n: number) => void;
@@ -79,6 +88,8 @@ interface AppState {
   setStatus: (msg: string) => void;
   setTmTargets: (fwd: number, rev: number, ov: number) => void;
   setGcRange: (min: number, max: number) => void;
+  setPrimerLenEnabled: (enabled: boolean) => void;
+  setPrimerLenRange: (fwdMin: number, fwdMax: number, revMin: number, revMax: number) => void;
   getWorkspaceSnapshot: () => import("../types/models").WorkspaceV1;
   restoreWorkspace: (ws: import("../types/models").WorkspaceV1) => Promise<void>;
   resetAll: () => void;
@@ -93,6 +104,8 @@ const INITIAL_STATE = {
   mutationInputMode: "text" as "text" | "evolvepro",
   mutationText: "",
   evolveproCsvPath: "",
+  positionDiversityEnabled: false,
+  maxPerPosition: 1,
   parsedMutations: [] as ParsedMutation[],
   parseErrors: [] as ParseError[],
   selectedGene: "",
@@ -103,6 +116,11 @@ const INITIAL_STATE = {
   tmOverlapTarget: 42,
   gcMin: 40,
   gcMax: 60,
+  primerLenEnabled: false,
+  fwdLenMin: 12,
+  fwdLenMax: 45,
+  revLenMin: 12,
+  revLenMax: 30,
   isDesigning: false,
   designResults: [] as SdmPrimerResult[],
   successCount: 0,
@@ -157,18 +175,40 @@ export const useAppStore = create<AppState>((set, get) => {
     setMutationInputMode: (mode) => set({ mutationInputMode: mode }),
     setMutationText: (text) => set({ mutationText: text }),
 
+    setPositionDiversityEnabled: (enabled: boolean) => {
+      set({ positionDiversityEnabled: enabled });
+      // Re-load CSV if available
+      const { evolveproCsvPath } = get();
+      if (evolveproCsvPath) get().loadEvolveproCsv(evolveproCsvPath);
+    },
+
+    setMaxPerPosition: (n: number) => {
+      set({ maxPerPosition: Math.max(1, n) });
+      // Re-load CSV if available
+      const { evolveproCsvPath } = get();
+      if (evolveproCsvPath) get().loadEvolveproCsv(evolveproCsvPath);
+    },
+
     loadEvolveproCsv: async (filepath: string) => {
       try {
+        const { positionDiversityEnabled, maxPerPosition } = get();
         set({ statusMessage: "Loading EVOLVEpro CSV...", evolveproCsvPath: filepath });
         const result = await sendRequest<EvolveproLoadResult>(
           "load_evolvepro_csv",
-          { filepath, top_n: 9999 },
+          {
+            filepath,
+            top_n: 9999,
+            ...(positionDiversityEnabled && { max_per_position: maxPerPosition }),
+          },
         );
         const variantText = result.variants.join("\n");
+        const filteredMsg = result.filtered_count
+          ? ` (${result.filtered_count} filtered, max ${maxPerPosition}/pos)`
+          : "";
         set({
           mutationText: variantText,
           mutationInputMode: "evolvepro",
-          statusMessage: `EVOLVEpro: ${result.selected_count} variants loaded (y_pred sorted)`,
+          statusMessage: `EVOLVEpro: ${result.selected_count}/${result.total_count} variants${filteredMsg}`,
         });
       } catch (err) {
         set({ statusMessage: `EVOLVEpro CSV load failed: ${formatError(err)}` });
@@ -202,6 +242,11 @@ export const useAppStore = create<AppState>((set, get) => {
         tmOverlapTarget,
         gcMin,
         gcMax,
+        primerLenEnabled,
+        fwdLenMin,
+        fwdLenMax,
+        revLenMin,
+        revLenMax,
       } = get();
 
       if (!fastaPath) {
@@ -243,6 +288,12 @@ export const useAppStore = create<AppState>((set, get) => {
           tm_overlap_target: tmOverlapTarget,
           gc_min: gcMin,
           gc_max: gcMax,
+          ...(primerLenEnabled && {
+            fwd_len_min: fwdLenMin,
+            fwd_len_max: fwdLenMax,
+            rev_len_min: revLenMin,
+            rev_len_max: revLenMax,
+          }),
         });
 
         set({
@@ -380,7 +431,22 @@ export const useAppStore = create<AppState>((set, get) => {
         const { plateMappings, dedupInfo, designResults, tableSorting } = get();
         const sortedMuts = getSortedMutations(designResults, tableSorting);
         const ordered = reorderMappings(plateMappings, dedupInfo, sortedMuts);
-        await sendRequest("export_excel", { filepath, mappings: ordered, dedup_info: dedupInfo });
+
+        // Enrich mappings with Tm/codon data from designResults
+        const resultByMut = new Map(designResults.map((r) => [r.mutation, r]));
+        const enriched = ordered.map((m) => {
+          const r = resultByMut.get(m.mutation);
+          if (!r) return m;
+          return {
+            ...m,
+            tm: m.primer_type === "forward" ? r.tm_no_fwd : r.tm_no_rev,
+            tm_overlap: r.tm_overlap,
+            wt_codon: r.wt_codon,
+            mt_codon: r.mt_codon,
+          };
+        });
+
+        await sendRequest("export_excel", { filepath, mappings: enriched, dedup_info: dedupInfo });
         set({ statusMessage: `Exported Excel: ${filepath}` });
       } catch (err) {
         set({ statusMessage: `Excel export failed: ${formatError(err)}` });
@@ -401,6 +467,12 @@ export const useAppStore = create<AppState>((set, get) => {
 
     setGcRange: (min: number, max: number) => {
       set({ gcMin: min, gcMax: max });
+    },
+
+    setPrimerLenEnabled: (enabled: boolean) => set({ primerLenEnabled: enabled }),
+
+    setPrimerLenRange: (fwdMin: number, fwdMax: number, revMin: number, revMax: number) => {
+      set({ fwdLenMin: fwdMin, fwdLenMax: fwdMax, revLenMin: revMin, revLenMax: revMax });
     },
 
     getWorkspaceSnapshot: () => {
@@ -428,6 +500,11 @@ export const useAppStore = create<AppState>((set, get) => {
         tmOverlapTarget: s.tmOverlapTarget,
         gcMin: s.gcMin,
         gcMax: s.gcMax,
+        primerLenEnabled: s.primerLenEnabled,
+        fwdLenMin: s.fwdLenMin,
+        fwdLenMax: s.fwdLenMax,
+        revLenMin: s.revLenMin,
+        revLenMax: s.revLenMax,
       };
     },
 
@@ -463,6 +540,11 @@ export const useAppStore = create<AppState>((set, get) => {
         tmOverlapTarget: ws.tmOverlapTarget ?? 42,
         gcMin: ws.gcMin ?? 40,
         gcMax: ws.gcMax ?? 60,
+        primerLenEnabled: ws.primerLenEnabled ?? false,
+        fwdLenMin: ws.fwdLenMin ?? 12,
+        fwdLenMax: ws.fwdLenMax ?? 45,
+        revLenMin: ws.revLenMin ?? 12,
+        revLenMax: ws.revLenMax ?? 30,
         statusMessage: "Workspace loaded. Re-designing to sync backend...",
       });
       if (ws.mutationText && ws.fastaPath) {

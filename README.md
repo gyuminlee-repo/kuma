@@ -12,13 +12,14 @@ Given a mutation list (plain text / EVOLVEpro CSV) and a template sequence (GenB
 
 ## Features
 
-- **EVOLVEpro CSV input**: Load EVOLVEpro output CSV → sort by y_pred descending → auto-select the configured number of variants
+- **EVOLVEpro CSV input**: Load EVOLVEpro output CSV → sort by y_pred descending → auto-select the configured number of variants. Optional **position diversity** filter limits mutations per amino acid position to avoid local minima
 - **Batch mutation parsing**: Mutation list in `Q232A` format → automatic codon position calculation + WT codon validation
 - **Codon strategy selection**: Choose between Min. changes (fewest base changes from WT) or Optimal (E. coli-optimized codon)
 - **Overlap upstream design**: Overlap region is placed immediately upstream of the mutation codon (EVOLVEpro convention)
 - **Tm calculation**: Fixed SantaLucia 1998 (polymerase-independent). Default targets: Fwd 62°C, Rev 58°C, Overlap 42°C. Adjustable in Advanced Options
 - **Progressive Tm tolerance**: Starts at ±0.5°C for Fwd/Rev independently, expanding by ±0.5°C per step (up to ±3.0°C)
 - **GC% range**: Default 40-60% (adjustable in Advanced Options). Primers outside range receive a penalty
+- **Primer length limit**: Optional Fwd/Rev min/max length constraint (adjustable in Advanced Options)
 - **Hairpin / Homodimer check**: Secondary structure check via primer3 calc_hairpin/calc_homodimer. Displays Tm and dG (kcal/mol)
 - **Candidate comparison and swap**: Click a primer sequence to open a candidate comparison popover (clickable even with a single candidate). Manually swapped primers are highlighted in amber in the result table
 - **Custom primer evaluation**: Enter a sequence directly in the candidate popover → Tm, GC%, hairpin, and off-target are calculated immediately

@@ -290,6 +290,16 @@ def handle_design_sdm_primers(params: dict) -> dict:
     gc_min = float(params.get("gc_min", 40))
     gc_max = float(params.get("gc_max", 60))
 
+    fwd_len_min = int(params.get("fwd_len_min", 12))
+    fwd_len_max = int(params.get("fwd_len_max", 45))
+    rev_len_min = int(params.get("rev_len_min", 12))
+    rev_len_max = int(params.get("rev_len_max", 30))
+
+    # Validate primer length ranges
+    for label, lo, hi in [("fwd", fwd_len_min, fwd_len_max), ("rev", rev_len_min, rev_len_max)]:
+        if not (1 <= lo <= hi <= 100):
+            raise ValueError(f"{label}_len_min ({lo}) must be <= {label}_len_max ({hi}), both in 1-100")
+
     # Validate GC% range (0-100%)
     if not (0 <= gc_min <= 100) or not (0 <= gc_max <= 100):
         raise ValueError(f"gc_min/gc_max must be between 0 and 100, got {gc_min}/{gc_max}")
@@ -346,6 +356,10 @@ def handle_design_sdm_primers(params: dict) -> dict:
             tm_overlap_target=tm_overlap_target,
             gc_min=gc_min,
             gc_max=gc_max,
+            fwd_len_min=fwd_len_min,
+            fwd_len_max=fwd_len_max,
+            rev_len_min=rev_len_min,
+            rev_len_max=rev_len_max,
         )
     finally:
         if temp_csv is not None:
@@ -489,7 +503,7 @@ def handle_export_excel(params: dict) -> dict:
     if mappings_data:
         if not isinstance(mappings_data, list):
             raise ValueError("mappings must be a list")
-        required_fields = {f.name for f in dc_fields(PlateMapping)}
+        required_fields = {"well", "primer_name", "sequence", "primer_type", "mutation"}
         mappings = []
         for i, m in enumerate(mappings_data):
             if not isinstance(m, dict):
@@ -497,7 +511,10 @@ def handle_export_excel(params: dict) -> dict:
             missing = required_fields - m.keys()
             if missing:
                 raise ValueError(f"mappings[{i}] missing fields: {sorted(missing)}")
-            mappings.append(PlateMapping(**m))
+            # Only pass fields that PlateMapping accepts
+            valid_keys = {f.name for f in dc_fields(PlateMapping)}
+            filtered = {k: v for k, v in m.items() if k in valid_keys}
+            mappings.append(PlateMapping(**filtered))
         rev_groups = dedup_data or {}
     else:
         if not _last_results:
@@ -518,6 +535,7 @@ def handle_load_evolvepro_csv(params: dict) -> dict:
     filepath = str(resolved)
 
     top_n = int(params.get("top_n", 96))
+    max_per_pos = int(params.get("max_per_position", 0))
 
     rows: list[tuple[str, float]] = []
     with open(filepath, encoding="utf-8") as f:
@@ -539,12 +557,28 @@ def handle_load_evolvepro_csv(params: dict) -> dict:
     if has_ypred:
         rows.sort(key=lambda r: r[1], reverse=True)
 
+    # Position diversity filter: limit mutations per amino acid position
+    pre_filter_count = len(rows)
+    if max_per_pos > 0:
+        _pos_re = re.compile(r"^[A-Z](\d+)[A-Z]$")
+        pos_count: dict[int, int] = {}
+        filtered: list[tuple[str, float]] = []
+        for variant, y in rows:
+            m = _pos_re.match(variant)
+            pos = int(m.group(1)) if m else -1
+            count = pos_count.get(pos, 0)
+            if pos == -1 or count < max_per_pos:
+                filtered.append((variant, y))
+                pos_count[pos] = count + 1
+        rows = filtered
+
     selected = rows[:top_n]
     return {
         "variants": [v for v, _ in selected],
         "y_preds": [round(y, 4) for _, y in selected],
-        "total_count": len(rows),
+        "total_count": pre_filter_count,
         "selected_count": len(selected),
+        "filtered_count": pre_filter_count - len(rows),
     }
 
 

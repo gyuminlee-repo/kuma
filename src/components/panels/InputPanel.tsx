@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useAppStore } from "../../store/appStore";
 import { basename } from "../../lib/utils";
@@ -25,6 +25,16 @@ export function InputPanel() {
   const loadSequence = useAppStore((s) => s.loadSequence);
   const evolveproCsvPath = useAppStore((s) => s.evolveproCsvPath);
   const loadEvolveproCsv = useAppStore((s) => s.loadEvolveproCsv);
+  const positionDiversityEnabled = useAppStore((s) => s.positionDiversityEnabled);
+  const setPositionDiversityEnabled = useAppStore((s) => s.setPositionDiversityEnabled);
+  const maxPerPosition = useAppStore((s) => s.maxPerPosition);
+  const setMaxPerPosition = useAppStore((s) => s.setMaxPerPosition);
+
+  // Local string state for maxPerPosition input
+  const [maxPerPosStr, setMaxPerPosStr] = useState(String(maxPerPosition));
+  useEffect(() => setMaxPerPosStr(String(maxPerPosition)), [maxPerPosition]);
+  const commitMaxPerPos = () => { const n = parseInt(maxPerPosStr); if (isFinite(n) && n >= 1) setMaxPerPosition(n); };
+  const onMaxPerPosKeyDown = (e: KeyboardEvent<HTMLInputElement>) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); };
 
   // Debounced mutation validation
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -138,6 +148,33 @@ export function InputPanel() {
                   ? basename(evolveproCsvPath)
                   : "No file selected"}
               </span>
+            </div>
+            <div className="flex items-center gap-2 text-xs">
+              <label className="flex items-center gap-1 cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="h-3 w-3 accent-green-600"
+                  checked={positionDiversityEnabled}
+                  onChange={(e) => setPositionDiversityEnabled(e.target.checked)}
+                />
+                <span className="text-gray-500">Position diversity</span>
+              </label>
+              {positionDiversityEnabled && (
+                <>
+                  <span className="text-gray-400">max</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={20}
+                    className="w-12 h-5 text-xs border border-gray-300 rounded px-1 text-center focus:outline-none focus:ring-1 focus:ring-green-500"
+                    value={maxPerPosStr}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => setMaxPerPosStr(e.target.value)}
+                    onBlur={commitMaxPerPos}
+                    onKeyDown={onMaxPerPosKeyDown}
+                  />
+                  <span className="text-gray-400">per position</span>
+                </>
+              )}
             </div>
             {mutationText && (
               <textarea

@@ -30,12 +30,23 @@ export function ParameterPanel() {
 
   const setTmTargets = useAppStore((s) => s.setTmTargets);
   const setGcRange = useAppStore((s) => s.setGcRange);
+  const primerLenEnabled = useAppStore((s) => s.primerLenEnabled);
+  const setPrimerLenEnabled = useAppStore((s) => s.setPrimerLenEnabled);
+  const fwdLenMin = useAppStore((s) => s.fwdLenMin);
+  const fwdLenMax = useAppStore((s) => s.fwdLenMax);
+  const revLenMin = useAppStore((s) => s.revLenMin);
+  const revLenMax = useAppStore((s) => s.revLenMax);
+  const setPrimerLenRange = useAppStore((s) => s.setPrimerLenRange);
 
   const tmFwdInput = useLocalNum(tmFwd, 62, (v) => setTmTargets(v, tmRev, tmOv));
   const tmRevInput = useLocalNum(tmRev, 58, (v) => setTmTargets(tmFwd, v, tmOv));
   const tmOvInput = useLocalNum(tmOv, 42, (v) => setTmTargets(tmFwd, tmRev, v));
   const gcMinInput = useLocalNum(gcMin, 40, (v) => setGcRange(v, gcMax));
   const gcMaxInput = useLocalNum(gcMax, 60, (v) => setGcRange(gcMin, v));
+  const fwdLenMinInput = useLocalNum(fwdLenMin, 12, (v) => setPrimerLenRange(v, fwdLenMax, revLenMin, revLenMax));
+  const fwdLenMaxInput = useLocalNum(fwdLenMax, 45, (v) => setPrimerLenRange(fwdLenMin, v, revLenMin, revLenMax));
+  const revLenMinInput = useLocalNum(revLenMin, 12, (v) => setPrimerLenRange(fwdLenMin, fwdLenMax, v, revLenMax));
+  const revLenMaxInput = useLocalNum(revLenMax, 30, (v) => setPrimerLenRange(fwdLenMin, fwdLenMax, revLenMin, v));
   const maxPrimersInput = useLocalNum(maxPrimers, 95, setMaxPrimers);
 
   const gcInvalid = gcMin >= gcMax;
@@ -136,6 +147,38 @@ export function ParameterPanel() {
           </div>
           {gcInvalid && (
             <div className="text-[10px] text-red-500 pl-20">Min must be less than Max</div>
+          )}
+          <div className="flex items-center gap-2 text-xs mt-1.5">
+            <label className="flex items-center gap-1 cursor-pointer">
+              <input
+                type="checkbox"
+                className="h-3 w-3 accent-green-600"
+                checked={primerLenEnabled}
+                onChange={(e) => setPrimerLenEnabled(e.target.checked)}
+              />
+              <span className="text-gray-500">Primer length limit</span>
+            </label>
+          </div>
+          {primerLenEnabled && (
+            <div className="space-y-1 pl-4">
+              <div className="flex items-center gap-1 text-xs">
+                <span className="w-12 text-gray-400">Fwd:</span>
+                <input type="number" className={numInput} {...fwdLenMinInput} />
+                <span className="text-gray-400">~</span>
+                <input type="number" className={numInput} {...fwdLenMaxInput} />
+                <span className="text-gray-400 text-[10px]">bp</span>
+              </div>
+              <div className="flex items-center gap-1 text-xs">
+                <span className="w-12 text-gray-400">Rev:</span>
+                <input type="number" className={numInput} {...revLenMinInput} />
+                <span className="text-gray-400">~</span>
+                <input type="number" className={numInput} {...revLenMaxInput} />
+                <span className="text-gray-400 text-[10px]">bp</span>
+              </div>
+              {(fwdLenMin >= fwdLenMax || revLenMin >= revLenMax) && (
+                <div className="text-[10px] text-red-500 pl-12">Min must be less than Max</div>
+              )}
+            </div>
           )}
         </div>
       )}

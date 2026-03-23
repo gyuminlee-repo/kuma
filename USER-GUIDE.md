@@ -114,6 +114,7 @@ Select EVOLVEpro mode and use the Browse button to load an EVOLVEpro output CSV.
 
 - CSV must contain `variant` and `y_pred` columns
 - Variants are sorted by y_pred descending; the number specified in the Mutations setting is auto-selected (default 95)
+- **Position diversity** (optional): Enable the checkbox to limit mutations per amino acid position. When high-scoring mutations cluster at the same position (e.g., Q10A, Q10L, Q10V), only the top N per position are kept, diversifying the search space
 - After loading, the text area can be edited directly
 
 ![Mutation list input](docs/screenshots/03-mutations-entered.png)
@@ -156,6 +157,7 @@ Click the "Advanced options..." link to expand the collapsible panel. If not set
 | Tm Rev | 58°C | Target Tm for the full reverse primer |
 | Tm Overlap | 42°C | Target Tm for the overlap region |
 | GC% | 40-60% | Allowed GC content range. Primers outside range receive a penalty |
+| Primer length limit | Off | Enable to set Fwd/Rev min/max primer length (bp). Default: Fwd 12-45, Rev 12-30 |
 
 Tm calculation uses the SantaLucia 1998 model with fixed conditions (mv_conc=50 mM, dna_conc=250 nM), independent of polymerase type. Because the same primer sequence is ordered regardless of which polymerase is used, the Tm calculation method does not need to change per polymerase.
 
@@ -262,9 +264,9 @@ File menu > Export Excel
 Four sheets are generated per plate. For more than 96 mutations, plates are split (Fwd List 1, Fwd Plate 1, Rev List 1, Rev Plate 1, ...). The Rev plate for each number contains only the reverse primers corresponding to the mutations in the matching Fwd plate (Fwd-Rev pairing).
 
 Sheet structure per plate:
-1. **Fwd List** sheet: Forward primer list (Well, name with `_F` suffix, sequence, length, mutation). Green background.
+1. **Fwd List** sheet: Forward primer list (Well, Primer Name, Sequence, Length, Tm, Tm_Overlap, WT_Codon, MT_Codon, Mutation). Green background.
 2. **Fwd Plate** sheet: Forward 96-well plate layout (`mutation_F` format). Green background.
-3. **Rev List** sheet: Reverse primer list (deduplicated, `_R` suffix). Orange background. Primers shared across multiple mutations have a blue background.
+3. **Rev List** sheet: Reverse primer list (deduplicated, `_R` suffix, same columns as Fwd List). Orange background. Primers shared across multiple mutations have a blue background.
 4. **Rev Plate** sheet: Reverse 96-well plate layout (`mutation_R` format). Shared primers in blue background.
 
 Colors match the program UI:
