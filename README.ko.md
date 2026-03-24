@@ -22,8 +22,11 @@ https://github.com/user-attachments/assets/f95e65ca-22d2-4479-a06b-8dcd553571be
 - **GC% 범위**: 기본 40-60% (Advanced Options에서 변경 가능). 범위 밖 프라이머에 패널티 부여
 - **프라이머 길이 제한**: Fwd/Rev min/max 길이 제약 (Advanced Options에서 선택적 활성화)
 - **Hairpin / Homodimer 검증**: primer3 calc_hairpin/calc_homodimer로 이차 구조 체크. Tm, dG(kcal/mol) 표시
+- **컬럼 정렬**: 모든 결과 컬럼 정렬 가능 (서열 제외). Plate map export에도 정렬 순서 반영
 - **후보 비교 및 교체**: 프라이머 서열 클릭 시 후보 비교 팝오버 (candidate 1개여도 클릭 가능). 수동 교체 시 결과 테이블에 amber 하이라이트
 - **커스텀 프라이머 평가**: 후보 팝오버에서 직접 서열 입력 → Tm, GC%, hairpin, off-target 즉시 계산
+- **실패 돌연변이 재시도**: 실패한 mutation 클릭 → Tm/GC%/길이/tolerance 조절 → 조절된 파라미터로 재설계 → 후보 선택
+- **실패 시 자동 채움(Fill on failure)**: 활성화(기본값) 시 일부 mutation 실패해도 추가 후보로 요청 수만큼 자동 채움
 - **Off-target 검증**: template sense/antisense strand에서 비특이적 결합 자동 검출. OT `!!` 클릭 시 결합 위치·strand·Tm 상세 팝오버
 - **96-well Plate Map**: Fwd/Rev 쌍 연동 플레이트. 96개 초과 시 multi-plate 슬라이드 (Plate N Fwd ↔ Plate N Rev). 테이블 정렬 연동
 - **Workspace 저장/불러오기**: 파라미터 + 설계 결과를 `.kuro.json`으로 저장하여 세션 간 이동 가능
@@ -162,6 +165,7 @@ KURO/
 | `get_plate_map` | — | `{mappings[], dedup_info}` |
 | `export_excel` | `filepath` | `{success, filepath}` |
 | `evaluate_primer` | `{mutation, fasta_path, forward_seq, reverse_seq}` | 커스텀 프라이머 평가 `SdmPrimerResult` |
+| `retry_failed_mutation` | `{mutation, fasta_path, target_start, tm_*/gc_*/len_*}` | `{candidates[], count}` — 커스텀 파라미터로 단일 mutation 재설계 |
 | `save_workspace` | `{filepath, data}` | `{success, filepath}` |
 | `load_workspace` | `{filepath}` | workspace JSON object |
 

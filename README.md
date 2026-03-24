@@ -21,8 +21,11 @@ Given a mutation list (plain text / EVOLVEpro CSV) and a template sequence (GenB
 - **GC% range**: Default 40-60% (adjustable in Advanced Options). Primers outside range receive a penalty
 - **Primer length limit**: Optional Fwd/Rev min/max length constraint (adjustable in Advanced Options)
 - **Hairpin / Homodimer check**: Secondary structure check via primer3 calc_hairpin/calc_homodimer. Displays Tm and dG (kcal/mol)
+- **Column sorting**: All result columns sortable (except sequences). Plate map export respects current sort order
 - **Candidate comparison and swap**: Click a primer sequence to open a candidate comparison popover (clickable even with a single candidate). Manually swapped primers are highlighted in amber in the result table
 - **Custom primer evaluation**: Enter a sequence directly in the candidate popover → Tm, GC%, hairpin, and off-target are calculated immediately
+- **Failed mutation retry**: Click a failed mutation → adjust Tm/GC%/length/tolerance → re-design with modified parameters → select from candidates
+- **Fill on failure**: When enabled (default), automatically fills the requested mutation count from extra candidates when some mutations fail
 - **Off-target detection**: Automatic detection of non-specific binding on the template sense/antisense strand. Click OT `!!` to view a detailed popover with binding position, strand, and Tm
 - **96-well Plate Map**: Linked Fwd/Rev plate. Multi-plate slide for >96 mutations (Plate N Fwd ↔ Plate N Rev). Synchronized with table sort order
 - **Workspace save/load**: Save parameters + design results as a `.kuro.json` file for cross-session portability
@@ -163,6 +166,7 @@ KURO/
 | `get_plate_map` | — | `{mappings[], dedup_info}` |
 | `export_excel` | `filepath` | `{success, filepath}` |
 | `evaluate_primer` | `{mutation, fasta_path, forward_seq, reverse_seq}` | Custom primer evaluation `SdmPrimerResult` |
+| `retry_failed_mutation` | `{mutation, fasta_path, target_start, tm_*/gc_*/len_*}` | `{candidates[], count}` — redesign single mutation with custom params |
 | `save_workspace` | `{filepath, data}` | `{success, filepath}` |
 | `load_workspace` | `{filepath}` | workspace JSON object |
 
