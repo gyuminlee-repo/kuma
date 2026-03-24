@@ -145,7 +145,7 @@ Both strategies also try alternative codons as candidates and select the primer 
 
 ### Mutations
 
-Sets an upper limit on the number of mutations to design (default 95). Only the top N from the input are used. When count exceeds 96, the Plate Map is automatically split into multiple plates, and the ‹ › buttons navigate between plates. The Rev plate for each number contains only the reverse primers corresponding to the mutations in the matching Fwd plate.
+Sets the **target number of successful designs** (default 95). When "Fill on failure" is enabled, KURO sends extra mutations to the backend and fills the count from next-ranked candidates if some fail. When disabled, exactly N mutations are attempted and failures reduce the final count. When count exceeds 96, the Plate Map is automatically split into multiple plates, and the ‹ › buttons navigate between plates. The Rev plate for each number contains only the reverse primers corresponding to the mutations in the matching Fwd plate.
 
 ### Advanced Options
 
@@ -157,7 +157,8 @@ Click the "Advanced options..." link to expand the collapsible panel. If not set
 | Tm Rev | 58°C | Target Tm for the full reverse primer |
 | Tm Overlap | 42°C | Target Tm for the overlap region |
 | GC% | 40-60% | Allowed GC content range. Primers outside range receive a penalty |
-| Primer length limit | Off | Enable to set Fwd/Rev min/max primer length (bp). Default: Fwd 12-45, Rev 12-30 |
+| Primer length limit | Off | Enable to set Fwd/Rev min/max primer length (bp). Default: Fwd 18-45, Rev 18-30 |
+| Fill on failure | On | When some mutations fail, automatically replace with next-ranked candidates to fill the requested count |
 
 Tm calculation uses the SantaLucia 1998 model with fixed conditions (mv_conc=50 mM, dna_conc=250 nM), independent of polymerase type. Because the same primer sequence is ordered regardless of which polymerase is used, the Tm calculation method does not need to change per polymerase.
 
@@ -171,6 +172,8 @@ Tm calculation uses the SantaLucia 1998 model with fixed conditions (mv_conc=50 
 |--------|-------------|
 | # | Input order (based on EVOLVEpro y_pred descending) |
 | Mutation | Mutation notation (e.g., Q232A). Click header to sort by aa position |
+
+All columns except Forward/Reverse Primer are sortable by clicking the column header. The current sort order is reflected in Excel plate map export.
 | Forward Primer | Full forward primer sequence. Click to open candidate comparison popover |
 | Reverse Primer | Full reverse primer sequence. Click to open candidate comparison popover |
 | Fwd / Rev | Primer length (bp) |
