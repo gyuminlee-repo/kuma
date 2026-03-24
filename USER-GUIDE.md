@@ -275,116 +275,21 @@ Click the **Clear All** button at the bottom of the sidebar to reset all inputs 
 
 ---
 
-## 8. CLI Usage
-
-The same design pipeline can be run from the command line without the GUI.
-
-### Primer Design
-
-```bash
-python -m kuro design \
-  --fasta <your_sequence.gb> \
-  --target-start <cds_start> \
-  --mutations <mutations.csv> \
-  --polymerase Q5 \
-  --overlap 20 \
-  --output results/
-```
-
-| Option | Description | Default |
-|--------|-------------|---------|
-| `--fasta` | Template FASTA file path | (required) |
-| `--target-start` | CDS start codon position (0-based) | (required) |
-| `--mutations` | Mutation CSV file path (must contain `mutation` column) | (required) |
-| `--polymerase` | Polymerase profile name | Q5 |
-| `--overlap` | Overlap length (bp) | 20 |
-| `--output` | Output directory | results/ |
-| `-v` | Verbose log output | off |
-
-Output files:
-- `sdm_primers.tsv` — Full primer information
-- `plate_mapping.xlsx` — 96-well plate layout Excel file
-
-### Regenerating the Plate Map
-
-The plate map can be regenerated from an existing TSV file.
-
-```bash
-python -m kuro plate-map \
-  --primers results/sdm_primers.tsv \
-  --output results/plate_mapping.xlsx
-```
-
----
-
-## 9. Troubleshooting
+## 8. Troubleshooting
 
 ### "expected WT amino acid X at position N, but codon YYY encodes Z"
 
-**Cause**: The CDS Start position is specified incorrectly, causing a codon frame shift.
-
-**Resolution**:
-1. Verify that the CDS Start value exactly matches the ATG position (0-based) of the target gene
-2. Reload the FASTA in the GUI and check the auto-detected ATG list
-3. Re-verify the CDS annotation position in SnapGene/Benchling (1-based → 0-based conversion required)
-
-### Sidecar connection failure (app remains in "error" state)
-
-**Cause**: Python sidecar binary is missing or corrupted.
-
-**Resolution**:
-```bash
-# Rebuild sidecar
-npm run sidecar:build
-
-# Restart app after rebuild
-npm run dev
-```
-
-- The sidecar attempts up to 5 automatic reconnections (3-second intervals, progressively increasing)
-- Verify that Python dependencies (`primer3-py`, `biopython`, `openpyxl`) are correctly installed
+The CDS Start position is incorrect, causing a codon frame shift. Verify that the selected gene in the Target Gene dropdown matches the intended CDS. Re-check the CDS annotation position in SnapGene/Benchling (1-based → 0-based conversion required).
 
 ### Tm condition not met (many FAILs)
 
-**Cause**: Overlap region Tm is too high to maintain a 5°C margin from the non-overlap Tm.
+Overlap region Tm is too high to maintain a 5°C margin from the non-overlap Tm.
 
-**Resolution**:
-1. **Adjust Tm targets**: Increasing the Tm Fwd/Rev targets in Advanced Options increases the non-overlap length, which widens the gap from the overlap Tm.
-2. **Use candidate comparison**: Click a Fwd/Rev sequence → in the candidate popover, select an alternative with a better Tm condition, or enter a custom primer.
-3. In regions with extremely high GC content, meeting this condition may be inherently difficult.
+1. **Adjust Tm targets**: Increase Tm Fwd/Rev targets in Advanced Options to widen the gap from overlap Tm.
+2. **Use candidate comparison**: Click a Fwd/Rev sequence → select an alternative with a better Tm condition, or enter a custom primer.
+3. **Retry failed mutations**: Click a failed mutation tag → adjust parameters → Retry with relaxed constraints.
 
 ### "CSV file missing required 'mutation' column"
 
-**Cause**: The CSV header does not contain a `mutation` column.
-
-**Resolution**: The first row must include a column named exactly `mutation`. The name is case-sensitive.
-
----
-
-## 10. Test Data
-
-The project contains sample and test data files in two directories.
-
-| File | Contents |
-|------|----------|
-| `samples/sample_plasmid.gb` | 5000 bp synthetic plasmid (GenBank). Contains 3 CDS features |
-| `samples/sample_evolvepro.csv` | EVOLVEpro-format CSV. 120 variants (y_pred descending) |
-| `fixtures/pSHCE-dmpR.fa` | 4532 bp plasmid (FASTA). For pytest |
-| `fixtures/mutation_list_insilico_test.csv` | 12 alanine scanning mutations. For pytest |
-
-### Test Run Example
-
-```bash
-# Run full pipeline via CLI
-python -m kuro design \
-  --fasta samples/sample_plasmid.gb \
-  --target-start 1957 \
-  --mutations samples/sample_evolvepro.csv \
-  --polymerase Q5 \
-  --overlap 20 \
-  --output results/
-
-# Run pytest (38 tests)
-python -m pytest tests/ -v
-```
+The first row of the CSV must include a column named exactly `mutation` (case-sensitive).
 
