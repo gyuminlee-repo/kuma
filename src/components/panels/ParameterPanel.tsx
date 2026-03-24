@@ -37,6 +37,8 @@ export function ParameterPanel() {
   const revLenMin = useAppStore((s) => s.revLenMin);
   const revLenMax = useAppStore((s) => s.revLenMax);
   const setPrimerLenRange = useAppStore((s) => s.setPrimerLenRange);
+  const fillOnFailure = useAppStore((s) => s.fillOnFailure);
+  const setFillOnFailure = useAppStore((s) => s.setFillOnFailure);
 
   const tmFwdInput = useLocalNum(tmFwd, 62, (v) => setTmTargets(v, tmRev, tmOv));
   const tmRevInput = useLocalNum(tmRev, 58, (v) => setTmTargets(tmFwd, v, tmOv));
@@ -118,24 +120,29 @@ export function ParameterPanel() {
       </button>
 
       {showAdvanced && (
-        <div className="space-y-1.5 pl-2 border-l-2 border-gray-200">
+        <div className="pl-2 border-l-2 border-gray-200 space-y-0.5">
+          {/* Tm */}
+          <div className="text-[9px] uppercase text-gray-400 tracking-wider pt-0.5">Tm</div>
           <div className="flex items-center gap-2 text-xs">
-            <span className="w-20 text-gray-500">Tm Fwd:</span>
+            <span className="w-20 text-gray-500">Fwd:</span>
             <input type="number" className={numInput} {...tmFwdInput} />
             <span className="text-gray-400">°C</span>
           </div>
           <div className="flex items-center gap-2 text-xs">
-            <span className="w-20 text-gray-500">Tm Rev:</span>
+            <span className="w-20 text-gray-500">Rev:</span>
             <input type="number" className={numInput} {...tmRevInput} />
             <span className="text-gray-400">°C</span>
           </div>
           <div className="flex items-center gap-2 text-xs">
-            <span className="w-20 text-gray-500">Tm Overlap:</span>
+            <span className="w-20 text-gray-500">Overlap:</span>
             <input type="number" className={numInput} {...tmOvInput} />
             <span className="text-gray-400">°C</span>
           </div>
+
+          {/* GC */}
+          <div className="text-[9px] uppercase text-gray-400 tracking-wider pt-1.5">GC%</div>
           <div className="flex items-center gap-2 text-xs">
-            <span className="w-20 text-gray-500">GC%:</span>
+            <span className="w-20 text-gray-500">Range:</span>
             <input type="number"
               className={`${gcInputBase} ${gcInvalid ? "border-red-400 focus:ring-red-400" : "border-gray-300 focus:ring-green-500"}`}
               {...gcMinInput} />
@@ -148,38 +155,52 @@ export function ParameterPanel() {
           {gcInvalid && (
             <div className="text-[10px] text-red-500 pl-20">Min must be less than Max</div>
           )}
-          <div className="flex items-center gap-2 text-xs mt-1.5">
-            <label className="flex items-center gap-1 cursor-pointer">
-              <input
-                type="checkbox"
-                className="h-3 w-3 accent-green-600"
-                checked={primerLenEnabled}
-                onChange={(e) => setPrimerLenEnabled(e.target.checked)}
-              />
-              <span className="text-gray-500">Primer length limit</span>
-            </label>
-          </div>
-          {primerLenEnabled && (
-            <div className="space-y-1 pl-4">
-              <div className="flex items-center gap-1 text-xs">
-                <span className="w-12 text-gray-400">Fwd:</span>
+
+          {/* Primer Length */}
+          <div className="text-[9px] uppercase text-gray-400 tracking-wider pt-1.5">Primer Length</div>
+          <label className="flex items-center gap-1 text-xs cursor-pointer">
+            <input
+              type="checkbox"
+              className="h-3 w-3 accent-green-600"
+              checked={primerLenEnabled}
+              onChange={(e) => setPrimerLenEnabled(e.target.checked)}
+            />
+            <span className="text-gray-500">Limit</span>
+            {primerLenEnabled && (
+              <span className="flex items-center gap-1 ml-1">
+                <span className="text-gray-400">F</span>
                 <input type="number" className={numInput} {...fwdLenMinInput} />
                 <span className="text-gray-400">~</span>
                 <input type="number" className={numInput} {...fwdLenMaxInput} />
-                <span className="text-gray-400 text-[10px]">bp</span>
-              </div>
-              <div className="flex items-center gap-1 text-xs">
-                <span className="w-12 text-gray-400">Rev:</span>
+              </span>
+            )}
+          </label>
+          {primerLenEnabled && (
+            <>
+              <div className="flex items-center gap-1 text-xs pl-4">
+                <span className="text-gray-400 ml-3">R</span>
                 <input type="number" className={numInput} {...revLenMinInput} />
                 <span className="text-gray-400">~</span>
                 <input type="number" className={numInput} {...revLenMaxInput} />
                 <span className="text-gray-400 text-[10px]">bp</span>
               </div>
               {(fwdLenMin >= fwdLenMax || revLenMin >= revLenMax) && (
-                <div className="text-[10px] text-red-500 pl-12">Min must be less than Max</div>
+                <div className="text-[10px] text-red-500 pl-8">Min must be less than Max</div>
               )}
-            </div>
+            </>
           )}
+
+          {/* Design Behavior */}
+          <div className="text-[9px] uppercase text-gray-400 tracking-wider pt-1.5">Design</div>
+          <label className="flex items-center gap-1 text-xs cursor-pointer">
+            <input
+              type="checkbox"
+              className="h-3 w-3 accent-green-600"
+              checked={fillOnFailure}
+              onChange={(e) => setFillOnFailure(e.target.checked)}
+            />
+            <span className="text-gray-500">Fill on failure</span>
+          </label>
         </div>
       )}
     </div>

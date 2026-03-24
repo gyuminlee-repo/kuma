@@ -45,6 +45,7 @@ interface AppState {
   fwdLenMax: number;
   revLenMin: number;
   revLenMax: number;
+  fillOnFailure: boolean;
 
   // Design
   isDesigning: boolean;
@@ -90,6 +91,7 @@ interface AppState {
   setGcRange: (min: number, max: number) => void;
   setPrimerLenEnabled: (enabled: boolean) => void;
   setPrimerLenRange: (fwdMin: number, fwdMax: number, revMin: number, revMax: number) => void;
+  setFillOnFailure: (enabled: boolean) => void;
   getWorkspaceSnapshot: () => import("../types/models").WorkspaceV1;
   restoreWorkspace: (ws: import("../types/models").WorkspaceV1) => Promise<void>;
   resetAll: () => void;
@@ -121,6 +123,7 @@ const INITIAL_STATE = {
   fwdLenMax: 45,
   revLenMin: 18,
   revLenMax: 30,
+  fillOnFailure: true,
   isDesigning: false,
   designResults: [] as SdmPrimerResult[],
   successCount: 0,
@@ -247,6 +250,7 @@ export const useAppStore = create<AppState>((set, get) => {
         fwdLenMax,
         revLenMin,
         revLenMax,
+        fillOnFailure,
       } = get();
 
       if (!fastaPath) {
@@ -258,11 +262,13 @@ export const useAppStore = create<AppState>((set, get) => {
         return;
       }
 
-      // Send maxPrimers + buffer to account for failures, cap successes to maxPrimers
+      // fillOnFailure: send extra buffer to replace failures. Otherwise send exactly maxPrimers.
       const allLines = mutationText.trim().split("\n").filter((l) => l.trim() && !l.trim().startsWith("#"));
       const intendedMuts = new Set(allLines.slice(0, maxPrimers).map((l) => l.trim()));
-      const buffer = Math.max(Math.ceil(maxPrimers * 1.5), maxPrimers + 20);
-      const limitedLines = allLines.slice(0, buffer);
+      const sendCount = fillOnFailure
+        ? Math.max(Math.ceil(maxPrimers * 1.5), maxPrimers + 20)
+        : maxPrimers;
+      const limitedLines = allLines.slice(0, sendCount);
       const limitedText = limitedLines.join("\n");
 
       // Resolve CDS start from selected gene (selectedGene stores cds_start as string)
@@ -497,6 +503,8 @@ export const useAppStore = create<AppState>((set, get) => {
       set({ fwdLenMin: fwdMin, fwdLenMax: fwdMax, revLenMin: revMin, revLenMax: revMax });
     },
 
+    setFillOnFailure: (enabled: boolean) => set({ fillOnFailure: enabled }),
+
     getWorkspaceSnapshot: () => {
       const s = get();
       return {
@@ -527,6 +535,7 @@ export const useAppStore = create<AppState>((set, get) => {
         fwdLenMax: s.fwdLenMax,
         revLenMin: s.revLenMin,
         revLenMax: s.revLenMax,
+        fillOnFailure: s.fillOnFailure,
       };
     },
 
@@ -567,6 +576,7 @@ export const useAppStore = create<AppState>((set, get) => {
         fwdLenMax: ws.fwdLenMax ?? 45,
         revLenMin: ws.revLenMin ?? 12,
         revLenMax: ws.revLenMax ?? 30,
+        fillOnFailure: ws.fillOnFailure ?? true,
         statusMessage: "Workspace loaded. Re-designing to sync backend...",
       });
       if (ws.mutationText && ws.fastaPath) {

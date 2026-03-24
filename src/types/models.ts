@@ -156,6 +156,7 @@ export interface WorkspaceV1 {
   fwdLenMax?: number;
   revLenMin?: number;
   revLenMax?: number;
+  fillOnFailure?: boolean;
 }
 
 // JSON-RPC types
