@@ -253,6 +253,14 @@ At the bottom of the popover, enter the Forward sequence in three parts:
 
 Reverse is entered as a single input. Click **Evaluate** to calculate Tm, GC%, hairpin/homodimer, and off-target. The result is added as a purple-background "custom" row. Custom candidates persist after closing the popover. Apply with the **Use** button or delete with the **×** button.
 
+### Failed Mutation Retry
+
+Click a failed mutation tag in the Failed section below the result table. A popup opens with two recovery options:
+
+**Retry with parameters**: Adjust Tm targets, GC% range, primer length limits, and tolerance max, then click **Retry**. The engine redesigns only this mutation with the adjusted parameters and shows up to 10 candidates sorted by penalty. Click **Select** on the desired candidate to add it to the result table.
+
+**Manual input**: Expand "Or enter manually..." to directly input Forward (Overlap + Codon + Downstream) and Reverse sequences. Click **Evaluate** to calculate metrics and add to results.
+
 ---
 
 ## 7. Export

@@ -22,12 +22,14 @@ sys.path.insert(0, str(_PROJECT_ROOT))
 from kuro.sdm_engine import (
     GeneInfo,
     SdmPrimerResult,
+    _design_single_sdm,
     design_sdm_primers,
     evaluate_custom_primer,
     load_fasta,
     load_sequence,
 )
-from kuro.mutation import parse_mutation_notation
+from kuro.mutation import Mutation, parse_mutation_notation
+from kuro.codon_table import CODON_TO_AA, best_codon
 from kuro.polymerase import PolymeraseRegistry
 from kuro.plate_mapper import (
     PlateMapping,
@@ -707,6 +709,69 @@ def handle_load_workspace(params: dict) -> dict:
     return data
 
 
+def handle_retry_failed(params: dict) -> dict:
+    """Retry designing primers for a single failed mutation with custom parameters."""
+    mutation_raw = params.get("mutation", "").strip()
+    if not mutation_raw:
+        raise ValueError("mutation is required")
+
+    fasta_path = params.get("fasta_path")
+    if not fasta_path:
+        raise ValueError("fasta_path is required")
+    resolved_fasta = _validate_filepath(fasta_path, allowed_extensions=_ALLOWED_FASTA_EXTENSIONS)
+
+    target_start = int(params.get("target_start", 0))
+    overlap_len = int(params.get("overlap_len", 20))
+    codon_strategy = params.get("codon_strategy", "closest")
+
+    tm_fwd = float(params.get("tm_fwd_target", 62))
+    tm_rev = float(params.get("tm_rev_target", 58))
+    tm_ov = float(params.get("tm_overlap_target", 42))
+    gc_min = float(params.get("gc_min", 40))
+    gc_max = float(params.get("gc_max", 60))
+    fwd_len_min = int(params.get("fwd_len_min", 18))
+    fwd_len_max = int(params.get("fwd_len_max", 45))
+    rev_len_min = int(params.get("rev_len_min", 18))
+    rev_len_max = int(params.get("rev_len_max", 30))
+    num_return = int(params.get("num_return", 10))
+
+    # Load template
+    _header, sequence, _genes = load_sequence(resolved_fasta)
+
+    # Parse mutation
+    wt_aa, position, mt_aa = parse_mutation_notation(mutation_raw)
+    codon_start = target_start + (position - 1) * 3
+    wt_codon = sequence[codon_start:codon_start + 3]
+    actual_aa = CODON_TO_AA.get(wt_codon)
+    if actual_aa != wt_aa:
+        raise ValueError(f"WT amino acid mismatch: expected {wt_aa} at position {position}, but codon {wt_codon} encodes {actual_aa}")
+    mt_codon = best_codon(mt_aa)
+
+    mut = Mutation(
+        raw=mutation_raw, wt_aa=wt_aa, position=position, mt_aa=mt_aa,
+        codon_start=codon_start, wt_codon=wt_codon, mt_codon=mt_codon,
+    )
+
+    # Build polymerase profile with custom Tm targets
+    profile = _poly_registry.get("Benchling")
+    profile.opt_tm_fwd = tm_fwd
+    profile.opt_tm_rev = tm_rev
+    profile.opt_tm_overlap = tm_ov
+
+    candidates = _design_single_sdm(
+        sequence, mut, profile, overlap_len,
+        num_return=num_return, codon_strategy=codon_strategy,
+        gc_min=gc_min, gc_max=gc_max,
+        fwd_len_min=fwd_len_min, fwd_len_max=fwd_len_max,
+        rev_len_min=rev_len_min, rev_len_max=rev_len_max,
+    )
+
+    return {
+        "candidates": [_serialize_result_with_counts(c) for c in candidates],
+        "count": len(candidates),
+    }
+
+
 # --- Dispatcher ---
 
 _METHODS = {
@@ -720,6 +785,7 @@ _METHODS = {
     "swap_primer": handle_swap_primer,
     "export_excel": handle_export_excel,
     "evaluate_primer": handle_evaluate_primer,
+    "retry_failed_mutation": handle_retry_failed,
     "save_workspace": handle_save_workspace,
     "load_workspace": handle_load_workspace,
 }

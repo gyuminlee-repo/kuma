@@ -96,6 +96,7 @@ interface AppState {
   restoreWorkspace: (ws: import("../types/models").WorkspaceV1) => Promise<void>;
   resetAll: () => void;
   evaluateCustomPrimer: (mutation: string, fwdSeq: string, revSeq: string, overlapLen?: number) => Promise<SdmPrimerResult | null>;
+  retryFailedMutation: (mutation: string, params: Record<string, number | string>) => Promise<SdmPrimerResult[]>;
   addDesignResult: (mutation: string, result: SdmPrimerResult) => void;
   removeDesignResult: (mutation: string, reason: string) => void;
 }
@@ -604,6 +605,21 @@ export const useAppStore = create<AppState>((set, get) => {
       } catch (err) {
         set({ statusMessage: `Evaluate failed: ${formatError(err)}` });
         return null;
+      }
+    },
+
+    retryFailedMutation: async (mutation: string, params: Record<string, number | string>) => {
+      try {
+        const { fastaPath, selectedGene } = get();
+        const targetStart = selectedGene ? parseInt(selectedGene, 10) : 0;
+        const result = await sendRequest<{ candidates: SdmPrimerResult[] }>(
+          "retry_failed_mutation",
+          { mutation, fasta_path: fastaPath, target_start: targetStart, ...params },
+        );
+        return result.candidates;
+      } catch (err) {
+        set({ statusMessage: `Retry failed: ${formatError(err)}` });
+        return [];
       }
     },
 
