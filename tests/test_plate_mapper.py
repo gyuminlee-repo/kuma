@@ -32,14 +32,14 @@ class TestDeduplicateReverse:
     def test_no_duplicates(self, sdm_results):
         rev_map = deduplicate_reverse(sdm_results)
         total_mutations = sum(len(v) for v in rev_map.values())
-        assert total_mutations == 12
+        assert total_mutations == len(sdm_results)
 
 
 class TestGeneratePlateMap:
     def test_plate_map_count(self, sdm_results):
         fwd_map, rev_map = generate_plate_map(sdm_results, deduplicate_rev=True)
-        assert len(fwd_map) == 12
-        assert len(rev_map) <= 12
+        assert len(fwd_map) == len(sdm_results)
+        assert len(rev_map) <= len(sdm_results)
 
     def test_well_names_valid(self, sdm_results):
         fwd_map, rev_map = generate_plate_map(sdm_results)
@@ -57,8 +57,8 @@ class TestGeneratePlateMap:
 
     def test_no_dedup(self, sdm_results):
         fwd_map, rev_map = generate_plate_map(sdm_results, deduplicate_rev=False)
-        assert len(fwd_map) == 12
-        assert len(rev_map) == 12
+        assert len(fwd_map) == len(sdm_results)
+        assert len(rev_map) == len(sdm_results)
 
 
 class TestExportExcel:

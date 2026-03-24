@@ -117,9 +117,9 @@ const INITIAL_STATE = {
   gcMin: 40,
   gcMax: 60,
   primerLenEnabled: false,
-  fwdLenMin: 12,
+  fwdLenMin: 18,
   fwdLenMax: 45,
-  revLenMin: 12,
+  revLenMin: 18,
   revLenMax: 30,
   isDesigning: false,
   designResults: [] as SdmPrimerResult[],
@@ -258,9 +258,11 @@ export const useAppStore = create<AppState>((set, get) => {
         return;
       }
 
-      // Send all mutations — maxPrimers caps the final success count, not the input
+      // Send maxPrimers + buffer to account for failures, cap successes to maxPrimers
       const allLines = mutationText.trim().split("\n").filter((l) => l.trim() && !l.trim().startsWith("#"));
-      const limitedText = allLines.join("\n");
+      const buffer = Math.max(Math.ceil(maxPrimers * 1.5), maxPrimers + 20);
+      const limitedLines = allLines.slice(0, buffer);
+      const limitedText = limitedLines.join("\n");
 
       // Resolve CDS start from selected gene (selectedGene stores cds_start as string)
       const targetStart = selectedGene ? parseInt(selectedGene, 10) : 0;

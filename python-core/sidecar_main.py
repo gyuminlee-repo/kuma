@@ -290,9 +290,9 @@ def handle_design_sdm_primers(params: dict) -> dict:
     gc_min = float(params.get("gc_min", 40))
     gc_max = float(params.get("gc_max", 60))
 
-    fwd_len_min = int(params.get("fwd_len_min", 12))
+    fwd_len_min = int(params.get("fwd_len_min", 18))
     fwd_len_max = int(params.get("fwd_len_max", 45))
-    rev_len_min = int(params.get("rev_len_min", 12))
+    rev_len_min = int(params.get("rev_len_min", 18))
     rev_len_max = int(params.get("rev_len_max", 30))
 
     # Validate primer length ranges

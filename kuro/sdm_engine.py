@@ -139,7 +139,7 @@ def _extend_forward(
     target_tm: float,
     tolerance: float,
     min_downstream: int = 4,
-    fwd_len_min: int = 12,
+    fwd_len_min: int = 18,
     fwd_len_max: int = 45,
 ) -> tuple[str, str, float] | None:
     """Extend forward primer: overlap + mutant codon + downstream extension.
@@ -184,7 +184,7 @@ def _extend_reverse(
     upstream_seq: str,
     target_tm: float,
     tolerance: float,
-    rev_len_min: int = 12,
+    rev_len_min: int = 18,
     rev_len_max: int = 30,
 ) -> tuple[str, str, float] | None:
     """Extend reverse primer: upstream extension + rc(overlap).
@@ -314,9 +314,9 @@ def _search_candidates(
     min_downstream: int,
     gc_min: float = 40.0,
     gc_max: float = 60.0,
-    fwd_len_min: int = 12,
+    fwd_len_min: int = 18,
     fwd_len_max: int = 45,
-    rev_len_min: int = 12,
+    rev_len_min: int = 18,
     rev_len_max: int = 30,
 ) -> list[SdmPrimerResult]:
     """Search for SDM primer candidates at a given tolerance.
@@ -445,9 +445,9 @@ def _design_single_sdm(
     codon_strategy: str = "closest",
     gc_min: float = 40.0,
     gc_max: float = 60.0,
-    fwd_len_min: int = 12,
+    fwd_len_min: int = 18,
     fwd_len_max: int = 45,
-    rev_len_min: int = 12,
+    rev_len_min: int = 18,
     rev_len_max: int = 30,
 ) -> list[SdmPrimerResult]:
     """Design SDM primers for a single mutation.
@@ -804,9 +804,9 @@ def design_sdm_primers(
     tm_overlap_target: float | None = None,
     gc_min: float = 40.0,
     gc_max: float = 60.0,
-    fwd_len_min: int = 12,
+    fwd_len_min: int = 18,
     fwd_len_max: int = 45,
-    rev_len_min: int = 12,
+    rev_len_min: int = 18,
     rev_len_max: int = 30,
 ) -> tuple[list[SdmPrimerResult], dict[str, list[SdmPrimerResult]]]:
     """Design SDM primers for a batch of mutations.
