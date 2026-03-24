@@ -419,27 +419,3 @@ python -m kuro design \
 python -m pytest tests/ -v
 ```
 
----
-
-## 11. Screenshot Auto-capture
-
-USER-GUIDE screenshots are auto-captured using Playwright.
-
-```bash
-# Install dependencies (first time only)
-npm install
-npx playwright install chromium
-
-# Run capture (starts Vite server in MOCK_MODE, then auto-captures)
-npm run capture-guide
-```
-
-Captured images are saved to `docs/screenshots/`. After UI layout changes, re-run the command above to update the screenshots.
-
-| File | Screen State |
-|------|-------------|
-| `01-initial.png` | Initial empty screen |
-| `02-file-loaded.png` | GenBank file loaded |
-| `03-mutations-entered.png` | Mutation list entered |
-| `04-design-complete.png` | Design complete (result table) |
-| `05-plate-map.png` | Plate Map displayed |

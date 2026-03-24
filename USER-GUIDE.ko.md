@@ -419,27 +419,3 @@ python -m kuro design \
 python -m pytest tests/ -v
 ```
 
----
-
-## 11. 스크린샷 자동 캡처
-
-USER-GUIDE 스크린샷은 Playwright를 사용하여 자동 캡처한다.
-
-```bash
-# 의존성 설치 (최초 1회)
-npm install
-npx playwright install chromium
-
-# 캡처 실행 (MOCK_MODE로 Vite 서버 시작 후 자동 캡처)
-npm run capture-guide
-```
-
-캡처된 이미지는 `docs/screenshots/` 에 저장된다. UI 레이아웃이 변경된 후에는 위 명령을 재실행하여 스크린샷을 갱신한다.
-
-| 파일 | 화면 상태 |
-|------|----------|
-| `01-initial.png` | 초기 빈 화면 |
-| `02-file-loaded.png` | GenBank 파일 로드 완료 |
-| `03-mutations-entered.png` | 변이 목록 입력 |
-| `04-design-complete.png` | 프라이머 설계 완료 (결과 테이블) |
-| `05-plate-map.png` | Plate Map 표시 |
