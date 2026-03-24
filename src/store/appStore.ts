@@ -260,6 +260,7 @@ export const useAppStore = create<AppState>((set, get) => {
 
       // Send maxPrimers + buffer to account for failures, cap successes to maxPrimers
       const allLines = mutationText.trim().split("\n").filter((l) => l.trim() && !l.trim().startsWith("#"));
+      const intendedMuts = new Set(allLines.slice(0, maxPrimers).map((l) => l.trim()));
       const buffer = Math.max(Math.ceil(maxPrimers * 1.5), maxPrimers + 20);
       const limitedLines = allLines.slice(0, buffer);
       const limitedText = limitedLines.join("\n");
@@ -301,16 +302,15 @@ export const useAppStore = create<AppState>((set, get) => {
         const capped = result.results.slice(0, maxPrimers);
         const allFailed = result.failed_mutations ?? [];
         const tmMet = capped.filter((r) => r.tm_condition_met).length;
-        // Only show failures if we couldn't fill maxPrimers
-        const filled = capped.length >= maxPrimers;
-        const shownFailed = filled ? [] : allFailed;
-        const failedMsg = shownFailed.length > 0 ? ` | ${shownFailed.length} failed` : "";
+        // Show failures only for user's intended top-maxPrimers mutations (not buffer overflow)
+        const intendedFailed = allFailed.filter((f) => intendedMuts.has(f.mutation));
+        const failedMsg = intendedFailed.length > 0 ? ` | ${intendedFailed.length} failed` : "";
 
         set({
           designResults: capped,
           successCount: capped.length,
           totalCount: result.total_count,
-          failedMutations: shownFailed,
+          failedMutations: intendedFailed,
           statusMessage: `${capped.length}/${maxPrimers} designed | Tm: ${tmMet}/${capped.length}${failedMsg}`,
         });
 
