@@ -299,18 +299,19 @@ export const useAppStore = create<AppState>((set, get) => {
 
         // Cap successful results to maxPrimers
         const capped = result.results.slice(0, maxPrimers);
-        const failed = result.failed_mutations ?? [];
+        const allFailed = result.failed_mutations ?? [];
         const tmMet = capped.filter((r) => r.tm_condition_met).length;
-        const extraSuccesses = result.results.length - capped.length;
-        const failedMsg = failed.length > 0 ? ` | ${failed.length} failed` : "";
-        const extraMsg = extraSuccesses > 0 ? ` | ${extraSuccesses} extra` : "";
+        // Only show failures if we couldn't fill maxPrimers
+        const filled = capped.length >= maxPrimers;
+        const shownFailed = filled ? [] : allFailed;
+        const failedMsg = shownFailed.length > 0 ? ` | ${shownFailed.length} failed` : "";
 
         set({
           designResults: capped,
           successCount: capped.length,
           totalCount: result.total_count,
-          failedMutations: failed,
-          statusMessage: `${capped.length}/${result.total_count} designed | Tm: ${tmMet}/${capped.length}${failedMsg}${extraMsg}`,
+          failedMutations: shownFailed,
+          statusMessage: `${capped.length}/${maxPrimers} designed | Tm: ${tmMet}/${capped.length}${failedMsg}`,
         });
 
         // Auto-fetch plate map (non-fatal) — filter to capped mutations only
