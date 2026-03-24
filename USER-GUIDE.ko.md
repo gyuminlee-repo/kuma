@@ -9,37 +9,6 @@ Site-Directed Mutagenesis (SDM) 프라이머 배치 설계 데스크톱 앱.
 
 ## 1. 빠른 시작
 
-### 사전 요구 사항
-
-| 구분 | 최소 버전 |
-|------|-----------|
-| Node.js | 18+ |
-| Rust | Tauri v2 호환 |
-| Python | 3.11+ |
-
-### 개발 모드 실행
-
-```bash
-# 의존성 설치
-npm install
-pip install primer3-py==2.3.0 biopython==1.84 openpyxl==3.1.5
-
-# 개발 서버 (Vite, port 1421)
-npm run dev
-```
-
-### 배포용 빌드
-
-```bash
-# Python 사이드카 바이너리 생성 (PyInstaller)
-npm run sidecar:build
-
-# Tauri 앱 + 사이드카 통합 빌드
-npm run build:all
-```
-
-### 첫 프라이머 설계 (GUI)
-
 1. 앱을 실행하면 사이드카(Python 백엔드)가 자동으로 연결된다. 상태 표시줄에 "Ready"가 나타날 때까지 대기.
 2. **Browse** 버튼으로 시퀀스 파일(GenBank .gb / SnapGene .dna)을 불러온다.
 3. CDS Start ATG가 자동 선택된다 (가장 긴 ORF 기준). 필요 시 드롭다운에서 변경.

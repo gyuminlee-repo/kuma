@@ -9,37 +9,6 @@ Given a mutation list (plain text / EVOLVEpro CSV) and a template sequence (GenB
 
 ## 1. Quick Start
 
-### Prerequisites
-
-| Item | Minimum Version |
-|------|----------------|
-| Node.js | 18+ |
-| Rust | Tauri v2 compatible |
-| Python | 3.11+ |
-
-### Development Mode
-
-```bash
-# Install dependencies
-npm install
-pip install primer3-py==2.3.0 biopython==1.84 openpyxl==3.1.5
-
-# Start dev server (Vite, port 1421)
-npm run dev
-```
-
-### Production Build
-
-```bash
-# Generate Python sidecar binary (PyInstaller)
-npm run sidecar:build
-
-# Tauri app + sidecar integrated build
-npm run build:all
-```
-
-### First Primer Design (GUI)
-
 1. When the app starts, the sidecar (Python backend) connects automatically. Wait until "Ready" appears in the status bar.
 2. Click the **Browse** button to load a sequence file (GenBank .gb / SnapGene .dna).
 3. The CDS start ATG is auto-selected (based on the longest ORF). Change it from the dropdown if needed.
