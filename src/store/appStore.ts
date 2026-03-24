@@ -309,7 +309,7 @@ export const useAppStore = create<AppState>((set, get) => {
         set({
           designResults: capped,
           successCount: capped.length,
-          totalCount: result.total_count,
+          totalCount: maxPrimers,
           failedMutations: intendedFailed,
           statusMessage: `${capped.length}/${maxPrimers} designed | Tm: ${tmMet}/${capped.length}${failedMsg}`,
         });
