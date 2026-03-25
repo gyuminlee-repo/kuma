@@ -1,8 +1,8 @@
-# KURO Update Notes — v0.9.5 → v0.9.17
+# KURO Update Notes — v0.9.5 → v0.9.25
 
 [한국어](UPDATE-NOTES.ko.md) | **English**
 
-Released: 2026-03-24
+Released: 2026-03-25
 
 ---
 
@@ -20,6 +20,7 @@ Released: 2026-03-24
 
 ## EVOLVEpro
 
+- **Domain diversity**: Distributes Top-N variant selection across different protein structural domains via InterPro/Pfam annotation. Enter a UniProt accession to auto-fetch domain boundaries, or define them manually. Two allocation strategies: proportional (by domain length) and equal. Prevents high-scoring mutations from clustering in a single domain
 - **Position diversity filter**: Optional checkbox limits the number of mutations per amino acid position. Prevents high-scoring mutations at the same position (e.g., Q10A, Q10L, Q10V) from dominating the selection. Adjustable max per position (default 1)
 
 ## Result Table

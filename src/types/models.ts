@@ -85,12 +85,34 @@ export interface SdmPrimerResult {
   warnings: string[];
 }
 
+export interface DomainInfo {
+  name: string;
+  id: string;         // InterPro/Pfam ID (예: "PF01397")
+  start: number;      // 1-based residue position
+  end: number;
+  db: string;         // "Pfam" | "InterPro" | "manual"
+}
+
+export interface FetchDomainsResult {
+  accession: string;
+  domains: DomainInfo[];
+  source: "interpro_api" | "manual" | "error";
+  protein_length?: number;
+  error_msg?: string;
+}
+
+export interface DomainStat {
+  quota: number;
+  selected: number;
+}
+
 export interface EvolveproLoadResult {
   variants: string[];
   y_preds: number[];
   total_count: number;
   selected_count: number;
   filtered_count?: number;
+  domain_stats?: Record<string, DomainStat>;
 }
 
 export interface FailedMutation {
@@ -157,6 +179,11 @@ export interface WorkspaceV1 {
   revLenMin?: number;
   revLenMax?: number;
   fillOnFailure?: boolean;
+  // Domain diversity (optional, 하위호환)
+  uniprotAccession?: string;
+  domains?: DomainInfo[];
+  domainDiversityEnabled?: boolean;
+  domainStrategy?: "proportional" | "equal";
 }
 
 // JSON-RPC types

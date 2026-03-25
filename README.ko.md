@@ -13,7 +13,7 @@ https://github.com/user-attachments/assets/f95e65ca-22d2-4479-a06b-8dcd553571be
 
 ## 주요 기능
 
-- **EVOLVEpro CSV 입력**: EVOLVEpro 출력 CSV 로드 → y_pred 내림차순 정렬 → 설정 개수만큼 자동 선정. **위치 다양성(position diversity)** 필터로 아미노산 위치당 최대 N개 제한 가능
+- **EVOLVEpro CSV 입력**: EVOLVEpro 출력 CSV 로드 → y_pred 내림차순 정렬 → 설정 개수만큼 자동 선정. **위치 다양성(position diversity)** 필터로 아미노산 위치당 최대 N개 제한 가능. **도메인 다양성(domain diversity)** 필터로 단백질 구조 도메인 간 분산 선택 (InterPro/Pfam 자동 조회 또는 수동 입력)
 - **배치 변이 파싱**: `Q232A` 형식의 변이 목록 → 코돈 위치 자동 계산 + WT 코돈 검증
 - **코돈 전략 선택**: Min. changes (WT 대비 최소 염기 변이) 또는 Optimal (E. coli 최적 코돈) 중 선택 가능
 - **Overlap upstream 설계**: overlap 영역이 mutation codon 바로 앞(upstream)에 위치 (EVOLVEpro 방식)

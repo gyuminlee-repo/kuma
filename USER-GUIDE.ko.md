@@ -84,6 +84,7 @@ EVOLVEpro 모드를 선택하고 Browse 버튼으로 EVOLVEpro 출력 CSV를 로
 - `variant`와 `y_pred` 열이 포함된 CSV
 - y_pred 내림차순으로 정렬하여 Mutations 설정값만큼 자동 선정 (기본 95개)
 - **위치 다양성(Position diversity)** (선택): 체크박스를 활성화하면 아미노산 위치당 최대 N개로 제한. 같은 위치에 고점수 변이가 집중될 때 (예: Q10A, Q10L, Q10V) 위치당 대표만 유지하여 탐색 범위를 다양화
+- **도메인 다양성(Domain diversity)** (선택): 단백질 구조 도메인 간 분산 선택. UniProt accession 입력 후 Fetch 클릭 시 InterPro/Pfam에서 도메인 경계를 자동 조회. Proportional(도메인 길이 비례 배분) 또는 Equal(균등 배분) 전략 선택 가능. 오프라인 환경에서는 수동 입력으로 도메인 정의 가능
 - 로드 후 텍스트 영역에서 직접 편집 가능
 
 ![변이 목록 입력](docs/screenshots/03-mutations-entered.png)

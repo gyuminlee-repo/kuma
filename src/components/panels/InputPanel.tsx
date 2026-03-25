@@ -29,6 +29,23 @@ export function InputPanel() {
   const setPositionDiversityEnabled = useAppStore((s) => s.setPositionDiversityEnabled);
   const maxPerPosition = useAppStore((s) => s.maxPerPosition);
   const setMaxPerPosition = useAppStore((s) => s.setMaxPerPosition);
+  const domainDiversityEnabled = useAppStore((s) => s.domainDiversityEnabled);
+  const setDomainDiversityEnabled = useAppStore((s) => s.setDomainDiversityEnabled);
+  const domainStrategy = useAppStore((s) => s.domainStrategy);
+  const setDomainStrategy = useAppStore((s) => s.setDomainStrategy);
+  const domains = useAppStore((s) => s.domains);
+  const setDomains = useAppStore((s) => s.setDomains);
+  const fetchDomains = useAppStore((s) => s.fetchDomains);
+  const domainLoading = useAppStore((s) => s.domainLoading);
+  const uniprotAccession = useAppStore((s) => s.uniprotAccession);
+
+  // Local state for UniProt accession input
+  const [accessionInput, setAccessionInput] = useState(uniprotAccession);
+  useEffect(() => setAccessionInput(uniprotAccession), [uniprotAccession]);
+  const [addingDomain, setAddingDomain] = useState(false);
+  const [newDomainName, setNewDomainName] = useState("");
+  const [newDomainStart, setNewDomainStart] = useState("");
+  const [newDomainEnd, setNewDomainEnd] = useState("");
 
   // Local string state for maxPerPosition input
   const [maxPerPosStr, setMaxPerPosStr] = useState(String(maxPerPosition));
@@ -174,6 +191,101 @@ export function InputPanel() {
                   />
                   <span className="text-gray-400">per position</span>
                 </>
+              )}
+            </div>
+            {/* Domain Diversity */}
+            <div className="border-t border-gray-200 pt-1.5 mt-1.5 space-y-1">
+              <label className="flex items-center gap-1 cursor-pointer text-xs">
+                <input
+                  type="checkbox"
+                  className="h-3 w-3 accent-blue-600"
+                  checked={domainDiversityEnabled}
+                  onChange={(e) => setDomainDiversityEnabled(e.target.checked)}
+                />
+                <span className="text-gray-500">Domain diversity</span>
+              </label>
+              {domainDiversityEnabled && (
+                <div className="space-y-1.5 pl-4">
+                  <div className="flex gap-1 items-center">
+                    <input
+                      type="text"
+                      className="w-24 h-5 text-xs border border-gray-300 rounded px-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      placeholder="UniProt ID"
+                      value={accessionInput}
+                      onChange={(e) => setAccessionInput(e.target.value.trim())}
+                      onKeyDown={(e) => { if (e.key === "Enter" && accessionInput) fetchDomains(accessionInput); }}
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-5 text-[10px] px-2"
+                      onClick={() => accessionInput && fetchDomains(accessionInput)}
+                      disabled={domainLoading || !accessionInput}
+                    >
+                      {domainLoading ? "..." : "Fetch"}
+                    </Button>
+                  </div>
+                  <div className="flex gap-2 text-[10px] text-gray-500">
+                    <label className="flex items-center gap-0.5 cursor-pointer">
+                      <input type="radio" name="domainStrategy" className="w-2.5 h-2.5"
+                        checked={domainStrategy === "proportional"} onChange={() => setDomainStrategy("proportional")} />
+                      Proportional
+                    </label>
+                    <label className="flex items-center gap-0.5 cursor-pointer">
+                      <input type="radio" name="domainStrategy" className="w-2.5 h-2.5"
+                        checked={domainStrategy === "equal"} onChange={() => setDomainStrategy("equal")} />
+                      Equal
+                    </label>
+                  </div>
+                  {domains.length > 0 && (
+                    <div className="space-y-0.5">
+                      {domains.map((d, i) => (
+                        <div key={`${d.name}-${d.start}`} className="flex items-center gap-1 text-[10px]">
+                          <span className="w-2 h-2 rounded-sm bg-blue-400 inline-block flex-shrink-0" />
+                          <span className="text-gray-600 truncate" title={`${d.id} (${d.db})`}>
+                            {d.name} ({d.start}-{d.end})
+                          </span>
+                          <button
+                            className="text-gray-400 hover:text-red-500 ml-auto flex-shrink-0"
+                            onClick={() => setDomains(domains.filter((_, j) => j !== i))}
+                            title="Remove domain"
+                          >
+                            &times;
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {!addingDomain ? (
+                    <button
+                      className="text-[10px] text-blue-500 hover:text-blue-700"
+                      onClick={() => setAddingDomain(true)}
+                    >
+                      + Add manually
+                    </button>
+                  ) : (
+                    <div className="flex gap-1 items-center text-[10px]">
+                      <input type="text" placeholder="Name" className="w-16 h-4 border border-gray-300 rounded px-1 text-[10px]"
+                        value={newDomainName} onChange={(e) => setNewDomainName(e.target.value)} />
+                      <input type="number" placeholder="Start" className="w-10 h-4 border border-gray-300 rounded px-0.5 text-[10px] text-center"
+                        value={newDomainStart} onChange={(e) => setNewDomainStart(e.target.value)} />
+                      <span className="text-gray-400">-</span>
+                      <input type="number" placeholder="End" className="w-10 h-4 border border-gray-300 rounded px-0.5 text-[10px] text-center"
+                        value={newDomainEnd} onChange={(e) => setNewDomainEnd(e.target.value)} />
+                      <button className="text-green-600 hover:text-green-800 font-bold"
+                        onClick={() => {
+                          const s = parseInt(newDomainStart), e = parseInt(newDomainEnd);
+                          if (newDomainName && isFinite(s) && isFinite(e) && s < e) {
+                            setDomains([...domains, { name: newDomainName, id: "manual", start: s, end: e, db: "manual" }]);
+                            setNewDomainName(""); setNewDomainStart(""); setNewDomainEnd(""); setAddingDomain(false);
+                          }
+                        }}>
+                        &#10003;
+                      </button>
+                      <button className="text-gray-400 hover:text-gray-600" onClick={() => setAddingDomain(false)}>&times;</button>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
             {mutationText && (

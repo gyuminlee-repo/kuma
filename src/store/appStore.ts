@@ -17,6 +17,8 @@ import type {
   PlateMapping,
   PlateMapResult,
   EvolveproLoadResult,
+  DomainInfo,
+  FetchDomainsResult,
 } from "../types/models";
 
 interface AppState {
@@ -28,6 +30,11 @@ interface AppState {
   evolveproCsvPath: string;
   positionDiversityEnabled: boolean;
   maxPerPosition: number;
+  domainDiversityEnabled: boolean;
+  domainStrategy: "proportional" | "equal";
+  uniprotAccession: string;
+  domains: DomainInfo[];
+  domainLoading: boolean;
   parsedMutations: ParsedMutation[];
   parseErrors: ParseError[];
 
@@ -73,6 +80,10 @@ interface AppState {
   setMutationText: (text: string) => void;
   setPositionDiversityEnabled: (enabled: boolean) => void;
   setMaxPerPosition: (n: number) => void;
+  setDomainDiversityEnabled: (enabled: boolean) => void;
+  setDomainStrategy: (strategy: "proportional" | "equal") => void;
+  fetchDomains: (accession: string) => Promise<void>;
+  setDomains: (domains: DomainInfo[]) => void;
   loadEvolveproCsv: (filepath: string) => Promise<void>;
   setCodonStrategy: (strategy: "closest" | "optimal") => void;
   setMaxPrimers: (n: number) => void;
@@ -109,6 +120,11 @@ const INITIAL_STATE = {
   evolveproCsvPath: "",
   positionDiversityEnabled: false,
   maxPerPosition: 1,
+  domainDiversityEnabled: false,
+  domainStrategy: "proportional" as "proportional" | "equal",
+  uniprotAccession: "",
+  domains: [] as DomainInfo[],
+  domainLoading: false,
   parsedMutations: [] as ParsedMutation[],
   parseErrors: [] as ParseError[],
   selectedGene: "",
@@ -188,14 +204,50 @@ export const useAppStore = create<AppState>((set, get) => {
 
     setMaxPerPosition: (n: number) => {
       set({ maxPerPosition: Math.max(1, n) });
-      // Re-load CSV if available
       const { evolveproCsvPath } = get();
       if (evolveproCsvPath) get().loadEvolveproCsv(evolveproCsvPath);
     },
 
+    setDomainDiversityEnabled: (enabled: boolean) => {
+      set({ domainDiversityEnabled: enabled });
+      const { evolveproCsvPath } = get();
+      if (evolveproCsvPath) get().loadEvolveproCsv(evolveproCsvPath);
+    },
+
+    setDomainStrategy: (strategy: "proportional" | "equal") => {
+      set({ domainStrategy: strategy });
+      const { evolveproCsvPath } = get();
+      if (evolveproCsvPath) get().loadEvolveproCsv(evolveproCsvPath);
+    },
+
+    fetchDomains: async (accession: string) => {
+      set({ domainLoading: true, statusMessage: "Fetching domain info..." });
+      try {
+        const result = await sendRequest<FetchDomainsResult>("fetch_domains", { accession });
+        set({
+          uniprotAccession: accession,
+          domains: result.domains,
+          domainLoading: false,
+          statusMessage: result.domains.length > 0
+            ? `Domains: ${result.domains.length} found (${result.source})`
+            : result.error_msg ? `Domain fetch failed: ${result.error_msg}` : "No domains found",
+        });
+        const { evolveproCsvPath } = get();
+        if (evolveproCsvPath && result.domains.length > 0) get().loadEvolveproCsv(evolveproCsvPath);
+      } catch (err) {
+        set({ domainLoading: false, statusMessage: `Domain fetch failed: ${formatError(err)}` });
+      }
+    },
+
+    setDomains: (domains: DomainInfo[]) => {
+      set({ domains });
+      const { evolveproCsvPath, domainDiversityEnabled } = get();
+      if (evolveproCsvPath && domainDiversityEnabled) get().loadEvolveproCsv(evolveproCsvPath);
+    },
+
     loadEvolveproCsv: async (filepath: string) => {
       try {
-        const { positionDiversityEnabled, maxPerPosition } = get();
+        const { positionDiversityEnabled, maxPerPosition, domainDiversityEnabled, domains, domainStrategy } = get();
         set({ statusMessage: "Loading EVOLVEpro CSV...", evolveproCsvPath: filepath });
         const result = await sendRequest<EvolveproLoadResult>(
           "load_evolvepro_csv",
@@ -203,16 +255,24 @@ export const useAppStore = create<AppState>((set, get) => {
             filepath,
             top_n: 9999,
             ...(positionDiversityEnabled && { max_per_position: maxPerPosition }),
+            ...(domainDiversityEnabled && domains.length > 0 && {
+              domain_diversity: true,
+              domains: domains.map((d) => ({ name: d.name, start: d.start, end: d.end })),
+              domain_strategy: domainStrategy,
+            }),
           },
         );
         const variantText = result.variants.join("\n");
         const filteredMsg = result.filtered_count
           ? ` (${result.filtered_count} filtered, max ${maxPerPosition}/pos)`
           : "";
+        const domainMsg = result.domain_stats
+          ? " | " + Object.entries(result.domain_stats).map(([name, s]) => `${name}: ${s.selected}/${s.quota}`).join(", ")
+          : "";
         set({
           mutationText: variantText,
           mutationInputMode: "evolvepro",
-          statusMessage: `EVOLVEpro: ${result.selected_count}/${result.total_count} variants${filteredMsg}`,
+          statusMessage: `EVOLVEpro: ${result.selected_count}/${result.total_count} variants${filteredMsg}${domainMsg}`,
         });
       } catch (err) {
         set({ statusMessage: `EVOLVEpro CSV load failed: ${formatError(err)}` });
@@ -537,6 +597,10 @@ export const useAppStore = create<AppState>((set, get) => {
         revLenMin: s.revLenMin,
         revLenMax: s.revLenMax,
         fillOnFailure: s.fillOnFailure,
+        uniprotAccession: s.uniprotAccession || undefined,
+        domains: s.domains.length > 0 ? s.domains : undefined,
+        domainDiversityEnabled: s.domainDiversityEnabled || undefined,
+        domainStrategy: s.domainDiversityEnabled ? s.domainStrategy : undefined,
       };
     },
 
@@ -578,6 +642,10 @@ export const useAppStore = create<AppState>((set, get) => {
         revLenMin: ws.revLenMin ?? 12,
         revLenMax: ws.revLenMax ?? 30,
         fillOnFailure: ws.fillOnFailure ?? true,
+        uniprotAccession: ws.uniprotAccession ?? "",
+        domains: ws.domains ?? [],
+        domainDiversityEnabled: ws.domainDiversityEnabled ?? false,
+        domainStrategy: ws.domainStrategy ?? "proportional",
         statusMessage: "Workspace loaded. Re-designing to sync backend...",
       });
       if (ws.mutationText && ws.fastaPath) {

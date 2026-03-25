@@ -84,6 +84,7 @@ Select EVOLVEpro mode and use the Browse button to load an EVOLVEpro output CSV.
 - CSV must contain `variant` and `y_pred` columns
 - Variants are sorted by y_pred descending; the number specified in the Mutations setting is auto-selected (default 95)
 - **Position diversity** (optional): Enable the checkbox to limit mutations per amino acid position. When high-scoring mutations cluster at the same position (e.g., Q10A, Q10L, Q10V), only the top N per position are kept, diversifying the search space
+- **Domain diversity** (optional): Distributes variant selection across different protein structural domains. Enter a UniProt accession ID and click Fetch to auto-retrieve domain boundaries from InterPro/Pfam. Choose between Proportional (quota by domain length) and Equal (same quota per domain) strategies. Domains can also be added or removed manually for offline use
 - After loading, the text area can be edited directly
 
 ![Mutation list input](docs/screenshots/03-mutations-entered.png)

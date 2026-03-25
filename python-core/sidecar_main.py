@@ -12,6 +12,7 @@ from dataclasses import dataclass, field, fields as dc_fields, replace as dc_rep
 import re
 import sys
 import tempfile
+import urllib.request
 from pathlib import Path
 
 # Ensure kuro package is importable
@@ -574,13 +575,23 @@ def handle_load_evolvepro_csv(params: dict) -> dict:
                 pos_count[pos] = count + 1
         rows = filtered
 
-    selected = rows[:top_n]
+    domain_info = params.get("domains", [])
+    domain_diversity = params.get("domain_diversity", False)
+    domain_strategy = params.get("domain_strategy", "proportional")
+
+    if domain_diversity and domain_info:
+        selected, domain_stats = _domain_aware_select(rows, domain_info, top_n, domain_strategy)
+    else:
+        selected = rows[:top_n]
+        domain_stats = None
+
     return {
         "variants": [v for v, _ in selected],
         "y_preds": [round(y, 4) for _, y in selected],
         "total_count": pre_filter_count,
         "selected_count": len(selected),
         "filtered_count": pre_filter_count - len(rows),
+        "domain_stats": domain_stats,
     }
 
 
@@ -772,6 +783,190 @@ def handle_retry_failed(params: dict) -> dict:
     }
 
 
+def handle_fetch_domains(params: dict) -> dict:
+    """Fetch protein domain boundaries from InterPro/Pfam via UniProt accession."""
+    accession = params.get("accession", "").strip()
+    if not accession:
+        raise ValueError("UniProt accession is required")
+
+    # Try Pfam first, then fall back to full InterPro
+    endpoints = [
+        (
+            f"https://www.ebi.ac.uk/interpro/api/entry/pfam/protein/uniprot/{accession}?format=json",
+            "pfam",
+        ),
+        (
+            f"https://www.ebi.ac.uk/interpro/api/entry/interpro/protein/uniprot/{accession}?format=json",
+            "interpro",
+        ),
+    ]
+
+    for url, db_label in endpoints:
+        try:
+            req = urllib.request.Request(
+                url,
+                headers={"Accept": "application/json"},
+            )
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+
+            domains: list[dict] = []
+            protein_length = 0
+
+            for entry in data.get("results", []):
+                meta = entry.get("metadata", {})
+                entry_acc = meta.get("accession", "")
+                entry_name = meta.get("name", "")
+
+                for protein in entry.get("proteins", []):
+                    prot_len = protein.get("protein_length", 0)
+                    if prot_len > protein_length:
+                        protein_length = prot_len
+
+                    for loc in protein.get("entry_protein_locations", []):
+                        for frag in loc.get("fragments", []):
+                            domains.append({
+                                "name": entry_name,
+                                "id": entry_acc,
+                                "start": int(frag["start"]),
+                                "end": int(frag["end"]),
+                                "db": db_label,
+                            })
+
+            if domains:
+                domains.sort(key=lambda d: d["start"])
+                return {
+                    "accession": accession,
+                    "domains": domains,
+                    "source": "interpro_api",
+                    "protein_length": protein_length,
+                }
+        except Exception:
+            continue
+
+    # Both endpoints failed or returned no domains
+    return {
+        "accession": accession,
+        "domains": [],
+        "source": "error",
+        "error_msg": f"No domain data found for {accession}",
+    }
+
+
+_POS_RE = re.compile(r"[A-Z](\d+)[A-Z]")
+
+
+def _domain_aware_select(
+    rows: list[tuple[str, float]],
+    domains: list[dict],
+    top_n: int,
+    strategy: str = "proportional",
+) -> tuple[list[tuple[str, float]], dict]:
+    """Domain-based quota Top-N selection.
+
+    PI instruction: structure-aware domain-diversified selection.
+    """
+    if not domains or top_n <= 0:
+        return rows[:top_n], {}
+
+    # Map each variant to a domain (first match wins on overlap)
+    domain_bins: dict[str, list[tuple[str, float]]] = {d["name"]: [] for d in domains}
+    domain_bins["linker"] = []
+
+    for variant, y in rows:
+        m = _POS_RE.search(variant)
+        if not m:
+            domain_bins["linker"].append((variant, y))
+            continue
+        pos = int(m.group(1))
+        assigned = False
+        for d in domains:
+            if d["start"] <= pos <= d["end"]:
+                domain_bins[d["name"]].append((variant, y))
+                assigned = True
+                break
+        if not assigned:
+            domain_bins["linker"].append((variant, y))
+
+    # Calculate quotas (linker gets no dedicated quota)
+    domain_names = [d["name"] for d in domains]
+    if strategy == "equal":
+        n_domains = len(domain_names)
+        base_quota = top_n // n_domains if n_domains else 0
+        remainder = top_n % n_domains if n_domains else 0
+        quotas = {}
+        for i, name in enumerate(domain_names):
+            quotas[name] = base_quota + (1 if i < remainder else 0)
+    else:  # proportional
+        total_length = sum(d["end"] - d["start"] + 1 for d in domains)
+        if total_length == 0:
+            return rows[:top_n], {}
+        raw_quotas = {
+            d["name"]: (d["end"] - d["start"] + 1) / total_length * top_n
+            for d in domains
+        }
+        quotas = {name: int(q) for name, q in raw_quotas.items()}
+        # Distribute rounding remainders by largest fractional part
+        allocated = sum(quotas.values())
+        leftover = top_n - allocated
+        if leftover > 0:
+            frac = sorted(
+                raw_quotas.items(),
+                key=lambda kv: kv[1] - int(kv[1]),
+                reverse=True,
+            )
+            for name, _ in frac[:leftover]:
+                quotas[name] += 1
+
+    # Select within each domain by y_pred order (rows already sorted)
+    selected: list[tuple[str, float]] = []
+    selected_set: set[str] = set()
+    stats: dict[str, dict] = {}
+    remaining_capacity = 0
+
+    for name in domain_names:
+        quota = quotas[name]
+        candidates = domain_bins.get(name, [])
+        picked = candidates[:quota]
+        for v, y in picked:
+            if v not in selected_set:
+                selected.append((v, y))
+                selected_set.add(v)
+        actual = len(picked)
+        stats[name] = {"quota": quota, "selected": actual}
+        if actual < quota:
+            remaining_capacity += quota - actual
+
+    # Redistribute remaining capacity from under-filled domains
+    if remaining_capacity > 0:
+        # Collect unpicked variants from all domains (not linker)
+        unpicked: list[tuple[str, float]] = []
+        for name in domain_names:
+            for v, y in domain_bins.get(name, []):
+                if v not in selected_set:
+                    unpicked.append((v, y))
+        # Also consider linker variants
+        for v, y in domain_bins["linker"]:
+            if v not in selected_set:
+                unpicked.append((v, y))
+        unpicked.sort(key=lambda r: r[1], reverse=True)
+        for v, y in unpicked[:remaining_capacity]:
+            if v not in selected_set:
+                selected.append((v, y))
+                selected_set.add(v)
+
+    # Fill any remaining slots if total selected < top_n
+    if len(selected) < top_n:
+        for v, y in domain_bins["linker"]:
+            if len(selected) >= top_n:
+                break
+            if v not in selected_set:
+                selected.append((v, y))
+                selected_set.add(v)
+
+    return selected[:top_n], stats
+
+
 # --- Dispatcher ---
 
 _METHODS = {
@@ -788,6 +983,7 @@ _METHODS = {
     "retry_failed_mutation": handle_retry_failed,
     "save_workspace": handle_save_workspace,
     "load_workspace": handle_load_workspace,
+    "fetch_domains": handle_fetch_domains,
 }
 
 
