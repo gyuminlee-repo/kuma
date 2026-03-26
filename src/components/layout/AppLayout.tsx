@@ -6,6 +6,7 @@ import { useSidecar } from "../../hooks/useSidecar";
 import { InputPanel } from "../panels/InputPanel";
 import { ParameterPanel } from "../panels/ParameterPanel";
 import { ResultTable } from "../widgets/ResultTable";
+import { SequenceViewer } from "../widgets/SequenceViewer";
 import { PlateMap } from "../widgets/PlateMap";
 import { Button } from "../ui/button";
 import {
@@ -131,8 +132,7 @@ function MenuBar() {
   );
 }
 
-function StatusBar() {
-  const { status: sidecarStatus } = useSidecar();
+function StatusBar({ sidecarStatus }: { sidecarStatus: string }) {
   const isDesigning = useAppStore((s) => s.isDesigning);
   const progress = useAppStore((s) => s.progress);
   const statusMessage = useAppStore((s) => s.statusMessage);
@@ -160,6 +160,8 @@ function StatusBar() {
               ? "bg-yellow-500"
               : "bg-red-500"
         }`}
+        role="status"
+        aria-label={`Sidecar: ${sidecarStatus}`}
         title={`Sidecar: ${sidecarStatus}`}
       />
     </div>
@@ -167,6 +169,7 @@ function StatusBar() {
 }
 
 export function AppLayout() {
+  const { status: sidecarStatus } = useSidecar();
   const isDesigning = useAppStore((s) => s.isDesigning);
   const seqInfo = useAppStore((s) => s.seqInfo);
   const mutationText = useAppStore((s) => s.mutationText);
@@ -183,13 +186,25 @@ export function AppLayout() {
           <InputPanel />
           <ParameterPanel />
 
-          <Button
-            className="w-full"
-            onClick={() => useAppStore.getState().designPrimers()}
-            disabled={!seqInfo || isDesigning || !mutationText.trim()}
-          >
-            {isDesigning ? "Designing..." : "Design Primers"}
-          </Button>
+          <div className="flex gap-1">
+            <Button
+              className="flex-1"
+              onClick={() => useAppStore.getState().designPrimers()}
+              disabled={!seqInfo || isDesigning || !mutationText.trim()}
+            >
+              {isDesigning ? "Designing..." : "Design Primers"}
+            </Button>
+            {isDesigning && (
+              <Button
+                variant="destructive"
+                size="sm"
+                className="px-3"
+                onClick={() => useAppStore.getState().cancelDesign()}
+              >
+                Cancel
+              </Button>
+            )}
+          </div>
           <Button
             variant="outline"
             size="sm"
@@ -209,6 +224,7 @@ export function AppLayout() {
 
         {/* Right Content */}
         <div className="flex-1 flex flex-col overflow-hidden">
+          <SequenceViewer />
           <div className="flex-1 overflow-hidden">
             <ResultTable />
           </div>
@@ -218,7 +234,7 @@ export function AppLayout() {
         </div>
       </div>
 
-      <StatusBar />
+      <StatusBar sidecarStatus={sidecarStatus} />
 
       <Dialog open={clearConfirmOpen} onOpenChange={setClearConfirmOpen}>
         <DialogContent className="max-w-xs">

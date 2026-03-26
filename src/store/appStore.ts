@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { sendRequest, setProgressHandler } from "../lib/ipc";
+import { sendRequest, setProgressHandler, cancelAndRespawn } from "../lib/ipc";
 import { getSortedMutations, reorderMappings, wellName } from "../lib/plate-utils";
 import type { SortingState, Updater } from "@tanstack/react-table";
 
@@ -28,6 +28,8 @@ interface AppState {
   mutationInputMode: "text" | "evolvepro";
   mutationText: string;
   evolveproCsvPath: string;
+  yPredMap: Record<string, number>;
+  selectionStrategy: "none" | "topn" | "position" | "domain" | "pareto";
   positionDiversityEnabled: boolean;
   maxPerPosition: number;
   domainDiversityEnabled: boolean;
@@ -35,6 +37,8 @@ interface AppState {
   uniprotAccession: string;
   domains: DomainInfo[];
   domainLoading: boolean;
+  disabledDomains: Set<string>;
+  domainStats: Record<string, { quota: number; selected: number }>;
   paretoDiversityEnabled: boolean;
   parsedMutations: ParsedMutation[];
   parseErrors: ParseError[];
@@ -79,18 +83,21 @@ interface AppState {
   setSelectedGene: (gene: string) => void;
   setMutationInputMode: (mode: "text" | "evolvepro") => void;
   setMutationText: (text: string) => void;
+  setSelectionStrategy: (strategy: "none" | "topn" | "position" | "domain" | "pareto") => void;
   setPositionDiversityEnabled: (enabled: boolean) => void;
   setMaxPerPosition: (n: number) => void;
   setDomainDiversityEnabled: (enabled: boolean) => void;
   setDomainStrategy: (strategy: "proportional" | "equal") => void;
   fetchDomains: (accession: string) => Promise<void>;
   setDomains: (domains: DomainInfo[]) => void;
+  toggleDomain: (domainKey: string) => void;
   setParetoDiversityEnabled: (enabled: boolean) => void;
   loadEvolveproCsv: (filepath: string) => Promise<void>;
   setCodonStrategy: (strategy: "closest" | "optimal") => void;
   setMaxPrimers: (n: number) => void;
   parseMutations: () => Promise<void>;
   designPrimers: () => Promise<void>;
+  cancelDesign: () => Promise<void>;
   getAlternatives: (mutation: string) => Promise<SdmPrimerResult[]>;
   swapPrimer: (mutation: string, candidateIdx: number, swapType?: "both" | "fwd" | "rev") => Promise<void>;
   applyCustomPrimer: (mutation: string, result: SdmPrimerResult) => void;
@@ -114,50 +121,60 @@ interface AppState {
   removeDesignResult: (mutation: string, reason: string) => void;
 }
 
-const INITIAL_STATE = {
-  fastaPath: "",
-  seqInfo: null as SequenceInfo | null,
-  mutationInputMode: "text" as "text" | "evolvepro",
-  mutationText: "",
-  evolveproCsvPath: "",
-  positionDiversityEnabled: false,
-  maxPerPosition: 1,
-  domainDiversityEnabled: false,
-  domainStrategy: "proportional" as "proportional" | "equal",
-  uniprotAccession: "",
-  domains: [] as DomainInfo[],
-  domainLoading: false,
-  paretoDiversityEnabled: false,
-  parsedMutations: [] as ParsedMutation[],
-  parseErrors: [] as ParseError[],
-  selectedGene: "",
-  codonStrategy: "closest" as "closest" | "optimal",
-  maxPrimers: 95,
-  tmFwdTarget: 62,
-  tmRevTarget: 58,
-  tmOverlapTarget: 42,
-  gcMin: 40,
-  gcMax: 60,
-  primerLenEnabled: false,
-  fwdLenMin: 18,
-  fwdLenMax: 45,
-  revLenMin: 18,
-  revLenMax: 30,
-  fillOnFailure: true,
-  isDesigning: false,
-  designResults: [] as SdmPrimerResult[],
-  successCount: 0,
-  totalCount: 0,
-  failedMutations: [] as FailedMutation[],
-  plateMappings: [] as PlateMapping[],
-  dedupInfo: {} as Record<string, string[]>,
-  progress: 0,
-  statusMessage: "Ready",
-  tableSorting: [] as import("@tanstack/react-table").SortingState,
-  manuallySwapped: {} as Record<string, "fwd" | "rev" | "both">,
-  customCandidates: {} as Record<string, SdmPrimerResult[]>,
-  rescuedMutations: new Set<string>() as Set<string>,
-};
+function createInitialState() {
+  return {
+    fastaPath: "",
+    seqInfo: null as SequenceInfo | null,
+    mutationInputMode: "text" as "text" | "evolvepro",
+    mutationText: "",
+    evolveproCsvPath: "",
+    yPredMap: {} as Record<string, number>,
+    selectionStrategy: "none" as "none" | "topn" | "position" | "domain" | "pareto",
+    positionDiversityEnabled: false,
+    maxPerPosition: 1,
+    domainDiversityEnabled: false,
+    domainStrategy: "proportional" as "proportional" | "equal",
+    uniprotAccession: "",
+    domains: [] as DomainInfo[],
+    domainLoading: false,
+    disabledDomains: new Set<string>(),
+    domainStats: {} as Record<string, { quota: number; selected: number }>,
+    paretoDiversityEnabled: false,
+    parsedMutations: [] as ParsedMutation[],
+    parseErrors: [] as ParseError[],
+    selectedGene: "",
+    codonStrategy: "closest" as "closest" | "optimal",
+    maxPrimers: 95,
+    tmFwdTarget: 62,
+    tmRevTarget: 58,
+    tmOverlapTarget: 42,
+    gcMin: 40,
+    gcMax: 60,
+    primerLenEnabled: false,
+    fwdLenMin: 18,
+    fwdLenMax: 45,
+    revLenMin: 18,
+    revLenMax: 30,
+    fillOnFailure: false,
+    isDesigning: false,
+    designResults: [] as SdmPrimerResult[],
+    successCount: 0,
+    totalCount: 0,
+    failedMutations: [] as FailedMutation[],
+    plateMappings: [] as PlateMapping[],
+    dedupInfo: {} as Record<string, string[]>,
+    progress: 0,
+    statusMessage: "Ready",
+    tableSorting: [] as import("@tanstack/react-table").SortingState,
+    manuallySwapped: {} as Record<string, "fwd" | "rev" | "both">,
+    customCandidates: {} as Record<string, SdmPrimerResult[]>,
+    rescuedMutations: new Set<string>(),
+  };
+}
+
+const INITIAL_STATE = createInitialState();
+
+let csvLoadGeneration = 0;
 
 export const useAppStore = create<AppState>((set, get) => {
   setProgressHandler((p) => {
@@ -198,6 +215,12 @@ export const useAppStore = create<AppState>((set, get) => {
     setMutationInputMode: (mode) => set({ mutationInputMode: mode }),
     setMutationText: (text) => set({ mutationText: text }),
 
+    setSelectionStrategy: (strategy) => {
+      set({ selectionStrategy: strategy });
+      const { evolveproCsvPath } = get();
+      if (evolveproCsvPath && strategy !== "none") get().loadEvolveproCsv(evolveproCsvPath);
+    },
+
     setPositionDiversityEnabled: (enabled: boolean) => {
       set({ positionDiversityEnabled: enabled });
       // Re-load CSV if available
@@ -230,6 +253,7 @@ export const useAppStore = create<AppState>((set, get) => {
         set({
           uniprotAccession: accession,
           domains: result.domains,
+          disabledDomains: new Set<string>(),
           domainLoading: false,
           statusMessage: result.domains.length > 0
             ? `Domains: ${result.domains.length} found (${result.source})`
@@ -243,7 +267,16 @@ export const useAppStore = create<AppState>((set, get) => {
     },
 
     setDomains: (domains: DomainInfo[]) => {
-      set({ domains });
+      set({ domains, disabledDomains: new Set<string>() });
+      const { evolveproCsvPath, domainDiversityEnabled } = get();
+      if (evolveproCsvPath && domainDiversityEnabled) get().loadEvolveproCsv(evolveproCsvPath);
+    },
+
+    toggleDomain: (domainKey: string) => {
+      const next = new Set(get().disabledDomains);
+      if (next.has(domainKey)) next.delete(domainKey);
+      else next.add(domainKey);
+      set({ disabledDomains: next });
       const { evolveproCsvPath, domainDiversityEnabled } = get();
       if (evolveproCsvPath && domainDiversityEnabled) get().loadEvolveproCsv(evolveproCsvPath);
     },
@@ -255,8 +288,10 @@ export const useAppStore = create<AppState>((set, get) => {
     },
 
     loadEvolveproCsv: async (filepath: string) => {
+      const gen = ++csvLoadGeneration;
       try {
-        const { positionDiversityEnabled, maxPerPosition, domainDiversityEnabled, domains, domainStrategy, paretoDiversityEnabled } = get();
+        const { positionDiversityEnabled, maxPerPosition, domainDiversityEnabled, domains, disabledDomains, domainStrategy, paretoDiversityEnabled } = get();
+        const activeDomains = domains.filter((d) => !disabledDomains.has(`${d.name}-${d.start}`));
         set({ statusMessage: "Loading EVOLVEpro CSV...", evolveproCsvPath: filepath });
         const result = await sendRequest<EvolveproLoadResult>(
           "load_evolvepro_csv",
@@ -264,20 +299,27 @@ export const useAppStore = create<AppState>((set, get) => {
             filepath,
             top_n: 9999,
             ...(positionDiversityEnabled && { max_per_position: maxPerPosition }),
-            ...(domainDiversityEnabled && domains.length > 0 && {
+            ...(domainDiversityEnabled && activeDomains.length > 0 && {
               domain_diversity: true,
-              domains: domains.map((d) => ({ name: d.name, start: d.start, end: d.end })),
+              domains: activeDomains.map((d) => ({ name: d.name, start: d.start, end: d.end })),
               domain_strategy: domainStrategy,
             }),
             ...(paretoDiversityEnabled && { pareto_diversity: true }),
           },
         );
+        if (gen !== csvLoadGeneration) return;
+        const yMap: Record<string, number> = {};
+        result.variants.forEach((v, i) => { yMap[v] = result.y_preds[i] ?? 0; });
         const variantText = result.variants.join("\n");
         const filteredMsg = result.filtered_count
           ? ` (${result.filtered_count} filtered, max ${maxPerPosition}/pos)`
           : "";
         const domainMsg = result.domain_stats
-          ? " | " + Object.entries(result.domain_stats).map(([name, s]) => `${name}: ${s.selected}/${s.quota}`).join(", ")
+          ? " | " + Object.entries(result.domain_stats).map(([name, s]) =>
+              s.selected < s.quota
+                ? `${name}: ${s.selected}/${s.quota} \u26A0`
+                : `${name}: ${s.selected}/${s.quota}`
+            ).join(", ")
           : "";
         const paretoMsg = result.pareto_replaced != null && result.pareto_replaced > 0
           ? ` | Pareto: ${result.pareto_replaced} diversified`
@@ -285,10 +327,14 @@ export const useAppStore = create<AppState>((set, get) => {
         set({
           mutationText: variantText,
           mutationInputMode: "evolvepro",
+          yPredMap: yMap,
+          domainStats: result.domain_stats ?? {},
           statusMessage: `EVOLVEpro: ${result.selected_count}/${result.total_count} variants${filteredMsg}${domainMsg}${paretoMsg}`,
         });
       } catch (err) {
-        set({ statusMessage: `EVOLVEpro CSV load failed: ${formatError(err)}` });
+        if (gen === csvLoadGeneration) {
+          set({ statusMessage: `EVOLVEpro CSV load failed: ${formatError(err)}` });
+        }
       }
     },
     setCodonStrategy: (strategy) => set({ codonStrategy: strategy }),
@@ -311,7 +357,6 @@ export const useAppStore = create<AppState>((set, get) => {
       const {
         fastaPath,
         selectedGene,
-        mutationText,
         codonStrategy,
         maxPrimers,
         tmFwdTarget,
@@ -327,17 +372,33 @@ export const useAppStore = create<AppState>((set, get) => {
         fillOnFailure,
       } = get();
 
+      const { mutationInputMode, selectionStrategy: strat, positionDiversityEnabled: posDiv, domainDiversityEnabled: domDiv, paretoDiversityEnabled: parDiv } = get();
+
       if (!fastaPath) {
         set({ statusMessage: "Sequence file not loaded" });
         return;
       }
-      if (!mutationText.trim()) {
+      if (!get().mutationText.trim()) {
         set({ statusMessage: "No mutations entered" });
         return;
       }
+      if (mutationInputMode === "evolvepro" && strat === "none" && !posDiv && !domDiv && !parDiv) {
+        set({ statusMessage: "\u26A0 Select a selection strategy (Top-N / Position / Domain / Pareto)" });
+        return;
+      }
+
+      // EVOLVEpro mode: reload CSV with current diversity settings before design
+      // This ensures diversity filters (Pareto, Domain, Position) are applied
+      // even if the async reload from checkbox change hasn't completed yet.
+      if (mutationInputMode === "evolvepro" && get().evolveproCsvPath) {
+        await get().loadEvolveproCsv(get().evolveproCsvPath);
+      }
+
+      // Re-read mutationText after potential CSV reload
+      const refreshedText = get().mutationText;
 
       // fillOnFailure: send extra buffer to replace failures. Otherwise send exactly maxPrimers.
-      const allLines = mutationText.trim().split("\n").filter((l) => l.trim() && !l.trim().startsWith("#"));
+      const allLines = refreshedText.trim().split("\n").filter((l) => l.trim() && !l.trim().startsWith("#"));
       const intendedMuts = new Set(allLines.slice(0, maxPrimers).map((l) => l.trim()));
       const sendCount = fillOnFailure
         ? Math.max(Math.ceil(maxPrimers * 1.5), maxPrimers + 20)
@@ -418,9 +479,29 @@ export const useAppStore = create<AppState>((set, get) => {
           console.warn("[plate map]", formatError(plateErr));
         }
       } catch (err) {
+        if (formatError(err).includes("Sidecar killed")) return;
         set({ statusMessage: `Design failed: ${formatError(err)}` });
       } finally {
-        set({ isDesigning: false, progress: 100 });
+        if (get().isDesigning) {
+          set({ isDesigning: false, progress: 100 });
+        }
+      }
+    },
+
+    cancelDesign: async () => {
+      try {
+        await cancelAndRespawn();
+        set({
+          isDesigning: false,
+          progress: 0,
+          statusMessage: "Design cancelled",
+        });
+      } catch (err) {
+        set({
+          isDesigning: false,
+          progress: 0,
+          statusMessage: `Design cancelled (reconnecting: ${formatError(err)})`,
+        });
       }
     },
 
@@ -651,11 +732,11 @@ export const useAppStore = create<AppState>((set, get) => {
         gcMin: ws.gcMin ?? 40,
         gcMax: ws.gcMax ?? 60,
         primerLenEnabled: ws.primerLenEnabled ?? false,
-        fwdLenMin: ws.fwdLenMin ?? 12,
+        fwdLenMin: ws.fwdLenMin ?? 18,
         fwdLenMax: ws.fwdLenMax ?? 45,
-        revLenMin: ws.revLenMin ?? 12,
+        revLenMin: ws.revLenMin ?? 18,
         revLenMax: ws.revLenMax ?? 30,
-        fillOnFailure: ws.fillOnFailure ?? true,
+        fillOnFailure: ws.fillOnFailure ?? false,
         uniprotAccession: ws.uniprotAccession ?? "",
         domains: ws.domains ?? [],
         domainDiversityEnabled: ws.domainDiversityEnabled ?? false,
@@ -669,7 +750,7 @@ export const useAppStore = create<AppState>((set, get) => {
     },
 
     resetAll: () => {
-      set({ ...INITIAL_STATE });
+      set({ ...createInitialState() });
     },
 
     evaluateCustomPrimer: async (mutation: string, fwdSeq: string, revSeq: string, overlapLen?: number) => {

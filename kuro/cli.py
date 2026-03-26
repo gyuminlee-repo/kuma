@@ -45,9 +45,9 @@ def cmd_design(args: argparse.Namespace) -> None:
     # Export plate map
     from .plate_mapper import deduplicate_reverse
     rev_groups = deduplicate_reverse(results)
-    plate_mappings = generate_plate_map(results, deduplicate_rev=True)
+    fwd_map, rev_map = generate_plate_map(results, deduplicate_rev=True)
     xlsx_path = output_dir / "plate_mapping.xlsx"
-    export_plate_excel(plate_mappings, xlsx_path, rev_groups=rev_groups)
+    export_plate_excel(fwd_map + rev_map, xlsx_path, rev_groups=rev_groups)
     logging.info("Plate mapping saved to %s", xlsx_path)
 
     # Summary
@@ -100,14 +100,14 @@ def cmd_plate_map(args: argparse.Namespace) -> None:
                 tm_fwd=float(row.get("Tm_Fwd", row.get("Tm_NonOverlap_Fwd", 0))),
                 tm_rev=float(row.get("Tm_Rev", row.get("Tm_NonOverlap_Rev", 0))),
                 tm_overlap=float(row.get("Tm_Overlap", 0)),
-                tm_condition_met=row.get("Tm_Condition_Met", row.get("Off_Target", "")) != "YES",
+                tm_condition_met=row.get("Tm_Condition_Met", "YES") == "YES",
             )
             results.append(r)
 
     rev_groups = deduplicate_reverse(results)
-    mappings = generate_plate_map(results, deduplicate_rev=True)
+    fwd_map, rev_map = generate_plate_map(results, deduplicate_rev=True)
     output_path = Path(args.output)
-    export_plate_excel(mappings, output_path, rev_groups=rev_groups)
+    export_plate_excel(fwd_map + rev_map, output_path, rev_groups=rev_groups)
     logging.info("Plate mapping saved to %s", output_path)
 
 

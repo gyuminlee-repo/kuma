@@ -45,9 +45,9 @@ export function ParameterPanel() {
   const tmOvInput = useLocalNum(tmOv, 42, (v) => setTmTargets(tmFwd, tmRev, v));
   const gcMinInput = useLocalNum(gcMin, 40, (v) => setGcRange(v, gcMax));
   const gcMaxInput = useLocalNum(gcMax, 60, (v) => setGcRange(gcMin, v));
-  const fwdLenMinInput = useLocalNum(fwdLenMin, 12, (v) => setPrimerLenRange(v, fwdLenMax, revLenMin, revLenMax));
+  const fwdLenMinInput = useLocalNum(fwdLenMin, 18, (v) => setPrimerLenRange(v, fwdLenMax, revLenMin, revLenMax));
   const fwdLenMaxInput = useLocalNum(fwdLenMax, 45, (v) => setPrimerLenRange(fwdLenMin, v, revLenMin, revLenMax));
-  const revLenMinInput = useLocalNum(revLenMin, 12, (v) => setPrimerLenRange(fwdLenMin, fwdLenMax, v, revLenMax));
+  const revLenMinInput = useLocalNum(revLenMin, 18, (v) => setPrimerLenRange(fwdLenMin, fwdLenMax, v, revLenMax));
   const revLenMaxInput = useLocalNum(revLenMax, 30, (v) => setPrimerLenRange(fwdLenMin, fwdLenMax, revLenMin, v));
   const maxPrimersInput = useLocalNum(maxPrimers, 95, setMaxPrimers);
 

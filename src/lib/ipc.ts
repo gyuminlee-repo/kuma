@@ -99,6 +99,10 @@ export async function spawnSidecar(): Promise<void> {
     await new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => {
         onReady = null;
+        if (child) {
+          child.kill().catch(() => {});
+          child = null;
+        }
         reject(new Error("Sidecar ready timeout (10s)"));
       }, 10000);
       onReady = () => {
@@ -111,6 +115,12 @@ export async function spawnSidecar(): Promise<void> {
 
   try {
     await spawnPromise;
+  } catch (err) {
+    if (child) {
+      child.kill().catch(() => {});
+      child = null;
+    }
+    throw err;
   } finally {
     spawnPromise = null;
   }
@@ -127,7 +137,7 @@ export async function sendRequest<T>(
   params: Record<string, unknown> = {},
 ): Promise<T> {
   if (!child) {
-    throw new Error("Sidecar not running. Call spawnSidecar() first.");
+    await spawnSidecar();
   }
 
   const id = nextId++;
@@ -162,6 +172,11 @@ export async function killSidecar(): Promise<void> {
     }
     await c.kill();
   }
+}
+
+export async function cancelAndRespawn(): Promise<void> {
+  await killSidecar();
+  await spawnSidecar();
 }
 
 export function isSidecarRunning(): boolean {

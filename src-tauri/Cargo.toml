@@ -1,6 +1,6 @@
 [package]
 name = "kuro"
-version = "0.9.28"
+version = "0.9.29"
 description = "KURO - KOD Upstream Region Oligodesigner"
 edition = "2021"
 

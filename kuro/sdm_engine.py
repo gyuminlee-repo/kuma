@@ -7,7 +7,7 @@ with Tm-guided non-overlap extension and polymerase-aware parameters.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 import primer3
@@ -61,6 +61,8 @@ class SdmPrimerResult:
     gc_fwd: float = 0.0
     gc_rev: float = 0.0
     penalty: float = 0.0
+    synthesis_score_fwd: float = 100.0
+    synthesis_score_rev: float = 100.0
     hairpin_tm_fwd: float = 0.0
     hairpin_tm_rev: float = 0.0
     homodimer_tm_fwd: float = 0.0
@@ -105,23 +107,101 @@ _THERMO_PARAMS = dict(
 
 def _check_secondary_structure(result: SdmPrimerResult, warn_tm: float = 40.0) -> None:
     """Check hairpin and homodimer for both fwd/rev primers using primer3."""
-    for label, seq, suffix in [("Fwd", result.forward_seq, "fwd"), ("Rev", result.reverse_seq, "rev")]:
+    for label, seq, is_fwd in [("Fwd", result.forward_seq, True), ("Rev", result.reverse_seq, False)]:
         hp = primer3.calc_hairpin(seq, **_THERMO_PARAMS)
         hd = primer3.calc_homodimer(seq, **_THERMO_PARAMS)
-        hp_tm = hp.tm if hp.structure_found else 0.0
-        hd_tm = hd.tm if hd.structure_found else 0.0
-        hp_dg = hp.dg / 1000.0 if hp.structure_found else 0.0  # cal→kcal
-        hd_dg = hd.dg / 1000.0 if hd.structure_found else 0.0
-        setattr(result, f"hairpin_tm_{suffix}", round(hp_tm, 1))
-        setattr(result, f"homodimer_tm_{suffix}", round(hd_tm, 1))
-        setattr(result, f"hairpin_dg_{suffix}", round(hp_dg, 2))
-        setattr(result, f"homodimer_dg_{suffix}", round(hd_dg, 2))
+        hp_tm = round(hp.tm if hp.structure_found else 0.0, 1)
+        hd_tm = round(hd.tm if hd.structure_found else 0.0, 1)
+        hp_dg = round(hp.dg / 1000.0 if hp.structure_found else 0.0, 2)
+        hd_dg = round(hd.dg / 1000.0 if hd.structure_found else 0.0, 2)
+        if is_fwd:
+            result.hairpin_tm_fwd = hp_tm
+            result.homodimer_tm_fwd = hd_tm
+            result.hairpin_dg_fwd = hp_dg
+            result.homodimer_dg_fwd = hd_dg
+        else:
+            result.hairpin_tm_rev = hp_tm
+            result.homodimer_tm_rev = hd_tm
+            result.hairpin_dg_rev = hp_dg
+            result.homodimer_dg_rev = hd_dg
         if hp_tm > warn_tm:
             result.warnings.append(f"{label} hairpin Tm={hp_tm:.1f}°C (dG={hp_dg:.1f} kcal/mol)")
             result.penalty += (hp_tm - warn_tm) * 0.5
         if hd_tm > warn_tm:
             result.warnings.append(f"{label} homodimer Tm={hd_tm:.1f}°C (dG={hd_dg:.1f} kcal/mol)")
             result.penalty += (hd_tm - warn_tm) * 0.5
+
+
+def _synthesis_score(seq: str) -> float:
+    """Estimate oligo synthesis quality (0-100) based on IDT/Twist guidelines.
+
+    Deductions:
+    - Homopolymer run >= 4: -5 per extra base above 3
+    - GC-rich run >= 6 consecutive G/C: -10 per extra base above 5
+    - Dinucleotide repeat >= 8 bases (4 repeats): -8
+    - Extreme GC content (<30% or >70%): -15
+    """
+    score = 100.0
+    s = seq.upper()
+    n = len(s)
+    if n == 0:
+        return score
+
+    # Homopolymer runs (AAAA, TTTT, GGGG, CCCC)
+    max_run = 1
+    cur_run = 1
+    for i in range(1, n):
+        if s[i] == s[i - 1]:
+            cur_run += 1
+            max_run = max(max_run, cur_run)
+        else:
+            cur_run = 1
+    if max_run >= 4:
+        score -= 5.0 * (max_run - 3)
+
+    # GC-rich runs (consecutive G or C)
+    gc_run = 0
+    max_gc_run = 0
+    for c in s:
+        if c in "GC":
+            gc_run += 1
+            max_gc_run = max(max_gc_run, gc_run)
+        else:
+            gc_run = 0
+    if max_gc_run >= 6:
+        score -= 10.0 * (max_gc_run - 5)
+
+    # Dinucleotide repeats (e.g., ATATATAT = 4 repeats of AT)
+    seen_di = set()
+    for di in ["AT", "TA", "GC", "CG", "AC", "CA", "GT", "TG", "AG", "GA", "CT", "TC"]:
+        repeat = di * 4  # 8 bases
+        if repeat in s and di not in seen_di:
+            score -= 8.0
+            seen_di.add(di)
+            seen_di.add(di[::-1])  # AT/TA are the same repeat pattern
+
+    # Extreme GC content
+    gc = sum(1 for c in s if c in "GC") / n * 100
+    if gc < 30 or gc > 70:
+        score -= 15.0
+
+    return max(0.0, round(score, 1))
+
+
+def _check_synthesis_score(result: SdmPrimerResult) -> None:
+    """Calculate synthesis scores for both primers and add warnings/penalty."""
+    result.synthesis_score_fwd = _synthesis_score(result.forward_seq)
+    result.synthesis_score_rev = _synthesis_score(result.reverse_seq)
+    for label, score, suffix in [
+        ("Fwd", result.synthesis_score_fwd, "fwd"),
+        ("Rev", result.synthesis_score_rev, "rev"),
+    ]:
+        if score < 70:
+            result.warnings.append(f"{label} synthesis score {score}/100 (difficult)")
+            result.penalty += (70 - score) * 0.3
+        elif score < 85:
+            result.warnings.append(f"{label} synthesis score {score}/100 (moderate)")
+            result.penalty += (85 - score) * 0.1
 
 
 def _gc_percent(seq: str) -> float:
@@ -217,7 +297,7 @@ def _extend_reverse(
             diff = abs(tm - target_tm)
             if diff < best_diff:
                 best_diff = diff
-                nonoverlap = candidate[:ext_len] if ext_len > 0 else ""
+                nonoverlap = candidate[-ext_len:] if ext_len > 0 else ""
                 best = (candidate, nonoverlap, round(tm, 1))
             if tm > target_tm and best is not None:
                 break
@@ -436,7 +516,7 @@ def _search_candidates(
     return candidates
 
 
-def _design_single_sdm(
+def design_single_sdm(
     seq: str,
     mutation: Mutation,
     profile: PolymeraseProfile,
@@ -530,6 +610,7 @@ def _design_single_sdm(
 
                 # Hairpin / homodimer check
                 _check_secondary_structure(c)
+                _check_synthesis_score(c)
 
             all_candidates.sort(key=lambda r: r.penalty)
             return all_candidates[:num_return]
@@ -555,11 +636,8 @@ def evaluate_custom_primer(
     template: str,
     mutation_raw: str = "custom",
     overlap_len: int = 20,
-) -> dict:
-    """Evaluate a user-provided primer pair and return metrics.
-
-    Returns dict with Tm, GC%, hairpin, homodimer, off-target info.
-    """
+) -> SdmPrimerResult:
+    """Evaluate a user-provided primer pair and return metrics."""
     from .overlap import OverlapWindow, reverse_complement
 
     fwd_seq = fwd_seq.strip().upper()
@@ -634,8 +712,9 @@ def evaluate_custom_primer(
     if result.offtarget_fwd or result.offtarget_rev:
         result.has_offtarget = True
 
-    # Secondary structure
+    # Secondary structure + synthesis quality
     _check_secondary_structure(result)
+    _check_synthesis_score(result)
 
     return result
 
@@ -808,7 +887,9 @@ def design_sdm_primers(
     fwd_len_max: int = 45,
     rev_len_min: int = 18,
     rev_len_max: int = 30,
-) -> tuple[list[SdmPrimerResult], dict[str, list[SdmPrimerResult]]]:
+    on_progress: object = None,
+    cancel_check: object = None,
+) -> tuple[list[SdmPrimerResult], dict[str, list[SdmPrimerResult]], dict[str, str]]:
     """Design SDM primers for a batch of mutations.
 
     Args:
@@ -818,6 +899,8 @@ def design_sdm_primers(
         polymerase: Polymerase name for Tm calculations.
         overlap_len: Overlap window length in bp.
         custom_profiles: Optional path to custom polymerase profiles.
+        on_progress: Optional callback(i, total, mutation_raw) for progress.
+        cancel_check: Optional callable() -> bool, returns True if cancelled.
 
     Returns:
         List of SdmPrimerResult for each mutation.
@@ -836,8 +919,7 @@ def design_sdm_primers(
 
     # Load polymerase profile
     registry = PolymeraseRegistry()
-    profile = registry.get(polymerase)
-    # Override Tm targets if provided
+    profile = replace(registry.get(polymerase))
     if tm_fwd_target is not None:
         profile.opt_tm_fwd = tm_fwd_target
     if tm_rev_target is not None:
@@ -858,7 +940,7 @@ def design_sdm_primers(
         # Fall back to line-by-line parsing when batch parse fails
         mutations = []
         import csv as _csv
-        with open(mutations_csv) as _f:
+        with open(mutations_csv, encoding="utf-8") as _f:
             _reader = _csv.DictReader(_f)
             col = "mutation" if _reader.fieldnames and "mutation" in _reader.fieldnames else "variant"
             for _row in _reader:
@@ -885,9 +967,15 @@ def design_sdm_primers(
     # Design primers for each mutation
     results: list[SdmPrimerResult] = []
     all_candidates: dict[str, list[SdmPrimerResult]] = {}
-    for mut in mutations:
+    total_muts = len(mutations)
+    for i, mut in enumerate(mutations):
+        if cancel_check and cancel_check():
+            logger.info("Design cancelled at mutation %d/%d", i, total_muts)
+            break
+        if on_progress:
+            on_progress(i, total_muts, mut.raw)
         logger.info("Designing primers for %s ...", mut.raw)
-        candidates = _design_single_sdm(sequence, mut, profile, overlap_len, codon_strategy=codon_strategy, gc_min=gc_min, gc_max=gc_max, fwd_len_min=fwd_len_min, fwd_len_max=fwd_len_max, rev_len_min=rev_len_min, rev_len_max=rev_len_max)
+        candidates = design_single_sdm(sequence, mut, profile, overlap_len, codon_strategy=codon_strategy, gc_min=gc_min, gc_max=gc_max, fwd_len_min=fwd_len_min, fwd_len_max=fwd_len_max, rev_len_min=rev_len_min, rev_len_max=rev_len_max)
         if not candidates:
             failed_reasons[mut.raw] = "No valid primer pair found within Tm tolerance ±3.0°C"
             logger.warning("FAILED: %s - no valid primer pair found", mut.raw)
@@ -932,7 +1020,7 @@ def export_results_tsv(
         "Warnings",
     ]
 
-    with open(output_path, "w", newline="") as f:
+    with open(output_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter="\t")
         writer.writeheader()
         for r in results:

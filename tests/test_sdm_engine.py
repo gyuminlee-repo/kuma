@@ -8,6 +8,7 @@ import pytest
 
 from kuro.sdm_engine import (
     SdmPrimerResult,
+    _synthesis_score,
     design_sdm_primers,
     export_results_tsv,
     load_fasta,
@@ -111,3 +112,78 @@ class TestExportTsv:
         lines = tsv_path.read_text().strip().split("\n")
         assert len(lines) >= 11  # header + successful mutations (>=10)
         assert "Mutation" in lines[0]
+
+
+class TestSynthesisScore:
+    def test_clean_sequence(self):
+        assert _synthesis_score("ATGCATGCATGCATGC") == 100.0
+
+    def test_empty_sequence(self):
+        assert _synthesis_score("") == 100.0
+
+    def test_homopolymer_run_4(self):
+        score = _synthesis_score("ATGCAAAATGCATGC")
+        assert score == 95.0  # -5 * (4-3) = -5
+
+    def test_homopolymer_run_6(self):
+        score = _synthesis_score("ATGCAAAAAATGCAT")
+        assert score == 70.0  # -5*(6-3)=-15, plus extreme GC -15
+
+    def test_gc_rich_run_6(self):
+        seq = "ATGCGGCCCCTGCATG"
+        score = _synthesis_score(seq)
+        assert score < 100.0
+
+    def test_dinucleotide_repeat(self):
+        score = _synthesis_score("ATATATATCATGCATG")
+        assert score == 77.0  # -8 dinucleotide + -15 extreme GC
+
+    def test_multiple_dinucleotide_patterns(self):
+        score = _synthesis_score("ATATATATGCGCGCGC")
+        assert score < 92.0  # AT repeat + GC repeat
+
+    def test_extreme_gc_low(self):
+        score = _synthesis_score("AAATTTTAAATTTAAA")
+        assert score == 80.0  # -15 GC<30% + -5 homopolymer(TTTT)
+
+    def test_compound_penalty(self):
+        # 16x A: homopolymer -5*(16-3)=-65, extreme GC -15 = -80, floor 0
+        score = _synthesis_score("AAAAAAAAAAAAAAAA")
+        assert score == 20.0  # 100 - 65(homopolymer) - 15(GC<30%)
+
+    def test_score_is_rounded(self):
+        score = _synthesis_score("ATGC")
+        assert isinstance(score, float)
+
+
+class TestCancelCheck:
+    def test_immediate_cancel(self, fasta_path, mutations_csv):
+        results, _, _ = design_sdm_primers(
+            fasta_path=fasta_path,
+            target_start=TARGET_START,
+            mutations_csv=mutations_csv,
+            cancel_check=lambda: True,
+        )
+        assert len(results) == 0
+
+    def test_no_cancel(self, fasta_path, mutations_csv):
+        results, _, _ = design_sdm_primers(
+            fasta_path=fasta_path,
+            target_start=TARGET_START,
+            mutations_csv=mutations_csv,
+            cancel_check=lambda: False,
+        )
+        assert len(results) >= 10
+
+    def test_partial_cancel(self, fasta_path, mutations_csv):
+        counter = {"n": 0}
+        def cancel_after_3():
+            counter["n"] += 1
+            return counter["n"] > 3
+        results, _, _ = design_sdm_primers(
+            fasta_path=fasta_path,
+            target_start=TARGET_START,
+            mutations_csv=mutations_csv,
+            cancel_check=cancel_after_3,
+        )
+        assert 0 < len(results) <= 3

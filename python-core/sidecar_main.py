@@ -8,6 +8,7 @@ import csv
 import json
 import logging
 import os
+import threading
 from dataclasses import dataclass, field, fields as dc_fields, replace as dc_replace
 import re
 import sys
@@ -22,7 +23,7 @@ sys.path.insert(0, str(_PROJECT_ROOT))
 from kuro.sdm_engine import (
     GeneInfo,
     SdmPrimerResult,
-    _design_single_sdm,
+    design_single_sdm,
     design_sdm_primers,
     evaluate_custom_primer,
     load_fasta,
@@ -47,10 +48,22 @@ logging.basicConfig(
 )
 logger = logging.getLogger("sidecar")
 
-_ALLOWED_FASTA_EXTENSIONS = {".dna", ".gb", ".gbff", ".gbk"}
+_ALLOWED_FASTA_EXTENSIONS = {".fa", ".fasta", ".dna", ".gb", ".gbff", ".gbk"}
 _ALLOWED_CSV_EXTENSIONS = {".csv", ".tsv", ".txt"}
 _ALLOWED_EXCEL_EXTENSIONS = {".xlsx"}
 _VALID_DNA_BASES = re.compile(r"^[ATGC]+$")
+
+# Lazy SSL context (created once on first use, avoids slow startup)
+_ssl_ctx = None
+def _get_ssl_ctx():
+    global _ssl_ctx
+    if _ssl_ctx is None:
+        import ssl
+        _ssl_ctx = ssl.create_default_context()
+    return _ssl_ctx
+
+# --- Cancel event for long-running operations ---
+_cancel_event = threading.Event()
 
 # --- Session state ---
 @dataclass
@@ -63,13 +76,6 @@ class SidecarState:
     template: tuple[str, str] = ("", "")  # (fasta_path, sequence)
 
 _state = SidecarState()
-
-# Legacy aliases for backward compat during transition
-_last_results = _state.results
-_last_candidates = _state.candidates
-_last_plate_mappings = _state.plate_mappings
-_last_dedup_info = _state.dedup_info
-_last_template = _state.template
 
 _SWAP_FIELDS = {
     "fwd": ["forward_seq", "forward_binding", "tm_fwd", "fwd_len", "gc_fwd"],
@@ -119,6 +125,10 @@ def _validate_filepath(
     if resolved.is_dir():
         raise FileNotFoundError(f"Path is a directory, not a file: {filepath}")
 
+    # Block path traversal: reject paths containing '..'
+    if ".." in Path(filepath).parts:
+        raise FileNotFoundError(f"Path traversal is not allowed: {filepath}")
+
     if allowed_extensions is not None:
         ext = resolved.suffix.lower()
         if ext not in allowed_extensions:
@@ -135,6 +145,12 @@ def _validate_output_path(
     """Validate an output file path (file may not exist yet)."""
     if not filepath:
         raise FileNotFoundError("filepath is required")
+
+    if ".." in Path(filepath).parts:
+        raise FileNotFoundError(f"Path traversal is not allowed: {filepath}")
+
+    if Path(filepath).is_symlink():
+        raise FileNotFoundError(f"Symbolic links are not allowed: {filepath}")
 
     resolved = Path(filepath).resolve()
 
@@ -167,11 +183,6 @@ _POLYMERASE_META = {
 
 def handle_list_polymerases(_params: dict) -> list[dict]:
     """Return available polymerase profiles."""
-    if _poly_registry is None:
-        return [
-            {"name": "Q5", "manufacturer": "NEB", "fidelity": "high"},
-        ]
-
     names = _poly_registry.list_names()
     result = []
     for name in names:
@@ -188,7 +199,6 @@ def handle_list_polymerases(_params: dict) -> list[dict]:
 
 def handle_load_fasta(params: dict) -> dict:
     """Load a sequence file and return sequence info with gene annotations."""
-    global _last_template
     filepath = params.get("filepath")
     resolved = _validate_filepath(filepath, allowed_extensions=_ALLOWED_FASTA_EXTENSIONS)
 
@@ -196,7 +206,7 @@ def handle_load_fasta(params: dict) -> dict:
         raise FileNotFoundError(f"File not found: {filepath}")
 
     header, sequence, genes = load_sequence(resolved)
-    _last_template = (str(resolved), sequence)
+    _state.template = (str(resolved), sequence)
 
     return {
         "header": header,
@@ -251,13 +261,11 @@ def handle_parse_mutations_text(params: dict) -> dict:
 
 def handle_design_sdm_primers(params: dict) -> dict:
     """Design SDM primers for a batch of mutations."""
-    global _last_results, _last_candidates, _last_plate_mappings, _last_dedup_info, _last_template
-
     # Clear previous state to free memory
-    _last_results = []
-    _last_candidates = {}
-    _last_plate_mappings = []
-    _last_dedup_info = {}
+    _state.results = []
+    _state.candidates = {}
+    _state.plate_mappings = []
+    _state.dedup_info = {}
 
     fasta_path = params.get("fasta_path")
     if not fasta_path:
@@ -334,17 +342,24 @@ def handle_design_sdm_primers(params: dict) -> dict:
         if not lines:
             raise ValueError("No mutations provided")
 
-        temp_csv = tempfile.NamedTemporaryFile(
-            mode="w", suffix=".csv", delete=False, newline=""
-        )
+        fd, temp_csv_name = tempfile.mkstemp(suffix=".csv")
+        if hasattr(os, "fchmod"):
+            os.fchmod(fd, 0o600)
+        temp_csv = open(fd, mode="w", newline="")
         writer = csv.writer(temp_csv)
         writer.writerow(["mutation"])
         for line in lines:
             writer.writerow([line.strip()])
         temp_csv.close()
-        mutations_csv_path = Path(temp_csv.name)
+        mutations_csv_path = Path(temp_csv_name)
 
     try:
+        _cancel_event.clear()
+
+        def _on_progress(i: int, total: int, mutation_raw: str) -> None:
+            pct = 10 + int(70 * i / max(total, 1))
+            _progress(pct, f"Designing {mutation_raw} ({i+1}/{total})...")
+
         _progress(10, "Designing SDM primers...")
         results, all_cands, engine_failures = design_sdm_primers(
             fasta_path=resolved_fasta,
@@ -362,19 +377,26 @@ def handle_design_sdm_primers(params: dict) -> dict:
             fwd_len_max=fwd_len_max,
             rev_len_min=rev_len_min,
             rev_len_max=rev_len_max,
+            on_progress=_on_progress,
+            cancel_check=_cancel_event.is_set,
         )
     finally:
         if temp_csv is not None:
-            os.unlink(temp_csv.name)
+            os.unlink(temp_csv_name)
 
-    _last_results = results
-    _last_candidates = all_cands
+    if _cancel_event.is_set():
+        _cancel_event.clear()
+        return {"results": [], "success_count": 0, "total_count": 0,
+                "failed_mutations": [], "cancelled": True}
+
+    _state.results = results
+    _state.candidates = all_cands
     _progress(80, "Generating plate map...")
 
     # Auto-generate plate map (Fwd/Rev separate plates)
     fwd_map, rev_map = generate_plate_map(results, deduplicate_rev=True)
-    _last_plate_mappings = fwd_map + rev_map
-    _last_dedup_info = deduplicate_reverse(results)
+    _state.plate_mappings = fwd_map + rev_map
+    _state.dedup_info = deduplicate_reverse(results)
 
     _progress(100, "Design complete")
 
@@ -443,6 +465,8 @@ def _serialize_result(r: SdmPrimerResult, candidate_count: int | None = None) ->
         "hairpin_dg_rev": round(r.hairpin_dg_rev, 2),
         "homodimer_dg_fwd": round(r.homodimer_dg_fwd, 2),
         "homodimer_dg_rev": round(r.homodimer_dg_rev, 2),
+        "synthesis_score_fwd": r.synthesis_score_fwd,
+        "synthesis_score_rev": r.synthesis_score_rev,
         "warnings": r.warnings,
     }
     if candidate_count is not None:
@@ -459,7 +483,7 @@ def _count_unique_fwd_rev(candidates: list[SdmPrimerResult]) -> tuple[int, int]:
 
 def _serialize_result_with_counts(r: SdmPrimerResult) -> dict:
     """Serialize result with fwd/rev candidate counts."""
-    cands = _last_candidates.get(r.mutation.raw, [])
+    cands = _state.candidates.get(r.mutation.raw, [])
     result = _serialize_result(r, len(cands))
     fwd_count, rev_count = _count_unique_fwd_rev(cands) if cands else (0, 0)
     result["candidate_fwd_count"] = fwd_count
@@ -469,7 +493,7 @@ def _serialize_result_with_counts(r: SdmPrimerResult) -> dict:
 
 def handle_get_plate_map(_params: dict) -> dict:
     """Return the plate map from last design."""
-    if not _last_results:
+    if not _state.results:
         raise ValueError("No design available. Run design_sdm_primers first.")
 
     return {
@@ -481,9 +505,9 @@ def handle_get_plate_map(_params: dict) -> dict:
                 "primer_type": m.primer_type,
                 "mutation": m.mutation,
             }
-            for m in _last_plate_mappings
+            for m in _state.plate_mappings
         ],
-        "dedup_info": _last_dedup_info,
+        "dedup_info": _state.dedup_info,
     }
 
 
@@ -519,10 +543,10 @@ def handle_export_excel(params: dict) -> dict:
             mappings.append(PlateMapping(**filtered))
         rev_groups = dedup_data or {}
     else:
-        if not _last_results:
+        if not _state.results:
             raise ValueError("No design available")
-        mappings = _last_plate_mappings
-        rev_groups = _last_dedup_info
+        mappings = _state.plate_mappings
+        rev_groups = _state.dedup_info
 
     export_plate_excel(mappings, resolved, rev_groups=rev_groups)
     return {"success": True, "filepath": str(resolved)}
@@ -613,7 +637,7 @@ def handle_get_alternatives(params: dict) -> dict:
     mutation = params.get("mutation", "")
     if not mutation:
         raise ValueError("mutation is required")
-    candidates = _last_candidates.get(mutation, [])
+    candidates = _state.candidates.get(mutation, [])
     return {
         "mutation": mutation,
         "candidates": [_serialize_result(c) for c in candidates],
@@ -622,12 +646,11 @@ def handle_get_alternatives(params: dict) -> dict:
 
 def handle_swap_primer(params: dict) -> dict:
     """Swap the selected primer for a mutation with a different candidate."""
-    global _last_results
     mutation = params.get("mutation", "")
     candidate_idx = int(params.get("candidate_idx", 0))
     swap_type = params.get("swap_type", "both")  # "both", "fwd", "rev"
 
-    candidates = _last_candidates.get(mutation)
+    candidates = _state.candidates.get(mutation)
     if not candidates:
         raise ValueError(f"No candidates for mutation: {mutation}")
     if candidate_idx < 0 or candidate_idx >= len(candidates):
@@ -638,19 +661,19 @@ def handle_swap_primer(params: dict) -> dict:
     if swap_type == "both":
         new_best = source
     else:
-        current = next((r for r in _last_results if r.mutation.raw == mutation), None)
+        current = next((r for r in _state.results if r.mutation.raw == mutation), None)
         if not current:
             raise ValueError(f"No current result for mutation: {mutation}")
         swap_dict = {f: getattr(source, f) for f in _SWAP_FIELDS[swap_type]}
         new_best = dc_replace(current, **swap_dict)
 
     target_pos = new_best.mutation.position
-    for i, r in enumerate(_last_results):
+    for i, r in enumerate(_state.results):
         if r.mutation.raw == mutation:
-            _last_results[i] = new_best
+            _state.results[i] = new_best
         elif swap_type in ("rev", "both") and r.mutation.position == target_pos:
             # Propagate reverse to same-position mutations
-            _last_results[i] = dc_replace(
+            _state.results[i] = dc_replace(
                 r,
                 reverse_seq=new_best.reverse_seq,
                 reverse_binding=new_best.reverse_binding,
@@ -684,7 +707,7 @@ def handle_evaluate_primer(params: dict) -> dict:
     resolved = _validate_filepath(fasta_path, allowed_extensions=_ALLOWED_FASTA_EXTENSIONS)
 
     # Use cached template if same file
-    cached_path, cached_seq = _last_template
+    cached_path, cached_seq = _state.template
     if cached_seq and cached_path == str(resolved):
         template = cached_seq
     else:
@@ -718,6 +741,9 @@ def handle_load_workspace(params: dict) -> dict:
     resolved = _validate_filepath(filepath, allowed_extensions={".json"})
     if not resolved.exists():
         raise FileNotFoundError(f"File not found: {filepath}")
+    file_size = resolved.stat().st_size
+    if file_size > 50 * 1024 * 1024:
+        raise ValueError(f"Workspace file too large: {file_size / 1024 / 1024:.1f} MB (max 50 MB)")
     with open(resolved, encoding="utf-8") as f:
         data = json.load(f)
 
@@ -777,12 +803,10 @@ def handle_retry_failed(params: dict) -> dict:
     )
 
     # Build polymerase profile with custom Tm targets
-    profile = _poly_registry.get("Benchling")
-    profile.opt_tm_fwd = tm_fwd
-    profile.opt_tm_rev = tm_rev
-    profile.opt_tm_overlap = tm_ov
+    profile = dc_replace(_poly_registry.get("Benchling"),
+                         opt_tm_fwd=tm_fwd, opt_tm_rev=tm_rev, opt_tm_overlap=tm_ov)
 
-    candidates = _design_single_sdm(
+    candidates = design_single_sdm(
         sequence, mut, profile, overlap_len,
         num_return=num_return, codon_strategy=codon_strategy,
         gc_min=gc_min, gc_max=gc_max,
@@ -801,6 +825,8 @@ def handle_fetch_domains(params: dict) -> dict:
     accession = params.get("accession", "").strip()
     if not accession:
         raise ValueError("UniProt accession is required")
+    if not re.match(r"^[A-Za-z0-9_-]{1,20}$", accession):
+        raise ValueError(f"Invalid UniProt accession format: {accession}")
 
     # Try Pfam first, then fall back to full InterPro
     endpoints = [
@@ -814,7 +840,7 @@ def handle_fetch_domains(params: dict) -> dict:
         ),
     ]
 
-    import urllib.request as _urllib_req  # lazy import: avoid slow SSL init at startup
+    import urllib.request as _urllib_req
 
     for url, db_label in endpoints:
         try:
@@ -822,7 +848,7 @@ def handle_fetch_domains(params: dict) -> dict:
                 url,
                 headers={"Accept": "application/json"},
             )
-            with _urllib_req.urlopen(req, timeout=10) as resp:
+            with _urllib_req.urlopen(req, context=_get_ssl_ctx(), timeout=10) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
 
             domains: list[dict] = []
@@ -1073,6 +1099,7 @@ _METHODS = {
     "save_workspace": handle_save_workspace,
     "load_workspace": handle_load_workspace,
     "fetch_domains": handle_fetch_domains,
+    "cancel_design": lambda _: (_cancel_event.set(), {"cancelled": True})[1],
 }
 
 
@@ -1099,6 +1126,46 @@ def dispatch(request: dict) -> None:
         _error(req_id, -32603, str(exc))
 
 
+def _start_parent_watchdog() -> None:
+    """Exit if parent process dies (prevents orphan sidecar on Windows)."""
+    import time
+    ppid = os.getppid()
+    if ppid <= 1:
+        return
+
+    def _check() -> None:
+        if sys.platform == "win32":
+            import ctypes
+            kernel32 = ctypes.windll.kernel32
+            kernel32.OpenProcess.restype = ctypes.c_void_p
+            # Get parent handle at startup to avoid PID reuse false negatives
+            SYNCHRONIZE = 0x00100000
+            parent_handle = kernel32.OpenProcess(SYNCHRONIZE, False, ppid)
+            if not parent_handle:
+                return  # can't monitor
+            while True:
+                time.sleep(5)
+                # WAIT_TIMEOUT=0x102, WAIT_OBJECT_0=0 (process exited)
+                ret = kernel32.WaitForSingleObject(ctypes.c_void_p(parent_handle), 0)
+                if ret == 0:  # WAIT_OBJECT_0 = parent exited
+                    logger.info("Parent process %d died, exiting", ppid)
+                    kernel32.CloseHandle(ctypes.c_void_p(parent_handle))
+                    os._exit(0)
+        else:
+            while True:
+                time.sleep(5)
+                try:
+                    os.kill(ppid, 0)
+                except ProcessLookupError:
+                    logger.info("Parent process %d died, exiting", ppid)
+                    os._exit(0)
+                except PermissionError:
+                    pass  # process exists but different user
+
+    t = threading.Thread(target=_check, daemon=True)
+    t.start()
+
+
 def main() -> None:
     """Main loop: read JSON-RPC requests from stdin, dispatch, respond on stdout."""
     if sys.platform == "win32":
@@ -1106,6 +1173,7 @@ def main() -> None:
         sys.stdin.reconfigure(encoding="utf-8")
         sys.stderr.reconfigure(encoding="utf-8")
 
+    _start_parent_watchdog()
     logger.info("KURO sidecar started (pid=%d)", os.getpid())
     _send({"jsonrpc": "2.0", "method": "ready", "params": {}})
 

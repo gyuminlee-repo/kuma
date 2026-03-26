@@ -1,10 +1,45 @@
-# KURO Update Notes — v0.9.5 → v0.9.27
+# KURO Update Notes — v0.9.5 → v0.9.29
 
 [한국어](UPDATE-NOTES.ko.md) | **English**
 
 Released: 2026-03-26
 
 ---
+
+## v0.9.29 (2026-03-26)
+
+### New Features
+- **Synthesis quality score**: Each primer now receives a synthesis difficulty score (0-100) based on IDT/Twist guidelines. Penalizes: homopolymer runs (4+), GC-rich stretches (6+), dinucleotide repeats (8+), extreme GC content (<30% or >70%). Shown in the Syn column with color coding (green/amber/red). Hover the cell for Fwd/Rev breakdown
+- **Sequence Map viewer**: Collapsible SVG linear CDS map showing mutation positions. Green ticks = designed, red = failed. Density histogram overlay highlights clustering. Domain regions shown with quota labels (selected/quota with warning for under-filled domains)
+- **y_pred column**: EVOLVEpro mode shows y_pred values in the result table. Sortable by clicking the column header
+- **Design cancel**: Cancel button appears next to "Design Primers" during design. Kills the sidecar and respawns for clean state
+- **Domain toggle**: Fetched domains are shown as checkboxes instead of deletable items. Toggle individual domains on/off while preserving the full list
+
+### Selection Strategy
+- **Independent checkboxes**: Top-N, Position, Domain, and Pareto diversity are now independent checkboxes that can be combined in any combination
+- **Design-time sync reload**: Diversity settings are applied immediately before primer design, preventing race conditions where async CSV reload had not completed
+- **Strategy required**: EVOLVEpro mode requires at least one strategy checkbox before designing
+
+### Improvements
+- **Fill on failure default OFF**: Changed from ON to OFF to prevent unexpected mutation substitution
+- **Sidecar orphan prevention**: Parent process watchdog (5s interval) detects when Tauri dies and auto-exits the sidecar. Uses WaitForSingleObject (Windows) / os.kill (Unix)
+- **Auto-reconnect**: If sidecar is not running when a request is made, it automatically spawns
+- **Header tooltips**: All result table columns and the Sequence Map header show explanatory tooltips on hover
+- **Modal accessibility**: ESC key close, auto-focus, role="dialog", aria-modal for all popovers
+
+### Cross-platform
+- **CI 3-platform matrix**: Tests run on ubuntu, windows, macos with Python 3.11/3.12
+- **Encoding**: All file I/O uses explicit `encoding="utf-8"`
+- **Build scripts**: Cross-platform sidecar kill (taskkill/pkill) and python/python3 auto-detection
+
+### Developer
+- **122 tests** (was 38): Added test_polymerase (19), test_codon_table (26), test_sidecar_rpc (31), test_synthesis_score (10), test_cancel_check (3)
+- **`cancel_design` RPC**: Sets threading.Event to break the design loop gracefully
+- **`design_sdm_primers` callbacks**: `on_progress(i, total, mutation_raw)` and `cancel_check()` parameters
+
+---
+
+## v0.9.27 and earlier
 
 ## Export
 

@@ -1,6 +1,9 @@
 node_modules/
 dist/
 .env
+.env.*
+*.pem
+*.key
 *.exe
 src-tauri/target/
 src-tauri/binaries/*.exe

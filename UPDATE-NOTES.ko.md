@@ -1,10 +1,45 @@
-# KURO 업데이트 노트 — v0.9.5 → v0.9.27
+# KURO 업데이트 노트 — v0.9.5 → v0.9.29
 
 **한국어** | [English](UPDATE-NOTES.md)
 
 배포일: 2026-03-26
 
 ---
+
+## v0.9.29 (2026-03-26)
+
+### 신규 기능
+- **합성 품질 점수 (Synthesis Score)**: IDT/Twist 합성 가이드라인 기반 프라이머 합성 난이도 점수 (0-100). Homopolymer 4+ 연속, GC-rich 6+ 연속, 디뉴클레오타이드 반복 8+, 극단 GC% 감점. Syn 컬럼에 색상 표시 (초록/주황/빨강). 셀 hover 시 Fwd/Rev 개별 점수 표시
+- **Sequence Map 뷰어**: 접이식 SVG 선형 CDS 맵. 초록=설계 완료, 빨강=실패. 밀도 히스토그램으로 클러스터링 감지. 도메인 영역에 할당량 표시 (selected/quota, 부족 시 경고)
+- **y_pred 컬럼**: EVOLVEpro 모드에서 결과 테이블에 y_pred 값 표시. 헤더 클릭으로 정렬 가능
+- **디자인 취소**: 설계 중 Design 버튼 옆에 Cancel 버튼 표시. Sidecar 프로세스를 종료하고 재시작
+- **도메인 토글**: fetch한 도메인을 체크박스로 개별 활성/비활성화. 목록은 보존되며 선택만 변경
+
+### 선택 전략 (Selection Strategy)
+- **독립 체크박스**: Top-N, Position, Domain, Pareto diversity가 각각 독립 체크박스로 자유 조합 가능
+- **디자인 시 동기 reload**: diversity 설정이 디자인 직전에 즉시 반영 (비동기 CSV reload 경쟁 조건 해소)
+- **전략 필수**: EVOLVEpro 모드에서 하나 이상의 전략 체크 필요
+
+### 개선
+- **Fill on failure 기본값 OFF**: 의도치 않은 mutation 대체를 방지하기 위해 기본 꺼짐으로 변경
+- **Sidecar 좀비 방지**: 부모 프로세스 watchdog (5초 간격). Tauri 종료 시 sidecar 자동 종료. WaitForSingleObject (Windows) / os.kill (Unix) 사용
+- **자동 재연결**: sidecar 미실행 시 요청하면 자동 spawn
+- **헤더 tooltip**: 모든 결과 테이블 컬럼 및 Sequence Map 헤더에 설명 tooltip 추가
+- **모달 접근성**: ESC 닫기, 자동 포커스, role="dialog", aria-modal 적용
+
+### 크로스플랫폼
+- **CI 3-platform**: ubuntu, windows, macos에서 Python 3.11/3.12 테스트
+- **인코딩**: 모든 파일 I/O에 `encoding="utf-8"` 명시
+- **빌드 스크립트**: 크로스플랫폼 sidecar kill (taskkill/pkill) 및 python/python3 자동 감지
+
+### 개발자
+- **122개 테스트** (기존 38개): test_polymerase (19), test_codon_table (26), test_sidecar_rpc (31), test_synthesis_score (10), test_cancel_check (3) 추가
+- **`cancel_design` RPC**: threading.Event로 설계 루프를 안전하게 중단
+- **`design_sdm_primers` 콜백**: `on_progress(i, total, mutation_raw)` 및 `cancel_check()` 매개변수 추가
+
+---
+
+## v0.9.27 이전
 
 ## Export
 

@@ -19,7 +19,6 @@ def generate_overlap_windows(
     seq: str,
     codon_start: int,
     overlap_len: int = 20,
-    step: int = 1,
 ) -> list[OverlapWindow]:
     """Generate overlap windows UPSTREAM of the mutation codon.
 
@@ -32,7 +31,6 @@ def generate_overlap_windows(
         seq: Full DNA sequence (mutated).
         codon_start: 0-based start position of the mutant codon.
         overlap_len: Length of the overlap window in bp.
-        step: Sliding step size (unused, kept for API compat).
 
     Returns:
         List of OverlapWindow candidates (one per overlap_len).

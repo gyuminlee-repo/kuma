@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   createColumnHelper,
   flexRender,
@@ -126,6 +126,7 @@ function CandidatePopover({
   const [evaluating, setEvaluating] = useState(false);
   const [seqError, setSeqError] = useState<string | null>(null);
   const [otDetailCand, setOtDetailCand] = useState<SdmPrimerResult | null>(null);
+  const candidateCloseRef = useRef<HTMLButtonElement>(null);
   const getAlternatives = useAppStore((s) => s.getAlternatives);
   const swapPrimer = useAppStore((s) => s.swapPrimer);
   const applyCustomPrimer = useAppStore((s) => s.applyCustomPrimer);
@@ -180,6 +181,10 @@ function CandidatePopover({
     if (type === "both") onClose();
   }
 
+  useEffect(() => {
+    candidateCloseRef.current?.focus();
+  }, []);
+
   function handleApplyCustom(result: SdmPrimerResult) {
     applyCustomPrimer(mutation, result);
     onClose();
@@ -194,18 +199,25 @@ function CandidatePopover({
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
       onClick={onClose}
+      onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}
     >
+      <div aria-hidden="true" className="fixed inset-0" />
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="candidate-popover-title"
         className="bg-white rounded-lg shadow-xl p-4 max-w-3xl max-h-[80vh] overflow-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-center mb-3">
-          <h3 className="text-sm font-semibold">
+          <h3 id="candidate-popover-title" className="text-sm font-semibold">
             {mutation} — {candidates?.length ?? "..."} candidates
           </h3>
           <button
+            ref={candidateCloseRef}
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 text-lg px-2"
+            aria-label="Close"
           >
             ×
           </button>
@@ -348,6 +360,11 @@ function HairpinDetail({
   result: SdmPrimerResult;
   onClose: () => void;
 }) {
+  const hairpinCloseRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    hairpinCloseRef.current?.focus();
+  }, []);
+
   const rows = [
     { label: "Hairpin Fwd", tm: result.hairpin_tm_fwd ?? 0, dg: result.hairpin_dg_fwd ?? 0 },
     { label: "Hairpin Rev", tm: result.hairpin_tm_rev ?? 0, dg: result.hairpin_dg_rev ?? 0 },
@@ -359,18 +376,25 @@ function HairpinDetail({
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
       onClick={onClose}
+      onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}
     >
+      <div aria-hidden="true" className="fixed inset-0" />
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="hairpin-detail-title"
         className="bg-white rounded-lg shadow-xl p-4 min-w-[280px]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-center mb-3">
-          <h3 className="text-sm font-semibold">
+          <h3 id="hairpin-detail-title" className="text-sm font-semibold">
             {result.mutation} — Secondary Structure
           </h3>
           <button
+            ref={hairpinCloseRef}
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 text-lg px-2"
+            aria-label="Close"
           >
             ×
           </button>
@@ -433,6 +457,11 @@ function OffTargetDetail({
   result: SdmPrimerResult;
   onClose: () => void;
 }) {
+  const offTargetCloseRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    offTargetCloseRef.current?.focus();
+  }, []);
+
   const fwdHits = result.offtarget_fwd ?? [];
   const revHits = result.offtarget_rev ?? [];
   const allHits = [
@@ -444,18 +473,25 @@ function OffTargetDetail({
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
       onClick={onClose}
+      onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}
     >
+      <div aria-hidden="true" className="fixed inset-0" />
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="offtarget-detail-title"
         className="bg-white rounded-lg shadow-xl p-4 min-w-[360px] max-w-lg max-h-[60vh] overflow-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-center mb-3">
-          <h3 className="text-sm font-semibold">
+          <h3 id="offtarget-detail-title" className="text-sm font-semibold">
             {result.mutation} — Off-Target Sites ({allHits.length})
           </h3>
           <button
+            ref={offTargetCloseRef}
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 text-lg px-2"
+            aria-label="Close"
           >
             ×
           </button>
@@ -543,9 +579,14 @@ function FailedMutationPopover({
   const [seqError, setSeqError] = useState<string | null>(null);
   const [showManual, setShowManual] = useState(false);
 
+  const failedCloseRef = useRef<HTMLButtonElement>(null);
   const retryFailedMutation = useAppStore((s) => s.retryFailedMutation);
   const evaluateCustomPrimer = useAppStore((s) => s.evaluateCustomPrimer);
   const addDesignResult = useAppStore((s) => s.addDesignResult);
+
+  useEffect(() => {
+    failedCloseRef.current?.focus();
+  }, []);
 
   async function handleRetry() {
     setRetrying(true);
@@ -599,11 +640,12 @@ function FailedMutationPopover({
   const inp = "w-14 h-5 text-[10px] border border-gray-300 rounded px-1 text-center focus:outline-none focus:ring-1 focus:ring-green-500";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
-      <div className="bg-white rounded-lg shadow-xl p-4 min-w-[440px] max-w-xl max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose} onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}>
+      <div aria-hidden="true" className="fixed inset-0" />
+      <div role="dialog" aria-modal="true" aria-labelledby="failed-mutation-title" className="bg-white rounded-lg shadow-xl p-4 min-w-[440px] max-w-xl max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-3">
-          <h3 className="text-sm font-semibold text-red-700">{failed.mutation} — Design Failed</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg px-2">×</button>
+          <h3 id="failed-mutation-title" className="text-sm font-semibold text-red-700">{failed.mutation} — Design Failed</h3>
+          <button ref={failedCloseRef} onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg px-2" aria-label="Close">×</button>
         </div>
 
         <div className="bg-red-50 rounded px-3 py-2 mb-3 text-xs text-red-700">
@@ -723,6 +765,7 @@ function FailedMutationPopover({
 const HEADER_TOOLTIPS: Record<string, string> = {
   rank: "Input order (EVOLVEpro: y_pred descending rank)",
   mutation: "Amino acid substitution. Click header to sort by aa position",
+  y_pred: "EVOLVEpro predicted fitness score (higher = better predicted activity)",
   forward_seq: "Full forward primer (overlap + mutation codon + downstream). Click to compare candidates",
   reverse_seq: "Full reverse primer. Click to compare candidates",
   fwd_len: "Forward primer length (bp)",
@@ -731,16 +774,26 @@ const HEADER_TOOLTIPS: Record<string, string> = {
   tm_no_rev: "Reverse whole-primer Tm (SantaLucia 1998)",
   tm_overlap: "Overlap region Tm - should be lower than Fwd/Rev Tm",
   tolerance_used: "Tm tolerance Fwd/Rev (each starts at +/-0.5, widens by 0.5 up to +/-3.0)",
-  penalty: "Sum of Tm deviations + GC% penalty (lower is better)",
+  penalty: "Penalty score: Tm deviation + GC% + codon distance + hairpin/homodimer + synthesis difficulty (lower = better)",
   candidate_count: "Unique forward / reverse candidates (click to compare if >1)",
   has_offtarget: "Off-target binding detected on template strand",
   hairpin: "Hairpin/Homodimer worst Tm (>40°C = warning)",
   gc_fwd: "Forward primer GC content (40-60% recommended)",
   gc_rev: "Reverse primer GC content (40-60% recommended)",
+  synth: "Synthesis quality score (100=ideal). Penalizes: homopolymer runs, GC-rich stretches, dinucleotide repeats, extreme GC%. Hover cell for Fwd/Rev breakdown",
   wt_codon: "Wild-type codon at this position",
 };
 
-function makeColumns(groupColorMap: Map<number, string>, codonStrategy: "closest" | "optimal", swapped: Record<string, string>, customCandidates: Record<string, SdmPrimerResult[]>, rescuedMutations: Set<string>, removeDesignResult: (mutation: string, reason: string) => void) {
+function makeColumns(opts: {
+  groupColorMap: Map<number, string>;
+  codonStrategy: "closest" | "optimal";
+  swapped: Record<string, string>;
+  customCandidates: Record<string, SdmPrimerResult[]>;
+  rescuedMutations: Set<string>;
+  removeDesignResult: (mutation: string, reason: string) => void;
+  yPredMap: Record<string, number>;
+}) {
+  const { groupColorMap, codonStrategy, swapped, customCandidates, rescuedMutations, removeDesignResult, yPredMap } = opts;
   return [
     col.accessor("rank", {
       header: "#",
@@ -792,6 +845,18 @@ function makeColumns(groupColorMap: Map<number, string>, codonStrategy: "closest
         );
       },
     }),
+    ...(Object.keys(yPredMap).length > 0 ? [col.accessor((row) => yPredMap[row.mutation] ?? -Infinity, {
+      id: "y_pred",
+      header: "y_pred",
+      size: 65,
+      sortingFn: "basic",
+      cell: (info) => {
+        const val = info.getValue();
+        return val > -Infinity ? (
+          <span className="text-gray-500">{val.toFixed(3)}</span>
+        ) : <span className="text-gray-300">—</span>;
+      },
+    })] : []),
     col.accessor("forward_seq", {
       header: "Forward Primer",
       size: 220,
@@ -937,6 +1002,25 @@ function makeColumns(groupColorMap: Map<number, string>, codonStrategy: "closest
       size: 50,
       cell: (info) => info.getValue().toFixed(1),
     }),
+    col.display({
+      id: "synth",
+      header: "Syn",
+      size: 50,
+      enableSorting: true,
+      sortingFn: (a, b) => {
+        const scoreA = Math.min(a.original.synthesis_score_fwd ?? 100, a.original.synthesis_score_rev ?? 100);
+        const scoreB = Math.min(b.original.synthesis_score_fwd ?? 100, b.original.synthesis_score_rev ?? 100);
+        return scoreA - scoreB;
+      },
+      cell: (info) => {
+        const row = info.row.original;
+        const fwd = row.synthesis_score_fwd ?? 100;
+        const rev = row.synthesis_score_rev ?? 100;
+        const worst = Math.round(Math.min(fwd, rev));
+        const color = worst >= 85 ? "text-green-600" : worst >= 70 ? "text-amber-600" : "text-red-600";
+        return <span className={color} title={`Fwd: ${Math.round(fwd)} / Rev: ${Math.round(rev)}`}>{worst}</span>;
+      },
+    }),
     col.accessor("wt_codon", {
       header: "WT",
       size: 40,
@@ -982,9 +1066,10 @@ export function ResultTable() {
   const customCandidatesAll = useAppStore((s) => s.customCandidates);
   const rescuedMutations = useAppStore((s) => s.rescuedMutations);
   const removeDesignResult = useAppStore((s) => s.removeDesignResult);
+  const yPredMap = useAppStore((s) => s.yPredMap);
   const columns = useMemo(
-    () => makeColumns(groupColorMap, codonStrategy, manuallySwapped, customCandidatesAll, rescuedMutations, removeDesignResult),
-    [groupColorMap, codonStrategy, manuallySwapped, customCandidatesAll, rescuedMutations, removeDesignResult],
+    () => makeColumns({ groupColorMap, codonStrategy, swapped: manuallySwapped, customCandidates: customCandidatesAll, rescuedMutations, removeDesignResult, yPredMap }),
+    [groupColorMap, codonStrategy, manuallySwapped, customCandidatesAll, rescuedMutations, removeDesignResult, yPredMap],
   );
 
   const table = useReactTable({

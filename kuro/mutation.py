@@ -67,7 +67,7 @@ def parse_mutations(
     mutations: list[Mutation] = []
     sequence = sequence.upper()
 
-    with open(csv_path) as f:
+    with open(csv_path, encoding="utf-8") as f:
         reader = csv.DictReader(f)
         if reader.fieldnames and "mutation" not in reader.fieldnames:
             raise ValueError(

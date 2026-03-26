@@ -25,6 +25,8 @@ export function InputPanel() {
   const loadSequence = useAppStore((s) => s.loadSequence);
   const evolveproCsvPath = useAppStore((s) => s.evolveproCsvPath);
   const loadEvolveproCsv = useAppStore((s) => s.loadEvolveproCsv);
+  const selectionStrategy = useAppStore((s) => s.selectionStrategy);
+  const setSelectionStrategy = useAppStore((s) => s.setSelectionStrategy);
   const positionDiversityEnabled = useAppStore((s) => s.positionDiversityEnabled);
   const setPositionDiversityEnabled = useAppStore((s) => s.setPositionDiversityEnabled);
   const maxPerPosition = useAppStore((s) => s.maxPerPosition);
@@ -35,6 +37,8 @@ export function InputPanel() {
   const setDomainStrategy = useAppStore((s) => s.setDomainStrategy);
   const domains = useAppStore((s) => s.domains);
   const setDomains = useAppStore((s) => s.setDomains);
+  const toggleDomain = useAppStore((s) => s.toggleDomain);
+  const disabledDomains = useAppStore((s) => s.disabledDomains);
   const fetchDomains = useAppStore((s) => s.fetchDomains);
   const domainLoading = useAppStore((s) => s.domainLoading);
   const uniprotAccession = useAppStore((s) => s.uniprotAccession);
@@ -168,18 +172,33 @@ export function InputPanel() {
                   : "No file selected"}
               </span>
             </div>
-            <div className="flex items-center gap-2 text-xs">
-              <label className="flex items-center gap-1 cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="h-3 w-3 accent-green-600"
+            <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Selection Strategy</div>
+            <div className="space-y-1">
+              <label className="flex items-center gap-1 cursor-pointer text-xs"
+                title="Select top-N variants by predicted fitness score (y_pred descending). Base ranking method.">
+                <input type="checkbox" className="h-3 w-3 accent-green-600"
+                  checked={selectionStrategy !== "none"}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSelectionStrategy("topn");
+                    } else {
+                      setSelectionStrategy("none");
+                      setPositionDiversityEnabled(false);
+                      setDomainDiversityEnabled(false);
+                      setParetoDiversityEnabled(false);
+                    }
+                  }} />
+                <span className="text-gray-600">Top-N by y_pred</span>
+              </label>
+              <label className="flex items-center gap-1 cursor-pointer text-xs"
+                title="Limit mutations per amino acid position to avoid over-sampling at hot spots. Combinable with other diversity options.">
+                <input type="checkbox" className="h-3 w-3 accent-green-600"
                   checked={positionDiversityEnabled}
-                  onChange={(e) => setPositionDiversityEnabled(e.target.checked)}
-                />
-                <span className="text-gray-500">Position diversity</span>
+                  onChange={(e) => setPositionDiversityEnabled(e.target.checked)} />
+                <span className="text-gray-600">Position diversity</span>
               </label>
               {positionDiversityEnabled && (
-                <>
+                <div className="flex items-center gap-1 pl-5 text-xs">
                   <span className="text-gray-400">max</span>
                   <input
                     type="number"
@@ -192,19 +211,14 @@ export function InputPanel() {
                     onKeyDown={onMaxPerPosKeyDown}
                   />
                   <span className="text-gray-400">per position</span>
-                </>
+                </div>
               )}
-            </div>
-            {/* Domain Diversity */}
-            <div className="border-t border-gray-200 pt-1.5 mt-1.5 space-y-1">
-              <label className="flex items-center gap-1 cursor-pointer text-xs">
-                <input
-                  type="checkbox"
-                  className="h-3 w-3 accent-blue-600"
+              <label className="flex items-center gap-1 cursor-pointer text-xs"
+                title="Allocate mutation quota per protein domain (proportional to length or equal). Requires UniProt domain info. Combinable with other options.">
+                <input type="checkbox" className="h-3 w-3 accent-blue-600"
                   checked={domainDiversityEnabled}
-                  onChange={(e) => setDomainDiversityEnabled(e.target.checked)}
-                />
-                <span className="text-gray-500">Domain diversity</span>
+                  onChange={(e) => setDomainDiversityEnabled(e.target.checked)} />
+                <span className="text-gray-600">Domain diversity</span>
               </label>
               {domainDiversityEnabled && (
                 <div className="space-y-1.5 pl-4">
@@ -241,21 +255,22 @@ export function InputPanel() {
                   </div>
                   {domains.length > 0 && (
                     <div className="space-y-0.5">
-                      {domains.map((d, i) => (
-                        <div key={`${d.name}-${d.start}`} className="flex items-center gap-1 text-[10px]">
-                          <span className="w-2 h-2 rounded-sm bg-blue-400 inline-block flex-shrink-0" />
-                          <span className="text-gray-600 truncate" title={`${d.id} (${d.db})`}>
-                            {d.name} ({d.start}-{d.end})
-                          </span>
-                          <button
-                            className="text-gray-400 hover:text-red-500 ml-auto flex-shrink-0"
-                            onClick={() => setDomains(domains.filter((_, j) => j !== i))}
-                            title="Remove domain"
-                          >
-                            &times;
-                          </button>
-                        </div>
-                      ))}
+                      {domains.map((d) => {
+                        const key = `${d.name}-${d.start}`;
+                        const disabled = disabledDomains.has(key);
+                        return (
+                          <label key={key} className={`flex items-center gap-1 text-[10px] cursor-pointer ${disabled ? "opacity-40" : ""}`}
+                            title={`${d.id} (${d.db})`}>
+                            <input type="checkbox" className="w-2.5 h-2.5"
+                              checked={!disabled}
+                              onChange={() => toggleDomain(key)} />
+                            <span className="w-2 h-2 rounded-sm bg-blue-400 inline-block flex-shrink-0" />
+                            <span className="text-gray-600 truncate">
+                              {d.name} ({d.start}-{d.end})
+                            </span>
+                          </label>
+                        );
+                      })}
                     </div>
                   )}
                   {!addingDomain ? (
@@ -289,19 +304,15 @@ export function InputPanel() {
                   )}
                 </div>
               )}
-            </div>
-            {/* Pareto Diversity */}
-            <div className="flex items-center gap-1 text-xs">
-              <label className="flex items-center gap-1 cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="h-3 w-3 accent-purple-600"
+              {/* Pareto Diversity */}
+              <label className="flex items-center gap-1 cursor-pointer text-xs"
+                title="Greedy maximin selection: maximize minimum position distance between selected mutations. Prevents clustering at nearby positions. Combinable with Domain diversity.">
+                <input type="checkbox" className="h-3 w-3 accent-purple-600"
                   checked={paretoDiversityEnabled}
-                  onChange={(e) => setParetoDiversityEnabled(e.target.checked)}
-                />
-                <span className="text-gray-500">Pareto diversity</span>
+                  onChange={(e) => setParetoDiversityEnabled(e.target.checked)} />
+                <span className="text-gray-600">Pareto diversity</span>
+                <span className="text-[10px] text-gray-400">(position spread)</span>
               </label>
-              <span className="text-[10px] text-gray-400">(position spread)</span>
             </div>
             {mutationText && (
               <textarea

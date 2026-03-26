@@ -9,7 +9,7 @@ from __future__ import annotations
 # Source: Kazusa Codon Usage Database (http://www.kazusa.or.jp/codon/)
 # Format: {amino_acid: [(codon, frequency), ...]} sorted by frequency descending
 ECOLI_CODON_USAGE: dict[str, list[tuple[str, float]]] = {
-    "A": [("GCG", 0.36), ("GCC", 0.27), ("GCT", 0.16), ("GCA", 0.21)],
+    "A": [("GCG", 0.36), ("GCC", 0.27), ("GCA", 0.21), ("GCT", 0.16)],
     "R": [("CGC", 0.40), ("CGT", 0.38), ("CGG", 0.10), ("CGA", 0.06),
           ("AGG", 0.02), ("AGA", 0.04)],
     "N": [("AAC", 0.55), ("AAT", 0.45)],
@@ -20,8 +20,8 @@ ECOLI_CODON_USAGE: dict[str, list[tuple[str, float]]] = {
     "G": [("GGC", 0.41), ("GGT", 0.34), ("GGG", 0.15), ("GGA", 0.11)],
     "H": [("CAC", 0.57), ("CAT", 0.43)],
     "I": [("ATT", 0.51), ("ATC", 0.42), ("ATA", 0.07)],
-    "L": [("CTG", 0.50), ("CTT", 0.10), ("CTC", 0.10),
-          ("TTG", 0.13), ("TTA", 0.13), ("CTA", 0.04)],
+    "L": [("CTG", 0.50), ("TTG", 0.13), ("TTA", 0.13),
+          ("CTT", 0.10), ("CTC", 0.10), ("CTA", 0.04)],
     "K": [("AAA", 0.76), ("AAG", 0.24)],
     "M": [("ATG", 1.00)],
     "F": [("TTT", 0.57), ("TTC", 0.43)],
@@ -42,12 +42,11 @@ for _aa, _codons in ECOLI_CODON_USAGE.items():
         CODON_TO_AA[_codon] = _aa
 
 
-def best_codon(aa: str, organism: str = "ecoli") -> str:
-    """Return the most frequently used codon for an amino acid in E. coli.
+def best_codon(aa: str) -> str:
+    """Return the most frequently used codon for an amino acid in E. coli K-12.
 
     Args:
         aa: Single-letter amino acid code (uppercase).
-        organism: Organism name (currently only "ecoli" supported).
 
     Returns:
         Most frequent codon (uppercase DNA).
@@ -56,8 +55,6 @@ def best_codon(aa: str, organism: str = "ecoli") -> str:
         ValueError: If amino acid code is invalid.
     """
     aa = aa.upper()
-    if organism != "ecoli":
-        raise ValueError(f"Unsupported organism: {organism}")
     if aa not in ECOLI_CODON_USAGE:
         raise ValueError(f"Invalid amino acid: {aa}")
     # Return highest-frequency codon

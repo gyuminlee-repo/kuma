@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from kuro.codon_table import CODON_TO_AA, best_codon, codon_to_aa
+from kuro.codon_table import CODON_TO_AA
 from kuro.mutation import (
     Mutation,
     mutate_sequence,
@@ -16,31 +16,7 @@ from kuro.mutation import (
 from tests.conftest import TARGET_START
 
 
-class TestCodonTable:
-    def test_best_codon_alanine(self):
-        # A -> GCG is most frequent in E. coli
-        assert best_codon("A") == "GCG"
-
-    def test_best_codon_all_amino_acids(self):
-        """Every standard amino acid should return a valid codon."""
-        aas = "ACDEFGHIKLMNPQRSTVWY"
-        for aa in aas:
-            codon = best_codon(aa)
-            assert len(codon) == 3
-            assert codon_to_aa(codon) == aa
-
-    def test_codon_to_aa_roundtrip(self):
-        for aa_code, codons in __import__("kuro.codon_table", fromlist=["ECOLI_CODON_USAGE"]).ECOLI_CODON_USAGE.items():
-            for codon, _ in codons:
-                assert CODON_TO_AA[codon] == aa_code
-
-    def test_invalid_amino_acid(self):
-        with pytest.raises(ValueError, match="Invalid amino acid"):
-            best_codon("X")
-
-    def test_invalid_codon(self):
-        with pytest.raises(ValueError, match="Invalid codon"):
-            codon_to_aa("XYZ")
+# Codon table tests moved to test_codon_table.py
 
 
 class TestMutationParsing:

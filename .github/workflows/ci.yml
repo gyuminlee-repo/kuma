@@ -1,27 +1,41 @@
-name: CI — Python Tests
+name: CI
 
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+on: [push, pull_request]
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.11", "3.12"]
 
     steps:
       - uses: actions/checkout@v5
 
       - uses: actions/setup-python@v6
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: pip install primer3-py==2.3.0 biopython==1.84 openpyxl==3.1.5 pytest==9.0.2
+        run: pip install -e ".[dev]" pytest primer3-py==2.3.0 biopython==1.84 openpyxl==3.1.5
 
       - name: Run tests
         run: python -m pytest tests/ -v
+
+  typecheck:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - run: npm ci
+
+      - run: npx tsc --noEmit

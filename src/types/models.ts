@@ -82,6 +82,8 @@ export interface SdmPrimerResult {
   hairpin_dg_rev?: number;
   homodimer_dg_fwd?: number;
   homodimer_dg_rev?: number;
+  synthesis_score_fwd?: number;
+  synthesis_score_rev?: number;
   warnings: string[];
 }
 
