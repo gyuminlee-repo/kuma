@@ -1,8 +1,8 @@
-# KURO 업데이트 노트 — v0.9.5 → v0.9.17
+# KURO 업데이트 노트 — v0.9.5 → v0.9.27
 
 **한국어** | [English](UPDATE-NOTES.md)
 
-배포일: 2026-03-24
+배포일: 2026-03-26
 
 ---
 
@@ -20,7 +20,10 @@
 
 ## EVOLVEpro
 
+- **도메인 다양성(Domain diversity)**: 단백질 구조 도메인 간 Top-N variant 선택을 분산. UniProt accession 입력 시 InterPro/Pfam에서 도메인 경계를 자동 조회하거나 수동 정의 가능. 비례 배분(proportional) 또는 균등 배분(equal) 전략 지원
+- **Pareto 다양성(Pareto diversity)**: MODIFY 방식의 fitness-diversity 동시 최적화. Greedy maximin 알고리즘으로 선택된 variant 간 위치 분산을 최대화. 단독 사용 또는 도메인 다양성과 결합 가능 (도메인 내에서 Pareto 적용)
 - **위치 다양성(Position diversity) 필터**: 아미노산 위치당 mutation 수를 제한하는 선택적 체크박스. 같은 위치의 고점수 mutation(예: Q10A, Q10L, Q10V)이 선택을 독점하는 것을 방지. 위치당 최대 수 조절 가능 (기본값 1)
+- 세 가지 다양성 필터(Position, Domain, Pareto)는 독립 토글 — 어떤 조합이든 사용 가능. 모두 OFF = 순수 y_pred Top-N (기본 동작)
 
 ## 결과 테이블
 

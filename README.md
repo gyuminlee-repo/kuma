@@ -12,7 +12,7 @@ Given a mutation list (plain text / EVOLVEpro CSV) and a template sequence (GenB
 
 ## Features
 
-- **EVOLVEpro CSV input**: Load EVOLVEpro output CSV → sort by y_pred descending → auto-select the configured number of variants. Optional **position diversity** filter limits mutations per amino acid position. Optional **domain diversity** distributes selections across protein structural domains (auto-fetched from InterPro/Pfam or manual input)
+- **EVOLVEpro CSV input**: Load EVOLVEpro output CSV → sort by y_pred descending → auto-select the configured number of variants. Optional **position diversity** filter limits mutations per amino acid position. Optional **domain diversity** distributes selections across protein structural domains (auto-fetched from InterPro/Pfam or manual input). Optional **Pareto diversity** maximizes position spread via MODIFY-style fitness-diversity co-optimization
 - **Batch mutation parsing**: Mutation list in `Q232A` format → automatic codon position calculation + WT codon validation
 - **Codon strategy selection**: Choose between Min. changes (fewest base changes from WT) or Optimal (E. coli-optimized codon)
 - **Overlap upstream design**: Overlap region is placed immediately upstream of the mutation codon (EVOLVEpro convention)
