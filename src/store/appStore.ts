@@ -35,6 +35,7 @@ interface AppState {
   uniprotAccession: string;
   domains: DomainInfo[];
   domainLoading: boolean;
+  paretoDiversityEnabled: boolean;
   parsedMutations: ParsedMutation[];
   parseErrors: ParseError[];
 
@@ -84,6 +85,7 @@ interface AppState {
   setDomainStrategy: (strategy: "proportional" | "equal") => void;
   fetchDomains: (accession: string) => Promise<void>;
   setDomains: (domains: DomainInfo[]) => void;
+  setParetoDiversityEnabled: (enabled: boolean) => void;
   loadEvolveproCsv: (filepath: string) => Promise<void>;
   setCodonStrategy: (strategy: "closest" | "optimal") => void;
   setMaxPrimers: (n: number) => void;
@@ -125,6 +127,7 @@ const INITIAL_STATE = {
   uniprotAccession: "",
   domains: [] as DomainInfo[],
   domainLoading: false,
+  paretoDiversityEnabled: false,
   parsedMutations: [] as ParsedMutation[],
   parseErrors: [] as ParseError[],
   selectedGene: "",
@@ -245,9 +248,15 @@ export const useAppStore = create<AppState>((set, get) => {
       if (evolveproCsvPath && domainDiversityEnabled) get().loadEvolveproCsv(evolveproCsvPath);
     },
 
+    setParetoDiversityEnabled: (enabled: boolean) => {
+      set({ paretoDiversityEnabled: enabled });
+      const { evolveproCsvPath } = get();
+      if (evolveproCsvPath) get().loadEvolveproCsv(evolveproCsvPath);
+    },
+
     loadEvolveproCsv: async (filepath: string) => {
       try {
-        const { positionDiversityEnabled, maxPerPosition, domainDiversityEnabled, domains, domainStrategy } = get();
+        const { positionDiversityEnabled, maxPerPosition, domainDiversityEnabled, domains, domainStrategy, paretoDiversityEnabled } = get();
         set({ statusMessage: "Loading EVOLVEpro CSV...", evolveproCsvPath: filepath });
         const result = await sendRequest<EvolveproLoadResult>(
           "load_evolvepro_csv",
@@ -260,6 +269,7 @@ export const useAppStore = create<AppState>((set, get) => {
               domains: domains.map((d) => ({ name: d.name, start: d.start, end: d.end })),
               domain_strategy: domainStrategy,
             }),
+            ...(paretoDiversityEnabled && { pareto_diversity: true }),
           },
         );
         const variantText = result.variants.join("\n");
@@ -269,10 +279,13 @@ export const useAppStore = create<AppState>((set, get) => {
         const domainMsg = result.domain_stats
           ? " | " + Object.entries(result.domain_stats).map(([name, s]) => `${name}: ${s.selected}/${s.quota}`).join(", ")
           : "";
+        const paretoMsg = result.pareto_replaced != null && result.pareto_replaced > 0
+          ? ` | Pareto: ${result.pareto_replaced} diversified`
+          : "";
         set({
           mutationText: variantText,
           mutationInputMode: "evolvepro",
-          statusMessage: `EVOLVEpro: ${result.selected_count}/${result.total_count} variants${filteredMsg}${domainMsg}`,
+          statusMessage: `EVOLVEpro: ${result.selected_count}/${result.total_count} variants${filteredMsg}${domainMsg}${paretoMsg}`,
         });
       } catch (err) {
         set({ statusMessage: `EVOLVEpro CSV load failed: ${formatError(err)}` });
@@ -601,6 +614,7 @@ export const useAppStore = create<AppState>((set, get) => {
         domains: s.domains.length > 0 ? s.domains : undefined,
         domainDiversityEnabled: s.domainDiversityEnabled || undefined,
         domainStrategy: s.domainDiversityEnabled ? s.domainStrategy : undefined,
+        paretoDiversityEnabled: s.paretoDiversityEnabled || undefined,
       };
     },
 
@@ -646,6 +660,7 @@ export const useAppStore = create<AppState>((set, get) => {
         domains: ws.domains ?? [],
         domainDiversityEnabled: ws.domainDiversityEnabled ?? false,
         domainStrategy: ws.domainStrategy ?? "proportional",
+        paretoDiversityEnabled: ws.paretoDiversityEnabled ?? false,
         statusMessage: "Workspace loaded. Re-designing to sync backend...",
       });
       if (ws.mutationText && ws.fastaPath) {

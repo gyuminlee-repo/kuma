@@ -113,6 +113,7 @@ export interface EvolveproLoadResult {
   selected_count: number;
   filtered_count?: number;
   domain_stats?: Record<string, DomainStat>;
+  pareto_replaced?: number;
 }
 
 export interface FailedMutation {
@@ -184,6 +185,7 @@ export interface WorkspaceV1 {
   domains?: DomainInfo[];
   domainDiversityEnabled?: boolean;
   domainStrategy?: "proportional" | "equal";
+  paretoDiversityEnabled?: boolean;
 }
 
 // JSON-RPC types

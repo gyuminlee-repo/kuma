@@ -38,6 +38,8 @@ export function InputPanel() {
   const fetchDomains = useAppStore((s) => s.fetchDomains);
   const domainLoading = useAppStore((s) => s.domainLoading);
   const uniprotAccession = useAppStore((s) => s.uniprotAccession);
+  const paretoDiversityEnabled = useAppStore((s) => s.paretoDiversityEnabled);
+  const setParetoDiversityEnabled = useAppStore((s) => s.setParetoDiversityEnabled);
 
   // Local state for UniProt accession input
   const [accessionInput, setAccessionInput] = useState(uniprotAccession);
@@ -287,6 +289,19 @@ export function InputPanel() {
                   )}
                 </div>
               )}
+            </div>
+            {/* Pareto Diversity */}
+            <div className="flex items-center gap-1 text-xs">
+              <label className="flex items-center gap-1 cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="h-3 w-3 accent-purple-600"
+                  checked={paretoDiversityEnabled}
+                  onChange={(e) => setParetoDiversityEnabled(e.target.checked)}
+                />
+                <span className="text-gray-500">Pareto diversity</span>
+              </label>
+              <span className="text-[10px] text-gray-400">(position spread)</span>
             </div>
             {mutationText && (
               <textarea

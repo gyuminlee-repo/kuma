@@ -578,12 +578,25 @@ def handle_load_evolvepro_csv(params: dict) -> dict:
     domain_info = params.get("domains", [])
     domain_diversity = params.get("domain_diversity", False)
     domain_strategy = params.get("domain_strategy", "proportional")
+    pareto_diversity = params.get("pareto_diversity", False)
 
-    if domain_diversity and domain_info:
+    domain_stats = None
+    pareto_replaced = 0
+
+    if domain_diversity and domain_info and pareto_diversity:
+        # Domain + Pareto: domain quota with Pareto selection within each domain
+        selected, domain_stats = _domain_aware_select(
+            rows, domain_info, top_n, domain_strategy, use_pareto=True,
+        )
+    elif domain_diversity and domain_info:
+        # Domain only
         selected, domain_stats = _domain_aware_select(rows, domain_info, top_n, domain_strategy)
+    elif pareto_diversity:
+        # Pareto only
+        selected, pareto_replaced = _pareto_diversity_select(rows, top_n)
     else:
+        # Pure Top-N (default)
         selected = rows[:top_n]
-        domain_stats = None
 
     return {
         "variants": [v for v, _ in selected],
@@ -592,6 +605,7 @@ def handle_load_evolvepro_csv(params: dict) -> dict:
         "selected_count": len(selected),
         "filtered_count": pre_filter_count - len(rows),
         "domain_stats": domain_stats,
+        "pareto_replaced": pareto_replaced if pareto_diversity else None,
     }
 
 
@@ -861,6 +875,7 @@ def _domain_aware_select(
     domains: list[dict],
     top_n: int,
     strategy: str = "proportional",
+    use_pareto: bool = False,
 ) -> tuple[list[tuple[str, float]], dict]:
     """Domain-based quota Top-N selection.
 
@@ -927,7 +942,10 @@ def _domain_aware_select(
     for name in domain_names:
         quota = quotas[name]
         candidates = domain_bins.get(name, [])
-        picked = candidates[:quota]
+        if use_pareto and quota > 1 and len(candidates) > 1:
+            picked, _ = _pareto_diversity_select(candidates, quota)
+        else:
+            picked = candidates[:quota]
         for v, y in picked:
             if v not in selected_set:
                 selected.append((v, y))
@@ -965,6 +983,76 @@ def _domain_aware_select(
                 selected_set.add(v)
 
     return selected[:top_n], stats
+
+
+def _pareto_diversity_select(
+    rows: list[tuple[str, float]],
+    top_n: int,
+    pool_multiplier: float = 2.0,
+) -> tuple[list[tuple[str, float]], int]:
+    """MODIFY-style Pareto fitness-diversity selection (greedy maximin).
+
+    Selects variants that maximize minimum position distance to already-selected set,
+    breaking ties by y_pred. This prevents clustering of mutations at nearby positions.
+
+    Returns: (selected_rows, replaced_count vs pure Top-N)
+    """
+    if top_n <= 0 or not rows:
+        return rows[:top_n], 0
+
+    pool_size = min(len(rows), max(top_n, int(top_n * pool_multiplier)))
+    pool = rows[:pool_size]
+
+    # Extract positions for distance calculation
+    positions: list[int] = []
+    for variant, _ in pool:
+        m = _POS_RE.search(variant)
+        positions.append(int(m.group(1)) if m else -1)
+
+    # Find max position for normalization
+    valid_pos = [p for p in positions if p >= 0]
+    max_pos = max(valid_pos) if valid_pos else 1
+
+    selected_indices: list[int] = [0]  # seed: best fitness
+    selected_set = {0}
+
+    for _ in range(min(top_n, len(pool)) - 1):
+        best_idx = -1
+        best_min_dist = -1.0
+        best_y = -float("inf")
+
+        for i in range(len(pool)):
+            if i in selected_set:
+                continue
+            pos_i = positions[i]
+            if pos_i < 0:
+                min_dist = 1.0  # unknown position = treat as maximally distant
+            else:
+                min_dist = min(
+                    abs(pos_i - positions[j]) / max_pos if positions[j] >= 0 else 1.0
+                    for j in selected_indices
+                )
+
+            y_i = pool[i][1]
+            if (min_dist > best_min_dist) or (
+                min_dist == best_min_dist and y_i > best_y
+            ):
+                best_idx = i
+                best_min_dist = min_dist
+                best_y = y_i
+
+        if best_idx < 0:
+            break
+        selected_indices.append(best_idx)
+        selected_set.add(best_idx)
+
+    selected = [pool[i] for i in selected_indices]
+
+    # Count how many differ from pure Top-N
+    top_n_set = {v for v, _ in pool[:top_n]}
+    replaced = sum(1 for v, _ in selected if v not in top_n_set)
+
+    return selected, replaced
 
 
 # --- Dispatcher ---
