@@ -12,7 +12,6 @@ from dataclasses import dataclass, field, fields as dc_fields, replace as dc_rep
 import re
 import sys
 import tempfile
-import urllib.request
 from pathlib import Path
 
 # Ensure kuro package is importable
@@ -815,13 +814,15 @@ def handle_fetch_domains(params: dict) -> dict:
         ),
     ]
 
+    import urllib.request as _urllib_req  # lazy import: avoid slow SSL init at startup
+
     for url, db_label in endpoints:
         try:
-            req = urllib.request.Request(
+            req = _urllib_req.Request(
                 url,
                 headers={"Accept": "application/json"},
             )
-            with urllib.request.urlopen(req, timeout=10) as resp:
+            with _urllib_req.urlopen(req, timeout=10) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
 
             domains: list[dict] = []
