@@ -97,6 +97,7 @@ EVOLVEpro 모드를 선택하고 Browse 버튼으로 EVOLVEpro 출력 CSV를 로
 | **Pareto 다양성** | 물리적 위치 분산을 최대화할 때. Greedy maximin으로 클러스터링을 방지한다 |
 | **위치 + 도메인** | 위치 제한과 도메인 간 균형을 동시 적용. 특정 도메인 내 hot spot이 존재할 때 유용 |
 | **도메인 + Pareto** | 각 도메인 내에서 Pareto 분산을 적용. 기능적 + 위치적 다양성을 동시에 최대화한다 |
+| **Pareto + Entropy-guided** | Pareto 분산에 위치별 y_pred 분포 entropy를 혼합(weight 0.3). 많은 변이가 비슷한 점수를 가진 위치(고불확실성)를 우선 탐색하여 local minimum 회피 효과를 높인다 (β 표시) |
 - 로드 후 텍스트 영역에서 직접 편집 가능
 
 ![변이 목록 입력](docs/screenshots/03-mutations-entered.png)
@@ -121,9 +122,18 @@ EVOLVEpro 모드를 선택하고 Browse 버튼으로 EVOLVEpro 출력 CSV를 로
 | 전략 | 설명 |
 |------|------|
 | **Min. changes** (기본) | WT 코돈 대비 최소 염기 변이 수를 가진 코돈을 우선 선택. 프라이머 내 변이 위치가 적어 합성 정확도에 유리. 프라이머 복잡도를 최소화하는 보수적 선택 |
-| **Optimal** | E. coli K-12 codon usage frequency가 가장 높은 코돈을 우선 선택. 발현 최적화에 유리 |
+| **Optimal** | 선택된 Organism의 codon usage frequency가 가장 높은 코돈을 우선 선택. 발현 최적화에 유리 |
 
-> **제한 사항**: 내장 코돈 테이블은 E. coli K-12 전용이다. 다른 숙주 생물에서 프라이머를 설계할 경우 Optimal 전략이 부정확한 코돈을 선택할 수 있다. 이 경우 Min. changes가 더 안전하다.
+**Organism 선택**: Input 패널의 Organism 드롭다운에서 숙주 생물을 선택하면 해당 생물의 코돈 테이블이 Optimal 전략에 적용된다.
+
+| Organism | 특이사항 |
+|----------|----------|
+| E. coli K-12 | 내장 코돈 테이블 (가장 검증됨) |
+| B. subtilis 168 | Gram 양성균. E. coli와 코돈 선호도 차이 있음 |
+| S. cerevisiae | 효모. 진핵생물 코돈 최적화 |
+| H. sapiens | 인간. 포유류 발현계에 적합 |
+
+> **제한 사항**: Optimal 전략은 선택된 Organism 테이블 기준으로만 최적화한다. Organism 목록에 없는 숙주를 사용하는 경우 Min. changes가 더 안전하다.
 
 두 전략 모두 대안 코돈도 후보로 시도하여 penalty가 낮은 프라이머 쌍을 선택한다.
 

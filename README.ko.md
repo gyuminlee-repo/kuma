@@ -9,11 +9,11 @@ Gibson Assembly 기반 SDM 프라이머 배치 설계 데스크톱 앱.
 
 https://github.com/user-attachments/assets/f95e65ca-22d2-4479-a06b-8dcd553571be
 
-변이 목록(텍스트/EVOLVEpro CSV)과 템플릿 시퀀스(GenBank/SnapGene)를 입력하면, overlap extension 방식의 SDM 프라이머 쌍을 자동 설계한다.
+변이 목록(텍스트/EVOLVEpro CSV/MULTI-evolve CSV)과 템플릿 시퀀스(GenBank/SnapGene)를 입력하면, overlap extension 방식의 SDM 프라이머 쌍을 자동 설계한다.
 
 ## 주요 기능
 
-- **EVOLVEpro CSV 입력**: EVOLVEpro 출력 CSV 로드 → y_pred 내림차순 정렬 → 설정 개수만큼 자동 선정. **위치 다양성(position diversity)** 필터로 아미노산 위치당 최대 N개 제한 가능. **도메인 다양성(domain diversity)** 필터로 단백질 구조 도메인 간 분산 선택 (InterPro/Pfam 자동 조회 또는 수동 입력). **Pareto 다양성** 으로 MODIFY 방식의 위치 분산 최대화
+- **EVOLVEpro / MULTI-evolve CSV 입력**: EVOLVEpro(`variant`, `y_pred`) 또는 MULTI-evolve(`mutation`, `property_value`) 출력 CSV 로드 — 컬럼 형식 자동 감지. 점수 내림차순 정렬 → 설정 개수만큼 자동 선정. **위치 다양성(position diversity)** 필터로 아미노산 위치당 최대 N개 제한 가능. **도메인 다양성(domain diversity)** 필터로 단백질 구조 도메인 간 분산 선택 (InterPro/Pfam 자동 조회 또는 수동 입력). **Pareto 다양성** 으로 MODIFY 방식의 위치 분산 최대화
 - **배치 변이 파싱**: `Q232A` 형식의 변이 목록 → 코돈 위치 자동 계산 + WT 코돈 검증
 - **코돈 전략 선택**: Min. changes (WT 대비 최소 염기 변이) 또는 Optimal (E. coli 최적 코돈) 중 선택 가능
 - **Overlap upstream 설계**: overlap 영역이 mutation codon 바로 앞(upstream)에 위치 (EVOLVEpro 방식)
@@ -23,7 +23,7 @@ https://github.com/user-attachments/assets/f95e65ca-22d2-4479-a06b-8dcd553571be
 - **프라이머 길이 제한**: Fwd/Rev min/max 길이 제약 (Advanced Options에서 선택적 활성화)
 - **Hairpin / Homodimer 검증**: primer3 calc_hairpin/calc_homodimer로 이차 구조 체크. Tm, dG(kcal/mol) 표시
 - **합성 품질 점수**: IDT/Twist 가이드라인 기반 올리고 합성 난이도 평가 (0-100). Homopolymer, GC-rich 연속, 디뉴클레오타이드 반복, 극단 GC% 감점
-- **Sequence Map**: 접이식 SVG 선형 CDS 맵. 돌연변이 위치, 도메인 영역, 밀도 히스토그램으로 클러스터링 감지
+- **Sequence Map**: 접이식 SVG 선형 CDS 맵. 돌연변이 위치, 도메인 영역, 밀도 히스토그램으로 클러스터링 감지. 히스토그램 바 hover 시 해당 AA 구간의 mutation 수 툴팁 표시
 - **컬럼 정렬**: 모든 결과 컬럼 정렬 가능 (y_pred, 합성 점수 포함). Plate map export에도 정렬 순서 반영
 - **후보 비교 및 교체**: 프라이머 서열 클릭 시 후보 비교 팝오버 (candidate 1개여도 클릭 가능). 수동 교체 시 결과 테이블에 amber 하이라이트
 - **커스텀 프라이머 평가**: 후보 팝오버에서 직접 서열 입력 → Tm, GC%, hairpin, off-target 즉시 계산
@@ -34,20 +34,22 @@ https://github.com/user-attachments/assets/f95e65ca-22d2-4479-a06b-8dcd553571be
 - **Workspace 저장/불러오기**: 파라미터 + 설계 결과를 `.kuro.json`으로 저장하여 세션 간 이동 가능
 - **데스크톱 GUI**: Windows / macOS / Linux 크로스플랫폼 앱
 
-## 선택 전략 (EVOLVEpro 모드)
+## 선택 전략 (EVOLVEpro / MULTI-evolve 모드)
 
-EVOLVEpro CSV 로드 시 어떤 mutation을 프라이머 설계 대상으로 선정할지를 결정하는 전략. 독립 체크박스로 자유 조합 가능.
+EVOLVEpro 또는 MULTI-evolve CSV 로드 시 어떤 mutation을 프라이머 설계 대상으로 선정할지를 결정하는 전략. 독립 체크박스로 자유 조합 가능.
 
 | 전략 | 설명 | 사용 시점 |
 |------|------|-----------|
-| **Top-N by y_pred** | EVOLVEpro 예측 적합도(y_pred) 내림차순으로 상위 N개 선택. N = 최대 프라이머 수 설정 (기본 95). | 기본 랭킹. 예측 적합도만 기준으로 할 때. |
+| **Top-N by score** | 예측 적합도(y_pred / property_value) 내림차순으로 상위 N개 선택. N = 최대 프라이머 수 설정 (기본 95). | 기본 랭킹. 예측 적합도만 기준으로 할 때. |
 | **Position diversity** | 아미노산 위치당 최대 mutation 수 제한 (기본: 위치당 1개). 다른 전략 적용 전 사전 필터로 동작. | 특정 위치에 mutation이 과도하게 집중되는 것을 방지. |
 | **Domain diversity** | 단백질 구조 도메인별로 mutation 할당량을 배분 (비례 배분 또는 균등 배분). 도메인 정보는 UniProt accession으로 InterPro/Pfam에서 자동 조회하거나 수동 입력. 할당량 미달 도메인은 경고(⚠) 표시. | 한 도메인이 y_pred 상위를 독점할 때, 모든 기능 영역을 균형 있게 탐색하기 위해. |
 | **Pareto diversity** | Greedy maximin 위치 선택: 이미 선택된 mutation과 가장 먼 위치의 mutation을 반복 선택하여 공간적 분산을 극대화. | 좁은 영역에 mutation이 밀집되는 것을 방지. MODIFY 접근법 (Hie et al., *Nature*, 2024) 기반. |
+| **Entropy-guided** (β) | 위치별 y_pred 분포의 Shannon entropy (가중치 0.3)를 Pareto 점수에 혼합. 동일 위치에서 다수 mutation이 비슷한 점수로 분포할 때(불확실성 높을 때) 우선 선택. | 적합도 경관에 여러 봉우리가 존재할 가능성이 있을 때 국소 최적 탈출. Pareto diversity 활성화 필요. |
 
 **조합 예시:**
 - Domain + Pareto: 도메인별 할당량 배분 후, 각 도메인 내에서 Pareto 분산 적용
 - Position + Domain: 위치당 개수 제한 후, 도메인 간 배분
+- Pareto + Entropy-guided: 공간 분산 + 불확실성 우선 탐색
 
 **참고 문헌:**
 - Hie BL, Shanker VR, Xu D, et al. Efficient evolution of human antibodies from general protein language models. *Nature Biotechnology*, 42:275-283 (2024). — Pareto fitness-diversity 공동 최적화 개념
@@ -60,15 +62,16 @@ EVOLVEpro CSV 로드 시 어떤 mutation을 프라이머 설계 대상으로 선
 
 ## 사용법
 
-1. 시퀀스 파일 로드 (GenBank .gb / SnapGene .dna)
-2. Target Gene 드롭다운에서 타겟 유전자 CDS 확인 (자동 선택)
-3. 변이 입력 (텍스트 직접 입력 또는 EVOLVEpro CSV 로드)
-4. 코돈 전략 선택 (Min. changes / Optimal)
-5. (선택) Advanced Options에서 Tm 타겟, GC% 범위, 프라이머 길이 조정
-6. **Design Primers** 클릭
-7. Fwd/Rev 서열 클릭 → 후보 비교 팝오버에서 교체 가능
-8. HP 컬럼 클릭 → hairpin/homodimer 상세 (Tm, dG)
-9. File → Export Excel / Save Workspace
+1. Input 패널 상단의 **Try sample →** 클릭 시 예제 파일 자동 로드 후 결과 확인 가능. 또는:
+2. 시퀀스 파일 로드 (GenBank .gb / SnapGene .dna)
+3. Target Gene 드롭다운에서 타겟 유전자 CDS 확인 (자동 선택)
+4. 변이 입력 (텍스트 직접 입력, EVOLVEpro CSV 또는 MULTI-evolve CSV 로드)
+5. 코돈 전략 선택 (Min. changes / Optimal)
+6. (선택) Advanced Options에서 Tm 타겟, GC% 범위, 프라이머 길이 조정
+7. **Design Primers** 클릭
+8. Fwd/Rev 서열 클릭 → 후보 비교 팝오버에서 교체 가능
+9. HP 컬럼 클릭 → hairpin/homodimer 상세 (Tm, dG)
+10. File → Export Excel / Save Workspace
 
 상세 설명은 [사용자 가이드](USER-GUIDE.ko.md) 참조.
 

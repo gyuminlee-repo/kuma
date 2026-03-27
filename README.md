@@ -8,11 +8,11 @@ Desktop app for batch SDM primer design based on Gibson Assembly.
 
 https://github.com/user-attachments/assets/f95e65ca-22d2-4479-a06b-8dcd553571be
 
-Given a mutation list (plain text / EVOLVEpro CSV) and a template sequence (GenBank / SnapGene), KURO automatically designs SDM primer pairs using the overlap extension method.
+Given a mutation list (plain text / EVOLVEpro CSV / MULTI-evolve CSV) and a template sequence (GenBank / SnapGene), KURO automatically designs SDM primer pairs using the overlap extension method.
 
 ## Features
 
-- **EVOLVEpro CSV input**: Load EVOLVEpro output CSV → sort by y_pred descending → auto-select the configured number of variants. Optional **position diversity** filter limits mutations per amino acid position. Optional **domain diversity** distributes selections across protein structural domains (auto-fetched from InterPro/Pfam or manual input). Optional **Pareto diversity** maximizes position spread via MODIFY-style fitness-diversity co-optimization
+- **EVOLVEpro / MULTI-evolve CSV input**: Load EVOLVEpro (`variant`, `y_pred`) or MULTI-evolve (`mutation`, `property_value`) output CSV — column format is auto-detected. Sorts by score descending → auto-selects the configured number of variants. Optional **position diversity** filter limits mutations per amino acid position. Optional **domain diversity** distributes selections across protein structural domains (auto-fetched from InterPro/Pfam or manual input). Optional **Pareto diversity** maximizes position spread via MODIFY-style fitness-diversity co-optimization
 - **Batch mutation parsing**: Mutation list in `Q232A` format → automatic codon position calculation + WT codon validation
 - **Codon strategy selection**: Choose between Min. changes (fewest base changes from WT) or Optimal (E. coli-optimized codon)
 - **Overlap upstream design**: Overlap region is placed immediately upstream of the mutation codon (EVOLVEpro convention)
@@ -24,7 +24,7 @@ Given a mutation list (plain text / EVOLVEpro CSV) and a template sequence (GenB
 - **ESM-2 structural distance**: Pareto diversity optionally uses ESM-2 per-residue cosine distance (via ESM Atlas API) instead of 1D position distance. Auto-downloads and caches embeddings by UniProt accession
 - **Benchmark framework**: Compare KURO selection (Pareto/Domain) vs Random vs Top-N on fitness landscapes. Metrics: hit rate, mean fitness, position coverage
 - **Synthesis quality score**: Oligo synthesis difficulty assessment (0-100) based on IDT/Twist guidelines. Penalizes homopolymer runs, GC-rich stretches, dinucleotide repeats, and extreme GC content
-- **Sequence Map**: Collapsible SVG linear CDS map with mutation positions, domain regions, and density histogram for cluster detection
+- **Sequence Map**: Collapsible SVG linear CDS map with mutation positions, domain regions, and density histogram for cluster detection. Hover over histogram bars to see mutation count per AA region
 - **Column sorting**: All result columns sortable (including y_pred and synthesis score). Plate map export respects current sort order
 - **Candidate comparison and swap**: Click a primer sequence to open a candidate comparison popover (clickable even with a single candidate). Manually swapped primers are highlighted in amber in the result table
 - **Custom primer evaluation**: Enter a sequence directly in the candidate popover → Tm, GC%, hairpin, and off-target are calculated immediately
@@ -35,20 +35,22 @@ Given a mutation list (plain text / EVOLVEpro CSV) and a template sequence (GenB
 - **Workspace save/load**: Save parameters + design results as a `.kuro.json` file for cross-session portability
 - **Desktop GUI**: Cross-platform app based on Tauri v2 + React 19 (Windows / macOS / Linux)
 
-## Selection Strategies (EVOLVEpro mode)
+## Selection Strategies (EVOLVEpro / MULTI-evolve mode)
 
-When loading an EVOLVEpro CSV, KURO applies the configured selection strategy to choose which mutations to design primers for. Strategies are independent checkboxes and can be combined.
+When loading a scored CSV (EVOLVEpro or MULTI-evolve), KURO applies the configured selection strategy to choose which mutations to design primers for. Strategies are independent checkboxes and can be combined.
 
 | Strategy | Description | When to use |
 |----------|-------------|-------------|
-| **Top-N by y_pred** | Select the top N mutations ranked by EVOLVEpro predicted fitness score (y_pred descending). N = max primers setting (default 95). | Default ranking. Use when predicted fitness is the only criterion. |
+| **Top-N by score** | Select the top N mutations ranked by predicted fitness score (y_pred / property_value descending). N = max primers setting (default 95). | Default ranking. Use when predicted fitness is the only criterion. |
 | **Position diversity** | Limit the number of mutations per amino acid position (default: 1 per position). Applied as a pre-filter before other strategies. | Prevent over-sampling at mutational hot spots. |
 | **Domain diversity** | Allocate mutation quota proportionally (by domain length) or equally across protein structural domains. Domains are auto-fetched from InterPro/Pfam via UniProt accession, or entered manually. Under-filled domains show a warning (⚠). | Ensure coverage across all functional regions, especially when one domain dominates the y_pred ranking. |
-| **Pareto diversity** | Greedy maximin position selection: iteratively pick the mutation whose position is farthest from all already-selected positions. Maximizes spatial spread across the protein sequence. | Prevent clustering of mutations in a narrow region. Inspired by the MODIFY approach (Hie et al., *Nature*, 2024). |
+| **Pareto diversity** | Greedy maximin position selection: iteratively pick the mutation whose position is farthest from all already-selected positions. Maximizes spatial spread across the protein sequence. | Prevent clustering of mutations in a narrow region. Inspired by the MODIFY approach (Hie et al., *Nature Biotechnology*, 2024). |
+| **Entropy-guided** (β) | Blends per-position Shannon entropy of the y_pred distribution (weight 0.3) into the Pareto score. Positions where many mutations score similarly (high uncertainty) are prioritised. | Escape local optima. Useful when EVOLVEpro predictions converge on a narrow region but the landscape may have multiple peaks. Requires Pareto diversity to be enabled. |
 
 **Combination examples:**
 - Domain + Pareto: Allocate quota per domain, then apply Pareto spread within each domain
 - Position + Domain: Cap per-position count, then distribute across domains
+- Pareto + Entropy-guided: Spatial spread with uncertainty-driven exploration
 
 **Reference:**
 - Hie BL, Shanker VR, Xu D, et al. Efficient evolution of human antibodies from general protein language models. *Nature Biotechnology*, 42:275-283 (2024). — Pareto fitness-diversity co-optimization concept
@@ -61,15 +63,16 @@ Download the latest installer from [Releases](https://github.com/gyuminlee-repo/
 
 ## Usage
 
-1. Load a sequence file (GenBank .gb / SnapGene .dna)
-2. Verify the target gene CDS in the Target Gene dropdown (auto-selected)
-3. Enter mutations (direct text input or load EVOLVEpro CSV)
-4. Select a codon strategy (Min. changes / Optimal)
-5. (Optional) Adjust Tm targets, GC% range, primer length in Advanced Options
-6. Click **Design Primers**
-7. Click a Fwd/Rev sequence → swap primers in the candidate comparison popover
-8. Click the HP column → hairpin/homodimer details (Tm, dG)
-9. File → Export Excel / Save Workspace
+1. Click **Try sample →** (top of Input panel) to load example files and see a result immediately, or:
+2. Load a sequence file (GenBank .gb / SnapGene .dna)
+3. Verify the target gene CDS in the Target Gene dropdown (auto-selected)
+4. Enter mutations (direct text input, EVOLVEpro CSV, or MULTI-evolve CSV)
+5. Select a codon strategy (Min. changes / Optimal)
+6. (Optional) Adjust Tm targets, GC% range, primer length in Advanced Options
+7. Click **Design Primers**
+8. Click a Fwd/Rev sequence → swap primers in the candidate comparison popover
+9. Click the HP column → hairpin/homodimer details (Tm, dG)
+10. File → Export Excel / Save Workspace
 
 For detailed instructions, see the [User Guide](USER-GUIDE.md).
 

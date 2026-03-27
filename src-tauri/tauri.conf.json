@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/nicedoc/schemas/main/tauri-v2.json",
   "productName": "KURO",
-  "version": "0.9.35",
+  "version": "0.9.36",
   "identifier": "com.kuro.app",
   "build": {
     "frontendDist": "../dist",
@@ -27,6 +27,7 @@
   "bundle": {
     "active": true,
     "targets": ["nsis", "deb", "appimage", "dmg"],
+    "resources": ["../samples/**"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

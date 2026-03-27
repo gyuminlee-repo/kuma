@@ -1,4 +1,5 @@
 import type { StateCreator } from "zustand";
+import { resolveResource } from "@tauri-apps/api/path";
 import { sendRequest } from "../../lib/ipc";
 import type {
   SequenceInfo,
@@ -21,7 +22,7 @@ export interface InputSlice {
   // State
   fastaPath: string;
   seqInfo: SequenceInfo | null;
-  mutationInputMode: "text" | "evolvepro";
+  mutationInputMode: "text" | "evolvepro" | "multi-evolve";
   mutationText: string;
   evolveproCsvPath: string;
   yPredMap: Record<string, number>;
@@ -36,6 +37,7 @@ export interface InputSlice {
   disabledDomains: Set<string>;
   domainStats: Record<string, { quota: number; selected: number }>;
   paretoDiversityEnabled: boolean;
+  entropyWeightEnabled: boolean;
   esmEmbeddingLoaded: boolean;
   esmEmbeddingLoading: boolean;
   parsedMutations: ParsedMutation[];
@@ -50,21 +52,23 @@ export interface InputSlice {
   loadSequence: (filepath: string) => Promise<void>;
   setSelectedGene: (gene: string) => void;
   setOrganism: (organism: string) => void;
-  setMutationInputMode: (mode: "text" | "evolvepro") => void;
+  setMutationInputMode: (mode: "text" | "evolvepro" | "multi-evolve") => void;
   setMutationText: (text: string) => void;
   setPipelineMode: (enabled: boolean) => void;
   setPositionDiversityEnabled: (enabled: boolean) => void;
   setMaxPerPosition: (n: number) => void;
   setDomainDiversityEnabled: (enabled: boolean) => void;
   setDomainStrategy: (strategy: "proportional" | "equal") => void;
-  fetchDomains: (accession: string) => Promise<void>;
+  fetchDomains: (accession: string, clearCandidates?: boolean) => Promise<void>;
   setDomains: (domains: DomainInfo[]) => void;
   toggleDomain: (domainKey: string) => void;
   setParetoDiversityEnabled: (enabled: boolean) => void;
+  setEntropyWeightEnabled: (enabled: boolean) => void;
   fetchEsmEmbedding: (accession: string) => Promise<void>;
   loadEvolveproCsv: (filepath: string) => Promise<void>;
   parseMutations: () => Promise<void>;
   searchUniprot: (geneName: string, organism: string, translation: string, knownAccession: string) => Promise<void>;
+  loadSampleData: () => Promise<void>;
 }
 
 let csvLoadGeneration = 0;
@@ -87,6 +91,7 @@ export const createInputSlice: StateCreator<InputSlice, [], [], InputSlice> = (s
   disabledDomains: new Set<string>(),
   domainStats: {},
   paretoDiversityEnabled: false,
+  entropyWeightEnabled: false,
   esmEmbeddingLoaded: false,
   esmEmbeddingLoading: false,
   parsedMutations: [],
@@ -134,7 +139,14 @@ export const createInputSlice: StateCreator<InputSlice, [], [], InputSlice> = (s
     }
   },
 
-  setSelectedGene: (gene: string) => set({ selectedGene: gene }),
+  setSelectedGene: (gene: string) => {
+    set({ selectedGene: gene, uniprotCandidates: [] });
+    const { seqInfo, organism } = get();
+    const g = seqInfo?.genes.find((g) => String(g.cds_start) === gene);
+    if (g && (g.uniprot_accession || g.translation)) {
+      get().searchUniprot(g.gene, g.organism ?? organism, g.translation ?? "", g.uniprot_accession ?? "");
+    }
+  },
   setOrganism: (organism: string) => set({ organism }),
   setMutationInputMode: (mode) => set({ mutationInputMode: mode }),
   setMutationText: (text) => set({ mutationText: text }),
@@ -172,8 +184,12 @@ export const createInputSlice: StateCreator<InputSlice, [], [], InputSlice> = (s
     if (evolveproCsvPath) get().loadEvolveproCsv(evolveproCsvPath);
   },
 
-  fetchDomains: async (accession: string) => {
-    set({ domainLoading: true, statusMessage: "Fetching domain info..." } as Partial<InputSlice>);
+  fetchDomains: async (accession: string, clearCandidates = false) => {
+    set({
+      domainLoading: true,
+      ...(clearCandidates && { uniprotCandidates: [] }),
+      statusMessage: "Fetching domain info...",
+    } as Partial<InputSlice>);
     try {
       const result = await sendRequest<FetchDomainsResult>("fetch_domains", { accession });
       set({
@@ -213,6 +229,12 @@ export const createInputSlice: StateCreator<InputSlice, [], [], InputSlice> = (s
     if (evolveproCsvPath) get().loadEvolveproCsv(evolveproCsvPath);
   },
 
+  setEntropyWeightEnabled: (enabled: boolean) => {
+    set({ entropyWeightEnabled: enabled });
+    const { evolveproCsvPath } = get();
+    if (evolveproCsvPath) get().loadEvolveproCsv(evolveproCsvPath);
+  },
+
   fetchEsmEmbedding: async (accession: string) => {
     set({ esmEmbeddingLoading: true } as Partial<InputSlice>);
     try {
@@ -242,7 +264,7 @@ export const createInputSlice: StateCreator<InputSlice, [], [], InputSlice> = (s
   loadEvolveproCsv: async (filepath: string) => {
     const gen = ++csvLoadGeneration;
     try {
-      const { pipelineMode, positionDiversityEnabled, maxPerPosition, domainDiversityEnabled, domains, disabledDomains, domainStrategy, paretoDiversityEnabled } = get();
+      const { pipelineMode, positionDiversityEnabled, maxPerPosition, domainDiversityEnabled, domains, disabledDomains, domainStrategy, paretoDiversityEnabled, entropyWeightEnabled } = get();
       const maxPrimers = (get() as unknown as { maxPrimers: number }).maxPrimers;
       const activeDomains = domains.filter((d) => !disabledDomains.has(`${d.name}-${d.start}`));
       set({ statusMessage: "Loading EVOLVEpro CSV...", evolveproCsvPath: filepath } as Partial<InputSlice>);
@@ -258,6 +280,7 @@ export const createInputSlice: StateCreator<InputSlice, [], [], InputSlice> = (s
             domain_strategy: domainStrategy,
           }),
           ...(pipelineMode && paretoDiversityEnabled && { pareto_diversity: true }),
+          ...(pipelineMode && paretoDiversityEnabled && entropyWeightEnabled && { entropy_weight: 0.3 }),
         },
       );
       if (gen !== csvLoadGeneration) return;
@@ -334,6 +357,21 @@ export const createInputSlice: StateCreator<InputSlice, [], [], InputSlice> = (s
       }
     } catch (err) {
       set({ uniprotSearching: false, statusMessage: `UniProt search failed: ${formatError(err)}` } as Partial<InputSlice>);
+    }
+  },
+
+  loadSampleData: async () => {
+    try {
+      set({ statusMessage: "Loading sample data..." } as Partial<InputSlice>);
+      const [gbPath, csvPath] = await Promise.all([
+        resolveResource("samples/sample_plasmid.gb"),
+        resolveResource("samples/sample_evolvepro.csv"),
+      ]);
+      await get().loadSequence(gbPath);
+      set({ mutationInputMode: "evolvepro" } as Partial<InputSlice>);
+      await get().loadEvolveproCsv(csvPath);
+    } catch (err) {
+      set({ statusMessage: `Sample load failed: ${formatError(err)}` } as Partial<InputSlice>);
     }
   },
 });

@@ -1,8 +1,26 @@
-# KURO Update Notes — v0.9.5 → v0.9.35
+# KURO Update Notes — v0.9.5 → v0.9.36
 
 [한국어](UPDATE-NOTES.ko.md) | **English**
 
 Released: 2026-03-27
+
+---
+
+## v0.9.36 (2026-03-27)
+
+### Try Sample Button
+- "Try sample →" button added to Input panel header
+- Loads bundled sample GenBank + EVOLVEpro CSV automatically via `resolveResource`
+- `tauri.conf.json`: `"resources": ["../samples/**"]` added for production bundling
+
+### Entropy-Guided Selection (β)
+- New diversity strategy: blends per-position Shannon entropy (weight 0.3) into Pareto greedy maximin score
+- Positions where many mutations score similarly (high uncertainty) are prioritised
+- Requires Pareto diversity to be active; toggled via "Entropy-guided" checkbox (β badge) in Pipeline Step 3
+- Backend: `_position_entropy()` helper + `entropy_weight` param in `evolvepro.py` and `sidecar_main.py`
+
+### Documentation
+- README / USER-GUIDE (EN + KO): Entropy-guided row added to Selection Strategies table, Pareto + Entropy-guided combination example, Try sample step in Usage
 
 ---
 

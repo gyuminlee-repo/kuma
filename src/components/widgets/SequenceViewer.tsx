@@ -32,6 +32,14 @@ interface TooltipState {
   tick: MutationTick;
 }
 
+interface DensityTooltipState {
+  x: number;
+  y: number;
+  count: number;
+  startAa: number;
+  endAa: number;
+}
+
 // --- Density computation ---
 
 function computeDensityBins(
@@ -81,6 +89,7 @@ export function SequenceViewer() {
   const [collapsed, setCollapsed] = useState(false);
   const [selectedMutation, setSelectedMutation] = useState<string | null>(null);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+  const [densityTooltip, setDensityTooltip] = useState<DensityTooltipState | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
   const selectedGene = useAppStore((s) => s.selectedGene);
@@ -181,6 +190,25 @@ export function SequenceViewer() {
   const handleTickLeave = useCallback(() => {
     setTooltip(null);
   }, []);
+
+  const handleDensityHover = useCallback(
+    (e: React.MouseEvent, binIndex: number, count: number, binCount: number) => {
+      if (!svgRef.current) return;
+      const rect = svgRef.current.getBoundingClientRect();
+      const startAa = Math.floor((binIndex / binCount) * maxAa) + 1;
+      const endAa = Math.floor(((binIndex + 1) / binCount) * maxAa);
+      setDensityTooltip({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top - 8,
+        count,
+        startAa,
+        endAa,
+      });
+    },
+    [maxAa],
+  );
+
+  const handleDensityLeave = useCallback(() => setDensityTooltip(null), []);
 
   const handleTickClick = useCallback((mutation: string) => {
     setSelectedMutation((prev) => (prev === mutation ? null : mutation));
@@ -370,6 +398,9 @@ export function SequenceViewer() {
                         fill={`rgb(${r},${g},${b})`}
                         opacity={0.7}
                         rx={0.5}
+                        style={{ cursor: "default" }}
+                        onMouseEnter={(e) => handleDensityHover(e, i, count, BIN_COUNT)}
+                        onMouseLeave={handleDensityLeave}
                       />
                     );
                   })}
@@ -405,7 +436,22 @@ export function SequenceViewer() {
                 })}
               </svg>
 
-              {/* Tooltip */}
+              {/* Density tooltip */}
+              {densityTooltip && (
+                <div
+                  className="absolute z-50 px-2 py-1.5 bg-gray-900 text-white text-[10px] rounded shadow-lg pointer-events-none whitespace-nowrap"
+                  style={{
+                    left: Math.min(densityTooltip.x, SVG_WIDTH - 120),
+                    top: Math.max(0, densityTooltip.y - 36),
+                    transform: "translateX(-50%)",
+                  }}
+                >
+                  <div className="font-semibold">aa {densityTooltip.startAa}–{densityTooltip.endAa}</div>
+                  <div className="text-gray-300">{densityTooltip.count} mutation{densityTooltip.count !== 1 ? "s" : ""}</div>
+                </div>
+              )}
+
+              {/* Mutation tooltip */}
               {tooltip && (
                 <div
                   className="absolute z-50 px-2 py-1.5 bg-gray-900 text-white text-[10px] rounded shadow-lg pointer-events-none whitespace-nowrap"

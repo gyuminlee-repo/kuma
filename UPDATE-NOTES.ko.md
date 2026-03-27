@@ -1,8 +1,26 @@
-# KURO 업데이트 노트 — v0.9.5 → v0.9.35
+# KURO 업데이트 노트 — v0.9.5 → v0.9.36
 
 **한국어** | [English](UPDATE-NOTES.md)
 
 배포일: 2026-03-27
+
+---
+
+## v0.9.36 (2026-03-27)
+
+### Try Sample 버튼
+- Input 패널 상단에 "Try sample →" 버튼 추가
+- 번들 샘플 GenBank + EVOLVEpro CSV를 `resolveResource`로 자동 로드
+- `tauri.conf.json`에 `"resources": ["../samples/**"]` 추가 (프로덕션 번들링)
+
+### Entropy-guided 선택 전략 (β)
+- 위치별 Shannon entropy (가중치 0.3)를 Pareto greedy maximin 점수에 혼합하는 신규 전략
+- 불확실성이 높은 위치(동일 위치 mutation들의 점수 분포가 고를 때)를 우선 선택
+- Pareto diversity 활성화 필요; Pipeline Step 3의 "Entropy-guided" 체크박스 (β 배지)로 토글
+- 백엔드: `evolvepro.py`에 `_position_entropy()` 헬퍼 및 `entropy_weight` 파라미터 추가
+
+### 문서
+- README / USER-GUIDE (한/영): Entropy-guided 행 추가, Pareto + Entropy-guided 조합 예시, Try sample 단계 추가
 
 ---
 

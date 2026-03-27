@@ -1,0 +1,61 @@
+"""Tests for EVOLVEpro CSV loading and column compatibility."""
+
+from __future__ import annotations
+
+import pytest
+
+from kuro.evolvepro import SCORE_COLUMNS, VARIANT_COLUMNS, load_evolvepro_csv
+
+
+class TestLoadEvolveproCsv:
+    def test_load_multievolve_csv(self, tmp_path):
+        """MULTI-evolve CSV with 'mutation' and 'property_value' columns loads correctly."""
+        csv_file = tmp_path / "multievolve.csv"
+        csv_file.write_text(
+            "mutation,property_value\n"
+            "A40P,1.23\n"
+            "E61Y,0.95\n"
+            "K100R,0.80\n"
+        )
+
+        result = load_evolvepro_csv(csv_file, top_n=10)
+
+        assert result["selected_count"] == 3
+        assert "A40P" in result["variants"]
+        assert "E61Y" in result["variants"]
+        assert "K100R" in result["variants"]
+        # Scores should be read from property_value
+        assert result["y_preds"][0] == pytest.approx(1.23)
+
+    def test_load_variant_csv_backward_compat(self, tmp_path):
+        """Legacy CSV with 'variant' and 'y_pred' columns loads without error."""
+        csv_file = tmp_path / "legacy.csv"
+        csv_file.write_text(
+            "variant,y_pred\n"
+            "Q10A,0.90\n"
+            "Q11A,0.85\n"
+        )
+
+        result = load_evolvepro_csv(csv_file, top_n=10)
+
+        assert result["selected_count"] == 2
+        assert "Q10A" in result["variants"]
+        assert "Q11A" in result["variants"]
+        assert result["y_preds"][0] == pytest.approx(0.90)
+
+    def test_load_csv_missing_column(self, tmp_path):
+        """CSV with no supported variant column raises ValueError with column list."""
+        csv_file = tmp_path / "bad.csv"
+        csv_file.write_text(
+            "seq_id,score\n"
+            "seq1,1.0\n"
+        )
+
+        with pytest.raises(ValueError) as exc_info:
+            load_evolvepro_csv(csv_file)
+
+        error_msg = str(exc_info.value)
+        # Error message must mention at least one supported column name
+        assert any(col in error_msg for col in VARIANT_COLUMNS), (
+            f"Expected supported column names in error message, got: {error_msg}"
+        )

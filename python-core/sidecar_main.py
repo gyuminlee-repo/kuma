@@ -621,6 +621,7 @@ def handle_load_evolvepro_csv(params: dict) -> dict:
         domain_diversity=params.get("domain_diversity", False),
         domain_strategy=params.get("domain_strategy", "proportional"),
         pareto_diversity=params.get("pareto_diversity", False),
+        entropy_weight=float(params.get("entropy_weight", 0.0)),
     )
 
 
@@ -889,9 +890,20 @@ def handle_fetch_domains(params: dict) -> dict:
 
 
 def _sequence_identity(seq_a: str, seq_b: str) -> float:
-    """Calculate percent identity between two protein sequences (simple alignment)."""
+    """Calculate percent identity between two protein sequences.
+
+    Strips trailing stop codons (*), then checks for exact or substring
+    match before falling back to positional comparison.
+    """
+    seq_a = seq_a.rstrip("*").strip()
+    seq_b = seq_b.rstrip("*").strip()
     if not seq_a or not seq_b:
         return 0.0
+    if seq_a == seq_b:
+        return 100.0
+    # One sequence is a contiguous substring of the other (e.g. signal peptide trimming)
+    if seq_a in seq_b or seq_b in seq_a:
+        return 100.0
     matches = sum(1 for a, b in zip(seq_a, seq_b) if a == b)
     return round(matches / max(len(seq_a), len(seq_b)) * 100, 1)
 
@@ -925,8 +937,10 @@ def handle_search_uniprot(params: dict) -> dict:
             logger.warning("UniProt fetch failed: %s — %s", url, exc)
             return None
 
+    seen_accessions: set[str] = set()
+
     if known_accession:
-        # Direct fetch by accession
+        # Direct fetch by known accession
         data = _fetch_json(
             f"https://rest.uniprot.org/uniprotkb/{known_accession}?format=json"
         )
@@ -938,21 +952,21 @@ def handle_search_uniprot(params: dict) -> dict:
             for gn in data.get("genes", []):
                 if gn.get("geneName"):
                     gene_names.append(gn["geneName"].get("value", ""))
+            acc = data["primaryAccession"]
             candidates.append({
-                "accession": data["primaryAccession"],
+                "accession": acc,
                 "name": ", ".join(gene_names) if gene_names else known_accession,
                 "organism": org_name,
                 "length": data.get("sequence", {}).get("length", 0),
                 "identity": identity,
             })
+            seen_accessions.add(acc)
             if identity == 100.0:
-                auto_selected = data["primaryAccession"]
+                auto_selected = acc
 
-    if not candidates:
-        # Search by gene name + organism
-        query_parts = []
-        if gene_name:
-            query_parts.append(f"gene:{gene_name}")
+    # Always search by gene name to surface homologs (e.g. the user wants A0PFK2 for ispS)
+    if gene_name:
+        query_parts = [f"gene:{gene_name}"]
         if organism:
             query_parts.append(f'organism_name:"{organism}"')
         query = "+AND+".join(query_parts)
@@ -964,6 +978,10 @@ def handle_search_uniprot(params: dict) -> dict:
         data = _fetch_json(url)
         if data and "results" in data:
             for entry in data["results"]:
+                acc = entry.get("primaryAccession", "")
+                if acc in seen_accessions:
+                    continue
+                seen_accessions.add(acc)
                 uni_seq = entry.get("sequence", {}).get("value", "")
                 identity = _sequence_identity(translation, uni_seq) if translation else 0.0
                 org_name = entry.get("organism", {}).get("scientificName", "")
@@ -972,8 +990,8 @@ def handle_search_uniprot(params: dict) -> dict:
                     if gn.get("geneName"):
                         gene_names.append(gn["geneName"].get("value", ""))
                 candidates.append({
-                    "accession": entry.get("primaryAccession", ""),
-                    "name": ", ".join(gene_names) if gene_names else entry.get("primaryAccession", ""),
+                    "accession": acc,
+                    "name": ", ".join(gene_names) if gene_names else acc,
                     "organism": org_name,
                     "length": entry.get("sequence", {}).get("length", 0),
                     "identity": identity,

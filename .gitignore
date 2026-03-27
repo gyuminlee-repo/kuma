@@ -20,3 +20,6 @@ docs/tutorial.webm
 scripts/primer-data.json
 src-tauri/gen/
 *.bak
+
+# Benchmark data (ProteinGym ~1GB)
+benchmark/data/

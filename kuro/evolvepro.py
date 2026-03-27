@@ -7,6 +7,7 @@ selection for EVOLVEpro-predicted SDM variants.
 from __future__ import annotations
 
 import csv
+import math
 import re
 from pathlib import Path
 
@@ -14,6 +15,47 @@ from kuro.esm_embeddings import pairwise_esm_distance
 
 _POS_RE = re.compile(r"[A-Z](\d+)[A-Z]")
 _SINGLE_POS_RE = re.compile(r"^[A-Z](\d+)[A-Z]$")
+
+
+def _position_entropy(pool: list[tuple[str, float]]) -> dict[int, float]:
+    """Shannon entropy of y_pred distribution at each position.
+
+    Positions with many competitive mutations (high entropy) are uncertain —
+    multiple amino acid changes appear similarly beneficial. Entropy-guided
+    selection prioritises exploring these positions over positions dominated
+    by a single standout mutation.
+
+    Returns
+    -------
+    dict[int, float]
+        Normalised per-position entropy (0–1), keyed by 1-based position.
+    """
+    pos_scores: dict[int, list[float]] = {}
+    for variant, y in pool:
+        m = _POS_RE.search(variant)
+        if not m:
+            continue
+        pos = int(m.group(1))
+        pos_scores.setdefault(pos, []).append(max(y, 0.0))
+
+    raw: dict[int, float] = {}
+    for pos, scores in pos_scores.items():
+        total = sum(scores)
+        if total <= 0:
+            raw[pos] = 0.0
+            continue
+        probs = [s / total for s in scores if s > 0]
+        raw[pos] = -sum(p * math.log2(p) for p in probs if p > 0)
+
+    max_h = max(raw.values()) if raw else 1.0
+    if max_h == 0:
+        return {p: 0.0 for p in raw}
+    return {p: h / max_h for p, h in raw.items()}
+
+
+# Flexible column name resolution — first match wins
+VARIANT_COLUMNS = ["variant", "variants", "mutation", "mutant", "mutation_list"]
+SCORE_COLUMNS = ["y_pred", "property_value", "fitness", "score", "DMS_score"]
 
 
 def load_evolvepro_csv(
@@ -24,13 +66,15 @@ def load_evolvepro_csv(
     domain_diversity: bool = False,
     domain_strategy: str = "proportional",
     pareto_diversity: bool = False,
+    entropy_weight: float = 0.0,
 ) -> dict:
     """Load EVOLVEpro df_test.csv and return selected variants.
 
     Parameters
     ----------
     filepath : str | Path
-        Path to the EVOLVEpro CSV (must have 'variant' column).
+        Path to the EVOLVEpro CSV. Variant column is detected from
+        VARIANT_COLUMNS (first match). Score column from SCORE_COLUMNS.
     top_n : int
         Maximum number of variants to select.
     max_per_position : int
@@ -56,20 +100,27 @@ def load_evolvepro_csv(
     with open(filepath, encoding="utf-8") as f:
         reader = csv.DictReader(f)
         columns = reader.fieldnames or []
-        if "variant" not in columns:
+
+        variant_col = next((c for c in VARIANT_COLUMNS if c in columns), None)
+        if variant_col is None:
             raise ValueError(
-                "EVOLVEpro CSV must have a 'variant' column. "
-                f"Found columns: {columns}"
+                f"EVOLVEpro CSV must have a variant column. "
+                f"Supported: {VARIANT_COLUMNS}. Found: {columns}"
             )
-        has_ypred = "y_pred" in columns
+        score_col = next((c for c in SCORE_COLUMNS if c in columns), None)
+
         for row in reader:
-            variant = row.get("variant", "").strip()
+            variant = row.get(variant_col, "").strip()
             if not variant:
                 continue
-            y_pred = float(row["y_pred"]) if has_ypred and row.get("y_pred") else 0.0
+            try:
+                y_pred = float(row[score_col]) if score_col and row.get(score_col) else 0.0
+            except (ValueError, TypeError):
+                y_pred = 0.0
             rows.append((variant, y_pred))
 
-    if has_ypred:
+    has_score = score_col is not None
+    if has_score:
         rows.sort(key=lambda r: r[1], reverse=True)
 
     # Position diversity filter
@@ -99,7 +150,9 @@ def load_evolvepro_csv(
             rows, domain_info, top_n, domain_strategy,
         )
     elif pareto_diversity:
-        selected, pareto_replaced = pareto_diversity_select(rows, top_n)
+        selected, pareto_replaced = pareto_diversity_select(
+            rows, top_n, entropy_weight=entropy_weight
+        )
     else:
         selected = rows[:top_n]
 
@@ -250,6 +303,7 @@ def pareto_diversity_select(
     top_n: int,
     pool_multiplier: float = 2.0,
     esm_embedding: list[list[float]] | None = None,
+    entropy_weight: float = 0.0,
 ) -> tuple[list[tuple[str, float]], int]:
     """MODIFY-style Pareto fitness-diversity selection (greedy maximin).
 
@@ -261,6 +315,12 @@ def pareto_diversity_select(
     representation space is used instead of simple 1-D position distance.
     Falls back to 1-D distance for positions outside the embedding range.
 
+    When *entropy_weight* > 0, the selection score blends spatial diversity
+    with per-position entropy of y_pred (uncertainty-guided exploration).
+    Positions where many mutations score similarly (high Shannon entropy)
+    are prioritised, helping escape local optima in the fitness landscape.
+    A weight of 0.3 gives a mild bias; 0.7 strongly favours uncertain positions.
+
     Parameters
     ----------
     rows : list[tuple[str, float]]
@@ -271,6 +331,8 @@ def pareto_diversity_select(
         Candidate pool size = top_n * pool_multiplier.
     esm_embedding : list[list[float]] | None
         Per-residue ESM-2 embedding vectors (1-based indexing via helper).
+    entropy_weight : float
+        Blend weight for position entropy (0 = pure maximin, 1 = pure entropy).
 
     Returns
     -------
@@ -293,12 +355,15 @@ def pareto_diversity_select(
     valid_pos = [p for p in positions if p >= 0]
     max_pos = max(valid_pos) if valid_pos else 1
 
+    # Per-position entropy (computed once over full pool)
+    pos_entropy: dict[int, float] = _position_entropy(pool) if entropy_weight > 0 else {}
+
     selected_indices: list[int] = [0]  # seed: best fitness
     selected_set = {0}
 
     for _ in range(min(top_n, len(pool)) - 1):
         best_idx = -1
-        best_min_dist = -1.0
+        best_score = -float("inf")
         best_y = -float("inf")
 
         for i in range(len(pool)):
@@ -322,12 +387,16 @@ def pareto_diversity_select(
                     for j in selected_indices
                 )
 
+            if entropy_weight > 0:
+                ent = pos_entropy.get(pos_i, 0.0) if pos_i >= 0 else 0.0
+                score = (1.0 - entropy_weight) * min_dist + entropy_weight * ent
+            else:
+                score = min_dist
+
             y_i = pool[i][1]
-            if (min_dist > best_min_dist) or (
-                min_dist == best_min_dist and y_i > best_y
-            ):
+            if (score > best_score) or (score == best_score and y_i > best_y):
                 best_idx = i
-                best_min_dist = min_dist
+                best_score = score
                 best_y = y_i
 
         if best_idx < 0:

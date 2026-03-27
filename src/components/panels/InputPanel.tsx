@@ -48,6 +48,8 @@ export function InputPanel() {
   const uniprotAccession = useAppStore((s) => s.uniprotAccession);
   const paretoDiversityEnabled = useAppStore((s) => s.paretoDiversityEnabled);
   const setParetoDiversityEnabled = useAppStore((s) => s.setParetoDiversityEnabled);
+  const entropyWeightEnabled = useAppStore((s) => s.entropyWeightEnabled);
+  const setEntropyWeightEnabled = useAppStore((s) => s.setEntropyWeightEnabled);
   const esmEmbeddingLoaded = useAppStore((s) => s.esmEmbeddingLoaded);
   const esmEmbeddingLoading = useAppStore((s) => s.esmEmbeddingLoading);
   const uniprotCandidates = useAppStore((s) => s.uniprotCandidates);
@@ -55,6 +57,7 @@ export function InputPanel() {
   const searchUniprot = useAppStore((s) => s.searchUniprot);
   const domainStats = useAppStore((s) => s.domainStats);
   const evolveproTotalCount = useAppStore((s) => s.evolveproTotalCount);
+  const loadSampleData = useAppStore((s) => s.loadSampleData);
 
   // Local state for UniProt accession input
   const [accessionInput, setAccessionInput] = useState(uniprotAccession);
@@ -92,9 +95,18 @@ export function InputPanel() {
 
   return (
     <div className="border border-gray-300 rounded p-3 space-y-3">
-      <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
-        Input
-      </h3>
+      <div className="flex items-center justify-between">
+        <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
+          Input
+        </h3>
+        <button
+          className="text-[10px] text-blue-500 hover:text-blue-700 underline underline-offset-2"
+          onClick={loadSampleData}
+          title="Load sample GenBank + EVOLVEpro CSV to see an example result"
+        >
+          Try sample →
+        </button>
+      </div>
 
       {/* Sequence File */}
       <div className="space-y-1">
@@ -169,7 +181,6 @@ export function InputPanel() {
           <option value="ecoli">E. coli K-12</option>
           <option value="bsubtilis">B. subtilis 168</option>
           <option value="scerevisiae">S. cerevisiae</option>
-          <option value="hsapiens">H. sapiens</option>
         </select>
       </div>
 
@@ -197,18 +208,28 @@ export function InputPanel() {
             />
             EVOLVEpro
           </label>
+          <label className="flex items-center gap-1">
+            <input
+              type="radio"
+              name="mutInput"
+              checked={mutationInputMode === "multi-evolve"}
+              onChange={() => setMutationInputMode("multi-evolve")}
+              className="w-3 h-3"
+            />
+            MULTI-evolve
+          </label>
         </div>
 
         {mutationInputMode === "text" && (
           <textarea
             className="w-full h-32 text-xs font-mono border border-gray-300 rounded p-2 resize-none focus:outline-none focus:ring-1 focus:ring-green-500"
-            placeholder={"Q232A\nY233A\nE335A\n..."}
+            placeholder={"Q232A\nY233A\nE335A\nA40P/E61Y\n..."}
             value={mutationText}
             onChange={(e) => setMutationText(e.target.value)}
           />
         )}
 
-        {mutationInputMode === "evolvepro" && (
+        {(mutationInputMode === "evolvepro" || mutationInputMode === "multi-evolve") && (
           <div className="space-y-2">
             {/* CSV file loader */}
             <div className="flex gap-1">
@@ -216,7 +237,7 @@ export function InputPanel() {
                 variant="outline"
                 size="sm"
                 onClick={() => browseFile(
-                  [{ name: "EVOLVEpro CSV", extensions: ["csv"] }],
+                  [{ name: mutationInputMode === "multi-evolve" ? "MULTI-evolve CSV" : "EVOLVEpro CSV", extensions: ["csv"] }],
                   loadEvolveproCsv,
                 )}
                 className="flex-shrink-0"
@@ -233,7 +254,7 @@ export function InputPanel() {
             {/* Variant count summary */}
             {evolveproTotalCount > 0 && (
               <div className="text-xs font-medium text-gray-700 bg-gray-50 rounded px-2 py-1.5">
-                EVOLVEpro: {evolveproTotalCount} variants loaded
+                {mutationInputMode === "multi-evolve" ? "MULTI-evolve" : "EVOLVEpro"}: {evolveproTotalCount} variants loaded
               </div>
             )}
 
@@ -338,7 +359,7 @@ export function InputPanel() {
                             variant="outline"
                             size="sm"
                             className="h-5 text-[10px] px-2"
-                            onClick={() => accessionInput && fetchDomains(accessionInput)}
+                            onClick={() => accessionInput && fetchDomains(accessionInput, true)}
                             disabled={domainLoading || !accessionInput}
                           >
                             {domainLoading ? "..." : "Fetch"}
@@ -454,18 +475,35 @@ export function InputPanel() {
                     enabled={paretoDiversityEnabled}
                     onToggle={setParetoDiversityEnabled}
                   >
-                    <div className="text-xs text-gray-500">
-                      {esmEmbeddingLoaded
-                        ? "ESM-2 structural distance"
-                        : "Pareto spread (maximize position distance)"}
-                      {esmEmbeddingLoading && (
-                        <span className="ml-1.5 text-amber-600">(loading ESM-2...)</span>
-                      )}
-                      {esmEmbeddingLoaded && (
-                        <span className="ml-1.5 inline-flex items-center rounded bg-indigo-100 px-1 py-0.5 text-[10px] font-medium text-indigo-700">
-                          ESM-2
+                    <div className="space-y-1.5">
+                      <div className="text-xs text-gray-500">
+                        {esmEmbeddingLoaded
+                          ? "ESM-2 structural distance"
+                          : "Pareto spread (maximize position distance)"}
+                        {esmEmbeddingLoading && (
+                          <span className="ml-1.5 text-amber-600">(loading ESM-2...)</span>
+                        )}
+                        {esmEmbeddingLoaded && (
+                          <span className="ml-1.5 inline-flex items-center rounded bg-indigo-100 px-1 py-0.5 text-[10px] font-medium text-indigo-700">
+                            ESM-2
+                          </span>
+                        )}
+                      </div>
+                      <label
+                        className="flex items-center gap-1.5 cursor-pointer text-[10px] text-gray-500"
+                        title="Blend position entropy into selection score (weight 0.3). Positions where many mutations score similarly are prioritised — helps escape local optima."
+                      >
+                        <input
+                          type="checkbox"
+                          className="h-2.5 w-2.5 accent-purple-600"
+                          checked={entropyWeightEnabled}
+                          onChange={(e) => setEntropyWeightEnabled(e.target.checked)}
+                        />
+                        Entropy-guided
+                        <span className="ml-0.5 inline-flex items-center rounded bg-purple-100 px-1 py-0.5 text-[9px] font-medium text-purple-700">
+                          β
                         </span>
-                      )}
+                      </label>
                     </div>
                   </PipelineStep>
                 </div>

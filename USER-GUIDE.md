@@ -97,6 +97,7 @@ Select EVOLVEpro mode and use the Browse button to load an EVOLVEpro output CSV.
 | **Pareto diversity** | When maximizing physical position spread. Prevents clustering via greedy maximin selection |
 | **Position + Domain** | Combines per-position limits with cross-domain balancing. Useful when hot spots exist within a dominant domain |
 | **Domain + Pareto** | Applies Pareto spread within each domain. Maximizes both functional and positional diversity |
+| **Pareto + Entropy-guided** | Blends Pareto spread with per-position y_pred entropy (weight 0.3). Prioritises positions where many mutations score similarly (high uncertainty), helping escape local optima in the fitness landscape (marked β) |
 - After loading, the text area can be edited directly
 
 ![Mutation list input](docs/screenshots/03-mutations-entered.png)
@@ -121,9 +122,18 @@ Determines the mutation codon selection strategy.
 | Strategy | Description |
 |----------|-------------|
 | **Min. changes** (default) | Prefers the codon with the fewest base changes from the WT codon. Fewer mutation positions in the primer improve synthesis accuracy. Conservative choice when minimizing primer complexity |
-| **Optimal** | Prefers the codon with the highest E. coli K-12 codon usage frequency. Suitable for expression optimization |
+| **Optimal** | Prefers the codon with the highest codon usage frequency for the selected organism. Suitable for expression optimization |
 
-> **Limitation**: The built-in codon table covers E. coli K-12 only. When designing primers for other host organisms, the Optimal strategy may select suboptimal codons. In such cases, Min. changes is the safer choice.
+**Organism selection**: Choose the host organism from the Organism dropdown in the Input panel. The Optimal strategy uses that organism codon table.
+
+| Organism | Notes |
+|----------|-------|
+| E. coli K-12 | Built-in codon table (most validated) |
+| B. subtilis 168 | Gram-positive. Codon preference differs from E. coli |
+| S. cerevisiae | Yeast. Eukaryotic codon optimisation |
+| H. sapiens | Human. Suitable for mammalian expression systems |
+
+> **Limitation**: Optimal uses the selected Organism table only. For organisms not in the list, Min. changes is the safer choice.
 
 Both strategies also try alternative codons as candidates and select the primer pair with the lowest penalty.
 

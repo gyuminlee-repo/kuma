@@ -1,6 +1,6 @@
 """KURO — KOD Upstream Region Oligodesigner."""
 
-__version__ = "0.9.30"
+__version__ = "0.9.35"
 
 from kuro.benchmark import evaluate_selection, run_benchmark, simulate_selection
 from kuro.esm_embeddings import (
