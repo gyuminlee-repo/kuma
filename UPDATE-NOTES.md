@@ -19,6 +19,7 @@ Released: 2026-03-26
 - **Independent checkboxes**: Top-N, Position, Domain, and Pareto diversity are now independent checkboxes that can be combined in any combination
 - **Design-time sync reload**: Diversity settings are applied immediately before primer design, preventing race conditions where async CSV reload had not completed
 - **Strategy required**: EVOLVEpro mode requires at least one strategy checkbox before designing
+- **Domain diversity fix**: `top_n` was hardcoded to 9999, causing domain quotas to be effectively unlimited. Fixed to use `maxPrimers` (default 95), enabling proper proportional/equal allocation across domains
 
 ### Improvements
 - **Fill on failure default OFF**: Changed from ON to OFF to prevent unexpected mutation substitution

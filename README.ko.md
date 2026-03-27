@@ -34,6 +34,24 @@ https://github.com/user-attachments/assets/f95e65ca-22d2-4479-a06b-8dcd553571be
 - **Workspace 저장/불러오기**: 파라미터 + 설계 결과를 `.kuro.json`으로 저장하여 세션 간 이동 가능
 - **데스크톱 GUI**: Windows / macOS / Linux 크로스플랫폼 앱
 
+## 선택 전략 (EVOLVEpro 모드)
+
+EVOLVEpro CSV 로드 시 어떤 mutation을 프라이머 설계 대상으로 선정할지를 결정하는 전략. 독립 체크박스로 자유 조합 가능.
+
+| 전략 | 설명 | 사용 시점 |
+|------|------|-----------|
+| **Top-N by y_pred** | EVOLVEpro 예측 적합도(y_pred) 내림차순으로 상위 N개 선택. N = 최대 프라이머 수 설정 (기본 95). | 기본 랭킹. 예측 적합도만 기준으로 할 때. |
+| **Position diversity** | 아미노산 위치당 최대 mutation 수 제한 (기본: 위치당 1개). 다른 전략 적용 전 사전 필터로 동작. | 특정 위치에 mutation이 과도하게 집중되는 것을 방지. |
+| **Domain diversity** | 단백질 구조 도메인별로 mutation 할당량을 배분 (비례 배분 또는 균등 배분). 도메인 정보는 UniProt accession으로 InterPro/Pfam에서 자동 조회하거나 수동 입력. 할당량 미달 도메인은 경고(⚠) 표시. | 한 도메인이 y_pred 상위를 독점할 때, 모든 기능 영역을 균형 있게 탐색하기 위해. |
+| **Pareto diversity** | Greedy maximin 위치 선택: 이미 선택된 mutation과 가장 먼 위치의 mutation을 반복 선택하여 공간적 분산을 극대화. | 좁은 영역에 mutation이 밀집되는 것을 방지. MODIFY 접근법 (Hie et al., *Nature*, 2024) 기반. |
+
+**조합 예시:**
+- Domain + Pareto: 도메인별 할당량 배분 후, 각 도메인 내에서 Pareto 분산 적용
+- Position + Domain: 위치당 개수 제한 후, 도메인 간 배분
+
+**참고 문헌:**
+- Hie BL, Shanker VR, Xu D, et al. Efficient evolution of human antibodies from general protein language models. *Nature Biotechnology*, 42:275-283 (2024). — Pareto fitness-diversity 공동 최적화 개념
+
 ## 설치
 
 [Releases](https://github.com/gyuminlee-repo/KURO/releases) 페이지에서 최신 인스톨러를 다운로드한다.

@@ -19,6 +19,7 @@
 - **독립 체크박스**: Top-N, Position, Domain, Pareto diversity가 각각 독립 체크박스로 자유 조합 가능
 - **디자인 시 동기 reload**: diversity 설정이 디자인 직전에 즉시 반영 (비동기 CSV reload 경쟁 조건 해소)
 - **전략 필수**: EVOLVEpro 모드에서 하나 이상의 전략 체크 필요
+- **Domain diversity 수정**: `top_n`이 9999로 하드코딩되어 도메인 할당량이 사실상 무제한이었음. `maxPrimers` (기본 95)로 변경하여 도메인 간 비례/균등 배분이 정상 동작
 
 ### 개선
 - **Fill on failure 기본값 OFF**: 의도치 않은 mutation 대체를 방지하기 위해 기본 꺼짐으로 변경

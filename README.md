@@ -33,6 +33,24 @@ Given a mutation list (plain text / EVOLVEpro CSV) and a template sequence (GenB
 - **Workspace save/load**: Save parameters + design results as a `.kuro.json` file for cross-session portability
 - **Desktop GUI**: Cross-platform app based on Tauri v2 + React 19 (Windows / macOS / Linux)
 
+## Selection Strategies (EVOLVEpro mode)
+
+When loading an EVOLVEpro CSV, KURO applies the configured selection strategy to choose which mutations to design primers for. Strategies are independent checkboxes and can be combined.
+
+| Strategy | Description | When to use |
+|----------|-------------|-------------|
+| **Top-N by y_pred** | Select the top N mutations ranked by EVOLVEpro predicted fitness score (y_pred descending). N = max primers setting (default 95). | Default ranking. Use when predicted fitness is the only criterion. |
+| **Position diversity** | Limit the number of mutations per amino acid position (default: 1 per position). Applied as a pre-filter before other strategies. | Prevent over-sampling at mutational hot spots. |
+| **Domain diversity** | Allocate mutation quota proportionally (by domain length) or equally across protein structural domains. Domains are auto-fetched from InterPro/Pfam via UniProt accession, or entered manually. Under-filled domains show a warning (⚠). | Ensure coverage across all functional regions, especially when one domain dominates the y_pred ranking. |
+| **Pareto diversity** | Greedy maximin position selection: iteratively pick the mutation whose position is farthest from all already-selected positions. Maximizes spatial spread across the protein sequence. | Prevent clustering of mutations in a narrow region. Inspired by the MODIFY approach (Hie et al., *Nature*, 2024). |
+
+**Combination examples:**
+- Domain + Pareto: Allocate quota per domain, then apply Pareto spread within each domain
+- Position + Domain: Cap per-position count, then distribute across domains
+
+**Reference:**
+- Hie BL, Shanker VR, Xu D, et al. Efficient evolution of human antibodies from general protein language models. *Nature Biotechnology*, 42:275-283 (2024). — Pareto fitness-diversity co-optimization concept
+
 ## Installation
 
 Download the latest installer from [Releases](https://github.com/gyuminlee-repo/KURO/releases).

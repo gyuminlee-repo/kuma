@@ -290,14 +290,14 @@ export const useAppStore = create<AppState>((set, get) => {
     loadEvolveproCsv: async (filepath: string) => {
       const gen = ++csvLoadGeneration;
       try {
-        const { positionDiversityEnabled, maxPerPosition, domainDiversityEnabled, domains, disabledDomains, domainStrategy, paretoDiversityEnabled } = get();
+        const { positionDiversityEnabled, maxPerPosition, domainDiversityEnabled, domains, disabledDomains, domainStrategy, paretoDiversityEnabled, maxPrimers } = get();
         const activeDomains = domains.filter((d) => !disabledDomains.has(`${d.name}-${d.start}`));
         set({ statusMessage: "Loading EVOLVEpro CSV...", evolveproCsvPath: filepath });
         const result = await sendRequest<EvolveproLoadResult>(
           "load_evolvepro_csv",
           {
             filepath,
-            top_n: 9999,
+            top_n: maxPrimers,
             ...(positionDiversityEnabled && { max_per_position: maxPerPosition }),
             ...(domainDiversityEnabled && activeDomains.length > 0 && {
               domain_diversity: true,
