@@ -1,8 +1,51 @@
-# KURO 업데이트 노트 — v0.9.5 → v0.9.29
+# KURO 업데이트 노트 — v0.9.5 → v0.9.35
 
 **한국어** | [English](UPDATE-NOTES.md)
 
-배포일: 2026-03-26
+배포일: 2026-03-27
+
+---
+
+## v0.9.35 (2026-03-27)
+
+### ESM-2 구조적 거리
+- Pareto diversity에서 ESM-2 cosine distance 사용 (embedding 있을 때), 없으면 1D 위치 거리 fallback
+- ESM Atlas API 연동: UniProt accession으로 per-residue embedding 자동 다운로드
+- `~/.kuro/embeddings/`에 로컬 캐시
+- Pipeline UI에 "(ESM-2)" 배지 표시
+
+### 벤치마크 프레임워크
+- `kuro/benchmark.py`: KURO(Pareto/Domain) vs Random vs Top-N 비교 시뮬레이션
+- 지표: hit rate, mean fitness, position coverage
+- `handle_run_benchmark` RPC
+
+### 기타
+- M. extorquens AM1 코돈 테이블 제거 (4종: E. coli, B. subtilis, S. cerevisiae, H. sapiens)
+- Tauri updater API 수정, 191개 테스트
+
+## v0.9.33 (2026-03-27)
+
+- Tauri 자동 업데이트 (`tauri-plugin-updater` v2)
+- crash log: Python `~/.kuro/crash.log` + 프론트엔드 localStorage
+- CI cargo check 추가
+
+## v0.9.32 (2026-03-27)
+
+- 4종 코돈 테이블 (E. coli, B. subtilis, S. cerevisiae, H. sapiens)
+- IDT/Twist 주문 내보내기
+- UniProt 자동 검색 + CDS DNA 자동 번역
+- 파일 드래그 앤 드롭, 키보드 단축키 (Ctrl+S/E/D/O)
+
+## v0.9.31 (2026-03-27)
+
+- ErrorBoundary, sidecar 연결 실패 안내, 툴팁, 클립보드 복사
+- `kuro/evolvepro.py` 추출, CLI 파라미터 확장, appStore 3-slice 분리, ResultTable popover 분리
+- USER-GUIDE: selection strategy 가이드, codon 제한 명시, troubleshooting 추가
+
+## v0.9.30 (2026-03-27)
+
+- Domain diversity `top_n` 버그 수정 (9999 → maxPrimers)
+- README에 Selection Strategies 섹션 + 참고 문헌 추가
 
 ---
 

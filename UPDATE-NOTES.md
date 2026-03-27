@@ -1,8 +1,89 @@
-# KURO Update Notes — v0.9.5 → v0.9.29
+# KURO Update Notes — v0.9.5 → v0.9.35
 
 [한국어](UPDATE-NOTES.ko.md) | **English**
 
-Released: 2026-03-26
+Released: 2026-03-27
+
+---
+
+## v0.9.35 (2026-03-27)
+
+### ESM-2 Structural Distance
+- Pareto diversity now uses ESM-2 cosine distance when embedding is available, falling back to 1D position distance
+- ESM Atlas API integration: auto-download per-residue embeddings by UniProt accession
+- Local cache at `~/.kuro/embeddings/` (JSON format)
+- InputPanel shows "(ESM-2)" badge when structural distance is active
+
+### Benchmark Framework
+- `kuro/benchmark.py`: simulate_selection, evaluate_selection, run_benchmark
+- Compare KURO (Pareto/Domain) vs Random vs Top-N on any fitness landscape
+- Metrics: hit rate, mean fitness, position coverage, unique positions
+- `handle_run_benchmark` RPC for frontend integration
+
+### Other
+- Remove M. extorquens AM1 from codon tables (4 species: E. coli, B. subtilis, S. cerevisiae, H. sapiens)
+- Fix Tauri updater API (`Builder::new().build()`)
+- 191 tests (was 160)
+
+---
+
+## v0.9.33 (2026-03-27)
+
+### Deployment Infrastructure
+- **Tauri auto-updater**: `tauri-plugin-updater` v2, GitHub Releases endpoint, "Check for Updates" in About dialog
+- **Crash reporting**: Python sidecar logs to `~/.kuro/crash.log` (FIFO 50 entries), frontend ErrorBoundary saves to localStorage, "Copy Crash Log" button
+- **CI cargo check**: Rust compilation verification added to GitHub Actions (parallel with pytest and typecheck)
+
+---
+
+## v0.9.32 (2026-03-27)
+
+### Multi-Organism Codon Tables
+- 4 species: E. coli K-12, B. subtilis 168, S. cerevisiae, H. sapiens
+- `CodonTableRegistry` with JSON resource files, organism dropdown in ParameterPanel
+
+### IDT/Twist Order Export
+- `export_idt_csv()` and `export_twist_csv()` in plate_mapper.py
+- File menu: "Export IDT Order..." / "Export Twist Order..."
+
+### UniProt Auto-Search
+- `GeneInfo` extended: organism, translation, uniprot_accession from GenBank `/db_xref`
+- Auto-trigger on sequence load, candidate dropdown with identity % badges
+- CDS DNA auto-translation for FASTA files (enables sequence comparison)
+
+### File Drag and Drop
+- Tauri `onDragDropEvent` for sequence (.gb, .dna, .fa) and CSV files
+- Blue ring visual feedback during drag
+
+### Keyboard Shortcuts
+- Ctrl+S (save), Ctrl+E (export), Ctrl+D (design), Ctrl+O (open)
+- Menu hints, input-safe suppression
+
+---
+
+## v0.9.31 (2026-03-27)
+
+### Quick Wins
+- **ErrorBoundary**: crash → "Something went wrong. Click to reload" screen
+- **Sidecar failure banner**: red "Sidecar connection failed" message in StatusBar
+- **ParameterPanel tooltips**: all settings have title attributes
+- **Clipboard copy**: copy icon on primer sequences (click to copy, checkmark feedback)
+- **USER-GUIDE**: selection strategy decision guide, codon limitation note, troubleshooting section
+
+### Code Refactoring
+- `kuro/evolvepro.py` extracted from sidecar (326 lines, reusable from CLI)
+- CLI: 11 new parameters (tm targets, gc range, primer length, codon strategy)
+- `appStore.ts`: 872 lines → 3 Zustand slices (input/design/export)
+- `ResultTable.tsx`: 1273 lines → 573 + 4 popover files
+
+---
+
+## v0.9.30 (2026-03-27)
+
+### Domain Diversity Fix
+- `top_n` was hardcoded to 9999 in `loadEvolveproCsv`, making domain quotas effectively unlimited
+- Fixed to use `maxPrimers` (default 95) for proper proportional/equal allocation
+- Added Selection Strategies section to README with descriptions, use cases, and references
 
 ---
 
