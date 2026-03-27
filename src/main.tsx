@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { AppLayout } from "./components/layout/AppLayout";
+import { appendCrashLog } from "./lib/crashLog";
 import "./index.css";
 
 class ErrorBoundary extends React.Component<
@@ -18,6 +19,11 @@ class ErrorBoundary extends React.Component<
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     console.error("[ErrorBoundary]", error, info.componentStack);
+    appendCrashLog({
+      component: "ErrorBoundary",
+      message: error.message,
+      stack: (error.stack ?? "") + "\n--- Component Stack ---\n" + (info.componentStack ?? ""),
+    });
   }
 
   render() {

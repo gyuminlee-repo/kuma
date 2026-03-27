@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/nicedoc/schemas/main/tauri-v2.json",
   "productName": "KURO",
-  "version": "0.9.32",
+  "version": "0.9.33",
   "identifier": "com.kuro.app",
   "build": {
     "frontendDist": "../dist",
@@ -38,5 +38,12 @@
       "binaries/kuro-sidecar"
     ]
   },
-  "plugins": {}
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/gyuminlee-repo/KURO/releases/latest/download/latest.json"
+      ],
+      "pubkey": ""
+    }
+  }
 }

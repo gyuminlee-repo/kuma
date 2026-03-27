@@ -5,10 +5,12 @@ Protocol: one JSON object per line (newline-delimited JSON).
 """
 
 import csv
+import datetime
 import json
 import logging
 import os
 import threading
+import traceback
 from dataclasses import dataclass, field, fields as dc_fields, replace as dc_replace
 import re
 import sys
@@ -51,6 +53,44 @@ logging.basicConfig(
     stream=sys.stderr,
 )
 logger = logging.getLogger("sidecar")
+
+_CRASH_LOG_MAX = 50
+
+
+def _get_crash_log_path() -> Path:
+    """Return the crash log path (~/.kuro/crash.log)."""
+    kuro_dir = Path.home() / ".kuro"
+    kuro_dir.mkdir(parents=True, exist_ok=True)
+    return kuro_dir / "crash.log"
+
+
+def _append_crash_log(method: str, params_summary: str, tb: str) -> None:
+    """Append an error entry to the local crash log file (FIFO, max 50 entries)."""
+    try:
+        log_path = _get_crash_log_path()
+        entry = {
+            "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            "method": method,
+            "params": params_summary[:200],
+            "traceback": tb[:2000],
+        }
+        # Read existing entries
+        entries: list[dict] = []
+        if log_path.exists():
+            try:
+                raw = log_path.read_text(encoding="utf-8").strip()
+                if raw:
+                    entries = json.loads(raw)
+            except (json.JSONDecodeError, OSError):
+                entries = []
+        entries.append(entry)
+        # FIFO: keep only the newest entries
+        while len(entries) > _CRASH_LOG_MAX:
+            entries.pop(0)
+        log_path.write_text(json.dumps(entries, indent=2, ensure_ascii=False), encoding="utf-8")
+    except Exception:
+        pass  # crash logging itself must never raise
+
 
 _ALLOWED_FASTA_EXTENSIONS = {".fa", ".fasta", ".dna", ".gb", ".gbff", ".gbk"}
 _ALLOWED_CSV_EXTENSIONS = {".csv", ".tsv", ".txt"}
@@ -338,6 +378,7 @@ def handle_design_sdm_primers(params: dict) -> dict:
     # Determine if input is text or CSV path
     mutations_csv_path: Path
     temp_csv = None
+    temp_csv_name: str = ""
     lines: list[str] = []
 
     if os.path.isfile(mutations_input):
@@ -1029,11 +1070,14 @@ def dispatch(request: dict) -> None:
         result = handler(params)
         _ok(req_id, result)
     except FileNotFoundError as exc:
+        _append_crash_log(method, str(params)[:200], traceback.format_exc())
         _error(req_id, -32001, str(exc))
     except (KeyError, ValueError) as exc:
+        _append_crash_log(method, str(params)[:200], traceback.format_exc())
         _error(req_id, -32602, str(exc))
     except Exception as exc:
         logger.exception("Unhandled error in %s", method)
+        _append_crash_log(method, str(params)[:200], traceback.format_exc())
         _error(req_id, -32603, str(exc))
 
 
