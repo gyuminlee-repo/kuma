@@ -32,10 +32,6 @@ _ORGANISM_ALIASES: dict[str, str] = {
     "h.sapiens": "hsapiens",
     "homo sapiens": "hsapiens",
     "human": "hsapiens",
-    "mextorquens": "mextorquens",
-    "m. extorquens": "mextorquens",
-    "m.extorquens": "mextorquens",
-    "methylorubrum extorquens": "mextorquens",
 }
 
 

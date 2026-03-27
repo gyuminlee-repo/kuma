@@ -163,17 +163,17 @@ class TestMtCodonsForDesign:
 
 
 class TestCodonTableRegistry:
-    def test_list_organisms_returns_five(self):
+    def test_list_organisms_returns_four(self):
         registry = CodonTableRegistry()
         organisms = registry.list_organisms()
-        assert len(organisms) == 5
-        expected = {"ecoli", "bsubtilis", "scerevisiae", "hsapiens", "mextorquens"}
+        assert len(organisms) == 4
+        expected = {"ecoli", "bsubtilis", "scerevisiae", "hsapiens"}
         assert set(organisms) == expected
 
     def test_list_organisms_detailed_has_keys(self):
         registry = CodonTableRegistry()
         details = registry.list_organisms_detailed()
-        assert len(details) == 5
+        assert len(details) == 4
         for item in details:
             assert "key" in item
             assert "name" in item
@@ -232,7 +232,3 @@ class TestCodonTableRegistry:
         assert codon_to_aa(ecoli_closest) == "A"
         assert codon_to_aa(yeast_closest) == "A"
 
-    def test_mextorquens_is_gc_rich(self):
-        # M. extorquens AM1 should prefer GC-rich codons like E. coli
-        m_best = best_codon("A", "mextorquens")
-        assert m_best == "GCG"  # GC-rich preference

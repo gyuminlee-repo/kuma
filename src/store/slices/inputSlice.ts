@@ -10,6 +10,7 @@ import type {
   FetchDomainsResult,
   UniprotCandidate,
   SearchUniprotResult,
+  EsmEmbeddingResult,
 } from "../../types/models";
 
 function formatError(err: unknown): string {
@@ -24,7 +25,7 @@ export interface InputSlice {
   mutationText: string;
   evolveproCsvPath: string;
   yPredMap: Record<string, number>;
-  selectionStrategy: "none" | "topn" | "position" | "domain" | "pareto";
+  pipelineMode: boolean;
   positionDiversityEnabled: boolean;
   maxPerPosition: number;
   domainDiversityEnabled: boolean;
@@ -35,18 +36,23 @@ export interface InputSlice {
   disabledDomains: Set<string>;
   domainStats: Record<string, { quota: number; selected: number }>;
   paretoDiversityEnabled: boolean;
+  esmEmbeddingLoaded: boolean;
+  esmEmbeddingLoading: boolean;
   parsedMutations: ParsedMutation[];
   parseErrors: ParseError[];
   selectedGene: string;
+  organism: string;
   uniprotCandidates: UniprotCandidate[];
   uniprotSearching: boolean;
+  evolveproTotalCount: number;
 
   // Actions
   loadSequence: (filepath: string) => Promise<void>;
   setSelectedGene: (gene: string) => void;
+  setOrganism: (organism: string) => void;
   setMutationInputMode: (mode: "text" | "evolvepro") => void;
   setMutationText: (text: string) => void;
-  setSelectionStrategy: (strategy: "none" | "topn" | "position" | "domain" | "pareto") => void;
+  setPipelineMode: (enabled: boolean) => void;
   setPositionDiversityEnabled: (enabled: boolean) => void;
   setMaxPerPosition: (n: number) => void;
   setDomainDiversityEnabled: (enabled: boolean) => void;
@@ -55,6 +61,7 @@ export interface InputSlice {
   setDomains: (domains: DomainInfo[]) => void;
   toggleDomain: (domainKey: string) => void;
   setParetoDiversityEnabled: (enabled: boolean) => void;
+  fetchEsmEmbedding: (accession: string) => Promise<void>;
   loadEvolveproCsv: (filepath: string) => Promise<void>;
   parseMutations: () => Promise<void>;
   searchUniprot: (geneName: string, organism: string, translation: string, knownAccession: string) => Promise<void>;
@@ -69,7 +76,7 @@ export const createInputSlice: StateCreator<InputSlice, [], [], InputSlice> = (s
   mutationText: "",
   evolveproCsvPath: "",
   yPredMap: {},
-  selectionStrategy: "none",
+  pipelineMode: false,
   positionDiversityEnabled: false,
   maxPerPosition: 1,
   domainDiversityEnabled: false,
@@ -80,11 +87,15 @@ export const createInputSlice: StateCreator<InputSlice, [], [], InputSlice> = (s
   disabledDomains: new Set<string>(),
   domainStats: {},
   paretoDiversityEnabled: false,
+  esmEmbeddingLoaded: false,
+  esmEmbeddingLoading: false,
   parsedMutations: [],
   parseErrors: [],
   selectedGene: "",
+  organism: "ecoli",
   uniprotCandidates: [],
   uniprotSearching: false,
+  evolveproTotalCount: 0,
 
   loadSequence: async (filepath: string) => {
     try {
@@ -124,13 +135,17 @@ export const createInputSlice: StateCreator<InputSlice, [], [], InputSlice> = (s
   },
 
   setSelectedGene: (gene: string) => set({ selectedGene: gene }),
+  setOrganism: (organism: string) => set({ organism }),
   setMutationInputMode: (mode) => set({ mutationInputMode: mode }),
   setMutationText: (text) => set({ mutationText: text }),
 
-  setSelectionStrategy: (strategy) => {
-    set({ selectionStrategy: strategy });
-    const { evolveproCsvPath } = get();
-    if (evolveproCsvPath && strategy !== "none") get().loadEvolveproCsv(evolveproCsvPath);
+  setPipelineMode: (enabled: boolean) => {
+    set({ pipelineMode: enabled });
+    if (!enabled) {
+      // Pipeline off -> Top-N only: reload with no diversity options
+      const { evolveproCsvPath } = get();
+      if (evolveproCsvPath) get().loadEvolveproCsv(evolveproCsvPath);
+    }
   },
 
   setPositionDiversityEnabled: (enabled: boolean) => {
@@ -198,10 +213,36 @@ export const createInputSlice: StateCreator<InputSlice, [], [], InputSlice> = (s
     if (evolveproCsvPath) get().loadEvolveproCsv(evolveproCsvPath);
   },
 
+  fetchEsmEmbedding: async (accession: string) => {
+    set({ esmEmbeddingLoading: true } as Partial<InputSlice>);
+    try {
+      const result = await sendRequest<EsmEmbeddingResult>("fetch_esm_embedding", { accession });
+      if (result.success) {
+        set({
+          esmEmbeddingLoaded: true,
+          esmEmbeddingLoading: false,
+          statusMessage: `ESM-2 embedding loaded: ${result.length} residues, ${result.dimension}D`,
+        } as Partial<InputSlice>);
+      } else {
+        set({
+          esmEmbeddingLoaded: false,
+          esmEmbeddingLoading: false,
+          statusMessage: `ESM-2 embedding unavailable: ${result.error ?? "unknown error"}`,
+        } as Partial<InputSlice>);
+      }
+    } catch (err) {
+      set({
+        esmEmbeddingLoaded: false,
+        esmEmbeddingLoading: false,
+        statusMessage: `ESM-2 fetch failed: ${formatError(err)}`,
+      } as Partial<InputSlice>);
+    }
+  },
+
   loadEvolveproCsv: async (filepath: string) => {
     const gen = ++csvLoadGeneration;
     try {
-      const { positionDiversityEnabled, maxPerPosition, domainDiversityEnabled, domains, disabledDomains, domainStrategy, paretoDiversityEnabled } = get();
+      const { pipelineMode, positionDiversityEnabled, maxPerPosition, domainDiversityEnabled, domains, disabledDomains, domainStrategy, paretoDiversityEnabled } = get();
       const maxPrimers = (get() as unknown as { maxPrimers: number }).maxPrimers;
       const activeDomains = domains.filter((d) => !disabledDomains.has(`${d.name}-${d.start}`));
       set({ statusMessage: "Loading EVOLVEpro CSV...", evolveproCsvPath: filepath } as Partial<InputSlice>);
@@ -210,13 +251,13 @@ export const createInputSlice: StateCreator<InputSlice, [], [], InputSlice> = (s
         {
           filepath,
           top_n: maxPrimers,
-          ...(positionDiversityEnabled && { max_per_position: maxPerPosition }),
-          ...(domainDiversityEnabled && activeDomains.length > 0 && {
+          ...(pipelineMode && positionDiversityEnabled && { max_per_position: maxPerPosition }),
+          ...(pipelineMode && domainDiversityEnabled && activeDomains.length > 0 && {
             domain_diversity: true,
             domains: activeDomains.map((d) => ({ name: d.name, start: d.start, end: d.end })),
             domain_strategy: domainStrategy,
           }),
-          ...(paretoDiversityEnabled && { pareto_diversity: true }),
+          ...(pipelineMode && paretoDiversityEnabled && { pareto_diversity: true }),
         },
       );
       if (gen !== csvLoadGeneration) return;
@@ -241,6 +282,7 @@ export const createInputSlice: StateCreator<InputSlice, [], [], InputSlice> = (s
         mutationInputMode: "evolvepro",
         yPredMap: yMap,
         domainStats: result.domain_stats ?? {},
+        evolveproTotalCount: result.total_count,
         statusMessage: `EVOLVEpro: ${result.selected_count}/${result.total_count} variants${filteredMsg}${domainMsg}${paretoMsg}`,
       } as Partial<InputSlice>);
     } catch (err) {
@@ -286,6 +328,10 @@ export const createInputSlice: StateCreator<InputSlice, [], [], InputSlice> = (s
         ...(acc && { uniprotAccession: acc }),
         statusMessage: statusMsg,
       } as Partial<InputSlice>);
+      // Auto-trigger ESM-2 embedding download on successful UniProt match
+      if (acc) {
+        get().fetchEsmEmbedding(acc);
+      }
     } catch (err) {
       set({ uniprotSearching: false, statusMessage: `UniProt search failed: ${formatError(err)}` } as Partial<InputSlice>);
     }

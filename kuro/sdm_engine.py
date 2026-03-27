@@ -625,6 +625,24 @@ def design_single_sdm(
     return []
 
 
+def _translate_dna(dna: str) -> str:
+    """Translate DNA to protein using the standard genetic code.
+
+    Reads codons from the start of *dna* and stops at the first stop
+    codon (TAA/TAG/TGA) or when fewer than 3 bases remain.  Unknown
+    codons are emitted as ``X``.
+    """
+    _stop = {"TAA", "TAG", "TGA"}
+    protein: list[str] = []
+    for i in range(0, len(dna) - 2, 3):
+        codon = dna[i:i + 3].upper()
+        if codon in _stop:
+            break
+        aa = CODON_TO_AA.get(codon, "X")
+        protein.append(aa)
+    return "".join(protein)
+
+
 @dataclass
 class GeneInfo:
     """CDS gene annotation extracted from a sequence file."""
@@ -820,8 +838,11 @@ def _extract_cds_features(record) -> list[GeneInfo]:
         end = int(feature.location.end)
         aa_len = (end - start) // 3
 
-        # Extract translation (protein sequence)
+        # Extract translation (protein sequence); auto-translate if missing
         translation = qualifiers.get("translation", [""])[0]
+        if not translation:
+            cds_dna = str(record.seq[start:end]).upper()
+            translation = _translate_dna(cds_dna)
 
         # Extract UniProt accession from db_xref
         uniprot_acc = ""

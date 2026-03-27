@@ -10,6 +10,8 @@ import csv
 import re
 from pathlib import Path
 
+from kuro.esm_embeddings import pairwise_esm_distance
+
 _POS_RE = re.compile(r"[A-Z](\d+)[A-Z]")
 _SINGLE_POS_RE = re.compile(r"^[A-Z](\d+)[A-Z]$")
 
@@ -247,12 +249,17 @@ def pareto_diversity_select(
     rows: list[tuple[str, float]],
     top_n: int,
     pool_multiplier: float = 2.0,
+    esm_embedding: list[list[float]] | None = None,
 ) -> tuple[list[tuple[str, float]], int]:
     """MODIFY-style Pareto fitness-diversity selection (greedy maximin).
 
     Selects variants that maximize minimum position distance to
     already-selected set, breaking ties by y_pred.
     Prevents clustering of mutations at nearby positions.
+
+    When *esm_embedding* is provided, cosine distance in the ESM-2
+    representation space is used instead of simple 1-D position distance.
+    Falls back to 1-D distance for positions outside the embedding range.
 
     Parameters
     ----------
@@ -262,6 +269,8 @@ def pareto_diversity_select(
         Target selection count.
     pool_multiplier : float
         Candidate pool size = top_n * pool_multiplier.
+    esm_embedding : list[list[float]] | None
+        Per-residue ESM-2 embedding vectors (1-based indexing via helper).
 
     Returns
     -------
@@ -298,7 +307,16 @@ def pareto_diversity_select(
             pos_i = positions[i]
             if pos_i < 0:
                 min_dist = 1.0  # unknown position = treat as maximally distant
+            elif esm_embedding and pos_i >= 1:
+                # ESM-2 structural distance (cosine in embedding space)
+                min_dist = min(
+                    pairwise_esm_distance(esm_embedding, pos_i, positions[j])
+                    if positions[j] >= 1
+                    else 1.0
+                    for j in selected_indices
+                )
             else:
+                # Fallback: 1D position distance
                 min_dist = min(
                     abs(pos_i - positions[j]) / max_pos if positions[j] >= 0 else 1.0
                     for j in selected_indices

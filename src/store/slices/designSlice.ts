@@ -21,7 +21,6 @@ export interface DesignSlice {
   totalCount: number;
   failedMutations: FailedMutation[];
   codonStrategy: "closest" | "optimal";
-  organism: string;
   maxPrimers: number;
   tmFwdTarget: number;
   tmRevTarget: number;
@@ -51,7 +50,6 @@ export interface DesignSlice {
   addDesignResult: (mutation: string, result: SdmPrimerResult) => void;
   removeDesignResult: (mutation: string, reason: string) => void;
   setCodonStrategy: (strategy: "closest" | "optimal") => void;
-  setOrganism: (organism: string) => void;
   setMaxPrimers: (n: number) => void;
   setTmTargets: (fwd: number, rev: number, ov: number) => void;
   setGcRange: (min: number, max: number) => void;
@@ -67,7 +65,6 @@ export const createDesignSlice: StateCreator<DesignSlice, [], [], DesignSlice> =
   totalCount: 0,
   failedMutations: [],
   codonStrategy: "closest",
-  organism: "ecoli",
   maxPrimers: 95,
   tmFwdTarget: 62,
   tmRevTarget: 58,
@@ -88,9 +85,10 @@ export const createDesignSlice: StateCreator<DesignSlice, [], [], DesignSlice> =
     const state = get() as unknown as DesignSlice & {
       fastaPath: string;
       selectedGene: string;
+      organism: string;
       mutationInputMode: "text" | "evolvepro";
       mutationText: string;
-      selectionStrategy: string;
+      pipelineMode: boolean;
       positionDiversityEnabled: boolean;
       domainDiversityEnabled: boolean;
       paretoDiversityEnabled: boolean;
@@ -117,21 +115,12 @@ export const createDesignSlice: StateCreator<DesignSlice, [], [], DesignSlice> =
       mutationInputMode,
     } = state;
 
-    const strat = state.selectionStrategy;
-    const posDiv = state.positionDiversityEnabled;
-    const domDiv = state.domainDiversityEnabled;
-    const parDiv = state.paretoDiversityEnabled;
-
     if (!fastaPath) {
       set({ statusMessage: "Sequence file not loaded" } as Partial<DesignSlice>);
       return;
     }
     if (!state.mutationText.trim()) {
       set({ statusMessage: "No mutations entered" } as Partial<DesignSlice>);
-      return;
-    }
-    if (mutationInputMode === "evolvepro" && strat === "none" && !posDiv && !domDiv && !parDiv) {
-      set({ statusMessage: "\u26A0 Select a selection strategy (Top-N / Position / Domain / Pareto)" } as Partial<DesignSlice>);
       return;
     }
 
@@ -329,7 +318,6 @@ export const createDesignSlice: StateCreator<DesignSlice, [], [], DesignSlice> =
   },
 
   setCodonStrategy: (strategy) => set({ codonStrategy: strategy }),
-  setOrganism: (organism) => set({ organism }),
   setMaxPrimers: (n) => set({ maxPrimers: Math.max(1, n) }),
 
   setTmTargets: (fwd: number, rev: number, ov: number) => {

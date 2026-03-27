@@ -206,6 +206,29 @@ export interface WorkspaceV1 {
   paretoDiversityEnabled?: boolean;
 }
 
+export interface EsmEmbeddingResult {
+  success: boolean;
+  accession?: string;
+  length?: number;
+  dimension?: number;
+  error?: string;
+}
+
+export interface BenchmarkResult {
+  n_selected: number;
+  hit_rate: number;
+  mean_fitness: number;
+  unique_positions: number;
+  position_coverage: number;
+  hits: number;
+  threshold: number;
+  n_trials?: number;
+}
+
+export interface RunBenchmarkResult {
+  results: Record<string, BenchmarkResult>;
+}
+
 // JSON-RPC types
 
 export interface JsonRpcResponse<T = unknown> {

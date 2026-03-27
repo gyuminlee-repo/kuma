@@ -12,14 +12,9 @@ function useLocalNum(storeVal: number, fallback: number, commit: (v: number) => 
 }
 
 export function ParameterPanel() {
-  const selectedGene = useAppStore((s) => s.selectedGene);
   const codonStrategy = useAppStore((s) => s.codonStrategy);
-  const organism = useAppStore((s) => s.organism);
   const maxPrimers = useAppStore((s) => s.maxPrimers);
-  const seqInfo = useAppStore((s) => s.seqInfo);
-  const setSelectedGene = useAppStore((s) => s.setSelectedGene);
   const setCodonStrategy = useAppStore((s) => s.setCodonStrategy);
-  const setOrganism = useAppStore((s) => s.setOrganism);
   const setMaxPrimers = useAppStore((s) => s.setMaxPrimers);
 
   const tmFwd = useAppStore((s) => s.tmFwdTarget);
@@ -63,44 +58,6 @@ export function ParameterPanel() {
       <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
         Parameters
       </h3>
-
-      <label className="flex items-center gap-2 text-xs" title="CDS region to design primers for. Auto-selected by longest coding sequence.">
-        <span className="w-24 text-gray-600">Target Gene:</span>
-        {seqInfo && seqInfo.genes.length > 0 ? (
-          <select
-            className="flex-1 h-7 text-xs border border-gray-300 rounded px-2 focus:outline-none focus:ring-1 focus:ring-green-500"
-            value={selectedGene}
-            onChange={(e) => setSelectedGene(e.target.value)}
-          >
-            {[...seqInfo.genes].sort((a, b) => a.cds_start - b.cds_start).map((g) => {
-              const isNamed = g.gene !== "ORF1" && g.gene !== "unknown";
-              const label = isNamed ? `[${g.gene}]` : `(${g.gene})`;
-              return (
-                <option key={g.cds_start} value={String(g.cds_start)}>
-                  {label} {g.cds_start}-{g.cds_end} ({g.aa_length} aa){g.product ? ` ${g.product}` : ""}
-                </option>
-              );
-            })}
-          </select>
-        ) : (
-          <span className="text-xs text-gray-400 italic">Load a sequence file first</span>
-        )}
-      </label>
-
-      <label className="flex items-center gap-2 text-xs" title="Organism codon usage table for mutant codon selection.">
-        <span className="w-24 text-gray-600">Organism:</span>
-        <select
-          className="flex-1 h-7 text-xs border border-gray-300 rounded px-2 focus:outline-none focus:ring-1 focus:ring-green-500"
-          value={organism}
-          onChange={(e) => setOrganism(e.target.value)}
-        >
-          <option value="ecoli">E. coli K-12</option>
-          <option value="bsubtilis">B. subtilis 168</option>
-          <option value="scerevisiae">S. cerevisiae</option>
-          <option value="hsapiens">H. sapiens</option>
-          <option value="mextorquens">M. extorquens AM1</option>
-        </select>
-      </label>
 
       <label className="flex items-center gap-2 text-xs" title="Min. changes = fewest nucleotide changes from WT codon. Optimal = highest-frequency codon for selected organism.">
         <span className="w-24 text-gray-600">Codon:</span>

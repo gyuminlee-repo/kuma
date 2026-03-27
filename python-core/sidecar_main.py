@@ -1031,6 +1031,47 @@ def handle_export_order(params: dict) -> dict:
     return {"success": True, "filepath": str(resolved), "format": fmt, "primer_count": len(_state.results) * 2}
 
 
+def handle_fetch_esm_embedding(params: dict) -> dict:
+    """Fetch ESM-2 per-residue embedding for a UniProt accession."""
+    accession = params.get("accession", "").strip()
+    if not accession:
+        raise ValueError("accession is required")
+
+    from kuro.esm_embeddings import get_embedding
+
+    embedding = get_embedding(accession)
+
+    if embedding is None:
+        return {"success": False, "error": "Failed to fetch ESM embedding"}
+
+    return {
+        "success": True,
+        "accession": accession,
+        "length": len(embedding),
+        "dimension": len(embedding[0]) if embedding else 0,
+    }
+
+
+def handle_run_benchmark(params: dict) -> dict:
+    """Run benchmark simulation on provided fitness landscape."""
+    from kuro.benchmark import run_benchmark
+
+    landscape_data = params.get("landscape", [])
+    ground_truth = params.get("ground_truth", {})
+    n_select = int(params.get("n_select", 95))
+    strategies = params.get("strategies", ["topn", "random", "pareto"])
+
+    if not landscape_data:
+        raise ValueError("landscape data is required")
+
+    landscape = [(v["variant"], v["fitness"]) for v in landscape_data]
+
+    bench_results = run_benchmark(
+        landscape, ground_truth, n_select, strategies=strategies
+    )
+    return {"results": bench_results}
+
+
 # --- Dispatcher ---
 
 _METHODS = {
@@ -1051,6 +1092,8 @@ _METHODS = {
     "load_workspace": handle_load_workspace,
     "fetch_domains": handle_fetch_domains,
     "search_uniprot": handle_search_uniprot,
+    "fetch_esm_embedding": handle_fetch_esm_embedding,
+    "run_benchmark": handle_run_benchmark,
     "cancel_design": lambda _: (_cancel_event.set(), {"cancelled": True})[1],
 }
 
