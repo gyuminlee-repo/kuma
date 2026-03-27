@@ -897,12 +897,15 @@ def _detect_orfs(sequence: str) -> list[GeneInfo]:
             best_len = orf_len
             best_start = i
     if best_len > 0:
+        orf_dna = sequence[best_start:best_start + best_len]
+        translation = _translate_dna(orf_dna)
         return [GeneInfo(
             gene="ORF1",
             product="auto-detected longest ORF",
             cds_start=best_start,
             cds_end=best_start + best_len,
             aa_length=best_len // 3,
+            translation=translation,
         )]
     return []
 
