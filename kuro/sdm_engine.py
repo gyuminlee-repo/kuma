@@ -7,6 +7,7 @@ with Tm-guided non-overlap extension and polymerase-aware parameters.
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 
@@ -14,7 +15,7 @@ import primer3
 
 from .polymerase import PolymeraseProfile, PolymeraseRegistry
 
-from .codon_table import best_codon, mt_codons_for_design
+from .codon_table import best_codon, mt_codons_for_design, CODON_TO_AA
 from .mutation import Mutation, mutate_sequence, parse_mutations
 from .overlap import (
     OverlapWindow,
@@ -529,6 +530,7 @@ def design_single_sdm(
     fwd_len_max: int = 45,
     rev_len_min: int = 18,
     rev_len_max: int = 30,
+    organism: str = "ecoli",
 ) -> list[SdmPrimerResult]:
     """Design SDM primers for a single mutation.
 
@@ -539,11 +541,14 @@ def design_single_sdm(
     4. Off-target check on template
     5. Multiple candidates returned (top-N by penalty)
 
+    Args:
+        organism: Organism for codon usage frequency lookup (default: "ecoli").
+
     Returns:
         List of SdmPrimerResult sorted by penalty (best first).
     """
     # Generate mutation variants for multiple codons (optimal + WT-closest)
-    alt_codons = mt_codons_for_design(mutation.wt_codon, mutation.mt_aa, codon_strategy)
+    alt_codons = mt_codons_for_design(mutation.wt_codon, mutation.mt_aa, codon_strategy, organism=organism)
     mutations_to_try = []
     for mt_codon in alt_codons:
         m = Mutation(
@@ -628,6 +633,9 @@ class GeneInfo:
     cds_start: int  # 0-based
     cds_end: int
     aa_length: int
+    organism: str = ""
+    translation: str = ""
+    uniprot_accession: str = ""
 
 
 def evaluate_custom_primer(
@@ -796,6 +804,11 @@ def _load_genbank(gb_path: Path) -> tuple[str, str, list[GeneInfo]]:
 
 def _extract_cds_features(record) -> list[GeneInfo]:
     """Extract CDS features from a Biopython SeqRecord."""
+    # Extract organism from record annotations
+    organism = ""
+    if hasattr(record, "annotations"):
+        organism = record.annotations.get("organism", "")
+
     genes: list[GeneInfo] = []
     for feature in record.features:
         if feature.type != "CDS":
@@ -806,12 +819,29 @@ def _extract_cds_features(record) -> list[GeneInfo]:
         start = int(feature.location.start)
         end = int(feature.location.end)
         aa_len = (end - start) // 3
+
+        # Extract translation (protein sequence)
+        translation = qualifiers.get("translation", [""])[0]
+
+        # Extract UniProt accession from db_xref
+        uniprot_acc = ""
+        for xref in qualifiers.get("db_xref", []):
+            if xref.startswith("UniProtKB"):
+                uniprot_acc = xref.split(":", 1)[-1] if ":" in xref else ""
+                break
+            if xref.startswith("UniProtKB/"):
+                uniprot_acc = xref.split("/", 1)[-1].split(":")[0] if "/" in xref else ""
+                break
+
         genes.append(GeneInfo(
             gene=gene_name,
             product=product,
             cds_start=start,
             cds_end=end,
             aa_length=aa_len,
+            organism=organism,
+            translation=translation,
+            uniprot_accession=uniprot_acc,
         ))
     return genes
 
@@ -887,8 +917,9 @@ def design_sdm_primers(
     fwd_len_max: int = 45,
     rev_len_min: int = 18,
     rev_len_max: int = 30,
-    on_progress: object = None,
-    cancel_check: object = None,
+    on_progress: "Callable[[int, int, str], None] | None" = None,
+    cancel_check: "Callable[[], bool] | None" = None,
+    organism: str = "ecoli",
 ) -> tuple[list[SdmPrimerResult], dict[str, list[SdmPrimerResult]], dict[str, str]]:
     """Design SDM primers for a batch of mutations.
 
@@ -901,6 +932,7 @@ def design_sdm_primers(
         custom_profiles: Optional path to custom polymerase profiles.
         on_progress: Optional callback(i, total, mutation_raw) for progress.
         cancel_check: Optional callable() -> bool, returns True if cancelled.
+        organism: Organism for codon usage frequency lookup (default: "ecoli").
 
     Returns:
         List of SdmPrimerResult for each mutation.
@@ -957,7 +989,7 @@ def design_sdm_primers(
                     if _actual != _wt:
                         failed_reasons[_raw] = f"expected WT amino acid {_wt} at position {_pos}, but codon {_wc} encodes {_actual}"
                         continue
-                    _mc = _bc(_mt)
+                    _mc = _bc(_mt, organism)
                     mutations.append(_Mut(raw=_raw, wt_aa=_wt, position=_pos, mt_aa=_mt,
                                           codon_start=_cs, wt_codon=_wc, mt_codon=_mc))
                 except (ValueError, IndexError) as e:
@@ -975,7 +1007,7 @@ def design_sdm_primers(
         if on_progress:
             on_progress(i, total_muts, mut.raw)
         logger.info("Designing primers for %s ...", mut.raw)
-        candidates = design_single_sdm(sequence, mut, profile, overlap_len, codon_strategy=codon_strategy, gc_min=gc_min, gc_max=gc_max, fwd_len_min=fwd_len_min, fwd_len_max=fwd_len_max, rev_len_min=rev_len_min, rev_len_max=rev_len_max)
+        candidates = design_single_sdm(sequence, mut, profile, overlap_len, codon_strategy=codon_strategy, gc_min=gc_min, gc_max=gc_max, fwd_len_min=fwd_len_min, fwd_len_max=fwd_len_max, rev_len_min=rev_len_min, rev_len_max=rev_len_max, organism=organism)
         if not candidates:
             failed_reasons[mut.raw] = "No valid primer pair found within Tm tolerance ±3.0°C"
             logger.warning("FAILED: %s - no valid primer pair found", mut.raw)

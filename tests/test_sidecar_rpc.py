@@ -331,6 +331,160 @@ class TestCancelDesign:
         assert sidecar._cancel_event.is_set()
 
 
+# ── 10. GeneInfo extended fields ─────────────────────────────────────────
+
+class TestGeneInfoExtended:
+    def test_genes_include_extended_fields(self, loaded_fasta):
+        """Verify organism, translation, uniprot_accession fields are returned."""
+        genes = loaded_fasta["genes"]
+        if genes:
+            gene = genes[0]
+            for key in ("organism", "translation", "uniprot_accession"):
+                assert key in gene, f"Missing extended key: {key}"
+
+
+# ── 11. search_uniprot ──────────────────────────────────────────────────
+
+class TestSearchUniprot:
+    def test_missing_params_returns_error(self):
+        resp = _rpc("search_uniprot", {})
+        assert "error" in resp
+
+    def test_returns_candidates_structure(self):
+        """Verify the response structure (may have 0 candidates if offline)."""
+        resp = _rpc("search_uniprot", {
+            "gene_name": "dmpR",
+            "organism": "",
+            "translation": "",
+            "known_accession": "",
+        })
+        result = resp.get("result")
+        if result:
+            assert "candidates" in result
+            assert "auto_selected" in result
+            assert isinstance(result["candidates"], list)
+
+
+# ── 12. _sequence_identity ──────────────────────────────────────────────
+
+class TestSequenceIdentity:
+    def test_identical_sequences(self):
+        assert sidecar._sequence_identity("MVKLT", "MVKLT") == 100.0
+
+    def test_empty_sequences(self):
+        assert sidecar._sequence_identity("", "") == 0.0
+        assert sidecar._sequence_identity("MVKLT", "") == 0.0
+
+    def test_partial_match(self):
+        # 2/5 match (M, V match; K vs X, L vs X, T vs X do not)
+        identity = sidecar._sequence_identity("MVKLT", "MVXXX")
+        assert identity == 40.0
+
+    def test_different_lengths(self):
+        # "MV" matches 2/5 of longer sequence
+        identity = sidecar._sequence_identity("MV", "MVKLT")
+        assert identity == 40.0
+
+
+# ── 13. list_organisms ──────────────────────────────────────────────────
+
+class TestListOrganisms:
+    def test_returns_list(self):
+        resp = _rpc("list_organisms")
+        assert "result" in resp
+        organisms = resp["result"]
+        assert isinstance(organisms, list)
+        assert len(organisms) == 5
+
+    def test_each_organism_has_required_keys(self):
+        resp = _rpc("list_organisms")
+        for org in resp["result"]:
+            assert "key" in org
+            assert "name" in org
+            assert "taxid" in org
+
+    def test_ecoli_present(self):
+        resp = _rpc("list_organisms")
+        keys = [o["key"] for o in resp["result"]]
+        assert "ecoli" in keys
+
+    def test_all_five_organisms_present(self):
+        resp = _rpc("list_organisms")
+        keys = {o["key"] for o in resp["result"]}
+        expected = {"ecoli", "bsubtilis", "scerevisiae", "hsapiens", "mextorquens"}
+        assert keys == expected
+
+
+# ── 14. export_order ───────────────────────────────────────────────────
+
+class TestExportOrder:
+    def test_no_design_returns_error(self):
+        resp = _rpc("export_order", {"filepath": "/tmp/test_idt.csv", "format": "idt"})
+        assert "error" in resp
+
+    def test_idt_export_after_design(self, designed_primers):
+        import tempfile
+        with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as f:
+            tmp_path = f.name
+        try:
+            resp = _rpc("export_order", {"filepath": tmp_path, "format": "idt"})
+            assert "result" in resp, f"export_order failed: {resp}"
+            result = resp["result"]
+            assert result["success"] is True
+            assert result["format"] == "idt"
+            assert result["primer_count"] > 0
+        finally:
+            Path(tmp_path).unlink(missing_ok=True)
+
+    def test_twist_export_after_design(self, designed_primers):
+        import tempfile
+        with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as f:
+            tmp_path = f.name
+        try:
+            resp = _rpc("export_order", {"filepath": tmp_path, "format": "twist"})
+            assert "result" in resp, f"export_order failed: {resp}"
+            result = resp["result"]
+            assert result["success"] is True
+            assert result["format"] == "twist"
+        finally:
+            Path(tmp_path).unlink(missing_ok=True)
+
+    def test_invalid_format_returns_error(self, designed_primers):
+        resp = _rpc("export_order", {"filepath": "/tmp/test.csv", "format": "invalid_format"})
+        assert "error" in resp
+
+    def test_design_with_organism_param(self, loaded_fasta):
+        """Verify design_sdm_primers accepts organism parameter."""
+        resp = _rpc(
+            "design_sdm_primers",
+            {
+                "fasta_path": FASTA_PATH,
+                "target_start": TARGET_START,
+                "mutations_csv_or_text": "Q232A\nY233A",
+                "polymerase": "Q5",
+                "overlap_len": 20,
+                "organism": "ecoli",
+            },
+        )
+        assert "result" in resp
+        assert resp["result"]["success_count"] >= 1
+
+    def test_design_with_unknown_organism_returns_error(self, loaded_fasta):
+        """Unknown organism should return a validation error."""
+        resp = _rpc(
+            "design_sdm_primers",
+            {
+                "fasta_path": FASTA_PATH,
+                "target_start": TARGET_START,
+                "mutations_csv_or_text": "Q232A",
+                "polymerase": "Q5",
+                "overlap_len": 20,
+                "organism": "unknown_organism_xyz",
+            },
+        )
+        assert "error" in resp
+
+
 # ── Edge: unknown method ─────────────────────────────────────────────────
 
 class TestUnknownMethod:

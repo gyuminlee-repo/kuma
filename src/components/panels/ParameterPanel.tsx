@@ -14,10 +14,12 @@ function useLocalNum(storeVal: number, fallback: number, commit: (v: number) => 
 export function ParameterPanel() {
   const selectedGene = useAppStore((s) => s.selectedGene);
   const codonStrategy = useAppStore((s) => s.codonStrategy);
+  const organism = useAppStore((s) => s.organism);
   const maxPrimers = useAppStore((s) => s.maxPrimers);
   const seqInfo = useAppStore((s) => s.seqInfo);
   const setSelectedGene = useAppStore((s) => s.setSelectedGene);
   const setCodonStrategy = useAppStore((s) => s.setCodonStrategy);
+  const setOrganism = useAppStore((s) => s.setOrganism);
   const setMaxPrimers = useAppStore((s) => s.setMaxPrimers);
 
   const tmFwd = useAppStore((s) => s.tmFwdTarget);
@@ -85,7 +87,22 @@ export function ParameterPanel() {
         )}
       </label>
 
-      <label className="flex items-center gap-2 text-xs" title="Min. changes = fewest nucleotide changes from WT codon. Optimal = highest-frequency E. coli K-12 codon.">
+      <label className="flex items-center gap-2 text-xs" title="Organism codon usage table for mutant codon selection.">
+        <span className="w-24 text-gray-600">Organism:</span>
+        <select
+          className="flex-1 h-7 text-xs border border-gray-300 rounded px-2 focus:outline-none focus:ring-1 focus:ring-green-500"
+          value={organism}
+          onChange={(e) => setOrganism(e.target.value)}
+        >
+          <option value="ecoli">E. coli K-12</option>
+          <option value="bsubtilis">B. subtilis 168</option>
+          <option value="scerevisiae">S. cerevisiae</option>
+          <option value="hsapiens">H. sapiens</option>
+          <option value="mextorquens">M. extorquens AM1</option>
+        </select>
+      </label>
+
+      <label className="flex items-center gap-2 text-xs" title="Min. changes = fewest nucleotide changes from WT codon. Optimal = highest-frequency codon for selected organism.">
         <span className="w-24 text-gray-600">Codon:</span>
         <select
           className="flex-1 h-7 text-xs border border-gray-300 rounded px-2 focus:outline-none focus:ring-1 focus:ring-green-500"
@@ -93,7 +110,7 @@ export function ParameterPanel() {
           onChange={(e) => setCodonStrategy(e.target.value as "closest" | "optimal")}
         >
           <option value="closest">Min. changes (fewest nt changes from WT)</option>
-          <option value="optimal">Optimal (E. coli codon usage)</option>
+          <option value="optimal">Optimal (organism codon usage)</option>
         </select>
       </label>
 

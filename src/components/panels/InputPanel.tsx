@@ -44,6 +44,9 @@ export function InputPanel() {
   const uniprotAccession = useAppStore((s) => s.uniprotAccession);
   const paretoDiversityEnabled = useAppStore((s) => s.paretoDiversityEnabled);
   const setParetoDiversityEnabled = useAppStore((s) => s.setParetoDiversityEnabled);
+  const uniprotCandidates = useAppStore((s) => s.uniprotCandidates);
+  const uniprotSearching = useAppStore((s) => s.uniprotSearching);
+  const searchUniprot = useAppStore((s) => s.searchUniprot);
 
   // Local state for UniProt accession input
   const [accessionInput, setAccessionInput] = useState(uniprotAccession);
@@ -222,24 +225,62 @@ export function InputPanel() {
               </label>
               {domainDiversityEnabled && (
                 <div className="space-y-1.5 pl-4">
-                  <div className="flex gap-1 items-center">
-                    <input
-                      type="text"
-                      className="w-24 h-5 text-xs border border-gray-300 rounded px-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      placeholder="UniProt ID"
-                      value={accessionInput}
-                      onChange={(e) => setAccessionInput(e.target.value.trim())}
-                      onKeyDown={(e) => { if (e.key === "Enter" && accessionInput) fetchDomains(accessionInput); }}
-                    />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-5 text-[10px] px-2"
-                      onClick={() => accessionInput && fetchDomains(accessionInput)}
-                      disabled={domainLoading || !accessionInput}
-                    >
-                      {domainLoading ? "..." : "Fetch"}
-                    </Button>
+                  <div className="space-y-1">
+                    <div className="flex gap-1 items-center">
+                      <input
+                        type="text"
+                        className="w-24 h-5 text-xs border border-gray-300 rounded px-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        placeholder="UniProt ID"
+                        value={accessionInput}
+                        onChange={(e) => setAccessionInput(e.target.value.trim())}
+                        onKeyDown={(e) => { if (e.key === "Enter" && accessionInput) fetchDomains(accessionInput); }}
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-5 text-[10px] px-2"
+                        onClick={() => accessionInput && fetchDomains(accessionInput)}
+                        disabled={domainLoading || !accessionInput}
+                      >
+                        {domainLoading ? "..." : "Fetch"}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-5 text-[10px] px-2"
+                        onClick={() => {
+                          if (!seqInfo?.genes.length) return;
+                          const gene = seqInfo.genes.find((g) => String(g.cds_start) === useAppStore.getState().selectedGene) ?? seqInfo.genes[0];
+                          searchUniprot(gene.gene, gene.organism ?? "", gene.translation ?? "", gene.uniprot_accession ?? "");
+                        }}
+                        disabled={uniprotSearching || !seqInfo?.genes.length}
+                        title="Search UniProt using gene info from the loaded sequence file"
+                      >
+                        {uniprotSearching ? "..." : "Auto Search"}
+                      </Button>
+                    </div>
+                    {uniprotCandidates.length > 0 && (
+                      <div className="space-y-0.5 max-h-24 overflow-auto">
+                        {uniprotCandidates.map((c) => (
+                          <button
+                            key={c.accession}
+                            className={`flex items-center gap-1 text-[10px] w-full text-left px-1 py-0.5 rounded hover:bg-blue-50 ${accessionInput === c.accession ? "bg-blue-100" : ""}`}
+                            onClick={() => {
+                              setAccessionInput(c.accession);
+                              fetchDomains(c.accession);
+                            }}
+                            title={`${c.organism} | ${c.length} aa | ${c.identity}% identity`}
+                          >
+                            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${c.identity === 100 ? "bg-green-500" : c.identity >= 90 ? "bg-yellow-500" : "bg-gray-400"}`} />
+                            <span className="font-mono text-blue-700">{c.accession}</span>
+                            <span className="text-gray-500 truncate">{c.name}</span>
+                            <span className={`ml-auto flex-shrink-0 ${c.identity === 100 ? "text-green-600 font-semibold" : "text-gray-400"}`}>
+                              {c.identity}%
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <div className="flex gap-2 text-[10px] text-gray-500">
                     <label className="flex items-center gap-0.5 cursor-pointer">

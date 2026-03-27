@@ -350,3 +350,53 @@ def export_plate_excel(
         _write_plate_sheet(ws, rev_chunk, _COLOR_REV, rev_groups=chunk_rev_groups)
 
     wb.save(output_path)
+
+
+def export_idt_csv(
+    results: list[SdmPrimerResult],
+    output_path: Path,
+    scale: str = "25nm",
+    purification: str = "STD",
+) -> None:
+    """Export primer order CSV in IDT OligoEntry format.
+
+    CSV columns: Name, Sequence, Scale, Purification.
+    Each mutation produces two rows (forward and reverse).
+
+    Args:
+        results: List of SdmPrimerResult from primer design.
+        output_path: Path to output CSV file.
+        scale: Synthesis scale (default: "25nm").
+        purification: Purification type (default: "STD").
+    """
+    import csv
+
+    with open(output_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(["Name", "Sequence", "Scale", "Purification"])
+        for r in results:
+            writer.writerow([f"{r.mutation.raw}_F", r.forward_seq, scale, purification])
+            writer.writerow([f"{r.mutation.raw}_R", r.reverse_seq, scale, purification])
+
+
+def export_twist_csv(
+    results: list[SdmPrimerResult],
+    output_path: Path,
+) -> None:
+    """Export primer order CSV in Twist Bioscience bulk order format.
+
+    CSV columns: Name, Sequence, Notes.
+    Each mutation produces two rows (forward and reverse).
+
+    Args:
+        results: List of SdmPrimerResult from primer design.
+        output_path: Path to output CSV file.
+    """
+    import csv
+
+    with open(output_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(["Name", "Sequence", "Notes"])
+        for r in results:
+            writer.writerow([f"{r.mutation.raw}_F", r.forward_seq, r.mutation.raw])
+            writer.writerow([f"{r.mutation.raw}_R", r.reverse_seq, r.mutation.raw])

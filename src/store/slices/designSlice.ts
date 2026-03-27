@@ -21,6 +21,7 @@ export interface DesignSlice {
   totalCount: number;
   failedMutations: FailedMutation[];
   codonStrategy: "closest" | "optimal";
+  organism: string;
   maxPrimers: number;
   tmFwdTarget: number;
   tmRevTarget: number;
@@ -50,6 +51,7 @@ export interface DesignSlice {
   addDesignResult: (mutation: string, result: SdmPrimerResult) => void;
   removeDesignResult: (mutation: string, reason: string) => void;
   setCodonStrategy: (strategy: "closest" | "optimal") => void;
+  setOrganism: (organism: string) => void;
   setMaxPrimers: (n: number) => void;
   setTmTargets: (fwd: number, rev: number, ov: number) => void;
   setGcRange: (min: number, max: number) => void;
@@ -65,6 +67,7 @@ export const createDesignSlice: StateCreator<DesignSlice, [], [], DesignSlice> =
   totalCount: 0,
   failedMutations: [],
   codonStrategy: "closest",
+  organism: "ecoli",
   maxPrimers: 95,
   tmFwdTarget: 62,
   tmRevTarget: 58,
@@ -98,6 +101,7 @@ export const createDesignSlice: StateCreator<DesignSlice, [], [], DesignSlice> =
       fastaPath,
       selectedGene,
       codonStrategy,
+      organism,
       maxPrimers,
       tmFwdTarget,
       tmRevTarget,
@@ -165,6 +169,7 @@ export const createDesignSlice: StateCreator<DesignSlice, [], [], DesignSlice> =
         mutations_csv_or_text: limitedText,
         polymerase: "Benchling",
         codon_strategy: codonStrategy,
+        organism,
         tm_fwd_target: tmFwdTarget,
         tm_rev_target: tmRevTarget,
         tm_overlap_target: tmOverlapTarget,
@@ -324,6 +329,7 @@ export const createDesignSlice: StateCreator<DesignSlice, [], [], DesignSlice> =
   },
 
   setCodonStrategy: (strategy) => set({ codonStrategy: strategy }),
+  setOrganism: (organism) => set({ organism }),
   setMaxPrimers: (n) => set({ maxPrimers: Math.max(1, n) }),
 
   setTmTargets: (fwd: number, rev: number, ov: number) => {

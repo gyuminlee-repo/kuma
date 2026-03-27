@@ -235,6 +235,8 @@ export const createExportSlice: StateCreator<ExportSlice, [], [], ExportSlice> =
       parsedMutations: [],
       parseErrors: [],
       selectedGene: "",
+      uniprotCandidates: [],
+      uniprotSearching: false,
       isDesigning: false,
       designResults: [],
       successCount: 0,

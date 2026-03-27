@@ -1,52 +1,155 @@
-"""E. coli K-12 codon usage table (Kazusa DB).
+"""Multi-organism codon usage tables (Kazusa DB).
 
-Frequencies are fraction of synonymous codons for each amino acid.
+Supports E. coli K-12, B. subtilis 168, S. cerevisiae, H. sapiens,
+and M. extorquens AM1. Frequencies are fraction of synonymous codons
+for each amino acid.
 """
 
 from __future__ import annotations
 
-# E. coli K-12 codon usage frequencies
-# Source: Kazusa Codon Usage Database (http://www.kazusa.or.jp/codon/)
-# Format: {amino_acid: [(codon, frequency), ...]} sorted by frequency descending
-ECOLI_CODON_USAGE: dict[str, list[tuple[str, float]]] = {
-    "A": [("GCG", 0.36), ("GCC", 0.27), ("GCA", 0.21), ("GCT", 0.16)],
-    "R": [("CGC", 0.40), ("CGT", 0.38), ("CGG", 0.10), ("CGA", 0.06),
-          ("AGG", 0.02), ("AGA", 0.04)],
-    "N": [("AAC", 0.55), ("AAT", 0.45)],
-    "D": [("GAT", 0.63), ("GAC", 0.37)],
-    "C": [("TGC", 0.56), ("TGT", 0.44)],
-    "Q": [("CAG", 0.65), ("CAA", 0.35)],
-    "E": [("GAA", 0.68), ("GAG", 0.32)],
-    "G": [("GGC", 0.41), ("GGT", 0.34), ("GGG", 0.15), ("GGA", 0.11)],
-    "H": [("CAC", 0.57), ("CAT", 0.43)],
-    "I": [("ATT", 0.51), ("ATC", 0.42), ("ATA", 0.07)],
-    "L": [("CTG", 0.50), ("TTG", 0.13), ("TTA", 0.13),
-          ("CTT", 0.10), ("CTC", 0.10), ("CTA", 0.04)],
-    "K": [("AAA", 0.76), ("AAG", 0.24)],
-    "M": [("ATG", 1.00)],
-    "F": [("TTT", 0.57), ("TTC", 0.43)],
-    "P": [("CCG", 0.53), ("CCA", 0.19), ("CCT", 0.16), ("CCC", 0.12)],
-    "S": [("AGC", 0.28), ("TCT", 0.15), ("TCC", 0.15), ("TCG", 0.15),
-          ("AGT", 0.15), ("TCA", 0.12)],
-    "T": [("ACC", 0.44), ("ACG", 0.27), ("ACT", 0.17), ("ACA", 0.13)],
-    "W": [("TGG", 1.00)],
-    "Y": [("TAT", 0.57), ("TAC", 0.43)],
-    "V": [("GTG", 0.37), ("GTT", 0.26), ("GTC", 0.22), ("GTA", 0.15)],
-    "*": [("TAA", 0.61), ("TGA", 0.30), ("TAG", 0.09)],
+import json
+from pathlib import Path
+
+_RESOURCES_DIR = Path(__file__).parent / "resources" / "codon_tables"
+
+# Organism aliases: user-facing key -> JSON filename (without .json)
+_ORGANISM_ALIASES: dict[str, str] = {
+    "ecoli": "ecoli",
+    "e. coli": "ecoli",
+    "e.coli": "ecoli",
+    "escherichia coli": "ecoli",
+    "bsubtilis": "bsubtilis",
+    "b. subtilis": "bsubtilis",
+    "b.subtilis": "bsubtilis",
+    "bacillus subtilis": "bsubtilis",
+    "scerevisiae": "scerevisiae",
+    "s. cerevisiae": "scerevisiae",
+    "s.cerevisiae": "scerevisiae",
+    "saccharomyces cerevisiae": "scerevisiae",
+    "yeast": "scerevisiae",
+    "hsapiens": "hsapiens",
+    "h. sapiens": "hsapiens",
+    "h.sapiens": "hsapiens",
+    "homo sapiens": "hsapiens",
+    "human": "hsapiens",
+    "mextorquens": "mextorquens",
+    "m. extorquens": "mextorquens",
+    "m.extorquens": "mextorquens",
+    "methylorubrum extorquens": "mextorquens",
 }
 
+
+class CodonTableRegistry:
+    """Registry for organism-specific codon usage tables.
+
+    Loads JSON files from kuro/resources/codon_tables/ on demand and
+    caches them in memory. Follows the same pattern as PolymeraseRegistry.
+    """
+
+    def __init__(self) -> None:
+        self._cache: dict[str, dict[str, list[tuple[str, float]]]] = {}
+        self._metadata: dict[str, dict] = {}
+
+    def _resolve_key(self, organism: str) -> str:
+        """Resolve an organism name to its canonical JSON key."""
+        key = organism.strip().lower()
+        resolved = _ORGANISM_ALIASES.get(key, key)
+        return resolved
+
+    def _load(self, key: str) -> dict[str, list[tuple[str, float]]]:
+        """Load a codon table JSON file and convert to dict."""
+        json_path = _RESOURCES_DIR / f"{key}.json"
+        if not json_path.exists():
+            available = self.list_organisms()
+            raise ValueError(
+                f"Unknown organism: '{key}'. "
+                f"Available: {', '.join(available)}"
+            )
+        with open(json_path, encoding="utf-8") as f:
+            data = json.load(f)
+        self._metadata[key] = {
+            "name": data.get("name", key),
+            "taxid": data.get("taxid"),
+            "source": data.get("source", ""),
+        }
+        table: dict[str, list[tuple[str, float]]] = {}
+        for aa, codons in data["codons"].items():
+            table[aa] = [(codon, freq) for codon, freq in codons]
+        return table
+
+    def get_codon_table(
+        self, organism: str = "ecoli"
+    ) -> dict[str, list[tuple[str, float]]]:
+        """Return the codon usage table for the given organism.
+
+        Args:
+            organism: Organism name or alias (case-insensitive).
+
+        Returns:
+            Dict mapping amino acid to list of (codon, frequency) tuples.
+
+        Raises:
+            ValueError: If the organism is not found.
+        """
+        key = self._resolve_key(organism)
+        if key not in self._cache:
+            self._cache[key] = self._load(key)
+        return self._cache[key]
+
+    def list_organisms(self) -> list[str]:
+        """Return canonical organism keys (JSON filenames without extension)."""
+        keys: list[str] = []
+        if _RESOURCES_DIR.exists():
+            for p in sorted(_RESOURCES_DIR.glob("*.json")):
+                keys.append(p.stem)
+        return keys
+
+    def list_organisms_detailed(self) -> list[dict]:
+        """Return organism info with display names for UI dropdowns."""
+        result: list[dict] = []
+        for key in self.list_organisms():
+            # Ensure metadata is loaded
+            if key not in self._metadata:
+                self.get_codon_table(key)
+            meta = self._metadata.get(key, {})
+            result.append({
+                "key": key,
+                "name": meta.get("name", key),
+                "taxid": meta.get("taxid"),
+            })
+        return result
+
+
+# Module-level singleton
+_registry = CodonTableRegistry()
+
+# Backward-compatible constant: E. coli K-12 codon usage
+ECOLI_CODON_USAGE: dict[str, list[tuple[str, float]]] = _registry.get_codon_table("ecoli")
+
 # Standard genetic code: codon -> amino acid
+# Built from E. coli table (genetic code is universal; frequencies vary by organism)
 CODON_TO_AA: dict[str, str] = {}
 for _aa, _codons in ECOLI_CODON_USAGE.items():
     for _codon, _ in _codons:
         CODON_TO_AA[_codon] = _aa
 
 
-def best_codon(aa: str) -> str:
-    """Return the most frequently used codon for an amino acid in E. coli K-12.
+def get_codon_table(
+    organism: str = "ecoli",
+) -> dict[str, list[tuple[str, float]]]:
+    """Return the codon usage table for the given organism.
+
+    Module-level convenience function wrapping CodonTableRegistry.
+    """
+    return _registry.get_codon_table(organism)
+
+
+def best_codon(aa: str, organism: str = "ecoli") -> str:
+    """Return the most frequently used codon for an amino acid.
 
     Args:
         aa: Single-letter amino acid code (uppercase).
+        organism: Organism name or alias (default: "ecoli").
 
     Returns:
         Most frequent codon (uppercase DNA).
@@ -55,28 +158,29 @@ def best_codon(aa: str) -> str:
         ValueError: If amino acid code is invalid.
     """
     aa = aa.upper()
-    if aa not in ECOLI_CODON_USAGE:
+    table = _registry.get_codon_table(organism)
+    if aa not in table:
         raise ValueError(f"Invalid amino acid: {aa}")
-    # Return highest-frequency codon
-    codons = ECOLI_CODON_USAGE[aa]
+    codons = table[aa]
     return max(codons, key=lambda x: x[1])[0]
 
 
-def closest_codon(wt_codon: str, target_aa: str) -> str:
+def closest_codon(wt_codon: str, target_aa: str, organism: str = "ecoli") -> str:
     """Return the codon for target_aa with minimum hamming distance to wt_codon.
 
-    Among codons with the same minimum distance, prefer higher E. coli usage frequency.
-    If closest == optimal, returns the optimal codon.
+    Among codons with the same minimum distance, prefer higher usage frequency
+    for the specified organism. If closest == optimal, returns the optimal codon.
     """
     wt_codon = wt_codon.upper()
     target_aa = target_aa.upper()
-    if target_aa not in ECOLI_CODON_USAGE:
+    table = _registry.get_codon_table(organism)
+    if target_aa not in table:
         raise ValueError(f"Invalid amino acid: {target_aa}")
 
     def hamming(a: str, b: str) -> int:
         return sum(c1 != c2 for c1, c2 in zip(a, b))
 
-    codons = ECOLI_CODON_USAGE[target_aa]
+    codons = table[target_aa]
     # Sort by: hamming distance (asc), then frequency (desc)
     ranked = sorted(codons, key=lambda x: (hamming(wt_codon, x[0]), -x[1]))
     return ranked[0][0]
@@ -86,15 +190,17 @@ def mt_codons_for_design(
     wt_codon: str,
     target_aa: str,
     strategy: str = "closest",
+    organism: str = "ecoli",
 ) -> list[str]:
     """Return distinct mutant codons ordered by strategy.
 
     Args:
         strategy: "closest" (min nucleotide changes first) or
-                  "optimal" (highest E. coli usage first).
+                  "optimal" (highest organism usage first).
+        organism: Organism for codon frequency lookup.
     """
-    optimal = best_codon(target_aa)
-    closest = closest_codon(wt_codon, target_aa)
+    optimal = best_codon(target_aa, organism)
+    closest = closest_codon(wt_codon, target_aa, organism)
     if optimal == closest:
         return [optimal]
     if strategy == "optimal":

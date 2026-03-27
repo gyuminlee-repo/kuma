@@ -1,7 +1,8 @@
-"""Tests for plate mapping and Excel export."""
+"""Tests for plate mapping, Excel export, and order CSV export."""
 
 from __future__ import annotations
 
+import csv
 from pathlib import Path
 
 import pytest
@@ -9,7 +10,9 @@ import pytest
 from kuro.plate_mapper import (
     PlateMapping,
     deduplicate_reverse,
+    export_idt_csv,
     export_plate_excel,
+    export_twist_csv,
     generate_plate_map,
 )
 from kuro.sdm_engine import SdmPrimerResult, design_sdm_primers
@@ -80,3 +83,95 @@ class TestExportExcel:
         assert "Fwd Plate" in wb.sheetnames
         assert "Rev List" in wb.sheetnames
         assert "Rev Plate" in wb.sheetnames
+
+
+class TestExportIdtCsv:
+    def test_idt_csv_creates_file(self, sdm_results, tmp_path):
+        csv_path = tmp_path / "idt_order.csv"
+        export_idt_csv(sdm_results, csv_path)
+        assert csv_path.exists()
+        assert csv_path.stat().st_size > 0
+
+    def test_idt_csv_header(self, sdm_results, tmp_path):
+        csv_path = tmp_path / "idt_order.csv"
+        export_idt_csv(sdm_results, csv_path)
+        with open(csv_path, encoding="utf-8") as f:
+            reader = csv.reader(f)
+            header = next(reader)
+        assert header == ["Name", "Sequence", "Scale", "Purification"]
+
+    def test_idt_csv_row_count(self, sdm_results, tmp_path):
+        csv_path = tmp_path / "idt_order.csv"
+        export_idt_csv(sdm_results, csv_path)
+        with open(csv_path, encoding="utf-8") as f:
+            reader = csv.reader(f)
+            rows = list(reader)
+        # header + 2 rows per result (fwd + rev)
+        assert len(rows) == 1 + len(sdm_results) * 2
+
+    def test_idt_csv_naming_convention(self, sdm_results, tmp_path):
+        csv_path = tmp_path / "idt_order.csv"
+        export_idt_csv(sdm_results, csv_path)
+        with open(csv_path, encoding="utf-8") as f:
+            reader = csv.reader(f)
+            next(reader)  # skip header
+            for i, row in enumerate(reader):
+                name = row[0]
+                if i % 2 == 0:
+                    assert name.endswith("_F")
+                else:
+                    assert name.endswith("_R")
+
+    def test_idt_csv_default_scale_and_purification(self, sdm_results, tmp_path):
+        csv_path = tmp_path / "idt_order.csv"
+        export_idt_csv(sdm_results, csv_path)
+        with open(csv_path, encoding="utf-8") as f:
+            reader = csv.reader(f)
+            next(reader)
+            for row in reader:
+                assert row[2] == "25nm"
+                assert row[3] == "STD"
+
+    def test_idt_csv_custom_scale(self, sdm_results, tmp_path):
+        csv_path = tmp_path / "idt_order.csv"
+        export_idt_csv(sdm_results, csv_path, scale="100nm", purification="PAGE")
+        with open(csv_path, encoding="utf-8") as f:
+            reader = csv.reader(f)
+            next(reader)
+            for row in reader:
+                assert row[2] == "100nm"
+                assert row[3] == "PAGE"
+
+
+class TestExportTwistCsv:
+    def test_twist_csv_creates_file(self, sdm_results, tmp_path):
+        csv_path = tmp_path / "twist_order.csv"
+        export_twist_csv(sdm_results, csv_path)
+        assert csv_path.exists()
+        assert csv_path.stat().st_size > 0
+
+    def test_twist_csv_header(self, sdm_results, tmp_path):
+        csv_path = tmp_path / "twist_order.csv"
+        export_twist_csv(sdm_results, csv_path)
+        with open(csv_path, encoding="utf-8") as f:
+            reader = csv.reader(f)
+            header = next(reader)
+        assert header == ["Name", "Sequence", "Notes"]
+
+    def test_twist_csv_row_count(self, sdm_results, tmp_path):
+        csv_path = tmp_path / "twist_order.csv"
+        export_twist_csv(sdm_results, csv_path)
+        with open(csv_path, encoding="utf-8") as f:
+            reader = csv.reader(f)
+            rows = list(reader)
+        assert len(rows) == 1 + len(sdm_results) * 2
+
+    def test_twist_csv_notes_contain_mutation(self, sdm_results, tmp_path):
+        csv_path = tmp_path / "twist_order.csv"
+        export_twist_csv(sdm_results, csv_path)
+        with open(csv_path, encoding="utf-8") as f:
+            reader = csv.reader(f)
+            next(reader)
+            for row in reader:
+                # Notes column should contain the mutation name
+                assert len(row[2]) > 0

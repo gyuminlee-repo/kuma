@@ -12,6 +12,22 @@ export interface GeneInfo {
   cds_start: number;
   cds_end: number;
   aa_length: number;
+  organism?: string;
+  translation?: string;
+  uniprot_accession?: string;
+}
+
+export interface UniprotCandidate {
+  accession: string;
+  name: string;
+  organism: string;
+  length: number;
+  identity: number;
+}
+
+export interface SearchUniprotResult {
+  candidates: UniprotCandidate[];
+  auto_selected: string | null;
 }
 
 export interface SequenceInfo {

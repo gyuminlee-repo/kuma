@@ -8,6 +8,8 @@ import type {
   EvolveproLoadResult,
   DomainInfo,
   FetchDomainsResult,
+  UniprotCandidate,
+  SearchUniprotResult,
 } from "../../types/models";
 
 function formatError(err: unknown): string {
@@ -36,6 +38,8 @@ export interface InputSlice {
   parsedMutations: ParsedMutation[];
   parseErrors: ParseError[];
   selectedGene: string;
+  uniprotCandidates: UniprotCandidate[];
+  uniprotSearching: boolean;
 
   // Actions
   loadSequence: (filepath: string) => Promise<void>;
@@ -53,6 +57,7 @@ export interface InputSlice {
   setParetoDiversityEnabled: (enabled: boolean) => void;
   loadEvolveproCsv: (filepath: string) => Promise<void>;
   parseMutations: () => Promise<void>;
+  searchUniprot: (geneName: string, organism: string, translation: string, knownAccession: string) => Promise<void>;
 }
 
 let csvLoadGeneration = 0;
@@ -78,6 +83,8 @@ export const createInputSlice: StateCreator<InputSlice, [], [], InputSlice> = (s
   parsedMutations: [],
   parseErrors: [],
   selectedGene: "",
+  uniprotCandidates: [],
+  uniprotSearching: false,
 
   loadSequence: async (filepath: string) => {
     try {
@@ -98,8 +105,19 @@ export const createInputSlice: StateCreator<InputSlice, [], [], InputSlice> = (s
         fastaPath: filepath,
         seqInfo: info,
         selectedGene: selectedKey,
+        uniprotCandidates: [],
         statusMessage: `Loaded: ${info.header} (${info.seq_length} bp) | ${info.genes.length} gene(s) | Target: ${bestGene?.gene ?? "none"}`,
       } as Partial<InputSlice>);
+
+      // Auto-trigger UniProt search if gene has db_xref or translation
+      if (bestGene) {
+        const knownAcc = bestGene.uniprot_accession ?? "";
+        const translation = bestGene.translation ?? "";
+        const organism = bestGene.organism ?? "";
+        if (knownAcc || translation) {
+          get().searchUniprot(bestGene.gene, organism, translation, knownAcc);
+        }
+      }
     } catch (err) {
       set({ statusMessage: `Sequence file load failed: ${formatError(err)}` } as Partial<InputSlice>);
     }
@@ -242,6 +260,34 @@ export const createInputSlice: StateCreator<InputSlice, [], [], InputSlice> = (s
       set({ parsedMutations: result.parsed, parseErrors: result.errors });
     } catch (err) {
       set({ statusMessage: `Mutation parse failed: ${formatError(err)}` } as Partial<InputSlice>);
+    }
+  },
+
+  searchUniprot: async (geneName: string, organism: string, translation: string, knownAccession: string) => {
+    set({ uniprotSearching: true } as Partial<InputSlice>);
+    try {
+      const result = await sendRequest<SearchUniprotResult>("search_uniprot", {
+        gene_name: geneName,
+        organism,
+        translation,
+        known_accession: knownAccession,
+      });
+      // Auto-fill accession if a 100% match is found
+      let statusMsg = "UniProt: no matching entries found";
+      const acc = result.auto_selected ?? "";
+      if (result.auto_selected) {
+        statusMsg = `UniProt: auto-matched ${result.auto_selected} (100% identity)`;
+      } else if (result.candidates.length > 0) {
+        statusMsg = `UniProt: ${result.candidates.length} candidate(s) found — select manually`;
+      }
+      set({
+        uniprotCandidates: result.candidates,
+        uniprotSearching: false,
+        ...(acc && { uniprotAccession: acc }),
+        statusMessage: statusMsg,
+      } as Partial<InputSlice>);
+    } catch (err) {
+      set({ uniprotSearching: false, statusMessage: `UniProt search failed: ${formatError(err)}` } as Partial<InputSlice>);
     }
   },
 });

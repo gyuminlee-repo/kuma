@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { open, save } from "@tauri-apps/plugin-dialog";
+import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { sendRequest } from "../../lib/ipc";
 import { useAppStore } from "../../store/appStore";
 import { useSidecar } from "../../hooks/useSidecar";
@@ -25,40 +26,87 @@ import {
 } from "../ui/dropdown-menu";
 import { Progress } from "../ui/progress";
 
+const SEQUENCE_EXTENSIONS = new Set([".gb", ".gbk", ".gbff", ".dna", ".fa", ".fasta"]);
+const CSV_EXTENSIONS = new Set([".csv"]);
+
+const MOD_KEY = navigator.userAgent.includes("Mac") ? "\u2318" : "Ctrl+";
+
+async function handleExportExcel() {
+  const path = await save({
+    filters: [{ name: "Excel", extensions: ["xlsx"] }],
+  });
+  if (path) await useAppStore.getState().exportExcel(path);
+}
+
+async function handleExportIdtOrder() {
+  const path = await save({
+    filters: [{ name: "CSV", extensions: ["csv"] }],
+    defaultPath: "idt_order.csv",
+  });
+  if (path) {
+    try {
+      await sendRequest("export_order", { filepath: path, format: "idt" });
+      useAppStore.getState().setStatus(`IDT order exported: ${path}`);
+    } catch (err) {
+      useAppStore.getState().setStatus(`IDT export failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+}
+
+async function handleExportTwistOrder() {
+  const path = await save({
+    filters: [{ name: "CSV", extensions: ["csv"] }],
+    defaultPath: "twist_order.csv",
+  });
+  if (path) {
+    try {
+      await sendRequest("export_order", { filepath: path, format: "twist" });
+      useAppStore.getState().setStatus(`Twist order exported: ${path}`);
+    } catch (err) {
+      useAppStore.getState().setStatus(`Twist export failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+}
+
+async function handleSaveWorkspace() {
+  const path = await save({
+    filters: [{ name: "KURO Workspace", extensions: ["kuro.json"] }],
+  });
+  if (!path) return;
+  const workspace = useAppStore.getState().getWorkspaceSnapshot();
+  await sendRequest("save_workspace", { filepath: path, data: workspace });
+  useAppStore.getState().setStatus(`Workspace saved: ${path}`);
+}
+
+async function handleLoadWorkspace() {
+  const path = await open({
+    filters: [{ name: "KURO Workspace", extensions: ["kuro.json", "json"] }],
+    multiple: false,
+  });
+  if (!path) return;
+  const ws = await sendRequest<import("../../types/models").WorkspaceV1>("load_workspace", { filepath: path as string });
+  if (ws.version !== 1) {
+    useAppStore.getState().setStatus("Incompatible workspace version");
+    return;
+  }
+  await useAppStore.getState().restoreWorkspace(ws);
+}
+
+async function handleOpenSequence() {
+  const path = await open({
+    filters: [
+      { name: "Sequence (GenBank/SnapGene)", extensions: ["gb", "gbff", "gbk", "dna"] },
+      { name: "FASTA", extensions: ["fa", "fasta"] },
+      { name: "All Files", extensions: ["*"] },
+    ],
+    multiple: false,
+  });
+  if (path) await useAppStore.getState().loadSequence(path as string);
+}
+
 function MenuBar() {
   const designResults = useAppStore((s) => s.designResults);
   const [aboutOpen, setAboutOpen] = useState(false);
-
-  async function handleExportExcel() {
-    const path = await save({
-      filters: [{ name: "Excel", extensions: ["xlsx"] }],
-    });
-    if (path) await useAppStore.getState().exportExcel(path);
-  }
-
-  async function handleSaveWorkspace() {
-    const path = await save({
-      filters: [{ name: "KURO Workspace", extensions: ["kuro.json"] }],
-    });
-    if (!path) return;
-    const workspace = useAppStore.getState().getWorkspaceSnapshot();
-    await sendRequest("save_workspace", { filepath: path, data: workspace });
-    useAppStore.getState().setStatus(`Workspace saved: ${path}`);
-  }
-
-  async function handleLoadWorkspace() {
-    const path = await open({
-      filters: [{ name: "KURO Workspace", extensions: ["kuro.json", "json"] }],
-      multiple: false,
-    });
-    if (!path) return;
-    const ws = await sendRequest<import("../../types/models").WorkspaceV1>("load_workspace", { filepath: path as string });
-    if (ws.version !== 1) {
-      useAppStore.getState().setStatus("Incompatible workspace version");
-      return;
-    }
-    await useAppStore.getState().restoreWorkspace(ws);
-  }
 
   return (
     <>
@@ -73,8 +121,14 @@ function MenuBar() {
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start">
+            <DropdownMenuItem onClick={handleOpenSequence}>
+              <span className="flex-1">Open Sequence...</span>
+              <kbd className="ml-4 text-[10px] text-gray-400">{MOD_KEY}O</kbd>
+            </DropdownMenuItem>
+            <DropdownMenuItem className="h-px bg-gray-200 my-1 p-0" disabled />
             <DropdownMenuItem onClick={handleSaveWorkspace}>
-              Save Workspace...
+              <span className="flex-1">Save Workspace...</span>
+              <kbd className="ml-4 text-[10px] text-gray-400">{MOD_KEY}S</kbd>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={handleLoadWorkspace}>
               Load Workspace...
@@ -84,7 +138,21 @@ function MenuBar() {
               onClick={handleExportExcel}
               disabled={designResults.length === 0}
             >
-              Export Excel...
+              <span className="flex-1">Export Excel...</span>
+              <kbd className="ml-4 text-[10px] text-gray-400">{MOD_KEY}E</kbd>
+            </DropdownMenuItem>
+            <DropdownMenuItem className="h-px bg-gray-200 my-1 p-0" disabled />
+            <DropdownMenuItem
+              onClick={handleExportIdtOrder}
+              disabled={designResults.length === 0}
+            >
+              Export IDT Order...
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={handleExportTwistOrder}
+              disabled={designResults.length === 0}
+            >
+              Export Twist Order...
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -180,9 +248,81 @@ export function AppLayout() {
   const mutationText = useAppStore((s) => s.mutationText);
   const designResults = useAppStore((s) => s.designResults);
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  // File drop via Tauri webview API
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    getCurrentWebview()
+      .onDragDropEvent((event) => {
+        if (event.payload.type === "enter" || event.payload.type === "over") {
+          setIsDragOver(true);
+        } else if (event.payload.type === "leave") {
+          setIsDragOver(false);
+        } else if (event.payload.type === "drop") {
+          setIsDragOver(false);
+          const paths = event.payload.paths;
+          for (const filePath of paths) {
+            const ext = filePath.slice(filePath.lastIndexOf(".")).toLowerCase();
+            if (SEQUENCE_EXTENSIONS.has(ext)) {
+              useAppStore.getState().loadSequence(filePath);
+              break;
+            }
+            if (CSV_EXTENSIONS.has(ext)) {
+              useAppStore.getState().loadEvolveproCsv(filePath);
+              break;
+            }
+          }
+        }
+      })
+      .then((fn) => {
+        unlisten = fn;
+      });
+    return () => {
+      unlisten?.();
+    };
+  }, []);
+
+  // Keyboard shortcuts
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    const mod = e.metaKey || e.ctrlKey;
+    if (!mod) return;
+    // Skip when input/textarea is focused
+    const tag = (e.target as HTMLElement).tagName;
+    const isInput = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+
+    switch (e.key.toLowerCase()) {
+      case "s":
+        e.preventDefault();
+        handleSaveWorkspace();
+        break;
+      case "e":
+        if (isInput) return;
+        e.preventDefault();
+        if (useAppStore.getState().designResults.length > 0) handleExportExcel();
+        break;
+      case "d":
+        if (isInput) return;
+        e.preventDefault();
+        {
+          const s = useAppStore.getState();
+          if (s.seqInfo && !s.isDesigning && s.mutationText.trim()) s.designPrimers();
+        }
+        break;
+      case "o":
+        e.preventDefault();
+        handleOpenSequence();
+        break;
+    }
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleKeyDown]);
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className={`flex flex-col h-screen ${isDragOver ? "ring-2 ring-inset ring-blue-400 bg-blue-50/30" : ""}`}>
       <MenuBar />
 
       <div className="flex flex-1 overflow-hidden">

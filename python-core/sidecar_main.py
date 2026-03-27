@@ -30,17 +30,20 @@ from kuro.sdm_engine import (
     load_sequence,
 )
 from kuro.mutation import Mutation, parse_mutation_notation
-from kuro.codon_table import CODON_TO_AA, best_codon
+from kuro.codon_table import CODON_TO_AA, best_codon, CodonTableRegistry
 from kuro.polymerase import PolymeraseRegistry
 from kuro.plate_mapper import (
     PlateMapping,
     deduplicate_reverse,
     export_plate_excel,
+    export_idt_csv,
+    export_twist_csv,
     generate_plate_map,
 )
 from kuro.evolvepro import load_evolvepro_csv
 
 _poly_registry = PolymeraseRegistry()
+_codon_registry = CodonTableRegistry()
 
 logging.basicConfig(
     level=logging.INFO,
@@ -219,6 +222,9 @@ def handle_load_fasta(params: dict) -> dict:
                 "cds_start": g.cds_start,
                 "cds_end": g.cds_end,
                 "aa_length": g.aa_length,
+                "organism": g.organism,
+                "translation": g.translation,
+                "uniprot_accession": g.uniprot_accession,
             }
             for g in genes
         ],
@@ -285,6 +291,11 @@ def handle_design_sdm_primers(params: dict) -> dict:
     codon_strategy = params.get("codon_strategy", "closest")
     if codon_strategy not in ("closest", "optimal"):
         raise ValueError(f"Invalid codon_strategy: '{codon_strategy}'. Must be 'closest' or 'optimal'.")
+    organism = params.get("organism", "ecoli")
+    # Validate organism is known
+    available_organisms = _codon_registry.list_organisms()
+    if organism not in available_organisms:
+        raise ValueError(f"Unknown organism: '{organism}'. Available: {', '.join(available_organisms)}")
 
     _raw_fwd = params.get("tm_fwd_target")
     _raw_rev = params.get("tm_rev_target")
@@ -380,6 +391,7 @@ def handle_design_sdm_primers(params: dict) -> dict:
             rev_len_max=rev_len_max,
             on_progress=_on_progress,
             cancel_check=_cancel_event.is_set,
+            organism=organism,
         )
     finally:
         if temp_csv is not None:
@@ -712,6 +724,7 @@ def handle_retry_failed(params: dict) -> dict:
     target_start = int(params.get("target_start", 0))
     overlap_len = int(params.get("overlap_len", 20))
     codon_strategy = params.get("codon_strategy", "closest")
+    organism = params.get("organism", "ecoli")
 
     tm_fwd = float(params.get("tm_fwd_target", 62))
     tm_rev = float(params.get("tm_rev_target", 58))
@@ -734,7 +747,7 @@ def handle_retry_failed(params: dict) -> dict:
     actual_aa = CODON_TO_AA.get(wt_codon)
     if actual_aa != wt_aa:
         raise ValueError(f"WT amino acid mismatch: expected {wt_aa} at position {position}, but codon {wt_codon} encodes {actual_aa}")
-    mt_codon = best_codon(mt_aa)
+    mt_codon = best_codon(mt_aa, organism)
 
     mut = Mutation(
         raw=mutation_raw, wt_aa=wt_aa, position=position, mt_aa=mt_aa,
@@ -751,6 +764,7 @@ def handle_retry_failed(params: dict) -> dict:
         gc_min=gc_min, gc_max=gc_max,
         fwd_len_min=fwd_len_min, fwd_len_max=fwd_len_max,
         rev_len_min=rev_len_min, rev_len_max=rev_len_max,
+        organism=organism,
     )
 
     return {
@@ -833,10 +847,154 @@ def handle_fetch_domains(params: dict) -> dict:
     }
 
 
+def _sequence_identity(seq_a: str, seq_b: str) -> float:
+    """Calculate percent identity between two protein sequences (simple alignment)."""
+    if not seq_a or not seq_b:
+        return 0.0
+    matches = sum(1 for a, b in zip(seq_a, seq_b) if a == b)
+    return round(matches / max(len(seq_a), len(seq_b)) * 100, 1)
+
+
+def handle_search_uniprot(params: dict) -> dict:
+    """Search UniProt REST API for protein entries matching gene/organism.
+
+    If known_accession is provided, fetch that entry directly and compare.
+    Otherwise search by gene name and organism, rank by sequence identity.
+    """
+    gene_name = params.get("gene_name", "").strip()
+    organism = params.get("organism", "").strip()
+    translation = params.get("translation", "").strip()
+    known_accession = params.get("known_accession", "").strip()
+
+    if not gene_name and not known_accession:
+        raise ValueError("gene_name or known_accession is required")
+
+    import urllib.request as _urllib_req
+    import urllib.parse as _urllib_parse
+
+    candidates: list[dict] = []
+    auto_selected: str | None = None
+
+    def _fetch_json(url: str) -> dict | None:
+        try:
+            req = _urllib_req.Request(url, headers={"Accept": "application/json"})
+            with _urllib_req.urlopen(req, context=_get_ssl_ctx(), timeout=15) as resp:
+                return json.loads(resp.read().decode("utf-8"))
+        except Exception as exc:
+            logger.warning("UniProt fetch failed: %s — %s", url, exc)
+            return None
+
+    if known_accession:
+        # Direct fetch by accession
+        data = _fetch_json(
+            f"https://rest.uniprot.org/uniprotkb/{known_accession}?format=json"
+        )
+        if data and "primaryAccession" in data:
+            uni_seq = data.get("sequence", {}).get("value", "")
+            identity = _sequence_identity(translation, uni_seq) if translation else 0.0
+            org_name = data.get("organism", {}).get("scientificName", "")
+            gene_names = []
+            for gn in data.get("genes", []):
+                if gn.get("geneName"):
+                    gene_names.append(gn["geneName"].get("value", ""))
+            candidates.append({
+                "accession": data["primaryAccession"],
+                "name": ", ".join(gene_names) if gene_names else known_accession,
+                "organism": org_name,
+                "length": data.get("sequence", {}).get("length", 0),
+                "identity": identity,
+            })
+            if identity == 100.0:
+                auto_selected = data["primaryAccession"]
+
+    if not candidates:
+        # Search by gene name + organism
+        query_parts = []
+        if gene_name:
+            query_parts.append(f"gene:{gene_name}")
+        if organism:
+            query_parts.append(f'organism_name:"{organism}"')
+        query = "+AND+".join(query_parts)
+        fields = "accession,id,organism_name,sequence,gene_names"
+        url = (
+            f"https://rest.uniprot.org/uniprotkb/search?"
+            f"query={query}&format=json&fields={fields}&size=10"
+        )
+        data = _fetch_json(url)
+        if data and "results" in data:
+            for entry in data["results"]:
+                uni_seq = entry.get("sequence", {}).get("value", "")
+                identity = _sequence_identity(translation, uni_seq) if translation else 0.0
+                org_name = entry.get("organism", {}).get("scientificName", "")
+                gene_names = []
+                for gn in entry.get("genes", []):
+                    if gn.get("geneName"):
+                        gene_names.append(gn["geneName"].get("value", ""))
+                candidates.append({
+                    "accession": entry.get("primaryAccession", ""),
+                    "name": ", ".join(gene_names) if gene_names else entry.get("primaryAccession", ""),
+                    "organism": org_name,
+                    "length": entry.get("sequence", {}).get("length", 0),
+                    "identity": identity,
+                })
+
+    # Sort by identity descending
+    candidates.sort(key=lambda c: c["identity"], reverse=True)
+
+    # Auto-select if top candidate has 100% identity
+    if candidates and candidates[0]["identity"] == 100.0:
+        auto_selected = candidates[0]["accession"]
+
+    return {
+        "candidates": candidates,
+        "auto_selected": auto_selected,
+    }
+
+
+def handle_list_organisms(_params: dict) -> list[dict]:
+    """Return available organism codon tables for the UI dropdown."""
+    return _codon_registry.list_organisms_detailed()
+
+
+_ALLOWED_ORDER_CSV_EXTENSIONS = {".csv"}
+
+
+def handle_export_order(params: dict) -> dict:
+    """Export primer order CSV in IDT or Twist format.
+
+    Params:
+        filepath: Output CSV path.
+        format: "idt" or "twist".
+        scale: IDT synthesis scale (default "25nm").
+        purification: IDT purification (default "STD").
+    """
+    filepath = params.get("filepath")
+    fmt = params.get("format", "idt").lower()
+    if fmt not in ("idt", "twist"):
+        raise ValueError(f"Invalid export format: '{fmt}'. Must be 'idt' or 'twist'.")
+
+    resolved = _validate_output_path(
+        filepath, allowed_extensions=_ALLOWED_ORDER_CSV_EXTENSIONS
+    )
+
+    if not _state.results:
+        raise ValueError("No design available. Run design_sdm_primers first.")
+
+    if fmt == "idt":
+        scale = params.get("scale", "25nm")
+        purification = params.get("purification", "STD")
+        export_idt_csv(_state.results, resolved, scale=scale, purification=purification)
+    else:
+        export_twist_csv(_state.results, resolved)
+
+    return {"success": True, "filepath": str(resolved), "format": fmt, "primer_count": len(_state.results) * 2}
+
+
 # --- Dispatcher ---
 
 _METHODS = {
     "list_polymerases": handle_list_polymerases,
+    "list_organisms": handle_list_organisms,
     "load_fasta": handle_load_fasta,
     "parse_mutations_text": handle_parse_mutations_text,
     "design_sdm_primers": handle_design_sdm_primers,
@@ -845,11 +1003,13 @@ _METHODS = {
     "get_alternatives": handle_get_alternatives,
     "swap_primer": handle_swap_primer,
     "export_excel": handle_export_excel,
+    "export_order": handle_export_order,
     "evaluate_primer": handle_evaluate_primer,
     "retry_failed_mutation": handle_retry_failed,
     "save_workspace": handle_save_workspace,
     "load_workspace": handle_load_workspace,
     "fetch_domains": handle_fetch_domains,
+    "search_uniprot": handle_search_uniprot,
     "cancel_design": lambda _: (_cancel_event.set(), {"cancelled": True})[1],
 }
 

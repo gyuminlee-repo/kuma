@@ -7,9 +7,11 @@ import pytest
 from kuro.codon_table import (
     CODON_TO_AA,
     ECOLI_CODON_USAGE,
+    CodonTableRegistry,
     best_codon,
     closest_codon,
     codon_to_aa,
+    get_codon_table,
     mt_codons_for_design,
 )
 
@@ -52,9 +54,11 @@ class TestBestCodon:
         with pytest.raises(ValueError, match="Invalid amino acid"):
             best_codon("1")
 
-    def test_extra_kwargs_raises(self):
-        with pytest.raises(TypeError):
-            best_codon("A", organism="yeast")
+    def test_organism_kwarg_accepted(self):
+        # organism kwarg is now valid — should return a valid codon
+        codon = best_codon("A", organism="yeast")
+        assert len(codon) == 3
+        assert codon_to_aa(codon) == "A"
 
 
 class TestCodonToAA:
@@ -144,3 +148,91 @@ class TestMtCodonsForDesign:
         # W has only one codon (TGG)
         codons = mt_codons_for_design("TTT", "W")
         assert codons == ["TGG"]
+
+    def test_organism_parameter_changes_result(self):
+        # E. coli best A codon is GCG; yeast best A codon is GCT
+        ecoli_codons = mt_codons_for_design("AAA", "A", organism="ecoli")
+        yeast_codons = mt_codons_for_design("AAA", "A", organism="scerevisiae")
+        # The optimal codons should differ
+        ecoli_optimal = best_codon("A", "ecoli")
+        yeast_optimal = best_codon("A", "scerevisiae")
+        assert ecoli_optimal != yeast_optimal
+        # Both should encode A
+        assert codon_to_aa(ecoli_codons[0]) == "A"
+        assert codon_to_aa(yeast_codons[0]) == "A"
+
+
+class TestCodonTableRegistry:
+    def test_list_organisms_returns_five(self):
+        registry = CodonTableRegistry()
+        organisms = registry.list_organisms()
+        assert len(organisms) == 5
+        expected = {"ecoli", "bsubtilis", "scerevisiae", "hsapiens", "mextorquens"}
+        assert set(organisms) == expected
+
+    def test_list_organisms_detailed_has_keys(self):
+        registry = CodonTableRegistry()
+        details = registry.list_organisms_detailed()
+        assert len(details) == 5
+        for item in details:
+            assert "key" in item
+            assert "name" in item
+            assert "taxid" in item
+
+    def test_get_codon_table_ecoli(self):
+        table = get_codon_table("ecoli")
+        assert "A" in table
+        assert "M" in table
+        assert "*" in table
+        # All 20 AA + stop
+        assert len(table) == 21
+
+    def test_get_codon_table_all_organisms(self):
+        registry = CodonTableRegistry()
+        for org in registry.list_organisms():
+            table = registry.get_codon_table(org)
+            assert len(table) == 21
+            # Each AA should have at least one codon
+            for aa, codons in table.items():
+                assert len(codons) >= 1
+                # Frequencies should sum close to 1.0
+                total = sum(freq for _, freq in codons)
+                assert 0.95 <= total <= 1.05, f"{org}/{aa}: freq sum={total}"
+
+    def test_alias_resolution(self):
+        registry = CodonTableRegistry()
+        t1 = registry.get_codon_table("ecoli")
+        t2 = registry.get_codon_table("E. coli")
+        t3 = registry.get_codon_table("Escherichia coli")
+        assert t1 is t2  # same cached object
+        assert t1 is t3
+
+    def test_unknown_organism_raises(self):
+        registry = CodonTableRegistry()
+        with pytest.raises(ValueError, match="Unknown organism"):
+            registry.get_codon_table("nonexistent_organism")
+
+    def test_ecoli_backward_compatible(self):
+        # ECOLI_CODON_USAGE constant should match get_codon_table("ecoli")
+        table = get_codon_table("ecoli")
+        assert table == ECOLI_CODON_USAGE
+
+    def test_best_codon_per_organism(self):
+        # E. coli: best A = GCG (GC-rich preference)
+        assert best_codon("A", "ecoli") == "GCG"
+        # Yeast: best A = GCT (AT-rich preference)
+        assert best_codon("A", "scerevisiae") == "GCT"
+        # Human: best A = GCC
+        assert best_codon("A", "hsapiens") == "GCC"
+
+    def test_closest_codon_per_organism(self):
+        # Same target but different organisms may pick different codons
+        ecoli_closest = closest_codon("AAA", "A", organism="ecoli")
+        yeast_closest = closest_codon("AAA", "A", organism="scerevisiae")
+        assert codon_to_aa(ecoli_closest) == "A"
+        assert codon_to_aa(yeast_closest) == "A"
+
+    def test_mextorquens_is_gc_rich(self):
+        # M. extorquens AM1 should prefer GC-rich codons like E. coli
+        m_best = best_codon("A", "mextorquens")
+        assert m_best == "GCG"  # GC-rich preference
