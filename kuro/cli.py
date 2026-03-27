@@ -31,6 +31,16 @@ def cmd_design(args: argparse.Namespace) -> None:
         mutations_csv=Path(args.mutations),
         polymerase=args.polymerase,
         overlap_len=args.overlap,
+        codon_strategy=args.codon_strategy,
+        tm_fwd_target=args.tm_fwd_target,
+        tm_rev_target=args.tm_rev_target,
+        tm_overlap_target=args.tm_overlap_target,
+        gc_min=args.gc_min,
+        gc_max=args.gc_max,
+        fwd_len_min=args.fwd_len_min,
+        fwd_len_max=args.fwd_len_max,
+        rev_len_min=args.rev_len_min,
+        rev_len_max=args.rev_len_max,
     )
 
     if not results:
@@ -148,6 +158,47 @@ def main() -> None:
     design_parser.add_argument(
         "--output", default="results/",
         help="Output directory (default: results/)"
+    )
+    design_parser.add_argument(
+        "--codon-strategy", default="closest",
+        choices=["closest", "optimal"],
+        help="Codon selection strategy (default: closest)"
+    )
+    design_parser.add_argument(
+        "--tm-fwd-target", type=float, default=None,
+        help="Forward primer Tm target in C (default: polymerase default)"
+    )
+    design_parser.add_argument(
+        "--tm-rev-target", type=float, default=None,
+        help="Reverse primer Tm target in C (default: polymerase default)"
+    )
+    design_parser.add_argument(
+        "--tm-overlap-target", type=float, default=None,
+        help="Overlap Tm target in C (default: polymerase default)"
+    )
+    design_parser.add_argument(
+        "--gc-min", type=float, default=40,
+        help="Minimum GC%% for primers (default: 40)"
+    )
+    design_parser.add_argument(
+        "--gc-max", type=float, default=60,
+        help="Maximum GC%% for primers (default: 60)"
+    )
+    design_parser.add_argument(
+        "--fwd-len-min", type=int, default=18,
+        help="Minimum forward primer length (default: 18)"
+    )
+    design_parser.add_argument(
+        "--fwd-len-max", type=int, default=45,
+        help="Maximum forward primer length (default: 45)"
+    )
+    design_parser.add_argument(
+        "--rev-len-min", type=int, default=18,
+        help="Minimum reverse primer length (default: 18)"
+    )
+    design_parser.add_argument(
+        "--rev-len-max", type=int, default=30,
+        help="Maximum reverse primer length (default: 30)"
     )
 
     # plate-map subcommand

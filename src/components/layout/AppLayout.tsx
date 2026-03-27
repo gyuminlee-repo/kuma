@@ -152,8 +152,13 @@ function StatusBar({ sidecarStatus }: { sidecarStatus: string }) {
         </span>
       )}
       {isDesigning && <Progress value={progress} className="w-32 h-2" />}
+      {sidecarStatus === "error" && (
+        <span className="bg-red-600 text-white text-[10px] px-2 py-0.5 rounded whitespace-nowrap">
+          Sidecar connection failed. Restart the app.
+        </span>
+      )}
       <span
-        className={`w-2 h-2 rounded-full ${
+        className={`w-2 h-2 rounded-full flex-shrink-0 ${
           sidecarStatus === "ready"
             ? "bg-green-500"
             : sidecarStatus === "connecting"

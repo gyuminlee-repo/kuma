@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState, type MouseEvent } from "react";
 import {
   createColumnHelper,
   flexRender,
@@ -8,20 +8,14 @@ import {
 } from "@tanstack/react-table";
 import { useAppStore } from "../../store/appStore";
 import type { SdmPrimerResult, FailedMutation } from "../../types/models";
+import { CandidatePopover } from "./popovers/CandidatePopover";
+import { HairpinDetail } from "./popovers/HairpinDetail";
+import { OffTargetDetail } from "./popovers/OffTargetDetail";
+import { FailedMutationPopover } from "./popovers/FailedMutationPopover";
 
 const col = createColumnHelper<SdmPrimerResult & { rank: number }>();
 
-const VALID_BASES = /^[ATGCatgc]*$/;
-function validateSeq(seq: string): string | null {
-  if (!seq) return null;
-  if (!VALID_BASES.test(seq)) {
-    const invalid = seq.replace(/[ATGCatgc]/g, "");
-    return `Invalid characters: ${[...new Set(invalid)].join(", ")}`;
-  }
-  return null;
-}
-
-function formatTolerance(tf?: number, tr?: number, fallback?: number): string {
+export function formatTolerance(tf?: number, tr?: number, fallback?: number): string {
   if (tf != null && tr != null) return `\u00B1${tf.toFixed(1)}/\u00B1${tr.toFixed(1)}`;
   if (fallback != null) return `\u00B1${fallback.toFixed(1)}`;
   return "\u2014";
@@ -51,8 +45,29 @@ function buildGroupColorMap(results: SdmPrimerResult[]): Map<number, string> {
   return colorMap;
 }
 
+function CopySeqButton({ seq }: { seq: string }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = (e: MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(seq).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1200);
+    });
+  };
+  return (
+    <button
+      className="ml-1 flex-shrink-0 text-gray-300 hover:text-gray-600 text-[10px] leading-none"
+      onClick={handleCopy}
+      title="Copy sequence"
+      aria-label="Copy sequence to clipboard"
+    >
+      {copied ? "\u2713" : "\uD83D\uDCCB"}
+    </button>
+  );
+}
+
 /** Forward primer with overlap(blue) + mutation(red) + downstream(black) coloring */
-function ColoredFwdSeq({ seq, overlapLen }: {
+export function ColoredFwdSeq({ seq, overlapLen }: {
   seq: string;
   overlapLen: number;
 }) {
@@ -66,699 +81,6 @@ function ColoredFwdSeq({ seq, overlapLen }: {
       <span style={{ color: "#ef4444", fontWeight: 600 }}>{codon}</span>
       <span>{rest}</span>
     </span>
-  );
-}
-
-/** Shared row for candidate/custom primer in CandidatePopover */
-function CandidateRow({
-  c, rowClass, label, actions, onOtClick,
-}: {
-  c: SdmPrimerResult;
-  rowClass: string;
-  label: React.ReactNode;
-  actions: React.ReactNode;
-  onOtClick: (c: SdmPrimerResult) => void;
-}) {
-  return (
-    <tr className={`border-b border-gray-100 ${rowClass}`}>
-      <td className="px-2 py-1 text-center">{label}</td>
-      <td className="px-2 py-1 font-mono break-all max-w-[160px]">
-        <ColoredFwdSeq seq={c.forward_seq} overlapLen={c.overlap_len ?? 0} />
-      </td>
-      <td className="px-2 py-1 font-mono break-all max-w-[140px]">{c.reverse_seq}</td>
-      <td className="px-2 py-1 text-center">{c.fwd_len}</td>
-      <td className="px-2 py-1 text-center">{c.rev_len}</td>
-      <td className="px-2 py-1 text-center">{c.tm_no_fwd.toFixed(1)}</td>
-      <td className="px-2 py-1 text-center">{c.tm_no_rev.toFixed(1)}</td>
-      <td className="px-2 py-1 text-center">{c.tm_overlap.toFixed(1)}</td>
-      <td className="px-2 py-1 text-center">{c.gc_fwd.toFixed(1)}</td>
-      <td className="px-2 py-1 text-center">{c.gc_rev.toFixed(1)}</td>
-      <td className="px-2 py-1 text-center">{formatTolerance(c.tolerance_fwd, c.tolerance_rev, c.tolerance_used)}</td>
-      <td className="px-2 py-1 text-center" title={c.warnings?.length ? c.warnings.join("\n") : ""}>
-        {c.penalty.toFixed(1)}
-      </td>
-      <td className={`px-2 py-1 text-center ${c.has_offtarget ? "cursor-pointer" : ""}`}
-        onClick={c.has_offtarget ? () => onOtClick(c) : undefined}
-      >
-        {c.has_offtarget ? <span className="text-red-600 font-medium">!!</span> : <span className="text-green-600">OK</span>}
-      </td>
-      <td className="px-2 py-1 text-center whitespace-nowrap">{actions}</td>
-    </tr>
-  );
-}
-
-/** Candidate comparison popover */
-function CandidatePopover({
-  mutation,
-  current,
-  onClose,
-}: {
-  mutation: string;
-  current: SdmPrimerResult;
-  onClose: () => void;
-}) {
-  const [candidates, setCandidates] = useState<SdmPrimerResult[] | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [customOverlap, setCustomOverlap] = useState("");
-  const [customCodon, setCustomCodon] = useState("");
-  const [customDownstream, setCustomDownstream] = useState("");
-  const [customRev, setCustomRev] = useState("");
-  const [evaluating, setEvaluating] = useState(false);
-  const [seqError, setSeqError] = useState<string | null>(null);
-  const [otDetailCand, setOtDetailCand] = useState<SdmPrimerResult | null>(null);
-  const candidateCloseRef = useRef<HTMLButtonElement>(null);
-  const getAlternatives = useAppStore((s) => s.getAlternatives);
-  const swapPrimer = useAppStore((s) => s.swapPrimer);
-  const applyCustomPrimer = useAppStore((s) => s.applyCustomPrimer);
-  const evaluateCustomPrimer = useAppStore((s) => s.evaluateCustomPrimer);
-  const addCustomCandidate = useAppStore((s) => s.addCustomCandidate);
-  const removeCustomCandidate = useAppStore((s) => s.removeCustomCandidate);
-  const customCandidates = useAppStore((s) => s.customCandidates)[mutation] ?? [];
-
-  // Load candidates on mount
-  useEffect(() => {
-    getAlternatives(mutation).then((c) => {
-      setCandidates(c);
-      setLoading(false);
-    }).catch(() => {
-      // Fallback: show current primer as sole candidate (e.g. MOCK_MODE)
-      setCandidates([current]);
-      setLoading(false);
-    });
-  }, [mutation, getAlternatives, current]);
-
-  async function handleEvaluate() {
-    const fwdInput = (customOverlap + customCodon + customDownstream).trim();
-    const revInput = customRev.trim();
-    if (!fwdInput && !revInput) return;
-    // Fill missing side with current primer sequence
-    const fwdSeq = fwdInput || current.forward_seq;
-    const revSeq = revInput || current.reverse_seq;
-    // Validate bases
-    const fwdErr = validateSeq(fwdInput);
-    const revErr = validateSeq(revInput);
-    if (fwdErr || revErr) {
-      setSeqError(`Invalid sequence: ${fwdErr || revErr}`);
-      return;
-    }
-    setSeqError(null);
-    // Duplicate check
-    const isDup = customCandidates.some((c) => c.forward_seq === fwdSeq && c.reverse_seq === revSeq);
-    if (isDup) {
-      setSeqError("Duplicate custom primer — already added");
-      return;
-    }
-    setEvaluating(true);
-    const result = await evaluateCustomPrimer(mutation, fwdSeq, revSeq, fwdInput ? customOverlap.trim().length : (current.overlap_len ?? 20));
-    if (result) {
-      addCustomCandidate(mutation, result);
-    }
-    setEvaluating(false);
-  }
-
-  async function handleSwap(idx: number, type: "both" | "fwd" | "rev" = "both") {
-    await swapPrimer(mutation, idx, type);
-    if (type === "both") onClose();
-  }
-
-  useEffect(() => {
-    candidateCloseRef.current?.focus();
-  }, []);
-
-  function handleApplyCustom(result: SdmPrimerResult) {
-    applyCustomPrimer(mutation, result);
-    onClose();
-  }
-
-  function handleDeleteCustom(ci: number) {
-    removeCustomCandidate(mutation, ci);
-  }
-
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
-      onClick={onClose}
-      onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}
-    >
-      <div aria-hidden="true" className="fixed inset-0" />
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="candidate-popover-title"
-        className="bg-white rounded-lg shadow-xl p-4 max-w-3xl max-h-[80vh] overflow-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex justify-between items-center mb-3">
-          <h3 id="candidate-popover-title" className="text-sm font-semibold">
-            {mutation} — {candidates?.length ?? "..."} candidates
-          </h3>
-          <button
-            ref={candidateCloseRef}
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-lg px-2"
-            aria-label="Close"
-          >
-            ×
-          </button>
-        </div>
-
-        {loading ? (
-          <div className="text-xs text-gray-400 py-4 text-center">Loading...</div>
-        ) : !candidates || candidates.length === 0 ? (
-          <div className="text-xs text-gray-400 py-4 text-center">No candidates</div>
-        ) : (
-          <>
-          <div className="text-[10px] text-gray-500 mb-2">
-            Ranked by penalty (lower = better). #1 is auto-selected as default.
-          </div>
-          <table className="w-full text-[10px] border-collapse">
-            <thead>
-              <tr className="bg-gray-50 text-gray-600 font-semibold">
-                <th className="px-2 py-1 text-left">#</th>
-                <th className="px-2 py-1 text-left">Forward</th>
-                <th className="px-2 py-1 text-left">Reverse</th>
-                <th className="px-2 py-1">Fwd</th>
-                <th className="px-2 py-1">Rev</th>
-                <th className="px-2 py-1">Tm F</th>
-                <th className="px-2 py-1">Tm R</th>
-                <th className="px-2 py-1">Tm Ov</th>
-                <th className="px-2 py-1">GC% F</th>
-                <th className="px-2 py-1">GC% R</th>
-                <th className="px-2 py-1">Tol</th>
-                <th className="px-2 py-1" title="Penalty = Tm deviation + GC deviation + codon changes + hairpin/homodimer">Pen</th>
-                <th className="px-2 py-1">OT</th>
-                <th className="px-2 py-1"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {candidates.map((c, idx) => {
-                const isCurrent = c.forward_seq === current.forward_seq
-                  && c.reverse_seq === current.reverse_seq;
-                const isBest = idx === 0;
-                const rowClass = isCurrent
-                  ? "bg-amber-50 font-semibold"
-                  : isBest
-                    ? "bg-green-50"
-                    : "hover:bg-gray-50";
-                return (
-                  <CandidateRow key={idx} c={c} rowClass={rowClass} onOtClick={setOtDetailCand}
-                    label={<>{idx + 1}{isBest && <span className="ml-0.5 text-green-600 text-[8px]">best</span>}</>}
-                    actions={
-                      <div className="flex gap-0.5 justify-center items-center">
-                        {isCurrent && <span className="text-amber-600 text-[9px] mr-0.5">✓</span>}
-                        <button className="px-1 py-0.5 bg-blue-500 text-white rounded text-[8px] hover:bg-blue-600" onClick={() => handleSwap(idx, "both")} title="Use both Fwd+Rev">Both</button>
-                        <button className="px-1 py-0.5 bg-green-500 text-white rounded text-[8px] hover:bg-green-600" onClick={() => handleSwap(idx, "fwd")} title="Use Forward only">F</button>
-                        <button className="px-1 py-0.5 bg-orange-500 text-white rounded text-[8px] hover:bg-orange-600" onClick={() => handleSwap(idx, "rev")} title="Use Reverse only">R</button>
-                      </div>
-                    }
-                  />
-                );
-              })}
-              {customCandidates.map((c, ci) => (
-                <CandidateRow key={`custom-${ci}`} c={c} rowClass="bg-purple-50" onOtClick={setOtDetailCand}
-                  label={<span className="text-purple-600 text-[9px]">C{ci + 1}</span>}
-                  actions={
-                    <div className="flex gap-0.5 justify-center">
-                      <button className="px-1 py-0.5 bg-purple-500 text-white rounded text-[8px] hover:bg-purple-600" onClick={() => handleApplyCustom(c)} title="Apply this custom primer">Use</button>
-                      <button className="px-1 py-0.5 bg-gray-400 text-white rounded text-[8px] hover:bg-gray-500" onClick={() => handleDeleteCustom(ci)} title="Remove">×</button>
-                    </div>
-                  }
-                />
-              ))}
-            </tbody>
-          </table>
-
-          {/* Custom primer input */}
-          <div className="mt-3 pt-3 border-t border-gray-200">
-            <div className="text-[10px] font-semibold text-gray-600 mb-1">Custom primer</div>
-            <div className="space-y-1">
-              <div className="flex items-center gap-0.5">
-                <span className="text-[9px] text-gray-400 w-6">Fwd:</span>
-                <input
-                  className="flex-1 text-[10px] font-mono border border-blue-300 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400"
-                  style={{ color: "#3b82f6" }}
-                  placeholder="Overlap"
-                  value={customOverlap}
-                  onChange={(e) => setCustomOverlap(e.target.value.toUpperCase())}
-                />
-                <input
-                  className="w-12 text-[10px] font-mono font-semibold border border-red-300 rounded px-1 py-1 text-center focus:outline-none focus:ring-1 focus:ring-red-400"
-                  style={{ color: "#ef4444" }}
-                  placeholder="Codon"
-                  maxLength={3}
-                  value={customCodon}
-                  onChange={(e) => setCustomCodon(e.target.value.toUpperCase())}
-                />
-                <input
-                  className="flex-1 text-[10px] font-mono border border-gray-300 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-gray-400"
-                  placeholder="Downstream"
-                  value={customDownstream}
-                  onChange={(e) => setCustomDownstream(e.target.value.toUpperCase())}
-                />
-              </div>
-              <div className="flex items-center gap-0.5">
-                <span className="text-[9px] text-gray-400 w-6">Rev:</span>
-                <input
-                  className="flex-1 text-[10px] font-mono border border-orange-300 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-orange-400"
-                  placeholder="Reverse sequence (5' → 3')"
-                  value={customRev}
-                  onChange={(e) => setCustomRev(e.target.value.toUpperCase())}
-                />
-                <button
-                  className="px-3 py-1 bg-purple-500 text-white rounded text-[10px] hover:bg-purple-600 disabled:opacity-40"
-                  disabled={(!(customOverlap + customCodon + customDownstream).trim() && !customRev.trim()) || evaluating}
-                  onClick={handleEvaluate}
-                >
-                  {evaluating ? "..." : "Evaluate"}
-                </button>
-              </div>
-            </div>
-            {seqError && (
-              <div className="text-[10px] text-red-600 bg-red-50 rounded px-2 py-1 mt-1">{seqError}</div>
-            )}
-          </div>
-          </>
-        )}
-
-        {otDetailCand && (
-          <OffTargetDetail
-            result={otDetailCand}
-            onClose={() => setOtDetailCand(null)}
-          />
-        )}
-      </div>
-    </div>
-  );
-}
-
-/** Hairpin / Homodimer detail popover */
-function HairpinDetail({
-  result,
-  onClose,
-}: {
-  result: SdmPrimerResult;
-  onClose: () => void;
-}) {
-  const hairpinCloseRef = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
-    hairpinCloseRef.current?.focus();
-  }, []);
-
-  const rows = [
-    { label: "Hairpin Fwd", tm: result.hairpin_tm_fwd ?? 0, dg: result.hairpin_dg_fwd ?? 0 },
-    { label: "Hairpin Rev", tm: result.hairpin_tm_rev ?? 0, dg: result.hairpin_dg_rev ?? 0 },
-    { label: "Homodimer Fwd", tm: result.homodimer_tm_fwd ?? 0, dg: result.homodimer_dg_fwd ?? 0 },
-    { label: "Homodimer Rev", tm: result.homodimer_tm_rev ?? 0, dg: result.homodimer_dg_rev ?? 0 },
-  ];
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
-      onClick={onClose}
-      onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}
-    >
-      <div aria-hidden="true" className="fixed inset-0" />
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="hairpin-detail-title"
-        className="bg-white rounded-lg shadow-xl p-4 min-w-[280px]"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex justify-between items-center mb-3">
-          <h3 id="hairpin-detail-title" className="text-sm font-semibold">
-            {result.mutation} — Secondary Structure
-          </h3>
-          <button
-            ref={hairpinCloseRef}
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-lg px-2"
-            aria-label="Close"
-          >
-            ×
-          </button>
-        </div>
-
-        <table className="w-full text-xs border-collapse">
-          <thead>
-            <tr className="bg-gray-50 text-gray-600 font-semibold">
-              <th className="px-3 py-1.5 text-left">Type</th>
-              <th className="px-3 py-1.5 text-right">Tm (°C)</th>
-              <th className="px-3 py-1.5 text-right">dG (kcal/mol)</th>
-              <th className="px-3 py-1.5 text-center">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.label} className="border-b border-gray-100">
-                <td className="px-3 py-1.5">{r.label}</td>
-                <td className="px-3 py-1.5 text-right font-mono">
-                  {r.tm > 0 ? r.tm.toFixed(1) : "—"}
-                </td>
-                <td className="px-3 py-1.5 text-right font-mono">
-                  {r.dg !== 0 ? r.dg.toFixed(1) : "—"}
-                </td>
-                <td className="px-3 py-1.5 text-center">
-                  {r.tm <= 0 ? (
-                    <span className="text-gray-400">—</span>
-                  ) : r.tm > 40 ? (
-                    <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-medium bg-yellow-100 text-yellow-800">
-                      warn
-                    </span>
-                  ) : (
-                    <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-700">
-                      OK
-                    </span>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        {result.warnings.length > 0 && (
-          <div className="mt-3 text-[10px] text-gray-400 space-y-0.5">
-            <div className="font-semibold text-gray-600">Warnings:</div>
-            {result.warnings.map((w, i) => (
-              <div key={i} className="text-yellow-700">{w}</div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function OffTargetDetail({
-  result,
-  onClose,
-}: {
-  result: SdmPrimerResult;
-  onClose: () => void;
-}) {
-  const offTargetCloseRef = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
-    offTargetCloseRef.current?.focus();
-  }, []);
-
-  const fwdHits = result.offtarget_fwd ?? [];
-  const revHits = result.offtarget_rev ?? [];
-  const allHits = [
-    ...fwdHits.map((h) => ({ ...h, primer: "Fwd" as const })),
-    ...revHits.map((h) => ({ ...h, primer: "Rev" as const })),
-  ];
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
-      onClick={onClose}
-      onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}
-    >
-      <div aria-hidden="true" className="fixed inset-0" />
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="offtarget-detail-title"
-        className="bg-white rounded-lg shadow-xl p-4 min-w-[360px] max-w-lg max-h-[60vh] overflow-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex justify-between items-center mb-3">
-          <h3 id="offtarget-detail-title" className="text-sm font-semibold">
-            {result.mutation} — Off-Target Sites ({allHits.length})
-          </h3>
-          <button
-            ref={offTargetCloseRef}
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-lg px-2"
-            aria-label="Close"
-          >
-            ×
-          </button>
-        </div>
-
-        {allHits.length === 0 ? (
-          <div className="text-xs text-gray-400 py-4 text-center">No off-target hits</div>
-        ) : (
-          <table className="w-full text-xs border-collapse">
-            <thead>
-              <tr className="bg-gray-50 text-gray-600 font-semibold">
-                <th className="px-2 py-1.5 text-left">Primer</th>
-                <th className="px-2 py-1.5 text-right">Position</th>
-                <th className="px-2 py-1.5 text-center">Strand</th>
-                <th className="px-2 py-1.5 text-right">Match (bp)</th>
-                <th className="px-2 py-1.5 text-right">Tm (°C)</th>
-                <th className="px-2 py-1.5 text-left">Sequence</th>
-              </tr>
-            </thead>
-            <tbody>
-              {allHits.map((h, i) => (
-                <tr key={i} className="border-b border-gray-100">
-                  <td className={`px-2 py-1.5 font-medium ${h.primer === "Fwd" ? "text-blue-600" : "text-orange-600"}`}>
-                    {h.primer}
-                  </td>
-                  <td className="px-2 py-1.5 text-right font-mono">{h.position}</td>
-                  <td className="px-2 py-1.5 text-center">
-                    <span className={`inline-block px-1 py-0.5 rounded text-[9px] ${h.strand === "sense" ? "bg-blue-50 text-blue-700" : "bg-purple-50 text-purple-700"}`}>
-                      {h.strand === "sense" ? "+" : "−"}
-                    </span>
-                  </td>
-                  <td className="px-2 py-1.5 text-right font-mono">{h.match_length}</td>
-                  <td className="px-2 py-1.5 text-right font-mono">{h.tm.toFixed(1)}</td>
-                  <td className="px-2 py-1.5 font-mono text-[10px] break-all max-w-[140px]">{h.match_seq}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/** Failed mutation popover — retry with adjusted parameters or manual primer input */
-function FailedMutationPopover({
-  failed,
-  onClose,
-}: {
-  failed: FailedMutation;
-  onClose: () => void;
-}) {
-  // Retry parameters — init from store
-  const storeTmFwd = useAppStore((s) => s.tmFwdTarget);
-  const storeTmRev = useAppStore((s) => s.tmRevTarget);
-  const storeTmOv = useAppStore((s) => s.tmOverlapTarget);
-  const storeGcMin = useAppStore((s) => s.gcMin);
-  const storeGcMax = useAppStore((s) => s.gcMax);
-  const storeFwdMin = useAppStore((s) => s.fwdLenMin);
-  const storeFwdMax = useAppStore((s) => s.fwdLenMax);
-  const storeRevMin = useAppStore((s) => s.revLenMin);
-  const storeRevMax = useAppStore((s) => s.revLenMax);
-  const storeCodon = useAppStore((s) => s.codonStrategy);
-
-  const [tmFwd, setTmFwd] = useState(String(storeTmFwd));
-  const [tmRev, setTmRev] = useState(String(storeTmRev));
-  const [tmOv, setTmOv] = useState(String(storeTmOv));
-  const [gcMin, setGcMin] = useState(String(storeGcMin));
-  const [gcMax, setGcMax] = useState(String(storeGcMax));
-  const [fwdMin, setFwdMin] = useState(String(storeFwdMin));
-  const [fwdMax, setFwdMax] = useState(String(storeFwdMax));
-  const [revMin, setRevMin] = useState(String(storeRevMin));
-  const [revMax, setRevMax] = useState(String(storeRevMax));
-  const [tolMax, setTolMax] = useState("5.0");
-  const [retrying, setRetrying] = useState(false);
-  const [candidates, setCandidates] = useState<SdmPrimerResult[]>([]);
-  const [retryError, setRetryError] = useState<string | null>(null);
-
-  // Manual input
-  const [customOverlap, setCustomOverlap] = useState("");
-  const [customCodon, setCustomCodon] = useState("");
-  const [customDownstream, setCustomDownstream] = useState("");
-  const [customRev, setCustomRev] = useState("");
-  const [evaluating, setEvaluating] = useState(false);
-  const [seqError, setSeqError] = useState<string | null>(null);
-  const [showManual, setShowManual] = useState(false);
-
-  const failedCloseRef = useRef<HTMLButtonElement>(null);
-  const retryFailedMutation = useAppStore((s) => s.retryFailedMutation);
-  const evaluateCustomPrimer = useAppStore((s) => s.evaluateCustomPrimer);
-  const addDesignResult = useAppStore((s) => s.addDesignResult);
-
-  useEffect(() => {
-    failedCloseRef.current?.focus();
-  }, []);
-
-  async function handleRetry() {
-    setRetrying(true);
-    setRetryError(null);
-    setCandidates([]);
-    const results = await retryFailedMutation(failed.mutation, {
-      tm_fwd_target: parseFloat(tmFwd),
-      tm_rev_target: parseFloat(tmRev),
-      tm_overlap_target: parseFloat(tmOv),
-      gc_min: parseFloat(gcMin),
-      gc_max: parseFloat(gcMax),
-      fwd_len_min: parseInt(fwdMin),
-      fwd_len_max: parseInt(fwdMax),
-      rev_len_min: parseInt(revMin),
-      rev_len_max: parseInt(revMax),
-      codon_strategy: storeCodon,
-    });
-    if (results.length === 0) {
-      setRetryError("No candidates found with these parameters");
-    } else {
-      setCandidates(results);
-    }
-    setRetrying(false);
-  }
-
-  function handleSelect(candidate: SdmPrimerResult) {
-    addDesignResult(failed.mutation, candidate);
-    onClose();
-  }
-
-  async function handleEvaluate() {
-    const fwdSeq = (customOverlap + customCodon + customDownstream).trim();
-    const revSeq = customRev.trim();
-    if (!fwdSeq || !revSeq) return;
-    const fwdErr = validateSeq(fwdSeq);
-    const revErr = validateSeq(revSeq);
-    if (fwdErr || revErr) {
-      setSeqError(`Invalid sequence: ${fwdErr || revErr}`);
-      return;
-    }
-    setSeqError(null);
-    setEvaluating(true);
-    const result = await evaluateCustomPrimer(failed.mutation, fwdSeq, revSeq, customOverlap.trim().length);
-    if (result) {
-      addDesignResult(failed.mutation, result);
-      onClose();
-    }
-    setEvaluating(false);
-  }
-
-  const inp = "w-14 h-5 text-[10px] border border-gray-300 rounded px-1 text-center focus:outline-none focus:ring-1 focus:ring-green-500";
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose} onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}>
-      <div aria-hidden="true" className="fixed inset-0" />
-      <div role="dialog" aria-modal="true" aria-labelledby="failed-mutation-title" className="bg-white rounded-lg shadow-xl p-4 min-w-[440px] max-w-xl max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="flex justify-between items-center mb-3">
-          <h3 id="failed-mutation-title" className="text-sm font-semibold text-red-700">{failed.mutation} — Design Failed</h3>
-          <button ref={failedCloseRef} onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg px-2" aria-label="Close">×</button>
-        </div>
-
-        <div className="bg-red-50 rounded px-3 py-2 mb-3 text-xs text-red-700">
-          <span className="font-semibold">Reason:</span> {failed.reason}
-        </div>
-
-        {/* Retry with parameters */}
-        <div className="text-[9px] uppercase text-gray-400 tracking-wider mb-1">Retry with parameters</div>
-        <div className="bg-gray-50 rounded p-2 space-y-1 mb-2">
-          <div className="flex items-center gap-1 text-[10px]">
-            <span className="w-10 text-gray-500">Tm:</span>
-            <span className="text-gray-400">F</span><input className={inp} value={tmFwd} onChange={(e) => setTmFwd(e.target.value)} />
-            <span className="text-gray-400">R</span><input className={inp} value={tmRev} onChange={(e) => setTmRev(e.target.value)} />
-            <span className="text-gray-400">Ov</span><input className={inp} value={tmOv} onChange={(e) => setTmOv(e.target.value)} />
-            <span className="text-gray-400">°C</span>
-          </div>
-          <div className="flex items-center gap-1 text-[10px]">
-            <span className="w-10 text-gray-500">GC%:</span>
-            <input className={inp} value={gcMin} onChange={(e) => setGcMin(e.target.value)} />
-            <span className="text-gray-400">~</span>
-            <input className={inp} value={gcMax} onChange={(e) => setGcMax(e.target.value)} />
-            <span className="text-gray-400 ml-2">Tol max</span>
-            <input className={inp} value={tolMax} onChange={(e) => setTolMax(e.target.value)} />
-            <span className="text-gray-400">°C</span>
-          </div>
-          <div className="flex items-center gap-1 text-[10px]">
-            <span className="w-10 text-gray-500">Length:</span>
-            <span className="text-gray-400">F</span><input className={inp} value={fwdMin} onChange={(e) => setFwdMin(e.target.value)} />
-            <span className="text-gray-400">~</span><input className={inp} value={fwdMax} onChange={(e) => setFwdMax(e.target.value)} />
-            <span className="text-gray-400 ml-1">R</span><input className={inp} value={revMin} onChange={(e) => setRevMin(e.target.value)} />
-            <span className="text-gray-400">~</span><input className={inp} value={revMax} onChange={(e) => setRevMax(e.target.value)} />
-            <span className="text-gray-400">bp</span>
-          </div>
-          <button
-            className="mt-1 px-4 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 disabled:opacity-40"
-            onClick={handleRetry}
-            disabled={retrying}
-          >
-            {retrying ? "Designing..." : "Retry"}
-          </button>
-        </div>
-
-        {retryError && (
-          <div className="text-[10px] text-amber-700 bg-amber-50 rounded px-2 py-1 mb-2">{retryError}</div>
-        )}
-
-        {/* Candidate list */}
-        {candidates.length > 0 && (
-          <div className="mb-3">
-            <div className="text-[9px] uppercase text-gray-400 tracking-wider mb-1">Candidates ({candidates.length})</div>
-            <div className="max-h-40 overflow-y-auto border border-gray-200 rounded">
-              <table className="w-full text-[10px]">
-                <thead className="bg-gray-50 sticky top-0">
-                  <tr>
-                    <th className="px-1 py-0.5 text-left">Fwd</th>
-                    <th className="px-1 py-0.5 text-left">Rev</th>
-                    <th className="px-1 py-0.5">Tm F</th>
-                    <th className="px-1 py-0.5">Tm R</th>
-                    <th className="px-1 py-0.5">Pen</th>
-                    <th className="px-1 py-0.5"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {candidates.map((c, i) => (
-                    <tr key={i} className="border-t border-gray-100 hover:bg-green-50">
-                      <td className="px-1 py-0.5 font-mono truncate max-w-[120px]" title={c.forward_seq}>{c.forward_seq.slice(0, 15)}...</td>
-                      <td className="px-1 py-0.5 font-mono truncate max-w-[100px]" title={c.reverse_seq}>{c.reverse_seq.slice(0, 12)}...</td>
-                      <td className="px-1 py-0.5 text-center">{c.tm_no_fwd.toFixed(1)}</td>
-                      <td className="px-1 py-0.5 text-center">{c.tm_no_rev.toFixed(1)}</td>
-                      <td className="px-1 py-0.5 text-center">{c.penalty.toFixed(1)}</td>
-                      <td className="px-1 py-0.5">
-                        <button
-                          className="px-2 py-0.5 bg-green-500 text-white rounded text-[9px] hover:bg-green-600"
-                          onClick={() => handleSelect(c)}
-                        >
-                          Select
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* Manual input (collapsible) */}
-        <button
-          className="text-[10px] text-gray-400 hover:text-gray-600 underline mb-1"
-          onClick={() => setShowManual(!showManual)}
-        >
-          {showManual ? "Hide manual input" : "Or enter manually..."}
-        </button>
-        {showManual && (
-          <div className="space-y-1">
-            <div className="flex items-center gap-0.5">
-              <span className="text-[9px] text-gray-400 w-6">Fwd:</span>
-              <input className="flex-1 text-[10px] font-mono border border-blue-300 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400" style={{ color: "#3b82f6" }} placeholder="Overlap" value={customOverlap} onChange={(e) => setCustomOverlap(e.target.value.toUpperCase())} />
-              <input className="w-12 text-[10px] font-mono font-semibold border border-red-300 rounded px-1 py-1 text-center focus:outline-none focus:ring-1 focus:ring-red-400" style={{ color: "#ef4444" }} placeholder="Codon" maxLength={3} value={customCodon} onChange={(e) => setCustomCodon(e.target.value.toUpperCase())} />
-              <input className="flex-1 text-[10px] font-mono border border-gray-300 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-gray-400" placeholder="Downstream" value={customDownstream} onChange={(e) => setCustomDownstream(e.target.value.toUpperCase())} />
-            </div>
-            <div className="flex items-center gap-0.5">
-              <span className="text-[9px] text-gray-400 w-6">Rev:</span>
-              <input className="flex-1 text-[10px] font-mono border border-orange-300 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-orange-400" placeholder="Reverse sequence (5' → 3')" value={customRev} onChange={(e) => setCustomRev(e.target.value.toUpperCase())} />
-              <button className="px-3 py-1 bg-purple-500 text-white rounded text-[10px] hover:bg-purple-600 disabled:opacity-40" disabled={!(customOverlap + customCodon + customDownstream).trim() || !customRev.trim() || evaluating} onClick={handleEvaluate}>
-                {evaluating ? "..." : "Evaluate"}
-              </button>
-            </div>
-            {seqError && <div className="text-[10px] text-red-600 bg-red-50 rounded px-2 py-1 mt-1">{seqError}</div>}
-          </div>
-        )}
-      </div>
-    </div>
   );
 }
 
@@ -867,11 +189,14 @@ function makeColumns(opts: {
         const sw = swapped[row.mutation];
         const fwdEdited = sw === "fwd" || sw === "both";
         return (
-          <span className={fwdEdited ? "bg-amber-100 rounded px-0.5" : ""}>
-          <ColoredFwdSeq
-            seq={info.getValue()}
-            overlapLen={row.overlap_len ?? 0}
-          />
+          <span className={`flex items-center ${fwdEdited ? "bg-amber-100 rounded px-0.5" : ""}`}>
+            <span className="flex-1 min-w-0">
+              <ColoredFwdSeq
+                seq={info.getValue()}
+                overlapLen={row.overlap_len ?? 0}
+              />
+            </span>
+            <CopySeqButton seq={info.getValue()} />
           </span>
         );
       },
@@ -885,9 +210,10 @@ function makeColumns(opts: {
         const sw = swapped[info.row.original.mutation];
         const revEdited = sw === "rev" || sw === "both";
         return (
-        <span className={`font-mono text-[10px] break-all ${revEdited ? "bg-amber-100 rounded px-0.5" : ""}`}>
-          {info.getValue()}
-        </span>
+          <span className={`flex items-center font-mono text-[10px] ${revEdited ? "bg-amber-100 rounded px-0.5" : ""}`}>
+            <span className="flex-1 min-w-0 break-all">{info.getValue()}</span>
+            <CopySeqButton seq={info.getValue()} />
+          </span>
         );
       },
     }),

@@ -86,6 +86,17 @@ Select EVOLVEpro mode and use the Browse button to load an EVOLVEpro output CSV.
 - **Position diversity** (optional): Enable the checkbox to limit mutations per amino acid position. When high-scoring mutations cluster at the same position (e.g., Q10A, Q10L, Q10V), only the top N per position are kept, diversifying the search space
 - **Domain diversity** (optional): Distributes variant selection across different protein structural domains. Enter a UniProt accession ID and click Fetch to auto-retrieve domain boundaries from InterPro/Pfam. Choose between Proportional (quota by domain length) and Equal (same quota per domain) strategies. Domains can also be added or removed manually for offline use
 - **Pareto diversity** (optional): MODIFY-style fitness-diversity co-optimization. Maximizes position spread among selected variants using a greedy maximin algorithm. Can be used alone or combined with domain diversity (applies Pareto selection within each domain). All three diversity options are independent toggles
+
+#### Selection Strategy Decision Guide
+
+| Strategy | When to use |
+|----------|-------------|
+| **Top-N only** | Default. Use when y_pred alone is sufficient for ranking |
+| **Position diversity** | When multiple mutations cluster at the same position (hot spot). Limits per-position count to broaden the search space |
+| **Domain diversity** | When one domain monopolizes the top y_pred ranks. Ensures balanced exploration across functional regions |
+| **Pareto diversity** | When maximizing physical position spread. Prevents clustering via greedy maximin selection |
+| **Position + Domain** | Combines per-position limits with cross-domain balancing. Useful when hot spots exist within a dominant domain |
+| **Domain + Pareto** | Applies Pareto spread within each domain. Maximizes both functional and positional diversity |
 - After loading, the text area can be edited directly
 
 ![Mutation list input](docs/screenshots/03-mutations-entered.png)
@@ -109,8 +120,10 @@ Determines the mutation codon selection strategy.
 
 | Strategy | Description |
 |----------|-------------|
-| **Min. changes** (default) | Prefers the codon with the fewest base changes from the WT codon. Fewer mutation positions in the primer improve synthesis accuracy |
+| **Min. changes** (default) | Prefers the codon with the fewest base changes from the WT codon. Fewer mutation positions in the primer improve synthesis accuracy. Conservative choice when minimizing primer complexity |
 | **Optimal** | Prefers the codon with the highest E. coli K-12 codon usage frequency. Suitable for expression optimization |
+
+> **Limitation**: The built-in codon table covers E. coli K-12 only. When designing primers for other host organisms, the Optimal strategy may select suboptimal codons. In such cases, Min. changes is the safer choice.
 
 Both strategies also try alternative codons as candidates and select the primer pair with the lowest penalty.
 
@@ -291,7 +304,24 @@ Overlap region Tm is too high to maintain a 5°C margin from the non-overlap Tm.
 2. **Use candidate comparison**: Click a Fwd/Rev sequence → select an alternative with a better Tm condition, or enter a custom primer.
 3. **Retry failed mutations**: Click a failed mutation tag → adjust parameters → Retry with relaxed constraints.
 
+### "Sidecar not running"
+
+The Python backend (sidecar) failed to start or lost connection.
+
+1. Close and relaunch the app. The sidecar starts automatically on launch.
+2. If the error persists, check that the sidecar binary exists in the installation directory and is not blocked by antivirus software.
+3. On macOS, confirm the binary is not quarantined: `xattr -d com.apple.quarantine <sidecar-path>`.
+
 ### "CSV file missing required 'mutation' column"
 
 The first row of the CSV must include a column named exactly `mutation` (case-sensitive).
+
+### "No valid primer pair found within Tm tolerance"
+
+No primer candidate satisfied the Tm constraints at the default tolerance level.
+
+1. **Increase Tm tolerance**: Open the failed mutation retry popup and raise the tolerance max value (e.g., from ±2 to ±4).
+2. **Adjust overlap length**: Shorter or longer overlap regions shift the overlap Tm. Try changing the Tm Overlap target in Advanced Options.
+3. **Relax GC% range**: If GC content is also constraining the search, widen the GC% range (e.g., 35-65%).
+4. **Use custom primer input**: Enter a manually designed primer via the candidate comparison popover and click Evaluate.
 

@@ -38,6 +38,7 @@ from kuro.plate_mapper import (
     export_plate_excel,
     generate_plate_map,
 )
+from kuro.evolvepro import load_evolvepro_csv
 
 _poly_registry = PolymeraseRegistry()
 
@@ -558,78 +559,16 @@ def handle_load_evolvepro_csv(params: dict) -> dict:
     if not filepath:
         raise ValueError("filepath is required")
     resolved = _validate_filepath(filepath, allowed_extensions=_ALLOWED_CSV_EXTENSIONS)
-    filepath = str(resolved)
 
-    top_n = int(params.get("top_n", 96))
-    max_per_pos = int(params.get("max_per_position", 0))
-
-    rows: list[tuple[str, float]] = []
-    with open(filepath, encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        columns = reader.fieldnames or []
-        if "variant" not in columns:
-            raise ValueError(
-                "EVOLVEpro CSV must have a 'variant' column. "
-                f"Found columns: {columns}"
-            )
-        has_ypred = "y_pred" in columns
-        for row in reader:
-            variant = row.get("variant", "").strip()
-            if not variant:
-                continue
-            y_pred = float(row["y_pred"]) if has_ypred and row.get("y_pred") else 0.0
-            rows.append((variant, y_pred))
-
-    if has_ypred:
-        rows.sort(key=lambda r: r[1], reverse=True)
-
-    # Position diversity filter: limit mutations per amino acid position
-    pre_filter_count = len(rows)
-    if max_per_pos > 0:
-        _pos_re = re.compile(r"^[A-Z](\d+)[A-Z]$")
-        pos_count: dict[int, int] = {}
-        filtered: list[tuple[str, float]] = []
-        for variant, y in rows:
-            m = _pos_re.match(variant)
-            pos = int(m.group(1)) if m else -1
-            count = pos_count.get(pos, 0)
-            if pos == -1 or count < max_per_pos:
-                filtered.append((variant, y))
-                pos_count[pos] = count + 1
-        rows = filtered
-
-    domain_info = params.get("domains", [])
-    domain_diversity = params.get("domain_diversity", False)
-    domain_strategy = params.get("domain_strategy", "proportional")
-    pareto_diversity = params.get("pareto_diversity", False)
-
-    domain_stats = None
-    pareto_replaced = 0
-
-    if domain_diversity and domain_info and pareto_diversity:
-        # Domain + Pareto: domain quota with Pareto selection within each domain
-        selected, domain_stats = _domain_aware_select(
-            rows, domain_info, top_n, domain_strategy, use_pareto=True,
-        )
-    elif domain_diversity and domain_info:
-        # Domain only
-        selected, domain_stats = _domain_aware_select(rows, domain_info, top_n, domain_strategy)
-    elif pareto_diversity:
-        # Pareto only
-        selected, pareto_replaced = _pareto_diversity_select(rows, top_n)
-    else:
-        # Pure Top-N (default)
-        selected = rows[:top_n]
-
-    return {
-        "variants": [v for v, _ in selected],
-        "y_preds": [round(y, 4) for _, y in selected],
-        "total_count": pre_filter_count,
-        "selected_count": len(selected),
-        "filtered_count": pre_filter_count - len(rows),
-        "domain_stats": domain_stats,
-        "pareto_replaced": pareto_replaced if pareto_diversity else None,
-    }
+    return load_evolvepro_csv(
+        filepath=str(resolved),
+        top_n=int(params.get("top_n", 96)),
+        max_per_position=int(params.get("max_per_position", 0)),
+        domains=params.get("domains", []),
+        domain_diversity=params.get("domain_diversity", False),
+        domain_strategy=params.get("domain_strategy", "proportional"),
+        pareto_diversity=params.get("pareto_diversity", False),
+    )
 
 
 def handle_get_alternatives(params: dict) -> dict:
@@ -892,194 +831,6 @@ def handle_fetch_domains(params: dict) -> dict:
         "source": "error",
         "error_msg": f"No domain data found for {accession}",
     }
-
-
-_POS_RE = re.compile(r"[A-Z](\d+)[A-Z]")
-
-
-def _domain_aware_select(
-    rows: list[tuple[str, float]],
-    domains: list[dict],
-    top_n: int,
-    strategy: str = "proportional",
-    use_pareto: bool = False,
-) -> tuple[list[tuple[str, float]], dict]:
-    """Domain-based quota Top-N selection.
-
-    PI instruction: structure-aware domain-diversified selection.
-    """
-    if not domains or top_n <= 0:
-        return rows[:top_n], {}
-
-    # Map each variant to a domain (first match wins on overlap)
-    domain_bins: dict[str, list[tuple[str, float]]] = {d["name"]: [] for d in domains}
-    domain_bins["linker"] = []
-
-    for variant, y in rows:
-        m = _POS_RE.search(variant)
-        if not m:
-            domain_bins["linker"].append((variant, y))
-            continue
-        pos = int(m.group(1))
-        assigned = False
-        for d in domains:
-            if d["start"] <= pos <= d["end"]:
-                domain_bins[d["name"]].append((variant, y))
-                assigned = True
-                break
-        if not assigned:
-            domain_bins["linker"].append((variant, y))
-
-    # Calculate quotas (linker gets no dedicated quota)
-    domain_names = [d["name"] for d in domains]
-    if strategy == "equal":
-        n_domains = len(domain_names)
-        base_quota = top_n // n_domains if n_domains else 0
-        remainder = top_n % n_domains if n_domains else 0
-        quotas = {}
-        for i, name in enumerate(domain_names):
-            quotas[name] = base_quota + (1 if i < remainder else 0)
-    else:  # proportional
-        total_length = sum(d["end"] - d["start"] + 1 for d in domains)
-        if total_length == 0:
-            return rows[:top_n], {}
-        raw_quotas = {
-            d["name"]: (d["end"] - d["start"] + 1) / total_length * top_n
-            for d in domains
-        }
-        quotas = {name: int(q) for name, q in raw_quotas.items()}
-        # Distribute rounding remainders by largest fractional part
-        allocated = sum(quotas.values())
-        leftover = top_n - allocated
-        if leftover > 0:
-            frac = sorted(
-                raw_quotas.items(),
-                key=lambda kv: kv[1] - int(kv[1]),
-                reverse=True,
-            )
-            for name, _ in frac[:leftover]:
-                quotas[name] += 1
-
-    # Select within each domain by y_pred order (rows already sorted)
-    selected: list[tuple[str, float]] = []
-    selected_set: set[str] = set()
-    stats: dict[str, dict] = {}
-    remaining_capacity = 0
-
-    for name in domain_names:
-        quota = quotas[name]
-        candidates = domain_bins.get(name, [])
-        if use_pareto and quota > 1 and len(candidates) > 1:
-            picked, _ = _pareto_diversity_select(candidates, quota)
-        else:
-            picked = candidates[:quota]
-        for v, y in picked:
-            if v not in selected_set:
-                selected.append((v, y))
-                selected_set.add(v)
-        actual = len(picked)
-        stats[name] = {"quota": quota, "selected": actual}
-        if actual < quota:
-            remaining_capacity += quota - actual
-
-    # Redistribute remaining capacity from under-filled domains
-    if remaining_capacity > 0:
-        # Collect unpicked variants from all domains (not linker)
-        unpicked: list[tuple[str, float]] = []
-        for name in domain_names:
-            for v, y in domain_bins.get(name, []):
-                if v not in selected_set:
-                    unpicked.append((v, y))
-        # Also consider linker variants
-        for v, y in domain_bins["linker"]:
-            if v not in selected_set:
-                unpicked.append((v, y))
-        unpicked.sort(key=lambda r: r[1], reverse=True)
-        for v, y in unpicked[:remaining_capacity]:
-            if v not in selected_set:
-                selected.append((v, y))
-                selected_set.add(v)
-
-    # Fill any remaining slots if total selected < top_n
-    if len(selected) < top_n:
-        for v, y in domain_bins["linker"]:
-            if len(selected) >= top_n:
-                break
-            if v not in selected_set:
-                selected.append((v, y))
-                selected_set.add(v)
-
-    return selected[:top_n], stats
-
-
-def _pareto_diversity_select(
-    rows: list[tuple[str, float]],
-    top_n: int,
-    pool_multiplier: float = 2.0,
-) -> tuple[list[tuple[str, float]], int]:
-    """MODIFY-style Pareto fitness-diversity selection (greedy maximin).
-
-    Selects variants that maximize minimum position distance to already-selected set,
-    breaking ties by y_pred. This prevents clustering of mutations at nearby positions.
-
-    Returns: (selected_rows, replaced_count vs pure Top-N)
-    """
-    if top_n <= 0 or not rows:
-        return rows[:top_n], 0
-
-    pool_size = min(len(rows), max(top_n, int(top_n * pool_multiplier)))
-    pool = rows[:pool_size]
-
-    # Extract positions for distance calculation
-    positions: list[int] = []
-    for variant, _ in pool:
-        m = _POS_RE.search(variant)
-        positions.append(int(m.group(1)) if m else -1)
-
-    # Find max position for normalization
-    valid_pos = [p for p in positions if p >= 0]
-    max_pos = max(valid_pos) if valid_pos else 1
-
-    selected_indices: list[int] = [0]  # seed: best fitness
-    selected_set = {0}
-
-    for _ in range(min(top_n, len(pool)) - 1):
-        best_idx = -1
-        best_min_dist = -1.0
-        best_y = -float("inf")
-
-        for i in range(len(pool)):
-            if i in selected_set:
-                continue
-            pos_i = positions[i]
-            if pos_i < 0:
-                min_dist = 1.0  # unknown position = treat as maximally distant
-            else:
-                min_dist = min(
-                    abs(pos_i - positions[j]) / max_pos if positions[j] >= 0 else 1.0
-                    for j in selected_indices
-                )
-
-            y_i = pool[i][1]
-            if (min_dist > best_min_dist) or (
-                min_dist == best_min_dist and y_i > best_y
-            ):
-                best_idx = i
-                best_min_dist = min_dist
-                best_y = y_i
-
-        if best_idx < 0:
-            break
-        selected_indices.append(best_idx)
-        selected_set.add(best_idx)
-
-    selected = [pool[i] for i in selected_indices]
-
-    # Count how many differ from pure Top-N
-    top_n_set = {v for v, _ in pool[:top_n]}
-    replaced = sum(1 for v, _ in selected if v not in top_n_set)
-
-    return selected, replaced
 
 
 # --- Dispatcher ---

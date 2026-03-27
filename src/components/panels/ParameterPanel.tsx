@@ -62,7 +62,7 @@ export function ParameterPanel() {
         Parameters
       </h3>
 
-      <label className="flex items-center gap-2 text-xs">
+      <label className="flex items-center gap-2 text-xs" title="CDS region to design primers for. Auto-selected by longest coding sequence.">
         <span className="w-24 text-gray-600">Target Gene:</span>
         {seqInfo && seqInfo.genes.length > 0 ? (
           <select
@@ -85,7 +85,7 @@ export function ParameterPanel() {
         )}
       </label>
 
-      <label className="flex items-center gap-2 text-xs">
+      <label className="flex items-center gap-2 text-xs" title="Min. changes = fewest nucleotide changes from WT codon. Optimal = highest-frequency E. coli K-12 codon.">
         <span className="w-24 text-gray-600">Codon:</span>
         <select
           className="flex-1 h-7 text-xs border border-gray-300 rounded px-2 focus:outline-none focus:ring-1 focus:ring-green-500"
@@ -97,7 +97,7 @@ export function ParameterPanel() {
         </select>
       </label>
 
-      <label className="flex items-center gap-2 text-xs">
+      <label className="flex items-center gap-2 text-xs" title="Target number of successful primer designs.">
         <span className="w-24 text-gray-600">Mutations:</span>
         <input
           type="number"
@@ -122,26 +122,26 @@ export function ParameterPanel() {
       {showAdvanced && (
         <div className="pl-2 border-l-2 border-gray-200 space-y-0.5">
           {/* Tm */}
-          <div className="text-[9px] uppercase text-gray-400 tracking-wider pt-0.5">Tm</div>
-          <div className="flex items-center gap-2 text-xs">
+          <div className="text-[9px] uppercase text-gray-400 tracking-wider pt-0.5" title="Melting temperature targets. SantaLucia 1998 parameters.">Tm</div>
+          <div className="flex items-center gap-2 text-xs" title="Melting temperature targets. SantaLucia 1998 parameters.">
             <span className="w-20 text-gray-500">Fwd:</span>
             <input type="number" className={numInput} {...tmFwdInput} />
             <span className="text-gray-400">°C</span>
           </div>
-          <div className="flex items-center gap-2 text-xs">
+          <div className="flex items-center gap-2 text-xs" title="Melting temperature targets. SantaLucia 1998 parameters.">
             <span className="w-20 text-gray-500">Rev:</span>
             <input type="number" className={numInput} {...tmRevInput} />
             <span className="text-gray-400">°C</span>
           </div>
-          <div className="flex items-center gap-2 text-xs">
+          <div className="flex items-center gap-2 text-xs" title="Melting temperature targets. SantaLucia 1998 parameters.">
             <span className="w-20 text-gray-500">Overlap:</span>
             <input type="number" className={numInput} {...tmOvInput} />
             <span className="text-gray-400">°C</span>
           </div>
 
           {/* GC */}
-          <div className="text-[9px] uppercase text-gray-400 tracking-wider pt-1.5">GC%</div>
-          <div className="flex items-center gap-2 text-xs">
+          <div className="text-[9px] uppercase text-gray-400 tracking-wider pt-1.5" title="Recommended range: 40-60%. Primers outside this range receive a penalty.">GC%</div>
+          <div className="flex items-center gap-2 text-xs" title="Recommended range: 40-60%. Primers outside this range receive a penalty.">
             <span className="w-20 text-gray-500">Range:</span>
             <input type="number"
               className={`${gcInputBase} ${gcInvalid ? "border-red-400 focus:ring-red-400" : "border-gray-300 focus:ring-green-500"}`}
@@ -157,8 +157,8 @@ export function ParameterPanel() {
           )}
 
           {/* Primer Length */}
-          <div className="text-[9px] uppercase text-gray-400 tracking-wider pt-1.5">Primer Length</div>
-          <label className="flex items-center gap-1 text-xs cursor-pointer">
+          <div className="text-[9px] uppercase text-gray-400 tracking-wider pt-1.5" title="Optional min/max primer length constraint.">Primer Length</div>
+          <label className="flex items-center gap-1 text-xs cursor-pointer" title="Optional min/max primer length constraint.">
             <input
               type="checkbox"
               className="h-3 w-3 accent-green-600"
@@ -192,7 +192,7 @@ export function ParameterPanel() {
 
           {/* Design Behavior */}
           <div className="text-[9px] uppercase text-gray-400 tracking-wider pt-1.5">Design</div>
-          <label className="flex items-center gap-1 text-xs cursor-pointer">
+          <label className="flex items-center gap-1 text-xs cursor-pointer" title="When ON, automatically fills the requested count from extra candidates when some mutations fail.">
             <input
               type="checkbox"
               className="h-3 w-3 accent-green-600"

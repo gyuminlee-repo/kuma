@@ -86,6 +86,17 @@ EVOLVEpro 모드를 선택하고 Browse 버튼으로 EVOLVEpro 출력 CSV를 로
 - **위치 다양성(Position diversity)** (선택): 체크박스를 활성화하면 아미노산 위치당 최대 N개로 제한. 같은 위치에 고점수 변이가 집중될 때 (예: Q10A, Q10L, Q10V) 위치당 대표만 유지하여 탐색 범위를 다양화
 - **도메인 다양성(Domain diversity)** (선택): 단백질 구조 도메인 간 분산 선택. UniProt accession 입력 후 Fetch 클릭 시 InterPro/Pfam에서 도메인 경계를 자동 조회. Proportional(도메인 길이 비례 배분) 또는 Equal(균등 배분) 전략 선택 가능. 오프라인 환경에서는 수동 입력으로 도메인 정의 가능
 - **Pareto 다양성** (선택): MODIFY 방식의 fitness-diversity 동시 최적화. Greedy maximin 알고리즘으로 선택된 variant 간 위치 분산을 최대화. 단독 또는 도메인 다양성과 결합 사용 가능. 세 가지 다양성 옵션은 독립 토글
+
+#### 선택 전략 의사결정 가이드
+
+| 전략 | 사용 시점 |
+|------|-----------|
+| **Top-N만** | 기본. y_pred 순위만으로 충분할 때 |
+| **위치 다양성** | 같은 위치에 변이가 몰릴 때 (hot spot). 위치당 개수를 제한하여 탐색 범위를 넓힌다 |
+| **도메인 다양성** | 한 도메인이 y_pred 상위를 독점할 때. 기능 영역별 균형 탐색을 보장한다 |
+| **Pareto 다양성** | 물리적 위치 분산을 최대화할 때. Greedy maximin으로 클러스터링을 방지한다 |
+| **위치 + 도메인** | 위치 제한과 도메인 간 균형을 동시 적용. 특정 도메인 내 hot spot이 존재할 때 유용 |
+| **도메인 + Pareto** | 각 도메인 내에서 Pareto 분산을 적용. 기능적 + 위치적 다양성을 동시에 최대화한다 |
 - 로드 후 텍스트 영역에서 직접 편집 가능
 
 ![변이 목록 입력](docs/screenshots/03-mutations-entered.png)
@@ -109,8 +120,10 @@ EVOLVEpro 모드를 선택하고 Browse 버튼으로 EVOLVEpro 출력 CSV를 로
 
 | 전략 | 설명 |
 |------|------|
-| **Min. changes** (기본) | WT 코돈 대비 최소 염기 변이 수를 가진 코돈을 우선 선택. 프라이머 내 변이 위치가 적어 합성 정확도에 유리 |
+| **Min. changes** (기본) | WT 코돈 대비 최소 염기 변이 수를 가진 코돈을 우선 선택. 프라이머 내 변이 위치가 적어 합성 정확도에 유리. 프라이머 복잡도를 최소화하는 보수적 선택 |
 | **Optimal** | E. coli K-12 codon usage frequency가 가장 높은 코돈을 우선 선택. 발현 최적화에 유리 |
+
+> **제한 사항**: 내장 코돈 테이블은 E. coli K-12 전용이다. 다른 숙주 생물에서 프라이머를 설계할 경우 Optimal 전략이 부정확한 코돈을 선택할 수 있다. 이 경우 Min. changes가 더 안전하다.
 
 두 전략 모두 대안 코돈도 후보로 시도하여 penalty가 낮은 프라이머 쌍을 선택한다.
 
@@ -291,7 +304,24 @@ Overlap 영역 Tm이 너무 높아 non-overlap Tm과 5도 차이를 확보하지
 2. **후보 비교 활용**: Fwd/Rev 서열 클릭 → 후보 팝오버에서 Tm 조건이 더 나은 대안을 선택하거나 커스텀 프라이머 입력.
 3. **실패 mutation 재시도**: 실패한 mutation 태그 클릭 → 파라미터 조절 → 완화된 조건으로 Retry.
 
+### "Sidecar not running"
+
+Python 백엔드(sidecar)가 시작되지 않았거나 연결이 끊어진 경우.
+
+1. 앱을 닫고 다시 실행한다. Sidecar는 앱 시작 시 자동으로 구동된다.
+2. 에러가 반복되면 설치 디렉토리에 sidecar 바이너리가 존재하는지, 백신 소프트웨어가 차단하고 있지 않은지 확인한다.
+3. macOS의 경우 바이너리가 격리(quarantine)되지 않았는지 확인: `xattr -d com.apple.quarantine <sidecar-path>`.
+
 ### "CSV file missing required 'mutation' column"
 
 CSV 첫 행에 `mutation`이라는 열 이름이 정확히 포함되어야 한다 (대소문자 구분).
+
+### "No valid primer pair found within Tm tolerance"
+
+기본 tolerance 범위에서 Tm 조건을 만족하는 프라이머 후보가 없는 경우.
+
+1. **Tm tolerance 확대**: 실패한 mutation 재시도 팝업에서 tolerance 최대값을 올린다 (예: ±2 → ±4).
+2. **Overlap 길이 조정**: Overlap 영역 길이를 변경하면 overlap Tm이 달라진다. Advanced Options에서 Tm Overlap 타겟을 조정한다.
+3. **GC% 범위 완화**: GC 함량도 제약이 되고 있다면 GC% 범위를 넓힌다 (예: 35-65%).
+4. **커스텀 프라이머 입력**: 후보 비교 팝오버에서 직접 설계한 프라이머를 입력하고 Evaluate를 클릭한다.
 
