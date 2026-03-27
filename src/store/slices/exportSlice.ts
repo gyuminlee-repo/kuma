@@ -221,7 +221,7 @@ export const createExportSlice: StateCreator<ExportSlice, [], [], ExportSlice> =
       mutationText: "",
       evolveproCsvPath: "",
       yPredMap: {},
-      selectionStrategy: "none",
+      pipelineMode: false,
       positionDiversityEnabled: false,
       maxPerPosition: 1,
       domainDiversityEnabled: false,

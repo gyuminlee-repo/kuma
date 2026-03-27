@@ -1,6 +1,6 @@
 [package]
 name = "kuro"
-version = "0.9.33"
+version = "0.9.34"
 description = "KURO - KOD Upstream Region Oligodesigner"
 edition = "2021"
 
@@ -15,8 +15,10 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = [] }
 tauri-plugin-shell = "2"
 tauri-plugin-dialog = "2"
-tauri-plugin-updater = "2"
 serde = { version = "1", features = ["derive"] }
+
+[target."cfg(not(any(target_os = \"android\", target_os = \"ios\")))".dependencies]
+tauri-plugin-updater = "2"
 serde_json = "1"
 
 [features]
