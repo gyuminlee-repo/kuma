@@ -252,6 +252,7 @@ def handle_load_fasta(params: dict) -> dict:
 
     header, sequence, genes = load_sequence(resolved)
     _state.template = (str(resolved), sequence)
+    _state.esm_embedding = None  # clear stale embedding from previous template
 
     return {
         "header": header,
@@ -985,6 +986,9 @@ def handle_search_uniprot(params: dict) -> dict:
     if translation and not auto_selected:
         try:
             blast_data = _urllib_parse.urlencode({
+                # TODO(security): Replace with user-configured email — hardcoded
+                # placeholder violates EBI Terms of Use. Read from app config or
+                # prompt user on first BLAST run.
                 "email": "kuro-app@example.com",
                 "program": "blastp",
                 "database": "uniprotkb_swissprot",
@@ -1000,8 +1004,14 @@ def handle_search_uniprot(params: dict) -> dict:
                 job_id = resp.read().decode().strip()
 
             # Poll for completion (max ~60s)
+            status_text = ""
             for _ in range(20):
-                _time.sleep(3)
+                # Cancel-aware sleep: check every 0.5s instead of blocking 3s
+                for _ in range(6):
+                    if _cancel_event.is_set():
+                        _cancel_event.clear()
+                        return {"candidates": candidates, "error": "Cancelled"}
+                    _time.sleep(0.5)
                 status_text, _ = _fetch_text(
                     f"https://www.ebi.ac.uk/Tools/services/rest/ncbiblast/status/{job_id}"
                 )

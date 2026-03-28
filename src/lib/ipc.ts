@@ -136,6 +136,7 @@ export function setProgressHandler(
 export async function sendRequest<T>(
   method: string,
   params: Record<string, unknown> = {},
+  timeoutMs = 60_000,
 ): Promise<T> {
   if (!child) {
     await spawnSidecar();
@@ -150,11 +151,24 @@ export async function sendRequest<T>(
   });
 
   return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      pending.delete(id);
+      reject(new Error(`RPC timeout: ${method} after ${timeoutMs}ms`));
+    }, timeoutMs);
+
     pending.set(id, {
-      resolve: resolve as (v: unknown) => void,
-      reject,
+      resolve: (v) => {
+        clearTimeout(timer);
+        (resolve as (v: unknown) => void)(v);
+      },
+      reject: (e) => {
+        clearTimeout(timer);
+        reject(e);
+      },
     });
+
     child!.write(request + "\n").catch((err: Error) => {
+      clearTimeout(timer);
       pending.delete(id);
       reject(err);
     });

@@ -1,6 +1,8 @@
 import type { StateCreator } from "zustand";
 import { resolveResource } from "@tauri-apps/api/path";
 import { sendRequest } from "../../lib/ipc";
+import { formatError } from "../../lib/utils";
+import type { AppState } from "../types";
 import type {
   SequenceInfo,
   ParsedMutation,
@@ -13,10 +15,6 @@ import type {
   SearchUniprotResult,
   EsmEmbeddingResult,
 } from "../../types/models";
-
-function formatError(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
-}
 
 export interface InputSlice {
   // State
@@ -73,7 +71,21 @@ export interface InputSlice {
 
 let csvLoadGeneration = 0;
 
-export const createInputSlice: StateCreator<InputSlice, [], [], InputSlice> = (set, get) => ({
+// Debounce timer for pipeline option changes to prevent RPC request bursts
+let reloadTimer: ReturnType<typeof setTimeout> | null = null;
+
+function debouncedReload(get: () => AppState) {
+  if (reloadTimer) clearTimeout(reloadTimer);
+  reloadTimer = setTimeout(() => {
+    reloadTimer = null;
+    const state = get();
+    if (state.evolveproCsvPath) {
+      state.loadEvolveproCsv(state.evolveproCsvPath);
+    }
+  }, 300);
+}
+
+export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set, get) => ({
   fastaPath: "",
   seqInfo: null,
   mutationInputMode: "text",
@@ -104,7 +116,7 @@ export const createInputSlice: StateCreator<InputSlice, [], [], InputSlice> = (s
 
   loadSequence: async (filepath: string) => {
     try {
-      set({ statusMessage: "Loading sequence file..." } as Partial<InputSlice>);
+      set({ statusMessage: "Loading sequence file..." });
       const info = await sendRequest<SequenceInfo>("load_fasta", { filepath });
 
       let bestGene = info.genes.length > 0 ? info.genes[0] : null;
@@ -123,7 +135,7 @@ export const createInputSlice: StateCreator<InputSlice, [], [], InputSlice> = (s
         selectedGene: selectedKey,
         uniprotCandidates: [],
         statusMessage: `Loaded: ${info.header} (${info.seq_length} bp) | ${info.genes.length} gene(s) | Target: ${bestGene?.gene ?? "none"}`,
-      } as Partial<InputSlice>);
+      });
 
       // Auto-trigger UniProt search if gene has db_xref or translation
       if (bestGene) {
@@ -135,7 +147,7 @@ export const createInputSlice: StateCreator<InputSlice, [], [], InputSlice> = (s
         }
       }
     } catch (err) {
-      set({ statusMessage: `Sequence file load failed: ${formatError(err)}` } as Partial<InputSlice>);
+      set({ statusMessage: `Sequence file load failed: ${formatError(err)}` });
     }
   },
 
@@ -155,33 +167,28 @@ export const createInputSlice: StateCreator<InputSlice, [], [], InputSlice> = (s
     set({ pipelineMode: enabled });
     if (!enabled) {
       // Pipeline off -> Top-N only: reload with no diversity options
-      const { evolveproCsvPath } = get();
-      if (evolveproCsvPath) get().loadEvolveproCsv(evolveproCsvPath);
+      debouncedReload(get);
     }
   },
 
   setPositionDiversityEnabled: (enabled: boolean) => {
     set({ positionDiversityEnabled: enabled });
-    const { evolveproCsvPath } = get();
-    if (evolveproCsvPath) get().loadEvolveproCsv(evolveproCsvPath);
+    debouncedReload(get);
   },
 
   setMaxPerPosition: (n: number) => {
     set({ maxPerPosition: Math.max(1, n) });
-    const { evolveproCsvPath } = get();
-    if (evolveproCsvPath) get().loadEvolveproCsv(evolveproCsvPath);
+    debouncedReload(get);
   },
 
   setDomainDiversityEnabled: (enabled: boolean) => {
     set({ domainDiversityEnabled: enabled });
-    const { evolveproCsvPath } = get();
-    if (evolveproCsvPath) get().loadEvolveproCsv(evolveproCsvPath);
+    debouncedReload(get);
   },
 
   setDomainStrategy: (strategy: "proportional" | "equal") => {
     set({ domainStrategy: strategy });
-    const { evolveproCsvPath } = get();
-    if (evolveproCsvPath) get().loadEvolveproCsv(evolveproCsvPath);
+    debouncedReload(get);
   },
 
   fetchDomains: async (accession: string, clearCandidates = false) => {
@@ -189,7 +196,7 @@ export const createInputSlice: StateCreator<InputSlice, [], [], InputSlice> = (s
       domainLoading: true,
       ...(clearCandidates && { uniprotCandidates: [] }),
       statusMessage: "Fetching domain info...",
-    } as Partial<InputSlice>);
+    });
     try {
       const result = await sendRequest<FetchDomainsResult>("fetch_domains", { accession });
       set({
@@ -200,7 +207,7 @@ export const createInputSlice: StateCreator<InputSlice, [], [], InputSlice> = (s
         statusMessage: result.domains.length > 0
           ? `Domains: ${result.domains.length} found (${result.source})`
           : result.error_msg ? `Domain fetch failed: ${result.error_msg}` : "No domains found",
-      } as Partial<InputSlice>);
+      });
       const { evolveproCsvPath, esmEmbeddingLoaded } = get();
       if (evolveproCsvPath && result.domains.length > 0) get().loadEvolveproCsv(evolveproCsvPath);
       // Also fetch ESM embedding for manual accession entry
@@ -209,7 +216,7 @@ export const createInputSlice: StateCreator<InputSlice, [], [], InputSlice> = (s
         get().fetchEsmEmbedding(accession, gene?.translation ?? "");
       }
     } catch (err) {
-      set({ domainLoading: false, statusMessage: `Domain fetch failed: ${formatError(err)}` } as Partial<InputSlice>);
+      set({ domainLoading: false, statusMessage: `Domain fetch failed: ${formatError(err)}` });
     }
   },
 
@@ -224,24 +231,21 @@ export const createInputSlice: StateCreator<InputSlice, [], [], InputSlice> = (s
     if (next.has(domainKey)) next.delete(domainKey);
     else next.add(domainKey);
     set({ disabledDomains: next });
-    const { evolveproCsvPath, domainDiversityEnabled } = get();
-    if (evolveproCsvPath && domainDiversityEnabled) get().loadEvolveproCsv(evolveproCsvPath);
+    debouncedReload(get);
   },
 
   setParetoDiversityEnabled: (enabled: boolean) => {
     set({ paretoDiversityEnabled: enabled });
-    const { evolveproCsvPath } = get();
-    if (evolveproCsvPath) get().loadEvolveproCsv(evolveproCsvPath);
+    debouncedReload(get);
   },
 
   setEntropyWeightEnabled: (enabled: boolean) => {
     set({ entropyWeightEnabled: enabled });
-    const { evolveproCsvPath } = get();
-    if (evolveproCsvPath) get().loadEvolveproCsv(evolveproCsvPath);
+    debouncedReload(get);
   },
 
   fetchEsmEmbedding: async (accession: string, sequence?: string) => {
-    set({ esmEmbeddingLoading: true, statusMessage: "ESM-2 embedding loading..." } as Partial<InputSlice>);
+    set({ esmEmbeddingLoading: true, statusMessage: "ESM-2 embedding loading..." });
     try {
       const result = await sendRequest<EsmEmbeddingResult>("fetch_esm_embedding", { accession, sequence: sequence ?? "" });
       if (result.success) {
@@ -249,7 +253,7 @@ export const createInputSlice: StateCreator<InputSlice, [], [], InputSlice> = (s
           esmEmbeddingLoaded: true,
           esmEmbeddingLoading: false,
           statusMessage: `ESM-2 embedding loaded: ${result.length} residues, ${result.dimension}D`,
-        } as Partial<InputSlice>);
+        });
         // Re-trigger CSV selection with ESM embedding now available
         const { evolveproCsvPath } = get();
         if (evolveproCsvPath) get().loadEvolveproCsv(evolveproCsvPath);
@@ -258,24 +262,23 @@ export const createInputSlice: StateCreator<InputSlice, [], [], InputSlice> = (s
           esmEmbeddingLoaded: false,
           esmEmbeddingLoading: false,
           statusMessage: `ESM-2 unavailable (using position distance) — ${result.error ?? "API offline"}`,
-        } as Partial<InputSlice>);
+        });
       }
     } catch (err) {
       set({
         esmEmbeddingLoaded: false,
         esmEmbeddingLoading: false,
         statusMessage: `ESM-2 fetch failed: ${formatError(err)}`,
-      } as Partial<InputSlice>);
+      });
     }
   },
 
   loadEvolveproCsv: async (filepath: string) => {
     const gen = ++csvLoadGeneration;
     try {
-      const { pipelineMode, positionDiversityEnabled, maxPerPosition, domainDiversityEnabled, domains, disabledDomains, domainStrategy, paretoDiversityEnabled, entropyWeightEnabled } = get();
-      const maxPrimers = (get() as unknown as { maxPrimers: number }).maxPrimers;
+      const { pipelineMode, positionDiversityEnabled, maxPerPosition, domainDiversityEnabled, domains, disabledDomains, domainStrategy, paretoDiversityEnabled, entropyWeightEnabled, maxPrimers } = get();
       const activeDomains = domains.filter((d) => !disabledDomains.has(`${d.name}-${d.start}`));
-      set({ statusMessage: "Loading EVOLVEpro CSV...", evolveproCsvPath: filepath } as Partial<InputSlice>);
+      set({ statusMessage: "Loading EVOLVEpro CSV...", evolveproCsvPath: filepath });
       const result = await sendRequest<EvolveproLoadResult>(
         "load_evolvepro_csv",
         {
@@ -310,8 +313,7 @@ export const createInputSlice: StateCreator<InputSlice, [], [], InputSlice> = (s
         : "";
       // Clamp maxPrimers to CSV variant count
       if (result.total_count > 0 && maxPrimers > result.total_count) {
-        const setMaxPrimers = (get() as unknown as { setMaxPrimers: (n: number) => void }).setMaxPrimers;
-        setMaxPrimers(result.total_count);
+        get().setMaxPrimers(result.total_count);
       }
       set({
         mutationText: variantText,
@@ -320,10 +322,10 @@ export const createInputSlice: StateCreator<InputSlice, [], [], InputSlice> = (s
         domainStats: result.domain_stats ?? {},
         evolveproTotalCount: result.total_count,
         statusMessage: `EVOLVEpro: ${result.selected_count}/${result.total_count} variants${filteredMsg}${domainMsg}${paretoMsg}`,
-      } as Partial<InputSlice>);
+      });
     } catch (err) {
       if (gen === csvLoadGeneration) {
-        set({ statusMessage: `EVOLVEpro CSV load failed: ${formatError(err)}` } as Partial<InputSlice>);
+        set({ statusMessage: `EVOLVEpro CSV load failed: ${formatError(err)}` });
       }
     }
   },
@@ -337,12 +339,12 @@ export const createInputSlice: StateCreator<InputSlice, [], [], InputSlice> = (s
       );
       set({ parsedMutations: result.parsed, parseErrors: result.errors });
     } catch (err) {
-      set({ statusMessage: `Mutation parse failed: ${formatError(err)}` } as Partial<InputSlice>);
+      set({ statusMessage: `Mutation parse failed: ${formatError(err)}` });
     }
   },
 
   searchUniprot: async (geneName: string, organism: string, translation: string, knownAccession: string) => {
-    set({ uniprotSearching: true, statusMessage: "UniProt BLAST search in progress..." } as Partial<InputSlice>);
+    set({ uniprotSearching: true, statusMessage: "UniProt BLAST search in progress..." });
     try {
       const result = await sendRequest<SearchUniprotResult>("search_uniprot", {
         gene_name: geneName,
@@ -365,28 +367,28 @@ export const createInputSlice: StateCreator<InputSlice, [], [], InputSlice> = (s
         uniprotSearching: false,
         ...(acc && { uniprotAccession: acc }),
         statusMessage: statusMsg,
-      } as Partial<InputSlice>);
+      });
       // Auto-trigger ESM-2 embedding with protein sequence for local inference
       if (acc) {
         get().fetchEsmEmbedding(acc, translation);
       }
     } catch (err) {
-      set({ uniprotSearching: false, statusMessage: `UniProt search failed: ${formatError(err)}` } as Partial<InputSlice>);
+      set({ uniprotSearching: false, statusMessage: `UniProt search failed: ${formatError(err)}` });
     }
   },
 
   loadSampleData: async () => {
     try {
-      set({ statusMessage: "Loading sample data..." } as Partial<InputSlice>);
+      set({ statusMessage: "Loading sample data..." });
       const [gbPath, csvPath] = await Promise.all([
         resolveResource("samples/sample_plasmid.gb"),
         resolveResource("samples/sample_evolvepro.csv"),
       ]);
       await get().loadSequence(gbPath);
-      set({ mutationInputMode: "evolvepro" } as Partial<InputSlice>);
+      set({ mutationInputMode: "evolvepro" });
       await get().loadEvolveproCsv(csvPath);
     } catch (err) {
-      set({ statusMessage: `Sample load failed: ${formatError(err)}` } as Partial<InputSlice>);
+      set({ statusMessage: `Sample load failed: ${formatError(err)}` });
     }
   },
 });

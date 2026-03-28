@@ -1,19 +1,14 @@
 import type { StateCreator } from "zustand";
 import { sendRequest } from "../../lib/ipc";
 import { getSortedMutations, reorderMappings } from "../../lib/plate-utils";
+import { formatError } from "../../lib/utils";
+import type { AppState } from "../types";
 import type { SortingState, Updater } from "@tanstack/react-table";
 import type {
-  SdmPrimerResult,
-  FailedMutation,
   PlateMapping,
   PlateMapResult,
-  DomainInfo,
   WorkspaceV1,
 } from "../../types/models";
-
-function formatError(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
-}
 
 export interface ExportSlice {
   // State
@@ -33,7 +28,7 @@ export interface ExportSlice {
   resetAll: () => void;
 }
 
-export const createExportSlice: StateCreator<ExportSlice, [], [], ExportSlice> = (set, get) => ({
+export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (set, get) => ({
   plateMappings: [],
   dedupInfo: {},
   progress: 0,
@@ -54,12 +49,11 @@ export const createExportSlice: StateCreator<ExportSlice, [], [], ExportSlice> =
 
   exportExcel: async (filepath: string) => {
     try {
-      const state = get() as unknown as ExportSlice & { designResults: SdmPrimerResult[] };
-      const { plateMappings, dedupInfo, tableSorting } = get();
-      const sortedMuts = getSortedMutations(state.designResults, tableSorting);
+      const { designResults, plateMappings, dedupInfo, tableSorting } = get();
+      const sortedMuts = getSortedMutations(designResults, tableSorting);
       const ordered = reorderMappings(plateMappings, dedupInfo, sortedMuts);
 
-      const resultByMut = new Map(state.designResults.map((r) => [r.mutation, r]));
+      const resultByMut = new Map(designResults.map((r) => [r.mutation, r]));
       const enriched = ordered.map((m) => {
         const r = resultByMut.get(m.mutation);
         if (!r) return m;
@@ -88,41 +82,11 @@ export const createExportSlice: StateCreator<ExportSlice, [], [], ExportSlice> =
   setStatus: (msg: string) => set({ statusMessage: msg }),
 
   getWorkspaceSnapshot: () => {
-    const s = get() as unknown as ExportSlice & {
-      fastaPath: string;
-      mutationInputMode: "text" | "evolvepro";
-      mutationText: string;
-      evolveproCsvPath: string;
-      selectedGene: string;
-      codonStrategy: "closest" | "optimal";
-      maxPrimers: number;
-      designResults: SdmPrimerResult[];
-      successCount: number;
-      totalCount: number;
-      failedMutations: FailedMutation[];
-      manuallySwapped: Record<string, "fwd" | "rev" | "both">;
-      customCandidates: Record<string, SdmPrimerResult[]>;
-      tmFwdTarget: number;
-      tmRevTarget: number;
-      tmOverlapTarget: number;
-      gcMin: number;
-      gcMax: number;
-      primerLenEnabled: boolean;
-      fwdLenMin: number;
-      fwdLenMax: number;
-      revLenMin: number;
-      revLenMax: number;
-      fillOnFailure: boolean;
-      uniprotAccession: string;
-      domains: DomainInfo[];
-      domainDiversityEnabled: boolean;
-      domainStrategy: "proportional" | "equal";
-      paretoDiversityEnabled: boolean;
-    };
+    const s = get();
     return {
       version: 1 as const,
       fastaPath: s.fastaPath,
-      mutationInputMode: s.mutationInputMode,
+      mutationInputMode: s.mutationInputMode as "text" | "evolvepro",
       mutationText: s.mutationText,
       evolveproCsvPath: s.evolveproCsvPath,
       selectedGene: s.selectedGene,
@@ -157,26 +121,21 @@ export const createExportSlice: StateCreator<ExportSlice, [], [], ExportSlice> =
   },
 
   restoreWorkspace: async (ws: WorkspaceV1) => {
-    const all = get() as unknown as ExportSlice & {
-      resetAll: () => void;
-      loadSequence: (fp: string) => Promise<void>;
-      seqInfo: { genes: { cds_start: number }[] } | null;
-      designPrimers: () => Promise<void>;
-    };
-    all.resetAll();
+    const store = get();
+    store.resetAll();
     set({
       mutationInputMode: ws.mutationInputMode ?? "text",
       mutationText: ws.mutationText ?? "",
       evolveproCsvPath: ws.evolveproCsvPath ?? "",
       codonStrategy: ws.codonStrategy ?? "closest",
       maxPrimers: ws.maxPrimers ?? 95,
-    } as Partial<ExportSlice>);
+    });
     if (ws.fastaPath) {
-      await all.loadSequence(ws.fastaPath);
+      await store.loadSequence(ws.fastaPath);
       if (ws.selectedGene) {
-        const seqInfo = all.seqInfo;
+        const seqInfo = get().seqInfo;
         const geneExists = seqInfo?.genes.some((g) => String(g.cds_start) === String(ws.selectedGene));
-        if (geneExists) set({ selectedGene: ws.selectedGene } as Partial<ExportSlice>);
+        if (geneExists) set({ selectedGene: ws.selectedGene });
       }
     }
     set({
@@ -206,10 +165,9 @@ export const createExportSlice: StateCreator<ExportSlice, [], [], ExportSlice> =
       domainStrategy: ws.domainStrategy ?? "proportional",
       paretoDiversityEnabled: ws.paretoDiversityEnabled ?? false,
       statusMessage: "Workspace loaded. Re-designing to sync backend...",
-    } as Partial<ExportSlice>);
+    });
     if (ws.mutationText && ws.fastaPath) {
-      const store = get() as unknown as { designPrimers: () => Promise<void> };
-      await store.designPrimers();
+      await get().designPrimers();
     }
   },
 
@@ -263,6 +221,6 @@ export const createExportSlice: StateCreator<ExportSlice, [], [], ExportSlice> =
       progress: 0,
       statusMessage: "Ready",
       tableSorting: [],
-    } as Partial<ExportSlice>);
+    });
   },
 });

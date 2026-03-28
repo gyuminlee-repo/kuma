@@ -1,6 +1,8 @@
 import type { StateCreator } from "zustand";
 import { sendRequest, cancelAndRespawn } from "../../lib/ipc";
 import { wellName } from "../../lib/plate-utils";
+import { formatError } from "../../lib/utils";
+import type { AppState } from "../types";
 import type {
   SdmPrimerResult,
   DesignResult,
@@ -8,10 +10,6 @@ import type {
   PlateMapping,
   PlateMapResult,
 } from "../../types/models";
-
-function formatError(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
-}
 
 export interface DesignSlice {
   // State
@@ -60,14 +58,14 @@ export interface DesignSlice {
   setFillOnFailure: (enabled: boolean) => void;
 }
 
-export const createDesignSlice: StateCreator<DesignSlice, [], [], DesignSlice> = (set, get) => ({
+export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (set, get) => ({
   isDesigning: false,
   designResults: [],
   successCount: 0,
   totalCount: 0,
   failedMutations: [],
   showReport: false,
-  setShowReport: (show: boolean) => set({ showReport: show } as Partial<DesignSlice>),
+  setShowReport: (show: boolean) => set({ showReport: show }),
   codonStrategy: "closest",
   maxPrimers: 95,
   tmFwdTarget: 62,
@@ -86,19 +84,7 @@ export const createDesignSlice: StateCreator<DesignSlice, [], [], DesignSlice> =
   rescuedMutations: new Set<string>(),
 
   designPrimers: async () => {
-    const state = get() as unknown as DesignSlice & {
-      fastaPath: string;
-      selectedGene: string;
-      organism: string;
-      mutationInputMode: "text" | "evolvepro";
-      mutationText: string;
-      pipelineMode: boolean;
-      positionDiversityEnabled: boolean;
-      domainDiversityEnabled: boolean;
-      paretoDiversityEnabled: boolean;
-      evolveproCsvPath: string;
-      loadEvolveproCsv: (fp: string) => Promise<void>;
-    };
+    const state = get();
     const {
       fastaPath,
       selectedGene,
@@ -120,11 +106,11 @@ export const createDesignSlice: StateCreator<DesignSlice, [], [], DesignSlice> =
     } = state;
 
     if (!fastaPath) {
-      set({ statusMessage: "Sequence file not loaded" } as Partial<DesignSlice>);
+      set({ statusMessage: "Sequence file not loaded" });
       return;
     }
     if (!state.mutationText.trim()) {
-      set({ statusMessage: "No mutations entered" } as Partial<DesignSlice>);
+      set({ statusMessage: "No mutations entered" });
       return;
     }
 
@@ -133,7 +119,7 @@ export const createDesignSlice: StateCreator<DesignSlice, [], [], DesignSlice> =
     }
 
     // Re-read mutationText after potential CSV reload
-    const refreshedText = (get() as unknown as { mutationText: string }).mutationText;
+    const refreshedText = get().mutationText;
 
     const allLines = refreshedText.trim().split("\n").filter((l) => l.trim() && !l.trim().startsWith("#"));
     const intendedMuts = new Set(allLines.slice(0, maxPrimers).map((l) => l.trim()));
@@ -153,7 +139,7 @@ export const createDesignSlice: StateCreator<DesignSlice, [], [], DesignSlice> =
       plateMappings: [],
       customCandidates: {},
       manuallySwapped: {},
-    } as Partial<DesignSlice>);
+    });
 
     try {
       const result = await sendRequest<DesignResult>("design_sdm_primers", {
@@ -188,7 +174,7 @@ export const createDesignSlice: StateCreator<DesignSlice, [], [], DesignSlice> =
         totalCount: maxPrimers,
         failedMutations: intendedFailed,
         statusMessage: `${capped.length}/${maxPrimers} designed | Tm: ${tmMet}/${capped.length}${failedMsg}`,
-      } as Partial<DesignSlice>);
+      });
 
       try {
         const plateResult = await sendRequest<PlateMapResult>("get_plate_map");
@@ -206,13 +192,13 @@ export const createDesignSlice: StateCreator<DesignSlice, [], [], DesignSlice> =
         set({
           plateMappings: finalMappings,
           dedupInfo: plateResult.dedup_info,
-        } as Partial<DesignSlice>);
+        });
       } catch (plateErr) {
         console.warn("[plate map]", formatError(plateErr));
       }
     } catch (err) {
       if (formatError(err).includes("Sidecar killed")) return;
-      set({ statusMessage: `Design failed: ${formatError(err)}` } as Partial<DesignSlice>);
+      set({ statusMessage: `Design failed: ${formatError(err)}` });
     } finally {
       if (get().isDesigning) {
         const hasResults = get().designResults.length > 0;
@@ -220,7 +206,7 @@ export const createDesignSlice: StateCreator<DesignSlice, [], [], DesignSlice> =
           isDesigning: false,
           progress: 100,
           ...(hasResults && { showReport: true }),
-        } as Partial<DesignSlice>);
+        });
       }
     }
   },
@@ -232,13 +218,13 @@ export const createDesignSlice: StateCreator<DesignSlice, [], [], DesignSlice> =
         isDesigning: false,
         progress: 0,
         statusMessage: "Design cancelled",
-      } as Partial<DesignSlice>);
+      });
     } catch (err) {
       set({
         isDesigning: false,
         progress: 0,
         statusMessage: `Design cancelled (reconnecting: ${formatError(err)})`,
-      } as Partial<DesignSlice>);
+      });
     }
   },
 
@@ -347,11 +333,11 @@ export const createDesignSlice: StateCreator<DesignSlice, [], [], DesignSlice> =
 
   evaluateCustomPrimer: async (mutation: string, fwdSeq: string, revSeq: string, overlapLen?: number) => {
     try {
-      const state = get() as unknown as DesignSlice & { fastaPath: string; selectedGene: string };
-      const targetStart = state.selectedGene ? parseInt(state.selectedGene, 10) : 0;
+      const { fastaPath, selectedGene } = get();
+      const targetStart = selectedGene ? parseInt(selectedGene, 10) : 0;
       const result = await sendRequest<SdmPrimerResult>("evaluate_primer", {
         mutation,
-        fasta_path: state.fastaPath,
+        fasta_path: fastaPath,
         target_start: targetStart,
         forward_seq: fwdSeq,
         reverse_seq: revSeq,
@@ -359,33 +345,28 @@ export const createDesignSlice: StateCreator<DesignSlice, [], [], DesignSlice> =
       });
       return result;
     } catch (err) {
-      set({ statusMessage: `Evaluate failed: ${formatError(err)}` } as Partial<DesignSlice>);
+      set({ statusMessage: `Evaluate failed: ${formatError(err)}` });
       return null;
     }
   },
 
   retryFailedMutation: async (mutation: string, params: Record<string, number | string>) => {
     try {
-      const state = get() as unknown as DesignSlice & { fastaPath: string; selectedGene: string };
-      const targetStart = state.selectedGene ? parseInt(state.selectedGene, 10) : 0;
+      const { fastaPath, selectedGene } = get();
+      const targetStart = selectedGene ? parseInt(selectedGene, 10) : 0;
       const result = await sendRequest<{ candidates: SdmPrimerResult[] }>(
         "retry_failed_mutation",
-        { mutation, fasta_path: state.fastaPath, target_start: targetStart, ...params },
+        { mutation, fasta_path: fastaPath, target_start: targetStart, ...params },
       );
       return result.candidates;
     } catch (err) {
-      set({ statusMessage: `Retry failed: ${formatError(err)}` } as Partial<DesignSlice>);
+      set({ statusMessage: `Retry failed: ${formatError(err)}` });
       return [];
     }
   },
 
   addDesignResult: (mutation: string, result: SdmPrimerResult) => {
-    const state = get() as unknown as DesignSlice & {
-      plateMappings: PlateMapping[];
-      dedupInfo: Record<string, string[]>;
-    };
-    const { designResults, failedMutations, successCount, rescuedMutations } = get();
-    const { plateMappings, dedupInfo } = state;
+    const { designResults, failedMutations, successCount, rescuedMutations, plateMappings, dedupInfo } = get();
 
     let aaPos = result.aa_position;
     if (!aaPos) {
@@ -429,16 +410,11 @@ export const createDesignSlice: StateCreator<DesignSlice, [], [], DesignSlice> =
       plateMappings: [...plateMappings, newFwd, ...newRevMappings],
       dedupInfo: newDedupInfo,
       rescuedMutations: newRescued,
-    } as Partial<DesignSlice>);
+    });
   },
 
   removeDesignResult: (mutation: string, reason: string) => {
-    const state = get() as unknown as DesignSlice & {
-      plateMappings: PlateMapping[];
-      dedupInfo: Record<string, string[]>;
-    };
-    const { designResults, failedMutations, successCount, rescuedMutations } = get();
-    const { plateMappings, dedupInfo } = state;
+    const { designResults, failedMutations, successCount, rescuedMutations, plateMappings, dedupInfo } = get();
     const removed = designResults.find((r) => r.mutation === mutation);
     if (!removed) return;
     const newDesignResults = designResults.filter((r) => r.mutation !== mutation);
@@ -464,6 +440,6 @@ export const createDesignSlice: StateCreator<DesignSlice, [], [], DesignSlice> =
       plateMappings: newPlateMappings,
       dedupInfo: newDedupInfo,
       rescuedMutations: newRescued,
-    } as Partial<DesignSlice>);
+    });
   },
 });

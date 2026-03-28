@@ -86,18 +86,32 @@ def _save_cache(
             json.dump(embedding, f)
 
 
+_cached_model = None
+_cached_alphabet = None
+
+
+def _get_model():
+    """Return cached ESM-2 model and alphabet, loading once on first call."""
+    global _cached_model, _cached_alphabet
+    if _cached_model is None:
+        import esm
+        _cached_model, _cached_alphabet = esm.pretrained.esm2_t12_35M_UR50D()
+        _cached_model.eval()
+        _log.info("ESM-2 model loaded and cached")
+    return _cached_model, _cached_alphabet
+
+
 def _local_inference(sequence: str) -> list[list[float]] | None:
     """Run ESM-2 locally using torch + fair-esm."""
     try:
         import torch
-        import esm
+        import esm  # noqa: F401 — needed to verify availability
     except ImportError:
         _log.info("Local ESM-2 not available (pip install fair-esm torch)")
         return None
 
     try:
-        model, alphabet = esm.pretrained.esm2_t12_35M_UR50D()
-        model.eval()
+        model, alphabet = _get_model()
 
         batch_converter = alphabet.get_batch_converter()
         data = [("protein", sequence)]
