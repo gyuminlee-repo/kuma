@@ -54,8 +54,8 @@ def _position_entropy(pool: list[tuple[str, float]]) -> dict[int, float]:
 
 
 # Flexible column name resolution — first match wins
-VARIANT_COLUMNS = ["variant", "variants", "mutation", "mutant", "mutation_list"]
-SCORE_COLUMNS = ["y_pred", "property_value", "fitness", "score", "DMS_score"]
+VARIANT_COLUMNS = ["variant", "variants", "mutation", "mutations", "mutant", "mutation_list"]
+SCORE_COLUMNS = ["y_pred", "property_value", "predicted_fitness", "fitness", "score", "DMS_score"]
 
 
 def load_evolvepro_csv(

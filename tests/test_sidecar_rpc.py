@@ -28,13 +28,26 @@ MUTATIONS_CSV = str(FIXTURES_DIR / "mutation_list_insilico_test.csv")
 TARGET_START = 1790
 
 
-def _dispatch_and_parse(request: dict) -> dict:
-    """Call dispatch() and capture the JSON response from stdout."""
+def _dispatch_and_parse(request: dict, timeout: float = 30.0) -> dict:
+    """Call dispatch() and capture the JSON response from stdout.
+
+    For async methods that run in background threads, waits up to *timeout*
+    seconds for the response to appear on the redirected stdout.
+    """
+    import time as _time
+    import threading
+
     buf = io.StringIO()
     old_stdout = sys.stdout
     sys.stdout = buf
     try:
         sidecar.dispatch(request)
+        # Wait for response — async methods write from background threads
+        deadline = _time.monotonic() + timeout
+        while _time.monotonic() < deadline:
+            if buf.getvalue().strip():
+                break
+            _time.sleep(0.1)
     finally:
         sys.stdout = old_stdout
     raw = buf.getvalue().strip()
