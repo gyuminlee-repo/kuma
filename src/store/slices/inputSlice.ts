@@ -278,21 +278,24 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     try {
       const { pipelineMode, positionDiversityEnabled, maxPerPosition, domainDiversityEnabled, domains, disabledDomains, domainStrategy, paretoDiversityEnabled, entropyWeightEnabled, maxPrimers } = get();
       const activeDomains = domains.filter((d) => !disabledDomains.has(`${d.name}-${d.start}`));
-      const modeLabel = get().mutationInputMode === "multi-evolve" ? "MULTI-evolve" : "EVOLVEpro";
+      const isMultiEvolve = get().mutationInputMode === "multi-evolve";
+      const modeLabel = isMultiEvolve ? "MULTI-evolve" : "EVOLVEpro";
       set({ statusMessage: `Loading ${modeLabel} CSV...`, evolveproCsvPath: filepath });
+      // MULTI-evolve: skip diversity pipeline — combinations are pre-selected
+      const usePipeline = pipelineMode && !isMultiEvolve;
       const result = await sendRequest<EvolveproLoadResult>(
         "load_evolvepro_csv",
         {
           filepath,
-          top_n: maxPrimers,
-          ...(pipelineMode && positionDiversityEnabled && { max_per_position: maxPerPosition }),
-          ...(pipelineMode && domainDiversityEnabled && activeDomains.length > 0 && {
+          top_n: isMultiEvolve ? 9999 : maxPrimers,
+          ...(usePipeline && positionDiversityEnabled && { max_per_position: maxPerPosition }),
+          ...(usePipeline && domainDiversityEnabled && activeDomains.length > 0 && {
             domain_diversity: true,
             domains: activeDomains.map((d) => ({ name: d.name, start: d.start, end: d.end })),
             domain_strategy: domainStrategy,
           }),
-          ...(pipelineMode && paretoDiversityEnabled && { pareto_diversity: true }),
-          ...(pipelineMode && paretoDiversityEnabled && entropyWeightEnabled && { entropy_weight: 0.3 }),
+          ...(usePipeline && paretoDiversityEnabled && { pareto_diversity: true }),
+          ...(usePipeline && paretoDiversityEnabled && entropyWeightEnabled && { entropy_weight: 0.3 }),
         },
       );
       if (gen !== csvLoadGeneration) return;
