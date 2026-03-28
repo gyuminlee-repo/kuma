@@ -278,7 +278,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     try {
       const { pipelineMode, positionDiversityEnabled, maxPerPosition, domainDiversityEnabled, domains, disabledDomains, domainStrategy, paretoDiversityEnabled, entropyWeightEnabled, maxPrimers } = get();
       const activeDomains = domains.filter((d) => !disabledDomains.has(`${d.name}-${d.start}`));
-      set({ statusMessage: "Loading EVOLVEpro CSV...", evolveproCsvPath: filepath });
+      const modeLabel = get().mutationInputMode === "multi-evolve" ? "MULTI-evolve" : "EVOLVEpro";
+      set({ statusMessage: `Loading ${modeLabel} CSV...`, evolveproCsvPath: filepath });
       const result = await sendRequest<EvolveproLoadResult>(
         "load_evolvepro_csv",
         {
@@ -322,11 +323,11 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         yPredMap: yMap,
         domainStats: result.domain_stats ?? {},
         evolveproTotalCount: result.total_count,
-        statusMessage: `EVOLVEpro: ${result.selected_count}/${result.total_count} variants${filteredMsg}${domainMsg}${paretoMsg}`,
+        statusMessage: `${currentMode === "multi-evolve" ? "MULTI-evolve" : "EVOLVEpro"}: ${result.selected_count}/${result.total_count} variants${filteredMsg}${domainMsg}${paretoMsg}`,
       });
     } catch (err) {
       if (gen === csvLoadGeneration) {
-        set({ statusMessage: `EVOLVEpro CSV load failed: ${formatError(err)}` });
+        set({ statusMessage: `${get().mutationInputMode === "multi-evolve" ? "MULTI-evolve" : "EVOLVEpro"} CSV load failed: ${formatError(err)}` });
       }
     }
   },
