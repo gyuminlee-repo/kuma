@@ -27,7 +27,10 @@
   "bundle": {
     "active": true,
     "targets": ["nsis", "deb", "appimage", "dmg"],
-    "resources": ["samples/**"],
+    "resources": {
+      "samples/sample_evolvepro.csv": "samples/sample_evolvepro.csv",
+      "samples/sample_plasmid.gb": "samples/sample_plasmid.gb"
+    },
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

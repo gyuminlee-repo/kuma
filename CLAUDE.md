@@ -20,11 +20,12 @@ cd src-tauri && cargo check  # Rust 컴파일 체크
 3. **`as any`, `@ts-ignore` 사용 금지** — 현재 0건 유지할 것
 
 ### Tauri 리소스 번들링
-1. **resources glob은 `src-tauri/` 기준 상대경로만 사용**
-   - `"resources": ["samples/**"]` (O)
-   - `"resources": ["../samples/**"]` (X) — cross-compilation (`--target`) 시 glob 해석 실패
+1. **glob 패턴(`**`) 사용 금지** — Tauri build.rs의 glob 해석이 OS별로 다름
+   - `"resources": ["samples/**"]` (X) — Windows CI에서 실패
+   - `"resources": {"samples/file.csv": "samples/file.csv"}` (O) — 명시적 매핑
 2. **번들에 포함할 파일은 `src-tauri/` 하위에 배치**
    - 프론트엔드의 `resolveResource()` 경로와 일치시킬 것
+3. **새 샘플 파일 추가 시** `tauri.conf.json`의 resources 맵에도 추가 필수
 
 ### 버전 동기화
 릴리스 시 아래 3개 파일의 버전을 반드시 일치시킨다:
