@@ -17,6 +17,7 @@ Released: 2026-03-28
 - **CSV reload debounce**: Pipeline option toggles now debounce the CSV reload RPC by 300ms, eliminating burst requests
 - **Shared utilities**: Extracted duplicate `formatError` helper to `src/lib/utils.ts`. Added `src/store/types.ts` for combined `AppState` type
 - **Release checklist**: Documented updater pubkey (empty) and BLAST email (hardcoded) as release blockers
+- **Sidecar spawn race condition fix**: `onReady` handler is now registered before `command.spawn()` to prevent the `ready` notification from being dropped when sidecar starts faster than the await yields
 
 ---
 

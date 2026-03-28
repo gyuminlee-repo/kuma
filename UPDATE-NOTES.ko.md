@@ -17,6 +17,7 @@
 - **CSV 리로드 디바운스**: 파이프라인 옵션 토글 시 CSV reload RPC를 300ms 디바운스 — 버스트 요청 제거
 - **공통 유틸리티**: 중복 `formatError` 함수를 `src/lib/utils.ts`로 추출. `src/store/types.ts`에 `AppState` 타입 추가
 - **릴리즈 체크리스트**: 업데이터 pubkey (비어있음) 및 BLAST email (하드코딩) 이슈를 릴리즈 차단 항목으로 문서화
+- **Sidecar spawn 경쟁 조건 수정**: `onReady` 핸들러를 `command.spawn()` 전에 등록하여, sidecar가 빠르게 시작할 때 `ready` 알림이 드롭되는 문제 수정
 
 ---
 

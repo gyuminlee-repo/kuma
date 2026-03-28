@@ -93,10 +93,9 @@ export async function spawnSidecar(): Promise<void> {
       }
     });
 
-    const spawned = await command.spawn();
-    child = spawned;
-
-    await new Promise<void>((resolve, reject) => {
+    // Set up ready handler BEFORE spawn to avoid race condition:
+    // sidecar may send "ready" before the await below yields control.
+    const readyPromise = new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => {
         onReady = null;
         if (child) {
@@ -110,6 +109,11 @@ export async function spawnSidecar(): Promise<void> {
         resolve();
       };
     });
+
+    const spawned = await command.spawn();
+    child = spawned;
+
+    await readyPromise;
     onReady = null;
   })();
 
