@@ -1737,7 +1737,7 @@ dependencies = [
 
 [[package]]
 name = "kuro"
-version = "0.9.39"
+version = "1.0.0"
 dependencies = [
  "serde",
  "serde_json",

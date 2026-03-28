@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/nicedoc/schemas/main/tauri-v2.json",
   "productName": "KURO",
-  "version": "0.9.39",
+  "version": "1.0.0",
   "identifier": "com.kuro.app",
   "build": {
     "frontendDist": "../dist",
