@@ -1,8 +1,22 @@
-# KURO Update Notes — v0.9.5 → v0.9.37
+# KURO Update Notes — v0.9.5 → v0.9.39
 
 [한국어](UPDATE-NOTES.ko.md) | **English**
 
 Released: 2026-03-28
+
+---
+
+## v0.9.39 (2026-03-28)
+
+### Design Review Fixes
+- **IPC timeout**: `sendRequest` now has a configurable timeout (default 60s). Prevents permanent UI hang when sidecar is unresponsive
+- **BLAST cancel-aware polling**: Replaced blocking 3s sleep with 0.5s intervals that check the cancel event, allowing cancellation during UniProt BLAST search
+- **Zustand type safety**: Unified all 3 store slices with `AppState` generic type. Removed 52 unsafe `as unknown as` / `as Partial<>` casts
+- **ESM embedding lifecycle**: Clearing `esm_embedding` when template changes to prevent cross-protein contamination in Pareto analysis
+- **ESM-2 model caching**: Module-level model cache avoids reloading the ~150MB model on every inference call
+- **CSV reload debounce**: Pipeline option toggles now debounce the CSV reload RPC by 300ms, eliminating burst requests
+- **Shared utilities**: Extracted duplicate `formatError` helper to `src/lib/utils.ts`. Added `src/store/types.ts` for combined `AppState` type
+- **Release checklist**: Documented updater pubkey (empty) and BLAST email (hardcoded) as release blockers
 
 ---
 

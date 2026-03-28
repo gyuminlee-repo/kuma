@@ -1,8 +1,22 @@
-# KURO 업데이트 노트 — v0.9.5 → v0.9.37
+# KURO 업데이트 노트 — v0.9.5 → v0.9.39
 
 **한국어** | [English](UPDATE-NOTES.md)
 
 배포일: 2026-03-28
+
+---
+
+## v0.9.39 (2026-03-28)
+
+### 디자인 리뷰 수정
+- **IPC 타임아웃**: `sendRequest`에 타임아웃 추가 (기본 60초). Sidecar 무응답 시 UI 영구 멈춤 방지
+- **BLAST 취소 가능 폴링**: 3초 블로킹 sleep → 0.5초 간격 + cancel event 체크로 교체. UniProt BLAST 검색 중 취소 가능
+- **Zustand 타입 안전성**: 3개 store slice를 `AppState` 제네릭으로 통합. 52개 unsafe cast (`as unknown as` / `as Partial<>`) 제거
+- **ESM embedding 수명주기**: template 변경 시 `esm_embedding` 초기화 — 이전 단백질 embedding이 Pareto 분석에 오염되는 문제 수정
+- **ESM-2 모델 캐싱**: ~150MB 모델을 모듈 레벨에서 캐싱하여 매 추론마다 재로딩 방지
+- **CSV 리로드 디바운스**: 파이프라인 옵션 토글 시 CSV reload RPC를 300ms 디바운스 — 버스트 요청 제거
+- **공통 유틸리티**: 중복 `formatError` 함수를 `src/lib/utils.ts`로 추출. `src/store/types.ts`에 `AppState` 타입 추가
+- **릴리즈 체크리스트**: 업데이터 pubkey (비어있음) 및 BLAST email (하드코딩) 이슈를 릴리즈 차단 항목으로 문서화
 
 ---
 
