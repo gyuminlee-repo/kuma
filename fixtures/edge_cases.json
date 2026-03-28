@@ -1,0 +1,84 @@
+[
+  {
+    "id": "empty_sequence",
+    "description": "Empty sequence — should return validation error",
+    "sequence": "",
+    "target_start": 0,
+    "target_length": 0,
+    "polymerase": "Q5 High-Fidelity",
+    "expect_error": true,
+    "error_contains": "sequence is required"
+  },
+  {
+    "id": "invalid_bases",
+    "description": "Sequence with invalid characters (N, R, Y ambiguity codes)",
+    "sequence": "ATGGNNNRYATGCATGCATGCATGCATGCATGCATGCATGCATGCATGC",
+    "target_start": 0,
+    "target_length": 49,
+    "polymerase": "Taq (NEB)",
+    "expect_error": true,
+    "error_contains": "Invalid"
+  },
+  {
+    "id": "invalid_overhang",
+    "description": "Valid sequence but overhang contains invalid base",
+    "sequence": "ATGGCAACTGAATTATTGTGCTTGCACCGTCCAATCTCACTGACACACAAACTTTTCAGAAATCCCTTACCTAAAGTCATCCAGGCCACTCCCTTAACTTTGAAACTCAGATGTTCTGTAAGCACAGAAAACGTCAGCTTCACAGAAACA",
+    "target_start": 0,
+    "target_length": 150,
+    "polymerase": "Q5 High-Fidelity",
+    "fwd_overhang": "ACGTXYZ",
+    "rev_overhang": "ACGTACGT",
+    "expect_error": true,
+    "error_contains": "Invalid fwd_overhang"
+  },
+  {
+    "id": "unknown_polymerase",
+    "description": "Non-existent polymerase name",
+    "sequence": "ATGGCAACTGAATTATTGTGCTTGCACCGTCCAATCTCACTGACACACAAACTTTTCAGAAATCCCTTACCTAAAGTCATCCAGGCCACTCCCTTAACTTTGAAACTCAGATGTTCTGTAAGCACAGAAAACGTCAGCTTCACAGAAACA",
+    "target_start": 0,
+    "target_length": 150,
+    "polymerase": "NoSuchPolymerase",
+    "expect_error": true,
+    "error_contains": "not found"
+  },
+  {
+    "id": "target_exceeds_sequence",
+    "description": "Target region extends beyond sequence length",
+    "sequence": "ATGGCAACTGAATTATTGTGCTTGCACCGTCCAATCTCACTGACACACAA",
+    "target_start": 40,
+    "target_length": 100,
+    "polymerase": "Q5 High-Fidelity",
+    "expect_error": false,
+    "note": "primer3 may return 0 pairs — not a hard error"
+  },
+  {
+    "id": "very_short_sequence",
+    "description": "Sequence too short for any primer (< 36 bp)",
+    "sequence": "ATGGCAACTGAATTATTGTGCTTGCACCGT",
+    "target_start": 0,
+    "target_length": 30,
+    "polymerase": "Taq (NEB)",
+    "expect_error": false,
+    "note": "primer3 returns 0 pairs — app should handle gracefully"
+  },
+  {
+    "id": "high_gc_region",
+    "description": "GC-rich region (>70%) — tests adaptive relaxation",
+    "sequence": "ATGGCGACCGCGCTGCTGTGCCTGCACCGTCCGATCTCGCTGACCCGCGCGCTGTTCCGCGCCCCGCTGCCGCGCGTGATCCAGGCGACCCCTCTGACCCTGAAACTGCAGATGCTGTGCAGCACCGCGCCCGTGAGCTTCACCGAAACCGCGACCGCGGCGCGTCGTTCTGCCAACTATGCGCCGCGTAGCTGGGATCGCGATCGTCTGCTGTCTTCCGACACCGACGCGAGCATTGCGGTGTACAACGACAAAGCGCGCAAGCTGGCGGCGGAAGTGCGTCGTGCGATTAACAACGCGAAAGCG",
+    "target_start": 50,
+    "target_length": 200,
+    "polymerase": "Q5 High-Fidelity",
+    "expect_error": false,
+    "note": "High GC% (~65%) — may trigger adaptive Tm relaxation"
+  },
+  {
+    "id": "at_rich_region",
+    "description": "AT-rich region (~70% AT) — low Tm challenge",
+    "sequence": "ATGAAATTTGAATTATTATATTTAAATAATTTAATTTAATTAAATATAAATTTTTAATAAATTTTTTAGAAATTATTTATATAAAATTATTAAGTAAATTATTTAATTTTGAAATTTAAATATTTATATAATATAAAAAAATATAAATTTATAAAAATATAAATTTTTAAATATATATTTATAAAAATTATAAATTAATTTATATTTATAAATTTTAATTTTTAAAATATTAATAAAAAATTTATATTTATTAAGAAAATATAAATATTTAAATAATAAATTTTTAAAATATTTATAAATTTAATAAA",
+    "target_start": 50,
+    "target_length": 200,
+    "polymerase": "Taq (NEB)",
+    "expect_error": false,
+    "note": "AT-rich (~72% AT) — may need relaxed GC% constraints"
+  }
+]

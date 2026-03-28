@@ -1,0 +1,32 @@
+{
+  "plate_format": 96,
+  "plate_id": "ispS_EVOLVEpro_R1",
+  "date": "2026-03-28",
+  "description": "EVOLVEpro Round 1 — 16 ispS single mutants + WT controls",
+  "wells": {
+    "A01": {"variant_id": "ispS_WT", "mutations": "WT", "primer_fwd": "ispS_WT_F", "primer_rev": "ispS_WT_R", "role": "positive_control"},
+    "A02": {"variant_id": "ispS_WT", "mutations": "WT", "primer_fwd": "ispS_WT_F", "primer_rev": "ispS_WT_R", "role": "positive_control"},
+    "A03": {"variant_id": "ispS_WT", "mutations": "WT", "primer_fwd": "ispS_WT_F", "primer_rev": "ispS_WT_R", "role": "positive_control"},
+    "A04": {"variant_id": "ispS_R264K", "mutations": "R264K", "primer_fwd": "ispS_R264K_F", "primer_rev": "ispS_R264K_R", "role": "variant"},
+    "A05": {"variant_id": "ispS_F338Y", "mutations": "F338Y", "primer_fwd": "ispS_F338Y_F", "primer_rev": "ispS_F338Y_R", "role": "variant"},
+    "A06": {"variant_id": "ispS_T505A", "mutations": "T505A", "primer_fwd": "ispS_T505A_F", "primer_rev": "ispS_T505A_R", "role": "variant"},
+    "A07": {"variant_id": "ispS_N315D", "mutations": "N315D", "primer_fwd": "ispS_N315D_F", "primer_rev": "ispS_N315D_R", "role": "variant"},
+    "A08": {"variant_id": "ispS_I390L", "mutations": "I390L", "primer_fwd": "ispS_I390L_F", "primer_rev": "ispS_I390L_R", "role": "variant"},
+    "A09": {"variant_id": "ispS_L427M", "mutations": "L427M", "primer_fwd": "ispS_L427M_F", "primer_rev": "ispS_L427M_R", "role": "variant"},
+    "A10": {"variant_id": "ispS_K371R", "mutations": "K371R", "primer_fwd": "ispS_K371R_F", "primer_rev": "ispS_K371R_R", "role": "variant"},
+    "A11": {"variant_id": "ispS_E352Q", "mutations": "E352Q", "primer_fwd": "ispS_E352Q_F", "primer_rev": "ispS_E352Q_R", "role": "variant"},
+    "A12": {"variant_id": "ispS_A285V", "mutations": "A285V", "primer_fwd": "ispS_A285V_F", "primer_rev": "ispS_A285V_R", "role": "variant"},
+    "B01": {"variant_id": "ispS_S449T", "mutations": "S449T", "primer_fwd": "ispS_S449T_F", "primer_rev": "ispS_S449T_R", "role": "variant"},
+    "B02": {"variant_id": "ispS_D308N", "mutations": "D308N", "primer_fwd": "ispS_D308N_F", "primer_rev": "ispS_D308N_R", "role": "variant"},
+    "B03": {"variant_id": "ispS_V472I", "mutations": "V472I", "primer_fwd": "ispS_V472I_F", "primer_rev": "ispS_V472I_R", "role": "variant"},
+    "B04": {"variant_id": "ispS_G523A", "mutations": "G523A", "primer_fwd": "ispS_G523A_F", "primer_rev": "ispS_G523A_R", "role": "variant"},
+    "B05": {"variant_id": "ispS_M411L", "mutations": "M411L", "primer_fwd": "ispS_M411L_F", "primer_rev": "ispS_M411L_R", "role": "variant"},
+    "B06": {"variant_id": "ispS_P340S", "mutations": "P340S", "primer_fwd": "ispS_P340S_F", "primer_rev": "ispS_P340S_R", "role": "variant"},
+    "B07": {"variant_id": "ispS_H482R", "mutations": "H482R", "primer_fwd": "ispS_H482R_F", "primer_rev": "ispS_H482R_R", "role": "variant"},
+    "B08": {"variant_id": null, "mutations": null, "role": "negative_control"},
+    "B09": {"variant_id": null, "mutations": null, "role": "negative_control"},
+    "B10": {"variant_id": null, "mutations": null, "role": "empty"},
+    "B11": {"variant_id": null, "mutations": null, "role": "empty"},
+    "B12": {"variant_id": null, "mutations": null, "role": "empty"}
+  }
+}

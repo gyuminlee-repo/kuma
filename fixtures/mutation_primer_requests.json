@@ -1,0 +1,55 @@
+[
+  {
+    "id": "sdm_R264K",
+    "description": "Site-directed mutagenesis: R264K (CGC→AAG) in ispS",
+    "template_sequence_file": "ispS.fasta",
+    "mutation": "R264K",
+    "position": 264,
+    "wt_codon": "CGC",
+    "mut_codon": "AAG",
+    "codon_position_nt": 790,
+    "polymerase": "Q5 High-Fidelity",
+    "method": "overlap_extension",
+    "note": "Top hit from EVOLVEpro round 1"
+  },
+  {
+    "id": "sdm_F338Y",
+    "description": "Site-directed mutagenesis: F338Y (TTC→TAC) in ispS",
+    "template_sequence_file": "ispS.fasta",
+    "mutation": "F338Y",
+    "position": 338,
+    "wt_codon": "TTC",
+    "mut_codon": "TAC",
+    "codon_position_nt": 1012,
+    "polymerase": "Q5 High-Fidelity",
+    "method": "overlap_extension",
+    "note": "Second hit from EVOLVEpro round 1"
+  },
+  {
+    "id": "sdm_T505A",
+    "description": "Site-directed mutagenesis: T505A (ACC→GCC) in ispS",
+    "template_sequence_file": "ispS.fasta",
+    "mutation": "T505A",
+    "position": 505,
+    "wt_codon": "ACC",
+    "mut_codon": "GCC",
+    "codon_position_nt": 1513,
+    "polymerase": "Q5 High-Fidelity",
+    "method": "overlap_extension",
+    "note": "Third hit from EVOLVEpro round 1"
+  },
+  {
+    "id": "combinatorial_R264K_F338Y_T505A",
+    "description": "Triple mutant: R264K/F338Y/T505A — best from round 3",
+    "template_sequence_file": "ispS.fasta",
+    "mutations": ["R264K", "F338Y", "T505A"],
+    "positions": [264, 338, 505],
+    "wt_codons": ["CGC", "TTC", "ACC"],
+    "mut_codons": ["AAG", "TAC", "GCC"],
+    "codon_positions_nt": [790, 1012, 1513],
+    "polymerase": "Q5 High-Fidelity",
+    "method": "multi_fragment_gibson",
+    "fragments": 4,
+    "note": "Best triple mutant from EVOLVEpro round 3 (fitness 4.123)"
+  }
+]
