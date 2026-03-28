@@ -1010,12 +1010,7 @@ def handle_search_uniprot(params: dict) -> dict:
             # Poll for completion (max ~60s)
             status_text = ""
             for _ in range(20):
-                # Cancel-aware sleep: check every 0.5s instead of blocking 3s
-                for _ in range(6):
-                    if _cancel_event.is_set():
-                        _cancel_event.clear()
-                        return {"candidates": candidates, "error": "Cancelled"}
-                    _time.sleep(0.5)
+                _time.sleep(3)
                 status_text, _ = _fetch_text(
                     f"https://www.ebi.ac.uk/Tools/services/rest/ncbiblast/status/{job_id}"
                 )

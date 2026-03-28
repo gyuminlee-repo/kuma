@@ -207,6 +207,10 @@ export interface WorkspaceV1 {
   paretoDiversityEnabled?: boolean;
   disabledDomains?: string[];
   entropyWeightEnabled?: boolean;
+  organism?: string;
+  pipelineMode?: boolean;
+  positionDiversityEnabled?: boolean;
+  maxPerPosition?: number;
 }
 
 export interface EsmEmbeddingResult {

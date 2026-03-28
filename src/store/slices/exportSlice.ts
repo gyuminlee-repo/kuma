@@ -7,6 +7,7 @@ import type { SortingState, Updater } from "@tanstack/react-table";
 import type {
   PlateMapping,
   PlateMapResult,
+  SequenceInfo,
   WorkspaceV1,
 } from "../../types/models";
 
@@ -119,6 +120,10 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       paretoDiversityEnabled: s.paretoDiversityEnabled || undefined,
       disabledDomains: Array.from(s.disabledDomains),
       entropyWeightEnabled: s.entropyWeightEnabled,
+      organism: s.organism,
+      pipelineMode: s.pipelineMode,
+      positionDiversityEnabled: s.positionDiversityEnabled,
+      maxPerPosition: s.maxPerPosition,
     };
   },
 
@@ -133,10 +138,10 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       maxPrimers: ws.maxPrimers ?? 95,
     });
     if (ws.fastaPath) {
-      await store.loadSequence(ws.fastaPath);
+      const info = await sendRequest<SequenceInfo>("load_fasta", { filepath: ws.fastaPath });
+      set({ fastaPath: ws.fastaPath, seqInfo: info });
       if (ws.selectedGene) {
-        const seqInfo = get().seqInfo;
-        const geneExists = seqInfo?.genes.some((g) => String(g.cds_start) === String(ws.selectedGene));
+        const geneExists = info?.genes.some((g) => String(g.cds_start) === String(ws.selectedGene));
         if (geneExists) set({ selectedGene: ws.selectedGene });
       }
     }
@@ -163,11 +168,15 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       fillOnFailure: ws.fillOnFailure ?? false,
       uniprotAccession: ws.uniprotAccession ?? "",
       domains: ws.domains ?? [],
-      domainDiversityEnabled: ws.domainDiversityEnabled ?? false,
-      domainStrategy: ws.domainStrategy ?? "proportional",
-      paretoDiversityEnabled: ws.paretoDiversityEnabled ?? false,
       ...(ws.disabledDomains && { disabledDomains: new Set(ws.disabledDomains) }),
       entropyWeightEnabled: ws.entropyWeightEnabled ?? true,
+      ...(ws.organism && { organism: ws.organism }),
+      pipelineMode: ws.pipelineMode ?? true,
+      positionDiversityEnabled: ws.positionDiversityEnabled ?? true,
+      maxPerPosition: ws.maxPerPosition ?? 1,
+      domainDiversityEnabled: ws.domainDiversityEnabled ?? true,
+      domainStrategy: ws.domainStrategy ?? "proportional",
+      paretoDiversityEnabled: ws.paretoDiversityEnabled ?? true,
       statusMessage: "Workspace loaded. Re-designing to sync backend...",
     });
     if (ws.mutationText && ws.fastaPath) {
