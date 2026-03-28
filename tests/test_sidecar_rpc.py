@@ -380,10 +380,15 @@ class TestSequenceIdentity:
         identity = sidecar._sequence_identity("MVKLT", "MVXXX")
         assert identity == 40.0
 
-    def test_different_lengths(self):
-        # "MV" matches 2/5 of longer sequence
+    def test_different_lengths_substring(self):
+        # "MV" is a substring of "MVKLT" → treated as 100% (signal peptide trimming)
         identity = sidecar._sequence_identity("MV", "MVKLT")
-        assert identity == 40.0
+        assert identity == 100.0
+
+    def test_different_lengths_no_substring(self):
+        # "MX" is NOT a substring of "MVKLT" → positional: 1/5 = 20%
+        identity = sidecar._sequence_identity("MX", "MVKLT")
+        assert identity == 20.0
 
 
 # ── 13. list_organisms ──────────────────────────────────────────────────
