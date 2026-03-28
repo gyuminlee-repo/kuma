@@ -16,6 +16,11 @@ export function ParameterPanel() {
   const maxPrimers = useAppStore((s) => s.maxPrimers);
   const setCodonStrategy = useAppStore((s) => s.setCodonStrategy);
   const setMaxPrimers = useAppStore((s) => s.setMaxPrimers);
+  const mutationInputMode = useAppStore((s) => s.mutationInputMode);
+  const evolveproTotalCount = useAppStore((s) => s.evolveproTotalCount);
+  const isEvolvepro = mutationInputMode === "evolvepro" || mutationInputMode === "multi-evolve";
+  const maxLimit = isEvolvepro && evolveproTotalCount > 0 ? evolveproTotalCount : 960;
+  const overLimit = isEvolvepro && evolveproTotalCount > 0 && maxPrimers > evolveproTotalCount;
 
   const tmFwd = useAppStore((s) => s.tmFwdTarget);
   const tmRev = useAppStore((s) => s.tmRevTarget);
@@ -76,14 +81,21 @@ export function ParameterPanel() {
         <input
           type="number"
           min={1}
-          max={960}
-          className="w-20 h-7 text-xs border border-gray-300 rounded px-2 text-center focus:outline-none focus:ring-1 focus:ring-green-500"
+          max={maxLimit}
+          className={`w-20 h-7 text-xs border rounded px-2 text-center focus:outline-none focus:ring-1 ${
+            overLimit ? "border-amber-400 focus:ring-amber-400" : "border-gray-300 focus:ring-green-500"
+          }`}
           {...maxPrimersInput}
         />
         <span className="text-gray-400 text-[10px]">
           {Math.ceil(maxPrimers / 96)} plate(s)
         </span>
       </label>
+      {overLimit && (
+        <div className="text-[10px] text-amber-600 pl-26">
+          CSV contains only {evolveproTotalCount} variants
+        </div>
+      )}
 
       {/* Advanced Options */}
       <button

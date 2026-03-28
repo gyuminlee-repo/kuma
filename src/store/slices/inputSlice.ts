@@ -300,6 +300,11 @@ export const createInputSlice: StateCreator<InputSlice, [], [], InputSlice> = (s
       const paretoMsg = result.pareto_replaced != null && result.pareto_replaced > 0
         ? ` | Pareto: ${result.pareto_replaced} diversified`
         : "";
+      // Clamp maxPrimers to CSV variant count
+      if (result.total_count > 0 && maxPrimers > result.total_count) {
+        const setMaxPrimers = (get() as unknown as { setMaxPrimers: (n: number) => void }).setMaxPrimers;
+        setMaxPrimers(result.total_count);
+      }
       set({
         mutationText: variantText,
         mutationInputMode: "evolvepro",
