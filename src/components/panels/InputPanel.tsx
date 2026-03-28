@@ -259,7 +259,13 @@ export function InputPanel() {
               </div>
             )}
 
-            {/* Selection mode radio */}
+            {/* Selection mode / Pipeline UI — only for evolvepro (multi-evolve uses all combinations) */}
+            {mutationInputMode === "multi-evolve" ? (
+              <div className="text-xs text-gray-500 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
+                MULTI-evolve: all combinations selected (no filtering)
+              </div>
+            ) : (
+            <>
             <div className="space-y-1">
               <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Selection mode</div>
               <div className="space-y-0.5">
@@ -515,6 +521,8 @@ export function InputPanel() {
                   {selectedCount} variants selected
                 </div>
               </div>
+            )}
+            </>
             )}
 
             {/* Editable variant textarea */}

@@ -198,7 +198,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       statusMessage: "Fetching domain info...",
     });
     try {
-      const result = await sendRequest<FetchDomainsResult>("fetch_domains", { accession });
+      const result = await sendRequest<FetchDomainsResult>("fetch_domains", { accession }, 120_000);
       set({
         uniprotAccession: accession,
         domains: result.domains,
@@ -247,7 +247,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   fetchEsmEmbedding: async (accession: string, sequence?: string) => {
     set({ esmEmbeddingLoading: true, statusMessage: "ESM-2 embedding loading..." });
     try {
-      const result = await sendRequest<EsmEmbeddingResult>("fetch_esm_embedding", { accession, sequence: sequence ?? "" });
+      const result = await sendRequest<EsmEmbeddingResult>("fetch_esm_embedding", { accession, sequence: sequence ?? "" }, 120_000);
       if (result.success) {
         set({
           esmEmbeddingLoaded: true,
@@ -287,7 +287,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         "load_evolvepro_csv",
         {
           filepath,
-          top_n: isMultiEvolve ? 9999 : maxPrimers,
+          top_n: isMultiEvolve ? 0 : maxPrimers,
           ...(usePipeline && positionDiversityEnabled && { max_per_position: maxPerPosition }),
           ...(usePipeline && domainDiversityEnabled && activeDomains.length > 0 && {
             domain_diversity: true,
@@ -356,7 +356,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         organism,
         translation,
         known_accession: knownAccession,
-      });
+      }, 120_000);
       // Auto-fill accession if a 100% match is found
       let statusMsg = "UniProt: no matching entries found";
       const acc = result.auto_selected ?? "";

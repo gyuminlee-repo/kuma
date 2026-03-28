@@ -1186,7 +1186,7 @@ _METHODS = {
 
 # Methods that run in a background thread to avoid blocking the main loop.
 # These are long-running operations (network I/O, heavy computation).
-_ASYNC_METHODS = {"search_uniprot", "fetch_esm_embedding", "fetch_domains"}
+_ASYNC_METHODS = {"search_uniprot", "fetch_esm_embedding", "fetch_domains", "run_benchmark"}
 
 
 def _dispatch_handler(req_id: int | None, method: str, handler, params: dict) -> None:
@@ -1201,6 +1201,7 @@ def _dispatch_handler(req_id: int | None, method: str, handler, params: dict) ->
         _append_crash_log(method, str(params)[:200], traceback.format_exc())
         _error(req_id, -32602, str(exc))
     except Exception as exc:
+        logger.exception("Unhandled error in %s", method)
         _append_crash_log(method, str(params)[:200], traceback.format_exc())
         _error(req_id, -32603, f"{type(exc).__name__}: {exc}")
 
@@ -1223,19 +1224,7 @@ def dispatch(request: dict) -> None:
         t.start()
         return
 
-    try:
-        result = handler(params)
-        _ok(req_id, result)
-    except FileNotFoundError as exc:
-        _append_crash_log(method, str(params)[:200], traceback.format_exc())
-        _error(req_id, -32001, str(exc))
-    except (KeyError, ValueError) as exc:
-        _append_crash_log(method, str(params)[:200], traceback.format_exc())
-        _error(req_id, -32602, str(exc))
-    except Exception as exc:
-        logger.exception("Unhandled error in %s", method)
-        _append_crash_log(method, str(params)[:200], traceback.format_exc())
-        _error(req_id, -32603, str(exc))
+    _dispatch_handler(req_id, method, handler, params)
 
 
 def _start_parent_watchdog() -> None:

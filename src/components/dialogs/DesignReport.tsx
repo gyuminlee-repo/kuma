@@ -44,6 +44,7 @@ export function DesignReport() {
   const entropyWeightEnabled = useAppStore((s) => s.entropyWeightEnabled);
   const esmEmbeddingLoaded = useAppStore((s) => s.esmEmbeddingLoaded);
   const evolveproTotalCount = useAppStore((s) => s.evolveproTotalCount);
+  const mutationInputMode = useAppStore((s) => s.mutationInputMode);
 
   if (!showReport || designResults.length === 0) return null;
 
@@ -86,7 +87,7 @@ export function DesignReport() {
               <Stat label="Entropy-guided" value={entropyWeightEnabled ? "ON" : "OFF"} />
               <Stat label="ESM-2 structural" value={esmEmbeddingLoaded ? "ON (cosine distance)" : "OFF (1D distance)"} />
               {evolveproTotalCount > 0 && (
-                <Stat label="EVOLVEpro pool" value={`${evolveproTotalCount} variants`} />
+                <Stat label={mutationInputMode === "multi-evolve" ? "MULTI-evolve pool" : "EVOLVEpro pool"} value={`${evolveproTotalCount} variants`} />
               )}
             </Section>
           )}

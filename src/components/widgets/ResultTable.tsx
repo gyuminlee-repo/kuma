@@ -85,9 +85,9 @@ export function ColoredFwdSeq({ seq, overlapLen }: {
 }
 
 const HEADER_TOOLTIPS: Record<string, string> = {
-  rank: "Input order (EVOLVEpro: y_pred descending rank)",
+  rank: "Input order (y_pred descending rank)",
   mutation: "Amino acid substitution. Click header to sort by aa position",
-  y_pred: "EVOLVEpro predicted fitness score (higher = better predicted activity)",
+  y_pred: "Predicted fitness score (higher = better predicted activity)",
   forward_seq: "Full forward primer (overlap + mutation codon + downstream). Click to compare candidates",
   reverse_seq: "Full reverse primer. Click to compare candidates",
   fwd_len: "Forward primer length (bp)",

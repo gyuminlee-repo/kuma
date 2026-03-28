@@ -124,6 +124,10 @@ def load_evolvepro_csv(
     if has_score:
         rows.sort(key=lambda r: r[1], reverse=True)
 
+    # top_n <= 0 means "all variants" (no limit)
+    if top_n <= 0:
+        top_n = len(rows)
+
     # Position diversity filter
     pre_filter_count = len(rows)
     if max_per_position > 0:

@@ -160,7 +160,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
           rev_len_min: revLenMin,
           rev_len_max: revLenMax,
         }),
-      });
+      }, 300_000);
 
       const capped = result.results.slice(0, maxPrimers);
       const allFailed = result.failed_mutations ?? [];
