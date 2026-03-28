@@ -173,7 +173,7 @@ export interface ExportResult {
 export interface WorkspaceV1 {
   version: 1;
   fastaPath: string;
-  mutationInputMode: "text" | "evolvepro";
+  mutationInputMode: "text" | "evolvepro" | "multi-evolve";
   mutationText: string;
   evolveproCsvPath: string;
   selectedGene: string;
@@ -205,6 +205,8 @@ export interface WorkspaceV1 {
   domainDiversityEnabled?: boolean;
   domainStrategy?: "proportional" | "equal";
   paretoDiversityEnabled?: boolean;
+  disabledDomains?: string[];
+  entropyWeightEnabled?: boolean;
 }
 
 export interface EsmEmbeddingResult {

@@ -128,11 +128,15 @@ _SWAP_FIELDS = {
 }
 
 
+_stdout_lock = threading.Lock()
+
+
 def _send(obj: dict) -> None:
-    """Write a JSON object to stdout (one line)."""
+    """Write a JSON object to stdout (one line). Thread-safe."""
     line = json.dumps(obj, ensure_ascii=False)
-    sys.stdout.write(line + "\n")
-    sys.stdout.flush()
+    with _stdout_lock:
+        sys.stdout.write(line + "\n")
+        sys.stdout.flush()
 
 
 def _ok(req_id, result) -> None:
@@ -1180,6 +1184,27 @@ _METHODS = {
 }
 
 
+# Methods that run in a background thread to avoid blocking the main loop.
+# These are long-running operations (network I/O, heavy computation).
+_ASYNC_METHODS = {"search_uniprot", "fetch_esm_embedding", "fetch_domains"}
+
+
+def _dispatch_handler(req_id: int | None, method: str, handler, params: dict) -> None:
+    """Run a handler and send its JSON-RPC response. Used by both sync and threaded dispatch."""
+    try:
+        result = handler(params)
+        _ok(req_id, result)
+    except FileNotFoundError as exc:
+        _append_crash_log(method, str(params)[:200], traceback.format_exc())
+        _error(req_id, -32001, str(exc))
+    except (KeyError, ValueError) as exc:
+        _append_crash_log(method, str(params)[:200], traceback.format_exc())
+        _error(req_id, -32602, str(exc))
+    except Exception as exc:
+        _append_crash_log(method, str(params)[:200], traceback.format_exc())
+        _error(req_id, -32603, f"{type(exc).__name__}: {exc}")
+
+
 def dispatch(request: dict) -> None:
     """Process a single JSON-RPC request."""
     req_id = request.get("id")
@@ -1189,6 +1214,13 @@ def dispatch(request: dict) -> None:
     handler = _METHODS.get(method)
     if handler is None:
         _error(req_id, -32601, f"Method not found: {method}")
+        return
+
+    if method in _ASYNC_METHODS:
+        t = threading.Thread(
+            target=_dispatch_handler, args=(req_id, method, handler, params), daemon=True
+        )
+        t.start()
         return
 
     try:

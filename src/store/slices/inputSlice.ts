@@ -315,9 +315,10 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       if (result.total_count > 0 && maxPrimers > result.total_count) {
         get().setMaxPrimers(result.total_count);
       }
+      const currentMode = get().mutationInputMode;
       set({
         mutationText: variantText,
-        mutationInputMode: "evolvepro",
+        mutationInputMode: currentMode === "multi-evolve" ? "multi-evolve" : "evolvepro",
         yPredMap: yMap,
         domainStats: result.domain_stats ?? {},
         evolveproTotalCount: result.total_count,

@@ -114,7 +114,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       return;
     }
 
-    if (mutationInputMode === "evolvepro" && state.evolveproCsvPath) {
+    if ((mutationInputMode === "evolvepro" || mutationInputMode === "multi-evolve") && state.evolveproCsvPath) {
       await state.loadEvolveproCsv(state.evolveproCsvPath);
     }
 
