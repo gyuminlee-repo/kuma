@@ -170,16 +170,6 @@ export interface ExportResult {
   filepath: string;
 }
 
-export type ExperimentStatus = "pending" | "success" | "failure";
-export type FailureReason = "no_colony" | "wrong_size" | "multiple_bands" | "sequencing_mismatch" | "other";
-
-export interface ExperimentResult {
-  status: ExperimentStatus;
-  failureReason?: FailureReason;
-  note?: string;
-  timestamp?: string;
-}
-
 export interface WorkspaceV1 {
   version: 1;
   fastaPath: string;
@@ -221,7 +211,6 @@ export interface WorkspaceV1 {
   pipelineMode?: boolean;
   positionDiversityEnabled?: boolean;
   maxPerPosition?: number;
-  experimentResults?: Record<string, ExperimentResult>;
 }
 
 export interface EsmEmbeddingResult {

@@ -9,7 +9,6 @@ import type {
   FailedMutation,
   PlateMapping,
   PlateMapResult,
-  ExperimentResult,
 } from "../../types/models";
 
 export interface DesignSlice {
@@ -34,13 +33,10 @@ export interface DesignSlice {
   fillOnFailure: boolean;
   manuallySwapped: Record<string, "fwd" | "rev" | "both">;
   customCandidates: Record<string, SdmPrimerResult[]>;
-  experimentResults: Record<string, ExperimentResult>;
   rescuedMutations: Set<string>;
   showReport: boolean;
 
   // Actions
-  setExperimentResult: (mutation: string, result: ExperimentResult) => void;
-  clearExperimentResults: () => void;
   designPrimers: () => Promise<void>;
   setShowReport: (show: boolean) => void;
   cancelDesign: () => Promise<void>;
@@ -85,15 +81,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
   fillOnFailure: false,
   manuallySwapped: {},
   customCandidates: {},
-  experimentResults: {},
   rescuedMutations: new Set<string>(),
-
-  setExperimentResult: (mutation: string, result: ExperimentResult) => {
-    const next = { ...get().experimentResults, [mutation]: result };
-    set({ experimentResults: next });
-  },
-
-  clearExperimentResults: () => set({ experimentResults: {} }),
 
   designPrimers: async () => {
     const state = get();
