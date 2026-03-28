@@ -38,6 +38,8 @@ cd src-tauri && cargo check  # Rust 컴파일 체크
 3. **sidecar 바이너리 확인 스텝 유지** — `test -f` 로 존재 여부 검증
 4. **Cargo.lock 커밋 유지** — Tauri 앱은 바이너리 빌드이므로 lock 파일 필수
 5. **ubuntu-22.04 고정** — `ubuntu-latest`가 아닌 특정 버전 사용 (WebKit 의존성 호환)
+6. **`--target` 플래그 사용 금지** — 네이티브 빌드에서 `npx tauri build --target`을 쓰면 glob 해석 경로가 바뀌어 resource 번들링 실패. `npx tauri build`만 사용
+7. **artifact 경로**: `src-tauri/target/release/bundle/` (target triple 없음)
 
 ### .gitignore 필수 항목
 ```

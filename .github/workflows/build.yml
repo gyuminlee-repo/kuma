@@ -78,8 +78,6 @@ jobs:
 
       # --- Rust ---
       - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
 
       - uses: Swatinem/rust-cache@v2
         with:
@@ -87,7 +85,7 @@ jobs:
 
       # --- Build Tauri ---
       - name: Build Tauri app
-        run: npx tauri build --target ${{ matrix.target }}
+        run: npx tauri build
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -99,7 +97,7 @@ jobs:
         with:
           name: kuro-${{ matrix.target }}
           path: |
-            src-tauri/target/${{ matrix.target }}/release/bundle/**/*
+            src-tauri/target/release/bundle/**/*
           retention-days: 14
 
   # --- Create GitHub Release (only on tags) ---
