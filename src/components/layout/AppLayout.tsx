@@ -215,6 +215,10 @@ function MenuBar() {
             >
               Export Twist Order...
             </DropdownMenuItem>
+            <DropdownMenuItem className="h-px bg-gray-200 my-1 p-0" disabled />
+            <DropdownMenuItem onClick={() => useAppStore.getState().copyMethodsText()}>
+              Copy Methods Text
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
 

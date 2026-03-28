@@ -26,6 +26,7 @@ export interface ExportSlice {
   setStatus: (msg: string) => void;
   getWorkspaceSnapshot: () => WorkspaceV1;
   restoreWorkspace: (ws: WorkspaceV1) => Promise<void>;
+  copyMethodsText: () => void;
   resetAll: () => void;
 }
 
@@ -124,6 +125,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       pipelineMode: s.pipelineMode,
       positionDiversityEnabled: s.positionDiversityEnabled,
       maxPerPosition: s.maxPerPosition,
+      experimentResults: Object.keys(s.experimentResults).length > 0 ? s.experimentResults : undefined,
     };
   },
 
@@ -177,11 +179,41 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       domainDiversityEnabled: ws.domainDiversityEnabled ?? true,
       domainStrategy: ws.domainStrategy ?? "proportional",
       paretoDiversityEnabled: ws.paretoDiversityEnabled ?? true,
+      experimentResults: ws.experimentResults ?? {},
       statusMessage: "Workspace loaded. Re-designing to sync backend...",
     });
     if (ws.mutationText && ws.fastaPath) {
       await get().designPrimers();
     }
+  },
+
+  copyMethodsText: () => {
+    const s = get();
+    const organism = s.organism || "E. coli K-12";
+    const strategy = s.codonStrategy === "optimal" ? "organism-optimized" : "minimum-change";
+    const parts = [
+      `SDM primers were designed using KURO v${__APP_VERSION__}`,
+      `(https://github.com/gyuminlee-repo/KURO)`,
+      `with the following parameters:`,
+      `overlap Tm ${s.tmOverlapTarget}\u00B0C,`,
+      `forward Tm ${s.tmFwdTarget}\u00B0C,`,
+      `reverse Tm ${s.tmRevTarget}\u00B0C,`,
+      `GC content ${s.gcMin}\u2013${s.gcMax}%,`,
+      `${organism} ${strategy} codon selection.`,
+    ];
+    if (s.pipelineMode && s.mutationInputMode === "evolvepro") {
+      const pipeline: string[] = [];
+      if (s.positionDiversityEnabled) pipeline.push(`position diversity (max ${s.maxPerPosition}/site)`);
+      if (s.paretoDiversityEnabled) pipeline.push("Pareto diversity selection");
+      if (s.esmEmbeddingLoaded) pipeline.push("ESM-2 structural distance");
+      if (s.entropyWeightEnabled) pipeline.push("entropy-guided exploration");
+      if (pipeline.length > 0) {
+        parts.push(`Variant selection employed ${pipeline.join(", ")}.`);
+      }
+    }
+    const text = parts.join(" ");
+    navigator.clipboard.writeText(text);
+    set({ statusMessage: "Methods text copied to clipboard" });
   },
 
   resetAll: () => {
@@ -230,6 +262,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       manuallySwapped: {},
       customCandidates: {},
       rescuedMutations: new Set<string>(),
+      experimentResults: {},
       esmEmbeddingLoaded: false,
       esmEmbeddingLoading: false,
       evolveproTotalCount: 0,
