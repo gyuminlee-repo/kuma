@@ -9,6 +9,7 @@ jobs:
   test:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: ["3.11", "3.12"]
@@ -21,7 +22,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: pip install -e ".[dev]" pytest primer3-py==2.3.0 biopython==1.84 openpyxl==3.1.5
+        run: pip install -e . pytest
 
       - name: Run tests
         run: python -m pytest tests/ -v
@@ -52,6 +53,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libgtk-3-dev libsoup-3.0-dev libjavascriptcoregtk-4.1-dev
+
+      - name: Create sidecar stub for check
+        run: touch src-tauri/binaries/kuro-sidecar-x86_64-unknown-linux-gnu
 
       - name: Cargo check
         run: cd src-tauri && cargo check
