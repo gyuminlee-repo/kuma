@@ -67,6 +67,7 @@ def load_evolvepro_csv(
     domain_strategy: str = "proportional",
     pareto_diversity: bool = False,
     entropy_weight: float = 0.0,
+    esm_embedding: list[list[float]] | None = None,
 ) -> dict:
     """Load EVOLVEpro df_test.csv and return selected variants.
 
@@ -143,7 +144,9 @@ def load_evolvepro_csv(
 
     if domain_diversity and domain_info and pareto_diversity:
         selected, domain_stats = domain_aware_select(
-            rows, domain_info, top_n, domain_strategy, use_pareto=True,
+            rows, domain_info, top_n, domain_strategy,
+            use_pareto=True, esm_embedding=esm_embedding,
+            entropy_weight=entropy_weight,
         )
     elif domain_diversity and domain_info:
         selected, domain_stats = domain_aware_select(
@@ -151,7 +154,8 @@ def load_evolvepro_csv(
         )
     elif pareto_diversity:
         selected, pareto_replaced = pareto_diversity_select(
-            rows, top_n, entropy_weight=entropy_weight
+            rows, top_n, esm_embedding=esm_embedding,
+            entropy_weight=entropy_weight,
         )
     else:
         selected = rows[:top_n]
@@ -173,6 +177,8 @@ def domain_aware_select(
     top_n: int,
     strategy: str = "proportional",
     use_pareto: bool = False,
+    esm_embedding: list[list[float]] | None = None,
+    entropy_weight: float = 0.0,
 ) -> tuple[list[tuple[str, float]], dict]:
     """Domain-based quota Top-N selection.
 
@@ -258,7 +264,11 @@ def domain_aware_select(
         quota = quotas[name]
         candidates = domain_bins.get(name, [])
         if use_pareto and quota > 1 and len(candidates) > 1:
-            picked, _ = pareto_diversity_select(candidates, quota)
+            picked, _ = pareto_diversity_select(
+                candidates, quota,
+                esm_embedding=esm_embedding,
+                entropy_weight=entropy_weight,
+            )
         else:
             picked = candidates[:quota]
         for v, y in picked:

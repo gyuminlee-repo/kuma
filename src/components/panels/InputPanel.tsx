@@ -118,6 +118,7 @@ export function InputPanel() {
             onClick={() => browseFile(
               [
                 { name: "Sequence (GenBank/SnapGene)", extensions: ["gb", "gbff", "gbk", "dna"] },
+                { name: "FASTA", extensions: ["fa", "fasta", "fna"] },
                 { name: "All Files", extensions: ["*"] },
               ],
               loadSequence,

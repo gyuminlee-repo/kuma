@@ -1,8 +1,44 @@
-# KURO 업데이트 노트 — v0.9.5 → v0.9.36
+# KURO 업데이트 노트 — v0.9.5 → v0.9.37
 
 **한국어** | [English](UPDATE-NOTES.md)
 
-배포일: 2026-03-27
+배포일: 2026-03-28
+
+---
+
+## v0.9.37 (2026-03-28)
+
+### UniProt 검색 — BLAST 기반
+- 유전자명 텍스트 검색 → EBI NCBI BLAST API (blastp, UniProt Swiss-Prot)로 교체
+- 단백질 서열을 직접 BLAST — 유전자 주석 없는 FASTA 파일에서도 정확히 작동
+- URL 인코딩 버그 수정 (organism 이름에 공백 → `InvalidURL` 에러가 조용히 무시되던 문제)
+- 에러 정보를 UI에 표시 (이전: 무음 실패)
+
+### FASTA 헤더 파싱
+- `_parse_fasta_header()` 신규: NCBI/UniProt 헤더에서 gene name, organism 추출
+- `_detect_orfs()`에 파싱된 gene/organism 전달
+- `.fna` 확장자 지원 추가 (백엔드 + 프론트엔드 파일 다이얼로그)
+
+### ESM-2 로컬 추론
+- ESM Atlas API (현재 403) → 로컬 `fair-esm` + `torch` 추론으로 전환
+- 모델: `esm2_t12_35M_UR50D` (35M 파라미터, 480D, ~150MB)
+- `fair-esm` 미설치 시 1D 위치 거리로 자동 fallback
+- ESM embedding이 선택 파이프라인 전체에 연결됨 (이전: fetch만 하고 사용 안 됨)
+
+### 파이프라인 기본값
+- 전체 파이프라인 기본 활성화: `pipelineMode`, `positionDiversityEnabled`, `domainDiversityEnabled`, `paretoDiversityEnabled`, `entropyWeightEnabled` = `true`
+
+### Design Report 모달
+- `DesignReport.tsx` 모달 — 프라이머 설계 완료 시 자동 팝업
+- 파이프라인 요약, 성공/실패 통계, Tm 분포, 도메인 할당 통계, 실패 돌연변이 표시
+
+### 패키지 매니저 마이그레이션
+- npm → pnpm (`packageManager: "pnpm@10.33.0"`)
+- Scripts, `tauri.conf.json`, GitHub Actions CI/build 워크플로우 업데이트
+
+### 피처 데이터
+- `ispS.fa`, `pSHCE-dmpR.fa` 기반 도메인 집중 EVOLVEpro CSV 생성 (75% 도메인 내)
+- 불일치 기존 fixture 파일 삭제
 
 ---
 

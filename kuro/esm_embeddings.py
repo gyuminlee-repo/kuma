@@ -1,51 +1,145 @@
-"""ESM-2 per-residue embeddings via ESM Atlas API."""
+"""ESM-2 per-residue embeddings — local inference with remote fallback."""
 
 from __future__ import annotations
 
+import hashlib
 import json
+import logging
 from pathlib import Path
 
 _CACHE_DIR = Path.home() / ".kuro" / "embeddings"
+_log = logging.getLogger("kuro.esm")
+
+# Model configuration: esm2_t12_35M is a good balance of speed and quality
+_MODEL_NAME = "esm2_t12_35M_UR50D"
+_EMBED_DIM = 480  # t12 output dimension
 
 
-def get_embedding(accession: str) -> list[list[float]] | None:
-    """Get per-residue ESM-2 embedding for a UniProt accession.
+def _cache_key(sequence: str) -> str:
+    """Generate a stable cache key from protein sequence."""
+    return hashlib.sha256(sequence.encode()).hexdigest()[:16]
 
-    Returns list of 1280-dim vectors (one per residue), or None on failure.
-    Caches to ~/.kuro/embeddings/{accession}.json
+
+def get_embedding(
+    accession: str = "",
+    sequence: str = "",
+) -> list[list[float]] | None:
+    """Get per-residue ESM-2 embedding.
+
+    Tries in order:
+    1. Disk cache (by accession or sequence hash)
+    2. Local ESM-2 inference (if torch + esm available)
+    3. Remote API fallback
+
+    Returns list of N vectors (one per residue), or None on failure.
     """
-    if not accession or not accession.strip():
+    if not accession and not sequence:
         return None
 
-    accession = accession.strip()
     _CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    cache_path = _CACHE_DIR / f"{accession}.json"
 
-    if cache_path.exists():
-        with open(cache_path, encoding="utf-8") as f:
-            return json.load(f)
+    # Check cache — try accession first, then sequence hash
+    cache_path = None
+    if accession:
+        cache_path = _CACHE_DIR / f"{accession.strip()}.json"
+        if cache_path.exists():
+            with open(cache_path, encoding="utf-8") as f:
+                return json.load(f)
 
-    # Fetch from ESM Atlas
+    if sequence:
+        seq_key = _cache_key(sequence)
+        seq_cache = _CACHE_DIR / f"seq_{seq_key}.json"
+        if seq_cache.exists():
+            with open(seq_cache, encoding="utf-8") as f:
+                return json.load(f)
+
+    # Try local inference
+    if sequence:
+        embedding = _local_inference(sequence)
+        if embedding is not None:
+            # Cache by both accession and sequence hash
+            _save_cache(embedding, accession, sequence)
+            return embedding
+
+    # Remote API fallback (for accession-only calls)
+    if accession:
+        embedding = _remote_fetch(accession.strip())
+        if embedding is not None:
+            _save_cache(embedding, accession, sequence)
+            return embedding
+
+    _log.warning("ESM-2 embedding unavailable — Pareto will use 1D position distance")
+    return None
+
+
+def _save_cache(
+    embedding: list[list[float]], accession: str, sequence: str,
+) -> None:
+    """Save embedding to disk cache."""
+    if accession:
+        path = _CACHE_DIR / f"{accession.strip()}.json"
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(embedding, f)
+    if sequence:
+        path = _CACHE_DIR / f"seq_{_cache_key(sequence)}.json"
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(embedding, f)
+
+
+def _local_inference(sequence: str) -> list[list[float]] | None:
+    """Run ESM-2 locally using torch + fair-esm."""
+    try:
+        import torch
+        import esm
+    except ImportError:
+        _log.info("Local ESM-2 not available (pip install fair-esm torch)")
+        return None
+
+    try:
+        model, alphabet = esm.pretrained.esm2_t12_35M_UR50D()
+        model.eval()
+
+        batch_converter = alphabet.get_batch_converter()
+        data = [("protein", sequence)]
+        _, _, batch_tokens = batch_converter(data)
+
+        with torch.no_grad():
+            results = model(batch_tokens, repr_layers=[12])
+
+        # Extract per-residue representations (skip BOS/EOS tokens)
+        token_reps = results["representations"][12]
+        # shape: [1, seq_len+2, embed_dim] — trim BOS and EOS
+        embedding = token_reps[0, 1:len(sequence) + 1, :].tolist()
+
+        _log.info("Local ESM-2 inference: %d residues x %dD", len(embedding), len(embedding[0]))
+        return embedding
+
+    except Exception as exc:
+        _log.warning("Local ESM-2 inference failed: %s", exc)
+        return None
+
+
+def _remote_fetch(accession: str) -> list[list[float]] | None:
+    """Try remote ESM embedding APIs as fallback."""
     import ssl
     import urllib.request
 
     ctx = ssl.create_default_context()
+    endpoints = [
+        f"https://api.esmatlas.com/fetchEmbedding/{accession}",
+    ]
 
-    # ESM Atlas provides per-residue embeddings
-    url = f"https://api.esmatlas.com/fetchEmbedding/{accession}"
-    try:
-        req = urllib.request.Request(url, headers={"Accept": "application/json"})
-        with urllib.request.urlopen(req, context=ctx, timeout=30) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-            # data should be a list of 1280-dim vectors
-            if isinstance(data, list) and len(data) > 0:
-                with open(cache_path, "w", encoding="utf-8") as f:
-                    json.dump(data, f)
-                return data
-    except Exception:
-        pass
+    for url in endpoints:
+        try:
+            req = urllib.request.Request(url, headers={"Accept": "application/json"})
+            with urllib.request.urlopen(req, context=ctx, timeout=30) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                if isinstance(data, list) and len(data) > 0:
+                    _log.info("Remote ESM embedding: %s (%d residues)", url, len(data))
+                    return data
+        except Exception as exc:
+            _log.info("Remote ESM endpoint unavailable: %s — %s", url, exc)
 
-    # Fallback: API unavailable
     return None
 
 
@@ -66,7 +160,7 @@ def pairwise_esm_distance(
     embedding: list[list[float]], pos_i: int, pos_j: int
 ) -> float:
     """Compute ESM-2 cosine distance between two residue positions (1-based)."""
-    idx_i = pos_i - 1  # 1-based to 0-based
+    idx_i = pos_i - 1
     idx_j = pos_j - 1
     if (
         idx_i < 0
@@ -74,5 +168,5 @@ def pairwise_esm_distance(
         or idx_j < 0
         or idx_j >= len(embedding)
     ):
-        return 1.0  # max distance for out-of-bounds
+        return 1.0
     return cosine_distance(embedding[idx_i], embedding[idx_j])

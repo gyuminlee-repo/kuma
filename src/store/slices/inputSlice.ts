@@ -64,7 +64,7 @@ export interface InputSlice {
   toggleDomain: (domainKey: string) => void;
   setParetoDiversityEnabled: (enabled: boolean) => void;
   setEntropyWeightEnabled: (enabled: boolean) => void;
-  fetchEsmEmbedding: (accession: string) => Promise<void>;
+  fetchEsmEmbedding: (accession: string, sequence?: string) => Promise<void>;
   loadEvolveproCsv: (filepath: string) => Promise<void>;
   parseMutations: () => Promise<void>;
   searchUniprot: (geneName: string, organism: string, translation: string, knownAccession: string) => Promise<void>;
@@ -80,18 +80,18 @@ export const createInputSlice: StateCreator<InputSlice, [], [], InputSlice> = (s
   mutationText: "",
   evolveproCsvPath: "",
   yPredMap: {},
-  pipelineMode: false,
-  positionDiversityEnabled: false,
+  pipelineMode: true,
+  positionDiversityEnabled: true,
   maxPerPosition: 1,
-  domainDiversityEnabled: false,
+  domainDiversityEnabled: true,
   domainStrategy: "proportional",
   uniprotAccession: "",
   domains: [],
   domainLoading: false,
   disabledDomains: new Set<string>(),
   domainStats: {},
-  paretoDiversityEnabled: false,
-  entropyWeightEnabled: false,
+  paretoDiversityEnabled: true,
+  entropyWeightEnabled: true,
   esmEmbeddingLoaded: false,
   esmEmbeddingLoading: false,
   parsedMutations: [],
@@ -201,8 +201,13 @@ export const createInputSlice: StateCreator<InputSlice, [], [], InputSlice> = (s
           ? `Domains: ${result.domains.length} found (${result.source})`
           : result.error_msg ? `Domain fetch failed: ${result.error_msg}` : "No domains found",
       } as Partial<InputSlice>);
-      const { evolveproCsvPath } = get();
+      const { evolveproCsvPath, esmEmbeddingLoaded } = get();
       if (evolveproCsvPath && result.domains.length > 0) get().loadEvolveproCsv(evolveproCsvPath);
+      // Also fetch ESM embedding for manual accession entry
+      if (!esmEmbeddingLoaded) {
+        const gene = get().seqInfo?.genes.find((g) => String(g.cds_start) === get().selectedGene);
+        get().fetchEsmEmbedding(accession, gene?.translation ?? "");
+      }
     } catch (err) {
       set({ domainLoading: false, statusMessage: `Domain fetch failed: ${formatError(err)}` } as Partial<InputSlice>);
     }
@@ -235,21 +240,24 @@ export const createInputSlice: StateCreator<InputSlice, [], [], InputSlice> = (s
     if (evolveproCsvPath) get().loadEvolveproCsv(evolveproCsvPath);
   },
 
-  fetchEsmEmbedding: async (accession: string) => {
-    set({ esmEmbeddingLoading: true } as Partial<InputSlice>);
+  fetchEsmEmbedding: async (accession: string, sequence?: string) => {
+    set({ esmEmbeddingLoading: true, statusMessage: "ESM-2 embedding loading..." } as Partial<InputSlice>);
     try {
-      const result = await sendRequest<EsmEmbeddingResult>("fetch_esm_embedding", { accession });
+      const result = await sendRequest<EsmEmbeddingResult>("fetch_esm_embedding", { accession, sequence: sequence ?? "" });
       if (result.success) {
         set({
           esmEmbeddingLoaded: true,
           esmEmbeddingLoading: false,
           statusMessage: `ESM-2 embedding loaded: ${result.length} residues, ${result.dimension}D`,
         } as Partial<InputSlice>);
+        // Re-trigger CSV selection with ESM embedding now available
+        const { evolveproCsvPath } = get();
+        if (evolveproCsvPath) get().loadEvolveproCsv(evolveproCsvPath);
       } else {
         set({
           esmEmbeddingLoaded: false,
           esmEmbeddingLoading: false,
-          statusMessage: `ESM-2 embedding unavailable: ${result.error ?? "unknown error"}`,
+          statusMessage: `ESM-2 unavailable (using position distance) — ${result.error ?? "API offline"}`,
         } as Partial<InputSlice>);
       }
     } catch (err) {
@@ -334,7 +342,7 @@ export const createInputSlice: StateCreator<InputSlice, [], [], InputSlice> = (s
   },
 
   searchUniprot: async (geneName: string, organism: string, translation: string, knownAccession: string) => {
-    set({ uniprotSearching: true } as Partial<InputSlice>);
+    set({ uniprotSearching: true, statusMessage: "UniProt BLAST search in progress..." } as Partial<InputSlice>);
     try {
       const result = await sendRequest<SearchUniprotResult>("search_uniprot", {
         gene_name: geneName,
@@ -345,7 +353,9 @@ export const createInputSlice: StateCreator<InputSlice, [], [], InputSlice> = (s
       // Auto-fill accession if a 100% match is found
       let statusMsg = "UniProt: no matching entries found";
       const acc = result.auto_selected ?? "";
-      if (result.auto_selected) {
+      if (result.error_detail && result.candidates.length === 0) {
+        statusMsg = `UniProt search error: ${result.error_detail}`;
+      } else if (result.auto_selected) {
         statusMsg = `UniProt: auto-matched ${result.auto_selected} (100% identity)`;
       } else if (result.candidates.length > 0) {
         statusMsg = `UniProt: ${result.candidates.length} candidate(s) found — select manually`;
@@ -356,9 +366,9 @@ export const createInputSlice: StateCreator<InputSlice, [], [], InputSlice> = (s
         ...(acc && { uniprotAccession: acc }),
         statusMessage: statusMsg,
       } as Partial<InputSlice>);
-      // Auto-trigger ESM-2 embedding download on successful UniProt match
+      // Auto-trigger ESM-2 embedding with protein sequence for local inference
       if (acc) {
-        get().fetchEsmEmbedding(acc);
+        get().fetchEsmEmbedding(acc, translation);
       }
     } catch (err) {
       set({ uniprotSearching: false, statusMessage: `UniProt search failed: ${formatError(err)}` } as Partial<InputSlice>);

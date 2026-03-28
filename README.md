@@ -21,7 +21,7 @@ Given a mutation list (plain text / EVOLVEpro CSV / MULTI-evolve CSV) and a temp
 - **GC% range**: Default 40-60% (adjustable in Advanced Options). Primers outside range receive a penalty
 - **Primer length limit**: Optional Fwd/Rev min/max length constraint (adjustable in Advanced Options)
 - **Hairpin / Homodimer check**: Secondary structure check via primer3 calc_hairpin/calc_homodimer. Displays Tm and dG (kcal/mol)
-- **ESM-2 structural distance**: Pareto diversity optionally uses ESM-2 per-residue cosine distance (via ESM Atlas API) instead of 1D position distance. Auto-downloads and caches embeddings by UniProt accession
+- **ESM-2 structural distance**: Pareto diversity optionally uses ESM-2 per-residue cosine distance instead of 1D position distance. Runs locally via `fair-esm` + `torch` (install: `pip install fair-esm torch`). Model: `esm2_t12_35M_UR50D`. Falls back to 1D distance when not installed. Embeddings cached at `~/.kuro/embeddings/`
 - **Benchmark framework**: Compare KURO selection (Pareto/Domain) vs Random vs Top-N on fitness landscapes. Metrics: hit rate, mean fitness, position coverage
 - **Synthesis quality score**: Oligo synthesis difficulty assessment (0-100) based on IDT/Twist guidelines. Penalizes homopolymer runs, GC-rich stretches, dinucleotide repeats, and extreme GC content
 - **Sequence Map**: Collapsible SVG linear CDS map with mutation positions, domain regions, and density histogram for cluster detection. Hover over histogram bars to see mutation count per AA region

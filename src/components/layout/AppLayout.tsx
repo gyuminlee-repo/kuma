@@ -10,6 +10,7 @@ import { ParameterPanel } from "../panels/ParameterPanel";
 import { ResultTable } from "../widgets/ResultTable";
 import { SequenceViewer } from "../widgets/SequenceViewer";
 import { PlateMap } from "../widgets/PlateMap";
+import { DesignReport } from "../dialogs/DesignReport";
 import { Button } from "../ui/button";
 import {
   Dialog,
@@ -495,6 +496,9 @@ export function AppLayout() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Design Report Modal */}
+      <DesignReport />
     </div>
   );
 }

@@ -1,7 +1,8 @@
 {
   "name": "kuro",
   "private": true,
-  "version": "0.9.37",
+  "version": "0.9.38",
+  "packageManager": "pnpm@10.33.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,9 +10,9 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "sidecar:kill": "node -e \"try{require('child_process').execSync(process.platform==='win32'?'taskkill /F /IM kuro-sidecar-x86_64-pc-windows-msvc.exe':'pkill -f kuro-sidecar||true',{stdio:'ignore'})}catch{}\"",
-    "sidecar:build": "npm run sidecar:kill && cd python-core && node -e \"require('child_process').execSync((process.platform==='win32'?'python':'python3')+' build_sidecar.py --onefile',{stdio:'inherit'})\"",
+    "sidecar:build": "pnpm run sidecar:kill && cd python-core && node -e \"require('child_process').execSync((process.platform==='win32'?'python':'python3')+' build_sidecar.py --onefile',{stdio:'inherit'})\"",
     "sidecar:build:onedir": "cd python-core && node -e \"require('child_process').execSync((process.platform==='win32'?'python':'python3')+' build_sidecar.py',{stdio:'inherit'})\"",
-    "build:all": "npm run sidecar:build && npm run tauri build",
+    "build:all": "pnpm run sidecar:build && pnpm run tauri build",
     "capture-guide": "tsx --tsconfig tsconfig.scripts.json scripts/capture-guide.ts",
     "record-tutorial": "tsx --tsconfig tsconfig.scripts.json scripts/record-tutorial.ts"
   },

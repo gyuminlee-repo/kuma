@@ -538,12 +538,204 @@ def verify_design_failures(gb_path: Path, csv_path: Path) -> bool:
 
 
 # ---------------------------------------------------------------------------
+# FASTA-based EVOLVEpro / multi-evolve CSV generators
+# ---------------------------------------------------------------------------
+
+def _read_fasta(filepath: Path) -> tuple[str, str]:
+    """Read a FASTA file and return (header, sequence)."""
+    header = ""
+    seq_parts: list[str] = []
+    with open(filepath, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line.startswith(">"):
+                header = line[1:].strip()
+            elif line:
+                seq_parts.append(line.upper())
+    return header, "".join(seq_parts)
+
+
+def _longest_orf(dna: str) -> tuple[int, str]:
+    """Find longest ORF from any ATG. Returns (start_pos, protein_sequence)."""
+    best_start, best_len = 0, 0
+    for i in range(len(dna) - 2):
+        if dna[i:i + 3] != "ATG":
+            continue
+        orf_len = 0
+        for j in range(i + 3, len(dna) - 2, 3):
+            if dna[j:j + 3] in STOP_CODONS:
+                orf_len = j - i
+                break
+        else:
+            orf_len = len(dna) - i
+        if orf_len > best_len:
+            best_len = orf_len
+            best_start = i
+    if best_len > 0:
+        return best_start, translate(dna[best_start:best_start + best_len])
+    return 0, ""
+
+
+def write_fasta_evolvepro_csv(
+    filepath: Path,
+    protein: str,
+    gene_label: str,
+    n_variants: int = 50,
+    domain_ranges: list[tuple[int, int]] | None = None,
+    domain_fraction: float = 0.75,
+) -> None:
+    """Generate EVOLVEpro CSV from an actual protein sequence.
+
+    Mutations are guaranteed to match the real WT amino acids.
+    When domain_ranges is provided, ~domain_fraction of variants are placed
+    within domain boundaries (realistic: directed evolution targets functional domains).
+    Domain variants get higher y_pred on average.
+    """
+    aa_len = len(protein)
+    all_aas = list(AMINO_ACIDS)
+    used: set[str] = set()
+    variants: list[tuple[str, float]] = []
+
+    # Separate domain vs non-domain positions (1-based)
+    domain_positions: list[int] = []
+    if domain_ranges:
+        for start, end in domain_ranges:
+            domain_positions.extend(range(max(2, start), min(aa_len, end) + 1))
+    non_domain_positions = [p for p in range(2, aa_len + 1) if p not in set(domain_positions)]
+
+    n_domain = int(n_variants * domain_fraction) if domain_positions else 0
+    n_other = n_variants - n_domain
+
+    def _pick_variant(positions: list[int], y_lo: float, y_hi: float) -> tuple[str, float] | None:
+        for _ in range(100):
+            pos = random.choice(positions)
+            wt_aa = protein[pos - 1]
+            if wt_aa not in all_aas:
+                continue
+            mt_aa = random.choice([aa for aa in all_aas if aa != wt_aa])
+            notation = f"{wt_aa}{pos}{mt_aa}"
+            if notation not in used:
+                used.add(notation)
+                return notation, round(random.uniform(y_lo, y_hi), 4)
+        return None
+
+    # Domain variants: higher fitness predictions
+    for _ in range(n_domain):
+        v = _pick_variant(domain_positions, 0.65, 1.0)
+        if v:
+            variants.append(v)
+
+    # Non-domain variants: lower fitness predictions
+    for _ in range(n_other):
+        pool = non_domain_positions if non_domain_positions else list(range(2, aa_len + 1))
+        v = _pick_variant(pool, 0.4, 0.75)
+        if v:
+            variants.append(v)
+
+    variants.sort(key=lambda x: x[1], reverse=True)
+
+    with open(filepath, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(["variant", "mutation", "y_pred"])
+        for notation, y_pred in variants:
+            writer.writerow([notation, notation, y_pred])
+
+
+def write_multi_evolve_csv(
+    filepath: Path,
+    protein: str,
+    gene_label: str,
+    n_singles: int = 5,
+) -> None:
+    """Generate multi-evolve batch CSV from actual protein sequence.
+
+    Creates n_singles single mutations + 3 combination variants.
+    """
+    aa_len = len(protein)
+    all_aas = list(AMINO_ACIDS)
+    used: set[str] = set()
+    singles: list[dict] = []
+
+    attempts = 0
+    while len(singles) < n_singles and attempts < n_singles * 20:
+        attempts += 1
+        pos = random.randint(2, aa_len)
+        wt_aa = protein[pos - 1]
+        if wt_aa not in all_aas:
+            continue
+        candidates = [aa for aa in all_aas if aa != wt_aa]
+        mt_aa = random.choice(candidates)
+        notation = f"{wt_aa}{pos}{mt_aa}"
+        if notation in used:
+            continue
+        used.add(notation)
+        wt_codon = ECOLI_BEST.get(wt_aa, "NNN")
+        mt_codon = ECOLI_BEST.get(mt_aa, "NNN")
+        singles.append({
+            "variant_id": f"{gene_label}_{notation}",
+            "mutations": notation,
+            "position": str(pos),
+            "wt_aa": wt_aa,
+            "mut_aa": mt_aa,
+            "codon_wt": wt_codon,
+            "codon_mut": mt_codon,
+            "predicted_fitness": round(random.uniform(1.2, 2.0), 3),
+            "domain": "auto",
+            "site_category": "auto",
+        })
+
+    # Generate 2-3 combination variants from the singles
+    combos: list[dict] = []
+    if len(singles) >= 2:
+        s = singles
+        # Double combo
+        combos.append({
+            "variant_id": f"{gene_label}_{s[0]['mutations']}_{s[1]['mutations']}",
+            "mutations": f"{s[0]['mutations']}/{s[1]['mutations']}",
+            "position": f"{s[0]['position']},{s[1]['position']}",
+            "wt_aa": f"{s[0]['wt_aa']},{s[1]['wt_aa']}",
+            "mut_aa": f"{s[0]['mut_aa']},{s[1]['mut_aa']}",
+            "codon_wt": f"{s[0]['codon_wt']},{s[1]['codon_wt']}",
+            "codon_mut": f"{s[0]['codon_mut']},{s[1]['codon_mut']}",
+            "predicted_fitness": round(random.uniform(2.5, 3.5), 3),
+            "domain": "multi_domain",
+            "site_category": "combination",
+        })
+    if len(singles) >= 3:
+        # Triple combo
+        combos.append({
+            "variant_id": f"{gene_label}_{s[0]['mutations']}_{s[1]['mutations']}_{s[2]['mutations']}",
+            "mutations": f"{s[0]['mutations']}/{s[1]['mutations']}/{s[2]['mutations']}",
+            "position": f"{s[0]['position']},{s[1]['position']},{s[2]['position']}",
+            "wt_aa": f"{s[0]['wt_aa']},{s[1]['wt_aa']},{s[2]['wt_aa']}",
+            "mut_aa": f"{s[0]['mut_aa']},{s[1]['mut_aa']},{s[2]['mut_aa']}",
+            "codon_wt": f"{s[0]['codon_wt']},{s[1]['codon_wt']},{s[2]['codon_wt']}",
+            "codon_mut": f"{s[0]['codon_mut']},{s[1]['codon_mut']},{s[2]['codon_mut']}",
+            "predicted_fitness": round(random.uniform(3.5, 4.5), 3),
+            "domain": "multi_domain",
+            "site_category": "combination",
+        })
+
+    all_rows = singles + combos
+    fieldnames = [
+        "variant_id", "mutations", "position", "wt_aa", "mut_aa",
+        "codon_wt", "codon_mut", "predicted_fitness", "domain", "site_category",
+    ]
+    with open(filepath, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for row in all_rows:
+            writer.writerow(row)
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
 def main() -> int:
     project_root = Path(__file__).resolve().parent.parent
-    samples_dir = project_root / "samples"
+    fixtures_dir = Path(__file__).resolve().parent
+    samples_dir = project_root / "src-tauri" / "samples"
     samples_dir.mkdir(exist_ok=True)
 
     print("Building plasmid sequence...")
@@ -574,10 +766,7 @@ def main() -> int:
     gb_size = gb_path.stat().st_size
     print(f"  Size: {gb_size} bytes ({gb_size / 1024:.1f} KB)")
 
-    # 2. SnapGene .dna: not supported by Biopython SeqIO writers (snapgene absent from _FormatToWriter)
-    print("\nSnapGene .dna: Biopython 1.86 SeqIO.write does not support 'snapgene' format — skipped.")
-
-    # 3. Write EVOLVEpro CSV (95 variants, 2 forced failures)
+    # 2. Write EVOLVEpro CSV for sample_plasmid (synR, 95 variants)
     csv_path = samples_dir / "sample_evolvepro.csv"
     print(f"\nWriting {csv_path}...")
     write_evolvepro_csv(csv_path, longest_cds, n_variants=95)
@@ -585,11 +774,66 @@ def main() -> int:
     print(f"  Size: {csv_size} bytes ({csv_size / 1024:.1f} KB)")
 
     # ---------------------------------------------------------------------------
+    # 3. Generate EVOLVEpro + multi-evolve CSVs for each FASTA fixture
+    # ---------------------------------------------------------------------------
+    fasta_configs = [
+        {
+            "file": "ispS.fa", "label": "ispS", "n_evo": 50, "n_singles": 5,
+            "domains": [(65, 239), (298, 535)],  # PF01397 + PF03936 (Q50L36)
+        },
+        {
+            "file": "pSHCE-dmpR.fa", "label": "dmpR", "n_evo": 50, "n_singles": 5,
+            "domains": [(16, 116), (140, 188), (236, 401), (407, 488), (519, 558)],  # Q06573
+        },
+    ]
+
+    for cfg in fasta_configs:
+        fa_path = fixtures_dir / cfg["file"]
+        if not fa_path.exists():
+            print(f"\nSKIP: {fa_path} not found")
+            continue
+        _, dna = _read_fasta(fa_path)
+        orf_start, protein = _longest_orf(dna)
+        if not protein:
+            print(f"\nSKIP: {cfg['file']} — no ORF found")
+            continue
+        print(f"\n{cfg['file']}: ORF@{orf_start}, {len(protein)}aa")
+
+        # EVOLVEpro CSV (domain-enriched)
+        evo_path = fixtures_dir / f"{cfg['label']}_evolvepro.csv"
+        print(f"  Writing {evo_path.name}...")
+        write_fasta_evolvepro_csv(
+            evo_path, protein, cfg["label"],
+            n_variants=cfg["n_evo"],
+            domain_ranges=cfg.get("domains"),
+        )
+        print(f"    {evo_path.stat().st_size} bytes, {cfg['n_evo']} variants")
+
+        # Multi-evolve batch CSV
+        multi_path = fixtures_dir / f"{cfg['label']}_multi_evolve.csv"
+        print(f"  Writing {multi_path.name}...")
+        write_multi_evolve_csv(multi_path, protein, cfg["label"], n_singles=cfg["n_singles"])
+        print(f"    {multi_path.stat().st_size} bytes")
+
+    # Also copy ispS evolvepro to samples dir for easy app testing
+    ispS_evo_src = fixtures_dir / "ispS_evolvepro.csv"
+    if ispS_evo_src.exists():
+        ispS_evo_dst = samples_dir / "ispS_evolvepro.csv"
+        ispS_evo_dst.write_text(ispS_evo_src.read_text(encoding="utf-8"), encoding="utf-8")
+        print(f"\nCopied {ispS_evo_src.name} → {ispS_evo_dst}")
+
+    # ---------------------------------------------------------------------------
     # Verification
     # ---------------------------------------------------------------------------
     print("\n--- Verification ---")
     ok_gb = verify_genbank(gb_path, cds_list)
     ok_csv = verify_csv(csv_path)
+
+    # Verify FASTA-based CSVs
+    for cfg in fasta_configs:
+        evo_path = fixtures_dir / f"{cfg['label']}_evolvepro.csv"
+        if evo_path.exists():
+            verify_csv(evo_path)
 
     # File size checks
     if gb_size > 100 * 1024:

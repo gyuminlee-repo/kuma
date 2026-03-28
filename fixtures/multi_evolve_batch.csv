@@ -1,9 +1,0 @@
-variant_id,mutations,position,wt_aa,mut_aa,codon_wt,codon_mut,predicted_fitness,domain,site_category
-ispS_R264K,R264K,264,R,K,CGC,AAG,1.823,catalytic_loop,active_site
-ispS_F338Y,F338Y,338,F,Y,TTC,TAC,1.654,helix_G,substrate_binding
-ispS_T505A,T505A,505,T,A,ACC,GCC,1.589,C_terminal,surface
-ispS_N315D,N315D,315,N,D,AAC,GAC,1.543,beta_sheet,buried
-ispS_I390L,I390L,390,I,L,ATC,CTG,1.498,helix_H,hydrophobic_core
-ispS_R264K_F338Y,R264K/F338Y,"264,338","R,F","K,Y","CGC,TTC","AAG,TAC",2.945,catalytic_loop+helix_G,active_site+substrate_binding
-ispS_R264K_T505A,R264K/T505A,"264,505","R,T","K,A","CGC,ACC","AAG,GCC",2.712,catalytic_loop+C_terminal,active_site+surface
-ispS_R264K_F338Y_T505A,R264K/F338Y/T505A,"264,338,505","R,F,T","K,Y,A","CGC,TTC,ACC","AAG,TAC,GCC",4.123,multi_domain,active_site+substrate_binding+surface

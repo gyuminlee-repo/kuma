@@ -7,6 +7,7 @@ with Tm-guided non-overlap extension and polymerase-aware parameters.
 from __future__ import annotations
 
 import logging
+import re
 from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 from pathlib import Path
@@ -791,9 +792,10 @@ def load_sequence(filepath: Path) -> tuple[str, str, list[GeneInfo]]:
             genes = _detect_orfs(sequence)
         return header, sequence, genes
 
-    # Plain FASTA: no gene annotations
+    # Plain FASTA: parse header for gene/organism hints
     header, sequence = load_fasta(filepath)
-    genes = _detect_orfs(sequence)
+    gene_hint, organism_hint = _parse_fasta_header(header)
+    genes = _detect_orfs(sequence, gene_name=gene_hint or "ORF1", organism=organism_hint)
     return header, sequence, genes
 
 
@@ -878,7 +880,43 @@ def _extract_genes_from_biopython(filepath: Path, fmt: str) -> list[GeneInfo]:
         return []
 
 
-def _detect_orfs(sequence: str) -> list[GeneInfo]:
+def _parse_fasta_header(header: str) -> tuple[str, str]:
+    """Extract gene name and organism from a FASTA header.
+
+    Handles UniProt (OS=/GN=) and NCBI (accession Genus species gene ...) formats.
+    Returns (gene_name, organism) — either may be empty.
+    """
+    if not header:
+        return "", ""
+
+    # UniProt: >sp|Q50L36|ISPS_POPAL ... OS=Populus alba ... GN=ISPS
+    os_match = re.search(r'\bOS=([^=]+?)(?:\s+\w+=|$)', header)
+    gn_match = re.search(r'\bGN=(\S+)', header)
+    if os_match:
+        return (gn_match.group(1) if gn_match else ""), os_match.group(1).strip()
+
+    # NCBI: >AB198180.1 Populus alba ispS isoprene synthase, complete CDS
+    parts = header.split()
+    if len(parts) < 3:
+        return (parts[0] if parts else ""), ""
+
+    # Detect "Genus species" pattern (Capitalized + lowercase, both >2 chars)
+    for i in range(1, len(parts) - 1):
+        if parts[i][0].isupper() and parts[i + 1][0].islower() and len(parts[i]) > 2:
+            organism = f"{parts[i]} {parts[i + 1]}"
+            # Gene: next short lowercase-starting alphanumeric token after organism
+            for tok in parts[i + 2:]:
+                clean = tok.rstrip(",")
+                if 2 <= len(clean) <= 15 and clean[0].islower() and clean.isalnum():
+                    return clean, organism
+            return "", organism
+
+    return "", ""
+
+
+def _detect_orfs(
+    sequence: str, gene_name: str = "ORF1", organism: str = "",
+) -> list[GeneInfo]:
     """Detect ORFs from ATG positions as fallback for FASTA files."""
     stop_codons = {"TAA", "TAG", "TGA"}
     best_start = 0
@@ -900,11 +938,12 @@ def _detect_orfs(sequence: str) -> list[GeneInfo]:
         orf_dna = sequence[best_start:best_start + best_len]
         translation = _translate_dna(orf_dna)
         return [GeneInfo(
-            gene="ORF1",
+            gene=gene_name,
             product="auto-detected longest ORF",
             cds_start=best_start,
             cds_end=best_start + best_len,
             aa_length=best_len // 3,
+            organism=organism,
             translation=translation,
         )]
     return []

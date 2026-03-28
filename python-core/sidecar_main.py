@@ -92,7 +92,7 @@ def _append_crash_log(method: str, params_summary: str, tb: str) -> None:
         pass  # crash logging itself must never raise
 
 
-_ALLOWED_FASTA_EXTENSIONS = {".fa", ".fasta", ".dna", ".gb", ".gbff", ".gbk"}
+_ALLOWED_FASTA_EXTENSIONS = {".fa", ".fasta", ".fna", ".dna", ".gb", ".gbff", ".gbk"}
 _ALLOWED_CSV_EXTENSIONS = {".csv", ".tsv", ".txt"}
 _ALLOWED_EXCEL_EXTENSIONS = {".xlsx"}
 _VALID_DNA_BASES = re.compile(r"^[ATGC]+$")
@@ -118,6 +118,7 @@ class SidecarState:
     plate_mappings: list[PlateMapping] = field(default_factory=list)
     dedup_info: dict[str, list[str]] = field(default_factory=dict)
     template: tuple[str, str] = ("", "")  # (fasta_path, sequence)
+    esm_embedding: list[list[float]] | None = None  # per-residue ESM-2 vectors
 
 _state = SidecarState()
 
@@ -622,6 +623,7 @@ def handle_load_evolvepro_csv(params: dict) -> dict:
         domain_strategy=params.get("domain_strategy", "proportional"),
         pareto_diversity=params.get("pareto_diversity", False),
         entropy_weight=float(params.get("entropy_weight", 0.0)),
+        esm_embedding=_state.esm_embedding,
     )
 
 
@@ -909,104 +911,149 @@ def _sequence_identity(seq_a: str, seq_b: str) -> float:
 
 
 def handle_search_uniprot(params: dict) -> dict:
-    """Search UniProt REST API for protein entries matching gene/organism.
+    """Search UniProt for matching proteins via BLAST + optional direct lookup.
 
-    If known_accession is provided, fetch that entry directly and compare.
-    Otherwise search by gene name and organism, rank by sequence identity.
+    Primary: BLAST the translation against UniProt Swiss-Prot via EBI BLAST API.
+    Secondary: direct fetch if known_accession is provided.
     """
     gene_name = params.get("gene_name", "").strip()
     organism = params.get("organism", "").strip()
     translation = params.get("translation", "").strip()
     known_accession = params.get("known_accession", "").strip()
 
-    if not gene_name and not known_accession:
-        raise ValueError("gene_name or known_accession is required")
+    if not translation and not known_accession:
+        raise ValueError("translation or known_accession is required")
+    if known_accession and not re.match(r"^[A-Za-z0-9_-]{1,20}$", known_accession):
+        raise ValueError(f"Invalid UniProt accession format: {known_accession}")
 
     import urllib.request as _urllib_req
     import urllib.parse as _urllib_parse
+    import time as _time
 
     candidates: list[dict] = []
     auto_selected: str | None = None
+    last_error: str = ""
 
-    def _fetch_json(url: str) -> dict | None:
+    def _fetch_json(url: str) -> tuple[dict | None, str]:
         try:
             req = _urllib_req.Request(url, headers={"Accept": "application/json"})
             with _urllib_req.urlopen(req, context=_get_ssl_ctx(), timeout=15) as resp:
-                return json.loads(resp.read().decode("utf-8"))
+                return json.loads(resp.read().decode("utf-8")), ""
         except Exception as exc:
             logger.warning("UniProt fetch failed: %s — %s", url, exc)
-            return None
+            return None, f"{type(exc).__name__}: {exc}"
+
+    def _fetch_text(url: str) -> tuple[str, str]:
+        try:
+            req = _urllib_req.Request(url)
+            with _urllib_req.urlopen(req, context=_get_ssl_ctx(), timeout=30) as resp:
+                return resp.read().decode("utf-8").strip(), ""
+        except Exception as exc:
+            return "", f"{type(exc).__name__}: {exc}"
 
     seen_accessions: set[str] = set()
 
+    # 1) Direct fetch by known accession
     if known_accession:
-        # Direct fetch by known accession
-        data = _fetch_json(
+        data, err = _fetch_json(
             f"https://rest.uniprot.org/uniprotkb/{known_accession}?format=json"
         )
+        if err:
+            last_error = err
         if data and "primaryAccession" in data:
-            uni_seq = data.get("sequence", {}).get("value", "")
+            seq_data = data.get("sequence", {})
+            uni_seq = seq_data.get("value", "") if isinstance(seq_data, dict) else ""
             identity = _sequence_identity(translation, uni_seq) if translation else 0.0
-            org_name = data.get("organism", {}).get("scientificName", "")
-            gene_names = []
-            for gn in data.get("genes", []):
-                if gn.get("geneName"):
-                    gene_names.append(gn["geneName"].get("value", ""))
+            gene_names = [
+                gn["geneName"]["value"]
+                for gn in data.get("genes", [])
+                if gn.get("geneName", {}).get("value")
+            ]
             acc = data["primaryAccession"]
             candidates.append({
                 "accession": acc,
                 "name": ", ".join(gene_names) if gene_names else known_accession,
-                "organism": org_name,
-                "length": data.get("sequence", {}).get("length", 0),
+                "organism": data.get("organism", {}).get("scientificName", ""),
+                "length": seq_data.get("length", 0) if isinstance(seq_data, dict) else 0,
                 "identity": identity,
             })
             seen_accessions.add(acc)
             if identity == 100.0:
                 auto_selected = acc
 
-    # Always search by gene name to surface homologs (e.g. the user wants A0PFK2 for ispS)
-    if gene_name:
-        query_parts = [f"gene:{gene_name}"]
-        if organism:
-            query_parts.append(f'organism_name:"{organism}"')
-        query = "+AND+".join(query_parts)
-        fields = "accession,id,organism_name,sequence,gene_names"
-        url = (
-            f"https://rest.uniprot.org/uniprotkb/search?"
-            f"query={query}&format=json&fields={fields}&size=10"
-        )
-        data = _fetch_json(url)
-        if data and "results" in data:
-            for entry in data["results"]:
-                acc = entry.get("primaryAccession", "")
-                if acc in seen_accessions:
-                    continue
-                seen_accessions.add(acc)
-                uni_seq = entry.get("sequence", {}).get("value", "")
-                identity = _sequence_identity(translation, uni_seq) if translation else 0.0
-                org_name = entry.get("organism", {}).get("scientificName", "")
-                gene_names = []
-                for gn in entry.get("genes", []):
-                    if gn.get("geneName"):
-                        gene_names.append(gn["geneName"].get("value", ""))
-                candidates.append({
-                    "accession": acc,
-                    "name": ", ".join(gene_names) if gene_names else acc,
-                    "organism": org_name,
-                    "length": entry.get("sequence", {}).get("length", 0),
-                    "identity": identity,
-                })
+    # 2) BLAST search using protein sequence via EBI NCBI BLAST API
+    if translation and not auto_selected:
+        try:
+            blast_data = _urllib_parse.urlencode({
+                "email": "kuro-app@example.com",
+                "program": "blastp",
+                "database": "uniprotkb_swissprot",
+                "stype": "protein",
+                "sequence": translation.rstrip("*"),
+            }).encode()
+            submit_req = _urllib_req.Request(
+                "https://www.ebi.ac.uk/Tools/services/rest/ncbiblast/run",
+                data=blast_data,
+                method="POST",
+            )
+            with _urllib_req.urlopen(submit_req, context=_get_ssl_ctx(), timeout=30) as resp:
+                job_id = resp.read().decode().strip()
 
-    # Sort by identity descending
+            # Poll for completion (max ~60s)
+            for _ in range(20):
+                _time.sleep(3)
+                status_text, _ = _fetch_text(
+                    f"https://www.ebi.ac.uk/Tools/services/rest/ncbiblast/status/{job_id}"
+                )
+                if status_text == "FINISHED":
+                    break
+                if status_text in ("FAILURE", "ERROR", "NOT_FOUND"):
+                    raise RuntimeError(f"BLAST job failed: {status_text}")
+
+            if status_text == "FINISHED":
+                result_data, err = _fetch_json(
+                    f"https://www.ebi.ac.uk/Tools/services/rest/ncbiblast/result/{job_id}/json"
+                )
+                if err:
+                    last_error = err
+                if result_data:
+                    for hit in result_data.get("hits", [])[:10]:
+                        # hit_acc is like "SP:Q50L36" or just accession
+                        raw_acc = hit.get("hit_acc", "")
+                        acc = raw_acc.split(":")[-1] if ":" in raw_acc else raw_acc
+                        if acc in seen_accessions:
+                            continue
+                        seen_accessions.add(acc)
+                        hsps = hit.get("hit_hsps", [])
+                        blast_identity = hsps[0].get("hsp_identity", 0.0) if hsps else 0.0
+                        # Parse organism from hit description: "... OS=Genus species ..."
+                        hit_def = hit.get("hit_def", "")
+                        os_m = re.search(r'\bOS=([^=]+?)(?:\s+\w+=|$)', hit_def)
+                        hit_organism = os_m.group(1).strip() if os_m else ""
+                        # Parse gene name
+                        gn_m = re.search(r'\bGN=(\S+)', hit_def)
+                        hit_gene = gn_m.group(1) if gn_m else ""
+                        hit_len = hsps[0].get("hsp_hit_to", 0) if hsps else 0
+                        candidates.append({
+                            "accession": acc,
+                            "name": hit_gene or acc,
+                            "organism": hit_organism,
+                            "length": hit_len,
+                            "identity": blast_identity,
+                        })
+        except Exception as exc:
+            logger.warning("BLAST search failed: %s", exc)
+            last_error = f"BLAST: {type(exc).__name__}: {exc}"
+
     candidates.sort(key=lambda c: c["identity"], reverse=True)
 
-    # Auto-select if top candidate has 100% identity
-    if candidates and candidates[0]["identity"] == 100.0:
+    if candidates and candidates[0]["identity"] >= 95.0:
         auto_selected = candidates[0]["accession"]
 
     return {
         "candidates": candidates,
         "auto_selected": auto_selected,
+        "error_detail": last_error or None,
     }
 
 
@@ -1050,18 +1097,25 @@ def handle_export_order(params: dict) -> dict:
 
 
 def handle_fetch_esm_embedding(params: dict) -> dict:
-    """Fetch ESM-2 per-residue embedding for a UniProt accession."""
+    """Compute or fetch ESM-2 per-residue embedding.
+
+    Accepts accession and/or sequence. Local inference is preferred
+    when torch + fair-esm are installed; remote API is fallback.
+    """
     accession = params.get("accession", "").strip()
-    if not accession:
-        raise ValueError("accession is required")
+    sequence = params.get("sequence", "").strip()
+    if not accession and not sequence:
+        raise ValueError("accession or sequence is required")
 
     from kuro.esm_embeddings import get_embedding
 
-    embedding = get_embedding(accession)
+    embedding = get_embedding(accession=accession, sequence=sequence)
 
     if embedding is None:
-        return {"success": False, "error": "Failed to fetch ESM embedding"}
+        _state.esm_embedding = None
+        return {"success": False, "error": "ESM-2 unavailable (install: pip install fair-esm torch)"}
 
+    _state.esm_embedding = embedding
     return {
         "success": True,
         "accession": accession,

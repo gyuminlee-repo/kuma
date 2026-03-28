@@ -37,7 +37,9 @@ jobs:
         with:
           node-version: 22
 
-      - run: npm ci
+      - uses: pnpm/action-setup@v4
+
+      - run: pnpm install --frozen-lockfile
 
       - run: npx tsc --noEmit
 
@@ -58,8 +60,10 @@ jobs:
         with:
           node-version: 22
 
+      - uses: pnpm/action-setup@v4
+
       - name: Build frontend (required by tauri::generate_context)
-        run: npm ci && npm run build
+        run: pnpm install --frozen-lockfile && pnpm run build
 
       - name: Create sidecar stub for check
         run: touch src-tauri/binaries/kuro-sidecar-x86_64-unknown-linux-gnu

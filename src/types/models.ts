@@ -28,6 +28,7 @@ export interface UniprotCandidate {
 export interface SearchUniprotResult {
   candidates: UniprotCandidate[];
   auto_selected: string | null;
+  error_detail?: string;
 }
 
 export interface SequenceInfo {

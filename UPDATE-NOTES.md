@@ -1,8 +1,50 @@
-# KURO Update Notes — v0.9.5 → v0.9.36
+# KURO Update Notes — v0.9.5 → v0.9.37
 
 [한국어](UPDATE-NOTES.ko.md) | **English**
 
-Released: 2026-03-27
+Released: 2026-03-28
+
+---
+
+## v0.9.37 (2026-03-28)
+
+### UniProt Search — BLAST-based
+- Replaced gene name text search with EBI NCBI BLAST API (blastp against UniProt Swiss-Prot)
+- Protein sequence is directly BLASTed — works correctly for FASTA files without gene annotations
+- Fixed URL encoding bug that caused organism filter to silently fail (space in organism name → `InvalidURL`)
+- Error details now surfaced to UI instead of being silently swallowed
+
+### FASTA Header Parsing
+- New `_parse_fasta_header()` extracts gene name and organism from NCBI and UniProt header formats
+- `_detect_orfs()` now receives parsed gene/organism info
+- `.fna` extension support added (backend + frontend file dialog)
+
+### ESM-2 Local Inference
+- Switched from ESM Atlas API (now 403 Forbidden) to local `fair-esm` + `torch` inference
+- Model: `esm2_t12_35M_UR50D` (35M params, 480D, ~150MB)
+- Graceful fallback to 1D position distance when `fair-esm` is not installed
+- ESM embedding now properly connected through the full selection pipeline:
+  `handle_load_evolvepro_csv` → `load_evolvepro_csv` → `pareto_diversity_select` / `domain_aware_select`
+- Previously, ESM embedding was fetched but never passed to the selection algorithms
+
+### Pipeline Defaults
+- All pipeline steps enabled by default: `pipelineMode`, `positionDiversityEnabled`, `domainDiversityEnabled`, `paretoDiversityEnabled`, `entropyWeightEnabled` = `true`
+- Users see step descriptions + progress instead of toggle switches
+
+### Design Report Modal
+- New `DesignReport.tsx` modal dialog auto-opens after primer design completes
+- Shows: pipeline summary, primer success/failure stats, Tm distribution, domain allocation stats, failed mutations
+- Uses existing Radix Dialog primitive
+
+### Package Manager Migration
+- npm → pnpm (`packageManager: "pnpm@10.33.0"` in `package.json`)
+- Scripts, `tauri.conf.json`, GitHub Actions CI/build workflows updated
+- `pnpm-lock.yaml` generated via `pnpm import`
+
+### Fixture Data
+- Domain-enriched EVOLVEpro CSVs generated for `ispS.fa` (75% in-domain) and `pSHCE-dmpR.fa`
+- Multi-evolve batch CSVs with verified WT amino acid positions
+- Removed stale `evolvepro_round*.csv` and `multi_evolve_batch.csv`
 
 ---
 

@@ -36,9 +36,11 @@ export interface DesignSlice {
   manuallySwapped: Record<string, "fwd" | "rev" | "both">;
   customCandidates: Record<string, SdmPrimerResult[]>;
   rescuedMutations: Set<string>;
+  showReport: boolean;
 
   // Actions
   designPrimers: () => Promise<void>;
+  setShowReport: (show: boolean) => void;
   cancelDesign: () => Promise<void>;
   getAlternatives: (mutation: string) => Promise<SdmPrimerResult[]>;
   swapPrimer: (mutation: string, candidateIdx: number, swapType?: "both" | "fwd" | "rev") => Promise<void>;
@@ -64,6 +66,8 @@ export const createDesignSlice: StateCreator<DesignSlice, [], [], DesignSlice> =
   successCount: 0,
   totalCount: 0,
   failedMutations: [],
+  showReport: false,
+  setShowReport: (show: boolean) => set({ showReport: show } as Partial<DesignSlice>),
   codonStrategy: "closest",
   maxPrimers: 95,
   tmFwdTarget: 62,
@@ -211,7 +215,12 @@ export const createDesignSlice: StateCreator<DesignSlice, [], [], DesignSlice> =
       set({ statusMessage: `Design failed: ${formatError(err)}` } as Partial<DesignSlice>);
     } finally {
       if (get().isDesigning) {
-        set({ isDesigning: false, progress: 100 } as Partial<DesignSlice>);
+        const hasResults = get().designResults.length > 0;
+        set({
+          isDesigning: false,
+          progress: 100,
+          ...(hasResults && { showReport: true }),
+        } as Partial<DesignSlice>);
       }
     }
   },
