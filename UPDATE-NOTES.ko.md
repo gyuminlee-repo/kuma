@@ -1,8 +1,21 @@
-# KURO 업데이트 노트 — v0.9.5 → v0.9.39
+# KURO 업데이트 노트 — v0.9.5 → v1.0.0
 
 **한국어** | [English](UPDATE-NOTES.md)
 
 배포일: 2026-03-28
+
+---
+
+## v1.0.0 (2026-03-28)
+
+### 안정 릴리스
+- v0.9.39에서 v1.0.0으로 버전 업 — 기능 변경 없음
+- 3가지 핵심 워크플로우 검증 완료:
+  1. GenBank → 수동 변이 입력 → 프라이머 설계 → Excel 내보내기
+  2. FASTA + EVOLVEpro CSV → 다양성 선택 → 프라이머 설계 → IDT 주문
+  3. FASTA + MULTI-evolve CSV → 조합 변이 → 일괄 설계
+- 3-OS CI/CD 통과 (Ubuntu/Windows/macOS)
+- 191개 테스트 통과
 
 ---
 

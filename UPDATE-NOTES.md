@@ -1,8 +1,21 @@
-# KURO Update Notes — v0.9.5 → v0.9.39
+# KURO Update Notes — v0.9.5 → v1.0.0
 
 [한국어](UPDATE-NOTES.ko.md) | **English**
 
 Released: 2026-03-28
+
+---
+
+## v1.0.0 (2026-03-28)
+
+### Stable Release
+- Version bump from v0.9.39 to v1.0.0 — no feature changes
+- All three core workflows verified:
+  1. GenBank → manual mutations → primer design → Excel export
+  2. FASTA + EVOLVEpro CSV → diversity selection → primer design → IDT order
+  3. FASTA + MULTI-evolve CSV → combinatorial variants → batch design
+- 3-OS CI/CD green (Ubuntu/Windows/macOS)
+- 191 tests passing
 
 ---
 
