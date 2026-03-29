@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { setProgressHandler } from "../lib/ipc";
 import { createSequenceSlice } from "./slices/sequenceSlice";
+import { createDiversitySlice } from "./slices/diversitySlice";
 import { createInputSlice } from "./slices/inputSlice";
 import { createDesignSlice } from "./slices/designSlice";
 import { createExportSlice } from "./slices/exportSlice";
@@ -16,6 +17,7 @@ export const useAppStore = create<AppState>()((...a) => {
 
   return {
     ...createSequenceSlice(...a),
+    ...createDiversitySlice(...a),
     ...createInputSlice(...a),
     ...createDesignSlice(...a),
     ...createExportSlice(...a),
