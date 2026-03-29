@@ -1,4 +1,4 @@
-"""Integration tests for sidecar_main.py RPC dispatch.
+"""Integration tests for sidecar RPC dispatch.
 
 Tests each JSON-RPC handler via the dispatch() function,
 capturing stdout JSON responses with io.StringIO.
@@ -14,13 +14,16 @@ from pathlib import Path
 
 import pytest
 
-# sidecar_main lives in python-core/, not in the kuro package
+# sidecar package lives in python-core/
 _PROJECT_ROOT = Path(__file__).parent.parent
 _SIDECAR_DIR = _PROJECT_ROOT / "python-core"
 if str(_SIDECAR_DIR) not in sys.path:
     sys.path.insert(0, str(_SIDECAR_DIR))
 
-import sidecar_main as sidecar  # noqa: E402
+from sidecar.dispatcher import dispatch  # noqa: E402
+from sidecar.core import _state, _cancel_event, SidecarState  # noqa: E402
+from sidecar.handlers.external import _sequence_identity  # noqa: E402
+import sidecar.core as _sidecar_core  # noqa: E402
 
 FIXTURES_DIR = _PROJECT_ROOT / "fixtures"
 FASTA_PATH = str(FIXTURES_DIR / "pSHCE-dmpR.fa")
@@ -41,7 +44,7 @@ def _dispatch_and_parse(request: dict, timeout: float = 30.0) -> dict:
     old_stdout = sys.stdout
     sys.stdout = buf
     try:
-        sidecar.dispatch(request)
+        dispatch(request)
         # Wait for response — async methods write from background threads
         deadline = _time.monotonic() + timeout
         while _time.monotonic() < deadline:
@@ -69,8 +72,8 @@ def _rpc(method: str, params: dict | None = None, req_id: int = 1) -> dict:
 @pytest.fixture(autouse=True)
 def _reset_state():
     """Reset sidecar state before each test."""
-    sidecar._state = sidecar.SidecarState()
-    sidecar._cancel_event.clear()
+    _sidecar_core._state = SidecarState()
+    _sidecar_core._cancel_event.clear()
     yield
 
 
@@ -337,11 +340,11 @@ class TestWorkspaceRoundTrip:
 
 class TestCancelDesign:
     def test_cancel_sets_event(self):
-        assert not sidecar._cancel_event.is_set()
+        assert not _sidecar_core._cancel_event.is_set()
         resp = _rpc("cancel_design")
         assert "result" in resp
         assert resp["result"]["cancelled"] is True
-        assert sidecar._cancel_event.is_set()
+        assert _sidecar_core._cancel_event.is_set()
 
 
 # ── 10. GeneInfo extended fields ─────────────────────────────────────────
@@ -382,25 +385,25 @@ class TestSearchUniprot:
 
 class TestSequenceIdentity:
     def test_identical_sequences(self):
-        assert sidecar._sequence_identity("MVKLT", "MVKLT") == 100.0
+        assert _sequence_identity("MVKLT", "MVKLT") == 100.0
 
     def test_empty_sequences(self):
-        assert sidecar._sequence_identity("", "") == 0.0
-        assert sidecar._sequence_identity("MVKLT", "") == 0.0
+        assert _sequence_identity("", "") == 0.0
+        assert _sequence_identity("MVKLT", "") == 0.0
 
     def test_partial_match(self):
         # 2/5 match (M, V match; K vs X, L vs X, T vs X do not)
-        identity = sidecar._sequence_identity("MVKLT", "MVXXX")
+        identity = _sequence_identity("MVKLT", "MVXXX")
         assert identity == 40.0
 
     def test_different_lengths_substring(self):
         # "MV" is a substring of "MVKLT" → treated as 100% (signal peptide trimming)
-        identity = sidecar._sequence_identity("MV", "MVKLT")
+        identity = _sequence_identity("MV", "MVKLT")
         assert identity == 100.0
 
     def test_different_lengths_no_substring(self):
         # "MX" is NOT a substring of "MVKLT" → positional: 1/5 = 20%
-        identity = sidecar._sequence_identity("MX", "MVKLT")
+        identity = _sequence_identity("MX", "MVKLT")
         assert identity == 20.0
 
 
