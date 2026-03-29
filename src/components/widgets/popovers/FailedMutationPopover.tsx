@@ -1,16 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useAppStore } from "../../../store/appStore";
+import { useFocusTrap } from "../../../hooks/useFocusTrap";
 import type { SdmPrimerResult, FailedMutation } from "../../../types/models";
-
-const VALID_BASES = /^[ATGCatgc]*$/;
-function validateSeq(seq: string): string | null {
-  if (!seq) return null;
-  if (!VALID_BASES.test(seq)) {
-    const invalid = seq.replace(/[ATGCatgc]/g, "");
-    return `Invalid characters: ${[...new Set(invalid)].join(", ")}`;
-  }
-  return null;
-}
+import { validateSeq } from "../../../lib/validation";
 
 export function FailedMutationPopover({
   failed,
@@ -52,14 +44,10 @@ export function FailedMutationPopover({
   const [seqError, setSeqError] = useState<string | null>(null);
   const [showManual, setShowManual] = useState(false);
 
-  const failedCloseRef = useRef<HTMLButtonElement>(null);
+  const focusTrapRef = useFocusTrap<HTMLDivElement>();
   const retryFailedMutation = useAppStore((s) => s.retryFailedMutation);
   const evaluateCustomPrimer = useAppStore((s) => s.evaluateCustomPrimer);
   const addDesignResult = useAppStore((s) => s.addDesignResult);
-
-  useEffect(() => {
-    failedCloseRef.current?.focus();
-  }, []);
 
   async function handleRetry() {
     setRetrying(true);
@@ -115,10 +103,10 @@ export function FailedMutationPopover({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose} onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}>
       <div aria-hidden="true" className="fixed inset-0" />
-      <div role="dialog" aria-modal="true" aria-labelledby="failed-mutation-title" className="bg-white rounded-lg shadow-xl p-4 min-w-[440px] max-w-xl max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+      <div ref={focusTrapRef} role="dialog" aria-modal="true" aria-labelledby="failed-mutation-title" className="bg-white rounded-lg shadow-xl p-4 min-w-[440px] max-w-xl max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-3">
           <h3 id="failed-mutation-title" className="text-sm font-semibold text-red-700">{failed.mutation} — Design Failed</h3>
-          <button ref={failedCloseRef} onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg px-2" aria-label="Close">×</button>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg px-2" aria-label="Close">×</button>
         </div>
 
         <div className="bg-red-50 rounded px-3 py-2 mb-3 text-xs text-red-700">

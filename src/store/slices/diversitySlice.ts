@@ -20,7 +20,7 @@ export interface DiversitySlice {
   uniprotAccession: string;
   domains: DomainInfo[];
   domainLoading: boolean;
-  disabledDomains: Set<string>;
+  disabledDomains: string[];
   domainStats: Record<string, { quota: number; selected: number }>;
   paretoDiversityEnabled: boolean;
   entropyWeightEnabled: boolean;
@@ -42,23 +42,24 @@ export interface DiversitySlice {
   setEntropyWeightEnabled: (enabled: boolean) => void;
   searchUniprot: (geneName: string, organism: string, translation: string, knownAccession: string) => Promise<void>;
   fetchEsmEmbedding: (accession: string, sequence?: string) => Promise<void>;
+  cancelDiversityReload: () => void;
 }
 
-// Debounce timer for pipeline option changes to prevent RPC request bursts
-let reloadTimer: ReturnType<typeof setTimeout> | null = null;
+export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice> = (set, get) => {
+  let reloadTimer: ReturnType<typeof setTimeout> | null = null;
 
-function debouncedReload(get: () => AppState) {
-  if (reloadTimer) clearTimeout(reloadTimer);
-  reloadTimer = setTimeout(() => {
-    reloadTimer = null;
-    const state = get();
-    if (state.evolveproCsvPath) {
-      state.loadEvolveproCsv(state.evolveproCsvPath);
-    }
-  }, 300);
-}
+  function debouncedReload() {
+    if (reloadTimer) clearTimeout(reloadTimer);
+    reloadTimer = setTimeout(() => {
+      reloadTimer = null;
+      const state = get();
+      if (state.evolveproCsvPath) {
+        state.loadEvolveproCsv(state.evolveproCsvPath);
+      }
+    }, 300);
+  }
 
-export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice> = (set, get) => ({
+  return ({
   pipelineMode: true,
   positionDiversityEnabled: true,
   maxPerPosition: 1,
@@ -67,7 +68,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   uniprotAccession: "",
   domains: [],
   domainLoading: false,
-  disabledDomains: new Set<string>(),
+  disabledDomains: [] as string[],
   domainStats: {},
   paretoDiversityEnabled: true,
   entropyWeightEnabled: true,
@@ -80,28 +81,28 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
     set({ pipelineMode: enabled });
     if (!enabled) {
       // Pipeline off -> Top-N only: reload with no diversity options
-      debouncedReload(get);
+      debouncedReload();
     }
   },
 
   setPositionDiversityEnabled: (enabled: boolean) => {
     set({ positionDiversityEnabled: enabled });
-    debouncedReload(get);
+    debouncedReload();
   },
 
   setMaxPerPosition: (n: number) => {
     set({ maxPerPosition: Math.max(1, n) });
-    debouncedReload(get);
+    debouncedReload();
   },
 
   setDomainDiversityEnabled: (enabled: boolean) => {
     set({ domainDiversityEnabled: enabled });
-    debouncedReload(get);
+    debouncedReload();
   },
 
   setDomainStrategy: (strategy: "proportional" | "equal") => {
     set({ domainStrategy: strategy });
-    debouncedReload(get);
+    debouncedReload();
   },
 
   fetchDomains: async (accession: string, clearCandidates = false) => {
@@ -115,7 +116,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
       set({
         uniprotAccession: accession,
         domains: result.domains,
-        disabledDomains: new Set<string>(),
+        disabledDomains: [] as string[],
         domainLoading: false,
         statusMessage: result.domains.length > 0
           ? `Domains: ${result.domains.length} found (${result.source})`
@@ -134,27 +135,28 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   },
 
   setDomains: (domains: DomainInfo[]) => {
-    set({ domains, disabledDomains: new Set<string>() });
+    set({ domains, disabledDomains: [] });
     const { evolveproCsvPath, domainDiversityEnabled } = get();
     if (evolveproCsvPath && domainDiversityEnabled) get().loadEvolveproCsv(evolveproCsvPath);
   },
 
   toggleDomain: (domainKey: string) => {
-    const next = new Set(get().disabledDomains);
-    if (next.has(domainKey)) next.delete(domainKey);
-    else next.add(domainKey);
+    const current = get().disabledDomains;
+    const next = current.includes(domainKey)
+      ? current.filter((k) => k !== domainKey)
+      : [...current, domainKey];
     set({ disabledDomains: next });
-    debouncedReload(get);
+    debouncedReload();
   },
 
   setParetoDiversityEnabled: (enabled: boolean) => {
     set({ paretoDiversityEnabled: enabled });
-    debouncedReload(get);
+    debouncedReload();
   },
 
   setEntropyWeightEnabled: (enabled: boolean) => {
     set({ entropyWeightEnabled: enabled });
-    debouncedReload(get);
+    debouncedReload();
   },
 
   searchUniprot: async (geneName: string, organism: string, translation: string, knownAccession: string) => {
@@ -219,4 +221,9 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
       });
     }
   },
+
+  cancelDiversityReload: () => {
+    if (reloadTimer) { clearTimeout(reloadTimer); reloadTimer = null; }
+  },
 });
+};

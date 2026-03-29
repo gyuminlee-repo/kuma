@@ -289,7 +289,7 @@ export function SequenceViewer() {
                 {/* Domain regions */}
                 {domains.map((d, i) => {
                   const colorSet = DOMAIN_COLORS[i % DOMAIN_COLORS.length];
-                  const isDomainDisabled = disabledDomains.has(`${d.name}-${d.start}`);
+                  const isDomainDisabled = disabledDomains.includes(`${d.name}-${d.start}`);
                   const x1 = aaToX(d.start);
                   const x2 = aaToX(d.end);
                   const w = Math.max(2, x2 - x1);

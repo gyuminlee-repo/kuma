@@ -1,17 +1,9 @@
 import { useEffect, useMemo, useRef } from "react";
-import { open } from "@tauri-apps/plugin-dialog";
 import { useAppStore } from "../../../store/appStore";
 import { basename } from "../../../lib/utils";
+import { browseFile } from "../../../lib/file-utils";
 import { Button } from "../../ui/button";
 import { DiversityOptions } from "./DiversityOptions";
-
-async function browseFile(
-  filters: { name: string; extensions: string[] }[],
-  onSelect: (path: string) => Promise<void> | void,
-) {
-  const path = await open({ filters, multiple: false });
-  if (path) await onSelect(path as string);
-}
 
 export function MutationInput() {
   const mutationInputMode = useAppStore((s) => s.mutationInputMode);
@@ -51,7 +43,7 @@ export function MutationInput() {
   return (
     <div className="space-y-1">
       <label className="text-xs text-gray-600 font-medium">Mutations</label>
-      <div className="flex gap-2 text-xs">
+      <div className="flex gap-2 text-xs" role="radiogroup" aria-label="Mutation input source">
         <label className="flex items-center gap-1">
           <input
             type="radio"

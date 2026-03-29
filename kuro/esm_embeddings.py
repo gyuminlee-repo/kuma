@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import re
 from pathlib import Path
 
 _CACHE_DIR = Path.home() / ".kuro" / "embeddings"
@@ -35,6 +36,9 @@ def get_embedding(
     """
     if not accession and not sequence:
         return None
+
+    if accession and not re.match(r'^[A-Za-z0-9_-]{1,20}$', accession):
+        raise ValueError(f"Invalid accession format: {accession}")
 
     _CACHE_DIR.mkdir(parents=True, exist_ok=True)
 

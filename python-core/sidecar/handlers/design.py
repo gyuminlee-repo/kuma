@@ -177,10 +177,12 @@ def handle_design_sdm_primers(params: dict) -> dict:
         if not lines:
             raise ValueError("No mutations provided")
 
-        fd, temp_csv_name = tempfile.mkstemp(suffix=".csv")
+        temp_csv = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".csv", newline="", delete=False,
+        )
+        temp_csv_name = temp_csv.name
         if hasattr(os, "fchmod"):
-            os.fchmod(fd, 0o600)
-        temp_csv = open(fd, mode="w", newline="")
+            os.fchmod(temp_csv.fileno(), 0o600)
         writer = csv.writer(temp_csv)
         writer.writerow(["mutation"])
         for line in lines:

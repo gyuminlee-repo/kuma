@@ -41,13 +41,5 @@
     "externalBin": [
       "binaries/kuro-sidecar"
     ]
-  },
-  "plugins": {
-    "updater": {
-      "endpoints": [
-        "https://github.com/gyuminlee-repo/KURO/releases/latest/download/latest.json"
-      ],
-      "pubkey": ""
-    }
   }
 }

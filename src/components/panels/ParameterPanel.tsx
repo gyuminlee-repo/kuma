@@ -64,9 +64,10 @@ export function ParameterPanel() {
         Parameters
       </h3>
 
-      <label className="flex items-center gap-2 text-xs" title="Min. changes = fewest nucleotide changes from WT codon. Optimal = highest-frequency codon for selected organism.">
+      <label htmlFor="codon-strategy" className="flex items-center gap-2 text-xs" title="Min. changes = fewest nucleotide changes from WT codon. Optimal = highest-frequency codon for selected organism.">
         <span className="w-24 text-gray-600">Codon:</span>
         <select
+          id="codon-strategy"
           className="flex-1 h-7 text-xs border border-gray-300 rounded px-2 focus:outline-none focus:ring-1 focus:ring-green-500"
           value={codonStrategy}
           onChange={(e) => setCodonStrategy(e.target.value as "closest" | "optimal")}

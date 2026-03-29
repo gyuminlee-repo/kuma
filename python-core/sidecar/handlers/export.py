@@ -54,24 +54,16 @@ def handle_export_excel(params: dict) -> dict:
         p.filepath, allowed_extensions=_ALLOWED_EXCEL_EXTENSIONS
     )
 
-    mappings_data = p.mappings
     dedup_data = p.dedup_info
 
-    if mappings_data:
-        if not isinstance(mappings_data, list):
-            raise ValueError("mappings must be a list")
-        required_fields = {"well", "primer_name", "sequence", "primer_type", "mutation"}
-        mappings = []
-        for i, m in enumerate(mappings_data):
-            if not isinstance(m, dict):
-                raise ValueError(f"mappings[{i}] must be an object")
-            missing = required_fields - m.keys()
-            if missing:
-                raise ValueError(f"mappings[{i}] missing fields: {sorted(missing)}")
-            # Only pass fields that PlateMapping accepts
-            valid_keys = {f.name for f in dc_fields(PlateMapping)}
-            filtered = {k: v for k, v in m.items() if k in valid_keys}
-            mappings.append(PlateMapping(**filtered))
+    if p.mappings:
+        # Pydantic already validated each item as PlateMappingItem;
+        # convert to PlateMapping dataclass for the export layer.
+        valid_keys = {f.name for f in dc_fields(PlateMapping)}
+        mappings = [
+            PlateMapping(**{k: v for k, v in m.model_dump().items() if k in valid_keys})
+            for m in p.mappings
+        ]
         rev_groups = dedup_data or {}
     else:
         if not _core._state.results:

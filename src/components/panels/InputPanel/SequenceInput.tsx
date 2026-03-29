@@ -1,15 +1,7 @@
-import { open } from "@tauri-apps/plugin-dialog";
 import { useAppStore } from "../../../store/appStore";
 import { basename } from "../../../lib/utils";
+import { browseFile } from "../../../lib/file-utils";
 import { Button } from "../../ui/button";
-
-async function browseFile(
-  filters: { name: string; extensions: string[] }[],
-  onSelect: (path: string) => Promise<void> | void,
-) {
-  const path = await open({ filters, multiple: false });
-  if (path) await onSelect(path as string);
-}
 
 export function SequenceInput() {
   const fastaPath = useAppStore((s) => s.fastaPath);

@@ -118,7 +118,8 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       domainDiversityEnabled: s.domainDiversityEnabled || undefined,
       domainStrategy: s.domainDiversityEnabled ? s.domainStrategy : undefined,
       paretoDiversityEnabled: s.paretoDiversityEnabled || undefined,
-      disabledDomains: Array.from(s.disabledDomains),
+      disabledDomains: s.disabledDomains,
+      rescuedMutations: s.rescuedMutations,
       entropyWeightEnabled: s.entropyWeightEnabled,
       organism: s.organism,
       pipelineMode: s.pipelineMode,
@@ -153,7 +154,14 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       plateMappings: ws.plateMappings ?? [],
       dedupInfo: ws.dedupInfo ?? {},
       tableSorting: (ws.tableSorting ?? []) as SortingState,
-      manuallySwapped: (ws.manuallySwapped ?? {}) as Record<string, "fwd" | "rev" | "both">,
+      manuallySwapped: (() => {
+        const rawSwapped = ws.manuallySwapped ?? {};
+        const safe: Record<string, "fwd" | "rev" | "both"> = {};
+        for (const [k, v] of Object.entries(rawSwapped)) {
+          if (v === "fwd" || v === "rev" || v === "both") safe[k] = v;
+        }
+        return safe;
+      })(),
       customCandidates: ws.customCandidates ?? {},
       tmFwdTarget: ws.tmFwdTarget ?? 62,
       tmRevTarget: ws.tmRevTarget ?? 58,
@@ -168,7 +176,8 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       fillOnFailure: ws.fillOnFailure ?? false,
       uniprotAccession: ws.uniprotAccession ?? "",
       domains: ws.domains ?? [],
-      ...(ws.disabledDomains && { disabledDomains: new Set(ws.disabledDomains) }),
+      ...(ws.disabledDomains && { disabledDomains: ws.disabledDomains }),
+      rescuedMutations: ws.rescuedMutations ?? [],
       entropyWeightEnabled: ws.entropyWeightEnabled ?? true,
       ...(ws.organism && { organism: ws.organism }),
       pipelineMode: ws.pipelineMode ?? true,
@@ -185,6 +194,8 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
   },
 
   resetAll: () => {
+    // NOTE: Each field below must match its respective slice's initial value.
+    // P2: Refactor to per-slice getInitialState() to keep this in sync automatically.
     set({
       fastaPath: "",
       seqInfo: null,
@@ -200,7 +211,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       uniprotAccession: "",
       domains: [],
       domainLoading: false,
-      disabledDomains: new Set<string>(),
+      disabledDomains: [],
       domainStats: {},
       paretoDiversityEnabled: true,
       entropyWeightEnabled: true,
@@ -229,7 +240,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       fillOnFailure: false,
       manuallySwapped: {},
       customCandidates: {},
-      rescuedMutations: new Set<string>(),
+      rescuedMutations: [],
       esmEmbeddingLoaded: false,
       esmEmbeddingLoading: false,
       evolveproTotalCount: 0,

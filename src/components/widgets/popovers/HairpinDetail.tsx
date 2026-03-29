@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useFocusTrap } from "../../../hooks/useFocusTrap";
 import type { SdmPrimerResult } from "../../../types/models";
 
 export function HairpinDetail({
@@ -8,10 +8,7 @@ export function HairpinDetail({
   result: SdmPrimerResult;
   onClose: () => void;
 }) {
-  const hairpinCloseRef = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
-    hairpinCloseRef.current?.focus();
-  }, []);
+  const focusTrapRef = useFocusTrap<HTMLDivElement>();
 
   const rows = [
     { label: "Hairpin Fwd", tm: result.hairpin_tm_fwd ?? 0, dg: result.hairpin_dg_fwd ?? 0 },
@@ -28,6 +25,7 @@ export function HairpinDetail({
     >
       <div aria-hidden="true" className="fixed inset-0" />
       <div
+        ref={focusTrapRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="hairpin-detail-title"
@@ -39,7 +37,6 @@ export function HairpinDetail({
             {result.mutation} — Secondary Structure
           </h3>
           <button
-            ref={hairpinCloseRef}
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 text-lg px-2"
             aria-label="Close"

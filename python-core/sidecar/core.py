@@ -49,6 +49,8 @@ def _get_crash_log_path() -> Path:
     """Return the crash log path (~/.kuro/crash.log)."""
     kuro_dir = Path.home() / ".kuro"
     kuro_dir.mkdir(parents=True, exist_ok=True)
+    if sys.platform != "win32":
+        os.chmod(kuro_dir, 0o700)
     return kuro_dir / "crash.log"
 
 
@@ -123,6 +125,7 @@ class SidecarState:
 
 
 _state = SidecarState()
+_state_lock = threading.Lock()
 
 # ---------------------------------------------------------------------------
 # Stdout lock and wire helpers
@@ -183,12 +186,9 @@ def _validate_filepath(
 
     resolved = original.resolve()
 
-    # Detect traversal: the resolved path must not escape outside of the
-    # root that the unresolved path was anchored to.  We detect this by
-    # checking that 'resolve()' did not absorb any '..' parts — i.e. the
-    # resolved path is still within the parent of the first absolute component.
-    # A simpler, reliable guard: reject if the original parts contained '..'.
-    # Combined with resolve() above this blocks both literal and symlink traversal.
+    if resolved.is_symlink():
+        raise FileNotFoundError(f"Symbolic links are not allowed (resolved): {filepath}")
+
     if ".." in original.parts:
         raise FileNotFoundError(f"Path traversal is not allowed: {filepath}")
 
@@ -225,6 +225,9 @@ def _validate_output_path(
         raise FileNotFoundError(f"Path traversal is not allowed: {filepath}")
 
     resolved = original.resolve()
+
+    if resolved.is_symlink():
+        raise FileNotFoundError(f"Symbolic links are not allowed (resolved): {filepath}")
 
     if not resolved.parent.exists():
         raise FileNotFoundError(

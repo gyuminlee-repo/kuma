@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useFocusTrap } from "../../../hooks/useFocusTrap";
 import type { SdmPrimerResult } from "../../../types/models";
 
 export function OffTargetDetail({
@@ -8,10 +8,7 @@ export function OffTargetDetail({
   result: SdmPrimerResult;
   onClose: () => void;
 }) {
-  const offTargetCloseRef = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
-    offTargetCloseRef.current?.focus();
-  }, []);
+  const focusTrapRef = useFocusTrap<HTMLDivElement>();
 
   const fwdHits = result.offtarget_fwd ?? [];
   const revHits = result.offtarget_rev ?? [];
@@ -28,6 +25,7 @@ export function OffTargetDetail({
     >
       <div aria-hidden="true" className="fixed inset-0" />
       <div
+        ref={focusTrapRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="offtarget-detail-title"
@@ -39,7 +37,6 @@ export function OffTargetDetail({
             {result.mutation} — Off-Target Sites ({allHits.length})
           </h3>
           <button
-            ref={offTargetCloseRef}
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 text-lg px-2"
             aria-label="Close"

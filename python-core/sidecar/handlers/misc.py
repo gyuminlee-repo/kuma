@@ -49,6 +49,9 @@ def handle_load_evolvepro_csv(params: dict) -> dict:
         raise ValueError("filepath is required")
     resolved = _validate_filepath(p.filepath, allowed_extensions=_ALLOWED_CSV_EXTENSIONS)
 
+    with _core._state_lock:
+        esm_embedding = _core._state.esm_embedding
+
     return load_evolvepro_csv(
         filepath=str(resolved),
         top_n=p.top_n,
@@ -58,7 +61,7 @@ def handle_load_evolvepro_csv(params: dict) -> dict:
         domain_strategy=p.domain_strategy,
         pareto_diversity=p.pareto_diversity,
         entropy_weight=p.entropy_weight,
-        esm_embedding=_core._state.esm_embedding,
+        esm_embedding=esm_embedding,
     )
 
 

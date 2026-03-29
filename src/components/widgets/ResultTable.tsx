@@ -111,7 +111,7 @@ function makeColumns(opts: {
   codonStrategy: "closest" | "optimal";
   swapped: Record<string, string>;
   customCandidates: Record<string, SdmPrimerResult[]>;
-  rescuedMutations: Set<string>;
+  rescuedMutations: string[];
   removeDesignResult: (mutation: string, reason: string) => void;
   yPredMap: Record<string, number>;
 }) {
@@ -137,7 +137,7 @@ function makeColumns(opts: {
       cell: (info) => {
         const row = info.row.original;
         const color = row.aa_position != null ? groupColorMap.get(row.aa_position) : undefined;
-        const isRescued = rescuedMutations.has(row.mutation);
+        const isRescued = rescuedMutations.includes(row.mutation);
         return (
           <span className="font-mono font-medium flex items-center gap-1">
             <span>

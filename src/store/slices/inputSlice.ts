@@ -28,9 +28,10 @@ export interface InputSlice {
   loadSampleData: () => Promise<void>;
 }
 
-let csvLoadGeneration = 0;
+export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set, get) => {
+  let csvLoadGeneration = 0;
 
-export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set, get) => ({
+  return ({
   mutationInputMode: "text",
   mutationText: "",
   parsedMutations: [],
@@ -46,7 +47,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     const gen = ++csvLoadGeneration;
     try {
       const { pipelineMode, positionDiversityEnabled, maxPerPosition, domainDiversityEnabled, domains, disabledDomains, domainStrategy, paretoDiversityEnabled, entropyWeightEnabled, maxPrimers } = get();
-      const activeDomains = domains.filter((d) => !disabledDomains.has(`${d.name}-${d.start}`));
+      const activeDomains = domains.filter((d) => !disabledDomains.includes(`${d.name}-${d.start}`));
       const isMultiEvolve = get().mutationInputMode === "multi-evolve";
       const modeLabel = isMultiEvolve ? "MULTI-evolve" : "EVOLVEpro";
       set({ statusMessage: `Loading ${modeLabel} CSV...`, evolveproCsvPath: filepath });
@@ -132,3 +133,4 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     }
   },
 });
+};

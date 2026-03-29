@@ -33,7 +33,7 @@ export interface DesignSlice {
   fillOnFailure: boolean;
   manuallySwapped: Record<string, "fwd" | "rev" | "both">;
   customCandidates: Record<string, SdmPrimerResult[]>;
-  rescuedMutations: Set<string>;
+  rescuedMutations: string[];
   showReport: boolean;
 
   // Actions
@@ -81,7 +81,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
   fillOnFailure: false,
   manuallySwapped: {},
   customCandidates: {},
-  rescuedMutations: new Set<string>(),
+  rescuedMutations: [] as string[],
 
   designPrimers: async () => {
     const state = get();
@@ -115,6 +115,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
     }
 
     if ((mutationInputMode === "evolvepro" || mutationInputMode === "multi-evolve") && state.evolveproCsvPath) {
+      state.cancelDiversityReload();
       await state.loadEvolveproCsv(state.evolveproCsvPath);
     }
 
@@ -401,8 +402,9 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
     const revSeq = result.reverse_seq;
     newDedupInfo[revSeq] = [...(newDedupInfo[revSeq] ?? []), mutation];
 
-    const newRescued = new Set(rescuedMutations);
-    newRescued.add(mutation);
+    const newRescued = rescuedMutations.includes(mutation)
+      ? rescuedMutations
+      : [...rescuedMutations, mutation];
     set({
       designResults: newDesignResults,
       failedMutations: failedMutations.filter((f) => f.mutation !== mutation),
@@ -431,8 +433,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       ...failedMutations,
       { mutation, rank: restoredRank, reason },
     ];
-    const newRescued = new Set(rescuedMutations);
-    newRescued.delete(mutation);
+    const newRescued = rescuedMutations.filter((m) => m !== mutation);
     set({
       designResults: newDesignResults,
       failedMutations: newFailed,

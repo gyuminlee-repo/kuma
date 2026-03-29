@@ -21,6 +21,9 @@ let child: Child | null = null;
 let spawnPromise: Promise<void> | null = null;
 let nextId = 1;
 const pending = new Map<number, PendingRequest>();
+// NOTE: Single global progress handler. Only one operation can receive progress
+// events at a time. This is fine for the current single-design-at-a-time model.
+// If multi-operation progress is ever needed, refactor to a Map<requestId, handler>.
 let onProgress: ((p: ProgressNotification) => void) | null = null;
 let onReady: (() => void) | null = null;
 
@@ -36,7 +39,7 @@ function handleLine(line: string) {
   }
 
   // Notification (no id)
-  if (!("id" in msg) || msg.id === undefined) {
+  if (!("id" in msg) || msg.id === undefined || msg.id === null) {
     const notif = msg as JsonRpcNotification;
     if (notif.method === "progress" && onProgress) {
       onProgress(notif.params as unknown as ProgressNotification);
@@ -155,6 +158,10 @@ export async function sendRequest<T>(
   });
 
   return new Promise<T>((resolve, reject) => {
+    // NOTE: This timeout only rejects the client-side promise — it does NOT
+    // cancel the in-flight sidecar operation. For long-running methods like
+    // design_sdm_primers (300s timeout), use cancelAndRespawn() to actually
+    // abort the sidecar work.
     const timer = setTimeout(() => {
       pending.delete(id);
       reject(new Error(`RPC timeout: ${method} after ${timeoutMs}ms`));
@@ -171,7 +178,14 @@ export async function sendRequest<T>(
       },
     });
 
-    child!.write(request + "\n").catch((err: Error) => {
+    const proc = child;
+    if (!proc) {
+      clearTimeout(timer);
+      pending.delete(id);
+      reject(new Error("Sidecar not running"));
+      return;
+    }
+    proc.write(request + "\n").catch((err: Error) => {
       clearTimeout(timer);
       pending.delete(id);
       reject(err);

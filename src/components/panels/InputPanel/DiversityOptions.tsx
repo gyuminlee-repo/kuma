@@ -146,7 +146,7 @@ export function DiversityOptions() {
         >
           <div className="space-y-1.5">
             {/* Domain strategy radio */}
-            <div className="flex gap-2 text-[10px] text-gray-500">
+            <div className="flex gap-2 text-[10px] text-gray-500" role="radiogroup" aria-label="Domain distribution strategy">
               <label className="flex items-center gap-0.5 cursor-pointer">
                 <input
                   type="radio"
@@ -177,7 +177,7 @@ export function DiversityOptions() {
               <div className="space-y-0.5">
                 {domains.map((d) => {
                   const key = `${d.name}-${d.start}`;
-                  const disabled = disabledDomains.has(key);
+                  const disabled = disabledDomains.includes(key);
                   const stat = domainStats[d.name];
                   return (
                     <label

@@ -1,18 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAppStore } from "../../../store/appStore";
+import { useFocusTrap } from "../../../hooks/useFocusTrap";
 import type { SdmPrimerResult } from "../../../types/models";
+import { validateSeq } from "../../../lib/validation";
 import { ColoredFwdSeq, formatTolerance } from "../ResultTable";
 import { OffTargetDetail } from "./OffTargetDetail";
-
-const VALID_BASES = /^[ATGCatgc]*$/;
-function validateSeq(seq: string): string | null {
-  if (!seq) return null;
-  if (!VALID_BASES.test(seq)) {
-    const invalid = seq.replace(/[ATGCatgc]/g, "");
-    return `Invalid characters: ${[...new Set(invalid)].join(", ")}`;
-  }
-  return null;
-}
 
 function CandidateRow({
   c, rowClass, label, actions, onOtClick,
@@ -69,7 +61,7 @@ export function CandidatePopover({
   const [evaluating, setEvaluating] = useState(false);
   const [seqError, setSeqError] = useState<string | null>(null);
   const [otDetailCand, setOtDetailCand] = useState<SdmPrimerResult | null>(null);
-  const candidateCloseRef = useRef<HTMLButtonElement>(null);
+  const focusTrapRef = useFocusTrap<HTMLDivElement>();
   const getAlternatives = useAppStore((s) => s.getAlternatives);
   const swapPrimer = useAppStore((s) => s.swapPrimer);
   const applyCustomPrimer = useAppStore((s) => s.applyCustomPrimer);
@@ -119,10 +111,6 @@ export function CandidatePopover({
     if (type === "both") onClose();
   }
 
-  useEffect(() => {
-    candidateCloseRef.current?.focus();
-  }, []);
-
   function handleApplyCustom(result: SdmPrimerResult) {
     applyCustomPrimer(mutation, result);
     onClose();
@@ -140,6 +128,7 @@ export function CandidatePopover({
     >
       <div aria-hidden="true" className="fixed inset-0" />
       <div
+        ref={focusTrapRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="candidate-popover-title"
@@ -151,7 +140,6 @@ export function CandidatePopover({
             {mutation} — {candidates?.length ?? "..."} candidates
           </h3>
           <button
-            ref={candidateCloseRef}
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 text-lg px-2"
             aria-label="Close"

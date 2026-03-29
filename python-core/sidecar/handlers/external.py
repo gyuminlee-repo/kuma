@@ -75,7 +75,8 @@ def handle_fetch_domains(params: dict) -> dict:
                     "source": "interpro_api",
                     "protein_length": protein_length,
                 }
-        except Exception:
+        except Exception as exc:
+            logger.debug("Domain fetch from %s failed: %s", db_label, exc)
             continue
 
     # Both endpoints failed or returned no domains
@@ -202,6 +203,8 @@ def handle_search_uniprot(params: dict) -> dict:
             # Poll for completion (max ~60s)
             status_text = ""
             for _ in range(20):
+                if _core._cancel_event.is_set():
+                    break
                 _time.sleep(3)
                 status_text, _ = _fetch_text(
                     f"https://www.ebi.ac.uk/Tools/services/rest/ncbiblast/status/{job_id}"
@@ -275,10 +278,12 @@ def handle_fetch_esm_embedding(params: dict) -> dict:
     embedding = get_embedding(accession=accession, sequence=sequence)
 
     if embedding is None:
-        _core._state.esm_embedding = None
+        with _core._state_lock:
+            _core._state.esm_embedding = None
         return {"success": False, "error": "ESM-2 unavailable (install: pip install fair-esm torch)"}
 
-    _core._state.esm_embedding = embedding
+    with _core._state_lock:
+        _core._state.esm_embedding = embedding
     return {
         "success": True,
         "accession": accession,

@@ -149,6 +149,7 @@ function PlateGrid({
                   key={well}
                   className={`border border-gray-300 text-center px-0.5 py-0.5 rounded-sm ${cellClass}`}
                   title={entry ? `${entry.label}\n${entry.mutation}\n${entry.sequence}` : well}
+                  aria-label={entry ? `${well}: ${entry.label}` : well}
                 >
                   {entry ? (
                     <span className="font-mono truncate block leading-tight">

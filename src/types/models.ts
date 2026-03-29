@@ -206,6 +206,7 @@ export interface WorkspaceV1 {
   domainStrategy?: "proportional" | "equal";
   paretoDiversityEnabled?: boolean;
   disabledDomains?: string[];
+  rescuedMutations?: string[];
   entropyWeightEnabled?: boolean;
   organism?: string;
   pipelineMode?: boolean;

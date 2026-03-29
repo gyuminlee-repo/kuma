@@ -13,9 +13,9 @@ Usage in handlers::
     # access as p.fasta_path, p.polymerase, etc.
 """
 
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 # ---------------------------------------------------------------------------
@@ -84,7 +84,7 @@ class RetryFailedParams(BaseModel):
 class SwapPrimerParams(BaseModel):
     mutation: str = ""
     candidate_idx: int = Field(default=0, ge=0)
-    swap_type: str = "both"  # "both" | "fwd" | "rev"
+    swap_type: Literal["both", "fwd", "rev"] = "both"
 
 
 class EvaluatePrimerParams(BaseModel):
@@ -104,11 +104,20 @@ class GetAlternativesParams(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+class PlateMappingItem(BaseModel):
+    well: str
+    primer_name: str
+    sequence: str
+    primer_type: str
+    mutation: str
+    tm: Optional[float] = None
+    tm_overlap: Optional[float] = None
+    wt_codon: Optional[str] = None
+
+
 class ExportExcelParams(BaseModel):
     filepath: str
-    # mappings and dedup_info are optional frontend-provided state; deep
-    # validation is handled inside the handler (PlateMapping field checks).
-    mappings: Optional[list[Any]] = None
+    mappings: Optional[list[PlateMappingItem]] = None
     dedup_info: Optional[Any] = None
 
 
@@ -122,6 +131,15 @@ class ExportOrderParams(BaseModel):
 class SaveWorkspaceParams(BaseModel):
     filepath: str
     data: Any  # arbitrary JSON object
+
+    @field_validator("data", mode="before")
+    @classmethod
+    def check_data_size(cls, v):
+        import json as _json
+        serialized = _json.dumps(v, default=str)
+        if len(serialized) > 50 * 1024 * 1024:  # 50MB
+            raise ValueError("Workspace data exceeds 50MB limit")
+        return v
 
 
 class LoadWorkspaceParams(BaseModel):
@@ -165,8 +183,13 @@ class LoadEvolveproParams(BaseModel):
     entropy_weight: float = Field(default=0.0, ge=0.0)
 
 
+class LandscapeEntry(BaseModel):
+    variant: str
+    fitness: float
+
+
 class RunBenchmarkParams(BaseModel):
-    landscape: list[Any] = Field(default_factory=list)
+    landscape: list[LandscapeEntry] = Field(default_factory=list)
     ground_truth: dict[str, Any] = Field(default_factory=dict)
     n_select: int = Field(default=95, ge=1, le=960)
     strategies: list[str] = Field(default_factory=lambda: ["topn", "random", "pareto"])

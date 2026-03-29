@@ -28,25 +28,49 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 export function DesignReport() {
-  const showReport = useAppStore((s) => s.showReport);
   const setShowReport = useAppStore((s) => s.setShowReport);
-  const designResults = useAppStore((s) => s.designResults);
-  const failedMutations = useAppStore((s) => s.failedMutations);
-  const totalCount = useAppStore((s) => s.totalCount);
-  const pipelineMode = useAppStore((s) => s.pipelineMode);
-  const positionDiversityEnabled = useAppStore((s) => s.positionDiversityEnabled);
-  const maxPerPosition = useAppStore((s) => s.maxPerPosition);
-  const domainDiversityEnabled = useAppStore((s) => s.domainDiversityEnabled);
-  const domainStrategy = useAppStore((s) => s.domainStrategy);
-  const domains = useAppStore((s) => s.domains);
-  const domainStats = useAppStore((s) => s.domainStats);
-  const paretoDiversityEnabled = useAppStore((s) => s.paretoDiversityEnabled);
-  const entropyWeightEnabled = useAppStore((s) => s.entropyWeightEnabled);
-  const esmEmbeddingLoaded = useAppStore((s) => s.esmEmbeddingLoaded);
-  const evolveproTotalCount = useAppStore((s) => s.evolveproTotalCount);
-  const mutationInputMode = useAppStore((s) => s.mutationInputMode);
+  const data = useAppStore((s) => {
+    if (!s.showReport) return null;
+    return {
+      showReport: s.showReport,
+      designResults: s.designResults,
+      failedMutations: s.failedMutations,
+      totalCount: s.totalCount,
+      pipelineMode: s.pipelineMode,
+      positionDiversityEnabled: s.positionDiversityEnabled,
+      maxPerPosition: s.maxPerPosition,
+      domainDiversityEnabled: s.domainDiversityEnabled,
+      domainStrategy: s.domainStrategy,
+      domains: s.domains,
+      domainStats: s.domainStats,
+      paretoDiversityEnabled: s.paretoDiversityEnabled,
+      entropyWeightEnabled: s.entropyWeightEnabled,
+      esmEmbeddingLoaded: s.esmEmbeddingLoaded,
+      evolveproTotalCount: s.evolveproTotalCount,
+      mutationInputMode: s.mutationInputMode,
+    };
+  });
 
-  if (!showReport || designResults.length === 0) return null;
+  if (!data || data.designResults.length === 0) return null;
+
+  const {
+    showReport,
+    designResults,
+    failedMutations,
+    totalCount,
+    pipelineMode,
+    positionDiversityEnabled,
+    maxPerPosition,
+    domainDiversityEnabled,
+    domainStrategy,
+    domains,
+    domainStats,
+    paretoDiversityEnabled,
+    entropyWeightEnabled,
+    esmEmbeddingLoaded,
+    evolveproTotalCount,
+    mutationInputMode,
+  } = data;
 
   const successCount = designResults.length;
   const failCount = failedMutations.length;
