@@ -17,7 +17,9 @@ dependencies = [
 kuro = "kuro.cli:main"
 
 [tool.setuptools.packages.find]
+where = ["."]
 include = ["kuro*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = [".", "python-core"]
