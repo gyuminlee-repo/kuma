@@ -2,8 +2,8 @@
 
 from kuro.evolvepro import load_evolvepro_csv
 
+import sidecar.core as _core
 from sidecar.core import (
-    _state,
     _validate_filepath,
     _poly_registry,
     _codon_registry,
@@ -58,7 +58,7 @@ def handle_load_evolvepro_csv(params: dict) -> dict:
         domain_strategy=p.domain_strategy,
         pareto_diversity=p.pareto_diversity,
         entropy_weight=p.entropy_weight,
-        esm_embedding=_state.esm_embedding,
+        esm_embedding=_core._state.esm_embedding,
     )
 
 

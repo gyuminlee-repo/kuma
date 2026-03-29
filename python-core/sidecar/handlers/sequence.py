@@ -3,8 +3,8 @@
 from kuro.sdm_engine import load_sequence
 from kuro.mutation import parse_mutation_notation
 
+import sidecar.core as _core
 from sidecar.core import (
-    _state,
     _validate_filepath,
     _ALLOWED_FASTA_EXTENSIONS,
 )
@@ -20,8 +20,8 @@ def handle_load_fasta(params: dict) -> dict:
         raise FileNotFoundError(f"File not found: {p.filepath}")
 
     header, sequence, genes = load_sequence(resolved)
-    _state.template = (str(resolved), sequence)
-    _state.esm_embedding = None  # clear stale embedding from previous template
+    _core._state.template = (str(resolved), sequence)
+    _core._state.esm_embedding = None  # clear stale embedding from previous template
 
     return {
         "header": header,

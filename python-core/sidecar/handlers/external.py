@@ -4,8 +4,8 @@ import json
 import logging
 import re
 
+import sidecar.core as _core
 from sidecar.core import (
-    _state,
     _get_ssl_ctx,
     logger,
 )
@@ -275,10 +275,10 @@ def handle_fetch_esm_embedding(params: dict) -> dict:
     embedding = get_embedding(accession=accession, sequence=sequence)
 
     if embedding is None:
-        _state.esm_embedding = None
+        _core._state.esm_embedding = None
         return {"success": False, "error": "ESM-2 unavailable (install: pip install fair-esm torch)"}
 
-    _state.esm_embedding = embedding
+    _core._state.esm_embedding = embedding
     return {
         "success": True,
         "accession": accession,

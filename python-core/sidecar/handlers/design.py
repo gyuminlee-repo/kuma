@@ -16,9 +16,8 @@ from kuro.sdm_engine import (
 from kuro.mutation import Mutation, parse_mutation_notation
 from kuro.codon_table import CODON_TO_AA, best_codon
 
+import sidecar.core as _core
 from sidecar.core import (
-    _state,
-    _cancel_event,
     _progress,
     _validate_filepath,
     _poly_registry,
@@ -109,7 +108,7 @@ def _count_unique_fwd_rev(candidates: list[SdmPrimerResult]) -> tuple[int, int]:
 
 def _serialize_result_with_counts(r: SdmPrimerResult) -> dict:
     """Serialize result with fwd/rev candidate counts."""
-    cands = _state.candidates.get(r.mutation.raw, [])
+    cands = _core._state.candidates.get(r.mutation.raw, [])
     result = _serialize_result(r, len(cands))
     fwd_count, rev_count = _count_unique_fwd_rev(cands) if cands else (0, 0)
     result["candidate_fwd_count"] = fwd_count
@@ -127,10 +126,10 @@ def handle_design_sdm_primers(params: dict) -> dict:
     p = DesignSdmPrimersParams(**params)
 
     # Clear previous state to free memory
-    _state.results = []
-    _state.candidates = {}
-    _state.plate_mappings = []
-    _state.dedup_info = {}
+    _core._state.results = []
+    _core._state.candidates = {}
+    _core._state.plate_mappings = []
+    _core._state.dedup_info = {}
 
     if not p.fasta_path:
         raise ValueError("fasta_path is required")
@@ -190,7 +189,7 @@ def handle_design_sdm_primers(params: dict) -> dict:
         mutations_csv_path = Path(temp_csv_name)
 
     try:
-        _cancel_event.clear()
+        _core._cancel_event.clear()
 
         def _on_progress(i: int, total: int, mutation_raw: str) -> None:
             pct = 10 + int(70 * i / max(total, 1))
@@ -214,26 +213,26 @@ def handle_design_sdm_primers(params: dict) -> dict:
             rev_len_min=p.rev_len_min,
             rev_len_max=p.rev_len_max,
             on_progress=_on_progress,
-            cancel_check=_cancel_event.is_set,
+            cancel_check=_core._cancel_event.is_set,
             organism=p.organism,
         )
     finally:
         if temp_csv is not None:
             os.unlink(temp_csv_name)
 
-    if _cancel_event.is_set():
-        _cancel_event.clear()
+    if _core._cancel_event.is_set():
+        _core._cancel_event.clear()
         return {"results": [], "success_count": 0, "total_count": 0,
                 "failed_mutations": [], "cancelled": True}
 
-    _state.results = results
-    _state.candidates = all_cands
+    _core._state.results = results
+    _core._state.candidates = all_cands
     _progress(80, "Generating plate map...")
 
     # Auto-generate plate map (Fwd/Rev separate plates)
     fwd_map, rev_map = generate_plate_map(results, deduplicate_rev=True)
-    _state.plate_mappings = fwd_map + rev_map
-    _state.dedup_info = deduplicate_reverse(results)
+    _core._state.plate_mappings = fwd_map + rev_map
+    _core._state.dedup_info = deduplicate_reverse(results)
 
     _progress(100, "Design complete")
 
@@ -287,7 +286,7 @@ def handle_retry_failed(params: dict) -> dict:
     )
 
     # Build polymerase profile with custom Tm targets
-    profile = dc_replace(_poly_registry.get("Benchling"),
+    profile = dc_replace(_poly_registry.get(p.polymerase),
                          opt_tm_fwd=p.tm_fwd_target, opt_tm_rev=p.tm_rev_target, opt_tm_overlap=p.tm_overlap_target)
 
     candidates = design_single_sdm(
@@ -299,6 +298,8 @@ def handle_retry_failed(params: dict) -> dict:
         organism=p.organism,
     )
 
+    _core._state.candidates[mutation_raw] = candidates
+
     return {
         "candidates": [_serialize_result_with_counts(c) for c in candidates],
         "count": len(candidates),
@@ -309,7 +310,7 @@ def handle_swap_primer(params: dict) -> dict:
     """Swap the selected primer for a mutation with a different candidate."""
     p = SwapPrimerParams(**params)
 
-    candidates = _state.candidates.get(p.mutation)
+    candidates = _core._state.candidates.get(p.mutation)
     if not candidates:
         raise ValueError(f"No candidates for mutation: {p.mutation}")
     if p.candidate_idx >= len(candidates):
@@ -320,19 +321,19 @@ def handle_swap_primer(params: dict) -> dict:
     if p.swap_type == "both":
         new_best = source
     else:
-        current = next((r for r in _state.results if r.mutation.raw == p.mutation), None)
+        current = next((r for r in _core._state.results if r.mutation.raw == p.mutation), None)
         if not current:
             raise ValueError(f"No current result for mutation: {p.mutation}")
         swap_dict = {f: getattr(source, f) for f in _SWAP_FIELDS[p.swap_type]}
         new_best = dc_replace(current, **swap_dict)
 
     target_pos = new_best.mutation.position
-    for i, r in enumerate(_state.results):
+    for i, r in enumerate(_core._state.results):
         if r.mutation.raw == p.mutation:
-            _state.results[i] = new_best
+            _core._state.results[i] = new_best
         elif p.swap_type in ("rev", "both") and r.mutation.position == target_pos:
             # Propagate reverse to same-position mutations
-            _state.results[i] = dc_replace(
+            _core._state.results[i] = dc_replace(
                 r,
                 reverse_seq=new_best.reverse_seq,
                 reverse_binding=new_best.reverse_binding,
@@ -365,7 +366,7 @@ def handle_evaluate_primer(params: dict) -> dict:
     resolved = _validate_filepath(p.fasta_path, allowed_extensions=_ALLOWED_FASTA_EXTENSIONS)
 
     # Use cached template if same file
-    cached_path, cached_seq = _state.template
+    cached_path, cached_seq = _core._state.template
     if cached_seq and cached_path == str(resolved):
         template = cached_seq
     else:
@@ -387,7 +388,7 @@ def handle_get_alternatives(params: dict) -> dict:
 
     if not p.mutation:
         raise ValueError("mutation is required")
-    candidates = _state.candidates.get(p.mutation, [])
+    candidates = _core._state.candidates.get(p.mutation, [])
     return {
         "mutation": p.mutation,
         "candidates": [_serialize_result(c) for c in candidates],

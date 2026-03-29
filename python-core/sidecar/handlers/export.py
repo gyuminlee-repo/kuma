@@ -5,8 +5,8 @@ from dataclasses import fields as dc_fields
 
 from kuro.plate_mapper import PlateMapping, export_plate_excel, export_idt_csv, export_twist_csv
 
+import sidecar.core as _core
 from sidecar.core import (
-    _state,
     _validate_filepath,
     _validate_output_path,
     _ALLOWED_EXCEL_EXTENSIONS,
@@ -24,7 +24,7 @@ _ALLOWED_ORDER_CSV_EXTENSIONS = {".csv"}
 
 def handle_get_plate_map(_params: dict) -> dict:
     """Return the plate map from last design."""
-    if not _state.results:
+    if not _core._state.results:
         raise ValueError("No design available. Run design_sdm_primers first.")
 
     return {
@@ -36,9 +36,9 @@ def handle_get_plate_map(_params: dict) -> dict:
                 "primer_type": m.primer_type,
                 "mutation": m.mutation,
             }
-            for m in _state.plate_mappings
+            for m in _core._state.plate_mappings
         ],
-        "dedup_info": _state.dedup_info,
+        "dedup_info": _core._state.dedup_info,
     }
 
 
@@ -74,10 +74,10 @@ def handle_export_excel(params: dict) -> dict:
             mappings.append(PlateMapping(**filtered))
         rev_groups = dedup_data or {}
     else:
-        if not _state.results:
+        if not _core._state.results:
             raise ValueError("No design available")
-        mappings = _state.plate_mappings
-        rev_groups = _state.dedup_info
+        mappings = _core._state.plate_mappings
+        rev_groups = _core._state.dedup_info
 
     export_plate_excel(mappings, resolved, rev_groups=rev_groups)
     return {"success": True, "filepath": str(resolved)}
@@ -101,15 +101,15 @@ def handle_export_order(params: dict) -> dict:
         p.filepath, allowed_extensions=_ALLOWED_ORDER_CSV_EXTENSIONS
     )
 
-    if not _state.results:
+    if not _core._state.results:
         raise ValueError("No design available. Run design_sdm_primers first.")
 
     if fmt == "idt":
-        export_idt_csv(_state.results, resolved, scale=p.scale, purification=p.purification)
+        export_idt_csv(_core._state.results, resolved, scale=p.scale, purification=p.purification)
     else:
-        export_twist_csv(_state.results, resolved)
+        export_twist_csv(_core._state.results, resolved)
 
-    return {"success": True, "filepath": str(resolved), "format": fmt, "primer_count": len(_state.results) * 2}
+    return {"success": True, "filepath": str(resolved), "format": fmt, "primer_count": len(_core._state.results) * 2}
 
 
 def handle_save_workspace(params: dict) -> dict:

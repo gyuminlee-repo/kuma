@@ -64,6 +64,7 @@ class DesignSdmPrimersParams(BaseModel):
 class RetryFailedParams(BaseModel):
     mutation: str = ""
     fasta_path: str
+    polymerase: str = "Benchling"
     target_start: int = Field(default=0, ge=0)
     overlap_len: int = Field(default=20, ge=15, le=40)
     codon_strategy: str = "closest"
