@@ -12,6 +12,12 @@ from sidecar.core import (
     _ALLOWED_EXCEL_EXTENSIONS,
     _ALLOWED_CSV_EXTENSIONS,
 )
+from sidecar.models import (
+    ExportExcelParams,
+    ExportOrderParams,
+    SaveWorkspaceParams,
+    LoadWorkspaceParams,
+)
 
 _ALLOWED_ORDER_CSV_EXTENSIONS = {".csv"}
 
@@ -43,13 +49,13 @@ def handle_export_excel(params: dict) -> dict:
     the current UI state (sorted order, custom additions from failed mutations).
     Falls back to backend state when not provided (CLI usage).
     """
-    filepath = params.get("filepath")
+    p = ExportExcelParams(**params)
     resolved = _validate_output_path(
-        filepath, allowed_extensions=_ALLOWED_EXCEL_EXTENSIONS
+        p.filepath, allowed_extensions=_ALLOWED_EXCEL_EXTENSIONS
     )
 
-    mappings_data = params.get("mappings")
-    dedup_data = params.get("dedup_info")
+    mappings_data = p.mappings
+    dedup_data = p.dedup_info
 
     if mappings_data:
         if not isinstance(mappings_data, list):
@@ -86,22 +92,20 @@ def handle_export_order(params: dict) -> dict:
         scale: IDT synthesis scale (default "25nm").
         purification: IDT purification (default "STD").
     """
-    filepath = params.get("filepath")
-    fmt = params.get("format", "idt").lower()
+    p = ExportOrderParams(**params)
+    fmt = p.format.lower()
     if fmt not in ("idt", "twist"):
         raise ValueError(f"Invalid export format: '{fmt}'. Must be 'idt' or 'twist'.")
 
     resolved = _validate_output_path(
-        filepath, allowed_extensions=_ALLOWED_ORDER_CSV_EXTENSIONS
+        p.filepath, allowed_extensions=_ALLOWED_ORDER_CSV_EXTENSIONS
     )
 
     if not _state.results:
         raise ValueError("No design available. Run design_sdm_primers first.")
 
     if fmt == "idt":
-        scale = params.get("scale", "25nm")
-        purification = params.get("purification", "STD")
-        export_idt_csv(_state.results, resolved, scale=scale, purification=purification)
+        export_idt_csv(_state.results, resolved, scale=p.scale, purification=p.purification)
     else:
         export_twist_csv(_state.results, resolved)
 
@@ -110,22 +114,21 @@ def handle_export_order(params: dict) -> dict:
 
 def handle_save_workspace(params: dict) -> dict:
     """Save workspace JSON to file."""
-    filepath = params.get("filepath")
-    data = params.get("data")
-    if not filepath or data is None:
+    p = SaveWorkspaceParams(**params)
+    if not p.filepath or p.data is None:
         raise ValueError("filepath and data are required")
-    resolved = _validate_output_path(filepath, allowed_extensions={".json"})
+    resolved = _validate_output_path(p.filepath, allowed_extensions={".json"})
     with open(resolved, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+        json.dump(p.data, f, ensure_ascii=False, indent=2)
     return {"success": True, "filepath": str(resolved)}
 
 
 def handle_load_workspace(params: dict) -> dict:
     """Load workspace JSON from file."""
-    filepath = params.get("filepath")
-    resolved = _validate_filepath(filepath, allowed_extensions={".json"})
+    p = LoadWorkspaceParams(**params)
+    resolved = _validate_filepath(p.filepath, allowed_extensions={".json"})
     if not resolved.exists():
-        raise FileNotFoundError(f"File not found: {filepath}")
+        raise FileNotFoundError(f"File not found: {p.filepath}")
     file_size = resolved.stat().st_size
     if file_size > 50 * 1024 * 1024:
         raise ValueError(f"Workspace file too large: {file_size / 1024 / 1024:.1f} MB (max 50 MB)")

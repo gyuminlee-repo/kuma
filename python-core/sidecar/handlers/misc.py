@@ -9,6 +9,7 @@ from sidecar.core import (
     _codon_registry,
     _ALLOWED_CSV_EXTENSIONS,
 )
+from sidecar.models import LoadEvolveproParams, RunBenchmarkParams
 
 _POLYMERASE_META = {
     "Benchling": {"manufacturer": "SantaLucia 1998", "fidelity": "standard"},
@@ -43,20 +44,20 @@ def handle_list_organisms(_params: dict) -> list[dict]:
 
 def handle_load_evolvepro_csv(params: dict) -> dict:
     """Load EVOLVEpro df_test.csv, sort by y_pred descending, return top-N variants."""
-    filepath = params.get("filepath", "")
-    if not filepath:
+    p = LoadEvolveproParams(**params)
+    if not p.filepath:
         raise ValueError("filepath is required")
-    resolved = _validate_filepath(filepath, allowed_extensions=_ALLOWED_CSV_EXTENSIONS)
+    resolved = _validate_filepath(p.filepath, allowed_extensions=_ALLOWED_CSV_EXTENSIONS)
 
     return load_evolvepro_csv(
         filepath=str(resolved),
-        top_n=int(params.get("top_n", 96)),
-        max_per_position=int(params.get("max_per_position", 0)),
-        domains=params.get("domains", []),
-        domain_diversity=params.get("domain_diversity", False),
-        domain_strategy=params.get("domain_strategy", "proportional"),
-        pareto_diversity=params.get("pareto_diversity", False),
-        entropy_weight=float(params.get("entropy_weight", 0.0)),
+        top_n=p.top_n,
+        max_per_position=p.max_per_position,
+        domains=p.domains,
+        domain_diversity=p.domain_diversity,
+        domain_strategy=p.domain_strategy,
+        pareto_diversity=p.pareto_diversity,
+        entropy_weight=p.entropy_weight,
         esm_embedding=_state.esm_embedding,
     )
 
@@ -65,17 +66,14 @@ def handle_run_benchmark(params: dict) -> dict:
     """Run benchmark simulation on provided fitness landscape."""
     from kuro.benchmark import run_benchmark
 
-    landscape_data = params.get("landscape", [])
-    ground_truth = params.get("ground_truth", {})
-    n_select = int(params.get("n_select", 95))
-    strategies = params.get("strategies", ["topn", "random", "pareto"])
+    p = RunBenchmarkParams(**params)
 
-    if not landscape_data:
+    if not p.landscape:
         raise ValueError("landscape data is required")
 
-    landscape = [(v["variant"], v["fitness"]) for v in landscape_data]
+    landscape = [(v["variant"], v["fitness"]) for v in p.landscape]
 
     bench_results = run_benchmark(
-        landscape, ground_truth, n_select, strategies=strategies
+        landscape, p.ground_truth, p.n_select, strategies=p.strategies
     )
     return {"results": bench_results}

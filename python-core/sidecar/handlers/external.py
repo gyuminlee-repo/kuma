@@ -9,11 +9,13 @@ from sidecar.core import (
     _get_ssl_ctx,
     logger,
 )
+from sidecar.models import FetchDomainsParams, SearchUniprotParams, FetchEsmEmbeddingParams
 
 
 def handle_fetch_domains(params: dict) -> dict:
     """Fetch protein domain boundaries from InterPro/Pfam via UniProt accession."""
-    accession = params.get("accession", "").strip()
+    p = FetchDomainsParams(**params)
+    accession = p.accession.strip()
     if not accession:
         raise ValueError("UniProt accession is required")
     if not re.match(r"^[A-Za-z0-9_-]{1,20}$", accession):
@@ -110,10 +112,11 @@ def handle_search_uniprot(params: dict) -> dict:
     Primary: BLAST the translation against UniProt Swiss-Prot via EBI BLAST API.
     Secondary: direct fetch if known_accession is provided.
     """
-    gene_name = params.get("gene_name", "").strip()
-    organism = params.get("organism", "").strip()
-    translation = params.get("translation", "").strip()
-    known_accession = params.get("known_accession", "").strip()
+    p = SearchUniprotParams(**params)
+    gene_name = p.gene_name.strip()
+    organism = p.organism.strip()
+    translation = p.translation.strip()
+    known_accession = p.known_accession.strip()
 
     if not translation and not known_accession:
         raise ValueError("translation or known_accession is required")
@@ -261,8 +264,9 @@ def handle_fetch_esm_embedding(params: dict) -> dict:
     Accepts accession and/or sequence. Local inference is preferred
     when torch + fair-esm are installed; remote API is fallback.
     """
-    accession = params.get("accession", "").strip()
-    sequence = params.get("sequence", "").strip()
+    p = FetchEsmEmbeddingParams(**params)
+    accession = p.accession.strip()
+    sequence = p.sequence.strip()
     if not accession and not sequence:
         raise ValueError("accession or sequence is required")
 

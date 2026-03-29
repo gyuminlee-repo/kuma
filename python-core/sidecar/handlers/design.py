@@ -28,6 +28,13 @@ from sidecar.core import (
     _VALID_DNA_BASES,
 )
 from kuro.plate_mapper import deduplicate_reverse, generate_plate_map
+from sidecar.models import (
+    DesignSdmPrimersParams,
+    RetryFailedParams,
+    SwapPrimerParams,
+    EvaluatePrimerParams,
+    GetAlternativesParams,
+)
 
 
 # Swap field map for handle_swap_primer
@@ -117,72 +124,39 @@ def _serialize_result_with_counts(r: SdmPrimerResult) -> dict:
 
 def handle_design_sdm_primers(params: dict) -> dict:
     """Design SDM primers for a batch of mutations."""
+    p = DesignSdmPrimersParams(**params)
+
     # Clear previous state to free memory
     _state.results = []
     _state.candidates = {}
     _state.plate_mappings = []
     _state.dedup_info = {}
 
-    fasta_path = params.get("fasta_path")
-    if not fasta_path:
+    if not p.fasta_path:
         raise ValueError("fasta_path is required")
 
-    try:
-        target_start = int(params.get("target_start", 0))
-    except (TypeError, ValueError) as exc:
-        raise ValueError(f"Invalid target_start: {exc}") from exc
-    if target_start < 0:
-        raise ValueError(f"target_start must be non-negative, got {target_start}")
+    if p.codon_strategy not in ("closest", "optimal"):
+        raise ValueError(f"Invalid codon_strategy: '{p.codon_strategy}'. Must be 'closest' or 'optimal'.")
 
-    mutations_input = params.get("mutations_csv_or_text", "")
-    polymerase = params.get("polymerase", "Q5")
-    overlap_len = int(params.get("overlap_len", 20))
-    codon_strategy = params.get("codon_strategy", "closest")
-    if codon_strategy not in ("closest", "optimal"):
-        raise ValueError(f"Invalid codon_strategy: '{codon_strategy}'. Must be 'closest' or 'optimal'.")
-    organism = params.get("organism", "ecoli")
     # Validate organism is known
     available_organisms = _codon_registry.list_organisms()
-    if organism not in available_organisms:
-        raise ValueError(f"Unknown organism: '{organism}'. Available: {', '.join(available_organisms)}")
+    if p.organism not in available_organisms:
+        raise ValueError(f"Unknown organism: '{p.organism}'. Available: {', '.join(available_organisms)}")
 
-    _raw_fwd = params.get("tm_fwd_target")
-    _raw_rev = params.get("tm_rev_target")
-    _raw_ov = params.get("tm_overlap_target")
-    tm_fwd_target = float(_raw_fwd) if _raw_fwd else None
-    tm_rev_target = float(_raw_rev) if _raw_rev else None
-    tm_overlap_target = float(_raw_ov) if _raw_ov else None
-
-    # Validate Tm ranges (20-80°C)
-    for label, val in [("tm_fwd_target", tm_fwd_target), ("tm_rev_target", tm_rev_target), ("tm_overlap_target", tm_overlap_target)]:
-        if val is not None and not (20 <= val <= 80):
-            raise ValueError(f"{label} must be between 20 and 80°C, got {val}")
-
-    gc_min = float(params.get("gc_min", 40))
-    gc_max = float(params.get("gc_max", 60))
-
-    fwd_len_min = int(params.get("fwd_len_min", 18))
-    fwd_len_max = int(params.get("fwd_len_max", 45))
-    rev_len_min = int(params.get("rev_len_min", 18))
-    rev_len_max = int(params.get("rev_len_max", 30))
+    # Validate GC% relationship
+    if p.gc_min >= p.gc_max:
+        raise ValueError(f"gc_min ({p.gc_min}) must be less than gc_max ({p.gc_max})")
 
     # Validate primer length ranges
-    for label, lo, hi in [("fwd", fwd_len_min, fwd_len_max), ("rev", rev_len_min, rev_len_max)]:
-        if not (1 <= lo <= hi <= 100):
-            raise ValueError(f"{label}_len_min ({lo}) must be <= {label}_len_max ({hi}), both in 1-100")
-
-    # Validate GC% range (0-100%)
-    if not (0 <= gc_min <= 100) or not (0 <= gc_max <= 100):
-        raise ValueError(f"gc_min/gc_max must be between 0 and 100, got {gc_min}/{gc_max}")
-    if gc_min >= gc_max:
-        raise ValueError(f"gc_min ({gc_min}) must be less than gc_max ({gc_max})")
-
-    if not 15 <= overlap_len <= 40:
-        raise ValueError(f"overlap_len must be 15-40, got {overlap_len}")
+    for label, lo, hi in [("fwd", p.fwd_len_min, p.fwd_len_max), ("rev", p.rev_len_min, p.rev_len_max)]:
+        if lo > hi:
+            raise ValueError(f"{label}_len_min ({lo}) must be <= {label}_len_max ({hi})")
 
     resolved_fasta = _validate_filepath(
-        fasta_path, allowed_extensions=_ALLOWED_FASTA_EXTENSIONS
+        p.fasta_path, allowed_extensions=_ALLOWED_FASTA_EXTENSIONS
     )
+
+    mutations_input = p.mutations_csv_or_text
 
     # Determine if input is text or CSV path
     mutations_csv_path: Path
@@ -225,23 +199,23 @@ def handle_design_sdm_primers(params: dict) -> dict:
         _progress(10, "Designing SDM primers...")
         results, all_cands, engine_failures = design_sdm_primers(
             fasta_path=resolved_fasta,
-            target_start=target_start,
+            target_start=p.target_start,
             mutations_csv=mutations_csv_path,
-            polymerase=polymerase,
-            overlap_len=overlap_len,
-            codon_strategy=codon_strategy,
-            tm_fwd_target=tm_fwd_target,
-            tm_rev_target=tm_rev_target,
-            tm_overlap_target=tm_overlap_target,
-            gc_min=gc_min,
-            gc_max=gc_max,
-            fwd_len_min=fwd_len_min,
-            fwd_len_max=fwd_len_max,
-            rev_len_min=rev_len_min,
-            rev_len_max=rev_len_max,
+            polymerase=p.polymerase,
+            overlap_len=p.overlap_len,
+            codon_strategy=p.codon_strategy,
+            tm_fwd_target=p.tm_fwd_target,
+            tm_rev_target=p.tm_rev_target,
+            tm_overlap_target=p.tm_overlap_target,
+            gc_min=p.gc_min,
+            gc_max=p.gc_max,
+            fwd_len_min=p.fwd_len_min,
+            fwd_len_max=p.fwd_len_max,
+            rev_len_min=p.rev_len_min,
+            rev_len_max=p.rev_len_max,
             on_progress=_on_progress,
             cancel_check=_cancel_event.is_set,
-            organism=organism,
+            organism=p.organism,
         )
     finally:
         if temp_csv is not None:
@@ -287,42 +261,25 @@ def handle_design_sdm_primers(params: dict) -> dict:
 
 def handle_retry_failed(params: dict) -> dict:
     """Retry designing primers for a single failed mutation with custom parameters."""
-    mutation_raw = params.get("mutation", "").strip()
+    p = RetryFailedParams(**params)
+
+    mutation_raw = p.mutation.strip()
     if not mutation_raw:
         raise ValueError("mutation is required")
 
-    fasta_path = params.get("fasta_path")
-    if not fasta_path:
-        raise ValueError("fasta_path is required")
-    resolved_fasta = _validate_filepath(fasta_path, allowed_extensions=_ALLOWED_FASTA_EXTENSIONS)
-
-    target_start = int(params.get("target_start", 0))
-    overlap_len = int(params.get("overlap_len", 20))
-    codon_strategy = params.get("codon_strategy", "closest")
-    organism = params.get("organism", "ecoli")
-
-    tm_fwd = float(params.get("tm_fwd_target", 62))
-    tm_rev = float(params.get("tm_rev_target", 58))
-    tm_ov = float(params.get("tm_overlap_target", 42))
-    gc_min = float(params.get("gc_min", 40))
-    gc_max = float(params.get("gc_max", 60))
-    fwd_len_min = int(params.get("fwd_len_min", 18))
-    fwd_len_max = int(params.get("fwd_len_max", 45))
-    rev_len_min = int(params.get("rev_len_min", 18))
-    rev_len_max = int(params.get("rev_len_max", 30))
-    num_return = int(params.get("num_return", 10))
+    resolved_fasta = _validate_filepath(p.fasta_path, allowed_extensions=_ALLOWED_FASTA_EXTENSIONS)
 
     # Load template
     _header, sequence, _genes = load_sequence(resolved_fasta)
 
     # Parse mutation
     wt_aa, position, mt_aa = parse_mutation_notation(mutation_raw)
-    codon_start = target_start + (position - 1) * 3
+    codon_start = p.target_start + (position - 1) * 3
     wt_codon = sequence[codon_start:codon_start + 3]
     actual_aa = CODON_TO_AA.get(wt_codon)
     if actual_aa != wt_aa:
         raise ValueError(f"WT amino acid mismatch: expected {wt_aa} at position {position}, but codon {wt_codon} encodes {actual_aa}")
-    mt_codon = best_codon(mt_aa, organism)
+    mt_codon = best_codon(mt_aa, p.organism)
 
     mut = Mutation(
         raw=mutation_raw, wt_aa=wt_aa, position=position, mt_aa=mt_aa,
@@ -331,15 +288,15 @@ def handle_retry_failed(params: dict) -> dict:
 
     # Build polymerase profile with custom Tm targets
     profile = dc_replace(_poly_registry.get("Benchling"),
-                         opt_tm_fwd=tm_fwd, opt_tm_rev=tm_rev, opt_tm_overlap=tm_ov)
+                         opt_tm_fwd=p.tm_fwd_target, opt_tm_rev=p.tm_rev_target, opt_tm_overlap=p.tm_overlap_target)
 
     candidates = design_single_sdm(
-        sequence, mut, profile, overlap_len,
-        num_return=num_return, codon_strategy=codon_strategy,
-        gc_min=gc_min, gc_max=gc_max,
-        fwd_len_min=fwd_len_min, fwd_len_max=fwd_len_max,
-        rev_len_min=rev_len_min, rev_len_max=rev_len_max,
-        organism=organism,
+        sequence, mut, profile, p.overlap_len,
+        num_return=p.num_return, codon_strategy=p.codon_strategy,
+        gc_min=p.gc_min, gc_max=p.gc_max,
+        fwd_len_min=p.fwd_len_min, fwd_len_max=p.fwd_len_max,
+        rev_len_min=p.rev_len_min, rev_len_max=p.rev_len_max,
+        organism=p.organism,
     )
 
     return {
@@ -350,32 +307,30 @@ def handle_retry_failed(params: dict) -> dict:
 
 def handle_swap_primer(params: dict) -> dict:
     """Swap the selected primer for a mutation with a different candidate."""
-    mutation = params.get("mutation", "")
-    candidate_idx = int(params.get("candidate_idx", 0))
-    swap_type = params.get("swap_type", "both")  # "both", "fwd", "rev"
+    p = SwapPrimerParams(**params)
 
-    candidates = _state.candidates.get(mutation)
+    candidates = _state.candidates.get(p.mutation)
     if not candidates:
-        raise ValueError(f"No candidates for mutation: {mutation}")
-    if candidate_idx < 0 or candidate_idx >= len(candidates):
-        raise ValueError(f"Invalid candidate index: {candidate_idx}")
+        raise ValueError(f"No candidates for mutation: {p.mutation}")
+    if p.candidate_idx >= len(candidates):
+        raise ValueError(f"Invalid candidate index: {p.candidate_idx}")
 
-    source = candidates[candidate_idx]
+    source = candidates[p.candidate_idx]
 
-    if swap_type == "both":
+    if p.swap_type == "both":
         new_best = source
     else:
-        current = next((r for r in _state.results if r.mutation.raw == mutation), None)
+        current = next((r for r in _state.results if r.mutation.raw == p.mutation), None)
         if not current:
-            raise ValueError(f"No current result for mutation: {mutation}")
-        swap_dict = {f: getattr(source, f) for f in _SWAP_FIELDS[swap_type]}
+            raise ValueError(f"No current result for mutation: {p.mutation}")
+        swap_dict = {f: getattr(source, f) for f in _SWAP_FIELDS[p.swap_type]}
         new_best = dc_replace(current, **swap_dict)
 
     target_pos = new_best.mutation.position
     for i, r in enumerate(_state.results):
-        if r.mutation.raw == mutation:
+        if r.mutation.raw == p.mutation:
             _state.results[i] = new_best
-        elif swap_type in ("rev", "both") and r.mutation.position == target_pos:
+        elif p.swap_type in ("rev", "both") and r.mutation.position == target_pos:
             # Propagate reverse to same-position mutations
             _state.results[i] = dc_replace(
                 r,
@@ -390,13 +345,12 @@ def handle_swap_primer(params: dict) -> dict:
 
 def handle_evaluate_primer(params: dict) -> dict:
     """Evaluate a user-provided primer pair."""
-    mutation = params.get("mutation", "custom")
-    fasta_path = params.get("fasta_path")
-    forward_seq = params.get("forward_seq", "").strip().upper()
-    reverse_seq = params.get("reverse_seq", "").strip().upper()
-    overlap_len = int(params.get("overlap_len", 20))
+    p = EvaluatePrimerParams(**params)
 
-    if not fasta_path:
+    forward_seq = p.forward_seq.strip().upper()
+    reverse_seq = p.reverse_seq.strip().upper()
+
+    if not p.fasta_path:
         raise ValueError("fasta_path is required")
     if not forward_seq or not reverse_seq:
         raise ValueError("Both forward_seq and reverse_seq are required")
@@ -408,7 +362,7 @@ def handle_evaluate_primer(params: dict) -> dict:
         if len(seq) > 150:
             raise ValueError(f"{label} exceeds 150bp limit (got {len(seq)}bp)")
 
-    resolved = _validate_filepath(fasta_path, allowed_extensions=_ALLOWED_FASTA_EXTENSIONS)
+    resolved = _validate_filepath(p.fasta_path, allowed_extensions=_ALLOWED_FASTA_EXTENSIONS)
 
     # Use cached template if same file
     cached_path, cached_seq = _state.template
@@ -421,19 +375,20 @@ def handle_evaluate_primer(params: dict) -> dict:
         fwd_seq=forward_seq,
         rev_seq=reverse_seq,
         template=template,
-        mutation_raw=mutation,
-        overlap_len=overlap_len,
+        mutation_raw=p.mutation,
+        overlap_len=p.overlap_len,
     )
     return _serialize_result(result)
 
 
 def handle_get_alternatives(params: dict) -> dict:
     """Return all candidates for a specific mutation."""
-    mutation = params.get("mutation", "")
-    if not mutation:
+    p = GetAlternativesParams(**params)
+
+    if not p.mutation:
         raise ValueError("mutation is required")
-    candidates = _state.candidates.get(mutation, [])
+    candidates = _state.candidates.get(p.mutation, [])
     return {
-        "mutation": mutation,
+        "mutation": p.mutation,
         "candidates": [_serialize_result(c) for c in candidates],
     }

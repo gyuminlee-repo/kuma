@@ -8,15 +8,16 @@ from sidecar.core import (
     _validate_filepath,
     _ALLOWED_FASTA_EXTENSIONS,
 )
+from sidecar.models import LoadFastaParams, ParseMutationsTextParams
 
 
 def handle_load_fasta(params: dict) -> dict:
     """Load a sequence file and return sequence info with gene annotations."""
-    filepath = params.get("filepath")
-    resolved = _validate_filepath(filepath, allowed_extensions=_ALLOWED_FASTA_EXTENSIONS)
+    p = LoadFastaParams(**params)
+    resolved = _validate_filepath(p.filepath, allowed_extensions=_ALLOWED_FASTA_EXTENSIONS)
 
     if not resolved.exists():
-        raise FileNotFoundError(f"File not found: {filepath}")
+        raise FileNotFoundError(f"File not found: {p.filepath}")
 
     header, sequence, genes = load_sequence(resolved)
     _state.template = (str(resolved), sequence)
@@ -46,13 +47,13 @@ def handle_parse_mutations_text(params: dict) -> dict:
 
     Returns dict with 'parsed' list and 'errors' list for failed lines.
     """
-    text = params.get("text", "")
-    if not text.strip():
+    p = ParseMutationsTextParams(**params)
+    if not p.text.strip():
         raise ValueError("No mutations provided")
 
     parsed = []
     errors = []
-    for line_num, line in enumerate(text.strip().split("\n"), 1):
+    for line_num, line in enumerate(p.text.strip().split("\n"), 1):
         line = line.strip()
         if not line:
             continue
