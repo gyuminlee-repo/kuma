@@ -8,6 +8,7 @@
     "dialog:allow-open",
     "dialog:allow-save",
     "shell:allow-stdin-write",
+    "shell:allow-kill",
     {
       "identifier": "shell:allow-spawn",
       "allow": [

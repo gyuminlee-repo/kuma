@@ -11,6 +11,7 @@ export function SequenceInput() {
   const organism = useAppStore((s) => s.organism);
   const setOrganism = useAppStore((s) => s.setOrganism);
   const loadSequence = useAppStore((s) => s.loadSequence);
+  const uniprotSearching = useAppStore((s) => s.uniprotSearching);
 
   return (
     <>
@@ -47,6 +48,15 @@ export function SequenceInput() {
             <div>
               {seqInfo.seq_length.toLocaleString()} bp | {seqInfo.genes.length} gene(s)
             </div>
+          </div>
+        )}
+        {seqInfo && uniprotSearching && (
+          <div className="flex items-center gap-1.5 text-xs text-blue-600 bg-blue-50 border border-blue-200 rounded px-2 py-1">
+            <svg className="animate-spin w-3 h-3 flex-shrink-0" viewBox="0 0 24 24" fill="none">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+            </svg>
+            UniProt BLAST search in progress… (Step 2 available after)
           </div>
         )}
       </div>

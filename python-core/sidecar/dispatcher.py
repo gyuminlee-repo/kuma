@@ -34,7 +34,7 @@ from sidecar.handlers.export import (
 from sidecar.handlers.external import (
     handle_fetch_domains,
     handle_search_uniprot,
-    handle_fetch_esm_embedding,
+    handle_fetch_structure,
 )
 from sidecar.handlers.misc import (
     handle_list_polymerases,
@@ -65,14 +65,14 @@ _METHODS = {
     "load_workspace": handle_load_workspace,
     "fetch_domains": handle_fetch_domains,
     "search_uniprot": handle_search_uniprot,
-    "fetch_esm_embedding": handle_fetch_esm_embedding,
+    "fetch_structure": handle_fetch_structure,
     "run_benchmark": handle_run_benchmark,
     "cancel_design": lambda _: (_cancel_event.set(), {"cancelled": True})[1],
 }
 
 # Methods that run in a background thread to avoid blocking the main loop.
 # These are long-running operations (network I/O, heavy computation).
-_ASYNC_METHODS = {"search_uniprot", "fetch_esm_embedding", "fetch_domains", "run_benchmark"}
+_ASYNC_METHODS = {"search_uniprot", "fetch_structure", "fetch_domains", "run_benchmark"}
 
 
 # ---------------------------------------------------------------------------

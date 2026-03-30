@@ -27,3 +27,5 @@ benchmark/data/
 # Dev tooling & internal notes
 .claude/
 notes/
+"package-lock.json" 
+"package-lock.json" 

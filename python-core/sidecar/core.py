@@ -121,7 +121,7 @@ class SidecarState:
     plate_mappings: list[PlateMapping] = field(default_factory=list)
     dedup_info: dict[str, list[str]] = field(default_factory=dict)
     template: tuple[str, str] = ("", "")  # (fasta_path, sequence)
-    esm_embedding: list[list[float]] | None = None  # per-residue ESM-2 vectors
+    ca_coords: list[tuple[float, float, float] | None] | None = None  # AlphaFold Cα coordinates
 
 
 _state = SidecarState()

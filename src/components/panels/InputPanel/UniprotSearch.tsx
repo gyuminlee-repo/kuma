@@ -71,7 +71,7 @@ export function UniprotSearch() {
                 setAccessionInput(c.accession);
                 fetchDomains(c.accession);
               }}
-              title={`${c.organism} | ${c.length} aa | ${c.identity}% identity`}
+              title={`${c.organism} | ${c.length} aa | ${c.identity}% identity${c.has_structure ? " | AlphaFold structure available" : ""}`}
             >
               <span
                 className={`w-2 h-2 rounded-full flex-shrink-0 ${
@@ -84,6 +84,11 @@ export function UniprotSearch() {
               />
               <span className="font-mono text-blue-700">{c.accession}</span>
               <span className="text-gray-500 truncate">{c.name}</span>
+              {c.has_structure && (
+                <span className="flex-shrink-0 inline-flex items-center rounded bg-indigo-100 px-1 py-0.5 text-[9px] font-medium text-indigo-700" title="AlphaFold structure available">
+                  AF
+                </span>
+              )}
               <span
                 className={`ml-auto flex-shrink-0 ${
                   c.identity === 100 ? "text-green-600 font-semibold" : "text-gray-400"

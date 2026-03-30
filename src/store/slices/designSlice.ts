@@ -114,9 +114,16 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       return;
     }
 
-    if ((mutationInputMode === "evolvepro" || mutationInputMode === "multi-evolve") && state.evolveproCsvPath) {
+    // Compute sendCount before CSV reload so EVOLVEpro can fetch buffer candidates
+    const sendCount = fillOnFailure
+      ? Math.max(Math.ceil(maxPrimers * 1.5), maxPrimers + 20)
+      : maxPrimers;
+    const isEvolveMode = mutationInputMode === "evolvepro" || mutationInputMode === "multi-evolve";
+
+    if (isEvolveMode && state.evolveproCsvPath) {
       state.cancelDiversityReload();
-      await state.loadEvolveproCsv(state.evolveproCsvPath);
+      // When fill-on-failure is active, load extra buffer candidates beyond maxPrimers
+      await state.loadEvolveproCsv(state.evolveproCsvPath, fillOnFailure ? sendCount : undefined);
     }
 
     // Re-read mutationText after potential CSV reload
@@ -124,9 +131,6 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
 
     const allLines = refreshedText.trim().split("\n").filter((l) => l.trim() && !l.trim().startsWith("#"));
     const intendedMuts = new Set(allLines.slice(0, maxPrimers).map((l) => l.trim()));
-    const sendCount = fillOnFailure
-      ? Math.max(Math.ceil(maxPrimers * 1.5), maxPrimers + 20)
-      : maxPrimers;
     const limitedLines = allLines.slice(0, sendCount);
     const limitedText = limitedLines.join("\n");
 
@@ -176,6 +180,11 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         failedMutations: intendedFailed,
         statusMessage: `${capped.length}/${maxPrimers} designed | Tm: ${tmMet}/${capped.length}${failedMsg}`,
       });
+
+      // Restore EVOLVEpro mutation list to original maxPrimers count
+      if (fillOnFailure && isEvolveMode && get().evolveproCsvPath) {
+        get().loadEvolveproCsv(get().evolveproCsvPath!);
+      }
 
       try {
         const plateResult = await sendRequest<PlateMapResult>("get_plate_map");

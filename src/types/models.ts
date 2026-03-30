@@ -23,6 +23,7 @@ export interface UniprotCandidate {
   organism: string;
   length: number;
   identity: number;
+  has_structure?: boolean;
 }
 
 export interface SearchUniprotResult {
@@ -214,11 +215,10 @@ export interface WorkspaceV1 {
   maxPerPosition?: number;
 }
 
-export interface EsmEmbeddingResult {
+export interface StructureResult {
   success: boolean;
   accession?: string;
-  length?: number;
-  dimension?: number;
+  residues?: number;
   error?: string;
 }
 

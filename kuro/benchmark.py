@@ -37,12 +37,12 @@ def simulate_selection(
             fitness_landscape, min(n_select, len(fitness_landscape))
         )
     elif strategy == "pareto":
-        esm = kwargs.get("esm_embedding")
+        ca = kwargs.get("ca_coords")
         selected, _ = pareto_diversity_select(
             fitness_landscape,
             n_select,
             pool_multiplier=kwargs.get("pool_multiplier", 2.0),
-            esm_embedding=esm,
+            ca_coords=ca,
         )
         return selected
     elif strategy == "domain":

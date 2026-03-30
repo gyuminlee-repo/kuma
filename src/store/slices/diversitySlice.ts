@@ -7,7 +7,7 @@ import type {
   FetchDomainsResult,
   UniprotCandidate,
   SearchUniprotResult,
-  EsmEmbeddingResult,
+  StructureResult,
 } from "../../types/models";
 
 export interface DiversitySlice {
@@ -24,8 +24,8 @@ export interface DiversitySlice {
   domainStats: Record<string, { quota: number; selected: number }>;
   paretoDiversityEnabled: boolean;
   entropyWeightEnabled: boolean;
-  esmEmbeddingLoaded: boolean;
-  esmEmbeddingLoading: boolean;
+  structureLoaded: boolean;
+  structureLoading: boolean;
   uniprotCandidates: UniprotCandidate[];
   uniprotSearching: boolean;
 
@@ -41,7 +41,7 @@ export interface DiversitySlice {
   setParetoDiversityEnabled: (enabled: boolean) => void;
   setEntropyWeightEnabled: (enabled: boolean) => void;
   searchUniprot: (geneName: string, organism: string, translation: string, knownAccession: string) => Promise<void>;
-  fetchEsmEmbedding: (accession: string, sequence?: string) => Promise<void>;
+  fetchStructure: (accession: string) => Promise<void>;
   cancelDiversityReload: () => void;
 }
 
@@ -72,8 +72,8 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   domainStats: {},
   paretoDiversityEnabled: true,
   entropyWeightEnabled: true,
-  esmEmbeddingLoaded: false,
-  esmEmbeddingLoading: false,
+  structureLoaded: false,
+  structureLoading: false,
   uniprotCandidates: [],
   uniprotSearching: false,
 
@@ -122,12 +122,11 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
           ? `Domains: ${result.domains.length} found (${result.source})`
           : result.error_msg ? `Domain fetch failed: ${result.error_msg}` : "No domains found",
       });
-      const { evolveproCsvPath, esmEmbeddingLoaded } = get();
+      const { evolveproCsvPath, structureLoaded } = get();
       if (evolveproCsvPath && result.domains.length > 0) get().loadEvolveproCsv(evolveproCsvPath);
-      // Also fetch ESM embedding for manual accession entry
-      if (!esmEmbeddingLoaded) {
-        const gene = get().seqInfo?.genes.find((g) => String(g.cds_start) === get().selectedGene);
-        get().fetchEsmEmbedding(accession, gene?.translation ?? "");
+      // Fetch AlphaFold structure for manual accession entry
+      if (!structureLoaded) {
+        get().fetchStructure(accession);
       }
     } catch (err) {
       set({ domainLoading: false, statusMessage: `Domain fetch failed: ${formatError(err)}` });
@@ -184,40 +183,40 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
         ...(acc && { uniprotAccession: acc }),
         statusMessage: statusMsg,
       });
-      // Auto-trigger ESM-2 embedding with protein sequence for local inference
+      // Auto-trigger AlphaFold structure fetch
       if (acc) {
-        get().fetchEsmEmbedding(acc, translation);
+        get().fetchStructure(acc);
       }
     } catch (err) {
       set({ uniprotSearching: false, statusMessage: `UniProt search failed: ${formatError(err)}` });
     }
   },
 
-  fetchEsmEmbedding: async (accession: string, sequence?: string) => {
-    set({ esmEmbeddingLoading: true, statusMessage: "ESM-2 embedding loading..." });
+  fetchStructure: async (accession: string) => {
+    set({ structureLoading: true, statusMessage: "AlphaFold structure loading..." });
     try {
-      const result = await sendRequest<EsmEmbeddingResult>("fetch_esm_embedding", { accession, sequence: sequence ?? "" }, 120_000);
+      const result = await sendRequest<StructureResult>("fetch_structure", { accession }, 30_000);
       if (result.success) {
         set({
-          esmEmbeddingLoaded: true,
-          esmEmbeddingLoading: false,
-          statusMessage: `ESM-2 embedding loaded: ${result.length} residues, ${result.dimension}D`,
+          structureLoaded: true,
+          structureLoading: false,
+          statusMessage: `AlphaFold structure loaded: ${result.residues} Cα residues`,
         });
-        // Re-trigger CSV selection with ESM embedding now available
+        // Re-trigger CSV selection with structure now available
         const { evolveproCsvPath } = get();
         if (evolveproCsvPath) get().loadEvolveproCsv(evolveproCsvPath);
       } else {
         set({
-          esmEmbeddingLoaded: false,
-          esmEmbeddingLoading: false,
-          statusMessage: `ESM-2 unavailable (using position distance) — ${result.error ?? "API offline"}`,
+          structureLoaded: false,
+          structureLoading: false,
+          statusMessage: `AlphaFold structure unavailable (using position distance) — ${result.error ?? "not in DB"}`,
         });
       }
     } catch (err) {
       set({
-        esmEmbeddingLoaded: false,
-        esmEmbeddingLoading: false,
-        statusMessage: `ESM-2 fetch failed: ${formatError(err)}`,
+        structureLoaded: false,
+        structureLoading: false,
+        statusMessage: `AlphaFold fetch failed: ${formatError(err)}`,
       });
     }
   },

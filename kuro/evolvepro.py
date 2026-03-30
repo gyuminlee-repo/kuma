@@ -11,7 +11,7 @@ import math
 import re
 from pathlib import Path
 
-from kuro.esm_embeddings import pairwise_esm_distance
+from kuro.alphafold import pairwise_ca_distance, ca_max_dist
 
 _POS_RE = re.compile(r"[A-Z](\d+)[A-Z]")
 _SINGLE_POS_RE = re.compile(r"^[A-Z](\d+)[A-Z]$")
@@ -67,7 +67,7 @@ def load_evolvepro_csv(
     domain_strategy: str = "proportional",
     pareto_diversity: bool = False,
     entropy_weight: float = 0.0,
-    esm_embedding: list[list[float]] | None = None,
+    ca_coords: list[tuple[float, float, float] | None] | None = None,
 ) -> dict:
     """Load EVOLVEpro df_test.csv and return selected variants.
 
@@ -149,7 +149,7 @@ def load_evolvepro_csv(
     if domain_diversity and domain_info and pareto_diversity:
         selected, domain_stats = domain_aware_select(
             rows, domain_info, top_n, domain_strategy,
-            use_pareto=True, esm_embedding=esm_embedding,
+            use_pareto=True, ca_coords=ca_coords,
             entropy_weight=entropy_weight,
         )
     elif domain_diversity and domain_info:
@@ -158,7 +158,7 @@ def load_evolvepro_csv(
         )
     elif pareto_diversity:
         selected, pareto_replaced = pareto_diversity_select(
-            rows, top_n, esm_embedding=esm_embedding,
+            rows, top_n, ca_coords=ca_coords,
             entropy_weight=entropy_weight,
         )
     else:
@@ -181,7 +181,7 @@ def domain_aware_select(
     top_n: int,
     strategy: str = "proportional",
     use_pareto: bool = False,
-    esm_embedding: list[list[float]] | None = None,
+    ca_coords: list[tuple[float, float, float] | None] | None = None,
     entropy_weight: float = 0.0,
 ) -> tuple[list[tuple[str, float]], dict]:
     """Domain-based quota Top-N selection.
@@ -270,7 +270,7 @@ def domain_aware_select(
         if use_pareto and quota > 1 and len(candidates) > 1:
             picked, _ = pareto_diversity_select(
                 candidates, quota,
-                esm_embedding=esm_embedding,
+                ca_coords=ca_coords,
                 entropy_weight=entropy_weight,
             )
         else:
@@ -316,7 +316,7 @@ def pareto_diversity_select(
     rows: list[tuple[str, float]],
     top_n: int,
     pool_multiplier: float = 2.0,
-    esm_embedding: list[list[float]] | None = None,
+    ca_coords: list[tuple[float, float, float] | None] | None = None,
     entropy_weight: float = 0.0,
 ) -> tuple[list[tuple[str, float]], int]:
     """MODIFY-style Pareto fitness-diversity selection (greedy maximin).
@@ -325,9 +325,9 @@ def pareto_diversity_select(
     already-selected set, breaking ties by y_pred.
     Prevents clustering of mutations at nearby positions.
 
-    When *esm_embedding* is provided, cosine distance in the ESM-2
-    representation space is used instead of simple 1-D position distance.
-    Falls back to 1-D distance for positions outside the embedding range.
+    When *ca_coords* is provided, real 3D Euclidean Cα distance from
+    AlphaFold structures is used instead of simple 1-D position distance.
+    Falls back to 1-D distance for positions without Cα coordinates.
 
     When *entropy_weight* > 0, the selection score blends spatial diversity
     with per-position entropy of y_pred (uncertainty-guided exploration).
@@ -343,8 +343,8 @@ def pareto_diversity_select(
         Target selection count.
     pool_multiplier : float
         Candidate pool size = top_n * pool_multiplier.
-    esm_embedding : list[list[float]] | None
-        Per-residue ESM-2 embedding vectors (1-based indexing via helper).
+    ca_coords : list[tuple[float, float, float] | None] | None
+        1-based AlphaFold Cα coordinates (None entries = missing residues).
     entropy_weight : float
         Blend weight for position entropy (0 = pure maximin, 1 = pure entropy).
 
@@ -365,9 +365,12 @@ def pareto_diversity_select(
         m = _POS_RE.search(variant)
         positions.append(int(m.group(1)) if m else -1)
 
-    # Find max position for normalization
+    # Find max position for normalization (1D fallback)
     valid_pos = [p for p in positions if p >= 0]
     max_pos = max(valid_pos) if valid_pos else 1
+
+    # Precompute max Cα distance for normalization (avoids repeated O(N²))
+    _ca_max = ca_max_dist(ca_coords) if ca_coords else 1.0
 
     # Per-position entropy (computed once over full pool)
     pos_entropy: dict[int, float] = _position_entropy(pool) if entropy_weight > 0 else {}
@@ -386,10 +389,10 @@ def pareto_diversity_select(
             pos_i = positions[i]
             if pos_i < 0:
                 min_dist = 1.0  # unknown position = treat as maximally distant
-            elif esm_embedding and pos_i >= 1:
-                # ESM-2 structural distance (cosine in embedding space)
+            elif ca_coords and pos_i >= 1:
+                # AlphaFold 3D Cα distance (real structural space)
                 min_dist = min(
-                    pairwise_esm_distance(esm_embedding, pos_i, positions[j])
+                    pairwise_ca_distance(ca_coords, pos_i, positions[j], _ca_max)
                     if positions[j] >= 1
                     else 1.0
                     for j in selected_indices

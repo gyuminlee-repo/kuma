@@ -1,8 +1,58 @@
-# KURO 업데이트 노트 — v0.9.5 → v1.0.0
+# KURO 업데이트 노트 — v0.9.5 → v1.19.0
 
 **한국어** | [English](UPDATE-NOTES.md)
 
-배포일: 2026-03-28
+---
+
+## v1.19.0 (2026-03-30)
+
+### AlphaFold Cα 3D 거리 — ESM-2 대체
+
+- Pareto diversity 선택 알고리즘이 ESM-2 언어 모델 임베딩 공간의 코사인 거리 대신 AlphaFold DB의 실제 3D 구조 거리를 사용하도록 교체
+- 신규 `kuro/alphafold.py`: AlphaFold DB REST API(`alphafold.ebi.ac.uk/api/prediction/{accession}`)로 예측 구조 다운로드 → PDB ATOM 레코드에서 Cα 좌표 파싱 → 정규화된 유클리드 거리 계산. ML 의존성 없음 (표준 라이브러리만 사용)
+- 캐시 경로: `~/.kuro/embeddings/{accession}_ca.json` (기존 디렉터리 유지)
+- 사이드카 RPC 이름 변경: `fetch_esm_embedding` → `fetch_structure`. 응답 형식: `{success, residues}` (기존: `{success, length, dimension}`)
+- UniProt 자동 매치 또는 수동 accession 입력 후 AlphaFold 구조 자동 로드
+- AlphaFold DB에 구조가 없거나 오프라인일 경우 1D position distance로 자동 fallback
+- `esm_embeddings.py`는 참조용으로 보존, 메인 파이프라인에서는 더 이상 사용 안 함
+- DiversityOptions UI: "ESM-2" 배지 및 상태 문구 → "AlphaFold" 로 교체
+
+### UniProt 검색 — AlphaFold 구조 유무 배지
+
+- UniProt 후보 목록에서 AlphaFold 예측 구조가 존재하는 accession에 "AF" 배지(인디고색) 표시
+- BLAST/텍스트 검색 완료 후 최대 5개 스레드 병렬로 가용성 확인. 캐시 히트 시 즉시 응답, 첫 확인은 accession당 5초 타임아웃
+- 호버 툴팁에 "AlphaFold structure available" 텍스트 추가
+- `kuro/alphafold.py`에 `check_structure_available()` 헬퍼 추가 — 로컬 캐시 우선 확인 후 PDB 다운로드 없이 AlphaFold API만 조회
+
+### 버그 수정 — Fill on Failure (EVOLVEpro 모드)
+
+- EVOLVEpro 모드에서 `loadEvolveproCsv`가 항상 `top_n = maxPrimers`로 호출되어 `mutationText`가 정확히 `maxPrimers`개 라인만 가졌음. `sendCount = maxPrimers × 1.5`를 계산해도 버퍼 후보가 없어 기능이 사실상 동작 불가 상태였음
+- 수정: Fill on Failure 활성 시 디자인 전 `top_n = sendCount`로 CSV 재로드 → EVOLVEpro 풀에서 버퍼 후보 확보. 디자인 완료 후 `maxPrimers`로 복원
+- `loadEvolveproCsv`에 선택적 `topNOverride` 파라미터 추가
+
+---
+
+## v1.18.0 (2026-03-30)
+
+### UniProt 검색 — TrEMBL 포함
+
+- BLAST 이후 세 번째 단계로 UniProt REST 텍스트 검색(`gene_exact:<name>`) 추가. Swiss-Prot과 TrEMBL을 모두 검색하므로, 기존에 누락되던 TrEMBL 항목(예: `A0PFK2`)도 후보 목록에 나타남
+- BLAST 데이터베이스는 기존과 동일하게 `uniprotkb_swissprot` 유지. 텍스트 검색은 BLAST 결과가 없거나 TrEMBL 항목을 놓쳤을 때만 보완적으로 실행됨
+
+### UX — UniProt BLAST 진행 상태 배너
+
+- 시퀀스 파일 로드 직후, Sequence Input 패널에 파란색 스피너 배너 "UniProt BLAST search in progress… (Step 2 available after)" 표시. 검색 완료 시 자동으로 사라짐. 기존에는 백그라운드에서 조용히 실행되어 Step 2가 왜 안 되는지 알 수 없었음
+
+### 버그 수정
+
+- **DesignReport 무한 루프**: `DesignReport.tsx`의 멀티 필드 Zustand 셀렉터에 `useShallow` 적용. 기존 인라인 객체 셀렉터가 매 렌더마다 새 참조를 반환하여 Radix UI Dialog `Presence` 컴포넌트에서 React `Maximum update depth exceeded` 크래시 발생
+- **`shell:allow-kill` 누락**: `src-tauri/capabilities/default.json`에 `shell:allow-kill` 권한 추가. 없으면 사이드카 강제 종료 명령이 Tauri 권한 시스템에 의해 조용히 차단됨
+- **semver 패치**: `package.json`, `tauri.conf.json`, `Cargo.toml`의 버전 문자열을 `1.17` → `1.17.0`으로 수정. Cargo와 Tauri 모두 세 자리 semver 필요
+
+### ESM-2 로컬 추론
+
+- Pareto 구조적 거리 계산을 위해 `fair-esm`과 `torch` 설치 권장. 설치: `pip install fair-esm torch --index-url https://download.pytorch.org/whl/cpu` (CPU) 또는 `pip install fair-esm torch` (GPU). 원격 ESM Atlas 엔드포인트(`api.esmatlas.com`)는 403 반환으로 더 이상 사용하지 않음
+- ESM-2는 의도적으로 사이드카 exe에 번들링하지 않음 (torch 추가 시 500MB~2GB 증가, PyInstaller 호환성 문제). 배포 버전에서는 1D position distance가 기본값으로 사용됨
 
 ---
 

@@ -50,7 +50,7 @@ def handle_load_evolvepro_csv(params: dict) -> dict:
     resolved = _validate_filepath(p.filepath, allowed_extensions=_ALLOWED_CSV_EXTENSIONS)
 
     with _core._state_lock:
-        esm_embedding = _core._state.esm_embedding
+        ca_coords = _core._state.ca_coords
 
     return load_evolvepro_csv(
         filepath=str(resolved),
@@ -61,7 +61,7 @@ def handle_load_evolvepro_csv(params: dict) -> dict:
         domain_strategy=p.domain_strategy,
         pareto_diversity=p.pareto_diversity,
         entropy_weight=p.entropy_weight,
-        esm_embedding=esm_embedding,
+        ca_coords=ca_coords,
     )
 
 
@@ -74,7 +74,7 @@ def handle_run_benchmark(params: dict) -> dict:
     if not p.landscape:
         raise ValueError("landscape data is required")
 
-    landscape = [(v["variant"], v["fitness"]) for v in p.landscape]
+    landscape = [(v.variant, v.fitness) for v in p.landscape]
 
     bench_results = run_benchmark(
         landscape, p.ground_truth, p.n_select, strategies=p.strategies

@@ -9,7 +9,7 @@ from sidecar.core import (
     _get_ssl_ctx,
     logger,
 )
-from sidecar.models import FetchDomainsParams, SearchUniprotParams, FetchEsmEmbeddingParams
+from sidecar.models import FetchDomainsParams, SearchUniprotParams, FetchStructureParams
 
 
 def handle_fetch_domains(params: dict) -> dict:
@@ -249,10 +249,64 @@ def handle_search_uniprot(params: dict) -> dict:
             logger.warning("BLAST search failed: %s", exc)
             last_error = f"BLAST: {type(exc).__name__}: {exc}"
 
+    # 3) UniProt REST text search by gene name (covers TrEMBL, Swiss-Prot)
+    if gene_name and not auto_selected:
+        try:
+            search_url = (
+                f"https://rest.uniprot.org/uniprotkb/search"
+                f"?query=gene_exact%3A{_urllib_parse.quote(gene_name)}"
+                f"&format=json&size=10"
+            )
+            text_data, err = _fetch_json(search_url)
+            if err:
+                last_error = err
+            if text_data:
+                for entry in text_data.get("results", []):
+                    acc = entry.get("primaryAccession", "")
+                    if not acc or acc in seen_accessions:
+                        continue
+                    seen_accessions.add(acc)
+                    seq_data = entry.get("sequence", {})
+                    uni_seq = seq_data.get("value", "") if isinstance(seq_data, dict) else ""
+                    identity = _sequence_identity(translation, uni_seq) if translation else 0.0
+                    gene_names = [
+                        gn["geneName"]["value"]
+                        for gn in entry.get("genes", [])
+                        if gn.get("geneName", {}).get("value")
+                    ]
+                    candidates.append({
+                        "accession": acc,
+                        "name": ", ".join(gene_names) if gene_names else acc,
+                        "organism": entry.get("organism", {}).get("scientificName", ""),
+                        "length": seq_data.get("length", 0) if isinstance(seq_data, dict) else 0,
+                        "identity": identity,
+                    })
+        except Exception as exc:
+            logger.warning("UniProt text search failed: %s", exc)
+            last_error = f"UniProt text search: {type(exc).__name__}: {exc}"
+
     candidates.sort(key=lambda c: c["identity"], reverse=True)
 
     if candidates and candidates[0]["identity"] >= 95.0:
         auto_selected = candidates[0]["accession"]
+
+    # Check AlphaFold DB availability for each candidate (parallel, best-effort)
+    if candidates:
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        from kuro.alphafold import check_structure_available
+
+        accs = [c["accession"] for c in candidates]
+        with ThreadPoolExecutor(max_workers=min(5, len(accs))) as ex:
+            futures = {ex.submit(check_structure_available, acc): acc for acc in accs}
+            af_results: dict[str, bool] = {}
+            for fut in as_completed(futures):
+                acc = futures[fut]
+                try:
+                    af_results[acc] = fut.result()
+                except Exception:
+                    af_results[acc] = False
+        for c in candidates:
+            c["has_structure"] = af_results.get(c["accession"], False)
 
     return {
         "candidates": candidates,
@@ -261,32 +315,31 @@ def handle_search_uniprot(params: dict) -> dict:
     }
 
 
-def handle_fetch_esm_embedding(params: dict) -> dict:
-    """Compute or fetch ESM-2 per-residue embedding.
+def handle_fetch_structure(params: dict) -> dict:
+    """Fetch AlphaFold Cα coordinates for Pareto structural distance.
 
-    Accepts accession and/or sequence. Local inference is preferred
-    when torch + fair-esm are installed; remote API is fallback.
+    Downloads the AlphaFold DB predicted structure for *accession* and
+    extracts per-residue Cα coordinates. Results are cached locally.
     """
-    p = FetchEsmEmbeddingParams(**params)
+    p = FetchStructureParams(**params)
     accession = p.accession.strip()
-    sequence = p.sequence.strip()
-    if not accession and not sequence:
-        raise ValueError("accession or sequence is required")
+    if not accession:
+        raise ValueError("accession is required")
 
-    from kuro.esm_embeddings import get_embedding
+    from kuro.alphafold import fetch_ca_coords
 
-    embedding = get_embedding(accession=accession, sequence=sequence)
+    coords = fetch_ca_coords(accession)
 
-    if embedding is None:
+    if coords is None:
         with _core._state_lock:
-            _core._state.esm_embedding = None
-        return {"success": False, "error": "ESM-2 unavailable (install: pip install fair-esm torch)"}
+            _core._state.ca_coords = None
+        return {"success": False, "error": f"AlphaFold structure unavailable for {accession}"}
 
     with _core._state_lock:
-        _core._state.esm_embedding = embedding
+        _core._state.ca_coords = coords
+    valid = sum(1 for c in coords if c is not None)
     return {
         "success": True,
         "accession": accession,
-        "length": len(embedding),
-        "dimension": len(embedding[0]) if embedding else 0,
+        "residues": valid,
     }

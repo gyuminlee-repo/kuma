@@ -1,3 +1,4 @@
+import { useShallow } from "zustand/react/shallow";
 import { useAppStore } from "../../store/appStore";
 import {
   Dialog,
@@ -29,27 +30,29 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 export function DesignReport() {
   const setShowReport = useAppStore((s) => s.setShowReport);
-  const data = useAppStore((s) => {
-    if (!s.showReport) return null;
-    return {
-      showReport: s.showReport,
-      designResults: s.designResults,
-      failedMutations: s.failedMutations,
-      totalCount: s.totalCount,
-      pipelineMode: s.pipelineMode,
-      positionDiversityEnabled: s.positionDiversityEnabled,
-      maxPerPosition: s.maxPerPosition,
-      domainDiversityEnabled: s.domainDiversityEnabled,
-      domainStrategy: s.domainStrategy,
-      domains: s.domains,
-      domainStats: s.domainStats,
-      paretoDiversityEnabled: s.paretoDiversityEnabled,
-      entropyWeightEnabled: s.entropyWeightEnabled,
-      esmEmbeddingLoaded: s.esmEmbeddingLoaded,
-      evolveproTotalCount: s.evolveproTotalCount,
-      mutationInputMode: s.mutationInputMode,
-    };
-  });
+  const data = useAppStore(
+    useShallow((s) => {
+      if (!s.showReport) return null;
+      return {
+        showReport: s.showReport,
+        designResults: s.designResults,
+        failedMutations: s.failedMutations,
+        totalCount: s.totalCount,
+        pipelineMode: s.pipelineMode,
+        positionDiversityEnabled: s.positionDiversityEnabled,
+        maxPerPosition: s.maxPerPosition,
+        domainDiversityEnabled: s.domainDiversityEnabled,
+        domainStrategy: s.domainStrategy,
+        domains: s.domains,
+        domainStats: s.domainStats,
+        paretoDiversityEnabled: s.paretoDiversityEnabled,
+        entropyWeightEnabled: s.entropyWeightEnabled,
+        structureLoaded: s.structureLoaded,
+        evolveproTotalCount: s.evolveproTotalCount,
+        mutationInputMode: s.mutationInputMode,
+      };
+    }),
+  );
 
   if (!data || data.designResults.length === 0) return null;
 
@@ -67,7 +70,7 @@ export function DesignReport() {
     domainStats,
     paretoDiversityEnabled,
     entropyWeightEnabled,
-    esmEmbeddingLoaded,
+    structureLoaded,
     evolveproTotalCount,
     mutationInputMode,
   } = data;
@@ -109,7 +112,7 @@ export function DesignReport() {
               <Stat label="Domain allocation" value={domainDiversityEnabled && domains.length > 0 ? `${domainStrategy} (${domains.length} domains)` : "OFF"} />
               <Stat label="Pareto diversity" value={paretoDiversityEnabled ? "ON" : "OFF"} />
               <Stat label="Entropy-guided" value={entropyWeightEnabled ? "ON" : "OFF"} />
-              <Stat label="ESM-2 structural" value={esmEmbeddingLoaded ? "ON (cosine distance)" : "OFF (1D distance)"} />
+              <Stat label="AlphaFold 3D" value={structureLoaded ? "ON (Cα distance)" : "OFF (1D distance)"} />
               {evolveproTotalCount > 0 && (
                 <Stat label={mutationInputMode === "multi-evolve" ? "MULTI-evolve pool" : "EVOLVEpro pool"} value={`${evolveproTotalCount} variants`} />
               )}

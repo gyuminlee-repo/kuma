@@ -162,9 +162,8 @@ class SearchUniprotParams(BaseModel):
     known_accession: str = ""
 
 
-class FetchEsmEmbeddingParams(BaseModel):
+class FetchStructureParams(BaseModel):
     accession: str = ""
-    sequence: str = ""
 
 
 # ---------------------------------------------------------------------------

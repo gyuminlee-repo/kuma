@@ -73,8 +73,8 @@ export function DiversityOptions() {
   const setParetoDiversityEnabled = useAppStore((s) => s.setParetoDiversityEnabled);
   const entropyWeightEnabled = useAppStore((s) => s.entropyWeightEnabled);
   const setEntropyWeightEnabled = useAppStore((s) => s.setEntropyWeightEnabled);
-  const esmEmbeddingLoaded = useAppStore((s) => s.esmEmbeddingLoaded);
-  const esmEmbeddingLoading = useAppStore((s) => s.esmEmbeddingLoading);
+  const structureLoaded = useAppStore((s) => s.structureLoaded);
+  const structureLoading = useAppStore((s) => s.structureLoading);
   const mutationText = useAppStore((s) => s.mutationText);
 
   const selectedCount = useMemo(
@@ -287,15 +287,15 @@ export function DiversityOptions() {
         >
           <div className="space-y-1.5">
             <div className="text-xs text-gray-500">
-              {esmEmbeddingLoaded
-                ? "ESM-2 structural distance"
+              {structureLoaded
+                ? "AlphaFold 3D Cα distance"
                 : "Pareto spread (maximize position distance)"}
-              {esmEmbeddingLoading && (
-                <span className="ml-1.5 text-amber-600">(loading ESM-2...)</span>
+              {structureLoading && (
+                <span className="ml-1.5 text-amber-600">(loading AlphaFold...)</span>
               )}
-              {esmEmbeddingLoaded && (
+              {structureLoaded && (
                 <span className="ml-1.5 inline-flex items-center rounded bg-indigo-100 px-1 py-0.5 text-[10px] font-medium text-indigo-700">
-                  ESM-2
+                  AlphaFold
                 </span>
               )}
             </div>

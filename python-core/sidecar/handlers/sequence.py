@@ -20,8 +20,9 @@ def handle_load_fasta(params: dict) -> dict:
         raise FileNotFoundError(f"File not found: {p.filepath}")
 
     header, sequence, genes = load_sequence(resolved)
-    _core._state.template = (str(resolved), sequence)
-    _core._state.esm_embedding = None  # clear stale embedding from previous template
+    with _core._state_lock:
+        _core._state.template = (str(resolved), sequence)
+        _core._state.ca_coords = None  # clear stale structure from previous template
 
     return {
         "header": header,

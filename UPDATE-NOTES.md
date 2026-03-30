@@ -1,8 +1,58 @@
-# KURO Update Notes — v0.9.5 → v1.0.0
+# KURO Update Notes — v0.9.5 → v1.19.0
 
 [한국어](UPDATE-NOTES.ko.md) | **English**
 
-Released: 2026-03-28
+---
+
+## v1.19.0 (2026-03-30)
+
+### AlphaFold Cα 3D Distance — Replaces ESM-2
+
+- Pareto diversity selection now uses real 3D structural distance from AlphaFold DB instead of ESM-2 cosine distance in language-model embedding space
+- New `kuro/alphafold.py`: fetches AlphaFold DB predicted structure via REST API (`alphafold.ebi.ac.uk/api/prediction/{accession}`), parses Cα coordinates from PDB ATOM records, and computes normalized Euclidean distance. No ML dependencies (pure stdlib)
+- Cached at `~/.kuro/embeddings/{accession}_ca.json` (same directory as before)
+- Sidecar RPC renamed: `fetch_esm_embedding` → `fetch_structure`. Response changed: `{success, residues}` instead of `{success, length, dimension}`
+- AlphaFold structure is fetched automatically after UniProt auto-match or manual accession entry
+- Fallback to 1D position distance when AlphaFold structure is unavailable (protein not in DB or offline)
+- `esm_embeddings.py` retained for reference but no longer used by the main pipeline
+- DiversityOptions UI: "ESM-2" badge and status replaced with "AlphaFold" badge
+
+### UniProt Search — AlphaFold Availability Badge
+
+- Each UniProt candidate in the search results now shows an "AF" badge (indigo) when an AlphaFold predicted structure is available for that accession
+- Availability is checked in parallel (up to 5 threads) immediately after BLAST/text search completes. Cache hits return instantly; first check has a 5-second timeout per accession
+- Hover tooltip updated to include "AlphaFold structure available" when applicable
+- New `check_structure_available()` helper in `kuro/alphafold.py` — checks local cache first, then queries AlphaFold DB API without downloading the full PDB
+
+### Bug Fix — Fill on Failure (EVOLVEpro mode)
+
+- In EVOLVEpro mode, `loadEvolveproCsv` was always called with `top_n = maxPrimers`, so `mutationText` had exactly `maxPrimers` lines. The fill buffer (`sendCount = maxPrimers × 1.5`) had nothing to fill from — the feature was silently inoperative
+- Fixed: when Fill on Failure is enabled, the CSV is reloaded with `top_n = sendCount` before design, providing buffer candidates from the EVOLVEpro pool. After design completes, the list is restored to `maxPrimers`
+- `loadEvolveproCsv` now accepts an optional `topNOverride` parameter
+
+---
+
+## v1.18.0 (2026-03-30)
+
+### UniProt Search — TrEMBL Coverage
+
+- Added UniProt REST text search (`gene_exact:<name>`) as a third step after BLAST, covering both Swiss-Prot and TrEMBL entries. Previously, only Swiss-Prot was reachable via EBI BLAST (`uniprotkb_swissprot`), so TrEMBL entries such as `A0PFK2` were not found
+- BLAST database remains `uniprotkb_swissprot` (unchanged); text search supplements it when BLAST returns zero hits or misses TrEMBL
+
+### UX — UniProt BLAST In-Progress Banner
+
+- A blue spinner banner "UniProt BLAST search in progress… (Step 2 available after)" now appears in the Sequence Input panel immediately after a file is loaded. The banner disappears when the search completes. Previously, the search ran silently and users had no indication that Step 2 was pending
+
+### Bug Fixes
+
+- **DesignReport infinite loop**: Applied `useShallow` to the multi-field Zustand selector in `DesignReport.tsx`. The previous inline object selector returned a new reference on every render, causing a React `Maximum update depth exceeded` crash when the Radix UI Dialog `Presence` component re-rendered
+- **`shell:allow-kill` missing**: Added `shell:allow-kill` to `src-tauri/capabilities/default.json`. Without this, the sidecar kill-on-cancel command was silently blocked by Tauri's permission system
+- **semver patch**: Version strings corrected from `1.17` to `1.17.0` in `package.json`, `tauri.conf.json`, and `Cargo.toml`. Both Cargo and Tauri require three-part semver
+
+### ESM-2 Local Inference
+
+- `fair-esm` and `torch` are now the recommended installation for Pareto structural distance. Install: `pip install fair-esm torch --index-url https://download.pytorch.org/whl/cpu` (CPU) or `pip install fair-esm torch` (GPU). The remote ESM Atlas endpoint (`api.esmatlas.com`) returns 403 and is no longer used
+- ESM-2 is intentionally not bundled in the sidecar exe (torch adds 500MB–2GB, PyInstaller compatibility issues). The fallback to 1D position distance is the default for distributed builds
 
 ---
 

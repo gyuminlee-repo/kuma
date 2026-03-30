@@ -24,7 +24,7 @@ export interface InputSlice {
   setMutationInputMode: (mode: "text" | "evolvepro" | "multi-evolve") => void;
   setMutationText: (text: string) => void;
   parseMutations: () => Promise<void>;
-  loadEvolveproCsv: (filepath: string) => Promise<void>;
+  loadEvolveproCsv: (filepath: string, topNOverride?: number) => Promise<void>;
   loadSampleData: () => Promise<void>;
 }
 
@@ -43,10 +43,11 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   setMutationInputMode: (mode) => set({ mutationInputMode: mode }),
   setMutationText: (text) => set({ mutationText: text }),
 
-  loadEvolveproCsv: async (filepath: string) => {
+  loadEvolveproCsv: async (filepath: string, topNOverride?: number) => {
     const gen = ++csvLoadGeneration;
     try {
       const { pipelineMode, positionDiversityEnabled, maxPerPosition, domainDiversityEnabled, domains, disabledDomains, domainStrategy, paretoDiversityEnabled, entropyWeightEnabled, maxPrimers } = get();
+      const effectiveTopN = topNOverride ?? maxPrimers;
       const activeDomains = domains.filter((d) => !disabledDomains.includes(`${d.name}-${d.start}`));
       const isMultiEvolve = get().mutationInputMode === "multi-evolve";
       const modeLabel = isMultiEvolve ? "MULTI-evolve" : "EVOLVEpro";
@@ -57,7 +58,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         "load_evolvepro_csv",
         {
           filepath,
-          top_n: isMultiEvolve ? 0 : maxPrimers,
+          top_n: isMultiEvolve ? 0 : effectiveTopN,
           ...(usePipeline && positionDiversityEnabled && { max_per_position: maxPerPosition }),
           ...(usePipeline && domainDiversityEnabled && activeDomains.length > 0 && {
             domain_diversity: true,
