@@ -67,6 +67,8 @@ def build_sidecar(onefile: bool = True) -> Path:
         "--hidden-import",
         "openpyxl",
         "--collect-all",
+        "pydantic",
+        "--collect-all",
         "primer3",
         "--add-data",
         add_data,
