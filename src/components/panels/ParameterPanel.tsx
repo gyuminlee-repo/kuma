@@ -144,8 +144,8 @@ export function ParameterPanel() {
           )}
 
           {/* Primer Length */}
-          <div className="text-[9px] uppercase text-gray-400 tracking-wider pt-1.5" title="Optional min/max primer length constraint.">Primer Length</div>
-          <label className="flex items-center gap-1 text-xs cursor-pointer" title="Optional min/max primer length constraint.">
+          <div className="text-[9px] uppercase text-gray-400 tracking-wider pt-1.5" title="KOD One: F 22–60 bp (priming 22–35 + overlap), R 22–35 bp. Enable to constrain.">Primer Length</div>
+          <label className="flex items-center gap-1 text-xs cursor-pointer" title="KOD One: F 22–60 bp (priming 22–35 + overlap), R 22–35 bp. Enable to constrain.">
             <input
               type="checkbox"
               className="h-3 w-3 accent-green-600"

@@ -221,8 +221,8 @@ def _extend_forward(
     target_tm: float,
     tolerance: float,
     min_downstream: int = 4,
-    fwd_len_min: int = 18,
-    fwd_len_max: int = 45,
+    fwd_len_min: int = 22,
+    fwd_len_max: int = 60,
 ) -> tuple[str, str, float] | None:
     """Extend forward primer: overlap + mutant codon + downstream extension.
 
@@ -266,8 +266,8 @@ def _extend_reverse(
     upstream_seq: str,
     target_tm: float,
     tolerance: float,
-    rev_len_min: int = 18,
-    rev_len_max: int = 30,
+    rev_len_min: int = 22,
+    rev_len_max: int = 35,
 ) -> tuple[str, str, float] | None:
     """Extend reverse primer: upstream extension + rc(overlap).
 
