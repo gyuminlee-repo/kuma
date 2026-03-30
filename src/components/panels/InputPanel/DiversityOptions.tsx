@@ -2,6 +2,29 @@ import { useMemo, useState, type ChangeEvent, type KeyboardEvent } from "react";
 import { useAppStore } from "../../../store/appStore";
 import { UniprotSearch } from "./UniprotSearch";
 
+/* ── Help tooltip ─────────────────────────────────────────── */
+
+function HelpTip({ children }: { children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span>
+      <button
+        type="button"
+        className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-gray-100 hover:bg-blue-100 text-gray-400 hover:text-blue-600 text-[9px] font-bold leading-none"
+        onClick={(e) => { e.preventDefault(); setOpen((p) => !p); }}
+        aria-label={open ? "Hide help" : "Show help"}
+      >
+        ?
+      </button>
+      {open && (
+        <span className="block text-[10px] text-gray-600 bg-blue-50 border border-blue-100 rounded px-1.5 py-1 mt-0.5 leading-relaxed whitespace-pre-line">
+          {children}
+        </span>
+      )}
+    </span>
+  );
+}
+
 /* ── Pipeline sub-components ──────────────────────────────── */
 
 function PipelineStep({
@@ -118,7 +141,7 @@ export function DiversityOptions() {
           enabled={positionDiversityEnabled}
           onToggle={setPositionDiversityEnabled}
         >
-          <div className="flex items-center gap-1 text-xs">
+          <div className="flex items-center gap-1 text-xs flex-wrap">
             <span className="text-gray-500">Position cap: max</span>
             <input
               type="number"
@@ -131,6 +154,7 @@ export function DiversityOptions() {
               onKeyDown={onMaxPerPosKeyDown}
             />
             <span className="text-gray-500">/position</span>
+            <HelpTip>Limits how many variants are allowed per residue. Prevents one hot-spot from dominating the primer set.{"\n"}Example: cap = 3 → at most 3 substitutions (A42V, A42T, A42L) per position.</HelpTip>
           </div>
         </PipelineStep>
 
@@ -146,27 +170,30 @@ export function DiversityOptions() {
         >
           <div className="space-y-1.5">
             {/* Domain strategy radio */}
-            <div className="flex gap-2 text-[10px] text-gray-500" role="radiogroup" aria-label="Domain distribution strategy">
-              <label className="flex items-center gap-0.5 cursor-pointer">
-                <input
-                  type="radio"
-                  name="domainStrategy"
-                  className="w-2.5 h-2.5"
-                  checked={domainStrategy === "proportional"}
-                  onChange={() => setDomainStrategy("proportional")}
-                />
-                Proportional
-              </label>
-              <label className="flex items-center gap-0.5 cursor-pointer">
-                <input
-                  type="radio"
-                  name="domainStrategy"
-                  className="w-2.5 h-2.5"
-                  checked={domainStrategy === "equal"}
-                  onChange={() => setDomainStrategy("equal")}
-                />
-                Equal
-              </label>
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex gap-2 text-[10px] text-gray-500" role="radiogroup" aria-label="Domain distribution strategy">
+                <label className="flex items-center gap-0.5 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="domainStrategy"
+                    className="w-2.5 h-2.5"
+                    checked={domainStrategy === "proportional"}
+                    onChange={() => setDomainStrategy("proportional")}
+                  />
+                  Proportional
+                </label>
+                <label className="flex items-center gap-0.5 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="domainStrategy"
+                    className="w-2.5 h-2.5"
+                    checked={domainStrategy === "equal"}
+                    onChange={() => setDomainStrategy("equal")}
+                  />
+                  Equal
+                </label>
+              </div>
+              <HelpTip>Distributes selected variants across protein domains from UniProt.{"\n"}Proportional: each domain gets candidates proportional to its size.{"\n"}Equal: every domain gets the same quota regardless of size.</HelpTip>
             </div>
 
             {/* UniProt lookup */}
@@ -286,34 +313,41 @@ export function DiversityOptions() {
           onToggle={setParetoDiversityEnabled}
         >
           <div className="space-y-1.5">
-            <div className="text-xs text-gray-500">
-              {structureLoaded
-                ? "AlphaFold 3D Cα distance"
-                : "Pareto spread (maximize position distance)"}
+            <div className="flex items-center gap-1 flex-wrap text-xs text-gray-500">
+              <span>
+                {structureLoaded
+                  ? "AlphaFold 3D Cα distance"
+                  : "Pareto spread (position distance)"}
+              </span>
               {structureLoading && (
-                <span className="ml-1.5 text-amber-600">(loading AlphaFold...)</span>
+                <span className="text-amber-600">(loading AlphaFold...)</span>
               )}
               {structureLoaded && (
-                <span className="ml-1.5 inline-flex items-center rounded bg-indigo-100 px-1 py-0.5 text-[10px] font-medium text-indigo-700">
+                <span className="inline-flex items-center rounded bg-indigo-100 px-1 py-0.5 text-[10px] font-medium text-indigo-700">
                   AlphaFold
                 </span>
               )}
+              <HelpTip>
+                {structureLoaded
+                  ? "Selects variants spread apart in 3D space using AlphaFold Cα coordinates — avoids picking structurally adjacent positions even if they are far apart in sequence."
+                  : "Greedy Pareto selection that maximises the minimum sequence-distance between any two chosen positions. Spreads experiments across the full protein length."}
+              </HelpTip>
             </div>
-            <label
-              className="flex items-center gap-1.5 cursor-pointer text-[10px] text-gray-500"
-              title="Blend position entropy into selection score (weight 0.3). Positions where many mutations score similarly are prioritised — helps escape local optima."
-            >
-              <input
-                type="checkbox"
-                className="h-2.5 w-2.5 accent-purple-600"
-                checked={entropyWeightEnabled}
-                onChange={(e) => setEntropyWeightEnabled(e.target.checked)}
-              />
-              Entropy-guided
-              <span className="ml-0.5 inline-flex items-center rounded bg-purple-100 px-1 py-0.5 text-[9px] font-medium text-purple-700">
-                β
-              </span>
-            </label>
+            <div className="flex items-center gap-1">
+              <label className="flex items-center gap-1.5 cursor-pointer text-[10px] text-gray-500">
+                <input
+                  type="checkbox"
+                  className="h-2.5 w-2.5 accent-purple-600"
+                  checked={entropyWeightEnabled}
+                  onChange={(e) => setEntropyWeightEnabled(e.target.checked)}
+                />
+                Entropy-guided
+                <span className="ml-0.5 inline-flex items-center rounded bg-purple-100 px-1 py-0.5 text-[9px] font-medium text-purple-700">
+                  β
+                </span>
+              </label>
+              <HelpTip>Positions where EVOLVEpro scores multiple substitutions similarly (high entropy) get a 30% selection bonus. Prevents the algorithm from clustering all choices at the top-predicted positions — useful when the landscape is flat.</HelpTip>
+            </div>
           </div>
         </PipelineStep>
       </div>
