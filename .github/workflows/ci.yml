@@ -22,7 +22,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: pip install primer3-py==2.3.0 biopython==1.84 openpyxl==3.1.5 pytest
+        run: pip install -e . pytest
 
       - name: Run tests
         run: python -m pytest tests/ -v
