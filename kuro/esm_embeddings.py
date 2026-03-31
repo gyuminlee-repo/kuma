@@ -34,6 +34,9 @@ def get_embedding(
 
     Returns list of N vectors (one per residue), or None on failure.
     """
+    accession = accession.strip()
+    sequence = sequence.strip()
+
     if not accession and not sequence:
         return None
 
