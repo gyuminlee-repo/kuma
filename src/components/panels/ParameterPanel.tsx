@@ -168,7 +168,7 @@ export function ParameterPanel() {
                "  Standard:     22–35 bp, Tm >63°C\n" +
                "  Long targets: 25–35 bp, Tm >65°C\n" +
                "\n" +
-               "Experimental (Kang IspS SDM, n=165)\n" +
+               "Experimental (IspS SDM, n=165)\n" +
                "  Forward total: 19–38 bp (incl. overlap)\n" +
                "  Reverse total: 18–32 bp (incl. overlap)\n" +
                "\n" +

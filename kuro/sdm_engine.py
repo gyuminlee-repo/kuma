@@ -535,7 +535,7 @@ def design_single_sdm(
 ) -> list[SdmPrimerResult]:
     """Design SDM primers for a single mutation.
 
-    Redesigned algorithm (EVOLVEpro / Kang validated):
+    Redesigned algorithm (EVOLVEpro-validated):
     1. Overlap is UPSTREAM of mutation codon (not containing it)
     2. Whole-primer Tm targeting: Fwd 62°C, Rev 58°C, Overlap 42°C
     3. Progressive tolerance: ±0.5 → ±1.0 → ... (max ±3.0)
