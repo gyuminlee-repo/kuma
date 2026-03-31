@@ -122,12 +122,16 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   loadSampleData: async () => {
     try {
       set({ statusMessage: "Loading sample data..." });
+      const mode = get().mutationInputMode;
+      const csvFilename =
+        mode === "multi-evolve"
+          ? "samples/sample_multi_evolve.csv"
+          : "samples/sample_evolvepro.csv";
       const [gbPath, csvPath] = await Promise.all([
         resolveResource("samples/sample_plasmid.gb"),
-        resolveResource("samples/sample_evolvepro.csv"),
+        resolveResource(csvFilename),
       ]);
       await get().loadSequence(gbPath);
-      set({ mutationInputMode: "evolvepro" });
       await get().loadEvolveproCsv(csvPath);
     } catch (err) {
       set({ statusMessage: `Sample load failed: ${formatError(err)}` });

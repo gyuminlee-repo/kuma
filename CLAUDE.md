@@ -27,6 +27,18 @@ cd src-tauri && cargo check  # Rust 컴파일 체크
    - 프론트엔드의 `resolveResource()` 경로와 일치시킬 것
 3. **새 샘플 파일 추가 시** `tauri.conf.json`의 resources 맵에도 추가 필수
 
+## 변경 연동 체크리스트
+
+아래 파일을 수정할 때 함께 확인해야 할 항목:
+
+| 수정 파일 | 확인 항목 |
+|-----------|-----------|
+| `kuro/evolvepro.py`, `python-core/sidecar/models.py` | `fixtures/generate_sample_data.py` 재실행 |
+| `kuro/evolvepro.py` `VARIANT_COLUMNS` / `SCORE_COLUMNS` | fixtures CSV 컬럼명 일치 여부 확인 |
+| `src/store/slices/inputSlice.ts` `loadSampleData` | `src-tauri/samples/` 참조 파일 존재 확인 |
+| `src-tauri/samples/`에 새 파일 추가 | `tauri.conf.json` resources 명시적 매핑 추가 |
+| `fixtures/generate_sample_data.py` | 생성 결과를 `src-tauri/samples/`에서 확인 |
+
 ### 버전 동기화
 릴리스 시 아래 3개 파일의 버전을 반드시 일치시킨다:
 - `package.json` → `"version": "X.X.X"`

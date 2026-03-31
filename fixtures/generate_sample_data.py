@@ -822,6 +822,13 @@ def main() -> int:
         ispS_evo_dst.write_text(ispS_evo_src.read_text(encoding="utf-8"), encoding="utf-8")
         print(f"\nCopied {ispS_evo_src.name} → {ispS_evo_dst}")
 
+    # Also copy ispS multi-evolve to samples dir for multi-evolve Try sample
+    ispS_multi_src = fixtures_dir / "ispS_multi_evolve.csv"
+    if ispS_multi_src.exists():
+        multi_dst = samples_dir / "sample_multi_evolve.csv"
+        multi_dst.write_text(ispS_multi_src.read_text(encoding="utf-8"), encoding="utf-8")
+        print(f"\nCopied {ispS_multi_src.name} → {multi_dst}")
+
     # ---------------------------------------------------------------------------
     # Verification
     # ---------------------------------------------------------------------------

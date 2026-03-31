@@ -43,6 +43,23 @@ class TestLoadEvolveproCsv:
         assert "Q11A" in result["variants"]
         assert result["y_preds"][0] == pytest.approx(0.90)
 
+    def test_top_n_zero_returns_all(self, tmp_path):
+        """top_n=0 selects all variants without count limit."""
+        csv_file = tmp_path / "all.csv"
+        csv_file.write_text(
+            "variant,y_pred\n"
+            "A1P,1.0\n"
+            "A2P,0.9\n"
+            "A3P,0.8\n"
+            "A4P,0.7\n"
+            "A5P,0.6\n"
+        )
+
+        result = load_evolvepro_csv(csv_file, top_n=0)
+
+        assert result["selected_count"] == 5
+        assert set(result["variants"]) == {"A1P", "A2P", "A3P", "A4P", "A5P"}
+
     def test_load_csv_missing_column(self, tmp_path):
         """CSV with no supported variant column raises ValueError with column list."""
         csv_file = tmp_path / "bad.csv"

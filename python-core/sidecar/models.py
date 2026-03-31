@@ -173,7 +173,7 @@ class FetchStructureParams(BaseModel):
 
 class LoadEvolveproParams(BaseModel):
     filepath: str = ""
-    top_n: int = Field(default=96, ge=1, le=960)
+    top_n: int = Field(default=96, ge=0, le=960)
     max_per_position: int = Field(default=0, ge=0)
     domains: list[Any] = Field(default_factory=list)
     domain_diversity: bool = False

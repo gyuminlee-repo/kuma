@@ -1,0 +1,8 @@
+variant_id,mutations,position,wt_aa,mut_aa,codon_wt,codon_mut,predicted_fitness,domain,site_category
+ispS_N258K,N258K,258,N,K,AAC,AAA,1.85,auto,auto
+ispS_T322K,T322K,322,T,K,ACC,AAA,1.903,auto,auto
+ispS_D457A,D457A,457,D,A,GAT,GCG,1.955,auto,auto
+ispS_E145K,E145K,145,E,K,GAA,AAA,1.321,auto,auto
+ispS_S461P,S461P,461,S,P,AGC,CCG,1.726,auto,auto
+ispS_N258K_T322K,N258K/T322K,"258,322","N,T","K,K","AAC,ACC","AAA,AAA",2.588,multi_domain,combination
+ispS_N258K_T322K_D457A,N258K/T322K/D457A,"258,322,457","N,T,D","K,K,A","AAC,ACC,GAT","AAA,AAA,GCG",3.882,multi_domain,combination
