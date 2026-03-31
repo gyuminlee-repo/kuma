@@ -107,7 +107,7 @@ export interface SdmPrimerResult {
 
 export interface DomainInfo {
   name: string;
-  id: string;         // InterPro/Pfam ID (예: "PF01397")
+  id: string;         // InterPro/Pfam ID (e.g. "PF01397")
   start: number;      // 1-based residue position
   end: number;
   db: string;         // "Pfam" | "InterPro" | "manual"
@@ -200,7 +200,7 @@ export interface WorkspaceV1 {
   revLenMin?: number;
   revLenMax?: number;
   fillOnFailure?: boolean;
-  // Domain diversity (optional, 하위호환)
+  // Domain diversity (optional, backward-compatible)
   uniprotAccession?: string;
   domains?: DomainInfo[];
   domainDiversityEnabled?: boolean;

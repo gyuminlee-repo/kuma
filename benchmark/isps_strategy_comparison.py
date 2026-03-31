@@ -50,7 +50,7 @@ ISPS_LENGTH = 561          # 561 aa (1683 bp CDS)
 RANDOM_REPEATS = 10
 RANDOM_SEED_BASE = 42
 
-# IspS 4-equal pseudo-domain (InterPro FMO-like, 4분할)
+# IspS 4-equal pseudo-domain (InterPro FMO-like, 4-way split)
 ISPS_DOMAINS = [
     {"name": "D1", "start": 1,   "end": 140},
     {"name": "D2", "start": 141, "end": 280},

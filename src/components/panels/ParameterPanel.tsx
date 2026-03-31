@@ -1,4 +1,21 @@
-import { useEffect, useState, type ChangeEvent, type KeyboardEvent } from "react";
+import { useEffect, useState, type ChangeEvent, type KeyboardEvent, type ReactNode } from "react";
+
+function HelpTip({ children }: { children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span>
+      <button type="button"
+        className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-gray-100 hover:bg-blue-100 text-gray-400 hover:text-blue-600 text-[9px] font-bold leading-none"
+        onClick={(e) => { e.preventDefault(); setOpen((p) => !p); }}
+        aria-label={open ? "Hide help" : "Show help"}>?</button>
+      {open && (
+        <span className="block text-[10px] text-gray-600 bg-blue-50 border border-blue-100 rounded px-1.5 py-1 mt-0.5 leading-relaxed whitespace-pre-line">
+          {children}
+        </span>
+      )}
+    </span>
+  );
+}
 import { useAppStore } from "../../store/appStore";
 
 /** Local string state synced with a numeric store value. Commits on blur/Enter. */
@@ -47,10 +64,10 @@ export function ParameterPanel() {
   const tmOvInput = useLocalNum(tmOv, 42, (v) => setTmTargets(tmFwd, tmRev, v));
   const gcMinInput = useLocalNum(gcMin, 40, (v) => setGcRange(v, gcMax));
   const gcMaxInput = useLocalNum(gcMax, 60, (v) => setGcRange(gcMin, v));
-  const fwdLenMinInput = useLocalNum(fwdLenMin, 18, (v) => setPrimerLenRange(v, fwdLenMax, revLenMin, revLenMax));
+  const fwdLenMinInput = useLocalNum(fwdLenMin, 22, (v) => setPrimerLenRange(v, fwdLenMax, revLenMin, revLenMax));
   const fwdLenMaxInput = useLocalNum(fwdLenMax, 45, (v) => setPrimerLenRange(fwdLenMin, v, revLenMin, revLenMax));
-  const revLenMinInput = useLocalNum(revLenMin, 18, (v) => setPrimerLenRange(fwdLenMin, fwdLenMax, v, revLenMax));
-  const revLenMaxInput = useLocalNum(revLenMax, 30, (v) => setPrimerLenRange(fwdLenMin, fwdLenMax, revLenMin, v));
+  const revLenMinInput = useLocalNum(revLenMin, 22, (v) => setPrimerLenRange(fwdLenMin, fwdLenMax, v, revLenMax));
+  const revLenMaxInput = useLocalNum(revLenMax, 35, (v) => setPrimerLenRange(fwdLenMin, fwdLenMax, revLenMin, v));
   const maxPrimersInput = useLocalNum(maxPrimers, 95, setMaxPrimers);
 
   const gcInvalid = gcMin >= gcMax;
@@ -144,8 +161,21 @@ export function ParameterPanel() {
           )}
 
           {/* Primer Length */}
-          <div className="text-[9px] uppercase text-gray-400 tracking-wider pt-1.5" title="KOD One: F 22–60 bp (priming 22–35 + overlap), R 22–35 bp. Enable to constrain.">Primer Length</div>
-          <label className="flex items-center gap-1 text-xs cursor-pointer" title="KOD One: F 22–60 bp (priming 22–35 + overlap), R 22–35 bp. Enable to constrain.">
+          <div className="text-[9px] uppercase text-gray-400 tracking-wider pt-1.5 flex items-center gap-1">
+            Primer Length
+            <HelpTip>
+              {"KOD One PCR Master Mix\n" +
+               "  Standard:     22–35 bp, Tm >63°C\n" +
+               "  Long targets: 25–35 bp, Tm >65°C\n" +
+               "\n" +
+               "Experimental (Kang IspS SDM, n=165)\n" +
+               "  Forward total: 19–38 bp (incl. overlap)\n" +
+               "  Reverse total: 18–32 bp (incl. overlap)\n" +
+               "\n" +
+               "KURO primer length = overlap + priming region"}
+            </HelpTip>
+          </div>
+          <label className="flex items-center gap-1 text-xs cursor-pointer">
             <input
               type="checkbox"
               className="h-3 w-3 accent-green-600"

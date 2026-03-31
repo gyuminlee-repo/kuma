@@ -221,8 +221,8 @@ def _extend_forward(
     target_tm: float,
     tolerance: float,
     min_downstream: int = 4,
-    fwd_len_min: int = 22,
-    fwd_len_max: int = 60,
+    fwd_len_min: int = 18,
+    fwd_len_max: int = 45,
 ) -> tuple[str, str, float] | None:
     """Extend forward primer: overlap + mutant codon + downstream extension.
 
@@ -266,7 +266,7 @@ def _extend_reverse(
     upstream_seq: str,
     target_tm: float,
     tolerance: float,
-    rev_len_min: int = 22,
+    rev_len_min: int = 18,
     rev_len_max: int = 35,
 ) -> tuple[str, str, float] | None:
     """Extend reverse primer: upstream extension + rc(overlap).
@@ -399,7 +399,7 @@ def _search_candidates(
     fwd_len_min: int = 18,
     fwd_len_max: int = 45,
     rev_len_min: int = 18,
-    rev_len_max: int = 30,
+    rev_len_max: int = 35,
 ) -> list[SdmPrimerResult]:
     """Search for SDM primer candidates at a given tolerance.
 
@@ -530,12 +530,12 @@ def design_single_sdm(
     fwd_len_min: int = 18,
     fwd_len_max: int = 45,
     rev_len_min: int = 18,
-    rev_len_max: int = 30,
+    rev_len_max: int = 35,
     organism: str = "ecoli",
 ) -> list[SdmPrimerResult]:
     """Design SDM primers for a single mutation.
 
-    Redesigned algorithm (EVOLVEpro / 강혜민 validated):
+    Redesigned algorithm (EVOLVEpro / Kang validated):
     1. Overlap is UPSTREAM of mutation codon (not containing it)
     2. Whole-primer Tm targeting: Fwd 62°C, Rev 58°C, Overlap 42°C
     3. Progressive tolerance: ±0.5 → ±1.0 → ... (max ±3.0)
@@ -979,7 +979,7 @@ def design_sdm_primers(
     fwd_len_min: int = 18,
     fwd_len_max: int = 45,
     rev_len_min: int = 18,
-    rev_len_max: int = 30,
+    rev_len_max: int = 35,
     on_progress: "Callable[[int, int, str], None] | None" = None,
     cancel_check: "Callable[[], bool] | None" = None,
     organism: str = "ecoli",

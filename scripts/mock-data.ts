@@ -109,7 +109,7 @@ export interface ScreenState {
 export const screenStates: ScreenState[] = [
   {
     name: "01-initial",
-    caption: "초기 실행 화면 — 파일을 로드하기 전 상태",
+    caption: "Initial screen — before loading any file",
     state: {
       fastaPath: "",
       seqInfo: null,
@@ -125,7 +125,7 @@ export const screenStates: ScreenState[] = [
   },
   {
     name: "02-file-loaded",
-    caption: "GenBank 파일 로드 완료 — synR 유전자가 자동 선택된다",
+    caption: "GenBank file loaded — synR gene auto-selected",
     state: {
       fastaPath: "C:\\samples\\sample_plasmid.gb",
       seqInfo: mockSeqInfo,
@@ -141,7 +141,7 @@ export const screenStates: ScreenState[] = [
   },
   {
     name: "03-mutations-entered",
-    caption: "EVOLVEpro CSV에서 95개 변이 목록 로드 완료",
+    caption: "EVOLVEpro CSV loaded — 95 variants",
     state: {
       fastaPath: "C:\\samples\\sample_plasmid.gb",
       seqInfo: mockSeqInfo,
@@ -159,7 +159,7 @@ export const screenStates: ScreenState[] = [
   },
   {
     name: "04-design-complete",
-    caption: "프라이머 설계 완료 — 95개 변이에 대한 프라이머 테이블",
+    caption: "Design complete — primer table for 95 variants",
     state: {
       fastaPath: "C:\\samples\\sample_plasmid.gb",
       seqInfo: mockSeqInfo,
@@ -183,7 +183,7 @@ export const screenStates: ScreenState[] = [
   },
   {
     name: "05-plate-map",
-    caption: "Plate Map — 96-well 형식으로 95개 프라이머 배치가 표시된다",
+    caption: "Plate Map — 95 primers arranged in 96-well format",
     state: {
       fastaPath: "C:\\samples\\sample_plasmid.gb",
       seqInfo: mockSeqInfo,
