@@ -68,6 +68,18 @@ class TestSimulateSelection:
         )
         assert len(sel) <= 10
 
+    def test_pareto_entropy(self):
+        land = _make_landscape(50)
+        sel = simulate_selection(land, 10, "pareto_entropy")
+        assert len(sel) == 10
+        # First selected should be the best fitness
+        assert sel[0] == land[0]
+
+    def test_pareto_entropy_custom_weight(self):
+        land = _make_landscape(50)
+        sel = simulate_selection(land, 10, "pareto_entropy", entropy_weight=0.5)
+        assert len(sel) == 10
+
 
 class TestEvaluateSelection:
     """Unit tests for evaluate_selection."""
@@ -101,6 +113,27 @@ class TestEvaluateSelection:
         # 2 unique positions (10 and 20) out of 3 selected
         assert metrics["unique_positions"] == 2
         assert abs(metrics["position_coverage"] - 2 / 3 * 100) < 0.1
+
+    def test_domain_coverage(self):
+        # ground_truth has positions 10, 20, 30 → max_positions = 3
+        # selected covers positions 10 and 20 → domain_coverage = 2/3 * 100
+        gt = {"A10C": 1.0, "A20D": 0.9, "A30E": 0.5}
+        sel = [("A10C", 1.0), ("A20D", 0.9)]
+        metrics = evaluate_selection(sel, gt)
+        assert "domain_coverage" in metrics
+        assert abs(metrics["domain_coverage"] - 2 / 3 * 100) < 0.1
+
+    def test_domain_coverage_full(self):
+        # Selected covers all positions present in ground_truth
+        gt = {"A10C": 1.0, "A20D": 0.9}
+        sel = [("A10C", 1.0), ("A20D", 0.9)]
+        metrics = evaluate_selection(sel, gt)
+        assert abs(metrics["domain_coverage"] - 100.0) < 0.1
+
+    def test_domain_coverage_empty_ground_truth(self):
+        sel = [("A10C", 1.0)]
+        metrics = evaluate_selection(sel, {})
+        assert metrics["domain_coverage"] == 0.0
 
 
 class TestRunBenchmark:

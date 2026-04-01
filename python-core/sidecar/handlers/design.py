@@ -257,6 +257,7 @@ def handle_design_sdm_primers(params: dict) -> dict:
         "success_count": len(results),
         "total_count": total_mutations,
         "failed_mutations": failed,
+        "step_stats": None,
     }
 
 

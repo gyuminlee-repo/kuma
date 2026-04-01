@@ -244,6 +244,8 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       structureLoaded: false,
       structureLoading: false,
       evolveproTotalCount: 0,
+      evolveproFilteredCount: null,
+      evolveproParetoExchanges: null,
       showReport: false,
       organism: "ecoli",
       plateMappings: [],

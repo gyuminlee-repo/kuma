@@ -45,6 +45,17 @@ def simulate_selection(
             ca_coords=ca,
         )
         return selected
+    elif strategy == "pareto_entropy":
+        ca = kwargs.get("ca_coords")
+        ew = kwargs.get("entropy_weight", 0.3)
+        selected, _ = pareto_diversity_select(
+            fitness_landscape,
+            n_select,
+            pool_multiplier=kwargs.get("pool_multiplier", 2.0),
+            ca_coords=ca,
+            entropy_weight=ew,
+        )
+        return selected
     elif strategy == "domain":
         selected, _ = domain_aware_select(
             fitness_landscape,
@@ -87,12 +98,21 @@ def evaluate_selection(
             "mean_fitness": 0.0,
             "unique_positions": 0,
             "position_coverage": 0.0,
+            "domain_coverage": 0.0,
             "hits": 0,
             "threshold": 0.0,
         }
 
     threshold_idx = max(1, int(len(all_fitness) * top_percentile / 100))
     hit_threshold = all_fitness[threshold_idx - 1]
+
+    # Compute all unique positions from ground_truth for domain_coverage
+    all_positions: set[int] = set()
+    for variant in ground_truth:
+        m = re.search(r"[A-Z](\d+)[A-Z]", variant)
+        if m:
+            all_positions.add(int(m.group(1)))
+    max_positions = len(all_positions)
 
     # Calculate metrics
     hits = 0
@@ -117,6 +137,7 @@ def evaluate_selection(
         "mean_fitness": total_fitness / n if n > 0 else 0.0,
         "unique_positions": len(positions),
         "position_coverage": len(positions) / n * 100 if n > 0 else 0.0,
+        "domain_coverage": len(positions) / max_positions * 100 if max_positions else 0.0,
         "hits": hits,
         "threshold": hit_threshold,
     }
@@ -151,7 +172,7 @@ def run_benchmark(
         {strategy_name: evaluation_metrics}
     """
     if strategies is None:
-        strategies = ["topn", "random", "pareto"]
+        strategies = ["topn", "random", "pareto", "pareto_entropy"]
 
     result_map: dict[str, dict] = {}
 

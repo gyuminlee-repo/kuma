@@ -18,6 +18,8 @@ export interface InputSlice {
   parseErrors: ParseError[];
   evolveproCsvPath: string;
   evolveproTotalCount: number;
+  evolveproFilteredCount: number | null;
+  evolveproParetoExchanges: number | null;
   yPredMap: Record<string, number>;
 
   // Actions
@@ -38,6 +40,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   parseErrors: [],
   evolveproCsvPath: "",
   evolveproTotalCount: 0,
+  evolveproFilteredCount: null,
+  evolveproParetoExchanges: null,
   yPredMap: {},
 
   setMutationInputMode: (mode) => set({ mutationInputMode: mode }),
@@ -97,6 +101,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         yPredMap: yMap,
         domainStats: result.domain_stats ?? {},
         evolveproTotalCount: result.total_count,
+        evolveproFilteredCount: result.filtered_count ?? null,
+        evolveproParetoExchanges: result.pareto_replaced ?? null,
         statusMessage: `${currentMode === "multi-evolve" ? "MULTI-evolve" : "EVOLVEpro"}: ${result.selected_count}/${result.total_count} variants${filteredMsg}${domainMsg}${paretoMsg}`,
       });
     } catch (err) {

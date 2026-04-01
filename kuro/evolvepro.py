@@ -164,14 +164,23 @@ def load_evolvepro_csv(
     else:
         selected = rows[:top_n]
 
+    position_filter_removed = pre_filter_count - len(rows)
+    domain_selected = len(selected) if (domain_diversity and domain_info) else None
+    pareto_exchanges = pareto_replaced if pareto_diversity else None
+
     return {
         "variants": [v for v, _ in selected],
         "y_preds": [round(y, 4) for _, y in selected],
         "total_count": pre_filter_count,
         "selected_count": len(selected),
-        "filtered_count": pre_filter_count - len(rows),
+        "filtered_count": position_filter_removed,
         "domain_stats": domain_stats,
-        "pareto_replaced": pareto_replaced if pareto_diversity else None,
+        "pareto_replaced": pareto_exchanges,
+        "step_stats": {
+            "position_filter_removed": position_filter_removed,
+            "domain_selected": domain_selected,
+            "pareto_exchanges": pareto_exchanges,
+        },
     }
 
 

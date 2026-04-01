@@ -49,6 +49,8 @@ export function DesignReport() {
         entropyWeightEnabled: s.entropyWeightEnabled,
         structureLoaded: s.structureLoaded,
         evolveproTotalCount: s.evolveproTotalCount,
+        evolveproFilteredCount: s.evolveproFilteredCount,
+        evolveproParetoExchanges: s.evolveproParetoExchanges,
         mutationInputMode: s.mutationInputMode,
       };
     }),
@@ -72,6 +74,8 @@ export function DesignReport() {
     entropyWeightEnabled,
     structureLoaded,
     evolveproTotalCount,
+    evolveproFilteredCount,
+    evolveproParetoExchanges,
     mutationInputMode,
   } = data;
 
@@ -108,9 +112,9 @@ export function DesignReport() {
           {/* Pipeline Summary */}
           {pipelineMode && (
             <Section title="Pipeline">
-              <Stat label="Position filter" value={positionDiversityEnabled ? `max ${maxPerPosition}/pos` : "OFF"} />
-              <Stat label="Domain allocation" value={domainDiversityEnabled && domains.length > 0 ? `${domainStrategy} (${domains.length} domains)` : "OFF"} />
-              <Stat label="Pareto diversity" value={paretoDiversityEnabled ? "ON" : "OFF"} />
+              <Stat label="Position filter" value={positionDiversityEnabled ? `max ${maxPerPosition}/pos${evolveproFilteredCount != null && evolveproFilteredCount > 0 ? ` (−${evolveproFilteredCount})` : ""}` : "OFF"} />
+              <Stat label="Domain allocation" value={domainDiversityEnabled && domains.length > 0 ? (() => { const total = Object.values(domainStats).reduce((s, d) => s + d.selected, 0); const quota = Object.values(domainStats).reduce((s, d) => s + d.quota, 0); return quota > 0 ? `${domainStrategy}: ${total}/${quota}` : `${domainStrategy} (${domains.length} domains)`; })() : "OFF"} />
+              <Stat label="Pareto diversity" value={paretoDiversityEnabled ? `ON${evolveproParetoExchanges != null && evolveproParetoExchanges > 0 ? ` (${evolveproParetoExchanges} swapped)` : ""}` : "OFF"} />
               <Stat label="Entropy-guided" value={entropyWeightEnabled ? "ON" : "OFF"} />
               <Stat label="AlphaFold 3D" value={structureLoaded ? "ON (Cα distance)" : "OFF (1D distance)"} />
               {evolveproTotalCount > 0 && (
