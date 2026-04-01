@@ -55,6 +55,18 @@ def _assign_well(index: int, well_order: str = "column") -> str:
     return f"P{plate_num + 1}-{well}"
 
 
+def _parse_well_plate(well: str) -> tuple[int, str]:
+    """Return (0-based plate index, base well) from an overflow well label.
+
+    ``"A1"`` → ``(0, "A1")``,  ``"P2-A1"`` → ``(1, "A1")``.
+    Inverse of ``_assign_well``.
+    """
+    if "-" in well:
+        prefix, base = well.split("-", 1)
+        return int(prefix[1:]) - 1, base
+    return 0, well
+
+
 def deduplicate_reverse(
     results: list[SdmPrimerResult],
 ) -> dict[str, list[str]]:
@@ -474,14 +486,16 @@ def export_echo_mapping_csv(
 
         # Forward: one row per mutation
         for m in fwd_mappings:
-            src_well = _to_384_well_fwd(m.well)
+            plate_idx, base_well = _parse_well_plate(m.well)
+            src_plate = f"Source [{plate_idx + 1}]"
+            dest_plate = f"Destination [{plate_idx + 1}]"
+            src_well = _to_384_well_fwd(base_well)
             writer.writerow([
-                "Source [1]", m.primer_name, src_well,
-                "Destination [1]", m.mutation, m.well, transfer_vol,
+                src_plate, m.primer_name, src_well,
+                dest_plate, m.mutation, base_well, transfer_vol,
             ])
 
         # Reverse: one row per (primer, dest_well) pair
-        seen_rev: set[str] = set()
         for fwd_m in fwd_mappings:
             rev_seq = mut_to_rev_seq.get(fwd_m.mutation)
             if rev_seq is None:
@@ -490,18 +504,16 @@ def export_echo_mapping_csv(
             if rev_m is None:
                 continue
 
-            src_well = _to_384_well_rev(rev_m.well)
-            dest_well = fwd_by_mut.get(fwd_m.mutation, fwd_m.well)
-
-            # Track primer name for first appearance (canonical label)
-            key = rev_seq
-            primer_label = rev_m.primer_name
-            if key not in seen_rev:
-                seen_rev.add(key)
+            fwd_plate_idx, _ = _parse_well_plate(fwd_m.well)
+            src_plate = f"Source [{fwd_plate_idx + 1}]"
+            dest_plate = f"Destination [{fwd_plate_idx + 1}]"
+            _, rev_base_well = _parse_well_plate(rev_m.well)
+            src_well = _to_384_well_rev(rev_base_well)
+            _, dest_well = _parse_well_plate(fwd_by_mut.get(fwd_m.mutation, fwd_m.well))
 
             writer.writerow([
-                "Source [1]", primer_label, src_well,
-                "Destination [1]", fwd_m.mutation, dest_well, transfer_vol,
+                src_plate, rev_m.primer_name, src_well,
+                dest_plate, fwd_m.mutation, dest_well, transfer_vol,
             ])
 
 
