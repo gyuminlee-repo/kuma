@@ -17,8 +17,10 @@ import {
 } from "../ui/dropdown-menu";
 import { getCrashLog } from "../../lib/crashLog";
 import {
+  handleExportEchoMapping,
   handleExportExcel,
   handleExportIdtOrder,
+  handleExportJanusMapping,
   handleExportTwistOrder,
   handleSaveWorkspace,
   handleLoadWorkspace,
@@ -94,6 +96,19 @@ export function MenuBar() {
               disabled={designResults.length === 0}
             >
               Export Twist Order...
+            </DropdownMenuItem>
+            <DropdownMenuItem className="h-px bg-gray-200 my-1 p-0" disabled />
+            <DropdownMenuItem
+              onClick={handleExportEchoMapping}
+              disabled={designResults.length === 0}
+            >
+              Export Echo Mapping...
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={handleExportJanusMapping}
+              disabled={designResults.length === 0}
+            >
+              Export JANUS Mapping...
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

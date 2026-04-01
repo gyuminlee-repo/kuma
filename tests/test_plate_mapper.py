@@ -10,10 +10,14 @@ import pytest
 from kuro.plate_mapper import (
     PlateMapping,
     deduplicate_reverse,
+    export_echo_mapping_csv,
     export_idt_csv,
+    export_janus_mapping_csv,
     export_plate_excel,
     export_twist_csv,
     generate_plate_map,
+    _to_384_well_fwd,
+    _to_384_well_rev,
 )
 from kuro.sdm_engine import SdmPrimerResult, design_sdm_primers
 from tests.conftest import FIXTURES_DIR, TARGET_START
@@ -175,3 +179,153 @@ class TestExportTwistCsv:
             for row in reader:
                 # Notes column should contain the mutation name
                 assert len(row[2]) > 0
+
+
+class Test384WellConversion:
+    def test_fwd_row_mapping(self):
+        assert _to_384_well_fwd("A1") == "A1"
+        assert _to_384_well_fwd("B1") == "C1"
+        assert _to_384_well_fwd("C1") == "E1"
+        assert _to_384_well_fwd("H1") == "O1"
+        assert _to_384_well_fwd("A12") == "A12"
+
+    def test_rev_row_mapping(self):
+        assert _to_384_well_rev("A1") == "B1"
+        assert _to_384_well_rev("B1") == "D1"
+        assert _to_384_well_rev("C1") == "F1"
+        assert _to_384_well_rev("H1") == "P1"
+
+    def test_fwd_rev_no_overlap(self):
+        wells_96 = [f"{r}{c}" for c in range(1, 13) for r in "ABCDEFGH"]
+        fwd_384 = {_to_384_well_fwd(w) for w in wells_96}
+        rev_384 = {_to_384_well_rev(w) for w in wells_96}
+        assert fwd_384.isdisjoint(rev_384)
+
+
+class TestEchoMappingExport:
+    def test_row_count(self, sdm_results, tmp_path):
+        fwd, rev = generate_plate_map(sdm_results, deduplicate_rev=True)
+        rev_groups = deduplicate_reverse(sdm_results)
+        csv_path = tmp_path / "echo.csv"
+        export_echo_mapping_csv(fwd, rev, csv_path, rev_groups=rev_groups)
+
+        with open(csv_path, encoding="utf-8") as f:
+            rows = list(csv.reader(f))
+
+        # Header + one row per fwd + one row per (rev→dest) pair
+        # With dedup, rev rows = len(fwd) (one dest per mutation)
+        assert len(rows) == 1 + len(fwd) + len(fwd)
+
+    def test_header(self, sdm_results, tmp_path):
+        fwd, rev = generate_plate_map(sdm_results, deduplicate_rev=True)
+        csv_path = tmp_path / "echo.csv"
+        export_echo_mapping_csv(fwd, rev, csv_path)
+
+        with open(csv_path, encoding="utf-8") as f:
+            header = next(csv.reader(f))
+
+        assert header == [
+            "Source Plate Name", "Source Well Name", "Source Well",
+            "Dest Plate Name", "Dest Well Name", "Dest Well", "Transfer Vol",
+        ]
+
+    def test_source_plate_constant(self, sdm_results, tmp_path):
+        fwd, rev = generate_plate_map(sdm_results, deduplicate_rev=True)
+        csv_path = tmp_path / "echo.csv"
+        export_echo_mapping_csv(fwd, rev, csv_path)
+
+        with open(csv_path, encoding="utf-8") as f:
+            reader = csv.reader(f)
+            next(reader)
+            for row in reader:
+                assert row[0] == "Source [1]"
+                assert row[3] == "Destination [1]"
+
+    def test_transfer_vol_default(self, sdm_results, tmp_path):
+        fwd, rev = generate_plate_map(sdm_results, deduplicate_rev=True)
+        csv_path = tmp_path / "echo.csv"
+        export_echo_mapping_csv(fwd, rev, csv_path)
+
+        with open(csv_path, encoding="utf-8") as f:
+            reader = csv.reader(f)
+            next(reader)
+            for row in reader:
+                assert row[6] == "100"
+
+    def test_fwd_source_well_odd_rows(self, sdm_results, tmp_path):
+        fwd, rev = generate_plate_map(sdm_results, deduplicate_rev=True)
+        csv_path = tmp_path / "echo.csv"
+        export_echo_mapping_csv(fwd, rev, csv_path)
+
+        odd_384_rows = set("ACEGIKMO")
+        with open(csv_path, encoding="utf-8") as f:
+            reader = csv.reader(f)
+            next(reader)
+            fwd_rows = [row for row in reader if row[1].endswith("_F")]
+        for row in fwd_rows:
+            assert row[2][0] in odd_384_rows, f"Fwd source well {row[2]} not in odd rows"
+
+    def test_rev_source_well_even_rows(self, sdm_results, tmp_path):
+        fwd, rev = generate_plate_map(sdm_results, deduplicate_rev=True)
+        csv_path = tmp_path / "echo.csv"
+        export_echo_mapping_csv(fwd, rev, csv_path)
+
+        even_384_rows = set("BDFHJLNP")
+        with open(csv_path, encoding="utf-8") as f:
+            reader = csv.reader(f)
+            next(reader)
+            rev_rows = [row for row in reader if row[1].endswith("_R")]
+        for row in rev_rows:
+            assert row[2][0] in even_384_rows, f"Rev source well {row[2]} not in even rows"
+
+
+class TestJanusMappingExport:
+    def test_row_count(self, sdm_results, tmp_path):
+        fwd, rev = generate_plate_map(sdm_results, deduplicate_rev=True)
+        rev_groups = deduplicate_reverse(sdm_results)
+        csv_path = tmp_path / "janus.csv"
+        export_janus_mapping_csv(fwd, rev, csv_path, rev_groups=rev_groups)
+
+        with open(csv_path, encoding="utf-8") as f:
+            rows = list(csv.reader(f))
+
+        assert len(rows) == 1 + len(fwd) + len(fwd)
+
+    def test_header(self, sdm_results, tmp_path):
+        fwd, rev = generate_plate_map(sdm_results, deduplicate_rev=True)
+        csv_path = tmp_path / "janus.csv"
+        export_janus_mapping_csv(fwd, rev, csv_path)
+
+        with open(csv_path, encoding="utf-8") as f:
+            header = next(csv.reader(f))
+
+        assert header == [
+            "name", "type", "Dsp. Rack", "no",
+            "Asp. Rack", "Asp. Posi", "Dsp. Rack", "Dsp. Posi", "volume",
+        ]
+
+    def test_asp_rack_separation(self, sdm_results, tmp_path):
+        fwd, rev = generate_plate_map(sdm_results, deduplicate_rev=True)
+        csv_path = tmp_path / "janus.csv"
+        export_janus_mapping_csv(fwd, rev, csv_path)
+
+        with open(csv_path, encoding="utf-8") as f:
+            reader = csv.reader(f)
+            next(reader)
+            rows = list(reader)
+
+        fw_rows = [r for r in rows if r[0].endswith("-fw")]
+        rv_rows = [r for r in rows if r[0].endswith("-rv")]
+        assert all(r[4] == "1" for r in fw_rows), "fw rows must use Asp. Rack 1"
+        assert all(r[4] == "2" for r in rv_rows), "rv rows must use Asp. Rack 2"
+
+    def test_transfer_vol_default(self, sdm_results, tmp_path):
+        fwd, rev = generate_plate_map(sdm_results, deduplicate_rev=True)
+        csv_path = tmp_path / "janus.csv"
+        export_janus_mapping_csv(fwd, rev, csv_path)
+
+        with open(csv_path, encoding="utf-8") as f:
+            reader = csv.reader(f)
+            next(reader)
+            for row in reader:
+                assert float(row[8]) == 2.0

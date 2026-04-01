@@ -128,6 +128,12 @@ class ExportOrderParams(BaseModel):
     purification: str = "STD"
 
 
+class ExportMappingParams(BaseModel):
+    filepath: str
+    format: Literal["echo", "janus"] = "echo"
+    transfer_vol: Optional[float] = None  # nL for echo, µL for janus; None = format default
+
+
 class SaveWorkspaceParams(BaseModel):
     filepath: str
     data: Any  # arbitrary JSON object

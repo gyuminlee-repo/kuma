@@ -3,7 +3,15 @@
 import json
 from dataclasses import fields as dc_fields
 
-from kuro.plate_mapper import PlateMapping, export_plate_excel, export_idt_csv, export_twist_csv
+from kuro.plate_mapper import (
+    PlateMapping,
+    export_echo_mapping_csv,
+    export_janus_mapping_csv,
+    export_plate_excel,
+    export_idt_csv,
+    export_twist_csv,
+    generate_plate_map,
+)
 
 import sidecar.core as _core
 from sidecar.core import (
@@ -14,6 +22,7 @@ from sidecar.core import (
 )
 from sidecar.models import (
     ExportExcelParams,
+    ExportMappingParams,
     ExportOrderParams,
     SaveWorkspaceParams,
     LoadWorkspaceParams,
@@ -102,6 +111,40 @@ def handle_export_order(params: dict) -> dict:
         export_twist_csv(_core._state.results, resolved)
 
     return {"success": True, "filepath": str(resolved), "format": fmt, "primer_count": len(_core._state.results) * 2}
+
+
+def handle_export_mapping(params: dict) -> dict:
+    """Export liquid handler mapping CSV (Echo 525 or JANUS).
+
+    Params:
+        filepath: Output CSV path.
+        format: "echo" (default) or "janus".
+        transfer_vol: Optional override for transfer volume.
+    """
+    p = ExportMappingParams(**params)
+    resolved = _validate_output_path(p.filepath, allowed_extensions=_ALLOWED_ORDER_CSV_EXTENSIONS)
+
+    if not _core._state.results:
+        raise ValueError("No design available. Run design_sdm_primers first.")
+
+    fwd_mappings, rev_mappings = generate_plate_map(
+        _core._state.results,
+        deduplicate_rev=True,
+    )
+    rev_groups = _core._state.dedup_info or {}
+
+    if p.format == "echo":
+        vol = int(p.transfer_vol) if p.transfer_vol is not None else 100
+        export_echo_mapping_csv(fwd_mappings, rev_mappings, resolved,
+                                transfer_vol=vol, rev_groups=rev_groups)
+    else:
+        vol = p.transfer_vol if p.transfer_vol is not None else 2.0
+        export_janus_mapping_csv(fwd_mappings, rev_mappings, resolved,
+                                 transfer_vol=vol, rev_groups=rev_groups)
+
+    primer_count = len(fwd_mappings) + len(rev_mappings)
+    return {"success": True, "filepath": str(resolved), "format": p.format,
+            "primer_count": primer_count}
 
 
 def handle_save_workspace(params: dict) -> dict:

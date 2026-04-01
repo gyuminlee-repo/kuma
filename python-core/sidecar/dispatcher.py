@@ -26,6 +26,7 @@ from sidecar.handlers.design import (
 )
 from sidecar.handlers.export import (
     handle_export_excel,
+    handle_export_mapping,
     handle_export_order,
     handle_get_plate_map,
     handle_save_workspace,
@@ -59,6 +60,7 @@ _METHODS = {
     "swap_primer": handle_swap_primer,
     "export_excel": handle_export_excel,
     "export_order": handle_export_order,
+    "export_mapping": handle_export_mapping,
     "evaluate_primer": handle_evaluate_primer,
     "retry_failed_mutation": handle_retry_failed,
     "save_workspace": handle_save_workspace,

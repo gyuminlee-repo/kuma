@@ -39,6 +39,36 @@ export async function handleExportTwistOrder() {
   }
 }
 
+export async function handleExportEchoMapping() {
+  const path = await save({
+    filters: [{ name: "CSV", extensions: ["csv"] }],
+    defaultPath: "echo_mapping.csv",
+  });
+  if (path) {
+    try {
+      await sendRequest("export_mapping", { filepath: path, format: "echo" });
+      useAppStore.getState().setStatus(`Echo mapping exported: ${path}`);
+    } catch (err) {
+      useAppStore.getState().setStatus(`Echo mapping export failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+}
+
+export async function handleExportJanusMapping() {
+  const path = await save({
+    filters: [{ name: "CSV", extensions: ["csv"] }],
+    defaultPath: "janus_mapping.csv",
+  });
+  if (path) {
+    try {
+      await sendRequest("export_mapping", { filepath: path, format: "janus" });
+      useAppStore.getState().setStatus(`JANUS mapping exported: ${path}`);
+    } catch (err) {
+      useAppStore.getState().setStatus(`JANUS mapping export failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+}
+
 export async function handleSaveWorkspace() {
   try {
     const path = await save({

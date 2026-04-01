@@ -400,3 +400,178 @@ def export_twist_csv(
         for r in results:
             writer.writerow([f"{r.mutation.raw}_F", r.forward_seq, r.mutation.raw])
             writer.writerow([f"{r.mutation.raw}_R", r.reverse_seq, r.mutation.raw])
+
+
+# ---------------------------------------------------------------------------
+# Liquid handler mapping exports
+# ---------------------------------------------------------------------------
+
+_ROWS_384 = "ABCDEFGHIJKLMNOP"
+_ROWS_96 = "ABCDEFGH"
+
+
+def _to_384_well_fwd(well_96: str) -> str:
+    """Map 96-well address to 384-well forward primer position (odd rows A,C,E,G,I,K,M,O)."""
+    row_idx = _ROWS_96.index(well_96[0])
+    return f"{_ROWS_384[row_idx * 2]}{well_96[1:]}"
+
+
+def _to_384_well_rev(well_96: str) -> str:
+    """Map 96-well address to 384-well reverse primer position (even rows B,D,F,H,J,L,N,P)."""
+    row_idx = _ROWS_96.index(well_96[0])
+    return f"{_ROWS_384[row_idx * 2 + 1]}{well_96[1:]}"
+
+
+def export_echo_mapping_csv(
+    fwd_mappings: list[PlateMapping],
+    rev_mappings: list[PlateMapping],
+    output_path: Path,
+    transfer_vol: int = 100,
+    rev_groups: dict[str, list[str]] | None = None,
+) -> None:
+    """Export Echo 525 acoustic dispenser mapping CSV.
+
+    Source plate layout: 384-well (Eco 384PP).
+      - Forward primers occupy odd rows (A, C, E, G, I, K, M, O).
+      - Reverse primers occupy even rows (B, D, F, H, J, L, N, P).
+      - Both use column-first well ordering matching the 96-well plate layout.
+
+    Each row in the output corresponds to one transfer event.
+    Shared reverse primers produce one row per destination well.
+
+    Args:
+        fwd_mappings: Forward primer plate mappings (96-well coordinates).
+        rev_mappings: Deduplicated reverse primer plate mappings (96-well).
+        output_path: Output CSV file path.
+        transfer_vol: Transfer volume in nL (default 100).
+        rev_groups: Reverse deduplication map {seq: [mutation_names]}.
+            Used to expand shared primers to all destination wells.
+    """
+    import csv
+
+    # Build mutation → fwd dest well lookup
+    fwd_by_mut: dict[str, str] = {m.mutation: m.well for m in fwd_mappings}
+
+    # Build rev sequence → rev PlateMapping lookup
+    rev_by_seq: dict[str, PlateMapping] = {m.sequence: m for m in rev_mappings}
+
+    # Build mutation → rev sequence lookup (from rev_groups or 1:1 fallback)
+    mut_to_rev_seq: dict[str, str] = {}
+    if rev_groups:
+        for seq, muts in rev_groups.items():
+            for mut in muts:
+                mut_to_rev_seq[mut] = seq
+    else:
+        for m in rev_mappings:
+            mut_to_rev_seq[m.mutation] = m.sequence
+
+    with open(output_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow([
+            "Source Plate Name", "Source Well Name", "Source Well",
+            "Dest Plate Name", "Dest Well Name", "Dest Well", "Transfer Vol",
+        ])
+
+        # Forward: one row per mutation
+        for m in fwd_mappings:
+            src_well = _to_384_well_fwd(m.well)
+            writer.writerow([
+                "Source [1]", m.primer_name, src_well,
+                "Destination [1]", m.mutation, m.well, transfer_vol,
+            ])
+
+        # Reverse: one row per (primer, dest_well) pair
+        seen_rev: set[str] = set()
+        for fwd_m in fwd_mappings:
+            rev_seq = mut_to_rev_seq.get(fwd_m.mutation)
+            if rev_seq is None:
+                continue
+            rev_m = rev_by_seq.get(rev_seq)
+            if rev_m is None:
+                continue
+
+            src_well = _to_384_well_rev(rev_m.well)
+            dest_well = fwd_by_mut.get(fwd_m.mutation, fwd_m.well)
+
+            # Track primer name for first appearance (canonical label)
+            key = rev_seq
+            primer_label = rev_m.primer_name
+            if key not in seen_rev:
+                seen_rev.add(key)
+
+            writer.writerow([
+                "Source [1]", primer_label, src_well,
+                "Destination [1]", fwd_m.mutation, dest_well, transfer_vol,
+            ])
+
+
+def export_janus_mapping_csv(
+    fwd_mappings: list[PlateMapping],
+    rev_mappings: list[PlateMapping],
+    output_path: Path,
+    transfer_vol: float = 2.0,
+    rev_groups: dict[str, list[str]] | None = None,
+) -> None:
+    """Export JANUS liquid handler mapping CSV.
+
+    Uses two source racks:
+      - Rack 1: forward primers (96-well deep well plate).
+      - Rack 2: reverse primers (96-well deep well plate).
+
+    Shared reverse primers produce one row per destination well,
+    all aspirating from the same source position.
+
+    Args:
+        fwd_mappings: Forward primer plate mappings.
+        rev_mappings: Deduplicated reverse primer plate mappings.
+        output_path: Output CSV file path.
+        transfer_vol: Dispense volume in µL (default 2.0).
+        rev_groups: Reverse deduplication map {seq: [mutation_names]}.
+    """
+    import csv
+
+    fwd_by_mut: dict[str, str] = {m.mutation: m.well for m in fwd_mappings}
+    rev_by_seq: dict[str, PlateMapping] = {m.sequence: m for m in rev_mappings}
+
+    mut_to_rev_seq: dict[str, str] = {}
+    if rev_groups:
+        for seq, muts in rev_groups.items():
+            for mut in muts:
+                mut_to_rev_seq[mut] = seq
+    else:
+        for m in rev_mappings:
+            mut_to_rev_seq[m.mutation] = m.sequence
+
+    with open(output_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        # Header matches JANUS format exactly (Dsp. Rack appears twice)
+        writer.writerow([
+            "name", "type", "Dsp. Rack", "no",
+            "Asp. Rack", "Asp. Posi", "Dsp. Rack", "Dsp. Posi", "volume",
+        ])
+
+        seq_no = 1
+
+        # Forward primers (Asp. Rack = 1)
+        for m in fwd_mappings:
+            writer.writerow([
+                f"{m.mutation}-fw", "primer", "Oligo 5pmol/ul", seq_no,
+                1, m.well, 2, m.well, transfer_vol,
+            ])
+            seq_no += 1
+
+        # Reverse primers (Asp. Rack = 2), expanding shared primers
+        for fwd_m in fwd_mappings:
+            rev_seq = mut_to_rev_seq.get(fwd_m.mutation)
+            if rev_seq is None:
+                continue
+            rev_m = rev_by_seq.get(rev_seq)
+            if rev_m is None:
+                continue
+
+            dest_well = fwd_by_mut.get(fwd_m.mutation, fwd_m.well)
+            writer.writerow([
+                f"{fwd_m.mutation}-rv", "primer", "Oligo 5pmol/ul", seq_no,
+                2, rev_m.well, 2, dest_well, transfer_vol,
+            ])
+            seq_no += 1
