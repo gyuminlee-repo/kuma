@@ -34,8 +34,15 @@ export function AppLayout() {
   const seqInfo = useAppStore((s) => s.seqInfo);
   const mutationText = useAppStore((s) => s.mutationText);
   const designResults = useAppStore((s) => s.designResults);
+  const loadPolymerases = useAppStore((s) => s.loadPolymerases);
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
+
+  useEffect(() => {
+    if (sidecarStatus === "ready") {
+      void loadPolymerases();
+    }
+  }, [loadPolymerases, sidecarStatus]);
 
   // File drop via Tauri webview API
   useEffect(() => {

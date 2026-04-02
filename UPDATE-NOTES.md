@@ -1,6 +1,57 @@
-# KURO Update Notes — v0.9.5 → v1.19.0
+# KURO Update Notes — v0.9.5 → v1.22.0
 
 [한국어](UPDATE-NOTES.ko.md) | **English**
+
+---
+
+## v1.24.1 (2026-04-01)
+
+### Polymerase Selection + Custom Profiles
+
+- Added a Polymerase selector to `ParameterPanel`; KURO now sends the selected profile to the sidecar instead of hardcoding `Benchling`
+- Selecting a polymerase immediately updates the UI defaults for Tm targets and GC range from that profile
+- Added `get_polymerase_details` and `save_custom_polymerase` JSON-RPC methods
+- Added a Custom Polymerase dialog for creating or editing user-defined profiles
+- Custom polymerases are persisted at `~/.kuro/custom_polymerases.json` and are reloaded automatically on the next app start
+- Added registry persistence test coverage for custom polymerases
+
+---
+
+## v1.22.0 (2026-03-30)
+
+### Primer Length Defaults — KOD One Minimum + Experimental Range
+
+- UI default minimum raised to **22 bp** (Fwd and Rev) to match KOD One PCR Master Mix official recommendation (22–35 bp, Tm >63°C)
+- UI default maximum: Fwd 45 bp, Rev 35 bp — covers the observed experimental range (강혜민 IspS SDM: F 19–38 bp, R 18–32 bp) with buffer
+- Python layer (`sdm_engine.py`) retains 18 bp defaults for unconstrained designs and test compatibility; the 22 bp minimum is enforced only when the UI Primer Length constraint is enabled
+- **Help tooltip added** to the "Primer Length" section header in Advanced Options: click `?` to view KOD One specs, experimental range (n=165), and a note that KURO primer lengths include the overlap region
+- The `title` attribute (hover-only) replaced by a click-to-toggle `HelpTip` component — consistent with the Step 1–3 help buttons added in v1.21.0
+
+---
+
+## v1.21.0 (2026-03-30)
+
+### Advanced Settings Help Tooltips
+
+- Added `?` click-to-toggle help buttons to pipeline Step 1–3 settings in `DiversityOptions.tsx`
+- Tooltips cover: position cap, domain diversity strategy, Pareto diversity (with AlphaFold status), and entropy-guided selection
+- Replaces hidden `title` attribute tooltips which were not discoverable on touch/keyboard
+
+### Semver Fix
+
+- Version strings corrected from two-part (`1.21`) to three-part (`1.21.0`) semver in `package.json`, `tauri.conf.json`, and `Cargo.toml`
+- Tauri and Cargo both require `MAJOR.MINOR.PATCH` format; two-part strings caused build failures
+- Push skill updated (step 3.5) to auto-sync all three version files when committing
+
+---
+
+## v1.20.0 (2026-03-30)
+
+### CI Fix — pydantic Missing from Build
+
+- Added `pydantic>=2.0` to the pip install step in `.github/workflows/build.yml`
+- Without this, the PyInstaller sidecar bundle raised `ModuleNotFoundError: No module named 'pydantic'` at startup
+- `build_sidecar.py` already included `--collect-all pydantic`; the CI workflow was the missing piece
 
 ---
 

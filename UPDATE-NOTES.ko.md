@@ -1,6 +1,57 @@
-# KURO 업데이트 노트 — v0.9.5 → v1.19.0
+# KURO 업데이트 노트 — v0.9.5 → v1.22.0
 
 **한국어** | [English](UPDATE-NOTES.md)
+
+---
+
+## v1.24.1 (2026-04-01)
+
+### Polymerase 선택 + 커스텀 프로필
+
+- `ParameterPanel`에 Polymerase 선택 드롭다운 추가. KURO가 더 이상 `Benchling`을 하드코딩하지 않고, 현재 선택된 프로필을 sidecar로 전달함
+- Polymerase를 선택하면 해당 프로필의 Tm 목표값과 GC 범위가 즉시 UI 기본값으로 반영됨
+- JSON-RPC 메서드 `get_polymerase_details`, `save_custom_polymerase` 추가
+- 사용자 정의 polymerase를 생성/수정할 수 있는 Custom Polymerase 다이얼로그 추가
+- 커스텀 polymerase는 `~/.kuro/custom_polymerases.json`에 저장되며, 앱 재시작 후 자동으로 다시 로드됨
+- 커스텀 polymerase 영속성에 대한 registry 테스트 추가
+
+---
+
+## v1.22.0 (2026-03-30)
+
+### 프라이머 길이 기본값 — KOD One 최솟값 + 실험 범위
+
+- UI 기본 최솟값을 **22 bp** (Fwd/Rev 모두)로 상향하여 KOD One PCR Master Mix 공식 권장(22–35 bp, Tm >63°C)과 일치
+- UI 기본 최댓값: Fwd 45 bp, Rev 35 bp — 실험 관측 범위(강혜민 IspS SDM: F 19–38 bp, R 18–32 bp)를 여유있게 포함
+- Python 레이어(`sdm_engine.py`)는 비제한 설계 및 테스트 호환성을 위해 기존 18 bp 기본값 유지; 22 bp 최솟값은 UI에서 Primer Length 제한을 켤 때만 적용됨
+- **도움말 툴팁 추가**: Advanced Options의 "Primer Length" 섹션 헤더에 `?` 버튼 추가 — 클릭 시 KOD One 스펙, 실험 범위(n=165), "KURO 프라이머 길이 = overlap + priming region" 안내 표시
+- 기존 `title` 속성(hover-only)을 클릭 토글 방식 `HelpTip` 컴포넌트로 교체 — v1.21.0에서 추가된 Step 1–3 도움말 버튼과 동일한 방식
+
+---
+
+## v1.21.0 (2026-03-30)
+
+### 고급 설정 도움말 툴팁
+
+- `DiversityOptions.tsx`의 파이프라인 Step 1–3 설정에 클릭 토글 방식의 `?` 도움말 버튼 추가
+- 위치 상한(position cap), 도메인 다양성 전략, Pareto diversity(AlphaFold 상태 포함), entropy-guided 선택에 대한 설명 제공
+- 기존 `title` 속성 툴팁(터치·키보드에서 불가)을 대체
+
+### Semver 수정
+
+- `package.json`, `tauri.conf.json`, `Cargo.toml`의 버전 문자열을 2자리(`1.21`) → 3자리(`1.21.0`) semver로 수정
+- Tauri와 Cargo 모두 `MAJOR.MINOR.PATCH` 형식을 요구하며, 2자리 문자열은 빌드 오류를 발생시킴
+- push 스킬에 3.5단계 추가 — 커밋 시 세 파일 버전을 자동 동기화
+
+---
+
+## v1.20.0 (2026-03-30)
+
+### CI 수정 — pydantic 누락
+
+- `.github/workflows/build.yml`의 pip install 단계에 `pydantic>=2.0` 추가
+- 누락 시 PyInstaller 사이드카 번들이 시작 시 `ModuleNotFoundError: No module named 'pydantic'` 오류 발생
+- `build_sidecar.py`에는 이미 `--collect-all pydantic`이 포함되어 있었으나, CI 워크플로에서 누락된 상태였음
 
 ---
 

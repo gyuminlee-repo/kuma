@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 import logging
 import sys
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -83,11 +83,14 @@ BUILTIN_PATH = _resource_path("resources/polymerase_profiles.json")
 
 
 class PolymeraseRegistry:
-    """Manages built-in polymerase profiles."""
+    """Manages built-in and optional custom polymerase profiles."""
 
-    def __init__(self) -> None:
+    def __init__(self, custom_path: Path | None = None) -> None:
         self._profiles: dict[str, PolymeraseProfile] = {}
+        self._custom_path = custom_path
         self._load_builtin()
+        if custom_path and custom_path.exists():
+            self._load_custom(custom_path)
 
     def _load_builtin(self) -> None:
         if not BUILTIN_PATH.exists():
@@ -101,6 +104,13 @@ class PolymeraseRegistry:
             self._profiles[name] = _dict_to_profile(profile_data)
         logger.info("Loaded %d polymerase profiles", len(data))
 
+    def _load_custom(self, path: Path) -> None:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+        for entry in data:
+            profile = _dict_to_profile(entry)
+            self._profiles[profile.name] = profile
+
     def get(self, name: str) -> PolymeraseProfile:
         """Get a profile by name. Raises KeyError if not found."""
         if name not in self._profiles:
@@ -113,3 +123,29 @@ class PolymeraseRegistry:
     def list_names(self) -> list[str]:
         """Return sorted list of all profile names."""
         return sorted(self._profiles.keys())
+
+    def save_custom(self, profile: PolymeraseProfile, path: Path | None = None) -> None:
+        """Save or update a custom profile."""
+        target = path or self._custom_path
+        if target is None:
+            raise ValueError("No custom profile path configured")
+
+        existing: list[dict] = []
+        if target.exists():
+            with open(target, encoding="utf-8") as f:
+                existing = json.load(f)
+
+        data = asdict(profile)
+        updated = False
+        for i, entry in enumerate(existing):
+            if entry["name"] == profile.name:
+                existing[i] = data
+                updated = True
+                break
+        if not updated:
+            existing.append(data)
+
+        with open(target, "w", encoding="utf-8") as f:
+            json.dump(existing, f, indent=2, ensure_ascii=False)
+
+        self._profiles[profile.name] = profile

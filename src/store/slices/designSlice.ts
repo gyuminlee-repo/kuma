@@ -9,6 +9,8 @@ import type {
   FailedMutation,
   PlateMapping,
   PlateMapResult,
+  PolymeraseInfo,
+  PolymeraseProfile,
 } from "../../types/models";
 
 export interface DesignSlice {
@@ -18,6 +20,8 @@ export interface DesignSlice {
   successCount: number;
   totalCount: number;
   failedMutations: FailedMutation[];
+  polymerases: PolymeraseInfo[];
+  selectedPolymerase: string;
   codonStrategy: "closest" | "optimal";
   maxPrimers: number;
   tmFwdTarget: number;
@@ -50,6 +54,9 @@ export interface DesignSlice {
   addDesignResult: (mutation: string, result: SdmPrimerResult) => void;
   removeDesignResult: (mutation: string, reason: string) => void;
   setCodonStrategy: (strategy: "closest" | "optimal") => void;
+  loadPolymerases: () => Promise<void>;
+  setSelectedPolymerase: (name: string) => Promise<void>;
+  saveCustomPolymerase: (profile: PolymeraseProfile) => Promise<void>;
   setMaxPrimers: (n: number) => void;
   setTmTargets: (fwd: number, rev: number, ov: number) => void;
   setGcRange: (min: number, max: number) => void;
@@ -64,6 +71,8 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
   successCount: 0,
   totalCount: 0,
   failedMutations: [],
+  polymerases: [],
+  selectedPolymerase: "Benchling",
   showReport: false,
   setShowReport: (show: boolean) => set({ showReport: show }),
   codonStrategy: "closest",
@@ -75,13 +84,56 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
   gcMax: 60,
   primerLenEnabled: false,
   fwdLenMin: 22,
-  fwdLenMax: 60,
+  fwdLenMax: 45,
   revLenMin: 22,
   revLenMax: 35,
   fillOnFailure: false,
   manuallySwapped: {},
   customCandidates: {},
   rescuedMutations: [] as string[],
+
+  loadPolymerases: async () => {
+    try {
+      const polymerases = await sendRequest<PolymeraseInfo[]>("list_polymerases");
+      const current = get().selectedPolymerase;
+      const names = polymerases.map((p) => p.name);
+      const next = names.includes(current) ? current : polymerases[0]?.name ?? current;
+      set({ polymerases, selectedPolymerase: next });
+      if (next) {
+        await get().setSelectedPolymerase(next);
+      }
+    } catch (err) {
+      set({ statusMessage: `Polymerase list load failed: ${formatError(err)}` });
+    }
+  },
+
+  setSelectedPolymerase: async (name: string) => {
+    try {
+      const profile = await sendRequest<PolymeraseProfile>("get_polymerase_details", { name });
+      set({
+        selectedPolymerase: name,
+        tmFwdTarget: profile.opt_tm_fwd ?? profile.opt_tm,
+        tmRevTarget: profile.opt_tm_rev ?? profile.opt_tm,
+        tmOverlapTarget: profile.opt_tm_overlap ?? profile.opt_tm,
+        gcMin: profile.min_gc,
+        gcMax: profile.max_gc,
+      });
+    } catch (err) {
+      set({ statusMessage: `Polymerase load failed: ${formatError(err)}` });
+    }
+  },
+
+  saveCustomPolymerase: async (profile: PolymeraseProfile) => {
+    try {
+      await sendRequest("save_custom_polymerase", { ...profile });
+      await get().loadPolymerases();
+      await get().setSelectedPolymerase(profile.name);
+      set({ statusMessage: `Saved custom polymerase: ${profile.name}` });
+    } catch (err) {
+      set({ statusMessage: `Custom polymerase save failed: ${formatError(err)}` });
+      throw err;
+    }
+  },
 
   designPrimers: async () => {
     const state = get();
@@ -103,6 +155,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       revLenMax,
       fillOnFailure,
       mutationInputMode,
+      selectedPolymerase,
     } = state;
 
     if (!fastaPath) {
@@ -151,7 +204,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         fasta_path: fastaPath,
         target_start: targetStart,
         mutations_csv_or_text: limitedText,
-        polymerase: "Benchling",
+        polymerase: selectedPolymerase,
         codon_strategy: codonStrategy,
         organism,
         tm_fwd_target: tmFwdTarget,

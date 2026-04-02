@@ -36,7 +36,8 @@ logger = logging.getLogger("sidecar")
 # ---------------------------------------------------------------------------
 # Global registries (initialised once at import time)
 # ---------------------------------------------------------------------------
-_poly_registry = PolymeraseRegistry()
+_CUSTOM_POLYMERASE_PATH = Path.home() / ".kuro" / "custom_polymerases.json"
+_poly_registry = PolymeraseRegistry(custom_path=_CUSTOM_POLYMERASE_PATH)
 _codon_registry = CodonTableRegistry()
 
 # ---------------------------------------------------------------------------

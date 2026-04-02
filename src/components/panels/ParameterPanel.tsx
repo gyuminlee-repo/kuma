@@ -1,4 +1,8 @@
 import { useEffect, useState, type ChangeEvent, type KeyboardEvent, type ReactNode } from "react";
+import { sendRequest } from "../../lib/ipc";
+import type { PolymeraseProfile } from "../../types/models";
+import { PolymeraseEditor } from "../dialogs/PolymeraseEditor";
+import { Button } from "../ui/button";
 
 function HelpTip({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
@@ -29,6 +33,10 @@ function useLocalNum(storeVal: number, fallback: number, commit: (v: number) => 
 }
 
 export function ParameterPanel() {
+  const polymerases = useAppStore((s) => s.polymerases);
+  const selectedPolymerase = useAppStore((s) => s.selectedPolymerase);
+  const setSelectedPolymerase = useAppStore((s) => s.setSelectedPolymerase);
+  const saveCustomPolymerase = useAppStore((s) => s.saveCustomPolymerase);
   const codonStrategy = useAppStore((s) => s.codonStrategy);
   const maxPrimers = useAppStore((s) => s.maxPrimers);
   const setCodonStrategy = useAppStore((s) => s.setCodonStrategy);
@@ -46,6 +54,8 @@ export function ParameterPanel() {
   const gcMax = useAppStore((s) => s.gcMax);
 
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [polymeraseEditorOpen, setPolymeraseEditorOpen] = useState(false);
+  const [editingPolymerase, setEditingPolymerase] = useState<PolymeraseProfile | null>(null);
 
   const setTmTargets = useAppStore((s) => s.setTmTargets);
   const setGcRange = useAppStore((s) => s.setGcRange);
@@ -75,11 +85,48 @@ export function ParameterPanel() {
   const numInput = "w-16 h-6 text-xs border border-gray-300 rounded px-1 text-center focus:outline-none focus:ring-1 focus:ring-green-500";
   const gcInputBase = "w-16 h-6 text-xs rounded px-1 text-center focus:outline-none focus:ring-1";
 
+  const openCustomEditor = async () => {
+    try {
+      const profile = await sendRequest<PolymeraseProfile>("get_polymerase_details", {
+        name: selectedPolymerase,
+      });
+      setEditingPolymerase(profile);
+      setPolymeraseEditorOpen(true);
+    } catch {
+      setEditingPolymerase(null);
+      setPolymeraseEditorOpen(true);
+    }
+  };
+
   return (
     <div className="border border-gray-300 rounded p-3 space-y-2">
       <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
         Parameters
       </h3>
+
+      <div className="space-y-1">
+        <label htmlFor="polymerase-select" className="flex items-center gap-2 text-xs">
+          <span className="w-24 text-gray-600">Polymerase:</span>
+          <select
+            id="polymerase-select"
+            className="flex-1 h-7 text-xs border border-gray-300 rounded px-2 focus:outline-none focus:ring-1 focus:ring-green-500"
+            value={selectedPolymerase}
+            onChange={(e) => void setSelectedPolymerase(e.target.value)}
+          >
+            {polymerases.map((poly) => (
+              <option key={poly.name} value={poly.name}>
+                {poly.name}
+                {poly.manufacturer ? ` (${poly.manufacturer})` : ""}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="flex justify-end">
+          <Button type="button" variant="outline" size="sm" onClick={() => void openCustomEditor()}>
+            Custom Polymerase
+          </Button>
+        </div>
+      </div>
 
       <label htmlFor="codon-strategy" className="flex items-center gap-2 text-xs" title="Min. changes = fewest nucleotide changes from WT codon. Optimal = highest-frequency codon for selected organism.">
         <span className="w-24 text-gray-600">Codon:</span>
@@ -220,6 +267,13 @@ export function ParameterPanel() {
           </label>
         </div>
       )}
+
+      <PolymeraseEditor
+        open={polymeraseEditorOpen}
+        profile={editingPolymerase}
+        onOpenChange={setPolymeraseEditorOpen}
+        onSave={saveCustomPolymerase}
+      />
     </div>
   );
 }

@@ -39,6 +39,8 @@ from sidecar.handlers.external import (
 )
 from sidecar.handlers.misc import (
     handle_list_polymerases,
+    handle_get_polymerase_details,
+    handle_save_custom_polymerase,
     handle_list_organisms,
     handle_load_evolvepro_csv,
     handle_run_benchmark,
@@ -50,6 +52,8 @@ from sidecar.handlers.misc import (
 
 _METHODS = {
     "list_polymerases": handle_list_polymerases,
+    "get_polymerase_details": handle_get_polymerase_details,
+    "save_custom_polymerase": handle_save_custom_polymerase,
     "list_organisms": handle_list_organisms,
     "load_fasta": handle_load_fasta,
     "parse_mutations_text": handle_parse_mutations_text,

@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import tempfile
+from pathlib import Path
+
 import pytest
 
 from kuro.polymerase import PolymeraseProfile, PolymeraseRegistry
@@ -122,3 +125,40 @@ class TestPolymeraseProfileFields:
         for name in registry.list_names():
             p = registry.get(name)
             assert isinstance(p, PolymeraseProfile)
+
+
+class TestCustomPolymerasePersistence:
+    def test_save_and_reload_custom_profile(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            custom_path = Path(tmpdir) / "custom_polymerases.json"
+            registry = PolymeraseRegistry(custom_path=custom_path)
+            profile = PolymeraseProfile(
+                name="Custom HiFi",
+                tm_method="santalucia",
+                salt_correction="owczarzy",
+                opt_tm=68.0,
+                min_tm=63.0,
+                max_tm=73.0,
+                opt_size=21,
+                min_size=18,
+                max_size=28,
+                min_gc=35.0,
+                max_gc=65.0,
+                salt_monovalent=50.0,
+                salt_divalent=2.0,
+                dntp_conc=0.8,
+                dna_conc=250.0,
+                max_tm_diff=4.0,
+                opt_tm_fwd=65.0,
+                opt_tm_rev=61.0,
+                opt_tm_overlap=45.0,
+                min_3prime_dist=3,
+            )
+
+            registry.save_custom(profile)
+
+            restarted = PolymeraseRegistry(custom_path=custom_path)
+            loaded = restarted.get("Custom HiFi")
+            assert loaded.name == "Custom HiFi"
+            assert loaded.opt_tm_overlap == 45.0
+            assert loaded.min_3prime_dist == 3

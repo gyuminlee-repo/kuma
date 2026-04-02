@@ -15,11 +15,13 @@ Given a mutation list (plain text / EVOLVEpro CSV) and a template sequence (GenB
 4. Enter a mutation list as text or load an EVOLVEpro CSV.
 5. Select a codon strategy: Min. changes (fewest changes from WT) or Optimal (E. coli-optimized codon).
 6. Set the Mutations count (default 95; multi-plate is auto-generated when count exceeds 96).
-7. (Optional) Adjust Tm targets and GC% range in Advanced Options.
-8. Click **Design Primers**.
-9. The primer table is generated. Click the Mutation column header to sort by amino acid position.
-10. Click a Fwd/Rev sequence to open the candidate comparison popover. Click the HP column to view hairpin/homodimer details.
-11. From the File menu, use Export Excel / Save Workspace to export or save the session.
+7. Select a polymerase profile in the Parameters panel. KURO loads that profile's Tm targets and GC range automatically.
+8. (Optional) Click **Custom Polymerase** to create or edit a user-defined profile. Saved profiles persist across app restarts.
+9. (Optional) Adjust Tm targets and GC% range in Advanced Options.
+10. Click **Design Primers**.
+11. The primer table is generated. Click the Mutation column header to sort by amino acid position.
+12. Click a Fwd/Rev sequence to open the candidate comparison popover. Click the HP column to view hairpin/homodimer details.
+13. From the File menu, use Export Excel / Save Workspace to export or save the session.
 
 ![Initial screen](docs/screenshots/01-initial.png)
 
@@ -141,6 +143,17 @@ Both strategies also try alternative codons as candidates and select the primer 
 
 Sets the **target number of successful designs** (default 95). When "Fill on failure" is enabled, KURO sends extra mutations to the backend and fills the count from next-ranked candidates if some fail. When disabled, exactly N mutations are attempted and failures reduce the final count. When count exceeds 96, the Plate Map is automatically split into multiple plates, and the ‹ › buttons navigate between plates. The Rev plate for each number contains only the reverse primers corresponding to the mutations in the matching Fwd plate.
 
+### Polymerase
+
+Choose the polymerase profile in the Parameters panel before design.
+
+| Option | Description |
+|--------|-------------|
+| Built-in profile | Loads default Tm targets and GC range for that polymerase |
+| Custom Polymerase | Opens a dialog to create or edit a user-defined profile |
+
+Custom profiles are saved to `~/.kuro/custom_polymerases.json` and are reloaded automatically the next time KURO starts.
+
 ### Advanced Options
 
 Click the "Advanced options..." link to expand the collapsible panel. If not set, default values are used.
@@ -151,7 +164,7 @@ Click the "Advanced options..." link to expand the collapsible panel. If not set
 | Tm Rev | 58°C | Target Tm for the full reverse primer |
 | Tm Overlap | 42°C | Target Tm for the overlap region |
 | GC% | 40-60% | Allowed GC content range. Primers outside range receive a penalty |
-| Primer length limit | Off | Enable to set Fwd/Rev min/max primer length (bp). Default: Fwd 18-45, Rev 18-30 |
+| Primer length limit | Off | Enable to set Fwd/Rev min/max primer length (bp). Default when enabled: Fwd 22-45, Rev 22-35 (KOD One: 22–35 bp, Tm >63°C) |
 | Fill on failure | On | When some mutations fail, automatically replace with next-ranked candidates to fill the requested count |
 
 Tm calculation uses the SantaLucia 1998 model with fixed conditions (mv_conc=50 mM, dna_conc=250 nM), independent of polymerase type. Because the same primer sequence is ordered regardless of which polymerase is used, the Tm calculation method does not need to change per polymerase.
@@ -334,4 +347,3 @@ No primer candidate satisfied the Tm constraints at the default tolerance level.
 2. **Adjust overlap length**: Shorter or longer overlap regions shift the overlap Tm. Try changing the Tm Overlap target in Advanced Options.
 3. **Relax GC% range**: If GC content is also constraining the search, widen the GC% range (e.g., 35-65%).
 4. **Use custom primer input**: Enter a manually designed primer via the candidate comparison popover and click Evaluate.
-

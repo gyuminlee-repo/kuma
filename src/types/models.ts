@@ -6,6 +6,29 @@ export interface PolymeraseInfo {
   fidelity: string;
 }
 
+export interface PolymeraseProfile {
+  name: string;
+  tm_method: string;
+  salt_correction: string;
+  opt_tm: number;
+  min_tm: number;
+  max_tm: number;
+  opt_size: number;
+  min_size: number;
+  max_size: number;
+  min_gc: number;
+  max_gc: number;
+  salt_monovalent: number;
+  salt_divalent: number;
+  dntp_conc: number;
+  dna_conc: number;
+  max_tm_diff: number;
+  opt_tm_fwd?: number | null;
+  opt_tm_rev?: number | null;
+  opt_tm_overlap?: number | null;
+  min_3prime_dist?: number;
+}
+
 export interface GeneInfo {
   gene: string;
   product: string;

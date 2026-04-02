@@ -1,12 +1,16 @@
 """Handlers: polymerase list, organism list, EVOLVEpro CSV, benchmark."""
 
+from dataclasses import asdict
+
 from kuro.evolvepro import load_evolvepro_csv
+from kuro.polymerase import _dict_to_profile
 
 import sidecar.core as _core
 from sidecar.core import (
     _validate_filepath,
     _poly_registry,
     _codon_registry,
+    _CUSTOM_POLYMERASE_PATH,
     _ALLOWED_CSV_EXTENSIONS,
 )
 from sidecar.models import LoadEvolveproParams, RunBenchmarkParams
@@ -35,6 +39,20 @@ def handle_list_polymerases(_params: dict) -> list[dict]:
             }
         )
     return result
+
+
+def handle_get_polymerase_details(params: dict) -> dict:
+    """Return full polymerase profile for the selected name."""
+    name = params.get("name", "")
+    return asdict(_poly_registry.get(name))
+
+
+def handle_save_custom_polymerase(params: dict) -> dict:
+    """Persist a custom polymerase profile and keep it available after restart."""
+    profile = _dict_to_profile(params)
+    _CUSTOM_POLYMERASE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    _poly_registry.save_custom(profile, _CUSTOM_POLYMERASE_PATH)
+    return {"success": True, "name": profile.name}
 
 
 def handle_list_organisms(_params: dict) -> list[dict]:
