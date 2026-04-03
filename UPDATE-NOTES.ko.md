@@ -18,11 +18,13 @@
 **백엔드**
 - `_build_mutation()`, `_build_profile()` 헬퍼 함수를 `handle_retry_failed()`에서 추출하여 rescue 루프에서 재사용
 - `DesignSdmPrimersParams` 모델에 `rescue_pool: list[str]`, `auto_relax: bool` 필드 추가
-- 설계 응답에 `rescue_stats` (pool_cascade/auto_relax 카운트), `rescued_mutations` (구제 상세) 포함
+- 설계 응답에 `rescue_stats` (pool_cascade/auto_relax 카운트, positions_attempted, pool_variants_tried), `rescued_mutations` (구제 상세: penalty, tolerance_used 포함) 포함
+- Auto-relax 상수는 SantaLucia (1998) nearest-neighbor Tm 예측 표준 오차(~1.0-1.5°C)에 근거: `_RELAX_TOL_DELTA = 2.0°C`, `_RELAX_GC_DELTA = 5 pp`, IDT 가이드라인 20-80% 범위로 제한
+- Fill-on-failure 활성 시 rescued mutation이 maxPrimers cap에서 우선 보존
 
 **UI 피드백**
-- Design Report에 rescue 발생 시 "Position Rescue" 섹션 표시 (mutation별 cascade 대체/relax 상세)
-- 결과 테이블에 rescue 뱃지: 초록 `↻ Q232A` (pool cascade, 원래 mutation 표시), 노랑 `⚡ relaxed` (auto-relax)
+- Design Report에 "Position Rescue" 섹션 표시: position coverage 비율, pool variant 시도 횟수, rescued/normal primer 평균 penalty 비교 (1.5배 초과 시 경고)
+- 결과 테이블에 rescue 뱃지: 초록 `↻ Q232A` (pool cascade), 노랑 `⚡ relaxed` (auto-relax), 개별 penalty 값 포함
 - 상태바에 rescue 카운트 포함 (예: "95/95 designed | Tm: 93/95 | 3 rescued")
 
 **테스트**

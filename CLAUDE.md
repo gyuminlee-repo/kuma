@@ -79,6 +79,8 @@ python -m pytest tests/test_sdm_engine.py::test_name  # Single test
 | `src/types/models.ts` (TS interfaces) | `python-core/sidecar/models.py` (Pydantic models) stay in sync |
 | `src-tauri/samples/` new file | Add explicit mapping in `tauri.conf.json` resources (no glob `**`) |
 | `src/store/slices/inputSlice.ts` `loadSampleData` | `src-tauri/samples/` referenced files exist |
+| `python-core/sidecar/handlers/design.py` rescue constants | `_DEFAULT_TOL_MAX` must match `design_single_sdm()` default `tol_max` |
+| `src/types/models.ts` `RescueStats` / `RescuedMutation` | `python-core/sidecar/handlers/design.py` `rescue_stats` / `rescued_info` dict keys stay in sync |
 
 ## Rules
 - 절대 경로 하드코딩 금지 — 상대 경로 또는 환경변수 사용

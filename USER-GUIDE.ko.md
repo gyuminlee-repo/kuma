@@ -167,6 +167,13 @@ EVOLVEpro 모드를 선택하고 Browse 버튼으로 EVOLVEpro 출력 CSV를 로
 | Primer length limit | Off | 활성화 시 Fwd/Rev min/max 프라이머 길이(bp) 설정 가능. 활성화 시 기본값: Fwd 22-45, Rev 22-35 (KOD One 권장: 22–35 bp, Tm >63°C) |
 | Fill on failure | On | 일부 mutation 설계 실패 시 다음 순위 mutation으로 자동 대체하여 요청 수 채움 |
 
+**Position Rescue** (자동, 별도 설정 불필요): 프라이머 설계 실패 시, KURO는 해당 mutation을 실패로 표시하기 전에 두 가지 복구 전략을 자동 시도한다:
+
+1. **Pool cascade**: EVOLVEpro pool에서 같은 아미노산 위치의 대안 variant를 fitness 순서대로 시도한다. 성공 시 원래 mutation을 대체하며, 결과 테이블에 초록 `↻` 뱃지가 표시된다.
+2. **Auto-relax**: Pool backup이 모두 실패하면, 원래 mutation을 완화된 조건으로 재시도한다 — Tm tolerance ±3.0°C → ±5.0°C, GC 범위 ±5 percentage point 확장 (하한 20%, 상한 80%). 성공 시 노랑 `⚡` 뱃지가 표시된다.
+
+Design Report에서 position coverage, 시도한 pool variant 수, rescued/normal primer 평균 penalty 비교를 확인할 수 있다.
+
 Tm 계산은 SantaLucia 1998 모델을 사용하며, 폴리머라제 종류와 무관하게 동일한 계산 조건(mv_conc=50 mM, dna_conc=250 nM)을 적용한다. 프라이머는 한 번 설계되면 어떤 폴리머라제를 사용하든 동일한 서열을 주문하므로, Tm 계산 방법을 폴리머라제별로 변경할 필요가 없다.
 
 ---

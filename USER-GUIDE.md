@@ -167,6 +167,13 @@ Click the "Advanced options..." link to expand the collapsible panel. If not set
 | Primer length limit | Off | Enable to set Fwd/Rev min/max primer length (bp). Default when enabled: Fwd 22-45, Rev 22-35 (KOD One: 22–35 bp, Tm >63°C) |
 | Fill on failure | On | When some mutations fail, automatically replace with next-ranked candidates to fill the requested count |
 
+**Position Rescue** (automatic, no user setting required): When a primer design fails, KURO automatically attempts two recovery strategies before marking the mutation as failed:
+
+1. **Pool cascade**: Tries alternative variants at the same amino acid position from the EVOLVEpro pool (ordered by predicted fitness). If a backup variant succeeds, it replaces the failed mutation. Shown with a green `↻` badge in the result table.
+2. **Auto-relax**: If no pool backup succeeds, the original mutation is retried with widened constraints — Tm tolerance expanded from ±3.0°C to ±5.0°C, and GC range widened by ±5 percentage points (clamped to 20-80%). Shown with an amber `⚡` badge.
+
+The Design Report shows rescue statistics including position coverage, number of pool variants tried, and average penalty comparison between rescued and normal primers.
+
 Tm calculation uses the SantaLucia 1998 model with fixed conditions (mv_conc=50 mM, dna_conc=250 nM), independent of polymerase type. Because the same primer sequence is ordered regardless of which polymerase is used, the Tm calculation method does not need to change per polymerase.
 
 ---

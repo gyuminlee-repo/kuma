@@ -19,11 +19,13 @@
 **Backend**
 - `_build_mutation()` and `_build_profile()` helper functions extracted from `handle_retry_failed()` for reuse in the rescue loop
 - `DesignSdmPrimersParams` model extended with `rescue_pool: list[str]` and `auto_relax: bool` fields
-- Design response includes `rescue_stats` (pool_cascade/auto_relax counts) and `rescued_mutations` (details per rescue)
+- Design response includes `rescue_stats` (pool_cascade/auto_relax counts, positions_attempted, pool_variants_tried) and `rescued_mutations` (details per rescue including penalty and tolerance_used)
+- Auto-relax constants derived from SantaLucia (1998) nearest-neighbor Tm prediction s.e. (~1.0-1.5°C): `_RELAX_TOL_DELTA = 2.0°C`, `_RELAX_GC_DELTA = 5 pp`, clamped to IDT-recommended 20-80% range
+- Rescued mutations prioritized in maxPrimers cap to prevent loss when fill-on-failure is active
 
 **UI Feedback**
-- Design Report shows a "Position Rescue" section when rescues occur, with per-mutation details (cascade substitutions and relaxed mutations)
-- Result table displays rescue badges: green `↻ Q232A` for pool cascade (showing original mutation), amber `⚡ relaxed` for auto-relax
+- Design Report shows a "Position Rescue" section with position coverage ratio, pool variants tried count, and average penalty comparison (rescued vs normal primers with 1.5x warning threshold)
+- Result table displays rescue badges: green `↻ Q232A` for pool cascade (showing original mutation), amber `⚡ relaxed` for auto-relax, with per-mutation penalty
 - Status bar includes rescue count (e.g. "95/95 designed | Tm: 93/95 | 3 rescued")
 
 **Tests**

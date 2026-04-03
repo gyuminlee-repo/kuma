@@ -129,6 +129,7 @@ def _serialize_result_with_counts(r: SdmPrimerResult) -> dict:
 # high-confidence rescue without sacrificing primer specificity.
 # GC margin of ±5 pp keeps primers within the broadly accepted 20-80% range
 # while relaxing the user-specified optimum window.
+_DEFAULT_TOL_MAX = 3.0   # must match design_single_sdm() default
 _RELAX_TOL_DELTA = 2.0   # °C added to default tol_max (3.0 + 2.0 = 5.0)
 _RELAX_GC_DELTA = 5      # percentage points widened on each side
 _GC_FLOOR = 20           # absolute minimum GC% (Integrated DNA Technologies guideline)
@@ -340,10 +341,9 @@ def handle_design_sdm_primers(params: dict) -> dict:
                 still_failed[failed_mut] = reason
 
         if p.auto_relax:
-            default_tol_max = 3.0
             relax_kw = {
                 **design_kw,
-                "tol_max": default_tol_max + _RELAX_TOL_DELTA,
+                "tol_max": _DEFAULT_TOL_MAX + _RELAX_TOL_DELTA,
                 "gc_min": max(_GC_FLOOR, p.gc_min - _RELAX_GC_DELTA),
                 "gc_max": min(_GC_CEIL, p.gc_max + _RELAX_GC_DELTA),
             }

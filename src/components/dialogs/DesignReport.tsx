@@ -133,6 +133,15 @@ export function DesignReport() {
   const tmMet = designResults.filter((r) => r.tm_condition_met).length;
   const positionRemoved = evolveproStepStats?.position_filter_removed ?? evolveproFilteredCount;
   const domainSelected = evolveproStepStats?.domain_selected;
+
+  const rescueTotal = rescueStats.pool_cascade + rescueStats.auto_relax;
+  const rescuePenalties = rescuedMutationDetails
+    .map((r) => r.penalty).filter((p): p is number => p != null);
+  const avgRescuePenalty = avg(rescuePenalties);
+  const rescuedSet = new Set(rescuedMutationDetails.map((d) => d.rescued_by));
+  const avgNormalPenalty = avg(
+    designResults.filter((r) => !rescuedSet.has(r.mutation)).map((r) => r.penalty),
+  );
   const paretoExchanges = evolveproStepStats?.pareto_exchanges ?? evolveproParetoExchanges;
 
   return (
@@ -213,23 +222,13 @@ export function DesignReport() {
           </Section>
 
           {/* Position Rescue */}
-          {(rescueStats.pool_cascade + rescueStats.auto_relax) > 0 && (() => {
-            const rescuePenalties = rescuedMutationDetails
-              .map((r) => r.penalty).filter((p): p is number => p != null);
-            const avgPenalty = rescuePenalties.length > 0
-              ? rescuePenalties.reduce((a, b) => a + b, 0) / rescuePenalties.length : 0;
-            const normalPenalties = designResults
-              .filter((r) => !rescuedMutationDetails.some((d) => d.rescued_by === r.mutation))
-              .map((r) => r.penalty);
-            const avgNormalPenalty = normalPenalties.length > 0
-              ? normalPenalties.reduce((a, b) => a + b, 0) / normalPenalties.length : 0;
-            return (
+          {rescueTotal > 0 && (
             <Section title="Position Rescue">
               <Stat
                 label="Position coverage"
-                value={`${rescueStats.positions_attempted > 0
-                  ? `${rescueStats.pool_cascade + rescueStats.auto_relax}/${rescueStats.positions_attempted} rescued`
-                  : "0"}`}
+                value={rescueStats.positions_attempted > 0
+                  ? `${rescueTotal}/${rescueStats.positions_attempted} rescued`
+                  : "0"}
               />
               {rescueStats.pool_cascade > 0 && (
                 <Stat label="Pool cascade" value={`${rescueStats.pool_cascade} (${rescueStats.pool_variants_tried} tried)`} />
@@ -243,8 +242,8 @@ export function DesignReport() {
               {rescuePenalties.length > 0 && (
                 <Stat
                   label="Rescued avg penalty"
-                  value={`${avgPenalty.toFixed(1)} vs ${avgNormalPenalty.toFixed(1)} normal`}
-                  warn={avgPenalty > avgNormalPenalty * 1.5}
+                  value={`${avgRescuePenalty.toFixed(1)} vs ${avgNormalPenalty.toFixed(1)} normal`}
+                  warn={avgRescuePenalty > avgNormalPenalty * 1.5}
                 />
               )}
               {rescuedMutationDetails.length > 0 && (
@@ -268,8 +267,7 @@ export function DesignReport() {
                 </div>
               )}
             </Section>
-            );
-          })()}
+          )}
 
           {/* Tm Distribution */}
           {fwdTms.length > 0 && (
