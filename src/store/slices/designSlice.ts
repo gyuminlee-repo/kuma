@@ -234,19 +234,22 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         auto_relax: true,
       }, 300_000);
 
-      const capped = result.results.slice(0, maxPrimers);
-      const allFailed = result.failed_mutations ?? [];
-      const tmMet = capped.filter((r) => r.tm_condition_met).length;
-      const intendedFailed = allFailed.filter((f) => intendedMuts.has(f.mutation));
-      const failedMsg = intendedFailed.length > 0 ? ` | ${intendedFailed.length} failed` : "";
-
       const rStats = result.rescue_stats ?? { pool_cascade: 0, auto_relax: 0 };
       const rMuts = result.rescued_mutations ?? [];
       const rescueTotal = rStats.pool_cascade + rStats.auto_relax;
       const rescueMsg = rescueTotal > 0 ? ` | ${rescueTotal} rescued` : "";
-
-      // Track rescued mutation names for badge display
       const rescuedNames = rMuts.map((r) => r.rescued_by);
+
+      // Ensure rescued mutations survive the maxPrimers cap
+      const rescuedSet = new Set(rescuedNames);
+      const rescued = result.results.filter((r) => rescuedSet.has(r.mutation));
+      const nonRescued = result.results.filter((r) => !rescuedSet.has(r.mutation));
+      const capped = [...nonRescued.slice(0, maxPrimers - rescued.length), ...rescued];
+
+      const allFailed = result.failed_mutations ?? [];
+      const tmMet = capped.filter((r) => r.tm_condition_met).length;
+      const intendedFailed = allFailed.filter((f) => intendedMuts.has(f.mutation));
+      const failedMsg = intendedFailed.length > 0 ? ` | ${intendedFailed.length} failed` : "";
 
       set({
         designResults: capped,

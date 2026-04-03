@@ -267,6 +267,7 @@ def handle_design_sdm_primers(params: dict) -> dict:
     rescued_info: list[dict] = []
 
     if p.rescue_pool and engine_failures:
+        _progress(82, f"Rescuing {len(engine_failures)} failed position(s)...")
         _header_r, sequence_r, _genes_r = load_sequence(resolved_fasta)
         profile = _build_profile(p)
 

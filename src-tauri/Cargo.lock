@@ -1690,7 +1690,7 @@ dependencies = [
 
 [[package]]
 name = "kuro"
-version = "1.28.1"
+version = "1.28.2"
 dependencies = [
  "tauri",
  "tauri-build",
