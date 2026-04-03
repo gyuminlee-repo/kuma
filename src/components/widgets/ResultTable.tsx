@@ -112,11 +112,11 @@ function makeColumns(opts: {
   swapped: Record<string, string>;
   customCandidates: Record<string, SdmPrimerResult[]>;
   rescuedMutations: string[];
-  rescuedMutationDetails: RescuedMutation[];
+  rescueDetailMap: Map<string, RescuedMutation>;
   removeDesignResult: (mutation: string, reason: string) => void;
   yPredMap: Record<string, number>;
 }) {
-  const { groupColorMap, codonStrategy, swapped, customCandidates, rescuedMutations, rescuedMutationDetails, removeDesignResult, yPredMap } = opts;
+  const { groupColorMap, codonStrategy, swapped, customCandidates, rescuedMutations, rescueDetailMap, removeDesignResult, yPredMap } = opts;
   return [
     col.accessor("rank", {
       header: "#",
@@ -139,9 +139,7 @@ function makeColumns(opts: {
         const row = info.row.original;
         const color = row.aa_position != null ? groupColorMap.get(row.aa_position) : undefined;
         const isRescued = rescuedMutations.includes(row.mutation);
-        const rescueDetail = rescuedMutationDetails.find(
-          (r) => r.rescued_by === row.mutation,
-        );
+        const rescueDetail = rescueDetailMap.get(row.mutation);
         return (
           <span className="font-mono font-medium flex items-center gap-1">
             <span>
@@ -414,11 +412,15 @@ export function ResultTable() {
   const customCandidatesAll = useAppStore((s) => s.customCandidates);
   const rescuedMutations = useAppStore((s) => s.rescuedMutations);
   const rescuedMutationDetails = useAppStore((s) => s.rescuedMutationDetails);
+  const rescueDetailMap = useMemo(
+    () => new Map(rescuedMutationDetails.map((r) => [r.rescued_by, r])),
+    [rescuedMutationDetails],
+  );
   const removeDesignResult = useAppStore((s) => s.removeDesignResult);
   const yPredMap = useAppStore((s) => s.yPredMap);
   const columns = useMemo(
-    () => makeColumns({ groupColorMap, codonStrategy, swapped: manuallySwapped, customCandidates: customCandidatesAll, rescuedMutations, rescuedMutationDetails, removeDesignResult, yPredMap }),
-    [groupColorMap, codonStrategy, manuallySwapped, customCandidatesAll, rescuedMutations, rescuedMutationDetails, removeDesignResult, yPredMap],
+    () => makeColumns({ groupColorMap, codonStrategy, swapped: manuallySwapped, customCandidates: customCandidatesAll, rescuedMutations, rescueDetailMap, removeDesignResult, yPredMap }),
+    [groupColorMap, codonStrategy, manuallySwapped, customCandidatesAll, rescuedMutations, rescueDetailMap, removeDesignResult, yPredMap],
   );
 
   const table = useReactTable({

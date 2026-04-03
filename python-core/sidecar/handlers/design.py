@@ -2,7 +2,6 @@
 
 import csv
 import os
-import re
 import tempfile
 from dataclasses import fields as dc_fields, replace as dc_replace
 from pathlib import Path
@@ -16,6 +15,7 @@ from kuro.sdm_engine import (
 )
 from kuro.mutation import Mutation, parse_mutation_notation
 from kuro.codon_table import CODON_TO_AA, best_codon
+from kuro.evolvepro import _POS_RE
 from kuro.polymerase import PolymeraseProfile
 
 import sidecar.core as _core
@@ -122,9 +122,6 @@ def _serialize_result_with_counts(r: SdmPrimerResult) -> dict:
 # Rescue helpers
 # ---------------------------------------------------------------------------
 
-_POS_RE = re.compile(r'[A-Z](\d+)[A-Z]')
-
-
 def _build_mutation(mutation_raw: str, sequence: str, target_start: int, organism: str) -> Mutation:
     """Parse a mutation notation and build a Mutation object."""
     wt_aa, position, mt_aa = parse_mutation_notation(mutation_raw)
@@ -142,14 +139,14 @@ def _build_mutation(mutation_raw: str, sequence: str, target_start: int, organis
 
 def _build_profile(p) -> PolymeraseProfile:
     """Build a PolymeraseProfile with optional Tm target overrides."""
-    profile = dc_replace(_poly_registry.get(p.polymerase))
+    overrides = {}
     if p.tm_fwd_target is not None:
-        profile = dc_replace(profile, opt_tm_fwd=p.tm_fwd_target)
+        overrides["opt_tm_fwd"] = p.tm_fwd_target
     if p.tm_rev_target is not None:
-        profile = dc_replace(profile, opt_tm_rev=p.tm_rev_target)
+        overrides["opt_tm_rev"] = p.tm_rev_target
     if p.tm_overlap_target is not None:
-        profile = dc_replace(profile, opt_tm_overlap=p.tm_overlap_target)
-    return profile
+        overrides["opt_tm_overlap"] = p.tm_overlap_target
+    return dc_replace(_poly_registry.get(p.polymerase), **overrides)
 
 
 # ---------------------------------------------------------------------------
@@ -273,14 +270,20 @@ def handle_design_sdm_primers(params: dict) -> dict:
         _header_r, sequence_r, _genes_r = load_sequence(resolved_fasta)
         profile = _build_profile(p)
 
-        # Group rescue pool by position
         rescue_by_pos: dict[int, list[str]] = {}
         for v in p.rescue_pool:
             m = _POS_RE.search(v)
             if m:
                 rescue_by_pos.setdefault(int(m.group(1)), []).append(v)
 
-        # Pool cascade: try same-position backup variants
+        design_kw = dict(
+            codon_strategy=p.codon_strategy,
+            gc_min=p.gc_min, gc_max=p.gc_max,
+            fwd_len_min=p.fwd_len_min, fwd_len_max=p.fwd_len_max,
+            rev_len_min=p.rev_len_min, rev_len_max=p.rev_len_max,
+            organism=p.organism,
+        )
+
         still_failed: dict[str, str] = {}
         designed_muts = {r.mutation.raw for r in results}
 
@@ -297,12 +300,7 @@ def handle_design_sdm_primers(params: dict) -> dict:
                 try:
                     mut_obj = _build_mutation(backup, sequence_r, p.target_start, p.organism)
                     cands = design_single_sdm(
-                        sequence_r, mut_obj, profile, p.overlap_len,
-                        codon_strategy=p.codon_strategy,
-                        gc_min=p.gc_min, gc_max=p.gc_max,
-                        fwd_len_min=p.fwd_len_min, fwd_len_max=p.fwd_len_max,
-                        rev_len_min=p.rev_len_min, rev_len_max=p.rev_len_max,
-                        organism=p.organism,
+                        sequence_r, mut_obj, profile, p.overlap_len, **design_kw,
                     )
                     if cands:
                         results.append(cands[0])
@@ -317,20 +315,14 @@ def handle_design_sdm_primers(params: dict) -> dict:
             if not rescued:
                 still_failed[failed_mut] = reason
 
-        # Auto-relax: widen tolerance and GC range for still-failed mutations
         if p.auto_relax:
+            relax_kw = {**design_kw, "tol_max": 5.0,
+                        "gc_min": max(20, p.gc_min - 5), "gc_max": min(80, p.gc_max + 5)}
             for failed_mut in list(still_failed):
                 try:
                     mut_obj = _build_mutation(failed_mut, sequence_r, p.target_start, p.organism)
                     cands = design_single_sdm(
-                        sequence_r, mut_obj, profile, p.overlap_len,
-                        codon_strategy=p.codon_strategy,
-                        tol_max=5.0,
-                        gc_min=max(20, p.gc_min - 5),
-                        gc_max=min(80, p.gc_max + 5),
-                        fwd_len_min=p.fwd_len_min, fwd_len_max=p.fwd_len_max,
-                        rev_len_min=p.rev_len_min, rev_len_max=p.rev_len_max,
-                        organism=p.organism,
+                        sequence_r, mut_obj, profile, p.overlap_len, **relax_kw,
                     )
                     if cands:
                         results.append(cands[0])
