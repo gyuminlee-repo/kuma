@@ -95,7 +95,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
   manuallySwapped: {},
   customCandidates: {},
   rescuedMutations: [] as string[],
-  rescueStats: { pool_cascade: 0, auto_relax: 0 },
+  rescueStats: { pool_cascade: 0, auto_relax: 0, positions_attempted: 0, pool_variants_tried: 0 },
   rescuedMutationDetails: [] as RescuedMutation[],
 
   loadPolymerases: async () => {
@@ -207,7 +207,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       plateMappings: [],
       customCandidates: {},
       manuallySwapped: {},
-      rescueStats: { pool_cascade: 0, auto_relax: 0 },
+      rescueStats: { pool_cascade: 0, auto_relax: 0, positions_attempted: 0, pool_variants_tried: 0 },
       rescuedMutationDetails: [],
     });
 
@@ -234,7 +234,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         auto_relax: true,
       }, 300_000);
 
-      const rStats = result.rescue_stats ?? { pool_cascade: 0, auto_relax: 0 };
+      const rStats = result.rescue_stats ?? { pool_cascade: 0, auto_relax: 0, positions_attempted: 0, pool_variants_tried: 0 };
       const rMuts = result.rescued_mutations ?? [];
       const rescueTotal = rStats.pool_cascade + rStats.auto_relax;
       const rescueMsg = rescueTotal > 0 ? ` | ${rescueTotal} rescued` : "";

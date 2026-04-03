@@ -213,16 +213,39 @@ export function DesignReport() {
           </Section>
 
           {/* Position Rescue */}
-          {(rescueStats.pool_cascade + rescueStats.auto_relax) > 0 && (
+          {(rescueStats.pool_cascade + rescueStats.auto_relax) > 0 && (() => {
+            const rescuePenalties = rescuedMutationDetails
+              .map((r) => r.penalty).filter((p): p is number => p != null);
+            const avgPenalty = rescuePenalties.length > 0
+              ? rescuePenalties.reduce((a, b) => a + b, 0) / rescuePenalties.length : 0;
+            const normalPenalties = designResults
+              .filter((r) => !rescuedMutationDetails.some((d) => d.rescued_by === r.mutation))
+              .map((r) => r.penalty);
+            const avgNormalPenalty = normalPenalties.length > 0
+              ? normalPenalties.reduce((a, b) => a + b, 0) / normalPenalties.length : 0;
+            return (
             <Section title="Position Rescue">
+              <Stat
+                label="Position coverage"
+                value={`${rescueStats.positions_attempted > 0
+                  ? `${rescueStats.pool_cascade + rescueStats.auto_relax}/${rescueStats.positions_attempted} rescued`
+                  : "0"}`}
+              />
               {rescueStats.pool_cascade > 0 && (
-                <Stat label="Pool cascade" value={rescueStats.pool_cascade} />
+                <Stat label="Pool cascade" value={`${rescueStats.pool_cascade} (${rescueStats.pool_variants_tried} tried)`} />
               )}
               {rescueStats.auto_relax > 0 && (
-                <Stat label="Auto-relax" value={rescueStats.auto_relax} />
+                <Stat label="Auto-relax (\u00B13\u2192\u00B15\u00B0C)" value={rescueStats.auto_relax} />
               )}
               {failCount > 0 && (
                 <Stat label="Still failed" value={failCount} warn />
+              )}
+              {rescuePenalties.length > 0 && (
+                <Stat
+                  label="Rescued avg penalty"
+                  value={`${avgPenalty.toFixed(1)} vs ${avgNormalPenalty.toFixed(1)} normal`}
+                  warn={avgPenalty > avgNormalPenalty * 1.5}
+                />
               )}
               {rescuedMutationDetails.length > 0 && (
                 <div className="text-xs text-gray-600 space-y-0.5 mt-1">
@@ -235,6 +258,7 @@ export function DesignReport() {
                       </span>
                       <span className={r.type === "pool_cascade" ? "text-green-600" : "text-amber-600"}>
                         {r.type === "pool_cascade" ? "\u21BB cascade" : "\u26A1 relaxed"}
+                        {r.penalty != null && ` (${r.penalty.toFixed(1)})`}
                       </span>
                     </div>
                   ))}
@@ -244,7 +268,8 @@ export function DesignReport() {
                 </div>
               )}
             </Section>
-          )}
+            );
+          })()}
 
           {/* Tm Distribution */}
           {fwdTms.length > 0 && (

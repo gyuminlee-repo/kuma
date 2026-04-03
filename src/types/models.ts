@@ -177,11 +177,15 @@ export interface RescuedMutation {
   original: string;
   rescued_by: string;
   type: "pool_cascade" | "auto_relax";
+  penalty?: number;
+  tolerance_used?: number;
 }
 
 export interface RescueStats {
   pool_cascade: number;
   auto_relax: number;
+  positions_attempted: number;
+  pool_variants_tried: number;
 }
 
 export interface DesignResult {

@@ -122,6 +122,18 @@ def _serialize_result_with_counts(r: SdmPrimerResult) -> dict:
 # Rescue helpers
 # ---------------------------------------------------------------------------
 
+# Auto-relax increments (additive to user settings, not absolute values).
+# Rationale: SantaLucia (1998) nearest-neighbor Tm predictions have an
+# empirical standard error of ~1.0-1.5°C.  Widening tolerance by 2.0°C
+# (from ±3.0 to ±5.0) stays within 2 s.e. of the prediction, giving a
+# high-confidence rescue without sacrificing primer specificity.
+# GC margin of ±5 pp keeps primers within the broadly accepted 20-80% range
+# while relaxing the user-specified optimum window.
+_RELAX_TOL_DELTA = 2.0   # °C added to default tol_max (3.0 + 2.0 = 5.0)
+_RELAX_GC_DELTA = 5      # percentage points widened on each side
+_GC_FLOOR = 20           # absolute minimum GC% (Integrated DNA Technologies guideline)
+_GC_CEIL = 80            # absolute maximum GC% (Integrated DNA Technologies guideline)
+
 def _build_mutation(mutation_raw: str, sequence: str, target_start: int, organism: str) -> Mutation:
     """Parse a mutation notation and build a Mutation object."""
     wt_aa, position, mt_aa = parse_mutation_notation(mutation_raw)
@@ -263,7 +275,10 @@ def handle_design_sdm_primers(params: dict) -> dict:
     # -----------------------------------------------------------------------
     # Position Rescue: pool cascade + auto-relax
     # -----------------------------------------------------------------------
-    rescue_stats = {"pool_cascade": 0, "auto_relax": 0}
+    rescue_stats: dict = {
+        "pool_cascade": 0, "auto_relax": 0,
+        "positions_attempted": 0, "pool_variants_tried": 0,
+    }
     rescued_info: list[dict] = []
 
     if p.rescue_pool and engine_failures:
@@ -294,21 +309,29 @@ def handle_design_sdm_primers(params: dict) -> dict:
                 still_failed[failed_mut] = reason
                 continue
             pos = int(m.group(1))
+            rescue_stats["positions_attempted"] += 1
             rescued = False
             for backup in rescue_by_pos.get(pos, []):
                 if backup == failed_mut or backup in designed_muts:
                     continue
+                rescue_stats["pool_variants_tried"] += 1
                 try:
                     mut_obj = _build_mutation(backup, sequence_r, p.target_start, p.organism)
                     cands = design_single_sdm(
                         sequence_r, mut_obj, profile, p.overlap_len, **design_kw,
                     )
                     if cands:
-                        results.append(cands[0])
+                        best = cands[0]
+                        results.append(best)
                         all_cands[backup] = cands
                         designed_muts.add(backup)
                         rescue_stats["pool_cascade"] += 1
-                        rescued_info.append({"original": failed_mut, "rescued_by": backup, "type": "pool_cascade"})
+                        rescued_info.append({
+                            "original": failed_mut, "rescued_by": backup,
+                            "type": "pool_cascade",
+                            "penalty": round(best.penalty, 2),
+                            "tolerance_used": best.tolerance_used,
+                        })
                         rescued = True
                         break
                 except (ValueError, IndexError):
@@ -317,8 +340,13 @@ def handle_design_sdm_primers(params: dict) -> dict:
                 still_failed[failed_mut] = reason
 
         if p.auto_relax:
-            relax_kw = {**design_kw, "tol_max": 5.0,
-                        "gc_min": max(20, p.gc_min - 5), "gc_max": min(80, p.gc_max + 5)}
+            default_tol_max = 3.0
+            relax_kw = {
+                **design_kw,
+                "tol_max": default_tol_max + _RELAX_TOL_DELTA,
+                "gc_min": max(_GC_FLOOR, p.gc_min - _RELAX_GC_DELTA),
+                "gc_max": min(_GC_CEIL, p.gc_max + _RELAX_GC_DELTA),
+            }
             for failed_mut in list(still_failed):
                 try:
                     mut_obj = _build_mutation(failed_mut, sequence_r, p.target_start, p.organism)
@@ -326,10 +354,16 @@ def handle_design_sdm_primers(params: dict) -> dict:
                         sequence_r, mut_obj, profile, p.overlap_len, **relax_kw,
                     )
                     if cands:
-                        results.append(cands[0])
+                        best = cands[0]
+                        results.append(best)
                         all_cands[failed_mut] = cands
                         rescue_stats["auto_relax"] += 1
-                        rescued_info.append({"original": failed_mut, "rescued_by": failed_mut, "type": "auto_relax"})
+                        rescued_info.append({
+                            "original": failed_mut, "rescued_by": failed_mut,
+                            "type": "auto_relax",
+                            "penalty": round(best.penalty, 2),
+                            "tolerance_used": best.tolerance_used,
+                        })
                         del still_failed[failed_mut]
                 except (ValueError, IndexError):
                     continue
