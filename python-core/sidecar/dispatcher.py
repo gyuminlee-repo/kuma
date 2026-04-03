@@ -25,6 +25,7 @@ from sidecar.handlers.design import (
     handle_get_alternatives,
 )
 from sidecar.handlers.export import (
+    handle_export_benchmark_csv,
     handle_export_excel,
     handle_export_mapping,
     handle_export_order,
@@ -65,6 +66,7 @@ _METHODS = {
     "export_excel": handle_export_excel,
     "export_order": handle_export_order,
     "export_mapping": handle_export_mapping,
+    "export_benchmark_csv": handle_export_benchmark_csv,
     "evaluate_primer": handle_evaluate_primer,
     "retry_failed_mutation": handle_retry_failed,
     "save_workspace": handle_save_workspace,

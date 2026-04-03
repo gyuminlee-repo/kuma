@@ -77,9 +77,16 @@ def handle_load_evolvepro_csv(params: dict) -> dict:
         domains=p.domains,
         domain_diversity=p.domain_diversity,
         domain_strategy=p.domain_strategy,
+        domain_overlap_policy=p.domain_overlap_policy,
+        linker_handling=p.linker_handling,
+        domain_quota_min=p.domain_quota_min,
         pareto_diversity=p.pareto_diversity,
         entropy_weight=p.entropy_weight,
+        pool_multiplier=p.pool_multiplier,
+        distance_mode=p.distance_mode,
         ca_coords=ca_coords,
+        evolvepro_round=p.evolvepro_round,
+        round_size=p.round_size,
     )
 
 
@@ -94,7 +101,23 @@ def handle_run_benchmark(params: dict) -> dict:
 
     landscape = [(v.variant, v.fitness) for v in p.landscape]
 
+    with _core._state_lock:
+        ca_coords = _core._state.ca_coords
+
     bench_results = run_benchmark(
-        landscape, p.ground_truth, p.n_select, strategies=p.strategies
+        landscape,
+        p.ground_truth,
+        p.n_select,
+        n_random_trials=p.n_random_trials,
+        top_percentile=p.top_percentile,
+        strategies=p.strategies,
+        domains=p.domains,
+        domain_strategy=p.domain_strategy,
+        max_per_position=p.max_per_position,
+        entropy_weight=p.entropy_weight,
+        pool_multiplier=p.pool_multiplier,
+        distance_mode=p.distance_mode,
+        random_seed=p.random_seed,
+        ca_coords=ca_coords,
     )
     return {"results": bench_results}

@@ -1,6 +1,33 @@
-# KURO 업데이트 노트 — v0.9.5 → v1.22.0
+# KURO 업데이트 노트 — v0.9.5 → v1.27.0
 
 **한국어** | [English](UPDATE-NOTES.md)
+
+---
+
+## v1.27.0 (2026-04-03)
+
+### UX 단순화 — Progressive Disclosure + σ-Adaptive Pool
+
+**Pipeline UI: Progressive Disclosure**
+- `DiversityOptions` 재설계. Step 1: 토글만 표시 (position cap 숨김); Step 2: 토글 + linker 처리 + 도메인 목록 + UniProt 검색; Step 3: 토글 + 거리 모드 배지만 표시
+- 신규 **Round** 섹션: "EVOLVEpro Round"와 "Round size" 입력값이 σ-adaptive pool을 자동으로 결정. 계산된 K와 entropy weight가 실시간 표시됨 (예: `Auto K=0.50 / entropy=0.30`)
+- **Advanced** 접기 (기본 숨김): position cap, 도메인 전략 / overlap 정책 / 최소 quota, 거리 모드 라디오, 수동 pool K 슬라이더, 수동 entropy weight 오버라이드
+- Benchmark Defaults와 Workspace 설정을 파이프라인 아래에 별도 섹션으로 분리
+
+**σ-Adaptive Pool (EVOLVEpro Round)**
+- 누적 데이터 포인트(Round × Size)에서 풀 임계값 계산: `threshold = anchor − K × σ`. σ는 전체 y_pred 표준편차, anchor는 top-N번째 점수
+- K와 entropy weight는 문헌 기반 Spearman ρ 추정값에서 도출: 누적 ≤96 / ≤192 / ≤384 / 385+ 구간에서 각각 K = 0.50 / 0.40 / 0.30 / 0.25, entropy weight = 0.30 / 0.25 / 0.20 / 0.15
+- `LoadEvolveproParams`와 `load_evolvepro_csv()`에 `evolvepro_round`, `round_size` 파라미터 추가. `evolvepro_round > 0`이면 수동 `pool_multiplier`와 `entropy_weight`가 자동 계산값으로 대체됨
+- 워크스페이스 저장/로드에 `evolveproRound`, `roundSize` 유지; 기본값: round = 1, size = 96
+
+**동일 위치 Tie-Break (Grantham 1974)**
+- Position diversity 필터가 같은 위치의 두 variant 점수가 2% 이내일 때 Grantham distance를 tie-breaker로 사용 — 더 보수적(Grantham distance가 낮은) 아미노산 치환 우선 선택
+- Grantham distance도 동일하면 알파벳 순서로 결정적(deterministic) 선택
+- Grantham 1974 거리 테이블 (190 아미노산 쌍, *Science* 185:862–864)을 `kuro/evolvepro.py`에 추가
+
+**테스트**
+- `TestSigmaAdaptivePool` (5개): ρ 경계값, K / entropy weight 매핑, σ-adaptive pool 크기 및 자동 오버라이드
+- `TestGranthamTieBreak` (7개): 보수적 치환 우선, 점수 격차 임계값, 알파벳 폴백, `max_per_position` 준수
 
 ---
 

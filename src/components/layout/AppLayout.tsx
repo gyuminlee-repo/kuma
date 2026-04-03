@@ -8,6 +8,7 @@ import { ResultTable } from "../widgets/ResultTable";
 import { SequenceViewer } from "../widgets/SequenceViewer";
 import { PlateMap } from "../widgets/PlateMap";
 import { DesignReport } from "../dialogs/DesignReport";
+import { BenchmarkDialog } from "../dialogs/BenchmarkDialog";
 import { Button } from "../ui/button";
 import {
   Dialog,
@@ -199,6 +200,7 @@ export function AppLayout() {
 
       {/* Design Report Modal */}
       <DesignReport />
+      <BenchmarkDialog />
     </div>
   );
 }

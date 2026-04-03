@@ -8,6 +8,7 @@ import type {
   ParseError,
   ParseMutationsResult,
   EvolveproLoadResult,
+  EvolveproStepStats,
 } from "../../types/models";
 
 export interface InputSlice {
@@ -20,6 +21,7 @@ export interface InputSlice {
   evolveproTotalCount: number;
   evolveproFilteredCount: number | null;
   evolveproParetoExchanges: number | null;
+  evolveproStepStats: EvolveproStepStats | null;
   yPredMap: Record<string, number>;
 
   // Actions
@@ -42,15 +44,46 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   evolveproTotalCount: 0,
   evolveproFilteredCount: null,
   evolveproParetoExchanges: null,
+  evolveproStepStats: null,
   yPredMap: {},
 
-  setMutationInputMode: (mode) => set({ mutationInputMode: mode }),
+  setMutationInputMode: (mode) => set({
+    mutationInputMode: mode,
+    ...(mode === "text" && {
+      evolveproCsvPath: "",
+      evolveproTotalCount: 0,
+      evolveproFilteredCount: null,
+      evolveproParetoExchanges: null,
+      evolveproStepStats: null,
+      yPredMap: {},
+      domainStats: {},
+    }),
+  }),
   setMutationText: (text) => set({ mutationText: text }),
 
   loadEvolveproCsv: async (filepath: string, topNOverride?: number) => {
     const gen = ++csvLoadGeneration;
     try {
-      const { pipelineMode, positionDiversityEnabled, maxPerPosition, domainDiversityEnabled, domains, disabledDomains, domainStrategy, paretoDiversityEnabled, entropyWeightEnabled, maxPrimers } = get();
+      const {
+        pipelineMode,
+        positionDiversityEnabled,
+        maxPerPosition,
+        domainDiversityEnabled,
+        domains,
+        disabledDomains,
+        domainStrategy,
+        domainOverlapPolicy,
+        linkerHandling,
+        domainQuotaMin,
+        paretoDiversityEnabled,
+        entropyWeightEnabled,
+        entropyWeight,
+        paretoPoolMultiplier,
+        distanceMode,
+        evolveproRound,
+        roundSize,
+        maxPrimers,
+      } = get();
       const effectiveTopN = topNOverride ?? maxPrimers;
       const activeDomains = domains.filter((d) => !disabledDomains.includes(`${d.name}-${d.start}`));
       const isMultiEvolve = get().mutationInputMode === "multi-evolve";
@@ -68,9 +101,18 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
             domain_diversity: true,
             domains: activeDomains.map((d) => ({ name: d.name, start: d.start, end: d.end })),
             domain_strategy: domainStrategy,
+            domain_overlap_policy: domainOverlapPolicy,
+            linker_handling: linkerHandling,
+            domain_quota_min: domainQuotaMin,
           }),
           ...(usePipeline && paretoDiversityEnabled && { pareto_diversity: true }),
-          ...(usePipeline && paretoDiversityEnabled && entropyWeightEnabled && { entropy_weight: 0.3 }),
+          ...(usePipeline && paretoDiversityEnabled && entropyWeightEnabled && { entropy_weight: entropyWeight }),
+          ...(usePipeline && paretoDiversityEnabled && { pool_multiplier: paretoPoolMultiplier }),
+          ...(usePipeline && paretoDiversityEnabled && { distance_mode: distanceMode }),
+          ...(usePipeline && paretoDiversityEnabled && evolveproRound > 0 && {
+            evolvepro_round: evolveproRound,
+            round_size: roundSize,
+          }),
         },
       );
       if (gen !== csvLoadGeneration) return;
@@ -103,11 +145,20 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         evolveproTotalCount: result.total_count,
         evolveproFilteredCount: result.filtered_count ?? null,
         evolveproParetoExchanges: result.pareto_replaced ?? null,
+        evolveproStepStats: result.step_stats ?? null,
         statusMessage: `${currentMode === "multi-evolve" ? "MULTI-evolve" : "EVOLVEpro"}: ${result.selected_count}/${result.total_count} variants${filteredMsg}${domainMsg}${paretoMsg}`,
       });
     } catch (err) {
       if (gen === csvLoadGeneration) {
-        set({ statusMessage: `${get().mutationInputMode === "multi-evolve" ? "MULTI-evolve" : "EVOLVEpro"} CSV load failed: ${formatError(err)}` });
+        set({
+          evolveproTotalCount: 0,
+          evolveproFilteredCount: null,
+          evolveproParetoExchanges: null,
+          evolveproStepStats: null,
+          yPredMap: {},
+          domainStats: {},
+          statusMessage: `${get().mutationInputMode === "multi-evolve" ? "MULTI-evolve" : "EVOLVEpro"} CSV load failed: ${formatError(err)}`,
+        });
       }
     }
   },

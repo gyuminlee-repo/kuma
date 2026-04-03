@@ -1,5 +1,6 @@
 """Handlers: Excel/CSV export, plate map, workspace save/load."""
 
+import csv
 import json
 from dataclasses import fields as dc_fields
 
@@ -24,6 +25,7 @@ from sidecar.models import (
     ExportExcelParams,
     ExportMappingParams,
     ExportOrderParams,
+    ExportBenchmarkCsvParams,
     SaveWorkspaceParams,
     LoadWorkspaceParams,
 )
@@ -180,3 +182,31 @@ def handle_load_workspace(params: dict) -> dict:
             raise ValueError(f"Workspace contains {len(data['results'])} results, exceeding 10,000 limit")
 
     return data
+
+
+def handle_export_benchmark_csv(params: dict) -> dict:
+    """Export benchmark result table to CSV."""
+    p = ExportBenchmarkCsvParams(**params)
+    if not p.results:
+        raise ValueError("Benchmark results are required")
+
+    resolved = _validate_output_path(p.filepath, allowed_extensions=_ALLOWED_ORDER_CSV_EXTENSIONS)
+    fieldnames = [
+        "strategy",
+        "n_selected",
+        "hit_rate",
+        "mean_fitness",
+        "unique_positions",
+        "position_coverage",
+        "domain_coverage",
+        "structural_spread",
+        "hits",
+        "threshold",
+        "n_trials",
+    ]
+    with open(resolved, "w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for strategy, metrics in p.results.items():
+            writer.writerow({"strategy": strategy, **metrics})
+    return {"success": True, "filepath": str(resolved)}

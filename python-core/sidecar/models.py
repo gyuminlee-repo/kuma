@@ -152,6 +152,11 @@ class LoadWorkspaceParams(BaseModel):
     filepath: str
 
 
+class ExportBenchmarkCsvParams(BaseModel):
+    filepath: str
+    results: dict[str, Any] = Field(default_factory=dict)
+
+
 # ---------------------------------------------------------------------------
 # external.py handlers
 # ---------------------------------------------------------------------------
@@ -184,8 +189,15 @@ class LoadEvolveproParams(BaseModel):
     domains: list[Any] = Field(default_factory=list)
     domain_diversity: bool = False
     domain_strategy: str = "proportional"
+    domain_overlap_policy: Literal["first", "largest"] = "first"
+    linker_handling: Literal["include", "exclude", "separate-bin"] = "include"
+    domain_quota_min: int = Field(default=1, ge=0, le=20)
     pareto_diversity: bool = False
     entropy_weight: float = Field(default=0.0, ge=0.0)
+    pool_multiplier: float = Field(default=2.0, ge=1.0, le=10.0)
+    distance_mode: Literal["auto", "1d", "3d"] = "auto"
+    evolvepro_round: int = Field(default=0, ge=0)
+    round_size: int = Field(default=96, ge=1, le=960)
 
 
 class LandscapeEntry(BaseModel):
@@ -197,4 +209,13 @@ class RunBenchmarkParams(BaseModel):
     landscape: list[LandscapeEntry] = Field(default_factory=list)
     ground_truth: dict[str, Any] = Field(default_factory=dict)
     n_select: int = Field(default=95, ge=1, le=960)
-    strategies: list[str] = Field(default_factory=lambda: ["topn", "random", "pareto"])
+    n_random_trials: int = Field(default=100, ge=1, le=1000)
+    top_percentile: float = Field(default=10.0, gt=0.0, le=100.0)
+    strategies: list[str] = Field(default_factory=lambda: ["topn", "random", "pareto_1d", "pareto_3d", "pareto_entropy"])
+    domains: list[Any] = Field(default_factory=list)
+    domain_strategy: str = "proportional"
+    max_per_position: int = Field(default=1, ge=1)
+    entropy_weight: float = Field(default=0.3, ge=0.0, le=1.0)
+    pool_multiplier: float = Field(default=2.0, ge=1.0, le=10.0)
+    distance_mode: Literal["auto", "1d", "3d"] = "auto"
+    random_seed: Optional[int] = None

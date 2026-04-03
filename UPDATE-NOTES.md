@@ -1,6 +1,33 @@
-# KURO Update Notes — v0.9.5 → v1.22.0
+# KURO Update Notes — v0.9.5 → v1.27.0
 
 [한국어](UPDATE-NOTES.ko.md) | **English**
+
+---
+
+## v1.27.0 (2026-04-03)
+
+### UX Simplification — Progressive Disclosure + σ-Adaptive Pool
+
+**Pipeline UI: Progressive Disclosure**
+- `DiversityOptions` rebuilt with basic/advanced split. Step 1 shows only the on/off toggle (position cap hidden); Step 2 shows toggle + linker handling + domain list + UniProt search; Step 3 shows toggle + distance mode badge only
+- New **Round** section: "EVOLVEpro Round" and "Round size" inputs drive σ-adaptive pool automatically. Computed K and entropy weight are displayed live (e.g. `Auto K=0.50 / entropy=0.30`)
+- **Advanced** accordion (hidden by default) exposes: position cap, domain strategy / overlap policy / min quota, distance mode radio, manual pool K slider, manual entropy weight override
+- Benchmark Defaults and Workspace settings separated into distinct sections below the pipeline
+
+**σ-Adaptive Pool (EVOLVEpro Round)**
+- Pool threshold is computed from cumulative data points (Round × Size): `threshold = anchor − K × σ`, where σ is the standard deviation of all y_pred scores and anchor is the top-N-th ranked score
+- K and entropy weight are derived from estimated model quality ρ (Spearman, literature-based): K = 0.50 / 0.40 / 0.30 / 0.25 and entropy weight = 0.30 / 0.25 / 0.20 / 0.15 for cumulative ≤ 96 / ≤ 192 / ≤ 384 / 385+ data points
+- `evolvepro_round` and `round_size` parameters added to `LoadEvolveproParams` and `load_evolvepro_csv()`. When `evolvepro_round > 0`, manual `pool_multiplier` and `entropy_weight` are overridden by the computed values
+- Workspace save/load persists `evolveproRound` and `roundSize`; defaults: round = 1, size = 96
+
+**Same-Position Tie-Break (Grantham 1974)**
+- Position diversity filter now uses Grantham distance as a tie-breaker when two variants at the same position score within 2% of each other — preferring the more conservative (lower Grantham distance) amino acid substitution
+- Equal Grantham distance → alphabetical order for deterministic selection
+- Grantham 1974 distance table (190 amino acid pairs, *Science* 185:862–864) added to `kuro/evolvepro.py`
+
+**Tests**
+- `TestSigmaAdaptivePool` (5 tests): ρ boundary values, K / entropy weight mapping, σ-adaptive pool size and auto-override
+- `TestGranthamTieBreak` (7 tests): conservative substitution preference, score gap threshold, alphabetical fallback, `max_per_position` respect
 
 ---
 

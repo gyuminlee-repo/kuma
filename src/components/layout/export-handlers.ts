@@ -90,14 +90,42 @@ export async function handleLoadWorkspace() {
       multiple: false,
     });
     if (!path) return;
-    const ws = await sendRequest<import("../../types/models").WorkspaceV1>("load_workspace", { filepath: path as string });
-    if (ws.version !== 1) {
+    const ws = await sendRequest<import("../../types/models").WorkspaceData>("load_workspace", { filepath: path as string });
+    if (ws.version !== 1 && ws.version !== 2) {
       useAppStore.getState().setStatus("Incompatible workspace version");
       return;
     }
     await useAppStore.getState().restoreWorkspace(ws);
   } catch (err) {
     useAppStore.getState().setStatus(`Load failed: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+export async function handleSaveBenchmarkJson(data: unknown) {
+  try {
+    const path = await save({
+      filters: [{ name: "Benchmark JSON", extensions: ["json"] }],
+      defaultPath: "kuro_benchmark.json",
+    });
+    if (!path) return;
+    await sendRequest("save_workspace", { filepath: path, data });
+    useAppStore.getState().setStatus(`Benchmark JSON saved: ${path}`);
+  } catch (err) {
+    useAppStore.getState().setStatus(`Benchmark JSON save failed: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+export async function handleExportBenchmarkCsv(results: Record<string, unknown>) {
+  try {
+    const path = await save({
+      filters: [{ name: "CSV", extensions: ["csv"] }],
+      defaultPath: "kuro_benchmark.csv",
+    });
+    if (!path) return;
+    await sendRequest("export_benchmark_csv", { filepath: path, results });
+    useAppStore.getState().setStatus(`Benchmark CSV exported: ${path}`);
+  } catch (err) {
+    useAppStore.getState().setStatus(`Benchmark CSV export failed: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
 

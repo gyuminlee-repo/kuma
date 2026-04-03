@@ -1,70 +1,114 @@
-# KURO Project Rules
+# CLAUDE.md
 
-## CI/CD Guidelines — GitHub Actions 빌드 실패 방지
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-### 릴리스 전 필수 체크리스트
-코드 수정 후 태그 푸시 전 반드시 로컬에서 확인:
+## Project Overview
+
+KURO (Kernel for Upstream Recombination Oligodesign) is a cross-platform desktop app for batch SDM primer design based on Gibson Assembly. It's a **Tauri v2 + React 19 + Python sidecar** architecture — the GUI is TypeScript/React, the scientific compute engine is Python, and they communicate via JSON-RPC over stdin/stdout.
+
+## Architecture
+
+```
+Frontend (React 19 + Zustand + TailwindCSS)
+  └── src/lib/ipc.ts  ← JSON-RPC client over stdin/stdout
+        ↕  (Tauri shell plugin spawns sidecar)
+Python Sidecar (PyInstaller binary)
+  └── python-core/sidecar/dispatcher.py  ← JSON-RPC server
+        └── handlers/{design,export,sequence,external,misc}.py
+              └── kuro/  ← pure-Python science library (no Tauri dependency)
+Rust Shell (src-tauri/)
+  └── Thin Tauri v2 host: window, menu, sidecar lifecycle only
+```
+
+### Key layers
+
+- **`kuro/`** — Pure Python library: primer design engine (`sdm_engine.py`), EVOLVEpro selection (`evolvepro.py`), codon tables, overlap logic, plate mapping, benchmark, ESM embeddings. Has its own `pyproject.toml`, installable via `pip install -e .`
+- **`python-core/sidecar/`** — JSON-RPC server that wraps `kuro/` for the Tauri frontend. `dispatcher.py` routes methods to `handlers/`. `models.py` has Pydantic request validation. Built to a single binary via PyInstaller (`python-core/build_sidecar.py`)
+- **`src/`** — React 19 frontend. State management: Zustand store split into 5 slices (`src/store/slices/`). IPC layer: `src/lib/ipc.ts`. UI components: shadcn/ui + Radix primitives + TailwindCSS
+- **`src-tauri/`** — Minimal Rust: `main.rs` + `lib.rs` bootstrap Tauri, no business logic
+
+### Store slice dependency graph
+```
+sequenceSlice → diversitySlice.searchUniprot
+diversitySlice → inputSlice.loadEvolveproCsv, sequenceSlice.seqInfo
+inputSlice → diversitySlice.pipelineMode/domains/disabledDomains
+designSlice → inputSlice.mutationText, diversitySlice.cancelDiversityReload
+exportSlice → all slices (read-only for workspace save/load)
+```
+
+### Frontend ↔ Sidecar communication
+- `src/lib/ipc.ts` spawns the sidecar via Tauri shell plugin and sends JSON-RPC requests over stdin
+- Sidecar writes JSON-RPC responses + `progress` notifications to stdout
+- TypeScript types in `src/types/models.ts` must match Pydantic models in `python-core/sidecar/models.py`
+
+## Common Commands
+
+### Development
 ```bash
-npx tsc --noEmit          # TypeScript 타입체크
-cd src-tauri && cargo check  # Rust 컴파일 체크
-```
-**이 두 명령이 통과하지 않으면 태그를 만들지 않는다.**
-
-### TypeScript 타입 안전성
-1. **모듈 레벨 `let` 변수 + async 재할당 패턴 금지**
-   - `let x: T | null = null` 후 async IIFE/callback에서 재할당하면 TS가 narrowing을 잘못 추론함
-   - 해결: `const proc = child as Child | null;` 처럼 로컬 변수 + 명시적 타입 사용
-2. **`!` (non-null assertion) 최소화**
-   - `ipc.ts:157`의 `child!.write(...)` — 런타임 NPE 위험
-   - 대안: null guard 후 호출하거나 early return 패턴 사용
-3. **`as any`, `@ts-ignore` 사용 금지** — 현재 0건 유지할 것
-
-### Tauri 리소스 번들링
-1. **glob 패턴(`**`) 사용 금지** — Tauri build.rs의 glob 해석이 OS별로 다름
-   - `"resources": ["samples/**"]` (X) — Windows CI에서 실패
-   - `"resources": {"samples/file.csv": "samples/file.csv"}` (O) — 명시적 매핑
-2. **번들에 포함할 파일은 `src-tauri/` 하위에 배치**
-   - 프론트엔드의 `resolveResource()` 경로와 일치시킬 것
-3. **새 샘플 파일 추가 시** `tauri.conf.json`의 resources 맵에도 추가 필수
-
-## 변경 연동 체크리스트
-
-아래 파일을 수정할 때 함께 확인해야 할 항목:
-
-| 수정 파일 | 확인 항목 |
-|-----------|-----------|
-| `kuro/evolvepro.py`, `python-core/sidecar/models.py` | `fixtures/generate_sample_data.py` 재실행 |
-| `kuro/evolvepro.py` `VARIANT_COLUMNS` / `SCORE_COLUMNS` | fixtures CSV 컬럼명 일치 여부 확인 |
-| `src/store/slices/inputSlice.ts` `loadSampleData` | `src-tauri/samples/` 참조 파일 존재 확인 |
-| `src-tauri/samples/`에 새 파일 추가 | `tauri.conf.json` resources 명시적 매핑 추가 |
-| `fixtures/generate_sample_data.py` | 생성 결과를 `src-tauri/samples/`에서 확인 |
-
-### 버전 동기화
-릴리스 시 아래 3개 파일의 버전을 반드시 일치시킨다:
-- `package.json` → `"version": "X.X.X"`
-- `src-tauri/tauri.conf.json` → `"version": "X.X.X"`
-- `src-tauri/Cargo.toml` → `version = "X.X.X"`
-
-### GitHub Actions Workflow 규칙
-1. **actions 버전**: `@v5` 이상 사용 (Node.js 24 호환)
-2. **build.yml**: `fail-fast: false` 유지 — 한 OS 실패가 다른 OS 빌드 취소하지 않게
-3. **sidecar 바이너리 확인 스텝 유지** — `test -f` 로 존재 여부 검증
-4. **Cargo.lock 커밋 유지** — Tauri 앱은 바이너리 빌드이므로 lock 파일 필수
-5. **ubuntu-22.04 고정** — `ubuntu-latest`가 아닌 특정 버전 사용 (WebKit 의존성 호환)
-6. **`--target` 플래그 사용 금지** — 네이티브 빌드에서 `npx tauri build --target`을 쓰면 glob 해석 경로가 바뀌어 resource 번들링 실패. `npx tauri build`만 사용
-7. **artifact 경로**: `src-tauri/target/release/bundle/` (target triple 없음)
-
-### .gitignore 필수 항목
-```
-.claude/
-notes/
-node_modules/
-dist/
-src-tauri/target/
-src-tauri/gen/
+pnpm dev                  # Vite dev server (frontend only)
+pnpm tauri dev            # Full Tauri dev mode (frontend + Rust + sidecar)
+pnpm run sidecar:build    # Build Python sidecar (PyInstaller --onefile)
+pnpm run build:all        # sidecar:build + tauri build (full release)
 ```
 
-## Git Convention
-- Commit: `vX.X.XX: summary in English`
-- 태그: `vX.X.XX` (semver)
-- 버전 bump 커밋은 `chore: bump version to X.X.XX`
+### Pre-commit checks (must pass before tagging)
+```bash
+npx tsc --noEmit                    # TypeScript typecheck
+cd src-tauri && cargo check         # Rust compile check
+```
+
+### Python tests
+```bash
+pip install -e . pytest             # One-time setup
+python -m pytest tests/ -v          # Run all tests
+python -m pytest tests/test_sdm_engine.py -v          # Single file
+python -m pytest tests/test_sdm_engine.py::test_name  # Single test
+```
+
+### CI (`ci.yml`)
+- Python tests: matrix of `{ubuntu, windows, macos} × {3.11, 3.12}`
+- TypeScript typecheck: `npx tsc --noEmit`
+- Rust check: `cd src-tauri && cargo check` (requires frontend build first + sidecar stub)
+
+## Cross-layer Change Checklist
+
+| Changed file | Also check |
+|---|---|
+| `kuro/evolvepro.py` VARIANT_COLUMNS / SCORE_COLUMNS | `fixtures/` CSV column names match |
+| `kuro/evolvepro.py`, `python-core/sidecar/models.py` | Re-run `fixtures/generate_sample_data.py` |
+| `src/types/models.ts` (TS interfaces) | `python-core/sidecar/models.py` (Pydantic models) stay in sync |
+| `src-tauri/samples/` new file | Add explicit mapping in `tauri.conf.json` resources (no glob `**`) |
+| `src/store/slices/inputSlice.ts` `loadSampleData` | `src-tauri/samples/` referenced files exist |
+
+## Rules
+- 절대 경로 하드코딩 금지 — 상대 경로 또는 환경변수 사용
+- 커밋 형식: `vX.X.X: summary in English`
+- Windows 타겟 빌드 시 WSL 내 `npm install` 금지 — Windows 네이티브 터미널에서 실행
+
+## CI Actions
+- `actions/checkout@v5`, `actions/setup-node@v5`, `actions/setup-python@v6` 사용
+- @v4 이하 버전 사용 금지
+
+## Important Conventions
+
+### TypeScript
+- No `as any` or `@ts-ignore` — currently at 0 occurrences, keep it that way
+- Avoid module-level `let` + async reassignment — TS narrows incorrectly. Use local `const` with explicit types
+- Minimize `!` non-null assertions — prefer null guards or early returns
+
+### Tauri resource bundling
+- No glob patterns (`**`) in `tauri.conf.json` resources — use explicit file-to-file mappings
+- No `--target` flag with `npx tauri build` — breaks resource path resolution
+- Bundle files must live under `src-tauri/`
+
+### Version sync
+Three files must have matching version on release:
+- `package.json` → `"version"`
+- `src-tauri/tauri.conf.json` → `"version"`
+- `src-tauri/Cargo.toml` → `version`
+
+### Git
+- Commit format: `vX.X.X: summary in English`
+- Tags: `vX.X.X` (semver)
+- `Cargo.lock` is committed (binary app needs reproducible builds)
+- CI pins `ubuntu-22.04` (not `ubuntu-latest`) for WebKit dependency compatibility

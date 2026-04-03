@@ -13,7 +13,7 @@ https://github.com/user-attachments/assets/f95e65ca-22d2-4479-a06b-8dcd553571be
 
 ## 주요 기능
 
-- **EVOLVEpro / MULTI-evolve CSV 입력**: EVOLVEpro(`variant`, `y_pred`) 또는 MULTI-evolve(`mutation`, `property_value`) 출력 CSV 로드 — 컬럼 형식 자동 감지. 점수 내림차순 정렬 → 설정 개수만큼 자동 선정. **위치 다양성(position diversity)** 필터로 아미노산 위치당 최대 N개 제한 가능. **도메인 다양성(domain diversity)** 필터로 단백질 구조 도메인 간 분산 선택 (InterPro/Pfam 자동 조회 또는 수동 입력). **Pareto 다양성** 으로 MODIFY 방식의 위치 분산 최대화
+- **EVOLVEpro / MULTI-evolve CSV 입력**: EVOLVEpro(`variant`, `y_pred`) 또는 MULTI-evolve(`mutation`, `property_value`) 출력 CSV 로드 — 컬럼 형식 자동 감지. 점수 내림차순 정렬 → 설정 개수만큼 자동 선정. **위치 다양성(position diversity)** 필터로 아미노산 위치당 최대 N개 제한 가능 (동일 위치 후보 점수 차이 2% 이내 시 Grantham 1974 거리가 낮은 보수적 치환 우선). **도메인 다양성(domain diversity)** 필터로 단백질 구조 도메인 간 분산 선택 (InterPro/Pfam 자동 조회 또는 수동 입력). **Pareto 다양성** 으로 MODIFY 방식의 위치 분산 최대화. **σ-Adaptive Pool**: EVOLVEpro Round와 Round size 입력 시 누적 데이터 기반으로 후보 풀 범위와 entropy 가중치를 자동 보정 (K = 0.50→0.25, entropy = 0.30→0.15, Round 1→5+)
 - **배치 변이 파싱**: `Q232A` 형식의 변이 목록 → 코돈 위치 자동 계산 + WT 코돈 검증
 - **코돈 전략 선택**: Min. changes (WT 대비 최소 염기 변이) 또는 Optimal (E. coli 최적 코돈) 중 선택 가능
 - **Overlap upstream 설계**: overlap 영역이 mutation codon 바로 앞(upstream)에 위치 (EVOLVEpro 방식)
@@ -41,7 +41,7 @@ EVOLVEpro 또는 MULTI-evolve CSV 로드 시 어떤 mutation을 프라이머 설
 | 전략 | 설명 | 사용 시점 |
 |------|------|-----------|
 | **Top-N by score** | 예측 적합도(y_pred / property_value) 내림차순으로 상위 N개 선택. N = 최대 프라이머 수 설정 (기본 95). | 기본 랭킹. 예측 적합도만 기준으로 할 때. |
-| **Position diversity** | 아미노산 위치당 최대 mutation 수 제한 (기본: 위치당 1개). 다른 전략 적용 전 사전 필터로 동작. | 특정 위치에 mutation이 과도하게 집중되는 것을 방지. |
+| **Position diversity** | 아미노산 위치당 최대 mutation 수 제한 (기본: 위치당 1개). 동일 위치 두 후보 점수 차이 2% 이내 시 Grantham 1974 거리가 낮은 보수적 치환 우선 선택. 다른 전략 적용 전 사전 필터로 동작. | 특정 위치에 mutation이 과도하게 집중되는 것을 방지. |
 | **Domain diversity** | 단백질 구조 도메인별로 mutation 할당량을 배분 (비례 배분 또는 균등 배분). 도메인 정보는 UniProt accession으로 InterPro/Pfam에서 자동 조회하거나 수동 입력. 할당량 미달 도메인은 경고(⚠) 표시. | 한 도메인이 y_pred 상위를 독점할 때, 모든 기능 영역을 균형 있게 탐색하기 위해. |
 | **Pareto diversity** | Greedy maximin 위치 선택: 이미 선택된 mutation과 가장 먼 위치의 mutation을 반복 선택하여 공간적 분산을 극대화. | 좁은 영역에 mutation이 밀집되는 것을 방지. MODIFY 접근법 (Hie et al., *Nature*, 2024) 기반. |
 | **Entropy-guided** (β) | 위치별 y_pred 분포의 Shannon entropy (가중치 0.3)를 Pareto 점수에 혼합. 동일 위치에서 다수 mutation이 비슷한 점수로 분포할 때(불확실성 높을 때) 우선 선택. | 적합도 경관에 여러 봉우리가 존재할 가능성이 있을 때 국소 최적 탈출. Pareto diversity 활성화 필요. |

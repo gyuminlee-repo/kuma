@@ -28,6 +28,18 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
+function formatDomainAllocation(
+  enabled: boolean,
+  domains: Array<{ name: string }>,
+  domainStats: Record<string, { quota: number; selected: number }>,
+  domainStrategy: "proportional" | "equal",
+): string {
+  if (!enabled || domains.length === 0) return "OFF";
+  const total = Object.values(domainStats).reduce((sum, stat) => sum + stat.selected, 0);
+  const quota = Object.values(domainStats).reduce((sum, stat) => sum + stat.quota, 0);
+  return quota > 0 ? `${domainStrategy}: ${total}/${quota}` : `${domainStrategy} (${domains.length} domains)`;
+}
+
 export function DesignReport() {
   const setShowReport = useAppStore((s) => s.setShowReport);
   const data = useAppStore(
@@ -43,14 +55,24 @@ export function DesignReport() {
         maxPerPosition: s.maxPerPosition,
         domainDiversityEnabled: s.domainDiversityEnabled,
         domainStrategy: s.domainStrategy,
+        domainOverlapPolicy: s.domainOverlapPolicy,
+        linkerHandling: s.linkerHandling,
+        domainQuotaMin: s.domainQuotaMin,
         domains: s.domains,
         domainStats: s.domainStats,
         paretoDiversityEnabled: s.paretoDiversityEnabled,
         entropyWeightEnabled: s.entropyWeightEnabled,
+        entropyWeight: s.entropyWeight,
+        paretoPoolMultiplier: s.paretoPoolMultiplier,
+        distanceMode: s.distanceMode,
+        benchmarkTopPercentile: s.benchmarkTopPercentile,
+        benchmarkRandomTrials: s.benchmarkRandomTrials,
+        benchmarkRandomSeed: s.benchmarkRandomSeed,
         structureLoaded: s.structureLoaded,
         evolveproTotalCount: s.evolveproTotalCount,
         evolveproFilteredCount: s.evolveproFilteredCount,
         evolveproParetoExchanges: s.evolveproParetoExchanges,
+        evolveproStepStats: s.evolveproStepStats,
         mutationInputMode: s.mutationInputMode,
       };
     }),
@@ -68,14 +90,24 @@ export function DesignReport() {
     maxPerPosition,
     domainDiversityEnabled,
     domainStrategy,
+    domainOverlapPolicy,
+    linkerHandling,
+    domainQuotaMin,
     domains,
     domainStats,
     paretoDiversityEnabled,
     entropyWeightEnabled,
+    entropyWeight,
+    paretoPoolMultiplier,
+    distanceMode,
+    benchmarkTopPercentile,
+    benchmarkRandomTrials,
+    benchmarkRandomSeed,
     structureLoaded,
     evolveproTotalCount,
     evolveproFilteredCount,
     evolveproParetoExchanges,
+    evolveproStepStats,
     mutationInputMode,
   } = data;
 
@@ -95,6 +127,9 @@ export function DesignReport() {
   };
 
   const tmMet = designResults.filter((r) => r.tm_condition_met).length;
+  const positionRemoved = evolveproStepStats?.position_filter_removed ?? evolveproFilteredCount;
+  const domainSelected = evolveproStepStats?.domain_selected;
+  const paretoExchanges = evolveproStepStats?.pareto_exchanges ?? evolveproParetoExchanges;
 
   return (
     <Dialog open={showReport} onOpenChange={setShowReport}>
@@ -112,16 +147,59 @@ export function DesignReport() {
           {/* Pipeline Summary */}
           {pipelineMode && (
             <Section title="Pipeline">
-              <Stat label="Position filter" value={positionDiversityEnabled ? `max ${maxPerPosition}/pos${evolveproFilteredCount != null && evolveproFilteredCount > 0 ? ` (−${evolveproFilteredCount})` : ""}` : "OFF"} />
-              <Stat label="Domain allocation" value={domainDiversityEnabled && domains.length > 0 ? (() => { const total = Object.values(domainStats).reduce((s, d) => s + d.selected, 0); const quota = Object.values(domainStats).reduce((s, d) => s + d.quota, 0); return quota > 0 ? `${domainStrategy}: ${total}/${quota}` : `${domainStrategy} (${domains.length} domains)`; })() : "OFF"} />
-              <Stat label="Pareto diversity" value={paretoDiversityEnabled ? `ON${evolveproParetoExchanges != null && evolveproParetoExchanges > 0 ? ` (${evolveproParetoExchanges} swapped)` : ""}` : "OFF"} />
-              <Stat label="Entropy-guided" value={entropyWeightEnabled ? "ON" : "OFF"} />
+              <Stat
+                label="Step 1 filter"
+                value={
+                  positionDiversityEnabled
+                    ? `max ${maxPerPosition}/pos${positionRemoved != null && positionRemoved > 0 ? ` (−${positionRemoved})` : ""}`
+                    : "OFF"
+                }
+              />
+              <Stat
+                label="Step 2 domains"
+                value={formatDomainAllocation(domainDiversityEnabled, domains, domainStats, domainStrategy)}
+              />
+              {domainDiversityEnabled && (
+                <Stat label="Step 2 overlap" value={domainOverlapPolicy === "largest" ? "LARGEST" : "FIRST"} />
+              )}
+              {domainDiversityEnabled && (
+                <Stat label="Step 2 linker" value={linkerHandling.toUpperCase()} />
+              )}
+              {domainDiversityEnabled && (
+                <Stat label="Step 2 min quota" value={domainQuotaMin} />
+              )}
+              <Stat
+                label="Step 3 Pareto"
+                value={
+                  paretoDiversityEnabled
+                    ? `ON${paretoExchanges != null && paretoExchanges > 0 ? ` (${paretoExchanges} swapped)` : ""}`
+                    : "OFF"
+                }
+              />
+              <Stat label="Distance mode" value={distanceMode === "auto" ? (structureLoaded ? "AUTO -> 3D" : "AUTO -> 1D") : distanceMode.toUpperCase()} />
+              <Stat label="Pareto pool" value={`${paretoPoolMultiplier.toFixed(2)}x`} />
+              <Stat label="Entropy-guided" value={entropyWeightEnabled ? `ON (${entropyWeight.toFixed(2)})` : "OFF"} />
               <Stat label="AlphaFold 3D" value={structureLoaded ? "ON (Cα distance)" : "OFF (1D distance)"} />
+              {positionRemoved != null && positionDiversityEnabled && (
+                <Stat label="Removed by Step 1" value={positionRemoved} />
+              )}
+              {domainSelected != null && domainDiversityEnabled && (
+                <Stat label="After Step 2" value={domainSelected} />
+              )}
+              {paretoExchanges != null && paretoDiversityEnabled && (
+                <Stat label="Step 3 exchanges" value={paretoExchanges} />
+              )}
               {evolveproTotalCount > 0 && (
                 <Stat label={mutationInputMode === "multi-evolve" ? "MULTI-evolve pool" : "EVOLVEpro pool"} value={`${evolveproTotalCount} variants`} />
               )}
             </Section>
           )}
+
+          <Section title="Benchmark Defaults">
+            <Stat label="Top percentile" value={`${benchmarkTopPercentile}%`} />
+            <Stat label="Random trials" value={benchmarkRandomTrials} />
+            <Stat label="Random seed" value={benchmarkRandomSeed ?? "AUTO"} />
+          </Section>
 
           {/* Primer Design Results */}
           <Section title="Primer Design">

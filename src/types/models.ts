@@ -149,6 +149,12 @@ export interface DomainStat {
   selected: number;
 }
 
+export interface EvolveproStepStats {
+  position_filter_removed?: number | null;
+  domain_selected?: number | null;
+  pareto_exchanges?: number | null;
+}
+
 export interface EvolveproLoadResult {
   variants: string[];
   y_preds: number[];
@@ -157,6 +163,7 @@ export interface EvolveproLoadResult {
   filtered_count?: number;
   domain_stats?: Record<string, DomainStat>;
   pareto_replaced?: number;
+  step_stats?: EvolveproStepStats;
 }
 
 export interface FailedMutation {
@@ -232,11 +239,105 @@ export interface WorkspaceV1 {
   disabledDomains?: string[];
   rescuedMutations?: string[];
   entropyWeightEnabled?: boolean;
+  entropyWeight?: number;
   organism?: string;
   pipelineMode?: boolean;
   positionDiversityEnabled?: boolean;
   maxPerPosition?: number;
+  evolveproRound?: number;
+  roundSize?: number;
+  evolveproTotalCount?: number;
+  evolveproFilteredCount?: number | null;
+  evolveproParetoExchanges?: number | null;
+  evolveproStepStats?: EvolveproStepStats | null;
 }
+
+export type DistanceMode = "auto" | "1d" | "3d";
+export type DomainOverlapPolicy = "first" | "largest";
+export type LinkerHandling = "include" | "exclude" | "separate-bin";
+
+export interface WorkspaceInputs {
+  fastaPath: string;
+  mutationInputMode: "text" | "evolvepro" | "multi-evolve";
+  mutationText: string;
+  evolveproCsvPath: string;
+  selectedGene: string;
+}
+
+export interface WorkspaceSettings {
+  codonStrategy: "closest" | "optimal";
+  maxPrimers: number;
+  tmFwdTarget: number;
+  tmRevTarget: number;
+  tmOverlapTarget: number;
+  gcMin: number;
+  gcMax: number;
+  primerLenEnabled?: boolean;
+  fwdLenMin?: number;
+  fwdLenMax?: number;
+  revLenMin?: number;
+  revLenMax?: number;
+  fillOnFailure?: boolean;
+  uniprotAccession?: string;
+  domains?: DomainInfo[];
+  domainDiversityEnabled?: boolean;
+  domainStrategy?: "proportional" | "equal";
+  domainOverlapPolicy?: DomainOverlapPolicy;
+  linkerHandling?: LinkerHandling;
+  domainQuotaMin?: number;
+  paretoDiversityEnabled?: boolean;
+  disabledDomains?: string[];
+  rescuedMutations?: string[];
+  entropyWeightEnabled?: boolean;
+  entropyWeight?: number;
+  paretoPoolMultiplier?: number;
+  distanceMode?: DistanceMode;
+  benchmarkTopPercentile?: number;
+  benchmarkRandomTrials?: number;
+  benchmarkRandomSeed?: number | null;
+  autoRedesignOnLoad?: boolean;
+  saveCache?: boolean;
+  organism?: string;
+  pipelineMode?: boolean;
+  positionDiversityEnabled?: boolean;
+  maxPerPosition?: number;
+  evolveproRound?: number;
+  roundSize?: number;
+}
+
+export interface WorkspaceResults {
+  designResults: SdmPrimerResult[];
+  successCount: number;
+  totalCount: number;
+  failedMutations: FailedMutation[];
+  plateMappings: PlateMapping[];
+  dedupInfo: Record<string, string[]>;
+  manuallySwapped: Record<string, string>;
+  customCandidates: Record<string, SdmPrimerResult[]>;
+}
+
+export interface WorkspaceUi {
+  tableSorting: unknown[];
+}
+
+export interface WorkspaceCache {
+  evolveproTotalCount?: number;
+  evolveproFilteredCount?: number | null;
+  evolveproParetoExchanges?: number | null;
+  evolveproStepStats?: EvolveproStepStats | null;
+  benchmarkResults?: Record<string, BenchmarkResult> | null;
+}
+
+export interface WorkspaceV2 {
+  version: 2;
+  inputs: WorkspaceInputs;
+  settings: WorkspaceSettings;
+  results: WorkspaceResults;
+  ui: WorkspaceUi;
+  cache?: WorkspaceCache;
+}
+
+export type WorkspaceData = WorkspaceV1 | WorkspaceV2;
 
 export interface StructureResult {
   success: boolean;
@@ -251,6 +352,8 @@ export interface BenchmarkResult {
   mean_fitness: number;
   unique_positions: number;
   position_coverage: number;
+  domain_coverage: number;
+  structural_spread: number;
   hits: number;
   threshold: number;
   n_trials?: number;

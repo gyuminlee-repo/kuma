@@ -3,8 +3,12 @@ import { sendRequest } from "../../lib/ipc";
 import { formatError } from "../../lib/utils";
 import type { AppState } from "../types";
 import type {
+  BenchmarkResult,
+  DistanceMode,
+  DomainOverlapPolicy,
   DomainInfo,
   FetchDomainsResult,
+  LinkerHandling,
   UniprotCandidate,
   SearchUniprotResult,
   StructureResult,
@@ -17,6 +21,9 @@ export interface DiversitySlice {
   maxPerPosition: number;
   domainDiversityEnabled: boolean;
   domainStrategy: "proportional" | "equal";
+  domainOverlapPolicy: DomainOverlapPolicy;
+  linkerHandling: LinkerHandling;
+  domainQuotaMin: number;
   uniprotAccession: string;
   domains: DomainInfo[];
   domainLoading: boolean;
@@ -24,6 +31,19 @@ export interface DiversitySlice {
   domainStats: Record<string, { quota: number; selected: number }>;
   paretoDiversityEnabled: boolean;
   entropyWeightEnabled: boolean;
+  entropyWeight: number;
+  paretoPoolMultiplier: number;
+  distanceMode: DistanceMode;
+  evolveproRound: number;
+  roundSize: number;
+  benchmarkTopPercentile: number;
+  benchmarkRandomTrials: number;
+  benchmarkRandomSeed: number | null;
+  benchmarkRunning: boolean;
+  showBenchmark: boolean;
+  benchmarkResults: Record<string, BenchmarkResult> | null;
+  autoRedesignOnLoad: boolean;
+  saveCache: boolean;
   structureLoaded: boolean;
   structureLoading: boolean;
   uniprotCandidates: UniprotCandidate[];
@@ -35,11 +55,26 @@ export interface DiversitySlice {
   setMaxPerPosition: (n: number) => void;
   setDomainDiversityEnabled: (enabled: boolean) => void;
   setDomainStrategy: (strategy: "proportional" | "equal") => void;
+  setDomainOverlapPolicy: (policy: DomainOverlapPolicy) => void;
+  setLinkerHandling: (handling: LinkerHandling) => void;
+  setDomainQuotaMin: (value: number) => void;
   fetchDomains: (accession: string, clearCandidates?: boolean) => Promise<void>;
   setDomains: (domains: DomainInfo[]) => void;
   toggleDomain: (domainKey: string) => void;
   setParetoDiversityEnabled: (enabled: boolean) => void;
   setEntropyWeightEnabled: (enabled: boolean) => void;
+  setEntropyWeight: (weight: number) => void;
+  setParetoPoolMultiplier: (value: number) => void;
+  setDistanceMode: (mode: DistanceMode) => void;
+  setEvolveproRound: (n: number) => void;
+  setRoundSize: (n: number) => void;
+  setBenchmarkTopPercentile: (value: number) => void;
+  setBenchmarkRandomTrials: (value: number) => void;
+  setBenchmarkRandomSeed: (seed: number | null) => void;
+  runBenchmark: () => Promise<void>;
+  setShowBenchmark: (show: boolean) => void;
+  setAutoRedesignOnLoad: (enabled: boolean) => void;
+  setSaveCache: (enabled: boolean) => void;
   searchUniprot: (geneName: string, organism: string, translation: string, knownAccession: string) => Promise<void>;
   fetchStructure: (accession: string) => Promise<void>;
   cancelDiversityReload: () => void;
@@ -65,6 +100,9 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   maxPerPosition: 1,
   domainDiversityEnabled: true,
   domainStrategy: "proportional",
+  domainOverlapPolicy: "first",
+  linkerHandling: "include",
+  domainQuotaMin: 1,
   uniprotAccession: "",
   domains: [],
   domainLoading: false,
@@ -72,6 +110,19 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   domainStats: {},
   paretoDiversityEnabled: true,
   entropyWeightEnabled: true,
+  entropyWeight: 0.3,
+  paretoPoolMultiplier: 2.0,
+  distanceMode: "auto",
+  evolveproRound: 1,
+  roundSize: 96,
+  benchmarkTopPercentile: 10,
+  benchmarkRandomTrials: 100,
+  benchmarkRandomSeed: null,
+  benchmarkRunning: false,
+  showBenchmark: false,
+  benchmarkResults: null,
+  autoRedesignOnLoad: true,
+  saveCache: true,
   structureLoaded: false,
   structureLoading: false,
   uniprotCandidates: [],
@@ -102,6 +153,21 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
 
   setDomainStrategy: (strategy: "proportional" | "equal") => {
     set({ domainStrategy: strategy });
+    debouncedReload();
+  },
+
+  setDomainOverlapPolicy: (policy: DomainOverlapPolicy) => {
+    set({ domainOverlapPolicy: policy });
+    debouncedReload();
+  },
+
+  setLinkerHandling: (handling: LinkerHandling) => {
+    set({ linkerHandling: handling });
+    debouncedReload();
+  },
+
+  setDomainQuotaMin: (value: number) => {
+    set({ domainQuotaMin: Math.max(0, Math.min(20, Math.round(value))) });
     debouncedReload();
   },
 
@@ -156,6 +222,101 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   setEntropyWeightEnabled: (enabled: boolean) => {
     set({ entropyWeightEnabled: enabled });
     debouncedReload();
+  },
+
+  setEntropyWeight: (weight: number) => {
+    const clamped = Math.max(0, Math.min(1, weight));
+    set({ entropyWeight: clamped });
+    debouncedReload();
+  },
+
+  setParetoPoolMultiplier: (value: number) => {
+    const clamped = Math.max(1, Math.min(10, value));
+    set({ paretoPoolMultiplier: clamped });
+    debouncedReload();
+  },
+
+  setDistanceMode: (mode: DistanceMode) => {
+    set({ distanceMode: mode });
+    debouncedReload();
+  },
+
+  setEvolveproRound: (n: number) => {
+    set({ evolveproRound: Math.max(1, Math.round(n)) });
+    debouncedReload();
+  },
+
+  setRoundSize: (n: number) => {
+    set({ roundSize: Math.max(1, Math.min(960, Math.round(n))) });
+    debouncedReload();
+  },
+
+  setBenchmarkTopPercentile: (value: number) => {
+    const clamped = Math.max(1, Math.min(100, value));
+    set({ benchmarkTopPercentile: clamped });
+  },
+
+  setBenchmarkRandomTrials: (value: number) => {
+    const clamped = Math.max(1, Math.min(1000, Math.round(value)));
+    set({ benchmarkRandomTrials: clamped });
+  },
+
+  setBenchmarkRandomSeed: (seed: number | null) => {
+    set({ benchmarkRandomSeed: seed });
+  },
+
+  runBenchmark: async () => {
+    const state = get();
+    const entries = Object.entries(state.yPredMap)
+      .map(([variant, fitness]) => ({ variant, fitness }))
+      .sort((a, b) => b.fitness - a.fitness);
+    if (entries.length === 0) {
+      set({ statusMessage: "Benchmark requires EVOLVEpro variants" });
+      return;
+    }
+
+    const activeDomains = state.domains
+      .filter((d) => !state.disabledDomains.includes(`${d.name}-${d.start}`))
+      .map((d) => ({ name: d.name, start: d.start, end: d.end }));
+
+    set({ benchmarkRunning: true, statusMessage: "Running benchmark..." });
+    try {
+      const result = await sendRequest<{ results: Record<string, BenchmarkResult> }>("run_benchmark", {
+        landscape: entries,
+        ground_truth: state.yPredMap,
+        n_select: Math.max(1, state.maxPrimers),
+        n_random_trials: state.benchmarkRandomTrials,
+        top_percentile: state.benchmarkTopPercentile,
+        domains: activeDomains,
+        domain_strategy: state.domainStrategy,
+        max_per_position: state.maxPerPosition,
+        entropy_weight: state.entropyWeightEnabled ? state.entropyWeight : 0,
+        pool_multiplier: state.paretoPoolMultiplier,
+        distance_mode: state.distanceMode,
+        random_seed: state.benchmarkRandomSeed,
+      }, 120_000);
+      set({
+        benchmarkRunning: false,
+        benchmarkResults: result.results,
+        showBenchmark: true,
+        statusMessage: "Benchmark complete",
+      });
+    } catch (err) {
+      set({
+        benchmarkRunning: false,
+        statusMessage: `Benchmark failed: ${formatError(err)}`,
+      });
+    }
+  },
+
+  setShowBenchmark: (show: boolean) => set({ showBenchmark: show }),
+
+  setAutoRedesignOnLoad: (enabled: boolean) => {
+    set({ autoRedesignOnLoad: enabled });
+  },
+
+  setSaveCache: (enabled: boolean) => {
+    set({ saveCache: enabled });
   },
 
   searchUniprot: async (geneName: string, organism: string, translation: string, knownAccession: string) => {
