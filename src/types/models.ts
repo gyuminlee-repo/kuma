@@ -163,6 +163,7 @@ export interface EvolveproLoadResult {
   filtered_count?: number;
   domain_stats?: Record<string, DomainStat>;
   pareto_replaced?: number;
+  pool_variants?: string[];
   step_stats?: EvolveproStepStats;
 }
 
@@ -172,11 +173,24 @@ export interface FailedMutation {
   reason: string;
 }
 
+export interface RescuedMutation {
+  original: string;
+  rescued_by: string;
+  type: "pool_cascade" | "auto_relax";
+}
+
+export interface RescueStats {
+  pool_cascade: number;
+  auto_relax: number;
+}
+
 export interface DesignResult {
   results: SdmPrimerResult[];
   success_count: number;
   total_count: number;
   failed_mutations: FailedMutation[];
+  rescue_stats?: RescueStats;
+  rescued_mutations?: RescuedMutation[];
 }
 
 export interface PlateMapping {

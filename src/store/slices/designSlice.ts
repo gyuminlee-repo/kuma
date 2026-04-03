@@ -11,6 +11,8 @@ import type {
   PlateMapResult,
   PolymeraseInfo,
   PolymeraseProfile,
+  RescueStats,
+  RescuedMutation,
 } from "../../types/models";
 
 export interface DesignSlice {
@@ -38,6 +40,8 @@ export interface DesignSlice {
   manuallySwapped: Record<string, "fwd" | "rev" | "both">;
   customCandidates: Record<string, SdmPrimerResult[]>;
   rescuedMutations: string[];
+  rescueStats: RescueStats;
+  rescuedMutationDetails: RescuedMutation[];
   showReport: boolean;
 
   // Actions
@@ -91,6 +95,8 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
   manuallySwapped: {},
   customCandidates: {},
   rescuedMutations: [] as string[],
+  rescueStats: { pool_cascade: 0, auto_relax: 0 },
+  rescuedMutationDetails: [] as RescuedMutation[],
 
   loadPolymerases: async () => {
     try {
@@ -189,6 +195,10 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
 
     const targetStart = selectedGene ? parseInt(selectedGene, 10) : 0;
 
+    // Compute rescue pool: pool variants not in intended mutations
+    const { poolVariants } = get();
+    const rescuePool = poolVariants.filter((v) => !intendedMuts.has(v));
+
     set({
       isDesigning: true,
       progress: 0,
@@ -197,6 +207,8 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       plateMappings: [],
       customCandidates: {},
       manuallySwapped: {},
+      rescueStats: { pool_cascade: 0, auto_relax: 0 },
+      rescuedMutationDetails: [],
     });
 
     try {
@@ -218,6 +230,8 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
           rev_len_min: revLenMin,
           rev_len_max: revLenMax,
         }),
+        ...(rescuePool.length > 0 && { rescue_pool: rescuePool }),
+        auto_relax: true,
       }, 300_000);
 
       const capped = result.results.slice(0, maxPrimers);
@@ -226,12 +240,23 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       const intendedFailed = allFailed.filter((f) => intendedMuts.has(f.mutation));
       const failedMsg = intendedFailed.length > 0 ? ` | ${intendedFailed.length} failed` : "";
 
+      const rStats = result.rescue_stats ?? { pool_cascade: 0, auto_relax: 0 };
+      const rMuts = result.rescued_mutations ?? [];
+      const rescueTotal = rStats.pool_cascade + rStats.auto_relax;
+      const rescueMsg = rescueTotal > 0 ? ` | ${rescueTotal} rescued` : "";
+
+      // Track rescued mutation names for badge display
+      const rescuedNames = rMuts.map((r) => r.rescued_by);
+
       set({
         designResults: capped,
         successCount: capped.length,
         totalCount: maxPrimers,
         failedMutations: intendedFailed,
-        statusMessage: `${capped.length}/${maxPrimers} designed | Tm: ${tmMet}/${capped.length}${failedMsg}`,
+        rescueStats: rStats,
+        rescuedMutationDetails: rMuts,
+        rescuedMutations: rescuedNames,
+        statusMessage: `${capped.length}/${maxPrimers} designed | Tm: ${tmMet}/${capped.length}${failedMsg}${rescueMsg}`,
       });
 
       // Restore EVOLVEpro mutation list to original maxPrimers count

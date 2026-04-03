@@ -74,6 +74,8 @@ export function DesignReport() {
         evolveproParetoExchanges: s.evolveproParetoExchanges,
         evolveproStepStats: s.evolveproStepStats,
         mutationInputMode: s.mutationInputMode,
+        rescueStats: s.rescueStats,
+        rescuedMutationDetails: s.rescuedMutationDetails,
       };
     }),
   );
@@ -109,6 +111,8 @@ export function DesignReport() {
     evolveproParetoExchanges,
     evolveproStepStats,
     mutationInputMode,
+    rescueStats,
+    rescuedMutationDetails,
   } = data;
 
   const successCount = designResults.length;
@@ -207,6 +211,40 @@ export function DesignReport() {
             <Stat label="Tm condition met" value={`${tmMet}/${successCount}`} warn={tmMet < successCount} />
             {failCount > 0 && <Stat label="Failed" value={failCount} warn />}
           </Section>
+
+          {/* Position Rescue */}
+          {(rescueStats.pool_cascade + rescueStats.auto_relax) > 0 && (
+            <Section title="Position Rescue">
+              {rescueStats.pool_cascade > 0 && (
+                <Stat label="Pool cascade" value={rescueStats.pool_cascade} />
+              )}
+              {rescueStats.auto_relax > 0 && (
+                <Stat label="Auto-relax" value={rescueStats.auto_relax} />
+              )}
+              {failCount > 0 && (
+                <Stat label="Still failed" value={failCount} warn />
+              )}
+              {rescuedMutationDetails.length > 0 && (
+                <div className="text-xs text-gray-600 space-y-0.5 mt-1">
+                  {rescuedMutationDetails.slice(0, 5).map((r, i) => (
+                    <div key={i} className="flex justify-between">
+                      <span className="font-mono">
+                        {r.type === "pool_cascade"
+                          ? `${r.original} \u2192 ${r.rescued_by}`
+                          : r.original}
+                      </span>
+                      <span className={r.type === "pool_cascade" ? "text-green-600" : "text-amber-600"}>
+                        {r.type === "pool_cascade" ? "\u21BB cascade" : "\u26A1 relaxed"}
+                      </span>
+                    </div>
+                  ))}
+                  {rescuedMutationDetails.length > 5 && (
+                    <div className="text-gray-400">+{rescuedMutationDetails.length - 5} more</div>
+                  )}
+                </div>
+              )}
+            </Section>
+          )}
 
           {/* Tm Distribution */}
           {fwdTms.length > 0 && (

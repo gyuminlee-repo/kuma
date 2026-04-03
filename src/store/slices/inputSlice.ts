@@ -142,6 +142,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         mutationInputMode: currentMode === "multi-evolve" ? "multi-evolve" : "evolvepro",
         yPredMap: yMap,
         domainStats: result.domain_stats ?? {},
+        poolVariants: result.pool_variants ?? [],
         evolveproTotalCount: result.total_count,
         evolveproFilteredCount: result.filtered_count ?? null,
         evolveproParetoExchanges: result.pareto_replaced ?? null,
@@ -157,6 +158,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
           evolveproStepStats: null,
           yPredMap: {},
           domainStats: {},
+          poolVariants: [],
           statusMessage: `${get().mutationInputMode === "multi-evolve" ? "MULTI-evolve" : "EVOLVEpro"} CSV load failed: ${formatError(err)}`,
         });
       }

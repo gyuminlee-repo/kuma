@@ -1,6 +1,34 @@
-# KURO Update Notes — v0.9.5 → v1.27.0
+# KURO Update Notes — v0.9.5 → v1.28.0
 
 [한국어](UPDATE-NOTES.ko.md) | **English**
+
+---
+
+## v1.28.0 (2026-04-03)
+
+### Position Rescue — Pool Cascade + Auto-Relax
+
+**Pool Cascade**
+- When a primer design fails, the system automatically attempts alternative variants at the same amino acid position from the EVOLVEpro pool. The `pool_variants` list (all variants in the effective pool before position/diversity filters) is returned by `load_evolvepro_csv()` and sent as `rescue_pool` in the design request
+- Frontend computes the rescue pool by subtracting intended mutations from pool variants
+
+**Auto-Relax**
+- If pool cascade does not rescue a failed mutation, the system retries the original mutation with widened parameters: Tm tolerance ±5.0°C (default ±3.0°C), GC range ±5% (floor 20%, ceiling 80%)
+- `design_single_sdm()` now accepts a `tol_max` parameter (default 3.0) instead of a hardcoded value
+
+**Backend**
+- `_build_mutation()` and `_build_profile()` helper functions extracted from `handle_retry_failed()` for reuse in the rescue loop
+- `DesignSdmPrimersParams` model extended with `rescue_pool: list[str]` and `auto_relax: bool` fields
+- Design response includes `rescue_stats` (pool_cascade/auto_relax counts) and `rescued_mutations` (details per rescue)
+
+**UI Feedback**
+- Design Report shows a "Position Rescue" section when rescues occur, with per-mutation details (cascade substitutions and relaxed mutations)
+- Result table displays rescue badges: green `↻ Q232A` for pool cascade (showing original mutation), amber `⚡ relaxed` for auto-relax
+- Status bar includes rescue count (e.g. "95/95 designed | Tm: 93/95 | 3 rescued")
+
+**Tests**
+- `TestPoolVariants` (2 tests): pool_variants returned correctly; pareto pool size within expected range
+- `TestAutoRelaxTolMax` (1 test): `tol_max` parameter accepted with correct default
 
 ---
 

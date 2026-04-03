@@ -356,6 +356,15 @@ def load_evolvepro_csv(
         adaptive_count = sum(1 for _, y in rows if y >= threshold)
         sigma_pool_size = max(top_n, adaptive_count)
 
+    # Pool variants: all variants in the effective pool (before position/diversity filters)
+    if sigma_pool_size is not None:
+        effective_pool = sigma_pool_size
+    elif pareto_diversity:
+        effective_pool = min(len(rows), max(top_n, int(top_n * pool_multiplier)))
+    else:
+        effective_pool = top_n
+    pool_variants = [v for v, _ in rows[:effective_pool]]
+
     # Position diversity filter (with Grantham tie-break)
     pre_filter_count = len(rows)
     if max_per_position > 0:
@@ -407,6 +416,7 @@ def load_evolvepro_csv(
         "filtered_count": position_filter_removed,
         "domain_stats": domain_stats,
         "pareto_replaced": pareto_exchanges,
+        "pool_variants": pool_variants,
         "step_stats": {
             "position_filter_removed": position_filter_removed,
             "domain_selected": domain_selected,

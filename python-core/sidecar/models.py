@@ -60,6 +60,10 @@ class DesignSdmPrimersParams(BaseModel):
     rev_len_min: int = Field(default=18, ge=10, le=60)
     rev_len_max: int = Field(default=30, ge=10, le=100)
 
+    # Position rescue
+    rescue_pool: list[str] = Field(default_factory=list)
+    auto_relax: bool = Field(default=True)
+
 
 class RetryFailedParams(BaseModel):
     mutation: str = ""

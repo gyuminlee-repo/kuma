@@ -28,6 +28,7 @@ https://github.com/user-attachments/assets/f95e65ca-22d2-4479-a06b-8dcd553571be
 - **후보 비교 및 교체**: 프라이머 서열 클릭 시 후보 비교 팝오버 (candidate 1개여도 클릭 가능). 수동 교체 시 결과 테이블에 amber 하이라이트
 - **커스텀 프라이머 평가**: 후보 팝오버에서 직접 서열 입력 → Tm, GC%, hairpin, off-target 즉시 계산
 - **실패 돌연변이 재시도**: 실패한 mutation 클릭 → Tm/GC%/길이/tolerance 조절 → 조절된 파라미터로 재설계 → 후보 선택
+- **Position Rescue**: 프라이머 설계 실패 시 EVOLVEpro pool에서 같은 위치의 대안 variant를 자동 시도(Pool Cascade)하고, 그래도 실패하면 Tm tolerance(±5.0°C)와 GC 범위(±5%)를 완화하여 재시도(Auto-Relax). 결과 테이블에 rescue 뱃지 표시 (초록 `↻` pool cascade, 노랑 `⚡` auto-relax), Design Report에 rescue 통계 표시
 - **실패 시 자동 채움(Fill on failure)**: 활성화 시(기본 꺼짐) 일부 mutation 실패해도 추가 후보로 요청 수만큼 자동 채움
 - **Off-target 검증**: template sense/antisense strand에서 비특이적 결합 자동 검출. OT `!!` 클릭 시 결합 위치·strand·Tm 상세 팝오버
 - **96-well Plate Map**: Fwd/Rev 쌍 연동 플레이트. 96개 초과 시 multi-plate 슬라이드 (Plate N Fwd ↔ Plate N Rev). 테이블 정렬 연동

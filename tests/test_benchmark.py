@@ -440,3 +440,51 @@ class TestGranthamTieBreak:
         result = _position_filter_with_tiebreak(rows, max_per_position=1)
         # A10C_B20D has no position → passes through; A10C is the only pos-10 variant
         assert len(result) == 2
+
+
+class TestPoolVariants:
+    """Tests for pool_variants returned by load_evolvepro_csv."""
+
+    def test_pool_variants_returned(self, tmp_path):
+        """load_evolvepro_csv should return pool_variants list."""
+        import csv
+        csv_path = tmp_path / "test.csv"
+        rows = [(f"A{10 + i}C", 1.0 - i * 0.01) for i in range(50)]
+        with open(csv_path, "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=["variant", "y_pred"])
+            writer.writeheader()
+            for v, y in rows:
+                writer.writerow({"variant": v, "y_pred": y})
+
+        result = load_evolvepro_csv(csv_path, top_n=10)
+        assert "pool_variants" in result
+        assert len(result["pool_variants"]) == 10
+        # pool_variants should be the top-scoring variants
+        assert result["pool_variants"][0] == "A10C"
+
+    def test_pool_variants_with_pareto(self, tmp_path):
+        """With pareto_diversity, pool_variants should be larger than selected."""
+        import csv
+        csv_path = tmp_path / "test.csv"
+        rows = [(f"A{10 + i * 2}C", 1.0 - i * 0.01) for i in range(100)]
+        with open(csv_path, "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=["variant", "y_pred"])
+            writer.writeheader()
+            for v, y in rows:
+                writer.writerow({"variant": v, "y_pred": y})
+
+        result = load_evolvepro_csv(csv_path, top_n=20, pareto_diversity=True, pool_multiplier=2.0)
+        assert len(result["pool_variants"]) >= 20
+        assert len(result["pool_variants"]) <= 40  # top_n * pool_multiplier
+
+
+class TestAutoRelaxTolMax:
+    """Tests for tol_max parameter in design_single_sdm."""
+
+    def test_tol_max_parameter_accepted(self):
+        """design_single_sdm should accept tol_max parameter without error."""
+        import inspect
+        from kuro.sdm_engine import design_single_sdm
+        sig = inspect.signature(design_single_sdm)
+        assert "tol_max" in sig.parameters
+        assert sig.parameters["tol_max"].default == 3.0

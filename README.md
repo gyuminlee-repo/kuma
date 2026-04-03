@@ -29,6 +29,7 @@ Given a mutation list (plain text / EVOLVEpro CSV / MULTI-evolve CSV) and a temp
 - **Candidate comparison and swap**: Click a primer sequence to open a candidate comparison popover (clickable even with a single candidate). Manually swapped primers are highlighted in amber in the result table
 - **Custom primer evaluation**: Enter a sequence directly in the candidate popover → Tm, GC%, hairpin, and off-target are calculated immediately
 - **Failed mutation retry**: Click a failed mutation → adjust Tm/GC%/length/tolerance → re-design with modified parameters → select from candidates
+- **Position Rescue**: When a primer design fails, automatically attempts same-position backup variants from the EVOLVEpro pool (Pool Cascade), then widens Tm tolerance (±5.0°C) and GC range (±5%) for still-failed mutations (Auto-Relax). Rescue badges shown in result table (green `↻` for pool cascade, amber `⚡` for auto-relax) and rescue statistics displayed in Design Report
 - **Fill on failure**: When enabled (off by default), automatically fills the requested mutation count from extra candidates when some mutations fail
 - **Off-target detection**: Automatic detection of non-specific binding on the template sense/antisense strand. Click OT `!!` to view a detailed popover with binding position, strand, and Tm
 - **96-well Plate Map**: Linked Fwd/Rev plate. Multi-plate slide for >96 mutations (Plate N Fwd ↔ Plate N Rev). Synchronized with table sort order

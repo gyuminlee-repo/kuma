@@ -7,7 +7,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { useAppStore } from "../../store/appStore";
-import type { SdmPrimerResult, FailedMutation } from "../../types/models";
+import type { SdmPrimerResult, FailedMutation, RescuedMutation } from "../../types/models";
 import { CandidatePopover } from "./popovers/CandidatePopover";
 import { HairpinDetail } from "./popovers/HairpinDetail";
 import { OffTargetDetail } from "./popovers/OffTargetDetail";
@@ -112,10 +112,11 @@ function makeColumns(opts: {
   swapped: Record<string, string>;
   customCandidates: Record<string, SdmPrimerResult[]>;
   rescuedMutations: string[];
+  rescuedMutationDetails: RescuedMutation[];
   removeDesignResult: (mutation: string, reason: string) => void;
   yPredMap: Record<string, number>;
 }) {
-  const { groupColorMap, codonStrategy, swapped, customCandidates, rescuedMutations, removeDesignResult, yPredMap } = opts;
+  const { groupColorMap, codonStrategy, swapped, customCandidates, rescuedMutations, rescuedMutationDetails, removeDesignResult, yPredMap } = opts;
   return [
     col.accessor("rank", {
       header: "#",
@@ -138,6 +139,9 @@ function makeColumns(opts: {
         const row = info.row.original;
         const color = row.aa_position != null ? groupColorMap.get(row.aa_position) : undefined;
         const isRescued = rescuedMutations.includes(row.mutation);
+        const rescueDetail = rescuedMutationDetails.find(
+          (r) => r.rescued_by === row.mutation,
+        );
         return (
           <span className="font-mono font-medium flex items-center gap-1">
             <span>
@@ -151,7 +155,25 @@ function makeColumns(opts: {
                 </span>
               )}
             </span>
-            {isRescued && (
+            {rescueDetail && (
+              <span
+                className={`ml-1 px-1 py-0.5 rounded text-[8px] leading-none ${
+                  rescueDetail.type === "pool_cascade"
+                    ? "bg-green-100 text-green-700"
+                    : "bg-amber-100 text-amber-700"
+                }`}
+                title={
+                  rescueDetail.type === "pool_cascade"
+                    ? `Pool cascade: replaced ${rescueDetail.original}`
+                    : "Auto-relax: widened Tm tolerance and GC range"
+                }
+              >
+                {rescueDetail.type === "pool_cascade"
+                  ? `\u21BB ${rescueDetail.original}`
+                  : "\u26A1 relaxed"}
+              </span>
+            )}
+            {isRescued && !rescueDetail && (
               <button
                 className="ml-1 px-1 py-0.5 bg-red-100 text-red-600 rounded text-[8px] hover:bg-red-200 leading-none"
                 title="Remove custom rescue — restore to Failed"
@@ -391,11 +413,12 @@ export function ResultTable() {
   const manuallySwapped = useAppStore((s) => s.manuallySwapped);
   const customCandidatesAll = useAppStore((s) => s.customCandidates);
   const rescuedMutations = useAppStore((s) => s.rescuedMutations);
+  const rescuedMutationDetails = useAppStore((s) => s.rescuedMutationDetails);
   const removeDesignResult = useAppStore((s) => s.removeDesignResult);
   const yPredMap = useAppStore((s) => s.yPredMap);
   const columns = useMemo(
-    () => makeColumns({ groupColorMap, codonStrategy, swapped: manuallySwapped, customCandidates: customCandidatesAll, rescuedMutations, removeDesignResult, yPredMap }),
-    [groupColorMap, codonStrategy, manuallySwapped, customCandidatesAll, rescuedMutations, removeDesignResult, yPredMap],
+    () => makeColumns({ groupColorMap, codonStrategy, swapped: manuallySwapped, customCandidates: customCandidatesAll, rescuedMutations, rescuedMutationDetails, removeDesignResult, yPredMap }),
+    [groupColorMap, codonStrategy, manuallySwapped, customCandidatesAll, rescuedMutations, rescuedMutationDetails, removeDesignResult, yPredMap],
   );
 
   const table = useReactTable({

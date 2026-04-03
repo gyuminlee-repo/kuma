@@ -1,6 +1,33 @@
-# KURO 업데이트 노트 — v0.9.5 → v1.27.0
+# KURO 업데이트 노트 — v0.9.5 → v1.28.0
 
 **한국어** | [English](UPDATE-NOTES.md)
+
+---
+
+## v1.28.0 (2026-04-03)
+
+### Position Rescue — Pool Cascade + Auto-Relax
+
+**Pool Cascade**
+- 프라이머 설계 실패 시, EVOLVEpro pool에서 같은 아미노산 위치의 대안 variant를 자동 시도. `load_evolvepro_csv()`가 position/diversity 필터 적용 전 전체 pool의 `pool_variants` 목록을 반환하며, 프론트엔드에서 `rescue_pool = pool_variants − selected_variants`를 계산하여 설계 요청에 전달
+
+**Auto-Relax**
+- Pool cascade로도 구제되지 않은 mutation에 대해 완화된 파라미터로 재시도: Tm tolerance ±5.0°C (기본 ±3.0°C), GC 범위 ±5% (하한 20%, 상한 80%)
+- `design_single_sdm()`에 `tol_max` 파라미터 추가 (기본값 3.0, 하드코딩 제거)
+
+**백엔드**
+- `_build_mutation()`, `_build_profile()` 헬퍼 함수를 `handle_retry_failed()`에서 추출하여 rescue 루프에서 재사용
+- `DesignSdmPrimersParams` 모델에 `rescue_pool: list[str]`, `auto_relax: bool` 필드 추가
+- 설계 응답에 `rescue_stats` (pool_cascade/auto_relax 카운트), `rescued_mutations` (구제 상세) 포함
+
+**UI 피드백**
+- Design Report에 rescue 발생 시 "Position Rescue" 섹션 표시 (mutation별 cascade 대체/relax 상세)
+- 결과 테이블에 rescue 뱃지: 초록 `↻ Q232A` (pool cascade, 원래 mutation 표시), 노랑 `⚡ relaxed` (auto-relax)
+- 상태바에 rescue 카운트 포함 (예: "95/95 designed | Tm: 93/95 | 3 rescued")
+
+**테스트**
+- `TestPoolVariants` (2개): pool_variants 반환 검증, pareto pool 크기 범위 검증
+- `TestAutoRelaxTolMax` (1개): `tol_max` 파라미터 수용 및 기본값 검증
 
 ---
 

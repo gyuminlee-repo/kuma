@@ -532,6 +532,7 @@ def design_single_sdm(
     rev_len_min: int = 18,
     rev_len_max: int = 35,
     organism: str = "ecoli",
+    tol_max: float = 3.0,
 ) -> list[SdmPrimerResult]:
     """Design SDM primers for a single mutation.
 
@@ -571,7 +572,6 @@ def design_single_sdm(
 
     # Tolerance settings
     tol_step = 0.5
-    tol_max = 3.0
 
     # Try multiple overlap lengths (adaptive)
     min_overlap = 8 if tm_target_overlap < 50.0 else 15

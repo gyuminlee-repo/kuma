@@ -46,6 +46,7 @@ export interface DiversitySlice {
   saveCache: boolean;
   structureLoaded: boolean;
   structureLoading: boolean;
+  poolVariants: string[];
   uniprotCandidates: UniprotCandidate[];
   uniprotSearching: boolean;
 
@@ -123,6 +124,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   benchmarkResults: null,
   autoRedesignOnLoad: true,
   saveCache: true,
+  poolVariants: [] as string[],
   structureLoaded: false,
   structureLoading: false,
   uniprotCandidates: [],

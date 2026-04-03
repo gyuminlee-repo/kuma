@@ -2,6 +2,7 @@
 
 import csv
 import os
+import re
 import tempfile
 from dataclasses import fields as dc_fields, replace as dc_replace
 from pathlib import Path
@@ -15,6 +16,7 @@ from kuro.sdm_engine import (
 )
 from kuro.mutation import Mutation, parse_mutation_notation
 from kuro.codon_table import CODON_TO_AA, best_codon
+from kuro.polymerase import PolymeraseProfile
 
 import sidecar.core as _core
 from sidecar.core import (
@@ -114,6 +116,40 @@ def _serialize_result_with_counts(r: SdmPrimerResult) -> dict:
     result["candidate_fwd_count"] = fwd_count
     result["candidate_rev_count"] = rev_count
     return result
+
+
+# ---------------------------------------------------------------------------
+# Rescue helpers
+# ---------------------------------------------------------------------------
+
+_POS_RE = re.compile(r'[A-Z](\d+)[A-Z]')
+
+
+def _build_mutation(mutation_raw: str, sequence: str, target_start: int, organism: str) -> Mutation:
+    """Parse a mutation notation and build a Mutation object."""
+    wt_aa, position, mt_aa = parse_mutation_notation(mutation_raw)
+    codon_start = target_start + (position - 1) * 3
+    wt_codon = sequence[codon_start:codon_start + 3]
+    actual_aa = CODON_TO_AA.get(wt_codon)
+    if actual_aa != wt_aa:
+        raise ValueError(f"WT mismatch at {position}: expected {wt_aa}, got {actual_aa}")
+    mt_codon = best_codon(mt_aa, organism)
+    return Mutation(
+        raw=mutation_raw, wt_aa=wt_aa, position=position, mt_aa=mt_aa,
+        codon_start=codon_start, wt_codon=wt_codon, mt_codon=mt_codon,
+    )
+
+
+def _build_profile(p) -> PolymeraseProfile:
+    """Build a PolymeraseProfile with optional Tm target overrides."""
+    profile = dc_replace(_poly_registry.get(p.polymerase))
+    if p.tm_fwd_target is not None:
+        profile = dc_replace(profile, opt_tm_fwd=p.tm_fwd_target)
+    if p.tm_rev_target is not None:
+        profile = dc_replace(profile, opt_tm_rev=p.tm_rev_target)
+    if p.tm_overlap_target is not None:
+        profile = dc_replace(profile, opt_tm_overlap=p.tm_overlap_target)
+    return profile
 
 
 # ---------------------------------------------------------------------------
@@ -227,6 +263,86 @@ def handle_design_sdm_primers(params: dict) -> dict:
         return {"results": [], "success_count": 0, "total_count": 0,
                 "failed_mutations": [], "cancelled": True}
 
+    # -----------------------------------------------------------------------
+    # Position Rescue: pool cascade + auto-relax
+    # -----------------------------------------------------------------------
+    rescue_stats = {"pool_cascade": 0, "auto_relax": 0}
+    rescued_info: list[dict] = []
+
+    if p.rescue_pool and engine_failures:
+        _header_r, sequence_r, _genes_r = load_sequence(resolved_fasta)
+        profile = _build_profile(p)
+
+        # Group rescue pool by position
+        rescue_by_pos: dict[int, list[str]] = {}
+        for v in p.rescue_pool:
+            m = _POS_RE.search(v)
+            if m:
+                rescue_by_pos.setdefault(int(m.group(1)), []).append(v)
+
+        # Pool cascade: try same-position backup variants
+        still_failed: dict[str, str] = {}
+        designed_muts = {r.mutation.raw for r in results}
+
+        for failed_mut, reason in engine_failures.items():
+            m = _POS_RE.search(failed_mut)
+            if not m:
+                still_failed[failed_mut] = reason
+                continue
+            pos = int(m.group(1))
+            rescued = False
+            for backup in rescue_by_pos.get(pos, []):
+                if backup == failed_mut or backup in designed_muts:
+                    continue
+                try:
+                    mut_obj = _build_mutation(backup, sequence_r, p.target_start, p.organism)
+                    cands = design_single_sdm(
+                        sequence_r, mut_obj, profile, p.overlap_len,
+                        codon_strategy=p.codon_strategy,
+                        gc_min=p.gc_min, gc_max=p.gc_max,
+                        fwd_len_min=p.fwd_len_min, fwd_len_max=p.fwd_len_max,
+                        rev_len_min=p.rev_len_min, rev_len_max=p.rev_len_max,
+                        organism=p.organism,
+                    )
+                    if cands:
+                        results.append(cands[0])
+                        all_cands[backup] = cands
+                        designed_muts.add(backup)
+                        rescue_stats["pool_cascade"] += 1
+                        rescued_info.append({"original": failed_mut, "rescued_by": backup, "type": "pool_cascade"})
+                        rescued = True
+                        break
+                except (ValueError, IndexError):
+                    continue
+            if not rescued:
+                still_failed[failed_mut] = reason
+
+        # Auto-relax: widen tolerance and GC range for still-failed mutations
+        if p.auto_relax:
+            for failed_mut in list(still_failed):
+                try:
+                    mut_obj = _build_mutation(failed_mut, sequence_r, p.target_start, p.organism)
+                    cands = design_single_sdm(
+                        sequence_r, mut_obj, profile, p.overlap_len,
+                        codon_strategy=p.codon_strategy,
+                        tol_max=5.0,
+                        gc_min=max(20, p.gc_min - 5),
+                        gc_max=min(80, p.gc_max + 5),
+                        fwd_len_min=p.fwd_len_min, fwd_len_max=p.fwd_len_max,
+                        rev_len_min=p.rev_len_min, rev_len_max=p.rev_len_max,
+                        organism=p.organism,
+                    )
+                    if cands:
+                        results.append(cands[0])
+                        all_cands[failed_mut] = cands
+                        rescue_stats["auto_relax"] += 1
+                        rescued_info.append({"original": failed_mut, "rescued_by": failed_mut, "type": "auto_relax"})
+                        del still_failed[failed_mut]
+                except (ValueError, IndexError):
+                    continue
+
+        engine_failures = still_failed
+
     _core._state.results = results
     _core._state.candidates = all_cands
     _progress(80, "Generating plate map...")
@@ -258,6 +374,8 @@ def handle_design_sdm_primers(params: dict) -> dict:
         "total_count": total_mutations,
         "failed_mutations": failed,
         "step_stats": None,
+        "rescue_stats": rescue_stats,
+        "rescued_mutations": rescued_info,
     }
 
 
@@ -275,18 +393,7 @@ def handle_retry_failed(params: dict) -> dict:
     _header, sequence, _genes = load_sequence(resolved_fasta)
 
     # Parse mutation
-    wt_aa, position, mt_aa = parse_mutation_notation(mutation_raw)
-    codon_start = p.target_start + (position - 1) * 3
-    wt_codon = sequence[codon_start:codon_start + 3]
-    actual_aa = CODON_TO_AA.get(wt_codon)
-    if actual_aa != wt_aa:
-        raise ValueError(f"WT amino acid mismatch: expected {wt_aa} at position {position}, but codon {wt_codon} encodes {actual_aa}")
-    mt_codon = best_codon(mt_aa, p.organism)
-
-    mut = Mutation(
-        raw=mutation_raw, wt_aa=wt_aa, position=position, mt_aa=mt_aa,
-        codon_start=codon_start, wt_codon=wt_codon, mt_codon=mt_codon,
-    )
+    mut = _build_mutation(mutation_raw, sequence, p.target_start, p.organism)
 
     # Build polymerase profile with custom Tm targets
     profile = dc_replace(_poly_registry.get(p.polymerase),
