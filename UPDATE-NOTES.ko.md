@@ -1,6 +1,28 @@
-# KURO 업데이트 노트 — v0.9.5 → v1.28.0
+# KURO 업데이트 노트 — v0.9.5 → v1.29.0
 
 **한국어** | [English](UPDATE-NOTES.md)
+
+---
+
+## v1.29.0 (2026-04-04)
+
+### Echo / JANUS 매핑 Export — XLSX + Plate Layout
+
+- Echo 525 및 JANUS 액체 핸들러 매핑 export가 CSV 대신 XLSX 워크북을 생성하도록 변경. 실험실 참조 파일(`040.mapping_files_echo/`) 형식 준수
+- **Echo** 워크북 (2개 시트):
+  - **layout**: 384-well 소스 플레이트 (Fwd 홀수행 + Rev 짝수행 인터리브) + 96-well PCR 목적지 플레이트
+  - **Echo mapping file**: 전송 목록 (Source/Dest Plate, Well, Transfer Vol)
+- **JANUS** 워크북 (2개 시트):
+  - **layout**: Fwd 96-well 플레이트 + Rev 96-well 플레이트 + PCR mixture 목적지 플레이트 (단일 시트)
+  - **primer_mapping file**: 전송 목록 (Asp/Dsp Rack, Posi, volume)
+- CSV 형식은 사용자가 `.csv` 확장자를 직접 선택하면 여전히 지원
+
+### 버그 수정 — 도메인 제외 시 해당 위치 프라이머 생성 문제
+
+- UI에서 특정 도메인을 비활성화해도 해당 위치의 mutation이 "linker"로 잘못 분류되어 선택되던 문제 수정
+- 원인: 프론트엔드가 `activeDomains`만 백엔드에 전달 → disabled domain 위치가 어느 도메인에도 매칭되지 않아 linker bin에 배치
+- 수정: `excluded_ranges` 파라미터를 프론트엔드에서 `load_evolvepro_csv()` → `domain_aware_select()`로 전달. excluded range에 해당하는 위치는 도메인/linker 배정 전에 완전히 제외
+- `LoadEvolveproParams`에 `ExcludedRange` Pydantic 모델 추가
 
 ---
 
