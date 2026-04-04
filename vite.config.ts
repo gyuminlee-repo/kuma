@@ -23,6 +23,14 @@ export default defineConfig(({ }) => {
                 __dirname,
                 "scripts/stubs/dialog.ts",
               ),
+              "@tauri-apps/api/webview": resolve(
+                __dirname,
+                "scripts/stubs/webview.ts",
+              ),
+              "@tauri-apps/api/window": resolve(
+                __dirname,
+                "scripts/stubs/webview.ts",
+              ),
             }
           : {}),
       },
