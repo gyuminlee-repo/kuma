@@ -22,7 +22,7 @@ Rust Shell (src-tauri/)
 
 ### Key layers
 
-- **`kuro/`** — Pure Python library: primer design engine (`sdm_engine.py`), EVOLVEpro selection (`evolvepro.py`), codon tables, overlap logic, plate mapping, benchmark, ESM embeddings. Has its own `pyproject.toml`, installable via `pip install -e .`
+- **`kuro/`** — Pure Python library: primer design engine (`sdm_engine.py`), EVOLVEpro selection (`evolvepro.py`), codon tables, overlap logic, plate mapping, benchmark, AlphaFold Cα distance. Has its own `pyproject.toml`, installable via `pip install -e .`
 - **`python-core/sidecar/`** — JSON-RPC server that wraps `kuro/` for the Tauri frontend. `dispatcher.py` routes methods to `handlers/`. `models.py` has Pydantic request validation. Built to a single binary via PyInstaller (`python-core/build_sidecar.py`)
 - **`src/`** — React 19 frontend. State management: Zustand store split into 5 slices (`src/store/slices/`). IPC layer: `src/lib/ipc.ts`. UI components: shadcn/ui + Radix primitives + TailwindCSS
 - **`src-tauri/`** — Minimal Rust: `main.rs` + `lib.rs` bootstrap Tauri, no business logic

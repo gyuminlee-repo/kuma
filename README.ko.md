@@ -32,7 +32,7 @@ https://github.com/user-attachments/assets/f95e65ca-22d2-4479-a06b-8dcd553571be
 - **실패 시 자동 채움(Fill on failure)**: 활성화 시(기본 꺼짐) 일부 mutation 실패해도 추가 후보로 요청 수만큼 자동 채움
 - **Off-target 검증**: template sense/antisense strand에서 비특이적 결합 자동 검출. OT `!!` 클릭 시 결합 위치·strand·Tm 상세 팝오버
 - **96-well Plate Map**: Fwd/Rev 쌍 연동 플레이트. 96개 초과 시 multi-plate 슬라이드 (Plate N Fwd ↔ Plate N Rev). 테이블 정렬 연동
-- **Echo 525 / JANUS export**: 액체 핸들러 매핑 파일을 XLSX 워크북으로 내보내기. Echo는 384-well 소스 플레이트 레이아웃 + 전송 목록, JANUS는 Fwd/Rev 96-well 래크 레이아웃 + 전송 목록. CSV도 지원
+- **Echo 525 / JANUS export**: 액체 핸들러 매핑을 XLSX 워크북으로 내보내기. Echo: 384-well 소스 플레이트 레이아웃(Fwd/Rev 홀짝행 인터리브) + 전송 목록. JANUS: Fwd/Rev 96-well 래크 레이아웃 + 전송 목록. CSV도 지원
 - **Workspace 저장/불러오기**: 파라미터 + 설계 결과를 `.kuro.json`으로 저장하여 세션 간 이동 가능
 - **데스크톱 GUI**: Windows / macOS / Linux 크로스플랫폼 앱
 
