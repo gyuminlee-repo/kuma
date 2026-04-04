@@ -46,7 +46,7 @@ When loading a scored CSV (EVOLVEpro or MULTI-evolve), KURO applies the configur
 | **Top-N by score** | Select the top N mutations ranked by predicted fitness score (y_pred / property_value descending). N = max primers setting (default 95). | Default ranking. Use when predicted fitness is the only criterion. |
 | **Position diversity** | Limit the number of mutations per amino acid position (default: 1 per position). When two variants at the same position score within 2%, the more conservative substitution (lower Grantham 1974 distance) is preferred. Applied as a pre-filter before other strategies. | Prevent over-sampling at mutational hot spots. |
 | **Domain diversity** | Allocate mutation quota proportionally (by domain length) or equally across protein structural domains. Domains are auto-fetched from InterPro/Pfam via UniProt accession, or entered manually. Under-filled domains show a warning (⚠). | Ensure coverage across all functional regions, especially when one domain dominates the y_pred ranking. |
-| **Pareto diversity** | Greedy maximin position selection: iteratively pick the mutation whose position is farthest from all already-selected positions. Maximizes spatial spread across the protein sequence. | Prevent clustering of mutations in a narrow region. Inspired by the MODIFY approach (Hie et al., *Nature Biotechnology*, 2024). |
+| **Pareto diversity** | Greedy maximin position selection: iteratively pick the mutation whose position is farthest from all already-selected positions. Maximizes spatial spread across the protein sequence. | Prevent clustering of mutations in a narrow region. Inspired by the MODIFY approach (Ding et al., *Nature Communications*, 2024). |
 | **Entropy-guided** (β) | Blends per-position Shannon entropy of the y_pred distribution (weight 0.3) into the Pareto score. Positions where many mutations score similarly (high uncertainty) are prioritised. | Escape local optima. Useful when EVOLVEpro predictions converge on a narrow region but the landscape may have multiple peaks. Requires Pareto diversity to be enabled. |
 
 **Combination examples:**
@@ -55,7 +55,7 @@ When loading a scored CSV (EVOLVEpro or MULTI-evolve), KURO applies the configur
 - Pareto + Entropy-guided: Spatial spread with uncertainty-driven exploration
 
 **Reference:**
-- Hie BL, Shanker VR, Xu D, et al. Efficient evolution of human antibodies from general protein language models. *Nature Biotechnology*, 42:275-283 (2024). — Pareto fitness-diversity co-optimization concept
+- Ding D, Shaw AY, Sinai S, et al. Protein design using structure-predicted residue preferences and sequence-predicted fitness. *Nature Communications*, 15:6729 (2024). PMID:39080249 — MODIFY: Pareto fitness-diversity co-optimization
 
 ## Installation
 

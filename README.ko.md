@@ -45,7 +45,7 @@ EVOLVEpro 또는 MULTI-evolve CSV 로드 시 어떤 mutation을 프라이머 설
 | **Top-N by score** | 예측 적합도(y_pred / property_value) 내림차순으로 상위 N개 선택. N = 최대 프라이머 수 설정 (기본 95). | 기본 랭킹. 예측 적합도만 기준으로 할 때. |
 | **Position diversity** | 아미노산 위치당 최대 mutation 수 제한 (기본: 위치당 1개). 동일 위치 두 후보 점수 차이 2% 이내 시 Grantham 1974 거리가 낮은 보수적 치환 우선 선택. 다른 전략 적용 전 사전 필터로 동작. | 특정 위치에 mutation이 과도하게 집중되는 것을 방지. |
 | **Domain diversity** | 단백질 구조 도메인별로 mutation 할당량을 배분 (비례 배분 또는 균등 배분). 도메인 정보는 UniProt accession으로 InterPro/Pfam에서 자동 조회하거나 수동 입력. 할당량 미달 도메인은 경고(⚠) 표시. | 한 도메인이 y_pred 상위를 독점할 때, 모든 기능 영역을 균형 있게 탐색하기 위해. |
-| **Pareto diversity** | Greedy maximin 위치 선택: 이미 선택된 mutation과 가장 먼 위치의 mutation을 반복 선택하여 공간적 분산을 극대화. | 좁은 영역에 mutation이 밀집되는 것을 방지. MODIFY 접근법 (Hie et al., *Nature*, 2024) 기반. |
+| **Pareto diversity** | Greedy maximin 위치 선택: 이미 선택된 mutation과 가장 먼 위치의 mutation을 반복 선택하여 공간적 분산을 극대화. | 좁은 영역에 mutation이 밀집되는 것을 방지. MODIFY 접근법 (Ding et al., *Nature Communications*, 2024) 기반. |
 | **Entropy-guided** (β) | 위치별 y_pred 분포의 Shannon entropy (가중치 0.3)를 Pareto 점수에 혼합. 동일 위치에서 다수 mutation이 비슷한 점수로 분포할 때(불확실성 높을 때) 우선 선택. | 적합도 경관에 여러 봉우리가 존재할 가능성이 있을 때 국소 최적 탈출. Pareto diversity 활성화 필요. |
 
 **조합 예시:**
@@ -54,7 +54,7 @@ EVOLVEpro 또는 MULTI-evolve CSV 로드 시 어떤 mutation을 프라이머 설
 - Pareto + Entropy-guided: 공간 분산 + 불확실성 우선 탐색
 
 **참고 문헌:**
-- Hie BL, Shanker VR, Xu D, et al. Efficient evolution of human antibodies from general protein language models. *Nature Biotechnology*, 42:275-283 (2024). — Pareto fitness-diversity 공동 최적화 개념
+- Ding D, Shaw AY, Sinai S, et al. Protein design using structure-predicted residue preferences and sequence-predicted fitness. *Nature Communications*, 15:6729 (2024). PMID:39080249 — MODIFY: Pareto fitness-diversity 공동 최적화
 
 ## 설치
 
