@@ -592,6 +592,47 @@ def _build_rev_lookups(
     return fwd_by_mut, rev_by_seq, mut_to_rev_seq
 
 
+def _write_96well_grid(
+    ws, start_row: int, mappings: list[PlateMapping], label: str,
+) -> int:
+    """Write a labelled 96-well plate grid and return the next free row."""
+    from openpyxl.styles import Alignment, Font
+
+    bold = Font(bold=True)
+    center = Alignment(horizontal="center")
+    r = start_row
+
+    # "lab ware" / label
+    ws.cell(row=r, column=1, value="lab ware").font = bold
+    ws.cell(row=r, column=3, value=label)
+    r += 1
+
+    # "96 deep well" + column numbers 1-12
+    ws.cell(row=r, column=1, value="96 deep well").font = bold
+    for c in range(1, 13):
+        cell = ws.cell(row=r, column=c + 2, value=c)
+        cell.font = bold
+        cell.alignment = center
+    r += 1
+
+    # Build well → primer name lookup (strip overflow prefix)
+    well_lookup: dict[str, str] = {}
+    for m in mappings:
+        _, base = _parse_well_plate(m.well)
+        well_lookup[base] = m.primer_name
+
+    # Rows A-H
+    for ri, row_letter in enumerate("ABCDEFGH"):
+        ws.cell(row=r, column=2, value=row_letter).font = bold
+        for c in range(1, 13):
+            name = well_lookup.get(f"{row_letter}{c}")
+            if name:
+                ws.cell(row=r, column=c + 2, value=name).alignment = center
+        r += 1
+
+    return r
+
+
 def export_echo_mapping_xlsx(
     fwd_mappings: list[PlateMapping],
     rev_mappings: list[PlateMapping],
@@ -599,38 +640,107 @@ def export_echo_mapping_xlsx(
     transfer_vol: int = 100,
     rev_groups: dict[str, list[str]] | None = None,
 ) -> None:
-    """Export Echo 525 mapping as XLSX with transfer list + plate layout sheets.
+    """Export Echo 525 mapping as XLSX matching the lab reference format.
 
     Sheets:
-      - Transfers: one row per transfer event (same data as CSV export).
-      - Fwd Plate: 96-well source plate layout for forward primers.
-      - Rev Plate: 96-well source plate layout for reverse primers.
+      - layout: 384-well source plate (Fwd odd rows + Rev even rows)
+                + 96-well destination plate.
+      - Echo mapping file: one row per transfer event.
     """
     from openpyxl import Workbook
-    from openpyxl.styles import Font, PatternFill
+    from openpyxl.styles import Alignment, Font, PatternFill
 
     fwd_by_mut, rev_by_seq, mut_to_rev_seq = _build_rev_lookups(
         fwd_mappings, rev_mappings, rev_groups,
     )
+    bold = Font(bold=True)
+    center = Alignment(horizontal="center")
 
     wb = Workbook()
 
-    # --- Sheet 1: Transfers ---
+    # ---- Sheet 1: layout ----
     ws = wb.active
-    ws.title = "Transfers"
+    ws.title = "layout"
+
+    # Title
+    ws.cell(row=1, column=2, value="Primer dispensing (Echo 525)")
+
+    # Source section header
+    ws.cell(row=2, column=1, value="Source").font = bold
+    ws.cell(row=3, column=1, value="labware")
+    ws.cell(row=3, column=3, value="source plate")
+
+    # "Eco 384PP" + column numbers 1-24
+    ws.cell(row=4, column=1, value="Eco 384PP").font = bold
+    for c in range(1, 25):
+        cell = ws.cell(row=4, column=c + 2, value=c)
+        cell.font = bold
+        cell.alignment = center
+
+    # Build 384-well lookup: well_384 → primer_name
+    well_384: dict[str, str] = {}
+    for m in fwd_mappings:
+        _, base = _parse_well_plate(m.well)
+        well_384[_to_384_well_fwd(base)] = m.primer_name
+    for m in rev_mappings:
+        _, base = _parse_well_plate(m.well)
+        well_384[_to_384_well_rev(base)] = m.primer_name
+
+    # 384-well grid: rows A-P (16 rows)
+    for ri, row_letter in enumerate(_ROWS_384):
+        r = 5 + ri
+        ws.cell(row=r, column=2, value=row_letter).font = bold
+        for c in range(1, 25):
+            name = well_384.get(f"{row_letter}{c}")
+            if name:
+                ws.cell(row=r, column=c + 2, value=name).alignment = center
+
+    # Destination section (96-well PCR plate)
+    dest_start = 5 + 16 + 1  # after 384-well grid + blank row
+    ws.cell(row=dest_start, column=1, value="Destination").font = bold
+    ws.cell(row=dest_start + 1, column=1, value="labware")
+    ws.cell(row=dest_start + 1, column=3, value="PCR mixture")
+
+    ws.cell(row=dest_start + 2, column=1, value="96 PCR plate").font = bold
+    for c in range(1, 13):
+        cell = ws.cell(row=dest_start + 2, column=c + 2, value=c)
+        cell.font = bold
+        cell.alignment = center
+
+    # Build dest well → mutation name lookup
+    dest_lookup: dict[str, str] = {}
+    for m in fwd_mappings:
+        _, base = _parse_well_plate(m.well)
+        dest_lookup[base] = m.mutation
+
+    for ri, row_letter in enumerate("ABCDEFGH"):
+        r = dest_start + 3 + ri
+        ws.cell(row=r, column=2, value=row_letter).font = bold
+        for c in range(1, 13):
+            name = dest_lookup.get(f"{row_letter}{c}")
+            if name:
+                ws.cell(row=r, column=c + 2, value=name).alignment = center
+
+    # Auto-width
+    ws.column_dimensions["A"].width = 14
+    ws.column_dimensions["B"].width = 4
+    for c in range(3, 27):
+        ws.column_dimensions[chr(64 + c)].width = 12
+
+    # ---- Sheet 2: Echo mapping file ----
+    ws2 = wb.create_sheet("Echo mapping file")
     headers = [
         "Source Plate Name", "Source Well Name", "Source Well",
         "Dest Plate Name", "Dest Well Name", "Dest Well", "Transfer Vol",
     ]
     header_fill = PatternFill(start_color="D9E1F2", fill_type="solid")
     for col_idx, h in enumerate(headers, 1):
-        cell = ws.cell(row=1, column=col_idx, value=h)
-        cell.font = Font(bold=True)
+        cell = ws2.cell(row=1, column=col_idx, value=h)
+        cell.font = bold
         cell.fill = header_fill
 
     row_num = 2
 
-    # Forward transfers
     for m in fwd_mappings:
         plate_idx, base_well = _parse_well_plate(m.well)
         src_plate = f"Source [{plate_idx + 1}]"
@@ -640,10 +750,9 @@ def export_echo_mapping_xlsx(
             src_plate, m.primer_name, src_well,
             dest_plate, m.mutation, base_well, transfer_vol,
         ], 1):
-            ws.cell(row=row_num, column=ci, value=val)
+            ws2.cell(row=row_num, column=ci, value=val)
         row_num += 1
 
-    # Reverse transfers
     for fwd_m in fwd_mappings:
         rev_seq = mut_to_rev_seq.get(fwd_m.mutation)
         if rev_seq is None:
@@ -661,19 +770,12 @@ def export_echo_mapping_xlsx(
             src_plate, rev_m.primer_name, src_well,
             dest_plate, fwd_m.mutation, dest_well, transfer_vol,
         ], 1):
-            ws.cell(row=row_num, column=ci, value=val)
+            ws2.cell(row=row_num, column=ci, value=val)
         row_num += 1
 
-    for col in ws.columns:
+    for col in ws2.columns:
         max_len = max(len(str(cell.value or "")) for cell in col)
-        ws.column_dimensions[col[0].column_letter].width = min(max_len + 2, 30)
-
-    # --- Sheet 2 & 3: Plate layouts ---
-    ws_fwd = wb.create_sheet("Fwd Plate")
-    _write_plate_sheet(ws_fwd, fwd_mappings, _COLOR_FWD)
-
-    ws_rev = wb.create_sheet("Rev Plate")
-    _write_plate_sheet(ws_rev, rev_mappings, _COLOR_REV, rev_groups=rev_groups)
+        ws2.column_dimensions[col[0].column_letter].width = min(max_len + 2, 30)
 
     wb.save(output_path)
 
@@ -685,49 +787,93 @@ def export_janus_mapping_xlsx(
     transfer_vol: float = 2.0,
     rev_groups: dict[str, list[str]] | None = None,
 ) -> None:
-    """Export JANUS mapping as XLSX with transfer list + plate layout sheets.
+    """Export JANUS mapping as XLSX matching the lab reference format.
 
     Sheets:
-      - Transfers: one row per transfer event (same data as CSV export).
-      - Rack 1 (Fwd): 96-well layout for forward primers.
-      - Rack 2 (Rev): 96-well layout for reverse primers.
+      - layout: Fwd 96-well plate + Rev 96-well plate
+                + 96-well PCR mixture (destination) on a single sheet.
+      - primer_mapping file: one row per transfer event.
     """
     from openpyxl import Workbook
-    from openpyxl.styles import Font, PatternFill
+    from openpyxl.styles import Alignment, Font, PatternFill
 
     fwd_by_mut, rev_by_seq, mut_to_rev_seq = _build_rev_lookups(
         fwd_mappings, rev_mappings, rev_groups,
     )
+    bold = Font(bold=True)
+    center = Alignment(horizontal="center")
 
     wb = Workbook()
 
-    # --- Sheet 1: Transfers ---
+    # ---- Sheet 1: layout ----
     ws = wb.active
-    ws.title = "Transfers"
+    ws.title = "layout"
+
+    # Title
+    ws.cell(row=1, column=2, value="Primer dispensing (JANUS)")
+
+    # Fwd plate
+    r = _write_96well_grid(ws, 2, fwd_mappings, "fw plate")
+
+    # Blank row + Rev plate
+    r += 1
+    r = _write_96well_grid(ws, r, rev_mappings, "rv plate")
+
+    # Blank rows + Destination plate
+    r += 2
+    ws.cell(row=r, column=1, value="lab ware").font = bold
+    ws.cell(row=r, column=3, value="PCR mixture plate")
+    r += 1
+    ws.cell(row=r, column=1, value="96 PCR plate").font = bold
+    for c in range(1, 13):
+        cell = ws.cell(row=r, column=c + 2, value=c)
+        cell.font = bold
+        cell.alignment = center
+    r += 1
+
+    dest_lookup: dict[str, str] = {}
+    for m in fwd_mappings:
+        _, base = _parse_well_plate(m.well)
+        dest_lookup[base] = m.mutation
+
+    for ri, row_letter in enumerate("ABCDEFGH"):
+        ws.cell(row=r, column=2, value=row_letter).font = bold
+        for c in range(1, 13):
+            name = dest_lookup.get(f"{row_letter}{c}")
+            if name:
+                ws.cell(row=r, column=c + 2, value=name).alignment = center
+        r += 1
+
+    # Auto-width
+    ws.column_dimensions["A"].width = 14
+    ws.column_dimensions["B"].width = 4
+    for c in range(3, 15):
+        ws.column_dimensions[chr(64 + c)].width = 12
+
+    # ---- Sheet 2: primer_mapping file ----
+    ws2 = wb.create_sheet("primer_mapping file")
     headers = [
         "name", "type", "Dsp. Rack", "no",
         "Asp. Rack", "Asp. Posi", "Dsp. Rack", "Dsp. Posi", "volume",
     ]
     header_fill = PatternFill(start_color="D9E1F2", fill_type="solid")
     for col_idx, h in enumerate(headers, 1):
-        cell = ws.cell(row=1, column=col_idx, value=h)
-        cell.font = Font(bold=True)
+        cell = ws2.cell(row=1, column=col_idx, value=h)
+        cell.font = bold
         cell.fill = header_fill
 
     row_num = 2
     seq_no = 1
 
-    # Forward primers (Asp. Rack = 1)
     for m in fwd_mappings:
         for ci, val in enumerate([
             f"{m.mutation}-fw", "primer", "Oligo 5pmol/ul", seq_no,
             1, m.well, 2, m.well, transfer_vol,
         ], 1):
-            ws.cell(row=row_num, column=ci, value=val)
+            ws2.cell(row=row_num, column=ci, value=val)
         row_num += 1
         seq_no += 1
 
-    # Reverse primers (Asp. Rack = 2)
     for fwd_m in fwd_mappings:
         rev_seq = mut_to_rev_seq.get(fwd_m.mutation)
         if rev_seq is None:
@@ -740,19 +886,12 @@ def export_janus_mapping_xlsx(
             f"{fwd_m.mutation}-rv", "primer", "Oligo 5pmol/ul", seq_no,
             2, rev_m.well, 2, dest_well, transfer_vol,
         ], 1):
-            ws.cell(row=row_num, column=ci, value=val)
+            ws2.cell(row=row_num, column=ci, value=val)
         row_num += 1
         seq_no += 1
 
-    for col in ws.columns:
+    for col in ws2.columns:
         max_len = max(len(str(cell.value or "")) for cell in col)
-        ws.column_dimensions[col[0].column_letter].width = min(max_len + 2, 30)
-
-    # --- Sheet 2 & 3: Plate layouts ---
-    ws_fwd = wb.create_sheet("Rack 1 (Fwd)")
-    _write_plate_sheet(ws_fwd, fwd_mappings, _COLOR_FWD)
-
-    ws_rev = wb.create_sheet("Rack 2 (Rev)")
-    _write_plate_sheet(ws_rev, rev_mappings, _COLOR_REV, rev_groups=rev_groups)
+        ws2.column_dimensions[col[0].column_letter].width = min(max_len + 2, 30)
 
     wb.save(output_path)
