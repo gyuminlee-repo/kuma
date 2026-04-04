@@ -461,21 +461,9 @@ def export_echo_mapping_csv(
     """
     import csv
 
-    # Build mutation → fwd dest well lookup
-    fwd_by_mut: dict[str, str] = {m.mutation: m.well for m in fwd_mappings}
-
-    # Build rev sequence → rev PlateMapping lookup
-    rev_by_seq: dict[str, PlateMapping] = {m.sequence: m for m in rev_mappings}
-
-    # Build mutation → rev sequence lookup (from rev_groups or 1:1 fallback)
-    mut_to_rev_seq: dict[str, str] = {}
-    if rev_groups:
-        for seq, muts in rev_groups.items():
-            for mut in muts:
-                mut_to_rev_seq[mut] = seq
-    else:
-        for m in rev_mappings:
-            mut_to_rev_seq[m.mutation] = m.sequence
+    fwd_by_mut, rev_by_seq, mut_to_rev_seq = _build_rev_lookups(
+        fwd_mappings, rev_mappings, rev_groups,
+    )
 
     with open(output_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
@@ -542,17 +530,9 @@ def export_janus_mapping_csv(
     """
     import csv
 
-    fwd_by_mut: dict[str, str] = {m.mutation: m.well for m in fwd_mappings}
-    rev_by_seq: dict[str, PlateMapping] = {m.sequence: m for m in rev_mappings}
-
-    mut_to_rev_seq: dict[str, str] = {}
-    if rev_groups:
-        for seq, muts in rev_groups.items():
-            for mut in muts:
-                mut_to_rev_seq[mut] = seq
-    else:
-        for m in rev_mappings:
-            mut_to_rev_seq[m.mutation] = m.sequence
+    fwd_by_mut, rev_by_seq, mut_to_rev_seq = _build_rev_lookups(
+        fwd_mappings, rev_mappings, rev_groups,
+    )
 
     with open(output_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
@@ -587,3 +567,192 @@ def export_janus_mapping_csv(
                 2, rev_m.well, 2, dest_well, transfer_vol,
             ])
             seq_no += 1
+
+
+# ---------------------------------------------------------------------------
+# XLSX liquid handler exports (transfer sheet + plate layout)
+# ---------------------------------------------------------------------------
+
+def _build_rev_lookups(
+    fwd_mappings: list[PlateMapping],
+    rev_mappings: list[PlateMapping],
+    rev_groups: dict[str, list[str]] | None,
+) -> tuple[dict[str, str], dict[str, PlateMapping], dict[str, str]]:
+    """Shared lookup tables for Echo/JANUS export."""
+    fwd_by_mut = {m.mutation: m.well for m in fwd_mappings}
+    rev_by_seq = {m.sequence: m for m in rev_mappings}
+    mut_to_rev_seq: dict[str, str] = {}
+    if rev_groups:
+        for seq, muts in rev_groups.items():
+            for mut in muts:
+                mut_to_rev_seq[mut] = seq
+    else:
+        for m in rev_mappings:
+            mut_to_rev_seq[m.mutation] = m.sequence
+    return fwd_by_mut, rev_by_seq, mut_to_rev_seq
+
+
+def export_echo_mapping_xlsx(
+    fwd_mappings: list[PlateMapping],
+    rev_mappings: list[PlateMapping],
+    output_path: Path,
+    transfer_vol: int = 100,
+    rev_groups: dict[str, list[str]] | None = None,
+) -> None:
+    """Export Echo 525 mapping as XLSX with transfer list + plate layout sheets.
+
+    Sheets:
+      - Transfers: one row per transfer event (same data as CSV export).
+      - Fwd Plate: 96-well source plate layout for forward primers.
+      - Rev Plate: 96-well source plate layout for reverse primers.
+    """
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill
+
+    fwd_by_mut, rev_by_seq, mut_to_rev_seq = _build_rev_lookups(
+        fwd_mappings, rev_mappings, rev_groups,
+    )
+
+    wb = Workbook()
+
+    # --- Sheet 1: Transfers ---
+    ws = wb.active
+    ws.title = "Transfers"
+    headers = [
+        "Source Plate Name", "Source Well Name", "Source Well",
+        "Dest Plate Name", "Dest Well Name", "Dest Well", "Transfer Vol",
+    ]
+    header_fill = PatternFill(start_color="D9E1F2", fill_type="solid")
+    for col_idx, h in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_idx, value=h)
+        cell.font = Font(bold=True)
+        cell.fill = header_fill
+
+    row_num = 2
+
+    # Forward transfers
+    for m in fwd_mappings:
+        plate_idx, base_well = _parse_well_plate(m.well)
+        src_plate = f"Source [{plate_idx + 1}]"
+        dest_plate = f"Destination [{plate_idx + 1}]"
+        src_well = _to_384_well_fwd(base_well)
+        for ci, val in enumerate([
+            src_plate, m.primer_name, src_well,
+            dest_plate, m.mutation, base_well, transfer_vol,
+        ], 1):
+            ws.cell(row=row_num, column=ci, value=val)
+        row_num += 1
+
+    # Reverse transfers
+    for fwd_m in fwd_mappings:
+        rev_seq = mut_to_rev_seq.get(fwd_m.mutation)
+        if rev_seq is None:
+            continue
+        rev_m = rev_by_seq.get(rev_seq)
+        if rev_m is None:
+            continue
+        fwd_plate_idx, _ = _parse_well_plate(fwd_m.well)
+        src_plate = f"Source [{fwd_plate_idx + 1}]"
+        dest_plate = f"Destination [{fwd_plate_idx + 1}]"
+        _, rev_base_well = _parse_well_plate(rev_m.well)
+        src_well = _to_384_well_rev(rev_base_well)
+        _, dest_well = _parse_well_plate(fwd_by_mut.get(fwd_m.mutation, fwd_m.well))
+        for ci, val in enumerate([
+            src_plate, rev_m.primer_name, src_well,
+            dest_plate, fwd_m.mutation, dest_well, transfer_vol,
+        ], 1):
+            ws.cell(row=row_num, column=ci, value=val)
+        row_num += 1
+
+    for col in ws.columns:
+        max_len = max(len(str(cell.value or "")) for cell in col)
+        ws.column_dimensions[col[0].column_letter].width = min(max_len + 2, 30)
+
+    # --- Sheet 2 & 3: Plate layouts ---
+    ws_fwd = wb.create_sheet("Fwd Plate")
+    _write_plate_sheet(ws_fwd, fwd_mappings, _COLOR_FWD)
+
+    ws_rev = wb.create_sheet("Rev Plate")
+    _write_plate_sheet(ws_rev, rev_mappings, _COLOR_REV, rev_groups=rev_groups)
+
+    wb.save(output_path)
+
+
+def export_janus_mapping_xlsx(
+    fwd_mappings: list[PlateMapping],
+    rev_mappings: list[PlateMapping],
+    output_path: Path,
+    transfer_vol: float = 2.0,
+    rev_groups: dict[str, list[str]] | None = None,
+) -> None:
+    """Export JANUS mapping as XLSX with transfer list + plate layout sheets.
+
+    Sheets:
+      - Transfers: one row per transfer event (same data as CSV export).
+      - Rack 1 (Fwd): 96-well layout for forward primers.
+      - Rack 2 (Rev): 96-well layout for reverse primers.
+    """
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill
+
+    fwd_by_mut, rev_by_seq, mut_to_rev_seq = _build_rev_lookups(
+        fwd_mappings, rev_mappings, rev_groups,
+    )
+
+    wb = Workbook()
+
+    # --- Sheet 1: Transfers ---
+    ws = wb.active
+    ws.title = "Transfers"
+    headers = [
+        "name", "type", "Dsp. Rack", "no",
+        "Asp. Rack", "Asp. Posi", "Dsp. Rack", "Dsp. Posi", "volume",
+    ]
+    header_fill = PatternFill(start_color="D9E1F2", fill_type="solid")
+    for col_idx, h in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_idx, value=h)
+        cell.font = Font(bold=True)
+        cell.fill = header_fill
+
+    row_num = 2
+    seq_no = 1
+
+    # Forward primers (Asp. Rack = 1)
+    for m in fwd_mappings:
+        for ci, val in enumerate([
+            f"{m.mutation}-fw", "primer", "Oligo 5pmol/ul", seq_no,
+            1, m.well, 2, m.well, transfer_vol,
+        ], 1):
+            ws.cell(row=row_num, column=ci, value=val)
+        row_num += 1
+        seq_no += 1
+
+    # Reverse primers (Asp. Rack = 2)
+    for fwd_m in fwd_mappings:
+        rev_seq = mut_to_rev_seq.get(fwd_m.mutation)
+        if rev_seq is None:
+            continue
+        rev_m = rev_by_seq.get(rev_seq)
+        if rev_m is None:
+            continue
+        dest_well = fwd_by_mut.get(fwd_m.mutation, fwd_m.well)
+        for ci, val in enumerate([
+            f"{fwd_m.mutation}-rv", "primer", "Oligo 5pmol/ul", seq_no,
+            2, rev_m.well, 2, dest_well, transfer_vol,
+        ], 1):
+            ws.cell(row=row_num, column=ci, value=val)
+        row_num += 1
+        seq_no += 1
+
+    for col in ws.columns:
+        max_len = max(len(str(cell.value or "")) for cell in col)
+        ws.column_dimensions[col[0].column_letter].width = min(max_len + 2, 30)
+
+    # --- Sheet 2 & 3: Plate layouts ---
+    ws_fwd = wb.create_sheet("Rack 1 (Fwd)")
+    _write_plate_sheet(ws_fwd, fwd_mappings, _COLOR_FWD)
+
+    ws_rev = wb.create_sheet("Rack 2 (Rev)")
+    _write_plate_sheet(ws_rev, rev_mappings, _COLOR_REV, rev_groups=rev_groups)
+
+    wb.save(output_path)

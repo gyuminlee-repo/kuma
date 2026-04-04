@@ -1,6 +1,27 @@
-# KURO Update Notes — v0.9.5 → v1.28.0
+# KURO Update Notes — v0.9.5 → v1.29.0
 
 [한국어](UPDATE-NOTES.ko.md) | **English**
+
+---
+
+## v1.29.0 (2026-04-04)
+
+### Echo / JANUS Mapping Export — XLSX with Plate Layout
+
+- Echo 525 and JANUS liquid handler mapping exports now produce XLSX workbooks instead of CSV
+- Each workbook contains three sheets:
+  - **Transfers**: transfer list (same columns as the previous CSV)
+  - **Fwd Plate** / **Rack 1 (Fwd)**: 96-well plate layout of forward primers
+  - **Rev Plate** / **Rack 2 (Rev)**: 96-well plate layout of reverse primers (deduplicated, shared primers highlighted in blue)
+- CSV format remains supported when the user explicitly selects `.csv` extension
+- `_build_rev_lookups()` helper extracted to eliminate lookup duplication across CSV and XLSX export functions
+
+### Bug Fix — Domain Exclusion Not Filtering Disabled Positions
+
+- When specific domains were disabled in the UI, mutations at those positions were incorrectly classified as "linker" and included in the selection — primers were still designed for them
+- Root cause: the frontend sent only `activeDomains` to the backend; positions in disabled domains fell outside all domain boundaries and were placed in the linker bin
+- Fix: new `excluded_ranges` parameter sent from the frontend to `load_evolvepro_csv()` → `domain_aware_select()`. Positions matching any excluded range are dropped before domain/linker assignment
+- `ExcludedRange` Pydantic model added to `LoadEvolveproParams`
 
 ---
 

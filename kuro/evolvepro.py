@@ -269,6 +269,7 @@ def load_evolvepro_csv(
     top_n: int = 96,
     max_per_position: int = 0,
     domains: list[dict] | None = None,
+    excluded_ranges: list[dict] | None = None,
     domain_diversity: bool = False,
     domain_strategy: str = "proportional",
     domain_overlap_policy: str = "first",
@@ -385,6 +386,7 @@ def load_evolvepro_csv(
             pool_multiplier=pool_multiplier,
             pool_size_override=sigma_pool_size,
             distance_mode=distance_mode,
+            excluded_ranges=excluded_ranges,
         )
     elif domain_diversity and domain_info:
         selected, domain_stats = domain_aware_select(
@@ -392,6 +394,7 @@ def load_evolvepro_csv(
             domain_overlap_policy=domain_overlap_policy,
             linker_handling=linker_handling,
             domain_quota_min=domain_quota_min,
+            excluded_ranges=excluded_ranges,
         )
     elif pareto_diversity:
         selected, pareto_replaced = pareto_diversity_select(
@@ -439,6 +442,7 @@ def domain_aware_select(
     pool_multiplier: float = 2.0,
     pool_size_override: int | None = None,
     distance_mode: str = "auto",
+    excluded_ranges: list[dict] | None = None,
 ) -> tuple[list[tuple[str, float]], dict]:
     """Domain-based quota Top-N selection.
 
@@ -465,6 +469,11 @@ def domain_aware_select(
     if not domains or top_n <= 0:
         return rows[:top_n], {}
 
+    _excluded = excluded_ranges or []
+
+    def _is_excluded(pos: int) -> bool:
+        return any(r["start"] <= pos <= r["end"] for r in _excluded)
+
     # Map each variant to a domain.
     domain_bins: dict[str, list[tuple[str, float]]] = {d["name"]: [] for d in domains}
     domain_bins["linker"] = []
@@ -476,6 +485,9 @@ def domain_aware_select(
                 domain_bins["linker"].append((variant, y))
             continue
         pos = int(m.group(1))
+        # Drop positions in explicitly excluded (disabled) domain ranges
+        if _is_excluded(pos):
+            continue
         matched = [d for d in domains if d["start"] <= pos <= d["end"]]
         assigned = False
         if matched:

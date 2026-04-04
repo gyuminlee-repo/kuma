@@ -41,8 +41,8 @@ export async function handleExportTwistOrder() {
 
 export async function handleExportEchoMapping() {
   const path = await save({
-    filters: [{ name: "CSV", extensions: ["csv"] }],
-    defaultPath: "echo_mapping.csv",
+    filters: [{ name: "Excel", extensions: ["xlsx"] }],
+    defaultPath: "echo_mapping.xlsx",
   });
   if (path) {
     try {
@@ -56,8 +56,8 @@ export async function handleExportEchoMapping() {
 
 export async function handleExportJanusMapping() {
   const path = await save({
-    filters: [{ name: "CSV", extensions: ["csv"] }],
-    defaultPath: "janus_mapping.csv",
+    filters: [{ name: "Excel", extensions: ["xlsx"] }],
+    defaultPath: "janus_mapping.xlsx",
   });
   if (path) {
     try {

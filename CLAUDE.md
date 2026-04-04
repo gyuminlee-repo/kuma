@@ -80,6 +80,7 @@ python -m pytest tests/test_sdm_engine.py::test_name  # Single test
 | `src-tauri/samples/` new file | Add explicit mapping in `tauri.conf.json` resources (no glob `**`) |
 | `src/store/slices/inputSlice.ts` `loadSampleData` | `src-tauri/samples/` referenced files exist |
 | `python-core/sidecar/handlers/design.py` rescue constants | `_DEFAULT_TOL_MAX` must match `design_single_sdm()` default `tol_max` |
+| `src/store/slices/inputSlice.ts` `excluded_ranges` | `python-core/sidecar/models.py` `ExcludedRange` + `kuro/evolvepro.py` `excluded_ranges` param stay in sync |
 | `src/types/models.ts` `RescueStats` / `RescuedMutation` | `python-core/sidecar/handlers/design.py` `rescue_stats` / `rescued_info` dict keys stay in sync |
 
 ## Rules

@@ -33,6 +33,7 @@ Given a mutation list (plain text / EVOLVEpro CSV / MULTI-evolve CSV) and a temp
 - **Fill on failure**: When enabled (off by default), automatically fills the requested mutation count from extra candidates when some mutations fail
 - **Off-target detection**: Automatic detection of non-specific binding on the template sense/antisense strand. Click OT `!!` to view a detailed popover with binding position, strand, and Tm
 - **96-well Plate Map**: Linked Fwd/Rev plate. Multi-plate slide for >96 mutations (Plate N Fwd ↔ Plate N Rev). Synchronized with table sort order
+- **Echo 525 / JANUS export**: Liquid handler mapping export as XLSX workbook with transfer list + 96-well plate layout sheets (Fwd/Rev source plates). Also available as CSV for automation pipelines
 - **Workspace save/load**: Save parameters + design results as a `.kuro.json` file for cross-session portability
 - **Desktop GUI**: Cross-platform app based on Tauri v2 + React 19 (Windows / macOS / Linux)
 

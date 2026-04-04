@@ -86,6 +86,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       } = get();
       const effectiveTopN = topNOverride ?? maxPrimers;
       const activeDomains = domains.filter((d) => !disabledDomains.includes(`${d.name}-${d.start}`));
+      const excludedDomains = domains.filter((d) => disabledDomains.includes(`${d.name}-${d.start}`));
       const isMultiEvolve = get().mutationInputMode === "multi-evolve";
       const modeLabel = isMultiEvolve ? "MULTI-evolve" : "EVOLVEpro";
       set({ statusMessage: `Loading ${modeLabel} CSV...`, evolveproCsvPath: filepath });
@@ -97,6 +98,9 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
           filepath,
           top_n: isMultiEvolve ? 0 : effectiveTopN,
           ...(usePipeline && positionDiversityEnabled && { max_per_position: maxPerPosition }),
+          ...(usePipeline && excludedDomains.length > 0 && {
+            excluded_ranges: excludedDomains.map((d) => ({ start: d.start, end: d.end })),
+          }),
           ...(usePipeline && domainDiversityEnabled && activeDomains.length > 0 && {
             domain_diversity: true,
             domains: activeDomains.map((d) => ({ name: d.name, start: d.start, end: d.end })),

@@ -7,7 +7,9 @@ from dataclasses import fields as dc_fields
 from kuro.plate_mapper import (
     PlateMapping,
     export_echo_mapping_csv,
+    export_echo_mapping_xlsx,
     export_janus_mapping_csv,
+    export_janus_mapping_xlsx,
     export_plate_excel,
     export_idt_csv,
     export_twist_csv,
@@ -31,6 +33,7 @@ from sidecar.models import (
 )
 
 _ALLOWED_ORDER_CSV_EXTENSIONS = {".csv"}
+_ALLOWED_MAPPING_EXTENSIONS = {".xlsx", ".csv"}
 
 
 def handle_get_plate_map(_params: dict) -> dict:
@@ -124,7 +127,7 @@ def handle_export_mapping(params: dict) -> dict:
         transfer_vol: Optional override for transfer volume.
     """
     p = ExportMappingParams(**params)
-    resolved = _validate_output_path(p.filepath, allowed_extensions=_ALLOWED_ORDER_CSV_EXTENSIONS)
+    resolved = _validate_output_path(p.filepath, allowed_extensions=_ALLOWED_MAPPING_EXTENSIONS)
 
     if not _core._state.results:
         raise ValueError("No design available. Run design_sdm_primers first.")
@@ -135,14 +138,24 @@ def handle_export_mapping(params: dict) -> dict:
     )
     rev_groups = _core._state.dedup_info or {}
 
+    use_xlsx = resolved.suffix.lower() == ".xlsx"
+
     if p.format == "echo":
         vol = int(p.transfer_vol) if p.transfer_vol is not None else 100
-        export_echo_mapping_csv(fwd_mappings, rev_mappings, resolved,
-                                transfer_vol=vol, rev_groups=rev_groups)
+        if use_xlsx:
+            export_echo_mapping_xlsx(fwd_mappings, rev_mappings, resolved,
+                                     transfer_vol=vol, rev_groups=rev_groups)
+        else:
+            export_echo_mapping_csv(fwd_mappings, rev_mappings, resolved,
+                                    transfer_vol=vol, rev_groups=rev_groups)
     else:
         vol = p.transfer_vol if p.transfer_vol is not None else 2.0
-        export_janus_mapping_csv(fwd_mappings, rev_mappings, resolved,
-                                 transfer_vol=vol, rev_groups=rev_groups)
+        if use_xlsx:
+            export_janus_mapping_xlsx(fwd_mappings, rev_mappings, resolved,
+                                      transfer_vol=vol, rev_groups=rev_groups)
+        else:
+            export_janus_mapping_csv(fwd_mappings, rev_mappings, resolved,
+                                     transfer_vol=vol, rev_groups=rev_groups)
 
     primer_count = len(fwd_mappings) + len(rev_mappings)
     return {"success": True, "filepath": str(resolved), "format": p.format,

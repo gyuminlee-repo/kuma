@@ -75,6 +75,7 @@ def handle_load_evolvepro_csv(params: dict) -> dict:
         top_n=p.top_n,
         max_per_position=p.max_per_position,
         domains=p.domains,
+        excluded_ranges=[{"start": r.start, "end": r.end} for r in p.excluded_ranges],
         domain_diversity=p.domain_diversity,
         domain_strategy=p.domain_strategy,
         domain_overlap_policy=p.domain_overlap_policy,
