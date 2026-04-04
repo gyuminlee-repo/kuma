@@ -8,13 +8,14 @@
 
 ### Echo / JANUS Mapping Export — XLSX with Plate Layout
 
-- Echo 525 and JANUS liquid handler mapping exports now produce XLSX workbooks instead of CSV
-- Each workbook contains three sheets:
-  - **Transfers**: transfer list (same columns as the previous CSV)
-  - **Fwd Plate** / **Rack 1 (Fwd)**: 96-well plate layout of forward primers
-  - **Rev Plate** / **Rack 2 (Rev)**: 96-well plate layout of reverse primers (deduplicated, shared primers highlighted in blue)
+- Echo 525 and JANUS liquid handler mapping exports now produce XLSX workbooks instead of CSV, matching the lab reference format (`040.mapping_files_echo/`)
+- **Echo** workbook (2 sheets):
+  - **layout**: 384-well source plate (Fwd odd rows + Rev even rows interleaved) + 96-well PCR destination plate
+  - **Echo mapping file**: transfer list (Source/Dest Plate, Well, Transfer Vol)
+- **JANUS** workbook (2 sheets):
+  - **layout**: Fwd 96-well plate + Rev 96-well plate + PCR mixture destination plate (single sheet)
+  - **primer_mapping file**: transfer list (Asp/Dsp Rack, Posi, volume)
 - CSV format remains supported when the user explicitly selects `.csv` extension
-- `_build_rev_lookups()` helper extracted to eliminate lookup duplication across CSV and XLSX export functions
 
 ### Bug Fix — Domain Exclusion Not Filtering Disabled Positions
 

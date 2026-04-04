@@ -594,35 +594,38 @@ def _build_rev_lookups(
 
 def _write_96well_grid(
     ws, start_row: int, mappings: list[PlateMapping], label: str,
+    labware: str = "96 deep well",
+    value_attr: str = "primer_name",
 ) -> int:
-    """Write a labelled 96-well plate grid and return the next free row."""
+    """Write a labelled 96-well plate grid and return the next free row.
+
+    Args:
+        value_attr: PlateMapping attribute to display in each cell
+            ('primer_name' for source plates, 'mutation' for destination).
+    """
     from openpyxl.styles import Alignment, Font
 
     bold = Font(bold=True)
     center = Alignment(horizontal="center")
     r = start_row
 
-    # "lab ware" / label
     ws.cell(row=r, column=1, value="lab ware").font = bold
     ws.cell(row=r, column=3, value=label)
     r += 1
 
-    # "96 deep well" + column numbers 1-12
-    ws.cell(row=r, column=1, value="96 deep well").font = bold
+    ws.cell(row=r, column=1, value=labware).font = bold
     for c in range(1, 13):
         cell = ws.cell(row=r, column=c + 2, value=c)
         cell.font = bold
         cell.alignment = center
     r += 1
 
-    # Build well → primer name lookup (strip overflow prefix)
     well_lookup: dict[str, str] = {}
     for m in mappings:
         _, base = _parse_well_plate(m.well)
-        well_lookup[base] = m.primer_name
+        well_lookup[base] = getattr(m, value_attr)
 
-    # Rows A-H
-    for ri, row_letter in enumerate("ABCDEFGH"):
+    for row_letter in "ABCDEFGH":
         ws.cell(row=r, column=2, value=row_letter).font = bold
         for c in range(1, 13):
             name = well_lookup.get(f"{row_letter}{c}")
@@ -696,30 +699,12 @@ def export_echo_mapping_xlsx(
                 ws.cell(row=r, column=c + 2, value=name).alignment = center
 
     # Destination section (96-well PCR plate)
-    dest_start = 5 + 16 + 1  # after 384-well grid + blank row
+    dest_start = 5 + len(_ROWS_384) + 1  # after 384-well grid + blank row
     ws.cell(row=dest_start, column=1, value="Destination").font = bold
-    ws.cell(row=dest_start + 1, column=1, value="labware")
-    ws.cell(row=dest_start + 1, column=3, value="PCR mixture")
-
-    ws.cell(row=dest_start + 2, column=1, value="96 PCR plate").font = bold
-    for c in range(1, 13):
-        cell = ws.cell(row=dest_start + 2, column=c + 2, value=c)
-        cell.font = bold
-        cell.alignment = center
-
-    # Build dest well → mutation name lookup
-    dest_lookup: dict[str, str] = {}
-    for m in fwd_mappings:
-        _, base = _parse_well_plate(m.well)
-        dest_lookup[base] = m.mutation
-
-    for ri, row_letter in enumerate("ABCDEFGH"):
-        r = dest_start + 3 + ri
-        ws.cell(row=r, column=2, value=row_letter).font = bold
-        for c in range(1, 13):
-            name = dest_lookup.get(f"{row_letter}{c}")
-            if name:
-                ws.cell(row=r, column=c + 2, value=name).alignment = center
+    _write_96well_grid(
+        ws, dest_start + 1, fwd_mappings, "PCR mixture",
+        labware="96 PCR plate", value_attr="mutation",
+    )
 
     # Auto-width
     ws.column_dimensions["A"].width = 14
@@ -795,13 +780,12 @@ def export_janus_mapping_xlsx(
       - primer_mapping file: one row per transfer event.
     """
     from openpyxl import Workbook
-    from openpyxl.styles import Alignment, Font, PatternFill
+    from openpyxl.styles import Font, PatternFill
 
     fwd_by_mut, rev_by_seq, mut_to_rev_seq = _build_rev_lookups(
         fwd_mappings, rev_mappings, rev_groups,
     )
     bold = Font(bold=True)
-    center = Alignment(horizontal="center")
 
     wb = Workbook()
 
@@ -821,28 +805,10 @@ def export_janus_mapping_xlsx(
 
     # Blank rows + Destination plate
     r += 2
-    ws.cell(row=r, column=1, value="lab ware").font = bold
-    ws.cell(row=r, column=3, value="PCR mixture plate")
-    r += 1
-    ws.cell(row=r, column=1, value="96 PCR plate").font = bold
-    for c in range(1, 13):
-        cell = ws.cell(row=r, column=c + 2, value=c)
-        cell.font = bold
-        cell.alignment = center
-    r += 1
-
-    dest_lookup: dict[str, str] = {}
-    for m in fwd_mappings:
-        _, base = _parse_well_plate(m.well)
-        dest_lookup[base] = m.mutation
-
-    for ri, row_letter in enumerate("ABCDEFGH"):
-        ws.cell(row=r, column=2, value=row_letter).font = bold
-        for c in range(1, 13):
-            name = dest_lookup.get(f"{row_letter}{c}")
-            if name:
-                ws.cell(row=r, column=c + 2, value=name).alignment = center
-        r += 1
+    _write_96well_grid(
+        ws, r, fwd_mappings, "PCR mixture plate",
+        labware="96 PCR plate", value_attr="mutation",
+    )
 
     # Auto-width
     ws.column_dimensions["A"].width = 14
