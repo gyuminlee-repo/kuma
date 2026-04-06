@@ -1,6 +1,40 @@
-# KURO 업데이트 노트 — v0.9.5 → v1.29.0
+# KURO 업데이트 노트 — v0.9.5 → v1.30.1
 
 **한국어** | [English](UPDATE-NOTES.md)
+
+---
+
+## v1.30.1 (2026-04-06)
+
+### Polymerase 프로파일 파라미터 교정 — primerbench v2.17.2 동기화
+
+- 4개 내장 polymerase의 Tm/염 파라미터를 제조사 매뉴얼 기준으로 재보정:
+  - **Taq**: `breslauer+schildkraut` → `santalucia+owczarzy`; salt_monovalent 50→51 mM, salt_divalent 0, dna_conc 800 nM
+  - **Phusion**: salt_correction `owczarzy` → `schildkraut`; salt_monovalent 50→222 mM (Thermo HF buffer), salt_divalent 0, dna_conc 500 nM
+  - **Q5**: salt_monovalent 50→150 mM (NEB Q5 buffer), salt_divalent 0, dna_conc 250→2000 nM
+  - **DreamTaq**: `breslauer+schildkraut` → `santalucia+owczarzy`; salt_divalent 0, dna_conc 800 nM, max_size 25→30
+- **TAKARA_GXL** 프로파일 추가: opt_tm 58°C, santalucia+owczarzy, max_tm_diff 5.0
+
+---
+
+## v1.30.0 (2026-04-06)
+
+### UniProt 검색 — 상위 결과 자동 선택
+
+- UniProt 검색 완료 시 identity 점수에 관계없이 최상위 후보를 자동 선택
+- 기존에는 100% identity 일치 시에만 자동 선택되었고, 그 미만은 수동 선택 필요
+- 상태 메시지에 실제 identity 값 표시 (예: `auto-selected P12345 (87.3% identity)`), 하드코딩된 "100% identity" 문구 제거
+
+### 기본값 변경
+
+- `primerLenEnabled` 기본값: `false` → `true` (프라이머 길이 제약 기본 활성화)
+- `fillOnFailure` 기본값: `false` → `true` (실패 시 채우기 기본 활성화)
+- workspace 로드 fallback(`exportSlice`)에도 동일하게 적용
+
+### UI — 사이드바 Flex Overflow 수정
+
+- 왼쪽 사이드바 컨테이너에 `overflow-x-hidden` 추가 (가로 overflow 방지)
+- ParameterPanel의 `flex-1` select 요소(Polymerase, Codon strategy)에 `min-w-0` 추가
 
 ---
 

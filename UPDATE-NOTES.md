@@ -1,6 +1,40 @@
-# KURO Update Notes — v0.9.5 → v1.29.0
+# KURO Update Notes — v0.9.5 → v1.30.1
 
 [한국어](UPDATE-NOTES.ko.md) | **English**
+
+---
+
+## v1.30.1 (2026-04-06)
+
+### Polymerase Profile Corrections — Sync with primerbench v2.17.2
+
+- Recalibrated Tm/salt parameters for 4 built-in polymerases against manufacturer manual values:
+  - **Taq**: `breslauer+schildkraut` → `santalucia+owczarzy`; salt_monovalent 50→51 mM, salt_divalent 0, dna_conc 800 nM
+  - **Phusion**: salt_correction `owczarzy` → `schildkraut`; salt_monovalent 50→222 mM (Thermo HF buffer), salt_divalent 0, dna_conc 500 nM
+  - **Q5**: salt_monovalent 50→150 mM (NEB Q5 buffer), salt_divalent 0, dna_conc 250→2000 nM
+  - **DreamTaq**: `breslauer+schildkraut` → `santalucia+owczarzy`; salt_divalent 0, dna_conc 800 nM, max_size 25→30
+- Added **TAKARA_GXL** profile: opt_tm 58°C, santalucia+owczarzy, max_tm_diff 5.0
+
+---
+
+## v1.30.0 (2026-04-06)
+
+### UniProt Search — Auto-Select Top Result
+
+- UniProt search now automatically selects the top-ranked candidate on completion, regardless of identity score
+- Previously, auto-selection only triggered on 100% identity; candidates below that threshold required manual selection
+- Status message now shows the actual identity percentage from the search result (e.g. `auto-selected P12345 (87.3% identity)`) instead of a hardcoded label
+
+### Default Parameter Changes
+
+- `primerLenEnabled` default: `false` → `true` (primer length constraints active by default)
+- `fillOnFailure` default: `false` → `true` (fill on failure active by default)
+- Same defaults applied in workspace load fallback (`exportSlice`)
+
+### UI — Sidebar Flex Overflow Fix
+
+- Added `overflow-x-hidden` to left sidebar container to prevent horizontal overflow
+- Added `min-w-0` to `flex-1` select elements in ParameterPanel (Polymerase, Codon strategy)
 
 ---
 
