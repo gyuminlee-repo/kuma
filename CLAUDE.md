@@ -85,6 +85,7 @@ python -m pytest tests/test_sdm_engine.py::test_name  # Single test
 
 ## Rules
 - 절대 경로 하드코딩 금지 — 상대 경로 또는 환경변수 사용
+- **값 하드코딩 금지** — 상태 메시지·임계값·레이블은 백엔드 응답 필드 직접 참조. 예: identity % 를 "100%"로 고정하지 말고 `top.identity.toFixed(1)` 사용
 - 커밋 형식: `vX.X.X: summary in English`
 - Windows 타겟 빌드 시 WSL 내 `npm install` 금지 — Windows 네이티브 터미널에서 실행
 
@@ -98,6 +99,11 @@ python -m pytest tests/test_sdm_engine.py::test_name  # Single test
 - No `as any` or `@ts-ignore` — currently at 0 occurrences, keep it that way
 - Avoid module-level `let` + async reassignment — TS narrows incorrectly. Use local `const` with explicit types
 - Minimize `!` non-null assertions — prefer null guards or early returns
+
+### UI — Flex overflow
+- `flex-1` on `<select>` or text-heavy children **must** include `min-w-0` — without it the element expands past the flex parent (fixed-width sidebars, panels)
+- Fixed-width panels (sidebar 340 px) should have `overflow-x-hidden` as a second layer of defense
+- Applies especially to dropdowns with long option text (polymerase, codon strategy)
 
 ### Tauri resource bundling
 - No glob patterns (`**`) in `tauri.conf.json` resources — use explicit file-to-file mappings
