@@ -17,6 +17,12 @@
   - **primer_mapping file**: transfer list (Asp/Dsp Rack, Posi, volume)
 - CSV format remains supported when the user explicitly selects `.csv` extension
 
+### UniProt Search — Auto-Select Top Result
+
+- UniProt search now automatically selects the top-ranked candidate on completion, regardless of identity score
+- Previously, auto-selection only triggered on 100% identity; candidates below that threshold required manual selection
+- Status message now shows the actual identity percentage from the search result (e.g. `auto-selected P12345 (87.3% identity)`) instead of a hardcoded label
+
 ### Bug Fix — Domain Exclusion Not Filtering Disabled Positions
 
 - When specific domains were disabled in the UI, mutations at those positions were incorrectly classified as "linker" and included in the selection — primers were still designed for them

@@ -109,7 +109,7 @@ export function ParameterPanel() {
           <span className="w-24 text-gray-600">Polymerase:</span>
           <select
             id="polymerase-select"
-            className="flex-1 h-7 text-xs border border-gray-300 rounded px-2 focus:outline-none focus:ring-1 focus:ring-green-500"
+            className="flex-1 min-w-0 h-7 text-xs border border-gray-300 rounded px-2 focus:outline-none focus:ring-1 focus:ring-green-500"
             value={selectedPolymerase}
             onChange={(e) => void setSelectedPolymerase(e.target.value)}
           >
@@ -132,7 +132,7 @@ export function ParameterPanel() {
         <span className="w-24 text-gray-600">Codon:</span>
         <select
           id="codon-strategy"
-          className="flex-1 h-7 text-xs border border-gray-300 rounded px-2 focus:outline-none focus:ring-1 focus:ring-green-500"
+          className="flex-1 min-w-0 h-7 text-xs border border-gray-300 rounded px-2 focus:outline-none focus:ring-1 focus:ring-green-500"
           value={codonStrategy}
           onChange={(e) => setCodonStrategy(e.target.value as "closest" | "optimal")}
         >

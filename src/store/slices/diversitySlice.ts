@@ -330,15 +330,14 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
         translation,
         known_accession: knownAccession,
       }, 120_000);
-      // Auto-fill accession if a 100% match is found
+      // Auto-select top result
+      const top = result.candidates[0];
+      const acc = top?.accession ?? "";
       let statusMsg = "UniProt: no matching entries found";
-      const acc = result.auto_selected ?? "";
       if (result.error_detail && result.candidates.length === 0) {
         statusMsg = `UniProt search error: ${result.error_detail}`;
-      } else if (result.auto_selected) {
-        statusMsg = `UniProt: auto-matched ${result.auto_selected} (100% identity)`;
-      } else if (result.candidates.length > 0) {
-        statusMsg = `UniProt: ${result.candidates.length} candidate(s) found — select manually`;
+      } else if (top) {
+        statusMsg = `UniProt: auto-selected ${top.accession} (${top.identity.toFixed(1)}% identity)`;
       }
       set({
         uniprotCandidates: result.candidates,

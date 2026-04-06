@@ -122,7 +122,7 @@ export function AppLayout() {
 
       <div className="flex flex-1 overflow-hidden">
         {/* Left Sidebar */}
-        <div className="w-[340px] flex-shrink-0 overflow-y-auto p-2 space-y-2 border-r border-gray-200">
+        <div className="w-[340px] flex-shrink-0 overflow-y-auto overflow-x-hidden p-2 space-y-2 border-r border-gray-200">
           <InputPanel />
           <ParameterPanel />
 

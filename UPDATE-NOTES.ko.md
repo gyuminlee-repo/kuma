@@ -17,6 +17,12 @@
   - **primer_mapping file**: 전송 목록 (Asp/Dsp Rack, Posi, volume)
 - CSV 형식은 사용자가 `.csv` 확장자를 직접 선택하면 여전히 지원
 
+### UniProt 검색 — 상위 결과 자동 선택
+
+- UniProt 검색 완료 시 identity 점수에 관계없이 최상위 후보를 자동 선택
+- 기존에는 100% identity 일치 시에만 자동 선택되었고, 그 미만은 수동 선택 필요
+- 상태 메시지에 실제 identity 값 표시 (예: `auto-selected P12345 (87.3% identity)`), 하드코딩된 "100% identity" 문구 제거
+
 ### 버그 수정 — 도메인 제외 시 해당 위치 프라이머 생성 문제
 
 - UI에서 특정 도메인을 비활성화해도 해당 위치의 mutation이 "linker"로 잘못 분류되어 선택되던 문제 수정
