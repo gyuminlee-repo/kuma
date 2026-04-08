@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-22.04, windows-latest, macos-latest]
         python-version: ["3.11", "3.12"]
 
     steps:
@@ -28,7 +28,7 @@ jobs:
         run: python -m pytest tests/ -v
 
   typecheck:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - uses: actions/checkout@v5
@@ -45,7 +45,7 @@ jobs:
       - run: npx tsc --noEmit
 
   rust-check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - uses: actions/checkout@v5
