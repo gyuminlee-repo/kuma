@@ -80,7 +80,7 @@ function PipelineArrow({ active }: { active: boolean }) {
         active ? "opacity-60" : "opacity-20"
       }`}
     >
-      <span className="text-gray-400 select-none leading-none">{"\u25BC"}</span>
+      <span className="text-gray-400 select-none leading-none">{"↓"}</span>
     </div>
   );
 }

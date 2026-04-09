@@ -44,6 +44,7 @@ function normalizeWorkspace(ws: WorkspaceData): WorkspaceV2 {
       selectedGene: legacy.selectedGene,
     },
     settings: {
+      selectedPolymerase: undefined,
       codonStrategy: legacy.codonStrategy,
       maxPrimers: legacy.maxPrimers,
       tmFwdTarget: legacy.tmFwdTarget,
@@ -169,6 +170,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
         selectedGene: s.selectedGene,
       },
       settings: {
+        selectedPolymerase: s.selectedPolymerase,
         codonStrategy: s.codonStrategy,
         maxPrimers: s.maxPrimers,
         tmFwdTarget: s.tmFwdTarget,
@@ -270,6 +272,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
         return safe;
       })(),
       customCandidates: results.customCandidates ?? {},
+      selectedPolymerase: settings.selectedPolymerase ?? "Benchling",
       tmFwdTarget: settings.tmFwdTarget ?? 62,
       tmRevTarget: settings.tmRevTarget ?? 58,
       tmOverlapTarget: settings.tmOverlapTarget ?? 42,
@@ -366,6 +369,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       successCount: 0,
       totalCount: 0,
       failedMutations: [],
+      selectedPolymerase: "Benchling",
       codonStrategy: "closest",
       maxPrimers: 95,
       tmFwdTarget: 62,

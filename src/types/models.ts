@@ -283,6 +283,7 @@ export interface WorkspaceInputs {
 }
 
 export interface WorkspaceSettings {
+  selectedPolymerase?: string;
   codonStrategy: "closest" | "optimal";
   maxPrimers: number;
   tmFwdTarget: number;
