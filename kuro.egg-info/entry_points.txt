@@ -1,0 +1,2 @@
+[console_scripts]
+kuro = kuro.cli:main

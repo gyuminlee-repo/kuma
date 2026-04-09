@@ -1,0 +1,11 @@
+Metadata-Version: 2.4
+Name: kuro
+Version: 0.9.28
+Summary: EVOLVEpro SDM primer batch design tool
+Requires-Python: >=3.11
+License-File: LICENSE
+Requires-Dist: primer3-py==2.3.0
+Requires-Dist: biopython==1.84
+Requires-Dist: openpyxl==3.1.5
+Requires-Dist: pydantic>=2.0
+Dynamic: license-file
