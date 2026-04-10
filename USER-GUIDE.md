@@ -145,14 +145,21 @@ Sets the **target number of successful designs** (default 95). When "Fill on fai
 
 ### Polymerase
 
-Choose the polymerase profile in the Parameters panel before design.
+Choose the polymerase profile in the Parameters panel before design. Selecting a profile immediately applies its Tm targets, GC range, salt concentration, and DNA concentration to the UI defaults.
 
-| Option | Description |
-|--------|-------------|
-| Built-in profile | Loads default Tm targets and GC range for that polymerase |
-| Custom Polymerase | Opens a dialog to create or edit a user-defined profile |
+**Built-in profiles** (calibrated against manufacturer manuals in v1.30.1):
 
-Custom profiles are saved to `~/.kuro/custom_polymerases.json` and are reloaded automatically the next time KURO starts.
+| Profile | Tm method | Salt (mM) | DNA (nM) | Notes |
+|---------|-----------|-----------|----------|-------|
+| Benchling | santalucia | 50 mono / 1.5 div | 250 | Default. Matches Benchling online calculator |
+| Taq | santalucia + owczarzy | 51 mono | 800 | NEB standard Taq |
+| Phusion | santalucia + schildkraut | 222 mono | 500 | Thermo Phusion HF buffer |
+| Q5 | santalucia + owczarzy | 150 mono | 2000 | NEB Q5 buffer |
+| KOD | santalucia | 50 mono | 250 | KOD One, 22–35 bp recommended, Tm >63°C |
+| DreamTaq | santalucia + owczarzy | 50 mono | 800 | Thermo DreamTaq, max primer 30 bp |
+| TAKARA_GXL | santalucia + owczarzy | 50 mono | 250 | PrimeSTAR GXL, opt Tm 58°C |
+
+**Custom Polymerase**: Click the Custom Polymerase button to create or edit a user-defined profile (Tm method, salt concentrations, opt/min/max Tm, opt/min/max primer size, GC range). Custom profiles are persisted at `~/.kuro/custom_polymerases.json` and reloaded on the next app start.
 
 ### Advanced Options
 
@@ -174,7 +181,7 @@ Click the "Advanced options..." link to expand the collapsible panel. If not set
 
 The Design Report shows rescue statistics including position coverage, number of pool variants tried, and average penalty comparison between rescued and normal primers.
 
-Tm calculation uses the SantaLucia 1998 model with fixed conditions (mv_conc=50 mM, dna_conc=250 nM), independent of polymerase type. Because the same primer sequence is ordered regardless of which polymerase is used, the Tm calculation method does not need to change per polymerase.
+Tm calculation uses the SantaLucia 1998 nearest-neighbor model. Salt correction method, monovalent/divalent concentration, and DNA concentration are taken from the selected polymerase profile (see the Polymerase section above). When switching profiles, the Tm value recomputes automatically, so the same primer sequence will display a slightly different Tm under Taq vs Phusion buffer conditions.
 
 ---
 

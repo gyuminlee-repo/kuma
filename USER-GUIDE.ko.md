@@ -145,14 +145,21 @@ EVOLVEpro 모드를 선택하고 Browse 버튼으로 EVOLVEpro 출력 CSV를 로
 
 ### Polymerase
 
-설계 전에 Parameters 패널에서 polymerase 프로필을 선택한다.
+설계 전에 Parameters 패널에서 polymerase 프로필을 선택한다. 프로필 선택 시 Tm 타겟, GC 범위, 염 농도, DNA 농도가 UI 기본값에 즉시 반영된다.
 
-| 옵션 | 설명 |
-|------|------|
-| 기본 프로필 | 해당 polymerase의 기본 Tm 목표값과 GC 범위를 불러온다 |
-| Custom Polymerase | 사용자 정의 프로필을 생성하거나 수정하는 다이얼로그를 연다 |
+**내장 프로필** (v1.30.1에서 제조사 매뉴얼 기준으로 교정됨):
 
-커스텀 프로필은 `~/.kuro/custom_polymerases.json`에 저장되며, KURO를 다시 시작해도 자동으로 다시 로드된다.
+| 프로필 | Tm 계산 방법 | 염 (mM) | DNA (nM) | 비고 |
+|--------|-------------|---------|----------|------|
+| Benchling | santalucia | 50 mono / 1.5 div | 250 | 기본값. Benchling 온라인 계산기와 동일 |
+| Taq | santalucia + owczarzy | 51 mono | 800 | NEB 표준 Taq |
+| Phusion | santalucia + schildkraut | 222 mono | 500 | Thermo Phusion HF buffer |
+| Q5 | santalucia + owczarzy | 150 mono | 2000 | NEB Q5 buffer |
+| KOD | santalucia | 50 mono | 250 | KOD One, 권장 22–35 bp, Tm >63°C |
+| DreamTaq | santalucia + owczarzy | 50 mono | 800 | Thermo DreamTaq, 최대 프라이머 30 bp |
+| TAKARA_GXL | santalucia + owczarzy | 50 mono | 250 | PrimeSTAR GXL, opt Tm 58°C |
+
+**Custom Polymerase**: Custom Polymerase 버튼으로 사용자 정의 프로필 다이얼로그를 열어 Tm 계산 방법, 염 농도, opt/min/max Tm, opt/min/max 프라이머 길이, GC 범위를 설정할 수 있다. 커스텀 프로필은 `~/.kuro/custom_polymerases.json`에 저장되며 앱 재시작 후에도 유지된다.
 
 ### Advanced Options
 
@@ -174,7 +181,7 @@ EVOLVEpro 모드를 선택하고 Browse 버튼으로 EVOLVEpro 출력 CSV를 로
 
 Design Report에서 position coverage, 시도한 pool variant 수, rescued/normal primer 평균 penalty 비교를 확인할 수 있다.
 
-Tm 계산은 SantaLucia 1998 모델을 사용하며, 폴리머라제 종류와 무관하게 동일한 계산 조건(mv_conc=50 mM, dna_conc=250 nM)을 적용한다. 프라이머는 한 번 설계되면 어떤 폴리머라제를 사용하든 동일한 서열을 주문하므로, Tm 계산 방법을 폴리머라제별로 변경할 필요가 없다.
+Tm 계산은 SantaLucia 1998 nearest-neighbor 모델을 사용한다. 염 보정 방법, monovalent/divalent 농도, DNA 농도는 선택한 polymerase 프로필에서 불러온다 (위 Polymerase 표 참조). 프로필을 전환하면 Tm 값이 자동으로 재계산되므로 동일 프라이머 서열이라도 Taq와 Phusion buffer 조건에서 Tm 값이 다르게 표시된다.
 
 ---
 
