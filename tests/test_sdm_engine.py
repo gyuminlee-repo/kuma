@@ -7,8 +7,11 @@ from pathlib import Path
 import pytest
 
 from kuro.sdm_engine import (
+    OffTargetHit,
     SdmPrimerResult,
     _synthesis_score,
+    check_offtarget,
+    check_offtarget_sliding,
     design_sdm_primers,
     export_results_tsv,
     load_fasta,
@@ -38,7 +41,7 @@ class TestDesignSdmPrimers:
             target_start=TARGET_START,
             mutations_csv=mutations_csv,
             polymerase="Q5",
-            overlap_len=20,
+            overlap_len=18,
         )
         return results
 
@@ -47,10 +50,10 @@ class TestDesignSdmPrimers:
         assert len(sdm_results) >= 10
 
     def test_primer_lengths(self, sdm_results):
-        """Primers should be between 18 and 60 bp."""
+        """Primers must match KURO spec: fwd 17-39 bp, rev 19-27 bp."""
         for r in sdm_results:
-            assert 18 <= r.fwd_len <= 60, f"{r.mutation.raw} fwd: {r.fwd_len} bp"
-            assert 18 <= r.rev_len <= 60, f"{r.mutation.raw} rev: {r.rev_len} bp"
+            assert 17 <= r.fwd_len <= 39, f"{r.mutation.raw} fwd: {r.fwd_len} bp"
+            assert 19 <= r.rev_len <= 27, f"{r.mutation.raw} rev: {r.rev_len} bp"
 
     def test_tm_in_range(self, sdm_results):
         """Non-overlap Tm should be in a reasonable range (50-85°C)."""
@@ -103,7 +106,7 @@ class TestExportTsv:
             target_start=TARGET_START,
             mutations_csv=mutations_csv,
             polymerase="Q5",
-            overlap_len=20,
+            overlap_len=18,
         )
         tsv_path = tmp_path / "test_primers.tsv"
         export_results_tsv(results, tsv_path)
@@ -187,3 +190,78 @@ class TestCancelCheck:
             cancel_check=cancel_after_3,
         )
         assert 0 < len(results) <= 3
+
+
+class TestCheckOfftargetSliding:
+    """Sliding-window off-target (PrimerBench / SnapGene-style)."""
+
+    def test_empty_on_short_primer(self):
+        # Primer shorter than min_length returns no hits.
+        hits = check_offtarget_sliding(
+            primer_seq="ACGTACGT",
+            template="ACGTACGTACGTACGT",
+            intended_start=0,
+            intended_end=8,
+            min_length=15,
+        )
+        assert hits == []
+
+    def test_detects_internal_match(self):
+        # 15-bp internal window ("CGTACGTACGTACGT") matches elsewhere on the
+        # template — 3' anchor would miss, sliding must catch.
+        internal = "CGTACGTACGTACGT"  # 15 bp
+        primer = "AA" + internal + "TT"  # 19 bp, internal window matches
+        # Template: intended site + distant copy of the internal window
+        template = primer + "N" * 50 + internal + "N" * 20
+        hits = check_offtarget_sliding(
+            primer_seq=primer,
+            template=template,
+            intended_start=0,
+            intended_end=len(primer),
+            min_length=15,
+        )
+        internal_hits = [h for h in hits if h.truncation_type == "internal"]
+        assert len(internal_hits) >= 1
+        assert any(h.match_length == 15 for h in internal_hits)
+
+    def test_full_length_match(self):
+        primer = "ACGTACGTACGTACGTAC"  # 18 bp
+        template = "N" * 40 + primer + "N" * 40 + primer + "N" * 40
+        hits = check_offtarget_sliding(
+            primer_seq=primer,
+            template=template,
+            intended_start=40,
+            intended_end=40 + len(primer),
+            min_length=15,
+        )
+        full = [h for h in hits if h.truncation_type == "full"]
+        assert len(full) >= 1
+
+    def test_self_hit_excluded(self):
+        primer = "ACGTACGTACGTACGTAC"  # 18 bp, appears once
+        template = "N" * 40 + primer + "N" * 40
+        hits = check_offtarget_sliding(
+            primer_seq=primer,
+            template=template,
+            intended_start=40,
+            intended_end=40 + len(primer),
+            min_length=15,
+        )
+        assert hits == []
+
+    def test_antisense_detection(self):
+        from kuro.overlap import reverse_complement
+        primer = "ACGTACGTACGTACGTAC"  # 18 bp
+        # Place the reverse complement elsewhere on the sense strand so it
+        # surfaces as an antisense hit from the primer's point of view.
+        rc = reverse_complement(primer)
+        template = "N" * 40 + primer + "N" * 40 + rc + "N" * 40
+        hits = check_offtarget_sliding(
+            primer_seq=primer,
+            template=template,
+            intended_start=40,
+            intended_end=40 + len(primer),
+            min_length=15,
+        )
+        antisense = [h for h in hits if h.strand == "antisense"]
+        assert len(antisense) >= 1

@@ -1,6 +1,46 @@
-# KURO Update Notes — v0.9.5 → v1.30.1
+# KURO Update Notes — v0.9.5 → v1.32.0
 
 [한국어](UPDATE-NOTES.ko.md) | **English**
+
+---
+
+## v1.32.0 (2026-04-10)
+
+### SDM primer length spec — aligned to slide reference
+
+Recalibrated primer length parameters against the PI presentation deck (`260408_KURO_발표자료_퀄리티/`) hmk2 Slide 1 STEP 1:
+
+- **overlap**: 8–18 bp (Tm target 42°C)
+- **Forward primer total**: 17–39 bp (Tm 62°C, structure `[overlap] + [3 bp mutant codon] + [downstream ≥4 bp]`)
+- **Reverse primer total**: 19–27 bp (Tm 58°C)
+
+### Polymerase profile as single source of truth
+
+- Added `overlap_len`, `fwd_len_min/max`, `rev_len_min/max` fields to `PolymeraseProfile`
+- All 7 built-in profiles (Benchling, Taq, Phusion, Q5, KOD, DreamTaq, TAKARA_GXL) populated with the slide spec
+- `design_single_sdm` and `design_sdm_primers` now resolve length defaults from the profile when `None` is passed
+- Pydantic sidecar params default to `None`, so workspace JSONs without `overlap_len` fall back to the profile
+- `DesignSdmPrimersParams.overlap_len` hard-capped at `ge=8, le=18` (enforces slide spec). `RetryFailedParams` and `EvaluatePrimerParams` keep `le=40` so rescue exploration and legacy-primer evaluation still work.
+
+### Sliding-window off-target detection (PrimerBench port)
+
+- New `check_offtarget_sliding()` in `kuro/sdm_engine.py` — a direct port of PrimerBench `check_primer_binding()`
+- Enumerates every contiguous sub-sequence `[min_length=15, primer_len]` of the primer and scans both template strands for exact matches
+- Catches **internal-window hits** (15-mers trimmed from both 5' and 3' ends) that the existing 3'-anchor method (`check_offtarget`) cannot detect
+- New `OffTargetHit.truncation_type` field: `full` / `5prime` / `3prime` / `internal` / `3prime_anchor`
+- 5 new tests covering internal match, self-hit exclusion, antisense detection, and full-length matching
+
+### UI / CLI / fixture fan-out
+
+- `ParameterPanel.tsx`, `exportSlice.ts` (workspace load/reset), `CandidatePopover.tsx`, `designSlice.ts` initial state — stale fallbacks cleared
+- CLI `--overlap`, `--fwd-len-*`, `--rev-len-*` default to `None` (profile-driven)
+- `kuro/sdm_engine.py:444` magic literal `35` replaced with `rev_len_max` parameter
+- `fixtures/generate_sample_data.py` plus 4 test fixtures updated
+
+### Breaking change / migration
+
+- Primers generated with 1.31.x fall outside the new length envelope (20 bp overlap, >39 bp fwd, >27 bp rev). Re-running the same input will produce a different result distribution.
+- Workspace JSONs with `overlap_len: 20` now raise a 422 `ValidationError` — edit the file or re-save from the UI.
 
 ---
 

@@ -95,7 +95,7 @@ def designed_primers(loaded_fasta) -> dict:
             "target_start": TARGET_START,
             "mutations_csv_or_text": MUTATIONS_CSV,
             "polymerase": "Q5",
-            "overlap_len": 20,
+            "overlap_len": 18,
         },
     )
     assert "result" in resp, f"design_sdm_primers failed: {resp}"
@@ -210,7 +210,7 @@ class TestDesignSdmPrimers:
                 "target_start": TARGET_START,
                 "mutations_csv_or_text": "Q232A\nY233A",
                 "polymerase": "Q5",
-                "overlap_len": 20,
+                "overlap_len": 18,
             },
         )
         assert "result" in resp
@@ -277,7 +277,7 @@ class TestEvaluatePrimer:
                 "fasta_path": FASTA_PATH,
                 "forward_seq": "ATGCATGCATGCATGCATGC",
                 "reverse_seq": "GCATGCATGCATGCATGCAT",
-                "overlap_len": 20,
+                "overlap_len": 18,
             },
         )
         assert "result" in resp
@@ -483,7 +483,7 @@ class TestExportOrder:
                 "target_start": TARGET_START,
                 "mutations_csv_or_text": "Q232A\nY233A",
                 "polymerase": "Q5",
-                "overlap_len": 20,
+                "overlap_len": 18,
                 "organism": "ecoli",
             },
         )
@@ -499,7 +499,7 @@ class TestExportOrder:
                 "target_start": TARGET_START,
                 "mutations_csv_or_text": "Q232A",
                 "polymerase": "Q5",
-                "overlap_len": 20,
+                "overlap_len": 18,
                 "organism": "unknown_organism_xyz",
             },
         )

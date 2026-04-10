@@ -41,7 +41,8 @@ class DesignSdmPrimersParams(BaseModel):
     target_start: int = Field(default=0, ge=0)
     mutations_csv_or_text: str = ""
     polymerase: str = "Q5"
-    overlap_len: int = Field(default=20, ge=15, le=40)
+    # None → resolved from polymerase profile (slide spec: 18). le=18 hard-caps user input.
+    overlap_len: Optional[int] = Field(default=None, ge=8, le=18)
     codon_strategy: str = "closest"
     organism: str = "ecoli"
 
@@ -54,11 +55,11 @@ class DesignSdmPrimersParams(BaseModel):
     gc_min: float = Field(default=40.0, ge=0.0, le=100.0)
     gc_max: float = Field(default=60.0, ge=0.0, le=100.0)
 
-    # Primer length constraints
-    fwd_len_min: int = Field(default=18, ge=10, le=60)
-    fwd_len_max: int = Field(default=45, ge=10, le=100)
-    rev_len_min: int = Field(default=18, ge=10, le=60)
-    rev_len_max: int = Field(default=30, ge=10, le=100)
+    # Primer length constraints (None → resolved from polymerase profile)
+    fwd_len_min: Optional[int] = Field(default=None, ge=10, le=60)
+    fwd_len_max: Optional[int] = Field(default=None, ge=10, le=100)
+    rev_len_min: Optional[int] = Field(default=None, ge=10, le=60)
+    rev_len_max: Optional[int] = Field(default=None, ge=10, le=100)
 
     # Position rescue
     rescue_pool: list[str] = Field(default_factory=list)
@@ -70,7 +71,8 @@ class RetryFailedParams(BaseModel):
     fasta_path: str
     polymerase: str = "Benchling"
     target_start: int = Field(default=0, ge=0)
-    overlap_len: int = Field(default=20, ge=15, le=40)
+    # rescue may explore overlap lengths outside the design spec (le=40)
+    overlap_len: Optional[int] = Field(default=None, ge=8, le=40)
     codon_strategy: str = "closest"
     organism: str = "ecoli"
     tm_fwd_target: float = Field(default=62.0, ge=20.0, le=80.0)
@@ -78,10 +80,11 @@ class RetryFailedParams(BaseModel):
     tm_overlap_target: float = Field(default=42.0, ge=20.0, le=80.0)
     gc_min: float = Field(default=40.0, ge=0.0, le=100.0)
     gc_max: float = Field(default=60.0, ge=0.0, le=100.0)
-    fwd_len_min: int = Field(default=18, ge=10, le=60)
-    fwd_len_max: int = Field(default=45, ge=10, le=100)
-    rev_len_min: int = Field(default=18, ge=10, le=60)
-    rev_len_max: int = Field(default=30, ge=10, le=100)
+    # None → resolved from polymerase profile
+    fwd_len_min: Optional[int] = Field(default=None, ge=10, le=60)
+    fwd_len_max: Optional[int] = Field(default=None, ge=10, le=100)
+    rev_len_min: Optional[int] = Field(default=None, ge=10, le=60)
+    rev_len_max: Optional[int] = Field(default=None, ge=10, le=100)
     num_return: int = Field(default=10, ge=1, le=960)
 
 
@@ -96,7 +99,8 @@ class EvaluatePrimerParams(BaseModel):
     fasta_path: str
     forward_seq: str = ""
     reverse_seq: str = ""
-    overlap_len: int = Field(default=20, ge=15, le=40)
+    # evaluates user-provided primers (including legacy designs), so no le=18 cap
+    overlap_len: int = Field(default=18, ge=8, le=40)
 
 
 class GetAlternativesParams(BaseModel):

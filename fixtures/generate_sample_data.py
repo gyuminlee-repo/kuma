@@ -505,7 +505,7 @@ def verify_design_failures(gb_path: Path, csv_path: Path) -> bool:
             target_start=target_start,
             mutations_csv=csv_path,
             polymerase="Q5",
-            overlap_len=20,
+            overlap_len=18,
         )
     except Exception as exc:
         print(f"  [Design verify] FAIL: design_sdm_primers raised {exc}")

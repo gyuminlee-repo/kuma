@@ -19,7 +19,12 @@
     "opt_tm_fwd": 62.0,
     "opt_tm_rev": 58.0,
     "opt_tm_overlap": 42.0,
-    "min_3prime_dist": 4
+    "min_3prime_dist": 4,
+    "overlap_len": 18,
+    "fwd_len_min": 17,
+    "fwd_len_max": 39,
+    "rev_len_min": 19,
+    "rev_len_max": 27
   },
   "Taq": {
     "name": "Taq",
@@ -37,7 +42,12 @@
     "salt_divalent": 0.0,
     "dntp_conc": 0.0,
     "dna_conc": 800.0,
-    "max_tm_diff": 3.0
+    "max_tm_diff": 3.0,
+    "overlap_len": 18,
+    "fwd_len_min": 17,
+    "fwd_len_max": 39,
+    "rev_len_min": 19,
+    "rev_len_max": 27
   },
   "Phusion": {
     "name": "Phusion",
@@ -55,7 +65,12 @@
     "salt_divalent": 0.0,
     "dntp_conc": 0.0,
     "dna_conc": 500.0,
-    "max_tm_diff": 3.0
+    "max_tm_diff": 3.0,
+    "overlap_len": 18,
+    "fwd_len_min": 17,
+    "fwd_len_max": 39,
+    "rev_len_min": 19,
+    "rev_len_max": 27
   },
   "Q5": {
     "name": "Q5",
@@ -73,7 +88,12 @@
     "salt_divalent": 0.0,
     "dntp_conc": 0.0,
     "dna_conc": 2000.0,
-    "max_tm_diff": 3.0
+    "max_tm_diff": 3.0,
+    "overlap_len": 18,
+    "fwd_len_min": 17,
+    "fwd_len_max": 39,
+    "rev_len_min": 19,
+    "rev_len_max": 27
   },
   "KOD": {
     "name": "KOD",
@@ -91,7 +111,12 @@
     "salt_divalent": 1.5,
     "dntp_conc": 0.8,
     "dna_conc": 250.0,
-    "max_tm_diff": 3.0
+    "max_tm_diff": 3.0,
+    "overlap_len": 18,
+    "fwd_len_min": 17,
+    "fwd_len_max": 39,
+    "rev_len_min": 19,
+    "rev_len_max": 27
   },
   "DreamTaq": {
     "name": "DreamTaq",
@@ -109,7 +134,12 @@
     "salt_divalent": 0.0,
     "dntp_conc": 0.0,
     "dna_conc": 800.0,
-    "max_tm_diff": 3.0
+    "max_tm_diff": 3.0,
+    "overlap_len": 18,
+    "fwd_len_min": 17,
+    "fwd_len_max": 39,
+    "rev_len_min": 19,
+    "rev_len_max": 27
   },
   "TAKARA_GXL": {
     "name": "TAKARA_GXL",
@@ -127,6 +157,11 @@
     "salt_divalent": 0.0,
     "dntp_conc": 0.0,
     "dna_conc": 250.0,
-    "max_tm_diff": 5.0
+    "max_tm_diff": 5.0,
+    "overlap_len": 18,
+    "fwd_len_min": 17,
+    "fwd_len_max": 39,
+    "rev_len_min": 19,
+    "rev_len_max": 27
   }
 }

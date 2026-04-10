@@ -30,7 +30,7 @@ def sdm_results(fasta_path, mutations_csv) -> list[SdmPrimerResult]:
         target_start=TARGET_START,
         mutations_csv=mutations_csv,
         polymerase="Q5",
-        overlap_len=20,
+        overlap_len=18,
     )
     return results
 

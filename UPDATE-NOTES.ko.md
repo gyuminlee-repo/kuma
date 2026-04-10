@@ -1,6 +1,45 @@
-# KURO 업데이트 노트 — v0.9.5 → v1.30.1
+# KURO 업데이트 노트 — v0.9.5 → v1.32.0
 
 **한국어** | [English](UPDATE-NOTES.md)
+
+---
+
+## v1.32.0 (2026-04-10)
+
+### SDM primer 길이 사양 — slide 공식 스펙 반영
+
+- 이혜원 박사님 발표자료(`260408_KURO_발표자료_퀄리티/`) hmk2 Slide 1 STEP 1 기준으로 primer 길이 파라미터 전면 재보정:
+  - **overlap**: 8–18 bp (Tm 42°C 타겟)
+  - **Forward primer 전체**: 17–39 bp (Tm 62°C, 구조: `[overlap] + [돌연변이 codon 3 bp] + [downstream ≥4 bp]`)
+  - **Reverse primer 전체**: 19–27 bp (Tm 58°C)
+
+### Polymerase profile = single source of truth
+
+- `PolymeraseProfile` dataclass 에 `overlap_len`, `fwd_len_min/max`, `rev_len_min/max` 필드 추가
+- 7개 내장 프로파일(Benchling, Taq, Phusion, Q5, KOD, DreamTaq, TAKARA_GXL) 전부 slide 스펙 값 주입
+- `design_single_sdm`, `design_sdm_primers` 는 이제 `None` 전달 시 profile 값을 자동 사용
+- Pydantic 사이드카 모델 default 도 `None` 으로 전환 → workspace JSON 에 overlap_len 이 없어도 profile 폴백
+- `DesignSdmPrimersParams.overlap_len` 은 `ge=8, le=18` 로 강하게 제약 (slide 스펙 이탈 차단). `RetryFailedParams`, `EvaluatePrimerParams` 는 `le=40` 유지 (rescue 확장 및 legacy primer 평가 허용)
+
+### Off-target 슬라이딩 윈도우 검사 추가 (PrimerBench 포팅)
+
+- `kuro/sdm_engine.py` 에 `check_offtarget_sliding()` 함수 신설 — PrimerBench `check_primer_binding()` 알고리즘을 KURO 로 이식
+- primer 의 모든 연속 sub-sequence (길이 `[min_length=15, primer_len]`) 를 template 양쪽 strand 에서 exact match 스캔
+- **internal window 매치** (5'/3' 양쪽이 잘린 15-mer) 까지 탐지 — 기존 3' anchor 방식(`check_offtarget`) 이 놓치는 off-target 보완
+- `OffTargetHit.truncation_type` 필드 추가: `full` / `5prime` / `3prime` / `internal` / `3prime_anchor`
+- 5개 신규 테스트 추가 (internal match 탐지, self-hit 제외, antisense strand, full-length match)
+
+### UI/CLI/fixture 연쇄 업데이트
+
+- `ParameterPanel.tsx`, `exportSlice.ts` (workspace load/reset), `CandidatePopover.tsx`, `designSlice.ts` 초기 state 의 stale fallback 일괄 정리
+- CLI `--overlap`, `--fwd-len-*`, `--rev-len-*` default 를 `None` 으로 전환 (profile 자동 사용)
+- `kuro/sdm_engine.py:444` 의 magic literal `35` 를 `rev_len_max` 파라미터 참조로 교체
+- `fixtures/generate_sample_data.py`, 테스트 4종의 overlap_len fixture 값 갱신
+
+### Breaking change / migration
+
+- 기존 1.31.x 버전으로 생성된 primer 는 길이 분포(20 bp overlap, 45 bp 이상 fwd, 35 bp 이상 rev) 가 slide 스펙 범위 밖. 동일 입력 재실행 시 결과가 달라짐
+- 기존 workspace JSON 의 `overlap_len: 20` 은 422 ValidationError — workspace 파일 수정 또는 재저장 필요
 
 ---
 

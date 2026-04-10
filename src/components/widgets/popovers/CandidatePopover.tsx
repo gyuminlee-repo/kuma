@@ -99,7 +99,7 @@ export function CandidatePopover({
       return;
     }
     setEvaluating(true);
-    const result = await evaluateCustomPrimer(mutation, fwdSeq, revSeq, fwdInput ? customOverlap.trim().length : (current.overlap_len ?? 20));
+    const result = await evaluateCustomPrimer(mutation, fwdSeq, revSeq, fwdInput ? customOverlap.trim().length : (current.overlap_len ?? 18));
     if (result) {
       addCustomCandidate(mutation, result);
     }

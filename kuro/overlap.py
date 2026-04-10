@@ -18,7 +18,7 @@ class OverlapWindow:
 def generate_overlap_windows(
     seq: str,
     codon_start: int,
-    overlap_len: int = 20,
+    overlap_len: int = 18,
 ) -> list[OverlapWindow]:
     """Generate overlap windows UPSTREAM of the mutation codon.
 

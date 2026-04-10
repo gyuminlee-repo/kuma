@@ -27,17 +27,17 @@ class TestOverlapWindows:
     def test_window_count(self):
         seq = "A" * 100
         # Upstream-only: exactly 1 window per overlap_len
-        windows = generate_overlap_windows(seq, codon_start=50, overlap_len=20)
+        windows = generate_overlap_windows(seq, codon_start=50, overlap_len=18)
         assert len(windows) == 1
 
     def test_window_is_upstream_of_codon(self):
         seq = "ACGT" * 100  # 400 bp
         codon_start = 150
-        windows = generate_overlap_windows(seq, codon_start=codon_start, overlap_len=20)
+        windows = generate_overlap_windows(seq, codon_start=codon_start, overlap_len=18)
         for w in windows:
             # Overlap ends at codon_start (upstream only)
             assert w.end == codon_start
-            assert w.codon_offset == 20  # codon is right after the window
+            assert w.codon_offset == 18  # codon is right after the window
 
     def test_window_length(self):
         seq = "A" * 200

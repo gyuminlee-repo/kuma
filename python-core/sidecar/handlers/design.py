@@ -192,9 +192,9 @@ def handle_design_sdm_primers(params: dict) -> dict:
     if p.gc_min >= p.gc_max:
         raise ValueError(f"gc_min ({p.gc_min}) must be less than gc_max ({p.gc_max})")
 
-    # Validate primer length ranges
+    # Validate primer length ranges (None → resolved later from polymerase profile, skip here)
     for label, lo, hi in [("fwd", p.fwd_len_min, p.fwd_len_max), ("rev", p.rev_len_min, p.rev_len_max)]:
-        if lo > hi:
+        if lo is not None and hi is not None and lo > hi:
             raise ValueError(f"{label}_len_min ({lo}) must be <= {label}_len_max ({hi})")
 
     resolved_fasta = _validate_filepath(

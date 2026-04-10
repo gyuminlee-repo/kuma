@@ -89,10 +89,10 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
   gcMin: 40,
   gcMax: 60,
   primerLenEnabled: true,
-  fwdLenMin: 22,
-  fwdLenMax: 45,
-  revLenMin: 22,
-  revLenMax: 35,
+  fwdLenMin: 17,
+  fwdLenMax: 39,
+  revLenMin: 19,
+  revLenMax: 27,
   fillOnFailure: true,
   manuallySwapped: {},
   customCandidates: {},
@@ -434,7 +434,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         target_start: targetStart,
         forward_seq: fwdSeq,
         reverse_seq: revSeq,
-        overlap_len: overlapLen ?? 20,
+        overlap_len: overlapLen ?? 18,
       });
       return result;
     } catch (err) {

@@ -36,6 +36,12 @@ class OffTargetHit:
     match_seq: str
     tm: float
     match_length: int
+    # "3prime_anchor" (KURO default): 3' end anchored + 5' extension with Tm filter
+    # "full": full-length primer match
+    # "5prime": only 5' end matched (3' trimmed)
+    # "3prime": only 3' end matched (5' trimmed)
+    # "internal": neither end aligned (both sides trimmed) — PrimerBench-only
+    truncation_type: str = "3prime_anchor"
 
 
 @dataclass
@@ -221,8 +227,8 @@ def _extend_forward(
     target_tm: float,
     tolerance: float,
     min_downstream: int = 4,
-    fwd_len_min: int = 18,
-    fwd_len_max: int = 45,
+    fwd_len_min: int = 17,
+    fwd_len_max: int = 39,
 ) -> tuple[str, str, float] | None:
     """Extend forward primer: overlap + mutant codon + downstream extension.
 
@@ -266,8 +272,8 @@ def _extend_reverse(
     upstream_seq: str,
     target_tm: float,
     tolerance: float,
-    rev_len_min: int = 18,
-    rev_len_max: int = 35,
+    rev_len_min: int = 19,
+    rev_len_max: int = 27,
 ) -> tuple[str, str, float] | None:
     """Extend reverse primer: upstream extension + rc(overlap).
 
@@ -379,7 +385,156 @@ def check_offtarget(
                     position=tpos, strand=strand_label,
                     match_seq=match_seq, tm=round(tm, 1),
                     match_length=min_match + ext,
+                    truncation_type="3prime_anchor",
                 ))
+
+    return hits
+
+
+def _find_all_positions(haystack: str, needle: str) -> list[int]:
+    """Return every 0-based start index where `needle` occurs in `haystack`.
+
+    Both arguments must be uppercase; callers normalize once to keep the
+    inner sliding-window loop hot.
+    """
+    positions: list[int] = []
+    start = 0
+    while True:
+        idx = haystack.find(needle, start)
+        if idx == -1:
+            break
+        positions.append(idx)
+        start = idx + 1
+    return positions
+
+
+def check_offtarget_sliding(
+    primer_seq: str,
+    template: str,
+    intended_start: int,
+    intended_end: int,
+    min_length: int = 15,
+    antisense_cache: str | None = None,
+) -> list[OffTargetHit]:
+    """Full sliding-window off-target check (PrimerBench / SnapGene-style).
+
+    Enumerates every contiguous sub-sequence of the primer with length in
+    ``[min_length, len(primer_seq)]`` and searches each window on both
+    strands of the template with exact matching. Unlike ``check_offtarget``
+    (3' anchor + Tm filter), this catches binding sites that match an
+    *internal* window of the primer — e.g. a 15-mer obtained by trimming
+    both 5' and 3' ends simultaneously, which 3'-only anchoring misses.
+
+    Physical sites are deduplicated per ``(strand, tpl_start)`` keeping the
+    longest matching window, then overlapping intervals are merged so each
+    returned hit represents one distinct physical binding footprint. Tm is
+    calculated on the matched window for reporting but is NOT used to
+    filter (length-based filtering only; 15 nt is the minimum specific
+    priming length per Wu et al., PLoS One 4:e7401 (2009)).
+
+    Self-hits that overlap ``[intended_start, intended_end)`` on the
+    template are excluded.
+
+    Args:
+        primer_seq: Full primer sequence (5'→3').
+        template: Template DNA sequence.
+        intended_start: 0-based start of the designed binding site.
+        intended_end: 0-based end (exclusive) of the designed binding site.
+        min_length: Smallest window length to search (default 15).
+        antisense_cache: Pre-computed ``reverse_complement(template.upper())``
+            to avoid recomputing per primer in a batch.
+
+    Returns:
+        List of ``OffTargetHit`` objects; ``truncation_type`` is set to
+        ``"full" | "5prime" | "3prime" | "internal"`` depending on which
+        window of the primer matched.
+    """
+    hits: list[OffTargetHit] = []
+    p_upper = primer_seq.upper()
+    t_upper = template.upper()
+    plen = len(p_upper)
+    tlen = len(t_upper)
+
+    if plen < min_length:
+        return hits
+
+    rc_template = antisense_cache if antisense_cache else reverse_complement(t_upper)
+
+    # (strand, tpl_start) -> (window_len, w_start) — longest window per physical site
+    best_by_site: dict[tuple[str, int], tuple[int, int]] = {}
+
+    for window_len in range(min_length, plen + 1):
+        for w_start in range(0, plen - window_len + 1):
+            window = p_upper[w_start:w_start + window_len]
+
+            for pos in _find_all_positions(t_upper, window):
+                tpl_start, tpl_end = pos, pos + window_len
+                if not (tpl_end <= intended_start or tpl_start >= intended_end):
+                    continue
+                key = ("sense", tpl_start)
+                prev = best_by_site.get(key)
+                if prev is None or window_len > prev[0]:
+                    best_by_site[key] = (window_len, w_start)
+
+            for pos in _find_all_positions(rc_template, window):
+                tpl_start = tlen - (pos + window_len)
+                tpl_end = tlen - pos
+                if not (tpl_end <= intended_start or tpl_start >= intended_end):
+                    continue
+                key = ("antisense", tpl_start)
+                prev = best_by_site.get(key)
+                if prev is None or window_len > prev[0]:
+                    best_by_site[key] = (window_len, w_start)
+
+    # Coalesce overlapping physical intervals within each strand
+    by_strand: dict[str, list[tuple[int, int, int, int]]] = {}
+    for (strand, tpl_start), (wlen, w_start) in best_by_site.items():
+        tpl_end = tpl_start + wlen
+        by_strand.setdefault(strand, []).append((tpl_start, tpl_end, wlen, w_start))
+
+    for strand, intervals in by_strand.items():
+        intervals.sort()
+        merged: list[tuple[int, int, int, int]] = []
+        for tpl_start, tpl_end, wlen, w_start in intervals:
+            if merged and tpl_start < merged[-1][1]:
+                prev_start, prev_end, prev_wlen, prev_wstart = merged[-1]
+                if wlen > prev_wlen:
+                    merged[-1] = (
+                        min(prev_start, tpl_start),
+                        max(prev_end, tpl_end),
+                        wlen,
+                        w_start,
+                    )
+                else:
+                    merged[-1] = (
+                        min(prev_start, tpl_start),
+                        max(prev_end, tpl_end),
+                        prev_wlen,
+                        prev_wstart,
+                    )
+            else:
+                merged.append((tpl_start, tpl_end, wlen, w_start))
+
+        for tpl_start, _tpl_end, wlen, w_start in merged:
+            w_end = w_start + wlen
+            if w_start == 0 and w_end == plen:
+                ttype = "full"
+            elif w_start == 0:
+                ttype = "3prime"  # 3' end trimmed, 5' intact
+            elif w_end == plen:
+                ttype = "5prime"  # 5' end trimmed, 3' intact
+            else:
+                ttype = "internal"
+            match_seq = p_upper[w_start:w_end]
+            tm = _calc_sdm_tm(match_seq)
+            hits.append(OffTargetHit(
+                position=tpl_start,
+                strand=strand,
+                match_seq=match_seq,
+                tm=round(tm, 1),
+                match_length=wlen,
+                truncation_type=ttype,
+            ))
 
     return hits
 
@@ -396,10 +551,10 @@ def _search_candidates(
     min_downstream: int,
     gc_min: float = 40.0,
     gc_max: float = 60.0,
-    fwd_len_min: int = 18,
-    fwd_len_max: int = 45,
-    rev_len_min: int = 18,
-    rev_len_max: int = 35,
+    fwd_len_min: int = 17,
+    fwd_len_max: int = 39,
+    rev_len_min: int = 19,
+    rev_len_max: int = 27,
 ) -> list[SdmPrimerResult]:
     """Search for SDM primer candidates at a given tolerance.
 
@@ -441,7 +596,7 @@ def _search_candidates(
         fwd_full, fwd_binding, tm_fwd = fwd_result
 
         overlap_start = codon_start - len(overlap_seq)
-        upstream_seq = mutated_seq[max(0, overlap_start - 35):overlap_start]
+        upstream_seq = mutated_seq[max(0, overlap_start - rev_len_max):overlap_start]
 
         # Rev: independent tolerance
         rev_result = None
@@ -522,19 +677,23 @@ def design_single_sdm(
     seq: str,
     mutation: Mutation,
     profile: PolymeraseProfile,
-    overlap_len: int = 20,
+    overlap_len: int | None = None,
     num_return: int = 5,
     codon_strategy: str = "closest",
     gc_min: float = 40.0,
     gc_max: float = 60.0,
-    fwd_len_min: int = 18,
-    fwd_len_max: int = 45,
-    rev_len_min: int = 18,
-    rev_len_max: int = 35,
+    fwd_len_min: int | None = None,
+    fwd_len_max: int | None = None,
+    rev_len_min: int | None = None,
+    rev_len_max: int | None = None,
     organism: str = "ecoli",
     tol_max: float = 3.0,
 ) -> list[SdmPrimerResult]:
     """Design SDM primers for a single mutation.
+
+    Length parameters (overlap_len, fwd_len_min/max, rev_len_min/max) default
+    to the values stored on the polymerase profile. If the profile does not
+    define them, fall back to the slide spec: overlap 18, fwd 17-39, rev 19-27.
 
     Redesigned algorithm (EVOLVEpro-validated):
     1. Overlap is UPSTREAM of mutation codon (not containing it)
@@ -549,6 +708,18 @@ def design_single_sdm(
     Returns:
         List of SdmPrimerResult sorted by penalty (best first).
     """
+    # Resolve length defaults: explicit arg > profile value > slide spec fallback
+    if overlap_len is None:
+        overlap_len = profile.overlap_len if profile.overlap_len is not None else 18
+    if fwd_len_min is None:
+        fwd_len_min = profile.fwd_len_min if profile.fwd_len_min is not None else 17
+    if fwd_len_max is None:
+        fwd_len_max = profile.fwd_len_max if profile.fwd_len_max is not None else 39
+    if rev_len_min is None:
+        rev_len_min = profile.rev_len_min if profile.rev_len_min is not None else 19
+    if rev_len_max is None:
+        rev_len_max = profile.rev_len_max if profile.rev_len_max is not None else 27
+
     # Generate mutation variants for multiple codons (optimal + WT-closest)
     alt_codons = mt_codons_for_design(mutation.wt_codon, mutation.mt_aa, codon_strategy, organism=organism)
     mutations_to_try = []
@@ -662,7 +833,7 @@ def evaluate_custom_primer(
     rev_seq: str,
     template: str,
     mutation_raw: str = "custom",
-    overlap_len: int = 20,
+    overlap_len: int = 18,
 ) -> SdmPrimerResult:
     """Evaluate a user-provided primer pair and return metrics."""
     from .overlap import OverlapWindow, reverse_complement
@@ -675,8 +846,8 @@ def evaluate_custom_primer(
     tm_fwd = _calc_sdm_tm(fwd_seq)
     tm_rev = _calc_sdm_tm(rev_seq)
 
-    # Estimate overlap from fwd start; if overlap_len is 0 or not given, try 20 bp default
-    effective_ov_len = overlap_len if overlap_len and overlap_len > 0 else min(20, len(fwd_seq))
+    # Estimate overlap from fwd start; if overlap_len is 0 or not given, try 18 bp default
+    effective_ov_len = overlap_len if overlap_len and overlap_len > 0 else min(18, len(fwd_seq))
     ov_seq = fwd_seq[:effective_ov_len]
     tm_ov = _calc_sdm_tm(ov_seq) if len(ov_seq) >= 8 else 0.0
 
@@ -968,7 +1139,7 @@ def design_sdm_primers(
     target_start: int,
     mutations_csv: Path,
     polymerase: str = "Q5",
-    overlap_len: int = 20,
+    overlap_len: int | None = None,
     custom_profiles: Path | None = None,
     codon_strategy: str = "closest",
     tm_fwd_target: float | None = None,
@@ -976,22 +1147,26 @@ def design_sdm_primers(
     tm_overlap_target: float | None = None,
     gc_min: float = 40.0,
     gc_max: float = 60.0,
-    fwd_len_min: int = 18,
-    fwd_len_max: int = 45,
-    rev_len_min: int = 18,
-    rev_len_max: int = 35,
+    fwd_len_min: int | None = None,
+    fwd_len_max: int | None = None,
+    rev_len_min: int | None = None,
+    rev_len_max: int | None = None,
     on_progress: "Callable[[int, int, str], None] | None" = None,
     cancel_check: "Callable[[], bool] | None" = None,
     organism: str = "ecoli",
 ) -> tuple[list[SdmPrimerResult], dict[str, list[SdmPrimerResult]], dict[str, str]]:
     """Design SDM primers for a batch of mutations.
 
+    Length parameters default to the polymerase profile values. If a profile
+    does not define them, fall back to the slide spec: overlap 18, fwd 17-39,
+    rev 19-27. Explicit int arguments override the profile.
+
     Args:
         fasta_path: Path to template FASTA file.
         target_start: 0-based position of CDS start codon (ATG).
         mutations_csv: Path to CSV file with 'mutation' column.
         polymerase: Polymerase name for Tm calculations.
-        overlap_len: Overlap window length in bp.
+        overlap_len: Overlap window length in bp (None → profile → 18).
         custom_profiles: Optional path to custom polymerase profiles.
         on_progress: Optional callback(i, total, mutation_raw) for progress.
         cancel_check: Optional callable() -> bool, returns True if cancelled.

@@ -39,6 +39,12 @@ class PolymeraseProfile:
     opt_tm_rev: float | None = None     # Reverse non-overlap Tm target
     opt_tm_overlap: float | None = None  # Overlap region Tm target
     min_3prime_dist: int = 0             # Min distance from mutation to 3' end of overlap
+    # SDM primer length spec (optional; profile-level defaults resolved by design_single_sdm)
+    overlap_len: int | None = None       # Upstream overlap max length (Gibson-style anchor)
+    fwd_len_min: int | None = None       # Forward primer total length min
+    fwd_len_max: int | None = None       # Forward primer total length max
+    rev_len_min: int | None = None       # Reverse primer total length min
+    rev_len_max: int | None = None       # Reverse primer total length max
 
 
 def _resource_path(relative_path: str) -> Path:
@@ -72,10 +78,15 @@ def _dict_to_profile(data: dict) -> PolymeraseProfile:
         dntp_conc=float(data["dntp_conc"]),
         dna_conc=float(data["dna_conc"]),
         max_tm_diff=float(data["max_tm_diff"]),
-        opt_tm_fwd=float(data["opt_tm_fwd"]) if "opt_tm_fwd" in data else None,
-        opt_tm_rev=float(data["opt_tm_rev"]) if "opt_tm_rev" in data else None,
-        opt_tm_overlap=float(data["opt_tm_overlap"]) if "opt_tm_overlap" in data else None,
+        opt_tm_fwd=float(data["opt_tm_fwd"]) if data.get("opt_tm_fwd") is not None else None,
+        opt_tm_rev=float(data["opt_tm_rev"]) if data.get("opt_tm_rev") is not None else None,
+        opt_tm_overlap=float(data["opt_tm_overlap"]) if data.get("opt_tm_overlap") is not None else None,
         min_3prime_dist=int(data.get("min_3prime_dist", 0)),
+        overlap_len=int(data["overlap_len"]) if data.get("overlap_len") is not None else None,
+        fwd_len_min=int(data["fwd_len_min"]) if data.get("fwd_len_min") is not None else None,
+        fwd_len_max=int(data["fwd_len_max"]) if data.get("fwd_len_max") is not None else None,
+        rev_len_min=int(data["rev_len_min"]) if data.get("rev_len_min") is not None else None,
+        rev_len_max=int(data["rev_len_max"]) if data.get("rev_len_max") is not None else None,
     )
 
 

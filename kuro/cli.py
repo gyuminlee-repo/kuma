@@ -152,8 +152,8 @@ def main() -> None:
         help="Polymerase name (default: Q5)"
     )
     design_parser.add_argument(
-        "--overlap", type=int, default=20,
-        help="Overlap window length in bp (default: 20)"
+        "--overlap", type=int, default=None,
+        help="Overlap window length in bp (default: polymerase profile, slide spec 18)"
     )
     design_parser.add_argument(
         "--output", default="results/",
@@ -185,20 +185,20 @@ def main() -> None:
         help="Maximum GC%% for primers (default: 60)"
     )
     design_parser.add_argument(
-        "--fwd-len-min", type=int, default=18,
-        help="Minimum forward primer length (default: 18)"
+        "--fwd-len-min", type=int, default=None,
+        help="Minimum forward primer length (default: polymerase profile, slide spec 17)"
     )
     design_parser.add_argument(
-        "--fwd-len-max", type=int, default=45,
-        help="Maximum forward primer length (default: 45)"
+        "--fwd-len-max", type=int, default=None,
+        help="Maximum forward primer length (default: polymerase profile, slide spec 39)"
     )
     design_parser.add_argument(
-        "--rev-len-min", type=int, default=18,
-        help="Minimum reverse primer length (default: 18)"
+        "--rev-len-min", type=int, default=None,
+        help="Minimum reverse primer length (default: polymerase profile, slide spec 19)"
     )
     design_parser.add_argument(
-        "--rev-len-max", type=int, default=30,
-        help="Maximum reverse primer length (default: 30)"
+        "--rev-len-max", type=int, default=None,
+        help="Maximum reverse primer length (default: polymerase profile, slide spec 27)"
     )
 
     # plate-map subcommand
