@@ -90,7 +90,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
       reloadTimer = null;
       const state = get();
       if (state.evolveproCsvPath) {
-        state.loadEvolveproCsv(state.evolveproCsvPath).catch(() => {});
+        state.loadEvolveproCsv(state.evolveproCsvPath).catch((err) => console.warn("[diversity] CSV reload failed:", err));
       }
     }, 300);
   }
@@ -204,7 +204,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   setDomains: (domains: DomainInfo[]) => {
     set({ domains, disabledDomains: [] });
     const { evolveproCsvPath, domainDiversityEnabled } = get();
-    if (evolveproCsvPath && domainDiversityEnabled) get().loadEvolveproCsv(evolveproCsvPath).catch(() => {});
+    if (evolveproCsvPath && domainDiversityEnabled) get().loadEvolveproCsv(evolveproCsvPath).catch((err) => console.warn("[diversity] CSV reload failed:", err));
   },
 
   toggleDomain: (domainKey: string) => {

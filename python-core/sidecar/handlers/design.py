@@ -458,18 +458,18 @@ def handle_swap_primer(params: dict) -> dict:
             raise ValueError(f"No candidates for mutation: {p.mutation}")
         if p.candidate_idx >= len(candidates):
             raise ValueError(f"Invalid candidate index: {p.candidate_idx}")
-
         source = candidates[p.candidate_idx]
+        current = next((r for r in _core._state.results if r.mutation.raw == p.mutation), None)
 
-        if p.swap_type == "both":
-            new_best = source
-        else:
-            current = next((r for r in _core._state.results if r.mutation.raw == p.mutation), None)
-            if not current:
-                raise ValueError(f"No current result for mutation: {p.mutation}")
-            swap_dict = {f: getattr(source, f) for f in _SWAP_FIELDS[p.swap_type]}
-            new_best = dc_replace(current, **swap_dict)
+    if p.swap_type == "both":
+        new_best = source
+    else:
+        if not current:
+            raise ValueError(f"No current result for mutation: {p.mutation}")
+        swap_dict = {f: getattr(source, f) for f in _SWAP_FIELDS[p.swap_type]}
+        new_best = dc_replace(current, **swap_dict)
 
+    with _core._state_lock:
         target_pos = new_best.mutation.position
         for i, r in enumerate(_core._state.results):
             if r.mutation.raw == p.mutation:
