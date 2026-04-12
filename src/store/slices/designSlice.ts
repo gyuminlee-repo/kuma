@@ -266,7 +266,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
 
       // Restore EVOLVEpro mutation list to original maxPrimers count
       if (fillOnFailure && isEvolveMode && get().evolveproCsvPath) {
-        get().loadEvolveproCsv(get().evolveproCsvPath!);
+        await get().loadEvolveproCsv(get().evolveproCsvPath!);
       }
 
       try {

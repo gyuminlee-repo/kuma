@@ -124,9 +124,10 @@ export async function spawnSidecar(): Promise<void> {
     await spawnPromise;
   } catch (err) {
     const proc = child as Child | null;
+    child = null;
+    spawnPromise = null;
     if (proc) {
       proc.kill().catch(() => {});
-      child = null;
     }
     throw err;
   } finally {

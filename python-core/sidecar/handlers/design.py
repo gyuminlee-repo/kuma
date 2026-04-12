@@ -110,7 +110,8 @@ def _count_unique_fwd_rev(candidates: list[SdmPrimerResult]) -> tuple[int, int]:
 
 def _serialize_result_with_counts(r: SdmPrimerResult) -> dict:
     """Serialize result with fwd/rev candidate counts."""
-    cands = _core._state.candidates.get(r.mutation.raw, [])
+    with _core._state_lock:
+        cands = _core._state.candidates.get(r.mutation.raw, [])
     result = _serialize_result(r, len(cands))
     fwd_count, rev_count = _count_unique_fwd_rev(cands) if cands else (0, 0)
     result["candidate_fwd_count"] = fwd_count
@@ -172,10 +173,11 @@ def handle_design_sdm_primers(params: dict) -> dict:
     p = DesignSdmPrimersParams(**params)
 
     # Clear previous state to free memory
-    _core._state.results = []
-    _core._state.candidates = {}
-    _core._state.plate_mappings = []
-    _core._state.dedup_info = {}
+    with _core._state_lock:
+        _core._state.results = []
+        _core._state.candidates = {}
+        _core._state.plate_mappings = []
+        _core._state.dedup_info = {}
 
     if not p.fasta_path:
         raise ValueError("fasta_path is required")
@@ -370,14 +372,16 @@ def handle_design_sdm_primers(params: dict) -> dict:
 
         engine_failures = still_failed
 
-    _core._state.results = results
-    _core._state.candidates = all_cands
+    with _core._state_lock:
+        _core._state.results = results
+        _core._state.candidates = all_cands
     _progress(80, "Generating plate map...")
 
     # Auto-generate plate map (Fwd/Rev separate plates)
     fwd_map, rev_map = generate_plate_map(results, deduplicate_rev=True)
-    _core._state.plate_mappings = fwd_map + rev_map
-    _core._state.dedup_info = deduplicate_reverse(results)
+    with _core._state_lock:
+        _core._state.plate_mappings = fwd_map + rev_map
+        _core._state.dedup_info = deduplicate_reverse(results)
 
     _progress(100, "Design complete")
 
@@ -435,7 +439,8 @@ def handle_retry_failed(params: dict) -> dict:
         organism=p.organism,
     )
 
-    _core._state.candidates[mutation_raw] = candidates
+    with _core._state_lock:
+        _core._state.candidates[mutation_raw] = candidates
 
     return {
         "candidates": [_serialize_result_with_counts(c) for c in candidates],
@@ -447,37 +452,38 @@ def handle_swap_primer(params: dict) -> dict:
     """Swap the selected primer for a mutation with a different candidate."""
     p = SwapPrimerParams(**params)
 
-    candidates = _core._state.candidates.get(p.mutation)
-    if not candidates:
-        raise ValueError(f"No candidates for mutation: {p.mutation}")
-    if p.candidate_idx >= len(candidates):
-        raise ValueError(f"Invalid candidate index: {p.candidate_idx}")
+    with _core._state_lock:
+        candidates = _core._state.candidates.get(p.mutation)
+        if not candidates:
+            raise ValueError(f"No candidates for mutation: {p.mutation}")
+        if p.candidate_idx >= len(candidates):
+            raise ValueError(f"Invalid candidate index: {p.candidate_idx}")
 
-    source = candidates[p.candidate_idx]
+        source = candidates[p.candidate_idx]
 
-    if p.swap_type == "both":
-        new_best = source
-    else:
-        current = next((r for r in _core._state.results if r.mutation.raw == p.mutation), None)
-        if not current:
-            raise ValueError(f"No current result for mutation: {p.mutation}")
-        swap_dict = {f: getattr(source, f) for f in _SWAP_FIELDS[p.swap_type]}
-        new_best = dc_replace(current, **swap_dict)
+        if p.swap_type == "both":
+            new_best = source
+        else:
+            current = next((r for r in _core._state.results if r.mutation.raw == p.mutation), None)
+            if not current:
+                raise ValueError(f"No current result for mutation: {p.mutation}")
+            swap_dict = {f: getattr(source, f) for f in _SWAP_FIELDS[p.swap_type]}
+            new_best = dc_replace(current, **swap_dict)
 
-    target_pos = new_best.mutation.position
-    for i, r in enumerate(_core._state.results):
-        if r.mutation.raw == p.mutation:
-            _core._state.results[i] = new_best
-        elif p.swap_type in ("rev", "both") and r.mutation.position == target_pos:
-            # Propagate reverse to same-position mutations
-            _core._state.results[i] = dc_replace(
-                r,
-                reverse_seq=new_best.reverse_seq,
-                reverse_binding=new_best.reverse_binding,
-                tm_rev=new_best.tm_rev,
-                rev_len=new_best.rev_len,
-                gc_rev=new_best.gc_rev,
-            )
+        target_pos = new_best.mutation.position
+        for i, r in enumerate(_core._state.results):
+            if r.mutation.raw == p.mutation:
+                _core._state.results[i] = new_best
+            elif p.swap_type in ("rev", "both") and r.mutation.position == target_pos:
+                # Propagate reverse to same-position mutations
+                _core._state.results[i] = dc_replace(
+                    r,
+                    reverse_seq=new_best.reverse_seq,
+                    reverse_binding=new_best.reverse_binding,
+                    tm_rev=new_best.tm_rev,
+                    rev_len=new_best.rev_len,
+                    gc_rev=new_best.gc_rev,
+                )
     return _serialize_result_with_counts(new_best)
 
 
@@ -503,7 +509,8 @@ def handle_evaluate_primer(params: dict) -> dict:
     resolved = _validate_filepath(p.fasta_path, allowed_extensions=_ALLOWED_FASTA_EXTENSIONS)
 
     # Use cached template if same file
-    cached_path, cached_seq = _core._state.template
+    with _core._state_lock:
+        cached_path, cached_seq = _core._state.template
     if cached_seq and cached_path == str(resolved):
         template = cached_seq
     else:
@@ -525,7 +532,8 @@ def handle_get_alternatives(params: dict) -> dict:
 
     if not p.mutation:
         raise ValueError("mutation is required")
-    candidates = _core._state.candidates.get(p.mutation, [])
+    with _core._state_lock:
+        candidates = _core._state.candidates.get(p.mutation, [])
     return {
         "mutation": p.mutation,
         "candidates": [_serialize_result(c) for c in candidates],

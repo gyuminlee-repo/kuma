@@ -38,22 +38,23 @@ _ALLOWED_MAPPING_EXTENSIONS = {".xlsx", ".csv"}
 
 def handle_get_plate_map(_params: dict) -> dict:
     """Return the plate map from last design."""
-    if not _core._state.results:
-        raise ValueError("No design available. Run design_sdm_primers first.")
+    with _core._state_lock:
+        if not _core._state.results:
+            raise ValueError("No design available. Run design_sdm_primers first.")
 
-    return {
-        "mappings": [
-            {
-                "well": m.well,
-                "primer_name": m.primer_name,
-                "sequence": m.sequence,
-                "primer_type": m.primer_type,
-                "mutation": m.mutation,
-            }
-            for m in _core._state.plate_mappings
-        ],
-        "dedup_info": _core._state.dedup_info,
-    }
+        return {
+            "mappings": [
+                {
+                    "well": m.well,
+                    "primer_name": m.primer_name,
+                    "sequence": m.sequence,
+                    "primer_type": m.primer_type,
+                    "mutation": m.mutation,
+                }
+                for m in _core._state.plate_mappings
+            ],
+            "dedup_info": _core._state.dedup_info,
+        }
 
 
 def handle_export_excel(params: dict) -> dict:
@@ -80,10 +81,11 @@ def handle_export_excel(params: dict) -> dict:
         ]
         rev_groups = dedup_data or {}
     else:
-        if not _core._state.results:
-            raise ValueError("No design available")
-        mappings = _core._state.plate_mappings
-        rev_groups = _core._state.dedup_info
+        with _core._state_lock:
+            if not _core._state.results:
+                raise ValueError("No design available")
+            mappings = _core._state.plate_mappings
+            rev_groups = _core._state.dedup_info
 
     export_plate_excel(mappings, resolved, rev_groups=rev_groups)
     return {"success": True, "filepath": str(resolved)}
@@ -107,15 +109,17 @@ def handle_export_order(params: dict) -> dict:
         p.filepath, allowed_extensions=_ALLOWED_ORDER_CSV_EXTENSIONS
     )
 
-    if not _core._state.results:
-        raise ValueError("No design available. Run design_sdm_primers first.")
+    with _core._state_lock:
+        if not _core._state.results:
+            raise ValueError("No design available. Run design_sdm_primers first.")
+        results = _core._state.results
 
     if fmt == "idt":
-        export_idt_csv(_core._state.results, resolved, scale=p.scale, purification=p.purification)
+        export_idt_csv(results, resolved, scale=p.scale, purification=p.purification)
     else:
-        export_twist_csv(_core._state.results, resolved)
+        export_twist_csv(results, resolved)
 
-    return {"success": True, "filepath": str(resolved), "format": fmt, "primer_count": len(_core._state.results) * 2}
+    return {"success": True, "filepath": str(resolved), "format": fmt, "primer_count": len(results) * 2}
 
 
 def handle_export_mapping(params: dict) -> dict:
@@ -129,14 +133,16 @@ def handle_export_mapping(params: dict) -> dict:
     p = ExportMappingParams(**params)
     resolved = _validate_output_path(p.filepath, allowed_extensions=_ALLOWED_MAPPING_EXTENSIONS)
 
-    if not _core._state.results:
-        raise ValueError("No design available. Run design_sdm_primers first.")
+    with _core._state_lock:
+        if not _core._state.results:
+            raise ValueError("No design available. Run design_sdm_primers first.")
+        results = _core._state.results
+        rev_groups = _core._state.dedup_info or {}
 
     fwd_mappings, rev_mappings = generate_plate_map(
-        _core._state.results,
+        results,
         deduplicate_rev=True,
     )
-    rev_groups = _core._state.dedup_info or {}
 
     use_xlsx = resolved.suffix.lower() == ".xlsx"
 

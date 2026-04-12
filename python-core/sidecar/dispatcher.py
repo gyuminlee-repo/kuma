@@ -102,7 +102,7 @@ def _dispatch_handler(req_id: int | None, method: str, handler, params: dict) ->
     except Exception as exc:
         logger.exception("Unhandled error in %s", method)
         _append_crash_log(method, str(params)[:200], traceback.format_exc())
-        _error(req_id, -32603, f"{type(exc).__name__}: {exc}")
+        _error(req_id, -32603, "Internal error")
 
 
 def dispatch(request: dict) -> None:

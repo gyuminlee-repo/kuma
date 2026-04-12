@@ -90,7 +90,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
       reloadTimer = null;
       const state = get();
       if (state.evolveproCsvPath) {
-        state.loadEvolveproCsv(state.evolveproCsvPath);
+        state.loadEvolveproCsv(state.evolveproCsvPath).catch(() => {});
       }
     }, 300);
   }
@@ -191,7 +191,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
           : result.error_msg ? `Domain fetch failed: ${result.error_msg}` : "No domains found",
       });
       const { evolveproCsvPath, structureLoaded } = get();
-      if (evolveproCsvPath && result.domains.length > 0) get().loadEvolveproCsv(evolveproCsvPath);
+      if (evolveproCsvPath && result.domains.length > 0) await get().loadEvolveproCsv(evolveproCsvPath);
       // Fetch AlphaFold structure for manual accession entry
       if (!structureLoaded) {
         get().fetchStructure(accession);
@@ -204,7 +204,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   setDomains: (domains: DomainInfo[]) => {
     set({ domains, disabledDomains: [] });
     const { evolveproCsvPath, domainDiversityEnabled } = get();
-    if (evolveproCsvPath && domainDiversityEnabled) get().loadEvolveproCsv(evolveproCsvPath);
+    if (evolveproCsvPath && domainDiversityEnabled) get().loadEvolveproCsv(evolveproCsvPath).catch(() => {});
   },
 
   toggleDomain: (domainKey: string) => {
@@ -366,7 +366,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
         });
         // Re-trigger CSV selection with structure now available
         const { evolveproCsvPath } = get();
-        if (evolveproCsvPath) get().loadEvolveproCsv(evolveproCsvPath);
+        if (evolveproCsvPath) await get().loadEvolveproCsv(evolveproCsvPath);
       } else {
         set({
           structureLoaded: false,

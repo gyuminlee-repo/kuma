@@ -121,6 +121,7 @@ class PlateMappingItem(BaseModel):
     tm: Optional[float] = None
     tm_overlap: Optional[float] = None
     wt_codon: Optional[str] = None
+    mt_codon: Optional[str] = None
 
 
 class ExportExcelParams(BaseModel):
