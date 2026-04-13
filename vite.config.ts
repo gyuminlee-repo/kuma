@@ -48,6 +48,19 @@ export default defineConfig(({ }) => {
       target: "esnext",
       minify: !process.env.TAURI_DEBUG ? "esbuild" : false,
       sourcemap: !!process.env.TAURI_DEBUG,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (!id.includes("node_modules")) return undefined;
+            if (id.includes("@tanstack/react-table")) return "table-vendor";
+            if (id.includes("zustand")) return "store-vendor";
+            if (id.includes("@tauri-apps")) return "tauri-vendor";
+            if (id.includes("@radix-ui")) return "ui-vendor";
+            if (id.includes("react") || id.includes("react-dom")) return "react-vendor";
+            return "vendor";
+          },
+        },
+      },
     },
   };
 });

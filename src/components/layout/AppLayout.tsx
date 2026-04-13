@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { useAppStore } from "../../store/appStore";
 import { useSidecar } from "../../hooks/useSidecar";
@@ -7,8 +7,6 @@ import { ParameterPanel } from "../panels/ParameterPanel";
 import { ResultTable } from "../widgets/ResultTable";
 import { SequenceViewer } from "../widgets/SequenceViewer";
 import { PlateMap } from "../widgets/PlateMap";
-import { DesignReport } from "../dialogs/DesignReport";
-import { BenchmarkDialog } from "../dialogs/BenchmarkDialog";
 import { Button } from "../ui/button";
 import {
   Dialog,
@@ -28,6 +26,8 @@ import {
 
 const SEQUENCE_EXTENSIONS = new Set([".gb", ".gbk", ".gbff", ".dna", ".fa", ".fasta"]);
 const CSV_EXTENSIONS = new Set([".csv"]);
+const LazyDesignReport = lazy(async () => import("../dialogs/DesignReport").then((m) => ({ default: m.DesignReport })));
+const LazyBenchmarkDialog = lazy(async () => import("../dialogs/BenchmarkDialog").then((m) => ({ default: m.BenchmarkDialog })));
 
 export function AppLayout() {
   const { status: sidecarStatus, retry: retrySidecar } = useSidecar();
@@ -36,6 +36,8 @@ export function AppLayout() {
   const mutationText = useAppStore((s) => s.mutationText);
   const designResults = useAppStore((s) => s.designResults);
   const loadPolymerases = useAppStore((s) => s.loadPolymerases);
+  const showReport = useAppStore((s) => s.showReport);
+  const showBenchmark = useAppStore((s) => s.showBenchmark);
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
 
@@ -198,9 +200,10 @@ export function AppLayout() {
         </DialogContent>
       </Dialog>
 
-      {/* Design Report Modal */}
-      <DesignReport />
-      <BenchmarkDialog />
+      <Suspense fallback={null}>
+        {showReport && <LazyDesignReport />}
+        {showBenchmark && <LazyBenchmarkDialog />}
+      </Suspense>
     </div>
   );
 }

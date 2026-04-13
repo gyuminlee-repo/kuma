@@ -10,6 +10,10 @@ import type {
   EvolveproLoadResult,
   EvolveproStepStats,
 } from "../../types/models";
+import {
+  buildEvolveproLoadParams,
+  buildEvolveproLoadStateUpdate,
+} from "./inputSlice.helpers";
 
 export interface InputSlice {
   // State
@@ -90,68 +94,51 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       const isMultiEvolve = get().mutationInputMode === "multi-evolve";
       const modeLabel = isMultiEvolve ? "MULTI-evolve" : "EVOLVEpro";
       set({ statusMessage: `Loading ${modeLabel} CSV...`, evolveproCsvPath: filepath });
-      // MULTI-evolve: skip diversity pipeline — combinations are pre-selected
       const usePipeline = pipelineMode && !isMultiEvolve;
-      const result = await sendRequest<EvolveproLoadResult>(
-        "load_evolvepro_csv",
-        {
-          filepath,
-          top_n: isMultiEvolve ? 0 : effectiveTopN,
-          ...(usePipeline && positionDiversityEnabled && { max_per_position: maxPerPosition }),
-          ...(usePipeline && excludedDomains.length > 0 && {
-            excluded_ranges: excludedDomains.map((d) => ({ start: d.start, end: d.end })),
-          }),
-          ...(usePipeline && domainDiversityEnabled && activeDomains.length > 0 && {
-            domain_diversity: true,
-            domains: activeDomains.map((d) => ({ name: d.name, start: d.start, end: d.end })),
-            domain_strategy: domainStrategy,
-            domain_overlap_policy: domainOverlapPolicy,
-            linker_handling: linkerHandling,
-            domain_quota_min: domainQuotaMin,
-          }),
-          ...(usePipeline && paretoDiversityEnabled && { pareto_diversity: true }),
-          ...(usePipeline && paretoDiversityEnabled && entropyWeightEnabled && { entropy_weight: entropyWeight }),
-          ...(usePipeline && paretoDiversityEnabled && { pool_multiplier: paretoPoolMultiplier }),
-          ...(usePipeline && paretoDiversityEnabled && { distance_mode: distanceMode }),
-          ...(usePipeline && paretoDiversityEnabled && evolveproRound > 0 && {
-            evolvepro_round: evolveproRound,
-            round_size: roundSize,
-          }),
-        },
-      );
+      const params = buildEvolveproLoadParams({
+        filepath,
+        topN: effectiveTopN,
+        usePipeline,
+        isMultiEvolve,
+        positionDiversityEnabled,
+        maxPerPosition,
+        activeDomains,
+        excludedDomains,
+        domainDiversityEnabled,
+        domainStrategy,
+        domainOverlapPolicy,
+        linkerHandling,
+        domainQuotaMin,
+        paretoDiversityEnabled,
+        entropyWeightEnabled,
+        entropyWeight,
+        paretoPoolMultiplier,
+        distanceMode,
+        evolveproRound,
+        roundSize,
+      });
+      const result = await sendRequest<EvolveproLoadResult>("load_evolvepro_csv", params);
       if (gen !== csvLoadGeneration) return;
-      const yMap: Record<string, number> = {};
-      result.variants.forEach((v, i) => { yMap[v] = result.y_preds[i] ?? 0; });
-      const variantText = result.variants.join("\n");
-      const filteredMsg = result.filtered_count
-        ? ` (${result.filtered_count} filtered, max ${maxPerPosition}/pos)`
-        : "";
-      const domainMsg = result.domain_stats
-        ? " | " + Object.entries(result.domain_stats).map(([name, s]) =>
-            s.selected < s.quota
-              ? `${name}: ${s.selected}/${s.quota} \u26A0`
-              : `${name}: ${s.selected}/${s.quota}`
-          ).join(", ")
-        : "";
-      const paretoMsg = result.pareto_replaced != null && result.pareto_replaced > 0
-        ? ` | Pareto: ${result.pareto_replaced} diversified`
-        : "";
-      // Clamp maxPrimers to CSV variant count
+      const update = buildEvolveproLoadStateUpdate({
+        result,
+        currentMode: get().mutationInputMode,
+        maxPerPosition,
+      });
       if (result.total_count > 0 && maxPrimers > result.total_count) {
         get().setMaxPrimers(result.total_count);
       }
       const currentMode = get().mutationInputMode;
       set({
-        mutationText: variantText,
+        mutationText: update.mutationText,
         mutationInputMode: currentMode === "multi-evolve" ? "multi-evolve" : "evolvepro",
-        yPredMap: yMap,
-        domainStats: result.domain_stats ?? {},
-        poolVariants: result.pool_variants ?? [],
-        evolveproTotalCount: result.total_count,
-        evolveproFilteredCount: result.filtered_count ?? null,
-        evolveproParetoExchanges: result.pareto_replaced ?? null,
-        evolveproStepStats: result.step_stats ?? null,
-        statusMessage: `${currentMode === "multi-evolve" ? "MULTI-evolve" : "EVOLVEpro"}: ${result.selected_count}/${result.total_count} variants${filteredMsg}${domainMsg}${paretoMsg}`,
+        yPredMap: update.yPredMap,
+        domainStats: update.domainStats,
+        poolVariants: update.poolVariants,
+        evolveproTotalCount: update.evolveproTotalCount,
+        evolveproFilteredCount: update.evolveproFilteredCount,
+        evolveproParetoExchanges: update.evolveproParetoExchanges,
+        evolveproStepStats: update.evolveproStepStats,
+        statusMessage: update.statusMessage,
       });
     } catch (err) {
       if (gen === csvLoadGeneration) {

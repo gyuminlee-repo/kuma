@@ -3,7 +3,7 @@ import { useAppStore } from "../../../store/appStore";
 import { useFocusTrap } from "../../../hooks/useFocusTrap";
 import type { SdmPrimerResult } from "../../../types/models";
 import { validateSeq } from "../../../lib/validation";
-import { ColoredFwdSeq, formatTolerance } from "../ResultTable";
+import { ColoredFwdSeq, formatTolerance } from "../primerDisplay";
 import { OffTargetDetail } from "./OffTargetDetail";
 
 function CandidateRow({

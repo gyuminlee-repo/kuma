@@ -7,15 +7,22 @@ import type {
   SdmPrimerResult,
   DesignResult,
   FailedMutation,
-  PlateMapping,
   PlateMapResult,
   PolymeraseInfo,
   PolymeraseProfile,
   RescueStats,
   RescuedMutation,
 } from "../../types/models";
-
-const EMPTY_RESCUE_STATS: RescueStats = { pool_cascade: 0, auto_relax: 0, positions_attempted: 0, pool_variants_tried: 0 };
+import {
+  addDesignResultState,
+  applyCustomPrimerToResults,
+  buildDesignRequestPayload,
+  EMPTY_RESCUE_STATS,
+  filterPlateMappingsForResults,
+  prepareDesignInput,
+  processDesignResult,
+  removeDesignResultState,
+} from "./designSlice.helpers";
 
 export interface DesignSlice {
   // State
@@ -175,31 +182,29 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       return;
     }
 
-    // Compute sendCount before CSV reload so EVOLVEpro can fetch buffer candidates
-    const sendCount = fillOnFailure
-      ? Math.max(Math.ceil(maxPrimers * 1.5), maxPrimers + 20)
-      : maxPrimers;
-    const isEvolveMode = mutationInputMode === "evolvepro" || mutationInputMode === "multi-evolve";
+    const initialPrep = prepareDesignInput({
+      mutationText: state.mutationText,
+      maxPrimers,
+      fillOnFailure,
+      mutationInputMode,
+      selectedGene: selectedGene ?? "",
+      poolVariants: state.poolVariants,
+    });
+    const { sendCount, isEvolveMode } = initialPrep;
 
     if (isEvolveMode && state.evolveproCsvPath) {
       state.cancelDiversityReload();
-      // When fill-on-failure is active, load extra buffer candidates beyond maxPrimers
       await state.loadEvolveproCsv(state.evolveproCsvPath, fillOnFailure ? sendCount : undefined);
     }
 
-    // Re-read mutationText after potential CSV reload
-    const refreshedText = get().mutationText;
-
-    const allLines = refreshedText.trim().split("\n").filter((l) => l.trim() && !l.trim().startsWith("#"));
-    const intendedMuts = new Set(allLines.slice(0, maxPrimers).map((l) => l.trim()));
-    const limitedLines = allLines.slice(0, sendCount);
-    const limitedText = limitedLines.join("\n");
-
-    const targetStart = selectedGene ? parseInt(selectedGene, 10) : 0;
-
-    // Compute rescue pool: pool variants not in intended mutations
-    const { poolVariants } = get();
-    const rescuePool = poolVariants.filter((v) => !intendedMuts.has(v));
+    const prepared = prepareDesignInput({
+      mutationText: get().mutationText,
+      maxPrimers,
+      fillOnFailure,
+      mutationInputMode,
+      selectedGene: selectedGene ?? "",
+      poolVariants: get().poolVariants,
+    });
 
     set({
       isDesigning: true,
@@ -214,74 +219,50 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
     });
 
     try {
-      const result = await sendRequest<DesignResult>("design_sdm_primers", {
-        fasta_path: fastaPath,
-        target_start: targetStart,
-        mutations_csv_or_text: limitedText,
-        polymerase: selectedPolymerase,
-        codon_strategy: codonStrategy,
+      const payload = buildDesignRequestPayload({
+        fastaPath,
+        targetStart: prepared.targetStart,
+        limitedText: prepared.limitedText,
+        selectedPolymerase,
+        codonStrategy,
         organism,
-        tm_fwd_target: tmFwdTarget,
-        tm_rev_target: tmRevTarget,
-        tm_overlap_target: tmOverlapTarget,
-        gc_min: gcMin,
-        gc_max: gcMax,
-        ...(primerLenEnabled && {
-          fwd_len_min: fwdLenMin,
-          fwd_len_max: fwdLenMax,
-          rev_len_min: revLenMin,
-          rev_len_max: revLenMax,
-        }),
-        ...(rescuePool.length > 0 && { rescue_pool: rescuePool }),
-        auto_relax: true,
-      }, 300_000);
-
-      const rStats = result.rescue_stats ?? EMPTY_RESCUE_STATS;
-      const rMuts = result.rescued_mutations ?? [];
-      const rescueTotal = rStats.pool_cascade + rStats.auto_relax;
-      const rescueMsg = rescueTotal > 0 ? ` | ${rescueTotal} rescued` : "";
-      const rescuedNames = rMuts.map((r) => r.rescued_by);
-
-      // Ensure rescued mutations survive the maxPrimers cap
-      const rescuedSet = new Set(rescuedNames);
-      const rescued = result.results.filter((r) => rescuedSet.has(r.mutation));
-      const nonRescued = result.results.filter((r) => !rescuedSet.has(r.mutation));
-      const capped = [...nonRescued.slice(0, maxPrimers - rescued.length), ...rescued];
-
-      const allFailed = result.failed_mutations ?? [];
-      const tmMet = capped.filter((r) => r.tm_condition_met).length;
-      const intendedFailed = allFailed.filter((f) => intendedMuts.has(f.mutation));
-      const failedMsg = intendedFailed.length > 0 ? ` | ${intendedFailed.length} failed` : "";
-
-      set({
-        designResults: capped,
-        successCount: capped.length,
-        totalCount: maxPrimers,
-        failedMutations: intendedFailed,
-        rescueStats: rStats,
-        rescuedMutationDetails: rMuts,
-        rescuedMutations: rescuedNames,
-        statusMessage: `${capped.length}/${maxPrimers} designed | Tm: ${tmMet}/${capped.length}${failedMsg}${rescueMsg}`,
+        tmFwdTarget,
+        tmRevTarget,
+        tmOverlapTarget,
+        gcMin,
+        gcMax,
+        primerLenEnabled,
+        fwdLenMin,
+        fwdLenMax,
+        revLenMin,
+        revLenMax,
+        rescuePool: prepared.rescuePool,
+      });
+      const result = await sendRequest<DesignResult>("design_sdm_primers", payload, 300_000);
+      const processed = processDesignResult({
+        result,
+        maxPrimers,
+        intendedMuts: prepared.intendedMuts,
       });
 
-      // Restore EVOLVEpro mutation list to original maxPrimers count
+      set({
+        designResults: processed.capped,
+        successCount: processed.capped.length,
+        totalCount: maxPrimers,
+        failedMutations: processed.intendedFailed,
+        rescueStats: processed.rescueStats,
+        rescuedMutationDetails: processed.rescuedMutationDetails,
+        rescuedMutations: processed.rescuedMutations,
+        statusMessage: processed.statusMessage,
+      });
+
       if (fillOnFailure && isEvolveMode && get().evolveproCsvPath) {
         await get().loadEvolveproCsv(get().evolveproCsvPath!);
       }
 
       try {
         const plateResult = await sendRequest<PlateMapResult>("get_plate_map");
-        const cappedMuts = new Set(capped.map((r) => r.mutation));
-        const filteredMappings = plateResult.mappings.filter((m) =>
-          m.primer_type === "reverse" || cappedMuts.has(m.mutation),
-        );
-        const cappedRevSeqs = new Set<string>();
-        for (const [seq, muts] of Object.entries(plateResult.dedup_info)) {
-          if (muts.some((mut) => cappedMuts.has(mut))) cappedRevSeqs.add(seq);
-        }
-        const finalMappings = filteredMappings.filter((m) =>
-          m.primer_type === "forward" || cappedRevSeqs.has(m.sequence),
-        );
+        const finalMappings = filterPlateMappingsForResults(plateResult, processed.capped);
         set({
           plateMappings: finalMappings,
           dedupInfo: plateResult.dedup_info,
@@ -362,26 +343,9 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
 
   applyCustomPrimer: (mutation: string, result: SdmPrimerResult) => {
     const { designResults, manuallySwapped } = get();
-    const targetPos = result.aa_position;
 
     set({
-      designResults: designResults.map((r) => {
-        if (r.mutation === mutation) {
-          return {
-            ...result,
-            mutation: r.mutation,
-            aa_position: r.aa_position,
-            codon_pos: r.codon_pos,
-            candidate_count: r.candidate_count,
-            candidate_fwd_count: r.candidate_fwd_count,
-            candidate_rev_count: r.candidate_rev_count,
-          };
-        }
-        if (r.aa_position === targetPos) {
-          return { ...r, reverse_seq: result.reverse_seq, rev_len: result.rev_len, tm_no_rev: result.tm_no_rev, gc_rev: result.gc_rev };
-        }
-        return r;
-      }),
+      designResults: applyCustomPrimerToResults({ mutation, result, designResults }),
       manuallySwapped: { ...manuallySwapped, [mutation]: "both" },
     });
   },
@@ -460,79 +424,32 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
 
   addDesignResult: (mutation: string, result: SdmPrimerResult) => {
     const { designResults, failedMutations, successCount, rescuedMutations, plateMappings, dedupInfo } = get();
-
-    let aaPos = result.aa_position;
-    if (!aaPos) {
-      const match = mutation.match(/[A-Z](\d+)[A-Z]/);
-      if (match) aaPos = parseInt(match[1], 10);
-    }
-    const fixedResult: SdmPrimerResult = {
-      ...result,
+    set(addDesignResultState({
       mutation,
-      aa_position: aaPos || 0,
-      candidate_fwd_count: result.candidate_fwd_count ?? 1,
-      candidate_rev_count: result.candidate_rev_count ?? 1,
-    };
-    const newDesignResults = [...designResults, fixedResult];
-    const nextFwdIdx = plateMappings.filter((m) => m.primer_type === "forward").length;
-    const newFwd: PlateMapping = {
-      well: wellName(nextFwdIdx),
-      primer_name: `${mutation}_F`,
-      sequence: result.forward_seq,
-      primer_type: "forward",
-      mutation,
-    };
-    const revExists = plateMappings.some((m) => m.primer_type === "reverse" && m.sequence === result.reverse_seq);
-    const newRevMappings: PlateMapping[] = revExists ? [] : [{
-      well: wellName(plateMappings.filter((m) => m.primer_type === "reverse").length),
-      primer_name: `${mutation}_R`,
-      sequence: result.reverse_seq,
-      primer_type: "reverse",
-      mutation,
-    }];
-    const newDedupInfo = { ...dedupInfo };
-    const revSeq = result.reverse_seq;
-    newDedupInfo[revSeq] = [...(newDedupInfo[revSeq] ?? []), mutation];
-
-    const newRescued = rescuedMutations.includes(mutation)
-      ? rescuedMutations
-      : [...rescuedMutations, mutation];
-    set({
-      designResults: newDesignResults,
-      failedMutations: failedMutations.filter((f) => f.mutation !== mutation),
-      successCount: successCount + 1,
-      plateMappings: [...plateMappings, newFwd, ...newRevMappings],
-      dedupInfo: newDedupInfo,
-      rescuedMutations: newRescued,
-    });
+      result,
+      designResults,
+      failedMutations,
+      successCount,
+      rescuedMutations,
+      plateMappings,
+      dedupInfo,
+      wellName,
+    }));
   },
 
   removeDesignResult: (mutation: string, reason: string) => {
     const { designResults, failedMutations, successCount, rescuedMutations, plateMappings, dedupInfo } = get();
-    const removed = designResults.find((r) => r.mutation === mutation);
-    if (!removed) return;
-    const newDesignResults = designResults.filter((r) => r.mutation !== mutation);
-    const newPlateMappings = plateMappings.filter((m) => m.mutation !== mutation);
-    const newDedupInfo: Record<string, string[]> = {};
-    for (const [seq, muts] of Object.entries(dedupInfo)) {
-      const filtered = muts.filter((m) => m !== mutation);
-      if (filtered.length > 0) newDedupInfo[seq] = filtered;
-    }
-    const restoredRank = failedMutations.length > 0
-      ? Math.max(...failedMutations.map((f) => f.rank)) + 1
-      : newDesignResults.length + 1;
-    const newFailed: FailedMutation[] = [
-      ...failedMutations,
-      { mutation, rank: restoredRank, reason },
-    ];
-    const newRescued = rescuedMutations.filter((m) => m !== mutation);
-    set({
-      designResults: newDesignResults,
-      failedMutations: newFailed,
-      successCount: Math.max(0, successCount - 1),
-      plateMappings: newPlateMappings,
-      dedupInfo: newDedupInfo,
-      rescuedMutations: newRescued,
+    const nextState = removeDesignResultState({
+      mutation,
+      reason,
+      designResults,
+      failedMutations,
+      successCount,
+      rescuedMutations,
+      plateMappings,
+      dedupInfo,
     });
+    if (!nextState) return;
+    set(nextState);
   },
 });
