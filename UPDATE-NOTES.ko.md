@@ -1,6 +1,44 @@
-# KURO 업데이트 노트 — v0.9.5 → v1.33.0
+# KURO 업데이트 노트 — v0.9.5 → v1.33.05
 
 **한국어** | [English](UPDATE-NOTES.md)
+
+---
+
+## v1.33.05 (2026-04-16)
+
+### 코드 품질 패치 (v1.33.01 – v1.33.05)
+
+v1.33.0 이후 8개의 집중 클린업 패치 적용:
+
+**DRY 통합** (`v1.33.01`)
+- `HelpTip` 컴포넌트 중복 제거 — `ParameterPanel.tsx`가 `DiversitySections.tsx`에서 import
+- `_get_cached_ca_coords(accession)` 헬퍼 추가 (`core.py`) — `misc.py`의 동일한 3줄 블록 2곳 교체
+- `_pydantic_to_plate_mappings()` 헬퍼 추가 (`export.py`) — `handle_export_excel` / `handle_export_mapping`의 동일한 Pydantic→dataclass 변환 2곳 교체
+
+**도달 불가능한 가드 제거** (`v1.33.02`)
+- `evolvepro.py`의 `statistics.stdev()` `StatisticsError` catch 제거 — `len(rows) >= 2` 가드 안에서는 예외가 발생할 수 없음
+
+**미사용 코드 제거** (`v1.33.03`)
+- `cancelAndRespawn()`, `filterPlateMappingsForResults()` 제거 (`ipc.ts`, `designSlice.helpers.ts`)
+- `ExportResult`, `RunBenchmarkResult` 인터페이스 제거 (`models.ts`, inline 타입으로 대체됨)
+- `@radix-ui/react-select` 의존성 제거 (코드베이스 전체 미사용)
+- `weekly-ppt.mjs` 파일 제거 (미참조)
+- `benchmark.py` `simulate_selection()`의 `"pareto"` 레거시 별칭 제거 — 전체 코드가 `"pareto_3d"` 직접 사용
+
+**타입 통합** (`v1.33.04`)
+- `src/store/slice-interfaces.ts` 신규 — 5개 Zustand 슬라이스 인터페이스 통합, `types.ts` ↔ slice 순환 의존 제거
+- `DomainStrategy` 타입 alias 추가 (`models.ts`)
+- `ColumnMeta` 모듈 augmentation 추가 (`src/types/tanstack-table.d.ts`) — `ResultTable.tsx`의 `as Record<string, unknown>` 캐스팅 제거
+- `DomainEntry`, `BenchmarkResultDict` TypedDict 추가 (`python-core/sidecar/models.py`), `Any`/bare-`dict` 필드 7개 강화
+
+**약한 타입 교체** (`v1.33.05`)
+- `SelectionMetrics` TypedDict 추가 (`kuro/benchmark.py`)
+- `simulate_selection()`, `run_benchmark()` — `**kwargs` → 명시적 keyword-only 파라미터로 교체
+- `_get_config()` 반환 타입 `dict` → `dict[str, object]`; JSON 안전성을 위한 `isinstance` 가드 추가
+
+**주석 정리** (`v1.33.0.01`)
+- `sidecar/core.py`, `dispatcher.py`, 핸들러 5개, `sdm_engine.py`, `ipc.ts`에서 narration 주석, 번호 붙은 step 주석, 불필요한 section divider 제거
+- `console.log` → `console.debug` (사이드카 stderr 포워딩); 정상 종료(code 0) 로그 제거
 
 ---
 

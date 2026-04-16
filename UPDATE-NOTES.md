@@ -1,6 +1,44 @@
-# KURO Update Notes — v0.9.5 → v1.33.0
+# KURO Update Notes — v0.9.5 → v1.33.05
 
 [한국어](UPDATE-NOTES.ko.md) | **English**
+
+---
+
+## v1.33.05 (2026-04-16)
+
+### Code quality patches (v1.33.01 – v1.33.05)
+
+Eight focused cleanup passes applied to the codebase after v1.33.0:
+
+**DRY consolidation** (`v1.33.01`)
+- `HelpTip` component deduplicated — `ParameterPanel.tsx` now imports from `DiversitySections.tsx`
+- `_get_cached_ca_coords(accession)` helper added to `core.py`; replaces two identical 3-line blocks in `misc.py`
+- `_pydantic_to_plate_mappings()` helper added to `export.py`; consolidates two identical Pydantic→dataclass conversions in `handle_export_excel` and `handle_export_mapping`
+
+**Unreachable guard removed** (`v1.33.02`)
+- `statistics.stdev()` `StatisticsError` catch in `evolvepro.py` removed — the block is inside a `len(rows) >= 2` guard where `StatisticsError` is impossible
+
+**Unused code removed** (`v1.33.03`)
+- `cancelAndRespawn()`, `filterPlateMappingsForResults()` removed from `ipc.ts` / `designSlice.helpers.ts`
+- `ExportResult`, `RunBenchmarkResult` interfaces removed from `models.ts` (replaced by inline types)
+- `@radix-ui/react-select` dependency removed (no usage in codebase)
+- `weekly-ppt.mjs` file removed (unreferenced)
+- `"pareto"` legacy alias removed from `benchmark.py` `simulate_selection()` — only `"pareto_3d"` is used throughout
+
+**Type consolidation** (`v1.33.04`)
+- `src/store/slice-interfaces.ts` — new file centralising all five Zustand slice interfaces, breaking a `types.ts` ↔ slice circular import
+- `DomainStrategy` type alias added to `models.ts`
+- `ColumnMeta` module augmentation in `src/types/tanstack-table.d.ts` — removes `as Record<string, unknown>` casts in `ResultTable.tsx`
+- `DomainEntry`, `BenchmarkResultDict` TypedDicts added to `python-core/sidecar/models.py`; seven `Any`/bare-`dict` fields tightened
+
+**Weak types replaced** (`v1.33.05`)
+- `SelectionMetrics` TypedDict introduced in `kuro/benchmark.py`
+- `simulate_selection()` and `run_benchmark()` converted from `**kwargs` to explicit keyword-only parameters
+- `_get_config()` return type narrowed from `dict` to `dict[str, object]`; `isinstance` guard added for JSON safety
+
+**Comment cleanup** (`v1.33.0.01`)
+- Narration comments, numbered step annotations, and redundant section dividers removed from `sidecar/core.py`, `dispatcher.py`, all five handlers, `sdm_engine.py`, and `ipc.ts`
+- `console.log` → `console.debug` for sidecar stderr; normal-exit (code 0) log removed
 
 ---
 
