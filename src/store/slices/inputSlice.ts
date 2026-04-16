@@ -4,37 +4,16 @@ import { sendRequest } from "../../lib/ipc";
 import { formatError } from "../../lib/utils";
 import type { AppState } from "../types";
 import type {
-  ParsedMutation,
-  ParseError,
   ParseMutationsResult,
   EvolveproLoadResult,
-  EvolveproStepStats,
 } from "../../types/models";
 import {
   buildEvolveproLoadParams,
   buildEvolveproLoadStateUpdate,
 } from "./inputSlice.helpers";
 
-export interface InputSlice {
-  // State
-  mutationInputMode: "text" | "evolvepro" | "multi-evolve";
-  mutationText: string;
-  parsedMutations: ParsedMutation[];
-  parseErrors: ParseError[];
-  evolveproCsvPath: string;
-  evolveproTotalCount: number;
-  evolveproFilteredCount: number | null;
-  evolveproParetoExchanges: number | null;
-  evolveproStepStats: EvolveproStepStats | null;
-  yPredMap: Record<string, number>;
-
-  // Actions
-  setMutationInputMode: (mode: "text" | "evolvepro" | "multi-evolve") => void;
-  setMutationText: (text: string) => void;
-  parseMutations: () => Promise<void>;
-  loadEvolveproCsv: (filepath: string, topNOverride?: number) => Promise<void>;
-  loadSampleData: () => Promise<void>;
-}
+import type { InputSlice } from "../slice-interfaces";
+export type { InputSlice };
 
 export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set, get) => {
   let csvLoadGeneration = 0;

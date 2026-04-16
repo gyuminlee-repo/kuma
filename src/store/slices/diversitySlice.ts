@@ -9,78 +9,12 @@ import type {
   DomainInfo,
   FetchDomainsResult,
   LinkerHandling,
-  UniprotCandidate,
   SearchUniprotResult,
   StructureResult,
 } from "../../types/models";
 
-export interface DiversitySlice {
-  // State
-  pipelineMode: boolean;
-  positionDiversityEnabled: boolean;
-  maxPerPosition: number;
-  domainDiversityEnabled: boolean;
-  domainStrategy: "proportional" | "equal";
-  domainOverlapPolicy: DomainOverlapPolicy;
-  linkerHandling: LinkerHandling;
-  domainQuotaMin: number;
-  uniprotAccession: string;
-  domains: DomainInfo[];
-  domainLoading: boolean;
-  disabledDomains: string[];
-  domainStats: Record<string, { quota: number; selected: number }>;
-  paretoDiversityEnabled: boolean;
-  entropyWeightEnabled: boolean;
-  entropyWeight: number;
-  paretoPoolMultiplier: number;
-  distanceMode: DistanceMode;
-  evolveproRound: number;
-  roundSize: number;
-  benchmarkTopPercentile: number;
-  benchmarkRandomTrials: number;
-  benchmarkRandomSeed: number | null;
-  benchmarkRunning: boolean;
-  showBenchmark: boolean;
-  benchmarkResults: Record<string, BenchmarkResult> | null;
-  autoRedesignOnLoad: boolean;
-  saveCache: boolean;
-  structureLoaded: boolean;
-  structureLoading: boolean;
-  structureAccession: string;
-  poolVariants: string[];
-  uniprotCandidates: UniprotCandidate[];
-  uniprotSearching: boolean;
-
-  // Actions
-  setPipelineMode: (enabled: boolean) => void;
-  setPositionDiversityEnabled: (enabled: boolean) => void;
-  setMaxPerPosition: (n: number) => void;
-  setDomainDiversityEnabled: (enabled: boolean) => void;
-  setDomainStrategy: (strategy: "proportional" | "equal") => void;
-  setDomainOverlapPolicy: (policy: DomainOverlapPolicy) => void;
-  setLinkerHandling: (handling: LinkerHandling) => void;
-  setDomainQuotaMin: (value: number) => void;
-  fetchDomains: (accession: string, clearCandidates?: boolean) => Promise<void>;
-  setDomains: (domains: DomainInfo[]) => void;
-  toggleDomain: (domainKey: string) => void;
-  setParetoDiversityEnabled: (enabled: boolean) => void;
-  setEntropyWeightEnabled: (enabled: boolean) => void;
-  setEntropyWeight: (weight: number) => void;
-  setParetoPoolMultiplier: (value: number) => void;
-  setDistanceMode: (mode: DistanceMode) => void;
-  setEvolveproRound: (n: number) => void;
-  setRoundSize: (n: number) => void;
-  setBenchmarkTopPercentile: (value: number) => void;
-  setBenchmarkRandomTrials: (value: number) => void;
-  setBenchmarkRandomSeed: (seed: number | null) => void;
-  runBenchmark: () => Promise<void>;
-  setShowBenchmark: (show: boolean) => void;
-  setAutoRedesignOnLoad: (enabled: boolean) => void;
-  setSaveCache: (enabled: boolean) => void;
-  searchUniprot: (geneName: string, organism: string, translation: string, knownAccession: string) => Promise<void>;
-  fetchStructure: (accession: string) => Promise<void>;
-  cancelDiversityReload: () => void;
-}
+import type { DiversitySlice } from "../slice-interfaces";
+export type { DiversitySlice };
 
 export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice> = (set, get) => {
   let reloadTimer: ReturnType<typeof setTimeout> | null = null;

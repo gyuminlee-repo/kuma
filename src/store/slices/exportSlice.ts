@@ -5,7 +5,6 @@ import { getSortedMutations, reorderMappings } from "../../lib/plate-utils";
 import { formatError } from "../../lib/utils";
 import type { AppState } from "../types";
 import type {
-  PlateMapping,
   PlateMapResult,
   SequenceInfo,
   WorkspaceData,
@@ -13,20 +12,8 @@ import type {
   WorkspaceV2,
 } from "../../types/models";
 
-export interface ExportSlice {
-  plateMappings: PlateMapping[];
-  dedupInfo: Record<string, string[]>;
-  progress: number;
-  statusMessage: string;
-  tableSorting: SortingState;
-  getPlateMap: () => Promise<void>;
-  exportExcel: (filepath: string) => Promise<void>;
-  setTableSorting: (updater: Updater<SortingState>) => void;
-  setStatus: (msg: string) => void;
-  getWorkspaceSnapshot: () => WorkspaceV2;
-  restoreWorkspace: (ws: WorkspaceData) => Promise<void>;
-  resetAll: () => void;
-}
+import type { ExportSlice } from "../slice-interfaces";
+export type { ExportSlice };
 
 function normalizeWorkspace(ws: WorkspaceData): WorkspaceV2 {
   if (ws.version === 2) {

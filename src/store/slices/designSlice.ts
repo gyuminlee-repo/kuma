@@ -6,10 +6,8 @@ import type { AppState } from "../types";
 import type {
   SdmPrimerResult,
   DesignResult,
-  FailedMutation,
   PolymeraseInfo,
   PolymeraseProfile,
-  RescueStats,
   RescuedMutation,
 } from "../../types/models";
 import {
@@ -23,61 +21,8 @@ import {
   removeDesignResultState,
 } from "./designSlice.helpers";
 
-export interface DesignSlice {
-  // State
-  isDesigning: boolean;
-  backendDesignStateSynced: boolean;
-  designResults: SdmPrimerResult[];
-  successCount: number;
-  totalCount: number;
-  failedMutations: FailedMutation[];
-  polymerases: PolymeraseInfo[];
-  selectedPolymerase: string;
-  codonStrategy: "closest" | "optimal";
-  maxPrimers: number;
-  tmFwdTarget: number;
-  tmRevTarget: number;
-  tmOverlapTarget: number;
-  gcMin: number;
-  gcMax: number;
-  primerLenEnabled: boolean;
-  fwdLenMin: number;
-  fwdLenMax: number;
-  revLenMin: number;
-  revLenMax: number;
-  fillOnFailure: boolean;
-  manuallySwapped: Record<string, "fwd" | "rev" | "both">;
-  customCandidates: Record<string, SdmPrimerResult[]>;
-  alternativesCache: Record<string, SdmPrimerResult[]>;
-  rescuedMutations: string[];
-  rescueStats: RescueStats;
-  rescuedMutationDetails: RescuedMutation[];
-  showReport: boolean;
-
-  // Actions
-  designPrimers: () => Promise<void>;
-  setShowReport: (show: boolean) => void;
-  cancelDesign: () => Promise<void>;
-  getAlternatives: (mutation: string) => Promise<SdmPrimerResult[]>;
-  swapPrimer: (mutation: string, candidateIdx: number, swapType?: "both" | "fwd" | "rev") => Promise<void>;
-  applyCustomPrimer: (mutation: string, result: SdmPrimerResult) => void;
-  addCustomCandidate: (mutation: string, result: SdmPrimerResult) => void;
-  removeCustomCandidate: (mutation: string, index: number) => void;
-  evaluateCustomPrimer: (mutation: string, fwdSeq: string, revSeq: string, overlapLen?: number) => Promise<SdmPrimerResult | null>;
-  retryFailedMutation: (mutation: string, params: Record<string, number | string>) => Promise<SdmPrimerResult[]>;
-  addDesignResult: (mutation: string, result: SdmPrimerResult) => void;
-  removeDesignResult: (mutation: string, reason: string) => void;
-  setCodonStrategy: (strategy: "closest" | "optimal") => void;
-  loadPolymerases: () => Promise<void>;
-  setSelectedPolymerase: (name: string) => Promise<void>;
-  saveCustomPolymerase: (profile: PolymeraseProfile) => Promise<void>;
-  setMaxPrimers: (n: number) => void;
-  setTmTargets: (fwd: number, rev: number, ov: number) => void;
-  setGcRange: (min: number, max: number) => void;
-  setPrimerLenEnabled: (enabled: boolean) => void;
-  setPrimerLenRange: (fwdMin: number, fwdMax: number, revMin: number, revMax: number) => void;
-  setFillOnFailure: (enabled: boolean) => void;
-}
+import type { DesignSlice } from "../slice-interfaces";
+export type { DesignSlice };
 
 export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (set, get) => ({
   isDesigning: false,

@@ -4,18 +4,8 @@ import { formatError } from "../../lib/utils";
 import type { AppState } from "../types";
 import type { SequenceInfo } from "../../types/models";
 
-export interface SequenceSlice {
-  // State
-  fastaPath: string;
-  seqInfo: SequenceInfo | null;
-  selectedGene: string;
-  organism: string;
-
-  // Actions
-  loadSequence: (filepath: string) => Promise<void>;
-  setSelectedGene: (gene: string) => void;
-  setOrganism: (organism: string) => void;
-}
+import type { SequenceSlice } from "../slice-interfaces";
+export type { SequenceSlice };
 
 export const createSequenceSlice: StateCreator<AppState, [], [], SequenceSlice> = (set, get) => ({
   fastaPath: "",

@@ -271,6 +271,7 @@ export interface WorkspaceV1 {
 }
 
 export type DistanceMode = "auto" | "1d" | "3d";
+export type DomainStrategy = "proportional" | "equal";
 export type DomainOverlapPolicy = "first" | "largest";
 export type LinkerHandling = "include" | "exclude" | "separate-bin";
 
