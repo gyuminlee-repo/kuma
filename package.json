@@ -1,7 +1,7 @@
 {
   "name": "kuro",
   "private": true,
-  "version": "1.33.04",
+  "version": "1.33.05",
   "packageManager": "pnpm@10.33.0",
   "type": "module",
   "scripts": {

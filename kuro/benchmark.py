@@ -5,9 +5,24 @@ from __future__ import annotations
 import random
 import re
 from itertools import combinations
+from typing import TypedDict
 
 from .alphafold import ca_max_dist, pairwise_ca_distance
 from .evolvepro import domain_aware_select, pareto_diversity_select
+
+
+class SelectionMetrics(TypedDict, total=False):
+    """Metrics returned by evaluate_selection() for a single strategy trial."""
+    n_selected: int
+    hit_rate: float
+    mean_fitness: float
+    unique_positions: int
+    position_coverage: float
+    domain_coverage: float
+    structural_spread: float
+    hits: int
+    threshold: float
+    n_trials: int
 
 _POS_RE = re.compile(r"[A-Z](\d+)[A-Z]")
 
@@ -62,62 +77,70 @@ def simulate_selection(
     fitness_landscape: list[tuple[str, float]],
     n_select: int,
     strategy: str = "topn",
-    **kwargs,
+    *,
+    rng: random.Random | None = None,
+    max_per_position: int = 1,
+    domains: list[dict] | None = None,
+    domain_strategy: str = "proportional",
+    domain_overlap_policy: str = "first",
+    linker_handling: str = "include",
+    domain_quota_min: int = 1,
+    ca_coords: list[tuple[float, float, float] | None] | None = None,
+    entropy_weight: float = 0.0,
+    pool_multiplier: float = 2.0,
+    distance_mode: str = "auto",
 ) -> list[tuple[str, float]]:
     """Simulate variant selection with KURO-style strategies."""
-    rng = kwargs.get("rng")
+    _domains: list[dict] = domains or []
     if strategy == "topn":
         return fitness_landscape[:n_select]
     if strategy == "random":
         sampler = rng.sample if rng is not None else random.sample
         return sampler(fitness_landscape, min(n_select, len(fitness_landscape)))
     if strategy == "position_cap":
-        capped = _apply_position_cap(
-            fitness_landscape,
-            kwargs.get("max_per_position", 1),
-        )
+        capped = _apply_position_cap(fitness_landscape, max_per_position)
         return capped[:n_select]
     if strategy == "domain":
         selected, _ = domain_aware_select(
             fitness_landscape,
-            kwargs.get("domains", []),
+            _domains,
             n_select,
-            kwargs.get("domain_strategy", "proportional"),
-            domain_overlap_policy=kwargs.get("domain_overlap_policy", "first"),
-            linker_handling=kwargs.get("linker_handling", "include"),
-            domain_quota_min=kwargs.get("domain_quota_min", 1),
+            domain_strategy,
+            domain_overlap_policy=domain_overlap_policy,
+            linker_handling=linker_handling,
+            domain_quota_min=domain_quota_min,
         )
         return selected
     if strategy == "domain_pareto":
         selected, _ = domain_aware_select(
             fitness_landscape,
-            kwargs.get("domains", []),
+            _domains,
             n_select,
-            kwargs.get("domain_strategy", "proportional"),
-            domain_overlap_policy=kwargs.get("domain_overlap_policy", "first"),
-            linker_handling=kwargs.get("linker_handling", "include"),
-            domain_quota_min=kwargs.get("domain_quota_min", 1),
+            domain_strategy,
+            domain_overlap_policy=domain_overlap_policy,
+            linker_handling=linker_handling,
+            domain_quota_min=domain_quota_min,
             use_pareto=True,
-            ca_coords=kwargs.get("ca_coords"),
-            entropy_weight=kwargs.get("entropy_weight", 0.0),
-            pool_multiplier=kwargs.get("pool_multiplier", 2.0),
-            distance_mode=kwargs.get("distance_mode", "auto"),
+            ca_coords=ca_coords,
+            entropy_weight=entropy_weight,
+            pool_multiplier=pool_multiplier,
+            distance_mode=distance_mode,
         )
         return selected
     if strategy in {"pareto", "pareto_3d"}:
         selected, _ = pareto_diversity_select(
             fitness_landscape,
             n_select,
-            pool_multiplier=kwargs.get("pool_multiplier", 2.0),
-            ca_coords=kwargs.get("ca_coords"),
-            distance_mode=kwargs.get("distance_mode", "auto"),
+            pool_multiplier=pool_multiplier,
+            ca_coords=ca_coords,
+            distance_mode=distance_mode,
         )
         return selected
     if strategy == "pareto_1d":
         selected, _ = pareto_diversity_select(
             fitness_landscape,
             n_select,
-            pool_multiplier=kwargs.get("pool_multiplier", 2.0),
+            pool_multiplier=pool_multiplier,
             ca_coords=None,
             distance_mode="1d",
         )
@@ -126,10 +149,10 @@ def simulate_selection(
         selected, _ = pareto_diversity_select(
             fitness_landscape,
             n_select,
-            pool_multiplier=kwargs.get("pool_multiplier", 2.0),
-            ca_coords=kwargs.get("ca_coords"),
-            entropy_weight=kwargs.get("entropy_weight", 0.3),
-            distance_mode=kwargs.get("distance_mode", "auto"),
+            pool_multiplier=pool_multiplier,
+            ca_coords=ca_coords,
+            entropy_weight=entropy_weight,
+            distance_mode=distance_mode,
         )
         return selected
     raise ValueError(f"Unknown strategy: {strategy}")
@@ -141,7 +164,7 @@ def evaluate_selection(
     top_percentile: float = 10.0,
     domains: list[dict] | None = None,
     ca_coords: list[tuple[float, float, float] | None] | None = None,
-) -> dict:
+) -> SelectionMetrics:
     """Evaluate selection quality against ground truth fitness."""
     all_fitness = sorted(ground_truth.values(), reverse=True)
     if not all_fitness:
@@ -209,10 +232,18 @@ def run_benchmark(
     n_random_trials: int = 100,
     top_percentile: float = 10.0,
     strategies: list[str] | None = None,
-    **kwargs,
-) -> dict[str, dict]:
+    *,
+    domains: list[dict] | None = None,
+    domain_strategy: str = "proportional",
+    max_per_position: int = 1,
+    entropy_weight: float = 0.3,
+    pool_multiplier: float = 2.0,
+    distance_mode: str = "auto",
+    random_seed: int | None = None,
+    ca_coords: list[tuple[float, float, float] | None] | None = None,
+) -> dict[str, SelectionMetrics]:
     """Run full benchmark comparing KURO selection strategies."""
-    rng = random.Random(kwargs["random_seed"]) if kwargs.get("random_seed") is not None else None
+    rng = random.Random(random_seed) if random_seed is not None else None
     if strategies is None:
         strategies = [
             "topn",
@@ -224,7 +255,17 @@ def run_benchmark(
             "pareto_entropy",
         ]
 
-    result_map: dict[str, dict] = {}
+    _sel_kwargs = dict(
+        domains=domains,
+        domain_strategy=domain_strategy,
+        max_per_position=max_per_position,
+        entropy_weight=entropy_weight,
+        pool_multiplier=pool_multiplier,
+        distance_mode=distance_mode,
+        ca_coords=ca_coords,
+    )
+
+    result_map: dict[str, SelectionMetrics] = {}
 
     for strategy in strategies:
         if strategy == "random":
@@ -236,11 +277,11 @@ def run_benchmark(
                         sel,
                         ground_truth,
                         top_percentile=top_percentile,
-                        domains=kwargs.get("domains"),
-                        ca_coords=kwargs.get("ca_coords"),
+                        domains=domains,
+                        ca_coords=ca_coords,
                     )
                 )
-            avg: dict = {}
+            avg: dict[str, float | int] = {}
             for key in trial_data[0]:
                 values = [t[key] for t in trial_data]
                 avg[key] = sum(values) / len(values)
@@ -248,13 +289,13 @@ def run_benchmark(
             result_map[strategy] = avg
             continue
 
-        sel = simulate_selection(fitness_landscape, n_select, strategy, **kwargs)
+        sel = simulate_selection(fitness_landscape, n_select, strategy, **_sel_kwargs)
         result_map[strategy] = evaluate_selection(
             sel,
             ground_truth,
             top_percentile=top_percentile,
-            domains=kwargs.get("domains"),
-            ca_coords=kwargs.get("ca_coords") if strategy != "pareto_1d" else None,
+            domains=domains,
+            ca_coords=ca_coords if strategy != "pareto_1d" else None,
         )
 
     return result_map
