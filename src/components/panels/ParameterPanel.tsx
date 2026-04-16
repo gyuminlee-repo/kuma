@@ -1,25 +1,9 @@
-import { useEffect, useState, type ChangeEvent, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useState, type ChangeEvent, type KeyboardEvent } from "react";
 import { sendRequest } from "../../lib/ipc";
 import type { PolymeraseProfile } from "../../types/models";
 import { PolymeraseEditor } from "../dialogs/PolymeraseEditor";
 import { Button } from "../ui/button";
-
-function HelpTip({ children }: { children: ReactNode }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <span>
-      <button type="button"
-        className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-gray-100 hover:bg-blue-100 text-gray-400 hover:text-blue-600 text-[9px] font-bold leading-none"
-        onClick={(e) => { e.preventDefault(); setOpen((p) => !p); }}
-        aria-label={open ? "Hide help" : "Show help"}>?</button>
-      {open && (
-        <span className="block text-[10px] text-gray-600 bg-blue-50 border border-blue-100 rounded px-1.5 py-1 mt-0.5 leading-relaxed whitespace-pre-line">
-          {children}
-        </span>
-      )}
-    </span>
-  );
-}
+import { HelpTip } from "./InputPanel/DiversitySections";
 import { useAppStore } from "../../store/appStore";
 
 /** Local string state synced with a numeric store value. Commits on blur/Enter. */

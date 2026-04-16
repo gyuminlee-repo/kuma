@@ -35,6 +35,16 @@ from sidecar.models import (
 _ALLOWED_ORDER_CSV_EXTENSIONS = {".csv"}
 _ALLOWED_MAPPING_EXTENSIONS = {".xlsx", ".csv"}
 
+_PLATE_MAPPING_KEYS = {f.name for f in dc_fields(PlateMapping)}
+
+
+def _pydantic_to_plate_mappings(items) -> list[PlateMapping]:
+    """Convert a list of Pydantic PlateMappingItem objects to PlateMapping dataclasses."""
+    return [
+        PlateMapping(**{k: v for k, v in m.model_dump().items() if k in _PLATE_MAPPING_KEYS})
+        for m in items
+    ]
+
 
 def handle_get_plate_map(_params: dict) -> dict:
     """Return the plate map from last design."""
@@ -74,11 +84,7 @@ def handle_export_excel(params: dict) -> dict:
     if p.mappings:
         # Pydantic already validated each item as PlateMappingItem;
         # convert to PlateMapping dataclass for the export layer.
-        valid_keys = {f.name for f in dc_fields(PlateMapping)}
-        mappings = [
-            PlateMapping(**{k: v for k, v in m.model_dump().items() if k in valid_keys})
-            for m in p.mappings
-        ]
+        mappings = _pydantic_to_plate_mappings(p.mappings)
         rev_groups = dedup_data or {}
     else:
         with _core._state_lock:
@@ -151,11 +157,7 @@ def handle_export_mapping(params: dict) -> dict:
     resolved = _validate_output_path(p.filepath, allowed_extensions=_ALLOWED_MAPPING_EXTENSIONS)
 
     if p.mappings:
-        valid_keys = {f.name for f in dc_fields(PlateMapping)}
-        mappings = [
-            PlateMapping(**{k: v for k, v in m.model_dump().items() if k in valid_keys})
-            for m in p.mappings
-        ]
+        mappings = _pydantic_to_plate_mappings(p.mappings)
         fwd_mappings = [m for m in mappings if m.primer_type == "forward"]
         rev_mappings = [m for m in mappings if m.primer_type == "reverse"]
         rev_groups = p.dedup_info or {}

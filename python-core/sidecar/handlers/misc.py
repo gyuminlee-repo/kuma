@@ -12,6 +12,7 @@ from sidecar.core import (
     _codon_registry,
     _CUSTOM_POLYMERASE_PATH,
     _ALLOWED_CSV_EXTENSIONS,
+    _get_cached_ca_coords,
 )
 from sidecar.models import LoadEvolveproParams, RunBenchmarkParams
 
@@ -67,11 +68,7 @@ def handle_load_evolvepro_csv(params: dict) -> dict:
         raise ValueError("filepath is required")
     resolved = _validate_filepath(p.filepath, allowed_extensions=_ALLOWED_CSV_EXTENSIONS)
 
-    with _core._state_lock:
-        if p.structure_accession and _core._state.ca_coords_accession == p.structure_accession:
-            ca_coords = _core._state.ca_coords
-        else:
-            ca_coords = None
+    ca_coords = _get_cached_ca_coords(p.structure_accession)
 
     return load_evolvepro_csv(
         filepath=str(resolved),
@@ -105,11 +102,7 @@ def handle_run_benchmark(params: dict) -> dict:
 
     landscape = [(v.variant, v.fitness) for v in p.landscape]
 
-    with _core._state_lock:
-        if p.structure_accession and _core._state.ca_coords_accession == p.structure_accession:
-            ca_coords = _core._state.ca_coords
-        else:
-            ca_coords = None
+    ca_coords = _get_cached_ca_coords(p.structure_accession)
 
     bench_results = run_benchmark(
         landscape,

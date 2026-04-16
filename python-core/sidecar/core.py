@@ -173,6 +173,15 @@ def _cancel_active_design() -> bool:
     cancel_event.set()
     return True
 
+
+def _get_cached_ca_coords(structure_accession: str | None) -> list | None:
+    """Return cached Cα coordinates if accession matches, else None. Thread-safe."""
+    with _state_lock:
+        if structure_accession and _state.ca_coords_accession == structure_accession:
+            return _state.ca_coords
+        return None
+
+
 # ---------------------------------------------------------------------------
 # Stdout lock and wire helpers
 # ---------------------------------------------------------------------------
