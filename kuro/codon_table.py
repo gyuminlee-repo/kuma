@@ -119,7 +119,7 @@ class CodonTableRegistry:
 # Module-level singleton
 _registry = CodonTableRegistry()
 
-# Backward-compatible constant: E. coli K-12 codon usage
+# Module-level constant for E. coli K-12 codon usage (exported and used in tests)
 ECOLI_CODON_USAGE: dict[str, list[tuple[str, float]]] = _registry.get_codon_table("ecoli")
 
 # Standard genetic code: codon -> amino acid

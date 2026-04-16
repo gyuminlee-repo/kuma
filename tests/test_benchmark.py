@@ -54,11 +54,6 @@ class TestSimulateSelection:
         # First selected should be the best fitness
         assert sel[0] == land[0]
 
-    def test_pareto_legacy_alias(self):
-        land = _make_landscape(50)
-        sel = simulate_selection(land, 10, "pareto")
-        assert len(sel) == 10
-
     def test_unknown_strategy_raises(self):
         land = _make_landscape(10)
         with pytest.raises(ValueError, match="Unknown strategy"):

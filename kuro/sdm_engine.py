@@ -58,7 +58,7 @@ class SdmPrimerResult:
     tm_rev: float               # Tm of WHOLE reverse primer
     tm_overlap: float           # Tm of overlap region
     tm_condition_met: bool      # Tm within tolerance
-    tolerance_used: float = 0.0 # Max of fwd/rev tolerance (legacy)
+    tolerance_used: float = 0.0 # Max of fwd/rev tolerance (kept for UI display and export)
     tolerance_fwd: float = 0.0  # Fwd-specific tolerance step
     tolerance_rev: float = 0.0  # Rev-specific tolerance step
     has_offtarget: bool = False

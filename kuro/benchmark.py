@@ -104,7 +104,7 @@ def simulate_selection(
             distance_mode=kwargs.get("distance_mode", "auto"),
         )
         return selected
-    if strategy in {"pareto", "pareto_3d"}:
+    if strategy == "pareto_3d":
         selected, _ = pareto_diversity_select(
             fitness_landscape,
             n_select,
