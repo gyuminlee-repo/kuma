@@ -127,7 +127,7 @@ def simulate_selection(
             distance_mode=distance_mode,
         )
         return selected
-    if strategy in {"pareto", "pareto_3d"}:
+    if strategy == "pareto_3d":
         selected, _ = pareto_diversity_select(
             fitness_landscape,
             n_select,
@@ -255,21 +255,11 @@ def run_benchmark(
             "pareto_entropy",
         ]
 
-    _sel_kwargs = dict(
-        domains=domains,
-        domain_strategy=domain_strategy,
-        max_per_position=max_per_position,
-        entropy_weight=entropy_weight,
-        pool_multiplier=pool_multiplier,
-        distance_mode=distance_mode,
-        ca_coords=ca_coords,
-    )
-
     result_map: dict[str, SelectionMetrics] = {}
 
     for strategy in strategies:
         if strategy == "random":
-            trial_data: list[dict] = []
+            trial_data: list[SelectionMetrics] = []
             for _ in range(n_random_trials):
                 sel = simulate_selection(fitness_landscape, n_select, "random", rng=rng)
                 trial_data.append(
@@ -281,15 +271,26 @@ def run_benchmark(
                         ca_coords=ca_coords,
                     )
                 )
-            avg: dict[str, float | int] = {}
-            for key in trial_data[0]:
-                values = [t[key] for t in trial_data]
-                avg[key] = sum(values) / len(values)
-            avg["n_trials"] = n_random_trials
-            result_map[strategy] = avg
+            avg_metrics: SelectionMetrics = {
+                key: sum(t[key] for t in trial_data) / len(trial_data)  # type: ignore[misc]
+                for key in trial_data[0]
+            }
+            avg_metrics["n_trials"] = n_random_trials  # type: ignore[typeddict-unknown-key]
+            result_map[strategy] = avg_metrics
             continue
 
-        sel = simulate_selection(fitness_landscape, n_select, strategy, **_sel_kwargs)
+        sel = simulate_selection(
+            fitness_landscape,
+            n_select,
+            strategy,
+            domains=domains,
+            domain_strategy=domain_strategy,
+            max_per_position=max_per_position,
+            entropy_weight=entropy_weight,
+            pool_multiplier=pool_multiplier,
+            distance_mode=distance_mode,
+            ca_coords=ca_coords,
+        )
         result_map[strategy] = evaluate_selection(
             sel,
             ground_truth,

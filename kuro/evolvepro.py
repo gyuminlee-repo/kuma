@@ -504,6 +504,7 @@ def domain_aware_select(
     if linker_handling == "separate-bin" and domain_bins["linker"]:
         quota_names.append("linker")
 
+    raw_quotas: dict[str, float] = {}
     if strategy == "equal":
         n_domains = len(quota_names)
         base_quota = top_n // n_domains if n_domains else 0
@@ -542,7 +543,7 @@ def domain_aware_select(
                 quotas[name] = max(quotas.get(name, 0), domain_quota_min)
         overflow = sum(quotas.get(name, 0) for name in quota_names) - top_n
         if overflow > 0:
-            raw_lookup = raw_quotas if strategy == "proportional" else {
+            raw_lookup: dict[str, float] = raw_quotas if strategy == "proportional" else {
                 name: float(quotas.get(name, 0)) for name in quota_names
             }
             order = {name: idx for idx, name in enumerate(quota_names)}

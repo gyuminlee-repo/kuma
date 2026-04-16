@@ -110,11 +110,12 @@ def _get_ssl_ctx():
 # ---------------------------------------------------------------------------
 
 
-def _get_config() -> dict:
+def _get_config() -> dict[str, object]:
     global _config_cache
     if _config_cache is None:
         try:
-            _config_cache = json.loads(_CONFIG_PATH.read_text(encoding="utf-8"))
+            loaded = json.loads(_CONFIG_PATH.read_text(encoding="utf-8"))
+            _config_cache = loaded if isinstance(loaded, dict) else {}
         except (FileNotFoundError, json.JSONDecodeError, OSError):
             _config_cache = {}
     return _config_cache
