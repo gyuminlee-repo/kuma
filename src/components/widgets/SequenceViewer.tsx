@@ -1,5 +1,7 @@
-import { useMemo, useState, useCallback, useRef, useEffect } from "react";
+import { memo, useMemo, useState, useCallback, useRef, useEffect } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { useAppStore } from "../../store/appStore";
+import type { DomainInfo } from "../../types/models";
 
 // --- Constants ---
 
@@ -40,6 +42,14 @@ interface DensityTooltipState {
   endAa: number;
 }
 
+interface SequenceViewerMetrics {
+  maxAa: number;
+  hasData: boolean;
+  hasTicks: boolean;
+  successCount: number;
+  failedCount: number;
+}
+
 // --- Density computation ---
 
 function computeDensityBins(
@@ -75,16 +85,259 @@ function generateScaleTicks(maxAa: number): number[] {
   return ticks;
 }
 
+const DomainLayer = memo(function DomainLayer({
+  domains,
+  disabledDomainSet,
+  domainStats,
+  aaToX,
+  cdsY,
+  cdsHeight,
+}: {
+  domains: DomainInfo[];
+  disabledDomainSet: Set<string>;
+  domainStats: Record<string, { quota: number; selected: number }>;
+  aaToX: (aa: number) => number;
+  cdsY: number;
+  cdsHeight: number;
+}) {
+  return (
+    <>
+      {domains.map((d, i) => {
+        const colorSet = DOMAIN_COLORS[i % DOMAIN_COLORS.length];
+        const isDomainDisabled = disabledDomainSet.has(`${d.name}-${d.start}`);
+        const x1 = aaToX(d.start);
+        const x2 = aaToX(d.end);
+        const w = Math.max(2, x2 - x1);
+        const stat = domainStats[d.name];
+        return (
+          <g key={`domain-${d.name}-${d.start}`} opacity={isDomainDisabled ? 0.25 : 1}>
+            <rect
+              x={x1}
+              y={cdsY}
+              width={w}
+              height={cdsHeight}
+              rx={2}
+              fill={isDomainDisabled ? "#d1d5db" : colorSet.fill}
+              stroke={isDomainDisabled ? "#9ca3af" : colorSet.stroke}
+              strokeWidth={0.8}
+              opacity={0.85}
+            />
+            {w > 40 && (
+              <text
+                x={x1 + w / 2}
+                y={cdsY + cdsHeight / 2 + 1}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                fontSize={8}
+                fontWeight={600}
+                fill={colorSet.text}
+                className="pointer-events-none select-none"
+              >
+                {d.name.length > Math.floor(w / 5) ? d.name.slice(0, Math.floor(w / 5)) + ".." : d.name}
+              </text>
+            )}
+            {stat && (
+              <text
+                x={x1 + w / 2}
+                y={cdsY - 4}
+                textAnchor="middle"
+                fontSize={7}
+                fontWeight={500}
+                fill={stat.selected < stat.quota ? "#dc2626" : "#6b7280"}
+                className="pointer-events-none select-none"
+              >
+                {stat.selected}/{stat.quota}
+                {stat.selected < stat.quota ? " \u26A0" : ""}
+              </text>
+            )}
+          </g>
+        );
+      })}
+    </>
+  );
+});
+
+const ScaleLayer = memo(function ScaleLayer({
+  scaleTicks,
+  aaToX,
+  scaleY,
+  marginLeft,
+}: {
+  scaleTicks: number[];
+  aaToX: (aa: number) => number;
+  scaleY: number;
+  marginLeft: number;
+}) {
+  return (
+    <>
+      {scaleTicks.map((aa) => {
+        const x = aaToX(aa);
+        return (
+          <g key={`scale-${aa}`}>
+            <line
+              x1={x}
+              y1={scaleY}
+              x2={x}
+              y2={scaleY + 3}
+              stroke="#9ca3af"
+              strokeWidth={0.5}
+            />
+            <text
+              x={x}
+              y={scaleY + 10}
+              textAnchor="middle"
+              fontSize={7}
+              fill="#9ca3af"
+              className="select-none"
+            >
+              {aa}
+            </text>
+          </g>
+        );
+      })}
+      <text
+        x={marginLeft}
+        y={scaleY + 10}
+        textAnchor="middle"
+        fontSize={7}
+        fill="#9ca3af"
+        className="select-none"
+      >
+        1
+      </text>
+    </>
+  );
+});
+
+const DensityLayer = memo(function DensityLayer({
+  densityBins,
+  maxDensity,
+  barWidth,
+  binCount,
+  marginLeft,
+  densityY,
+  densityHeight,
+  onDensityHover,
+  onDensityLeave,
+}: {
+  densityBins: number[];
+  maxDensity: number;
+  barWidth: number;
+  binCount: number;
+  marginLeft: number;
+  densityY: number;
+  densityHeight: number;
+  onDensityHover: (e: React.MouseEvent, binIndex: number, count: number, binCount: number) => void;
+  onDensityLeave: () => void;
+}) {
+  return (
+    <>
+      {densityBins.map((count, i) => {
+        if (count === 0) return null;
+        const binW = barWidth / binCount;
+        const x = marginLeft + i * binW;
+        const h = (count / maxDensity) * densityHeight;
+        const intensity = Math.min(1, count / maxDensity);
+        const r = Math.round(220 - intensity * 170);
+        const g = Math.round(220 - intensity * 100);
+        const b = Math.round(220 - intensity * 40);
+        return (
+          <rect
+            key={`density-${i}`}
+            x={x}
+            y={densityY + densityHeight - h}
+            width={binW}
+            height={h}
+            fill={`rgb(${r},${g},${b})`}
+            opacity={0.7}
+            rx={0.5}
+            style={{ cursor: "default" }}
+            onMouseEnter={(e) => onDensityHover(e, i, count, binCount)}
+            onMouseLeave={onDensityLeave}
+          />
+        );
+      })}
+    </>
+  );
+});
+
+const TickLayer = memo(function TickLayer({
+  ticks,
+  aaToX,
+  selectedMutation,
+  tickTop,
+  tickBottom,
+  onTickHover,
+  onTickLeave,
+  onTickClick,
+}: {
+  ticks: MutationTick[];
+  aaToX: (aa: number) => number;
+  selectedMutation: string | null;
+  tickTop: number;
+  tickBottom: number;
+  onTickHover: (e: React.MouseEvent, tick: MutationTick) => void;
+  onTickLeave: () => void;
+  onTickClick: (mutation: string) => void;
+}) {
+  return (
+    <>
+      {ticks.map((tick) => {
+        const x = aaToX(tick.aaPosition);
+        const isSelected = selectedMutation === tick.mutation;
+        const color =
+          isSelected
+            ? TICK_SELECTED
+            : tick.status === "success"
+              ? TICK_SUCCESS
+              : TICK_FAILED;
+        const strokeW = isSelected ? 2.5 : 1.5;
+        return (
+          <line
+            key={`tick-${tick.mutation}`}
+            x1={x}
+            y1={tickTop}
+            x2={x}
+            y2={tickBottom}
+            stroke={color}
+            strokeWidth={strokeW}
+            strokeLinecap="round"
+            className="cursor-pointer"
+            opacity={isSelected ? 1 : 0.85}
+            onMouseEnter={(e) => onTickHover(e, tick)}
+            onMouseLeave={onTickLeave}
+            onClick={() => onTickClick(tick.mutation)}
+          />
+        );
+      })}
+    </>
+  );
+});
+
 // --- Component ---
 
 export function SequenceViewer() {
-  const seqInfo = useAppStore((s) => s.seqInfo);
-  const designResults = useAppStore((s) => s.designResults);
-  const failedMutations = useAppStore((s) => s.failedMutations);
-  const domains = useAppStore((s) => s.domains);
-  const domainStats = useAppStore((s) => s.domainStats);
-  const disabledDomains = useAppStore((s) => s.disabledDomains);
-  const parsedMutations = useAppStore((s) => s.parsedMutations);
+  const {
+    seqInfo,
+    designResults,
+    failedMutations,
+    domains,
+    domainStats,
+    disabledDomains,
+    parsedMutations,
+    selectedGene,
+  } = useAppStore(
+    useShallow((s) => ({
+      seqInfo: s.seqInfo,
+      designResults: s.designResults,
+      failedMutations: s.failedMutations,
+      domains: s.domains,
+      domainStats: s.domainStats,
+      disabledDomains: s.disabledDomains,
+      parsedMutations: s.parsedMutations,
+      selectedGene: s.selectedGene,
+    })),
+  );
 
   const [collapsed, setCollapsed] = useState(false);
   const [selectedMutation, setSelectedMutation] = useState<string | null>(null);
@@ -92,30 +345,28 @@ export function SequenceViewer() {
   const [densityTooltip, setDensityTooltip] = useState<DensityTooltipState | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
-  const selectedGene = useAppStore((s) => s.selectedGene);
-
   // Determine max aa from seqInfo or parsedMutations
-  const maxAa = useMemo(() => {
+  const metrics = useMemo<SequenceViewerMetrics>(() => {
+    let maxAa = 0;
     if (seqInfo && seqInfo.genes.length > 0) {
       const gene = seqInfo.genes.find((g) => String(g.cds_start) === selectedGene);
-      if (gene) return gene.aa_length;
-      return Math.max(...seqInfo.genes.map((g) => g.aa_length));
+      maxAa = gene
+        ? gene.aa_length
+        : Math.max(...seqInfo.genes.map((g) => g.aa_length));
+    } else if (parsedMutations.length > 0) {
+      maxAa = Math.max(...parsedMutations.map((m) => m.position));
     }
-    if (parsedMutations.length > 0) {
-      return Math.max(...parsedMutations.map((m) => m.position));
-    }
-    return 0;
-  }, [seqInfo, parsedMutations, selectedGene]);
 
-  // Build tick list from design + failed mutations
-  const ticks = useMemo(() => {
-    const result: MutationTick[] = [];
+    let successCount = 0;
+    let failedCount = 0;
+    const ticks: MutationTick[] = [];
     const seen = new Set<string>();
 
     for (const r of designResults) {
       if (seen.has(r.mutation)) continue;
       seen.add(r.mutation);
-      result.push({
+      successCount++;
+      ticks.push({
         mutation: r.mutation,
         aaPosition: r.aa_position,
         status: "success",
@@ -127,9 +378,10 @@ export function SequenceViewer() {
     for (const f of failedMutations) {
       if (seen.has(f.mutation)) continue;
       seen.add(f.mutation);
+      failedCount++;
       const posMatch = f.mutation.match(/[A-Za-z*](\d+)[A-Za-z*]/);
       const pos = posMatch ? parseInt(posMatch[1], 10) : 0;
-      result.push({
+      ticks.push({
         mutation: f.mutation,
         aaPosition: pos,
         status: "failed",
@@ -137,8 +389,16 @@ export function SequenceViewer() {
       });
     }
 
-    return result;
-  }, [designResults, failedMutations]);
+    return {
+      maxAa,
+      hasData: maxAa > 0,
+      hasTicks: ticks.length > 0,
+      successCount,
+      failedCount,
+      ticks,
+    };
+  }, [designResults, failedMutations, parsedMutations, selectedGene, seqInfo]) as SequenceViewerMetrics & { ticks: MutationTick[] };
+  const { maxAa, hasData, hasTicks, successCount, failedCount, ticks } = metrics;
 
   // SVG layout
   const SVG_WIDTH = 900;
@@ -172,6 +432,7 @@ export function SequenceViewer() {
     [ticks, maxAa],
   );
   const maxDensity = Math.max(1, ...densityBins);
+  const disabledDomainSet = useMemo(() => new Set(disabledDomains), [disabledDomains]);
 
   // Tooltip positioning
   const handleTickHover = useCallback(
@@ -219,9 +480,6 @@ export function SequenceViewer() {
     setSelectedMutation(null);
   }, [designResults, failedMutations]);
 
-  const hasData = maxAa > 0;
-  const hasTicks = ticks.length > 0;
-
   return (
     <div className="border-b border-gray-200 bg-white" role="region" aria-label="Sequence Map">
       {/* Header */}
@@ -244,17 +502,13 @@ export function SequenceViewer() {
           />
         </svg>
         <span title="Linear CDS map showing mutation positions. Green=designed, Red=failed. Density histogram below shows clustering — spread-out mutations are better for library diversity">Sequence Map</span>
-        {hasTicks && (() => {
-          const successCount = ticks.filter((t) => t.status === "success").length;
-          const failedCount = ticks.filter((t) => t.status === "failed").length;
-          return (
-            <span className="ml-2 text-gray-400 font-normal">
-              {successCount} designed
-              {failedCount > 0 && ` / ${failedCount} failed`}
-              {maxAa > 0 && ` — ${maxAa} aa`}
-            </span>
-          );
-        })()}
+        {hasTicks && (
+          <span className="ml-2 text-gray-400 font-normal">
+            {successCount} designed
+            {failedCount > 0 && ` / ${failedCount} failed`}
+            {maxAa > 0 && ` — ${maxAa} aa`}
+          </span>
+        )}
       </button>
 
       {/* Content */}
@@ -286,154 +540,46 @@ export function SequenceViewer() {
                   strokeWidth={1}
                 />
 
-                {/* Domain regions */}
-                {domains.map((d, i) => {
-                  const colorSet = DOMAIN_COLORS[i % DOMAIN_COLORS.length];
-                  const isDomainDisabled = disabledDomains.includes(`${d.name}-${d.start}`);
-                  const x1 = aaToX(d.start);
-                  const x2 = aaToX(d.end);
-                  const w = Math.max(2, x2 - x1);
-                  return (
-                    <g key={`domain-${d.name}-${d.start}`} opacity={isDomainDisabled ? 0.25 : 1}>
-                      <rect
-                        x={x1}
-                        y={CDS_Y}
-                        width={w}
-                        height={CDS_HEIGHT}
-                        rx={2}
-                        fill={isDomainDisabled ? "#d1d5db" : colorSet.fill}
-                        stroke={isDomainDisabled ? "#9ca3af" : colorSet.stroke}
-                        strokeWidth={0.8}
-                        opacity={0.85}
-                      />
-                      {w > 40 && (
-                        <text
-                          x={x1 + w / 2}
-                          y={CDS_Y + CDS_HEIGHT / 2 + 1}
-                          textAnchor="middle"
-                          dominantBaseline="middle"
-                          fontSize={8}
-                          fontWeight={600}
-                          fill={colorSet.text}
-                          className="pointer-events-none select-none"
-                        >
-                          {d.name.length > Math.floor(w / 5) ? d.name.slice(0, Math.floor(w / 5)) + ".." : d.name}
-                        </text>
-                      )}
-                      {domainStats[d.name] && (
-                        <text
-                          x={x1 + w / 2}
-                          y={CDS_Y - 4}
-                          textAnchor="middle"
-                          fontSize={7}
-                          fontWeight={500}
-                          fill={domainStats[d.name].selected < domainStats[d.name].quota ? "#dc2626" : "#6b7280"}
-                          className="pointer-events-none select-none"
-                        >
-                          {domainStats[d.name].selected}/{domainStats[d.name].quota}
-                          {domainStats[d.name].selected < domainStats[d.name].quota ? " \u26A0" : ""}
-                        </text>
-                      )}
-                    </g>
-                  );
-                })}
+                <DomainLayer
+                  domains={domains}
+                  disabledDomainSet={disabledDomainSet}
+                  domainStats={domainStats}
+                  aaToX={aaToX}
+                  cdsY={CDS_Y}
+                  cdsHeight={CDS_HEIGHT}
+                />
 
-                {/* Scale ticks */}
-                {scaleTicks.map((aa) => {
-                  const x = aaToX(aa);
-                  return (
-                    <g key={`scale-${aa}`}>
-                      <line
-                        x1={x}
-                        y1={SCALE_Y}
-                        x2={x}
-                        y2={SCALE_Y + 3}
-                        stroke="#9ca3af"
-                        strokeWidth={0.5}
-                      />
-                      <text
-                        x={x}
-                        y={SCALE_Y + 10}
-                        textAnchor="middle"
-                        fontSize={7}
-                        fill="#9ca3af"
-                        className="select-none"
-                      >
-                        {aa}
-                      </text>
-                    </g>
-                  );
-                })}
+                <ScaleLayer
+                  scaleTicks={scaleTicks}
+                  aaToX={aaToX}
+                  scaleY={SCALE_Y}
+                  marginLeft={MARGIN_LEFT}
+                />
 
-                {/* Position 1 label */}
-                <text
-                  x={MARGIN_LEFT}
-                  y={SCALE_Y + 10}
-                  textAnchor="middle"
-                  fontSize={7}
-                  fill="#9ca3af"
-                  className="select-none"
-                >
-                  1
-                </text>
+                {hasTicks && (
+                  <DensityLayer
+                    densityBins={densityBins}
+                    maxDensity={maxDensity}
+                    barWidth={BAR_WIDTH}
+                    binCount={BIN_COUNT}
+                    marginLeft={MARGIN_LEFT}
+                    densityY={DENSITY_Y}
+                    densityHeight={DENSITY_HEIGHT}
+                    onDensityHover={handleDensityHover}
+                    onDensityLeave={handleDensityLeave}
+                  />
+                )}
 
-                {/* Density histogram (below scale) */}
-                {hasTicks &&
-                  densityBins.map((count, i) => {
-                    if (count === 0) return null;
-                    const binW = BAR_WIDTH / BIN_COUNT;
-                    const x = MARGIN_LEFT + i * binW;
-                    const h = (count / maxDensity) * DENSITY_HEIGHT;
-                    const intensity = Math.min(1, count / maxDensity);
-                    const r = Math.round(220 - intensity * 170);
-                    const g = Math.round(220 - intensity * 100);
-                    const b = Math.round(220 - intensity * 40);
-                    return (
-                      <rect
-                        key={`density-${i}`}
-                        x={x}
-                        y={DENSITY_Y + DENSITY_HEIGHT - h}
-                        width={binW}
-                        height={h}
-                        fill={`rgb(${r},${g},${b})`}
-                        opacity={0.7}
-                        rx={0.5}
-                        style={{ cursor: "default" }}
-                        onMouseEnter={(e) => handleDensityHover(e, i, count, BIN_COUNT)}
-                        onMouseLeave={handleDensityLeave}
-                      />
-                    );
-                  })}
-
-                {/* Mutation ticks */}
-                {ticks.map((tick) => {
-                  const x = aaToX(tick.aaPosition);
-                  const isSelected = selectedMutation === tick.mutation;
-                  const color =
-                    isSelected
-                      ? TICK_SELECTED
-                      : tick.status === "success"
-                        ? TICK_SUCCESS
-                        : TICK_FAILED;
-                  const strokeW = isSelected ? 2.5 : 1.5;
-                  return (
-                    <line
-                      key={`tick-${tick.mutation}`}
-                      x1={x}
-                      y1={TICK_TOP}
-                      x2={x}
-                      y2={TICK_BOTTOM}
-                      stroke={color}
-                      strokeWidth={strokeW}
-                      strokeLinecap="round"
-                      className="cursor-pointer"
-                      opacity={isSelected ? 1 : 0.85}
-                      onMouseEnter={(e) => handleTickHover(e, tick)}
-                      onMouseLeave={handleTickLeave}
-                      onClick={() => handleTickClick(tick.mutation)}
-                    />
-                  );
-                })}
+                <TickLayer
+                  ticks={ticks}
+                  aaToX={aaToX}
+                  selectedMutation={selectedMutation}
+                  tickTop={TICK_TOP}
+                  tickBottom={TICK_BOTTOM}
+                  onTickHover={handleTickHover}
+                  onTickLeave={handleTickLeave}
+                  onTickClick={handleTickClick}
+                />
               </svg>
 
               {/* Density tooltip */}

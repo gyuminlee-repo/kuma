@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { useAppStore } from "../../store/appStore";
 import { reorderMappings, getSortedMutations, wellName } from "../../lib/plate-utils";
 import type { PlateMapping } from "../../types/models";
@@ -38,8 +39,15 @@ function buildPairsFromStore(
 ): PlatePair[] {
   // Apply sort + well reassignment via shared utility
   const ordered = reorderMappings(mappings, dedupInfo, sortedMutations);
-  const orderedFwd = ordered.filter((m) => m.primer_type === "forward");
-  const orderedRev = ordered.filter((m) => m.primer_type === "reverse");
+  const orderedFwd: PlateMapping[] = [];
+  const orderedRev: PlateMapping[] = [];
+  for (const mapping of ordered) {
+    if (mapping.primer_type === "forward") {
+      orderedFwd.push(mapping);
+    } else {
+      orderedRev.push(mapping);
+    }
+  }
 
   // Determine shared reverse sequences
   const sharedSeqs = new Set<string>();
@@ -169,17 +177,27 @@ function PlateGrid({
 }
 
 function useSortedMutations(): string[] | null {
-  const designResults = useAppStore((s) => s.designResults);
-  const tableSorting = useAppStore((s) => s.tableSorting);
+  const { designResults, tableSorting, yPredMap, customCandidates } = useAppStore(
+    useShallow((s) => ({
+      designResults: s.designResults,
+      tableSorting: s.tableSorting,
+      yPredMap: s.yPredMap,
+      customCandidates: s.customCandidates,
+    })),
+  );
   return useMemo(
-    () => getSortedMutations(designResults, tableSorting),
-    [designResults, tableSorting],
+    () => getSortedMutations(designResults, tableSorting, { yPredMap, customCandidates }),
+    [customCandidates, designResults, tableSorting, yPredMap],
   );
 }
 
 export function PlateMap() {
-  const plateMappings = useAppStore((s) => s.plateMappings);
-  const dedupInfo = useAppStore((s) => s.dedupInfo);
+  const { plateMappings, dedupInfo } = useAppStore(
+    useShallow((s) => ({
+      plateMappings: s.plateMappings,
+      dedupInfo: s.dedupInfo,
+    })),
+  );
   const sortedMutations = useSortedMutations();
   const [activeTab, setActiveTab] = useState<"fwd" | "rev">("fwd");
   const [page, setPage] = useState(0);

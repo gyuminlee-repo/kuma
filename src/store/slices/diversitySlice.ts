@@ -46,6 +46,7 @@ export interface DiversitySlice {
   saveCache: boolean;
   structureLoaded: boolean;
   structureLoading: boolean;
+  structureAccession: string;
   poolVariants: string[];
   uniprotCandidates: UniprotCandidate[];
   uniprotSearching: boolean;
@@ -83,15 +84,35 @@ export interface DiversitySlice {
 
 export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice> = (set, get) => {
   let reloadTimer: ReturnType<typeof setTimeout> | null = null;
+  let domainFetchGeneration = 0;
+  let uniprotSearchGeneration = 0;
+  let structureFetchGeneration = 0;
+
+  async function reloadEvolveproCsv(reason: string) {
+    const state = get();
+    if (!state.evolveproCsvPath) return;
+    try {
+      await state.loadEvolveproCsv(state.evolveproCsvPath);
+    } catch (err) {
+      set({
+        statusMessage: `${state.mutationInputMode === "multi-evolve" ? "MULTI-evolve" : "EVOLVEpro"} reload failed after ${reason}: ${formatError(err)}`,
+      });
+    }
+  }
+
+  function shouldReloadAfterStructureFetch(state: AppState) {
+    return Boolean(
+      state.evolveproCsvPath
+      && state.paretoDiversityEnabled
+      && state.distanceMode !== "1d",
+    );
+  }
 
   function debouncedReload() {
     if (reloadTimer) clearTimeout(reloadTimer);
     reloadTimer = setTimeout(() => {
       reloadTimer = null;
-      const state = get();
-      if (state.evolveproCsvPath) {
-        state.loadEvolveproCsv(state.evolveproCsvPath).catch((err) => console.warn("[diversity] CSV reload failed:", err));
-      }
+      void reloadEvolveproCsv("diversity settings change");
     }, 300);
   }
 
@@ -127,6 +148,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   poolVariants: [] as string[],
   structureLoaded: false,
   structureLoading: false,
+  structureAccession: "",
   uniprotCandidates: [],
   uniprotSearching: false,
 
@@ -174,29 +196,56 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   },
 
   fetchDomains: async (accession: string, clearCandidates = false) => {
+    const requestedAccession = accession.trim();
+    const fetchGeneration = ++domainFetchGeneration;
+    uniprotSearchGeneration += 1;
     set({
       domainLoading: true,
       ...(clearCandidates && { uniprotCandidates: [] }),
+      uniprotAccession: requestedAccession,
+      structureLoaded: get().structureAccession === requestedAccession,
+      ...(get().structureAccession !== requestedAccession && {
+        structureLoading: false,
+      }),
       statusMessage: "Fetching domain info...",
     });
     try {
-      const result = await sendRequest<FetchDomainsResult>("fetch_domains", { accession }, 120_000);
+      const result = await sendRequest<FetchDomainsResult>(
+        "fetch_domains",
+        { accession: requestedAccession },
+        120_000,
+      );
+      if (fetchGeneration !== domainFetchGeneration) return;
+      const state = get();
+      const structureMatches = state.structureAccession === requestedAccession;
+      const deferReloadToStructureFetch = (
+        requestedAccession !== ""
+        && !structureMatches
+        && shouldReloadAfterStructureFetch(state)
+      );
       set({
-        uniprotAccession: accession,
+        uniprotAccession: requestedAccession,
         domains: result.domains,
         disabledDomains: [] as string[],
         domainLoading: false,
+        structureLoaded: structureMatches,
+        ...(structureMatches ? {} : { structureLoading: false }),
         statusMessage: result.domains.length > 0
           ? `Domains: ${result.domains.length} found (${result.source})`
           : result.error_msg ? `Domain fetch failed: ${result.error_msg}` : "No domains found",
       });
-      const { evolveproCsvPath, structureLoaded } = get();
-      if (evolveproCsvPath && result.domains.length > 0) await get().loadEvolveproCsv(evolveproCsvPath);
-      // Fetch AlphaFold structure for manual accession entry
-      if (!structureLoaded) {
-        get().fetchStructure(accession);
+      if (
+        !deferReloadToStructureFetch
+        && state.evolveproCsvPath
+        && result.domains.length > 0
+      ) {
+        await get().loadEvolveproCsv(state.evolveproCsvPath);
+      }
+      if (requestedAccession && !structureMatches) {
+        void get().fetchStructure(requestedAccession);
       }
     } catch (err) {
+      if (fetchGeneration !== domainFetchGeneration) return;
       set({ domainLoading: false, statusMessage: `Domain fetch failed: ${formatError(err)}` });
     }
   },
@@ -204,7 +253,9 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   setDomains: (domains: DomainInfo[]) => {
     set({ domains, disabledDomains: [] });
     const { evolveproCsvPath, domainDiversityEnabled } = get();
-    if (evolveproCsvPath && domainDiversityEnabled) get().loadEvolveproCsv(evolveproCsvPath).catch((err) => console.warn("[diversity] CSV reload failed:", err));
+    if (evolveproCsvPath && domainDiversityEnabled) {
+      void reloadEvolveproCsv("manual domain update");
+    }
   },
 
   toggleDomain: (domainKey: string) => {
@@ -295,6 +346,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
         entropy_weight: state.entropyWeightEnabled ? state.entropyWeight : 0,
         pool_multiplier: state.paretoPoolMultiplier,
         distance_mode: state.distanceMode,
+        structure_accession: state.uniprotAccession || undefined,
         random_seed: state.benchmarkRandomSeed,
       }, 120_000);
       set({
@@ -322,6 +374,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   },
 
   searchUniprot: async (geneName: string, organism: string, translation: string, knownAccession: string) => {
+    const searchGeneration = ++uniprotSearchGeneration;
     set({ uniprotSearching: true, statusMessage: "UniProt BLAST search in progress..." });
     try {
       const result = await sendRequest<SearchUniprotResult>("search_uniprot", {
@@ -330,6 +383,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
         translation,
         known_accession: knownAccession,
       }, 120_000);
+      if (searchGeneration !== uniprotSearchGeneration) return;
       // Auto-select top result
       const top = result.candidates[0];
       const acc = top?.accession ?? "";
@@ -339,45 +393,79 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
       } else if (top) {
         statusMsg = `UniProt: auto-selected ${top.accession} (${top.identity.toFixed(1)}% identity)`;
       }
+      const structureMatches = acc !== "" && get().structureAccession === acc;
       set({
         uniprotCandidates: result.candidates,
         uniprotSearching: false,
-        ...(acc && { uniprotAccession: acc }),
+        uniprotAccession: acc,
+        structureLoaded: structureMatches,
+        structureLoading: false,
         statusMessage: statusMsg,
       });
-      // Auto-trigger AlphaFold structure fetch
-      if (acc) {
-        get().fetchStructure(acc);
+      if (acc && !structureMatches) {
+        void get().fetchStructure(acc);
       }
     } catch (err) {
+      if (searchGeneration !== uniprotSearchGeneration) return;
       set({ uniprotSearching: false, statusMessage: `UniProt search failed: ${formatError(err)}` });
     }
   },
 
   fetchStructure: async (accession: string) => {
-    set({ structureLoading: true, statusMessage: "AlphaFold structure loading..." });
+    const requestedAccession = accession.trim();
+    if (!requestedAccession) return;
+    const fetchGeneration = ++structureFetchGeneration;
+    set({
+      structureLoading: true,
+      structureLoaded: get().structureAccession === requestedAccession,
+      statusMessage: "AlphaFold structure loading...",
+    });
     try {
-      const result = await sendRequest<StructureResult>("fetch_structure", { accession }, 30_000);
+      const result = await sendRequest<StructureResult>(
+        "fetch_structure",
+        { accession: requestedAccession },
+        30_000,
+      );
+      if (
+        fetchGeneration !== structureFetchGeneration
+        || get().uniprotAccession !== requestedAccession
+      ) {
+        return;
+      }
       if (result.success) {
         set({
           structureLoaded: true,
           structureLoading: false,
+          structureAccession: requestedAccession,
           statusMessage: `AlphaFold structure loaded: ${result.residues} Cα residues`,
         });
-        // Re-trigger CSV selection with structure now available
-        const { evolveproCsvPath } = get();
-        if (evolveproCsvPath) await get().loadEvolveproCsv(evolveproCsvPath);
+        const state = get();
+        if (shouldReloadAfterStructureFetch(state)) {
+          await state.loadEvolveproCsv(state.evolveproCsvPath);
+        }
       } else {
         set({
           structureLoaded: false,
           structureLoading: false,
+          structureAccession: "",
           statusMessage: `AlphaFold structure unavailable (using position distance) — ${result.error ?? "not in DB"}`,
         });
+        const state = get();
+        if (shouldReloadAfterStructureFetch(state)) {
+          await state.loadEvolveproCsv(state.evolveproCsvPath);
+        }
       }
     } catch (err) {
+      if (
+        fetchGeneration !== structureFetchGeneration
+        || get().uniprotAccession !== requestedAccession
+      ) {
+        return;
+      }
       set({
         structureLoaded: false,
         structureLoading: false,
+        structureAccession: "",
         statusMessage: `AlphaFold fetch failed: ${formatError(err)}`,
       });
     }

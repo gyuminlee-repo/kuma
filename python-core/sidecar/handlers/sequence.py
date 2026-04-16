@@ -23,6 +23,7 @@ def handle_load_fasta(params: dict) -> dict:
     with _core._state_lock:
         _core._state.template = (str(resolved), sequence)
         _core._state.ca_coords = None  # clear stale structure from previous template
+        _core._state.ca_coords_accession = None
 
     return {
         "header": header,

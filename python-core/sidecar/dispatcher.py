@@ -10,7 +10,7 @@ from pathlib import Path
 
 from sidecar.core import (
     _append_crash_log,
-    _cancel_event,
+    _cancel_active_design,
     _error,
     _ok,
     _send,
@@ -75,12 +75,21 @@ _METHODS = {
     "search_uniprot": handle_search_uniprot,
     "fetch_structure": handle_fetch_structure,
     "run_benchmark": handle_run_benchmark,
-    "cancel_design": lambda _: (_cancel_event.set(), {"cancelled": True})[1],
+    "cancel_design": lambda _: {
+        "cancelled": True,
+        "active_design": _cancel_active_design(),
+    },
 }
 
 # Methods that run in a background thread to avoid blocking the main loop.
 # These are long-running operations (network I/O, heavy computation).
-_ASYNC_METHODS = {"search_uniprot", "fetch_structure", "fetch_domains", "run_benchmark"}
+_ASYNC_METHODS = {
+    "design_sdm_primers",
+    "search_uniprot",
+    "fetch_structure",
+    "fetch_domains",
+    "run_benchmark",
+}
 
 
 # ---------------------------------------------------------------------------

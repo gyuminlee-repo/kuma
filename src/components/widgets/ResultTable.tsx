@@ -5,6 +5,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
+import { useShallow } from "zustand/react/shallow";
 import { useAppStore } from "../../store/appStore";
 import type { FailedMutation, SdmPrimerResult } from "../../types/models";
 import { FailedMutationList } from "./FailedMutationList";
@@ -12,7 +13,6 @@ import {
   buildGroupColorMap,
   HEADER_TOOLTIPS,
   makeResultTableColumns,
-  type RankedPrimerResult,
 } from "./resultTableColumns";
 
 const LazyCandidatePopover = lazy(async () => import("./popovers/CandidatePopover").then((m) => ({ default: m.CandidatePopover })));
@@ -21,34 +21,51 @@ const LazyOffTargetDetail = lazy(async () => import("./popovers/OffTargetDetail"
 const LazyFailedMutationPopover = lazy(async () => import("./popovers/FailedMutationPopover").then((m) => ({ default: m.FailedMutationPopover })));
 
 export function ResultTable() {
-  const designResults = useAppStore((s) => s.designResults);
-  const failedMutations = useAppStore((s) => s.failedMutations);
-  const successCount = useAppStore((s) => s.successCount);
-  const totalCount = useAppStore((s) => s.totalCount);
-  const sorting = useAppStore((s) => s.tableSorting);
-  const setSorting = useAppStore((s) => s.setTableSorting);
-  const codonStrategy = useAppStore((s) => s.codonStrategy);
-  const manuallySwapped = useAppStore((s) => s.manuallySwapped);
-  const customCandidatesAll = useAppStore((s) => s.customCandidates);
-  const rescuedMutations = useAppStore((s) => s.rescuedMutations);
-  const rescuedMutationDetails = useAppStore((s) => s.rescuedMutationDetails);
-  const removeDesignResult = useAppStore((s) => s.removeDesignResult);
-  const yPredMap = useAppStore((s) => s.yPredMap);
+  const {
+    designResults,
+    failedMutations,
+    successCount,
+    totalCount,
+    sorting,
+    setSorting,
+    codonStrategy,
+    manuallySwapped,
+    customCandidatesAll,
+    rescuedMutations,
+    rescuedMutationDetails,
+    removeDesignResult,
+    yPredMap,
+  } = useAppStore(
+    useShallow((s) => ({
+      designResults: s.designResults,
+      failedMutations: s.failedMutations,
+      successCount: s.successCount,
+      totalCount: s.totalCount,
+      sorting: s.tableSorting,
+      setSorting: s.setTableSorting,
+      codonStrategy: s.codonStrategy,
+      manuallySwapped: s.manuallySwapped,
+      customCandidatesAll: s.customCandidates,
+      rescuedMutations: s.rescuedMutations,
+      rescuedMutationDetails: s.rescuedMutationDetails,
+      removeDesignResult: s.removeDesignResult,
+      yPredMap: s.yPredMap,
+    })),
+  );
 
   const [popover, setPopover] = useState<{ mutation: string; current: SdmPrimerResult } | null>(null);
   const [hpDetail, setHpDetail] = useState<SdmPrimerResult | null>(null);
   const [otDetail, setOtDetail] = useState<SdmPrimerResult | null>(null);
   const [failedPopover, setFailedPopover] = useState<FailedMutation | null>(null);
 
-  const rankedData = useMemo<RankedPrimerResult[]>(
-    () => designResults.map((r, i) => ({ ...r, rank: i + 1 })),
-    [designResults],
-  );
-
   const groupColorMap = useMemo(() => buildGroupColorMap(designResults), [designResults]);
   const rescueDetailMap = useMemo(
     () => new Map(rescuedMutationDetails.map((r) => [r.rescued_by, r])),
     [rescuedMutationDetails],
+  );
+  const rescuedMutationSet = useMemo(
+    () => new Set(rescuedMutations),
+    [rescuedMutations],
   );
 
   const columns = useMemo(
@@ -58,7 +75,7 @@ export function ResultTable() {
         codonStrategy,
         swapped: manuallySwapped,
         customCandidates: customCandidatesAll,
-        rescuedMutations,
+        rescuedMutations: rescuedMutationSet,
         rescueDetailMap,
         removeDesignResult,
         yPredMap,
@@ -68,7 +85,7 @@ export function ResultTable() {
       codonStrategy,
       manuallySwapped,
       customCandidatesAll,
-      rescuedMutations,
+      rescuedMutationSet,
       rescueDetailMap,
       removeDesignResult,
       yPredMap,
@@ -76,7 +93,7 @@ export function ResultTable() {
   );
 
   const table = useReactTable({
-    data: rankedData,
+    data: designResults,
     columns,
     state: { sorting },
     onSortingChange: setSorting,
@@ -84,7 +101,7 @@ export function ResultTable() {
     getSortedRowModel: getSortedRowModel(),
   });
 
-  const handleCellClick = useCallback((row: RankedPrimerResult, columnId: string) => {
+  const handleCellClick = useCallback((row: SdmPrimerResult, columnId: string) => {
     if (columnId === "forward_seq" || columnId === "reverse_seq") {
       setPopover({ mutation: row.mutation, current: row });
       return;

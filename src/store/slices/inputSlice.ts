@@ -61,6 +61,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       evolveproStepStats: null,
       yPredMap: {},
       domainStats: {},
+      poolVariants: [],
     }),
   }),
   setMutationText: (text) => set({ mutationText: text }),
@@ -95,11 +96,11 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       const modeLabel = isMultiEvolve ? "MULTI-evolve" : "EVOLVEpro";
       set({ statusMessage: `Loading ${modeLabel} CSV...`, evolveproCsvPath: filepath });
       const usePipeline = pipelineMode && !isMultiEvolve;
-      const params = buildEvolveproLoadParams({
-        filepath,
-        topN: effectiveTopN,
-        usePipeline,
-        isMultiEvolve,
+        const params = buildEvolveproLoadParams({
+          filepath,
+          topN: effectiveTopN,
+          usePipeline,
+          isMultiEvolve,
         positionDiversityEnabled,
         maxPerPosition,
         activeDomains,
@@ -111,12 +112,13 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         domainQuotaMin,
         paretoDiversityEnabled,
         entropyWeightEnabled,
-        entropyWeight,
-        paretoPoolMultiplier,
-        distanceMode,
-        evolveproRound,
-        roundSize,
-      });
+          entropyWeight,
+          paretoPoolMultiplier,
+          distanceMode,
+          structureAccession: get().uniprotAccession,
+          evolveproRound,
+          roundSize,
+        });
       const result = await sendRequest<EvolveproLoadResult>("load_evolvepro_csv", params);
       if (gen !== csvLoadGeneration) return;
       const update = buildEvolveproLoadStateUpdate({
@@ -143,6 +145,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     } catch (err) {
       if (gen === csvLoadGeneration) {
         set({
+          mutationText: "",
           evolveproTotalCount: 0,
           evolveproFilteredCount: null,
           evolveproParetoExchanges: null,
@@ -153,6 +156,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
           statusMessage: `${get().mutationInputMode === "multi-evolve" ? "MULTI-evolve" : "EVOLVEpro"} CSV load failed: ${formatError(err)}`,
         });
       }
+      throw err;
     }
   },
 

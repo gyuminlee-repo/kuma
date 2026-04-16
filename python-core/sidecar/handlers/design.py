@@ -45,6 +45,13 @@ _SWAP_FIELDS = {
 }
 
 
+def _rebuild_plate_state(results: list[SdmPrimerResult]) -> None:
+    """Rebuild cached plate mappings and reverse dedup metadata."""
+    fwd_map, rev_map = generate_plate_map(results, deduplicate_rev=True)
+    _core._state.plate_mappings = fwd_map + rev_map
+    _core._state.dedup_info = deduplicate_reverse(results)
+
+
 # ---------------------------------------------------------------------------
 # Serialisation helpers
 # ---------------------------------------------------------------------------
@@ -172,13 +179,6 @@ def handle_design_sdm_primers(params: dict) -> dict:
     """Design SDM primers for a batch of mutations."""
     p = DesignSdmPrimersParams(**params)
 
-    # Clear previous state to free memory
-    with _core._state_lock:
-        _core._state.results = []
-        _core._state.candidates = {}
-        _core._state.plate_mappings = []
-        _core._state.dedup_info = {}
-
     if not p.fasta_path:
         raise ValueError("fasta_path is required")
 
@@ -238,8 +238,32 @@ def handle_design_sdm_primers(params: dict) -> dict:
         temp_csv.close()
         mutations_csv_path = Path(temp_csv_name)
 
+    cancel_event = _core._begin_design_job()
+
+    def _cancelled_result() -> dict:
+        return {
+            "results": [],
+            "success_count": 0,
+            "total_count": 0,
+            "failed_mutations": [],
+            "step_stats": None,
+            "rescue_stats": {
+                "pool_cascade": 0,
+                "auto_relax": 0,
+                "positions_attempted": 0,
+                "pool_variants_tried": 0,
+            },
+            "rescued_mutations": [],
+            "cancelled": True,
+        }
+
     try:
-        _core._cancel_event.clear()
+        # Clear previous state only after the design slot is reserved.
+        with _core._state_lock:
+            _core._state.results = []
+            _core._state.candidates = {}
+            _core._state.plate_mappings = []
+            _core._state.dedup_info = {}
 
         def _on_progress(i: int, total: int, mutation_raw: str) -> None:
             pct = 10 + int(70 * i / max(total, 1))
@@ -263,151 +287,153 @@ def handle_design_sdm_primers(params: dict) -> dict:
             rev_len_min=p.rev_len_min,
             rev_len_max=p.rev_len_max,
             on_progress=_on_progress,
-            cancel_check=_core._cancel_event.is_set,
+            cancel_check=cancel_event.is_set,
             organism=p.organism,
         )
+        if cancel_event.is_set():
+            return _cancelled_result()
+
+        # -------------------------------------------------------------------
+        # Position Rescue: pool cascade + auto-relax
+        # -------------------------------------------------------------------
+        rescue_stats: dict = {
+            "pool_cascade": 0, "auto_relax": 0,
+            "positions_attempted": 0, "pool_variants_tried": 0,
+        }
+        rescued_info: list[dict] = []
+
+        if p.rescue_pool and engine_failures:
+            _progress(82, f"Rescuing {len(engine_failures)} failed position(s)...")
+            _header_r, sequence_r, _genes_r = load_sequence(resolved_fasta)
+            profile = _build_profile(p)
+
+            rescue_by_pos: dict[int, list[str]] = {}
+            for v in p.rescue_pool:
+                m = _POS_RE.search(v)
+                if m:
+                    rescue_by_pos.setdefault(int(m.group(1)), []).append(v)
+
+            design_kw = dict(
+                codon_strategy=p.codon_strategy,
+                gc_min=p.gc_min, gc_max=p.gc_max,
+                fwd_len_min=p.fwd_len_min, fwd_len_max=p.fwd_len_max,
+                rev_len_min=p.rev_len_min, rev_len_max=p.rev_len_max,
+                organism=p.organism,
+            )
+
+            still_failed: dict[str, str] = {}
+            designed_muts = {r.mutation.raw for r in results}
+
+            for failed_mut, reason in engine_failures.items():
+                if cancel_event.is_set():
+                    return _cancelled_result()
+                m = _POS_RE.search(failed_mut)
+                if not m:
+                    still_failed[failed_mut] = reason
+                    continue
+                pos = int(m.group(1))
+                rescue_stats["positions_attempted"] += 1
+                rescued = False
+                for backup in rescue_by_pos.get(pos, []):
+                    if cancel_event.is_set():
+                        return _cancelled_result()
+                    if backup == failed_mut or backup in designed_muts:
+                        continue
+                    rescue_stats["pool_variants_tried"] += 1
+                    try:
+                        mut_obj = _build_mutation(backup, sequence_r, p.target_start, p.organism)
+                        cands = design_single_sdm(
+                            sequence_r, mut_obj, profile, p.overlap_len, **design_kw,
+                        )
+                        if cands:
+                            best = cands[0]
+                            results.append(best)
+                            all_cands[backup] = cands
+                            designed_muts.add(backup)
+                            rescue_stats["pool_cascade"] += 1
+                            rescued_info.append({
+                                "original": failed_mut, "rescued_by": backup,
+                                "type": "pool_cascade",
+                                "penalty": round(best.penalty, 2),
+                                "tolerance_used": best.tolerance_used,
+                            })
+                            rescued = True
+                            break
+                    except (ValueError, IndexError):
+                        continue
+                if not rescued:
+                    still_failed[failed_mut] = reason
+
+            if p.auto_relax:
+                relax_kw = {
+                    **design_kw,
+                    "tol_max": _DEFAULT_TOL_MAX + _RELAX_TOL_DELTA,
+                    "gc_min": max(_GC_FLOOR, p.gc_min - _RELAX_GC_DELTA),
+                    "gc_max": min(_GC_CEIL, p.gc_max + _RELAX_GC_DELTA),
+                }
+                for failed_mut in list(still_failed):
+                    if cancel_event.is_set():
+                        return _cancelled_result()
+                    try:
+                        mut_obj = _build_mutation(failed_mut, sequence_r, p.target_start, p.organism)
+                        cands = design_single_sdm(
+                            sequence_r, mut_obj, profile, p.overlap_len, **relax_kw,
+                        )
+                        if cands:
+                            best = cands[0]
+                            results.append(best)
+                            all_cands[failed_mut] = cands
+                            rescue_stats["auto_relax"] += 1
+                            rescued_info.append({
+                                "original": failed_mut, "rescued_by": failed_mut,
+                                "type": "auto_relax",
+                                "penalty": round(best.penalty, 2),
+                                "tolerance_used": best.tolerance_used,
+                            })
+                            del still_failed[failed_mut]
+                    except (ValueError, IndexError):
+                        continue
+
+            engine_failures = still_failed
+
+        if cancel_event.is_set():
+            return _cancelled_result()
+
+        with _core._state_lock:
+            _core._state.results = results
+            _core._state.candidates = all_cands
+            _rebuild_plate_state(results)
+        _progress(80, "Generating plate map...")
+
+        _progress(100, "Design complete")
+
+        # Build failure list from engine + input line tracking
+        is_text_input = not os.path.isfile(mutations_input)
+        input_lines = lines if is_text_input else []
+        total_mutations = len(results) + len(engine_failures)
+        if is_text_input:
+            total_mutations = max(total_mutations, len(input_lines))
+
+        failed: list[dict] = []
+        for idx, (mut_name, reason) in enumerate(engine_failures.items()):
+            rank = next((i + 1 for i, l in enumerate(input_lines) if l == mut_name), idx + len(results) + 1)
+            failed.append({"mutation": mut_name, "rank": rank, "reason": reason})
+
+        return {
+            "results": [
+                _serialize_result_with_counts(r) for r in results
+            ],
+            "success_count": len(results),
+            "total_count": total_mutations,
+            "failed_mutations": failed,
+            "step_stats": None,
+            "rescue_stats": rescue_stats,
+            "rescued_mutations": rescued_info,
+        }
     finally:
+        _core._finish_design_job(cancel_event)
         if temp_csv is not None:
             os.unlink(temp_csv_name)
-
-    if _core._cancel_event.is_set():
-        _core._cancel_event.clear()
-        return {"results": [], "success_count": 0, "total_count": 0,
-                "failed_mutations": [], "cancelled": True}
-
-    # -----------------------------------------------------------------------
-    # Position Rescue: pool cascade + auto-relax
-    # -----------------------------------------------------------------------
-    rescue_stats: dict = {
-        "pool_cascade": 0, "auto_relax": 0,
-        "positions_attempted": 0, "pool_variants_tried": 0,
-    }
-    rescued_info: list[dict] = []
-
-    if p.rescue_pool and engine_failures:
-        _progress(82, f"Rescuing {len(engine_failures)} failed position(s)...")
-        _header_r, sequence_r, _genes_r = load_sequence(resolved_fasta)
-        profile = _build_profile(p)
-
-        rescue_by_pos: dict[int, list[str]] = {}
-        for v in p.rescue_pool:
-            m = _POS_RE.search(v)
-            if m:
-                rescue_by_pos.setdefault(int(m.group(1)), []).append(v)
-
-        design_kw = dict(
-            codon_strategy=p.codon_strategy,
-            gc_min=p.gc_min, gc_max=p.gc_max,
-            fwd_len_min=p.fwd_len_min, fwd_len_max=p.fwd_len_max,
-            rev_len_min=p.rev_len_min, rev_len_max=p.rev_len_max,
-            organism=p.organism,
-        )
-
-        still_failed: dict[str, str] = {}
-        designed_muts = {r.mutation.raw for r in results}
-
-        for failed_mut, reason in engine_failures.items():
-            m = _POS_RE.search(failed_mut)
-            if not m:
-                still_failed[failed_mut] = reason
-                continue
-            pos = int(m.group(1))
-            rescue_stats["positions_attempted"] += 1
-            rescued = False
-            for backup in rescue_by_pos.get(pos, []):
-                if backup == failed_mut or backup in designed_muts:
-                    continue
-                rescue_stats["pool_variants_tried"] += 1
-                try:
-                    mut_obj = _build_mutation(backup, sequence_r, p.target_start, p.organism)
-                    cands = design_single_sdm(
-                        sequence_r, mut_obj, profile, p.overlap_len, **design_kw,
-                    )
-                    if cands:
-                        best = cands[0]
-                        results.append(best)
-                        all_cands[backup] = cands
-                        designed_muts.add(backup)
-                        rescue_stats["pool_cascade"] += 1
-                        rescued_info.append({
-                            "original": failed_mut, "rescued_by": backup,
-                            "type": "pool_cascade",
-                            "penalty": round(best.penalty, 2),
-                            "tolerance_used": best.tolerance_used,
-                        })
-                        rescued = True
-                        break
-                except (ValueError, IndexError):
-                    continue
-            if not rescued:
-                still_failed[failed_mut] = reason
-
-        if p.auto_relax:
-            relax_kw = {
-                **design_kw,
-                "tol_max": _DEFAULT_TOL_MAX + _RELAX_TOL_DELTA,
-                "gc_min": max(_GC_FLOOR, p.gc_min - _RELAX_GC_DELTA),
-                "gc_max": min(_GC_CEIL, p.gc_max + _RELAX_GC_DELTA),
-            }
-            for failed_mut in list(still_failed):
-                try:
-                    mut_obj = _build_mutation(failed_mut, sequence_r, p.target_start, p.organism)
-                    cands = design_single_sdm(
-                        sequence_r, mut_obj, profile, p.overlap_len, **relax_kw,
-                    )
-                    if cands:
-                        best = cands[0]
-                        results.append(best)
-                        all_cands[failed_mut] = cands
-                        rescue_stats["auto_relax"] += 1
-                        rescued_info.append({
-                            "original": failed_mut, "rescued_by": failed_mut,
-                            "type": "auto_relax",
-                            "penalty": round(best.penalty, 2),
-                            "tolerance_used": best.tolerance_used,
-                        })
-                        del still_failed[failed_mut]
-                except (ValueError, IndexError):
-                    continue
-
-        engine_failures = still_failed
-
-    with _core._state_lock:
-        _core._state.results = results
-        _core._state.candidates = all_cands
-    _progress(80, "Generating plate map...")
-
-    # Auto-generate plate map (Fwd/Rev separate plates)
-    fwd_map, rev_map = generate_plate_map(results, deduplicate_rev=True)
-    with _core._state_lock:
-        _core._state.plate_mappings = fwd_map + rev_map
-        _core._state.dedup_info = deduplicate_reverse(results)
-
-    _progress(100, "Design complete")
-
-    # Build failure list from engine + input line tracking
-    is_text_input = not os.path.isfile(mutations_input)
-    input_lines = lines if is_text_input else []
-    total_mutations = len(results) + len(engine_failures)
-    if is_text_input:
-        total_mutations = max(total_mutations, len(input_lines))
-
-    failed: list[dict] = []
-    for idx, (mut_name, reason) in enumerate(engine_failures.items()):
-        rank = next((i + 1 for i, l in enumerate(input_lines) if l == mut_name), idx + len(results) + 1)
-        failed.append({"mutation": mut_name, "rank": rank, "reason": reason})
-
-    return {
-        "results": [
-            _serialize_result_with_counts(r) for r in results
-        ],
-        "success_count": len(results),
-        "total_count": total_mutations,
-        "failed_mutations": failed,
-        "step_stats": None,
-        "rescue_stats": rescue_stats,
-        "rescued_mutations": rescued_info,
-    }
 
 
 def handle_retry_failed(params: dict) -> dict:
@@ -436,7 +462,7 @@ def handle_retry_failed(params: dict) -> dict:
         gc_min=p.gc_min, gc_max=p.gc_max,
         fwd_len_min=p.fwd_len_min, fwd_len_max=p.fwd_len_max,
         rev_len_min=p.rev_len_min, rev_len_max=p.rev_len_max,
-        organism=p.organism,
+        organism=p.organism, tol_max=p.tol_max,
     )
 
     with _core._state_lock:
@@ -484,6 +510,7 @@ def handle_swap_primer(params: dict) -> dict:
                     rev_len=new_best.rev_len,
                     gc_rev=new_best.gc_rev,
                 )
+        _rebuild_plate_state(_core._state.results)
     return _serialize_result_with_counts(new_best)
 
 

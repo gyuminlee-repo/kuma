@@ -68,9 +68,26 @@ export function CandidatePopover({
   const evaluateCustomPrimer = useAppStore((s) => s.evaluateCustomPrimer);
   const addCustomCandidate = useAppStore((s) => s.addCustomCandidate);
   const removeCustomCandidate = useAppStore((s) => s.removeCustomCandidate);
+  const backendDesignStateSynced = useAppStore((s) => s.backendDesignStateSynced);
   const customCandidates = useAppStore((s) => s.customCandidates)[mutation] ?? [];
 
   useEffect(() => {
+    setCustomOverlap("");
+    setCustomCodon("");
+    setCustomDownstream("");
+    setCustomRev("");
+    setSeqError(null);
+    setEvaluating(false);
+    setOtDetailCand(null);
+  }, [mutation]);
+
+  useEffect(() => {
+    if (!backendDesignStateSynced) {
+      setCandidates([current]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
     getAlternatives(mutation).then((c) => {
       setCandidates(c);
       setLoading(false);
@@ -78,7 +95,7 @@ export function CandidatePopover({
       setCandidates([current]);
       setLoading(false);
     });
-  }, [mutation, getAlternatives, current]);
+  }, [mutation, getAlternatives, current, backendDesignStateSynced]);
 
   async function handleEvaluate() {
     const fwdInput = (customOverlap + customCodon + customDownstream).trim();
@@ -154,6 +171,11 @@ export function CandidatePopover({
           <div className="text-xs text-gray-400 py-4 text-center">No candidates</div>
         ) : (
           <>
+          {!backendDesignStateSynced && (
+            <div className="mb-2 rounded bg-amber-50 px-2 py-1 text-[10px] text-amber-700">
+              Backend alternatives are unavailable until you re-design this workspace. Manual primer evaluation still works.
+            </div>
+          )}
           <div className="text-[10px] text-gray-500 mb-2">
             Ranked by penalty (lower = better). #1 is auto-selected as default.
           </div>
@@ -192,9 +214,30 @@ export function CandidatePopover({
                     actions={
                       <div className="flex gap-0.5 justify-center items-center">
                         {isCurrent && <span className="text-amber-600 text-[9px] mr-0.5">✓</span>}
-                        <button className="px-1 py-0.5 bg-blue-500 text-white rounded text-[8px] hover:bg-blue-600" onClick={() => handleSwap(idx, "both")} title="Use both Fwd+Rev">Both</button>
-                        <button className="px-1 py-0.5 bg-green-500 text-white rounded text-[8px] hover:bg-green-600" onClick={() => handleSwap(idx, "fwd")} title="Use Forward only">F</button>
-                        <button className="px-1 py-0.5 bg-orange-500 text-white rounded text-[8px] hover:bg-orange-600" onClick={() => handleSwap(idx, "rev")} title="Use Reverse only">R</button>
+                        <button
+                          className="px-1 py-0.5 bg-blue-500 text-white rounded text-[8px] hover:bg-blue-600 disabled:opacity-40"
+                          onClick={() => handleSwap(idx, "both")}
+                          title={backendDesignStateSynced ? "Use both Fwd+Rev" : "Re-design to enable swapping"}
+                          disabled={!backendDesignStateSynced}
+                        >
+                          Both
+                        </button>
+                        <button
+                          className="px-1 py-0.5 bg-green-500 text-white rounded text-[8px] hover:bg-green-600 disabled:opacity-40"
+                          onClick={() => handleSwap(idx, "fwd")}
+                          title={backendDesignStateSynced ? "Use Forward only" : "Re-design to enable swapping"}
+                          disabled={!backendDesignStateSynced}
+                        >
+                          F
+                        </button>
+                        <button
+                          className="px-1 py-0.5 bg-orange-500 text-white rounded text-[8px] hover:bg-orange-600 disabled:opacity-40"
+                          onClick={() => handleSwap(idx, "rev")}
+                          title={backendDesignStateSynced ? "Use Reverse only" : "Re-design to enable swapping"}
+                          disabled={!backendDesignStateSynced}
+                        >
+                          R
+                        </button>
                       </div>
                     }
                   />

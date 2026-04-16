@@ -3,9 +3,7 @@ import { createColumnHelper } from "@tanstack/react-table";
 import type { RescuedMutation, SdmPrimerResult } from "../../types/models";
 import { ColoredFwdSeq, CopySeqButton, formatTolerance } from "./primerDisplay";
 
-export type RankedPrimerResult = SdmPrimerResult & { rank: number };
-
-const col = createColumnHelper<RankedPrimerResult>();
+const col = createColumnHelper<SdmPrimerResult>();
 
 const GROUP_COLORS = [
   "#3b82f6", "#ef4444", "#f59e0b", "#10b981",
@@ -69,7 +67,7 @@ export function makeResultTableColumns(opts: {
   codonStrategy: "closest" | "optimal";
   swapped: Record<string, string>;
   customCandidates: Record<string, SdmPrimerResult[]>;
-  rescuedMutations: string[];
+  rescuedMutations: Set<string>;
   rescueDetailMap: Map<string, RescuedMutation>;
   removeDesignResult: (mutation: string, reason: string) => void;
   yPredMap: Record<string, number>;
@@ -86,11 +84,12 @@ export function makeResultTableColumns(opts: {
   } = opts;
 
   return [
-    col.accessor("rank", {
+    col.display({
+      id: "rank",
       header: "#",
       size: 35,
       enableSorting: false,
-      cell: (info) => <span className="text-gray-400">{info.getValue()}</span>,
+      cell: (info) => <span className="text-gray-400">{info.row.index + 1}</span>,
     }),
     col.accessor("mutation", {
       header: "Mutation",
@@ -99,12 +98,12 @@ export function makeResultTableColumns(opts: {
         const posA = a.original.aa_position ?? 0;
         const posB = b.original.aa_position ?? 0;
         if (posA !== posB) return posA - posB;
-        return a.original.rank - b.original.rank;
+        return a.index - b.index;
       },
       cell: (info) => {
         const row = info.row.original;
         const color = row.aa_position != null ? groupColorMap.get(row.aa_position) : undefined;
-        const isRescued = rescuedMutations.includes(row.mutation);
+        const isRescued = rescuedMutations.has(row.mutation);
         const rescueDetail = rescueDetailMap.get(row.mutation);
         return (
           <span className="font-mono font-medium flex items-center gap-1">

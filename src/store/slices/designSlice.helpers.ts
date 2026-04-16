@@ -82,7 +82,9 @@ export function prepareDesignInput(params: {
   const intendedMuts = new Set(allLines.slice(0, maxPrimers).map((l) => l.trim()));
   const limitedText = allLines.slice(0, sendCount).join("\n");
   const targetStart = selectedGene ? parseInt(selectedGene, 10) : 0;
-  const rescuePool = poolVariants.filter((v) => !intendedMuts.has(v));
+  const rescuePool = isEvolveMode
+    ? poolVariants.filter((v) => !intendedMuts.has(v))
+    : [];
 
   return {
     intendedMuts,
@@ -162,6 +164,7 @@ export function processDesignResult(params: {
   intendedMuts: Set<string>;
 }): ProcessedDesignResult {
   const { result, maxPrimers, intendedMuts } = params;
+  const intendedCount = intendedMuts.size;
   const rescueStats = result.rescue_stats ?? EMPTY_RESCUE_STATS;
   const rescuedMutationDetails = result.rescued_mutations ?? [];
   const rescuedMutations = rescuedMutationDetails.map((r) => r.rescued_by);
@@ -183,7 +186,7 @@ export function processDesignResult(params: {
     rescuedMutationDetails,
     rescuedMutations,
     tmMet,
-    statusMessage: `${capped.length}/${maxPrimers} designed | Tm: ${tmMet}/${capped.length}${failedMsg}${rescueMsg}`,
+    statusMessage: `${capped.length}/${intendedCount} designed | Tm: ${tmMet}/${capped.length}${failedMsg}${rescueMsg}`,
   };
 }
 
@@ -238,6 +241,48 @@ export function applyCustomPrimerToResults(params: {
   });
 }
 
+export function rebuildPlateStateFromResults(params: {
+  designResults: SdmPrimerResult[];
+  wellName: (idx: number) => string;
+}) {
+  const { designResults, wellName } = params;
+  const forwardMappings: PlateMapping[] = [];
+  const reverseSeqToMuts: Record<string, string[]> = {};
+  const reverseSeqOrder: string[] = [];
+
+  for (const result of designResults) {
+    forwardMappings.push({
+      well: wellName(forwardMappings.length),
+      primer_name: `${result.mutation}_F`,
+      sequence: result.forward_seq,
+      primer_type: "forward",
+      mutation: result.mutation,
+    });
+
+    if (!reverseSeqToMuts[result.reverse_seq]) {
+      reverseSeqToMuts[result.reverse_seq] = [];
+      reverseSeqOrder.push(result.reverse_seq);
+    }
+    reverseSeqToMuts[result.reverse_seq]!.push(result.mutation);
+  }
+
+  const reverseMappings: PlateMapping[] = reverseSeqOrder.map((sequence, index) => {
+    const representativeMutation = reverseSeqToMuts[sequence]![0]!;
+    return {
+      well: wellName(index),
+      primer_name: `${representativeMutation}_R`,
+      sequence,
+      primer_type: "reverse",
+      mutation: representativeMutation,
+    };
+  });
+
+  return {
+    plateMappings: [...forwardMappings, ...reverseMappings],
+    dedupInfo: reverseSeqToMuts,
+  };
+}
+
 export function addDesignResultState(params: {
   mutation: string;
   result: SdmPrimerResult;
@@ -245,8 +290,6 @@ export function addDesignResultState(params: {
   failedMutations: FailedMutation[];
   successCount: number;
   rescuedMutations: string[];
-  plateMappings: PlateMapping[];
-  dedupInfo: Record<string, string[]>;
   wellName: (idx: number) => string;
 }) {
   const {
@@ -256,8 +299,6 @@ export function addDesignResultState(params: {
     failedMutations,
     successCount,
     rescuedMutations,
-    plateMappings,
-    dedupInfo,
     wellName,
   } = params;
 
@@ -275,39 +316,19 @@ export function addDesignResultState(params: {
     candidate_rev_count: result.candidate_rev_count ?? 1,
   };
 
-  const nextFwdIdx = plateMappings.filter((m) => m.primer_type === "forward").length;
-  const newFwd: PlateMapping = {
-    well: wellName(nextFwdIdx),
-    primer_name: `${mutation}_F`,
-    sequence: result.forward_seq,
-    primer_type: "forward",
-    mutation,
-  };
-
-  const revExists = plateMappings.some(
-    (m) => m.primer_type === "reverse" && m.sequence === result.reverse_seq,
-  );
-  const newRevMappings: PlateMapping[] = revExists
-    ? []
-    : [
-        {
-          well: wellName(plateMappings.filter((m) => m.primer_type === "reverse").length),
-          primer_name: `${mutation}_R`,
-          sequence: result.reverse_seq,
-          primer_type: "reverse",
-          mutation,
-        },
-      ];
-
-  const newDedupInfo = { ...dedupInfo };
-  newDedupInfo[result.reverse_seq] = [...(newDedupInfo[result.reverse_seq] ?? []), mutation];
+  const nextDesignResults = [...designResults, fixedResult];
+  const plateState = rebuildPlateStateFromResults({
+    designResults: nextDesignResults,
+    wellName,
+  });
 
   return {
-    designResults: [...designResults, fixedResult],
+    backendDesignStateSynced: false,
+    designResults: nextDesignResults,
     failedMutations: failedMutations.filter((f) => f.mutation !== mutation),
     successCount: successCount + 1,
-    plateMappings: [...plateMappings, newFwd, ...newRevMappings],
-    dedupInfo: newDedupInfo,
+    plateMappings: plateState.plateMappings,
+    dedupInfo: plateState.dedupInfo,
     rescuedMutations: rescuedMutations.includes(mutation)
       ? rescuedMutations
       : [...rescuedMutations, mutation],
@@ -321,8 +342,7 @@ export function removeDesignResultState(params: {
   failedMutations: FailedMutation[];
   successCount: number;
   rescuedMutations: string[];
-  plateMappings: PlateMapping[];
-  dedupInfo: Record<string, string[]>;
+  wellName: (idx: number) => string;
 }) {
   const {
     mutation,
@@ -331,34 +351,32 @@ export function removeDesignResultState(params: {
     failedMutations,
     successCount,
     rescuedMutations,
-    plateMappings,
-    dedupInfo,
+    wellName,
   } = params;
 
   const removed = designResults.find((r) => r.mutation === mutation);
   if (!removed) return null;
 
   const newDesignResults = designResults.filter((r) => r.mutation !== mutation);
-  const newPlateMappings = plateMappings.filter((m) => m.mutation !== mutation);
-  const newDedupInfo: Record<string, string[]> = {};
-  for (const [seq, muts] of Object.entries(dedupInfo)) {
-    const filtered = muts.filter((m) => m !== mutation);
-    if (filtered.length > 0) newDedupInfo[seq] = filtered;
-  }
 
   const restoredRank = failedMutations.length > 0
     ? Math.max(...failedMutations.map((f) => f.rank)) + 1
     : newDesignResults.length + 1;
+  const plateState = rebuildPlateStateFromResults({
+    designResults: newDesignResults,
+    wellName,
+  });
 
   return {
+    backendDesignStateSynced: false,
     designResults: newDesignResults,
     failedMutations: [
       ...failedMutations,
       { mutation, rank: restoredRank, reason },
     ],
     successCount: Math.max(0, successCount - 1),
-    plateMappings: newPlateMappings,
-    dedupInfo: newDedupInfo,
+    plateMappings: plateState.plateMappings,
+    dedupInfo: plateState.dedupInfo,
     rescuedMutations: rescuedMutations.filter((m) => m !== mutation),
   };
 }

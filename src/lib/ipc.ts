@@ -21,6 +21,8 @@ let child: Child | null = null;
 let spawnPromise: Promise<void> | null = null;
 let nextId = 1;
 const pending = new Map<number, PendingRequest>();
+let stdoutBuffer = "";
+let stderrBuffer = "";
 // NOTE: Single global progress handler. Only one operation can receive progress
 // events at a time. This is fine for the current single-design-at-a-time model.
 // If multi-operation progress is ever needed, refactor to a Map<requestId, handler>.
@@ -65,29 +67,63 @@ function handleLine(line: string) {
   }
 }
 
+function drainChunkLines(
+  chunk: string,
+  buffer: string,
+  onLine: (line: string) => void,
+): string {
+  const combined = buffer + chunk;
+  const normalized = combined.replace(/\r\n/g, "\n");
+  const lines = normalized.split("\n");
+  const remainder = lines.pop() ?? "";
+  for (const line of lines) {
+    onLine(line);
+  }
+  return remainder;
+}
+
+function flushBufferedLine(
+  buffer: string,
+  onLine: (line: string) => void,
+): string {
+  if (buffer.trim()) {
+    onLine(buffer);
+  }
+  return "";
+}
+
+function handleStderrLine(line: string) {
+  if (!line.trim()) return;
+  console.log("[sidecar]", line);
+}
+
 export async function spawnSidecar(): Promise<void> {
   if (child) return;
   if (spawnPromise) return spawnPromise;
 
   spawnPromise = (async () => {
     const command = Command.sidecar("binaries/kuro-sidecar");
+    stdoutBuffer = "";
+    stderrBuffer = "";
 
-    command.stdout.on("data", (line: string) => {
-      for (const part of line.split("\n")) {
-        handleLine(part);
-      }
+    command.stdout.on("data", (chunk: string) => {
+      stdoutBuffer = drainChunkLines(chunk, stdoutBuffer, handleLine);
     });
 
-    command.stderr.on("data", (line: string) => {
-      console.log("[sidecar]", line);
+    command.stderr.on("data", (chunk: string) => {
+      stderrBuffer = drainChunkLines(chunk, stderrBuffer, handleStderrLine);
     });
 
     command.on("error", (error: string) => {
+      stdoutBuffer = "";
+      stderrBuffer = "";
       console.error("[sidecar] error:", error);
       child = null;
     });
 
     command.on("close", (data: { code: number | null }) => {
+      stdoutBuffer = flushBufferedLine(stdoutBuffer, handleLine);
+      stderrBuffer = flushBufferedLine(stderrBuffer, handleStderrLine);
       console.log("[sidecar] exited with code:", data.code);
       child = null;
       for (const [id, req] of pending) {
@@ -160,9 +196,8 @@ export async function sendRequest<T>(
 
   return new Promise<T>((resolve, reject) => {
     // NOTE: This timeout only rejects the client-side promise — it does NOT
-    // cancel the in-flight sidecar operation. For long-running methods like
-    // design_sdm_primers (300s timeout), use cancelAndRespawn() to actually
-    // abort the sidecar work.
+    // cancel the in-flight sidecar operation. Call the sidecar's
+    // cancel_design RPC when the frontend needs to stop primer design.
     const timer = setTimeout(() => {
       pending.delete(id);
       reject(new Error(`RPC timeout: ${method} after ${timeoutMs}ms`));
@@ -196,6 +231,8 @@ export async function sendRequest<T>(
 
 export async function killSidecar(): Promise<void> {
   spawnPromise = null;
+  stdoutBuffer = "";
+  stderrBuffer = "";
   if (child) {
     const c = child;
     child = null;

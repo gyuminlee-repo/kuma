@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAppStore } from "../../../store/appStore";
 import { useFocusTrap } from "../../../hooks/useFocusTrap";
 import type { SdmPrimerResult, FailedMutation } from "../../../types/models";
@@ -49,6 +49,40 @@ export function FailedMutationPopover({
   const evaluateCustomPrimer = useAppStore((s) => s.evaluateCustomPrimer);
   const addDesignResult = useAppStore((s) => s.addDesignResult);
 
+  useEffect(() => {
+    setTmFwd(String(storeTmFwd));
+    setTmRev(String(storeTmRev));
+    setTmOv(String(storeTmOv));
+    setGcMin(String(storeGcMin));
+    setGcMax(String(storeGcMax));
+    setFwdMin(String(storeFwdMin));
+    setFwdMax(String(storeFwdMax));
+    setRevMin(String(storeRevMin));
+    setRevMax(String(storeRevMax));
+    setTolMax("5.0");
+    setRetrying(false);
+    setCandidates([]);
+    setRetryError(null);
+    setCustomOverlap("");
+    setCustomCodon("");
+    setCustomDownstream("");
+    setCustomRev("");
+    setEvaluating(false);
+    setSeqError(null);
+    setShowManual(false);
+  }, [
+    failed.mutation,
+    storeFwdMax,
+    storeFwdMin,
+    storeGcMax,
+    storeGcMin,
+    storeRevMax,
+    storeRevMin,
+    storeTmFwd,
+    storeTmOv,
+    storeTmRev,
+  ]);
+
   async function handleRetry() {
     setRetrying(true);
     setRetryError(null);
@@ -63,6 +97,7 @@ export function FailedMutationPopover({
       fwd_len_max: parseInt(fwdMax),
       rev_len_min: parseInt(revMin),
       rev_len_max: parseInt(revMax),
+      tol_max: parseFloat(tolMax),
       codon_strategy: storeCodon,
     });
     if (results.length === 0) {

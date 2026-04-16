@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useAppStore } from "../../store/appStore";
 import { Progress } from "../ui/progress";
 
@@ -9,7 +10,10 @@ export function StatusBar({ sidecarStatus, onRetry }: { sidecarStatus: string; o
   const totalCount = useAppStore((s) => s.totalCount);
   const designResults = useAppStore((s) => s.designResults);
 
-  const tmOkCount = designResults.filter((r) => r.tm_condition_met).length;
+  const tmOkCount = useMemo(
+    () => designResults.filter((r) => r.tm_condition_met).length,
+    [designResults],
+  );
 
   return (
     <div className="flex items-center gap-2 px-4 py-1 bg-gray-100 border-t border-gray-300 text-xs text-gray-600">

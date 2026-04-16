@@ -7,6 +7,7 @@ import re
 import sidecar.core as _core
 from sidecar.core import (
     _get_ssl_ctx,
+    _get_contact_email,
     logger,
 )
 from sidecar.models import FetchDomainsParams, SearchUniprotParams, FetchStructureParams
@@ -183,14 +184,11 @@ def handle_search_uniprot(params: dict) -> dict:
     if translation and not auto_selected:
         try:
             blast_data = _urllib_parse.urlencode({
-                # TODO(security): Replace with user-configured email — hardcoded
-                # placeholder violates EBI Terms of Use. Read from app config or
-                # prompt user on first BLAST run.
-                "email": "kuro-app@example.com",
                 "program": "blastp",
                 "database": "uniprotkb_swissprot",
                 "stype": "protein",
                 "sequence": translation.rstrip("*"),
+                **({"email": email} if (email := _get_contact_email()) else {}),
             }).encode()
             submit_req = _urllib_req.Request(
                 "https://www.ebi.ac.uk/Tools/services/rest/ncbiblast/run",
@@ -203,8 +201,6 @@ def handle_search_uniprot(params: dict) -> dict:
             # Poll for completion (max ~60s)
             status_text = ""
             for _ in range(20):
-                if _core._cancel_event.is_set():
-                    break
                 _time.sleep(3)
                 status_text, _ = _fetch_text(
                     f"https://www.ebi.ac.uk/Tools/services/rest/ncbiblast/status/{job_id}"
@@ -333,10 +329,12 @@ def handle_fetch_structure(params: dict) -> dict:
     if coords is None:
         with _core._state_lock:
             _core._state.ca_coords = None
+            _core._state.ca_coords_accession = None
         return {"success": False, "error": f"AlphaFold structure unavailable for {accession}"}
 
     with _core._state_lock:
         _core._state.ca_coords = coords
+        _core._state.ca_coords_accession = accession
     valid = sum(1 for c in coords if c is not None)
     return {
         "success": True,

@@ -32,9 +32,9 @@ const LazyBenchmarkDialog = lazy(async () => import("../dialogs/BenchmarkDialog"
 export function AppLayout() {
   const { status: sidecarStatus, retry: retrySidecar } = useSidecar();
   const isDesigning = useAppStore((s) => s.isDesigning);
-  const seqInfo = useAppStore((s) => s.seqInfo);
-  const mutationText = useAppStore((s) => s.mutationText);
-  const designResults = useAppStore((s) => s.designResults);
+  const hasSequence = useAppStore((s) => Boolean(s.seqInfo));
+  const hasMutationText = useAppStore((s) => s.mutationText.trim().length > 0);
+  const hasDesignResults = useAppStore((s) => s.designResults.length > 0);
   const loadPolymerases = useAppStore((s) => s.loadPolymerases);
   const showReport = useAppStore((s) => s.showReport);
   const showBenchmark = useAppStore((s) => s.showBenchmark);
@@ -132,7 +132,7 @@ export function AppLayout() {
             <Button
               className="flex-1"
               onClick={() => useAppStore.getState().designPrimers()}
-              disabled={!seqInfo || isDesigning || !mutationText.trim()}
+              disabled={!hasSequence || isDesigning || !hasMutationText}
             >
               {isDesigning ? "Designing..." : "Design Primers"}
             </Button>
@@ -152,7 +152,7 @@ export function AppLayout() {
             size="sm"
             className="w-full text-gray-500"
             onClick={() => {
-              if (designResults.length > 0) {
+              if (hasDesignResults) {
                 setClearConfirmOpen(true);
               } else {
                 useAppStore.getState().resetAll();

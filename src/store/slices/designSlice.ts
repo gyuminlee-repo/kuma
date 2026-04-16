@@ -1,5 +1,5 @@
 import type { StateCreator } from "zustand";
-import { sendRequest, cancelAndRespawn } from "../../lib/ipc";
+import { sendRequest } from "../../lib/ipc";
 import { wellName } from "../../lib/plate-utils";
 import { formatError } from "../../lib/utils";
 import type { AppState } from "../types";
@@ -7,7 +7,6 @@ import type {
   SdmPrimerResult,
   DesignResult,
   FailedMutation,
-  PlateMapResult,
   PolymeraseInfo,
   PolymeraseProfile,
   RescueStats,
@@ -18,15 +17,16 @@ import {
   applyCustomPrimerToResults,
   buildDesignRequestPayload,
   EMPTY_RESCUE_STATS,
-  filterPlateMappingsForResults,
   prepareDesignInput,
   processDesignResult,
+  rebuildPlateStateFromResults,
   removeDesignResultState,
 } from "./designSlice.helpers";
 
 export interface DesignSlice {
   // State
   isDesigning: boolean;
+  backendDesignStateSynced: boolean;
   designResults: SdmPrimerResult[];
   successCount: number;
   totalCount: number;
@@ -48,6 +48,7 @@ export interface DesignSlice {
   fillOnFailure: boolean;
   manuallySwapped: Record<string, "fwd" | "rev" | "both">;
   customCandidates: Record<string, SdmPrimerResult[]>;
+  alternativesCache: Record<string, SdmPrimerResult[]>;
   rescuedMutations: string[];
   rescueStats: RescueStats;
   rescuedMutationDetails: RescuedMutation[];
@@ -80,6 +81,7 @@ export interface DesignSlice {
 
 export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (set, get) => ({
   isDesigning: false,
+  backendDesignStateSynced: false,
   designResults: [],
   successCount: 0,
   totalCount: 0,
@@ -103,6 +105,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
   fillOnFailure: true,
   manuallySwapped: {},
   customCandidates: {},
+  alternativesCache: {},
   rescuedMutations: [] as string[],
   rescueStats: EMPTY_RESCUE_STATS,
   rescuedMutationDetails: [] as RescuedMutation[],
@@ -194,7 +197,14 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
 
     if (isEvolveMode && state.evolveproCsvPath) {
       state.cancelDiversityReload();
-      await state.loadEvolveproCsv(state.evolveproCsvPath, fillOnFailure ? sendCount : undefined);
+      try {
+        await state.loadEvolveproCsv(
+          state.evolveproCsvPath,
+          fillOnFailure ? sendCount : undefined,
+        );
+      } catch {
+        return;
+      }
     }
 
     const prepared = prepareDesignInput({
@@ -205,14 +215,20 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       selectedGene: selectedGene ?? "",
       poolVariants: get().poolVariants,
     });
+    if (!prepared.limitedText.trim()) {
+      set({ statusMessage: "No valid EVOLVEpro variants loaded" });
+      return;
+    }
 
     set({
       isDesigning: true,
+      backendDesignStateSynced: false,
       progress: 0,
       statusMessage: "Designing primers...",
       designResults: [],
       plateMappings: [],
       customCandidates: {},
+      alternativesCache: {},
       manuallySwapped: {},
       rescueStats: EMPTY_RESCUE_STATS,
       rescuedMutationDetails: [],
@@ -244,31 +260,27 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         maxPrimers,
         intendedMuts: prepared.intendedMuts,
       });
+      const plateState = rebuildPlateStateFromResults({
+        designResults: processed.capped,
+        wellName,
+      });
 
       set({
+        backendDesignStateSynced: true,
         designResults: processed.capped,
         successCount: processed.capped.length,
-        totalCount: maxPrimers,
+        totalCount: prepared.intendedMuts.size,
         failedMutations: processed.intendedFailed,
         rescueStats: processed.rescueStats,
         rescuedMutationDetails: processed.rescuedMutationDetails,
         rescuedMutations: processed.rescuedMutations,
+        plateMappings: plateState.plateMappings,
+        dedupInfo: plateState.dedupInfo,
         statusMessage: processed.statusMessage,
       });
 
       if (fillOnFailure && isEvolveMode && get().evolveproCsvPath) {
         await get().loadEvolveproCsv(get().evolveproCsvPath!);
-      }
-
-      try {
-        const plateResult = await sendRequest<PlateMapResult>("get_plate_map");
-        const finalMappings = filterPlateMappingsForResults(plateResult, processed.capped);
-        set({
-          plateMappings: finalMappings,
-          dedupInfo: plateResult.dedup_info,
-        });
-      } catch (plateErr) {
-        console.warn("[plate map]", formatError(plateErr));
       }
     } catch (err) {
       if (formatError(err).includes("Sidecar killed")) return;
@@ -287,7 +299,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
 
   cancelDesign: async () => {
     try {
-      await cancelAndRespawn();
+      await sendRequest("cancel_design");
       set({
         isDesigning: false,
         progress: 0,
@@ -303,14 +315,33 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
   },
 
   getAlternatives: async (mutation: string) => {
+    if (!get().backendDesignStateSynced) {
+      const message = "Re-design the current workspace to load backend alternatives.";
+      set({ statusMessage: message });
+      throw new Error(message);
+    }
+    const cached = get().alternativesCache[mutation];
+    if (cached) {
+      return cached;
+    }
     const result = await sendRequest<{ candidates: SdmPrimerResult[] }>(
       "get_alternatives",
       { mutation },
     );
+    set({
+      alternativesCache: {
+        ...get().alternativesCache,
+        [mutation]: result.candidates,
+      },
+    });
     return result.candidates;
   },
 
   swapPrimer: async (mutation: string, candidateIdx: number, swapType: "both" | "fwd" | "rev" = "both") => {
+    if (!get().backendDesignStateSynced) {
+      set({ statusMessage: "Re-design the current workspace before swapping primers." });
+      return;
+    }
     const updated = await sendRequest<SdmPrimerResult>(
       "swap_primer",
       { mutation, candidate_idx: candidateIdx, swap_type: swapType },
@@ -323,29 +354,57 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
     if (candidateIdx === 0) {
       delete newSwapped[mutation];
     } else {
-      newSwapped[mutation] = swapType === "both" ? "both" : (
-        manuallySwapped[mutation] === "both" ? "both" :
-        manuallySwapped[mutation] && manuallySwapped[mutation] !== swapType ? "both" : swapType
-      );
+      newSwapped[mutation] = swapType === "both"
+        ? "both"
+        : (
+            manuallySwapped[mutation] === "both"
+            ? "both"
+            : manuallySwapped[mutation] && manuallySwapped[mutation] !== swapType
+              ? "both"
+              : swapType
+          );
     }
 
+    const nextDesignResults = designResults.map((r) => {
+      if (r.mutation === mutation) return updated;
+      if (revChanged && r.aa_position === targetPos) {
+        return {
+          ...r,
+          reverse_seq: updated.reverse_seq,
+          rev_len: updated.rev_len,
+          tm_no_rev: updated.tm_no_rev,
+          gc_rev: updated.gc_rev,
+        };
+      }
+      return r;
+    });
+    const plateState = rebuildPlateStateFromResults({
+      designResults: nextDesignResults,
+      wellName,
+    });
+
     set({
-      designResults: designResults.map((r) => {
-        if (r.mutation === mutation) return updated;
-        if (revChanged && r.aa_position === targetPos) {
-          return { ...r, reverse_seq: updated.reverse_seq, rev_len: updated.rev_len, tm_no_rev: updated.tm_no_rev, gc_rev: updated.gc_rev };
-        }
-        return r;
-      }),
+      backendDesignStateSynced: true,
+      designResults: nextDesignResults,
+      plateMappings: plateState.plateMappings,
+      dedupInfo: plateState.dedupInfo,
       manuallySwapped: newSwapped,
     });
   },
 
   applyCustomPrimer: (mutation: string, result: SdmPrimerResult) => {
     const { designResults, manuallySwapped } = get();
+    const nextDesignResults = applyCustomPrimerToResults({ mutation, result, designResults });
+    const plateState = rebuildPlateStateFromResults({
+      designResults: nextDesignResults,
+      wellName,
+    });
 
     set({
-      designResults: applyCustomPrimerToResults({ mutation, result, designResults }),
+      backendDesignStateSynced: false,
+      designResults: nextDesignResults,
+      plateMappings: plateState.plateMappings,
+      dedupInfo: plateState.dedupInfo,
       manuallySwapped: { ...manuallySwapped, [mutation]: "both" },
     });
   },
@@ -409,12 +468,25 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
 
   retryFailedMutation: async (mutation: string, params: Record<string, number | string>) => {
     try {
-      const { fastaPath, selectedGene } = get();
+      const { fastaPath, selectedGene, selectedPolymerase, organism } = get();
       const targetStart = selectedGene ? parseInt(selectedGene, 10) : 0;
       const result = await sendRequest<{ candidates: SdmPrimerResult[] }>(
         "retry_failed_mutation",
-        { mutation, fasta_path: fastaPath, target_start: targetStart, ...params },
+        {
+          mutation,
+          fasta_path: fastaPath,
+          target_start: targetStart,
+          polymerase: selectedPolymerase,
+          organism,
+          ...params,
+        },
       );
+      set({
+        alternativesCache: {
+          ...get().alternativesCache,
+          [mutation]: result.candidates,
+        },
+      });
       return result.candidates;
     } catch (err) {
       set({ statusMessage: `Retry failed: ${formatError(err)}` });
@@ -423,7 +495,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
   },
 
   addDesignResult: (mutation: string, result: SdmPrimerResult) => {
-    const { designResults, failedMutations, successCount, rescuedMutations, plateMappings, dedupInfo } = get();
+    const { designResults, failedMutations, successCount, rescuedMutations } = get();
     set(addDesignResultState({
       mutation,
       result,
@@ -431,14 +503,12 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       failedMutations,
       successCount,
       rescuedMutations,
-      plateMappings,
-      dedupInfo,
       wellName,
     }));
   },
 
   removeDesignResult: (mutation: string, reason: string) => {
-    const { designResults, failedMutations, successCount, rescuedMutations, plateMappings, dedupInfo } = get();
+    const { designResults, failedMutations, successCount, rescuedMutations } = get();
     const nextState = removeDesignResultState({
       mutation,
       reason,
@@ -446,8 +516,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       failedMutations,
       successCount,
       rescuedMutations,
-      plateMappings,
-      dedupInfo,
+      wellName,
     });
     if (!nextState) return;
     set(nextState);

@@ -85,6 +85,7 @@ class RetryFailedParams(BaseModel):
     fwd_len_max: Optional[int] = Field(default=None, ge=10, le=100)
     rev_len_min: Optional[int] = Field(default=None, ge=10, le=60)
     rev_len_max: Optional[int] = Field(default=None, ge=10, le=100)
+    tol_max: float = Field(default=3.0, ge=0.5, le=10.0)
     num_return: int = Field(default=10, ge=1, le=960)
 
 
@@ -130,17 +131,26 @@ class ExportExcelParams(BaseModel):
     dedup_info: Optional[Any] = None
 
 
+class OrderResultItem(BaseModel):
+    mutation: str
+    forward_seq: str
+    reverse_seq: str
+
+
 class ExportOrderParams(BaseModel):
     filepath: str
     format: str = "idt"
     scale: str = "25nm"
     purification: str = "STD"
+    results: Optional[list[OrderResultItem]] = None
 
 
 class ExportMappingParams(BaseModel):
     filepath: str
     format: Literal["echo", "janus"] = "echo"
     transfer_vol: Optional[float] = None  # nL for echo, µL for janus; None = format default
+    mappings: Optional[list[PlateMappingItem]] = None
+    dedup_info: Optional[Any] = None
 
 
 class SaveWorkspaceParams(BaseModel):
@@ -211,6 +221,7 @@ class LoadEvolveproParams(BaseModel):
     entropy_weight: float = Field(default=0.0, ge=0.0)
     pool_multiplier: float = Field(default=2.0, ge=1.0, le=10.0)
     distance_mode: Literal["auto", "1d", "3d"] = "auto"
+    structure_accession: Optional[str] = None
     evolvepro_round: int = Field(default=0, ge=0)
     round_size: int = Field(default=96, ge=1, le=960)
 
@@ -233,4 +244,5 @@ class RunBenchmarkParams(BaseModel):
     entropy_weight: float = Field(default=0.3, ge=0.0, le=1.0)
     pool_multiplier: float = Field(default=2.0, ge=1.0, le=10.0)
     distance_mode: Literal["auto", "1d", "3d"] = "auto"
+    structure_accession: Optional[str] = None
     random_seed: Optional[int] = None

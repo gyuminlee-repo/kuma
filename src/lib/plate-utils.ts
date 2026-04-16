@@ -19,13 +19,21 @@ function wellName(idx: number): string {
 export function getSortedMutations(
   results: SdmPrimerResult[],
   sorting: SortingState,
+  options?: {
+    yPredMap?: Record<string, number>;
+    customCandidates?: Record<string, SdmPrimerResult[]>;
+  },
 ): string[] | null {
   if (sorting.length === 0) return null;
   const sort = sorting[0];
+  const yPredMap = options?.yPredMap ?? {};
+  const customCandidates = options?.customCandidates ?? {};
 
   type R = SdmPrimerResult;
+  const originalOrder = new Map(results.map((result, index) => [result.mutation, index]));
   const numericKeys: Record<string, (r: R) => number> = {
     mutation: (r) => r.aa_position ?? 0,
+    y_pred: (r) => yPredMap[r.mutation] ?? -Infinity,
     fwd_len: (r) => r.fwd_len,
     rev_len: (r) => r.rev_len,
     tm_no_fwd: (r) => r.tm_no_fwd,
@@ -37,13 +45,34 @@ export function getSortedMutations(
     gc_rev: (r) => r.gc_rev,
     has_offtarget: (r) => r.has_offtarget ? 1 : 0,
     hairpin: (r) => Math.max(r.hairpin_tm_fwd ?? 0, r.hairpin_tm_rev ?? 0, r.homodimer_tm_fwd ?? 0, r.homodimer_tm_rev ?? 0),
-    candidate_count: (r) => r.candidate_count ?? 0,
+    candidate_count: (r) => {
+      const customLen = (customCandidates[r.mutation] ?? []).length;
+      return Math.max(
+        (r.candidate_fwd_count ?? 0) + customLen,
+        (r.candidate_rev_count ?? 0) + customLen,
+      );
+    },
+    synth: (r) => Math.min(r.synthesis_score_fwd ?? 100, r.synthesis_score_rev ?? 100),
+  };
+  const stringKeys: Record<string, (r: R) => string> = {
+    wt_codon: (r) => r.wt_codon ?? "",
+    mt_codon: (r) => r.mt_codon ?? "",
   };
 
   const getter = numericKeys[sort.id];
-  if (!getter) return null;
+  const stringGetter = stringKeys[sort.id];
+  if (!getter && !stringGetter) return null;
 
-  const sorted = [...results].sort((a, b) => getter(a) - getter(b));
+  const sorted = [...results].sort((a, b) => {
+    if (getter) {
+      const diff = getter(a) - getter(b);
+      if (diff !== 0) return diff;
+    } else if (stringGetter) {
+      const diff = stringGetter(a).localeCompare(stringGetter(b));
+      if (diff !== 0) return diff;
+    }
+    return (originalOrder.get(a.mutation) ?? 0) - (originalOrder.get(b.mutation) ?? 0);
+  });
   if (sort.desc) sorted.reverse();
   return sorted.map((r) => r.mutation);
 }
@@ -62,20 +91,28 @@ export function reorderMappings(
 ): PlateMapping[] {
   if (!sortedMutations || sortedMutations.length === 0) return mappings;
 
-  const fwdAll = mappings.filter((m) => m.primer_type === "forward");
-  const revAll = mappings.filter((m) => m.primer_type === "reverse");
+  const fwdAll: PlateMapping[] = [];
+  const revAll: PlateMapping[] = [];
+  for (const mapping of mappings) {
+    if (mapping.primer_type === "forward") {
+      fwdAll.push(mapping);
+    } else {
+      revAll.push(mapping);
+    }
+  }
 
   // Reorder fwd by sorted mutations
   const fwdByMut = new Map<string, PlateMapping>();
   for (const m of fwdAll) fwdByMut.set(m.mutation, m);
   const allFwd: PlateMapping[] = [];
+  const sortedMutationSet = new Set(sortedMutations);
   for (const mut of sortedMutations) {
     const m = fwdByMut.get(mut);
     if (m) allFwd.push(m);
   }
   // Include any fwd not in sortedMutations (e.g. custom additions)
   for (const m of fwdAll) {
-    if (!sortedMutations.includes(m.mutation)) allFwd.push(m);
+    if (!sortedMutationSet.has(m.mutation)) allFwd.push(m);
   }
 
   // Rev lookup: sequence → PlateMapping, mutation → rev sequence

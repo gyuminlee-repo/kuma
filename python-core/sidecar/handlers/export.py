@@ -109,17 +109,34 @@ def handle_export_order(params: dict) -> dict:
         p.filepath, allowed_extensions=_ALLOWED_ORDER_CSV_EXTENSIONS
     )
 
-    with _core._state_lock:
-        if not _core._state.results:
-            raise ValueError("No design available. Run design_sdm_primers first.")
-        results = _core._state.results
-
-    if fmt == "idt":
-        export_idt_csv(results, resolved, scale=p.scale, purification=p.purification)
+    if p.results:
+        rows = p.results
+        with open(resolved, "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            if fmt == "idt":
+                writer.writerow(["Name", "Sequence", "Scale", "Purification"])
+                for r in rows:
+                    writer.writerow([f"{r.mutation}_F", r.forward_seq, p.scale, p.purification])
+                    writer.writerow([f"{r.mutation}_R", r.reverse_seq, p.scale, p.purification])
+            else:
+                writer.writerow(["Name", "Sequence", "Notes"])
+                for r in rows:
+                    writer.writerow([f"{r.mutation}_F", r.forward_seq, r.mutation])
+                    writer.writerow([f"{r.mutation}_R", r.reverse_seq, r.mutation])
+        primer_count = len(rows) * 2
     else:
-        export_twist_csv(results, resolved)
+        with _core._state_lock:
+            if not _core._state.results:
+                raise ValueError("No design available. Run design_sdm_primers first.")
+            results = _core._state.results
 
-    return {"success": True, "filepath": str(resolved), "format": fmt, "primer_count": len(results) * 2}
+        if fmt == "idt":
+            export_idt_csv(results, resolved, scale=p.scale, purification=p.purification)
+        else:
+            export_twist_csv(results, resolved)
+        primer_count = len(results) * 2
+
+    return {"success": True, "filepath": str(resolved), "format": fmt, "primer_count": primer_count}
 
 
 def handle_export_mapping(params: dict) -> dict:
@@ -133,16 +150,26 @@ def handle_export_mapping(params: dict) -> dict:
     p = ExportMappingParams(**params)
     resolved = _validate_output_path(p.filepath, allowed_extensions=_ALLOWED_MAPPING_EXTENSIONS)
 
-    with _core._state_lock:
-        if not _core._state.results:
-            raise ValueError("No design available. Run design_sdm_primers first.")
-        results = _core._state.results
-        rev_groups = _core._state.dedup_info or {}
+    if p.mappings:
+        valid_keys = {f.name for f in dc_fields(PlateMapping)}
+        mappings = [
+            PlateMapping(**{k: v for k, v in m.model_dump().items() if k in valid_keys})
+            for m in p.mappings
+        ]
+        fwd_mappings = [m for m in mappings if m.primer_type == "forward"]
+        rev_mappings = [m for m in mappings if m.primer_type == "reverse"]
+        rev_groups = p.dedup_info or {}
+    else:
+        with _core._state_lock:
+            if not _core._state.results:
+                raise ValueError("No design available. Run design_sdm_primers first.")
+            results = _core._state.results
+            rev_groups = _core._state.dedup_info or {}
 
-    fwd_mappings, rev_mappings = generate_plate_map(
-        results,
-        deduplicate_rev=True,
-    )
+        fwd_mappings, rev_mappings = generate_plate_map(
+            results,
+            deduplicate_rev=True,
+        )
 
     use_xlsx = resolved.suffix.lower() == ".xlsx"
 

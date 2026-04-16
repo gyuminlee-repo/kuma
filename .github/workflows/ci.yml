@@ -44,6 +44,52 @@ jobs:
 
       - run: npx tsc --noEmit
 
+  ui-smoke:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm run build
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - run: pnpm run smoke:ui
+
+  sidecar-package-check:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libgtk-3-dev libsoup-3.0-dev libjavascriptcoregtk-4.1-dev
+
+      - name: Install sidecar build dependencies
+        run: pip install -e '.[build]'
+
+      - name: Build sidecar bundle
+        run: python python-core/build_sidecar.py --onefile
+
+      - name: Verify sidecar binary
+        run: test -f src-tauri/binaries/kuro-sidecar-x86_64-unknown-linux-gnu
+
   rust-check:
     runs-on: ubuntu-22.04
 
@@ -79,6 +125,7 @@ jobs:
               ["package.json", JSON.parse(fs.readFileSync("package.json","utf8")).version],
               ["src-tauri/tauri.conf.json", JSON.parse(fs.readFileSync("src-tauri/tauri.conf.json","utf8")).version],
               ["src-tauri/Cargo.toml", fs.readFileSync("src-tauri/Cargo.toml","utf8").match(/^version\s*=\s*"(.+?)"/m)?.[1]],
+              ["pyproject.toml", fs.readFileSync("pyproject.toml","utf8").match(/^version\s*=\s*"(.+?)"/m)?.[1]],
             ];
             let fail = false;
             for (const [file, ver] of checks) {

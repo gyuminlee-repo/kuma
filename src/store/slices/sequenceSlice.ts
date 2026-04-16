@@ -42,7 +42,18 @@ export const createSequenceSlice: StateCreator<AppState, [], [], SequenceSlice> 
         fastaPath: filepath,
         seqInfo: info,
         selectedGene: selectedKey,
+        domains: [],
+        disabledDomains: [],
+        domainStats: {},
+        domainLoading: false,
+        poolVariants: [],
+        benchmarkResults: null,
+        showBenchmark: false,
         uniprotCandidates: [],
+        uniprotAccession: "",
+        structureAccession: "",
+        structureLoaded: false,
+        structureLoading: false,
         statusMessage: `Loaded: ${info.header} (${info.seq_length} bp) | ${info.genes.length} gene(s) | Target: ${bestGene?.gene ?? "none"}`,
       });
 
@@ -61,7 +72,21 @@ export const createSequenceSlice: StateCreator<AppState, [], [], SequenceSlice> 
   },
 
   setSelectedGene: (gene: string) => {
-    set({ selectedGene: gene, uniprotCandidates: [] });
+    set({
+      selectedGene: gene,
+      domains: [],
+      disabledDomains: [],
+      domainStats: {},
+      domainLoading: false,
+      poolVariants: [],
+      benchmarkResults: null,
+      showBenchmark: false,
+      uniprotCandidates: [],
+      uniprotAccession: "",
+      structureAccession: "",
+      structureLoaded: false,
+      structureLoading: false,
+    });
     const { seqInfo, organism } = get();
     const g = seqInfo?.genes.find((g) => String(g.cds_start) === gene);
     if (g && (g.uniprot_accession || g.translation)) {

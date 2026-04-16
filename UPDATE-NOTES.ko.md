@@ -1,6 +1,45 @@
-# KURO 업데이트 노트 — v0.9.5 → v1.32.0
+# KURO 업데이트 노트 — v0.9.5 → v1.33.0
 
 **한국어** | [English](UPDATE-NOTES.md)
+
+---
+
+## v1.33.0 (2026-04-16)
+
+### CI 강화
+
+- **`verify-ci` 게이트**: 릴리스 빌드가 태그 커밋의 CI 워크플로 성공을 확인한 뒤에만 실행됨. CI 실패 상태에서 릴리스 아티팩트가 생성되는 상황 방지
+- **`ui-smoke` 잡**: Playwright 헤드리스 브라우저 테스트 CI 추가. Vite 프론트엔드를 빌드한 뒤 Chromium으로 `pnpm run smoke:ui` 실행
+- **`sidecar-package-check` 잡**: Ubuntu CI에서 PyInstaller 사이드카를 빌드하고 출력 바이너리 존재 여부 검증 — 릴리스 전 패키징 회귀 탐지
+- **`pyproject.toml` 버전 동기화 체크 포함**: CI가 `package.json`, `tauri.conf.json`, `Cargo.toml`과 함께 `pyproject.toml` 버전도 일치 여부를 검사
+- CI에서 개별 패키지 명시 `pip install primer3-py==...` → `pip install -e '.[build]'`로 교체 (로컬 개발 환경과 일치)
+
+### 보안
+
+- **SSL 인증서 우회 제거** (`kuro/alphafold.py`): `CERT_NONE` / `check_hostname=False`를 설정하던 `_ssl_ctx()` 헬퍼 삭제. AlphaFold API 및 PDB 다운로드 요청이 이제 시스템 기본 SSL 컨텍스트 사용
+
+### EVOLVEpro — 도메인 쿼터 오버플로 수정
+
+- `kuro/evolvepro.py`의 `domain_aware_select()`에 쿼터 합이 `top_n` 초과 시 자동 감소 로직 추가. 이전에는 `domain_quota_min` 강제 적용 시 합계가 요청 수를 넘길 수 있었음. 초과분은 쿼터 과잉 도메인에서 우선 차감 (proportional/equal 전략 인식, 동점 시 원래 쿼터 순서 기준)
+
+### 사이드카 — 동시 설계 안전성
+
+- **작업별 취소 이벤트**: 모듈 전역 `_cancel_event`를 `_begin_design_job()`이 할당하는 작업별 `threading.Event`로 교체. `cancel_design` RPC가 이제 `{"cancelled": true, "active_design": bool}`을 반환해 실제 활성 작업이 취소됐는지 표시. 이후 요청을 잘못 취소하는 현상 방지
+- **`design_sdm_primers` `_ASYNC_METHODS` 이동**: 설계가 백그라운드 스레드에서 실행되어 긴 primer 탐색 중에도 JSON-RPC 루프 응답성 유지
+- **레이스 없는 상태 초기화**: 이전 설계 상태는 새 설계 잡 슬롯이 예약된 이후에만 초기화. 취소된 잡이 여전히 실행 중인 동안 상태가 0으로 초기화되는 윈도우 제거
+- **연락처 이메일 설정**: `KURO_CONTACT_EMAIL` 환경변수 또는 `~/.kuro/config.json`의 `contact_email` 키로 크래시 리포트 등에 사용할 이메일 지정 가능. 미설정 시 `None` 폴백
+- **`ca_coords_accession` 추적**: `SidecarState`에 캐시된 Cα 좌표의 accession 저장 → stale 구조 데이터를 재요청 없이 감지 가능
+
+### 프론트엔드
+
+- **IPC stdout 버퍼링** (`src/lib/ipc.ts`): `line.split("\n")` 대신 `drainChunkLines` / `flushBufferedLine` 헬퍼 도입. 사이드카가 여러 stdout 청크에 걸쳐 내보내는 부분 JSON-RPC 라인 처리. 대용량 progress 페이로드 시 간헐적 JSON 파싱 오류 수정
+- **SequenceViewer 메모이제이션**: `DomainLayer`, `ScaleLayer`, `DensityLayer`를 `React.memo` 서브 컴포넌트로 분리. 줌/패닝 시 불필요한 리렌더 비용 감소
+- **diversitySlice 생성 카운터**: `domainFetchGeneration`, `uniprotSearchGeneration`, `structureFetchGeneration` 요청별 카운터로 stale 도메인/UniProt/구조 응답이 최신 상태를 덮어쓰지 않도록 방지. `structureAccession` 필드 추가
+
+### 개발자
+
+- **버전 정규화**: `1.32.03` → `1.32.3` (`package.json`, `tauri.conf.json`, `Cargo.toml`, `pyproject.toml` 전체 적용, 패치 세그먼트 선행 0 제거)
+- `pyproject.toml` `kuro` 라이브러리 버전이 앱 버전을 따르도록 변경 (기존: `0.9.28`)
 
 ---
 

@@ -1,6 +1,45 @@
-# KURO Update Notes — v0.9.5 → v1.32.0
+# KURO Update Notes — v0.9.5 → v1.33.0
 
 [한국어](UPDATE-NOTES.ko.md) | **English**
+
+---
+
+## v1.33.0 (2026-04-16)
+
+### CI hardening
+
+- **`verify-ci` gate**: Release build jobs now block until the CI workflow succeeds on the tagged commit. Prevents release artifacts from building off a red CI run
+- **`ui-smoke` job**: Playwright headless browser test added to CI. Builds the Vite frontend and runs `pnpm run smoke:ui` against Chromium
+- **`sidecar-package-check` job**: Builds the PyInstaller sidecar on CI (Ubuntu) and verifies the output binary exists — catches packaging regressions before release
+- **`pyproject.toml` added to version-sync check**: CI now validates that `pyproject.toml` version matches `package.json`, `tauri.conf.json`, and `Cargo.toml`
+- Replaced explicit `pip install primer3-py==... biopython==...` with `pip install -e '.[build]'` in CI for consistency with local dev setup
+
+### Security
+
+- **Removed SSL certificate bypass** in `kuro/alphafold.py`: The `_ssl_ctx()` helper that set `CERT_NONE` / disabled `check_hostname` has been removed. AlphaFold API and PDB download calls now use the system default SSL context
+
+### EVOLVEpro — domain quota overflow fix
+
+- `domain_aware_select()` in `kuro/evolvepro.py` now reduces excess quotas when the sum exceeds `top_n`. Previously, `domain_quota_min` enforcement could push the total above the requested count. Excess is trimmed from the most-over-quota domain first (proportional/equal strategy aware), breaking ties by original quota order
+
+### Sidecar — concurrent design safety
+
+- **Per-job cancel events**: Replaced the module-level `_cancel_event` with a per-job `threading.Event` allocated by `_begin_design_job()`. `cancel_design` RPC now returns `{"cancelled": true, "active_design": bool}` indicating whether an active job was actually cancelled. Prevents one request from cancelling an unrelated later job
+- **`design_sdm_primers` moved to `_ASYNC_METHODS`**: Design now runs in a background thread, keeping the JSON-RPC loop responsive during long primer searches
+- **Race-free state clearing**: Previous design state is cleared only after the new design job slot is reserved, avoiding a window where state could be zeroed while a cancelled job still ran
+- **Contact email config**: `KURO_CONTACT_EMAIL` environment variable (or `contact_email` key in `~/.kuro/config.json`) controls the email used in crash reports and external API calls. Falls back to `None` if unset
+- **`ca_coords_accession` tracking**: `SidecarState` now stores the accession for cached Cα coordinates so stale structure data can be detected without re-fetching
+
+### Frontend
+
+- **IPC stdout buffering** (`src/lib/ipc.ts`): Replaced `line.split("\n")` with `drainChunkLines` / `flushBufferedLine` helpers that handle partial JSON-RPC lines emitted by the sidecar across multiple stdout chunks. Fixes rare JSON parse errors on large progress payloads
+- **SequenceViewer memoization**: `DomainLayer`, `ScaleLayer`, `DensityLayer` extracted as `React.memo` sub-components, reducing re-render cost on zoom or pan
+- **diversitySlice generation counters**: `domainFetchGeneration`, `uniprotSearchGeneration`, `structureFetchGeneration` per-request counters prevent stale domain/UniProt/structure responses from overwriting newer state; `structureAccession` field tracks the accession of the loaded structure
+
+### Developer
+
+- **Version normalization**: `1.32.03` → `1.32.3` across `package.json`, `tauri.conf.json`, `Cargo.toml`, and `pyproject.toml` (removed leading zeros in patch segment)
+- `pyproject.toml` `kuro` library version now tracks the app version (was `0.9.28`)
 
 ---
 

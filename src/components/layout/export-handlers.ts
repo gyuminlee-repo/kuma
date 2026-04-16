@@ -1,6 +1,24 @@
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { sendRequest } from "../../lib/ipc";
 import { useAppStore } from "../../store/appStore";
+import { getSortedMutations, reorderMappings } from "../../lib/plate-utils";
+
+function getCurrentExportState() {
+  const state = useAppStore.getState();
+  const sortedMuts = getSortedMutations(state.designResults, state.tableSorting, {
+    yPredMap: state.yPredMap,
+    customCandidates: state.customCandidates,
+  });
+  return {
+    results: state.designResults.map((r) => ({
+      mutation: r.mutation,
+      forward_seq: r.forward_seq,
+      reverse_seq: r.reverse_seq,
+    })),
+    orderedMappings: reorderMappings(state.plateMappings, state.dedupInfo, sortedMuts),
+    dedupInfo: state.dedupInfo,
+  };
+}
 
 export async function handleExportExcel() {
   const path = await save({
@@ -16,7 +34,8 @@ export async function handleExportIdtOrder() {
   });
   if (path) {
     try {
-      await sendRequest("export_order", { filepath: path, format: "idt" });
+      const { results } = getCurrentExportState();
+      await sendRequest("export_order", { filepath: path, format: "idt", results });
       useAppStore.getState().setStatus(`IDT order exported: ${path}`);
     } catch (err) {
       useAppStore.getState().setStatus(`IDT export failed: ${err instanceof Error ? err.message : String(err)}`);
@@ -31,7 +50,8 @@ export async function handleExportTwistOrder() {
   });
   if (path) {
     try {
-      await sendRequest("export_order", { filepath: path, format: "twist" });
+      const { results } = getCurrentExportState();
+      await sendRequest("export_order", { filepath: path, format: "twist", results });
       useAppStore.getState().setStatus(`Twist order exported: ${path}`);
     } catch (err) {
       useAppStore.getState().setStatus(`Twist export failed: ${err instanceof Error ? err.message : String(err)}`);
@@ -46,7 +66,13 @@ export async function handleExportEchoMapping() {
   });
   if (path) {
     try {
-      await sendRequest("export_mapping", { filepath: path, format: "echo" });
+      const { orderedMappings, dedupInfo } = getCurrentExportState();
+      await sendRequest("export_mapping", {
+        filepath: path,
+        format: "echo",
+        mappings: orderedMappings,
+        dedup_info: dedupInfo,
+      });
       useAppStore.getState().setStatus(`Echo mapping exported: ${path}`);
     } catch (err) {
       useAppStore.getState().setStatus(`Echo mapping export failed: ${err instanceof Error ? err.message : String(err)}`);
@@ -61,7 +87,13 @@ export async function handleExportJanusMapping() {
   });
   if (path) {
     try {
-      await sendRequest("export_mapping", { filepath: path, format: "janus" });
+      const { orderedMappings, dedupInfo } = getCurrentExportState();
+      await sendRequest("export_mapping", {
+        filepath: path,
+        format: "janus",
+        mappings: orderedMappings,
+        dedup_info: dedupInfo,
+      });
       useAppStore.getState().setStatus(`JANUS mapping exported: ${path}`);
     } catch (err) {
       useAppStore.getState().setStatus(`JANUS mapping export failed: ${err instanceof Error ? err.message : String(err)}`);
@@ -72,7 +104,8 @@ export async function handleExportJanusMapping() {
 export async function handleSaveWorkspace() {
   try {
     const path = await save({
-      filters: [{ name: "KURO Workspace", extensions: ["kuro.json"] }],
+      filters: [{ name: "KURO Workspace", extensions: ["json"] }],
+      defaultPath: "workspace.kuro.json",
     });
     if (!path) return;
     const workspace = useAppStore.getState().getWorkspaceSnapshot();
@@ -86,7 +119,7 @@ export async function handleSaveWorkspace() {
 export async function handleLoadWorkspace() {
   try {
     const path = await open({
-      filters: [{ name: "KURO Workspace", extensions: ["kuro.json", "json"] }],
+      filters: [{ name: "KURO Workspace", extensions: ["json"] }],
       multiple: false,
     });
     if (!path) return;

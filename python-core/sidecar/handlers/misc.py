@@ -68,7 +68,10 @@ def handle_load_evolvepro_csv(params: dict) -> dict:
     resolved = _validate_filepath(p.filepath, allowed_extensions=_ALLOWED_CSV_EXTENSIONS)
 
     with _core._state_lock:
-        ca_coords = _core._state.ca_coords
+        if p.structure_accession and _core._state.ca_coords_accession == p.structure_accession:
+            ca_coords = _core._state.ca_coords
+        else:
+            ca_coords = None
 
     return load_evolvepro_csv(
         filepath=str(resolved),
@@ -103,7 +106,10 @@ def handle_run_benchmark(params: dict) -> dict:
     landscape = [(v.variant, v.fitness) for v in p.landscape]
 
     with _core._state_lock:
-        ca_coords = _core._state.ca_coords
+        if p.structure_accession and _core._state.ca_coords_accession == p.structure_accession:
+            ca_coords = _core._state.ca_coords
+        else:
+            ca_coords = None
 
     bench_results = run_benchmark(
         landscape,

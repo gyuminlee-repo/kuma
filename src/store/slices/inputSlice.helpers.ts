@@ -24,6 +24,7 @@ export interface EvolveproLoadConfig {
   entropyWeight: number;
   paretoPoolMultiplier: number;
   distanceMode: "auto" | "1d" | "3d";
+  structureAccession: string;
   evolveproRound: number;
   roundSize: number;
 }
@@ -60,6 +61,7 @@ export function buildEvolveproLoadParams(config: EvolveproLoadConfig): Record<st
     entropyWeight,
     paretoPoolMultiplier,
     distanceMode,
+    structureAccession,
     evolveproRound,
     roundSize,
   } = config;
@@ -83,6 +85,9 @@ export function buildEvolveproLoadParams(config: EvolveproLoadConfig): Record<st
     ...(usePipeline && paretoDiversityEnabled && entropyWeightEnabled && { entropy_weight: entropyWeight }),
     ...(usePipeline && paretoDiversityEnabled && { pool_multiplier: paretoPoolMultiplier }),
     ...(usePipeline && paretoDiversityEnabled && { distance_mode: distanceMode }),
+    ...(usePipeline && paretoDiversityEnabled && structureAccession && {
+      structure_accession: structureAccession,
+    }),
     ...(usePipeline && paretoDiversityEnabled && evolveproRound > 0 && {
       evolvepro_round: evolveproRound,
       round_size: roundSize,

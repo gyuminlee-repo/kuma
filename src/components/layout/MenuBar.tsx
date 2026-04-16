@@ -30,7 +30,7 @@ import {
 const MOD_KEY = navigator.userAgent.includes("Mac") ? "\u2318" : "Ctrl+";
 
 export function MenuBar() {
-  const designResults = useAppStore((s) => s.designResults);
+  const hasDesignResults = useAppStore((s) => s.designResults.length > 0);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [crashCopied, setCrashCopied] = useState(false);
 
@@ -79,7 +79,7 @@ export function MenuBar() {
             <DropdownMenuItem className="h-px bg-gray-200 my-1 p-0" disabled />
             <DropdownMenuItem
               onClick={handleExportExcel}
-              disabled={designResults.length === 0}
+              disabled={!hasDesignResults}
             >
               <span className="flex-1">Export Excel...</span>
               <kbd className="ml-4 text-[10px] text-gray-400">{MOD_KEY}E</kbd>
@@ -87,26 +87,26 @@ export function MenuBar() {
             <DropdownMenuItem className="h-px bg-gray-200 my-1 p-0" disabled />
             <DropdownMenuItem
               onClick={handleExportIdtOrder}
-              disabled={designResults.length === 0}
+              disabled={!hasDesignResults}
             >
               Export IDT Order...
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={handleExportTwistOrder}
-              disabled={designResults.length === 0}
+              disabled={!hasDesignResults}
             >
               Export Twist Order...
             </DropdownMenuItem>
             <DropdownMenuItem className="h-px bg-gray-200 my-1 p-0" disabled />
             <DropdownMenuItem
               onClick={handleExportEchoMapping}
-              disabled={designResults.length === 0}
+              disabled={!hasDesignResults}
             >
               Export Echo Mapping...
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={handleExportJanusMapping}
-              disabled={designResults.length === 0}
+              disabled={!hasDesignResults}
             >
               Export JANUS Mapping...
             </DropdownMenuItem>

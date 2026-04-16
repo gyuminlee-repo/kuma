@@ -543,6 +543,27 @@ def domain_aware_select(
         for name in quota_names:
             if domain_bins.get(name):
                 quotas[name] = max(quotas.get(name, 0), domain_quota_min)
+        overflow = sum(quotas.get(name, 0) for name in quota_names) - top_n
+        if overflow > 0:
+            raw_lookup = raw_quotas if strategy == "proportional" else {
+                name: float(quotas.get(name, 0)) for name in quota_names
+            }
+            order = {name: idx for idx, name in enumerate(quota_names)}
+            while overflow > 0:
+                reducible = [name for name in quota_names if quotas.get(name, 0) > 0]
+                if not reducible:
+                    break
+                name = max(
+                    reducible,
+                    key=lambda n: (
+                        quotas[n] - raw_lookup.get(n, 0.0),
+                        quotas[n],
+                        -raw_lookup.get(n, 0.0),
+                        order[n],
+                    ),
+                )
+                quotas[name] -= 1
+                overflow -= 1
 
     # Select within each domain by y_pred order (rows already sorted)
     selected: list[tuple[str, float]] = []

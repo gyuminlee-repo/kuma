@@ -10,6 +10,8 @@ import io
 import json
 import sys
 import tempfile
+import threading
+import time
 from pathlib import Path
 
 import pytest
@@ -21,8 +23,9 @@ if str(_SIDECAR_DIR) not in sys.path:
     sys.path.insert(0, str(_SIDECAR_DIR))
 
 from sidecar.dispatcher import dispatch  # noqa: E402
-from sidecar.core import _state, _cancel_event, SidecarState  # noqa: E402
+from sidecar.core import _state, SidecarState  # noqa: E402
 from sidecar.handlers.external import _sequence_identity  # noqa: E402
+import sidecar.handlers.design as _design_handlers  # noqa: E402
 import sidecar.core as _sidecar_core  # noqa: E402
 
 FIXTURES_DIR = _PROJECT_ROOT / "fixtures"
@@ -73,7 +76,6 @@ def _rpc(method: str, params: dict | None = None, req_id: int = 1) -> dict:
 def _reset_state():
     """Reset sidecar state before each test."""
     _sidecar_core._state = SidecarState()
-    _sidecar_core._cancel_event.clear()
     yield
 
 
@@ -244,6 +246,28 @@ class TestGetPlateMap:
         resp = _rpc("get_plate_map")
         assert "error" in resp
 
+    def test_plate_map_updates_after_swap(self, designed_primers):
+        mutation = designed_primers["results"][0]["mutation"]
+        candidates_resp = _rpc("get_alternatives", {"mutation": mutation})
+        candidates = candidates_resp["result"]["candidates"]
+        if len(candidates) < 2:
+            pytest.skip("Need at least two candidates to verify swap state sync")
+
+        swapped = _rpc(
+            "swap_primer",
+            {"mutation": mutation, "candidate_idx": 1, "swap_type": "both"},
+        )["result"]
+        plate = _rpc("get_plate_map")["result"]
+
+        forward_mapping = next(
+            m
+            for m in plate["mappings"]
+            if m["primer_type"] == "forward" and m["mutation"] == mutation
+        )
+        assert forward_mapping["sequence"] == swapped["forward_seq"]
+        assert swapped["reverse_seq"] in plate["dedup_info"]
+        assert mutation in plate["dedup_info"][swapped["reverse_seq"]]
+
 
 # ── 6. get_alternatives ──────────────────────────────────────────────────
 
@@ -339,12 +363,61 @@ class TestWorkspaceRoundTrip:
 # ── 9. cancel_design ─────────────────────────────────────────────────────
 
 class TestCancelDesign:
-    def test_cancel_sets_event(self):
-        assert not _sidecar_core._cancel_event.is_set()
+    def test_cancel_reports_idle_state(self):
         resp = _rpc("cancel_design")
         assert "result" in resp
         assert resp["result"]["cancelled"] is True
-        assert _sidecar_core._cancel_event.is_set()
+        assert resp["result"]["active_design"] is False
+
+    def test_cancel_reaches_active_design(self, monkeypatch):
+        started = threading.Event()
+
+        def slow_design(*args, cancel_check=None, **kwargs):
+            started.set()
+            for _ in range(200):
+                if cancel_check and cancel_check():
+                    return [], {}, {}
+                time.sleep(0.01)
+            return [], {}, {}
+
+        monkeypatch.setattr(_design_handlers, "design_sdm_primers", slow_design)
+
+        buf = io.StringIO()
+        old_stdout = sys.stdout
+        sys.stdout = buf
+        try:
+            dispatch({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "design_sdm_primers",
+                "params": {
+                    "fasta_path": FASTA_PATH,
+                    "target_start": TARGET_START,
+                    "mutations_csv_or_text": "Q232A",
+                    "polymerase": "Q5",
+                    "overlap_len": 18,
+                },
+            })
+            assert started.wait(2.0)
+
+            dispatch({"jsonrpc": "2.0", "id": 2, "method": "cancel_design", "params": {}})
+
+            deadline = time.monotonic() + 5.0
+            while time.monotonic() < deadline:
+                lines = [ln for ln in buf.getvalue().splitlines() if ln.strip()]
+                if any('"id": 1' in ln for ln in lines) and any('"id": 2' in ln for ln in lines):
+                    break
+                time.sleep(0.05)
+        finally:
+            sys.stdout = old_stdout
+
+        responses = [json.loads(line) for line in buf.getvalue().splitlines() if line.strip()]
+        cancel_resp = next(item for item in responses if item.get("id") == 2)
+        design_resp = next(item for item in responses if item.get("id") == 1 and "result" in item)
+
+        assert cancel_resp["result"]["cancelled"] is True
+        assert cancel_resp["result"]["active_design"] is True
+        assert design_resp["result"]["cancelled"] is True
 
 
 # ── 10. GeneInfo extended fields ─────────────────────────────────────────
@@ -470,6 +543,32 @@ class TestExportOrder:
         finally:
             Path(tmp_path).unlink(missing_ok=True)
 
+    def test_export_order_accepts_frontend_results_payload(self, designed_primers):
+        with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as f:
+            tmp_path = f.name
+        try:
+            _sidecar_core._state = SidecarState()
+            resp = _rpc(
+                "export_order",
+                {
+                    "filepath": tmp_path,
+                    "format": "idt",
+                    "results": [
+                        {
+                            "mutation": r["mutation"],
+                            "forward_seq": r["forward_seq"],
+                            "reverse_seq": r["reverse_seq"],
+                        }
+                        for r in designed_primers["results"]
+                    ],
+                },
+            )
+            assert "result" in resp, f"export_order with payload failed: {resp}"
+            assert resp["result"]["success"] is True
+            assert resp["result"]["primer_count"] == len(designed_primers["results"]) * 2
+        finally:
+            Path(tmp_path).unlink(missing_ok=True)
+
     def test_invalid_format_returns_error(self, designed_primers):
         resp = _rpc("export_order", {"filepath": "/tmp/test.csv", "format": "invalid_format"})
         assert "error" in resp
@@ -513,3 +612,54 @@ class TestUnknownMethod:
         resp = _rpc("nonexistent_method_xyz")
         assert "error" in resp
         assert resp["error"]["code"] == -32601
+
+
+class TestExportMapping:
+    def test_export_mapping_accepts_frontend_payload(self, designed_primers):
+        with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as f:
+            tmp_path = f.name
+        try:
+            plate_resp = _rpc("get_plate_map")
+            plate = plate_resp["result"]
+            _sidecar_core._state = SidecarState()
+            resp = _rpc(
+                "export_mapping",
+                {
+                    "filepath": tmp_path,
+                    "format": "echo",
+                    "mappings": plate["mappings"],
+                    "dedup_info": plate["dedup_info"],
+                },
+            )
+            assert "result" in resp, f"export_mapping with payload failed: {resp}"
+            assert resp["result"]["success"] is True
+            assert resp["result"]["primer_count"] > 0
+        finally:
+            Path(tmp_path).unlink(missing_ok=True)
+
+
+class TestRetryFailedMutation:
+    def test_retry_accepts_current_design_context_params(self, loaded_fasta):
+        resp = _rpc(
+            "retry_failed_mutation",
+            {
+                "mutation": "Q232A",
+                "fasta_path": FASTA_PATH,
+                "target_start": TARGET_START,
+                "polymerase": "Q5",
+                "organism": "ecoli",
+                "tm_fwd_target": 62.0,
+                "tm_rev_target": 58.0,
+                "tm_overlap_target": 42.0,
+                "gc_min": 40.0,
+                "gc_max": 60.0,
+                "fwd_len_min": 17,
+                "fwd_len_max": 39,
+                "rev_len_min": 19,
+                "rev_len_max": 27,
+                "tol_max": 5.0,
+                "codon_strategy": "closest",
+            },
+        )
+        assert "result" in resp, f"retry_failed_mutation failed: {resp}"
+        assert "candidates" in resp["result"]

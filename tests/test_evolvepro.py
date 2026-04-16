@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from kuro.evolvepro import SCORE_COLUMNS, VARIANT_COLUMNS, load_evolvepro_csv
+from kuro.evolvepro import SCORE_COLUMNS, VARIANT_COLUMNS, domain_aware_select, load_evolvepro_csv
 
 
 class TestLoadEvolveproCsv:
@@ -76,3 +76,28 @@ class TestLoadEvolveproCsv:
         assert any(col in error_msg for col in VARIANT_COLUMNS), (
             f"Expected supported column names in error message, got: {error_msg}"
         )
+
+
+class TestDomainAwareSelect:
+    def test_domain_quota_min_does_not_oversubscribe_top_n(self):
+        rows = [
+            ("A5P", 1.0),
+            ("A15P", 0.9),
+            ("A25P", 0.8),
+        ]
+        domains = [
+            {"name": "D1", "start": 1, "end": 10},
+            {"name": "D2", "start": 11, "end": 20},
+            {"name": "D3", "start": 21, "end": 30},
+        ]
+
+        selected, stats = domain_aware_select(
+            rows,
+            domains,
+            top_n=2,
+            strategy="proportional",
+            domain_quota_min=1,
+        )
+
+        assert len(selected) == 2
+        assert sum(item["quota"] for item in stats.values()) == 2

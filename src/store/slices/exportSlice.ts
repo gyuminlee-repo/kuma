@@ -127,7 +127,10 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
   exportExcel: async (filepath: string) => {
     try {
       const { designResults, plateMappings, dedupInfo, tableSorting } = get();
-      const sortedMuts = getSortedMutations(designResults, tableSorting);
+      const sortedMuts = getSortedMutations(designResults, tableSorting, {
+        yPredMap: get().yPredMap,
+        customCandidates: get().customCandidates,
+      });
       const ordered = reorderMappings(plateMappings, dedupInfo, sortedMuts);
 
       const resultByMut = new Map(designResults.map((r) => [r.mutation, r]));
@@ -238,24 +241,36 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
   restoreWorkspace: async (ws: WorkspaceData) => {
     const normalized = normalizeWorkspace(ws);
     const { inputs, settings, results, ui, cache } = normalized;
+    let loadedSeqInfo: SequenceInfo | null = null;
+    let restoredGene = "";
+
+    if (inputs.fastaPath) {
+      const info = await sendRequest<SequenceInfo>("load_fasta", {
+        filepath: inputs.fastaPath,
+      });
+      loadedSeqInfo = info;
+      if (inputs.selectedGene) {
+        const geneExists = info.genes.some(
+          (g) => String(g.cds_start) === String(inputs.selectedGene),
+        );
+        if (geneExists) {
+          restoredGene = inputs.selectedGene;
+        }
+      }
+    }
+
     const store = get();
     store.resetAll();
     set({
       mutationInputMode: inputs.mutationInputMode ?? "text",
       mutationText: inputs.mutationText ?? "",
       evolveproCsvPath: inputs.evolveproCsvPath ?? "",
+      fastaPath: inputs.fastaPath ?? "",
+      seqInfo: loadedSeqInfo,
+      selectedGene: restoredGene,
+      backendDesignStateSynced: false,
       codonStrategy: settings.codonStrategy ?? "closest",
       maxPrimers: settings.maxPrimers ?? 95,
-    });
-    if (inputs.fastaPath) {
-      const info = await sendRequest<SequenceInfo>("load_fasta", { filepath: inputs.fastaPath });
-      set({ fastaPath: inputs.fastaPath, seqInfo: info });
-      if (inputs.selectedGene) {
-        const geneExists = info?.genes.some((g) => String(g.cds_start) === String(inputs.selectedGene));
-        if (geneExists) set({ selectedGene: inputs.selectedGene });
-      }
-    }
-    set({
       designResults: results.designResults ?? [],
       successCount: results.successCount ?? 0,
       totalCount: results.totalCount ?? 0,
@@ -316,7 +331,9 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       paretoDiversityEnabled: settings.paretoDiversityEnabled ?? true,
       statusMessage: (settings.autoRedesignOnLoad ?? true)
         ? "Workspace loaded. Re-designing to sync backend..."
-        : "Workspace loaded.",
+        : ((results.designResults?.length ?? 0) > 0
+            ? "Workspace loaded. Re-design to enable alternatives and primer swapping."
+            : "Workspace loaded."),
     });
     if ((settings.autoRedesignOnLoad ?? true) && inputs.mutationText && inputs.fastaPath) {
       await get().designPrimers();
@@ -359,12 +376,14 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       benchmarkResults: null,
       autoRedesignOnLoad: true,
       saveCache: true,
+      poolVariants: [],
       parsedMutations: [],
       parseErrors: [],
       selectedGene: "",
       uniprotCandidates: [],
       uniprotSearching: false,
       isDesigning: false,
+      backendDesignStateSynced: false,
       designResults: [],
       successCount: 0,
       totalCount: 0,
@@ -385,7 +404,9 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       fillOnFailure: true,
       manuallySwapped: {},
       customCandidates: {},
+      alternativesCache: {},
       rescuedMutations: [],
+      structureAccession: "",
       structureLoaded: false,
       structureLoading: false,
       evolveproTotalCount: 0,

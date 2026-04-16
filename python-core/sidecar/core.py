@@ -37,8 +37,10 @@ logger = logging.getLogger("sidecar")
 # Global registries (initialised once at import time)
 # ---------------------------------------------------------------------------
 _CUSTOM_POLYMERASE_PATH = Path.home() / ".kuro" / "custom_polymerases.json"
+_CONFIG_PATH = Path.home() / ".kuro" / "config.json"
 _poly_registry = PolymeraseRegistry(custom_path=_CUSTOM_POLYMERASE_PATH)
 _codon_registry = CodonTableRegistry()
+_config_cache: dict | None = None
 
 # ---------------------------------------------------------------------------
 # Crash log
@@ -104,9 +106,26 @@ def _get_ssl_ctx():
 
 
 # ---------------------------------------------------------------------------
-# Cancel event for long-running operations
+# Config
 # ---------------------------------------------------------------------------
-_cancel_event = threading.Event()
+
+
+def _get_config() -> dict:
+    global _config_cache
+    if _config_cache is None:
+        try:
+            _config_cache = json.loads(_CONFIG_PATH.read_text(encoding="utf-8"))
+        except (FileNotFoundError, json.JSONDecodeError, OSError):
+            _config_cache = {}
+    return _config_cache
+
+
+def _get_contact_email() -> str | None:
+    raw = os.environ.get("KURO_CONTACT_EMAIL", "").strip()
+    if raw:
+        return raw
+    config_email = str(_get_config().get("contact_email", "")).strip()
+    return config_email or None
 
 # ---------------------------------------------------------------------------
 # Session state
@@ -123,10 +142,36 @@ class SidecarState:
     dedup_info: dict[str, list[str]] = field(default_factory=dict)
     template: tuple[str, str] = ("", "")  # (fasta_path, sequence)
     ca_coords: list[tuple[float, float, float] | None] | None = None  # AlphaFold Cα coordinates
+    ca_coords_accession: str | None = None
+    active_design_cancel: threading.Event | None = None
 
 
 _state = SidecarState()
 _state_lock = threading.Lock()
+
+
+def _begin_design_job() -> threading.Event:
+    with _state_lock:
+        if _state.active_design_cancel is not None:
+            raise ValueError("A primer design job is already in progress")
+        cancel_event = threading.Event()
+        _state.active_design_cancel = cancel_event
+        return cancel_event
+
+
+def _finish_design_job(cancel_event: threading.Event) -> None:
+    with _state_lock:
+        if _state.active_design_cancel is cancel_event:
+            _state.active_design_cancel = None
+
+
+def _cancel_active_design() -> bool:
+    with _state_lock:
+        cancel_event = _state.active_design_cancel
+    if cancel_event is None:
+        return False
+    cancel_event.set()
+    return True
 
 # ---------------------------------------------------------------------------
 # Stdout lock and wire helpers
