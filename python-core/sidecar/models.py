@@ -13,9 +13,16 @@ Usage in handlers::
     # access as p.fasta_path, p.polymerase, etc.
 """
 
-from typing import Any, Literal, Optional
+from typing import Any, Literal, Optional, TypedDict
 
 from pydantic import BaseModel, Field, field_validator
+
+
+class DomainEntry(TypedDict):
+    """A single protein domain passed from the frontend to selection/benchmark handlers."""
+    name: str
+    start: int
+    end: int
 
 
 # ---------------------------------------------------------------------------
@@ -128,7 +135,7 @@ class PlateMappingItem(BaseModel):
 class ExportExcelParams(BaseModel):
     filepath: str
     mappings: Optional[list[PlateMappingItem]] = None
-    dedup_info: Optional[Any] = None
+    dedup_info: Optional[dict[str, list[str]]] = None
 
 
 class OrderResultItem(BaseModel):
@@ -150,7 +157,7 @@ class ExportMappingParams(BaseModel):
     format: Literal["echo", "janus"] = "echo"
     transfer_vol: Optional[float] = None  # nL for echo, µL for janus; None = format default
     mappings: Optional[list[PlateMappingItem]] = None
-    dedup_info: Optional[Any] = None
+    dedup_info: Optional[dict[str, list[str]]] = None
 
 
 class SaveWorkspaceParams(BaseModel):
@@ -171,9 +178,23 @@ class LoadWorkspaceParams(BaseModel):
     filepath: str
 
 
+class BenchmarkResultDict(TypedDict, total=False):
+    """Metrics returned by evaluate_selection() for a single strategy."""
+    n_selected: int
+    hit_rate: float
+    mean_fitness: float
+    unique_positions: int
+    position_coverage: float
+    domain_coverage: float
+    structural_spread: float
+    hits: int
+    threshold: float
+    n_trials: int
+
+
 class ExportBenchmarkCsvParams(BaseModel):
     filepath: str
-    results: dict[str, Any] = Field(default_factory=dict)
+    results: dict[str, BenchmarkResultDict] = Field(default_factory=dict)
 
 
 # ---------------------------------------------------------------------------
@@ -210,7 +231,7 @@ class LoadEvolveproParams(BaseModel):
     filepath: str = ""
     top_n: int = Field(default=96, ge=0, le=960)
     max_per_position: int = Field(default=0, ge=0)
-    domains: list[Any] = Field(default_factory=list)
+    domains: list[DomainEntry] = Field(default_factory=list)
     excluded_ranges: list[ExcludedRange] = Field(default_factory=list)
     domain_diversity: bool = False
     domain_strategy: str = "proportional"
@@ -233,12 +254,12 @@ class LandscapeEntry(BaseModel):
 
 class RunBenchmarkParams(BaseModel):
     landscape: list[LandscapeEntry] = Field(default_factory=list)
-    ground_truth: dict[str, Any] = Field(default_factory=dict)
+    ground_truth: dict[str, float] = Field(default_factory=dict)
     n_select: int = Field(default=95, ge=1, le=960)
     n_random_trials: int = Field(default=100, ge=1, le=1000)
     top_percentile: float = Field(default=10.0, gt=0.0, le=100.0)
     strategies: list[str] = Field(default_factory=lambda: ["topn", "random", "pareto_1d", "pareto_3d", "pareto_entropy"])
-    domains: list[Any] = Field(default_factory=list)
+    domains: list[DomainEntry] = Field(default_factory=list)
     domain_strategy: str = "proportional"
     max_per_position: int = Field(default=1, ge=1)
     entropy_weight: float = Field(default=0.3, ge=0.0, le=1.0)
