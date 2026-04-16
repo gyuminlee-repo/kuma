@@ -52,9 +52,6 @@ def _rebuild_plate_state(results: list[SdmPrimerResult]) -> None:
     _core._state.dedup_info = deduplicate_reverse(results)
 
 
-# ---------------------------------------------------------------------------
-# Serialisation helpers
-# ---------------------------------------------------------------------------
 
 
 def _serialize_result(r: SdmPrimerResult, candidate_count: int | None = None) -> dict:
@@ -126,10 +123,6 @@ def _serialize_result_with_counts(r: SdmPrimerResult) -> dict:
     return result
 
 
-# ---------------------------------------------------------------------------
-# Rescue helpers
-# ---------------------------------------------------------------------------
-
 # Auto-relax increments (additive to user settings, not absolute values).
 # Rationale: SantaLucia (1998) nearest-neighbor Tm predictions have an
 # empirical standard error of ~1.0-1.5°C.  Widening tolerance by 2.0°C
@@ -170,9 +163,6 @@ def _build_profile(p) -> PolymeraseProfile:
     return dc_replace(_poly_registry.get(p.polymerase), **overrides)
 
 
-# ---------------------------------------------------------------------------
-# Handlers
-# ---------------------------------------------------------------------------
 
 
 def handle_design_sdm_primers(params: dict) -> dict:
@@ -185,16 +175,13 @@ def handle_design_sdm_primers(params: dict) -> dict:
     if p.codon_strategy not in ("closest", "optimal"):
         raise ValueError(f"Invalid codon_strategy: '{p.codon_strategy}'. Must be 'closest' or 'optimal'.")
 
-    # Validate organism is known
     available_organisms = _codon_registry.list_organisms()
     if p.organism not in available_organisms:
         raise ValueError(f"Unknown organism: '{p.organism}'. Available: {', '.join(available_organisms)}")
 
-    # Validate GC% relationship
     if p.gc_min >= p.gc_max:
         raise ValueError(f"gc_min ({p.gc_min}) must be less than gc_max ({p.gc_max})")
 
-    # Validate primer length ranges (None → resolved later from polymerase profile, skip here)
     for label, lo, hi in [("fwd", p.fwd_len_min, p.fwd_len_max), ("rev", p.rev_len_min, p.rev_len_max)]:
         if lo is not None and hi is not None and lo > hi:
             raise ValueError(f"{label}_len_min ({lo}) must be <= {label}_len_max ({hi})")
@@ -204,8 +191,6 @@ def handle_design_sdm_primers(params: dict) -> dict:
     )
 
     mutations_input = p.mutations_csv_or_text
-
-    # Determine if input is text or CSV path
     mutations_csv_path: Path
     temp_csv = None
     temp_csv_name: str = ""
@@ -216,7 +201,6 @@ def handle_design_sdm_primers(params: dict) -> dict:
             mutations_input, allowed_extensions=_ALLOWED_CSV_EXTENSIONS
         )
     else:
-        # Text input: write to temp CSV
         lines = [
             l.strip()
             for l in mutations_input.strip().split("\n")
@@ -258,7 +242,6 @@ def handle_design_sdm_primers(params: dict) -> dict:
         }
 
     try:
-        # Clear previous state only after the design slot is reserved.
         with _core._state_lock:
             _core._state.results = []
             _core._state.candidates = {}
@@ -293,9 +276,6 @@ def handle_design_sdm_primers(params: dict) -> dict:
         if cancel_event.is_set():
             return _cancelled_result()
 
-        # -------------------------------------------------------------------
-        # Position Rescue: pool cascade + auto-relax
-        # -------------------------------------------------------------------
         rescue_stats: dict = {
             "pool_cascade": 0, "auto_relax": 0,
             "positions_attempted": 0, "pool_variants_tried": 0,
@@ -446,13 +426,8 @@ def handle_retry_failed(params: dict) -> dict:
 
     resolved_fasta = _validate_filepath(p.fasta_path, allowed_extensions=_ALLOWED_FASTA_EXTENSIONS)
 
-    # Load template
     _header, sequence, _genes = load_sequence(resolved_fasta)
-
-    # Parse mutation
     mut = _build_mutation(mutation_raw, sequence, p.target_start, p.organism)
-
-    # Build polymerase profile with custom Tm targets
     profile = dc_replace(_poly_registry.get(p.polymerase),
                          opt_tm_fwd=p.tm_fwd_target, opt_tm_rev=p.tm_rev_target, opt_tm_overlap=p.tm_overlap_target)
 
@@ -526,7 +501,6 @@ def handle_evaluate_primer(params: dict) -> dict:
     if not forward_seq or not reverse_seq:
         raise ValueError("Both forward_seq and reverse_seq are required")
 
-    # Validate primer sequences: ATGC only, max 150bp
     for label, seq in [("forward_seq", forward_seq), ("reverse_seq", reverse_seq)]:
         if not _VALID_DNA_BASES.match(seq):
             raise ValueError(f"{label} must contain only A, T, G, C characters")
@@ -535,7 +509,6 @@ def handle_evaluate_primer(params: dict) -> dict:
 
     resolved = _validate_filepath(p.fasta_path, allowed_extensions=_ALLOWED_FASTA_EXTENSIONS)
 
-    # Use cached template if same file
     with _core._state_lock:
         cached_path, cached_seq = _core._state.template
     if cached_seq and cached_path == str(resolved):

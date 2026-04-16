@@ -45,10 +45,7 @@ def handle_load_fasta(params: dict) -> dict:
 
 
 def handle_parse_mutations_text(params: dict) -> dict:
-    """Parse mutation text (one per line) and validate format.
-
-    Returns dict with 'parsed' list and 'errors' list for failed lines.
-    """
+    """Parse mutation text (one per line). Returns {'parsed': [...], 'errors': [...]}."""
     p = ParseMutationsTextParams(**params)
     if not p.text.strip():
         raise ValueError("No mutations provided")
@@ -59,7 +56,6 @@ def handle_parse_mutations_text(params: dict) -> dict:
         line = line.strip()
         if not line:
             continue
-        # Remove comments
         if line.startswith("#"):
             continue
 

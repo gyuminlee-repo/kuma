@@ -82,8 +82,6 @@ def handle_export_excel(params: dict) -> dict:
     dedup_data = p.dedup_info
 
     if p.mappings:
-        # Pydantic already validated each item as PlateMappingItem;
-        # convert to PlateMapping dataclass for the export layer.
         mappings = _pydantic_to_plate_mappings(p.mappings)
         rev_groups = dedup_data or {}
     else:
@@ -98,14 +96,7 @@ def handle_export_excel(params: dict) -> dict:
 
 
 def handle_export_order(params: dict) -> dict:
-    """Export primer order CSV in IDT or Twist format.
-
-    Params:
-        filepath: Output CSV path.
-        format: "idt" or "twist".
-        scale: IDT synthesis scale (default "25nm").
-        purification: IDT purification (default "STD").
-    """
+    """Export primer order CSV in IDT or Twist format."""
     p = ExportOrderParams(**params)
     fmt = p.format.lower()
     if fmt not in ("idt", "twist"):
@@ -146,13 +137,7 @@ def handle_export_order(params: dict) -> dict:
 
 
 def handle_export_mapping(params: dict) -> dict:
-    """Export liquid handler mapping CSV (Echo 525 or JANUS).
-
-    Params:
-        filepath: Output CSV path.
-        format: "echo" (default) or "janus".
-        transfer_vol: Optional override for transfer volume.
-    """
+    """Export liquid handler mapping file (Echo 525 or JANUS, CSV or XLSX)."""
     p = ExportMappingParams(**params)
     resolved = _validate_output_path(p.filepath, allowed_extensions=_ALLOWED_MAPPING_EXTENSIONS)
 
@@ -220,7 +205,6 @@ def handle_load_workspace(params: dict) -> dict:
     with open(resolved, encoding="utf-8") as f:
         data = json.load(f)
 
-    # Validate loaded workspace structure
     if not isinstance(data, dict):
         raise ValueError("Workspace file must contain a JSON object")
     if "results" in data:

@@ -47,10 +47,6 @@ from sidecar.handlers.misc import (
     handle_run_benchmark,
 )
 
-# ---------------------------------------------------------------------------
-# Method registry
-# ---------------------------------------------------------------------------
-
 _METHODS = {
     "list_polymerases": handle_list_polymerases,
     "get_polymerase_details": handle_get_polymerase_details,
@@ -81,8 +77,7 @@ _METHODS = {
     },
 }
 
-# Methods that run in a background thread to avoid blocking the main loop.
-# These are long-running operations (network I/O, heavy computation).
+# Long-running methods (network I/O, heavy computation) run in a background thread.
 _ASYNC_METHODS = {
     "design_sdm_primers",
     "search_uniprot",
@@ -91,10 +86,6 @@ _ASYNC_METHODS = {
     "run_benchmark",
 }
 
-
-# ---------------------------------------------------------------------------
-# Dispatch helpers
-# ---------------------------------------------------------------------------
 
 
 def _dispatch_handler(req_id: int | None, method: str, handler, params: dict) -> None:
@@ -135,9 +126,6 @@ def dispatch(request: dict) -> None:
     _dispatch_handler(req_id, method, handler, params)
 
 
-# ---------------------------------------------------------------------------
-# Parent watchdog
-# ---------------------------------------------------------------------------
 
 
 def _start_parent_watchdog() -> None:
@@ -180,9 +168,6 @@ def _start_parent_watchdog() -> None:
     t.start()
 
 
-# ---------------------------------------------------------------------------
-# Main loop
-# ---------------------------------------------------------------------------
 
 
 def main() -> None:

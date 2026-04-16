@@ -10,9 +10,7 @@ import threading
 from dataclasses import dataclass, field
 from pathlib import Path
 
-# ---------------------------------------------------------------------------
-# Path setup — ensure kuro package is importable from any working directory
-# ---------------------------------------------------------------------------
+# ensure kuro package is importable from any working directory
 _SCRIPT_DIR = Path(__file__).parent.parent.resolve()  # python-core/
 _PROJECT_ROOT = _SCRIPT_DIR.parent
 if str(_PROJECT_ROOT) not in sys.path:
@@ -23,9 +21,6 @@ from kuro.plate_mapper import PlateMapping  # noqa: E402
 from kuro.polymerase import PolymeraseRegistry  # noqa: E402
 from kuro.codon_table import CodonTableRegistry  # noqa: E402
 
-# ---------------------------------------------------------------------------
-# Logging
-# ---------------------------------------------------------------------------
 logging.basicConfig(
     level=logging.INFO,
     format="%(levelname)s %(name)s: %(message)s",
@@ -33,23 +28,16 @@ logging.basicConfig(
 )
 logger = logging.getLogger("sidecar")
 
-# ---------------------------------------------------------------------------
-# Global registries (initialised once at import time)
-# ---------------------------------------------------------------------------
 _CUSTOM_POLYMERASE_PATH = Path.home() / ".kuro" / "custom_polymerases.json"
 _CONFIG_PATH = Path.home() / ".kuro" / "config.json"
 _poly_registry = PolymeraseRegistry(custom_path=_CUSTOM_POLYMERASE_PATH)
 _codon_registry = CodonTableRegistry()
 _config_cache: dict | None = None
 
-# ---------------------------------------------------------------------------
-# Crash log
-# ---------------------------------------------------------------------------
 _CRASH_LOG_MAX = 50
 
 
 def _get_crash_log_path() -> Path:
-    """Return the crash log path (~/.kuro/crash.log)."""
     kuro_dir = Path.home() / ".kuro"
     kuro_dir.mkdir(parents=True, exist_ok=True)
     if sys.platform != "win32":
@@ -58,7 +46,7 @@ def _get_crash_log_path() -> Path:
 
 
 def _append_crash_log(method: str, params_summary: str, tb: str) -> None:
-    """Append an error entry to the local crash log file (FIFO, max 50 entries)."""
+    """Append an error entry to the crash log (FIFO, max 50 entries)."""
     try:
         log_path = _get_crash_log_path()
         entry = {
@@ -83,17 +71,11 @@ def _append_crash_log(method: str, params_summary: str, tb: str) -> None:
         pass  # crash logging itself must never raise
 
 
-# ---------------------------------------------------------------------------
-# Allowed extension sets
-# ---------------------------------------------------------------------------
 _ALLOWED_FASTA_EXTENSIONS = {".fa", ".fasta", ".fna", ".dna", ".gb", ".gbff", ".gbk"}
 _ALLOWED_CSV_EXTENSIONS = {".csv", ".tsv", ".txt"}
 _ALLOWED_EXCEL_EXTENSIONS = {".xlsx"}
 _VALID_DNA_BASES = re.compile(r"^[ATGC]+$")
 
-# ---------------------------------------------------------------------------
-# Lazy SSL context
-# ---------------------------------------------------------------------------
 _ssl_ctx = None
 
 
@@ -103,11 +85,6 @@ def _get_ssl_ctx():
         import ssl
         _ssl_ctx = ssl.create_default_context()
     return _ssl_ctx
-
-
-# ---------------------------------------------------------------------------
-# Config
-# ---------------------------------------------------------------------------
 
 
 def _get_config() -> dict[str, object]:
@@ -127,10 +104,6 @@ def _get_contact_email() -> str | None:
         return raw
     config_email = str(_get_config().get("contact_email", "")).strip()
     return config_email or None
-
-# ---------------------------------------------------------------------------
-# Session state
-# ---------------------------------------------------------------------------
 
 
 @dataclass
@@ -183,9 +156,6 @@ def _get_cached_ca_coords(structure_accession: str | None) -> list | None:
         return None
 
 
-# ---------------------------------------------------------------------------
-# Stdout lock and wire helpers
-# ---------------------------------------------------------------------------
 _stdout_lock = threading.Lock()
 
 
@@ -218,9 +188,7 @@ def _progress(value: int, message: str = "") -> None:
 
 
 # ---------------------------------------------------------------------------
-# Path validation
-# Security fix: use Path.resolve() to catch symlink-based traversal instead
-# of the weak `".." in Path(filepath).parts` check.
+# Path validation — uses Path.resolve() to catch symlink-based traversal
 # ---------------------------------------------------------------------------
 
 
@@ -229,8 +197,8 @@ def _validate_filepath(
 ) -> Path:
     """Validate and resolve an input file path.
 
-    Uses Path.resolve() to normalise the path and detect traversal via
-    symlinks or redundant '..' components.
+    Raises FileNotFoundError on traversal, symlinks, or missing parent.
+    Raises ValueError on disallowed extension.
     """
     if not filepath:
         raise FileNotFoundError("filepath is required")
@@ -266,8 +234,8 @@ def _validate_output_path(
 ) -> Path:
     """Validate an output file path (file may not exist yet).
 
-    Uses Path.resolve() to normalise the path and detect traversal via
-    symlinks or redundant '..' components.
+    Raises FileNotFoundError on traversal, symlinks, or missing parent.
+    Raises ValueError on disallowed extension.
     """
     if not filepath:
         raise FileNotFoundError("filepath is required")

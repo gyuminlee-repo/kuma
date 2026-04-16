@@ -692,23 +692,10 @@ def design_single_sdm(
     """Design SDM primers for a single mutation.
 
     Length parameters (overlap_len, fwd_len_min/max, rev_len_min/max) default
-    to the values stored on the polymerase profile. If the profile does not
-    define them, fall back to the slide spec: overlap 18, fwd 17-39, rev 19-27.
-
-    Redesigned algorithm (EVOLVEpro-validated):
-    1. Overlap is UPSTREAM of mutation codon (not containing it)
-    2. Whole-primer Tm targeting: Fwd 62°C, Rev 58°C, Overlap 42°C
-    3. Progressive tolerance: ±0.5 → ±1.0 → ... (max ±3.0)
-    4. Off-target check on template
-    5. Multiple candidates returned (top-N by penalty)
-
-    Args:
-        organism: Organism for codon usage frequency lookup (default: "ecoli").
-
-    Returns:
-        List of SdmPrimerResult sorted by penalty (best first).
+    to the polymerase profile; fall back to overlap 18, fwd 17-39, rev 19-27.
+    Overlap is placed UPSTREAM of the codon. Whole-primer Tm targeting with
+    progressive tolerance (±0.5 → ±tol_max). Returns top-N by penalty score.
     """
-    # Resolve length defaults: explicit arg > profile value > slide spec fallback
     if overlap_len is None:
         overlap_len = profile.overlap_len if profile.overlap_len is not None else 18
     if fwd_len_min is None:
@@ -720,7 +707,6 @@ def design_single_sdm(
     if rev_len_max is None:
         rev_len_max = profile.rev_len_max if profile.rev_len_max is not None else 27
 
-    # Generate mutation variants for multiple codons (optimal + WT-closest)
     alt_codons = mt_codons_for_design(mutation.wt_codon, mutation.mt_aa, codon_strategy, organism=organism)
     mutations_to_try = []
     for mt_codon in alt_codons:
@@ -735,16 +721,12 @@ def design_single_sdm(
         )
         mutations_to_try.append(m)
 
-    # Resolve Tm targets
     tm_target_fwd = profile.opt_tm_fwd if profile.opt_tm_fwd is not None else 62.0
     tm_target_rev = profile.opt_tm_rev if profile.opt_tm_rev is not None else 58.0
     tm_target_overlap = profile.opt_tm_overlap if profile.opt_tm_overlap is not None else 42.0
     min_downstream = max(profile.min_3prime_dist, 1)
-
-    # Tolerance settings
     tol_step = 0.5
-
-    # Try multiple overlap lengths (adaptive)
+    # adaptive overlap range: shorter allowed when low Tm target
     min_overlap = 8 if tm_target_overlap < 50.0 else 15
     overlap_lengths = list(range(overlap_len, min_overlap - 1, -1))
 
@@ -765,7 +747,6 @@ def design_single_sdm(
                 all_candidates.extend(candidates)
 
         if all_candidates:
-            # Off-target check (precompute antisense once)
             rc_template = reverse_complement(seq.upper())
             for c in all_candidates:
                 fwd_start = c.overlap_window.start
@@ -785,7 +766,6 @@ def design_single_sdm(
                     ot_count = len(c.offtarget_fwd) + len(c.offtarget_rev)
                     c.penalty = round(c.penalty + ot_count * 5.0, 2)
 
-                # Hairpin / homodimer check
                 _check_secondary_structure(c)
                 _check_synthesis_score(c)
 
@@ -798,12 +778,7 @@ def design_single_sdm(
 
 
 def _translate_dna(dna: str) -> str:
-    """Translate DNA to protein using the standard genetic code.
-
-    Reads codons from the start of *dna* and stops at the first stop
-    codon (TAA/TAG/TGA) or when fewer than 3 bases remain.  Unknown
-    codons are emitted as ``X``.
-    """
+    """Translate DNA to protein. Stops at TAA/TAG/TGA or end. Unknown codons → X."""
     _stop = {"TAA", "TAG", "TGA"}
     protein: list[str] = []
     for i in range(0, len(dna) - 2, 3):
@@ -846,12 +821,10 @@ def evaluate_custom_primer(
     tm_fwd = _calc_sdm_tm(fwd_seq)
     tm_rev = _calc_sdm_tm(rev_seq)
 
-    # Estimate overlap from fwd start; if overlap_len is 0 or not given, try 18 bp default
     effective_ov_len = overlap_len if overlap_len and overlap_len > 0 else min(18, len(fwd_seq))
     ov_seq = fwd_seq[:effective_ov_len]
     tm_ov = _calc_sdm_tm(ov_seq) if len(ov_seq) >= 8 else 0.0
 
-    # Create a minimal Mutation and OverlapWindow for the result
     from .mutation import Mutation
     dummy_mut = Mutation(
         raw=mutation_raw, wt_aa="X", position=0, mt_aa="X",
@@ -872,13 +845,10 @@ def evaluate_custom_primer(
         tm_condition_met=(tm_fwd > tm_ov + 5 and tm_rev > tm_ov + 5),
     )
 
-    # Off-target
     rc_template = reverse_complement(template.upper())
     tmpl_upper = template.upper()
 
-    # Determine intended binding positions from the actual binding site on the template.
-    # If the full sequence is not found (e.g. contains a mutation), fall back to the 3'
-    # half so that at least the annealing end is located.
+    # fall back to 3'-half match if full sequence not found (e.g. primer contains mutation)
     def _find_binding_range(seq: str) -> tuple[int, int]:
         pos = tmpl_upper.find(seq)
         if pos != -1:
@@ -910,7 +880,6 @@ def evaluate_custom_primer(
     if result.offtarget_fwd or result.offtarget_rev:
         result.has_offtarget = True
 
-    # Secondary structure + synthesis quality
     _check_secondary_structure(result)
     _check_synthesis_score(result)
 
@@ -918,17 +887,12 @@ def evaluate_custom_primer(
 
 
 def load_fasta(fasta_path: Path) -> tuple[str, str]:
-    """Load a sequence file (FASTA or SnapGene .dna).
-
-    Returns:
-        Tuple of (header, sequence).
-    """
+    """Load a FASTA or SnapGene .dna file. Returns (header, sequence)."""
     suffix = fasta_path.suffix.lower()
 
     if suffix == ".dna":
         return _load_snapgene(fasta_path)
 
-    # Default: plain FASTA
     header = ""
     seq_parts: list[str] = []
     with open(fasta_path, encoding="utf-8", errors="replace") as f:
@@ -995,7 +959,6 @@ def _load_genbank(gb_path: Path) -> tuple[str, str, list[GeneInfo]]:
 
 def _extract_cds_features(record) -> list[GeneInfo]:
     """Extract CDS features from a Biopython SeqRecord."""
-    # Extract organism from record annotations
     organism = ""
     if hasattr(record, "annotations"):
         organism = record.annotations.get("organism", "")
@@ -1011,13 +974,11 @@ def _extract_cds_features(record) -> list[GeneInfo]:
         end = int(feature.location.end)
         aa_len = (end - start) // 3
 
-        # Extract translation (protein sequence); auto-translate if missing
         translation = qualifiers.get("translation", [""])[0]
         if not translation:
             cds_dna = str(record.seq[start:end]).upper()
             translation = _translate_dna(cds_dna)
 
-        # Extract UniProt accession from db_xref
         uniprot_acc = ""
         for xref in qualifiers.get("db_xref", []):
             if xref.startswith("UniProtKB"):
@@ -1121,11 +1082,7 @@ def _detect_orfs(
 
 
 def _load_snapgene(dna_path: Path) -> tuple[str, str]:
-    """Load a SnapGene .dna file using Biopython SeqIO.
-
-    Returns:
-        Tuple of (header, sequence).
-    """
+    """Load a SnapGene .dna file. Returns (header, sequence)."""
     from Bio import SeqIO
 
     record = SeqIO.read(dna_path, "snapgene")
@@ -1157,29 +1114,15 @@ def design_sdm_primers(
 ) -> tuple[list[SdmPrimerResult], dict[str, list[SdmPrimerResult]], dict[str, str]]:
     """Design SDM primers for a batch of mutations.
 
-    Length parameters default to the polymerase profile values. If a profile
-    does not define them, fall back to the slide spec: overlap 18, fwd 17-39,
-    rev 19-27. Explicit int arguments override the profile.
+    Length parameters default to the polymerase profile; fall back to overlap 18,
+    fwd 17-39, rev 19-27. Explicit arguments override the profile.
 
-    Args:
-        fasta_path: Path to template FASTA file.
-        target_start: 0-based position of CDS start codon (ATG).
-        mutations_csv: Path to CSV file with 'mutation' column.
-        polymerase: Polymerase name for Tm calculations.
-        overlap_len: Overlap window length in bp (None → profile → 18).
-        custom_profiles: Optional path to custom polymerase profiles.
-        on_progress: Optional callback(i, total, mutation_raw) for progress.
-        cancel_check: Optional callable() -> bool, returns True if cancelled.
-        organism: Organism for codon usage frequency lookup (default: "ecoli").
-
-    Returns:
-        List of SdmPrimerResult for each mutation.
+    Returns (results, all_candidates, failed_reasons).
     """
-    # Load template (supports FASTA, GenBank, SnapGene)
     header, sequence, _genes = load_sequence(fasta_path)
     logger.info("Loaded template: %s (%d bp)", header, len(sequence))
 
-    # Verify ATG at target_start
+
     atg = sequence[target_start:target_start + 3]
     if atg != "ATG":
         raise ValueError(
@@ -1187,7 +1130,6 @@ def design_sdm_primers(
             "Check target_start parameter."
         )
 
-    # Load polymerase profile
     registry = PolymeraseRegistry()
     profile = replace(registry.get(polymerase))
     if tm_fwd_target is not None:
@@ -1202,12 +1144,11 @@ def design_sdm_primers(
                 profile.opt_tm_rev or 58.0,
                 profile.opt_tm_overlap or 42.0)
 
-    # Parse mutations (tolerant: individual failures are collected, not raised)
     failed_reasons: dict[str, str] = {}
     try:
         mutations = parse_mutations(mutations_csv, sequence, target_start)
     except ValueError:
-        # Fall back to line-by-line parsing when batch parse fails
+        # line-by-line fallback when batch parse fails
         mutations = []
         import csv as _csv
         with open(mutations_csv, encoding="utf-8") as _f:
@@ -1234,7 +1175,6 @@ def design_sdm_primers(
                     failed_reasons[_raw] = str(e)
     logger.info("Parsed %d mutations (%d parse failures)", len(mutations), len(failed_reasons))
 
-    # Design primers for each mutation
     results: list[SdmPrimerResult] = []
     all_candidates: dict[str, list[SdmPrimerResult]] = {}
     total_muts = len(mutations)
@@ -1272,12 +1212,7 @@ def export_results_tsv(
     results: list[SdmPrimerResult],
     output_path: Path,
 ) -> None:
-    """Export SDM primer results to a TSV file.
-
-    Args:
-        results: List of SdmPrimerResult.
-        output_path: Path to output TSV file.
-    """
+    """Export SDM primer results to a TSV file."""
     import csv
 
     fieldnames = [

@@ -40,7 +40,6 @@ function handleLine(line: string) {
     return;
   }
 
-  // Notification (no id)
   if (!("id" in msg) || msg.id === undefined || msg.id === null) {
     const notif = msg as JsonRpcNotification;
     if (notif.method === "progress" && onProgress) {
@@ -51,7 +50,6 @@ function handleLine(line: string) {
     return;
   }
 
-  // Response
   const resp = msg as JsonRpcResponse;
   const req = pending.get(resp.id!);
   if (!req) {
@@ -94,7 +92,7 @@ function flushBufferedLine(
 
 function handleStderrLine(line: string) {
   if (!line.trim()) return;
-  console.log("[sidecar]", line);
+  console.debug("[sidecar]", line);
 }
 
 export async function spawnSidecar(): Promise<void> {
@@ -124,7 +122,9 @@ export async function spawnSidecar(): Promise<void> {
     command.on("close", (data: { code: number | null }) => {
       stdoutBuffer = flushBufferedLine(stdoutBuffer, handleLine);
       stderrBuffer = flushBufferedLine(stderrBuffer, handleStderrLine);
-      console.log("[sidecar] exited with code:", data.code);
+      if (data.code !== 0 && data.code !== null) {
+        console.warn("[sidecar] exited with code:", data.code);
+      }
       child = null;
       for (const [id, req] of pending) {
         req.reject(new Error("Sidecar process exited"));

@@ -3,6 +3,9 @@
 import json
 import logging
 import re
+import time
+import urllib.parse
+import urllib.request
 
 import sidecar.core as _core
 from sidecar.core import (
@@ -34,15 +37,13 @@ def handle_fetch_domains(params: dict) -> dict:
         ),
     ]
 
-    import urllib.request as _urllib_req
-
     for url, db_label in endpoints:
         try:
-            req = _urllib_req.Request(
+            req = urllib.request.Request(
                 url,
                 headers={"Accept": "application/json"},
             )
-            with _urllib_req.urlopen(req, context=_get_ssl_ctx(), timeout=10) as resp:
+            with urllib.request.urlopen(req, context=_get_ssl_ctx(), timeout=10) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
 
             domains: list[dict] = []
@@ -80,7 +81,6 @@ def handle_fetch_domains(params: dict) -> dict:
             logger.debug("Domain fetch from %s failed: %s", db_label, exc)
             continue
 
-    # Both endpoints failed or returned no domains
     return {
         "accession": accession,
         "domains": [],
@@ -109,11 +109,7 @@ def _sequence_identity(seq_a: str, seq_b: str) -> float:
 
 
 def handle_search_uniprot(params: dict) -> dict:
-    """Search UniProt for matching proteins via BLAST + optional direct lookup.
-
-    Primary: BLAST the translation against UniProt Swiss-Prot via EBI BLAST API.
-    Secondary: direct fetch if known_accession is provided.
-    """
+    """Search UniProt via BLAST (primary) and direct accession lookup (secondary)."""
     p = SearchUniprotParams(**params)
     gene_name = p.gene_name.strip()
     organism = p.organism.strip()
@@ -125,18 +121,14 @@ def handle_search_uniprot(params: dict) -> dict:
     if known_accession and not re.match(r"^[A-Za-z0-9_-]{1,20}$", known_accession):
         raise ValueError(f"Invalid UniProt accession format: {known_accession}")
 
-    import urllib.request as _urllib_req
-    import urllib.parse as _urllib_parse
-    import time as _time
-
     candidates: list[dict] = []
     auto_selected: str | None = None
     last_error: str = ""
 
     def _fetch_json(url: str) -> tuple[dict | None, str]:
         try:
-            req = _urllib_req.Request(url, headers={"Accept": "application/json"})
-            with _urllib_req.urlopen(req, context=_get_ssl_ctx(), timeout=15) as resp:
+            req = urllib.request.Request(url, headers={"Accept": "application/json"})
+            with urllib.request.urlopen(req, context=_get_ssl_ctx(), timeout=15) as resp:
                 return json.loads(resp.read().decode("utf-8")), ""
         except Exception as exc:
             logger.warning("UniProt fetch failed: %s — %s", url, exc)
@@ -144,15 +136,14 @@ def handle_search_uniprot(params: dict) -> dict:
 
     def _fetch_text(url: str) -> tuple[str, str]:
         try:
-            req = _urllib_req.Request(url)
-            with _urllib_req.urlopen(req, context=_get_ssl_ctx(), timeout=30) as resp:
+            req = urllib.request.Request(url)
+            with urllib.request.urlopen(req, context=_get_ssl_ctx(), timeout=30) as resp:
                 return resp.read().decode("utf-8").strip(), ""
         except Exception as exc:
             return "", f"{type(exc).__name__}: {exc}"
 
     seen_accessions: set[str] = set()
 
-    # 1) Direct fetch by known accession
     if known_accession:
         data, err = _fetch_json(
             f"https://rest.uniprot.org/uniprotkb/{known_accession}?format=json"
@@ -180,28 +171,26 @@ def handle_search_uniprot(params: dict) -> dict:
             if identity == 100.0:
                 auto_selected = acc
 
-    # 2) BLAST search using protein sequence via EBI NCBI BLAST API
     if translation and not auto_selected:
         try:
-            blast_data = _urllib_parse.urlencode({
+            blast_data = urllib.parse.urlencode({
                 "program": "blastp",
                 "database": "uniprotkb_swissprot",
                 "stype": "protein",
                 "sequence": translation.rstrip("*"),
                 **({"email": email} if (email := _get_contact_email()) else {}),
             }).encode()
-            submit_req = _urllib_req.Request(
+            submit_req = urllib.request.Request(
                 "https://www.ebi.ac.uk/Tools/services/rest/ncbiblast/run",
                 data=blast_data,
                 method="POST",
             )
-            with _urllib_req.urlopen(submit_req, context=_get_ssl_ctx(), timeout=30) as resp:
+            with urllib.request.urlopen(submit_req, context=_get_ssl_ctx(), timeout=30) as resp:
                 job_id = resp.read().decode().strip()
 
-            # Poll for completion (max ~60s)
             status_text = ""
             for _ in range(20):
-                _time.sleep(3)
+                time.sleep(3)
                 status_text, _ = _fetch_text(
                     f"https://www.ebi.ac.uk/Tools/services/rest/ncbiblast/status/{job_id}"
                 )
@@ -218,19 +207,16 @@ def handle_search_uniprot(params: dict) -> dict:
                     last_error = err
                 if result_data:
                     for hit in result_data.get("hits", [])[:10]:
-                        # hit_acc is like "SP:Q50L36" or just accession
-                        raw_acc = hit.get("hit_acc", "")
+                        raw_acc = hit.get("hit_acc", "")  # may be "SP:Q50L36" or bare accession
                         acc = raw_acc.split(":")[-1] if ":" in raw_acc else raw_acc
                         if acc in seen_accessions:
                             continue
                         seen_accessions.add(acc)
                         hsps = hit.get("hit_hsps", [])
                         blast_identity = hsps[0].get("hsp_identity", 0.0) if hsps else 0.0
-                        # Parse organism from hit description: "... OS=Genus species ..."
                         hit_def = hit.get("hit_def", "")
                         os_m = re.search(r'\bOS=([^=]+?)(?:\s+\w+=|$)', hit_def)
                         hit_organism = os_m.group(1).strip() if os_m else ""
-                        # Parse gene name
                         gn_m = re.search(r'\bGN=(\S+)', hit_def)
                         hit_gene = gn_m.group(1) if gn_m else ""
                         hit_len = hsps[0].get("hsp_hit_to", 0) if hsps else 0
@@ -245,12 +231,11 @@ def handle_search_uniprot(params: dict) -> dict:
             logger.warning("BLAST search failed: %s", exc)
             last_error = f"BLAST: {type(exc).__name__}: {exc}"
 
-    # 3) UniProt REST text search by gene name (covers TrEMBL, Swiss-Prot)
     if gene_name and not auto_selected:
         try:
             search_url = (
                 f"https://rest.uniprot.org/uniprotkb/search"
-                f"?query=gene_exact%3A{_urllib_parse.quote(gene_name)}"
+                f"?query=gene_exact%3A{urllib.parse.quote(gene_name)}"
                 f"&format=json&size=10"
             )
             text_data, err = _fetch_json(search_url)
@@ -286,7 +271,6 @@ def handle_search_uniprot(params: dict) -> dict:
     if candidates and candidates[0]["identity"] >= 95.0:
         auto_selected = candidates[0]["accession"]
 
-    # Check AlphaFold DB availability for each candidate (parallel, best-effort)
     if candidates:
         from concurrent.futures import ThreadPoolExecutor, as_completed
         from kuro.alphafold import check_structure_available
@@ -312,11 +296,7 @@ def handle_search_uniprot(params: dict) -> dict:
 
 
 def handle_fetch_structure(params: dict) -> dict:
-    """Fetch AlphaFold Cα coordinates for Pareto structural distance.
-
-    Downloads the AlphaFold DB predicted structure for *accession* and
-    extracts per-residue Cα coordinates. Results are cached locally.
-    """
+    """Fetch and cache AlphaFold Cα coordinates for the given accession."""
     p = FetchStructureParams(**params)
     accession = p.accession.strip()
     if not accession:
