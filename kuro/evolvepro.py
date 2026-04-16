@@ -347,10 +347,7 @@ def load_evolvepro_csv(
     if evolvepro_round > 0 and has_score and len(rows) >= 2:
         k_auto, entropy_weight = sigma_adaptive_params(evolvepro_round, round_size)
         scores = [y for _, y in rows]
-        try:
-            sigma = statistics.stdev(scores)
-        except statistics.StatisticsError:
-            sigma = 0.0
+        sigma = statistics.stdev(scores)
         anchor_idx = min(top_n - 1, len(rows) - 1)
         anchor = rows[anchor_idx][1]
         threshold = anchor - k_auto * sigma
