@@ -174,11 +174,11 @@ def handle_search_uniprot(params: dict) -> dict:
     if translation and not auto_selected:
         try:
             blast_data = urllib.parse.urlencode({
+                "email": _get_contact_email(),
                 "program": "blastp",
                 "database": "uniprotkb_swissprot",
                 "stype": "protein",
                 "sequence": translation.rstrip("*"),
-                **({"email": email} if (email := _get_contact_email()) else {}),
             }).encode()
             submit_req = urllib.request.Request(
                 "https://www.ebi.ac.uk/Tools/services/rest/ncbiblast/run",

@@ -46,6 +46,24 @@ def _pydantic_to_plate_mappings(items) -> list[PlateMapping]:
     ]
 
 
+def _resolve_mapping_transfer_volume(fmt: str, transfer_vol: float | None) -> int | float:
+    """Validate and normalize mapping transfer volume by instrument."""
+    if fmt == "echo":
+        if transfer_vol is None:
+            return 100
+        if transfer_vol <= 0:
+            raise ValueError("Echo transfer volume must be greater than 0 nL.")
+        if not float(transfer_vol).is_integer():
+            raise ValueError("Echo transfer volume must be a whole number of nL.")
+        return int(transfer_vol)
+
+    if transfer_vol is None:
+        return 2.0
+    if transfer_vol <= 0:
+        raise ValueError("JANUS transfer volume must be greater than 0 uL.")
+    return float(transfer_vol)
+
+
 def handle_get_plate_map(_params: dict) -> dict:
     """Return the plate map from last design."""
     with _core._state_lock:
@@ -161,7 +179,7 @@ def handle_export_mapping(params: dict) -> dict:
     use_xlsx = resolved.suffix.lower() == ".xlsx"
 
     if p.format == "echo":
-        vol = int(p.transfer_vol) if p.transfer_vol is not None else 100
+        vol = _resolve_mapping_transfer_volume(p.format, p.transfer_vol)
         if use_xlsx:
             export_echo_mapping_xlsx(fwd_mappings, rev_mappings, resolved,
                                      transfer_vol=vol, rev_groups=rev_groups)
@@ -169,7 +187,7 @@ def handle_export_mapping(params: dict) -> dict:
             export_echo_mapping_csv(fwd_mappings, rev_mappings, resolved,
                                     transfer_vol=vol, rev_groups=rev_groups)
     else:
-        vol = p.transfer_vol if p.transfer_vol is not None else 2.0
+        vol = _resolve_mapping_transfer_volume(p.format, p.transfer_vol)
         if use_xlsx:
             export_janus_mapping_xlsx(fwd_mappings, rev_mappings, resolved,
                                       transfer_vol=vol, rev_groups=rev_groups)

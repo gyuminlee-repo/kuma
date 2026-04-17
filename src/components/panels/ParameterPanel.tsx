@@ -28,7 +28,7 @@ export function ParameterPanel() {
   const mutationInputMode = useAppStore((s) => s.mutationInputMode);
   const evolveproTotalCount = useAppStore((s) => s.evolveproTotalCount);
   const isEvolvepro = mutationInputMode === "evolvepro" || mutationInputMode === "multi-evolve";
-  const maxLimit = isEvolvepro && evolveproTotalCount > 0 ? evolveproTotalCount : 960;
+  const maxLimit = isEvolvepro && evolveproTotalCount > 0 ? evolveproTotalCount : 10000;
   const overLimit = isEvolvepro && evolveproTotalCount > 0 && maxPrimers > evolveproTotalCount;
 
   const tmFwd = useAppStore((s) => s.tmFwdTarget);

@@ -1,0 +1,11 @@
+supportedArchitectures:
+  os:
+    - current
+    - linux
+    - win32
+  cpu:
+    - current
+    - x64
+  libc:
+    - current
+    - glibc

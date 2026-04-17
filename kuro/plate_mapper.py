@@ -420,6 +420,30 @@ def export_twist_csv(
 
 _ROWS_384 = "ABCDEFGHIJKLMNOP"
 _ROWS_96 = "ABCDEFGH"
+_ECHO_MAX_TRANSFER_NL = 500  # Echo 525 single-transfer limit
+
+
+def _split_echo_volume(total_vol: int) -> list[int]:
+    """Split a total Echo transfer volume into ≤500 nL steps.
+
+    Echo 525 allows a maximum of 500 nL per single transfer event.
+    Volumes above this threshold are split into multiple rows in the
+    mapping file (low-repeat transfers to the same dest well).
+
+    Example: 1000 nL → [500, 500]
+             600 nL  → [500, 100]
+             300 nL  → [300]
+    """
+    if total_vol <= 0:
+        return []
+    steps: list[int] = []
+    remaining = total_vol
+    while remaining > _ECHO_MAX_TRANSFER_NL:
+        steps.append(_ECHO_MAX_TRANSFER_NL)
+        remaining -= _ECHO_MAX_TRANSFER_NL
+    if remaining > 0:
+        steps.append(remaining)
+    return steps
 
 
 def _to_384_well_fwd(well_96: str) -> str:
@@ -472,18 +496,19 @@ def export_echo_mapping_csv(
             "Dest Plate Name", "Dest Well Name", "Dest Well", "Transfer Vol",
         ])
 
-        # Forward: one row per mutation
+        # Forward: one row per mutation (split if > 500 nL)
         for m in fwd_mappings:
             plate_idx, base_well = _parse_well_plate(m.well)
             src_plate = f"Source [{plate_idx + 1}]"
             dest_plate = f"Destination [{plate_idx + 1}]"
             src_well = _to_384_well_fwd(base_well)
-            writer.writerow([
-                src_plate, m.primer_name, src_well,
-                dest_plate, m.mutation, base_well, transfer_vol,
-            ])
+            for vol in _split_echo_volume(transfer_vol):
+                writer.writerow([
+                    src_plate, m.primer_name, src_well,
+                    dest_plate, m.mutation, base_well, vol,
+                ])
 
-        # Reverse: one row per (primer, dest_well) pair
+        # Reverse: one row per (primer, dest_well) pair (split if > 500 nL)
         for fwd_m in fwd_mappings:
             rev_seq = mut_to_rev_seq.get(fwd_m.mutation)
             if rev_seq is None:
@@ -499,10 +524,11 @@ def export_echo_mapping_csv(
             src_well = _to_384_well_rev(rev_base_well)
             _, dest_well = _parse_well_plate(fwd_by_mut.get(fwd_m.mutation, fwd_m.well))
 
-            writer.writerow([
-                src_plate, rev_m.primer_name, src_well,
-                dest_plate, fwd_m.mutation, dest_well, transfer_vol,
-            ])
+            for vol in _split_echo_volume(transfer_vol):
+                writer.writerow([
+                    src_plate, rev_m.primer_name, src_well,
+                    dest_plate, fwd_m.mutation, dest_well, vol,
+                ])
 
 
 def export_janus_mapping_csv(
@@ -731,12 +757,13 @@ def export_echo_mapping_xlsx(
         src_plate = f"Source [{plate_idx + 1}]"
         dest_plate = f"Destination [{plate_idx + 1}]"
         src_well = _to_384_well_fwd(base_well)
-        for ci, val in enumerate([
-            src_plate, m.primer_name, src_well,
-            dest_plate, m.mutation, base_well, transfer_vol,
-        ], 1):
-            ws2.cell(row=row_num, column=ci, value=val)
-        row_num += 1
+        for vol in _split_echo_volume(transfer_vol):
+            for ci, val in enumerate([
+                src_plate, m.primer_name, src_well,
+                dest_plate, m.mutation, base_well, vol,
+            ], 1):
+                ws2.cell(row=row_num, column=ci, value=val)
+            row_num += 1
 
     for fwd_m in fwd_mappings:
         rev_seq = mut_to_rev_seq.get(fwd_m.mutation)
@@ -751,12 +778,13 @@ def export_echo_mapping_xlsx(
         _, rev_base_well = _parse_well_plate(rev_m.well)
         src_well = _to_384_well_rev(rev_base_well)
         _, dest_well = _parse_well_plate(fwd_by_mut.get(fwd_m.mutation, fwd_m.well))
-        for ci, val in enumerate([
-            src_plate, rev_m.primer_name, src_well,
-            dest_plate, fwd_m.mutation, dest_well, transfer_vol,
-        ], 1):
-            ws2.cell(row=row_num, column=ci, value=val)
-        row_num += 1
+        for vol in _split_echo_volume(transfer_vol):
+            for ci, val in enumerate([
+                src_plate, rev_m.primer_name, src_well,
+                dest_plate, fwd_m.mutation, dest_well, vol,
+            ], 1):
+                ws2.cell(row=row_num, column=ci, value=val)
+            row_num += 1
 
     for col in ws2.columns:
         max_len = max(len(str(cell.value or "")) for cell in col)

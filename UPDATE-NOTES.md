@@ -1,6 +1,75 @@
-# KURO Update Notes — v0.9.5 → v1.33.05
+# KURO Update Notes — v0.9.5 → v1.33.6
 
 [한국어](UPDATE-NOTES.ko.md) | **English**
+
+---
+
+## v1.33.6 (2026-04-17)
+
+### Windows build · BLAST regression · filename scheme · recovery flow fixes
+
+**Windows build mismatch** (`package.json`)
+- Bumped `@tauri-apps/plugin-dialog` npm spec from `^2.2.0` to `^2.7.0` to match the Rust crate v2.7.0 major/minor
+- Previous lockfile pinned v2.6.0 while the Rust side resolved to v2.7.0, causing `tauri build` to fail with a version-mismatch check
+
+**Sidecar Python 3.11 compatibility** (`python-core/sidecar/models.py`, `kuro/benchmark.py`)
+- Switched `typing.TypedDict` → `typing_extensions.TypedDict`
+- Pydantic 2.12 requires the `typing_extensions` variant on Python < 3.12; PyInstaller binaries built against Python 3.11 crashed immediately with `PydanticUserError`
+- `typing_extensions` is already a Pydantic dependency, so no extra install is needed
+
+**UniProt BLAST regression** (`python-core/sidecar/core.py`, `python-core/sidecar/handlers/external.py`)
+- v1.33.0 removed the hardcoded BLAST email; when the user had not configured one, EBI returned the job as `ERROR`, BLAST silently failed, and the UniProt candidate list fell back to gene-name text search — populating the panel mostly with low-identity (30–50%) hits
+- `_get_contact_email()` now falls back to `kuro-app@example.com` when neither `KURO_CONTACT_EMAIL` nor `~/.kuro/config.json` `contact_email` is set
+- BLAST request always carries an email; users can override via env or config
+
+**UniProt auto-selection criterion restored** (`src/store/slices/diversitySlice.ts`)
+- v1.30.0 began auto-filling `candidates[0]` unconditionally, which selected low-similarity hits after BLAST failures
+- Frontend now honors backend `auto_selected` (set only when the top BLAST hit is ≥95% identity); otherwise it shows the candidate-count hint and leaves the selection to the user
+
+**PlateMap button layout** (`src/components/widgets/PlateMap.tsx`)
+- Previous: `Forward | Reverse | ──── Export Mapping | Plate N/M`
+- New: `Forward | Reverse | Plate N/M | ──── Export Mapping`
+- With a single plate, the nav is hidden and the Export Mapping button stays anchored to the right edge
+
+**Automatic export filenames** (`src/lib/filename.ts` new, `src/components/layout/export-handlers.ts`)
+- Scheme: `YYMMDD_<gene>_<target>_<Nmut>[_<plate>].<ext>`
+- Examples: `260417_MmoX_IDT_96mut.csv`, `260417_Q50L36_Echo_192mut.xlsx`
+- Gene token cascade: selected CDS gene name → if `ORF1`/empty, UniProt accession → FASTA/GenBank header first token → loaded-file stem → `seq`
+- Applied to IDT, Twist, Echo, JANUS, full KURO Excel, workspace, and benchmark exports
+
+**EVOLVEpro CSV cap and failure recovery** (`python-core/sidecar/models.py`, `src/components/panels/ParameterPanel.tsx`, `src/store/slices/designSlice.ts`)
+- Pydantic caps on `top_n` / `round_size` / `n_select` raised from 960 to 10000 (≈10 plates → ≈100 plates)
+- UI `maxLimit` default matches the new ceiling
+- On CSV load failure the handler clears `mutationText`, which disables the Design button; adjusting the mutation count now auto-triggers a reload when an EVOLVEpro CSV path is still on record (`evolveproTotalCount === 0` + empty `mutationText`), letting users recover without re-opening the file dialog
+
+---
+
+## v1.33.5 (2026-04-17)
+
+### Mapping Export — Settings Dialog + PlateMap Shortcut Button
+
+**Export settings dialog** (`src/components/dialogs/MappingExportDialog.tsx`)
+- New dialog shown before saving any liquid handler mapping file
+- Machine selector: Echo 525 / JANUS toggle (pre-selected by whichever menu item was clicked)
+- Transfer Volume input with machine-appropriate defaults, units, and range (Echo: 100 nL, 50–5000 nL; JANUS: 2.0 µL, 0.5–10 µL)
+- Echo volumes above 500 nL display a split-row hint (e.g. `(2 transfers × ≤500 nL)`)
+- File format annotation: `.xlsx` = layout reference for humans; `.csv` = machine upload input
+
+**Dual-file export** (`src/components/layout/export-handlers.ts`)
+- Both `.xlsx` and `.csv` are now created in one export action — user picks a base filename, both files are written to the same directory
+- Previously only XLSX was produced; CSV was an alternative selection
+- `transfer_vol` is now included in every `export_mapping` sidecar request (was silently omitted)
+
+**PlateMap shortcut button** (`src/components/widgets/PlateMap.tsx`)
+- "Export Mapping..." button added to the right end of the PlateMap tab row
+- Opens the same settings dialog without going through File → menu
+- Only rendered when plate mappings exist (PlateMap itself is hidden otherwise)
+
+**Echo 500 nL per-transfer limit** (`kuro/plate_mapper.py`)
+- `_ECHO_MAX_TRANSFER_NL = 500` constant and `_split_echo_volume()` helper added
+- Echo 525 allows a maximum of 500 nL per single acoustic transfer event; volumes above this threshold are split into multiple rows in the mapping file (low-repeat transfers to the same destination well)
+- Applied to both `export_echo_mapping_csv()` and `export_echo_mapping_xlsx()` (forward and reverse transfer rows)
+- Example: 1000 nL → two rows of 500 nL each; 600 nL → 500 + 100
 
 ---
 

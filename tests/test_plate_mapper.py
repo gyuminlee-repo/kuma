@@ -9,6 +9,7 @@ import pytest
 
 from kuro.plate_mapper import (
     PlateMapping,
+    _split_echo_volume,
     deduplicate_reverse,
     export_echo_mapping_csv,
     export_idt_csv,
@@ -203,6 +204,11 @@ class Test384WellConversion:
 
 
 class TestEchoMappingExport:
+    def test_split_echo_volume_above_single_transfer_limit(self):
+        assert _split_echo_volume(1000) == [500, 500]
+        assert _split_echo_volume(600) == [500, 100]
+        assert _split_echo_volume(300) == [300]
+
     def test_row_count(self, sdm_results, tmp_path):
         fwd, rev = generate_plate_map(sdm_results, deduplicate_rev=True)
         rev_groups = deduplicate_reverse(sdm_results)
@@ -251,6 +257,20 @@ class TestEchoMappingExport:
             next(reader)
             for row in reader:
                 assert row[6] == "100"
+
+    def test_transfer_vol_split_rows_above_echo_limit(self, sdm_results, tmp_path):
+        fwd, rev = generate_plate_map(sdm_results, deduplicate_rev=True)
+        rev_groups = deduplicate_reverse(sdm_results)
+        csv_path = tmp_path / "echo_split.csv"
+        export_echo_mapping_csv(fwd, rev, csv_path, transfer_vol=600, rev_groups=rev_groups)
+
+        with open(csv_path, encoding="utf-8") as f:
+            reader = csv.reader(f)
+            next(reader)
+            rows = list(reader)
+
+        assert len(rows) == 1 + (len(fwd) * 4) - 1
+        assert {row[6] for row in rows} == {"500", "100"}
 
     def test_fwd_source_well_odd_rows(self, sdm_results, tmp_path):
         fwd, rev = generate_plate_map(sdm_results, deduplicate_rev=True)

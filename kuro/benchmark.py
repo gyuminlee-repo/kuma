@@ -5,7 +5,7 @@ from __future__ import annotations
 import random
 import re
 from itertools import combinations
-from typing import TypedDict
+from typing_extensions import TypedDict
 
 from .alphafold import ca_max_dist, pairwise_ca_distance
 from .evolvepro import domain_aware_select, pareto_diversity_select

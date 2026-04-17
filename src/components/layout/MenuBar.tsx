@@ -17,15 +17,15 @@ import {
 } from "../ui/dropdown-menu";
 import { getCrashLog } from "../../lib/crashLog";
 import {
-  handleExportEchoMapping,
   handleExportExcel,
   handleExportIdtOrder,
-  handleExportJanusMapping,
+  handleExportMappingWithParams,
   handleExportTwistOrder,
   handleSaveWorkspace,
   handleLoadWorkspace,
   handleOpenSequence,
 } from "./export-handlers";
+import { MappingExportDialog } from "../dialogs/MappingExportDialog";
 
 const MOD_KEY = navigator.userAgent.includes("Mac") ? "\u2318" : "Ctrl+";
 
@@ -33,6 +33,8 @@ export function MenuBar() {
   const hasDesignResults = useAppStore((s) => s.designResults.length > 0);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [crashCopied, setCrashCopied] = useState(false);
+  const [mappingDialogOpen, setMappingDialogOpen] = useState(false);
+  const [mappingDialogFormat, setMappingDialogFormat] = useState<"echo" | "janus">("echo");
 
   async function handleCopyCrashLog() {
     const log = getCrashLog();
@@ -99,13 +101,13 @@ export function MenuBar() {
             </DropdownMenuItem>
             <DropdownMenuItem className="h-px bg-gray-200 my-1 p-0" disabled />
             <DropdownMenuItem
-              onClick={handleExportEchoMapping}
+              onClick={() => { setMappingDialogFormat("echo"); setMappingDialogOpen(true); }}
               disabled={!hasDesignResults}
             >
               Export Echo Mapping...
             </DropdownMenuItem>
             <DropdownMenuItem
-              onClick={handleExportJanusMapping}
+              onClick={() => { setMappingDialogFormat("janus"); setMappingDialogOpen(true); }}
               disabled={!hasDesignResults}
             >
               Export JANUS Mapping...
@@ -127,7 +129,17 @@ export function MenuBar() {
         </DropdownMenu>
       </div>
 
-      <Dialog open={aboutOpen} onOpenChange={(open) => {
+      <MappingExportDialog
+        open={mappingDialogOpen}
+        initialFormat={mappingDialogFormat}
+        onOpenChange={setMappingDialogOpen}
+        onExport={({ format, transferVol }) => {
+          setMappingDialogOpen(false);
+          handleExportMappingWithParams(format, { transferVol });
+        }}
+      />
+
+      <Dialog open={aboutOpen} onOpenChange={(open: boolean) => {
         setAboutOpen(open);
         if (!open) {
           setCrashCopied(false);

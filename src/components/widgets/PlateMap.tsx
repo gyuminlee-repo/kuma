@@ -3,6 +3,9 @@ import { useShallow } from "zustand/react/shallow";
 import { useAppStore } from "../../store/appStore";
 import { reorderMappings, getSortedMutations, wellName } from "../../lib/plate-utils";
 import type { PlateMapping } from "../../types/models";
+import { Button } from "../ui/button";
+import { MappingExportDialog } from "../dialogs/MappingExportDialog";
+import { handleExportMappingWithParams } from "../layout/export-handlers";
 
 const ROWS = ["A", "B", "C", "D", "E", "F", "G", "H"];
 const COLS = Array.from({ length: 12 }, (_, i) => i + 1);
@@ -201,6 +204,7 @@ export function PlateMap() {
   const sortedMutations = useSortedMutations();
   const [activeTab, setActiveTab] = useState<"fwd" | "rev">("fwd");
   const [page, setPage] = useState(0);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
 
   const pairs = useMemo(() => buildPairsFromStore(plateMappings, dedupInfo, sortedMutations), [plateMappings, dedupInfo, sortedMutations]);
   const safeIdx = Math.min(page, Math.max(0, pairs.length - 1));
@@ -266,6 +270,17 @@ export function PlateMap() {
             </button>
           </div>
         )}
+
+        <div className="ml-auto">
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-[10px] h-6 px-2"
+            onClick={() => setExportDialogOpen(true)}
+          >
+            Export Mapping...
+          </Button>
+        </div>
       </div>
 
       {activeTab === "fwd" ? (
@@ -283,6 +298,15 @@ export function PlateMap() {
           </span>
         )}
       </div>
+
+      <MappingExportDialog
+        open={exportDialogOpen}
+        onOpenChange={setExportDialogOpen}
+        onExport={({ format, transferVol }) => {
+          setExportDialogOpen(false);
+          handleExportMappingWithParams(format, { transferVol });
+        }}
+      />
     </div>
   );
 }

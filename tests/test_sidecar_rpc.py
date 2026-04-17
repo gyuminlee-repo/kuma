@@ -637,6 +637,48 @@ class TestExportMapping:
         finally:
             Path(tmp_path).unlink(missing_ok=True)
 
+    def test_export_mapping_rejects_fractional_echo_transfer_volume(self, designed_primers):
+        with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as f:
+            tmp_path = f.name
+        try:
+            plate_resp = _rpc("get_plate_map")
+            plate = plate_resp["result"]
+            resp = _rpc(
+                "export_mapping",
+                {
+                    "filepath": tmp_path,
+                    "format": "echo",
+                    "transfer_vol": 100.5,
+                    "mappings": plate["mappings"],
+                    "dedup_info": plate["dedup_info"],
+                },
+            )
+            assert "error" in resp
+            assert "whole number" in resp["error"]["message"]
+        finally:
+            Path(tmp_path).unlink(missing_ok=True)
+
+    def test_export_mapping_rejects_non_positive_janus_transfer_volume(self, designed_primers):
+        with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as f:
+            tmp_path = f.name
+        try:
+            plate_resp = _rpc("get_plate_map")
+            plate = plate_resp["result"]
+            resp = _rpc(
+                "export_mapping",
+                {
+                    "filepath": tmp_path,
+                    "format": "janus",
+                    "transfer_vol": 0,
+                    "mappings": plate["mappings"],
+                    "dedup_info": plate["dedup_info"],
+                },
+            )
+            assert "error" in resp
+            assert "greater than 0" in resp["error"]["message"]
+        finally:
+            Path(tmp_path).unlink(missing_ok=True)
+
 
 class TestRetryFailedMutation:
     def test_retry_accepts_current_design_context_params(self, loaded_fasta):

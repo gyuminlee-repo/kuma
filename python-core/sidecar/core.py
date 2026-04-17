@@ -98,12 +98,21 @@ def _get_config() -> dict[str, object]:
     return _config_cache
 
 
-def _get_contact_email() -> str | None:
+_DEFAULT_CONTACT_EMAIL = "kuro-app@example.com"
+
+
+def _get_contact_email() -> str:
+    """Return user-configured contact email or a placeholder.
+
+    EBI BLAST REST requires an email parameter; omitting it causes job
+    submissions to fail with ERROR status. Users can override via the
+    KURO_CONTACT_EMAIL env var or contact_email in ~/.kuro/config.json.
+    """
     raw = os.environ.get("KURO_CONTACT_EMAIL", "").strip()
     if raw:
         return raw
     config_email = str(_get_config().get("contact_email", "")).strip()
-    return config_email or None
+    return config_email or _DEFAULT_CONTACT_EMAIL
 
 
 @dataclass

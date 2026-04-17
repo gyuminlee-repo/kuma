@@ -318,14 +318,16 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
         known_accession: knownAccession,
       }, 120_000);
       if (searchGeneration !== uniprotSearchGeneration) return;
-      // Auto-select top result
+      // Auto-fill only when backend confirms high-identity match (≥95%)
+      const acc = result.auto_selected ?? "";
       const top = result.candidates[0];
-      const acc = top?.accession ?? "";
       let statusMsg = "UniProt: no matching entries found";
       if (result.error_detail && result.candidates.length === 0) {
         statusMsg = `UniProt search error: ${result.error_detail}`;
-      } else if (top) {
-        statusMsg = `UniProt: auto-selected ${top.accession} (${top.identity.toFixed(1)}% identity)`;
+      } else if (acc && top) {
+        statusMsg = `UniProt: auto-matched ${acc} (${top.identity.toFixed(1)}% identity)`;
+      } else if (result.candidates.length > 0) {
+        statusMsg = `UniProt: ${result.candidates.length} candidate(s) found — select manually`;
       }
       const structureMatches = acc !== "" && get().structureAccession === acc;
       set({

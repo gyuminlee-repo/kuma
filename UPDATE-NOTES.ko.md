@@ -1,6 +1,74 @@
-# KURO 업데이트 노트 — v0.9.5 → v1.33.05
+# KURO 업데이트 노트 — v0.9.5 → v1.33.6
 
 **한국어** | [English](UPDATE-NOTES.md)
+
+---
+
+## v1.33.6 (2026-04-17)
+
+### Windows 빌드 · BLAST 회귀 · 파일명 · 복구 흐름 수정
+
+**Windows 빌드 오류 해결** (`package.json`)
+- `@tauri-apps/plugin-dialog` npm 버전을 `^2.7.0`으로 상향 — Rust crate v2.7.0과 major/minor 일치 강제
+- 기존 `^2.2.0` 사양은 lockfile에 v2.6.0으로 고정되어 `tauri build` 시 mismatch 에러 발생
+
+**Sidecar Python 3.11 호환성** (`python-core/sidecar/models.py`, `kuro/benchmark.py`)
+- `typing.TypedDict` → `typing_extensions.TypedDict` 전환
+- Pydantic 2.12가 Python < 3.12에서는 `typing_extensions` 버전을 요구해 바이너리 실행 시 즉시 크래시(`PydanticUserError`)가 발생하던 회귀 수정
+- `typing_extensions`는 Pydantic 의존성에 이미 포함되어 추가 설치 불필요
+
+**UniProt BLAST 회귀 수정** (`python-core/sidecar/core.py`, `python-core/sidecar/handlers/external.py`)
+- v1.33.0에서 BLAST 요청의 하드코딩 이메일을 제거했으나, 사용자 설정 이메일이 없으면 EBI가 job을 ERROR로 반환 → BLAST 실패 → gene_exact 텍스트 검색만 남아 유사도 30–50% 후보들이 후보 목록의 대부분을 차지
+- `_get_contact_email()`이 사용자 미설정 시 `kuro-app@example.com` 기본값을 반환하도록 복원
+- 사용자가 `KURO_CONTACT_EMAIL` 환경변수 또는 `~/.kuro/config.json`의 `contact_email`로 오버라이드 가능
+
+**UniProt 자동선택 기준 복구** (`src/store/slices/diversitySlice.ts`)
+- v1.30.0에서 `result.auto_selected`(≥95% identity) 대신 무조건 `candidates[0]`를 자동 선택하도록 변경되어, 낮은 유사도 후보가 자동 채워지던 문제 복구
+- 백엔드 `auto_selected`가 있을 때만 자동 채움, 그 외에는 수동 선택 유도 메시지 표시
+
+**PlateMap 버튼 레이아웃** (`src/components/widgets/PlateMap.tsx`)
+- 이전: `Forward | Reverse | ──── Export Mapping | Plate N/M`
+- 변경: `Forward | Reverse | Plate N/M | ──── Export Mapping`
+- 플레이트가 1장이면 네비게이션이 숨겨지고 Export Mapping 버튼이 우측 끝 유지
+
+**Export 파일명 자동 생성** (`src/lib/filename.ts` 신규, `src/components/layout/export-handlers.ts`)
+- 형식: `YYMMDD_<gene>_<target>_<Nmut>[_<plate>].<ext>`
+- 예: `260417_MmoX_IDT_96mut.csv`, `260417_Q50L36_Echo_192mut.xlsx`
+- Gene 토큰 cascade fallback: 선택된 CDS gene name → `ORF1`/빈값이면 UniProt accession → FASTA/GenBank header 첫 토큰 → 로드한 파일명 stem → `seq`
+- IDT/Twist/Echo/JANUS/KURO Excel/workspace/benchmark 모든 export 경로에 적용
+
+**EVOLVEpro CSV 상한 및 복구 흐름** (`python-core/sidecar/models.py`, `src/components/panels/ParameterPanel.tsx`, `src/store/slices/designSlice.ts`)
+- Pydantic 상한 `top_n`/`round_size`/`n_select` 960 → 10000 (10 플레이트 → 100 플레이트 상당)
+- UI `maxLimit` 기본값도 동일하게 10000으로 상향
+- CSV 로드 실패 시 `mutationText`가 비워져 Design 버튼이 비활성화되던 stuck 상태 복구 — `setMaxPrimers` 호출 시 CSV 경로가 남아있고 `evolveproTotalCount=0`이면 자동 재로드하여 사용자가 변이 개수만 조정해도 복구됨
+
+---
+
+## v1.33.5 (2026-04-17)
+
+### Mapping Export — 설정 다이얼로그 + PlateMap 단축 버튼
+
+**Export 설정 다이얼로그** (`src/components/dialogs/MappingExportDialog.tsx`)
+- 액체 핸들러 매핑 파일 저장 전에 표시되는 신규 설정 다이얼로그
+- Machine 선택: Echo 525 / JANUS 토글 (메뉴에서 열 때 해당 기기 미리 선택됨)
+- Transfer Volume 입력 — 기기별 기본값·단위·범위 자동 적용 (Echo: 100 nL, 50–5000 nL; JANUS: 2.0 µL, 0.5–10 µL)
+- Echo에서 500 nL 초과 시 분할 횟수 힌트 표시 (예: `(2 transfers × ≤500 nL)`)
+- 파일 형식 설명: `.xlsx` = 사람이 확인하는 레이아웃 참조; `.csv` = 기기 업로드용 머신 인풋
+
+**파일 두 개 동시 생성** (`src/components/layout/export-handlers.ts`)
+- Export 한 번에 `.xlsx`와 `.csv` 모두 같은 경로에 생성 — 기존에는 XLSX만 생성되고 CSV는 별도 선택 필요
+- `transfer_vol`이 모든 `export_mapping` 사이드카 요청에 포함됨 (기존에는 전송되지 않아 백엔드 기본값만 사용)
+
+**PlateMap 단축 버튼** (`src/components/widgets/PlateMap.tsx`)
+- PlateMap 탭 행 우측 끝에 "Export Mapping..." 버튼 추가
+- File 메뉴를 거치지 않고 동일한 설정 다이얼로그를 바로 열 수 있음
+- PlateMap이 표시되는 경우(매핑 데이터 존재 시)에만 렌더링됨
+
+**Echo 1회 트랜스퍼 500 nL 제한** (`kuro/plate_mapper.py`)
+- `_ECHO_MAX_TRANSFER_NL = 500` 상수 및 `_split_echo_volume()` 헬퍼 추가
+- Echo 525는 1회 acoustic transfer당 최대 500 nL 제한이 있으며, 초과 시 동일 목적지 well에 대한 행을 여러 개로 분할(low-repeat 방식)
+- `export_echo_mapping_csv()` 및 `export_echo_mapping_xlsx()`의 forward/reverse 전송 행 모두에 적용
+- 예시: 1000 nL → 500 nL 행 2개; 600 nL → 500 + 100 행 2개
 
 ---
 

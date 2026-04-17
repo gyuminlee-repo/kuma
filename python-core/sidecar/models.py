@@ -13,7 +13,9 @@ Usage in handlers::
     # access as p.fasta_path, p.polymerase, etc.
 """
 
-from typing import Any, Literal, Optional, TypedDict
+from typing import Any, Literal, Optional
+
+from typing_extensions import TypedDict
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -229,7 +231,7 @@ class ExcludedRange(BaseModel):
 
 class LoadEvolveproParams(BaseModel):
     filepath: str = ""
-    top_n: int = Field(default=96, ge=0, le=960)
+    top_n: int = Field(default=96, ge=0, le=10000)
     max_per_position: int = Field(default=0, ge=0)
     domains: list[DomainEntry] = Field(default_factory=list)
     excluded_ranges: list[ExcludedRange] = Field(default_factory=list)
@@ -244,7 +246,7 @@ class LoadEvolveproParams(BaseModel):
     distance_mode: Literal["auto", "1d", "3d"] = "auto"
     structure_accession: Optional[str] = None
     evolvepro_round: int = Field(default=0, ge=0)
-    round_size: int = Field(default=96, ge=1, le=960)
+    round_size: int = Field(default=96, ge=1, le=10000)
 
 
 class LandscapeEntry(BaseModel):
@@ -255,7 +257,7 @@ class LandscapeEntry(BaseModel):
 class RunBenchmarkParams(BaseModel):
     landscape: list[LandscapeEntry] = Field(default_factory=list)
     ground_truth: dict[str, float] = Field(default_factory=dict)
-    n_select: int = Field(default=95, ge=1, le=960)
+    n_select: int = Field(default=95, ge=1, le=10000)
     n_random_trials: int = Field(default=100, ge=1, le=1000)
     top_percentile: float = Field(default=10.0, gt=0.0, le=100.0)
     strategies: list[str] = Field(default_factory=lambda: ["topn", "random", "pareto_1d", "pareto_3d", "pareto_entropy"])

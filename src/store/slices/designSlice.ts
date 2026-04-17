@@ -374,7 +374,22 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
   },
 
   setCodonStrategy: (strategy) => set({ codonStrategy: strategy }),
-  setMaxPrimers: (n) => set({ maxPrimers: Math.max(1, n) }),
+  setMaxPrimers: (n) => {
+    const clamped = Math.max(1, n);
+    const state = get();
+    const prev = state.maxPrimers;
+    set({ maxPrimers: clamped });
+    // If an EVOLVEpro CSV failed to load (mutationText cleared but path retained),
+    // re-trigger load so user can recover by adjusting the mutation count.
+    const isEvolvepro =
+      state.mutationInputMode === "evolvepro" || state.mutationInputMode === "multi-evolve";
+    const loadFailed =
+      isEvolvepro && !!state.evolveproCsvPath && state.evolveproTotalCount === 0 &&
+      !state.mutationText.trim();
+    if (loadFailed && clamped !== prev) {
+      void state.loadEvolveproCsv(state.evolveproCsvPath!);
+    }
+  },
 
   setTmTargets: (fwd: number, rev: number, ov: number) => {
     set({ tmFwdTarget: fwd, tmRevTarget: rev, tmOverlapTarget: ov });
