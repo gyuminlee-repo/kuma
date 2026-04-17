@@ -76,7 +76,7 @@ EVOLVEpro 또는 MULTI-evolve CSV 로드 시 어떤 mutation을 프라이머 설
 9. HP 컬럼 클릭 → hairpin/homodimer 상세 (Tm, dG)
 10. File → Export Excel / Save Workspace
 
-상세 설명은 [사용자 가이드](USER-GUIDE.ko.md) 참조.
+상세 설명은 [문서](docs/README.ko.md) 참조.
 
 ## 라이선스
 

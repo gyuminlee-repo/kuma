@@ -77,7 +77,7 @@ Download the latest installer from [Releases](https://github.com/gyuminlee-repo/
 9. Click the HP column → hairpin/homodimer details (Tm, dG)
 10. File → Export Excel / Save Workspace
 
-For detailed instructions, see the [User Guide](USER-GUIDE.md).
+For detailed instructions, see the [Documentation](docs/README.md).
 
 ## License
 

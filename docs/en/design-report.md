@@ -1,0 +1,20 @@
+# Design Report
+
+![Design Report dialog](../screenshots/16-design-report.png)
+
+Post-design summary dialog. Opens automatically after a successful run and via Help menu → *Design Report*.
+
+## Sections
+
+1. **Input summary** — sequence name, gene, mutation count, mode (text / EVOLVEpro / multi-evolve)
+2. **Parameter snapshot** — polymerase, Tm / GC / length, codon strategy
+3. **Pipeline stats** (EVOLVEpro modes only) — per-step counts (Step 1 top-N, Step 2 diversity, Step 3 Pareto/entropy)
+4. **Domain stats** — picks vs quota per domain
+5. **Rescue stats** — count of primers rescued at each tolerance step
+6. **Failures** — list of mutations that failed all rescue attempts with reasons
+
+## Use
+
+Gives an auditable record of what the design actually did — useful for lab notebook entries and troubleshooting unexpected plate compositions.
+
+*Stub — report screenshot coming.*
