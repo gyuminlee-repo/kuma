@@ -220,12 +220,17 @@ export const screenStates: ScreenState[] = [
   },
   {
     name: "07-uniprot-candidates",
-    caption: "UniProt candidate list with AlphaFold badges",
+    caption: "UniProt candidate list (EVOLVEpro mode + pipeline active)",
     state: {
       fastaPath: "C:\\samples\\sample_plasmid.gb",
       seqInfo: mockSeqInfo,
       selectedGene: "1957",
-      mutationText: "",
+      mutationInputMode: "evolvepro",
+      evolveproCsvPath: "C:\\samples\\sample_evolvepro.csv",
+      mutationText: evolveMutationText,
+      parsedMutations,
+      pipelineMode: true,
+      evolveproTotalCount: 95,
       uniprotSearching: false,
       uniprotCandidates: [
         { accession: "Q50L36", name: "mmoX", organism: "Methylococcus capsulatus", length: 527, identity: 99.8, has_structure: true },
@@ -342,6 +347,89 @@ export const screenStates: ScreenState[] = [
         statusMessage: "192/192 designed",
       };
     })(),
+  },
+  {
+    name: "14-polymerase-editor",
+    caption: "Custom Polymerase Editor dialog",
+    state: {
+      fastaPath: "C:\\samples\\sample_plasmid.gb",
+      seqInfo: mockSeqInfo,
+      selectedGene: "1957",
+      isDesigning: false,
+    },
+    action: `
+      const btn = [...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Custom Polymerase');
+      if (btn) btn.click();
+    `,
+  },
+  {
+    name: "15-benchmark-dialog",
+    caption: "Benchmark dialog — strategy comparison",
+    state: {
+      fastaPath: "C:\\samples\\sample_plasmid.gb",
+      seqInfo: mockSeqInfo,
+      selectedGene: "1957",
+      showBenchmark: true,
+      benchmarkResults: null,
+      isDesigning: false,
+    },
+  },
+  {
+    name: "16-design-report",
+    caption: "Design Report dialog",
+    state: {
+      fastaPath: "C:\\samples\\sample_plasmid.gb",
+      seqInfo: mockSeqInfo,
+      selectedGene: "1957",
+      mutationInputMode: "evolvepro",
+      mutationText: evolveMutationText,
+      designResults: mockDesignResults,
+      plateMappings: mockPlateMappings,
+      dedupInfo: mockDedupInfo,
+      successCount: mockDesignResults.length,
+      totalCount: 95,
+      failedMutations: [] as FailedMutation[],
+      showReport: true,
+      progress: 100,
+      isDesigning: false,
+    },
+  },
+  {
+    name: "17-mapping-export-dialog",
+    caption: "Mapping Export dialog (Echo/JANUS)",
+    state: {
+      fastaPath: "C:\\samples\\sample_plasmid.gb",
+      seqInfo: mockSeqInfo,
+      selectedGene: "1957",
+      designResults: mockDesignResults,
+      plateMappings: mockPlateMappings,
+      dedupInfo: mockDedupInfo,
+      successCount: mockDesignResults.length,
+      totalCount: 95,
+      isDesigning: false,
+    },
+    action: `
+      const btn = [...document.querySelectorAll('button')].find(b => b.textContent.trim().startsWith('Export Mapping'));
+      if (btn) btn.click();
+    `,
+  },
+  {
+    name: "18-primer-popover",
+    caption: "Primer candidate popover (Fwd click)",
+    state: {
+      fastaPath: "C:\\samples\\sample_plasmid.gb",
+      seqInfo: mockSeqInfo,
+      selectedGene: "1957",
+      designResults: mockDesignResults,
+      plateMappings: mockPlateMappings,
+      successCount: mockDesignResults.length,
+      totalCount: 95,
+      isDesigning: false,
+    },
+    action: `
+      const cells = document.querySelectorAll('td [class*="font-mono"], td [class*="cursor-pointer"]');
+      if (cells.length) cells[0].click();
+    `,
   },
   {
     name: "13-menu-bar",
