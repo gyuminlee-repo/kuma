@@ -201,4 +201,165 @@ export const screenStates: ScreenState[] = [
       isDesigning: false,
     },
   },
+  {
+    name: "06-parameter-advanced",
+    caption: "Parameter panel — Advanced options expanded",
+    state: {
+      fastaPath: "C:\\samples\\sample_plasmid.gb",
+      seqInfo: mockSeqInfo,
+      selectedGene: "1957",
+      mutationInputMode: "text",
+      mutationText: "Q232A\nY233A\nE335A",
+      statusMessage: "Ready",
+      isDesigning: false,
+    },
+    action: `
+      const btn = [...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Advanced options...');
+      if (btn) btn.click();
+    `,
+  },
+  {
+    name: "07-uniprot-candidates",
+    caption: "UniProt candidate list with AlphaFold badges",
+    state: {
+      fastaPath: "C:\\samples\\sample_plasmid.gb",
+      seqInfo: mockSeqInfo,
+      selectedGene: "1957",
+      mutationText: "",
+      uniprotSearching: false,
+      uniprotCandidates: [
+        { accession: "Q50L36", name: "mmoX", organism: "Methylococcus capsulatus", length: 527, identity: 99.8, has_structure: true },
+        { accession: "P22869", name: "mmoX", organism: "Methylosinus trichosporium", length: 527, identity: 88.5, has_structure: true },
+        { accession: "A0A0H5B7Q3", name: "mmoX", organism: "Methylocystis parvus", length: 525, identity: 84.2, has_structure: false },
+      ],
+      uniprotAccession: "Q50L36",
+      statusMessage: "UniProt: auto-matched Q50L36 (99.8% identity)",
+    },
+  },
+  {
+    name: "08-diversity-position",
+    caption: "Position diversity enabled (EVOLVEpro mode)",
+    state: {
+      fastaPath: "C:\\samples\\sample_plasmid.gb",
+      seqInfo: mockSeqInfo,
+      selectedGene: "1957",
+      mutationInputMode: "evolvepro",
+      evolveproCsvPath: "C:\\samples\\sample_evolvepro.csv",
+      mutationText: evolveMutationText,
+      positionDiversityEnabled: true,
+      maxPerPosition: 2,
+      evolveproTotalCount: 95,
+      statusMessage: "Position diversity: max 2 per position",
+    },
+  },
+  {
+    name: "09-diversity-domain",
+    caption: "Domain diversity with InterPro domains fetched",
+    state: {
+      fastaPath: "C:\\samples\\sample_plasmid.gb",
+      seqInfo: mockSeqInfo,
+      selectedGene: "1957",
+      mutationInputMode: "evolvepro",
+      uniprotAccession: "Q50L36",
+      domainDiversityEnabled: true,
+      domainStrategy: "proportional",
+      domains: [
+        { name: "MMO_hydroxylase_alpha_N", id: "IPR003430", start: 10, end: 180, db: "interpro" },
+        { name: "MMO_hydroxylase_alpha_C", id: "IPR012348", start: 190, end: 380, db: "interpro" },
+        { name: "MMO_hydroxylase_alpha_tail", id: "IPR008969", start: 385, end: 510, db: "interpro" },
+      ],
+      domainStats: {
+        "MMO_hydroxylase_alpha_N-10": { quota: 30, selected: 28 },
+        "MMO_hydroxylase_alpha_C-190": { quota: 45, selected: 45 },
+        "MMO_hydroxylase_alpha_tail-385": { quota: 20, selected: 19 },
+      },
+      statusMessage: "Domain diversity: 3 domains, proportional",
+    },
+  },
+  {
+    name: "10-designing",
+    caption: "Design in progress — progress bar active",
+    state: {
+      fastaPath: "C:\\samples\\sample_plasmid.gb",
+      seqInfo: mockSeqInfo,
+      selectedGene: "1957",
+      mutationInputMode: "evolvepro",
+      mutationText: evolveMutationText,
+      parsedMutations,
+      isDesigning: true,
+      progress: 45,
+      statusMessage: "Designing primers... (42/95)",
+    },
+  },
+  {
+    name: "11-failed-rows",
+    caption: "Result table with failed mutations (red rows)",
+    state: {
+      fastaPath: "C:\\samples\\sample_plasmid.gb",
+      seqInfo: mockSeqInfo,
+      selectedGene: "1957",
+      mutationInputMode: "evolvepro",
+      mutationText: evolveMutationText,
+      designResults: mockDesignResults.slice(0, 90),
+      failedMutations: [
+        { mutation: "C361R", reason: "Tm out of range (fwd 71.2°C > target 62°C + 3)" },
+        { mutation: "H376S", reason: "Hairpin ΔG below threshold" },
+        { mutation: "F372N", reason: "No valid primer pair within GC range" },
+      ] as FailedMutation[],
+      plateMappings: mockPlateMappings,
+      dedupInfo: mockDedupInfo,
+      successCount: 90,
+      totalCount: 95,
+      progress: 100,
+      isDesigning: false,
+      statusMessage: "90/95 designed | 3 failed, 2 rescued",
+    },
+  },
+  {
+    name: "12-plate-multi",
+    caption: "Multi-plate navigation (192 mutations = 2 plates)",
+    state: (() => {
+      const extended = [...mockDesignResults, ...mockDesignResults].slice(0, 192).map((r, i) => ({ ...r, mutation: `M${i+1}` }));
+      const plates = extended.map((r, i) => ({
+        well: wellName(i % 96),
+        primer_name: `${r.mutation}_F`,
+        sequence: r.forward_seq,
+        primer_type: "forward" as const,
+        mutation: r.mutation,
+      }));
+      return {
+        fastaPath: "C:\\samples\\sample_plasmid.gb",
+        seqInfo: mockSeqInfo,
+        selectedGene: "1957",
+        mutationInputMode: "evolvepro",
+        designResults: extended,
+        plateMappings: plates,
+        dedupInfo: {},
+        successCount: 192,
+        totalCount: 192,
+        progress: 100,
+        isDesigning: false,
+        statusMessage: "192/192 designed",
+      };
+    })(),
+  },
+  {
+    name: "13-menu-bar",
+    caption: "File menu expanded",
+    state: {
+      fastaPath: "C:\\samples\\sample_plasmid.gb",
+      seqInfo: mockSeqInfo,
+      selectedGene: "1957",
+      designResults: mockDesignResults,
+      plateMappings: mockPlateMappings,
+      dedupInfo: mockDedupInfo,
+      successCount: mockDesignResults.length,
+      totalCount: 95,
+      isDesigning: false,
+    },
+    action: `
+      const fileBtn = [...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'File');
+      if (fileBtn) fileBtn.click();
+    `,
+  },
 ];
