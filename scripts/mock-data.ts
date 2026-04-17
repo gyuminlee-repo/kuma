@@ -349,6 +349,58 @@ export const screenStates: ScreenState[] = [
     })(),
   },
   {
+    name: "19-gene-dropdown",
+    caption: "Gene selection dropdown (multi-CDS GenBank)",
+    state: {
+      fastaPath: "C:\\samples\\multi_cds.gb",
+      seqInfo: {
+        ...mockSeqInfo,
+        header: "Multi-CDS plasmid with 3 genes (5000 bp)",
+      },
+      selectedGene: "1957",
+      statusMessage: "Loaded: Multi-CDS plasmid (5000 bp) | 3 gene(s) | Target: synR",
+      isDesigning: false,
+    },
+    action: `
+      const sel = document.querySelector('select[id*="gene" i]') || [...document.querySelectorAll('select')].find(s => s.options.length > 1);
+      if (sel) { sel.focus(); sel.size = sel.options.length; }
+    `,
+  },
+  {
+    name: "20-pipeline-full",
+    caption: "Full pipeline: EVOLVEpro + position + domain + Pareto",
+    state: {
+      fastaPath: "C:\\samples\\sample_plasmid.gb",
+      seqInfo: mockSeqInfo,
+      selectedGene: "1957",
+      mutationInputMode: "evolvepro",
+      evolveproCsvPath: "C:\\samples\\sample_evolvepro.csv",
+      mutationText: evolveMutationText,
+      parsedMutations,
+      pipelineMode: true,
+      evolveproTotalCount: 95,
+      positionDiversityEnabled: true,
+      maxPerPosition: 2,
+      domainDiversityEnabled: true,
+      domainStrategy: "proportional",
+      uniprotAccession: "Q50L36",
+      domains: [
+        { name: "MMO_hydroxylase_alpha_N", id: "IPR003430", start: 10, end: 180, db: "interpro" },
+        { name: "MMO_hydroxylase_alpha_C", id: "IPR012348", start: 190, end: 380, db: "interpro" },
+      ],
+      domainStats: {
+        "MMO_hydroxylase_alpha_N-10": { quota: 35, selected: 34 },
+        "MMO_hydroxylase_alpha_C-190": { quota: 55, selected: 55 },
+      },
+      paretoDiversityEnabled: true,
+      entropyWeightEnabled: true,
+      entropyWeight: 0.3,
+      paretoPoolMultiplier: 2.0,
+      distanceMode: "auto",
+      statusMessage: "Pipeline: Top-N → Position+Domain → Pareto+Entropy (95)",
+    },
+  },
+  {
     name: "14-polymerase-editor",
     caption: "Custom Polymerase Editor dialog",
     state: {
