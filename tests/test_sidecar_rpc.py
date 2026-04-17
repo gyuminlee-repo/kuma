@@ -38,29 +38,37 @@ def _dispatch_and_parse(request: dict, timeout: float = 30.0) -> dict:
     """Call dispatch() and capture the JSON response from stdout.
 
     For async methods that run in background threads, waits up to *timeout*
-    seconds for the response to appear on the redirected stdout.
+    seconds for a response message matching the request id to appear. Skips
+    intermediate `progress` notifications so the returned value is always
+    the final result or error object.
     """
     import time as _time
-    import threading
 
+    req_id = request.get("id")
     buf = io.StringIO()
     old_stdout = sys.stdout
     sys.stdout = buf
     try:
         dispatch(request)
-        # Wait for response — async methods write from background threads
         deadline = _time.monotonic() + timeout
         while _time.monotonic() < deadline:
-            if buf.getvalue().strip():
-                break
-            _time.sleep(0.1)
+            raw = buf.getvalue()
+            for ln in raw.split("\n"):
+                ln = ln.strip()
+                if not ln:
+                    continue
+                try:
+                    msg = json.loads(ln)
+                except json.JSONDecodeError:
+                    continue
+                if msg.get("id") == req_id and ("result" in msg or "error" in msg):
+                    return msg
+            _time.sleep(0.05)
     finally:
         sys.stdout = old_stdout
-    raw = buf.getvalue().strip()
-    # dispatch may emit multiple lines (progress + result); take the last one
-    lines = [ln for ln in raw.split("\n") if ln.strip()]
-    assert lines, "dispatch produced no output"
-    return json.loads(lines[-1])
+    raise AssertionError(
+        f"no response with id={req_id} within {timeout}s; stdout={buf.getvalue()!r}"
+    )
 
 
 def _rpc(method: str, params: dict | None = None, req_id: int = 1) -> dict:
