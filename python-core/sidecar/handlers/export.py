@@ -102,14 +102,21 @@ def handle_export_excel(params: dict) -> dict:
     if p.mappings:
         mappings = _pydantic_to_plate_mappings(p.mappings)
         rev_groups = dedup_data or {}
+        with _core._state_lock:
+            results_for_export = list(_core._state.results)
     else:
         with _core._state_lock:
             if not _core._state.results:
                 raise ValueError("No design available")
             mappings = _core._state.plate_mappings
             rev_groups = _core._state.dedup_info
+            results_for_export = list(_core._state.results)
 
-    export_plate_excel(mappings, resolved, rev_groups=rev_groups)
+    export_plate_excel(
+        mappings, resolved,
+        rev_groups=rev_groups,
+        results=results_for_export,
+    )
     return {"success": True, "filepath": str(resolved)}
 
 

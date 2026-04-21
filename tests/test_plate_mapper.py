@@ -349,3 +349,150 @@ class TestJanusMappingExport:
             next(reader)
             for row in reader:
                 assert float(row[8]) == 2.0
+
+
+class TestExpectedMutationsSheet:
+    """Tests for _write_expected_mutations_sheet and integration into export_plate_excel."""
+
+    def _make_sdm_result(self, raw: str, wt_aa: str, position: int, mt_aa: str,
+                          wt_codon: str, mt_codon: str, group_id=None):
+        """Build a minimal SdmPrimerResult for testing."""
+        from kuro.mutation import Mutation
+        from kuro.overlap import OverlapWindow
+        from kuro.sdm_engine import SdmPrimerResult
+
+        mut = Mutation(
+            raw=raw,
+            wt_aa=wt_aa,
+            position=position,
+            mt_aa=mt_aa,
+            codon_start=0,
+            wt_codon=wt_codon,
+            mt_codon=mt_codon,
+            group_id=group_id,
+        )
+        window = OverlapWindow(sequence="AAATTTCCC", start=0, end=9, codon_offset=3)
+        return SdmPrimerResult(
+            mutation=mut,
+            forward_seq="AAATTTCCCGGG",
+            reverse_seq="CCCGGGAAATTT",
+            forward_binding="AAATTT",
+            reverse_binding="CCCGGG",
+            overlap_window=window,
+            tm_fwd=60.0,
+            tm_rev=58.0,
+            tm_overlap=55.0,
+            tm_condition_met=True,
+        )
+
+    def _make_mock_results(self):
+        """
+        Construct 4 SdmPrimerResult objects:
+          - V5F   (single, group_id=None)
+          - K53N  (single, group_id=None)
+          - A40P  (multi, group_id="A40P/E61Y")
+          - E61Y  (multi, group_id="A40P/E61Y")
+
+        Note: spec §7 example stated 3 results but yielded max_row==4 inconsistency.
+        A40P/E61Y multi-mutation produces two separate SdmPrimerResult objects
+        (one per sub-Mutation), so the correct fixture is 4 results → max_row == 5.
+        """
+        return [
+            self._make_sdm_result("V5F", "V", 5, "F", "GTG", "TTT"),
+            self._make_sdm_result("K53N", "K", 53, "N", "AAG", "AAC"),
+            self._make_sdm_result("A40P", "A", 40, "P", "GCG", "CCG", group_id="A40P/E61Y"),
+            self._make_sdm_result("E61Y", "E", 61, "Y", "GAA", "TAT", group_id="A40P/E61Y"),
+        ]
+
+    def test_write_expected_mutations_sheet_basic(self):
+        """4 DESIGNED results (incl. 1 multi-mutation group) → expected_mutations 시트 검증."""
+        from openpyxl import Workbook
+        from kuro.plate_mapper import _write_expected_mutations_sheet
+
+        mock_results = self._make_mock_results()
+        wb = Workbook()
+        _write_expected_mutations_sheet(wb, mock_results)
+
+        # 시트 존재 확인
+        assert "expected_mutations" in wb.sheetnames
+
+        ws = wb["expected_mutations"]
+
+        # 헤더 행 확인
+        headers = [c.value for c in ws[1]]
+        assert headers == [
+            "mutant_id", "position", "wt_aa", "mt_aa",
+            "wt_codon", "mt_codon", "group_id", "primer_set_ref",
+            "notation_type", "status",
+        ]
+
+        # 데이터 행 수 확인: header(1) + 4 data rows = 5
+        assert ws.max_row == 5
+
+        # 모든 행 notation_type, status 상수 확인
+        for row in ws.iter_rows(min_row=2, values_only=True):
+            assert row[8] == "substitution"
+            assert row[9] == "DESIGNED"
+
+        # 단일 변이(V5F)의 group_id는 빈 문자열
+        data_rows = list(ws.iter_rows(min_row=2, values_only=True))
+        v5f_row = next(r for r in data_rows if r[0] == "V5F")
+        assert v5f_row[6] == ""
+
+        # multi-mutation group_id 확인
+        a40p_row = next(r for r in data_rows if r[0] == "A40P")
+        e61y_row = next(r for r in data_rows if r[0] == "E61Y")
+        assert a40p_row[6] == "A40P/E61Y"
+        assert e61y_row[6] == "A40P/E61Y"
+
+        # primer_set_ref == mutant_id
+        for row in data_rows:
+            assert row[0] == row[7], f"primer_set_ref mismatch for {row[0]}"
+
+    def test_export_plate_excel_without_results_no_extra_sheet(self, sdm_results, tmp_path):
+        """results=None のとき expected_mutations シートが生成されない (하위 호환 확인)."""
+        from openpyxl import load_workbook
+
+        fwd_map, rev_map = generate_plate_map(sdm_results)
+        xlsx_path = tmp_path / "no_extra.xlsx"
+        export_plate_excel(fwd_map + rev_map, xlsx_path)  # results 생략
+
+        wb = load_workbook(xlsx_path)
+        assert "expected_mutations" not in wb.sheetnames
+        # 기존 4개 시트는 그대로
+        assert "Fwd List" in wb.sheetnames
+        assert "Fwd Plate" in wb.sheetnames
+        assert "Rev List" in wb.sheetnames
+        assert "Rev Plate" in wb.sheetnames
+
+    def test_cmd_design_xlsx_has_expected_mutations_sheet(self, sdm_results, tmp_path):
+        """export_plate_excel(results=...) 직접 호출 → 생성된 xlsx에 5번째 시트 확인."""
+        from openpyxl import load_workbook
+        from kuro.plate_mapper import deduplicate_reverse
+
+        rev_groups = deduplicate_reverse(sdm_results)
+        fwd_map, rev_map = generate_plate_map(sdm_results, deduplicate_rev=True)
+        xlsx_path = tmp_path / "with_expected.xlsx"
+        export_plate_excel(fwd_map + rev_map, xlsx_path, rev_groups=rev_groups, results=sdm_results)
+
+        wb = load_workbook(xlsx_path)
+        assert "expected_mutations" in wb.sheetnames
+
+        ws = wb["expected_mutations"]
+        assert ws.max_row >= 2  # 최소 1건 이상
+
+        # 헤더 정확성 확인
+        headers = [c.value for c in ws[1]]
+        assert headers == [
+            "mutant_id", "position", "wt_aa", "mt_aa",
+            "wt_codon", "mt_codon", "group_id", "primer_set_ref",
+            "notation_type", "status",
+        ]
+
+        # 모든 데이터 행의 상수 컬럼 검증
+        for row in ws.iter_rows(min_row=2, values_only=True):
+            assert row[8] == "substitution"
+            assert row[9] == "DESIGNED"
+
+        # expected_mutations 시트가 마지막 시트
+        assert wb.sheetnames[-1] == "expected_mutations"

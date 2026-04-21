@@ -57,7 +57,11 @@ def cmd_design(args: argparse.Namespace) -> None:
     rev_groups = deduplicate_reverse(results)
     fwd_map, rev_map = generate_plate_map(results, deduplicate_rev=True)
     xlsx_path = output_dir / "plate_mapping.xlsx"
-    export_plate_excel(fwd_map + rev_map, xlsx_path, rev_groups=rev_groups)
+    export_plate_excel(
+        fwd_map + rev_map, xlsx_path,
+        rev_groups=rev_groups,
+        results=results,
+    )
     logging.info("Plate mapping saved to %s", xlsx_path)
 
     # Summary

@@ -305,10 +305,50 @@ def _pair_rev_per_plate(
     return paired
 
 
+
+def _write_expected_mutations_sheet(
+    wb,                        # openpyxl.Workbook
+    results: list,             # list[SdmPrimerResult]
+) -> None:
+    """Append 'expected_mutations' sheet to workbook.
+
+    One row per Mutation from DESIGNED results.
+    Multi-notation (A40P/E61Y) produces one row per sub-mutation;
+    they are linked via group_id.
+    FAILED mutations excluded in Phase 1.
+
+    Sheet columns (in order):
+        mutant_id, position, wt_aa, mt_aa, wt_codon, mt_codon,
+        group_id, primer_set_ref, notation_type, status
+    """
+    HEADERS = [
+        "mutant_id", "position", "wt_aa", "mt_aa",
+        "wt_codon", "mt_codon", "group_id", "primer_set_ref",
+        "notation_type", "status",
+    ]
+    ws = wb.create_sheet("expected_mutations")
+    ws.append(HEADERS)
+    for r in results:
+        m = r.mutation
+        ws.append([
+            m.raw,
+            m.position,
+            m.wt_aa,
+            m.mt_aa,
+            m.wt_codon,
+            m.mt_codon,
+            m.group_id or "",
+            m.raw,           # primer_set_ref == Mutation.raw
+            "substitution",  # notation_type: Phase 1 constant
+            "DESIGNED",      # status: Phase 1 constant
+        ])
+
+
 def export_plate_excel(
     mappings: list[PlateMapping],
     output_path: Path,
     rev_groups: dict[str, list[str]] | None = None,
+    results: list | None = None,  # list[SdmPrimerResult] — Phase 1 신규
 ) -> None:
     """Export plate mappings to Excel with per-plate sheets.
 
@@ -360,6 +400,10 @@ def export_plate_excel(
 
         ws = wb.create_sheet(f"Rev Plate{tag}")
         _write_plate_sheet(ws, rev_chunk, _COLOR_REV, rev_groups=chunk_rev_groups)
+
+    # Phase 1: append expected_mutations sheet when results are provided
+    if results:
+        _write_expected_mutations_sheet(wb, results)
 
     wb.save(output_path)
 
