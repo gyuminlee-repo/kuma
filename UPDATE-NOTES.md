@@ -1,6 +1,31 @@
-# KURO Update Notes — v0.9.5 → v1.33.6
+# KURO Update Notes — v0.9.5 → v1.34.0
 
 [한국어](UPDATE-NOTES.ko.md) | **English**
+
+---
+
+## v1.34.0 (2026-04-21)
+
+### `expected_mutations` sheet in plate map xlsx (Phase 1)
+
+Plate map Excel export now appends a 5th sheet named `expected_mutations` as a machine-readable data contract for the external NGS-decision tool. The first four sheets (`Fwd List`, `Fwd Plate`, `Rev List`, `Rev Plate`) are unchanged.
+
+**Sheet schema** (10 columns, one row per designed mutation):
+`mutant_id`, `position`, `wt_aa`, `mt_aa`, `wt_codon`, `mt_codon`, `group_id`, `primer_set_ref`, `notation_type`, `status`
+
+- Multi-notation inputs (e.g. `A40P/E61Y`) produce one row per sub-mutation, linked via `group_id`.
+- `notation_type` is always `"substitution"` in Phase 1; KURO primer design is substitution-only.
+- `status` is always `"DESIGNED"` in Phase 1. FAILED rows are deferred to Phase 2 (requires `SidecarState.failed_reasons`).
+
+**Code changes**
+- `kuro/plate_mapper.py`: new `_write_expected_mutations_sheet` helper; `export_plate_excel` signature gains `results: list | None = None` (backward compatible — existing callers unchanged).
+- `python-core/sidecar/handlers/export.py`: `handle_export_excel` forwards `_state.results` to `export_plate_excel` under `_state_lock`.
+- `kuro/cli.py`: `cmd_design` passes `results` through.
+- `tests/test_plate_mapper.py`: 3 new tests (`TestExpectedMutationsSheet`) — 35 passed.
+
+**Backward compatibility**
+- `results=None` default preserves every existing call site (no new sheet created).
+- Old KURO xlsx files without the sheet raise a clear `ValueError` in the downstream ngs-decision reader (intentional — no silent fallback).
 
 ---
 

@@ -1,6 +1,31 @@
-# KURO 업데이트 노트 — v0.9.5 → v1.33.6
+# KURO 업데이트 노트 — v0.9.5 → v1.34.0
 
 **한국어** | [English](UPDATE-NOTES.md)
+
+---
+
+## v1.34.0 (2026-04-21)
+
+### plate map xlsx에 `expected_mutations` 시트 추가 (Phase 1)
+
+plate map Excel export에 5번째 시트 `expected_mutations`를 추가한다. 외부 NGS-decision 툴이 기대 변이 목록을 기계적으로 소비하기 위한 데이터 계약 시트. 기존 4개 시트(`Fwd List`, `Fwd Plate`, `Rev List`, `Rev Plate`)는 변경 없음.
+
+**시트 스키마** (10 컬럼, DESIGNED 변이 1건당 1행):
+`mutant_id`, `position`, `wt_aa`, `mt_aa`, `wt_codon`, `mt_codon`, `group_id`, `primer_set_ref`, `notation_type`, `status`
+
+- multi-notation 입력(예: `A40P/E61Y`)은 서브 변이당 1행으로 분리, `group_id`로 연결 추적.
+- Phase 1에서 `notation_type`은 항상 `"substitution"` — KURO primer 설계는 substitution 전용.
+- Phase 1에서 `status`는 항상 `"DESIGNED"`. FAILED 행은 Phase 2로 연기(`SidecarState.failed_reasons` 필드 추가 필요).
+
+**코드 변경**
+- `kuro/plate_mapper.py`: `_write_expected_mutations_sheet` 헬퍼 신규 추가. `export_plate_excel`에 `results: list | None = None` 파라미터 확장 (하위 호환).
+- `python-core/sidecar/handlers/export.py`: `handle_export_excel`이 `_state_lock` 내에서 `_state.results`를 `export_plate_excel`로 전달.
+- `kuro/cli.py`: `cmd_design` CLI 경로에서 `results` 전달.
+- `tests/test_plate_mapper.py`: `TestExpectedMutationsSheet` 신규 3 테스트 (35 passed).
+
+**하위 호환**
+- `results=None` 기본값으로 기존 호출부 모두 동작 (시트 미생성).
+- 시트가 없는 구버전 xlsx를 ngs-decision이 읽으면 명시적 `ValueError` 발생 — 의도적으로 silent fallback 없음.
 
 ---
 
