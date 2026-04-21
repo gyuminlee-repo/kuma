@@ -1,6 +1,20 @@
-# KURO Update Notes — v0.9.5 → v1.34.0
+# KURO Update Notes — v0.9.5 → v1.34.2
 
 [한국어](UPDATE-NOTES.ko.md) | **English**
+
+---
+
+## v1.34.2 (2026-04-21)
+
+### UniProt BLAST polling window extended
+
+**Problem**: `handle_search_uniprot` polled EBI BLAST status for only 20 × 3s = 60s. When EBI experienced queue backlogs (observed 3–5 min today), the loop exited with `status_text` still `QUEUED`/`RUNNING`, the `if status_text == "FINISHED":` guard skipped result parsing silently, and downstream fell through to low-quality gene-name text search fallback. Users perceived this as "UniProt search not working" with no error surfaced.
+
+**Fix** (`python-core/sidecar/handlers/external.py:192`):
+- Polling window extended: 60s → 300s (5 min) to tolerate EBI queue backlogs
+- `for…else` clause now raises `RuntimeError("BLAST timed out after 300s (last status: …)")` when the loop exhausts without `FINISHED`. Existing `except Exception` at L230 captures it into `last_error`, surfacing the cause to the frontend `error_detail` field instead of silent failure.
+
+No behavioral change when BLAST finishes within 5 min. Gene-name text search fallback still runs on timeout.
 
 ---
 

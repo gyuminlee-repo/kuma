@@ -189,7 +189,7 @@ def handle_search_uniprot(params: dict) -> dict:
                 job_id = resp.read().decode().strip()
 
             status_text = ""
-            for _ in range(20):
+            for _ in range(100):  # was range(20); 100*3s = 300s (5 min) to tolerate EBI queue backlogs
                 time.sleep(3)
                 status_text, _ = _fetch_text(
                     f"https://www.ebi.ac.uk/Tools/services/rest/ncbiblast/status/{job_id}"
@@ -198,6 +198,9 @@ def handle_search_uniprot(params: dict) -> dict:
                     break
                 if status_text in ("FAILURE", "ERROR", "NOT_FOUND"):
                     raise RuntimeError(f"BLAST job failed: {status_text}")
+            else:
+                # loop exhausted without FINISHED — EBI queue backlog
+                raise RuntimeError(f"BLAST timed out after 300s (last status: {status_text or 'UNKNOWN'})")
 
             if status_text == "FINISHED":
                 result_data, err = _fetch_json(

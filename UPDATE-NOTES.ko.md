@@ -1,6 +1,20 @@
-# KURO 업데이트 노트 — v0.9.5 → v1.34.0
+# KURO 업데이트 노트 — v0.9.5 → v1.34.2
 
 **한국어** | [English](UPDATE-NOTES.md)
+
+---
+
+## v1.34.2 (2026-04-21)
+
+### UniProt BLAST 폴링 윈도우 연장
+
+**문제**: `handle_search_uniprot`의 EBI BLAST 상태 폴링이 20 × 3s = 60초만 기다림. EBI 큐 백로그 시(오늘 실측 3~5분+) 루프가 `status_text`=`QUEUED`/`RUNNING` 상태로 종료 → `if status_text == "FINISHED":` 가드로 결과 파싱 skip → 저품질 gene-name text search fallback만 남음. 사용자에게는 아무 에러도 노출되지 않고 "검색 안 됨"으로 보임.
+
+**수정** (`python-core/sidecar/handlers/external.py:192`):
+- 폴링 윈도우 60s → 300s (5분)로 연장, EBI 큐 백로그 허용
+- `for…else`로 FINISHED 없이 루프 소진 시 `RuntimeError("BLAST timed out after 300s (last status: …)")` 발생. 기존 L230 `except Exception`이 수거하여 `last_error`에 기록 → 프론트 `error_detail`로 원인 노출 (silent fail 제거).
+
+5분 내 BLAST 완료 시 동작 변화 없음. 타임아웃 시에도 gene-name text search fallback은 그대로 실행.
 
 ---
 
