@@ -124,8 +124,8 @@ export function ResultTable() {
   if (designResults.length === 0) {
     if (totalCount > 0 && failedMutations.length > 0) {
       return (
-        <div className="h-full overflow-auto p-4">
-          <div className="text-sm text-red-600 font-semibold mb-2">
+        <div className="h-full overflow-auto p-5">
+          <div className="mb-2 text-sm font-semibold text-red-600">
             All {totalCount} mutations failed
           </div>
           <FailedMutationList failedMutations={failedMutations} onSelect={setFailedPopover} />
@@ -142,8 +142,16 @@ export function ResultTable() {
     }
 
     return (
-      <div className="flex items-center justify-center h-full text-gray-400 text-sm">
-        Load a sequence file (FASTA / SnapGene) and enter mutations to design SDM primers
+      <div className="flex h-full items-center justify-center p-8">
+        <div className="max-w-md rounded-[24px] border border-dashed border-slate-300 bg-[linear-gradient(180deg,rgba(255,251,235,0.9),rgba(248,250,252,0.9))] px-6 py-8 text-center shadow-sm">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">No Design Yet</div>
+          <div className="mt-3 text-lg font-semibold text-slate-900">
+            Load a sequence, define mutations, then run a batch design.
+          </div>
+          <div className="mt-2 text-sm leading-6 text-slate-500">
+            This view becomes the central review surface for ranked primers, rescue candidates, and failure diagnostics.
+          </div>
+        </div>
       </div>
     );
   }
@@ -151,17 +159,17 @@ export function ResultTable() {
   return (
     <div className="h-full overflow-auto">
       <table className="w-full text-xs border-collapse">
-        <thead className="sticky top-0 bg-gray-50 z-10">
+        <thead className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur">
           {table.getHeaderGroups().map((hg) => (
             <tr key={hg.id}>
               {hg.headers.map((header) => (
                 <th
                   key={header.id}
-                  className={`px-2 py-1.5 text-left font-semibold text-gray-600 border-b border-gray-300 ${
-                    header.column.getCanSort() ? "cursor-pointer select-none hover:bg-gray-100" : ""
+                  className={`border-b border-slate-200 px-2 py-2 text-left font-semibold text-slate-600 ${
+                    header.column.getCanSort() ? "cursor-pointer select-none hover:bg-amber-50" : ""
                   }`}
                   style={{ width: header.getSize() }}
-                  title={(header.column.columnDef.meta as Record<string, string> | undefined)?.tooltip ?? HEADER_TOOLTIPS[header.column.id] ?? ""}
+                  title={header.column.columnDef.meta?.tooltip ?? HEADER_TOOLTIPS[header.column.id] ?? ""}
                   onClick={header.column.getToggleSortingHandler()}
                 >
                   {flexRender(header.column.columnDef.header, header.getContext())}
@@ -178,10 +186,10 @@ export function ResultTable() {
             return (
               <tr
                 key={row.id}
-                className={`hover:bg-gray-50 border-b border-gray-100 ${isSwapped ? "border-l-3 border-l-amber-400" : ""}`}
+                className={`border-b border-slate-100 hover:bg-slate-50 ${isSwapped ? "border-l-3 border-l-amber-400 bg-amber-50/30" : ""}`}
               >
                 {row.getVisibleCells().map((cell) => {
-                  const meta = cell.column.columnDef.meta as Record<string, unknown> | undefined;
+                  const meta = cell.column.columnDef.meta;
                   const showClickable = !!meta?.clickable;
                   return (
                     <td
@@ -200,15 +208,15 @@ export function ResultTable() {
       </table>
 
       {failedMutations.length > 0 && (
-        <div className="border-t border-gray-200 bg-red-50 px-3 py-2">
-          <div className="text-xs font-semibold text-red-700 mb-1">
+        <div className="border-t border-red-200 bg-red-50 px-3 py-2">
+          <div className="mb-1 text-xs font-semibold text-red-700">
             Failed ({failedMutations.length}/{totalCount})
           </div>
           <FailedMutationList failedMutations={failedMutations} onSelect={setFailedPopover} />
         </div>
       )}
 
-      <div className="border-t border-gray-200 bg-gray-50 px-3 py-1.5 text-[10px] text-gray-400">
+      <div className="border-t border-slate-200 bg-slate-50 px-3 py-2 text-[10px] text-slate-500">
         {successCount}/{totalCount} designed
         {failedMutations.length > 0 && ` | ${failedMutations.length} failed`}
       </div>

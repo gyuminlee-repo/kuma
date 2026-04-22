@@ -55,78 +55,84 @@ export function MenuBar() {
 
   return (
     <>
-      <div className="flex items-center gap-1 px-4 py-1 bg-gray-100 border-b border-gray-300 text-xs">
-        <span className="font-black text-sm mr-4 text-gray-900 tracking-wide">
-          KURO
-        </span>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="px-2 py-0.5 hover:bg-gray-200 rounded">
-              File
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start">
-            <DropdownMenuItem onClick={handleOpenSequence}>
-              <span className="flex-1">Open Sequence...</span>
-              <kbd className="ml-4 text-[10px] text-gray-400">{MOD_KEY}O</kbd>
-            </DropdownMenuItem>
-            <DropdownMenuItem className="h-px bg-gray-200 my-1 p-0" disabled />
-            <DropdownMenuItem onClick={handleSaveWorkspace}>
-              <span className="flex-1">Save Workspace...</span>
-              <kbd className="ml-4 text-[10px] text-gray-400">{MOD_KEY}S</kbd>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleLoadWorkspace}>
-              Load Workspace...
-            </DropdownMenuItem>
-            <DropdownMenuItem className="h-px bg-gray-200 my-1 p-0" disabled />
-            <DropdownMenuItem
-              onClick={handleExportExcel}
-              disabled={!hasDesignResults}
-            >
-              <span className="flex-1">Export Excel...</span>
-              <kbd className="ml-4 text-[10px] text-gray-400">{MOD_KEY}E</kbd>
-            </DropdownMenuItem>
-            <DropdownMenuItem className="h-px bg-gray-200 my-1 p-0" disabled />
-            <DropdownMenuItem
-              onClick={handleExportIdtOrder}
-              disabled={!hasDesignResults}
-            >
-              Export IDT Order...
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={handleExportTwistOrder}
-              disabled={!hasDesignResults}
-            >
-              Export Twist Order...
-            </DropdownMenuItem>
-            <DropdownMenuItem className="h-px bg-gray-200 my-1 p-0" disabled />
-            <DropdownMenuItem
-              onClick={() => { setMappingDialogFormat("echo"); setMappingDialogOpen(true); }}
-              disabled={!hasDesignResults}
-            >
-              Export Echo Mapping...
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => { setMappingDialogFormat("janus"); setMappingDialogOpen(true); }}
-              disabled={!hasDesignResults}
-            >
-              Export JANUS Mapping...
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+      <div className="flex items-center justify-between border-b border-slate-200/80 bg-white/70 px-5 py-3 text-xs backdrop-blur">
+        <div className="flex items-center gap-5">
+          <div>
+            <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-amber-700">KURO</div>
+            <div className="text-sm font-semibold text-slate-950">Directed Mutagenesis Workbench</div>
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="rounded-full border border-transparent px-3 py-1.5 font-medium text-slate-700 transition-colors hover:border-slate-200 hover:bg-white">
+                File
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem onClick={handleOpenSequence}>
+                <span className="flex-1">Open Sequence...</span>
+                <kbd className="ml-4 text-[10px] text-gray-400">{MOD_KEY}O</kbd>
+              </DropdownMenuItem>
+              <DropdownMenuItem className="h-px bg-gray-200 my-1 p-0" disabled />
+              <DropdownMenuItem onClick={handleSaveWorkspace}>
+                <span className="flex-1">Save Workspace...</span>
+                <kbd className="ml-4 text-[10px] text-gray-400">{MOD_KEY}S</kbd>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLoadWorkspace}>
+                Load Workspace...
+              </DropdownMenuItem>
+              <DropdownMenuItem className="h-px bg-gray-200 my-1 p-0" disabled />
+              <DropdownMenuItem
+                onClick={handleExportExcel}
+                disabled={!hasDesignResults}
+              >
+                <span className="flex-1">Export Excel...</span>
+                <kbd className="ml-4 text-[10px] text-gray-400">{MOD_KEY}E</kbd>
+              </DropdownMenuItem>
+              <DropdownMenuItem className="h-px bg-gray-200 my-1 p-0" disabled />
+              <DropdownMenuItem
+                onClick={handleExportIdtOrder}
+                disabled={!hasDesignResults}
+              >
+                Export IDT Order...
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={handleExportTwistOrder}
+                disabled={!hasDesignResults}
+              >
+                Export Twist Order...
+              </DropdownMenuItem>
+              <DropdownMenuItem className="h-px bg-gray-200 my-1 p-0" disabled />
+              <DropdownMenuItem
+                onClick={() => { setMappingDialogFormat("echo"); setMappingDialogOpen(true); }}
+                disabled={!hasDesignResults}
+              >
+                Export Echo Mapping...
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => { setMappingDialogFormat("janus"); setMappingDialogOpen(true); }}
+                disabled={!hasDesignResults}
+              >
+                Export JANUS Mapping...
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="px-2 py-0.5 hover:bg-gray-200 rounded">
-              Help
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start">
-            <DropdownMenuItem onClick={() => setAboutOpen(true)}>
-              About
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="rounded-full border border-transparent px-3 py-1.5 font-medium text-slate-700 transition-colors hover:border-slate-200 hover:bg-white">
+                Help
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem onClick={() => setAboutOpen(true)}>
+                About
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+        <div className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] font-medium text-amber-800">
+          Batch primer design for sequence-guided screening
+        </div>
       </div>
 
       <MappingExportDialog

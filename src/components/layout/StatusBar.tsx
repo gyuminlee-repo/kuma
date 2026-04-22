@@ -16,17 +16,17 @@ export function StatusBar({ sidecarStatus, onRetry }: { sidecarStatus: string; o
   );
 
   return (
-    <div className="flex items-center gap-2 px-4 py-1 bg-gray-100 border-t border-gray-300 text-xs text-gray-600">
-      <span className="flex-1 truncate">{statusMessage}</span>
+    <div className="flex items-center gap-3 border-t border-slate-200/80 bg-white/70 px-5 py-2 text-xs text-slate-600 backdrop-blur">
+      <span className="flex-1 truncate font-medium text-slate-700">{statusMessage}</span>
       {totalCount > 0 && (
-        <span className="text-gray-500">
+        <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] text-slate-600">
           {successCount}/{totalCount} designed | Tm OK: {tmOkCount}/
           {successCount}
         </span>
       )}
-      {isDesigning && <Progress value={progress} className="w-32 h-2" />}
+      {isDesigning && <Progress value={progress} className="h-2 w-36" />}
       {sidecarStatus === "error" && (
-        <span className="inline-flex items-center gap-1 bg-red-600 text-white text-[10px] px-2 py-0.5 rounded whitespace-nowrap">
+        <span className="inline-flex items-center gap-1 rounded-full bg-red-600 px-3 py-1 text-[10px] text-white whitespace-nowrap">
           Sidecar connection failed.
           <button
             className="underline font-semibold hover:text-red-200"
@@ -37,7 +37,7 @@ export function StatusBar({ sidecarStatus, onRetry }: { sidecarStatus: string; o
         </span>
       )}
       <span
-        className={`w-2 h-2 rounded-full flex-shrink-0 ${
+        className={`h-2.5 w-2.5 rounded-full flex-shrink-0 ${
           sidecarStatus === "ready"
             ? "bg-green-500"
             : sidecarStatus === "connecting"

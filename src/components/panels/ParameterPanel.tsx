@@ -1,6 +1,7 @@
 import { useEffect, useState, type ChangeEvent, type KeyboardEvent } from "react";
 import { sendRequest } from "../../lib/ipc";
-import type { PolymeraseProfile } from "../../types/models";
+import { formatError } from "../../lib/utils";
+import type { CodonStrategy, PolymeraseProfile } from "../../types/models";
 import { PolymeraseEditor } from "../dialogs/PolymeraseEditor";
 import { Button } from "../ui/button";
 import { HelpTip } from "./InputPanel/DiversitySections";
@@ -12,8 +13,12 @@ function useLocalNum(storeVal: number, fallback: number, commit: (v: number) => 
   useEffect(() => setStr(String(storeVal)), [storeVal]);
   const onChange = (e: ChangeEvent<HTMLInputElement>) => setStr(e.target.value);
   const onBlur = () => { const n = parseFloat(str); commit(!isFinite(n) ? fallback : n); };
-  const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); };
+  const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => { if (e.key === "Enter") e.currentTarget.blur(); };
   return { value: str, onChange, onBlur, onKeyDown };
+}
+
+function isCodonStrategy(value: string): value is CodonStrategy {
+  return value === "closest" || value === "optimal";
 }
 
 export function ParameterPanel() {
@@ -52,6 +57,7 @@ export function ParameterPanel() {
   const setPrimerLenRange = useAppStore((s) => s.setPrimerLenRange);
   const fillOnFailure = useAppStore((s) => s.fillOnFailure);
   const setFillOnFailure = useAppStore((s) => s.setFillOnFailure);
+  const setStatus = useAppStore((s) => s.setStatus);
 
   const tmFwdInput = useLocalNum(tmFwd, 62, (v) => setTmTargets(v, tmRev, tmOv));
   const tmRevInput = useLocalNum(tmRev, 58, (v) => setTmTargets(tmFwd, v, tmOv));
@@ -66,34 +72,34 @@ export function ParameterPanel() {
 
   const gcInvalid = gcMin >= gcMax;
 
-  const numInput = "w-16 h-6 text-xs border border-gray-300 rounded px-1 text-center focus:outline-none focus:ring-1 focus:ring-green-500";
-  const gcInputBase = "w-16 h-6 text-xs rounded px-1 text-center focus:outline-none focus:ring-1";
+  const numInput = "h-7 w-16 rounded-lg border border-slate-300 px-1 text-center text-xs focus:outline-none focus:ring-1 focus:ring-amber-500";
+  const gcInputBase = "h-7 w-16 rounded-lg px-1 text-center text-xs focus:outline-none focus:ring-1";
 
   const openCustomEditor = async () => {
     try {
-      const profile = await sendRequest<PolymeraseProfile>("get_polymerase_details", {
+      const profile = await sendRequest("get_polymerase_details", {
         name: selectedPolymerase,
       });
       setEditingPolymerase(profile);
       setPolymeraseEditorOpen(true);
-    } catch {
-      setEditingPolymerase(null);
-      setPolymeraseEditorOpen(true);
+    } catch (err) {
+      setStatus(`Polymerase load failed: ${formatError(err)}`);
     }
   };
 
   return (
-    <div className="border border-gray-300 rounded p-3 space-y-2">
-      <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
-        Parameters
-      </h3>
+    <section className="space-y-3 rounded-[24px] border border-slate-200 bg-gradient-to-b from-white to-slate-50/80 p-4 shadow-[0_10px_24px_rgba(15,23,42,0.05)]">
+      <div>
+        <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">Parameters</div>
+        <h3 className="mt-1 text-lg font-semibold text-slate-950">Design policy and constraints</h3>
+      </div>
 
       <div className="space-y-1">
         <label htmlFor="polymerase-select" className="flex items-center gap-2 text-xs">
-          <span className="w-24 text-gray-600">Polymerase:</span>
+          <span className="w-24 text-slate-600">Polymerase:</span>
           <select
             id="polymerase-select"
-            className="flex-1 min-w-0 h-7 text-xs border border-gray-300 rounded px-2 focus:outline-none focus:ring-1 focus:ring-green-500"
+            className="h-8 min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500"
             value={selectedPolymerase}
             onChange={(e) => void setSelectedPolymerase(e.target.value)}
           >
@@ -106,19 +112,23 @@ export function ParameterPanel() {
           </select>
         </label>
         <div className="flex justify-end">
-          <Button type="button" variant="outline" size="sm" onClick={() => void openCustomEditor()}>
+          <Button type="button" variant="outline" size="sm" className="rounded-lg border-slate-300 bg-white" onClick={() => void openCustomEditor()}>
             Custom Polymerase
           </Button>
         </div>
       </div>
 
       <label htmlFor="codon-strategy" className="flex items-center gap-2 text-xs" title="Min. changes = fewest nucleotide changes from WT codon. Optimal = highest-frequency codon for selected organism.">
-        <span className="w-24 text-gray-600">Codon:</span>
+        <span className="w-24 text-slate-600">Codon:</span>
         <select
           id="codon-strategy"
-          className="flex-1 min-w-0 h-7 text-xs border border-gray-300 rounded px-2 focus:outline-none focus:ring-1 focus:ring-green-500"
+          className="h-8 min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500"
           value={codonStrategy}
-          onChange={(e) => setCodonStrategy(e.target.value as "closest" | "optimal")}
+          onChange={(e) => {
+            if (isCodonStrategy(e.target.value)) {
+              setCodonStrategy(e.target.value);
+            }
+          }}
         >
           <option value="closest">Min. changes (fewest nt changes from WT)</option>
           <option value="optimal">Optimal (organism codon usage)</option>
@@ -126,17 +136,17 @@ export function ParameterPanel() {
       </label>
 
       <label className="flex items-center gap-2 text-xs" title="Target number of successful primer designs.">
-        <span className="w-24 text-gray-600">Mutations:</span>
+        <span className="w-24 text-slate-600">Mutations:</span>
         <input
           type="number"
           min={1}
           max={maxLimit}
-          className={`w-20 h-7 text-xs border rounded px-2 text-center focus:outline-none focus:ring-1 ${
-            overLimit ? "border-amber-400 focus:ring-amber-400" : "border-gray-300 focus:ring-green-500"
+          className={`h-8 w-20 rounded-xl border px-2 text-center text-xs focus:outline-none focus:ring-1 ${
+            overLimit ? "border-amber-400 focus:ring-amber-400" : "border-slate-300 focus:ring-amber-500"
           }`}
           {...maxPrimersInput}
         />
-        <span className="text-gray-400 text-[10px]">
+        <span className="text-[10px] text-slate-400">
           {Math.ceil(maxPrimers / 96)} plate(s)
         </span>
       </label>
@@ -148,51 +158,51 @@ export function ParameterPanel() {
 
       {/* Advanced Options */}
       <button
-        className="text-[10px] text-gray-400 hover:text-gray-600 underline"
+        className="text-[11px] font-medium text-slate-500 underline underline-offset-4 hover:text-slate-700"
         onClick={() => setShowAdvanced(!showAdvanced)}
       >
         {showAdvanced ? "Hide advanced" : "Advanced options..."}
       </button>
 
       {showAdvanced && (
-        <div className="pl-2 border-l-2 border-gray-200 space-y-0.5">
+        <div className="space-y-1 rounded-2xl border border-slate-200 bg-white/80 p-3">
           {/* Tm */}
-          <div className="text-[9px] uppercase text-gray-400 tracking-wider pt-0.5" title="Melting temperature targets. SantaLucia 1998 parameters.">Tm</div>
+          <div className="pt-0.5 text-[9px] uppercase tracking-wider text-slate-400" title="Melting temperature targets. SantaLucia 1998 parameters.">Tm</div>
           <div className="flex items-center gap-2 text-xs" title="Melting temperature targets. SantaLucia 1998 parameters.">
-            <span className="w-20 text-gray-500">Fwd:</span>
+            <span className="w-20 text-slate-500">Fwd:</span>
             <input type="number" className={numInput} {...tmFwdInput} />
-            <span className="text-gray-400">°C</span>
+            <span className="text-slate-400">°C</span>
           </div>
           <div className="flex items-center gap-2 text-xs" title="Melting temperature targets. SantaLucia 1998 parameters.">
-            <span className="w-20 text-gray-500">Rev:</span>
+            <span className="w-20 text-slate-500">Rev:</span>
             <input type="number" className={numInput} {...tmRevInput} />
-            <span className="text-gray-400">°C</span>
+            <span className="text-slate-400">°C</span>
           </div>
           <div className="flex items-center gap-2 text-xs" title="Melting temperature targets. SantaLucia 1998 parameters.">
-            <span className="w-20 text-gray-500">Overlap:</span>
+            <span className="w-20 text-slate-500">Overlap:</span>
             <input type="number" className={numInput} {...tmOvInput} />
-            <span className="text-gray-400">°C</span>
+            <span className="text-slate-400">°C</span>
           </div>
 
           {/* GC */}
-          <div className="text-[9px] uppercase text-gray-400 tracking-wider pt-1.5" title="Recommended range: 40-60%. Primers outside this range receive a penalty.">GC%</div>
+          <div className="pt-1.5 text-[9px] uppercase tracking-wider text-slate-400" title="Recommended range: 40-60%. Primers outside this range receive a penalty.">GC%</div>
           <div className="flex items-center gap-2 text-xs" title="Recommended range: 40-60%. Primers outside this range receive a penalty.">
-            <span className="w-20 text-gray-500">Range:</span>
+            <span className="w-20 text-slate-500">Range:</span>
             <input type="number"
-              className={`${gcInputBase} ${gcInvalid ? "border-red-400 focus:ring-red-400" : "border-gray-300 focus:ring-green-500"}`}
+              className={`${gcInputBase} ${gcInvalid ? "border-red-400 focus:ring-red-400" : "border-slate-300 focus:ring-amber-500"}`}
               {...gcMinInput} />
-            <span className="text-gray-400">~</span>
+            <span className="text-slate-400">~</span>
             <input type="number"
-              className={`${gcInputBase} ${gcInvalid ? "border-red-400 focus:ring-red-400" : "border-gray-300 focus:ring-green-500"}`}
+              className={`${gcInputBase} ${gcInvalid ? "border-red-400 focus:ring-red-400" : "border-slate-300 focus:ring-amber-500"}`}
               {...gcMaxInput} />
-            <span className="text-gray-400">%</span>
+            <span className="text-slate-400">%</span>
           </div>
           {gcInvalid && (
             <div className="text-[10px] text-red-500 pl-20">Min must be less than Max</div>
           )}
 
           {/* Primer Length */}
-          <div className="text-[9px] uppercase text-gray-400 tracking-wider pt-1.5 flex items-center gap-1">
+          <div className="flex items-center gap-1 pt-1.5 text-[9px] uppercase tracking-wider text-slate-400">
             Primer Length
             <HelpTip>
               {"KOD One PCR Master Mix\n" +
@@ -209,16 +219,16 @@ export function ParameterPanel() {
           <label className="flex items-center gap-1 text-xs cursor-pointer">
             <input
               type="checkbox"
-              className="h-3 w-3 accent-green-600"
+              className="h-3 w-3 accent-amber-600"
               checked={primerLenEnabled}
               onChange={(e) => setPrimerLenEnabled(e.target.checked)}
             />
-            <span className="text-gray-500">Limit</span>
+            <span className="text-slate-500">Limit</span>
             {primerLenEnabled && (
               <span className="flex items-center gap-1 ml-1">
-                <span className="text-gray-400">F</span>
+                <span className="text-slate-400">F</span>
                 <input type="number" className={numInput} {...fwdLenMinInput} />
-                <span className="text-gray-400">~</span>
+                <span className="text-slate-400">~</span>
                 <input type="number" className={numInput} {...fwdLenMaxInput} />
               </span>
             )}
@@ -226,11 +236,11 @@ export function ParameterPanel() {
           {primerLenEnabled && (
             <>
               <div className="flex items-center gap-1 text-xs pl-4">
-                <span className="text-gray-400 ml-3">R</span>
+                <span className="ml-3 text-slate-400">R</span>
                 <input type="number" className={numInput} {...revLenMinInput} />
-                <span className="text-gray-400">~</span>
+                <span className="text-slate-400">~</span>
                 <input type="number" className={numInput} {...revLenMaxInput} />
-                <span className="text-gray-400 text-[10px]">bp</span>
+                <span className="text-[10px] text-slate-400">bp</span>
               </div>
               {(fwdLenMin >= fwdLenMax || revLenMin >= revLenMax) && (
                 <div className="text-[10px] text-red-500 pl-8">Min must be less than Max</div>
@@ -239,15 +249,15 @@ export function ParameterPanel() {
           )}
 
           {/* Design Behavior */}
-          <div className="text-[9px] uppercase text-gray-400 tracking-wider pt-1.5">Design</div>
+          <div className="pt-1.5 text-[9px] uppercase tracking-wider text-slate-400">Design</div>
           <label className="flex items-center gap-1 text-xs cursor-pointer" title="When ON, automatically fills the requested count from extra candidates when some mutations fail.">
             <input
               type="checkbox"
-              className="h-3 w-3 accent-green-600"
+              className="h-3 w-3 accent-amber-600"
               checked={fillOnFailure}
               onChange={(e) => setFillOnFailure(e.target.checked)}
             />
-            <span className="text-gray-500">Fill on failure</span>
+            <span className="text-slate-500">Fill on failure</span>
           </label>
         </div>
       )}
@@ -258,6 +268,6 @@ export function ParameterPanel() {
         onOpenChange={setPolymeraseEditorOpen}
         onSave={saveCustomPolymerase}
       />
-    </div>
+    </section>
   );
 }
