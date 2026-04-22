@@ -88,9 +88,10 @@ export function ParameterPanel() {
   };
 
   return (
-    <section className="space-y-3 rounded-md border border-border bg-background p-3">
+    <section className="space-y-3 rounded-[20px] border border-zinc-900/8 bg-white/90 p-3 shadow-[0_10px_24px_rgba(24,24,27,0.05)]">
       <div>
-        <h3 className="text-sm font-medium text-foreground">Parameters</h3>
+        <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-zinc-500">Control</div>
+        <h3 className="text-sm font-semibold text-zinc-950">Parameters</h3>
       </div>
 
       <div className="space-y-1">

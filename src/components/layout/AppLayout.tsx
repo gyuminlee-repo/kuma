@@ -128,28 +128,28 @@ export function AppLayout() {
   }, [handleKeyDown]);
 
   return (
-    <div className={`flex h-screen flex-col ${isDragOver ? "ring-2 ring-inset ring-ring" : ""}`}>
+    <div className={`flex h-screen flex-col bg-[linear-gradient(180deg,rgba(248,244,237,0.72),rgba(244,241,235,0.9))] ${isDragOver ? "ring-2 ring-inset ring-ring" : ""}`}>
       <MenuBar />
 
       <div className="flex flex-1 overflow-hidden px-3 pb-3 pt-2">
         <div className="grid flex-1 grid-cols-[var(--sidebar-w,320px)_1fr] gap-3 overflow-hidden">
           <aside
             data-testid="sidebar"
-            className="flex min-h-0 flex-col overflow-hidden rounded-lg border border-border bg-background"
+            className="flex min-h-0 flex-col overflow-hidden rounded-[22px] border border-zinc-900/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(250,248,244,0.98))] shadow-[0_18px_38px_rgba(24,24,27,0.08)]"
           >
             <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 space-y-3">
               <InputPanel />
               <ParameterPanel />
             </div>
 
-            <div className="border-t border-border bg-muted/30 px-4 py-3">
-              <div className="mb-2 rounded-md border border-border bg-background px-3 py-2">
-                <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Status</div>
-                <div className="mt-0.5 text-sm font-medium text-foreground">{statusMessage}</div>
+            <div className="border-t border-zinc-900/8 bg-[linear-gradient(180deg,rgba(245,242,236,0.92),rgba(255,255,255,0.88))] px-4 py-3">
+              <div className="mb-2 rounded-2xl border border-zinc-900/8 bg-white/90 px-3 py-2 shadow-[0_8px_20px_rgba(24,24,27,0.06)]">
+                <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-zinc-500">Status</div>
+                <div className="mt-0.5 text-sm font-medium text-zinc-900">{statusMessage}</div>
               </div>
               <div className="flex gap-2">
                 <Button
-                  className="h-9 flex-1 rounded-md text-sm font-semibold"
+                  className="h-9 flex-1 rounded-xl text-sm font-semibold shadow-[0_10px_24px_rgba(24,24,27,0.18)]"
                   onClick={() => useAppStore.getState().designPrimers()}
                   disabled={!hasSequence || isDesigning || !hasMutationText}
                 >
@@ -167,7 +167,7 @@ export function AppLayout() {
               </div>
               <Button
                 variant="outline"
-                className="mt-2 h-8 w-full rounded-md text-sm text-muted-foreground"
+                className="mt-2 h-8 w-full rounded-xl border-zinc-300 bg-white/80 text-sm text-zinc-600"
                 onClick={() => {
                   if (hasDesignResults) {
                     setClearConfirmOpen(true);
@@ -187,10 +187,10 @@ export function AppLayout() {
             className="flex min-h-0 flex-col gap-3 overflow-hidden"
           >
             <div className="grid min-h-0 flex-1 grid-rows-[minmax(180px,0.72fr)_minmax(0,1fr)_240px] gap-3 overflow-hidden">
-              <div className="overflow-hidden rounded-lg border border-border bg-background">
-                <div className="flex items-center justify-between border-b border-border px-3 py-2">
-                  <span className="text-xs font-medium text-muted-foreground">Sequence Context</span>
-                  <span className="text-xs text-muted-foreground">
+              <div className="overflow-hidden rounded-[24px] border border-zinc-900/8 bg-white/95 shadow-[0_18px_38px_rgba(24,24,27,0.08)]">
+                <div className="flex items-center justify-between border-b border-zinc-900/8 bg-[linear-gradient(90deg,rgba(24,24,27,0.98),rgba(39,39,42,0.94))] px-3 py-2">
+                  <span className="text-xs font-medium uppercase tracking-[0.14em] text-zinc-300">Sequence Context</span>
+                  <span className="text-xs text-zinc-400">
                     {selectedGeneInfo ? `${selectedGeneInfo.gene} · ${selectedGeneInfo.aa_length} aa` : "Load a target gene"}
                   </span>
                 </div>
@@ -199,10 +199,10 @@ export function AppLayout() {
                 </div>
               </div>
 
-              <div className="min-h-0 overflow-hidden rounded-lg border border-border bg-background">
-                <div className="flex items-center justify-between border-b border-border px-3 py-2">
-                  <span className="text-xs font-medium text-muted-foreground">Design Output</span>
-                  <span className="text-xs text-muted-foreground">
+              <div className="min-h-0 overflow-hidden rounded-[24px] border border-zinc-900/8 bg-white/95 shadow-[0_18px_38px_rgba(24,24,27,0.08)]">
+                <div className="flex items-center justify-between border-b border-zinc-900/8 bg-[linear-gradient(90deg,rgba(24,24,27,0.98),rgba(39,39,42,0.94))] px-3 py-2">
+                  <span className="text-xs font-medium uppercase tracking-[0.14em] text-zinc-300">Design Output</span>
+                  <span className="text-xs text-zinc-400">
                     {hasDesignResults ? `${successCount}/${totalCount} successful` : "No results yet"}
                   </span>
                 </div>
@@ -211,10 +211,10 @@ export function AppLayout() {
                 </div>
               </div>
 
-              <div className="overflow-hidden rounded-lg border border-border bg-background">
-                <div className="flex items-center justify-between border-b border-border px-3 py-2">
-                  <span className="text-xs font-medium text-muted-foreground">Plate Plan</span>
-                  <span className="text-xs text-muted-foreground">
+              <div className="overflow-hidden rounded-[24px] border border-zinc-900/8 bg-white/95 shadow-[0_18px_38px_rgba(24,24,27,0.08)]">
+                <div className="flex items-center justify-between border-b border-zinc-900/8 bg-[linear-gradient(90deg,rgba(24,24,27,0.98),rgba(39,39,42,0.94))] px-3 py-2">
+                  <span className="text-xs font-medium uppercase tracking-[0.14em] text-zinc-300">Plate Plan</span>
+                  <span className="text-xs text-zinc-400">
                     {plateEstimate ? `${plateEstimate} plate${plateEstimate > 1 ? "s" : ""}` : "Awaiting design"}
                   </span>
                 </div>

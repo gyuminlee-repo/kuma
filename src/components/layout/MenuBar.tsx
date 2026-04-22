@@ -55,15 +55,20 @@ export function MenuBar() {
 
   return (
     <>
-      <div className="flex items-center justify-between border-b border-slate-200/80 bg-white/70 px-5 py-3 text-xs backdrop-blur">
+      <div className="flex items-center justify-between border-b border-zinc-900/10 bg-[linear-gradient(180deg,rgba(250,247,242,0.96),rgba(255,255,255,0.9))] px-5 py-3 text-xs backdrop-blur">
         <div className="flex items-center gap-5">
-          <div>
-            <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-amber-700">KURO</div>
-            <div className="text-sm font-semibold text-slate-950">Kernel for Upstream Recombination Oligodesign</div>
+          <div className="flex items-center gap-3">
+            <div className="rounded-2xl bg-zinc-950 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.34em] text-white shadow-[0_10px_24px_rgba(24,24,27,0.18)]">
+              KURO
+            </div>
+            <div>
+              <div className="text-[10px] font-semibold uppercase tracking-[0.26em] text-zinc-500">Kernel for Upstream Recombination Oligodesign</div>
+              <div className="text-sm font-semibold text-zinc-950">Directed mutagenesis workbench</div>
+            </div>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="rounded-full border border-transparent px-3 py-1.5 font-medium text-slate-700 transition-colors hover:border-slate-200 hover:bg-white">
+              <button className="rounded-full border border-transparent px-3 py-1.5 font-medium text-zinc-700 transition-colors hover:border-zinc-300 hover:bg-white">
                 File
               </button>
             </DropdownMenuTrigger>
@@ -119,7 +124,7 @@ export function MenuBar() {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="rounded-full border border-transparent px-3 py-1.5 font-medium text-slate-700 transition-colors hover:border-slate-200 hover:bg-white">
+              <button className="rounded-full border border-transparent px-3 py-1.5 font-medium text-zinc-700 transition-colors hover:border-zinc-300 hover:bg-white">
                 Help
               </button>
             </DropdownMenuTrigger>
@@ -130,7 +135,7 @@ export function MenuBar() {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-        <div className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] font-medium text-amber-800">
+        <div className="rounded-full border border-zinc-900/10 bg-zinc-950 px-3 py-1 text-[11px] font-medium text-zinc-100 shadow-[0_8px_18px_rgba(24,24,27,0.12)]">
           Batch primer design for sequence-guided screening
         </div>
       </div>

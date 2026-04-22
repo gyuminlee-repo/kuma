@@ -4,7 +4,7 @@ export function StatusBar({ sidecarStatus, onRetry }: { sidecarStatus: string; o
   const statusMessage = useAppStore((s) => s.statusMessage);
 
   return (
-    <div className="h-6 flex items-center gap-2 border-t border-border bg-muted/50 px-3 text-xs text-muted-foreground">
+    <div className="h-6 flex items-center gap-2 border-t border-zinc-900/10 bg-[linear-gradient(180deg,rgba(247,244,239,0.96),rgba(239,236,231,0.96))] px-3 text-xs text-zinc-600">
       <span className="flex-1 truncate">{statusMessage}</span>
       {sidecarStatus === "error" && (
         <span className="inline-flex items-center gap-1 text-destructive whitespace-nowrap">

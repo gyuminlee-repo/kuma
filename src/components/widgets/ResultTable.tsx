@@ -143,12 +143,12 @@ export function ResultTable() {
 
     return (
       <div className="flex h-full items-center justify-center p-8">
-        <div className="max-w-md rounded-[24px] border border-dashed border-slate-300 bg-[linear-gradient(180deg,rgba(255,251,235,0.9),rgba(248,250,252,0.9))] px-6 py-8 text-center shadow-sm">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">No Design Yet</div>
-          <div className="mt-3 text-lg font-semibold text-slate-900">
+        <div className="max-w-md rounded-[28px] border border-zinc-900/10 bg-[linear-gradient(180deg,rgba(24,24,27,0.98),rgba(52,52,57,0.96))] px-6 py-8 text-center shadow-[0_22px_50px_rgba(24,24,27,0.18)]">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-zinc-400">No Design Yet</div>
+          <div className="mt-3 text-lg font-semibold text-zinc-50">
             Load a sequence, define mutations, then run a batch design.
           </div>
-          <div className="mt-2 text-sm leading-6 text-slate-500">
+          <div className="mt-2 text-sm leading-6 text-zinc-400">
             This view becomes the central review surface for ranked primers, rescue candidates, and failure diagnostics.
           </div>
         </div>
@@ -159,14 +159,14 @@ export function ResultTable() {
   return (
     <div className="h-full overflow-auto">
       <table className="w-full text-xs border-collapse">
-        <thead className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur">
+        <thead className="sticky top-0 z-10 bg-[rgba(247,244,239,0.96)] backdrop-blur">
           {table.getHeaderGroups().map((hg) => (
             <tr key={hg.id}>
               {hg.headers.map((header) => (
                 <th
                   key={header.id}
-                  className={`border-b border-slate-200 px-2 py-2 text-left font-semibold text-slate-600 ${
-                    header.column.getCanSort() ? "cursor-pointer select-none hover:bg-amber-50" : ""
+                  className={`border-b border-zinc-900/10 px-2 py-2 text-left font-semibold text-zinc-600 ${
+                    header.column.getCanSort() ? "cursor-pointer select-none hover:bg-zinc-100/80" : ""
                   }`}
                   style={{ width: header.getSize() }}
                   title={header.column.columnDef.meta?.tooltip ?? HEADER_TOOLTIPS[header.column.id] ?? ""}
@@ -186,7 +186,7 @@ export function ResultTable() {
             return (
               <tr
                 key={row.id}
-                className={`border-b border-slate-100 hover:bg-slate-50 ${isSwapped ? "border-l-3 border-l-amber-400 bg-amber-50/30" : ""}`}
+                className={`border-b border-zinc-900/6 hover:bg-zinc-50 ${isSwapped ? "border-l-3 border-l-amber-400 bg-amber-50/30" : ""}`}
               >
                 {row.getVisibleCells().map((cell) => {
                   const meta = cell.column.columnDef.meta;
@@ -194,7 +194,7 @@ export function ResultTable() {
                   return (
                     <td
                       key={cell.id}
-                      className={`px-2 py-1 ${showClickable ? "cursor-pointer hover:bg-amber-50" : ""}`}
+                      className={`px-2 py-1 ${showClickable ? "cursor-pointer hover:bg-zinc-100/80" : ""}`}
                       onClick={showClickable ? () => handleCellClick(row.original, cell.column.id) : undefined}
                     >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -216,7 +216,7 @@ export function ResultTable() {
         </div>
       )}
 
-      <div className="border-t border-slate-200 bg-slate-50 px-3 py-2 text-[10px] text-slate-500">
+      <div className="border-t border-zinc-900/10 bg-[rgba(247,244,239,0.9)] px-3 py-2 text-[10px] text-zinc-500">
         {successCount}/{totalCount} designed
         {failedMutations.length > 0 && ` | ${failedMutations.length} failed`}
       </div>
