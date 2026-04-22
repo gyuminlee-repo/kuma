@@ -30,7 +30,7 @@ export function HelpTip({ children }: { children: React.ReactNode }) {
     <span>
       <button
         type="button"
-        className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-slate-100 text-[9px] font-bold leading-none text-slate-400 hover:bg-amber-100 hover:text-amber-700"
+        className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-muted text-[9px] font-bold leading-none text-muted-foreground hover:bg-accent hover:text-accent-foreground"
         onClick={(e) => {
           e.preventDefault();
           setOpen((p) => !p);
@@ -40,7 +40,7 @@ export function HelpTip({ children }: { children: React.ReactNode }) {
         ?
       </button>
       {open && (
-        <span className="mt-0.5 block rounded-xl border border-amber-200 bg-amber-50 px-1.5 py-1 text-[10px] leading-relaxed text-slate-600 whitespace-pre-line">
+        <span className="mt-0.5 block rounded-md border border-border bg-muted px-1.5 py-1 text-[10px] leading-relaxed text-muted-foreground whitespace-pre-line">
           {children}
         </span>
       )}
@@ -65,13 +65,13 @@ export function PipelineStep({
     <div className={`relative rounded-2xl border px-3 py-3 transition-opacity ${enabled ? "border-slate-200 bg-white/80 opacity-100" : "border-slate-200 bg-slate-50/70 opacity-60"}`}>
       <div
         className={`absolute -left-[calc(0.75rem+5px)] top-3 h-2 w-2 rounded-full border-2 ${
-          enabled ? "border-amber-500 bg-amber-500" : "border-slate-300 bg-white"
+          enabled ? "border-primary bg-primary" : "border-border bg-background"
         }`}
       />
       <label className="mb-1 flex items-center gap-1.5 cursor-pointer text-xs font-medium">
         <input
           type="checkbox"
-          className="h-3 w-3 accent-amber-600"
+          className="h-3 w-3 accent-primary"
           checked={enabled}
           onChange={(e) => onToggle(e.target.checked)}
         />
@@ -175,7 +175,7 @@ export function DomainAllocationSection(props: {
                   {d.name} ({d.start}-{d.end})
                 </span>
                 {stat && !disabled && (
-                  <span className={`ml-auto flex-shrink-0 tabular-nums ${stat.selected < stat.quota ? "text-amber-600" : "text-slate-400"}`}>
+                  <span className={`ml-auto flex-shrink-0 tabular-nums ${stat.selected < stat.quota ? "text-warning" : "text-muted-foreground"}`}>
                     {stat.selected}/{stat.quota}
                     {stat.selected < stat.quota && " \u26A0"}
                   </span>
@@ -188,7 +188,7 @@ export function DomainAllocationSection(props: {
 
       {!addingDomain ? (
         <button
-          className="text-[10px] text-amber-700 hover:text-amber-900"
+          className="text-[10px] text-muted-foreground hover:text-foreground"
           onClick={() => setAddingDomain(true)}
         >
           + Add manually
@@ -252,7 +252,7 @@ export function OptimizationSummarySection(props: {
   return (
     <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-slate-500">
       <span>{distanceBadge}</span>
-      {structureLoading && <span className="text-amber-600">(loading AlphaFold...)</span>}
+      {structureLoading && <span className="text-muted-foreground">(loading AlphaFold...)</span>}
       {structureLoaded && (
         <span className="inline-flex items-center rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-medium text-indigo-700">
           AlphaFold
@@ -477,7 +477,7 @@ export function AdvancedSettingsSection(props: {
                 <label className="flex items-center gap-1.5 cursor-pointer">
                   <input
                     type="checkbox"
-                    className="h-2.5 w-2.5 accent-amber-600"
+                    className="h-2.5 w-2.5 accent-primary"
                     checked={entropyWeightEnabled}
                     onChange={(e) => setEntropyWeightEnabled(e.target.checked)}
                   />
@@ -521,11 +521,11 @@ export function WorkspaceSection(props: {
     <div className="ml-2 mt-2 space-y-1 border-l-2 border-transparent pl-3 text-[10px] text-slate-500">
       <div className="font-semibold uppercase tracking-wide text-slate-400">Workspace</div>
       <label className="flex items-center gap-1.5 cursor-pointer">
-        <input type="checkbox" className="h-2.5 w-2.5 accent-amber-600" checked={autoRedesignOnLoad} onChange={(e) => setAutoRedesignOnLoad(e.target.checked)} />
+        <input type="checkbox" className="h-2.5 w-2.5 accent-primary" checked={autoRedesignOnLoad} onChange={(e) => setAutoRedesignOnLoad(e.target.checked)} />
         Auto re-design on load
       </label>
       <label className="flex items-center gap-1.5 cursor-pointer">
-        <input type="checkbox" className="h-2.5 w-2.5 accent-amber-600" checked={saveCache} onChange={(e) => setSaveCache(e.target.checked)} />
+        <input type="checkbox" className="h-2.5 w-2.5 accent-primary" checked={saveCache} onChange={(e) => setSaveCache(e.target.checked)} />
         Save pipeline cache
       </label>
     </div>

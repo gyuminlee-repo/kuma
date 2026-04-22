@@ -41,7 +41,7 @@ export function SequenceInput() {
           </span>
         </div>
         {seqInfo && (
-          <div className="space-y-0.5 rounded-2xl border border-slate-200 bg-slate-50/80 p-3 text-xs text-slate-600">
+          <div className="space-y-0.5 rounded-md border border-border bg-muted/50 p-2 text-xs text-muted-foreground">
             <div className="truncate" title={seqInfo.header}>
               {seqInfo.header}
             </div>
@@ -71,7 +71,7 @@ export function SequenceInput() {
         </label>
         {seqInfo && seqInfo.genes.length > 0 ? (
           <select
-            className="h-8 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500"
+            className="h-8 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
             value={selectedGene}
             onChange={(e) => setSelectedGene(e.target.value)}
           >
@@ -104,7 +104,7 @@ export function SequenceInput() {
           Organism
         </label>
         <select
-          className="h-8 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500"
+          className="h-8 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
           value={organism}
           onChange={(e) => setOrganism(e.target.value)}
         >

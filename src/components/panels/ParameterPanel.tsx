@@ -72,7 +72,7 @@ export function ParameterPanel() {
 
   const gcInvalid = gcMin >= gcMax;
 
-  const numInput = "h-7 w-16 rounded-lg border border-slate-300 px-1 text-center text-xs focus:outline-none focus:ring-1 focus:ring-amber-500";
+  const numInput = "h-7 w-16 rounded-lg border border-slate-300 px-1 text-center text-xs focus:outline-none focus:ring-1 focus:ring-ring";
   const gcInputBase = "h-7 w-16 rounded-lg px-1 text-center text-xs focus:outline-none focus:ring-1";
 
   const openCustomEditor = async () => {
@@ -88,10 +88,9 @@ export function ParameterPanel() {
   };
 
   return (
-    <section className="space-y-3 rounded-[24px] border border-slate-200 bg-gradient-to-b from-white to-slate-50/80 p-4 shadow-[0_10px_24px_rgba(15,23,42,0.05)]">
+    <section className="space-y-3 rounded-md border border-border bg-background p-3">
       <div>
-        <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">Parameters</div>
-        <h3 className="mt-1 text-lg font-semibold text-slate-950">Design policy and constraints</h3>
+        <h3 className="text-sm font-medium text-foreground">Parameters</h3>
       </div>
 
       <div className="space-y-1">
@@ -99,7 +98,7 @@ export function ParameterPanel() {
           <span className="w-24 text-slate-600">Polymerase:</span>
           <select
             id="polymerase-select"
-            className="h-8 min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500"
+            className="h-8 min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
             value={selectedPolymerase}
             onChange={(e) => void setSelectedPolymerase(e.target.value)}
           >
@@ -122,7 +121,7 @@ export function ParameterPanel() {
         <span className="w-24 text-slate-600">Codon:</span>
         <select
           id="codon-strategy"
-          className="h-8 min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500"
+          className="h-8 min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
           value={codonStrategy}
           onChange={(e) => {
             if (isCodonStrategy(e.target.value)) {
@@ -142,7 +141,7 @@ export function ParameterPanel() {
           min={1}
           max={maxLimit}
           className={`h-8 w-20 rounded-xl border px-2 text-center text-xs focus:outline-none focus:ring-1 ${
-            overLimit ? "border-amber-400 focus:ring-amber-400" : "border-slate-300 focus:ring-amber-500"
+            overLimit ? "border-warning focus:ring-warning" : "border-slate-300 focus:ring-ring"
           }`}
           {...maxPrimersInput}
         />
@@ -151,7 +150,7 @@ export function ParameterPanel() {
         </span>
       </label>
       {overLimit && (
-        <div className="text-[10px] text-amber-600 pl-26">
+        <div className="text-[10px] text-warning pl-26">
           CSV contains only {evolveproTotalCount} variants
         </div>
       )}
@@ -189,11 +188,11 @@ export function ParameterPanel() {
           <div className="flex items-center gap-2 text-xs" title="Recommended range: 40-60%. Primers outside this range receive a penalty.">
             <span className="w-20 text-slate-500">Range:</span>
             <input type="number"
-              className={`${gcInputBase} ${gcInvalid ? "border-red-400 focus:ring-red-400" : "border-slate-300 focus:ring-amber-500"}`}
+              className={`${gcInputBase} ${gcInvalid ? "border-red-400 focus:ring-red-400" : "border-slate-300 focus:ring-ring"}`}
               {...gcMinInput} />
             <span className="text-slate-400">~</span>
             <input type="number"
-              className={`${gcInputBase} ${gcInvalid ? "border-red-400 focus:ring-red-400" : "border-slate-300 focus:ring-amber-500"}`}
+              className={`${gcInputBase} ${gcInvalid ? "border-red-400 focus:ring-red-400" : "border-slate-300 focus:ring-ring"}`}
               {...gcMaxInput} />
             <span className="text-slate-400">%</span>
           </div>
@@ -219,7 +218,7 @@ export function ParameterPanel() {
           <label className="flex items-center gap-1 text-xs cursor-pointer">
             <input
               type="checkbox"
-              className="h-3 w-3 accent-amber-600"
+              className="h-3 w-3 accent-primary"
               checked={primerLenEnabled}
               onChange={(e) => setPrimerLenEnabled(e.target.checked)}
             />
@@ -253,7 +252,7 @@ export function ParameterPanel() {
           <label className="flex items-center gap-1 text-xs cursor-pointer" title="When ON, automatically fills the requested count from extra candidates when some mutations fail.">
             <input
               type="checkbox"
-              className="h-3 w-3 accent-amber-600"
+              className="h-3 w-3 accent-primary"
               checked={fillOnFailure}
               onChange={(e) => setFillOnFailure(e.target.checked)}
             />
