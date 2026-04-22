@@ -4,26 +4,73 @@
 
 @layer base {
   :root {
-    --background: 38 75% 98%;
-    --foreground: 216 42% 12%;
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
-    --card-foreground: 216 42% 12%;
+    --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 216 42% 12%;
-    --primary: 215 47% 15%;
-    --primary-foreground: 40 33% 98%;
-    --secondary: 36 71% 95%;
-    --secondary-foreground: 216 42% 16%;
-    --muted: 32 50% 95%;
-    --muted-foreground: 214 15% 40%;
-    --accent: 39 70% 93%;
-    --accent-foreground: 216 42% 16%;
-    --destructive: 0 72% 54%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 220 13% 18%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
-    --border: 33 26% 85%;
-    --input: 33 26% 85%;
-    --ring: 36 88% 45%;
-    --radius: 0.9rem;
+    --success: 142 71% 29%;
+    --warning: 38 92% 35%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 220 13% 18%;
+    --radius: 0.5rem;
+
+    /* 밀도 */
+    --row-h-comfortable: 32px;
+    --row-h-compact: 24px;
+    --font-size-body: 14px;
+    --font-size-table: 13px;
+    --font-size-caption: 12px;
+
+    /* 공간 4px scale */
+    --space-1: 4px;   --space-2: 8px;
+    --space-3: 12px;  --space-4: 16px;
+    --space-5: 20px;  --space-6: 24px;
+    --space-8: 32px;
+
+    /* 그림자 */
+    --shadow-hairline: 0 1px 0 rgb(0 0 0 / 4%);
+    --shadow-popover: 0 8px 24px -8px rgb(0 0 0 / 14%), 0 1px 0 rgb(0 0 0 / 6%);
+    --shadow-dialog:  0 20px 40px -12px rgb(0 0 0 / 18%), 0 1px 0 rgb(0 0 0 / 8%);
+
+    /* 모션 */
+    --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+    --dur-fast: 120ms;
+    --dur-base: 180ms;
+    --dur-slow: 240ms;
+  }
+
+  [data-theme="dark"] {
+    --background: 222.2 47% 7%;
+    --foreground: 210 40% 96%;
+    --card: 222.2 47% 9%;
+    --card-foreground: 210 40% 96%;
+    --popover: 222.2 47% 11%;
+    --popover-foreground: 210 40% 96%;
+    --primary: 210 40% 96%;
+    --primary-foreground: 222.2 47% 11%;
+    --secondary: 222.2 47% 14%;
+    --secondary-foreground: 210 40% 96%;
+    --muted: 222.2 47% 14%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 222.2 47% 14%;
+    --accent-foreground: 210 40% 96%;
+    --destructive: 0 62% 50%;
+    --border: 222.2 47% 18%;
+    --input: 222.2 47% 18%;
+    --ring: 210 40% 80%;
   }
 }
 
@@ -34,22 +81,11 @@
   body {
     @apply bg-background text-foreground;
     margin: 0;
-    font-family: "Avenir Next", "Segoe UI Variable", "IBM Plex Sans KR",
-      "Pretendard", "Noto Sans KR", sans-serif;
-    min-height: 100vh;
-    background:
-      radial-gradient(circle at top left, rgba(251, 191, 36, 0.18), transparent 26%),
-      radial-gradient(circle at bottom right, rgba(148, 163, 184, 0.14), transparent 28%),
-      linear-gradient(180deg, #fffaf2 0%, #f7fbff 100%);
-    color: #142536;
-  }
-}
-
-@layer components {
-  .kuro-shell {
-    background:
-      radial-gradient(circle at top left, rgba(245, 158, 11, 0.14), transparent 22%),
-      radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 20%),
-      linear-gradient(180deg, rgba(255, 252, 246, 0.94) 0%, rgba(246, 250, 255, 0.98) 100%);
+    font-family:
+      -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI",
+      "Apple SD Gothic Neo", "Noto Sans KR", "Helvetica Neue", Arial, sans-serif;
+    font-size: var(--font-size-body);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
 }
