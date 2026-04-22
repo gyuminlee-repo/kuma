@@ -311,12 +311,15 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
     const searchGeneration = ++uniprotSearchGeneration;
     set({ uniprotSearching: true, statusMessage: "UniProt BLAST search in progress..." });
     try {
+      // Backend BLAST polling waits up to 300s for EBI queue backlogs.
+      // Keep the client timeout longer so successful long-running searches
+      // are not rejected locally before the sidecar returns.
       const result = await sendRequest<SearchUniprotResult>("search_uniprot", {
         gene_name: geneName,
         organism,
         translation,
         known_accession: knownAccession,
-      }, 120_000);
+      }, 360_000);
       if (searchGeneration !== uniprotSearchGeneration) return;
       // Auto-fill only when backend confirms high-identity match (≥95%)
       const acc = result.auto_selected ?? "";
