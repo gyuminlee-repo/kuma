@@ -26,5 +26,3 @@ When the design exceeds 96 mutations, navigation chevrons `‹ Plate N/M ›` ap
 ## Total footer
 
 Below the grid: `Total: N fwd / M rev`. Legend for shared reverse appears only when the Reverse tab is active.
-
-*Stub — single / multi-plate screenshots coming.*

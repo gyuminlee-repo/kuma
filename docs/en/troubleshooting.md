@@ -40,5 +40,3 @@ All candidate windows failed. Check:
 ## Mutation count cap exceeded
 
 Raised to 10,000 in v1.33.6. If you hit this, split the run.
-
-*More scenarios coming.*

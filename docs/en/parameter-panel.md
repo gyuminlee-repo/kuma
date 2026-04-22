@@ -29,5 +29,3 @@ Below the input: plate preview (`Math.ceil(N / 96)`).
 - **GC range**: min / max (%)
 - **Primer length range**: fwd-min/max, rev-min/max — overrides polymerase default
 - **Fill on failure**: auto-extend pool with buffer candidates when a mutation fails
-
-*Stub — expanded-panel screenshot coming.*

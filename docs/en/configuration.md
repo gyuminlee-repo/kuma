@@ -25,5 +25,3 @@ Auto-managed by [Custom Polymerase Editor](custom-polymerase-editor.md). Manual 
 ## `~/.kuro/crash.log`
 
 Last 50 sidecar-side exceptions with timestamp, method, and truncated traceback. Useful when reporting `Sidecar process exited` errors.
-
-*Stub — config sample coming.*

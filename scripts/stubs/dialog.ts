@@ -1,7 +1,4 @@
-/**
- * MOCK_MODE stub for @tauri-apps/plugin-dialog
- * No-op implementation used by Playwright capture script.
- */
+/** MOCK_MODE shims for screenshot/tutorial automation. */
 
 export interface OpenDialogOptions {
   multiple?: boolean;
@@ -18,18 +15,12 @@ export interface SaveDialogOptions {
   title?: string;
 }
 
-/**
- * open() stub — always returns null (no file selected).
- */
 export async function open(
   _options?: OpenDialogOptions,
 ): Promise<string | string[] | null> {
   return null;
 }
 
-/**
- * save() stub — always returns null (dialog cancelled).
- */
 export async function save(_options?: SaveDialogOptions): Promise<string | null> {
   return null;
 }
@@ -38,7 +29,6 @@ export async function message(
   _message: string,
   _options?: { title?: string; kind?: "info" | "warning" | "error" },
 ): Promise<void> {
-  // no-op
 }
 
 export async function ask(

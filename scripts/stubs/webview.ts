@@ -1,6 +1,4 @@
-/**
- * MOCK_MODE stub for @tauri-apps/api/webview
- */
+/** MOCK_MODE shims for screenshot/tutorial automation. */
 export function getCurrentWebview() {
   return {
     onDragDropEvent: async (_handler: unknown) => {

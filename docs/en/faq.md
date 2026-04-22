@@ -14,5 +14,3 @@ Only for UniProt / BLAST / AlphaFold lookups (optional). Core primer design runs
 
 ## How are multi-plate layouts generated?
 Mutations are bucketed into 96-well plates in input order. Shared reverse primers are deduplicated per plate. See [Plate Map](plate-map.md).
-
-*More Q&A coming.*

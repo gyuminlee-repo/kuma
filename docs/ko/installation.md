@@ -23,5 +23,3 @@ KURO는 플랫폼별 단일 데스크톱 installer로 배포. 각 [릴리스](ht
 ## 최초 실행
 
 Python sidecar가 자동 기동. 상태 표시줄에 **Ready** 표시까지 대기. 처음 실행 시 방화벽 프롬프트가 뜨면 허용 — UniProt / BLAST / AlphaFold 조회용.
-
-*스텁 — 스크린샷 추가 예정.*

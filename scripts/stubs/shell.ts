@@ -1,7 +1,4 @@
-/**
- * MOCK_MODE stub for @tauri-apps/plugin-shell
- * No-op implementation used by Playwright capture script.
- */
+/** MOCK_MODE shims for screenshot/tutorial automation. */
 
 export class Command {
   static sidecar(_program: string) {
@@ -33,13 +30,11 @@ export class Command {
 
   async spawn() {
     const self = this;
-    // Emit "ready" notification so useSidecar resolves
     setTimeout(() => self._emit('{"jsonrpc":"2.0","method":"ready","params":{}}'), 50);
 
     return {
       kill: async () => {},
       write: async (data: string) => {
-        // Parse JSON-RPC request and return mock response
         try {
           const req = JSON.parse(data);
           const id = req.id;
@@ -58,7 +53,7 @@ export class Command {
           }
 
           setTimeout(() => self._emit(JSON.stringify({ jsonrpc: "2.0", id, result })), 20);
-        } catch { /* ignore parse errors */ }
+        } catch {}
       },
       pid: 0,
     };

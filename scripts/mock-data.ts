@@ -43,7 +43,6 @@ const evolveMutationText = [
   "S322C","F50M","A100C","F204K","D231Q",
 ].join("\n");
 
-// parsedMutations — auto-generated from evolveMutationText
 const parsedMutations = evolveMutationText.split("\n").map((raw) => {
   const wt_aa = raw[0];
   const mt_aa = raw[raw.length - 1];
@@ -51,12 +50,9 @@ const parsedMutations = evolveMutationText.split("\n").map((raw) => {
   return { raw, wt_aa, position, mt_aa };
 });
 
-// (Legacy static parsedMutations array removed — now auto-generated above)
-
-// Use imported primer data as mockDesignResults
 const mockDesignResults: SdmPrimerResult[] = primerData;
 
-// Plate mappings (fwd: column order, rev: deduplicated)
+// Derive screenshot fixture state from bundled sample mutation and primer data.
 function wellName(idx: number): string {
   const rows = "ABCDEFGH";
   const col = Math.floor(idx / 8) + 1;

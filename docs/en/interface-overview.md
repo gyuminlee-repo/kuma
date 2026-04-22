@@ -13,5 +13,3 @@ Top menu bar: File (open/save/export), Help, Benchmark.
 ![File menu expanded](../screenshots/13-menu-bar.png)
 
 Status bar at the bottom shows sidecar state, current action, and progress.
-
-*Stub page — annotated screenshot coming.*

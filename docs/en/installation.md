@@ -23,5 +23,3 @@ KURO is distributed as a single desktop installer per platform. Downloads are at
 ## First launch
 
 The Python sidecar starts automatically. Wait until the status bar shows **Ready**. On first start a firewall prompt may appear for network access — allow it for UniProt / BLAST / AlphaFold lookups.
-
-*Stub page — screenshots coming.*

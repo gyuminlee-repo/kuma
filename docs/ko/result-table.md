@@ -37,5 +37,3 @@
 ![실패한 변이 행](../screenshots/11-failed-rows.png)
 
 배경 빨강, 프라이머 셀 비어있음, Note 컬럼에 사유. **Retry** 사용 ([실패 재시도](failed-retry.md)).
-
-*스텁 — 테이블·popover 스크린샷 추가 예정.*

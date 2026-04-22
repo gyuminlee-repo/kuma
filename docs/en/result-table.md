@@ -37,5 +37,3 @@ Click a column header. Default sort: input order. Common sorts: mutation positio
 ![Failed mutations in table](../screenshots/11-failed-rows.png)
 
 Red background, empty primer cells, reason in Note column. Use **Retry** ([Failed Retry](failed-retry.md)).
-
-*Stub — table + popover screenshots coming.*
