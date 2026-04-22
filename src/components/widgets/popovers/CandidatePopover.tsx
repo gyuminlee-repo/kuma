@@ -16,7 +16,7 @@ function CandidateRow({
   onOtClick: (c: SdmPrimerResult) => void;
 }) {
   return (
-    <tr className={`border-b border-gray-100 ${rowClass}`}>
+    <tr className={`border-b border-slate-100 ${rowClass}`}>
       <td className="px-2 py-1 text-center">{label}</td>
       <td className="px-2 py-1 font-mono break-all max-w-[160px]">
         <ColoredFwdSeq seq={c.forward_seq} overlapLen={c.overlap_len ?? 0} />
@@ -151,7 +151,7 @@ export function CandidatePopover({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/35 backdrop-blur-[2px]"
       onClick={onClose}
       onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}
     >
@@ -161,16 +161,19 @@ export function CandidatePopover({
         role="dialog"
         aria-modal="true"
         aria-labelledby="candidate-popover-title"
-        className="bg-white rounded-lg shadow-xl p-4 max-w-3xl max-h-[80vh] overflow-auto"
+        className="max-h-[80vh] max-w-4xl overflow-auto rounded-[28px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,251,243,0.98),rgba(248,251,255,0.98))] p-5 shadow-[0_32px_90px_rgba(15,23,42,0.28)]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-between items-center mb-3">
-          <h3 id="candidate-popover-title" className="text-sm font-semibold">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">Candidate Review</div>
+            <h3 id="candidate-popover-title" className="mt-1 text-lg font-semibold text-slate-900">
             {mutation} — {candidates?.length ?? "..."} candidates
-          </h3>
+            </h3>
+          </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-lg px-2"
+            className="px-2 text-lg text-slate-400 hover:text-slate-600"
             aria-label="Close"
           >
             ×
@@ -193,12 +196,12 @@ export function CandidatePopover({
               Failed to load alternatives: {alternativesError}
             </div>
           )}
-          <div className="text-[10px] text-gray-500 mb-2">
+          <div className="mb-2 text-[10px] text-slate-500">
             Ranked by penalty (lower = better). #1 is auto-selected as default.
           </div>
-          <table className="w-full text-[10px] border-collapse">
+          <table className="w-full border-collapse text-[10px]">
             <thead>
-              <tr className="bg-gray-50 text-gray-600 font-semibold">
+              <tr className="bg-slate-50 text-slate-600 font-semibold">
                 <th className="px-2 py-1 text-left">#</th>
                 <th className="px-2 py-1 text-left">Forward</th>
                 <th className="px-2 py-1 text-left">Reverse</th>
@@ -223,8 +226,8 @@ export function CandidatePopover({
                 const rowClass = isCurrent
                   ? "bg-amber-50 font-semibold"
                   : isBest
-                    ? "bg-green-50"
-                    : "hover:bg-gray-50";
+                    ? "bg-emerald-50"
+                    : "hover:bg-slate-50";
                 return (
                   <CandidateRow key={idx} c={c} rowClass={rowClass} onOtClick={setOtDetailCand}
                     label={<>{idx + 1}{isBest && <span className="ml-0.5 text-green-600 text-[8px]">best</span>}</>}
@@ -232,7 +235,7 @@ export function CandidatePopover({
                       <div className="flex gap-0.5 justify-center items-center">
                         {isCurrent && <span className="text-amber-600 text-[9px] mr-0.5">✓</span>}
                         <button
-                          className="px-1 py-0.5 bg-blue-500 text-white rounded text-[8px] hover:bg-blue-600 disabled:opacity-40"
+                          className="rounded px-1 py-0.5 text-[8px] text-white bg-slate-800 hover:bg-slate-700 disabled:opacity-40"
                           onClick={() => handleSwap(idx, "both")}
                           title={backendDesignStateSynced ? "Use both Fwd+Rev" : "Re-design to enable swapping"}
                           disabled={!backendDesignStateSynced}
@@ -240,7 +243,7 @@ export function CandidatePopover({
                           Both
                         </button>
                         <button
-                          className="px-1 py-0.5 bg-green-500 text-white rounded text-[8px] hover:bg-green-600 disabled:opacity-40"
+                          className="rounded bg-emerald-600 px-1 py-0.5 text-[8px] text-white hover:bg-emerald-700 disabled:opacity-40"
                           onClick={() => handleSwap(idx, "fwd")}
                           title={backendDesignStateSynced ? "Use Forward only" : "Re-design to enable swapping"}
                           disabled={!backendDesignStateSynced}
@@ -248,7 +251,7 @@ export function CandidatePopover({
                           F
                         </button>
                         <button
-                          className="px-1 py-0.5 bg-orange-500 text-white rounded text-[8px] hover:bg-orange-600 disabled:opacity-40"
+                          className="rounded bg-amber-600 px-1 py-0.5 text-[8px] text-white hover:bg-amber-700 disabled:opacity-40"
                           onClick={() => handleSwap(idx, "rev")}
                           title={backendDesignStateSynced ? "Use Reverse only" : "Re-design to enable swapping"}
                           disabled={!backendDesignStateSynced}
@@ -261,12 +264,12 @@ export function CandidatePopover({
                 );
               })}
               {customCandidates.map((c, ci) => (
-                <CandidateRow key={`custom-${ci}`} c={c} rowClass="bg-purple-50" onOtClick={setOtDetailCand}
+                <CandidateRow key={`custom-${ci}`} c={c} rowClass="bg-violet-50" onOtClick={setOtDetailCand}
                   label={<span className="text-purple-600 text-[9px]">C{ci + 1}</span>}
                   actions={
                     <div className="flex gap-0.5 justify-center">
-                      <button className="px-1 py-0.5 bg-purple-500 text-white rounded text-[8px] hover:bg-purple-600" onClick={() => handleApplyCustom(c)} title="Apply this custom primer">Use</button>
-                      <button className="px-1 py-0.5 bg-gray-400 text-white rounded text-[8px] hover:bg-gray-500" onClick={() => handleDeleteCustom(ci)} title="Remove">×</button>
+                      <button className="rounded bg-violet-600 px-1 py-0.5 text-[8px] text-white hover:bg-violet-700" onClick={() => handleApplyCustom(c)} title="Apply this custom primer">Use</button>
+                      <button className="rounded bg-slate-400 px-1 py-0.5 text-[8px] text-white hover:bg-slate-500" onClick={() => handleDeleteCustom(ci)} title="Remove">×</button>
                     </div>
                   }
                 />
@@ -275,8 +278,8 @@ export function CandidatePopover({
           </table>
 
           {/* Custom primer input */}
-          <div className="mt-3 pt-3 border-t border-gray-200">
-            <div className="text-[10px] font-semibold text-gray-600 mb-1">Custom primer</div>
+          <div className="mt-4 border-t border-slate-200 pt-4">
+            <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">Custom Primer</div>
             <div className="space-y-1">
               <div className="flex items-center gap-0.5">
                 <span className="text-[9px] text-gray-400 w-6">Fwd:</span>
@@ -311,7 +314,7 @@ export function CandidatePopover({
                   onChange={(e) => setCustomRev(e.target.value.toUpperCase())}
                 />
                 <button
-                  className="px-3 py-1 bg-purple-500 text-white rounded text-[10px] hover:bg-purple-600 disabled:opacity-40"
+                  className="rounded-full bg-violet-600 px-3 py-1 text-[10px] text-white hover:bg-violet-700 disabled:opacity-40"
                   disabled={(!(customOverlap + customCodon + customDownstream).trim() && !customRev.trim()) || evaluating}
                   onClick={handleEvaluate}
                 >
@@ -320,7 +323,7 @@ export function CandidatePopover({
               </div>
             </div>
             {seqError && (
-              <div className="text-[10px] text-red-600 bg-red-50 rounded px-2 py-1 mt-1">{seqError}</div>
+              <div className="mt-1 rounded-xl bg-red-50 px-2 py-1 text-[10px] text-red-600">{seqError}</div>
             )}
           </div>
           </>

@@ -25,7 +25,7 @@ export function OffTargetDetail({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/35 backdrop-blur-[2px]"
       onClick={onClose}
       onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}
     >
@@ -35,16 +35,16 @@ export function OffTargetDetail({
         role="dialog"
         aria-modal="true"
         aria-labelledby="offtarget-detail-title"
-        className="bg-white rounded-lg shadow-xl p-4 min-w-[360px] max-w-lg max-h-[60vh] overflow-auto"
+        className="max-h-[60vh] min-w-[420px] max-w-2xl overflow-auto rounded-[24px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,251,243,0.98),rgba(248,251,255,0.98))] p-5 shadow-[0_32px_90px_rgba(15,23,42,0.28)]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-between items-center mb-3">
-          <h3 id="offtarget-detail-title" className="text-sm font-semibold">
+        <div className="mb-4 flex items-center justify-between">
+          <h3 id="offtarget-detail-title" className="text-lg font-semibold text-slate-900">
             {result.mutation} — Off-Target Sites ({allHits.length})
           </h3>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-lg px-2"
+            className="px-2 text-lg text-slate-400 hover:text-slate-600"
             aria-label="Close"
           >
             ×
@@ -52,11 +52,11 @@ export function OffTargetDetail({
         </div>
 
         {allHits.length === 0 ? (
-          <div className="text-xs text-gray-400 py-4 text-center">No off-target hits</div>
+          <div className="py-4 text-center text-xs text-slate-400">No off-target hits</div>
         ) : (
           <table className="w-full text-xs border-collapse">
             <thead>
-              <tr className="bg-gray-50 text-gray-600 font-semibold">
+              <tr className="bg-slate-50 text-slate-600 font-semibold">
                 <th className="px-2 py-1.5 text-left">Primer</th>
                 <th className="px-2 py-1.5 text-right">Position</th>
                 <th className="px-2 py-1.5 text-center">Strand</th>
@@ -67,7 +67,7 @@ export function OffTargetDetail({
             </thead>
             <tbody>
               {allHits.map((h, i) => (
-                <tr key={i} className="border-b border-gray-100">
+                <tr key={i} className="border-b border-slate-100">
                   <td className={`px-2 py-1.5 font-medium ${h.primer === "Fwd" ? "text-blue-600" : "text-orange-600"}`}>
                     {h.primer}
                   </td>

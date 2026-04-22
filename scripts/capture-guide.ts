@@ -117,7 +117,6 @@ async function main() {
 
     const page = await context.newPage();
 
-    // Silence console errors from the app (sidecar unavailable etc.)
     page.on("console", (msg) => {
       if (msg.type() === "error") {
         console.warn(`  [browser:error] ${msg.text()}`);
@@ -127,15 +126,14 @@ async function main() {
     for (const screen of screenStates) {
       console.log(`[capture] Capturing: ${screen.name}`);
 
-      await page.goto(BASE_URL, { waitUntil: "networkidle" });
+      await page.goto(BASE_URL, { waitUntil: "domcontentloaded" });
+      await page.waitForTimeout(800);
 
-      // Wait for __store to be available
       await page.waitForFunction(
         () => typeof (window as unknown as Record<string, unknown>).__store !== "undefined",
         { timeout: 10_000 },
       );
 
-      // Inject mock state
       await page.evaluate((state: Record<string, unknown>) => {
         type StoreApi = {
           setState: (state: Record<string, unknown>) => void;
@@ -144,10 +142,8 @@ async function main() {
         store.setState(state);
       }, screen.state);
 
-      // Short wait for React to re-render
       await page.waitForTimeout(500);
 
-      // Run optional action
       if (screen.action) {
         await page.evaluate(screen.action);
         await page.waitForTimeout(300);

@@ -54,28 +54,29 @@ export function MappingExportDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Export {label} Mapping</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-xl">Export {label} Mapping</DialogTitle>
+          <DialogDescription className="text-slate-600">
             두 파일이 같은 경로에 생성됩니다.
             <br />
-            <span className="text-gray-500">.xlsx</span> — 레이아웃 확인용 (사람이 보는 파일)
+            <span className="text-slate-500">.xlsx</span> — 레이아웃 확인용 (사람이 보는 파일)
             <br />
-            <span className="text-gray-500">.csv</span> — 기기 업로드용 (실제 머신 인풋)
+            <span className="text-slate-500">.csv</span> — 기기 업로드용 (실제 머신 인풋)
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-4 py-2">
           {/* Machine Format */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-gray-700">
+          <div className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white/80 p-4">
+            <label className="text-sm font-medium text-slate-700">
               Machine
             </label>
             <div className="flex gap-2">
               <Button
                 size="sm"
                 variant={format === "echo" ? "default" : "outline"}
+                className={format === "echo" ? "rounded-full" : "rounded-full border-slate-300 bg-white"}
                 onClick={() => setFormat("echo")}
                 type="button"
               >
@@ -84,6 +85,7 @@ export function MappingExportDialog({
               <Button
                 size="sm"
                 variant={format === "janus" ? "default" : "outline"}
+                className={format === "janus" ? "rounded-full" : "rounded-full border-slate-300 bg-white"}
                 onClick={() => setFormat("janus")}
                 type="button"
               >
@@ -93,8 +95,8 @@ export function MappingExportDialog({
           </div>
 
           {/* Transfer Volume */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-gray-700">
+          <div className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white/80 p-4">
+            <label className="text-sm font-medium text-slate-700">
               Transfer Volume
             </label>
             <div className="flex items-center gap-2">
@@ -107,9 +109,9 @@ export function MappingExportDialog({
                 onChange={(e) => setTransferVol(Number(e.target.value))}
                 className="w-28"
               />
-              <span className="text-sm text-gray-500">{cfg.unit}</span>
+              <span className="text-sm text-slate-500">{cfg.unit}</span>
             </div>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-slate-400">
               Range: {cfg.min}–{cfg.max} {cfg.unit}
               {format === "echo" && transferVol > 500 && (
                 <span className="ml-2 text-amber-500">
@@ -124,12 +126,13 @@ export function MappingExportDialog({
           <Button
             size="sm"
             variant="outline"
+            className="rounded-full border-slate-300 bg-white"
             onClick={() => onOpenChange(false)}
             type="button"
           >
             Cancel
           </Button>
-          <Button size="sm" onClick={handleExportClick} type="button">
+          <Button size="sm" className="rounded-full" onClick={handleExportClick} type="button">
             Export
           </Button>
         </DialogFooter>
