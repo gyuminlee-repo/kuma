@@ -14,6 +14,13 @@ export function UniprotSearch() {
   const [accessionInput, setAccessionInput] = useState(uniprotAccession);
   useEffect(() => setAccessionInput(uniprotAccession), [uniprotAccession]);
 
+  function handleManualFetch(clearCandidates = false) {
+    const normalizedAccession = accessionInput.trim();
+    if (!normalizedAccession) return;
+    setAccessionInput(normalizedAccession);
+    fetchDomains(normalizedAccession, clearCandidates);
+  }
+
   return (
     <div className="space-y-1">
       <div className="flex gap-1 items-center">
@@ -22,16 +29,16 @@ export function UniprotSearch() {
           className="w-24 h-5 text-xs border border-gray-300 rounded px-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
           placeholder="UniProt ID"
           value={accessionInput}
-          onChange={(e) => setAccessionInput(e.target.value.trim())}
+          onChange={(e) => setAccessionInput(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && accessionInput) fetchDomains(accessionInput);
+            if (e.key === "Enter") handleManualFetch(true);
           }}
         />
         <Button
           variant="outline"
           size="sm"
           className="h-5 text-[10px] px-2"
-          onClick={() => accessionInput && fetchDomains(accessionInput, true)}
+          onClick={() => handleManualFetch(true)}
           disabled={domainLoading || uniprotSearching || !accessionInput}
         >
           {domainLoading || uniprotSearching ? "..." : "Fetch"}

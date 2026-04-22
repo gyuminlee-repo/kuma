@@ -59,7 +59,7 @@ export function MenuBar() {
         <div className="flex items-center gap-5">
           <div>
             <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-amber-700">KURO</div>
-            <div className="text-sm font-semibold text-slate-950">Directed Mutagenesis Workbench</div>
+            <div className="text-sm font-semibold text-slate-950">Kernel for Upstream Recombination Oligodesign</div>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

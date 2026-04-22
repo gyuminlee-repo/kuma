@@ -332,6 +332,8 @@ def load_evolvepro_csv(
                 y_pred = float(row[score_col]) if score_col and row.get(score_col) else 0.0
             except (ValueError, TypeError):
                 y_pred = 0.0
+            if not math.isfinite(y_pred):
+                y_pred = 0.0
             rows.append((variant, y_pred))
 
     has_score = score_col is not None
@@ -410,7 +412,7 @@ def load_evolvepro_csv(
 
     return {
         "variants": [v for v, _ in selected],
-        "y_preds": [round(y, 4) for _, y in selected],
+        "y_preds": [round(y if math.isfinite(y) else 0.0, 4) for _, y in selected],
         "total_count": pre_filter_count,
         "selected_count": len(selected),
         "filtered_count": position_filter_removed,

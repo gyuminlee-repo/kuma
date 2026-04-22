@@ -367,8 +367,8 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
           result.candidates.map((candidate) => candidate.accession),
         );
       }
-      if (acc && !structureMatches) {
-        void get().fetchStructure(acc);
+      if (acc) {
+        void get().fetchDomains(acc, true);
       }
     } catch (err) {
       if (searchGeneration !== uniprotSearchGeneration) return;
