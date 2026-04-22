@@ -32,9 +32,9 @@ export function UniprotSearch() {
           size="sm"
           className="h-5 text-[10px] px-2"
           onClick={() => accessionInput && fetchDomains(accessionInput, true)}
-          disabled={domainLoading || !accessionInput}
+          disabled={domainLoading || uniprotSearching || !accessionInput}
         >
-          {domainLoading ? "..." : "Fetch"}
+          {domainLoading || uniprotSearching ? "..." : "Fetch"}
         </Button>
         <Button
           variant="outline"

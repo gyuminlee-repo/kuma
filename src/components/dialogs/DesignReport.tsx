@@ -13,17 +13,17 @@ import { Button } from "../ui/button";
 function Stat({ label, value, warn }: { label: string; value: string | number; warn?: boolean }) {
   return (
     <div className="flex justify-between text-xs">
-      <span className="text-gray-500">{label}</span>
-      <span className={warn ? "text-amber-600 font-medium" : "text-gray-800 font-medium"}>{value}</span>
+      <span className="text-slate-500">{label}</span>
+      <span className={warn ? "font-medium text-amber-700" : "font-medium text-slate-800"}>{value}</span>
     </div>
   );
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="space-y-1">
-      <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wide">{title}</h4>
-      <div className="bg-gray-50 rounded-md p-2 space-y-0.5">{children}</div>
+    <div className="space-y-1.5">
+      <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">{title}</h4>
+      <div className="space-y-1 rounded-2xl border border-slate-200 bg-white/80 p-3">{children}</div>
     </div>
   );
 }
@@ -146,17 +146,17 @@ export function DesignReport() {
 
   return (
     <Dialog open={showReport} onOpenChange={setShowReport}>
-      <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-h-[80vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <span className="text-lg">Design Report</span>
+            <span className="text-xl">Design Report</span>
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-slate-600">
             {successCount}/{totalCount} primers designed ({successRate}% success)
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-3">
+        <div className="grid gap-4 md:grid-cols-2">
           {/* Pipeline Summary */}
           {pipelineMode && (
             <Section title="Pipeline">
@@ -247,7 +247,7 @@ export function DesignReport() {
                 />
               )}
               {rescuedMutationDetails.length > 0 && (
-                <div className="text-xs text-gray-600 space-y-0.5 mt-1">
+                <div className="mt-1 space-y-0.5 text-xs text-slate-600">
                   {rescuedMutationDetails.slice(0, 5).map((r, i) => (
                     <div key={i} className="flex justify-between">
                       <span className="font-mono">
@@ -262,7 +262,7 @@ export function DesignReport() {
                     </div>
                   ))}
                   {rescuedMutationDetails.length > 5 && (
-                    <div className="text-gray-400">+{rescuedMutationDetails.length - 5} more</div>
+                    <div className="text-slate-400">+{rescuedMutationDetails.length - 5} more</div>
                   )}
                 </div>
               )}
@@ -295,21 +295,21 @@ export function DesignReport() {
           {/* Failed Mutations */}
           {failCount > 0 && (
             <Section title="Failed Mutations">
-              <div className="text-xs text-gray-600 space-y-0.5">
+              <div className="space-y-0.5 text-xs text-slate-600">
                 {failedMutations.slice(0, 5).map((f) => (
                   <div key={f.mutation} className="flex justify-between">
                     <span className="font-mono">{f.mutation}</span>
-                    <span className="text-gray-400 truncate ml-2">{f.reason}</span>
+                    <span className="ml-2 truncate text-slate-400">{f.reason}</span>
                   </div>
                 ))}
-                {failCount > 5 && <div className="text-gray-400">+{failCount - 5} more</div>}
+                {failCount > 5 && <div className="text-slate-400">+{failCount - 5} more</div>}
               </div>
             </Section>
           )}
         </div>
 
         <DialogFooter>
-          <Button variant="outline" size="sm" onClick={() => setShowReport(false)}>
+          <Button variant="outline" size="sm" className="rounded-full border-slate-300 bg-white" onClick={() => setShowReport(false)}>
             Close
           </Button>
         </DialogFooter>

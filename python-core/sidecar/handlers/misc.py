@@ -14,7 +14,12 @@ from sidecar.core import (
     _ALLOWED_CSV_EXTENSIONS,
     _get_cached_ca_coords,
 )
-from sidecar.models import LoadEvolveproParams, RunBenchmarkParams
+from sidecar.models import (
+    LoadEvolveproParams,
+    PolymeraseProfileModel,
+    RunBenchmarkParams,
+    SaveCustomPolymeraseResultModel,
+)
 
 _POLYMERASE_META = {
     "Benchling": {"manufacturer": "SantaLucia 1998", "fidelity": "standard"},
@@ -45,7 +50,8 @@ def handle_list_polymerases(_params: dict) -> list[dict]:
 def handle_get_polymerase_details(params: dict) -> dict:
     """Return full polymerase profile for the selected name."""
     name = params.get("name", "")
-    return asdict(_poly_registry.get(name))
+    profile = PolymeraseProfileModel.model_validate(asdict(_poly_registry.get(name)))
+    return profile.model_dump(mode="json")
 
 
 def handle_save_custom_polymerase(params: dict) -> dict:
@@ -53,7 +59,7 @@ def handle_save_custom_polymerase(params: dict) -> dict:
     profile = _dict_to_profile(params)
     _CUSTOM_POLYMERASE_PATH.parent.mkdir(parents=True, exist_ok=True)
     _poly_registry.save_custom(profile, _CUSTOM_POLYMERASE_PATH)
-    return {"success": True, "name": profile.name}
+    return SaveCustomPolymeraseResultModel(name=profile.name).model_dump(mode="json")
 
 
 def handle_list_organisms(_params: dict) -> list[dict]:

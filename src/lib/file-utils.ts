@@ -5,5 +5,7 @@ export async function browseFile(
   onSelect: (path: string) => Promise<void> | void,
 ) {
   const path = await open({ filters, multiple: false });
-  if (path) await onSelect(path as string);
+  if (typeof path === "string") {
+    await onSelect(path);
+  }
 }

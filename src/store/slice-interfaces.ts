@@ -19,6 +19,7 @@ import type {
   EvolveproStepStats,
   FailedMutation,
   LinkerHandling,
+  MutationInputMode,
   ParsedMutation,
   ParseError,
   PlateMapping,
@@ -125,7 +126,7 @@ export interface DiversitySlice {
 // ---------------------------------------------------------------------------
 export interface InputSlice {
   // State
-  mutationInputMode: "text" | "evolvepro" | "multi-evolve";
+  mutationInputMode: MutationInputMode;
   mutationText: string;
   parsedMutations: ParsedMutation[];
   parseErrors: ParseError[];
@@ -137,7 +138,7 @@ export interface InputSlice {
   yPredMap: Record<string, number>;
 
   // Actions
-  setMutationInputMode: (mode: "text" | "evolvepro" | "multi-evolve") => void;
+  setMutationInputMode: (mode: MutationInputMode) => void;
   setMutationText: (text: string) => void;
   parseMutations: () => Promise<void>;
   loadEvolveproCsv: (filepath: string, topNOverride?: number) => Promise<void>;
@@ -187,7 +188,7 @@ export interface DesignSlice {
   applyCustomPrimer: (mutation: string, result: SdmPrimerResult) => void;
   addCustomCandidate: (mutation: string, result: SdmPrimerResult) => void;
   removeCustomCandidate: (mutation: string, index: number) => void;
-  evaluateCustomPrimer: (mutation: string, fwdSeq: string, revSeq: string, overlapLen?: number) => Promise<SdmPrimerResult | null>;
+  evaluateCustomPrimer: (mutation: string, fwdSeq: string, revSeq: string, overlapLen?: number) => Promise<SdmPrimerResult>;
   retryFailedMutation: (mutation: string, params: Record<string, number | string>) => Promise<SdmPrimerResult[]>;
   addDesignResult: (mutation: string, result: SdmPrimerResult) => void;
   removeDesignResult: (mutation: string, reason: string) => void;

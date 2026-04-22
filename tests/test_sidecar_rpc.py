@@ -34,6 +34,41 @@ MUTATIONS_CSV = str(FIXTURES_DIR / "mutation_list_insilico_test.csv")
 TARGET_START = 1790
 
 
+def _minimal_workspace_v2() -> dict:
+    return {
+        "version": 2,
+        "inputs": {
+            "fastaPath": FASTA_PATH,
+            "mutationInputMode": "text",
+            "mutationText": "Q232A",
+            "evolveproCsvPath": "",
+            "selectedGene": "",
+        },
+        "settings": {
+            "codonStrategy": "closest",
+            "maxPrimers": 95,
+            "tmFwdTarget": 62.0,
+            "tmRevTarget": 58.0,
+            "tmOverlapTarget": 42.0,
+            "gcMin": 40.0,
+            "gcMax": 60.0,
+        },
+        "results": {
+            "designResults": [],
+            "successCount": 0,
+            "totalCount": 0,
+            "failedMutations": [],
+            "plateMappings": [],
+            "dedupInfo": {},
+            "manuallySwapped": {},
+            "customCandidates": {},
+        },
+        "ui": {
+            "tableSorting": [],
+        },
+    }
+
+
 def _dispatch_and_parse(request: dict, timeout: float = 30.0) -> dict:
     """Call dispatch() and capture the JSON response from stdout.
 
@@ -345,7 +380,7 @@ class TestWorkspaceRoundTrip:
         with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
             tmp_path = f.name
 
-        test_data = {"version": 1, "results": [{"mutation": "Q232A"}]}
+        test_data = _minimal_workspace_v2()
         save_resp = _rpc(
             "save_workspace", {"filepath": tmp_path, "data": test_data}
         )
@@ -354,8 +389,7 @@ class TestWorkspaceRoundTrip:
 
         load_resp = _rpc("load_workspace", {"filepath": tmp_path})
         assert "result" in load_resp
-        assert load_resp["result"]["version"] == 1
-        assert load_resp["result"]["results"][0]["mutation"] == "Q232A"
+        assert load_resp["result"] == test_data
 
         Path(tmp_path).unlink(missing_ok=True)
 
@@ -363,9 +397,32 @@ class TestWorkspaceRoundTrip:
         resp = _rpc("save_workspace", {})
         assert "error" in resp
 
+    def test_save_rejects_invalid_workspace_shape(self):
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
+            tmp_path = f.name
+
+        resp = _rpc(
+            "save_workspace",
+            {
+                "filepath": tmp_path,
+                "data": {"version": 2, "inputs": {}, "settings": {}, "results": {}, "ui": {}},
+            },
+        )
+        assert "error" in resp
+        Path(tmp_path).unlink(missing_ok=True)
+
     def test_load_nonexistent_file(self):
         resp = _rpc("load_workspace", {"filepath": "/tmp/nonexistent_ws_xyz.json"})
         assert "error" in resp
+
+    def test_load_rejects_invalid_workspace_shape(self):
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w", encoding="utf-8") as f:
+            json.dump({"version": 2, "inputs": {}, "settings": {}, "results": {}, "ui": {}}, f)
+            tmp_path = f.name
+
+        resp = _rpc("load_workspace", {"filepath": tmp_path})
+        assert "error" in resp
+        Path(tmp_path).unlink(missing_ok=True)
 
 
 # ── 9. cancel_design ─────────────────────────────────────────────────────

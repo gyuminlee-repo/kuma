@@ -13,7 +13,12 @@ from sidecar.core import (
     _get_contact_email,
     logger,
 )
-from sidecar.models import FetchDomainsParams, SearchUniprotParams, FetchStructureParams
+from sidecar.models import (
+    CheckStructuresParams,
+    FetchDomainsParams,
+    SearchUniprotParams,
+    FetchStructureParams,
+)
 
 
 def handle_fetch_domains(params: dict) -> dict:
@@ -168,7 +173,9 @@ def handle_search_uniprot(params: dict) -> dict:
                 "identity": identity,
             })
             seen_accessions.add(acc)
-            if identity == 100.0:
+            # Trusted direct accession match with high sequence identity:
+            # auto-select immediately and skip slow BLAST submission.
+            if identity >= 95.0:
                 auto_selected = acc
 
     if translation and not auto_selected:
@@ -274,28 +281,39 @@ def handle_search_uniprot(params: dict) -> dict:
     if candidates and candidates[0]["identity"] >= 95.0:
         auto_selected = candidates[0]["accession"]
 
-    if candidates:
-        from concurrent.futures import ThreadPoolExecutor, as_completed
-        from kuro.alphafold import check_structure_available
-
-        accs = [c["accession"] for c in candidates]
-        with ThreadPoolExecutor(max_workers=min(5, len(accs))) as ex:
-            futures = {ex.submit(check_structure_available, acc): acc for acc in accs}
-            af_results: dict[str, bool] = {}
-            for fut in as_completed(futures):
-                acc = futures[fut]
-                try:
-                    af_results[acc] = fut.result()
-                except Exception:
-                    af_results[acc] = False
-        for c in candidates:
-            c["has_structure"] = af_results.get(c["accession"], False)
-
     return {
         "candidates": candidates,
         "auto_selected": auto_selected,
         "error_detail": last_error or None,
     }
+
+
+def handle_check_structures_available(params: dict) -> dict:
+    """Check AlphaFold availability for a list of UniProt accessions."""
+    p = CheckStructuresParams(**params)
+    accessions = []
+    for raw in p.accessions[:20]:
+        acc = raw.strip().upper()
+        if acc and re.match(r"^[A-Za-z0-9_-]{1,20}$", acc):
+            accessions.append(acc)
+
+    if not accessions:
+        return {"availability": {}}
+
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    from kuro.alphafold import check_structure_available
+
+    availability: dict[str, bool] = {}
+    with ThreadPoolExecutor(max_workers=min(5, len(accessions))) as ex:
+        futures = {ex.submit(check_structure_available, acc): acc for acc in accessions}
+        for fut in as_completed(futures):
+            acc = futures[fut]
+            try:
+                availability[acc] = fut.result()
+            except Exception:
+                availability[acc] = False
+
+    return {"availability": availability}
 
 
 def handle_fetch_structure(params: dict) -> dict:

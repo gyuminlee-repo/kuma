@@ -87,23 +87,27 @@ export function FailedMutationPopover({
     setRetrying(true);
     setRetryError(null);
     setCandidates([]);
-    const results = await retryFailedMutation(failed.mutation, {
-      tm_fwd_target: parseFloat(tmFwd),
-      tm_rev_target: parseFloat(tmRev),
-      tm_overlap_target: parseFloat(tmOv),
-      gc_min: parseFloat(gcMin),
-      gc_max: parseFloat(gcMax),
-      fwd_len_min: parseInt(fwdMin),
-      fwd_len_max: parseInt(fwdMax),
-      rev_len_min: parseInt(revMin),
-      rev_len_max: parseInt(revMax),
-      tol_max: parseFloat(tolMax),
-      codon_strategy: storeCodon,
-    });
-    if (results.length === 0) {
-      setRetryError("No candidates found with these parameters");
-    } else {
-      setCandidates(results);
+    try {
+      const results = await retryFailedMutation(failed.mutation, {
+        tm_fwd_target: parseFloat(tmFwd),
+        tm_rev_target: parseFloat(tmRev),
+        tm_overlap_target: parseFloat(tmOv),
+        gc_min: parseFloat(gcMin),
+        gc_max: parseFloat(gcMax),
+        fwd_len_min: parseInt(fwdMin),
+        fwd_len_max: parseInt(fwdMax),
+        rev_len_min: parseInt(revMin),
+        rev_len_max: parseInt(revMax),
+        tol_max: parseFloat(tolMax),
+        codon_strategy: storeCodon,
+      });
+      if (results.length === 0) {
+        setRetryError("No candidates found with these parameters");
+      } else {
+        setCandidates(results);
+      }
+    } catch (err) {
+      setRetryError(err instanceof Error ? err.message : String(err));
     }
     setRetrying(false);
   }
@@ -125,10 +129,17 @@ export function FailedMutationPopover({
     }
     setSeqError(null);
     setEvaluating(true);
-    const result = await evaluateCustomPrimer(failed.mutation, fwdSeq, revSeq, customOverlap.trim().length);
-    if (result) {
+    try {
+      const result = await evaluateCustomPrimer(
+        failed.mutation,
+        fwdSeq,
+        revSeq,
+        customOverlap.trim().length,
+      );
       addDesignResult(failed.mutation, result);
       onClose();
+    } catch (err) {
+      setSeqError(err instanceof Error ? err.message : String(err));
     }
     setEvaluating(false);
   }

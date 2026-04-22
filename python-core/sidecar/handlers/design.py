@@ -30,8 +30,11 @@ from sidecar.core import (
 )
 from kuro.plate_mapper import deduplicate_reverse, generate_plate_map
 from sidecar.models import (
+    AlternativesResultModel,
+    DesignResultResponseModel,
     DesignSdmPrimersParams,
     RetryFailedParams,
+    SdmPrimerResultModel,
     SwapPrimerParams,
     EvaluatePrimerParams,
     GetAlternativesParams,
@@ -54,7 +57,7 @@ def _rebuild_plate_state(results: list[SdmPrimerResult]) -> None:
 
 
 
-def _serialize_result(r: SdmPrimerResult, candidate_count: int | None = None) -> dict:
+def _serialize_result(r: SdmPrimerResult, candidate_count: int | None = None) -> SdmPrimerResultModel:
     """Serialize a single SdmPrimerResult for JSON-RPC."""
     overlap_len = len(r.overlap_window.sequence)
     result = {
@@ -102,7 +105,7 @@ def _serialize_result(r: SdmPrimerResult, candidate_count: int | None = None) ->
     }
     if candidate_count is not None:
         result["candidate_count"] = candidate_count
-    return result
+    return SdmPrimerResultModel.model_validate(result)
 
 
 def _count_unique_fwd_rev(candidates: list[SdmPrimerResult]) -> tuple[int, int]:
@@ -112,14 +115,14 @@ def _count_unique_fwd_rev(candidates: list[SdmPrimerResult]) -> tuple[int, int]:
     return len(fwd_seqs), len(rev_seqs)
 
 
-def _serialize_result_with_counts(r: SdmPrimerResult) -> dict:
+def _serialize_result_with_counts(r: SdmPrimerResult) -> SdmPrimerResultModel:
     """Serialize result with fwd/rev candidate counts."""
     with _core._state_lock:
         cands = _core._state.candidates.get(r.mutation.raw, [])
     result = _serialize_result(r, len(cands))
     fwd_count, rev_count = _count_unique_fwd_rev(cands) if cands else (0, 0)
-    result["candidate_fwd_count"] = fwd_count
-    result["candidate_rev_count"] = rev_count
+    result.candidate_fwd_count = fwd_count
+    result.candidate_rev_count = rev_count
     return result
 
 
@@ -225,21 +228,18 @@ def handle_design_sdm_primers(params: dict) -> dict:
     cancel_event = _core._begin_design_job()
 
     def _cancelled_result() -> dict:
-        return {
-            "results": [],
-            "success_count": 0,
-            "total_count": 0,
-            "failed_mutations": [],
-            "step_stats": None,
-            "rescue_stats": {
+        return DesignResultResponseModel(
+            success_count=0,
+            total_count=0,
+            rescue_stats={
                 "pool_cascade": 0,
                 "auto_relax": 0,
                 "positions_attempted": 0,
                 "pool_variants_tried": 0,
             },
-            "rescued_mutations": [],
-            "cancelled": True,
-        }
+            rescued_mutations=[],
+            cancelled=True,
+        ).model_dump(mode="json")
 
     try:
         with _core._state_lock:
@@ -399,17 +399,14 @@ def handle_design_sdm_primers(params: dict) -> dict:
             rank = next((i + 1 for i, l in enumerate(input_lines) if l == mut_name), idx + len(results) + 1)
             failed.append({"mutation": mut_name, "rank": rank, "reason": reason})
 
-        return {
-            "results": [
-                _serialize_result_with_counts(r) for r in results
-            ],
-            "success_count": len(results),
-            "total_count": total_mutations,
-            "failed_mutations": failed,
-            "step_stats": None,
-            "rescue_stats": rescue_stats,
-            "rescued_mutations": rescued_info,
-        }
+        return DesignResultResponseModel(
+            results=[_serialize_result_with_counts(r) for r in results],
+            success_count=len(results),
+            total_count=total_mutations,
+            failed_mutations=failed,
+            rescue_stats=rescue_stats,
+            rescued_mutations=rescued_info,
+        ).model_dump(mode="json")
     finally:
         _core._finish_design_job(cancel_event)
         if temp_csv is not None:
@@ -443,10 +440,10 @@ def handle_retry_failed(params: dict) -> dict:
     with _core._state_lock:
         _core._state.candidates[mutation_raw] = candidates
 
-    return {
-        "candidates": [_serialize_result_with_counts(c) for c in candidates],
-        "count": len(candidates),
-    }
+    return AlternativesResultModel(
+        candidates=[_serialize_result_with_counts(c) for c in candidates],
+        count=len(candidates),
+    ).model_dump(mode="json")
 
 
 def handle_swap_primer(params: dict) -> dict:
@@ -486,7 +483,7 @@ def handle_swap_primer(params: dict) -> dict:
                     gc_rev=new_best.gc_rev,
                 )
         _rebuild_plate_state(_core._state.results)
-    return _serialize_result_with_counts(new_best)
+    return _serialize_result_with_counts(new_best).model_dump(mode="json")
 
 
 def handle_evaluate_primer(params: dict) -> dict:
@@ -523,7 +520,7 @@ def handle_evaluate_primer(params: dict) -> dict:
         mutation_raw=p.mutation,
         overlap_len=p.overlap_len,
     )
-    return _serialize_result(result)
+    return _serialize_result(result).model_dump(mode="json")
 
 
 def handle_get_alternatives(params: dict) -> dict:
@@ -534,7 +531,7 @@ def handle_get_alternatives(params: dict) -> dict:
         raise ValueError("mutation is required")
     with _core._state_lock:
         candidates = _core._state.candidates.get(p.mutation, [])
-    return {
-        "mutation": p.mutation,
-        "candidates": [_serialize_result(c) for c in candidates],
-    }
+    return AlternativesResultModel(
+        mutation=p.mutation,
+        candidates=[_serialize_result(c) for c in candidates],
+    ).model_dump(mode="json")

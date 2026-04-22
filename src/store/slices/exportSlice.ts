@@ -5,7 +5,6 @@ import { getSortedMutations, reorderMappings } from "../../lib/plate-utils";
 import { formatError } from "../../lib/utils";
 import type { AppState } from "../types";
 import type {
-  PlateMapResult,
   SequenceInfo,
   WorkspaceData,
   WorkspaceV1,
@@ -20,7 +19,7 @@ function normalizeWorkspace(ws: WorkspaceData): WorkspaceV2 {
     return ws;
   }
 
-  const legacy = ws as WorkspaceV1;
+  const legacy: WorkspaceV1 = ws;
   return {
     version: 2,
     inputs: {
@@ -97,11 +96,11 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
   dedupInfo: {},
   progress: 0,
   statusMessage: "Ready",
-  tableSorting: [] as SortingState,
+  tableSorting: [],
 
   getPlateMap: async () => {
     try {
-      const result = await sendRequest<PlateMapResult>("get_plate_map");
+      const result = await sendRequest("get_plate_map", {});
       set({
         plateMappings: result.mappings,
         dedupInfo: result.dedup_info,
@@ -150,8 +149,8 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
 
   getWorkspaceSnapshot: () => {
     const s = get();
-    return {
-      version: 2 as const,
+    const snapshot: WorkspaceV2 = {
+      version: 2,
       inputs: {
         fastaPath: s.fastaPath,
         mutationInputMode: s.mutationInputMode,
@@ -223,6 +222,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
         },
       }),
     };
+    return snapshot;
   },
 
   restoreWorkspace: async (ws: WorkspaceData) => {
@@ -232,7 +232,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
     let restoredGene = "";
 
     if (inputs.fastaPath) {
-      const info = await sendRequest<SequenceInfo>("load_fasta", {
+      const info = await sendRequest("load_fasta", {
         filepath: inputs.fastaPath,
       });
       loadedSeqInfo = info;
@@ -264,7 +264,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       failedMutations: results.failedMutations ?? [],
       plateMappings: results.plateMappings ?? [],
       dedupInfo: results.dedupInfo ?? {},
-      tableSorting: (ui.tableSorting ?? []) as SortingState,
+      tableSorting: ui.tableSorting ?? [],
       manuallySwapped: (() => {
         const rawSwapped = results.manuallySwapped ?? {};
         const safe: Record<string, "fwd" | "rev" | "both"> = {};

@@ -17,10 +17,15 @@ interface MappingExportDialogProps {
   onExport: (params: { format: "echo" | "janus"; transferVol: number }) => void;
 }
 
-const FORMAT_DEFAULTS = {
+type MappingFormat = "echo" | "janus";
+
+const FORMAT_DEFAULTS: Record<
+  MappingFormat,
+  { transferVol: number; unit: string; min: number; max: number; step: number }
+> = {
   echo: { transferVol: 100, unit: "nL", min: 50, max: 5000, step: 1 },
   janus: { transferVol: 2.0, unit: "µL", min: 0.5, max: 10, step: 0.1 },
-} as const;
+};
 
 export function MappingExportDialog({
   open,

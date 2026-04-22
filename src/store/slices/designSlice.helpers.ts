@@ -2,7 +2,6 @@ import type {
   DesignResult,
   FailedMutation,
   PlateMapping,
-  PlateMapResult,
   RescueStats,
   RescuedMutation,
   SdmPrimerResult,
@@ -15,7 +14,7 @@ export const EMPTY_RESCUE_STATS: RescueStats = {
   pool_variants_tried: 0,
 };
 
-export interface PreparedDesignInput {
+interface PreparedDesignInput {
   intendedMuts: Set<string>;
   limitedText: string;
   sendCount: number;
@@ -24,7 +23,7 @@ export interface PreparedDesignInput {
   rescuePool: string[];
 }
 
-export interface DesignRequestPayload extends Record<string, unknown> {
+interface DesignRequestPayload extends Record<string, unknown> {
   fasta_path: string;
   target_start: number;
   mutations_csv_or_text: string;
@@ -44,7 +43,7 @@ export interface DesignRequestPayload extends Record<string, unknown> {
   auto_relax: true;
 }
 
-export interface ProcessedDesignResult {
+interface ProcessedDesignResult {
   capped: SdmPrimerResult[];
   intendedFailed: FailedMutation[];
   rescueStats: RescueStats;
@@ -188,24 +187,6 @@ export function processDesignResult(params: {
     tmMet,
     statusMessage: `${capped.length}/${intendedCount} designed | Tm: ${tmMet}/${capped.length}${failedMsg}${rescueMsg}`,
   };
-}
-
-export function filterPlateMappingsForResults(
-  plateResult: PlateMapResult,
-  cappedResults: SdmPrimerResult[],
-) {
-  const cappedMuts = new Set(cappedResults.map((r) => r.mutation));
-  const filteredMappings = plateResult.mappings.filter(
-    (m) => m.primer_type === "reverse" || cappedMuts.has(m.mutation),
-  );
-  const cappedRevSeqs = new Set<string>();
-  for (const [seq, muts] of Object.entries(plateResult.dedup_info)) {
-    if (muts.some((mut) => cappedMuts.has(mut))) cappedRevSeqs.add(seq);
-  }
-
-  return filteredMappings.filter(
-    (m) => m.primer_type === "forward" || cappedRevSeqs.has(m.sequence),
-  );
 }
 
 export function applyCustomPrimerToResults(params: {

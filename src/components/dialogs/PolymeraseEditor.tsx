@@ -42,6 +42,60 @@ interface PolymeraseEditorProps {
   onSave: (profile: PolymeraseProfile) => Promise<void>;
 }
 
+type OptionalNumericPolymeraseKey =
+  | "opt_tm_fwd"
+  | "opt_tm_rev"
+  | "opt_tm_overlap"
+  | "min_3prime_dist"
+  | "overlap_len"
+  | "fwd_len_min"
+  | "fwd_len_max"
+  | "rev_len_min"
+  | "rev_len_max";
+
+type RequiredNumericPolymeraseKey = Exclude<
+  keyof PolymeraseProfile,
+  "name" | "tm_method" | "salt_correction" | OptionalNumericPolymeraseKey
+>;
+
+type NumericPolymeraseKey =
+  | RequiredNumericPolymeraseKey
+  | OptionalNumericPolymeraseKey;
+
+function isOptionalNumericPolymeraseKey(
+  key: NumericPolymeraseKey,
+): key is OptionalNumericPolymeraseKey {
+  return (
+    key === "opt_tm_fwd" ||
+    key === "opt_tm_rev" ||
+    key === "opt_tm_overlap" ||
+    key === "min_3prime_dist" ||
+    key === "overlap_len" ||
+    key === "fwd_len_min" ||
+    key === "fwd_len_max" ||
+    key === "rev_len_min" ||
+    key === "rev_len_max"
+  );
+}
+
+function parsePolymeraseNumber<K extends RequiredNumericPolymeraseKey>(
+  key: K,
+  raw: string,
+): PolymeraseProfile[K];
+function parsePolymeraseNumber<K extends OptionalNumericPolymeraseKey>(
+  key: K,
+  raw: string,
+): PolymeraseProfile[K];
+function parsePolymeraseNumber(key: NumericPolymeraseKey, raw: string) {
+  if (raw === "") {
+    if (isOptionalNumericPolymeraseKey(key)) {
+      return undefined;
+    }
+    return DEFAULT_PROFILE[key];
+  }
+  return Number(raw);
+}
+
 export function PolymeraseEditor({
   open,
   profile,
@@ -74,11 +128,15 @@ export function PolymeraseEditor({
     }
   };
 
-  const num = (key: keyof PolymeraseProfile) => ({
-    value: String((form[key] as number | null | undefined) ?? ""),
+  const num = <K extends NumericPolymeraseKey>(key: K) => ({
+    value: String(form[key] ?? ""),
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
       const next = e.target.value;
-      update(key, (next === "" ? null : Number(next)) as PolymeraseProfile[typeof key]);
+      if (isOptionalNumericPolymeraseKey(key)) {
+        update(key, parsePolymeraseNumber(key, next));
+        return;
+      }
+      update(key, parsePolymeraseNumber(key, next));
     },
   });
 

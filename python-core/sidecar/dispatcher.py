@@ -30,10 +30,12 @@ from sidecar.handlers.export import (
     handle_export_mapping,
     handle_export_order,
     handle_get_plate_map,
+    handle_save_json,
     handle_save_workspace,
     handle_load_workspace,
 )
 from sidecar.handlers.external import (
+    handle_check_structures_available,
     handle_fetch_domains,
     handle_search_uniprot,
     handle_fetch_structure,
@@ -65,10 +67,12 @@ _METHODS = {
     "export_benchmark_csv": handle_export_benchmark_csv,
     "evaluate_primer": handle_evaluate_primer,
     "retry_failed_mutation": handle_retry_failed,
+    "save_json": handle_save_json,
     "save_workspace": handle_save_workspace,
     "load_workspace": handle_load_workspace,
     "fetch_domains": handle_fetch_domains,
     "search_uniprot": handle_search_uniprot,
+    "check_structures_available": handle_check_structures_available,
     "fetch_structure": handle_fetch_structure,
     "run_benchmark": handle_run_benchmark,
     "cancel_design": lambda _: {
@@ -81,6 +85,7 @@ _METHODS = {
 _ASYNC_METHODS = {
     "design_sdm_primers",
     "search_uniprot",
+    "check_structures_available",
     "fetch_structure",
     "fetch_domains",
     "run_benchmark",

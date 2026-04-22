@@ -2,13 +2,35 @@ import type { ChangeEvent, KeyboardEvent } from "react";
 import { useState } from "react";
 import { UniprotSearch } from "./UniprotSearch";
 
+const LINKER_HANDLING_OPTIONS: Array<"include" | "separate-bin" | "exclude"> = [
+  "include",
+  "separate-bin",
+  "exclude",
+];
+
+const DOMAIN_STRATEGY_OPTIONS: Array<"proportional" | "equal"> = [
+  "proportional",
+  "equal",
+];
+
+const DOMAIN_OVERLAP_OPTIONS: Array<"first" | "largest"> = [
+  "first",
+  "largest",
+];
+
+const DISTANCE_MODE_OPTIONS: Array<"auto" | "1d" | "3d"> = [
+  "auto",
+  "1d",
+  "3d",
+];
+
 export function HelpTip({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   return (
     <span>
       <button
         type="button"
-        className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-gray-100 hover:bg-blue-100 text-gray-400 hover:text-blue-600 text-[9px] font-bold leading-none"
+        className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-slate-100 text-[9px] font-bold leading-none text-slate-400 hover:bg-amber-100 hover:text-amber-700"
         onClick={(e) => {
           e.preventDefault();
           setOpen((p) => !p);
@@ -18,7 +40,7 @@ export function HelpTip({ children }: { children: React.ReactNode }) {
         ?
       </button>
       {open && (
-        <span className="block text-[10px] text-gray-600 bg-blue-50 border border-blue-100 rounded px-1.5 py-1 mt-0.5 leading-relaxed whitespace-pre-line">
+        <span className="mt-0.5 block rounded-xl border border-amber-200 bg-amber-50 px-1.5 py-1 text-[10px] leading-relaxed text-slate-600 whitespace-pre-line">
           {children}
         </span>
       )}
@@ -40,20 +62,20 @@ export function PipelineStep({
   children?: React.ReactNode;
 }) {
   return (
-    <div className={`relative transition-opacity ${enabled ? "opacity-100" : "opacity-50"}`}>
+    <div className={`relative rounded-2xl border px-3 py-3 transition-opacity ${enabled ? "border-slate-200 bg-white/80 opacity-100" : "border-slate-200 bg-slate-50/70 opacity-60"}`}>
       <div
-        className={`absolute -left-[calc(0.75rem+5px)] top-0.5 w-2 h-2 rounded-full border-2 ${
-          enabled ? "bg-blue-500 border-blue-500" : "bg-white border-gray-300"
+        className={`absolute -left-[calc(0.75rem+5px)] top-3 h-2 w-2 rounded-full border-2 ${
+          enabled ? "border-amber-500 bg-amber-500" : "border-slate-300 bg-white"
         }`}
       />
-      <label className="flex items-center gap-1.5 cursor-pointer text-xs font-medium mb-1">
+      <label className="mb-1 flex items-center gap-1.5 cursor-pointer text-xs font-medium">
         <input
           type="checkbox"
-          className="h-3 w-3 accent-blue-600"
+          className="h-3 w-3 accent-amber-600"
           checked={enabled}
           onChange={(e) => onToggle(e.target.checked)}
         />
-        <span className="text-gray-600">
+        <span className="text-slate-700">
           Step {step}: {label}
         </span>
       </label>
@@ -69,7 +91,7 @@ export function PipelineArrow({ active }: { active: boolean }) {
         active ? "opacity-60" : "opacity-20"
       }`}
     >
-      <span className="text-gray-400 select-none leading-none">{"↓"}</span>
+      <span className="text-slate-400 select-none leading-none">{"↓"}</span>
     </div>
   );
 }
@@ -111,9 +133,9 @@ export function DomainAllocationSection(props: {
 
   return (
     <div className="space-y-1.5">
-      <div className="flex items-center gap-2 flex-wrap text-[10px] text-gray-500">
+      <div className="flex flex-wrap items-center gap-2 text-[10px] text-slate-500">
         <span>Linker</span>
-        {(["include", "separate-bin", "exclude"] as const).map((v) => (
+        {LINKER_HANDLING_OPTIONS.map((v) => (
           <label key={v} className="flex items-center gap-0.5 cursor-pointer">
             <input
               type="radio"
@@ -149,11 +171,11 @@ export function DomainAllocationSection(props: {
                   onChange={() => toggleDomain(key)}
                 />
                 <span className="w-2 h-2 rounded-sm bg-blue-400 inline-block flex-shrink-0" />
-                <span className="text-gray-600 truncate">
+                <span className="truncate text-slate-600">
                   {d.name} ({d.start}-{d.end})
                 </span>
                 {stat && !disabled && (
-                  <span className={`ml-auto flex-shrink-0 tabular-nums ${stat.selected < stat.quota ? "text-amber-600" : "text-gray-400"}`}>
+                  <span className={`ml-auto flex-shrink-0 tabular-nums ${stat.selected < stat.quota ? "text-amber-600" : "text-slate-400"}`}>
                     {stat.selected}/{stat.quota}
                     {stat.selected < stat.quota && " \u26A0"}
                   </span>
@@ -166,37 +188,37 @@ export function DomainAllocationSection(props: {
 
       {!addingDomain ? (
         <button
-          className="text-[10px] text-blue-500 hover:text-blue-700"
+          className="text-[10px] text-amber-700 hover:text-amber-900"
           onClick={() => setAddingDomain(true)}
         >
           + Add manually
         </button>
       ) : (
-        <div className="flex gap-1 items-center text-[10px]">
+        <div className="flex items-center gap-1 text-[10px]">
           <input
             type="text"
             placeholder="Name"
-            className="w-16 h-4 border border-gray-300 rounded px-1 text-[10px]"
+            className="h-6 w-16 rounded-lg border border-slate-300 px-1 text-[10px]"
             value={newDomainName}
             onChange={(e) => setNewDomainName(e.target.value)}
           />
           <input
             type="number"
             placeholder="Start"
-            className="w-10 h-4 border border-gray-300 rounded px-0.5 text-[10px] text-center"
+            className="h-6 w-10 rounded-lg border border-slate-300 px-0.5 text-[10px] text-center"
             value={newDomainStart}
             onChange={(e) => setNewDomainStart(e.target.value)}
           />
-          <span className="text-gray-400">-</span>
+          <span className="text-slate-400">-</span>
           <input
             type="number"
             placeholder="End"
-            className="w-10 h-4 border border-gray-300 rounded px-0.5 text-[10px] text-center"
+            className="h-6 w-10 rounded-lg border border-slate-300 px-0.5 text-[10px] text-center"
             value={newDomainEnd}
             onChange={(e) => setNewDomainEnd(e.target.value)}
           />
           <button
-            className="text-green-600 hover:text-green-800 font-bold"
+            className="font-bold text-emerald-600 hover:text-emerald-800"
             onClick={() => {
               const s = parseInt(newDomainStart, 10);
               const e = parseInt(newDomainEnd, 10);
@@ -211,7 +233,7 @@ export function DomainAllocationSection(props: {
           >
             &#10003;
           </button>
-          <button className="text-gray-400 hover:text-gray-600" onClick={() => setAddingDomain(false)}>
+          <button className="text-slate-400 hover:text-slate-600" onClick={() => setAddingDomain(false)}>
             &times;
           </button>
         </div>
@@ -228,11 +250,11 @@ export function OptimizationSummarySection(props: {
 }) {
   const { distanceBadge, structureLoading, structureLoaded, distanceMode } = props;
   return (
-    <div className="flex items-center gap-1.5 flex-wrap text-[10px] text-gray-500">
+    <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-slate-500">
       <span>{distanceBadge}</span>
       {structureLoading && <span className="text-amber-600">(loading AlphaFold...)</span>}
       {structureLoaded && (
-        <span className="inline-flex items-center rounded bg-indigo-100 px-1 py-0.5 text-[10px] font-medium text-indigo-700">
+        <span className="inline-flex items-center rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-medium text-indigo-700">
           AlphaFold
         </span>
       )}
@@ -269,25 +291,25 @@ export function RoundSettingsSection(props: {
   } = props;
 
   return (
-    <div className="ml-2 pl-3 mt-3 space-y-1.5 text-[10px] text-gray-500 border-l-2 border-transparent">
-      <div className="font-semibold uppercase tracking-wide text-gray-400">Round</div>
+    <div className="ml-2 mt-3 space-y-1.5 border-l-2 border-transparent pl-3 text-[10px] text-slate-500">
+      <div className="font-semibold uppercase tracking-wide text-slate-400">Round</div>
       <div className="flex items-center gap-2 flex-wrap">
         <span>EVOLVEpro Round</span>
         <input
           type="number"
           min={1}
-          className="w-10 h-5 border border-gray-300 rounded px-1 text-center text-[10px]"
+          className="h-6 w-10 rounded-lg border border-slate-300 bg-white px-1 text-center text-[10px]"
           value={roundStr}
           onChange={(e: ChangeEvent<HTMLInputElement>) => setRoundStr(e.target.value)}
           onBlur={commitRound}
           onKeyDown={onEnterBlur}
         />
-        <span className="text-gray-400">Size</span>
+        <span className="text-slate-400">Size</span>
         <input
           type="number"
           min={1}
           max={960}
-          className="w-12 h-5 border border-gray-300 rounded px-1 text-center text-[10px]"
+          className="h-6 w-12 rounded-lg border border-slate-300 bg-white px-1 text-center text-[10px]"
           value={roundSizeStr}
           onChange={(e: ChangeEvent<HTMLInputElement>) => setRoundSizeStr(e.target.value)}
           onBlur={commitRoundSize}
@@ -295,12 +317,12 @@ export function RoundSettingsSection(props: {
         />
         <HelpTip>{"Round × size = cumulative data points used to estimate model quality (ρ).\nLower ρ → wider pool and higher entropy weight for exploration."}</HelpTip>
       </div>
-      <div className="flex items-center gap-2 text-[10px] text-indigo-600 font-mono">
-        <span className="inline-flex items-center rounded bg-indigo-50 px-1 py-0.5 text-[9px] font-medium text-indigo-600 border border-indigo-100">
+      <div className="flex items-center gap-2 font-mono text-[10px] text-indigo-600">
+        <span className="inline-flex items-center rounded-full border border-indigo-100 bg-indigo-50 px-2 py-0.5 text-[9px] font-medium text-indigo-600">
           Auto
         </span>
         <span>K = {autoK.toFixed(2)}</span>
-        <span className="text-gray-400">/</span>
+        <span className="text-slate-400">/</span>
         <span>entropy = {autoEntropy.toFixed(2)}</span>
       </div>
     </div>
@@ -357,26 +379,26 @@ export function AdvancedSettingsSection(props: {
   } = props;
 
   return (
-    <div className="ml-2 pl-3 mt-2 border-l-2 border-transparent">
+    <div className="ml-2 mt-2 border-l-2 border-transparent pl-3">
       <button
         type="button"
-        className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-gray-600"
+        className="flex items-center gap-1 text-[10px] text-slate-500 hover:text-slate-700"
         onClick={() => setShowAdvanced((p) => !p)}
       >
         <span>{showAdvanced ? "▾" : "▸"}</span>
         <span>Advanced</span>
       </button>
       {showAdvanced && (
-        <div className="mt-1.5 space-y-2 text-[10px] text-gray-500 pl-2">
+        <div className="mt-1.5 space-y-2 rounded-2xl border border-slate-200 bg-white/80 p-3 text-[10px] text-slate-500">
           <div>
-            <div className="text-[9px] uppercase tracking-wide text-gray-400 mb-0.5">Step 1</div>
+            <div className="mb-0.5 text-[9px] uppercase tracking-wide text-slate-400">Step 1</div>
             <div className="flex items-center gap-1 flex-wrap">
               <span>Position cap</span>
               <input
                 type="number"
                 min={1}
                 max={20}
-                className="w-10 h-5 border border-gray-300 rounded px-1 text-center text-[10px]"
+                className="h-6 w-10 rounded-lg border border-slate-300 bg-white px-1 text-center text-[10px]"
                 value={maxPerPosStr}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setMaxPerPosStr(e.target.value)}
                 onBlur={commitMaxPerPos}
@@ -388,11 +410,11 @@ export function AdvancedSettingsSection(props: {
           </div>
 
           <div>
-            <div className="text-[9px] uppercase tracking-wide text-gray-400 mb-0.5">Step 2</div>
+            <div className="mb-0.5 text-[9px] uppercase tracking-wide text-slate-400">Step 2</div>
             <div className="space-y-1">
               <div className="flex items-center gap-2 flex-wrap" role="radiogroup" aria-label="Domain strategy">
                 <span>Strategy</span>
-                {(["proportional", "equal"] as const).map((v) => (
+                {DOMAIN_STRATEGY_OPTIONS.map((v) => (
                   <label key={v} className="flex items-center gap-0.5 cursor-pointer">
                     <input type="radio" name="domainStrategy" className="w-2.5 h-2.5" checked={domainStrategy === v} onChange={() => setDomainStrategy(v)} />
                     {v.charAt(0).toUpperCase() + v.slice(1)}
@@ -402,7 +424,7 @@ export function AdvancedSettingsSection(props: {
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 <span>Overlap</span>
-                {(["first", "largest"] as const).map((v) => (
+                {DOMAIN_OVERLAP_OPTIONS.map((v) => (
                   <label key={v} className="flex items-center gap-0.5 cursor-pointer">
                     <input type="radio" name="domainOverlapPolicy" className="w-2.5 h-2.5" checked={domainOverlapPolicy === v} onChange={() => setDomainOverlapPolicy(v)} />
                     {v.charAt(0).toUpperCase() + v.slice(1)}
@@ -415,7 +437,7 @@ export function AdvancedSettingsSection(props: {
                   type="number"
                   min={0}
                   max={20}
-                  className="w-10 h-5 border border-gray-300 rounded px-1 text-center text-[10px]"
+                  className="h-6 w-10 rounded-lg border border-slate-300 bg-white px-1 text-center text-[10px]"
                   value={domainQuotaMin}
                   onChange={(e) => setDomainQuotaMin(Number(e.target.value))}
                 />
@@ -424,11 +446,11 @@ export function AdvancedSettingsSection(props: {
           </div>
 
           <div>
-            <div className="text-[9px] uppercase tracking-wide text-gray-400 mb-0.5">Step 3</div>
+            <div className="mb-0.5 text-[9px] uppercase tracking-wide text-slate-400">Step 3</div>
             <div className="space-y-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <span>Distance</span>
-                {(["auto", "1d", "3d"] as const).map((v) => (
+                {DISTANCE_MODE_OPTIONS.map((v) => (
                   <label key={v} className="flex items-center gap-1 cursor-pointer">
                     <input type="radio" name="distanceMode" className="w-2.5 h-2.5" checked={distanceMode === v} onChange={() => setDistanceMode(v)} />
                     {v.toUpperCase()}
@@ -448,19 +470,19 @@ export function AdvancedSettingsSection(props: {
                   className="w-20 accent-indigo-600"
                   title="Manual pool size override (ignored when Round > 0)"
                 />
-                <span className="font-mono text-gray-700">{paretoPoolMultiplier.toFixed(2)}x</span>
+                <span className="font-mono text-slate-700">{paretoPoolMultiplier.toFixed(2)}x</span>
                 <HelpTip>{"Manual pool multiplier. Ignored when EVOLVEpro Round ≥ 1 (σ-adaptive mode).\nAuto K = " + autoK.toFixed(2) + " based on current round."}</HelpTip>
               </div>
               <div className="flex items-center gap-1">
                 <label className="flex items-center gap-1.5 cursor-pointer">
                   <input
                     type="checkbox"
-                    className="h-2.5 w-2.5 accent-purple-600"
+                    className="h-2.5 w-2.5 accent-amber-600"
                     checked={entropyWeightEnabled}
                     onChange={(e) => setEntropyWeightEnabled(e.target.checked)}
                   />
                   <span>Entropy-guided</span>
-                  <span className="inline-flex items-center rounded bg-purple-100 px-1 py-0.5 text-[9px] font-medium text-purple-700">β</span>
+                  <span className="inline-flex items-center rounded-full bg-purple-100 px-2 py-0.5 text-[9px] font-medium text-purple-700">β</span>
                 </label>
                 <HelpTip>Positions where EVOLVEpro scores multiple substitutions similarly get an uncertainty bonus. Auto weight = {autoEntropy.toFixed(2)} based on current round.</HelpTip>
               </div>
@@ -477,7 +499,7 @@ export function AdvancedSettingsSection(props: {
                     className="w-20 accent-purple-600"
                     title="Manual entropy weight override (ignored when Round > 0)"
                   />
-                  <span className="font-mono text-gray-700">{entropyWeight.toFixed(2)}</span>
+                  <span className="font-mono text-slate-700">{entropyWeight.toFixed(2)}</span>
                 </div>
               )}
             </div>
@@ -496,14 +518,14 @@ export function WorkspaceSection(props: {
 }) {
   const { autoRedesignOnLoad, setAutoRedesignOnLoad, saveCache, setSaveCache } = props;
   return (
-    <div className="ml-2 pl-3 mt-2 space-y-1 text-[10px] text-gray-500 border-l-2 border-transparent">
-      <div className="font-semibold uppercase tracking-wide text-gray-400">Workspace</div>
+    <div className="ml-2 mt-2 space-y-1 border-l-2 border-transparent pl-3 text-[10px] text-slate-500">
+      <div className="font-semibold uppercase tracking-wide text-slate-400">Workspace</div>
       <label className="flex items-center gap-1.5 cursor-pointer">
-        <input type="checkbox" className="h-2.5 w-2.5 accent-blue-600" checked={autoRedesignOnLoad} onChange={(e) => setAutoRedesignOnLoad(e.target.checked)} />
+        <input type="checkbox" className="h-2.5 w-2.5 accent-amber-600" checked={autoRedesignOnLoad} onChange={(e) => setAutoRedesignOnLoad(e.target.checked)} />
         Auto re-design on load
       </label>
       <label className="flex items-center gap-1.5 cursor-pointer">
-        <input type="checkbox" className="h-2.5 w-2.5 accent-blue-600" checked={saveCache} onChange={(e) => setSaveCache(e.target.checked)} />
+        <input type="checkbox" className="h-2.5 w-2.5 accent-amber-600" checked={saveCache} onChange={(e) => setSaveCache(e.target.checked)} />
         Save pipeline cache
       </label>
     </div>
@@ -534,8 +556,8 @@ export function BenchmarkSection(props: {
   } = props;
 
   return (
-    <div className="ml-2 pl-3 mt-2 space-y-1 text-[10px] text-gray-500 border-l-2 border-transparent">
-      <div className="font-semibold uppercase tracking-wide text-gray-400">Benchmark</div>
+    <div className="ml-2 mt-2 space-y-1 border-l-2 border-transparent pl-3 text-[10px] text-slate-500">
+      <div className="font-semibold uppercase tracking-wide text-slate-400">Benchmark</div>
       <div className="flex items-center gap-2">
         <span className="w-20">Top percentile</span>
         <input
@@ -543,7 +565,7 @@ export function BenchmarkSection(props: {
           min={1}
           max={100}
           step={1}
-          className="w-12 h-5 border border-gray-300 rounded px-1 text-center text-[10px]"
+          className="h-6 w-12 rounded-lg border border-slate-300 bg-white px-1 text-center text-[10px]"
           value={benchmarkTopPercentile}
           onChange={(e) => setBenchmarkTopPercentile(Number(e.target.value))}
         />
@@ -556,7 +578,7 @@ export function BenchmarkSection(props: {
           min={1}
           max={1000}
           step={1}
-          className="w-14 h-5 border border-gray-300 rounded px-1 text-center text-[10px]"
+          className="h-6 w-14 rounded-lg border border-slate-300 bg-white px-1 text-center text-[10px]"
           value={benchmarkRandomTrials}
           onChange={(e) => setBenchmarkRandomTrials(Number(e.target.value))}
         />
@@ -565,7 +587,7 @@ export function BenchmarkSection(props: {
         <span className="w-20">Random seed</span>
         <input
           type="number"
-          className="w-16 h-5 border border-gray-300 rounded px-1 text-center text-[10px]"
+          className="h-6 w-16 rounded-lg border border-slate-300 bg-white px-1 text-center text-[10px]"
           value={benchmarkRandomSeed ?? ""}
           placeholder="auto"
           onChange={(e) => {
@@ -577,7 +599,7 @@ export function BenchmarkSection(props: {
       </div>
       <button
         type="button"
-        className="mt-1 inline-flex items-center rounded border border-gray-300 px-2 py-1 text-[10px] font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+        className="mt-1 inline-flex items-center rounded-full border border-slate-300 bg-white px-3 py-1 text-[10px] font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
         onClick={() => {
           void runBenchmark();
         }}

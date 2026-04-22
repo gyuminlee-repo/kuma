@@ -100,7 +100,7 @@ export function DiversityOptions() {
   };
 
   const onEnterBlur = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+    if (e.key === "Enter") e.currentTarget.blur();
   };
 
   const autoParams = computeSigmaParams(evolveproRound, roundSize);
@@ -115,12 +115,12 @@ export function DiversityOptions() {
           : "position distance";
 
   return (
-    <div className="relative ml-1">
-      <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+    <div className="relative ml-1 rounded-[22px] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,253,248,0.94),rgba(248,251,255,0.98))] p-3 shadow-[0_10px_24px_rgba(15,23,42,0.05)]">
+      <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
         Pipeline
       </div>
 
-      <div className="border-l-2 border-gray-300 ml-2 pl-3 space-y-2">
+      <div className="ml-2 space-y-2 border-l-2 border-slate-300 pl-3">
         <PipelineStep
           step={1}
           label="Pre-filter"
@@ -209,8 +209,8 @@ export function DiversityOptions() {
         setEntropyWeight={setEntropyWeight}
       />
 
-      <div className="ml-2 pl-3 mt-2 text-xs font-medium text-gray-700 border-l-2 border-transparent">
-        <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5 -translate-y-px" />
+      <div className="ml-2 mt-2 border-l-2 border-transparent pl-3 text-xs font-medium text-slate-700">
+        <span className="mr-1.5 inline-block h-1.5 w-1.5 -translate-y-px rounded-full bg-emerald-500" />
         {selectedCount} variants selected
       </div>
 

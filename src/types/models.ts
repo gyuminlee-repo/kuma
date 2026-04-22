@@ -1,4 +1,9 @@
+import type { SortingState } from "@tanstack/react-table";
+
 /** TypeScript interfaces for KURO JSON-RPC communication. */
+
+export type MutationInputMode = "text" | "evolvepro" | "multi-evolve";
+export type CodonStrategy = "closest" | "optimal";
 
 export interface PolymeraseInfo {
   name: string;
@@ -27,6 +32,11 @@ export interface PolymeraseProfile {
   opt_tm_rev?: number | null;
   opt_tm_overlap?: number | null;
   min_3prime_dist?: number;
+  overlap_len?: number | null;
+  fwd_len_min?: number | null;
+  fwd_len_max?: number | null;
+  rev_len_min?: number | null;
+  rev_len_max?: number | null;
 }
 
 export interface GeneInfo {
@@ -55,6 +65,10 @@ export interface SearchUniprotResult {
   error_detail?: string;
 }
 
+export interface StructureAvailabilityResult {
+  availability: Record<string, boolean>;
+}
+
 export interface SequenceInfo {
   header: string;
   seq_length: number;
@@ -77,6 +91,12 @@ export interface ParseError {
 export interface ParseMutationsResult {
   parsed: ParsedMutation[];
   errors: ParseError[];
+}
+
+export interface AlternativesResult {
+  mutation?: string;
+  count?: number;
+  candidates: SdmPrimerResult[];
 }
 
 export interface OffTargetHit {
@@ -195,6 +215,7 @@ export interface DesignResult {
   failed_mutations: FailedMutation[];
   rescue_stats?: RescueStats;
   rescued_mutations?: RescuedMutation[];
+  cancelled?: boolean;
 }
 
 export interface PlateMapping {
@@ -219,14 +240,29 @@ export interface ExportResult {
   filepath: string;
 }
 
+export interface SaveCustomPolymeraseResult {
+  success: boolean;
+  name: string;
+}
+
+export interface ExportOrderResult extends ExportResult {
+  format: "idt" | "twist";
+  primer_count: number;
+}
+
+export interface ExportMappingResult extends ExportResult {
+  format: "echo" | "janus";
+  primer_count: number;
+}
+
 export interface WorkspaceV1 {
   version: 1;
   fastaPath: string;
-  mutationInputMode: "text" | "evolvepro" | "multi-evolve";
+  mutationInputMode: MutationInputMode;
   mutationText: string;
   evolveproCsvPath: string;
   selectedGene: string;
-  codonStrategy: "closest" | "optimal";
+  codonStrategy: CodonStrategy;
   maxPrimers: number;
   designResults: SdmPrimerResult[];
   successCount: number;
@@ -234,7 +270,7 @@ export interface WorkspaceV1 {
   failedMutations: FailedMutation[];
   plateMappings: PlateMapping[];
   dedupInfo: Record<string, string[]>;
-  tableSorting: unknown[];
+  tableSorting: SortingState;
   manuallySwapped: Record<string, string>;
   customCandidates: Record<string, SdmPrimerResult[]>;
   tmFwdTarget: number;
@@ -277,7 +313,7 @@ export type LinkerHandling = "include" | "exclude" | "separate-bin";
 
 export interface WorkspaceInputs {
   fastaPath: string;
-  mutationInputMode: "text" | "evolvepro" | "multi-evolve";
+  mutationInputMode: MutationInputMode;
   mutationText: string;
   evolveproCsvPath: string;
   selectedGene: string;
@@ -285,7 +321,7 @@ export interface WorkspaceInputs {
 
 export interface WorkspaceSettings {
   selectedPolymerase?: string;
-  codonStrategy: "closest" | "optimal";
+  codonStrategy: CodonStrategy;
   maxPrimers: number;
   tmFwdTarget: number;
   tmRevTarget: number;
@@ -337,7 +373,7 @@ export interface WorkspaceResults {
 }
 
 export interface WorkspaceUi {
-  tableSorting: unknown[];
+  tableSorting: SortingState;
 }
 
 export interface WorkspaceCache {
@@ -383,22 +419,169 @@ export interface RunBenchmarkResult {
   results: Record<string, BenchmarkResult>;
 }
 
-// JSON-RPC types
-
-export interface JsonRpcResponse<T = unknown> {
-  jsonrpc: "2.0";
-  id: number | null;
-  result?: T;
-  error?: { code: number; message: string };
+export interface JsonRpcError {
+  code: number;
+  message: string;
 }
 
-export interface JsonRpcNotification {
+export interface CancelDesignResult {
+  cancelled: boolean;
+  active_design?: boolean;
+}
+
+export type RpcParams = Record<string, unknown>;
+
+export interface RpcMethodMap {
+  list_polymerases: {
+    params: Record<string, never>;
+    result: PolymeraseInfo[];
+  };
+  get_polymerase_details: {
+    params: { name: string };
+    result: PolymeraseProfile;
+  };
+  save_custom_polymerase: {
+    params: PolymeraseProfile;
+    result: SaveCustomPolymeraseResult;
+  };
+  list_organisms: {
+    params: Record<string, never>;
+    result: Array<{ key: string; name: string; taxid: number }>;
+  };
+  load_fasta: {
+    params: { filepath: string };
+    result: SequenceInfo;
+  };
+  parse_mutations_text: {
+    params: { text: string };
+    result: ParseMutationsResult;
+  };
+  design_sdm_primers: {
+    params: RpcParams;
+    result: DesignResult;
+  };
+  load_evolvepro_csv: {
+    params: RpcParams;
+    result: EvolveproLoadResult;
+  };
+  get_plate_map: {
+    params: Record<string, never>;
+    result: PlateMapResult;
+  };
+  get_alternatives: {
+    params: { mutation: string };
+    result: AlternativesResult;
+  };
+  swap_primer: {
+    params: { mutation: string; candidate_idx: number; swap_type: "both" | "fwd" | "rev" };
+    result: SdmPrimerResult;
+  };
+  export_excel: {
+    params: RpcParams;
+    result: ExportResult;
+  };
+  export_order: {
+    params: RpcParams;
+    result: ExportOrderResult;
+  };
+  export_mapping: {
+    params: RpcParams;
+    result: ExportMappingResult;
+  };
+  export_benchmark_csv: {
+    params: { filepath: string; results: Record<string, BenchmarkResult> };
+    result: ExportResult;
+  };
+  evaluate_primer: {
+    params: RpcParams;
+    result: SdmPrimerResult;
+  };
+  retry_failed_mutation: {
+    params: RpcParams;
+    result: AlternativesResult;
+  };
+  save_json: {
+    params: { filepath: string; data: unknown };
+    result: ExportResult;
+  };
+  save_workspace: {
+    params: { filepath: string; data: WorkspaceData };
+    result: ExportResult;
+  };
+  load_workspace: {
+    params: { filepath: string };
+    result: WorkspaceData;
+  };
+  fetch_domains: {
+    params: { accession: string };
+    result: FetchDomainsResult;
+  };
+  search_uniprot: {
+    params: { gene_name: string; organism: string; translation: string; known_accession: string };
+    result: SearchUniprotResult;
+  };
+  check_structures_available: {
+    params: { accessions: string[] };
+    result: StructureAvailabilityResult;
+  };
+  fetch_structure: {
+    params: { accession: string };
+    result: StructureResult;
+  };
+  run_benchmark: {
+    params: RpcParams;
+    result: RunBenchmarkResult;
+  };
+  cancel_design: {
+    params: Record<string, never>;
+    result: CancelDesignResult;
+  };
+}
+
+export type RpcMethod = keyof RpcMethodMap;
+export type RpcMethodParams<K extends RpcMethod> = RpcMethodMap[K]["params"];
+export type RpcMethodResult<K extends RpcMethod> = RpcMethodMap[K]["result"];
+
+// JSON-RPC types
+
+export interface JsonRpcRequest<K extends RpcMethod = RpcMethod> {
   jsonrpc: "2.0";
-  method: string;
-  params: Record<string, unknown>;
+  id: number;
+  method: K;
+  params: RpcMethodParams<K>;
+}
+
+export interface JsonRpcSuccessResponse<T = unknown> {
+  jsonrpc: "2.0";
+  id: number;
+  result: T;
+  error?: never;
+}
+
+export interface JsonRpcErrorResponse {
+  jsonrpc: "2.0";
+  id: number | null;
+  result?: never;
+  error: JsonRpcError;
+}
+
+export interface ReadyNotification {
+  jsonrpc: "2.0";
+  method: "ready";
+  params: Record<string, never>;
 }
 
 export interface ProgressNotification {
   value: number;
   message: string;
 }
+
+export interface ProgressNotificationMessage {
+  jsonrpc: "2.0";
+  method: "progress";
+  params: ProgressNotification;
+}
+
+export type JsonRpcResponse<T = unknown> = JsonRpcSuccessResponse<T> | JsonRpcErrorResponse;
+export type JsonRpcNotification = ReadyNotification | ProgressNotificationMessage;
+export type JsonRpcMessage = JsonRpcResponse | JsonRpcNotification;

@@ -13,6 +13,19 @@ export interface CrashEntry {
   stack?: string;
 }
 
+function isCrashEntry(value: unknown): value is CrashEntry {
+  if (typeof value !== "object" || value === null) return false;
+  if (!("timestamp" in value) || !("component" in value) || !("message" in value)) {
+    return false;
+  }
+  return (
+    typeof value.timestamp === "string" &&
+    typeof value.component === "string" &&
+    typeof value.message === "string" &&
+    (!("stack" in value) || value.stack === undefined || typeof value.stack === "string")
+  );
+}
+
 export function appendCrashLog(entry: Omit<CrashEntry, "timestamp">): void {
   const log = getCrashLog();
   log.push({
@@ -34,7 +47,8 @@ export function getCrashLog(): CrashEntry[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
-    return JSON.parse(raw) as CrashEntry[];
+    const parsed: unknown = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter(isCrashEntry) : [];
   } catch {
     return [];
   }

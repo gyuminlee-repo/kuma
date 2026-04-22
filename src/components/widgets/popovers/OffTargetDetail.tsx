@@ -1,6 +1,12 @@
 import { useFocusTrap } from "../../../hooks/useFocusTrap";
 import type { SdmPrimerResult } from "../../../types/models";
 
+type PrimerLabel = "Fwd" | "Rev";
+
+function withPrimer<T>(hits: T[], primer: PrimerLabel): Array<T & { primer: PrimerLabel }> {
+  return hits.map((hit) => ({ ...hit, primer }));
+}
+
 export function OffTargetDetail({
   result,
   onClose,
@@ -13,8 +19,8 @@ export function OffTargetDetail({
   const fwdHits = result.offtarget_fwd ?? [];
   const revHits = result.offtarget_rev ?? [];
   const allHits = [
-    ...fwdHits.map((h) => ({ ...h, primer: "Fwd" as const })),
-    ...revHits.map((h) => ({ ...h, primer: "Rev" as const })),
+    ...withPrimer(fwdHits, "Fwd"),
+    ...withPrimer(revHits, "Rev"),
   ];
 
   return (

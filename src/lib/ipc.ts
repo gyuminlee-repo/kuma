@@ -7,13 +7,23 @@
 
 import { Command, type Child } from "@tauri-apps/plugin-shell";
 import type {
-  JsonRpcResponse,
-  JsonRpcNotification,
+  JsonRpcMessage,
+  JsonRpcRequest,
   ProgressNotification,
+  RpcMethod,
+  RpcMethodMap,
+  RpcMethodResult,
 } from "../types/models";
+import {
+  getRpcResultValidator,
+  isJsonRpcError,
+  isProgressNotificationParams,
+  isRecord,
+} from "../types/validators";
 
 type PendingRequest = {
-  resolve: (value: unknown) => void;
+  method: RpcMethod;
+  resolveResult: (value: unknown) => void;
   reject: (reason: Error) => void;
 };
 
@@ -29,39 +39,133 @@ let stderrBuffer = "";
 let onProgress: ((p: ProgressNotification) => void) | null = null;
 let onReady: (() => void) | null = null;
 
+function getCurrentChild(): Child | null {
+  return child;
+}
+
+function parseJsonRpcMessage(line: string): JsonRpcMessage | null {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(line);
+  } catch {
+    return null;
+  }
+
+  if (!isRecord(parsed) || parsed.jsonrpc !== "2.0") {
+    return null;
+  }
+
+  if ("id" in parsed) {
+    const { id } = parsed;
+    if (typeof id !== "number" && id !== null) {
+      return null;
+    }
+
+    if ("error" in parsed && parsed.error !== undefined) {
+      if (!isJsonRpcError(parsed.error)) {
+        return null;
+      }
+      return {
+        jsonrpc: "2.0",
+        id,
+        error: parsed.error,
+      };
+    }
+
+    if ("result" in parsed) {
+      if (id === null) {
+        return null;
+      }
+      return {
+        jsonrpc: "2.0",
+        id,
+        result: parsed.result,
+      };
+    }
+
+    return null;
+  }
+
+  if (parsed.method === "ready") {
+    return {
+      jsonrpc: "2.0",
+      method: "ready",
+      params: {},
+    };
+  }
+
+  if (
+    parsed.method === "progress" &&
+    isProgressNotificationParams(parsed.params)
+  ) {
+    return {
+      jsonrpc: "2.0",
+      method: "progress",
+      params: parsed.params,
+    };
+  }
+
+  return null;
+}
+
+function createPendingRequest<K extends RpcMethod>(
+  method: K,
+  validateResult: (value: unknown) => value is RpcMethodResult<K>,
+  resolve: (value: RpcMethodResult<K>) => void,
+  reject: (reason: Error) => void,
+  timer: ReturnType<typeof setTimeout>,
+): PendingRequest {
+  return {
+    method,
+    resolveResult: (value) => {
+      clearTimeout(timer);
+      if (!validateResult(value)) {
+        reject(new Error(`Invalid RPC result shape for ${method}`));
+        return;
+      }
+      resolve(value);
+    },
+    reject: (reason) => {
+      clearTimeout(timer);
+      reject(reason);
+    },
+  };
+}
+
 function handleLine(line: string) {
   if (!line.trim()) return;
 
-  let msg: JsonRpcResponse | JsonRpcNotification;
-  try {
-    msg = JSON.parse(line);
-  } catch {
+  const msg = parseJsonRpcMessage(line);
+  if (!msg) {
     console.error("[ipc] Failed to parse sidecar output:", line);
     return;
   }
 
-  if (!("id" in msg) || msg.id === undefined || msg.id === null) {
-    const notif = msg as JsonRpcNotification;
-    if (notif.method === "progress" && onProgress) {
-      onProgress(notif.params as unknown as ProgressNotification);
-    } else if (notif.method === "ready" && onReady) {
+  if (!("id" in msg)) {
+    if (msg.method === "progress" && onProgress) {
+      onProgress(msg.params);
+    } else if (msg.method === "ready" && onReady) {
       onReady();
     }
     return;
   }
 
-  const resp = msg as JsonRpcResponse;
-  const req = pending.get(resp.id!);
-  if (!req) {
-    console.warn("[ipc] No pending request for id:", resp.id);
+  if (msg.id === null) {
+    console.warn("[ipc] Received response without request id");
     return;
   }
-  pending.delete(resp.id!);
 
-  if (resp.error) {
-    req.reject(new Error(`[${resp.error.code}] ${resp.error.message}`));
+  const req = pending.get(msg.id);
+  if (!req) {
+    console.warn("[ipc] No pending request for id:", msg.id);
+    return;
+  }
+  pending.delete(msg.id);
+
+  if ("error" in msg && msg.error) {
+    req.reject(new Error(`${req.method}: [${msg.error.code}] ${msg.error.message}`));
   } else {
-    req.resolve(resp.result);
+    req.resolveResult(msg.result);
   }
 }
 
@@ -159,12 +263,10 @@ export async function spawnSidecar(): Promise<void> {
   try {
     await spawnPromise;
   } catch (err) {
-    const proc = child as Child | null;
+    const killPromise = getCurrentChild()?.kill();
     child = null;
     spawnPromise = null;
-    if (proc) {
-      proc.kill().catch(() => {});
-    }
+    void killPromise?.catch(() => {});
     throw err;
   } finally {
     spawnPromise = null;
@@ -177,24 +279,25 @@ export function setProgressHandler(
   onProgress = handler;
 }
 
-export async function sendRequest<T>(
-  method: string,
-  params: Record<string, unknown> = {},
+export async function sendRequest<K extends keyof RpcMethodMap>(
+  method: K,
+  params: RpcMethodMap[K]["params"],
   timeoutMs = 60_000,
-): Promise<T> {
+): Promise<RpcMethodMap[K]["result"]> {
   if (!child) {
     await spawnSidecar();
   }
 
   const id = nextId++;
-  const request = JSON.stringify({
+  const requestPayload: JsonRpcRequest<K> = {
     jsonrpc: "2.0",
     id,
     method,
     params,
-  });
+  };
+  const request = JSON.stringify(requestPayload);
 
-  return new Promise<T>((resolve, reject) => {
+  return new Promise<RpcMethodMap[K]["result"]>((resolve, reject) => {
     // NOTE: This timeout only rejects the client-side promise — it does NOT
     // cancel the in-flight sidecar operation. Call the sidecar's
     // cancel_design RPC when the frontend needs to stop primer design.
@@ -203,16 +306,16 @@ export async function sendRequest<T>(
       reject(new Error(`RPC timeout: ${method} after ${timeoutMs}ms`));
     }, timeoutMs);
 
-    pending.set(id, {
-      resolve: (v) => {
-        clearTimeout(timer);
-        (resolve as (v: unknown) => void)(v);
-      },
-      reject: (e) => {
-        clearTimeout(timer);
-        reject(e);
-      },
-    });
+    pending.set(
+      id,
+      createPendingRequest(
+        method,
+        getRpcResultValidator(method),
+        resolve,
+        reject,
+        timer,
+      ),
+    );
 
     const proc = child;
     if (!proc) {

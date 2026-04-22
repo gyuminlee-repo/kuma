@@ -25,11 +25,16 @@ from sidecar.core import (
 )
 from sidecar.models import (
     ExportExcelParams,
+    ExportMappingResultModel,
+    ExportOrderResultModel,
     ExportMappingParams,
     ExportOrderParams,
     ExportBenchmarkCsvParams,
+    FileExportResultModel,
     SaveWorkspaceParams,
+    SaveJsonParams,
     LoadWorkspaceParams,
+    validate_workspace_data,
 )
 
 _ALLOWED_ORDER_CSV_EXTENSIONS = {".csv"}
@@ -117,7 +122,7 @@ def handle_export_excel(params: dict) -> dict:
         rev_groups=rev_groups,
         results=results_for_export,
     )
-    return {"success": True, "filepath": str(resolved)}
+    return FileExportResultModel(filepath=str(resolved)).model_dump(mode="json")
 
 
 def handle_export_order(params: dict) -> dict:
@@ -158,7 +163,11 @@ def handle_export_order(params: dict) -> dict:
             export_twist_csv(results, resolved)
         primer_count = len(results) * 2
 
-    return {"success": True, "filepath": str(resolved), "format": fmt, "primer_count": primer_count}
+    return ExportOrderResultModel(
+        filepath=str(resolved),
+        format=fmt,
+        primer_count=primer_count,
+    ).model_dump(mode="json")
 
 
 def handle_export_mapping(params: dict) -> dict:
@@ -203,8 +212,11 @@ def handle_export_mapping(params: dict) -> dict:
                                      transfer_vol=vol, rev_groups=rev_groups)
 
     primer_count = len(fwd_mappings) + len(rev_mappings)
-    return {"success": True, "filepath": str(resolved), "format": p.format,
-            "primer_count": primer_count}
+    return ExportMappingResultModel(
+        filepath=str(resolved),
+        format=p.format,
+        primer_count=primer_count,
+    ).model_dump(mode="json")
 
 
 def handle_save_workspace(params: dict) -> dict:
@@ -215,7 +227,18 @@ def handle_save_workspace(params: dict) -> dict:
     resolved = _validate_output_path(p.filepath, allowed_extensions={".json"})
     with open(resolved, "w", encoding="utf-8") as f:
         json.dump(p.data, f, ensure_ascii=False, indent=2)
-    return {"success": True, "filepath": str(resolved)}
+    return FileExportResultModel(filepath=str(resolved)).model_dump(mode="json")
+
+
+def handle_save_json(params: dict) -> dict:
+    """Save generic JSON payload to file."""
+    p = SaveJsonParams(**params)
+    if not p.filepath or p.data is None:
+        raise ValueError("filepath and data are required")
+    resolved = _validate_output_path(p.filepath, allowed_extensions={".json"})
+    with open(resolved, "w", encoding="utf-8") as f:
+        json.dump(p.data, f, ensure_ascii=False, indent=2)
+    return FileExportResultModel(filepath=str(resolved)).model_dump(mode="json")
 
 
 def handle_load_workspace(params: dict) -> dict:
@@ -232,13 +255,17 @@ def handle_load_workspace(params: dict) -> dict:
 
     if not isinstance(data, dict):
         raise ValueError("Workspace file must contain a JSON object")
-    if "results" in data:
-        if not isinstance(data["results"], list):
-            raise ValueError("Workspace 'results' must be an array")
-        if len(data["results"]) > 10_000:
-            raise ValueError(f"Workspace contains {len(data['results'])} results, exceeding 10,000 limit")
+    result_list = None
+    if isinstance(data.get("results"), list):
+        result_list = data["results"]
+    elif isinstance(data.get("results"), dict) and isinstance(data["results"].get("designResults"), list):
+        result_list = data["results"]["designResults"]
 
-    return data
+    if result_list is not None and len(result_list) > 10_000:
+        raise ValueError(f"Workspace contains {len(result_list)} results, exceeding 10,000 limit")
+
+    validated = validate_workspace_data(data)
+    return validated.model_dump(mode="json", exclude_unset=True, round_trip=True)
 
 
 def handle_export_benchmark_csv(params: dict) -> dict:
@@ -266,4 +293,4 @@ def handle_export_benchmark_csv(params: dict) -> dict:
         writer.writeheader()
         for strategy, metrics in p.results.items():
             writer.writerow({"strategy": strategy, **metrics})
-    return {"success": True, "filepath": str(resolved)}
+    return FileExportResultModel(filepath=str(resolved)).model_dump(mode="json")

@@ -2,7 +2,6 @@ import type { StateCreator } from "zustand";
 import { sendRequest } from "../../lib/ipc";
 import { formatError } from "../../lib/utils";
 import type { AppState } from "../types";
-import type { SequenceInfo } from "../../types/models";
 
 import type { SequenceSlice } from "../slice-interfaces";
 export type { SequenceSlice };
@@ -16,7 +15,7 @@ export const createSequenceSlice: StateCreator<AppState, [], [], SequenceSlice> 
   loadSequence: async (filepath: string) => {
     try {
       set({ statusMessage: "Loading sequence file..." });
-      const info = await sendRequest<SequenceInfo>("load_fasta", { filepath });
+      const info = await sendRequest("load_fasta", { filepath });
 
       let bestGene = info.genes.length > 0 ? info.genes[0] : null;
       if (info.genes.length > 1) {
@@ -40,6 +39,7 @@ export const createSequenceSlice: StateCreator<AppState, [], [], SequenceSlice> 
         benchmarkResults: null,
         showBenchmark: false,
         uniprotCandidates: [],
+        uniprotSearching: false,
         uniprotAccession: "",
         structureAccession: "",
         structureLoaded: false,
@@ -72,6 +72,7 @@ export const createSequenceSlice: StateCreator<AppState, [], [], SequenceSlice> 
       benchmarkResults: null,
       showBenchmark: false,
       uniprotCandidates: [],
+      uniprotSearching: false,
       uniprotAccession: "",
       structureAccession: "",
       structureLoaded: false,

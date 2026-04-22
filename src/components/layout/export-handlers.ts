@@ -3,6 +3,7 @@ import { sendRequest } from "../../lib/ipc";
 import { useAppStore } from "../../store/appStore";
 import { getSortedMutations, reorderMappings } from "../../lib/plate-utils";
 import { defaultExportFilename } from "../../lib/filename";
+import type { BenchmarkResult } from "../../types/models";
 
 function deriveMappingExportPaths(path: string) {
   const base = path.trim().replace(/\.(xlsx|csv)$/i, "");
@@ -69,48 +70,6 @@ export async function handleExportTwistOrder() {
   }
 }
 
-export async function handleExportEchoMapping() {
-  const path = await save({
-    filters: [{ name: "Excel", extensions: ["xlsx"] }],
-    defaultPath: defaultExportFilename({ target: "Echo", ext: "xlsx" }),
-  });
-  if (path) {
-    try {
-      const { orderedMappings, dedupInfo } = getCurrentExportState();
-      await sendRequest("export_mapping", {
-        filepath: path,
-        format: "echo",
-        mappings: orderedMappings,
-        dedup_info: dedupInfo,
-      });
-      useAppStore.getState().setStatus(`Echo mapping exported: ${path}`);
-    } catch (err) {
-      useAppStore.getState().setStatus(`Echo mapping export failed: ${err instanceof Error ? err.message : String(err)}`);
-    }
-  }
-}
-
-export async function handleExportJanusMapping() {
-  const path = await save({
-    filters: [{ name: "Excel", extensions: ["xlsx"] }],
-    defaultPath: defaultExportFilename({ target: "JANUS", ext: "xlsx" }),
-  });
-  if (path) {
-    try {
-      const { orderedMappings, dedupInfo } = getCurrentExportState();
-      await sendRequest("export_mapping", {
-        filepath: path,
-        format: "janus",
-        mappings: orderedMappings,
-        dedup_info: dedupInfo,
-      });
-      useAppStore.getState().setStatus(`JANUS mapping exported: ${path}`);
-    } catch (err) {
-      useAppStore.getState().setStatus(`JANUS mapping export failed: ${err instanceof Error ? err.message : String(err)}`);
-    }
-  }
-}
-
 export async function handleExportMappingWithParams(
   format: "echo" | "janus",
   params: { transferVol: number },
@@ -165,8 +124,8 @@ export async function handleLoadWorkspace() {
       filters: [{ name: "KURO Workspace", extensions: ["json"] }],
       multiple: false,
     });
-    if (!path) return;
-    const ws = await sendRequest<import("../../types/models").WorkspaceData>("load_workspace", { filepath: path as string });
+    if (typeof path !== "string") return;
+    const ws = await sendRequest("load_workspace", { filepath: path });
     if (ws.version !== 1 && ws.version !== 2) {
       useAppStore.getState().setStatus("Incompatible workspace version");
       return;
@@ -184,14 +143,14 @@ export async function handleSaveBenchmarkJson(data: unknown) {
       defaultPath: defaultExportFilename({ target: "benchmark", ext: "json" }),
     });
     if (!path) return;
-    await sendRequest("save_workspace", { filepath: path, data });
+    await sendRequest("save_json", { filepath: path, data });
     useAppStore.getState().setStatus(`Benchmark JSON saved: ${path}`);
   } catch (err) {
     useAppStore.getState().setStatus(`Benchmark JSON save failed: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
 
-export async function handleExportBenchmarkCsv(results: Record<string, unknown>) {
+export async function handleExportBenchmarkCsv(results: Record<string, BenchmarkResult>) {
   try {
     const path = await save({
       filters: [{ name: "CSV", extensions: ["csv"] }],
@@ -214,5 +173,7 @@ export async function handleOpenSequence() {
     ],
     multiple: false,
   });
-  if (path) await useAppStore.getState().loadSequence(path as string);
+  if (typeof path === "string") {
+    await useAppStore.getState().loadSequence(path);
+  }
 }

@@ -60,6 +60,7 @@ export function CandidatePopover({
   const [customRev, setCustomRev] = useState("");
   const [evaluating, setEvaluating] = useState(false);
   const [seqError, setSeqError] = useState<string | null>(null);
+  const [alternativesError, setAlternativesError] = useState<string | null>(null);
   const [otDetailCand, setOtDetailCand] = useState<SdmPrimerResult | null>(null);
   const focusTrapRef = useFocusTrap<HTMLDivElement>();
   const getAlternatives = useAppStore((s) => s.getAlternatives);
@@ -77,6 +78,7 @@ export function CandidatePopover({
     setCustomDownstream("");
     setCustomRev("");
     setSeqError(null);
+    setAlternativesError(null);
     setEvaluating(false);
     setOtDetailCand(null);
   }, [mutation]);
@@ -84,15 +86,18 @@ export function CandidatePopover({
   useEffect(() => {
     if (!backendDesignStateSynced) {
       setCandidates([current]);
+      setAlternativesError(null);
       setLoading(false);
       return;
     }
     setLoading(true);
+    setAlternativesError(null);
     getAlternatives(mutation).then((c) => {
       setCandidates(c);
       setLoading(false);
-    }).catch(() => {
+    }).catch((err: unknown) => {
       setCandidates([current]);
+      setAlternativesError(err instanceof Error ? err.message : String(err));
       setLoading(false);
     });
   }, [mutation, getAlternatives, current, backendDesignStateSynced]);
@@ -116,9 +121,16 @@ export function CandidatePopover({
       return;
     }
     setEvaluating(true);
-    const result = await evaluateCustomPrimer(mutation, fwdSeq, revSeq, fwdInput ? customOverlap.trim().length : (current.overlap_len ?? 18));
-    if (result) {
+    try {
+      const result = await evaluateCustomPrimer(
+        mutation,
+        fwdSeq,
+        revSeq,
+        fwdInput ? customOverlap.trim().length : (current.overlap_len ?? 18),
+      );
       addCustomCandidate(mutation, result);
+    } catch (err) {
+      setSeqError(err instanceof Error ? err.message : String(err));
     }
     setEvaluating(false);
   }
@@ -174,6 +186,11 @@ export function CandidatePopover({
           {!backendDesignStateSynced && (
             <div className="mb-2 rounded bg-amber-50 px-2 py-1 text-[10px] text-amber-700">
               Backend alternatives are unavailable until you re-design this workspace. Manual primer evaluation still works.
+            </div>
+          )}
+          {alternativesError && (
+            <div className="mb-2 rounded bg-red-50 px-2 py-1 text-[10px] text-red-700">
+              Failed to load alternatives: {alternativesError}
             </div>
           )}
           <div className="text-[10px] text-gray-500 mb-2">

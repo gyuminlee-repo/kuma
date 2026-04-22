@@ -1,14 +1,11 @@
 import type { StateCreator } from "zustand";
-import { sendRequest } from "../../lib/ipc";
+import { cancelAndRespawn, sendRequest } from "../../lib/ipc";
 import { wellName } from "../../lib/plate-utils";
 import { formatError } from "../../lib/utils";
 import type { AppState } from "../types";
 import type {
   SdmPrimerResult,
-  DesignResult,
-  PolymeraseInfo,
   PolymeraseProfile,
-  RescuedMutation,
 } from "../../types/models";
 import {
   addDesignResultState,
@@ -51,13 +48,13 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
   manuallySwapped: {},
   customCandidates: {},
   alternativesCache: {},
-  rescuedMutations: [] as string[],
+  rescuedMutations: [],
   rescueStats: EMPTY_RESCUE_STATS,
-  rescuedMutationDetails: [] as RescuedMutation[],
+  rescuedMutationDetails: [],
 
   loadPolymerases: async () => {
     try {
-      const polymerases = await sendRequest<PolymeraseInfo[]>("list_polymerases");
+      const polymerases = await sendRequest("list_polymerases", {});
       const current = get().selectedPolymerase;
       const names = polymerases.map((p) => p.name);
       const next = names.includes(current) ? current : polymerases[0]?.name ?? current;
@@ -72,7 +69,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
 
   setSelectedPolymerase: async (name: string) => {
     try {
-      const profile = await sendRequest<PolymeraseProfile>("get_polymerase_details", { name });
+      const profile = await sendRequest("get_polymerase_details", { name });
       set({
         selectedPolymerase: name,
         tmFwdTarget: profile.opt_tm_fwd ?? profile.opt_tm,
@@ -199,7 +196,14 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         revLenMax,
         rescuePool: prepared.rescuePool,
       });
-      const result = await sendRequest<DesignResult>("design_sdm_primers", payload, 300_000);
+      const result = await sendRequest("design_sdm_primers", payload, 300_000);
+      if (result.cancelled) {
+        set({
+          backendDesignStateSynced: false,
+          statusMessage: "Design cancelled",
+        });
+        return;
+      }
       const processed = processDesignResult({
         result,
         maxPrimers,
@@ -235,7 +239,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         const hasResults = get().designResults.length > 0;
         set({
           isDesigning: false,
-          progress: 100,
+          progress: hasResults ? 100 : 0,
           ...(hasResults && { showReport: true }),
         });
       }
@@ -244,32 +248,36 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
 
   cancelDesign: async () => {
     try {
-      await sendRequest("cancel_design");
+      await sendRequest("cancel_design", {});
       set({
-        isDesigning: false,
-        progress: 0,
-        statusMessage: "Design cancelled",
+        statusMessage: "Cancelling design...",
       });
     } catch (err) {
-      set({
-        isDesigning: false,
-        progress: 0,
-        statusMessage: `Design cancelled (reconnecting: ${formatError(err)})`,
-      });
+      try {
+        await cancelAndRespawn();
+        set({
+          statusMessage: `Design cancelled (reconnected after: ${formatError(err)})`,
+        });
+      } catch (reconnectErr) {
+        set({
+          isDesigning: false,
+          progress: 0,
+          backendDesignStateSynced: false,
+          statusMessage: `Design cancel failed: ${formatError(reconnectErr)}`,
+        });
+      }
     }
   },
 
   getAlternatives: async (mutation: string) => {
     if (!get().backendDesignStateSynced) {
-      const message = "Re-design the current workspace to load backend alternatives.";
-      set({ statusMessage: message });
-      throw new Error(message);
+      throw new Error("Re-design the current workspace to load backend alternatives.");
     }
     const cached = get().alternativesCache[mutation];
     if (cached) {
       return cached;
     }
-    const result = await sendRequest<{ candidates: SdmPrimerResult[] }>(
+    const result = await sendRequest(
       "get_alternatives",
       { mutation },
     );
@@ -287,7 +295,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       set({ statusMessage: "Re-design the current workspace before swapping primers." });
       return;
     }
-    const updated = await sendRequest<SdmPrimerResult>(
+    const updated = await sendRequest(
       "swap_primer",
       { mutation, candidate_idx: candidateIdx, swap_type: swapType },
     );
@@ -411,7 +419,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
     try {
       const { fastaPath, selectedGene } = get();
       const targetStart = selectedGene ? parseInt(selectedGene, 10) : 0;
-      const result = await sendRequest<SdmPrimerResult>("evaluate_primer", {
+      const result = await sendRequest("evaluate_primer", {
         mutation,
         fasta_path: fastaPath,
         target_start: targetStart,
@@ -422,7 +430,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       return result;
     } catch (err) {
       set({ statusMessage: `Evaluate failed: ${formatError(err)}` });
-      return null;
+      throw err;
     }
   },
 
@@ -430,7 +438,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
     try {
       const { fastaPath, selectedGene, selectedPolymerase, organism } = get();
       const targetStart = selectedGene ? parseInt(selectedGene, 10) : 0;
-      const result = await sendRequest<{ candidates: SdmPrimerResult[] }>(
+      const result = await sendRequest(
         "retry_failed_mutation",
         {
           mutation,
@@ -450,7 +458,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       return result.candidates;
     } catch (err) {
       set({ statusMessage: `Retry failed: ${formatError(err)}` });
-      return [];
+      throw err;
     }
   },
 

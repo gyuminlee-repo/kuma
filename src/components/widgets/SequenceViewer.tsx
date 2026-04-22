@@ -50,6 +50,10 @@ interface SequenceViewerMetrics {
   failedCount: number;
 }
 
+interface SequenceViewerComputedMetrics extends SequenceViewerMetrics {
+  ticks: MutationTick[];
+}
+
 // --- Density computation ---
 
 function computeDensityBins(
@@ -57,7 +61,7 @@ function computeDensityBins(
   maxAa: number,
   binCount: number,
 ): number[] {
-  const bins = new Array(binCount).fill(0) as number[];
+  const bins = Array<number>(binCount).fill(0);
   if (maxAa <= 0) return bins;
   for (const t of ticks) {
     const idx = Math.min(Math.floor((t.aaPosition / maxAa) * binCount), binCount - 1);
@@ -346,7 +350,7 @@ export function SequenceViewer() {
   const svgRef = useRef<SVGSVGElement>(null);
 
   // Determine max aa from seqInfo or parsedMutations
-  const metrics = useMemo<SequenceViewerMetrics>(() => {
+  const metrics = useMemo<SequenceViewerComputedMetrics>(() => {
     let maxAa = 0;
     if (seqInfo && seqInfo.genes.length > 0) {
       const gene = seqInfo.genes.find((g) => String(g.cds_start) === selectedGene);
@@ -397,7 +401,7 @@ export function SequenceViewer() {
       failedCount,
       ticks,
     };
-  }, [designResults, failedMutations, parsedMutations, selectedGene, seqInfo]) as SequenceViewerMetrics & { ticks: MutationTick[] };
+  }, [designResults, failedMutations, parsedMutations, selectedGene, seqInfo]);
   const { maxAa, hasData, hasTicks, successCount, failedCount, ticks } = metrics;
 
   // SVG layout
@@ -481,10 +485,10 @@ export function SequenceViewer() {
   }, [designResults, failedMutations]);
 
   return (
-    <div className="border-b border-gray-200 bg-white" role="region" aria-label="Sequence Map">
+    <div className="h-full overflow-hidden rounded-[22px] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,253,248,0.96),rgba(248,251,255,0.98))] shadow-[inset_0_1px_0_rgba(255,255,255,0.65)]" role="region" aria-label="Sequence Map">
       {/* Header */}
       <button
-        className="flex items-center w-full px-3 py-1.5 text-xs font-semibold text-gray-700 bg-gray-50 hover:bg-gray-100 transition-colors select-none"
+        className="flex w-full items-center border-b border-slate-200 bg-white/70 px-4 py-2 text-xs font-semibold text-slate-700 transition-colors select-none hover:bg-slate-50"
         onClick={() => setCollapsed((c) => !c)}
         aria-expanded={!collapsed}
         aria-controls={collapsed ? undefined : "sequence-viewer-content"}
@@ -503,7 +507,7 @@ export function SequenceViewer() {
         </svg>
         <span title="Linear CDS map showing mutation positions. Green=designed, Red=failed. Density histogram below shows clustering — spread-out mutations are better for library diversity">Sequence Map</span>
         {hasTicks && (
-          <span className="ml-2 text-gray-400 font-normal">
+          <span className="ml-2 font-normal text-slate-400">
             {successCount} designed
             {failedCount > 0 && ` / ${failedCount} failed`}
             {maxAa > 0 && ` — ${maxAa} aa`}
@@ -513,7 +517,7 @@ export function SequenceViewer() {
 
       {/* Content */}
       {!collapsed && (
-        <div id="sequence-viewer-content" className="px-3 py-2" style={{ minHeight: 80 }}>
+        <div id="sequence-viewer-content" className="px-4 py-3" style={{ minHeight: 80 }}>
           {!hasData ? (
             <div className="flex items-center justify-center h-16 text-gray-400 text-xs">
               Load a sequence and design primers to view the map

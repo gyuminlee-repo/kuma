@@ -13,11 +13,11 @@ Usage in handlers::
     # access as p.fasta_path, p.polymerase, etc.
 """
 
-from typing import Any, Literal, Optional
+from typing import Annotated, Any, Literal, Optional
 
 from typing_extensions import TypedDict
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, field_validator
 
 
 class DomainEntry(TypedDict):
@@ -134,6 +134,317 @@ class PlateMappingItem(BaseModel):
     mt_codon: Optional[str] = None
 
 
+class WorkspaceModel(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+
+class SortingEntry(WorkspaceModel):
+    id: str
+    desc: bool
+
+
+class OffTargetHitModel(WorkspaceModel):
+    position: int
+    strand: Literal["sense", "antisense"]
+    match_seq: str
+    tm: float
+    match_length: int
+
+
+class FailedMutationModel(WorkspaceModel):
+    mutation: str
+    rank: int
+    reason: str
+
+
+class RescuedMutationModel(WorkspaceModel):
+    original: str
+    rescued_by: str
+    type: Literal["pool_cascade", "auto_relax"]
+    penalty: Optional[float] = None
+    tolerance_used: Optional[float] = None
+
+
+class RescueStatsModel(WorkspaceModel):
+    pool_cascade: int
+    auto_relax: int
+    positions_attempted: int
+    pool_variants_tried: int
+
+
+class DomainInfoModel(WorkspaceModel):
+    name: str
+    id: str
+    start: int
+    end: int
+    db: str
+
+
+class EvolveproStepStatsModel(WorkspaceModel):
+    position_filter_removed: Optional[int] = None
+    domain_selected: Optional[int] = None
+    pareto_exchanges: Optional[int] = None
+
+
+class BenchmarkResultModel(WorkspaceModel):
+    n_selected: int
+    hit_rate: float
+    mean_fitness: float
+    unique_positions: int
+    position_coverage: float
+    domain_coverage: float
+    structural_spread: float
+    hits: int
+    threshold: float
+    n_trials: Optional[int] = None
+
+
+class SdmPrimerResultModel(WorkspaceModel):
+    mutation: str
+    aa_position: int
+    codon_pos: int
+    forward_seq: str
+    reverse_seq: str
+    fwd_len: int
+    rev_len: int
+    overlap_len: int
+    candidate_count: Optional[int] = None
+    candidate_fwd_count: Optional[int] = None
+    candidate_rev_count: Optional[int] = None
+    tm_no_fwd: float
+    tm_no_rev: float
+    tm_overlap: float
+    tm_condition_met: bool
+    tolerance_used: float
+    tolerance_fwd: Optional[float] = None
+    tolerance_rev: Optional[float] = None
+    has_offtarget: bool
+    offtarget_fwd: Optional[list[OffTargetHitModel]] = None
+    offtarget_rev: Optional[list[OffTargetHitModel]] = None
+    penalty: float
+    gc_fwd: float
+    gc_rev: float
+    wt_codon: str
+    mt_codon: str
+    overlap_seq: str
+    hairpin_tm_fwd: Optional[float] = None
+    hairpin_tm_rev: Optional[float] = None
+    homodimer_tm_fwd: Optional[float] = None
+    homodimer_tm_rev: Optional[float] = None
+    hairpin_dg_fwd: Optional[float] = None
+    hairpin_dg_rev: Optional[float] = None
+    homodimer_dg_fwd: Optional[float] = None
+    homodimer_dg_rev: Optional[float] = None
+    synthesis_score_fwd: Optional[float] = None
+    synthesis_score_rev: Optional[float] = None
+    warnings: list[str] = Field(default_factory=list)
+
+
+class PolymeraseProfileModel(WorkspaceModel):
+    name: str
+    tm_method: str
+    salt_correction: str
+    opt_tm: float
+    min_tm: float
+    max_tm: float
+    opt_size: int
+    min_size: int
+    max_size: int
+    min_gc: float
+    max_gc: float
+    salt_monovalent: float
+    salt_divalent: float
+    dntp_conc: float
+    dna_conc: float
+    max_tm_diff: float
+    opt_tm_fwd: Optional[float] = None
+    opt_tm_rev: Optional[float] = None
+    opt_tm_overlap: Optional[float] = None
+    min_3prime_dist: Optional[int] = None
+    overlap_len: Optional[int] = None
+    fwd_len_min: Optional[int] = None
+    fwd_len_max: Optional[int] = None
+    rev_len_min: Optional[int] = None
+    rev_len_max: Optional[int] = None
+
+
+class AlternativesResultModel(WorkspaceModel):
+    mutation: Optional[str] = None
+    count: Optional[int] = None
+    candidates: list[SdmPrimerResultModel] = Field(default_factory=list)
+
+
+class DesignResultResponseModel(WorkspaceModel):
+    results: list[SdmPrimerResultModel] = Field(default_factory=list)
+    success_count: int
+    total_count: int
+    failed_mutations: list[FailedMutationModel] = Field(default_factory=list)
+    rescue_stats: Optional[RescueStatsModel] = None
+    rescued_mutations: Optional[list[RescuedMutationModel]] = None
+    cancelled: Optional[bool] = None
+
+
+class FileExportResultModel(WorkspaceModel):
+    success: Literal[True] = True
+    filepath: str
+
+
+class ExportOrderResultModel(FileExportResultModel):
+    format: Literal["idt", "twist"]
+    primer_count: int
+
+
+class ExportMappingResultModel(FileExportResultModel):
+    format: Literal["echo", "janus"]
+    primer_count: int
+
+
+class SaveCustomPolymeraseResultModel(WorkspaceModel):
+    success: Literal[True] = True
+    name: str
+
+
+class WorkspaceInputsModel(WorkspaceModel):
+    fastaPath: str
+    mutationInputMode: Literal["text", "evolvepro", "multi-evolve"]
+    mutationText: str
+    evolveproCsvPath: str
+    selectedGene: str
+
+
+class WorkspaceSettingsModel(WorkspaceModel):
+    selectedPolymerase: Optional[str] = None
+    codonStrategy: Literal["closest", "optimal"]
+    maxPrimers: int
+    tmFwdTarget: float
+    tmRevTarget: float
+    tmOverlapTarget: float
+    gcMin: float
+    gcMax: float
+    primerLenEnabled: Optional[bool] = None
+    fwdLenMin: Optional[int] = None
+    fwdLenMax: Optional[int] = None
+    revLenMin: Optional[int] = None
+    revLenMax: Optional[int] = None
+    fillOnFailure: Optional[bool] = None
+    uniprotAccession: Optional[str] = None
+    domains: Optional[list[DomainInfoModel]] = None
+    domainDiversityEnabled: Optional[bool] = None
+    domainStrategy: Optional[Literal["proportional", "equal"]] = None
+    domainOverlapPolicy: Optional[Literal["first", "largest"]] = None
+    linkerHandling: Optional[Literal["include", "exclude", "separate-bin"]] = None
+    domainQuotaMin: Optional[int] = None
+    paretoDiversityEnabled: Optional[bool] = None
+    disabledDomains: Optional[list[str]] = None
+    rescuedMutations: Optional[list[str]] = None
+    entropyWeightEnabled: Optional[bool] = None
+    entropyWeight: Optional[float] = None
+    paretoPoolMultiplier: Optional[float] = None
+    distanceMode: Optional[Literal["auto", "1d", "3d"]] = None
+    benchmarkTopPercentile: Optional[float] = None
+    benchmarkRandomTrials: Optional[int] = None
+    benchmarkRandomSeed: Optional[int] = None
+    autoRedesignOnLoad: Optional[bool] = None
+    saveCache: Optional[bool] = None
+    organism: Optional[str] = None
+    pipelineMode: Optional[bool] = None
+    positionDiversityEnabled: Optional[bool] = None
+    maxPerPosition: Optional[int] = None
+    evolveproRound: Optional[int] = None
+    roundSize: Optional[int] = None
+
+
+class WorkspaceResultsModel(WorkspaceModel):
+    designResults: list[SdmPrimerResultModel]
+    successCount: int
+    totalCount: int
+    failedMutations: list[FailedMutationModel]
+    plateMappings: list[PlateMappingItem]
+    dedupInfo: dict[str, list[str]]
+    manuallySwapped: dict[str, Literal["fwd", "rev", "both"]]
+    customCandidates: dict[str, list[SdmPrimerResultModel]]
+
+
+class WorkspaceUiModel(WorkspaceModel):
+    tableSorting: list[SortingEntry]
+
+
+class WorkspaceCacheModel(WorkspaceModel):
+    evolveproTotalCount: Optional[int] = None
+    evolveproFilteredCount: Optional[int] = None
+    evolveproParetoExchanges: Optional[int] = None
+    evolveproStepStats: Optional[EvolveproStepStatsModel] = None
+    benchmarkResults: Optional[dict[str, BenchmarkResultModel]] = None
+
+
+class WorkspaceV1Data(WorkspaceModel):
+    version: Literal[1]
+    fastaPath: str
+    mutationInputMode: Literal["text", "evolvepro", "multi-evolve"]
+    mutationText: str
+    evolveproCsvPath: str
+    selectedGene: str
+    codonStrategy: Literal["closest", "optimal"]
+    maxPrimers: int
+    designResults: list[SdmPrimerResultModel]
+    successCount: int
+    totalCount: int
+    failedMutations: list[FailedMutationModel]
+    plateMappings: list[PlateMappingItem]
+    dedupInfo: dict[str, list[str]]
+    tableSorting: list[SortingEntry]
+    manuallySwapped: dict[str, Literal["fwd", "rev", "both"]]
+    customCandidates: dict[str, list[SdmPrimerResultModel]]
+    tmFwdTarget: float
+    tmRevTarget: float
+    tmOverlapTarget: float
+    gcMin: float
+    gcMax: float
+    primerLenEnabled: Optional[bool] = None
+    fwdLenMin: Optional[int] = None
+    fwdLenMax: Optional[int] = None
+    revLenMin: Optional[int] = None
+    revLenMax: Optional[int] = None
+    fillOnFailure: Optional[bool] = None
+    uniprotAccession: Optional[str] = None
+    domains: Optional[list[DomainInfoModel]] = None
+    domainDiversityEnabled: Optional[bool] = None
+    domainStrategy: Optional[Literal["proportional", "equal"]] = None
+    paretoDiversityEnabled: Optional[bool] = None
+    disabledDomains: Optional[list[str]] = None
+    rescuedMutations: Optional[list[str]] = None
+    entropyWeightEnabled: Optional[bool] = None
+    entropyWeight: Optional[float] = None
+    organism: Optional[str] = None
+    pipelineMode: Optional[bool] = None
+    positionDiversityEnabled: Optional[bool] = None
+    maxPerPosition: Optional[int] = None
+    evolveproRound: Optional[int] = None
+    roundSize: Optional[int] = None
+    evolveproTotalCount: Optional[int] = None
+    evolveproFilteredCount: Optional[int] = None
+    evolveproParetoExchanges: Optional[int] = None
+    evolveproStepStats: Optional[EvolveproStepStatsModel] = None
+
+
+class WorkspaceV2Data(WorkspaceModel):
+    version: Literal[2]
+    inputs: WorkspaceInputsModel
+    settings: WorkspaceSettingsModel
+    results: WorkspaceResultsModel
+    ui: WorkspaceUiModel
+    cache: Optional[WorkspaceCacheModel] = None
+
+
+WorkspaceDataModel = Annotated[WorkspaceV1Data | WorkspaceV2Data, Field(discriminator="version")]
+_WORKSPACE_DATA_ADAPTER = TypeAdapter(WorkspaceDataModel)
+
+
+def validate_workspace_data(data: Any) -> WorkspaceV1Data | WorkspaceV2Data:
+    """Validate versioned workspace payloads against the sidecar contract."""
+    return _WORKSPACE_DATA_ADAPTER.validate_python(data)
+
+
 class ExportExcelParams(BaseModel):
     filepath: str
     mappings: Optional[list[PlateMappingItem]] = None
@@ -170,9 +481,24 @@ class SaveWorkspaceParams(BaseModel):
     @classmethod
     def check_data_size(cls, v):
         import json as _json
+        validate_workspace_data(v)
         serialized = _json.dumps(v, default=str)
         if len(serialized) > 50 * 1024 * 1024:  # 50MB
             raise ValueError("Workspace data exceeds 50MB limit")
+        return v
+
+
+class SaveJsonParams(BaseModel):
+    filepath: str
+    data: Any
+
+    @field_validator("data", mode="before")
+    @classmethod
+    def check_data_size(cls, v):
+        import json as _json
+        serialized = _json.dumps(v, default=str)
+        if len(serialized) > 50 * 1024 * 1024:  # 50MB
+            raise ValueError("JSON data exceeds 50MB limit")
         return v
 
 
@@ -213,6 +539,10 @@ class SearchUniprotParams(BaseModel):
     organism: str = ""
     translation: str = ""
     known_accession: str = ""
+
+
+class CheckStructuresParams(BaseModel):
+    accessions: list[str] = Field(default_factory=list, max_length=20)
 
 
 class FetchStructureParams(BaseModel):

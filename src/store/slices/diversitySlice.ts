@@ -3,14 +3,10 @@ import { sendRequest } from "../../lib/ipc";
 import { formatError } from "../../lib/utils";
 import type { AppState } from "../types";
 import type {
-  BenchmarkResult,
   DistanceMode,
   DomainOverlapPolicy,
   DomainInfo,
-  FetchDomainsResult,
   LinkerHandling,
-  SearchUniprotResult,
-  StructureResult,
 } from "../../types/models";
 
 import type { DiversitySlice } from "../slice-interfaces";
@@ -50,6 +46,29 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
     }, 300);
   }
 
+  async function enrichUniprotStructureFlags(searchGeneration: number, accessions: string[]) {
+    if (accessions.length === 0) return;
+    try {
+      const result = await sendRequest(
+        "check_structures_available",
+        { accessions },
+        20_000,
+      );
+      if (searchGeneration !== uniprotSearchGeneration) return;
+      const current = get().uniprotCandidates;
+      if (current.length === 0) return;
+      set({
+        uniprotCandidates: current.map((candidate) => (
+          candidate.accession in result.availability
+            ? { ...candidate, has_structure: result.availability[candidate.accession] }
+            : candidate
+        )),
+      });
+    } catch {
+      // Best-effort badge enrichment only; keep primary search fast and resilient.
+    }
+  }
+
   return ({
   pipelineMode: true,
   positionDiversityEnabled: true,
@@ -62,7 +81,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   uniprotAccession: "",
   domains: [],
   domainLoading: false,
-  disabledDomains: [] as string[],
+  disabledDomains: [],
   domainStats: {},
   paretoDiversityEnabled: true,
   entropyWeightEnabled: true,
@@ -79,7 +98,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   benchmarkResults: null,
   autoRedesignOnLoad: true,
   saveCache: true,
-  poolVariants: [] as string[],
+  poolVariants: [],
   structureLoaded: false,
   structureLoading: false,
   structureAccession: "",
@@ -135,6 +154,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
     uniprotSearchGeneration += 1;
     set({
       domainLoading: true,
+      uniprotSearching: false,
       ...(clearCandidates && { uniprotCandidates: [] }),
       uniprotAccession: requestedAccession,
       structureLoaded: get().structureAccession === requestedAccession,
@@ -144,7 +164,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
       statusMessage: "Fetching domain info...",
     });
     try {
-      const result = await sendRequest<FetchDomainsResult>(
+      const result = await sendRequest(
         "fetch_domains",
         { accession: requestedAccession },
         120_000,
@@ -160,7 +180,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
       set({
         uniprotAccession: requestedAccession,
         domains: result.domains,
-        disabledDomains: [] as string[],
+        disabledDomains: [],
         domainLoading: false,
         structureLoaded: structureMatches,
         ...(structureMatches ? {} : { structureLoading: false }),
@@ -268,7 +288,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
 
     set({ benchmarkRunning: true, statusMessage: "Running benchmark..." });
     try {
-      const result = await sendRequest<{ results: Record<string, BenchmarkResult> }>("run_benchmark", {
+      const result = await sendRequest("run_benchmark", {
         landscape: entries,
         ground_truth: state.yPredMap,
         n_select: Math.max(1, state.maxPrimers),
@@ -314,7 +334,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
       // Backend BLAST polling waits up to 300s for EBI queue backlogs.
       // Keep the client timeout longer so successful long-running searches
       // are not rejected locally before the sidecar returns.
-      const result = await sendRequest<SearchUniprotResult>("search_uniprot", {
+      const result = await sendRequest("search_uniprot", {
         gene_name: geneName,
         organism,
         translation,
@@ -341,6 +361,12 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
         structureLoading: false,
         statusMessage: statusMsg,
       });
+      if (result.candidates.length > 0) {
+        void enrichUniprotStructureFlags(
+          searchGeneration,
+          result.candidates.map((candidate) => candidate.accession),
+        );
+      }
       if (acc && !structureMatches) {
         void get().fetchStructure(acc);
       }
@@ -360,7 +386,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
       statusMessage: "AlphaFold structure loading...",
     });
     try {
-      const result = await sendRequest<StructureResult>(
+      const result = await sendRequest(
         "fetch_structure",
         { accession: requestedAccession },
         30_000,

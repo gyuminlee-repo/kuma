@@ -124,12 +124,12 @@ function PlateGrid({
   color: "green" | "orange";
 }) {
   return (
-    <table className="border-collapse text-[9px]">
+    <table className="border-separate border-spacing-1 text-[9px]">
       <thead>
         <tr>
           <th className="w-4 h-5" />
           {COLS.map((c) => (
-            <th key={c} className="w-14 h-5 text-center font-semibold text-gray-500">
+            <th key={c} className="h-5 w-14 text-center text-[10px] font-semibold text-slate-500">
               {c}
             </th>
           ))}
@@ -138,7 +138,7 @@ function PlateGrid({
       <tbody>
         {ROWS.map((row) => (
           <tr key={row} className="h-6">
-            <td className="font-semibold text-gray-500 text-center pr-0.5">{row}</td>
+            <td className="pr-0.5 text-center text-[10px] font-semibold text-slate-500">{row}</td>
             {COLS.map((col) => {
               const well = `${row}${col}`;
               const entry = grid.get(well);
@@ -146,19 +146,19 @@ function PlateGrid({
 
               let cellClass: string;
               if (!entry) {
-                cellClass = "bg-white text-gray-200";
+                cellClass = "border-slate-200 bg-white/80 text-slate-200";
               } else if (isShared) {
-                cellClass = "bg-blue-100 text-blue-800";
+                cellClass = "border-blue-200 bg-blue-50 text-blue-800 shadow-sm";
               } else if (color === "green") {
-                cellClass = "bg-green-100 text-green-800";
+                cellClass = "border-emerald-200 bg-emerald-50 text-emerald-800 shadow-sm";
               } else {
-                cellClass = "bg-orange-100 text-orange-800";
+                cellClass = "border-amber-200 bg-amber-50 text-amber-900 shadow-sm";
               }
 
               return (
                 <td
                   key={well}
-                  className={`border border-gray-300 text-center px-0.5 py-0.5 rounded-sm ${cellClass}`}
+                  className={`rounded-lg border px-0.5 py-1 text-center ${cellClass}`}
                   title={entry ? `${entry.label}\n${entry.mutation}\n${entry.sequence}` : well}
                   aria-label={entry ? `${well}: ${entry.label}` : well}
                 >
@@ -215,8 +215,12 @@ export function PlateMap() {
 
   if (plateMappings.length === 0 || !pair) {
     return (
-      <div className="flex items-center justify-center h-full text-gray-500 text-xs">
-        Plate map will appear after primer design
+      <div className="flex h-full items-center justify-center p-8">
+        <div className="max-w-sm rounded-[24px] border border-dashed border-slate-300 bg-[linear-gradient(180deg,rgba(255,251,235,0.92),rgba(248,250,252,0.92))] px-6 py-8 text-center shadow-sm">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">Plate Layout</div>
+          <div className="mt-3 text-lg font-semibold text-slate-900">Forward and reverse plate assignment appears after design.</div>
+          <div className="mt-2 text-sm leading-6 text-slate-500">This surface is optimized for export handoff, duplicate reverse reuse, and machine-mapping review.</div>
+        </div>
       </div>
     );
   }
@@ -225,24 +229,37 @@ export function PlateMap() {
   const totalRev = pairs.reduce((s, p) => s + p.revCount, 0);
 
   return (
-    <div className="h-full overflow-auto p-2">
-      {/* Tab row: Fwd | Rev | ← Plate N/M → */}
-      <div className="flex items-center gap-1 mb-2">
+    <div className="h-full overflow-auto p-4">
+      <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">Plate Pair Review</div>
+          <div className="mt-1 text-sm text-slate-600">Each page shows one forward plate and its deduplicated reverse partner.</div>
+        </div>
+        <div className="flex flex-wrap gap-2 text-[11px]">
+          <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 font-medium text-emerald-800">Forward {totalFwd}</span>
+          <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 font-medium text-amber-900">Reverse {totalRev}</span>
+          <span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 font-medium text-blue-800">
+            Shared reverse {Object.values(dedupInfo).filter((muts) => muts.length > 1).length}
+          </span>
+        </div>
+      </div>
+
+      <div className="mb-3 flex items-center gap-2">
         <button
-          className={`px-3 py-1 text-[10px] font-semibold rounded-t border border-b-0 ${
+          className={`rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-colors ${
             activeTab === "fwd"
-              ? "bg-green-50 text-green-700 border-green-300"
-              : "bg-gray-50 text-gray-500 border-gray-300 hover:bg-gray-100"
+              ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+              : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
           }`}
           onClick={() => setActiveTab("fwd")}
         >
           Forward ({pair.fwdCount})
         </button>
         <button
-          className={`px-3 py-1 text-[10px] font-semibold rounded-t border border-b-0 ${
+          className={`rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-colors ${
             activeTab === "rev"
-              ? "bg-orange-50 text-orange-700 border-orange-300"
-              : "bg-gray-50 text-gray-500 border-gray-300 hover:bg-gray-100"
+              ? "border-amber-300 bg-amber-50 text-amber-900"
+              : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
           }`}
           onClick={() => setActiveTab("rev")}
         >
@@ -250,19 +267,19 @@ export function PlateMap() {
         </button>
 
         {pairs.length > 1 && (
-          <div className="flex items-center gap-1 text-[10px] ml-2">
+          <div className="ml-2 flex items-center gap-1 text-[10px]">
             <button
-              className="px-1.5 py-0.5 rounded border border-gray-300 hover:bg-gray-100 disabled:opacity-30"
+              className="rounded-full border border-slate-300 px-2 py-0.5 hover:bg-slate-100 disabled:opacity-30"
               disabled={safeIdx === 0}
               onClick={() => setPage(safeIdx - 1)}
             >
               ‹
             </button>
-            <span className="text-gray-500">
+            <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-slate-600">
               Plate {safeIdx + 1}/{pairs.length}
             </span>
             <button
-              className="px-1.5 py-0.5 rounded border border-gray-300 hover:bg-gray-100 disabled:opacity-30"
+              className="rounded-full border border-slate-300 px-2 py-0.5 hover:bg-slate-100 disabled:opacity-30"
               disabled={safeIdx >= pairs.length - 1}
               onClick={() => setPage(safeIdx + 1)}
             >
@@ -271,11 +288,14 @@ export function PlateMap() {
           </div>
         )}
 
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
+          <span className="text-[10px] text-slate-400">
+            Blue wells indicate reused reverse primers across mutations.
+          </span>
           <Button
             size="sm"
             variant="outline"
-            className="text-[10px] h-6 px-2"
+            className="h-8 rounded-full border-slate-300 bg-white px-3 text-[11px]"
             onClick={() => setExportDialogOpen(true)}
           >
             Export Mapping...
@@ -283,20 +303,18 @@ export function PlateMap() {
         </div>
       </div>
 
-      {activeTab === "fwd" ? (
-        <PlateGrid grid={pair.fwd} color="green" />
-      ) : (
-        <PlateGrid grid={pair.rev} color="orange" />
-      )}
-
-      <div className="flex items-center gap-3 text-[10px] text-gray-400 mt-1">
-        <span>Total: {totalFwd} fwd / {totalRev} rev</span>
-        {activeTab === "rev" && (
-          <span className="flex items-center gap-1">
-            <span className="w-3 h-3 bg-blue-100 border border-blue-300 rounded-sm inline-block" />
-            shared (multiple mutations)
-          </span>
+      <div className="inline-block rounded-[24px] border border-slate-200 bg-white/90 p-3 shadow-[0_14px_34px_rgba(15,23,42,0.08)]">
+        {activeTab === "fwd" ? (
+          <PlateGrid grid={pair.fwd} color="green" />
+        ) : (
+          <PlateGrid grid={pair.rev} color="orange" />
         )}
+      </div>
+
+      <div className="mt-3 flex items-center gap-3 text-[10px] text-slate-500">
+        <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-sm border border-emerald-300 bg-emerald-100 align-middle" />Forward primer</span>
+        <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-sm border border-amber-300 bg-amber-100 align-middle" />Reverse primer</span>
+        <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-sm border border-blue-300 bg-blue-100 align-middle" />Shared reverse</span>
       </div>
 
       <MappingExportDialog

@@ -3,10 +3,6 @@ import { resolveResource } from "@tauri-apps/api/path";
 import { sendRequest } from "../../lib/ipc";
 import { formatError } from "../../lib/utils";
 import type { AppState } from "../types";
-import type {
-  ParseMutationsResult,
-  EvolveproLoadResult,
-} from "../../types/models";
 import {
   buildEvolveproLoadParams,
   buildEvolveproLoadStateUpdate,
@@ -98,7 +94,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
           evolveproRound,
           roundSize,
         });
-      const result = await sendRequest<EvolveproLoadResult>("load_evolvepro_csv", params);
+      const result = await sendRequest("load_evolvepro_csv", params);
       if (gen !== csvLoadGeneration) return;
       const update = buildEvolveproLoadStateUpdate({
         result,
@@ -142,7 +138,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   parseMutations: async () => {
     const { mutationText } = get();
     try {
-      const result = await sendRequest<ParseMutationsResult>(
+      const result = await sendRequest(
         "parse_mutations_text",
         { text: mutationText },
       );

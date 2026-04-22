@@ -4,6 +4,12 @@ import { AppLayout } from "./components/layout/AppLayout";
 import { appendCrashLog } from "./lib/crashLog";
 import "./index.css";
 
+declare global {
+  interface Window {
+    __store?: unknown;
+  }
+}
+
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode },
   { hasError: boolean }
@@ -54,6 +60,6 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
 
 if (import.meta.env.DEV) {
   import("./store/appStore").then(({ useAppStore }) => {
-    (window as unknown as Record<string, unknown>).__store = useAppStore;
+    window.__store = useAppStore;
   });
 }

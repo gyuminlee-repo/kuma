@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { spawnSidecar, killSidecar, isSidecarRunning } from "../lib/ipc";
 
-export type SidecarStatus = "disconnected" | "connecting" | "ready" | "error";
+type SidecarStatus = "disconnected" | "connecting" | "ready" | "error";
 
 export function useSidecar() {
   const [status, setStatus] = useState<SidecarStatus>("disconnected");
