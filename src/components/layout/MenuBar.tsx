@@ -55,7 +55,7 @@ export function MenuBar() {
 
   return (
     <>
-      <div className="flex items-center justify-between border-b border-zinc-900/10 bg-[linear-gradient(180deg,rgba(250,247,242,0.96),rgba(255,255,255,0.9))] px-5 py-3 text-xs backdrop-blur">
+      <div className="flex items-center justify-between border-b border-border bg-card px-5 py-3 text-xs">
         <div className="flex items-center gap-5">
           <div className="flex items-center gap-3">
             <div className="rounded-2xl bg-zinc-950 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.34em] text-white shadow-[0_10px_24px_rgba(24,24,27,0.18)]">
