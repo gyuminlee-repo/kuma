@@ -3,6 +3,9 @@
 import csv
 import json
 from dataclasses import fields as dc_fields
+from datetime import datetime, timezone
+
+import openpyxl
 
 from kuma_core.kuro.plate_mapper import (
     PlateMapping,
@@ -15,6 +18,7 @@ from kuma_core.kuro.plate_mapper import (
     export_twist_csv,
     generate_plate_map,
 )
+from kuma_core.shared.version import KUMA_VERSION, KURO_MODULE_VERSION
 
 import sidecar_kuro.core as _core
 from sidecar_kuro.core import (
@@ -122,6 +126,17 @@ def handle_export_excel(params: dict) -> dict:
         rev_groups=rev_groups,
         results=results_for_export,
     )
+    if p.project_id:
+        wb = openpyxl.load_workbook(resolved)
+        if "__kuma_meta__" in wb.sheetnames:
+            del wb["__kuma_meta__"]
+        meta = wb.create_sheet("__kuma_meta__")
+        meta.sheet_state = "hidden"
+        meta.append(["project_id", p.project_id])
+        meta.append(["kuma_version", p.kuma_version or KUMA_VERSION])
+        meta.append(["kuro_module_version", KURO_MODULE_VERSION])
+        meta.append(["exported_at", datetime.now(timezone.utc).isoformat()])
+        wb.save(resolved)
     return FileExportResultModel(filepath=str(resolved)).model_dump(mode="json")
 
 

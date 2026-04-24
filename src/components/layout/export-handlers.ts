@@ -30,12 +30,12 @@ function getCurrentExportState() {
   };
 }
 
-export async function handleExportExcel() {
+export async function handleExportExcel(projectId?: string) {
   const path = await save({
     filters: [{ name: "Excel", extensions: ["xlsx"] }],
     defaultPath: defaultExportFilename({ target: "KURO", ext: "xlsx" }),
   });
-  if (path) await useAppStore.getState().exportExcel(path);
+  if (path) await useAppStore.getState().exportExcel(path, projectId);
 }
 
 export async function handleExportIdtOrder() {

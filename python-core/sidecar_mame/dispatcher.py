@@ -23,6 +23,7 @@ from sidecar_mame.handlers.export import (
     handle_export_excel,
     handle_get_plate_data,
 )
+from sidecar_mame.handlers.kuma_meta import handle_read_kuma_meta
 
 # Phase A handler registry (per 작업 프롬프트 T5).
 # ``translate`` is deferred to Phase B per the reconciled scope.
@@ -31,6 +32,7 @@ _METHODS = {
     "validate_inputs": handle_validate_inputs,
     "export_excel": handle_export_excel,
     "get_plate_data": handle_get_plate_data,
+    "read_kuma_meta": handle_read_kuma_meta,
     "cancel_analyze": lambda _: {"cancelled": True},
 }
 

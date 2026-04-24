@@ -39,6 +39,9 @@ export function MameAppLayout() {
               break;
             }
             if (XLSX_EXTENSIONS.has(ext)) {
+              window.dispatchEvent(
+                new CustomEvent("kuma:mame-xlsx-dropped", { detail: { path: filePath } }),
+              );
               useAppStore.getState().setExpectedPath(filePath);
               break;
             }

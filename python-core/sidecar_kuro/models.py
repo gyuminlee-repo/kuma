@@ -449,6 +449,8 @@ class ExportExcelParams(BaseModel):
     filepath: str
     mappings: Optional[list[PlateMappingItem]] = None
     dedup_info: Optional[dict[str, list[str]]] = None
+    project_id: Optional[str] = None
+    kuma_version: Optional[str] = None
 
 
 class OrderResultItem(BaseModel):

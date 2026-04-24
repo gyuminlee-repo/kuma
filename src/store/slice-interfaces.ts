@@ -214,7 +214,7 @@ export interface ExportSlice {
   statusMessage: string;
   tableSorting: SortingState;
   getPlateMap: () => Promise<void>;
-  exportExcel: (filepath: string) => Promise<void>;
+  exportExcel: (filepath: string, projectId?: string) => Promise<void>;
   setTableSorting: (updater: Updater<SortingState>) => void;
   setStatus: (msg: string) => void;
   getWorkspaceSnapshot: () => WorkspaceV2;

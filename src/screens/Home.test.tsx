@@ -66,6 +66,7 @@ describe("Home", () => {
     createProjectMock.mockResolvedValueOnce("/tmp/new-project");
     loadProjectMock.mockResolvedValue({
       schema: 1,
+      project_id: "test-project-id",
       name: "unused",
     });
 

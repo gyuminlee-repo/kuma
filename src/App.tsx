@@ -42,6 +42,22 @@ export function App() {
     };
   }, []);
 
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const custom = event as CustomEvent<{ path?: string }>;
+      const path = custom.detail?.path;
+      if (!path) {
+        return;
+      }
+      void handleOpenWorkspace(path, false);
+    };
+
+    window.addEventListener("kuma:project-load-request", handler as EventListener);
+    return () => {
+      window.removeEventListener("kuma:project-load-request", handler as EventListener);
+    };
+  }, []);
+
   function handleDone(cfg: Config) {
     setConfig(cfg);
     setScreen("home");
@@ -69,6 +85,7 @@ export function App() {
       setProject({
         ...fallbackProject,
         name: loadedProject.name,
+        ...(typeof loadedProject.project_id === "string" ? { project_id: loadedProject.project_id } : {}),
         ...(typeof loadedProject.stage === "string" ? { stage: loadedProject.stage } : {}),
       });
     } catch {

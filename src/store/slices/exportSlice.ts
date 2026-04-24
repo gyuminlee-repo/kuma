@@ -110,7 +110,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
     }
   },
 
-  exportExcel: async (filepath: string) => {
+  exportExcel: async (filepath: string, projectId?: string) => {
     try {
       const { designResults, plateMappings, dedupInfo, tableSorting } = get();
       const sortedMuts = getSortedMutations(designResults, tableSorting, {
@@ -132,7 +132,12 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
         };
       });
 
-      await sendRequest("export_excel", { filepath, mappings: enriched, dedup_info: dedupInfo });
+      await sendRequest("export_excel", {
+        filepath,
+        mappings: enriched,
+        dedup_info: dedupInfo,
+        ...(projectId ? { project_id: projectId, kuma_version: "0.02.02" } : {}),
+      });
       set({ statusMessage: `Exported Excel: ${filepath}` });
     } catch (err) {
       set({ statusMessage: `Excel export failed: ${formatError(err)}` });

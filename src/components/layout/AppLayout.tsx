@@ -2,6 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { useAppStore } from "../../store/appStore";
 import { useSidecar } from "../../hooks/useSidecar";
+import { useKumaProject } from "../../state/projectContext";
 import { InputPanel } from "../panels/InputPanel";
 import { ParameterPanel } from "../panels/ParameterPanel";
 import { ResultTable } from "../widgets/ResultTable";
@@ -30,6 +31,7 @@ const LazyDesignReport = lazy(async () => import("../dialogs/DesignReport").then
 const LazyBenchmarkDialog = lazy(async () => import("../dialogs/BenchmarkDialog").then((m) => ({ default: m.BenchmarkDialog })));
 
 export function AppLayout() {
+  const project = useKumaProject();
   const { status: sidecarStatus, retry: retrySidecar } = useSidecar();
   const isDesigning = useAppStore((s) => s.isDesigning);
   const statusMessage = useAppStore((s) => s.statusMessage);
@@ -105,7 +107,7 @@ export function AppLayout() {
       case "e":
         if (isInput) return;
         e.preventDefault();
-        if (useAppStore.getState().designResults.length > 0) handleExportExcel();
+        if (useAppStore.getState().designResults.length > 0) handleExportExcel(project?.project_id);
         break;
       case "d":
         if (isInput) return;

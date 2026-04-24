@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAppStore } from "../../store/appStore";
+import { useKumaProject } from "../../state/projectContext";
 import { Button } from "../ui/button";
 import {
   Dialog,
@@ -30,6 +31,7 @@ import { MappingExportDialog } from "../dialogs/MappingExportDialog";
 const MOD_KEY = navigator.userAgent.includes("Mac") ? "\u2318" : "Ctrl+";
 
 export function MenuBar() {
+  const project = useKumaProject();
   const hasDesignResults = useAppStore((s) => s.designResults.length > 0);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [crashCopied, setCrashCopied] = useState(false);
@@ -87,7 +89,7 @@ export function MenuBar() {
               </DropdownMenuItem>
               <DropdownMenuItem className="h-px bg-gray-200 my-1 p-0" disabled />
               <DropdownMenuItem
-                onClick={handleExportExcel}
+                onClick={() => handleExportExcel(project?.project_id)}
                 disabled={!hasDesignResults}
               >
                 <span className="flex-1">Export Excel...</span>

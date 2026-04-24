@@ -14,6 +14,8 @@ pub struct RecentProject {
     pub path: String,
     pub name: String,
     pub last_opened: String,
+    #[serde(default)]
+    pub project_id: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -84,6 +86,7 @@ pub fn set_projects_root(config_root: &Path, new_root: &Path) -> Result<Config, 
 pub fn push_recent(config_root: &Path, project_path: &Path, name: &str) -> Result<(), String> {
     let mut cfg = read_config_file(config_root)?;
     let path_str = project_path.to_string_lossy().to_string();
+    let project_id = load_project(project_path).ok().map(|proj| proj.project_id);
     cfg.recent_projects.retain(|r| r.path != path_str);
     cfg.recent_projects.insert(
         0,
@@ -91,6 +94,7 @@ pub fn push_recent(config_root: &Path, project_path: &Path, name: &str) -> Resul
             path: path_str,
             name: name.to_string(),
             last_opened: Local::now().to_rfc3339(),
+            project_id,
         },
     );
     if cfg.recent_projects.len() > MAX_RECENT {

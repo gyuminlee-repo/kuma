@@ -4,6 +4,7 @@ export interface RecentProject {
   path: string;
   name: string;
   last_opened: string;
+  project_id?: string | null;
 }
 
 export interface Config {
@@ -13,7 +14,9 @@ export interface Config {
 
 export interface Project {
   schema: number;
+  project_id: string;
   name: string;
+  stage?: string;
   [key: string]: unknown;
 }
 
