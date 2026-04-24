@@ -1,6 +1,34 @@
-# KURO 업데이트 노트 — v0.9.5 → v1.34.2
+# kuma 업데이트 노트
 
 **한국어** | [English](UPDATE-NOTES.md)
+
+---
+
+## v0.1.0 (2026-04-24)
+
+첫 kuma 릴리스. kuro(프라이머 디자인)와 mame(NGS 검증)을 단일 Tauri 앱으로 통합.
+
+### 주요 기능
+
+- `Kuro` / `Mame` 탭 UI: 상단 탭바로 전환.
+- 프로젝트 폴더 기반 세션 연속성: `projects_root` 최초 1회 설정, 프로젝트 폴더 자동 생성, 최근 프로젝트 자동 복원.
+- `__kuma_meta__` xlsx 시트로 kuro export 파일 자동 인식. Mame가 드롭된 파일의 원래 프로젝트를 매칭.
+- Scratch 모드 유지: 기존 `.kuro.json` workspace 파일 호환.
+
+### 아키텍처
+
+- Tauri v2 + React 19 셸, 두 개의 Python sidecar(kuro, mame)를 각 탭 최초 활성화 시 lazy spawn.
+- Rust가 프로젝트 CRUD, config 경로, sidecar 생명주기 관리.
+- `kuma_core.shared` (`config_paths`, `logging`, `errors`, `version`)로 공통 유틸리티를 추출하여 kuro·mame가 동일한 IO·에러 규약 사용.
+
+### 계보
+
+- kuro 최종 릴리스(통합 전 태그 참조) + mame NGS 판정 로직을 이어받음.
+- 통합 이전 kuro 이력은 아래 `KURO Update Notes — v0.9.5 → v1.34.2` 참조.
+
+---
+
+# KURO 업데이트 노트 — v0.9.5 → v1.34.2 (통합 이전)
 
 ---
 
