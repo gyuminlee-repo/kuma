@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kuma"
-version = "0.01.00"
+version = "0.1.0"
 description = "kuma - integrated primer design (KURO) + NGS verification (mame) tool"
 requires-python = ">=3.11"
 dependencies = [
@@ -31,3 +31,20 @@ include = ["kuma_core*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = [".", "python-core"]
+
+[tool.pyright]
+extraPaths = [".", "python-core"]
+include = ["kuma_core", "python-core", "tests", "scripts"]
+exclude = [
+    "**/__pycache__",
+    "**/.pytest_cache",
+    "node_modules",
+    "dist",
+    "src-tauri/target",
+    "python-core/build",
+    "python-core/dist",
+]
+reportMissingImports = "warning"
+reportUnusedParameter = "none"
+
+
