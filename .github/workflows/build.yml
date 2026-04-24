@@ -118,12 +118,14 @@ jobs:
         run: python build_sidecar.py --onefile
         working-directory: python-core
 
-      - name: Verify sidecar binary
+      - name: Verify sidecar binaries
         shell: bash
         run: |
-          SIDECAR="src-tauri/binaries/kuro-sidecar-${{ matrix.target }}${{ matrix.sidecar-ext }}"
-          ls -la "$SIDECAR"
-          test -f "$SIDECAR"
+          KURO="src-tauri/binaries/kuro-sidecar-${{ matrix.target }}${{ matrix.sidecar-ext }}"
+          MAME="src-tauri/binaries/mame-sidecar-${{ matrix.target }}${{ matrix.sidecar-ext }}"
+          ls -la "$KURO" "$MAME"
+          test -f "$KURO"
+          test -f "$MAME"
 
       # --- Node.js ---
       - uses: pnpm/action-setup@v4

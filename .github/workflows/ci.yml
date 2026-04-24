@@ -87,8 +87,10 @@ jobs:
       - name: Build sidecar bundle
         run: python python-core/build_sidecar.py --onefile
 
-      - name: Verify sidecar binary
-        run: test -f src-tauri/binaries/kuro-sidecar-x86_64-unknown-linux-gnu
+      - name: Verify sidecar binaries
+        run: |
+          test -f src-tauri/binaries/kuro-sidecar-x86_64-unknown-linux-gnu
+          test -f src-tauri/binaries/mame-sidecar-x86_64-unknown-linux-gnu
 
   rust-check:
     runs-on: ubuntu-22.04
@@ -113,8 +115,11 @@ jobs:
       - name: Build frontend (required by tauri::generate_context)
         run: pnpm install --frozen-lockfile && pnpm run build
 
-      - name: Create sidecar stub for check
-        run: mkdir -p src-tauri/binaries && touch src-tauri/binaries/kuro-sidecar-x86_64-unknown-linux-gnu
+      - name: Create sidecar stubs for check
+        run: |
+          mkdir -p src-tauri/binaries
+          touch src-tauri/binaries/kuro-sidecar-x86_64-unknown-linux-gnu
+          touch src-tauri/binaries/mame-sidecar-x86_64-unknown-linux-gnu
 
       - name: Validate semver versions
         run: |

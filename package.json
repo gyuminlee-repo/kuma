@@ -9,7 +9,7 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
-    "sidecar:kill": "node -e \"try{require('child_process').execSync(process.platform==='win32'?'taskkill /F /IM kuro-sidecar-x86_64-pc-windows-msvc.exe':'pkill -f kuro-sidecar||true',{stdio:'ignore'})}catch{}\"",
+    "sidecar:kill": "node -e \"var cp=require('child_process');for(var k of ['kuro-sidecar','mame-sidecar']){try{if(process.platform==='win32'){cp.execSync('taskkill /F /IM '+k+'-x86_64-pc-windows-msvc.exe',{stdio:'ignore'})}else{cp.execSync('pkill -f '+k+'||true',{stdio:'ignore'})}}catch{}}\"",
     "sidecar:build": "pnpm run sidecar:kill && cd python-core && node -e \"require('child_process').execSync((process.platform==='win32'?'python':'python3')+' build_sidecar.py --onefile',{stdio:'inherit'})\"",
     "sidecar:build:onedir": "cd python-core && node -e \"require('child_process').execSync((process.platform==='win32'?'python':'python3')+' build_sidecar.py',{stdio:'inherit'})\"",
     "build:all": "pnpm run sidecar:build && pnpm run tauri build",

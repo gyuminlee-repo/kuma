@@ -42,7 +42,7 @@ try {
     await page.goto(URL, { waitUntil: "networkidle" });
     await page.waitForLoadState("domcontentloaded");
     const title = await page.title();
-    if (title !== "KURO") {
+    if (title !== "kuma") {
       throw new Error(`Unexpected page title: ${title}`);
     }
     const rootHtml = await page.locator("#root").evaluate((el) => el.innerHTML.trim());
