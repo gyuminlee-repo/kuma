@@ -1,3 +1,5 @@
+pub mod project;
+
 pub fn run() {
     if let Err(e) = tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
