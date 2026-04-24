@@ -1,6 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { AppLayout } from "./components/layout/AppLayout";
+import { App } from "./App";
 import { appendCrashLog } from "./lib/crashLog";
 import "./index.css";
 
@@ -53,7 +53,7 @@ class ErrorBoundary extends React.Component<
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <ErrorBoundary>
-      <AppLayout />
+      <App />
     </ErrorBoundary>
   </React.StrictMode>,
 );
