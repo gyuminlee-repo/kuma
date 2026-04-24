@@ -1,7 +1,7 @@
 {
   "name": "kuma",
   "private": true,
-  "version": "0.02.04",
+  "version": "0.03.00",
   "packageManager": "pnpm@10.33.0",
   "type": "module",
   "scripts": {
