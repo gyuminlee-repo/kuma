@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useAppStore } from "@/store/mame/mameAppStore";
+import { useMameAppStore } from "@/store/mame/mameAppStore";
 import type { VerdictClass } from "@/types/mame/models";
 import { cn } from "@/lib/utils";
 
@@ -35,15 +35,15 @@ function getStatusTone(args: {
 }
 
 export function SummaryRow() {
-  const verdicts = useAppStore((s) => s.verdicts);
-  const wells = useAppStore((s) => s.wells);
-  const inputDir = useAppStore((s) => s.inputDir);
-  const expectedPath = useAppStore((s) => s.expectedPath);
-  const referencePath = useAppStore((s) => s.referencePath);
-  const outputPath = useAppStore((s) => s.outputPath);
-  const isAnalyzing = useAppStore((s) => s.isAnalyzing);
-  const analyzeProgress = useAppStore((s) => s.analyzeProgress);
-  const validationErrors = useAppStore((s) => s.validationErrors);
+  const verdicts = useMameAppStore((s) => s.verdicts);
+  const wells = useMameAppStore((s) => s.wells);
+  const inputDir = useMameAppStore((s) => s.inputDir);
+  const expectedPath = useMameAppStore((s) => s.expectedPath);
+  const referencePath = useMameAppStore((s) => s.referencePath);
+  const outputPath = useMameAppStore((s) => s.outputPath);
+  const isAnalyzing = useMameAppStore((s) => s.isAnalyzing);
+  const analyzeProgress = useMameAppStore((s) => s.analyzeProgress);
+  const validationErrors = useMameAppStore((s) => s.validationErrors);
 
   const readyCount = [inputDir, expectedPath, referencePath, outputPath].filter(Boolean).length;
   const readiness = Math.round((readyCount / 4) * 100);

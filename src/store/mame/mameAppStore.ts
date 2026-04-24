@@ -5,7 +5,7 @@ import { createInputSlice } from "./slices/inputSlice";
 import type { AppState } from "./types";
 export type { AppState };
 
-export const useAppStore = create<AppState>()((...args) => {
+export const useMameAppStore = create<AppState>()((...args) => {
   return {
     ...createInputSlice(...args),
     ...createAnalysisSlice(...args),

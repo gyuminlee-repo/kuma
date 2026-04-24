@@ -1,16 +1,16 @@
-import { useAppStore } from "@/store/mame/mameAppStore";
+import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export function ParameterPanel() {
-  const mode = useAppStore((s) => s.mode);
-  const ingestMode = useAppStore((s) => s.ingestMode);
-  const cdsStart = useAppStore((s) => s.cdsStart);
-  const cdsEnd = useAppStore((s) => s.cdsEnd);
-  const minFileSizeKb = useAppStore((s) => s.minFileSizeKb);
-  const manyCutoff = useAppStore((s) => s.manyCutoff);
-  const setParams = useAppStore((s) => s.setParams);
+  const mode = useMameAppStore((s) => s.mode);
+  const ingestMode = useMameAppStore((s) => s.ingestMode);
+  const cdsStart = useMameAppStore((s) => s.cdsStart);
+  const cdsEnd = useMameAppStore((s) => s.cdsEnd);
+  const minFileSizeKb = useMameAppStore((s) => s.minFileSizeKb);
+  const manyCutoff = useMameAppStore((s) => s.manyCutoff);
+  const setParams = useMameAppStore((s) => s.setParams);
 
   return (
     <div className="rounded-lg border border-border bg-background p-4 space-y-3">

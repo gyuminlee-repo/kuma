@@ -1,6 +1,6 @@
 import { open } from "@tauri-apps/plugin-dialog";
 import { FolderOpen } from "lucide-react";
-import { useAppStore } from "@/store/mame/mameAppStore";
+import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,14 +16,14 @@ function getPathPreview(value: string): string {
 }
 
 export function InputPanel() {
-  const inputDir = useAppStore((s) => s.inputDir);
-  const expectedPath = useAppStore((s) => s.expectedPath);
-  const referencePath = useAppStore((s) => s.referencePath);
-  const outputPath = useAppStore((s) => s.outputPath);
-  const setInputDir = useAppStore((s) => s.setInputDir);
-  const setExpectedPath = useAppStore((s) => s.setExpectedPath);
-  const setReferencePath = useAppStore((s) => s.setReferencePath);
-  const setOutputPath = useAppStore((s) => s.setOutputPath);
+  const inputDir = useMameAppStore((s) => s.inputDir);
+  const expectedPath = useMameAppStore((s) => s.expectedPath);
+  const referencePath = useMameAppStore((s) => s.referencePath);
+  const outputPath = useMameAppStore((s) => s.outputPath);
+  const setInputDir = useMameAppStore((s) => s.setInputDir);
+  const setExpectedPath = useMameAppStore((s) => s.setExpectedPath);
+  const setReferencePath = useMameAppStore((s) => s.setReferencePath);
+  const setOutputPath = useMameAppStore((s) => s.setOutputPath);
 
   async function browseDirectory() {
     const selected = toSinglePath(await open({ directory: true }));

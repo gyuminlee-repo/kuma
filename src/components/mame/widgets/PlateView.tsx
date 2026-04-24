@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useAppStore } from "@/store/mame/mameAppStore";
+import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { VerdictBadge } from "./VerdictBadge";
 import { WellPlate } from "./WellPlate";
 import type { VerdictClass } from "@/types/mame/models";
@@ -20,11 +20,11 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 }
 
 export function PlateView() {
-  const verdicts = useAppStore((state) => state.verdicts);
-  const wells = useAppStore((state) => state.wells);
-  const selectedWell = useAppStore((state) => state.selectedWell);
-  const setSelectedWell = useAppStore((state) => state.setSelectedWell);
-  const loadPlateData = useAppStore((state) => state.loadPlateData);
+  const verdicts = useMameAppStore((state) => state.verdicts);
+  const wells = useMameAppStore((state) => state.wells);
+  const selectedWell = useMameAppStore((state) => state.selectedWell);
+  const setSelectedWell = useMameAppStore((state) => state.setSelectedWell);
+  const loadPlateData = useMameAppStore((state) => state.loadPlateData);
 
   const [colorblindMode, setColorblindMode] = useState(false);
   const selectedCount = wells.filter((well) => well.selected).length;

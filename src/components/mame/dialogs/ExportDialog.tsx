@@ -1,6 +1,6 @@
 import { save } from "@tauri-apps/plugin-dialog";
 import { AlertCircle, CheckCircle2, Download, FolderOpen } from "lucide-react";
-import { useAppStore } from "@/store/mame/mameAppStore";
+import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -14,15 +14,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export function ExportDialog() {
-  const open = useAppStore((s) => s.showExport);
-  const closeExport = useAppStore((s) => s.closeExport);
-  const outputPath = useAppStore((s) => s.outputPath);
-  const setOutputPath = useAppStore((s) => s.setOutputPath);
-  const exportExcel = useAppStore((s) => s.exportExcel);
-  const isExporting = useAppStore((s) => s.isExporting);
-  const exportError = useAppStore((s) => s.exportError);
-  const lastExportPath = useAppStore((s) => s.lastExportPath);
-  const lastExportAt = useAppStore((s) => s.lastExportAt);
+  const open = useMameAppStore((s) => s.showExport);
+  const closeExport = useMameAppStore((s) => s.closeExport);
+  const outputPath = useMameAppStore((s) => s.outputPath);
+  const setOutputPath = useMameAppStore((s) => s.setOutputPath);
+  const exportExcel = useMameAppStore((s) => s.exportExcel);
+  const isExporting = useMameAppStore((s) => s.isExporting);
+  const exportError = useMameAppStore((s) => s.exportError);
+  const lastExportPath = useMameAppStore((s) => s.lastExportPath);
+  const lastExportAt = useMameAppStore((s) => s.lastExportAt);
 
   async function browseOutput() {
     const selected = await save({ filters: [{ name: "Excel", extensions: ["xlsx"] }] });

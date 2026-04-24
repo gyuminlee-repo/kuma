@@ -8,7 +8,7 @@ import {
 } from "@tanstack/react-table";
 import { Search } from "lucide-react";
 import { useMemo } from "react";
-import { useAppStore } from "@/store/mame/mameAppStore";
+import { useMameAppStore } from "@/store/mame/mameAppStore";
 import type { VerdictRecord } from "@/types/mame/models";
 import { VerdictBadge } from "./VerdictBadge";
 import { Input } from "@/components/ui/input";
@@ -38,14 +38,14 @@ function getVerdictRowTone(verdict: VerdictRow["verdict"]): string {
 }
 
 export function VerdictTable() {
-  const verdicts = useAppStore((state) => state.verdicts);
-  const replicates = useAppStore((state) => state.replicates);
-  const plateFilter = useAppStore((state) => state.plateFilter);
-  const searchQuery = useAppStore((state) => state.searchQuery);
-  const sorting = useAppStore((state) => state.sorting);
-  const setPlateFilter = useAppStore((state) => state.setPlateFilter);
-  const setSearchQuery = useAppStore((state) => state.setSearchQuery);
-  const setSorting = useAppStore((state) => state.setSorting);
+  const verdicts = useMameAppStore((state) => state.verdicts);
+  const replicates = useMameAppStore((state) => state.replicates);
+  const plateFilter = useMameAppStore((state) => state.plateFilter);
+  const searchQuery = useMameAppStore((state) => state.searchQuery);
+  const sorting = useMameAppStore((state) => state.sorting);
+  const setPlateFilter = useMameAppStore((state) => state.setPlateFilter);
+  const setSearchQuery = useMameAppStore((state) => state.setSearchQuery);
+  const setSorting = useMameAppStore((state) => state.setSorting);
 
   const rows = useMemo<VerdictRow[]>(() => {
     const mutantMap = new Map<string, string>();

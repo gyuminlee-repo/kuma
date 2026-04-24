@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
-import { useAppStore } from "@/store/mame/mameAppStore";
+import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { selectCanRun } from "@/store/mame/selectors";
 import { useMameSidecar } from "@/hooks/mame/useMameSidecar";
 import { ClearConfirmDialog } from "../dialogs/ClearConfirmDialog";
@@ -17,7 +17,7 @@ const XLSX_EXTENSIONS = new Set([".xlsx"]);
 
 export function MameAppLayout() {
   const { status, retry } = useMameSidecar();
-  const clearResults = useAppStore((s) => s.clearResults);
+  const clearResults = useMameAppStore((s) => s.clearResults);
   const [isDragOver, setIsDragOver] = useState(false);
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
 
@@ -35,14 +35,14 @@ export function MameAppLayout() {
           for (const filePath of event.payload.paths) {
             const ext = filePath.slice(filePath.lastIndexOf(".")).toLowerCase();
             if (SEQUENCE_EXTENSIONS.has(ext)) {
-              useAppStore.getState().setReferencePath(filePath);
+              useMameAppStore.getState().setReferencePath(filePath);
               break;
             }
             if (XLSX_EXTENSIONS.has(ext)) {
               window.dispatchEvent(
                 new CustomEvent("kuma:mame-xlsx-dropped", { detail: { path: filePath } }),
               );
-              useAppStore.getState().setExpectedPath(filePath);
+              useMameAppStore.getState().setExpectedPath(filePath);
               break;
             }
           }
@@ -67,7 +67,7 @@ export function MameAppLayout() {
       if (!(e.target instanceof Element)) return;
       const tag = e.target.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
-      const s = useAppStore.getState();
+      const s = useMameAppStore.getState();
       switch (e.key.toLowerCase()) {
         case "o":
           e.preventDefault();

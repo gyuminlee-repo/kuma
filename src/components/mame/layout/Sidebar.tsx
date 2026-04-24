@@ -1,5 +1,5 @@
 import { AlertCircle, Download, Play, ShieldCheck, Square, Trash2 } from "lucide-react";
-import { useAppStore } from "@/store/mame/mameAppStore";
+import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { selectCanRun } from "@/store/mame/selectors";
 import { InputPanel } from "../panels/InputPanel";
 import { ParameterPanel } from "../panels/ParameterPanel";
@@ -11,21 +11,21 @@ interface SidebarProps {
 }
 
 export function Sidebar({ onClearRequest }: SidebarProps) {
-  const inputDir = useAppStore((s) => s.inputDir);
-  const expectedPath = useAppStore((s) => s.expectedPath);
-  const referencePath = useAppStore((s) => s.referencePath);
-  const outputPath = useAppStore((s) => s.outputPath);
-  const openExport = useAppStore((s) => s.openExport);
-  const isAnalyzing = useAppStore((s) => s.isAnalyzing);
-  const isValidating = useAppStore((s) => s.isValidating);
-  const analyzeProgress = useAppStore((s) => s.analyzeProgress);
-  const analyzeMessage = useAppStore((s) => s.analyzeMessage);
-  const validationErrors = useAppStore((s) => s.validationErrors);
-  const hasResults = useAppStore((s) => s.verdicts.length > 0);
-  const runAnalysis = useAppStore((s) => s.runAnalysis);
-  const cancelAnalysis = useAppStore((s) => s.cancelAnalysis);
-  const validateInputs = useAppStore((s) => s.validateInputs);
-  const canRun = useAppStore(selectCanRun);
+  const inputDir = useMameAppStore((s) => s.inputDir);
+  const expectedPath = useMameAppStore((s) => s.expectedPath);
+  const referencePath = useMameAppStore((s) => s.referencePath);
+  const outputPath = useMameAppStore((s) => s.outputPath);
+  const openExport = useMameAppStore((s) => s.openExport);
+  const isAnalyzing = useMameAppStore((s) => s.isAnalyzing);
+  const isValidating = useMameAppStore((s) => s.isValidating);
+  const analyzeProgress = useMameAppStore((s) => s.analyzeProgress);
+  const analyzeMessage = useMameAppStore((s) => s.analyzeMessage);
+  const validationErrors = useMameAppStore((s) => s.validationErrors);
+  const hasResults = useMameAppStore((s) => s.verdicts.length > 0);
+  const runAnalysis = useMameAppStore((s) => s.runAnalysis);
+  const cancelAnalysis = useMameAppStore((s) => s.cancelAnalysis);
+  const validateInputs = useMameAppStore((s) => s.validateInputs);
+  const canRun = useMameAppStore(selectCanRun);
   const readyCount = [inputDir, expectedPath, referencePath, outputPath].filter(Boolean).length;
   const readiness = Math.round((readyCount / 4) * 100);
 

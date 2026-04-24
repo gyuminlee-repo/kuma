@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { spawnSidecar, isSidecarRunning, setProgressHandler } from "@/lib/ipc-mame";
-import { useAppStore } from "@/store/mame/mameAppStore";
+import { useMameAppStore } from "@/store/mame/mameAppStore";
 import type { SidecarStatus } from "@/types/mame/models";
 
 export function useMameSidecar() {
@@ -12,7 +12,7 @@ export function useMameSidecar() {
 
   useEffect(() => {
     setProgressHandler((progress) => {
-      useAppStore.setState((state) => ({
+      useMameAppStore.setState((state) => ({
         analyzeProgress: progress.value,
         analyzeMessage: progress.message,
         isAnalyzing: state.isAnalyzing || progress.value < 100,

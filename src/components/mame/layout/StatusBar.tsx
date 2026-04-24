@@ -1,4 +1,4 @@
-import { useAppStore } from "@/store/mame/mameAppStore";
+import { useMameAppStore } from "@/store/mame/mameAppStore";
 import type { SidecarStatus } from "@/types/mame/models";
 import { cn } from "@/lib/utils";
 
@@ -16,8 +16,8 @@ export function StatusBar({
   sidecarStatus: SidecarStatus;
   onRetry: () => void;
 }) {
-  const analyzeMessage = useAppStore((state) => state.analyzeMessage);
-  const summary = useAppStore((state) => state.summary);
+  const analyzeMessage = useMameAppStore((state) => state.analyzeMessage);
+  const summary = useMameAppStore((state) => state.summary);
 
   return (
     <footer

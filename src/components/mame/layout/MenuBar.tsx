@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useAppStore } from "@/store/mame/mameAppStore";
+import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { selectCanRun } from "@/store/mame/selectors";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,16 +26,16 @@ interface MenuBarProps {
 }
 
 export function MenuBar({ onClearRequest }: MenuBarProps) {
-  const hasResults = useAppStore((s) => s.verdicts.length > 0);
-  const isAnalyzing = useAppStore((s) => s.isAnalyzing);
-  const runAnalysis = useAppStore((s) => s.runAnalysis);
-  const validateInputs = useAppStore((s) => s.validateInputs);
-  const openExport = useAppStore((s) => s.openExport);
-  const saveWorkspace = useAppStore((s) => s.saveWorkspace);
-  const loadWorkspace = useAppStore((s) => s.loadWorkspace);
-  const cancelAnalysis = useAppStore((s) => s.cancelAnalysis);
-  const loadSampleData = useAppStore((s) => s.loadSampleData);
-  const canRun = useAppStore(selectCanRun);
+  const hasResults = useMameAppStore((s) => s.verdicts.length > 0);
+  const isAnalyzing = useMameAppStore((s) => s.isAnalyzing);
+  const runAnalysis = useMameAppStore((s) => s.runAnalysis);
+  const validateInputs = useMameAppStore((s) => s.validateInputs);
+  const openExport = useMameAppStore((s) => s.openExport);
+  const saveWorkspace = useMameAppStore((s) => s.saveWorkspace);
+  const loadWorkspace = useMameAppStore((s) => s.loadWorkspace);
+  const cancelAnalysis = useMameAppStore((s) => s.cancelAnalysis);
+  const loadSampleData = useMameAppStore((s) => s.loadSampleData);
+  const canRun = useMameAppStore(selectCanRun);
   const [aboutOpen, setAboutOpen] = useState(false);
 
   return (
