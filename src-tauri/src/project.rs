@@ -59,8 +59,18 @@ pub fn load_project(path: &Path) -> Result<Project, String> {
 
 pub fn compute_stage(path: &Path) -> String {
     let has_xlsx = path.join("design/expected_mutations.xlsx").exists();
+    // Consider the consensus directory meaningful only if it contains at least
+    // one non-hidden entry whose metadata we can read. This avoids .DS_Store
+    // style OS bookkeeping or unreadable entries flipping the stage.
     let consensus_has_files = fs::read_dir(path.join("analysis/consensus"))
-        .map(|mut d| d.next().is_some())
+        .map(|entries| {
+            entries.flatten().any(|e| {
+                e.file_name()
+                    .to_str()
+                    .map(|n| !n.starts_with('.'))
+                    .unwrap_or(false)
+            })
+        })
         .unwrap_or(false);
     let has_verdict = path.join("analysis/verdict.xlsx").exists();
 
