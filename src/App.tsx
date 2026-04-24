@@ -1,23 +1,24 @@
 import { useEffect, useState } from "react";
-import { AppLayout } from "./components/layout/AppLayout";
-import { getConfig, type Config } from "./lib/project";
+import { getConfig, loadProject, type Config } from "./lib/project";
+import { MainShell } from "./screens/MainShell";
 import { Home } from "./screens/Home";
 import { Onboarding } from "./screens/Onboarding";
+import { ProjectProvider, type KumaProject } from "./state/projectContext";
 
 type AppScreen = "loading" | "onboarding" | "home" | "workspace";
 
-declare global {
-  interface Window {
-    __kumaProject?: {
-      path: string;
-      scratch: boolean;
-    };
-  }
+function basename(path: string): string {
+  return path.split(/[\\/]/).pop() ?? path;
+}
+
+function stem(path: string): string {
+  return basename(path).replace(/\.[^.]+$/, "");
 }
 
 export function App() {
   const [screen, setScreen] = useState<AppScreen>("loading");
   const [config, setConfig] = useState<Config | null>(null);
+  const [project, setProject] = useState<KumaProject>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -46,8 +47,34 @@ export function App() {
     setScreen("home");
   }
 
-  function handleOpenWorkspace(path: string, scratch: boolean) {
-    window.__kumaProject = { path, scratch };
+  async function handleOpenWorkspace(path: string, scratch: boolean) {
+    if (scratch) {
+      setProject({
+        path,
+        name: stem(path),
+        scratch: true,
+      });
+      setScreen("workspace");
+      return;
+    }
+
+    const fallbackProject: Exclude<KumaProject, null> = {
+      path,
+      name: stem(path),
+      scratch: false,
+    };
+
+    try {
+      const loadedProject = await loadProject(path);
+      setProject({
+        ...fallbackProject,
+        name: loadedProject.name,
+        ...(typeof loadedProject.stage === "string" ? { stage: loadedProject.stage } : {}),
+      });
+    } catch {
+      setProject(fallbackProject);
+    }
+
     setScreen("workspace");
   }
 
@@ -62,12 +89,16 @@ export function App() {
   if (screen === "home") {
     return (
       <Home
-        onOpenProject={(path) => handleOpenWorkspace(path, false)}
-        onOpenScratch={(path) => handleOpenWorkspace(path, true)}
+        onOpenProject={(path) => void handleOpenWorkspace(path, false)}
+        onOpenScratch={(path) => void handleOpenWorkspace(path, true)}
         onOpenSettings={() => setScreen("onboarding")}
       />
     );
   }
 
-  return <AppLayout />;
+  return (
+    <ProjectProvider value={project}>
+      <MainShell />
+    </ProjectProvider>
+  );
 }
