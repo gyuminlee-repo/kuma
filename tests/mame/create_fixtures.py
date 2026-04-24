@@ -157,13 +157,21 @@ _PAD_BYTES_ABOVE = 52 * 1024
 
 def ensure_fixtures() -> None:
     ref_path = FIXTURE_ROOT / "reference.fasta"
-    _create_reference(ref_path)
+    if not ref_path.exists():
+        _create_reference(ref_path)
 
+    # xlsx must not be rewritten on every run: openpyxl re-serialization
+    # produces byte-level churn (zip archive timestamps) even though the
+    # semantic content is unchanged. The fixture is immutable — only
+    # create it if it is missing.
     kuro_path = FIXTURE_ROOT / "KURO_test.xlsx"
-    _create_kuro_xlsx(kuro_path)
+    if not kuro_path.exists():
+        _create_kuro_xlsx(kuro_path)
 
     for (nb, custom), body in _FASTA_MAP.items():
         out = FIXTURE_ROOT / "mock_consensus_output" / nb / f"{custom}.fasta"
+        if out.exists():
+            continue
         pad = None if (nb, custom) == _LOWDEPTH_KEY else _PAD_BYTES_ABOVE
         _write_fasta(out, header=custom, body=body, pad_to_bytes=pad)
 
