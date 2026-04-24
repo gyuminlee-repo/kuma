@@ -96,7 +96,7 @@ export function App() {
   }
 
   if (screen === "loading") {
-    return <div className="flex min-h-screen items-center justify-center bg-slate-100 text-sm text-slate-500">불러오는 중...</div>;
+    return <div className="flex min-h-screen items-center justify-center bg-slate-100 text-sm text-slate-500">Loading…</div>;
   }
 
   if (screen === "onboarding") {

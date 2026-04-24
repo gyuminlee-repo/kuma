@@ -54,7 +54,7 @@ export function Home({ onOpenProject, onOpenScratch, onOpenSettings }: HomeProps
   async function handleCreateProject() {
     const trimmedName = projectName.trim();
     if (!trimmedName) {
-      setError("프로젝트 이름을 입력해 주세요.");
+      setError("Enter a project name.");
       return;
     }
 
@@ -119,13 +119,13 @@ export function Home({ onOpenProject, onOpenScratch, onOpenSettings }: HomeProps
             setError("");
             setIsCreateOpen(true);
           }}>
-            + 새 프로젝트
+            + New project
           </Button>
           <Button variant="outline" className="min-w-32 bg-white" onClick={() => void handleOpenFile()}>
-            파일 열기
+            Open file
           </Button>
           <Button variant="outline" className="min-w-24 bg-white" onClick={onOpenSettings}>
-            설정
+            Settings
           </Button>
         </div>
 
@@ -133,13 +133,13 @@ export function Home({ onOpenProject, onOpenScratch, onOpenSettings }: HomeProps
 
         <section className="mt-12 w-full rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold">최근 프로젝트</h2>
+            <h2 className="text-lg font-semibold">Recent projects</h2>
           </div>
 
           <div className="space-y-3">
             {recentProjects.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500">
-                아직 없어요
+                No projects yet
               </div>
             ) : (
               recentProjects.map((project) => (
@@ -165,8 +165,8 @@ export function Home({ onOpenProject, onOpenScratch, onOpenSettings }: HomeProps
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>새 프로젝트</DialogTitle>
-            <DialogDescription>프로젝트 이름을 입력해 주세요.</DialogDescription>
+            <DialogTitle>New project</DialogTitle>
+            <DialogDescription>Enter a project name.</DialogDescription>
           </DialogHeader>
 
           <form
@@ -179,13 +179,13 @@ export function Home({ onOpenProject, onOpenScratch, onOpenSettings }: HomeProps
             <Input
               value={projectName}
               onChange={(event) => setProjectName(event.target.value)}
-              placeholder="프로젝트 이름"
-              aria-label="프로젝트 이름"
+              placeholder="Project name"
+              aria-label="Project name"
             />
 
             <DialogFooter>
               <Button type="submit" disabled={isCreating}>
-                생성
+                Create
               </Button>
             </DialogFooter>
           </form>

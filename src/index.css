@@ -27,25 +27,25 @@
     --ring: 220 18% 10%;
     --radius: 0.5rem;
 
-    /* 밀도 */
+    /* Density */
     --row-h-comfortable: 32px;
     --row-h-compact: 24px;
     --font-size-body: 14px;
     --font-size-table: 13px;
     --font-size-caption: 12px;
 
-    /* 공간 4px scale */
+    /* Spacing (4px scale) */
     --space-1: 4px;   --space-2: 8px;
     --space-3: 12px;  --space-4: 16px;
     --space-5: 20px;  --space-6: 24px;
     --space-8: 32px;
 
-    /* 그림자 */
+    /* Shadows */
     --shadow-hairline: 0 1px 0 rgb(0 0 0 / 4%);
     --shadow-popover: 0 8px 24px -8px rgb(0 0 0 / 14%), 0 1px 0 rgb(0 0 0 / 6%);
     --shadow-dialog:  0 20px 40px -12px rgb(0 0 0 / 18%), 0 1px 0 rgb(0 0 0 / 8%);
 
-    /* 모션 */
+    /* Motion */
     --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
     --dur-fast: 120ms;
     --dur-base: 180ms;

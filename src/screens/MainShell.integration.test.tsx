@@ -96,12 +96,12 @@ describe("kuma end-to-end integration (frontend)", () => {
     render(<App />);
 
     // Home screen appears after getConfig resolves.
-    await screen.findByRole("button", { name: /새 프로젝트/ });
+    await screen.findByRole("button", { name: /New project/ });
 
-    await user.click(screen.getByRole("button", { name: /새 프로젝트/ }));
-    const input = await screen.findByLabelText("프로젝트 이름");
+    await user.click(screen.getByRole("button", { name: /New project/ }));
+    const input = await screen.findByLabelText("Project name");
     await user.type(input, "Sample_42");
-    await user.click(screen.getByRole("button", { name: "생성" }));
+    await user.click(screen.getByRole("button", { name: "Create" }));
 
     await waitFor(() => {
       expect(createProjectMock).toHaveBeenCalledWith("Sample_42");
@@ -126,10 +126,10 @@ describe("kuma end-to-end integration (frontend)", () => {
     });
 
     render(<App />);
-    await user.click(await screen.findByRole("button", { name: /새 프로젝트/ }));
-    const input = await screen.findByLabelText("프로젝트 이름");
+    await user.click(await screen.findByRole("button", { name: /New project/ }));
+    const input = await screen.findByLabelText("Project name");
     await user.type(input, "S");
-    await user.click(screen.getByRole("button", { name: "생성" }));
+    await user.click(screen.getByRole("button", { name: "Create" }));
 
     await screen.findByRole("tab", { name: "Mame" });
     rpcMock.mockClear();
@@ -165,9 +165,9 @@ describe("kuma end-to-end integration (frontend)", () => {
 
     render(<App />);
     // Create+enter workspace so MainShell renders.
-    await user.click(await screen.findByRole("button", { name: /새 프로젝트/ }));
-    await user.type(await screen.findByLabelText("프로젝트 이름"), "Sample_42");
-    await user.click(screen.getByRole("button", { name: "생성" }));
+    await user.click(await screen.findByRole("button", { name: /New project/ }));
+    await user.type(await screen.findByLabelText("Project name"), "Sample_42");
+    await user.click(screen.getByRole("button", { name: "Create" }));
     await screen.findByRole("tab", { name: "Mame" });
 
     // Activate Mame tab so its effect registers the drop listener.
@@ -178,12 +178,12 @@ describe("kuma end-to-end integration (frontend)", () => {
     fireEvent.click(screen.getByTestId("mame-drop-stub"));
 
     // Dialog surfaces with the recent project's name.
-    const dialogText = await screen.findByText(/Other 프로젝트로 로드하시겠어요\?/);
+    const dialogText = await screen.findByText(/Load "Other"\?/);
     expect(dialogText).toBeTruthy();
 
     // Accept → loadProject invoked for the recent project path.
     loadProjectMock.mockClear();
-    await user.click(screen.getByRole("button", { name: "로드" }));
+    await user.click(screen.getByRole("button", { name: "Load" }));
     await waitFor(() => {
       expect(loadProjectMock).toHaveBeenCalledWith("/tmp/kuma/Other");
     });
@@ -207,15 +207,15 @@ describe("kuma end-to-end integration (frontend)", () => {
     });
 
     render(<App />);
-    await user.click(await screen.findByRole("button", { name: /새 프로젝트/ }));
-    await user.type(await screen.findByLabelText("프로젝트 이름"), "S");
-    await user.click(screen.getByRole("button", { name: "생성" }));
+    await user.click(await screen.findByRole("button", { name: /New project/ }));
+    await user.type(await screen.findByLabelText("Project name"), "S");
+    await user.click(screen.getByRole("button", { name: "Create" }));
     await user.click(await screen.findByRole("tab", { name: "Mame" }));
     await screen.findByTestId("mame-drop-stub");
     fireEvent.click(screen.getByTestId("mame-drop-stub"));
 
     // Give any async handlers a microtask window, then assert no dialog.
     await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(screen.queryByText(/프로젝트로 로드하시겠어요\?/)).toBeNull();
+    expect(screen.queryByText("Matching project found")).toBeNull();
   });
 });

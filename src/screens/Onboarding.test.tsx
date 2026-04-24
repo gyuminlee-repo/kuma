@@ -29,7 +29,7 @@ describe("Onboarding", () => {
 
     render(<Onboarding initialPath="/tmp/kuma" onDone={onDone} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "완료" }));
+    fireEvent.click(screen.getByRole("button", { name: "Done" }));
 
     await waitFor(() => {
       expect(setProjectsRootMock).toHaveBeenCalledWith("/tmp/kuma");
@@ -40,6 +40,6 @@ describe("Onboarding", () => {
   it("disables submit when the path is empty", () => {
     render(<Onboarding onDone={vi.fn()} />);
 
-    expect(screen.getByRole("button", { name: "완료" }).hasAttribute("disabled")).toBe(true);
+    expect(screen.getByRole("button", { name: "Done" }).hasAttribute("disabled")).toBe(true);
   });
 });

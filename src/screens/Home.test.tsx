@@ -33,10 +33,10 @@ describe("Home", () => {
       />,
     );
 
-    expect(await screen.findByRole("button", { name: "+ 새 프로젝트" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "파일 열기" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "설정" })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "최근 프로젝트" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "+ New project" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Open file" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Settings" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Recent projects" })).toBeTruthy();
   });
 
   it("shows the empty state when there are no recent projects", async () => {
@@ -50,7 +50,7 @@ describe("Home", () => {
       />,
     );
 
-    expect(await screen.findByText("아직 없어요")).toBeTruthy();
+    expect(await screen.findByText("No projects yet")).toBeTruthy();
   });
 
   it("opens the create dialog and creates a new project", async () => {
@@ -79,13 +79,13 @@ describe("Home", () => {
     );
 
     await screen.findByText("sample");
-    fireEvent.click(screen.getByRole("button", { name: "+ 새 프로젝트" }));
-    expect(await screen.findByRole("heading", { name: "새 프로젝트" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "+ New project" }));
+    expect(await screen.findByRole("heading", { name: "New project" })).toBeTruthy();
 
-    fireEvent.change(screen.getByRole("textbox", { name: "프로젝트 이름" }), {
+    fireEvent.change(screen.getByRole("textbox", { name: "Project name" }), {
       target: { value: "alpha" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "생성" }));
+    fireEvent.click(screen.getByRole("button", { name: "Create" }));
 
     await waitFor(() => {
       expect(createProjectMock).toHaveBeenCalledWith("alpha");

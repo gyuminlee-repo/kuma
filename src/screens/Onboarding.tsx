@@ -47,13 +47,13 @@ export function Onboarding({ initialPath, onDone }: OnboardingProps) {
   return (
     <div className="min-h-screen bg-slate-100 px-6 py-12 text-slate-900">
       <div className="mx-auto flex w-full max-w-2xl flex-col rounded-3xl border border-slate-200 bg-white/90 p-8 shadow-sm">
-        <h1 className="text-3xl font-bold tracking-tight">시작하기</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Get started</h1>
         <p className="mt-3 text-sm leading-6 text-slate-600">
-          프로젝트가 저장될 기본 폴더를 정해 주세요. 이후 새 프로젝트는 이 경로 아래에 만들어집니다.
+          Choose a default folder for projects. New projects will be created inside this folder.
         </p>
 
         <label className="mt-8 text-sm font-medium text-slate-700" htmlFor="projects-root">
-          프로젝트 폴더
+          Projects folder
         </label>
         <Input
           id="projects-root"
@@ -65,10 +65,10 @@ export function Onboarding({ initialPath, onDone }: OnboardingProps) {
 
         <div className="mt-4 flex flex-wrap gap-3">
           <Button type="button" variant="outline" className="bg-white" onClick={() => void handlePickFolder()}>
-            폴더 선택
+            Choose folder
           </Button>
           <Button type="button" onClick={() => void handleSubmit()} disabled={!path.trim() || isSaving}>
-            완료
+            Done
           </Button>
         </div>
 

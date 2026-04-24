@@ -72,16 +72,16 @@ export function MameTab() {
       <Dialog open={match !== null} onOpenChange={(open) => !open && setMatch(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>프로젝트 매칭 발견</DialogTitle>
+            <DialogTitle>Matching project found</DialogTitle>
             <DialogDescription>
-              {match ? `${match.name} 프로젝트로 로드하시겠어요?` : ""}
+              {match ? `Load "${match.name}"?` : ""}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setMatch(null)}>
-              아니오
+              Cancel
             </Button>
-            <Button onClick={() => void confirmLoad()}>로드</Button>
+            <Button onClick={() => void confirmLoad()}>Load</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

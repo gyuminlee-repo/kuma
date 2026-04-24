@@ -37,7 +37,7 @@ export function MappingExportDialog({
   const cfg = FORMAT_DEFAULTS[format];
   const [transferVol, setTransferVol] = useState<number>(cfg.transferVol);
 
-  // open될 때 초기 포맷 반영, 포맷 바뀔 때 transferVol 리셋
+  // Apply initial format when opened; reset transferVol when format changes.
   useEffect(() => {
     if (open) setFormat(initialFormat);
   }, [open, initialFormat]);
@@ -58,11 +58,11 @@ export function MappingExportDialog({
         <DialogHeader>
           <DialogTitle className="text-xl">Export {label} Mapping</DialogTitle>
           <DialogDescription className="text-slate-600">
-            두 파일이 같은 경로에 생성됩니다.
+            Two files are written to the same path.
             <br />
-            <span className="text-slate-500">.xlsx</span> — 레이아웃 확인용 (사람이 보는 파일)
+            <span className="text-slate-500">.xlsx</span> — human-readable layout preview
             <br />
-            <span className="text-slate-500">.csv</span> — 기기 업로드용 (실제 머신 인풋)
+            <span className="text-slate-500">.csv</span> — machine input (actual liquid-handler upload)
           </DialogDescription>
         </DialogHeader>
 

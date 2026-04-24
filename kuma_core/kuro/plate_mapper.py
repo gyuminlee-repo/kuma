@@ -348,7 +348,7 @@ def export_plate_excel(
     mappings: list[PlateMapping],
     output_path: Path,
     rev_groups: dict[str, list[str]] | None = None,
-    results: list | None = None,  # list[SdmPrimerResult] — Phase 1 신규
+    results: list | None = None,  # list[SdmPrimerResult] — added in Phase 1
 ) -> None:
     """Export plate mappings to Excel with per-plate sheets.
 

@@ -25,7 +25,7 @@ from sidecar_mame.handlers.export import (
 )
 from sidecar_mame.handlers.kuma_meta import handle_read_kuma_meta
 
-# Phase A handler registry (per 작업 프롬프트 T5).
+# Phase A handler registry.
 # ``translate`` is deferred to Phase B per the reconciled scope.
 _METHODS = {
     "analyze": handle_analyze,
