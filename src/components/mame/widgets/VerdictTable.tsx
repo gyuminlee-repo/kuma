@@ -1,0 +1,237 @@
+import {
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getSortedRowModel,
+  useReactTable,
+  type ColumnDef,
+} from "@tanstack/react-table";
+import { Search } from "lucide-react";
+import { useMemo } from "react";
+import { useAppStore } from "@/store/mame/mameAppStore";
+import type { VerdictRecord } from "@/types/mame/models";
+import { VerdictBadge } from "./VerdictBadge";
+import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
+
+type VerdictRow = VerdictRecord & { mutant_id: string };
+
+function extractNbGroup(record: VerdictRecord): "NB01" | "NB02" | "NB03" | "UNKNOWN" {
+  const match = record.source_path.match(/NB0(\d)/i);
+  if (!match) return "UNKNOWN";
+  return `NB0${match[1]}` as "NB01" | "NB02" | "NB03";
+}
+
+function getVerdictRowTone(verdict: VerdictRow["verdict"]): string {
+  switch (verdict) {
+    case "PASS":
+      return "border-l-2 border-l-primary";
+    case "AMBIGUOUS":
+      return "border-l-2 border-l-accent bg-accent/5";
+    case "LOWDEPTH":
+      return "border-l-2 border-l-border bg-muted/20";
+    default:
+      return "border-l-2 border-l-destructive bg-destructive/5";
+  }
+}
+
+export function VerdictTable() {
+  const verdicts = useAppStore((state) => state.verdicts);
+  const replicates = useAppStore((state) => state.replicates);
+  const plateFilter = useAppStore((state) => state.plateFilter);
+  const searchQuery = useAppStore((state) => state.searchQuery);
+  const sorting = useAppStore((state) => state.sorting);
+  const setPlateFilter = useAppStore((state) => state.setPlateFilter);
+  const setSearchQuery = useAppStore((state) => state.setSearchQuery);
+  const setSorting = useAppStore((state) => state.setSorting);
+
+  const rows = useMemo<VerdictRow[]>(() => {
+    const mutantMap = new Map<string, string>();
+    for (const replicate of replicates) {
+      if (replicate.selected_plate) {
+        mutantMap.set(replicate.selected_plate, replicate.mutant_id);
+      }
+    }
+    return verdicts
+      .filter((record) => plateFilter === "ALL" || extractNbGroup(record) === plateFilter)
+      .map((record) => ({
+        ...record,
+        mutant_id: mutantMap.get(record.native_barcode) ?? "—",
+      }));
+  }, [plateFilter, replicates, verdicts]);
+
+  const filteredRows = useMemo(() => {
+    if (!searchQuery.trim()) return rows;
+    const query = searchQuery.trim().toLowerCase();
+    return rows.filter((row) =>
+      [row.custom_barcode, row.native_barcode, row.mutant_id, row.verdict_notes, row.observed_aa_changes.join(",")]
+        .join(" ")
+        .toLowerCase()
+        .includes(query),
+    );
+  }, [rows, searchQuery]);
+
+  const columns = useMemo<ColumnDef<VerdictRow>[]>(
+    () => [
+      {
+        accessorKey: "custom_barcode",
+        header: "Barcode",
+        cell: ({ getValue }) => (
+          <span className="font-mono text-xs text-foreground">{getValue<string>()}</span>
+        ),
+      },
+      {
+        accessorKey: "mutant_id",
+        header: "Mutant ID",
+        cell: ({ getValue }) => (
+          <span className="text-xs font-medium">{getValue<string>()}</span>
+        ),
+      },
+      {
+        accessorKey: "verdict",
+        header: "Verdict",
+        cell: ({ row }) => <VerdictBadge verdict={row.original.verdict} />,
+      },
+      {
+        id: "observed_aa_changes",
+        header: "AA Changes",
+        accessorFn: (row) => row.observed_aa_changes.join(", "),
+        cell: ({ getValue }) => (
+          <span className="font-mono text-xs text-muted-foreground">{getValue<string>() || "—"}</span>
+        ),
+      },
+      {
+        accessorKey: "verdict_notes",
+        header: "Notes",
+        cell: ({ getValue }) => (
+          <span className="text-xs text-muted-foreground">{getValue<string>() || "—"}</span>
+        ),
+      },
+    ],
+    [],
+  );
+
+  const table = useReactTable({
+    data: filteredRows,
+    columns,
+    state: { sorting },
+    onSortingChange: setSorting,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+  });
+
+  return (
+    <div className="flex min-h-0 flex-col overflow-hidden">
+      <div className="flex flex-col gap-2 border-b border-border px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
+        <Tabs
+          value={plateFilter}
+          onValueChange={(value: string) => setPlateFilter(value as "NB01" | "NB02" | "NB03" | "ALL")}
+        >
+          <TabsList className="h-7 gap-1 bg-muted/60 p-0.5">
+            {(["ALL", "NB01", "NB02", "NB03"] as const).map((tab) => (
+              <TabsTrigger
+                key={tab}
+                value={tab}
+                className={cn(
+                  "h-6 rounded px-2 text-[11px] font-medium transition-colors",
+                  "data-[state=active]:bg-primary data-[state=active]:text-primary-foreground",
+                  "data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground",
+                )}
+              >
+                {tab}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+        <div className="relative w-full sm:max-w-xs">
+          <Search
+            size={12}
+            className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground"
+            aria-hidden="true"
+          />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search barcode / mutant ID…"
+            className="h-7 pl-6 text-xs"
+            aria-label="Search results"
+          />
+        </div>
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-auto">
+        <Table>
+          <TableHeader>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow
+                key={headerGroup.id}
+                className="border-b border-border bg-muted/30 hover:bg-muted/30"
+              >
+                {headerGroup.headers.map((header) => (
+                  <TableHead
+                    key={header.id}
+                    onClick={header.column.getToggleSortingHandler()}
+                    className={cn(
+                      "sticky top-0 z-10 h-8 bg-background px-3 text-[11px] font-semibold text-muted-foreground",
+                      header.column.getCanSort() && "cursor-pointer select-none hover:text-foreground",
+                    )}
+                  >
+                    <div className="flex items-center gap-1">
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(header.column.columnDef.header, header.getContext())}
+                      {header.column.getIsSorted() === "asc" && <span aria-hidden="true">↑</span>}
+                      {header.column.getIsSorted() === "desc" && <span aria-hidden="true">↓</span>}
+                    </div>
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {table.getRowModel().rows.length > 0 ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  className={cn(
+                    "border-b border-border/50 transition-colors hover:bg-muted/30",
+                    getVerdictRowTone(row.original.verdict),
+                  )}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id} className="px-3 py-2">
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="py-8 text-center text-sm text-muted-foreground"
+                >
+                  {verdicts.length === 0
+                    ? "Run analysis to see results."
+                    : "No results match the current search."}
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {filteredRows.length > 0 && (
+        <div className="border-t border-border px-3 py-1.5">
+          <p className="text-[11px] text-muted-foreground">
+            {filteredRows.length} result(s)
+            {searchQuery && ` (search: "${searchQuery}")`}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}

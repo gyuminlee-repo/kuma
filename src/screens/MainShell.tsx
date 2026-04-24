@@ -45,7 +45,7 @@ export function MainShell() {
           <TabsContent value="kuro" className="mt-0 h-full overflow-hidden">
             <KuroTab />
           </TabsContent>
-          <TabsContent value="mame" className="mt-0 h-full overflow-hidden p-6">
+          <TabsContent value="mame" className="mt-0 h-full overflow-hidden">
             <MameTab />
           </TabsContent>
         </div>
