@@ -20,16 +20,15 @@ from kuma_core.kuro.sdm_engine import SdmPrimerResult  # noqa: E402
 from kuma_core.kuro.plate_mapper import PlateMapping  # noqa: E402
 from kuma_core.kuro.polymerase import PolymeraseRegistry  # noqa: E402
 from kuma_core.kuro.codon_table import CodonTableRegistry  # noqa: E402
+from kuma_core.shared.config_paths import kuma_home  # noqa: E402
+from kuma_core.shared.errors import jsonrpc_error  # noqa: E402
+from kuma_core.shared.logging import get_logger  # noqa: E402
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(levelname)s %(name)s: %(message)s",
-    stream=sys.stderr,
-)
-logger = logging.getLogger("sidecar")
+logger = get_logger("sidecar_kuro")
 
-_CUSTOM_POLYMERASE_PATH = Path.home() / ".kuro" / "custom_polymerases.json"
-_CONFIG_PATH = Path.home() / ".kuro" / "config.json"
+_KURO_DIR = kuma_home() / "kuro"
+_CUSTOM_POLYMERASE_PATH = _KURO_DIR / "custom_polymerases.json"
+_CONFIG_PATH = _KURO_DIR / "config.json"
 _poly_registry = PolymeraseRegistry(custom_path=_CUSTOM_POLYMERASE_PATH)
 _codon_registry = CodonTableRegistry()
 _config_cache: dict | None = None
@@ -38,7 +37,7 @@ _CRASH_LOG_MAX = 50
 
 
 def _get_crash_log_path() -> Path:
-    kuro_dir = Path.home() / ".kuro"
+    kuro_dir = kuma_home() / "kuro"
     kuro_dir.mkdir(parents=True, exist_ok=True)
     if sys.platform != "win32":
         os.chmod(kuro_dir, 0o700)
@@ -181,9 +180,7 @@ def _ok(req_id, result) -> None:
 
 
 def _error(req_id, code: int, message: str) -> None:
-    _send(
-        {"jsonrpc": "2.0", "id": req_id, "error": {"code": code, "message": message}}
-    )
+    _send({"jsonrpc": "2.0", "id": req_id, "error": jsonrpc_error(code, message)})
 
 
 def _progress(value: int, message: str = "") -> None:

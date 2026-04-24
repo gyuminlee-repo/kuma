@@ -6,9 +6,10 @@ import hashlib
 import json
 import logging
 import re
-from pathlib import Path
 
-_CACHE_DIR = Path.home() / ".kuro" / "embeddings"
+from kuma_core.shared.config_paths import kuma_cache_dir
+
+_CACHE_DIR = kuma_cache_dir() / "embeddings"
 _log = logging.getLogger("kuro.esm")
 
 # Model configuration: esm2_t12_35M is a good balance of speed and quality

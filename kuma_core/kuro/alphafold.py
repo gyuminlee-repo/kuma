@@ -13,11 +13,12 @@ import json
 import logging
 import re
 import urllib.request as _urllib_req
-from pathlib import Path
+
+from kuma_core.shared.config_paths import kuma_cache_dir
 
 logger = logging.getLogger(__name__)
 
-_CACHE_DIR = Path.home() / ".kuro" / "embeddings"
+_CACHE_DIR = kuma_cache_dir() / "embeddings"
 _AF_API = "https://alphafold.ebi.ac.uk/api/prediction/{acc}"
 _CA_SUFFIX = "_ca.json"
 

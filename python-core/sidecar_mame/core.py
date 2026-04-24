@@ -35,15 +35,11 @@ for _p in (_PROJECT_ROOT, _SRC_DIR):
     if _p.exists() and str(_p) not in sys.path:
         sys.path.insert(0, str(_p))
 
-# ---------------------------------------------------------------------------
-# Logging — stderr so stdout stays reserved for JSON-RPC frames.
-# ---------------------------------------------------------------------------
-logging.basicConfig(
-    level=logging.INFO,
-    format="[mame sidecar] %(levelname)s %(name)s: %(message)s",
-    stream=sys.stderr,
-)
-logger = logging.getLogger("sidecar")
+from kuma_core.shared.config_paths import kuma_home  # noqa: E402
+from kuma_core.shared.errors import jsonrpc_error  # noqa: E402
+from kuma_core.shared.logging import get_logger  # noqa: E402
+
+logger = get_logger("sidecar_mame")
 
 # ---------------------------------------------------------------------------
 # Crash log (FIFO, capped at 50 entries). Stored under ~/.mame/.
@@ -52,7 +48,7 @@ _CRASH_LOG_MAX = 50
 
 
 def _get_crash_log_path() -> Path:
-    base = Path.home() / ".mame"
+    base = kuma_home() / "mame"
     base.mkdir(parents=True, exist_ok=True)
     if sys.platform != "win32":
         try:
@@ -137,9 +133,7 @@ def _ok(req_id, result) -> None:
 
 
 def _error(req_id, code: int, message: str) -> None:
-    _send(
-        {"jsonrpc": "2.0", "id": req_id, "error": {"code": code, "message": message}}
-    )
+    _send({"jsonrpc": "2.0", "id": req_id, "error": jsonrpc_error(code, message)})
 
 
 def _progress(value: int, message: str = "") -> None:
