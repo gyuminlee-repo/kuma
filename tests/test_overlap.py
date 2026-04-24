@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from kuro.overlap import (
+from kuma_core.kuro.overlap import (
     OverlapWindow,
     generate_overlap_windows,
     linearize_circular,

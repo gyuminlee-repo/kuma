@@ -22,7 +22,7 @@ def mutations_csv() -> Path:
 @pytest.fixture(scope="session")
 def template_sequence(fasta_path: Path) -> str:
     """Load the template sequence from FASTA."""
-    from kuro.sdm_engine import load_fasta
+    from kuma_core.kuro.sdm_engine import load_fasta
     _, seq = load_fasta(fasta_path)
     return seq
 

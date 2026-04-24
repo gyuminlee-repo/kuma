@@ -12,7 +12,7 @@ import re
 import statistics
 from pathlib import Path
 
-from kuro.alphafold import pairwise_ca_distance, ca_max_dist
+from kuma_core.kuro.alphafold import pairwise_ca_distance, ca_max_dist
 
 _POS_RE = re.compile(r"[A-Z](\d+)[A-Z]")
 _SINGLE_POS_RE = re.compile(r"^[A-Z](\d+)[A-Z]$")

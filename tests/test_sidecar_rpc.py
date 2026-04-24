@@ -22,11 +22,11 @@ _SIDECAR_DIR = _PROJECT_ROOT / "python-core"
 if str(_SIDECAR_DIR) not in sys.path:
     sys.path.insert(0, str(_SIDECAR_DIR))
 
-from sidecar.dispatcher import dispatch  # noqa: E402
-from sidecar.core import _state, SidecarState  # noqa: E402
-from sidecar.handlers.external import _sequence_identity  # noqa: E402
-import sidecar.handlers.design as _design_handlers  # noqa: E402
-import sidecar.core as _sidecar_core  # noqa: E402
+from sidecar_kuro.dispatcher import dispatch  # noqa: E402
+from sidecar_kuro.core import _state, SidecarState  # noqa: E402
+from sidecar_kuro.handlers.external import _sequence_identity  # noqa: E402
+import sidecar_kuro.handlers.design as _design_handlers  # noqa: E402
+import sidecar_kuro.core as _sidecar_core  # noqa: E402
 
 FIXTURES_DIR = _PROJECT_ROOT / "fixtures"
 FASTA_PATH = str(FIXTURES_DIR / "pSHCE-dmpR.fa")

@@ -1,5 +1,5 @@
 """CLI entry point: python -m kuro"""
 
-from kuro.cli import main
+from kuma_core.kuro.cli import main
 
 main()

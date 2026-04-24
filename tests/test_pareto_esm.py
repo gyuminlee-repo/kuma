@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from kuro.evolvepro import pareto_diversity_select
+from kuma_core.kuro.evolvepro import pareto_diversity_select
 
 
 def _make_coords(n: int, spacing: float = 10.0) -> list[tuple[float, float, float] | None]:

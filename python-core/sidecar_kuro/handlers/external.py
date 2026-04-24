@@ -7,13 +7,13 @@ import time
 import urllib.parse
 import urllib.request
 
-import sidecar.core as _core
-from sidecar.core import (
+import sidecar_kuro.core as _core
+from sidecar_kuro.core import (
     _get_ssl_ctx,
     _get_contact_email,
     logger,
 )
-from sidecar.models import (
+from sidecar_kuro.models import (
     CheckStructuresParams,
     FetchDomainsParams,
     SearchUniprotParams,
@@ -301,7 +301,7 @@ def handle_check_structures_available(params: dict) -> dict:
         return {"availability": {}}
 
     from concurrent.futures import ThreadPoolExecutor, as_completed
-    from kuro.alphafold import check_structure_available
+    from kuma_core.kuro.alphafold import check_structure_available
 
     availability: dict[str, bool] = {}
     with ThreadPoolExecutor(max_workers=min(5, len(accessions))) as ex:
@@ -323,7 +323,7 @@ def handle_fetch_structure(params: dict) -> dict:
     if not accession:
         raise ValueError("accession is required")
 
-    from kuro.alphafold import fetch_ca_coords
+    from kuma_core.kuro.alphafold import fetch_ca_coords
 
     coords = fetch_ca_coords(accession)
 

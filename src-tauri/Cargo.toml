@@ -1,11 +1,11 @@
 [package]
-name = "kuro"
-version = "1.35.0"
-description = "KURO - KOD Upstream Region Oligodesigner"
+name = "kuma"
+version = "0.01.00"
+description = "kuma - KURO + mame integrated primer design & NGS verification app"
 edition = "2021"
 
 [lib]
-name = "kuro_lib"
+name = "kuma_lib"
 crate-type = ["lib", "cdylib", "staticlib"]
 
 [build-dependencies]

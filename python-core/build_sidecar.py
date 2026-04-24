@@ -17,7 +17,7 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).parent.resolve()
 PROJECT_ROOT = SCRIPT_DIR.parent
 TAURI_BINARIES = PROJECT_ROOT / "src-tauri" / "binaries"
-ENTRY_POINT = SCRIPT_DIR / "sidecar_main.py"
+ENTRY_POINT = SCRIPT_DIR / "sidecar_main_kuro.py"
 SIDECAR_NAME = "kuro-sidecar"
 
 
@@ -47,9 +47,9 @@ def get_target_triple() -> str:
 
 def build_sidecar(onefile: bool = True) -> Path:
     """Run PyInstaller and return the path to the built binary."""
-    resources_dir = PROJECT_ROOT / "kuro" / "resources"
+    resources_dir = PROJECT_ROOT / "kuma_core" / "kuro" / "resources"
     separator = ";" if platform.system() == "Windows" else ":"
-    add_data = f"{resources_dir}{separator}kuro/resources"
+    add_data = f"{resources_dir}{separator}kuma_core/kuro/resources"
 
     cmd = [
         sys.executable,
@@ -66,14 +66,26 @@ def build_sidecar(onefile: bool = True) -> Path:
         "primer3",
         "--hidden-import",
         "openpyxl",
+        "--hidden-import",
+        "sidecar_kuro",
+        "--hidden-import",
+        "sidecar_kuro.dispatcher",
+        "--hidden-import",
+        "kuma_core.kuro",
         "--collect-all",
         "pydantic",
         "--collect-all",
         "primer3",
+        "--collect-all",
+        "sidecar_kuro",
+        "--collect-all",
+        "kuma_core",
         "--add-data",
         add_data,
         "--paths",
         str(PROJECT_ROOT),
+        "--paths",
+        str(SCRIPT_DIR),
         "--distpath",
         str(SCRIPT_DIR / "dist"),
         "--workpath",

@@ -2,11 +2,11 @@
 
 from dataclasses import asdict
 
-from kuro.evolvepro import load_evolvepro_csv
-from kuro.polymerase import _dict_to_profile
+from kuma_core.kuro.evolvepro import load_evolvepro_csv
+from kuma_core.kuro.polymerase import _dict_to_profile
 
-import sidecar.core as _core
-from sidecar.core import (
+import sidecar_kuro.core as _core
+from sidecar_kuro.core import (
     _validate_filepath,
     _poly_registry,
     _codon_registry,
@@ -14,7 +14,7 @@ from sidecar.core import (
     _ALLOWED_CSV_EXTENSIONS,
     _get_cached_ca_coords,
 )
-from sidecar.models import (
+from sidecar_kuro.models import (
     LoadEvolveproParams,
     PolymeraseProfileModel,
     RunBenchmarkParams,
@@ -99,7 +99,7 @@ def handle_load_evolvepro_csv(params: dict) -> dict:
 
 def handle_run_benchmark(params: dict) -> dict:
     """Run benchmark simulation on provided fitness landscape."""
-    from kuro.benchmark import run_benchmark
+    from kuma_core.kuro.benchmark import run_benchmark
 
     p = RunBenchmarkParams(**params)
 

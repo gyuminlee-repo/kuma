@@ -6,8 +6,8 @@ import random
 
 import pytest
 
-from kuro.benchmark import evaluate_selection, run_benchmark, simulate_selection
-from kuro.evolvepro import (
+from kuma_core.kuro.benchmark import evaluate_selection, run_benchmark, simulate_selection
+from kuma_core.kuro.evolvepro import (
     _grantham_dist,
     _position_filter_with_tiebreak,
     _rho_from_cumulative,
@@ -479,7 +479,7 @@ class TestAutoRelaxTolMax:
     def test_tol_max_parameter_accepted(self):
         """design_single_sdm should accept tol_max parameter without error."""
         import inspect
-        from kuro.sdm_engine import design_single_sdm
+        from kuma_core.kuro.sdm_engine import design_single_sdm
         sig = inspect.signature(design_single_sdm)
         assert "tol_max" in sig.parameters
         assert sig.parameters["tol_max"].default == 3.0

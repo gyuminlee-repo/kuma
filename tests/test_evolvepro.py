@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from kuro.evolvepro import SCORE_COLUMNS, VARIANT_COLUMNS, domain_aware_select, load_evolvepro_csv
+from kuma_core.kuro.evolvepro import SCORE_COLUMNS, VARIANT_COLUMNS, domain_aware_select, load_evolvepro_csv
 
 
 class TestLoadEvolveproCsv:

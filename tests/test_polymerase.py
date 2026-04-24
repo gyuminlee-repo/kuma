@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from kuro.polymerase import PolymeraseProfile, PolymeraseRegistry
+from kuma_core.kuro.polymerase import PolymeraseProfile, PolymeraseRegistry
 
 
 class TestPolymeraseRegistryGet:

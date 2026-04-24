@@ -6,20 +6,20 @@ import tempfile
 from dataclasses import fields as dc_fields, replace as dc_replace
 from pathlib import Path
 
-from kuro.sdm_engine import (
+from kuma_core.kuro.sdm_engine import (
     SdmPrimerResult,
     design_single_sdm,
     design_sdm_primers,
     evaluate_custom_primer,
     load_sequence,
 )
-from kuro.mutation import Mutation, parse_mutation_notation
-from kuro.codon_table import CODON_TO_AA, best_codon
-from kuro.evolvepro import _POS_RE
-from kuro.polymerase import PolymeraseProfile
+from kuma_core.kuro.mutation import Mutation, parse_mutation_notation
+from kuma_core.kuro.codon_table import CODON_TO_AA, best_codon
+from kuma_core.kuro.evolvepro import _POS_RE
+from kuma_core.kuro.polymerase import PolymeraseProfile
 
-import sidecar.core as _core
-from sidecar.core import (
+import sidecar_kuro.core as _core
+from sidecar_kuro.core import (
     _progress,
     _validate_filepath,
     _poly_registry,
@@ -28,8 +28,8 @@ from sidecar.core import (
     _ALLOWED_CSV_EXTENSIONS,
     _VALID_DNA_BASES,
 )
-from kuro.plate_mapper import deduplicate_reverse, generate_plate_map
-from sidecar.models import (
+from kuma_core.kuro.plate_mapper import deduplicate_reverse, generate_plate_map
+from sidecar_kuro.models import (
     AlternativesResultModel,
     DesignResultResponseModel,
     DesignSdmPrimersParams,

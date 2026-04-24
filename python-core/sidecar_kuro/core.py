@@ -16,10 +16,10 @@ _PROJECT_ROOT = _SCRIPT_DIR.parent
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
-from kuro.sdm_engine import SdmPrimerResult  # noqa: E402
-from kuro.plate_mapper import PlateMapping  # noqa: E402
-from kuro.polymerase import PolymeraseRegistry  # noqa: E402
-from kuro.codon_table import CodonTableRegistry  # noqa: E402
+from kuma_core.kuro.sdm_engine import SdmPrimerResult  # noqa: E402
+from kuma_core.kuro.plate_mapper import PlateMapping  # noqa: E402
+from kuma_core.kuro.polymerase import PolymeraseRegistry  # noqa: E402
+from kuma_core.kuro.codon_table import CodonTableRegistry  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,

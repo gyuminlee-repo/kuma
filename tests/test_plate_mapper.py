@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from kuro.plate_mapper import (
+from kuma_core.kuro.plate_mapper import (
     PlateMapping,
     _split_echo_volume,
     deduplicate_reverse,
@@ -20,7 +20,7 @@ from kuro.plate_mapper import (
     _to_384_well_fwd,
     _to_384_well_rev,
 )
-from kuro.sdm_engine import SdmPrimerResult, design_sdm_primers
+from kuma_core.kuro.sdm_engine import SdmPrimerResult, design_sdm_primers
 from tests.conftest import FIXTURES_DIR, TARGET_START
 
 
@@ -357,9 +357,9 @@ class TestExpectedMutationsSheet:
     def _make_sdm_result(self, raw: str, wt_aa: str, position: int, mt_aa: str,
                           wt_codon: str, mt_codon: str, group_id=None):
         """Build a minimal SdmPrimerResult for testing."""
-        from kuro.mutation import Mutation
-        from kuro.overlap import OverlapWindow
-        from kuro.sdm_engine import SdmPrimerResult
+        from kuma_core.kuro.mutation import Mutation
+        from kuma_core.kuro.overlap import OverlapWindow
+        from kuma_core.kuro.sdm_engine import SdmPrimerResult
 
         mut = Mutation(
             raw=raw,
@@ -407,7 +407,7 @@ class TestExpectedMutationsSheet:
     def test_write_expected_mutations_sheet_basic(self):
         """4 DESIGNED results (incl. 1 multi-mutation group) → expected_mutations 시트 검증."""
         from openpyxl import Workbook
-        from kuro.plate_mapper import _write_expected_mutations_sheet
+        from kuma_core.kuro.plate_mapper import _write_expected_mutations_sheet
 
         mock_results = self._make_mock_results()
         wb = Workbook()
@@ -468,7 +468,7 @@ class TestExpectedMutationsSheet:
     def test_cmd_design_xlsx_has_expected_mutations_sheet(self, sdm_results, tmp_path):
         """export_plate_excel(results=...) 직접 호출 → 생성된 xlsx에 5번째 시트 확인."""
         from openpyxl import load_workbook
-        from kuro.plate_mapper import deduplicate_reverse
+        from kuma_core.kuro.plate_mapper import deduplicate_reverse
 
         rev_groups = deduplicate_reverse(sdm_results)
         fwd_map, rev_map = generate_plate_map(sdm_results, deduplicate_rev=True)

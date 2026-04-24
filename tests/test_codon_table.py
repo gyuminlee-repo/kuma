@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from kuro.codon_table import (
+from kuma_core.kuro.codon_table import (
     CODON_TO_AA,
     ECOLI_CODON_USAGE,
     CodonTableRegistry,

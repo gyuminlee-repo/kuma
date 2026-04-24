@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from kuro.sdm_engine import (
+from kuma_core.kuro.sdm_engine import (
     OffTargetHit,
     SdmPrimerResult,
     _synthesis_score,
@@ -82,7 +82,7 @@ class TestDesignSdmPrimers:
 
     def test_codon_usage(self, sdm_results):
         """Mutant codons should encode the correct amino acid."""
-        from kuro.codon_table import codon_to_aa
+        from kuma_core.kuro.codon_table import codon_to_aa
         for r in sdm_results:
             actual_aa = codon_to_aa(r.mutation.mt_codon)
             assert actual_aa == r.mutation.mt_aa, (
@@ -250,7 +250,7 @@ class TestCheckOfftargetSliding:
         assert hits == []
 
     def test_antisense_detection(self):
-        from kuro.overlap import reverse_complement
+        from kuma_core.kuro.overlap import reverse_complement
         primer = "ACGTACGTACGTACGTAC"  # 18 bp
         # Place the reverse complement elsewhere on the sense strand so it
         # surfaces as an antisense hit from the primer's point of view.

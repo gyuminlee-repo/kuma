@@ -3,9 +3,9 @@ requires = ["setuptools>=68.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "kuro"
-version = "1.35.0"
-description = "EVOLVEpro SDM primer batch design tool"
+name = "kuma"
+version = "0.01.00"
+description = "kuma - integrated primer design (KURO) + NGS verification (mame) tool"
 requires-python = ">=3.11"
 dependencies = [
     "primer3-py==2.3.0",
@@ -20,11 +20,11 @@ build = [
 ]
 
 [project.scripts]
-kuro = "kuro.cli:main"
+kuro = "kuma_core.kuro.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["kuro*"]
+include = ["kuma_core*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

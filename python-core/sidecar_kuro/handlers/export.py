@@ -4,7 +4,7 @@ import csv
 import json
 from dataclasses import fields as dc_fields
 
-from kuro.plate_mapper import (
+from kuma_core.kuro.plate_mapper import (
     PlateMapping,
     export_echo_mapping_csv,
     export_echo_mapping_xlsx,
@@ -16,14 +16,14 @@ from kuro.plate_mapper import (
     generate_plate_map,
 )
 
-import sidecar.core as _core
-from sidecar.core import (
+import sidecar_kuro.core as _core
+from sidecar_kuro.core import (
     _validate_filepath,
     _validate_output_path,
     _ALLOWED_EXCEL_EXTENSIONS,
     _ALLOWED_CSV_EXTENSIONS,
 )
-from sidecar.models import (
+from sidecar_kuro.models import (
     ExportExcelParams,
     ExportMappingResultModel,
     ExportOrderResultModel,

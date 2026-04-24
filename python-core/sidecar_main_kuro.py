@@ -16,7 +16,7 @@ _HERE = Path(__file__).parent.resolve()
 if str(_HERE) not in sys.path:
     sys.path.insert(0, str(_HERE))
 
-from sidecar.dispatcher import main  # noqa: E402
+from sidecar_kuro.dispatcher import main  # noqa: E402
 
 if __name__ == "__main__":
     main()

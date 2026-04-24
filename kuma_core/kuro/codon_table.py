@@ -38,7 +38,7 @@ _ORGANISM_ALIASES: dict[str, str] = {
 class CodonTableRegistry:
     """Registry for organism-specific codon usage tables.
 
-    Loads JSON files from kuro/resources/codon_tables/ on demand and
+    Loads JSON files from kuma_core.kuro/resources/codon_tables/ on demand and
     caches them in memory. Follows the same pattern as PolymeraseRegistry.
     """
 

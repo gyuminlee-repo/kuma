@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 import pytest
 
-from kuro.esm_embeddings import cosine_distance, get_embedding, pairwise_esm_distance
+from kuma_core.kuro.esm_embeddings import cosine_distance, get_embedding, pairwise_esm_distance
 
 
 class TestCosineDistance:
@@ -90,14 +90,14 @@ class TestGetEmbedding:
         fake_emb = [[1.0, 2.0], [3.0, 4.0]]
         (cache_dir / "P12345.json").write_text(json.dumps(fake_emb))
 
-        monkeypatch.setattr("kuro.esm_embeddings._CACHE_DIR", cache_dir)
+        monkeypatch.setattr("kuma_core.kuro.esm_embeddings._CACHE_DIR", cache_dir)
         result = get_embedding("P12345")
         assert result == fake_emb
 
     def test_api_failure_returns_none(self, tmp_path: Path, monkeypatch):
         """When API fails and no cache, should return None."""
         cache_dir = tmp_path / "embeddings"
-        monkeypatch.setattr("kuro.esm_embeddings._CACHE_DIR", cache_dir)
+        monkeypatch.setattr("kuma_core.kuro.esm_embeddings._CACHE_DIR", cache_dir)
 
         with patch("urllib.request.urlopen", side_effect=ConnectionError("offline")):
             result = get_embedding("NONEXISTENT")
@@ -107,7 +107,7 @@ class TestGetEmbedding:
     def test_api_success_caches(self, tmp_path: Path, monkeypatch):
         """Successful API response should be cached."""
         cache_dir = tmp_path / "embeddings"
-        monkeypatch.setattr("kuro.esm_embeddings._CACHE_DIR", cache_dir)
+        monkeypatch.setattr("kuma_core.kuro.esm_embeddings._CACHE_DIR", cache_dir)
 
         fake_emb = [[0.1, 0.2], [0.3, 0.4]]
         fake_body = json.dumps(fake_emb).encode("utf-8")

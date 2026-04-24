@@ -1,4 +1,0 @@
-primer3-py==2.3.0
-biopython==1.84
-openpyxl==3.1.5
-pydantic>=2.0

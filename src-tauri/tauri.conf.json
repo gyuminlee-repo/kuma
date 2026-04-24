@@ -1,8 +1,8 @@
 {
   "$schema": "https://raw.githubusercontent.com/nicedoc/schemas/main/tauri-v2.json",
-  "productName": "KURO",
-  "version": "1.35.0",
-  "identifier": "com.kuro.app",
+  "productName": "kuma",
+  "version": "0.01.00",
+  "identifier": "com.gyuminlee.kuma",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:1421",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "KURO",
+        "title": "kuma",
         "width": 1200,
         "height": 800,
         "minWidth": 900,

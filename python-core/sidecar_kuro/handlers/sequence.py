@@ -1,14 +1,14 @@
 """Handlers: FASTA loading and mutation text parsing."""
 
-from kuro.sdm_engine import load_sequence
-from kuro.mutation import parse_mutation_notation
+from kuma_core.kuro.sdm_engine import load_sequence
+from kuma_core.kuro.mutation import parse_mutation_notation
 
-import sidecar.core as _core
-from sidecar.core import (
+import sidecar_kuro.core as _core
+from sidecar_kuro.core import (
     _validate_filepath,
     _ALLOWED_FASTA_EXTENSIONS,
 )
-from sidecar.models import LoadFastaParams, ParseMutationsTextParams
+from sidecar_kuro.models import LoadFastaParams, ParseMutationsTextParams
 
 
 def handle_load_fasta(params: dict) -> dict:

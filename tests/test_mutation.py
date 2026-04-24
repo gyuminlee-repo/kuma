@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from kuro.codon_table import CODON_TO_AA
-from kuro.mutation import (
+from kuma_core.kuro.codon_table import CODON_TO_AA
+from kuma_core.kuro.mutation import (
     Mutation,
     mutate_sequence,
     parse_mutation_notation,

@@ -8,7 +8,7 @@ per-handler try/except is required.
 
 Usage in handlers::
 
-    from sidecar.models import DesignSdmPrimersParams
+    from sidecar_kuro.models import DesignSdmPrimersParams
     p = DesignSdmPrimersParams(**params)
     # access as p.fasta_path, p.polymerase, etc.
 """

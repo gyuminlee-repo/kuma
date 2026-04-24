@@ -425,7 +425,7 @@ def verify_genbank(gb_path: Path, cds_list: list[dict]) -> bool:
     sys.path.insert(0, str(gb_path.parent.parent))
 
     try:
-        from kuro.sdm_engine import load_sequence
+        from kuma_core.kuro.sdm_engine import load_sequence
         header, seq, genes = load_sequence(gb_path)
         print(f"[GB verify] header={repr(header[:60])}, len={len(seq)}, genes={len(genes)}")
         if len(seq) == 0:
@@ -485,7 +485,7 @@ def verify_design_failures(gb_path: Path, csv_path: Path) -> bool:
     sys.path.insert(0, str(gb_path.parent.parent))
 
     try:
-        from kuro.sdm_engine import load_sequence, design_sdm_primers
+        from kuma_core.kuro.sdm_engine import load_sequence, design_sdm_primers
     except ImportError as exc:
         print(f"  [Design verify] SKIP: could not import kuro ({exc})")
         return True  # non-fatal if module not on path

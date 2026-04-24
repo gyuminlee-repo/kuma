@@ -1689,7 +1689,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "kuro"
+name = "kuma"
 version = "1.35.0"
 dependencies = [
  "tauri",

@@ -8,7 +8,7 @@ import threading
 import traceback
 from pathlib import Path
 
-from sidecar.core import (
+from sidecar_kuro.core import (
     _append_crash_log,
     _cancel_active_design,
     _error,
@@ -16,15 +16,15 @@ from sidecar.core import (
     _send,
     logger,
 )
-from sidecar.handlers.sequence import handle_load_fasta, handle_parse_mutations_text
-from sidecar.handlers.design import (
+from sidecar_kuro.handlers.sequence import handle_load_fasta, handle_parse_mutations_text
+from sidecar_kuro.handlers.design import (
     handle_design_sdm_primers,
     handle_retry_failed,
     handle_swap_primer,
     handle_evaluate_primer,
     handle_get_alternatives,
 )
-from sidecar.handlers.export import (
+from sidecar_kuro.handlers.export import (
     handle_export_benchmark_csv,
     handle_export_excel,
     handle_export_mapping,
@@ -34,13 +34,13 @@ from sidecar.handlers.export import (
     handle_save_workspace,
     handle_load_workspace,
 )
-from sidecar.handlers.external import (
+from sidecar_kuro.handlers.external import (
     handle_check_structures_available,
     handle_fetch_domains,
     handle_search_uniprot,
     handle_fetch_structure,
 )
-from sidecar.handlers.misc import (
+from sidecar_kuro.handlers.misc import (
     handle_list_polymerases,
     handle_get_polymerase_details,
     handle_save_custom_polymerase,

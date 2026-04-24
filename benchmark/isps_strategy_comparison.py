@@ -35,7 +35,7 @@ import numpy as np
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
-from kuro.evolvepro import pareto_diversity_select, domain_aware_select  # noqa: E402
+from kuma_core.kuro.evolvepro import pareto_diversity_select, domain_aware_select  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Config
