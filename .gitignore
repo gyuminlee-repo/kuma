@@ -27,5 +27,7 @@ benchmark/data/
 # Dev tooling & internal notes
 .claude/
 notes/
+.codex-review-passed
+.loophaus/
 "package-lock.json" 
 "package-lock.json" 
