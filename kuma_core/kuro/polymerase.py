@@ -52,8 +52,9 @@ def _resource_path(relative_path: str) -> Path:
 
     Works both in development and when frozen by PyInstaller.
     """
-    if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
-        base = Path(sys._MEIPASS) / "kuma_core" / "kuro"
+    meipass = getattr(sys, "_MEIPASS", None)
+    if getattr(sys, "frozen", False) and meipass is not None:
+        base = Path(meipass) / "kuma_core" / "kuro"
     else:
         base = Path(__file__).parent
     return base / relative_path
