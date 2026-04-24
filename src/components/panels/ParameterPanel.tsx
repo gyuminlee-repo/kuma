@@ -1,5 +1,5 @@
 import { useEffect, useState, type ChangeEvent, type KeyboardEvent } from "react";
-import { sendRequest } from "../../lib/ipc";
+import { sendRequest } from "../../lib/ipc-kuro";
 import { formatError } from "../../lib/utils";
 import type { CodonStrategy, PolymeraseProfile } from "../../types/models";
 import { PolymeraseEditor } from "../dialogs/PolymeraseEditor";

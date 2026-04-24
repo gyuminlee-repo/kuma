@@ -1,5 +1,5 @@
 import type { StateCreator } from "zustand";
-import { sendRequest } from "../../lib/ipc";
+import { sendRequest } from "../../lib/ipc-kuro";
 import { formatError } from "../../lib/utils";
 import type { AppState } from "../types";
 import type {

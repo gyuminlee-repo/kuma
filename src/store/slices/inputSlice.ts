@@ -1,6 +1,6 @@
 import type { StateCreator } from "zustand";
 import { resolveResource } from "@tauri-apps/api/path";
-import { sendRequest } from "../../lib/ipc";
+import { sendRequest } from "../../lib/ipc-kuro";
 import { formatError } from "../../lib/utils";
 import type { AppState } from "../types";
 import {

@@ -1,5 +1,5 @@
 import { open, save } from "@tauri-apps/plugin-dialog";
-import { sendRequest } from "../../lib/ipc";
+import { sendRequest } from "../../lib/ipc-kuro";
 import { useAppStore } from "../../store/appStore";
 import { getSortedMutations, reorderMappings } from "../../lib/plate-utils";
 import { defaultExportFilename } from "../../lib/filename";

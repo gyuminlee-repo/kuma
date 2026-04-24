@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { setProgressHandler } from "../lib/ipc";
+import { setProgressHandler } from "../lib/ipc-kuro";
 import { createSequenceSlice } from "./slices/sequenceSlice";
 import { createDiversitySlice } from "./slices/diversitySlice";
 import { createInputSlice } from "./slices/inputSlice";

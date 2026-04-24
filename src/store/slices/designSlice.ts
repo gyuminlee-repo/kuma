@@ -1,5 +1,5 @@
 import type { StateCreator } from "zustand";
-import { cancelAndRespawn, sendRequest } from "../../lib/ipc";
+import { cancelAndRespawn, sendRequest } from "../../lib/ipc-kuro";
 import { wellName } from "../../lib/plate-utils";
 import { formatError } from "../../lib/utils";
 import type { AppState } from "../types";

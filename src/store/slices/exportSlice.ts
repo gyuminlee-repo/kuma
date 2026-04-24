@@ -1,6 +1,6 @@
 import type { StateCreator } from "zustand";
 import type { SortingState, Updater } from "@tanstack/react-table";
-import { sendRequest } from "../../lib/ipc";
+import { sendRequest } from "../../lib/ipc-kuro";
 import { getSortedMutations, reorderMappings } from "../../lib/plate-utils";
 import { formatError } from "../../lib/utils";
 import type { AppState } from "../types";

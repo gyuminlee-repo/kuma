@@ -16,9 +16,9 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-const REPO_ROOT = resolve(__dirname, "..", "..");
-const SIDECAR_ENTRY = resolve(REPO_ROOT, "python-core", "sidecar_main.py");
-const FIXTURES = resolve(REPO_ROOT, "tests", "fixtures");
+const REPO_ROOT = resolve(__dirname, "..", "..", "..");
+const SIDECAR_ENTRY = resolve(REPO_ROOT, "python-core", "sidecar_main_mame.py");
+const FIXTURES = resolve(REPO_ROOT, "tests", "mame", "fixtures");
 
 interface JsonRpcResponse {
   jsonrpc: "2.0";

@@ -1,0 +1,424 @@
+use serde::Serialize;
+use serde_json::{json, Value};
+use std::{
+    collections::HashMap,
+    path::PathBuf,
+    sync::{
+        atomic::{AtomicBool, AtomicI64, Ordering},
+        Arc,
+    },
+    time::Duration,
+};
+use tauri::{AppHandle, Emitter, Wry};
+use tauri_plugin_shell::{
+    process::{CommandChild, CommandEvent},
+    ShellExt,
+};
+use tokio::sync::{oneshot, Mutex, Notify};
+
+const READY_TIMEOUT: Duration = Duration::from_secs(10);
+const RPC_TIMEOUT: Duration = Duration::from_secs(60);
+
+type PendingSender = oneshot::Sender<Result<Value, String>>;
+
+#[derive(Serialize, Clone)]
+struct SidecarProgressPayload {
+    kind: String,
+    params: Value,
+}
+
+pub struct LineProtocol {
+    pending: Arc<Mutex<HashMap<i64, PendingSender>>>,
+    stdout_buffer: Arc<Mutex<String>>,
+    ready: Arc<AtomicBool>,
+    ready_notify: Arc<Notify>,
+}
+
+impl LineProtocol {
+    pub fn new() -> Self {
+        Self {
+            pending: Arc::new(Mutex::new(HashMap::new())),
+            stdout_buffer: Arc::new(Mutex::new(String::new())),
+            ready: Arc::new(AtomicBool::new(false)),
+            ready_notify: Arc::new(Notify::new()),
+        }
+    }
+
+    pub async fn insert_pending(&self, id: i64) -> oneshot::Receiver<Result<Value, String>> {
+        let (tx, rx) = oneshot::channel();
+        self.pending.lock().await.insert(id, tx);
+        rx
+    }
+
+    pub async fn fail_pending(&self, id: i64, reason: String) {
+        if let Some(tx) = self.pending.lock().await.remove(&id) {
+            let _ = tx.send(Err(reason));
+        }
+    }
+
+    pub async fn reject_all(&self, reason: &str) {
+        let pending = {
+            let mut lock = self.pending.lock().await;
+            std::mem::take(&mut *lock)
+        };
+        for (_, tx) in pending {
+            let _ = tx.send(Err(reason.to_string()));
+        }
+    }
+
+    pub fn mark_ready(&self) {
+        self.ready.store(true, Ordering::SeqCst);
+        self.ready_notify.notify_waiters();
+    }
+
+    pub fn reset_ready(&self) {
+        self.ready.store(false, Ordering::SeqCst);
+    }
+
+    pub fn is_ready(&self) -> bool {
+        self.ready.load(Ordering::SeqCst)
+    }
+
+    pub async fn wait_ready(&self, timeout: Duration) -> Result<(), String> {
+        if self.is_ready() {
+            return Ok(());
+        }
+
+        tokio::time::timeout(timeout, async {
+            loop {
+                if self.is_ready() {
+                    return;
+                }
+                self.ready_notify.notified().await;
+            }
+        })
+        .await
+        .map_err(|_| format!("Sidecar ready timeout ({}s)", timeout.as_secs()))
+    }
+
+    pub async fn drain_stdout_chunk<F>(&self, chunk: &str, mut on_progress: F)
+    where
+        F: FnMut(Value),
+    {
+        let normalized = chunk.replace("\r\n", "\n");
+        let mut buffer = self.stdout_buffer.lock().await;
+        buffer.push_str(&normalized);
+        let mut lines = buffer.split('\n').map(str::to_owned).collect::<Vec<_>>();
+        let remainder = lines.pop().unwrap_or_default();
+        *buffer = remainder;
+        drop(buffer);
+
+        for line in lines {
+            self.handle_line(&line, &mut on_progress).await;
+        }
+    }
+
+    pub async fn flush_stdout<F>(&self, mut on_progress: F)
+    where
+        F: FnMut(Value),
+    {
+        let remainder = {
+            let mut buffer = self.stdout_buffer.lock().await;
+            if buffer.trim().is_empty() {
+                buffer.clear();
+                return;
+            }
+            std::mem::take(&mut *buffer)
+        };
+        self.handle_line(&remainder, &mut on_progress).await;
+    }
+
+    async fn handle_line<F>(&self, line: &str, on_progress: &mut F)
+    where
+        F: FnMut(Value),
+    {
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
+            return;
+        }
+
+        let parsed: Value = match serde_json::from_str(trimmed) {
+            Ok(value) => value,
+            Err(_) => {
+                eprintln!("[sidecar] failed to parse stdout line: {trimmed}");
+                return;
+            }
+        };
+
+        let Some(obj) = parsed.as_object() else {
+            return;
+        };
+
+        if let Some(id) = obj.get("id").and_then(Value::as_i64) {
+            let result = if let Some(error) = obj.get("error") {
+                Err(format_jsonrpc_error(error))
+            } else if let Some(result) = obj.get("result") {
+                Ok(result.clone())
+            } else {
+                return;
+            };
+
+            if let Some(tx) = self.pending.lock().await.remove(&id) {
+                let _ = tx.send(result);
+            }
+            return;
+        }
+
+        match obj.get("method").and_then(Value::as_str) {
+            Some("ready") => self.mark_ready(),
+            Some("progress") => {
+                on_progress(obj.get("params").cloned().unwrap_or_else(|| json!({})));
+            }
+            _ => {}
+        }
+    }
+}
+
+impl Default for LineProtocol {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+pub struct SidecarProcess {
+    child: Mutex<Option<CommandChild>>,
+    protocol: Arc<LineProtocol>,
+    terminated: AtomicBool,
+}
+
+impl SidecarProcess {
+    fn new(child: CommandChild) -> Self {
+        Self {
+            child: Mutex::new(Some(child)),
+            protocol: Arc::new(LineProtocol::new()),
+            terminated: AtomicBool::new(false),
+        }
+    }
+
+    fn is_terminated(&self) -> bool {
+        self.terminated.load(Ordering::SeqCst)
+    }
+
+    fn mark_terminated(&self) {
+        self.terminated.store(true, Ordering::SeqCst);
+        self.protocol.reset_ready();
+    }
+}
+
+pub struct SidecarManager {
+    pub binaries_dir: PathBuf,
+    pub kuro: Mutex<Option<Arc<SidecarProcess>>>,
+    pub mame: Mutex<Option<Arc<SidecarProcess>>>,
+    pub next_id: AtomicI64,
+    pub app_handle: AppHandle<Wry>,
+    kuro_spawn_lock: Mutex<()>,
+    mame_spawn_lock: Mutex<()>,
+}
+
+impl SidecarManager {
+    pub fn new(app: AppHandle<Wry>, binaries_dir: PathBuf) -> Self {
+        Self {
+            binaries_dir,
+            kuro: Mutex::new(None),
+            mame: Mutex::new(None),
+            next_id: AtomicI64::new(1),
+            app_handle: app,
+            kuro_spawn_lock: Mutex::new(()),
+            mame_spawn_lock: Mutex::new(()),
+        }
+    }
+
+    pub async fn rpc(&self, kind: &str, method: &str, params: Value) -> Result<Value, String> {
+        let process = self.ensure_spawned(kind).await?;
+        let id = self.next_id.fetch_add(1, Ordering::SeqCst);
+        let rx = process.protocol.insert_pending(id).await;
+        let payload = json!({
+            "jsonrpc": "2.0",
+            "id": id,
+            "method": method,
+            "params": params,
+        });
+
+        let write_result = {
+            let mut child = process.child.lock().await;
+            let Some(child) = child.as_mut() else {
+                process.protocol.fail_pending(id, "Sidecar not running".to_string()).await;
+                return Err("Sidecar not running".to_string());
+            };
+            child.write(format!("{payload}\n").as_bytes())
+        };
+
+        if let Err(err) = write_result {
+            let message = err.to_string();
+            process.protocol.fail_pending(id, message.clone()).await;
+            return Err(message);
+        }
+
+        match tokio::time::timeout(RPC_TIMEOUT, rx).await {
+            Ok(Ok(Ok(value))) => Ok(value),
+            Ok(Ok(Err(err))) => Err(format!("{method}: {err}")),
+            Ok(Err(_)) => Err("Sidecar response channel closed".to_string()),
+            Err(_) => {
+                process
+                    .protocol
+                    .fail_pending(id, format!("RPC timeout: {method} after {}ms", RPC_TIMEOUT.as_millis()))
+                    .await;
+                Err(format!("RPC timeout: {method} after {}ms", RPC_TIMEOUT.as_millis()))
+            }
+        }
+    }
+
+    pub async fn kill(&self, kind: &str) -> Result<(), String> {
+        let slot = self.slot(kind)?;
+        let process = slot.lock().await.take();
+        if let Some(process) = process {
+            process.mark_terminated();
+            process.protocol.reject_all("Sidecar killed").await;
+            if let Some(child) = process.child.lock().await.take() {
+                child.kill().map_err(|err| err.to_string())?;
+            }
+        }
+        Ok(())
+    }
+
+    pub async fn is_running(&self, kind: &str) -> Result<bool, String> {
+        let slot = self.slot(kind)?;
+        let process = slot.lock().await.clone();
+        Ok(process.is_some_and(|proc| !proc.is_terminated()))
+    }
+
+    async fn ensure_spawned(&self, kind: &str) -> Result<Arc<SidecarProcess>, String> {
+        if let Some(existing) = self.current_process(kind).await? {
+            if existing.protocol.is_ready() {
+                return Ok(existing);
+            }
+            existing.protocol.wait_ready(READY_TIMEOUT).await?;
+            return Ok(existing);
+        }
+
+        let spawn_lock = self.spawn_lock(kind)?;
+        let _guard = spawn_lock.lock().await;
+
+        if let Some(existing) = self.current_process(kind).await? {
+            if existing.protocol.is_ready() {
+                return Ok(existing);
+            }
+            existing.protocol.wait_ready(READY_TIMEOUT).await?;
+            return Ok(existing);
+        }
+
+        let process = self.spawn_process(kind).await?;
+        let slot = self.slot(kind)?;
+        *slot.lock().await = Some(process.clone());
+        process.protocol.wait_ready(READY_TIMEOUT).await?;
+        Ok(process)
+    }
+
+    async fn current_process(&self, kind: &str) -> Result<Option<Arc<SidecarProcess>>, String> {
+        let slot = self.slot(kind)?;
+        let current = slot.lock().await.clone();
+        Ok(current.filter(|process| !process.is_terminated()))
+    }
+
+    async fn spawn_process(&self, kind: &str) -> Result<Arc<SidecarProcess>, String> {
+        let binary_name = binary_name(kind)?;
+        let (mut rx, child) = self
+            .app_handle
+            .shell()
+            .sidecar(binary_name)
+            .map_err(|err| err.to_string())?
+            .spawn()
+            .map_err(|err| err.to_string())?;
+
+        let process = Arc::new(SidecarProcess::new(child));
+        let process_for_task = process.clone();
+        let app_handle = self.app_handle.clone();
+        let kind_owned = kind.to_string();
+
+        tauri::async_runtime::spawn(async move {
+            while let Some(event) = rx.recv().await {
+                match event {
+                    CommandEvent::Stdout(bytes) => {
+                        let chunk = String::from_utf8_lossy(&bytes).into_owned();
+                        let protocol = process_for_task.protocol.clone();
+                        let app = app_handle.clone();
+                        let kind = kind_owned.clone();
+                        protocol
+                            .drain_stdout_chunk(&chunk, move |params| {
+                                let payload = SidecarProgressPayload {
+                                    kind: kind.clone(),
+                                    params,
+                                };
+                                let _ = app.emit("sidecar://progress", payload);
+                            })
+                            .await;
+                    }
+                    CommandEvent::Stderr(bytes) => {
+                        let line = String::from_utf8_lossy(&bytes);
+                        if !line.trim().is_empty() {
+                            eprintln!("[sidecar:{kind_owned}] {line}");
+                        }
+                    }
+                    CommandEvent::Error(error) => {
+                        if !error.trim().is_empty() {
+                            eprintln!("[sidecar:{kind_owned}] {error}");
+                        }
+                    }
+                    CommandEvent::Terminated(_) => {
+                        process_for_task.mark_terminated();
+                        process_for_task
+                            .protocol
+                            .flush_stdout(|_| {})
+                            .await;
+                        process_for_task
+                            .protocol
+                            .reject_all("Sidecar process exited")
+                            .await;
+                        let mut child = process_for_task.child.lock().await;
+                        *child = None;
+                        break;
+                    }
+                    _ => {}
+                }
+            }
+        });
+
+        Ok(process)
+    }
+
+    fn slot(&self, kind: &str) -> Result<&Mutex<Option<Arc<SidecarProcess>>>, String> {
+        match kind {
+            "kuro" => Ok(&self.kuro),
+            "mame" => Ok(&self.mame),
+            _ => Err(format!("Unknown sidecar kind: {kind}")),
+        }
+    }
+
+    fn spawn_lock(&self, kind: &str) -> Result<&Mutex<()>, String> {
+        match kind {
+            "kuro" => Ok(&self.kuro_spawn_lock),
+            "mame" => Ok(&self.mame_spawn_lock),
+            _ => Err(format!("Unknown sidecar kind: {kind}")),
+        }
+    }
+}
+
+fn binary_name(kind: &str) -> Result<&'static str, String> {
+    match kind {
+        "kuro" => Ok("binaries/kuro-sidecar"),
+        "mame" => Ok("binaries/mame-sidecar"),
+        _ => Err(format!("Unknown sidecar kind: {kind}")),
+    }
+}
+
+fn format_jsonrpc_error(error: &Value) -> String {
+    let code = error.get("code").and_then(Value::as_i64);
+    let message = error
+        .get("message")
+        .and_then(Value::as_str)
+        .unwrap_or("Unknown sidecar error");
+    match code {
+        Some(code) => format!("[{code}] {message}"),
+        None => message.to_string(),
+    }
+}

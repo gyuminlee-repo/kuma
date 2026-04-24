@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { spawnSidecar, killSidecar, isSidecarRunning } from "../lib/ipc";
+import { spawnSidecar, killSidecar, isSidecarRunning } from "../lib/ipc-kuro";
 
 type SidecarStatus = "disconnected" | "connecting" | "ready" | "error";
 

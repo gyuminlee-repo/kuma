@@ -17,6 +17,8 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: [],
     globals: true,
+    include: ["src/**/*.test.{ts,tsx}", "tests/**/*.test.ts"],
+    exclude: ["tests/mame/e2e/**/*.spec.ts", "node_modules/**"],
   },
   define: {
     __APP_VERSION__: JSON.stringify("0.0.0-test"),
