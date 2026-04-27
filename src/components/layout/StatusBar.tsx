@@ -1,34 +1,36 @@
 import { useAppStore } from "../../store/appStore";
+import { GlobalStatusBar } from "./GlobalStatusBar";
 
+/**
+ * kuro 상태바.
+ * GlobalStatusBar 셸을 사용하며, 기존 sidecarStatus 문자열을
+ * GlobalStatusBar의 SidecarInfo로 매핑한다.
+ */
 export function StatusBar({ sidecarStatus, onRetry }: { sidecarStatus: string; onRetry: () => void }) {
   const statusMessage = useAppStore((s) => s.statusMessage);
 
+  const sidecarState: "ready" | "connecting" | "error" =
+    sidecarStatus === "ready"
+      ? "ready"
+      : sidecarStatus === "connecting"
+        ? "connecting"
+        : "error";
+
+  const sidecarLabel =
+    sidecarStatus === "ready"
+      ? "Ready"
+      : sidecarStatus === "connecting"
+        ? "Connecting"
+        : "Sidecar failed";
+
   return (
-    <div className="h-6 flex items-center gap-2 border-t border-border bg-muted/60 px-3 text-xs text-muted-foreground">
-      <span className="flex-1 truncate">{statusMessage}</span>
-      {sidecarStatus === "error" && (
-        <span className="inline-flex items-center gap-1 text-destructive whitespace-nowrap">
-          Sidecar failed.
-          <button
-            className="underline font-medium hover:opacity-70"
-            onClick={onRetry}
-          >
-            Retry
-          </button>
-        </span>
-      )}
-      <span
-        className={`h-2 w-2 rounded-full flex-shrink-0 ${
-          sidecarStatus === "ready"
-            ? "bg-green-500"
-            : sidecarStatus === "connecting"
-              ? "bg-yellow-500"
-              : "bg-red-500"
-        }`}
-        role="status"
-        aria-label={`Sidecar: ${sidecarStatus}`}
-        title={`Sidecar: ${sidecarStatus}`}
-      />
-    </div>
+    <GlobalStatusBar
+      message={statusMessage}
+      sidecar={{
+        state: sidecarState,
+        label: sidecarLabel,
+        onRetry: sidecarState === "error" ? onRetry : undefined,
+      }}
+    />
   );
 }

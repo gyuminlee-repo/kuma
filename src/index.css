@@ -50,6 +50,39 @@
     --dur-fast: 120ms;
     --dur-base: 180ms;
     --dur-slow: 240ms;
+
+    /* === Phase 1 tokens (§4.1–§4.4) === */
+
+    /* size */
+    --header-h: 48px;
+    --menubar-h: 40px;
+    --statusbar-h: 24px;
+    --sidebar-w: 320px;
+    --control-h: 32px;
+    --control-h-primary: 36px;
+
+    /* radius */
+    --radius-container: 12px;
+    --radius-control: 8px;
+
+    /* shadow — floating only */
+    --shadow-floating: 0 12px 32px rgba(24,24,27,0.10);
+
+    /* typography (3 steps) */
+    --text-title: 13px;
+    --text-body: 14px;
+    --text-caption: 12px;
+
+    /* semantic colors (4 kinds) */
+    --color-success: oklch(0.65 0.15 145);
+    --color-warning: oklch(0.72 0.15 75);
+    --color-error:   oklch(0.55 0.20 25);
+    --color-info:    oklch(0.60 0.12 250);
+
+    /* motion */
+    --duration-fast: 150ms;
+    --duration-base: 200ms;
+    --easing-standard: cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   [data-theme="dark"] {
@@ -72,6 +105,10 @@
     --input: 222.2 47% 18%;
     --ring: 210 40% 80%;
   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --duration-fast: 0ms; --duration-base: 0ms; }
 }
 
 @layer base {

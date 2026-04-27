@@ -1,14 +1,39 @@
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import type { SidecarStatus } from "@/types/mame/models";
-import { cn } from "@/lib/utils";
+import { GlobalStatusBar } from "@/components/layout/GlobalStatusBar";
+import type { SidecarInfo } from "@/components/layout/GlobalStatusBar";
 
-const statusLabel: Record<SidecarStatus, string> = {
-  disconnected: "Disconnected",
-  connecting: "Connecting",
-  ready: "Ready",
-  error: "Error",
-};
+/**
+ * mame SidecarStatus → GlobalStatusBar SidecarInfo 매핑.
+ *
+ * mame는 "disconnected" 상태를 별도로 가진다.
+ * GlobalStatusBar는 ready/connecting/error 3종만 지원하므로,
+ * disconnected는 "error"로 매핑해 retry를 유도한다.
+ * // TODO(plan): mame가 disconnected → connecting 자동 재연결 로직을 추가하면
+ *               별도 "disconnected" state를 GlobalStatusBar에 4번째로 추가 고려.
+ */
+function mapSidecarState(
+  status: SidecarStatus,
+  onRetry: () => void,
+): SidecarInfo {
+  switch (status) {
+    case "ready":
+      return { state: "ready", label: "Ready" };
+    case "connecting":
+      return { state: "connecting", label: "Connecting" };
+    case "error":
+      return { state: "error", label: "Sidecar error", onRetry };
+    case "disconnected":
+      return { state: "error", label: "Disconnected", onRetry };
+  }
+}
 
+/**
+ * mame 상태바.
+ * GlobalStatusBar 셸을 사용하며, 기존 빨간 pill 에러 표현과
+ * `--status-*` 미정의 변수를 제거한다.
+ * 요약 수치는 centerSlot으로 전달한다.
+ */
 export function StatusBar({
   sidecarStatus,
   onRetry,
@@ -19,52 +44,18 @@ export function StatusBar({
   const analyzeMessage = useMameAppStore((state) => state.analyzeMessage);
   const summary = useMameAppStore((state) => state.summary);
 
+  const centerSlot = summary ? (
+    <span className="tabular-nums">
+      Total {summary.total} · PASS {summary.pass_count} · Ambiguous{" "}
+      {summary.ambiguous_count} · Fail {summary.fail_count}
+    </span>
+  ) : undefined;
+
   return (
-    <footer
-      className="flex h-statusbar flex-shrink-0 items-center gap-3 border-t border-border bg-muted/40 px-4 text-2xs text-muted-foreground"
-      role="contentinfo"
-      aria-label="Status bar"
-    >
-      <span className="min-w-0 flex-1 truncate" aria-live="polite">
-        {analyzeMessage}
-      </span>
-
-      {summary && (
-        <span className="whitespace-nowrap tabular-nums">
-          Total {summary.total} · PASS {summary.pass_count} · Ambiguous{" "}
-          {summary.ambiguous_count} · Fail {summary.fail_count}
-        </span>
-      )}
-
-      {sidecarStatus === "error" && (
-        <span className="inline-flex items-center gap-1 rounded-full bg-[var(--status-error)] px-2 py-0.5 text-[10px] font-medium text-white">
-          Sidecar unavailable
-          <button
-            type="button"
-            className="font-semibold underline hover:opacity-80"
-            onClick={onRetry}
-            aria-label="Retry sidecar connection"
-          >
-            Retry
-          </button>
-        </span>
-      )}
-
-      <span className="whitespace-nowrap">{statusLabel[sidecarStatus]}</span>
-
-      <span
-        className={cn(
-          "h-1.5 w-1.5 rounded-full flex-shrink-0",
-          sidecarStatus === "ready"
-            ? "bg-[var(--status-ready)]"
-            : sidecarStatus === "connecting"
-              ? "bg-[var(--status-connecting)]"
-              : "bg-[var(--status-error)]",
-        )}
-        role="status"
-        aria-label={`Sidecar: ${sidecarStatus}`}
-        title={`Sidecar: ${sidecarStatus}`}
-      />
-    </footer>
+    <GlobalStatusBar
+      message={analyzeMessage}
+      centerSlot={centerSlot}
+      sidecar={mapSidecarState(sidecarStatus, onRetry)}
+    />
   );
 }

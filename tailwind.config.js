@@ -3,6 +3,28 @@ export default {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
     extend: {
+      borderRadius: {
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
+        container: "var(--radius-container)",
+        control: "var(--radius-control)",
+      },
+      height: {
+        header: "var(--header-h)",
+        menubar: "var(--menubar-h)",
+        statusbar: "var(--statusbar-h)",
+        control: "var(--control-h)",
+        "control-primary": "var(--control-h-primary)",
+      },
+      width: {
+        sidebar: "var(--sidebar-w)",
+      },
+      fontSize: {
+        title: "var(--text-title)",
+        body: "var(--text-body)",
+        caption: "var(--text-caption)",
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -37,11 +59,14 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        success: "var(--color-success)",
+        warning: "var(--color-warning)",
+        error: "var(--color-error)",
+        info: "var(--color-info)",
       },
-      borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+      transitionDuration: {
+        fast: "var(--duration-fast)",
+        base: "var(--duration-base)",
       },
     },
   },

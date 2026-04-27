@@ -18,8 +18,13 @@ import {
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { SubtoolMenuBar } from "@/components/layout/SubtoolMenuBar";
 
-const MOD_KEY = typeof navigator !== "undefined" && navigator.userAgent.includes("Mac") ? "\u2318" : "Ctrl+";
+const MOD_KEY = typeof navigator !== "undefined" && navigator.userAgent.includes("Mac") ? "⌘" : "Ctrl+";
+
+/** 메뉴 트리거 공통 클래스 (계획서 §6.1 권장) */
+const TRIGGER_CLS =
+  "h-control px-3 rounded-control hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-colors duration-fast text-caption font-medium text-foreground/80";
 
 interface MenuBarProps {
   onClearRequest: () => void;
@@ -38,98 +43,83 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
   const canRun = useMameAppStore(selectCanRun);
   const [aboutOpen, setAboutOpen] = useState(false);
 
+  const menus = (
+    <>
+      {/* File 메뉴 */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button className={TRIGGER_CLS}>File</button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start">
+          <DropdownMenuItem onClick={() => void loadWorkspace()}>
+            <span className="flex-1">Open Workspace…</span>
+            <DropdownMenuShortcut>{MOD_KEY}O</DropdownMenuShortcut>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => void saveWorkspace()}>
+            <span className="flex-1">Save Workspace…</span>
+            <DropdownMenuShortcut>{MOD_KEY}S</DropdownMenuShortcut>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => void validateInputs()} disabled={isAnalyzing}>
+            <span className="flex-1">Validate Inputs</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => void runAnalysis()} disabled={!canRun}>
+            <span className="flex-1">Run Analysis</span>
+            <DropdownMenuShortcut>{MOD_KEY}D</DropdownMenuShortcut>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => void cancelAnalysis()} disabled={!isAnalyzing}>
+            <span className="flex-1">Cancel Analysis</span>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={openExport} disabled={!hasResults}>
+            <span className="flex-1">Export Excel…</span>
+            <DropdownMenuShortcut>{MOD_KEY}E</DropdownMenuShortcut>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* Edit 메뉴 */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button className={TRIGGER_CLS}>Edit</button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start">
+          <DropdownMenuItem onClick={onClearRequest} disabled={!hasResults || isAnalyzing}>
+            Clear Results
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* Help 메뉴 */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button className={TRIGGER_CLS}>Help</button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start">
+          <DropdownMenuItem onClick={loadSampleData} disabled={isAnalyzing}>
+            Load Sample Data
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => setAboutOpen(true)}>About</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </>
+  );
+
   return (
     <>
-      <header
-        role="banner"
-        className="flex h-11 flex-shrink-0 items-center gap-4 border-b border-border bg-muted/20 px-4 text-xs"
-      >
-        <div className="flex items-center gap-2.5">
-          <span className="text-base" aria-hidden="true">
-            🐟
-          </span>
-          <div className="flex items-center gap-2">
-            <span className="font-semibold tracking-wide text-primary">mame</span>
-            <span className="rounded-full border border-border/70 bg-background px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-              kuro flow
-            </span>
-          </div>
-          <span className="hidden text-[10px] uppercase tracking-widest text-muted-foreground md:inline">
-            Mutagenesis Assessment · Microplate Export
-          </span>
-        </div>
-
-        <nav className="flex items-center gap-0.5">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="rounded-md px-2 py-1 font-medium text-foreground/80 transition-colors hover:bg-background">
-                File
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              <DropdownMenuItem onClick={() => void loadWorkspace()}>
-                <span className="flex-1">Open Workspace…</span>
-                <DropdownMenuShortcut>{MOD_KEY}O</DropdownMenuShortcut>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => void saveWorkspace()}>
-                <span className="flex-1">Save Workspace…</span>
-                <DropdownMenuShortcut>{MOD_KEY}S</DropdownMenuShortcut>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => void validateInputs()} disabled={isAnalyzing}>
-                <span className="flex-1">Validate Inputs</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => void runAnalysis()} disabled={!canRun}>
-                <span className="flex-1">Run Analysis</span>
-                <DropdownMenuShortcut>{MOD_KEY}D</DropdownMenuShortcut>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => void cancelAnalysis()} disabled={!isAnalyzing}>
-                <span className="flex-1">Cancel Analysis</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={openExport} disabled={!hasResults}>
-                <span className="flex-1">Export Excel…</span>
-                <DropdownMenuShortcut>{MOD_KEY}E</DropdownMenuShortcut>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="rounded-md px-2 py-1 font-medium text-foreground/80 transition-colors hover:bg-background">
-                Edit
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              <DropdownMenuItem onClick={onClearRequest} disabled={!hasResults || isAnalyzing}>
-                Clear Results
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="rounded-md px-2 py-1 font-medium text-foreground/80 transition-colors hover:bg-background">
-                Help
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              <DropdownMenuItem onClick={loadSampleData} disabled={isAnalyzing}>
-                Load Sample Data
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setAboutOpen(true)}>About</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </nav>
-      </header>
+      <SubtoolMenuBar
+        label="Mame"
+        subtitle="NB-plate verdict"
+        menus={menus}
+      />
 
       <Dialog open={aboutOpen} onOpenChange={setAboutOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>About mame</DialogTitle>
+            <DialogTitle>About Mame</DialogTitle>
             <DialogDescription>
-              MAME — Mutagenesis Assessment & Microplate Export
+              Mame — Mutagenesis Assessment & Microplate Export
               <br />
               <br />
               Desktop verdict analysis tool for NB-plate mutagenesis runs.

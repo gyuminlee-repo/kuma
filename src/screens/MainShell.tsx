@@ -19,16 +19,16 @@ export function MainShell() {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-slate-100">
+    <div className="flex h-screen flex-col bg-background">
       <Tabs defaultValue="kuro" onValueChange={handleTabChange} className="flex min-h-0 flex-1 flex-col">
-        <header className="border-b border-slate-200 bg-white/90 px-4 py-3 backdrop-blur">
-          <div className="flex items-center justify-between gap-4">
+        <header className="h-header flex shrink-0 items-center border-b bg-background px-4">
+          <div className="flex w-full items-center justify-between gap-4">
             <div className="flex min-w-0 items-center gap-3">
-              <span className="text-lg font-semibold tracking-tight text-slate-900">kuma</span>
-              <div className="flex min-w-0 items-center gap-2 text-sm text-slate-600">
-                <span className="truncate font-medium text-slate-800">{projectName}</span>
+              <span className="text-lg font-semibold tracking-tight text-foreground">kuma</span>
+              <div className="flex min-w-0 items-center gap-2 text-caption text-muted-foreground">
+                <span className="truncate font-medium text-foreground">{projectName}</span>
                 {project?.stage ? (
-                  <span className="rounded-full border border-slate-300 bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
+                  <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-caption font-medium text-muted-foreground">
                     {project.stage}
                   </span>
                 ) : null}
