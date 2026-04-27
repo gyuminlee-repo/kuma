@@ -20,8 +20,6 @@
     --accent-foreground: 220 18% 14%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
-    --success: 142 71% 29%;
-    --warning: 38 92% 35%;
     --border: 30 14% 88%;
     --input: 30 14% 88%;
     --ring: 220 18% 10%;
@@ -44,12 +42,6 @@
     --shadow-hairline: 0 1px 0 rgb(0 0 0 / 4%);
     --shadow-popover: 0 8px 24px -8px rgb(0 0 0 / 14%), 0 1px 0 rgb(0 0 0 / 6%);
     --shadow-dialog:  0 20px 40px -12px rgb(0 0 0 / 18%), 0 1px 0 rgb(0 0 0 / 8%);
-
-    /* Motion */
-    --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
-    --dur-fast: 120ms;
-    --dur-base: 180ms;
-    --dur-slow: 240ms;
 
     /* === Phase 1 tokens (§4.1–§4.4) === */
 

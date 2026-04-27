@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { selectCanRun } from "@/store/mame/selectors";
@@ -11,6 +11,7 @@ import { StatusBar } from "./StatusBar";
 import { PlateView } from "../widgets/PlateView";
 import { SummaryRow } from "../widgets/SummaryRow";
 import { VerdictTable } from "../widgets/VerdictTable";
+import { DataPanel } from "@/components/ui/Panel";
 
 const SEQUENCE_EXTENSIONS = new Set([".fa", ".fasta", ".fna"]);
 const XLSX_EXTENSIONS = new Set([".xlsx"]);
@@ -106,12 +107,12 @@ export function MameAppLayout() {
           aria-label="Analysis workspace"
         >
           <SummaryRow />
-          <PanelCard title="Verdict Table">
+          <DataPanel title="Verdict table" className="min-h-0">
             <VerdictTable />
-          </PanelCard>
-          <PanelCard title="Plate Plan">
+          </DataPanel>
+          <DataPanel title="Plate plan">
             <PlateView />
-          </PanelCard>
+          </DataPanel>
         </main>
       </div>
 
@@ -127,15 +128,3 @@ export function MameAppLayout() {
   );
 }
 
-function PanelCard({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className="flex min-h-0 flex-col overflow-hidden rounded-lg border border-border bg-background">
-      <header className="flex items-center justify-between border-b border-border bg-muted/25 px-3 py-2">
-        <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-          {title}
-        </span>
-      </header>
-      <div className="min-h-0 flex-1">{children}</div>
-    </section>
-  );
-}

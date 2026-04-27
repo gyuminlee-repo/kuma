@@ -67,25 +67,25 @@ export function ExportDialog() {
 
           {exportError && (
             <div
-              className="flex items-start gap-2 rounded-md border border-[hsl(var(--verdict-fail))] bg-[hsl(var(--verdict-fail)/0.08)] px-3 py-2"
+              className="flex items-start gap-2 rounded-control border border-error/40 bg-error/8 px-3 py-2"
               role="alert"
               aria-live="assertive"
             >
-              <AlertCircle size={14} className="mt-0.5 flex-shrink-0 text-[hsl(var(--verdict-fail))]" aria-hidden="true" />
-              <p className="text-xs text-[hsl(var(--verdict-fail))]">{exportError}</p>
+              <AlertCircle size={14} className="mt-0.5 flex-shrink-0 text-error" aria-hidden="true" />
+              <p className="text-caption text-error">{exportError}</p>
             </div>
           )}
 
           {(lastExportPath || lastExportAt) && (
-            <div className="rounded-md border border-[hsl(var(--verdict-pass)/0.4)] bg-[hsl(var(--verdict-pass)/0.08)] px-3 py-2">
+            <div className="rounded-control border border-success/40 bg-success/8 px-3 py-2">
               <div className="flex items-center gap-2">
-                <CheckCircle2 size={13} className="text-[hsl(var(--verdict-pass))]" aria-hidden="true" />
-                <span className="text-xs font-medium text-[hsl(var(--verdict-pass))]">Last export</span>
+                <CheckCircle2 size={13} className="text-success" aria-hidden="true" />
+                <span className="text-caption font-medium text-success">Last export</span>
               </div>
               {lastExportPath && (
-                <p className="mt-1 text-[11px] font-mono text-foreground break-all">{lastExportPath}</p>
+                <p className="mt-1 text-caption font-mono text-foreground break-all">{lastExportPath}</p>
               )}
-              {lastExportAt && <p className="text-[11px] text-muted-foreground">{lastExportAt}</p>}
+              {lastExportAt && <p className="text-caption text-muted-foreground">{lastExportAt}</p>}
             </div>
           )}
         </div>

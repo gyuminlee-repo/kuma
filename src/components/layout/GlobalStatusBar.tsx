@@ -42,8 +42,7 @@ const DOT_COLOR: Record<SidecarInfo["state"], string> = {
  * 높이 `h-statusbar`(24px), `text-caption`, 패딩 `px-3`.
  *
  * 계획서 §6.2 준수.
- * - `--verdict-*` / `--status-*` 미정의 변수 사용 0건
- * - `text-2xs` / 임의 pill 사용 0건
+ * - 구형 CSS 변수(verdict/status 계열) 사용 0건 (Phase 3에서 제거 완료)
  * - 색 단독 금지: 점 옆에 항상 label 텍스트 동반
  */
 export function GlobalStatusBar({ message, centerSlot, sidecar }: GlobalStatusBarProps) {
