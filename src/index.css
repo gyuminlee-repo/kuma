@@ -75,6 +75,10 @@
     --duration-fast: 150ms;
     --duration-base: 200ms;
     --easing-standard: cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* domain-specific (well plate) */
+    --text-plate: 10px;
+    --text-plate-tiny: 8px;
   }
 
   [data-theme="dark"] {

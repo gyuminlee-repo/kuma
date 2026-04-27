@@ -96,7 +96,7 @@ export function App() {
   }
 
   if (screen === "loading") {
-    return <div className="flex min-h-screen items-center justify-center bg-slate-100 text-sm text-slate-500">Loading…</div>;
+    return <div className="flex min-h-screen items-center justify-center bg-muted text-sm text-muted-foreground">Loading…</div>;
   }
 
   if (screen === "onboarding") {

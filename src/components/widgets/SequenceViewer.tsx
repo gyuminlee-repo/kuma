@@ -2,6 +2,7 @@ import { memo, useMemo, useState, useCallback, useRef, useEffect } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { useAppStore } from "../../store/appStore";
 import type { DomainInfo } from "../../types/models";
+import { StateView } from "../ui/StateView";
 
 // --- Constants ---
 
@@ -485,10 +486,10 @@ export function SequenceViewer() {
   }, [designResults, failedMutations]);
 
   return (
-    <div className="h-full overflow-hidden rounded-[22px] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,253,248,0.96),rgba(248,251,255,0.98))] shadow-[inset_0_1px_0_rgba(255,255,255,0.65)]" role="region" aria-label="Sequence Map">
+    <div className="h-full overflow-hidden rounded-container border border-border bg-card" role="region" aria-label="Sequence Map">
       {/* Header */}
       <button
-        className="flex w-full items-center border-b border-slate-200 bg-white/70 px-4 py-2 text-xs font-semibold text-slate-700 transition-colors select-none hover:bg-slate-50"
+        className="flex w-full items-center h-control border-b border-border bg-muted/40 px-4 text-caption font-semibold text-foreground transition-colors select-none hover:bg-muted/60"
         onClick={() => setCollapsed((c) => !c)}
         aria-expanded={!collapsed}
         aria-controls={collapsed ? undefined : "sequence-viewer-content"}
@@ -507,7 +508,7 @@ export function SequenceViewer() {
         </svg>
         <span title="Linear CDS map showing mutation positions. Green=designed, Red=failed. Density histogram below shows clustering — spread-out mutations are better for library diversity">Sequence Map</span>
         {hasTicks && (
-          <span className="ml-2 font-normal text-slate-400">
+          <span className="ml-2 font-normal text-muted-foreground">
             {successCount} designed
             {failedCount > 0 && ` / ${failedCount} failed`}
             {maxAa > 0 && ` — ${maxAa} aa`}
@@ -519,9 +520,12 @@ export function SequenceViewer() {
       {!collapsed && (
         <div id="sequence-viewer-content" className="px-4 py-3" style={{ minHeight: 80 }}>
           {!hasData ? (
-            <div className="flex items-center justify-center h-16 text-gray-400 text-xs">
-              Load a sequence and design primers to view the map
-            </div>
+            <StateView
+              variant="empty"
+              title="No sequence loaded"
+              description="Load a target gene to view the mutation map."
+              className="h-16 py-2"
+            />
           ) : (
             <div className="relative">
               <svg
@@ -589,7 +593,7 @@ export function SequenceViewer() {
               {/* Density tooltip */}
               {densityTooltip && (
                 <div
-                  className="absolute z-50 px-2 py-1.5 bg-gray-900 text-white text-[10px] rounded shadow-lg pointer-events-none whitespace-nowrap"
+                  className="absolute z-50 px-2 py-1.5 bg-foreground text-background text-caption rounded-control shadow-lg pointer-events-none whitespace-nowrap"
                   style={{
                     left: Math.min(densityTooltip.x, SVG_WIDTH - 120),
                     top: Math.max(0, densityTooltip.y - 36),
@@ -597,14 +601,14 @@ export function SequenceViewer() {
                   }}
                 >
                   <div className="font-semibold">aa {densityTooltip.startAa}–{densityTooltip.endAa}</div>
-                  <div className="text-gray-300">{densityTooltip.count} mutation{densityTooltip.count !== 1 ? "s" : ""}</div>
+                  <div className="text-background/70">{densityTooltip.count} mutation{densityTooltip.count !== 1 ? "s" : ""}</div>
                 </div>
               )}
 
               {/* Mutation tooltip */}
               {tooltip && (
                 <div
-                  className="absolute z-50 px-2 py-1.5 bg-gray-900 text-white text-[10px] rounded shadow-lg pointer-events-none whitespace-nowrap"
+                  className="absolute z-50 px-2 py-1.5 bg-foreground text-background text-caption rounded-control shadow-lg pointer-events-none whitespace-nowrap"
                   style={{
                     left: Math.min(tooltip.x, SVG_WIDTH - 120),
                     top: Math.max(0, tooltip.y - 36),
@@ -612,7 +616,7 @@ export function SequenceViewer() {
                   }}
                 >
                   <div className="font-semibold">{tooltip.tick.mutation}</div>
-                  <div className="text-gray-300">
+                  <div className="text-background/70">
                     pos: {tooltip.tick.aaPosition}
                     {tooltip.tick.status === "success" && tooltip.tick.tm != null && (
                       <> | Tm: {tooltip.tick.tm.toFixed(1)}&deg;C</>
@@ -623,7 +627,7 @@ export function SequenceViewer() {
                   </div>
                   <div
                     className={
-                      tooltip.tick.status === "success" ? "text-emerald-400" : "text-red-400"
+                      tooltip.tick.status === "success" ? "text-success" : "text-error"
                     }
                   >
                     {tooltip.tick.status === "success" ? "Designed" : `Failed: ${tooltip.tick.reason ?? "unknown"}`}
@@ -632,7 +636,7 @@ export function SequenceViewer() {
               )}
 
               {/* Legend */}
-              <div className="flex items-center gap-3 mt-1 text-[10px] text-gray-400">
+              <div className="flex items-center gap-3 mt-1 text-caption text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: TICK_SUCCESS }} />
                   success
@@ -648,7 +652,7 @@ export function SequenceViewer() {
                   </span>
                 )}
                 {domains.length > 0 && (
-                  <span className="flex items-center gap-1 ml-1 border-l border-gray-200 pl-3">
+                  <span className="flex items-center gap-1 ml-1 border-l border-border pl-3">
                     {domains.map((d, i) => (
                       <span key={d.name} className="flex items-center gap-0.5">
                         <span

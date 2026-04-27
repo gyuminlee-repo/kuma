@@ -8,11 +8,11 @@ export function FailedMutationList({
   onSelect: (failed: FailedMutation) => void;
 }) {
   return (
-    <div className="text-[10px] text-red-600 font-mono flex flex-wrap gap-1">
+    <div className="text-caption text-destructive font-mono flex flex-wrap gap-1">
       {failedMutations.map((f) => (
         <span
           key={f.mutation}
-          className="bg-red-100 px-1.5 py-0.5 rounded cursor-pointer hover:bg-red-200"
+          className="bg-destructive/10 px-1.5 py-0.5 rounded cursor-pointer hover:bg-destructive/20"
           title={`#${f.rank} | ${f.reason}`}
           onClick={() => onSelect(f)}
           role="button"

@@ -35,13 +35,13 @@ export function StatCard({
               aria-hidden="true"
             />
           )}
-          <span className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+          <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
             {label}
           </span>
         </div>
         {dotColor && (
           <span
-            className="h-8 w-8 rounded-full border border-border/70 bg-white/80"
+            className="h-8 w-8 rounded-full border border-border/70 bg-card"
             aria-hidden="true"
             style={{ boxShadow: `inset 0 0 0 5px ${dotColor}` }}
           />

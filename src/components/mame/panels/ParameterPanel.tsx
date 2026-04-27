@@ -23,7 +23,7 @@ export function ParameterPanel() {
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1">
-          <Label htmlFor="mode-select" className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+          <Label htmlFor="mode-select" className="text-caption font-medium uppercase tracking-wide text-muted-foreground">
             Mode
           </Label>
           <Select
@@ -41,7 +41,7 @@ export function ParameterPanel() {
         </div>
 
         <div className="space-y-1">
-          <Label htmlFor="ingest-mode-select" className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+          <Label htmlFor="ingest-mode-select" className="text-caption font-medium uppercase tracking-wide text-muted-foreground">
             Ingest
           </Label>
           <Select
@@ -103,7 +103,7 @@ function NumericField({
 }) {
   return (
     <div className="space-y-1">
-      <Label htmlFor={id} className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+      <Label htmlFor={id} className="text-caption font-medium uppercase tracking-wide text-muted-foreground">
         {label}
       </Label>
       <Input

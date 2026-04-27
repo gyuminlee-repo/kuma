@@ -35,10 +35,10 @@ class ErrorBoundary extends React.Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex flex-col items-center justify-center h-screen bg-gray-50 text-gray-700">
+        <div className="flex flex-col items-center justify-center h-screen bg-muted text-muted-foreground">
           <p className="text-lg font-semibold mb-2">Something went wrong.</p>
           <button
-            className="px-4 py-2 bg-gray-800 text-white rounded hover:bg-gray-700"
+            className="px-4 py-2 bg-foreground text-background rounded-control hover:bg-foreground/90"
             onClick={() => window.location.reload()}
           >
             Click to reload.

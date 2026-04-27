@@ -31,7 +31,7 @@ export function ExportDialog() {
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && closeExport()}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Export Results</DialogTitle>
           <DialogDescription>Save the complete verdict set as an Excel workbook.</DialogDescription>

@@ -17,7 +17,7 @@ interface ClearConfirmDialogProps {
 export function ClearConfirmDialog({ open, onOpenChange, onConfirm }: ClearConfirmDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xs">
+      <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle>Clear All</DialogTitle>
           <DialogDescription>
@@ -30,7 +30,8 @@ export function ClearConfirmDialog({ open, onOpenChange, onConfirm }: ClearConfi
           </Button>
           <Button
             size="sm"
-            variant="destructive"
+            variant="outline"
+            className="text-error border-error/40 hover:bg-error/8"
             onClick={() => {
               onConfirm();
               onOpenChange(false);

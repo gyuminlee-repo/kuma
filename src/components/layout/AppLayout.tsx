@@ -160,8 +160,8 @@ export function AppLayout() {
                 </Button>
                 {isDesigning && (
                   <Button
-                    variant="destructive"
-                    className="h-control-primary rounded-control px-3"
+                    variant="outline"
+                    className="h-control-primary rounded-control px-3 text-error border-error/40 hover:bg-error/8"
                     onClick={() => useAppStore.getState().cancelDesign()}
                   >
                     Cancel
@@ -238,10 +238,15 @@ export function AppLayout() {
             <Button variant="outline" size="sm" onClick={() => setClearConfirmOpen(false)}>
               Cancel
             </Button>
-            <Button size="sm" variant="destructive" onClick={() => {
-              useAppStore.getState().resetAll();
-              setClearConfirmOpen(false);
-            }}>
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-error border-error/40 hover:bg-error/8"
+              onClick={() => {
+                useAppStore.getState().resetAll();
+                setClearConfirmOpen(false);
+              }}
+            >
               Clear
             </Button>
           </DialogFooter>

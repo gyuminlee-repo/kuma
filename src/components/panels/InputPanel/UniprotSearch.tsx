@@ -26,7 +26,7 @@ export function UniprotSearch() {
       <div className="flex gap-1 items-center">
         <input
           type="text"
-          className="w-24 h-5 text-xs border border-gray-300 rounded px-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="w-24 h-6 text-xs border border-border rounded px-1 focus:outline-none focus:ring-1 focus:ring-ring"
           placeholder="UniProt ID"
           value={accessionInput}
           onChange={(e) => setAccessionInput(e.target.value)}
@@ -37,7 +37,7 @@ export function UniprotSearch() {
         <Button
           variant="outline"
           size="sm"
-          className="h-5 text-[10px] px-2"
+          className="h-6 text-caption px-2"
           onClick={() => handleManualFetch(true)}
           disabled={domainLoading || uniprotSearching || !accessionInput}
         >
@@ -46,7 +46,7 @@ export function UniprotSearch() {
         <Button
           variant="outline"
           size="sm"
-          className="h-5 text-[10px] px-2"
+          className="h-6 text-caption px-2"
           onClick={() => {
             if (!seqInfo?.genes.length) return;
             const gene =
@@ -71,8 +71,8 @@ export function UniprotSearch() {
           {uniprotCandidates.map((c) => (
             <button
               key={c.accession}
-              className={`flex items-center gap-1 text-[10px] w-full text-left px-1 py-0.5 rounded hover:bg-blue-50 ${
-                accessionInput === c.accession ? "bg-blue-100" : ""
+              className={`flex items-center gap-1 text-caption w-full text-left px-1 py-0.5 rounded hover:bg-info/5 ${
+                accessionInput === c.accession ? "bg-info/10" : ""
               }`}
               onClick={() => {
                 setAccessionInput(c.accession);
@@ -83,22 +83,22 @@ export function UniprotSearch() {
               <span
                 className={`w-2 h-2 rounded-full flex-shrink-0 ${
                   c.identity === 100
-                    ? "bg-green-500"
+                    ? "bg-success"
                     : c.identity >= 90
-                      ? "bg-yellow-500"
-                      : "bg-gray-400"
+                      ? "bg-warning"
+                      : "bg-muted-foreground/50"
                 }`}
               />
-              <span className="font-mono text-blue-700">{c.accession}</span>
-              <span className="text-gray-500 truncate">{c.name}</span>
+              <span className="font-mono text-info">{c.accession}</span>
+              <span className="text-muted-foreground truncate">{c.name}</span>
               {c.has_structure && (
-                <span className="flex-shrink-0 inline-flex items-center rounded bg-indigo-100 px-1 py-0.5 text-[9px] font-medium text-indigo-700" title="AlphaFold structure available">
+                <span className="flex-shrink-0 inline-flex items-center rounded bg-info/10 px-1 py-0.5 text-plate-tiny font-medium text-info" title="AlphaFold structure available">
                   AF
                 </span>
               )}
               <span
                 className={`ml-auto flex-shrink-0 ${
-                  c.identity === 100 ? "text-green-600 font-semibold" : "text-gray-400"
+                  c.identity === 100 ? "text-success font-semibold" : "text-muted-foreground"
                 }`}
               >
                 {c.identity}%

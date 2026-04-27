@@ -14,6 +14,7 @@ import {
   HEADER_TOOLTIPS,
   makeResultTableColumns,
 } from "./resultTableColumns";
+import { StateView } from "../ui/StateView";
 
 const LazyCandidatePopover = lazy(async () => import("./popovers/CandidatePopover").then((m) => ({ default: m.CandidatePopover })));
 const LazyHairpinDetail = lazy(async () => import("./popovers/HairpinDetail").then((m) => ({ default: m.HairpinDetail })));
@@ -125,9 +126,12 @@ export function ResultTable() {
     if (totalCount > 0 && failedMutations.length > 0) {
       return (
         <div className="h-full overflow-auto p-5">
-          <div className="mb-2 text-sm font-semibold text-red-600">
-            All {totalCount} mutations failed
-          </div>
+          <StateView
+            variant="error"
+            title={`All ${totalCount} mutations failed`}
+            description="Review failure reasons below, then adjust parameters and retry."
+            className="pb-4"
+          />
           <FailedMutationList failedMutations={failedMutations} onSelect={setFailedPopover} />
           <Suspense fallback={null}>
             {failedPopover && (
@@ -143,38 +147,34 @@ export function ResultTable() {
 
     return (
       <div className="flex h-full items-center justify-center p-8">
-        <div className="max-w-md rounded-[28px] border border-zinc-900/10 bg-[linear-gradient(180deg,rgba(24,24,27,0.98),rgba(52,52,57,0.96))] px-6 py-8 text-center shadow-[0_22px_50px_rgba(24,24,27,0.18)]">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-zinc-400">No Design Yet</div>
-          <div className="mt-3 text-lg font-semibold text-zinc-50">
-            Load a sequence, define mutations, then run a batch design.
-          </div>
-          <div className="mt-2 text-sm leading-6 text-zinc-400">
-            This view becomes the central review surface for ranked primers, rescue candidates, and failure diagnostics.
-          </div>
-        </div>
+        <StateView
+          variant="empty"
+          title="No results yet"
+          description="Load a sequence, define mutations, then run design."
+        />
       </div>
     );
   }
 
   return (
     <div className="h-full overflow-auto">
-      <table className="w-full text-xs border-collapse">
-        <thead className="sticky top-0 z-10 bg-[rgba(247,244,239,0.96)] backdrop-blur">
+      <table className="w-full text-caption border-collapse">
+        <thead className="sticky top-0 z-10 bg-background/95 backdrop-blur">
           {table.getHeaderGroups().map((hg) => (
             <tr key={hg.id}>
               {hg.headers.map((header) => (
                 <th
                   key={header.id}
-                  className={`border-b border-zinc-900/10 px-2 py-2 text-left font-semibold text-zinc-600 ${
-                    header.column.getCanSort() ? "cursor-pointer select-none hover:bg-zinc-100/80" : ""
+                  className={`h-control border-b border-border px-2 text-left font-semibold text-muted-foreground ${
+                    header.column.getCanSort() ? "cursor-pointer select-none hover:bg-muted/60" : ""
                   }`}
                   style={{ width: header.getSize() }}
                   title={header.column.columnDef.meta?.tooltip ?? HEADER_TOOLTIPS[header.column.id] ?? ""}
                   onClick={header.column.getToggleSortingHandler()}
                 >
                   {flexRender(header.column.columnDef.header, header.getContext())}
-                  {header.column.getIsSorted() === "asc" ? " \u25B2" : ""}
-                  {header.column.getIsSorted() === "desc" ? " \u25BC" : ""}
+                  {header.column.getIsSorted() === "asc" ? " ▲" : ""}
+                  {header.column.getIsSorted() === "desc" ? " ▼" : ""}
                 </th>
               ))}
             </tr>
@@ -186,7 +186,7 @@ export function ResultTable() {
             return (
               <tr
                 key={row.id}
-                className={`border-b border-zinc-900/6 hover:bg-zinc-50 ${isSwapped ? "border-l-3 border-l-amber-400 bg-amber-50/30" : ""}`}
+                className={`h-control border-b border-border/50 hover:bg-muted/30 ${isSwapped ? "border-l-2 border-l-warning bg-warning/5" : ""}`}
               >
                 {row.getVisibleCells().map((cell) => {
                   const meta = cell.column.columnDef.meta;
@@ -194,7 +194,7 @@ export function ResultTable() {
                   return (
                     <td
                       key={cell.id}
-                      className={`px-2 py-1 ${showClickable ? "cursor-pointer hover:bg-zinc-100/80" : ""}`}
+                      className={`px-2 py-1 tabular-nums ${showClickable ? "cursor-pointer hover:bg-muted/60" : ""}`}
                       onClick={showClickable ? () => handleCellClick(row.original, cell.column.id) : undefined}
                     >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -208,17 +208,17 @@ export function ResultTable() {
       </table>
 
       {failedMutations.length > 0 && (
-        <div className="border-t border-red-200 bg-red-50 px-3 py-2">
-          <div className="mb-1 text-xs font-semibold text-red-700">
-            Failed ({failedMutations.length}/{totalCount})
+        <div className="border-t border-error/20 bg-error/5 px-3 py-2">
+          <div className="mb-1 text-caption font-semibold text-error">
+            ▲ Failed ({failedMutations.length}/{totalCount})
           </div>
           <FailedMutationList failedMutations={failedMutations} onSelect={setFailedPopover} />
         </div>
       )}
 
-      <div className="border-t border-zinc-900/10 bg-[rgba(247,244,239,0.9)] px-3 py-2 text-[10px] text-zinc-500">
-        {successCount}/{totalCount} designed
-        {failedMutations.length > 0 && ` | ${failedMutations.length} failed`}
+      <div className="border-t border-border bg-muted/30 px-3 py-1.5 text-caption text-muted-foreground tabular-nums">
+        ● {successCount}/{totalCount} designed
+        {failedMutations.length > 0 && ` · ▲ ${failedMutations.length} failed`}
       </div>
 
       <Suspense fallback={null}>

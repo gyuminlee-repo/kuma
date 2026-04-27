@@ -72,8 +72,8 @@ export function ParameterPanel() {
 
   const gcInvalid = gcMin >= gcMax;
 
-  const numInput = "h-7 w-16 rounded-lg border border-slate-300 px-1 text-center text-xs focus:outline-none focus:ring-1 focus:ring-ring";
-  const gcInputBase = "h-7 w-16 rounded-lg px-1 text-center text-xs focus:outline-none focus:ring-1";
+  const numInput = "h-control w-16 rounded-control border border-border px-1 text-center text-caption focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2";
+  const gcInputBase = "h-control w-16 rounded-control px-1 text-center text-caption focus:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
   const openCustomEditor = async () => {
     try {
@@ -88,18 +88,18 @@ export function ParameterPanel() {
   };
 
   return (
-    <section className="space-y-3 rounded-[20px] border border-zinc-900/8 bg-white/90 p-3 shadow-[0_10px_24px_rgba(24,24,27,0.05)]">
+    <section className="space-y-3 rounded-container border border-border bg-card p-3">
       <div>
-        <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-zinc-500">Control</div>
-        <h3 className="text-sm font-semibold text-zinc-950">Parameters</h3>
+        <div className="text-caption font-semibold uppercase tracking-widest text-muted-foreground">Control</div>
+        <h3 className="text-title font-semibold text-foreground">Parameters</h3>
       </div>
 
       <div className="space-y-1">
-        <label htmlFor="polymerase-select" className="flex items-center gap-2 text-xs">
-          <span className="w-24 text-slate-600">Polymerase:</span>
+        <label htmlFor="polymerase-select" className="flex items-center gap-2 text-caption">
+          <span className="w-24 text-muted-foreground">Polymerase:</span>
           <select
             id="polymerase-select"
-            className="h-8 min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+            className="h-control min-w-0 flex-1 rounded-control border border-border bg-card px-3 text-caption focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             value={selectedPolymerase}
             onChange={(e) => void setSelectedPolymerase(e.target.value)}
           >
@@ -112,17 +112,17 @@ export function ParameterPanel() {
           </select>
         </label>
         <div className="flex justify-end">
-          <Button type="button" variant="outline" size="sm" className="rounded-lg border-slate-300 bg-white" onClick={() => void openCustomEditor()}>
+          <Button type="button" variant="outline" size="sm" className="h-control rounded-control" onClick={() => void openCustomEditor()}>
             Custom Polymerase
           </Button>
         </div>
       </div>
 
-      <label htmlFor="codon-strategy" className="flex items-center gap-2 text-xs" title="Min. changes = fewest nucleotide changes from WT codon. Optimal = highest-frequency codon for selected organism.">
-        <span className="w-24 text-slate-600">Codon:</span>
+      <label htmlFor="codon-strategy" className="flex items-center gap-2 text-caption" title="Min. changes = fewest nucleotide changes from WT codon. Optimal = highest-frequency codon for selected organism.">
+        <span className="w-24 text-muted-foreground">Codon:</span>
         <select
           id="codon-strategy"
-          className="h-8 min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+          className="h-control min-w-0 flex-1 rounded-control border border-border bg-card px-3 text-caption focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           value={codonStrategy}
           onChange={(e) => {
             if (isCodonStrategy(e.target.value)) {
@@ -135,74 +135,74 @@ export function ParameterPanel() {
         </select>
       </label>
 
-      <label className="flex items-center gap-2 text-xs" title="Target number of successful primer designs.">
-        <span className="w-24 text-slate-600">Mutations:</span>
+      <label className="flex items-center gap-2 text-caption" title="Target number of successful primer designs.">
+        <span className="w-24 text-muted-foreground">Mutations:</span>
         <input
           type="number"
           min={1}
           max={maxLimit}
-          className={`h-8 w-20 rounded-xl border px-2 text-center text-xs focus:outline-none focus:ring-1 ${
-            overLimit ? "border-warning focus:ring-warning" : "border-slate-300 focus:ring-ring"
+          className={`h-control w-20 rounded-control border px-2 text-center text-caption focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+            overLimit ? "border-warning focus:ring-warning" : "border-border"
           }`}
           {...maxPrimersInput}
         />
-        <span className="text-[10px] text-slate-400">
+        <span className="text-caption text-muted-foreground">
           {Math.ceil(maxPrimers / 96)} plate(s)
         </span>
       </label>
       {overLimit && (
-        <div className="text-[10px] text-warning pl-26">
+        <div className="text-caption text-warning pl-26">
           CSV contains only {evolveproTotalCount} variants
         </div>
       )}
 
       {/* Advanced Options */}
       <button
-        className="text-[11px] font-medium text-slate-500 underline underline-offset-4 hover:text-slate-700"
+        className="text-caption font-medium text-muted-foreground underline underline-offset-4 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         onClick={() => setShowAdvanced(!showAdvanced)}
       >
         {showAdvanced ? "Hide advanced" : "Advanced options..."}
       </button>
 
       {showAdvanced && (
-        <div className="space-y-1 rounded-2xl border border-slate-200 bg-white/80 p-3">
+        <div className="space-y-1 rounded-container border border-border bg-card/80 p-3">
           {/* Tm */}
-          <div className="pt-0.5 text-[9px] uppercase tracking-wider text-slate-400" title="Melting temperature targets. SantaLucia 1998 parameters.">Tm</div>
-          <div className="flex items-center gap-2 text-xs" title="Melting temperature targets. SantaLucia 1998 parameters.">
-            <span className="w-20 text-slate-500">Fwd:</span>
+          <div className="pt-0.5 text-caption uppercase tracking-wider text-muted-foreground" title="Melting temperature targets. SantaLucia 1998 parameters.">Tm</div>
+          <div className="flex items-center gap-2 text-caption" title="Melting temperature targets. SantaLucia 1998 parameters.">
+            <span className="w-20 text-muted-foreground">Fwd:</span>
             <input type="number" className={numInput} {...tmFwdInput} />
-            <span className="text-slate-400">°C</span>
+            <span className="text-muted-foreground">°C</span>
           </div>
-          <div className="flex items-center gap-2 text-xs" title="Melting temperature targets. SantaLucia 1998 parameters.">
-            <span className="w-20 text-slate-500">Rev:</span>
+          <div className="flex items-center gap-2 text-caption" title="Melting temperature targets. SantaLucia 1998 parameters.">
+            <span className="w-20 text-muted-foreground">Rev:</span>
             <input type="number" className={numInput} {...tmRevInput} />
-            <span className="text-slate-400">°C</span>
+            <span className="text-muted-foreground">°C</span>
           </div>
-          <div className="flex items-center gap-2 text-xs" title="Melting temperature targets. SantaLucia 1998 parameters.">
-            <span className="w-20 text-slate-500">Overlap:</span>
+          <div className="flex items-center gap-2 text-caption" title="Melting temperature targets. SantaLucia 1998 parameters.">
+            <span className="w-20 text-muted-foreground">Overlap:</span>
             <input type="number" className={numInput} {...tmOvInput} />
-            <span className="text-slate-400">°C</span>
+            <span className="text-muted-foreground">°C</span>
           </div>
 
           {/* GC */}
-          <div className="pt-1.5 text-[9px] uppercase tracking-wider text-slate-400" title="Recommended range: 40-60%. Primers outside this range receive a penalty.">GC%</div>
-          <div className="flex items-center gap-2 text-xs" title="Recommended range: 40-60%. Primers outside this range receive a penalty.">
-            <span className="w-20 text-slate-500">Range:</span>
+          <div className="pt-1.5 text-caption uppercase tracking-wider text-muted-foreground" title="Recommended range: 40-60%. Primers outside this range receive a penalty.">GC%</div>
+          <div className="flex items-center gap-2 text-caption" title="Recommended range: 40-60%. Primers outside this range receive a penalty.">
+            <span className="w-20 text-muted-foreground">Range:</span>
             <input type="number"
-              className={`${gcInputBase} ${gcInvalid ? "border-red-400 focus:ring-red-400" : "border-slate-300 focus:ring-ring"}`}
+              className={`${gcInputBase} ${gcInvalid ? "border-error focus:ring-error" : "border-border"}`}
               {...gcMinInput} />
-            <span className="text-slate-400">~</span>
+            <span className="text-muted-foreground">~</span>
             <input type="number"
-              className={`${gcInputBase} ${gcInvalid ? "border-red-400 focus:ring-red-400" : "border-slate-300 focus:ring-ring"}`}
+              className={`${gcInputBase} ${gcInvalid ? "border-error focus:ring-error" : "border-border"}`}
               {...gcMaxInput} />
-            <span className="text-slate-400">%</span>
+            <span className="text-muted-foreground">%</span>
           </div>
           {gcInvalid && (
-            <div className="text-[10px] text-red-500 pl-20">Min must be less than Max</div>
+            <div className="text-caption text-error pl-20">Min must be less than Max</div>
           )}
 
           {/* Primer Length */}
-          <div className="flex items-center gap-1 pt-1.5 text-[9px] uppercase tracking-wider text-slate-400">
+          <div className="flex items-center gap-1 pt-1.5 text-caption uppercase tracking-wider text-muted-foreground">
             Primer Length
             <HelpTip>
               {"KOD One PCR Master Mix\n" +
@@ -216,48 +216,48 @@ export function ParameterPanel() {
                "KURO primer length = overlap + priming region"}
             </HelpTip>
           </div>
-          <label className="flex items-center gap-1 text-xs cursor-pointer">
+          <label className="flex items-center gap-1 text-caption cursor-pointer">
             <input
               type="checkbox"
               className="h-3 w-3 accent-primary"
               checked={primerLenEnabled}
               onChange={(e) => setPrimerLenEnabled(e.target.checked)}
             />
-            <span className="text-slate-500">Limit</span>
+            <span className="text-muted-foreground">Limit</span>
             {primerLenEnabled && (
               <span className="flex items-center gap-1 ml-1">
-                <span className="text-slate-400">F</span>
+                <span className="text-muted-foreground">F</span>
                 <input type="number" className={numInput} {...fwdLenMinInput} />
-                <span className="text-slate-400">~</span>
+                <span className="text-muted-foreground">~</span>
                 <input type="number" className={numInput} {...fwdLenMaxInput} />
               </span>
             )}
           </label>
           {primerLenEnabled && (
             <>
-              <div className="flex items-center gap-1 text-xs pl-4">
-                <span className="ml-3 text-slate-400">R</span>
+              <div className="flex items-center gap-1 text-caption pl-4">
+                <span className="ml-3 text-muted-foreground">R</span>
                 <input type="number" className={numInput} {...revLenMinInput} />
-                <span className="text-slate-400">~</span>
+                <span className="text-muted-foreground">~</span>
                 <input type="number" className={numInput} {...revLenMaxInput} />
-                <span className="text-[10px] text-slate-400">bp</span>
+                <span className="text-caption text-muted-foreground">bp</span>
               </div>
               {(fwdLenMin >= fwdLenMax || revLenMin >= revLenMax) && (
-                <div className="text-[10px] text-red-500 pl-8">Min must be less than Max</div>
+                <div className="text-caption text-error pl-8">Min must be less than Max</div>
               )}
             </>
           )}
 
           {/* Design Behavior */}
-          <div className="pt-1.5 text-[9px] uppercase tracking-wider text-slate-400">Design</div>
-          <label className="flex items-center gap-1 text-xs cursor-pointer" title="When ON, automatically fills the requested count from extra candidates when some mutations fail.">
+          <div className="pt-1.5 text-caption uppercase tracking-wider text-muted-foreground">Design</div>
+          <label className="flex items-center gap-1 text-caption cursor-pointer" title="When ON, automatically fills the requested count from extra candidates when some mutations fail.">
             <input
               type="checkbox"
               className="h-3 w-3 accent-primary"
               checked={fillOnFailure}
               onChange={(e) => setFillOnFailure(e.target.checked)}
             />
-            <span className="text-slate-500">Fill on failure</span>
+            <span className="text-muted-foreground">Fill on failure</span>
           </label>
         </div>
       )}

@@ -95,8 +95,8 @@ export function Sidebar({ onClearRequest }: SidebarProps) {
           {isAnalyzing ? (
             <Button
               size="sm"
-              variant="destructive"
-              className="h-control-primary flex-1 gap-1.5 rounded-control text-caption"
+              variant="outline"
+              className="h-control-primary flex-1 gap-1.5 rounded-control text-caption text-error border-error/40 hover:bg-error/8"
               onClick={() => void cancelAnalysis()}
             >
               <Square size={12} aria-hidden="true" />

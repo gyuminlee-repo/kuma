@@ -133,7 +133,7 @@ function SummaryTile({
       role="status"
       aria-label={`${label}: ${value}`}
     >
-      <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+      <span className="text-caption font-medium uppercase tracking-wide text-muted-foreground">
         {label}
       </span>
       <span
@@ -144,7 +144,7 @@ function SummaryTile({
       >
         {value}
       </span>
-      {hint && <span className="text-[11px] text-muted-foreground">{hint}</span>}
+      {hint && <span className="text-caption text-muted-foreground">{hint}</span>}
     </div>
   );
 }

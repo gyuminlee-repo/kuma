@@ -15,7 +15,7 @@ export function ColoredFwdSeq({ seq, overlapLen }: {
   const rest = seq.slice(overlapLen + 3);
 
   return (
-    <span className="font-mono text-[10px] break-all">
+    <span className="font-mono text-caption break-all">
       <span style={{ color: "#3b82f6" }}>{overlap}</span>
       <span style={{ color: "#ef4444", fontWeight: 600 }}>{codon}</span>
       <span>{rest}</span>
@@ -34,7 +34,7 @@ export function CopySeqButton({
 }) {
   return (
     <button
-      className="ml-1 flex-shrink-0 text-gray-300 hover:text-gray-600 text-[10px] leading-none"
+      className="ml-1 flex-shrink-0 text-muted-foreground/50 hover:text-muted-foreground text-caption leading-none"
       onClick={onCopy}
       title="Copy sequence"
       aria-label={`Copy sequence to clipboard: ${seq}`}

@@ -144,53 +144,53 @@ export function FailedMutationPopover({
     setEvaluating(false);
   }
 
-  const inp = "h-6 w-14 rounded-lg border border-slate-300 bg-white px-1 text-center text-[10px] focus:outline-none focus:ring-1 focus:ring-amber-500";
+  const inp = "h-6 w-14 rounded-lg border border-border bg-card px-1 text-center text-caption focus:outline-none focus:ring-1 focus:ring-ring";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/35 backdrop-blur-[2px]" onClick={onClose} onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 backdrop-blur-[2px]" onClick={onClose} onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}>
       <div aria-hidden="true" className="fixed inset-0" />
-      <div ref={focusTrapRef} role="dialog" aria-modal="true" aria-labelledby="failed-mutation-title" className="min-w-[520px] max-h-[80vh] max-w-2xl overflow-y-auto rounded-[28px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,251,243,0.98),rgba(248,251,255,0.98))] p-5 shadow-[0_32px_90px_rgba(15,23,42,0.28)]" onClick={(e) => e.stopPropagation()}>
+      <div ref={focusTrapRef} role="dialog" aria-modal="true" aria-labelledby="failed-mutation-title" className="min-w-[520px] max-h-[80vh] max-w-2xl overflow-y-auto rounded-container border border-border bg-card p-5 shadow-lg" onClick={(e) => e.stopPropagation()}>
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-red-700">Failure Recovery</div>
-            <h3 id="failed-mutation-title" className="mt-1 text-lg font-semibold text-slate-900">{failed.mutation} — Design Failed</h3>
+            <div className="text-caption font-semibold uppercase tracking-widest text-destructive">Failure Recovery</div>
+            <h3 id="failed-mutation-title" className="mt-1 text-lg font-semibold text-foreground">{failed.mutation} — Design Failed</h3>
           </div>
-          <button onClick={onClose} className="px-2 text-lg text-slate-400 hover:text-slate-600" aria-label="Close">×</button>
+          <button onClick={onClose} className="px-2 text-lg text-muted-foreground hover:text-foreground" aria-label="Close">×</button>
         </div>
 
-        <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-3 py-3 text-xs text-red-700">
+        <div className="mb-4 rounded-2xl border border-destructive/20 bg-destructive/10 px-3 py-3 text-xs text-destructive">
           <span className="font-semibold">Reason:</span> {failed.reason}
         </div>
 
         {/* Retry with parameters */}
-        <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">Retry with parameters</div>
-        <div className="mb-3 space-y-2 rounded-2xl border border-slate-200 bg-white/80 p-3">
-          <div className="flex items-center gap-1 text-[10px]">
-            <span className="w-10 text-slate-500">Tm:</span>
-            <span className="text-slate-400">F</span><input className={inp} value={tmFwd} onChange={(e) => setTmFwd(e.target.value)} />
-            <span className="text-slate-400">R</span><input className={inp} value={tmRev} onChange={(e) => setTmRev(e.target.value)} />
-            <span className="text-slate-400">Ov</span><input className={inp} value={tmOv} onChange={(e) => setTmOv(e.target.value)} />
-            <span className="text-slate-400">°C</span>
+        <div className="mb-1 text-caption font-semibold uppercase tracking-widest text-muted-foreground">Retry with parameters</div>
+        <div className="mb-3 space-y-2 rounded-2xl border border-border bg-card p-3">
+          <div className="flex items-center gap-1 text-caption">
+            <span className="w-10 text-muted-foreground">Tm:</span>
+            <span className="text-muted-foreground">F</span><input className={inp} value={tmFwd} onChange={(e) => setTmFwd(e.target.value)} />
+            <span className="text-muted-foreground">R</span><input className={inp} value={tmRev} onChange={(e) => setTmRev(e.target.value)} />
+            <span className="text-muted-foreground">Ov</span><input className={inp} value={tmOv} onChange={(e) => setTmOv(e.target.value)} />
+            <span className="text-muted-foreground">°C</span>
           </div>
-          <div className="flex items-center gap-1 text-[10px]">
-            <span className="w-10 text-slate-500">GC%:</span>
+          <div className="flex items-center gap-1 text-caption">
+            <span className="w-10 text-muted-foreground">GC%:</span>
             <input className={inp} value={gcMin} onChange={(e) => setGcMin(e.target.value)} />
-            <span className="text-slate-400">~</span>
+            <span className="text-muted-foreground">~</span>
             <input className={inp} value={gcMax} onChange={(e) => setGcMax(e.target.value)} />
-            <span className="ml-2 text-slate-400">Tol max</span>
+            <span className="ml-2 text-muted-foreground">Tol max</span>
             <input className={inp} value={tolMax} onChange={(e) => setTolMax(e.target.value)} />
-            <span className="text-slate-400">°C</span>
+            <span className="text-muted-foreground">°C</span>
           </div>
-          <div className="flex items-center gap-1 text-[10px]">
-            <span className="w-10 text-slate-500">Length:</span>
-            <span className="text-slate-400">F</span><input className={inp} value={fwdMin} onChange={(e) => setFwdMin(e.target.value)} />
-            <span className="text-slate-400">~</span><input className={inp} value={fwdMax} onChange={(e) => setFwdMax(e.target.value)} />
-            <span className="ml-1 text-slate-400">R</span><input className={inp} value={revMin} onChange={(e) => setRevMin(e.target.value)} />
-            <span className="text-slate-400">~</span><input className={inp} value={revMax} onChange={(e) => setRevMax(e.target.value)} />
-            <span className="text-slate-400">bp</span>
+          <div className="flex items-center gap-1 text-caption">
+            <span className="w-10 text-muted-foreground">Length:</span>
+            <span className="text-muted-foreground">F</span><input className={inp} value={fwdMin} onChange={(e) => setFwdMin(e.target.value)} />
+            <span className="text-muted-foreground">~</span><input className={inp} value={fwdMax} onChange={(e) => setFwdMax(e.target.value)} />
+            <span className="ml-1 text-muted-foreground">R</span><input className={inp} value={revMin} onChange={(e) => setRevMin(e.target.value)} />
+            <span className="text-muted-foreground">~</span><input className={inp} value={revMax} onChange={(e) => setRevMax(e.target.value)} />
+            <span className="text-muted-foreground">bp</span>
           </div>
           <button
-            className="mt-1 rounded-full bg-slate-900 px-4 py-1.5 text-xs text-white hover:bg-slate-800 disabled:opacity-40"
+            className="mt-1 rounded-full bg-foreground px-4 py-1.5 text-xs text-background hover:bg-foreground/80 disabled:opacity-40"
             onClick={handleRetry}
             disabled={retrying}
           >
@@ -199,16 +199,16 @@ export function FailedMutationPopover({
         </div>
 
         {retryError && (
-          <div className="text-[10px] text-amber-700 bg-amber-50 rounded px-2 py-1 mb-2">{retryError}</div>
+          <div className="text-caption text-warning bg-warning/10 rounded px-2 py-1 mb-2">{retryError}</div>
         )}
 
         {/* Candidate list */}
         {candidates.length > 0 && (
           <div className="mb-3">
-            <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">Candidates ({candidates.length})</div>
-            <div className="max-h-40 overflow-y-auto rounded-2xl border border-slate-200">
-              <table className="w-full text-[10px]">
-                <thead className="sticky top-0 bg-slate-50">
+            <div className="mb-1 text-caption font-semibold uppercase tracking-widest text-muted-foreground">Candidates ({candidates.length})</div>
+            <div className="max-h-40 overflow-y-auto rounded-2xl border border-border">
+              <table className="w-full text-caption">
+                <thead className="sticky top-0 bg-muted">
                   <tr>
                     <th className="px-1 py-0.5 text-left">Fwd</th>
                     <th className="px-1 py-0.5 text-left">Rev</th>
@@ -220,15 +220,15 @@ export function FailedMutationPopover({
                 </thead>
                 <tbody>
                   {candidates.map((c, i) => (
-                    <tr key={i} className="border-t border-slate-100 hover:bg-emerald-50">
-                      <td className="px-1 py-0.5 font-mono truncate max-w-[120px]" title={c.forward_seq}>{c.forward_seq.slice(0, 15)}...</td>
-                      <td className="px-1 py-0.5 font-mono truncate max-w-[100px]" title={c.reverse_seq}>{c.reverse_seq.slice(0, 12)}...</td>
+                    <tr key={i} className="border-t border-border hover:bg-success/5">
+                      <td className="px-1 py-0.5 font-mono truncate max-w-28" title={c.forward_seq}>{c.forward_seq.slice(0, 15)}...</td>
+                      <td className="px-1 py-0.5 font-mono truncate max-w-24" title={c.reverse_seq}>{c.reverse_seq.slice(0, 12)}...</td>
                       <td className="px-1 py-0.5 text-center">{c.tm_no_fwd.toFixed(1)}</td>
                       <td className="px-1 py-0.5 text-center">{c.tm_no_rev.toFixed(1)}</td>
                       <td className="px-1 py-0.5 text-center">{c.penalty.toFixed(1)}</td>
                       <td className="px-1 py-0.5">
                         <button
-                          className="rounded-full bg-emerald-600 px-2 py-0.5 text-[9px] text-white hover:bg-emerald-700"
+                          className="rounded-full bg-success px-2 py-0.5 text-plate-tiny text-white hover:bg-success/80"
                           onClick={() => handleSelect(c)}
                         >
                           Select
@@ -244,7 +244,7 @@ export function FailedMutationPopover({
 
         {/* Manual input (collapsible) */}
         <button
-          className="mb-1 text-[10px] text-slate-500 underline hover:text-slate-700"
+          className="mb-1 text-caption text-muted-foreground underline hover:text-foreground"
           onClick={() => setShowManual(!showManual)}
         >
           {showManual ? "Hide manual input" : "Or enter manually..."}
@@ -252,19 +252,19 @@ export function FailedMutationPopover({
         {showManual && (
           <div className="space-y-1">
             <div className="flex items-center gap-0.5">
-              <span className="w-6 text-[9px] text-slate-400">Fwd:</span>
-              <input className="flex-1 text-[10px] font-mono border border-blue-300 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400" style={{ color: "#3b82f6" }} placeholder="Overlap" value={customOverlap} onChange={(e) => setCustomOverlap(e.target.value.toUpperCase())} />
-              <input className="w-12 text-[10px] font-mono font-semibold border border-red-300 rounded px-1 py-1 text-center focus:outline-none focus:ring-1 focus:ring-red-400" style={{ color: "#ef4444" }} placeholder="Codon" maxLength={3} value={customCodon} onChange={(e) => setCustomCodon(e.target.value.toUpperCase())} />
-              <input className="flex-1 text-[10px] font-mono border border-gray-300 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-gray-400" placeholder="Downstream" value={customDownstream} onChange={(e) => setCustomDownstream(e.target.value.toUpperCase())} />
+              <span className="w-6 text-plate-tiny text-muted-foreground">Fwd:</span>
+              <input className="flex-1 text-caption font-mono border border-info/30 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-info" style={{ color: "hsl(var(--info))" }} placeholder="Overlap" value={customOverlap} onChange={(e) => setCustomOverlap(e.target.value.toUpperCase())} />
+              <input className="w-12 text-caption font-mono font-semibold border border-destructive/30 rounded px-1 py-1 text-center focus:outline-none focus:ring-1 focus:ring-destructive" style={{ color: "hsl(var(--destructive))" }} placeholder="Codon" maxLength={3} value={customCodon} onChange={(e) => setCustomCodon(e.target.value.toUpperCase())} />
+              <input className="flex-1 text-caption font-mono border border-border rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-ring" placeholder="Downstream" value={customDownstream} onChange={(e) => setCustomDownstream(e.target.value.toUpperCase())} />
             </div>
             <div className="flex items-center gap-0.5">
-              <span className="w-6 text-[9px] text-slate-400">Rev:</span>
-              <input className="flex-1 text-[10px] font-mono border border-orange-300 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-orange-400" placeholder="Reverse sequence (5' → 3')" value={customRev} onChange={(e) => setCustomRev(e.target.value.toUpperCase())} />
-              <button className="rounded-full bg-violet-600 px-3 py-1 text-[10px] text-white hover:bg-violet-700 disabled:opacity-40" disabled={!(customOverlap + customCodon + customDownstream).trim() || !customRev.trim() || evaluating} onClick={handleEvaluate}>
+              <span className="w-6 text-plate-tiny text-muted-foreground">Rev:</span>
+              <input className="flex-1 text-caption font-mono border border-warning/30 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-warning" placeholder="Reverse sequence (5' → 3')" value={customRev} onChange={(e) => setCustomRev(e.target.value.toUpperCase())} />
+              <button className="rounded-full bg-primary px-3 py-1 text-caption text-primary-foreground hover:bg-primary/80 disabled:opacity-40" disabled={!(customOverlap + customCodon + customDownstream).trim() || !customRev.trim() || evaluating} onClick={handleEvaluate}>
                 {evaluating ? "..." : "Evaluate"}
               </button>
             </div>
-            {seqError && <div className="text-[10px] text-red-600 bg-red-50 rounded px-2 py-1 mt-1">{seqError}</div>}
+            {seqError && <div className="text-caption text-destructive bg-destructive/10 rounded px-2 py-1 mt-1">{seqError}</div>}
           </div>
         )}
       </div>

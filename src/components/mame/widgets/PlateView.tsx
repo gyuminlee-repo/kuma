@@ -13,8 +13,8 @@ function getSelectedPlateLabel(barcode: string | null): string {
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-start justify-between gap-3 border-b border-border/50 py-1 last:border-0">
-      <span className="flex-shrink-0 text-[11px] text-muted-foreground">{label}</span>
-      <span className="break-all text-right text-[11px] font-medium text-foreground">{value}</span>
+      <span className="flex-shrink-0 text-caption text-muted-foreground">{label}</span>
+      <span className="break-all text-right text-caption font-medium text-foreground">{value}</span>
     </div>
   );
 }
@@ -39,21 +39,21 @@ export function PlateView() {
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
       <div className="flex items-center justify-between border-b border-border px-3 py-1.5">
-        <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+        <div className="flex items-center gap-2 text-caption text-muted-foreground">
           <span>
             Plate:{" "}
             <span className="font-medium text-foreground">
               {getSelectedPlateLabel(selectedWell?.barcode ?? null)}
             </span>
           </span>
-          <span className="rounded-full border border-border/70 bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+          <span className="rounded-full border border-border/70 bg-muted px-2 py-0.5 text-caption font-medium text-muted-foreground">
             {filledCount} wells
           </span>
-          <span className="rounded-full border border-primary/15 bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+          <span className="rounded-full border border-primary/15 bg-primary/10 px-2 py-0.5 text-caption font-medium text-primary">
             {selectedCount} picked
           </span>
         </div>
-        <label className="flex items-center gap-1 text-[11px] text-muted-foreground">
+        <label className="flex items-center gap-1 text-caption text-muted-foreground">
           <input
             type="checkbox"
             checked={colorblindMode}
@@ -84,22 +84,22 @@ export function PlateView() {
                 "LOWDEPTH",
               ] as VerdictClass[]
             ).map((verdict) => (
-              <VerdictBadge key={verdict} verdict={verdict} className="text-[10px]" />
+              <VerdictBadge key={verdict} verdict={verdict} className="text-caption" />
             ))}
           </div>
         </div>
 
         <aside
-          className="flex min-h-0 flex-col overflow-auto rounded-md border border-border bg-background p-2"
+          className="flex min-h-0 flex-col overflow-auto rounded-control border border-border bg-background p-2"
           aria-live="polite"
           aria-label="Selected well details"
         >
           {selectedWell ? (
             <div className="space-y-2">
-              <div className="rounded-md border border-border bg-muted/20 px-2.5 py-2">
+              <div className="rounded-control border border-border bg-muted/20 px-2.5 py-2">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                    <p className="text-caption font-medium uppercase tracking-wide text-muted-foreground">
                       Selected Well
                     </p>
                     <p className="font-display text-lg font-semibold leading-none text-foreground">
@@ -109,11 +109,11 @@ export function PlateView() {
                   <VerdictBadge verdict={selectedWell.verdict} />
                 </div>
                 <div className="mt-2 flex flex-wrap gap-1">
-                  <span className="rounded-full border border-border/70 bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                  <span className="rounded-full border border-border/70 bg-muted px-2 py-0.5 text-caption font-medium text-muted-foreground">
                     {getSelectedPlateLabel(selectedWell.barcode)}
                   </span>
                   {selectedWell.selected && (
-                    <span className="rounded-full border border-primary/15 bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                    <span className="rounded-full border border-primary/15 bg-primary/10 px-2 py-0.5 text-caption font-medium text-primary">
                       Selected replicate
                     </span>
                   )}
@@ -131,7 +131,7 @@ export function PlateView() {
           ) : (
             <div className="flex flex-1 flex-col items-center justify-center text-center">
               <span className="mb-1 text-base text-muted-foreground" aria-hidden="true">◎</span>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-caption text-muted-foreground">
                 Click a well to inspect.
               </p>
             </div>

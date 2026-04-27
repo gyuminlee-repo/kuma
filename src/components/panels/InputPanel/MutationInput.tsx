@@ -42,9 +42,9 @@ export function MutationInput() {
 
   return (
     <div className="space-y-1">
-      <label className="text-xs font-medium text-slate-700">Mutations</label>
+      <label className="text-xs font-medium text-foreground">Mutations</label>
       <div className="flex gap-2 text-xs" role="radiogroup" aria-label="Mutation input source">
-        <label className="flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1 text-slate-600">
+        <label className="flex items-center gap-1 rounded-full border border-border bg-card px-2 py-1 text-muted-foreground">
           <input
             type="radio"
             name="mutInput"
@@ -54,7 +54,7 @@ export function MutationInput() {
           />
           Text
         </label>
-        <label className="flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1 text-slate-600">
+        <label className="flex items-center gap-1 rounded-full border border-border bg-card px-2 py-1 text-muted-foreground">
           <input
             type="radio"
             name="mutInput"
@@ -64,7 +64,7 @@ export function MutationInput() {
           />
           EVOLVEpro
         </label>
-        <label className="flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1 text-slate-600">
+        <label className="flex items-center gap-1 rounded-full border border-border bg-card px-2 py-1 text-muted-foreground">
           <input
             type="radio"
             name="mutInput"
@@ -78,7 +78,7 @@ export function MutationInput() {
 
       {mutationInputMode === "text" && (
         <textarea
-          className="h-32 w-full resize-none rounded-2xl border border-slate-300 bg-white p-3 font-mono text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+          className="h-32 w-full resize-none rounded-2xl border border-border bg-card p-3 font-mono text-xs focus:outline-none focus:ring-1 focus:ring-ring"
           placeholder={"Q232A\nY233A\nE335A\nA40P/E61Y\n..."}
           value={mutationText}
           onChange={(e) => setMutationText(e.target.value)}
@@ -110,14 +110,14 @@ export function MutationInput() {
             >
               Browse
             </Button>
-            <span className="self-center truncate text-xs text-slate-500">
+            <span className="self-center truncate text-xs text-muted-foreground">
               {evolveproCsvPath ? basename(evolveproCsvPath) : "No file selected"}
             </span>
           </div>
 
           {/* Variant count summary */}
           {evolveproTotalCount > 0 && (
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-700">
+            <div className="rounded-xl border border-border bg-muted px-3 py-2 text-xs font-medium text-foreground">
               {mutationInputMode === "multi-evolve" ? "MULTI-evolve" : "EVOLVEpro"}:{" "}
               {evolveproTotalCount} variants loaded
             </div>
@@ -131,7 +131,7 @@ export function MutationInput() {
           ) : (
             <>
               <div className="space-y-1">
-                <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                <div className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">
                   Selection mode
                 </div>
                 <div className="space-y-0.5">
@@ -143,8 +143,8 @@ export function MutationInput() {
                       checked={!pipelineMode}
                       onChange={() => setPipelineMode(false)}
                     />
-                    <span className="text-slate-700">Top-N only</span>
-                    <span className="text-[10px] text-slate-400">(y_pred descending)</span>
+                    <span className="text-foreground">Top-N only</span>
+                    <span className="text-caption text-muted-foreground">(y_pred descending)</span>
                   </label>
                   <label className="flex items-center gap-1.5 cursor-pointer text-xs">
                     <input
@@ -154,8 +154,8 @@ export function MutationInput() {
                       checked={pipelineMode}
                       onChange={() => setPipelineMode(true)}
                     />
-                    <span className="text-slate-700">Pipeline</span>
-                    <span className="text-[10px] text-slate-400">(step-by-step filtering)</span>
+                    <span className="text-foreground">Pipeline</span>
+                    <span className="text-caption text-muted-foreground">(step-by-step filtering)</span>
                   </label>
                 </div>
               </div>
@@ -167,7 +167,7 @@ export function MutationInput() {
           {/* Editable variant textarea */}
           {mutationText && (
             <textarea
-              className="h-32 w-full resize-none rounded-2xl border border-slate-300 bg-slate-50 p-3 font-mono text-xs"
+              className="h-32 w-full resize-none rounded-2xl border border-border bg-muted p-3 font-mono text-xs"
               value={mutationText}
               onChange={(e) => setMutationText(e.target.value)}
               title="Top-N variants by y_pred (editable)"
@@ -177,7 +177,7 @@ export function MutationInput() {
       )}
 
       {mutationText.trim() && (
-        <div className="text-xs text-slate-400">
+        <div className="text-xs text-muted-foreground">
           {mutationCount} mutations entered
           {parsedMutations.length > 0 && (
             <span className="ml-1 text-emerald-600">
@@ -185,12 +185,12 @@ export function MutationInput() {
             </span>
           )}
           {parseErrors.length > 0 && (
-            <span className="text-red-500 ml-1">({parseErrors.length} failed)</span>
+            <span className="text-destructive ml-1">({parseErrors.length} failed)</span>
           )}
         </div>
       )}
       {parseErrors.length > 0 && (
-        <div className="max-h-16 space-y-0.5 overflow-auto rounded-md bg-destructive/10 px-2 py-1 text-[10px] text-destructive">
+        <div className="max-h-16 space-y-0.5 overflow-auto rounded-md bg-destructive/10 px-2 py-1 text-caption text-destructive">
           {parseErrors.map((e) => (
             <div key={e.line}>
               L{e.line}: <span className="font-mono">{e.raw}</span> — {e.reason}

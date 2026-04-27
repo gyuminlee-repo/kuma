@@ -129,11 +129,11 @@ function FileField({
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between gap-3">
-        <Label htmlFor={inputId} className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+        <Label htmlFor={inputId} className="text-caption font-medium uppercase tracking-wide text-muted-foreground">
           {label}
         </Label>
         <span
-          className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+          className={`rounded-full px-2 py-0.5 text-caption font-medium ${
             filled
               ? "bg-primary/10 text-primary"
               : "bg-muted text-muted-foreground"
@@ -163,9 +163,9 @@ function FileField({
         </Button>
       </div>
       {helperText && (
-        <p className="text-[11px] text-muted-foreground/90">{helperText}</p>
+        <p className="text-caption text-muted-foreground/90">{helperText}</p>
       )}
-      <p className="truncate text-[11px] text-muted-foreground" title={value || undefined}>
+      <p className="truncate text-caption text-muted-foreground" title={value || undefined}>
         {filled ? preview : "No path selected"}
       </p>
     </div>

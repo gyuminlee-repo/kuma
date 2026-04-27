@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { StateView } from "@/components/ui/StateView";
 
 type VerdictRow = VerdictRecord & { mutant_id: string };
 
@@ -130,13 +131,13 @@ export function VerdictTable() {
           value={plateFilter}
           onValueChange={(value: string) => setPlateFilter(value as "NB01" | "NB02" | "NB03" | "ALL")}
         >
-          <TabsList className="h-7 gap-1 bg-muted/60 p-0.5">
+          <TabsList className="h-control gap-1 bg-muted/60 p-0.5">
             {(["ALL", "NB01", "NB02", "NB03"] as const).map((tab) => (
               <TabsTrigger
                 key={tab}
                 value={tab}
                 className={cn(
-                  "h-6 rounded px-2 text-[11px] font-medium transition-colors",
+                  "h-6 rounded-control px-2 text-caption font-medium transition-colors",
                   "data-[state=active]:bg-primary data-[state=active]:text-primary-foreground",
                   "data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground",
                 )}
@@ -175,7 +176,7 @@ export function VerdictTable() {
                     key={header.id}
                     onClick={header.column.getToggleSortingHandler()}
                     className={cn(
-                      "sticky top-0 z-10 h-8 bg-background px-3 text-[11px] font-semibold text-muted-foreground",
+                      "sticky top-0 z-10 h-control bg-background px-3 text-caption font-semibold text-muted-foreground",
                       header.column.getCanSort() && "cursor-pointer select-none hover:text-foreground",
                     )}
                   >
@@ -210,13 +211,20 @@ export function VerdictTable() {
               ))
             ) : (
               <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="py-8 text-center text-sm text-muted-foreground"
-                >
-                  {verdicts.length === 0
-                    ? "Run analysis to see results."
-                    : "No results match the current search."}
+                <TableCell colSpan={columns.length} className="py-0">
+                  {verdicts.length === 0 ? (
+                    <StateView
+                      variant="empty"
+                      title="No results yet"
+                      description="Run analysis to populate the verdict table."
+                    />
+                  ) : (
+                    <StateView
+                      variant="empty"
+                      title="No matches"
+                      description="No results match the current search or filter."
+                    />
+                  )}
                 </TableCell>
               </TableRow>
             )}
@@ -226,7 +234,7 @@ export function VerdictTable() {
 
       {filteredRows.length > 0 && (
         <div className="border-t border-border px-3 py-1.5">
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-caption text-muted-foreground">
             {filteredRows.length} result(s)
             {searchQuery && ` (search: "${searchQuery}")`}
           </p>

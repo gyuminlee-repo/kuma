@@ -24,8 +24,8 @@ const STRATEGY_LABELS: Record<string, string> = {
 function MetricRow({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="flex justify-between text-xs">
-      <span className="text-slate-500">{label}</span>
-      <span className="font-medium text-slate-800">{value}</span>
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-medium text-foreground">{value}</span>
     </div>
   );
 }
@@ -54,18 +54,18 @@ export function BenchmarkDialog() {
       <DialogContent className="max-h-[80vh] max-w-4xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl">Benchmark</DialogTitle>
-          <DialogDescription className="text-slate-600">
+          <DialogDescription className="text-muted-foreground">
             Top {data.topPercentile}% hit threshold, random {data.randomTrials} trials, seed {data.randomSeed ?? "AUTO"}
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 md:grid-cols-2">
           {Object.entries(data.results).map(([strategy, metrics]) => (
-            <div key={strategy} className="space-y-2 rounded-[22px] border border-slate-200 bg-white/80 p-4">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+            <div key={strategy} className="space-y-2 rounded-container border border-border bg-card p-4">
+              <div className="text-caption font-semibold uppercase tracking-widest text-muted-foreground">
                 Strategy
               </div>
-              <div className="text-base font-semibold text-slate-900">
+              <div className="text-body font-semibold text-foreground">
                 {STRATEGY_LABELS[strategy] ?? strategy}
               </div>
               <MetricRow label="Hit rate" value={`${metrics.hit_rate.toFixed(1)}%`} />
@@ -86,7 +86,7 @@ export function BenchmarkDialog() {
           <Button
             variant="outline"
             size="sm"
-            className="rounded-full border-slate-300 bg-white"
+            className="rounded-full"
             onClick={() => {
               void handleSaveBenchmarkJson({
                 exported_at: new Date().toISOString(),
@@ -108,14 +108,14 @@ export function BenchmarkDialog() {
           <Button
             variant="outline"
             size="sm"
-            className="rounded-full border-slate-300 bg-white"
+            className="rounded-full"
             onClick={() => {
               void handleExportBenchmarkCsv(results);
             }}
           >
             Export CSV
           </Button>
-          <Button variant="outline" size="sm" className="rounded-full border-slate-300 bg-white" onClick={() => data.setOpen(false)}>
+          <Button variant="outline" size="sm" className="rounded-full" onClick={() => data.setOpen(false)}>
             Close
           </Button>
         </DialogFooter>

@@ -48,18 +48,18 @@ export function WellPlate({
   const wellMap = new Map(wells.map((w) => [w.well, w]));
 
   return (
-    <div className="w-full overflow-x-auto rounded-[24px] border border-border/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.85),rgba(248,245,238,0.92))] p-4" role="grid" aria-label="96-Well Plate">
+    <div className="w-full overflow-x-auto rounded-container border border-border/70 bg-card p-4" role="grid" aria-label="96-Well Plate">
       <div
         className="grid items-center text-center"
         style={{ gridTemplateColumns: plateGridTemplate, gap: plateGridGap }}
       >
-        <div className="font-display text-xs uppercase tracking-[0.2em] text-muted-foreground" aria-hidden="true">
+        <div className="font-display text-caption uppercase tracking-widest text-muted-foreground" aria-hidden="true">
           R
         </div>
         {COLS.map((col) => (
           <div
             key={col}
-            className="rounded-full bg-muted/55 py-2 text-center text-xs font-semibold text-muted-foreground"
+            className="rounded-full bg-muted/55 py-2 text-center text-caption font-semibold text-muted-foreground"
             aria-label={`Column ${col}`}
           >
             {col}
@@ -99,8 +99,8 @@ export function WellPlate({
                     onClick={() => well && onWellClick?.(well)}
                     aria-pressed={isFocused}
                     className={cn(
-                      "well-button relative flex aspect-square w-full flex-col items-center justify-center rounded-[18px] border text-center shadow-sm",
-                      "text-[10px] font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
+                      "well-button relative flex aspect-square w-full flex-col items-center justify-center rounded-container border text-center shadow-sm",
+                      "text-plate font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
                       !well && "cursor-default",
                       isFocused && "well-button-selected",
                       well?.selected && "shadow-md",
@@ -113,15 +113,16 @@ export function WellPlate({
                       backgroundImage: pattern,
                     }}
                   >
-                    <span className="font-display text-[11px] font-semibold leading-tight">{id}</span>
+                    {/* Well ID label — uses plate token (10px) */}
+                    <span className="font-display text-plate font-semibold leading-tight">{id}</span>
                     {well && (
-                      <span className="mt-0.5 max-w-full truncate px-1 text-[8px] leading-tight opacity-85">
+                      <span className="mt-0.5 max-w-full truncate px-1 text-plate-tiny leading-tight opacity-85">
                         {well.mutant_id || "—"}
                       </span>
                     )}
                     {well?.selected && (
                       <span
-                        className="absolute left-1 top-1 rounded-full bg-white/82 px-1.5 py-0.5 text-[7px] font-semibold uppercase tracking-[0.14em] text-surface-contrast"
+                        className="absolute left-1 top-1 rounded-full bg-card px-1.5 py-0.5 text-plate-tiny font-semibold uppercase tracking-widest text-surface-contrast"
                         aria-hidden="true"
                       >
                         Pick
@@ -129,7 +130,7 @@ export function WellPlate({
                     )}
                     {plate && (
                       <span
-                        className="absolute right-1 top-1 rounded-full px-1.5 py-0.5 text-[7px] font-bold leading-tight"
+                        className="absolute right-1 top-1 rounded-full px-1.5 py-0.5 text-plate-tiny font-bold leading-tight"
                         style={{
                           backgroundColor: "rgba(0,0,0,0.25)",
                           color: fill.text,

@@ -13,8 +13,8 @@ import { Button } from "../ui/button";
 function Stat({ label, value, warn }: { label: string; value: string | number; warn?: boolean }) {
   return (
     <div className="flex justify-between text-xs">
-      <span className="text-slate-500">{label}</span>
-      <span className={warn ? "font-medium text-amber-700" : "font-medium text-slate-800"}>{value}</span>
+      <span className="text-muted-foreground">{label}</span>
+      <span className={warn ? "font-medium text-warning" : "font-medium text-foreground"}>{value}</span>
     </div>
   );
 }
@@ -22,8 +22,8 @@ function Stat({ label, value, warn }: { label: string; value: string | number; w
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">{title}</h4>
-      <div className="space-y-1 rounded-2xl border border-slate-200 bg-white/80 p-3">{children}</div>
+      <h4 className="text-caption font-semibold uppercase tracking-widest text-muted-foreground">{title}</h4>
+      <div className="space-y-1 rounded-2xl border border-border bg-card p-3">{children}</div>
     </div>
   );
 }
@@ -151,7 +151,7 @@ export function DesignReport() {
           <DialogTitle className="flex items-center gap-2">
             <span className="text-xl">Design Report</span>
           </DialogTitle>
-          <DialogDescription className="text-slate-600">
+          <DialogDescription className="text-muted-foreground">
             {successCount}/{totalCount} primers designed ({successRate}% success)
           </DialogDescription>
         </DialogHeader>
@@ -247,7 +247,7 @@ export function DesignReport() {
                 />
               )}
               {rescuedMutationDetails.length > 0 && (
-                <div className="mt-1 space-y-0.5 text-xs text-slate-600">
+                <div className="mt-1 space-y-0.5 text-xs text-muted-foreground">
                   {rescuedMutationDetails.slice(0, 5).map((r, i) => (
                     <div key={i} className="flex justify-between">
                       <span className="font-mono">
@@ -255,14 +255,14 @@ export function DesignReport() {
                           ? `${r.original} \u2192 ${r.rescued_by}`
                           : r.original}
                       </span>
-                      <span className={r.type === "pool_cascade" ? "text-green-600" : "text-amber-600"}>
+                      <span className={r.type === "pool_cascade" ? "text-success" : "text-warning"}>
                         {r.type === "pool_cascade" ? "\u21BB cascade" : "\u26A1 relaxed"}
                         {r.penalty != null && ` (${r.penalty.toFixed(1)})`}
                       </span>
                     </div>
                   ))}
                   {rescuedMutationDetails.length > 5 && (
-                    <div className="text-slate-400">+{rescuedMutationDetails.length - 5} more</div>
+                    <div className="text-muted-foreground">+{rescuedMutationDetails.length - 5} more</div>
                   )}
                 </div>
               )}
@@ -295,21 +295,21 @@ export function DesignReport() {
           {/* Failed Mutations */}
           {failCount > 0 && (
             <Section title="Failed Mutations">
-              <div className="space-y-0.5 text-xs text-slate-600">
+              <div className="space-y-0.5 text-xs text-muted-foreground">
                 {failedMutations.slice(0, 5).map((f) => (
                   <div key={f.mutation} className="flex justify-between">
                     <span className="font-mono">{f.mutation}</span>
-                    <span className="ml-2 truncate text-slate-400">{f.reason}</span>
+                    <span className="ml-2 truncate text-muted-foreground">{f.reason}</span>
                   </div>
                 ))}
-                {failCount > 5 && <div className="text-slate-400">+{failCount - 5} more</div>}
+                {failCount > 5 && <div className="text-muted-foreground">+{failCount - 5} more</div>}
               </div>
             </Section>
           )}
         </div>
 
         <DialogFooter>
-          <Button variant="outline" size="sm" className="rounded-full border-slate-300 bg-white" onClick={() => setShowReport(false)}>
+          <Button variant="outline" size="sm" className="rounded-full" onClick={() => setShowReport(false)}>
             Close
           </Button>
         </DialogFooter>

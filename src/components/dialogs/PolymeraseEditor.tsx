@@ -145,18 +145,18 @@ export function PolymeraseEditor({
       <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle className="text-xl">Custom Polymerase</DialogTitle>
-          <DialogDescription className="text-slate-600">
+          <DialogDescription className="text-muted-foreground">
             Primer design defaults and asymmetric Tm targets for KURO.
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid grid-cols-2 gap-4 text-sm">
-          <div className="col-span-2 rounded-2xl border border-slate-200 bg-white/80 p-4">
-            <label className="text-xs text-slate-500">Name</label>
+          <div className="col-span-2 rounded-2xl border border-border bg-card p-4">
+            <label className="text-xs text-muted-foreground">Name</label>
             <Input value={form.name} onChange={(e) => update("name", e.target.value)} />
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-            <label className="text-xs text-slate-500">Tm method</label>
+          <div className="rounded-2xl border border-border bg-card p-4">
+            <label className="text-xs text-muted-foreground">Tm method</label>
             <select
               className="flex h-9 w-full rounded-xl border border-input bg-white px-3 py-1 text-sm"
               value={form.tm_method}
@@ -166,8 +166,8 @@ export function PolymeraseEditor({
               <option value="breslauer">Breslauer</option>
             </select>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-            <label className="text-xs text-slate-500">Salt correction</label>
+          <div className="rounded-2xl border border-border bg-card p-4">
+            <label className="text-xs text-muted-foreground">Salt correction</label>
             <select
               className="flex h-9 w-full rounded-xl border border-input bg-white px-3 py-1 text-sm"
               value={form.salt_correction}
@@ -178,80 +178,80 @@ export function PolymeraseEditor({
               <option value="schildkraut">Schildkraut</option>
             </select>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-            <label className="text-xs text-slate-500">Opt Tm</label>
+          <div className="rounded-2xl border border-border bg-card p-4">
+            <label className="text-xs text-muted-foreground">Opt Tm</label>
             <Input type="number" step="0.1" {...num("opt_tm")} />
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-            <label className="text-xs text-slate-500">Max Tm diff</label>
+          <div className="rounded-2xl border border-border bg-card p-4">
+            <label className="text-xs text-muted-foreground">Max Tm diff</label>
             <Input type="number" step="0.1" {...num("max_tm_diff")} />
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-            <label className="text-xs text-slate-500">Min Tm</label>
+          <div className="rounded-2xl border border-border bg-card p-4">
+            <label className="text-xs text-muted-foreground">Min Tm</label>
             <Input type="number" step="0.1" {...num("min_tm")} />
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-            <label className="text-xs text-slate-500">Max Tm</label>
+          <div className="rounded-2xl border border-border bg-card p-4">
+            <label className="text-xs text-muted-foreground">Max Tm</label>
             <Input type="number" step="0.1" {...num("max_tm")} />
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-            <label className="text-xs text-slate-500">Fwd Tm</label>
+          <div className="rounded-2xl border border-border bg-card p-4">
+            <label className="text-xs text-muted-foreground">Fwd Tm</label>
             <Input type="number" step="0.1" {...num("opt_tm_fwd")} />
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-            <label className="text-xs text-slate-500">Rev Tm</label>
+          <div className="rounded-2xl border border-border bg-card p-4">
+            <label className="text-xs text-muted-foreground">Rev Tm</label>
             <Input type="number" step="0.1" {...num("opt_tm_rev")} />
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-            <label className="text-xs text-slate-500">Overlap Tm</label>
+          <div className="rounded-2xl border border-border bg-card p-4">
+            <label className="text-xs text-muted-foreground">Overlap Tm</label>
             <Input type="number" step="0.1" {...num("opt_tm_overlap")} />
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-            <label className="text-xs text-slate-500">Min 3' distance</label>
+          <div className="rounded-2xl border border-border bg-card p-4">
+            <label className="text-xs text-muted-foreground">Min 3' distance</label>
             <Input type="number" {...num("min_3prime_dist")} />
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-            <label className="text-xs text-slate-500">Opt size</label>
+          <div className="rounded-2xl border border-border bg-card p-4">
+            <label className="text-xs text-muted-foreground">Opt size</label>
             <Input type="number" {...num("opt_size")} />
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-            <label className="text-xs text-slate-500">Min size</label>
+          <div className="rounded-2xl border border-border bg-card p-4">
+            <label className="text-xs text-muted-foreground">Min size</label>
             <Input type="number" {...num("min_size")} />
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-            <label className="text-xs text-slate-500">Max size</label>
+          <div className="rounded-2xl border border-border bg-card p-4">
+            <label className="text-xs text-muted-foreground">Max size</label>
             <Input type="number" {...num("max_size")} />
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-            <label className="text-xs text-slate-500">Min GC</label>
+          <div className="rounded-2xl border border-border bg-card p-4">
+            <label className="text-xs text-muted-foreground">Min GC</label>
             <Input type="number" step="0.1" {...num("min_gc")} />
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-            <label className="text-xs text-slate-500">Max GC</label>
+          <div className="rounded-2xl border border-border bg-card p-4">
+            <label className="text-xs text-muted-foreground">Max GC</label>
             <Input type="number" step="0.1" {...num("max_gc")} />
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-            <label className="text-xs text-slate-500">Monovalent salt</label>
+          <div className="rounded-2xl border border-border bg-card p-4">
+            <label className="text-xs text-muted-foreground">Monovalent salt</label>
             <Input type="number" step="0.1" {...num("salt_monovalent")} />
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-            <label className="text-xs text-slate-500">Divalent salt</label>
+          <div className="rounded-2xl border border-border bg-card p-4">
+            <label className="text-xs text-muted-foreground">Divalent salt</label>
             <Input type="number" step="0.1" {...num("salt_divalent")} />
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-            <label className="text-xs text-slate-500">dNTP</label>
+          <div className="rounded-2xl border border-border bg-card p-4">
+            <label className="text-xs text-muted-foreground">dNTP</label>
             <Input type="number" step="0.1" {...num("dntp_conc")} />
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-            <label className="text-xs text-slate-500">DNA conc</label>
+          <div className="rounded-2xl border border-border bg-card p-4">
+            <label className="text-xs text-muted-foreground">DNA conc</label>
             <Input type="number" step="0.1" {...num("dna_conc")} />
           </div>
         </div>
 
-        {error && <div className="text-sm text-red-600">{error}</div>}
+        {error && <div className="text-sm text-destructive">{error}</div>}
 
         <DialogFooter>
-          <Button variant="outline" className="rounded-full border-slate-300 bg-white" onClick={() => onOpenChange(false)} disabled={saving}>
+          <Button variant="outline" className="rounded-full" onClick={() => onOpenChange(false)} disabled={saving}>
             Cancel
           </Button>
           <Button className="rounded-full" onClick={handleSave} disabled={saving || !form.name.trim()}>

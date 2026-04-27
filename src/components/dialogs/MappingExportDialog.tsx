@@ -57,26 +57,26 @@ export function MappingExportDialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="text-xl">Export {label} Mapping</DialogTitle>
-          <DialogDescription className="text-slate-600">
+          <DialogDescription className="text-muted-foreground">
             Two files are written to the same path.
             <br />
-            <span className="text-slate-500">.xlsx</span> — human-readable layout preview
+            <span className="text-muted-foreground">.xlsx</span> — human-readable layout preview
             <br />
-            <span className="text-slate-500">.csv</span> — machine input (actual liquid-handler upload)
+            <span className="text-muted-foreground">.csv</span> — machine input (actual liquid-handler upload)
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-4 py-2">
           {/* Machine Format */}
-          <div className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white/80 p-4">
-            <label className="text-sm font-medium text-slate-700">
+          <div className="flex flex-col gap-2 rounded-container border border-border bg-card p-4">
+            <label className="text-sm font-medium text-foreground">
               Machine
             </label>
             <div className="flex gap-2">
               <Button
                 size="sm"
                 variant={format === "echo" ? "default" : "outline"}
-                className={format === "echo" ? "rounded-full" : "rounded-full border-slate-300 bg-white"}
+                className="rounded-full"
                 onClick={() => setFormat("echo")}
                 type="button"
               >
@@ -85,7 +85,7 @@ export function MappingExportDialog({
               <Button
                 size="sm"
                 variant={format === "janus" ? "default" : "outline"}
-                className={format === "janus" ? "rounded-full" : "rounded-full border-slate-300 bg-white"}
+                className="rounded-full"
                 onClick={() => setFormat("janus")}
                 type="button"
               >
@@ -95,8 +95,8 @@ export function MappingExportDialog({
           </div>
 
           {/* Transfer Volume */}
-          <div className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white/80 p-4">
-            <label className="text-sm font-medium text-slate-700">
+          <div className="flex flex-col gap-2 rounded-container border border-border bg-card p-4">
+            <label className="text-sm font-medium text-foreground">
               Transfer Volume
             </label>
             <div className="flex items-center gap-2">
@@ -109,12 +109,12 @@ export function MappingExportDialog({
                 onChange={(e) => setTransferVol(Number(e.target.value))}
                 className="w-28"
               />
-              <span className="text-sm text-slate-500">{cfg.unit}</span>
+              <span className="text-sm text-muted-foreground">{cfg.unit}</span>
             </div>
-            <p className="text-xs text-slate-400">
+            <p className="text-caption text-muted-foreground">
               Range: {cfg.min}–{cfg.max} {cfg.unit}
               {format === "echo" && transferVol > 500 && (
-                <span className="ml-2 text-amber-500">
+                <span className="ml-2 text-warning">
                   ({Math.ceil(transferVol / 500)} transfers × ≤500 nL)
                 </span>
               )}
@@ -126,7 +126,7 @@ export function MappingExportDialog({
           <Button
             size="sm"
             variant="outline"
-            className="rounded-full border-slate-300 bg-white"
+            className="rounded-full"
             onClick={() => onOpenChange(false)}
             type="button"
           >

@@ -17,7 +17,7 @@ export function SequenceInput() {
     <>
       {/* Sequence File */}
       <div className="space-y-1">
-        <label className="text-xs font-medium text-slate-700">Sequence File</label>
+        <label className="text-xs font-medium text-foreground">Sequence File</label>
         <div className="flex gap-1">
           <Button
             variant="outline"
@@ -36,7 +36,7 @@ export function SequenceInput() {
           >
             Browse
           </Button>
-          <span className="self-center truncate text-xs text-slate-500">
+          <span className="self-center truncate text-xs text-muted-foreground">
             {fastaPath ? basename(fastaPath) : "No file selected (.gb / .dna)"}
           </span>
         </div>
@@ -51,7 +51,7 @@ export function SequenceInput() {
           </div>
         )}
         {seqInfo && uniprotSearching && (
-          <div className="flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 px-2 py-1 text-xs text-blue-700">
+          <div className="flex items-center gap-1.5 rounded-control border border-info/20 bg-info/10 px-2 py-1 text-xs text-info">
             <svg className="animate-spin w-3 h-3 flex-shrink-0" viewBox="0 0 24 24" fill="none">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
@@ -64,14 +64,14 @@ export function SequenceInput() {
       {/* Target Gene */}
       <div className="space-y-1">
         <label
-          className="text-xs font-medium text-slate-700"
+          className="text-xs font-medium text-foreground"
           title="CDS region to design primers for. Auto-selected by longest coding sequence."
         >
           Target Gene
         </label>
         {seqInfo && seqInfo.genes.length > 0 ? (
           <select
-            className="h-8 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+            className="h-8 w-full rounded-control border border-border bg-card px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
             value={selectedGene}
             onChange={(e) => setSelectedGene(e.target.value)}
           >
@@ -89,7 +89,7 @@ export function SequenceInput() {
               })}
           </select>
         ) : (
-          <span className="block text-xs italic text-slate-400">
+          <span className="block text-xs italic text-muted-foreground">
             Load a sequence file first
           </span>
         )}
@@ -98,13 +98,13 @@ export function SequenceInput() {
       {/* Organism */}
       <div className="space-y-1">
         <label
-          className="text-xs font-medium text-slate-700"
+          className="text-xs font-medium text-foreground"
           title="Organism codon usage table for mutant codon selection."
         >
           Organism
         </label>
         <select
-          className="h-8 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+          className="h-8 w-full rounded-control border border-border bg-card px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
           value={organism}
           onChange={(e) => setOrganism(e.target.value)}
         >

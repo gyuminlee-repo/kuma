@@ -45,14 +45,14 @@ export function Onboarding({ initialPath, onDone }: OnboardingProps) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 px-6 py-12 text-slate-900">
-      <div className="mx-auto flex w-full max-w-2xl flex-col rounded-3xl border border-slate-200 bg-white/90 p-8 shadow-sm">
+    <div className="min-h-screen bg-muted px-6 py-12 text-foreground">
+      <div className="mx-auto flex w-full max-w-2xl flex-col rounded-container border border-border bg-card p-8">
         <h1 className="text-3xl font-bold tracking-tight">Get started</h1>
-        <p className="mt-3 text-sm leading-6 text-slate-600">
+        <p className="mt-3 text-sm leading-6 text-muted-foreground">
           Choose a default folder for projects. New projects will be created inside this folder.
         </p>
 
-        <label className="mt-8 text-sm font-medium text-slate-700" htmlFor="projects-root">
+        <label className="mt-8 text-sm font-medium text-foreground" htmlFor="projects-root">
           Projects folder
         </label>
         <Input
@@ -72,7 +72,7 @@ export function Onboarding({ initialPath, onDone }: OnboardingProps) {
           </Button>
         </div>
 
-        {error ? <p className="mt-4 text-sm text-red-600">{error}</p> : null}
+        {error ? <p className="mt-4 text-sm text-error">{error}</p> : null}
       </div>
     </div>
   );

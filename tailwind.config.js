@@ -20,10 +20,15 @@ export default {
       width: {
         sidebar: "var(--sidebar-w)",
       },
+      minWidth: {
+        popover: "420px",
+      },
       fontSize: {
         title: "var(--text-title)",
         body: "var(--text-body)",
         caption: "var(--text-caption)",
+        plate: "var(--text-plate)",
+        "plate-tiny": "var(--text-plate-tiny)",
       },
       colors: {
         border: "hsl(var(--border))",

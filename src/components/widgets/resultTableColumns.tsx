@@ -89,7 +89,7 @@ export function makeResultTableColumns(opts: {
       header: "#",
       size: 35,
       enableSorting: false,
-      cell: (info) => <span className="text-gray-400">{info.row.index + 1}</span>,
+      cell: (info) => <span className="text-muted-foreground">{info.row.index + 1}</span>,
     }),
     col.accessor("mutation", {
       header: "Mutation",
@@ -111,7 +111,7 @@ export function makeResultTableColumns(opts: {
               {info.getValue()}
               {color && (
                 <span
-                  className="inline-block ml-1 px-1 rounded text-[8px] font-semibold text-white align-middle"
+                  className="inline-block ml-1 px-1 rounded-control text-plate-tiny font-semibold text-white align-middle"
                   style={{ backgroundColor: color }}
                 >
                   Pos{row.aa_position}
@@ -120,10 +120,10 @@ export function makeResultTableColumns(opts: {
             </span>
             {rescueDetail && (
               <span
-                className={`ml-1 px-1 py-0.5 rounded text-[8px] leading-none ${
+                className={`ml-1 px-1 py-0.5 rounded-control text-plate-tiny leading-none ${
                   rescueDetail.type === "pool_cascade"
-                    ? "bg-green-100 text-green-700"
-                    : "bg-amber-100 text-amber-700"
+                    ? "bg-success/10 text-success"
+                    : "bg-warning/10 text-warning"
                 }`}
                 title={
                   rescueDetail.type === "pool_cascade"
@@ -136,7 +136,7 @@ export function makeResultTableColumns(opts: {
             )}
             {isRescued && !rescueDetail && (
               <button
-                className="ml-1 px-1 py-0.5 bg-red-100 text-red-600 rounded text-[8px] hover:bg-red-200 leading-none"
+                className="ml-1 px-1 py-0.5 bg-error/10 text-error rounded-control text-plate-tiny hover:bg-error/20 leading-none"
                 title="Remove custom rescue — restore to Failed"
                 onClick={(e) => {
                   e.stopPropagation();
@@ -160,9 +160,9 @@ export function makeResultTableColumns(opts: {
             cell: (info) => {
               const val = info.getValue();
               return val > -Infinity ? (
-                <span className="text-gray-500">{val.toFixed(3)}</span>
+                <span className="text-muted-foreground">{val.toFixed(3)}</span>
               ) : (
-                <span className="text-gray-300">—</span>
+                <span className="text-muted-foreground/60">—</span>
               );
             },
           }),
@@ -177,7 +177,7 @@ export function makeResultTableColumns(opts: {
         const row = info.row.original;
         const fwdEdited = swapped[row.mutation] === "fwd" || swapped[row.mutation] === "both";
         return (
-          <span className={`flex items-center ${fwdEdited ? "bg-amber-100 rounded px-0.5" : ""}`}>
+          <span className={`flex items-center ${fwdEdited ? "bg-warning/10 rounded-control px-0.5" : ""}`}>
             <span className="flex-1 min-w-0">
               <ColoredFwdSeq seq={info.getValue()} overlapLen={row.overlap_len ?? 0} />
             </span>
@@ -194,7 +194,7 @@ export function makeResultTableColumns(opts: {
       cell: (info) => {
         const revEdited = swapped[info.row.original.mutation] === "rev" || swapped[info.row.original.mutation] === "both";
         return (
-          <span className={`flex items-center font-mono text-[10px] ${revEdited ? "bg-amber-100 rounded px-0.5" : ""}`}>
+          <span className={`flex items-center font-mono text-caption ${revEdited ? "bg-warning/10 rounded-control px-0.5" : ""}`}>
             <span className="flex-1 min-w-0 break-all">{info.getValue()}</span>
             <CopySeqAction seq={info.getValue()} />
           </span>
@@ -238,7 +238,7 @@ export function makeResultTableColumns(opts: {
         const fc = (row.candidate_fwd_count ?? 0) + customLen;
         const rc = (row.candidate_rev_count ?? 0) + customLen;
         if (fc <= 0 && rc <= 0) return "\u2014";
-        return <span className="text-[10px]">{fc}/{rc}</span>;
+        return <span className="text-caption">{fc}/{rc}</span>;
       },
     }),
     col.accessor("has_offtarget", {
@@ -249,9 +249,9 @@ export function makeResultTableColumns(opts: {
         const val = info.getValue();
         if (val == null) return "\u2014";
         return val ? (
-          <span className="inline-block px-1 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-700">!!</span>
+          <span className="inline-block px-1 py-0.5 rounded-control text-caption font-medium bg-error/10 text-error">!!</span>
         ) : (
-          <span className="inline-block px-1 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-700">OK</span>
+          <span className="inline-block px-1 py-0.5 rounded-control text-caption font-medium bg-success/10 text-success">OK</span>
         );
       },
     }),
@@ -274,7 +274,7 @@ export function makeResultTableColumns(opts: {
         if (worst <= 0) return "\u2014";
         const warn = worst > 40;
         return (
-          <span className={`inline-block px-1 py-0.5 rounded text-[10px] font-medium cursor-pointer ${warn ? "bg-yellow-100 text-yellow-800" : "bg-gray-50 text-gray-400"}`}>
+          <span className={`inline-block px-1 py-0.5 rounded-control text-caption font-medium cursor-pointer ${warn ? "bg-warning/10 text-warning" : "bg-muted text-muted-foreground"}`}>
             {worst.toFixed(0)}
           </span>
         );
@@ -297,7 +297,7 @@ export function makeResultTableColumns(opts: {
         const fwd = row.synthesis_score_fwd ?? 100;
         const rev = row.synthesis_score_rev ?? 100;
         const worst = Math.round(Math.min(fwd, rev));
-        const color = worst >= 85 ? "text-green-600" : worst >= 70 ? "text-amber-600" : "text-red-600";
+        const color = worst >= 85 ? "text-success" : worst >= 70 ? "text-warning" : "text-error";
         return <span className={color} title={`Fwd: ${Math.round(fwd)} / Rev: ${Math.round(rev)}`}>{worst}</span>;
       },
     }),

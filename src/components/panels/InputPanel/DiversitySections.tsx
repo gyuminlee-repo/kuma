@@ -30,7 +30,7 @@ export function HelpTip({ children }: { children: React.ReactNode }) {
     <span>
       <button
         type="button"
-        className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-muted text-[9px] font-bold leading-none text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+        className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-muted text-plate-tiny font-bold leading-none text-muted-foreground hover:bg-accent hover:text-accent-foreground"
         onClick={(e) => {
           e.preventDefault();
           setOpen((p) => !p);
@@ -40,7 +40,7 @@ export function HelpTip({ children }: { children: React.ReactNode }) {
         ?
       </button>
       {open && (
-        <span className="mt-0.5 block rounded-md border border-border bg-muted px-1.5 py-1 text-[10px] leading-relaxed text-muted-foreground whitespace-pre-line">
+        <span className="mt-0.5 block rounded-control border border-border bg-muted px-1.5 py-1 text-caption leading-relaxed text-muted-foreground whitespace-pre-line">
           {children}
         </span>
       )}
@@ -62,7 +62,7 @@ export function PipelineStep({
   children?: React.ReactNode;
 }) {
   return (
-    <div className={`relative rounded-2xl border px-3 py-3 transition-opacity ${enabled ? "border-slate-200 bg-white/80 opacity-100" : "border-slate-200 bg-slate-50/70 opacity-60"}`}>
+    <div className={`relative rounded-container border px-3 py-3 transition-opacity ${enabled ? "border-border bg-card opacity-100" : "border-border bg-muted/40 opacity-60"}`}>
       <div
         className={`absolute -left-[calc(0.75rem+5px)] top-3 h-2 w-2 rounded-full border-2 ${
           enabled ? "border-primary bg-primary" : "border-border bg-background"
@@ -75,7 +75,7 @@ export function PipelineStep({
           checked={enabled}
           onChange={(e) => onToggle(e.target.checked)}
         />
-        <span className="text-slate-700">
+        <span className="text-foreground">
           Step {step}: {label}
         </span>
       </label>
@@ -87,11 +87,11 @@ export function PipelineStep({
 export function PipelineArrow({ active }: { active: boolean }) {
   return (
     <div
-      className={`flex items-center -ml-0.5 text-[10px] transition-opacity ${
+      className={`flex items-center -ml-0.5 text-caption transition-opacity ${
         active ? "opacity-60" : "opacity-20"
       }`}
     >
-      <span className="text-slate-400 select-none leading-none">{"↓"}</span>
+      <span className="text-muted-foreground select-none leading-none">{"↓"}</span>
     </div>
   );
 }
@@ -133,7 +133,7 @@ export function DomainAllocationSection(props: {
 
   return (
     <div className="space-y-1.5">
-      <div className="flex flex-wrap items-center gap-2 text-[10px] text-slate-500">
+      <div className="flex flex-wrap items-center gap-2 text-caption text-muted-foreground">
         <span>Linker</span>
         {LINKER_HANDLING_OPTIONS.map((v) => (
           <label key={v} className="flex items-center gap-0.5 cursor-pointer">
@@ -161,7 +161,7 @@ export function DomainAllocationSection(props: {
             return (
               <label
                 key={key}
-                className={`flex items-center gap-1 text-[10px] cursor-pointer ${disabled ? "opacity-40" : ""}`}
+                className={`flex items-center gap-1 text-caption cursor-pointer ${disabled ? "opacity-40" : ""}`}
                 title={`${d.id} (${d.db})`}
               >
                 <input
@@ -170,8 +170,8 @@ export function DomainAllocationSection(props: {
                   checked={!disabled}
                   onChange={() => toggleDomain(key)}
                 />
-                <span className="w-2 h-2 rounded-sm bg-blue-400 inline-block flex-shrink-0" />
-                <span className="truncate text-slate-600">
+                <span className="w-2 h-2 rounded-sm bg-info/60 inline-block flex-shrink-0" />
+                <span className="truncate text-foreground">
                   {d.name} ({d.start}-{d.end})
                 </span>
                 {stat && !disabled && (
@@ -188,37 +188,37 @@ export function DomainAllocationSection(props: {
 
       {!addingDomain ? (
         <button
-          className="text-[10px] text-muted-foreground hover:text-foreground"
+          className="text-caption text-muted-foreground hover:text-foreground"
           onClick={() => setAddingDomain(true)}
         >
           + Add manually
         </button>
       ) : (
-        <div className="flex items-center gap-1 text-[10px]">
+        <div className="flex items-center gap-1 text-caption">
           <input
             type="text"
             placeholder="Name"
-            className="h-6 w-16 rounded-lg border border-slate-300 px-1 text-[10px]"
+            className="h-6 w-16 rounded-control border border-border px-1 text-caption"
             value={newDomainName}
             onChange={(e) => setNewDomainName(e.target.value)}
           />
           <input
             type="number"
             placeholder="Start"
-            className="h-6 w-10 rounded-lg border border-slate-300 px-0.5 text-[10px] text-center"
+            className="h-6 w-10 rounded-control border border-border px-0.5 text-caption text-center"
             value={newDomainStart}
             onChange={(e) => setNewDomainStart(e.target.value)}
           />
-          <span className="text-slate-400">-</span>
+          <span className="text-muted-foreground">-</span>
           <input
             type="number"
             placeholder="End"
-            className="h-6 w-10 rounded-lg border border-slate-300 px-0.5 text-[10px] text-center"
+            className="h-6 w-10 rounded-control border border-border px-0.5 text-caption text-center"
             value={newDomainEnd}
             onChange={(e) => setNewDomainEnd(e.target.value)}
           />
           <button
-            className="font-bold text-emerald-600 hover:text-emerald-800"
+            className="font-bold text-success hover:text-success/80"
             onClick={() => {
               const s = parseInt(newDomainStart, 10);
               const e = parseInt(newDomainEnd, 10);
@@ -233,7 +233,7 @@ export function DomainAllocationSection(props: {
           >
             &#10003;
           </button>
-          <button className="text-slate-400 hover:text-slate-600" onClick={() => setAddingDomain(false)}>
+          <button className="text-muted-foreground hover:text-foreground" onClick={() => setAddingDomain(false)}>
             &times;
           </button>
         </div>
@@ -250,11 +250,11 @@ export function OptimizationSummarySection(props: {
 }) {
   const { distanceBadge, structureLoading, structureLoaded, distanceMode } = props;
   return (
-    <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-slate-500">
+    <div className="flex flex-wrap items-center gap-1.5 text-caption text-muted-foreground">
       <span>{distanceBadge}</span>
       {structureLoading && <span className="text-muted-foreground">(loading AlphaFold...)</span>}
       {structureLoaded && (
-        <span className="inline-flex items-center rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-medium text-indigo-700">
+        <span className="inline-flex items-center rounded-full bg-info/10 px-2 py-0.5 text-caption font-medium text-info">
           AlphaFold
         </span>
       )}
@@ -291,25 +291,25 @@ export function RoundSettingsSection(props: {
   } = props;
 
   return (
-    <div className="ml-2 mt-3 space-y-1.5 border-l-2 border-transparent pl-3 text-[10px] text-slate-500">
-      <div className="font-semibold uppercase tracking-wide text-slate-400">Round</div>
+    <div className="ml-2 mt-3 space-y-1.5 border-l-2 border-transparent pl-3 text-caption text-muted-foreground">
+      <div className="font-semibold uppercase tracking-wide text-muted-foreground/60">Round</div>
       <div className="flex items-center gap-2 flex-wrap">
         <span>EVOLVEpro Round</span>
         <input
           type="number"
           min={1}
-          className="h-6 w-10 rounded-lg border border-slate-300 bg-white px-1 text-center text-[10px]"
+          className="h-6 w-10 rounded-control border border-border bg-background px-1 text-center text-caption"
           value={roundStr}
           onChange={(e: ChangeEvent<HTMLInputElement>) => setRoundStr(e.target.value)}
           onBlur={commitRound}
           onKeyDown={onEnterBlur}
         />
-        <span className="text-slate-400">Size</span>
+        <span className="text-muted-foreground">Size</span>
         <input
           type="number"
           min={1}
           max={960}
-          className="h-6 w-12 rounded-lg border border-slate-300 bg-white px-1 text-center text-[10px]"
+          className="h-6 w-12 rounded-control border border-border bg-background px-1 text-center text-caption"
           value={roundSizeStr}
           onChange={(e: ChangeEvent<HTMLInputElement>) => setRoundSizeStr(e.target.value)}
           onBlur={commitRoundSize}
@@ -317,12 +317,12 @@ export function RoundSettingsSection(props: {
         />
         <HelpTip>{"Round × size = cumulative data points used to estimate model quality (ρ).\nLower ρ → wider pool and higher entropy weight for exploration."}</HelpTip>
       </div>
-      <div className="flex items-center gap-2 font-mono text-[10px] text-indigo-600">
-        <span className="inline-flex items-center rounded-full border border-indigo-100 bg-indigo-50 px-2 py-0.5 text-[9px] font-medium text-indigo-600">
+      <div className="flex items-center gap-2 font-mono text-caption text-info">
+        <span className="inline-flex items-center rounded-full border border-info/20 bg-info/10 px-2 py-0.5 text-plate-tiny font-medium text-info">
           Auto
         </span>
         <span>K = {autoK.toFixed(2)}</span>
-        <span className="text-slate-400">/</span>
+        <span className="text-muted-foreground">/</span>
         <span>entropy = {autoEntropy.toFixed(2)}</span>
       </div>
     </div>
@@ -382,23 +382,23 @@ export function AdvancedSettingsSection(props: {
     <div className="ml-2 mt-2 border-l-2 border-transparent pl-3">
       <button
         type="button"
-        className="flex items-center gap-1 text-[10px] text-slate-500 hover:text-slate-700"
+        className="flex items-center gap-1 text-caption text-muted-foreground hover:text-foreground"
         onClick={() => setShowAdvanced((p) => !p)}
       >
         <span>{showAdvanced ? "▾" : "▸"}</span>
         <span>Advanced</span>
       </button>
       {showAdvanced && (
-        <div className="mt-1.5 space-y-2 rounded-2xl border border-slate-200 bg-white/80 p-3 text-[10px] text-slate-500">
+        <div className="mt-1.5 space-y-2 rounded-container border border-border bg-card p-3 text-caption text-muted-foreground">
           <div>
-            <div className="mb-0.5 text-[9px] uppercase tracking-wide text-slate-400">Step 1</div>
+            <div className="mb-0.5 text-plate-tiny uppercase tracking-wide text-muted-foreground/60">Step 1</div>
             <div className="flex items-center gap-1 flex-wrap">
               <span>Position cap</span>
               <input
                 type="number"
                 min={1}
                 max={20}
-                className="h-6 w-10 rounded-lg border border-slate-300 bg-white px-1 text-center text-[10px]"
+                className="h-6 w-10 rounded-control border border-border bg-background px-1 text-center text-caption"
                 value={maxPerPosStr}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setMaxPerPosStr(e.target.value)}
                 onBlur={commitMaxPerPos}
@@ -410,7 +410,7 @@ export function AdvancedSettingsSection(props: {
           </div>
 
           <div>
-            <div className="mb-0.5 text-[9px] uppercase tracking-wide text-slate-400">Step 2</div>
+            <div className="mb-0.5 text-plate-tiny uppercase tracking-wide text-muted-foreground/60">Step 2</div>
             <div className="space-y-1">
               <div className="flex items-center gap-2 flex-wrap" role="radiogroup" aria-label="Domain strategy">
                 <span>Strategy</span>
@@ -437,7 +437,7 @@ export function AdvancedSettingsSection(props: {
                   type="number"
                   min={0}
                   max={20}
-                  className="h-6 w-10 rounded-lg border border-slate-300 bg-white px-1 text-center text-[10px]"
+                  className="h-6 w-10 rounded-control border border-border bg-background px-1 text-center text-caption"
                   value={domainQuotaMin}
                   onChange={(e) => setDomainQuotaMin(Number(e.target.value))}
                 />
@@ -446,7 +446,7 @@ export function AdvancedSettingsSection(props: {
           </div>
 
           <div>
-            <div className="mb-0.5 text-[9px] uppercase tracking-wide text-slate-400">Step 3</div>
+            <div className="mb-0.5 text-plate-tiny uppercase tracking-wide text-muted-foreground/60">Step 3</div>
             <div className="space-y-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <span>Distance</span>
@@ -467,10 +467,10 @@ export function AdvancedSettingsSection(props: {
                   step="0.25"
                   value={paretoPoolMultiplier}
                   onChange={(e) => setParetoPoolMultiplier(Number(e.target.value))}
-                  className="w-20 accent-indigo-600"
+                  className="w-20 accent-primary"
                   title="Manual pool size override (ignored when Round > 0)"
                 />
-                <span className="font-mono text-slate-700">{paretoPoolMultiplier.toFixed(2)}x</span>
+                <span className="font-mono text-foreground">{paretoPoolMultiplier.toFixed(2)}x</span>
                 <HelpTip>{"Manual pool multiplier. Ignored when EVOLVEpro Round ≥ 1 (σ-adaptive mode).\nAuto K = " + autoK.toFixed(2) + " based on current round."}</HelpTip>
               </div>
               <div className="flex items-center gap-1">
@@ -482,7 +482,7 @@ export function AdvancedSettingsSection(props: {
                     onChange={(e) => setEntropyWeightEnabled(e.target.checked)}
                   />
                   <span>Entropy-guided</span>
-                  <span className="inline-flex items-center rounded-full bg-purple-100 px-2 py-0.5 text-[9px] font-medium text-purple-700">β</span>
+                  <span className="inline-flex items-center rounded-full bg-info/10 px-2 py-0.5 text-plate-tiny font-medium text-info">β</span>
                 </label>
                 <HelpTip>Positions where EVOLVEpro scores multiple substitutions similarly get an uncertainty bonus. Auto weight = {autoEntropy.toFixed(2)} based on current round.</HelpTip>
               </div>
@@ -496,10 +496,10 @@ export function AdvancedSettingsSection(props: {
                     step="0.05"
                     value={entropyWeight}
                     onChange={(e) => setEntropyWeight(Number(e.target.value))}
-                    className="w-20 accent-purple-600"
+                    className="w-20 accent-primary"
                     title="Manual entropy weight override (ignored when Round > 0)"
                   />
-                  <span className="font-mono text-slate-700">{entropyWeight.toFixed(2)}</span>
+                  <span className="font-mono text-foreground">{entropyWeight.toFixed(2)}</span>
                 </div>
               )}
             </div>
@@ -518,8 +518,8 @@ export function WorkspaceSection(props: {
 }) {
   const { autoRedesignOnLoad, setAutoRedesignOnLoad, saveCache, setSaveCache } = props;
   return (
-    <div className="ml-2 mt-2 space-y-1 border-l-2 border-transparent pl-3 text-[10px] text-slate-500">
-      <div className="font-semibold uppercase tracking-wide text-slate-400">Workspace</div>
+    <div className="ml-2 mt-2 space-y-1 border-l-2 border-transparent pl-3 text-caption text-muted-foreground">
+      <div className="font-semibold uppercase tracking-wide text-muted-foreground/60">Workspace</div>
       <label className="flex items-center gap-1.5 cursor-pointer">
         <input type="checkbox" className="h-2.5 w-2.5 accent-primary" checked={autoRedesignOnLoad} onChange={(e) => setAutoRedesignOnLoad(e.target.checked)} />
         Auto re-design on load
@@ -556,8 +556,8 @@ export function BenchmarkSection(props: {
   } = props;
 
   return (
-    <div className="ml-2 mt-2 space-y-1 border-l-2 border-transparent pl-3 text-[10px] text-slate-500">
-      <div className="font-semibold uppercase tracking-wide text-slate-400">Benchmark</div>
+    <div className="ml-2 mt-2 space-y-1 border-l-2 border-transparent pl-3 text-caption text-muted-foreground">
+      <div className="font-semibold uppercase tracking-wide text-muted-foreground/60">Benchmark</div>
       <div className="flex items-center gap-2">
         <span className="w-20">Top percentile</span>
         <input
@@ -565,7 +565,7 @@ export function BenchmarkSection(props: {
           min={1}
           max={100}
           step={1}
-          className="h-6 w-12 rounded-lg border border-slate-300 bg-white px-1 text-center text-[10px]"
+          className="h-6 w-12 rounded-control border border-border bg-background px-1 text-center text-caption"
           value={benchmarkTopPercentile}
           onChange={(e) => setBenchmarkTopPercentile(Number(e.target.value))}
         />
@@ -578,7 +578,7 @@ export function BenchmarkSection(props: {
           min={1}
           max={1000}
           step={1}
-          className="h-6 w-14 rounded-lg border border-slate-300 bg-white px-1 text-center text-[10px]"
+          className="h-6 w-14 rounded-control border border-border bg-background px-1 text-center text-caption"
           value={benchmarkRandomTrials}
           onChange={(e) => setBenchmarkRandomTrials(Number(e.target.value))}
         />
@@ -587,7 +587,7 @@ export function BenchmarkSection(props: {
         <span className="w-20">Random seed</span>
         <input
           type="number"
-          className="h-6 w-16 rounded-lg border border-slate-300 bg-white px-1 text-center text-[10px]"
+          className="h-6 w-16 rounded-control border border-border bg-background px-1 text-center text-caption"
           value={benchmarkRandomSeed ?? ""}
           placeholder="auto"
           onChange={(e) => {
@@ -599,7 +599,7 @@ export function BenchmarkSection(props: {
       </div>
       <button
         type="button"
-        className="mt-1 inline-flex items-center rounded-full border border-slate-300 bg-white px-3 py-1 text-[10px] font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+        className="mt-1 inline-flex items-center rounded-full border border-border bg-background px-3 py-1 text-caption font-medium text-foreground hover:bg-accent hover:text-accent-foreground disabled:opacity-50"
         onClick={() => {
           void runBenchmark();
         }}

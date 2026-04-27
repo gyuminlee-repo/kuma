@@ -110,7 +110,7 @@ export function Home({ onOpenProject, onOpenScratch, onOpenSettings }: HomeProps
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 px-6 py-12 text-slate-900">
+    <div className="min-h-screen bg-muted px-6 py-12 text-foreground">
       <div className="mx-auto flex w-full max-w-4xl flex-col items-center">
         <h1 className="text-center text-5xl font-bold tracking-tight">kuma</h1>
 
@@ -121,24 +121,24 @@ export function Home({ onOpenProject, onOpenScratch, onOpenSettings }: HomeProps
           }}>
             + New project
           </Button>
-          <Button variant="outline" className="min-w-32 bg-white" onClick={() => void handleOpenFile()}>
+          <Button variant="outline" className="min-w-32" onClick={() => void handleOpenFile()}>
             Open file
           </Button>
-          <Button variant="outline" className="min-w-24 bg-white" onClick={onOpenSettings}>
+          <Button variant="outline" className="min-w-24" onClick={onOpenSettings}>
             Settings
           </Button>
         </div>
 
-        {error ? <p className="mt-4 text-sm text-red-600">{error}</p> : null}
+        {error ? <p className="mt-4 text-sm text-error">{error}</p> : null}
 
-        <section className="mt-12 w-full rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-sm">
+        <section className="mt-12 w-full rounded-container border border-border bg-card p-6">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-semibold">Recent projects</h2>
           </div>
 
           <div className="space-y-3">
             {recentProjects.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500">
+              <div className="rounded-container border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
                 No projects yet
               </div>
             ) : (
@@ -148,13 +148,13 @@ export function Home({ onOpenProject, onOpenScratch, onOpenSettings }: HomeProps
                   type="button"
                   onClick={() => void handleOpenRecentProject(project.path)}
                   className={cn(
-                    "w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-left transition",
-                    "hover:border-slate-300 hover:bg-slate-100",
+                    "w-full rounded-container border border-border bg-muted/50 px-4 py-3 text-left transition",
+                    "hover:border-border hover:bg-muted",
                   )}
                 >
-                  <div className="font-medium text-slate-900">{project.name}</div>
-                  <div className="mt-1 text-sm text-slate-600">{project.path}</div>
-                  <div className="mt-2 text-xs text-slate-500">{project.last_opened}</div>
+                  <div className="font-medium text-foreground">{project.name}</div>
+                  <div className="mt-1 text-sm text-muted-foreground">{project.path}</div>
+                  <div className="mt-2 text-xs text-muted-foreground">{project.last_opened}</div>
                 </button>
               ))
             )}
