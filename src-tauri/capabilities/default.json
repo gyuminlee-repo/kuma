@@ -13,7 +13,11 @@
       "identifier": "shell:allow-spawn",
       "allow": [
         {
-          "name": "binaries/kuro-sidecar",
+          "name": "kuro-sidecar",
+          "sidecar": true
+        },
+        {
+          "name": "mame-sidecar",
           "sidecar": true
         }
       ]

@@ -6,6 +6,7 @@ dist/
 *.key
 *.exe
 src-tauri/target/
+src-tauri/target-*/
 src-tauri/binaries/*.exe
 src-tauri/binaries/*-sidecar-*
 python-core/dist/

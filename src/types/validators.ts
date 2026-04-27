@@ -340,11 +340,11 @@ function isEvolveproLoadResult(value: unknown): value is EvolveproLoadResult {
     isNumberArray(value.y_preds) &&
     isNumber(value.total_count) &&
     isNumber(value.selected_count) &&
-    isOptional(value.filtered_count, isNumber) &&
-    isOptional(value.domain_stats, (item) => isRecordOf(item, isDomainStat)) &&
-    isOptional(value.pareto_replaced, isNumber) &&
-    isOptional(value.pool_variants, isStringArray) &&
-    isOptional(value.step_stats, isEvolveproStepStats)
+    isOptionalNullable(value.filtered_count, isNumber) &&
+    isOptionalNullable(value.domain_stats, (item) => isRecordOf(item, isDomainStat)) &&
+    isOptionalNullable(value.pareto_replaced, isNumber) &&
+    isOptionalNullable(value.pool_variants, isStringArray) &&
+    isOptionalNullable(value.step_stats, isEvolveproStepStats)
   );
 }
 

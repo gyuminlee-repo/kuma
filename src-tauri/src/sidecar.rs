@@ -405,8 +405,8 @@ impl SidecarManager {
 
 fn binary_name(kind: &str) -> Result<&'static str, String> {
     match kind {
-        "kuro" => Ok("binaries/kuro-sidecar"),
-        "mame" => Ok("binaries/mame-sidecar"),
+        "kuro" => Ok("kuro-sidecar"),
+        "mame" => Ok("mame-sidecar"),
         _ => Err(format!("Unknown sidecar kind: {kind}")),
     }
 }

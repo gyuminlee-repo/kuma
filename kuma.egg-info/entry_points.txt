@@ -1,0 +1,3 @@
+[console_scripts]
+kuro = kuma_core.kuro.cli:main
+mame = kuma_core.mame.cli:main
