@@ -110,7 +110,7 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
     <>
       <SubtoolMenuBar
         label="Mame"
-        subtitle="NB-plate verdict"
+        subtitle="Mutagenesis Assessment & Microplate Export"
         menus={menus}
       />
 

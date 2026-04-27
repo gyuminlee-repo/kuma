@@ -37,30 +37,21 @@ export function SubtoolMenuBar({
 }: SubtoolMenuBarProps) {
   return (
     <div
-      className="h-menubar px-4 flex items-center justify-between bg-background border-b border-border"
+      className="px-4 py-2 flex flex-col gap-2 bg-background border-b border-border"
       role="navigation"
       aria-label={`${label} menu bar`}
     >
-      {/* 좌측: 라벨 + 부제 + 메뉴 */}
-      <div className="flex items-center gap-4">
-        {/* 라벨 + 부제 */}
-        <div className="flex flex-col justify-center leading-none select-none">
+      {/* 1행: 라벨 + 부제 (좌) · 우측 슬롯 */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-col leading-tight select-none">
           <span className="text-title font-semibold text-foreground">{label}</span>
           <span className="text-caption text-muted-foreground">{subtitle}</span>
         </div>
-
-        {/* 메뉴 트리거 영역 */}
-        <div className="flex items-center gap-0.5">
-          {menus}
-        </div>
+        {rightSlot && <div className="flex items-center">{rightSlot}</div>}
       </div>
 
-      {/* 우측: 선택적 배지/요약 슬롯 */}
-      {rightSlot && (
-        <div className="flex items-center">
-          {rightSlot}
-        </div>
-      )}
+      {/* 2행: 메뉴 트리거 */}
+      <div className="flex items-center gap-0.5">{menus}</div>
     </div>
   );
 }

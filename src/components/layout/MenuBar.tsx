@@ -39,6 +39,7 @@ const TRIGGER_CLS =
 export function MenuBar() {
   const project = useKumaProject();
   const hasDesignResults = useAppStore((s) => s.designResults.length > 0);
+  const loadSampleData = useAppStore((s) => s.loadSampleData);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [crashCopied, setCrashCopied] = useState(false);
   const [mappingDialogOpen, setMappingDialogOpen] = useState(false);
@@ -124,6 +125,10 @@ export function MenuBar() {
           <button className={TRIGGER_CLS}>Help</button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
+          <DropdownMenuItem onClick={loadSampleData}>
+            Load Sample Data
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => setAboutOpen(true)}>
             About
           </DropdownMenuItem>
@@ -136,7 +141,7 @@ export function MenuBar() {
     <>
       <SubtoolMenuBar
         label="Kuro"
-        subtitle="Directed mutagenesis workbench"
+        subtitle="Kernel for Upstream Recombination Oligodesign"
         menus={menus}
       />
 
