@@ -16,10 +16,10 @@
 
 ## 0-based 인덱싱
 
-KURO는 0-based CDS 시작 위치 사용. SnapGene / Benchling은 1-based 표시 — 수동 입력 시 1 빼서 변환.
+Kuro는 0-based CDS 시작 위치 사용. SnapGene / Benchling은 1-based 표시 — 수동 입력 시 1 빼서 변환.
 
 ## 드래그 앤 드롭
 
-서열 파일을 KURO 창으로 드롭하면 **Browse**와 동일 파이프라인 실행.
+서열 파일을 Kuro 창으로 드롭하면 **Browse**와 동일 파이프라인 실행.
 
 *스텁 — 로드된 상태 스크린샷 추가 예정.*

@@ -16,7 +16,7 @@ Pick one of: Forward only / Reverse only / Both (paired). "Both" keeps the Gibso
 
 ## Custom primer input
 
-Type a free sequence in the custom field. KURO computes Tm / GC / HP instantly and warns if constraints fail. Submit to override the auto-selected primer.
+Type a free sequence in the custom field. Kuro computes Tm / GC / HP instantly and warns if constraints fail. Submit to override the auto-selected primer.
 
 ## Resetting
 

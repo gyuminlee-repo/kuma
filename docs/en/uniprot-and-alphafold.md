@@ -2,7 +2,7 @@
 
 ![UniProt candidates](../screenshots/07-uniprot-candidates.png)
 
-Once a CDS is selected KURO searches UniProt to enrich the design:
+Once a CDS is selected Kuro searches UniProt to enrich the design:
 
 ## BLAST-based match
 
@@ -12,7 +12,7 @@ The CDS translation is BLASTed against UniProt Swiss-Prot via EBI. The top hit i
 
 ## Direct accession lookup
 
-If your GenBank file has a `db_xref="UniProtKB/..."` qualifier, KURO fetches the entry directly as the first candidate.
+If your GenBank file has a `db_xref="UniProtKB/..."` qualifier, Kuro fetches the entry directly as the first candidate.
 
 ## Gene-name fallback
 

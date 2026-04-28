@@ -6,7 +6,7 @@
 
 ## Rescue cascade
 
-KURO가 포기 전 3단계 auto-relax 시도:
+Kuro가 포기 전 3단계 auto-relax 시도:
 
 1. Tm tolerance를 1 step 확대
 2. 프라이머 길이 범위 ±2 bp 확장

@@ -17,7 +17,7 @@ BLAST에 이메일 필요. `KURO_CONTACT_EMAIL` 또는 `~/.kuro/config.json`의 
 
 변이의 WT 문자가 해당 위치 CDS와 불일치.
 - CDS 잘못 선택? 드롭다운에서 유전자 전환 — [유전자 선택](gene-selection.md)
-- 1-based vs 0-based? KURO 위치는 CDS 내 1-based
+- 1-based vs 0-based? Kuro 위치는 CDS 내 1-based
 - 아이소폼 불일치? 서열에 해당하는 UniProt entry 확인
 
 ## Tm 조건 미충족 (FAIL 다수)

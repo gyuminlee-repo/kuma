@@ -2,17 +2,17 @@
 
 ## Report an issue
 
-Use the [issue tracker](https://github.com/gyuminlee-repo/KURO/issues). Include:
-- OS + KURO version (Help → About or the installer filename)
+Use the [issue tracker](https://github.com/gyuminlee-repo/kuma/issues). Include:
+- OS + kuma version (Help → About or the installer filename)
 - Steps to reproduce
-- `~/.kuro/crash.log` contents if a sidecar crash is involved
+- `~/.kuma/crash.log` contents if a sidecar crash is involved (or `~/.kuro/crash.log` from earlier installs)
 - Sample sequence / CSV if possible (minimally reproducing set)
 
 ## Development environment
 
 ```bash
-git clone https://github.com/gyuminlee-repo/KURO.git
-cd KURO
+git clone https://github.com/gyuminlee-repo/kuma.git
+cd kuma
 pip install -e '.[build]'
 pnpm install
 pnpm run sidecar:build
@@ -41,4 +41,4 @@ cd src-tauri && cargo check
 
 ## License
 
-MIT — see [LICENSE](https://github.com/gyuminlee-repo/KURO/blob/main/LICENSE).
+MIT — see [LICENSE](https://github.com/gyuminlee-repo/kuma/blob/main/LICENSE).

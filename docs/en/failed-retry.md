@@ -6,7 +6,7 @@ When a mutation fails the Tm / GC / length / HP filters, it appears with a red r
 
 ## Rescue cascade
 
-KURO tries three auto-relax passes before giving up:
+Kuro tries three auto-relax passes before giving up:
 
 1. Widen Tm tolerance by 1 step
 2. Expand primer length range by ±2 bp

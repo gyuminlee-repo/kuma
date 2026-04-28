@@ -12,7 +12,7 @@ Status bar shows **Ready** when the sidecar is up.
 
 ![File loaded](../screenshots/02-file-loaded.png)
 
-Click **Browse** and choose a GenBank / SnapGene / FASTA file. KURO auto-detects the longest ORF as the CDS target.
+Click **Browse** and choose a GenBank / SnapGene / FASTA file. Kuro auto-detects the longest ORF as the CDS target.
 
 ### Step 2 — Enter mutations
 

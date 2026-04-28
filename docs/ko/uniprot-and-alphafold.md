@@ -2,7 +2,7 @@
 
 ![UniProt 후보 목록](../screenshots/07-uniprot-candidates.png)
 
-CDS 선택 후 KURO가 UniProt을 검색하여 설계를 보강:
+CDS 선택 후 Kuro가 UniProt을 검색하여 설계를 보강:
 
 ## BLAST 기반 매칭
 

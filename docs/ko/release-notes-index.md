@@ -1,5 +1,7 @@
 # 릴리스 노트
 
+> 이 노트는 kuma 통합 이전의 독립형 KURO 릴리스를 다룹니다.
+
 전체 릴리스 이력은 메인 repo에서 확인:
 
 - **English**: [UPDATE-NOTES.md](https://github.com/gyuminlee-repo/KURO/blob/main/UPDATE-NOTES.md)

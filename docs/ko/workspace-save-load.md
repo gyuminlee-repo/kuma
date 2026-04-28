@@ -12,7 +12,7 @@ File 메뉴 → *Save Workspace*. 기본 파일명 `YYMMDD_<gene>_workspace.kuro
 
 ## 불러오기
 
-File 메뉴 → *Load Workspace*. KURO가 복원:
+File 메뉴 → *Load Workspace*. Kuro가 복원:
 
 - 로드된 서열 및 선택 유전자
 - 변이 텍스트 / CSV 경로

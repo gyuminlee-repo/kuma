@@ -12,14 +12,14 @@
 
 ## Auto CDS selection
 
-On load KURO scans every ATG, computes downstream ORF length, and auto-selects the longest. Change via the gene dropdown in the Input panel if needed — see [Gene Selection](gene-selection.md).
+On load Kuro scans every ATG, computes downstream ORF length, and auto-selects the longest. Change via the gene dropdown in the Input panel if needed — see [Gene Selection](gene-selection.md).
 
 ## 0-based indexing
 
-KURO uses 0-based CDS start positions. SnapGene and Benchling display 1-based — subtract 1 when transferring manually.
+Kuro uses 0-based CDS start positions. SnapGene and Benchling display 1-based — subtract 1 when transferring manually.
 
 ## Drag & drop
 
-Drop a sequence file onto the KURO window; the same pipeline runs as **Browse**.
+Drop a sequence file onto the Kuro window; the same pipeline runs as **Browse**.
 
 *Stub — screenshots of loaded states coming.*

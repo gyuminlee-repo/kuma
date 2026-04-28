@@ -12,7 +12,7 @@ Sidecar 기동 후 상태 표시줄에 **Ready** 표시.
 
 ![파일 로드 완료](../screenshots/02-file-loaded.png)
 
-**Browse** 버튼 클릭, GenBank / SnapGene / FASTA 파일 선택. KURO가 longest ORF를 CDS 타깃으로 자동 감지.
+**Browse** 버튼 클릭, GenBank / SnapGene / FASTA 파일 선택. Kuro가 longest ORF를 CDS 타깃으로 자동 감지.
 
 ### Step 2 — 변이 입력
 

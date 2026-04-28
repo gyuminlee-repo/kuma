@@ -1,5 +1,7 @@
 # Release Notes
 
+> These notes cover the standalone KURO releases prior to the kuma integration.
+
 Full release history lives in the main repo:
 
 - **English**: [UPDATE-NOTES.md](https://github.com/gyuminlee-repo/KURO/blob/main/UPDATE-NOTES.md)

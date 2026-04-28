@@ -2,7 +2,7 @@
 
 ![전체 인터페이스](../screenshots/04-design-complete.png)
 
-KURO는 세로 3분할 구조:
+Kuro(Kernel for Upstream Recombination Oligodesign)는 세로 3분할 구조:
 
 1. **좌측 사이드바 (340 px)** — Input 패널 (서열·변이·UniProt/AlphaFold), Parameter 패널, Design / Clear 버튼
 2. **중앙** — Sequence Viewer (상단) + Result Table (하단)
@@ -11,3 +11,5 @@ KURO는 세로 3분할 구조:
 상단 메뉴바: File (열기·저장·내보내기), Help, Benchmark.
 
 하단 상태 표시줄: sidecar 상태, 현재 동작, 진행률.
+
+설계 완료 후 Mame 탭으로 전환하여 클론을 검증할 수 있습니다.

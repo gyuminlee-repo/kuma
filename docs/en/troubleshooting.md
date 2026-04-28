@@ -17,7 +17,7 @@ BLAST needs an email. Set `KURO_CONTACT_EMAIL` or `contact_email` in `~/.kuro/co
 
 The mutation's WT letter doesn't match the CDS at that position.
 - Wrong CDS selected? Switch gene in the dropdown — see [Gene Selection](gene-selection.md)
-- 1-based vs 0-based? KURO positions are 1-based within CDS
+- 1-based vs 0-based? Kuro positions are 1-based within CDS
 - Isoform mismatch? Check the UniProt entry for your sequence
 
 ## Tm condition not met (many FAILs)

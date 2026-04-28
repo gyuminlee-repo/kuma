@@ -2,7 +2,7 @@
 
 ![Gene dropdown](../screenshots/19-gene-dropdown.png)
 
-When a sequence file contains multiple CDS features (GenBank) or multiple ORFs (FASTA), KURO lists them in the gene dropdown.
+When a sequence file contains multiple CDS features (GenBank) or multiple ORFs (FASTA), Kuro lists them in the gene dropdown.
 
 ## Default pick
 

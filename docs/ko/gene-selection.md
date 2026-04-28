@@ -2,7 +2,7 @@
 
 ![유전자 드롭다운](../screenshots/19-gene-dropdown.png)
 
-서열 파일에 CDS feature(GenBank) 또는 ORF(FASTA)가 여러 개면 KURO가 gene 드롭다운에 나열.
+서열 파일에 CDS feature(GenBank) 또는 ORF(FASTA)가 여러 개면 Kuro가 gene 드롭다운에 나열.
 
 ## 기본 선택
 

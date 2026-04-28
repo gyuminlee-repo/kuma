@@ -12,7 +12,7 @@ File menu → *Save Workspace*. Default filename `YYMMDD_<gene>_workspace.kuro.j
 
 ## Load
 
-File menu → *Load Workspace*. KURO restores:
+File menu → *Load Workspace*. Kuro restores:
 
 - Loaded sequence & selected gene
 - Mutation text / CSV path
