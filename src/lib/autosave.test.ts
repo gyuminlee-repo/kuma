@@ -197,16 +197,17 @@ describe("atomicWriteJson", () => {
 });
 
 describe("readAutosave", () => {
-  it("TC7: 손상 JSON 파일을 .bad-<ts>로 rename하고 null을 반환한다", async () => {
+  it("TC7: 손상 JSON 파일을 .bad-<ts>로 rename하고 corrupted를 반환한다", async () => {
     vi.useRealTimers();
 
     const filePath = autosavePath(PROJECT_PATH, "kuro");
     mockExists.mockResolvedValue(true);
     mockReadTextFile.mockResolvedValue("{ this is not valid json !!!");
 
-    const result = await readAutosave(PROJECT_PATH, "kuro");
+    const result = await readAutosave(PROJECT_PATH, "kuro", 1);
 
-    expect(result).toBeNull();
+    expect(result.status).toBe("corrupted");
+    if (result.status !== "corrupted") return; // type narrowing
 
     // rename이 호출됐는지, 원본 경로가 oldPath인지
     expect(mockRename).toHaveBeenCalledTimes(1);
@@ -216,18 +217,19 @@ describe("readAutosave", () => {
 
     // bad 경로에 연도가 포함돼 있는지 (타임스탬프 형식 검증)
     expect(badPath).toMatch(/\d{4}/);
+    expect(result.backupPath).toBe(badPath);
   });
 
-  it("파일이 존재하지 않으면 null을 반환한다", async () => {
+  it("파일이 존재하지 않으면 missing을 반환한다", async () => {
     vi.useRealTimers();
     mockExists.mockResolvedValue(false);
 
-    const result = await readAutosave(PROJECT_PATH, "mame");
-    expect(result).toBeNull();
+    const result = await readAutosave(PROJECT_PATH, "mame", 1);
+    expect(result.status).toBe("missing");
     expect(mockReadTextFile).not.toHaveBeenCalled();
   });
 
-  it("정상 JSON이면 파싱된 스냅샷을 반환한다", async () => {
+  it("정상 JSON이고 schema 일치하면 ok + 파싱된 스냅샷을 반환한다", async () => {
     vi.useRealTimers();
     const snapshot: AutosaveSnapshot = {
       schema: 1,
@@ -238,8 +240,46 @@ describe("readAutosave", () => {
     mockExists.mockResolvedValue(true);
     mockReadTextFile.mockResolvedValue(JSON.stringify(snapshot));
 
-    const result = await readAutosave(PROJECT_PATH, "kuro");
-    expect(result).toEqual(snapshot);
+    const result = await readAutosave(PROJECT_PATH, "kuro", 1);
+    expect(result.status).toBe("ok");
+    if (result.status !== "ok") return;
+    expect(result.snapshot).toEqual(snapshot);
+    expect(mockRename).not.toHaveBeenCalled();
+  });
+
+  it("TC8: schema_too_new — snapshot.schema > currentSchema이면 schema_too_new를 반환한다", async () => {
+    vi.useRealTimers();
+    const snapshot: AutosaveSnapshot = {
+      schema: 99,
+      saved_at: "2026-04-28T10:00:00Z",
+      kuma_version: "99.0.0",
+    };
+    mockExists.mockResolvedValue(true);
+    mockReadTextFile.mockResolvedValue(JSON.stringify(snapshot));
+
+    const result = await readAutosave(PROJECT_PATH, "kuro", 1);
+    expect(result.status).toBe("schema_too_new");
+    if (result.status !== "schema_too_new") return;
+    expect(result.foundSchema).toBe(99);
+    // 파일 rename 없음 (파일 보존)
+    expect(mockRename).not.toHaveBeenCalled();
+  });
+
+  it("TC9: schema < currentSchema이면 ok로 반환한다 (마이그레이션은 호출자 책임)", async () => {
+    vi.useRealTimers();
+    const snapshot: AutosaveSnapshot = {
+      schema: 1,
+      saved_at: "2026-04-28T10:00:00Z",
+      kuma_version: "0.1.0",
+    };
+    mockExists.mockResolvedValue(true);
+    mockReadTextFile.mockResolvedValue(JSON.stringify(snapshot));
+
+    // currentSchema = 2 (미래 버전의 앱이 구 스냅샷 읽는 상황)
+    const result = await readAutosave(PROJECT_PATH, "kuro", 2);
+    expect(result.status).toBe("ok");
+    if (result.status !== "ok") return;
+    expect(result.snapshot.schema).toBe(1);
     expect(mockRename).not.toHaveBeenCalled();
   });
 });

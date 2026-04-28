@@ -110,37 +110,60 @@ export async function atomicWriteJson(filePath: string, data: unknown): Promise<
 // ─── readAutosave ────────────────────────────────────────────────────────
 
 /**
- * 자동 저장 파일 읽기. 파일 없으면 null. JSON 파싱 실패 시
- * 파일을 `<filename>.bad-<isoTs>`로 rename하고 null 반환.
+ * readAutosave 반환 타입.
+ * - ok: 정상 파싱 (schema <= currentSchema)
+ * - missing: 파일 없음
+ * - corrupted: JSON 파싱 실패. 파일을 .bad-<ts>로 rename 후 backupPath 반환
+ * - schema_too_new: snapshot.schema > currentSchema
+ */
+export type ReadAutosaveResult =
+  | { status: "ok"; snapshot: AutosaveSnapshot }
+  | { status: "missing" }
+  | { status: "corrupted"; backupPath: string }
+  | { status: "schema_too_new"; foundSchema: number };
+
+/**
+ * 자동 저장 파일 읽기.
+ * - 파일 없음 → missing
+ * - JSON 파싱 실패 → .bad-<ts> rename 후 corrupted
+ * - snapshot.schema > currentSchema → schema_too_new
+ * - 그 외 → ok (schema < currentSchema 마이그레이션은 호출자 책임)
  */
 export async function readAutosave(
   projectPath: string,
   kind: AutosaveKind,
-): Promise<AutosaveSnapshot | null> {
+  currentSchema: number,
+): Promise<ReadAutosaveResult> {
   const filePath = autosavePath(projectPath, kind);
   const fileExists = await exists(filePath);
-  if (!fileExists) return null;
+  if (!fileExists) return { status: "missing" };
 
   let text: string;
   try {
     text = await readTextFile(filePath);
   } catch {
-    return null;
+    return { status: "missing" };
   }
 
+  let parsed: AutosaveSnapshot;
   try {
-    const parsed = JSON.parse(text) as AutosaveSnapshot;
-    return parsed;
+    parsed = JSON.parse(text) as AutosaveSnapshot;
   } catch {
     const isoTs = new Date().toISOString().replace(/[:.]/g, "-");
-    const badPath = `${filePath}.bad-${isoTs}`;
+    const backupPath = `${filePath}.bad-${isoTs}`;
     try {
-      await rename(filePath, badPath);
+      await rename(filePath, backupPath);
     } catch {
       console.warn(`[autosave] Failed to rename corrupted file: ${filePath}`);
     }
-    return null;
+    return { status: "corrupted", backupPath };
   }
+
+  if (parsed.schema > currentSchema) {
+    return { status: "schema_too_new", foundSchema: parsed.schema };
+  }
+
+  return { status: "ok", snapshot: parsed };
 }
 
 // ─── 직렬 큐 실행 ────────────────────────────────────────────────────────
