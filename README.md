@@ -95,7 +95,7 @@ Download the latest installer from [Releases](https://github.com/gyuminlee-repo/
 ## Usage
 
 **Kuro tab**
-1. Click **Try sample →** (Input panel) to load examples, or:
+1. **Help → Load Sample Data** to load examples, or:
 2. Load a sequence file (GenBank `.gb` / SnapGene `.dna`)
 3. Verify the target CDS in the Target Gene dropdown (auto-selected)
 4. Enter mutations (text / EVOLVEpro CSV / MULTI-evolve CSV)
@@ -105,11 +105,12 @@ Download the latest installer from [Releases](https://github.com/gyuminlee-repo/
 8. File → Export Excel (writes `design/expected_mutations.xlsx` with `__kuma_meta__` embedded)
 
 **Mame tab** (after wet lab + sequencing)
-1. Drop Nanopore consensus FASTAs into the input panel
-2. Reference FASTA + `expected_mutations.xlsx` (auto-suggested if the active project has them)
-3. Set CDS end / mode / cutoffs
-4. **Run** → verdict table + 96-well plate map
-5. **Export** → final xlsx
+1. **Help → Load Sample Data** to load examples, or:
+2. Drop Nanopore consensus FASTAs into the input panel
+3. Reference FASTA + `expected_mutations.xlsx` (auto-suggested if the active project has them)
+4. Set CDS end / mode / cutoffs
+5. **Run** → verdict table + 96-well plate map
+6. **Export** → final xlsx
 
 Dropping a Kuro-exported xlsx into Mame while a different project is active triggers the "load source project?" dialog (matched via `__kuma_meta__ → project_id`).
 

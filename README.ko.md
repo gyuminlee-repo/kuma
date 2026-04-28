@@ -94,7 +94,7 @@ EVOLVEpro 또는 MULTI-evolve CSV 로드 시 어떤 mutation을 프라이머 설
 ## 사용법
 
 **Kuro 탭**
-1. Input 패널 상단의 **Try sample →** 클릭 시 예제 자동 로드. 또는:
+1. **Help → Load Sample Data** 메뉴로 예제 자동 로드. 또는:
 2. 시퀀스 파일 로드 (GenBank `.gb` / SnapGene `.dna`)
 3. Target Gene 드롭다운에서 타겟 CDS 확인(자동 선택)
 4. 변이 입력 (텍스트 / EVOLVEpro CSV / MULTI-evolve CSV)
@@ -104,11 +104,12 @@ EVOLVEpro 또는 MULTI-evolve CSV 로드 시 어떤 mutation을 프라이머 설
 8. File → Export Excel (현재 프로젝트의 `design/expected_mutations.xlsx`에 `__kuma_meta__` 포함하여 저장)
 
 **Mame 탭** (실험·시퀀싱 후)
-1. Nanopore consensus FASTA를 입력 패널에 드롭
-2. 참조 FASTA + `expected_mutations.xlsx` (활성 프로젝트가 가지고 있으면 자동 제안)
-3. CDS end / mode / cutoffs 설정
-4. **Run** → 판정 테이블 + 96-well plate map
-5. **Export** → final xlsx
+1. **Help → Load Sample Data** 메뉴로 예제 자동 로드. 또는:
+2. Nanopore consensus FASTA를 입력 패널에 드롭
+3. 참조 FASTA + `expected_mutations.xlsx` (활성 프로젝트가 가지고 있으면 자동 제안)
+4. CDS end / mode / cutoffs 설정
+5. **Run** → 판정 테이블 + 96-well plate map
+6. **Export** → final xlsx
 
 다른 프로젝트가 활성화된 상태에서 Kuro-export xlsx를 Mame 탭에 드롭하면 `__kuma_meta__ → project_id` 매칭으로 "출처 프로젝트로 로드하시겠어요?" 다이얼로그가 뜬다.
 

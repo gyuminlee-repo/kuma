@@ -4,6 +4,32 @@
 
 ---
 
+## v0.1.3 (2026-04-28)
+
+UI 통일 작업: kuro와 mame가 공통 디자인 토큰, 공통 메뉴/상태바, 공통 패널 컴포넌트를 사용하게 정리.
+
+### 디자인 시스템
+
+- `src/index.css`에 16종 토큰(size, radius, shadow, typography, 의미 색 success/warning/error/info, motion + reduced-motion fallback) 도입. `tailwind.config.js` `theme.extend`로 유틸 클래스 노출.
+- 공통 `SubtoolMenuBar` / `GlobalStatusBar`: 라벨+부제 줄 위에 메뉴 트리거 줄을 쌓는 2단 구조. sidecar 3-상태 점은 라벨 텍스트와 항상 동반. 상태 메시지 영역에 `aria-live="polite"`. 모든 인터랙티브 트리거에 focus-visible 링.
+- 패널 프리미티브 `SurfacePanel` / `DataPanel` / `ActionPanel` + `ErrorBoundary` + `StateView`(loading/empty/error/success). DataPanel은 ErrorBoundary로 자식을 자동 감싸고, error variant에 `role="alert"` 부여.
+- 사이드바·패널 카드는 `border + rounded-container + bg-card`로 통일. shadow는 floating(다이얼로그·드롭다운·토스트)만 유지.
+- 코드 전반에서 `text-[Npx]` / `h-[Npx]` / `rounded-[Npx]` / `tracking-[Nem]` 임의값과 slate/red/green/amber/indigo/blue/purple/gray 하드코딩 색을 의미 토큰으로 치환.
+- 96-well 플레이트 밀도용 도메인 토큰 `--text-plate`(10px), `--text-plate-tiny`(8px) 추가.
+
+### UX 변경
+
+- 서브툴 메뉴바에 풀네임 표기: `Kernel for Upstream Recombination Oligodesign`(kuro), `Mutagenesis Assessment & Microplate Export`(mame).
+- 샘플 데이터 진입 통일 — 두 탭 모두 `Help → Load Sample Data`. kuro Input 패널 헤더의 `Try sample` 버튼 제거.
+- VerdictBadge에 도형 prefix(●/▲/■/◆) 추가. 색만으로 의미 전달하지 않음.
+- 사이드바 파괴 액션(Cancel, Clear)을 shadcn 빨간 destructive 대신 outline + `text-error` 조합으로 변경.
+
+### 버그 수정
+
+- `cn()`에 `extendTailwindMerge` 적용. 커스텀 fontSize 토큰 5종(`text-title`, `text-body`, `text-caption`, `text-plate`, `text-plate-tiny`)을 별도 `font-size` 그룹으로 등록. 그 전엔 `tailwind-merge`가 이 토큰들을 `text-{색}` 클래스와 같은 그룹으로 보고 `text-primary-foreground` 같은 색을 지웠고, 그 결과 Run Design / Run 등 primary 버튼의 텍스트가 안 보였음.
+
+---
+
 ## v0.1.0 (2026-04-24)
 
 첫 kuma 릴리스. kuro(프라이머 디자인)와 mame(NGS 검증)을 단일 Tauri 앱으로 통합.

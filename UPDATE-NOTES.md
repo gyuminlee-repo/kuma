@@ -4,6 +4,32 @@
 
 ---
 
+## v0.1.3 (2026-04-28)
+
+UI unification pass: shared design tokens, common menu/status bar, and panel primitives across kuro and mame.
+
+### Design system
+
+- 16-token base added in `src/index.css` (size, radius, shadow, typography, semantic colors success/warning/error/info, motion + reduced-motion fallback) and exposed via `tailwind.config.js` `theme.extend`.
+- `SubtoolMenuBar` and `GlobalStatusBar` shared components: stacked label/subtitle row above the menu trigger row, sidecar tri-state dot with required label, `aria-live="polite"` status messages, focus-visible ring on every interactive trigger.
+- Panel primitives `SurfacePanel` / `DataPanel` / `ActionPanel` plus `ErrorBoundary` and `StateView` (loading/empty/error/success). DataPanel auto-wraps children with ErrorBoundary; error variant emits `role="alert"`.
+- Sidebar and panel cards reset to `border + rounded-container + bg-card`; shadow restricted to floating surfaces.
+- Repo-wide cleanup: arbitrary `text-[Npx]` / `h-[Npx]` / `rounded-[Npx]` / `tracking-[Nem]` and hardcoded slate/red/green/amber/indigo/blue/purple/gray classes replaced with semantic tokens.
+- Domain tokens `--text-plate` (10px) and `--text-plate-tiny` (8px) for 96-well plate density.
+
+### UX changes
+
+- Subtool menubars now show full names: `Kernel for Upstream Recombination Oligodesign` (kuro), `Mutagenesis Assessment & Microplate Export` (mame).
+- Sample data loader unified — both tabs expose it under `Help → Load Sample Data`. The standalone `Try sample` button on the kuro Input panel header was removed.
+- VerdictBadge gains shape prefix (●/▲/■/◆) so meaning never relies on color alone.
+- Sidebar destructive actions (Cancel, Clear) use outline + `text-error` instead of shadcn's red destructive variant.
+
+### Bug fixes
+
+- `cn()` now uses `extendTailwindMerge` with custom `font-size` group covering `text-title`, `text-body`, `text-caption`, `text-plate`, `text-plate-tiny`. Without this, `tailwind-merge` lumped the new font-size tokens together with `text-{color}` utilities and dropped colors such as `text-primary-foreground`, leaving primary buttons (Run Design, Run) with invisible text.
+
+---
+
 ## v0.1.0 (2026-04-24)
 
 First kuma release. kuro (primer design) and mame (NGS verification) are unified into a single Tauri app.
