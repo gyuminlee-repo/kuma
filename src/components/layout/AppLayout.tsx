@@ -1,8 +1,12 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useAppStore } from "../../store/appStore";
 import { useSidecar } from "../../hooks/useSidecar";
 import { useKumaProject } from "../../state/projectContext";
+
+const IS_MAC = typeof navigator !== "undefined" && navigator.userAgent.includes("Mac");
+const RUN_HINT = IS_MAC ? "⌘↵" : "Ctrl+↵";
 import { InputPanel } from "../panels/InputPanel";
 import { ParameterPanel } from "../panels/ParameterPanel";
 import { ResultTable } from "../widgets/ResultTable";
@@ -57,6 +61,12 @@ export function AppLayout() {
       void loadPolymerases();
     }
   }, [loadPolymerases, sidecarStatus]);
+
+  // Item 6: Sync window title with project name
+  useEffect(() => {
+    const title = project?.name ? `kuma — ${project.name}` : "kuma";
+    void getCurrentWindow().setTitle(title);
+  }, [project?.name]);
 
   // File drop via Tauri webview API
   useEffect(() => {
@@ -122,6 +132,14 @@ export function AppLayout() {
         e.preventDefault();
         handleOpenSequence();
         break;
+      case "enter":
+        if (isInput) return;
+        e.preventDefault();
+        {
+          const s = useAppStore.getState();
+          if (s.seqInfo && !s.isDesigning && s.mutationText.trim()) void s.designPrimers();
+        }
+        break;
     }
   }, []);
 
@@ -157,6 +175,9 @@ export function AppLayout() {
                   disabled={!hasSequence || isDesigning || !hasMutationText}
                 >
                   {isDesigning ? "Designing..." : "Run Design"}
+                  {!isDesigning && (
+                    <kbd className="ml-2 text-caption text-muted-foreground font-normal opacity-70">{RUN_HINT}</kbd>
+                  )}
                 </Button>
                 {isDesigning && (
                   <Button
@@ -189,7 +210,7 @@ export function AppLayout() {
             data-testid="main-content"
             className="flex min-h-0 flex-col gap-3 overflow-hidden"
           >
-            <div className="grid min-h-0 flex-1 grid-rows-[minmax(180px,0.72fr)_minmax(0,1fr)_240px] gap-3 overflow-hidden">
+            <div className="grid min-h-0 flex-1 grid-rows-[minmax(140px,0.48fr)_minmax(0,1fr)_minmax(320px,0.92fr)] gap-3 overflow-hidden">
               <DataPanel
                 title="Sequence context"
                 description={selectedGeneInfo ? `${selectedGeneInfo.gene} · ${selectedGeneInfo.aa_length} aa` : "Load a target gene"}

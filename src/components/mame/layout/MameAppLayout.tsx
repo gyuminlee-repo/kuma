@@ -86,6 +86,10 @@ export function MameAppLayout() {
           e.preventDefault();
           if (selectCanRun(s)) void s.runAnalysis();
           break;
+        case "enter":
+          e.preventDefault();
+          if (selectCanRun(s) && !s.isAnalyzing) void s.runAnalysis();
+          break;
       }
     }
     window.addEventListener("keydown", handleKeyDown);

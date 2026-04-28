@@ -18,6 +18,7 @@ import {
   DropdownMenuSeparator,
 } from "../ui/dropdown-menu";
 import { getCrashLog } from "../../lib/crashLog";
+import { CrashLogDialog } from "../dialogs/CrashLogDialog";
 import {
   handleExportExcel,
   handleExportIdtOrder,
@@ -42,6 +43,7 @@ export function MenuBar() {
   const loadSampleData = useAppStore((s) => s.loadSampleData);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [crashCopied, setCrashCopied] = useState(false);
+  const [crashLogOpen, setCrashLogOpen] = useState(false);
   const [mappingDialogOpen, setMappingDialogOpen] = useState(false);
   const [mappingDialogFormat, setMappingDialogFormat] = useState<"echo" | "janus">("echo");
 
@@ -129,6 +131,13 @@ export function MenuBar() {
             Load Sample Data
           </DropdownMenuItem>
           <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => window.dispatchEvent(new CustomEvent("kuma:show-onboarding"))}>
+            Show Onboarding
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setCrashLogOpen(true)}>
+            View Crash Log
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => setAboutOpen(true)}>
             About
           </DropdownMenuItem>
@@ -144,6 +153,8 @@ export function MenuBar() {
         subtitle="Kernel for Upstream Recombination Oligodesign"
         menus={menus}
       />
+
+      <CrashLogDialog open={crashLogOpen} onOpenChange={setCrashLogOpen} />
 
       <MappingExportDialog
         open={mappingDialogOpen}

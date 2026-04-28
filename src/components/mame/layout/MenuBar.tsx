@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
+import { CrashLogDialog } from "@/components/dialogs/CrashLogDialog";
 import { selectCanRun } from "@/store/mame/selectors";
 import { Button } from "@/components/ui/button";
 import {
@@ -42,6 +43,7 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
   const loadSampleData = useMameAppStore((s) => s.loadSampleData);
   const canRun = useMameAppStore(selectCanRun);
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [crashLogOpen, setCrashLogOpen] = useState(false);
 
   const menus = (
     <>
@@ -100,6 +102,13 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
             Load Sample Data
           </DropdownMenuItem>
           <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => window.dispatchEvent(new CustomEvent("kuma:show-onboarding"))}>
+            Show Onboarding
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setCrashLogOpen(true)}>
+            View Crash Log
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => setAboutOpen(true)}>About</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -108,6 +117,8 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
 
   return (
     <>
+      <CrashLogDialog open={crashLogOpen} onOpenChange={setCrashLogOpen} />
+
       <SubtoolMenuBar
         label="Mame"
         subtitle="Mutagenesis Assessment & Microplate Export"

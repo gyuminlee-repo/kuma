@@ -35,7 +35,18 @@ export async function handleExportExcel(projectId?: string) {
     filters: [{ name: "Excel", extensions: ["xlsx"] }],
     defaultPath: defaultExportFilename({ target: "KURO", ext: "xlsx" }),
   });
-  if (path) await useAppStore.getState().exportExcel(path, projectId);
+  if (path) {
+    await useAppStore.getState().exportExcel(path, projectId);
+    // Item 2: Handoff hint — flash message for 5 s then restore
+    const prevMsg = useAppStore.getState().statusMessage;
+    useAppStore.getState().setStatus("Export saved. Run sequencing, then Switch to Mame tab to verify →");
+    setTimeout(() => {
+      // Restore only if no new message has appeared
+      if (useAppStore.getState().statusMessage === "Export saved. Run sequencing, then Switch to Mame tab to verify →") {
+        useAppStore.getState().setStatus(prevMsg);
+      }
+    }, 5000);
+  }
 }
 
 export async function handleExportIdtOrder() {

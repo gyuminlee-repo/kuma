@@ -1,5 +1,7 @@
 import { AlertCircle, Download, Play, ShieldCheck, Square, Trash2 } from "lucide-react";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
+
+const RUN_HINT = typeof navigator !== "undefined" && navigator.userAgent.includes("Mac") ? "⌘↵" : "Ctrl+↵";
 import { selectCanRun } from "@/store/mame/selectors";
 import { InputPanel } from "../panels/InputPanel";
 import { ParameterPanel } from "../panels/ParameterPanel";
@@ -111,6 +113,7 @@ export function Sidebar({ onClearRequest }: SidebarProps) {
             >
               <Play size={12} aria-hidden="true" />
               Run
+              <kbd className="ml-1 text-caption font-normal opacity-70">{RUN_HINT}</kbd>
             </Button>
           )}
         </div>

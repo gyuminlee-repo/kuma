@@ -1,9 +1,14 @@
+import { useEffect, useState } from "react";
+import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { useAppStore } from "../../../store/appStore";
 import { basename } from "../../../lib/utils";
 import { browseFile } from "../../../lib/file-utils";
 import { Button } from "../../ui/button";
 
+const SEQUENCE_DROP_EXTENSIONS = new Set([".gb", ".gbk", ".gbff", ".dna", ".fa", ".fasta"]);
+
 export function SequenceInput() {
+  const [isDragOver, setIsDragOver] = useState(false);
   const fastaPath = useAppStore((s) => s.fastaPath);
   const seqInfo = useAppStore((s) => s.seqInfo);
   const selectedGene = useAppStore((s) => s.selectedGene);
@@ -13,10 +18,34 @@ export function SequenceInput() {
   const loadSequence = useAppStore((s) => s.loadSequence);
   const uniprotSearching = useAppStore((s) => s.uniprotSearching);
 
+  // Item 3: Drag-and-drop visual feedback via Tauri webview event
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    getCurrentWebview()
+      .onDragDropEvent((event) => {
+        if (event.payload.type === "enter" || event.payload.type === "over") {
+          const paths = "paths" in event.payload ? event.payload.paths : [];
+          const hasSeqFile = paths.some((p) => {
+            const ext = p.slice(p.lastIndexOf(".")).toLowerCase();
+            return SEQUENCE_DROP_EXTENSIONS.has(ext);
+          });
+          if (hasSeqFile) setIsDragOver(true);
+        } else if (event.payload.type === "leave" || event.payload.type === "drop") {
+          setIsDragOver(false);
+        }
+      })
+      .then((fn) => { unlisten = fn; })
+      .catch(() => { /* webview API not available in test env */ });
+    return () => { unlisten?.(); };
+  }, []);
+
   return (
     <>
       {/* Sequence File */}
-      <div className="space-y-1">
+      <div
+        className={`space-y-1 rounded-control border transition-colors duration-fast ${isDragOver ? "border-dashed border-info bg-info/5" : "border-transparent"}`}
+        aria-label="Drop sequence file here"
+      >
         <label className="text-xs font-medium text-foreground">Sequence File</label>
         <div className="flex gap-1">
           <Button

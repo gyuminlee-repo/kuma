@@ -17,6 +17,7 @@ function stem(path: string): string {
 
 export function App() {
   const [screen, setScreen] = useState<AppScreen>("loading");
+  const [prevScreen, setPrevScreen] = useState<AppScreen>("home");
   const [config, setConfig] = useState<Config | null>(null);
   const [project, setProject] = useState<KumaProject>(null);
 
@@ -58,9 +59,22 @@ export function App() {
     };
   }, []);
 
+  // Item 5: Show onboarding on demand from Help menu
+  useEffect(() => {
+    function handleShowOnboarding() {
+      setPrevScreen(screen);
+      setScreen("onboarding");
+    }
+    window.addEventListener("kuma:show-onboarding", handleShowOnboarding);
+    return () => {
+      window.removeEventListener("kuma:show-onboarding", handleShowOnboarding);
+    };
+  }, [screen]);
+
   function handleDone(cfg: Config) {
     setConfig(cfg);
-    setScreen("home");
+    // If re-opened from workspace/home, return there instead of forcing home
+    setScreen(prevScreen === "workspace" || prevScreen === "home" ? prevScreen : "home");
   }
 
   async function handleOpenWorkspace(path: string, scratch: boolean) {
