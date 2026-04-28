@@ -1,10 +1,10 @@
-# KURO 문서
+# kuma — Kuro 서브툴 문서
 
 **Language**: [🇺🇸 English](./README.md) · 🇰🇷 한국어
 
-![KURO 메인 창](./screenshots/04-design-complete.png)
+![Kuro 메인 창](./screenshots/04-design-complete.png)
 
-**KURO** (Kernel for Upstream Recombination Oligodesign) — Gibson Assembly 기반의 Site-Directed Mutagenesis (SDM) 프라이머 일괄 설계 데스크톱 앱.
+이 페이지는 [kuma](../README.ko.md) 안의 **Kuro** 서브툴 문서다. Kuro(Kernel for Upstream Recombination Oligodesign)는 Gibson Assembly 기반 Site-Directed Mutagenesis(SDM) 프라이머를 일괄 설계하는 탭이다. 같은 워크스페이스 안의 또 다른 서브툴 Mame(Mutagenesis Assessment & Microplate Export)는 NGS 판정을 담당한다.
 
 ## 🚀 시작하기
 
@@ -12,9 +12,9 @@
 - [빠른 시작](./ko/quick-start.md) — 5단계로 첫 프라이머 설계
 - [인터페이스 개요](./ko/interface-overview.md) — 패널 구성 및 메뉴 설명
 
-## 🧪 KURO가 하는 일
+## 🧪 Kuro가 하는 일
 
-변이 목록(텍스트 또는 EVOLVEpro CSV)과 템플릿 서열(GenBank / SnapGene)을 입력하면 overlap-extension 방식으로 SDM 프라이머 쌍을 자동 생성. 출력: IDT/Twist 오더 CSV, Echo/JANUS 액체핸들러 매핑 파일, 변이별 통계를 담은 Excel 워크북.
+변이 목록(텍스트 또는 EVOLVEpro CSV)과 템플릿 서열(GenBank / SnapGene)을 입력하면 overlap-extension 방식으로 SDM 프라이머 쌍을 자동 생성. 출력: IDT/Twist 오더 CSV, Echo/JANUS 액체핸들러 매핑 파일, 변이별 통계를 담은 Excel 워크북. 모든 export에는 숨김 시트 `__kuma_meta__`가 들어가서 Mame 탭이 나중에 시퀀싱 결과를 원래 프로젝트로 자동 매칭한다.
 
 ## 📑 전체 페이지
 
@@ -63,9 +63,6 @@
 
 ## 🔗 링크
 
-- 소스: https://github.com/gyuminlee-repo/KURO
-- 릴리스: https://github.com/gyuminlee-repo/KURO/releases
-- 이슈: https://github.com/gyuminlee-repo/KURO/issues
-
----
-*v1.33.6 기준.*
+- 소스: https://github.com/gyuminlee-repo/kuma
+- 릴리스: https://github.com/gyuminlee-repo/kuma/releases
+- 이슈: https://github.com/gyuminlee-repo/kuma/issues

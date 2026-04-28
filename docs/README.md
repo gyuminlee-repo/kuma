@@ -1,10 +1,10 @@
-# KURO Documentation
+# kuma — Kuro Subtool Documentation
 
 **Language**: 🇺🇸 English · [🇰🇷 한국어](./README.ko.md)
 
-![KURO main window](./screenshots/04-design-complete.png)
+![Kuro main window](./screenshots/04-design-complete.png)
 
-**KURO** (Kernel for Upstream Recombination Oligodesign) — cross-platform desktop app for batch Site-Directed Mutagenesis (SDM) primer design based on Gibson Assembly.
+This page documents the **Kuro** subtool inside [kuma](../README.md). Kuro (Kernel for Upstream Recombination Oligodesign) is the SDM primer-design tab that designs batch Site-Directed Mutagenesis primer pairs from Gibson Assembly templates. The other subtool, Mame (Mutagenesis Assessment & Microplate Export), handles NGS verdict on the same project workspace.
 
 ## 🚀 Start here
 
@@ -16,9 +16,9 @@
 
 Navigate using the sidebar on the right. Pages are organised by workflow phase (Input → Parameters → Designing → Output → Analysis).
 
-## 🧪 What KURO does
+## 🧪 What Kuro does
 
-Given a mutation list (plain text or EVOLVEpro CSV) and a template sequence (GenBank / SnapGene), KURO automatically designs SDM primer pairs using the overlap-extension method. Outputs include IDT/Twist order CSVs, Echo/JANUS liquid-handler mapping files, and a full Excel workbook with per-mutation statistics.
+Given a mutation list (plain text or EVOLVEpro CSV) and a template sequence (GenBank / SnapGene), Kuro automatically designs SDM primer pairs using the overlap-extension method. Outputs include IDT/Twist order CSVs, Echo/JANUS liquid-handler mapping files, and a full Excel workbook with per-mutation statistics. Each export carries a hidden `__kuma_meta__` sheet so the Mame tab can later match sequencing reads back to the originating project.
 
 ## 📑 All pages
 
@@ -67,9 +67,7 @@ Given a mutation list (plain text or EVOLVEpro CSV) and a template sequence (Gen
 
 ## 🔗 Links
 
-- Source: https://github.com/gyuminlee-repo/KURO
-- Latest release: https://github.com/gyuminlee-repo/KURO/releases
-- Issue tracker: https://github.com/gyuminlee-repo/KURO/issues
+- Source: https://github.com/gyuminlee-repo/kuma
+- Latest release: https://github.com/gyuminlee-repo/kuma/releases
+- Issue tracker: https://github.com/gyuminlee-repo/kuma/issues
 
----
-*Based on release v1.33.6.*
