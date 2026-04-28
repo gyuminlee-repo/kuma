@@ -1,27 +1,24 @@
-# kuma — Kuro 서브툴 문서
+# kuma 문서
 
 **Language**: [🇺🇸 English](./README.md) · 🇰🇷 한국어
 
-![Kuro 메인 창](./screenshots/04-design-complete.png)
+![kuma 메인 창](./screenshots/04-design-complete.png)
 
-이 페이지는 [kuma](../README.ko.md) 안의 **Kuro** 서브툴 문서다. Kuro(Kernel for Upstream Recombination Oligodesign)는 Gibson Assembly 기반 Site-Directed Mutagenesis(SDM) 프라이머를 일괄 설계하는 탭이다. 같은 워크스페이스 안의 또 다른 서브툴 Mame(Mutagenesis Assessment & Microplate Export)는 NGS 판정을 담당한다.
+**kuma**는 두 서브툴을 하나의 Tauri 데스크톱 앱으로 통합한다:
 
-## 🚀 시작하기
+- **Kuro** (Kernel for Upstream Recombination Oligodesign) — Gibson Assembly 기반 SDM 프라이머 일괄 설계.
+- **Mame** (Mutagenesis Assessment & Microplate Export) — Oxford Nanopore NGS 판정. 어떤 클론이 의도한 돌연변이를 가졌는지 검증.
 
+두 탭은 같은 프로젝트 워크스페이스를 공유한다. Kuro xlsx export에 들어가는 숨김 시트 `__kuma_meta__` 덕분에 몇 주 뒤 시퀀싱 결과가 들어와도 Mame가 원래 프로젝트에 자동 매칭한다. 설치·아키텍처는 [프로젝트 README](../README.ko.md) 참고.
+
+---
+
+## 🦋 Kuro — SDM 프라이머 설계
+
+### 🚀 시작하기
 - [설치](./ko/installation.md) — Windows / macOS / Linux 설치
 - [빠른 시작](./ko/quick-start.md) — 5단계로 첫 프라이머 설계
 - [인터페이스 개요](./ko/interface-overview.md) — 패널 구성 및 메뉴 설명
-
-## 🧪 Kuro가 하는 일
-
-변이 목록(텍스트 또는 EVOLVEpro CSV)과 템플릿 서열(GenBank / SnapGene)을 입력하면 overlap-extension 방식으로 SDM 프라이머 쌍을 자동 생성. 출력: IDT/Twist 오더 CSV, Echo/JANUS 액체핸들러 매핑 파일, 변이별 통계를 담은 Excel 워크북. 모든 export에는 숨김 시트 `__kuma_meta__`가 들어가서 Mame 탭이 나중에 시퀀싱 결과를 원래 프로젝트로 자동 매칭한다.
-
-## 📑 전체 페이지
-
-### 📘 시작하기
-- [설치](./ko/installation.md)
-- [빠른 시작](./ko/quick-start.md)
-- [인터페이스 개요](./ko/interface-overview.md)
 - [FAQ](./ko/faq.md)
 
 ### 🧬 입력 및 준비
@@ -60,6 +57,24 @@
 - [트러블슈팅](./ko/troubleshooting.md)
 - [릴리스 노트 인덱스](./ko/release-notes-index.md)
 - [기여](./ko/contributing.md)
+
+---
+
+## 🦠 Mame — NGS 판정
+
+> 페이지 단위 상세 문서는 준비 중. 현재 사용법은 [프로젝트 README — Mame 탭 섹션](../README.ko.md#사용법)에서 확인할 수 있다.
+
+Mame가 하는 일:
+
+- Mame 탭에 Nanopore consensus FASTA와 참조 파일(있으면 `expected_mutations.xlsx`)을 드롭한다.
+- CDS end, ingest mode, depth/identity cutoff을 설정한다.
+- **Run** → 판정 테이블(PASS / WRONG_AA / FRAMESHIFT / AMBIGUOUS / LOWDEPTH / NOT_FOUND)과 96-well 플레이트 맵 생성.
+- **Export** → well별 판정이 담긴 최종 xlsx 출력.
+- Kuro에서 export한 xlsx를 Mame에 드롭하면 `__kuma_meta__ → project_id`로 원래 프로젝트에 자동 매칭된다.
+
+샘플 입력은 Mame 메뉴바의 **Help → Load Sample Data**로 불러올 수 있다.
+
+---
 
 ## 🔗 링크
 
