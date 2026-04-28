@@ -1,6 +1,7 @@
 """Handlers: SDM primer design, evaluation, alternatives, swap, and retry."""
 
 import csv
+import math
 import os
 import tempfile
 from dataclasses import fields as dc_fields, replace as dc_replace
@@ -59,6 +60,22 @@ def _rebuild_plate_state(results: list[SdmPrimerResult]) -> None:
 
 def _serialize_result(r: SdmPrimerResult, candidate_count: int | None = None) -> SdmPrimerResultModel:
     """Serialize a single SdmPrimerResult for JSON-RPC."""
+    warnings = list(r.warnings)
+
+    def _rounded_optional(value: float | None, digits: int) -> float | None:
+        if value is None:
+            return None
+        if not math.isfinite(value):
+            return None
+        return round(value, digits)
+
+    def _rounded_required(value: float, digits: int, label: str) -> float:
+        rounded = _rounded_optional(value, digits)
+        if rounded is not None:
+            return rounded
+        warnings.append(f"{label} unavailable (non-finite value from thermodynamic backend)")
+        return 0.0
+
     overlap_len = len(r.overlap_window.sequence)
     result = {
         "mutation": r.mutation.raw,
@@ -69,13 +86,13 @@ def _serialize_result(r: SdmPrimerResult, candidate_count: int | None = None) ->
         "fwd_len": r.fwd_len,
         "rev_len": r.rev_len,
         "overlap_len": overlap_len,
-        "tm_no_fwd": round(r.tm_fwd, 1),
-        "tm_no_rev": round(r.tm_rev, 1),
-        "tm_overlap": round(r.tm_overlap, 1),
+        "tm_no_fwd": _rounded_required(r.tm_fwd, 1, "Forward Tm"),
+        "tm_no_rev": _rounded_required(r.tm_rev, 1, "Reverse Tm"),
+        "tm_overlap": _rounded_required(r.tm_overlap, 1, "Overlap Tm"),
         "tm_condition_met": r.tm_condition_met,
-        "tolerance_used": r.tolerance_used,
-        "tolerance_fwd": round(r.tolerance_fwd, 1),
-        "tolerance_rev": round(r.tolerance_rev, 1),
+        "tolerance_used": _rounded_required(r.tolerance_used, 1, "Tolerance"),
+        "tolerance_fwd": _rounded_optional(r.tolerance_fwd, 1),
+        "tolerance_rev": _rounded_optional(r.tolerance_rev, 1),
         "has_offtarget": r.has_offtarget,
         "offtarget_fwd": [
             {"position": h.position, "strand": h.strand, "match_seq": h.match_seq, "tm": h.tm, "match_length": h.match_length}
@@ -85,23 +102,23 @@ def _serialize_result(r: SdmPrimerResult, candidate_count: int | None = None) ->
             {"position": h.position, "strand": h.strand, "match_seq": h.match_seq, "tm": h.tm, "match_length": h.match_length}
             for h in r.offtarget_rev
         ],
-        "penalty": round(r.penalty, 1),
-        "gc_fwd": round(r.gc_fwd, 1),
-        "gc_rev": round(r.gc_rev, 1),
+        "penalty": _rounded_required(r.penalty, 1, "Penalty"),
+        "gc_fwd": _rounded_required(r.gc_fwd, 1, "Forward GC%"),
+        "gc_rev": _rounded_required(r.gc_rev, 1, "Reverse GC%"),
         "wt_codon": r.mutation.wt_codon,
         "mt_codon": r.mutation.mt_codon,
         "overlap_seq": r.overlap_window.sequence,
-        "hairpin_tm_fwd": round(r.hairpin_tm_fwd, 1),
-        "hairpin_tm_rev": round(r.hairpin_tm_rev, 1),
-        "homodimer_tm_fwd": round(r.homodimer_tm_fwd, 1),
-        "homodimer_tm_rev": round(r.homodimer_tm_rev, 1),
-        "hairpin_dg_fwd": round(r.hairpin_dg_fwd, 2),
-        "hairpin_dg_rev": round(r.hairpin_dg_rev, 2),
-        "homodimer_dg_fwd": round(r.homodimer_dg_fwd, 2),
-        "homodimer_dg_rev": round(r.homodimer_dg_rev, 2),
-        "synthesis_score_fwd": r.synthesis_score_fwd,
-        "synthesis_score_rev": r.synthesis_score_rev,
-        "warnings": r.warnings,
+        "hairpin_tm_fwd": _rounded_optional(r.hairpin_tm_fwd, 1),
+        "hairpin_tm_rev": _rounded_optional(r.hairpin_tm_rev, 1),
+        "homodimer_tm_fwd": _rounded_optional(r.homodimer_tm_fwd, 1),
+        "homodimer_tm_rev": _rounded_optional(r.homodimer_tm_rev, 1),
+        "hairpin_dg_fwd": _rounded_optional(r.hairpin_dg_fwd, 2),
+        "hairpin_dg_rev": _rounded_optional(r.hairpin_dg_rev, 2),
+        "homodimer_dg_fwd": _rounded_optional(r.homodimer_dg_fwd, 2),
+        "homodimer_dg_rev": _rounded_optional(r.homodimer_dg_rev, 2),
+        "synthesis_score_fwd": _rounded_optional(r.synthesis_score_fwd, 1),
+        "synthesis_score_rev": _rounded_optional(r.synthesis_score_rev, 1),
+        "warnings": warnings,
     }
     if candidate_count is not None:
         result["candidate_count"] = candidate_count
@@ -239,7 +256,7 @@ def handle_design_sdm_primers(params: dict) -> dict:
             },
             rescued_mutations=[],
             cancelled=True,
-        ).model_dump(mode="json")
+        ).to_rpc_dict()
 
     try:
         with _core._state_lock:
@@ -406,7 +423,7 @@ def handle_design_sdm_primers(params: dict) -> dict:
             failed_mutations=failed,
             rescue_stats=rescue_stats,
             rescued_mutations=rescued_info,
-        ).model_dump(mode="json")
+        ).to_rpc_dict()
     finally:
         _core._finish_design_job(cancel_event)
         if temp_csv is not None:
@@ -443,7 +460,7 @@ def handle_retry_failed(params: dict) -> dict:
     return AlternativesResultModel(
         candidates=[_serialize_result_with_counts(c) for c in candidates],
         count=len(candidates),
-    ).model_dump(mode="json")
+    ).to_rpc_dict()
 
 
 def handle_swap_primer(params: dict) -> dict:
@@ -483,7 +500,7 @@ def handle_swap_primer(params: dict) -> dict:
                     gc_rev=new_best.gc_rev,
                 )
         _rebuild_plate_state(_core._state.results)
-    return _serialize_result_with_counts(new_best).model_dump(mode="json")
+    return _serialize_result_with_counts(new_best).to_rpc_dict()
 
 
 def handle_evaluate_primer(params: dict) -> dict:
@@ -520,7 +537,7 @@ def handle_evaluate_primer(params: dict) -> dict:
         mutation_raw=p.mutation,
         overlap_len=p.overlap_len,
     )
-    return _serialize_result(result).model_dump(mode="json")
+    return _serialize_result(result).to_rpc_dict()
 
 
 def handle_get_alternatives(params: dict) -> dict:
@@ -534,4 +551,4 @@ def handle_get_alternatives(params: dict) -> dict:
     return AlternativesResultModel(
         mutation=p.mutation,
         candidates=[_serialize_result(c) for c in candidates],
-    ).model_dump(mode="json")
+    ).to_rpc_dict()

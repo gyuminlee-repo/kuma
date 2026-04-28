@@ -137,6 +137,10 @@ class PlateMappingItem(BaseModel):
 class WorkspaceModel(BaseModel):
     model_config = ConfigDict(extra="allow")
 
+    def to_rpc_dict(self, **kwargs) -> dict[str, Any]:
+        """Serialize JSON-RPC responses without null-valued optional fields."""
+        return self.model_dump(mode="json", exclude_none=True, **kwargs)
+
 
 class SortingEntry(WorkspaceModel):
     id: str
@@ -451,6 +455,8 @@ class ExportExcelParams(BaseModel):
     dedup_info: Optional[dict[str, list[str]]] = None
     project_id: Optional[str] = None
     kuma_version: Optional[str] = None
+    report_data: Optional[Any] = None
+    benchmark_raw: Optional[Any] = None
 
 
 class OrderResultItem(BaseModel):

@@ -51,7 +51,7 @@ def handle_get_polymerase_details(params: dict) -> dict:
     """Return full polymerase profile for the selected name."""
     name = params.get("name", "")
     profile = PolymeraseProfileModel.model_validate(asdict(_poly_registry.get(name)))
-    return profile.model_dump(mode="json")
+    return profile.to_rpc_dict()
 
 
 def handle_save_custom_polymerase(params: dict) -> dict:
@@ -59,7 +59,7 @@ def handle_save_custom_polymerase(params: dict) -> dict:
     profile = _dict_to_profile(params)
     _CUSTOM_POLYMERASE_PATH.parent.mkdir(parents=True, exist_ok=True)
     _poly_registry.save_custom(profile, _CUSTOM_POLYMERASE_PATH)
-    return SaveCustomPolymeraseResultModel(name=profile.name).model_dump(mode="json")
+    return SaveCustomPolymeraseResultModel(name=profile.name).to_rpc_dict()
 
 
 def handle_list_organisms(_params: dict) -> list[dict]:

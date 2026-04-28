@@ -47,6 +47,81 @@ _ALLOWED_MAPPING_EXTENSIONS = {".xlsx", ".csv"}
 _PLATE_MAPPING_KEYS = {f.name for f in dc_fields(PlateMapping)}
 
 
+def _write_report_sheet(wb: openpyxl.Workbook, report_data: dict) -> None:
+    if "Report" in wb.sheetnames:
+        del wb["Report"]
+    ws = wb.create_sheet("Report")
+    ws.append(["Section", "Label", "Value", "Warn"])
+
+    for section in report_data.get("sections", []):
+        title = section.get("title", "")
+        for item in section.get("items", []):
+            ws.append([
+                title,
+                item.get("label", ""),
+                str(item.get("value", "")),
+                "Y" if item.get("warn") else "",
+            ])
+
+
+def _write_benchmark_raw_sheet(wb: openpyxl.Workbook, benchmark_raw: dict) -> None:
+    if "Benchmark Raw" in wb.sheetnames:
+        del wb["Benchmark Raw"]
+    ws = wb.create_sheet("Benchmark Raw")
+
+    ws.append(["Benchmark Raw Export"])
+    ws.append(["exported_at", benchmark_raw.get("exported_at", "")])
+    ws.append([])
+
+    ws.append(["Settings"])
+    ws.append(["key", "value"])
+    for key, value in (benchmark_raw.get("settings") or {}).items():
+        ws.append([key, json.dumps(value, ensure_ascii=False) if isinstance(value, (dict, list)) else value])
+    ws.append([])
+
+    ws.append(["Domains"])
+    ws.append(["bucket", "name", "id", "start", "end", "db"])
+    domains = benchmark_raw.get("domains") or {}
+    for bucket in ("active", "excluded"):
+        for domain in domains.get(bucket, []):
+            ws.append([
+                bucket,
+                domain.get("name", ""),
+                domain.get("id", ""),
+                domain.get("start", ""),
+                domain.get("end", ""),
+                domain.get("db", ""),
+            ])
+    ws.append([])
+
+    ws.append(["Results"])
+    ws.append([
+        "strategy", "n_selected", "hit_rate", "mean_fitness", "unique_positions",
+        "position_coverage", "domain_coverage", "structural_spread", "hits",
+        "threshold", "n_trials",
+    ])
+    for strategy, metrics in (benchmark_raw.get("results") or {}).items():
+        ws.append([
+            strategy,
+            metrics.get("n_selected", ""),
+            metrics.get("hit_rate", ""),
+            metrics.get("mean_fitness", ""),
+            metrics.get("unique_positions", ""),
+            metrics.get("position_coverage", ""),
+            metrics.get("domain_coverage", ""),
+            metrics.get("structural_spread", ""),
+            metrics.get("hits", ""),
+            metrics.get("threshold", ""),
+            metrics.get("n_trials", ""),
+        ])
+    ws.append([])
+
+    ws.append(["Landscape"])
+    ws.append(["variant", "fitness"])
+    for row in benchmark_raw.get("landscape", []):
+        ws.append([row.get("variant", ""), row.get("fitness", "")])
+
+
 def _pydantic_to_plate_mappings(items) -> list[PlateMapping]:
     """Convert a list of Pydantic PlateMappingItem objects to PlateMapping dataclasses."""
     return [
@@ -126,18 +201,22 @@ def handle_export_excel(params: dict) -> dict:
         rev_groups=rev_groups,
         results=results_for_export,
     )
-    if p.project_id:
+    if p.project_id or p.report_data or p.benchmark_raw:
         wb = openpyxl.load_workbook(resolved)
+        if p.report_data and isinstance(p.report_data, dict):
+            _write_report_sheet(wb, p.report_data)
+        if p.benchmark_raw and isinstance(p.benchmark_raw, dict):
+            _write_benchmark_raw_sheet(wb, p.benchmark_raw)
         if "__kuma_meta__" in wb.sheetnames:
             del wb["__kuma_meta__"]
         meta = wb.create_sheet("__kuma_meta__")
         meta.sheet_state = "hidden"
-        meta.append(["project_id", p.project_id])
+        meta.append(["project_id", p.project_id or ""])
         meta.append(["kuma_version", p.kuma_version or KUMA_VERSION])
         meta.append(["kuro_module_version", KURO_MODULE_VERSION])
         meta.append(["exported_at", datetime.now(timezone.utc).isoformat()])
         wb.save(resolved)
-    return FileExportResultModel(filepath=str(resolved)).model_dump(mode="json")
+    return FileExportResultModel(filepath=str(resolved)).to_rpc_dict()
 
 
 def handle_export_order(params: dict) -> dict:
@@ -182,7 +261,7 @@ def handle_export_order(params: dict) -> dict:
         filepath=str(resolved),
         format=fmt,
         primer_count=primer_count,
-    ).model_dump(mode="json")
+    ).to_rpc_dict()
 
 
 def handle_export_mapping(params: dict) -> dict:
@@ -231,7 +310,7 @@ def handle_export_mapping(params: dict) -> dict:
         filepath=str(resolved),
         format=p.format,
         primer_count=primer_count,
-    ).model_dump(mode="json")
+    ).to_rpc_dict()
 
 
 def handle_save_workspace(params: dict) -> dict:
@@ -242,7 +321,7 @@ def handle_save_workspace(params: dict) -> dict:
     resolved = _validate_output_path(p.filepath, allowed_extensions={".json"})
     with open(resolved, "w", encoding="utf-8") as f:
         json.dump(p.data, f, ensure_ascii=False, indent=2)
-    return FileExportResultModel(filepath=str(resolved)).model_dump(mode="json")
+    return FileExportResultModel(filepath=str(resolved)).to_rpc_dict()
 
 
 def handle_save_json(params: dict) -> dict:
@@ -253,7 +332,7 @@ def handle_save_json(params: dict) -> dict:
     resolved = _validate_output_path(p.filepath, allowed_extensions={".json"})
     with open(resolved, "w", encoding="utf-8") as f:
         json.dump(p.data, f, ensure_ascii=False, indent=2)
-    return FileExportResultModel(filepath=str(resolved)).model_dump(mode="json")
+    return FileExportResultModel(filepath=str(resolved)).to_rpc_dict()
 
 
 def handle_load_workspace(params: dict) -> dict:
@@ -280,7 +359,7 @@ def handle_load_workspace(params: dict) -> dict:
         raise ValueError(f"Workspace contains {len(result_list)} results, exceeding 10,000 limit")
 
     validated = validate_workspace_data(data)
-    return validated.model_dump(mode="json", exclude_unset=True, round_trip=True)
+    return validated.to_rpc_dict(exclude_unset=True, round_trip=True)
 
 
 def handle_export_benchmark_csv(params: dict) -> dict:
@@ -308,4 +387,4 @@ def handle_export_benchmark_csv(params: dict) -> dict:
         writer.writeheader()
         for strategy, metrics in p.results.items():
             writer.writerow({"strategy": strategy, **metrics})
-    return FileExportResultModel(filepath=str(resolved)).model_dump(mode="json")
+    return FileExportResultModel(filepath=str(resolved)).to_rpc_dict()

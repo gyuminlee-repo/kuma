@@ -632,7 +632,7 @@ function isSearchUniprotResult(value: unknown): value is SearchUniprotResult {
     isRecord(value) &&
     isArrayOf(value.candidates, isUniprotCandidate) &&
     (value.auto_selected === null || isString(value.auto_selected)) &&
-    isOptional(value.error_detail, isString)
+    isOptionalNullable(value.error_detail, isString)
   );
 }
 

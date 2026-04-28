@@ -22,22 +22,22 @@ export function MainShell() {
     <div className="flex h-screen flex-col bg-background">
       <Tabs defaultValue="kuro" onValueChange={handleTabChange} className="flex min-h-0 flex-1 flex-col">
         <header className="h-header flex shrink-0 items-center border-b bg-background px-4">
-          <div className="flex w-full items-center justify-between gap-4">
-            <div className="flex min-w-0 items-center gap-3">
-              <span className="text-lg font-semibold tracking-tight text-foreground">kuma</span>
-              <div className="flex min-w-0 items-center gap-2 text-caption text-muted-foreground">
+          <div className="flex w-full min-w-0 items-center gap-4">
+            <span className="shrink-0 text-lg font-semibold tracking-tight text-foreground">kuma</span>
+            <TabsList className="h-10 shrink-0 rounded-xl border border-border bg-accent/70 p-1 shadow-sm">
+              <TabsTrigger value="kuro" className="min-w-20 px-4 data-[state=active]:shadow-sm">Kuro</TabsTrigger>
+              <TabsTrigger value="mame" className="min-w-20 px-4 data-[state=active]:shadow-sm">Mame</TabsTrigger>
+            </TabsList>
+            <div className="min-w-0 flex-1 border-l border-border/80 pl-4 text-caption text-muted-foreground">
+              <div className="flex min-w-0 items-center gap-2">
                 <span className="truncate font-medium text-foreground">{projectName}</span>
                 {project?.stage ? (
-                  <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-caption font-medium text-muted-foreground">
+                  <span className="shrink-0 rounded-full border border-border bg-muted px-2 py-0.5 text-caption font-medium text-muted-foreground">
                     {project.stage}
                   </span>
                 ) : null}
               </div>
             </div>
-            <TabsList>
-              <TabsTrigger value="kuro">Kuro</TabsTrigger>
-              <TabsTrigger value="mame">Mame</TabsTrigger>
-            </TabsList>
           </div>
         </header>
 

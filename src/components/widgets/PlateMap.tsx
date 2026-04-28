@@ -228,47 +228,43 @@ export function PlateMap() {
 
   const totalFwd = pairs.reduce((s, p) => s + p.fwdCount, 0);
   const totalRev = pairs.reduce((s, p) => s + p.revCount, 0);
+  const sharedReverseCount = Object.values(dedupInfo).filter((muts) => muts.length > 1).length;
 
   return (
-    <div className="h-full overflow-auto p-4">
-      <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
-        <div>
+    <div className="flex h-full min-h-0 flex-col overflow-hidden p-3">
+      <div className="mb-2 flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
           <div className="text-caption font-semibold text-muted-foreground">Plate pair review</div>
           <div className="mt-1 text-caption text-muted-foreground">Each page shows one forward plate and its deduplicated reverse partner.</div>
         </div>
-        <div className="flex flex-wrap gap-2 text-caption">
-          <span className="rounded-full border border-success/30 bg-success/8 px-3 py-1 font-medium text-success">Forward {totalFwd}</span>
-          <span className="rounded-full border border-warning/30 bg-warning/8 px-3 py-1 font-medium text-warning">Reverse {totalRev}</span>
-          <span className="rounded-full border border-info/30 bg-info/8 px-3 py-1 font-medium text-info">
-            Shared reverse {Object.values(dedupInfo).filter((muts) => muts.length > 1).length}
-          </span>
-        </div>
       </div>
 
-      <div className="mb-3 flex items-center gap-2">
-        <button
-          className={`h-control rounded-full border px-3 text-caption font-semibold transition-colors ${
-            activeTab === "fwd"
-              ? "border-success/40 bg-success/10 text-success"
-              : "border-border bg-card text-muted-foreground hover:bg-muted/60"
-          }`}
-          onClick={() => setActiveTab("fwd")}
-        >
-          Forward ({pair.fwdCount})
-        </button>
-        <button
-          className={`h-control rounded-full border px-3 text-caption font-semibold transition-colors ${
-            activeTab === "rev"
-              ? "border-warning/40 bg-warning/10 text-warning"
-              : "border-border bg-card text-muted-foreground hover:bg-muted/60"
-          }`}
-          onClick={() => setActiveTab("rev")}
-        >
-          Reverse ({pair.revCount})
-        </button>
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-2">
+          <button
+            className={`h-control rounded-full border px-3 text-caption font-semibold transition-colors ${
+              activeTab === "fwd"
+                ? "border-success/40 bg-success/10 text-success"
+                : "border-border bg-card text-muted-foreground hover:bg-muted/60"
+            }`}
+            onClick={() => setActiveTab("fwd")}
+          >
+            Forward ({pair.fwdCount})
+          </button>
+          <button
+            className={`h-control rounded-full border px-3 text-caption font-semibold transition-colors ${
+              activeTab === "rev"
+                ? "border-warning/40 bg-warning/10 text-warning"
+                : "border-border bg-card text-muted-foreground hover:bg-muted/60"
+            }`}
+            onClick={() => setActiveTab("rev")}
+          >
+            Reverse ({pair.revCount})
+          </button>
+        </div>
 
         {pairs.length > 1 && (
-          <div className="ml-2 flex items-center gap-1 text-caption">
+          <div className="flex items-center gap-1 text-caption">
             <button
               className="h-control rounded-full border border-border px-2 hover:bg-muted/60 disabled:opacity-30"
               disabled={safeIdx === 0}
@@ -289,10 +285,7 @@ export function PlateMap() {
           </div>
         )}
 
-        <div className="ml-auto flex items-center gap-2">
-          <span className="text-caption text-muted-foreground">
-            Blue wells indicate reused reverse primers across mutations.
-          </span>
+        <div className="ml-auto">
           <Button
             size="sm"
             variant="outline"
@@ -304,18 +297,27 @@ export function PlateMap() {
         </div>
       </div>
 
-      <div className="inline-block rounded-container border border-border bg-card p-3">
-        {activeTab === "fwd" ? (
-          <PlateGrid grid={pair.fwd} color="green" />
-        ) : (
-          <PlateGrid grid={pair.rev} color="orange" />
-        )}
+      <div className="min-h-0 flex-1 overflow-x-auto overflow-y-hidden">
+        <div className="inline-block rounded-container border border-border bg-card p-3">
+          {activeTab === "fwd" ? (
+            <PlateGrid grid={pair.fwd} color="green" />
+          ) : (
+            <PlateGrid grid={pair.rev} color="orange" />
+          )}
+        </div>
       </div>
 
-      <div className="mt-3 flex items-center gap-3 text-caption text-muted-foreground">
-        <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-sm border border-success/30 bg-success/10 align-middle" />Forward primer</span>
-        <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-sm border border-warning/30 bg-warning/10 align-middle" />Reverse primer</span>
-        <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-sm border border-info/30 bg-info/10 align-middle" />Shared reverse</span>
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-3 text-caption text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-full border border-success/30 bg-success/8 px-3 py-1 font-medium text-success">Forward {totalFwd}</span>
+          <span className="rounded-full border border-warning/30 bg-warning/8 px-3 py-1 font-medium text-warning">Reverse {totalRev}</span>
+          <span className="rounded-full border border-info/30 bg-info/8 px-3 py-1 font-medium text-info">Shared reverse {sharedReverseCount}</span>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-sm border border-success/30 bg-success/10 align-middle" />Forward primer</span>
+          <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-sm border border-warning/30 bg-warning/10 align-middle" />Reverse primer</span>
+          <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-sm border border-info/30 bg-info/10 align-middle" />Shared reverse</span>
+        </div>
       </div>
 
       <MappingExportDialog

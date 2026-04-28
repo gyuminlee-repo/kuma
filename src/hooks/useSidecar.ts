@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { spawnSidecar, killSidecar, isSidecarRunning } from "../lib/ipc-kuro";
+import { spawnSidecar, isSidecarRunning } from "../lib/ipc-kuro";
 
 type SidecarStatus = "disconnected" | "connecting" | "ready" | "error";
 
@@ -49,7 +49,8 @@ export function useSidecar() {
     return () => {
       mountedRef.current = false;
       clearTimeout(retryTimeoutRef.current);
-      killSidecar();
+      // Do not kill sidecar on unmount: lifecycle is owned by the Rust manager
+      // so long-running Kuro jobs can continue across tab switches.
     };
   }, []);
 

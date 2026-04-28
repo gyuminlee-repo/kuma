@@ -6,6 +6,7 @@ import re
 import time
 import urllib.parse
 import urllib.request
+from difflib import SequenceMatcher
 
 import sidecar_kuro.core as _core
 from sidecar_kuro.core import (
@@ -111,6 +112,52 @@ def _sequence_identity(seq_a: str, seq_b: str) -> float:
         return 100.0
     matches = sum(1 for a, b in zip(seq_a, seq_b) if a == b)
     return round(matches / max(len(seq_a), len(seq_b)) * 100, 1)
+
+
+def _normalize_organism_name(name: str) -> str:
+    """Normalize organism strings for approximate matching."""
+    normalized = re.sub(r"[^a-z0-9\s]+", " ", name.lower())
+    normalized = re.sub(r"\s+", " ", normalized).strip()
+    return normalized
+
+
+def _organism_match_score(query: str, candidate: str) -> tuple[int, float]:
+    """Score organism compatibility for candidate ranking.
+
+    Returns a tuple of:
+    - discrete priority bucket (higher is better)
+    - fuzzy similarity used only as a tie-breaker
+    """
+    q = _normalize_organism_name(query)
+    c = _normalize_organism_name(candidate)
+    if not q or not c:
+        return (0, 0.0)
+    if q == c:
+        return (3, 1.0)
+
+    q_tokens = q.split()
+    c_tokens = c.split()
+    if len(q_tokens) >= 2 and len(c_tokens) >= 2 and q_tokens[:2] == c_tokens[:2]:
+        return (2, 1.0)
+    if q_tokens and c_tokens and q_tokens[0] == c_tokens[0]:
+        return (1, 1.0)
+
+    fuzzy = round(SequenceMatcher(None, q, c).ratio(), 3)
+    return (0, fuzzy)
+
+
+def _candidate_rank_key(query_organism: str, candidate: dict) -> tuple[int, float, float, int]:
+    """Rank UniProt candidates by sequence evidence first, organism second."""
+    organism_bucket, organism_similarity = _organism_match_score(
+        query_organism,
+        str(candidate.get("organism", "")),
+    )
+    return (
+        int(round(float(candidate.get("identity", 0.0)) * 10)),
+        organism_bucket,
+        organism_similarity,
+        int(candidate.get("length", 0) or 0),
+    )
 
 
 def handle_search_uniprot(params: dict) -> dict:
@@ -276,7 +323,7 @@ def handle_search_uniprot(params: dict) -> dict:
             logger.warning("UniProt text search failed: %s", exc)
             last_error = f"UniProt text search: {type(exc).__name__}: {exc}"
 
-    candidates.sort(key=lambda c: c["identity"], reverse=True)
+    candidates.sort(key=lambda c: _candidate_rank_key(organism, c), reverse=True)
 
     if candidates and candidates[0]["identity"] >= 95.0:
         auto_selected = candidates[0]["accession"]

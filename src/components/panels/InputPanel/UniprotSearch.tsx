@@ -10,6 +10,7 @@ export function UniprotSearch() {
   const fetchDomains = useAppStore((s) => s.fetchDomains);
   const domainLoading = useAppStore((s) => s.domainLoading);
   const seqInfo = useAppStore((s) => s.seqInfo);
+  const visibleCandidates = uniprotCandidates.slice(0, 10);
 
   const [accessionInput, setAccessionInput] = useState(uniprotAccession);
   useEffect(() => setAccessionInput(uniprotAccession), [uniprotAccession]);
@@ -67,8 +68,13 @@ export function UniprotSearch() {
         </Button>
       </div>
       {uniprotCandidates.length > 0 && (
-        <div className="space-y-0.5 max-h-24 overflow-auto">
-          {uniprotCandidates.map((c) => (
+        <div className="space-y-1">
+          <div className="px-1 text-[11px] font-medium text-muted-foreground">
+            Top candidates {visibleCandidates.length}
+            {uniprotCandidates.length > visibleCandidates.length ? ` / ${uniprotCandidates.length}` : ""}
+          </div>
+          <div className="space-y-0.5 max-h-40 overflow-auto rounded border border-border/70 bg-muted/20 p-1">
+            {visibleCandidates.map((c) => (
             <button
               key={c.accession}
               className={`flex items-center gap-1 text-caption w-full text-left px-1 py-0.5 rounded hover:bg-info/5 ${
@@ -104,7 +110,8 @@ export function UniprotSearch() {
                 {c.identity}%
               </span>
             </button>
-          ))}
+            ))}
+          </div>
         </div>
       )}
     </div>

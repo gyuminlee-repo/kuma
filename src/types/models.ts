@@ -62,7 +62,7 @@ export interface UniprotCandidate {
 export interface SearchUniprotResult {
   candidates: UniprotCandidate[];
   auto_selected: string | null;
-  error_detail?: string;
+  error_detail?: string | null;
 }
 
 export interface StructureAvailabilityResult {

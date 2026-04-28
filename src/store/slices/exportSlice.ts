@@ -5,6 +5,7 @@ import { getSortedMutations, reorderMappings } from "../../lib/plate-utils";
 import { formatError } from "../../lib/utils";
 import type { AppState } from "../types";
 import type {
+  BenchmarkResult,
   SequenceInfo,
   WorkspaceData,
   WorkspaceV1,
@@ -91,6 +92,224 @@ function normalizeWorkspace(ws: WorkspaceData): WorkspaceV2 {
   };
 }
 
+function avg(values: number[]): number {
+  return values.length > 0 ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
+}
+
+function std(values: number[]): number {
+  if (values.length < 2) return 0;
+  const mean = avg(values);
+  return Math.sqrt(values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / (values.length - 1));
+}
+
+function formatDomainAllocation(
+  enabled: boolean,
+  domains: Array<{ name: string }>,
+  domainStats: Record<string, { quota: number; selected: number }>,
+  domainStrategy: "proportional" | "equal",
+): string {
+  if (!enabled || domains.length === 0) return "OFF";
+  const total = Object.values(domainStats).reduce((sum, stat) => sum + stat.selected, 0);
+  const quota = Object.values(domainStats).reduce((sum, stat) => sum + stat.quota, 0);
+  return quota > 0 ? `${domainStrategy}: ${total}/${quota}` : `${domainStrategy} (${domains.length} domains)`;
+}
+
+function buildReportData(state: AppState) {
+  const successCount = state.designResults.length;
+  const failCount = state.failedMutations.length;
+  const totalCount = state.totalCount;
+  const tmMet = state.designResults.filter((r) => r.tm_condition_met).length;
+  const fwdTms = state.designResults.map((r) => r.tm_no_fwd).filter((t) => t > 0);
+  const revTms = state.designResults.map((r) => r.tm_no_rev).filter((t) => t > 0);
+  const ovTms = state.designResults.map((r) => r.tm_overlap).filter((t) => t > 0);
+  const positionRemoved = state.evolveproStepStats?.position_filter_removed ?? state.evolveproFilteredCount;
+  const domainSelected = state.evolveproStepStats?.domain_selected;
+  const paretoExchanges = state.evolveproStepStats?.pareto_exchanges ?? state.evolveproParetoExchanges;
+  const rescueTotal = state.rescueStats.pool_cascade + state.rescueStats.auto_relax;
+  const rescuePenalties = state.rescuedMutationDetails
+    .map((r) => r.penalty)
+    .filter((penalty): penalty is number => penalty != null);
+  const rescuedSet = new Set(state.rescuedMutationDetails.map((detail) => detail.rescued_by));
+  const avgRescuePenalty = avg(rescuePenalties);
+  const avgNormalPenalty = avg(
+    state.designResults.filter((r) => !rescuedSet.has(r.mutation)).map((r) => r.penalty),
+  );
+
+  const sections: Array<{ title: string; items: Array<{ label: string; value: string | number; warn?: boolean }> }> = [];
+
+  if (state.pipelineMode) {
+    sections.push({
+      title: "Pipeline",
+      items: [
+        {
+          label: "Step 1 filter",
+          value: state.positionDiversityEnabled
+            ? `max ${state.maxPerPosition}/pos${positionRemoved != null && positionRemoved > 0 ? ` (-${positionRemoved})` : ""}`
+            : "OFF",
+        },
+        {
+          label: "Step 2 domains",
+          value: formatDomainAllocation(
+            state.domainDiversityEnabled,
+            state.domains,
+            state.domainStats,
+            state.domainStrategy,
+          ),
+        },
+        { label: "Step 2 overlap", value: state.domainDiversityEnabled ? (state.domainOverlapPolicy === "largest" ? "LARGEST" : "FIRST") : "N/A" },
+        { label: "Step 2 linker", value: state.domainDiversityEnabled ? state.linkerHandling.toUpperCase() : "N/A" },
+        { label: "Step 2 min quota", value: state.domainDiversityEnabled ? state.domainQuotaMin : "N/A" },
+        {
+          label: "Step 3 Pareto",
+          value: state.paretoDiversityEnabled
+            ? `ON${paretoExchanges != null && paretoExchanges > 0 ? ` (${paretoExchanges} swapped)` : ""}`
+            : "OFF",
+        },
+        {
+          label: "Distance mode",
+          value: state.distanceMode === "auto"
+            ? (state.structureLoaded ? "AUTO -> 3D" : "AUTO -> 1D")
+            : state.distanceMode.toUpperCase(),
+        },
+        { label: "Pareto pool", value: `${state.paretoPoolMultiplier.toFixed(2)}x` },
+        { label: "Entropy-guided", value: state.entropyWeightEnabled ? `ON (${state.entropyWeight.toFixed(2)})` : "OFF" },
+        { label: "AlphaFold 3D", value: state.structureLoaded ? "ON (Cα distance)" : "OFF (1D distance)" },
+        ...(positionRemoved != null && state.positionDiversityEnabled ? [{ label: "Removed by Step 1", value: positionRemoved }] : []),
+        ...(domainSelected != null && state.domainDiversityEnabled ? [{ label: "After Step 2", value: domainSelected }] : []),
+        ...(paretoExchanges != null && state.paretoDiversityEnabled ? [{ label: "Step 3 exchanges", value: paretoExchanges }] : []),
+        ...(state.evolveproTotalCount > 0 ? [{
+          label: state.mutationInputMode === "multi-evolve" ? "MULTI-evolve pool" : "EVOLVEpro pool",
+          value: `${state.evolveproTotalCount} variants`,
+        }] : []),
+      ],
+    });
+  }
+
+  sections.push({
+    title: "Benchmark Defaults",
+    items: [
+      { label: "Top percentile", value: `${state.benchmarkTopPercentile}%` },
+      { label: "Random trials", value: state.benchmarkRandomTrials },
+      { label: "Random seed", value: state.benchmarkRandomSeed ?? "AUTO" },
+    ],
+  });
+
+  sections.push({
+    title: "Primer Design",
+    items: [
+      { label: "Succeeded", value: `${successCount}/${totalCount}` },
+      { label: "Tm condition met", value: `${tmMet}/${successCount}`, warn: tmMet < successCount },
+      ...(failCount > 0 ? [{ label: "Failed", value: failCount, warn: true }] : []),
+    ],
+  });
+
+  if (rescueTotal > 0) {
+    sections.push({
+      title: "Position Rescue",
+      items: [
+        {
+          label: "Position coverage",
+          value: state.rescueStats.positions_attempted > 0
+            ? `${rescueTotal}/${state.rescueStats.positions_attempted} rescued`
+            : "0",
+        },
+        ...(state.rescueStats.pool_cascade > 0
+          ? [{ label: "Pool cascade", value: `${state.rescueStats.pool_cascade} (${state.rescueStats.pool_variants_tried} tried)` }]
+          : []),
+        ...(state.rescueStats.auto_relax > 0
+          ? [{ label: "Auto-relax (+/-3->+/-5C)", value: state.rescueStats.auto_relax }]
+          : []),
+        ...(failCount > 0 ? [{ label: "Still failed", value: failCount, warn: true }] : []),
+        ...(rescuePenalties.length > 0
+          ? [{
+            label: "Rescued avg penalty",
+            value: `${avgRescuePenalty.toFixed(1)} vs ${avgNormalPenalty.toFixed(1)} normal`,
+            warn: avgRescuePenalty > avgNormalPenalty * 1.5,
+          }]
+          : []),
+      ],
+    });
+  }
+
+  if (fwdTms.length > 0) {
+    sections.push({
+      title: "Tm Distribution",
+      items: [
+        { label: "Forward", value: `${avg(fwdTms).toFixed(1)} ± ${std(fwdTms).toFixed(1)} °C` },
+        { label: "Reverse", value: `${avg(revTms).toFixed(1)} ± ${std(revTms).toFixed(1)} °C` },
+        { label: "Overlap", value: `${avg(ovTms).toFixed(1)} ± ${std(ovTms).toFixed(1)} °C` },
+      ],
+    });
+  }
+
+  if (Object.keys(state.domainStats).length > 0) {
+    sections.push({
+      title: "Domain Allocation",
+      items: Object.entries(state.domainStats).map(([name, stat]) => ({
+        label: name,
+        value: `${stat.selected}/${stat.quota}`,
+        warn: stat.selected < stat.quota,
+      })),
+    });
+  }
+
+  if (failCount > 0) {
+    sections.push({
+      title: "Failed Mutations",
+      items: state.failedMutations.map((failed) => ({
+        label: failed.mutation,
+        value: failed.reason,
+        warn: true,
+      })),
+    });
+  }
+
+  return {
+    exported_at: new Date().toISOString(),
+    summary: {
+      success_count: successCount,
+      total_count: totalCount,
+      success_rate: totalCount > 0 ? Math.round(successCount / totalCount * 100) : 0,
+    },
+    sections,
+  };
+}
+
+function buildBenchmarkRawData(state: AppState, results: Record<string, BenchmarkResult> | null) {
+  if (!results || Object.keys(state.yPredMap).length === 0) {
+    return null;
+  }
+  const activeDomains = state.domains.filter(
+    (domain) => !state.disabledDomains.includes(`${domain.name}-${domain.start}`),
+  );
+  const excludedDomains = state.domains.filter(
+    (domain) => state.disabledDomains.includes(`${domain.name}-${domain.start}`),
+  );
+  const landscape = Object.entries(state.yPredMap)
+    .map(([variant, fitness]) => ({ variant, fitness }))
+    .sort((a, b) => b.fitness - a.fitness);
+
+  return {
+    exported_at: new Date().toISOString(),
+    settings: {
+      n_select: Math.max(1, state.maxPrimers),
+      top_percentile: state.benchmarkTopPercentile,
+      random_trials: state.benchmarkRandomTrials,
+      random_seed: state.benchmarkRandomSeed,
+      domain_strategy: state.domainStrategy,
+      distance_mode: state.distanceMode,
+      pareto_pool_multiplier: state.paretoPoolMultiplier,
+      entropy_weight: state.entropyWeightEnabled ? state.entropyWeight : 0,
+    },
+    domains: {
+      active: activeDomains,
+      excluded: excludedDomains,
+    },
+    landscape,
+    results,
+  };
+}
+
 export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (set, get) => ({
   plateMappings: [],
   dedupInfo: {},
@@ -112,12 +331,15 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
 
   exportExcel: async (filepath: string, projectId?: string) => {
     try {
-      const { designResults, plateMappings, dedupInfo, tableSorting } = get();
+      const state = get();
+      const { designResults, plateMappings, dedupInfo, tableSorting } = state;
       const sortedMuts = getSortedMutations(designResults, tableSorting, {
-        yPredMap: get().yPredMap,
-        customCandidates: get().customCandidates,
+        yPredMap: state.yPredMap,
+        customCandidates: state.customCandidates,
       });
       const ordered = reorderMappings(plateMappings, dedupInfo, sortedMuts);
+      const reportData = buildReportData(state);
+      const benchmarkRaw = buildBenchmarkRawData(state, state.benchmarkResults);
 
       const resultByMut = new Map(designResults.map((r) => [r.mutation, r]));
       const enriched = ordered.map((m) => {
@@ -136,6 +358,8 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
         filepath,
         mappings: enriched,
         dedup_info: dedupInfo,
+        report_data: reportData,
+        ...(benchmarkRaw ? { benchmark_raw: benchmarkRaw } : {}),
         ...(projectId ? { project_id: projectId, kuma_version: "0.02.02" } : {}),
       });
       set({ statusMessage: `Exported Excel: ${filepath}` });

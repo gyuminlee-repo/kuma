@@ -368,7 +368,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
         );
       }
       if (acc) {
-        void get().fetchDomains(acc, true);
+        void get().fetchDomains(acc, false);
       }
     } catch (err) {
       if (searchGeneration !== uniprotSearchGeneration) return;

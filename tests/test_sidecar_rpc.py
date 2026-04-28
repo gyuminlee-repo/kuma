@@ -12,6 +12,7 @@ import sys
 import tempfile
 import threading
 import time
+from dataclasses import replace as dc_replace
 from pathlib import Path
 
 import pytest
@@ -24,7 +25,11 @@ if str(_SIDECAR_DIR) not in sys.path:
 
 from sidecar_kuro.dispatcher import dispatch  # noqa: E402
 from sidecar_kuro.core import _state, SidecarState  # noqa: E402
-from sidecar_kuro.handlers.external import _sequence_identity  # noqa: E402
+from sidecar_kuro.handlers.external import (  # noqa: E402
+    _candidate_rank_key,
+    _organism_match_score,
+    _sequence_identity,
+)
 import sidecar_kuro.handlers.design as _design_handlers  # noqa: E402
 import sidecar_kuro.core as _sidecar_core  # noqa: E402
 
@@ -264,6 +269,46 @@ class TestDesignSdmPrimers:
     def test_missing_fasta_returns_error(self):
         resp = _rpc("design_sdm_primers", {"mutations_csv_or_text": "Q232A"})
         assert "error" in resp
+
+    def test_non_finite_diagnostics_are_sanitized(self, monkeypatch, loaded_fasta):
+        results, all_cands, failures = _design_handlers.design_sdm_primers(
+            fasta_path=Path(FASTA_PATH),
+            target_start=TARGET_START,
+            mutations_csv=Path(MUTATIONS_CSV),
+            polymerase="Q5",
+            overlap_len=18,
+        )
+        bad = dc_replace(
+            results[0],
+            hairpin_tm_fwd=float("nan"),
+            homodimer_tm_rev=float("inf"),
+            synthesis_score_fwd=float("nan"),
+        )
+
+        def fake_design_sdm_primers(**kwargs):
+            patched_results = [bad, *results[1:]]
+            patched_candidates = dict(all_cands)
+            patched_candidates[bad.mutation.raw] = [bad]
+            return patched_results, patched_candidates, failures
+
+        monkeypatch.setattr(_design_handlers, "design_sdm_primers", fake_design_sdm_primers)
+
+        resp = _rpc(
+            "design_sdm_primers",
+            {
+                "fasta_path": FASTA_PATH,
+                "target_start": TARGET_START,
+                "mutations_csv_or_text": MUTATIONS_CSV,
+                "polymerase": "Q5",
+                "overlap_len": 18,
+            },
+        )
+
+        assert "result" in resp, f"design_sdm_primers failed: {resp}"
+        first = resp["result"]["results"][0]
+        assert "hairpin_tm_fwd" not in first
+        assert "homodimer_tm_rev" not in first
+        assert "synthesis_score_fwd" not in first
 
 
 # ── 5. get_plate_map ─────────────────────────────────────────────────────
@@ -543,6 +588,71 @@ class TestSequenceIdentity:
         # "MX" is NOT a substring of "MVKLT" → positional: 1/5 = 20%
         identity = _sequence_identity("MX", "MVKLT")
         assert identity == 20.0
+
+
+class TestOrganismAwareUniprotRanking:
+    def test_organism_match_score_prefers_exact_then_species_then_genus(self):
+        assert _organism_match_score("Pseudomonas putida", "Pseudomonas putida") == (3, 1.0)
+        assert _organism_match_score("Pseudomonas putida", "Pseudomonas putida KT2440") == (2, 1.0)
+        assert _organism_match_score("Pseudomonas putida", "Pseudomonas aeruginosa") == (1, 1.0)
+
+    def test_candidate_rank_key_uses_organism_to_break_identity_ties(self):
+        query = "Pseudomonas putida"
+        exact = {
+            "accession": "A0A000",
+            "organism": "Pseudomonas putida",
+            "identity": 87.5,
+            "length": 510,
+        }
+        species = {
+            "accession": "A0A001",
+            "organism": "Pseudomonas putida KT2440",
+            "identity": 87.5,
+            "length": 530,
+        }
+        genus = {
+            "accession": "A0A002",
+            "organism": "Pseudomonas aeruginosa",
+            "identity": 87.5,
+            "length": 560,
+        }
+        other = {
+            "accession": "A0A003",
+            "organism": "Escherichia coli",
+            "identity": 87.5,
+            "length": 700,
+        }
+
+        ranked = sorted(
+            [other, genus, species, exact],
+            key=lambda c: _candidate_rank_key(query, c),
+            reverse=True,
+        )
+
+        assert [c["accession"] for c in ranked] == ["A0A000", "A0A001", "A0A002", "A0A003"]
+
+    def test_candidate_rank_key_keeps_higher_identity_above_better_organism(self):
+        query = "Pseudomonas putida"
+        better_identity = {
+            "accession": "A0A010",
+            "organism": "Escherichia coli",
+            "identity": 95.0,
+            "length": 400,
+        }
+        better_organism = {
+            "accession": "A0A011",
+            "organism": "Pseudomonas putida",
+            "identity": 90.0,
+            "length": 400,
+        }
+
+        ranked = sorted(
+            [better_organism, better_identity],
+            key=lambda c: _candidate_rank_key(query, c),
+            reverse=True,
+        )
+
+        assert [c["accession"] for c in ranked] == ["A0A010", "A0A011"]
 
 
 # ── 13. list_organisms ──────────────────────────────────────────────────
