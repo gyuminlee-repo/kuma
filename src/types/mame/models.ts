@@ -100,6 +100,13 @@ export interface ExportResult {
   output_path: string;
 }
 
+export interface JanusExportResult {
+  output_path: string;
+  format: "csv" | "xlsx";
+}
+
+export type JanusExportFormat = "csv" | "xlsx";
+
 export interface PlateDataResult {
   wells: WellEntry[];
 }

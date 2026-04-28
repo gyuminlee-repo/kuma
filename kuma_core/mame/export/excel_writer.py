@@ -1,4 +1,13 @@
-"""Excel export: per-native-barcode sheets + Final 96-well matrix."""
+"""Excel export: per-native-barcode sheets + Final 96-well matrix.
+
+Phase 1 read_count policy
+-------------------------
+``BarcodeRecord.read_count`` is None in Phase 1.  The reference-format sheets
+("NGS 결과" and "Final (matrix)") expose ``file_size_kb`` in the reads columns
+with the column header explicitly named ``file_size_kb`` to avoid confusion.
+This will be replaced by actual read counts in the G6/A6 round once the FASTA
+parser exposes per-record counts.
+"""
 
 from __future__ import annotations
 
@@ -43,6 +52,33 @@ _FINAL_HEADER = [
     "custom_barcode",
     "mutant_id",
     "verdict",
+]
+
+# Reference-format "NGS 결과" sheet (3 plates side-by-side, 96 mutant rows).
+# Phase 1: reads columns carry file_size_kb as a proxy — header makes this explicit.
+# G6/A6 round: replace file_size_kb values with actual read_count from BarcodeRecord.
+_KNOWN_PLATES = ("NB01", "NB02", "NB03")
+
+_NGS_RESULT_HEADER = [
+    "index",
+    "mutant",
+    "well",
+    "custom_barcode",
+    "NB01_detected",
+    "NB01_file_size_kb",
+    "NB02_detected",
+    "NB02_file_size_kb",
+    "NB03_detected",
+    "NB03_file_size_kb",
+]
+
+_FINAL_MATRIX_HEADER = [
+    "index",
+    "mutant",
+    "well",
+    "NB01",
+    "NB02",
+    "NB03",
 ]
 
 
@@ -201,6 +237,149 @@ def _highlight_well_cell(ws, row_idx: int) -> None:
     ws.cell(row=row_idx, column=1).font = Font(color="FFFFFF", bold=True)
 
 
+# ---------------------------------------------------------------------------
+# Reference-format sheets (G7 + G2 implementation).
+# ---------------------------------------------------------------------------
+
+
+def _build_unified_ngs_data(
+    replicate_results: list[ReplicateResult],
+) -> list[dict]:
+    """Build per-mutant rows for the "NGS 결과" sheet.
+
+    Each row holds a mutant_id key and per-plate detected/file_size_kb values.
+    Mutant ordering follows the ``replicate_results`` list (which preserves
+    expected_mutations.xlsx row order from the pipeline).
+
+    Phase 1 read_count policy: ``file_size_kb`` is used in place of read count.
+    G6/A6 round will substitute actual ``BarcodeRecord.read_count`` values.
+    """
+    rows: list[dict] = []
+    for idx, rr in enumerate(replicate_results, start=1):
+        # Determine the well from the selected plate if available, otherwise
+        # from any available plate verdict.
+        ref_vr: VerdictRecord | None = None
+        if rr.selected_plate is not None:
+            ref_vr = rr.plate_verdicts.get(rr.selected_plate)
+        if ref_vr is None:
+            for plate in _KNOWN_PLATES:
+                ref_vr = rr.plate_verdicts.get(plate)
+                if ref_vr is not None:
+                    break
+
+        seq: int | None = None
+        cb: str = ""
+        if ref_vr is not None:
+            cb = ref_vr.translated.barcode.custom_barcode
+            seq = _custom_barcode_to_seq(cb)
+
+        well_id = seq_to_well(seq) if seq is not None and 1 <= seq <= 96 else ""
+
+        row: dict = {
+            "index": idx,
+            "mutant": rr.mutant_id,
+            "well": well_id,
+            "custom_barcode": cb,
+        }
+
+        for plate in _KNOWN_PLATES:
+            vr = rr.plate_verdicts.get(plate)
+            if vr is not None:
+                detected = ", ".join(vr.translated.observed_aa_changes) or vr.verdict.value
+                size_val = vr.translated.barcode.file_size_kb
+            else:
+                detected = ""
+                size_val = None
+            row[f"{plate}_detected"] = detected
+            row[f"{plate}_file_size_kb"] = size_val
+
+        rows.append(row)
+
+    return rows
+
+
+def _write_unified_ngs_sheet(
+    wb: Workbook,
+    replicate_results: list[ReplicateResult],
+) -> None:
+    """Write the reference-format "NGS 결과" sheet (G7 spec)."""
+    ws = wb.create_sheet("NGS 결과")
+    ws.append(_NGS_RESULT_HEADER)
+    for cell in ws[1]:
+        cell.font = Font(bold=True)
+
+    rows = _build_unified_ngs_data(replicate_results)
+    for row in rows:
+        ws.append(
+            [
+                row["index"],
+                row["mutant"],
+                row["well"],
+                row["custom_barcode"],
+                row["NB01_detected"],
+                row["NB01_file_size_kb"],
+                row["NB02_detected"],
+                row["NB02_file_size_kb"],
+                row["NB03_detected"],
+                row["NB03_file_size_kb"],
+            ]
+        )
+
+    # Freeze top header row for readability.
+    ws.freeze_panes = "A2"
+
+
+def _write_final_matrix_sheet(
+    wb: Workbook,
+    replicate_results: list[ReplicateResult],
+) -> None:
+    """Write the reference-format binary selection matrix (G2 spec).
+
+    Sheet name is "Final (matrix)" to avoid collision with the legacy "Final"
+    sheet (which is preserved for backward compatibility).
+
+    Column values: 1 if that plate was selected for the mutant, blank otherwise.
+    """
+    ws = wb.create_sheet("Final (matrix)")
+    ws.append(_FINAL_MATRIX_HEADER)
+    for cell in ws[1]:
+        cell.font = Font(bold=True)
+
+    for idx, rr in enumerate(replicate_results, start=1):
+        # Determine well from selected plate or any available verdict.
+        ref_vr: VerdictRecord | None = None
+        if rr.selected_plate is not None:
+            ref_vr = rr.plate_verdicts.get(rr.selected_plate)
+        if ref_vr is None:
+            for plate in _KNOWN_PLATES:
+                ref_vr = rr.plate_verdicts.get(plate)
+                if ref_vr is not None:
+                    break
+
+        seq: int | None = None
+        if ref_vr is not None:
+            seq = _custom_barcode_to_seq(ref_vr.translated.barcode.custom_barcode)
+
+        well_id = seq_to_well(seq) if seq is not None and 1 <= seq <= 96 else ""
+
+        plate_cols: list[int | str] = []
+        for plate in _KNOWN_PLATES:
+            if rr.selected_plate == plate and not rr.failed:
+                plate_cols.append(1)
+            else:
+                plate_cols.append("")
+
+        ws.append([idx, rr.mutant_id, well_id, *plate_cols])
+
+        # Highlight the selected plate cell with yellow.
+        if rr.selected_plate in _KNOWN_PLATES and not rr.failed:
+            col_idx = list(_KNOWN_PLATES).index(rr.selected_plate)
+            # +4: 1-based, 3 leading cols (index, mutant, well) + 1
+            ws.cell(row=ws.max_row, column=4 + col_idx).fill = _fill(SELECTED_PLATE_YELLOW)
+
+    ws.freeze_panes = "A2"
+
+
 def write_excel(
     verdict_records: list[VerdictRecord],
     replicate_results: list[ReplicateResult],
@@ -226,6 +405,11 @@ def write_excel(
         _write_sheet1(wb, nb, by_nb[nb])
 
     _write_final(wb, replicate_results, mapper)
+
+    # Reference-format sheets (G7 + G2): appended after legacy sheets so that
+    # existing consumers of NB01/NB02/NB03 and "Final" are not disturbed.
+    _write_unified_ngs_sheet(wb, replicate_results)
+    _write_final_matrix_sheet(wb, replicate_results)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     wb.save(output_path)

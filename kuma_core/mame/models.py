@@ -24,6 +24,9 @@ class BarcodeRecord:
 
     `native_barcode` uses canonical NB01/NB02/NB03 labels.
     `custom_barcode` follows `{R}_{F}` barcode-mode naming (e.g. "1_1").
+
+    `read_count` is None in Phase 1 (file-size proxy is used instead).
+    Will be populated with actual FASTA record count in G6/A6 round.
     """
 
     native_barcode: str
@@ -31,6 +34,7 @@ class BarcodeRecord:
     consensus_seq: str
     file_size_kb: float
     source_path: Path
+    read_count: int | None = None
 
 
 @dataclass

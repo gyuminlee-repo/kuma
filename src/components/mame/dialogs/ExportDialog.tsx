@@ -34,7 +34,13 @@ export function ExportDialog() {
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Export Results</DialogTitle>
-          <DialogDescription>Save the complete verdict set as an Excel workbook.</DialogDescription>
+          <DialogDescription>
+            Save the complete verdict set as an Excel workbook.{" "}
+            <span className="font-medium text-foreground">
+              Reference format included
+            </span>{" "}
+            — sheets: NB01/NB02/NB03, Final, NGS 결과, Final (matrix).
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">

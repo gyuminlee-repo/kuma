@@ -1,6 +1,6 @@
-"""``export_excel`` and ``get_plate_data`` JSON-RPC handlers.
+"""``export_excel``, ``get_plate_data``, and ``export_janus_mapping`` JSON-RPC handlers.
 
-Both handlers require a prior successful ``analyze`` call. They read cached
+All handlers require a prior successful ``analyze`` call. They read cached
 state from ``sidecar.core``; absence raises ``RuntimeError`` which the
 dispatcher maps to JSON-RPC error code ``-32002``.
 """
@@ -13,6 +13,8 @@ from sidecar_mame.core import (
     get_state,
     set_last_analyze,
 )
+
+_ALLOWED_JANUS_EXTENSIONS = {".csv", ".xlsx"}
 
 
 def _custom_barcode_to_seq(custom: str) -> int | None:
@@ -108,4 +110,41 @@ def handle_get_plate_data(_params: dict) -> dict:
     return {"wells": wells}
 
 
-__all__ = ["handle_export_excel", "handle_get_plate_data"]
+def handle_export_janus_mapping(params: dict) -> dict:
+    """Export final cell-stock Janus mapping as CSV or XLSX.
+
+    Params:
+        output (str): destination file path (.csv or .xlsx).
+        format (str, optional): "csv" (default) or "xlsx".
+
+    Raises ``RuntimeError`` if no analyze has been run in this session.
+
+    Phase 1 note: priority_score column carries file_size_kb as a volume proxy.
+    G6/A6 round will replace with actual read_count once fasta_parser exposes
+    per-record counts.
+    """
+    from kuma_core.mame.export import export_mame_janus_csv, export_mame_janus_xlsx
+
+    state = get_state()
+    if state.last_replicates is None:
+        raise RuntimeError(
+            "No prior analyze result. Run 'analyze' before 'export_janus_mapping'."
+        )
+
+    output = _validate_output_path(
+        params["output"], allowed_extensions=_ALLOWED_JANUS_EXTENSIONS
+    )
+
+    fmt = str(params.get("format", "csv")).lower()
+    if fmt not in ("csv", "xlsx"):
+        raise ValueError(f"Invalid format '{fmt}'. Expected 'csv' or 'xlsx'.")
+
+    if fmt == "xlsx":
+        export_mame_janus_xlsx(state.last_replicates, output)
+    else:
+        export_mame_janus_csv(state.last_replicates, output)
+
+    return {"output_path": str(output), "format": fmt}
+
+
+__all__ = ["handle_export_excel", "handle_get_plate_data", "handle_export_janus_mapping"]

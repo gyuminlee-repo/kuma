@@ -21,6 +21,7 @@ from sidecar_mame.handlers.analyze import (
 )
 from sidecar_mame.handlers.export import (
     handle_export_excel,
+    handle_export_janus_mapping,
     handle_get_plate_data,
 )
 from sidecar_mame.handlers.kuma_meta import handle_read_kuma_meta
@@ -32,6 +33,7 @@ _METHODS = {
     "validate_inputs": handle_validate_inputs,
     "export_excel": handle_export_excel,
     "get_plate_data": handle_get_plate_data,
+    "export_janus_mapping": handle_export_janus_mapping,
     "read_kuma_meta": handle_read_kuma_meta,
     "cancel_analyze": lambda _: {"cancelled": True},
 }
