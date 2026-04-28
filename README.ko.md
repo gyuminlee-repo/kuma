@@ -2,7 +2,12 @@
 
 **한국어** | [English](README.md)
 
-**Kuro**(SDM 프라이머 배치 설계)와 **Mame**(Oxford Nanopore NGS 스크리닝 판정)를 하나의 워크플로우로 통합한 데스크톱 앱. Kuro 탭에서 프라이머를 설계하고 실험·시퀀싱 후 Mame 탭으로 넘어가 의도한 돌연변이가 제대로 들어갔는지 판정한다.
+`kuma`는 두 서브툴을 하나의 Tauri 데스크톱 앱으로 묶는다:
+
+- **Kuro** — *Kernel for Upstream Recombination Oligodesign.* Gibson Assembly 기반 SDM 프라이머 일괄 설계.
+- **Mame** — *Mutagenesis Assessment & Microplate Export.* Oxford Nanopore NGS 판정. 어떤 클론이 의도한 돌연변이를 가졌는지 검증.
+
+Kuro 탭에서 프라이머를 설계하고 실험·시퀀싱 후 Mame 탭으로 넘어가 의도한 돌연변이가 제대로 들어갔는지 판정한다.
 
 ![kuma overview](docs/kuro_overview.png)
 
