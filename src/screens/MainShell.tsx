@@ -1,6 +1,10 @@
+import { useEffect } from "react";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { rpc, type SidecarKind } from "@/lib/ipc";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useKumaProject } from "@/state/projectContext";
+import { flushAutosave, type AutosaveTarget } from "@/lib/autosave";
+import { useKuroAutosave } from "@/hooks/useKuroAutosave";
 import { KuroTab } from "./KuroTab";
 import { MameTab } from "./MameTab";
 
@@ -8,10 +12,44 @@ export function MainShell() {
   const project = useKumaProject();
   const projectName = project ? `${project.name}${project.scratch ? " (Scratch)" : ""}` : "Workspace";
 
-  function handleTabChange(nextKind: string) {
+  // Phase 2: Kuro 자동 저장 구독 등록
+  useKuroAutosave();
+
+  // C-3: 윈도우 close 직전 flush (kuro + mame 양쪽)
+  // mame Phase 2 완료 후에도 flushAutosave(target) (kind 미지정) 형태로 양쪽 처리됨
+  useEffect(() => {
+    const target: AutosaveTarget = {
+      projectPath: project?.path ?? null,
+      scratch: project?.scratch ?? true,
+    };
+
+    let unlisten: (() => void) | undefined;
+    void getCurrentWindow()
+      .onCloseRequested(async (ev) => {
+        ev.preventDefault();
+        await flushAutosave(target);
+        await getCurrentWindow().destroy();
+      })
+      .then((fn) => {
+        unlisten = fn;
+      });
+
+    return () => {
+      unlisten?.();
+    };
+  }, [project?.path, project?.scratch]);
+
+  // C-2: 탭 전환 직전 flush
+  async function handleTabChange(nextKind: string): Promise<void> {
     if (nextKind !== "kuro" && nextKind !== "mame") {
       return;
     }
+
+    const target: AutosaveTarget = {
+      projectPath: project?.path ?? null,
+      scratch: project?.scratch ?? true,
+    };
+    await flushAutosave(target, nextKind === "kuro" ? "mame" : "kuro");
 
     void rpc(nextKind as SidecarKind, "ping", {}).catch(() => {
       // Ignore lazy sidecar startup failures in the shell.
@@ -20,7 +58,7 @@ export function MainShell() {
 
   return (
     <div className="flex h-screen flex-col bg-background">
-      <Tabs defaultValue="kuro" onValueChange={handleTabChange} className="flex min-h-0 flex-1 flex-col">
+      <Tabs defaultValue="kuro" onValueChange={(v) => { void handleTabChange(v); }} className="flex min-h-0 flex-1 flex-col">
         <header className="h-header flex shrink-0 items-center border-b bg-background px-4">
           <div className="flex w-full min-w-0 items-center gap-4">
             <span className="shrink-0 text-lg font-semibold tracking-tight text-foreground">kuma</span>

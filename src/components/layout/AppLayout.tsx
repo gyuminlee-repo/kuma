@@ -4,6 +4,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useAppStore } from "../../store/appStore";
 import { useSidecar } from "../../hooks/useSidecar";
 import { useKumaProject } from "../../state/projectContext";
+import { useFlushKuroBeforeDesign } from "../../hooks/useKuroAutosave";
 
 const IS_MAC = typeof navigator !== "undefined" && navigator.userAgent.includes("Mac");
 const RUN_HINT = IS_MAC ? "⌘↵" : "Ctrl+↵";
@@ -52,6 +53,9 @@ export function AppLayout() {
   const showBenchmark = useAppStore((s) => s.showBenchmark);
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
+
+  // C-1: Run Design 직전 flush (입력 보존 — 실패 시에도 복원 가능)
+  const flushBeforeDesign = useFlushKuroBeforeDesign();
 
   const selectedGeneInfo = seqInfo?.genes.find((gene) => String(gene.cds_start) === selectedGene);
   const plateEstimate = totalCount > 0 ? Math.ceil(totalCount / 96) : null;
@@ -125,7 +129,9 @@ export function AppLayout() {
         e.preventDefault();
         {
           const s = useAppStore.getState();
-          if (s.seqInfo && !s.isDesigning && s.mutationText.trim()) s.designPrimers();
+          if (s.seqInfo && !s.isDesigning && s.mutationText.trim()) {
+            void flushBeforeDesign().then(() => s.designPrimers());
+          }
         }
         break;
       case "o":
@@ -137,11 +143,13 @@ export function AppLayout() {
         e.preventDefault();
         {
           const s = useAppStore.getState();
-          if (s.seqInfo && !s.isDesigning && s.mutationText.trim()) void s.designPrimers();
+          if (s.seqInfo && !s.isDesigning && s.mutationText.trim()) {
+            void flushBeforeDesign().then(() => s.designPrimers());
+          }
         }
         break;
     }
-  }, []);
+  }, [flushBeforeDesign]);
 
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown);
@@ -171,7 +179,9 @@ export function AppLayout() {
               <div className="flex gap-2">
                 <Button
                   className="h-control-primary flex-1 rounded-control text-body font-semibold"
-                  onClick={() => useAppStore.getState().designPrimers()}
+                  onClick={() => {
+                    void flushBeforeDesign().then(() => useAppStore.getState().designPrimers());
+                  }}
                   disabled={!hasSequence || isDesigning || !hasMutationText}
                 >
                   {isDesigning ? "Designing..." : "Run Design"}
