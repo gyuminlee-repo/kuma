@@ -77,11 +77,11 @@ export function MenuBar() {
             <kbd className="ml-4 text-caption text-muted-foreground">{MOD_KEY}O</kbd>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={handleSaveWorkspace}>
+          <DropdownMenuItem onClick={() => void handleSaveWorkspace(project)}>
             <span className="flex-1">Save Workspace...</span>
             <kbd className="ml-4 text-caption text-muted-foreground">{MOD_KEY}S</kbd>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleLoadWorkspace}>
+          <DropdownMenuItem onClick={() => void handleLoadWorkspace(project)}>
             Load Workspace...
           </DropdownMenuItem>
           <DropdownMenuSeparator />

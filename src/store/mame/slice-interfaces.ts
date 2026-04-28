@@ -5,6 +5,7 @@ import type {
   VerdictRecord,
   WellEntry,
 } from "@/types/mame/models";
+import type { KumaProject } from "@/state/projectContext";
 
 export interface InputSlice {
   inputDir: string;
@@ -43,8 +44,8 @@ export interface InputSlice {
   validateInputs: () => Promise<void>;
   runAnalysis: () => Promise<void>;
   cancelAnalysis: () => Promise<void>;
-  saveWorkspace: () => Promise<void>;
-  loadWorkspace: () => Promise<void>;
+  saveWorkspace: (project: KumaProject) => Promise<void>;
+  loadWorkspace: (project: KumaProject) => Promise<void>;
 }
 
 export interface AnalysisSlice {

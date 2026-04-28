@@ -2,7 +2,8 @@ import { open, save } from "@tauri-apps/plugin-dialog";
 import { sendRequest } from "../../lib/ipc-kuro";
 import { useAppStore } from "../../store/appStore";
 import { getSortedMutations, reorderMappings } from "../../lib/plate-utils";
-import { defaultExportFilename } from "../../lib/filename";
+import { defaultExportFilename, buildWorkspaceDefaultPath } from "../../lib/filename";
+import type { KumaProject } from "../../state/projectContext";
 import type { BenchmarkResult } from "../../types/models";
 
 function deriveMappingExportPaths(path: string) {
@@ -114,11 +115,11 @@ export async function handleExportMappingWithParams(
   }
 }
 
-export async function handleSaveWorkspace() {
+export async function handleSaveWorkspace(project: KumaProject) {
   try {
     const path = await save({
       filters: [{ name: "KURO Workspace", extensions: ["json"] }],
-      defaultPath: defaultExportFilename({ target: "workspace", ext: "kuro.json" }),
+      defaultPath: buildWorkspaceDefaultPath(project, "kuro"),
     });
     if (!path) return;
     const workspace = useAppStore.getState().getWorkspaceSnapshot();
@@ -129,11 +130,12 @@ export async function handleSaveWorkspace() {
   }
 }
 
-export async function handleLoadWorkspace() {
+export async function handleLoadWorkspace(project: KumaProject) {
   try {
     const path = await open({
       filters: [{ name: "KURO Workspace", extensions: ["json"] }],
       multiple: false,
+      defaultPath: project && !project.scratch && project.path ? project.path : undefined,
     });
     if (typeof path !== "string") return;
     const ws = await sendRequest("load_workspace", { filepath: path });

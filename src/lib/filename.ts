@@ -1,8 +1,9 @@
 import { useAppStore } from "../store/appStore";
+import type { KumaProject } from "../state/projectContext";
 
 const UNINFORMATIVE = new Set(["", "orf1", "unknown", "none", "cds", "gene"]);
 
-function sanitize(token: string): string {
+export function sanitize(token: string): string {
   return token.replace(/[^\w.-]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 40);
 }
 
@@ -55,6 +56,32 @@ export interface FilenameOpts {
   target: string;
   ext: string;
   plate?: { index: number; total: number };
+}
+
+function fullDateStamp(): string {
+  const d = new Date();
+  const yyyy = String(d.getFullYear());
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}${mm}${dd}`;
+}
+
+/**
+ * Save Workspace 다이얼로그의 defaultPath를 조립한다.
+ * - 활성 프로젝트(non-scratch)가 있으면: `<project.path>/<name>_<YYYYMMDD>.<kind>.workspace.json`
+ * - scratch 또는 null이면: `<name>_<YYYYMMDD>.<kind>.workspace.json` (파일명만)
+ */
+export function buildWorkspaceDefaultPath(
+  project: KumaProject,
+  kind: "kuro" | "mame",
+): string {
+  const yyyymmdd = fullDateStamp();
+  const name = project?.name ? sanitize(project.name) : "scratch";
+  const filename = `${name}_${yyyymmdd}.${kind}.workspace.json`;
+  if (project && !project.scratch && project.path) {
+    return `${project.path}/${filename}`;
+  }
+  return filename;
 }
 
 export function defaultExportFilename(opts: FilenameOpts): string {

@@ -1,5 +1,7 @@
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
+import { buildWorkspaceDefaultPath } from "../filename";
+import type { KumaProject } from "../../state/projectContext";
 
 export interface WorkspaceSnapshot {
   version: 1;
@@ -17,18 +19,23 @@ export interface WorkspaceSnapshot {
 
 const WORKSPACE_FILTER = [{ name: "mame workspace", extensions: ["mame.json", "json"] }];
 
-export async function saveWorkspaceToFile(snapshot: WorkspaceSnapshot): Promise<string | null> {
+export async function saveWorkspaceToFile(
+  snapshot: WorkspaceSnapshot,
+  project: KumaProject,
+): Promise<string | null> {
   const path = await save({
     filters: WORKSPACE_FILTER,
-    defaultPath: "workspace.mame.json",
+    defaultPath: buildWorkspaceDefaultPath(project, "mame"),
   });
   if (!path) return null;
   await writeTextFile(path, JSON.stringify(snapshot, null, 2));
   return path;
 }
 
-export async function loadWorkspaceFromFile(): Promise<WorkspaceSnapshot | null> {
-  const selected = await open({ multiple: false, filters: WORKSPACE_FILTER });
+export async function loadWorkspaceFromFile(project: KumaProject): Promise<WorkspaceSnapshot | null> {
+  const defaultPath =
+    project && !project.scratch && project.path ? project.path : undefined;
+  const selected = await open({ multiple: false, filters: WORKSPACE_FILTER, defaultPath });
   const path = typeof selected === "string" ? selected : null;
   if (!path) return null;
   const text = await readTextFile(path);

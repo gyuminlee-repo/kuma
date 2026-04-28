@@ -3,6 +3,7 @@ import { cancelAndRespawn, sendRequest } from "@/lib/ipc-mame";
 import { formatError } from "@/lib/utils";
 import { loadWorkspaceFromFile, saveWorkspaceToFile } from "@/lib/mame/workspace";
 import type { AnalyzeResult, ValidationResult } from "@/types/mame/models";
+import type { KumaProject } from "@/state/projectContext";
 import type { InputSlice } from "../slice-interfaces";
 import type { AppState } from "../types";
 
@@ -118,30 +119,33 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       analyzeMessage: "Analysis cancelled",
     });
   },
-  saveWorkspace: async () => {
+  saveWorkspace: async (project: KumaProject) => {
     const s = get();
     try {
-      const savedTo = await saveWorkspaceToFile({
-        version: 1,
-        inputDir: s.inputDir,
-        expectedPath: s.expectedPath,
-        referencePath: s.referencePath,
-        outputPath: s.outputPath,
-        mode: s.mode,
-        ingestMode: s.ingestMode,
-        cdsStart: s.cdsStart,
-        cdsEnd: s.cdsEnd,
-        minFileSizeKb: s.minFileSizeKb,
-        manyCutoff: s.manyCutoff,
-      });
+      const savedTo = await saveWorkspaceToFile(
+        {
+          version: 1,
+          inputDir: s.inputDir,
+          expectedPath: s.expectedPath,
+          referencePath: s.referencePath,
+          outputPath: s.outputPath,
+          mode: s.mode,
+          ingestMode: s.ingestMode,
+          cdsStart: s.cdsStart,
+          cdsEnd: s.cdsEnd,
+          minFileSizeKb: s.minFileSizeKb,
+          manyCutoff: s.manyCutoff,
+        },
+        project,
+      );
       if (savedTo) set({ analyzeMessage: `Workspace saved: ${savedTo}` });
     } catch (error) {
       set({ analyzeMessage: `Workspace save failed: ${formatError(error)}` });
     }
   },
-  loadWorkspace: async () => {
+  loadWorkspace: async (project: KumaProject) => {
     try {
-      const snap = await loadWorkspaceFromFile();
+      const snap = await loadWorkspaceFromFile(project);
       if (!snap) return;
       set({
         inputDir: snap.inputDir,

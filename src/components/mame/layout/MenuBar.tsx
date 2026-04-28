@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
+import { useKumaProject } from "@/state/projectContext";
 import { CrashLogDialog } from "@/components/dialogs/CrashLogDialog";
 import { selectCanRun } from "@/store/mame/selectors";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,7 @@ interface MenuBarProps {
 }
 
 export function MenuBar({ onClearRequest }: MenuBarProps) {
+  const project = useKumaProject();
   const hasResults = useMameAppStore((s) => s.verdicts.length > 0);
   const isAnalyzing = useMameAppStore((s) => s.isAnalyzing);
   const runAnalysis = useMameAppStore((s) => s.runAnalysis);
@@ -53,11 +55,11 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
           <button className={TRIGGER_CLS}>File</button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
-          <DropdownMenuItem onClick={() => void loadWorkspace()}>
+          <DropdownMenuItem onClick={() => void loadWorkspace(project)}>
             <span className="flex-1">Open Workspace…</span>
             <DropdownMenuShortcut>{MOD_KEY}O</DropdownMenuShortcut>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => void saveWorkspace()}>
+          <DropdownMenuItem onClick={() => void saveWorkspace(project)}>
             <span className="flex-1">Save Workspace…</span>
             <DropdownMenuShortcut>{MOD_KEY}S</DropdownMenuShortcut>
           </DropdownMenuItem>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
+import { useKumaProject } from "@/state/projectContext";
 import { selectCanRun } from "@/store/mame/selectors";
 import { useMameSidecar } from "@/hooks/mame/useMameSidecar";
 import { ClearConfirmDialog } from "../dialogs/ClearConfirmDialog";
@@ -17,6 +18,7 @@ const SEQUENCE_EXTENSIONS = new Set([".fa", ".fasta", ".fna"]);
 const XLSX_EXTENSIONS = new Set([".xlsx"]);
 
 export function MameAppLayout() {
+  const project = useKumaProject();
   const { status, retry } = useMameSidecar();
   const clearResults = useMameAppStore((s) => s.clearResults);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -72,11 +74,11 @@ export function MameAppLayout() {
       switch (e.key.toLowerCase()) {
         case "o":
           e.preventDefault();
-          void s.loadWorkspace();
+          void s.loadWorkspace(project);
           break;
         case "s":
           e.preventDefault();
-          void s.saveWorkspace();
+          void s.saveWorkspace(project);
           break;
         case "e":
           e.preventDefault();
@@ -94,7 +96,7 @@ export function MameAppLayout() {
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [project]);
 
   return (
     <div

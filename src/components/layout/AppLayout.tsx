@@ -117,7 +117,7 @@ export function AppLayout() {
     switch (e.key.toLowerCase()) {
       case "s":
         e.preventDefault();
-        handleSaveWorkspace();
+        void handleSaveWorkspace(project);
         break;
       case "e":
         if (isInput) return;
@@ -149,7 +149,7 @@ export function AppLayout() {
         }
         break;
     }
-  }, [flushBeforeDesign]);
+  }, [flushBeforeDesign, project]);
 
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown);
