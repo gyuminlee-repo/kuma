@@ -4,6 +4,67 @@
 
 ---
 
+## v0.1.5 (2026-04-28)
+
+프로젝트 폴더 자동 저장 도입. scratch가 아닌 프로젝트를 열면 직전 세션이 자동 복원되고, 입력·파라미터 변경이 디스크에 조용히 적힌다.
+
+### 자동 저장 동작
+
+- 저장 위치: `<project>/.autosave/kuro.json`, `<project>/.autosave/mame.json`. 첫 저장 시 폴더 자동 생성.
+- 트리거: 종류별 1.5초 디바운스, 30초 강제 flush 한도. Run Design / Run Analysis 직전, 탭 전환 직전, 윈도우 close 직전 강제 flush.
+- atomic write: `path.tmp`에 쓰고 rename. 같은 종류의 동시 저장은 종류별 큐로 직렬화.
+- scratch 프로젝트는 자동 저장 안 함.
+- 스냅샷에는 입력·파라미터·diversity·UI만 포함. 결과물(`designResults`, `failedMutations`, `rescueStats`, `benchmarkResults`, `verdictRows`, `plateMap`, `summary`)은 의도적 제외 — Run으로 재생성됨.
+
+### 진입 시 복원
+
+- 프로젝트 진입 직후 kuro·mame 자동 저장 파일을 병렬로 읽어 기존 store action(`loadSequence`, `setMutationText`, `setSelectedPolymerase`, mame `setParams` 등)을 통해 적용.
+- schema 구버전 → 그대로 적용(관대한 다운 마이그레이션). schema 신버전 → 적용 거부 + 사용자에게 스킵 안내.
+- JSON 손상 → `<file>.bad-<iso>`로 백업하고 상태 인디케이터에 노출.
+
+### 상태 인디케이터
+
+- `GlobalStatusBar`에 자동 저장 슬롯 추가: `idle`(숨김), `saving`, `saved`, `error`, `disabled`. saved 상태는 `Saved just now / N min ago / N hr ago`를 1분 단위로 갱신.
+- 첫 사용 시 `Autosave is on for this project.` 1회 안내(localStorage 키로 머신당 1회).
+- 연속 3회 쓰기 실패 시 `Autosave failed 3 times. Check disk space or permissions.` 1회 노출.
+
+### 명시적 Save Workspace 분리
+
+- `File → Save Workspace…`와 `Load Workspace…`의 기본 경로가 활성 프로젝트 폴더로 변경: `<project>/<name>_<YYYYMMDD>.kuro.workspace.json` / `.mame.workspace.json`. scratch는 기존 동작(파일명만) 유지.
+- 명시적 저장은 무거운 스냅샷(결과물 포함), 자동 저장은 가벼운 스냅샷. 다른 파일·다른 폴더·`.autosave/`와 충돌 없음.
+
+---
+
+## v0.1.4 (2026-04-28)
+
+UX 개선 묶음 + 디자인 시스템 작업과 함께 들어온 병행 정리.
+
+### UX
+
+- `Cmd/Ctrl+Enter`로 Run Design(kuro)·Run Analysis(mame) 실행. input/textarea/select 포커스 중에는 무시. 사이드바 Run 버튼에 단축키 힌트 표시.
+- `handleExportExcel` 성공 시 statusbar에 `Export saved. Run sequencing, then Switch to Mame tab to verify →` 약 5초 노출 후 이전 메시지 복원.
+- Kuro Input 패널이 `.gb / .gbk / .gbff / .dna / .fa / .fasta` 드롭 수용. 드래그 중 시각 피드백은 `border-dashed border-info bg-info/5`. 파일 처리는 기존 AppLayout 드롭 파이프라인 재사용.
+- `src/components/dialogs/` 아래 공통 `CrashLogDialog` 신규. 두 탭 Help 메뉴에 `View Crash Log` 추가, copy/close 지원.
+- 두 탭 Help 메뉴에 `Show Onboarding` 추가. `kuma:show-onboarding` 이벤트로 디스패치, `App.tsx`가 처리.
+- Tauri 윈도우 타이틀이 `project.name`을 반영: `kuma — <project>` 형식으로 프로젝트 변경 시 갱신.
+
+### Benchmark, sidecar, shell
+
+- BenchmarkDialog에 막대 차트 + scatter 시각화 추가. `exportSlice`에 보조 플러밍 동반.
+- `useSidecar`가 hook unmount 시 sidecar를 더 이상 kill하지 않음. Rust 매니저가 라이프사이클을 소유해 장시간 Kuro 작업이 탭 전환에도 살아남음. 신규 `useSidecar.test.tsx`로 계약 검증.
+- `MainShell`이 탭 스위처를 제품 라벨 옆으로 재배치. 프로젝트명·stage 배지는 구분선 뒤에 정렬.
+- `UniprotSearch`가 후보 리스트를 상위 10개로 캡, 헤더 요약 + muted 컨테이너 적용.
+- `PlateMap` 최종 패스 토큰화.
+- Python sidecar(`sidecar_kuro`) handlers·models가 `to_rpc_dict()` 사용으로 전환. JSON-RPC 응답에서 null-valued optional 필드 제거. 프론트 타입은 `SearchUniprotResult.error_detail`이 `string | null` 수용.
+- 신규 `tests/test_sidecar_models.py`가 `to_rpc_dict` 검증; `test_sidecar_rpc.py`도 새 계약에 맞춰 조정.
+- `.gitignore`에 `design_result.debug.json`, `*.debug.json` 추가.
+
+### 버그 수정
+
+- `src/lib/utils.ts`의 `cn()`이 `extendTailwindMerge`로 전환. 커스텀 fontSize 토큰 5종(`text-title`, `text-body`, `text-caption`, `text-plate`, `text-plate-tiny`)을 별도 `font-size` 그룹으로 등록. 그 전엔 `tailwind-merge`가 이 토큰들을 `text-{색}` 클래스와 같은 그룹으로 보고 `text-primary-foreground` 같은 색을 지웠고, 그 결과 Run Design / Run 등 primary 버튼의 텍스트가 배경과 같아 보이지 않았음.
+
+---
+
 ## v0.1.3 (2026-04-28)
 
 UI 통일 작업: kuro와 mame가 공통 디자인 토큰, 공통 메뉴/상태바, 공통 패널 컴포넌트를 사용하게 정리.
