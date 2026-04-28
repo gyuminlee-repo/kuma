@@ -24,6 +24,14 @@ const AUTOSAVE_DIR_NAME = ".autosave";
 
 export type AutosaveKind = "kuro" | "mame";
 
+/** autosave 라이프사이클 이벤트. UI 상태 인디케이터용. */
+export type AutosaveEvent =
+  | { kind: AutosaveKind; type: "saving" }
+  | { kind: AutosaveKind; type: "saved"; savedAt: string /* ISO */ }
+  | { kind: AutosaveKind; type: "error"; error: Error };
+
+type AutosaveListener = (event: AutosaveEvent) => void;
+
 export interface AutosaveTarget {
   /** 프로젝트 루트 절대 경로. null 또는 scratch면 모든 호출이 silent skip. */
   projectPath: string | null;
@@ -60,6 +68,23 @@ const kindState: Record<AutosaveKind, KindState> = {
 
 /** ensureAutosaveDir 결과 캐시 (projectPath → dirPath) */
 const dirCache = new Map<string, string>();
+
+// ─── 옵저버 ──────────────────────────────────────────────────────────────
+
+const listeners = new Set<AutosaveListener>();
+
+/**
+ * autosave 이벤트(saving / saved / error) 구독.
+ * 반환 함수를 호출하면 구독 해제된다.
+ */
+export function onAutosaveEvent(listener: AutosaveListener): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+function emit(event: AutosaveEvent): void {
+  for (const l of listeners) l(event);
+}
 
 // ─── 경로 헬퍼 ────────────────────────────────────────────────────────────
 
@@ -180,10 +205,17 @@ function drainQueue(kind: AutosaveKind): void {
   const task = state.pending;
   state.pending = null;
 
+  emit({ kind, type: "saving" });
+
   state.inFlight = task()
+    .then(() => {
+      emit({ kind, type: "saved", savedAt: new Date().toISOString() });
+    })
     .catch((err: unknown) => {
-      console.warn(`[autosave] Write failed (${kind}):`, err);
-      throw err;
+      const error = err instanceof Error ? err : new Error(String(err));
+      console.warn(`[autosave] Write failed (${kind}):`, error);
+      emit({ kind, type: "error", error });
+      throw error;
     })
     .finally(() => {
       state.inFlight = null;
@@ -314,4 +346,5 @@ export function _resetStateForTest(): void {
     state.timerTask = null;
   }
   dirCache.clear();
+  listeners.clear();
 }

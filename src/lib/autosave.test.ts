@@ -31,10 +31,12 @@ import {
   atomicWriteJson,
   autosavePath,
   readAutosave,
+  onAutosaveEvent,
   _resetStateForTest,
   DEBOUNCE_MS,
   type AutosaveTarget,
   type AutosaveSnapshot,
+  type AutosaveEvent,
 } from "./autosave";
 
 // ─── 헬퍼 ────────────────────────────────────────────────────────────────
@@ -281,5 +283,40 @@ describe("readAutosave", () => {
     if (result.status !== "ok") return;
     expect(result.snapshot.schema).toBe(1);
     expect(mockRename).not.toHaveBeenCalled();
+  });
+});
+
+describe("onAutosaveEvent (observer)", () => {
+  it("TC10: 옵저버가 saving → saved 순서로 호출되고 savedAt이 ISO 문자열이다", async () => {
+    vi.useRealTimers();
+
+    const received: AutosaveEvent[] = [];
+    const unsub = onAutosaveEvent((ev) => received.push(ev));
+
+    const target = makeTarget();
+    scheduleAutosave(target, "kuro", () => makeSnapshot("observer-test"));
+
+    await flushAutosave(target, "kuro");
+
+    unsub();
+
+    // saving 이벤트가 먼저, saved 이벤트가 뒤에 와야 함
+    expect(received.length).toBeGreaterThanOrEqual(2);
+    const savingIdx = received.findIndex((e) => e.type === "saving");
+    const savedIdx = received.findIndex((e) => e.type === "saved");
+    expect(savingIdx).toBeGreaterThanOrEqual(0);
+    expect(savedIdx).toBeGreaterThanOrEqual(0);
+    expect(savingIdx).toBeLessThan(savedIdx);
+
+    // saved 이벤트의 savedAt이 ISO 형식인지 확인
+    const savedEv = received[savedIdx];
+    if (savedEv.type !== "saved") throw new Error("narrowing");
+    expect(savedEv.savedAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
+
+    // 구독 해제 후 추가 이벤트 없음
+    const prevCount = received.length;
+    scheduleAutosave(target, "kuro", () => makeSnapshot("after-unsub"));
+    await flushAutosave(target, "kuro");
+    expect(received.length).toBe(prevCount);
   });
 });

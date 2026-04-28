@@ -1,33 +1,130 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { rpc, type SidecarKind } from "@/lib/ipc";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useKumaProject } from "@/state/projectContext";
-import { flushAutosave, type AutosaveTarget } from "@/lib/autosave";
+import { flushAutosave, onAutosaveEvent, type AutosaveTarget, type AutosaveEvent } from "@/lib/autosave";
 import { useKuroAutosave } from "@/hooks/useKuroAutosave";
 import { useAutosaveHydration, type HydrationStatusMessage } from "@/hooks/useAutosaveHydration";
+import { Spinner } from "@/components/ui/Spinner";
 import { KuroTab } from "./KuroTab";
 import { MameTab } from "./MameTab";
+
+// ─── 상대 시간 포맷 헬퍼 ──────────────────────────────────────────────────
+
+function formatRelativeTime(isoString: string): string {
+  const diffMs = Date.now() - new Date(isoString).getTime();
+  const diffMin = Math.floor(diffMs / 60_000);
+  if (diffMin < 1) return "just now";
+  if (diffMin < 60) return `${diffMin} min ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr} hr ago`;
+  return `${Math.floor(diffHr / 24)} day(s) ago`;
+}
+
+// ─── autosave intro localStorage 키 ──────────────────────────────────────
+
+const AUTOSAVE_INTRO_KEY = "kuma:autosave-intro-shown";
+
+// ─── autosave 상태 타입 (인디케이터 전용) ────────────────────────────────
+
+type AutosaveIndicatorState = "idle" | "saving" | "saved" | "error";
+
+const AUTOSAVE_DOT: Record<AutosaveIndicatorState, string> = {
+  idle: "bg-success",
+  saving: "bg-info",
+  saved: "bg-success",
+  error: "bg-error",
+};
+
+// ─── 컴포넌트 ─────────────────────────────────────────────────────────────
 
 export function MainShell() {
   const project = useKumaProject();
   const projectName = project ? `${project.name}${project.scratch ? " (Scratch)" : ""}` : "Workspace";
 
-  // Phase 4: 복원 알림 (4초 후 자동 소멸). Phase 5에서 정식 autosave 슬롯으로 대체.
-  const [restoreNotice, setRestoreNotice] = useState<HydrationStatusMessage | null>(null);
+  // ── 상태바 좌측 메시지 (4초 자동 소멸)
+  const [statusMessage, setStatusMessage] = useState("");
+  const msgTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleHydrationMessage = useCallback((msg: HydrationStatusMessage) => {
-    setRestoreNotice(msg);
-    setTimeout(() => setRestoreNotice(null), 4000);
+  const showStatusMessage = useCallback((msg: string) => {
+    if (msgTimerRef.current !== null) clearTimeout(msgTimerRef.current);
+    setStatusMessage(msg);
+    msgTimerRef.current = setTimeout(() => setStatusMessage(""), 4000);
   }, []);
+
+  // ── autosave 인디케이터 상태
+  const [autosaveState, setAutosaveState] = useState<AutosaveIndicatorState>("idle");
+  const [autosaveLabel, setAutosaveLabel] = useState("Autosave on");
+
+  // ── 마지막 saved 시각 (상대 시간 갱신용)
+  const lastSavedAtRef = useRef<string | null>(null);
+  // ── 연속 error 카운터
+  const errorStreakRef = useRef(0);
+
+  // ── hydration 메시지 처리
+  const handleHydrationMessage = useCallback((msg: HydrationStatusMessage) => {
+    if (msg.variant === "restored" && msg.savedAt) {
+      lastSavedAtRef.current = msg.savedAt;
+      setAutosaveState("saved");
+      setAutosaveLabel(`Restored from autosave (${formatRelativeTime(msg.savedAt)})`);
+    } else if (msg.variant === "corrupted" || msg.variant === "schema_too_new") {
+      showStatusMessage(msg.message);
+    }
+  }, [showStatusMessage]);
 
   // Phase 2: Kuro 자동 저장 구독 등록
   useKuroAutosave();
   // Phase 4: 프로젝트 진입 시 자동 저장 복원
   useAutosaveHydration(handleHydrationMessage);
 
-  // C-3: 윈도우 close 직전 flush (kuro + mame 양쪽)
-  // mame Phase 2 완료 후에도 flushAutosave(target) (kind 미지정) 형태로 양쪽 처리됨
+  // ── autosave 이벤트 옵저버 등록
+  useEffect(() => {
+    const unsub = onAutosaveEvent((ev: AutosaveEvent) => {
+      if (ev.type === "saving") {
+        errorStreakRef.current = 0;
+        setAutosaveState("saving");
+        setAutosaveLabel("Saving…");
+      } else if (ev.type === "saved") {
+        errorStreakRef.current = 0;
+        lastSavedAtRef.current = ev.savedAt;
+        setAutosaveState("saved");
+        setAutosaveLabel("Saved just now");
+      } else if (ev.type === "error") {
+        errorStreakRef.current += 1;
+        setAutosaveState("error");
+        setAutosaveLabel("Save failed");
+        if (errorStreakRef.current >= 3) {
+          showStatusMessage("Autosave failed 3 times. Check disk space or permissions.");
+        }
+      }
+    });
+    return unsub;
+  }, [showStatusMessage]);
+
+  // ── 1분 단위 상대 시간 갱신 (saved 상태 전용)
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (lastSavedAtRef.current !== null && autosaveState === "saved") {
+        setAutosaveLabel(`Saved ${formatRelativeTime(lastSavedAtRef.current)}`);
+      }
+    }, 60_000);
+    return () => clearInterval(id);
+  }, [autosaveState]);
+
+  // ── 첫 자동 저장 인트로 (글로벌 1회, scratch 아닌 프로젝트에서만)
+  useEffect(() => {
+    if (!project || project.scratch) return;
+    const shown = localStorage.getItem(AUTOSAVE_INTRO_KEY);
+    if (shown) return;
+    localStorage.setItem(AUTOSAVE_INTRO_KEY, "1");
+    showStatusMessage("Autosave is on for this project.");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project?.path, project?.scratch]);
+
+  const isAutosaveActive = project !== null && project !== undefined && !project.scratch;
+
+  // ── 윈도우 close 직전 flush (kuro + mame 양쪽)
   useEffect(() => {
     const target: AutosaveTarget = {
       projectPath: project?.path ?? null,
@@ -50,7 +147,7 @@ export function MainShell() {
     };
   }, [project?.path, project?.scratch]);
 
-  // C-2: 탭 전환 직전 flush
+  // ── 탭 전환 직전 flush
   async function handleTabChange(nextKind: string): Promise<void> {
     if (nextKind !== "kuro" && nextKind !== "mame") {
       return;
@@ -69,6 +166,18 @@ export function MainShell() {
 
   return (
     <div className="flex h-screen flex-col bg-background">
+      {/* 4초 소멸 상태바 메시지 (autosave 인트로 / 연속 실패 토스트 등) */}
+      {statusMessage && (
+        <div
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          className="px-3 py-1 text-caption text-muted-foreground bg-muted border-b border-border shrink-0"
+        >
+          {statusMessage}
+        </div>
+      )}
+
       <Tabs defaultValue="kuro" onValueChange={(v) => { void handleTabChange(v); }} className="flex min-h-0 flex-1 flex-col">
         <header className="h-header flex shrink-0 items-center border-b bg-background px-4">
           <div className="flex w-full min-w-0 items-center gap-4">
@@ -85,18 +194,37 @@ export function MainShell() {
                     {project.stage}
                   </span>
                 ) : null}
-                {/* Phase 4 임시 복원 알림. Phase 5에서 정식 autosave 슬롯으로 대체됨. */}
-                {restoreNotice !== null ? (
-                  <span
-                    role="status"
-                    aria-live="polite"
-                    className="ml-2 shrink-0 truncate text-caption text-muted-foreground"
-                  >
-                    {restoreNotice.message}
-                  </span>
-                ) : null}
               </div>
             </div>
+
+            {/* autosave 인디케이터 (scratch 아닌 프로젝트에서만 표시) */}
+            {isAutosaveActive && (
+              <span
+                className="flex shrink-0 items-center gap-1.5 text-caption text-muted-foreground"
+                aria-label={`Autosave: ${autosaveLabel}`}
+              >
+                <span
+                  className={`h-2 w-2 rounded-full shrink-0 ${AUTOSAVE_DOT[autosaveState]}`}
+                  aria-hidden="true"
+                />
+                <span className="whitespace-nowrap">{autosaveLabel}</span>
+                {autosaveState === "saving" && <Spinner size="sm" />}
+                {autosaveState === "error" && (
+                  <button
+                    type="button"
+                    className="text-error underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-colors duration-fast"
+                    onClick={() => {
+                      errorStreakRef.current = 0;
+                      setAutosaveState("idle");
+                      setAutosaveLabel("Autosave on");
+                    }}
+                    aria-label="Retry autosave"
+                  >
+                    retry
+                  </button>
+                )}
+              </span>
+            )}
           </div>
         </header>
 
