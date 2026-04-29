@@ -4,9 +4,9 @@
  * Calls the sidecar `export_janus_mapping` RPC and resolves a default
  * output path based on the active project folder.
  *
- * Phase 1 note: priority_score in the exported file reflects file_size_kb.
- * G6/A6 round will replace with actual read_count once the fasta_parser
- * exposes per-record counts.
+ * G6/A6: priority_score now reflects read_count when available; falls back to
+ * file_size_kb as a volume proxy. Column name priority_score is preserved for
+ * downstream Janus consumers regardless of the underlying metric.
  */
 
 import { sendRequest } from "@/lib/ipc-mame";

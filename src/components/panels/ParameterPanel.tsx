@@ -1,7 +1,7 @@
 import { useEffect, useState, type ChangeEvent, type KeyboardEvent } from "react";
 import { sendRequest } from "../../lib/ipc-kuro";
 import { formatError } from "../../lib/utils";
-import type { CodonStrategy, PolymeraseProfile } from "../../types/models";
+import type { CodonStrategy, OverlapMode, PolymeraseProfile } from "../../types/models";
 import { PolymeraseEditor } from "../dialogs/PolymeraseEditor";
 import { Button } from "../ui/button";
 import { HelpTip } from "./InputPanel/DiversitySections";
@@ -19,6 +19,10 @@ function useLocalNum(storeVal: number, fallback: number, commit: (v: number) => 
 
 function isCodonStrategy(value: string): value is CodonStrategy {
   return value === "closest" || value === "optimal";
+}
+
+function isOverlapMode(value: string): value is OverlapMode {
+  return value === "partial" || value === "full";
 }
 
 export function ParameterPanel() {
@@ -57,6 +61,8 @@ export function ParameterPanel() {
   const setPrimerLenRange = useAppStore((s) => s.setPrimerLenRange);
   const fillOnFailure = useAppStore((s) => s.fillOnFailure);
   const setFillOnFailure = useAppStore((s) => s.setFillOnFailure);
+  const overlapMode = useAppStore((s) => s.overlapMode);
+  const setOverlapMode = useAppStore((s) => s.setOverlapMode);
   const setStatus = useAppStore((s) => s.setStatus);
 
   const tmFwdInput = useLocalNum(tmFwd, 62, (v) => setTmTargets(v, tmRev, tmOv));
@@ -259,6 +265,37 @@ export function ParameterPanel() {
             />
             <span className="text-muted-foreground">Fill on failure</span>
           </label>
+
+          {/* Overlap Mode */}
+          <div className="pt-1.5 text-caption uppercase tracking-wider text-muted-foreground">Overlap mode</div>
+          <label
+            htmlFor="overlap-mode-select"
+            className="flex items-center gap-2 text-caption"
+            title="Partial: overlap upstream of codon (Gibson Assembly style). Full: forward and reverse cover the same region (NEB Q5 SDM style)."
+          >
+            <select
+              id="overlap-mode-select"
+              className="h-control min-w-0 flex-1 rounded-control border border-border bg-card px-3 text-caption focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              value={overlapMode}
+              onChange={(e) => {
+                if (isOverlapMode(e.target.value)) {
+                  setOverlapMode(e.target.value);
+                }
+              }}
+              aria-describedby="overlap-mode-hint"
+            >
+              <option value="partial">Partial (default)</option>
+              <option value="full">Full</option>
+            </select>
+          </label>
+          {overlapMode === "full" && (
+            <p
+              id="overlap-mode-hint"
+              className="text-caption text-muted-foreground pl-1"
+            >
+              Forward and reverse cover the same region (NEB Q5 style)
+            </p>
+          )}
         </div>
       )}
 

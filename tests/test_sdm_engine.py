@@ -9,13 +9,16 @@ import pytest
 from kuma_core.kuro.sdm_engine import (
     OffTargetHit,
     SdmPrimerResult,
+    _design_full_overlap,
     _synthesis_score,
     check_offtarget,
     check_offtarget_sliding,
     design_sdm_primers,
+    design_single_sdm,
     export_results_tsv,
     load_fasta,
 )
+from kuma_core.kuro.mutation import Mutation
 from tests.conftest import FIXTURES_DIR, TARGET_START
 
 
@@ -265,3 +268,117 @@ class TestCheckOfftargetSliding:
         )
         antisense = [h for h in hits if h.strand == "antisense"]
         assert len(antisense) >= 1
+
+
+class TestDesignFullOverlap:
+    """Unit tests for _design_full_overlap and full-overlap branch of design_single_sdm."""
+
+    # Synthetic template: 100 bp with a clearly addressable codon at position 30
+    SEQ = "ATGATGATGATGATGATGATGATGATGATG" + "GCAGCAGCA" + "CGTCGTCGTCGTCGTCGTCGTCGTCGTCGT"
+    # codon_start=30, WT codon = "GCA" (Ala), mutant codon = "GCG" (also Ala, silent)
+    CODON_START = 30
+    MUTANT_CODON = "GCG"
+
+    def test_normal_case_tm60(self):
+        """Returns a valid (fwd, rev, tm_fwd, tm_rev, left_ext) tuple within ±2°C of 60."""
+        result = _design_full_overlap(
+            seq=self.SEQ,
+            codon_start=self.CODON_START,
+            mutant_codon=self.MUTANT_CODON,
+            target_tm=60.0,
+            tolerance=4.0,
+            fwd_len_min=17,
+            fwd_len_max=39,
+            rev_len_min=17,
+            rev_len_max=39,
+        )
+        assert result is not None, "Expected a valid primer pair for Tm=60, tol=4"
+        fwd, rev, tm_fwd, tm_rev, left_ext = result
+        assert len(fwd) >= 17
+        assert len(fwd) <= 39
+        assert len(fwd) == len(rev), "Full overlap: fwd and rev must be same length (rev = rc(fwd))"
+        assert tm_fwd == tm_rev, "Full overlap: fwd Tm and rev Tm are always equal (rc symmetry)"
+        assert self.MUTANT_CODON in fwd, "Mutant codon must appear in forward primer"
+        from kuma_core.kuro.overlap import reverse_complement
+        assert rev == reverse_complement(fwd), "Reverse primer must be rc of forward primer"
+
+    def test_tm_match_failure(self):
+        """Returns None when tolerance is too tight and no valid primer exists."""
+        result = _design_full_overlap(
+            seq=self.SEQ,
+            codon_start=self.CODON_START,
+            mutant_codon=self.MUTANT_CODON,
+            target_tm=99.0,   # unreachable Tm
+            tolerance=0.1,
+            fwd_len_min=17,
+            fwd_len_max=39,
+        )
+        assert result is None, "Should return None when target Tm is unreachable"
+
+    def test_length_constraint_boundary(self):
+        """Length limits are respected: primer length stays in [L_min, L_max]."""
+        result = _design_full_overlap(
+            seq=self.SEQ,
+            codon_start=self.CODON_START,
+            mutant_codon=self.MUTANT_CODON,
+            target_tm=55.0,
+            tolerance=8.0,   # wide tolerance to maximise coverage
+            fwd_len_min=20,
+            fwd_len_max=25,
+            rev_len_min=20,
+            rev_len_max=25,
+        )
+        assert result is not None, (
+            "_design_full_overlap returned None with target_tm=55 tol=8 and [20,25] bounds; "
+            "sequence may be too short or bounds exclude all valid lengths"
+        )
+        fwd, rev, _tm_fwd, _tm_rev, _left_ext = result
+        assert 20 <= len(fwd) <= 25, f"fwd length {len(fwd)} out of [20, 25]"
+        assert 20 <= len(rev) <= 25, f"rev length {len(rev)} out of [20, 25]"
+
+    def test_design_single_sdm_full_mode(self, template_sequence):
+        """design_single_sdm with overlap_mode='full' returns valid SdmPrimerResult list."""
+        from kuma_core.kuro.polymerase import PolymeraseRegistry
+        registry = PolymeraseRegistry()
+        profile = registry.get("Q5")
+        mut = Mutation(
+            raw="A597V",
+            wt_aa="A",
+            position=597,
+            mt_aa="V",
+            codon_start=TARGET_START + (597 - 1) * 3,
+            wt_codon="GCG",
+            mt_codon="GTG",
+        )
+        results = design_single_sdm(
+            template_sequence, mut, profile,
+            overlap_mode="full",
+            tol_max=5.0,
+        )
+        # Must produce at least one result (wide tolerance)
+        assert len(results) >= 1, "design_single_sdm full mode produced no results"
+        r = results[0]
+        from kuma_core.kuro.overlap import reverse_complement
+        assert r.reverse_seq == reverse_complement(r.forward_seq), (
+            "Full overlap: reverse_seq must be rc(forward_seq)"
+        )
+        assert r.tm_fwd == r.tm_rev, "Full overlap: fwd/rev Tm must be equal"
+
+    @pytest.fixture(scope="class")
+    def partial_results(self, fasta_path, mutations_csv) -> list[SdmPrimerResult]:
+        """Run partial mode as regression baseline."""
+        results, _, _ = design_sdm_primers(
+            fasta_path=fasta_path,
+            target_start=TARGET_START,
+            mutations_csv=mutations_csv,
+            polymerase="Q5",
+            overlap_len=18,
+        )
+        return results
+
+    def test_partial_regression(self, partial_results):
+        """Existing partial overlap results are unaffected (regression guard)."""
+        assert len(partial_results) >= 10, "Partial mode must still succeed on fixture dataset"
+        for r in partial_results:
+            assert r.fwd_len >= 17, f"{r.mutation.raw} fwd_len {r.fwd_len} < 17"
+            assert r.rev_len >= 19, f"{r.mutation.raw} rev_len {r.rev_len} < 19 (partial spec)"

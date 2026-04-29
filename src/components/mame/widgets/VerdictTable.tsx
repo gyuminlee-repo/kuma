@@ -131,6 +131,27 @@ export function VerdictTable() {
         ),
       },
       {
+        id: "reads",
+        header: "Reads",
+        accessorFn: (row) =>
+          row.read_count !== null ? row.read_count : row.file_size_kb,
+        cell: ({ row }) => {
+          const rc = row.original.read_count;
+          if (rc !== null) {
+            return (
+              <span className="font-mono text-xs text-foreground">
+                {rc.toLocaleString()}
+              </span>
+            );
+          }
+          return (
+            <span className="font-mono text-xs text-muted-foreground">
+              {row.original.file_size_kb.toFixed(1)} KB
+            </span>
+          );
+        },
+      },
+      {
         accessorKey: "verdict_notes",
         header: "Notes",
         cell: ({ row }) => {

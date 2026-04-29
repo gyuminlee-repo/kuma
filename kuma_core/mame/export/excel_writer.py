@@ -1,12 +1,13 @@
 """Excel export: per-native-barcode sheets + Final 96-well matrix.
 
-Phase 1 read_count policy
--------------------------
-``BarcodeRecord.read_count`` is None in Phase 1.  The reference-format sheets
-("NGS 결과" and "Final (matrix)") expose ``file_size_kb`` in the reads columns
-with the column header explicitly named ``file_size_kb`` to avoid confusion.
-This will be replaced by actual read counts in the G6/A6 round once the FASTA
-parser exposes per-record counts.
+G6/A6 read_count policy
+------------------------
+``BarcodeRecord.read_count`` is populated by the FASTA parser (``>`` header
+count).  The "NGS 결과" sheet columns are named ``NB0X_reads`` and carry
+read_count when non-None, falling back to file_size_kb as a volume proxy.
+The per-plate ``NB0X`` sheets retain ``file_size_kb`` in their header (Sheet1
+format) for backward compatibility; only the unified "NGS 결과" sheet uses
+the ``reads`` naming.
 """
 
 from __future__ import annotations
@@ -65,11 +66,11 @@ _NGS_RESULT_HEADER = [
     "well",
     "custom_barcode",
     "NB01_detected",
-    "NB01_file_size_kb",
+    "NB01_reads",
     "NB02_detected",
-    "NB02_file_size_kb",
+    "NB02_reads",
     "NB03_detected",
-    "NB03_file_size_kb",
+    "NB03_reads",
 ]
 
 _FINAL_MATRIX_HEADER = [
@@ -251,8 +252,8 @@ def _build_unified_ngs_data(
     Mutant ordering follows the ``replicate_results`` list (which preserves
     expected_mutations.xlsx row order from the pipeline).
 
-    Phase 1 read_count policy: ``file_size_kb`` is used in place of read count.
-    G6/A6 round will substitute actual ``BarcodeRecord.read_count`` values.
+    G6/A6 read_count policy: ``read_count`` is used when non-None; falls back
+    to ``file_size_kb`` as a volume proxy for older or low-depth records.
     """
     rows: list[dict] = []
     for idx, rr in enumerate(replicate_results, start=1):
@@ -286,12 +287,16 @@ def _build_unified_ngs_data(
             vr = rr.plate_verdicts.get(plate)
             if vr is not None:
                 detected = ", ".join(vr.translated.observed_aa_changes) or vr.verdict.value
-                size_val = vr.translated.barcode.file_size_kb
+                bc = vr.translated.barcode
+                # G6/A6: read_count preferred; fall back to file_size_kb proxy.
+                reads_val: int | float | None = (
+                    bc.read_count if bc.read_count is not None else bc.file_size_kb
+                )
             else:
                 detected = ""
-                size_val = None
+                reads_val = None
             row[f"{plate}_detected"] = detected
-            row[f"{plate}_file_size_kb"] = size_val
+            row[f"{plate}_reads"] = reads_val
 
         rows.append(row)
 
@@ -317,11 +322,11 @@ def _write_unified_ngs_sheet(
                 row["well"],
                 row["custom_barcode"],
                 row["NB01_detected"],
-                row["NB01_file_size_kb"],
+                row["NB01_reads"],
                 row["NB02_detected"],
-                row["NB02_file_size_kb"],
+                row["NB02_reads"],
                 row["NB03_detected"],
-                row["NB03_file_size_kb"],
+                row["NB03_reads"],
             ]
         )
 

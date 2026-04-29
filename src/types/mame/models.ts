@@ -14,6 +14,7 @@ export interface VerdictRecord {
   native_barcode: string;
   custom_barcode: string;
   file_size_kb: number;
+  read_count: number | null;
   source_path: string;
   aa_sequence: string;
   observed_nt_changes: string[];

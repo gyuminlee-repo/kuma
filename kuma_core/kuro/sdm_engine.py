@@ -11,6 +11,7 @@ import re
 from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 from pathlib import Path
+from typing import Literal
 
 import primer3
 
@@ -25,6 +26,8 @@ from .overlap import (
 )
 
 logger = logging.getLogger(__name__)
+
+OverlapMode = Literal["partial", "full"]
 
 
 @dataclass
@@ -218,6 +221,80 @@ def _gc_percent(seq: str) -> float:
         return 0.0
     gc = seq.count("G") + seq.count("C") + seq.count("g") + seq.count("c")
     return gc / len(seq) * 100
+
+
+def _design_full_overlap(
+    seq: str,
+    codon_start: int,
+    mutant_codon: str,
+    target_tm: float,
+    tolerance: float,
+    fwd_len_min: int = 17,
+    fwd_len_max: int = 39,
+    rev_len_min: int = 17,
+    rev_len_max: int = 39,
+) -> tuple[str, str, float, float, int] | None:
+    """Full overlap primer design.
+
+    Forward and Reverse cover the SAME region (mutation centered).
+    Returns (forward_primer, reverse_primer, fwd_tm, rev_tm, left_ext) or None.
+
+    Strategy: anchor mutant codon, expand left_ext and right_ext until the
+    primer Tm falls within target_tm ± tolerance. Because rev = rc(fwd),
+    fwd_tm == rev_tm (SantaLucia NN is strand-symmetric), so a single Tm
+    optimises both primers simultaneously.
+
+    Length is unified: L_min = max(fwd_len_min, rev_len_min),
+    L_max = min(fwd_len_max, rev_len_max).  If the caller passes inconsistent
+    rev constraints these are silently tightened to avoid ambiguity.
+    """
+    L_min = max(fwd_len_min, rev_len_min)
+    L_max = min(fwd_len_max, rev_len_max)
+    if L_min > L_max:
+        return None
+
+    codon_end = codon_start + 3
+    seq_len = len(seq)
+    tm_min = target_tm - tolerance
+    tm_max = target_tm + tolerance
+
+    best_primer: str | None = None
+    best_tm: float | None = None
+    best_left_ext: int | None = None
+    best_diff = float("inf")
+
+    # Enumerate (left_ext, right_ext) so that total length L = 3 + left_ext + right_ext
+    # stays in [L_min, L_max].  We use a simple grid: left_ext from 0 to
+    # (L_max - 3), constrained by available upstream/downstream sequence.
+    max_left = min(codon_start, L_max - 3)
+    max_right = min(seq_len - codon_end, L_max - 3)
+
+    for total_ext in range(L_min - 3, L_max - 3 + 1):
+        # Try left-biased then right-biased splits for each total extension
+        for left_ext in range(total_ext + 1):
+            right_ext = total_ext - left_ext
+            if left_ext > max_left or right_ext > max_right:
+                continue
+
+            fwd = seq[codon_start - left_ext : codon_start] + mutant_codon + seq[codon_end : codon_end + right_ext]
+            primer_len = len(fwd)
+            if primer_len < L_min or primer_len > L_max:
+                continue
+
+            tm = _calc_sdm_tm(fwd)
+            if tm_min <= tm <= tm_max:
+                diff = abs(tm - target_tm)
+                if diff < best_diff:
+                    best_diff = diff
+                    best_primer = fwd
+                    best_tm = round(tm, 1)
+                    best_left_ext = left_ext
+
+    if best_primer is None or best_tm is None or best_left_ext is None:
+        return None
+
+    rev_primer = reverse_complement(best_primer)
+    return best_primer, rev_primer, best_tm, best_tm, best_left_ext
 
 
 def _extend_forward(
@@ -688,6 +765,7 @@ def design_single_sdm(
     rev_len_max: int | None = None,
     organism: str = "ecoli",
     tol_max: float = 3.0,
+    overlap_mode: OverlapMode = "partial",
 ) -> list[SdmPrimerResult]:
     """Design SDM primers for a single mutation.
 
@@ -695,6 +773,11 @@ def design_single_sdm(
     to the polymerase profile; fall back to overlap 18, fwd 17-39, rev 19-27.
     Overlap is placed UPSTREAM of the codon. Whole-primer Tm targeting with
     progressive tolerance (±0.5 → ±tol_max). Returns top-N by penalty score.
+
+    overlap_mode:
+      "partial" (default) — standard Gibson-style: overlap upstream + downstream extension.
+      "full"              — NEB Q5 SDM style: forward and reverse cover the same region
+                            (rev = rc(fwd)), mutation centered with symmetric expansion.
     """
     if overlap_len is None:
         overlap_len = profile.overlap_len if profile.overlap_len is not None else 18
@@ -726,13 +809,129 @@ def design_single_sdm(
     tm_target_overlap = profile.opt_tm_overlap if profile.opt_tm_overlap is not None else 42.0
     min_downstream = max(profile.min_3prime_dist, 1)
     tol_step = 0.5
+
+    # ── Full overlap branch (NEB Q5 SDM style) ──────────────────────────────
+    if overlap_mode == "full":
+        # Use fwd Tm target as the single optimisation target (rev = rc(fwd),
+        # so Tm is identical by definition of SantaLucia nearest-neighbour).
+        # Length is unified: L_min/L_max = intersection of fwd and rev limits.
+        tol = tol_step
+        while tol <= tol_max + 1e-9:
+            all_candidates: list[SdmPrimerResult] = []
+            for mut_variant in mutations_to_try:
+                mutated_seq = mutate_sequence(seq, mut_variant)
+                result = _design_full_overlap(
+                    mutated_seq,
+                    mut_variant.codon_start,
+                    mut_variant.mt_codon,
+                    target_tm=tm_target_fwd,
+                    tolerance=round(tol, 1),
+                    fwd_len_min=fwd_len_min,
+                    fwd_len_max=fwd_len_max,
+                    rev_len_min=rev_len_min,
+                    rev_len_max=rev_len_max,
+                )
+                if result is None:
+                    continue
+                fwd_seq, rev_seq, tm_fwd, tm_rev, left_ext_actual = result
+
+                codon_s = mut_variant.codon_start
+                fwd_start_pos = codon_s - left_ext_actual
+                fwd_end_pos = fwd_start_pos + len(fwd_seq)
+
+                ov_window = OverlapWindow(
+                    sequence=fwd_seq,
+                    start=fwd_start_pos,
+                    end=fwd_end_pos,
+                    codon_offset=left_ext_actual,
+                )
+
+                gc_f = _gc_percent(fwd_seq)
+                gc_r = _gc_percent(rev_seq)
+                gc_half_range = (gc_max - gc_min) / 2
+                gc_center = (gc_min + gc_max) / 2
+                gc_penalty = 0.0
+                for gc_val in (gc_f, gc_r):
+                    dev = abs(gc_val - gc_center)
+                    if dev > gc_half_range:
+                        gc_penalty += dev * 0.3
+                    if dev > gc_half_range + 10:
+                        gc_penalty += (dev - gc_half_range - 10) * 1.0
+
+                codon_changes = sum(
+                    a != b for a, b in zip(mut_variant.wt_codon, mut_variant.mt_codon)
+                )
+                codon_penalty = (codon_changes - 1) * 2.0
+
+                penalty = abs(tm_fwd - tm_target_fwd) + gc_penalty + codon_penalty
+
+                warnings: list[str] = []
+                if len(fwd_seq) > 60:
+                    warnings.append(f"Forward primer too long: {len(fwd_seq)} bp")
+                gc_warn_min = gc_min - 5
+                gc_warn_max = gc_max + 5
+                if gc_f < gc_warn_min or gc_f > gc_warn_max:
+                    warnings.append(f"Fwd GC% out of range: {gc_f:.1f}%")
+                if gc_r < gc_warn_min or gc_r > gc_warn_max:
+                    warnings.append(f"Rev GC% out of range: {gc_r:.1f}%")
+
+                sdm_result = SdmPrimerResult(
+                    mutation=mut_variant,
+                    forward_seq=fwd_seq,
+                    reverse_seq=rev_seq,
+                    forward_binding=fwd_seq,  # entire primer binds
+                    reverse_binding=rev_seq,  # entire primer binds
+                    overlap_window=ov_window,
+                    tm_fwd=tm_fwd,
+                    tm_rev=tm_rev,
+                    # tm_overlap == tm_fwd: entire primer is the overlap region.
+                    # TODO: UI shows tm_overlap as "Overlap Tm" which may confuse
+                    # users in full mode. Consider separate display label in a future UI pass.
+                    tm_overlap=tm_fwd,
+                    tm_condition_met=True,
+                    tolerance_used=round(tol, 1),
+                    tolerance_fwd=round(tol, 1),
+                    tolerance_rev=round(tol, 1),
+                    penalty=round(penalty, 2),
+                    warnings=warnings,
+                )
+                all_candidates.append(sdm_result)
+
+            if all_candidates:
+                rc_template = reverse_complement(seq.upper())
+                for c in all_candidates:
+                    c.offtarget_fwd = check_offtarget(
+                        c.forward_seq, seq,
+                        c.overlap_window.start, c.overlap_window.end,
+                        antisense_cache=rc_template,
+                    )
+                    c.offtarget_rev = check_offtarget(
+                        c.reverse_seq, seq,
+                        c.overlap_window.start, c.overlap_window.end,
+                        antisense_cache=rc_template,
+                    )
+                    if c.offtarget_fwd or c.offtarget_rev:
+                        c.has_offtarget = True
+                        ot_count = len(c.offtarget_fwd) + len(c.offtarget_rev)
+                        c.penalty = round(c.penalty + ot_count * 5.0, 2)
+                    _check_secondary_structure(c)
+                    _check_synthesis_score(c)
+
+                all_candidates.sort(key=lambda r: r.penalty)
+                return all_candidates[:num_return]
+
+            tol += tol_step
+
+        return []
+
+    # ── Partial overlap branch (original Gibson-style) ───────────────────────
     # adaptive overlap range: shorter allowed when low Tm target
     min_overlap = 8 if tm_target_overlap < 50.0 else 15
     overlap_lengths = list(range(overlap_len, min_overlap - 1, -1))
 
     tol = tol_step
     while tol <= tol_max + 1e-9:
-        all_candidates: list[SdmPrimerResult] = []
+        all_candidates = []
         for mut_variant in mutations_to_try:
             mutated_seq = mutate_sequence(seq, mut_variant)
             for ov_len in overlap_lengths:
@@ -1111,6 +1310,7 @@ def design_sdm_primers(
     on_progress: "Callable[[int, int, str], None] | None" = None,
     cancel_check: "Callable[[], bool] | None" = None,
     organism: str = "ecoli",
+    overlap_mode: OverlapMode = "partial",
 ) -> tuple[list[SdmPrimerResult], dict[str, list[SdmPrimerResult]], dict[str, str]]:
     """Design SDM primers for a batch of mutations.
 
@@ -1185,7 +1385,7 @@ def design_sdm_primers(
         if on_progress:
             on_progress(i, total_muts, mut.raw)
         logger.info("Designing primers for %s ...", mut.raw)
-        candidates = design_single_sdm(sequence, mut, profile, overlap_len, codon_strategy=codon_strategy, gc_min=gc_min, gc_max=gc_max, fwd_len_min=fwd_len_min, fwd_len_max=fwd_len_max, rev_len_min=rev_len_min, rev_len_max=rev_len_max, organism=organism)
+        candidates = design_single_sdm(sequence, mut, profile, overlap_len, codon_strategy=codon_strategy, gc_min=gc_min, gc_max=gc_max, fwd_len_min=fwd_len_min, fwd_len_max=fwd_len_max, rev_len_min=rev_len_min, rev_len_max=rev_len_max, organism=organism, overlap_mode=overlap_mode)
         if not candidates:
             failed_reasons[mut.raw] = "No valid primer pair found within Tm tolerance ±3.0°C"
             logger.warning("FAILED: %s - no valid primer pair found", mut.raw)

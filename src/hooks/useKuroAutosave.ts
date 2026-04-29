@@ -64,6 +64,7 @@ function kuroAutosaveSelector(s: AppState): readonly unknown[] {
     s.revLenMin,
     s.revLenMax,
     s.fillOnFailure,
+    s.overlapMode,
   ] as const;
 }
 

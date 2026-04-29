@@ -4,6 +4,7 @@ import type { SortingState } from "@tanstack/react-table";
 
 export type MutationInputMode = "text" | "evolvepro" | "multi-evolve";
 export type CodonStrategy = "closest" | "optimal";
+export type OverlapMode = "partial" | "full";
 
 export interface PolymeraseInfo {
   name: string;
@@ -359,6 +360,7 @@ export interface WorkspaceSettings {
   maxPerPosition?: number;
   evolveproRound?: number;
   roundSize?: number;
+  overlapMode?: OverlapMode;
 }
 
 export interface WorkspaceResults {

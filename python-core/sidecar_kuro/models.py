@@ -70,6 +70,9 @@ class DesignSdmPrimersParams(BaseModel):
     rev_len_min: Optional[int] = Field(default=None, ge=10, le=60)
     rev_len_max: Optional[int] = Field(default=None, ge=10, le=100)
 
+    # Overlap mode: "partial" = Gibson-style (default), "full" = NEB Q5 SDM style
+    overlap_mode: Literal["partial", "full"] = "partial"
+
     # Position rescue
     rescue_pool: list[str] = Field(default_factory=list)
     auto_relax: bool = Field(default=True)
@@ -96,6 +99,7 @@ class RetryFailedParams(BaseModel):
     rev_len_max: Optional[int] = Field(default=None, ge=10, le=100)
     tol_max: float = Field(default=3.0, ge=0.5, le=10.0)
     num_return: int = Field(default=10, ge=1, le=960)
+    overlap_mode: Literal["partial", "full"] = "partial"
 
 
 class SwapPrimerParams(BaseModel):
@@ -351,6 +355,7 @@ class WorkspaceSettingsModel(WorkspaceModel):
     autoRedesignOnLoad: Optional[bool] = None
     saveCache: Optional[bool] = None
     organism: Optional[str] = None
+    overlapMode: Optional[Literal["partial", "full"]] = None
     pipelineMode: Optional[bool] = None
     positionDiversityEnabled: Optional[bool] = None
     maxPerPosition: Optional[int] = None
@@ -420,6 +425,7 @@ class WorkspaceV1Data(WorkspaceModel):
     entropyWeightEnabled: Optional[bool] = None
     entropyWeight: Optional[float] = None
     organism: Optional[str] = None
+    overlapMode: Optional[Literal["partial", "full"]] = None
     pipelineMode: Optional[bool] = None
     positionDiversityEnabled: Optional[bool] = None
     maxPerPosition: Optional[int] = None

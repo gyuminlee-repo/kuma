@@ -6,7 +6,7 @@ import type {
 } from "@/types/mame/models";
 
 export function sampleVerdicts(): VerdictRecord[] {
-  const base: Omit<VerdictRecord, "source_path" | "file_size_kb" | "observed_nt_changes">[] = [
+  const base: Omit<VerdictRecord, "source_path" | "file_size_kb" | "read_count" | "observed_nt_changes">[] = [
     { native_barcode: "barcode1", custom_barcode: "1_1", verdict: "PASS", verdict_notes: "", aa_sequence: "MSTTS", observed_aa_changes: ["V5F"], expected_mutations: ["V5F"] },
     { native_barcode: "barcode2", custom_barcode: "1_2", verdict: "PASS", verdict_notes: "", aa_sequence: "MSTTS", observed_aa_changes: ["K53N"], expected_mutations: ["K53N"] },
     { native_barcode: "barcode3", custom_barcode: "1_3", verdict: "WRONG_AA", verdict_notes: "observed V5S, expected V5F", aa_sequence: "MSTSS", observed_aa_changes: ["V5S"], expected_mutations: ["V5F"] },
@@ -20,6 +20,7 @@ export function sampleVerdicts(): VerdictRecord[] {
     ...v,
     source_path: `/mock/NB0${Math.floor(i / 3) + 1}/${v.custom_barcode}.fasta`,
     file_size_kb: 120 + i * 4,
+    read_count: null,
     observed_nt_changes: [],
   }));
 }

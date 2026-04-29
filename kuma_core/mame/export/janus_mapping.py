@@ -8,17 +8,18 @@ Header design follows the 260428 meeting §2.5 decision:
 - ``dest_well``:    destination well in the final 96-well plate.
                     Auto-filled from the custom_barcode position.
                     Users can overwrite in the saved CSV/XLSX.
-- ``priority_score``: ``file_size_kb`` in Phase 1.
-                      G6/A6 round will replace with actual read_count.
+- ``priority_score``: ``read_count`` when available (G6/A6+); otherwise
+                      ``file_size_kb`` as a volume proxy (Phase 1 fallback).
 
 Sorted by ``priority_score`` DESC (highest-volume clones first), per §2.5
 recommended placement order.
 
-Phase 1 read_count policy
+read_count policy (G6/A6)
 --------------------------
-``BarcodeRecord.read_count`` is None in Phase 1.  ``file_size_kb`` is used
-as a volume proxy.  Column is named ``priority_score`` to remain meaningful
-regardless of the underlying metric.
+``BarcodeRecord.read_count`` is populated by the FASTA parser (header count).
+``priority_score`` uses read_count when non-None; falls back to file_size_kb.
+Column name ``priority_score`` is kept for downstream consumers regardless of
+which underlying metric is used.
 """
 
 from __future__ import annotations
@@ -87,8 +88,9 @@ def _build_janus_rows(
             well_label = seq_to_well(seq)
 
         source_plate = _PLATE_LABEL.get(rr.selected_plate, rr.selected_plate)
-        # Phase 1: file_size_kb as priority proxy.
-        priority_score = round(bc.file_size_kb, 3)
+        # G6/A6: read_count preferred; fall back to file_size_kb proxy.
+        rc = bc.read_count
+        priority_score: float = float(rc) if rc is not None else round(bc.file_size_kb, 3)
 
         rows.append(
             {

@@ -40,8 +40,23 @@ def _nb_order_key(nb_label: str) -> int:
     return int(digits) if digits else 0
 
 
+def _volume_key(vr: VerdictRecord) -> float:
+    """Return the volume metric for a VerdictRecord.
+
+    Priority: read_count (when available) → file_size_kb fallback.
+    Both are converted to float so the comparison key is uniform.
+    """
+    rc = vr.translated.barcode.read_count
+    if rc is not None:
+        return float(rc)
+    return vr.translated.barcode.file_size_kb
+
+
 def _highest_volume_plate(verdicts: dict[str, VerdictRecord]) -> str | None:
-    """Return the plate key with the largest file_size_kb among fallback-eligible verdicts."""
+    """Return the plate key with the highest volume among fallback-eligible verdicts.
+
+    Volume metric: read_count (preferred) → file_size_kb (fallback proxy).
+    """
     eligible = {
         plate: vr
         for plate, vr in verdicts.items()
@@ -49,7 +64,7 @@ def _highest_volume_plate(verdicts: dict[str, VerdictRecord]) -> str | None:
     }
     if not eligible:
         return None
-    return max(eligible, key=lambda plate: eligible[plate].translated.barcode.file_size_kb)
+    return max(eligible, key=lambda plate: _volume_key(eligible[plate]))
 
 
 def pick_best_replicate(
@@ -93,10 +108,15 @@ def pick_best_replicate(
     fallback_plate = _highest_volume_plate(verdicts)
     if fallback_plate is not None:
         unpickable_classes = sorted({vr.verdict.value for vr in verdicts.values()})
-        fb_kb = verdicts[fallback_plate].translated.barcode.file_size_kb
+        fb_bc = verdicts[fallback_plate].translated.barcode
+        fb_rc = fb_bc.read_count
+        if fb_rc is not None:
+            volume_str = f"{fb_rc:,} reads"
+        else:
+            volume_str = f"{fb_bc.file_size_kb:.1f} KB"
         reason = (
             f"All plates below pickable threshold (only {unpickable_classes}). "
-            f"Highest-volume {fallback_plate} ({fb_kb:.1f} KB) used as fallback."
+            f"Highest-volume {fallback_plate} ({volume_str}) used as fallback."
         )
         return ReplicateResult(
             mutant_id=mutant_id,

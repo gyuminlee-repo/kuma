@@ -27,6 +27,7 @@ def _serialize_verdict(vr: Any) -> dict:
         "native_barcode": b.native_barcode,
         "custom_barcode": b.custom_barcode,
         "file_size_kb": b.file_size_kb,
+        "read_count": b.read_count,  # None in Phase 1 / file-size proxy builds
         "source_path": str(b.source_path),
         "aa_sequence": t.aa_sequence,
         "observed_nt_changes": list(t.observed_nt_changes),

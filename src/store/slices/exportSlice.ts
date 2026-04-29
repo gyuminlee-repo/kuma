@@ -68,6 +68,7 @@ function normalizeWorkspace(ws: WorkspaceData): WorkspaceV2 {
       pipelineMode: legacy.pipelineMode,
       positionDiversityEnabled: legacy.positionDiversityEnabled,
       maxPerPosition: legacy.maxPerPosition,
+      overlapMode: undefined,
     },
     results: {
       designResults: legacy.designResults,
@@ -427,6 +428,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
         maxPerPosition: s.maxPerPosition,
         evolveproRound: s.evolveproRound,
         roundSize: s.roundSize,
+        overlapMode: s.overlapMode,
       },
       results: {
         designResults: s.designResults,
@@ -537,6 +539,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       maxPerPosition: settings.maxPerPosition ?? 1,
       evolveproRound: settings.evolveproRound ?? 1,
       roundSize: settings.roundSize ?? 96,
+      overlapMode: settings.overlapMode ?? "partial",
       evolveproTotalCount: cache?.evolveproTotalCount ?? 0,
       evolveproFilteredCount: cache?.evolveproFilteredCount ?? null,
       evolveproParetoExchanges: cache?.evolveproParetoExchanges ?? null,
@@ -618,6 +621,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       revLenMin: 19,
       revLenMax: 27,
       fillOnFailure: true,
+      overlapMode: "partial",
       manuallySwapped: {},
       customCandidates: {},
       alternativesCache: {},

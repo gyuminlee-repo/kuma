@@ -20,6 +20,7 @@ import type {
   FailedMutation,
   LinkerHandling,
   MutationInputMode,
+  OverlapMode,
   ParsedMutation,
   ParseError,
   PlateMapping,
@@ -171,6 +172,7 @@ export interface DesignSlice {
   revLenMin: number;
   revLenMax: number;
   fillOnFailure: boolean;
+  overlapMode: OverlapMode;
   manuallySwapped: Record<string, "fwd" | "rev" | "both">;
   customCandidates: Record<string, SdmPrimerResult[]>;
   alternativesCache: Record<string, SdmPrimerResult[]>;
@@ -202,6 +204,7 @@ export interface DesignSlice {
   setPrimerLenEnabled: (enabled: boolean) => void;
   setPrimerLenRange: (fwdMin: number, fwdMax: number, revMin: number, revMax: number) => void;
   setFillOnFailure: (enabled: boolean) => void;
+  setOverlapMode: (mode: OverlapMode) => void;
 }
 
 // ---------------------------------------------------------------------------

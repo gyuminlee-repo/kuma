@@ -31,9 +31,11 @@ def parse_fasta_file(path: Path, native_barcode: str) -> BarcodeRecord:
 
     header: str | None = None
     seq_parts: list[str] = []
+    header_count: int = 0
     for ln in lines:
         if ln.startswith(">"):
             header = ln[1:].strip()
+            header_count += 1
         elif ln:
             seq_parts.append(ln.strip())
     if header is None:
@@ -43,6 +45,7 @@ def parse_fasta_file(path: Path, native_barcode: str) -> BarcodeRecord:
     consensus_seq = "".join(seq_parts).upper()
     size_bytes = path.stat().st_size
     file_size_kb = size_bytes / 1024.0
+    read_count: int | None = header_count if header_count > 0 else None
 
     return BarcodeRecord(
         native_barcode=native_barcode,
@@ -50,6 +53,7 @@ def parse_fasta_file(path: Path, native_barcode: str) -> BarcodeRecord:
         consensus_seq=consensus_seq,
         file_size_kb=file_size_kb,
         source_path=path,
+        read_count=read_count,
     )
 
 

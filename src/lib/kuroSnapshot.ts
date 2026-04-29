@@ -25,6 +25,7 @@ export interface KuroSnapshotState
     | "tmFwdTarget" | "tmRevTarget" | "tmOverlapTarget"
     | "gcMin" | "gcMax" | "primerLenEnabled"
     | "fwdLenMin" | "fwdLenMax" | "revLenMin" | "revLenMax" | "fillOnFailure"
+    | "overlapMode"
   > {}
 
 /** store 상태에서 직렬화 가능한 kuro 자동 저장 스냅샷을 만든다. */
@@ -57,6 +58,7 @@ export function buildKuroSnapshot(state: KuroSnapshotState): AutosaveSnapshot {
       rev_len_min: state.revLenMin,
       rev_len_max: state.revLenMax,
       fill_on_failure: state.fillOnFailure,
+      overlap_mode: state.overlapMode,
     },
     diversity: {
       pipeline_mode: state.pipelineMode,

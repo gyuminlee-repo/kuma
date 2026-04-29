@@ -1,6 +1,7 @@
 import type {
   DesignResult,
   FailedMutation,
+  OverlapMode,
   PlateMapping,
   RescueStats,
   RescuedMutation,
@@ -39,6 +40,7 @@ interface DesignRequestPayload extends Record<string, unknown> {
   fwd_len_max?: number;
   rev_len_min?: number;
   rev_len_max?: number;
+  overlap_mode: OverlapMode;
   rescue_pool?: string[];
   auto_relax: true;
 }
@@ -112,6 +114,7 @@ export function buildDesignRequestPayload(params: {
   fwdLenMax: number;
   revLenMin: number;
   revLenMax: number;
+  overlapMode: OverlapMode;
   rescuePool: string[];
 }): DesignRequestPayload {
   const {
@@ -131,6 +134,7 @@ export function buildDesignRequestPayload(params: {
     fwdLenMax,
     revLenMin,
     revLenMax,
+    overlapMode,
     rescuePool,
   } = params;
 
@@ -152,6 +156,7 @@ export function buildDesignRequestPayload(params: {
       rev_len_min: revLenMin,
       rev_len_max: revLenMax,
     }),
+    overlap_mode: overlapMode,
     ...(rescuePool.length > 0 && { rescue_pool: rescuePool }),
     auto_relax: true,
   };

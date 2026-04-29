@@ -45,6 +45,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
   revLenMin: 19,
   revLenMax: 27,
   fillOnFailure: true,
+  overlapMode: "partial",
   manuallySwapped: {},
   customCandidates: {},
   alternativesCache: {},
@@ -114,6 +115,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       revLenMin,
       revLenMax,
       fillOnFailure,
+      overlapMode,
       mutationInputMode,
       selectedPolymerase,
     } = state;
@@ -194,6 +196,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         fwdLenMax,
         revLenMin,
         revLenMax,
+        overlapMode,
         rescuePool: prepared.rescuePool,
       });
       const result = await sendRequest("design_sdm_primers", payload, 300_000);
@@ -414,6 +417,8 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
   },
 
   setFillOnFailure: (enabled: boolean) => set({ fillOnFailure: enabled }),
+
+  setOverlapMode: (mode) => set({ overlapMode: mode }),
 
   evaluateCustomPrimer: async (mutation: string, fwdSeq: string, revSeq: string, overlapLen?: number) => {
     try {

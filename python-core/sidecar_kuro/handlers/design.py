@@ -8,6 +8,7 @@ from dataclasses import fields as dc_fields, replace as dc_replace
 from pathlib import Path
 
 from kuma_core.kuro.sdm_engine import (
+    OverlapMode,
     SdmPrimerResult,
     design_single_sdm,
     design_sdm_primers,
@@ -289,6 +290,7 @@ def handle_design_sdm_primers(params: dict) -> dict:
             on_progress=_on_progress,
             cancel_check=cancel_event.is_set,
             organism=p.organism,
+            overlap_mode=p.overlap_mode,
         )
         if cancel_event.is_set():
             return _cancelled_result()
@@ -316,6 +318,7 @@ def handle_design_sdm_primers(params: dict) -> dict:
                 fwd_len_min=p.fwd_len_min, fwd_len_max=p.fwd_len_max,
                 rev_len_min=p.rev_len_min, rev_len_max=p.rev_len_max,
                 organism=p.organism,
+                overlap_mode=p.overlap_mode,
             )
 
             still_failed: dict[str, str] = {}
@@ -452,6 +455,7 @@ def handle_retry_failed(params: dict) -> dict:
         fwd_len_min=p.fwd_len_min, fwd_len_max=p.fwd_len_max,
         rev_len_min=p.rev_len_min, rev_len_max=p.rev_len_max,
         organism=p.organism, tol_max=p.tol_max,
+        overlap_mode=p.overlap_mode,
     )
 
     with _core._state_lock:
