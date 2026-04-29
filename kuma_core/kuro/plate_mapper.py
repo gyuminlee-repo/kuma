@@ -155,12 +155,16 @@ def _write_list_sheet(
     mappings: list[PlateMapping],
     fill_color: str,
     rev_groups: dict[str, list[str]] | None = None,
+    overlap_mode: str = "partial",
 ) -> None:
     """Write a primer list sheet with row coloring."""
     from openpyxl.styles import Font, PatternFill
 
+    # In full-overlap mode the Tm_Overlap column is renamed Tm_Primer (same value as Tm),
+    # keeping column count identical for downstream parser compatibility.
+    tm_overlap_header = "Tm_Primer" if overlap_mode == "full" else "Tm_Overlap"
     headers = ["Well", "Primer Name", "Sequence", "Length",
-               "Tm", "Tm_Overlap", "WT_Codon", "MT_Codon", "Mutation"]
+               "Tm", tm_overlap_header, "WT_Codon", "MT_Codon", "Mutation"]
     for col_idx, h in enumerate(headers, 1):
         cell = ws.cell(row=1, column=col_idx, value=h)
         cell.font = Font(bold=True)
@@ -349,6 +353,7 @@ def export_plate_excel(
     output_path: Path,
     rev_groups: dict[str, list[str]] | None = None,
     results: list | None = None,  # list[SdmPrimerResult] — added in Phase 1
+    overlap_mode: str = "partial",
 ) -> None:
     """Export plate mappings to Excel with per-plate sheets.
 
@@ -364,6 +369,8 @@ def export_plate_excel(
     Args:
         rev_groups: Original reverse deduplication map (seq -> mutation names).
             Used to pair rev with fwd plates and detect shared primers.
+        overlap_mode: "partial" (Gibson-style) or "full" (NEB Q5 SDM style).
+            Controls Tm_Overlap vs Tm_Primer header in list sheets.
     """
     from openpyxl import Workbook
 
@@ -390,13 +397,14 @@ def export_plate_excel(
             first_sheet = False
         else:
             ws = wb.create_sheet(f"Fwd List{tag}")
-        _write_list_sheet(ws, fwd_chunk, _COLOR_FWD)
+        _write_list_sheet(ws, fwd_chunk, _COLOR_FWD, overlap_mode=overlap_mode)
 
         ws = wb.create_sheet(f"Fwd Plate{tag}")
         _write_plate_sheet(ws, fwd_chunk, _COLOR_FWD)
 
         ws = wb.create_sheet(f"Rev List{tag}")
-        _write_list_sheet(ws, rev_chunk, _COLOR_REV, rev_groups=chunk_rev_groups)
+        _write_list_sheet(ws, rev_chunk, _COLOR_REV, rev_groups=chunk_rev_groups,
+                          overlap_mode=overlap_mode)
 
         ws = wb.create_sheet(f"Rev Plate{tag}")
         _write_plate_sheet(ws, rev_chunk, _COLOR_REV, rev_groups=chunk_rev_groups)

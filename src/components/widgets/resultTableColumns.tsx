@@ -65,6 +65,7 @@ export function buildGroupColorMap(results: SdmPrimerResult[]): Map<number, stri
 export function makeResultTableColumns(opts: {
   groupColorMap: Map<number, string>;
   codonStrategy: "closest" | "optimal";
+  overlapMode: "partial" | "full";
   swapped: Record<string, string>;
   customCandidates: Record<string, SdmPrimerResult[]>;
   rescuedMutations: Set<string>;
@@ -75,6 +76,7 @@ export function makeResultTableColumns(opts: {
   const {
     groupColorMap,
     codonStrategy,
+    overlapMode,
     swapped,
     customCandidates,
     rescuedMutations,
@@ -205,7 +207,10 @@ export function makeResultTableColumns(opts: {
     col.accessor("rev_len", { header: "Rev", size: 40 }),
     col.accessor("tm_no_fwd", { header: "Tm F", size: 55, cell: (info) => info.getValue().toFixed(1) }),
     col.accessor("tm_no_rev", { header: "Tm R", size: 55, cell: (info) => info.getValue().toFixed(1) }),
-    col.accessor("tm_overlap", { header: "Tm Ov", size: 55, cell: (info) => info.getValue().toFixed(1) }),
+    // In full-overlap mode (NEB Q5 SDM), tm_overlap == tm_fwd (redundant). Hide the column.
+    ...(overlapMode !== "full"
+      ? [col.accessor("tm_overlap", { header: "Tm Ov", size: 55, cell: (info) => info.getValue().toFixed(1) })]
+      : []),
     col.accessor("tolerance_used", {
       header: "Tol",
       size: 65,

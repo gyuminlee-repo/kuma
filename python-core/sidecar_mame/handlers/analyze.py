@@ -188,7 +188,13 @@ def handle_analyze(params: dict) -> dict:
     _progress(85, "Selecting best replicates...")
     _progress(100, "Writing Excel output...")
 
-    set_last_analyze(verdicts, replicates, str(output))
+    # A11: discover MinKNOW run metadata once at analyze time and cache it.
+    # Imported lazily to avoid cold-start overhead.
+    from kuma_core.mame.ingest.run_meta import discover_run_meta
+
+    run_meta = discover_run_meta(input_dir)
+
+    set_last_analyze(verdicts, replicates, str(output), run_meta=run_meta)
 
     return {
         "verdicts": [_serialize_verdict(v) for v in verdicts],

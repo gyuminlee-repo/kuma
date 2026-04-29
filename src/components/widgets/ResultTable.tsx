@@ -30,6 +30,7 @@ export function ResultTable() {
     sorting,
     setSorting,
     codonStrategy,
+    overlapMode,
     manuallySwapped,
     customCandidatesAll,
     rescuedMutations,
@@ -45,6 +46,7 @@ export function ResultTable() {
       sorting: s.tableSorting,
       setSorting: s.setTableSorting,
       codonStrategy: s.codonStrategy,
+      overlapMode: s.overlapMode,
       manuallySwapped: s.manuallySwapped,
       customCandidatesAll: s.customCandidates,
       rescuedMutations: s.rescuedMutations,
@@ -74,6 +76,7 @@ export function ResultTable() {
       makeResultTableColumns({
         groupColorMap,
         codonStrategy,
+        overlapMode,
         swapped: manuallySwapped,
         customCandidates: customCandidatesAll,
         rescuedMutations: rescuedMutationSet,
@@ -84,6 +87,7 @@ export function ResultTable() {
     [
       groupColorMap,
       codonStrategy,
+      overlapMode,
       manuallySwapped,
       customCandidatesAll,
       rescuedMutationSet,

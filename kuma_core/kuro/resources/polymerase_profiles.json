@@ -163,5 +163,29 @@
     "fwd_len_max": 39,
     "rev_len_min": 19,
     "rev_len_max": 27
+  },
+  "Q5 SDM": {
+    "name": "Q5 SDM",
+    "tm_method": "santalucia",
+    "salt_correction": "owczarzy",
+    "opt_tm": 65.0,
+    "min_tm": 60.0,
+    "max_tm": 72.0,
+    "opt_size": 35,
+    "min_size": 25,
+    "max_size": 45,
+    "min_gc": 40.0,
+    "max_gc": 60.0,
+    "salt_monovalent": 150.0,
+    "salt_divalent": 0.0,
+    "dntp_conc": 0.0,
+    "dna_conc": 2000.0,
+    "max_tm_diff": 5.0,
+    "overlap_len": null,
+    "fwd_len_min": 25,
+    "fwd_len_max": 45,
+    "rev_len_min": 25,
+    "rev_len_max": 45,
+    "default_overlap_mode": "full"
   }
 }

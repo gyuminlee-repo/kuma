@@ -78,6 +78,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         tmOverlapTarget: profile.opt_tm_overlap ?? profile.opt_tm,
         gcMin: profile.min_gc,
         gcMax: profile.max_gc,
+        overlapMode: profile.default_overlap_mode ?? "partial",
       });
     } catch (err) {
       set({ statusMessage: `Polymerase load failed: ${formatError(err)}` });

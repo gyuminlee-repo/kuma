@@ -10,6 +10,7 @@ import logging
 import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import Literal
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +46,7 @@ class PolymeraseProfile:
     fwd_len_max: int | None = None       # Forward primer total length max
     rev_len_min: int | None = None       # Reverse primer total length min
     rev_len_max: int | None = None       # Reverse primer total length max
+    default_overlap_mode: Literal["partial", "full"] | None = None  # Preset overlap mode hint
 
 
 def _resource_path(relative_path: str) -> Path:
@@ -88,6 +90,7 @@ def _dict_to_profile(data: dict) -> PolymeraseProfile:
         fwd_len_max=int(data["fwd_len_max"]) if data.get("fwd_len_max") is not None else None,
         rev_len_min=int(data["rev_len_min"]) if data.get("rev_len_min") is not None else None,
         rev_len_max=int(data["rev_len_max"]) if data.get("rev_len_max") is not None else None,
+        default_overlap_mode=data.get("default_overlap_mode"),
     )
 
 

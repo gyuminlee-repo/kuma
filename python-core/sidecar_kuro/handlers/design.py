@@ -120,6 +120,7 @@ def _serialize_result(r: SdmPrimerResult, candidate_count: int | None = None) ->
         "synthesis_score_fwd": _rounded_optional(r.synthesis_score_fwd, 1),
         "synthesis_score_rev": _rounded_optional(r.synthesis_score_rev, 1),
         "warnings": warnings,
+        "overlap_mode": r.overlap_mode,
     }
     if candidate_count is not None:
         result["candidate_count"] = candidate_count

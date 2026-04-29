@@ -246,6 +246,7 @@ class SdmPrimerResultModel(WorkspaceModel):
     synthesis_score_fwd: Optional[float] = None
     synthesis_score_rev: Optional[float] = None
     warnings: list[str] = Field(default_factory=list)
+    overlap_mode: Optional[Literal["partial", "full"]] = None
 
 
 class PolymeraseProfileModel(WorkspaceModel):
@@ -274,6 +275,7 @@ class PolymeraseProfileModel(WorkspaceModel):
     fwd_len_max: Optional[int] = None
     rev_len_min: Optional[int] = None
     rev_len_max: Optional[int] = None
+    default_overlap_mode: Optional[Literal["partial", "full"]] = None
 
 
 class AlternativesResultModel(WorkspaceModel):

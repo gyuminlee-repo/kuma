@@ -55,7 +55,7 @@ type OptionalNumericPolymeraseKey =
 
 type RequiredNumericPolymeraseKey = Exclude<
   keyof PolymeraseProfile,
-  "name" | "tm_method" | "salt_correction" | OptionalNumericPolymeraseKey
+  "name" | "tm_method" | "salt_correction" | "default_overlap_mode" | OptionalNumericPolymeraseKey
 >;
 
 type NumericPolymeraseKey =

@@ -196,10 +196,14 @@ def handle_export_excel(params: dict) -> dict:
             rev_groups = _core._state.dedup_info
             results_for_export = list(_core._state.results)
 
+    # Derive overlap_mode from the first result (all results in a run share the same mode).
+    run_overlap_mode = results_for_export[0].overlap_mode if results_for_export else "partial"
+
     export_plate_excel(
         mappings, resolved,
         rev_groups=rev_groups,
         results=results_for_export,
+        overlap_mode=run_overlap_mode,
     )
     if p.project_id or p.report_data or p.benchmark_raw:
         wb = openpyxl.load_workbook(resolved)
@@ -215,6 +219,7 @@ def handle_export_excel(params: dict) -> dict:
         meta.append(["kuma_version", p.kuma_version or KUMA_VERSION])
         meta.append(["kuro_module_version", KURO_MODULE_VERSION])
         meta.append(["exported_at", datetime.now(timezone.utc).isoformat()])
+        meta.append(["overlap_mode", run_overlap_mode])
         wb.save(resolved)
     return FileExportResultModel(filepath=str(resolved)).to_rpc_dict()
 

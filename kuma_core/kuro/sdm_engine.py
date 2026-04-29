@@ -83,6 +83,7 @@ class SdmPrimerResult:
     homodimer_dg_fwd: float = 0.0
     homodimer_dg_rev: float = 0.0
     warnings: list[str] = field(default_factory=list)
+    overlap_mode: OverlapMode = "partial"  # "partial" = Gibson-style, "full" = NEB Q5 SDM style
 
     def __post_init__(self) -> None:
         self.fwd_len = len(self.forward_seq)
@@ -885,8 +886,7 @@ def design_single_sdm(
                     tm_fwd=tm_fwd,
                     tm_rev=tm_rev,
                     # tm_overlap == tm_fwd: entire primer is the overlap region.
-                    # TODO: UI shows tm_overlap as "Overlap Tm" which may confuse
-                    # users in full mode. Consider separate display label in a future UI pass.
+                    # UI hides Tm Ov column in full mode (redundant with Tm F).
                     tm_overlap=tm_fwd,
                     tm_condition_met=True,
                     tolerance_used=round(tol, 1),
@@ -894,6 +894,7 @@ def design_single_sdm(
                     tolerance_rev=round(tol, 1),
                     penalty=round(penalty, 2),
                     warnings=warnings,
+                    overlap_mode="full",
                 )
                 all_candidates.append(sdm_result)
 

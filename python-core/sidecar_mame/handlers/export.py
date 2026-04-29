@@ -7,6 +7,7 @@ dispatcher maps to JSON-RPC error code ``-32002``.
 
 from __future__ import annotations
 
+from kuma_core.shared.version import KUMA_VERSION
 from sidecar_mame.core import (
     _ALLOWED_EXCEL_EXTENSIONS,
     _validate_output_path,
@@ -35,6 +36,9 @@ def _custom_barcode_to_seq(custom: str) -> int | None:
 def handle_export_excel(params: dict) -> dict:
     """Rewrite the Excel workbook from cached analyze artefacts.
 
+    A11: MinKNOW run metadata discovered at analyze time is forwarded to
+    ``write_excel`` so the ``__kuma_meta__`` sheet is populated automatically.
+
     Raises ``RuntimeError`` if no analyze has been run in this session.
     """
     from kuma_core.mame.export import WellMapper, write_excel
@@ -57,9 +61,16 @@ def handle_export_excel(params: dict) -> dict:
         output_path=output,
         mapper=WellMapper(),
         mode=mode_norm,
+        ngs_run_meta=state.last_run_meta,  # type: ignore[arg-type]  — NgsRunMeta | None
+        kuma_version=KUMA_VERSION,
     )
 
-    set_last_analyze(state.last_verdicts, state.last_replicates, str(output))
+    set_last_analyze(
+        state.last_verdicts,
+        state.last_replicates,
+        str(output),
+        run_meta=state.last_run_meta,
+    )
 
     return {"output_path": str(output)}
 
@@ -150,10 +161,22 @@ def handle_export_janus_mapping(params: dict) -> dict:
     if fmt not in ("csv", "xlsx"):
         raise ValueError(f"Invalid format '{fmt}'. Expected 'csv' or 'xlsx'.")
 
+    # G3: pass cached run meta to embed in the Janus output.
+    run_meta = state.last_run_meta  # NgsRunMeta | None
+
     if fmt == "xlsx":
-        export_mame_janus_xlsx(state.last_replicates, output)
+        export_mame_janus_xlsx(
+            state.last_replicates,
+            output,
+            ngs_run_meta=run_meta,  # type: ignore[arg-type]
+            kuma_version=KUMA_VERSION,
+        )
     else:
-        export_mame_janus_csv(state.last_replicates, output)
+        export_mame_janus_csv(
+            state.last_replicates,
+            output,
+            ngs_run_meta=run_meta,  # type: ignore[arg-type]
+        )
 
     return {"output_path": str(output), "format": fmt}
 

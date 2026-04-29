@@ -8,13 +8,24 @@ read_count when non-None, falling back to file_size_kb as a volume proxy.
 The per-plate ``NB0X`` sheets retain ``file_size_kb`` in their header (Sheet1
 format) for backward compatibility; only the unified "NGS 결과" sheet uses
 the ``reads`` naming.
+
+A11 / G3 __kuma_meta__ sheet
+------------------------------
+``write_excel`` appends a ``__kuma_meta__`` sheet with MinKNOW run metadata
+when ``ngs_run_meta`` is supplied.  The sheet contains key/value rows for
+instrument, flow_cell_id, sample_id, kit, started, position,
+basecalling_enabled, and raw_run_dir.  A ``kuma_version`` row is always
+written so consumers can identify the generating software version.
+When ``ngs_run_meta`` is ``None`` a single placeholder row is written to
+keep the sheet structure consistent.
 """
 
 from __future__ import annotations
 
+import datetime
 from collections.abc import Iterable
 from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 import openpyxl
 from openpyxl.styles import Alignment, Font, PatternFill
@@ -22,6 +33,9 @@ from openpyxl.workbook import Workbook
 
 from kuma_core.mame.export.well_mapper import WellMapper, seq_to_well
 from kuma_core.mame.models import ReplicateResult, VerdictClass, VerdictRecord
+
+if TYPE_CHECKING:
+    from kuma_core.mame.ingest.run_meta import NgsRunMeta
 
 # Confirmed color map (040 AC-09).
 VERDICT_FILL: dict[VerdictClass, str] = {
@@ -385,14 +399,80 @@ def _write_final_matrix_sheet(
     ws.freeze_panes = "A2"
 
 
+# ---------------------------------------------------------------------------
+# __kuma_meta__ sheet (A11 / G3).
+# ---------------------------------------------------------------------------
+
+
+def _write_kuma_meta_sheet(
+    wb: Workbook,
+    meta: "NgsRunMeta | None",
+    kuma_version: str,
+) -> None:
+    """Append a ``__kuma_meta__`` sheet to *wb*.
+
+    Row format: col-A = key, col-B = value.
+    When *meta* is ``None``, only the ``kuma_version`` and a ``ngs_run_meta``
+    placeholder row are written so the sheet is always present.
+    """
+    ws = wb.create_sheet("__kuma_meta__")
+    ws.column_dimensions["A"].width = 24
+    ws.column_dimensions["B"].width = 40
+
+    # Header row.
+    ws.append(["key", "value"])
+    for cell in ws[1]:
+        cell.font = Font(bold=True)
+
+    # Always include software version and generation timestamp.
+    ws.append(["kuma_version", kuma_version])
+    ws.append([
+        "generated_at",
+        datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    ])
+
+    if meta is None:
+        ws.append(["ngs_run_meta", "(not found — no MinKNOW run folder detected)"])
+        return
+
+    # MinKNOW run fields.
+    fields: list[tuple[str, object]] = [
+        ("instrument", meta.instrument),
+        ("position", meta.position),
+        ("flow_cell_id", meta.flow_cell_id),
+        ("sample_id", meta.sample_id),
+        ("kit", meta.kit),
+        ("started", meta.started),
+        ("basecalling_enabled", (
+            None if meta.basecalling_enabled is None
+            else ("true" if meta.basecalling_enabled else "false")
+        )),
+        ("raw_run_dir", meta.raw_run_dir),
+    ]
+    for key, value in fields:
+        ws.append([key, "" if value is None else value])
+
+
 def write_excel(
     verdict_records: list[VerdictRecord],
     replicate_results: list[ReplicateResult],
     output_path: Path,
     mapper: WellMapper | None = None,
     mode: Literal["amplicon", "plasmid"] = "amplicon",  # reserved for Phase 2
+    ngs_run_meta: "NgsRunMeta | None" = None,
+    kuma_version: str = "",
 ) -> Path:
-    """Write the combined Excel report to ``output_path``. Returns the path."""
+    """Write the combined Excel report to ``output_path``. Returns the path.
+
+    Parameters
+    ----------
+    ngs_run_meta:
+        MinKNOW run metadata discovered by ``discover_run_meta``.  When
+        ``None`` the ``__kuma_meta__`` sheet is still written with a
+        placeholder row so the sheet always exists (A11).
+    kuma_version:
+        Software version string injected into the ``__kuma_meta__`` sheet.
+    """
 
     del mode  # Phase 1: mode does not alter Excel layout.
     mapper = mapper or WellMapper()
@@ -415,6 +495,9 @@ def write_excel(
     # existing consumers of NB01/NB02/NB03 and "Final" are not disturbed.
     _write_unified_ngs_sheet(wb, replicate_results)
     _write_final_matrix_sheet(wb, replicate_results)
+
+    # A11 / G3: MinKNOW run metadata sheet — always present, content optional.
+    _write_kuma_meta_sheet(wb, ngs_run_meta, kuma_version)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     wb.save(output_path)

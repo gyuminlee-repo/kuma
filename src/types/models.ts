@@ -38,6 +38,7 @@ export interface PolymeraseProfile {
   fwd_len_max?: number | null;
   rev_len_min?: number | null;
   rev_len_max?: number | null;
+  default_overlap_mode?: OverlapMode | null;
 }
 
 export interface GeneInfo {
@@ -147,6 +148,7 @@ export interface SdmPrimerResult {
   synthesis_score_fwd?: number;
   synthesis_score_rev?: number;
   warnings: string[];
+  overlap_mode?: "partial" | "full";
 }
 
 export interface DomainInfo {

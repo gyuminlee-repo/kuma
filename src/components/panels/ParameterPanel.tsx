@@ -65,6 +65,8 @@ export function ParameterPanel() {
   const setOverlapMode = useAppStore((s) => s.setOverlapMode);
   const setStatus = useAppStore((s) => s.setStatus);
 
+  const isFullOverlap = overlapMode === "full";
+
   const tmFwdInput = useLocalNum(tmFwd, 62, (v) => setTmTargets(v, tmRev, tmOv));
   const tmRevInput = useLocalNum(tmRev, 58, (v) => setTmTargets(tmFwd, v, tmOv));
   const tmOvInput = useLocalNum(tmOv, 42, (v) => setTmTargets(tmFwd, tmRev, v));
@@ -179,15 +181,41 @@ export function ParameterPanel() {
             <input type="number" className={numInput} {...tmFwdInput} />
             <span className="text-muted-foreground">°C</span>
           </div>
-          <div className="flex items-center gap-2 text-caption" title="Melting temperature targets. SantaLucia 1998 parameters.">
-            <span className="w-20 text-muted-foreground">Rev:</span>
-            <input type="number" className={numInput} {...tmRevInput} />
-            <span className="text-muted-foreground">°C</span>
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-2 text-caption" title="Melting temperature targets. SantaLucia 1998 parameters.">
+              <span className="w-20 text-muted-foreground">Rev:</span>
+              <input
+                type="number"
+                className={numInput}
+                disabled={isFullOverlap}
+                aria-disabled={isFullOverlap}
+                {...tmRevInput}
+              />
+              <span className="text-muted-foreground">°C</span>
+            </div>
+            {isFullOverlap && (
+              <p className="pl-20 text-caption text-muted-foreground">
+                Full 모드: Fwd Tm 기준으로 자동 결정
+              </p>
+            )}
           </div>
-          <div className="flex items-center gap-2 text-caption" title="Melting temperature targets. SantaLucia 1998 parameters.">
-            <span className="w-20 text-muted-foreground">Overlap:</span>
-            <input type="number" className={numInput} {...tmOvInput} />
-            <span className="text-muted-foreground">°C</span>
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-2 text-caption" title="Melting temperature targets. SantaLucia 1998 parameters.">
+              <span className="w-20 text-muted-foreground">Overlap:</span>
+              <input
+                type="number"
+                className={numInput}
+                disabled={isFullOverlap}
+                aria-disabled={isFullOverlap}
+                {...tmOvInput}
+              />
+              <span className="text-muted-foreground">°C</span>
+            </div>
+            {isFullOverlap && (
+              <p className="pl-20 text-caption text-muted-foreground">
+                Full 모드: Fwd Tm 기준으로 자동 결정
+              </p>
+            )}
           </div>
 
           {/* GC */}
@@ -288,14 +316,14 @@ export function ParameterPanel() {
               <option value="full">Full</option>
             </select>
           </label>
-          {overlapMode === "full" && (
-            <p
-              id="overlap-mode-hint"
-              className="text-caption text-muted-foreground pl-1"
-            >
-              Forward and reverse cover the same region (NEB Q5 style)
-            </p>
-          )}
+          <p
+            id="overlap-mode-hint"
+            className="text-caption text-muted-foreground pl-1"
+          >
+            {isFullOverlap
+              ? "Forward primer Tm 하나를 기준으로 reverse가 완전 상보 서열로 결정 (NEB Q5 style)"
+              : "Forward / reverse / overlap Tm을 각각 맞추는 일반 모드"}
+          </p>
         </div>
       )}
 
