@@ -2,7 +2,7 @@ import type { StateCreator } from "zustand";
 import { cancelAndRespawn, sendRequest } from "@/lib/ipc-mame";
 import { formatError } from "@/lib/utils";
 import { loadWorkspaceFromFile, saveWorkspaceToFile } from "@/lib/mame/workspace";
-import type { AnalyzeResult, ValidationResult } from "@/types/mame/models";
+import type { AnalyzeResult, DistributionStats, ValidationResult } from "@/types/mame/models";
 import type { KumaProject } from "@/state/projectContext";
 import type { InputSlice } from "../slice-interfaces";
 import type { AppState } from "../types";
@@ -23,6 +23,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   isAnalyzing: false,
   analyzeProgress: 0,
   analyzeMessage: "Waiting for sidecar connection",
+  distributionStats: null,
   setInputDir: (inputDir) => set({ inputDir }),
   setExpectedPath: (expectedPath) => set({ expectedPath }),
   setReferencePath: (referencePath) => set({ referencePath }),
@@ -40,6 +41,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   setIsAnalyzing: (isAnalyzing) => set({ isAnalyzing }),
   setAnalyzeProgress: (analyzeProgress) => set({ analyzeProgress }),
   setAnalyzeMessage: (analyzeMessage) => set({ analyzeMessage }),
+  setDistributionStats: (distributionStats: DistributionStats | null) =>
+    set({ distributionStats }),
   validateInputs: async () => {
     set({ isValidating: true, validationErrors: [] });
     try {
@@ -91,6 +94,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       get().setReplicates(result.replicates);
       get().setSummary(result.summary);
       get().setOutputPath(result.output_path);
+      get().setDistributionStats(result.distribution_stats ?? null);
       await get().loadPlateData();
       set({
         isAnalyzing: false,

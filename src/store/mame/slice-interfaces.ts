@@ -1,6 +1,7 @@
 import type { SortingState, Updater } from "@tanstack/react-table";
 import type {
   AnalyzeSummary,
+  DistributionStats,
   ReplicateResult,
   VerdictRecord,
   WellEntry,
@@ -23,6 +24,7 @@ export interface InputSlice {
   isAnalyzing: boolean;
   analyzeProgress: number;
   analyzeMessage: string;
+  distributionStats: DistributionStats | null;
   setInputDir: (path: string) => void;
   setExpectedPath: (path: string) => void;
   setReferencePath: (path: string) => void;
@@ -41,6 +43,7 @@ export interface InputSlice {
   setIsAnalyzing: (value: boolean) => void;
   setAnalyzeProgress: (value: number) => void;
   setAnalyzeMessage: (message: string) => void;
+  setDistributionStats: (stats: DistributionStats | null) => void;
   validateInputs: () => Promise<void>;
   runAnalysis: () => Promise<void>;
   cancelAnalysis: () => Promise<void>;

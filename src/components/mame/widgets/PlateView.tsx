@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { AlertTriangle } from "lucide-react";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { VerdictBadge } from "./VerdictBadge";
 import { WellPlate } from "./WellPlate";
@@ -127,6 +128,32 @@ export function PlateView() {
               <DetailRow label="Mutant" value={selectedWell.mutant_id || "—"} />
               <DetailRow label="Notes" value={selectedWell.notes || "—"} />
               </div>
+              {selectedWell.is_fallback && (
+                <div
+                  className="mt-2 flex items-start gap-1.5 rounded-control border border-warning/40 bg-warning/10 px-2.5 py-2"
+                  role="note"
+                  aria-label="Fallback replicate notice"
+                >
+                  <AlertTriangle
+                    size={12}
+                    className="mt-0.5 shrink-0 text-warning"
+                    aria-hidden="true"
+                  />
+                  <div className="space-y-0.5">
+                    <p className="text-caption font-semibold text-warning">
+                      Fallback replicate
+                    </p>
+                    <p className="text-caption text-muted-foreground">
+                      Original cutoff missed all plates.
+                    </p>
+                    {selectedWell.fallback_reason && (
+                      <p className="text-caption text-muted-foreground">
+                        {selectedWell.fallback_reason}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="flex flex-1 flex-col items-center justify-center text-center">

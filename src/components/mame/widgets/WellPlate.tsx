@@ -90,9 +90,14 @@ export function WellPlate({
               const plate = well ? getPlateBadge(well.barcode) : null;
               const fill = well ? verdictFill[well.verdict] : emptyFill;
               const pattern = colorblindMode && well ? cbPatterns[well.verdict] : undefined;
+              const isFallback = well?.is_fallback ?? false;
 
               return (
-                <div key={id} role="gridcell" aria-label={`Well ${id}${well ? `: ${well.verdict}` : " empty"}`}>
+                <div
+                  key={id}
+                  role="gridcell"
+                  aria-label={`Well ${id}${well ? `: ${well.verdict}${isFallback ? " (fallback)" : ""}` : " empty"}`}
+                >
                   <button
                     type="button"
                     disabled={!well}
@@ -126,6 +131,29 @@ export function WellPlate({
                         aria-hidden="true"
                       >
                         Pick
+                      </span>
+                    )}
+                    {isFallback && (
+                      <span
+                        className="absolute bottom-1 left-1 flex items-center justify-center rounded-full bg-warning/80 p-0.5"
+                        aria-hidden="true"
+                        title="Fallback replicate"
+                      >
+                        <svg
+                          width="8"
+                          height="8"
+                          viewBox="0 0 16 16"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                          aria-hidden="true"
+                        >
+                          <path
+                            d="M8 2L14.928 14H1.072L8 2Z"
+                            fill="currentColor"
+                            className="text-warning-foreground"
+                          />
+                          <path d="M8 6v4M8 11v1" stroke="hsl(var(--warning-foreground, 0 0% 10%))" strokeWidth="1.5" strokeLinecap="round" />
+                        </svg>
                       </span>
                     )}
                     {plate && (

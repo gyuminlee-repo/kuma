@@ -29,6 +29,28 @@ export interface ReplicateResult {
   selection_reason: string;
   failed: boolean;
   plate_keys: string[];
+  is_fallback: boolean;
+  fallback_reason: string | null;
+}
+
+export interface DistributionFileStats {
+  min: number;
+  p05: number;
+  p25: number;
+  median: number;
+  p75: number;
+  p95: number;
+  max: number;
+  mean: number;
+  std: number;
+}
+
+export interface DistributionStats {
+  n_files: number;
+  file_size_kb: DistributionFileStats;
+  suggested_cutoff_kb: number;
+  suggested_method: "median_minus_2sigma" | "p05" | "kneedle" | "fixed_50";
+  bimodal: boolean;
 }
 
 export interface AnalyzeSummary {
@@ -43,6 +65,7 @@ export interface AnalyzeResult {
   replicates: ReplicateResult[];
   output_path: string;
   summary: AnalyzeSummary;
+  distribution_stats: DistributionStats;
 }
 
 export interface WellEntry {
@@ -53,6 +76,8 @@ export interface WellEntry {
   mutant_id: string;
   selected: boolean;
   notes: string;
+  is_fallback: boolean;
+  fallback_reason: string | null;
 }
 
 export interface AnalysisParams {

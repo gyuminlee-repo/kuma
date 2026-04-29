@@ -26,12 +26,12 @@ export function sampleVerdicts(): VerdictRecord[] {
 
 export function sampleReplicates(): ReplicateResult[] {
   return [
-    { mutant_id: "V5F", selected_plate: "barcode1", selection_reason: "only_pass", failed: false, plate_keys: ["barcode1"] },
-    { mutant_id: "K53N", selected_plate: "barcode2", selection_reason: "best_pass", failed: false, plate_keys: ["barcode2"] },
-    { mutant_id: "Q80R", selected_plate: "barcode6", selection_reason: "only_pass", failed: false, plate_keys: ["barcode6"] },
-    { mutant_id: "T10A", selected_plate: null, selection_reason: "all_failed", failed: true, plate_keys: ["barcode4"] },
-    { mutant_id: "L12I", selected_plate: null, selection_reason: "all_failed", failed: true, plate_keys: ["barcode5"] },
-    { mutant_id: "R100K", selected_plate: null, selection_reason: "all_lowdepth", failed: true, plate_keys: ["barcode8"] },
+    { mutant_id: "V5F", selected_plate: "barcode1", selection_reason: "only_pass", failed: false, plate_keys: ["barcode1"], is_fallback: false, fallback_reason: null },
+    { mutant_id: "K53N", selected_plate: "barcode2", selection_reason: "best_pass", failed: false, plate_keys: ["barcode2"], is_fallback: false, fallback_reason: null },
+    { mutant_id: "Q80R", selected_plate: "barcode6", selection_reason: "only_pass", failed: false, plate_keys: ["barcode6"], is_fallback: false, fallback_reason: null },
+    { mutant_id: "T10A", selected_plate: null, selection_reason: "all_failed", failed: true, plate_keys: ["barcode4"], is_fallback: false, fallback_reason: null },
+    { mutant_id: "L12I", selected_plate: null, selection_reason: "all_failed", failed: true, plate_keys: ["barcode5"], is_fallback: false, fallback_reason: null },
+    { mutant_id: "R100K", selected_plate: null, selection_reason: "all_lowdepth", failed: true, plate_keys: ["barcode8"], is_fallback: false, fallback_reason: null },
   ];
 }
 
@@ -54,6 +54,8 @@ export function sampleWells(): WellEntry[] {
         mutant_id: v === "PASS" ? ["V5F", "K53N", "Q80R"][col % 3] : "—",
         selected: rowIdx === 0 && col <= 3,
         notes: v === "WRONG_AA" ? "observed V5S" : "",
+        is_fallback: false,
+        fallback_reason: null,
       });
     }
   }

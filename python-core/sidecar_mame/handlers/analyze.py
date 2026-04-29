@@ -7,7 +7,6 @@ multi-minute analyze is kicked off.
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any
 
 from sidecar_mame.core import (
@@ -45,6 +44,8 @@ def _serialize_replicate(rr: Any) -> dict:
         "selection_reason": rr.selection_reason,
         "failed": bool(rr.failed),
         "plate_keys": list(rr.plate_verdicts.keys()),
+        "is_fallback": bool(getattr(rr, "is_fallback", False)),
+        "fallback_reason": getattr(rr, "fallback_reason", None),
     }
 
 
@@ -132,7 +133,8 @@ def handle_analyze(params: dict) -> dict:
     """Run the full pipeline and cache the resulting artefacts for downstream RPCs."""
     # Lazy import: keeps the sidecar cold-start < 200 ms and lets the module
     # import during unit tests that stub mame.
-    from kuma_core.mame.ingest import IngestMode
+    from kuma_core.mame.distribution import compute_distribution_stats
+    from kuma_core.mame.ingest import IngestMode, route_ingest
     from kuma_core.mame.pipeline import run_analyze
 
     _progress(5, "Validating inputs...")
@@ -156,6 +158,16 @@ def handle_analyze(params: dict) -> dict:
     many_cutoff = int(params.get("many_cutoff", 5))
 
     _progress(10, "Ingesting FASTA files...")
+
+    # ── Distribution analysis (A4) ───────────────────────────────────────
+    # Compute before the main pipeline so the frontend gets stats even if
+    # the pipeline raises later.
+    ingest_mode_enum = IngestMode(ingest_mode_raw)
+    raw_records = route_ingest(input_dir, ingest_mode_enum)
+    dist_stats = compute_distribution_stats(
+        [rec.file_size_kb for rec in raw_records]
+    )
+
     _progress(30, "Translating sequences...")
     _progress(60, "Classifying verdicts...")
 
@@ -169,7 +181,7 @@ def handle_analyze(params: dict) -> dict:
         mode=mode,
         min_file_size_kb=min_file_size_kb,
         many_cutoff=many_cutoff,
-        ingest_mode=IngestMode(ingest_mode_raw),
+        ingest_mode=ingest_mode_enum,
     )
 
     _progress(85, "Selecting best replicates...")
@@ -182,6 +194,13 @@ def handle_analyze(params: dict) -> dict:
         "replicates": [_serialize_replicate(r) for r in replicates],
         "output_path": str(output),
         "summary": _summarize(verdicts),
+        "distribution_stats": {
+            "n_files": dist_stats.n_files,
+            "file_size_kb": dist_stats.file_size_kb,
+            "suggested_cutoff_kb": dist_stats.suggested_cutoff_kb,
+            "suggested_method": dist_stats.suggested_method,
+            "bimodal": dist_stats.bimodal,
+        },
     }
 
 
@@ -191,5 +210,3 @@ __all__ = [
     "_serialize_verdict",
     "_serialize_replicate",
 ]
-# Re-export so export.py can reuse the path type.
-_PathT = Path

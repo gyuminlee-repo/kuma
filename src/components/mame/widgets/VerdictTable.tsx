@@ -6,7 +6,7 @@ import {
   useReactTable,
   type ColumnDef,
 } from "@tanstack/react-table";
-import { Search } from "lucide-react";
+import { AlertTriangle, Search } from "lucide-react";
 import { useMemo } from "react";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import type { VerdictRecord } from "@/types/mame/models";
@@ -17,7 +17,11 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { StateView } from "@/components/ui/StateView";
 
-type VerdictRow = VerdictRecord & { mutant_id: string };
+type VerdictRow = VerdictRecord & {
+  mutant_id: string;
+  is_fallback: boolean;
+  fallback_reason: string | null;
+};
 
 function extractNbGroup(record: VerdictRecord): "NB01" | "NB02" | "NB03" | "UNKNOWN" {
   const match = record.source_path.match(/NB0(\d)/i);
@@ -50,17 +54,28 @@ export function VerdictTable() {
 
   const rows = useMemo<VerdictRow[]>(() => {
     const mutantMap = new Map<string, string>();
+    const fallbackMap = new Map<string, { is_fallback: boolean; fallback_reason: string | null }>();
     for (const replicate of replicates) {
       if (replicate.selected_plate) {
         mutantMap.set(replicate.selected_plate, replicate.mutant_id);
+        fallbackMap.set(replicate.mutant_id, {
+          is_fallback: replicate.is_fallback,
+          fallback_reason: replicate.fallback_reason,
+        });
       }
     }
     return verdicts
       .filter((record) => plateFilter === "ALL" || extractNbGroup(record) === plateFilter)
-      .map((record) => ({
-        ...record,
-        mutant_id: mutantMap.get(record.native_barcode) ?? "—",
-      }));
+      .map((record) => {
+        const mid = mutantMap.get(record.native_barcode) ?? "—";
+        const fb = fallbackMap.get(mid);
+        return {
+          ...record,
+          mutant_id: mid,
+          is_fallback: fb?.is_fallback ?? false,
+          fallback_reason: fb?.fallback_reason ?? null,
+        };
+      });
   }, [plateFilter, replicates, verdicts]);
 
   const filteredRows = useMemo(() => {
@@ -86,8 +101,20 @@ export function VerdictTable() {
       {
         accessorKey: "mutant_id",
         header: "Mutant ID",
-        cell: ({ getValue }) => (
-          <span className="text-xs font-medium">{getValue<string>()}</span>
+        cell: ({ row }) => (
+          <span className="flex items-center gap-1">
+            {row.original.is_fallback && (
+              <span
+                className="inline-flex cursor-help items-center text-warning"
+                aria-label={row.original.fallback_reason ?? "Fallback replicate"}
+                title={row.original.fallback_reason ?? "Fallback replicate"}
+                role="img"
+              >
+                <AlertTriangle size={11} aria-hidden="true" />
+              </span>
+            )}
+            <span className="text-xs font-medium">{row.original.mutant_id}</span>
+          </span>
         ),
       },
       {
@@ -106,9 +133,23 @@ export function VerdictTable() {
       {
         accessorKey: "verdict_notes",
         header: "Notes",
-        cell: ({ getValue }) => (
-          <span className="text-xs text-muted-foreground">{getValue<string>() || "—"}</span>
-        ),
+        cell: ({ row }) => {
+          const notes = row.original.verdict_notes;
+          const fbReason = row.original.is_fallback ? row.original.fallback_reason : null;
+          return (
+            <span className="flex flex-col gap-0.5">
+              {notes && (
+                <span className="text-xs text-muted-foreground">{notes}</span>
+              )}
+              {fbReason && (
+                <span className="text-xs text-warning">{fbReason}</span>
+              )}
+              {!notes && !fbReason && (
+                <span className="text-xs text-muted-foreground">—</span>
+              )}
+            </span>
+          );
+        },
       },
     ],
     [],
@@ -200,6 +241,7 @@ export function VerdictTable() {
                   className={cn(
                     "border-b border-border/50 transition-colors hover:bg-muted/30",
                     getVerdictRowTone(row.original.verdict),
+                    row.original.is_fallback && "border-l-warning bg-warning/5",
                   )}
                 >
                   {row.getVisibleCells().map((cell) => (

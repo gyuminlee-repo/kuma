@@ -92,3 +92,5 @@ class ReplicateResult:
     selected_plate: str | None = None
     selection_reason: str = ""
     failed: bool = False
+    is_fallback: bool = False
+    fallback_reason: str | None = None

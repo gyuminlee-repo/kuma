@@ -76,12 +76,18 @@ def handle_get_plate_data(_params: dict) -> dict:
 
     # Map native_barcode -> selected custom_barcode (Final sheet accent wells).
     selected_by_plate: dict[str, str | None] = {}
+    # Map native_barcode -> (is_fallback, fallback_reason) for selected plates.
+    fallback_by_native: dict[str, tuple[bool, str | None]] = {}
     for rr in state.last_replicates or []:
         if rr.selected_plate and not rr.failed:
             vr = rr.plate_verdicts.get(rr.selected_plate)
             if vr is not None:
                 selected_by_plate[rr.selected_plate] = (
                     vr.translated.barcode.custom_barcode
+                )
+                fallback_by_native[rr.selected_plate] = (
+                    bool(getattr(rr, "is_fallback", False)),
+                    getattr(rr, "fallback_reason", None),
                 )
 
     wells: list[dict] = []
@@ -94,6 +100,9 @@ def handle_get_plate_data(_params: dict) -> dict:
         is_selected = (
             selected_by_plate.get(b.native_barcode) == b.custom_barcode
         )
+        fb_info = fallback_by_native.get(b.native_barcode, (False, None))
+        is_fallback = fb_info[0] if is_selected else False
+        fallback_reason = fb_info[1] if is_selected else None
         mutant_id = next(iter(vr.expected_mutations), "") if vr.expected_mutations else ""
         wells.append(
             {
@@ -104,6 +113,8 @@ def handle_get_plate_data(_params: dict) -> dict:
                 "mutant_id": mutant_id,
                 "selected": is_selected,
                 "notes": vr.verdict_notes,
+                "is_fallback": is_fallback,
+                "fallback_reason": fallback_reason,
             }
         )
 

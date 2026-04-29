@@ -2,6 +2,60 @@ import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { AlertTriangle } from "lucide-react";
+import type { DistributionStats } from "@/types/mame/models";
+
+const METHOD_LABELS: Record<DistributionStats["suggested_method"], string> = {
+  median_minus_2sigma: "median − 2σ",
+  p05: "p05",
+  kneedle: "knee",
+  fixed_50: "floor 50",
+};
+
+const BIMODAL_TOOLTIP = "Distribution looks bimodal. Recommended uses knee detection.";
+
+function RecommendedCutoff({
+  stats,
+  onApply,
+}: {
+  stats: DistributionStats;
+  onApply: (value: number) => void;
+}) {
+  const methodLabel = METHOD_LABELS[stats.suggested_method];
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="text-caption text-muted-foreground">
+        Recommended:{" "}
+        <span className="font-medium text-foreground">
+          {stats.suggested_cutoff_kb.toFixed(1)} KB
+        </span>{" "}
+        <span className="text-muted-foreground">({methodLabel})</span>
+      </span>
+      {stats.bimodal && (
+        <span
+          className="inline-flex cursor-help items-center text-warning"
+          aria-label={BIMODAL_TOOLTIP}
+          title={BIMODAL_TOOLTIP}
+          role="img"
+        >
+          <AlertTriangle size={11} aria-hidden="true" />
+        </span>
+      )}
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="h-5 px-1.5 text-caption"
+        onClick={() => onApply(stats.suggested_cutoff_kb)}
+        aria-label={`Apply recommended cutoff of ${stats.suggested_cutoff_kb.toFixed(1)} KB`}
+      >
+        Use
+      </Button>
+    </div>
+  );
+}
 
 export function ParameterPanel() {
   const mode = useMameAppStore((s) => s.mode);
@@ -10,6 +64,7 @@ export function ParameterPanel() {
   const cdsEnd = useMameAppStore((s) => s.cdsEnd);
   const minFileSizeKb = useMameAppStore((s) => s.minFileSizeKb);
   const manyCutoff = useMameAppStore((s) => s.manyCutoff);
+  const distributionStats = useMameAppStore((s) => s.distributionStats);
   const setParams = useMameAppStore((s) => s.setParams);
 
   return (
@@ -70,13 +125,33 @@ export function ParameterPanel() {
           value={cdsEnd}
           onChange={(value) => setParams({ cdsEnd: value })}
         />
-        <NumericField
-          id="min-file-kb"
-          label="Min File KB"
-          value={minFileSizeKb}
-          step="0.1"
-          onChange={(value) => setParams({ minFileSizeKb: value })}
-        />
+
+        <div className="space-y-1 sm:col-span-2">
+          <Label htmlFor="min-file-kb" className="text-caption font-medium uppercase tracking-wide text-muted-foreground">
+            Min File KB
+          </Label>
+          <Input
+            id="min-file-kb"
+            type="number"
+            step="0.1"
+            value={Number.isFinite(minFileSizeKb) ? minFileSizeKb : ""}
+            onChange={(e) => {
+              const raw = e.target.value;
+              if (raw === "") return;
+              const n = Number(raw);
+              if (Number.isFinite(n)) setParams({ minFileSizeKb: n });
+            }}
+            className="h-8 text-xs"
+            aria-label="Min File KB"
+          />
+          {distributionStats !== null && (
+            <RecommendedCutoff
+              stats={distributionStats}
+              onApply={(value) => setParams({ minFileSizeKb: value })}
+            />
+          )}
+        </div>
+
         <NumericField
           id="many-cutoff"
           label="Many Cutoff"
