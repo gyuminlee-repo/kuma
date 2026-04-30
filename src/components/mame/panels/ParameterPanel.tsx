@@ -406,6 +406,7 @@ export function ParameterPanel() {
   const cdsStart = useMameAppStore((s) => s.cdsStart);
   const cdsEnd = useMameAppStore((s) => s.cdsEnd);
   const minFileSizeKb = useMameAppStore((s) => s.minFileSizeKb);
+  const minFilteredDepth = useMameAppStore((s) => s.minFilteredDepth);
   const manyCutoff = useMameAppStore((s) => s.manyCutoff);
   const distributionStats = useMameAppStore((s) => s.distributionStats);
   const setParams = useMameAppStore((s) => s.setParams);
@@ -514,12 +515,42 @@ export function ParameterPanel() {
           onChange={(value) => setParams({ cdsEnd: value })}
         />
 
+        {/* Min filtered depth (reads) — primary depth-based cutoff */}
         <div className="space-y-1 sm:col-span-2">
           <Label
-            htmlFor="min-file-kb"
+            htmlFor="min-filtered-depth"
             className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
           >
-            Min File KB
+            최소 Filtered Depth (reads)
+          </Label>
+          <Input
+            id="min-filtered-depth"
+            type="number"
+            step="1"
+            min={1}
+            value={Number.isFinite(minFilteredDepth) ? minFilteredDepth : ""}
+            onChange={(e) => {
+              const raw = e.target.value;
+              if (raw === "") return;
+              const n = Math.round(Number(raw));
+              if (Number.isFinite(n) && n > 0) setParams({ minFilteredDepth: n });
+            }}
+            className="h-8 text-xs"
+            aria-label="최소 filtered depth (reads). Length-window-filtered read count. ONT R10.4.1 consensus reaches Q35+ around 15× depth."
+            title="Length-window-filtered read count. ONT R10.4.1 consensus reaches Q35+ around 15× depth."
+          />
+          <p className="text-caption text-muted-foreground">
+            Length-window-filtered read count. ONT R10.4.1 consensus: Q35+ ~15×
+          </p>
+        </div>
+
+        {/* Min File KB — legacy proxy cutoff (강등: 보조 표시) */}
+        <div className="space-y-1 sm:col-span-2 rounded-md border border-dashed border-border/60 p-2">
+          <Label
+            htmlFor="min-file-kb"
+            className="text-caption font-medium uppercase tracking-wide text-muted-foreground/60"
+          >
+            Legacy KB Cutoff (proxy)
           </Label>
           <Input
             id="min-file-kb"
@@ -532,8 +563,9 @@ export function ParameterPanel() {
               const n = Number(raw);
               if (Number.isFinite(n)) setParams({ minFileSizeKb: n });
             }}
-            className="h-8 text-xs"
-            aria-label="Min File KB"
+            className="h-7 text-xs opacity-70"
+            aria-label="Legacy min file size KB cutoff (proxy for read depth)"
+            title="파일 크기 기반 proxy cutoff. 압축률·길이분포·라이브러리 변동에 영향받음. 보조 참고용."
           />
           {distributionStats !== null && (
             <RecommendedCutoff

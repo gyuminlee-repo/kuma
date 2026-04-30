@@ -18,6 +18,8 @@ export interface WorkspaceSnapshot {
   cdsStart: number;
   cdsEnd: number;
   minFileSizeKb: number;
+  // R6.6: depth-based cutoff (UI-only; not forwarded to backend). Optional for v1 back-compat.
+  minFilteredDepth?: number;
   manyCutoff: number;
 }
 

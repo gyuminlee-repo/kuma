@@ -328,6 +328,7 @@ def _render_distribution(data: RunReportData) -> str:
     </table>
   </div>
   {bimodal_note}
+  <p class="chart-note">File size is a proxy; primary trust criterion is filtered read depth &ge;&nbsp;15&times;.</p>
 </section>
 """
 

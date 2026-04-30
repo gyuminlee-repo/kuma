@@ -132,21 +132,33 @@ export function VerdictTable() {
       },
       {
         id: "reads",
-        header: "Reads",
-        accessorFn: (row) =>
-          row.read_count !== null ? row.read_count : row.file_size_kb,
+        header: "Depth (reads)",
+        // Sort by read_count primary; fallback rows sort to bottom (0)
+        accessorFn: (row) => row.read_count ?? 0,
         cell: ({ row }) => {
           const rc = row.original.read_count;
+          const kb = row.original.file_size_kb;
           if (rc !== null) {
             return (
-              <span className="font-mono text-xs text-foreground">
-                {rc.toLocaleString()}
+              <span className="flex flex-col gap-0.5">
+                <span className="font-mono text-xs text-foreground">{rc.toLocaleString()}</span>
+                <span
+                  className="font-mono text-caption text-muted-foreground/60"
+                  aria-label={`File size: ${kb.toFixed(1)} KB`}
+                  title={`File size: ${kb.toFixed(1)} KB`}
+                >
+                  {kb.toFixed(1)} KB
+                </span>
               </span>
             );
           }
+          // Legacy: read_count unavailable — show KB as fallback proxy
           return (
-            <span className="font-mono text-xs text-muted-foreground">
-              {row.original.file_size_kb.toFixed(1)} KB
+            <span className="flex flex-col gap-0.5">
+              <span className="font-mono text-xs text-muted-foreground">—</span>
+              <span className="font-mono text-caption text-muted-foreground/60">
+                {kb.toFixed(1)} KB
+              </span>
             </span>
           );
         },

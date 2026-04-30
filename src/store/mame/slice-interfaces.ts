@@ -42,6 +42,7 @@ export interface InputSlice {
   cdsStart: number;
   cdsEnd: number;
   minFileSizeKb: number;
+  minFilteredDepth: number;
   manyCutoff: number;
   validationErrors: string[];
   isValidating: boolean;
@@ -67,6 +68,7 @@ export interface InputSlice {
       cdsStart: number;
       cdsEnd: number;
       minFileSizeKb: number;
+      minFilteredDepth: number;
       manyCutoff: number;
     }>,
   ) => void;
