@@ -24,7 +24,8 @@ from __future__ import annotations
 
 import csv
 import io
-from dataclasses import dataclass
+import statistics
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -35,6 +36,32 @@ if TYPE_CHECKING:
 # ---------------------------------------------------------------------------
 # Data model
 # ---------------------------------------------------------------------------
+
+
+@dataclass
+class CrossTalkCandidate:
+    """A well suspected of barcode cross-talk based on spatial neighbor analysis."""
+
+    well: str
+    """Well label, e.g. "A1", "B6"."""
+
+    custom_barcode: str
+    """Custom barcode label assigned to the well, e.g. "1_1", "1_2"."""
+
+    read_count: int
+    """Observed read count for this well."""
+
+    neighbor_avg: float
+    """Mean read count of orthogonal (up/down/left/right) neighbors."""
+
+    z_score: float
+    """Z-score of read_count vs the entire plate-wide distribution (mean ± std)."""
+
+    severity: str
+    """One of "low", "medium", or "high"."""
+
+    note: str
+    """Human-readable explanation."""
 
 
 @dataclass
@@ -66,6 +93,10 @@ class RunHealthData:
 
     barcode_distribution: dict[str, int] | None = None
     """{"barcode06": 124000, …} from barcode_alignment*.tsv"""
+
+    cross_talk_candidates: list[CrossTalkCandidate] = field(default_factory=list)
+    """Wells flagged as potential cross-talk sources (A9 milestone).
+    Empty list when detection is skipped or no anomalies are found."""
 
 
 # ---------------------------------------------------------------------------
@@ -199,6 +230,136 @@ def _parse_barcode_alignment(run_dir: Path) -> dict[str, int] | None:
 
 
 # ---------------------------------------------------------------------------
+# Cross-talk detection (A9)
+# ---------------------------------------------------------------------------
+
+# 96-well plate: rows A-H (8), columns 1-12 (12)
+_ROWS = "ABCDEFGH"
+_COLS = tuple(range(1, 13))
+
+
+def _well_neighbors(well: str) -> list[str]:
+    """Return up to 4 orthogonal neighbors for an A1..H12 well label.
+
+    Boundary wells have fewer neighbors (e.g. A1 has A2 and B1 only).
+    Returns an empty list for unrecognised well labels.
+    """
+    if len(well) < 2:
+        return []
+    row_char = well[0].upper()
+    try:
+        col = int(well[1:])
+    except ValueError:
+        return []
+    if row_char not in _ROWS or col not in _COLS:
+        return []
+
+    row_idx = _ROWS.index(row_char)
+    neighbors: list[str] = []
+    # Up / Down
+    for dr in (-1, 1):
+        nr = row_idx + dr
+        if 0 <= nr < len(_ROWS):
+            neighbors.append(f"{_ROWS[nr]}{col}")
+    # Left / Right
+    for dc in (-1, 1):
+        nc = col + dc
+        if nc in _COLS:
+            neighbors.append(f"{row_char}{nc}")
+    return neighbors
+
+
+def detect_cross_talk(
+    barcode_distribution: dict[str, int] | None,
+    z_threshold: float = 2.5,
+) -> list[CrossTalkCandidate]:
+    """Detect wells with abnormally high read counts compared with their plate neighbors.
+
+    The algorithm has two metrics per well:
+
+    1. **neighbor_avg**: mean read count of orthogonal neighbors (up/down/left/right).
+       Provides spatial context but is *not* used in the z-score formula.
+    2. **z_score**: (well_count − population_mean) / population_std, where the
+       population is the entire ``barcode_distribution``.  A well whose z_score
+       exceeds ``z_threshold`` (default 2.5) is flagged as a candidate.
+
+    Severity thresholds (z_score-based):
+      - z > 4.0  → "high"
+      - z > 3.0  → "medium"
+      - z > 2.5  → "low"
+
+    Parameters
+    ----------
+    barcode_distribution:
+        Mapping of well/barcode label → read count.  Keys are expected to follow
+        the ``A1``–``H12`` convention but any string key is tolerated (wells that
+        don't match the 96-well grid will have an empty neighbor list and
+        ``neighbor_avg`` of 0.0).
+    z_threshold:
+        Minimum z-score required to report a candidate.  Defaults to 2.5.
+
+    Returns
+    -------
+    list[CrossTalkCandidate]
+        Candidates sorted by z_score descending.  Empty list when
+        ``barcode_distribution`` is ``None`` or has fewer than 5 entries.
+    """
+    if barcode_distribution is None or len(barcode_distribution) < 5:
+        return []
+
+    counts = list(barcode_distribution.values())
+    mean = statistics.mean(counts)
+    try:
+        std = statistics.stdev(counts)
+    except statistics.StatisticsError:
+        return []
+    if std == 0:
+        return []
+
+    candidates: list[CrossTalkCandidate] = []
+
+    for well, count in barcode_distribution.items():
+        z = (count - mean) / std
+        if z <= z_threshold:
+            continue
+
+        # Neighbor average (informational)
+        neighbor_labels = _well_neighbors(well)
+        neighbor_counts = [
+            barcode_distribution[nb] for nb in neighbor_labels if nb in barcode_distribution
+        ]
+        neighbor_avg = statistics.mean(neighbor_counts) if neighbor_counts else 0.0
+
+        # Severity
+        if z > 4.0:
+            severity = "high"
+        elif z > 3.0:
+            severity = "medium"
+        else:
+            severity = "low"
+
+        note = (
+            f"Read count {count:,} is {z:.2f} SD above the plate mean "
+            f"({mean:,.0f} ± {std:,.0f}); neighbor avg {neighbor_avg:,.0f}."
+        )
+
+        candidates.append(
+            CrossTalkCandidate(
+                well=well,
+                custom_barcode=well,  # caller may override if a mapping is available
+                read_count=count,
+                neighbor_avg=round(neighbor_avg, 2),
+                z_score=round(z, 4),
+                severity=severity,
+                note=note,
+            )
+        )
+
+    candidates.sort(key=lambda c: c.z_score, reverse=True)
+    return candidates
+
+
+# ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
@@ -267,6 +428,9 @@ def build_run_health(
             throughput_timeline = _parse_throughput(run_dir)
             barcode_distribution = _parse_barcode_alignment(run_dir)
 
+    # ── Cross-talk detection (A9) ─────────────────────────────────────────
+    cross_talk_candidates = detect_cross_talk(barcode_distribution)
+
     return RunHealthData(
         per_plate_summary=plates,
         file_size_distribution=dist.file_size_kb,
@@ -276,7 +440,14 @@ def build_run_health(
         pore_yield_pct=pore_yield_pct,
         throughput_timeline=throughput_timeline,
         barcode_distribution=barcode_distribution,
+        cross_talk_candidates=cross_talk_candidates,
     )
 
 
-__all__ = ["RunHealthData", "build_run_health"]
+__all__ = [
+    "CrossTalkCandidate",
+    "RunHealthData",
+    "build_run_health",
+    "detect_cross_talk",
+    "_well_neighbors",
+]

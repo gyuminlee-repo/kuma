@@ -1,4 +1,4 @@
-"""Tests for kuma_core.mame.health (A8 — run health panel)."""
+"""Tests for kuma_core.mame.health (A8/A9 — run health panel + cross-talk detection)."""
 
 from __future__ import annotations
 
@@ -7,7 +7,13 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from kuma_core.mame.health import RunHealthData, build_run_health
+from kuma_core.mame.health import (
+    CrossTalkCandidate,
+    RunHealthData,
+    _well_neighbors,
+    build_run_health,
+    detect_cross_talk,
+)
 
 
 # ── helpers ──────────────────────────────────────────────────────────────────
@@ -239,3 +245,179 @@ class TestGracefulOnNonexistentDir:
         assert data.pore_yield_pct is None
         assert data.throughput_timeline is None
         assert data.barcode_distribution is None
+
+
+# ── A9: _well_neighbors tests ─────────────────────────────────────────────────
+
+
+class TestWellNeighbors:
+    def test_corner_a1(self) -> None:
+        neighbors = _well_neighbors("A1")
+        assert set(neighbors) == {"B1", "A2"}
+
+    def test_corner_h12(self) -> None:
+        neighbors = _well_neighbors("H12")
+        assert set(neighbors) == {"G12", "H11"}
+
+    def test_corner_a12(self) -> None:
+        neighbors = _well_neighbors("A12")
+        assert set(neighbors) == {"B12", "A11"}
+
+    def test_corner_h1(self) -> None:
+        neighbors = _well_neighbors("H1")
+        assert set(neighbors) == {"G1", "H2"}
+
+    def test_edge_a6(self) -> None:
+        # Top edge — only down and left/right
+        neighbors = _well_neighbors("A6")
+        assert set(neighbors) == {"B6", "A5", "A7"}
+
+    def test_interior_d6(self) -> None:
+        neighbors = _well_neighbors("D6")
+        assert set(neighbors) == {"C6", "E6", "D5", "D7"}
+
+    def test_invalid_well_empty(self) -> None:
+        assert _well_neighbors("") == []
+        assert _well_neighbors("Z1") == []
+        assert _well_neighbors("A0") == []
+        assert _well_neighbors("A13") == []
+
+    def test_lowercase_row(self) -> None:
+        # Should work case-insensitively
+        assert set(_well_neighbors("a1")) == {"B1", "A2"}
+
+
+# ── A9: detect_cross_talk tests ───────────────────────────────────────────────
+
+
+def _flat_distribution(n: int = 20, base: int = 1000) -> dict[str, int]:
+    """Build a uniform distribution for 96-well wells A1..B(n//8+1)."""
+    rows = "ABCDEFGH"
+    dist: dict[str, int] = {}
+    for i in range(n):
+        row = rows[i % 8]
+        col = i // 8 + 1
+        dist[f"{row}{col}"] = base
+    return dist
+
+
+class TestDetectCrossTalk:
+    def test_none_returns_empty(self) -> None:
+        assert detect_cross_talk(None) == []
+
+    def test_too_few_entries_returns_empty(self) -> None:
+        dist = {"A1": 100, "A2": 100, "A3": 100, "A4": 100}
+        assert detect_cross_talk(dist) == []
+
+    def test_uniform_distribution_no_candidates(self) -> None:
+        dist = _flat_distribution(24, base=5000)
+        result = detect_cross_talk(dist)
+        assert result == []
+
+    def test_spike_well_detected(self) -> None:
+        # Build flat dist and spike one well to a very high count
+        dist = _flat_distribution(24, base=1000)
+        dist["A1"] = 50_000  # extreme outlier (A1 is always present in flat dist)
+        result = detect_cross_talk(dist)
+        wells = [c.well for c in result]
+        assert "A1" in wells
+
+    def test_spike_well_severity_high(self) -> None:
+        dist = _flat_distribution(24, base=1000)
+        dist["A1"] = 50_000
+        result = detect_cross_talk(dist)
+        a1 = next(c for c in result if c.well == "A1")
+        assert a1.severity == "high"
+
+    def test_spike_well_z_score_positive(self) -> None:
+        dist = _flat_distribution(24, base=1000)
+        dist["A1"] = 50_000
+        result = detect_cross_talk(dist)
+        a1 = next(c for c in result if c.well == "A1")
+        assert a1.z_score > 2.5
+
+    def test_sorted_by_z_desc(self) -> None:
+        dist = _flat_distribution(24, base=1000)
+        dist["A1"] = 20_000
+        dist["B1"] = 30_000
+        result = detect_cross_talk(dist)
+        z_scores = [c.z_score for c in result]
+        assert z_scores == sorted(z_scores, reverse=True)
+
+    def test_neighbor_avg_populated(self) -> None:
+        # Use a larger flat dist so neighbors of B2 (A2, C2, B1, B3) are all present
+        dist = _flat_distribution(48, base=1000)
+        dist["B2"] = 50_000  # extreme spike; neighbors are A2, C2, B1, B3 — all 1000
+        result = detect_cross_talk(dist)
+        b2 = next(c for c in result if c.well == "B2")
+        # All 4 neighbors exist in the 48-entry flat dist and have count 1000
+        assert b2.neighbor_avg == pytest.approx(1000.0, rel=0.01)
+
+    def test_candidate_is_dataclass(self) -> None:
+        dist = _flat_distribution(24, base=1000)
+        dist["D6"] = 50_000
+        result = detect_cross_talk(dist)
+        assert all(isinstance(c, CrossTalkCandidate) for c in result)
+
+    def _build_spread_dist(self) -> dict[str, int]:
+        """80 wells with counts 500, 550, 600, … 4450 (step 50).
+
+        mean ≈ 2475, std ≈ 1162 — sufficient spread for severity threshold tests.
+        """
+        base_vals = list(range(500, 500 + 80 * 50, 50))
+        dist: dict[str, int] = {}
+        rows = "ABCDEFGH"
+        idx = 0
+        for col in range(1, 11):
+            for row in rows:
+                if idx < len(base_vals):
+                    dist[f"{row}{col}"] = base_vals[idx]
+                    idx += 1
+        return dist
+
+    def test_medium_severity(self) -> None:
+        """Spike producing z ≈ 3.5 → severity == "medium".
+
+        Spike value 6926 was computed via binary search against the spread dist
+        (mean≈2475, std≈1162). Verified: actual z ≈ 3.4998.
+        """
+        import statistics
+
+        dist = self._build_spread_dist()
+        spike_well = "H12"
+        spike = 6926  # gives z ≈ 3.5 after insertion
+        dist[spike_well] = spike
+        # Sanity check: z must be in (3.0, 4.0]
+        vals = list(dist.values())
+        z_actual = (spike - statistics.mean(vals)) / statistics.stdev(vals)
+        assert 3.0 < z_actual <= 4.0, f"Test setup error: z={z_actual:.4f}"
+        result = detect_cross_talk(dist)
+        candidate = next((c for c in result if c.well == spike_well), None)
+        assert candidate is not None
+        assert candidate.severity == "medium"
+
+    def test_low_severity(self) -> None:
+        """Spike producing z ≈ 2.75 → severity == "low".
+
+        Spike value 5855 was computed via binary search against the spread dist.
+        Verified: actual z ≈ 2.7495.
+        """
+        import statistics
+
+        dist = self._build_spread_dist()
+        spike_well = "H12"
+        spike = 5855  # gives z ≈ 2.75 after insertion
+        dist[spike_well] = spike
+        vals = list(dist.values())
+        z_actual = (spike - statistics.mean(vals)) / statistics.stdev(vals)
+        assert 2.5 < z_actual <= 3.0, f"Test setup error: z={z_actual:.4f}"
+        result = detect_cross_talk(dist)
+        candidate = next((c for c in result if c.well == spike_well), None)
+        assert candidate is not None
+        assert candidate.severity == "low"
+
+    def test_build_run_health_includes_cross_talk_field(self) -> None:
+        """Regression: cross_talk_candidates must be present and default-empty."""
+        data = build_run_health(_sample_verdicts(), _sample_replicates(), None)
+        assert hasattr(data, "cross_talk_candidates")
+        assert isinstance(data.cross_talk_candidates, list)

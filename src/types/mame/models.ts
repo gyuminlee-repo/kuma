@@ -152,6 +152,23 @@ export interface ScreenTab {
   content?: ReactNode;
 }
 
+// ── A9: Cross-talk detection types ──────────────────────────────────────────
+
+export interface CrossTalkCandidate {
+  /** Well label, e.g. "A1", "B6". */
+  well: string;
+  /** Custom barcode label assigned to the well, e.g. "1_1", "1_2". */
+  custom_barcode: string;
+  /** Observed read count for this well. */
+  read_count: number;
+  /** Mean read count of orthogonal neighbors. */
+  neighbor_avg: number;
+  /** Z-score vs the entire plate-wide distribution. */
+  z_score: number;
+  severity: "low" | "medium" | "high";
+  note: string;
+}
+
 // ── A8: Run health panel types ───────────────────────────────────────────────
 
 export interface RunHealthBreakdown {
@@ -177,6 +194,7 @@ export interface RunHealthData {
   pore_yield_pct: number | null;
   throughput_timeline: RunHealthThroughputPoint[] | null;
   barcode_distribution: Record<string, number> | null;
+  cross_talk_candidates: CrossTalkCandidate[];
 }
 
 // ── A1/A3: Demux and quality-filter types (R6) ──────────────────────────────

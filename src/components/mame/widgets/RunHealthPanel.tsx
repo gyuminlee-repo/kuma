@@ -22,6 +22,7 @@
 import { useMemo } from "react";
 import { cn } from "@/lib/utils";
 import type {
+  CrossTalkCandidate,
   RunHealthBreakdown,
   RunHealthData,
   RunHealthThroughputPoint,
@@ -445,6 +446,93 @@ function Legend() {
   );
 }
 
+// ── Section 6: Cross-talk candidates ─────────────────────────────────────────
+
+interface CrossTalkAlertsProps {
+  candidates: CrossTalkCandidate[];
+}
+
+const SEVERITY_CLASS: Record<CrossTalkCandidate["severity"], string> = {
+  high: "text-destructive",
+  medium: "text-warning",
+  low: "text-info",
+};
+
+const SEVERITY_BORDER: Record<CrossTalkCandidate["severity"], string> = {
+  high: "border-destructive/40",
+  medium: "border-warning/40",
+  low: "border-info/40",
+};
+
+function CrossTalkAlerts({ candidates }: CrossTalkAlertsProps) {
+  // Sort by z_score descending (defensive: backend already sorts, but guard here too)
+  const sorted = [...candidates].sort((a, b) => b.z_score - a.z_score);
+
+  if (sorted.length === 0) {
+    return (
+      <p className="text-caption text-muted-foreground" role="status">
+        No cross-talk candidates detected.
+      </p>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto" role="region" aria-label="Cross-talk candidate table">
+      <table className="w-full text-caption" aria-label="Cross-talk candidates">
+        <thead>
+          <tr className="border-b border-border text-left text-muted-foreground">
+            <th scope="col" className="py-1 pr-3 font-medium">
+              Well
+            </th>
+            <th scope="col" className="py-1 pr-3 font-medium">
+              Reads
+            </th>
+            <th scope="col" className="py-1 pr-3 font-medium">
+              Neighbor avg
+            </th>
+            <th scope="col" className="py-1 pr-3 font-medium">
+              Z-score
+            </th>
+            <th scope="col" className="py-1 font-medium">
+              Severity
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {sorted.map((c) => (
+            <tr
+              key={`${c.well}-${c.z_score}`}
+              className="border-b border-border/50 last:border-0"
+              title={c.note}
+            >
+              <td className="py-1 pr-3 font-mono tabular-nums">{c.well}</td>
+              <td className="py-1 pr-3 tabular-nums">
+                {c.read_count.toLocaleString()}
+              </td>
+              <td className="py-1 pr-3 tabular-nums">
+                {c.neighbor_avg.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              </td>
+              <td className="py-1 pr-3 tabular-nums">{c.z_score.toFixed(2)}</td>
+              <td className="py-1">
+                <span
+                  className={cn(
+                    "rounded-control border px-1.5 py-0.5",
+                    SEVERITY_CLASS[c.severity],
+                    SEVERITY_BORDER[c.severity],
+                  )}
+                  aria-label={`Severity: ${c.severity}`}
+                >
+                  {c.severity}
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 // ── Main panel component ──────────────────────────────────────────────────────
 
 interface RunHealthPanelProps {
@@ -554,6 +642,20 @@ export function RunHealthPanel({ health, className }: RunHealthPanelProps) {
             )}
         </>
       )}
+
+      {/* Section 6: Cross-talk detection (A9) */}
+      <section
+        aria-labelledby="vh-crosstalk-heading"
+        className="col-span-full flex flex-col gap-2"
+      >
+        <h3
+          id="vh-crosstalk-heading"
+          className="text-caption font-semibold uppercase tracking-widest text-muted-foreground"
+        >
+          Cross-talk candidates
+        </h3>
+        <CrossTalkAlerts candidates={health.cross_talk_candidates} />
+      </section>
 
       {!hasMinKnow && (
         <div className="col-span-full">
