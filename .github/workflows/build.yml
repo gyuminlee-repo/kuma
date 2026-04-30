@@ -56,7 +56,7 @@ jobs:
         run: pip install -e '.[build]'
 
       - name: Build sidecar
-        run: python build_sidecar.py --onefile
+        run: python build_sidecar.py
         working-directory: python-core
 
       - name: Verify sidecar binaries
