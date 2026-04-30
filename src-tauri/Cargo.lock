@@ -1711,7 +1711,7 @@ dependencies = [
 
 [[package]]
 name = "kuma"
-version = "0.1.11"
+version = "0.1.12"
 dependencies = [
  "chrono",
  "dirs 5.0.1",
@@ -1720,6 +1720,7 @@ dependencies = [
  "tauri",
  "tauri-build",
  "tauri-plugin-dialog",
+ "tauri-plugin-fs",
  "tauri-plugin-shell",
  "tempfile",
  "tokio",

@@ -9,6 +9,21 @@
     "dialog:allow-save",
     "shell:allow-stdin-write",
     "shell:allow-kill",
+    "fs:default",
+    "fs:allow-mkdir",
+    "fs:allow-write-text-file",
+    "fs:allow-read-text-file",
+    "fs:allow-exists",
+    "fs:allow-rename",
+    {
+      "identifier": "fs:scope",
+      "allow": [
+        { "path": "$HOME/**" },
+        { "path": "$DOCUMENT/**" },
+        { "path": "$DOWNLOAD/**" },
+        { "path": "$DESKTOP/**" }
+      ]
+    },
     {
       "identifier": "shell:allow-spawn",
       "allow": [
