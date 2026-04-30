@@ -192,6 +192,13 @@ export interface DesignSlice {
   removeCustomCandidate: (mutation: string, index: number) => void;
   evaluateCustomPrimer: (mutation: string, fwdSeq: string, revSeq: string, overlapLen?: number) => Promise<SdmPrimerResult>;
   retryFailedMutation: (mutation: string, params: Record<string, number | string>) => Promise<SdmPrimerResult[]>;
+  /**
+   * After a design completes with failures, retry each failed mutation once
+   * using parameters derived from the run already-successful primers
+   * (median Tm, observed GC/length range, tol_max ±5°C). No-op when no
+   * successful primers exist or when fillOnFailure already substituted them.
+   */
+  autoRetryFailedWithSuggestion: () => Promise<void>;
   addDesignResult: (mutation: string, result: SdmPrimerResult) => void;
   removeDesignResult: (mutation: string, reason: string) => void;
   setCodonStrategy: (strategy: "closest" | "optimal") => void;

@@ -2,6 +2,7 @@ import type { StateCreator } from "zustand";
 import { cancelAndRespawn, sendRequest } from "../../lib/ipc-kuro";
 import { wellName } from "../../lib/plate-utils";
 import { formatError } from "../../lib/utils";
+import { suggestRetryParams } from "../../lib/primerSuggestion";
 import type { AppState } from "../types";
 import type {
   SdmPrimerResult,
@@ -235,6 +236,14 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       if (fillOnFailure && isEvolveMode && get().evolveproCsvPath) {
         await get().loadEvolveproCsv(get().evolveproCsvPath!);
       }
+
+      // Auto-retry failed mutations with suggestion derived from successful primers.
+      // Skip when fillOnFailure is on (positions already substituted) or there are no
+      // successful primers to derive a suggestion from.
+      const postFailed = get().failedMutations;
+      if (!fillOnFailure && postFailed.length > 0 && get().designResults.length > 0) {
+        await get().autoRetryFailedWithSuggestion();
+      }
     } catch (err) {
       if (formatError(err).includes("Sidecar killed")) return;
       set({ statusMessage: `Design failed: ${formatError(err)}` });
@@ -438,6 +447,67 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       set({ statusMessage: `Evaluate failed: ${formatError(err)}` });
       throw err;
     }
+  },
+
+  autoRetryFailedWithSuggestion: async () => {
+    const state = get();
+    const { designResults, failedMutations, codonStrategy } = state;
+    if (failedMutations.length === 0 || designResults.length === 0) return;
+
+    const suggestion = suggestRetryParams(designResults, {
+      tmFwd: state.tmFwdTarget,
+      tmRev: state.tmRevTarget,
+      tmOverlap: state.tmOverlapTarget,
+      gcMin: state.gcMin,
+      gcMax: state.gcMax,
+      fwdLenMin: state.fwdLenMin,
+      fwdLenMax: state.fwdLenMax,
+      revLenMin: state.revLenMin,
+      revLenMax: state.revLenMax,
+    });
+
+    const params = {
+      tm_fwd_target: suggestion.tmFwd,
+      tm_rev_target: suggestion.tmRev,
+      tm_overlap_target: suggestion.tmOverlap,
+      gc_min: suggestion.gcMin,
+      gc_max: suggestion.gcMax,
+      fwd_len_min: suggestion.fwdLenMin,
+      fwd_len_max: suggestion.fwdLenMax,
+      rev_len_min: suggestion.revLenMin,
+      rev_len_max: suggestion.revLenMax,
+      tol_max: suggestion.tolMax,
+      codon_strategy: codonStrategy,
+    };
+
+    const targets = [...failedMutations];
+    set({
+      statusMessage: `Auto-retry: trying ${targets.length} failed mutation${targets.length > 1 ? "s" : ""} with suggested parameters...`,
+    });
+
+    let rescued = 0;
+    for (const failed of targets) {
+      // Mutation may already be moved out of failedMutations by a concurrent
+      // user action; skip if so.
+      if (!get().failedMutations.some((f) => f.mutation === failed.mutation)) continue;
+      try {
+        const candidates = await get().retryFailedMutation(failed.mutation, params);
+        if (candidates.length > 0) {
+          get().addDesignResult(failed.mutation, candidates[0]);
+          rescued += 1;
+        }
+      } catch {
+        // skip — original failed entry stays untouched
+      }
+    }
+
+    const remaining = get().failedMutations.length;
+    set({
+      statusMessage:
+        rescued > 0
+          ? `Auto-retry: rescued ${rescued}/${targets.length} with suggested parameters · ${remaining} still failed`
+          : `Auto-retry found no candidates · ${remaining} still failed`,
+    });
   },
 
   retryFailedMutation: async (mutation: string, params: Record<string, number | string>) => {
