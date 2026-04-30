@@ -36,6 +36,8 @@ async function ensureProgressListener() {
 
 export async function spawnSidecar(): Promise<void> {
   await ensureProgressListener();
+  if (!hasTauriBridge()) return;
+  await rpc("mame", "ping", {});
 }
 
 export function setProgressHandler(

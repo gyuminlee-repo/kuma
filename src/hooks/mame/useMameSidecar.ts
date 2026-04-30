@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { spawnSidecar, isSidecarRunning, setProgressHandler } from "@/lib/ipc-mame";
+import { spawnSidecar, setProgressHandler } from "@/lib/ipc-mame";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import type { SidecarStatus } from "@/types/mame/models";
 
@@ -51,11 +51,7 @@ export function useMameSidecar() {
 
     connectRef.current = connect;
 
-    if (!isSidecarRunning()) {
-      connect();
-    } else {
-      setStatus("ready");
-    }
+    connect();
 
     return () => {
       mountedRef.current = false;

@@ -33,6 +33,7 @@ from sidecar_mame.handlers.health import handle_get_run_health
 # ``translate`` is deferred to Phase B per the reconciled scope.
 # NOTE: ``export_run_report`` is owned by A14 — do not rename or remove.
 _METHODS = {
+    "ping": lambda _: {"ok": True},
     "analyze": handle_analyze,
     "validate_inputs": handle_validate_inputs,
     "export_excel": handle_export_excel,

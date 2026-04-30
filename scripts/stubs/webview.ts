@@ -11,5 +11,6 @@ export function getCurrentWindow() {
   return {
     metadata: {},
     onCloseRequested: async (_handler: unknown) => () => {},
+    setTitle: async (_title: string) => {},
   };
 }

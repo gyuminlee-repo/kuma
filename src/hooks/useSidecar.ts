@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { spawnSidecar, isSidecarRunning } from "../lib/ipc-kuro";
+import { spawnSidecar } from "../lib/ipc-kuro";
 
 type SidecarStatus = "disconnected" | "connecting" | "ready" | "error";
 
@@ -40,11 +40,7 @@ export function useSidecar() {
 
     connectRef.current = connect;
 
-    if (!isSidecarRunning()) {
-      connect();
-    } else {
-      setStatus("ready");
-    }
+    connect();
 
     return () => {
       mountedRef.current = false;

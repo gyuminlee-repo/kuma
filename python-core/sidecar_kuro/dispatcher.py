@@ -50,6 +50,7 @@ from sidecar_kuro.handlers.misc import (
 )
 
 _METHODS = {
+    "ping": lambda _: {"ok": True},
     "list_polymerases": handle_list_polymerases,
     "get_polymerase_details": handle_get_polymerase_details,
     "save_custom_polymerase": handle_save_custom_polymerase,
