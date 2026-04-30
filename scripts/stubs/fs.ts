@@ -17,3 +17,6 @@ export async function writeTextFile(
   _options?: unknown,
 ): Promise<void> {
 }
+
+export async function rename(_oldPath: string, _newPath: string): Promise<void> {
+}

@@ -1,4 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useAppStore } from "../../store/appStore";
@@ -178,10 +179,20 @@ export function AppLayout() {
       <MenuBar />
 
       <div className="flex flex-1 overflow-hidden px-3 pb-3 pt-2">
-        <div className="grid flex-1 grid-cols-[var(--sidebar-w,320px)_1fr] gap-3 overflow-hidden">
+        <PanelGroup
+          direction="horizontal"
+          autoSaveId="kuma-main-h"
+          className="flex-1 overflow-hidden"
+        >
+          <Panel
+            defaultSize={22}
+            minSize={16}
+            maxSize={40}
+            className="flex min-h-0 flex-col"
+          >
           <aside
             data-testid="sidebar"
-            className="flex w-sidebar shrink-0 min-h-0 flex-col overflow-hidden rounded-container border border-border bg-card"
+            className="flex h-full min-h-0 flex-col overflow-hidden rounded-container border border-border bg-card"
           >
             <div className="min-h-0 flex-1 overflow-y-auto p-3 space-y-3">
               <InputPanel />
@@ -230,44 +241,59 @@ export function AppLayout() {
               </Button>
             </footer>
           </aside>
+          </Panel>
 
+          <PanelResizeHandle className="w-1.5 mx-1 rounded-full bg-transparent hover:bg-border data-[resize-handle-active]:bg-ring transition-colors" />
+
+          <Panel className="flex min-h-0 flex-col" minSize={40}>
           <main
             data-testid="main-content"
-            className="flex min-h-0 flex-col gap-3 overflow-hidden"
+            className="flex h-full min-h-0 flex-col overflow-hidden"
           >
-            <div className="grid min-h-0 flex-1 grid-rows-[minmax(140px,0.48fr)_minmax(0,1fr)_minmax(320px,0.92fr)] gap-3 overflow-hidden">
-              <DataPanel
-                title="Sequence context"
-                description={selectedGeneInfo ? `${selectedGeneInfo.gene} · ${selectedGeneInfo.aa_length} aa` : "Load a target gene"}
-                className="overflow-hidden"
-              >
-                <div className="h-full">
-                  <SequenceViewer />
-                </div>
-              </DataPanel>
+            <PanelGroup direction="vertical" autoSaveId="kuma-main-v" className="flex-1 min-h-0">
+              <Panel defaultSize={26} minSize={10} className="min-h-0">
+                <DataPanel
+                  title="Sequence context"
+                  description={selectedGeneInfo ? `${selectedGeneInfo.gene} · ${selectedGeneInfo.aa_length} aa` : "Load a target gene"}
+                  className="h-full overflow-hidden"
+                >
+                  <div className="h-full">
+                    <SequenceViewer />
+                  </div>
+                </DataPanel>
+              </Panel>
 
-              <DataPanel
-                title="Design output"
-                description={hasDesignResults ? `${successCount}/${totalCount} successful` : "No results yet"}
-                className="min-h-0 overflow-hidden"
-              >
-                <div className="min-h-0 h-full">
-                  <ResultTable />
-                </div>
-              </DataPanel>
+              <PanelResizeHandle className="h-1.5 my-1 rounded-full bg-transparent hover:bg-border data-[resize-handle-active]:bg-ring transition-colors" />
 
-              <DataPanel
-                title="Plate plan"
-                description={plateEstimate ? `${plateEstimate} plate${plateEstimate > 1 ? "s" : ""}` : "Awaiting design"}
-                className="overflow-hidden"
-              >
-                <div className="h-full">
-                  <PlateMap />
-                </div>
-              </DataPanel>
-            </div>
+              <Panel defaultSize={40} minSize={10} className="min-h-0">
+                <DataPanel
+                  title="Design output"
+                  description={hasDesignResults ? `${successCount}/${totalCount} successful` : "No results yet"}
+                  className="h-full min-h-0 overflow-hidden"
+                >
+                  <div className="min-h-0 h-full">
+                    <ResultTable />
+                  </div>
+                </DataPanel>
+              </Panel>
+
+              <PanelResizeHandle className="h-1.5 my-1 rounded-full bg-transparent hover:bg-border data-[resize-handle-active]:bg-ring transition-colors" />
+
+              <Panel defaultSize={34} minSize={10} className="min-h-0">
+                <DataPanel
+                  title="Plate plan"
+                  description={plateEstimate ? `${plateEstimate} plate${plateEstimate > 1 ? "s" : ""}` : "Awaiting design"}
+                  className="h-full overflow-hidden"
+                >
+                  <div className="h-full">
+                    <PlateMap />
+                  </div>
+                </DataPanel>
+              </Panel>
+            </PanelGroup>
           </main>
-        </div>
+          </Panel>
+        </PanelGroup>
       </div>
 
       <StatusBar sidecarStatus={sidecarStatus} onRetry={retrySidecar} />

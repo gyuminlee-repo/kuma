@@ -297,7 +297,7 @@ export function PlateMap() {
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-x-auto overflow-y-hidden">
+      <div className="min-h-0 flex-1 overflow-auto">
         <div className="inline-block rounded-container border border-border bg-card p-3">
           {activeTab === "fwd" ? (
             <PlateGrid grid={pair.fwd} color="green" />

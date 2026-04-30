@@ -37,6 +37,8 @@ export function ResultTable() {
     rescuedMutationDetails,
     removeDesignResult,
     yPredMap,
+    pipelineMode,
+    fillOnFailure,
   } = useAppStore(
     useShallow((s) => ({
       designResults: s.designResults,
@@ -53,8 +55,13 @@ export function ResultTable() {
       rescuedMutationDetails: s.rescuedMutationDetails,
       removeDesignResult: s.removeDesignResult,
       yPredMap: s.yPredMap,
+      pipelineMode: s.pipelineMode,
+      fillOnFailure: s.fillOnFailure,
     })),
   );
+
+  const failedRetryDisabled = pipelineMode && fillOnFailure;
+  const failedRetryDisabledHint = "Pipeline + Fill on failure already substituted these positions; retry is disabled.";
 
   const [popover, setPopover] = useState<{ mutation: string; current: SdmPrimerResult } | null>(null);
   const [hpDetail, setHpDetail] = useState<SdmPrimerResult | null>(null);
@@ -136,7 +143,12 @@ export function ResultTable() {
             description="Review failure reasons below, then adjust parameters and retry."
             className="pb-4"
           />
-          <FailedMutationList failedMutations={failedMutations} onSelect={setFailedPopover} />
+          <FailedMutationList
+            failedMutations={failedMutations}
+            onSelect={setFailedPopover}
+            disabled={failedRetryDisabled}
+            disabledHint={failedRetryDisabledHint}
+          />
           <Suspense fallback={null}>
             {failedPopover && (
               <LazyFailedMutationPopover
@@ -216,7 +228,17 @@ export function ResultTable() {
           <div className="mb-1 text-caption font-semibold text-error">
             ▲ Failed ({failedMutations.length}/{totalCount})
           </div>
-          <FailedMutationList failedMutations={failedMutations} onSelect={setFailedPopover} />
+          <FailedMutationList
+            failedMutations={failedMutations}
+            onSelect={setFailedPopover}
+            disabled={failedRetryDisabled}
+            disabledHint={failedRetryDisabledHint}
+          />
+          {failedRetryDisabled && (
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Pipeline + Fill on failure substituted these positions; retry is unnecessary.
+            </p>
+          )}
         </div>
       )}
 

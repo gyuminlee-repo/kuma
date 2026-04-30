@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAppStore } from "../../../store/appStore";
 import { useFocusTrap } from "../../../hooks/useFocusTrap";
 import type { SdmPrimerResult, FailedMutation } from "../../../types/models";
 import { validateSeq } from "../../../lib/validation";
+import { suggestRetryParams } from "../../../lib/primerSuggestion";
 
 export function FailedMutationPopover({
   failed,
@@ -21,6 +22,36 @@ export function FailedMutationPopover({
   const storeRevMin = useAppStore((s) => s.revLenMin);
   const storeRevMax = useAppStore((s) => s.revLenMax);
   const storeCodon = useAppStore((s) => s.codonStrategy);
+  const designResults = useAppStore((s) => s.designResults);
+
+  // Suggestion derived from primers that already succeeded in this run.
+  // Median Tm, observed GC/length range slightly widened, tolMax bumped to 5.
+  const suggested = useMemo(
+    () =>
+      suggestRetryParams(designResults, {
+        tmFwd: storeTmFwd,
+        tmRev: storeTmRev,
+        tmOverlap: storeTmOv,
+        gcMin: storeGcMin,
+        gcMax: storeGcMax,
+        fwdLenMin: storeFwdMin,
+        fwdLenMax: storeFwdMax,
+        revLenMin: storeRevMin,
+        revLenMax: storeRevMax,
+      }),
+    [
+      designResults,
+      storeFwdMax,
+      storeFwdMin,
+      storeGcMax,
+      storeGcMin,
+      storeRevMax,
+      storeRevMin,
+      storeTmFwd,
+      storeTmOv,
+      storeTmRev,
+    ],
+  );
 
   const [tmFwd, setTmFwd] = useState(String(storeTmFwd));
   const [tmRev, setTmRev] = useState(String(storeTmRev));
@@ -188,13 +219,41 @@ export function FailedMutationPopover({
             <span className="text-muted-foreground">~</span><input className={inp} value={revMax} onChange={(e) => setRevMax(e.target.value)} />
             <span className="text-muted-foreground">bp</span>
           </div>
-          <button
-            className="mt-1 rounded-full bg-foreground px-4 py-1.5 text-xs text-background hover:bg-foreground/80 disabled:opacity-40"
-            onClick={handleRetry}
-            disabled={retrying}
-          >
-            {retrying ? "Designing..." : "Retry"}
-          </button>
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            <button
+              className="rounded-full bg-foreground px-4 py-1.5 text-xs text-background hover:bg-foreground/80 disabled:opacity-40"
+              onClick={handleRetry}
+              disabled={retrying}
+            >
+              {retrying ? "Designing..." : "Retry"}
+            </button>
+            {suggested.sampleSize > 0 && (
+              <button
+                type="button"
+                className="rounded-full border border-border px-3 py-1 text-caption text-muted-foreground hover:bg-muted/60"
+                onClick={() => {
+                  setTmFwd(String(suggested.tmFwd));
+                  setTmRev(String(suggested.tmRev));
+                  setTmOv(String(suggested.tmOverlap));
+                  setGcMin(String(suggested.gcMin));
+                  setGcMax(String(suggested.gcMax));
+                  setFwdMin(String(suggested.fwdLenMin));
+                  setFwdMax(String(suggested.fwdLenMax));
+                  setRevMin(String(suggested.revLenMin));
+                  setRevMax(String(suggested.revLenMax));
+                  setTolMax(String(suggested.tolMax));
+                }}
+                title={`Tm F${suggested.tmFwd} / R${suggested.tmRev} / Ov${suggested.tmOverlap}, GC ${suggested.gcMin}-${suggested.gcMax}%, Fwd ${suggested.fwdLenMin}-${suggested.fwdLenMax}, Rev ${suggested.revLenMin}-${suggested.revLenMax}, tol ±${suggested.tolMax}°C — derived from ${suggested.sampleSize} successful primers`}
+              >
+                Use suggestion ({suggested.sampleSize})
+              </button>
+            )}
+          </div>
+          {suggested.sampleSize > 0 && (
+            <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+              Suggestion uses median Tm ({suggested.tmFwd}/{suggested.tmRev}/{suggested.tmOverlap}°C) and observed GC/length ranges from {suggested.sampleSize} successful primers, with tol ±{suggested.tolMax}°C.
+            </p>
+          )}
         </div>
 
         {retryError && (
