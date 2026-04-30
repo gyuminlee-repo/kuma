@@ -197,7 +197,7 @@ export interface RunHealthData {
   cross_talk_candidates: CrossTalkCandidate[];
 }
 
-// ── A1/A3: Demux and quality-filter types (R6) ──────────────────────────────
+// ── A1/A3: Demux and quality-filter types (R6.5) ────────────────────────────
 
 export interface DemuxFilterStats {
   n_input: number;
@@ -205,6 +205,21 @@ export interface DemuxFilterStats {
   n_failed_qscore: number;
   n_failed_length: number;
   n_failed_barcode: number;
+}
+
+export interface AmpliconLengthDistributionSummary {
+  min: number;
+  median: number;
+  max: number;
+  peak_count: number;
+  peak_ratio: number;
+}
+
+export interface AmpliconLengthEstimate {
+  detected_length: number;
+  n_sample_reads: number;
+  confidence: "high" | "medium" | "low";
+  distribution_summary: AmpliconLengthDistributionSummary;
 }
 
 export interface DemuxAndFilterResult {
@@ -215,11 +230,14 @@ export interface DemuxAndFilterResult {
   per_well_counts: Record<string, number>;
   filter_stats: DemuxFilterStats | null;
   backend: "cutadapt" | "python";
+  amplicon_length_estimate: AmpliconLengthEstimate | null;
+  length_filter_mode: "target_window" | "fixed_range" | "none";
 }
 
 export interface DemuxAndFilterParams {
   fastq_dir: string;
-  custom_barcodes: Record<string, string>;
+  custom_barcodes?: Record<string, string>;
+  custom_barcodes_path?: string;
   output_dir: string;
   error_tolerance?: number;
   use_cutadapt?: boolean;
@@ -227,6 +245,12 @@ export interface DemuxAndFilterParams {
   min_qscore?: number;
   length_min?: number;
   length_max?: number;
+  target_length?: number | null;
+  length_tolerance_bp?: number;
+  auto_detect_length?: boolean;
   min_barcode_score?: number;
+  linked_trim?: boolean;
+  rev_primer_universal?: string | null;
+  normalize_headers?: boolean;
   nb_dirs?: string[];
 }

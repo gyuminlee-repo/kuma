@@ -1,9 +1,10 @@
-"""A3 — Per-read quality filter.
+"""A3 — Per-read quality filter + amplicon length auto-detection.
 
 Filters FASTQ reads by:
 1. Mean Q-score (from sequencing_summary if available; else inferred from FASTQ
    quality string via Phred-33 decoding).
-2. Read length.
+2. Read length — either a dynamic window (target_length ± length_tolerance_bp)
+   or a fixed [length_min, length_max] range (fallback).
 3. MinKNOW barcode_score (sequencing_summary only).
 
 When ``sequencing_summary`` is provided, metadata is joined to reads by
@@ -29,6 +30,7 @@ from __future__ import annotations
 
 import gzip
 import math
+import statistics
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterator
@@ -41,10 +43,22 @@ from typing import Iterator
 
 @dataclass
 class QualityFilterParams:
-    min_qscore: float = 8.0          # mean Q-score per read (Phred scale)
-    length_min: int = 800            # minimum read length (bases)
-    length_max: int = 3000           # maximum read length (bases)
-    min_barcode_score: float = 60.0  # MinKNOW barcode_score column
+    min_qscore: float = 8.0           # mean Q-score per read (Phred scale)
+    length_min: int = 800             # fallback min length when target_length is None
+    length_max: int = 3000            # fallback max length when target_length is None
+    min_barcode_score: float = 60.0   # MinKNOW barcode_score column
+    target_length: int | None = None  # modal amplicon length; overrides length_min/max when set
+    length_tolerance_bp: int = 30     # ± window around target_length (bp)
+
+
+@dataclass
+class AmpliconLengthEstimate:
+    """Result of detect_amplicon_length."""
+
+    detected_length: int   # modal peak in bp (bin centre)
+    n_sample_reads: int    # number of reads sampled
+    confidence: str        # "high" | "medium" | "low"
+    distribution_summary: dict  # min, median, max, peak_count, peak_ratio
 
 
 @dataclass
@@ -86,6 +100,125 @@ def _mean_qscore_from_qual(qual_string: str) -> float:
     if mean_prob <= 0:
         return float("inf")
     return -10.0 * math.log10(mean_prob)
+
+
+# ---------------------------------------------------------------------------
+# Amplicon length auto-detection
+# ---------------------------------------------------------------------------
+
+
+def _iter_fastq_lengths(path: Path) -> Iterator[int]:
+    """Yield sequence lengths from a FASTQ (or .fastq.gz) file."""
+    opener = (
+        gzip.open(path, "rt", encoding="utf-8")
+        if path.suffix.lower() == ".gz"
+        else open(path, "r", encoding="utf-8")  # noqa: WPS515
+    )
+    with opener as fh:
+        while True:
+            header = fh.readline()
+            if not header:
+                break
+            seq = fh.readline().rstrip("\r\n")
+            fh.readline()  # '+'
+            fh.readline()  # quality
+            if seq:
+                yield len(seq)
+
+
+def detect_amplicon_length(
+    fastq_dir: Path,
+    sample_size: int = 5000,
+    bin_size_bp: int = 10,
+) -> AmpliconLengthEstimate | None:
+    """Histogram fastq read lengths and find the modal peak.
+
+    Strategy
+    --------
+    1. Iterate .fastq / .fastq.gz files under fastq_dir (sorted order, first file
+       first) and collect up to ``sample_size`` read lengths — stops as soon as
+       the cap is reached to avoid scanning the full 7+ GB run folder.
+    2. Bin lengths in ``bin_size_bp`` chunks; each bin's label is its lower bound.
+    3. Pick the bin with the highest count; modal length = bin centre
+       (lower_bound + bin_size_bp // 2).
+    4. Confidence based on peak_ratio (peak_count / total):
+       - ≥ 0.30 → "high"
+       - ≥ 0.15 → "medium"
+       - else   → "low"
+    5. Return None if fewer than 100 reads were collected or peak_ratio < 0.05
+       (distribution too flat to be useful).
+
+    Parameters
+    ----------
+    fastq_dir:
+        Directory containing *.fastq or *.fastq.gz files.
+    sample_size:
+        Maximum number of reads to sample (speed cap).
+    bin_size_bp:
+        Histogram bin width in base pairs.
+
+    Returns
+    -------
+    AmpliconLengthEstimate or None.
+    """
+    if not fastq_dir.is_dir():
+        return None
+
+    fastq_files = sorted(
+        list(fastq_dir.glob("*.fastq")) + list(fastq_dir.glob("*.fastq.gz"))
+    )
+    if not fastq_files:
+        return None
+
+    lengths: list[int] = []
+    for fq_path in fastq_files:
+        for length in _iter_fastq_lengths(fq_path):
+            lengths.append(length)
+            if len(lengths) >= sample_size:
+                break
+        if len(lengths) >= sample_size:
+            break
+
+    n_reads = len(lengths)
+    if n_reads < 100:
+        return None
+
+    # Build histogram.
+    bins: dict[int, int] = {}
+    for ln in lengths:
+        bin_key = (ln // bin_size_bp) * bin_size_bp  # lower bound of bin
+        bins[bin_key] = bins.get(bin_key, 0) + 1
+
+    peak_bin = max(bins, key=lambda k: bins[k])
+    peak_count = bins[peak_bin]
+    peak_ratio = peak_count / n_reads
+
+    if peak_ratio < 0.05:
+        return None
+
+    modal_length = peak_bin + bin_size_bp // 2
+
+    if peak_ratio >= 0.30:
+        confidence = "high"
+    elif peak_ratio >= 0.15:
+        confidence = "medium"
+    else:
+        confidence = "low"
+
+    median_length = int(statistics.median(lengths))
+
+    return AmpliconLengthEstimate(
+        detected_length=modal_length,
+        n_sample_reads=n_reads,
+        confidence=confidence,
+        distribution_summary={
+            "min": min(lengths),
+            "median": median_length,
+            "max": max(lengths),
+            "peak_count": peak_count,
+            "peak_ratio": round(peak_ratio, 4),
+        },
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -192,6 +325,25 @@ def _iter_fastq_records(
 
 
 # ---------------------------------------------------------------------------
+# Length window resolution
+# ---------------------------------------------------------------------------
+
+
+def _resolve_length_window(params: QualityFilterParams) -> tuple[int, int]:
+    """Return (effective_min, effective_max) for length filtering.
+
+    When ``target_length`` is set, the window is
+    ``[target_length - length_tolerance_bp, target_length + length_tolerance_bp]``.
+    Otherwise falls back to ``(length_min, length_max)``.
+    """
+    if params.target_length is not None:
+        lo = max(0, params.target_length - params.length_tolerance_bp)
+        hi = params.target_length + params.length_tolerance_bp
+        return lo, hi
+    return params.length_min, params.length_max
+
+
+# ---------------------------------------------------------------------------
 # Core filter
 # ---------------------------------------------------------------------------
 
@@ -212,7 +364,10 @@ def filter_reads_by_summary(
         Q-score is computed from the FASTQ quality string; barcode_score
         filtering is skipped.
     params:
-        Filter thresholds.
+        Filter thresholds. When ``params.target_length`` is set, the length
+        window is ``[target_length - length_tolerance_bp,
+        target_length + length_tolerance_bp]``; otherwise ``length_min /
+        length_max`` are used.
 
     Returns
     -------
@@ -226,6 +381,8 @@ def filter_reads_by_summary(
 
     if not fastq_path.exists():
         raise FileNotFoundError(f"FASTQ file not found: {fastq_path}")
+
+    len_min, len_max = _resolve_length_window(params)
 
     # Load summary metadata if available.
     summary_meta: dict[str, dict[str, str | float]] = {}
@@ -253,7 +410,7 @@ def filter_reads_by_summary(
             length = len(seq)
 
             # ── Length filter ────────────────────────────────────────────
-            if length < params.length_min or length > params.length_max:
+            if length < len_min or length > len_max:
                 n_failed_length += 1
                 continue
 
@@ -296,7 +453,9 @@ def filter_reads_by_summary(
 
 
 __all__ = [
+    "AmpliconLengthEstimate",
     "QualityFilterParams",
     "QualityFilterResult",
+    "detect_amplicon_length",
     "filter_reads_by_summary",
 ]

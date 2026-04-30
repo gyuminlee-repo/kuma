@@ -292,3 +292,84 @@ def test_filter_default_params_are_sensible() -> None:
     assert p.length_min == 800
     assert p.length_max == 3000
     assert p.min_barcode_score == 60.0
+    assert p.target_length is None
+    assert p.length_tolerance_bp == 30
+
+
+# ---------------------------------------------------------------------------
+# R6.5: target_length dynamic window
+# ---------------------------------------------------------------------------
+
+
+def test_filter_target_length_window_pass(tmp_path: Path) -> None:
+    """Reads within target_length ± tolerance pass; others fail."""
+    fastq = tmp_path / "reads.fastq"
+    seq_in = _make_seq(1735)      # exactly at target
+    seq_hi = _make_seq(1766)      # 31 bp over → fail
+    seq_lo = _make_seq(1704)      # 31 bp under → fail
+    seq_edge = _make_seq(1765)    # exactly at upper edge (1735+30) → pass
+
+    reads = [
+        ("in",    seq_in,   12),
+        ("hi",    seq_hi,   12),
+        ("lo",    seq_lo,   12),
+        ("edge",  seq_edge, 12),
+    ]
+    _make_fastq(fastq, reads)
+
+    params = QualityFilterParams(
+        min_qscore=8.0,
+        target_length=1735,
+        length_tolerance_bp=30,
+    )
+    _, result = filter_reads_by_summary(fastq, sequencing_summary=None, params=params)
+
+    assert result.n_passed == 2      # "in" and "edge"
+    assert result.n_failed_length == 2  # "hi" and "lo"
+
+
+def test_filter_target_length_overrides_length_min_max(tmp_path: Path) -> None:
+    """When target_length is set, length_min/max are ignored."""
+    fastq = tmp_path / "reads.fastq"
+    # Read length 900 would pass length_min=800 but is outside [1735±30].
+    seq_old_pass = _make_seq(900)
+    seq_new_pass = _make_seq(1735)
+
+    reads = [
+        ("old_pass", seq_old_pass, 12),
+        ("new_pass", seq_new_pass, 12),
+    ]
+    _make_fastq(fastq, reads)
+
+    params = QualityFilterParams(
+        min_qscore=8.0,
+        length_min=800,
+        length_max=3000,
+        target_length=1735,
+        length_tolerance_bp=30,
+    )
+    _, result = filter_reads_by_summary(fastq, sequencing_summary=None, params=params)
+
+    # Only the 1735-bp read passes.
+    assert result.n_passed == 1
+    assert result.n_failed_length == 1
+
+
+def test_filter_target_length_none_uses_fallback(tmp_path: Path) -> None:
+    """When target_length is None, length_min/max are used as fallback."""
+    fastq = tmp_path / "reads.fastq"
+    seq_ok = _make_seq(1000)
+    seq_short = _make_seq(300)
+
+    _make_fastq(fastq, [("ok", seq_ok, 12), ("short", seq_short, 12)])
+
+    params = QualityFilterParams(
+        min_qscore=8.0,
+        length_min=800,
+        length_max=3000,
+        target_length=None,
+    )
+    _, result = filter_reads_by_summary(fastq, sequencing_summary=None, params=params)
+
+    assert result.n_passed == 1
+    assert result.n_failed_length == 1

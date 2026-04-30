@@ -12,6 +12,8 @@ import pytest
 from kuma_core.mame.ingest.demux import (
     DemuxResult,
     _hamming_prefix,
+    _rc,
+    _trim_rev_primer,
     _validate_custom_barcodes,
     _validate_error_tolerance,
     demux_native_barcode,
@@ -267,6 +269,166 @@ def test_parse_custom_barcodes_unsupported_extension(tmp_path: Path) -> None:
 
 # ---------------------------------------------------------------------------
 # Tie-breaking: ambiguous reads go to unassigned
+# ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
+# R6.5: _rc helper
+# ---------------------------------------------------------------------------
+
+
+def test_rc_simple() -> None:
+    assert _rc("ACGT") == "ACGT"
+
+
+def test_rc_asymmetric() -> None:
+    assert _rc("AACCGG") == "CCGGTT"
+
+
+def test_rc_empty() -> None:
+    assert _rc("") == ""
+
+
+# ---------------------------------------------------------------------------
+# R6.5: _trim_rev_primer
+# ---------------------------------------------------------------------------
+
+
+def test_trim_rev_primer_exact_hit() -> None:
+    """Exact match trims sequence to position before primer."""
+    primer_rc = "TTTTTT"
+    seq = "ACGT" * 20 + primer_rc + "EXTRA"
+    trimmed = _trim_rev_primer(seq, primer_rc, max_mismatches=0)
+    assert not trimmed.endswith(primer_rc)
+    assert len(trimmed) < len(seq)
+
+
+def test_trim_rev_primer_no_hit_returns_original() -> None:
+    """No primer match returns original sequence unchanged."""
+    primer_rc = "ZZZZZZ"  # impossible sequence
+    seq = "ACGT" * 20
+    trimmed = _trim_rev_primer(seq, primer_rc, max_mismatches=0)
+    assert trimmed == seq
+
+
+def test_trim_rev_primer_with_one_mismatch() -> None:
+    """One mismatch within tolerance is still trimmed."""
+    primer_rc = "AAAAAA"
+    # One mismatch: AAGAAA
+    seq = "ACGT" * 20 + "AAGAAA"
+    trimmed = _trim_rev_primer(seq, primer_rc, max_mismatches=1)
+    assert len(trimmed) < len(seq)
+
+
+# ---------------------------------------------------------------------------
+# R6.5: normalize_headers
+# ---------------------------------------------------------------------------
+
+
+def test_normalize_headers_on(fastq_dir: Path, tmp_path: Path) -> None:
+    """With normalize_headers=True, all FASTA headers equal the well name."""
+    output_dir = tmp_path / "norm_out"
+
+    with patch("kuma_core.mame.ingest.demux.shutil.which", return_value=None):
+        result = demux_native_barcode(
+            fastq_dir=fastq_dir,
+            custom_barcodes=BARCODES,
+            output_dir=output_dir,
+            error_tolerance=0.1,
+            use_cutadapt=False,
+            normalize_headers=True,
+        )
+
+    for well_name in result.per_well_counts:
+        fasta = result.output_dir / f"{well_name}.fasta"
+        assert fasta.exists()
+        for line in fasta.read_text().splitlines():
+            if line.startswith(">"):
+                assert line == f">{well_name}", (
+                    f"Expected header '>{well_name}', got {line!r}"
+                )
+
+
+def test_normalize_headers_off(fastq_dir: Path, tmp_path: Path) -> None:
+    """With normalize_headers=False, FASTA headers preserve original read IDs."""
+    output_dir = tmp_path / "raw_headers_out"
+
+    with patch("kuma_core.mame.ingest.demux.shutil.which", return_value=None):
+        result = demux_native_barcode(
+            fastq_dir=fastq_dir,
+            custom_barcodes=BARCODES,
+            output_dir=output_dir,
+            error_tolerance=0.1,
+            use_cutadapt=False,
+            normalize_headers=False,
+        )
+
+    for well_name in result.per_well_counts:
+        fasta = result.output_dir / f"{well_name}.fasta"
+        assert fasta.exists()
+        for line in fasta.read_text().splitlines():
+            if line.startswith(">"):
+                # Headers should NOT equal the well name (they are read IDs).
+                assert line != f">{well_name}", (
+                    f"Expected read ID header, got well name for {well_name}"
+                )
+
+
+# ---------------------------------------------------------------------------
+# R6.5: linked_trim validation
+# ---------------------------------------------------------------------------
+
+
+def test_linked_trim_without_rev_primer_raises(fastq_dir: Path, tmp_path: Path) -> None:
+    """linked_trim=True without rev_primer_universal raises ValueError."""
+    with pytest.raises(ValueError, match="rev_primer_universal"):
+        demux_native_barcode(
+            fastq_dir=fastq_dir,
+            custom_barcodes=BARCODES,
+            output_dir=tmp_path / "out",
+            use_cutadapt=False,
+            linked_trim=True,
+            rev_primer_universal=None,
+        )
+
+
+def test_linked_trim_with_rev_primer_python(tmp_path: Path) -> None:
+    """linked_trim=True with rev primer trims from 3′ end (pure-Python path)."""
+    bdir = tmp_path / "fq"
+    bc = "AATCCCACT"
+    rev_primer = "TTTTTT"
+    rev_rc = _rc(rev_primer)  # AAAAAA
+
+    # Build read: barcode + amplicon body + rev primer RC (to be trimmed)
+    amplicon_body = "GCGCGCGC" * 10  # 80 bp
+    seq = bc + amplicon_body + rev_rc
+    _make_fastq(bdir / "r.fastq", [("r1", seq, "I" * len(seq))])
+
+    output_dir = tmp_path / "out"
+    with patch("kuma_core.mame.ingest.demux.shutil.which", return_value=None):
+        result = demux_native_barcode(
+            fastq_dir=bdir,
+            custom_barcodes={"well_1": bc},
+            output_dir=output_dir,
+            error_tolerance=0.1,
+            use_cutadapt=False,
+            linked_trim=True,
+            rev_primer_universal=rev_primer,
+            normalize_headers=False,
+        )
+
+    assert result.n_assigned == 1
+    fasta = result.output_dir / "well_1.fasta"
+    lines = [l for l in fasta.read_text().splitlines() if not l.startswith(">")]
+    trimmed_seq = "".join(lines)
+    # Rev primer RC should have been removed from the 3′ end.
+    assert not trimmed_seq.endswith(rev_rc), "Rev primer RC was not trimmed"
+    # Amplicon body should still be present.
+    assert amplicon_body in trimmed_seq
+
+
+# ---------------------------------------------------------------------------
+# Existing tie test (unchanged)
 # ---------------------------------------------------------------------------
 
 

@@ -1,5 +1,6 @@
 import type { SortingState, Updater } from "@tanstack/react-table";
 import type {
+  AmpliconLengthEstimate,
   AnalyzeSummary,
   DistributionStats,
   DemuxAndFilterResult,
@@ -19,6 +20,14 @@ export interface RawRunParams {
   lengthMin: number;
   lengthMax: number;
   minBarcodeScore: number;
+  // R6.5: amplicon length auto-detection
+  targetLength: number | null;       // null → auto-detect
+  lengthToleranceBp: number;         // ± window around targetLength
+  // R6.5: linked trim
+  linkedTrim: boolean;               // trim rev primer from 3′ end
+  revPrimerUniversal: string;        // 5′→3′ universal rev primer sequence
+  // R6.5: header normalization
+  normalizeHeaders: boolean;         // write >{well} FASTA headers
 }
 
 export interface InputSlice {
@@ -44,6 +53,7 @@ export interface InputSlice {
   demuxMessage: string;
   demuxResult: DemuxAndFilterResult | null;
   distributionStats: DistributionStats | null;
+  ampliconLengthEstimate: AmpliconLengthEstimate | null;
   setInputDir: (path: string) => void;
   setExpectedPath: (path: string) => void;
   setReferencePath: (path: string) => void;
@@ -69,6 +79,7 @@ export interface InputSlice {
   setDemuxMessage: (message: string) => void;
   setDemuxResult: (result: DemuxAndFilterResult | null) => void;
   setDistributionStats: (stats: DistributionStats | null) => void;
+  setAmpliconLengthEstimate: (estimate: AmpliconLengthEstimate | null) => void;
   validateInputs: () => Promise<void>;
   runDemuxAndFilter: () => Promise<void>;
   runAnalysis: () => Promise<void>;

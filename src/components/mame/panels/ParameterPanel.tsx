@@ -9,8 +9,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle } from "lucide-react";
-import type { DistributionStats } from "@/types/mame/models";
+import { AlertTriangle, Dna } from "lucide-react";
+import { cn } from "@/lib/utils";
+import type { AmpliconLengthEstimate, DistributionStats } from "@/types/mame/models";
 import type { InputMode } from "@/store/mame/slice-interfaces";
 
 const METHOD_LABELS: Record<DistributionStats["suggested_method"], string> = {
@@ -71,12 +72,39 @@ function RecommendedCutoff({
   );
 }
 
+function AmpliconLengthBadge({
+  estimate,
+}: {
+  estimate: AmpliconLengthEstimate | null;
+}) {
+  if (!estimate) return null;
+  const confidenceColor =
+    estimate.confidence === "high"
+      ? "text-green-600 dark:text-green-400"
+      : estimate.confidence === "medium"
+        ? "text-yellow-600 dark:text-yellow-400"
+        : "text-muted-foreground";
+  return (
+    <span
+      className={`inline-flex items-center gap-1 text-caption ${confidenceColor}`}
+      aria-label={`Auto-detected amplicon length: ${estimate.detected_length} bp, confidence ${estimate.confidence}, sampled ${estimate.n_sample_reads.toLocaleString()} reads`}
+    >
+      <Dna size={11} aria-hidden="true" />
+      Auto-detected: {estimate.detected_length.toLocaleString()} bp
+      <span className="text-muted-foreground">
+        (n={estimate.n_sample_reads.toLocaleString()}, {estimate.confidence})
+      </span>
+    </span>
+  );
+}
+
 function RawRunParamPanel() {
   const rawRunParams = useMameAppStore((s) => s.rawRunParams);
   const isDemuxing = useMameAppStore((s) => s.isDemuxing);
   const demuxProgress = useMameAppStore((s) => s.demuxProgress);
   const demuxMessage = useMameAppStore((s) => s.demuxMessage);
   const demuxResult = useMameAppStore((s) => s.demuxResult);
+  const ampliconLengthEstimate = useMameAppStore((s) => s.ampliconLengthEstimate);
   const setParams = useMameAppStore((s) => s.setParams);
   const runDemuxAndFilter = useMameAppStore((s) => s.runDemuxAndFilter);
 
@@ -133,6 +161,72 @@ function RawRunParamPanel() {
         />
       </div>
 
+      {/* Amplicon length — target + tolerance */}
+      <div className="space-y-2">
+        <div className="space-y-1">
+          <Label
+            htmlFor="target-amplicon-length"
+            className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
+          >
+            Target Amplicon Length (bp)
+          </Label>
+          <Input
+            id="target-amplicon-length"
+            type="number"
+            step="1"
+            value={rawRunParams.targetLength ?? ""}
+            onChange={(e) => {
+              const raw = e.target.value;
+              updateRaw({
+                targetLength: raw === "" ? null : Math.round(Number(raw)),
+              });
+            }}
+            placeholder="Leave blank to auto-detect"
+            className="h-8 min-w-0 text-xs"
+            aria-label="Target amplicon length in bp; leave blank to auto-detect"
+            disabled={isDemuxing}
+          />
+          {/* Show auto-detect result from previous run */}
+          {rawRunParams.targetLength === null && (
+            <AmpliconLengthBadge
+              estimate={
+                demuxResult?.amplicon_length_estimate ?? ampliconLengthEstimate
+              }
+            />
+          )}
+        </div>
+
+        {/* Length tolerance slider */}
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <Label
+              htmlFor="length-tolerance"
+              className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
+            >
+              Length Tolerance ± bp
+            </Label>
+            <span
+              className="text-caption font-medium text-foreground"
+              aria-label={`Length tolerance: ±${rawRunParams.lengthToleranceBp} bp`}
+            >
+              ±{rawRunParams.lengthToleranceBp}
+            </span>
+          </div>
+          <input
+            id="length-tolerance"
+            type="range"
+            min={5}
+            max={200}
+            step={5}
+            value={rawRunParams.lengthToleranceBp}
+            onChange={(e) => updateRaw({ lengthToleranceBp: Number(e.target.value) })}
+            disabled={isDemuxing}
+            className="w-full cursor-pointer accent-primary disabled:cursor-not-allowed disabled:opacity-50"
+            aria-label={`Length tolerance: ±${rawRunParams.lengthToleranceBp} bp`}
+          />
+        </div>
+      </div>
+
       {/* Quality thresholds */}
       <div className="grid gap-3 sm:grid-cols-2">
         <NumericField
@@ -151,22 +245,96 @@ function RawRunParamPanel() {
           onChange={(v) => updateRaw({ minBarcodeScore: v })}
           disabled={isDemuxing}
         />
-        <NumericField
-          id="length-min"
-          label="Length Min"
-          value={rawRunParams.lengthMin}
-          step="50"
-          onChange={(v) => updateRaw({ lengthMin: Math.round(v) })}
+      </div>
+
+      {/* Linked adapter trim toggle */}
+      <div className="space-y-2 rounded-md bg-muted/50 p-2">
+        <div className="flex items-center justify-between">
+          <Label
+            htmlFor="linked-trim-toggle"
+            className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
+          >
+            Trim Adapters
+          </Label>
+          <button
+            id="linked-trim-toggle"
+            type="button"
+            role="switch"
+            aria-checked={rawRunParams.linkedTrim}
+            aria-label="Trim forward barcode and universal reverse primer from reads"
+            disabled={isDemuxing}
+            onClick={() => updateRaw({ linkedTrim: !rawRunParams.linkedTrim })}
+            className={cn(
+              "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+              "disabled:cursor-not-allowed disabled:opacity-50",
+              rawRunParams.linkedTrim ? "bg-primary" : "bg-input",
+            )}
+          >
+            <span
+              aria-hidden="true"
+              className={cn(
+                "pointer-events-none inline-block h-4 w-4 rounded-full bg-background shadow-sm ring-0 transition-transform",
+                rawRunParams.linkedTrim ? "translate-x-4" : "translate-x-0",
+              )}
+            />
+          </button>
+        </div>
+        {rawRunParams.linkedTrim && (
+          <div className="space-y-1">
+            <Label
+              htmlFor="rev-primer"
+              className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
+            >
+              Universal Rev Primer (5′→3′)
+            </Label>
+            <Input
+              id="rev-primer"
+              type="text"
+              value={rawRunParams.revPrimerUniversal}
+              onChange={(e) =>
+                updateRaw({ revPrimerUniversal: e.target.value.trim().toUpperCase() })
+              }
+              placeholder="ACGT..."
+              className="h-8 min-w-0 font-mono text-xs"
+              aria-label="Universal reverse primer sequence 5 prime to 3 prime"
+              disabled={isDemuxing}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Normalize headers toggle */}
+      <div className="flex items-center justify-between">
+        <Label
+          htmlFor="normalize-headers-toggle"
+          className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
+        >
+          Normalize Headers
+        </Label>
+        <button
+          id="normalize-headers-toggle"
+          type="button"
+          role="switch"
+          aria-checked={rawRunParams.normalizeHeaders}
+          aria-label="Write well name as FASTA header instead of ONT read ID"
           disabled={isDemuxing}
-        />
-        <NumericField
-          id="length-max"
-          label="Length Max"
-          value={rawRunParams.lengthMax}
-          step="50"
-          onChange={(v) => updateRaw({ lengthMax: Math.round(v) })}
-          disabled={isDemuxing}
-        />
+          onClick={() => updateRaw({ normalizeHeaders: !rawRunParams.normalizeHeaders })}
+          className={cn(
+            "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+            "disabled:cursor-not-allowed disabled:opacity-50",
+            rawRunParams.normalizeHeaders ? "bg-primary" : "bg-input",
+          )}
+        >
+          <span
+            aria-hidden="true"
+            className={cn(
+              "pointer-events-none inline-block h-4 w-4 rounded-full bg-background shadow-sm ring-0 transition-transform",
+              rawRunParams.normalizeHeaders ? "translate-x-4" : "translate-x-0",
+            )}
+          />
+        </button>
       </div>
 
       {/* Progress bar */}
@@ -194,12 +362,20 @@ function RawRunParamPanel() {
         <div
           role="status"
           aria-live="polite"
-          className="rounded-md bg-muted px-3 py-2 text-caption text-muted-foreground"
+          className="space-y-1 rounded-md bg-muted px-3 py-2 text-caption text-muted-foreground"
         >
-          <span className="font-medium text-foreground">Demux complete:</span>{" "}
-          {demuxResult.n_assigned.toLocaleString()} reads assigned /{" "}
-          {demuxResult.n_input_reads.toLocaleString()} total (
-          {demuxResult.backend})
+          <div>
+            <span className="font-medium text-foreground">Demux complete:</span>{" "}
+            {demuxResult.n_assigned.toLocaleString()} reads assigned /{" "}
+            {demuxResult.n_input_reads.toLocaleString()} total (
+            {demuxResult.backend})
+          </div>
+          {demuxResult.amplicon_length_estimate !== null && (
+            <AmpliconLengthBadge estimate={demuxResult.amplicon_length_estimate} />
+          )}
+          <div className="text-caption text-muted-foreground">
+            Length filter: {demuxResult.length_filter_mode.replace("_", " ")}
+          </div>
         </div>
       )}
 
@@ -209,7 +385,11 @@ function RawRunParamPanel() {
         size="sm"
         className="w-full text-xs"
         onClick={() => void runDemuxAndFilter()}
-        disabled={isDemuxing || !rawRunParams.customBarcodesPath}
+        disabled={
+          isDemuxing ||
+          !rawRunParams.customBarcodesPath ||
+          (rawRunParams.linkedTrim && !rawRunParams.revPrimerUniversal)
+        }
         aria-busy={isDemuxing}
         aria-label="Run demux and quality filter on raw run folder"
       >

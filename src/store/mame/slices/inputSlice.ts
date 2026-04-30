@@ -3,6 +3,7 @@ import { cancelAndRespawn, sendRequest } from "@/lib/ipc-mame";
 import { formatError } from "@/lib/utils";
 import { loadWorkspaceFromFile, saveWorkspaceToFile } from "@/lib/mame/workspace";
 import type {
+  AmpliconLengthEstimate,
   AnalyzeResult,
   DemuxAndFilterResult,
   DistributionStats,
@@ -19,6 +20,12 @@ const DEFAULT_RAW_RUN_PARAMS: RawRunParams = {
   lengthMin: 800,
   lengthMax: 3000,
   minBarcodeScore: 60.0,
+  // R6.5 defaults
+  targetLength: null,
+  lengthToleranceBp: 30,
+  linkedTrim: false,
+  revPrimerUniversal: "",
+  normalizeHeaders: true,
 };
 
 export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set, get) => ({
@@ -44,6 +51,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   demuxMessage: "",
   demuxResult: null,
   distributionStats: null,
+  ampliconLengthEstimate: null,
   setInputDir: (inputDir) => set({ inputDir }),
   setExpectedPath: (expectedPath) => set({ expectedPath }),
   setReferencePath: (referencePath) => set({ referencePath }),
@@ -72,6 +80,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   setDemuxResult: (demuxResult: DemuxAndFilterResult | null) => set({ demuxResult }),
   setDistributionStats: (distributionStats: DistributionStats | null) =>
     set({ distributionStats }),
+  setAmpliconLengthEstimate: (ampliconLengthEstimate: AmpliconLengthEstimate | null) =>
+    set({ ampliconLengthEstimate }),
   runDemuxAndFilter: async () => {
     const s = get();
     const { rawRunParams } = s;
@@ -98,14 +108,21 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
           length_min: rawRunParams.lengthMin,
           length_max: rawRunParams.lengthMax,
           min_barcode_score: rawRunParams.minBarcodeScore,
+          target_length: rawRunParams.targetLength ?? undefined,
+          length_tolerance_bp: rawRunParams.lengthToleranceBp,
+          auto_detect_length: rawRunParams.targetLength === null,
+          linked_trim: rawRunParams.linkedTrim,
+          rev_primer_universal: rawRunParams.revPrimerUniversal || undefined,
+          normalize_headers: rawRunParams.normalizeHeaders,
         },
         600_000,
       );
       set({
         isDemuxing: false,
         demuxProgress: 100,
-        demuxMessage: `Demux complete: ${result.n_assigned} reads assigned`,
+        demuxMessage: `Demux complete: ${result.n_assigned.toLocaleString()} reads assigned`,
         demuxResult: result,
+        ampliconLengthEstimate: result.amplicon_length_estimate,
         // Auto-set inputDir to demux output for downstream analyze call.
         inputDir: result.output_dir,
         ingestMode: "barcode",

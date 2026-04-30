@@ -16,13 +16,29 @@ Cutadapt details
 - ``-e <error_tolerance>`` passed as a single float.
 - ``--discard-untrimmed`` routes unmatched reads to a separate sink.
 - Invoked with ``shell=False`` and ``list`` args (security: code-security §SQL).
+- When ``linked_trim=True`` and ``rev_primer_universal`` is provided, cutadapt
+  receives both ``-g file:<fwd_adapters>`` and ``-a <rc(rev)>`` in one pass,
+  trimming both ends simultaneously (cutadapt linked-adapter mode).
 
 Pure-Python fallback
 --------------------
 - Iterates over every read; for each barcode computes Hamming distance to the
   read prefix (up to 3 × barcode length to allow for indels in the prefix).
 - Best-match wins; ties (equal distance) → unassigned.
+- When ``linked_trim=True`` and ``rev_primer_universal`` is provided, the
+  reverse complement of ``rev_primer_universal`` is searched near the read
+  3′-end (last 60 bp) using Hamming distance ≤ ``ceil(len * error_tolerance)``;
+  if found the read is trimmed to that position.
 - Reads are written as FASTA (one record per read, ID taken from FASTQ header).
+
+Header normalisation
+--------------------
+When ``normalize_headers=True``, every FASTA record in the output file for
+well ``{well}`` receives the header ``>{well}`` (replacing the original
+ONT UUID). This matches the sort_barcode convention observed in external
+pipeline output. All records in a per-well file share the same header —
+``fasta_parser.parse_fasta_file`` counts ``>`` lines as ``read_count``, so
+this is downstream-compatible.
 
 Output
 ------
@@ -224,6 +240,21 @@ def _parse_barcodes_csv(path: Path) -> dict[str, str]:
 
 
 # ---------------------------------------------------------------------------
+# Reverse-complement helper (no external deps)
+# ---------------------------------------------------------------------------
+
+_COMPLEMENT: dict[str, str] = {
+    "A": "T", "T": "A", "C": "G", "G": "C",
+    "a": "t", "t": "a", "c": "g", "g": "c",
+}
+
+
+def _rc(seq: str) -> str:
+    """Return the reverse complement of a DNA sequence."""
+    return "".join(_COMPLEMENT.get(b, "N") for b in reversed(seq))
+
+
+# ---------------------------------------------------------------------------
 # Hamming distance utility
 # ---------------------------------------------------------------------------
 
@@ -249,19 +280,75 @@ def _hamming_prefix(read_seq: str, barcode: str) -> int:
 # ---------------------------------------------------------------------------
 
 
+def _trim_rev_primer(
+    seq: str,
+    rev_rc: str,
+    max_mismatches: int,
+    search_tail_bp: int = 60,
+) -> str:
+    """Trim the 3′ end of a read at the rightmost occurrence of rev_rc within tolerance.
+
+    Searches only the last ``search_tail_bp`` bases to avoid false hits in the
+    amplicon body. Scans right-to-left so that the primer closest to the actual
+    3′ end is preferred over an earlier false positive caused by 1-mismatch hits
+    in the amplicon body.
+
+    Returns the original sequence unchanged if no hit is found.
+    """
+    rev_len = len(rev_rc)
+    if len(seq) < rev_len:
+        return seq
+    tail_start = max(0, len(seq) - search_tail_bp)
+    tail = seq[tail_start:]
+    # Scan right-to-left: prefer the rightmost (3′-most) hit.
+    for i in range(len(tail) - rev_len, -1, -1):
+        mismatches = 0
+        for a, b in zip(rev_rc, tail[i:i + rev_len]):
+            if a != b:
+                mismatches += 1
+            if mismatches > max_mismatches:
+                break
+        if mismatches <= max_mismatches:
+            cut = tail_start + i
+            return seq[:cut]
+    return seq
+
+
 def _demux_python(
     fastq_files: list[Path],
     custom_barcodes: dict[str, str],
     output_dir: Path,
     error_tolerance: float,
+    linked_trim: bool = False,
+    rev_primer_universal: str | None = None,
+    normalize_headers: bool = True,
 ) -> DemuxResult:
-    """Demux using pure-Python Hamming-distance prefix matching."""
+    """Demux using pure-Python Hamming-distance prefix matching.
 
+    Parameters
+    ----------
+    linked_trim:
+        When True and ``rev_primer_universal`` is provided, trim the 3′ end of
+        each read at the reverse complement of the primer.
+    rev_primer_universal:
+        Sequence of the universal reverse primer (5′→3′).  Its RC is searched
+        near the 3′ end of each read and clipped off.
+    normalize_headers:
+        When True, write ``>{well_name}`` as the FASTA header for every read
+        in the well file instead of the original ONT UUID.
+    """
     # Precompute max allowed mismatches per barcode.
-    max_mismatches: dict[str, int] = {
+    max_mm: dict[str, int] = {
         name: math.ceil(len(seq) * error_tolerance)
         for name, seq in custom_barcodes.items()
     }
+
+    # Precompute rev-primer RC and its mismatch threshold (if applicable).
+    rev_rc: str | None = None
+    rev_max_mm: int = 0
+    if linked_trim and rev_primer_universal:
+        rev_rc = _rc(rev_primer_universal)
+        rev_max_mm = math.ceil(len(rev_rc) * error_tolerance)
 
     per_well_counts: dict[str, int] = {}
     writers: dict[str, object] = {}
@@ -293,11 +380,18 @@ def _demux_python(
                     continue
 
                 # Check threshold.
-                barcode_seq = custom_barcodes[best_name]
-                threshold = max_mismatches[best_name]
+                threshold = max_mm[best_name]
                 if best_dist > threshold:
                     n_unassigned += 1
                     continue
+
+                # Trim forward barcode from 5′ end.
+                bc_len = len(custom_barcodes[best_name])
+                trimmed_seq = seq[bc_len:]
+
+                # Optionally trim reverse primer from 3′ end.
+                if rev_rc is not None:
+                    trimmed_seq = _trim_rev_primer(trimmed_seq, rev_rc, rev_max_mm)
 
                 # Write FASTA record.
                 if best_name not in writers:
@@ -306,7 +400,8 @@ def _demux_python(
                         fasta_path, "w", encoding="utf-8"
                     )
                 fh = writers[best_name]
-                fh.write(f">{read_id}\n{seq}\n")  # type: ignore[union-attr]
+                header = best_name if normalize_headers else read_id
+                fh.write(f">{header}\n{trimmed_seq}\n")  # type: ignore[union-attr]
 
                 per_well_counts[best_name] = per_well_counts.get(best_name, 0) + 1
                 n_assigned += 1
@@ -372,6 +467,9 @@ def _demux_cutadapt(
     custom_barcodes: dict[str, str],
     output_dir: Path,
     error_tolerance: float,
+    linked_trim: bool = False,
+    rev_primer_universal: str | None = None,
+    normalize_headers: bool = True,
 ) -> DemuxResult:
     """Demux via cutadapt subprocess.
 
@@ -379,7 +477,12 @@ def _demux_cutadapt(
     - ``-g file:<adapters.fasta>`` for all 96 barcodes in one shot.
     - ``-e <error_tolerance>`` as per-adapter error rate.
     - ``--discard-untrimmed`` to route unmatched reads to ``_unassigned.fasta``.
-    - FASTQ → FASTA conversion via ``-y '' --fasta``.
+    - FASTQ → FASTA conversion via ``--fasta``.
+    - When ``linked_trim=True`` and ``rev_primer_universal`` is provided,
+      ``-a <rc(rev)>`` is added to trim the 3′ end of every matched read.
+
+    When ``normalize_headers=True``, a post-processing pass rewrites every FASTA
+    header in the per-well output files to ``>{well_name}``.
     """
     import logging
 
@@ -401,8 +504,14 @@ def _demux_cutadapt(
             "--fasta",
             "-o", str(output_dir / "{name}.fasta"),
             "--untrimmed-output", str(output_dir / "_unassigned.fasta"),
-            *input_paths,
         ]
+
+        # Linked adapter: trim rev-primer RC from 3′ end.
+        if linked_trim and rev_primer_universal:
+            rev_rc_seq = _rc(rev_primer_universal)
+            cmd += ["-a", rev_rc_seq]
+
+        cmd += input_paths
 
         proc = subprocess.run(
             cmd,
@@ -426,6 +535,22 @@ def _demux_cutadapt(
     per_well_counts, n_assigned, n_unassigned = _collect_cutadapt_outputs(
         output_dir, custom_barcodes
     )
+
+    # Header normalization: rewrite every per-well FASTA header to >{well_name}.
+    if normalize_headers:
+        for well_name in list(per_well_counts.keys()):
+            fp = output_dir / f"{well_name}.fasta"
+            if not fp.exists():
+                continue
+            lines = fp.read_text(encoding="utf-8").splitlines(keepends=True)
+            normalized: list[str] = []
+            for ln in lines:
+                if ln.startswith(">"):
+                    normalized.append(f">{well_name}\n")
+                else:
+                    normalized.append(ln)
+            fp.write_text("".join(normalized), encoding="utf-8")
+
     n_input = n_assigned + n_unassigned
 
     return DemuxResult(
@@ -448,6 +573,9 @@ def demux_native_barcode(
     output_dir: Path,
     error_tolerance: float = 0.1,
     use_cutadapt: bool = True,
+    linked_trim: bool = False,
+    rev_primer_universal: str | None = None,
+    normalize_headers: bool = True,
 ) -> DemuxResult:
     """Demux a native barcode folder into per-well FASTA files.
 
@@ -466,10 +594,27 @@ def demux_native_barcode(
     use_cutadapt:
         If True *and* cutadapt is on PATH, use the cutadapt backend.
         Otherwise falls back to pure-Python Hamming matching.
+    linked_trim:
+        When True *and* ``rev_primer_universal`` is provided, trim the
+        reverse complement of ``rev_primer_universal`` from the 3′ end of
+        each read after forward-barcode demux.  Defaults to False — safe
+        to enable only once the reverse primer sequence is known.
+    rev_primer_universal:
+        Sequence of the universal reverse primer (5′→3′). Required when
+        ``linked_trim=True``; ignored otherwise.
+    normalize_headers:
+        When True, write ``>{well_name}`` as the FASTA record header for
+        every read in the well file.  When False, the original FASTQ read ID
+        is preserved.  Defaults to True (matches sort_barcode convention).
 
     Returns
     -------
     DemuxResult with n_input_reads, n_assigned, n_unassigned, per_well_counts.
+
+    Raises
+    ------
+    ValueError
+        If ``linked_trim=True`` but ``rev_primer_universal`` is None or empty.
     """
     # Input validation (security: code-security §Input Validation).
     if not fastq_dir.is_dir():
@@ -477,16 +622,16 @@ def demux_native_barcode(
     _validate_custom_barcodes(custom_barcodes)
     error_tolerance = _validate_error_tolerance(error_tolerance)
 
+    if linked_trim and not rev_primer_universal:
+        raise ValueError(
+            "linked_trim=True requires rev_primer_universal to be a non-empty string. "
+            "Provide the universal reverse primer sequence or set linked_trim=False."
+        )
+
     # Collect FASTQ files.
     fastq_files: list[Path] = sorted(
-        [
-            p
-            for p in fastq_dir.rglob("*.fastq")
-        ]
-        + [
-            p
-            for p in fastq_dir.rglob("*.fastq.gz")
-        ]
+        [p for p in fastq_dir.rglob("*.fastq")]
+        + [p for p in fastq_dir.rglob("*.fastq.gz")]
     )
     if not fastq_files:
         raise FileNotFoundError(
@@ -496,13 +641,31 @@ def demux_native_barcode(
 
     # Backend selection.
     if use_cutadapt and shutil.which("cutadapt") is not None:
-        return _demux_cutadapt(fastq_files, custom_barcodes, output_dir, error_tolerance)
+        return _demux_cutadapt(
+            fastq_files,
+            custom_barcodes,
+            output_dir,
+            error_tolerance,
+            linked_trim=linked_trim,
+            rev_primer_universal=rev_primer_universal,
+            normalize_headers=normalize_headers,
+        )
 
-    return _demux_python(fastq_files, custom_barcodes, output_dir, error_tolerance)
+    return _demux_python(
+        fastq_files,
+        custom_barcodes,
+        output_dir,
+        error_tolerance,
+        linked_trim=linked_trim,
+        rev_primer_universal=rev_primer_universal,
+        normalize_headers=normalize_headers,
+    )
 
 
 __all__ = [
     "DemuxResult",
     "demux_native_barcode",
     "parse_custom_barcodes",
+    "_rc",
+    "_trim_rev_primer",
 ]

@@ -12,29 +12,39 @@ Method is registered in ``dispatcher.py`` as an async method (heavy I/O).
 
 Parameter schema
 ----------------
-``fastq_dir``        (str, required)   — path to fastq_pass/barcodeN/ directory
-``custom_barcodes``  (dict, required)  — {well_name: barcode_seq} mapping
-``output_dir``       (str, required)   — destination directory for per-well FASTA
-``error_tolerance``  (float, optional) — mismatch rate [0.0, 0.5], default 0.1
-``use_cutadapt``     (bool, optional)  — prefer cutadapt if on PATH, default True
-``sequencing_summary`` (str, optional) — path to sequencing_summary_*.txt (A3)
-``min_qscore``       (float, optional) — Phred Q threshold, default 8.0
-``length_min``       (int, optional)   — min read length, default 800
-``length_max``       (int, optional)   — max read length, default 3000
-``min_barcode_score`` (float, optional)— MinKNOW barcode_score threshold, default 60.0
-``nb_dirs``          (list[str], optional)  — if set, run demux on each listed
-                     subdirectory of ``fastq_dir`` and merge results.
+``fastq_dir``            (str, required)   — path to fastq_pass/barcodeN/ directory
+``custom_barcodes``      (dict, optional)  — {well_name: barcode_seq} mapping
+``custom_barcodes_path`` (str, optional)   — xlsx/csv path; parsed on sidecar side
+``output_dir``           (str, required)   — destination directory for per-well FASTA
+``error_tolerance``      (float, optional) — mismatch rate [0.0, 0.5], default 0.1
+``use_cutadapt``         (bool, optional)  — prefer cutadapt if on PATH, default True
+``sequencing_summary``   (str, optional)   — path to sequencing_summary_*.txt (A3)
+``min_qscore``           (float, optional) — Phred Q threshold, default 8.0
+``length_min``           (int, optional)   — min read length fallback, default 800
+``length_max``           (int, optional)   — max read length fallback, default 3000
+``target_length``        (int | null, opt) — modal amplicon length (bp); auto-detected
+                         when omitted and ``auto_detect_length`` is True
+``length_tolerance_bp``  (int, optional)   — ± window around target_length, default 30
+``auto_detect_length``   (bool, optional)  — run detect_amplicon_length when
+                         target_length is None, default True
+``min_barcode_score``    (float, optional) — MinKNOW barcode_score threshold, default 60.0
+``linked_trim``          (bool, optional)  — trim rev primer from 3′ end, default False
+``rev_primer_universal`` (str | null, opt) — 5′→3′ seq of universal rev primer;
+                         required when linked_trim=True
+``normalize_headers``    (bool, optional)  — write >{well} FASTA headers, default True
+``nb_dirs``              (list[str], opt)  — if set, demux each subdirectory separately
 
 Response schema
 ---------------
-``output_dir``           (str)  — directory containing per-well FASTA files
-``n_input_reads``        (int)
-``n_assigned``           (int)
-``n_unassigned``         (int)
-``per_well_counts``      (dict[str, int])
-``filter_stats``         (dict | null)  — QualityFilterResult as dict, or null
-                         if no FASTQ-level filtering was performed
-``backend``              (str)  — "cutadapt" | "python"
+``output_dir``                  (str)        — directory containing per-well FASTA files
+``n_input_reads``               (int)
+``n_assigned``                  (int)
+``n_unassigned``                (int)
+``per_well_counts``             (dict[str, int])
+``filter_stats``                (dict | null)— QualityFilterResult as dict, or null
+``backend``                     (str)        — "cutadapt" | "python"
+``amplicon_length_estimate``    (dict | null)— AmpliconLengthEstimate as dict, or null
+``length_filter_mode``          (str)        — "target_window" | "fixed_range" | "none"
 """
 
 from __future__ import annotations
@@ -79,7 +89,11 @@ def handle_demux_and_filter(params: dict) -> dict:
     Heavy I/O — registered as an async method in dispatcher.py.
     """
     from kuma_core.mame.ingest.demux import DemuxResult, demux_native_barcode
-    from kuma_core.mame.ingest.quality_filter import QualityFilterParams
+    from kuma_core.mame.ingest.quality_filter import (
+        AmpliconLengthEstimate,
+        QualityFilterParams,
+        detect_amplicon_length,
+    )
 
     # ── Mandatory params ─────────────────────────────────────────────────
     fastq_dir = _validate_dirpath(params.get("fastq_dir"))
@@ -123,6 +137,9 @@ def handle_demux_and_filter(params: dict) -> dict:
     # ── Optional demux params ────────────────────────────────────────────
     error_tolerance = float(params.get("error_tolerance", 0.1))
     use_cutadapt = bool(params.get("use_cutadapt", True))
+    linked_trim = bool(params.get("linked_trim", False))
+    rev_primer_universal: str | None = params.get("rev_primer_universal") or None
+    normalize_headers = bool(params.get("normalize_headers", True))
 
     # ── Optional quality filter params ───────────────────────────────────
     seq_summary_raw = params.get("sequencing_summary")
@@ -134,11 +151,29 @@ def handle_demux_and_filter(params: dict) -> dict:
                 f"sequencing_summary not found: {sequencing_summary}"
             )
 
+    # ── Amplicon length: auto-detect or use provided value ───────────────
+    target_length_raw = params.get("target_length")
+    auto_detect = bool(params.get("auto_detect_length", True))
+    length_tolerance_bp = int(params.get("length_tolerance_bp", 30))
+
+    amplicon_estimate: AmpliconLengthEstimate | None = None
+    target_length: int | None = None
+
+    if target_length_raw is not None:
+        target_length = int(target_length_raw)
+    elif auto_detect:
+        _progress(3, "Detecting amplicon length...")
+        amplicon_estimate = detect_amplicon_length(fastq_dir)
+        if amplicon_estimate is not None:
+            target_length = amplicon_estimate.detected_length
+
     qf_params = QualityFilterParams(
         min_qscore=float(params.get("min_qscore", 8.0)),
         length_min=int(params.get("length_min", 800)),
         length_max=int(params.get("length_max", 3000)),
         min_barcode_score=float(params.get("min_barcode_score", 60.0)),
+        target_length=target_length,
+        length_tolerance_bp=length_tolerance_bp,
     )
 
     # ── Optional multi-NB mode ───────────────────────────────────────────
@@ -172,6 +207,9 @@ def handle_demux_and_filter(params: dict) -> dict:
                 output_dir=nb_out,
                 error_tolerance=error_tolerance,
                 use_cutadapt=use_cutadapt,
+                linked_trim=linked_trim,
+                rev_primer_universal=rev_primer_universal,
+                normalize_headers=normalize_headers,
             )
             merged_input += partial.n_input_reads
             merged_assigned += partial.n_assigned
@@ -203,6 +241,9 @@ def handle_demux_and_filter(params: dict) -> dict:
             output_dir=single_nb_out,
             error_tolerance=error_tolerance,
             use_cutadapt=use_cutadapt,
+            linked_trim=linked_trim,
+            rev_primer_universal=rev_primer_universal,
+            normalize_headers=normalize_headers,
         )
         # Return parent output_dir (not single_nb_out) so analyze receives the
         # correct root that load_barcode_directory expects.
@@ -229,7 +270,10 @@ def handle_demux_and_filter(params: dict) -> dict:
     filter_stats_dict: dict | None = None
 
     if sequencing_summary is not None:
-        from kuma_core.mame.ingest.quality_filter import _parse_sequencing_summary
+        from kuma_core.mame.ingest.quality_filter import (
+            _parse_sequencing_summary,
+            _resolve_length_window,
+        )
 
         # Build fail set from sequencing_summary.
         summary_meta = _parse_sequencing_summary(sequencing_summary)
@@ -238,6 +282,10 @@ def handle_demux_and_filter(params: dict) -> dict:
         n_qf_failed_qscore = 0
         n_qf_failed_length = 0
         n_qf_failed_barcode = 0
+
+        # Resolve the effective length window (target_length takes priority over
+        # length_min/length_max when set).
+        _len_min, _len_max = _resolve_length_window(qf_params)
 
         for read_id, meta in summary_meta.items():
             n_qf_input += 1
@@ -257,7 +305,7 @@ def handle_demux_and_filter(params: dict) -> dict:
                 length = meta.get("length")
                 if length is not None:
                     length_i = int(length)
-                    if length_i < qf_params.length_min or length_i > qf_params.length_max:
+                    if length_i < _len_min or length_i > _len_max:
                         n_qf_failed_length += 1
                         fail_read_ids.add(read_id)
                         failed = True
@@ -331,6 +379,23 @@ def handle_demux_and_filter(params: dict) -> dict:
 
     _progress(95, "Finalising...")
 
+    # Determine which length filter mode was active (for frontend display).
+    if qf_params.target_length is not None:
+        length_filter_mode = "target_window"
+    elif qf_params.length_min != 0 or qf_params.length_max != 0:
+        length_filter_mode = "fixed_range"
+    else:
+        length_filter_mode = "none"
+
+    amplicon_estimate_dict: dict | None = None
+    if amplicon_estimate is not None:
+        amplicon_estimate_dict = {
+            "detected_length": amplicon_estimate.detected_length,
+            "n_sample_reads": amplicon_estimate.n_sample_reads,
+            "confidence": amplicon_estimate.confidence,
+            "distribution_summary": amplicon_estimate.distribution_summary,
+        }
+
     return {
         "output_dir": str(demux_result.output_dir),
         "n_input_reads": demux_result.n_input_reads,
@@ -339,6 +404,8 @@ def handle_demux_and_filter(params: dict) -> dict:
         "per_well_counts": demux_result.per_well_counts,
         "filter_stats": filter_stats_dict,
         "backend": backend,
+        "amplicon_length_estimate": amplicon_estimate_dict,
+        "length_filter_mode": length_filter_mode,
     }
 
 
