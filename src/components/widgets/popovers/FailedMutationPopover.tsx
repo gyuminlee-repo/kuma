@@ -148,7 +148,6 @@ export function FailedMutationPopover({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 backdrop-blur-[2px]" onClick={onClose} onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}>
-      <div aria-hidden="true" className="fixed inset-0" />
       <div ref={focusTrapRef} role="dialog" aria-modal="true" aria-labelledby="failed-mutation-title" className="min-w-[520px] max-h-[80vh] max-w-2xl overflow-y-auto rounded-container border border-border bg-card p-5 shadow-lg" onClick={(e) => e.stopPropagation()}>
         <div className="mb-4 flex items-center justify-between">
           <div>

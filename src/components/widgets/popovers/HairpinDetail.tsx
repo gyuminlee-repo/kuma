@@ -23,7 +23,6 @@ export function HairpinDetail({
       onClick={onClose}
       onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}
     >
-      <div aria-hidden="true" className="fixed inset-0" />
       <div
         ref={focusTrapRef}
         role="dialog"
