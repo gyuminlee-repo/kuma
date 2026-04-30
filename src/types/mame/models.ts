@@ -152,6 +152,33 @@ export interface ScreenTab {
   content?: ReactNode;
 }
 
+// ── A8: Run health panel types ───────────────────────────────────────────────
+
+export interface RunHealthBreakdown {
+  pass: number;
+  ambiguous: number;
+  fail: number;
+  fallback: number;
+  total: number;
+}
+
+export interface RunHealthThroughputPoint {
+  time_h: number;
+  reads_per_sec: number;
+}
+
+export interface RunHealthData {
+  per_plate_summary: Record<string, RunHealthBreakdown>;
+  /** Keys: min, p05, p25, median, p75, p95, max, mean, std */
+  file_size_distribution: Record<string, number>;
+  suggested_cutoff_kb: number;
+  bimodal: boolean;
+  suggested_method: "median_minus_2sigma" | "p05" | "kneedle" | "fixed_50";
+  pore_yield_pct: number | null;
+  throughput_timeline: RunHealthThroughputPoint[] | null;
+  barcode_distribution: Record<string, number> | null;
+}
+
 // ── A1/A3: Demux and quality-filter types (R6) ──────────────────────────────
 
 export interface DemuxFilterStats {

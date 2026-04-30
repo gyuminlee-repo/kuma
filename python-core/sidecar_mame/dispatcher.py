@@ -27,6 +27,7 @@ from sidecar_mame.handlers.export import (
 from sidecar_mame.handlers.kuma_meta import handle_read_kuma_meta
 from sidecar_mame.handlers.report import handle_export_run_report
 from sidecar_mame.handlers.demux import handle_demux_and_filter
+from sidecar_mame.handlers.health import handle_get_run_health
 
 # Phase A handler registry.
 # ``translate`` is deferred to Phase B per the reconciled scope.
@@ -42,6 +43,8 @@ _METHODS = {
     "cancel_analyze": lambda _: {"cancelled": True},
     # A1/A3: raw-run demux + quality filter (R6)
     "demux_and_filter": handle_demux_and_filter,
+    # A8: run health panel
+    "get_run_health": handle_get_run_health,
 }
 
 # Long-running handlers run on a worker thread so stdin keeps draining.

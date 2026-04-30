@@ -172,6 +172,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       get().setOutputPath(result.output_path);
       get().setDistributionStats(result.distribution_stats ?? null);
       await get().loadPlateData();
+      // A8: auto-load run health after analysis completes (non-blocking on failure)
+      void get().loadRunHealth();
       set({
         isAnalyzing: false,
         analyzeProgress: 100,

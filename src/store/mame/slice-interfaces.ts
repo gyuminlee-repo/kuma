@@ -4,6 +4,7 @@ import type {
   DistributionStats,
   DemuxAndFilterResult,
   ReplicateResult,
+  RunHealthData,
   VerdictRecord,
   WellEntry,
 } from "@/types/mame/models";
@@ -86,6 +87,7 @@ export interface AnalysisSlice {
   showExport: boolean;
   wells: WellEntry[];
   selectedWell: WellEntry | null;
+  runHealth: RunHealthData | null;
   setVerdicts: (verdicts: VerdictRecord[]) => void;
   setReplicates: (replicates: ReplicateResult[]) => void;
   setSummary: (summary: AnalyzeSummary | null) => void;
@@ -97,6 +99,7 @@ export interface AnalysisSlice {
   setWells: (wells: WellEntry[]) => void;
   setSelectedWell: (well: WellEntry | null) => void;
   loadPlateData: () => Promise<void>;
+  loadRunHealth: () => Promise<void>;
   clearResults: () => void;
   loadSampleData: () => void;
 }

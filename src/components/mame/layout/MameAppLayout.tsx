@@ -12,6 +12,7 @@ import { StatusBar } from "./StatusBar";
 import { PlateView } from "../widgets/PlateView";
 import { SummaryRow } from "../widgets/SummaryRow";
 import { VerdictTable } from "../widgets/VerdictTable";
+import { RunHealthPanel } from "../widgets/RunHealthPanel";
 import { DataPanel } from "@/components/ui/Panel";
 
 const SEQUENCE_EXTENSIONS = new Set([".fa", ".fasta", ".fna"]);
@@ -21,6 +22,8 @@ export function MameAppLayout() {
   const project = useKumaProject();
   const { status, retry } = useMameSidecar();
   const clearResults = useMameAppStore((s) => s.clearResults);
+  const runHealth = useMameAppStore((s) => s.runHealth);
+  const verdictsLength = useMameAppStore((s) => s.verdicts.length);
   const [isDragOver, setIsDragOver] = useState(false);
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
 
@@ -108,7 +111,7 @@ export function MameAppLayout() {
         <Sidebar onClearRequest={() => setClearConfirmOpen(true)} />
 
         <main
-          className="grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)_320px] gap-3 overflow-hidden"
+          className="grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)_320px_auto] gap-3 overflow-hidden"
           role="main"
           aria-label="Analysis workspace"
         >
@@ -119,6 +122,11 @@ export function MameAppLayout() {
           <DataPanel title="Plate plan">
             <PlateView />
           </DataPanel>
+          {verdictsLength > 0 && runHealth !== null && (
+            <DataPanel title="Run health">
+              <RunHealthPanel health={runHealth} />
+            </DataPanel>
+          )}
         </main>
       </div>
 

@@ -7,7 +7,7 @@ import {
   sampleVerdicts,
   sampleWells,
 } from "@/lib/mame/sampleData";
-import type { PlateDataResult } from "@/types/mame/models";
+import type { PlateDataResult, RunHealthData } from "@/types/mame/models";
 import type { AnalysisSlice } from "../slice-interfaces";
 import type { AppState } from "../types";
 
@@ -24,6 +24,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
   showExport: false,
   wells: [],
   selectedWell: null,
+  runHealth: null,
   setVerdicts: (verdicts) => set({ verdicts }),
   setReplicates: (replicates) => set({ replicates }),
   setSummary: (summary) => set({ summary }),
@@ -45,6 +46,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       wells: [],
       selectedWell: null,
       searchQuery: "",
+      runHealth: null,
     }),
   loadPlateData: async () => {
     try {
@@ -55,6 +57,15 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       // -32002: analyze not yet run, or other sidecar errors. Clear stale data.
       console.warn("[analysisSlice] loadPlateData failed:", error);
       set({ wells: [], selectedWell: null });
+    }
+  },
+  loadRunHealth: async () => {
+    try {
+      const result = await sendRequest<RunHealthData>("get_run_health", {});
+      set({ runHealth: result });
+    } catch (error) {
+      console.warn("[analysisSlice] loadRunHealth failed:", error);
+      set({ runHealth: null });
     }
   },
   loadSampleData: () => {
