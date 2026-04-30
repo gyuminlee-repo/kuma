@@ -15,7 +15,6 @@ Layout (top → bottom):
 from __future__ import annotations
 
 import html
-import math
 
 from kuma_core.mame.report.builder import RunReportData
 
@@ -208,7 +207,7 @@ def _render_plate_breakdown(data: RunReportData) -> str:
             f'<text x="{label_w - 4}" y="{y + bar_h // 2 + 4}" '
             f'class="well-label" text-anchor="end">{_e(pb.plate)}</text>'
         )
-        for seg_w, color, label in segments:
+        for seg_w, color, _ in segments:
             if seg_w > 0:
                 bars.append(
                     f'<rect x="{x}" y="{y}" width="{seg_w}" height="{bar_h}" '
@@ -277,7 +276,6 @@ def _render_distribution(data: RunReportData) -> str:
 
     max_val = max((v for _, v in buckets), default=1) or 1
     bars = []
-    cutoff_x: int | None = None
     for i, (label, value) in enumerate(buckets):
         x = pad_left + i * (bar_w + gap)
         bar_h_scaled = int(chart_h * value / max_val)
@@ -290,9 +288,6 @@ def _render_distribution(data: RunReportData) -> str:
             f'<text x="{x + bar_w // 2}" y="{svg_h - 4}" '
             f'class="hist-label" text-anchor="middle">{_e(label)}</text>'
         )
-        # Mark suggested cutoff position
-        if label == "median":
-            cutoff_x = x
 
     # Draw cutoff line (approximate position)
     cutoff_pct = data.suggested_cutoff_kb / max_val if max_val > 0 else 0
