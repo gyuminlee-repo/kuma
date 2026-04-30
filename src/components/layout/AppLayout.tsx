@@ -41,8 +41,6 @@ export function AppLayout() {
   const { status: sidecarStatus, retry: retrySidecar } = useSidecar();
   const isDesigning = useAppStore((s) => s.isDesigning);
   const statusMessage = useAppStore((s) => s.statusMessage);
-  const hasSequence = useAppStore((s) => Boolean(s.seqInfo));
-  const hasMutationText = useAppStore((s) => s.mutationText.trim().length > 0);
   const hasDesignResults = useAppStore((s) => s.designResults.length > 0);
   const successCount = useAppStore((s) => s.successCount);
   const totalCount = useAppStore((s) => s.totalCount);
@@ -52,10 +50,39 @@ export function AppLayout() {
   const showReport = useAppStore((s) => s.showReport);
   const showBenchmark = useAppStore((s) => s.showBenchmark);
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
+  const [missingFields, setMissingFields] = useState<string[] | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
 
   // C-1: Run Design 직전 flush (입력 보존 — 실패 시에도 복원 가능)
   const flushBeforeDesign = useFlushKuroBeforeDesign();
+
+  /**
+   * Collect missing required inputs for design.
+   * Returns an empty array when ready to run.
+   */
+  const collectMissingFields = useCallback((): string[] => {
+    const s = useAppStore.getState();
+    const missing: string[] = [];
+    if (!s.seqInfo) missing.push("Sequence file (Browse a .gb / .fasta / .dna file)");
+    if (!s.mutationText.trim()) missing.push("Mutations (enter at least one mutation in the Mutation panel)");
+    if (s.seqInfo && s.seqInfo.genes.length > 1 && !s.selectedGene) {
+      missing.push("Target gene (select one in the Sequence panel)");
+    }
+    return missing;
+  }, []);
+
+  /**
+   * Click handler: validate first, then run. If anything is missing, show a popup.
+   */
+  const tryRunDesign = useCallback(() => {
+    if (useAppStore.getState().isDesigning) return;
+    const missing = collectMissingFields();
+    if (missing.length > 0) {
+      setMissingFields(missing);
+      return;
+    }
+    void flushBeforeDesign().then(() => useAppStore.getState().designPrimers());
+  }, [collectMissingFields, flushBeforeDesign]);
 
   const selectedGeneInfo = seqInfo?.genes.find((gene) => String(gene.cds_start) === selectedGene);
   const plateEstimate = totalCount > 0 ? Math.ceil(totalCount / 96) : null;
@@ -127,12 +154,7 @@ export function AppLayout() {
       case "d":
         if (isInput) return;
         e.preventDefault();
-        {
-          const s = useAppStore.getState();
-          if (s.seqInfo && !s.isDesigning && s.mutationText.trim()) {
-            void flushBeforeDesign().then(() => s.designPrimers());
-          }
-        }
+        tryRunDesign();
         break;
       case "o":
         e.preventDefault();
@@ -141,15 +163,10 @@ export function AppLayout() {
       case "enter":
         if (isInput) return;
         e.preventDefault();
-        {
-          const s = useAppStore.getState();
-          if (s.seqInfo && !s.isDesigning && s.mutationText.trim()) {
-            void flushBeforeDesign().then(() => s.designPrimers());
-          }
-        }
+        tryRunDesign();
         break;
     }
-  }, [flushBeforeDesign, project]);
+  }, [flushBeforeDesign, project, tryRunDesign]);
 
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown);
@@ -179,10 +196,8 @@ export function AppLayout() {
               <div className="flex gap-2">
                 <Button
                   className="h-control-primary flex-1 rounded-control text-body font-semibold"
-                  onClick={() => {
-                    void flushBeforeDesign().then(() => useAppStore.getState().designPrimers());
-                  }}
-                  disabled={!hasSequence || isDesigning || !hasMutationText}
+                  onClick={tryRunDesign}
+                  disabled={isDesigning}
                 >
                   {isDesigning ? "Designing..." : "Run Design"}
                   {!isDesigning && (
@@ -279,6 +294,32 @@ export function AppLayout() {
               }}
             >
               Clear
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={missingFields !== null}
+        onOpenChange={(open) => {
+          if (!open) setMissingFields(null);
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Cannot run design yet</DialogTitle>
+            <DialogDescription>
+              Fill in the following before running design:
+            </DialogDescription>
+          </DialogHeader>
+          <ul className="list-disc pl-5 text-body text-foreground space-y-1">
+            {missingFields?.map((m) => (
+              <li key={m}>{m}</li>
+            ))}
+          </ul>
+          <DialogFooter>
+            <Button size="sm" onClick={() => setMissingFields(null)}>
+              OK
             </Button>
           </DialogFooter>
         </DialogContent>
