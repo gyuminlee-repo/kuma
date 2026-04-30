@@ -385,9 +385,10 @@ def _demux_python(
                     n_unassigned += 1
                     continue
 
-                # Trim forward barcode from 5′ end.
+                # Trim forward barcode from 5′ end (only in linked_trim mode;
+                # preserves R6 full-sequence behaviour when linked_trim=False).
                 bc_len = len(custom_barcodes[best_name])
-                trimmed_seq = seq[bc_len:]
+                trimmed_seq = seq[bc_len:] if linked_trim else seq
 
                 # Optionally trim reverse primer from 3′ end.
                 if rev_rc is not None:
