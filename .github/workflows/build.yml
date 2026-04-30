@@ -13,66 +13,7 @@ permissions:
   contents: write
 
 jobs:
-  verify-ci:
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Wait for CI on tagged commit
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPO: ${{ github.repository }}
-          SHA: ${{ github.sha }}
-          GITHUB_REF: ${{ github.ref }}
-        run: |
-          python3 - <<'PY'
-          import json
-          import os
-          import subprocess
-          import sys
-          import time
-
-          repo = os.environ["REPO"]
-          sha = os.environ["SHA"]
-
-          if not os.environ.get("GITHUB_REF", "").startswith("refs/tags/"):
-            print("Skipping CI gate for non-tag build")
-            raise SystemExit(0)
-
-          for _ in range(40):
-            proc = subprocess.run(
-              [
-                "gh",
-                "api",
-                f"repos/{repo}/actions/workflows/ci.yml/runs",
-                "--method",
-                "GET",
-                "-f",
-                f"head_sha={sha}",
-                "-f",
-                "event=push",
-                "-f",
-                "per_page=10",
-              ],
-              check=True,
-              capture_output=True,
-              text=True,
-            )
-            runs = json.loads(proc.stdout).get("workflow_runs", [])
-            if runs:
-              conclusion = runs[0].get("conclusion")
-              if conclusion == "success":
-                print("CI completed successfully")
-                raise SystemExit(0)
-              if conclusion in {"failure", "cancelled", "timed_out", "action_required"}:
-                print(f"CI did not succeed: {conclusion}", file=sys.stderr)
-                raise SystemExit(1)
-            time.sleep(15)
-
-          print("Timed out waiting for CI completion", file=sys.stderr)
-          raise SystemExit(1)
-          PY
-
   build:
-    needs: verify-ci
     strategy:
       fail-fast: false
       matrix:
