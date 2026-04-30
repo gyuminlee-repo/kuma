@@ -13,6 +13,13 @@ import type { KumaProject } from "@/state/projectContext";
 import type { InputSlice, InputMode, RawRunParams } from "../slice-interfaces";
 import type { AppState } from "../types";
 
+const VALID_INPUT_MODES: readonly InputMode[] = ["consensus", "sorted_barcode", "raw_run"];
+function coerceInputMode(value: unknown): InputMode {
+  return typeof value === "string" && (VALID_INPUT_MODES as readonly string[]).includes(value)
+    ? (value as InputMode)
+    : "sorted_barcode";
+}
+
 const DEFAULT_RAW_RUN_PARAMS: RawRunParams = {
   customBarcodesPath: "",
   sequencingSummaryPath: "",
@@ -259,7 +266,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         outputPath: snap.outputPath,
         mode: snap.mode,
         ingestMode: snap.ingestMode,
-        inputMode: (snap.inputMode as InputMode | undefined) ?? "sorted_barcode",
+        inputMode: coerceInputMode(snap.inputMode),
         rawRunParams: snap.rawRunParams ?? { ...DEFAULT_RAW_RUN_PARAMS },
         cdsStart: snap.cdsStart,
         cdsEnd: snap.cdsEnd,

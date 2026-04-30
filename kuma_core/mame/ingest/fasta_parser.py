@@ -23,7 +23,18 @@ from kuma_core.mame.models import BarcodeRecord
 
 
 def parse_fasta_file(path: Path, native_barcode: str) -> BarcodeRecord:
-    """Parse a single consensus FASTA file into a BarcodeRecord."""
+    """Parse a single consensus FASTA file into a BarcodeRecord.
+
+    Raises
+    ------
+    ValueError
+        If the file has no header line.
+    ValueError
+        If the file contains more than one header record (``>`` line).
+        After the demux→consensus pipeline, each per-well file must contain
+        exactly one consensus sequence.  Multiple headers indicate that raw
+        read FASTA was passed instead of a consensus file.
+    """
 
     # Read-only access: raw data is never modified.
     with path.open("r", encoding="utf-8") as fh:
@@ -34,12 +45,27 @@ def parse_fasta_file(path: Path, native_barcode: str) -> BarcodeRecord:
     header_count: int = 0
     for ln in lines:
         if ln.startswith(">"):
-            header = ln[1:].strip()
+            if header_count == 0:
+                header = ln[1:].strip()
             header_count += 1
         elif ln:
             seq_parts.append(ln.strip())
+
     if header is None:
         raise ValueError(f"FASTA file '{path}' has no header line")
+
+    # Fail-fast: reject raw-read FASTA bundles (multi-header files).
+    # Each per-well file must contain exactly one consensus record after the
+    # demux→alignment→consensus pipeline.  If multiple headers are present,
+    # the caller passed a raw-read FASTA, which would cause incorrect
+    # concatenated-sequence variant calling downstream.
+    if header_count > 1:
+        raise ValueError(
+            f"FASTA file '{path}' contains {header_count} sequence records "
+            "(expected exactly 1 consensus record). "
+            "Raw-read FASTA bundles must be processed through the "
+            "alignment+consensus pipeline before being passed to analyze()."
+        )
 
     custom_barcode = header.split()[0] if header else path.stem
     consensus_seq = "".join(seq_parts).upper()

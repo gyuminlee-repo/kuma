@@ -1,4 +1,4 @@
-"""Consensus FASTA ingest + mode routing + raw-run demux/filter."""
+"""Consensus FASTA ingest + mode routing + raw-run demux/filter + alignment/consensus."""
 
 from kuma_core.mame.ingest.fasta_parser import load_barcode_directory, parse_fasta_file
 from kuma_core.mame.ingest.mode_router import IngestMode, route_ingest
@@ -8,6 +8,9 @@ from kuma_core.mame.ingest.quality_filter import (
     QualityFilterResult,
     filter_reads_by_summary,
 )
+from kuma_core.mame.ingest.align import Alignment, align_reads
+from kuma_core.mame.ingest.consensus import call_consensus, per_position_depth
+from kuma_core.mame.ingest.well_consensus import ConsensusResult, compute_well_consensuses
 
 __all__ = [
     "load_barcode_directory",
@@ -20,4 +23,10 @@ __all__ = [
     "QualityFilterParams",
     "QualityFilterResult",
     "filter_reads_by_summary",
+    "Alignment",
+    "align_reads",
+    "call_consensus",
+    "per_position_depth",
+    "ConsensusResult",
+    "compute_well_consensuses",
 ]

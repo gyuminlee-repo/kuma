@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import gzip
-import math
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -16,6 +15,7 @@ from kuma_core.mame.ingest.demux import (
     _trim_rev_primer,
     _validate_custom_barcodes,
     _validate_error_tolerance,
+    detect_native_barcode_dirs,
     demux_native_barcode,
     parse_custom_barcodes,
 )
@@ -55,7 +55,7 @@ def fastq_dir(tmp_path: Path) -> Path:
 
     # 3 reads per barcode + 1 random unassigned.
     reads: list[tuple[str, str, str]] = []
-    for i, (name, bc) in enumerate(BARCODES.items(), start=1):
+    for name, bc in BARCODES.items():
         for j in range(3):
             read_id = f"read_{name}_{j}"
             # Prefix matches barcode exactly; pad to 200 bp.
@@ -455,3 +455,108 @@ def test_demux_tie_goes_unassigned(tmp_path: Path) -> None:
     # With equal distances to both barcodes, the read should be unassigned.
     assert result.n_unassigned == 1
     assert result.n_assigned == 0
+
+
+# ---------------------------------------------------------------------------
+# detect_native_barcode_dirs
+# ---------------------------------------------------------------------------
+
+
+def test_detect_nb_dirs_minkow_style(tmp_path: Path) -> None:
+    """MinKNOW-style barcode01/barcode02 + unclassified → 2 NB dirs, unclassified excluded."""
+    root = tmp_path / "fastq_pass"
+    (root / "barcode01").mkdir(parents=True)
+    (root / "barcode02").mkdir(parents=True)
+    (root / "unclassified").mkdir(parents=True)
+
+    result = detect_native_barcode_dirs(root)
+    names = [p.name for p in result]
+
+    assert names == ["barcode01", "barcode02"]
+    assert "unclassified" not in names
+
+
+def test_detect_nb_dirs_post_processed_style(tmp_path: Path) -> None:
+    """Post-processed NB01/NB02/NB03 dirs → 3 NB dirs detected."""
+    root = tmp_path / "run"
+    (root / "NB01").mkdir(parents=True)
+    (root / "NB02").mkdir(parents=True)
+    (root / "NB03").mkdir(parents=True)
+
+    result = detect_native_barcode_dirs(root)
+    names = [p.name for p in result]
+
+    assert len(names) == 3
+    assert names == ["NB01", "NB02", "NB03"]
+
+
+def test_detect_nb_dirs_single_nb_no_subdirs(tmp_path: Path) -> None:
+    """Directory containing FASTQ files directly (single-NB) → empty list."""
+    root = tmp_path / "barcode06"
+    root.mkdir(parents=True)
+    (root / "reads.fastq").write_text("")  # FASTQ file, not a barcode subdir
+
+    result = detect_native_barcode_dirs(root)
+
+    assert result == []
+
+
+def test_detect_nb_dirs_mixed_non_standard_names(tmp_path: Path) -> None:
+    """Only barcode*/NB* matching dirs are returned; non-matching dirs are ignored."""
+    root = tmp_path / "mixed"
+    (root / "barcode01").mkdir(parents=True)
+    (root / "barcode02").mkdir(parents=True)
+    (root / "foo").mkdir(parents=True)
+    (root / "barcode_bad").mkdir(parents=True)
+    (root / "not_a_barcode").mkdir(parents=True)
+
+    result = detect_native_barcode_dirs(root)
+    names = [p.name for p in result]
+
+    assert names == ["barcode01", "barcode02"]
+    assert "foo" not in names
+    assert "barcode_bad" not in names
+
+
+def test_detect_nb_dirs_numeric_sort(tmp_path: Path) -> None:
+    """Sorting is numeric, not lexicographic: barcode10 follows barcode02."""
+    root = tmp_path / "run"
+    (root / "barcode02").mkdir(parents=True)
+    (root / "barcode10").mkdir(parents=True)
+    (root / "barcode01").mkdir(parents=True)
+
+    result = detect_native_barcode_dirs(root)
+    names = [p.name for p in result]
+
+    # Numeric order: 01, 02, 10 — not 01, 10, 02 (lexicographic)
+    assert names == ["barcode01", "barcode02", "barcode10"]
+
+
+def test_detect_nb_dirs_excludes_barcode00(tmp_path: Path) -> None:
+    """barcode00 is a non-standard placeholder and must be excluded."""
+    root = tmp_path / "run"
+    (root / "barcode00").mkdir(parents=True)
+    (root / "barcode01").mkdir(parents=True)
+
+    result = detect_native_barcode_dirs(root)
+    names = [p.name for p in result]
+
+    assert "barcode00" not in names
+    assert names == ["barcode01"]
+
+
+def test_detect_nb_dirs_case_insensitive(tmp_path: Path) -> None:
+    """Pattern matching is case-insensitive: BARCODE01 and nb01 both match."""
+    root = tmp_path / "run"
+    (root / "BARCODE01").mkdir(parents=True)
+    (root / "nb01").mkdir(parents=True)
+
+    result = detect_native_barcode_dirs(root)
+
+    assert len(result) == 2
+
+
+def test_detect_nb_dirs_not_a_directory(tmp_path: Path) -> None:
+    """Non-existent path returns empty list (single-NB fallback)."""
+    result = detect_native_barcode_dirs(tmp_path / "does_not_exist")
+    assert result == []

@@ -107,6 +107,49 @@ def _validate_error_tolerance(tol: float) -> float:
 
 
 # ---------------------------------------------------------------------------
+# Native barcode directory auto-detection
+# ---------------------------------------------------------------------------
+
+_NB_DIR_PATTERN = re.compile(r"^(?:barcode|NB)(\d{1,3})$", re.IGNORECASE)
+
+
+def detect_native_barcode_dirs(fastq_dir: Path) -> list[Path]:
+    """Return sorted list of native-barcode subdirectories under fastq_dir.
+
+    Recognises MinKNOW (barcode01–barcode96) and post-processed (NB01–NB96)
+    naming conventions.  Excludes ``unclassified``, ``barcode00`` / ``NB00``
+    (non-standard placeholder dirs), and any folder whose name does not match
+    the pattern.
+
+    Returns an empty list when no NB-style subdirs are found, which signals
+    single-NB fallback mode to the caller.  If *fastq_dir* is not a directory
+    the function also returns an empty list rather than raising, so that the
+    caller falls through to single-NB mode gracefully.
+
+    Sort order: ascending by the numeric component so that ``barcode10``
+    follows ``barcode02``, not between ``barcode01`` and ``barcode02``
+    (lexicographic ordering would give the wrong result).
+    """
+    if not fastq_dir.is_dir():
+        return []
+
+    matched: list[tuple[int, Path]] = []
+    for child in fastq_dir.iterdir():
+        if not child.is_dir():
+            continue
+        m = _NB_DIR_PATTERN.match(child.name)
+        if m is None:
+            continue
+        nb_num = int(m.group(1))
+        if nb_num == 0:
+            # barcode00 / NB00 are non-standard placeholder dirs — exclude.
+            continue
+        matched.append((nb_num, child))
+
+    return [p for _, p in sorted(matched, key=lambda t: t[0])]
+
+
+# ---------------------------------------------------------------------------
 # FASTQ reading (handles gzip-compressed files transparently)
 # ---------------------------------------------------------------------------
 
@@ -665,6 +708,7 @@ def demux_native_barcode(
 
 __all__ = [
     "DemuxResult",
+    "detect_native_barcode_dirs",
     "demux_native_barcode",
     "parse_custom_barcodes",
     "_rc",

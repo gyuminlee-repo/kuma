@@ -222,6 +222,21 @@ export interface AmpliconLengthEstimate {
   distribution_summary: AmpliconLengthDistributionSummary;
 }
 
+// ── A4/A5: Consensus calling statistics per well ────────────────────────────
+
+export interface WellConsensusStats {
+  /** Length of the consensus sequence (== reference length). */
+  consensus_seq_length: number;
+  /** Total reads for this well entering the alignment step. */
+  n_input_reads: number;
+  /** Reads that passed MAPQ filter and full-span filter. */
+  n_aligned: number;
+  /** Same as n_aligned (conservative — mappy does not expose pre-filter counts). */
+  n_passed_filter: number;
+  /** Mean per-position read depth across the reference. */
+  mean_depth: number;
+}
+
 export interface DemuxAndFilterResult {
   output_dir: string;
   n_input_reads: number;
@@ -232,6 +247,17 @@ export interface DemuxAndFilterResult {
   backend: "cutadapt" | "python";
   amplicon_length_estimate: AmpliconLengthEstimate | null;
   length_filter_mode: "target_window" | "fixed_range" | "none";
+  /** Number of native barcode subdirs auto-detected from fastq_dir.
+   *  Null when nb_dirs was explicitly provided or single-NB fallback occurred. */
+  auto_detected_nb_count?: number | null;
+  /** Basenames (e.g. "barcode01") of auto-detected NB subdirs. Null in the
+   *  same cases as auto_detected_nb_count. */
+  auto_detected_nb_names?: string[] | null;
+  /** Per-well consensus calling statistics.
+   *  Null when reference_fasta was not provided (legacy demux-only mode). */
+  consensus_stats?: Record<string, WellConsensusStats> | null;
+  /** True when A4/A5 alignment+consensus pipeline was executed. */
+  consensus_pipeline?: boolean;
 }
 
 export interface DemuxAndFilterParams {
@@ -239,6 +265,10 @@ export interface DemuxAndFilterParams {
   custom_barcodes?: Record<string, string>;
   custom_barcodes_path?: string;
   output_dir: string;
+  /** Path to reference FASTA for alignment + consensus calling (A4/A5).
+   *  When provided, output per-well FASTA files are single-record consensus
+   *  sequences compatible with analyze(). */
+  reference_fasta?: string;
   error_tolerance?: number;
   use_cutadapt?: boolean;
   sequencing_summary?: string;
@@ -253,4 +283,10 @@ export interface DemuxAndFilterParams {
   rev_primer_universal?: string | null;
   normalize_headers?: boolean;
   nb_dirs?: string[];
+  /** Keep intermediate raw-read FASTA files after consensus calling. Default false. */
+  save_intermediate_reads?: boolean;
+  /** MAPQ threshold for alignment filter. Default 25. */
+  min_mapq?: number;
+  /** Minimum per-position depth for consensus base call. Default 1. */
+  min_consensus_depth?: number;
 }

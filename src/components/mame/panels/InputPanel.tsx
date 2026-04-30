@@ -1,9 +1,31 @@
 import { open } from "@tauri-apps/plugin-dialog";
 import { FolderOpen } from "lucide-react";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
+import type { InputMode } from "@/store/mame/slice-interfaces";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+
+const INPUT_DIR_CONFIG: Record<
+  InputMode,
+  { label: string; helperText: string; placeholder: string }
+> = {
+  consensus: {
+    label: "Amplicon consensus directory",
+    helperText: "Folder containing *-consensus.fasta files (amplicon mode)",
+    placeholder: "Choose a directory path",
+  },
+  sorted_barcode: {
+    label: "Sorted barcode directory",
+    helperText: "Folder containing NB01/, NB02/, … subdirectories with consensus FASTA ({R}_{F}.fasta)",
+    placeholder: "Choose a directory path",
+  },
+  raw_run: {
+    label: "MinKNOW run folder",
+    helperText: "Folder containing fastq_pass/ subtree from MinKNOW",
+    placeholder: "Choose a run folder path",
+  },
+};
 
 function toSinglePath(result: string | string[] | null): string | null {
   return typeof result === "string" ? result : null;
@@ -17,6 +39,7 @@ function getPathPreview(value: string): string {
 
 export function InputPanel() {
   const inputDir = useMameAppStore((s) => s.inputDir);
+  const inputMode = useMameAppStore((s) => s.inputMode);
   const expectedPath = useMameAppStore((s) => s.expectedPath);
   const referencePath = useMameAppStore((s) => s.referencePath);
   const outputPath = useMameAppStore((s) => s.outputPath);
@@ -64,13 +87,14 @@ export function InputPanel() {
       </header>
 
       <FileField
-        label="Consensus FASTA directory"
+        label={INPUT_DIR_CONFIG[inputMode].label}
         value={inputDir}
         onChange={setInputDir}
         onBrowse={browseDirectory}
-        placeholder="Choose a directory path"
+        placeholder={INPUT_DIR_CONFIG[inputMode].placeholder}
         stateLabel="Required"
         filled={Boolean(inputDir)}
+        helperText={INPUT_DIR_CONFIG[inputMode].helperText}
       />
       <FileField
         label="KURO xlsx"
@@ -90,15 +114,17 @@ export function InputPanel() {
         placeholder=".fasta / .fa file path"
         stateLabel="Required"
         filled={Boolean(referencePath)}
+        helperText="Reference sequence used for variant calling against consensus"
       />
       <FileField
-        label="Output xlsx"
+        label="Export destination (.xlsx)"
         value={outputPath}
         onChange={setOutputPath}
         onBrowse={browseOutput}
-        placeholder="Output save path (.xlsx)"
-        stateLabel="Output"
+        placeholder="Where to save the analysis result"
+        stateLabel="Save to"
         filled={Boolean(outputPath)}
+        helperText="Analysis report will be written to this xlsx path"
       />
     </div>
   );
