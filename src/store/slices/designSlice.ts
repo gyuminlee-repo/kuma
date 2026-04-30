@@ -493,7 +493,22 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       try {
         const candidates = await get().retryFailedMutation(failed.mutation, params);
         if (candidates.length > 0) {
-          get().addDesignResult(failed.mutation, candidates[0]);
+          const best = candidates[0];
+          get().addDesignResult(failed.mutation, best);
+          // Annotate this mutation as auto-suggestion-rescued so the result
+          // table renders a distinct badge instead of the generic remove pill.
+          set((s) => ({
+            rescuedMutationDetails: [
+              ...s.rescuedMutationDetails,
+              {
+                original: failed.mutation,
+                rescued_by: failed.mutation,
+                type: "auto_suggestion" as const,
+                penalty: typeof best.penalty === "number" ? best.penalty : undefined,
+                tolerance_used: typeof best.tolerance_used === "number" ? best.tolerance_used : undefined,
+              },
+            ],
+          }));
           rescued += 1;
         }
       } catch {

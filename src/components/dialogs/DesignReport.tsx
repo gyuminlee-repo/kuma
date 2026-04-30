@@ -236,6 +236,12 @@ export function DesignReport() {
               {rescueStats.auto_relax > 0 && (
                 <Stat label="Auto-relax (\u00B13\u2192\u00B15\u00B0C)" value={rescueStats.auto_relax} />
               )}
+              {rescuedMutationDetails.filter((r) => r.type === "auto_suggestion").length > 0 && (
+                <Stat
+                  label="Auto-retry (suggestion)"
+                  value={rescuedMutationDetails.filter((r) => r.type === "auto_suggestion").length}
+                />
+              )}
               {failCount > 0 && (
                 <Stat label="Still failed" value={failCount} warn />
               )}
@@ -255,8 +261,20 @@ export function DesignReport() {
                           ? `${r.original} \u2192 ${r.rescued_by}`
                           : r.original}
                       </span>
-                      <span className={r.type === "pool_cascade" ? "text-success" : "text-warning"}>
-                        {r.type === "pool_cascade" ? "\u21BB cascade" : "\u26A1 relaxed"}
+                      <span
+                        className={
+                          r.type === "pool_cascade"
+                            ? "text-success"
+                            : r.type === "auto_suggestion"
+                              ? "text-info"
+                              : "text-warning"
+                        }
+                      >
+                        {r.type === "pool_cascade"
+                          ? "\u21BB cascade"
+                          : r.type === "auto_suggestion"
+                            ? "\u{1F3AF} suggestion"
+                            : "\u26A1 relaxed"}
                         {r.penalty != null && ` (${r.penalty.toFixed(1)})`}
                       </span>
                     </div>

@@ -125,15 +125,23 @@ export function makeResultTableColumns(opts: {
                 className={`ml-1 px-1 py-0.5 rounded-control text-plate-tiny leading-none ${
                   rescueDetail.type === "pool_cascade"
                     ? "bg-success/10 text-success"
-                    : "bg-warning/10 text-warning"
+                    : rescueDetail.type === "auto_suggestion"
+                      ? "bg-info/10 text-info"
+                      : "bg-warning/10 text-warning"
                 }`}
                 title={
                   rescueDetail.type === "pool_cascade"
                     ? `Pool cascade: replaced ${rescueDetail.original}`
-                    : "Auto-relax: widened Tm tolerance and GC range"
+                    : rescueDetail.type === "auto_suggestion"
+                      ? "Auto-retry: re-designed with parameters derived from successful primers in this run"
+                      : "Auto-relax: widened Tm tolerance and GC range"
                 }
               >
-                {rescueDetail.type === "pool_cascade" ? `\u21BB ${rescueDetail.original}` : "\u26A1 relaxed"}
+                {rescueDetail.type === "pool_cascade"
+                  ? `\u21BB ${rescueDetail.original}`
+                  : rescueDetail.type === "auto_suggestion"
+                    ? "\u{1F3AF} suggestion"
+                    : "\u26A1 relaxed"}
               </span>
             )}
             {isRescued && !rescueDetail && (

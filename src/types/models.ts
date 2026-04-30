@@ -199,7 +199,7 @@ export interface FailedMutation {
 export interface RescuedMutation {
   original: string;
   rescued_by: string;
-  type: "pool_cascade" | "auto_relax";
+  type: "pool_cascade" | "auto_relax" | "auto_suggestion";
   penalty?: number;
   tolerance_used?: number;
 }

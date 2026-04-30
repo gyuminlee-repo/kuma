@@ -372,7 +372,7 @@ function isRescuedMutation(value: unknown): boolean {
     isRecord(value) &&
     isString(value.original) &&
     isString(value.rescued_by) &&
-    (value.type === "pool_cascade" || value.type === "auto_relax") &&
+    (value.type === "pool_cascade" || value.type === "auto_relax" || value.type === "auto_suggestion") &&
     isOptional(value.penalty, isNumber) &&
     isOptional(value.tolerance_used, isNumber)
   );
