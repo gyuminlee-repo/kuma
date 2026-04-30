@@ -2,11 +2,23 @@ import type { SortingState, Updater } from "@tanstack/react-table";
 import type {
   AnalyzeSummary,
   DistributionStats,
+  DemuxAndFilterResult,
   ReplicateResult,
   VerdictRecord,
   WellEntry,
 } from "@/types/mame/models";
 import type { KumaProject } from "@/state/projectContext";
+
+export type InputMode = "consensus" | "sorted_barcode" | "raw_run";
+
+export interface RawRunParams {
+  customBarcodesPath: string;
+  sequencingSummaryPath: string;
+  minQscore: number;
+  lengthMin: number;
+  lengthMax: number;
+  minBarcodeScore: number;
+}
 
 export interface InputSlice {
   inputDir: string;
@@ -15,6 +27,8 @@ export interface InputSlice {
   outputPath: string;
   mode: "amplicon" | "plasmid";
   ingestMode: "barcode" | "amplicon";
+  inputMode: InputMode;
+  rawRunParams: RawRunParams;
   cdsStart: number;
   cdsEnd: number;
   minFileSizeKb: number;
@@ -22,8 +36,12 @@ export interface InputSlice {
   validationErrors: string[];
   isValidating: boolean;
   isAnalyzing: boolean;
+  isDemuxing: boolean;
   analyzeProgress: number;
   analyzeMessage: string;
+  demuxProgress: number;
+  demuxMessage: string;
+  demuxResult: DemuxAndFilterResult | null;
   distributionStats: DistributionStats | null;
   setInputDir: (path: string) => void;
   setExpectedPath: (path: string) => void;
@@ -33,6 +51,8 @@ export interface InputSlice {
     params: Partial<{
       mode: "amplicon" | "plasmid";
       ingestMode: "barcode" | "amplicon";
+      inputMode: InputMode;
+      rawRunParams: Partial<RawRunParams>;
       cdsStart: number;
       cdsEnd: number;
       minFileSizeKb: number;
@@ -41,10 +61,15 @@ export interface InputSlice {
   ) => void;
   setValidationErrors: (errors: string[]) => void;
   setIsAnalyzing: (value: boolean) => void;
+  setIsDemuxing: (value: boolean) => void;
   setAnalyzeProgress: (value: number) => void;
   setAnalyzeMessage: (message: string) => void;
+  setDemuxProgress: (value: number) => void;
+  setDemuxMessage: (message: string) => void;
+  setDemuxResult: (result: DemuxAndFilterResult | null) => void;
   setDistributionStats: (stats: DistributionStats | null) => void;
   validateInputs: () => Promise<void>;
+  runDemuxAndFilter: () => Promise<void>;
   runAnalysis: () => Promise<void>;
   cancelAnalysis: () => Promise<void>;
   saveWorkspace: (project: KumaProject) => Promise<void>;

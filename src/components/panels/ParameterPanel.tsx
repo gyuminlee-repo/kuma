@@ -76,6 +76,9 @@ export function ParameterPanel() {
   const fwdLenMaxInput = useLocalNum(fwdLenMax, 39, (v) => setPrimerLenRange(fwdLenMin, v, revLenMin, revLenMax));
   const revLenMinInput = useLocalNum(revLenMin, 19, (v) => setPrimerLenRange(fwdLenMin, fwdLenMax, v, revLenMax));
   const revLenMaxInput = useLocalNum(revLenMax, 27, (v) => setPrimerLenRange(fwdLenMin, fwdLenMax, revLenMin, v));
+  // Full mode: single length range mirrors to both fwd and rev (engine intersects fwd/rev limits).
+  const fullLenMinInput = useLocalNum(fwdLenMin, 17, (v) => setPrimerLenRange(v, fwdLenMax, v, fwdLenMax));
+  const fullLenMaxInput = useLocalNum(fwdLenMax, 39, (v) => setPrimerLenRange(fwdLenMin, v, fwdLenMin, v));
   const maxPrimersInput = useLocalNum(maxPrimers, 95, setMaxPrimers);
 
   const gcInvalid = gcMin >= gcMax;
@@ -100,6 +103,36 @@ export function ParameterPanel() {
       <div>
         <div className="text-caption font-semibold uppercase tracking-widest text-muted-foreground">Control</div>
         <h3 className="text-title font-semibold text-foreground">Parameters</h3>
+      </div>
+
+      {/* Strategy — top-level switch that changes the meaning of parameters below */}
+      <div className="space-y-1">
+        <label
+          htmlFor="design-strategy-select"
+          className="flex items-center gap-2 text-caption"
+          title="Partial: overlap upstream of codon, separate fwd/rev (Gibson Assembly style). Full: forward and reverse cover the same region, rev = rc(fwd) (NEB Q5 SDM style). Strategy changes which parameters apply below."
+        >
+          <span className="w-24 text-muted-foreground">Strategy:</span>
+          <select
+            id="design-strategy-select"
+            className="h-control min-w-0 flex-1 rounded-control border border-border bg-card px-3 text-caption focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            value={overlapMode}
+            onChange={(e) => {
+              if (isOverlapMode(e.target.value)) {
+                setOverlapMode(e.target.value);
+              }
+            }}
+            aria-describedby="design-strategy-hint"
+          >
+            <option value="partial">Partial overlap (Gibson)</option>
+            <option value="full">Full overlap (Q5 SDM)</option>
+          </select>
+        </label>
+        <p id="design-strategy-hint" className="pl-26 text-caption text-muted-foreground">
+          {isFullOverlap
+            ? "Reverse = rc(forward). Single primer Tm and length apply to both."
+            : "Forward and reverse are independent with overlap upstream of the codon."}
+        </p>
       </div>
 
       <div className="space-y-1">
@@ -174,49 +207,33 @@ export function ParameterPanel() {
 
       {showAdvanced && (
         <div className="space-y-1 rounded-container border border-border bg-card/80 p-3">
-          {/* Tm */}
+          {/* Tm — branches by strategy */}
           <div className="pt-0.5 text-caption uppercase tracking-wider text-muted-foreground" title="Melting temperature targets. SantaLucia 1998 parameters.">Tm</div>
-          <div className="flex items-center gap-2 text-caption" title="Melting temperature targets. SantaLucia 1998 parameters.">
-            <span className="w-20 text-muted-foreground">Fwd:</span>
-            <input type="number" className={numInput} {...tmFwdInput} />
-            <span className="text-muted-foreground">°C</span>
-          </div>
-          <div className="space-y-0.5">
-            <div className="flex items-center gap-2 text-caption" title="Melting temperature targets. SantaLucia 1998 parameters.">
-              <span className="w-20 text-muted-foreground">Rev:</span>
-              <input
-                type="number"
-                className={numInput}
-                disabled={isFullOverlap}
-                aria-disabled={isFullOverlap}
-                {...tmRevInput}
-              />
+          {isFullOverlap ? (
+            <div className="flex items-center gap-2 text-caption" title="Single Tm target. rev = rc(fwd), so both primers share Tm by construction.">
+              <span className="w-20 text-muted-foreground">Primer:</span>
+              <input type="number" className={numInput} {...tmFwdInput} />
               <span className="text-muted-foreground">°C</span>
             </div>
-            {isFullOverlap && (
-              <p className="pl-20 text-caption text-muted-foreground">
-                Full 모드: Fwd Tm 기준으로 자동 결정
-              </p>
-            )}
-          </div>
-          <div className="space-y-0.5">
-            <div className="flex items-center gap-2 text-caption" title="Melting temperature targets. SantaLucia 1998 parameters.">
-              <span className="w-20 text-muted-foreground">Overlap:</span>
-              <input
-                type="number"
-                className={numInput}
-                disabled={isFullOverlap}
-                aria-disabled={isFullOverlap}
-                {...tmOvInput}
-              />
-              <span className="text-muted-foreground">°C</span>
-            </div>
-            {isFullOverlap && (
-              <p className="pl-20 text-caption text-muted-foreground">
-                Full 모드: Fwd Tm 기준으로 자동 결정
-              </p>
-            )}
-          </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-2 text-caption" title="Melting temperature targets. SantaLucia 1998 parameters.">
+                <span className="w-20 text-muted-foreground">Fwd:</span>
+                <input type="number" className={numInput} {...tmFwdInput} />
+                <span className="text-muted-foreground">°C</span>
+              </div>
+              <div className="flex items-center gap-2 text-caption" title="Melting temperature targets. SantaLucia 1998 parameters.">
+                <span className="w-20 text-muted-foreground">Rev:</span>
+                <input type="number" className={numInput} {...tmRevInput} />
+                <span className="text-muted-foreground">°C</span>
+              </div>
+              <div className="flex items-center gap-2 text-caption" title="Melting temperature targets. SantaLucia 1998 parameters.">
+                <span className="w-20 text-muted-foreground">Overlap:</span>
+                <input type="number" className={numInput} {...tmOvInput} />
+                <span className="text-muted-foreground">°C</span>
+              </div>
+            </>
+          )}
 
           {/* GC */}
           <div className="pt-1.5 text-caption uppercase tracking-wider text-muted-foreground" title="Recommended range: 40-60%. Primers outside this range receive a penalty.">GC%</div>
@@ -235,7 +252,7 @@ export function ParameterPanel() {
             <div className="text-caption text-error pl-20">Min must be less than Max</div>
           )}
 
-          {/* Primer Length */}
+          {/* Primer Length — branches by strategy */}
           <div className="flex items-center gap-1 pt-1.5 text-caption uppercase tracking-wider text-muted-foreground">
             Primer Length
             <HelpTip>
@@ -258,7 +275,15 @@ export function ParameterPanel() {
               onChange={(e) => setPrimerLenEnabled(e.target.checked)}
             />
             <span className="text-muted-foreground">Limit</span>
-            {primerLenEnabled && (
+            {primerLenEnabled && isFullOverlap && (
+              <span className="flex items-center gap-1 ml-1" title="Single length range applies to both primers (rev = rc(fwd)).">
+                <input type="number" className={numInput} {...fullLenMinInput} />
+                <span className="text-muted-foreground">~</span>
+                <input type="number" className={numInput} {...fullLenMaxInput} />
+                <span className="text-caption text-muted-foreground">bp</span>
+              </span>
+            )}
+            {primerLenEnabled && !isFullOverlap && (
               <span className="flex items-center gap-1 ml-1">
                 <span className="text-muted-foreground">F</span>
                 <input type="number" className={numInput} {...fwdLenMinInput} />
@@ -267,7 +292,7 @@ export function ParameterPanel() {
               </span>
             )}
           </label>
-          {primerLenEnabled && (
+          {primerLenEnabled && !isFullOverlap && (
             <>
               <div className="flex items-center gap-1 text-caption pl-4">
                 <span className="ml-3 text-muted-foreground">R</span>
@@ -281,6 +306,9 @@ export function ParameterPanel() {
               )}
             </>
           )}
+          {primerLenEnabled && isFullOverlap && fwdLenMin >= fwdLenMax && (
+            <div className="text-caption text-error pl-8">Min must be less than Max</div>
+          )}
 
           {/* Design Behavior */}
           <div className="pt-1.5 text-caption uppercase tracking-wider text-muted-foreground">Design</div>
@@ -293,37 +321,6 @@ export function ParameterPanel() {
             />
             <span className="text-muted-foreground">Fill on failure</span>
           </label>
-
-          {/* Overlap Mode */}
-          <div className="pt-1.5 text-caption uppercase tracking-wider text-muted-foreground">Overlap mode</div>
-          <label
-            htmlFor="overlap-mode-select"
-            className="flex items-center gap-2 text-caption"
-            title="Partial: overlap upstream of codon (Gibson Assembly style). Full: forward and reverse cover the same region (NEB Q5 SDM style)."
-          >
-            <select
-              id="overlap-mode-select"
-              className="h-control min-w-0 flex-1 rounded-control border border-border bg-card px-3 text-caption focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              value={overlapMode}
-              onChange={(e) => {
-                if (isOverlapMode(e.target.value)) {
-                  setOverlapMode(e.target.value);
-                }
-              }}
-              aria-describedby="overlap-mode-hint"
-            >
-              <option value="partial">Partial (default)</option>
-              <option value="full">Full</option>
-            </select>
-          </label>
-          <p
-            id="overlap-mode-hint"
-            className="text-caption text-muted-foreground pl-1"
-          >
-            {isFullOverlap
-              ? "Forward primer Tm 하나를 기준으로 reverse가 완전 상보 서열로 결정 (NEB Q5 style)"
-              : "Forward / reverse / overlap Tm을 각각 맞추는 일반 모드"}
-          </p>
         </div>
       )}
 

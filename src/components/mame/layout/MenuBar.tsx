@@ -3,6 +3,7 @@ import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { useKumaProject } from "@/state/projectContext";
 import { CrashLogDialog } from "@/components/dialogs/CrashLogDialog";
 import { JanusMappingDialog } from "@/components/mame/dialogs/JanusMappingDialog";
+import { RunReportDialog } from "@/components/mame/dialogs/RunReportDialog";
 import { selectCanRun } from "@/store/mame/selectors";
 import { Button } from "@/components/ui/button";
 import {
@@ -48,6 +49,7 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
   const [aboutOpen, setAboutOpen] = useState(false);
   const [crashLogOpen, setCrashLogOpen] = useState(false);
   const [janusOpen, setJanusOpen] = useState(false);
+  const [runReportOpen, setRunReportOpen] = useState(false);
 
   const menus = (
     <>
@@ -83,6 +85,9 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setJanusOpen(true)} disabled={!hasResults}>
             <span className="flex-1">Export Janus Mapping…</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setRunReportOpen(true)} disabled={!hasResults}>
+            <span className="flex-1">Export Run Report…</span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -126,6 +131,7 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
     <>
       <CrashLogDialog open={crashLogOpen} onOpenChange={setCrashLogOpen} />
       <JanusMappingDialog open={janusOpen} onOpenChange={setJanusOpen} />
+      <RunReportDialog open={runReportOpen} onOpenChange={setRunReportOpen} />
 
       <SubtoolMenuBar
         label="Mame"

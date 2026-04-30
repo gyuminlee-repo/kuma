@@ -2,10 +2,24 @@ import type { StateCreator } from "zustand";
 import { cancelAndRespawn, sendRequest } from "@/lib/ipc-mame";
 import { formatError } from "@/lib/utils";
 import { loadWorkspaceFromFile, saveWorkspaceToFile } from "@/lib/mame/workspace";
-import type { AnalyzeResult, DistributionStats, ValidationResult } from "@/types/mame/models";
+import type {
+  AnalyzeResult,
+  DemuxAndFilterResult,
+  DistributionStats,
+  ValidationResult,
+} from "@/types/mame/models";
 import type { KumaProject } from "@/state/projectContext";
-import type { InputSlice } from "../slice-interfaces";
+import type { InputSlice, InputMode, RawRunParams } from "../slice-interfaces";
 import type { AppState } from "../types";
+
+const DEFAULT_RAW_RUN_PARAMS: RawRunParams = {
+  customBarcodesPath: "",
+  sequencingSummaryPath: "",
+  minQscore: 8.0,
+  lengthMin: 800,
+  lengthMax: 3000,
+  minBarcodeScore: 60.0,
+};
 
 export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set, get) => ({
   inputDir: "",
@@ -14,6 +28,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   outputPath: "",
   mode: "amplicon",
   ingestMode: "barcode",
+  inputMode: "sorted_barcode",
+  rawRunParams: { ...DEFAULT_RAW_RUN_PARAMS },
   cdsStart: 0,
   cdsEnd: 0,
   minFileSizeKb: 50,
@@ -21,8 +37,12 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   validationErrors: [],
   isValidating: false,
   isAnalyzing: false,
+  isDemuxing: false,
   analyzeProgress: 0,
   analyzeMessage: "Waiting for sidecar connection",
+  demuxProgress: 0,
+  demuxMessage: "",
+  demuxResult: null,
   distributionStats: null,
   setInputDir: (inputDir) => set({ inputDir }),
   setExpectedPath: (expectedPath) => set({ expectedPath }),
@@ -32,6 +52,11 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     set((state) => ({
       mode: params.mode ?? state.mode,
       ingestMode: params.ingestMode ?? state.ingestMode,
+      inputMode: params.inputMode ?? state.inputMode,
+      rawRunParams:
+        params.rawRunParams != null
+          ? { ...state.rawRunParams, ...params.rawRunParams }
+          : state.rawRunParams,
       cdsStart: params.cdsStart ?? state.cdsStart,
       cdsEnd: params.cdsEnd ?? state.cdsEnd,
       minFileSizeKb: params.minFileSizeKb ?? state.minFileSizeKb,
@@ -39,10 +64,61 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     })),
   setValidationErrors: (validationErrors) => set({ validationErrors }),
   setIsAnalyzing: (isAnalyzing) => set({ isAnalyzing }),
+  setIsDemuxing: (isDemuxing) => set({ isDemuxing }),
   setAnalyzeProgress: (analyzeProgress) => set({ analyzeProgress }),
   setAnalyzeMessage: (analyzeMessage) => set({ analyzeMessage }),
+  setDemuxProgress: (demuxProgress) => set({ demuxProgress }),
+  setDemuxMessage: (demuxMessage) => set({ demuxMessage }),
+  setDemuxResult: (demuxResult: DemuxAndFilterResult | null) => set({ demuxResult }),
   setDistributionStats: (distributionStats: DistributionStats | null) =>
     set({ distributionStats }),
+  runDemuxAndFilter: async () => {
+    const s = get();
+    const { rawRunParams } = s;
+    if (!rawRunParams.customBarcodesPath) {
+      set({ validationErrors: ["Custom barcodes file path is required for raw run mode"] });
+      return;
+    }
+    set({
+      isDemuxing: true,
+      demuxProgress: 0,
+      demuxMessage: "Starting demux...",
+      validationErrors: [],
+      demuxResult: null,
+    });
+    try {
+      const result = await sendRequest<DemuxAndFilterResult>(
+        "demux_and_filter",
+        {
+          fastq_dir: s.inputDir,
+          custom_barcodes_path: rawRunParams.customBarcodesPath,
+          output_dir: s.outputPath ? `${s.outputPath}_demux` : "",
+          sequencing_summary: rawRunParams.sequencingSummaryPath || undefined,
+          min_qscore: rawRunParams.minQscore,
+          length_min: rawRunParams.lengthMin,
+          length_max: rawRunParams.lengthMax,
+          min_barcode_score: rawRunParams.minBarcodeScore,
+        },
+        600_000,
+      );
+      set({
+        isDemuxing: false,
+        demuxProgress: 100,
+        demuxMessage: `Demux complete: ${result.n_assigned} reads assigned`,
+        demuxResult: result,
+        // Auto-set inputDir to demux output for downstream analyze call.
+        inputDir: result.output_dir,
+        ingestMode: "barcode",
+      });
+    } catch (error) {
+      set({
+        isDemuxing: false,
+        demuxProgress: 0,
+        demuxMessage: "Demux failed",
+        validationErrors: [formatError(error)],
+      });
+    }
+  },
   validateInputs: async () => {
     set({ isValidating: true, validationErrors: [] });
     try {
@@ -135,6 +211,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
           outputPath: s.outputPath,
           mode: s.mode,
           ingestMode: s.ingestMode,
+          inputMode: s.inputMode,
+          rawRunParams: s.rawRunParams,
           cdsStart: s.cdsStart,
           cdsEnd: s.cdsEnd,
           minFileSizeKb: s.minFileSizeKb,
@@ -158,6 +236,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         outputPath: snap.outputPath,
         mode: snap.mode,
         ingestMode: snap.ingestMode,
+        inputMode: (snap.inputMode as InputMode | undefined) ?? "sorted_barcode",
+        rawRunParams: snap.rawRunParams ?? { ...DEFAULT_RAW_RUN_PARAMS },
         cdsStart: snap.cdsStart,
         cdsEnd: snap.cdsEnd,
         minFileSizeKb: snap.minFileSizeKb,

@@ -2,6 +2,7 @@ import { open, save } from "@tauri-apps/plugin-dialog";
 import { readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
 import { buildWorkspaceDefaultPath } from "../filename";
 import type { KumaProject } from "../../state/projectContext";
+import type { InputMode, RawRunParams } from "@/store/mame/slice-interfaces";
 
 export interface WorkspaceSnapshot {
   version: 1;
@@ -11,6 +12,9 @@ export interface WorkspaceSnapshot {
   outputPath: string;
   mode: "amplicon" | "plasmid";
   ingestMode: "barcode" | "amplicon";
+  // R6 additions (optional for backwards-compat with v1 snapshots).
+  inputMode?: InputMode;
+  rawRunParams?: RawRunParams;
   cdsStart: number;
   cdsEnd: number;
   minFileSizeKb: number;

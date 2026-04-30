@@ -7,13 +7,14 @@ import { ColoredFwdSeq, formatTolerance } from "../primerDisplay";
 import { OffTargetDetail } from "./OffTargetDetail";
 
 function CandidateRow({
-  c, rowClass, label, actions, onOtClick,
+  c, rowClass, label, actions, onOtClick, isFullOverlap,
 }: {
   c: SdmPrimerResult;
   rowClass: string;
   label: React.ReactNode;
   actions: React.ReactNode;
   onOtClick: (c: SdmPrimerResult) => void;
+  isFullOverlap: boolean;
 }) {
   return (
     <tr className={`border-b border-border ${rowClass}`}>
@@ -26,7 +27,9 @@ function CandidateRow({
       <td className="px-2 py-1 text-center">{c.rev_len}</td>
       <td className="px-2 py-1 text-center">{c.tm_no_fwd.toFixed(1)}</td>
       <td className="px-2 py-1 text-center">{c.tm_no_rev.toFixed(1)}</td>
-      <td className="px-2 py-1 text-center">{c.tm_overlap.toFixed(1)}</td>
+      {!isFullOverlap && (
+        <td className="px-2 py-1 text-center">{c.tm_overlap.toFixed(1)}</td>
+      )}
       <td className="px-2 py-1 text-center">{c.gc_fwd.toFixed(1)}</td>
       <td className="px-2 py-1 text-center">{c.gc_rev.toFixed(1)}</td>
       <td className="px-2 py-1 text-center">{formatTolerance(c.tolerance_fwd, c.tolerance_rev, c.tolerance_used)}</td>
@@ -71,6 +74,7 @@ export function CandidatePopover({
   const removeCustomCandidate = useAppStore((s) => s.removeCustomCandidate);
   const backendDesignStateSynced = useAppStore((s) => s.backendDesignStateSynced);
   const customCandidates = useAppStore((s) => s.customCandidates)[mutation] ?? [];
+  const isFullOverlap = useAppStore((s) => s.overlapMode) === "full";
 
   useEffect(() => {
     setCustomOverlap("");
@@ -209,7 +213,7 @@ export function CandidatePopover({
                 <th className="px-2 py-1">Rev</th>
                 <th className="px-2 py-1">Tm F</th>
                 <th className="px-2 py-1">Tm R</th>
-                <th className="px-2 py-1">Tm Ov</th>
+                {!isFullOverlap && <th className="px-2 py-1">Tm Ov</th>}
                 <th className="px-2 py-1">GC% F</th>
                 <th className="px-2 py-1">GC% R</th>
                 <th className="px-2 py-1">Tol</th>
@@ -229,7 +233,7 @@ export function CandidatePopover({
                     ? "bg-success/10"
                     : "hover:bg-muted/50";
                 return (
-                  <CandidateRow key={idx} c={c} rowClass={rowClass} onOtClick={setOtDetailCand}
+                  <CandidateRow key={idx} c={c} rowClass={rowClass} onOtClick={setOtDetailCand} isFullOverlap={isFullOverlap}
                     label={<>{idx + 1}{isBest && <span className="ml-0.5 text-success text-plate-tiny">best</span>}</>}
                     actions={
                       <div className="flex gap-0.5 justify-center items-center">
@@ -264,7 +268,7 @@ export function CandidatePopover({
                 );
               })}
               {customCandidates.map((c, ci) => (
-                <CandidateRow key={`custom-${ci}`} c={c} rowClass="bg-primary/5" onOtClick={setOtDetailCand}
+                <CandidateRow key={`custom-${ci}`} c={c} rowClass="bg-primary/5" onOtClick={setOtDetailCand} isFullOverlap={isFullOverlap}
                   label={<span className="text-primary text-plate-tiny">C{ci + 1}</span>}
                   actions={
                     <div className="flex gap-0.5 justify-center">

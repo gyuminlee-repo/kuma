@@ -41,6 +41,7 @@ def cmd_design(args: argparse.Namespace) -> None:
         fwd_len_max=args.fwd_len_max,
         rev_len_min=args.rev_len_min,
         rev_len_max=args.rev_len_max,
+        overlap_mode=args.overlap_mode,
     )
 
     if not results:
@@ -49,7 +50,7 @@ def cmd_design(args: argparse.Namespace) -> None:
 
     # Export TSV
     tsv_path = output_dir / "sdm_primers.tsv"
-    export_results_tsv(results, tsv_path)
+    export_results_tsv(results, tsv_path, overlap_mode=args.overlap_mode)
     logging.info("Primer results saved to %s", tsv_path)
 
     # Export plate map
@@ -167,6 +168,11 @@ def main() -> None:
         "--codon-strategy", default="closest",
         choices=["closest", "optimal"],
         help="Codon selection strategy (default: closest)"
+    )
+    design_parser.add_argument(
+        "--overlap-mode", default="partial",
+        choices=["partial", "full"],
+        help="Design strategy: partial (Gibson, fwd/rev independent) or full (Q5 SDM, rev=rc(fwd)). Default: partial."
     )
     design_parser.add_argument(
         "--tm-fwd-target", type=float, default=None,

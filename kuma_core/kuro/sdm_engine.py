@@ -1412,14 +1412,22 @@ def design_sdm_primers(
 def export_results_tsv(
     results: list[SdmPrimerResult],
     output_path: Path,
+    overlap_mode: OverlapMode = "partial",
 ) -> None:
-    """Export SDM primer results to a TSV file."""
+    """Export SDM primer results to a TSV file.
+
+    In full-overlap mode the third Tm column is renamed Tm_Primer (= tm_fwd by
+    construction; rev = rc(fwd) so all three legacy Tm fields collapse to one).
+    A leading metadata line records the mode so downstream parsers can branch.
+    """
     import csv
 
+    is_full = overlap_mode == "full"
+    tm_third_header = "Tm_Primer" if is_full else "Tm_Overlap"
     fieldnames = [
         "Mutation", "Forward_Primer", "Reverse_Primer",
         "Fwd_Length", "Rev_Length",
-        "Tm_Fwd", "Tm_Rev", "Tm_Overlap",
+        "Tm_Fwd", "Tm_Rev", tm_third_header,
         "Tolerance", "Penalty", "Off_Target",
         "GC_Fwd", "GC_Rev",
         "WT_Codon", "MT_Codon", "Overlap_Seq",
@@ -1427,6 +1435,7 @@ def export_results_tsv(
     ]
 
     with open(output_path, "w", newline="", encoding="utf-8") as f:
+        f.write(f"# overlap_mode={overlap_mode}\n")
         writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter="\t")
         writer.writeheader()
         for r in results:
@@ -1438,7 +1447,7 @@ def export_results_tsv(
                 "Rev_Length": r.rev_len,
                 "Tm_Fwd": f"{r.tm_fwd:.1f}",
                 "Tm_Rev": f"{r.tm_rev:.1f}",
-                "Tm_Overlap": f"{r.tm_overlap:.1f}",
+                tm_third_header: f"{r.tm_overlap:.1f}",
                 "Tolerance": f"±{r.tolerance_used:.1f}",
                 "Penalty": f"{r.penalty:.1f}",
                 "Off_Target": "YES" if r.has_offtarget else "NO",

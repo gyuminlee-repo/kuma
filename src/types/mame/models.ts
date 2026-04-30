@@ -133,6 +133,15 @@ export interface JanusExportResult {
 
 export type JanusExportFormat = "csv" | "xlsx";
 
+export type RunReportFormat = "html" | "pdf";
+
+export interface RunReportResult {
+  output_path: string;
+  format: RunReportFormat;
+  weasyprint_available: boolean;
+  fallback_to_html: boolean;
+}
+
 export interface PlateDataResult {
   wells: WellEntry[];
 }
@@ -141,4 +150,38 @@ export interface ScreenTab {
   id: "input" | "verdict" | "plate" | "export";
   label: string;
   content?: ReactNode;
+}
+
+// ── A1/A3: Demux and quality-filter types (R6) ──────────────────────────────
+
+export interface DemuxFilterStats {
+  n_input: number;
+  n_passed: number;
+  n_failed_qscore: number;
+  n_failed_length: number;
+  n_failed_barcode: number;
+}
+
+export interface DemuxAndFilterResult {
+  output_dir: string;
+  n_input_reads: number;
+  n_assigned: number;
+  n_unassigned: number;
+  per_well_counts: Record<string, number>;
+  filter_stats: DemuxFilterStats | null;
+  backend: "cutadapt" | "python";
+}
+
+export interface DemuxAndFilterParams {
+  fastq_dir: string;
+  custom_barcodes: Record<string, string>;
+  output_dir: string;
+  error_tolerance?: number;
+  use_cutadapt?: boolean;
+  sequencing_summary?: string;
+  min_qscore?: number;
+  length_min?: number;
+  length_max?: number;
+  min_barcode_score?: number;
+  nb_dirs?: string[];
 }

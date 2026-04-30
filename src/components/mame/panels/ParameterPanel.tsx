@@ -1,10 +1,17 @@
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle } from "lucide-react";
 import type { DistributionStats } from "@/types/mame/models";
+import type { InputMode } from "@/store/mame/slice-interfaces";
 
 const METHOD_LABELS: Record<DistributionStats["suggested_method"], string> = {
   median_minus_2sigma: "median − 2σ",
@@ -13,7 +20,14 @@ const METHOD_LABELS: Record<DistributionStats["suggested_method"], string> = {
   fixed_50: "floor 50",
 };
 
-const BIMODAL_TOOLTIP = "Distribution looks bimodal. Recommended uses knee detection.";
+const INPUT_MODE_LABELS: Record<InputMode, string> = {
+  consensus: "Consensus FASTA",
+  sorted_barcode: "Sorted barcode files",
+  raw_run: "MinKNOW raw run folder",
+};
+
+const BIMODAL_TOOLTIP =
+  "Distribution looks bimodal. Recommended uses knee detection.";
 
 function RecommendedCutoff({
   stats,
@@ -57,9 +71,158 @@ function RecommendedCutoff({
   );
 }
 
+function RawRunParamPanel() {
+  const rawRunParams = useMameAppStore((s) => s.rawRunParams);
+  const isDemuxing = useMameAppStore((s) => s.isDemuxing);
+  const demuxProgress = useMameAppStore((s) => s.demuxProgress);
+  const demuxMessage = useMameAppStore((s) => s.demuxMessage);
+  const demuxResult = useMameAppStore((s) => s.demuxResult);
+  const setParams = useMameAppStore((s) => s.setParams);
+  const runDemuxAndFilter = useMameAppStore((s) => s.runDemuxAndFilter);
+
+  function updateRaw(partial: Partial<typeof rawRunParams>) {
+    setParams({ rawRunParams: partial });
+  }
+
+  return (
+    <fieldset
+      className="mt-3 space-y-3 rounded-md border border-border p-3"
+      aria-label="Raw run demux and filter options"
+    >
+      <legend className="px-1 text-caption font-semibold uppercase tracking-wide text-muted-foreground">
+        Raw Run Options
+      </legend>
+
+      {/* Custom barcodes path */}
+      <div className="space-y-1">
+        <Label
+          htmlFor="custom-barcodes-path"
+          className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
+        >
+          Custom Barcodes (xlsx or csv)
+        </Label>
+        <Input
+          id="custom-barcodes-path"
+          type="text"
+          value={rawRunParams.customBarcodesPath}
+          onChange={(e) => updateRaw({ customBarcodesPath: e.target.value })}
+          placeholder="/path/to/reference.xlsx"
+          className="h-8 min-w-0 text-xs"
+          aria-label="Custom barcodes file path (xlsx or csv)"
+          disabled={isDemuxing}
+        />
+      </div>
+
+      {/* Sequencing summary path */}
+      <div className="space-y-1">
+        <Label
+          htmlFor="seq-summary-path"
+          className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
+        >
+          Sequencing Summary (optional)
+        </Label>
+        <Input
+          id="seq-summary-path"
+          type="text"
+          value={rawRunParams.sequencingSummaryPath}
+          onChange={(e) => updateRaw({ sequencingSummaryPath: e.target.value })}
+          placeholder="sequencing_summary_*.txt"
+          className="h-8 min-w-0 text-xs"
+          aria-label="Sequencing summary file path (optional)"
+          disabled={isDemuxing}
+        />
+      </div>
+
+      {/* Quality thresholds */}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <NumericField
+          id="min-qscore"
+          label="Min Q-score"
+          value={rawRunParams.minQscore}
+          step="0.5"
+          onChange={(v) => updateRaw({ minQscore: v })}
+          disabled={isDemuxing}
+        />
+        <NumericField
+          id="min-barcode-score"
+          label="Min Barcode Score"
+          value={rawRunParams.minBarcodeScore}
+          step="1"
+          onChange={(v) => updateRaw({ minBarcodeScore: v })}
+          disabled={isDemuxing}
+        />
+        <NumericField
+          id="length-min"
+          label="Length Min"
+          value={rawRunParams.lengthMin}
+          step="50"
+          onChange={(v) => updateRaw({ lengthMin: Math.round(v) })}
+          disabled={isDemuxing}
+        />
+        <NumericField
+          id="length-max"
+          label="Length Max"
+          value={rawRunParams.lengthMax}
+          step="50"
+          onChange={(v) => updateRaw({ lengthMax: Math.round(v) })}
+          disabled={isDemuxing}
+        />
+      </div>
+
+      {/* Progress bar */}
+      {isDemuxing && (
+        <div role="status" aria-live="polite" className="space-y-1">
+          <div
+            className="h-1.5 w-full overflow-hidden rounded-full bg-muted"
+            aria-label="Demux progress"
+          >
+            <div
+              className="h-full bg-primary transition-all"
+              style={{ width: `${demuxProgress}%` }}
+              aria-valuenow={demuxProgress}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              role="progressbar"
+            />
+          </div>
+          <p className="text-caption text-muted-foreground">{demuxMessage}</p>
+        </div>
+      )}
+
+      {/* Demux result summary */}
+      {!isDemuxing && demuxResult !== null && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="rounded-md bg-muted px-3 py-2 text-caption text-muted-foreground"
+        >
+          <span className="font-medium text-foreground">Demux complete:</span>{" "}
+          {demuxResult.n_assigned.toLocaleString()} reads assigned /{" "}
+          {demuxResult.n_input_reads.toLocaleString()} total (
+          {demuxResult.backend})
+        </div>
+      )}
+
+      {/* Run demux button */}
+      <Button
+        type="button"
+        size="sm"
+        className="w-full text-xs"
+        onClick={() => void runDemuxAndFilter()}
+        disabled={isDemuxing || !rawRunParams.customBarcodesPath}
+        aria-busy={isDemuxing}
+        aria-label="Run demux and quality filter on raw run folder"
+      >
+        {isDemuxing ? "Demuxing…" : "Run Demux & Filter"}
+      </Button>
+    </fieldset>
+  );
+}
+
 export function ParameterPanel() {
   const mode = useMameAppStore((s) => s.mode);
   const ingestMode = useMameAppStore((s) => s.ingestMode);
+  const inputMode = useMameAppStore((s) => s.inputMode);
   const cdsStart = useMameAppStore((s) => s.cdsStart);
   const cdsEnd = useMameAppStore((s) => s.cdsEnd);
   const minFileSizeKb = useMameAppStore((s) => s.minFileSizeKb);
@@ -77,13 +240,19 @@ export function ParameterPanel() {
       </header>
 
       <div className="grid gap-3 sm:grid-cols-2">
+        {/* Analysis mode (amplicon/plasmid) */}
         <div className="space-y-1">
-          <Label htmlFor="mode-select" className="text-caption font-medium uppercase tracking-wide text-muted-foreground">
+          <Label
+            htmlFor="mode-select"
+            className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
+          >
             Mode
           </Label>
           <Select
             value={mode}
-            onValueChange={(value) => setParams({ mode: value as "amplicon" | "plasmid" })}
+            onValueChange={(value) =>
+              setParams({ mode: value as "amplicon" | "plasmid" })
+            }
           >
             <SelectTrigger id="mode-select" className="h-8 text-xs">
               <SelectValue />
@@ -95,20 +264,59 @@ export function ParameterPanel() {
           </Select>
         </div>
 
-        <div className="space-y-1">
-          <Label htmlFor="ingest-mode-select" className="text-caption font-medium uppercase tracking-wide text-muted-foreground">
-            Ingest
+        {/* Ingest mode (barcode/amplicon) — only shown for non-raw_run */}
+        {inputMode !== "raw_run" && (
+          <div className="space-y-1">
+            <Label
+              htmlFor="ingest-mode-select"
+              className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
+            >
+              Ingest
+            </Label>
+            <Select
+              value={ingestMode}
+              onValueChange={(value) =>
+                setParams({ ingestMode: value as "barcode" | "amplicon" })
+              }
+            >
+              <SelectTrigger id="ingest-mode-select" className="h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="barcode">barcode</SelectItem>
+                <SelectItem value="amplicon">amplicon</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {/* Input mode (consensus / sorted_barcode / raw_run) */}
+        <div className="space-y-1 sm:col-span-2">
+          <Label
+            htmlFor="input-mode-select"
+            className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
+          >
+            Input Source
           </Label>
           <Select
-            value={ingestMode}
-            onValueChange={(value) => setParams({ ingestMode: value as "barcode" | "amplicon" })}
+            value={inputMode}
+            onValueChange={(value) =>
+              setParams({ inputMode: value as InputMode })
+            }
           >
-            <SelectTrigger id="ingest-mode-select" className="h-8 text-xs">
+            <SelectTrigger id="input-mode-select" className="h-8 text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="barcode">barcode</SelectItem>
-              <SelectItem value="amplicon">amplicon</SelectItem>
+              <SelectItem value="consensus">
+                {INPUT_MODE_LABELS.consensus}
+              </SelectItem>
+              <SelectItem value="sorted_barcode">
+                {INPUT_MODE_LABELS.sorted_barcode}
+              </SelectItem>
+              <SelectItem value="raw_run">
+                {INPUT_MODE_LABELS.raw_run}
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -127,7 +335,10 @@ export function ParameterPanel() {
         />
 
         <div className="space-y-1 sm:col-span-2">
-          <Label htmlFor="min-file-kb" className="text-caption font-medium uppercase tracking-wide text-muted-foreground">
+          <Label
+            htmlFor="min-file-kb"
+            className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
+          >
             Min File KB
           </Label>
           <Input
@@ -159,6 +370,9 @@ export function ParameterPanel() {
           onChange={(value) => setParams({ manyCutoff: value })}
         />
       </div>
+
+      {/* Conditional raw-run sub-panel */}
+      {inputMode === "raw_run" && <RawRunParamPanel />}
     </div>
   );
 }
@@ -169,16 +383,21 @@ function NumericField({
   value,
   onChange,
   step,
+  disabled,
 }: {
   id: string;
   label: string;
   value: number;
   onChange: (value: number) => void;
   step?: string;
+  disabled?: boolean;
 }) {
   return (
     <div className="space-y-1">
-      <Label htmlFor={id} className="text-caption font-medium uppercase tracking-wide text-muted-foreground">
+      <Label
+        htmlFor={id}
+        className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
+      >
         {label}
       </Label>
       <Input
@@ -194,6 +413,7 @@ function NumericField({
         }}
         className="h-8 text-xs"
         aria-label={label}
+        disabled={disabled}
       />
     </div>
   );

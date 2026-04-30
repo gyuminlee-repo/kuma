@@ -116,8 +116,28 @@ class TestExportTsv:
 
         assert tsv_path.exists()
         lines = tsv_path.read_text().strip().split("\n")
-        assert len(lines) >= 11  # header + successful mutations (>=10)
-        assert "Mutation" in lines[0]
+        assert len(lines) >= 12  # metadata + header + successful mutations (>=10)
+        assert lines[0].startswith("# overlap_mode=")
+        assert "Mutation" in lines[1]
+        assert "Tm_Overlap" in lines[1]  # partial mode keeps original column name
+
+    def test_export_full_overlap_renames_third_tm_column(self, fasta_path, mutations_csv, tmp_path):
+        results, _, _f = design_sdm_primers(
+            fasta_path=fasta_path,
+            target_start=TARGET_START,
+            mutations_csv=mutations_csv,
+            polymerase="Q5",
+            overlap_len=18,
+            overlap_mode="full",
+        )
+        tsv_path = tmp_path / "test_primers_full.tsv"
+        export_results_tsv(results, tsv_path, overlap_mode="full")
+
+        assert tsv_path.exists()
+        lines = tsv_path.read_text().strip().split("\n")
+        assert lines[0] == "# overlap_mode=full"
+        assert "Tm_Primer" in lines[1]
+        assert "Tm_Overlap" not in lines[1]
 
 
 class TestSynthesisScore:

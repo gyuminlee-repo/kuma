@@ -25,9 +25,12 @@ from sidecar_mame.handlers.export import (
     handle_get_plate_data,
 )
 from sidecar_mame.handlers.kuma_meta import handle_read_kuma_meta
+from sidecar_mame.handlers.report import handle_export_run_report
+from sidecar_mame.handlers.demux import handle_demux_and_filter
 
 # Phase A handler registry.
 # ``translate`` is deferred to Phase B per the reconciled scope.
+# NOTE: ``export_run_report`` is owned by A14 — do not rename or remove.
 _METHODS = {
     "analyze": handle_analyze,
     "validate_inputs": handle_validate_inputs,
@@ -35,11 +38,14 @@ _METHODS = {
     "get_plate_data": handle_get_plate_data,
     "export_janus_mapping": handle_export_janus_mapping,
     "read_kuma_meta": handle_read_kuma_meta,
+    "export_run_report": handle_export_run_report,
     "cancel_analyze": lambda _: {"cancelled": True},
+    # A1/A3: raw-run demux + quality filter (R6)
+    "demux_and_filter": handle_demux_and_filter,
 }
 
 # Long-running handlers run on a worker thread so stdin keeps draining.
-_ASYNC_METHODS = {"analyze"}
+_ASYNC_METHODS = {"analyze", "demux_and_filter"}
 
 
 def _dispatch_handler(

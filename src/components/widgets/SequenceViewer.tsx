@@ -331,6 +331,7 @@ export function SequenceViewer() {
     disabledDomains,
     parsedMutations,
     selectedGene,
+    overlapMode,
   } = useAppStore(
     useShallow((s) => ({
       seqInfo: s.seqInfo,
@@ -341,8 +342,10 @@ export function SequenceViewer() {
       disabledDomains: s.disabledDomains,
       parsedMutations: s.parsedMutations,
       selectedGene: s.selectedGene,
+      overlapMode: s.overlapMode,
     })),
   );
+  const isFullOverlap = overlapMode === "full";
 
   const [collapsed, setCollapsed] = useState(false);
   const [selectedMutation, setSelectedMutation] = useState<string | null>(null);
@@ -621,7 +624,7 @@ export function SequenceViewer() {
                     {tooltip.tick.status === "success" && tooltip.tick.tm != null && (
                       <> | Tm: {tooltip.tick.tm.toFixed(1)}&deg;C</>
                     )}
-                    {tooltip.tick.status === "success" && tooltip.tick.tmOverlap != null && (
+                    {tooltip.tick.status === "success" && !isFullOverlap && tooltip.tick.tmOverlap != null && (
                       <> | Ov: {tooltip.tick.tmOverlap.toFixed(1)}&deg;C</>
                     )}
                   </div>
