@@ -38,8 +38,8 @@ Given a mutation list (plain text / EVOLVEpro CSV / MULTI-evolve CSV) and a temp
 - **Column sorting**: All result columns sortable (including y_pred and synthesis score). Plate map export respects current sort order
 - **Candidate comparison and swap**: Click a primer sequence to open a candidate comparison popover
 - **Custom primer evaluation**: Enter a sequence directly in the candidate popover → Tm, GC%, hairpin, and off-target are calculated immediately
-- **Failed mutation retry**: Click a failed mutation → adjust Tm/GC%/length/tolerance → re-design → select from candidates
-- **Position Rescue**: When a primer design fails, automatically attempts same-position backup variants from the EVOLVEpro pool (Pool Cascade), then widens Tm tolerance (±5.0°C) and GC range (±5%) (Auto-Relax). Rescue statistics displayed in Design Report
+- **Failed mutation retry**: Click a failed mutation → adjust Tm/GC%/length/tolerance → re-design → select from candidates. The retry popover offers a one-click **Use suggestion** button that pre-fills median Tm, observed GC/length range, and tol ±5°C derived from primers that already succeeded in the same run
+- **Position Rescue**: Three-stage fallback when a primer design fails. (1) **Pool Cascade**: same-position backup variants from the EVOLVEpro pool. (2) **Auto-Relax**: widened Tm tolerance (±5.0°C) and GC range (±5%). (3) **Auto-retry (suggestion)**: with Fill-on-failure off, the failed list is re-tried once more using parameters derived from the run successful primers. Rescue badges in the result table distinguish the three stages (`↻ cascade`, `⚡ relaxed`, `🎯 suggestion`); statistics displayed in Design Report
 - **Fill on failure**: When enabled (off by default), automatically fills the requested mutation count from extra candidates when some mutations fail
 - **Off-target detection**: Automatic detection of non-specific binding on the template sense/antisense strand
 - **96-well Plate Map**: Linked Fwd/Rev plate. Multi-plate slide for >96 mutations. Synchronized with table sort order

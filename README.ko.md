@@ -37,8 +37,8 @@ Kuro 탭에서 프라이머를 설계하고 실험·시퀀싱 후 Mame 탭으로
 - **Sequence Map**: 접이식 SVG 선형 CDS 맵. 변이 위치, 도메인 영역, 밀도 히스토그램
 - **후보 비교 및 교체**: 프라이머 서열 클릭 시 후보 비교 팝오버
 - **커스텀 프라이머 평가**: 후보 팝오버에서 직접 서열 입력 → Tm, GC%, hairpin, off-target 즉시 계산
-- **실패 돌연변이 재시도**: 실패한 mutation 클릭 → 파라미터 조절 → 재설계
-- **Position Rescue**: 설계 실패 시 EVOLVEpro pool에서 같은 위치 대안 variant를 자동 시도(Pool Cascade), 이후 Tm tolerance(±5.0°C)와 GC 범위(±5%)를 완화하여 재시도(Auto-Relax)
+- **실패 돌연변이 재시도**: 실패한 mutation 클릭 → 파라미터 조절 → 재설계. popover 의 **Use suggestion** 버튼은 같은 run 에서 성공한 primer 들의 median Tm, GC/길이 관측 범위, tol ±5°C 를 한 번에 채워줌
+- **Position Rescue**: 설계 실패 시 3단계 fallback. (1) **Pool Cascade**: EVOLVEpro pool 의 같은 위치 대안 variant. (2) **Auto-Relax**: Tm tolerance(±5.0°C) + GC 범위(±5%) 완화. (3) **Auto-retry (suggestion)**: Fill-on-failure 가 꺼져 있을 때 성공 primer 들로부터 도출한 파라미터로 한 번 더 재시도. 결과 테이블 rescue 배지(`↻ cascade`, `⚡ relaxed`, `🎯 suggestion`)로 단계 구분, 통계는 Design Report 에 표시
 - **실패 시 자동 채움**: 활성화 시 일부 mutation 실패해도 추가 후보로 요청 수만큼 자동 채움
 - **Off-target 검증**: template sense/antisense에서 비특이적 결합 자동 검출
 - **96-well Plate Map**: Fwd/Rev 쌍 연동 플레이트. 96개 초과 시 multi-plate 슬라이드

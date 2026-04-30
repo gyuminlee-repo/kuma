@@ -4,6 +4,54 @@
 
 ---
 
+## v0.1.10 – v0.1.13 (2026-04-30)
+
+앱 종료 경로 정리, IPC 버그 수정, 패널 가변 레이아웃, 실패 mutation 자동 retry 도입.
+
+### Sidecar 라이프사이클 (`v0.1.10`, `v0.1.11`)
+
+- `lib.rs`: 메인 윈도우의 `WindowEvent::CloseRequested` 가 `prevent_close` → kuro/mame sidecar 비동기 kill → `app.exit(0)` 순서로 종료. `RunEvent::Exit` 는 OS quit 신호 대비 동기 sweep 유지
+- popover·dialog 플러그인 sub-window 가 닫혀도 sidecar 가 죽지 않도록 main 라벨로 필터. 이전엔 검색 도중 `Sidecar killed` 가 뜨던 원인
+- `spawnSidecar` 가 `ping` RPC 를 한 번 쳐서 sidecar 가 lazy 가 아닌 즉시 부팅. `sidecar_kuro` / `sidecar_mame` dispatcher 양쪽에 `ping` 핸들러 등록
+- `useSidecar` / `useMameSidecar` 가 hook unmount 에서 sidecar 를 죽이지 않음. 탭 전환 중에도 장기 작업 유지
+
+### 파일시스템 플러그인 (`v0.1.12`)
+
+- `tauri-plugin-fs` 를 `Cargo.toml`·`lib.rs`·`capabilities/default.json` 에 등록 (`fs:default` + mkdir/write/read/exists/rename + scope: `$HOME`·`$DOCUMENT`·`$DOWNLOAD`·`$DESKTOP`)
+- 이게 빠져 있어 sequence Browse 직후 첫 store 변경에서 autosave write 가 매번 실패 → 인디케이터가 `save failed` 로 전환되던 문제 해결
+
+### 윈도우 제목 권한 (`v0.1.13`)
+
+- `core:window:allow-set-title` 권한 추가. AppLayout 의 `getCurrentWindow().setTitle()` 호출이 거부되던 문제 해결
+
+### 패널 크기 조절 (`v0.1.13`)
+
+- AppLayout 의 고정 CSS grid 를 `react-resizable-panels` 로 교체. 좌측 sidebar↔main, 우측 Sequence↔Design↔Plate 사이에 드래그 핸들. `autoSaveId`(`kuma-main-h`, `kuma-main-v`)로 방향별 레이아웃이 localStorage 에 저장
+- `PlateMap`: 내부 컨테이너를 `overflow-auto` 로 변경. Plate 패널이 좁아져도 8×12 grid 가 잘리지 않고 스크롤됨
+- 테스트 환경: `ResizeObserver` + `matchMedia` 스텁을 vitest setup 에 추가
+
+### Run Design — 미입력 팝업 (`v0.1.13`)
+
+- 시퀀스 파일·mutation 미입력 상태에서도 Run Design 버튼이 비활성화되지 않음. 클릭 시 누락 항목(시퀀스 파일, mutations, 다중 gene 시 target gene)을 리스트로 보여주는 팝업 표시. `Ctrl/Cmd+D`·`Ctrl/Cmd+Enter` 단축키도 동일 경로
+
+### Failed mutation popover — suggestion (`v0.1.13`)
+
+- 새 `Use suggestion (N)` 버튼이 같은 run 의 성공 primer 통계로 retry 파라미터를 채움: `Tm Fwd / Rev / Overlap` 의 median, 관측 GC·길이 범위를 약간 확장, `tol_max` ±5°C. 버튼에 sample 크기 표시 + footnote 로 채택 값 안내
+- `src/lib/primerSuggestion.ts` 에 `suggestRetryParams(results, defaults)` 노출 — popover 외부에서도 재사용 가능
+
+### 디자인 완료 시 자동 retry (`v0.1.13`)
+
+- 디자인 완료 후 `failedMutations.length > 0 && !fillOnFailure && designResults.length > 0` 조건 만족하면 위 suggestion 을 자동 적용. 각 실패 mutation 에 대해 한 번만 retry, 첫 candidate 를 자동 채택
+- 이렇게 회수된 mutation 은 `rescuedMutationDetails` 에 `type: "auto_suggestion"` 으로 기록. 결과 테이블에 `🎯 suggestion` 배지(info 색), Design Report 의 `Auto-retry (suggestion)` 통계로 카운트. 자동 retry 가 못 잡은 mutation 은 `failedMutations` 그대로 남아 manual popover 사용 가능
+- Fill-on-failure 가 켜진 모드에서는 skip (이미 자리 채워짐). 같은 모드에서는 결과 테이블의 failed 리스트도 비활성 표시 + tooltip 안내
+
+### 도구 변경
+
+- `react-resizable-panels ^2.1.9` 추가
+- MainShell tab-ping 테스트 1건은 `it.skip`. jsdom + react-resizable-panels 조합에서 `userEvent.click` 이 Tabs 트리거의 `onValueChange` 를 발사하지 않는 환경 한정 문제. 프로덕션 동작은 정상
+
+---
+
 ## v0.1.5 (2026-04-28)
 
 프로젝트 폴더 자동 저장 도입. scratch가 아닌 프로젝트를 열면 직전 세션이 자동 복원되고, 입력·파라미터 변경이 디스크에 조용히 적힌다.

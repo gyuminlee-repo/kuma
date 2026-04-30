@@ -4,6 +4,54 @@
 
 ---
 
+## v0.1.10 – v0.1.13 (2026-04-30)
+
+App lifecycle hardening, IPC bug fixes, layout flexibility, and a new auto-retry path for failed primer designs.
+
+### Sidecar lifecycle (`v0.1.10`, `v0.1.11`)
+
+- `lib.rs`: `WindowEvent::CloseRequested` on the main window now calls `prevent_close`, kills both kuro and mame sidecar processes asynchronously, then explicitly `app.exit(0)`. `RunEvent::Exit` keeps a final synchronous sweep for OS quit signals.
+- Sub-windows (popovers, dialog plugin windows) no longer trigger sidecar shutdown — only the window labelled `main` does. Earlier this was the source of `Sidecar killed` errors during in-flight RPC.
+- `spawnSidecar` issues a `ping` RPC so the Python sidecar boots eagerly instead of waiting for the first design call. New `ping` handler registered in both `sidecar_kuro` and `sidecar_mame` dispatchers.
+- `useSidecar` / `useMameSidecar` no longer kill the sidecar on hook unmount; long-running jobs survive tab switches.
+
+### Filesystem plugin (`v0.1.12`)
+
+- `tauri-plugin-fs` registered in `Cargo.toml`, `lib.rs`, and `capabilities/default.json` (`fs:default` plus mkdir / write / read / exists / rename allow + scope on `$HOME`, `$DOCUMENT`, `$DOWNLOAD`, `$DESKTOP`).
+- Without this, every autosave write was failing on the first store change after a Browse click, flipping the indicator to `save failed`.
+
+### Window title permission (`v0.1.13`)
+
+- `core:window:allow-set-title` added to capabilities so `getCurrentWindow().setTitle()` is allowed; previously the AppLayout title-sync `useEffect` was rejected.
+
+### Resizable panels (`v0.1.13`)
+
+- AppLayout switched from a fixed CSS grid to `react-resizable-panels`. Drag handles between sidebar / main and between Sequence / Design / Plate panels. Layout per direction is persisted via `autoSaveId` (`kuma-main-h`, `kuma-main-v`).
+- `PlateMap`: inner container now `overflow-auto` so the 8×12 grid scrolls instead of clipping bottom rows when the Plate panel is squeezed.
+- Vitest setup adds a `ResizeObserver` + `matchMedia` stub so the test environment does not crash on the new layout.
+
+### Run Design — missing input popup (`v0.1.13`)
+
+- The Run Design button is no longer disabled when sequence file or mutations are missing. Clicking now opens a popup that lists what still needs filling (sequence file, mutations, target gene if multi-gene). Same path is taken by the `Ctrl/Cmd+D` and `Ctrl/Cmd+Enter` shortcuts.
+
+### Failed mutation popover — suggestion (`v0.1.13`)
+
+- New `Use suggestion (N)` button derives retry parameters from the run already-successful primers: median `Tm Fwd / Rev / Overlap`, observed GC / length range slightly widened, `tol_max` ±5°C. The button reports the sample size and a footnote shows the chosen values.
+- `src/lib/primerSuggestion.ts` exposes `suggestRetryParams(results, defaults)` for reuse outside the popover.
+
+### Auto-retry on design completion (`v0.1.13`)
+
+- After a design pass, when `failedMutations.length > 0 && !fillOnFailure && designResults.length > 0`, the same suggestion is applied automatically: each failed mutation is re-tried once and the first candidate is accepted into `designResults`.
+- Mutations rescued this way carry a new `rescuedMutationDetails` entry with `type: "auto_suggestion"`. The result table renders a `🎯 suggestion` badge (info-coloured) and Design Report counts them under `Auto-retry (suggestion)`. Mutations that the auto-retry could not rescue stay in `failedMutations` untouched, so the manual popover keeps working.
+- Skipped when Fill-on-failure already substituted the failed positions (Pipeline + Fill is unchanged). The result table renders the failed list as non-interactive with a tooltip in that mode.
+
+### Tooling notes
+
+- Adds `react-resizable-panels ^2.1.9`.
+- One MainShell tab-ping test is `it.skip` because `userEvent.click` on the Tabs trigger does not fire `onValueChange` under jsdom + react-resizable-panels. Production behaviour is unchanged.
+
+---
+
 ## v0.1.5 (2026-04-28)
 
 Project-scoped autosave. Opening a non-scratch project hydrates the previous session and every input or parameter change quietly persists to disk.
