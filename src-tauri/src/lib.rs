@@ -4,7 +4,7 @@ pub mod sidecar;
 
 use serde_json::Value;
 use std::path::PathBuf;
-use tauri::{Manager, RunEvent, State, WindowEvent, Wry};
+use tauri::{AppHandle, Manager, RunEvent, State, WindowEvent, Wry};
 
 #[tauri::command]
 async fn sidecar_rpc(
@@ -32,12 +32,10 @@ async fn sidecar_is_running(
     state.is_running(&kind).await
 }
 
-fn shutdown_sidecars(app: &tauri::AppHandle<Wry>) {
+async fn shutdown_sidecars_async(app: &AppHandle<Wry>) {
     let manager = app.state::<sidecar::SidecarManager>();
-    tauri::async_runtime::block_on(async {
-        let _ = manager.kill("kuro").await;
-        let _ = manager.kill("mame").await;
-    });
+    let _ = manager.kill("kuro").await;
+    let _ = manager.kill("mame").await;
 }
 
 pub fn run() {
@@ -53,8 +51,20 @@ pub fn run() {
             Ok(())
         })
         .on_window_event(|window, event| {
-            if matches!(event, WindowEvent::CloseRequested { .. }) {
-                shutdown_sidecars(window.app_handle());
+            // Only the main window controls app lifecycle.
+            // Popovers/dropdowns/dialog plugin windows must not kill sidecars.
+            if window.label() != "main" {
+                return;
+            }
+            if let WindowEvent::CloseRequested { api, .. } = event {
+                api.prevent_close();
+                let app_handle = window.app_handle().clone();
+                tauri::async_runtime::spawn(async move {
+                    eprintln!("[lifecycle] main CloseRequested → killing sidecars");
+                    shutdown_sidecars_async(&app_handle).await;
+                    eprintln!("[lifecycle] sidecars killed → exiting app");
+                    app_handle.exit(0);
+                });
             }
         })
         .invoke_handler(tauri::generate_handler![
@@ -77,8 +87,12 @@ pub fn run() {
     };
 
     app.run(|app_handle, event| {
-        if matches!(event, RunEvent::ExitRequested { .. } | RunEvent::Exit) {
-            shutdown_sidecars(app_handle);
+        // Final-stage cleanup: if Exit fires without going through our
+        // CloseRequested path (e.g., OS quit signal, app.exit() from elsewhere),
+        // make a best-effort sync sweep so sidecar children don't outlive us.
+        if matches!(event, RunEvent::Exit) {
+            eprintln!("[lifecycle] RunEvent::Exit → final sidecar sweep");
+            tauri::async_runtime::block_on(shutdown_sidecars_async(app_handle));
         }
     });
 }
