@@ -176,8 +176,14 @@ def _start_parent_watchdog() -> None:
 
 
 
-def main() -> None:
-    """Main loop: read JSON-RPC requests from stdin, dispatch, respond on stdout."""
+def main(emit_ready: bool = True) -> None:
+    """Main loop: read JSON-RPC requests from stdin, dispatch, respond on stdout.
+
+    `emit_ready` defaults to True for backwards compatibility (direct invocation
+    or tests). The frozen PyInstaller entry script sets it to False because it
+    has already emitted the ready notification before triggering the heavy
+    imports that bring this module to life.
+    """
     if sys.platform == "win32":
         sys.stdout.reconfigure(encoding="utf-8")
         sys.stdin.reconfigure(encoding="utf-8")
@@ -185,7 +191,8 @@ def main() -> None:
 
     _start_parent_watchdog()
     logger.info("KURO sidecar started (pid=%d)", os.getpid())
-    _send({"jsonrpc": "2.0", "method": "ready", "params": {}})
+    if emit_ready:
+        _send({"jsonrpc": "2.0", "method": "ready", "params": {}})
 
     for line in sys.stdin:
         line = line.strip()
