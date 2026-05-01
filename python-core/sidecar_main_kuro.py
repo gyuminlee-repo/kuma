@@ -5,10 +5,12 @@ Protocol: one JSON object per line (newline-delimited JSON).
 
 The dispatcher package transitively imports numpy / pandas / biopython, which
 on a cold PyInstaller --onefile launch (Windows + AV) can cost 10-20 seconds
-before any code in the package runs. The host enforces a ready timeout, so we
-emit the ready notification as the very first thing — before importing the
-dispatcher — and let the host enqueue requests on stdin while the heavy
-imports finish in the background.
+before any code in the package runs. The host no longer gates RPC dispatch on
+the ready notification (see `src-tauri/src/sidecar.rs::ensure_spawned`) — it
+spawns the child and writes RPC requests immediately, letting the OS pipe
+buffer queue them until the python main loop drains stdin. The ready emit is
+kept here as a diagnostic / informational signal so logs and future readers
+can see the boundary between "process alive" and "main loop ready".
 """
 
 import json

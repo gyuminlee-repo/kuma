@@ -16,10 +16,11 @@ use tauri_plugin_shell::{
 };
 use tokio::sync::{oneshot, Mutex, Notify};
 
-// PyInstaller --onefile cold start can exceed 20s on first launch when
-// Windows Defender (or other AV) scans the freshly-extracted binary plus
-// heavy imports (numpy / pandas / biopython). 30s gives headroom on slow
-// machines without making genuine spawn failures noticeably more painful.
+// `wait_ready` is retained for diagnostic / future use, but `ensure_spawned`
+// no longer blocks on the ready notification. The 30s budget is what would
+// have applied; left here so callers that opt into ready-gating still have a
+// reasonable upper bound.
+#[allow(dead_code)]
 const READY_TIMEOUT: Duration = Duration::from_secs(30);
 const RPC_TIMEOUT: Duration = Duration::from_secs(60);
 
@@ -83,6 +84,7 @@ impl LineProtocol {
         self.ready.load(Ordering::SeqCst)
     }
 
+    #[allow(dead_code)]
     pub async fn wait_ready(&self, timeout: Duration) -> Result<(), String> {
         if self.is_ready() {
             return Ok(());
@@ -292,11 +294,12 @@ impl SidecarManager {
     }
 
     async fn ensure_spawned(&self, kind: &str) -> Result<Arc<SidecarProcess>, String> {
+        // Mirrors legacy kuro behaviour: spawn the child and return immediately.
+        // Do NOT block on the ready notification — the host enqueues the RPC on
+        // the child stdin and the response comes back once the python main loop
+        // starts. Heavy imports (numpy / pandas / biopython) on first launch
+        // must not surface as a ready timeout.
         if let Some(existing) = self.current_process(kind).await? {
-            if existing.protocol.is_ready() {
-                return Ok(existing);
-            }
-            existing.protocol.wait_ready(READY_TIMEOUT).await?;
             return Ok(existing);
         }
 
@@ -304,17 +307,12 @@ impl SidecarManager {
         let _guard = spawn_lock.lock().await;
 
         if let Some(existing) = self.current_process(kind).await? {
-            if existing.protocol.is_ready() {
-                return Ok(existing);
-            }
-            existing.protocol.wait_ready(READY_TIMEOUT).await?;
             return Ok(existing);
         }
 
         let process = self.spawn_process(kind).await?;
         let slot = self.slot(kind)?;
         *slot.lock().await = Some(process.clone());
-        process.protocol.wait_ready(READY_TIMEOUT).await?;
         Ok(process)
     }
 

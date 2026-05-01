@@ -2,9 +2,10 @@
 
 JSON-RPC 2.0 over stdin/stdout (newline-delimited JSON).
 
-Same cold-start trick as KURO: emit the ready notification before importing
-the dispatcher so the host does not hit READY_TIMEOUT while heavy imports
-finish on Windows + AV first launches.
+The host no longer gates RPC dispatch on the ready notification (see
+`src-tauri/src/sidecar.rs::ensure_spawned`); requests are written to stdin
+immediately and the OS pipe queues them until the python main loop drains.
+The ready emit here is kept as a diagnostic boundary marker only.
 """
 
 import json
