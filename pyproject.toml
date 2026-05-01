@@ -13,12 +13,21 @@ dependencies = [
     "openpyxl==3.1.5",
     "pydantic>=2.0",
     "pandas>=2.0",
-    "mappy==2.30",
+    # mappy is only used by mame raw_run alignment. Source-only sdist; needs
+    # zlib + sse2neon toolchain to build, which the Windows / macOS-aarch64
+    # GitHub runners do not provide. Restrict to Linux so the cross-platform
+    # release build does not abort on a feature that is still WIP.
+    'mappy==2.30; platform_system == "Linux"',
 ]
 
 [project.optional-dependencies]
 build = [
     "pyinstaller==6.16.0",
+]
+mame-raw = [
+    # Force-install on platforms where mappy can build from source. Users on
+    # Windows / macOS who want raw_run can pin a system zlib and add this.
+    "mappy==2.30",
 ]
 
 [project.scripts]
