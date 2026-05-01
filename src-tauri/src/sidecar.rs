@@ -16,7 +16,11 @@ use tauri_plugin_shell::{
 };
 use tokio::sync::{oneshot, Mutex, Notify};
 
-const READY_TIMEOUT: Duration = Duration::from_secs(10);
+// PyInstaller --onefile cold start can exceed 20s on first launch when
+// Windows Defender (or other AV) scans the freshly-extracted binary plus
+// heavy imports (numpy / pandas / biopython). 30s gives headroom on slow
+// machines without making genuine spawn failures noticeably more painful.
+const READY_TIMEOUT: Duration = Duration::from_secs(30);
 const RPC_TIMEOUT: Duration = Duration::from_secs(60);
 
 type PendingSender = oneshot::Sender<Result<Value, String>>;
