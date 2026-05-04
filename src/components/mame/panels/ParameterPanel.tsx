@@ -13,6 +13,13 @@ import { AlertTriangle, Dna } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AmpliconLengthEstimate, DistributionStats } from "@/types/mame/models";
 import type { InputMode } from "@/store/mame/slice-interfaces";
+import { ActivityUploadPanel } from "./ActivityUploadPanel";
+import { WtWellEditor } from "@/components/mame/dialogs/WtWellEditor";
+import { RoundHandoffButton } from "@/components/round/RoundHandoffButton";
+import { useActivityStore, type ActivitySlice } from "@/store/mame/activitySlice";
+import { useRoundStore } from "@/store/round/roundSlice";
+import { useStore } from "zustand";
+import { save } from "@tauri-apps/plugin-dialog";
 
 const METHOD_LABELS: Record<DistributionStats["suggested_method"], string> = {
   median_minus_2sigma: "median − 2σ",
@@ -399,6 +406,89 @@ function RawRunParamPanel() {
   );
 }
 
+function ActivityDataSection() {
+  const activeRoundId = useRoundStore((s) => s.active_round_id);
+
+  const activityStore = useActivityStore();
+  const isMerging = useStore(activityStore, (s: ActivitySlice) => s.isMerging);
+  const isExporting = useStore(activityStore, (s: ActivitySlice) => s.isExporting);
+  const mergeError = useStore(activityStore, (s: ActivitySlice) => s.mergeError);
+  const exportError = useStore(activityStore, (s: ActivitySlice) => s.exportError);
+  const mergeActivity = useStore(activityStore, (s: ActivitySlice) => s.mergeActivity);
+  const exportEvolveproCsv = useStore(activityStore, (s: ActivitySlice) => s.exportEvolveproCsv);
+
+  async function handleExport() {
+    if (!activeRoundId) return;
+    const filePath = await save({
+      filters: [{ name: "CSV files", extensions: ["csv"] }],
+      defaultPath: "evolvepro_export.csv",
+      title: "Export EVOLVEpro CSV",
+    });
+    if (!filePath) return;
+    await exportEvolveproCsv(activeRoundId, filePath);
+  }
+
+  return (
+    <section
+      className="space-y-3 pt-3 border-t border-border"
+      aria-label="Activity data section"
+    >
+      <header>
+        <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Activity Data
+        </h4>
+      </header>
+
+      <ActivityUploadPanel />
+      <WtWellEditor />
+
+      <div className="space-y-2 pt-1">
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="w-full text-xs"
+          onClick={() => activeRoundId && void mergeActivity(activeRoundId)}
+          disabled={!activeRoundId || isMerging}
+          aria-busy={isMerging}
+          aria-label="Merge activity data with genotype"
+        >
+          {isMerging ? "Merging…" : "Merge with genotype"}
+        </Button>
+
+        {mergeError && (
+          <div role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-caption text-destructive">
+            {mergeError}
+          </div>
+        )}
+
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="w-full text-xs"
+          onClick={() => void handleExport()}
+          disabled={!activeRoundId || isExporting}
+          aria-busy={isExporting}
+          aria-label="Export EVOLVEpro CSV"
+        >
+          {isExporting ? "Exporting…" : "Export EVOLVEpro CSV"}
+        </Button>
+
+        {exportError && (
+          <div role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-caption text-destructive">
+            {exportError}
+          </div>
+        )}
+
+        {activeRoundId && (
+          <RoundHandoffButton round_id={activeRoundId} />
+        )}
+      </div>
+    </section>
+  );
+}
+
 export function ParameterPanel() {
   const mode = useMameAppStore((s) => s.mode);
   const ingestMode = useMameAppStore((s) => s.ingestMode);
@@ -585,6 +675,8 @@ export function ParameterPanel() {
 
       {/* Conditional raw-run sub-panel */}
       {inputMode === "raw_run" && <RawRunParamPanel />}
+
+      <ActivityDataSection />
     </div>
   );
 }
