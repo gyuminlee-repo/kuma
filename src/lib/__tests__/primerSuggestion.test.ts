@@ -40,7 +40,7 @@ describe("getStageParams", () => {
   };
   it("stage 1 widens length only", () => {
     const p = getStageParams(base, 1);
-    expect(p.fwdLenMin).toBe(20);
+    expect(p.fwdLenMin).toBe(22);
     expect(p.fwdLenMax).toBe(32);
     expect(p.gcMin).toBe(40);
     expect(p.tolMax).toBe(3.0);

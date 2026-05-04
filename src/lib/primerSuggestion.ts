@@ -147,9 +147,9 @@ export function getStageParams(base: StageParamsInput, stage: CascadeStage) {
     tmOverlap: base.tmOverlap,
     gcMin: clamp(base.gcMin - r.gcDelta, 10, 90),
     gcMax: clamp(base.gcMax + r.gcDelta, 10, 95),
-    fwdLenMin: clamp(base.fwdLenMin - r.lengthDelta, 15, 60),
+    fwdLenMin: base.fwdLenMin,
     fwdLenMax: clamp(base.fwdLenMax + r.lengthDelta, 15, 60),
-    revLenMin: clamp(base.revLenMin - r.lengthDelta, 15, 60),
+    revLenMin: base.revLenMin,
     revLenMax: clamp(base.revLenMax + r.lengthDelta, 15, 60),
     tolMax: Math.min(10.0, base.baseTol + r.tmTolDelta),
   };
