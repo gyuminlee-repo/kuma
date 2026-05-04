@@ -578,6 +578,166 @@ CLAUDE.md "Cross-layer Change Checklist" 표 (현재 8행, 약 line 73–84)에 
 
 ---
 
+## 12-A. Single→Double 자동 전환 분류기 (5/12 부분 IN, v0.3 확장)
+
+목적: EVOLVEpro single mutant 라운드를 언제까지 진행하고 double mutant로 전환할지를 객관 기준으로 자동 판별. 객관성 = 사전등록 + 다중 신호 + 문헌 앵커 + 감사 로그 + 재현성 5요소 충족.
+
+선행 문헌 조사: `$OBSIDIAN_VAULT/010.KRIBB/010.Projects/060.강혜민_IspS_LowCost_Workflow/02_KURO_Integration/260504_single_double_전환기준_문헌조사.md` §8 참조.
+
+### 12-A.1 신호 4종
+
+| ID | 신호 | 정의 | 임계 (기본값) | 문헌 앵커 |
+|---|---|---|---|---|
+| T1 | 누적 beneficial single 수 | `cumulative_beneficial = count(log2_fc > τ_pos AND ngs_success across all rounds)` | K_target = 15 | Tran et al. 2025 MULTI-evolve top~15; Emelianov et al. 2026 round 1 hit 15/94 |
+| T2 | 한계 개선폭 plateau | `Δ_best_EMA = EMA_2(best_n − best_{n-1})` | `Δ_best_EMA < 1.96 · σ_assay · √(2/r)` | Zhang 1999 Z′; 260403 노트 식 1 (95% MDE) |
+| T3 | hit rate 추세 | 라운드별 `n_positive / n_designed` 선형 회귀 기울기 (2 라운드) | slope ≤ 0 | Greenman et al. 2025 UQ benchmark (convergence indicator 일반론) |
+| T4 | top-K position Jaccard | round N과 N-1 top-K 변이의 unique position 집합 Jaccard | ≥ 0.5 | Lind et al. 2024 active site convergence 시사 |
+
+τ_pos = log2_fc 양성 임계 (기본 0.0, 사용자 사전등록 가능).
+σ_assay = WT well replicate stdev (per-plate 측정, **WT replicate ≥ 4** 필요).
+r = mutation별 replicate 수.
+N_min = 분류기 활성 시작 라운드 (기본 3, Emelianov 2026 convention).
+
+### 12-A.2 분류 로직 (3-way)
+
+```python
+def classify(round_state, registered_thresholds) -> Decision:
+    if round_state.n < registered_thresholds.N_min:
+        return Decision(label="continue_single", reason="calibration_period")
+
+    signals = compute_signals(round_state)  # T1~T4 boolean + scores
+    available = mask_available_signals(round_state, signals)
+
+    # Hysteresis: 직전 라운드도 같은 trigger 충족했는지
+    prev_signals = round_state.previous_signals
+
+    switch_trigger = (
+        signals.T1                       # K_target 충족 필수
+        and (signals.T2 or signals.T3 or signals.T4)  # 1개 이상의 plateau/수렴 신호
+        and prev_signals.T1
+        and (prev_signals.T2 or prev_signals.T3 or prev_signals.T4)
+    )
+
+    continue_trigger = (
+        not signals.T1
+        and not signals.T2
+        and not signals.T3
+    )
+
+    if switch_trigger:
+        confidence = bootstrap_confidence(round_state, n_boot=1000, seed=registered.seed)
+        if confidence < 0.7:
+            return Decision(label="deferred", reason="low_confidence", confidence=confidence)
+        return Decision(label="switch_double", confidence=confidence)
+    elif continue_trigger:
+        return Decision(label="continue_single")
+    else:
+        return Decision(label="deferred", reason="mixed_signals")
+```
+
+기본 default = `continue_single`. 비대칭 비용(조기 switch >> 추가 single 라운드 1회) 반영.
+
+### 12-A.3 사전등록 (워크스페이스 lock)
+
+```jsonc
+{
+  "strategy_classifier": {
+    "schema_version": "0.3",
+    "registered_at": "2026-05-04T10:00:00+09:00",
+    "registered_by": "user@kribb",
+    "thresholds": {
+      "K_target": 15,
+      "tau_pos": 0.0,
+      "N_min": 3,
+      "sigma_assay_method": "wt_replicate_stdev",
+      "wt_replicate_min": 4,
+      "delta_z_score": 1.96,
+      "jaccard_threshold": 0.5,
+      "topk_for_jaccard": 10,
+      "hysteresis_rounds": 2,
+      "bootstrap_n": 1000,
+      "bootstrap_seed": 20260504,
+      "confidence_threshold": 0.7
+    },
+    "literature_anchors": {
+      "K_target": ["10.1126/science.aea1820", "10.1016/j.tibtech.2025.08.007"],
+      "delta_z_score": ["Zhang 1999 Z' factor"],
+      "N_min": ["10.1016/j.tibtech.2025.08.007"]
+    },
+    "activation_status": "calibration"  // calibration | advisory | auto
+  }
+}
+```
+
+임계 변경 시 워크스페이스에 변경 이력 + 라운드 invalidate 표시. 변경 후 라운드는 새 임계로 재평가.
+
+### 12-A.4 감사 로그 스키마 (`StrategyDecisionLog` Pydantic 신규)
+
+```python
+class StrategyDecisionLog(BaseModel):
+    round_id: str
+    decided_at: datetime
+    activation_mode: Literal["calibration", "advisory", "auto"]
+    pre_registered_thresholds: dict          # 위 §12-A.3 스냅샷
+    signal_inputs: dict                      # σ_assay, r, best_n, best_{n-1}, hit_rate_n, top_k_positions
+    signal_scores: dict[str, bool | float]   # T1=True/False + 수치
+    bootstrap_distribution: dict[str, float] # {"continue_single":0.05, "switch_double":0.87, "deferred":0.08}
+    decision: Literal["continue_single", "switch_double", "deferred"]
+    decision_confidence: float
+    reason: str                              # "calibration_period", "low_confidence", etc.
+    overridden_by_user: bool                 # 사용자가 분류기 결과 무시 시 True
+    override_note: str | None
+    seed: int
+```
+
+워크스페이스에 누적 보존. PI 보고용 직접 인용 자료.
+
+### 12-A.5 활성화 단계
+
+| Mode | 라운드 | 자동 결정 | UI 표시 |
+|---|---|---|---|
+| calibration | 1–2 | 비활성 (default continue_single) | 신호값 + "calibration period" 라벨 |
+| advisory | 3 (첫 활성) | 분류 표시, 사용자 1회 명시 승인 강제 | 신호값 + 분류 결과 + bootstrap 분포 + "Confirm" 버튼 |
+| auto | 4+ (사용자 사전동의 시) | 자동 결정, 결정 직후 알림 | 신호값 + 분류 결과 + 감사 로그 링크 |
+
+전환은 사용자가 워크스페이스 설정에서 명시 변경. 임계 lock 상태에서만 advisory→auto 가능.
+
+### 12-A.6 5/12 범위
+
+| 항목 | 5/12 | v0.3 | v0.4 |
+|---|---|---|---|
+| StrategyDecisionLog 스키마 + 사전등록 워크스페이스 필드 | **IN** (스키마만, 자동 결정 안 함) | — | — |
+| RoundSummaryPanel: T1·T2·T3·T4 신호값 + 차트 | **IN** | — | — |
+| σ_assay 자동 계산 (WT replicate stdev) | **IN** | — | — |
+| Calibration mode (라운드 1·2 표시만) | **IN** | — | — |
+| Advisory mode (라운드 3+ 분류 + 명시 승인) | OUT | **IN** | — |
+| Bootstrap robustness (N=1000) | OUT | **IN** | — |
+| Auto mode (라운드 4+ 자동 결정) | OUT | OUT | **IN** |
+| T5 epistasis · T6 additive residual (double 라운드 후) | OUT | OUT | **IN** |
+| 사전등록 UI (임계 lock·변경 이력) | OUT | **IN** | — |
+
+5/12에는 **계산·기록·표시만**. 분류 결정은 v0.3 advisory부터, 완전 자동화는 v0.4. PI·혜민 연구원과 K_target/τ_pos/J_threshold IspS 적합성 합의가 v0.3 활성화 게이트.
+
+### 12-A.7 게오르기 표준과의 호환 (선행 표준 준수 모드)
+
+워크스페이스 옵션 `mode = "predetermined_3round"` 추가:
+- 분류기 비활성. 사용자가 라운드 시작 시 단계(single/double/triple) 선언.
+- 다음 라운드 후보 자동 조합 생성:
+  - `single→double`: 누적 beneficial singles (log2_fc > τ_pos AND ngs_success) → all pairwise
+  - `double→triple`: promising doubles (top-K, K=12 default per Emelianov 2026) + 누적 beneficial singles → 조합
+- StrategyDecisionLog는 사용자 선언으로 채워짐 (분류기 계산 없음).
+
+이 모드가 기본값. 자동 분류기는 사용자가 활성화 선택 시에만 동작. 게오르기 표준 그대로 따라가면서 자동화의 이점(조합 생성)은 유지.
+
+### 12-A.8 신뢰도·정직성 한계
+
+- K_target=15가 IspS에 보편 최적이라는 직접 증거 없음. MULTI-evolve(작은 단백질)와 게오르기(IspS round 1 hit 15) 두 점이 anchor.
+- σ_assay 추정의 정확도가 T2 신뢰도를 좌우. WT replicate < 4 시 T2 자동 비활성.
+- bootstrap robustness < 0.7은 deferred로 fail-safe. 빈도 높으면 임계 재검토 신호.
+- 본 분류기는 선행 분야가 형식화하지 않은 영역에 대한 도구의 첫 시도. 사용자·PI에게 이 사실을 advisory mode UI에 명시 (단계적 도입의 정당화).
+
+---
+
 ## 13. 위험
 
 | 위험 | 완화 |
@@ -587,6 +747,8 @@ CLAUDE.md "Cross-layer Change Checklist" 표 (현재 8행, 약 line 73–84)에 
 | EVOLVEpro CSV export 컬럼 호환 깨짐 | 통합 테스트로 round-trip 검증 (`test_kuma_round_trip.py`) |
 | 워크스페이스 hard break로 베타테스터 혼란 | UPDATE-NOTES에 명시 + 첫 로드 시 안내 메시지 |
 | 안건 1과 동시 변경 시 충돌 | spec 단계에서 결합 지점(§12.4) 명시. 구현 단계에서 PR 분리 |
+| 자동 분류기 K_target=15가 IspS 부적합 | calibration period(라운드 1·2) 동안 신호값 표시·점검. PI·혜민 연구원과 합의 후 v0.3 activate. 사전등록 lock으로 사후 조정 차단 |
+| 자동 분류기 false-positive로 조기 switch | hysteresis(2 라운드 연속) + bootstrap confidence ≥ 0.7 + default=continue_single + advisory→auto 단계 도입 |
 
 ---
 
