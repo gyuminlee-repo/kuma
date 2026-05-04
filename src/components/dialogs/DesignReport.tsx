@@ -135,6 +135,21 @@ export function DesignReport() {
   const domainSelected = evolveproStepStats?.domain_selected;
 
   const rescueTotal = rescueStats.pool_cascade + rescueStats.auto_relax;
+
+  const cascadeCounts = (() => {
+    const c = { l1: 0, l2: 0, l3: 0, l4: 0, samePos: 0, diffPos: 0 };
+    for (const r of rescuedMutationDetails) {
+      if (r.type === "auto_suggestion_l1") c.l1++;
+      else if (r.type === "auto_suggestion_l2") c.l2++;
+      else if (r.type === "auto_suggestion_l3") c.l3++;
+      else if (r.type === "auto_suggestion_l4") c.l4++;
+      else if (r.type === "same_position") c.samePos++;
+      else if (r.type === "diff_position") c.diffPos++;
+    }
+    return c;
+  })();
+  const cascadeTotal = cascadeCounts.l1 + cascadeCounts.l2 + cascadeCounts.l3 + cascadeCounts.l4 + cascadeCounts.samePos + cascadeCounts.diffPos;
+
   const rescuePenalties = rescuedMutationDetails
     .map((r) => r.penalty).filter((p): p is number => p != null);
   const avgRescuePenalty = avg(rescuePenalties);
@@ -242,6 +257,12 @@ export function DesignReport() {
                   value={rescuedMutationDetails.filter((r) => r.type === "auto_suggestion").length}
                 />
               )}
+              {cascadeTotal > 0 && (
+                <Stat
+                  label="Cascade rescues"
+                  value={`↻¹ ${cascadeCounts.samePos} · ↻² ${cascadeCounts.diffPos} · \u{1F3AF}¹ ${cascadeCounts.l1} · \u{1F3AF}² ${cascadeCounts.l2} · \u{1F3AF}³ ${cascadeCounts.l3} · \u{1F3AF}⁴ ${cascadeCounts.l4}`}
+                />
+              )}
               {failCount > 0 && (
                 <Stat label="Still failed" value={failCount} warn />
               )}
@@ -257,24 +278,36 @@ export function DesignReport() {
                   {rescuedMutationDetails.slice(0, 5).map((r, i) => (
                     <div key={i} className="flex justify-between">
                       <span className="font-mono">
-                        {r.type === "pool_cascade"
+                        {(r.type === "pool_cascade" || r.type === "same_position" || r.type === "diff_position")
                           ? `${r.original} \u2192 ${r.rescued_by}`
                           : r.original}
                       </span>
                       <span
                         className={
-                          r.type === "pool_cascade"
+                          r.type === "pool_cascade" || r.type === "same_position" || r.type === "diff_position"
                             ? "text-success"
-                            : r.type === "auto_suggestion"
+                            : r.type === "auto_suggestion" || r.type === "auto_suggestion_l1" || r.type === "auto_suggestion_l2"
                               ? "text-info"
                               : "text-warning"
                         }
                       >
                         {r.type === "pool_cascade"
                           ? "\u21BB cascade"
-                          : r.type === "auto_suggestion"
-                            ? "\u{1F3AF} suggestion"
-                            : "\u26A1 relaxed"}
+                          : r.type === "same_position"
+                            ? "\u21BB\u00B9 same pos"
+                            : r.type === "diff_position"
+                              ? "\u21BB\u00B2 diff pos"
+                              : r.type === "auto_suggestion"
+                                ? "\u{1F3AF} suggestion"
+                                : r.type === "auto_suggestion_l1"
+                                  ? "\u{1F3AF}\u00B9 stage 1"
+                                  : r.type === "auto_suggestion_l2"
+                                    ? "\u{1F3AF}\u00B2 stage 2"
+                                    : r.type === "auto_suggestion_l3"
+                                      ? "\u{1F3AF}\u00B3 stage 3"
+                                      : r.type === "auto_suggestion_l4"
+                                        ? "\u{1F3AF}\u2074 stage 4"
+                                        : "\u26A1 relaxed"}
                         {r.penalty != null && ` (${r.penalty.toFixed(1)})`}
                       </span>
                     </div>

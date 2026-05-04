@@ -120,30 +120,78 @@ export function makeResultTableColumns(opts: {
                 </span>
               )}
             </span>
-            {rescueDetail && (
-              <span
-                className={`ml-1 px-1 py-0.5 rounded-control text-plate-tiny leading-none ${
-                  rescueDetail.type === "pool_cascade"
-                    ? "bg-success/10 text-success"
-                    : rescueDetail.type === "auto_suggestion"
-                      ? "bg-info/10 text-info"
-                      : "bg-warning/10 text-warning"
-                }`}
-                title={
-                  rescueDetail.type === "pool_cascade"
-                    ? `Pool cascade: replaced ${rescueDetail.original}`
-                    : rescueDetail.type === "auto_suggestion"
-                      ? "Auto-retry: re-designed with parameters derived from successful primers in this run"
-                      : "Auto-relax: widened Tm tolerance and GC range"
-                }
-              >
-                {rescueDetail.type === "pool_cascade"
-                  ? `\u21BB ${rescueDetail.original}`
-                  : rescueDetail.type === "auto_suggestion"
-                    ? "\u{1F3AF} suggestion"
-                    : "\u26A1 relaxed"}
-              </span>
-            )}
+            {rescueDetail && (() => {
+              const badgeMap: Record<string, { icon: string; label: string; tooltip: string; colorClass: string }> = {
+                pool_cascade: {
+                  icon: "\u21BB",
+                  label: `\u21BB ${rescueDetail.original}`,
+                  tooltip: `Pool cascade: replaced ${rescueDetail.original}`,
+                  colorClass: "bg-success/10 text-success",
+                },
+                auto_relax: {
+                  icon: "\u26A1",
+                  label: "\u26A1 relaxed",
+                  tooltip: "Auto-relax: widened Tm tolerance and GC range",
+                  colorClass: "bg-warning/10 text-warning",
+                },
+                auto_suggestion: {
+                  icon: "\u{1F3AF}",
+                  label: "\u{1F3AF} suggestion",
+                  tooltip: "Auto-retry (suggestion): re-designed with parameters derived from successful primers in this run",
+                  colorClass: "bg-info/10 text-info",
+                },
+                auto_suggestion_l1: {
+                  icon: "\u{1F3AF}\u00B9",
+                  label: "\u{1F3AF}\u00B9 stage\u00A01",
+                  tooltip: "Cascade stage 1: length range widened",
+                  colorClass: "bg-info/10 text-info",
+                },
+                auto_suggestion_l2: {
+                  icon: "\u{1F3AF}\u00B2",
+                  label: "\u{1F3AF}\u00B2 stage\u00A02",
+                  tooltip: "Cascade stage 2: length + GC range widened",
+                  colorClass: "bg-info/10 text-info",
+                },
+                auto_suggestion_l3: {
+                  icon: "\u{1F3AF}\u00B3",
+                  label: "\u{1F3AF}\u00B3 stage\u00A03",
+                  tooltip: "Cascade stage 3: length + GC + mild Tm tolerance widened",
+                  colorClass: "bg-info/15 text-info",
+                },
+                auto_suggestion_l4: {
+                  icon: "\u{1F3AF}\u2074",
+                  label: "\u{1F3AF}\u2074 stage\u00A04",
+                  tooltip: "Cascade stage 4: strong relaxation applied",
+                  colorClass: "bg-warning/10 text-warning",
+                },
+                same_position: {
+                  icon: "\u21BB\u00B9",
+                  label: "\u21BB\u00B9 same\u00A0pos",
+                  tooltip: `Substituted: same-position alternate variant (substitute: ${rescueDetail.substitute ?? "unknown"})`,
+                  colorClass: "bg-success/10 text-success",
+                },
+                diff_position: {
+                  icon: "\u21BB\u00B2",
+                  label: "\u21BB\u00B2 diff\u00A0pos",
+                  tooltip: `Substituted: different-position variant (substitute: ${rescueDetail.substitute ?? "unknown"})`,
+                  colorClass: "bg-success/15 text-success",
+                },
+              };
+              const badge = badgeMap[rescueDetail.type] ?? {
+                icon: "\u{1F3AF}",
+                label: "\u{1F3AF} rescued",
+                tooltip: `Rescued (${rescueDetail.type})`,
+                colorClass: "bg-info/10 text-info",
+              };
+              return (
+                <span
+                  className={`ml-1 px-1 py-0.5 rounded-control text-plate-tiny leading-none ${badge.colorClass}`}
+                  title={badge.tooltip}
+                >
+                  {badge.label}
+                </span>
+              );
+            })()}
             {isRescued && !rescueDetail && (
               <button
                 className="ml-1 px-1 py-0.5 bg-error/10 text-error rounded-control text-plate-tiny hover:bg-error/20 leading-none"
