@@ -3,6 +3,7 @@ import { resolveResource } from "@tauri-apps/api/path";
 import { sendRequest } from "../../lib/ipc-kuro";
 import { formatError } from "../../lib/utils";
 import type { AppState } from "../types";
+import type { Round } from "../../types/round";
 import {
   buildEvolveproLoadParams,
   buildEvolveproLoadStateUpdate,
@@ -165,6 +166,61 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     } catch (err) {
       set({ statusMessage: `Sample load failed: ${formatError(err)}` });
     }
+  },
+
+  loadRoundActivity: (prevRound: Round) => {
+    const warnings: string[] = [];
+
+    // Step 1: filter merged_table — ngs_success && mutation && mutation !== "WT" && log2_fc !== null
+    const filtered = prevRound.merged_table.filter(
+      (r) =>
+        r.ngs_success &&
+        r.mutation !== null &&
+        r.mutation !== undefined &&
+        r.mutation !== "WT" &&
+        r.log2_fc !== null &&
+        r.log2_fc !== undefined,
+    );
+
+    // Step 7: 0 rows → ok=false, no state change
+    if (filtered.length === 0) {
+      warnings.push("0 rows after filter (ngs_success && non-WT && log2_fc not null)");
+      return { ok: false, warnings };
+    }
+
+    // Step 2: build yPredMap (variant → log2_fc)
+    const yPredMap: Record<string, number> = {};
+    const variants: string[] = [];
+    for (const r of filtered) {
+      const variant = r.mutation as string;
+      yPredMap[variant] = r.log2_fc as number;
+      if (!variants.includes(variant)) {
+        variants.push(variant);
+      }
+    }
+
+    // Steps 3–6: apply state updates
+    // Note: mutationText = variants.join("\n") for design pipeline compatibility.
+    // Spec §4.5 step 5 literal (mutationText="") would break KURO design which
+    // reads mutationText as primary variant input. Deviation documented in PR.
+    set({
+      // Step 3: force evolvepro mode
+      mutationInputMode: "evolvepro",
+      // Step 4/5: hydrate evolvepro state (evolvepro rows → mutationText + yPredMap)
+      mutationText: variants.join("\n"),
+      yPredMap,
+      evolveproTotalCount: filtered.length,
+      evolveproCsvPath: "",  // memory hydrate — no CSV file path
+      // Step 6: clear stale diversity cache
+      evolveproFilteredCount: null,
+      evolveproParetoExchanges: null,
+      evolveproStepStats: null,
+      domainStats: {},
+      poolVariants: [],
+      statusMessage: `Round ${prevRound.n} activity loaded: ${filtered.length} variants (EVOLVEpro mode)`,
+    });
+
+    return { ok: true, warnings };
   },
 });
 };

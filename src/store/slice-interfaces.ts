@@ -10,6 +10,7 @@
  */
 
 import type { SortingState, Updater } from "@tanstack/react-table";
+import type { Round } from "../types/round";
 import type {
   BenchmarkResult,
   DistanceMode,
@@ -144,6 +145,13 @@ export interface InputSlice {
   parseMutations: () => Promise<void>;
   loadEvolveproCsv: (filepath: string, topNOverride?: number) => Promise<void>;
   loadSampleData: () => Promise<void>;
+  /**
+   * Round handoff hydration.
+   * prevRound.merged_table를 필터링하여 EVOLVEpro 형식으로 inputSlice를 hydrate.
+   * 0 rows 통과 시 ok=false, 상태 변경 없음.
+   * roundSlice.handoffNextRound에서만 호출할 것 (spec §4.5).
+   */
+  loadRoundActivity: (prevRound: Round) => { ok: boolean; warnings: string[] };
 }
 
 // ---------------------------------------------------------------------------
