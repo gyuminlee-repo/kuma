@@ -478,6 +478,29 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       }
     }
 
+    let preloadedYPred: Record<string, number> | null = null;
+    let preloadedPoolVariants: string[] | null = null;
+    let evolveproReloadError: string | null = null;
+    if (inputs.evolveproCsvPath) {
+      try {
+        const sendCount = settings.maxPrimers ?? 95;
+        const result = await sendRequest("load_evolvepro_csv", {
+          filepath: inputs.evolveproCsvPath,
+          top_n: (settings.fillOnFailure ?? true) ? sendCount * 2 : sendCount,
+        });
+        const yPredMap: Record<string, number> = {};
+        if (Array.isArray(result.variants) && Array.isArray(result.y_preds)) {
+          (result.variants as string[]).forEach((v: string, i: number) => {
+            yPredMap[v] = (result.y_preds as number[])[i] ?? 0;
+          });
+        }
+        preloadedYPred = yPredMap;
+        preloadedPoolVariants = (result.pool_variants as string[]) ?? [];
+      } catch (err) {
+        evolveproReloadError = formatError(err);
+      }
+    }
+
     const store = get();
     store.resetAll();
     set({
@@ -550,11 +573,15 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       domainDiversityEnabled: settings.domainDiversityEnabled ?? true,
       domainStrategy: settings.domainStrategy ?? "proportional",
       paretoDiversityEnabled: settings.paretoDiversityEnabled ?? true,
-      statusMessage: (settings.autoRedesignOnLoad ?? true)
-        ? "Workspace loaded. Re-designing to sync backend..."
-        : ((results.designResults?.length ?? 0) > 0
-            ? "Workspace loaded. Re-design to enable alternatives and primer swapping."
-            : "Workspace loaded."),
+      yPredMap: preloadedYPred ?? {},
+      poolVariants: preloadedPoolVariants ?? [],
+      statusMessage: evolveproReloadError
+        ? `Workspace loaded. EVOLVEpro CSV reload failed: ${evolveproReloadError}`
+        : (settings.autoRedesignOnLoad ?? true)
+          ? "Workspace loaded. Re-designing to sync backend..."
+          : ((results.designResults?.length ?? 0) > 0
+              ? "Workspace loaded. Re-design to enable alternatives and primer swapping."
+              : "Workspace loaded."),
     });
     if ((settings.autoRedesignOnLoad ?? true) && inputs.mutationText && inputs.fastaPath) {
       await get().designPrimers();
