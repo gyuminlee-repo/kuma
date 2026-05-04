@@ -148,7 +148,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       try {
         await state.loadEvolveproCsv(
           state.evolveproCsvPath,
-          fillOnFailure ? sendCount : undefined,
+          fillOnFailure ? sendCount * 2 : undefined,
         );
       } catch {
         return;
