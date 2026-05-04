@@ -199,9 +199,20 @@ export interface FailedMutation {
 export interface RescuedMutation {
   original: string;
   rescued_by: string;
-  type: "pool_cascade" | "auto_relax" | "auto_suggestion";
+  type:
+    | "pool_cascade"
+    | "auto_relax"
+    | "auto_suggestion"
+    | "same_position"
+    | "diff_position"
+    | "auto_suggestion_l1"
+    | "auto_suggestion_l2"
+    | "auto_suggestion_l3"
+    | "auto_suggestion_l4";
   penalty?: number;
   tolerance_used?: number;
+  stage?: number;       // 1-6 cascade stage marker
+  substitute?: string;  // new mutation string when type is same/diff_position
 }
 
 export interface RescueStats {
@@ -287,6 +298,7 @@ export interface WorkspaceV1 {
   revLenMin?: number;
   revLenMax?: number;
   fillOnFailure?: boolean;
+  tmTolerance?: number;
   // Domain diversity (optional, backward-compatible)
   uniprotAccession?: string;
   domains?: DomainInfo[];
@@ -337,6 +349,7 @@ export interface WorkspaceSettings {
   revLenMin?: number;
   revLenMax?: number;
   fillOnFailure?: boolean;
+  tmTolerance?: number;
   uniprotAccession?: string;
   domains?: DomainInfo[];
   domainDiversityEnabled?: boolean;

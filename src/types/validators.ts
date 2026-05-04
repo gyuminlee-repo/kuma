@@ -372,9 +372,19 @@ function isRescuedMutation(value: unknown): boolean {
     isRecord(value) &&
     isString(value.original) &&
     isString(value.rescued_by) &&
-    (value.type === "pool_cascade" || value.type === "auto_relax" || value.type === "auto_suggestion") &&
+    (value.type === "pool_cascade" ||
+      value.type === "auto_relax" ||
+      value.type === "auto_suggestion" ||
+      value.type === "same_position" ||
+      value.type === "diff_position" ||
+      value.type === "auto_suggestion_l1" ||
+      value.type === "auto_suggestion_l2" ||
+      value.type === "auto_suggestion_l3" ||
+      value.type === "auto_suggestion_l4") &&
     isOptional(value.penalty, isNumber) &&
-    isOptional(value.tolerance_used, isNumber)
+    isOptional(value.tolerance_used, isNumber) &&
+    isOptional(value.stage, isNumber) &&
+    isOptional(value.substitute, isString)
   );
 }
 
