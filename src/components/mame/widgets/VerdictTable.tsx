@@ -5,22 +5,62 @@ import {
   getSortedRowModel,
   useReactTable,
   type ColumnDef,
+  type VisibilityState,
 } from "@tanstack/react-table";
-import { AlertTriangle, Search } from "lucide-react";
-import { useMemo } from "react";
+import { AlertTriangle, Search, SlidersHorizontal } from "lucide-react";
+import { useMemo, useState } from "react";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
+import { useRoundStore } from "@/store/round/roundSlice";
 import type { VerdictRecord } from "@/types/mame/models";
+import type { MergedRow } from "@/types/mame/activity";
 import { VerdictBadge } from "./VerdictBadge";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { StateView } from "@/components/ui/StateView";
 
-type VerdictRow = VerdictRecord & {
-  mutant_id: string;
-  is_fallback: boolean;
-  fallback_reason: string | null;
+type ActivityColumns = {
+  activity_log2fc: number | null;
+  fold_change: number | null;
+  activity_raw_mean: number | null;
+  activity_raw_sd: number | null;
+  replicate_n: number | null;
+  ngs_success: boolean | null;
+};
+
+type VerdictRow = VerdictRecord &
+  ActivityColumns & {
+    mutant_id: string;
+    is_fallback: boolean;
+    fallback_reason: string | null;
+  };
+
+/** 컬럼 토글 ID 목록 */
+const ACTIVITY_COLUMN_IDS = [
+  "activity_log2fc",
+  "fold_change",
+  "raw_mean_sd",
+  "replicate_n",
+  "ngs_success",
+] as const;
+
+const ACTIVITY_COLUMN_LABELS: Record<(typeof ACTIVITY_COLUMN_IDS)[number], string> = {
+  activity_log2fc: "log₂FC",
+  fold_change: "Fold Change",
+  raw_mean_sd: "Raw Mean ± SD",
+  replicate_n: "Replicates",
+  ngs_success: "NGS",
 };
 
 function extractNbGroup(record: VerdictRecord): "NB01" | "NB02" | "NB03" | "UNKNOWN" {
@@ -52,6 +92,28 @@ export function VerdictTable() {
   const setSearchQuery = useMameAppStore((state) => state.setSearchQuery);
   const setSorting = useMameAppStore((state) => state.setSorting);
 
+  // Activity data from the active round merged_table
+  // Join key: well_id == custom_barcode (MAME barcode label = well position)
+  const activeRoundId = useRoundStore((s) => s.active_round_id);
+  const mergedTable = useRoundStore((s) => {
+    const round = s.rounds.find((r) => r.id === activeRoundId);
+    return round?.merged_table ?? [];
+  });
+
+  // Build a lookup map for O(1) activity join
+  const mergedByWell = useMemo<Map<string, MergedRow>>(() => {
+    const map = new Map<string, MergedRow>();
+    for (const row of mergedTable) {
+      map.set(row.well_id, row);
+    }
+    return map;
+  }, [mergedTable]);
+
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(
+    () =>
+      Object.fromEntries(ACTIVITY_COLUMN_IDS.map((id) => [id, true])) as VisibilityState
+  );
+
   const rows = useMemo<VerdictRow[]>(() => {
     const mutantMap = new Map<string, string>();
     const fallbackMap = new Map<string, { is_fallback: boolean; fallback_reason: string | null }>();
@@ -69,14 +131,22 @@ export function VerdictTable() {
       .map((record) => {
         const mid = mutantMap.get(record.native_barcode) ?? "—";
         const fb = fallbackMap.get(mid);
+        // Join activity data by well_id == custom_barcode
+        const merged = mergedByWell.get(record.custom_barcode);
         return {
           ...record,
           mutant_id: mid,
           is_fallback: fb?.is_fallback ?? false,
           fallback_reason: fb?.fallback_reason ?? null,
+          activity_log2fc: merged?.log2_fc ?? null,
+          fold_change: merged?.fold_change ?? null,
+          activity_raw_mean: merged?.activity_raw_mean ?? null,
+          activity_raw_sd: merged?.activity_raw_sd ?? null,
+          replicate_n: merged?.replicate_n ?? null,
+          ngs_success: merged?.ngs_success ?? null,
         };
       });
-  }, [plateFilter, replicates, verdicts]);
+  }, [plateFilter, replicates, verdicts, mergedByWell]);
 
   const filteredRows = useMemo(() => {
     if (!searchQuery.trim()) return rows;
@@ -184,6 +254,92 @@ export function VerdictTable() {
           );
         },
       },
+      // ── Activity columns ─────────────────────────────────────────────────
+      {
+        id: "activity_log2fc",
+        header: "log₂FC",
+        accessorFn: (row) => row.activity_log2fc,
+        cell: ({ getValue }) => {
+          const v = getValue<number | null>();
+          return (
+            <span className="font-mono text-xs text-foreground min-w-0">
+              {v !== null ? v.toFixed(2) : "—"}
+            </span>
+          );
+        },
+      },
+      {
+        id: "fold_change",
+        header: "Fold Change",
+        accessorFn: (row) => row.fold_change,
+        cell: ({ getValue }) => {
+          const v = getValue<number | null>();
+          return (
+            <span className="font-mono text-xs text-foreground min-w-0">
+              {v !== null ? v.toFixed(2) : "—"}
+            </span>
+          );
+        },
+      },
+      {
+        id: "raw_mean_sd",
+        header: "Raw Mean ± SD",
+        accessorFn: (row) => row.activity_raw_mean,
+        cell: ({ row }) => {
+          const mean = row.original.activity_raw_mean;
+          const sd = row.original.activity_raw_sd;
+          if (mean === null) {
+            return <span className="font-mono text-xs text-muted-foreground min-w-0">—</span>;
+          }
+          return (
+            <span className="font-mono text-xs text-foreground min-w-0 whitespace-nowrap">
+              {mean.toFixed(2)}
+              {sd !== null && (
+                <span className="text-muted-foreground"> ± {sd.toFixed(2)}</span>
+              )}
+            </span>
+          );
+        },
+      },
+      {
+        id: "replicate_n",
+        header: "Replicates",
+        accessorFn: (row) => row.replicate_n,
+        cell: ({ getValue }) => {
+          const v = getValue<number | null>();
+          return (
+            <span className="font-mono text-xs text-foreground min-w-0">
+              {v !== null ? v : "—"}
+            </span>
+          );
+        },
+      },
+      {
+        id: "ngs_success",
+        header: "NGS",
+        accessorFn: (row) => row.ngs_success,
+        cell: ({ getValue }) => {
+          const v = getValue<boolean | null>();
+          if (v === null) {
+            return <span className="text-xs text-muted-foreground min-w-0">—</span>;
+          }
+          return v ? (
+            <Badge
+              variant="outline"
+              className="border-green-500 text-green-600 dark:text-green-400 text-[10px] px-1 py-0"
+            >
+              ✓
+            </Badge>
+          ) : (
+            <Badge
+              variant="outline"
+              className="border-destructive text-destructive text-[10px] px-1 py-0"
+            >
+              ✗
+            </Badge>
+          );
+        },
+      },
     ],
     [],
   );
@@ -191,8 +347,9 @@ export function VerdictTable() {
   const table = useReactTable({
     data: filteredRows,
     columns,
-    state: { sorting },
+    state: { sorting, columnVisibility },
     onSortingChange: setSorting,
+    onColumnVisibilityChange: setColumnVisibility,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -221,19 +378,50 @@ export function VerdictTable() {
             ))}
           </TabsList>
         </Tabs>
-        <div className="relative w-full sm:max-w-xs">
-          <Search
-            size={12}
-            className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground"
-            aria-hidden="true"
-          />
-          <Input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search barcode / mutant ID…"
-            className="h-7 pl-6 text-xs"
-            aria-label="Search results"
-          />
+        <div className="flex min-w-0 flex-1 items-center gap-2 sm:max-w-sm">
+          <div className="relative min-w-0 flex-1">
+            <Search
+              size={12}
+              className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground"
+              aria-hidden="true"
+            />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search barcode / mutant ID…"
+              className="h-7 min-w-0 pl-6 text-xs"
+              aria-label="Search results"
+            />
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7 shrink-0 px-2 text-xs"
+                aria-label="Toggle column visibility"
+              >
+                <SlidersHorizontal size={12} aria-hidden="true" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44">
+              <DropdownMenuLabel>Activity columns</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {ACTIVITY_COLUMN_IDS.map((colId) => {
+                const col = table.getColumn(colId);
+                return (
+                  <DropdownMenuCheckboxItem
+                    key={colId}
+                    checked={col?.getIsVisible() ?? true}
+                    onCheckedChange={(checked) => col?.toggleVisibility(checked)}
+                  >
+                    {ACTIVITY_COLUMN_LABELS[colId]}
+                  </DropdownMenuCheckboxItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
