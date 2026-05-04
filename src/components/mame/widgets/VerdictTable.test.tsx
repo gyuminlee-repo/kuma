@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { create } from "zustand";
-import type { MameAppStore } from "@/store/mame/mameAppStore";
+import type { AppState as MameAppStore } from "@/store/mame/mameAppStore";
 import type { RoundSlice } from "@/store/round/roundSlice";
 import type { Round } from "@/types/round";
 import type { MergedRow } from "@/types/mame/activity";
