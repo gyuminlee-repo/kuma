@@ -28,6 +28,12 @@ from sidecar_mame.handlers.kuma_meta import handle_read_kuma_meta
 from sidecar_mame.handlers.report import handle_export_run_report
 from sidecar_mame.handlers.demux import handle_demux_and_filter
 from sidecar_mame.handlers.health import handle_get_run_health
+from sidecar_mame.handlers.activity import (
+    handle_activity_upload,
+    handle_activity_set_plate_meta,
+    handle_activity_merge,
+    handle_activity_export_evolvepro_csv,
+)
 
 # Phase A handler registry.
 # ``translate`` is deferred to Phase B per the reconciled scope.
@@ -46,6 +52,11 @@ _METHODS = {
     "demux_and_filter": handle_demux_and_filter,
     # A8: run health panel
     "get_run_health": handle_get_run_health,
+    # Phase 2 Task 2.1: activity integration RPC
+    "activity.upload": handle_activity_upload,
+    "activity.set_plate_meta": handle_activity_set_plate_meta,
+    "activity.merge": handle_activity_merge,
+    "activity.export_evolvepro_csv": handle_activity_export_evolvepro_csv,
 }
 
 # Long-running handlers run on a worker thread so stdin keeps draining.
