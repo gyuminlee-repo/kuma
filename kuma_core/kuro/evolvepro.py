@@ -264,6 +264,50 @@ VARIANT_COLUMNS = ["variant", "variants", "mutation", "mutations", "mutant", "mu
 SCORE_COLUMNS = ["y_pred", "property_value", "predicted_fitness", "fitness", "score", "DMS_score"]
 
 
+def _load_evolvepro_rows(filepath: str | Path) -> list[tuple[str, float]]:
+    """Parse EVOLVEpro CSV and return (variant, y_pred) pairs.
+
+    Column detection uses VARIANT_COLUMNS and SCORE_COLUMNS (first match).
+    Rows with empty variant strings are skipped.
+    Non-finite y_pred values are replaced with 0.0.
+
+    Args:
+        filepath: Path to an EVOLVEpro-compatible CSV file.
+
+    Returns:
+        List of (variant, y_pred) tuples in file order (not sorted).
+
+    Raises:
+        ValueError: If no recognised variant column is found.
+    """
+    rows: list[tuple[str, float]] = []
+    with open(str(filepath), encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        columns = reader.fieldnames or []
+
+        variant_col = next((c for c in VARIANT_COLUMNS if c in columns), None)
+        if variant_col is None:
+            raise ValueError(
+                f"EVOLVEpro CSV must have a variant column. "
+                f"Supported: {VARIANT_COLUMNS}. Found: {columns}"
+            )
+        score_col = next((c for c in SCORE_COLUMNS if c in columns), None)
+
+        for row in reader:
+            variant = row.get(variant_col, "").strip()
+            if not variant:
+                continue
+            try:
+                y_pred = float(row[score_col]) if score_col and row.get(score_col) else 0.0
+            except (ValueError, TypeError):
+                y_pred = 0.0
+            if not math.isfinite(y_pred):
+                y_pred = 0.0
+            rows.append((variant, y_pred))
+    return rows
+
+
+
 def load_evolvepro_csv(
     filepath: str | Path,
     top_n: int = 96,
@@ -309,33 +353,11 @@ def load_evolvepro_csv(
         Keys: variants, y_preds, total_count, selected_count,
         filtered_count, domain_stats, pareto_replaced.
     """
-    filepath = str(filepath)
-
-    rows: list[tuple[str, float]] = []
-    with open(filepath, encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        columns = reader.fieldnames or []
-
-        variant_col = next((c for c in VARIANT_COLUMNS if c in columns), None)
-        if variant_col is None:
-            raise ValueError(
-                f"EVOLVEpro CSV must have a variant column. "
-                f"Supported: {VARIANT_COLUMNS}. Found: {columns}"
-            )
-        score_col = next((c for c in SCORE_COLUMNS if c in columns), None)
-
-        for row in reader:
-            variant = row.get(variant_col, "").strip()
-            if not variant:
-                continue
-            try:
-                y_pred = float(row[score_col]) if score_col and row.get(score_col) else 0.0
-            except (ValueError, TypeError):
-                y_pred = 0.0
-            if not math.isfinite(y_pred):
-                y_pred = 0.0
-            rows.append((variant, y_pred))
-
+    rows = _load_evolvepro_rows(filepath)
+    # Detect whether score column was present (for sort decision)
+    with open(str(filepath), encoding="utf-8") as f:
+        _cols = csv.DictReader(f).fieldnames or []
+    score_col = next((c for c in SCORE_COLUMNS if c in _cols), None)
     has_score = score_col is not None
     if has_score:
         rows.sort(key=lambda r: r[1], reverse=True)

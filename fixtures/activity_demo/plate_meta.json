@@ -1,0 +1,14 @@
+{
+  "plates": [
+    {
+      "plate_id": "P01",
+      "wt_wells": [
+        "A01",
+        "A12",
+        "H01",
+        "H12"
+      ],
+      "control_wells": []
+    }
+  ]
+}
