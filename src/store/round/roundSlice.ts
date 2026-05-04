@@ -11,6 +11,25 @@ import { create } from "zustand"
 import type { Round, RoundStatus, RoundErrorInfo } from "@/types/round"
 import type { PlateMeta } from "@/types/mame/activity"
 
+/** loadRoundActivity 콜백 타입. KURO inputSlice.loadRoundActivity와 동일 시그니처. */
+export type LoadRoundActivityFn = (prevRound: Round) => { ok: boolean; warnings: string[] }
+
+export interface HandoffOptions {
+  /**
+   * KURO inputSlice.loadRoundActivity를 주입.
+   * roundSlice는 KURO store에 직접 의존하지 않으므로 콜백으로 분리 (의존 그래프 명시화).
+   */
+  loadRoundActivity: LoadRoundActivityFn
+  /** 핸드오프 성공 시 호출 (예: KURO 탭 전환). 탭 store 없으면 UI 레이어에서 주입. */
+  onHandoffSuccess?: () => void
+}
+
+export interface HandoffResult {
+  ok: boolean
+  warnings: string[]
+  newRoundId: string | null
+}
+
 export interface RoundSliceState {
   rounds: Round[]
   active_round_id: string | null
@@ -34,10 +53,20 @@ export interface RoundSliceActions {
     value: Round[K]
   ) => void
   /**
-   * 다음 라운드 핸드오프. Task 5.1에서 보강 예정.
-   * Phase 3: stub — null 반환.
+   * 다음 라운드 핸드오프 (1-click flow).
+   * Spec: notes/specs/2026-05-04-mame-activity-integration.md §4.3
+   *
+   * 흐름:
+   * 1. prevRound.status = "exported"
+   * 2. 새 Round 생성 (n+1, status="design", plate_meta 상속)
+   * 3. loadRoundActivity(prevRound) 호출
+   * 4. 실패 시 새 round 롤백 + prevRound status 원복
+   * 5. 성공 시 setActiveRound(newRoundId) + onHandoffSuccess 콜백
+   *
+   * KURO inputSlice와의 결합을 피하기 위해 loadRoundActivity를 콜백으로 주입.
+   * UI 레이어(RoundHandoffButton)에서 useAppStore().loadRoundActivity를 전달할 것.
    */
-  handoffNextRound: (prevRoundId: string) => null
+  handoffNextRound: (prevRoundId: string, opts: HandoffOptions) => HandoffResult
 }
 
 export type RoundSlice = RoundSliceState & RoundSliceActions
@@ -96,9 +125,81 @@ export const createRoundStore = () =>
       }))
     },
 
-    handoffNextRound: (_prevRoundId) => {
-      // Phase 3 stub — Task 5.1에서 보강 예정
-      return null
+    handoffNextRound: (prevRoundId, opts) => {
+      const { loadRoundActivity, onHandoffSuccess } = opts
+      const state = get()
+
+      // Fail-safe: prevRound 존재 확인
+      const prevRound = state.rounds.find((r) => r.id === prevRoundId)
+      if (!prevRound) {
+        return {
+          ok: false,
+          warnings: [`prevRound not found: ${prevRoundId}`],
+          newRoundId: null,
+        }
+      }
+
+      const prevStatus = prevRound.status
+
+      // Step 1: prevRound.status = "exported"
+      set((s) => ({
+        rounds: s.rounds.map((r) =>
+          r.id === prevRoundId ? { ...r, status: "exported" as const } : r
+        ),
+      }))
+
+      // Step 2: 새 Round 생성 (n+1, status="design", plate_meta 상속)
+      const existing = get().rounds
+      const n = existing.length + 1
+      const newRoundId = `round_${n}`
+      const newRound: Round = {
+        id: newRoundId,
+        n,
+        created_at: new Date().toISOString(),
+        status: "design",
+        error_info: null,
+        plate_meta: prevRound.plate_meta,
+        design: {},
+        genotype: {},
+        activity: null,
+        merged_table: [],
+      }
+      set((s) => ({
+        rounds: [...s.rounds, newRound],
+        active_round_id: newRoundId,
+      }))
+
+      // Step 3: KURO inputSlice.loadRoundActivity 호출
+      const hydrateResult = loadRoundActivity(prevRound)
+
+      // Step 4: 실패 시 롤백
+      if (!hydrateResult.ok) {
+        set((s) => ({
+          // 새 round 제거
+          rounds: s.rounds
+            .filter((r) => r.id !== newRoundId)
+            .map((r) =>
+              r.id === prevRoundId ? { ...r, status: prevStatus } : r
+            ),
+          active_round_id: prevRoundId,
+        }))
+        return {
+          ok: false,
+          warnings: hydrateResult.warnings,
+          newRoundId: null,
+        }
+      }
+
+      // Step 5: 성공
+      if (onHandoffSuccess) {
+        onHandoffSuccess()
+      }
+
+      return {
+        ok: true,
+        warnings: [],
+        newRoundId,
+      }
     },
   }))
 

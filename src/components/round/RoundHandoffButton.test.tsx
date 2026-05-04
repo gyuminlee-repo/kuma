@@ -6,10 +6,17 @@ import type { Round } from "@/types/round";
 
 vi.mock("@/store/round/roundSlice");
 
+// ─── appStore mock (loadRoundActivity 주입) ──────────────────────────────────
+vi.mock("@/store/appStore", () => ({
+  useAppStore: vi.fn((sel: (s: { loadRoundActivity: unknown }) => unknown) =>
+    sel({ loadRoundActivity: vi.fn() })
+  ),
+}))
+
 import { useRoundStore } from "@/store/round/roundSlice";
 import { RoundHandoffButton } from "./RoundHandoffButton";
 
-const mockHandoff = vi.fn().mockReturnValue(null);
+const mockHandoff = vi.fn().mockReturnValue({ ok: true, warnings: [], newRoundId: "round_2" });
 
 const baseRound: Round = {
   id: "round_1",
@@ -140,6 +147,9 @@ describe("RoundHandoffButton", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /Start Round 2/i }));
 
-    expect(mockHandoff).toHaveBeenCalledWith("round_1");
+    expect(mockHandoff).toHaveBeenCalledWith(
+      "round_1",
+      expect.objectContaining({ loadRoundActivity: expect.any(Function) })
+    );
   });
 });
