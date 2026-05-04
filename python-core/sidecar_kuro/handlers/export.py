@@ -323,7 +323,7 @@ def handle_export_benchmark_csv(params: dict) -> dict:
     if not p.results:
         raise ValueError("Benchmark results are required")
 
-    resolved = _validate_output_path(p.filepath, allowed_extensions=_ALLOWED_ORDER_CSV_EXTENSIONS)
+    resolved = _validate_output_path(p.filepath, allowed_extensions=_ALLOWED_CSV_EXTENSIONS)
     fieldnames = [
         "strategy",
         "n_selected",
