@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import type { MergedRow, MergeStats, PlateMeta } from "@/types/mame/activity";
 
 export type SidecarKind = "kuro" | "mame";
 
@@ -29,4 +30,50 @@ export async function isSidecarRunning(kind: SidecarKind): Promise<boolean> {
     return false;
   }
   return invoke("sidecar_is_running", { kind }) as Promise<boolean>;
+}
+
+// ─── MAME activity RPC client functions ──────────────────────────────────────
+
+/**
+ * 활성 데이터 파일 업로드.
+ * MAME sidecar activity.upload 호출.
+ */
+export async function activityUpload(
+  round_id: string,
+  file_path: string,
+  format: "long_csv" | "long_xlsx",
+): Promise<{ records: unknown[]; plate_meta: PlateMeta }> {
+  return rpc("mame", "activity.upload", { round_id, file_path, format });
+}
+
+/**
+ * WT 웰 / 컨트롤 웰 메타 설정.
+ * MAME sidecar activity.set_plate_meta 호출.
+ */
+export async function activitySetPlateMeta(
+  round_id: string,
+  plate_meta: PlateMeta,
+): Promise<void> {
+  return rpc("mame", "activity.set_plate_meta", { round_id, plate_meta });
+}
+
+/**
+ * KURO 디자인 + 활성 데이터 병합.
+ * MAME sidecar activity.merge 호출.
+ */
+export async function activityMerge(
+  round_id: string,
+): Promise<{ merged: MergedRow[]; stats: MergeStats }> {
+  return rpc("mame", "activity.merge", { round_id });
+}
+
+/**
+ * EVOLVEpro CSV 내보내기.
+ * MAME sidecar activity.export_evolvepro_csv 호출.
+ */
+export async function activityExportEvolveproCsv(
+  round_id: string,
+  path: string,
+): Promise<{ path: string }> {
+  return rpc("mame", "activity.export_evolvepro_csv", { round_id, path });
 }
