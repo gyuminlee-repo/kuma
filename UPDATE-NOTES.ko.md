@@ -4,6 +4,85 @@
 
 ---
 
+## v0.2.7 (2026-05-04)
+
+활성 데이터 통합, Round 엔티티, strategy 신호 계산.
+
+### 활성 데이터 통합 (`v0.2.7.00` – `v0.2.7.11`)
+
+Long format CSV/Excel 활성 측정 데이터를 MAME 워크벤치에서 직접 로드할 수 있다.
+
+- **입력 형식**: `plate_id`, `well_id`, `value`, `replicate_idx` 컬럼을 포함한 long format CSV 또는 Excel. 단일 플레이트 96행 기준으로 동일 well의 복수 측정값을 별도 행으로 표현한다.
+- **ingest_long_csv**: 각 행을 `ActivityRecord` Pydantic 모델로 파싱. WT 웰은 `plate_meta.json`의 `wt_wells` 목록으로 식별. 평균·SD·fold_change·log2_fc를 aggregate 단계에서 계산.
+- **WT 기준값 정규화**: WT 웰 평균을 기준값으로 fold_change를 계산하고, log2(fold_change)를 y_pred로 사용.
+- **Excel 지원**: `.xlsx` 입력 시 `openpyxl` 로 읽으며, 컬럼 헤더 자동 감지.
+- **ActivityUploadPanel**: drag-and-drop 또는 파일 선택으로 활성 CSV/Excel을 로드하는 신규 UI 컴포넌트.
+
+### Round 엔티티 도입 (`v0.2.7.12` – `v0.2.7.14`)
+
+워크스페이스 schema 0.3에서 Round가 최상위 엔티티가 됩니다.
+
+- **Round 모델**: `round_id`, `round_n`, `status` (`design` / `sequencing` / `activity` / `exported`), `plate_meta`, `activity_csv_path`, `kuro_workspace_path`, `kuro_design`, `mame_genotype` 필드를 가지는 Pydantic 모델.
+- **roundSlice**: Zustand 독립 슬라이스. `addRound`, `transitionStatus`, `setActiveRound`, `updateRoundField`, `handoffNextRound` 액션 제공.
+- **schema_version 0.3 hard break**: `workspace.kuma.json`의 `schema_version`이 0.3으로 상향. 0.2 이하 워크스페이스 파일은 자동 마이그레이션 **없음** — 이전 워크스페이스는 별도 내보내기 후 재로드 필요.
+- **exportSlice 확장**: `getWorkspaceSnapshot`이 `rounds` 배열과 `active_round_id`를 직렬화.
+
+### WT plate metadata UI (`v0.2.7.15` – `v0.2.7.17`)
+
+- **WtWellEditor**: plate별 WT 웰 목록을 편집하는 다이얼로그 컴포넌트. 기본 코너 4개(`A01`, `A12`, `H01`, `H12`)로 초기화. 추가·삭제 인터랙션 제공.
+- `initActivityStore` 훅이 `MameAppLayout` 마운트 시 자동 호출되어 `activitySlice`를 `mameAppStore`와 연동.
+- WtWellEditor `Fragment` key 오류 수정 (`v0.2.7.17`).
+
+### VerdictTable 활성 컬럼 (`v0.2.7.16`)
+
+VerdictTable에 5개 활성 관련 컬럼이 추가됐다. 각 컬럼은 개별 토글 가능.
+
+| 컬럼 | 의미 |
+|---|---|
+| `log2_fc` | log₂(활성/WT) — EVOLVEpro y_pred로 직접 사용 |
+| `fold_change` | 활성/WT 배수 |
+| `raw_mean ± sd` | 반복 측정 평균 ± 표준편차 |
+| `replicate_n` | 유효 반복 수 |
+| `ngs_success` | NGS 지노타입 판정 성공 여부 |
+
+컬럼 미확인 시(`ngs_success=false`) fold_change·log2_fc는 `—`로 표시.
+
+### EVOLVEpro CSV export (`v0.2.7.09` – `v0.2.7.10`)
+
+- `export_evolvepro_csv(rows, out_path, round_n)`: `ngs_success=True`, 비-WT, `log2_fc` 값이 있는 MergedRow만 내보낸다. `variant`, `y_pred`, `round_n` 컬럼 포함.
+- `.excluded.csv`: 조건 미충족 행을 별도 파일로 함께 저장 — 데이터 손실 없이 감사(audit) 가능.
+- 내보낸 CSV는 Kuro의 `_load_evolvepro_rows`로 그대로 다시 로드해 다음 라운드 디자인에 사용 가능.
+
+### Round handoff 1-click (`v0.2.7.18` – `v0.2.7.19`)
+
+- **RoundHandoffButton**: 활성 라운드를 `exported` 상태로 전환하고, 새 라운드(n+1)를 생성한 뒤, Kuro `inputSlice.loadRoundActivity`로 다음 라운드 EVOLVEpro CSV를 자동 로드.
+- KURO 탭 자동 전환 콜백(`onHandoffSuccess`) 지원.
+- 실패 시 롤백: 새 라운드 제거 + 이전 라운드 상태 복원.
+
+### Strategy 신호 (`v0.2.7.20` – `v0.2.7.22`)
+
+5가지 라운드 전환 신호와 1가지 보조 신호 산출.
+
+| 신호 | 의미 | 근거 |
+|---|---|---|
+| T1 | 처리량 충족 (cumulative_beneficial ≥ K_throughput) | Tran 2025 Science; Emelianov 2026 |
+| T2 | 개선 정체 (Δ_best_EMA < 1.96·σ·√(2/r)) | 통계적 95% MDE, 근거 기반 |
+| T3 | Hit rate 하락 (slope ≤ 0) | 능동 학습 수렴 지표 |
+| T4 | 위치 수렴 (Top-K Jaccard ≥ 0.5) | 근거 기반 |
+| T_active | 활성 부위 집중 (활성 부위 비율 ≥ 0.4) | Lind 2024 PNAS; Wu 2019 PNAS |
+| T_unused | 미활용 유익 변이 존재 (count ≥ M_min=5) | 근거 기반 |
+
+- **Calibration mode**: Round 3 미만 또는 advisory mode 비활성 시, 신호 값은 모니터링 전용으로 표시되고 자동 분류 결정은 숨겨진다. 분류 결정(continue_walking / switch_combinatorial / stop)은 v0.3 advisory mode에서 추가 예정.
+- **RoundSummaryPanel**: 신호 표 + CalibrationBanner가 ParameterPanel 하단에 통합. `lit` / `infer` 배지로 문헌 근거 여부 표시.
+
+### 합성 fixture + 통합 테스트 (`v0.2.7.23` – `v0.2.7.24`)
+
+- **`fixtures/activity_demo/`**: 시드 고정 합성 96행 CSV + `plate_meta.json`. `generate.py`로 재생성 가능. WT 웰(`A01`, `A12`, `H01`, `H12`) 값은 μ=1.0, σ=0.03; B03(F89W)은 fold_change≈2.0 (log2_fc≈0.99), G05(L70V)는 fold_change≈0.71 (log2_fc≈-0.50) 시드.
+- **`tests/integration/test_kuma_round_trip.py`**: 7단계 백엔드 round-trip 검증 (ingest → merge → MergeStats 검증 → log2_fc 검증 → EVOLVEpro export → reparse).
+- **`tests/fixtures/test_activity_demo_generate.py`**: fixture 전제조건 자기검증 테스트 (파일 존재·행 수·WT 범위·컬럼·재현성).
+
+---
+
 ## v0.2.6 (2026-05-04)
 
 Plate 가시성 위주 레이아웃 기본값 재조정, cascade 길이 완화 안전화, 미사용 order-export 경로 제거.

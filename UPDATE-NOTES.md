@@ -4,6 +4,85 @@
 
 ---
 
+## v0.2.7 (2026-05-04)
+
+Activity data integration, Round entity, and strategy signal computation for the 5/12 demo.
+
+### Activity data integration (`v0.2.7.00` – `v0.2.7.11`)
+
+Long format CSV/Excel activity measurement data can now be loaded directly in the MAME workbench.
+
+- **Input format**: Long format CSV or Excel with `plate_id`, `well_id`, `value`, `replicate_idx` columns. Multiple replicates for the same well are represented as separate rows. A single plate produces 96 rows in the base case.
+- **ingest_long_csv**: Parses each row into an `ActivityRecord` Pydantic model. WT wells are identified from a `plate_meta.json` `wt_wells` list. Mean, SD, fold_change, and log2_fc are computed in the aggregate step.
+- **WT normalisation**: Fold change is calculated relative to the WT mean; log2(fold_change) becomes the y_pred input to EVOLVEpro.
+- **Excel support**: `.xlsx` input read via `openpyxl` with automatic column-header detection.
+- **ActivityUploadPanel**: New UI component for drag-and-drop or file-picker loading of activity CSV/Excel.
+
+### Round entity (`v0.2.7.12` – `v0.2.7.14`)
+
+Round becomes the top-level entity in workspace schema 0.3.
+
+- **Round model**: Pydantic model with fields `round_id`, `round_n`, `status` (`design` / `sequencing` / `activity` / `exported`), `plate_meta`, `activity_csv_path`, `kuro_workspace_path`, `kuro_design`, `mame_genotype`.
+- **roundSlice**: Independent Zustand slice. Provides `addRound`, `transitionStatus`, `setActiveRound`, `updateRoundField`, `handoffNextRound`.
+- **schema_version 0.3 hard break**: `workspace.kuma.json` schema version raised to 0.3. Workspaces from 0.2 and below have **no automatic migration path** — export manually before upgrading.
+- **exportSlice extension**: `getWorkspaceSnapshot` serialises the `rounds` array and `active_round_id`.
+
+### WT plate metadata UI (`v0.2.7.15` – `v0.2.7.17`)
+
+- **WtWellEditor**: Dialog component for editing per-plate WT well lists. Initialises to four corner wells (`A01`, `A12`, `H01`, `H12`). Supports add/delete interaction.
+- `initActivityStore` hook automatically links `activitySlice` to `mameAppStore` on `MameAppLayout` mount.
+- WtWellEditor `Fragment` key error fixed (`v0.2.7.17`).
+
+### VerdictTable activity columns (`v0.2.7.16`)
+
+Five activity columns added to VerdictTable. Each column is individually togglable.
+
+| Column | Meaning |
+|---|---|
+| `log2_fc` | log₂(activity/WT) — used directly as EVOLVEpro y_pred |
+| `fold_change` | Activity / WT ratio |
+| `raw_mean ± sd` | Replicate mean ± standard deviation |
+| `replicate_n` | Number of valid replicates |
+| `ngs_success` | Whether NGS genotype call succeeded |
+
+When `ngs_success=false`, fold_change and log2_fc display as `—`.
+
+### EVOLVEpro CSV export (`v0.2.7.09` – `v0.2.7.10`)
+
+- `export_evolvepro_csv(rows, out_path, round_n)`: exports only MergedRows with `ngs_success=True`, non-WT mutation, and a non-null `log2_fc`. Output columns: `variant`, `y_pred`, `round_n`.
+- `.excluded.csv`: rows that do not meet the export filter are saved to a companion file — no data is silently discarded.
+- Exported CSV round-trips through `_load_evolvepro_rows` for use as the next-round EVOLVEpro input in Kuro.
+
+### Round handoff 1-click (`v0.2.7.18` – `v0.2.7.19`)
+
+- **RoundHandoffButton**: Transitions the active round to `exported`, creates round n+1, and calls Kuro `inputSlice.loadRoundActivity` to auto-load the next-round EVOLVEpro CSV in a single click.
+- Supports `onHandoffSuccess` callback for automatic tab navigation to the Kuro tab.
+- Failure rolls back: new round removed, previous round status restored.
+
+### Strategy signals (`v0.2.7.20` – `v0.2.7.22`)
+
+Five round-transition signals and one auxiliary signal are computed per round.
+
+| Signal | Meaning | Basis |
+|---|---|---|
+| T1 | Throughput met (cumulative_beneficial ≥ K_throughput) | Tran 2025 Science; Emelianov 2026 |
+| T2 | Improvement plateau (Δ_best_EMA < 1.96·σ·√(2/r)) | Statistical 95% MDE, reasoning-based |
+| T3 | Hit rate declining (slope ≤ 0) | Active-learning convergence indicator |
+| T4 | Position convergence (Top-K Jaccard ≥ 0.5) | Reasoning-based |
+| T_active | Active-site concentration (active-site fraction ≥ 0.4) | Lind 2024 PNAS; Wu 2019 PNAS |
+| T_unused | Unused beneficial mutations present (count ≥ M_min=5) | Reasoning-based |
+
+- **Calibration mode**: When fewer than 3 rounds have completed or advisory mode is not enabled, signal values are displayed for monitoring only. Automated classification decisions (continue_walking / switch_combinatorial / stop) are not shown until advisory mode is activated (Round 3+, v0.3).
+- **RoundSummaryPanel**: Signal table + CalibrationBanner integrated at the bottom of ParameterPanel. `lit` / `infer` badges indicate literature anchor status.
+
+### Synthetic fixture + integration test (`v0.2.7.23` – `v0.2.7.24`)
+
+- **`fixtures/activity_demo/`**: Seeded 96-row synthetic CSV + `plate_meta.json`. Regenerate with `generate.py`. WT wells (`A01`, `A12`, `H01`, `H12`) have μ=1.0, σ=0.03; B03 (F89W) fold_change≈2.0 (log2_fc≈0.99), G05 (L70V) fold_change≈0.71 (log2_fc≈-0.50).
+- **`tests/integration/test_kuma_round_trip.py`**: 7-step backend round-trip verification (ingest → merge → MergeStats assertions → log2_fc assertions → EVOLVEpro export → re-parse).
+- **`tests/fixtures/test_activity_demo_generate.py`**: Fixture precondition self-verification tests (file existence, row count, WT range, columns, reproducibility).
+
+---
+
 ## v0.2.6 (2026-05-04)
 
 Layout defaults retuned for plate visibility, cascade length relaxation now safer, and unused order-export code paths removed.

@@ -82,6 +82,12 @@ python -m pytest tests/test_sdm_engine.py::test_name  # Single test
 | `python-core/sidecar/handlers/design.py` rescue constants | `_DEFAULT_TOL_MAX` must match `design_single_sdm()` default `tol_max` |
 | `src/store/slices/inputSlice.ts` `excluded_ranges` | `python-core/sidecar/models.py` `ExcludedRange` + `kuro/evolvepro.py` `excluded_ranges` param stay in sync |
 | `src/types/models.ts` `RescueStats` / `RescuedMutation` | `python-core/sidecar/handlers/design.py` `rescue_stats` / `rescued_info` dict keys stay in sync |
+| `src/types/mame/activity.ts` (TS interfaces) | `kuma_core/mame/activity/models.py` Pydantic models stay in sync (`ActivityRecord`, `MergedRow`, `MergeStats`, `PlateMeta`) |
+| `src/types/round.ts` `Round` interface | `kuma_core/mame/activity/round.py:Round` Pydantic model stay in sync (status enum, field names) |
+| `fixtures/activity_demo/generate.py` seed data | `kuma_core/mame/activity/models.py:ActivityRecord` column names match CSV header |
+| `python-core/sidecar_mame/handlers/activity.py` RPC params | `kuma_core/mame/activity/` module API (ingest_long_csv, merge_activity_with_genotype, export_evolvepro_csv) |
+| `src/store/slices/exportSlice.ts` `getWorkspaceSnapshot` | `Round` entity serialisation includes `rounds` array + `active_round_id` (schema_version 0.3) |
+| `src/store/slices/inputSlice.ts` `loadRoundActivity` | `kuro/evolvepro.py` VARIANT_COLUMNS must accept `variant`, `y_pred`, `round_n` from activity export CSV |
 
 ## Rules
 - 절대 경로 하드코딩 금지 — 상대 경로 또는 환경변수 사용

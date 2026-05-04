@@ -125,6 +125,58 @@ Download the latest installer from [Releases](https://github.com/gyuminlee-repo/
 
 Dropping a Kuro-exported xlsx into Mame while a different project is active triggers the "load source project?" dialog (matched via `__kuma_meta__ → project_id`).
 
+## Activity Data Integration (v0.2.7)
+
+KUMA now connects the complete ALE cycle: Kuro designs primers for Round N, wet lab runs the mutations, NGS genotyping identifies which clones succeeded, activity assay measures functional improvement, and a single "Handoff" click feeds the activity data back into Kuro for Round N+1.
+
+### Workflow
+
+```
+1. KURO Design  →  primer list for Round N mutations
+2. Wet lab       →  site-directed mutagenesis + expression
+3. MAME NGS      →  per-clone genotype verdict (6-class)
+4. Activity assay→  plate-reader / fluorescence measurement
+5. MAME Activity →  load long-format CSV; compute fold_change / log2_fc
+6. EVOLVEpro export → variant + y_pred CSV for next round
+7. Round Handoff →  1-click: create Round N+1, load EVOLVEpro CSV into Kuro
+8. Repeat        →  Kuro designs Round N+1 from updated scores
+```
+
+### Long Format CSV Input
+
+The activity loader expects a **long format** CSV (or Excel) file with one measurement per row:
+
+| Column | Type | Description |
+|---|---|---|
+| `plate_id` | string | Plate identifier, e.g. `P01` |
+| `well_id` | string | Well address in A01–H12 format |
+| `value` | float | Raw measurement value |
+| `replicate_idx` | int | Replicate index (1-based); same well × same replicate_idx = one measurement |
+
+WT wells are declared in `plate_meta.json`:
+
+```json
+{
+  "plates": [
+    { "plate_id": "P01", "wt_wells": ["A01", "A12", "H01", "H12"] }
+  ]
+}
+```
+
+Fold change and log2_fc are computed relative to the mean WT value on each plate. The log2_fc value maps directly to EVOLVEpro `y_pred`.
+
+### Round Entity
+
+Each ALE round is tracked as a `Round` entity in the workspace (schema v0.3). A round holds:
+- `round_n`: sequential round number (1-based)
+- `status`: `design` → `sequencing` → `activity` → `exported`
+- `plate_meta`: WT well layout for that round
+- Links to the Kuro workspace and MAME NGS results for that round
+
+Workspace files from schema v0.2 and earlier are **not automatically migrated**. Export your design data before upgrading from v0.2.6 or earlier.
+
+---
+
 ## Architecture
 
 Tauri v2 + React 19 shell with two Python sidecars (kuro-sidecar, mame-sidecar) spawned lazily on first tab activation. The Rust side owns project CRUD, config, and sidecar lifecycle. Both sidecars share `kuma_core.shared` utilities (config paths, logging, JSON-RPC error format).

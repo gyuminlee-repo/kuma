@@ -124,6 +124,58 @@ EVOLVEpro 또는 MULTI-evolve CSV 로드 시 어떤 mutation을 프라이머 설
 
 다른 프로젝트가 활성화된 상태에서 Kuro-export xlsx를 Mame 탭에 드롭하면 `__kuma_meta__ → project_id` 매칭으로 "출처 프로젝트로 로드하시겠어요?" 다이얼로그가 뜬다.
 
+## 활성 데이터 통합 (v0.2.7)
+
+KUMA가 ALE 전체 사이클을 연결한다: Kuro가 라운드 N 변이의 프라이머를 설계하고, 실험실에서 변이를 도입하고, NGS 지노타이핑으로 성공한 클론을 확인한 뒤, 활성 측정 데이터를 MAME에서 처리해 단일 "Handoff" 클릭으로 Kuro 라운드 N+1에 피드백한다.
+
+### 사용 흐름
+
+```
+1. KURO 설계      →  라운드 N 변이 프라이머 목록
+2. 실험실          →  SDM + 발현
+3. MAME NGS       →  클론별 지노타입 판정 (6-class)
+4. 활성 측정       →  플레이트 리더 / 형광 측정
+5. MAME 활성      →  long format CSV 로드; fold_change / log2_fc 계산
+6. EVOLVEpro export →  variant + y_pred CSV (다음 라운드 입력)
+7. Round Handoff  →  1-click: 라운드 N+1 생성 + EVOLVEpro CSV를 Kuro에 로드
+8. 반복            →  Kuro가 업데이트된 점수로 라운드 N+1 설계
+```
+
+### Long Format CSV 입력 형식
+
+활성 데이터 로더는 측정값 1개당 행 1줄의 **long format** CSV(또는 Excel)를 기대한다:
+
+| 컬럼 | 타입 | 설명 |
+|---|---|---|
+| `plate_id` | string | 플레이트 식별자. 예: `P01` |
+| `well_id` | string | A01–H12 형식의 웰 주소 |
+| `value` | float | 원시 측정값 |
+| `replicate_idx` | int | 반복 인덱스 (1-based). 동일 웰 × 동일 index = 1회 측정 |
+
+WT 웰은 `plate_meta.json`에 선언한다:
+
+```json
+{
+  "plates": [
+    { "plate_id": "P01", "wt_wells": ["A01", "A12", "H01", "H12"] }
+  ]
+}
+```
+
+Fold change와 log2_fc는 플레이트별 WT 평균을 기준으로 계산된다. log2_fc 값이 EVOLVEpro `y_pred`에 직접 매핑된다.
+
+### Round 엔티티
+
+각 ALE 라운드는 워크스페이스(schema v0.3)에서 `Round` 엔티티로 추적된다. 라운드는 다음 정보를 가진다:
+- `round_n`: 순차 라운드 번호 (1-based)
+- `status`: `design` → `sequencing` → `activity` → `exported`
+- `plate_meta`: 해당 라운드의 WT 웰 배치
+- 해당 라운드의 Kuro workspace와 MAME NGS 결과 경로
+
+**schema v0.2 이하 워크스페이스 파일은 자동 마이그레이션 없음.** v0.2.6 이하에서 업그레이드 전 설계 데이터를 내보낼 것.
+
+---
+
 ## 아키텍처
 
 Tauri v2 + React 19 shell과 두 개의 Python sidecar (kuro-sidecar, mame-sidecar). 탭 첫 활성화 시 lazy spawn. Rust가 프로젝트 CRUD, config, sidecar 생명주기를 소유. 두 sidecar 모두 `kuma_core.shared` 공통 유틸(config 경로, 로깅, JSON-RPC 에러 포맷) 공유.
