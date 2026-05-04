@@ -4,6 +4,8 @@ import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { useKumaProject } from "@/state/projectContext";
 import { selectCanRun } from "@/store/mame/selectors";
 import { useMameSidecar } from "@/hooks/mame/useMameSidecar";
+import { initActivityStore } from "@/store/mame/activitySlice";
+import { useRoundStore } from "@/store/round/roundSlice";
 import { ClearConfirmDialog } from "../dialogs/ClearConfirmDialog";
 import { ExportDialog } from "../dialogs/ExportDialog";
 import { MenuBar } from "./MenuBar";
@@ -14,6 +16,10 @@ import { SummaryRow } from "../widgets/SummaryRow";
 import { VerdictTable } from "../widgets/VerdictTable";
 import { RunHealthPanel } from "../widgets/RunHealthPanel";
 import { DataPanel } from "@/components/ui/Panel";
+
+// Activity store는 RoundStore를 주입받아 초기화 (lazy singleton).
+// MameAppLayout 모듈 로드 시 단 한 번만 실행.
+initActivityStore(useRoundStore);
 
 const SEQUENCE_EXTENSIONS = new Set([".fa", ".fasta", ".fna"]);
 const XLSX_EXTENSIONS = new Set([".xlsx"]);

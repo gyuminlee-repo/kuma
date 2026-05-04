@@ -8,7 +8,7 @@
  * Spec: notes/specs/2026-05-04-mame-activity-integration.md §4.4
  */
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useStore } from "zustand";
 import {
   Dialog,
@@ -147,10 +147,9 @@ export function WtWellEditor() {
               ))}
 
               {ROWS.map((row) => (
-                <>
+                <Fragment key={row}>
                   {/* Row label */}
                   <div
-                    key={`label-${row}`}
                     className="flex h-6 w-6 items-center justify-center text-caption font-medium text-muted-foreground"
                     aria-hidden="true"
                   >
@@ -179,7 +178,7 @@ export function WtWellEditor() {
                       </button>
                     );
                   })}
-                </>
+                </Fragment>
               ))}
             </div>
           </div>
