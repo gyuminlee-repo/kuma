@@ -251,7 +251,7 @@ export function AppLayout() {
             className="flex h-full min-h-0 flex-col overflow-hidden"
           >
             <PanelGroup direction="vertical" autoSaveId="kuma-main-v" className="flex-1 min-h-0">
-              <Panel defaultSize={26} minSize={10} className="min-h-0">
+              <Panel defaultSize={18} minSize={10} className="min-h-0">
                 <DataPanel
                   title="Sequence context"
                   description={selectedGeneInfo ? `${selectedGeneInfo.gene} · ${selectedGeneInfo.aa_length} aa` : "Load a target gene"}
@@ -265,7 +265,7 @@ export function AppLayout() {
 
               <PanelResizeHandle className="h-1.5 my-1 rounded-full bg-transparent hover:bg-border data-[resize-handle-active]:bg-ring transition-colors" />
 
-              <Panel defaultSize={40} minSize={10} className="min-h-0">
+              <Panel defaultSize={34} minSize={15} className="min-h-0">
                 <DataPanel
                   title="Design output"
                   description={hasDesignResults ? `${successCount}/${totalCount} successful` : "No results yet"}
@@ -279,13 +279,13 @@ export function AppLayout() {
 
               <PanelResizeHandle className="h-1.5 my-1 rounded-full bg-transparent hover:bg-border data-[resize-handle-active]:bg-ring transition-colors" />
 
-              <Panel defaultSize={34} minSize={10} className="min-h-0">
+              <Panel defaultSize={48} minSize={35} className="min-h-0">
                 <DataPanel
                   title="Plate plan"
                   description={plateEstimate ? `${plateEstimate} plate${plateEstimate > 1 ? "s" : ""}` : "Awaiting design"}
                   className="h-full overflow-hidden"
                 >
-                  <div className="h-full">
+                  <div className="h-full min-h-[400px] overflow-auto">
                     <PlateMap />
                   </div>
                 </DataPanel>
