@@ -4,6 +4,30 @@
 
 ---
 
+## v0.2.6 (2026-05-04)
+
+Plate 가시성 위주 레이아웃 기본값 재조정, cascade 길이 완화 안전화, 미사용 order-export 경로 제거.
+
+### 레이아웃 기본값 (`v0.2.5.11`)
+
+- Vertical PanelGroup `defaultSize` 재조정: Sequence context 18% / Design output 34% / Plate plan 48% (기존 26 / 40 / 34).
+- Plate panel `minSize` 10 → 35 상향. 내부 wrapper에 `min-h-[400px] overflow-auto` 추가 — panel 축소해도 H행까지 보이거나 스크롤로 접근.
+- `autoSaveId="kuma-main-v"` 유지. 기존 사용자 customization 보존. 새 minSize 위반 값은 restore 시 자동 clamp.
+
+### Cascade 길이 완화 (`v0.2.6.03`)
+
+- `getStageParams`가 길이를 **위로만** 확장: `fwdLenMax`/`revLenMax`만 `lengthDelta` 만큼 늘리고, `fwdLenMin`/`revLenMin`은 사용자 설정값 그대로 유지.
+- 근거: primer 길이를 사용자 min 미만으로 줄이면 Tm 저하 + 특이도 감소 위험. 상한만 풀면 Tm 보장하면서 GC-stretch / hairpin 위험만 노출 (후속 stage에서 추가 보정 가능).
+
+### IDT / Twist Order export 제거 (`v0.2.6.04`, `v0.2.6.05`)
+
+- `Export IDT Order...` 와 `Export Twist Order...` 메뉴 제거. `Export Excel`, `Export Echo Mapping`, `Export JANUS Mapping` 보존.
+- Frontend `handleExportIdtOrder`, `handleExportTwistOrder` 삭제. Sidecar `handle_export_order` 핸들러 + `ExportOrderParams` / `ExportOrderResultModel` / `OrderResultItem` Pydantic 모델 제거. Dispatcher `export_order` 메서드 등록 해제.
+- `kuma_core/kuro/plate_mapper.py:export_idt_csv` / `export_twist_csv` 라이브러리 함수는 보존 — `tests/test_plate_mapper.py`에서 직접 사용 중.
+- 후속 fix: 삭제된 `_ALLOWED_ORDER_CSV_EXTENSIONS`를 참조하던 benchmark CSV exporter 라인을 `_ALLOWED_CSV_EXTENSIONS`로 정정.
+
+---
+
 ## v0.2.5 (2026-05-04)
 
 모드별 cascade rescue, Tm tolerance 사용자 설정, workspace 로드 시 input 재로드.
