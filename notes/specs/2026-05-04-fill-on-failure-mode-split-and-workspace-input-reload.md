@@ -72,11 +72,26 @@ position 변경은 절대 금지 (substitution은 fillOnFailure 의도 영역).
     - `fillOnFailure && !pipelineMode` → Top-N 4-stage
     - `!fillOnFailure` → 기존 OFF cascade 2-stage
 - `src/lib/primerSuggestion.ts`
-  - `suggestRetryParams(results, defaults, stage)` — stage 인자 추가, stage별 완화 폭 반환
-  - 새 함수 `getStageRelaxation(stage: 1|2|3|4)` — length/GC/Tm 완화 폭 lookup table
-- `src/types/models.ts`
-  - `RescuedMutation.type` union 확장: `"same_position" | "diff_position" | "auto_suggestion_l1" | "auto_suggestion_l2" | "auto_suggestion_l3" | "auto_suggestion_l4"`
-  - `RescuedMutation.stage?: number` 추가
+  - `suggestRetryParams(results, defaults, stage)` — stage 인자 추가, 내부에서 `STAGE_RELAXATION_TABLE[stage]` 참조하여 완화 폭 적용
+  - 신규 상수 `STAGE_RELAXATION_TABLE` (모듈 최상위 `const`, frozen object):
+    ```ts
+    const STAGE_RELAXATION_TABLE = {
+      1: { lengthDelta: 2, gcDelta: 0, tmTolDelta: 0 },
+      2: { lengthDelta: 2, gcDelta: 3, tmTolDelta: 0 },
+      3: { lengthDelta: 3, gcDelta: 5, tmTolDelta: 2 },
+      4: { lengthDelta: 4, gcDelta: 8, tmTolDelta: 5 },
+    } as const;
+    ```
+  - 값 관리 정책: inline constants (외부 설정 파일 사용 안 함). 사용자 튜닝 필요성 보고 시 후속 PR로 settings UI 노출 검토.
+  - 신규 helper `getStageRelaxation(stage: 1|2|3|4)` → 위 테이블 lookup wrapper
+- `src/types/models.ts` (현재 정의: `original`, `rescued_by`, `type: "pool_cascade" | "auto_relax" | "auto_suggestion"`)
+  - `RescuedMutation.type` union **확장 (기존 3값 보존 + 신규 추가)**:
+    - 기존 보존: `"pool_cascade" | "auto_relax" | "auto_suggestion"` (legacy workspace 호환)
+    - 신규: `"same_position" | "diff_position" | "auto_suggestion_l1" | "auto_suggestion_l2" | "auto_suggestion_l3" | "auto_suggestion_l4"`
+    - 마이그레이션: 기존 `"auto_suggestion"`은 신규 cascade 미사용 시 fallback으로 유지. 신규 cascade 활성 코드 경로는 신규 enum만 emit.
+  - `RescuedMutation.stage?: number` **신규 필드 추가** (선택적, 1-6 범위)
+  - `RescuedMutation.substitute?: string` **신규 필드 추가** (선택적; Pipeline same/diff position stage에서 원본 mutation을 대체한 새 mutation 문자열 기록. 기존 `original` 필드와 짝)
+  - `src/types/validators.ts`의 `isRescuedMutation` 가드 함수에 신규 union 값 + 신규 선택 필드 허용 추가
 - `src/components/widgets/resultTableColumns.tsx`
   - 배지 렌더링 분기 (↻¹ ↻² 🎯¹⁻⁴)
 - `src/components/dialogs/DesignReport.tsx`
@@ -126,10 +141,32 @@ position 변경은 절대 금지 (substitution은 fillOnFailure 의도 영역).
 
 ### 구현 위치
 
-- `src/store/slices/exportSlice.ts`
-  - `restoreWorkspace` 안 `load_fasta` 호출 후 분기 추가
-  - `evolveproCsvPath`가 빈 문자열/undefined가 아니고, 파일 존재 시 `await get().loadEvolveproCsv(evolveproCsvPath, fillOnFailure ? sendCount : undefined)` 호출
-  - 실패 시 catch → `statusMessage`에 "EVOLVEpro CSV reload failed: <error>" 표시, 결과 데이터는 보존하고 yPredMap만 빈 상태로 남김
+- `src/store/slices/exportSlice.ts` `restoreWorkspace` 함수
+  - **삽입 지점**: 현재 line 478 (`load_fasta` 블록 종료 직후) ~ line 482 (`store.resetAll()` 호출 전) 사이
+  - **신규 코드 골격**:
+    ```ts
+    // After load_fasta success, before resetAll/set:
+    let preloadedYPred: Record<string, number> | null = null;
+    let preloadedPoolVariants: PoolVariant[] | null = null;
+    if (inputs.evolveproCsvPath) {
+      try {
+        const sendCount = computeSendCount(inputs.mutationText, settings.maxPrimers);
+        const update = await sendRequest("load_evolvepro_csv", {
+          filepath: inputs.evolveproCsvPath,
+          top_n: settings.fillOnFailure ? sendCount : undefined,
+          // pass diversity settings if needed (mirror loadEvolveproCsv body)
+        });
+        preloadedYPred = update.yPredMap;
+        preloadedPoolVariants = update.poolVariants;
+      } catch (err) {
+        // fall through; statusMessage updated after set()
+        loadEvolveproError = formatError(err);
+      }
+    }
+    ```
+  - 이후 `set({ ... yPredMap: preloadedYPred ?? {}, poolVariants: preloadedPoolVariants ?? [], ... })`로 복원
+  - 실패 시 `statusMessage`에 `"Workspace loaded. EVOLVEpro CSV reload failed: <err>"` 추가, 디자인 결과는 보존
+  - **이중 호출 회피**: `autoRedesignOnLoad` ON일 때 line 558의 `designPrimers()`가 다시 `loadEvolveproCsv` 호출하므로, restore에서 yPredMap이 채워졌으면 designPrimers 내부 호출은 동일 path 재로드 → 결과 동일하지만 latency 2배. 1차 PR에서는 그대로 두고 후속 측정 후 가드 추가 결정.
 
 ### Edge cases
 
