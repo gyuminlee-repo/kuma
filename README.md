@@ -39,8 +39,14 @@ Given a mutation list (plain text / EVOLVEpro CSV / MULTI-evolve CSV) and a temp
 - **Candidate comparison and swap**: Click a primer sequence to open a candidate comparison popover
 - **Custom primer evaluation**: Enter a sequence directly in the candidate popover → Tm, GC%, hairpin, and off-target are calculated immediately
 - **Failed mutation retry**: Click a failed mutation → adjust Tm/GC%/length/tolerance → re-design → select from candidates. The retry popover offers a one-click **Use suggestion** button that pre-fills median Tm, observed GC/length range, and tol ±5°C derived from primers that already succeeded in the same run
-- **Position Rescue**: Three-stage fallback when a primer design fails. (1) **Pool Cascade**: same-position backup variants from the EVOLVEpro pool. (2) **Auto-Relax**: widened Tm tolerance (±5.0°C) and GC range (±5%). (3) **Auto-retry (suggestion)**: with Fill-on-failure off, the failed list is re-tried once more using parameters derived from the run successful primers. Rescue badges in the result table distinguish the three stages (`↻ cascade`, `⚡ relaxed`, `🎯 suggestion`); statistics displayed in Design Report
-- **Fill on failure**: When enabled (off by default), automatically fills the requested mutation count from extra candidates when some mutations fail
+- **Tm tolerance setting**: User-configurable Tm tolerance ±°C (range 0.5–10.0, step 0.5, default 3.0) in Advanced Options. Cascade rescue stages add delta on top of this base value. Recommended 2–5°C
+- **Position Rescue**: Mode-aware multi-stage cascade when a primer design fails.
+  - **Top-N + Fill-on-failure ON** → 4-stage relaxation only (length → +GC → +mild Tm → strong), position fixed. Badges `🎯¹` length / `🎯²` +GC / `🎯³` +mild Tm / `🎯⁴` strong
+  - **Pipeline + Fill-on-failure ON** → 6-stage: ① same-position alternate variant (`↻¹`) → ② different-position substitution (`↻²`) → ③–⑥ same 4-stage relaxation
+  - **Fill-on-failure OFF** → 2-stage auto-retry (mild → strong) using parameters derived from the run successful primers; position fixed
+  - Legacy pool cascade (`↻ cascade`) and auto-relax (`⚡ relaxed`) still applied by the backend before frontend cascade
+  - Stage counters displayed in Design Report
+- **Fill on failure**: When enabled (default on), triggers the cascade above according to selection mode. When off, only the 2-stage auto-retry runs
 - **Off-target detection**: Automatic detection of non-specific binding on the template sense/antisense strand
 - **96-well Plate Map**: Linked Fwd/Rev plate. Multi-plate slide for >96 mutations. Synchronized with table sort order
 - **Echo 525 / JANUS export**: Liquid handler mapping export as XLSX workbook. Echo: 384-well source plate layout + transfer list. JANUS: Fwd/Rev 96-well rack layout + transfer list. CSV also supported

@@ -4,6 +4,50 @@
 
 ---
 
+## v0.2.5 (2026-05-04)
+
+Mode-aware cascade rescue, user-configurable Tm tolerance, and workspace input reload on restore.
+
+### fill-on-failure cascade (`v0.2.5.01` – `v0.2.5.05`, `v0.2.5.08`)
+
+- New `cascadeFailedRetry(mode)` action in `designSlice` orchestrates failed-mutation rescue per selection mode.
+  - **Top-N + fill ON** (`topn-fill`) → 4-stage relaxation only (length → +GC → +mild Tm → strong). Position fixed.
+  - **Pipeline + fill ON** (`pipeline-fill`) → 6 stages: ① same-position alternate variant → ② different-position substitution → ③–⑥ 4-stage relaxation.
+  - **fill OFF** (`off`) → 2-stage auto-retry (mild → strong). Position fixed.
+- `STAGE_RELAXATION_TABLE` lookup defines per-stage delta on top of user base Tm tolerance: stage 1 adds length ±2, stage 2 adds GC ±3, stage 3 adds Tm tol +2°C, stage 4 adds Tm tol +5°C (capped at 10°C backend max).
+- `getStageParams(base, stage)` helper composes the request payload from base settings plus stage delta. Unit-tested in `src/lib/__tests__/primerSuggestion.test.ts` (6 assertions).
+- `RescuedMutation.type` union extended with `same_position`, `diff_position`, `auto_suggestion_l1`–`l4`. New optional `stage: number` and `substitute: string` fields. Legacy `pool_cascade` / `auto_relax` / `auto_suggestion` preserved for older workspaces.
+- Cancellation guard: cascade stages check `isDesigning` before each iteration and break immediately on user cancel.
+- Per-mutation retry failures now log via `console.warn` instead of silent `catch`. Cascade as a whole still continues so individual failures do not abort the run.
+
+### Tm tolerance UI (`v0.2.5.03`)
+
+- New input field in `ParameterPanel` Advanced section: "Tm tolerance ±°C", range 0.5–10.0, step 0.5, default 3.0 (matches backend Pydantic default).
+- `tmTolerance` persisted in workspace settings. Restore falls back to 3.0 when the key is absent (legacy compatibility).
+- `buildDesignRequestPayload` now passes `tol_max` explicitly so the backend respects the user value instead of always using its 3.0 default.
+
+### workspace EVOLVEpro reload (`v0.2.5.06`)
+
+- `restoreWorkspace` now re-fires `load_evolvepro_csv` after `load_fasta` when `evolveproCsvPath` is non-empty, repopulating `yPredMap` and `poolVariants`.
+- Diversity panel statistics, sort by y_pred, benchmark, and Excel export now work immediately after workspace load instead of requiring a manual re-design.
+- If reload fails (file moved/deleted), workspace results are preserved, status message reports the error, and `autoRedesignOnLoad` is suppressed to avoid clearing existing `designResults`.
+
+### UI badges and report (`v0.2.5.07`)
+
+- `resultTableColumns` switched from hard-coded type comparisons to a `badgeMap` lookup table covering 9 rescue types (3 legacy + 6 new).
+- New badges: `🎯¹`–`🎯⁴` for cascade relaxation stages, `↻¹` / `↻²` for same/different-position substitution. Legacy `↻ cascade`, `⚡ relaxed`, `🎯 suggestion` retained.
+- `DesignReport` Position Rescue section adds a "Cascade rescues" line summarizing per-stage counts (`↻¹`, `↻²`, `🎯¹`–`🎯⁴`). Existing legacy counters preserved.
+
+### Cross-layer change checklist additions
+
+| Changed file | Also check |
+|---|---|
+| `src/lib/primerSuggestion.ts` `STAGE_RELAXATION_TABLE` | `src/store/slices/designSlice.ts` `cascadeFailedRetry` stage list stays in sync |
+| `src/types/models.ts` `RescuedMutation` union | `src/types/validators.ts` `isRescuedMutation` guard + `src/components/widgets/resultTableColumns.tsx` `badgeMap` + `src/components/dialogs/DesignReport.tsx` `cascadeCounts` stay in sync |
+| `src/store/slices/designSlice.ts` `tmTolerance` | `src/store/slices/exportSlice.ts` snapshot/restore/reset + `src/store/slices/designSlice.helpers.ts` `buildDesignRequestPayload` `tolMax` + `src/components/panels/ParameterPanel.tsx` input stay in sync |
+
+---
+
 ## v0.1.10 – v0.1.13 (2026-04-30)
 
 App lifecycle hardening, IPC bug fixes, layout flexibility, and a new auto-retry path for failed primer designs.

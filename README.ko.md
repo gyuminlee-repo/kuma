@@ -38,8 +38,14 @@ Kuro 탭에서 프라이머를 설계하고 실험·시퀀싱 후 Mame 탭으로
 - **후보 비교 및 교체**: 프라이머 서열 클릭 시 후보 비교 팝오버
 - **커스텀 프라이머 평가**: 후보 팝오버에서 직접 서열 입력 → Tm, GC%, hairpin, off-target 즉시 계산
 - **실패 돌연변이 재시도**: 실패한 mutation 클릭 → 파라미터 조절 → 재설계. popover 의 **Use suggestion** 버튼은 같은 run 에서 성공한 primer 들의 median Tm, GC/길이 관측 범위, tol ±5°C 를 한 번에 채워줌
-- **Position Rescue**: 설계 실패 시 3단계 fallback. (1) **Pool Cascade**: EVOLVEpro pool 의 같은 위치 대안 variant. (2) **Auto-Relax**: Tm tolerance(±5.0°C) + GC 범위(±5%) 완화. (3) **Auto-retry (suggestion)**: Fill-on-failure 가 꺼져 있을 때 성공 primer 들로부터 도출한 파라미터로 한 번 더 재시도. 결과 테이블 rescue 배지(`↻ cascade`, `⚡ relaxed`, `🎯 suggestion`)로 단계 구분, 통계는 Design Report 에 표시
-- **실패 시 자동 채움**: 활성화 시 일부 mutation 실패해도 추가 후보로 요청 수만큼 자동 채움
+- **Tm tolerance 사용자 설정**: Advanced Options 에서 ±°C 직접 지정 (범위 0.5–10.0, step 0.5, 기본 3.0). Cascade rescue 단계는 이 base 값에 delta 추가. 권장 2–5°C
+- **Position Rescue**: 모드별 multi-stage cascade.
+  - **Top-N + Fill-on-failure ON** → 위치 고정 4-stage 조건완화 (length → +GC → +mild Tm → strong). 배지 `🎯¹` length / `🎯²` +GC / `🎯³` +mild Tm / `🎯⁴` strong
+  - **Pipeline + Fill-on-failure ON** → 6-stage: ① 동일 위치 대안 variant (`↻¹`) → ② 다른 위치 substitution (`↻²`) → ③–⑥ 동일 4-stage 완화
+  - **Fill-on-failure OFF** → 위치 고정 2-stage 자동재시도 (mild → strong). 성공 primer 들로부터 도출한 파라미터 사용
+  - 백엔드의 legacy pool cascade (`↻ cascade`) 와 auto-relax (`⚡ relaxed`) 는 frontend cascade 이전에 자동 적용
+  - Stage 카운터 Design Report 에 표시
+- **실패 시 자동 채움**: 기본 ON. 켜져 있으면 selection mode 에 따라 위 cascade 발동. OFF 면 2-stage 자동재시도만 실행
 - **Off-target 검증**: template sense/antisense에서 비특이적 결합 자동 검출
 - **96-well Plate Map**: Fwd/Rev 쌍 연동 플레이트. 96개 초과 시 multi-plate 슬라이드
 - **Echo 525 / JANUS export**: 액체 핸들러 매핑 XLSX workbook. Echo는 384-well 소스 레이아웃 + 전송 목록, JANUS는 Fwd/Rev 96-well 래크

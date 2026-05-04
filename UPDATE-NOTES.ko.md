@@ -4,6 +4,50 @@
 
 ---
 
+## v0.2.5 (2026-05-04)
+
+모드별 cascade rescue, Tm tolerance 사용자 설정, workspace 로드 시 input 재로드.
+
+### fill-on-failure cascade (`v0.2.5.01` – `v0.2.5.05`, `v0.2.5.08`)
+
+- `designSlice` 에 신규 `cascadeFailedRetry(mode)` 액션 추가. selection mode 별로 분기.
+  - **Top-N + fill ON** (`topn-fill`) → 위치 고정 4-stage 조건완화 (length → +GC → +mild Tm → strong)
+  - **Pipeline + fill ON** (`pipeline-fill`) → 6-stage: ① 동일 위치 대안 variant → ② 다른 위치 substitution → ③–⑥ 동일 4-stage 완화
+  - **fill OFF** (`off`) → 위치 고정 2-stage 자동재시도 (mild → strong)
+- `STAGE_RELAXATION_TABLE` lookup 으로 stage 별 delta 정의. 사용자 base Tm tolerance 위에 누적: stage 1 length ±2, stage 2 +GC ±3, stage 3 +Tm tol 2°C, stage 4 +Tm tol 5°C (백엔드 max 10°C 까지 cap).
+- `getStageParams(base, stage)` helper 가 base 설정 + stage delta 로 request payload 합성. 단위 테스트 6개 (`src/lib/__tests__/primerSuggestion.test.ts`).
+- `RescuedMutation.type` union 확장: `same_position`, `diff_position`, `auto_suggestion_l1`–`l4` 신규. 선택 필드 `stage: number`, `substitute: string` 추가. legacy `pool_cascade` / `auto_relax` / `auto_suggestion` 보존 (구 workspace 호환).
+- 취소 가드: 매 stage 시작 시 `isDesigning` 체크해 사용자 취소 시 즉시 break.
+- 개별 mutation retry 실패는 silent `catch` 대신 `console.warn` 로깅. cascade 전체는 계속 진행.
+
+### Tm tolerance UI (`v0.2.5.03`)
+
+- `ParameterPanel` Advanced 영역에 신규 입력 필드 "Tm tolerance ±°C", 범위 0.5–10.0, step 0.5, 기본 3.0 (백엔드 Pydantic default 와 동일).
+- `tmTolerance` workspace 설정에 영속화. 키 부재 시 3.0 fallback (legacy 호환).
+- `buildDesignRequestPayload` 가 `tol_max` 명시 전달 → 백엔드가 사용자 값 존중 (기존엔 항상 3.0 default 사용).
+
+### workspace EVOLVEpro 재로드 (`v0.2.5.06`)
+
+- `restoreWorkspace` 가 `load_fasta` 직후 `evolveproCsvPath` 가 비어있지 않으면 `load_evolvepro_csv` 재호출 → `yPredMap`, `poolVariants` 복원.
+- Diversity 패널 통계, y_pred 정렬, benchmark, Excel export 모두 workspace 로드 직후 작동 (기존엔 수동 재디자인 필요).
+- 재로드 실패 시(파일 이동/삭제) workspace 결과 보존, 상태 메시지로 에러 표시, `autoRedesignOnLoad` skip → 기존 `designResults` 손실 방지.
+
+### UI 배지 + 리포트 (`v0.2.5.07`)
+
+- `resultTableColumns` 의 type 하드코딩 분기를 `badgeMap` lookup table 로 일반화. 9 rescue type 커버 (legacy 3 + 신규 6).
+- 신규 배지: `🎯¹`–`🎯⁴` (cascade 완화 stage), `↻¹` / `↻²` (same/diff position substitution). legacy `↻ cascade`, `⚡ relaxed`, `🎯 suggestion` 보존.
+- `DesignReport` Position Rescue 섹션에 "Cascade rescues" 라인 추가 — stage 별 카운트 (`↻¹`, `↻²`, `🎯¹`–`🎯⁴`). 기존 legacy 카운터 보존.
+
+### Cross-layer 체크리스트 추가
+
+| 변경 파일 | 동기 확인 |
+|---|---|
+| `src/lib/primerSuggestion.ts` `STAGE_RELAXATION_TABLE` | `src/store/slices/designSlice.ts` `cascadeFailedRetry` stage list |
+| `src/types/models.ts` `RescuedMutation` union | `src/types/validators.ts` `isRescuedMutation` + `src/components/widgets/resultTableColumns.tsx` `badgeMap` + `src/components/dialogs/DesignReport.tsx` `cascadeCounts` |
+| `src/store/slices/designSlice.ts` `tmTolerance` | `src/store/slices/exportSlice.ts` snapshot/restore/reset + `src/store/slices/designSlice.helpers.ts` `buildDesignRequestPayload` `tolMax` + `src/components/panels/ParameterPanel.tsx` input |
+
+---
+
 ## v0.1.10 – v0.1.13 (2026-04-30)
 
 앱 종료 경로 정리, IPC 버그 수정, 패널 가변 레이아웃, 실패 mutation 자동 retry 도입.
