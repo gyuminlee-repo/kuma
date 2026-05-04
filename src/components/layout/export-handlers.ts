@@ -107,7 +107,12 @@ export async function handleLoadWorkspace(project: KumaProject) {
     });
     if (typeof path !== "string") return;
     const ws = await sendRequest("load_workspace", { filepath: path });
-    if (ws.version !== 1 && ws.version !== 2) {
+    const wsTyped = ws as { version?: number; schema_version?: string };
+    const hasValidVersion =
+      wsTyped.version === 1 ||
+      wsTyped.version === 2 ||
+      wsTyped.schema_version === "0.3";
+    if (!hasValidVersion) {
       useAppStore.getState().setStatus("Incompatible workspace version");
       return;
     }

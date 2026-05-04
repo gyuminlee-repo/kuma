@@ -32,7 +32,7 @@ import type {
   SequenceInfo,
   UniprotCandidate,
   WorkspaceData,
-  WorkspaceV2,
+  WorkspaceV3,
 } from "../types/models";
 
 // ---------------------------------------------------------------------------
@@ -230,7 +230,7 @@ export interface ExportSlice {
   exportExcel: (filepath: string, projectId?: string) => Promise<void>;
   setTableSorting: (updater: Updater<SortingState>) => void;
   setStatus: (msg: string) => void;
-  getWorkspaceSnapshot: () => WorkspaceV2;
+  getWorkspaceSnapshot: () => WorkspaceV3;
   restoreWorkspace: (ws: WorkspaceData) => Promise<void>;
   resetAll: () => void;
 }

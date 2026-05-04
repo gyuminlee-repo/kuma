@@ -410,7 +410,23 @@ export interface WorkspaceV2 {
   cache?: WorkspaceCache;
 }
 
-export type WorkspaceData = WorkspaceV1 | WorkspaceV2;
+/**
+ * WorkspaceV3 — schema_version "0.3" (string discriminator).
+ * rounds: Round[] + active_round_id 추가.
+ * v0.3 이전 워크스페이스 로드 시 throw.
+ */
+export interface WorkspaceV3 {
+  schema_version: "0.3";
+  inputs: WorkspaceInputs;
+  settings: WorkspaceSettings;
+  results: WorkspaceResults;
+  ui: WorkspaceUi;
+  cache?: WorkspaceCache;
+  rounds: import("./round").Round[];
+  active_round_id: string | null;
+}
+
+export type WorkspaceData = WorkspaceV1 | WorkspaceV2 | WorkspaceV3;
 
 export interface StructureResult {
   success: boolean;

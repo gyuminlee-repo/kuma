@@ -10,12 +10,14 @@ import type {
   WorkspaceData,
   WorkspaceV1,
   WorkspaceV2,
+  WorkspaceV3,
 } from "../../types/models";
+import { useRoundStore } from "../round/roundSlice";
 
 import type { ExportSlice } from "../slice-interfaces";
 export type { ExportSlice };
 
-function normalizeWorkspace(ws: WorkspaceData): WorkspaceV2 {
+function normalizeWorkspace(ws: WorkspaceV1 | WorkspaceV2): WorkspaceV2 {
   if (ws.version === 2) {
     return ws;
   }
@@ -379,8 +381,11 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
 
   getWorkspaceSnapshot: () => {
     const s = get();
-    const snapshot: WorkspaceV2 = {
-      version: 2,
+    const roundState = useRoundStore.getState();
+    const snapshot: WorkspaceV3 = {
+      schema_version: "0.3",
+      rounds: roundState.rounds,
+      active_round_id: roundState.active_round_id,
       inputs: {
         fastaPath: s.fastaPath,
         mutationInputMode: s.mutationInputMode,
@@ -458,7 +463,17 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
   },
 
   restoreWorkspace: async (ws: WorkspaceData) => {
-    const normalized = normalizeWorkspace(ws);
+    // schema_version "0.3" 이전 워크스페이스는 지원하지 않음
+    const wsWithSchema = ws as WorkspaceData & { schema_version?: string };
+    if (!wsWithSchema.schema_version || wsWithSchema.schema_version < "0.3") {
+      throw new Error(
+        "v0.3 이전 워크스페이스는 지원하지 않습니다. 새 워크스페이스로 시작하세요."
+      );
+    }
+    // schema_version >= "0.3" 이면 WorkspaceV3이므로 legacy normalize는 불필요.
+    // 하지만 기존 KURO 상태 복원에 normalizeWorkspace 로직을 재활용한다.
+    // WorkspaceV3의 inputs/settings/results/ui 구조는 WorkspaceV2와 동일하므로 안전.
+    const normalized = normalizeWorkspace(ws as WorkspaceV1 | WorkspaceV2);
     const { inputs, settings, results, ui, cache } = normalized;
     let loadedSeqInfo: SequenceInfo | null = null;
     let restoredGene = "";
