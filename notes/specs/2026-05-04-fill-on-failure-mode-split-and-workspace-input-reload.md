@@ -203,10 +203,10 @@ position 변경은 절대 금지 (substitution은 fillOnFailure 의도 영역).
   - 신규 필드: `tmTolerance: number` (기본 3.0)
   - 신규 action: `setTmTolerance(value: number)` — clamp `[0.5, 10.0]`, 소수점 1자리 round
   - `designPrimers` payload 빌드: `tol_max: state.tmTolerance` 추가 (현재 누락)
-  - `buildDesignRequestPayload` (`src/lib/designRequest.ts` 추정)에 `tolMax` 인자 추가
+  - `buildDesignRequestPayload` (실제 위치: `src/store/slices/designSlice.helpers.ts:100`)에 `tolMax` 인자 추가, 반환 payload에 `tol_max: tolMax` 포함
 - `src/store/slice-interfaces.ts`
   - `DesignSlice` interface에 `tmTolerance: number; setTmTolerance: (v: number) => void` 추가
-- `src/components/sidebar/...` (Tm targets 입력 필드 인접 컴포넌트)
+- `src/components/panels/ParameterPanel.tsx` (Tm targets 입력 필드 위치, grep 확인)
   - 신규 입력: `<label>Tm tolerance ± (°C)</label>` + `<input type="number" min={0.5} max={10.0} step={0.5}>`
   - 값 표시 형식: `±3.0°C`
   - tooltip: "Allowed deviation from Tm targets. Cascade stages add delta on top."
