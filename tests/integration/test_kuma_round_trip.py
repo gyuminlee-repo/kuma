@@ -17,7 +17,6 @@ Steps 8-9 (frontend/vitest) are out of scope for backend integration tests.
 
 from __future__ import annotations
 
-import csv
 from pathlib import Path
 
 import pytest
