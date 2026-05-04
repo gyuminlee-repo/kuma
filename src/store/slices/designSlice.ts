@@ -513,7 +513,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
     const usedSubstitutes = new Set<string>();
 
     for (const stageDef of stages) {
-      if (!get().isDesigning && get().designResults.length === 0) break;
+      if (!get().isDesigning) break;
       const remaining = get().failedMutations;
       if (remaining.length === 0) break;
 
@@ -556,8 +556,9 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
               }));
               totalRescued += 1;
             }
-          } catch {
-            // skip
+          } catch (err) {
+            // Intentional: individual mutation failure must not abort cascade for remaining mutations
+            console.warn(`[cascade] retry failed for ${failed.mutation}:`, err);
           }
         }
       } else {
@@ -605,8 +606,9 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
               }));
               totalRescued += 1;
             }
-          } catch {
-            // skip
+          } catch (err) {
+            // Intentional: individual substitution failure must not abort cascade for remaining mutations
+            console.warn(`[cascade] substitution failed for ${candidate}:`, err);
           }
         }
       }

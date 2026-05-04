@@ -583,7 +583,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
               ? "Workspace loaded. Re-design to enable alternatives and primer swapping."
               : "Workspace loaded."),
     });
-    if ((settings.autoRedesignOnLoad ?? true) && inputs.mutationText && inputs.fastaPath) {
+    if ((settings.autoRedesignOnLoad ?? true) && inputs.mutationText && inputs.fastaPath && !evolveproReloadError) {
       await get().designPrimers();
     }
   },
