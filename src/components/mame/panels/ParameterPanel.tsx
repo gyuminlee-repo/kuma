@@ -16,6 +16,7 @@ import type { InputMode } from "@/store/mame/slice-interfaces";
 import { ActivityUploadPanel } from "./ActivityUploadPanel";
 import { WtWellEditor } from "@/components/mame/dialogs/WtWellEditor";
 import { RoundHandoffButton } from "@/components/round/RoundHandoffButton";
+import { RoundSummaryPanel } from "@/components/round/RoundSummaryPanel";
 import { useActivityStore, type ActivitySlice } from "@/store/mame/activitySlice";
 import { useRoundStore } from "@/store/round/roundSlice";
 import { useStore } from "zustand";
@@ -485,6 +486,13 @@ function ActivityDataSection() {
           <RoundHandoffButton round_id={activeRoundId} />
         )}
       </div>
+
+      {/*
+        RoundSummaryPanel — calibration mode signal display.
+        5/12: metrics=null (placeholder). v0.3: wire to roundSlice strategy metrics.
+        Spec: §12-A.5 (calibration mode), §12-A.6 (5/12 scope).
+      */}
+      <RoundSummaryPanel metrics={null} className="pt-2 border-t border-border" />
     </section>
   );
 }
