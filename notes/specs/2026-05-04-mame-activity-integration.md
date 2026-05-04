@@ -582,30 +582,36 @@ CLAUDE.md "Cross-layer Change Checklist" 표 (현재 8행, 약 line 73–84)에 
 
 목적: EVOLVEpro 기반 baseline-walking 워크플로우(혜민 연구원 방식)에서 best variant 위 추가 single mutation 진행을 멈추고 누적 beneficial들의 combinatorial 라이브러리로 전환할 시점을 객관 기준으로 자동 판별. 객관성 = 사전등록 + 다중 신호 + 추론 근거 명시 + 감사 로그 + 재현성.
 
-### 12-A.0 워크플로우 mode 구분 (선행 도구 분석 결과)
+### 12-A.0 대상 워크플로우
 
-**Mode A — baseline-walking (기본값, EVOLVEpro 학습 도구 정통)**
-- 매 라운드 best variant를 새 baseline → baseline 위에 추가 single mutation 후보 → 측정 → 새 best 갱신
-- mutation 차수가 라운드별 누적 (round 1 single, round 2 실질 double, round 3 실질 triple)
-- 학습 모델이 baseline-conditional epistasis를 암묵 학습
-- 혜민 연구원의 실제 워크플로우. EVOLVEpro 사용의 표준
-- 분류기 의미 = "baseline-walking이 saturate됐는가, 누적 beneficial들의 combinatorial로 전환할 가치가 있는가"
+KUMA의 분류기는 **EVOLVEpro 기반 baseline-walking 워크플로우** 단일 대상.
 
-**Mode B — predetermined combinatorial (게오르기 표준)**
-- Round 1 single (WT 위) → Round 2 round 1 beneficials의 all-pairwise → Round 3 promising doubles + 누적 singles의 triples
-- 사전 결정된 차수 단계 진행
-- 게오르기 SCANEER가 learning이 없어 누적 정보 활용 불가 → combinatorial로만 epistasis 발견 가능 → 차수 도약 강제
-- 분류기 비활성. 사용자가 단계 선언
+```
+Round 1: WT baseline → single mutation 후보 → 측정 → best M1
+Round 2: M1 baseline → M1 위 추가 single mutation (실질 double) → 측정 → best M1+M2
+Round 3: M1+M2 baseline → 추가 single (실질 triple)
+```
 
-기본값 = Mode A. 분류기는 Mode A에서만 활성. Mode B 선택 시 사용자가 단계 수동 선언 + KUMA 자동 조합 생성.
+- 매 라운드 best variant를 새 baseline
+- mutation 차수가 라운드별 누적
+- EVOLVEpro 학습 모델이 baseline-conditional epistasis를 암묵 학습
+- 혜민 연구원 실제 워크플로우 = EVOLVEpro 사용의 표준
 
-선행 문헌 조사: `$OBSIDIAN_VAULT/010.KRIBB/010.Projects/060.강혜민_IspS_LowCost_Workflow/02_KURO_Integration/260504_single_double_전환기준_문헌조사.md` §8·§10 참조.
+게오르기 (SCANEER, predetermined combinatorial) 워크플로우는 **본 도구의 대상 아님** (도구가 EVOLVEpro 기반이므로 SCANEER 워크플로 가정 불필요). 선행 문헌 조사에서 게오르기 사례는 대조군·이력 정보로만 참조.
 
-### 12-A.1 신호 6종 (Mode A)
+분류기의 결정 분기:
+- **continue_walking**: 다음 라운드도 baseline 위 single mutation
+- **switch_combinatorial**: 다음 라운드를 누적 beneficial들의 pairwise 조합으로 디자인 (1회 전환)
+- **stop**: 추가 라운드 효용 없음
+- **deferred**: 신호 혼재 또는 신뢰도 부족
+
+선행 문헌 조사 참조: `$OBSIDIAN_VAULT/010.KRIBB/010.Projects/060.강혜민_IspS_LowCost_Workflow/02_KURO_Integration/260504_single_double_전환기준_문헌조사.md`
+
+### 12-A.1 신호 6종
 
 | ID | 신호 | 정의 | 임계 (기본값) | 추론 근거 |
 |---|---|---|---|---|
-| T1 | Combinatorial throughput 충족 | `cumulative_beneficial ≥ K_throughput` (round 1·2 누적 beneficial single) | `K_throughput = floor((1+√(1+8·C_next))/2)` (사용자 입력 C_next에서 자동 계산) | 다음 라운드 plate 용량 채울 building block 확보 시점. C(K,2) ≤ C_next 만족 K. 96-well 1장 → K=14, 384-well 1장 → K=28. 게오르기 사례 K=15 (96-well 1장)와 자동 정합 |
+| T1 | Combinatorial throughput 충족 | `cumulative_beneficial ≥ K_throughput` (누적 beneficial single) | `K_throughput = floor((1+√(1+8·C_next))/2)` (사용자 입력 C_next에서 자동 계산) | 다음 라운드 plate 용량 채울 building block 확보 시점. C(K,2) ≤ C_next 만족 K. 96-well 1장 → K=14, 384-well 1장 → K=28 |
 | T2 | Baseline 개선 plateau | `Δ_best_baseline_EMA = EMA_2(best_n − best_{n-1})` | `Δ < 1.96·σ_assay·√(2/r)` | 통계 표준 95% MDE. Δ가 노이즈 신뢰구간 이하면 통계적으로 개선 없다고 결론 가능 |
 | T3 | Hit rate 추세 | 라운드별 `n_positive/n_designed` 선형 회귀 기울기 (최근 2 라운드) | slope ≤ 0 | active learning convergence 일반 원리. 모델이 baseline 주변에서 더 좋은 mutation 못 찾으면 hit rate 떨어짐 = local saturation |
 | T4 | Position 수렴 | top-K 변이 위치 집합 Jaccard(round_n, round_{n-1}) | ≥ 0.5 | set similarity. baseline-walking이 같은 영역만 맴돔 = 새 위치 탐색 멈춤. Lind 2024 active site convergence 사후 정당화 원용 |
@@ -620,16 +626,16 @@ M_min = 미사용 beneficial 누적 최소 수.
 N_min = 분류기 활성 시작 라운드 (기본 3).
 
 각 신호의 선행 분야 사용 여부:
-- T1 (throughput-bound K): 게오르기·MULTI-evolve 암묵적 사용 (plate 용량으로 K 결정). KUMA가 명시화·자동화.
+- T1 (throughput-bound K): MULTI-evolve 암묵적 사용 (plate 용량으로 K 결정). KUMA가 명시화·자동화.
 - T2: MLDE 분야 미사용. 통계 표준에서 도구 도입.
 - T3: MLDE 분야 미사용. active learning 일반 원리에서 도구 도입.
 - T4: Lind 사후 정당화 원용. 사전 신호로는 도구 도입.
 - T_active: Lind·Wu 직접 인용 가능 (사전 구조 지식).
-- T_unused: Mode A 특화 신호. 도구 도입.
+- T_unused: baseline-walking 특화 신호. 도구 도입.
 
 문헌 직접 anchor가 강한 신호: T1, T_active. 나머지는 추론 근거 기반 도구 도입 신호.
 
-### 12-A.2 분류 로직 (3-way, Mode A)
+### 12-A.2 분류 로직
 
 ```python
 def classify(round_state, registered) -> Decision:
@@ -656,8 +662,8 @@ def classify(round_state, registered) -> Decision:
 ```
 
 라벨:
-- `continue_walking`: baseline-walking 1 라운드 더 (Mode A 유지)
-- `switch_combinatorial`: 다음 라운드를 round 1·2 beneficials의 pairwise 조합으로 디자인 (Mode A → Mode B-style 일회 전환)
+- `continue_walking`: baseline-walking 1 라운드 더
+- `switch_combinatorial`: 다음 라운드를 누적 beneficials의 pairwise 조합으로 디자인 (1회 전환)
 - `stop`: baseline-walking saturate + combinatorial 가치 부족 → 추가 라운드 효용 없음
 - `deferred`: 신호 혼재 또는 confidence < 0.7
 
@@ -677,7 +683,6 @@ def classify(round_state, registered) -> Decision:
     "schema_version": "0.3",
     "registered_at": "2026-05-04T10:00:00+09:00",
     "registered_by": "user@kribb",
-    "evolution_mode": "baseline_walking",
     "thresholds": {
       "C_next": 96,
       "K_throughput_override": null,
@@ -699,7 +704,7 @@ def classify(round_state, registered) -> Decision:
       "confidence_threshold": 0.7
     },
     "reasoning_anchors": {
-      "T1_K_throughput": "C(K,2) <= C_next (plate capacity); 게오르기 K=15 (96-well 1장) 자동 정합",
+      "T1_K_throughput": "C(K,2) <= C_next (plate capacity)",
       "T2_delta_z_score": "통계 표준 95% MDE",
       "T_active": "Lind 2024 sign epistasis at active site (10.1073/pnas.2400439121)",
       "T_unused": "baseline-walking이 best 1개만 사용하므로 다른 beneficial epistasis 정보 누락"
@@ -758,16 +763,9 @@ class StrategyDecisionLog(BaseModel):
 
 5/12에는 **계산·기록·표시만**. 분류 결정은 v0.3 advisory부터, 완전 자동화는 v0.4. PI·혜민 연구원과 K_target/τ_pos/J_threshold IspS 적합성 합의가 v0.3 활성화 게이트.
 
-### 12-A.7 Mode B (게오르기 표준 — predetermined combinatorial)
+### 12-A.7 (deleted — predetermined combinatorial 모드 미지원)
 
-워크스페이스 옵션 `evolution_mode = "predetermined_combinatorial"` 선택 시:
-- 분류기 비활성. 사용자가 라운드 시작 시 단계(single/double/triple) 선언.
-- 다음 라운드 후보 자동 조합 생성:
-  - `single→double`: 누적 beneficial singles (log2_fc > τ_pos AND ngs_success) → all pairwise (C_next 한계 내)
-  - `double→triple`: promising doubles (top-K, K=12 default per Emelianov 2026) + 누적 beneficial singles → 조합
-- StrategyDecisionLog는 사용자 선언으로 채워짐 (분류기 계산 없음, T1·T_active 계산은 표시용으로 유지).
-
-기본값은 Mode A (baseline-walking). 사용자가 Mode B 명시 선택 시 분류기 비활성. 두 mode 전환은 라운드 1 시작 전에만 허용 (round 진행 중 변경 = 워크스페이스 invalidate).
+KUMA는 EVOLVEpro baseline-walking 단일 워크플로 전제. predetermined combinatorial(SCANEER 등 learning 부재 도구) 모드는 본 도구 대상 아님.
 
 ### 12-A.8 신뢰도·정직성 한계
 
@@ -778,14 +776,15 @@ class StrategyDecisionLog(BaseModel):
 - bootstrap robustness < 0.7은 deferred로 fail-safe. 빈도 높으면 임계 재검토 신호.
 - 본 분류기는 선행 분야가 형식화하지 않은 baseline-walking saturation 판별의 첫 시도. UI advisory mode에 이 사실 명시.
 
-### 12-A.9 두 워크플로 mode와 분류기 의미 차이의 발견 경위
+### 12-A.9 분류기 의미·신호 재정의 경위 (2026-05-04 혜민 연구원 인터뷰)
 
-본 spec 초안은 게오르기 (Mode B) 워크플로를 가정해 "single→double 전환"을 분류 결정으로 정의. 2026-05-04 혜민 연구원 인터뷰에서 다음 정정:
-- 혜민 워크플로 = baseline-walking (Mode A). 매 라운드 best variant baseline 위에 추가 single mutation.
-- 게오르기 워크플로 = predetermined combinatorial (Mode B). SCANEER가 learning이 없어 차수 도약 강제.
-- → "single → double 전환"이 두 mode에서 다른 의미. Mode A에서는 차수가 라운드별 자동 누적 (실질 single → 실질 double → 실질 triple). 분류기의 진짜 결정 = "baseline-walking 계속 vs 누적 beneficials의 combinatorial 전환".
+본 spec 초안은 "single→double 전환"을 분류 결정으로 정의했으나, 2026-05-04 혜민 연구원 인터뷰에서 실제 워크플로 = baseline-walking 확인.
 
-이 발견이 신호 재정의 (T_unused 신규, T1을 throughput-bound 함수로 재정의), 분류 라벨 변경 (`switch_double` → `switch_combinatorial`, `continue_single` → `continue_walking`, `stop` 신설), mode 옵션 도입의 근거.
+baseline-walking의 차수 누적 (round 1 single, round 2 실질 double, round 3 실질 triple)에서 진짜 결정 = "baseline-walking 계속 vs 누적 beneficials의 combinatorial 전환 vs 종료". 이 발견이 다음 변경의 근거:
+- 신호 재정의: T_unused 신규, T1을 throughput-bound 함수로 재정의
+- 분류 라벨 변경: `switch_double` → `switch_combinatorial`, `continue_single` → `continue_walking`, `stop` 신설
+
+게오르기 (SCANEER, predetermined combinatorial)는 도구 학습 능력 부재로 차수 도약 강제. KUMA는 EVOLVEpro 기반이므로 해당 워크플로는 대상 아님 — 분류기 단일 모드 (baseline-walking) 전제로 단순화.
 
 ---
 
