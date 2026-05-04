@@ -116,6 +116,7 @@ export function buildDesignRequestPayload(params: {
   revLenMax: number;
   overlapMode: OverlapMode;
   rescuePool: string[];
+  tolMax: number;
 }): DesignRequestPayload {
   const {
     fastaPath,
@@ -136,6 +137,7 @@ export function buildDesignRequestPayload(params: {
     revLenMax,
     overlapMode,
     rescuePool,
+    tolMax,
   } = params;
 
   return {
@@ -158,6 +160,7 @@ export function buildDesignRequestPayload(params: {
     }),
     overlap_mode: overlapMode,
     ...(rescuePool.length > 0 && { rescue_pool: rescuePool }),
+    tol_max: tolMax,
     auto_relax: true,
   };
 }

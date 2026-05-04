@@ -70,6 +70,9 @@ export function ParameterPanel() {
   const tmFwdInput = useLocalNum(tmFwd, 62, (v) => setTmTargets(v, tmRev, tmOv));
   const tmRevInput = useLocalNum(tmRev, 58, (v) => setTmTargets(tmFwd, v, tmOv));
   const tmOvInput = useLocalNum(tmOv, 42, (v) => setTmTargets(tmFwd, tmRev, v));
+  const tmTolerance = useAppStore((s) => s.tmTolerance);
+  const setTmTolerance = useAppStore((s) => s.setTmTolerance);
+  const tmTolInput = useLocalNum(tmTolerance, 3.0, setTmTolerance);
   const gcMinInput = useLocalNum(gcMin, 40, (v) => setGcRange(v, gcMax));
   const gcMaxInput = useLocalNum(gcMax, 60, (v) => setGcRange(gcMin, v));
   const fwdLenMinInput = useLocalNum(fwdLenMin, 17, (v) => setPrimerLenRange(v, fwdLenMax, revLenMin, revLenMax));
@@ -234,6 +237,19 @@ export function ParameterPanel() {
               </div>
             </>
           )}
+          <div className="flex items-center gap-2 text-caption">
+            <span className="w-20 text-muted-foreground">Tm tol ±</span>
+            <input
+              type="number"
+              min={0.5}
+              max={10.0}
+              step={0.5}
+              className={numInput}
+              {...tmTolInput}
+            />
+            <span className="text-muted-foreground">°C</span>
+            <HelpTip>Allowed deviation from Tm targets. Cascade stages add delta on top. Recommended 2-5°C.</HelpTip>
+          </div>
 
           {/* GC */}
           <div className="pt-1.5 text-caption uppercase tracking-wider text-muted-foreground" title="Recommended range: 40-60%. Primers outside this range receive a penalty.">GC%</div>

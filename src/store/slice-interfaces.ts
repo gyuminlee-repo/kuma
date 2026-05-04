@@ -172,6 +172,7 @@ export interface DesignSlice {
   revLenMin: number;
   revLenMax: number;
   fillOnFailure: boolean;
+  tmTolerance: number;
   overlapMode: OverlapMode;
   manuallySwapped: Record<string, "fwd" | "rev" | "both">;
   customCandidates: Record<string, SdmPrimerResult[]>;
@@ -211,6 +212,7 @@ export interface DesignSlice {
   setPrimerLenEnabled: (enabled: boolean) => void;
   setPrimerLenRange: (fwdMin: number, fwdMax: number, revMin: number, revMax: number) => void;
   setFillOnFailure: (enabled: boolean) => void;
+  setTmTolerance: (value: number) => void;
   setOverlapMode: (mode: OverlapMode) => void;
 }
 

@@ -46,6 +46,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
   revLenMin: 19,
   revLenMax: 27,
   fillOnFailure: true,
+  tmTolerance: 3.0,
   overlapMode: "partial",
   manuallySwapped: {},
   customCandidates: {},
@@ -200,6 +201,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         revLenMax,
         overlapMode,
         rescuePool: prepared.rescuePool,
+        tolMax: state.tmTolerance,
       });
       const result = await sendRequest("design_sdm_primers", payload, 300_000);
       if (result.cancelled) {
@@ -427,6 +429,11 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
   },
 
   setFillOnFailure: (enabled: boolean) => set({ fillOnFailure: enabled }),
+
+  setTmTolerance: (value: number) => {
+    const clamped = Math.min(10.0, Math.max(0.5, Math.round(value * 2) / 2));
+    set({ tmTolerance: clamped });
+  },
 
   setOverlapMode: (mode) => set({ overlapMode: mode }),
 
