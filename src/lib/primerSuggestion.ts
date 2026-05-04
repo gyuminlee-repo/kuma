@@ -112,3 +112,45 @@ function roundTo(value: number, digits: number): number {
 function clamp(value: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, value));
 }
+
+export const STAGE_RELAXATION_TABLE = {
+  1: { lengthDelta: 2, gcDelta: 0, tmTolDelta: 0 },
+  2: { lengthDelta: 2, gcDelta: 3, tmTolDelta: 0 },
+  3: { lengthDelta: 3, gcDelta: 5, tmTolDelta: 2 },
+  4: { lengthDelta: 4, gcDelta: 8, tmTolDelta: 5 },
+} as const;
+
+export type CascadeStage = 1 | 2 | 3 | 4;
+
+export function getStageRelaxation(stage: CascadeStage) {
+  return STAGE_RELAXATION_TABLE[stage];
+}
+
+export interface StageParamsInput {
+  tmFwd: number;
+  tmRev: number;
+  tmOverlap: number;
+  gcMin: number;
+  gcMax: number;
+  fwdLenMin: number;
+  fwdLenMax: number;
+  revLenMin: number;
+  revLenMax: number;
+  baseTol: number;
+}
+
+export function getStageParams(base: StageParamsInput, stage: CascadeStage) {
+  const r = STAGE_RELAXATION_TABLE[stage];
+  return {
+    tmFwd: base.tmFwd,
+    tmRev: base.tmRev,
+    tmOverlap: base.tmOverlap,
+    gcMin: clamp(base.gcMin - r.gcDelta, 10, 90),
+    gcMax: clamp(base.gcMax + r.gcDelta, 10, 95),
+    fwdLenMin: clamp(base.fwdLenMin - r.lengthDelta, 15, 60),
+    fwdLenMax: clamp(base.fwdLenMax + r.lengthDelta, 15, 60),
+    revLenMin: clamp(base.revLenMin - r.lengthDelta, 15, 60),
+    revLenMax: clamp(base.revLenMax + r.lengthDelta, 15, 60),
+    tolMax: Math.min(10.0, base.baseTol + r.tmTolDelta),
+  };
+}
