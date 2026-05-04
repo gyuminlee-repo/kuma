@@ -18,6 +18,8 @@ import { WtWellEditor } from "@/components/mame/dialogs/WtWellEditor";
 import { RoundHandoffButton } from "@/components/round/RoundHandoffButton";
 import { RoundSummaryPanel } from "@/components/round/RoundSummaryPanel";
 import { useActivityStore, type ActivitySlice } from "@/store/mame/activitySlice";
+import type { RoundMetrics } from "@/types/round-metrics";
+import type { MergeStats } from "@/types/mame/activity";
 import { useRoundStore } from "@/store/round/roundSlice";
 import { useStore } from "zustand";
 import { save } from "@tauri-apps/plugin-dialog";
@@ -407,6 +409,42 @@ function RawRunParamPanel() {
   );
 }
 
+
+// ---------------------------------------------------------------------------
+// Demo helper — builds a synthetic RoundMetrics from MergeStats.
+// Used when no backend RPC is available (5/12 demo, Option B).
+// Clearly labelled "(demo)" in the panel header to avoid confusion with real data.
+// ---------------------------------------------------------------------------
+
+function buildDemoMetrics(stats: MergeStats, roundId: string): RoundMetrics {
+  const hitRate = stats.n_ngs_success > 0
+    ? stats.n_ngs_success / stats.n_with_genotype
+    : 0;
+  const cumulativeBeneficial = Math.max(0, stats.n_ngs_success - stats.n_wt);
+  const kThroughput = Math.ceil((-1 + Math.sqrt(1 + 8 * cumulativeBeneficial)) / 2);
+  return {
+    round_id: roundId,
+    computed_at: new Date().toISOString(),
+    cumulative_beneficial: cumulativeBeneficial,
+    K_throughput: kThroughput,
+    delta_best_ema: 0.05,
+    sigma_assay: stats.n_wt >= 4 ? 0.03 : null,
+    r: stats.n_wt >= 4 ? stats.n_wt : 1,
+    hit_rates: [hitRate],
+    top_k_positions_n: [],
+    top_k_positions_n1: [],
+    top_k_positions: [],
+    active_residues: [],
+    unused_beneficial_count: Math.max(0, cumulativeBeneficial - 1),
+    T1: cumulativeBeneficial >= kThroughput,
+    T2: false,
+    T3: false,
+    T4: false,
+    T_active: false,
+    T_unused: cumulativeBeneficial > 1,
+  }
+}
+
 function ActivityDataSection() {
   const activeRoundId = useRoundStore((s) => s.active_round_id);
 
@@ -414,6 +452,7 @@ function ActivityDataSection() {
   const isMerging = useStore(activityStore, (s: ActivitySlice) => s.isMerging);
   const isExporting = useStore(activityStore, (s: ActivitySlice) => s.isExporting);
   const mergeError = useStore(activityStore, (s: ActivitySlice) => s.mergeError);
+  const lastMergeStats = useStore(activityStore, (s: ActivitySlice) => s.lastMergeStats);
   const exportError = useStore(activityStore, (s: ActivitySlice) => s.exportError);
   const mergeActivity = useStore(activityStore, (s: ActivitySlice) => s.mergeActivity);
   const exportEvolveproCsv = useStore(activityStore, (s: ActivitySlice) => s.exportEvolveproCsv);
@@ -489,10 +528,17 @@ function ActivityDataSection() {
 
       {/*
         RoundSummaryPanel — calibration mode signal display.
-        5/12: metrics=null (placeholder). v0.3: wire to roundSlice strategy metrics.
+        5/12: metrics injected from lastMergeStats via buildDemoMetrics (Option B).
+        v0.3: replace with backend strategy.compute_signals RPC.
         Spec: §12-A.5 (calibration mode), §12-A.6 (5/12 scope).
       */}
-      <RoundSummaryPanel metrics={null} className="pt-2 border-t border-border" />
+      <RoundSummaryPanel
+        metrics={lastMergeStats && activeRoundId
+          ? buildDemoMetrics(lastMergeStats, activeRoundId)
+          : null}
+        demoMode={lastMergeStats != null}
+        className="pt-2 border-t border-border"
+      />
     </section>
   );
 }

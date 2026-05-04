@@ -277,6 +277,12 @@ export interface RoundSummaryPanelProps {
    * "no data yet" placeholder (no dummy numbers).
    */
   metrics: RoundMetrics | null;
+  /**
+   * When true, a "(demo)" badge is shown next to the heading to indicate
+   * that metrics are derived from a local synthetic fixture rather than a
+   * live backend RPC call. Use for 5/12 demo only (Option B, Task 8.5).
+   */
+  demoMode?: boolean;
   className?: string;
 }
 
@@ -290,7 +296,7 @@ export interface RoundSummaryPanelProps {
  *
  * Spec: §12-A.1 (signals), §12-A.5 (calibration mode), §12-A.6 (5/12 scope).
  */
-export function RoundSummaryPanel({ metrics, className }: RoundSummaryPanelProps) {
+export function RoundSummaryPanel({ metrics, demoMode = false, className }: RoundSummaryPanelProps) {
   return (
     <section
       aria-labelledby="round-summary-heading"
@@ -299,9 +305,17 @@ export function RoundSummaryPanel({ metrics, className }: RoundSummaryPanelProps
       <div className="flex items-center justify-between">
         <h3
           id="round-summary-heading"
-          className="text-sm font-semibold text-foreground"
+          className="flex items-center gap-1.5 text-sm font-semibold text-foreground"
         >
           Round Signals
+          {demoMode && (
+            <span
+              className="rounded bg-amber-100 px-1 py-0.5 text-[9px] font-medium uppercase tracking-wide text-amber-700 dark:bg-amber-900 dark:text-amber-300"
+              aria-label="Demo mode: metrics are synthesised from local merge stats, not a live backend RPC"
+            >
+              demo
+            </span>
+          )}
         </h3>
         {metrics != null && (
           <span className="text-[10px] text-muted-foreground">
