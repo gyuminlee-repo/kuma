@@ -299,11 +299,6 @@ class FileExportResultModel(WorkspaceModel):
     filepath: str
 
 
-class ExportOrderResultModel(FileExportResultModel):
-    format: Literal["idt", "twist"]
-    primer_count: int
-
-
 class ExportMappingResultModel(FileExportResultModel):
     format: Literal["echo", "janus"]
     primer_count: int
@@ -465,20 +460,6 @@ class ExportExcelParams(BaseModel):
     kuma_version: Optional[str] = None
     report_data: Optional[Any] = None
     benchmark_raw: Optional[Any] = None
-
-
-class OrderResultItem(BaseModel):
-    mutation: str
-    forward_seq: str
-    reverse_seq: str
-
-
-class ExportOrderParams(BaseModel):
-    filepath: str
-    format: str = "idt"
-    scale: str = "25nm"
-    purification: str = "STD"
-    results: Optional[list[OrderResultItem]] = None
 
 
 class ExportMappingParams(BaseModel):

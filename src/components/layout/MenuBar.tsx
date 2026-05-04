@@ -21,9 +21,7 @@ import { getCrashLog } from "../../lib/crashLog";
 import { CrashLogDialog } from "../dialogs/CrashLogDialog";
 import {
   handleExportExcel,
-  handleExportIdtOrder,
   handleExportMappingWithParams,
-  handleExportTwistOrder,
   handleSaveWorkspace,
   handleLoadWorkspace,
   handleOpenSequence,
@@ -91,19 +89,6 @@ export function MenuBar() {
           >
             <span className="flex-1">Export Excel...</span>
             <kbd className="ml-4 text-caption text-muted-foreground">{MOD_KEY}E</kbd>
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onClick={handleExportIdtOrder}
-            disabled={!hasDesignResults}
-          >
-            Export IDT Order...
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={handleExportTwistOrder}
-            disabled={!hasDesignResults}
-          >
-            Export Twist Order...
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem

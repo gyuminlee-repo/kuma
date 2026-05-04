@@ -14,8 +14,6 @@ from kuma_core.kuro.plate_mapper import (
     export_janus_mapping_csv,
     export_janus_mapping_xlsx,
     export_plate_excel,
-    export_idt_csv,
-    export_twist_csv,
     generate_plate_map,
 )
 from kuma_core.shared.version import KUMA_VERSION, KURO_MODULE_VERSION
@@ -30,9 +28,7 @@ from sidecar_kuro.core import (
 from sidecar_kuro.models import (
     ExportExcelParams,
     ExportMappingResultModel,
-    ExportOrderResultModel,
     ExportMappingParams,
-    ExportOrderParams,
     ExportBenchmarkCsvParams,
     FileExportResultModel,
     SaveWorkspaceParams,
@@ -41,7 +37,6 @@ from sidecar_kuro.models import (
     validate_workspace_data,
 )
 
-_ALLOWED_ORDER_CSV_EXTENSIONS = {".csv"}
 _ALLOWED_MAPPING_EXTENSIONS = {".xlsx", ".csv"}
 
 _PLATE_MAPPING_KEYS = {f.name for f in dc_fields(PlateMapping)}
@@ -222,51 +217,6 @@ def handle_export_excel(params: dict) -> dict:
         meta.append(["overlap_mode", run_overlap_mode])
         wb.save(resolved)
     return FileExportResultModel(filepath=str(resolved)).to_rpc_dict()
-
-
-def handle_export_order(params: dict) -> dict:
-    """Export primer order CSV in IDT or Twist format."""
-    p = ExportOrderParams(**params)
-    fmt = p.format.lower()
-    if fmt not in ("idt", "twist"):
-        raise ValueError(f"Invalid export format: '{fmt}'. Must be 'idt' or 'twist'.")
-
-    resolved = _validate_output_path(
-        p.filepath, allowed_extensions=_ALLOWED_ORDER_CSV_EXTENSIONS
-    )
-
-    if p.results:
-        rows = p.results
-        with open(resolved, "w", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f)
-            if fmt == "idt":
-                writer.writerow(["Name", "Sequence", "Scale", "Purification"])
-                for r in rows:
-                    writer.writerow([f"{r.mutation}_F", r.forward_seq, p.scale, p.purification])
-                    writer.writerow([f"{r.mutation}_R", r.reverse_seq, p.scale, p.purification])
-            else:
-                writer.writerow(["Name", "Sequence", "Notes"])
-                for r in rows:
-                    writer.writerow([f"{r.mutation}_F", r.forward_seq, r.mutation])
-                    writer.writerow([f"{r.mutation}_R", r.reverse_seq, r.mutation])
-        primer_count = len(rows) * 2
-    else:
-        with _core._state_lock:
-            if not _core._state.results:
-                raise ValueError("No design available. Run design_sdm_primers first.")
-            results = _core._state.results
-
-        if fmt == "idt":
-            export_idt_csv(results, resolved, scale=p.scale, purification=p.purification)
-        else:
-            export_twist_csv(results, resolved)
-        primer_count = len(results) * 2
-
-    return ExportOrderResultModel(
-        filepath=str(resolved),
-        format=fmt,
-        primer_count=primer_count,
-    ).to_rpc_dict()
 
 
 def handle_export_mapping(params: dict) -> dict:

@@ -50,38 +50,6 @@ export async function handleExportExcel(projectId?: string) {
   }
 }
 
-export async function handleExportIdtOrder() {
-  const path = await save({
-    filters: [{ name: "CSV", extensions: ["csv"] }],
-    defaultPath: defaultExportFilename({ target: "IDT", ext: "csv" }),
-  });
-  if (path) {
-    try {
-      const { results } = getCurrentExportState();
-      await sendRequest("export_order", { filepath: path, format: "idt", results });
-      useAppStore.getState().setStatus(`IDT order exported: ${path}`);
-    } catch (err) {
-      useAppStore.getState().setStatus(`IDT export failed: ${err instanceof Error ? err.message : String(err)}`);
-    }
-  }
-}
-
-export async function handleExportTwistOrder() {
-  const path = await save({
-    filters: [{ name: "CSV", extensions: ["csv"] }],
-    defaultPath: defaultExportFilename({ target: "Twist", ext: "csv" }),
-  });
-  if (path) {
-    try {
-      const { results } = getCurrentExportState();
-      await sendRequest("export_order", { filepath: path, format: "twist", results });
-      useAppStore.getState().setStatus(`Twist order exported: ${path}`);
-    } catch (err) {
-      useAppStore.getState().setStatus(`Twist export failed: ${err instanceof Error ? err.message : String(err)}`);
-    }
-  }
-}
-
 export async function handleExportMappingWithParams(
   format: "echo" | "janus",
   params: { transferVol: number },
