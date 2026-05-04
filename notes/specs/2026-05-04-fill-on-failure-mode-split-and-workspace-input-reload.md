@@ -182,6 +182,75 @@ position 변경은 절대 금지 (substitution은 fillOnFailure 의도 영역).
 
 ---
 
+## 안건 3 — Tm tolerance 사용자 설정
+
+### 현재 상태
+
+- 백엔드 `models.py:100`: `tol_max: float = Field(default=3.0, ge=0.5, le=10.0)` — Pydantic이 이미 검증·범위 강제
+- 사이드카 핸들러 `design.py:155`: `_DEFAULT_TOL_MAX = 3.0` (`design_single_sdm()` default와 동기화)
+- Frontend store: `tmTolerance` 필드 없음. `designSlice.designPrimers`가 `payload`에 `tol_max` 미포함 → 백엔드 default 3.0 적용
+- 자동완화: `_RELAX_TOL_DELTA = 2.0` 더해 5.0 (백엔드 1회 자동 fallback)
+- 사용자 수동 retry: `FailedMutationPopover.tsx:65` 입력값 기본 5.0
+- `suggestRetryParams()`: `tolMax: 5` 하드코딩 (`primerSuggestion.ts:42, 101`)
+
+### 결정
+
+사용자 base tolerance 설정 가능. cascade·suggestion 모두 base 위에 delta 적용.
+
+### 구현 위치
+
+- `src/store/slices/designSlice.ts`
+  - 신규 필드: `tmTolerance: number` (기본 3.0)
+  - 신규 action: `setTmTolerance(value: number)` — clamp `[0.5, 10.0]`, 소수점 1자리 round
+  - `designPrimers` payload 빌드: `tol_max: state.tmTolerance` 추가 (현재 누락)
+  - `buildDesignRequestPayload` (`src/lib/designRequest.ts` 추정)에 `tolMax` 인자 추가
+- `src/store/slice-interfaces.ts`
+  - `DesignSlice` interface에 `tmTolerance: number; setTmTolerance: (v: number) => void` 추가
+- `src/components/sidebar/...` (Tm targets 입력 필드 인접 컴포넌트)
+  - 신규 입력: `<label>Tm tolerance ± (°C)</label>` + `<input type="number" min={0.5} max={10.0} step={0.5}>`
+  - 값 표시 형식: `±3.0°C`
+  - tooltip: "Allowed deviation from Tm targets. Cascade stages add delta on top."
+- `src/store/slices/exportSlice.ts`
+  - `getWorkspaceSnapshot.settings`: `tmTolerance: s.tmTolerance` 추가
+  - `restoreWorkspace`: `tmTolerance: settings.tmTolerance ?? 3.0`
+  - `resetAll`: `tmTolerance: 3.0`
+- `src/lib/primerSuggestion.ts`
+  - 시그니처 변경: `suggestRetryParams(results, defaults, baseTolerance: number = 3.0)`
+  - 내부 계산: `tolMax: Math.min(10, Math.max(baseTolerance + 2, 5))` — 사용자 base가 클수록 suggestion도 함께 상승, 최소 5.0 보장 (legacy 동작 보존)
+- `src/store/slices/designSlice.ts` `cascadeFailedRetry`
+  - stage별 effective tol 계산: `effectiveTol = Math.min(10.0, baseTolerance + STAGE_RELAXATION_TABLE[stage].tmTolDelta)`
+  - 10.0 cap 적용 (백엔드 한계와 일치)
+
+### Cascade와의 상호작용 (안건 1 보강)
+
+| stage | tmTolDelta | 사용자 base 3.0일 때 effective | 사용자 base 5.0일 때 effective |
+|---|---|---|---|
+| 1 | 0 | 3.0 | 5.0 |
+| 2 | 0 | 3.0 | 5.0 |
+| 3 | 2 | 5.0 | 7.0 |
+| 4 | 5 | 8.0 | 10.0 (cap) |
+
+base 자체가 이미 8.0 이상이면 stage 3·4 의미 약화 → 사용자 책임 영역. 향후 UI 경고 추가 검토.
+
+### Workspace 호환
+
+- v2 snapshot에 `tmTolerance` 키 없음 → 로드 시 3.0 fallback (백엔드 default와 일치, 기존 동작 보존)
+- 신규 저장 시 키 포함, 후속 로드에서 사용자 설정값 복원
+
+### Edge cases
+
+- 입력값 0.5 미만 → clamp to 0.5
+- 입력값 10.0 초과 → clamp to 10.0
+- 비숫자 입력 → 무시, 마지막 유효값 유지
+- workspace 로드 시 `tmTolerance: 0` 같은 잘못된 값 → 0.5로 clamp 후 statusMessage 안내
+
+### 위험
+
+- 사용자가 0.5 같은 극단값 설정 시 디자인 실패율 폭증 → cascade로 일부 보완되지만 여전히 실패 가능. 완화: tooltip에 권장 범위(2-5°C) 명시.
+- base 변경이 기존 디자인 결과에 소급 적용 안 됨 → 재디자인 필요. 완화: 입력값 변경 시 `statusMessage`에 "Re-design required to apply new Tm tolerance" 표시.
+
+---
+
 ## Out of scope
 
 - UniProt 재호출 (frozen 영역)
