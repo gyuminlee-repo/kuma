@@ -200,6 +200,7 @@ export interface DesignSlice {
    * successful primers exist or when fillOnFailure already substituted them.
    */
   autoRetryFailedWithSuggestion: () => Promise<void>;
+  cascadeFailedRetry: (mode: "topn-fill" | "pipeline-fill" | "off") => Promise<void>;
   addDesignResult: (mutation: string, result: SdmPrimerResult) => void;
   removeDesignResult: (mutation: string, reason: string) => void;
   setCodonStrategy: (strategy: "closest" | "optimal") => void;

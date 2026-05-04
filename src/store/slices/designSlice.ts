@@ -2,11 +2,12 @@ import type { StateCreator } from "zustand";
 import { cancelAndRespawn, sendRequest } from "../../lib/ipc-kuro";
 import { wellName } from "../../lib/plate-utils";
 import { formatError } from "../../lib/utils";
-import { suggestRetryParams } from "../../lib/primerSuggestion";
+import { suggestRetryParams, getStageParams } from "../../lib/primerSuggestion";
 import type { AppState } from "../types";
 import type {
   SdmPrimerResult,
   PolymeraseProfile,
+  RescuedMutation,
 } from "../../types/models";
 import {
   addDesignResultState,
@@ -239,12 +240,15 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         await get().loadEvolveproCsv(get().evolveproCsvPath!);
       }
 
-      // Auto-retry failed mutations with suggestion derived from successful primers.
-      // Skip when fillOnFailure is on (positions already substituted) or there are no
-      // successful primers to derive a suggestion from.
       const postFailed = get().failedMutations;
-      if (!fillOnFailure && postFailed.length > 0 && get().designResults.length > 0) {
-        await get().autoRetryFailedWithSuggestion();
+      if (postFailed.length === 0 || get().designResults.length === 0) {
+        // nothing to retry
+      } else if (fillOnFailure && get().pipelineMode) {
+        await get().cascadeFailedRetry("pipeline-fill");
+      } else if (fillOnFailure && !get().pipelineMode) {
+        await get().cascadeFailedRetry("topn-fill");
+      } else {
+        await get().cascadeFailedRetry("off");
       }
     } catch (err) {
       if (formatError(err).includes("Sidecar killed")) return;
@@ -454,6 +458,166 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       set({ statusMessage: `Evaluate failed: ${formatError(err)}` });
       throw err;
     }
+  },
+
+  cascadeFailedRetry: async (mode) => {
+    const startState = get();
+    if (startState.failedMutations.length === 0 || startState.designResults.length === 0) return;
+
+    const baseTol = startState.tmTolerance ?? 3.0;
+    const baseInput = {
+      tmFwd: startState.tmFwdTarget,
+      tmRev: startState.tmRevTarget,
+      tmOverlap: startState.tmOverlapTarget,
+      gcMin: startState.gcMin,
+      gcMax: startState.gcMax,
+      fwdLenMin: startState.fwdLenMin,
+      fwdLenMax: startState.fwdLenMax,
+      revLenMin: startState.revLenMin,
+      revLenMax: startState.revLenMax,
+      baseTol,
+    };
+
+    const stages: Array<{
+      kind: "same_position" | "diff_position" | "relax";
+      relaxStage?: 1 | 2 | 3 | 4;
+      label: string;
+      badgeType: RescuedMutation["type"];
+    }> =
+      mode === "pipeline-fill"
+        ? [
+            { kind: "same_position", label: "Stage 1/6 same-position", badgeType: "same_position" },
+            { kind: "diff_position", label: "Stage 2/6 diff-position", badgeType: "diff_position" },
+            { kind: "relax", relaxStage: 1, label: "Stage 3/6 length", badgeType: "auto_suggestion_l1" },
+            { kind: "relax", relaxStage: 2, label: "Stage 4/6 +GC", badgeType: "auto_suggestion_l2" },
+            { kind: "relax", relaxStage: 3, label: "Stage 5/6 +mild Tm", badgeType: "auto_suggestion_l3" },
+            { kind: "relax", relaxStage: 4, label: "Stage 6/6 strong", badgeType: "auto_suggestion_l4" },
+          ]
+        : mode === "topn-fill"
+        ? [
+            { kind: "relax", relaxStage: 1, label: "Stage 1/4 length", badgeType: "auto_suggestion_l1" },
+            { kind: "relax", relaxStage: 2, label: "Stage 2/4 +GC", badgeType: "auto_suggestion_l2" },
+            { kind: "relax", relaxStage: 3, label: "Stage 3/4 +mild Tm", badgeType: "auto_suggestion_l3" },
+            { kind: "relax", relaxStage: 4, label: "Stage 4/4 strong", badgeType: "auto_suggestion_l4" },
+          ]
+        : [
+            { kind: "relax", relaxStage: 2, label: "Mild auto-retry", badgeType: "auto_suggestion_l2" },
+            { kind: "relax", relaxStage: 4, label: "Strong auto-retry", badgeType: "auto_suggestion_l4" },
+          ];
+
+    const targets = [...startState.failedMutations];
+    let totalRescued = 0;
+
+    const poolVariants = get().poolVariants;
+    const usedMutations = new Set<string>(get().designResults.map((r) => r.mutation));
+    const usedSubstitutes = new Set<string>();
+
+    for (const stageDef of stages) {
+      if (!get().isDesigning && get().designResults.length === 0) break;
+      const remaining = get().failedMutations;
+      if (remaining.length === 0) break;
+
+      set({ statusMessage: `Auto-retry: ${stageDef.label} (${remaining.length} remaining)` });
+
+      if (stageDef.kind === "relax" && stageDef.relaxStage) {
+        const params = getStageParams(baseInput, stageDef.relaxStage);
+        const requestParams = {
+          tm_fwd_target: params.tmFwd,
+          tm_rev_target: params.tmRev,
+          tm_overlap_target: params.tmOverlap,
+          gc_min: params.gcMin,
+          gc_max: params.gcMax,
+          fwd_len_min: params.fwdLenMin,
+          fwd_len_max: params.fwdLenMax,
+          rev_len_min: params.revLenMin,
+          rev_len_max: params.revLenMax,
+          tol_max: params.tolMax,
+          codon_strategy: get().codonStrategy,
+        };
+        for (const failed of [...remaining]) {
+          if (!get().failedMutations.some((f) => f.mutation === failed.mutation)) continue;
+          try {
+            const candidates = await get().retryFailedMutation(failed.mutation, requestParams);
+            if (candidates.length > 0) {
+              const best = candidates[0];
+              get().addDesignResult(failed.mutation, best);
+              set((s) => ({
+                rescuedMutationDetails: [
+                  ...s.rescuedMutationDetails,
+                  {
+                    original: failed.mutation,
+                    rescued_by: failed.mutation,
+                    type: stageDef.badgeType,
+                    stage: stageDef.relaxStage,
+                    penalty: typeof best.penalty === "number" ? best.penalty : undefined,
+                    tolerance_used: typeof best.tolerance_used === "number" ? best.tolerance_used : undefined,
+                  },
+                ],
+              }));
+              totalRescued += 1;
+            }
+          } catch {
+            // skip
+          }
+        }
+      } else {
+        // same_position / diff_position substitution (Task 5)
+        for (const failed of [...remaining]) {
+          if (!get().failedMutations.some((f) => f.mutation === failed.mutation)) continue;
+          const m = failed.mutation.match(/^[A-Z](\d+)[A-Z]$/);
+          if (!m) continue;
+          const targetPos = parseInt(m[1], 10);
+
+          const candidate = poolVariants.find((v) => {
+            if (usedMutations.has(v) || usedSubstitutes.has(v)) return false;
+            const vm = v.match(/^[A-Z](\d+)[A-Z]$/);
+            if (!vm) return false;
+            const vpos = parseInt(vm[1], 10);
+            if (stageDef.kind === "same_position") return vpos === targetPos;
+            if (stageDef.kind === "diff_position") return vpos !== targetPos;
+            return false;
+          });
+          if (!candidate) continue;
+
+          try {
+            const candidates = await get().retryFailedMutation(candidate, {
+              codon_strategy: get().codonStrategy,
+              tol_max: baseTol,
+            });
+            if (candidates.length > 0) {
+              const best = candidates[0];
+              get().addDesignResult(candidate, best);
+              usedSubstitutes.add(candidate);
+              usedMutations.add(candidate);
+              set((s) => ({
+                rescuedMutationDetails: [
+                  ...s.rescuedMutationDetails,
+                  {
+                    original: failed.mutation,
+                    rescued_by: candidate,
+                    type: stageDef.badgeType,
+                    stage: stageDef.kind === "same_position" ? 1 : 2,
+                    substitute: candidate,
+                    penalty: typeof best.penalty === "number" ? best.penalty : undefined,
+                  },
+                ],
+                failedMutations: s.failedMutations.filter((f) => f.mutation !== failed.mutation),
+              }));
+              totalRescued += 1;
+            }
+          } catch {
+            // skip
+          }
+        }
+      }
+    }
+
+    set({
+      statusMessage:
+        totalRescued > 0
+          ? `Auto-retry cascade rescued ${totalRescued}/${targets.length}`
+          : `Auto-retry cascade found no candidates · ${get().failedMutations.length} still failed`,
+    });
   },
 
   autoRetryFailedWithSuggestion: async () => {
