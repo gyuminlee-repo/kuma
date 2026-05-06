@@ -282,30 +282,119 @@ class TestBadNotation:
 
 
 # ---------------------------------------------------------------------------
-# Scenario 7: no-ref_seq
+# Scenario 7: no-ref_seq  (OQ-④: auto-load IspS fallback)
 # ---------------------------------------------------------------------------
 
-class TestNoRefSeq:
-    """Replicate data provided without ref_seq raises ValueError."""
+# Real IspS AA at position 89 (index 88) as returned by get_isps_wt_aa_seq().
+# Derived from fixtures/ispS.fa; used to seed the round with a realistic mutation.
+_ISPS_AA89 = None  # resolved lazily in _seed_round_isps()
 
-    def test_missing_ref_seq_raises_value_error(self):
+
+def _get_isps_aa89() -> str:
+    """Return the actual IspS WT AA at 1-based position 89 (index 88)."""
+    from kuma_core.mame.activity.ref_seq import get_isps_wt_aa_seq
+    return get_isps_wt_aa_seq()[88]
+
+
+def _seed_round_isps(round_id: str = "round_isps") -> str:
+    """Seed a round using the real IspS position-89 AA. Returns mutation string."""
+    wt_aa = _get_isps_aa89()
+    mutation = f"{wt_aa}89W"
+    _rounds[round_id] = {
+        "n": 1,
+        "plate_meta": {
+            "plates": [
+                {"plate_id": "P01", "wt_wells": ["A01"], "control_wells": []}
+            ]
+        },
+        "design": {
+            "plateMap": [
+                {"plate_id": "P01", "well_id": "B03", "mutation": mutation},
+            ]
+        },
+        "genotype": {
+            "verdict": [
+                {"plate_id": "P01", "well_id": "B03", "called_mutation": mutation},
+            ]
+        },
+        "activity": {
+            "raw_records": [
+                {
+                    "plate_id": "P01", "well_id": "A01",
+                    "value": 1.0, "replicate_idx": 1,
+                    "is_wt": True, "source_file": "act.csv",
+                },
+                {
+                    "plate_id": "P01", "well_id": "B03",
+                    "value": 2.0, "replicate_idx": 1,
+                    "is_wt": False, "source_file": "act.csv",
+                },
+            ]
+        },
+        "merged_table": [],
+        "status": "ngs_done",
+    }
+    return mutation
+
+
+class TestNoRefSeq:
+    """OQ-④: ref_seq omission triggers IspS auto-load; explicit failure tested via monkeypatch."""
+
+    def test_missing_ref_seq_auto_loads_isps(self):
+        """No ref_seq → get_isps_wt_aa_seq() called automatically → success."""
+        from kuma_core.mame.activity.ref_seq import get_isps_wt_aa_seq
+        get_isps_wt_aa_seq.cache_clear()
+        mutation = _seed_round_isps()
+        res = handle_merge_for_evolvepro({
+            "round_id": "round_isps",
+            "prev_round_evolvepro": {},
+            "authoritative_measurements": {"89W": [1.2, 1.3]},
+            # ref_seq intentionally omitted → auto-load
+        })
+        assert res["replicate_stats"] is not None
+        assert res["replicate_stats"]["authoritative_count"] == 1
+        get_isps_wt_aa_seq.cache_clear()
+
+    def test_explicit_none_ref_seq_auto_loads_isps(self):
+        """ref_seq=None → same auto-load path as omission."""
+        from kuma_core.mame.activity.ref_seq import get_isps_wt_aa_seq
+        get_isps_wt_aa_seq.cache_clear()
+        _seed_round_isps()
+        res = handle_merge_for_evolvepro({
+            "round_id": "round_isps",
+            "prev_round_evolvepro": {},
+            "authoritative_measurements": {"89W": [1.0]},
+            "ref_seq": None,
+        })
+        assert res["replicate_stats"] is not None
+        get_isps_wt_aa_seq.cache_clear()
+
+    def test_auto_load_failure_raises_value_error_with_message(self, monkeypatch):
+        """When get_isps_wt_aa_seq raises, ValueError includes 'IspS auto-load failed'.
+
+        The handler uses a lazy "from ... import get_isps_wt_aa_seq" inside the
+        function body.  Patching sys.modules ensures the function call inside the
+        handler sees the mock regardless of import timing.
+        """
+        import sys
+        import kuma_core.mame.activity.ref_seq as ref_seq_module
+
+        def _raise(*a, **kw):
+            raise FileNotFoundError("mocked missing file")
+
+        # Patch the module attribute so the lazy import inside the handler gets
+        # the mock (handler calls get_isps_wt_aa_seq() after importing it from
+        # the module at call time).
+        monkeypatch.setattr(ref_seq_module, "get_isps_wt_aa_seq", _raise)
+        # Also ensure the module cached in sys.modules is the patched one.
+        sys.modules["kuma_core.mame.activity.ref_seq"] = ref_seq_module
         _seed_round()
-        with pytest.raises(ValueError, match="ref_seq required"):
+        with pytest.raises(ValueError, match="IspS auto-load failed"):
             handle_merge_for_evolvepro({
                 "round_id": "round_1",
                 "prev_round_evolvepro": {},
                 "authoritative_measurements": {"89W": [1.0]},
                 # ref_seq intentionally omitted
-            })
-
-    def test_explicit_none_ref_seq_raises_value_error(self):
-        _seed_round()
-        with pytest.raises(ValueError, match="ref_seq required"):
-            handle_merge_for_evolvepro({
-                "round_id": "round_1",
-                "prev_round_evolvepro": {},
-                "authoritative_measurements": {"89W": [1.0]},
-                "ref_seq": None,
             })
 
 

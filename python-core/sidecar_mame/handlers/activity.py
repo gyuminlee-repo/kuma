@@ -292,6 +292,7 @@ def handle_merge_for_evolvepro(params: dict) -> dict:
     )
     from kuma_core.mame.activity.sanity_check import detect_label_swap
     from kuma_core.mame.activity.variant_notation import from_evolvepro
+    from kuma_core.mame.activity.ref_seq import get_isps_wt_aa_seq
 
     round_id: str = params["round_id"]  # KeyError → -32602 via dispatcher
     prev_round_evolvepro: dict[str, float] = params.get("prev_round_evolvepro", {})
@@ -307,10 +308,14 @@ def handle_merge_for_evolvepro(params: dict) -> dict:
     # Fast-fail: replicate data provided but ref_seq missing.
     has_replicate_data = bool(authoritative_measurements or fallback_measurements)
     if has_replicate_data and not ref_seq:
-        raise ValueError(
-            "ref_seq required when authoritative_measurements or "
-            "fallback_measurements are provided"
-        )
+        # OQ-④: auto-load IspS WT reference when ref_seq not explicitly provided.
+        try:
+            ref_seq = get_isps_wt_aa_seq()
+        except (FileNotFoundError, ValueError) as _e:
+            raise ValueError(
+                "ref_seq required and IspS auto-load failed: "
+                f"{_e}"
+            ) from _e
 
     # WT key filtering (OQ-3 decision): remove WT entries before passing to
     # merge_replicates_priority. WT is reference baseline, not a variant.
