@@ -1,11 +1,12 @@
 from pathlib import Path
 import csv
+from typing import Any
 from kuma_core.mame.activity.export_evolvepro import export_evolvepro_csv
 from kuma_core.mame.activity.models import MergedRow
 
 
-def _row(**kwargs):
-    base = dict(
+def _row(**kwargs: Any) -> MergedRow:
+    base: dict[str, Any] = dict(
         plate_id="P01", well_id="A01", mutation="F89W",
         mutation_source="kuro_design", expected_mutation="F89W",
         called_mutation="F89W", ngs_success=True,
@@ -17,7 +18,7 @@ def _row(**kwargs):
     return MergedRow(**base)
 
 
-def test_export_includes_kept_rows(tmp_path):
+def test_export_includes_kept_rows(tmp_path: Path) -> None:
     rows = [
         _row(),
         _row(well_id="B01", mutation="WT", mutation_source="kuro_design",
@@ -34,7 +35,7 @@ def test_export_includes_kept_rows(tmp_path):
     assert abs(float(records[0]["y_pred"]) - 1.0) < 1e-6
 
 
-def test_export_excluded_csv(tmp_path):
+def test_export_excluded_csv(tmp_path: Path) -> None:
     rows = [
         _row(),
         _row(well_id="C01", ngs_success=False, mutation="L70V"),

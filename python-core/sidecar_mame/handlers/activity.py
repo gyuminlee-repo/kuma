@@ -15,7 +15,6 @@ Dispatcher registration is in ``sidecar_mame.dispatcher``.
 from __future__ import annotations
 
 import threading
-from pathlib import Path
 from typing import Any
 
 from sidecar_mame.core import (
@@ -98,7 +97,6 @@ def handle_activity_upload(params: dict) -> dict:
         ValueError: unsupported file extension or missing required columns.
     """
     from kuma_core.mame.activity.ingest_long_csv import ingest_long_csv
-    from kuma_core.mame.activity.models import PlateMeta
 
     round_id: str = params["round_id"]
 
@@ -228,10 +226,124 @@ def handle_activity_export_evolvepro_csv(params: dict) -> dict:
     return {"written_rows": written, "columns": list(COLUMNS)}
 
 
+# ---------------------------------------------------------------------------
+# B-5: New handler — merge + label-swap guard + EVOLVEpro export preparation
+# ---------------------------------------------------------------------------
+
+class ExportBlockedError(RuntimeError):
+    """Raised when label-swap guard blocks export (-32004)."""
+
+
+def handle_merge_for_evolvepro(params: dict) -> dict:
+    """``mame.activity.merge_for_evolvepro`` — merge replicates + label-swap guard.
+
+    This handler integrates Phase A xlsx adapters with Phase B merge logic.
+    It does NOT replace ``activity.merge`` (5/12 demo path — unchanged).
+
+    Params:
+        round_id (str): Round identifier. Must exist in _rounds state.
+        prev_round_evolvepro (dict): {short_variant: activity} from round N-1.
+            Pass {} for round 1.
+        mismatch_threshold (float, optional): Reserved for future
+            merge_replicates_priority integration. Accepted but not used in
+            the current implementation (swap detection only). Default 0.1.
+
+    Returns:
+        {
+          "merged": MergedRow[],
+          "stats": MergeStats (includes warnings),
+          "export_blocked": bool
+        }
+
+    Raises:
+        RuntimeError(-32002): round_id not found.
+        ExportBlockedError(-32004): SwapWarning with severity="error" detected.
+        KeyError(-32602): required parameter missing.
+    """
+    from kuma_core.mame.activity.join import merge_activity_with_genotype
+    from kuma_core.mame.activity.models import ActivityRecord, MergeStats, PlateMeta
+    from kuma_core.mame.activity.sanity_check import detect_label_swap
+
+    round_id: str = params["round_id"]  # KeyError → -32602 via dispatcher
+    prev_round_evolvepro: dict[str, float] = params.get("prev_round_evolvepro", {})
+    _ = float(params.get("mismatch_threshold", 0.1))  # reserved for future merge_replicates_priority integration
+
+    with _rounds_lock:
+        rd = _get_round(round_id)  # RuntimeError → -32002 via dispatcher
+
+        kuro_design = _extract_kuro_design(rd.get("design") or {})
+        mame_genotype = _extract_mame_genotype(rd.get("genotype") or {})
+
+        plate_meta = PlateMeta(**rd["plate_meta"])
+
+        activity_data = rd.get("activity") or {}
+        raw_dicts: list[dict] = activity_data.get("raw_records", [])
+        activity_records: list[ActivityRecord] = [
+            ActivityRecord(**r) for r in raw_dicts
+        ]
+
+        rows, stats = merge_activity_with_genotype(
+            kuro_design, mame_genotype, activity_records, plate_meta
+        )
+
+        # Build activity_map: well_id → mean activity (for swap detection).
+        # activity_raw_mean is the best proxy available from the merge output.
+        activity_map: dict[str, float] = {}
+        for row in rows:
+            if row.activity_raw_mean is not None:
+                activity_map[row.well_id] = row.activity_raw_mean
+
+        # Build layout from merged rows that have a mutation assigned.
+        layout: list[tuple[str, str]] = []
+        for row in rows:
+            if row.mutation is not None:
+                layout.append((row.mutation, row.well_id))
+
+        # Label-swap detection (round 1 → prev_round_evolvepro={} → returns []).
+        swap_warnings = detect_label_swap(
+            layout,
+            activity_map,
+            prev_round_evolvepro,
+        )
+
+        # Attach warnings to stats.
+        stats_with_warnings = MergeStats(
+            **{
+                **stats.model_dump(exclude={"warnings"}),
+                "warnings": swap_warnings,
+            }
+        )
+
+        merged_dicts = [r.model_dump() for r in rows]
+        rd["merged_table"] = merged_dicts
+        rd["status"] = "activity_linked"
+
+    export_blocked = any(w.severity == "error" for w in swap_warnings)
+
+    result: dict[str, Any] = {
+        "merged": merged_dicts,
+        "stats": stats_with_warnings.model_dump(),
+        "export_blocked": export_blocked,
+    }
+
+    if export_blocked:
+        # Raise so the dispatcher maps this to error code -32004.
+        raise ExportBlockedError(
+            f"Export blocked: {sum(1 for w in swap_warnings if w.severity == 'error')} "
+            "label-swap error(s) detected. Resolve warnings before exporting. "
+            f"Affected variants: "
+            f"{[v for w in swap_warnings if w.severity == 'error' for v in w.variants]}"
+        )
+
+    return result
+
+
 __all__ = [
     "handle_activity_upload",
     "handle_activity_set_plate_meta",
     "handle_activity_merge",
     "handle_activity_export_evolvepro_csv",
+    "handle_merge_for_evolvepro",
+    "ExportBlockedError",
     "_rounds",
 ]

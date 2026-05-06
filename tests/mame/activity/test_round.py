@@ -1,4 +1,5 @@
 from kuma_core.mame.activity.round import Round, RoundStatus, RoundErrorInfo
+from kuma_core.mame.activity.models import PlateMeta
 from datetime import datetime
 
 
@@ -11,7 +12,7 @@ def test_round_minimal():
     r = Round(
         id="round_1", n=1, created_at=datetime.now(),
         status=RoundStatus.DESIGN,
-        plate_meta={"plates": []},
+        plate_meta=PlateMeta(plates=[]),
         design={}, genotype={},
         activity=None, merged_table=[]
     )

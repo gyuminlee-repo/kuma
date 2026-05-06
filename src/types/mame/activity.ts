@@ -45,6 +45,26 @@ export interface MergedRow {
   replicate_n: number
   fold_change: number | null
   log2_fc: number | null
+  /** Phase A adapter output from compute_relative_activity. undefined = not yet computed. */
+  relative_activity?: number | null
+}
+
+// B-4 models.py SwapWarning mirror
+export interface SwapWarning {
+  severity: "error" | "warning"
+  code: "label_swap_cycle" | "value_collision" | "layout_orphan"
+  variants: string[]
+  wells: string[]
+  values: number[]
+  message: string
+}
+
+// B-4 MergeReplicatesStats mirror
+export interface MergeReplicatesStats {
+  authoritative_count: number
+  fallback_count: number
+  merged_count: number
+  mismatched: string[]  // Variant[]
 }
 
 export interface MergeStats {
@@ -55,4 +75,21 @@ export interface MergeStats {
   n_wt: number
   n_duplicate_warnings: number
   n_excluded_from_export: number
+  /** B-4 addition: label-swap warnings. Empty array = no warnings. Optional for backward compat. */
+  warnings?: SwapWarning[]
+}
+
+// Phase A adapter result mirrors
+export interface AgilentRecord {
+  sample_name: string
+  area: number
+  is_wt: boolean
+  replicate_n: number
+  is_relative: false
+}
+
+export interface RelativeActivityRecord {
+  sample_name: string
+  area: number
+  is_relative: true
 }

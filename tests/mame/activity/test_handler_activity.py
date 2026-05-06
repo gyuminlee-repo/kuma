@@ -18,6 +18,8 @@ from sidecar_mame.handlers.activity import (
     handle_activity_set_plate_meta,
     handle_activity_merge,
     handle_activity_export_evolvepro_csv,
+    handle_merge_for_evolvepro,
+    ExportBlockedError,
     _rounds,
 )
 
@@ -330,3 +332,122 @@ class TestHandleActivityExportEvolveproCsv:
                 "round_id": "round_1",
                 "path": str(tmp_path / "out.xlsx"),
             })
+
+
+# ---------------------------------------------------------------------------
+# B-5: mame.activity.merge_for_evolvepro
+# ---------------------------------------------------------------------------
+
+class TestHandleMergeForEvolvepro:
+    """Tests for the new handle_merge_for_evolvepro handler (B-5)."""
+
+    def _setup_round(self, round_id: str = "round_1") -> None:
+        _rounds[round_id] = {
+            "n": 1,
+            "plate_meta": {
+                "plates": [
+                    {"plate_id": "P01", "wt_wells": ["A01"], "control_wells": []}
+                ]
+            },
+            "design": {
+                "plateMap": [
+                    {"plate_id": "P01", "well_id": "B03", "mutation": "F89W"},
+                ]
+            },
+            "genotype": {
+                "verdict": [
+                    {"plate_id": "P01", "well_id": "B03", "called_mutation": "F89W"},
+                ]
+            },
+            "activity": {
+                "raw_records": [
+                    {
+                        "plate_id": "P01", "well_id": "A01",
+                        "value": 1.0, "replicate_idx": 1,
+                        "is_wt": True, "source_file": "act.csv",
+                    },
+                    {
+                        "plate_id": "P01", "well_id": "B03",
+                        "value": 2.0, "replicate_idx": 1,
+                        "is_wt": False, "source_file": "act.csv",
+                    },
+                ]
+            },
+            "merged_table": [],
+            "status": "ngs_done",
+        }
+
+    def test_round1_no_prev_ep_returns_no_warnings(self):
+        """round_n=1, prev_round_evolvepro={} → no swap warnings, export_blocked=False."""
+        self._setup_round()
+        res = handle_merge_for_evolvepro({
+            "round_id": "round_1",
+            "prev_round_evolvepro": {},
+        })
+        assert "merged" in res
+        assert "stats" in res
+        assert res["export_blocked"] is False
+        assert res["stats"]["warnings"] == []
+
+    def test_response_contains_required_keys(self):
+        self._setup_round()
+        res = handle_merge_for_evolvepro({
+            "round_id": "round_1",
+            "prev_round_evolvepro": {},
+        })
+        assert set(res.keys()) >= {"merged", "stats", "export_blocked"}
+
+    def test_missing_round_id_param_raises_key_error(self):
+        with pytest.raises(KeyError):
+            handle_merge_for_evolvepro({
+                "prev_round_evolvepro": {},
+            })
+
+    def test_nonexistent_round_raises_runtime_error(self):
+        with pytest.raises(RuntimeError, match="Round not found"):
+            handle_merge_for_evolvepro({
+                "round_id": "no_such_round",
+                "prev_round_evolvepro": {},
+            })
+
+    def test_swap_detected_raises_export_blocked_error(self):
+        """When label-swap with severity=error is detected, ExportBlockedError is raised."""
+        self._setup_round()
+        # Inject a prev-round EP where F89W's value (2.0) is mapped to a different
+        # variant, triggering a label_swap_cycle detection.
+        # A01 (WT) is excluded. B03 has activity=2.0.
+        # Prev EP: short variant "89W" had value 99.9 (mismatch), but "OTHER" had 2.0
+        # → measured value for F89W matches "OTHER" in prev EP → swap detected.
+        prev_ep = {"OTHER": 2.0, "89W": 99.9}
+        with pytest.raises(ExportBlockedError):
+            handle_merge_for_evolvepro({
+                "round_id": "round_1",
+                "prev_round_evolvepro": prev_ep,
+            })
+
+    def test_default_mismatch_threshold_applied(self):
+        """Custom mismatch_threshold parameter is accepted without error."""
+        self._setup_round()
+        res = handle_merge_for_evolvepro({
+            "round_id": "round_1",
+            "prev_round_evolvepro": {},
+            "mismatch_threshold": 0.05,
+        })
+        assert res["export_blocked"] is False
+
+    def test_stats_warnings_field_present(self):
+        self._setup_round()
+        res = handle_merge_for_evolvepro({
+            "round_id": "round_1",
+            "prev_round_evolvepro": {},
+        })
+        assert "warnings" in res["stats"]
+        assert isinstance(res["stats"]["warnings"], list)
+
+    def test_merged_table_persisted_in_state(self):
+        self._setup_round()
+        handle_merge_for_evolvepro({
+            "round_id": "round_1",
+            "prev_round_evolvepro": {},
+        })
+        assert len(_rounds["round_1"]["merged_table"]) == 2
