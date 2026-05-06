@@ -175,6 +175,14 @@ Each ALE round is tracked as a `Round` entity in the workspace (schema v0.3). A 
 
 Workspace files from schema v0.2 and earlier are **not automatically migrated**. Export your design data before upgrading from v0.2.6 or earlier.
 
+### v0.3 xlsx pipeline (v0.2.8+)
+
+xlsx-native readers cover the inputs the wet-lab actually produces: `mutants-well position.xlsx`, Agilent GC-FID raw exports (standard / rep-batch), and EVOLVEpro xlsx files. `kuma_core/mame/activity/evolvepro_xlsx.py:detect_format` auto-dispatches.
+
+`mame.activity.merge_for_evolvepro` (v0.2.9.0) replaces the legacy merge for EVOLVEpro export: it joins activity to genotype, runs `merge_replicates_priority` (authoritative-prefer with mismatch flag), executes the label-swap guard, and surfaces `replicate_stats` plus `export_blocked` in the response. The 5/12 demo continues to use the legacy `activity.merge` path; the v0.3 button "EVOLVEpro용 병합 (v0.3)" lives next to it in the panel and never replaces it.
+
+The IspS WT amino acid sequence is auto-loaded from `fixtures/ispS.fa` (Populus alba ispS CDS, AB198180.1) via BioPython translate when `ref_seq` is omitted — no UI plumbing required for IspS rounds.
+
 ---
 
 ## Architecture

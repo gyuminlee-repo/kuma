@@ -88,6 +88,10 @@ python -m pytest tests/test_sdm_engine.py::test_name  # Single test
 | `python-core/sidecar_mame/handlers/activity.py` RPC params | `kuma_core/mame/activity/` module API (ingest_long_csv, merge_activity_with_genotype, export_evolvepro_csv) |
 | `src/store/slices/exportSlice.ts` `getWorkspaceSnapshot` | `Round` entity serialisation includes `rounds` array + `active_round_id` (schema_version 0.3) |
 | `src/store/slices/inputSlice.ts` `loadRoundActivity` | `kuro/evolvepro.py` VARIANT_COLUMNS must accept `variant`, `y_pred`, `round_n` from activity export CSV |
+| `kuma_core/mame/activity/models.py` `MergedRow.activity_merged_mean` | `src/types/mame/activity.ts:MergedRow` field stays in sync (Phase B) |
+| `python-core/sidecar_mame/handlers/activity.py:handle_merge_for_evolvepro` params | `src/types/mame/activity.ts:MergeForEvolveproParams`/`MergeForEvolveproResponse` + `src/store/mame/activitySlice.ts:mergeForEvolvepro` action |
+| `kuma_core/mame/activity/ref_seq.py:DEFAULT_ISPS_CDS_PATH` | `fixtures/ispS.fa` exists and contains a coding-frame nucleotide sequence (auto-load fallback for `ref_seq`) |
+| `kuma_core/mame/activity/merge.py:merge_replicates_priority` | `kuma_core/mame/activity/normalize.py:WT_PATTERN` + handler `_is_wt_key` keep WT keys out of variant-priority merge |
 
 ## Rules
 - 절대 경로 하드코딩 금지 — 상대 경로 또는 환경변수 사용

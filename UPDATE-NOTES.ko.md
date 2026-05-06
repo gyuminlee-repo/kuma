@@ -4,6 +4,74 @@
 
 ---
 
+## v0.2.9 (2026-05-06)
+
+MAME activity v0.3 Phase A+B+C — xlsx 어댑터, replicate 우선순위 병합, 라벨 교체 가드, IspS 참조 자동 로드, 5/12 데모 path와 병존하는 v0.3 UI.
+
+### merge_replicates_priority RPC 통합 (`v0.2.9.0`)
+
+`mame.activity.merge_for_evolvepro` JSON-RPC가 well 단위 병합·라벨 교체 검출·variant 단위 replicate 우선순위를 한 호출에서 처리.
+
+- **신규 파라미터**: `authoritative_measurements`·`fallback_measurements` (`{short_variant: float[]}`), `mismatch_threshold` (기본 0.1), `ref_seq` 모두 선택적. 두 measurement dict 모두 비어있으면 replicate 병합 단계 건너뛰며 5/12 데모 path와 동일 동작.
+- **Variant 단위 병합**: `merge_replicates_priority` (`kuma_core/mame/activity/merge.py`)는 authoritative 우선, fallback으로 보충, `mismatch_threshold` 초과 시 mismatched 기록. replicate 개수는 가변.
+- **WT 필터링**: `_is_wt_key`가 `WT`·`WT_?\d+` 키를 표기 변환 전 제거.
+- **`MergedRow.activity_merged_mean`**: 신규 optional float. replicate 병합 시에만 채워지고 `activity_raw_mean` 덮어쓰지 않음.
+- **응답**: `replicate_stats: MergeReplicatesStats | null`이 `stats: MergeStats`·`export_blocked: boolean`과 함께 노출. `null`은 legacy path.
+- **에러 매핑**: `ExportBlockedError`가 `RuntimeError`보다 먼저 잡혀 `-32004`. `ValueError`(빈 replicate 리스트·잘못된 short 표기)는 `-32602`.
+- **TS 동기화**: `MergeForEvolveproParams`·`MergeForEvolveproResponse`·`MergedRow.activity_merged_mean`이 `src/types/mame/activity.ts`에 미러.
+- **테스트**: 8 시나리오 / 15 단위 케이스.
+
+### Phase C UI — SwapWarning · ExportBlockedError · 동적 카운트 (`v0.2.9.1.0`)
+
+- **SwapWarningBanner** (`src/components/round/RoundSummaryPanel.tsx`): severity 분리 배지 (`error` 빨강 / `warning` 앰버), error > 0이면 `aria-live="assertive"`. variants·wells를 title에 노출.
+- **ReplicateMergeStats**: 4카운트 grid (재측정 / 1차측정 / 병합 / 불일치) — `MergeReplicatesStats` 직접 참조. mismatched > 0 시 앰버 강조 + 변종 목록 tooltip. `replicate_stats` `null`이면 미렌더.
+- **ExportBlockedErrorDisplay** (`ParameterPanel.tsx`): `isExportBlockedError` 헬퍼(`src/lib/errors.ts`)로 `-32004`·"Export blocked" 패턴 감지 → 한국어 강화 메시지 (헤더 / 변종 칩 / 액션 힌트).
+- **상태 placeholder**: `activitySlice.lastReplicateStats`. Legacy `mergeActivity` success 시 `null` 리셋.
+
+### IspS WT 자동 로드 (`v0.2.9.1.1`, OQ-④-1)
+
+- **`kuma_core/mame/activity/ref_seq.py`**: `get_isps_wt_aa_seq(cds_path=None)` — `fixtures/ispS.fa` (Populus alba ispS CDS, AB198180.1)를 BioPython + `_translate_cds`로 캐싱 (`lru_cache(maxsize=4)`).
+- **핸들러 fallback**: `ref_seq` `None`/빈 문자열이고 replicate data 있을 때 자동 로드. 명시 `ref_seq`는 그대로 사용. 자동 로드 실패는 `ValueError("ref_seq required and IspS auto-load failed: ...")`.
+- **OQ-④-2 (GC well 매핑)**: 코드 변경 없음. `test_scenario_g_label_swap_detection` soft assertion 유지. 결정 기록: vault `260506_v0.3_OQ_decisions.md`.
+
+### merge_for_evolvepro UI wire-up (`v0.2.9.2.0`)
+
+- **`activitySlice.mergeForEvolvepro`**: 신규 액션 — RPC 호출, 성공 시 `lastMergeStats`·`lastReplicateStats` 갱신 + status `activity_linked`, 실패 시 `mergeError`·`error` status (`-32004` 포함).
+- **ActivityDataSection 버튼**: 기존 "Merge with genotype" 아래 "EVOLVEpro용 병합 (v0.3)" 추가. `activeRoundId && hasActivity && !isMerging` 조건. 한국어 안내가 5/12 데모는 기존 버튼 사용임을 명시.
+- **Legacy 보호**: `mergeActivity` 무손상. 신규 액션 분리. legacy success 후 `lastReplicateStats=null` 리셋.
+
+### 테스트 footprint
+
+- pytest 754 passed (`TestExportOrder` 3건은 무관 pre-existing).
+- vitest 19 files / 144 passed / 1 skipped.
+- `npx tsc --noEmit`: 0 errors.
+
+---
+
+## v0.2.8 (2026-05-06)
+
+MAME activity v0.3 Phase A+B 초기 — xlsx 어댑터, replicate 우선순위 병합 primitive, 라벨 교체 가드.
+
+### Phase A — xlsx 어댑터
+
+- `kuma_core/mame/activity/variant_notation.py`: 내부 `F89W` ↔ EVOLVEpro `89W` 양방향 변환, `WT` passthrough. `_INTERNAL_RE`·`_SHORT_RE` 모듈 레벨 단일 source.
+- `kuma_core/mame/activity/plate_layout_xlsx.py`: `mutants-well position.xlsx` 파서 — `python-calamine`. `Mutant`·`Well Pos.` 헤더 대소문자 무관 매칭. `Mutant="WT"` 행이 WT well 식별.
+- `kuma_core/mame/activity/evolvepro_xlsx.py`: Agilent GC-FID 3 reader (standard / rep-batch / relative-only) + EVOLVEpro reader·writer + `detect_format`.
+
+### Phase B — replicate 우선순위 + 라벨 교체 가드
+
+- `kuma_core/mame/activity/merge.py:merge_replicates_priority`: authoritative-우선 병합 + mismatch 플래그. 가변 replicate 수.
+- `kuma_core/mame/activity/sanity_check.py:detect_label_swap`: 라벨 교체 3코드 (`label_swap_cycle`·`value_collision`·`layout_orphan`) + 1e-9 tolerance.
+- `kuma_core/mame/activity/normalize.py:compute_relative_activity`: `WT_PATTERN = ^WT_?\d+$` 단일 source.
+- `models.py`: `SwapWarning`·`MergeReplicatesStats`·`MergedRow.relative_activity` 신규, `MergeStats.warnings` 추가.
+- 초기 `handle_merge_for_evolvepro`가 라벨 교체 가드 통합 + `ExportBlockedError -32004`. replicate-priority 통합은 v0.2.9.0으로 이연.
+
+### 테스트
+
+신규 7 + 수정 5 단위 케이스. pytest 377 + integration 13 통과. tsc 0.
+
+---
+
 ## v0.2.7 (2026-05-04)
 
 활성 데이터 통합, Round 엔티티, strategy 신호 계산.

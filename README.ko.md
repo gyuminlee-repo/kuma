@@ -174,6 +174,14 @@ Fold change와 log2_fc는 플레이트별 WT 평균을 기준으로 계산된다
 
 **schema v0.2 이하 워크스페이스 파일은 자동 마이그레이션 없음.** v0.2.6 이하에서 업그레이드 전 설계 데이터를 내보낼 것.
 
+### v0.3 xlsx 파이프라인 (v0.2.8+)
+
+실험실 산출물에 직접 대응하는 xlsx reader: `mutants-well position.xlsx`, Agilent GC-FID raw export(standard / rep-batch), EVOLVEpro xlsx. `kuma_core/mame/activity/evolvepro_xlsx.py:detect_format`이 포맷 자동 분기.
+
+`mame.activity.merge_for_evolvepro` (v0.2.9.0)가 EVOLVEpro 내보내기용 병합을 대체: 활성-지노타입 join + `merge_replicates_priority` (authoritative 우선·mismatch 플래그) + 라벨 교체 가드. 응답에 `replicate_stats`·`export_blocked` 노출. 5/12 데모는 기존 `activity.merge`를 그대로 사용하며 v0.3 버튼 "EVOLVEpro용 병합 (v0.3)"이 패널에 병행 배치.
+
+IspS 라운드의 경우 `ref_seq` 미전달 시 `fixtures/ispS.fa` (Populus alba ispS CDS, AB198180.1)를 BioPython으로 translate하여 자동 로드 — UI 추가 배선 불필요.
+
 ---
 
 ## 아키텍처

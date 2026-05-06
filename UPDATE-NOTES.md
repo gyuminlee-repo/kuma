@@ -4,6 +4,80 @@
 
 ---
 
+## v0.2.9 (2026-05-06)
+
+MAME activity v0.3 Phase A+B+C — xlsx adapters, replicate-priority merge, label-swap guard, IspS reference auto-load, and the v0.3 UI surface alongside the preserved 5/12 demo path.
+
+### merge_replicates_priority RPC integration (`v0.2.9.0`)
+
+The `mame.activity.merge_for_evolvepro` JSON-RPC method now combines well-level merge, label-swap detection, and variant-level replicate priority in a single call.
+
+- **New params**: `authoritative_measurements` and `fallback_measurements` (`{short_variant: float[]}`), `mismatch_threshold` (default 0.1), and `ref_seq` are all optional. Omitting both measurement dicts skips replicate merge and matches the legacy 5/12 demo path exactly.
+- **Variant-level merge**: `merge_replicates_priority` (`kuma_core/mame/activity/merge.py`) prefers the authoritative source, fills gaps from fallback, and flags variants whose mean diverges by more than `mismatch_threshold`. Replicate counts are variable — no magic number.
+- **WT filtering**: A `_is_wt_key` helper drops `WT` and `WT_?\d+` keys before notation conversion, so the WT baseline never enters the variant-priority path.
+- **MergedRow.activity_merged_mean**: A new optional float column on `MergedRow`. Populated only when replicate merge runs; never overwrites `activity_raw_mean`.
+- **Response**: `replicate_stats: MergeReplicatesStats | null` is exposed alongside `stats: MergeStats` and `export_blocked: boolean`. `null` indicates legacy path.
+- **Error mapping**: `ExportBlockedError` is caught before the generic `RuntimeError` branch in dispatcher so label-swap errors raise `-32004`. `ValueError` from empty replicate lists or unparseable short notation maps to `-32602` via the existing dispatcher path.
+- **TS sync**: `MergeForEvolveproParams`, `MergeForEvolveproResponse`, `MergedRow.activity_merged_mean` mirror the Pydantic side in `src/types/mame/activity.ts`.
+- **Tests**: 8 scenarios across 15 unit cases (legacy-path / authoritative-only / fallback-fill / mismatch-flag / empty-list-error / bad-notation / no-ref_seq / export-blocked).
+
+### Phase C UI — SwapWarning, ExportBlockedError, dynamic counts (`v0.2.9.1.0`)
+
+`RoundSummaryPanel` and `ParameterPanel` surface the new RPC outputs without hardcoded numbers.
+
+- **SwapWarningBanner** (`src/components/round/RoundSummaryPanel.tsx`): Severity-split badges separate `error` (red) and `warning` (amber) counts; banner uses `aria-live="assertive"` when error count is non-zero. Each warning exposes `variants` and `wells` via the title attribute.
+- **ReplicateMergeStats**: Four-count grid (재측정 / 1차측정 / 병합 / 불일치) bound directly to `MergeReplicatesStats` fields. Mismatched > 0 surfaces an amber accent and tooltip listing the variants. Hidden when `replicate_stats` is `null`.
+- **ExportBlockedErrorDisplay** (`ParameterPanel.tsx`): Detects `-32004` or `Export blocked` patterns through the new `isExportBlockedError` helper (`src/lib/errors.ts`) and renders a Korean enhanced message — header, variant chips, and an action hint pointing to the previous-round EVOLVEpro mapping.
+- **State placeholder**: `activitySlice.lastReplicateStats: MergeReplicatesStats | null` reserves the slot for the wire-up step. Legacy `mergeActivity` resets it to `null`.
+
+### IspS WT auto-load (`v0.2.9.1.1`, OQ-④-1)
+
+`from_evolvepro` requires a 1-letter amino acid sequence; the v0.3 path now sources it without any UI plumbing.
+
+- **`kuma_core/mame/activity/ref_seq.py`**: `get_isps_wt_aa_seq(cds_path=None)` reads `fixtures/ispS.fa` (Populus alba ispS CDS, AB198180.1) through BioPython and `_translate_cds`, returning the cached protein sequence. `lru_cache(maxsize=4)` allows test overrides via `cds_path`.
+- **Handler fallback**: `handle_merge_for_evolvepro` calls the loader when `ref_seq` is `None`/empty and replicate data is provided. Explicit `ref_seq` is still honoured for non-IspS proteins. Auto-load failure raises `ValueError("ref_seq required and IspS auto-load failed: ...")` so the failure mode is visible.
+- **OQ-④-2 (GC well mapping)**: No code change. The label-swap soft assertion in `tests/integration/test_xlsx_pipeline.py::test_scenario_g_label_swap_detection` stays soft until GC export adds a well_id column. Decision record: `260506_v0.3_OQ_decisions.md` in the project vault.
+
+### merge_for_evolvepro UI wire-up (`v0.2.9.2.0`)
+
+The v0.3 RPC is now reachable from the panel without disturbing the 5/12 demo.
+
+- **`activitySlice.mergeForEvolvepro`**: New action wraps the RPC, populates `lastMergeStats` and `lastReplicateStats` on success, transitions round status to `activity_linked`, and reports `mergeError` plus the `error` status on failure (including `-32004`).
+- **ActivityDataSection button**: A second "EVOLVEpro용 병합 (v0.3)" button sits beneath the existing "Merge with genotype" entry, gated by `activeRoundId && hasActivity && !isMerging`. The brief Korean hint clarifies that the 5/12 demo continues to use the legacy button.
+- **Legacy guarantee**: `mergeActivity` is unchanged. The new action is wholly separate; `lastReplicateStats` is reset to `null` after legacy success so the panel never displays stale replicate counts.
+
+### Test footprint
+
+- pytest 754 passed (3 unrelated `TestExportOrder` pre-existing failures).
+- vitest 19 files / 144 passed / 1 skipped.
+- `npx tsc --noEmit`: 0 errors.
+
+---
+
+## v0.2.8 (2026-05-06)
+
+MAME activity v0.3 Phase A+B initial groundwork — xlsx adapters, replicate-priority merge primitive, label-swap guard.
+
+### Phase A — xlsx adapters
+
+- `kuma_core/mame/activity/variant_notation.py`: Bidirectional internal `F89W` ↔ EVOLVEpro `89W` conversion with `WT` passthrough. `_INTERNAL_RE` and `_SHORT_RE` are module-level single sources.
+- `kuma_core/mame/activity/plate_layout_xlsx.py`: `mutants-well position.xlsx` parser using `python-calamine`. Detects `Mutant` and `Well Pos.` headers case-insensitively. `Mutant="WT"` row identifies the WT well — no separate `is_wt_well` column.
+- `kuma_core/mame/activity/evolvepro_xlsx.py`: Three Agilent GC-FID readers (standard / rep-batch / relative-only) plus an EVOLVEpro reader and writer, with `detect_format` auto-dispatch.
+
+### Phase B — replicate priority + label-swap guard
+
+- `kuma_core/mame/activity/merge.py:merge_replicates_priority`: Authoritative-prefer merge with mismatch flagging. Variable replicate count.
+- `kuma_core/mame/activity/sanity_check.py:detect_label_swap`: Three label-swap codes (`label_swap_cycle`, `value_collision`, `layout_orphan`) with 1e-9 tolerance.
+- `kuma_core/mame/activity/normalize.py:compute_relative_activity`: Single `WT_PATTERN = ^WT_?\d+$` shared across modules.
+- `models.py`: New `SwapWarning`, `MergeReplicatesStats`, `MergedRow.relative_activity` fields; `MergeStats.warnings` added.
+- Initial `handle_merge_for_evolvepro` handler integrates label-swap with `ExportBlockedError -32004` mapping (replicate-priority integration deferred to v0.2.9.0).
+
+### Tests
+
+7 new + 5 updated unit cases. pytest 377 + 13 integration passing. tsc 0.
+
+---
+
 ## v0.2.7 (2026-05-04)
 
 Activity data integration, Round entity, and strategy signal computation for the 5/12 demo.
