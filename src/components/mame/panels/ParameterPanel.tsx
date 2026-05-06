@@ -497,7 +497,13 @@ function ActivityDataSection() {
   const lastReplicateStats = useStore(activityStore, (s: ActivitySlice) => s.lastReplicateStats);
   const exportError = useStore(activityStore, (s: ActivitySlice) => s.exportError);
   const mergeActivity = useStore(activityStore, (s: ActivitySlice) => s.mergeActivity);
+  const mergeForEvolvepro = useStore(activityStore, (s: ActivitySlice) => s.mergeForEvolvepro);
   const exportEvolveproCsv = useStore(activityStore, (s: ActivitySlice) => s.exportEvolveproCsv);
+
+  const hasActivity = useRoundStore(
+    (s) =>
+      (s.rounds.find((r) => r.id === activeRoundId)?.activity?.records?.length ?? 0) > 0
+  );
 
   async function handleExport() {
     if (!activeRoundId) return;
@@ -536,6 +542,23 @@ function ActivityDataSection() {
           aria-label="Merge activity data with genotype"
         >
           {isMerging ? "Merging…" : "Merge with genotype"}
+        </Button>
+
+        {/* v0.3 신규 병합 버튼 */}
+        <p className="text-[10px] text-muted-foreground">
+          v0.3: 라벨 교체 가드 + replicate 병합 통합. 5/12 데모는 기존 버튼 사용.
+        </p>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="w-full text-xs"
+          onClick={() => activeRoundId && void mergeForEvolvepro(activeRoundId)}
+          disabled={!activeRoundId || isMerging || !hasActivity}
+          aria-busy={isMerging}
+          aria-label="v0.3 신규 RPC로 활성 데이터 병합 + 라벨 교체 가드 실행"
+        >
+          {isMerging ? "병합 중…" : "EVOLVEpro용 병합 (v0.3)"}
         </Button>
 
         {mergeError && (

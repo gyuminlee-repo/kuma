@@ -41,6 +41,7 @@ function makeActivityStore(overrides: Partial<ActivitySlice> = {}) {
     uploadActivityFile: vi.fn(),
     setPlateMeta: mockSetPlateMeta,
     mergeActivity: vi.fn(),
+    mergeForEvolvepro: vi.fn(),
     exportEvolveproCsv: vi.fn(),
     ...overrides,
   }));

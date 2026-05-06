@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import type { ActivityRecord, MergedRow, MergeStats, PlateMeta } from "@/types/mame/activity"
+import type { ActivityRecord, MergedRow, MergeReplicatesStats, MergeStats, PlateMeta } from "@/types/mame/activity"
 
 // ─── RPC mock ───────────────────────────────────────────────────────────────
 const mockSendRequest = vi.fn()
@@ -54,6 +54,13 @@ const mockMergeStats: MergeStats = {
   n_wt: 4,
   n_duplicate_warnings: 0,
   n_excluded_from_export: 10,
+}
+
+const mockReplicateStats: MergeReplicatesStats = {
+  authoritative_count: 5,
+  fallback_count: 3,
+  merged_count: 8,
+  mismatched: [],
 }
 
 // getState를 매번 동일 객체 반환하도록 고정
@@ -163,6 +170,12 @@ describe("activitySlice", () => {
       expect(store.getState().lastMergeStats).toEqual(mockMergeStats)
     })
 
+    it("resets lastReplicateStats to null after mergeActivity success (legacy 응답에 replicate_stats 없음)", async () => {
+      mockSendRequest.mockResolvedValueOnce({ merged: mockMergedRows, stats: mockMergeStats })
+      await store.getState().mergeActivity("round_1")
+      expect(store.getState().lastReplicateStats).toBeNull()
+    })
+
     it("transitions to error status on merge failure", async () => {
       mockSendRequest.mockRejectedValueOnce(new Error("WT 없음"))
       await store.getState().mergeActivity("round_1")
@@ -171,6 +184,62 @@ describe("activitySlice", () => {
         "error",
         expect.objectContaining({ stage: "merge", message: expect.stringContaining("WT 없음") })
       )
+    })
+  })
+
+  describe("mergeForEvolvepro", () => {
+    it("mergeForEvolvepro_success — RPC 응답으로 state 갱신 (lastMergeStats, lastReplicateStats, merged_table, status)", async () => {
+      mockSendRequest.mockResolvedValueOnce({
+        merged: mockMergedRows,
+        stats: mockMergeStats,
+        replicate_stats: mockReplicateStats,
+        export_blocked: false,
+      })
+      await store.getState().mergeForEvolvepro("round_1")
+      expect(mockSendRequest).toHaveBeenCalledWith(
+        "mame.activity.merge_for_evolvepro",
+        expect.objectContaining({ round_id: "round_1", prev_round_evolvepro: {} }),
+        expect.any(Number)
+      )
+      expect(store.getState().lastMergeStats).toEqual(mockMergeStats)
+      expect(store.getState().lastReplicateStats).toEqual(mockReplicateStats)
+      expect(mockRoundStore.getState().updateRoundField).toHaveBeenCalledWith(
+        "round_1",
+        "merged_table",
+        mockMergedRows
+      )
+      expect(mockRoundStore.getState().transitionStatus).toHaveBeenCalledWith(
+        "round_1",
+        "activity_linked"
+      )
+    })
+
+    it("mergeForEvolvepro_export_blocked — RPC -32004 throw 시 mergeError set, status=error", async () => {
+      mockSendRequest.mockRejectedValueOnce(new Error("export blocked: label swap detected"))
+      await store.getState().mergeForEvolvepro("round_1")
+      expect(store.getState().mergeError).toContain("export blocked")
+      expect(mockRoundStore.getState().transitionStatus).toHaveBeenCalledWith(
+        "round_1",
+        "error",
+        expect.objectContaining({ stage: "merge" })
+      )
+    })
+
+    it("mergeForEvolvepro_does_not_affect_legacy_mergeActivity — mergeActivity 호출 후 lastReplicateStats가 명시 null", async () => {
+      // 먼저 mergeForEvolvepro로 lastReplicateStats 채움
+      mockSendRequest.mockResolvedValueOnce({
+        merged: mockMergedRows,
+        stats: mockMergeStats,
+        replicate_stats: mockReplicateStats,
+        export_blocked: false,
+      })
+      await store.getState().mergeForEvolvepro("round_1")
+      expect(store.getState().lastReplicateStats).toEqual(mockReplicateStats)
+
+      // 이후 legacy mergeActivity 호출 — lastReplicateStats는 null로 리셋되어야 함
+      mockSendRequest.mockResolvedValueOnce({ merged: mockMergedRows, stats: mockMergeStats })
+      await store.getState().mergeActivity("round_1")
+      expect(store.getState().lastReplicateStats).toBeNull()
     })
   })
 

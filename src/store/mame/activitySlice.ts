@@ -12,6 +12,7 @@ import { sendRequest } from "@/lib/ipc-mame"
 import { formatError } from "@/lib/utils"
 import type {
   ActivityRecord,
+  MergeForEvolveproResponse,
   MergeReplicatesStats,
   MergeStats,
   MergedRow,
@@ -81,6 +82,21 @@ export interface ActivitySliceActions {
    * activity.export_evolvepro_csv RPC 호출.
    */
   exportEvolveproCsv: (round_id: string, path: string) => Promise<void>
+  /**
+   * v0.3 신규: 라벨 교체 가드 + replicate 병합 통합 병합.
+   * mame.activity.merge_for_evolvepro RPC → round.merged_table 갱신 + status="activity_linked".
+   * 기존 mergeActivity와 별도 분기. 5/12 demo path를 건드리지 않음.
+   */
+  mergeForEvolvepro: (
+    round_id: string,
+    options?: {
+      prev_round_evolvepro?: Record<string, number>
+      authoritative_measurements?: Record<string, number[]>
+      fallback_measurements?: Record<string, number[]>
+      mismatch_threshold?: number
+      ref_seq?: string
+    }
+  ) => Promise<void>
 }
 
 export type ActivitySlice = ActivitySliceState & ActivitySliceActions
@@ -141,7 +157,8 @@ export function createActivityStore(roundStore: RoundStoreRef) {
         )
         roundStore.getState().updateRoundField(round_id as never, "merged_table" as never, result.merged as never)
         roundStore.getState().transitionStatus(round_id, "activity_linked")
-        set({ lastMergeStats: result.stats })
+        // legacy 응답에는 replicate_stats 없으므로 명시 null 세팅
+        set({ lastMergeStats: result.stats, lastReplicateStats: null })
       } catch (err) {
         const message = formatError(err)
         set({ mergeError: message })
@@ -167,6 +184,58 @@ export function createActivityStore(roundStore: RoundStoreRef) {
         set({ exportError: formatError(err) })
       } finally {
         set({ isExporting: false })
+      }
+    },
+
+    mergeForEvolvepro: async (round_id, options) => {
+      set({ isMerging: true, mergeError: null })
+      try {
+        const params: {
+          round_id: string
+          prev_round_evolvepro: Record<string, number>
+          authoritative_measurements?: Record<string, number[]>
+          fallback_measurements?: Record<string, number[]>
+          mismatch_threshold?: number
+          ref_seq?: string
+        } = {
+          round_id,
+          // prev_round_evolvepro는 백엔드에서 required — 미전달 시 빈 맵으로 기본 세팅 (Round 1 동작)
+          prev_round_evolvepro: options?.prev_round_evolvepro ?? {},
+        }
+        if (options?.authoritative_measurements !== undefined) {
+          params.authoritative_measurements = options.authoritative_measurements
+        }
+        if (options?.fallback_measurements !== undefined) {
+          params.fallback_measurements = options.fallback_measurements
+        }
+        if (options?.mismatch_threshold !== undefined) {
+          params.mismatch_threshold = options.mismatch_threshold
+        }
+        if (options?.ref_seq !== undefined) {
+          params.ref_seq = options.ref_seq
+        }
+
+        const res = await sendRequest<MergeForEvolveproResponse>(
+          "mame.activity.merge_for_evolvepro",
+          params,
+          RPC_TIMEOUT_MS
+        )
+        roundStore.getState().updateRoundField(round_id as never, "merged_table" as never, res.merged as never)
+        roundStore.getState().transitionStatus(round_id, "activity_linked")
+        set({
+          lastMergeStats: res.stats,
+          lastReplicateStats: res.replicate_stats,
+        })
+      } catch (err) {
+        const message = formatError(err)
+        set({ mergeError: message })
+        roundStore.getState().transitionStatus(round_id, "error", {
+          stage: "merge",
+          message,
+          occurred_at: new Date().toISOString(),
+        })
+      } finally {
+        set({ isMerging: false })
       }
     },
   }))
