@@ -247,9 +247,8 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         await get().cascadeFailedRetry("pipeline-fill");
       } else if (fillOnFailure && !get().pipelineMode) {
         await get().cascadeFailedRetry("topn-fill");
-      } else {
-        await get().cascadeFailedRetry("off");
       }
+      // fillOnFailure=false: no auto-retry; mutations remain as failed
     } catch (err) {
       if (formatError(err).includes("Sidecar killed")) return;
       set({ statusMessage: `Design failed: ${formatError(err)}` });
@@ -493,16 +492,11 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
             { kind: "relax", relaxStage: 3, label: "Stage 5/6 +mild Tm", badgeType: "auto_suggestion_l3" },
             { kind: "relax", relaxStage: 4, label: "Stage 6/6 strong", badgeType: "auto_suggestion_l4" },
           ]
-        : mode === "topn-fill"
-        ? [
+        : [
             { kind: "relax", relaxStage: 1, label: "Stage 1/4 length", badgeType: "auto_suggestion_l1" },
             { kind: "relax", relaxStage: 2, label: "Stage 2/4 +GC", badgeType: "auto_suggestion_l2" },
             { kind: "relax", relaxStage: 3, label: "Stage 3/4 +mild Tm", badgeType: "auto_suggestion_l3" },
             { kind: "relax", relaxStage: 4, label: "Stage 4/4 strong", badgeType: "auto_suggestion_l4" },
-          ]
-        : [
-            { kind: "relax", relaxStage: 2, label: "Mild auto-retry", badgeType: "auto_suggestion_l2" },
-            { kind: "relax", relaxStage: 4, label: "Strong auto-retry", badgeType: "auto_suggestion_l4" },
           ];
 
     const targets = [...startState.failedMutations];
@@ -541,6 +535,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
             if (candidates.length > 0) {
               const best = candidates[0];
               get().addDesignResult(failed.mutation, best);
+              await get().commitDesignResult(failed.mutation, 0);
               set((s) => ({
                 rescuedMutationDetails: [
                   ...s.rescuedMutationDetails,
@@ -588,6 +583,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
             if (candidates.length > 0) {
               const best = candidates[0];
               get().addDesignResult(candidate, best);
+              await get().commitDesignResult(candidate, 0);
               usedSubstitutes.add(candidate);
               usedMutations.add(candidate);
               set((s) => ({
@@ -668,6 +664,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         if (candidates.length > 0) {
           const best = candidates[0];
           get().addDesignResult(failed.mutation, best);
+          await get().commitDesignResult(failed.mutation, 0);
           // Annotate this mutation as auto-suggestion-rescued so the result
           // table renders a distinct badge instead of the generic remove pill.
           set((s) => ({
@@ -737,6 +734,24 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       rescuedMutations,
       wellName,
     }));
+  },
+
+  commitDesignResult: async (mutation: string, candidateIdx = 0) => {
+    // Sync the cascade-rescue candidate into backend _state.results so that
+    // Excel export (expected_mutations sheet) includes it.
+    try {
+      await sendRequest("commit_design_result", {
+        mutation,
+        candidate_idx: candidateIdx,
+      });
+      set({ backendDesignStateSynced: true });
+    } catch (err) {
+      // Commit failure must not roll back frontend state — user already sees
+      // the result. Keep backendDesignStateSynced: false so subsequent
+      // swap/alternatives calls warn the user to re-design.
+      set({ backendDesignStateSynced: false });
+      console.warn("[commitDesignResult] backend commit failed for", mutation, err);
+    }
   },
 
   removeDesignResult: (mutation: string, reason: string) => {

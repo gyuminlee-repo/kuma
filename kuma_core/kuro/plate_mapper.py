@@ -311,8 +311,9 @@ def _pair_rev_per_plate(
 
 
 def _write_expected_mutations_sheet(
-    wb,                        # openpyxl.Workbook
-    results: list,             # list[SdmPrimerResult]
+    wb,                              # openpyxl.Workbook
+    results: list,                   # list[SdmPrimerResult]
+    rescued_info: list[dict] | None = None,  # list of RescuedMutation dicts from frontend
 ) -> None:
     """Append 'expected_mutations' sheet to workbook.
 
@@ -323,17 +324,39 @@ def _write_expected_mutations_sheet(
 
     Sheet columns (in order):
         mutant_id, position, wt_aa, mt_aa, wt_codon, mt_codon,
-        group_id, primer_set_ref, notation_type, status
+        group_id, primer_set_ref, notation_type, status,
+        rescue_type, rescue_stage, rescued_from
+
+    status values:
+        "DESIGNED" — primer exists and should be included by downstream readers.
+
+    rescue_type values:
+        same_position, diff_position, auto_suggestion_l1~l4,
+        pool_cascade, auto_relax, auto_suggestion.
     """
+    # Build lookup: rescued_by (mutation_raw in results) -> rescue metadata.
+    rescued_lookup: dict[str, dict] = {}
+    if rescued_info:
+        for item in rescued_info:
+            if hasattr(item, "model_dump"):
+                item = item.model_dump(exclude_none=True)
+            if not isinstance(item, dict):
+                continue
+            key = item.get("rescued_by")
+            stage_type = item.get("type")
+            if key and stage_type:
+                rescued_lookup[str(key)] = item
+
     HEADERS = [
         "mutant_id", "position", "wt_aa", "mt_aa",
         "wt_codon", "mt_codon", "group_id", "primer_set_ref",
-        "notation_type", "status",
+        "notation_type", "status", "rescue_type", "rescue_stage", "rescued_from",
     ]
     ws = wb.create_sheet("expected_mutations")
     ws.append(HEADERS)
     for r in results:
         m = r.mutation
+        rescue_meta = rescued_lookup.get(m.raw, {})
         ws.append([
             m.raw,
             m.position,
@@ -344,7 +367,10 @@ def _write_expected_mutations_sheet(
             m.group_id or "",
             m.raw,           # primer_set_ref == Mutation.raw
             "substitution",  # notation_type: Phase 1 constant
-            "DESIGNED",      # status: Phase 1 constant
+            "DESIGNED",
+            rescue_meta.get("type", ""),
+            rescue_meta.get("stage", ""),
+            rescue_meta.get("original", ""),
         ])
 
 
@@ -352,8 +378,9 @@ def export_plate_excel(
     mappings: list[PlateMapping],
     output_path: Path,
     rev_groups: dict[str, list[str]] | None = None,
-    results: list | None = None,  # list[SdmPrimerResult] — added in Phase 1
+    results: list | None = None,          # list[SdmPrimerResult] — added in Phase 1
     overlap_mode: str = "partial",
+    rescued_info: list[dict] | None = None,  # rescue stage info from frontend
 ) -> None:
     """Export plate mappings to Excel with per-plate sheets.
 
@@ -371,6 +398,9 @@ def export_plate_excel(
             Used to pair rev with fwd plates and detect shared primers.
         overlap_mode: "partial" (Gibson-style) or "full" (NEB Q5 SDM style).
             Controls Tm_Overlap vs Tm_Primer header in list sheets.
+        rescued_info: List of RescuedMutation dicts (keys: rescued_by, type, original).
+            When provided, rescue_type/rescue_stage columns record the cascade
+            stage while status remains "DESIGNED" for downstream readers.
     """
     from openpyxl import Workbook
 
@@ -411,7 +441,7 @@ def export_plate_excel(
 
     # Phase 1: append expected_mutations sheet when results are provided
     if results:
-        _write_expected_mutations_sheet(wb, results)
+        _write_expected_mutations_sheet(wb, results, rescued_info=rescued_info)
 
     wb.save(output_path)
 

@@ -387,6 +387,7 @@ export interface WorkspaceResults {
   dedupInfo: Record<string, string[]>;
   manuallySwapped: Record<string, string>;
   customCandidates: Record<string, SdmPrimerResult[]>;
+  rescuedMutationDetails?: RescuedMutation[];
 }
 
 export interface WorkspaceUi {
@@ -507,6 +508,10 @@ export interface RpcMethodMap {
   };
   swap_primer: {
     params: { mutation: string; candidate_idx: number; swap_type: "both" | "fwd" | "rev" };
+    result: SdmPrimerResult;
+  };
+  commit_design_result: {
+    params: { mutation: string; candidate_idx: number };
     result: SdmPrimerResult;
   };
   export_excel: {

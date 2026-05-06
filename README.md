@@ -43,10 +43,10 @@ Given a mutation list (plain text / EVOLVEpro CSV / MULTI-evolve CSV) and a temp
 - **Position Rescue**: Mode-aware multi-stage cascade when a primer design fails.
   - **Top-N + Fill-on-failure ON** → 4-stage relaxation only (length → +GC → +mild Tm → strong), position fixed. Badges `🎯¹` length / `🎯²` +GC / `🎯³` +mild Tm / `🎯⁴` strong
   - **Pipeline + Fill-on-failure ON** → 6-stage: ① same-position alternate variant (`↻¹`) → ② different-position substitution (`↻²`) → ③–⑥ same 4-stage relaxation
-  - **Fill-on-failure OFF** → 2-stage auto-retry (mild → strong) using parameters derived from the run successful primers; position fixed
+  - **Fill-on-failure OFF** → failed mutations remain failed; no automatic retry or substitution runs
   - Legacy pool cascade (`↻ cascade`) and auto-relax (`⚡ relaxed`) still applied by the backend before frontend cascade
   - Stage counters displayed in Design Report
-- **Fill on failure**: When enabled (default on), triggers the cascade above according to selection mode. When off, only the 2-stage auto-retry runs
+- **Auto-rescue failed mutations**: When enabled (default on), triggers the cascade above according to selection mode. When off, failed mutations remain as-is
 - **Off-target detection**: Automatic detection of non-specific binding on the template sense/antisense strand
 - **96-well Plate Map**: Linked Fwd/Rev plate. Multi-plate slide for >96 mutations. Synchronized with table sort order
 - **Echo 525 / JANUS export**: Liquid handler mapping export as XLSX workbook. Echo: 384-well source plate layout + transfer list. JANUS: Fwd/Rev 96-well rack layout + transfer list. CSV also supported

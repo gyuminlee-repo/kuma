@@ -36,6 +36,7 @@ from sidecar_mame.handlers.activity import (
     handle_activity_upload,
     handle_merge_for_evolvepro,
 )
+from sidecar_mame.handlers.sort_barcode import handle_sort_barcode_run
 
 # Phase A handler registry.
 # ``translate`` is deferred to Phase B per the reconciled scope.
@@ -61,10 +62,12 @@ _METHODS = {
     "activity.export_evolvepro_csv": handle_activity_export_evolvepro_csv,
     # Phase B: replicate merge + label-swap guard
     "mame.activity.merge_for_evolvepro": handle_merge_for_evolvepro,
+    # sort_barcode: combinatorial 96-well barcode sorter
+    "sort_barcode_run": handle_sort_barcode_run,
 }
 
 # Long-running handlers run on a worker thread so stdin keeps draining.
-_ASYNC_METHODS = {"analyze", "demux_and_filter"}
+_ASYNC_METHODS = {"analyze", "demux_and_filter", "sort_barcode_run"}
 
 
 def _dispatch_handler(

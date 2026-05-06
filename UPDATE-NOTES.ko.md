@@ -40,6 +40,13 @@ MAME activity v0.3 Phase A+B+C — xlsx 어댑터, replicate 우선순위 병합
 - **ActivityDataSection 버튼**: 기존 "Merge with genotype" 아래 "EVOLVEpro용 병합 (v0.3)" 추가. `activeRoundId && hasActivity && !isMerging` 조건. 한국어 안내가 5/12 데모는 기존 버튼 사용임을 명시.
 - **Legacy 보호**: `mergeActivity` 무손상. 신규 액션 분리. legacy success 후 `lastReplicateStats=null` 리셋.
 
+### Auto-rescue export 동기화 (`v0.2.9.2.1`)
+
+- **Backend commit**: cascade rescue로 회수된 후보를 `commit_design_result`로 sidecar `_state.results`에 반영해 UI와 Excel export의 designed mutation 목록을 맞춤.
+- **Excel contract**: `expected_mutations.status`는 `DESIGNED`로 유지하고, rescue 출처는 `rescue_type`, `rescue_stage`, `rescued_from` 컬럼에 기록해 MAME reader 누락을 방지.
+- **Workspace persistence**: `rescuedMutationDetails`를 v0.3 workspace 저장/복원에 포함해 나중에 다시 export해도 rescue stage metadata가 유지됨.
+- **Fill-off 동작**: `Auto-rescue failed mutations`가 꺼져 있으면 cascade와 automatic retry 모두 실행하지 않고 실패 mutation을 그대로 둠.
+
 ### 테스트 footprint
 
 - pytest 754 passed (`TestExportOrder` 3건은 무관 pre-existing).

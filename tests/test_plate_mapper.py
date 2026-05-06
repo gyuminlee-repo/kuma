@@ -423,7 +423,7 @@ class TestExpectedMutationsSheet:
         assert headers == [
             "mutant_id", "position", "wt_aa", "mt_aa",
             "wt_codon", "mt_codon", "group_id", "primer_set_ref",
-            "notation_type", "status",
+            "notation_type", "status", "rescue_type", "rescue_stage", "rescued_from",
         ]
 
         # 데이터 행 수 확인: header(1) + 4 data rows = 5
@@ -433,6 +433,9 @@ class TestExpectedMutationsSheet:
         for row in ws.iter_rows(min_row=2, values_only=True):
             assert row[8] == "substitution"
             assert row[9] == "DESIGNED"
+            assert row[10] == ""
+            assert row[11] == ""
+            assert row[12] == ""
 
         # 단일 변이(V5F)의 group_id는 빈 문자열
         data_rows = list(ws.iter_rows(min_row=2, values_only=True))
@@ -448,6 +451,32 @@ class TestExpectedMutationsSheet:
         # primer_set_ref == mutant_id
         for row in data_rows:
             assert row[0] == row[7], f"primer_set_ref mismatch for {row[0]}"
+
+    def test_write_expected_mutations_sheet_preserves_status_and_adds_rescue_metadata(self):
+        from openpyxl import Workbook
+        from kuma_core.kuro.plate_mapper import _write_expected_mutations_sheet
+
+        mock_results = self._make_mock_results()
+        wb = Workbook()
+        _write_expected_mutations_sheet(
+            wb,
+            mock_results,
+            rescued_info=[
+                {
+                    "original": "V5F",
+                    "rescued_by": "K53N",
+                    "type": "auto_suggestion_l2",
+                    "stage": 2,
+                }
+            ],
+        )
+
+        rows = list(wb["expected_mutations"].iter_rows(min_row=2, values_only=True))
+        k53n_row = next(r for r in rows if r[0] == "K53N")
+        assert k53n_row[9] == "DESIGNED"
+        assert k53n_row[10] == "auto_suggestion_l2"
+        assert k53n_row[11] == 2
+        assert k53n_row[12] == "V5F"
 
     def test_export_plate_excel_without_results_no_extra_sheet(self, sdm_results, tmp_path):
         """results=None のとき expected_mutations シートが生成されない (하위 호환 확인)."""
@@ -486,7 +515,7 @@ class TestExpectedMutationsSheet:
         assert headers == [
             "mutant_id", "position", "wt_aa", "mt_aa",
             "wt_codon", "mt_codon", "group_id", "primer_set_ref",
-            "notation_type", "status",
+            "notation_type", "status", "rescue_type", "rescue_stage", "rescued_from",
         ]
 
         # 모든 데이터 행의 상수 컬럼 검증

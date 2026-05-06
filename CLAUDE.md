@@ -92,6 +92,9 @@ python -m pytest tests/test_sdm_engine.py::test_name  # Single test
 | `python-core/sidecar_mame/handlers/activity.py:handle_merge_for_evolvepro` params | `src/types/mame/activity.ts:MergeForEvolveproParams`/`MergeForEvolveproResponse` + `src/store/mame/activitySlice.ts:mergeForEvolvepro` action |
 | `kuma_core/mame/activity/ref_seq.py:DEFAULT_ISPS_CDS_PATH` | `fixtures/ispS.fa` exists and contains a coding-frame nucleotide sequence (auto-load fallback for `ref_seq`) |
 | `kuma_core/mame/activity/merge.py:merge_replicates_priority` | `kuma_core/mame/activity/normalize.py:WT_PATTERN` + handler `_is_wt_key` keep WT keys out of variant-priority merge |
+| `kuma_core/mame/ingest/sort_barcode.py` `sort_barcode_run` params/return | `python-core/sidecar_mame/handlers/sort_barcode.py` handler dict + `src/types/mame/sort_barcode.ts` interfaces stay in sync |
+| `kuma_core/mame/ingest/sort_barcode.py` `parse_combinatorial_barcodes` xlsx schema (isps_f_/isps_r_  prefix) | `barcodes sequence.xlsx` or equivalent fixture format must remain consistent |
+| `python-core/sidecar_mame/dispatcher.py` `_METHODS` `sort_barcode_run` registration | RPC method name must match frontend IPC call site |
 
 ## Rules
 - 절대 경로 하드코딩 금지 — 상대 경로 또는 환경변수 사용

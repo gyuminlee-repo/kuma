@@ -18,6 +18,7 @@ from sidecar_kuro.core import (
 )
 from sidecar_kuro.handlers.sequence import handle_load_fasta, handle_parse_mutations_text
 from sidecar_kuro.handlers.design import (
+    handle_commit_design_result,
     handle_design_sdm_primers,
     handle_retry_failed,
     handle_swap_primer,
@@ -61,6 +62,7 @@ _METHODS = {
     "get_plate_map": handle_get_plate_map,
     "get_alternatives": handle_get_alternatives,
     "swap_primer": handle_swap_primer,
+    "commit_design_result": handle_commit_design_result,
     "export_excel": handle_export_excel,
     "export_mapping": handle_export_mapping,
     "export_benchmark_csv": handle_export_benchmark_csv,

@@ -208,8 +208,14 @@ export interface DesignSlice {
    * successful primers exist or when fillOnFailure already substituted them.
    */
   autoRetryFailedWithSuggestion: () => Promise<void>;
-  cascadeFailedRetry: (mode: "topn-fill" | "pipeline-fill" | "off") => Promise<void>;
+  cascadeFailedRetry: (mode: "topn-fill" | "pipeline-fill") => Promise<void>;
   addDesignResult: (mutation: string, result: SdmPrimerResult) => void;
+  /**
+   * Commit a cascade-rescue candidate to the backend _state.results so
+   * Excel export (expected_mutations sheet) includes it.
+   * candidate_idx 0 = best candidate (always used in cascade paths).
+   */
+  commitDesignResult: (mutation: string, candidateIdx?: number) => Promise<void>;
   removeDesignResult: (mutation: string, reason: string) => void;
   setCodonStrategy: (strategy: "closest" | "optimal") => void;
   loadPolymerases: () => Promise<void>;

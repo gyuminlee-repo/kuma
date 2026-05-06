@@ -194,11 +194,18 @@ def handle_export_excel(params: dict) -> dict:
     # Derive overlap_mode from the first result (all results in a run share the same mode).
     run_overlap_mode = results_for_export[0].overlap_mode if results_for_export else "partial"
 
+    rescued_info = (
+        [item.model_dump(exclude_none=True) for item in p.rescued_info]
+        if p.rescued_info
+        else None
+    )
+
     export_plate_excel(
         mappings, resolved,
         rev_groups=rev_groups,
         results=results_for_export,
         overlap_mode=run_overlap_mode,
+        rescued_info=rescued_info,
     )
     if p.project_id or p.report_data or p.benchmark_raw:
         wb = openpyxl.load_workbook(resolved)

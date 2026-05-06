@@ -524,7 +524,8 @@ function isWorkspaceResults(value: unknown): boolean {
     isArrayOf(value.plateMappings, isPlateMapping) &&
     isRecordOf(value.dedupInfo, isStringArray) &&
     isRecordOf(value.manuallySwapped, isString) &&
-    isRecordOf(value.customCandidates, (item) => isArrayOf(item, isSdmPrimerResult))
+    isRecordOf(value.customCandidates, (item) => isArrayOf(item, isSdmPrimerResult)) &&
+    isOptional(value.rescuedMutationDetails, (item) => isArrayOf(item, isRescuedMutation))
   );
 }
 
@@ -556,7 +557,24 @@ function isWorkspaceCache(value: unknown): boolean {
 }
 
 function isWorkspaceData(value: unknown): value is WorkspaceData {
-  if (!isRecord(value) || !isNumber(value.version)) {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  if (value.schema_version === "0.3") {
+    return (
+      isWorkspaceInputs(value.inputs) &&
+      isWorkspaceSettings(value.settings) &&
+      isWorkspaceResults(value.results) &&
+      isRecord(value.ui) &&
+      isSortingState(value.ui.tableSorting) &&
+      isOptional(value.cache, isWorkspaceCache) &&
+      Array.isArray(value.rounds) &&
+      (value.active_round_id === null || isString(value.active_round_id))
+    );
+  }
+
+  if (!isNumber(value.version)) {
     return false;
   }
 
@@ -700,6 +718,8 @@ const rpcResultValidators = {
   get_alternatives: (value): value is RpcMethodResult<"get_alternatives"> =>
     isAlternativesResult(value),
   swap_primer: (value): value is RpcMethodResult<"swap_primer"> =>
+    isSdmPrimerResult(value),
+  commit_design_result: (value): value is RpcMethodResult<"commit_design_result"> =>
     isSdmPrimerResult(value),
   export_excel: (value): value is RpcMethodResult<"export_excel"> =>
     isExportResult(value),

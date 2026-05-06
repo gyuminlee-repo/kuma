@@ -382,14 +382,18 @@ export function AdvancedSettingsSection(props: {
     <div className="ml-2 mt-2 border-l-2 border-transparent pl-3">
       <button
         type="button"
-        className="flex items-center gap-1 text-caption text-muted-foreground hover:text-foreground"
+        aria-expanded={showAdvanced}
+        aria-controls="advanced-settings-panel"
+        className="flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2 py-1 text-xs font-medium text-foreground transition-colors hover:bg-muted hover:text-foreground"
         onClick={() => setShowAdvanced((p) => !p)}
       >
-        <span>{showAdvanced ? "▾" : "▸"}</span>
-        <span>Advanced</span>
+        <span className="text-muted-foreground" aria-hidden="true">
+          {showAdvanced ? "▾" : "▸"}
+        </span>
+        <span>Advanced settings</span>
       </button>
       {showAdvanced && (
-        <div className="mt-1.5 space-y-2 rounded-container border border-border bg-card p-3 text-caption text-muted-foreground">
+        <div id="advanced-settings-panel" className="mt-1.5 space-y-2 rounded-container border border-border bg-card p-3 text-caption text-muted-foreground">
           <div>
             <div className="mb-0.5 text-plate-tiny uppercase tracking-wide text-muted-foreground/60">Step 1</div>
             <div className="flex items-center gap-1 flex-wrap">

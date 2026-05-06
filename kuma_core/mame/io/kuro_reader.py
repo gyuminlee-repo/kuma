@@ -21,12 +21,25 @@ _EXPECTED_HEADER = [
     "notation_type",
     "status",
 ]
+_DESIGNED_STATUSES = {
+    "DESIGNED",
+    "SAME_POSITION",
+    "DIFF_POSITION",
+    "AUTO_SUGGESTION",
+    "AUTO_SUGGESTION_L1",
+    "AUTO_SUGGESTION_L2",
+    "AUTO_SUGGESTION_L3",
+    "AUTO_SUGGESTION_L4",
+    "POOL_CASCADE",
+    "AUTO_RELAX",
+}
 
 
 def read_expected_mutations(path: Path) -> list[ExpectedMutation]:
     """Read the `expected_mutations` sheet from a KURO xlsx export.
 
-    Only rows with status == "DESIGNED" are returned; FAILED rows are Phase 2.
+    Only designed rows are returned; FAILED rows are Phase 2. Interim KURO
+    exports that stored rescue stage names in status are accepted as designed.
     Raises ValueError if the expected sheet is missing (old KURO version).
     """
 
@@ -56,7 +69,7 @@ def read_expected_mutations(path: Path) -> list[ExpectedMutation]:
                 continue
             cells = list(raw) + [None] * (len(_EXPECTED_HEADER) - len(raw))
             status = _s(cells[9])
-            if status.upper() != "DESIGNED":
+            if status.upper() not in _DESIGNED_STATUSES:
                 continue
             results.append(
                 ExpectedMutation(

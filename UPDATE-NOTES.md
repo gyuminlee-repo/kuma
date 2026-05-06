@@ -46,6 +46,13 @@ The v0.3 RPC is now reachable from the panel without disturbing the 5/12 demo.
 - **ActivityDataSection button**: A second "EVOLVEpro용 병합 (v0.3)" button sits beneath the existing "Merge with genotype" entry, gated by `activeRoundId && hasActivity && !isMerging`. The brief Korean hint clarifies that the 5/12 demo continues to use the legacy button.
 - **Legacy guarantee**: `mergeActivity` is unchanged. The new action is wholly separate; `lastReplicateStats` is reset to `null` after legacy success so the panel never displays stale replicate counts.
 
+### Auto-rescue export sync (`v0.2.9.2.1`)
+
+- **Backend commit**: Cascade-rescued candidates are committed to sidecar `_state.results` via `commit_design_result`, so Excel export sees the same designed mutations as the UI.
+- **Excel contract**: `expected_mutations.status` remains `DESIGNED`; rescue provenance is written to `rescue_type`, `rescue_stage`, and `rescued_from` to avoid MAME reader dropouts.
+- **Workspace persistence**: `rescuedMutationDetails` is saved and restored with v0.3 workspaces, preserving rescue-stage metadata for later re-export.
+- **Fill-off behavior**: `Auto-rescue failed mutations` disabled now means no cascade or automatic retry; failed mutations remain failed.
+
 ### Test footprint
 
 - pytest 754 passed (3 unrelated `TestExportOrder` pre-existing failures).

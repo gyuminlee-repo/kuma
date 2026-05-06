@@ -151,6 +151,19 @@ describe("exportSlice — schema_version 0.3", () => {
     expect(snap.active_round_id).toBe("round_1")
   })
 
+  it("getWorkspaceSnapshot preserves rescue stage details for re-export", () => {
+    store.state.rescuedMutationDetails = [
+      {
+        original: "V5F",
+        rescued_by: "K53N",
+        type: "auto_suggestion_l2",
+        stage: 2,
+      },
+    ]
+    const snap = store.slice.getWorkspaceSnapshot() as WorkspaceV3
+    expect(snap.results.rescuedMutationDetails).toEqual(store.state.rescuedMutationDetails)
+  })
+
   it("restoreWorkspace rejects schema_version < 0.3 (v2)", async () => {
     const oldWorkspace = {
       version: 2 as const,

@@ -81,6 +81,7 @@ function normalizeWorkspace(ws: WorkspaceV1 | WorkspaceV2): WorkspaceV2 {
       dedupInfo: legacy.dedupInfo,
       manuallySwapped: legacy.manuallySwapped,
       customCandidates: legacy.customCandidates,
+      rescuedMutationDetails: [],
     },
     ui: {
       tableSorting: legacy.tableSorting,
@@ -357,6 +358,10 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
         };
       });
 
+      const rescuedInfo = state.rescuedMutationDetails.length > 0
+        ? state.rescuedMutationDetails
+        : undefined;
+
       await sendRequest("export_excel", {
         filepath,
         mappings: enriched,
@@ -364,6 +369,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
         report_data: reportData,
         ...(benchmarkRaw ? { benchmark_raw: benchmarkRaw } : {}),
         ...(projectId ? { project_id: projectId, kuma_version: "0.02.02" } : {}),
+        ...(rescuedInfo ? { rescued_info: rescuedInfo } : {}),
       });
       set({ statusMessage: `Exported Excel: ${filepath}` });
     } catch (err) {
@@ -445,6 +451,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
         dedupInfo: s.dedupInfo,
         manuallySwapped: s.manuallySwapped,
         customCandidates: s.customCandidates,
+        rescuedMutationDetails: s.rescuedMutationDetails,
       },
       ui: {
         tableSorting: s.tableSorting,
@@ -544,6 +551,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
         return safe;
       })(),
       customCandidates: results.customCandidates ?? {},
+      rescuedMutationDetails: results.rescuedMutationDetails ?? [],
       selectedPolymerase: settings.selectedPolymerase ?? "Benchling",
       tmFwdTarget: settings.tmFwdTarget ?? 62,
       tmRevTarget: settings.tmRevTarget ?? 58,

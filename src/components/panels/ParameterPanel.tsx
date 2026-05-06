@@ -328,14 +328,14 @@ export function ParameterPanel() {
 
           {/* Design Behavior */}
           <div className="pt-1.5 text-caption uppercase tracking-wider text-muted-foreground">Design</div>
-          <label className="flex items-center gap-1 text-caption cursor-pointer" title="When ON, automatically fills the requested count from extra candidates when some mutations fail.">
+          <label className="flex items-center gap-1 text-caption cursor-pointer" title="When enabled, retries failed mutations through 4 (top-N) or 6 (pipeline) stages of relaxed parameters. When disabled, failed mutations remain as-is with no auto-retry.">
             <input
               type="checkbox"
               className="h-3 w-3 accent-primary"
               checked={fillOnFailure}
               onChange={(e) => setFillOnFailure(e.target.checked)}
             />
-            <span className="text-muted-foreground">Fill on failure</span>
+            <span className="text-muted-foreground">Auto-rescue failed mutations</span>
           </label>
         </div>
       )}

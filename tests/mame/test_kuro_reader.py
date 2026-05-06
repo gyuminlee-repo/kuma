@@ -28,3 +28,22 @@ def test_missing_expected_sheet_raises(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError):
         read_expected_mutations(bad)
+
+
+def test_read_expected_mutations_accepts_rescue_status_from_interim_exports(tmp_path: Path) -> None:
+    path = tmp_path / "KURO_rescue_status.xlsx"
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "expected_mutations"
+    ws.append([
+        "mutant_id", "position", "wt_aa", "mt_aa",
+        "wt_codon", "mt_codon", "group_id", "primer_set_ref",
+        "notation_type", "status", "rescue_type", "rescue_stage", "rescued_from",
+    ])
+    ws.append(["K53N", 53, "K", "N", "AAG", "AAC", "", "K53N", "substitution", "auto_suggestion_l2", "", "", ""])
+    ws.append(["E61Y", 61, "E", "Y", "GAA", "TAT", "", "E61Y", "substitution", "FAILED", "", "", ""])
+    wb.save(path)
+
+    result = read_expected_mutations(path)
+
+    assert expected_to_labels(result) == ["K53N"]

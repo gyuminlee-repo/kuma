@@ -33,6 +33,7 @@ from sidecar_kuro.core import (
 from kuma_core.kuro.plate_mapper import deduplicate_reverse, generate_plate_map
 from sidecar_kuro.models import (
     AlternativesResultModel,
+    CommitDesignResultParams,
     DesignResultResponseModel,
     DesignSdmPrimersParams,
     RetryFailedParams,
@@ -506,6 +507,49 @@ def handle_swap_primer(params: dict) -> dict:
                 )
         _rebuild_plate_state(_core._state.results)
     return _serialize_result_with_counts(new_best).to_rpc_dict()
+
+
+def handle_commit_design_result(params: dict) -> dict:
+    """Commit a candidate from _state.candidates into _state.results.
+
+    This is the backend counterpart to the frontend addDesignResult action.
+    Called after cascade-rescue (retry_failed_mutation) to push the chosen
+    candidate into _core._state.results so Excel export sees it.
+
+    If the mutation already exists in results it is replaced in-place;
+    otherwise it is appended.  Plate state is rebuilt in both cases.
+    """
+    p = CommitDesignResultParams(**params)
+
+    with _core._state_lock:
+        candidates = _core._state.candidates.get(p.mutation)
+        if not candidates:
+            raise ValueError(f"No candidates for mutation: {p.mutation}")
+        if p.candidate_idx >= len(candidates):
+            raise ValueError(f"Invalid candidate index: {p.candidate_idx}")
+        chosen = candidates[p.candidate_idx]
+        target_pos = chosen.mutation.position
+
+        replaced = False
+        for i, r in enumerate(_core._state.results):
+            if r.mutation.raw == p.mutation:
+                _core._state.results[i] = chosen
+                replaced = True
+            elif r.mutation.position == target_pos:
+                _core._state.results[i] = dc_replace(
+                    r,
+                    reverse_seq=chosen.reverse_seq,
+                    reverse_binding=chosen.reverse_binding,
+                    tm_rev=chosen.tm_rev,
+                    rev_len=chosen.rev_len,
+                    gc_rev=chosen.gc_rev,
+                )
+        if not replaced:
+            _core._state.results.append(chosen)
+
+        _rebuild_plate_state(_core._state.results)
+
+    return _serialize_result_with_counts(chosen).to_rpc_dict()
 
 
 def handle_evaluate_primer(params: dict) -> dict:

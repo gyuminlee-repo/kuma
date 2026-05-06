@@ -13,7 +13,7 @@ Usage in handlers::
     # access as p.fasta_path, p.polymerase, etc.
 """
 
-from typing import Annotated, Any, Literal, Optional
+from typing import Any, Literal, Optional
 
 from typing_extensions import TypedDict
 
@@ -107,6 +107,10 @@ class SwapPrimerParams(BaseModel):
     candidate_idx: int = Field(default=0, ge=0)
     swap_type: Literal["both", "fwd", "rev"] = "both"
 
+class CommitDesignResultParams(BaseModel):
+    mutation: str = ""
+    candidate_idx: int = Field(default=0, ge=0)
+
 
 class EvaluatePrimerParams(BaseModel):
     mutation: str = "custom"
@@ -168,9 +172,21 @@ class FailedMutationModel(WorkspaceModel):
 class RescuedMutationModel(WorkspaceModel):
     original: str
     rescued_by: str
-    type: Literal["pool_cascade", "auto_relax"]
+    type: Literal[
+        "pool_cascade",
+        "auto_relax",
+        "auto_suggestion",
+        "same_position",
+        "diff_position",
+        "auto_suggestion_l1",
+        "auto_suggestion_l2",
+        "auto_suggestion_l3",
+        "auto_suggestion_l4",
+    ]
     penalty: Optional[float] = None
     tolerance_used: Optional[float] = None
+    stage: Optional[int] = None
+    substitute: Optional[str] = None
 
 
 class RescueStatsModel(WorkspaceModel):
@@ -369,6 +385,7 @@ class WorkspaceResultsModel(WorkspaceModel):
     dedupInfo: dict[str, list[str]]
     manuallySwapped: dict[str, Literal["fwd", "rev", "both"]]
     customCandidates: dict[str, list[SdmPrimerResultModel]]
+    rescuedMutationDetails: Optional[list[RescuedMutationModel]] = None
 
 
 class WorkspaceUiModel(WorkspaceModel):
@@ -443,11 +460,22 @@ class WorkspaceV2Data(WorkspaceModel):
     cache: Optional[WorkspaceCacheModel] = None
 
 
-WorkspaceDataModel = Annotated[WorkspaceV1Data | WorkspaceV2Data, Field(discriminator="version")]
+class WorkspaceV3Data(WorkspaceModel):
+    schema_version: Literal["0.3"]
+    inputs: WorkspaceInputsModel
+    settings: WorkspaceSettingsModel
+    results: WorkspaceResultsModel
+    ui: WorkspaceUiModel
+    cache: Optional[WorkspaceCacheModel] = None
+    rounds: list[Any] = Field(default_factory=list)
+    active_round_id: Optional[str] = None
+
+
+WorkspaceDataModel = WorkspaceV1Data | WorkspaceV2Data | WorkspaceV3Data
 _WORKSPACE_DATA_ADAPTER = TypeAdapter(WorkspaceDataModel)
 
 
-def validate_workspace_data(data: Any) -> WorkspaceV1Data | WorkspaceV2Data:
+def validate_workspace_data(data: Any) -> WorkspaceV1Data | WorkspaceV2Data | WorkspaceV3Data:
     """Validate versioned workspace payloads against the sidecar contract."""
     return _WORKSPACE_DATA_ADAPTER.validate_python(data)
 
@@ -460,6 +488,7 @@ class ExportExcelParams(BaseModel):
     kuma_version: Optional[str] = None
     report_data: Optional[Any] = None
     benchmark_raw: Optional[Any] = None
+    rescued_info: Optional[list[RescuedMutationModel]] = None
 
 
 class ExportMappingParams(BaseModel):

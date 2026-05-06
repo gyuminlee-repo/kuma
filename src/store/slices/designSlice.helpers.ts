@@ -305,7 +305,19 @@ export function addDesignResultState(params: {
     candidate_rev_count: result.candidate_rev_count ?? 1,
   };
 
-  const nextDesignResults = [...designResults, fixedResult];
+  const nextDesignResults = [
+    ...designResults.map((r) => {
+      if (r.aa_position !== fixedResult.aa_position) return r;
+      return {
+        ...r,
+        reverse_seq: fixedResult.reverse_seq,
+        rev_len: fixedResult.rev_len,
+        tm_no_rev: fixedResult.tm_no_rev,
+        gc_rev: fixedResult.gc_rev,
+      };
+    }),
+    fixedResult,
+  ];
   const plateState = rebuildPlateStateFromResults({
     designResults: nextDesignResults,
     wellName,
