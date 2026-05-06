@@ -7,6 +7,7 @@ v0.3 Phase B additions:
   - MergeReplicatesStats dataclass (pydantic)
   - MergeStats.warnings field (default=[])
   - MergedRow.relative_activity field (default=None, Phase A adapter output)
+  - MergedRow.activity_merged_mean field (default=None, Phase B replicate merge result)
 """
 
 from __future__ import annotations
@@ -87,6 +88,10 @@ class MergedRow(BaseModel):
     # Phase A adapter output: compute_relative_activity result.
     # Default=None keeps existing workspace JSON (schema_version 0.3) loading safely.
     relative_activity: float | None = None
+    # Phase B: merge_replicates_priority result.
+    # None = replicate merge not performed or no variant mapping for this well.
+    # Default=None → existing workspace JSON (schema_version 0.3) round-trip safe.
+    activity_merged_mean: float | None = None
 
 
 class MergeStats(BaseModel):

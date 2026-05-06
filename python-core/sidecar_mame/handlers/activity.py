@@ -80,6 +80,18 @@ def _extract_mame_genotype(genotype: dict) -> dict[tuple[str, str], str]:
     return result
 
 
+def _is_wt_key(key: str) -> bool:
+    """Return True if *key* represents a WT entry.
+
+    Covers both plain 'WT' (EVOLVEpro convention) and 'WT_1'/'WT1' patterns
+    (well-level replicate names from normalize.WT_PATTERN).
+    Plain 'WT' is not matched by WT_PATTERN (which requires a numeric suffix),
+    so this function unions both checks.
+    """
+    from kuma_core.mame.activity.normalize import WT_PATTERN
+    return key == "WT" or bool(WT_PATTERN.match(key))
+
+
 # ---------------------------------------------------------------------------
 # Handlers
 # ---------------------------------------------------------------------------
@@ -244,14 +256,21 @@ def handle_merge_for_evolvepro(params: dict) -> dict:
         round_id (str): Round identifier. Must exist in _rounds state.
         prev_round_evolvepro (dict): {short_variant: activity} from round N-1.
             Pass {} for round 1.
-        mismatch_threshold (float, optional): Reserved for future
-            merge_replicates_priority integration. Accepted but not used in
-            the current implementation (swap detection only). Default 0.1.
+        authoritative_measurements (dict, optional): Phase B. short_variant →
+            list[float] re-measurement data. Empty dict skips replicate merge.
+        fallback_measurements (dict, optional): Phase B. short_variant →
+            list[float] primary measurement data.
+        mismatch_threshold (float, optional): Mean difference threshold for
+            mismatch flagging. Default 0.1.
+        ref_seq (str, optional): WT reference sequence for from_evolvepro
+            conversion. Required when authoritative or fallback measurements
+            are non-empty.
 
     Returns:
         {
           "merged": MergedRow[],
           "stats": MergeStats (includes warnings),
+          "replicate_stats": MergeReplicatesStats | null,
           "export_blocked": bool
         }
 
@@ -259,14 +278,54 @@ def handle_merge_for_evolvepro(params: dict) -> dict:
         RuntimeError(-32002): round_id not found.
         ExportBlockedError(-32004): SwapWarning with severity="error" detected.
         KeyError(-32602): required parameter missing.
+        ValueError(-32602): ref_seq missing when replicate data provided;
+            empty measurement list; from_evolvepro parse failure.
     """
     from kuma_core.mame.activity.join import merge_activity_with_genotype
-    from kuma_core.mame.activity.models import ActivityRecord, MergeStats, PlateMeta
+    from kuma_core.mame.activity.merge import merge_replicates_priority
+    from kuma_core.mame.activity.models import (
+        ActivityRecord,
+        MergeReplicatesStats,
+        MergeStats,
+        PlateMeta,
+        Variant,
+    )
     from kuma_core.mame.activity.sanity_check import detect_label_swap
+    from kuma_core.mame.activity.variant_notation import from_evolvepro
 
     round_id: str = params["round_id"]  # KeyError → -32602 via dispatcher
     prev_round_evolvepro: dict[str, float] = params.get("prev_round_evolvepro", {})
-    _ = float(params.get("mismatch_threshold", 0.1))  # reserved for future merge_replicates_priority integration
+    authoritative_measurements: dict[str, list[float]] = params.get(
+        "authoritative_measurements", {}
+    ) or {}
+    fallback_measurements: dict[str, list[float]] = params.get(
+        "fallback_measurements", {}
+    ) or {}
+    mismatch_threshold: float = float(params.get("mismatch_threshold", 0.1))
+    ref_seq: str | None = params.get("ref_seq")
+
+    # Fast-fail: replicate data provided but ref_seq missing.
+    has_replicate_data = bool(authoritative_measurements or fallback_measurements)
+    if has_replicate_data and not ref_seq:
+        raise ValueError(
+            "ref_seq required when authoritative_measurements or "
+            "fallback_measurements are provided"
+        )
+
+    # WT key filtering (OQ-3 decision): remove WT entries before passing to
+    # merge_replicates_priority. WT is reference baseline, not a variant.
+    # Covers plain 'WT' (EVOLVEpro convention) and 'WT_N'/'WTN' patterns.
+    if has_replicate_data:
+        authoritative_measurements = {
+            k: v for k, v in authoritative_measurements.items()
+            if not _is_wt_key(k)
+        }
+        fallback_measurements = {
+            k: v for k, v in fallback_measurements.items()
+            if not _is_wt_key(k)
+        }
+        # Re-evaluate after WT filtering: both may be empty now.
+        has_replicate_data = bool(authoritative_measurements or fallback_measurements)
 
     with _rounds_lock:
         rd = _get_round(round_id)  # RuntimeError → -32002 via dispatcher
@@ -286,8 +345,38 @@ def handle_merge_for_evolvepro(params: dict) -> dict:
             kuro_design, mame_genotype, activity_records, plate_meta
         )
 
+        # Phase B replicate merge (skipped when no replicate data provided).
+        replicate_stats: MergeReplicatesStats | None = None
+        if has_replicate_data:
+            # Convert short EVOLVEpro notation → internal notation.
+            # ValueError from from_evolvepro (bad notation) → -32602 via dispatcher.
+            # ref_seq is guaranteed non-None here (checked above).
+            assert ref_seq is not None  # type narrowing for pyright
+            authoritative_internal: dict[Variant, list[float]] = {
+                Variant(from_evolvepro(k, ref_seq)): v
+                for k, v in authoritative_measurements.items()
+            }
+            fallback_internal: dict[Variant, list[float]] = {
+                Variant(from_evolvepro(k, ref_seq)): v
+                for k, v in fallback_measurements.items()
+            }
+
+            # ValueError (empty list) → -32602 via dispatcher.
+            merged_dict, replicate_stats = merge_replicates_priority(
+                authoritative_internal,
+                fallback_internal,
+                mismatch_threshold=mismatch_threshold,
+            )
+
+            # Map merged values onto MergedRow.activity_merged_mean.
+            for row in rows:
+                if row.mutation is not None:
+                    v_key = Variant(row.mutation)
+                    if v_key in merged_dict:
+                        row.activity_merged_mean = merged_dict[v_key]
+
         # Build activity_map: well_id → mean activity (for swap detection).
-        # activity_raw_mean is the best proxy available from the merge output.
+        # activity_raw_mean is used per D-2 decision (OQ-2: no change).
         activity_map: dict[str, float] = {}
         for row in rows:
             if row.activity_raw_mean is not None:
@@ -323,6 +412,9 @@ def handle_merge_for_evolvepro(params: dict) -> dict:
     result: dict[str, Any] = {
         "merged": merged_dicts,
         "stats": stats_with_warnings.model_dump(),
+        "replicate_stats": (
+            replicate_stats.__dict__ if replicate_stats is not None else None
+        ),
         "export_blocked": export_blocked,
     }
 

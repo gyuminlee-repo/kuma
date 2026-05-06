@@ -47,6 +47,8 @@ export interface MergedRow {
   log2_fc: number | null
   /** Phase A adapter output from compute_relative_activity. undefined = not yet computed. */
   relative_activity?: number | null
+  /** Phase B: merge_replicates_priority result. undefined/null = replicate merge not performed. */
+  activity_merged_mean?: number | null
 }
 
 // B-4 models.py SwapWarning mirror
@@ -92,4 +94,60 @@ export interface RelativeActivityRecord {
   sample_name: string
   area: number
   is_relative: true
+}
+
+// ─── Phase B RPC interfaces ───────────────────────────────────────────────────
+
+/**
+ * Params for mame.activity.merge_for_evolvepro RPC.
+ * New fields (authoritative_measurements, fallback_measurements, ref_seq)
+ * are optional — omitting them preserves the 5/12 demo path behaviour.
+ */
+export interface MergeForEvolveproParams {
+  /** Round identifier. Must exist in _rounds state. */
+  round_id: string
+
+  /** EVOLVEpro results from the previous round. Pass {} for round 1. */
+  prev_round_evolvepro: Record<string, number>
+
+  /**
+   * Phase B: re-measurement data. short_variant → replicate value list.
+   * Omit or pass {} to skip merge_replicates_priority (5/12 demo path).
+   * Passing a variant with an empty array raises -32602.
+   */
+  authoritative_measurements?: Record<string, number[]>
+
+  /**
+   * Phase B: primary measurement data. Fills variants absent from authoritative.
+   * Omit or pass {} is allowed.
+   */
+  fallback_measurements?: Record<string, number[]>
+
+  /**
+   * Mean difference threshold for mismatch flagging. Default 0.1.
+   */
+  mismatch_threshold?: number
+
+  /**
+   * WT reference sequence for EVOLVEpro → internal notation conversion.
+   * Required when authoritative_measurements or fallback_measurements are non-empty.
+   */
+  ref_seq?: string
+}
+
+/**
+ * Response from mame.activity.merge_for_evolvepro RPC.
+ */
+export interface MergeForEvolveproResponse {
+  /** Well-level merge results. activity_merged_mean field populated when replicate merge ran. */
+  merged: MergedRow[]
+
+  /** Well-level merge statistics including label-swap warnings. */
+  stats: MergeStats
+
+  /** Variant-level replicate merge statistics. null when replicate merge was skipped. */
+  replicate_stats: MergeReplicatesStats | null
+
+  /** true when a SwapWarning with severity="error" was detected. Export is blocked. */
+  export_blocked: boolean
 }

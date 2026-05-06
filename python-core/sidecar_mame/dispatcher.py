@@ -29,10 +29,12 @@ from sidecar_mame.handlers.report import handle_export_run_report
 from sidecar_mame.handlers.demux import handle_demux_and_filter
 from sidecar_mame.handlers.health import handle_get_run_health
 from sidecar_mame.handlers.activity import (
-    handle_activity_upload,
-    handle_activity_set_plate_meta,
-    handle_activity_merge,
+    ExportBlockedError,
     handle_activity_export_evolvepro_csv,
+    handle_activity_merge,
+    handle_activity_set_plate_meta,
+    handle_activity_upload,
+    handle_merge_for_evolvepro,
 )
 
 # Phase A handler registry.
@@ -57,6 +59,8 @@ _METHODS = {
     "activity.set_plate_meta": handle_activity_set_plate_meta,
     "activity.merge": handle_activity_merge,
     "activity.export_evolvepro_csv": handle_activity_export_evolvepro_csv,
+    # Phase B: replicate merge + label-swap guard
+    "mame.activity.merge_for_evolvepro": handle_merge_for_evolvepro,
 }
 
 # Long-running handlers run on a worker thread so stdin keeps draining.
@@ -70,6 +74,11 @@ def _dispatch_handler(
     try:
         result = handler(params)
         _ok(req_id, result)
+    except ExportBlockedError as exc:
+        # ExportBlockedError is a RuntimeError subclass — must be caught before
+        # the generic RuntimeError branch so it maps to -32004 (not -32002).
+        _append_crash_log(method, str(params)[:200], traceback.format_exc())
+        _error(req_id, -32004, str(exc))
     except FileNotFoundError as exc:
         _append_crash_log(method, str(params)[:200], traceback.format_exc())
         _error(req_id, -32001, str(exc))
