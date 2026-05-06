@@ -26,6 +26,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { RoundMetrics } from "@/types/round-metrics";
+import type { MergeStats, MergeReplicatesStats, SwapWarning } from "@/types/mame/activity";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -153,6 +154,130 @@ function buildSignalRows(m: RoundMetrics): SignalRowData[] {
 // ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// SwapWarningBanner
+// ---------------------------------------------------------------------------
+
+/**
+ * severity별 배지 카운트를 표시하고 각 경고 항목을 title 속성으로 노출.
+ * error count > 0 이면 aria-live="assertive" 알림 포함.
+ */
+export function SwapWarningBanner({ warnings }: { warnings: SwapWarning[] }) {
+  if (warnings.length === 0) return null;
+
+  const errorCount = warnings.filter((w) => w.severity === "error").length;
+  const warnCount = warnings.filter((w) => w.severity === "warning").length;
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      {errorCount > 0 && (
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-300"
+        >
+          <span className="mt-0.5 shrink-0 font-bold" aria-hidden="true">🚫</span>
+          <span>
+            <strong>내보내기 차단 — {errorCount}건의 라벨 교체 오류가 감지되었습니다.</strong>
+          </span>
+        </div>
+      )}
+      <div className="flex flex-wrap gap-1.5" aria-label="라벨 교체 경고 목록">
+        {errorCount > 0 && (
+          <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900 dark:text-red-200">
+            오류 {errorCount}건
+          </span>
+        )}
+        {warnCount > 0 && (
+          <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+            경고 {warnCount}건
+          </span>
+        )}
+      </div>
+      <ul className="space-y-1" aria-label="경고 상세">
+        {warnings.map((w, idx) => (
+          <li
+            key={idx}
+            title={`${w.message}\n변이: ${w.variants.join(", ")}\n웰: ${w.wells.join(", ")}`}
+            className={cn(
+              "cursor-help rounded px-2 py-1 text-xs",
+              w.severity === "error"
+                ? "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300"
+                : "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
+            )}
+          >
+            <span className="font-medium">[{w.code}]</span> {w.message}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ReplicateMergeStats
+// ---------------------------------------------------------------------------
+
+/**
+ * replicate merge 통계 4항목을 표시.
+ * replicateStats가 null이면 렌더하지 않음 (5/12 demo 경로 회귀 안전).
+ * mismatched > 0이면 amber accent + tooltip에 변이 목록.
+ */
+export function ReplicateMergeStats({ replicateStats }: { replicateStats: MergeReplicatesStats }) {
+  const hasMismatched = replicateStats.mismatched.length > 0;
+
+  return (
+    <div
+      className="rounded-md border border-border bg-muted/30 px-3 py-2"
+      aria-label="Replicate merge 통계"
+    >
+      <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+        Replicate 병합
+      </p>
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs sm:grid-cols-4">
+        <div className="flex flex-col">
+          <dt className="text-muted-foreground">재측정</dt>
+          <dd className="font-mono font-medium">{replicateStats.authoritative_count}</dd>
+        </div>
+        <div className="flex flex-col">
+          <dt className="text-muted-foreground">1차측정</dt>
+          <dd className="font-mono font-medium">{replicateStats.fallback_count}</dd>
+        </div>
+        <div className="flex flex-col">
+          <dt className="text-muted-foreground">병합</dt>
+          <dd className="font-mono font-medium">{replicateStats.merged_count}</dd>
+        </div>
+        <div className="flex flex-col">
+          <dt className="text-muted-foreground">불일치</dt>
+          <dd
+            className={cn(
+              "font-mono font-medium",
+              hasMismatched
+                ? "text-amber-700 dark:text-amber-300"
+                : undefined
+            )}
+            title={
+              hasMismatched
+                ? `불일치 변이: ${replicateStats.mismatched.join(", ")}`
+                : undefined
+            }
+          >
+            {replicateStats.mismatched.length}
+            {hasMismatched && (
+              <span
+                className="ml-1 inline-flex items-center rounded-full bg-amber-100 px-1 py-0.5 text-[9px] text-amber-800 dark:bg-amber-900 dark:text-amber-200"
+                aria-label={`불일치 변이: ${replicateStats.mismatched.join(", ")}`}
+              >
+                !
+              </span>
+            )}
+          </dd>
+        </div>
+      </dl>
+    </div>
+  );
+}
 
 function CalibrationBanner() {
   return (
@@ -283,6 +408,18 @@ export interface RoundSummaryPanelProps {
    * live backend RPC call. Use for 5/12 demo only (Option B, Task 8.5).
    */
   demoMode?: boolean;
+  /**
+   * Phase C: merge_for_evolvepro RPC 응답의 stats 필드.
+   * warnings 배열이 비어있지 않으면 SwapWarningBanner를 렌더.
+   * 기존 호출 회귀 방지를 위해 optional.
+   */
+  mergeStats?: MergeStats | null;
+  /**
+   * Phase C: merge_for_evolvepro RPC 응답의 replicate_stats 필드.
+   * null이면 ReplicateMergeStats를 렌더하지 않음.
+   * 기존 호출 회귀 방지를 위해 optional.
+   */
+  replicateStats?: MergeReplicatesStats | null;
   className?: string;
 }
 
@@ -296,7 +433,17 @@ export interface RoundSummaryPanelProps {
  *
  * Spec: §12-A.1 (signals), §12-A.5 (calibration mode), §12-A.6 (5/12 scope).
  */
-export function RoundSummaryPanel({ metrics, demoMode = false, className }: RoundSummaryPanelProps) {
+export function RoundSummaryPanel({
+  metrics,
+  demoMode = false,
+  mergeStats,
+  replicateStats,
+  className,
+}: RoundSummaryPanelProps) {
+  const warnings = mergeStats?.warnings ?? [];
+  const errorCount = warnings.filter((w) => w.severity === "error").length;
+  const hasErrors = errorCount > 0;
+
   return (
     <section
       aria-labelledby="round-summary-heading"
@@ -316,6 +463,14 @@ export function RoundSummaryPanel({ metrics, demoMode = false, className }: Roun
               demo
             </span>
           )}
+          {hasErrors && (
+            <span
+              aria-live="assertive"
+              className="rounded bg-red-100 px-1 py-0.5 text-[9px] font-medium text-red-700 dark:bg-red-900 dark:text-red-300"
+            >
+              내보내기 차단 — {errorCount}건의 라벨 교체 오류
+            </span>
+          )}
         </h3>
         {metrics != null && (
           <span className="text-[10px] text-muted-foreground">
@@ -326,6 +481,14 @@ export function RoundSummaryPanel({ metrics, demoMode = false, className }: Roun
       </div>
 
       <CalibrationBanner />
+
+      {warnings.length > 0 && (
+        <SwapWarningBanner warnings={warnings} />
+      )}
+
+      {replicateStats != null && (
+        <ReplicateMergeStats replicateStats={replicateStats} />
+      )}
 
       {metrics == null ? (
         <p

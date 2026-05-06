@@ -37,6 +37,7 @@ function makeActivityStore(overrides: Partial<ActivitySlice> = {}) {
     mergeError: null,
     exportError: null,
     lastMergeStats: null,
+    lastReplicateStats: null,
     uploadActivityFile: vi.fn(),
     setPlateMeta: mockSetPlateMeta,
     mergeActivity: vi.fn(),

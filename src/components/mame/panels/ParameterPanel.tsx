@@ -19,10 +19,11 @@ import { RoundHandoffButton } from "@/components/round/RoundHandoffButton";
 import { RoundSummaryPanel } from "@/components/round/RoundSummaryPanel";
 import { useActivityStore, type ActivitySlice } from "@/store/mame/activitySlice";
 import type { RoundMetrics } from "@/types/round-metrics";
-import type { MergeStats } from "@/types/mame/activity";
+import type { MergeStats, SwapWarning } from "@/types/mame/activity";
 import { useRoundStore } from "@/store/round/roundSlice";
 import { useStore } from "zustand";
 import { save } from "@tauri-apps/plugin-dialog";
+import { isExportBlockedError } from "@/lib/errors";
 
 const METHOD_LABELS: Record<DistributionStats["suggested_method"], string> = {
   median_minus_2sigma: "median − 2σ",
@@ -411,6 +412,46 @@ function RawRunParamPanel() {
 
 
 // ---------------------------------------------------------------------------
+// ExportBlockedErrorDisplay — 라벨 교체 감지 시 강화 에러 표시.
+// ---------------------------------------------------------------------------
+
+function ExportBlockedErrorDisplay({
+  warnings,
+}: {
+  warnings: SwapWarning[];
+}) {
+  const allVariants = Array.from(
+    new Set(warnings.flatMap((w) => w.variants))
+  );
+
+  return (
+    <div
+      role="alert"
+      className="rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-xs dark:border-red-800 dark:bg-red-950"
+    >
+      <p className="font-semibold text-red-800 dark:text-red-300">
+        내보내기 차단 — 라벨 교체 감지
+      </p>
+      {allVariants.length > 0 && (
+        <div className="mt-1.5 flex flex-wrap gap-1">
+          {allVariants.map((v) => (
+            <code
+              key={v}
+              className="rounded bg-red-100 px-1 py-0.5 font-mono text-[10px] text-red-700 dark:bg-red-900 dark:text-red-200"
+            >
+              {v}
+            </code>
+          ))}
+        </div>
+      )}
+      <p className="mt-1.5 text-red-700 dark:text-red-400">
+        이전 라운드 EVOLVEpro 결과와 비교해 같은 활성값을 가진 변이의 라벨 매핑을 확인하세요.
+      </p>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Demo helper — builds a synthetic RoundMetrics from MergeStats.
 // Used when no backend RPC is available (5/12 demo, Option B).
 // Clearly labelled "(demo)" in the panel header to avoid confusion with real data.
@@ -453,6 +494,7 @@ function ActivityDataSection() {
   const isExporting = useStore(activityStore, (s: ActivitySlice) => s.isExporting);
   const mergeError = useStore(activityStore, (s: ActivitySlice) => s.mergeError);
   const lastMergeStats = useStore(activityStore, (s: ActivitySlice) => s.lastMergeStats);
+  const lastReplicateStats = useStore(activityStore, (s: ActivitySlice) => s.lastReplicateStats);
   const exportError = useStore(activityStore, (s: ActivitySlice) => s.exportError);
   const mergeActivity = useStore(activityStore, (s: ActivitySlice) => s.mergeActivity);
   const exportEvolveproCsv = useStore(activityStore, (s: ActivitySlice) => s.exportEvolveproCsv);
@@ -497,9 +539,15 @@ function ActivityDataSection() {
         </Button>
 
         {mergeError && (
-          <div role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-caption text-destructive">
-            {mergeError}
-          </div>
+          isExportBlockedError(mergeError) ? (
+            <ExportBlockedErrorDisplay
+              warnings={lastMergeStats?.warnings ?? []}
+            />
+          ) : (
+            <div role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-caption text-destructive">
+              {mergeError}
+            </div>
+          )
         )}
 
         <Button
@@ -516,9 +564,15 @@ function ActivityDataSection() {
         </Button>
 
         {exportError && (
-          <div role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-caption text-destructive">
-            {exportError}
-          </div>
+          isExportBlockedError(exportError) ? (
+            <ExportBlockedErrorDisplay
+              warnings={lastMergeStats?.warnings ?? []}
+            />
+          ) : (
+            <div role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-caption text-destructive">
+              {exportError}
+            </div>
+          )
         )}
 
         {activeRoundId && (
@@ -537,6 +591,8 @@ function ActivityDataSection() {
           ? buildDemoMetrics(lastMergeStats, activeRoundId)
           : null}
         demoMode={lastMergeStats != null}
+        mergeStats={lastMergeStats}
+        replicateStats={lastReplicateStats}
         className="pt-2 border-t border-border"
       />
     </section>

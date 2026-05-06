@@ -12,6 +12,7 @@ import { sendRequest } from "@/lib/ipc-mame"
 import { formatError } from "@/lib/utils"
 import type {
   ActivityRecord,
+  MergeReplicatesStats,
   MergeStats,
   MergedRow,
   PlateMeta,
@@ -46,6 +47,12 @@ export interface ActivitySliceState {
   mergeError: string | null
   exportError: string | null
   lastMergeStats: MergeStats | null
+  /**
+   * Phase B: replicate merge 통계.
+   * merge_for_evolvepro RPC wire-up 후 채워짐.
+   * 현재는 null 초기화만 (placeholder for v0.3 Phase C wire-up).
+   */
+  lastReplicateStats: MergeReplicatesStats | null
 }
 
 export interface ActivitySliceActions {
@@ -91,6 +98,7 @@ export function createActivityStore(roundStore: RoundStoreRef) {
     mergeError: null,
     exportError: null,
     lastMergeStats: null,
+    lastReplicateStats: null,
 
     uploadActivityFile: async (round_id, file_path, format) => {
       set({ isUploading: true, uploadError: null })
