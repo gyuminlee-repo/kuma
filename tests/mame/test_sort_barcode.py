@@ -514,3 +514,67 @@ class TestSortBarcodeRun:
         # Headers should be read IDs, not well names.
         for h in headers:
             assert h != "A01", f"Header should be read_id, not well name: {h}"
+
+
+# ---------------------------------------------------------------------------
+# Security tests: path traversal + nb_override validation
+# ---------------------------------------------------------------------------
+
+
+class TestSecurityPathTraversal:
+    def test_sort_barcode_rejects_path_traversal(
+        self, barcode_xlsx: Path, tmp_path: Path
+    ) -> None:
+        """output_dir with '..' component must raise ValueError before any I/O."""
+        run_dir = tmp_path / "run"
+        (run_dir / "fastq_pass" / "barcode06").mkdir(parents=True)
+
+        # Construct an output_dir whose Path.parts contains '..'
+        traversal_dir = tmp_path / "foo" / ".." / "etc" / "sort"
+        with pytest.raises(ValueError, match="[Pp]ath traversal"):
+            sort_barcode_run(
+                minknow_run_dir=run_dir,
+                custom_barcode_xlsx=barcode_xlsx,
+                output_dir=traversal_dir,
+            )
+
+    def test_sort_barcode_rejects_nb_override_with_slash(
+        self, run_dir_single_nb: tuple[Path, Path], tmp_path: Path
+    ) -> None:
+        """nb_override entry containing '/' must raise ValueError."""
+        run_dir, xlsx = run_dir_single_nb
+        with pytest.raises(ValueError, match="plain directory name"):
+            sort_barcode_run(
+                minknow_run_dir=run_dir,
+                custom_barcode_xlsx=xlsx,
+                output_dir=tmp_path / "out",
+                nb_override=["barcode06/../../../etc"],
+            )
+
+    def test_sort_barcode_rejects_nb_override_with_traversal_basename(
+        self, run_dir_single_nb: tuple[Path, Path], tmp_path: Path
+    ) -> None:
+        """nb_override entry of '..' must raise ValueError."""
+        run_dir, xlsx = run_dir_single_nb
+        with pytest.raises(ValueError, match="plain directory name"):
+            sort_barcode_run(
+                minknow_run_dir=run_dir,
+                custom_barcode_xlsx=xlsx,
+                output_dir=tmp_path / "out",
+                nb_override=[".."],
+            )
+
+    def test_validate_combinatorial_xlsx_path_traversal(
+        self, tmp_path: Path
+    ) -> None:
+        """custom_barcode_xlsx path with '..' must raise ValueError."""
+        run_dir = tmp_path / "run"
+        (run_dir / "fastq_pass" / "barcode06").mkdir(parents=True)
+
+        traversal_xlsx = tmp_path / "foo" / ".." / "secrets" / "barcodes.xlsx"
+        with pytest.raises(ValueError, match="[Pp]ath traversal"):
+            sort_barcode_run(
+                minknow_run_dir=run_dir,
+                custom_barcode_xlsx=traversal_xlsx,
+                output_dir=tmp_path / "out",
+            )

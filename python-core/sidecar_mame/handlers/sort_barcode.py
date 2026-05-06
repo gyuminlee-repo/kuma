@@ -51,11 +51,14 @@ def handle_sort_barcode_run(params: dict) -> dict:
     barcodes_path_raw = params.get("custom_barcodes_path")
     if not barcodes_path_raw:
         raise ValueError("'custom_barcodes_path' is required")
-    barcodes_path = Path(str(barcodes_path_raw)).resolve()
-    if ".." in barcodes_path.parts:
+    # Check for ".." BEFORE resolve() — resolve() eliminates ".." components,
+    # making a post-resolve check dead code (mirrors core._validate_dirpath pattern).
+    _barcodes_pre = Path(str(barcodes_path_raw))
+    if ".." in _barcodes_pre.parts:
         raise ValueError(
             f"Path traversal not allowed in custom_barcodes_path: {barcodes_path_raw}"
         )
+    barcodes_path = _barcodes_pre.resolve()
     if not barcodes_path.exists():
         raise FileNotFoundError(f"custom_barcodes_path not found: {barcodes_path}")
 
@@ -63,9 +66,10 @@ def handle_sort_barcode_run(params: dict) -> dict:
     output_dir_raw = params.get("output_dir")
     if not output_dir_raw:
         raise ValueError("'output_dir' is required")
-    output_dir = Path(str(output_dir_raw)).resolve()
-    if ".." in output_dir.parts:
+    _output_pre = Path(str(output_dir_raw))
+    if ".." in _output_pre.parts:
         raise ValueError(f"Path traversal not allowed in output_dir: {output_dir_raw}")
+    output_dir = _output_pre.resolve()
     if not output_dir.parent.exists():
         raise FileNotFoundError(
             f"Parent of output_dir does not exist: {output_dir.parent}"
@@ -78,6 +82,20 @@ def handle_sort_barcode_run(params: dict) -> dict:
     if nb_override_raw is not None:
         if not isinstance(nb_override_raw, list):
             raise ValueError("'nb_override' must be a JSON array of strings")
+        # WARNING fix: validate each entry is a plain basename before forwarding
+        # to the core.  The core also validates, but fail-fast here avoids I/O.
+        for entry in nb_override_raw:
+            entry_str = str(entry)
+            if (
+                not entry_str
+                or "/" in entry_str
+                or "\\" in entry_str
+                or "\x00" in entry_str
+                or entry_str in (".", "..")
+            ):
+                raise ValueError(
+                    f"nb_override entry must be a plain directory name: {entry!r}"
+                )
         nb_override = [str(x) for x in nb_override_raw]
 
     error_tolerance = float(params.get("error_tolerance", 0.1))

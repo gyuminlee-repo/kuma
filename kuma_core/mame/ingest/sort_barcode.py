@@ -275,7 +275,7 @@ def _sort_one_nb(
     error_tolerance: float,
     fwd_seqs: list[tuple[int, str]],       # [(c_idx, fwd_seq)]  c_idx 1-based
     rev_rc_seqs: list[tuple[int, str]],    # [(r_idx, rev_rc)]   r_idx 1-based
-) -> dict[str, int]:
+) -> tuple[dict[str, int], int]:
     """Demux a single NB directory into per-well FASTA files.
 
     Parameters
@@ -287,7 +287,9 @@ def _sort_one_nb(
 
     Returns
     -------
-    ``dict[str, int]``: per-well read counts.
+    ``(per_well_counts, n_total_reads)``:
+        per_well_counts — dict mapping well_id to assigned read count.
+        n_total_reads   — total reads seen (assigned + unassigned).
     """
     output_nb_dir.mkdir(parents=True, exist_ok=True)
 
@@ -309,11 +311,13 @@ def _sort_one_nb(
         )
 
     per_well_counts: dict[str, int] = {}
+    n_nb_reads = 0
     writers: dict[str, object] = {}  # lazy-open file handles
 
     try:
         for fastq_path in fastq_files:
             for read_id, seq in _iter_fastq_records(fastq_path):
+                n_nb_reads += 1
                 # ── Forward barcode match (5' prefix) ────────────────────
                 best_c: int | None = None
                 best_fwd_dist = 999
@@ -363,7 +367,7 @@ def _sort_one_nb(
         for fh in writers.values():
             fh.close()  # type: ignore[union-attr]
 
-    return per_well_counts
+    return per_well_counts, n_nb_reads
 
 
 # ---------------------------------------------------------------------------
@@ -419,9 +423,11 @@ def sort_barcode_run(
     """
     _ = use_cutadapt  # reserved; combinatorial matching is always pure-Python
     # ── Input validation ──────────────────────────────────────────────────
-    minknow_run_dir = minknow_run_dir.resolve()
+    # Check for ".." BEFORE resolve() — resolve() normalises ".." away,
+    # making the check a dead-code no-op if done afterwards.
     if ".." in minknow_run_dir.parts:
         raise ValueError(f"Path traversal not allowed in minknow_run_dir: {minknow_run_dir}")
+    minknow_run_dir = minknow_run_dir.resolve()
     if not minknow_run_dir.exists():
         raise FileNotFoundError(f"minknow_run_dir not found: {minknow_run_dir}")
 
@@ -429,11 +435,11 @@ def sort_barcode_run(
     if not fastq_pass.exists():
         raise FileNotFoundError(f"fastq_pass/ not found: {fastq_pass}")
 
-    custom_barcode_xlsx = custom_barcode_xlsx.resolve()
     if ".." in custom_barcode_xlsx.parts:
         raise ValueError(
             f"Path traversal not allowed in custom_barcode_xlsx: {custom_barcode_xlsx}"
         )
+    custom_barcode_xlsx = custom_barcode_xlsx.resolve()
     if not custom_barcode_xlsx.exists():
         raise FileNotFoundError(f"custom_barcode_xlsx not found: {custom_barcode_xlsx}")
 
@@ -442,18 +448,34 @@ def sort_barcode_run(
             f"error_tolerance must be in [0.0, 0.5], got {error_tolerance!r}"
         )
 
-    output_dir = output_dir.resolve()
     if ".." in output_dir.parts:
         raise ValueError(f"Path traversal not allowed in output_dir: {output_dir}")
+    output_dir = output_dir.resolve()
 
     # ── Resolve NB directories ────────────────────────────────────────────
     if nb_override is not None:
         nb_dirs: list[Path] = []
         for name in nb_override:
-            candidate = (fastq_pass / name).resolve()
-            if ".." in candidate.parts:
+            # WARNING fix: validate entry is a plain basename (no path separators,
+            # no "..", no null bytes) before constructing a path from it.
+            if (
+                not name
+                or "/" in name
+                or "\\" in name
+                or "\x00" in name
+                or name in (".", "..")
+            ):
                 raise ValueError(
-                    f"Path traversal not allowed in nb_override entry: {name!r}"
+                    f"nb_override entry must be a plain directory name: {name!r}"
+                )
+            candidate = (fastq_pass / name).resolve()
+            # Boundary check: candidate must remain inside fastq_pass.
+            fastq_pass_resolved = fastq_pass.resolve()
+            try:
+                candidate.relative_to(fastq_pass_resolved)
+            except ValueError:
+                raise ValueError(
+                    f"nb_override entry escapes fastq_pass boundary: {name!r}"
                 )
             if not candidate.is_dir():
                 raise FileNotFoundError(
@@ -507,7 +529,7 @@ def sort_barcode_run(
         sb_out = output_dir / sb_name
 
         try:
-            per_well = _sort_one_nb(
+            per_well, n_nb_reads = _sort_one_nb(
                 nb_dir=nb_dir,
                 output_nb_dir=sb_out,
                 error_tolerance=error_tolerance,
@@ -519,15 +541,7 @@ def sort_barcode_run(
             skipped_nb_dirs.append(nb_dir.name)
             continue
 
-        # Count total reads from fastq files for this NB.
-        fastq_files = sorted(
-            list(nb_dir.rglob("*.fastq")) + list(nb_dir.rglob("*.fastq.gz"))
-        )
-        n_nb_reads = 0
-        for fq in fastq_files:
-            for _ in _iter_fastq_records(fq):
-                n_nb_reads += 1
-
+        # n_nb_reads comes from the single demux pass — no second rglob needed.
         nb_assigned = sum(per_well.values())
         n_total_reads += n_nb_reads
         n_total_assigned += nb_assigned
