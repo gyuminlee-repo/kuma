@@ -32,6 +32,10 @@
       "appimage",
       "dmg"
     ],
+    "macOS": {
+      "signingIdentity": "-",
+      "minimumSystemVersion": "11.0"
+    },
     "resources": {
       "samples/sample_evolvepro.csv": "samples/sample_evolvepro.csv",
       "samples/sample_plasmid.gb": "samples/sample_plasmid.gb",

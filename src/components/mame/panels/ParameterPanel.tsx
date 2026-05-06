@@ -24,6 +24,7 @@ import { useRoundStore } from "@/store/round/roundSlice";
 import { useStore } from "zustand";
 import { save } from "@tauri-apps/plugin-dialog";
 import { isExportBlockedError } from "@/lib/errors";
+import { useKumaProject } from "@/state/projectContext";
 
 const METHOD_LABELS: Record<DistributionStats["suggested_method"], string> = {
   median_minus_2sigma: "median − 2σ",
@@ -504,12 +505,25 @@ function ActivityDataSection() {
     (s) =>
       (s.rounds.find((r) => r.id === activeRoundId)?.activity?.records?.length ?? 0) > 0
   );
+  const roundN = useRoundStore(
+    (s) => s.rounds.find((r) => r.id === activeRoundId)?.n ?? null
+  );
+  const project = useKumaProject();
 
   async function handleExport() {
     if (!activeRoundId) return;
+    let defaultPath = "evolvepro_export.csv";
+    if (project && !project.scratch) {
+      const dir = project.path.replace(/\\/g, "/").replace(/\/$/, "");
+      const analysisDir = `${dir}/analysis`;
+      defaultPath =
+        roundN !== null
+          ? `${analysisDir}/round${roundN}_evolvepro.csv`
+          : `${analysisDir}/evolvepro_export.csv`;
+    }
     const filePath = await save({
       filters: [{ name: "CSV files", extensions: ["csv"] }],
-      defaultPath: "evolvepro_export.csv",
+      defaultPath,
       title: "Export EVOLVEpro CSV",
     });
     if (!filePath) return;

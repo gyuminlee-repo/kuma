@@ -100,8 +100,23 @@ The `stage` field (draft / design_complete / analyzing / done) is derived automa
 Download the latest installer from [Releases](https://github.com/gyuminlee-repo/kuma/releases).
 
 - **Windows**: `kuma_x.x.x_x64-setup.exe` (NSIS)
-- **macOS**: `kuma_x.x.x_x64.dmg`
+- **macOS**: `kuma_x.x.x_aarch64.dmg`
 - **Linux**: `.deb` + `.AppImage`
+
+### macOS — first-launch Gatekeeper notice
+
+kuma ships with ad-hoc code signing only (no paid Apple Developer ID). The first launch shows an "unidentified developer" warning. If the dialog instead says **"is damaged and can't be opened"**, the file picked up the quarantine bit during download — clear it once:
+
+```bash
+xattr -cr /Applications/kuma.app
+```
+
+Then bypass Gatekeeper one of these ways:
+
+1. Finder → right-click (Control-click) `kuma.app` → **Open** → **Open**
+2. System Settings → Privacy & Security → scroll to the kuma entry → **Open Anyway**
+
+Subsequent launches require no further action.
 
 ## Usage
 

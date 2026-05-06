@@ -92,6 +92,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # --- macOS ad-hoc signature verification ---
+      - name: Verify macOS ad-hoc signature
+        if: matrix.platform == 'macos-latest'
+        shell: bash
+        run: |
+          APP=$(find src-tauri/target -maxdepth 6 -name "kuma.app" | head -1)
+          test -n "$APP" || { echo "kuma.app not found"; exit 1; }
+          codesign --verify --deep --strict --verbose=2 "$APP" || exit 1
+          codesign --display --verbose=4 "$APP" 2>&1 | head -20
+
       # --- Upload artifacts ---
       - name: Upload build artifacts
         uses: actions/upload-artifact@v5

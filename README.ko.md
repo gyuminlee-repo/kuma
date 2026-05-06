@@ -99,8 +99,23 @@ EVOLVEpro 또는 MULTI-evolve CSV 로드 시 어떤 mutation을 프라이머 설
 [Releases](https://github.com/gyuminlee-repo/kuma/releases)에서 최신 인스톨러 다운로드.
 
 - **Windows**: `kuma_x.x.x_x64-setup.exe` (NSIS)
-- **macOS**: `kuma_x.x.x_x64.dmg`
+- **macOS**: `kuma_x.x.x_aarch64.dmg`
 - **Linux**: `.deb` + `.AppImage`
+
+### macOS — 첫 실행 시 Gatekeeper 경고
+
+kuma는 유료 Apple Developer ID 없이 ad-hoc 서명만 적용된다. 첫 실행 시 "확인되지 않은 개발자" 경고가 표시될 수 있다. 만약 **"손상되었기 때문에 열 수 없습니다"** 메시지가 뜨면 다운로드 시 quarantine bit가 붙은 것이므로 한 번만 풀어주면 된다:
+
+```bash
+xattr -cr /Applications/kuma.app
+```
+
+이어서 Gatekeeper는 다음 중 한 가지 방법으로 우회한다:
+
+1. Finder에서 `kuma.app` 우클릭(Control+클릭) → **열기** → **열기**
+2. 시스템 설정 → 개인정보 보호 및 보안 → kuma 항목 → **그래도 열기**
+
+이후 실행부터는 경고 없이 열린다.
 
 ## 사용법
 
