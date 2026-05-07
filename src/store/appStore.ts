@@ -5,6 +5,7 @@ import { createDiversitySlice } from "./slices/diversitySlice";
 import { createInputSlice } from "./slices/inputSlice";
 import { createDesignSlice } from "./slices/designSlice";
 import { createExportSlice } from "./slices/exportSlice";
+import { createNetworkConsentSlice } from "./slices/networkConsentSlice";
 import type { AppState } from "./types";
 export type { AppState };
 
@@ -21,5 +22,6 @@ export const useAppStore = create<AppState>()((...a) => {
     ...createInputSlice(...a),
     ...createDesignSlice(...a),
     ...createExportSlice(...a),
+    ...createNetworkConsentSlice(...a),
   };
 });

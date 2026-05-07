@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { listen } from "@tauri-apps/api/event";
 import { rpc, type SidecarKind } from "@/lib/ipc";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useKumaProject } from "@/state/projectContext";
@@ -9,6 +10,8 @@ import { useAutosaveHydration, type HydrationStatusMessage } from "@/hooks/useAu
 import { Spinner } from "@/components/ui/Spinner";
 import { KuroTab } from "./KuroTab";
 import { MameTab } from "./MameTab";
+import { useAppStore } from "@/store/appStore";
+import { useMameAppStore } from "@/store/mame/mameAppStore";
 
 // ─── 상대 시간 포맷 헬퍼 ──────────────────────────────────────────────────
 
@@ -52,6 +55,16 @@ export function MainShell() {
     setStatusMessage(msg);
     msgTimerRef.current = setTimeout(() => setStatusMessage(""), 4000);
   }, []);
+
+  // ── 두 번째 인스턴스 시도 알림
+  useEffect(() => {
+    const unlisten = listen("second-instance-attempted", () => {
+      showStatusMessage("이미 실행 중입니다.");
+    });
+    return () => {
+      void unlisten.then((fn) => fn());
+    };
+  }, [showStatusMessage]);
 
   // ── autosave 인디케이터 상태
   const [autosaveState, setAutosaveState] = useState<AutosaveIndicatorState>("idle");
@@ -135,6 +148,21 @@ export function MainShell() {
     void getCurrentWindow()
       .onCloseRequested(async (ev) => {
         ev.preventDefault();
+
+        // 진행 중 작업 여부를 store에서 직접 읽음 (deps 재등록 방지)
+        const { isDesigning } = useAppStore.getState();
+        const { isAnalyzing, isExporting } = useMameAppStore.getState();
+        const isBusy = isDesigning || isAnalyzing || isExporting;
+
+        if (isBusy) {
+          const confirmed = window.confirm(
+            "작업이 진행 중입니다. 종료하시겠습니까?\n진행 중인 작업은 취소됩니다.",
+          );
+          if (!confirmed) {
+            return;
+          }
+        }
+
         await flushAutosave(target);
         await getCurrentWindow().destroy();
       })

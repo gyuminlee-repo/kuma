@@ -23,6 +23,9 @@ chrono = { version = "0.4", default-features = false, features = ["clock", "serd
 dirs = "5"
 tokio = { version = "1", features = ["sync", "rt", "macros", "io-util", "time"] }
 
+[target."cfg(not(any(target_os = \"android\", target_os = \"ios\")))".dependencies]
+tauri-plugin-single-instance = "2"
+
 [dev-dependencies]
 tempfile = "3"
 

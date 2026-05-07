@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAppStore } from "../../store/appStore";
 import { useKumaProject } from "../../state/projectContext";
+import { Label } from "../ui/label";
 import { Button } from "../ui/button";
 import {
   Dialog,
@@ -39,6 +40,9 @@ export function MenuBar() {
   const project = useKumaProject();
   const hasDesignResults = useAppStore((s) => s.designResults.length > 0);
   const loadSampleData = useAppStore((s) => s.loadSampleData);
+  const offlineMode = useAppStore((s) => s.offlineMode);
+  const setOfflineMode = useAppStore((s) => s.setOfflineMode);
+  const networkConsentGranted = useAppStore((s) => s.networkConsentGranted);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [crashCopied, setCrashCopied] = useState(false);
   const [bibtexCopied, setBibtexCopied] = useState(false);
@@ -220,6 +224,89 @@ export function MenuBar() {
             <p className="text-xs text-muted-foreground">
               Internal use, KRIBB C1 Lab — DOI/citation forthcoming
             </p>
+          </div>
+
+          {/* External services */}
+          <div className="flex flex-col gap-1.5">
+            <p className="text-sm font-semibold text-foreground">External services</p>
+            <ul className="text-xs text-muted-foreground space-y-0.5 list-none pl-0">
+              <li>
+                <span className="font-medium text-foreground">UniProt</span>
+                {" ("}
+                <a
+                  href="https://www.uniprot.org"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  uniprot.org
+                </a>
+                {") — protein sequence search"}
+              </li>
+              <li>
+                <span className="font-medium text-foreground">NCBI BLAST (EBI)</span>
+                {" ("}
+                <a
+                  href="https://www.ebi.ac.uk"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  ebi.ac.uk
+                </a>
+                {") — sequence similarity search"}
+              </li>
+              <li>
+                <span className="font-medium text-foreground">AlphaFold (EBI)</span>
+                {" ("}
+                <a
+                  href="https://alphafold.ebi.ac.uk"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  alphafold.ebi.ac.uk
+                </a>
+                {") — structure prediction lookup"}
+              </li>
+              <li>
+                <span className="font-medium text-foreground">InterPro / Pfam (EBI)</span>
+                {" ("}
+                <a
+                  href="https://www.ebi.ac.uk/interpro"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  ebi.ac.uk/interpro
+                </a>
+                {") — protein domain annotation"}
+              </li>
+            </ul>
+            <p className="text-xs text-muted-foreground">
+              동의 상태:{" "}
+              <span className={networkConsentGranted ? "text-success font-medium" : "text-warning font-medium"}>
+                {networkConsentGranted ? "동의함" : "미동의"}
+              </span>
+            </p>
+          </div>
+
+          {/* Offline mode toggle */}
+          <div className="flex items-start gap-3 rounded-md border border-border px-3 py-2">
+            <input
+              id="kuro-offline-mode"
+              type="checkbox"
+              checked={offlineMode}
+              onChange={(e) => setOfflineMode(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-primary"
+              aria-label="오프라인 모드 토글"
+            />
+            <Label htmlFor="kuro-offline-mode" className="text-sm cursor-pointer">
+              오프라인 모드
+              <span className="block text-xs text-muted-foreground font-normal">
+                켜면 모든 외부 서비스 호출이 차단됩니다
+              </span>
+            </Label>
           </div>
 
           {/* Third-party licenses */}

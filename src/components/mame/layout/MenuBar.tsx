@@ -198,6 +198,14 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
             </p>
           </div>
 
+          {/* External services */}
+          <div className="flex flex-col gap-1.5">
+            <p className="text-sm font-semibold text-foreground">External services</p>
+            <p className="text-xs text-muted-foreground">
+              MAME는 외부 네트워크 서비스를 사용하지 않습니다. 모든 분석은 로컬에서 실행됩니다.
+            </p>
+          </div>
+
           {/* Third-party licenses */}
           <div className="flex flex-col gap-1">
             <p className="text-sm font-semibold text-foreground">Third-party licenses</p>

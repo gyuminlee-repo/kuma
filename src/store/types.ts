@@ -14,5 +14,6 @@ import type { DiversitySlice } from "./slice-interfaces";
 import type { InputSlice } from "./slice-interfaces";
 import type { DesignSlice } from "./slice-interfaces";
 import type { ExportSlice } from "./slice-interfaces";
+import type { NetworkConsentSlice } from "./slice-interfaces";
 
-export type AppState = SequenceSlice & DiversitySlice & InputSlice & DesignSlice & ExportSlice;
+export type AppState = SequenceSlice & DiversitySlice & InputSlice & DesignSlice & ExportSlice & NetworkConsentSlice;

@@ -46,6 +46,8 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
     }, 300);
   }
 
+  // NOTE: 호출자(searchUniprot)가 requireNetworkConsent 통과를 보장함.
+  // 이 함수를 다른 곳에서 직접 호출할 경우 consent 가드를 별도로 추가할 것.
   async function enrichUniprotStructureFlags(searchGeneration: number, accessions: string[]) {
     if (accessions.length === 0) return;
     try {
@@ -149,6 +151,12 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   },
 
   fetchDomains: async (accession: string, clearCandidates = false) => {
+    const consentGranted = await get().requireNetworkConsent();
+    if (!consentGranted) {
+      const reason = get().offlineMode ? "오프라인 모드입니다" : "외부 서비스 사용 동의가 필요합니다";
+      set({ statusMessage: `Domain fetch 취소: ${reason}` });
+      return;
+    }
     const requestedAccession = accession.trim();
     const fetchGeneration = ++domainFetchGeneration;
     uniprotSearchGeneration += 1;
@@ -328,6 +336,12 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   },
 
   searchUniprot: async (geneName: string, organism: string, translation: string, knownAccession: string) => {
+    const consentGranted = await get().requireNetworkConsent();
+    if (!consentGranted) {
+      const reason = get().offlineMode ? "오프라인 모드입니다" : "외부 서비스 사용 동의가 필요합니다";
+      set({ statusMessage: `UniProt 검색 취소: ${reason}` });
+      return;
+    }
     const searchGeneration = ++uniprotSearchGeneration;
     set({ uniprotSearching: true, statusMessage: "UniProt BLAST search in progress..." });
     try {
@@ -377,6 +391,12 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   },
 
   fetchStructure: async (accession: string) => {
+    const consentGranted = await get().requireNetworkConsent();
+    if (!consentGranted) {
+      const reason = get().offlineMode ? "오프라인 모드입니다" : "외부 서비스 사용 동의가 필요합니다";
+      set({ statusMessage: `AlphaFold fetch 취소: ${reason}` });
+      return;
+    }
     const requestedAccession = accession.trim();
     if (!requestedAccession) return;
     const fetchGeneration = ++structureFetchGeneration;

@@ -26,6 +26,7 @@ import {
 } from "../ui/dialog";
 import { MenuBar } from "./MenuBar";
 import { StatusBar } from "./StatusBar";
+import { NetworkConsentDialog } from "../dialogs/NetworkConsentDialog";
 import {
   handleExportExcel,
   handleSaveWorkspace,
@@ -50,6 +51,7 @@ export function AppLayout() {
   const loadPolymerases = useAppStore((s) => s.loadPolymerases);
   const showReport = useAppStore((s) => s.showReport);
   const showBenchmark = useAppStore((s) => s.showBenchmark);
+  const loadNetworkConsentSettings = useAppStore((s) => s.loadNetworkConsentSettings);
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
   const [missingFields, setMissingFields] = useState<string[] | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -87,6 +89,10 @@ export function AppLayout() {
 
   const selectedGeneInfo = seqInfo?.genes.find((gene) => String(gene.cds_start) === selectedGene);
   const plateEstimate = totalCount > 0 ? Math.ceil(totalCount / 96) : null;
+
+  useEffect(() => {
+    loadNetworkConsentSettings();
+  }, [loadNetworkConsentSettings]);
 
   useEffect(() => {
     if (sidecarStatus === "ready") {
@@ -176,6 +182,7 @@ export function AppLayout() {
 
   return (
     <div className={`flex h-screen flex-col bg-background ${isDragOver ? "ring-2 ring-inset ring-ring" : ""}`}>
+      <NetworkConsentDialog />
       <MenuBar />
 
       <div className="flex flex-1 overflow-hidden px-3 pb-3 pt-2">

@@ -232,6 +232,36 @@ export interface DesignSlice {
 }
 
 // ---------------------------------------------------------------------------
+// NetworkConsentSlice
+// ---------------------------------------------------------------------------
+export interface NetworkConsentSlice {
+  // State
+  /** 외부 서비스 호출 동의 여부 */
+  networkConsentGranted: boolean;
+  /** 오프라인 모드 (true = 외부 호출 차단) */
+  offlineMode: boolean;
+  /** 동의 모달 표시 여부 */
+  networkConsentPending: boolean;
+
+  // Actions
+  /** 앱 시작 시 저장된 설정 로드 */
+  loadNetworkConsentSettings: () => void;
+  /** 동의 처리 (모달 확인) */
+  grantNetworkConsent: () => void;
+  /** 동의 거부 (모달 취소) */
+  denyNetworkConsent: () => void;
+  /** 오프라인 모드 토글 */
+  setOfflineMode: (enabled: boolean) => void;
+  /**
+   * 외부 네트워크 호출 진입 전 호출.
+   * - offlineMode ON: false 즉시 반환
+   * - 동의 완료: true 즉시 반환
+   * - 미동의: 동의 모달 표시 후 Promise resolve
+   */
+  requireNetworkConsent: () => Promise<boolean>;
+}
+
+// ---------------------------------------------------------------------------
 // ExportSlice
 // ---------------------------------------------------------------------------
 export interface ExportSlice {

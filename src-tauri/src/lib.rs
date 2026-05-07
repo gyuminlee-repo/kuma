@@ -4,7 +4,7 @@ pub mod sidecar;
 
 use serde_json::Value;
 use std::path::PathBuf;
-use tauri::{AppHandle, Manager, RunEvent, State, WindowEvent, Wry};
+use tauri::{AppHandle, Emitter, Manager, RunEvent, State, Wry};
 
 #[tauri::command]
 async fn sidecar_rpc(
@@ -34,12 +34,25 @@ async fn sidecar_is_running(
 
 async fn shutdown_sidecars_async(app: &AppHandle<Wry>) {
     let manager = app.state::<sidecar::SidecarManager>();
+    // sidecar::SidecarManager::kill() is platform force-kill.
+    // SIGTERM → 5s → SIGKILL is deferred pending a "shutdown" JSON-RPC
+    // handler in the Python dispatcher (Task C Phase 2).
     let _ = manager.kill("kuro").await;
     let _ = manager.kill("mame").await;
 }
 
 pub fn run() {
     let app = match tauri::Builder::default()
+        // single-instance: 두 번째 실행 시 첫 창에 포커스 + 프론트엔드 알림 (desktop only)
+        .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+            eprintln!("[lifecycle] second instance attempted → focusing main window");
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.unminimize();
+                let _ = window.set_focus();
+                // JS MainShell이 구독해 statusMessage로 표시
+                let _ = app.emit_to("main", "second-instance-attempted", ());
+            }
+        }))
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
@@ -51,23 +64,9 @@ pub fn run() {
             app.manage(sidecar::SidecarManager::new(app.handle().clone(), binaries_dir));
             Ok(())
         })
-        .on_window_event(|window, event| {
-            // Only the main window controls app lifecycle.
-            // Popovers/dropdowns/dialog plugin windows must not kill sidecars.
-            if window.label() != "main" {
-                return;
-            }
-            if let WindowEvent::CloseRequested { api, .. } = event {
-                api.prevent_close();
-                let app_handle = window.app_handle().clone();
-                tauri::async_runtime::spawn(async move {
-                    eprintln!("[lifecycle] main CloseRequested → killing sidecars");
-                    shutdown_sidecars_async(&app_handle).await;
-                    eprintln!("[lifecycle] sidecars killed → exiting app");
-                    app_handle.exit(0);
-                });
-            }
-        })
+        // CloseRequested is handled entirely in MainShell.tsx (JS side):
+        //   confirm busy state → flushAutosave → getCurrentWindow().destroy()
+        // RunEvent::Exit below handles the final sidecar cleanup sweep.
         .invoke_handler(tauri::generate_handler![
             config::get_config_cmd,
             config::set_projects_root_cmd,
