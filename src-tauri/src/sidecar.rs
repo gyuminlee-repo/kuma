@@ -287,6 +287,77 @@ impl SidecarManager {
         Ok(())
     }
 
+    /// §22 Graceful shutdown with 5-second SIGKILL fallback.
+    ///
+    /// 1. Send `{"jsonrpc":"2.0","id":<n>,"method":"shutdown","params":{}}` over stdin.
+    /// 2. Poll `process.is_terminated()` for up to `timeout_secs` seconds.
+    /// 3. If the process has not exited, fall back to `kill()`.
+    ///
+    /// The existing `kill()` command is left unchanged for immediate force-kill
+    /// paths (user-initiated cancel, `sidecar_kill` Tauri command).
+    pub async fn graceful_kill(&self, kind: &str, timeout_secs: u64) -> Result<(), String> {
+        let slot = self.slot(kind)?;
+        let process = {
+            let lock = slot.lock().await;
+            lock.clone()
+        };
+        let Some(process) = process else {
+            return Ok(());
+        };
+        if process.is_terminated() {
+            // Already gone — just clear the slot.
+            slot.lock().await.take();
+            return Ok(());
+        }
+
+        // Send the shutdown RPC over stdin.
+        let id = self.next_id.fetch_add(1, Ordering::SeqCst);
+        let payload = json!({
+            "jsonrpc": "2.0",
+            "id": id,
+            "method": "shutdown",
+            "params": {},
+        });
+        {
+            let mut child = process.child.lock().await;
+            if let Some(child) = child.as_mut() {
+                if let Err(err) = child.write(format!("{payload}\n").as_bytes()) {
+                    // Write failure means the process is already exiting — log and proceed to poll.
+                    eprintln!("[sidecar:{kind}] shutdown write failed: {err}");
+                }
+            }
+        }
+
+        // Poll for clean exit.
+        let poll_result = tokio::time::timeout(
+            Duration::from_secs(timeout_secs),
+            async {
+                loop {
+                    if process.is_terminated() {
+                        return;
+                    }
+                    tokio::time::sleep(Duration::from_millis(50)).await;
+                }
+            },
+        )
+        .await;
+
+        if poll_result.is_err() {
+            eprintln!("[sidecar:{kind}] graceful shutdown timed out after {timeout_secs}s, force-killing");
+        }
+
+        // Clear the slot and force-kill if still running.
+        let remaining = slot.lock().await.take();
+        if let Some(proc) = remaining {
+            proc.mark_terminated();
+            proc.protocol.reject_all("Sidecar shutdown").await;
+            if let Some(child) = proc.child.lock().await.take() {
+                let _ = child.kill();
+            }
+        }
+        Ok(())
+    }
+
     pub async fn is_running(&self, kind: &str) -> Result<bool, String> {
         let slot = self.slot(kind)?;
         let process = slot.lock().await.clone();

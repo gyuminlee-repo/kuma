@@ -34,11 +34,11 @@ async fn sidecar_is_running(
 
 async fn shutdown_sidecars_async(app: &AppHandle<Wry>) {
     let manager = app.state::<sidecar::SidecarManager>();
-    // sidecar::SidecarManager::kill() is platform force-kill.
-    // SIGTERM → 5s → SIGKILL is deferred pending a "shutdown" JSON-RPC
-    // handler in the Python dispatcher (Task C Phase 2).
-    let _ = manager.kill("kuro").await;
-    let _ = manager.kill("mame").await;
+    // §22: Send shutdown RPC, wait up to 5 s, then force-kill as fallback.
+    // sidecar_kill (Tauri command) still calls kill() directly for
+    // immediate force-kill paths (user cancel, cancelAndRespawn).
+    let _ = manager.graceful_kill("kuro", 5).await;
+    let _ = manager.graceful_kill("mame", 5).await;
 }
 
 pub fn run() {
@@ -53,6 +53,7 @@ pub fn run() {
                 let _ = app.emit_to("main", "second-instance-attempted", ());
             }
         }))
+        .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())

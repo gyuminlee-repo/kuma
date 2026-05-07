@@ -8,6 +8,7 @@
  */
 
 import { create } from "zustand"
+import { notifyJobComplete } from "@/lib/notify"
 import { sendRequest } from "@/lib/ipc-mame"
 import { formatError } from "@/lib/utils"
 import type {
@@ -148,6 +149,7 @@ export function createActivityStore(roundStore: RoundStoreRef) {
     },
 
     mergeActivity: async (round_id) => {
+      const _mergeStartedAt = Date.now()
       set({ isMerging: true, mergeError: null })
       try {
         const result = await sendRequest<ActivityMergeResponse>(
@@ -159,6 +161,8 @@ export function createActivityStore(roundStore: RoundStoreRef) {
         roundStore.getState().transitionStatus(round_id, "activity_linked")
         // legacy 응답에는 replicate_stats 없으므로 명시 null 세팅
         set({ lastMergeStats: result.stats, lastReplicateStats: null })
+        // §13: notify if merge took long enough
+        void notifyJobComplete({ title: "Activity merge complete", body: "Merged activity data ready", startedAt: _mergeStartedAt })
       } catch (err) {
         const message = formatError(err)
         set({ mergeError: message })
@@ -188,6 +192,7 @@ export function createActivityStore(roundStore: RoundStoreRef) {
     },
 
     mergeForEvolvepro: async (round_id, options) => {
+      const _mergeForEvolveproStartedAt = Date.now()
       set({ isMerging: true, mergeError: null })
       try {
         const params: {
@@ -226,6 +231,8 @@ export function createActivityStore(roundStore: RoundStoreRef) {
           lastMergeStats: res.stats,
           lastReplicateStats: res.replicate_stats,
         })
+        // §13: notify if merge took long enough
+        void notifyJobComplete({ title: "Merge complete", body: "EVOLVEpro merge ready", startedAt: _mergeForEvolveproStartedAt })
       } catch (err) {
         const message = formatError(err)
         set({ mergeError: message })

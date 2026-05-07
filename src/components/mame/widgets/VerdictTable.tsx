@@ -7,8 +7,9 @@ import {
   type ColumnDef,
   type VisibilityState,
 } from "@tanstack/react-table";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { AlertTriangle, Search, SlidersHorizontal } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { useRoundStore } from "@/store/round/roundSlice";
 import type { VerdictRecord } from "@/types/mame/models";
@@ -62,6 +63,8 @@ const ACTIVITY_COLUMN_LABELS: Record<(typeof ACTIVITY_COLUMN_IDS)[number], strin
   replicate_n: "Replicates",
   ngs_success: "NGS",
 };
+
+const VIRTUAL_THRESHOLD = 1000;
 
 function extractNbGroup(record: VerdictRecord): "NB01" | "NB02" | "NB03" | "UNKNOWN" {
   const match = record.source_path.match(/NB0(\d)/i);
@@ -355,6 +358,17 @@ export function VerdictTable() {
     getFilteredRowModel: getFilteredRowModel(),
   });
 
+  const tableRows = table.getRowModel().rows;
+  const isVirtual = tableRows.length >= VIRTUAL_THRESHOLD;
+
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const rowVirtualizer = useVirtualizer({
+    count: tableRows.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 36,
+    overscan: 10,
+  });
+
   return (
     <div className="flex min-h-0 flex-col overflow-hidden">
       <div className="flex flex-col gap-2 border-b border-border px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
@@ -425,8 +439,13 @@ export function VerdictTable() {
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-auto">
-        <Table>
+      {isVirtual && (
+        <p className="bg-primary/10 px-3 py-0.5 text-caption text-primary" aria-live="polite">
+          Virtual scroll active ({tableRows.length.toLocaleString()} rows)
+        </p>
+      )}
+      <div ref={scrollRef} className="min-h-0 flex-1 overflow-auto">
+        <Table aria-rowcount={tableRows.length}>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow
@@ -441,6 +460,15 @@ export function VerdictTable() {
                       "sticky top-0 z-10 h-control bg-background px-3 text-caption font-semibold text-muted-foreground",
                       header.column.getCanSort() && "cursor-pointer select-none hover:text-foreground",
                     )}
+                    aria-sort={
+                      header.column.getIsSorted() === "asc"
+                        ? "ascending"
+                        : header.column.getIsSorted() === "desc"
+                          ? "descending"
+                          : header.column.getCanSort()
+                            ? "none"
+                            : undefined
+                    }
                   >
                     <div className="flex items-center gap-1">
                       {header.isPlaceholder
@@ -455,23 +483,59 @@ export function VerdictTable() {
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows.length > 0 ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  className={cn(
-                    "border-b border-border/50 transition-colors hover:bg-muted/30",
-                    getVerdictRowTone(row.original.verdict),
-                    row.original.is_fallback && "border-l-warning bg-warning/5",
-                  )}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="px-3 py-2">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
+            {tableRows.length > 0 ? (
+              isVirtual ? (() => {
+                const virtualRows = rowVirtualizer.getVirtualItems();
+                const totalSize = rowVirtualizer.getTotalSize();
+                const paddingTop = virtualRows[0]?.start ?? 0;
+                const paddingBottom = totalSize - (virtualRows.at(-1)?.end ?? 0);
+                return (
+                  <>
+                    {paddingTop > 0 && <tr aria-hidden="true" style={{ height: paddingTop }} />}
+                    {virtualRows.map((vRow) => {
+                      const row = tableRows[vRow.index];
+                      if (!row) return null;
+                      return (
+                        <TableRow
+                          key={row.id}
+                          data-index={vRow.index}
+                          ref={rowVirtualizer.measureElement}
+                          className={cn(
+                            "border-b border-border/50 transition-colors hover:bg-muted/30",
+                            getVerdictRowTone(row.original.verdict),
+                            row.original.is_fallback && "border-l-warning bg-warning/5",
+                          )}
+                          aria-rowindex={vRow.index + 1}
+                        >
+                          {row.getVisibleCells().map((cell) => (
+                            <TableCell key={cell.id} className="px-3 py-2">
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      );
+                    })}
+                    {paddingBottom > 0 && <tr aria-hidden="true" style={{ height: paddingBottom }} />}
+                  </>
+                );
+              })() : (
+                tableRows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    className={cn(
+                      "border-b border-border/50 transition-colors hover:bg-muted/30",
+                      getVerdictRowTone(row.original.verdict),
+                      row.original.is_fallback && "border-l-warning bg-warning/5",
+                    )}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id} className="px-3 py-2">
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              )
             ) : (
               <TableRow>
                 <TableCell colSpan={columns.length} className="py-0">

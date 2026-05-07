@@ -64,9 +64,13 @@ _METHODS = {
     "mame.activity.merge_for_evolvepro": handle_merge_for_evolvepro,
     # sort_barcode: combinatorial 96-well barcode sorter
     "sort_barcode_run": handle_sort_barcode_run,
+    # §22 graceful shutdown — ack immediately; main() breaks on this method
+    "shutdown": lambda _: {"ok": True, "message": "shutdown_acked"},
 }
 
 # Long-running handlers run on a worker thread so stdin keeps draining.
+# "shutdown" is intentionally excluded — it must run on the main thread so the
+# ack flushes to stdout before the loop exits.
 _ASYNC_METHODS = {"analyze", "demux_and_filter", "sort_barcode_run"}
 
 
@@ -157,6 +161,8 @@ def _start_parent_watchdog() -> None:
                     logger.info("Parent process %d died, exiting", ppid)
                     os._exit(0)
                 except PermissionError:
+                    # PermissionError means the process exists but is owned by
+                    # a different user — parent is alive, no action needed.
                     pass
 
     threading.Thread(target=_check, daemon=True).start()
@@ -188,6 +194,12 @@ def main(emit_ready: bool = True) -> None:
         except json.JSONDecodeError as exc:
             _error(None, -32700, f"Parse error: {exc}")
             continue
+
+        # §22 graceful shutdown: send ack then exit the main loop cleanly.
+        if request.get("method") == "shutdown":
+            dispatch(request)
+            logger.info("MAME sidecar shutdown requested, exiting cleanly")
+            break
 
         dispatch(request)
 

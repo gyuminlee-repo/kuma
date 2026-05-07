@@ -82,9 +82,13 @@ _METHODS = {
         "cancelled": True,
         "active_design": _cancel_active_design(),
     },
+    # §22 graceful shutdown — ack immediately; main() breaks on this method
+    "shutdown": lambda _: {"ok": True, "message": "shutdown_acked"},
 }
 
 # Long-running methods (network I/O, heavy computation) run in a background thread.
+# "shutdown" is intentionally excluded — it must run on the main thread so the
+# ack flushes to stdout before the loop exits.
 _ASYNC_METHODS = {
     "design_sdm_primers",
     "search_uniprot",
@@ -170,7 +174,9 @@ def _start_parent_watchdog() -> None:
                     logger.info("Parent process %d died, exiting", ppid)
                     os._exit(0)
                 except PermissionError:
-                    pass  # process exists but different user
+                    # PermissionError means the process exists but is owned by
+                    # a different user — parent is alive, no action needed.
+                    pass
 
     t = threading.Thread(target=_check, daemon=True)
     t.start()
@@ -205,6 +211,12 @@ def main(emit_ready: bool = True) -> None:
         except json.JSONDecodeError as exc:
             _error(None, -32700, f"Parse error: {exc}")
             continue
+
+        # §22 graceful shutdown: send ack then exit the main loop cleanly.
+        if request.get("method") == "shutdown":
+            dispatch(request)
+            logger.info("KURO sidecar shutdown requested, exiting cleanly")
+            break
 
         dispatch(request)
 

@@ -1,10 +1,11 @@
-import { lazy, Suspense, useCallback, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useMemo, useRef, useState } from "react";
 import {
   flexRender,
   getCoreRowModel,
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { useShallow } from "zustand/react/shallow";
 import { useAppStore } from "../../store/appStore";
 import type { FailedMutation, SdmPrimerResult } from "../../types/models";
@@ -15,6 +16,8 @@ import {
   makeResultTableColumns,
 } from "./resultTableColumns";
 import { StateView } from "../ui/StateView";
+
+const VIRTUAL_THRESHOLD = 1000;
 
 const LazyCandidatePopover = lazy(async () => import("./popovers/CandidatePopover").then((m) => ({ default: m.CandidatePopover })));
 const LazyHairpinDetail = lazy(async () => import("./popovers/HairpinDetail").then((m) => ({ default: m.HairpinDetail })));
@@ -113,6 +116,17 @@ export function ResultTable() {
     getSortedRowModel: getSortedRowModel(),
   });
 
+  const tableRows = table.getRowModel().rows;
+  const isVirtual = tableRows.length >= VIRTUAL_THRESHOLD;
+
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const rowVirtualizer = useVirtualizer({
+    count: tableRows.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 36,
+    overscan: 10,
+  });
+
   const handleCellClick = useCallback((row: SdmPrimerResult, columnId: string) => {
     if (columnId === "forward_seq" || columnId === "reverse_seq") {
       setPopover({ mutation: row.mutation, current: row });
@@ -173,8 +187,14 @@ export function ResultTable() {
   }
 
   return (
-    <div className="h-full overflow-auto">
-      <table className="w-full text-caption border-collapse">
+    <div className="flex h-full flex-col">
+      {isVirtual && (
+        <p className="bg-primary/10 px-3 py-0.5 text-caption text-primary" aria-live="polite">
+          Virtual scroll active ({tableRows.length.toLocaleString()} rows)
+        </p>
+      )}
+      <div ref={scrollRef} className="flex-1 overflow-auto">
+      <table className="w-full text-caption border-collapse" aria-rowcount={tableRows.length}>
         <thead className="sticky top-0 z-10 bg-background/95 backdrop-blur">
           {table.getHeaderGroups().map((hg) => (
             <tr key={hg.id}>
@@ -187,6 +207,15 @@ export function ResultTable() {
                   style={{ width: header.getSize() }}
                   title={header.column.columnDef.meta?.tooltip ?? HEADER_TOOLTIPS[header.column.id] ?? ""}
                   onClick={header.column.getToggleSortingHandler()}
+                  aria-sort={
+                    header.column.getIsSorted() === "asc"
+                      ? "ascending"
+                      : header.column.getIsSorted() === "desc"
+                        ? "descending"
+                        : header.column.getCanSort()
+                          ? "none"
+                          : undefined
+                  }
                 >
                   {flexRender(header.column.columnDef.header, header.getContext())}
                   {header.column.getIsSorted() === "asc" ? " ▲" : ""}
@@ -197,31 +226,73 @@ export function ResultTable() {
           ))}
         </thead>
         <tbody>
-          {table.getRowModel().rows.map((row) => {
-            const isSwapped = !!manuallySwapped[row.original.mutation];
+          {isVirtual ? (() => {
+            const virtualRows = rowVirtualizer.getVirtualItems();
+            const totalSize = rowVirtualizer.getTotalSize();
+            const paddingTop = virtualRows[0]?.start ?? 0;
+            const paddingBottom = totalSize - (virtualRows.at(-1)?.end ?? 0);
             return (
-              <tr
-                key={row.id}
-                className={`h-control border-b border-border/50 hover:bg-muted/30 ${isSwapped ? "border-l-2 border-l-warning bg-warning/5" : ""}`}
-              >
-                {row.getVisibleCells().map((cell) => {
-                  const meta = cell.column.columnDef.meta;
-                  const showClickable = !!meta?.clickable;
+              <>
+                {paddingTop > 0 && <tr aria-hidden="true" style={{ height: paddingTop }} />}
+                {virtualRows.map((vRow) => {
+                  const row = tableRows[vRow.index];
+                  if (!row) return null;
+                  const isSwapped = !!manuallySwapped[row.original.mutation];
                   return (
-                    <td
-                      key={cell.id}
-                      className={`px-2 py-1 tabular-nums ${showClickable ? "cursor-pointer hover:bg-muted/60" : ""}`}
-                      onClick={showClickable ? () => handleCellClick(row.original, cell.column.id) : undefined}
+                    <tr
+                      key={row.id}
+                      data-index={vRow.index}
+                      ref={rowVirtualizer.measureElement}
+                      className={`h-control border-b border-border/50 hover:bg-muted/30 ${isSwapped ? "border-l-2 border-l-warning bg-warning/5" : ""}`}
+                      aria-rowindex={vRow.index + 1}
                     >
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
+                      {row.getVisibleCells().map((cell) => {
+                        const meta = cell.column.columnDef.meta;
+                        const showClickable = !!meta?.clickable;
+                        return (
+                          <td
+                            key={cell.id}
+                            className={`px-2 py-1 tabular-nums ${showClickable ? "cursor-pointer hover:bg-muted/60" : ""}`}
+                            onClick={showClickable ? () => handleCellClick(row.original, cell.column.id) : undefined}
+                          >
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </td>
+                        );
+                      })}
+                    </tr>
                   );
                 })}
-              </tr>
+                {paddingBottom > 0 && <tr aria-hidden="true" style={{ height: paddingBottom }} />}
+              </>
             );
-          })}
+          })() : (
+            tableRows.map((row) => {
+              const isSwapped = !!manuallySwapped[row.original.mutation];
+              return (
+                <tr
+                  key={row.id}
+                  className={`h-control border-b border-border/50 hover:bg-muted/30 ${isSwapped ? "border-l-2 border-l-warning bg-warning/5" : ""}`}
+                >
+                  {row.getVisibleCells().map((cell) => {
+                    const meta = cell.column.columnDef.meta;
+                    const showClickable = !!meta?.clickable;
+                    return (
+                      <td
+                        key={cell.id}
+                        className={`px-2 py-1 tabular-nums ${showClickable ? "cursor-pointer hover:bg-muted/60" : ""}`}
+                        onClick={showClickable ? () => handleCellClick(row.original, cell.column.id) : undefined}
+                      >
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })
+          )}
         </tbody>
       </table>
+      </div>
 
       {failedMutations.length > 0 && (
         <div className="border-t border-error/20 bg-error/5 px-3 py-2">

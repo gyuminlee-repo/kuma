@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { notificationPermissionGranted, requestNotificationPermission } from "../../lib/notify";
 import { useAppStore } from "../../store/appStore";
 import { useKumaProject } from "../../state/projectContext";
 import { Label } from "../ui/label";
@@ -58,6 +59,16 @@ export function MenuBar() {
 
   // §12 Reproducibility: manifest 파일 picker
   const [reRunManifest, setReRunManifest] = useState<RunManifest | null>(null);
+  const [notifyPermission, setNotifyPermission] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    void notificationPermissionGranted().then(setNotifyPermission);
+  }, []);
+
+  async function handleEnableNotifications() {
+    const granted = await requestNotificationPermission();
+    setNotifyPermission(granted);
+  }
   const [reRunVerify, setReRunVerify] = useState<InputVerifyResult | null>(null);
 
   async function handleOpenManifest() {
@@ -318,6 +329,29 @@ export function MenuBar() {
               <span className={networkConsentGranted ? "text-success font-medium" : "text-warning font-medium"}>
                 {networkConsentGranted ? "동의함" : "미동의"}
               </span>
+            </p>
+          </div>
+
+          {/* Notifications */}
+          <div className="flex flex-col gap-1">
+            <p className="text-sm font-semibold text-foreground">Notifications</p>
+            <p className="text-xs text-muted-foreground">
+              OS Notifications:{" "}
+              <span className={notifyPermission ? "text-success font-medium" : "text-warning font-medium"}>
+                {notifyPermission ? "enabled" : "disabled"}
+              </span>
+            </p>
+            {!notifyPermission && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => void handleEnableNotifications()}
+              >
+                Enable Notifications
+              </Button>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Fired for jobs lasting longer than 5 minutes.
             </p>
           </div>
 

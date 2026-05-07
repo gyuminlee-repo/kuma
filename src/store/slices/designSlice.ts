@@ -1,4 +1,5 @@
 import type { StateCreator } from "zustand";
+import { notifyJobComplete } from "../../lib/notify";
 import { cancelAndRespawn, sendRequest } from "../../lib/ipc-kuro";
 import { wellName } from "../../lib/plate-utils";
 import { formatError } from "../../lib/utils";
@@ -182,6 +183,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       rescuedMutationDetails: [],
     });
 
+    const _designStartedAt = Date.now();
     try {
       const payload = buildDesignRequestPayload({
         fastaPath,
@@ -249,6 +251,12 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         await get().cascadeFailedRetry("topn-fill");
       }
       // fillOnFailure=false: no auto-retry; mutations remain as failed
+      // §13: Notify if job took long enough.
+      void notifyJobComplete({
+        title: "Design complete",
+        body: `${get().successCount} primer(s) designed`,
+        startedAt: _designStartedAt,
+      });
     } catch (err) {
       if (formatError(err).includes("Sidecar killed")) return;
       set({ statusMessage: `Design failed: ${formatError(err)}` });
