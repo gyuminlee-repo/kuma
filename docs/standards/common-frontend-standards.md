@@ -451,7 +451,16 @@ mame, primerbench 도 동일 형식 placeholder.
 
 ## Appendix D. Per-app Status Matrix (audit 2026-05-07, Phase 1–4 후 갱신)
 
-판정 규칙: 카테고리 내 모든 [필수]·[권장] Requirements 충족 → ✅ / 일부 충족 → 🟡 / 전부 미구현 → ❌. 셀 단위 상세 근거(파일:라인)는 `notes/agent-reports/audit-kuma.md`, `notes/agent-reports/audit-primerbench.md`, Phase 보고서 (`phase1a` ~ `phase4c`) 참조.
+판정 규칙: 카테고리 내 모든 [필수]·[권장] Requirements 충족 → ✅ / 일부 충족 → 🟡 / 전부 미구현 → ❌. 셀 단위 상세 근거(파일:라인)는 `notes/agent-reports/audit-kuma-v2.md` (Phase 1-4 후 재감사), `notes/agent-reports/audit-primerbench.md`, Phase 보고서 (`phase1a` ~ `phase4c`) 참조.
+
+### Req 단위 카운트 (audit-kuma-v2.md 기준)
+
+| 앱 | ✅ | 🟡 | ❌ | 비교 (audit 시점) |
+|---|---|---|---|---|
+| kuro | 22 | — | 18 | ✅ 16 → 22 (+6), ❌ 25 → 18 (-7) |
+| mame | 21 | — | 19 | ✅ 16 → 21 (+5), ❌ 26 → 19 (-7) |
+
+(카테고리 단위 rollup 은 위 표 참조)
 
 | § | Category | kuro | mame | primerbench | 변동 |
 |---|---|---|---|---|---|
@@ -528,6 +537,7 @@ mame, primerbench 도 동일 형식 placeholder.
 - **v0.2 (2026-05-07)**: Per-app audit 완료. Appendix D 매트릭스 ❓ → 실제 status 채움. 공통 약점·강점·우선 보강 5순위 추가. 근거: `notes/agent-reports/audit-kuma.md`, `audit-primerbench.md`.
 - **v0.3 (2026-05-07)**: Phase 1–3 (v0.3.2.1 ~ v0.3.3.0) 결과 반영. §7/§10 → ✅, §12/§20 → 🟡, §22 부분 보강. kuro/mame ✅ 카테고리 0→2, ❌ 카운트 4→3. 다음 우선 5순위 갱신.
 - **v0.4 (2026-05-07)**: Phase 4 (v0.3.3.2~v0.3.3.3) 결과 반영. §13/§19 → 🟡, §22 SIGKILL fallback 도입, §12 seed UI, §14 dry-run 마이그레이션. kuro/mame ❌ 카운트 2→0 (모든 [필수] 미구현 카테고리 해소). 다음 우선 5순위 입력 경고·sleep inhibit·output checksum 중심으로 갱신.
+- **v0.4.1 (2026-05-07)**: 셀 단위 재감사 완료 — `audit-kuma-v2.md`. Req 단위 ✅ 카운트 kuro +6, mame +5. ❌ 카운트 kuro -7, mame -7. Appendix D 근거 링크를 v2 로 갱신.
 
 ## 후속 액션
 
