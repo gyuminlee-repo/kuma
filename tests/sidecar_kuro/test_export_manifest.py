@@ -3,11 +3,16 @@
 Verifies that handle_export_order and handle_export_excel produce
 sibling ``{basename}.run.json`` files with correct ``method`` and
 ``schema_version`` fields after a successful export.
+
+Also verifies SHA-256 checksum files (``{basename}.sha256``) are
+produced alongside each export and that ``checksum_path`` is returned
+in the response dict.
 """
 
 from __future__ import annotations
 
 import json
+import re
 
 import pytest
 
@@ -178,3 +183,70 @@ def test_export_excel_manifest_kuma_version_present(tmp_path, minimal_state):
     manifest = json.loads((tmp_path / "plate4.run.json").read_text())
     assert "kuma_version" in manifest
     assert isinstance(manifest["kuma_version"], str)
+
+
+# ---------------------------------------------------------------------------
+# SHA-256 checksum file tests — export_order
+# ---------------------------------------------------------------------------
+
+
+def test_export_order_produces_sha256_file(tmp_path, minimal_state):
+    out = tmp_path / "order_cs.csv"
+    handle_export_order({
+        "filepath": str(out),
+        "format": "idt",
+        "results": [_make_order_item()],
+    })
+    checksum_file = tmp_path / "order_cs.csv.sha256"
+    assert checksum_file.exists(), "order_cs.csv.sha256 not created"
+
+
+def test_export_order_checksum_path_in_response(tmp_path, minimal_state):
+    out = tmp_path / "order_csr.csv"
+    result = handle_export_order({
+        "filepath": str(out),
+        "format": "idt",
+        "results": [_make_order_item()],
+    })
+    assert "checksum_path" in result
+    assert result["checksum_path"].endswith("order_csr.csv.sha256")
+
+
+def test_export_order_checksum_content_format(tmp_path, minimal_state):
+    out = tmp_path / "order_fmt.csv"
+    handle_export_order({
+        "filepath": str(out),
+        "format": "idt",
+        "results": [_make_order_item()],
+    })
+    checksum_file = tmp_path / "order_fmt.csv.sha256"
+    text = checksum_file.read_text(encoding="utf-8")
+    pattern = re.compile(r"^[0-9a-f]{64}  order_fmt\.csv\n$")
+    assert pattern.match(text), f"Bad checksum format: {text!r}"
+
+
+# ---------------------------------------------------------------------------
+# SHA-256 checksum file tests — export_excel
+# ---------------------------------------------------------------------------
+
+
+def test_export_excel_produces_sha256_file(tmp_path, minimal_state):
+    out = tmp_path / "plate_cs.xlsx"
+    handle_export_excel({
+        "filepath": str(out),
+        "mappings": [_make_mapping_item()],
+        "dedup_info": {},
+    })
+    checksum_file = tmp_path / "plate_cs.xlsx.sha256"
+    assert checksum_file.exists(), "plate_cs.xlsx.sha256 not created"
+
+
+def test_export_excel_checksum_path_in_response(tmp_path, minimal_state):
+    out = tmp_path / "plate_csr.xlsx"
+    result = handle_export_excel({
+        "filepath": str(out),
+        "mappings": [_make_mapping_item()],
+        "dedup_info": {},
+    })
+    assert "checksum_path" in result
+    assert result["checksum_path"].endswith("plate_csr.xlsx.sha256")

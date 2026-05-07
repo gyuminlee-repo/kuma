@@ -225,3 +225,47 @@ export async function tryHandleManifestDrop(paths: string[]): Promise<ManifestDr
     return { handled: true, error: String(err) };
   }
 }
+
+// ── 2개 manifest diff DnD 헬퍼 ───────────────────────────────────────────────
+
+export interface TwoManifestDropResult {
+  /** 정확히 2개 manifest 감지 여부 */
+  handled: boolean;
+  /** 첫 번째 manifest */
+  manifestA?: RunManifest;
+  /** 두 번째 manifest */
+  manifestB?: RunManifest;
+  /** 로드 실패 시 에러 메시지 */
+  error?: string;
+}
+
+/**
+ * DnD drop 핸들러에서 정확히 2개의 manifest 파일이 동시 드롭됐을 때 호출한다.
+ *
+ * paths 배열에서 manifest 경로를 모두 수집하고:
+ *   - 2개인 경우만 handled: true 반환 (diff 흐름으로 진입)
+ *   - 1개 이하거나 3개 이상이면 handled: false (기존 단일 흐름으로 fallthrough)
+ *
+ * 호출 순서 권장:
+ *   1. tryHandleTwoManifestsDrop → handled 이면 diff dialog
+ *   2. tryHandleManifestDrop    → handled 이면 re-run dialog
+ *   3. 기존 파일 처리 흐름
+ */
+export async function tryHandleTwoManifestsDrop(
+  paths: string[],
+): Promise<TwoManifestDropResult> {
+  const manifestPaths = paths.filter(isManifestPath);
+  if (manifestPaths.length !== 2) {
+    return { handled: false };
+  }
+
+  try {
+    const [manifestA, manifestB] = await Promise.all([
+      loadManifestFromFile(manifestPaths[0]),
+      loadManifestFromFile(manifestPaths[1]),
+    ]);
+    return { handled: true, manifestA, manifestB };
+  } catch (err) {
+    return { handled: true, error: String(err) };
+  }
+}

@@ -9,6 +9,7 @@
 
 import { create } from "zustand"
 import { notifyJobComplete } from "@/lib/notify"
+import { startKeepAwake, stopKeepAwake } from "@/lib/keepAwake"
 import { sendRequest } from "@/lib/ipc-mame"
 import { formatError } from "@/lib/utils"
 import type {
@@ -151,6 +152,7 @@ export function createActivityStore(roundStore: RoundStoreRef) {
     mergeActivity: async (round_id) => {
       const _mergeStartedAt = Date.now()
       set({ isMerging: true, mergeError: null })
+      void startKeepAwake("KUMA activity merge")
       try {
         const result = await sendRequest<ActivityMergeResponse>(
           "activity.merge",
@@ -172,6 +174,7 @@ export function createActivityStore(roundStore: RoundStoreRef) {
           occurred_at: new Date().toISOString(),
         })
       } finally {
+        void stopKeepAwake()
         set({ isMerging: false })
       }
     },
@@ -194,6 +197,7 @@ export function createActivityStore(roundStore: RoundStoreRef) {
     mergeForEvolvepro: async (round_id, options) => {
       const _mergeForEvolveproStartedAt = Date.now()
       set({ isMerging: true, mergeError: null })
+      void startKeepAwake("KUMA EVOLVEpro merge")
       try {
         const params: {
           round_id: string
@@ -242,6 +246,7 @@ export function createActivityStore(roundStore: RoundStoreRef) {
           occurred_at: new Date().toISOString(),
         })
       } finally {
+        void stopKeepAwake()
         set({ isMerging: false })
       }
     },

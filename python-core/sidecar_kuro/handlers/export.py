@@ -25,6 +25,7 @@ from kuma_core.shared.run_manifest import (
     build_run_manifest,
     write_run_manifest,
 )
+from kuma_core.shared.output_hash import write_output_checksum
 
 import sidecar_kuro.core as _core
 from sidecar_kuro.core import (
@@ -262,9 +263,11 @@ def handle_export_excel(params: dict) -> dict:
     )
     mpath = _manifest_path_for(resolved)
     write_run_manifest(mpath, manifest)
+    cpath = write_output_checksum(resolved)
 
     result = FileExportResultModel(filepath=str(resolved)).to_rpc_dict()
     result["manifest_path"] = str(mpath)
+    result["checksum_path"] = str(cpath)
     return result
 
 
@@ -312,6 +315,7 @@ def handle_export_order(params: dict) -> dict:
     )
     mpath = _manifest_path_for(resolved)
     write_run_manifest(mpath, manifest)
+    cpath = write_output_checksum(resolved)
 
     result = ExportOrderResultModel(
         filepath=str(resolved),
@@ -319,6 +323,7 @@ def handle_export_order(params: dict) -> dict:
         primer_count=len(results) * 2,
     ).to_rpc_dict()
     result["manifest_path"] = str(mpath)
+    result["checksum_path"] = str(cpath)
     return result
 
 
@@ -383,6 +388,7 @@ def handle_export_mapping(params: dict) -> dict:
     )
     mpath = _manifest_path_for(resolved)
     write_run_manifest(mpath, manifest)
+    cpath = write_output_checksum(resolved)
 
     result = ExportMappingResultModel(
         filepath=str(resolved),
@@ -390,6 +396,7 @@ def handle_export_mapping(params: dict) -> dict:
         primer_count=primer_count,
     ).to_rpc_dict()
     result["manifest_path"] = str(mpath)
+    result["checksum_path"] = str(cpath)
     return result
 
 

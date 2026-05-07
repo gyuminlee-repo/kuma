@@ -1,4 +1,5 @@
 pub mod config;
+pub mod keep_awake;
 pub mod project;
 pub mod sidecar;
 
@@ -77,6 +78,8 @@ pub fn run() {
             sidecar_rpc,
             sidecar_kill,
             sidecar_is_running,
+            keep_awake::keep_awake_start,
+            keep_awake::keep_awake_stop,
         ])
         .build(tauri::generate_context!())
     {

@@ -1,0 +1,22 @@
+# Rust / Cargo dependency licenses
+
+{{#each licenses}}
+## {{name}}
+
+{{#each used_by}}
+- **Crate**: {{crate.name}} {{crate.version}}
+{{/each}}
+
+- **License ID**: {{id}}
+
+<details>
+<summary>License text</summary>
+
+```
+{{text}}
+```
+
+</details>
+
+---
+{{/each}}

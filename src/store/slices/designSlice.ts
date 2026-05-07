@@ -1,5 +1,6 @@
 import type { StateCreator } from "zustand";
 import { notifyJobComplete } from "../../lib/notify";
+import { startKeepAwake, stopKeepAwake } from "../../lib/keepAwake";
 import { cancelAndRespawn, sendRequest } from "../../lib/ipc-kuro";
 import { wellName } from "../../lib/plate-utils";
 import { formatError } from "../../lib/utils";
@@ -186,6 +187,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
     });
 
     const _designStartedAt = Date.now();
+    void startKeepAwake("KURO design running");
     try {
       const payload = buildDesignRequestPayload({
         fastaPath,
@@ -264,6 +266,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       if (formatError(err).includes("Sidecar killed")) return;
       set({ statusMessage: `Design failed: ${formatError(err)}` });
     } finally {
+      void stopKeepAwake();
       if (get().isDesigning) {
         const hasResults = get().designResults.length > 0;
         set({

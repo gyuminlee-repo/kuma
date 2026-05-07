@@ -6,9 +6,10 @@ import { selectCanRun } from "@/store/mame/selectors";
 import { useMameSidecar } from "@/hooks/mame/useMameSidecar";
 import { initActivityStore } from "@/store/mame/activitySlice";
 import { useRoundStore } from "@/store/round/roundSlice";
-import { tryHandleManifestDrop, verifyInputs, type InputVerifyResult } from "@/lib/reRun";
+import { tryHandleManifestDrop, tryHandleTwoManifestsDrop, verifyInputs, type InputVerifyResult } from "@/lib/reRun";
 import { type RunManifest } from "@/lib/runManifest";
 import { ReRunManifestDialog } from "@/components/dialogs/ReRunManifestDialog";
+import { ManifestDiffDialog } from "@/components/dialogs/ManifestDiffDialog";
 import { ClearConfirmDialog } from "../dialogs/ClearConfirmDialog";
 import { ExportDialog } from "../dialogs/ExportDialog";
 import { MenuBar } from "./MenuBar";
@@ -42,6 +43,11 @@ export function MameAppLayout() {
   const reRunVerifyRef = useRef<InputVerifyResult | null>(null);
   const [reRunStatusMsg, setReRunStatusMsg] = useState("");
 
+  // §12 Reproducibility: manifest diff 모달 상태
+  const [diffManifestA, setDiffManifestA] = useState<RunManifest | null>(null);
+  const [diffManifestB, setDiffManifestB] = useState<RunManifest | null>(null);
+  const [diffOpen, setDiffOpen] = useState(false);
+
   useEffect(() => {
     let cancelled = false;
     let unlisten: (() => void) | undefined;
@@ -55,38 +61,54 @@ export function MameAppLayout() {
           setIsDragOver(false);
           const { paths } = event.payload;
 
-          // §12 Reproducibility: manifest 감지 최상단 — manifest 파일이면 기존 흐름 중단
-          void tryHandleManifestDrop(paths).then(async (result) => {
-            if (!result.handled) {
-              // 기존 파일 처리 흐름
-              for (const filePath of paths) {
-                const ext = filePath.slice(filePath.lastIndexOf(".")).toLowerCase();
-                if (SEQUENCE_EXTENSIONS.has(ext)) {
-                  useMameAppStore.getState().setReferencePath(filePath);
-                  break;
-                }
-                if (XLSX_EXTENSIONS.has(ext)) {
-                  window.dispatchEvent(
-                    new CustomEvent("kuma:mame-xlsx-dropped", { detail: { path: filePath } }),
-                  );
-                  useMameAppStore.getState().setExpectedPath(filePath);
-                  break;
-                }
+          // §12 Reproducibility: 2개 manifest 동시 드롭 → diff 흐름 우선
+          void tryHandleTwoManifestsDrop(paths).then(async (twoResult) => {
+            if (twoResult.handled) {
+              if (twoResult.error) {
+                setReRunStatusMsg(`Manifest 로드 실패: ${twoResult.error}`);
+                return;
+              }
+              if (twoResult.manifestA && twoResult.manifestB) {
+                setDiffManifestA(twoResult.manifestA);
+                setDiffManifestB(twoResult.manifestB);
+                setDiffOpen(true);
               }
               return;
             }
 
-            if (result.error) {
-              setReRunStatusMsg(`Manifest 로드 실패: ${result.error}`);
-              return;
-            }
+            // §12 Reproducibility: 단일 manifest → re-run 흐름
+            void tryHandleManifestDrop(paths).then(async (result) => {
+              if (!result.handled) {
+                // 기존 파일 처리 흐름
+                for (const filePath of paths) {
+                  const ext = filePath.slice(filePath.lastIndexOf(".")).toLowerCase();
+                  if (SEQUENCE_EXTENSIONS.has(ext)) {
+                    useMameAppStore.getState().setReferencePath(filePath);
+                    break;
+                  }
+                  if (XLSX_EXTENSIONS.has(ext)) {
+                    window.dispatchEvent(
+                      new CustomEvent("kuma:mame-xlsx-dropped", { detail: { path: filePath } }),
+                    );
+                    useMameAppStore.getState().setExpectedPath(filePath);
+                    break;
+                  }
+                }
+                return;
+              }
 
-            if (result.manifest) {
-              const verify = await verifyInputs(result.manifest);
-              reRunVerifyRef.current = verify;
-              setReRunVerify(verify);
-              setReRunManifest(result.manifest);
-            }
+              if (result.error) {
+                setReRunStatusMsg(`Manifest 로드 실패: ${result.error}`);
+                return;
+              }
+
+              if (result.manifest) {
+                const verify = await verifyInputs(result.manifest);
+                reRunVerifyRef.current = verify;
+                setReRunVerify(verify);
+                setReRunManifest(result.manifest);
+              }
+            });
           });
         }
       })
@@ -201,6 +223,18 @@ export function MameAppLayout() {
         onStatusMessage={(msg) => {
           setReRunStatusMsg(msg);
           setTimeout(() => setReRunStatusMsg(""), 4000);
+        }}
+      />
+
+      {/* §12 Reproducibility: manifest diff 모달 */}
+      <ManifestDiffDialog
+        open={diffOpen}
+        manifestA={diffManifestA}
+        manifestB={diffManifestB}
+        onClose={() => {
+          setDiffOpen(false);
+          setDiffManifestA(null);
+          setDiffManifestB(null);
         }}
       />
     </div>

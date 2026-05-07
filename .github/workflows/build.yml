@@ -79,12 +79,39 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Collect Node dependency licenses
+        run: |
+          pnpm licenses list --json --prod > pnpm-licenses.json
+          node scripts/collect-node-licenses.mjs pnpm-licenses.json NOTICE-node.md
+        shell: bash
+
       # --- Rust ---
       - uses: dtolnay/rust-toolchain@stable
 
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
+
+      # --- License collection: Rust (after toolchain setup so cargo is available) ---
+      - name: Install cargo-about
+        run: cargo install cargo-about --locked
+        shell: bash
+
+      - name: Collect Rust dependency licenses
+        run: cargo about generate -m Cargo.toml about.hbs > ../NOTICE-rust.md
+        working-directory: src-tauri
+        shell: bash
+
+      - name: Collect Python dependency licenses
+        run: |
+          pip install pip-licenses
+          pip-licenses --format=markdown --output-file NOTICE-python.md \
+            --packages primer3-py biopython openpyxl pydantic pandas python-calamine pyinstaller
+        shell: bash
+
+      - name: Build NOTICE.md and copy to Tauri resources
+        run: node scripts/build-notice.mjs
+        shell: bash
 
       # --- Build Tauri ---
       - name: Build Tauri app

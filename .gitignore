@@ -36,3 +36,11 @@ notes/
 # Debug artifacts
 design_result.debug.json
 *.debug.json
+
+# License collection build artifacts (generated at build time)
+NOTICE-rust.md
+NOTICE-node.md
+NOTICE-python.md
+NOTICE.md
+pnpm-licenses.json
+src-tauri/resources/NOTICE.md

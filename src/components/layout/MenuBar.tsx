@@ -39,7 +39,10 @@ import { loadManifestFromFile } from "../../lib/runManifest";
 import type { RunManifest } from "../../lib/runManifest";
 import { verifyInputs } from "../../lib/reRun";
 import type { InputVerifyResult } from "../../lib/reRun";
+import { readTextFile } from "@tauri-apps/plugin-fs";
+import { resolveResource } from "@tauri-apps/api/path";
 import { ReRunManifestDialog } from "../dialogs/ReRunManifestDialog";
+import { ManifestDiffDialog } from "../dialogs/ManifestDiffDialog";
 
 const MOD_KEY = navigator.userAgent.includes("Mac") ? "⌘" : "Ctrl+";
 
@@ -60,14 +63,43 @@ export function MenuBar() {
   const [crashLogOpen, setCrashLogOpen] = useState(false);
   const [mappingDialogOpen, setMappingDialogOpen] = useState(false);
   const [mappingDialogFormat, setMappingDialogFormat] = useState<"echo" | "janus">("echo");
+  // §20 Citation & Licensing: NOTICE.md from bundled resources
+  const [noticeText, setNoticeText] = useState<string | null>(null);
+  const [noticeOpen, setNoticeOpen] = useState(false);
+  const [noticeLoading, setNoticeLoading] = useState(false);
 
   // §12 Reproducibility: manifest 파일 picker
   const [reRunManifest, setReRunManifest] = useState<RunManifest | null>(null);
   const [notifyPermission, setNotifyPermission] = useState<boolean | null>(null);
 
+  // §12 Reproducibility: manifest diff 모달 상태
+  const [diffManifestA, setDiffManifestA] = useState<RunManifest | null>(null);
+  const [diffManifestB, setDiffManifestB] = useState<RunManifest | null>(null);
+  const [diffOpen, setDiffOpen] = useState(false);
+
   useEffect(() => {
     void notificationPermissionGranted().then(setNotifyPermission);
   }, []);
+
+  // §20: Load NOTICE.md from Tauri resources when About dialog opens.
+  // Fails gracefully: if the file is absent (dev mode or pre-release build),
+  // noticeText stays null and the placeholder message is shown instead.
+  useEffect(() => {
+    if (!aboutOpen || noticeText !== null) return;
+    setNoticeLoading(true);
+    void (async () => {
+      try {
+        const resourcePath = await resolveResource("resources/NOTICE.md");
+        const text = await readTextFile(resourcePath);
+        setNoticeText(text);
+      } catch {
+        // NOTICE.md not bundled in this build — fallback message shown below
+        setNoticeText(null);
+      } finally {
+        setNoticeLoading(false);
+      }
+    })();
+  }, [aboutOpen, noticeText]);
 
   async function handleEnableNotifications() {
     const granted = await requestNotificationPermission();
@@ -91,6 +123,41 @@ export function MenuBar() {
           setReRunManifest(manifest);
         } catch (err) {
           useAppStore.setState({ statusMessage: `Manifest 로드 실패: ${String(err)}` });
+        }
+      },
+    );
+  }
+
+  // §12 Reproducibility: 두 manifest 파일 picker (A → B 순차 선택)
+  async function handleCompareManifests() {
+    let manifestA: RunManifest | null = null;
+
+    // 첫 번째 파일 (A)
+    await browseFile(
+      [{ name: "Run manifest A", extensions: ["json"] }],
+      async (pathA: string) => {
+        try {
+          manifestA = await loadManifestFromFile(pathA);
+        } catch (err) {
+          useAppStore.setState({ statusMessage: `Manifest A 로드 실패: ${String(err)}` });
+        }
+      },
+    );
+
+    if (!manifestA) return;
+
+    // 두 번째 파일 (B) — manifestA 를 로컬 const 로 캡처 (TS narrowing 유지)
+    const capturedA = manifestA;
+    await browseFile(
+      [{ name: "Run manifest B", extensions: ["json"] }],
+      async (pathB: string) => {
+        try {
+          const manifestB = await loadManifestFromFile(pathB);
+          setDiffManifestA(capturedA);
+          setDiffManifestB(manifestB);
+          setDiffOpen(true);
+        } catch (err) {
+          useAppStore.setState({ statusMessage: `Manifest B 로드 실패: ${String(err)}` });
         }
       },
     );
@@ -157,6 +224,9 @@ export function MenuBar() {
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => void handleOpenManifest()}>
             Open run manifest...
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => void handleCompareManifests()}>
+            Compare run manifests...
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
@@ -369,6 +439,9 @@ export function MenuBar() {
             <p className="text-xs text-muted-foreground">
               Fired for jobs lasting longer than 5 minutes.
             </p>
+            <p className="text-xs text-muted-foreground">
+              Sleep prevention: enabled while jobs run.
+            </p>
           </div>
 
           {/* Offline mode toggle */}
@@ -389,12 +462,24 @@ export function MenuBar() {
             </Label>
           </div>
 
-          {/* Third-party licenses */}
+          {/* §20 Third-party licenses */}
           <div className="flex flex-col gap-1">
             <p className="text-sm font-semibold text-foreground">Third-party licenses</p>
-            <p className="text-xs text-muted-foreground">
-              Third-party licenses available in distribution package.
-            </p>
+            {noticeLoading ? (
+              <p className="text-xs text-muted-foreground">Loading...</p>
+            ) : noticeText !== null ? (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setNoticeOpen(true)}
+              >
+                View licenses
+              </Button>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Third-party licenses available in distribution package.
+              </p>
+            )}
           </div>
 
           <div className="flex flex-col gap-2 mt-1">
@@ -426,6 +511,18 @@ export function MenuBar() {
         onStatusMessage={(msg) => useAppStore.setState({ statusMessage: msg })}
       />
 
+      {/* §12 Reproducibility: manifest diff 모달 */}
+      <ManifestDiffDialog
+        open={diffOpen}
+        manifestA={diffManifestA}
+        manifestB={diffManifestB}
+        onClose={() => {
+          setDiffOpen(false);
+          setDiffManifestA(null);
+          setDiffManifestB(null);
+        }}
+      />
+
       {/* §14 Schema migration confirmation modal */}
       <WorkspaceMigrateDialog
         state={migrateDialog}
@@ -455,6 +552,28 @@ export function MenuBar() {
           }
         }}
       />
+
+      {/* §20 Third-party licenses modal */}
+      <Dialog open={noticeOpen} onOpenChange={setNoticeOpen}>
+        <DialogContent className="max-w-2xl max-h-[70vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Third-Party Licenses</DialogTitle>
+            <DialogDescription>
+              Open-source components bundled with this application.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto">
+            <pre className="text-xs whitespace-pre-wrap font-mono leading-relaxed p-2">
+              {noticeText}
+            </pre>
+          </div>
+          <DialogFooter>
+            <Button size="sm" onClick={() => setNoticeOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

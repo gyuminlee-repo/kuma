@@ -99,6 +99,8 @@ python -m pytest tests/test_sdm_engine.py::test_name  # Single test
 | `python-core/sidecar_kuro/handlers/export.py:handle_export_order` + `models.py:ExportOrderParams`/`ExportOrderResultModel` | `src/types/models.ts:ExportOrderResult` + `src/types/validators.ts:isExportOrderResult` + dispatcher `export_order` registration stay in sync (IDT/Twist CSV) |
 | `package.json` `sidecar:kill` script | `scripts/kill-sidecars.mjs` — must use self-safe pattern (`pkill -f` 단독 사용 금지, 빌드 명령 자기 종료 방지) |
 | `python-core/build_sidecar.py` MAME exclusions (`torch`, `sklearn`, `transformers`, optional ML/plotting) | PyInstaller 4 GB CArchive 한도 회피 — 신규 ML 의존 추가 시 exclusion 재검토 |
+| `scripts/build-notice.mjs` or `src-tauri/about.hbs` format, or pip-licenses/pnpm licenses output schema | `src/components/layout/MenuBar.tsx` NOTICE.md modal renderer assumes same text format; test by running `build-notice.mjs` locally |
+| Python production dependencies added/removed in `pyproject.toml` `[project.dependencies]` | `build.yml` `pip-licenses --packages` list in "Collect Python dependency licenses" step must stay in sync |
 
 ## Rules
 - 절대 경로 하드코딩 금지 — 상대 경로 또는 환경변수 사용

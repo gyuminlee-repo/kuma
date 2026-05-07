@@ -1,0 +1,30 @@
+# cargo-about configuration for KUMA
+# https://embarkstudios.github.io/cargo-about/
+
+# Accepted SPDX license identifiers. Crates under an accepted license are
+# included in NOTICE-rust.md. Crates under a rejected license will cause the
+# build to fail (silent skip disabled).
+accepted = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-DFS-2016",
+    "Unicode-3.0",
+    "Zlib",
+    "OpenSSL",
+    "CC0-1.0",
+]
+
+# Crates to ignore (proc-macro helpers, build tools, or crates whose license
+# text is embedded in the binary but is already covered by another crate).
+ignore = [
+    # Tauri itself packages its own NOTICE separately.
+]
+
+[output]
+# Include the full license text (not just SPDX identifiers) as required for
+# Apache-2.0 and similar licenses.
+include-text = true

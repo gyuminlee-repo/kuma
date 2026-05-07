@@ -220,6 +220,7 @@ def handle_activity_export_evolvepro_csv(params: dict) -> dict:
     )
     from kuma_core.mame.activity.models import MergedRow
     from kuma_core.shared.run_manifest import build_run_manifest, write_run_manifest
+    from kuma_core.shared.output_hash import write_output_checksum
 
     started_at = datetime.now(timezone.utc)
 
@@ -250,11 +251,13 @@ def handle_activity_export_evolvepro_csv(params: dict) -> dict:
     )
     mpath = out_path.parent / (out_path.stem + ".run.json")
     write_run_manifest(mpath, manifest)
+    cpath = write_output_checksum(out_path)
 
     return {
         "written_rows": written,
         "columns": list(COLUMNS),
         "manifest_path": str(mpath),
+        "checksum_path": str(cpath),
     }
 
 

@@ -25,6 +25,9 @@ import { useStore } from "zustand";
 import { save } from "@tauri-apps/plugin-dialog";
 import { isExportBlockedError } from "@/lib/errors";
 import { useKumaProject } from "@/state/projectContext";
+import { useState } from "react";
+import { checkMameInputSize, type InputSizeLevel } from "@/lib/inputThresholds";
+import { InputSizeWarningDialog } from "@/components/dialogs/InputSizeWarningDialog";
 
 const METHOD_LABELS: Record<DistributionStats["suggested_method"], string> = {
   median_minus_2sigma: "median − 2σ",
@@ -505,6 +508,27 @@ function ActivityDataSection() {
     (s) =>
       (s.rounds.find((r) => r.id === activeRoundId)?.activity?.records?.length ?? 0) > 0
   );
+
+  // §19 입력 크기 경고 상태
+  const [mameSizeWarning, setMameSizeWarning] = useState<{
+    level: InputSizeLevel;
+    message: string;
+    pendingAction: () => void;
+  } | null>(null);
+
+  const activityRowCount = useRoundStore(
+    (s) => s.rounds.find((r) => r.id === activeRoundId)?.activity?.records?.length ?? 0
+  );
+
+  /** §19: 크기 검사 후 경고 모달 표시 또는 즉시 실행 */
+  function guardedMerge(action: () => void) {
+    const check = checkMameInputSize({ rowCount: activityRowCount });
+    if (check.level !== "ok") {
+      setMameSizeWarning({ level: check.level, message: check.message, pendingAction: action });
+      return;
+    }
+    action();
+  }
   const roundN = useRoundStore(
     (s) => s.rounds.find((r) => r.id === activeRoundId)?.n ?? null
   );
@@ -550,7 +574,7 @@ function ActivityDataSection() {
           size="sm"
           variant="outline"
           className="w-full text-xs"
-          onClick={() => activeRoundId && void mergeActivity(activeRoundId)}
+          onClick={() => activeRoundId && guardedMerge(() => void mergeActivity(activeRoundId))}
           disabled={!activeRoundId || isMerging}
           aria-busy={isMerging}
           aria-label="Merge activity data with genotype"
@@ -567,7 +591,7 @@ function ActivityDataSection() {
           size="sm"
           variant="outline"
           className="w-full text-xs"
-          onClick={() => activeRoundId && void mergeForEvolvepro(activeRoundId)}
+          onClick={() => activeRoundId && guardedMerge(() => void mergeForEvolvepro(activeRoundId))}
           disabled={!activeRoundId || isMerging || !hasActivity}
           aria-busy={isMerging}
           aria-label="v0.3 신규 RPC로 활성 데이터 병합 + 라벨 교체 가드 실행"
@@ -632,6 +656,21 @@ function ActivityDataSection() {
         replicateStats={lastReplicateStats}
         className="pt-2 border-t border-border"
       />
+
+      {/* §19 Performance Guardrails: mame 입력 크기 사전 경고 */}
+      {mameSizeWarning && (
+        <InputSizeWarningDialog
+          open={mameSizeWarning !== null}
+          level={mameSizeWarning.level}
+          message={mameSizeWarning.message}
+          onContinue={() => {
+            const action = mameSizeWarning.pendingAction;
+            setMameSizeWarning(null);
+            action();
+          }}
+          onCancel={() => setMameSizeWarning(null)}
+        />
+      )}
     </section>
   );
 }
