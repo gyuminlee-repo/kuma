@@ -4,6 +4,7 @@ import csv
 import json
 from dataclasses import fields as dc_fields
 from datetime import datetime, timezone
+from pathlib import Path
 from types import SimpleNamespace
 
 import openpyxl
@@ -20,6 +21,10 @@ from kuma_core.kuro.plate_mapper import (
     generate_plate_map,
 )
 from kuma_core.shared.version import KUMA_VERSION, KURO_MODULE_VERSION
+from kuma_core.shared.run_manifest import (
+    build_run_manifest,
+    write_run_manifest,
+)
 
 import sidecar_kuro.core as _core
 from sidecar_kuro.core import (
@@ -148,6 +153,16 @@ def _resolve_mapping_transfer_volume(fmt: str, transfer_vol: float | None) -> in
     return float(transfer_vol)
 
 
+def _manifest_path_for(output_path: Path) -> Path:
+    """Return the sibling ``.run.json`` path for *output_path*.
+
+    Examples:
+        /out/primers.xlsx -> /out/primers.run.json
+        /out/order.csv   -> /out/order.run.json
+    """
+    return output_path.parent / (output_path.stem + ".run.json")
+
+
 def handle_get_plate_map(_params: dict) -> dict:
     """Return the plate map from last design."""
     with _core._state_lock:
@@ -176,6 +191,8 @@ def handle_export_excel(params: dict) -> dict:
     the current UI state (sorted order, custom additions from failed mutations).
     Falls back to backend state when not provided (CLI usage).
     """
+    started_at = datetime.now(timezone.utc)
+
     p = ExportExcelParams(**params)
     resolved = _validate_output_path(
         p.filepath, allowed_extensions=_ALLOWED_EXCEL_EXTENSIONS
@@ -228,7 +245,27 @@ def handle_export_excel(params: dict) -> dict:
         meta.append(["exported_at", datetime.now(timezone.utc).isoformat()])
         meta.append(["overlap_mode", run_overlap_mode])
         wb.save(resolved)
-    return FileExportResultModel(filepath=str(resolved)).to_rpc_dict()
+
+    finished_at = datetime.now(timezone.utc)
+
+    # Sanitise params for manifest: exclude large non-serialisable items.
+    manifest_params = {
+        k: v for k, v in params.items()
+        if k not in ("mappings", "rescued_info", "report_data", "benchmark_raw")
+    }
+    manifest = build_run_manifest(
+        method="export_excel",
+        inputs={},
+        params=manifest_params,
+        started_at=started_at,
+        finished_at=finished_at,
+    )
+    mpath = _manifest_path_for(resolved)
+    write_run_manifest(mpath, manifest)
+
+    result = FileExportResultModel(filepath=str(resolved)).to_rpc_dict()
+    result["manifest_path"] = str(mpath)
+    return result
 
 
 def _order_payload_to_results(items):
@@ -245,6 +282,8 @@ def _order_payload_to_results(items):
 
 def handle_export_order(params: dict) -> dict:
     """Export primer order CSV for IDT or Twist."""
+    started_at = datetime.now(timezone.utc)
+
     p = ExportOrderParams(**params)
     resolved = _validate_output_path(p.filepath, allowed_extensions=_ALLOWED_CSV_EXTENSIONS)
 
@@ -261,15 +300,32 @@ def handle_export_order(params: dict) -> dict:
     else:
         export_twist_csv(results, resolved)
 
-    return ExportOrderResultModel(
+    finished_at = datetime.now(timezone.utc)
+
+    manifest_params = {"filepath": params.get("filepath"), "format": p.format}
+    manifest = build_run_manifest(
+        method="export_order",
+        inputs={},
+        params=manifest_params,
+        started_at=started_at,
+        finished_at=finished_at,
+    )
+    mpath = _manifest_path_for(resolved)
+    write_run_manifest(mpath, manifest)
+
+    result = ExportOrderResultModel(
         filepath=str(resolved),
         format=p.format,
         primer_count=len(results) * 2,
     ).to_rpc_dict()
+    result["manifest_path"] = str(mpath)
+    return result
 
 
 def handle_export_mapping(params: dict) -> dict:
     """Export liquid handler mapping file (Echo 525 or JANUS, CSV or XLSX)."""
+    started_at = datetime.now(timezone.utc)
+
     p = ExportMappingParams(**params)
     resolved = _validate_output_path(p.filepath, allowed_extensions=_ALLOWED_MAPPING_EXTENSIONS)
 
@@ -309,12 +365,32 @@ def handle_export_mapping(params: dict) -> dict:
             export_janus_mapping_csv(fwd_mappings, rev_mappings, resolved,
                                      transfer_vol=vol, rev_groups=rev_groups)
 
+    finished_at = datetime.now(timezone.utc)
+
     primer_count = len(fwd_mappings) + len(rev_mappings)
-    return ExportMappingResultModel(
+
+    manifest_params = {
+        "filepath": params.get("filepath"),
+        "format": p.format,
+        "transfer_vol": p.transfer_vol,
+    }
+    manifest = build_run_manifest(
+        method="export_mapping",
+        inputs={},
+        params=manifest_params,
+        started_at=started_at,
+        finished_at=finished_at,
+    )
+    mpath = _manifest_path_for(resolved)
+    write_run_manifest(mpath, manifest)
+
+    result = ExportMappingResultModel(
         filepath=str(resolved),
         format=p.format,
         primer_count=primer_count,
     ).to_rpc_dict()
+    result["manifest_path"] = str(mpath)
+    return result
 
 
 def handle_save_workspace(params: dict) -> dict:

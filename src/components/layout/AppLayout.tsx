@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -6,6 +6,9 @@ import { useAppStore } from "../../store/appStore";
 import { useSidecar } from "../../hooks/useSidecar";
 import { useKumaProject } from "../../state/projectContext";
 import { useFlushKuroBeforeDesign } from "../../hooks/useKuroAutosave";
+import { tryHandleManifestDrop, verifyInputs, type InputVerifyResult } from "@/lib/reRun";
+import { type RunManifest } from "@/lib/runManifest";
+import { ReRunManifestDialog } from "../dialogs/ReRunManifestDialog";
 
 const IS_MAC = typeof navigator !== "undefined" && navigator.userAgent.includes("Mac");
 const RUN_HINT = IS_MAC ? "⌘↵" : "Ctrl+↵";
@@ -55,6 +58,11 @@ export function AppLayout() {
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
   const [missingFields, setMissingFields] = useState<string[] | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
+
+  // §12 Reproducibility: manifest re-run 모달 상태
+  const [reRunManifest, setReRunManifest] = useState<RunManifest | null>(null);
+  const [reRunVerify, setReRunVerify] = useState<InputVerifyResult | null>(null);
+  const reRunVerifyRef = useRef<InputVerifyResult | null>(null);
 
   // C-1: Run Design 직전 flush (입력 보존 — 실패 시에도 복원 가능)
   const flushBeforeDesign = useFlushKuroBeforeDesign();
@@ -118,17 +126,38 @@ export function AppLayout() {
         } else if (event.payload.type === "drop") {
           setIsDragOver(false);
           const paths = event.payload.paths;
-          for (const filePath of paths) {
-            const ext = filePath.slice(filePath.lastIndexOf(".")).toLowerCase();
-            if (SEQUENCE_EXTENSIONS.has(ext)) {
-              useAppStore.getState().loadSequence(filePath);
-              break;
+
+          // §12 Reproducibility: manifest 감지 최상단 — manifest 파일이면 기존 흐름 중단
+          void tryHandleManifestDrop(paths).then(async (result) => {
+            if (!result.handled) {
+              // 기존 파일 처리 흐름
+              for (const filePath of paths) {
+                const ext = filePath.slice(filePath.lastIndexOf(".")).toLowerCase();
+                if (SEQUENCE_EXTENSIONS.has(ext)) {
+                  useAppStore.getState().loadSequence(filePath);
+                  break;
+                }
+                if (CSV_EXTENSIONS.has(ext)) {
+                  useAppStore.getState().loadEvolveproCsv(filePath);
+                  break;
+                }
+              }
+              return;
             }
-            if (CSV_EXTENSIONS.has(ext)) {
-              useAppStore.getState().loadEvolveproCsv(filePath);
-              break;
+
+            if (result.error) {
+              useAppStore.setState({ statusMessage: `Manifest 로드 실패: ${result.error}` });
+              return;
             }
-          }
+
+            if (result.manifest) {
+              // SHA-256 검증 (비동기, 모달 열기 전 완료)
+              const verify = await verifyInputs(result.manifest);
+              reRunVerifyRef.current = verify;
+              setReRunVerify(verify);
+              setReRunManifest(result.manifest);
+            }
+          });
         }
       })
       .then((fn) => {
@@ -137,6 +166,7 @@ export function AppLayout() {
     return () => {
       unlisten?.();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Keyboard shortcuts
@@ -357,6 +387,19 @@ export function AppLayout() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* §12 Reproducibility: manifest re-run 확인 모달 */}
+      <ReRunManifestDialog
+        open={reRunManifest !== null}
+        manifest={reRunManifest}
+        verifyResult={reRunVerify}
+        onClose={() => {
+          setReRunManifest(null);
+          setReRunVerify(null);
+          reRunVerifyRef.current = null;
+        }}
+        onStatusMessage={(msg) => useAppStore.setState({ statusMessage: msg })}
+      />
 
       <Suspense fallback={null}>
         {showReport && <LazyDesignReport />}

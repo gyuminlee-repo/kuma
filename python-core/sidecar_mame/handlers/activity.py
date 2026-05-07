@@ -15,6 +15,7 @@ Dispatcher registration is in ``sidecar_mame.dispatcher``.
 from __future__ import annotations
 
 import threading
+from datetime import datetime, timezone
 from typing import Any
 
 from sidecar_mame.core import (
@@ -206,7 +207,7 @@ def handle_activity_export_evolvepro_csv(params: dict) -> dict:
 
     Params: ``{round_id, path}``
 
-    Returns: ``{written_rows: int, columns: str[]}``
+    Returns: ``{written_rows: int, columns: str[], manifest_path: str}``
 
     Raises:
         RuntimeError: round_id not found.
@@ -218,6 +219,9 @@ def handle_activity_export_evolvepro_csv(params: dict) -> dict:
         export_evolvepro_csv,
     )
     from kuma_core.mame.activity.models import MergedRow
+    from kuma_core.shared.run_manifest import build_run_manifest, write_run_manifest
+
+    started_at = datetime.now(timezone.utc)
 
     round_id: str = params["round_id"]
 
@@ -235,7 +239,23 @@ def handle_activity_export_evolvepro_csv(params: dict) -> dict:
     rows: list[MergedRow] = [MergedRow(**r) for r in merged_dicts]
     written = export_evolvepro_csv(rows, out_path, round_n=round_n)
 
-    return {"written_rows": written, "columns": list(COLUMNS)}
+    finished_at = datetime.now(timezone.utc)
+
+    manifest = build_run_manifest(
+        method="activity.export_evolvepro_csv",
+        inputs={},
+        params={"round_id": round_id, "path": params.get("path")},
+        started_at=started_at,
+        finished_at=finished_at,
+    )
+    mpath = out_path.parent / (out_path.stem + ".run.json")
+    write_run_manifest(mpath, manifest)
+
+    return {
+        "written_rows": written,
+        "columns": list(COLUMNS),
+        "manifest_path": str(mpath),
+    }
 
 
 # ---------------------------------------------------------------------------

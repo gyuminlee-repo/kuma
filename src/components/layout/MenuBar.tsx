@@ -29,6 +29,12 @@ import {
 } from "./export-handlers";
 import { MappingExportDialog } from "../dialogs/MappingExportDialog";
 import { SubtoolMenuBar } from "./SubtoolMenuBar";
+import { browseFile } from "../../lib/file-utils";
+import { loadManifestFromFile } from "../../lib/runManifest";
+import type { RunManifest } from "../../lib/runManifest";
+import { verifyInputs } from "../../lib/reRun";
+import type { InputVerifyResult } from "../../lib/reRun";
+import { ReRunManifestDialog } from "../dialogs/ReRunManifestDialog";
 
 const MOD_KEY = navigator.userAgent.includes("Mac") ? "⌘" : "Ctrl+";
 
@@ -49,6 +55,26 @@ export function MenuBar() {
   const [crashLogOpen, setCrashLogOpen] = useState(false);
   const [mappingDialogOpen, setMappingDialogOpen] = useState(false);
   const [mappingDialogFormat, setMappingDialogFormat] = useState<"echo" | "janus">("echo");
+
+  // §12 Reproducibility: manifest 파일 picker
+  const [reRunManifest, setReRunManifest] = useState<RunManifest | null>(null);
+  const [reRunVerify, setReRunVerify] = useState<InputVerifyResult | null>(null);
+
+  async function handleOpenManifest() {
+    await browseFile(
+      [{ name: "Run manifest", extensions: ["json"] }],
+      async (path: string) => {
+        try {
+          const manifest = await loadManifestFromFile(path);
+          const verify = await verifyInputs(manifest);
+          setReRunVerify(verify);
+          setReRunManifest(manifest);
+        } catch (err) {
+          useAppStore.setState({ statusMessage: `Manifest 로드 실패: ${String(err)}` });
+        }
+      },
+    );
+  }
 
   const KURO_BIBTEX = `@software{kuro_TBD,
   title  = {KURO: Kernel for Upstream Recombination Oligodesign},
@@ -100,6 +126,10 @@ export function MenuBar() {
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => void handleLoadWorkspace(project)}>
             Load Workspace...
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => void handleOpenManifest()}>
+            Open run manifest...
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
@@ -333,6 +363,18 @@ export function MenuBar() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* §12 Reproducibility: manifest re-run 확인 모달 */}
+      <ReRunManifestDialog
+        open={reRunManifest !== null}
+        manifest={reRunManifest}
+        verifyResult={reRunVerify}
+        onClose={() => {
+          setReRunManifest(null);
+          setReRunVerify(null);
+        }}
+        onStatusMessage={(msg) => useAppStore.setState({ statusMessage: msg })}
+      />
     </>
   );
 }

@@ -313,6 +313,7 @@ class DesignResultResponseModel(WorkspaceModel):
 class FileExportResultModel(WorkspaceModel):
     success: Literal[True] = True
     filepath: str
+    manifest_path: Optional[str] = None
 
 
 class ExportOrderResultModel(FileExportResultModel):

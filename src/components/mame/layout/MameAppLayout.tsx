@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { useKumaProject } from "@/state/projectContext";
@@ -6,6 +6,9 @@ import { selectCanRun } from "@/store/mame/selectors";
 import { useMameSidecar } from "@/hooks/mame/useMameSidecar";
 import { initActivityStore } from "@/store/mame/activitySlice";
 import { useRoundStore } from "@/store/round/roundSlice";
+import { tryHandleManifestDrop, verifyInputs, type InputVerifyResult } from "@/lib/reRun";
+import { type RunManifest } from "@/lib/runManifest";
+import { ReRunManifestDialog } from "@/components/dialogs/ReRunManifestDialog";
 import { ClearConfirmDialog } from "../dialogs/ClearConfirmDialog";
 import { ExportDialog } from "../dialogs/ExportDialog";
 import { MenuBar } from "./MenuBar";
@@ -33,6 +36,12 @@ export function MameAppLayout() {
   const [isDragOver, setIsDragOver] = useState(false);
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
 
+  // §12 Reproducibility: manifest re-run 모달 상태
+  const [reRunManifest, setReRunManifest] = useState<RunManifest | null>(null);
+  const [reRunVerify, setReRunVerify] = useState<InputVerifyResult | null>(null);
+  const reRunVerifyRef = useRef<InputVerifyResult | null>(null);
+  const [reRunStatusMsg, setReRunStatusMsg] = useState("");
+
   useEffect(() => {
     let cancelled = false;
     let unlisten: (() => void) | undefined;
@@ -44,20 +53,41 @@ export function MameAppLayout() {
           setIsDragOver(false);
         } else if (event.payload.type === "drop") {
           setIsDragOver(false);
-          for (const filePath of event.payload.paths) {
-            const ext = filePath.slice(filePath.lastIndexOf(".")).toLowerCase();
-            if (SEQUENCE_EXTENSIONS.has(ext)) {
-              useMameAppStore.getState().setReferencePath(filePath);
-              break;
+          const { paths } = event.payload;
+
+          // §12 Reproducibility: manifest 감지 최상단 — manifest 파일이면 기존 흐름 중단
+          void tryHandleManifestDrop(paths).then(async (result) => {
+            if (!result.handled) {
+              // 기존 파일 처리 흐름
+              for (const filePath of paths) {
+                const ext = filePath.slice(filePath.lastIndexOf(".")).toLowerCase();
+                if (SEQUENCE_EXTENSIONS.has(ext)) {
+                  useMameAppStore.getState().setReferencePath(filePath);
+                  break;
+                }
+                if (XLSX_EXTENSIONS.has(ext)) {
+                  window.dispatchEvent(
+                    new CustomEvent("kuma:mame-xlsx-dropped", { detail: { path: filePath } }),
+                  );
+                  useMameAppStore.getState().setExpectedPath(filePath);
+                  break;
+                }
+              }
+              return;
             }
-            if (XLSX_EXTENSIONS.has(ext)) {
-              window.dispatchEvent(
-                new CustomEvent("kuma:mame-xlsx-dropped", { detail: { path: filePath } }),
-              );
-              useMameAppStore.getState().setExpectedPath(filePath);
-              break;
+
+            if (result.error) {
+              setReRunStatusMsg(`Manifest 로드 실패: ${result.error}`);
+              return;
             }
-          }
+
+            if (result.manifest) {
+              const verify = await verifyInputs(result.manifest);
+              reRunVerifyRef.current = verify;
+              setReRunVerify(verify);
+              setReRunManifest(result.manifest);
+            }
+          });
         }
       })
       .then((fn) => {
@@ -143,6 +173,35 @@ export function MameAppLayout() {
         open={clearConfirmOpen}
         onOpenChange={setClearConfirmOpen}
         onConfirm={clearResults}
+      />
+
+      {/* §12 Reproducibility: re-run status 표시 (4초 자동 소멸) */}
+      {reRunStatusMsg && (
+        <div
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 rounded-md border border-border bg-card px-4 py-2 text-sm shadow-md text-foreground"
+          onAnimationEnd={() => setReRunStatusMsg("")}
+        >
+          {reRunStatusMsg}
+        </div>
+      )}
+
+      {/* §12 Reproducibility: manifest re-run 확인 모달 */}
+      <ReRunManifestDialog
+        open={reRunManifest !== null}
+        manifest={reRunManifest}
+        verifyResult={reRunVerify}
+        onClose={() => {
+          setReRunManifest(null);
+          setReRunVerify(null);
+          reRunVerifyRef.current = null;
+        }}
+        onStatusMessage={(msg) => {
+          setReRunStatusMsg(msg);
+          setTimeout(() => setReRunStatusMsg(""), 4000);
+        }}
       />
     </div>
   );

@@ -1,0 +1,180 @@
+"""Tests for run manifest generation in kuro export handlers.
+
+Verifies that handle_export_order and handle_export_excel produce
+sibling ``{basename}.run.json`` files with correct ``method`` and
+``schema_version`` fields after a successful export.
+"""
+
+from __future__ import annotations
+
+import json
+
+import pytest
+
+from sidecar_kuro.core import _state, _state_lock
+from sidecar_kuro.handlers.export import handle_export_excel, handle_export_order
+from kuma_core.shared.run_manifest import SCHEMA_VERSION
+
+
+# ---------------------------------------------------------------------------
+# Shared fixture: minimal sidecar state
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def minimal_state():
+    """Populate sidecar_kuro state with a single mapping so export can run."""
+    with _state_lock:
+        saved_results = list(_state.results)
+        saved_mappings = list(_state.plate_mappings)
+        saved_dedup = dict(_state.dedup_info) if _state.dedup_info else {}
+
+        _state.results = []
+        _state.plate_mappings = []
+        _state.dedup_info = {}
+    yield
+    with _state_lock:
+        _state.results = saved_results
+        _state.plate_mappings = saved_mappings
+        _state.dedup_info = saved_dedup
+
+
+def _make_mapping_item():
+    return {
+        "well": "A1",
+        "primer_name": "M1_F",
+        "sequence": "ACGTACGTACGT",
+        "primer_type": "forward",
+        "mutation": "M1",
+    }
+
+
+def _make_order_item():
+    return {
+        "mutation": "M1T",
+        "forward_seq": "ACGTACGTACGT",
+        "reverse_seq": "TTTTACGTACGT",
+    }
+
+
+# ---------------------------------------------------------------------------
+# handle_export_order manifest tests
+# ---------------------------------------------------------------------------
+
+
+def test_export_order_produces_manifest_file(tmp_path, minimal_state):
+    out = tmp_path / "order.csv"
+    result = handle_export_order({
+        "filepath": str(out),
+        "format": "idt",
+        "results": [_make_order_item()],
+    })
+    manifest_path = tmp_path / "order.run.json"
+    assert manifest_path.exists(), "order.run.json manifest file not created"
+
+
+def test_export_order_manifest_path_in_response(tmp_path, minimal_state):
+    out = tmp_path / "primers.csv"
+    result = handle_export_order({
+        "filepath": str(out),
+        "format": "idt",
+        "results": [_make_order_item()],
+    })
+    assert "manifest_path" in result
+    assert result["manifest_path"].endswith("primers.run.json")
+
+
+def test_export_order_manifest_method_field(tmp_path, minimal_state):
+    out = tmp_path / "order_meta.csv"
+    handle_export_order({
+        "filepath": str(out),
+        "format": "twist",
+        "results": [_make_order_item()],
+    })
+    manifest = json.loads((tmp_path / "order_meta.run.json").read_text())
+    assert manifest["method"] == "export_order"
+
+
+def test_export_order_manifest_schema_version(tmp_path, minimal_state):
+    out = tmp_path / "order_schema.csv"
+    handle_export_order({
+        "filepath": str(out),
+        "format": "idt",
+        "results": [_make_order_item()],
+    })
+    manifest = json.loads((tmp_path / "order_schema.run.json").read_text())
+    assert manifest["schema_version"] == SCHEMA_VERSION
+
+
+def test_export_order_manifest_inputs_empty(tmp_path, minimal_state):
+    """Order export has no input files — inputs section must be empty dict."""
+    out = tmp_path / "order_inputs.csv"
+    handle_export_order({
+        "filepath": str(out),
+        "format": "idt",
+        "results": [_make_order_item()],
+    })
+    manifest = json.loads((tmp_path / "order_inputs.run.json").read_text())
+    assert manifest["inputs"] == {}
+
+
+def test_export_order_manifest_timestamps_present(tmp_path, minimal_state):
+    out = tmp_path / "order_ts.csv"
+    handle_export_order({
+        "filepath": str(out),
+        "format": "idt",
+        "results": [_make_order_item()],
+    })
+    manifest = json.loads((tmp_path / "order_ts.run.json").read_text())
+    assert "started_at" in manifest
+    assert "finished_at" in manifest
+    assert "duration_seconds" in manifest
+
+
+# ---------------------------------------------------------------------------
+# handle_export_excel manifest tests
+# ---------------------------------------------------------------------------
+
+
+def test_export_excel_produces_manifest_file(tmp_path, minimal_state):
+    out = tmp_path / "plate.xlsx"
+    handle_export_excel({
+        "filepath": str(out),
+        "mappings": [_make_mapping_item()],
+        "dedup_info": {},
+    })
+    manifest_path = tmp_path / "plate.run.json"
+    assert manifest_path.exists(), "plate.run.json manifest file not created"
+
+
+def test_export_excel_manifest_path_in_response(tmp_path, minimal_state):
+    out = tmp_path / "plate2.xlsx"
+    result = handle_export_excel({
+        "filepath": str(out),
+        "mappings": [_make_mapping_item()],
+        "dedup_info": {},
+    })
+    assert "manifest_path" in result
+    assert result["manifest_path"].endswith("plate2.run.json")
+
+
+def test_export_excel_manifest_method_field(tmp_path, minimal_state):
+    out = tmp_path / "plate3.xlsx"
+    handle_export_excel({
+        "filepath": str(out),
+        "mappings": [_make_mapping_item()],
+        "dedup_info": {},
+    })
+    manifest = json.loads((tmp_path / "plate3.run.json").read_text())
+    assert manifest["method"] == "export_excel"
+
+
+def test_export_excel_manifest_kuma_version_present(tmp_path, minimal_state):
+    out = tmp_path / "plate4.xlsx"
+    handle_export_excel({
+        "filepath": str(out),
+        "mappings": [_make_mapping_item()],
+        "dedup_info": {},
+    })
+    manifest = json.loads((tmp_path / "plate4.run.json").read_text())
+    assert "kuma_version" in manifest
+    assert isinstance(manifest["kuma_version"], str)
