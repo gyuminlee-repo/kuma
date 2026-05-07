@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { readTextFile } from "@tauri-apps/plugin-fs";
+import { resolveResource } from "@tauri-apps/api/path";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { useKumaProject } from "@/state/projectContext";
 import { CrashLogDialog } from "@/components/dialogs/CrashLogDialog";
@@ -49,6 +51,10 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
   const [aboutOpen, setAboutOpen] = useState(false);
   const [bibtexCopied, setBibtexCopied] = useState(false);
   const [crashLogOpen, setCrashLogOpen] = useState(false);
+  // §20 Citation & Licensing: NOTICE.md from bundled resources
+  const [noticeText, setNoticeText] = useState<string | null>(null);
+  const [noticeOpen, setNoticeOpen] = useState(false);
+  const [noticeLoading, setNoticeLoading] = useState(false);
 
   const MAME_BIBTEX = `@software{mame_TBD,
   title  = {MAME: Multi-round Activity & Mutation Engine},
@@ -57,6 +63,26 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
   note   = {DOI/citation forthcoming},
   url    = {TBD}
 }`;
+
+  // §20: Load NOTICE.md from Tauri resources when About dialog opens.
+  // Fails gracefully: if the file is absent (dev mode or pre-release build),
+  // noticeText stays null and the placeholder message is shown instead.
+  useEffect(() => {
+    if (!aboutOpen || noticeText !== null) return;
+    setNoticeLoading(true);
+    void (async () => {
+      try {
+        const resourcePath = await resolveResource("resources/NOTICE.md");
+        const text = await readTextFile(resourcePath);
+        setNoticeText(text);
+      } catch {
+        // NOTICE.md not bundled in this build — fallback message shown below
+        setNoticeText(null);
+      } finally {
+        setNoticeLoading(false);
+      }
+    })();
+  }, [aboutOpen, noticeText]);
 
   async function handleCopyBibtex() {
     await navigator.clipboard.writeText(MAME_BIBTEX);
@@ -206,17 +232,51 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
             </p>
           </div>
 
-          {/* Third-party licenses */}
+          {/* §20 Third-party licenses */}
           <div className="flex flex-col gap-1">
             <p className="text-sm font-semibold text-foreground">Third-party licenses</p>
-            <p className="text-xs text-muted-foreground">
-              Third-party licenses available in distribution package.
-            </p>
+            {noticeLoading ? (
+              <p className="text-xs text-muted-foreground">Loading...</p>
+            ) : noticeText !== null ? (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setNoticeOpen(true)}
+              >
+                View licenses
+              </Button>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Third-party licenses available in distribution package.
+              </p>
+            )}
           </div>
 
           <DialogFooter>
             <Button size="sm" onClick={() => setAboutOpen(false)}>
               OK
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* §20 Third-party licenses modal */}
+      <Dialog open={noticeOpen} onOpenChange={setNoticeOpen}>
+        <DialogContent className="max-w-2xl max-h-[70vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Third-Party Licenses</DialogTitle>
+            <DialogDescription>
+              Open-source components bundled with this application.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto">
+            <pre className="text-xs whitespace-pre-wrap font-mono leading-relaxed p-2">
+              {noticeText}
+            </pre>
+          </div>
+          <DialogFooter>
+            <Button size="sm" onClick={() => setNoticeOpen(false)}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>

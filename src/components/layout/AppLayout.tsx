@@ -31,6 +31,9 @@ import {
 import { MenuBar } from "./MenuBar";
 import { StatusBar } from "./StatusBar";
 import { NetworkConsentDialog } from "../dialogs/NetworkConsentDialog";
+import { InputSizeWarningDialog } from "../dialogs/InputSizeWarningDialog";
+import { checkKuroInputSize } from "@/lib/inputThresholds";
+import type { InputSizeLevel } from "@/lib/inputThresholds";
 import {
   handleExportExcel,
   handleSaveWorkspace,
@@ -59,6 +62,13 @@ export function AppLayout() {
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
   const [missingFields, setMissingFields] = useState<string[] | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
+
+  // §19 Performance Guardrails: 입력 크기 사전 경고 상태
+  const [kuroSizeWarning, setKuroSizeWarning] = useState<{
+    level: InputSizeLevel;
+    message: string;
+    pendingAction: () => void;
+  } | null>(null);
 
   // §12 Reproducibility: manifest re-run 모달 상태
   const [reRunManifest, setReRunManifest] = useState<RunManifest | null>(null);
@@ -90,6 +100,7 @@ export function AppLayout() {
 
   /**
    * Click handler: validate first, then run. If anything is missing, show a popup.
+   * §19: After validation, check input size; show warning dialog if threshold exceeded.
    */
   const tryRunDesign = useCallback(() => {
     if (useAppStore.getState().isDesigning) return;
@@ -98,7 +109,23 @@ export function AppLayout() {
       setMissingFields(missing);
       return;
     }
-    void flushBeforeDesign().then(() => useAppStore.getState().designPrimers());
+
+    // §19 입력 크기 검사
+    const mutationText = useAppStore.getState().mutationText;
+    const rowCount = mutationText
+      .trim()
+      .split("\n")
+      .filter((l) => l.trim() && !l.trim().startsWith("#")).length;
+    const sizeCheck = checkKuroInputSize({ rowCount });
+    const runAction = () => {
+      void flushBeforeDesign().then(() => useAppStore.getState().designPrimers());
+    };
+    if (sizeCheck.level !== "ok") {
+      setKuroSizeWarning({ level: sizeCheck.level, message: sizeCheck.message, pendingAction: runAction });
+      return;
+    }
+
+    runAction();
   }, [collectMissingFields, flushBeforeDesign]);
 
   const selectedGeneInfo = seqInfo?.genes.find((gene) => String(gene.cds_start) === selectedGene);
@@ -409,6 +436,21 @@ export function AppLayout() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* §19 Performance Guardrails: kuro 입력 크기 사전 경고 */}
+      {kuroSizeWarning && (
+        <InputSizeWarningDialog
+          open={kuroSizeWarning !== null}
+          level={kuroSizeWarning.level}
+          message={kuroSizeWarning.message}
+          onContinue={() => {
+            const action = kuroSizeWarning.pendingAction;
+            setKuroSizeWarning(null);
+            action();
+          }}
+          onCancel={() => setKuroSizeWarning(null)}
+        />
+      )}
 
       {/* §12 Reproducibility: manifest re-run 확인 모달 */}
       <ReRunManifestDialog
