@@ -449,52 +449,63 @@ mame, primerbench 도 동일 형식 placeholder.
 }
 ```
 
-## Appendix D. Per-app Status Matrix (audit 2026-05-07)
+## Appendix D. Per-app Status Matrix (audit 2026-05-07, Phase 1–3 후 갱신)
 
-판정 규칙: 카테고리 내 모든 [필수]·[권장] Requirements 충족 → ✅ / 일부 충족 → 🟡 / 전부 미구현 → ❌. 셀 단위 상세 근거(파일:라인)는 `notes/agent-reports/audit-kuma.md`, `notes/agent-reports/audit-primerbench.md` 참조.
+판정 규칙: 카테고리 내 모든 [필수]·[권장] Requirements 충족 → ✅ / 일부 충족 → 🟡 / 전부 미구현 → ❌. 셀 단위 상세 근거(파일:라인)는 `notes/agent-reports/audit-kuma.md`, `notes/agent-reports/audit-primerbench.md`, Phase 보고서 (`phase1a` ~ `phase3*`) 참조.
 
-| § | Category | kuro | mame | primerbench |
-|---|---|---|---|---|
-| 1 | Recovery | 🟡 | 🟡 | 🟡 |
-| 2 | Observability | 🟡 | 🟡 | 🟡 |
-| 3 | Input Guards | 🟡 | 🟡 | 🟡 |
-| 4 | Error UX | 🟡 | 🟡 | 🟡 |
-| 5 | Output Persistence | 🟡 | 🟡 | 🟡 |
-| 6 | Settings | 🟡 | 🟡 | 🟡 |
-| 7 | UI Safety | 🟡 | 🟡 | 🟡 |
-| 8 | A11y & Ergonomics | 🟡 | 🟡 | 🟡 |
-| 9 | Versioning | 🟡 | 🟡 | 🟡 |
-| 10 | Telemetry & Privacy | 🟡 | 🟡 | 🟡 |
-| 11 | Build & Distribution | 🟡 | 🟡 | 🟡 |
-| 12 | Reproducibility | ❌ | ❌ | ❌ |
-| 13 | Long-running Jobs | ❌ | ❌ | ❌ |
-| 14 | Data Integrity | 🟡 | 🟡 | 🟡 |
-| 15 | Onboarding | 🟡 | 🟡 | 🟡 |
-| 16 | Local Diagnostics | 🟡 | 🟡 | 🟡 |
-| 17 | Cross-platform | 🟡 | 🟡 | ❌ |
-| 18 | Partial Success | 🟡 | 🟡 | 🟡 |
-| 19 | Performance Guardrails | ❌ | ❌ | 🟡 |
-| 20 | Citation & Licensing | ❌ | ❌ | ❌ |
-| 21 | Multi-workspace | 🟡 | 🟡 | 🟡 |
-| 22 | Graceful Shutdown | 🟡 | 🟡 | ❌ |
+| § | Category | kuro | mame | primerbench | 변동 |
+|---|---|---|---|---|---|
+| 1 | Recovery | 🟡 | 🟡 | 🟡 | — |
+| 2 | Observability | 🟡 | 🟡 | 🟡 | — |
+| 3 | Input Guards | 🟡 | 🟡 | 🟡 | — |
+| 4 | Error UX | 🟡 | 🟡 | 🟡 | — |
+| 5 | Output Persistence | 🟡 | 🟡 | 🟡 | — |
+| 6 | Settings | 🟡 | 🟡 | 🟡 | — |
+| 7 | UI Safety | ✅ | ✅ | 🟡 | kuro/mame 🟡→✅ (Phase 1a) |
+| 8 | A11y & Ergonomics | 🟡 | 🟡 | 🟡 | — |
+| 9 | Versioning | 🟡 | 🟡 | 🟡 | — |
+| 10 | Telemetry & Privacy | ✅ | ✅ | 🟡 | kuro/mame 🟡→✅ (Phase 2b) |
+| 11 | Build & Distribution | 🟡 | 🟡 | 🟡 | — |
+| 12 | Reproducibility | 🟡 | 🟡 | ❌ | kuro/mame ❌→🟡 (Phase 3, [필수] 충족; seed/diff 미구현) |
+| 13 | Long-running Jobs | ❌ | ❌ | ❌ | — |
+| 14 | Data Integrity | 🟡 | 🟡 | 🟡 | run.json SHA-256 도입으로 보강 (Phase 3a) |
+| 15 | Onboarding | 🟡 | 🟡 | 🟡 | — |
+| 16 | Local Diagnostics | 🟡 | 🟡 | 🟡 | — |
+| 17 | Cross-platform | 🟡 | 🟡 | ❌ | — |
+| 18 | Partial Success | 🟡 | 🟡 | 🟡 | — |
+| 19 | Performance Guardrails | ❌ | ❌ | 🟡 | — |
+| 20 | Citation & Licensing | 🟡 | 🟡 | ❌ | kuro/mame ❌→🟡 (Phase 1b, BibTeX/License placeholder; 3rd-party 자동 수집 미구현) |
+| 21 | Multi-workspace | 🟡 | 🟡 | 🟡 | — |
+| 22 | Graceful Shutdown | 🟡 | 🟡 | ❌ | Lock file + close confirm 추가 (Phase 2a; SIGKILL 5s fallback 잔여) |
 
-### 공통 미구현 카테고리 (세 앱 모두 ❌ 또는 🟡 약세)
-- **§12 Reproducibility**: 세 앱 모두 `run.json`/SHA-256/seed 0건. 학술 SW 핵심 누락.
-- **§13 Long-running Jobs**: OS notification, sleep inhibit, job queue 0건.
-- **§19 Performance Guardrails**: kuro/mame 0건. primerbench는 react-virtual 부분 도입.
-- **§20 Citation & Licensing**: BibTeX/3rd-party license/data source 노출 0건.
+### Phase 1–3 적용 결과
+- **🟡 → ✅ 카테고리 4건**: §7 UI Safety (kuro/mame), §10 Telemetry (kuro/mame)
+- **❌ → 🟡 카테고리 4건**: §12 Reproducibility (kuro/mame), §20 Citation (kuro/mame)
+- **kuro 카운트**: ❌ 3 / 🟡 17 / ✅ 2 (이전: ❌ 4 / 🟡 17 / ✅ 0)
+- **mame 카운트**: ❌ 3 / 🟡 17 / ✅ 2 (이전: ❌ 4 / 🟡 17 / ✅ 0)
+- **primerbench**: 변동 없음 (별도 레포, 본 세션 외)
 
-### 앱별 상대적 강점
-- **kuro**: §3, §18 (sample data + 실패 항목 패널), §17 (OS 단축키 매핑), §11 onboarding
-- **mame**: §8 colorblind 모드 (`PlateView.tsx:30`), §9 schema_version throw, §11 onboarding
-- **primerbench**: §6 sidecar 헬스 dot 명확, §10 외부 fetch 0건 (clean), §19 react-virtual 부분 도입
+### 잔여 약점
 
-### 우선 보강 권장 (모든 앱 공통)
-1. **§7 UI Safety**: kuma 단독 `flex-1` + `min-w-0` 위반 14건. lint 즉시 가능
-2. **§12 Reproducibility**: `run.json` 자동 생성. 가치 대비 비용 가장 낮음
-3. **§22 Graceful Shutdown**: Lock file + close confirm. 데이터 손상 위험 직결
-4. **§10 Telemetry**: UniProt/BLAST 1회 동의 모달. IRB 위험 제거
-5. **§20 Citation**: About에 BibTeX placeholder 추가. 헌장 Appendix C 그대로 사용
+세 앱 공통 ❌:
+- **§13 Long-running Jobs**: OS notification, sleep inhibit, job queue 0건
+- **§19 Performance Guardrails**: kuro/mame 입력 크기 경고/메모리 모니터/virtual scroll 0건 (primerbench react-virtual 부분만)
+- **§22 Shutdown** SIGKILL 5초 fallback: dispatcher.py `shutdown` RPC 핸들러 선행 필요
+
+§12 잔여 권장 항목:
+- **Random seed 노출·고정** UI 미구현 (백엔드 `build_run_manifest` 는 seed 인자 수용)
+- **Manifest diff view** 미구현
+
+§20 잔여 항목:
+- **Third-party licenses 자동 수집**: 현재 placeholder 텍스트만. cargo-about / pip-licenses 빌드 시점 수집 도입 필요
+
+### 다음 우선 보강 (가치/비용 기준)
+
+1. **§13 OS notification**: Tauri `tauri-plugin-notification` 도입 — 5분+ 작업 완료 시 백그라운드 알림. ~30 LoC
+2. **§22 SIGKILL 5초 fallback**: `dispatcher.py` `shutdown` RPC + Rust 측 timeout. ~50 LoC
+3. **§19 Virtual scroll**: kuro `ResultTable.tsx`, mame `VerdictTable.tsx` 에 `@tanstack/react-virtual` 도입 (primerbench 패턴 준용)
+4. **§14 Schema dry-run 마이그레이션**: workspace 로드 시 차단 대신 dry-run + 사용자 확인
+5. **§12 Random seed 노출**: kuro DesignParameters / mame AnalyzeParameters 에 optional seed 입력 필드
 
 ---
 
@@ -503,6 +514,7 @@ mame, primerbench 도 동일 형식 placeholder.
 - **v0.1 (2026-05-07)**: 22 카테고리 초안. status matrix placeholder. 외부 진단 전송 제거(§16). Citation 더미(§20).
 - **v0.1.1 (2026-05-07)**: 11개 카테고리(§6, 8, 9, 11, 13, 14, 15, 17, 19, 21, 22) Rationale 보강 (verifier FAIL 수정).
 - **v0.2 (2026-05-07)**: Per-app audit 완료. Appendix D 매트릭스 ❓ → 실제 status 채움. 공통 약점·강점·우선 보강 5순위 추가. 근거: `notes/agent-reports/audit-kuma.md`, `audit-primerbench.md`.
+- **v0.3 (2026-05-07)**: Phase 1–3 (v0.3.2.1 ~ v0.3.3.0) 결과 반영. §7/§10 → ✅, §12/§20 → 🟡, §22 부분 보강. kuro/mame ✅ 카테고리 0→2, ❌ 카운트 4→3. 다음 우선 5순위 갱신.
 
 ## 후속 액션
 
