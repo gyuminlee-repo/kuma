@@ -25,6 +25,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SubtoolMenuBar } from "@/components/layout/SubtoolMenuBar";
+import { checkForUpdates, downloadAndInstall, type UpdateCheckResult } from "@/lib/updater";
+import type { Update } from "@tauri-apps/plugin-updater";
 
 const MOD_KEY = typeof navigator !== "undefined" && navigator.userAgent.includes("Mac") ? "⌘" : "Ctrl+";
 
@@ -55,6 +57,11 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
   const [noticeText, setNoticeText] = useState<string | null>(null);
   const [noticeOpen, setNoticeOpen] = useState(false);
   const [noticeLoading, setNoticeLoading] = useState(false);
+
+  // §9 Versioning & Updates
+  const [updateChecking, setUpdateChecking] = useState(false);
+  const [updateResult, setUpdateResult] = useState<UpdateCheckResult | null>(null);
+  const [updateInstalling, setUpdateInstalling] = useState(false);
 
   const MAME_BIBTEX = `@software{mame_TBD,
   title  = {MAME: Multi-round Activity & Mutation Engine},
@@ -89,6 +96,34 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
     setBibtexCopied(true);
     setTimeout(() => setBibtexCopied(false), 2000);
   }
+
+  // §9 Versioning: check for updates handler
+  async function handleCheckForUpdates() {
+    setUpdateChecking(true);
+    setUpdateResult(null);
+    try {
+      const result = await checkForUpdates();
+      setUpdateResult(result);
+    } finally {
+      setUpdateChecking(false);
+    }
+  }
+
+  // §9 Versioning: download and install handler
+  async function handleDownloadAndInstall(update: Update) {
+    setUpdateInstalling(true);
+    try {
+      await downloadAndInstall(update);
+    } catch (err: unknown) {
+      setUpdateResult({
+        status: "error",
+        message: err instanceof Error ? err.message : String(err),
+      });
+    } finally {
+      setUpdateInstalling(false);
+    }
+  }
+
   const [janusOpen, setJanusOpen] = useState(false);
   const [runReportOpen, setRunReportOpen] = useState(false);
 
@@ -184,7 +219,10 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
         open={aboutOpen}
         onOpenChange={(open: boolean) => {
           setAboutOpen(open);
-          if (!open) setBibtexCopied(false);
+          if (!open) {
+            setBibtexCopied(false);
+            setUpdateResult(null);
+          }
         }}
       >
         <DialogContent className="max-w-md">
@@ -200,6 +238,57 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
               Built with Tauri + React + Python sidecar.
             </DialogDescription>
           </DialogHeader>
+
+          {/* §9 Updates */}
+          <div className="flex flex-col gap-1.5">
+            <p className="text-sm font-semibold text-foreground">Updates</p>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={updateChecking || updateInstalling}
+              onClick={() => void handleCheckForUpdates()}
+            >
+              {updateChecking ? "Checking..." : "Check for updates"}
+            </Button>
+            {updateResult && (
+              <div className="rounded-md border border-border px-3 py-2 text-xs">
+                {updateResult.status === "up-to-date" && (
+                  <p className="text-success">
+                    You&apos;re on the latest version (v{updateResult.currentVersion}).
+                  </p>
+                )}
+                {updateResult.status === "available" && (
+                  <div className="flex flex-col gap-1.5">
+                    <p className="text-foreground">
+                      Update available: v{__APP_VERSION__} → v{updateResult.newVersion}
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        disabled={updateInstalling}
+                        onClick={() => void handleDownloadAndInstall(updateResult.update)}
+                      >
+                        {updateInstalling ? "Installing..." : "Download and Install"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setUpdateResult(null)}
+                      >
+                        Later
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                {updateResult.status === "not-configured" && (
+                  <p className="text-warning">{updateResult.message}</p>
+                )}
+                {updateResult.status === "error" && (
+                  <p className="text-destructive">Update check failed: {updateResult.message}</p>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* How to cite */}
           <div className="flex flex-col gap-1.5">

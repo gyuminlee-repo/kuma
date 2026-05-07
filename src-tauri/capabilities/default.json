@@ -16,6 +16,7 @@
     "fs:allow-read-text-file",
     "fs:allow-exists",
     "fs:allow-rename",
+    "updater:default",
     {
       "identifier": "fs:scope",
       "allow": [

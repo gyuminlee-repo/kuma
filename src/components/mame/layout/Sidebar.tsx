@@ -10,9 +10,11 @@ import { Progress } from "@/components/ui/progress";
 
 interface SidebarProps {
   onClearRequest: () => void;
+  /** Pre-flight-wrapped Run trigger from MameAppLayout. */
+  onRunRequest?: () => void;
 }
 
-export function Sidebar({ onClearRequest }: SidebarProps) {
+export function Sidebar({ onClearRequest, onRunRequest }: SidebarProps) {
   const inputDir = useMameAppStore((s) => s.inputDir);
   const expectedPath = useMameAppStore((s) => s.expectedPath);
   const referencePath = useMameAppStore((s) => s.referencePath);
@@ -108,7 +110,7 @@ export function Sidebar({ onClearRequest }: SidebarProps) {
             <Button
               size="sm"
               className="h-control-primary flex-1 min-w-0 gap-1.5 rounded-control text-caption"
-              onClick={() => void runAnalysis()}
+              onClick={() => (onRunRequest ? onRunRequest() : void runAnalysis())}
               disabled={!canRun}
             >
               <Play size={12} aria-hidden="true" />

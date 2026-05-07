@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { useKumaProject } from "@/state/projectContext";
@@ -12,6 +12,9 @@ import { ReRunManifestDialog } from "@/components/dialogs/ReRunManifestDialog";
 import { ManifestDiffDialog } from "@/components/dialogs/ManifestDiffDialog";
 import { ClearConfirmDialog } from "../dialogs/ClearConfirmDialog";
 import { ExportDialog } from "../dialogs/ExportDialog";
+import { PreflightDialog } from "@/components/dialogs/PreflightDialog";
+import { runPreflightCheck } from "@/lib/preflight";
+import type { PreflightResult } from "@/lib/preflight";
 import { MenuBar } from "./MenuBar";
 import { Sidebar } from "./Sidebar";
 import { StatusBar } from "./StatusBar";
@@ -47,6 +50,31 @@ export function MameAppLayout() {
   const [diffManifestA, setDiffManifestA] = useState<RunManifest | null>(null);
   const [diffManifestB, setDiffManifestB] = useState<RunManifest | null>(null);
   const [diffOpen, setDiffOpen] = useState(false);
+
+  // §19 Performance Guardrails: pre-flight check 결과 상태
+  const [preflightResult, setPreflightResult] = useState<{
+    result: PreflightResult;
+    pendingAction: () => void;
+  } | null>(null);
+
+  /**
+   * Run 트리거 — pre-flight 검사 후 분석 실행.
+   * Sidebar Run 버튼과 키보드 단축키 모두 이 콜백을 사용.
+   */
+  const tryRunAnalysis = useCallback(() => {
+    const s = useMameAppStore.getState();
+    if (!selectCanRun(s)) return;
+    void runPreflightCheck({ sidecarStatus: status, requiresNetwork: false }).then(
+      (pfResult) => {
+        const actualRun = () => void s.runAnalysis();
+        if (!pfResult.ok || pfResult.warnings.length > 0) {
+          setPreflightResult({ result: pfResult, pendingAction: actualRun });
+        } else {
+          actualRun();
+        }
+      },
+    );
+  }, [status]);
 
   useEffect(() => {
     let cancelled = false;
@@ -147,17 +175,17 @@ export function MameAppLayout() {
           break;
         case "d":
           e.preventDefault();
-          if (selectCanRun(s)) void s.runAnalysis();
+          tryRunAnalysis();
           break;
         case "enter":
           e.preventDefault();
-          if (selectCanRun(s) && !s.isAnalyzing) void s.runAnalysis();
+          if (!s.isAnalyzing) tryRunAnalysis();
           break;
       }
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [project]);
+  }, [project, tryRunAnalysis]);
 
   return (
     <div
@@ -166,7 +194,10 @@ export function MameAppLayout() {
       <MenuBar onClearRequest={() => setClearConfirmOpen(true)} />
 
       <div className="flex flex-1 gap-3 overflow-hidden p-3">
-        <Sidebar onClearRequest={() => setClearConfirmOpen(true)} />
+        <Sidebar
+          onClearRequest={() => setClearConfirmOpen(true)}
+          onRunRequest={tryRunAnalysis}
+        />
 
         <main
           className="grid min-h-0 flex-1 min-w-0 grid-rows-[auto_minmax(0,1fr)_320px_auto] gap-3 overflow-hidden"
@@ -189,6 +220,20 @@ export function MameAppLayout() {
       </div>
 
       <StatusBar sidecarStatus={status} onRetry={retry} />
+
+      {/* §19 Performance Guardrails: pre-flight check 결과 모달 */}
+      {preflightResult && (
+        <PreflightDialog
+          open={preflightResult !== null}
+          result={preflightResult.result}
+          onContinue={() => {
+            const action = preflightResult.pendingAction;
+            setPreflightResult(null);
+            action();
+          }}
+          onCancel={() => setPreflightResult(null)}
+        />
+      )}
 
       <ExportDialog />
       <ClearConfirmDialog

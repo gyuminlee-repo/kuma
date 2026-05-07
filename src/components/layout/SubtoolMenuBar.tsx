@@ -37,7 +37,7 @@ export function SubtoolMenuBar({
 }: SubtoolMenuBarProps) {
   return (
     <div
-      className="px-4 py-2 flex flex-col gap-2 bg-background border-b border-border"
+      className="px-4 py-2 flex flex-col gap-2 bg-background border-b border-border dark:bg-background dark:border-border"
       role="navigation"
       aria-label={`${label} menu bar`}
     >

@@ -14,6 +14,7 @@ import { useAppStore } from "@/store/appStore";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { getActivityStore } from "@/store/mame/activitySlice";
 import { CloseConfirmDialog, type BusyReason } from "@/components/dialogs/CloseConfirmDialog";
+import { JobQueuePanel } from "@/components/widgets/JobQueuePanel";
 
 // ─── 상대 시간 포맷 헬퍼 ──────────────────────────────────────────────────
 
@@ -368,6 +369,9 @@ export function MainShell() {
           </TabsContent>
         </div>
       </Tabs>
+
+      {/* §13 Background Job Queue floating panel */}
+      <JobQueuePanel />
 
       {/* §22 Graceful Shutdown: busy 상태 close 확인 */}
       <CloseConfirmDialog

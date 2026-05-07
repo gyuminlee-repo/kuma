@@ -32,8 +32,11 @@ import { MenuBar } from "./MenuBar";
 import { StatusBar } from "./StatusBar";
 import { NetworkConsentDialog } from "../dialogs/NetworkConsentDialog";
 import { InputSizeWarningDialog } from "../dialogs/InputSizeWarningDialog";
+import { PreflightDialog } from "../dialogs/PreflightDialog";
 import { checkKuroInputSize } from "@/lib/inputThresholds";
 import type { InputSizeLevel } from "@/lib/inputThresholds";
+import { runPreflightCheck } from "@/lib/preflight";
+import type { PreflightResult } from "@/lib/preflight";
 import {
   handleExportExcel,
   handleSaveWorkspace,
@@ -67,6 +70,12 @@ export function AppLayout() {
   const [kuroSizeWarning, setKuroSizeWarning] = useState<{
     level: InputSizeLevel;
     message: string;
+    pendingAction: () => void;
+  } | null>(null);
+
+  // §19 Performance Guardrails: pre-flight check 결과 상태
+  const [preflightResult, setPreflightResult] = useState<{
+    result: PreflightResult;
     pendingAction: () => void;
   } | null>(null);
 
@@ -117,15 +126,35 @@ export function AppLayout() {
       .split("\n")
       .filter((l) => l.trim() && !l.trim().startsWith("#")).length;
     const sizeCheck = checkKuroInputSize({ rowCount });
-    const runAction = () => {
-      void flushBeforeDesign().then(() => useAppStore.getState().designPrimers());
+
+    // §19 pre-flight: sidecar alive + disk space (best-effort) — kuro design은 외부 호출 없음
+    const runWithPreflight = () => {
+      void runPreflightCheck({ sidecarStatus, requiresNetwork: false }).then(
+        (pfResult) => {
+          const actualRun = () => {
+            void flushBeforeDesign().then(() =>
+              useAppStore.getState().designPrimers(),
+            );
+          };
+          if (!pfResult.ok || pfResult.warnings.length > 0) {
+            setPreflightResult({ result: pfResult, pendingAction: actualRun });
+          } else {
+            actualRun();
+          }
+        },
+      );
     };
+
     if (sizeCheck.level !== "ok") {
-      setKuroSizeWarning({ level: sizeCheck.level, message: sizeCheck.message, pendingAction: runAction });
+      setKuroSizeWarning({
+        level: sizeCheck.level,
+        message: sizeCheck.message,
+        pendingAction: runWithPreflight,
+      });
       return;
     }
 
-    runAction();
+    runWithPreflight();
   }, [collectMissingFields, flushBeforeDesign]);
 
   const selectedGeneInfo = seqInfo?.genes.find((gene) => String(gene.cds_start) === selectedGene);
@@ -436,6 +465,20 @@ export function AppLayout() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* §19 Performance Guardrails: pre-flight check 결과 모달 */}
+      {preflightResult && (
+        <PreflightDialog
+          open={preflightResult !== null}
+          result={preflightResult.result}
+          onContinue={() => {
+            const action = preflightResult.pendingAction;
+            setPreflightResult(null);
+            action();
+          }}
+          onCancel={() => setPreflightResult(null)}
+        />
+      )}
 
       {/* §19 Performance Guardrails: kuro 입력 크기 사전 경고 */}
       {kuroSizeWarning && (

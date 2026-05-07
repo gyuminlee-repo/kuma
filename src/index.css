@@ -81,7 +81,7 @@
     --text-plate-tiny: 8px;
   }
 
-  [data-theme="dark"] {
+  .dark {
     --background: 222.2 47% 7%;
     --foreground: 210 40% 96%;
     --card: 222.2 47% 9%;
@@ -100,6 +100,17 @@
     --border: 222.2 47% 18%;
     --input: 222.2 47% 18%;
     --ring: 210 40% 80%;
+
+    /* semantic colors — adjusted for dark backgrounds */
+    --color-success: oklch(0.72 0.15 145);
+    --color-warning: oklch(0.78 0.15 75);
+    --color-error:   oklch(0.65 0.20 25);
+    --color-info:    oklch(0.70 0.12 250);
+
+    /* shadows — darker env needs stronger */
+    --shadow-hairline: 0 1px 0 rgb(0 0 0 / 20%);
+    --shadow-popover: 0 8px 24px -8px rgb(0 0 0 / 40%), 0 1px 0 rgb(0 0 0 / 20%);
+    --shadow-dialog:  0 20px 40px -12px rgb(0 0 0 / 50%), 0 1px 0 rgb(0 0 0 / 25%);
   }
 }
 

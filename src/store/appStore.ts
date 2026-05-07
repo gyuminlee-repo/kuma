@@ -7,6 +7,7 @@ import { createDesignSlice } from "./slices/designSlice";
 import { createExportSlice } from "./slices/exportSlice";
 import { createNetworkConsentSlice } from "./slices/networkConsentSlice";
 import { createMemorySlice } from "./slices/memorySlice";
+import { createJobQueueSlice } from "./slices/jobQueueSlice";
 import type { AppState } from "./types";
 export type { AppState };
 
@@ -35,5 +36,6 @@ export const useAppStore = create<AppState>()((...a) => {
     ...createExportSlice(...a),
     ...createNetworkConsentSlice(...a),
     ...createMemorySlice(...a),
+    ...createJobQueueSlice(...a),
   };
 });

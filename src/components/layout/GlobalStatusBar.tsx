@@ -77,7 +77,7 @@ export function GlobalStatusBar({ message, centerSlot, sidecar, autosave }: Glob
 
   return (
     <footer
-      className="h-statusbar px-3 text-caption flex items-center justify-between bg-background border-t border-border"
+      className="h-statusbar px-3 text-caption flex items-center justify-between bg-background border-t border-border dark:bg-background dark:border-border dark:text-foreground"
       role="contentinfo"
       aria-label="Status bar"
     >

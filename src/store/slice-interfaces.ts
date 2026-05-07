@@ -285,6 +285,11 @@ export interface ExportSlice {
 }
 
 // ---------------------------------------------------------------------------
+// JobQueueSlice — §13 Background Job Queue
+// ---------------------------------------------------------------------------
+export type { JobKind, JobStatus, Job, JobQueueSlice } from "./slices/jobQueueSlice";
+
+// ---------------------------------------------------------------------------
 // MemorySlice — §19 Performance Guardrails: RSS memory monitor
 // ---------------------------------------------------------------------------
 export interface MemoryWarning {

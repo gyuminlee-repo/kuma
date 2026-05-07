@@ -6,9 +6,17 @@ Issues that MUST be resolved before any public/production release.
 
 ### Updater pubkey is empty (`src-tauri/tauri.conf.json`)
 
+**Status**: Infrastructure ready — key generation pending.
+
+The Tauri updater plugin is registered and the endpoint is configured
+(`https://github.com/gyuminlee-repo/KURO/releases/latest/download/latest.json`).
 The `plugins.updater.pubkey` field is set to `""`, which means **update signature
-verification is disabled**. An attacker who compromises the GitHub release endpoint
-(or performs a MITM) can push arbitrary binaries to every user.
+verification is currently disabled**. Manual "Check for updates" in the About dialog
+is functional; automatic on-startup checking is intentionally omitted until a valid
+key is set.
+
+An attacker who compromises the GitHub release endpoint (or performs a MITM) can
+push arbitrary binaries to every user until the key is set.
 
 **Before release:**
 
@@ -16,8 +24,10 @@ verification is disabled**. An attacker who compromises the GitHub release endpo
    ```
    cargo tauri signer generate -w ~/.tauri/kuro.key
    ```
-2. Set `pubkey` in `tauri.conf.json` to the **public** key string.
-3. Sign every release artifact with the corresponding private key.
+2. Set `pubkey` in `src-tauri/tauri.conf.json` → `plugins.updater.pubkey` to the
+   **public** key string output by the command above.
+3. Sign every release artifact with the corresponding private key (the CI release
+   workflow should pass `--signing-key` / `TAURI_SIGNING_PRIVATE_KEY` env var).
 4. Never commit the private key to the repository.
 
 Reference: <https://v2.tauri.app/plugin/updater/#signing-updates>

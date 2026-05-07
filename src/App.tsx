@@ -5,6 +5,10 @@ import { MainShell } from "./screens/MainShell";
 import { Home } from "./screens/Home";
 import { Onboarding } from "./screens/Onboarding";
 import { ProjectProvider, type KumaProject } from "./state/projectContext";
+import { initTheme } from "./components/ui/ThemeToggle";
+
+// React 마운트 이전에 즉시 실행 — FOUC(플래시) 방지
+initTheme();
 
 type AppScreen = "loading" | "onboarding" | "home" | "workspace";
 
