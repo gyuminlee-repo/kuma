@@ -449,9 +449,9 @@ mame, primerbench 도 동일 형식 placeholder.
 }
 ```
 
-## Appendix D. Per-app Status Matrix (audit 2026-05-07, Phase 1–3 후 갱신)
+## Appendix D. Per-app Status Matrix (audit 2026-05-07, Phase 1–4 후 갱신)
 
-판정 규칙: 카테고리 내 모든 [필수]·[권장] Requirements 충족 → ✅ / 일부 충족 → 🟡 / 전부 미구현 → ❌. 셀 단위 상세 근거(파일:라인)는 `notes/agent-reports/audit-kuma.md`, `notes/agent-reports/audit-primerbench.md`, Phase 보고서 (`phase1a` ~ `phase3*`) 참조.
+판정 규칙: 카테고리 내 모든 [필수]·[권장] Requirements 충족 → ✅ / 일부 충족 → 🟡 / 전부 미구현 → ❌. 셀 단위 상세 근거(파일:라인)는 `notes/agent-reports/audit-kuma.md`, `notes/agent-reports/audit-primerbench.md`, Phase 보고서 (`phase1a` ~ `phase4c`) 참조.
 
 | § | Category | kuro | mame | primerbench | 변동 |
 |---|---|---|---|---|---|
@@ -466,46 +466,58 @@ mame, primerbench 도 동일 형식 placeholder.
 | 9 | Versioning | 🟡 | 🟡 | 🟡 | — |
 | 10 | Telemetry & Privacy | ✅ | ✅ | 🟡 | kuro/mame 🟡→✅ (Phase 2b) |
 | 11 | Build & Distribution | 🟡 | 🟡 | 🟡 | — |
-| 12 | Reproducibility | 🟡 | 🟡 | ❌ | kuro/mame ❌→🟡 (Phase 3, [필수] 충족; seed/diff 미구현) |
-| 13 | Long-running Jobs | ❌ | ❌ | ❌ | — |
-| 14 | Data Integrity | 🟡 | 🟡 | 🟡 | run.json SHA-256 도입으로 보강 (Phase 3a) |
+| 12 | Reproducibility | 🟡 | 🟡 | ❌ | seed UI 추가 (Phase 4c, kuro). diff view 잔여 |
+| 13 | Long-running Jobs | 🟡 | 🟡 | ❌ | kuro/mame ❌→🟡 (Phase 4a OS notification). sleep inhibit·queue 잔여 |
+| 14 | Data Integrity | 🟡 | 🟡 | 🟡 | schema dry-run 추가 (Phase 4c). sidecar hash·output checksum 잔여 |
 | 15 | Onboarding | 🟡 | 🟡 | 🟡 | — |
 | 16 | Local Diagnostics | 🟡 | 🟡 | 🟡 | — |
 | 17 | Cross-platform | 🟡 | 🟡 | ❌ | — |
 | 18 | Partial Success | 🟡 | 🟡 | 🟡 | — |
-| 19 | Performance Guardrails | ❌ | ❌ | 🟡 | — |
-| 20 | Citation & Licensing | 🟡 | 🟡 | ❌ | kuro/mame ❌→🟡 (Phase 1b, BibTeX/License placeholder; 3rd-party 자동 수집 미구현) |
+| 19 | Performance Guardrails | 🟡 | 🟡 | 🟡 | kuro/mame ❌→🟡 (Phase 4b virtual scroll). 입력 경고·메모리 모니터 잔여 |
+| 20 | Citation & Licensing | 🟡 | 🟡 | ❌ | Phase 1b 적용분 유지. 3rd-party 자동 수집 잔여 |
 | 21 | Multi-workspace | 🟡 | 🟡 | 🟡 | — |
-| 22 | Graceful Shutdown | 🟡 | 🟡 | ❌ | Lock file + close confirm 추가 (Phase 2a; SIGKILL 5s fallback 잔여) |
+| 22 | Graceful Shutdown | 🟡 | 🟡 | ❌ | SIGKILL 5s fallback 추가 (Phase 4a). pending export flush·shutdown hook 잔여 |
 
-### Phase 1–3 적용 결과
-- **🟡 → ✅ 카테고리 4건**: §7 UI Safety (kuro/mame), §10 Telemetry (kuro/mame)
-- **❌ → 🟡 카테고리 4건**: §12 Reproducibility (kuro/mame), §20 Citation (kuro/mame)
-- **kuro 카운트**: ❌ 3 / 🟡 17 / ✅ 2 (이전: ❌ 4 / 🟡 17 / ✅ 0)
-- **mame 카운트**: ❌ 3 / 🟡 17 / ✅ 2 (이전: ❌ 4 / 🟡 17 / ✅ 0)
-- **primerbench**: 변동 없음 (별도 레포, 본 세션 외)
+### Phase 1–4 누적 결과
+- **🟡 → ✅ 카테고리 4건**: §7 UI Safety, §10 Telemetry (kuro/mame)
+- **❌ → 🟡 카테고리 8건**: §12, §13, §19, §20 (kuro/mame). 모든 [필수] 미구현 카테고리 해소
+- **kuro 카운트**: ❌ 0 / 🟡 20 / ✅ 2 (audit 시점 ❌ 4)
+- **mame 카운트**: ❌ 0 / 🟡 20 / ✅ 2 (audit 시점 ❌ 4)
+- **primerbench**: 변동 없음 (별도 레포)
 
-### 잔여 약점
+### 잔여 약점 (모두 권장 또는 부분)
 
-세 앱 공통 ❌:
-- **§13 Long-running Jobs**: OS notification, sleep inhibit, job queue 0건
-- **§19 Performance Guardrails**: kuro/mame 입력 크기 경고/메모리 모니터/virtual scroll 0건 (primerbench react-virtual 부분만)
-- **§22 Shutdown** SIGKILL 5초 fallback: dispatcher.py `shutdown` RPC 핸들러 선행 필요
+§12 Reproducibility:
+- **Manifest diff view** 미구현. 두 run.json 비교 UI 필요
 
-§12 잔여 권장 항목:
-- **Random seed 노출·고정** UI 미구현 (백엔드 `build_run_manifest` 는 seed 인자 수용)
-- **Manifest diff view** 미구현
+§13 Long-running Jobs:
+- **Sleep 방지** (OS sleep inhibit) 미구현
+- **Background job queue** 미구현
+- **Resume from checkpoint** 미구현
 
-§20 잔여 항목:
-- **Third-party licenses 자동 수집**: 현재 placeholder 텍스트만. cargo-about / pip-licenses 빌드 시점 수집 도입 필요
+§14 Data Integrity:
+- **Sidecar binary 무결성** (hash 검증) 미구현
+- **Output checksum** (`*.sha256` 동봉) 미구현
+
+§19 Performance Guardrails:
+- **입력 크기 사전 경고** 미구현 ("약 N분 소요" 모달)
+- **메모리 임계값 모니터** (RSS 70% 초과) 미구현
+- **Run pre-flight check** 미구현
+
+§20 Citation:
+- **Third-party licenses 자동 수집**: cargo-about / pip-licenses 빌드 시점 수집 도입 필요
+
+§22 Graceful Shutdown:
+- **Pending export writes flush 차단**: 현재 autosave 만 flush, export 도중 종료 차단 미구현
+- **Shutdown hook** (사용자 정의 cleanup) 미구현
 
 ### 다음 우선 보강 (가치/비용 기준)
 
-1. **§13 OS notification**: Tauri `tauri-plugin-notification` 도입 — 5분+ 작업 완료 시 백그라운드 알림. ~30 LoC
-2. **§22 SIGKILL 5초 fallback**: `dispatcher.py` `shutdown` RPC + Rust 측 timeout. ~50 LoC
-3. **§19 Virtual scroll**: kuro `ResultTable.tsx`, mame `VerdictTable.tsx` 에 `@tanstack/react-virtual` 도입 (primerbench 패턴 준용)
-4. **§14 Schema dry-run 마이그레이션**: workspace 로드 시 차단 대신 dry-run + 사용자 확인
-5. **§12 Random seed 노출**: kuro DesignParameters / mame AnalyzeParameters 에 optional seed 입력 필드
+1. **§19 입력 크기 사전 경고**: 행 수 / 파일 크기 임계 검사 + 추정 시간 모달. ~30 LoC, 사용자 가치 매우 높음
+2. **§13 sleep inhibit**: `tauri-plugin-prevent-sleep` 또는 Rust 직접 호출. 5분+ 작업 누락 방지. ~40 LoC
+3. **§14 Output checksum**: export 후 `*.sha256` 자동 동봉. ~20 LoC. 외부 인용 시 데이터 무결성 증명
+4. **§20 Third-party licenses 자동 수집**: `cargo-about` + `pnpm licenses list --json` CI 단계 추가
+5. **§12 Manifest diff view**: 두 run.json 드롭하면 파라미터 차이 표 형식 표시. ~80 LoC
 
 ---
 
@@ -515,6 +527,7 @@ mame, primerbench 도 동일 형식 placeholder.
 - **v0.1.1 (2026-05-07)**: 11개 카테고리(§6, 8, 9, 11, 13, 14, 15, 17, 19, 21, 22) Rationale 보강 (verifier FAIL 수정).
 - **v0.2 (2026-05-07)**: Per-app audit 완료. Appendix D 매트릭스 ❓ → 실제 status 채움. 공통 약점·강점·우선 보강 5순위 추가. 근거: `notes/agent-reports/audit-kuma.md`, `audit-primerbench.md`.
 - **v0.3 (2026-05-07)**: Phase 1–3 (v0.3.2.1 ~ v0.3.3.0) 결과 반영. §7/§10 → ✅, §12/§20 → 🟡, §22 부분 보강. kuro/mame ✅ 카테고리 0→2, ❌ 카운트 4→3. 다음 우선 5순위 갱신.
+- **v0.4 (2026-05-07)**: Phase 4 (v0.3.3.2~v0.3.3.3) 결과 반영. §13/§19 → 🟡, §22 SIGKILL fallback 도입, §12 seed UI, §14 dry-run 마이그레이션. kuro/mame ❌ 카운트 2→0 (모든 [필수] 미구현 카테고리 해소). 다음 우선 5순위 입력 경고·sleep inhibit·output checksum 중심으로 갱신.
 
 ## 후속 액션
 
