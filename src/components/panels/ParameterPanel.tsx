@@ -1,4 +1,4 @@
-import { useEffect, useState, type ChangeEvent, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
 import { sendRequest } from "../../lib/ipc-kuro";
 import { formatError } from "../../lib/utils";
 import type { CodonStrategy, OverlapMode, PolymeraseProfile } from "../../types/models";
@@ -46,10 +46,6 @@ export function ParameterPanel() {
   const gcMin = useAppStore((s) => s.gcMin);
   const gcMax = useAppStore((s) => s.gcMax);
 
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [polymeraseEditorOpen, setPolymeraseEditorOpen] = useState(false);
-  const [editingPolymerase, setEditingPolymerase] = useState<PolymeraseProfile | null>(null);
-
   const setTmTargets = useAppStore((s) => s.setTmTargets);
   const setGcRange = useAppStore((s) => s.setGcRange);
   const primerLenEnabled = useAppStore((s) => s.primerLenEnabled);
@@ -63,7 +59,24 @@ export function ParameterPanel() {
   const setFillOnFailure = useAppStore((s) => s.setFillOnFailure);
   const overlapMode = useAppStore((s) => s.overlapMode);
   const setOverlapMode = useAppStore((s) => s.setOverlapMode);
+  const randomSeed = useAppStore((s) => s.randomSeed);
+  const setRandomSeed = useAppStore((s) => s.setRandomSeed);
   const setStatus = useAppStore((s) => s.setStatus);
+
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [polymeraseEditorOpen, setPolymeraseEditorOpen] = useState(false);
+  const [editingPolymerase, setEditingPolymerase] = useState<PolymeraseProfile | null>(null);
+  const [seedStr, setSeedStr] = useState(() =>
+    useAppStore.getState().randomSeed !== null
+      ? String(useAppStore.getState().randomSeed)
+      : "",
+  );
+  const seedStrRef = useRef(seedStr);
+  seedStrRef.current = seedStr;
+  // sync external reset (e.g. workspace load)
+  useEffect(() => {
+    setSeedStr(randomSeed !== null ? String(randomSeed) : "");
+  }, [randomSeed]);
 
   const isFullOverlap = overlapMode === "full";
 
@@ -337,6 +350,48 @@ export function ParameterPanel() {
             />
             <span className="text-muted-foreground">Auto-rescue failed mutations</span>
           </label>
+
+          {/* §12 Random seed */}
+          <div
+            className="flex items-center gap-2 text-caption"
+            title="Optional integer seed. Will be passed to the backend and recorded in run manifests once manifest wiring is complete (backend integration pending)."
+          >
+            <label
+              htmlFor="random-seed-input"
+              className="w-20 text-muted-foreground shrink-0"
+            >
+              Seed:
+            </label>
+            <input
+              id="random-seed-input"
+              type="number"
+              min={0}
+              step={1}
+              placeholder="auto"
+              aria-label="Random seed (optional)"
+              aria-describedby="random-seed-hint"
+              className={`${numInput} w-20`}
+              value={seedStr}
+              onChange={(e) => setSeedStr(e.target.value)}
+              onBlur={() => {
+                const trimmed = seedStrRef.current.trim();
+                if (trimmed === "") {
+                  setRandomSeed(null);
+                } else {
+                  const parsed = parseInt(trimmed, 10);
+                  if (Number.isInteger(parsed) && parsed >= 0) {
+                    setRandomSeed(parsed);
+                  } else {
+                    setSeedStr(randomSeed !== null ? String(randomSeed) : "");
+                  }
+                }
+              }}
+              onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+            />
+            <span id="random-seed-hint" className="text-caption text-muted-foreground">
+              {randomSeed !== null ? `fixed: ${randomSeed}` : "auto"}
+            </span>
+          </div>
         </div>
       )}
 

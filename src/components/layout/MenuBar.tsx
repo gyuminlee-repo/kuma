@@ -27,7 +27,11 @@ import {
   handleSaveWorkspace,
   handleLoadWorkspace,
   handleOpenSequence,
+  executeMigrateAndLoad,
+  MIGRATE_DIALOG_CLOSED,
 } from "./export-handlers";
+import { WorkspaceMigrateDialog } from "../dialogs/WorkspaceMigrateDialog";
+import type { MigrateDialogState } from "../dialogs/WorkspaceMigrateDialog";
 import { MappingExportDialog } from "../dialogs/MappingExportDialog";
 import { SubtoolMenuBar } from "./SubtoolMenuBar";
 import { browseFile } from "../../lib/file-utils";
@@ -70,6 +74,11 @@ export function MenuBar() {
     setNotifyPermission(granted);
   }
   const [reRunVerify, setReRunVerify] = useState<InputVerifyResult | null>(null);
+
+  // §14 Migration dialog state
+  const [migrateDialog, setMigrateDialog] = useState<MigrateDialogState>(MIGRATE_DIALOG_CLOSED);
+  const [migratePending, setMigratePending] = useState<Record<string, unknown> | null>(null);
+  const [migrateLoading, setMigrateLoading] = useState(false);
 
   async function handleOpenManifest() {
     await browseFile(
@@ -135,7 +144,14 @@ export function MenuBar() {
             <span className="flex-1">Save Workspace...</span>
             <kbd className="ml-4 text-caption text-muted-foreground">{MOD_KEY}S</kbd>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => void handleLoadWorkspace(project)}>
+          <DropdownMenuItem
+            onClick={() =>
+              void handleLoadWorkspace(project, (dialogState, rawWs) => {
+                setMigratePending(rawWs);
+                setMigrateDialog(dialogState);
+              })
+            }
+          >
             Load Workspace...
           </DropdownMenuItem>
           <DropdownMenuSeparator />
@@ -408,6 +424,36 @@ export function MenuBar() {
           setReRunVerify(null);
         }}
         onStatusMessage={(msg) => useAppStore.setState({ statusMessage: msg })}
+      />
+
+      {/* §14 Schema migration confirmation modal */}
+      <WorkspaceMigrateDialog
+        state={migrateDialog}
+        loading={migrateLoading}
+        onCancel={() => {
+          setMigrateDialog(MIGRATE_DIALOG_CLOSED);
+          setMigratePending(null);
+        }}
+        onConfirm={async () => {
+          if (!migratePending) return;
+          setMigrateLoading(true);
+          try {
+            await executeMigrateAndLoad(
+              migrateDialog.filePath,
+              migratePending,
+              migrateDialog.fromVersion,
+              migrateDialog.toVersion,
+            );
+            setMigrateDialog(MIGRATE_DIALOG_CLOSED);
+            setMigratePending(null);
+          } catch (err) {
+            useAppStore.setState({
+              statusMessage: `Migration failed: ${err instanceof Error ? err.message : String(err)}`,
+            });
+          } finally {
+            setMigrateLoading(false);
+          }
+        }}
       />
     </>
   );

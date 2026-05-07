@@ -4,7 +4,14 @@ import { useAppStore } from "../../store/appStore";
 import { getSortedMutations, reorderMappings } from "../../lib/plate-utils";
 import { defaultExportFilename, buildWorkspaceDefaultPath } from "../../lib/filename";
 import type { KumaProject } from "../../state/projectContext";
-import type { BenchmarkResult } from "../../types/models";
+import type { BenchmarkResult, WorkspaceData } from "../../types/models";
+import {
+  detectWorkspaceVersion,
+  migrateWorkspace,
+  MIGRATIONS,
+} from "../../lib/workspaceMigrate";
+import type { MigrateDialogState } from "../dialogs/WorkspaceMigrateDialog";
+import { MIGRATE_DIALOG_CLOSED } from "../dialogs/WorkspaceMigrateDialog";
 
 function deriveMappingExportPaths(path: string) {
   const base = path.trim().replace(/\.(xlsx|csv)$/i, "");
@@ -98,7 +105,21 @@ export async function handleSaveWorkspace(project: KumaProject) {
   }
 }
 
-export async function handleLoadWorkspace(project: KumaProject) {
+/**
+ * §14 Migration-aware workspace loader.
+ *
+ * If the workspace is schema_version "0.3", loads directly.
+ * If older (v1/v2), invokes `onMigrationNeeded` so the caller (MenuBar) can
+ * show the migration confirmation modal. The modal's onConfirm callback should
+ * call `executeMigrateAndLoad` with the already-fetched data.
+ *
+ * Returns the raw workspace object only if no migration is needed; otherwise
+ * returns undefined (migration flow is handed off to the modal).
+ */
+export async function handleLoadWorkspace(
+  project: KumaProject,
+  onMigrationNeeded: (state: MigrateDialogState, rawWs: Record<string, unknown>) => void,
+): Promise<void> {
   try {
     const path = await open({
       filters: [{ name: "KURO Workspace", extensions: ["json"] }],
@@ -107,20 +128,74 @@ export async function handleLoadWorkspace(project: KumaProject) {
     });
     if (typeof path !== "string") return;
     const ws = await sendRequest("load_workspace", { filepath: path });
-    const wsTyped = ws as { version?: number; schema_version?: string };
-    const hasValidVersion =
-      wsTyped.version === 1 ||
-      wsTyped.version === 2 ||
-      wsTyped.schema_version === "0.3";
-    if (!hasValidVersion) {
+    const rawWs = ws as unknown as Record<string, unknown>;
+    const fromVer = detectWorkspaceVersion(rawWs);
+
+    if (fromVer === "unknown") {
       useAppStore.getState().setStatus("Incompatible workspace version");
       return;
     }
-    await useAppStore.getState().restoreWorkspace(ws);
+
+    // Already current — load directly.
+    if (fromVer === "0.3") {
+      await useAppStore.getState().restoreWorkspace(ws as WorkspaceData);
+      return;
+    }
+
+    // Older version — hand off to migration modal.
+    const targetVer = "0.3";
+    const migrationKey = `${fromVer}->${targetVer}`;
+    const noPath = !(migrationKey in MIGRATIONS);
+
+    onMigrationNeeded(
+      {
+        open: true,
+        filePath: path,
+        fromVersion: fromVer,
+        toVersion: targetVer,
+        noPath,
+      },
+      rawWs,
+    );
   } catch (err) {
     useAppStore.getState().setStatus(`Load failed: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
+
+/**
+ * §14 Execute the migration after user confirms in the dialog.
+ * 1. Backup the original file as `<path>.backup-<ISO>.json`
+ * 2. Apply migration
+ * 3. Overwrite original with migrated data
+ * 4. Load into store
+ *
+ * Throws on backup failure (safety-first: never migrate without backup).
+ */
+export async function executeMigrateAndLoad(
+  filePath: string,
+  rawWs: Record<string, unknown>,
+  fromVer: string,
+  toVer: string,
+): Promise<void> {
+  // Build backup path: same dir, timestamp suffix.
+  const ts = new Date().toISOString().replace(/[:.]/g, "-");
+  const backupPath = filePath.replace(/\.json$/i, "") + `.backup-${ts}.json`;
+
+  // Step 1: backup via sidecar (Tauri sandboxing — use save_json RPC).
+  await sendRequest("save_json", { filepath: backupPath, data: rawWs });
+
+  // Step 2: migrate.
+  const migrated = migrateWorkspace(rawWs, fromVer, toVer);
+
+  // Step 3: overwrite original.
+  await sendRequest("save_json", { filepath: filePath, data: migrated });
+
+  // Step 4: load.
+  await useAppStore.getState().restoreWorkspace(migrated as unknown as WorkspaceData);
+}
+
+// Re-export for backward-compat callers that only need the closed sentinel.
+export { MIGRATE_DIALOG_CLOSED };
 
 export async function handleSaveBenchmarkJson(data: unknown) {
   try {

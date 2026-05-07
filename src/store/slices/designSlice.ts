@@ -50,6 +50,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
   fillOnFailure: true,
   tmTolerance: 3.0,
   overlapMode: "partial",
+  randomSeed: null,
   manuallySwapped: {},
   customCandidates: {},
   alternativesCache: {},
@@ -123,6 +124,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       overlapMode,
       mutationInputMode,
       selectedPolymerase,
+      randomSeed,
     } = state;
 
     if (!fastaPath) {
@@ -205,6 +207,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         overlapMode,
         rescuePool: prepared.rescuePool,
         tolMax: state.tmTolerance,
+        randomSeed,
       });
       const result = await sendRequest("design_sdm_primers", payload, 300_000);
       if (result.cancelled) {
@@ -447,6 +450,8 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
   },
 
   setOverlapMode: (mode) => set({ overlapMode: mode }),
+
+  setRandomSeed: (seed: number | null) => set({ randomSeed: seed }),
 
   evaluateCustomPrimer: async (mutation: string, fwdSeq: string, revSeq: string, overlapLen?: number) => {
     try {

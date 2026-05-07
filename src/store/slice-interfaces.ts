@@ -182,6 +182,8 @@ export interface DesignSlice {
   fillOnFailure: boolean;
   tmTolerance: number;
   overlapMode: OverlapMode;
+  /** §12 Optional RNG seed. null = non-deterministic (backend default). */
+  randomSeed: number | null;
   manuallySwapped: Record<string, "fwd" | "rev" | "both">;
   customCandidates: Record<string, SdmPrimerResult[]>;
   alternativesCache: Record<string, SdmPrimerResult[]>;
@@ -229,6 +231,7 @@ export interface DesignSlice {
   setFillOnFailure: (enabled: boolean) => void;
   setTmTolerance: (value: number) => void;
   setOverlapMode: (mode: OverlapMode) => void;
+  setRandomSeed: (seed: number | null) => void;
 }
 
 // ---------------------------------------------------------------------------

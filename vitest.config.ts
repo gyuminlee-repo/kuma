@@ -10,6 +10,7 @@ export default defineConfig({
       "@tauri-apps/plugin-shell": resolve(__dirname, "scripts/stubs/shell.ts"),
       "@tauri-apps/plugin-dialog": resolve(__dirname, "scripts/stubs/dialog.ts"),
       "@tauri-apps/plugin-fs": resolve(__dirname, "scripts/stubs/fs.ts"),
+      "@tauri-apps/plugin-notification": resolve(__dirname, "scripts/stubs/notification.ts"),
       "@tauri-apps/api/webview": resolve(__dirname, "scripts/stubs/webview.ts"),
       "@tauri-apps/api/window": resolve(__dirname, "scripts/stubs/webview.ts"),
     },

@@ -77,6 +77,9 @@ class DesignSdmPrimersParams(BaseModel):
     rescue_pool: list[str] = Field(default_factory=list)
     auto_relax: bool = Field(default=True)
 
+    # §12 Reproducibility: optional RNG seed (recorded in run manifest when provided)
+    seed: Optional[int] = Field(default=None, ge=0)
+
 
 class RetryFailedParams(BaseModel):
     mutation: str = ""

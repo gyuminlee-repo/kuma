@@ -441,6 +441,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
         evolveproRound: s.evolveproRound,
         roundSize: s.roundSize,
         overlapMode: s.overlapMode,
+        randomSeed: s.randomSeed ?? null,
       },
       results: {
         designResults: s.designResults,
@@ -588,6 +589,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       evolveproRound: settings.evolveproRound ?? 1,
       roundSize: settings.roundSize ?? 96,
       overlapMode: settings.overlapMode ?? "partial",
+      randomSeed: settings.randomSeed ?? null,
       evolveproTotalCount: cache?.evolveproTotalCount ?? 0,
       evolveproFilteredCount: cache?.evolveproFilteredCount ?? null,
       evolveproParetoExchanges: cache?.evolveproParetoExchanges ?? null,
@@ -642,6 +644,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       benchmarkTopPercentile: 10,
       benchmarkRandomTrials: 100,
       benchmarkRandomSeed: null,
+      randomSeed: null,
       benchmarkRunning: false,
       showBenchmark: false,
       benchmarkResults: null,

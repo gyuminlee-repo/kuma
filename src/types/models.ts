@@ -376,6 +376,8 @@ export interface WorkspaceSettings {
   evolveproRound?: number;
   roundSize?: number;
   overlapMode?: OverlapMode;
+  /** §12 Optional RNG seed for reproducible design runs. */
+  randomSeed?: number | null;
 }
 
 export interface WorkspaceResults {

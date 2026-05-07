@@ -43,6 +43,7 @@ interface DesignRequestPayload extends Record<string, unknown> {
   overlap_mode: OverlapMode;
   rescue_pool?: string[];
   auto_relax: true;
+  seed?: number;
 }
 
 interface ProcessedDesignResult {
@@ -117,6 +118,7 @@ export function buildDesignRequestPayload(params: {
   overlapMode: OverlapMode;
   rescuePool: string[];
   tolMax: number;
+  randomSeed: number | null;
 }): DesignRequestPayload {
   const {
     fastaPath,
@@ -138,6 +140,7 @@ export function buildDesignRequestPayload(params: {
     overlapMode,
     rescuePool,
     tolMax,
+    randomSeed,
   } = params;
 
   return {
@@ -162,6 +165,7 @@ export function buildDesignRequestPayload(params: {
     ...(rescuePool.length > 0 && { rescue_pool: rescuePool }),
     tol_max: tolMax,
     auto_relax: true,
+    ...(randomSeed !== null && { seed: randomSeed }),
   };
 }
 
