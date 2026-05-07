@@ -4,9 +4,60 @@
 
 ---
 
+## v0.3.7 (2026-05-07)
+
+kuro·mame 양 앱에 Common Frontend Standards 헌장 적용. 헌장(`docs/standards/common-frontend-standards.md`, v1.1 stable)은 UI 안전·관측성·재현성·무결성·접근성 등 22 카테고리를 정의하고, Phase 1–8 구현으로 양 앱의 모든 [필수] 카테고리 ❌ Req 0건 달성.
+
+### Charter Phase 1–8 핵심 (v0.3.2.1 → v0.3.7.3)
+
+- **§7 UI 안전**: row-flex 자식 `flex-1` + `min-w-0` 강제, 사이드바 `overflow-x-hidden`, 모달 ESC + backdrop close, `tauri-plugin-single-instance` lock (Phase 1a, 2a).
+- **§10 텔레메트리·프라이버시**: UniProt/BLAST/AlphaFold 호출 직전 1회 동의 모달(`NetworkConsentDialog.tsx`), 오프라인 모드 토글, `requireNetworkConsent` 가드, About 외부 서비스 목록 (Phase 2b).
+- **§12 재현성**: `kuma_core.shared.run_manifest`가 export 시 `*.run.json` 동봉(입력 SHA-256, 파라미터, 버전, 타임스탬프, seed). Drag-drop 또는 "Compare run manifests…" 메뉴로 manifest 임포트·diff 지원 (Phase 3, 4c, 5-5).
+- **§13 장시간 작업**: OS 알림(`tauri-plugin-notification`, 5분 임계), sleep inhibit(`keepawake` 0.6 + Mutex), 백그라운드 잡 큐(`jobQueueSlice` + `JobQueuePanel`)와 `AbortSignal` 기반 cancel (Phase 4a, 5-2, 7-2).
+- **§14 데이터 무결성**: 출력 checksum(`*.sha256` shasum-c 호환), schema dry-run 마이그레이션(`*.backup-{ISO}.json`), sidecar 바이너리 hash 검증(`sidecar_verify.rs`, dev 모드 우회) (Phase 5-3, 4c, 6-1).
+- **§19 성능 가드레일**: 입력 크기 임계(`inputThresholds.ts`), 1,000행+ 가상 스크롤(`@tanstack/react-virtual`), 메모리 모니터(psutil RSS warn 50% / block 70%), Run pre-flight 체크 (Phase 4b, 5-1, 6-3, 7-1).
+- **§20 인용·라이선스**: About에 BibTeX placeholder + Copy 버튼, License 섹션, 빌드 시점 NOTICE.md 자동 수집(`cargo-about` + pnpm licenses + pip-licenses) (Phase 1b, 5-4).
+- **§22 안전한 종료**: 진행 중 작업 시 창 닫기 confirm, single-instance lock, sidecar `shutdown` JSON-RPC + 5초 SIGKILL fallback(`graceful_shutdown`), pending export flush, shutdown hook (Phase 2a, 4a, 6-2, 8a).
+- **§9 버전·업데이트**: `tauri-plugin-updater` + About "Check for updates" 모달 (Phase 7-4).
+- **§8 접근성**: `tailwind darkMode: ["class"]`, `.dark` CSS 변수, 3-way `ThemeToggle` (light/dark/system) + localStorage + FOUC 방지 (Phase 7-5).
+
+### Phase 8 사용자 경험 보강 (v0.3.7.x)
+
+- **§1 복구**: Cmd/Ctrl+Shift+R 전역 Reset, dead-lock 감지(30 s progress idle → 모달), `shutdownHook` 등록 시스템 (Phase 8a).
+- **§2 관측성**: `eta.ts` 히스토리 기반 잔여 시간 추정, `LogPanel` 위젯(200줄 capped + copy/clear) (Phase 8c).
+- **§4 에러 UX**: `StateView` traceback 토글, 네트워크 에러 분리 + WifiOff 아이콘(`errorClassifier.ts`) (Phase 8b).
+- **§5 결과 영속성**: `revealInOSFolder`(`tauri-plugin-opener`), 앱 레벨 overwrite confirm 모달 (Phase 8b).
+- **§16 로컬 진단**: 익명화 진단 JSON 저장(`generateDiagnosticsBundle`), 외부 전송 0건 (Phase 8c).
+
+### 앱별 헌장 충족 (Appendix D, v1.1)
+
+- **kuro**: 22 카테고리 중 10 ✅ / 12 🟡 / 0 ❌. Req ✅ 52/89.
+- **mame**: 22 카테고리 중 10 ✅ / 12 🟡 / 0 ❌. Req ✅ 52/88.
+- **PrimerBench (별도 레포)**: Phase A-E 적용; §7 ✅, 나머지 대부분 🟡, 0 ❌.
+
+### 신규 모듈 (kuma)
+
+- `kuma_core/shared/run_manifest.py`, `output_hash.py`, `memory_monitor.py`
+- `src-tauri/src/sidecar_verify.rs`, `keep_awake.rs`
+- `src-tauri/about.toml`, `about.hbs`; `scripts/build-notice.mjs`, `collect-node-licenses.mjs`, `sidecar-hash.mjs`
+- `src/lib/`: `runManifest`, `reRun`, `manifestDiff`, `notify`, `keepAwake`, `preflight`, `inputThresholds`, `networkSettings`, `eta`, `errorClassifier`, `openFolder`, `overwriteConfirm`, `deadlockDetector`, `shutdownHook`, `diagnostics`, `updater`, `toast`, `workspaceMigrate`
+- `src/components/dialogs/`: `NetworkConsentDialog`, `ReRunManifestDialog`, `WorkspaceMigrateDialog`, `ManifestDiffDialog`, `InputSizeWarningDialog`, `PreflightDialog`, `OverwriteConfirmDialog`, `CloseConfirmDialog`
+- `src/components/widgets/`: `JobQueuePanel`, `LogPanel`
+- `src/components/ui/ThemeToggle.tsx`
+- `src/store/slices/`: `jobQueueSlice`, `memorySlice`, `networkConsentSlice`
+
+### 테스트 footprint
+
+- `python3 -m pytest tests/`: 신규 ~70 테스트 추가(run_manifest, output_hash, memory_monitor, dispatcher_shutdown, sidecar_hash, export_manifest), 기존 800+ 테스트 유지.
+- `npx tsc --noEmit`: 0 errors.
+- `cd src-tauri && cargo check`: 통과.
+- `npx vitest run`: 20 files, 145+ tests pass.
+
+---
+
 ## Unreleased
 
-통합 kuma 데스크톱 빌드의 배포 안정화.
+통합 kuma 데스크톱 빌드의 배포 안정화 (헌장 적용 전 초기 항목).
 
 - **Sidecar 공통 헬퍼**: KURO와 MAME sidecar가 JSON-RPC stdout writer, bounded crash log append, private config directory 생성, path validation을 `kuma_core.shared.sidecar`로 공유.
 - **Order export RPC 호환성**: 기존 TypeScript 계약과 회귀 테스트가 요구하는 KURO `export_order` dispatch를 복구. Backend state 또는 frontend 제공 result payload에서 IDT/Twist CSV export 지원.
@@ -14,16 +65,6 @@
 - **MAME PyInstaller onefile 크기**: MAME sidecar packaging에서 Biopython 전체와 optional ML/plotting stack (`torch`, `sklearn`, `transformers` 등)을 수집하지 않아 PyInstaller 4 GB CArchive 한계를 회피.
 - **CI coverage**: 브랜치/PR CI 추가. OS/Python version matrix의 Python tests, TypeScript typecheck, Linux Rust `cargo check`를 Tauri/WebKitGTK system dependency와 함께 실행.
 - **개발 문서**: Linux Tauri prerequisite와 Windows native build 주의사항을 영문/국문 contributing guide에 문서화.
-
-### 테스트 footprint
-
-- `python3 -m pytest tests/ -q`: 799 passed, 15 skipped.
-- `pnpm exec tsc --noEmit`: 0 errors.
-- `pnpm run build`: frontend production build 통과.
-- `pnpm run sidecar:build`: KURO/MAME Linux sidecar 빌드 성공.
-- 빌드된 `kuro-sidecar`, `mame-sidecar` 모두 JSON-RPC `ping`에 `{"ok": true}` 응답.
-- `cd src-tauri && cargo check`: Linux Tauri package 설치 후 통과 (`gdk-3.0` 3.24.41, `webkit2gtk-4.1` 2.52.3).
-- `pnpm run build:all`: 통과. `kuma_0.3.1_amd64.deb`, `kuma_0.3.1_amd64.AppImage` 생성.
 
 ---
 

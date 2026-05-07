@@ -217,6 +217,10 @@ Tauri v2 + React 19 shell with two Python sidecars (kuro-sidecar, mame-sidecar) 
 +----------------+   +----------------+
 ```
 
+## Common Frontend Standards
+
+Kuro and Mame conform to the **Common Frontend Standards charter** (`docs/standards/common-frontend-standards.md`, v1.1 stable) — 22 categories covering recovery, observability, input guards, error UX, output persistence, settings, UI safety, accessibility, versioning, telemetry, build, reproducibility (`run.json`), long-running jobs (queue + OS notification + sleep inhibit), data integrity (input/output SHA-256, sidecar binary hash, schema dry-run migration), onboarding, local diagnostics, cross-platform, partial success, performance guardrails, citation/licensing, multi-workspace, graceful shutdown. PrimerBench applies the same charter through its Phase A-E rollout.
+
 ## License
 
 [GPL v2](LICENSE)

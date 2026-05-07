@@ -4,9 +4,60 @@
 
 ---
 
+## v0.3.7 (2026-05-07)
+
+Common Frontend Standards charter applied across kuro and mame. The charter (`docs/standards/common-frontend-standards.md`, v1.1 stable) defines 22 categories — UI safety, observability, reproducibility, integrity, accessibility, etc. — and Phase 1 through Phase 8 implementations close every required category for both apps.
+
+### Charter Phase 1–8 highlights (v0.3.2.1 → v0.3.7.3)
+
+- **§7 UI Safety**: `flex-1` + `min-w-0` enforced across row-flex panels, sidebars receive `overflow-x-hidden`, modals support ESC + backdrop close, single-instance lock via `tauri-plugin-single-instance` (Phase 1a, 2a).
+- **§10 Telemetry & Privacy**: First-call consent dialog for UniProt/BLAST/AlphaFold (`NetworkConsentDialog.tsx`), offline-mode toggle, `requireNetworkConsent` guards in `diversitySlice`, About dialog lists every external service (Phase 2b).
+- **§12 Reproducibility**: `kuma_core.shared.run_manifest` writes `*.run.json` next to every export (input SHA-256, params, versions, timestamps, optional seed). Frontend imports manifest via drag-drop or `Compare run manifests…` menu, including diff view (Phase 3, 4c, 5-5).
+- **§13 Long-running Jobs**: OS notifications (`tauri-plugin-notification`, 5-minute threshold), sleep inhibit (`keepawake` 0.6 with Mutex toggle), background job queue (`jobQueueSlice` + `JobQueuePanel`) with cancel via `AbortSignal` (Phase 4a, 5-2, 7-2).
+- **§14 Data Integrity**: Output checksums (`*.sha256` shasum-c compatible), schema dry-run migration with backup (`*.backup-{ISO}.json`), and sidecar binary hash verification at spawn (`sidecar_verify.rs`, dev mode skip) (Phase 5-3, 4c, 6-1).
+- **§19 Performance Guardrails**: Input-size warning thresholds (`inputThresholds.ts`), virtual scroll for 1,000+ rows (`@tanstack/react-virtual`), memory monitor (psutil RSS warn 50% / block 70% via `progress` notification), and run pre-flight check (Phase 4b, 5-1, 6-3, 7-1).
+- **§20 Citation & Licensing**: BibTeX placeholder + Copy buttons in About, License section, NOTICE.md auto-collected at build time via `cargo-about` + pnpm licenses + pip-licenses, bundled as Tauri resource (Phase 1b, 5-4).
+- **§22 Graceful Shutdown**: Window close confirms during long-running work, single-instance lock, graceful sidecar shutdown via `shutdown` JSON-RPC + 5-second SIGKILL fallback (`graceful_shutdown` in `sidecar.rs`), pending export flush, shutdown hooks (Phase 2a, 4a, 6-2, 8a).
+- **§9 Versioning**: `tauri-plugin-updater` integrated with About → "Check for updates" modal (Phase 7-4).
+- **§8 Accessibility**: `tailwind darkMode: ["class"]`, `.dark` CSS variables, three-way `ThemeToggle` (light/dark/system) with localStorage + FOUC prevention (Phase 7-5).
+
+### Phase 8 user-experience polish (v0.3.7.x)
+
+- **§1 Recovery**: Cmd/Ctrl+Shift+R global Reset shortcut, dead-lock detector (30 s progress idle → modal), `shutdownHook` registry (Phase 8a).
+- **§2 Observability**: `eta.ts` history-based remaining-time estimate, `LogPanel` widget with bounded-200-line buffer, copy/clear actions (Phase 8c).
+- **§4 Error UX**: Traceback toggle in `StateView`, network errors classified separately with `WifiOff` icon (`errorClassifier.ts`) (Phase 8b).
+- **§5 Output Persistence**: `revealInOSFolder` via `tauri-plugin-opener`, app-level overwrite confirmation dialog before exports (Phase 8b).
+- **§16 Local Diagnostics**: `generateDiagnosticsBundle` saves anonymized diagnostics JSON (no external transmission) (Phase 8c).
+
+### Per-app status (charter Appendix D, v1.1)
+
+- **kuro**: 10 of 22 categories fully ✅, 12 🟡, 0 ❌. Req-level ✅ 52 of ~89.
+- **mame**: 10 of 22 categories fully ✅, 12 🟡, 0 ❌. Req-level ✅ 52 of ~88.
+- **PrimerBench (separate repo)**: charter Phase A-E applied; §7 ✅, others mostly 🟡, 0 ❌.
+
+### New top-level modules (kuma)
+
+- `kuma_core/shared/run_manifest.py`, `output_hash.py`, `memory_monitor.py`
+- `src-tauri/src/sidecar_verify.rs`, `keep_awake.rs`
+- `src-tauri/about.toml`, `about.hbs` (cargo-about); `scripts/build-notice.mjs`, `collect-node-licenses.mjs`, `sidecar-hash.mjs`
+- `src/lib/`: `runManifest.ts`, `reRun.ts`, `manifestDiff.ts`, `notify.ts`, `keepAwake.ts`, `preflight.ts`, `inputThresholds.ts`, `networkSettings.ts`, `eta.ts`, `errorClassifier.ts`, `openFolder.ts`, `overwriteConfirm.ts`, `deadlockDetector.ts`, `shutdownHook.ts`, `diagnostics.ts`, `updater.ts`, `toast.ts`, `workspaceMigrate.ts`
+- `src/components/dialogs/`: `NetworkConsentDialog`, `ReRunManifestDialog`, `WorkspaceMigrateDialog`, `ManifestDiffDialog`, `InputSizeWarningDialog`, `PreflightDialog`, `OverwriteConfirmDialog`, `CloseConfirmDialog`
+- `src/components/widgets/`: `JobQueuePanel`, `LogPanel`
+- `src/components/ui/ThemeToggle.tsx`
+- `src/store/slices/`: `jobQueueSlice`, `memorySlice`, `networkConsentSlice`
+
+### Test footprint
+
+- `python3 -m pytest tests/`: charter additions add ~70 new tests (run_manifest, output_hash, memory_monitor, dispatcher_shutdown, sidecar_hash, export_manifest); existing suite retains 800+ passing tests.
+- `npx tsc --noEmit`: 0 errors.
+- `cd src-tauri && cargo check`: pass.
+- `npx vitest run`: 20 files, 145+ tests pass (Sonner stub, opener stub, single-instance integration intact).
+
+---
+
 ## Unreleased
 
-Release hardening for the integrated kuma desktop build.
+Release hardening for the integrated kuma desktop build (initial entries before charter rollout).
 
 - **Sidecar shared helpers**: KURO and MAME sidecars now share JSON-RPC stdout writing, bounded crash-log append, private config directory creation, and path validation through `kuma_core.shared.sidecar`.
 - **Order export RPC compatibility**: Restored KURO `export_order` dispatch for the existing TypeScript contract and regression tests. Supports IDT/Twist CSV export from either backend state or a frontend-provided result payload.
@@ -14,16 +65,6 @@ Release hardening for the integrated kuma desktop build.
 - **MAME PyInstaller onefile size**: MAME sidecar packaging no longer collects the entire Biopython package or optional ML/plotting stacks (`torch`, `sklearn`, `transformers`, etc.), avoiding the PyInstaller 4 GB CArchive limit.
 - **CI coverage**: Added branch/PR CI for Python tests across OS/Python versions, TypeScript typecheck, and Linux Rust `cargo check` with Tauri/WebKitGTK system dependencies.
 - **Developer docs**: Linux Tauri prerequisites and Windows-native build guidance are documented in the English and Korean contributing guides.
-
-### Test footprint
-
-- `python3 -m pytest tests/ -q`: 799 passed, 15 skipped.
-- `pnpm exec tsc --noEmit`: 0 errors.
-- `pnpm run build`: frontend production build passed.
-- `pnpm run sidecar:build`: KURO and MAME Linux sidecars built successfully.
-- Built `kuro-sidecar` and `mame-sidecar` both answered JSON-RPC `ping` with `{"ok": true}`.
-- `cd src-tauri && cargo check`: passed after installing Linux Tauri packages (`gdk-3.0` 3.24.41, `webkit2gtk-4.1` 2.52.3).
-- `pnpm run build:all`: passed and produced `kuma_0.3.1_amd64.deb` and `kuma_0.3.1_amd64.AppImage`.
 
 ---
 

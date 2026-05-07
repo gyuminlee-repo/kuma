@@ -216,6 +216,10 @@ Tauri v2 + React 19 shell과 두 개의 Python sidecar (kuro-sidecar, mame-sidec
 +----------------+   +----------------+
 ```
 
+## 공통 프론트엔드 헌장 (Common Frontend Standards)
+
+Kuro·Mame 는 `docs/standards/common-frontend-standards.md` (v1.1 stable) 의 22 카테고리를 따른다 — 복구, 관측성, 입력 검증, 에러 UX, 결과 영속성, 설정, UI 안전, 접근성, 버전·업데이트, 텔레메트리, 빌드, 재현성(`run.json`), 장시간 작업(잡 큐 + OS 알림 + sleep inhibit), 데이터 무결성(입력/출력 SHA-256, sidecar binary hash, schema dry-run 마이그레이션), 온보딩, 로컬 진단, 크로스플랫폼, 부분 실패, 성능 가드레일, 인용·라이선스, 멀티 워크스페이스, 안전한 종료. PrimerBench 도 Phase A-E 로 동일 헌장을 적용한다.
+
 ## 라이선스
 
 [GPL v2](LICENSE)
