@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { notificationPermissionGranted, requestNotificationPermission } from "../../lib/notify";
 import { useAppStore } from "../../store/appStore";
+import { generateDiagnosticsBundle } from "../../lib/diagnostics";
+import { revealInOSFolder } from "../../lib/openFolder";
 import { useKumaProject } from "../../state/projectContext";
 import { Label } from "../ui/label";
 import { Button } from "../ui/button";
@@ -63,6 +65,8 @@ export function MenuBar() {
   const [aboutOpen, setAboutOpen] = useState(false);
   const [crashCopied, setCrashCopied] = useState(false);
   const [bibtexCopied, setBibtexCopied] = useState(false);
+  const [diagnosticsGenerating, setDiagnosticsGenerating] = useState(false);
+  const [diagnosticsError, setDiagnosticsError] = useState<string | null>(null);
   const [crashLogOpen, setCrashLogOpen] = useState(false);
   const [mappingDialogOpen, setMappingDialogOpen] = useState(false);
   const [mappingDialogFormat, setMappingDialogFormat] = useState<"echo" | "janus">("echo");
@@ -183,6 +187,21 @@ export function MenuBar() {
     await navigator.clipboard.writeText(KURO_BIBTEX);
     setBibtexCopied(true);
     setTimeout(() => setBibtexCopied(false), 2000);
+  }
+
+  async function handleGenerateDiagnostics() {
+    setDiagnosticsGenerating(true);
+    setDiagnosticsError(null);
+    try {
+      const filePath = await generateDiagnosticsBundle();
+      if (filePath) {
+        await revealInOSFolder(filePath);
+      }
+    } catch (err) {
+      setDiagnosticsError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setDiagnosticsGenerating(false);
+    }
   }
 
   async function handleCopyCrashLog() {
@@ -340,6 +359,7 @@ export function MenuBar() {
             setCrashCopied(false);
             setBibtexCopied(false);
             setUpdateResult(null);
+            setDiagnosticsError(null);
           }
         }}
       >
@@ -577,6 +597,26 @@ export function MenuBar() {
             >
               {crashCopied ? "Copied!" : "Copy Crash Log"}
             </Button>
+
+            {/* §16 Local Diagnostics */}
+            <div className="flex flex-col gap-1">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={diagnosticsGenerating}
+                onClick={() => { void handleGenerateDiagnostics(); }}
+              >
+                {diagnosticsGenerating ? "Generating..." : "Generate Diagnostics"}
+              </Button>
+              {diagnosticsError && (
+                <p className="text-xs text-destructive" role="alert">
+                  {diagnosticsError}
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Saves app version, crash log, and recent logs to a local JSON file. No data is sent externally.
+              </p>
+            </div>
           </div>
           <DialogFooter>
             <Button size="sm" onClick={() => setAboutOpen(false)}>

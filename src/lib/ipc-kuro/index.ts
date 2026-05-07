@@ -20,6 +20,13 @@ let onProgress: ((p: ProgressNotification) => void) | null = null;
 let running = false;
 let progressUnlisten: UnlistenFn | null = null;
 let subscribePromise: Promise<void> | null = null;
+/** §1 Dead-lock 감지: 마지막 progress 이벤트 수신 timestamp(ms). */
+let _lastProgressAt: number | null = null;
+
+/** 마지막 kuro progress 수신 시각을 반환 (없으면 null). */
+export function getLastProgressAt(): number | null {
+  return _lastProgressAt;
+}
 
 function hasTauriBridge(): boolean {
   return typeof (globalThis as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ !== "undefined";
@@ -34,10 +41,10 @@ async function ensureProgressListener() {
       (event) => {
         if (
           event.payload.kind === "kuro" &&
-          isProgressNotificationParams(event.payload.params) &&
-          onProgress
+          isProgressNotificationParams(event.payload.params)
         ) {
-          onProgress(event.payload.params);
+          _lastProgressAt = Date.now();
+          if (onProgress) onProgress(event.payload.params);
         }
       },
     );

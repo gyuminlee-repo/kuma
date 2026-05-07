@@ -8,11 +8,13 @@ import { createExportSlice } from "./slices/exportSlice";
 import { createNetworkConsentSlice } from "./slices/networkConsentSlice";
 import { createMemorySlice } from "./slices/memorySlice";
 import { createJobQueueSlice } from "./slices/jobQueueSlice";
+import { createLogSlice } from "./slices/logSlice";
+import { recordRunDuration } from "../lib/eta";
 import type { AppState } from "./types";
 export type { AppState };
 
 export const useAppStore = create<AppState>()((...a) => {
-  const [set] = a;
+  const [set, get] = a;
 
   setProgressHandler((p) => {
     // §19 memory_warning notifications arrive as type="memory_warning" in params.
@@ -26,6 +28,11 @@ export const useAppStore = create<AppState>()((...a) => {
       return;
     }
     set({ progress: p.value, statusMessage: p.message });
+    // §2 Observability: feed progress messages into log buffer
+    if (p.message) {
+      const ts = new Date().toLocaleTimeString();
+      get().appendLogLine(`[${ts}] ${p.message}`);
+    }
   });
 
   return {
@@ -37,5 +44,25 @@ export const useAppStore = create<AppState>()((...a) => {
     ...createNetworkConsentSlice(...a),
     ...createMemorySlice(...a),
     ...createJobQueueSlice(...a),
+    ...createLogSlice(...a),
   };
+});
+
+// §2 ETA: subscribe to job completions and record durations for future ETA
+useAppStore.subscribe((state, prevState) => {
+  const prevJobs = prevState.jobs;
+  const nextJobs = state.jobs;
+  for (const job of nextJobs) {
+    const prev = prevJobs.find((j) => j.id === job.id);
+    if (
+      prev &&
+      prev.status === "running" &&
+      (job.status === "completed" || job.status === "failed") &&
+      job.startedAt !== undefined &&
+      job.finishedAt !== undefined
+    ) {
+      const duration = job.finishedAt - job.startedAt;
+      recordRunDuration(job.kind, duration);
+    }
+  }
 });

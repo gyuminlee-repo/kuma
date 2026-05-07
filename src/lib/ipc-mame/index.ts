@@ -11,6 +11,13 @@ let running = false;
 let progressHandler: ((p: ProgressNotification) => void) | null = null;
 let progressUnlisten: UnlistenFn | null = null;
 let subscribePromise: Promise<void> | null = null;
+/** §1 Dead-lock 감지: 마지막 progress 이벤트 수신 timestamp(ms). */
+let _lastProgressAt: number | null = null;
+
+/** 마지막 mame progress 수신 시각을 반환 (없으면 null). */
+export function getLastProgressAt(): number | null {
+  return _lastProgressAt;
+}
 
 function hasTauriBridge(): boolean {
   return typeof (globalThis as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ !== "undefined";
@@ -23,8 +30,9 @@ async function ensureProgressListener() {
     progressUnlisten = await listen<ProgressEventPayload>(
       "sidecar://progress",
       (event) => {
-        if (event.payload.kind === "mame" && progressHandler) {
-          progressHandler(event.payload.params);
+        if (event.payload.kind === "mame") {
+          _lastProgressAt = Date.now();
+          if (progressHandler) progressHandler(event.payload.params);
         }
       },
     );

@@ -15,6 +15,9 @@ import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { getActivityStore } from "@/store/mame/activitySlice";
 import { CloseConfirmDialog, type BusyReason } from "@/components/dialogs/CloseConfirmDialog";
 import { JobQueuePanel } from "@/components/widgets/JobQueuePanel";
+import { LogPanel } from "@/components/widgets/LogPanel";
+import { registerShutdownHook, runShutdownHooks } from "@/lib/shutdownHook";
+import { toast } from "sonner";
 
 // ─── 상대 시간 포맷 헬퍼 ──────────────────────────────────────────────────
 
@@ -57,6 +60,13 @@ export function MainShell() {
     if (msgTimerRef.current !== null) clearTimeout(msgTimerRef.current);
     setStatusMessage(msg);
     msgTimerRef.current = setTimeout(() => setStatusMessage(""), 4000);
+  }, []);
+
+  // §22 Graceful Shutdown: 기본 훅 등록 (pending toasts dismiss)
+  useEffect(() => {
+    return registerShutdownHook(() => {
+      toast.dismiss();
+    });
   }, []);
 
   // ── 두 번째 인스턴스 시도 알림
@@ -179,6 +189,7 @@ export function MainShell() {
         if (forceCloseRef.current) {
           forceCloseRef.current = false;
           await flushAutosave(target);
+          await runShutdownHooks();
           await getCurrentWindow().destroy();
           return;
         }
@@ -206,6 +217,7 @@ export function MainShell() {
         }
 
         await flushAutosave(target);
+        await runShutdownHooks();
         await getCurrentWindow().destroy();
       })
       .then((fn) => {
@@ -372,6 +384,9 @@ export function MainShell() {
 
       {/* §13 Background Job Queue floating panel */}
       <JobQueuePanel />
+
+      {/* §2 Observability: sidecar log panel */}
+      <LogPanel />
 
       {/* §22 Graceful Shutdown: busy 상태 close 확인 */}
       <CloseConfirmDialog

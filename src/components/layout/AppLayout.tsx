@@ -1,5 +1,7 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
+import { WifiOff } from "lucide-react";
+import { classifyError } from "@/lib/errorClassifier";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useAppStore } from "../../store/appStore";
@@ -33,6 +35,7 @@ import { StatusBar } from "./StatusBar";
 import { NetworkConsentDialog } from "../dialogs/NetworkConsentDialog";
 import { InputSizeWarningDialog } from "../dialogs/InputSizeWarningDialog";
 import { PreflightDialog } from "../dialogs/PreflightDialog";
+import { OverwriteConfirmDialog } from "../dialogs/OverwriteConfirmDialog";
 import { checkKuroInputSize } from "@/lib/inputThresholds";
 import type { InputSizeLevel } from "@/lib/inputThresholds";
 import { runPreflightCheck } from "@/lib/preflight";
@@ -42,6 +45,8 @@ import {
   handleSaveWorkspace,
   handleOpenSequence,
 } from "./export-handlers";
+import { startDeadlockWatch } from "@/lib/deadlockDetector";
+import { getLastProgressAt } from "@/lib/ipc-kuro";
 
 const SEQUENCE_EXTENSIONS = new Set([".gb", ".gbk", ".gbff", ".dna", ".fa", ".fasta"]);
 const CSV_EXTENSIONS = new Set([".csv"]);
@@ -54,6 +59,14 @@ export function AppLayout() {
   const isDesigning = useAppStore((s) => s.isDesigning);
   const statusMessage = useAppStore((s) => s.statusMessage);
   const hasDesignResults = useAppStore((s) => s.designResults.length > 0);
+
+  // §4 네트워크 에러 분리 — statusMessage를 분류해 WifiOff 아이콘 표시
+  const statusErrorKind = useMemo(() => {
+    if (!statusMessage) return null;
+    // 에러 키워드가 포함된 메시지에만 적용 (모든 status에 아이콘 붙이면 노이즈)
+    if (!/fail|error|timeout|refused/i.test(statusMessage)) return null;
+    return classifyError(statusMessage).kind;
+  }, [statusMessage]);
   const successCount = useAppStore((s) => s.successCount);
   const totalCount = useAppStore((s) => s.totalCount);
   const seqInfo = useAppStore((s) => s.seqInfo);
@@ -65,6 +78,8 @@ export function AppLayout() {
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
   const [missingFields, setMissingFields] = useState<string[] | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  // §1 Dead-lock 감지 모달 상태
+  const [deadlockOpen, setDeadlockOpen] = useState(false);
 
   // §19 Performance Guardrails: 입력 크기 사전 경고 상태
   const [kuroSizeWarning, setKuroSizeWarning] = useState<{
@@ -169,6 +184,15 @@ export function AppLayout() {
       void loadPolymerases();
     }
   }, [loadPolymerases, sidecarStatus]);
+
+  // §1 Dead-lock 감지: design 진행 중 30초 progress 정적 시 모달 표시
+  useEffect(() => {
+    if (!isDesigning) return;
+    return startDeadlockWatch({
+      getLastProgressAt,
+      onDeadlock: () => setDeadlockOpen(true),
+    });
+  }, [isDesigning]);
 
   // Item 6: Sync window title with project name
   useEffect(() => {
@@ -280,8 +304,18 @@ export function AppLayout() {
         e.preventDefault();
         tryRunDesign();
         break;
+      case "r":
+        // Cmd/Ctrl+Shift+R: Reset All (isInput 포함 — 폼 입력 도중에도 동작해야 함)
+        if (!e.shiftKey) return;
+        e.preventDefault();
+        if (hasDesignResults) {
+          setClearConfirmOpen(true);
+        } else {
+          useAppStore.getState().resetAll();
+        }
+        break;
     }
-  }, [flushBeforeDesign, project, tryRunDesign]);
+  }, [flushBeforeDesign, hasDesignResults, project, tryRunDesign]);
 
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown);
@@ -315,9 +349,31 @@ export function AppLayout() {
             </div>
 
             <footer className="border-t border-border bg-muted/40 px-3 py-3 space-y-2">
-              <div aria-live="polite" className="px-1">
+              <div
+                aria-live="polite"
+                aria-atomic="true"
+                role={statusErrorKind === "network" ? "alert" : undefined}
+                className="px-1"
+              >
                 <span className="text-caption text-muted-foreground">Status</span>
-                <p className="text-body font-medium text-foreground truncate">{statusMessage}</p>
+                <div className="flex items-center gap-1.5 min-w-0">
+                  {statusErrorKind === "network" && (
+                    <WifiOff
+                      size={13}
+                      className="flex-shrink-0 text-amber-500 dark:text-amber-400"
+                      aria-hidden="true"
+                    />
+                  )}
+                  <p
+                    className={
+                      statusErrorKind === "network"
+                        ? "truncate text-body font-medium text-amber-500 dark:text-amber-400"
+                        : "truncate text-body font-medium text-foreground"
+                    }
+                  >
+                    {statusMessage}
+                  </p>
+                </div>
               </div>
               <div className="flex gap-2">
                 <Button
@@ -466,6 +522,34 @@ export function AppLayout() {
         </DialogContent>
       </Dialog>
 
+      {/* §1 Recovery: Dead-lock 감지 모달 */}
+      <Dialog open={deadlockOpen} onOpenChange={setDeadlockOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>응답 없음</DialogTitle>
+            <DialogDescription>
+              30초 이상 진행 상태가 업데이트되지 않았습니다. 작업이 멈춘 것 같습니다.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setDeadlockOpen(false)}>
+              계속 대기
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-error border-error/40 hover:bg-error/8"
+              onClick={() => {
+                useAppStore.getState().cancelDesign();
+                setDeadlockOpen(false);
+              }}
+            >
+              Reset
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* §19 Performance Guardrails: pre-flight check 결과 모달 */}
       {preflightResult && (
         <PreflightDialog
@@ -524,6 +608,9 @@ export function AppLayout() {
         {showReport && <LazyDesignReport />}
         {showBenchmark && <LazyBenchmarkDialog />}
       </Suspense>
+
+      {/* §5 Output Persistence: 덮어쓰기 confirm */}
+      <OverwriteConfirmDialog />
     </div>
   );
 }

@@ -12,6 +12,9 @@ import {
 } from "../../lib/workspaceMigrate";
 import type { MigrateDialogState } from "../dialogs/WorkspaceMigrateDialog";
 import { MIGRATE_DIALOG_CLOSED } from "../dialogs/WorkspaceMigrateDialog";
+import { revealInOSFolder } from "../../lib/openFolder";
+import { fileExists, requestOverwriteConfirm } from "../../lib/overwriteConfirm";
+import { toast } from "sonner";
 
 function deriveMappingExportPaths(path: string) {
   const base = path.trim().replace(/\.(xlsx|csv)$/i, "");
@@ -43,18 +46,25 @@ export async function handleExportExcel(projectId?: string) {
     filters: [{ name: "Excel", extensions: ["xlsx"] }],
     defaultPath: defaultExportFilename({ target: "KURO", ext: "xlsx" }),
   });
-  if (path) {
-    await useAppStore.getState().exportExcel(path, projectId);
-    // Item 2: Handoff hint — flash message for 5 s then restore
-    const prevMsg = useAppStore.getState().statusMessage;
-    useAppStore.getState().setStatus("Export saved. Run sequencing, then Switch to Mame tab to verify →");
-    setTimeout(() => {
-      // Restore only if no new message has appeared
-      if (useAppStore.getState().statusMessage === "Export saved. Run sequencing, then Switch to Mame tab to verify →") {
-        useAppStore.getState().setStatus(prevMsg);
-      }
-    }, 5000);
+  if (!path) return;
+
+  // §5 덮어쓰기 confirm (OS dialog 외 앱 레벨 추가 검사)
+  if (await fileExists(path)) {
+    const decision = await requestOverwriteConfirm(path);
+    if (decision === "cancel") return;
   }
+
+  await useAppStore.getState().exportExcel(path, projectId);
+
+  // §5 Open folder 버튼이 있는 toast
+  toast.success("Export saved", {
+    description: "Run sequencing, then switch to Mame tab to verify →",
+    duration: 6000,
+    action: {
+      label: "Open folder",
+      onClick: () => void revealInOSFolder(path),
+    },
+  });
 }
 
 export async function handleExportMappingWithParams(
@@ -68,8 +78,14 @@ export async function handleExportMappingWithParams(
   });
   if (!selectedPath) return;
   const { xlsxPath, csvPath } = deriveMappingExportPaths(selectedPath);
-
   const label = format === "echo" ? "Echo" : "JANUS";
+
+  // §5 덮어쓰기 confirm
+  if (await fileExists(xlsxPath)) {
+    const decision = await requestOverwriteConfirm(xlsxPath);
+    if (decision === "cancel") return;
+  }
+
   useAppStore.setState({ isExporting: true });
   try {
     const { orderedMappings, dedupInfo } = getCurrentExportState();
@@ -82,6 +98,16 @@ export async function handleExportMappingWithParams(
     await sendRequest("export_mapping", { ...payload, filepath: xlsxPath });
     await sendRequest("export_mapping", { ...payload, filepath: csvPath });
     useAppStore.getState().setStatus(`${label} mapping exported: ${xlsxPath} + .csv`);
+
+    // §5 Open folder toast
+    toast.success(`${label} mapping exported`, {
+      description: xlsxPath,
+      duration: 6000,
+      action: {
+        label: "Open folder",
+        onClick: () => void revealInOSFolder(xlsxPath),
+      },
+    });
   } catch (err) {
     useAppStore
       .getState()
@@ -206,10 +232,21 @@ export async function handleSaveBenchmarkJson(data: unknown) {
     defaultPath: defaultExportFilename({ target: "benchmark", ext: "json" }),
   });
   if (!path) return;
+
+  if (await fileExists(path)) {
+    const decision = await requestOverwriteConfirm(path);
+    if (decision === "cancel") return;
+  }
+
   useAppStore.setState({ isExporting: true });
   try {
     await sendRequest("save_json", { filepath: path, data });
     useAppStore.getState().setStatus(`Benchmark JSON saved: ${path}`);
+    toast.success("Benchmark JSON saved", {
+      description: path,
+      duration: 6000,
+      action: { label: "Open folder", onClick: () => void revealInOSFolder(path) },
+    });
   } catch (err) {
     useAppStore.getState().setStatus(`Benchmark JSON save failed: ${err instanceof Error ? err.message : String(err)}`);
   } finally {
@@ -223,10 +260,21 @@ export async function handleExportBenchmarkCsv(results: Record<string, Benchmark
     defaultPath: defaultExportFilename({ target: "benchmark", ext: "csv" }),
   });
   if (!path) return;
+
+  if (await fileExists(path)) {
+    const decision = await requestOverwriteConfirm(path);
+    if (decision === "cancel") return;
+  }
+
   useAppStore.setState({ isExporting: true });
   try {
     await sendRequest("export_benchmark_csv", { filepath: path, results });
     useAppStore.getState().setStatus(`Benchmark CSV exported: ${path}`);
+    toast.success("Benchmark CSV exported", {
+      description: path,
+      duration: 6000,
+      action: { label: "Open folder", onClick: () => void revealInOSFolder(path) },
+    });
   } catch (err) {
     useAppStore.getState().setStatus(`Benchmark CSV export failed: ${err instanceof Error ? err.message : String(err)}`);
   } finally {

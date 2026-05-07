@@ -290,6 +290,11 @@ export interface ExportSlice {
 export type { JobKind, JobStatus, Job, JobQueueSlice } from "./slices/jobQueueSlice";
 
 // ---------------------------------------------------------------------------
+// LogSlice — §2 Observability: rolling log buffer
+// ---------------------------------------------------------------------------
+export type { LogSlice } from "./slices/logSlice";
+
+// ---------------------------------------------------------------------------
 // MemorySlice — §19 Performance Guardrails: RSS memory monitor
 // ---------------------------------------------------------------------------
 export interface MemoryWarning {

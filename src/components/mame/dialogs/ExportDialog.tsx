@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { revealInOSFolder } from "@/lib/openFolder";
+import { fileExists, requestOverwriteConfirm } from "@/lib/overwriteConfirm";
 
 export function ExportDialog() {
   const open = useMameAppStore((s) => s.showExport);
@@ -84,9 +86,24 @@ export function ExportDialog() {
 
           {(lastExportPath || lastExportAt) && (
             <div className="rounded-control border border-success/40 bg-success/8 px-3 py-2">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 size={13} className="text-success" aria-hidden="true" />
-                <span className="text-caption font-medium text-success">Last export</span>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 size={13} className="text-success" aria-hidden="true" />
+                  <span className="text-caption font-medium text-success">Last export</span>
+                </div>
+                {lastExportPath && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 gap-1 px-2 text-caption text-muted-foreground hover:text-foreground"
+                    onClick={() => void revealInOSFolder(lastExportPath)}
+                    aria-label="Open export folder in file explorer"
+                  >
+                    <FolderOpen size={12} aria-hidden="true" />
+                    Open folder
+                  </Button>
+                )}
               </div>
               {lastExportPath && (
                 <p className="mt-1 text-caption font-mono text-foreground break-all">{lastExportPath}</p>
@@ -102,7 +119,15 @@ export function ExportDialog() {
           </Button>
           <Button
             size="sm"
-            onClick={() => void exportExcel(outputPath)}
+            onClick={async () => {
+              if (!outputPath) return;
+              // §5 덮어쓰기 confirm
+              if (await fileExists(outputPath)) {
+                const decision = await requestOverwriteConfirm(outputPath);
+                if (decision === "cancel") return;
+              }
+              await exportExcel(outputPath);
+            }}
             disabled={isExporting || !outputPath}
             className="gap-2"
           >

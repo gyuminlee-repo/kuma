@@ -12,7 +12,19 @@ import { ReRunManifestDialog } from "@/components/dialogs/ReRunManifestDialog";
 import { ManifestDiffDialog } from "@/components/dialogs/ManifestDiffDialog";
 import { ClearConfirmDialog } from "../dialogs/ClearConfirmDialog";
 import { ExportDialog } from "../dialogs/ExportDialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { startDeadlockWatch } from "@/lib/deadlockDetector";
+import { getLastProgressAt } from "@/lib/ipc-mame";
 import { PreflightDialog } from "@/components/dialogs/PreflightDialog";
+import { OverwriteConfirmDialog } from "@/components/dialogs/OverwriteConfirmDialog";
 import { runPreflightCheck } from "@/lib/preflight";
 import type { PreflightResult } from "@/lib/preflight";
 import { MenuBar } from "./MenuBar";
@@ -37,8 +49,11 @@ export function MameAppLayout() {
   const clearResults = useMameAppStore((s) => s.clearResults);
   const runHealth = useMameAppStore((s) => s.runHealth);
   const verdictsLength = useMameAppStore((s) => s.verdicts.length);
+  const isAnalyzing = useMameAppStore((s) => s.isAnalyzing);
   const [isDragOver, setIsDragOver] = useState(false);
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
+  // §1 Dead-lock 감지 모달 상태
+  const [deadlockOpen, setDeadlockOpen] = useState(false);
 
   // §12 Reproducibility: manifest re-run 모달 상태
   const [reRunManifest, setReRunManifest] = useState<RunManifest | null>(null);
@@ -75,6 +90,15 @@ export function MameAppLayout() {
       },
     );
   }, [status]);
+
+  // §1 Dead-lock 감지: analysis 진행 중 30초 progress 정적 시 모달 표시
+  useEffect(() => {
+    if (!isAnalyzing) return;
+    return startDeadlockWatch({
+      getLastProgressAt,
+      onDeadlock: () => setDeadlockOpen(true),
+    });
+  }, [isAnalyzing]);
 
   useEffect(() => {
     let cancelled = false;
@@ -181,6 +205,12 @@ export function MameAppLayout() {
           e.preventDefault();
           if (!s.isAnalyzing) tryRunAnalysis();
           break;
+        case "r":
+          // Cmd/Ctrl+Shift+R: Reset All (확인 다이얼로그 경유)
+          if (!e.shiftKey) return;
+          e.preventDefault();
+          setClearConfirmOpen(true);
+          break;
       }
     }
     window.addEventListener("keydown", handleKeyDown);
@@ -235,6 +265,34 @@ export function MameAppLayout() {
         />
       )}
 
+      {/* §1 Recovery: Dead-lock 감지 모달 */}
+      <Dialog open={deadlockOpen} onOpenChange={setDeadlockOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>응답 없음</DialogTitle>
+            <DialogDescription>
+              30초 이상 진행 상태가 업데이트되지 않았습니다. 작업이 멈춘 것 같습니다.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setDeadlockOpen(false)}>
+              계속 대기
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-error border-error/40 hover:bg-error/8"
+              onClick={() => {
+                void useMameAppStore.getState().cancelAnalysis();
+                setDeadlockOpen(false);
+              }}
+            >
+              Reset
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <ExportDialog />
       <ClearConfirmDialog
         open={clearConfirmOpen}
@@ -282,6 +340,9 @@ export function MameAppLayout() {
           setDiffManifestB(null);
         }}
       />
+
+      {/* §5 Output Persistence: 덮어쓰기 confirm */}
+      <OverwriteConfirmDialog />
     </div>
   );
 }

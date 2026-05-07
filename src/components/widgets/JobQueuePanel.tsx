@@ -17,6 +17,7 @@ import { useAppStore } from "@/store/appStore";
 import type { Job, JobKind, JobStatus } from "@/store/slices/jobQueueSlice";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { estimateETA, formatETA } from "@/lib/eta";
 
 // ── Kind icons (text-based, no external deps) ────────────────────────────────
 
@@ -61,10 +62,12 @@ function formatElapsed(startedAt: number, now: number): string {
 function JobRow({
   job,
   now,
+  progress,
   onCancel,
 }: {
   job: Job;
   now: number;
+  progress: number;
   onCancel: (id: string) => void;
 }) {
   const { variant, label: statusLabel } = STATUS_BADGE[job.status];
@@ -75,6 +78,10 @@ function JobRow({
     isRunning && job.startedAt !== undefined
       ? formatElapsed(job.startedAt, now)
       : null;
+
+  // ETA: only show for running jobs with some progress
+  const etaMs = isRunning ? estimateETA(job.kind, progress) : null;
+  const etaLabel = etaMs !== null ? formatETA(etaMs) : null;
 
   return (
     <li className="flex items-start gap-2 py-1.5 px-1 rounded-sm hover:bg-accent/40 transition-colors">
@@ -99,13 +106,20 @@ function JobRow({
         )}
       </div>
 
-      {/* Elapsed (running only) */}
+      {/* Elapsed + ETA (running only) */}
       {elapsed !== null && (
         <span
-          className="shrink-0 text-xs tabular-nums text-muted-foreground"
+          className="flex shrink-0 flex-col items-end gap-0.5"
           aria-live="off"
         >
-          {elapsed}
+          <span className="text-xs tabular-nums text-muted-foreground">
+            {elapsed}
+          </span>
+          {etaLabel && (
+            <span className="text-xs text-muted-foreground/70 whitespace-nowrap">
+              {etaLabel}
+            </span>
+          )}
         </span>
       )}
 
@@ -140,6 +154,7 @@ export function JobQueuePanel() {
   const jobs = useAppStore((s) => s.jobs);
   const cancelJob = useAppStore((s) => s.cancelJob);
   const clearCompleted = useAppStore((s) => s.clearCompleted);
+  const progress = useAppStore((s) => s.progress);
 
   const [expanded, setExpanded] = useState(false);
   const [now, setNow] = useState(Date.now);
@@ -229,6 +244,7 @@ export function JobQueuePanel() {
                     key={job.id}
                     job={job}
                     now={now}
+                    progress={progress}
                     onCancel={handleCancel}
                   />
                 ))}
