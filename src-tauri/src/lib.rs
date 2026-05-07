@@ -34,6 +34,73 @@ async fn sidecar_is_running(
     state.is_running(&kind).await
 }
 
+/// §11 Build & Distribution: macOS ad-hoc codesign status indicator.
+/// On macOS, runs `codesign -dv --verbose=2 <bundle>` and parses the output
+/// to determine signing state. On non-macOS returns "N/A (non-macOS)".
+#[tauri::command]
+fn get_codesign_status(app: AppHandle) -> String {
+    #[cfg(target_os = "macos")]
+    {
+        // Resolve the .app bundle path from the executable path
+        // e.g. /Applications/Kuma.app/Contents/MacOS/kuma → /Applications/Kuma.app
+        let exe_path = match app.path().resource_dir() {
+            Ok(p) => p,
+            Err(_) => return "unknown (path error)".to_string(),
+        };
+        // Walk up to find the .app bundle root (ends with .app)
+        let bundle_path: PathBuf = {
+            let mut p = exe_path.clone();
+            loop {
+                if p.extension().and_then(|e| e.to_str()) == Some("app") {
+                    break p;
+                }
+                if !p.pop() {
+                    // No .app ancestor found; fall back to resource dir
+                    break exe_path.clone();
+                }
+            }
+        };
+
+        match std::process::Command::new("codesign")
+            .args(["-dv", "--verbose=2", bundle_path.to_str().unwrap_or(".")])
+            .output()
+        {
+            Ok(output) => {
+                // codesign writes info to stderr
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                let combined = format!("{stderr}{stdout}");
+
+                if !output.status.success() && combined.is_empty() {
+                    return "unsigned".to_string();
+                }
+                // Ad-hoc: Authority line absent or "adhoc" flag present
+                if combined.contains("flags=0x20002(adhoc)")
+                    || combined.contains("Signature=adhoc")
+                    || (!combined.contains("Authority=") && output.status.success())
+                {
+                    "ad-hoc".to_string()
+                } else if combined.contains("Authority=Developer ID") {
+                    "signed (Developer ID)".to_string()
+                } else if combined.contains("Authority=Apple") {
+                    "signed (Apple)".to_string()
+                } else if combined.contains("Authority=") {
+                    "signed".to_string()
+                } else {
+                    "unsigned".to_string()
+                }
+            }
+            Err(_) => "unknown (codesign not found)".to_string(),
+        }
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        // Suppress unused variable warning on non-macOS
+        let _ = app;
+        "N/A (non-macOS)".to_string()
+    }
+}
+
 async fn shutdown_sidecars_async(app: &AppHandle<Wry>) {
     let manager = app.state::<sidecar::SidecarManager>();
     // §22: Send shutdown RPC, wait up to 5 s, then force-kill as fallback.
@@ -83,6 +150,7 @@ pub fn run() {
             sidecar_is_running,
             keep_awake::keep_awake_start,
             keep_awake::keep_awake_stop,
+            get_codesign_status,
         ])
         .build(tauri::generate_context!())
     {

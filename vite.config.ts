@@ -43,6 +43,8 @@ export default defineConfig(({ }) => {
     envPrefix: ["VITE_", "TAURI_"],
     define: {
       __APP_VERSION__: JSON.stringify(pkg.version),
+      // §11 CI build SHA (GitHub Actions: GITHUB_SHA env var, local dev: "dev")
+      __BUILD_SHA__: JSON.stringify(process.env.GITHUB_SHA ?? "dev"),
     },
     build: {
       target: "esnext",

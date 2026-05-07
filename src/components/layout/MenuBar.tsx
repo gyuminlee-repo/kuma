@@ -36,6 +36,7 @@ import { WorkspaceMigrateDialog } from "../dialogs/WorkspaceMigrateDialog";
 import type { MigrateDialogState } from "../dialogs/WorkspaceMigrateDialog";
 import { MappingExportDialog } from "../dialogs/MappingExportDialog";
 import { SubtoolMenuBar } from "./SubtoolMenuBar";
+import { LocaleToggle } from "../ui/LocaleToggle";
 import { browseFile } from "../../lib/file-utils";
 import { loadManifestFromFile } from "../../lib/runManifest";
 import type { RunManifest } from "../../lib/runManifest";
@@ -47,6 +48,7 @@ import { ReRunManifestDialog } from "../dialogs/ReRunManifestDialog";
 import { ManifestDiffDialog } from "../dialogs/ManifestDiffDialog";
 import { checkForUpdates, downloadAndInstall, type UpdateCheckResult } from "../../lib/updater";
 import type { Update } from "@tauri-apps/plugin-updater";
+import { invoke } from "@tauri-apps/api/core";
 
 const MOD_KEY = navigator.userAgent.includes("Mac") ? "⌘" : "Ctrl+";
 
@@ -89,6 +91,9 @@ export function MenuBar() {
   const [updateResult, setUpdateResult] = useState<UpdateCheckResult | null>(null);
   const [updateInstalling, setUpdateInstalling] = useState(false);
 
+  // §11 Build & Distribution: codesign status (lazy-loaded when About opens)
+  const [codesignStatus, setCodesignStatus] = useState<string | null>(null);
+
   useEffect(() => {
     void notificationPermissionGranted().then(setNotifyPermission);
   }, []);
@@ -112,6 +117,14 @@ export function MenuBar() {
       }
     })();
   }, [aboutOpen, noticeText]);
+
+  // §11 Build & Distribution: load codesign status once when About opens
+  useEffect(() => {
+    if (!aboutOpen || codesignStatus !== null) return;
+    void invoke<string>("get_codesign_status")
+      .then((s) => setCodesignStatus(s))
+      .catch(() => setCodesignStatus("unknown"));
+  }, [aboutOpen, codesignStatus]);
 
   async function handleEnableNotifications() {
     const granted = await requestNotificationPermission();
@@ -360,6 +373,7 @@ export function MenuBar() {
             setBibtexCopied(false);
             setUpdateResult(null);
             setDiagnosticsError(null);
+            setCodesignStatus(null);
           }
         }}
       >
@@ -525,6 +539,17 @@ export function MenuBar() {
             </p>
           </div>
 
+          {/* §6 Language slot */}
+          <div className="flex flex-col gap-1.5">
+            <p className="text-sm font-semibold text-foreground">Language</p>
+            <div className="flex items-center gap-2">
+              <LocaleToggle variant="icon-label" />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              현재는 슬롯만 제공됩니다. 향후 번역 도입 시 활성화됩니다.
+            </p>
+          </div>
+
           {/* Notifications */}
           <div className="flex flex-col gap-1">
             <p className="text-sm font-semibold text-foreground">Notifications</p>
@@ -587,6 +612,18 @@ export function MenuBar() {
                 Third-party licenses available in distribution package.
               </p>
             )}
+          </div>
+
+          {/* §11 Build & Distribution: Build SHA + Code Signing */}
+          <div className="flex flex-col gap-1">
+            <p className="text-sm font-semibold text-foreground">Build</p>
+            <p className="font-mono text-xs text-muted-foreground">
+              SHA: {__BUILD_SHA__}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Code Signing:{" "}
+              <span className="font-mono">{codesignStatus ?? "loading..."}</span>
+            </p>
           </div>
 
           <div className="flex flex-col gap-2 mt-1">

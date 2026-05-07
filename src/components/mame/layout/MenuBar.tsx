@@ -25,8 +25,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SubtoolMenuBar } from "@/components/layout/SubtoolMenuBar";
+import { LocaleToggle } from "@/components/ui/LocaleToggle";
 import { checkForUpdates, downloadAndInstall, type UpdateCheckResult } from "@/lib/updater";
 import type { Update } from "@tauri-apps/plugin-updater";
+import { invoke } from "@tauri-apps/api/core";
 
 const MOD_KEY = typeof navigator !== "undefined" && navigator.userAgent.includes("Mac") ? "⌘" : "Ctrl+";
 
@@ -63,6 +65,9 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
   const [updateResult, setUpdateResult] = useState<UpdateCheckResult | null>(null);
   const [updateInstalling, setUpdateInstalling] = useState(false);
 
+  // §11 Build & Distribution: codesign status (lazy-loaded when About opens)
+  const [codesignStatus, setCodesignStatus] = useState<string | null>(null);
+
   const MAME_BIBTEX = `@software{mame_TBD,
   title  = {MAME: Multi-round Activity & Mutation Engine},
   author = {Kang, Hyemin and KRIBB C1 Lab},
@@ -90,6 +95,14 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
       }
     })();
   }, [aboutOpen, noticeText]);
+
+  // §11 Build & Distribution: load codesign status once when About opens
+  useEffect(() => {
+    if (!aboutOpen || codesignStatus !== null) return;
+    void invoke<string>("get_codesign_status")
+      .then((s) => setCodesignStatus(s))
+      .catch(() => setCodesignStatus("unknown"));
+  }, [aboutOpen, codesignStatus]);
 
   async function handleCopyBibtex() {
     await navigator.clipboard.writeText(MAME_BIBTEX);
@@ -222,6 +235,7 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
           if (!open) {
             setBibtexCopied(false);
             setUpdateResult(null);
+            setCodesignStatus(null);
           }
         }}
       >
@@ -321,6 +335,17 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
             </p>
           </div>
 
+          {/* §6 Language slot */}
+          <div className="flex flex-col gap-1.5">
+            <p className="text-sm font-semibold text-foreground">Language</p>
+            <div className="flex items-center gap-2">
+              <LocaleToggle variant="icon-label" />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              현재는 슬롯만 제공됩니다. 향후 번역 도입 시 활성화됩니다.
+            </p>
+          </div>
+
           {/* §20 Third-party licenses */}
           <div className="flex flex-col gap-1">
             <p className="text-sm font-semibold text-foreground">Third-party licenses</p>
@@ -339,6 +364,18 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
                 Third-party licenses available in distribution package.
               </p>
             )}
+          </div>
+
+          {/* §11 Build & Distribution: Build SHA + Code Signing */}
+          <div className="flex flex-col gap-1">
+            <p className="text-sm font-semibold text-foreground">Build</p>
+            <p className="font-mono text-xs text-muted-foreground">
+              SHA: {__BUILD_SHA__}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Code Signing:{" "}
+              <span className="font-mono">{codesignStatus ?? "loading..."}</span>
+            </p>
           </div>
 
           <DialogFooter>
