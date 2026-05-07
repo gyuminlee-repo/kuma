@@ -449,16 +449,16 @@ mame, primerbench 도 동일 형식 placeholder.
 }
 ```
 
-## Appendix D. Per-app Status Matrix (audit 2026-05-07, Phase 1–5 후 갱신)
+## Appendix D. Per-app Status Matrix (audit 2026-05-07, Phase 1–6 후 갱신)
 
-판정 규칙: 카테고리 내 모든 [필수]·[권장] Requirements 충족 → ✅ / 일부 충족 → 🟡 / 전부 미구현 → ❌. 셀 단위 상세 근거(파일:라인)는 `notes/agent-reports/audit-kuma-v3.md` (Phase 5 후 재감사 + fixup), `notes/agent-reports/audit-primerbench.md`, Phase 보고서 (`phase1a` ~ `phase5-fixup`) 참조.
+판정 규칙: 카테고리 내 모든 [필수]·[권장] Requirements 충족 → ✅ / 일부 충족 → 🟡 / 전부 미구현 → ❌. 셀 단위 상세 근거(파일:라인)는 `notes/agent-reports/audit-kuma-v4.md` (Phase 6 후 재감사), `notes/agent-reports/audit-primerbench.md`, Phase 보고서 (`phase1a` ~ `phase6-*`) 참조.
 
-### Req 단위 카운트 (audit-kuma-v3.md + Phase 5 fixup 기준)
+### Req 단위 카운트 (audit-kuma-v4.md 기준)
 
 | 앱 | ✅ | 🟡 | ❌ | 비교 (audit 시점) |
 |---|---|---|---|---|
-| kuro | 26 | — | 14 | ✅ 16 → 26 (+10), ❌ 25 → 14 (-11) |
-| mame | 24 | — | 16 | ✅ 16 → 24 (+8), ❌ 26 → 16 (-10) |
+| kuro | 27 | 15 | 15 (응답 없는 Req 추정 포함) | ✅ 16 → 27 (+11), ❌ 25 → 15 (-10) |
+| mame | 25 | 17 | 15 | ✅ 16 → 25 (+9), ❌ 26 → 15 (-11) |
 
 (카테고리 단위 rollup 은 아래 표 참조)
 
@@ -476,26 +476,26 @@ mame, primerbench 도 동일 형식 placeholder.
 | 10 | Telemetry & Privacy | ✅ | ✅ | 🟡 | kuro/mame 🟡→✅ (Phase 2b) |
 | 11 | Build & Distribution | 🟡 | 🟡 | 🟡 | — |
 | 12 | Reproducibility | 🟡 | 🟡 | ❌ | diff view 추가 (Phase 5-5). mame seed N/A 잔여 |
-| 13 | Long-running Jobs | 🟡 | 🟡 | ❌ | sleep inhibit 추가 (Phase 5-2). queue·checkpoint 잔여 |
-| 14 | Data Integrity | 🟡 | 🟡 | 🟡 | output checksum `*.sha256` 추가 (Phase 5-3). sidecar hash 잔여 |
+| 13 | Long-running Jobs | 🟡 | 🟡 | ❌ | in-app toast 추가 (Phase 6-4). queue·checkpoint 잔여 |
+| 14 | Data Integrity | ✅ | ✅ | 🟡 | sidecar binary hash 추가 (Phase 6-1). 4 Req 모두 ✅ |
 | 15 | Onboarding | 🟡 | 🟡 | 🟡 | — |
 | 16 | Local Diagnostics | 🟡 | 🟡 | 🟡 | — |
 | 17 | Cross-platform | 🟡 | 🟡 | ❌ | — |
 | 18 | Partial Success | 🟡 | 🟡 | 🟡 | — |
-| 19 | Performance Guardrails | 🟡 | 🟡 | 🟡 | input size warning 추가 (Phase 5-1 + fixup). 메모리 모니터·pre-flight 잔여 |
+| 19 | Performance Guardrails | 🟡 | 🟡 | 🟡 | 메모리 모니터 추가 (Phase 6-3). pre-flight 잔여 |
 | 20 | Citation & Licensing | ✅ | ✅ | ❌ | kuro/mame 🟡→✅ (Phase 5-4 + fixup, NOTICE.md 자동 수집 + viewer) |
 | 21 | Multi-workspace | 🟡 | 🟡 | 🟡 | — |
-| 22 | Graceful Shutdown | 🟡 | 🟡 | ❌ | SIGKILL 5s fallback 추가 (Phase 4a). pending export flush·shutdown hook 잔여 |
+| 22 | Graceful Shutdown | 🟡 | 🟡 | ❌ | CloseConfirmDialog 도입 (Phase 6-2). pending export flush·shutdown hook 보강. 셀 카운트 변화 미미 |
 
-### Phase 1–5 누적 결과
-- **🟡 → ✅ 카테고리 6건**: §7, §10, §20 (kuro/mame). [필수]·[권장] 전 항목 충족
-- **❌ → 🟡 카테고리 8건**: §12, §13, §19 (kuro/mame), §22 SIGKILL 보강
-- **kuro 카운트** (rollup): ❌ 0 / 🟡 19 / ✅ 3 (audit 시점 ❌ 4 / 🟡 18 / ✅ 0)
-- **mame 카운트** (rollup): ❌ 0 / 🟡 19 / ✅ 3 (audit 시점 ❌ 4 / 🟡 18 / ✅ 0)
-- **Req 단위**: kuro ✅ 26/40, mame ✅ 24/40
+### Phase 1–6 누적 결과
+- **🟡 → ✅ 카테고리 8건**: §7, §10, §14, §20 (kuro/mame). 모든 [필수]·[권장] 항목 충족
+- **❌ → 🟡 카테고리 8건**: §12, §13, §19 (kuro/mame), §22 보강
+- **kuro 카운트** (rollup): ❌ 0 / 🟡 18 / ✅ 4 (audit 시점 ❌ 4 / 🟡 18 / ✅ 0)
+- **mame 카운트** (rollup): ❌ 0 / 🟡 18 / ✅ 4 (audit 시점 ❌ 4 / 🟡 18 / ✅ 0)
+- **Req 단위**: kuro ✅ 27/40, mame ✅ 25/40
 - **primerbench**: 변동 없음 (별도 레포)
 
-### 잔여 약점 (Phase 5 후 — 모두 [권장] 또는 부분 항목)
+### 잔여 약점 (Phase 6 후 — 모두 [권장] 또는 부분 항목)
 
 §12 Reproducibility:
 - **mame seed UI 미구현** (mame 비결정 단계 없으므로 N/A 처리 가능)
@@ -504,24 +504,21 @@ mame, primerbench 도 동일 형식 placeholder.
 - **Background job queue** 미구현
 - **Resume from checkpoint** 미구현
 
-§14 Data Integrity:
-- **Sidecar binary 무결성** (hash 검증) 미구현
-
 §19 Performance Guardrails:
-- **메모리 임계값 모니터** (RSS 70% 초과) 미구현
-- **Run pre-flight check** 미구현
+- **Run pre-flight check** 미구현 (디스크·sidecar alive·외부 API 도달 확인)
 
 §22 Graceful Shutdown:
-- **Pending export writes flush 차단** 미구현 (autosave만 flush)
 - **Shutdown hook** (사용자 정의 cleanup) 미구현
 
-### 다음 우선 보강 (Phase 6 후보, 가치/비용 기준)
+§8 / §9 / §17 등 [권장] 카테고리는 ETA·다크모드·자동 업데이트 알림 같은 부분 항목 잔여.
 
-1. **§14 Sidecar binary hash 검증**: 시작 시 expected SHA-256 비교. ~30 LoC. 변조 탐지
-2. **§22 Pending export flush**: export 진행 중 close 시 confirm + 대기. ~20 LoC. 데이터 손상 방지
-3. **§19 메모리 모니터**: `psutil` Python 측 RSS 측정 + RPC 노티. ~50 LoC. OOM 사전 경고
-4. **§13 OS notification 미만 작업도 진행률 노티**: in-app toast on completion. ~10 LoC
-5. **§17 PrimerBench**: 별도 레포에 헌장 적용 (kuma 패턴 그대로 이식)
+### 다음 우선 보강 (Phase 7 후보, 가치/비용 기준)
+
+1. **§19 Run pre-flight check**: 디스크 여유·sidecar 헬스·네트워크 도달 검사 후 Run. ~40 LoC
+2. **§13 Background job queue**: 다중 export/design 큐. ~80 LoC
+3. **§17 PrimerBench**: 별도 레포에 헌장 적용 (kuma 패턴 이식)
+4. **§9 자동 업데이트**: Tauri updater 활성화 + About "Check for updates"
+5. **§8 다크모드**: 디자인 토큰 통일 + 토글
 
 ---
 
@@ -534,6 +531,7 @@ mame, primerbench 도 동일 형식 placeholder.
 - **v0.4 (2026-05-07)**: Phase 4 (v0.3.3.2~v0.3.3.3) 결과 반영. §13/§19 → 🟡, §22 SIGKILL fallback 도입, §12 seed UI, §14 dry-run 마이그레이션. kuro/mame ❌ 카운트 2→0 (모든 [필수] 미구현 카테고리 해소). 다음 우선 5순위 입력 경고·sleep inhibit·output checksum 중심으로 갱신.
 - **v0.4.1 (2026-05-07)**: 셀 단위 재감사 완료 — `audit-kuma-v2.md`. Req 단위 ✅ 카운트 kuro +6, mame +5. ❌ 카운트 kuro -7, mame -7. Appendix D 근거 링크를 v2 로 갱신.
 - **v0.5 (2026-05-07)**: Phase 5 (v0.3.4.0) + fixup 결과 반영. §20 Citation kuro/mame 🟡→✅. §12/§13/§14/§19 셀 단위 보강. Req ✅ 카운트 kuro 22→26, mame 21→24. 모든 [필수] 카테고리에서 ❌ 셀 0건. 잔여는 [권장] 또는 부분 항목. 다음 보강 5순위 갱신 (sidecar hash, pending export flush, 메모리 모니터, in-app toast, PrimerBench).
+- **v0.6 (2026-05-07)**: Phase 6 (v0.3.5.0) 결과 반영. §14 Data Integrity kuro/mame 🟡→✅ (sidecar binary hash 도입). §13/§19 셀 보강 (in-app toast, 메모리 모니터). §22 CloseConfirmDialog. Req ✅ 카운트 kuro 26→27, mame 24→25. ✅ 카테고리 3→4. 다음 우선 5순위 갱신 (§19 pre-flight, §13 job queue, PrimerBench, §9 자동 업데이트, §8 다크모드).
 
 ## 후속 액션
 
