@@ -87,7 +87,7 @@ export function Sidebar({ onClearRequest }: SidebarProps) {
           <Button
             variant="outline"
             size="sm"
-            className="h-control flex-1 gap-1.5 rounded-control text-caption"
+            className="h-control flex-1 min-w-0 gap-1.5 rounded-control text-caption"
             onClick={() => void validateInputs()}
             disabled={isValidating || isAnalyzing}
           >
@@ -98,7 +98,7 @@ export function Sidebar({ onClearRequest }: SidebarProps) {
             <Button
               size="sm"
               variant="outline"
-              className="h-control-primary flex-1 gap-1.5 rounded-control text-caption text-error border-error/40 hover:bg-error/8"
+              className="h-control-primary flex-1 min-w-0 gap-1.5 rounded-control text-caption text-error border-error/40 hover:bg-error/8"
               onClick={() => void cancelAnalysis()}
             >
               <Square size={12} aria-hidden="true" />
@@ -107,7 +107,7 @@ export function Sidebar({ onClearRequest }: SidebarProps) {
           ) : (
             <Button
               size="sm"
-              className="h-control-primary flex-1 gap-1.5 rounded-control text-caption"
+              className="h-control-primary flex-1 min-w-0 gap-1.5 rounded-control text-caption"
               onClick={() => void runAnalysis()}
               disabled={!canRun}
             >
@@ -121,7 +121,7 @@ export function Sidebar({ onClearRequest }: SidebarProps) {
           <Button
             variant="outline"
             size="sm"
-            className="h-control flex-1 gap-1.5 rounded-control text-caption"
+            className="h-control flex-1 min-w-0 gap-1.5 rounded-control text-caption"
             onClick={onClearRequest}
             disabled={!hasResults || isAnalyzing}
           >
@@ -131,7 +131,7 @@ export function Sidebar({ onClearRequest }: SidebarProps) {
           <Button
             variant="outline"
             size="sm"
-            className="h-control flex-1 gap-1.5 rounded-control text-caption"
+            className="h-control flex-1 min-w-0 gap-1.5 rounded-control text-caption"
             onClick={openExport}
             disabled={!hasResults}
           >

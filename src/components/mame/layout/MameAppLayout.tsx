@@ -117,7 +117,7 @@ export function MameAppLayout() {
         <Sidebar onClearRequest={() => setClearConfirmOpen(true)} />
 
         <main
-          className="grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)_320px_auto] gap-3 overflow-hidden"
+          className="grid min-h-0 flex-1 min-w-0 grid-rows-[auto_minmax(0,1fr)_320px_auto] gap-3 overflow-hidden"
           role="main"
           aria-label="Analysis workspace"
         >

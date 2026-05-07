@@ -182,7 +182,7 @@ export function AppLayout() {
         <PanelGroup
           direction="horizontal"
           autoSaveId="kuma-main-h"
-          className="flex-1 overflow-hidden"
+          className="flex-1 min-w-0 overflow-hidden"
         >
           <Panel
             defaultSize={22}
@@ -206,7 +206,7 @@ export function AppLayout() {
               </div>
               <div className="flex gap-2">
                 <Button
-                  className="h-control-primary flex-1 rounded-control text-body font-semibold"
+                  className="h-control-primary flex-1 min-w-0 rounded-control text-body font-semibold"
                   onClick={tryRunDesign}
                   disabled={isDesigning}
                 >

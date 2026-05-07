@@ -47,7 +47,22 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
   const loadSampleData = useMameAppStore((s) => s.loadSampleData);
   const canRun = useMameAppStore(selectCanRun);
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [bibtexCopied, setBibtexCopied] = useState(false);
   const [crashLogOpen, setCrashLogOpen] = useState(false);
+
+  const MAME_BIBTEX = `@software{mame_TBD,
+  title  = {MAME: Multi-round Activity & Mutation Engine},
+  author = {Kang, Hyemin and KRIBB C1 Lab},
+  year   = {2026},
+  note   = {DOI/citation forthcoming},
+  url    = {TBD}
+}`;
+
+  async function handleCopyBibtex() {
+    await navigator.clipboard.writeText(MAME_BIBTEX);
+    setBibtexCopied(true);
+    setTimeout(() => setBibtexCopied(false), 2000);
+  }
   const [janusOpen, setJanusOpen] = useState(false);
   const [runReportOpen, setRunReportOpen] = useState(false);
 
@@ -139,19 +154,58 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
         menus={menus}
       />
 
-      <Dialog open={aboutOpen} onOpenChange={setAboutOpen}>
-        <DialogContent className="max-w-sm">
+      <Dialog
+        open={aboutOpen}
+        onOpenChange={(open: boolean) => {
+          setAboutOpen(open);
+          if (!open) setBibtexCopied(false);
+        }}
+      >
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>About Mame</DialogTitle>
             <DialogDescription>
-              Mame — Mutagenesis Assessment & Microplate Export
+              MAME v{__APP_VERSION__}
               <br />
+              Mutagenesis Assessment &amp; Microplate Export
               <br />
               Desktop verdict analysis tool for NB-plate mutagenesis runs.
               <br />
               Built with Tauri + React + Python sidecar.
             </DialogDescription>
           </DialogHeader>
+
+          {/* How to cite */}
+          <div className="flex flex-col gap-1.5">
+            <p className="text-sm font-semibold text-foreground">How to cite</p>
+            <pre className="overflow-x-auto whitespace-pre rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
+              {MAME_BIBTEX}
+            </pre>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => void handleCopyBibtex()}
+            >
+              {bibtexCopied ? "Copied!" : "Copy BibTeX"}
+            </Button>
+          </div>
+
+          {/* License */}
+          <div className="flex flex-col gap-1">
+            <p className="text-sm font-semibold text-foreground">License</p>
+            <p className="text-xs text-muted-foreground">
+              Internal use, KRIBB C1 Lab — DOI/citation forthcoming
+            </p>
+          </div>
+
+          {/* Third-party licenses */}
+          <div className="flex flex-col gap-1">
+            <p className="text-sm font-semibold text-foreground">Third-party licenses</p>
+            <p className="text-xs text-muted-foreground">
+              Third-party licenses available in distribution package.
+            </p>
+          </div>
+
           <DialogFooter>
             <Button size="sm" onClick={() => setAboutOpen(false)}>
               OK

@@ -41,9 +41,24 @@ export function MenuBar() {
   const loadSampleData = useAppStore((s) => s.loadSampleData);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [crashCopied, setCrashCopied] = useState(false);
+  const [bibtexCopied, setBibtexCopied] = useState(false);
   const [crashLogOpen, setCrashLogOpen] = useState(false);
   const [mappingDialogOpen, setMappingDialogOpen] = useState(false);
   const [mappingDialogFormat, setMappingDialogFormat] = useState<"echo" | "janus">("echo");
+
+  const KURO_BIBTEX = `@software{kuro_TBD,
+  title  = {KURO: Kernel for Upstream Recombination Oligodesign},
+  author = {Kang, Hyemin and KRIBB C1 Lab},
+  year   = {2026},
+  note   = {DOI/citation forthcoming},
+  url    = {TBD}
+}`;
+
+  async function handleCopyBibtex() {
+    await navigator.clipboard.writeText(KURO_BIBTEX);
+    setBibtexCopied(true);
+    setTimeout(() => setBibtexCopied(false), 2000);
+  }
 
   async function handleCopyCrashLog() {
     const log = getCrashLog();
@@ -157,10 +172,11 @@ export function MenuBar() {
           setAboutOpen(open);
           if (!open) {
             setCrashCopied(false);
+            setBibtexCopied(false);
           }
         }}
       >
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>About Kuro</DialogTitle>
             <DialogDescription>
@@ -182,7 +198,39 @@ export function MenuBar() {
               </a>
             </DialogDescription>
           </DialogHeader>
-          <div className="flex flex-col gap-2 mt-2">
+
+          {/* How to cite */}
+          <div className="flex flex-col gap-1.5">
+            <p className="text-sm font-semibold text-foreground">How to cite</p>
+            <pre className="overflow-x-auto whitespace-pre rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
+              {KURO_BIBTEX}
+            </pre>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => void handleCopyBibtex()}
+            >
+              {bibtexCopied ? "Copied!" : "Copy BibTeX"}
+            </Button>
+          </div>
+
+          {/* License */}
+          <div className="flex flex-col gap-1">
+            <p className="text-sm font-semibold text-foreground">License</p>
+            <p className="text-xs text-muted-foreground">
+              Internal use, KRIBB C1 Lab — DOI/citation forthcoming
+            </p>
+          </div>
+
+          {/* Third-party licenses */}
+          <div className="flex flex-col gap-1">
+            <p className="text-sm font-semibold text-foreground">Third-party licenses</p>
+            <p className="text-xs text-muted-foreground">
+              Third-party licenses available in distribution package.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-2 mt-1">
             <Button
               size="sm"
               variant="outline"
