@@ -102,6 +102,20 @@ python -m pytest tests/test_sdm_engine.py::test_name  # Single test
 - 커밋 형식: `vX.X.X: summary in English`
 - Windows 타겟 빌드 시 WSL 내 `npm install` 금지 — Windows 네이티브 터미널에서 실행
 
+## Common Frontend Standards (kuro · mame · primerbench)
+독립 프로그램 빌드·릴리스·UI 신규 기능 작업 시 다음 헌장을 **항상 참조**한다:
+
+- **헌장 위치**: `docs/standards/common-frontend-standards.md` (tracked 정본). 옵시디언 정본은 `$OBSIDIAN_VAULT/010.KRIBB/010.Projects/010.프라이머_설계_툴/kuma/260507_KUMA_Common_Frontend_Standards_헌장.md` (사람용).
+- **22 카테고리**: Recovery / Observability / Input Guards / Error UX / Output Persistence / Settings / UI Safety / A11y / Versioning / Telemetry / Build / Reproducibility / Long-running Jobs / Data Integrity / Onboarding / Local Diagnostics / Cross-platform / Partial Success / Performance / Citation / Multi-workspace / Graceful Shutdown
+- **자동 참조 트리거**:
+  - kuro/mame/primerbench `src/` 또는 `src-tauri/` 신규 컴포넌트·페이지 추가
+  - 릴리스 작업 (`/push`, `/release`, version bump)
+  - Export·Reset·Cancel·About·Settings 관련 UI 변경
+  - 에러 처리·진행 상태 UI 작업
+- **필수 vs 권장**: 헌장의 [필수] 미준수는 릴리스 차단. [권장]은 차기 마이너까지 충족.
+- **Per-app status**: 헌장 Appendix D 매트릭스 참조 (별도 audit 작업으로 갱신).
+- **변경**: 헌장 자체 수정 시 옵시디언 정본 (`$OBSIDIAN_VAULT/010.KRIBB/010.Projects/010.프라이머_설계_툴/kuma/260507_KUMA_Common_Frontend_Standards_헌장.md`) 과 본 사본 동시 갱신, changelog 항목 추가.
+
 ## CI Actions
 - `actions/checkout@v5`, `actions/setup-node@v5`, `actions/setup-python@v6` 사용
 - @v4 이하 버전 사용 금지
