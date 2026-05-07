@@ -201,7 +201,7 @@ IspS 라운드의 경우 `ref_seq` 미전달 시 `fixtures/ispS.fa` (Populus alb
 
 ## 아키텍처
 
-Tauri v2 + React 19 shell과 두 개의 Python sidecar (kuro-sidecar, mame-sidecar). 탭 첫 활성화 시 lazy spawn. Rust가 프로젝트 CRUD, config, sidecar 생명주기를 소유. 두 sidecar 모두 `kuma_core.shared` 공통 유틸(config 경로, 로깅, JSON-RPC 에러 포맷) 공유.
+Tauri v2 + React 19 shell과 두 개의 Python sidecar (kuro-sidecar, mame-sidecar). 탭 첫 활성화 시 lazy spawn. Rust가 프로젝트 CRUD, config, sidecar 생명주기를 소유. 두 sidecar 모두 `kuma_core.shared` 공통 유틸 공유 — config 경로, 로깅, JSON-RPC 에러 포맷, `kuma_core.shared.sidecar` 헬퍼(`JsonRpcWriter`, bounded crash-log append, private config 디렉토리, path validation).
 
 ```
 +-------------------------+

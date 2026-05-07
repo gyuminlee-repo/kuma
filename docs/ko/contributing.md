@@ -10,6 +10,24 @@
 
 ## 개발 환경
 
+Linux 빌드는 `cargo check`, `pnpm tauri dev`, `pnpm run build:all` 실행 전에
+Tauri/WebKitGTK 개발 패키지가 필요하다:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y \
+  libwebkit2gtk-4.1-dev \
+  libjavascriptcoregtk-4.1-dev \
+  libsoup-3.0-dev \
+  libappindicator3-dev \
+  librsvg2-dev \
+  patchelf \
+  libgtk-3-dev
+```
+
+Windows 타겟 빌드는 Node 의존성 설치와 Tauri 패키징을 WSL이 아니라 Windows
+네이티브 터미널에서 실행한다.
+
 ```bash
 git clone https://github.com/gyuminlee-repo/kuma.git
 cd kuma

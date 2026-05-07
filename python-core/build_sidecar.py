@@ -36,6 +36,7 @@ TARGETS = {
             "kuma_core.kuro",
         ],
         "collect_all": ["pydantic", "primer3", "sidecar_kuro", "kuma_core"],
+        "excludes": [],
     },
     "mame": {
         "entry": "sidecar_main_mame.py",
@@ -44,13 +45,21 @@ TARGETS = {
         "hidden_imports": [
             "openpyxl",
             "pandas",
-            "Bio",
             "Bio.Seq",
+            "python_calamine",
             "sidecar_mame",
             "sidecar_mame.dispatcher",
             "kuma_core.mame",
         ],
-        "collect_all": ["openpyxl", "Bio", "sidecar_mame", "kuma_core"],
+        "collect_all": ["openpyxl", "sidecar_mame", "kuma_core"],
+        "excludes": [
+            "matplotlib",
+            "sklearn",
+            "tensorflow",
+            "torch",
+            "transformers",
+            "triton",
+        ],
     },
 }
 
@@ -101,6 +110,9 @@ def build_sidecar(target: str, onefile: bool = True) -> Path:
 
     for ca in cfg["collect_all"]:
         cmd += ["--collect-all", ca]
+
+    for excluded in cfg["excludes"]:
+        cmd += ["--exclude-module", excluded]
 
     if cfg["resources"]:
         resources_dir = PROJECT_ROOT / cfg["resources"]

@@ -202,7 +202,7 @@ The IspS WT amino acid sequence is auto-loaded from `fixtures/ispS.fa` (Populus 
 
 ## Architecture
 
-Tauri v2 + React 19 shell with two Python sidecars (kuro-sidecar, mame-sidecar) spawned lazily on first tab activation. The Rust side owns project CRUD, config, and sidecar lifecycle. Both sidecars share `kuma_core.shared` utilities (config paths, logging, JSON-RPC error format).
+Tauri v2 + React 19 shell with two Python sidecars (kuro-sidecar, mame-sidecar) spawned lazily on first tab activation. The Rust side owns project CRUD, config, and sidecar lifecycle. Both sidecars share `kuma_core.shared` utilities — config paths, logging, JSON-RPC error format, and `kuma_core.shared.sidecar` helpers (`JsonRpcWriter`, bounded crash-log append, private config dir, path validation).
 
 ```
 +-------------------------+

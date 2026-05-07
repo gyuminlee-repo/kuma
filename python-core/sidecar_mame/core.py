@@ -7,10 +7,6 @@ results for downstream ``export_excel`` / ``get_plate_data`` calls.
 
 from __future__ import annotations
 
-import datetime
-import json
-import logging
-import os
 import sys
 import threading
 from dataclasses import dataclass
@@ -36,55 +32,28 @@ for _p in (_PROJECT_ROOT, _SRC_DIR):
         sys.path.insert(0, str(_p))
 
 from kuma_core.shared.config_paths import kuma_home  # noqa: E402
-from kuma_core.shared.errors import jsonrpc_error  # noqa: E402
 from kuma_core.shared.logging import get_logger  # noqa: E402
+from kuma_core.shared.sidecar import (  # noqa: E402
+    JsonRpcWriter,
+    append_crash_log,
+    ensure_private_dir,
+    validate_dirpath,
+    validate_filepath,
+    validate_output_path,
+)
 
 logger = get_logger("sidecar_mame")
 
 # ---------------------------------------------------------------------------
-# Crash log (FIFO, capped at 50 entries). Stored under ~/.mame/.
+# Crash log (FIFO, capped at 50 entries). Stored under kuma_home()/mame.
 # ---------------------------------------------------------------------------
-_CRASH_LOG_MAX = 50
-
-
 def _get_crash_log_path() -> Path:
-    base = kuma_home() / "mame"
-    base.mkdir(parents=True, exist_ok=True)
-    if sys.platform != "win32":
-        try:
-            os.chmod(base, 0o700)
-        except OSError:
-            pass
-    return base / "crash.log"
+    return ensure_private_dir(kuma_home() / "mame") / "crash.log"
 
 
 def _append_crash_log(method: str, params_summary: str, tb: str) -> None:
     """Append an error entry to the crash log. Never raises."""
-    try:
-        log_path = _get_crash_log_path()
-        entry = {
-            "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-            "method": method,
-            "params": params_summary[:200],
-            "traceback": tb[:2000],
-        }
-        entries: list[dict] = []
-        if log_path.exists():
-            try:
-                raw = log_path.read_text(encoding="utf-8").strip()
-                if raw:
-                    entries = json.loads(raw)
-            except (json.JSONDecodeError, OSError):
-                entries = []
-        entries.append(entry)
-        while len(entries) > _CRASH_LOG_MAX:
-            entries.pop(0)
-        log_path.write_text(
-            json.dumps(entries, indent=2, ensure_ascii=False), encoding="utf-8"
-        )
-    except Exception:
-        # Crash logging itself must never raise.
-        pass
+    append_crash_log(_get_crash_log_path(), method, params_summary, tb)
 
 
 # ---------------------------------------------------------------------------
@@ -125,32 +94,23 @@ def set_last_analyze(
 # ---------------------------------------------------------------------------
 # stdout JSON-RPC framing. Thread-safe writer.
 # ---------------------------------------------------------------------------
-_stdout_lock = threading.Lock()
+_rpc_writer = JsonRpcWriter()
 
 
 def _send(obj: dict) -> None:
-    line = json.dumps(obj, ensure_ascii=False)
-    with _stdout_lock:
-        sys.stdout.write(line + "\n")
-        sys.stdout.flush()
+    _rpc_writer.send(obj)
 
 
 def _ok(req_id, result) -> None:
-    _send({"jsonrpc": "2.0", "id": req_id, "result": result})
+    _rpc_writer.ok(req_id, result)
 
 
 def _error(req_id, code: int, message: str) -> None:
-    _send({"jsonrpc": "2.0", "id": req_id, "error": jsonrpc_error(code, message)})
+    _rpc_writer.error(req_id, code, message)
 
 
 def _progress(value: int, message: str = "") -> None:
-    _send(
-        {
-            "jsonrpc": "2.0",
-            "method": "progress",
-            "params": {"value": value, "message": message},
-        }
-    )
+    _rpc_writer.progress(value, message)
 
 
 # ---------------------------------------------------------------------------
@@ -164,70 +124,15 @@ def _validate_filepath(
     filepath: str | None, *, allowed_extensions: set[str] | None = None
 ) -> Path:
     """Validate and resolve an *existing* input file path."""
-    if not filepath:
-        raise FileNotFoundError("filepath is required")
-
-    original = Path(filepath)
-    if original.is_symlink():
-        raise FileNotFoundError(f"Symbolic links are not allowed: {filepath}")
-    if ".." in original.parts:
-        raise FileNotFoundError(f"Path traversal is not allowed: {filepath}")
-
-    resolved = original.resolve()
-    if resolved.is_symlink():
-        raise FileNotFoundError(
-            f"Symbolic links are not allowed (resolved): {filepath}"
-        )
-    if not resolved.exists():
-        raise FileNotFoundError(f"File does not exist: {filepath}")
-    if resolved.is_dir():
-        raise FileNotFoundError(f"Path is a directory, not a file: {filepath}")
-
-    if allowed_extensions is not None:
-        ext = resolved.suffix.lower()
-        if ext not in allowed_extensions:
-            raise ValueError(
-                f"Unsupported file extension '{ext}'. Allowed: {sorted(allowed_extensions)}"
-            )
-
-    return resolved
+    return validate_filepath(filepath, allowed_extensions=allowed_extensions)
 
 
 def _validate_dirpath(dirpath: str | None) -> Path:
-    if not dirpath:
-        raise FileNotFoundError("dirpath is required")
-    original = Path(dirpath)
-    if original.is_symlink():
-        raise FileNotFoundError(f"Symbolic links are not allowed: {dirpath}")
-    if ".." in original.parts:
-        raise FileNotFoundError(f"Path traversal is not allowed: {dirpath}")
-    resolved = original.resolve()
-    if not resolved.exists():
-        raise FileNotFoundError(f"Directory does not exist: {dirpath}")
-    if not resolved.is_dir():
-        raise FileNotFoundError(f"Path is not a directory: {dirpath}")
-    return resolved
+    return validate_dirpath(dirpath)
 
 
 def _validate_output_path(
     filepath: str | None, *, allowed_extensions: set[str]
 ) -> Path:
     """Validate an output file path. Parent directory must exist; file may not."""
-    if not filepath:
-        raise FileNotFoundError("filepath is required")
-    original = Path(filepath)
-    if original.is_symlink():
-        raise FileNotFoundError(f"Symbolic links are not allowed: {filepath}")
-    if ".." in original.parts:
-        raise FileNotFoundError(f"Path traversal is not allowed: {filepath}")
-    resolved = original.resolve()
-    if not resolved.parent.exists():
-        raise FileNotFoundError(
-            f"Parent directory does not exist: {resolved.parent}"
-        )
-    ext = resolved.suffix.lower()
-    if ext not in allowed_extensions:
-        raise ValueError(
-            f"Unsupported file extension '{ext}'. Allowed: {sorted(allowed_extensions)}"
-        )
-    return resolved
+    return validate_output_path(filepath, allowed_extensions=allowed_extensions)

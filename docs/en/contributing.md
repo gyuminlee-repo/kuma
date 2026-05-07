@@ -10,6 +10,24 @@ Use the [issue tracker](https://github.com/gyuminlee-repo/kuma/issues). Include:
 
 ## Development environment
 
+Linux builds need the Tauri/WebKitGTK development packages before running
+`cargo check`, `pnpm tauri dev`, or `pnpm run build:all`:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y \
+  libwebkit2gtk-4.1-dev \
+  libjavascriptcoregtk-4.1-dev \
+  libsoup-3.0-dev \
+  libappindicator3-dev \
+  librsvg2-dev \
+  patchelf \
+  libgtk-3-dev
+```
+
+For Windows target builds, run Node dependency installation and Tauri packaging
+from a native Windows terminal, not from WSL.
+
 ```bash
 git clone https://github.com/gyuminlee-repo/kuma.git
 cd kuma

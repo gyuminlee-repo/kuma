@@ -4,6 +4,29 @@
 
 ---
 
+## Unreleased
+
+통합 kuma 데스크톱 빌드의 배포 안정화.
+
+- **Sidecar 공통 헬퍼**: KURO와 MAME sidecar가 JSON-RPC stdout writer, bounded crash log append, private config directory 생성, path validation을 `kuma_core.shared.sidecar`로 공유.
+- **Order export RPC 호환성**: 기존 TypeScript 계약과 회귀 테스트가 요구하는 KURO `export_order` dispatch를 복구. Backend state 또는 frontend 제공 result payload에서 IDT/Twist CSV export 지원.
+- **Sidecar build 안정화**: Unix `pkill -f`가 실행 중인 build command 자체를 종료하지 않도록 `sidecar:kill`을 `scripts/kill-sidecars.mjs`로 분리.
+- **MAME PyInstaller onefile 크기**: MAME sidecar packaging에서 Biopython 전체와 optional ML/plotting stack (`torch`, `sklearn`, `transformers` 등)을 수집하지 않아 PyInstaller 4 GB CArchive 한계를 회피.
+- **CI coverage**: 브랜치/PR CI 추가. OS/Python version matrix의 Python tests, TypeScript typecheck, Linux Rust `cargo check`를 Tauri/WebKitGTK system dependency와 함께 실행.
+- **개발 문서**: Linux Tauri prerequisite와 Windows native build 주의사항을 영문/국문 contributing guide에 문서화.
+
+### 테스트 footprint
+
+- `python3 -m pytest tests/ -q`: 799 passed, 15 skipped.
+- `pnpm exec tsc --noEmit`: 0 errors.
+- `pnpm run build`: frontend production build 통과.
+- `pnpm run sidecar:build`: KURO/MAME Linux sidecar 빌드 성공.
+- 빌드된 `kuro-sidecar`, `mame-sidecar` 모두 JSON-RPC `ping`에 `{"ok": true}` 응답.
+- `cd src-tauri && cargo check`: Linux Tauri package 설치 후 통과 (`gdk-3.0` 3.24.41, `webkit2gtk-4.1` 2.52.3).
+- `pnpm run build:all`: 통과. `kuma_0.3.1_amd64.deb`, `kuma_0.3.1_amd64.AppImage` 생성.
+
+---
+
 ## v0.2.9 (2026-05-06)
 
 MAME activity v0.3 Phase A+B+C — xlsx 어댑터, replicate 우선순위 병합, 라벨 교체 가드, IspS 참조 자동 로드, 5/12 데모 path와 병존하는 v0.3 UI.

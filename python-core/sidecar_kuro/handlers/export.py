@@ -4,16 +4,19 @@ import csv
 import json
 from dataclasses import fields as dc_fields
 from datetime import datetime, timezone
+from types import SimpleNamespace
 
 import openpyxl
 
 from kuma_core.kuro.plate_mapper import (
     PlateMapping,
+    export_idt_csv,
     export_echo_mapping_csv,
     export_echo_mapping_xlsx,
     export_janus_mapping_csv,
     export_janus_mapping_xlsx,
     export_plate_excel,
+    export_twist_csv,
     generate_plate_map,
 )
 from kuma_core.shared.version import KUMA_VERSION, KURO_MODULE_VERSION
@@ -29,6 +32,8 @@ from sidecar_kuro.models import (
     ExportExcelParams,
     ExportMappingResultModel,
     ExportMappingParams,
+    ExportOrderParams,
+    ExportOrderResultModel,
     ExportBenchmarkCsvParams,
     FileExportResultModel,
     SaveWorkspaceParams,
@@ -224,6 +229,43 @@ def handle_export_excel(params: dict) -> dict:
         meta.append(["overlap_mode", run_overlap_mode])
         wb.save(resolved)
     return FileExportResultModel(filepath=str(resolved)).to_rpc_dict()
+
+
+def _order_payload_to_results(items):
+    """Build the minimal result shape needed by order CSV exporters."""
+    return [
+        SimpleNamespace(
+            mutation=SimpleNamespace(raw=item.mutation),
+            forward_seq=item.forward_seq,
+            reverse_seq=item.reverse_seq,
+        )
+        for item in items
+    ]
+
+
+def handle_export_order(params: dict) -> dict:
+    """Export primer order CSV for IDT or Twist."""
+    p = ExportOrderParams(**params)
+    resolved = _validate_output_path(p.filepath, allowed_extensions=_ALLOWED_CSV_EXTENSIONS)
+
+    if p.results is not None:
+        results = _order_payload_to_results(p.results)
+    else:
+        with _core._state_lock:
+            if not _core._state.results:
+                raise ValueError("No design available. Run design_sdm_primers first.")
+            results = list(_core._state.results)
+
+    if p.format == "idt":
+        export_idt_csv(results, resolved)
+    else:
+        export_twist_csv(results, resolved)
+
+    return ExportOrderResultModel(
+        filepath=str(resolved),
+        format=p.format,
+        primer_count=len(results) * 2,
+    ).to_rpc_dict()
 
 
 def handle_export_mapping(params: dict) -> dict:

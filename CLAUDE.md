@@ -95,6 +95,10 @@ python -m pytest tests/test_sdm_engine.py::test_name  # Single test
 | `kuma_core/mame/ingest/sort_barcode.py` `sort_barcode_run` params/return | `python-core/sidecar_mame/handlers/sort_barcode.py` handler dict + `src/types/mame/sort_barcode.ts` interfaces stay in sync |
 | `kuma_core/mame/ingest/sort_barcode.py` `parse_combinatorial_barcodes` xlsx schema (isps_f_/isps_r_  prefix) | `barcodes sequence.xlsx` or equivalent fixture format must remain consistent |
 | `python-core/sidecar_mame/dispatcher.py` `_METHODS` `sort_barcode_run` registration | RPC method name must match frontend IPC call site |
+| `kuma_core/shared/sidecar.py` (`JsonRpcWriter`, `append_crash_log`, `ensure_private_dir`, `validate_filepath`, `validate_output_path`) | `python-core/sidecar_kuro/core.py` + `python-core/sidecar_mame/core.py` import sites stay in sync. Behavior change must update `tests/shared/test_sidecar.py` |
+| `python-core/sidecar_kuro/handlers/export.py:handle_export_order` + `models.py:ExportOrderParams`/`ExportOrderResultModel` | `src/types/models.ts:ExportOrderResult` + `src/types/validators.ts:isExportOrderResult` + dispatcher `export_order` registration stay in sync (IDT/Twist CSV) |
+| `package.json` `sidecar:kill` script | `scripts/kill-sidecars.mjs` — must use self-safe pattern (`pkill -f` 단독 사용 금지, 빌드 명령 자기 종료 방지) |
+| `python-core/build_sidecar.py` MAME exclusions (`torch`, `sklearn`, `transformers`, optional ML/plotting) | PyInstaller 4 GB CArchive 한도 회피 — 신규 ML 의존 추가 시 exclusion 재검토 |
 
 ## Rules
 - 절대 경로 하드코딩 금지 — 상대 경로 또는 환경변수 사용

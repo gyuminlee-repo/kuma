@@ -315,6 +315,11 @@ class FileExportResultModel(WorkspaceModel):
     filepath: str
 
 
+class ExportOrderResultModel(FileExportResultModel):
+    format: Literal["idt", "twist"]
+    primer_count: int
+
+
 class ExportMappingResultModel(FileExportResultModel):
     format: Literal["echo", "janus"]
     primer_count: int
@@ -489,6 +494,18 @@ class ExportExcelParams(BaseModel):
     report_data: Optional[Any] = None
     benchmark_raw: Optional[Any] = None
     rescued_info: Optional[list[RescuedMutationModel]] = None
+
+
+class ExportOrderItem(BaseModel):
+    mutation: str
+    forward_seq: str
+    reverse_seq: str
+
+
+class ExportOrderParams(BaseModel):
+    filepath: str
+    format: Literal["idt", "twist"] = "idt"
+    results: Optional[list[ExportOrderItem]] = None
 
 
 class ExportMappingParams(BaseModel):

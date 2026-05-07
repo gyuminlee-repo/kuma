@@ -1,8 +1,6 @@
 """Core shared state, I/O helpers, and validation for the KURO sidecar."""
 
-import datetime
 import json
-import logging
 import os
 import re
 import sys
@@ -21,8 +19,14 @@ from kuma_core.kuro.plate_mapper import PlateMapping  # noqa: E402
 from kuma_core.kuro.polymerase import PolymeraseRegistry  # noqa: E402
 from kuma_core.kuro.codon_table import CodonTableRegistry  # noqa: E402
 from kuma_core.shared.config_paths import kuma_home  # noqa: E402
-from kuma_core.shared.errors import jsonrpc_error  # noqa: E402
 from kuma_core.shared.logging import get_logger  # noqa: E402
+from kuma_core.shared.sidecar import (  # noqa: E402
+    JsonRpcWriter,
+    append_crash_log,
+    ensure_private_dir,
+    validate_filepath,
+    validate_output_path,
+)
 
 logger = get_logger("sidecar_kuro")
 
@@ -33,41 +37,13 @@ _poly_registry = PolymeraseRegistry(custom_path=_CUSTOM_POLYMERASE_PATH)
 _codon_registry = CodonTableRegistry()
 _config_cache: dict | None = None
 
-_CRASH_LOG_MAX = 50
-
-
 def _get_crash_log_path() -> Path:
-    kuro_dir = kuma_home() / "kuro"
-    kuro_dir.mkdir(parents=True, exist_ok=True)
-    if sys.platform != "win32":
-        os.chmod(kuro_dir, 0o700)
-    return kuro_dir / "crash.log"
+    return ensure_private_dir(kuma_home() / "kuro") / "crash.log"
 
 
 def _append_crash_log(method: str, params_summary: str, tb: str) -> None:
     """Append an error entry to the crash log (FIFO, max 50 entries)."""
-    try:
-        log_path = _get_crash_log_path()
-        entry = {
-            "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-            "method": method,
-            "params": params_summary[:200],
-            "traceback": tb[:2000],
-        }
-        entries: list[dict] = []
-        if log_path.exists():
-            try:
-                raw = log_path.read_text(encoding="utf-8").strip()
-                if raw:
-                    entries = json.loads(raw)
-            except (json.JSONDecodeError, OSError):
-                entries = []
-        entries.append(entry)
-        while len(entries) > _CRASH_LOG_MAX:
-            entries.pop(0)
-        log_path.write_text(json.dumps(entries, indent=2, ensure_ascii=False), encoding="utf-8")
-    except Exception:
-        pass  # crash logging itself must never raise
+    append_crash_log(_get_crash_log_path(), method, params_summary, tb)
 
 
 _ALLOWED_FASTA_EXTENSIONS = {".fa", ".fasta", ".fna", ".dna", ".gb", ".gbff", ".gbk"}
@@ -164,33 +140,24 @@ def _get_cached_ca_coords(structure_accession: str | None) -> list | None:
         return None
 
 
-_stdout_lock = threading.Lock()
+_rpc_writer = JsonRpcWriter()
 
 
 def _send(obj: dict) -> None:
     """Write a JSON object to stdout (one line). Thread-safe."""
-    line = json.dumps(obj, ensure_ascii=False)
-    with _stdout_lock:
-        sys.stdout.write(line + "\n")
-        sys.stdout.flush()
+    _rpc_writer.send(obj)
 
 
 def _ok(req_id, result) -> None:
-    _send({"jsonrpc": "2.0", "id": req_id, "result": result})
+    _rpc_writer.ok(req_id, result)
 
 
 def _error(req_id, code: int, message: str) -> None:
-    _send({"jsonrpc": "2.0", "id": req_id, "error": jsonrpc_error(code, message)})
+    _rpc_writer.error(req_id, code, message)
 
 
 def _progress(value: int, message: str = "") -> None:
-    _send(
-        {
-            "jsonrpc": "2.0",
-            "method": "progress",
-            "params": {"value": value, "message": message},
-        }
-    )
+    _rpc_writer.progress(value, message)
 
 
 # ---------------------------------------------------------------------------
@@ -206,33 +173,11 @@ def _validate_filepath(
     Raises FileNotFoundError on traversal, symlinks, or missing parent.
     Raises ValueError on disallowed extension.
     """
-    if not filepath:
-        raise FileNotFoundError("filepath is required")
-
-    original = Path(filepath)
-
-    if original.is_symlink():
-        raise FileNotFoundError(f"Symbolic links are not allowed: {filepath}")
-
-    resolved = original.resolve()
-
-    if resolved.is_symlink():
-        raise FileNotFoundError(f"Symbolic links are not allowed (resolved): {filepath}")
-
-    if ".." in original.parts:
-        raise FileNotFoundError(f"Path traversal is not allowed: {filepath}")
-
-    if resolved.is_dir():
-        raise FileNotFoundError(f"Path is a directory, not a file: {filepath}")
-
-    if allowed_extensions is not None:
-        ext = resolved.suffix.lower()
-        if ext not in allowed_extensions:
-            raise ValueError(
-                f"Unsupported file extension '{ext}'. Allowed: {sorted(allowed_extensions)}"
-            )
-
-    return resolved
+    return validate_filepath(
+        filepath,
+        allowed_extensions=allowed_extensions,
+        must_exist=False,
+    )
 
 
 def _validate_output_path(
@@ -243,31 +188,4 @@ def _validate_output_path(
     Raises FileNotFoundError on traversal, symlinks, or missing parent.
     Raises ValueError on disallowed extension.
     """
-    if not filepath:
-        raise FileNotFoundError("filepath is required")
-
-    original = Path(filepath)
-
-    if original.is_symlink():
-        raise FileNotFoundError(f"Symbolic links are not allowed: {filepath}")
-
-    if ".." in original.parts:
-        raise FileNotFoundError(f"Path traversal is not allowed: {filepath}")
-
-    resolved = original.resolve()
-
-    if resolved.is_symlink():
-        raise FileNotFoundError(f"Symbolic links are not allowed (resolved): {filepath}")
-
-    if not resolved.parent.exists():
-        raise FileNotFoundError(
-            f"Parent directory does not exist: {resolved.parent}"
-        )
-
-    ext = resolved.suffix.lower()
-    if ext not in allowed_extensions:
-        raise ValueError(
-            f"Unsupported file extension '{ext}'. Allowed: {sorted(allowed_extensions)}"
-        )
-
-    return resolved
+    return validate_output_path(filepath, allowed_extensions=allowed_extensions)

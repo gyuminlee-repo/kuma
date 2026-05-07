@@ -4,6 +4,29 @@
 
 ---
 
+## Unreleased
+
+Release hardening for the integrated kuma desktop build.
+
+- **Sidecar shared helpers**: KURO and MAME sidecars now share JSON-RPC stdout writing, bounded crash-log append, private config directory creation, and path validation through `kuma_core.shared.sidecar`.
+- **Order export RPC compatibility**: Restored KURO `export_order` dispatch for the existing TypeScript contract and regression tests. Supports IDT/Twist CSV export from either backend state or a frontend-provided result payload.
+- **Sidecar build robustness**: `sidecar:kill` now uses `scripts/kill-sidecars.mjs` so Unix `pkill -f` cannot terminate the running build command itself.
+- **MAME PyInstaller onefile size**: MAME sidecar packaging no longer collects the entire Biopython package or optional ML/plotting stacks (`torch`, `sklearn`, `transformers`, etc.), avoiding the PyInstaller 4 GB CArchive limit.
+- **CI coverage**: Added branch/PR CI for Python tests across OS/Python versions, TypeScript typecheck, and Linux Rust `cargo check` with Tauri/WebKitGTK system dependencies.
+- **Developer docs**: Linux Tauri prerequisites and Windows-native build guidance are documented in the English and Korean contributing guides.
+
+### Test footprint
+
+- `python3 -m pytest tests/ -q`: 799 passed, 15 skipped.
+- `pnpm exec tsc --noEmit`: 0 errors.
+- `pnpm run build`: frontend production build passed.
+- `pnpm run sidecar:build`: KURO and MAME Linux sidecars built successfully.
+- Built `kuro-sidecar` and `mame-sidecar` both answered JSON-RPC `ping` with `{"ok": true}`.
+- `cd src-tauri && cargo check`: passed after installing Linux Tauri packages (`gdk-3.0` 3.24.41, `webkit2gtk-4.1` 2.52.3).
+- `pnpm run build:all`: passed and produced `kuma_0.3.1_amd64.deb` and `kuma_0.3.1_amd64.AppImage`.
+
+---
+
 ## v0.2.9 (2026-05-06)
 
 MAME activity v0.3 Phase A+B+C — xlsx adapters, replicate-priority merge, label-swap guard, IspS reference auto-load, and the v0.3 UI surface alongside the preserved 5/12 demo path.
