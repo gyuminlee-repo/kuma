@@ -3,8 +3,8 @@ date: 2026-05-07
 type: decision
 project: kuma
 decided_by: 강혜민
-version: 0.1
-status: draft
+version: 1.0
+status: stable
 tags: [kuma, frontend, standards, charter, kuro, mame, primerbench]
 ---
 
@@ -533,6 +533,7 @@ mame, primerbench 도 동일 형식 placeholder.
 - **v0.5 (2026-05-07)**: Phase 5 (v0.3.4.0) + fixup 결과 반영. §20 Citation kuro/mame 🟡→✅. §12/§13/§14/§19 셀 단위 보강. Req ✅ 카운트 kuro 22→26, mame 21→24. 모든 [필수] 카테고리에서 ❌ 셀 0건. 잔여는 [권장] 또는 부분 항목. 다음 보강 5순위 갱신 (sidecar hash, pending export flush, 메모리 모니터, in-app toast, PrimerBench).
 - **v0.6 (2026-05-07)**: Phase 6 (v0.3.5.0) 결과 반영. §14 Data Integrity kuro/mame 🟡→✅ (sidecar binary hash 도입). §13/§19 셀 보강 (in-app toast, 메모리 모니터). §22 CloseConfirmDialog. Req ✅ 카운트 kuro 26→27, mame 24→25. ✅ 카테고리 3→4. 다음 우선 5순위 갱신 (§19 pre-flight, §13 job queue, PrimerBench, §9 자동 업데이트, §8 다크모드).
 - **v0.7 (2026-05-07)**: Phase 7 (v0.3.6.0) 결과 반영. §9/§13/§19 kuro/mame 🟡→✅. ✅ 카테고리 4→7. Req ✅ 카운트 kuro 27→29, mame 25→27. PrimerBench 별도 레포 PB Phase A-D 동시 진행 중. 잔여 부진 카테고리: §1, §2, §4, §5, §6, §8, §11, §12, §15, §16, §17, §18, §21, §22 (모두 [권장] 또는 부분 미구현).
+- **v1.0 (2026-05-07)**: 정식 승격. status `draft → stable`, frontmatter version `0.1 → 1.0` (frontmatter 가 v0.1 부터 v0.7 까지 changelog 와 비동기로 stale 했던 것을 일치시킴). 모든 [필수] 카테고리에서 ❌ Req 0건, ✅ 카테고리 7/22, Req ✅ kuro 29/40·mame 27/40 달성. PrimerBench Phase A-D 완료(b7e2eab v0.04.07.00). 잔여 14 (kuma) + 10 (PB) 항목은 모두 [권장] 또는 부분 미구현이며 차기 마이너에서 점진 보강. 헌장 자체 변경은 본 항목으로 종결, 이후 카테고리 보강은 Phase 보고서로 추적.
 
 ## 후속 액션
 
