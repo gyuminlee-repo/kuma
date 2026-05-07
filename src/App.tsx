@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Toaster } from "sonner";
 import { getConfig, loadProject, type Config } from "./lib/project";
 import { MainShell } from "./screens/MainShell";
 import { Home } from "./screens/Home";
@@ -110,26 +111,40 @@ export function App() {
   }
 
   if (screen === "loading") {
-    return <div className="flex min-h-screen items-center justify-center bg-muted text-sm text-muted-foreground">Loading…</div>;
+    return (
+      <>
+        <div className="flex min-h-screen items-center justify-center bg-muted text-sm text-muted-foreground">Loading…</div>
+        <Toaster position="top-right" richColors />
+      </>
+    );
   }
 
   if (screen === "onboarding") {
-    return <Onboarding initialPath={config?.projects_root} onDone={handleDone} />;
+    return (
+      <>
+        <Onboarding initialPath={config?.projects_root} onDone={handleDone} />
+        <Toaster position="top-right" richColors />
+      </>
+    );
   }
 
   if (screen === "home") {
     return (
-      <Home
-        onOpenProject={(path) => void handleOpenWorkspace(path, false)}
-        onOpenScratch={(path) => void handleOpenWorkspace(path, true)}
-        onOpenSettings={() => setScreen("onboarding")}
-      />
+      <>
+        <Home
+          onOpenProject={(path) => void handleOpenWorkspace(path, false)}
+          onOpenScratch={(path) => void handleOpenWorkspace(path, true)}
+          onOpenSettings={() => setScreen("onboarding")}
+        />
+        <Toaster position="top-right" richColors />
+      </>
     );
   }
 
   return (
     <ProjectProvider value={project}>
       <MainShell />
+      <Toaster position="top-right" richColors />
     </ProjectProvider>
   );
 }

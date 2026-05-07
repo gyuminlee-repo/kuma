@@ -14,6 +14,7 @@ import { useState } from "react";
 import { save } from "@tauri-apps/plugin-dialog";
 import { AlertCircle, CheckCircle2, Download, FolderOpen } from "lucide-react";
 import { useKumaProject } from "@/state/projectContext";
+import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -36,6 +37,7 @@ interface JanusMappingDialogProps {
 export function JanusMappingDialog({ open, onOpenChange }: JanusMappingDialogProps) {
   const project = useKumaProject();
 
+  const storeIsExporting = useMameAppStore((s) => s.isExporting);
   const [format, setFormat] = useState<JanusExportFormat>("csv");
   const [outputPath, setOutputPath] = useState<string>("");
   const [isExporting, setIsExporting] = useState(false);
@@ -202,7 +204,7 @@ export function JanusMappingDialog({ open, onOpenChange }: JanusMappingDialogPro
           <Button
             size="sm"
             onClick={() => void doExport()}
-            disabled={isExporting || !resolvedPath}
+            disabled={isExporting || storeIsExporting || !resolvedPath}
             className="gap-2"
           >
             <Download size={14} aria-hidden="true" />

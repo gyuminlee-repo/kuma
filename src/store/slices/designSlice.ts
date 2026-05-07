@@ -1,5 +1,6 @@
 import type { StateCreator } from "zustand";
 import { notifyJobComplete } from "../../lib/notify";
+import { notifyJobDone, notifyJobError } from "../../lib/toast";
 import { startKeepAwake, stopKeepAwake } from "../../lib/keepAwake";
 import { cancelAndRespawn, sendRequest } from "../../lib/ipc-kuro";
 import { wellName } from "../../lib/plate-utils";
@@ -262,9 +263,16 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         body: `${get().successCount} primer(s) designed`,
         startedAt: _designStartedAt,
       });
+      // §8: In-app toast (always fires, regardless of duration).
+      notifyJobDone({
+        title: "Design complete",
+        description: `${get().successCount} primer(s) designed`,
+        durationMs: Date.now() - _designStartedAt,
+      });
     } catch (err) {
       if (formatError(err).includes("Sidecar killed")) return;
       set({ statusMessage: `Design failed: ${formatError(err)}` });
+      notifyJobError("Design failed", err);
     } finally {
       void stopKeepAwake();
       if (get().isDesigning) {

@@ -9,6 +9,7 @@
 
 import { create } from "zustand"
 import { notifyJobComplete } from "@/lib/notify"
+import { notifyJobDone, notifyJobError } from "@/lib/toast"
 import { startKeepAwake, stopKeepAwake } from "@/lib/keepAwake"
 import { sendRequest } from "@/lib/ipc-mame"
 import { formatError } from "@/lib/utils"
@@ -165,6 +166,8 @@ export function createActivityStore(roundStore: RoundStoreRef) {
         set({ lastMergeStats: result.stats, lastReplicateStats: null })
         // §13: notify if merge took long enough
         void notifyJobComplete({ title: "Activity merge complete", body: "Merged activity data ready", startedAt: _mergeStartedAt })
+        // §8: In-app toast (always fires)
+        notifyJobDone({ title: "Activity merge complete", description: "Merged activity data ready", durationMs: Date.now() - _mergeStartedAt })
       } catch (err) {
         const message = formatError(err)
         set({ mergeError: message })
@@ -173,6 +176,7 @@ export function createActivityStore(roundStore: RoundStoreRef) {
           message,
           occurred_at: new Date().toISOString(),
         })
+        notifyJobError("Activity merge failed", err)
       } finally {
         void stopKeepAwake()
         set({ isMerging: false })
@@ -237,6 +241,8 @@ export function createActivityStore(roundStore: RoundStoreRef) {
         })
         // §13: notify if merge took long enough
         void notifyJobComplete({ title: "Merge complete", body: "EVOLVEpro merge ready", startedAt: _mergeForEvolveproStartedAt })
+        // §8: In-app toast (always fires)
+        notifyJobDone({ title: "Merge complete", description: "EVOLVEpro merge ready", durationMs: Date.now() - _mergeForEvolveproStartedAt })
       } catch (err) {
         const message = formatError(err)
         set({ mergeError: message })
@@ -245,6 +251,7 @@ export function createActivityStore(roundStore: RoundStoreRef) {
           message,
           occurred_at: new Date().toISOString(),
         })
+        notifyJobError("EVOLVEpro merge failed", err)
       } finally {
         void stopKeepAwake()
         set({ isMerging: false })
@@ -270,5 +277,13 @@ export function useActivityStore(): ReturnType<typeof createActivityStore> {
       "useActivityStore: initActivityStore()를 먼저 호출하세요."
     )
   }
+  return _store
+}
+
+/**
+ * 비-React 컨텍스트(onCloseRequested 등)에서 상태를 읽을 때 사용.
+ * store가 초기화되지 않은 경우 null을 반환하므로 null 체크 필수.
+ */
+export function getActivityStore(): ReturnType<typeof createActivityStore> | null {
   return _store
 }

@@ -10,6 +10,7 @@
  */
 
 import { sendRequest } from "@/lib/ipc-mame";
+import { useMameAppStore } from "@/store/mame/mameAppStore";
 import type { JanusExportFormat, JanusExportResult } from "@/types/mame/models";
 
 /**
@@ -46,8 +47,13 @@ export async function handleExportMameJanusMapping(
   outputPath: string,
   format: JanusExportFormat = "csv",
 ): Promise<JanusExportResult> {
-  return sendRequest<JanusExportResult>("export_janus_mapping", {
-    output: outputPath,
-    format,
-  });
+  useMameAppStore.setState({ isExporting: true });
+  try {
+    return await sendRequest<JanusExportResult>("export_janus_mapping", {
+      output: outputPath,
+      format,
+    });
+  } finally {
+    useMameAppStore.setState({ isExporting: false });
+  }
 }

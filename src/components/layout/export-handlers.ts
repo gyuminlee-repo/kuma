@@ -70,6 +70,7 @@ export async function handleExportMappingWithParams(
   const { xlsxPath, csvPath } = deriveMappingExportPaths(selectedPath);
 
   const label = format === "echo" ? "Echo" : "JANUS";
+  useAppStore.setState({ isExporting: true });
   try {
     const { orderedMappings, dedupInfo } = getCurrentExportState();
     const payload = {
@@ -87,6 +88,8 @@ export async function handleExportMappingWithParams(
       .setStatus(
         `${label} mapping export failed: ${err instanceof Error ? err.message : String(err)}`,
       );
+  } finally {
+    useAppStore.setState({ isExporting: false });
   }
 }
 
@@ -198,30 +201,36 @@ export async function executeMigrateAndLoad(
 export { MIGRATE_DIALOG_CLOSED };
 
 export async function handleSaveBenchmarkJson(data: unknown) {
+  const path = await save({
+    filters: [{ name: "Benchmark JSON", extensions: ["json"] }],
+    defaultPath: defaultExportFilename({ target: "benchmark", ext: "json" }),
+  });
+  if (!path) return;
+  useAppStore.setState({ isExporting: true });
   try {
-    const path = await save({
-      filters: [{ name: "Benchmark JSON", extensions: ["json"] }],
-      defaultPath: defaultExportFilename({ target: "benchmark", ext: "json" }),
-    });
-    if (!path) return;
     await sendRequest("save_json", { filepath: path, data });
     useAppStore.getState().setStatus(`Benchmark JSON saved: ${path}`);
   } catch (err) {
     useAppStore.getState().setStatus(`Benchmark JSON save failed: ${err instanceof Error ? err.message : String(err)}`);
+  } finally {
+    useAppStore.setState({ isExporting: false });
   }
 }
 
 export async function handleExportBenchmarkCsv(results: Record<string, BenchmarkResult>) {
+  const path = await save({
+    filters: [{ name: "CSV", extensions: ["csv"] }],
+    defaultPath: defaultExportFilename({ target: "benchmark", ext: "csv" }),
+  });
+  if (!path) return;
+  useAppStore.setState({ isExporting: true });
   try {
-    const path = await save({
-      filters: [{ name: "CSV", extensions: ["csv"] }],
-      defaultPath: defaultExportFilename({ target: "benchmark", ext: "csv" }),
-    });
-    if (!path) return;
     await sendRequest("export_benchmark_csv", { filepath: path, results });
     useAppStore.getState().setStatus(`Benchmark CSV exported: ${path}`);
   } catch (err) {
     useAppStore.getState().setStatus(`Benchmark CSV export failed: ${err instanceof Error ? err.message : String(err)}`);
+  } finally {
+    useAppStore.setState({ isExporting: false });
   }
 }
 

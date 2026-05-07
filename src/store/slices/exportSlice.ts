@@ -3,6 +3,7 @@ import type { SortingState, Updater } from "@tanstack/react-table";
 import { sendRequest } from "../../lib/ipc-kuro";
 import { getSortedMutations, reorderMappings } from "../../lib/plate-utils";
 import { formatError } from "../../lib/utils";
+import { notifyJobDone, notifyJobError } from "../../lib/toast";
 import type { AppState } from "../types";
 import type {
   BenchmarkResult,
@@ -320,6 +321,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
   progress: 0,
   statusMessage: "Ready",
   tableSorting: [],
+  isExporting: false,
 
   getPlateMap: async () => {
     try {
@@ -334,6 +336,8 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
   },
 
   exportExcel: async (filepath: string, projectId?: string) => {
+    const _exportStartedAt = Date.now();
+    set({ isExporting: true });
     try {
       const state = get();
       const { designResults, plateMappings, dedupInfo, tableSorting } = state;
@@ -372,8 +376,12 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
         ...(rescuedInfo ? { rescued_info: rescuedInfo } : {}),
       });
       set({ statusMessage: `Exported Excel: ${filepath}` });
+      notifyJobDone({ title: "Excel export complete", description: filepath, durationMs: Date.now() - _exportStartedAt });
     } catch (err) {
       set({ statusMessage: `Excel export failed: ${formatError(err)}` });
+      notifyJobError("Excel export failed", err);
+    } finally {
+      set({ isExporting: false });
     }
   },
 
@@ -696,6 +704,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       progress: 0,
       statusMessage: "Ready",
       tableSorting: [],
+      isExporting: false,
     });
   },
 });

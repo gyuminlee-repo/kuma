@@ -395,6 +395,17 @@ impl SidecarManager {
 
     async fn spawn_process(&self, kind: &str) -> Result<Arc<SidecarProcess>, String> {
         let binary_name = binary_name(kind)?;
+
+        // §14 Data Integrity: verify sidecar binary hash before spawning.
+        // Skipped entirely in debug builds. In release builds, a mismatch
+        // aborts the spawn and surfaces an error to the caller.
+        //
+        // `self.binaries_dir` is set from `app.path().resource_dir()` in
+        // lib.rs and is the correct location for Tauri-bundled resources on
+        // all platforms (including macOS where resources live in
+        // Contents/Resources/, separate from the Contents/MacOS/ exe dir).
+        verify_binary_hash(kind, binary_name, &self.binaries_dir)?;
+
         let (mut rx, child) = self
             .app_handle
             .shell()
@@ -482,6 +493,76 @@ fn binary_name(kind: &str) -> Result<&'static str, String> {
         "mame" => Ok("mame-sidecar"),
         _ => Err(format!("Unknown sidecar kind: {kind}")),
     }
+}
+
+/// Verify a sidecar binary hash against the manifest before spawning.
+///
+/// Path resolution:
+/// - Manifest (`sidecar-hashes.json`): loaded from `resource_dir` (the
+///   `binaries_dir` field on `SidecarManager`, set via `app.path().resource_dir()`
+///   in lib.rs). On macOS this resolves to `App.app/Contents/Resources/`, which
+///   is where Tauri places bundled resources — distinct from the exe directory.
+/// - Binary: `current_exe().parent() / base_name[.exe]`. Tauri strips the
+///   target-triple suffix from externalBin names in release bundles, so on all
+///   platforms the binary is found at the bare base name.
+///
+/// In debug builds the function returns `Ok(())` immediately without reading
+/// any file, so developers do not need to regenerate hashes on every recompile.
+fn verify_binary_hash(
+    kind: &str,
+    base_name: &str,
+    resource_dir: &std::path::Path,
+) -> Result<(), String> {
+    if cfg!(debug_assertions) {
+        return Ok(());
+    }
+
+    use crate::sidecar_verify::verify_sidecar;
+
+    // Binary lives next to the app executable (externalBin, triple-suffix stripped).
+    let exe_dir = std::env::current_exe()
+        .ok()
+        .and_then(|p| p.parent().map(|d| d.to_path_buf()))
+        .ok_or_else(|| "Cannot resolve current executable directory".to_string())?;
+
+    let ext = if cfg!(target_os = "windows") { ".exe" } else { "" };
+    let binary_path = exe_dir.join(format!("{base_name}{ext}"));
+
+    // Manifest lives in the Tauri resource directory (bundled via tauri.conf.json
+    // resources). On macOS: Contents/Resources/. On Linux/Windows: typically
+    // the same dir as the exe, but we use resource_dir for correctness.
+    let manifest_path = resource_dir.join("sidecar-hashes.json");
+    let manifest_bytes = std::fs::read(&manifest_path).map_err(|e| {
+        format!(
+            "[sidecar:{kind}] Cannot read hash manifest {}: {}",
+            manifest_path.display(),
+            e
+        )
+    })?;
+    let manifest: serde_json::Map<String, serde_json::Value> =
+        serde_json::from_slice(&manifest_bytes).map_err(|e| {
+            format!(
+                "[sidecar:{kind}] Malformed hash manifest {}: {}",
+                manifest_path.display(),
+                e
+            )
+        })?;
+
+    // Try full filename key first (`base_name.exe` on Windows), then base name.
+    let filename_key = format!("{base_name}{ext}");
+    let expected_hash = manifest
+        .get(&filename_key)
+        .or_else(|| manifest.get(base_name))
+        .and_then(|v| v.as_str())
+        .filter(|s| !s.is_empty())
+        .ok_or_else(|| {
+            format!(
+                "[sidecar:{kind}] No hash entry for '{filename_key}' or '{base_name}' in manifest"
+            )
+        })?;
+
+    verify_sidecar(&binary_path, expected_hash)
+        .map_err(|e| format!("[sidecar:{kind}] {e}"))
 }
 
 fn format_jsonrpc_error(error: &Value) -> String {

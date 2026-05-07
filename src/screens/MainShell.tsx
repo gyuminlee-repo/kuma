@@ -12,6 +12,8 @@ import { KuroTab } from "./KuroTab";
 import { MameTab } from "./MameTab";
 import { useAppStore } from "@/store/appStore";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
+import { getActivityStore } from "@/store/mame/activitySlice";
+import { CloseConfirmDialog, type BusyReason } from "@/components/dialogs/CloseConfirmDialog";
 
 // ─── 상대 시간 포맷 헬퍼 ──────────────────────────────────────────────────
 
@@ -137,6 +139,29 @@ export function MainShell() {
 
   const isAutosaveActive = project !== null && project !== undefined && !project.scratch;
 
+  // ── §19 메모리 경고 상태
+  const memoryWarning = useAppStore((s) => s.memoryWarning);
+  const setMemoryWarning = useAppStore((s) => s.setMemoryWarning);
+
+  // ── close confirm 다이얼로그 상태
+  const [closeDialogOpen, setCloseDialogOpen] = useState(false);
+  const [closeBusyReason, setCloseBusyReason] = useState<BusyReason | null>(null);
+  const [closeDialogIsBusy, setCloseDialogIsBusy] = useState(false);
+  // 다이얼로그 "강제 종료" 경로: 플래그 세팅 후 destroy
+  const forceCloseRef = useRef(false);
+
+  // ── isBusy 실시간 추적 (다이얼로그 Wait → 자동 close 용)
+  useEffect(() => {
+    if (!closeDialogOpen) return;
+    const id = setInterval(() => {
+      const { isDesigning, isExporting: kuroExporting } = useAppStore.getState();
+      const { isAnalyzing, isExporting: mameExporting } = useMameAppStore.getState();
+      const activityExporting = getActivityStore()?.getState().isExporting ?? false;
+      setCloseDialogIsBusy(isDesigning || isAnalyzing || kuroExporting || mameExporting || activityExporting);
+    }, 200);
+    return () => clearInterval(id);
+  }, [closeDialogOpen]);
+
   // ── 윈도우 close 직전 flush (kuro + mame 양쪽)
   useEffect(() => {
     const target: AutosaveTarget = {
@@ -149,18 +174,34 @@ export function MainShell() {
       .onCloseRequested(async (ev) => {
         ev.preventDefault();
 
+        // 강제 종료 플래그: 다이얼로그 "강제 종료" 버튼에서 왔으면 바로 destroy
+        if (forceCloseRef.current) {
+          forceCloseRef.current = false;
+          await flushAutosave(target);
+          await getCurrentWindow().destroy();
+          return;
+        }
+
         // 진행 중 작업 여부를 store에서 직접 읽음 (deps 재등록 방지)
-        const { isDesigning } = useAppStore.getState();
-        const { isAnalyzing, isExporting } = useMameAppStore.getState();
-        const isBusy = isDesigning || isAnalyzing || isExporting;
+        const { isDesigning, isExporting: kuroExporting } = useAppStore.getState();
+        const { isAnalyzing, isExporting: mameExporting } = useMameAppStore.getState();
+        const activityExporting = getActivityStore()?.getState().isExporting ?? false;
+
+        const isExportingAny = kuroExporting || mameExporting || activityExporting;
+        const isBusy = isDesigning || isAnalyzing || isExportingAny;
 
         if (isBusy) {
-          const confirmed = window.confirm(
-            "작업이 진행 중입니다. 종료하시겠습니까?\n진행 중인 작업은 취소됩니다.",
-          );
-          if (!confirmed) {
-            return;
-          }
+          // 분기별 reason 결정 (우선순위: export > analyzing > designing)
+          const reason: BusyReason = isExportingAny
+            ? "exporting"
+            : isAnalyzing
+              ? "analyzing"
+              : "designing";
+
+          setCloseBusyReason(reason);
+          setCloseDialogIsBusy(true);
+          setCloseDialogOpen(true);
+          return;
         }
 
         await flushAutosave(target);
@@ -192,6 +233,17 @@ export function MainShell() {
     });
   }
 
+  // ── close confirm 핸들러
+  const handleCloseWait = useCallback(() => {
+    // 대기 선택: 다이얼로그 유지. isBusy가 false가 되면 useEffect가 자동 close.
+  }, []);
+
+  const handleForceClose = useCallback(() => {
+    setCloseDialogOpen(false);
+    forceCloseRef.current = true;
+    void getCurrentWindow().close();
+  }, []);
+
   return (
     <div className="flex h-screen flex-col bg-background">
       {/* 4초 소멸 상태바 메시지 (autosave 인트로 / 연속 실패 토스트 등) */}
@@ -203,6 +255,57 @@ export function MainShell() {
           className="px-3 py-1 text-caption text-muted-foreground bg-muted border-b border-border shrink-0"
         >
           {statusMessage}
+        </div>
+      )}
+
+      {/* §19 메모리 경고 배너 (warn 레벨) */}
+      {memoryWarning && memoryWarning.level === "warn" && (
+        <div
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          className="flex items-center justify-between px-3 py-1 text-caption bg-warning/20 text-warning-foreground border-b border-warning/40 shrink-0"
+        >
+          <span>
+            Memory: {Math.round(memoryWarning.ratio * 100)}% (sidecar {memoryWarning.rss_mb.toFixed(0)} MB)
+          </span>
+          <button
+            type="button"
+            aria-label="메모리 경고 닫기"
+            className="ml-2 text-warning-foreground opacity-70 hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            onClick={() => setMemoryWarning(null)}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* §19 메모리 초과 모달 (block 레벨) */}
+      {memoryWarning && memoryWarning.level === "block" && (
+        <div
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="mem-block-title"
+          aria-describedby="mem-block-desc"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+        >
+          <div className="mx-4 max-w-sm rounded-xl border border-destructive bg-background p-6 shadow-xl">
+            <h2 id="mem-block-title" className="mb-2 text-base font-semibold text-destructive">
+              메모리 한계 초과
+            </h2>
+            <p id="mem-block-desc" className="mb-4 text-sm text-muted-foreground">
+              Sidecar 프로세스 메모리 사용량이{" "}
+              {Math.round(memoryWarning.ratio * 100)}% ({memoryWarning.rss_mb.toFixed(0)} MB)에
+              도달했습니다. 진행 중인 작업을 중단하고 앱을 재시작해 주세요.
+            </p>
+            <button
+              type="button"
+              className="w-full rounded-lg bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              onClick={() => setMemoryWarning(null)}
+            >
+              확인
+            </button>
+          </div>
         </div>
       )}
 
@@ -265,6 +368,15 @@ export function MainShell() {
           </TabsContent>
         </div>
       </Tabs>
+
+      {/* §22 Graceful Shutdown: busy 상태 close 확인 */}
+      <CloseConfirmDialog
+        open={closeDialogOpen}
+        reason={closeBusyReason}
+        isBusy={closeDialogIsBusy}
+        onWait={handleCloseWait}
+        onForceClose={handleForceClose}
+      />
     </div>
   );
 }

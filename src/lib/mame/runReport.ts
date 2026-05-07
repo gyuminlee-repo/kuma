@@ -6,6 +6,7 @@
  */
 
 import { sendRequest } from "@/lib/ipc-mame";
+import { useMameAppStore } from "@/store/mame/mameAppStore";
 import type { RunReportFormat, RunReportResult } from "@/types/mame/models";
 
 /**
@@ -42,9 +43,14 @@ export async function handleExportRunReport(
   format: RunReportFormat = "html",
   projectName?: string,
 ): Promise<RunReportResult> {
-  return sendRequest<RunReportResult>("export_run_report", {
-    output: outputPath,
-    format,
-    project_name: projectName ?? null,
-  });
+  useMameAppStore.setState({ isExporting: true });
+  try {
+    return await sendRequest<RunReportResult>("export_run_report", {
+      output: outputPath,
+      format,
+      project_name: projectName ?? null,
+    });
+  } finally {
+    useMameAppStore.setState({ isExporting: false });
+  }
 }

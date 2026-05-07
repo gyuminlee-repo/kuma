@@ -1,6 +1,6 @@
 [package]
 name = "kuma"
-version = "0.3.4"
+version = "0.3.5"
 description = "kuma - KURO + mame integrated primer design & NGS verification app"
 edition = "2021"
 
@@ -24,6 +24,7 @@ chrono = { version = "0.4", default-features = false, features = ["clock", "serd
 dirs = "5"
 tokio = { version = "1", features = ["sync", "rt", "macros", "io-util", "time"] }
 keepawake = "0.6"
+sha2 = "0.10"
 
 [target."cfg(not(any(target_os = \"android\", target_os = \"ios\")))".dependencies]
 tauri-plugin-single-instance = "2"

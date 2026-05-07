@@ -15,6 +15,7 @@ import { useState } from "react";
 import { save } from "@tauri-apps/plugin-dialog";
 import { AlertCircle, CheckCircle2, Download, FolderOpen, Info } from "lucide-react";
 import { useKumaProject } from "@/state/projectContext";
+import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -37,6 +38,7 @@ interface RunReportDialogProps {
 export function RunReportDialog({ open, onOpenChange }: RunReportDialogProps) {
   const project = useKumaProject();
 
+  const storeIsExporting = useMameAppStore((s) => s.isExporting);
   const [format, setFormat] = useState<RunReportFormat>("html");
   const [outputPath, setOutputPath] = useState<string>("");
   const [isExporting, setIsExporting] = useState(false);
@@ -240,7 +242,7 @@ export function RunReportDialog({ open, onOpenChange }: RunReportDialogProps) {
           <Button
             size="sm"
             onClick={() => void doExport()}
-            disabled={isExporting || !resolvedPath}
+            disabled={isExporting || storeIsExporting || !resolvedPath}
             className="gap-2"
           >
             <Download size={14} aria-hidden="true" />

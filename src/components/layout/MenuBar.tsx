@@ -53,6 +53,7 @@ const TRIGGER_CLS =
 export function MenuBar() {
   const project = useKumaProject();
   const hasDesignResults = useAppStore((s) => s.designResults.length > 0);
+  const isExporting = useAppStore((s) => s.isExporting);
   const loadSampleData = useAppStore((s) => s.loadSampleData);
   const offlineMode = useAppStore((s) => s.offlineMode);
   const setOfflineMode = useAppStore((s) => s.setOfflineMode);
@@ -231,7 +232,7 @@ export function MenuBar() {
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={() => handleExportExcel(project?.project_id)}
-            disabled={!hasDesignResults}
+            disabled={!hasDesignResults || isExporting}
           >
             <span className="flex-1">Export Excel...</span>
             <kbd className="ml-4 text-caption text-muted-foreground">{MOD_KEY}E</kbd>
@@ -239,13 +240,13 @@ export function MenuBar() {
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={() => { setMappingDialogFormat("echo"); setMappingDialogOpen(true); }}
-            disabled={!hasDesignResults}
+            disabled={!hasDesignResults || isExporting}
           >
             Export Echo Mapping...
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => { setMappingDialogFormat("janus"); setMappingDialogOpen(true); }}
-            disabled={!hasDesignResults}
+            disabled={!hasDesignResults || isExporting}
           >
             Export JANUS Mapping...
           </DropdownMenuItem>

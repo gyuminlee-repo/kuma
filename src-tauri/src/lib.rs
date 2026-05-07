@@ -2,6 +2,7 @@ pub mod config;
 pub mod keep_awake;
 pub mod project;
 pub mod sidecar;
+pub mod sidecar_verify;
 
 use serde_json::Value;
 use std::path::PathBuf;

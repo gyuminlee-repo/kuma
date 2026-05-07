@@ -273,6 +273,8 @@ export interface ExportSlice {
   progress: number;
   statusMessage: string;
   tableSorting: SortingState;
+  /** true while an export RPC is in flight (Excel, mapping, benchmark, workspace) */
+  isExporting: boolean;
   getPlateMap: () => Promise<void>;
   exportExcel: (filepath: string, projectId?: string) => Promise<void>;
   setTableSorting: (updater: Updater<SortingState>) => void;
@@ -280,4 +282,19 @@ export interface ExportSlice {
   getWorkspaceSnapshot: () => WorkspaceV3;
   restoreWorkspace: (ws: WorkspaceData) => Promise<void>;
   resetAll: () => void;
+}
+
+// ---------------------------------------------------------------------------
+// MemorySlice — §19 Performance Guardrails: RSS memory monitor
+// ---------------------------------------------------------------------------
+export interface MemoryWarning {
+  ratio: number;
+  rss_mb: number;
+  level: "warn" | "block";
+}
+
+export interface MemorySlice {
+  /** null = no warning active */
+  memoryWarning: MemoryWarning | null;
+  setMemoryWarning: (w: MemoryWarning | null) => void;
 }
