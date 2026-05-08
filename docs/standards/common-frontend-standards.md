@@ -458,10 +458,10 @@ mame, primerbench 도 동일 형식 placeholder.
 | 앱 | ✅ | 🟡 | ❌ | Δ (audit 시점) |
 |---|---|---|---|---|
 | kuro | 50 | 7 | 0 | ✅ 16 → 50 (+34), ❌ 25 → 0 (-25) |
-| mame | 49 | 7 | 1 | ✅ 16 → 49 (+33), ❌ 26 → 1 (-25) |
-| primerbench | 33 | 8 | 0 | ✅ 2 → 33 (+31), ❌ 60 → 0 (-60) |
+| mame | 49 | 7 | 1 | ✅ 16 → 49 (+33), ❌ 26 → 1 (-25). 잔여 ❌ 1: §4 재현 정보 복사 (Phase 12-A 부분 구현, [권장] 보강 잔여) |
+| primerbench | 40 | 21 | 35 | ✅ 2 → 40 (+38), ❌ 60 → 35 (-25). 카테고리 8/22 ✅이나 Req 단위 [권장] 잔여 다수 |
 
-(Phase 12 후 추정. audit-kuma-v10.md / audit-primerbench-v6.md 갱신 예정)
+(Req 카운트 출처: `audit-kuma-v10.md`, `audit-primerbench-v6.md` (2026-05-08, Phase 12 직후 실측). 헌장 v1.5의 PB 추정치(33/8/0)는 v6 실측치(40/21/35)로 정정.)
 
 (카테고리 단위 rollup 은 아래 표 참조)
 
@@ -495,8 +495,8 @@ mame, primerbench 도 동일 형식 placeholder.
 - **kuma kuro/mame ✅ 카테고리**: 22 카테고리 모두 ✅. audit 시점 0건 → **22/22**
 - **PB ✅ 카테고리**: §6, §7, §8, §10, §15, §18, §21, §22 (총 8건). audit 시점 0건 → 8건
 - **kuma rollup**: kuro/mame 모두 ❌ 0 / 🟡 0 / ✅ **22 (전 카테고리 충족)**
-- **PB rollup**: ❌ 0 / 🟡 14 / ✅ 8
-- **Req 단위 추정**: kuro 50/57, mame 49/57, primerbench 33/41
+- **PB rollup (카테고리)**: ❌ 0 / 🟡 14 / ✅ 8
+- **Req 단위 실측 (audit v10/v6)**: kuro 50/57 ✅, mame 49/57 ✅ + 1 ❌, primerbench 40/96 ✅ + 35 ❌ (카테고리 단위 ❌ 0이지만 [권장] Req 잔여 다수)
 
 ### 헌장 100% 카테고리 충족 (kuma kuro/mame)
 
@@ -536,7 +536,8 @@ primerbench (대부분 🟡):
 - **v1.2 (2026-05-08)**: kuma Phase 9 (v0.3.7.5) + PB Phase F (v0.04.07.04) 결과 반영. kuma kuro/mame §11 🟡→✅ (codesign indicator + build SHA in About). §6 i18n locale slot 도입(번역 미바인딩). PB §10 분량 보강(External services + Privacy 섹션). PB §22 export flush (5/6 핸들러). ✅ 카테고리 kuro/mame 10→11. Appendix D 근거 audit-kuma-v7.md, audit-primerbench-v3.md.
 - **v1.3 (2026-05-08)**: kuma Phase 10 (v0.3.7.7) + PB Phase G (v0.04.07.05) 결과 반영. kuma kuro/mame §1/§3/§17 🟡→✅ (Restart Sidecar, schemaValidator, UTF-8 BOM CSV). PB §10 ❌→✅ (OfflineDisclosureDialog 첫 실행 모달). PB §22 handleExportExcel try/finally fixup. ✅ 카테고리 kuro/mame 11→14, PB 1→2. Appendix D 근거 audit-kuma-v8.md, audit-primerbench-v4.md.
 - **v1.4 (2026-05-08)**: kuma Phase 11 (v0.3.7.9) + PB Phase H (v0.04.07.06) 결과 반영. kuma kuro/mame §2/§8/§15/§16/§18/§21 🟡→✅ (health_info, shortcuts.ts + colorblind, InlineHelp + WhatsNew, mame Diagnostics, StatusBadge, workspaceCompare). PB §6/§15/§22 ❌→✅, §8/§18/§21 ❌→🟡. ✅ 카테고리 kuro/mame 14→20 (잔여 §6, §12 만), PB 2→5. Req ✅ kuro 57→48 audit 정밀화, mame 57→46, primerbench 24→29. Appendix D 근거 audit-kuma-v9.md, audit-primerbench-v5.md.
-- **v1.5 (2026-05-08, FINAL)**: kuma Phase 12 (v0.3.7.11) + PB Phase I (v0.04.07.07) 결과 반영. kuma kuro/mame §6/§12 🟡→✅ (sidecar binary path Tauri command + mame seed N/A 분류 확정). kuma 22 카테고리 100% 달성. PB §8/§18/§21 🟡→✅ (shape prefix + summary 통계 + workspaceCompare 실동작). PB ✅ 카테고리 5→8. ❌ Req: kuro 0, mame 1, PB 0. 헌장 rollout 종결.
+- **v1.5 (2026-05-08, FINAL)**: kuma Phase 12 (v0.3.7.11) + PB Phase I (v0.04.07.07) 결과 반영. kuma kuro/mame §6/§12 🟡→✅ (sidecar binary path Tauri command + mame seed N/A 분류 확정). kuma 22 카테고리 100% 달성. PB §8/§18/§21 🟡→✅ (shape prefix + summary 통계 + workspaceCompare 실동작). PB ✅ 카테고리 5→8. ❌ Req: kuro 0, mame 1, PB 0 (※ PB 추정치, v1.6에서 정정).
+- **v1.6 (2026-05-08, 수치 정정)**: audit-primerbench-v6.md 실측 결과로 PB Req 카운트 33/8/0 → 40/21/35 정정. PB는 카테고리 단위 8 ✅ / 14 🟡 / 0 ❌이나, Req 단위로 보면 [권장] 항목 35건이 미구현으로 잔여. kuma kuro/mame 수치는 변동 없음. v1.5의 "Phase 12 후 추정" 표기를 실측 출처(audit v10/v6)로 교체.
 
 ## 후속 액션
 
