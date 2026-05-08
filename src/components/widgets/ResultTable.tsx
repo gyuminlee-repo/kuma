@@ -16,6 +16,7 @@ import {
   makeResultTableColumns,
 } from "./resultTableColumns";
 import { StateView } from "../ui/StateView";
+import { useColorblindMode } from "../../hooks/useColorblindMode";
 
 const VIRTUAL_THRESHOLD = 1000;
 
@@ -71,6 +72,9 @@ export function ResultTable() {
   const [otDetail, setOtDetail] = useState<SdmPrimerResult | null>(null);
   const [failedPopover, setFailedPopover] = useState<FailedMutation | null>(null);
 
+  // §8 A11y: colorblind mode for rescue badge shape prefix
+  const colorblindMode = useColorblindMode();
+
   const groupColorMap = useMemo(() => buildGroupColorMap(designResults), [designResults]);
   const rescueDetailMap = useMemo(
     () => new Map(rescuedMutationDetails.map((r) => [r.rescued_by, r])),
@@ -93,6 +97,7 @@ export function ResultTable() {
         rescueDetailMap,
         removeDesignResult,
         yPredMap,
+        colorblindMode,
       }),
     [
       groupColorMap,
@@ -104,6 +109,7 @@ export function ResultTable() {
       rescueDetailMap,
       removeDesignResult,
       yPredMap,
+      colorblindMode,
     ],
   );
 

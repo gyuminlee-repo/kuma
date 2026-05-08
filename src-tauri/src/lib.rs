@@ -34,6 +34,31 @@ async fn sidecar_is_running(
     state.is_running(&kind).await
 }
 
+/// §6 Settings: Return the resolved on-disk path for a sidecar binary.
+///
+/// Uses the same path resolution as `verify_binary_hash` in sidecar.rs:
+///   `current_exe().parent() / "{kind}-sidecar[.exe]"`
+///
+/// On all platforms Tauri strips the target-triple suffix from externalBin
+/// names in release bundles, so the binary is always at the bare base name.
+/// Returns an error string on failure so the frontend can display a fallback.
+#[tauri::command]
+fn get_sidecar_path(kind: String) -> Result<String, String> {
+    let base_name = match kind.as_str() {
+        "kuro" => "kuro-sidecar",
+        "mame" => "mame-sidecar",
+        other => return Err(format!("Unknown sidecar kind: {other}")),
+    };
+    let exe_dir = std::env::current_exe()
+        .map_err(|e| format!("Cannot resolve executable: {e}"))?
+        .parent()
+        .ok_or_else(|| "Executable has no parent directory".to_string())?
+        .to_path_buf();
+    let ext = if cfg!(target_os = "windows") { ".exe" } else { "" };
+    let path = exe_dir.join(format!("{base_name}{ext}"));
+    Ok(path.display().to_string())
+}
+
 /// §11 Build & Distribution: macOS ad-hoc codesign status indicator.
 /// On macOS, runs `codesign -dv --verbose=2 <bundle>` and parses the output
 /// to determine signing state. On non-macOS returns "N/A (non-macOS)".
@@ -151,6 +176,7 @@ pub fn run() {
             keep_awake::keep_awake_start,
             keep_awake::keep_awake_stop,
             get_codesign_status,
+            get_sidecar_path,
         ])
         .build(tauri::generate_context!())
     {

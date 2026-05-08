@@ -72,6 +72,9 @@ export function makeResultTableColumns(opts: {
   rescueDetailMap: Map<string, RescuedMutation>;
   removeDesignResult: (mutation: string, reason: string) => void;
   yPredMap: Record<string, number>;
+  /** When true, adds a visible border to rescue badges so state is
+   *  distinguishable without colour (WCAG 1.4.1 compliance). */
+  colorblindMode?: boolean;
 }) {
   const {
     groupColorMap,
@@ -83,6 +86,7 @@ export function makeResultTableColumns(opts: {
     rescueDetailMap,
     removeDesignResult,
     yPredMap,
+    colorblindMode = false,
   } = opts;
 
   return [
@@ -123,14 +127,14 @@ export function makeResultTableColumns(opts: {
             {rescueDetail && (() => {
               const badgeMap: Record<string, { icon: string; label: string; tooltip: string; colorClass: string }> = {
                 pool_cascade: {
-                  icon: "\u21BB",
-                  label: `\u21BB ${rescueDetail.original}`,
+                  icon: "↻",
+                  label: `↻ ${rescueDetail.original}`,
                   tooltip: `Pool cascade: replaced ${rescueDetail.original}`,
                   colorClass: "bg-success/10 text-success",
                 },
                 auto_relax: {
-                  icon: "\u26A1",
-                  label: "\u26A1 relaxed",
+                  icon: "⚡",
+                  label: "⚡ relaxed",
                   tooltip: "Auto-relax: widened Tm tolerance and GC range",
                   colorClass: "bg-warning/10 text-warning",
                 },
@@ -141,38 +145,38 @@ export function makeResultTableColumns(opts: {
                   colorClass: "bg-info/10 text-info",
                 },
                 auto_suggestion_l1: {
-                  icon: "\u{1F3AF}\u00B9",
-                  label: "\u{1F3AF}\u00B9 stage\u00A01",
+                  icon: "\u{1F3AF}¹",
+                  label: "\u{1F3AF}¹ stage 1",
                   tooltip: "Cascade stage 1: length range widened",
                   colorClass: "bg-info/10 text-info",
                 },
                 auto_suggestion_l2: {
-                  icon: "\u{1F3AF}\u00B2",
-                  label: "\u{1F3AF}\u00B2 stage\u00A02",
+                  icon: "\u{1F3AF}²",
+                  label: "\u{1F3AF}² stage 2",
                   tooltip: "Cascade stage 2: length + GC range widened",
                   colorClass: "bg-info/10 text-info",
                 },
                 auto_suggestion_l3: {
-                  icon: "\u{1F3AF}\u00B3",
-                  label: "\u{1F3AF}\u00B3 stage\u00A03",
+                  icon: "\u{1F3AF}³",
+                  label: "\u{1F3AF}³ stage 3",
                   tooltip: "Cascade stage 3: length + GC + mild Tm tolerance widened",
                   colorClass: "bg-info/15 text-info",
                 },
                 auto_suggestion_l4: {
-                  icon: "\u{1F3AF}\u2074",
-                  label: "\u{1F3AF}\u2074 stage\u00A04",
+                  icon: "\u{1F3AF}⁴",
+                  label: "\u{1F3AF}⁴ stage 4",
                   tooltip: "Cascade stage 4: strong relaxation applied",
                   colorClass: "bg-warning/10 text-warning",
                 },
                 same_position: {
-                  icon: "\u21BB\u00B9",
-                  label: "\u21BB\u00B9 same\u00A0pos",
+                  icon: "↻¹",
+                  label: "↻¹ same pos",
                   tooltip: `Substituted: same-position alternate variant (substitute: ${rescueDetail.substitute ?? "unknown"})`,
                   colorClass: "bg-success/10 text-success",
                 },
                 diff_position: {
-                  icon: "\u21BB\u00B2",
-                  label: "\u21BB\u00B2 diff\u00A0pos",
+                  icon: "↻²",
+                  label: "↻² diff pos",
                   tooltip: `Substituted: different-position variant (substitute: ${rescueDetail.substitute ?? "unknown"})`,
                   colorClass: "bg-success/15 text-success",
                 },
@@ -183,9 +187,12 @@ export function makeResultTableColumns(opts: {
                 tooltip: `Rescued (${rescueDetail.type})`,
                 colorClass: "bg-info/10 text-info",
               };
+              // §8 A11y: colorblind mode adds a visible border so badge state
+              // is distinguishable by shape/outline, not colour alone (WCAG 1.4.1).
+              const cbClass = colorblindMode ? " border border-current" : "";
               return (
                 <span
-                  className={`ml-1 px-1 py-0.5 rounded-control text-plate-tiny leading-none ${badge.colorClass}`}
+                  className={`ml-1 px-1 py-0.5 rounded-control text-plate-tiny leading-none ${badge.colorClass}${cbClass}`}
                   title={badge.tooltip}
                 >
                   {badge.label}
@@ -280,7 +287,7 @@ export function makeResultTableColumns(opts: {
       size: 45,
       cell: (info) => {
         const val = info.getValue();
-        return val != null ? val.toFixed(1) : "\u2014";
+        return val != null ? val.toFixed(1) : "—";
       },
     }),
     col.accessor("candidate_count", {
@@ -298,7 +305,7 @@ export function makeResultTableColumns(opts: {
         const customLen = (customCandidates[row.mutation] ?? []).length;
         const fc = (row.candidate_fwd_count ?? 0) + customLen;
         const rc = (row.candidate_rev_count ?? 0) + customLen;
-        if (fc <= 0 && rc <= 0) return "\u2014";
+        if (fc <= 0 && rc <= 0) return "—";
         return <span className="text-caption">{fc}/{rc}</span>;
       },
     }),
@@ -308,7 +315,7 @@ export function makeResultTableColumns(opts: {
       meta: { clickable: true, clickType: "offtarget" },
       cell: (info) => {
         const val = info.getValue();
-        if (val == null) return "\u2014";
+        if (val == null) return "—";
         return val ? (
           <span className="inline-block px-1 py-0.5 rounded-control text-caption font-medium bg-error/10 text-error">!!</span>
         ) : (
@@ -332,7 +339,7 @@ export function makeResultTableColumns(opts: {
         const maxHp = Math.max(row.hairpin_tm_fwd ?? 0, row.hairpin_tm_rev ?? 0);
         const maxHd = Math.max(row.homodimer_tm_fwd ?? 0, row.homodimer_tm_rev ?? 0);
         const worst = Math.max(maxHp, maxHd);
-        if (worst <= 0) return "\u2014";
+        if (worst <= 0) return "—";
         const warn = worst > 40;
         return (
           <span className={`inline-block px-1 py-0.5 rounded-control text-caption font-medium cursor-pointer ${warn ? "bg-warning/10 text-warning" : "bg-muted text-muted-foreground"}`}>

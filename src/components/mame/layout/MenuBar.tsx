@@ -32,6 +32,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { killSidecar } from "@/lib/ipc";
 import { getConfig } from "@/lib/project";
 import { getShortcutsFor } from "@/lib/shortcuts";
+import { getCrashLog } from "@/lib/crashLog";
 import { generateDiagnosticsBundle } from "@/lib/diagnostics";
 import { revealInOSFolder } from "@/lib/openFolder";
 import { compareWorkspaces } from "@/lib/workspaceCompare";
@@ -64,6 +65,7 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
   const [aboutOpen, setAboutOpen] = useState(false);
   const [bibtexCopied, setBibtexCopied] = useState(false);
   const [crashLogOpen, setCrashLogOpen] = useState(false);
+  const [crashCopied, setCrashCopied] = useState(false);
   // §20 Citation & Licensing: NOTICE.md from bundled resources
   const [noticeText, setNoticeText] = useState<string | null>(null);
   const [noticeOpen, setNoticeOpen] = useState(false);
@@ -79,6 +81,8 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
 
   // §6 Settings: data folder path (lazy-loaded when About opens)
   const [dataFolder, setDataFolder] = useState<string | null>(null);
+  // §6 Settings: sidecar binary path (lazy-loaded when About opens)
+  const [sidecarPath, setSidecarPath] = useState<string | null>(null);
 
   // §8 A11y: keyboard shortcuts table data
   const mameShortcuts = getShortcutsFor("mame");
@@ -126,6 +130,32 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
       .then((cfg) => setDataFolder(cfg.projects_root))
       .catch(() => setDataFolder("unknown"));
   }, [aboutOpen, dataFolder]);
+
+  // §6 Settings: load sidecar binary path once when About opens
+  useEffect(() => {
+    if (!aboutOpen || sidecarPath !== null) return;
+    void invoke<string>("get_sidecar_path", { kind: "mame" })
+      .then(setSidecarPath)
+      .catch(() => setSidecarPath("mame-sidecar (path unavailable)"));
+  }, [aboutOpen, sidecarPath]);
+
+  // §4 Error UX: copy repro info (version + crash log) to clipboard
+  async function handleCopyCrashLog() {
+    const log = getCrashLog();
+    if (log.length === 0) {
+      setCrashCopied(false);
+      return;
+    }
+    const text = log
+      .map(
+        (e) =>
+          `[${e.timestamp}] ${e.component}: ${e.message}${e.stack ? "\n" + e.stack : ""}`,
+      )
+      .join("\n---\n");
+    await navigator.clipboard.writeText(text);
+    setCrashCopied(true);
+    setTimeout(() => setCrashCopied(false), 2000);
+  }
 
   async function handleCopyBibtex() {
     await navigator.clipboard.writeText(MAME_BIBTEX);
@@ -498,7 +528,7 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
             </p>
             <p className="text-xs text-muted-foreground">
               Sidecar:{" "}
-              <span className="font-mono">mame-sidecar</span>
+              <span className="font-mono break-all">{sidecarPath ?? "loading..."}</span>
             </p>
           </div>
 
@@ -520,6 +550,17 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
               }}
             >
               Change...
+            </Button>
+          </div>
+
+          {/* §4 Error UX: copy repro info (crash log) for bug reports */}
+          <div className="flex flex-col gap-1">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => { void handleCopyCrashLog(); }}
+            >
+              {crashCopied ? "Copied!" : "Copy Crash Log"}
             </Button>
           </div>
 

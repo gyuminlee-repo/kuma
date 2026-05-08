@@ -118,6 +118,8 @@ export function MenuBar() {
 
   // §6 Settings: data folder path (lazy-loaded when About opens)
   const [dataFolder, setDataFolder] = useState<string | null>(null);
+  // §6 Settings: sidecar binary path (lazy-loaded when About opens)
+  const [sidecarPath, setSidecarPath] = useState<string | null>(null);
 
   // §21 Multi-workspace: compare workspaces modal
   const [wsCompareOpen, setWsCompareOpen] = useState(false);
@@ -162,6 +164,14 @@ export function MenuBar() {
       .then((cfg) => setDataFolder(cfg.projects_root))
       .catch(() => setDataFolder("unknown"));
   }, [aboutOpen, dataFolder]);
+
+  // §6 Settings: load sidecar binary path once when About opens
+  useEffect(() => {
+    if (!aboutOpen || sidecarPath !== null) return;
+    void invoke<string>("get_sidecar_path", { kind: "kuro" })
+      .then(setSidecarPath)
+      .catch(() => setSidecarPath("kuro-sidecar (path unavailable)"));
+  }, [aboutOpen, sidecarPath]);
 
   async function handleEnableNotifications() {
     const granted = await requestNotificationPermission();
@@ -756,7 +766,7 @@ export function MenuBar() {
             </p>
             <p className="text-xs text-muted-foreground">
               Sidecar:{" "}
-              <span className="font-mono">kuro-sidecar</span>
+              <span className="font-mono break-all">{sidecarPath ?? "loading..."}</span>
             </p>
           </div>
 
