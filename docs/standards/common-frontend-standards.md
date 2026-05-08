@@ -449,54 +449,54 @@ mame, primerbench 도 동일 형식 placeholder.
 }
 ```
 
-## Appendix D. Per-app Status Matrix (audit 2026-05-08, Phase 1–10 + PB Phase A-G 후)
+## Appendix D. Per-app Status Matrix (audit 2026-05-08, Phase 1–11 + PB Phase A-H 후)
 
-판정 규칙: 카테고리 내 모든 [필수]·[권장] Requirements 충족 → ✅ / 일부 충족 → 🟡 / 전부 미구현 → ❌. 셀 단위 상세 근거(파일:라인)는 `notes/agent-reports/audit-kuma-v8.md` (Phase 10 후), `notes/agent-reports/audit-primerbench-v4.md` (Phase G 후) 참조.
+판정 규칙: 카테고리 내 모든 [필수]·[권장] Requirements 충족 → ✅ / 일부 충족 → 🟡 / 전부 미구현 → ❌. 셀 단위 상세 근거(파일:라인)는 `notes/agent-reports/audit-kuma-v9.md` (Phase 11 후), `notes/agent-reports/audit-primerbench-v5.md` (Phase H 후) 참조.
 
 ### Req 단위 카운트
 
 | 앱 | ✅ | 🟡 | ❌ | Δ (audit 시점) |
 |---|---|---|---|---|
-| kuro | 57 | 28 | 10 | ✅ 16 → 57 (+41), ❌ 25 → 10 (-15) |
-| mame | 57 | 27 | 13 | ✅ 16 → 57 (+41), ❌ 26 → 13 (-13) |
-| primerbench | 24 | 18 | 6 | ✅ 2 → 24 (+22), ❌ 60 → 6 (-54) |
+| kuro | 48 | 9 | 0 | ✅ 16 → 48 (+32), ❌ 25 → 0 (-25) |
+| mame | 46 | 9 | 2 | ✅ 16 → 46 (+30), ❌ 26 → 2 (-24) |
+| primerbench | 29 | 12 | 1 | ✅ 2 → 29 (+27), ❌ 60 → 1 (-59) |
 
-(audit-kuma-v8.md, audit-primerbench-v4.md 기준 Req 단위)
+(audit-kuma-v9.md, audit-primerbench-v5.md 기준 Req 단위)
 
 (카테고리 단위 rollup 은 아래 표 참조)
 
 | § | Category | kuro | mame | primerbench | 변동 |
 |---|---|---|---|---|---|
 | 1 | Recovery | ✅ | ✅ | 🟡 | kuro/mame 🟡→✅ (Phase 10-A Restart Sidecar 진입점). PB Cancel 보강 (Phase E1) |
-| 2 | Observability | 🟡 | 🟡 | 🟡 | kuro/mame ETA + LogPanel (Phase 8c) |
+| 2 | Observability | ✅ | ✅ | 🟡 | kuro/mame 🟡→✅ (Phase 11-A health_info RPC + PID/RSS tooltip) |
 | 3 | Input Guards | ✅ | ✅ | 🟡 | kuro/mame 🟡→✅ (Phase 10-A schemaValidator). PB drag-drop + EmptyState (Phase E2) |
 | 4 | Error UX | ✅ | ✅ | 🟡 | kuro/mame 🟡→✅ (Phase 8b traceback + network 분리) |
 | 5 | Output Persistence | ✅ | ✅ | 🟡 | kuro/mame 🟡→✅ (Phase 8b openFolder + overwrite confirm). PB openFolder (Phase E2) |
-| 6 | Settings | 🟡 | 🟡 | 🟡 | kuro/mame i18n locale slot (Phase 9-C). 실제 번역 미도입 |
+| 6 | Settings | 🟡 | 🟡 | ✅ | kuro/mame Data folder + sidecar name (Phase 11-A). PB 🟡→✅ (Phase 11-D sidecar 버전). binary path 잔여 (kuro/mame) |
 | 7 | UI Safety | ✅ | ✅ | ✅ | PB 🟡→✅ (Phase A) |
-| 8 | A11y & Ergonomics | 🟡 | 🟡 | 🟡 | PB dark mode + ThemeToggle (Phase C) |
+| 8 | A11y & Ergonomics | ✅ | ✅ | 🟡 | kuro/mame 🟡→✅ (Phase 11-B shortcuts.ts + colorblind toggle + Shape prefix). PB 단축키 표 + StatusBadge (Phase 11-D) |
 | 9 | Versioning | ✅ | ✅ | 🟡 | PB auto update infrastructure (Phase E1) |
 | 10 | Telemetry & Privacy | ✅ | ✅ | ✅ | PB 🟡→✅ (Phase 10-C OfflineDisclosureDialog) |
 | 11 | Build & Distribution | ✅ | ✅ | 🟡 | kuro/mame 🟡→✅ (Phase 9-B codesign + build SHA). PB build SHA (Phase E3) |
 | 12 | Reproducibility | 🟡 | 🟡 | 🟡 | PB run.json + frontend lib (Phase B). PB ❌→🟡 |
 | 13 | Long-running Jobs | ✅ | ✅ | 🟡 | PB OS notification + sleep inhibit (Phase D). PB ❌→🟡 |
 | 14 | Data Integrity | ✅ | ✅ | 🟡 | PB output checksum (Phase B). PB ❌→🟡 |
-| 15 | Onboarding | 🟡 | 🟡 | 🟡 | PB Empty state + first-run (Phase E2) |
-| 16 | Local Diagnostics | 🟡 | 🟡 | 🟡 | kuro diagnostics bundle (Phase 8c). PB diagnostics text (Phase E3) |
+| 15 | Onboarding | ✅ | ✅ | ✅ | 전 앱 🟡→✅ (Phase 11-B/11-D InlineHelp + WhatsNewDialog) |
+| 16 | Local Diagnostics | ✅ | ✅ | 🟡 | mame 🟡→✅ (Phase 11-C Generate Diagnostics 진입점) |
 | 17 | Cross-platform | ✅ | ✅ | 🟡 | kuro/mame 🟡→✅ (Phase 10-B UTF-8 BOM CSV 옵션). PB OS shortcut (Phase E3) |
-| 18 | Partial Success | 🟡 | 🟡 | 🟡 | — |
+| 18 | Partial Success | ✅ | ✅ | 🟡 | kuro/mame 🟡→✅ (Phase 11-C StatusBadge 표준 + FailedMutationList/VerdictBadge 토큰 정렬). PB StatusBadge 도입 (panel 통합 잔여) |
 | 19 | Performance Guardrails | ✅ | ✅ | 🟡 | PB virtual scroll + input thresholds (Phase E3) |
 | 20 | Citation & Licensing | ✅ | ✅ | 🟡 | PB BibTeX + License + Third-party (Phase C). PB ❌→🟡 |
-| 21 | Multi-workspace | 🟡 | 🟡 | 🟡 | PB recent projects (Phase E3) |
-| 22 | Graceful Shutdown | ✅ | ✅ | 🟡 | kuro/mame ✅ 유지. PB handleExportExcel 보강 (Phase 10-C). shutdown hook 잔여 |
+| 21 | Multi-workspace | ✅ | ✅ | 🟡 | kuro/mame 🟡→✅ (Phase 11-C workspaceCompare + diff 모달). PB placeholders 추가 |
+| 22 | Graceful Shutdown | ✅ | ✅ | ✅ | PB 🟡→✅ (Phase 11-D shutdown hook 도입) |
 
-### Phase 1–10 + PB Phase A-G 누적 결과
+### Phase 1–11 + PB Phase A-H 누적 결과
 
-- **kuma kuro/mame ✅ 카테고리**: §1, §3, §4, §5, §7, §9, §10, §11, §13, §14, §17, §19, §20, §22 (총 14건). audit 시점 0건 → 14건
-- **PB ✅ 카테고리**: §7, §10 (총 2건). audit 시점 0건 → 2건
-- **kuma rollup**: kuro/mame 모두 ❌ 0 / 🟡 8 / ✅ 14
-- **PB rollup**: ❌ 0 / 🟡 20 / ✅ 2
-- **Req 단위 (audit v8)**: kuro 57/95, mame 57/97, primerbench 24/48
+- **kuma kuro/mame ✅ 카테고리**: §1, §2, §3, §4, §5, §7, §8, §9, §10, §11, §13, §14, §15, §16, §17, §18, §19, §20, §21, §22 (총 20건). audit 시점 0건 → 20건
+- **PB ✅ 카테고리**: §6, §7, §10, §15, §22 (총 5건). audit 시점 0건 → 5건
+- **kuma rollup**: kuro/mame 모두 ❌ 0 / 🟡 2 / ✅ 20 (잔여 §6, §12)
+- **PB rollup**: ❌ 0 / 🟡 17 / ✅ 5
+- **Req 단위 (audit v9)**: kuro 48/57, mame 46/57, primerbench 29/42
 
 ### 잔여 약점 (모두 [권장] 또는 부분 항목)
 
@@ -531,6 +531,7 @@ primerbench (대부분 🟡):
 - **v1.1 (2026-05-07)**: kuma Phase 8 (v0.3.7.x) + PB Phase E1-E3 (v0.04.07.02) 결과 반영. kuma kuro/mame §4/§5/§22 🟡→✅ (총 ✅ 카테고리 7→10), Req ✅ kuro 29→52, mame 27→52. PB §7 ❌→✅, ❌ 카테고리 0건 달성, Req ✅ 2→32. Appendix D 근거 링크 audit-kuma-v6.md, audit-primerbench-v2.md 로 갱신.
 - **v1.2 (2026-05-08)**: kuma Phase 9 (v0.3.7.5) + PB Phase F (v0.04.07.04) 결과 반영. kuma kuro/mame §11 🟡→✅ (codesign indicator + build SHA in About). §6 i18n locale slot 도입(번역 미바인딩). PB §10 분량 보강(External services + Privacy 섹션). PB §22 export flush (5/6 핸들러). ✅ 카테고리 kuro/mame 10→11. Appendix D 근거 audit-kuma-v7.md, audit-primerbench-v3.md.
 - **v1.3 (2026-05-08)**: kuma Phase 10 (v0.3.7.7) + PB Phase G (v0.04.07.05) 결과 반영. kuma kuro/mame §1/§3/§17 🟡→✅ (Restart Sidecar, schemaValidator, UTF-8 BOM CSV). PB §10 ❌→✅ (OfflineDisclosureDialog 첫 실행 모달). PB §22 handleExportExcel try/finally fixup. ✅ 카테고리 kuro/mame 11→14, PB 1→2. Appendix D 근거 audit-kuma-v8.md, audit-primerbench-v4.md.
+- **v1.4 (2026-05-08)**: kuma Phase 11 (v0.3.7.9) + PB Phase H (v0.04.07.06) 결과 반영. kuma kuro/mame §2/§8/§15/§16/§18/§21 🟡→✅ (health_info, shortcuts.ts + colorblind, InlineHelp + WhatsNew, mame Diagnostics, StatusBadge, workspaceCompare). PB §6/§15/§22 ❌→✅, §8/§18/§21 ❌→🟡. ✅ 카테고리 kuro/mame 14→20 (잔여 §6, §12 만), PB 2→5. Req ✅ kuro 57→48 audit 정밀화, mame 57→46, primerbench 24→29. Appendix D 근거 audit-kuma-v9.md, audit-primerbench-v5.md.
 
 ## 후속 액션
 
