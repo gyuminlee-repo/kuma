@@ -458,10 +458,10 @@ mame, primerbench 도 동일 형식 placeholder.
 | 앱 | ✅ | 🟡 | ❌ | Δ (audit 시점) |
 |---|---|---|---|---|
 | kuro | 50 | 7 | 0 | ✅ 16 → 50 (+34), ❌ 25 → 0 (-25) |
-| mame | 49 | 7 | 1 | ✅ 16 → 49 (+33), ❌ 26 → 1 (-25). 잔여 ❌ 1: §4 재현 정보 복사 (Phase 12-A 부분 구현, [권장] 보강 잔여) |
-| primerbench | 40 | 21 | 35 | ✅ 2 → 40 (+38), ❌ 60 → 35 (-25). 카테고리 8/22 ✅이나 Req 단위 [권장] 잔여 다수 |
+| mame | 50 | 7 | 0 | ✅ 16 → 50 (+34), ❌ 26 → 0 (-26). Phase J에서 §4 재현 정보 복사 메타데이터 보강 (App ver + OS + sidecar ver + timestamp + RPC trace) |
+| primerbench | ~62 | ~25 | ~9 | ✅ 40 → ~62 (+22), ❌ 35 → ~9 (-26). Phase J 6 그룹 일괄 보강 결과 (실측 v11 갱신 예정) |
 
-(Req 카운트 출처: `audit-kuma-v10.md`, `audit-primerbench-v6.md` (2026-05-08, Phase 12 직후 실측). 헌장 v1.5의 PB 추정치(33/8/0)는 v6 실측치(40/21/35)로 정정.)
+(Req 카운트 출처: Phase J 직후 추정. kuro/mame는 audit-v10 실측 + Phase J mame §4 보강. PB는 Phase J groups A/B/C/D/E/F 적용 결과 (커밋 0adf25a + a042b84) — 실측 v11 갱신 후 확정.)
 
 (카테고리 단위 rollup 은 아래 표 참조)
 
@@ -538,6 +538,7 @@ primerbench (대부분 🟡):
 - **v1.4 (2026-05-08)**: kuma Phase 11 (v0.3.7.9) + PB Phase H (v0.04.07.06) 결과 반영. kuma kuro/mame §2/§8/§15/§16/§18/§21 🟡→✅ (health_info, shortcuts.ts + colorblind, InlineHelp + WhatsNew, mame Diagnostics, StatusBadge, workspaceCompare). PB §6/§15/§22 ❌→✅, §8/§18/§21 ❌→🟡. ✅ 카테고리 kuro/mame 14→20 (잔여 §6, §12 만), PB 2→5. Req ✅ kuro 57→48 audit 정밀화, mame 57→46, primerbench 24→29. Appendix D 근거 audit-kuma-v9.md, audit-primerbench-v5.md.
 - **v1.5 (2026-05-08, FINAL)**: kuma Phase 12 (v0.3.7.11) + PB Phase I (v0.04.07.07) 결과 반영. kuma kuro/mame §6/§12 🟡→✅ (sidecar binary path Tauri command + mame seed N/A 분류 확정). kuma 22 카테고리 100% 달성. PB §8/§18/§21 🟡→✅ (shape prefix + summary 통계 + workspaceCompare 실동작). PB ✅ 카테고리 5→8. ❌ Req: kuro 0, mame 1, PB 0 (※ PB 추정치, v1.6에서 정정).
 - **v1.6 (2026-05-08, 수치 정정)**: audit-primerbench-v6.md 실측 결과로 PB Req 카운트 33/8/0 → 40/21/35 정정. PB는 카테고리 단위 8 ✅ / 14 🟡 / 0 ❌이나, Req 단위로 보면 [권장] 항목 35건이 미구현으로 잔여. kuma kuro/mame 수치는 변동 없음. v1.5의 "Phase 12 후 추정" 표기를 실측 출처(audit v10/v6)로 교체.
+- **v1.7 (2026-05-08, Phase J 일괄 보강)**: PB 잔여 ❌ 35건 + mame ❌ 1건 6 그룹 병렬 보강. PB §1 Recovery (Restart Sidecar busy-confirm + Dead-lock detector 15초 progress-idle), §2 Observability (ETA + 로그 패널), §3 Input Guards (pb:lastInputPath), §4 Error UX (Copy Crash Log + 네트워크 toast variant), §6 Settings (데이터 폴더 + sidecar 버전 + i18n locale slot), §8 A11y (sonner top-right), §9 Versioning (What's New menubar), §11 Build (codesign indicator + build SHA), §12 Reproducibility (Re-run manifest + seed N/A 명시), §13 Long-running (Job queue 연동), §14 Data Integrity (digest_file Tauri cmd + sidecar binary SHA-256), §17 Cross-platform (csvExport BOM util), §18 Partial Success (StatusBadge summary stats), §19 Performance (drag-drop pre-flight + psutil). mame §4 재현 정보 복사 메타데이터 풀-스택 (App ver + OS + sidecar ver + timestamp + RPC trace). 커밋: kuma `vX.X.X.X` (mame), PB `0adf25a v0.04.07.08` + `a042b84 v0.04.07.09`. 실측 audit v11 갱신 후 최종 수치 확정.
 
 ## 후속 액션
 

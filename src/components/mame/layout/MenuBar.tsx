@@ -29,7 +29,7 @@ import { LocaleToggle } from "@/components/ui/LocaleToggle";
 import { checkForUpdates, downloadAndInstall, type UpdateCheckResult } from "@/lib/updater";
 import type { Update } from "@tauri-apps/plugin-updater";
 import { invoke } from "@tauri-apps/api/core";
-import { killSidecar } from "@/lib/ipc";
+import { killSidecar, rpc } from "@/lib/ipc";
 import { getConfig } from "@/lib/project";
 import { getShortcutsFor } from "@/lib/shortcuts";
 import { getCrashLog } from "@/lib/crashLog";
@@ -139,20 +139,42 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
       .catch(() => setSidecarPath("mame-sidecar (path unavailable)"));
   }, [aboutOpen, sidecarPath]);
 
-  // §4 Error UX: copy repro info (version + crash log) to clipboard
+  // §4 Error UX: copy repro info (app version + OS + sidecar version + last RPC error trace)
   async function handleCopyCrashLog() {
     const log = getCrashLog();
     if (log.length === 0) {
       setCrashCopied(false);
       return;
     }
-    const text = log
+
+    // Collect sidecar version (best-effort; fallback to "unknown" on error)
+    let sidecarVersion = "unknown";
+    try {
+      const health = await rpc<{ sidecar_version: string }>("mame", "health", {});
+      sidecarVersion = health.sidecar_version;
+    } catch {
+      // sidecar may be unavailable during crash reporting — ignore
+    }
+
+    // Build header with reproduction metadata
+    const header = [
+      "=== MAME Crash Report ===",
+      `App version  : ${typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "unknown"}`,
+      `Sidecar      : ${sidecarVersion}`,
+      `OS           : ${navigator.userAgent}`,
+      `Timestamp    : ${new Date().toISOString()}`,
+      "",
+      "--- Error entries ---",
+    ].join("\n");
+
+    const entries = log
       .map(
         (e) =>
           `[${e.timestamp}] ${e.component}: ${e.message}${e.stack ? "\n" + e.stack : ""}`,
       )
       .join("\n---\n");
-    await navigator.clipboard.writeText(text);
+
+    await navigator.clipboard.writeText(`${header}\n${entries}`);
     setCrashCopied(true);
     setTimeout(() => setCrashCopied(false), 2000);
   }
