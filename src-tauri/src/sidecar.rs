@@ -506,6 +506,14 @@ fn binary_name(kind: &str) -> Result<&'static str, String> {
 ///   target-triple suffix from externalBin names in release bundles, so on all
 ///   platforms the binary is found at the bare base name.
 ///
+/// Manifest key lookup priority:
+/// 1. `{base_name}-{BUILD_TARGET}{ext}` — e.g. `kuro-sidecar-x86_64-pc-windows-msvc.exe`
+///    This is what `scripts/sidecar-hash.mjs` writes for each full filename.
+/// 2. `{base_name}{ext}` — e.g. `kuro-sidecar.exe`
+///    Fallback for a future hash script that strips the triple suffix.
+/// 3. `{base_name}` — e.g. `kuro-sidecar`
+///    Legacy/base-key fallback (NOTE: cross-build last-wins; not platform-deterministic).
+///
 /// In debug builds the function returns `Ok(())` immediately without reading
 /// any file, so developers do not need to regenerate hashes on every recompile.
 fn verify_binary_hash(
@@ -548,16 +556,23 @@ fn verify_binary_hash(
             )
         })?;
 
-    // Try full filename key first (`base_name.exe` on Windows), then base name.
-    let filename_key = format!("{base_name}{ext}");
+    // Build the three candidate keys in priority order:
+    //   1. triple-suffixed full key (matches sidecar-hash.mjs output exactly)
+    //   2. ext-only key (future-proofing)
+    //   3. bare base name (legacy cross-build fallback; not platform-deterministic)
+    let build_target = env!("BUILD_TARGET");
+    let triple_key = format!("{base_name}-{build_target}{ext}");
+    let ext_key = format!("{base_name}{ext}");
+
     let expected_hash = manifest
-        .get(&filename_key)
+        .get(&triple_key)
+        .or_else(|| manifest.get(&ext_key))
         .or_else(|| manifest.get(base_name))
         .and_then(|v| v.as_str())
         .filter(|s| !s.is_empty())
         .ok_or_else(|| {
             format!(
-                "[sidecar:{kind}] No hash entry for '{filename_key}' or '{base_name}' in manifest"
+                "[sidecar:{kind}] No hash entry for '{triple_key}', '{ext_key}', or '{base_name}' in manifest"
             )
         })?;
 

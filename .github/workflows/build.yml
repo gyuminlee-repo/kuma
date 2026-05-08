@@ -79,6 +79,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Regenerate sidecar hash manifest
+        run: node scripts/sidecar-hash.mjs
+        shell: bash
+
       - name: Collect Node dependency licenses
         run: |
           pnpm licenses list --json --prod > pnpm-licenses.json
