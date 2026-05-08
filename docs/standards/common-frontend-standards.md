@@ -459,7 +459,7 @@ mame, primerbench 도 동일 형식 placeholder.
 |---|---|---|---|---|
 | kuro | 50 | 7 | 0 | ✅ 16 → 50 (+34), ❌ 25 → 0 (-25) |
 | mame | 50 | 7 | 0 | ✅ 16 → 50 (+34), ❌ 26 → 0 (-26). Phase J에서 §4 재현 정보 복사 메타데이터 보강 (App ver + OS + sidecar ver + timestamp + RPC trace) |
-| primerbench | 51 | 21 | 1 | ✅ 40 → 51 (+11), ❌ 35 → 1 (-34). audit-v7 실측 50/21/2 + v0.04.07.12 §11 Build SHA fix → 51/21/1. 잔여 ❌ 1건은 §11 [필수] CI 실주입 검증으로, GITHUB_SHA env 명시 후 다음 release 산출물에서 검증 가능. §21 Export as Zip은 [권장]이므로 ❌ 카운트 제외 |
+| primerbench | 52 | 21 | 0 | ✅ 40 → 52 (+12), ❌ 35 → 0 (-35). audit-v7 실측 50/21/2 + v0.04.07.12 §11 fix (workflow env 명시 + vite.config.ts `__BUILD_SHA__` 정의) → 52/21/0. 코드 fix 완료, CI 산출물 실주입은 다음 release 빌드 로그에서 사후 재현 검증. §21 Export as Zip은 [권장]이므로 ❌ 카운트 제외 |
 
 (Req 카운트 출처: kuma는 audit-v11 실측 (mame §4 보강 후). PB는 audit-v7 실측 (50/21/2) + v0.04.07.12 §11 Build SHA fix (1 ❌→✅) + §5 HR/Mero export 폴더 기억 (Sanger 패턴 이식, 🟡 영역 quality 개선).)
 
@@ -496,7 +496,7 @@ mame, primerbench 도 동일 형식 placeholder.
 - **PB ✅ 카테고리**: §6, §7, §8, §10, §15, §18, §21, §22 (총 8건). audit 시점 0건 → 8건
 - **kuma rollup**: kuro/mame 모두 ❌ 0 / 🟡 0 / ✅ **22 (전 카테고리 충족)**
 - **PB rollup (카테고리)**: ❌ 0 / 🟡 14 / ✅ 8
-- **Req 단위 실측 (audit v11/v7 + v0.04.07.12 fix)**: kuro 50/57 ✅, mame 50/57 ✅ (Phase J §4 보강 후 ❌ 0), primerbench 51/73 ✅ + 1 ❌ (§11 CI 주입 검증). audit-v7 summary line `❌ §21 Export as Zip` 은 헌장 §21 [권장] 분류상 오분류로 정정.
+- **Req 단위 실측 (audit v11/v7 + v0.04.07.12 fix)**: kuro 50/57 ✅, mame 50/57 ✅ (Phase J §4 보강 후 ❌ 0), primerbench 52/73 ✅ (§11 코드 fix 완료, CI 사후 재현 검증). audit-v7 summary line `❌ §21 Export as Zip` 은 헌장 §21 [권장] 분류상 오분류로 정정.
 
 ### 헌장 100% 카테고리 충족 (kuma kuro/mame)
 
