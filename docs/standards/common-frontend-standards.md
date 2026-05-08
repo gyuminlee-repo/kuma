@@ -459,9 +459,9 @@ mame, primerbench 도 동일 형식 placeholder.
 |---|---|---|---|---|
 | kuro | 50 | 7 | 0 | ✅ 16 → 50 (+34), ❌ 25 → 0 (-25) |
 | mame | 50 | 7 | 0 | ✅ 16 → 50 (+34), ❌ 26 → 0 (-26). Phase J에서 §4 재현 정보 복사 메타데이터 보강 (App ver + OS + sidecar ver + timestamp + RPC trace) |
-| primerbench | ~62 | ~25 | ~9 | ✅ 40 → ~62 (+22), ❌ 35 → ~9 (-26). Phase J 6 그룹 일괄 보강 결과 (실측 v11 갱신 예정) |
+| primerbench | 51 | 21 | 1 | ✅ 40 → 51 (+11), ❌ 35 → 1 (-34). audit-v7 실측 50/21/2 + v0.04.07.12 §11 Build SHA fix → 51/21/1. 잔여 ❌ 1건은 §11 [필수] CI 실주입 검증으로, GITHUB_SHA env 명시 후 다음 release 산출물에서 검증 가능. §21 Export as Zip은 [권장]이므로 ❌ 카운트 제외 |
 
-(Req 카운트 출처: Phase J 직후 추정. kuro/mame는 audit-v10 실측 + Phase J mame §4 보강. PB는 Phase J groups A/B/C/D/E/F 적용 결과 (커밋 0adf25a + a042b84) — 실측 v11 갱신 후 확정.)
+(Req 카운트 출처: kuma는 audit-v11 실측 (mame §4 보강 후). PB는 audit-v7 실측 (50/21/2) + v0.04.07.12 §11 Build SHA fix (1 ❌→✅) + §5 HR/Mero export 폴더 기억 (Sanger 패턴 이식, 🟡 영역 quality 개선).)
 
 (카테고리 단위 rollup 은 아래 표 참조)
 
@@ -496,7 +496,7 @@ mame, primerbench 도 동일 형식 placeholder.
 - **PB ✅ 카테고리**: §6, §7, §8, §10, §15, §18, §21, §22 (총 8건). audit 시점 0건 → 8건
 - **kuma rollup**: kuro/mame 모두 ❌ 0 / 🟡 0 / ✅ **22 (전 카테고리 충족)**
 - **PB rollup (카테고리)**: ❌ 0 / 🟡 14 / ✅ 8
-- **Req 단위 실측 (audit v10/v6)**: kuro 50/57 ✅, mame 49/57 ✅ + 1 ❌, primerbench 40/96 ✅ + 35 ❌ (카테고리 단위 ❌ 0이지만 [권장] Req 잔여 다수)
+- **Req 단위 실측 (audit v11/v7 + v0.04.07.12 fix)**: kuro 50/57 ✅, mame 50/57 ✅ (Phase J §4 보강 후 ❌ 0), primerbench 51/73 ✅ + 1 ❌ (§11 CI 주입 검증). audit-v7 summary line `❌ §21 Export as Zip` 은 헌장 §21 [권장] 분류상 오분류로 정정.
 
 ### 헌장 100% 카테고리 충족 (kuma kuro/mame)
 
@@ -539,6 +539,7 @@ primerbench (대부분 🟡):
 - **v1.5 (2026-05-08, FINAL)**: kuma Phase 12 (v0.3.7.11) + PB Phase I (v0.04.07.07) 결과 반영. kuma kuro/mame §6/§12 🟡→✅ (sidecar binary path Tauri command + mame seed N/A 분류 확정). kuma 22 카테고리 100% 달성. PB §8/§18/§21 🟡→✅ (shape prefix + summary 통계 + workspaceCompare 실동작). PB ✅ 카테고리 5→8. ❌ Req: kuro 0, mame 1, PB 0 (※ PB 추정치, v1.6에서 정정).
 - **v1.6 (2026-05-08, 수치 정정)**: audit-primerbench-v6.md 실측 결과로 PB Req 카운트 33/8/0 → 40/21/35 정정. PB는 카테고리 단위 8 ✅ / 14 🟡 / 0 ❌이나, Req 단위로 보면 [권장] 항목 35건이 미구현으로 잔여. kuma kuro/mame 수치는 변동 없음. v1.5의 "Phase 12 후 추정" 표기를 실측 출처(audit v10/v6)로 교체.
 - **v1.7 (2026-05-08, Phase J 일괄 보강)**: PB 잔여 ❌ 35건 + mame ❌ 1건 6 그룹 병렬 보강. PB §1 Recovery (Restart Sidecar busy-confirm + Dead-lock detector 15초 progress-idle), §2 Observability (ETA + 로그 패널), §3 Input Guards (pb:lastInputPath), §4 Error UX (Copy Crash Log + 네트워크 toast variant), §6 Settings (데이터 폴더 + sidecar 버전 + i18n locale slot), §8 A11y (sonner top-right), §9 Versioning (What's New menubar), §11 Build (codesign indicator + build SHA), §12 Reproducibility (Re-run manifest + seed N/A 명시), §13 Long-running (Job queue 연동), §14 Data Integrity (digest_file Tauri cmd + sidecar binary SHA-256), §17 Cross-platform (csvExport BOM util), §18 Partial Success (StatusBadge summary stats), §19 Performance (drag-drop pre-flight + psutil). mame §4 재현 정보 복사 메타데이터 풀-스택 (App ver + OS + sidecar ver + timestamp + RPC trace). 커밋: kuma `vX.X.X.X` (mame), PB `0adf25a v0.04.07.08` + `a042b84 v0.04.07.09`. 실측 audit v11 갱신 후 최종 수치 확정.
+- **v1.8 (2026-05-08, audit v11/v7 실측 확정 + PB §11/§5 fix)**: 실측 재감사 audit-kuma-v11 (kuro/mame 22/22 ✅), audit-primerbench-v7 (Req 50/21/2). audit-v7 summary 줄의 §21 Export as Zip ❌ 분류는 헌장 §21 [권장] 분류와 충돌하여 오분류로 정정 → 실제 [필수] ❌은 §11 1건. PB v0.04.07.12 후속 fix: (a) `.github/workflows/{build,release}.yml` tauri-action env에 `GITHUB_SHA: ${{ github.sha }}` 명시, vite.config.ts `__BUILD_SHA__` 주입 보장. (b) §5 HR/Mero export 폴더 기억 — Sanger 패턴 이식 (LS_LAST_HR_EXPORT_DIR + LS_LAST_MERO_XLSX_DIR + LS_LAST_MERO_GB_DIR). (c) PB vitest 인프라 도입 + Phase J 8 모듈 50 케이스 (40 pass / 10 component test follow-up). 커밋 PB `46fcae6 v0.04.07.12`. PB Req 51/21/1 (§11 CI 실주입은 다음 release 산출물에서 GitHub Actions log 확인으로 검증).
 
 ## 후속 액션
 
