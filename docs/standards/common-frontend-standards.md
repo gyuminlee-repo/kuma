@@ -449,17 +449,19 @@ mame, primerbench 도 동일 형식 placeholder.
 }
 ```
 
-## Appendix D. Per-app Status Matrix (audit 2026-05-07, Phase 1–8 + PB Phase A-E 후)
+## Appendix D. Per-app Status Matrix (audit 2026-05-08, Phase 1–9 + PB Phase A-F 후)
 
-판정 규칙: 카테고리 내 모든 [필수]·[권장] Requirements 충족 → ✅ / 일부 충족 → 🟡 / 전부 미구현 → ❌. 셀 단위 상세 근거(파일:라인)는 `notes/agent-reports/audit-kuma-v6.md` (Phase 8 후), `notes/agent-reports/audit-primerbench-v2.md` (Phase A-E 후) 참조.
+판정 규칙: 카테고리 내 모든 [필수]·[권장] Requirements 충족 → ✅ / 일부 충족 → 🟡 / 전부 미구현 → ❌. 셀 단위 상세 근거(파일:라인)는 `notes/agent-reports/audit-kuma-v7.md` (Phase 9 후), `notes/agent-reports/audit-primerbench-v3.md` (Phase F 후) 참조.
 
 ### Req 단위 카운트
 
 | 앱 | ✅ | 🟡 | ❌ | Δ (audit 시점) |
 |---|---|---|---|---|
-| kuro | 52 | 31 | 6 | ✅ 16 → 52 (+36), ❌ 25 → 6 (-19) |
-| mame | 52 | 28 | 8 | ✅ 16 → 52 (+36), ❌ 26 → 8 (-18) |
-| primerbench | 32 | 17 | 43 | ✅ 2 → 32 (+30), ❌ 60 → 43 (-17) |
+| kuro | 40 | 14 | 3 | ✅ 16 → 40 (+24), ❌ 25 → 3 (-22) |
+| mame | 37 | 15 | 5 | ✅ 16 → 37 (+21), ❌ 26 → 5 (-21) |
+| primerbench | 22 | 12 | 7 | ✅ 2 → 22 (+20), ❌ 60 → 7 (-53) |
+
+(audit-kuma-v7.md, audit-primerbench-v3.md 기준 Req 단위)
 
 (카테고리 단위 rollup 은 아래 표 참조)
 
@@ -470,12 +472,12 @@ mame, primerbench 도 동일 형식 placeholder.
 | 3 | Input Guards | 🟡 | 🟡 | 🟡 | PB drag-drop + EmptyState 보강 (Phase E2) |
 | 4 | Error UX | ✅ | ✅ | 🟡 | kuro/mame 🟡→✅ (Phase 8b traceback + network 분리) |
 | 5 | Output Persistence | ✅ | ✅ | 🟡 | kuro/mame 🟡→✅ (Phase 8b openFolder + overwrite confirm). PB openFolder (Phase E2) |
-| 6 | Settings | 🟡 | 🟡 | 🟡 | — |
+| 6 | Settings | 🟡 | 🟡 | 🟡 | kuro/mame i18n locale slot (Phase 9-C). 실제 번역 미도입 |
 | 7 | UI Safety | ✅ | ✅ | ✅ | PB 🟡→✅ (Phase A) |
 | 8 | A11y & Ergonomics | 🟡 | 🟡 | 🟡 | PB dark mode + ThemeToggle (Phase C) |
 | 9 | Versioning | ✅ | ✅ | 🟡 | PB auto update infrastructure (Phase E1) |
-| 10 | Telemetry & Privacy | ✅ | ✅ | 🟡 | — |
-| 11 | Build & Distribution | 🟡 | 🟡 | 🟡 | PB build SHA + first-run (Phase E3) |
+| 10 | Telemetry & Privacy | ✅ | ✅ | 🟡 | PB External services + Privacy 섹션 + offline placeholder (Phase 9-A). consent modal 잔여 |
+| 11 | Build & Distribution | ✅ | ✅ | 🟡 | kuro/mame 🟡→✅ (Phase 9-B codesign + build SHA). PB build SHA (Phase E3) |
 | 12 | Reproducibility | 🟡 | 🟡 | 🟡 | PB run.json + frontend lib (Phase B). PB ❌→🟡 |
 | 13 | Long-running Jobs | ✅ | ✅ | 🟡 | PB OS notification + sleep inhibit (Phase D). PB ❌→🟡 |
 | 14 | Data Integrity | ✅ | ✅ | 🟡 | PB output checksum (Phase B). PB ❌→🟡 |
@@ -486,16 +488,15 @@ mame, primerbench 도 동일 형식 placeholder.
 | 19 | Performance Guardrails | ✅ | ✅ | 🟡 | PB virtual scroll + input thresholds (Phase E3) |
 | 20 | Citation & Licensing | ✅ | ✅ | 🟡 | PB BibTeX + License + Third-party (Phase C). PB ❌→🟡 |
 | 21 | Multi-workspace | 🟡 | 🟡 | 🟡 | PB recent projects (Phase E3) |
-| 22 | Graceful Shutdown | ✅ | ✅ | 🟡 | kuro/mame 🟡→✅ (Phase 8a shutdown hook). PB SIGKILL fallback (Phase D). PB ❌→🟡 |
+| 22 | Graceful Shutdown | ✅ | ✅ | 🟡 | kuro/mame 🟡→✅ (Phase 8a). PB pending export flush (Phase 9-A, 5/6 핸들러). handleExportExcel 잔여 |
 
-### Phase 1–8 + PB Phase A-E 누적 결과
+### Phase 1–9 + PB Phase A-F 누적 결과
 
-- **kuma kuro/mame ✅ 카테고리**: §4, §5, §7, §9, §10, §13, §14, §19, §20, §22 (총 10건). audit 시점 0건 → 10건
+- **kuma kuro/mame ✅ 카테고리**: §4, §5, §7, §9, §10, §11, §13, §14, §19, §20, §22 (총 11건). audit 시점 0건 → 11건
 - **PB ✅ 카테고리**: §7 (총 1건). audit 시점 0건 → 1건
-- **❌ 0 카테고리**: kuro/mame 0건 (모든 카테고리 ✅ 또는 🟡), PB 0건 (모든 카테고리 ✅ 또는 🟡)
-- **kuma rollup**: kuro/mame 모두 ❌ 0 / 🟡 12 / ✅ 10
+- **kuma rollup**: kuro/mame 모두 ❌ 0 / 🟡 11 / ✅ 11
 - **PB rollup**: ❌ 0 / 🟡 21 / ✅ 1
-- **Req 단위**: kuro 52/89, mame 52/88, primerbench 32/92
+- **Req 단위 (audit v7)**: kuro 40/57, mame 37/57, primerbench 22/41
 
 ### 잔여 약점 (모두 [권장] 또는 부분 항목)
 
@@ -528,6 +529,7 @@ primerbench (대부분 🟡):
 - **v0.7 (2026-05-07)**: Phase 7 (v0.3.6.0) 결과 반영. §9/§13/§19 kuro/mame 🟡→✅. ✅ 카테고리 4→7. Req ✅ 카운트 kuro 27→29, mame 25→27. PrimerBench 별도 레포 PB Phase A-D 동시 진행 중. 잔여 부진 카테고리: §1, §2, §4, §5, §6, §8, §11, §12, §15, §16, §17, §18, §21, §22 (모두 [권장] 또는 부분 미구현).
 - **v1.0 (2026-05-07)**: 정식 승격. status `draft → stable`, frontmatter version `0.1 → 1.0` (frontmatter 가 v0.1 부터 v0.7 까지 changelog 와 비동기로 stale 했던 것을 일치시킴). 모든 [필수] 카테고리에서 ❌ Req 0건, ✅ 카테고리 7/22, Req ✅ kuro 29/40·mame 27/40 달성. PrimerBench Phase A-D 완료(b7e2eab v0.04.07.00). 잔여 14 (kuma) + 10 (PB) 항목은 모두 [권장] 또는 부분 미구현이며 차기 마이너에서 점진 보강. 헌장 자체 변경은 본 항목으로 종결, 이후 카테고리 보강은 Phase 보고서로 추적.
 - **v1.1 (2026-05-07)**: kuma Phase 8 (v0.3.7.x) + PB Phase E1-E3 (v0.04.07.02) 결과 반영. kuma kuro/mame §4/§5/§22 🟡→✅ (총 ✅ 카테고리 7→10), Req ✅ kuro 29→52, mame 27→52. PB §7 ❌→✅, ❌ 카테고리 0건 달성, Req ✅ 2→32. Appendix D 근거 링크 audit-kuma-v6.md, audit-primerbench-v2.md 로 갱신.
+- **v1.2 (2026-05-08)**: kuma Phase 9 (v0.3.7.5) + PB Phase F (v0.04.07.04) 결과 반영. kuma kuro/mame §11 🟡→✅ (codesign indicator + build SHA in About). §6 i18n locale slot 도입(번역 미바인딩). PB §10 분량 보강(External services + Privacy 섹션). PB §22 export flush (5/6 핸들러). ✅ 카테고리 kuro/mame 10→11. Appendix D 근거 audit-kuma-v7.md, audit-primerbench-v3.md.
 
 ## 후속 액션
 
