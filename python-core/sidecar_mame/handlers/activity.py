@@ -237,8 +237,10 @@ def handle_activity_export_evolvepro_csv(params: dict) -> dict:
         allowed_extensions=_ALLOWED_EXPORT_EXTENSIONS,
     )
 
+    bom: bool = bool(params.get("bom", False))
+    encoding = "utf-8-sig" if bom else "utf-8"
     rows: list[MergedRow] = [MergedRow(**r) for r in merged_dicts]
-    written = export_evolvepro_csv(rows, out_path, round_n=round_n)
+    written = export_evolvepro_csv(rows, out_path, round_n=round_n, encoding=encoding)
 
     finished_at = datetime.now(timezone.utc)
 

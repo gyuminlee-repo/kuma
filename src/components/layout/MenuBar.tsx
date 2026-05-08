@@ -49,6 +49,7 @@ import { ManifestDiffDialog } from "../dialogs/ManifestDiffDialog";
 import { checkForUpdates, downloadAndInstall, type UpdateCheckResult } from "../../lib/updater";
 import type { Update } from "@tauri-apps/plugin-updater";
 import { invoke } from "@tauri-apps/api/core";
+import { killSidecar } from "../../lib/ipc";
 
 const MOD_KEY = navigator.userAgent.includes("Mac") ? "⌘" : "Ctrl+";
 
@@ -60,6 +61,7 @@ export function MenuBar() {
   const project = useKumaProject();
   const hasDesignResults = useAppStore((s) => s.designResults.length > 0);
   const isExporting = useAppStore((s) => s.isExporting);
+  const isDesigning = useAppStore((s) => s.isDesigning);
   const loadSampleData = useAppStore((s) => s.loadSampleData);
   const offlineMode = useAppStore((s) => s.offlineMode);
   const setOfflineMode = useAppStore((s) => s.setOfflineMode);
@@ -296,6 +298,18 @@ export function MenuBar() {
             Compare run manifests...
           </DropdownMenuItem>
           <DropdownMenuSeparator />
+          {/* §1 Recovery: UI 상태 보존 sidecar 재시작. Zustand 스토어는 메모리에 유지됨 */}
+          <DropdownMenuItem
+            onClick={() => {
+              const busy = isDesigning || isExporting;
+              if (busy && !window.confirm("작업이 진행 중입니다. 그래도 sidecar를 재시작하시겠습니까?")) return;
+              void killSidecar("kuro");
+            }}
+            disabled={false}
+          >
+            Restart Sidecar
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={() => handleExportExcel(project?.project_id)}
             disabled={!hasDesignResults || isExporting}
@@ -358,9 +372,9 @@ export function MenuBar() {
         open={mappingDialogOpen}
         initialFormat={mappingDialogFormat}
         onOpenChange={setMappingDialogOpen}
-        onExport={({ format, transferVol }) => {
+        onExport={({ format, transferVol, bom }) => {
           setMappingDialogOpen(false);
-          handleExportMappingWithParams(format, { transferVol });
+          handleExportMappingWithParams(format, { transferVol, bom });
         }}
       />
 

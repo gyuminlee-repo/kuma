@@ -8,11 +8,17 @@
  */
 
 import { create } from "zustand"
+import { readTextFile } from "@tauri-apps/plugin-fs"
 import { notifyJobComplete } from "@/lib/notify"
 import { notifyJobDone, notifyJobError } from "@/lib/toast"
 import { startKeepAwake, stopKeepAwake } from "@/lib/keepAwake"
 import { sendRequest } from "@/lib/ipc-mame"
 import { formatError } from "@/lib/utils"
+import {
+  validateCsvHeader,
+  extractCsvHeader,
+  MAME_ACTIVITY_CSV_SCHEMA,
+} from "@/lib/schemaValidator"
 import type {
   ActivityRecord,
   MergeForEvolveproResponse,
@@ -121,6 +127,27 @@ export function createActivityStore(roundStore: RoundStoreRef) {
 
     uploadActivityFile: async (round_id, file_path, format) => {
       set({ isUploading: true, uploadError: null })
+
+      // §3 Input Guards: CSV 형식일 때만 sidecar 호출 전 헤더 검증
+      // xlsx 는 바이너리이므로 frontend 검증 불가 — sidecar 에 위임
+      if (format === "long_csv") {
+        try {
+          const csvText = await readTextFile(file_path)
+          const header = extractCsvHeader(csvText)
+          const validation = validateCsvHeader(header, MAME_ACTIVITY_CSV_SCHEMA)
+          if (!validation.valid) {
+            const detail = validation.errors.join("; ")
+            set({
+              uploadError: `CSV 형식 오류: ${detail}`,
+              isUploading: false,
+            })
+            return
+          }
+        } catch {
+          // 파일 읽기 실패 시 sidecar 에 위임
+        }
+      }
+
       try {
         const result = await sendRequest<ActivityUploadResponse>(
           "activity.upload",

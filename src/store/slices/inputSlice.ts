@@ -1,5 +1,6 @@
 import type { StateCreator } from "zustand";
 import { resolveResource } from "@tauri-apps/api/path";
+import { readTextFile } from "@tauri-apps/plugin-fs";
 import { sendRequest } from "../../lib/ipc-kuro";
 import { formatError } from "../../lib/utils";
 import type { AppState } from "../types";
@@ -8,6 +9,12 @@ import {
   buildEvolveproLoadParams,
   buildEvolveproLoadStateUpdate,
 } from "./inputSlice.helpers";
+import {
+  validateCsvHeader,
+  extractCsvHeader,
+  EVOLVEPRO_CSV_SCHEMA,
+  MULTI_EVOLVE_CSV_SCHEMA,
+} from "../../lib/schemaValidator";
 
 import type { InputSlice } from "../slice-interfaces";
 export type { InputSlice };
@@ -71,6 +78,25 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       const isMultiEvolve = get().mutationInputMode === "multi-evolve";
       const modeLabel = isMultiEvolve ? "MULTI-evolve" : "EVOLVEpro";
       set({ statusMessage: `Loading ${modeLabel} CSV...`, evolveproCsvPath: filepath });
+
+      // §3 Input Guards: sidecar 호출 전 헤더 컬럼 검증
+      try {
+        const csvText = await readTextFile(filepath);
+        const header = extractCsvHeader(csvText);
+        const spec = isMultiEvolve ? MULTI_EVOLVE_CSV_SCHEMA : EVOLVEPRO_CSV_SCHEMA;
+        const validation = validateCsvHeader(header, spec);
+        if (!validation.valid) {
+          const detail = validation.errors.join("; ");
+          set({
+            statusMessage: `${modeLabel} CSV 형식 오류: ${detail}`,
+            evolveproCsvPath: "",
+          });
+          return;
+        }
+      } catch {
+        // 파일 읽기 실패 시 sidecar 에 위임 (경로 오류는 sidecar가 처리)
+      }
+
       const usePipeline = pipelineMode && !isMultiEvolve;
         const params = buildEvolveproLoadParams({
           filepath,

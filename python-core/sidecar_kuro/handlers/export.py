@@ -298,10 +298,11 @@ def handle_export_order(params: dict) -> dict:
                 raise ValueError("No design available. Run design_sdm_primers first.")
             results = list(_core._state.results)
 
+    encoding = "utf-8-sig" if p.bom else "utf-8"
     if p.format == "idt":
-        export_idt_csv(results, resolved)
+        export_idt_csv(results, resolved, encoding=encoding)
     else:
-        export_twist_csv(results, resolved)
+        export_twist_csv(results, resolved, encoding=encoding)
 
     finished_at = datetime.now(timezone.utc)
 
@@ -353,6 +354,7 @@ def handle_export_mapping(params: dict) -> dict:
 
     use_xlsx = resolved.suffix.lower() == ".xlsx"
 
+    encoding = "utf-8-sig" if p.bom else "utf-8"
     if p.format == "echo":
         vol = _resolve_mapping_transfer_volume(p.format, p.transfer_vol)
         if use_xlsx:
@@ -360,7 +362,8 @@ def handle_export_mapping(params: dict) -> dict:
                                      transfer_vol=vol, rev_groups=rev_groups)
         else:
             export_echo_mapping_csv(fwd_mappings, rev_mappings, resolved,
-                                    transfer_vol=vol, rev_groups=rev_groups)
+                                    transfer_vol=vol, rev_groups=rev_groups,
+                                    encoding=encoding)
     else:
         vol = _resolve_mapping_transfer_volume(p.format, p.transfer_vol)
         if use_xlsx:
@@ -368,7 +371,8 @@ def handle_export_mapping(params: dict) -> dict:
                                       transfer_vol=vol, rev_groups=rev_groups)
         else:
             export_janus_mapping_csv(fwd_mappings, rev_mappings, resolved,
-                                     transfer_vol=vol, rev_groups=rev_groups)
+                                     transfer_vol=vol, rev_groups=rev_groups,
+                                     encoding=encoding)
 
     finished_at = datetime.now(timezone.utc)
 
@@ -469,7 +473,8 @@ def handle_export_benchmark_csv(params: dict) -> dict:
         "threshold",
         "n_trials",
     ]
-    with open(resolved, "w", encoding="utf-8", newline="") as f:
+    encoding = "utf-8-sig" if p.bom else "utf-8"
+    with open(resolved, "w", encoding=encoding, newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         for strategy, metrics in p.results.items():

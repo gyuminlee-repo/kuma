@@ -511,6 +511,7 @@ class ExportOrderParams(BaseModel):
     filepath: str
     format: Literal["idt", "twist"] = "idt"
     results: Optional[list[ExportOrderItem]] = None
+    bom: bool = False
 
 
 class ExportMappingParams(BaseModel):
@@ -519,6 +520,7 @@ class ExportMappingParams(BaseModel):
     transfer_vol: Optional[float] = None  # nL for echo, µL for janus; None = format default
     mappings: Optional[list[PlateMappingItem]] = None
     dedup_info: Optional[dict[str, list[str]]] = None
+    bom: bool = False
 
 
 class SaveWorkspaceParams(BaseModel):
@@ -571,6 +573,7 @@ class BenchmarkResultDict(TypedDict, total=False):
 class ExportBenchmarkCsvParams(BaseModel):
     filepath: str
     results: dict[str, BenchmarkResultDict] = Field(default_factory=dict)
+    bom: bool = False
 
 
 # ---------------------------------------------------------------------------

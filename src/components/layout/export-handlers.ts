@@ -69,7 +69,7 @@ export async function handleExportExcel(projectId?: string) {
 
 export async function handleExportMappingWithParams(
   format: "echo" | "janus",
-  params: { transferVol: number },
+  params: { transferVol: number; bom: boolean },
 ) {
   const target = format === "echo" ? "Echo" : "JANUS";
   const selectedPath = await save({
@@ -94,6 +94,7 @@ export async function handleExportMappingWithParams(
       transfer_vol: params.transferVol,
       mappings: orderedMappings,
       dedup_info: dedupInfo,
+      bom: params.bom,
     };
     await sendRequest("export_mapping", { ...payload, filepath: xlsxPath });
     await sendRequest("export_mapping", { ...payload, filepath: csvPath });

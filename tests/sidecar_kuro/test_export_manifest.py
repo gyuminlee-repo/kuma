@@ -250,3 +250,83 @@ def test_export_excel_checksum_path_in_response(tmp_path, minimal_state):
     })
     assert "checksum_path" in result
     assert result["checksum_path"].endswith("plate_csr.xlsx.sha256")
+
+
+# ---------------------------------------------------------------------------
+# UTF-8 BOM option tests — §17 Cross-platform
+# ---------------------------------------------------------------------------
+
+BOM = b"\xef\xbb\xbf"
+
+
+def test_export_order_bom_true_produces_bom(tmp_path, minimal_state):
+    """bom=True: first 3 bytes of output file must be UTF-8 BOM (EF BB BF)."""
+    out = tmp_path / "order_bom.csv"
+    handle_export_order({
+        "filepath": str(out),
+        "format": "idt",
+        "results": [_make_order_item()],
+        "bom": True,
+    })
+    assert out.read_bytes()[:3] == BOM, "Expected UTF-8 BOM (EF BB BF) at start of file"
+
+
+def test_export_order_bom_false_no_bom(tmp_path, minimal_state):
+    """bom=False (default): output file must NOT start with BOM."""
+    out = tmp_path / "order_nobom.csv"
+    handle_export_order({
+        "filepath": str(out),
+        "format": "idt",
+        "results": [_make_order_item()],
+        "bom": False,
+    })
+    assert out.read_bytes()[:3] != BOM, "Unexpected UTF-8 BOM when bom=False"
+
+
+def test_export_order_default_no_bom(tmp_path, minimal_state):
+    """Default (bom omitted): output must NOT start with BOM (backward compat)."""
+    out = tmp_path / "order_default.csv"
+    handle_export_order({
+        "filepath": str(out),
+        "format": "idt",
+        "results": [_make_order_item()],
+    })
+    assert out.read_bytes()[:3] != BOM, "Unexpected UTF-8 BOM with default params"
+
+
+def test_export_benchmark_csv_bom_true(tmp_path, minimal_state):
+    """export_benchmark_csv with bom=True: first 3 bytes must be BOM."""
+    from sidecar_kuro.handlers.export import handle_export_benchmark_csv
+    out = tmp_path / "bench_bom.csv"
+    handle_export_benchmark_csv({
+        "filepath": str(out),
+        "results": {
+            "topn": {
+                "n_selected": 10, "hit_rate": 0.5, "mean_fitness": 1.0,
+                "unique_positions": 5, "position_coverage": 0.5,
+                "domain_coverage": 0.8, "structural_spread": 0.3,
+                "hits": 5, "threshold": 10.0, "n_trials": 100,
+            }
+        },
+        "bom": True,
+    })
+    assert out.read_bytes()[:3] == BOM, "Expected BOM in benchmark CSV with bom=True"
+
+
+def test_export_benchmark_csv_bom_false(tmp_path, minimal_state):
+    """export_benchmark_csv with bom=False: no BOM."""
+    from sidecar_kuro.handlers.export import handle_export_benchmark_csv
+    out = tmp_path / "bench_nobom.csv"
+    handle_export_benchmark_csv({
+        "filepath": str(out),
+        "results": {
+            "topn": {
+                "n_selected": 10, "hit_rate": 0.5, "mean_fitness": 1.0,
+                "unique_positions": 5, "position_coverage": 0.5,
+                "domain_coverage": 0.8, "structural_spread": 0.3,
+                "hits": 5, "threshold": 10.0, "n_trials": 100,
+            }
+        },
+        "bom": False,
+    })
+    assert out.read_bytes()[:3] != BOM, "Unexpected BOM with bom=False"

@@ -50,3 +50,34 @@ def test_export_excluded_csv(tmp_path: Path) -> None:
     assert len(excl) == 1
     reason = excl[0]["reason"].lower()
     assert "ngs_success" in reason or "ngs" in reason
+
+
+# ---------------------------------------------------------------------------
+# UTF-8 BOM option tests — §17 Cross-platform
+# ---------------------------------------------------------------------------
+
+BOM = b"\xef\xbb\xbf"
+
+
+def test_export_evolvepro_csv_bom_true(tmp_path: Path) -> None:
+    """encoding='utf-8-sig': first 3 bytes must be UTF-8 BOM."""
+    rows = [_row()]
+    out = tmp_path / "evolvepro_bom.csv"
+    export_evolvepro_csv(rows, out, round_n=1, encoding="utf-8-sig")
+    assert out.read_bytes()[:3] == BOM, "Expected UTF-8 BOM with encoding='utf-8-sig'"
+
+
+def test_export_evolvepro_csv_bom_false(tmp_path: Path) -> None:
+    """Default encoding='utf-8': no BOM."""
+    rows = [_row()]
+    out = tmp_path / "evolvepro_nobom.csv"
+    export_evolvepro_csv(rows, out, round_n=1, encoding="utf-8")
+    assert out.read_bytes()[:3] != BOM, "Unexpected BOM with encoding='utf-8'"
+
+
+def test_export_evolvepro_csv_default_no_bom(tmp_path: Path) -> None:
+    """Default (encoding omitted): no BOM — backward compat."""
+    rows = [_row()]
+    out = tmp_path / "evolvepro_default.csv"
+    export_evolvepro_csv(rows, out, round_n=1)
+    assert out.read_bytes()[:3] != BOM, "Unexpected BOM with default params"

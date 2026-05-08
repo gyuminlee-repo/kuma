@@ -24,6 +24,7 @@ def export_evolvepro_csv(
     rows: list[MergedRow],
     path: Path,
     round_n: int,
+    encoding: str = "utf-8",
 ) -> int:
     """Export filtered MergedRow list to EVOLVEpro-compatible CSV.
 
@@ -38,6 +39,7 @@ def export_evolvepro_csv(
         rows: Full merged table.
         path: Output CSV path for kept rows.
         round_n: Round number to include as a helper column.
+        encoding: File encoding (default "utf-8"; use "utf-8-sig" for BOM).
 
     Returns:
         Number of rows written to the main CSV.
@@ -55,7 +57,7 @@ def export_evolvepro_csv(
         else:
             kept.append(r)
 
-    with open(path, "w", newline="") as f:
+    with open(path, "w", newline="", encoding=encoding) as f:
         writer = csv.DictWriter(f, fieldnames=COLUMNS)
         writer.writeheader()
         for r in kept:
@@ -70,7 +72,7 @@ def export_evolvepro_csv(
             })
 
     excluded_path = path.with_suffix(".excluded.csv")
-    with open(excluded_path, "w", newline="") as f:
+    with open(excluded_path, "w", newline="", encoding=encoding) as f:
         writer = csv.DictWriter(f, fieldnames=COLUMNS + ["reason"])
         writer.writeheader()
         for r, reason in excluded:

@@ -451,6 +451,7 @@ def export_idt_csv(
     output_path: Path,
     scale: str = "25nm",
     purification: str = "STD",
+    encoding: str = "utf-8",
 ) -> None:
     """Export primer order CSV in IDT OligoEntry format.
 
@@ -462,10 +463,11 @@ def export_idt_csv(
         output_path: Path to output CSV file.
         scale: Synthesis scale (default: "25nm").
         purification: Purification type (default: "STD").
+        encoding: File encoding (default "utf-8"; use "utf-8-sig" for BOM).
     """
     import csv
 
-    with open(output_path, "w", newline="", encoding="utf-8") as f:
+    with open(output_path, "w", newline="", encoding=encoding) as f:
         writer = csv.writer(f)
         writer.writerow(["Name", "Sequence", "Scale", "Purification"])
         for r in results:
@@ -476,6 +478,7 @@ def export_idt_csv(
 def export_twist_csv(
     results: list[SdmPrimerResult],
     output_path: Path,
+    encoding: str = "utf-8",
 ) -> None:
     """Export primer order CSV in Twist Bioscience bulk order format.
 
@@ -485,10 +488,11 @@ def export_twist_csv(
     Args:
         results: List of SdmPrimerResult from primer design.
         output_path: Path to output CSV file.
+        encoding: File encoding (default "utf-8"; use "utf-8-sig" for BOM).
     """
     import csv
 
-    with open(output_path, "w", newline="", encoding="utf-8") as f:
+    with open(output_path, "w", newline="", encoding=encoding) as f:
         writer = csv.writer(f)
         writer.writerow(["Name", "Sequence", "Notes"])
         for r in results:
@@ -546,6 +550,7 @@ def export_echo_mapping_csv(
     output_path: Path,
     transfer_vol: int = 100,
     rev_groups: dict[str, list[str]] | None = None,
+    encoding: str = "utf-8",
 ) -> None:
     """Export Echo 525 acoustic dispenser mapping CSV.
 
@@ -564,6 +569,7 @@ def export_echo_mapping_csv(
         transfer_vol: Transfer volume in nL (default 100).
         rev_groups: Reverse deduplication map {seq: [mutation_names]}.
             Used to expand shared primers to all destination wells.
+        encoding: File encoding (default "utf-8"; use "utf-8-sig" for BOM).
     """
     import csv
 
@@ -571,7 +577,7 @@ def export_echo_mapping_csv(
         fwd_mappings, rev_mappings, rev_groups,
     )
 
-    with open(output_path, "w", newline="", encoding="utf-8") as f:
+    with open(output_path, "w", newline="", encoding=encoding) as f:
         writer = csv.writer(f)
         writer.writerow([
             "Source Plate Name", "Source Well Name", "Source Well",
@@ -619,6 +625,7 @@ def export_janus_mapping_csv(
     output_path: Path,
     transfer_vol: float = 2.0,
     rev_groups: dict[str, list[str]] | None = None,
+    encoding: str = "utf-8",
 ) -> None:
     """Export JANUS liquid handler mapping CSV.
 
@@ -635,6 +642,7 @@ def export_janus_mapping_csv(
         output_path: Output CSV file path.
         transfer_vol: Dispense volume in µL (default 2.0).
         rev_groups: Reverse deduplication map {seq: [mutation_names]}.
+        encoding: File encoding (default "utf-8"; use "utf-8-sig" for BOM).
     """
     import csv
 
@@ -642,7 +650,7 @@ def export_janus_mapping_csv(
         fwd_mappings, rev_mappings, rev_groups,
     )
 
-    with open(output_path, "w", newline="", encoding="utf-8") as f:
+    with open(output_path, "w", newline="", encoding=encoding) as f:
         writer = csv.writer(f)
         # Header matches JANUS format exactly (Dsp. Rack appears twice)
         writer.writerow([

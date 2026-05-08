@@ -323,9 +323,9 @@ export function PlateMap() {
       <MappingExportDialog
         open={exportDialogOpen}
         onOpenChange={setExportDialogOpen}
-        onExport={({ format, transferVol }) => {
+        onExport={({ format, transferVol, bom }) => {
           setExportDialogOpen(false);
-          handleExportMappingWithParams(format, { transferVol });
+          handleExportMappingWithParams(format, { transferVol, bom });
         }}
       />
     </div>

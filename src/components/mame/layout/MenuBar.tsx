@@ -29,6 +29,7 @@ import { LocaleToggle } from "@/components/ui/LocaleToggle";
 import { checkForUpdates, downloadAndInstall, type UpdateCheckResult } from "@/lib/updater";
 import type { Update } from "@tauri-apps/plugin-updater";
 import { invoke } from "@tauri-apps/api/core";
+import { killSidecar } from "@/lib/ipc";
 
 const MOD_KEY = typeof navigator !== "undefined" && navigator.userAgent.includes("Mac") ? "⌘" : "Ctrl+";
 
@@ -166,6 +167,17 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => void cancelAnalysis()} disabled={!isAnalyzing}>
             <span className="flex-1">Cancel Analysis</span>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          {/* §1 Recovery: UI 상태 보존 sidecar 재시작. Zustand 스토어는 메모리에 유지됨 */}
+          <DropdownMenuItem
+            onClick={() => {
+              if (isAnalyzing && !window.confirm("분석이 진행 중입니다. 그래도 sidecar를 재시작하시겠습니까?")) return;
+              void killSidecar("mame");
+            }}
+            disabled={false}
+          >
+            Restart Sidecar
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={openExport} disabled={!hasResults}>

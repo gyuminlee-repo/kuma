@@ -14,7 +14,7 @@ interface MappingExportDialogProps {
   open: boolean;
   initialFormat?: "echo" | "janus";
   onOpenChange: (open: boolean) => void;
-  onExport: (params: { format: "echo" | "janus"; transferVol: number }) => void;
+  onExport: (params: { format: "echo" | "janus"; transferVol: number; bom: boolean }) => void;
 }
 
 type MappingFormat = "echo" | "janus";
@@ -36,6 +36,7 @@ export function MappingExportDialog({
   const [format, setFormat] = useState<"echo" | "janus">(initialFormat);
   const cfg = FORMAT_DEFAULTS[format];
   const [transferVol, setTransferVol] = useState<number>(cfg.transferVol);
+  const [bom, setBom] = useState<boolean>(false);
 
   // Apply initial format when opened; reset transferVol when format changes.
   useEffect(() => {
@@ -47,7 +48,7 @@ export function MappingExportDialog({
   }, [format]);
 
   function handleExportClick() {
-    onExport({ format, transferVol });
+    onExport({ format, transferVol, bom });
   }
 
   const label = format === "echo" ? "Echo" : "JANUS";
@@ -121,6 +122,25 @@ export function MappingExportDialog({
             </p>
           </div>
         </div>
+
+          {/* BOM option */}
+          <div className="flex items-center gap-2 rounded-container border border-border bg-card px-4 py-3">
+            <input
+              id="mapping-bom-checkbox"
+              type="checkbox"
+              checked={bom}
+              onChange={(e) => setBom(e.target.checked)}
+              className="h-4 w-4 rounded border-border accent-primary cursor-pointer"
+              aria-label="Add UTF-8 BOM for Excel compatibility"
+            />
+            <label
+              htmlFor="mapping-bom-checkbox"
+              className="text-sm text-foreground cursor-pointer select-none"
+            >
+              Add UTF-8 BOM
+              <span className="ml-1 text-muted-foreground">(Excel compatibility)</span>
+            </label>
+          </div>
 
         <DialogFooter>
           <Button

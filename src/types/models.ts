@@ -521,15 +521,15 @@ export interface RpcMethodMap {
     result: ExportResult;
   };
   export_order: {
-    params: RpcParams;
+    params: RpcParams & { bom?: boolean };
     result: ExportOrderResult;
   };
   export_mapping: {
-    params: RpcParams;
+    params: RpcParams & { bom?: boolean };
     result: ExportMappingResult;
   };
   export_benchmark_csv: {
-    params: { filepath: string; results: Record<string, BenchmarkResult> };
+    params: { filepath: string; results: Record<string, BenchmarkResult>; bom?: boolean };
     result: ExportResult;
   };
   evaluate_primer: {
