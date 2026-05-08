@@ -32,6 +32,7 @@ import {
 } from "../ui/dialog";
 import { MenuBar } from "./MenuBar";
 import { StatusBar } from "./StatusBar";
+import { WhatsNewDialog } from "../dialogs/WhatsNewDialog";
 import { NetworkConsentDialog } from "../dialogs/NetworkConsentDialog";
 import { InputSizeWarningDialog } from "../dialogs/InputSizeWarningDialog";
 import { PreflightDialog } from "../dialogs/PreflightDialog";
@@ -324,6 +325,7 @@ export function AppLayout() {
 
   return (
     <div className={`flex h-screen flex-col bg-background ${isDragOver ? "ring-2 ring-inset ring-ring" : ""}`}>
+      <WhatsNewDialog />
       <NetworkConsentDialog />
       <MenuBar />
 

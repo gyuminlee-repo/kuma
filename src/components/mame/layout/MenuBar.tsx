@@ -30,6 +30,14 @@ import { checkForUpdates, downloadAndInstall, type UpdateCheckResult } from "@/l
 import type { Update } from "@tauri-apps/plugin-updater";
 import { invoke } from "@tauri-apps/api/core";
 import { killSidecar } from "@/lib/ipc";
+import { getConfig } from "@/lib/project";
+import { getShortcutsFor } from "@/lib/shortcuts";
+import { generateDiagnosticsBundle } from "@/lib/diagnostics";
+import { revealInOSFolder } from "@/lib/openFolder";
+import { compareWorkspaces } from "@/lib/workspaceCompare";
+import type { WorkspaceComparison, WorkspaceDiff } from "@/lib/workspaceCompare";
+import { open as openFilePicker } from "@tauri-apps/plugin-dialog";
+import { readTextFile as readTextFileFs } from "@tauri-apps/plugin-fs";
 
 const MOD_KEY = typeof navigator !== "undefined" && navigator.userAgent.includes("Mac") ? "⌘" : "Ctrl+";
 
@@ -69,6 +77,12 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
   // §11 Build & Distribution: codesign status (lazy-loaded when About opens)
   const [codesignStatus, setCodesignStatus] = useState<string | null>(null);
 
+  // §6 Settings: data folder path (lazy-loaded when About opens)
+  const [dataFolder, setDataFolder] = useState<string | null>(null);
+
+  // §8 A11y: keyboard shortcuts table data
+  const mameShortcuts = getShortcutsFor("mame");
+
   const MAME_BIBTEX = `@software{mame_TBD,
   title  = {MAME: Multi-round Activity & Mutation Engine},
   author = {Kang, Hyemin and KRIBB C1 Lab},
@@ -105,6 +119,14 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
       .catch(() => setCodesignStatus("unknown"));
   }, [aboutOpen, codesignStatus]);
 
+  // §6 Settings: load data folder path once when About opens
+  useEffect(() => {
+    if (!aboutOpen || dataFolder !== null) return;
+    void getConfig()
+      .then((cfg) => setDataFolder(cfg.projects_root))
+      .catch(() => setDataFolder("unknown"));
+  }, [aboutOpen, dataFolder]);
+
   async function handleCopyBibtex() {
     await navigator.clipboard.writeText(MAME_BIBTEX);
     setBibtexCopied(true);
@@ -135,6 +157,59 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
       });
     } finally {
       setUpdateInstalling(false);
+    }
+  }
+
+  // §16 Diagnostics
+  const [diagnosticsGenerating, setDiagnosticsGenerating] = useState(false);
+  const [diagnosticsError, setDiagnosticsError] = useState<string | null>(null);
+
+  // §21 Multi-workspace: compare workspaces modal
+  const [wsCompareOpen, setWsCompareOpen] = useState(false);
+  const [wsComparison, setWsComparison] = useState<WorkspaceComparison | null>(null);
+
+  async function handleGenerateDiagnostics() {
+    setDiagnosticsGenerating(true);
+    setDiagnosticsError(null);
+    try {
+      // mame has no sidecar log buffer — pass empty array
+      const filePath = await generateDiagnosticsBundle([]);
+      if (filePath) {
+        await revealInOSFolder(filePath);
+      }
+    } catch (err) {
+      setDiagnosticsError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setDiagnosticsGenerating(false);
+    }
+  }
+
+  async function handleCompareWorkspaces() {
+    const pathA = await openFilePicker({
+      multiple: false,
+      filters: [{ name: "Workspace JSON", extensions: ["json"] }],
+      title: "Select first workspace (A)",
+    });
+    if (!pathA || typeof pathA !== "string") return;
+
+    const pathB = await openFilePicker({
+      multiple: false,
+      filters: [{ name: "Workspace JSON", extensions: ["json"] }],
+      title: "Select second workspace (B)",
+    });
+    if (!pathB || typeof pathB !== "string") return;
+
+    try {
+      const [textA, textB] = await Promise.all([
+        readTextFileFs(pathA),
+        readTextFileFs(pathB),
+      ]);
+      const a = JSON.parse(textA) as unknown;
+      const b = JSON.parse(textB) as unknown;
+      setWsComparison(compareWorkspaces(a, b));
+      setWsCompareOpen(true);
+    } catch (err) {
+      window.alert(`Workspace compare failed: ${String(err)}`);
     }
   }
 
@@ -189,6 +264,16 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setRunReportOpen(true)} disabled={!hasResults}>
             <span className="flex-1">Export Run Report…</span>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          {/* §21 Multi-workspace */}
+          <DropdownMenuItem onClick={() => void handleCompareWorkspaces()}>
+            <span className="flex-1">Compare workspaces…</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => window.alert("Export workspace as zip — coming soon")}
+          >
+            <span className="flex-1">Export workspace as zip…</span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -248,6 +333,8 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
             setBibtexCopied(false);
             setUpdateResult(null);
             setCodesignStatus(null);
+            setDataFolder(null);
+            setDiagnosticsError(null);
           }
         }}
       >
@@ -347,6 +434,27 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
             </p>
           </div>
 
+          {/* §8 A11y: Keyboard shortcuts table */}
+          <div className="flex flex-col gap-1.5">
+            <p className="text-sm font-semibold text-foreground">Keyboard Shortcuts</p>
+            <table className="w-full text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="py-0.5 pr-3 text-left font-semibold text-muted-foreground">Keys</th>
+                  <th className="py-0.5 text-left font-semibold text-muted-foreground">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mameShortcuts.map((s) => (
+                  <tr key={s.keys} className="border-b border-border/40 last:border-0">
+                    <td className="py-0.5 pr-3 font-mono text-foreground">{s.keys}</td>
+                    <td className="py-0.5 text-muted-foreground">{s.action}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
           {/* §6 Language slot */}
           <div className="flex flex-col gap-1.5">
             <p className="text-sm font-semibold text-foreground">Language</p>
@@ -378,7 +486,7 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
             )}
           </div>
 
-          {/* §11 Build & Distribution: Build SHA + Code Signing */}
+          {/* §11 Build & Distribution + §6 Settings: Build info */}
           <div className="flex flex-col gap-1">
             <p className="text-sm font-semibold text-foreground">Build</p>
             <p className="font-mono text-xs text-muted-foreground">
@@ -387,6 +495,51 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
             <p className="text-xs text-muted-foreground">
               Code Signing:{" "}
               <span className="font-mono">{codesignStatus ?? "loading..."}</span>
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Sidecar:{" "}
+              <span className="font-mono">mame-sidecar</span>
+            </p>
+          </div>
+
+          {/* §6 Settings: Data folder */}
+          <div className="flex flex-col gap-1.5">
+            <p className="text-sm font-semibold text-foreground">Data folder</p>
+            <p
+              className="font-mono text-xs text-muted-foreground break-all"
+              title={dataFolder ?? undefined}
+            >
+              {dataFolder ?? "loading..."}
+            </p>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setAboutOpen(false);
+                window.dispatchEvent(new CustomEvent("kuma:show-onboarding"));
+              }}
+            >
+              Change...
+            </Button>
+          </div>
+
+          {/* §16 Local Diagnostics */}
+          <div className="flex flex-col gap-1.5">
+            <p className="text-sm font-semibold text-foreground">Diagnostics</p>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={diagnosticsGenerating}
+              onClick={() => void handleGenerateDiagnostics()}
+            >
+              {diagnosticsGenerating ? "Generating..." : "Generate Diagnostics"}
+            </Button>
+            {diagnosticsError && (
+              <p className="text-xs text-destructive">{diagnosticsError}</p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Saves a JSON bundle (app info + crash log) to a location you choose.
+              No user data or sequences are included.
             </p>
           </div>
 
@@ -414,6 +567,55 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
           </div>
           <DialogFooter>
             <Button size="sm" onClick={() => setNoticeOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* §21 Multi-workspace: compare workspaces result modal */}
+      <Dialog open={wsCompareOpen} onOpenChange={setWsCompareOpen}>
+        <DialogContent className="max-w-2xl max-h-[70vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Compare Workspaces</DialogTitle>
+            <DialogDescription>
+              {wsComparison && wsComparison.differences.length === 0
+                ? "The two workspaces are identical."
+                : wsComparison
+                  ? `${wsComparison.differences.length} difference${wsComparison.differences.length === 1 ? "" : "s"} found.`
+                  : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto">
+            {wsComparison && wsComparison.differences.length > 0 ? (
+              <table className="w-full text-xs font-mono border-collapse">
+                <thead>
+                  <tr className="border-b border-border">
+                    <th className="py-1 px-2 text-left text-muted-foreground font-semibold">Field</th>
+                    <th className="py-1 px-2 text-left text-muted-foreground font-semibold">Workspace A</th>
+                    <th className="py-1 px-2 text-left text-muted-foreground font-semibold">Workspace B</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {wsComparison.differences.map((diff: WorkspaceDiff) => (
+                    <tr key={diff.path} className="border-b border-border/50">
+                      <td className="py-1 px-2 text-foreground break-all">{diff.path}</td>
+                      <td className="py-1 px-2 text-destructive/80 break-all">
+                        {JSON.stringify(diff.left) ?? "—"}
+                      </td>
+                      <td className="py-1 px-2 text-success/80 break-all">
+                        {JSON.stringify(diff.right) ?? "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : wsComparison ? (
+              <p className="p-4 text-sm text-muted-foreground text-center">No differences found.</p>
+            ) : null}
+          </div>
+          <DialogFooter>
+            <Button size="sm" onClick={() => setWsCompareOpen(false)}>
               Close
             </Button>
           </DialogFooter>

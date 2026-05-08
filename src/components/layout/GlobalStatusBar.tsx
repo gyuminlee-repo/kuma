@@ -11,6 +11,10 @@ export interface SidecarInfo {
   label: string;
   /** error 상태일 때 표시되는 retry 핸들러. */
   onRetry?: () => void;
+  /** §2 Observability: health_info polling 결과. ready 상태에서만 유의미. */
+  pid?: number;
+  /** RSS in bytes (30초 갱신). */
+  rssMb?: number;
 }
 
 /**
@@ -71,8 +75,18 @@ const AUTOSAVE_DOT_COLOR: Record<AutosaveInfo["state"], string> = {
  * - 구형 CSS 변수(verdict/status 계열) 사용 0건 (Phase 3에서 제거 완료)
  * - 색 단독 금지: 점 옆에 항상 label 텍스트 동반
  */
+/** Build tooltip text for the sidecar indicator. */
+function buildSidecarTooltip(info: SidecarInfo): string | undefined {
+  if (info.state !== "ready") return undefined;
+  const parts: string[] = [];
+  if (info.pid !== undefined) parts.push(`PID: ${info.pid}`);
+  if (info.rssMb !== undefined && info.rssMb > 0) parts.push(`RSS: ${info.rssMb.toFixed(1)} MB`);
+  return parts.length > 0 ? parts.join(" · ") : undefined;
+}
+
 export function GlobalStatusBar({ message, centerSlot, sidecar, autosave }: GlobalStatusBarProps) {
   const sidecarDotClass = SIDECAR_DOT_COLOR[sidecar.state];
+  const sidecarTooltip = buildSidecarTooltip(sidecar);
   const showAutosave = autosave !== undefined && autosave.state !== "disabled";
 
   return (
@@ -125,15 +139,19 @@ export function GlobalStatusBar({ message, centerSlot, sidecar, autosave }: Glob
         )}
 
         {/* sidecar 상태 표시 */}
-        <span className="flex items-center gap-1.5 text-muted-foreground">
+        <span
+          className="flex items-center gap-1.5 text-muted-foreground"
+          title={sidecarTooltip}
+          aria-label={sidecarTooltip ? `Sidecar: ${sidecar.label} (${sidecarTooltip})` : `Sidecar: ${sidecar.label}`}
+        >
           {/* 8px 원형 상태 점 */}
           <span
             className={`h-2 w-2 rounded-full shrink-0 ${sidecarDotClass}`}
             aria-hidden="true"
           />
 
-          {/* 라벨 텍스트 (색 단독 금지 계약 이행) */}
-          <span className="whitespace-nowrap">{sidecar.label}</span>
+          {/* 라벨 텍스트 (색 단독 금지 계약 이행; 접근성은 부모 aria-label 위임) */}
+          <span className="whitespace-nowrap" aria-hidden="true">{sidecar.label}</span>
 
           {/* connecting: Spinner 동반 */}
           {sidecar.state === "connecting" && (

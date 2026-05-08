@@ -39,11 +39,28 @@ from sidecar_mame.handlers.activity import (
 )
 from sidecar_mame.handlers.sort_barcode import handle_sort_barcode_run
 
+def _handle_health_info(_params: dict) -> dict:
+    """Return PID, RSS, and Python version for the status bar tooltip."""
+    import sys as _sys
+    rss_bytes = 0
+    try:
+        from kuma_core.shared.memory_monitor import get_self_rss_bytes
+        rss_bytes = get_self_rss_bytes()
+    except ImportError as exc:
+        logger.warning("memory_monitor unavailable for health_info: %s", exc)
+    return {
+        "pid": os.getpid(),
+        "rss_bytes": rss_bytes,
+        "py_version": _sys.version.split()[0],
+    }
+
+
 # Phase A handler registry.
 # ``translate`` is deferred to Phase B per the reconciled scope.
 # NOTE: ``export_run_report`` is owned by A14 — do not rename or remove.
 _METHODS = {
     "ping": lambda _: {"ok": True},
+    "health_info": _handle_health_info,
     "analyze": handle_analyze,
     "validate_inputs": handle_validate_inputs,
     "export_excel": handle_export_excel,

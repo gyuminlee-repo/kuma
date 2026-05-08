@@ -38,9 +38,14 @@ export interface DiagnosticsBundle {
  * - Crash log entries include component + message + optional stack; no user data.
  * - The bundle does NOT include mutation text, sequences, or file paths.
  *
+ * @param logLines - Optional log buffer to include. When omitted, falls back to
+ *   the kuro appStore logLines buffer (legacy). Pass an empty array for apps
+ *   (e.g. mame) that have no sidecar log buffer.
  * @returns Saved file path, or null if the user cancelled the save dialog.
  */
-export async function generateDiagnosticsBundle(): Promise<string | null> {
+export async function generateDiagnosticsBundle(
+  logLines?: string[],
+): Promise<string | null> {
   const meta: DiagnosticsMeta = {
     appVersion: __APP_VERSION__,
     generatedAt: new Date().toISOString(),
@@ -50,9 +55,10 @@ export async function generateDiagnosticsBundle(): Promise<string | null> {
 
   const crashLog = getCrashLog();
 
-  // Take the most recent 50 lines from the store log buffer
-  const allLogLines = useAppStore.getState().logLines;
-  const recentLogs = allLogLines.slice(-50);
+  // Take the most recent 50 lines from the provided buffer, or fall back to
+  // the kuro appStore buffer for backward compatibility.
+  const sourceLines = logLines ?? useAppStore.getState().logLines;
+  const recentLogs = sourceLines.slice(-50);
 
   const bundle: DiagnosticsBundle = {
     meta,

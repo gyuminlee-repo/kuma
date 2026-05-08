@@ -51,8 +51,25 @@ from sidecar_kuro.handlers.misc import (
     handle_run_benchmark,
 )
 
+def _handle_health_info(_params: dict) -> dict:
+    """Return PID, RSS, and Python version for the status bar tooltip."""
+    import sys as _sys
+    rss_bytes = 0
+    try:
+        from kuma_core.shared.memory_monitor import get_self_rss_bytes
+        rss_bytes = get_self_rss_bytes()
+    except ImportError as exc:
+        logger.warning("memory_monitor unavailable for health_info: %s", exc)
+    return {
+        "pid": os.getpid(),
+        "rss_bytes": rss_bytes,
+        "py_version": _sys.version.split()[0],
+    }
+
+
 _METHODS = {
     "ping": lambda _: {"ok": True},
+    "health_info": _handle_health_info,
     "list_polymerases": handle_list_polymerases,
     "get_polymerase_details": handle_get_polymerase_details,
     "save_custom_polymerase": handle_save_custom_polymerase,

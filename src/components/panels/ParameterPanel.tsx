@@ -5,6 +5,7 @@ import type { CodonStrategy, OverlapMode, PolymeraseProfile } from "../../types/
 import { PolymeraseEditor } from "../dialogs/PolymeraseEditor";
 import { Button } from "../ui/button";
 import { HelpTip } from "./InputPanel/DiversitySections";
+import { InlineHelp } from "../ui/InlineHelp";
 import { useAppStore } from "../../store/appStore";
 
 /** Local string state synced with a numeric store value. Commits on blur/Enter. */
@@ -126,9 +127,9 @@ export function ParameterPanel() {
         <label
           htmlFor="design-strategy-select"
           className="flex items-center gap-2 text-caption"
-          title="Partial: overlap upstream of codon, separate fwd/rev (Gibson Assembly style). Full: forward and reverse cover the same region, rev = rc(fwd) (NEB Q5 SDM style). Strategy changes which parameters apply below."
         >
           <span className="w-24 text-muted-foreground">Strategy:</span>
+          <InlineHelp text={"Partial (Gibson): overlap upstream of the codon; fwd and rev are independent.\nFull (Q5 SDM): rev = rc(fwd); single primer covers the mutation."} />
           <select
             id="design-strategy-select"
             className="h-control min-w-0 flex-1 rounded-control border border-border bg-card px-3 text-caption focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
@@ -154,6 +155,7 @@ export function ParameterPanel() {
       <div className="space-y-1">
         <label htmlFor="polymerase-select" className="flex items-center gap-2 text-caption">
           <span className="w-24 text-muted-foreground">Polymerase:</span>
+          <InlineHelp text={"Selects Tm calculation preset (extension Tm target + tolerance defaults).\nChoose the polymerase used in your SDM reaction.\nUse 'Custom Polymerase' to define your own extension Tm."} />
           <select
             id="polymerase-select"
             className="h-control min-w-0 flex-1 rounded-control border border-border bg-card px-3 text-caption focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
@@ -175,8 +177,9 @@ export function ParameterPanel() {
         </div>
       </div>
 
-      <label htmlFor="codon-strategy" className="flex items-center gap-2 text-caption" title="Min. changes = fewest nucleotide changes from WT codon. Optimal = highest-frequency codon for selected organism.">
+      <label htmlFor="codon-strategy" className="flex items-center gap-2 text-caption">
         <span className="w-24 text-muted-foreground">Codon:</span>
+        <InlineHelp text={"Min. changes: fewest nucleotide changes from wild-type codon (minimises synthesis cost).\nOptimal: highest-frequency codon for the selected organism (maximises expression)."} />
         <select
           id="codon-strategy"
           className="h-control min-w-0 flex-1 rounded-control border border-border bg-card px-3 text-caption focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
@@ -192,8 +195,9 @@ export function ParameterPanel() {
         </select>
       </label>
 
-      <label className="flex items-center gap-2 text-caption" title="Target number of successful primer designs.">
+      <label className="flex items-center gap-2 text-caption">
         <span className="w-24 text-muted-foreground">Mutations:</span>
+        <InlineHelp text={"Maximum number of primer designs to generate.\nFor EVOLVEpro / multi-evolve mode: capped by the CSV variant count.\nOne 96-well plate fits 95 mutants + 1 WT control."} />
         <input
           type="number"
           min={1}
@@ -265,7 +269,10 @@ export function ParameterPanel() {
           </div>
 
           {/* GC */}
-          <div className="pt-1.5 text-caption uppercase tracking-wider text-muted-foreground" title="Recommended range: 40-60%. Primers outside this range receive a penalty.">GC%</div>
+          <div className="flex items-center gap-1 pt-1.5 text-caption uppercase tracking-wider text-muted-foreground">
+            GC%
+            <InlineHelp text={"Recommended range: 40–60%.\nPrimers outside this range receive a penalty score.\nVery low GC (<30%) or very high GC (>70%) reduces synthesis quality."} />
+          </div>
           <div className="flex items-center gap-2 text-caption" title="Recommended range: 40-60%. Primers outside this range receive a penalty.">
             <span className="w-20 text-muted-foreground">Range:</span>
             <input type="number"

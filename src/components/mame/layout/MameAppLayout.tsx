@@ -29,6 +29,7 @@ import { runPreflightCheck } from "@/lib/preflight";
 import type { PreflightResult } from "@/lib/preflight";
 import { MenuBar } from "./MenuBar";
 import { Sidebar } from "./Sidebar";
+import { WhatsNewDialog } from "@/components/dialogs/WhatsNewDialog";
 import { StatusBar } from "./StatusBar";
 import { PlateView } from "../widgets/PlateView";
 import { SummaryRow } from "../widgets/SummaryRow";
@@ -221,6 +222,7 @@ export function MameAppLayout() {
     <div
       className={`flex h-full flex-col bg-background ${isDragOver ? "ring-2 ring-inset ring-ring" : ""}`}
     >
+      <WhatsNewDialog />
       <MenuBar onClearRequest={() => setClearConfirmOpen(true)} />
 
       <div className="flex flex-1 gap-3 overflow-hidden p-3">

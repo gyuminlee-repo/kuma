@@ -44,12 +44,18 @@ import { verifyInputs } from "../../lib/reRun";
 import type { InputVerifyResult } from "../../lib/reRun";
 import { readTextFile } from "@tauri-apps/plugin-fs";
 import { resolveResource } from "@tauri-apps/api/path";
+import { getConfig } from "../../lib/project";
 import { ReRunManifestDialog } from "../dialogs/ReRunManifestDialog";
 import { ManifestDiffDialog } from "../dialogs/ManifestDiffDialog";
 import { checkForUpdates, downloadAndInstall, type UpdateCheckResult } from "../../lib/updater";
 import type { Update } from "@tauri-apps/plugin-updater";
 import { invoke } from "@tauri-apps/api/core";
 import { killSidecar } from "../../lib/ipc";
+import { getShortcutsFor } from "../../lib/shortcuts";
+import { compareWorkspaces } from "../../lib/workspaceCompare";
+import type { WorkspaceComparison, WorkspaceDiff } from "../../lib/workspaceCompare";
+import { open as openFilePicker } from "@tauri-apps/plugin-dialog";
+import { readTextFile as readTextFileFs } from "@tauri-apps/plugin-fs";
 
 const MOD_KEY = navigator.userAgent.includes("Mac") ? "⌘" : "Ctrl+";
 
@@ -96,6 +102,27 @@ export function MenuBar() {
   // §11 Build & Distribution: codesign status (lazy-loaded when About opens)
   const [codesignStatus, setCodesignStatus] = useState<string | null>(null);
 
+  // §8 A11y: colorblind mode toggle (per-machine; persisted in localStorage)
+  const CB_KEY = "kuma:kuro:colorblindMode";
+  const [colorblindMode, setColorblindModeState] = useState<boolean>(
+    () => localStorage.getItem(CB_KEY) === "true",
+  );
+  function toggleColorblindMode(val: boolean) {
+    setColorblindModeState(val);
+    localStorage.setItem(CB_KEY, String(val));
+    window.dispatchEvent(new CustomEvent("kuma:colorblindMode", { detail: val }));
+  }
+
+  // §8 A11y: keyboard shortcuts table data
+  const kuroShortcuts = getShortcutsFor("kuro");
+
+  // §6 Settings: data folder path (lazy-loaded when About opens)
+  const [dataFolder, setDataFolder] = useState<string | null>(null);
+
+  // §21 Multi-workspace: compare workspaces modal
+  const [wsCompareOpen, setWsCompareOpen] = useState(false);
+  const [wsComparison, setWsComparison] = useState<WorkspaceComparison | null>(null);
+
   useEffect(() => {
     void notificationPermissionGranted().then(setNotifyPermission);
   }, []);
@@ -127,6 +154,14 @@ export function MenuBar() {
       .then((s) => setCodesignStatus(s))
       .catch(() => setCodesignStatus("unknown"));
   }, [aboutOpen, codesignStatus]);
+
+  // §6 Settings: load data folder path once when About opens
+  useEffect(() => {
+    if (!aboutOpen || dataFolder !== null) return;
+    void getConfig()
+      .then((cfg) => setDataFolder(cfg.projects_root))
+      .catch(() => setDataFolder("unknown"));
+  }, [aboutOpen, dataFolder]);
 
   async function handleEnableNotifications() {
     const granted = await requestNotificationPermission();
@@ -219,6 +254,36 @@ export function MenuBar() {
     }
   }
 
+  // §21 Multi-workspace: compare two workspace JSON files
+  async function handleCompareWorkspaces() {
+    const pathA = await openFilePicker({
+      multiple: false,
+      filters: [{ name: "Workspace JSON", extensions: ["json"] }],
+      title: "Select first workspace (A)",
+    });
+    if (!pathA || typeof pathA !== "string") return;
+
+    const pathB = await openFilePicker({
+      multiple: false,
+      filters: [{ name: "Workspace JSON", extensions: ["json"] }],
+      title: "Select second workspace (B)",
+    });
+    if (!pathB || typeof pathB !== "string") return;
+
+    try {
+      const [textA, textB] = await Promise.all([
+        readTextFileFs(pathA),
+        readTextFileFs(pathB),
+      ]);
+      const a = JSON.parse(textA) as unknown;
+      const b = JSON.parse(textB) as unknown;
+      setWsComparison(compareWorkspaces(a, b));
+      setWsCompareOpen(true);
+    } catch (err) {
+      useAppStore.setState({ statusMessage: `Workspace compare failed: ${String(err)}` });
+    }
+  }
+
   async function handleCopyCrashLog() {
     const log = getCrashLog();
     if (log.length === 0) {
@@ -296,6 +361,16 @@ export function MenuBar() {
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => void handleCompareManifests()}>
             Compare run manifests...
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          {/* §21 Multi-workspace */}
+          <DropdownMenuItem onClick={() => void handleCompareWorkspaces()}>
+            Compare workspaces...
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => window.alert("Export workspace as zip — coming soon")}
+          >
+            Export workspace as zip...
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           {/* §1 Recovery: UI 상태 보존 sidecar 재시작. Zustand 스토어는 메모리에 유지됨 */}
@@ -388,6 +463,7 @@ export function MenuBar() {
             setUpdateResult(null);
             setDiagnosticsError(null);
             setCodesignStatus(null);
+            setDataFolder(null);
           }
         }}
       >
@@ -553,6 +629,46 @@ export function MenuBar() {
             </p>
           </div>
 
+          {/* §8 A11y: Colorblind mode toggle */}
+          <div className="flex flex-col gap-1.5">
+            <p className="text-sm font-semibold text-foreground">Accessibility</p>
+            <label className="flex items-center gap-2 text-xs cursor-pointer">
+              <input
+                type="checkbox"
+                id="kuro-colorblind-mode"
+                checked={colorblindMode}
+                onChange={(e) => toggleColorblindMode(e.target.checked)}
+                className="h-3.5 w-3.5 accent-primary"
+                aria-label="Shape-prefix colorblind assist"
+              />
+              <span className="text-foreground">Color assist (shape prefix ●/■/▲)</span>
+            </label>
+            <p className="text-xs text-muted-foreground pl-5">
+              Adds shape markers to status indicators so colors are not the only differentiator.
+            </p>
+          </div>
+
+          {/* §8 A11y: Keyboard shortcuts table */}
+          <div className="flex flex-col gap-1.5">
+            <p className="text-sm font-semibold text-foreground">Keyboard Shortcuts</p>
+            <table className="w-full text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="py-0.5 pr-3 text-left font-semibold text-muted-foreground">Keys</th>
+                  <th className="py-0.5 text-left font-semibold text-muted-foreground">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {kuroShortcuts.map((s) => (
+                  <tr key={s.keys} className="border-b border-border/40 last:border-0">
+                    <td className="py-0.5 pr-3 font-mono text-foreground">{s.keys}</td>
+                    <td className="py-0.5 text-muted-foreground">{s.action}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
           {/* §6 Language slot */}
           <div className="flex flex-col gap-1.5">
             <p className="text-sm font-semibold text-foreground">Language</p>
@@ -628,7 +744,7 @@ export function MenuBar() {
             )}
           </div>
 
-          {/* §11 Build & Distribution: Build SHA + Code Signing */}
+          {/* §11 Build & Distribution + §6 Settings: Build info */}
           <div className="flex flex-col gap-1">
             <p className="text-sm font-semibold text-foreground">Build</p>
             <p className="font-mono text-xs text-muted-foreground">
@@ -638,6 +754,31 @@ export function MenuBar() {
               Code Signing:{" "}
               <span className="font-mono">{codesignStatus ?? "loading..."}</span>
             </p>
+            <p className="text-xs text-muted-foreground">
+              Sidecar:{" "}
+              <span className="font-mono">kuro-sidecar</span>
+            </p>
+          </div>
+
+          {/* §6 Settings: Data folder */}
+          <div className="flex flex-col gap-1.5">
+            <p className="text-sm font-semibold text-foreground">Data folder</p>
+            <p
+              className="font-mono text-xs text-muted-foreground break-all"
+              title={dataFolder ?? undefined}
+            >
+              {dataFolder ?? "loading..."}
+            </p>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setAboutOpen(false);
+                window.dispatchEvent(new CustomEvent("kuma:show-onboarding"));
+              }}
+            >
+              Change...
+            </Button>
           </div>
 
           <div className="flex flex-col gap-2 mt-1">
@@ -747,6 +888,55 @@ export function MenuBar() {
           </div>
           <DialogFooter>
             <Button size="sm" onClick={() => setNoticeOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* §21 Multi-workspace: compare workspaces result modal */}
+      <Dialog open={wsCompareOpen} onOpenChange={setWsCompareOpen}>
+        <DialogContent className="max-w-2xl max-h-[70vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Compare Workspaces</DialogTitle>
+            <DialogDescription>
+              {wsComparison && wsComparison.differences.length === 0
+                ? "The two workspaces are identical."
+                : wsComparison
+                  ? `${wsComparison.differences.length} difference${wsComparison.differences.length === 1 ? "" : "s"} found.`
+                  : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto">
+            {wsComparison && wsComparison.differences.length > 0 ? (
+              <table className="w-full text-xs font-mono border-collapse">
+                <thead>
+                  <tr className="border-b border-border">
+                    <th className="py-1 px-2 text-left text-muted-foreground font-semibold">Field</th>
+                    <th className="py-1 px-2 text-left text-muted-foreground font-semibold">Workspace A</th>
+                    <th className="py-1 px-2 text-left text-muted-foreground font-semibold">Workspace B</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {wsComparison.differences.map((diff: WorkspaceDiff) => (
+                    <tr key={diff.path} className="border-b border-border/50">
+                      <td className="py-1 px-2 text-foreground break-all">{diff.path}</td>
+                      <td className="py-1 px-2 text-destructive/80 break-all">
+                        {JSON.stringify(diff.left) ?? "—"}
+                      </td>
+                      <td className="py-1 px-2 text-success/80 break-all">
+                        {JSON.stringify(diff.right) ?? "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : wsComparison ? (
+              <p className="p-4 text-sm text-muted-foreground text-center">No differences found.</p>
+            ) : null}
+          </div>
+          <DialogFooter>
+            <Button size="sm" onClick={() => setWsCompareOpen(false)}>
               Close
             </Button>
           </DialogFooter>

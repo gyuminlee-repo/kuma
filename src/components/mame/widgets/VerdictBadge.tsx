@@ -1,9 +1,18 @@
+/**
+ * §18 Warning vs Error Standardisation — verdict badge for mame.
+ *
+ * Colour conventions align with StatusBadge semantic tokens so the two
+ * badge families are visually consistent across kuro and mame.
+ * Verdict-specific shapes (●/■/▲/◆) are preserved for colorblind
+ * accessibility (§6.6).
+ */
+
 import type { VerdictClass } from "@/types/mame/models";
 import { cn } from "@/lib/utils";
 
 interface VerdictMeta {
   label: string;
-  /** Outline badge: border + text color via semantic token class */
+  /** Colour class aligned with §18 StatusBadge semantic tokens */
   colorClass: string;
   /** Shape prefix for colorblind accessibility (§6.6) */
   shape: string;
@@ -22,12 +31,12 @@ const verdictMeta: Record<VerdictClass, VerdictMeta> = {
   },
   WRONG_AA: {
     label: "AA mismatch",
-    colorClass: "border-error/40 text-error",
+    colorClass: "border-destructive/40 text-destructive",
     shape: "▲",
   },
   FRAMESHIFT: {
     label: "Frameshift",
-    colorClass: "border-error/40 text-error",
+    colorClass: "border-destructive/40 text-destructive",
     shape: "▲",
   },
   MANY: {
