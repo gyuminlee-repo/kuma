@@ -140,6 +140,10 @@ python -m pytest tests/test_sdm_engine.py::test_name  # Single test
 
 ### MAME UX workflow
 - Raw MinKNOW run folders are the primary user-facing input for MAME. Sorted barcode directories are intermediate outputs or advanced/debug inputs; do not make users pre-sort manually unless explicitly requested.
+- MinKNOW run folder inventory MAME actually reads (everything else, including `pod5/`, `fast5/`, `bam_pass/`, `other_reports/`, `report_*.html/json`, is ignored):
+  - Required: `fastq_pass/<barcode*|NB*>/*.fastq.gz` — primary pipeline input (`kuma_core/mame/ingest/sort_barcode.py`, `ingest/demux.py`).
+  - Run metadata (auto-detected if present): `final_summary_*.txt`, `sample_sheet_*.csv` (`kuma_core/mame/ingest/run_meta.py`).
+  - QC / Health (auto-detected if present): `sequencing_summary*.{txt,tsv}` incl. `_passed_` variants (`cross_talk.py`, `ingest/quality_filter.py`), `pore_activity_*.csv`, `throughput_*.csv`, `barcode_alignment_passed*.tsv` or `barcode_alignment*.tsv` (`health.py`).
 - MAME file path controls should follow the Kuro-style Browse button + selected filename preview pattern. Avoid editable path text fields for normal `.csv`/`.xlsx` file selection.
 - Export destination controls must use a save-file dialog, not an open-file dialog.
 - Pre-run MAME result tables should render an empty state instead of surfacing an error boundary.
