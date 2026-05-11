@@ -2,7 +2,9 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { listen } from "@tauri-apps/api/event";
 import { killSidecar, rpc, type SidecarKind } from "@/lib/ipc";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { GlobalAppBar, type AppTab } from "@/components/layout/GlobalAppBar";
+import { SettingsDialog } from "@/components/layout/SettingsDialog";
 import { useKumaProject } from "@/state/projectContext";
 import { flushAutosave, onAutosaveEvent, type AutosaveTarget, type AutosaveEvent } from "@/lib/autosave";
 import { useKuroAutosave } from "@/hooks/useKuroAutosave";
@@ -86,6 +88,11 @@ async function runWithTimeout(
 export function MainShell() {
   const project = useKumaProject();
   const projectName = project ? `${project.name}${project.scratch ? " (Scratch)" : ""}` : "Workspace";
+
+  // ── 활성 탭 (controlled)
+  const [activeTab, setActiveTab] = useState<AppTab>("kuro");
+  // ── Settings 다이얼로그 (GlobalAppBar 에서 lift)
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   // ── 상태바 좌측 메시지 (4초 자동 소멸)
   const [statusMessage, setStatusMessage] = useState("");
@@ -404,15 +411,21 @@ export function MainShell() {
         </div>
       )}
 
-      <Tabs defaultValue="kuro" onValueChange={(v) => { void handleTabChange(v); }} className="flex min-h-0 flex-1 flex-col">
+      <GlobalAppBar
+        activeTab={activeTab}
+        onTabChange={(v) => {
+          setActiveTab(v);
+          void handleTabChange(v);
+        }}
+        onOpenSettings={() => setSettingsOpen(true)}
+      />
+
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} scope={activeTab} />
+
+      <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as AppTab); void handleTabChange(v); }} className="flex min-h-0 flex-1 flex-col">
         <header className="h-header flex shrink-0 items-center border-b bg-background px-4">
           <div className="flex w-full min-w-0 items-center gap-4">
-            <span className="shrink-0 text-lg font-semibold tracking-tight text-foreground">kuma</span>
-            <TabsList className="h-10 shrink-0 rounded-xl border border-border bg-accent/70 p-1 shadow-sm">
-              <TabsTrigger value="kuro" className="min-w-20 px-4 data-[state=active]:shadow-sm">Kuro</TabsTrigger>
-              <TabsTrigger value="mame" className="min-w-20 px-4 data-[state=active]:shadow-sm">Mame</TabsTrigger>
-            </TabsList>
-            <div className="min-w-0 flex-1 border-l border-border/80 pl-4 text-caption text-muted-foreground">
+            <div className="min-w-0 flex-1 text-caption text-muted-foreground">
               <div className="flex min-w-0 items-center gap-2">
                 <span className="truncate font-medium text-foreground">{projectName}</span>
                 {project?.stage ? (

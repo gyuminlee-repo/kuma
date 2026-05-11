@@ -25,7 +25,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SubtoolMenuBar } from "@/components/layout/SubtoolMenuBar";
-import { LocaleToggle } from "@/components/ui/LocaleToggle";
 import { checkForUpdates, downloadAndInstall, type UpdateCheckResult } from "@/lib/updater";
 import type { Update } from "@tauri-apps/plugin-updater";
 import { invoke } from "@tauri-apps/api/core";
@@ -92,7 +91,7 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
 
   const MAME_BIBTEX = `@software{mame_TBD,
   title  = {MAME: Multi-round Activity & Mutation Engine},
-  author = {Kang, Hyemin and KRIBB C1 Lab},
+  author = {Lee, Gyu Min and Kang, Hyemin and KRIBB C1 Lab},
   year   = {2026},
   note   = {DOI/citation forthcoming},
   url    = {TBD}
@@ -394,7 +393,7 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
           }
         }}
       >
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>About Mame</DialogTitle>
             <DialogDescription>
@@ -462,7 +461,7 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
           {/* How to cite */}
           <div className="flex flex-col gap-1.5">
             <p className="text-sm font-semibold text-foreground">How to cite</p>
-            <pre className="overflow-x-auto whitespace-pre rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
+            <pre className="max-w-full overflow-x-auto whitespace-pre rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
               {MAME_BIBTEX}
             </pre>
             <Button
@@ -501,17 +500,6 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
                 ))}
               </tbody>
             </table>
-          </div>
-
-          {/* §6 Language slot */}
-          <div className="flex flex-col gap-1.5">
-            <p className="text-sm font-semibold text-foreground">Language</p>
-            <div className="flex items-center gap-2">
-              <LocaleToggle variant="icon-label" />
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Language preference is saved locally.
-            </p>
           </div>
 
           {/* §6 Settings: Data folder */}

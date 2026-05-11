@@ -33,7 +33,6 @@ import { WorkspaceMigrateDialog } from "../dialogs/WorkspaceMigrateDialog";
 import type { MigrateDialogState } from "../dialogs/WorkspaceMigrateDialog";
 import { MappingExportDialog } from "../dialogs/MappingExportDialog";
 import { SubtoolMenuBar } from "./SubtoolMenuBar";
-import { LocaleToggle } from "../ui/LocaleToggle";
 import type { RunManifest } from "../../lib/runManifest";
 import type { InputVerifyResult } from "../../lib/reRun";
 import { readTextFile } from "@tauri-apps/plugin-fs";
@@ -45,7 +44,6 @@ import type { Update } from "@tauri-apps/plugin-updater";
 import { invoke } from "@tauri-apps/api/core";
 import { killSidecar } from "../../lib/ipc";
 import { getShortcutsFor } from "../../lib/shortcuts";
-import { SettingsDialog } from "./SettingsDialog";
 
 const MOD_KEY = navigator.userAgent.includes("Mac") ? "⌘" : "Ctrl+";
 
@@ -100,8 +98,6 @@ export function MenuBar() {
   // D-5: Advanced collapsible state
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
-  // D-6: Settings dialog state
-  const [settingsOpen, setSettingsOpen] = useState(false);
 
 
   // §20: Load NOTICE.md from Tauri resources when About dialog opens.
@@ -149,7 +145,7 @@ export function MenuBar() {
 
   const KURO_BIBTEX = `@software{kuro_TBD,
   title  = {KURO: Kernel for Upstream Recombination Oligodesign},
-  author = {Kang, Hyemin and KRIBB C1 Lab},
+  author = {Lee, Gyu Min and Kang, Hyemin and KRIBB C1 Lab},
   year   = {2026},
   note   = {DOI/citation forthcoming},
   url    = {TBD}
@@ -300,9 +296,6 @@ export function MenuBar() {
             View Crash Log
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => setSettingsOpen(true)}>
-            Settings...
-          </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setAboutOpen(true)}>
             About Kuma
           </DropdownMenuItem>
@@ -318,8 +311,6 @@ export function MenuBar() {
         subtitle="Kernel for Upstream Recombination Oligodesign"
         menus={menus}
       />
-
-      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} scope="kuro" />
 
       <CrashLogDialog open={crashLogOpen} onOpenChange={setCrashLogOpen} />
 
@@ -347,7 +338,7 @@ export function MenuBar() {
           }
         }}
       >
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>About Kuma</DialogTitle>
             <DialogDescription>
@@ -424,7 +415,7 @@ export function MenuBar() {
           {/* How to cite */}
           <div className="flex flex-col gap-1.5">
             <p className="text-sm font-semibold text-foreground">How to cite</p>
-            <pre className="overflow-x-auto whitespace-pre rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
+            <pre className="max-w-full overflow-x-auto whitespace-pre rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
               {KURO_BIBTEX}
             </pre>
             <Button
@@ -463,17 +454,6 @@ export function MenuBar() {
                 ))}
               </tbody>
             </table>
-          </div>
-
-          {/* §6 Language slot */}
-          <div className="flex flex-col gap-1.5">
-            <p className="text-sm font-semibold text-foreground">Language</p>
-            <div className="flex items-center gap-2">
-              <LocaleToggle variant="icon-label" />
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Language preference is saved locally.
-            </p>
           </div>
 
           {/* Offline mode toggle */}
