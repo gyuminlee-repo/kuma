@@ -31,9 +31,17 @@ combinatorial layouts. Parameter is reserved for future extension.
 
 Output
 ------
-``{output_dir}/sort_barcode{NN}/{well_id}.fasta``
-e.g. ``{output_dir}/sort_barcode06/A01.fasta``
+Without sample map:  ``{output_dir}/sort_barcode{NN}/{well_id}_F{c}_R{r}.fasta``
+With sample map:     ``{output_dir}/sort_barcode{NN}/{well_id}_{sample}_F{c}_R{r}.fasta``
+e.g. ``{output_dir}/sort_barcode06/A01_V5F_F1_R1.fasta``
 FASTA header: ``>{read_id}``  (original ONT UUID preserved per spec).
+
+Sample map
+----------
+Optional ``sample_map_path`` xlsx with:
+- Column A: sample/mutant name (e.g. ``V5F``, ``K53R``, ``WT``)
+- Column B: well position in plate notation (e.g. ``A1``, ``H12``)
+Positions are normalised to zero-padded format (``A1`` → ``A01``).
 """
 
 from __future__ import annotations
@@ -68,6 +76,9 @@ _REV_PREFIX = "isps_r_"
 
 # Suffix search window: last N bases of the read (Nanopore 3' end is noisy).
 _REV_SEARCH_TAIL_BP = 80
+
+# Regex for normalising sample map well positions (e.g. "A1" → "A01").
+_WELL_POS_RE = re.compile(r"^([A-Ha-h])(\d{1,2})$")
 
 # ---------------------------------------------------------------------------
 # Data model
@@ -114,6 +125,78 @@ def _nb_to_sort_barcode_name(nb_basename: str) -> str:
     # 2-digit zero-pad for n < 100; 3-digit (no pad needed) for n >= 100.
     padded = f"{n:02d}" if n < 100 else str(n)
     return f"sort_barcode{padded}"
+
+
+# ---------------------------------------------------------------------------
+# Sample map parser
+# ---------------------------------------------------------------------------
+
+
+def parse_sample_map(path: Path) -> dict[str, str]:
+    """Parse a sample/mutant → well-position xlsx into a well_id → sample dict.
+
+    File format (Sheet1)
+    --------------------
+    Column A: sample name  (e.g. ``V5F``, ``K53R``, ``WT``)
+    Column B: well position in plate notation (e.g. ``A1``, ``H12``)
+
+    Well positions are normalised to zero-padded format (``A1`` → ``A01``).
+    Rows with missing or malformed well positions are silently skipped.
+
+    Returns
+    -------
+    ``dict[str, str]``: {well_id: sample_name}  e.g. ``{"A01": "V5F", "H12": "WT"}``
+
+    Raises
+    ------
+    FileNotFoundError
+        If ``path`` does not exist.
+    """
+    if not path.exists():
+        raise FileNotFoundError(f"sample_map_path not found: {path}")
+
+    import openpyxl  # local import: keeps cold-start fast
+
+    wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    try:
+        ws = wb.worksheets[0]
+        result: dict[str, str] = {}
+        for row in ws.iter_rows(values_only=True):
+            if not row or row[0] is None:
+                continue
+            sample_raw = str(row[0]).strip()
+            if not sample_raw:
+                continue
+            well_raw = str(row[1]).strip() if len(row) > 1 and row[1] is not None else ""
+            if not well_raw:
+                continue
+            m = _WELL_POS_RE.match(well_raw)
+            if m is None:
+                continue
+            well_id = f"{m.group(1).upper()}{int(m.group(2)):02d}"
+            if well_id not in result:
+                result[well_id] = sample_raw
+        return result
+    finally:
+        wb.close()
+
+
+def _make_well_filename(
+    well_id: str,
+    fwd_idx: int,
+    rev_idx: int,
+    well_to_sample: dict[str, str] | None,
+) -> str:
+    """Build the FASTA filename stem for a well assignment.
+
+    With sample map:    ``{well_id}_{sample}_F{fwd_idx}_R{rev_idx}``
+    Without sample map: ``{well_id}_F{fwd_idx}_R{rev_idx}``
+    """
+    if well_to_sample:
+        sample = well_to_sample.get(well_id)
+        if sample:
+            return f"{well_id}_{sample}_F{fwd_idx}_R{rev_idx}"
+    return f"{well_id}_F{fwd_idx}_R{rev_idx}"
 
 
 # ---------------------------------------------------------------------------
@@ -325,6 +408,7 @@ def _sort_one_nb(
     error_tolerance: float,
     fwd_seqs: list[tuple[int, str]],       # [(c_idx, fwd_seq)]  c_idx 1-based
     rev_rc_seqs: list[tuple[int, str]],    # [(r_idx, rev_rc)]   r_idx 1-based
+    well_to_sample: dict[str, str] | None = None,
 ) -> tuple[dict[str, int], int]:
     """Demux a single NB directory into per-well FASTA files.
 
@@ -409,18 +493,19 @@ def _sort_one_nb(
 
                 # ── Well assignment ──────────────────────────────────────
                 well_id = f"{_ROW_LETTERS[best_r - 1]}{best_c:02d}"
+                file_stem = _make_well_filename(well_id, best_c, best_r, well_to_sample)
 
-                # Lazy-open writer.
-                if well_id not in writers:
-                    fasta_path = output_nb_dir / f"{well_id}.fasta"
-                    writers[well_id] = open(  # noqa: WPS515
+                # Lazy-open writer keyed by file_stem.
+                if file_stem not in writers:
+                    fasta_path = output_nb_dir / f"{file_stem}.fasta"
+                    writers[file_stem] = open(  # noqa: WPS515
                         fasta_path, "w", encoding="utf-8"
                     )
 
-                fh = writers[well_id]
+                fh = writers[file_stem]
                 fh.write(f">{read_id}\n{seq}\n")  # type: ignore[union-attr]
 
-                per_well_counts[well_id] = per_well_counts.get(well_id, 0) + 1
+                per_well_counts[file_stem] = per_well_counts.get(file_stem, 0) + 1
 
     finally:
         for fh in writers.values():
@@ -442,6 +527,7 @@ def sort_barcode_run(
     nb_override: list[str] | None = None,
     error_tolerance: float = 0.1,
     use_cutadapt: bool = True,  # reserved; pure-Python only for combinatorial
+    sample_map_path: Path | None = None,
 ) -> SortBarcodeResult:
     """Sort reads from a MinKNOW run into per-well FASTA files.
 
@@ -466,6 +552,11 @@ def sort_barcode_run(
     use_cutadapt:
         Reserved for API compatibility; combinatorial matching is always
         performed in pure Python.  Reserved for future cutadapt extension.
+    sample_map_path:
+        Optional xlsx with sample/mutant names and well positions (col A:
+        name, col B: position e.g. ``A1``).  When provided, output filenames
+        include the sample name: ``A01_V5F_F1_R1.fasta``.  Without it,
+        filenames are ``A01_F1_R1.fasta``.
 
     Returns
     -------
@@ -474,8 +565,8 @@ def sort_barcode_run(
     Raises
     ------
     FileNotFoundError
-        minknow_run_dir / fastq_pass / custom_barcode_xlsx missing, or any
-        nb_override entry not found.
+        minknow_run_dir / fastq_pass / custom_barcode_xlsx / sample_map_path
+        missing, or any nb_override entry not found.
     ValueError
         No NB dirs detected, error_tolerance out of range, xlsx incomplete,
         path traversal detected.
@@ -510,6 +601,16 @@ def sort_barcode_run(
     if ".." in output_dir.parts:
         raise ValueError(f"Path traversal not allowed in output_dir: {output_dir}")
     output_dir = output_dir.resolve()
+
+    # ── Sample map (optional) ─────────────────────────────────────────────
+    well_to_sample: dict[str, str] | None = None
+    if sample_map_path is not None:
+        if ".." in sample_map_path.parts:
+            raise ValueError(
+                f"Path traversal not allowed in sample_map_path: {sample_map_path}"
+            )
+        sample_map_path = sample_map_path.resolve()
+        well_to_sample = parse_sample_map(sample_map_path)
 
     # ── Resolve NB directories ────────────────────────────────────────────
     if nb_override is not None:
@@ -594,6 +695,7 @@ def sort_barcode_run(
                 error_tolerance=error_tolerance,
                 fwd_seqs=fwd_seqs,
                 rev_rc_seqs=rev_rc_seqs,
+                well_to_sample=well_to_sample,
             )
         except FileNotFoundError:
             # NB dir exists but has no FASTQ files — skip gracefully.
@@ -624,6 +726,8 @@ __all__ = [
     "SortBarcodeResult",
     "sort_barcode_run",
     "parse_combinatorial_barcodes",
+    "parse_sample_map",
     "_nb_to_sort_barcode_name",
     "_hamming_suffix_window",
+    "_make_well_filename",
 ]

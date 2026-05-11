@@ -21,7 +21,8 @@ export interface SortBarcodeResult {
   /**
    * Per-NB, per-well read counts.
    * Key: NB dir basename (e.g. "barcode06").
-   * Value: {well_id → count} mapping (e.g. {"A01": 3, "B02": 1}).
+   * Value: {filename_stem → count} mapping (e.g. {"A01_V5F_F1_R1": 3, "B02_K53R_F2_R2": 1}).
+   * Without sample map: {"A01_F1_R1": 3, ...}.
    */
   per_nb_per_well_counts: Record<string, Record<string, number>>
   /** NB dirs with no FASTQ files that were skipped (not an error). */
@@ -49,4 +50,10 @@ export interface SortBarcodeRunParams {
    * Default true.
    */
   use_cutadapt?: boolean
+  /**
+   * Optional path to a sample/mutant map xlsx (col A: name, col B: well position e.g. "A1").
+   * When provided, output filenames include the sample name: "A01_V5F_F1_R1.fasta".
+   * Without it, filenames are "A01_F1_R1.fasta".
+   */
+  sample_map_path?: string
 }

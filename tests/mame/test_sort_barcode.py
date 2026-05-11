@@ -20,8 +20,10 @@ openpyxl = pytest.importorskip("openpyxl", reason="openpyxl not installed")
 from kuma_core.mame.ingest.sort_barcode import (
     SortBarcodeResult,
     _hamming_suffix_window,
+    _make_well_filename,
     _nb_to_sort_barcode_name,
     parse_combinatorial_barcodes,
+    parse_sample_map,
     sort_barcode_run,
 )
 
@@ -343,7 +345,7 @@ class TestSortBarcodeRun:
     def test_single_nb_output_structure(
         self, run_dir_single_nb: tuple[Path, Path], tmp_path: Path
     ) -> None:
-        """sort_barcode06/A01.fasta must exist with 2 reads."""
+        """sort_barcode06/A01_F1_R1.fasta must exist with 2 reads."""
         run_dir, xlsx = run_dir_single_nb
         out = tmp_path / "out"
         sort_barcode_run(
@@ -353,7 +355,7 @@ class TestSortBarcodeRun:
             error_tolerance=0.1,
             use_cutadapt=False,
         )
-        a01_fasta = out / "sort_barcode06" / "A01.fasta"
+        a01_fasta = out / "sort_barcode06" / "A01_F1_R1.fasta"
         assert a01_fasta.exists(), f"Expected {a01_fasta} to exist"
         headers = [
             ln for ln in a01_fasta.read_text().splitlines() if ln.startswith(">")
@@ -363,7 +365,7 @@ class TestSortBarcodeRun:
     def test_single_nb_b02_fasta(
         self, run_dir_single_nb: tuple[Path, Path], tmp_path: Path
     ) -> None:
-        """sort_barcode06/B02.fasta must exist with 1 read."""
+        """sort_barcode06/B02_F2_R2.fasta must exist with 1 read."""
         run_dir, xlsx = run_dir_single_nb
         out = tmp_path / "out"
         sort_barcode_run(
@@ -373,7 +375,7 @@ class TestSortBarcodeRun:
             error_tolerance=0.1,
             use_cutadapt=False,
         )
-        b02_fasta = out / "sort_barcode06" / "B02.fasta"
+        b02_fasta = out / "sort_barcode06" / "B02_F2_R2.fasta"
         assert b02_fasta.exists(), f"Expected {b02_fasta} to exist"
         headers = [
             ln for ln in b02_fasta.read_text().splitlines() if ln.startswith(">")
@@ -394,10 +396,10 @@ class TestSortBarcodeRun:
         )
         assert "barcode06" in result.nb_dirs_processed
         assert "barcode07" in result.nb_dirs_processed
-        # A01.fasta from barcode06
-        assert (out / "sort_barcode06" / "A01.fasta").exists()
-        # B03.fasta from barcode07
-        assert (out / "sort_barcode07" / "B03.fasta").exists()
+        # A01_F1_R1.fasta from barcode06
+        assert (out / "sort_barcode06" / "A01_F1_R1.fasta").exists()
+        # B03_F3_R2.fasta from barcode07
+        assert (out / "sort_barcode07" / "B03_F3_R2.fasta").exists()
 
     def test_nb_override(
         self, run_dir_multi_nb: tuple[Path, Path], tmp_path: Path
@@ -507,7 +509,7 @@ class TestSortBarcodeRun:
             error_tolerance=0.1,
             use_cutadapt=False,
         )
-        a01_fasta = out / "sort_barcode06" / "A01.fasta"
+        a01_fasta = out / "sort_barcode06" / "A01_F1_R1.fasta"
         headers = [
             ln[1:] for ln in a01_fasta.read_text().splitlines() if ln.startswith(">")
         ]
@@ -578,3 +580,150 @@ class TestSecurityPathTraversal:
                 custom_barcode_xlsx=traversal_xlsx,
                 output_dir=tmp_path / "out",
             )
+
+    def test_sample_map_path_traversal_raises(
+        self, run_dir_single_nb: tuple[Path, Path], tmp_path: Path
+    ) -> None:
+        """sample_map_path with '..' must raise ValueError."""
+        run_dir, xlsx = run_dir_single_nb
+        traversal = tmp_path / "foo" / ".." / "secrets" / "map.xlsx"
+        with pytest.raises(ValueError, match="[Pp]ath traversal"):
+            sort_barcode_run(
+                minknow_run_dir=run_dir,
+                custom_barcode_xlsx=xlsx,
+                output_dir=tmp_path / "out",
+                sample_map_path=traversal,
+            )
+
+
+# ---------------------------------------------------------------------------
+# Unit tests: parse_sample_map
+# ---------------------------------------------------------------------------
+
+
+def _make_sample_map_xlsx(path: Path, entries: list[tuple[str, str]]) -> None:
+    """Write a sample map xlsx. entries: [(sample_name, well_pos)]."""
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    assert ws is not None
+    ws.title = "Sheet1"
+    for name, pos in entries:
+        ws.append([name, pos])
+    wb.save(str(path))
+
+
+class TestParseSampleMap:
+    def test_basic_mapping(self, tmp_path: Path) -> None:
+        xlsx = tmp_path / "sample_map.xlsx"
+        _make_sample_map_xlsx(xlsx, [("V5F", "A1"), ("K53R", "B2"), ("WT", "H12")])
+        result = parse_sample_map(xlsx)
+        assert result["A01"] == "V5F"
+        assert result["B02"] == "K53R"
+        assert result["H12"] == "WT"
+
+    def test_zero_padded_position(self, tmp_path: Path) -> None:
+        xlsx = tmp_path / "sample_map.xlsx"
+        _make_sample_map_xlsx(xlsx, [("MUT1", "A01"), ("MUT2", "A1")])
+        result = parse_sample_map(xlsx)
+        # Both "A01" and "A1" → same key; first wins
+        assert result["A01"] == "MUT1"
+
+    def test_invalid_well_positions_skipped(self, tmp_path: Path) -> None:
+        xlsx = tmp_path / "sample_map.xlsx"
+        _make_sample_map_xlsx(xlsx, [
+            ("V5F", "A1"),
+            ("BAD", "Z9"),    # invalid row letter
+            ("OK", "B3"),
+        ])
+        result = parse_sample_map(xlsx)
+        assert "A01" in result
+        assert "B03" in result
+        assert len(result) == 2  # Z9 skipped
+
+    def test_nonexistent_file_raises(self, tmp_path: Path) -> None:
+        with pytest.raises(FileNotFoundError, match="sample_map_path"):
+            parse_sample_map(tmp_path / "missing.xlsx")
+
+
+# ---------------------------------------------------------------------------
+# Unit tests: _make_well_filename
+# ---------------------------------------------------------------------------
+
+
+class TestMakeWellFilename:
+    def test_without_sample_map(self) -> None:
+        assert _make_well_filename("A01", 1, 1, None) == "A01_F1_R1"
+
+    def test_with_sample_map_match(self) -> None:
+        assert _make_well_filename("A01", 1, 1, {"A01": "V5F"}) == "A01_V5F_F1_R1"
+
+    def test_with_sample_map_no_match(self) -> None:
+        assert _make_well_filename("C05", 5, 3, {"A01": "V5F"}) == "C05_F5_R3"
+
+    def test_fwd_rev_indices_in_name(self) -> None:
+        stem = _make_well_filename("H12", 12, 8, {"H12": "WT"})
+        assert stem == "H12_WT_F12_R8"
+
+
+# ---------------------------------------------------------------------------
+# Integration tests: sort_barcode_run with sample_map_path
+# ---------------------------------------------------------------------------
+
+
+class TestSortBarcodeRunWithSampleMap:
+    def test_filename_includes_sample_name(
+        self, run_dir_single_nb: tuple[Path, Path], tmp_path: Path
+    ) -> None:
+        run_dir, xlsx = run_dir_single_nb
+        # A01 = fwd1 × rev1, B02 = fwd2 × rev2
+        sample_map = tmp_path / "sample_map.xlsx"
+        _make_sample_map_xlsx(sample_map, [("V5F", "A1"), ("K53R", "B2")])
+        out = tmp_path / "out"
+        sort_barcode_run(
+            minknow_run_dir=run_dir,
+            custom_barcode_xlsx=xlsx,
+            output_dir=out,
+            error_tolerance=0.1,
+            use_cutadapt=False,
+            sample_map_path=sample_map,
+        )
+        assert (out / "sort_barcode06" / "A01_V5F_F1_R1.fasta").exists()
+        assert (out / "sort_barcode06" / "B02_K53R_F2_R2.fasta").exists()
+
+    def test_unmapped_well_falls_back_to_no_sample(
+        self, run_dir_single_nb: tuple[Path, Path], tmp_path: Path
+    ) -> None:
+        """Well not in sample map → A01_F1_R1.fasta (no sample name)."""
+        run_dir, xlsx = run_dir_single_nb
+        sample_map = tmp_path / "sample_map.xlsx"
+        _make_sample_map_xlsx(sample_map, [("V5F", "A1")])  # B02 not listed
+        out = tmp_path / "out"
+        sort_barcode_run(
+            minknow_run_dir=run_dir,
+            custom_barcode_xlsx=xlsx,
+            output_dir=out,
+            error_tolerance=0.1,
+            use_cutadapt=False,
+            sample_map_path=sample_map,
+        )
+        assert (out / "sort_barcode06" / "A01_V5F_F1_R1.fasta").exists()
+        assert (out / "sort_barcode06" / "B02_F2_R2.fasta").exists()
+
+    def test_per_well_counts_keyed_by_filename_stem(
+        self, run_dir_single_nb: tuple[Path, Path], tmp_path: Path
+    ) -> None:
+        run_dir, xlsx = run_dir_single_nb
+        sample_map = tmp_path / "sample_map.xlsx"
+        _make_sample_map_xlsx(sample_map, [("V5F", "A1"), ("K53R", "B2")])
+        out = tmp_path / "out"
+        result = sort_barcode_run(
+            minknow_run_dir=run_dir,
+            custom_barcode_xlsx=xlsx,
+            output_dir=out,
+            error_tolerance=0.1,
+            use_cutadapt=False,
+            sample_map_path=sample_map,
+        )
+        counts = result.per_nb_per_well_counts["barcode06"]
+        assert counts.get("A01_V5F_F1_R1") == 2
+        assert counts.get("B02_K53R_F2_R2") == 1

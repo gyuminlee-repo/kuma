@@ -15,6 +15,8 @@ Parameter schema
 ``nb_override``          (list[str], opt) — if set, only process these NB dir basenames
 ``error_tolerance``      (float, opt)     — per-base mismatch rate [0.0, 0.5], default 0.1
 ``use_cutadapt``         (bool, opt)      — reserved (pure-Python only), default True
+``sample_map_path``      (str, opt)       — xlsx with sample names + well positions (col A: name, col B: position e.g. "A1").
+                         When provided, filenames become ``A01_V5F_F1_R1.fasta``; without it ``A01_F1_R1.fasta``.
 
 Response schema
 ---------------
@@ -101,6 +103,19 @@ def handle_sort_barcode_run(params: dict) -> dict:
     error_tolerance = float(params.get("error_tolerance", 0.1))
     use_cutadapt = bool(params.get("use_cutadapt", True))
 
+    # ── sample_map_path (optional) ─────────────────────────────────────────
+    sample_map_path_raw = params.get("sample_map_path")
+    sample_map_path: Path | None = None
+    if sample_map_path_raw:
+        _smp_pre = Path(str(sample_map_path_raw))
+        if ".." in _smp_pre.parts:
+            raise ValueError(
+                f"Path traversal not allowed in sample_map_path: {sample_map_path_raw}"
+            )
+        sample_map_path = _smp_pre.resolve()
+        if not sample_map_path.exists():
+            raise FileNotFoundError(f"sample_map_path not found: {sample_map_path}")
+
     # ── Execute ────────────────────────────────────────────────────────────
     _logger.info(
         "sort_barcode_run: run_dir=%s, xlsx=%s, output=%s",
@@ -116,6 +131,7 @@ def handle_sort_barcode_run(params: dict) -> dict:
         nb_override=nb_override,
         error_tolerance=error_tolerance,
         use_cutadapt=use_cutadapt,
+        sample_map_path=sample_map_path,
     )
 
     return {
