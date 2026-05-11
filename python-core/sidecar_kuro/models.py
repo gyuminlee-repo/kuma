@@ -100,7 +100,7 @@ class RetryFailedParams(BaseModel):
     fwd_len_max: Optional[int] = Field(default=None, ge=10, le=100)
     rev_len_min: Optional[int] = Field(default=None, ge=10, le=60)
     rev_len_max: Optional[int] = Field(default=None, ge=10, le=100)
-    tol_max: float = Field(default=3.0, ge=0.5, le=10.0)
+    tol_max: float = Field(default=4.0, ge=0.5, le=10.0)
     num_return: int = Field(default=10, ge=1, le=960)
     overlap_mode: Literal["partial", "full"] = "partial"
 

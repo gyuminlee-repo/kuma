@@ -765,7 +765,7 @@ def design_single_sdm(
     rev_len_min: int | None = None,
     rev_len_max: int | None = None,
     organism: str = "ecoli",
-    tol_max: float = 3.0,
+    tol_max: float = 4.0,
     overlap_mode: OverlapMode = "partial",
 ) -> list[SdmPrimerResult]:
     """Design SDM primers for a single mutation.
@@ -1388,7 +1388,7 @@ def design_sdm_primers(
         logger.info("Designing primers for %s ...", mut.raw)
         candidates = design_single_sdm(sequence, mut, profile, overlap_len, codon_strategy=codon_strategy, gc_min=gc_min, gc_max=gc_max, fwd_len_min=fwd_len_min, fwd_len_max=fwd_len_max, rev_len_min=rev_len_min, rev_len_max=rev_len_max, organism=organism, overlap_mode=overlap_mode)
         if not candidates:
-            failed_reasons[mut.raw] = "No valid primer pair found within Tm tolerance ±3.0°C"
+            failed_reasons[mut.raw] = "No valid primer pair found within Tm tolerance ±4.0°C"
             logger.warning("FAILED: %s - no valid primer pair found", mut.raw)
             continue
         best = candidates[0]

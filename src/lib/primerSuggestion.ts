@@ -47,7 +47,7 @@ const FALLBACK = {
  * Tm: median of observed Tm
  * GC: span of [min(observed) - 5, max(observed) + 5] clamped to [10, 90]
  * Length: span of [min(observed) - 2, max(observed) + 2] clamped to [15, 60]
- * tolMax: 5°C (one step above default 3°C)
+ * tolMax: 6°C (one step above default 4°C)
  *
  * Falls back to user-provided defaults when sample size is zero.
  */
@@ -66,7 +66,7 @@ export function suggestRetryParams(
   } = FALLBACK,
 ): SuggestedRetryParams {
   if (results.length === 0) {
-    return { ...defaults, tolMax: 5, sampleSize: 0 };
+    return { ...defaults, tolMax: 6, sampleSize: 0 };
   }
 
   const tmFwds = results.map((r) => r.tm_no_fwd).filter((v) => Number.isFinite(v));
@@ -98,7 +98,7 @@ export function suggestRetryParams(
     fwdLenMax: clamp(fwdMaxObs + 2, 15, 60),
     revLenMin: clamp(revMinObs - 2, 15, 60),
     revLenMax: clamp(revMaxObs + 2, 15, 60),
-    tolMax: 5,
+    tolMax: 6,
     sampleSize: results.length,
   };
 }

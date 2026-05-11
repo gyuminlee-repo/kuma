@@ -153,8 +153,8 @@ def _serialize_result_with_counts(r: SdmPrimerResult) -> SdmPrimerResultModel:
 # high-confidence rescue without sacrificing primer specificity.
 # GC margin of ±5 pp keeps primers within the broadly accepted 20-80% range
 # while relaxing the user-specified optimum window.
-_DEFAULT_TOL_MAX = 3.0   # must match design_single_sdm() default
-_RELAX_TOL_DELTA = 2.0   # °C added to default tol_max (3.0 + 2.0 = 5.0)
+_DEFAULT_TOL_MAX = 4.0   # must match design_single_sdm() default
+_RELAX_TOL_DELTA = 2.0   # °C added to default tol_max (4.0 + 2.0 = 6.0)
 _RELAX_GC_DELTA = 5      # percentage points widened on each side
 _GC_FLOOR = 20           # absolute minimum GC% (Integrated DNA Technologies guideline)
 _GC_CEIL = 80            # absolute maximum GC% (Integrated DNA Technologies guideline)
