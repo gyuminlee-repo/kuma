@@ -20,6 +20,7 @@ export const SHORTCUTS: ShortcutEntry[] = [
   { keys: `${MOD}+Enter`,       action: "Run / Analyze (alias)",  scope: "both" },
   { keys: `${MOD}+S`,           action: "Save Workspace",         scope: "both" },
   { keys: `${MOD}+O`,           action: "Open Workspace",         scope: "both" },
+  { keys: `${MOD}+Shift+E`,     action: "Export All",             scope: "kuro" },
   { keys: `${MOD}+E`,           action: "Export Results",         scope: "both" },
   { keys: `${MOD}+Shift+R`,     action: "Reset All",              scope: "both" },
 ];

@@ -1,4 +1,6 @@
 import { open, save } from "@tauri-apps/plugin-dialog";
+import { mkdir } from "@tauri-apps/plugin-fs";
+import { join } from "@tauri-apps/api/path";
 import { sendRequest } from "../../lib/ipc-kuro";
 import { useAppStore } from "../../store/appStore";
 import { getSortedMutations, reorderMappings } from "../../lib/plate-utils";
@@ -41,6 +43,14 @@ function getCurrentExportState() {
   };
 }
 
+/**
+ * Core export: writes sdm_primers.xlsx to `targetPath` via the store action.
+ * Auto-overwrite without confirmation (caller is responsible for path selection).
+ */
+async function exportSdmPrimersExcel(targetPath: string, projectId?: string): Promise<void> {
+  await useAppStore.getState().exportExcel(targetPath, projectId);
+}
+
 export async function handleExportExcel(projectId?: string) {
   const path = await save({
     filters: [{ name: "Excel", extensions: ["xlsx"] }],
@@ -54,7 +64,7 @@ export async function handleExportExcel(projectId?: string) {
     if (decision === "cancel") return;
   }
 
-  await useAppStore.getState().exportExcel(path, projectId);
+  await exportSdmPrimersExcel(path, projectId);
 
   // §5 Open folder 버튼이 있는 toast
   toast.success("Export saved", {
@@ -65,6 +75,47 @@ export async function handleExportExcel(projectId?: string) {
       onClick: () => void revealInOSFolder(path),
     },
   });
+}
+
+/**
+ * Export All (Feature C): saves sdm_primers.xlsx to {project.path}/design/
+ * without a save dialog. Auto-overwrites existing file.
+ */
+export async function handleExportAll(project: KumaProject | null | undefined): Promise<void> {
+  if (!project || project.scratch || !project.path) {
+    toast.error("Open a project first to use Export All.");
+    return;
+  }
+
+  const state = useAppStore.getState();
+  if (state.designResults.length === 0) {
+    toast.error("No design results to export.");
+    return;
+  }
+
+  const designDir = await join(project.path, "design");
+  const targetPath = await join(designDir, "sdm_primers.xlsx");
+
+  useAppStore.setState({ isExporting: true });
+  try {
+    await mkdir(designDir, { recursive: true });
+    await exportSdmPrimersExcel(targetPath, project.project_id);
+
+    toast.success("Exported sdm_primers.xlsx", {
+      description: "design/sdm_primers.xlsx",
+      duration: 6000,
+      action: {
+        label: "Open folder",
+        onClick: () => void revealInOSFolder(targetPath),
+      },
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    toast.error(`Export All failed: ${msg}`);
+    state.setStatus(`Export All failed: ${msg}`);
+  } finally {
+    useAppStore.setState({ isExporting: false });
+  }
 }
 
 export async function handleExportMappingWithParams(

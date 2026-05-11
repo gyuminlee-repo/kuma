@@ -156,9 +156,18 @@ async function applyKuroSnapshot(snapshot: AutosaveSnapshot): Promise<void> {
 
 // ─── Mame 자동 탐지 ──────────────────────────────────────────────────────
 
-async function applyMameAutoDetect(
+/**
+ * MAME 입력 파일 자동 탐지를 실행하고 빈 필드를 채운다.
+ *
+ * - mame_context.json 우선 시도 (detectProjectFiles 내부에서 처리)
+ * - 이미 채워진 store 필드는 보호
+ * - onMessage 콜백: 채워진 필드 목록 또는 "no new files" 전달
+ *
+ * Re-detect 버튼이나 외부에서 직접 호출할 수 있도록 export.
+ */
+export async function applyMameAutoDetect(
   projectPath: string,
-  onMessage: (msg: HydrationStatusMessage) => void,
+  onMessage: (filled: string[]) => void,
 ): Promise<void> {
   const detected = await detectProjectFiles(projectPath);
   const store = useMameAppStore.getState();
@@ -189,13 +198,7 @@ async function applyMameAutoDetect(
     filled.push("sequencing summary");
   }
 
-  if (filled.length > 0) {
-    onMessage({
-      kind: "mame",
-      variant: "restored",
-      message: `Auto-detected: ${filled.join(", ")}`,
-    });
-  }
+  onMessage(filled);
 }
 
 // ─── Mame 복원 ────────────────────────────────────────────────────────────
@@ -311,7 +314,15 @@ export function useAutosaveHydration(
       // missing → 침묵
 
       // ── auto-detect: autosave 복원 후 여전히 비어있는 필드를 프로젝트 디렉토리에서 채운다
-      await applyMameAutoDetect(path, onMessage);
+      await applyMameAutoDetect(path, (filled) => {
+        if (filled.length > 0) {
+          onMessage({
+            kind: "mame",
+            variant: "restored",
+            message: `Auto-detected: ${filled.join(", ")}`,
+          });
+        }
+      });
     })();
   }, [project?.path, project?.scratch, onMessage]);
 }

@@ -43,6 +43,7 @@ import { runPreflightCheck } from "@/lib/preflight";
 import type { PreflightResult } from "@/lib/preflight";
 import {
   handleExportExcel,
+  handleExportAll,
   handleSaveWorkspace,
   handleOpenSequence,
 } from "./export-handlers";
@@ -289,7 +290,12 @@ export function AppLayout() {
       case "e":
         if (isInput) return;
         e.preventDefault();
-        if (useAppStore.getState().designResults.length > 0) handleExportExcel(project?.project_id);
+        if (e.shiftKey) {
+          // Ctrl/Cmd+Shift+E: Export All (no dialog)
+          void handleExportAll(project);
+        } else if (useAppStore.getState().designResults.length > 0) {
+          handleExportExcel(project?.project_id);
+        }
         break;
       case "d":
         if (isInput) return;

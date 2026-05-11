@@ -36,6 +36,9 @@ import { SummaryRow } from "../widgets/SummaryRow";
 import { VerdictTable } from "../widgets/VerdictTable";
 import { RunHealthPanel } from "../widgets/RunHealthPanel";
 import { DataPanel } from "@/components/ui/Panel";
+import { BarcodeSetupPanel } from "@/components/mame/panels/BarcodeSetupPanel";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { MamePhase } from "@/store/mame/slices/phaseSlice";
 
 // Activity store는 RoundStore를 주입받아 초기화 (lazy singleton).
 // MameAppLayout 모듈 로드 시 단 한 번만 실행.
@@ -51,6 +54,8 @@ export function MameAppLayout() {
   const runHealth = useMameAppStore((s) => s.runHealth);
   const verdictsLength = useMameAppStore((s) => s.verdicts.length);
   const isAnalyzing = useMameAppStore((s) => s.isAnalyzing);
+  const mamePhase = useMameAppStore((s) => s.mamePhase);
+  const setMamePhase = useMameAppStore((s) => s.setMamePhase);
   const [isDragOver, setIsDragOver] = useState(false);
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
   // §1 Dead-lock 감지 모달 상태
@@ -225,31 +230,52 @@ export function MameAppLayout() {
       <WhatsNewDialog />
       <MenuBar onClearRequest={() => setClearConfirmOpen(true)} />
 
-      <div className="flex flex-1 gap-3 overflow-hidden p-3">
-        <Sidebar
-          onClearRequest={() => setClearConfirmOpen(true)}
-          onRunRequest={tryRunAnalysis}
-        />
+      {/* Phase 탭: MenuBar 아래, StatusBar 위 */}
+      <Tabs
+        value={mamePhase}
+        onValueChange={(v) => setMamePhase(v as MamePhase)}
+        className="flex flex-1 min-h-0 flex-col"
+      >
+        <TabsList className="shrink-0 mx-3 mt-2 w-fit">
+          <TabsTrigger value="setup">1. Barcode Setup</TabsTrigger>
+          <TabsTrigger value="analyze">2. Analyze</TabsTrigger>
+        </TabsList>
 
-        <main
-          className="grid min-h-0 flex-1 min-w-0 grid-rows-[auto_minmax(0,1fr)_320px_auto] gap-3 overflow-hidden"
-          role="main"
-          aria-label="Analysis workspace"
-        >
-          <SummaryRow />
-          <DataPanel title="Verdict table" className="min-h-0">
-            <VerdictTable />
-          </DataPanel>
-          <DataPanel title="Plate plan">
-            <PlateView />
-          </DataPanel>
-          {verdictsLength > 0 && runHealth !== null && (
-            <DataPanel title="Run health">
-              <RunHealthPanel health={runHealth} />
-            </DataPanel>
-          )}
-        </main>
-      </div>
+        {/* Phase 1: Barcode Setup */}
+        <TabsContent value="setup" className="flex-1 min-h-0 overflow-hidden mt-0">
+          <BarcodeSetupPanel />
+        </TabsContent>
+
+        {/* Phase 2: Analyze (기존 분석 UI 전체) */}
+        {/* NOTE: drag-drop 이벤트는 외부 div에 등록되어 있어 setup 탭에서도 동작할 수 있음 (v1 acceptable) */}
+        <TabsContent value="analyze" className="flex-1 min-h-0 overflow-hidden mt-0">
+          <div className="flex h-full gap-3 overflow-hidden p-3">
+            <Sidebar
+              onClearRequest={() => setClearConfirmOpen(true)}
+              onRunRequest={tryRunAnalysis}
+            />
+
+            <main
+              className="grid min-h-0 flex-1 min-w-0 grid-rows-[auto_minmax(0,1fr)_320px_auto] gap-3 overflow-hidden"
+              role="main"
+              aria-label="Analysis workspace"
+            >
+              <SummaryRow />
+              <DataPanel title="Verdict table" className="min-h-0">
+                <VerdictTable />
+              </DataPanel>
+              <DataPanel title="Plate plan">
+                <PlateView />
+              </DataPanel>
+              {verdictsLength > 0 && runHealth !== null && (
+                <DataPanel title="Run health">
+                  <RunHealthPanel health={runHealth} />
+                </DataPanel>
+              )}
+            </main>
+          </div>
+        </TabsContent>
+      </Tabs>
 
       <StatusBar sidecarStatus={status} onRetry={retry} />
 

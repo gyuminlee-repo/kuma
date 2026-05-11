@@ -6,11 +6,13 @@
  *
  * 우선순위:
  *  1. autosave 복원값 (비어있지 않으면 탐지 스킵)
- *  2. 자동 탐지
- *  3. 수동 입력
+ *  2. mame_context.json (autosave로 채워지지 않은 필드만 적용)
+ *  3. readDir 파일시스템 스캔 (mame_context.json 없거나 일부 필드 비었을 때만)
  */
 
-import { readDir } from "@tauri-apps/plugin-fs";
+import { readDir, readTextFile } from "@tauri-apps/plugin-fs";
+import { join } from "@tauri-apps/api/path";
+import { isMameContext, type MameContext } from "@/types/mame/mame_context";
 
 export interface DetectedPaths {
   /** MinKNOW run 디렉토리 (YYYYMMDD_HHMM_* 패턴) */
@@ -41,6 +43,60 @@ function joinPath(dir: string, name: string): string {
   return `${dir.trimEnd().replace(/[/\\]$/, "")}${sep}${name}`;
 }
 
+/**
+ * mame_context.json을 읽어 파싱 결과를 반환한다.
+ * 파일이 없거나 파싱 실패 시 null 반환 (에러 무시).
+ */
+async function readMameContext(projectPath: string): Promise<MameContext | null> {
+  try {
+    const contextPath = await join(projectPath, "mame_context.json");
+    const text = await readTextFile(contextPath);
+    const parsed: unknown = JSON.parse(text);
+    if (!isMameContext(parsed)) {
+      console.warn("[detectProjectFiles] mame_context.json: invalid schema, falling back to readDir");
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * mame_context.json의 상대 경로 필드를 절대 경로로 변환한다.
+ * join() 실패 시 해당 필드는 undefined로 처리.
+ */
+async function resolveContextPaths(
+  projectPath: string,
+  context: MameContext,
+): Promise<Pick<DetectedPaths, "customBarcodesPath" | "referencePath" | "sampleMapPath">> {
+  const resolved: Pick<DetectedPaths, "customBarcodesPath" | "referencePath" | "sampleMapPath"> = {};
+
+  if (context.custom_barcodes_path) {
+    try {
+      resolved.customBarcodesPath = await join(projectPath, context.custom_barcodes_path);
+    } catch {
+      console.warn("[detectProjectFiles] mame_context.json: failed to resolve custom_barcodes_path");
+    }
+  }
+  if (context.reference_path) {
+    try {
+      resolved.referencePath = await join(projectPath, context.reference_path);
+    } catch {
+      console.warn("[detectProjectFiles] mame_context.json: failed to resolve reference_path");
+    }
+  }
+  if (context.sample_map_template_path) {
+    try {
+      resolved.sampleMapPath = await join(projectPath, context.sample_map_template_path);
+    } catch {
+      console.warn("[detectProjectFiles] mame_context.json: failed to resolve sample_map_template_path");
+    }
+  }
+
+  return resolved;
+}
+
 /** dir を shallow スキャンして DirEntry 配列を返す。失敗時は [] */
 async function safeReadDir(dir: string): Promise<DirEntry[]> {
   try {
@@ -51,8 +107,12 @@ async function safeReadDir(dir: string): Promise<DirEntry[]> {
 }
 
 /**
- * プロジェクトパスとその親ディレクトリをスキャンして後보 경로を返す.
+ * 프로젝트 경로와 그 부모 디렉토리를 스캔하여 후보 경로를 반환한다.
  * 빈 문자열인 현재 autosave 필드만 채운다 (비어있지 않은 값은 건드리지 않음).
+ *
+ * 우선순위:
+ *  1. mame_context.json (autosave 이후 남은 빈 필드를 채움)
+ *  2. readDir 스캔 (mame_context.json이 없거나 일부 필드가 여전히 비어있을 때)
  */
 export async function detectProjectFiles(projectPath: string): Promise<DetectedPaths> {
   const sep = projectPath.includes("\\") ? "\\" : "/";
@@ -61,6 +121,23 @@ export async function detectProjectFiles(projectPath: string): Promise<DetectedP
     : projectPath;
 
   const detected: DetectedPaths = {};
+
+  // ── mame_context.json 우선 처리
+  const mameContext = await readMameContext(projectPath);
+  if (mameContext) {
+    const contextPaths = await resolveContextPaths(projectPath, mameContext);
+    if (contextPaths.customBarcodesPath) {
+      detected.customBarcodesPath = contextPaths.customBarcodesPath;
+    }
+    if (contextPaths.referencePath) {
+      detected.referencePath = contextPaths.referencePath;
+    }
+    if (contextPaths.sampleMapPath) {
+      detected.sampleMapPath = contextPaths.sampleMapPath;
+    }
+  }
+
+  // ── readDir 스캔 (inputDir, expectedPath, sequencingSummaryPath는 mame_context.json에 없으므로 항상 실행)
 
   // 프로젝트 디렉토리 스캔 (barcodes, sample map, reference, expected)
   const projectEntries = await safeReadDir(projectPath);

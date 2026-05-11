@@ -1,4 +1,5 @@
 import type { SortingState, Updater } from "@tanstack/react-table";
+export type { MamePhase, PhaseSlice } from "./slices/phaseSlice";
 import type {
   AmpliconLengthEstimate,
   AnalyzeSummary,

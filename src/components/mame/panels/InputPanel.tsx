@@ -1,12 +1,17 @@
+import { useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { readDir } from "@tauri-apps/plugin-fs";
-import { FolderOpen } from "lucide-react";
+import { FolderOpen, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
+import { useKumaProject } from "@/state/projectContext";
+import { applyMameAutoDetect } from "@/hooks/useAutosaveHydration";
 import type { InputMode } from "@/store/mame/slice-interfaces";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { InlineHelp } from "@/components/ui/InlineHelp";
+import { Spinner } from "@/components/ui/Spinner";
 import { defaultMameExportFilename } from "@/lib/filename";
 
 const INPUT_DIR_CONFIG: Record<
@@ -55,6 +60,25 @@ export function InputPanel() {
   const setOutputPath = useMameAppStore((s) => s.setOutputPath);
   const setSampleMapPath = useMameAppStore((s) => s.setSampleMapPath);
   const setParams = useMameAppStore((s) => s.setParams);
+
+  const project = useKumaProject();
+  const [isDetecting, setIsDetecting] = useState(false);
+
+  async function handleRedetect() {
+    if (!project?.path) return;
+    setIsDetecting(true);
+    try {
+      await applyMameAutoDetect(project.path, (filled) => {
+        if (filled.length === 0) {
+          toast.info("No new files detected");
+        } else {
+          toast.success(`Auto-detected: ${filled.join(", ")}`);
+        }
+      });
+    } finally {
+      setIsDetecting(false);
+    }
+  }
 
   function updateRaw(partial: Partial<typeof rawRunParams>) {
     setParams({ rawRunParams: partial });
@@ -137,11 +161,28 @@ export function InputPanel() {
 
   return (
     <div className="rounded-lg border border-border bg-background p-4 space-y-4">
-      <header>
-        <h3 className="text-sm font-semibold text-foreground">Input files</h3>
-        <p className="mt-1 text-xs text-muted-foreground">
-          Primary run inputs and output location.
-        </p>
+      <header className="flex items-start justify-between gap-2">
+        <div>
+          <h3 className="text-sm font-semibold text-foreground">Input files</h3>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Primary run inputs and output location.
+          </p>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => void handleRedetect()}
+          disabled={!project?.path || isDetecting}
+          aria-label="Re-detect input files from project directory"
+          className="h-7 shrink-0"
+        >
+          {isDetecting ? (
+            <Spinner size="sm" />
+          ) : (
+            <RefreshCw className="h-3 w-3" aria-hidden="true" />
+          )}
+          <span className="ml-1">Re-detect</span>
+        </Button>
       </header>
 
       <FileField

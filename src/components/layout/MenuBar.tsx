@@ -23,6 +23,7 @@ import { getCrashLog } from "../../lib/crashLog";
 import { CrashLogDialog } from "../dialogs/CrashLogDialog";
 import {
   handleExportExcel,
+  handleExportAll,
   handleExportMappingWithParams,
   handleOpenSequence,
   executeMigrateAndLoad,
@@ -253,8 +254,8 @@ export function MenuBar() {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
           <DropdownMenuItem
-            onClick={() => window.alert("Export All coming soon (Feature C)")}
-            disabled={!hasDesignResults || isExporting}
+            onClick={() => void handleExportAll(project)}
+            disabled={!hasDesignResults || isExporting || !project || project.scratch || !project.path}
           >
             <span className="flex-1">Export All</span>
             <kbd className="ml-4 text-caption text-muted-foreground">{MOD_KEY}Shift+E</kbd>
