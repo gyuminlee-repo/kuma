@@ -270,9 +270,11 @@ def handle_design_sdm_primers(params: dict) -> dict:
 
         def _on_progress(i: int, total: int, mutation_raw: str) -> None:
             pct = 10 + int(70 * i / max(total, 1))
-            _progress(pct, f"Designing {mutation_raw} ({i+1}/{total})...")
+            _progress(pct)
 
-        _progress(10, "Designing SDM primers...")
+        mutation_count = len(lines) if lines else ""
+        count_str = f" ({mutation_count} mutations)" if mutation_count else ""
+        _progress(10, f"Designing SDM primers{count_str}...")
         results, all_cands, engine_failures = design_sdm_primers(
             fasta_path=resolved_fasta,
             target_start=p.target_start,
