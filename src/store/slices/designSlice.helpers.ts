@@ -182,7 +182,11 @@ export function processDesignResult(params: {
   const rescuedSet = new Set(rescuedMutations);
   const rescued = result.results.filter((r) => rescuedSet.has(r.mutation));
   const nonRescued = result.results.filter((r) => !rescuedSet.has(r.mutation));
-  const capped = [...nonRescued.slice(0, maxPrimers - rescued.length), ...rescued];
+  const rescueSlots = Math.min(rescued.length, maxPrimers);
+  const capped = [
+    ...nonRescued.slice(0, maxPrimers - rescueSlots),
+    ...rescued.slice(0, rescueSlots),
+  ];
   const intendedFailed = (result.failed_mutations ?? []).filter((f) => intendedMuts.has(f.mutation));
   const tmMet = capped.filter((r) => r.tm_condition_met).length;
 
@@ -281,18 +285,20 @@ export function addDesignResultState(params: {
   result: SdmPrimerResult;
   designResults: SdmPrimerResult[];
   failedMutations: FailedMutation[];
-  successCount: number;
   rescuedMutations: string[];
   wellName: (idx: number) => string;
+  maxPrimers?: number;
+  preferredMutations?: Set<string>;
 }) {
   const {
     mutation,
     result,
     designResults,
     failedMutations,
-    successCount,
     rescuedMutations,
     wellName,
+    maxPrimers,
+    preferredMutations,
   } = params;
 
   let aaPos = result.aa_position;
@@ -309,7 +315,7 @@ export function addDesignResultState(params: {
     candidate_rev_count: result.candidate_rev_count ?? 1,
   };
 
-  const nextDesignResults = [
+  const nextDesignResultsUncapped = [
     ...designResults.map((r) => {
       if (r.aa_position !== fixedResult.aa_position) return r;
       return {
@@ -322,6 +328,15 @@ export function addDesignResultState(params: {
     }),
     fixedResult,
   ];
+  const nextDesignResults =
+    maxPrimers !== undefined && nextDesignResultsUncapped.length > maxPrimers
+      ? trimDesignResults({
+          results: nextDesignResultsUncapped,
+          maxPrimers,
+          mustKeep: mutation,
+          preferredMutations,
+        })
+      : nextDesignResultsUncapped;
   const plateState = rebuildPlateStateFromResults({
     designResults: nextDesignResults,
     wellName,
@@ -331,13 +346,42 @@ export function addDesignResultState(params: {
     backendDesignStateSynced: false,
     designResults: nextDesignResults,
     failedMutations: failedMutations.filter((f) => f.mutation !== mutation),
-    successCount: successCount + 1,
+    successCount: nextDesignResults.length,
     plateMappings: plateState.plateMappings,
     dedupInfo: plateState.dedupInfo,
     rescuedMutations: rescuedMutations.includes(mutation)
       ? rescuedMutations
       : [...rescuedMutations, mutation],
   };
+}
+
+function trimDesignResults(params: {
+  results: SdmPrimerResult[];
+  maxPrimers: number;
+  mustKeep: string;
+  preferredMutations?: Set<string>;
+}): SdmPrimerResult[] {
+  const { results, maxPrimers, mustKeep, preferredMutations } = params;
+  const trimmed = [...results];
+
+  while (trimmed.length > maxPrimers) {
+    const removableIdx = findLastIndex(trimmed, (r) =>
+      r.mutation !== mustKeep && !preferredMutations?.has(r.mutation)
+    );
+    const fallbackIdx = findLastIndex(trimmed, (r) => r.mutation !== mustKeep);
+    const removeIdx = removableIdx >= 0 ? removableIdx : fallbackIdx;
+    if (removeIdx < 0) break;
+    trimmed.splice(removeIdx, 1);
+  }
+
+  return trimmed;
+}
+
+function findLastIndex<T>(items: T[], predicate: (item: T) => boolean): number {
+  for (let i = items.length - 1; i >= 0; i -= 1) {
+    if (predicate(items[i]!)) return i;
+  }
+  return -1;
 }
 
 export function removeDesignResultState(params: {

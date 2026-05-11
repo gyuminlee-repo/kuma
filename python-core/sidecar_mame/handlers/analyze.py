@@ -20,6 +20,33 @@ from sidecar_mame.core import (
 )
 
 
+def _read_fasta_length(path: Any) -> int:
+    """Return total sequence length from a FASTA file."""
+    seq_len = 0
+    with path.open("r", encoding="utf-8") as fh:
+        for line in fh:
+            line = line.strip()
+            if not line or line.startswith(">"):
+                continue
+            seq_len += len(line)
+    if seq_len <= 0:
+        raise ValueError(f"Reference FASTA contains no sequence data: {path}")
+    return seq_len
+
+
+def _resolve_cds_end(raw_cds_end: Any, reference_path: Any) -> int:
+    """Use explicit CDS end when positive; otherwise default to full reference."""
+    if raw_cds_end is None:
+        return _read_fasta_length(reference_path)
+    try:
+        cds_end = int(raw_cds_end)
+    except (TypeError, ValueError):
+        raise ValueError("cds_end must be an integer") from None
+    if cds_end <= 0:
+        return _read_fasta_length(reference_path)
+    return cds_end
+
+
 def _serialize_verdict(vr: Any) -> dict:
     t = vr.translated
     b = t.barcode
@@ -76,6 +103,7 @@ def handle_validate_inputs(params: dict) -> dict:
     reference = params.get("reference")
     expected = params.get("expected")
     cds_end = params.get("cds_end")
+    reference_path = None
 
     if not input_dir:
         errors.append("input_dir is required")
@@ -89,7 +117,7 @@ def handle_validate_inputs(params: dict) -> dict:
         errors.append("reference is required")
     else:
         try:
-            _validate_filepath(
+            reference_path = _validate_filepath(
                 reference, allowed_extensions=_ALLOWED_FASTA_EXTENSIONS
             )
         except (FileNotFoundError, ValueError) as exc:
@@ -118,14 +146,11 @@ def handle_validate_inputs(params: dict) -> dict:
         except Exception as exc:  # noqa: BLE001 — openpyxl surface is broad
             errors.append(f"expected: failed to open xlsx ({exc})")
 
-    if cds_end is None:
-        errors.append("cds_end is required")
-    else:
+    if reference_path is not None:
         try:
-            if int(cds_end) <= 0:
-                errors.append("cds_end must be > 0")
-        except (TypeError, ValueError):
-            errors.append("cds_end must be an integer")
+            _resolve_cds_end(cds_end, reference_path)
+        except ValueError as exc:
+            errors.append(str(exc))
 
     return {"valid": not errors, "errors": errors}
 
@@ -154,7 +179,7 @@ def handle_analyze(params: dict) -> dict:
     mode = str(params.get("mode", "amplicon"))
     ingest_mode_raw = str(params.get("ingest_mode", "barcode"))
     cds_start = int(params.get("cds_start", 0))
-    cds_end = int(params["cds_end"])
+    cds_end = _resolve_cds_end(params.get("cds_end"), reference)
     min_file_size_kb = float(params.get("min_file_size_kb", 50.0))
     many_cutoff = int(params.get("many_cutoff", 5))
 

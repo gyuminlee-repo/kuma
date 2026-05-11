@@ -29,7 +29,14 @@ kuro·mame 양 앱에 Common Frontend Standards 헌장 적용. 헌장(`docs/stan
 - **§5 결과 영속성**: `revealInOSFolder`(`tauri-plugin-opener`), 앱 레벨 overwrite confirm 모달 (Phase 8b).
 - **§16 로컬 진단**: 익명화 진단 JSON 저장(`generateDiagnosticsBundle`), 외부 전송 0건 (Phase 8c).
 
-### 앱별 헌장 충족 (Appendix D, v1.1)
+### Phase J — 헌장 이후 패치 수정 (v0.3.7.14–v0.3.7.18)
+
+- **§4 에러 UX — MAME 크래시 리포트 메타데이터** (v0.3.7.14): `MenuBar.tsx:handleCopyCrashLog`가 클립보드 복사 텍스트 앞에 앱 버전, sidecar 버전(`health` RPC 조회, 실패 시 `"unknown"`), OS user-agent, ISO 타임스탬프를 헤더로 추가. 지원 티켓 재현에 필요한 정보를 수동 수집 없이 확보.
+- **Vitest `__BUILD_SHA__` 정의** (v0.3.7.16): `vitest.config.ts`에 `__BUILD_SHA__: '"test"'`를 주입해 레이아웃 컴포넌트가 Vitest 환경에서 상수를 참조해도 컴파일 오류 없이 동작. 기존에 실패하던 레이아웃 테스트 6건 수정.
+- **헌장 v1.8 감사** (v0.3.7.15, v0.3.7.17): §11 요구사항 모호성 해소; kuro·mame 모두 Req ✅ 52 / 🟡 21 / ❌ 0으로 갱신. PrimerBench §11·§5 수정 반영.
+- **Sidecar 해시 오탐 수정** (v0.3.7.18): `sidecar.rs:verify_binary_hash`가 이전에 `{base}.exe` 키로 manifest를 조회했으나 `sidecar-hash.mjs`는 `{base}-{triple}.exe` 형식으로 키를 씀. 조회 우선순위를 ① `{base}-{BUILD_TARGET}{ext}` (exact) → ② `{base}{ext}` (ext 전용) → ③ `{base}` (bare base, legacy) 3단계로 확장. `build.rs`가 `BUILD_TARGET`을 `cargo:rustc-env`로 Rust에 노출. CI(`build.yml`)에 해시 재생성 step 추가.
+
+### 앱별 헌장 충족 (Appendix D, v1.8)
 
 - **kuro**: 22 카테고리 중 10 ✅ / 12 🟡 / 0 ❌. Req ✅ 52/89.
 - **mame**: 22 카테고리 중 10 ✅ / 12 🟡 / 0 ❌. Req ✅ 52/88.

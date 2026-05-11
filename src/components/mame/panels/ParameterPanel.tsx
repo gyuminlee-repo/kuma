@@ -1,4 +1,5 @@
 import { useMameAppStore } from "@/store/mame/mameAppStore";
+import { save } from "@tauri-apps/plugin-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -11,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Dna } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { InlineHelp } from "@/components/ui/InlineHelp";
 import type { AmpliconLengthEstimate, DistributionStats } from "@/types/mame/models";
 import type { InputMode } from "@/store/mame/slice-interfaces";
 import { ActivityUploadPanel } from "./ActivityUploadPanel";
@@ -22,7 +24,6 @@ import type { RoundMetrics } from "@/types/round-metrics";
 import type { MergeStats, SwapWarning } from "@/types/mame/activity";
 import { useRoundStore } from "@/store/round/roundSlice";
 import { useStore } from "zustand";
-import { save } from "@tauri-apps/plugin-dialog";
 import { isExportBlockedError } from "@/lib/errors";
 import { useKumaProject } from "@/state/projectContext";
 import { useState } from "react";
@@ -121,7 +122,6 @@ function RawRunParamPanel() {
   const demuxResult = useMameAppStore((s) => s.demuxResult);
   const ampliconLengthEstimate = useMameAppStore((s) => s.ampliconLengthEstimate);
   const setParams = useMameAppStore((s) => s.setParams);
-  const runDemuxAndFilter = useMameAppStore((s) => s.runDemuxAndFilter);
 
   function updateRaw(partial: Partial<typeof rawRunParams>) {
     setParams({ rawRunParams: partial });
@@ -136,46 +136,6 @@ function RawRunParamPanel() {
         Raw Run Options
       </legend>
 
-      {/* Custom barcodes path */}
-      <div className="space-y-1">
-        <Label
-          htmlFor="custom-barcodes-path"
-          className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
-        >
-          Custom Barcodes (xlsx or csv)
-        </Label>
-        <Input
-          id="custom-barcodes-path"
-          type="text"
-          value={rawRunParams.customBarcodesPath}
-          onChange={(e) => updateRaw({ customBarcodesPath: e.target.value })}
-          placeholder="/path/to/reference.xlsx"
-          className="h-8 min-w-0 text-xs"
-          aria-label="Custom barcodes file path (xlsx or csv)"
-          disabled={isDemuxing}
-        />
-      </div>
-
-      {/* Sequencing summary path */}
-      <div className="space-y-1">
-        <Label
-          htmlFor="seq-summary-path"
-          className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
-        >
-          Sequencing Summary (optional)
-        </Label>
-        <Input
-          id="seq-summary-path"
-          type="text"
-          value={rawRunParams.sequencingSummaryPath}
-          onChange={(e) => updateRaw({ sequencingSummaryPath: e.target.value })}
-          placeholder="sequencing_summary_*.txt"
-          className="h-8 min-w-0 text-xs"
-          aria-label="Sequencing summary file path (optional)"
-          disabled={isDemuxing}
-        />
-      </div>
-
       {/* Amplicon length — target + tolerance */}
       <div className="space-y-2">
         <div className="space-y-1">
@@ -183,7 +143,10 @@ function RawRunParamPanel() {
             htmlFor="target-amplicon-length"
             className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
           >
-            Target Amplicon Length (bp)
+            <span className="inline-flex items-center gap-1.5">
+              Target Amplicon Length (bp)
+              <InlineHelp text="Expected amplicon length after barcode sorting. Leave blank to auto-detect from sample reads; set manually when the distribution is noisy." />
+            </span>
           </Label>
           <Input
             id="target-amplicon-length"
@@ -218,7 +181,10 @@ function RawRunParamPanel() {
               htmlFor="length-tolerance"
               className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
             >
-              Length Tolerance ± bp
+              <span className="inline-flex items-center gap-1.5">
+                Length Tolerance ± bp
+                <InlineHelp text="Allowed window around target amplicon length. Reads outside target ± tolerance are filtered when length filtering is active." />
+              </span>
             </Label>
             <span
               className="text-caption font-medium text-foreground"
@@ -251,6 +217,7 @@ function RawRunParamPanel() {
           step="0.5"
           onChange={(v) => updateRaw({ minQscore: v })}
           disabled={isDemuxing}
+          helpText="Minimum per-read qscore threshold when sequencing_summary metadata is available."
         />
         <NumericField
           id="min-barcode-score"
@@ -259,6 +226,7 @@ function RawRunParamPanel() {
           step="1"
           onChange={(v) => updateRaw({ minBarcodeScore: v })}
           disabled={isDemuxing}
+          helpText="Minimum MinKNOW barcode_score threshold when sequencing_summary metadata is available."
         />
       </div>
 
@@ -269,7 +237,10 @@ function RawRunParamPanel() {
             htmlFor="linked-trim-toggle"
             className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
           >
-            Trim Adapters
+            <span className="inline-flex items-center gap-1.5">
+              Trim Adapters
+              <InlineHelp text="Optionally trims the forward barcode and universal reverse primer from assigned reads before downstream FASTA output." />
+            </span>
           </Label>
           <button
             id="linked-trim-toggle"
@@ -301,7 +272,10 @@ function RawRunParamPanel() {
               htmlFor="rev-primer"
               className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
             >
-              Universal Rev Primer (5′→3′)
+              <span className="inline-flex items-center gap-1.5">
+                Universal Rev Primer (5′→3′)
+                <InlineHelp text="Universal reverse primer sequence in 5′ to 3′ orientation. Used only when Trim Adapters is enabled." />
+              </span>
             </Label>
             <Input
               id="rev-primer"
@@ -325,7 +299,10 @@ function RawRunParamPanel() {
           htmlFor="normalize-headers-toggle"
           className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
         >
-          Normalize Headers
+          <span className="inline-flex items-center gap-1.5">
+            Normalize Headers
+            <InlineHelp text="Writes the well name into FASTA headers instead of preserving ONT read IDs. This makes downstream per-well parsing more consistent." />
+          </span>
         </Label>
         <button
           id="normalize-headers-toggle"
@@ -394,22 +371,9 @@ function RawRunParamPanel() {
         </div>
       )}
 
-      {/* Run demux button */}
-      <Button
-        type="button"
-        size="sm"
-        className="w-full text-xs"
-        onClick={() => void runDemuxAndFilter()}
-        disabled={
-          isDemuxing ||
-          !rawRunParams.customBarcodesPath ||
-          (rawRunParams.linkedTrim && !rawRunParams.revPrimerUniversal)
-        }
-        aria-busy={isDemuxing}
-        aria-label="Run demux and quality filter on raw run folder"
-      >
-        {isDemuxing ? "Demuxing…" : "Run Demux & Filter"}
-      </Button>
+      <p className="text-caption text-muted-foreground">
+        Barcode sorting runs automatically when you press the main Run button.
+      </p>
     </fieldset>
   );
 }
@@ -783,12 +747,14 @@ export function ParameterPanel() {
           label="CDS Start"
           value={cdsStart}
           onChange={(value) => setParams({ cdsStart: value })}
+          helpText="0-based CDS start offset used when translating consensus sequence to amino acids."
         />
         <NumericField
           id="cds-end"
           label="CDS End"
           value={cdsEnd}
           onChange={(value) => setParams({ cdsEnd: value })}
+          helpText="CDS end coordinate used for translation. Must match the reference FASTA frame."
         />
 
         {/* Min filtered depth (reads) — primary depth-based cutoff */}
@@ -797,7 +763,10 @@ export function ParameterPanel() {
             htmlFor="min-filtered-depth"
             className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
           >
-            최소 Filtered Depth (reads)
+            <span className="inline-flex items-center gap-1.5">
+              최소 Filtered Depth (reads)
+              <InlineHelp text="Length-window filter를 통과한 read 수 기준 cutoff입니다. FASTA 파일 크기보다 직접적인 depth 지표지만, 현재 판정 backend에는 아직 legacy KB cutoff가 전달됩니다." />
+            </span>
           </Label>
           <Input
             id="min-filtered-depth"
@@ -816,7 +785,7 @@ export function ParameterPanel() {
             title="Length-window-filtered read count. ONT R10.4.1 consensus reaches Q35+ around 15× depth."
           />
           <p className="text-caption text-muted-foreground">
-            Length-window-filtered read count. ONT R10.4.1 consensus: Q35+ ~15×
+            Length-window-filtered read count. ONT R10.4.1 consensus: Q35+ ~15×. KB cutoff와 1:1 자동 변환되지 않습니다.
           </p>
         </div>
 
@@ -826,7 +795,10 @@ export function ParameterPanel() {
             htmlFor="min-file-kb"
             className="text-caption font-medium uppercase tracking-wide text-muted-foreground/60"
           >
-            Legacy KB Cutoff (proxy)
+            <span className="inline-flex items-center gap-1.5">
+              Legacy KB Cutoff (proxy)
+              <InlineHelp text="FASTA 파일 크기를 read depth의 대리값으로 쓰는 기존 cutoff입니다. read 길이, header 길이, line wrapping, consensus/intermediate 산출 방식에 따라 같은 read 수라도 KB가 달라져 Filtered Depth와 자동 동기화할 수 없습니다." />
+            </span>
           </Label>
           <Input
             id="min-file-kb"
@@ -856,6 +828,7 @@ export function ParameterPanel() {
           label="Many Cutoff"
           value={manyCutoff}
           onChange={(value) => setParams({ manyCutoff: value })}
+          helpText="Number of observed amino-acid changes above which a result is classified as MANY."
         />
       </div>
 
@@ -874,6 +847,7 @@ function NumericField({
   onChange,
   step,
   disabled,
+  helpText,
 }: {
   id: string;
   label: string;
@@ -881,6 +855,7 @@ function NumericField({
   onChange: (value: number) => void;
   step?: string;
   disabled?: boolean;
+  helpText?: string;
 }) {
   return (
     <div className="space-y-1">
@@ -888,7 +863,10 @@ function NumericField({
         htmlFor={id}
         className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
       >
-        {label}
+        <span className="inline-flex items-center gap-1.5">
+          {label}
+          {helpText && <InlineHelp text={helpText} />}
+        </span>
       </Label>
       <Input
         id={id}

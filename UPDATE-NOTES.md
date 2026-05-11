@@ -29,7 +29,14 @@ Common Frontend Standards charter applied across kuro and mame. The charter (`do
 - **§5 Output Persistence**: `revealInOSFolder` via `tauri-plugin-opener`, app-level overwrite confirmation dialog before exports (Phase 8b).
 - **§16 Local Diagnostics**: `generateDiagnosticsBundle` saves anonymized diagnostics JSON (no external transmission) (Phase 8c).
 
-### Per-app status (charter Appendix D, v1.1)
+### Phase J — post-charter patch fixes (v0.3.7.14–v0.3.7.18)
+
+- **§4 Error UX — MAME crash report metadata** (v0.3.7.14): `MenuBar.tsx` `handleCopyCrashLog` now prefixes copied text with app version, sidecar version (fetched via `health` RPC, falls back to `"unknown"`), OS user-agent, and ISO timestamp. Gives support tickets full reproduction context without manual steps.
+- **Vitest `__BUILD_SHA__` define** (v0.3.7.16): `vitest.config.ts` now injects `__BUILD_SHA__: '"test"'` so layout components that reference the constant compile cleanly under Vitest — fixes 6 previously-failing layout tests.
+- **Charter v1.8 audit** (v0.3.7.15, v0.3.7.17): §11 requirement ambiguity resolved; req counts updated to ✅ 52 / 🟡 21 / ❌ 0 for both kuro and mame. PrimerBench §11/§5 fixes reflected.
+- **Sidecar hash false positive** (v0.3.7.18): `sidecar.rs:verify_binary_hash` previously looked up the manifest by `{base}.exe` but `sidecar-hash.mjs` writes keys as `{base}-{triple}.exe`. The lookup now tries three candidate keys in order: ① `{base}-{BUILD_TARGET}{ext}` (exact match), ② `{base}{ext}` (ext-only fallback), ③ `{base}` (bare base, legacy). `build.rs` exposes `BUILD_TARGET` to Rust via `cargo:rustc-env`. CI (`build.yml`) adds a hash-regen step so the manifest is always fresh before the Rust build.
+
+### Per-app status (charter Appendix D, v1.8)
 
 - **kuro**: 10 of 22 categories fully ✅, 12 🟡, 0 ❌. Req-level ✅ 52 of ~89.
 - **mame**: 10 of 22 categories fully ✅, 12 🟡, 0 ❌. Req-level ✅ 52 of ~88.

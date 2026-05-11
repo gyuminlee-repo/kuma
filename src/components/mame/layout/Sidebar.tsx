@@ -19,6 +19,8 @@ export function Sidebar({ onClearRequest, onRunRequest }: SidebarProps) {
   const expectedPath = useMameAppStore((s) => s.expectedPath);
   const referencePath = useMameAppStore((s) => s.referencePath);
   const outputPath = useMameAppStore((s) => s.outputPath);
+  const inputMode = useMameAppStore((s) => s.inputMode);
+  const customBarcodesPath = useMameAppStore((s) => s.rawRunParams.customBarcodesPath);
   const openExport = useMameAppStore((s) => s.openExport);
   const isAnalyzing = useMameAppStore((s) => s.isAnalyzing);
   const isValidating = useMameAppStore((s) => s.isValidating);
@@ -30,8 +32,11 @@ export function Sidebar({ onClearRequest, onRunRequest }: SidebarProps) {
   const cancelAnalysis = useMameAppStore((s) => s.cancelAnalysis);
   const validateInputs = useMameAppStore((s) => s.validateInputs);
   const canRun = useMameAppStore(selectCanRun);
-  const readyCount = [inputDir, expectedPath, referencePath, outputPath].filter(Boolean).length;
-  const readiness = Math.round((readyCount / 4) * 100);
+  const requiredInputs = inputMode === "raw_run"
+    ? [inputDir, customBarcodesPath, expectedPath, referencePath, outputPath]
+    : [inputDir, expectedPath, referencePath, outputPath];
+  const readyCount = requiredInputs.filter(Boolean).length;
+  const readiness = Math.round((readyCount / requiredInputs.length) * 100);
 
   return (
     <aside
@@ -48,7 +53,7 @@ export function Sidebar({ onClearRequest, onRunRequest }: SidebarProps) {
           <div className="flex items-center justify-between gap-2">
             <span className="text-caption text-muted-foreground">Run state</span>
             <span className="rounded-full border border-border/70 bg-muted px-2 py-0.5 text-caption font-medium text-muted-foreground">
-              {readyCount}/4 ready
+              {readyCount}/{requiredInputs.length} ready
             </span>
           </div>
           <div className="truncate text-body font-medium text-foreground" aria-live="polite">
@@ -79,9 +84,16 @@ export function Sidebar({ onClearRequest, onRunRequest }: SidebarProps) {
             role="alert"
           >
             <AlertCircle size={12} className="mt-0.5 flex-shrink-0 text-error" aria-hidden="true" />
-            <span className="text-caption text-error">
-              {validationErrors.length} input error(s)
-            </span>
+            <div className="min-w-0 space-y-1 text-caption text-error">
+              <p className="font-medium">{validationErrors.length} input error(s)</p>
+              <ul className="list-disc space-y-0.5 pl-4">
+                {validationErrors.map((error, index) => (
+                  <li key={`${index}-${error}`} className="break-words">
+                    {error}
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         )}
 

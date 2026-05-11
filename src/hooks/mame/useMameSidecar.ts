@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { spawnSidecar, setProgressHandler } from "@/lib/ipc-mame";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
+import { useAppStore } from "@/store/appStore";
 import type { SidecarStatus } from "@/types/mame/models";
 
 export function useMameSidecar() {
@@ -17,6 +18,10 @@ export function useMameSidecar() {
         analyzeMessage: progress.message,
         isAnalyzing: state.isAnalyzing || progress.value < 100,
       }));
+      if (progress.message) {
+        const ts = new Date().toLocaleTimeString();
+        useAppStore.getState().appendLogLine(`[${ts}] [MAME] ${progress.message}`);
+      }
     });
     return () => setProgressHandler(null);
   }, []);

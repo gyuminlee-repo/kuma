@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { listen } from "@tauri-apps/api/event";
-import { rpc, type SidecarKind } from "@/lib/ipc";
+import { killSidecar, rpc, type SidecarKind } from "@/lib/ipc";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useKumaProject } from "@/state/projectContext";
 import { flushAutosave, onAutosaveEvent, type AutosaveTarget, type AutosaveEvent } from "@/lib/autosave";
@@ -34,6 +34,8 @@ function formatRelativeTime(isoString: string): string {
 // ─── autosave intro localStorage 키 ──────────────────────────────────────
 
 const AUTOSAVE_INTRO_KEY = "kuma:autosave-intro-shown";
+const LOG_PANEL_VISIBLE_KEY = "kuma:floating-panel:log:visible";
+const JOBS_PANEL_VISIBLE_KEY = "kuma:floating-panel:jobs:visible";
 
 // ─── autosave 상태 타입 (인디케이터 전용) ────────────────────────────────
 
@@ -46,6 +48,39 @@ const AUTOSAVE_DOT: Record<AutosaveIndicatorState, string> = {
   error: "bg-error",
 };
 
+function readVisiblePreference(key: string): boolean {
+  if (typeof window === "undefined") return true;
+  const raw = window.localStorage.getItem(key);
+  return raw === null ? true : raw === "true";
+}
+
+function hasTauriBridge(): boolean {
+  return typeof (globalThis as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ !== "undefined";
+}
+
+async function runWithTimeout(
+  label: string,
+  task: () => Promise<void>,
+  timeoutMs: number,
+): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  try {
+    await Promise.race([
+      task(),
+      new Promise<void>((resolve) => {
+        timer = setTimeout(() => {
+          console.warn(`[MainShell] ${label} timed out during close; continuing shutdown`);
+          resolve();
+        }, timeoutMs);
+      }),
+    ]);
+  } catch (err) {
+    console.warn(`[MainShell] ${label} failed during close; continuing shutdown`, err);
+  } finally {
+    if (timer !== null) clearTimeout(timer);
+  }
+}
+
 // ─── 컴포넌트 ─────────────────────────────────────────────────────────────
 
 export function MainShell() {
@@ -55,6 +90,12 @@ export function MainShell() {
   // ── 상태바 좌측 메시지 (4초 자동 소멸)
   const [statusMessage, setStatusMessage] = useState("");
   const msgTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [logPanelVisible, setLogPanelVisible] = useState(() =>
+    readVisiblePreference(LOG_PANEL_VISIBLE_KEY),
+  );
+  const [jobsPanelVisible, setJobsPanelVisible] = useState(() =>
+    readVisiblePreference(JOBS_PANEL_VISIBLE_KEY),
+  );
 
   const showStatusMessage = useCallback((msg: string) => {
     if (msgTimerRef.current !== null) clearTimeout(msgTimerRef.current);
@@ -71,6 +112,7 @@ export function MainShell() {
 
   // ── 두 번째 인스턴스 시도 알림
   useEffect(() => {
+    if (!hasTauriBridge()) return;
     const unlisten = listen("second-instance-attempted", () => {
       showStatusMessage("이미 실행 중입니다.");
     });
@@ -78,6 +120,14 @@ export function MainShell() {
       void unlisten.then((fn) => fn());
     };
   }, [showStatusMessage]);
+
+  useEffect(() => {
+    window.localStorage.setItem(LOG_PANEL_VISIBLE_KEY, String(logPanelVisible));
+  }, [logPanelVisible]);
+
+  useEffect(() => {
+    window.localStorage.setItem(JOBS_PANEL_VISIBLE_KEY, String(jobsPanelVisible));
+  }, [jobsPanelVisible]);
 
   // ── autosave 인디케이터 상태
   const [autosaveState, setAutosaveState] = useState<AutosaveIndicatorState>("idle");
@@ -160,6 +210,36 @@ export function MainShell() {
   const [closeDialogIsBusy, setCloseDialogIsBusy] = useState(false);
   // 다이얼로그 "강제 종료" 경로: 플래그 세팅 후 destroy
   const forceCloseRef = useRef(false);
+  const closeInProgressRef = useRef(false);
+  const allowNativeCloseRef = useRef(false);
+
+  const performWindowClose = useCallback(async (target: AutosaveTarget) => {
+    if (closeInProgressRef.current) return;
+    closeInProgressRef.current = true;
+
+    try {
+      await runWithTimeout("autosave flush", () => flushAutosave(target), 2_500);
+      await runWithTimeout("shutdown hooks", runShutdownHooks, 2_500);
+      await runWithTimeout(
+        "sidecar shutdown",
+        async () => {
+          await Promise.allSettled([
+            killSidecar("kuro"),
+            killSidecar("mame"),
+          ]);
+        },
+        1_500,
+      );
+    } finally {
+      allowNativeCloseRef.current = true;
+      try {
+        await getCurrentWindow().destroy();
+      } catch (err) {
+        console.warn("[MainShell] window destroy failed during close; falling back to close", err);
+        await getCurrentWindow().close();
+      }
+    }
+  }, []);
 
   // ── isBusy 실시간 추적 (다이얼로그 Wait → 자동 close 용)
   useEffect(() => {
@@ -183,14 +263,15 @@ export function MainShell() {
     let unlisten: (() => void) | undefined;
     void getCurrentWindow()
       .onCloseRequested(async (ev) => {
+        if (allowNativeCloseRef.current) {
+          return;
+        }
         ev.preventDefault();
 
         // 강제 종료 플래그: 다이얼로그 "강제 종료" 버튼에서 왔으면 바로 destroy
         if (forceCloseRef.current) {
           forceCloseRef.current = false;
-          await flushAutosave(target);
-          await runShutdownHooks();
-          await getCurrentWindow().destroy();
+          await performWindowClose(target);
           return;
         }
 
@@ -216,9 +297,7 @@ export function MainShell() {
           return;
         }
 
-        await flushAutosave(target);
-        await runShutdownHooks();
-        await getCurrentWindow().destroy();
+        await performWindowClose(target);
       })
       .then((fn) => {
         unlisten = fn;
@@ -227,7 +306,7 @@ export function MainShell() {
     return () => {
       unlisten?.();
     };
-  }, [project?.path, project?.scratch]);
+  }, [performWindowClose, project?.path, project?.scratch]);
 
   // ── 탭 전환 직전 flush
   async function handleTabChange(nextKind: string): Promise<void> {
@@ -382,11 +461,48 @@ export function MainShell() {
         </div>
       </Tabs>
 
+      <div
+        className="fixed bottom-10 left-1/2 z-50 flex -translate-x-1/2 items-center gap-1 rounded-full border border-border bg-background/95 px-2 py-1 text-caption shadow-md backdrop-blur-sm"
+        aria-label="Floating panel visibility controls"
+      >
+        <span className="px-1 text-muted-foreground">Panels</span>
+        <button
+          type="button"
+          className={`rounded-full px-2 py-0.5 font-medium transition-colors ${
+            logPanelVisible
+              ? "bg-primary/10 text-primary"
+              : "text-muted-foreground hover:bg-accent hover:text-foreground"
+          }`}
+          onClick={() => setLogPanelVisible((v) => !v)}
+          aria-pressed={logPanelVisible}
+          title="Log: sidecar progress messages"
+        >
+          Log
+        </button>
+        <button
+          type="button"
+          className={`rounded-full px-2 py-0.5 font-medium transition-colors ${
+            jobsPanelVisible
+              ? "bg-primary/10 text-primary"
+              : "text-muted-foreground hover:bg-accent hover:text-foreground"
+          }`}
+          onClick={() => setJobsPanelVisible((v) => !v)}
+          aria-pressed={jobsPanelVisible}
+          title="Jobs: queued background tasks"
+        >
+          Jobs
+        </button>
+      </div>
+
       {/* §13 Background Job Queue floating panel */}
-      <JobQueuePanel />
+      {jobsPanelVisible && (
+        <JobQueuePanel onClose={() => setJobsPanelVisible(false)} />
+      )}
 
       {/* §2 Observability: sidecar log panel */}
-      <LogPanel />
+      {logPanelVisible && (
+        <LogPanel onClose={() => setLogPanelVisible(false)} />
+      )}
 
       {/* §22 Graceful Shutdown: busy 상태 close 확인 */}
       <CloseConfirmDialog

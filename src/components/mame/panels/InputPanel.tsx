@@ -5,6 +5,8 @@ import type { InputMode } from "@/store/mame/slice-interfaces";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { InlineHelp } from "@/components/ui/InlineHelp";
+import { defaultMameExportFilename } from "@/lib/filename";
 
 const INPUT_DIR_CONFIG: Record<
   InputMode,
@@ -22,7 +24,7 @@ const INPUT_DIR_CONFIG: Record<
   },
   raw_run: {
     label: "MinKNOW run folder",
-    helperText: "Folder containing fastq_pass/ subtree from MinKNOW",
+    helperText: "Folder containing fastq_pass/ subtree from MinKNOW; Run will sort barcodes before analysis",
     placeholder: "Choose a run folder path",
   },
 };
@@ -43,10 +45,29 @@ export function InputPanel() {
   const expectedPath = useMameAppStore((s) => s.expectedPath);
   const referencePath = useMameAppStore((s) => s.referencePath);
   const outputPath = useMameAppStore((s) => s.outputPath);
+  const rawRunParams = useMameAppStore((s) => s.rawRunParams);
+  const verdictCount = useMameAppStore((s) => s.verdicts.length);
   const setInputDir = useMameAppStore((s) => s.setInputDir);
   const setExpectedPath = useMameAppStore((s) => s.setExpectedPath);
   const setReferencePath = useMameAppStore((s) => s.setReferencePath);
   const setOutputPath = useMameAppStore((s) => s.setOutputPath);
+  const setParams = useMameAppStore((s) => s.setParams);
+
+  function updateRaw(partial: Partial<typeof rawRunParams>) {
+    setParams({ rawRunParams: partial });
+  }
+
+  function joinPath(dir: string, filename: string): string {
+    const separator = dir.includes("\\") ? "\\" : "/";
+    return `${dir.replace(/[\\/]+$/, "")}${separator}${filename}`;
+  }
+
+  function currentOutputFilename(): string {
+    const current = getPathPreview(outputPath);
+    return current.toLowerCase().endsWith(".xlsx")
+      ? current
+      : defaultMameExportFilename({ referencePath, inputDir, verdictCount });
+  }
 
   async function browseDirectory() {
     const selected = toSinglePath(await open({ directory: true }));
@@ -71,10 +92,30 @@ export function InputPanel() {
   }
 
   async function browseOutput() {
+    const selected = toSinglePath(await open({ directory: true, title: "Select export folder" }));
+    if (selected) setOutputPath(joinPath(selected, currentOutputFilename()));
+  }
+
+  async function browseCustomBarcodes() {
     const selected = toSinglePath(
-      await open({ directory: false, filters: [{ name: "Excel", extensions: ["xlsx"] }] }),
+      await open({
+        directory: false,
+        filters: [{ name: "Barcode files", extensions: ["xlsx", "csv"] }],
+        title: "Select custom barcode file",
+      }),
     );
-    if (selected) setOutputPath(selected);
+    if (selected) updateRaw({ customBarcodesPath: selected });
+  }
+
+  async function browseSequencingSummary() {
+    const selected = toSinglePath(
+      await open({
+        directory: false,
+        filters: [{ name: "Sequencing summary", extensions: ["txt", "tsv", "csv"] }],
+        title: "Select sequencing summary file",
+      }),
+    );
+    if (selected) updateRaw({ sequencingSummaryPath: selected });
   }
 
   return (
@@ -82,7 +123,7 @@ export function InputPanel() {
       <header>
         <h3 className="text-sm font-semibold text-foreground">Input files</h3>
         <p className="mt-1 text-xs text-muted-foreground">
-          4 required paths for the analysis run.
+          Primary run inputs and output location.
         </p>
       </header>
 
@@ -95,7 +136,34 @@ export function InputPanel() {
         stateLabel="Required"
         filled={Boolean(inputDir)}
         helperText={INPUT_DIR_CONFIG[inputMode].helperText}
+        helpText={INPUT_DIR_CONFIG[inputMode].helperText}
       />
+      {inputMode === "raw_run" && (
+        <>
+          <FileField
+            label="Custom Barcodes (xlsx or csv)"
+            value={rawRunParams.customBarcodesPath}
+            onChange={(value) => updateRaw({ customBarcodesPath: value })}
+            onBrowse={browseCustomBarcodes}
+            placeholder=".xlsx / .csv file path"
+            stateLabel="Required"
+            filled={Boolean(rawRunParams.customBarcodesPath)}
+            helperText="Combinatorial barcode definition used before analysis"
+            helpText="Raw MinKNOW run mode uses this file to assign reads to per-well FASTA outputs before analysis."
+          />
+          <FileField
+            label="Sequencing Summary (optional)"
+            value={rawRunParams.sequencingSummaryPath}
+            onChange={(value) => updateRaw({ sequencingSummaryPath: value })}
+            onBrowse={browseSequencingSummary}
+            placeholder=".txt / .tsv / .csv file path"
+            stateLabel="Optional"
+            filled={Boolean(rawRunParams.sequencingSummaryPath)}
+            helperText="Optional MinKNOW metadata for qscore, length, and barcode score filters"
+            helpText="When present, MAME can filter reads by MinKNOW metadata before writing per-well FASTA outputs."
+          />
+        </>
+      )}
       <FileField
         label="KURO xlsx"
         value={expectedPath}
@@ -105,6 +173,7 @@ export function InputPanel() {
         stateLabel="Required"
         filled={Boolean(expectedPath)}
         helperText="expected_mutations sheet from KURO"
+        helpText="KURO에서 export한 expected_mutations .xlsx 파일입니다. MAME는 이 파일의 기대 변이와 NGS consensus 결과를 비교합니다."
       />
       <FileField
         label="Reference FASTA"
@@ -115,16 +184,18 @@ export function InputPanel() {
         stateLabel="Required"
         filled={Boolean(referencePath)}
         helperText="Reference sequence used for variant calling against consensus"
+        helpText="Variant calling 기준이 되는 reference FASTA입니다. KURO 설계에 사용한 동일 reference를 쓰는 것이 안전합니다."
       />
       <FileField
-        label="Export destination (.xlsx)"
+        label="Export destination folder"
         value={outputPath}
         onChange={setOutputPath}
         onBrowse={browseOutput}
-        placeholder="Where to save the analysis result"
+        placeholder={`Choose a folder; ${defaultMameExportFilename({ referencePath, inputDir, verdictCount })} will be created`}
         stateLabel="Save to"
         filled={Boolean(outputPath)}
-        helperText="Analysis report will be written to this xlsx path"
+        helperText="Analysis report will use a KURO-style rule-based .xlsx filename"
+        helpText="분석 결과 Excel을 저장할 폴더입니다. 파일명은 KURO와 같은 규칙으로 날짜, reference/input 토큰, MAME target, 결과 개수 토큰을 조합해 생성합니다."
       />
     </div>
   );
@@ -139,6 +210,7 @@ function FileField({
   stateLabel,
   filled,
   helperText,
+  helpText,
 }: {
   label: string;
   value: string;
@@ -148,6 +220,7 @@ function FileField({
   stateLabel: string;
   filled: boolean;
   helperText?: string;
+  helpText?: string;
 }) {
   const inputId = `file-field-${label.replace(/\s+/g, "-").toLowerCase()}`;
   const preview = getPathPreview(value);
@@ -156,7 +229,10 @@ function FileField({
     <div className="space-y-1.5">
       <div className="flex items-center justify-between gap-3">
         <Label htmlFor={inputId} className="text-caption font-medium uppercase tracking-wide text-muted-foreground">
-          {label}
+          <span className="inline-flex items-center gap-1.5">
+            {label}
+            {helpText && <InlineHelp text={helpText} />}
+          </span>
         </Label>
         <span
           className={`rounded-full px-2 py-0.5 text-caption font-medium ${

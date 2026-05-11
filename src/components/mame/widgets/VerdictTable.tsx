@@ -67,7 +67,7 @@ const ACTIVITY_COLUMN_LABELS: Record<(typeof ACTIVITY_COLUMN_IDS)[number], strin
 const VIRTUAL_THRESHOLD = 1000;
 
 function extractNbGroup(record: VerdictRecord): "NB01" | "NB02" | "NB03" | "UNKNOWN" {
-  const match = record.source_path.match(/NB0(\d)/i);
+  const match = (record.source_path ?? "").match(/NB0(\d)/i);
   if (!match) return "UNKNOWN";
   return `NB0${match[1]}` as "NB01" | "NB02" | "NB03";
 }
@@ -87,6 +87,23 @@ function getVerdictRowTone(verdict: VerdictRow["verdict"]): string {
 
 export function VerdictTable() {
   const verdicts = useMameAppStore((state) => state.verdicts);
+
+  if (verdicts.length === 0) {
+    return (
+      <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
+        <StateView
+          variant="empty"
+          title="No results yet"
+          description="Run analysis to populate the verdict table."
+        />
+      </div>
+    );
+  }
+
+  return <VerdictTableContent verdicts={verdicts} />;
+}
+
+function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
   const replicates = useMameAppStore((state) => state.replicates);
   const plateFilter = useMameAppStore((state) => state.plateFilter);
   const searchQuery = useMameAppStore((state) => state.searchQuery);

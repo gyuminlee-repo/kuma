@@ -93,3 +93,28 @@ export function defaultExportFilename(opts: FilenameOpts): string {
   }
   return `${tokens.join("_")}.${opts.ext}`;
 }
+
+function stemFromFilename(path: string): string {
+  const base = path.split(/[\\/]/).pop() ?? "";
+  return base.replace(/\.[^.]+$/, "");
+}
+
+function informativePathToken(path: string): string {
+  const stem = stemFromFilename(path);
+  if (!stem || UNINFORMATIVE.has(stem.toLowerCase())) return "";
+  return sanitize(stem);
+}
+
+export function defaultMameExportFilename(opts: {
+  referencePath?: string;
+  inputDir?: string;
+  verdictCount?: number;
+}): string {
+  const sourceToken =
+    informativePathToken(opts.referencePath ?? "") ||
+    informativePathToken(opts.inputDir ?? "") ||
+    "seq";
+  const tokens = [datePrefix(), sourceToken, "MAME"];
+  if ((opts.verdictCount ?? 0) > 0) tokens.push(`${opts.verdictCount}verdicts`);
+  return `${tokens.join("_")}.xlsx`;
+}

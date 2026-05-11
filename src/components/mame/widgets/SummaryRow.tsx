@@ -5,12 +5,12 @@ import { cn } from "@/lib/utils";
 
 function getReadinessTone(readiness: number): string {
   if (readiness === 100) {
-    return "border-l-4 border-l-primary bg-primary/5";
+    return "bg-primary/5";
   }
   if (readiness > 0) {
-    return "border-l-4 border-l-accent bg-[hsl(var(--accent)/0.10)]";
+    return "bg-[hsl(var(--accent)/0.10)]";
   }
-  return "border-l-4 border-l-border bg-muted/35";
+  return "bg-muted/35";
 }
 
 function getStatusTone(args: {
@@ -18,20 +18,21 @@ function getStatusTone(args: {
   validationErrors: number;
   hasResults: boolean;
   readyCount: number;
+  requiredCount: number;
 }): string {
   if (args.isAnalyzing) {
-    return "border-l-4 border-l-primary bg-[hsl(var(--primary)/0.08)]";
+    return "bg-[hsl(var(--primary)/0.08)]";
   }
   if (args.validationErrors > 0) {
-    return "border-l-4 border-l-destructive bg-destructive/5";
+    return "bg-destructive/5";
   }
   if (args.hasResults) {
-    return "border-l-4 border-l-primary bg-primary/5";
+    return "bg-primary/5";
   }
-  if (args.readyCount === 4) {
-    return "border-l-4 border-l-primary bg-[hsl(var(--primary)/0.08)]";
+  if (args.readyCount === args.requiredCount) {
+    return "bg-[hsl(var(--primary)/0.08)]";
   }
-  return "border-l-4 border-l-border bg-muted/35";
+  return "bg-muted/35";
 }
 
 export function SummaryRow() {
@@ -41,12 +42,17 @@ export function SummaryRow() {
   const expectedPath = useMameAppStore((s) => s.expectedPath);
   const referencePath = useMameAppStore((s) => s.referencePath);
   const outputPath = useMameAppStore((s) => s.outputPath);
+  const inputMode = useMameAppStore((s) => s.inputMode);
+  const customBarcodesPath = useMameAppStore((s) => s.rawRunParams.customBarcodesPath);
   const isAnalyzing = useMameAppStore((s) => s.isAnalyzing);
   const analyzeProgress = useMameAppStore((s) => s.analyzeProgress);
   const validationErrors = useMameAppStore((s) => s.validationErrors);
 
-  const readyCount = [inputDir, expectedPath, referencePath, outputPath].filter(Boolean).length;
-  const readiness = Math.round((readyCount / 4) * 100);
+  const requiredInputs = inputMode === "raw_run"
+    ? [inputDir, customBarcodesPath, expectedPath, referencePath, outputPath]
+    : [inputDir, expectedPath, referencePath, outputPath];
+  const readyCount = requiredInputs.filter(Boolean).length;
+  const readiness = Math.round((readyCount / requiredInputs.length) * 100);
 
   const stats = useMemo(() => {
     const FAIL: readonly VerdictClass[] = ["WRONG_AA", "FRAMESHIFT", "MANY"];
@@ -82,7 +88,6 @@ export function SummaryRow() {
         hint={stats.total > 0 ? `${stats.pass}/${stats.total} PASS` : "No results yet"}
       />
       <SummaryTile
-        className="border-l-4 border-l-primary"
         label="Plates"
         value={plateEstimate ?? "—"}
         valueClassName="text-primary"
@@ -93,7 +98,7 @@ export function SummaryRow() {
         label="Readiness"
         value={`${readiness}%`}
         valueClassName="text-foreground"
-        hint={`${readyCount}/4 paths filled`}
+        hint={`${readyCount}/${requiredInputs.length} inputs filled`}
       />
       <SummaryTile
         className={getStatusTone({
@@ -101,6 +106,7 @@ export function SummaryRow() {
           validationErrors: validationErrors.length,
           hasResults: verdicts.length > 0,
           readyCount,
+          requiredCount: requiredInputs.length,
         })}
         label="Status"
         value={statusLabel}

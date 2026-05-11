@@ -7,7 +7,8 @@
  *   <InlineHelp text="Explanation shown when the user clicks (?)" />
  *   <InlineHelp text="Multi-line\nsupported" className="ml-1" />
  */
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 
 interface InlineHelpProps {
@@ -18,10 +19,32 @@ interface InlineHelpProps {
 
 export function InlineHelp({ text, className }: InlineHelpProps) {
   const [open, setOpen] = useState(false);
+  const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+
+  useLayoutEffect(() => {
+    if (!open || !buttonRef.current) return;
+    const update = () => {
+      const rect = buttonRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      setPosition({
+        top: Math.min(rect.bottom + 6, window.innerHeight - 120),
+        left: Math.min(rect.left, window.innerWidth - 280),
+      });
+    };
+    update();
+    window.addEventListener("scroll", update, true);
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update, true);
+      window.removeEventListener("resize", update);
+    };
+  }, [open]);
 
   return (
-    <span className={cn("inline-flex flex-col", className)}>
+    <span className={cn("inline-flex align-middle", className)}>
       <button
+        ref={buttonRef}
         type="button"
         aria-label={open ? "Hide help" : "Show help"}
         aria-expanded={open}
@@ -38,14 +61,17 @@ export function InlineHelp({ text, className }: InlineHelpProps) {
       >
         ?
       </button>
-      {open && (
-        <span
-          role="tooltip"
-          className="mt-0.5 block rounded-control border border-border bg-muted px-1.5 py-1 text-caption leading-relaxed text-muted-foreground whitespace-pre-line"
-        >
-          {text}
-        </span>
-      )}
+      {open && position && typeof document !== "undefined" &&
+        createPortal(
+          <span
+            role="tooltip"
+            className="fixed z-[100] block w-[260px] rounded-control border border-border bg-popover px-2.5 py-2 text-caption leading-relaxed text-popover-foreground shadow-lg whitespace-pre-line"
+            style={{ top: position.top, left: position.left }}
+          >
+            {text}
+          </span>,
+          document.body,
+        )}
     </span>
   );
 }

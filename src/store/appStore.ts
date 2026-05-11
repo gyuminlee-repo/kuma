@@ -31,7 +31,7 @@ export const useAppStore = create<AppState>()((...a) => {
     // §2 Observability: feed progress messages into log buffer
     if (p.message) {
       const ts = new Date().toLocaleTimeString();
-      get().appendLogLine(`[${ts}] ${p.message}`);
+      get().appendLogLine(`[${ts}] [KURO] ${p.message}`);
     }
   });
 

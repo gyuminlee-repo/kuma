@@ -138,6 +138,13 @@ python -m pytest tests/test_sdm_engine.py::test_name  # Single test
 - Fixed-width panels (sidebar 340 px) should have `overflow-x-hidden` as a second layer of defense
 - Applies especially to dropdowns with long option text (polymerase, codon strategy)
 
+### MAME UX workflow
+- Raw MinKNOW run folders are the primary user-facing input for MAME. Sorted barcode directories are intermediate outputs or advanced/debug inputs; do not make users pre-sort manually unless explicitly requested.
+- MAME file path controls should follow the Kuro-style Browse button + selected filename preview pattern. Avoid editable path text fields for normal `.csv`/`.xlsx` file selection.
+- Export destination controls must use a save-file dialog, not an open-file dialog.
+- Pre-run MAME result tables should render an empty state instead of surfacing an error boundary.
+- If a Tauri close handler calls `preventDefault()`, shutdown/autosave work must be bounded by timeouts and the window must still close in a `finally` path.
+
 ### Tauri resource bundling
 - No glob patterns (`**`) in `tauri.conf.json` resources — use explicit file-to-file mappings
 - No `--target` flag with `npx tauri build` — breaks resource path resolution

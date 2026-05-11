@@ -128,11 +128,15 @@ fn get_codesign_status(app: AppHandle) -> String {
 
 async fn shutdown_sidecars_async(app: &AppHandle<Wry>) {
     let manager = app.state::<sidecar::SidecarManager>();
-    // §22: Send shutdown RPC, wait up to 5 s, then force-kill as fallback.
+    // §22: Send shutdown RPC, wait briefly, then force-kill as fallback.
     // sidecar_kill (Tauri command) still calls kill() directly for
     // immediate force-kill paths (user cancel, cancelAndRespawn).
-    let _ = manager.graceful_kill("kuro", 5).await;
-    let _ = manager.graceful_kill("mame", 5).await;
+    // RunEvent::Exit must not keep the desktop app visibly alive for a long
+    // sequential shutdown path, so both sidecars are swept concurrently.
+    let _ = tokio::join!(
+        manager.graceful_kill("kuro", 2),
+        manager.graceful_kill("mame", 2)
+    );
 }
 
 pub fn run() {

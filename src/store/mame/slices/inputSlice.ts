@@ -9,6 +9,7 @@ import type {
   DistributionStats,
   ValidationResult,
 } from "@/types/mame/models";
+import type { SortBarcodeResult } from "@/types/mame/sort_barcode";
 import type { KumaProject } from "@/state/projectContext";
 import type { InputSlice, InputMode, RawRunParams } from "../slice-interfaces";
 import type { AppState } from "../types";
@@ -35,6 +36,36 @@ const DEFAULT_RAW_RUN_PARAMS: RawRunParams = {
   normalizeHeaders: true,
 };
 
+function deriveSortedBarcodeOutputDir(outputPath: string): string {
+  const normalized = outputPath.replace(/\\/g, "/");
+  const slashIdx = normalized.lastIndexOf("/");
+  const dir = slashIdx >= 0 ? outputPath.slice(0, slashIdx) : "";
+  const file = slashIdx >= 0 ? outputPath.slice(slashIdx + 1) : outputPath;
+  const stem = file.replace(/\.xlsx$/i, "");
+  const sortedName = `${stem || "mame_analysis"}_sorted_barcodes`;
+  return dir ? `${dir}/${sortedName}` : sortedName;
+}
+
+function deriveDemuxOutputDir(outputPath: string): string {
+  const normalized = outputPath.replace(/\\/g, "/");
+  const slashIdx = normalized.lastIndexOf("/");
+  const dir = slashIdx >= 0 ? outputPath.slice(0, slashIdx) : "";
+  return dir ? `${dir}/demux_filtered` : "demux_filtered";
+}
+
+function getDemuxInputErrors(state: AppState): string[] {
+  const errors: string[] = [];
+  if (!state.inputDir) errors.push("MinKNOW run folder is required.");
+  if (!state.rawRunParams.customBarcodesPath) {
+    errors.push("Custom Barcodes (.xlsx or .csv) file is required.");
+  }
+  if (!state.outputPath) errors.push("Export destination folder is required.");
+  if (state.rawRunParams.linkedTrim && !state.rawRunParams.revPrimerUniversal) {
+    errors.push("Universal Rev Primer is required when Trim Adapters is enabled.");
+  }
+  return errors;
+}
+
 export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set, get) => ({
   inputDir: "",
   expectedPath: "",
@@ -42,7 +73,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   outputPath: "",
   mode: "amplicon",
   ingestMode: "barcode",
-  inputMode: "sorted_barcode",
+  inputMode: "raw_run",
   rawRunParams: { ...DEFAULT_RAW_RUN_PARAMS },
   cdsStart: 0,
   cdsEnd: 0,
@@ -61,10 +92,10 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   demuxResult: null,
   distributionStats: null,
   ampliconLengthEstimate: null,
-  setInputDir: (inputDir) => set({ inputDir }),
-  setExpectedPath: (expectedPath) => set({ expectedPath }),
-  setReferencePath: (referencePath) => set({ referencePath }),
-  setOutputPath: (outputPath) => set({ outputPath }),
+  setInputDir: (inputDir) => set({ inputDir, validationErrors: [] }),
+  setExpectedPath: (expectedPath) => set({ expectedPath, validationErrors: [] }),
+  setReferencePath: (referencePath) => set({ referencePath, validationErrors: [] }),
+  setOutputPath: (outputPath) => set({ outputPath, validationErrors: [] }),
   setParams: (params) =>
     set((state) => ({
       mode: params.mode ?? state.mode,
@@ -79,6 +110,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       minFileSizeKb: params.minFileSizeKb ?? state.minFileSizeKb,
       minFilteredDepth: params.minFilteredDepth ?? state.minFilteredDepth,
       manyCutoff: params.manyCutoff ?? state.manyCutoff,
+      validationErrors: [],
     })),
   setValidationErrors: (validationErrors) => set({ validationErrors }),
   setIsAnalyzing: (isAnalyzing) => set({ isAnalyzing }),
@@ -95,8 +127,9 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   runDemuxAndFilter: async () => {
     const s = get();
     const { rawRunParams } = s;
-    if (!rawRunParams.customBarcodesPath) {
-      set({ validationErrors: ["Custom barcodes file path is required for raw run mode"] });
+    const inputErrors = getDemuxInputErrors(s);
+    if (inputErrors.length > 0) {
+      set({ validationErrors: inputErrors, demuxMessage: "Demux setup incomplete" });
       return;
     }
     set({
@@ -112,7 +145,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         {
           fastq_dir: s.inputDir,
           custom_barcodes_path: rawRunParams.customBarcodesPath,
-          output_dir: s.outputPath ? `${s.outputPath}_demux` : "",
+          output_dir: deriveDemuxOutputDir(s.outputPath),
           sequencing_summary: rawRunParams.sequencingSummaryPath || undefined,
           min_qscore: rawRunParams.minQscore,
           length_min: rawRunParams.lengthMin,
@@ -176,19 +209,54 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       validationErrors: [],
     });
     try {
+      const state = get();
+      let analysisInputDir = state.inputDir;
+      let analysisIngestMode = state.ingestMode;
+
+      if (state.inputMode === "raw_run") {
+        const { rawRunParams } = state;
+        const inputErrors = getDemuxInputErrors(state);
+        if (inputErrors.length > 0) {
+          throw new Error(inputErrors.join("\n"));
+        }
+
+        const sortedOutputDir = deriveSortedBarcodeOutputDir(state.outputPath);
+        set({
+          analyzeProgress: 3,
+          analyzeMessage: "Sorting combinatorial barcodes from raw MinKNOW run",
+        });
+        const sortResult = await sendRequest<SortBarcodeResult>(
+          "sort_barcode_run",
+          {
+            minknow_run_dir: state.inputDir,
+            custom_barcodes_path: rawRunParams.customBarcodesPath,
+            output_dir: sortedOutputDir,
+            error_tolerance: 0.1,
+            use_cutadapt: true,
+          },
+          600_000,
+        );
+        analysisInputDir = sortResult.output_dir;
+        analysisIngestMode = "barcode";
+        set({
+          analyzeProgress: 15,
+          analyzeMessage: `Barcode sorting complete: ${sortResult.n_total_assigned.toLocaleString()} reads assigned`,
+        });
+      }
+
       const result = await sendRequest<AnalyzeResult>(
         "analyze",
         {
-          input_dir: get().inputDir,
-          reference: get().referencePath,
-          expected: get().expectedPath,
-          output: get().outputPath,
-          mode: get().mode,
-          ingest_mode: get().ingestMode,
-          cds_start: get().cdsStart,
-          cds_end: get().cdsEnd,
-          min_file_size_kb: get().minFileSizeKb,
-          many_cutoff: get().manyCutoff,
+          input_dir: analysisInputDir,
+          reference: state.referencePath,
+          expected: state.expectedPath,
+          output: state.outputPath,
+          mode: state.mode,
+          ingest_mode: analysisIngestMode,
+          cds_start: state.cdsStart,
+          cds_end: state.cdsEnd,
+          min_file_size_kb: state.minFileSizeKb,
+          many_cutoff: state.manyCutoff,
         },
         300_000,
       );

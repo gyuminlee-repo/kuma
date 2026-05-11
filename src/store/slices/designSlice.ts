@@ -748,15 +748,30 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
   },
 
   addDesignResult: (mutation: string, result: SdmPrimerResult) => {
-    const { designResults, failedMutations, successCount, rescuedMutations } = get();
+    const {
+      designResults,
+      failedMutations,
+      rescuedMutations,
+      mutationText,
+      maxPrimers,
+    } = get();
+    const preferredMutations = new Set(
+      mutationText
+        .trim()
+        .split("\n")
+        .filter((line) => line.trim() && !line.trim().startsWith("#"))
+        .slice(0, maxPrimers)
+        .map((line) => line.trim()),
+    );
     set(addDesignResultState({
       mutation,
       result,
       designResults,
       failedMutations,
-      successCount,
       rescuedMutations,
       wellName,
+      maxPrimers,
+      preferredMutations,
     }));
   },
 

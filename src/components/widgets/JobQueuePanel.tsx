@@ -12,7 +12,8 @@
  * - Running elapsed timer is aria-live="off" (numeric churn would be noisy)
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import type { PointerEvent } from "react";
 import { useAppStore } from "@/store/appStore";
 import type { Job, JobKind, JobStatus } from "@/store/slices/jobQueueSlice";
 import { Badge } from "@/components/ui/badge";
@@ -150,7 +151,51 @@ function JobRow({
 
 // ── Main panel ───────────────────────────────────────────────────────────────
 
-export function JobQueuePanel() {
+interface FloatingPanelPosition {
+  x: number;
+  y: number;
+}
+
+interface JobQueuePanelProps {
+  onClose?: () => void;
+}
+
+const POSITION_STORAGE_KEY = "kuma:floating-panel:jobs:position";
+const PANEL_WIDTH = 288;
+const PANEL_HEIGHT_GUESS = 340;
+
+function defaultPosition(): FloatingPanelPosition {
+  if (typeof window === "undefined") return { x: 720, y: 88 };
+  return {
+    x: Math.max(12, window.innerWidth - PANEL_WIDTH - 12),
+    y: 88,
+  };
+}
+
+function clampPosition(pos: FloatingPanelPosition): FloatingPanelPosition {
+  if (typeof window === "undefined") return pos;
+  return {
+    x: Math.min(Math.max(12, pos.x), Math.max(12, window.innerWidth - PANEL_WIDTH - 12)),
+    y: Math.min(Math.max(12, pos.y), Math.max(12, window.innerHeight - PANEL_HEIGHT_GUESS)),
+  };
+}
+
+function readPosition(): FloatingPanelPosition {
+  if (typeof window === "undefined") return defaultPosition();
+  const raw = window.localStorage.getItem(POSITION_STORAGE_KEY);
+  if (!raw) return defaultPosition();
+  try {
+    const parsed = JSON.parse(raw) as Partial<FloatingPanelPosition>;
+    if (typeof parsed.x === "number" && typeof parsed.y === "number") {
+      return clampPosition({ x: parsed.x, y: parsed.y });
+    }
+  } catch {
+    // Ignore malformed persisted UI state.
+  }
+  return defaultPosition();
+}
+
+export function JobQueuePanel({ onClose }: JobQueuePanelProps) {
   const jobs = useAppStore((s) => s.jobs);
   const cancelJob = useAppStore((s) => s.cancelJob);
   const clearCompleted = useAppStore((s) => s.clearCompleted);
@@ -158,6 +203,14 @@ export function JobQueuePanel() {
 
   const [expanded, setExpanded] = useState(false);
   const [now, setNow] = useState(Date.now);
+  const [position, setPosition] = useState<FloatingPanelPosition>(() => readPosition());
+  const dragRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    originX: number;
+    originY: number;
+  } | null>(null);
 
   // Tick every second when a job is running, to update elapsed timers
   useEffect(() => {
@@ -174,6 +227,41 @@ export function JobQueuePanel() {
 
   const handleClear = useCallback(() => { clearCompleted(); }, [clearCompleted]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(POSITION_STORAGE_KEY, JSON.stringify(position));
+  }, [position]);
+
+  const handlePointerDown = useCallback((event: PointerEvent<HTMLElement>) => {
+    if (event.button !== 0) return;
+    const target = event.target;
+    if (target instanceof Element && target.closest("button")) return;
+    dragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      originX: position.x,
+      originY: position.y,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }, [position]);
+
+  const handlePointerMove = useCallback((event: PointerEvent<HTMLElement>) => {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    setPosition(clampPosition({
+      x: drag.originX + event.clientX - drag.startX,
+      y: drag.originY + event.clientY - drag.startY,
+    }));
+  }, []);
+
+  const handlePointerUp = useCallback((event: PointerEvent<HTMLElement>) => {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    dragRef.current = null;
+    event.currentTarget.releasePointerCapture(event.pointerId);
+  }, []);
+
   const runningCount = jobs.filter((j) => j.status === "running").length;
   const pendingCount = jobs.filter((j) => j.status === "pending").length;
   const doneCount = jobs.filter(
@@ -189,18 +277,19 @@ export function JobQueuePanel() {
 
   return (
     <section
-      className="fixed bottom-10 right-3 z-40 w-72 rounded-xl border border-border bg-background/95 shadow-lg backdrop-blur-sm"
+      className="fixed z-40 w-72 rounded-xl border border-border bg-background/95 shadow-lg backdrop-blur-sm"
+      style={{ left: position.x, top: position.y }}
       aria-label="Background job queue"
     >
       {/* Collapsed / header row */}
-      <button
-        type="button"
-        className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-medium text-foreground hover:bg-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors"
-        onClick={() => { setExpanded((v) => !v); }}
-        aria-expanded={expanded}
-        aria-controls="job-queue-list"
+      <div
+        className="flex w-full cursor-move items-center justify-between rounded-xl px-3 py-2 text-xs font-medium text-foreground hover:bg-accent/60 transition-colors"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
       >
-        <span className="flex items-center gap-1.5">
+        <span className="flex min-w-0 items-center gap-1.5" title="Background job queue. Drag to move.">
           {/* Activity indicator dot */}
           <span
             className={`h-2 w-2 rounded-full shrink-0 transition-colors ${
@@ -215,13 +304,29 @@ export function JobQueuePanel() {
           <span>{summaryLabel}</span>
         </span>
 
-        <span
-          className="shrink-0 text-muted-foreground select-none"
-          aria-hidden="true"
-        >
-          {expanded ? "▲" : "▼"}
+        <span className="flex shrink-0 items-center gap-1">
+          <button
+            type="button"
+            className="rounded px-1 text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            onClick={() => { setExpanded((v) => !v); }}
+            aria-expanded={expanded}
+            aria-controls="job-queue-list"
+            aria-label="Toggle background job queue"
+          >
+            {expanded ? "▲" : "▼"}
+          </button>
+          {onClose && (
+            <button
+              type="button"
+              className="rounded px-1 text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              onClick={onClose}
+              aria-label="Hide background job queue"
+            >
+              ×
+            </button>
+          )}
         </span>
-      </button>
+      </div>
 
       {/* Expanded list */}
       {expanded && (

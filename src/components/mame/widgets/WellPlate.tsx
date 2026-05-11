@@ -23,7 +23,7 @@ const cbPatterns: Partial<Record<VerdictClass, string>> = {
   MANY: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6'%3E%3Cline x1='3' y1='0' x2='3' y2='6' stroke='rgba(255,255,255,0.20)' stroke-width='1'/%3E%3C/svg%3E")`,
 };
 
-const plateGridTemplate = "32px repeat(12, minmax(48px, 1fr))";
+const plateGridTemplate = "24px repeat(12, minmax(34px, 1fr))";
 const plateGridGap = "4px";
 
 function getPlateBadge(barcode: string): "NB01" | "NB02" | "NB03" | null {
@@ -48,7 +48,7 @@ export function WellPlate({
   const wellMap = new Map(wells.map((w) => [w.well, w]));
 
   return (
-    <div className="w-full overflow-x-auto rounded-container border border-border/70 bg-card p-4" role="grid" aria-label="96-Well Plate">
+    <div className="w-full overflow-x-auto rounded-container border border-border/70 bg-card p-2.5" role="grid" aria-label="96-Well Plate">
       <div
         className="grid items-center text-center"
         style={{ gridTemplateColumns: plateGridTemplate, gap: plateGridGap }}
@@ -59,7 +59,7 @@ export function WellPlate({
         {COLS.map((col) => (
           <div
             key={col}
-            className="rounded-full bg-muted/55 py-2 text-center text-caption font-semibold text-muted-foreground"
+            className="rounded-full bg-muted/55 py-1 text-center text-caption font-semibold text-muted-foreground"
             aria-label={`Column ${col}`}
           >
             {col}
@@ -67,7 +67,7 @@ export function WellPlate({
         ))}
       </div>
 
-      <div className="mt-2 space-y-1.5" role="rowgroup">
+      <div className="mt-1.5 space-y-1" role="rowgroup">
         {ROWS.map((row) => (
           <div
             key={row}
@@ -76,7 +76,7 @@ export function WellPlate({
             role="row"
           >
             <div
-              className="font-display text-center text-sm font-semibold text-muted-foreground"
+              className="font-display text-center text-caption font-semibold text-muted-foreground"
               aria-label={`Row ${row}`}
               role="rowheader"
             >
@@ -104,7 +104,7 @@ export function WellPlate({
                     onClick={() => well && onWellClick?.(well)}
                     aria-pressed={isFocused}
                     className={cn(
-                      "well-button relative flex aspect-square w-full flex-col items-center justify-center rounded-container border text-center shadow-sm",
+                      "well-button relative flex aspect-square w-full flex-col items-center justify-center rounded-md border text-center shadow-sm",
                       "text-plate font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
                       !well && "cursor-default",
                       isFocused && "well-button-selected",
@@ -119,15 +119,15 @@ export function WellPlate({
                     }}
                   >
                     {/* Well ID label — uses plate token (10px) */}
-                    <span className="font-display text-plate font-semibold leading-tight">{id}</span>
+                    <span className="font-display text-caption font-semibold leading-tight">{id}</span>
                     {well && (
-                      <span className="mt-0.5 max-w-full truncate px-1 text-plate-tiny leading-tight opacity-85">
+                      <span className="mt-0.5 max-w-full truncate px-0.5 text-plate-tiny leading-tight opacity-85">
                         {well.mutant_id || "—"}
                       </span>
                     )}
                     {well?.selected && (
                       <span
-                        className="absolute left-1 top-1 rounded-full bg-card px-1.5 py-0.5 text-plate-tiny font-semibold uppercase tracking-widest text-surface-contrast"
+                        className="absolute left-0.5 top-0.5 rounded-full bg-card px-1 py-0.5 text-plate-tiny font-semibold uppercase tracking-widest text-surface-contrast"
                         aria-hidden="true"
                       >
                         Pick
@@ -135,7 +135,7 @@ export function WellPlate({
                     )}
                     {isFallback && (
                       <span
-                        className="absolute bottom-1 left-1 flex items-center justify-center rounded-full bg-warning/80 p-0.5"
+                        className="absolute bottom-0.5 left-0.5 flex items-center justify-center rounded-full bg-warning/80 p-0.5"
                         aria-hidden="true"
                         title="Fallback replicate"
                       >
@@ -158,7 +158,7 @@ export function WellPlate({
                     )}
                     {plate && (
                       <span
-                        className="absolute right-1 top-1 rounded-full px-1.5 py-0.5 text-plate-tiny font-bold leading-tight"
+                        className="absolute right-0.5 top-0.5 rounded-full px-1 py-0.5 text-plate-tiny font-bold leading-tight"
                         style={{
                           backgroundColor: "rgba(0,0,0,0.25)",
                           color: fill.text,

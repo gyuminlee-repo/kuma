@@ -48,7 +48,6 @@ from pathlib import Path
 # CLAUDE.md cross-layer table).
 # ---------------------------------------------------------------------------
 from kuma_core.mame.ingest.demux import (
-    _hamming_prefix,
     _iter_fastq_records,
     _rc,
     detect_native_barcode_dirs,
@@ -264,6 +263,57 @@ def _hamming_suffix_window(
     return best_dist, best_abs_pos
 
 
+def _hamming_prefix_bounded(
+    read_seq: str,
+    barcode: str,
+    stop_after: int,
+) -> int:
+    """Hamming distance against read prefix with early rejection."""
+    bc_len = len(barcode)
+    if len(read_seq) < bc_len:
+        return bc_len + 1
+    mismatches = 0
+    for idx, expected in enumerate(barcode):
+        if expected != read_seq[idx]:
+            mismatches += 1
+            if mismatches > stop_after:
+                return mismatches
+    return mismatches
+
+
+def _hamming_suffix_window_in_tail(
+    tail: str,
+    tail_start: int,
+    barcode: str,
+    stop_after: int,
+) -> tuple[int, int]:
+    """Best Hamming match for ``barcode`` inside a precomputed read tail."""
+    bc_len = len(barcode)
+    if len(tail) < bc_len:
+        return bc_len + 1, -1
+
+    best_dist = min(bc_len + 1, stop_after + 1)
+    best_abs_pos = -1
+
+    for i in range(len(tail) - bc_len, -1, -1):
+        mismatches = 0
+        for offset, expected in enumerate(barcode):
+            if expected != tail[i + offset]:
+                mismatches += 1
+                if mismatches >= best_dist:
+                    break
+        if mismatches < best_dist:
+            best_dist = mismatches
+            best_abs_pos = tail_start + i
+            if best_dist == 0:
+                # Still continue would only detect another exact location for
+                # the same barcode. The right-to-left scan already found the
+                # 3'-most exact hit, which is the preferred location.
+                break
+
+    return best_dist, best_abs_pos
+
+
 # ---------------------------------------------------------------------------
 # Single-NB sort
 # ---------------------------------------------------------------------------
@@ -323,7 +373,8 @@ def _sort_one_nb(
                 best_fwd_dist = 999
 
                 for c, fwd_seq in fwd_seqs:
-                    dist = _hamming_prefix(seq, fwd_seq)
+                    stop_after = min(best_fwd_dist, fwd_max_mm[c])
+                    dist = _hamming_prefix_bounded(seq, fwd_seq, stop_after)
                     if dist < best_fwd_dist:
                         best_fwd_dist = dist
                         best_c = c
@@ -336,9 +387,17 @@ def _sort_one_nb(
                 # ── Reverse barcode RC match (3' suffix window) ──────────
                 best_r: int | None = None
                 best_rev_dist = 999
+                tail_start = max(0, len(seq) - _REV_SEARCH_TAIL_BP)
+                tail = seq[tail_start:]
 
                 for r, rev_rc in rev_rc_seqs:
-                    dist, _ = _hamming_suffix_window(seq, rev_rc)
+                    stop_after = min(best_rev_dist, rev_max_mm[r])
+                    dist, _ = _hamming_suffix_window_in_tail(
+                        tail,
+                        tail_start,
+                        rev_rc,
+                        stop_after,
+                    )
                     if dist < best_rev_dist:
                         best_rev_dist = dist
                         best_r = r
