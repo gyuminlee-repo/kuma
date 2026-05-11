@@ -103,6 +103,18 @@ Download the latest installer from [Releases](https://github.com/gyuminlee-repo/
 - **macOS**: `kuma_x.x.x_aarch64.dmg`
 - **Linux**: `.deb` + `.AppImage`
 
+### Developers — `pnpm setup` instead of `pnpm install` on Windows
+
+On Windows, `pnpm install` may fail with `EACCES` / `EBUSY` on the first run when Defender or an IDE file watcher locks files in `node_modules`. Use the wrapper script:
+
+```powershell
+pnpm setup
+```
+
+`scripts/safe-install.mjs` runs `pnpm install` with `package-import-method=copy` (hardlink locks bypassed) and retries up to three times on retryable errors. macOS and Linux fall back to a plain `pnpm install` with retries.
+
+If three attempts still fail, the script prints a guide (close IDE, add Defender exclusion, or wipe `node_modules`).
+
 ### macOS — first-launch Gatekeeper notice
 
 kuma ships with ad-hoc code signing only (no paid Apple Developer ID). The first launch shows an "unidentified developer" warning. If the dialog instead says **"is damaged and can't be opened"**, the file picked up the quarantine bit during download — clear it once:

@@ -102,6 +102,18 @@ EVOLVEpro 또는 MULTI-evolve CSV 로드 시 어떤 mutation을 프라이머 설
 - **macOS**: `kuma_x.x.x_aarch64.dmg`
 - **Linux**: `.deb` + `.AppImage`
 
+### 개발자 — Windows에서는 `pnpm install` 대신 `pnpm setup`
+
+Windows에서 `pnpm install`은 Defender나 IDE 파일 워처가 `node_modules`를 잠가 첫 시도에 `EACCES`/`EBUSY`로 실패할 수 있다. 대신 래퍼 스크립트를 쓴다:
+
+```powershell
+pnpm setup
+```
+
+`scripts/safe-install.mjs`는 Windows에서 `package-import-method=copy`를 임시 적용(hardlink 락 우회)하고, retryable 에러 발생 시 최대 3회 자동 재시도한다. macOS/Linux에서는 일반 `pnpm install`과 동일한 동작 + 재시도만.
+
+3회 재시도 후에도 실패하면 원인별 해결 가이드를 출력한다(IDE 종료, Defender 예외, `node_modules` 수동 정리 등).
+
 ### macOS — 첫 실행 시 Gatekeeper 경고
 
 kuma는 유료 Apple Developer ID 없이 ad-hoc 서명만 적용된다. 첫 실행 시 "확인되지 않은 개발자" 경고가 표시될 수 있다. 만약 **"손상되었기 때문에 열 수 없습니다"** 메시지가 뜨면 다운로드 시 quarantine bit가 붙은 것이므로 한 번만 풀어주면 된다:
