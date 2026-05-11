@@ -1,174 +1,194 @@
 #!/usr/bin/env node
-// sync-check.mjs — Phase 1 cross-layer consistency checks.
-// Reports mismatches only; does not auto-fix. Exit 1 on any failure.
+// VENDORED from cross-layer-sync skill - DO NOT EDIT.
+// Refresh: <dotfiles>/skills/cross-layer-sync/init.mjs --force
+// cross-layer-sync/check.mjs — generic config-driven cross-layer consistency runner.
 //
-// Checks:
-//   V) 3-way version sync (package.json / tauri.conf.json / Cargo.toml)
-//   R) tauri.conf.json bundle.resources -> files exist on disk
-//   K) kuro dispatcher _METHODS  <-> src/types/models.ts RpcMethodMap
-//   M) mame dispatcher _METHODS  registered (smoke: presence only)
+// Reads `.cross-layer-sync.json` (or path passed via --config) from the
+// project root and executes each check declared therein. Reports drift only;
+// does not auto-fix. Exit 1 on any failure.
 //
-// Add new checks by appending to `checks` array.
+// Supported check types:
+//   version_sync   — assert N files extract the same version string.
+//   files_exist    — assert paths declared in a manifest exist on disk.
+//   registry_match — assert two key sets are equal (with optional excludes).
+//   command        — run an arbitrary shell command; non-zero exit = fail.
+//
+// Extractors (used by version_sync, files_exist):
+//   json:<jsonpointer>     — JSON file, dot-path lookup (e.g. json:bundle.resources)
+//   regex:<pattern>        — regex with first capture group as result
+//   python_dict_keys:<NAME>— top-level keys of a Python `NAME = { ... }` block
+//   ts_interface_keys:<NAME>— top-level fields of a TS `interface NAME { ... }` block
+//
+// See SKILL.md for examples.
 
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+const argv = process.argv.slice(2);
+const ROOT = process.cwd();
+
+const configIdx = argv.indexOf("--config");
+const configPath = configIdx >= 0
+  ? path.resolve(ROOT, argv[configIdx + 1])
+  : path.join(ROOT, ".cross-layer-sync.json");
+
+if (!fs.existsSync(configPath)) {
+  console.error(`[cross-layer-sync] no config at ${path.relative(ROOT, configPath)}`);
+  console.error(`Run \`node ${path.relative(ROOT, path.join(HERE, "init.mjs"))}\` to bootstrap.`);
+  process.exit(2);
+}
+
+const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
 const failures = [];
 const passes = [];
 
-function fail(check, msg) {
-  failures.push({ check, msg });
-}
-function pass(check, msg) {
-  passes.push({ check, msg });
-}
+const recordFail = (id, msg) => failures.push({ id, msg });
+const recordPass = (id, msg) => passes.push({ id, msg });
 
-function readJSON(p) {
-  return JSON.parse(fs.readFileSync(p, "utf-8"));
-}
 function readText(p) {
-  return fs.readFileSync(p, "utf-8");
+  return fs.readFileSync(path.resolve(ROOT, p), "utf-8");
 }
 
-// V) Version 3-way sync ------------------------------------------------------
-function checkVersionSync() {
-  const pkg = readJSON(path.join(ROOT, "package.json")).version;
-  const tauri = readJSON(path.join(ROOT, "src-tauri/tauri.conf.json")).version;
-  const cargo = readText(path.join(ROOT, "src-tauri/Cargo.toml"))
-    .split("\n")
-    .find((l) => /^version\s*=\s*"/.test(l));
-  const cargoVer = cargo ? cargo.match(/"([^"]+)"/)?.[1] : null;
-  if (pkg === tauri && tauri === cargoVer) {
-    pass("V", `versions aligned: ${pkg}`);
+function jsonGet(obj, dotPath) {
+  if (!dotPath) return obj;
+  return dotPath.split(".").reduce((acc, k) => (acc == null ? acc : acc[k]), obj);
+}
+
+function applyExtractor(filePath, extractor) {
+  const absPath = path.resolve(ROOT, filePath);
+  if (extractor.startsWith("json:")) {
+    const pointer = extractor.slice("json:".length);
+    return jsonGet(JSON.parse(fs.readFileSync(absPath, "utf-8")), pointer);
+  }
+  if (extractor.startsWith("regex:")) {
+    const pattern = extractor.slice("regex:".length);
+    const re = new RegExp(pattern, "m");
+    const m = fs.readFileSync(absPath, "utf-8").match(re);
+    return m ? m[1] : null;
+  }
+  if (extractor.startsWith("python_dict_keys:")) {
+    const name = extractor.slice("python_dict_keys:".length);
+    const src = fs.readFileSync(absPath, "utf-8");
+    const start = src.indexOf(`${name} = {`);
+    if (start === -1) return [];
+    const end = src.indexOf("\n}", start);
+    const block = src.slice(start, end);
+    // top-level entries only: exactly 4-space indent
+    return [...block.matchAll(/^ {4}"([a-zA-Z_][\w.]*)"\s*:/gm)].map((m) => m[1]);
+  }
+  if (extractor.startsWith("ts_interface_keys:")) {
+    const name = extractor.slice("ts_interface_keys:".length);
+    const src = fs.readFileSync(absPath, "utf-8");
+    const start = src.indexOf(`interface ${name}`);
+    if (start === -1) return [];
+    const braceOpen = src.indexOf("{", start);
+    let depth = 0;
+    let end = braceOpen;
+    for (let i = braceOpen; i < src.length; i++) {
+      if (src[i] === "{") depth++;
+      else if (src[i] === "}") {
+        depth--;
+        if (depth === 0) { end = i; break; }
+      }
+    }
+    const block = src.slice(braceOpen, end);
+    return [...block.matchAll(/^ {2}([a-zA-Z_][\w]*)\s*[?:]\s*\{/gm)].map((m) => m[1]);
+  }
+  throw new Error(`Unknown extractor: ${extractor}`);
+}
+
+// ---- check types ----------------------------------------------------------
+
+function runVersionSync(check) {
+  const values = check.files.map(({ path: p, extract }) => ({
+    path: p,
+    value: applyExtractor(p, extract),
+  }));
+  const distinct = new Set(values.map((v) => v.value));
+  if (distinct.size === 1) {
+    recordPass(check.id, `aligned: ${[...distinct][0]}`);
   } else {
-    fail(
-      "V",
-      `version drift — package.json=${pkg} tauri.conf.json=${tauri} Cargo.toml=${cargoVer}`,
-    );
+    const detail = values.map((v) => `${v.path}=${v.value}`).join(" ");
+    recordFail(check.id, `version drift — ${detail}`);
   }
 }
 
-// R) Tauri resources exist ---------------------------------------------------
-function checkTauriResources() {
-  const conf = readJSON(path.join(ROOT, "src-tauri/tauri.conf.json"));
-  const resources = conf?.bundle?.resources;
-  if (!resources) {
-    pass("R", "no bundle.resources declared");
-    return;
-  }
-  const entries = Array.isArray(resources)
-    ? resources.map((src) => ({ src, dest: null }))
-    : Object.entries(resources).map(([src, dest]) => ({ src, dest }));
-  const tauriDir = path.join(ROOT, "src-tauri");
+function runFilesExist(check) {
+  const entries = applyExtractor(check.manifest, check.extract);
+  const list = Array.isArray(entries)
+    ? entries
+    : entries && typeof entries === "object"
+      ? Object.keys(entries)
+      : [];
+  const base = path.resolve(ROOT, check.base || ".");
   let missing = 0;
-  for (const { src } of entries) {
-    if (src.includes("**") || src.includes("*")) {
-      fail("R", `glob pattern not allowed: ${src}`);
+  for (const rel of list) {
+    if (typeof rel !== "string") continue;
+    if (rel.includes("*")) {
+      recordFail(check.id, `glob disallowed: ${rel}`);
       missing++;
       continue;
     }
-    const abs = path.resolve(tauriDir, src);
-    if (!fs.existsSync(abs)) {
-      fail("R", `resource missing on disk: ${src}`);
+    if (!fs.existsSync(path.resolve(base, rel))) {
+      recordFail(check.id, `missing on disk: ${rel}`);
       missing++;
     }
   }
-  if (missing === 0) pass("R", `${entries.length} resources present`);
+  if (missing === 0) recordPass(check.id, `${list.length} entries present`);
 }
 
-// K) Kuro dispatcher <-> RpcMethodMap ---------------------------------------
-const EXCLUDED_METHODS = new Set(["ping", "shutdown", "health_info"]);
-
-function parseDispatcherMethods(filepath) {
-  const src = readText(filepath);
-  const start = src.indexOf("_METHODS = {");
-  if (start === -1) return [];
-  const end = src.indexOf("\n}", start);
-  const block = src.slice(start, end);
-  // top-level keys only: exactly 4-space indent (nested dict keys are deeper)
-  return [...block.matchAll(/^ {4}"([a-zA-Z_][\w.]*)"\s*:/gm)].map((m) => m[1]);
-}
-
-function parseRpcMethodMap() {
-  const src = readText(path.join(ROOT, "src/types/models.ts"));
-  const start = src.indexOf("interface RpcMethodMap");
-  if (start === -1) return [];
-  const braceOpen = src.indexOf("{", start);
-  let depth = 0;
-  let end = braceOpen;
-  for (let i = braceOpen; i < src.length; i++) {
-    if (src[i] === "{") depth++;
-    else if (src[i] === "}") {
-      depth--;
-      if (depth === 0) { end = i; break; }
-    }
-  }
-  const block = src.slice(braceOpen, end);
-  // top-level fields only: exactly 2-space indent inside the interface body
-  return [...block.matchAll(/^ {2}([a-zA-Z_][\w]*)\s*:\s*\{/gm)].map((m) => m[1]);
-}
-
-function checkKuroMethods() {
-  const dispatched = parseDispatcherMethods(
-    path.join(ROOT, "python-core/sidecar_kuro/dispatcher.py"),
-  ).filter((m) => !EXCLUDED_METHODS.has(m));
-  const tsMap = new Set(parseRpcMethodMap());
-  const missingInTs = dispatched.filter((m) => !tsMap.has(m));
-  const orphanInTs = [...tsMap].filter(
-    (m) => !dispatched.includes(m) && !EXCLUDED_METHODS.has(m),
-  );
-  if (missingInTs.length === 0 && orphanInTs.length === 0) {
-    pass("K", `${dispatched.length} kuro methods aligned with RpcMethodMap`);
+function runRegistryMatch(check) {
+  const leftAll = applyExtractor(check.left.path, check.left.extract);
+  const rightAll = applyExtractor(check.right.path, check.right.extract);
+  const exclude = new Set(check.exclude || []);
+  const left = (leftAll || []).filter((k) => !exclude.has(k));
+  const right = (rightAll || []).filter((k) => !exclude.has(k));
+  const leftSet = new Set(left);
+  const rightSet = new Set(right);
+  const onlyLeft = left.filter((k) => !rightSet.has(k));
+  const onlyRight = right.filter((k) => !leftSet.has(k));
+  if (onlyLeft.length === 0 && onlyRight.length === 0) {
+    recordPass(check.id, `${left.length} entries aligned`);
     return;
   }
-  for (const m of missingInTs) fail("K", `kuro dispatcher method "${m}" missing in RpcMethodMap`);
-  for (const m of orphanInTs) fail("K", `RpcMethodMap entry "${m}" has no kuro dispatcher handler`);
-}
-
-// G) Generated TS models freshness ------------------------------------------
-function checkGeneratedModels() {
-  const out = spawnSync(
-    process.execPath,
-    [path.join(ROOT, "scripts/gen-models.mjs"), "--check"],
-    { encoding: "utf-8" },
-  );
-  if (out.status === 0) {
-    pass("G", "src/types/models.generated.ts up to date");
-  } else {
-    const msg = (out.stderr || out.stdout || "").trim().split("\n").pop();
-    fail("G", msg || "gen-models --check failed");
+  for (const k of onlyLeft) {
+    recordFail(check.id, `"${k}" in ${check.left.path} but not in ${check.right.path}`);
+  }
+  for (const k of onlyRight) {
+    recordFail(check.id, `"${k}" in ${check.right.path} but not in ${check.left.path}`);
   }
 }
 
-// M) Mame dispatcher presence (smoke) ---------------------------------------
-function checkMameMethods() {
-  const methods = parseDispatcherMethods(
-    path.join(ROOT, "python-core/sidecar_mame/dispatcher.py"),
-  );
-  if (methods.length === 0) {
-    fail("M", "mame dispatcher _METHODS parse returned 0 entries");
+function runCommand(check) {
+  const res = spawnSync(check.run, { shell: true, encoding: "utf-8", cwd: ROOT });
+  if (res.status === 0) {
+    recordPass(check.id, check.label || check.run);
   } else {
-    pass("M", `${methods.length} mame methods registered`);
+    const msg = (res.stderr || res.stdout || "").trim().split("\n").pop();
+    recordFail(check.id, msg || `command failed: ${check.run}`);
   }
 }
 
-// ---------------------------------------------------------------------------
-const checks = [
-  ["V", checkVersionSync],
-  ["R", checkTauriResources],
-  ["K", checkKuroMethods],
-  ["M", checkMameMethods],
-  ["G", checkGeneratedModels],
-];
+const RUNNERS = {
+  version_sync: runVersionSync,
+  files_exist: runFilesExist,
+  registry_match: runRegistryMatch,
+  command: runCommand,
+};
 
-for (const [name, fn] of checks) {
+for (const check of config.checks || []) {
+  const runner = RUNNERS[check.type];
+  if (!runner) {
+    recordFail(check.id || check.type, `unknown check type: ${check.type}`);
+    continue;
+  }
   try {
-    fn();
+    runner(check);
   } catch (e) {
-    fail(name, `check threw: ${e.message}`);
+    recordFail(check.id || check.type, `threw: ${e.message}`);
   }
 }
 
@@ -177,15 +197,8 @@ const RED = "\x1b[31m";
 const GREEN = "\x1b[32m";
 const DIM = "\x1b[2m";
 
-for (const { check, msg } of passes) {
-  console.log(`${GREEN}PASS${RESET} [${check}] ${DIM}${msg}${RESET}`);
-}
-for (const { check, msg } of failures) {
-  console.log(`${RED}FAIL${RESET} [${check}] ${msg}`);
-}
+for (const { id, msg } of passes) console.log(`${GREEN}PASS${RESET} [${id}] ${DIM}${msg}${RESET}`);
+for (const { id, msg } of failures) console.log(`${RED}FAIL${RESET} [${id}] ${msg}`);
 
-console.log(
-  `\n${failures.length === 0 ? GREEN : RED}${passes.length} passed, ${failures.length} failed${RESET}`,
-);
-
+console.log(`\n${failures.length === 0 ? GREEN : RED}${passes.length} passed, ${failures.length} failed${RESET}`);
 process.exit(failures.length === 0 ? 0 : 1);

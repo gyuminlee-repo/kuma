@@ -1,0 +1,40 @@
+{
+  "checks": [
+    {
+      "id": "version-sync",
+      "type": "version_sync",
+      "files": [
+        {"path": "package.json", "extract": "json:version"},
+        {"path": "src-tauri/tauri.conf.json", "extract": "json:version"},
+        {"path": "src-tauri/Cargo.toml", "extract": "regex:^version\\s*=\\s*\"([^\"]+)\""}
+      ]
+    },
+    {
+      "id": "tauri-resources",
+      "type": "files_exist",
+      "manifest": "src-tauri/tauri.conf.json",
+      "extract": "json:bundle.resources",
+      "base": "src-tauri"
+    },
+    {
+      "id": "kuro-dispatcher",
+      "type": "registry_match",
+      "left":  {"path": "python-core/sidecar_kuro/dispatcher.py", "extract": "python_dict_keys:_METHODS"},
+      "right": {"path": "src/types/models.ts", "extract": "ts_interface_keys:RpcMethodMap"},
+      "exclude": ["ping", "shutdown", "health_info"]
+    },
+    {
+      "id": "generated-models",
+      "type": "command",
+      "run": "node scripts/gen-models.mjs --check",
+      "label": "src/types/models.generated.ts up to date"
+    }
+  ],
+  "genModels": [
+    {
+      "module": "sidecar_kuro.models",
+      "pythonPath": "python-core",
+      "output": "src/types/models.generated.ts"
+    }
+  ]
+}

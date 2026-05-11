@@ -2,7 +2,7 @@
 /**
  * AUTO-GENERATED — do not edit by hand.
  * Regenerate via: pnpm gen:models
- * Source: python-core/sidecar_kuro/models.py
+ * Source: sidecar_kuro.models (PYTHONPATH=python-core)
  */
 /* eslint-disable */
 /**
@@ -11,7 +11,7 @@
  * and run json-schema-to-typescript to regenerate this file.
  */
 
-export interface KuroModels {
+export interface SidecarKuroModels {
   AlternativesResultModel?: AlternativesResultModel;
   BenchmarkResultDict?: BenchmarkResultDict;
   BenchmarkResultModel?: BenchmarkResultModel;

@@ -1,20 +1,24 @@
-"""Dump combined JSON schema for all Pydantic models in sidecar_kuro.models.
+# VENDORED from cross-layer-sync skill - DO NOT EDIT.
+# Refresh: <dotfiles>/skills/cross-layer-sync/init.mjs --force
+"""Dump combined JSON schema for every Pydantic BaseModel in a given module.
 
 Usage:
-    PYTHONPATH=python-core python3 scripts/gen_models_schema.py > schema.json
+    PYTHONPATH=<path> python3 gen_models_schema.py <module>
 
-The schema is a single wrapper with `definitions` containing every BaseModel
-subclass defined in `sidecar_kuro.models`. Consumed by `gen-models.mjs`
-which pipes it into `json-schema-to-typescript`.
+Example:
+    PYTHONPATH=python-core python3 gen_models_schema.py sidecar_kuro.models
+
+Output: JSON schema on stdout with every BaseModel-subclass under
+`definitions`, plus a root object that `$ref`s each definition so
+`json-schema-to-typescript` emits clean named interfaces.
 """
 
+import importlib
 import json
 import sys
 
 from pydantic import BaseModel
 from pydantic.json_schema import models_json_schema
-
-import sidecar_kuro.models as kuro_models
 
 
 def collect(module) -> list[type[BaseModel]]:
@@ -32,12 +36,11 @@ def collect(module) -> list[type[BaseModel]]:
 
 
 def _strip_property_titles(node, depth: int = 0) -> None:
-    """Pydantic emits per-field `title` on every property; json2ts promotes those
-    to type aliases (e.g. `type AaPosition = number`). Strip them while keeping
-    the definition-level title that json2ts needs for the interface name.
+    """Pydantic emits per-field `title` on every property; json-schema-to-typescript
+    promotes those to type aliases (e.g. `type AaPosition = number`). Strip them
+    while keeping the definition-level title.
     """
     if isinstance(node, dict):
-        # depth 0 = definition root (keep title); deeper = inner subschema
         if depth >= 1:
             node.pop("title", None)
         for v in node.values():
@@ -48,7 +51,13 @@ def _strip_property_titles(node, depth: int = 0) -> None:
 
 
 def main() -> None:
-    models = collect(kuro_models)
+    if len(sys.argv) < 2:
+        sys.stderr.write("usage: gen_models_schema.py <module>\n")
+        sys.exit(2)
+    module_name = sys.argv[1]
+    module = importlib.import_module(module_name)
+
+    models = collect(module)
     _, schema = models_json_schema(
         [(m, "serialization") for m in models],
         ref_template="#/definitions/{model}",
@@ -56,12 +65,11 @@ def main() -> None:
     definitions = schema.get("$defs", {})
     for defn in definitions.values():
         _strip_property_titles(defn, depth=0)
-    # Reference every definition from the root so json2ts emits them as
-    # named interfaces (instead of hoisting per-field aliases).
+
     properties = {name: {"$ref": f"#/definitions/{name}"} for name in definitions}
     wrapper = {
         "$schema": "http://json-schema.org/draft-07/schema#",
-        "title": "KuroModels",
+        "title": module_name.replace(".", "_"),
         "type": "object",
         "additionalProperties": False,
         "properties": properties,

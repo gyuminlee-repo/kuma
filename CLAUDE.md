@@ -72,9 +72,13 @@ python -m pytest tests/test_sdm_engine.py::test_name  # Single test
 
 ## Cross-layer Change Checklist
 
-> Automated subset: `pnpm sync:check` (`scripts/sync-check.mjs`). Runs on CI in `frontend-typecheck`. Reports drift only (no auto-fix). Currently covers 3-way version sync, tauri.conf resources, kuro dispatcher ↔ `RpcMethodMap`, mame dispatcher smoke, generated TS models freshness. Extend by adding to the `checks` array.
+> Automated by **`cross-layer-sync` skill** (vendored from claude-dotfiles into `scripts/`). Config: `.cross-layer-sync.json`. Commands: `pnpm sync:check`, `pnpm gen:models`, `pnpm gen:models:check`. CI runs `node scripts/sync-check.mjs` in `frontend-typecheck`. Reports drift only.
 >
-> **Phase 2 — Pydantic → TS generation**: `pnpm gen:models` regenerates `src/types/models.generated.ts` from `python-core/sidecar_kuro/models.py`. Hand-written `src/types/models.ts` is **not** replaced (it owns `RpcMethodMap`, validators, hand-curated names). The generated file ships alongside as the source-of-truth mirror; `gen:models:check` (called by sync-check) fails CI when stale. Requires Python + `pip install -e .` for pydantic.
+> Active checks: 3-way version sync, tauri.conf resources existence, kuro dispatcher ↔ `RpcMethodMap` registry match, Pydantic→TS generated file freshness.
+>
+> **Extend**: edit `.cross-layer-sync.json` `checks[]`. Refresh vendored scripts via `node <dotfiles>/skills/cross-layer-sync/init.mjs --force` (config preserved).
+>
+> **Pydantic → TS**: `pnpm gen:models` regenerates `src/types/models.generated.ts` from `python-core/sidecar_kuro/models.py`. Hand-written `src/types/models.ts` is **not** replaced (owns `RpcMethodMap`, validators, hand-curated names). Generated file ships as mirror; drift fails CI.
 
 
 | Changed file | Also check |

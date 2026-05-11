@@ -1,39 +1,79 @@
 #!/usr/bin/env node
-// gen-models.mjs — Phase 2 Pydantic -> TS generator.
+// VENDORED from cross-layer-sync skill - DO NOT EDIT.
+// Refresh: <dotfiles>/skills/cross-layer-sync/init.mjs --force
+// cross-layer-sync/gen-models.mjs — generic Pydantic -> TS generator.
 //
-// Pipeline:
-//   1) PYTHONPATH=python-core python3 scripts/gen_models_schema.py
-//      -> combined JSON schema (definitions of every BaseModel subclass)
-//   2) json-schema-to-typescript
-//      -> typed interfaces
-//   3) Prepend a "DO NOT EDIT" banner; write to src/types/models.generated.ts.
+// Reads `.cross-layer-sync.json` `genModels` section:
+//   {
+//     "genModels": [
+//       {
+//         "module": "sidecar_kuro.models",
+//         "pythonPath": "python-core",
+//         "output": "src/types/models.generated.ts"
+//       }
+//     ]
+//   }
 //
-// Side-effect free in --check mode: only diffs against the on-disk artifact
-// and exits 1 on drift. Used by sync-check.mjs.
+// Each entry runs:
+//   PYTHONPATH=<pythonPath> python3 <gen_schema.py> <module>
+//   | json-schema-to-typescript
+//   -> <output>
+//
+// --check exits 1 if any output differs from regeneration. Used by sync-check.
 
 import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const SCHEMA_SCRIPT = path.join(ROOT, "scripts/gen_models_schema.py");
-const OUTPUT = path.join(ROOT, "src/types/models.generated.ts");
-const JSON2TS = path.join(ROOT, "node_modules/.bin/json2ts");
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+const ROOT = process.cwd();
+const argv = process.argv.slice(2);
+const isCheck = argv.includes("--check");
 
-const BANNER = `/* eslint-disable */
+const configPath = path.join(ROOT, ".cross-layer-sync.json");
+if (!fs.existsSync(configPath)) {
+  console.error(`[gen-models] no .cross-layer-sync.json at ${ROOT}`);
+  process.exit(2);
+}
+const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+const entries = config.genModels || [];
+if (entries.length === 0) {
+  console.log(`[gen-models] no genModels entries — skipping`);
+  process.exit(0);
+}
+
+const PYTHON_BIN = process.env.PYTHON_BIN || (process.platform === "win32" ? "python" : "python3");
+const SCHEMA_SCRIPT = path.join(HERE, "gen_models_schema.py");
+const JSON2TS = locateJson2ts();
+
+function locateJson2ts() {
+  const local = path.join(ROOT, "node_modules/.bin/json2ts");
+  if (fs.existsSync(local)) return local;
+  // fallback: rely on PATH
+  return "json2ts";
+}
+
+function bannerFor(entry) {
+  return `/* eslint-disable */
 /**
  * AUTO-GENERATED — do not edit by hand.
  * Regenerate via: pnpm gen:models
- * Source: python-core/sidecar_kuro/models.py
+ * Source: ${entry.module} (PYTHONPATH=${entry.pythonPath})
  */
 `;
+}
 
-const PYTHON_BIN = process.env.PYTHON_BIN || (process.platform === "win32" ? "python" : "python3");
-
-function dumpSchema() {
-  const env = { ...process.env, PYTHONPATH: path.join(ROOT, "python-core") };
-  return execFileSync(PYTHON_BIN, [SCHEMA_SCRIPT], { env, encoding: "utf-8", maxBuffer: 64 * 1024 * 1024 });
+function dumpSchema(entry) {
+  const env = {
+    ...process.env,
+    PYTHONPATH: path.resolve(ROOT, entry.pythonPath || "."),
+  };
+  return execFileSync(PYTHON_BIN, [SCHEMA_SCRIPT, entry.module], {
+    env,
+    encoding: "utf-8",
+    maxBuffer: 64 * 1024 * 1024,
+  });
 }
 
 function schemaToTs(schemaJson) {
@@ -49,28 +89,23 @@ function schemaToTs(schemaJson) {
   return res.stdout;
 }
 
-function build() {
-  const schema = dumpSchema();
-  const ts = schemaToTs(schema);
-  return BANNER + ts.trimStart();
-}
-
-function isCheck() {
-  return process.argv.includes("--check");
-}
-
-const generated = build();
-
-if (isCheck()) {
-  const current = fs.existsSync(OUTPUT) ? fs.readFileSync(OUTPUT, "utf-8") : "";
-  if (current !== generated) {
-    console.error(`[gen-models] drift: ${path.relative(ROOT, OUTPUT)} is stale. Run \`pnpm gen:models\`.`);
-    process.exit(1);
+let drift = 0;
+for (const entry of entries) {
+  const ts = bannerFor(entry) + schemaToTs(dumpSchema(entry)).trimStart();
+  const outAbs = path.resolve(ROOT, entry.output);
+  if (isCheck) {
+    const current = fs.existsSync(outAbs) ? fs.readFileSync(outAbs, "utf-8") : "";
+    if (current !== ts) {
+      console.error(`[gen-models] drift: ${entry.output} is stale (module=${entry.module})`);
+      drift++;
+    } else {
+      console.log(`[gen-models] up to date: ${entry.output}`);
+    }
+  } else {
+    fs.mkdirSync(path.dirname(outAbs), { recursive: true });
+    fs.writeFileSync(outAbs, ts, "utf-8");
+    console.log(`[gen-models] wrote ${entry.output} (${ts.length} bytes)`);
   }
-  console.log(`[gen-models] up to date`);
-  process.exit(0);
 }
 
-fs.mkdirSync(path.dirname(OUTPUT), { recursive: true });
-fs.writeFileSync(OUTPUT, generated, "utf-8");
-console.log(`[gen-models] wrote ${path.relative(ROOT, OUTPUT)} (${generated.length} bytes)`);
+process.exit(drift > 0 ? 1 : 0);
