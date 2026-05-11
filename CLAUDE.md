@@ -72,6 +72,9 @@ python -m pytest tests/test_sdm_engine.py::test_name  # Single test
 
 ## Cross-layer Change Checklist
 
+> Automated subset: `pnpm sync:check` (`scripts/sync-check.mjs`). Runs on CI in `frontend-typecheck`. Reports drift only (no auto-fix). Currently covers 3-way version sync, tauri.conf resources, kuro dispatcher ↔ `RpcMethodMap`, mame dispatcher smoke. Extend by adding to the `checks` array.
+
+
 | Changed file | Also check |
 |---|---|
 | `kuro/evolvepro.py` VARIANT_COLUMNS / SCORE_COLUMNS | `fixtures/` CSV column names match |

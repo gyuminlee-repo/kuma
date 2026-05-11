@@ -54,6 +54,9 @@ jobs:
       - name: TypeScript typecheck
         run: npx tsc --noEmit
 
+      - name: Cross-layer sync check
+        run: node scripts/sync-check.mjs
+
   rust-check:
     runs-on: ubuntu-22.04
 

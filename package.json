@@ -1,7 +1,7 @@
 {
   "name": "kuma",
   "private": true,
-  "version": "0.3.9",
+  "version": "0.4.0",
   "packageManager": "pnpm@10.33.0",
   "type": "module",
   "scripts": {
@@ -16,6 +16,7 @@
     "sidecar:hash": "node scripts/sidecar-hash.mjs",
     "build:all": "pnpm run sidecar:build && pnpm run sidecar:hash && pnpm run tauri build",
     "smoke:ui": "node scripts/ui-smoke.mjs",
+    "sync:check": "node scripts/sync-check.mjs",
     "capture-guide": "tsx --tsconfig tsconfig.scripts.json scripts/capture-guide.ts",
     "record-tutorial": "tsx --tsconfig tsconfig.scripts.json scripts/record-tutorial.ts"
   },
