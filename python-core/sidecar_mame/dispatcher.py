@@ -38,6 +38,7 @@ from sidecar_mame.handlers.activity import (
     handle_merge_for_evolvepro,
 )
 from sidecar_mame.handlers.sort_barcode import handle_sort_barcode_run
+from sidecar_mame.handlers.barcode_package import handle_generate_mame_package
 
 def _handle_health_info(_params: dict) -> dict:
     """Return PID, RSS, and Python version for the status bar tooltip."""
@@ -82,6 +83,8 @@ _METHODS = {
     "mame.activity.merge_for_evolvepro": handle_merge_for_evolvepro,
     # sort_barcode: combinatorial 96-well barcode sorter
     "sort_barcode_run": handle_sort_barcode_run,
+    # Feature B: MAME Barcode Setup
+    "generate_mame_package": handle_generate_mame_package,
     # §22 graceful shutdown — ack immediately; main() breaks on this method
     "shutdown": lambda _: {"ok": True, "message": "shutdown_acked"},
 }

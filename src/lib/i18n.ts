@@ -1,12 +1,16 @@
 /**
- * i18n — Locale 설정 슬롯
+ * i18n — Locale 설정 슬롯 + i18next 초기화
  *
- * 본 모듈은 현재 locale 설정 슬롯만 제공한다. 실제 번역 (react-i18next 등) 도입 시
- * resolveActiveLocale() 의 반환값을 사용해 바인딩한다.
+ * 본 모듈은 locale 설정 슬롯과 i18next 초기화 헬퍼를 제공한다.
+ * initI18n(resolvedLng)을 main.tsx에서 앱 마운트 전 호출한다.
  *
  * localStorage key: "kuma:locale"
  * 지원 값: "en" | "ko" | "system"
  */
+import i18next from "i18next";
+import { initReactI18next } from "react-i18next";
+import en from "../locales/en.json";
+import ko from "../locales/ko.json";
 
 export type Locale = "en" | "ko" | "system";
 
@@ -49,4 +53,21 @@ export function resolveActiveLocale(): "en" | "ko" {
   } catch {
     return "en";
   }
+}
+
+/**
+ * i18next 초기화.
+ * main.tsx에서 ReactDOM.createRoot 이전에 await 없이 호출 가능.
+ * (react-i18next suspense 없이 동기 초기화)
+ */
+export function initI18n(resolvedLng: string): void {
+  void i18next.use(initReactI18next).init({
+    resources: {
+      en: { translation: en },
+      ko: { translation: ko },
+    },
+    lng: resolvedLng,
+    fallbackLng: "en",
+    interpolation: { escapeValue: false },
+  });
 }

@@ -1,0 +1,105 @@
+{
+  "menu": {
+    "file": "파일",
+    "edit": "편집",
+    "export": "내보내기",
+    "help": "도움말"
+  },
+  "file": {
+    "openSequence": "시퀀스 열기...",
+    "restartSidecar": "Sidecar 재시작",
+    "openWorkspace": "워크스페이스 열기...",
+    "saveWorkspace": "워크스페이스 저장...",
+    "validateInputs": "입력 검증",
+    "runAnalysis": "분석 실행",
+    "cancelAnalysis": "분석 취소",
+    "compareWorkspaces": "워크스페이스 비교...",
+    "exportWorkspaceZip": "워크스페이스 ZIP으로 내보내기..."
+  },
+  "export": {
+    "all": "전체 내보내기",
+    "excel": "Excel로 내보내기...",
+    "echo": "Echo 매핑 내보내기...",
+    "janus": "JANUS 매핑 내보내기...",
+    "janusMapping": "Janus 매핑 내보내기...",
+    "runReport": "실행 보고서 내보내기..."
+  },
+  "edit": {
+    "clearResults": "결과 지우기"
+  },
+  "help": {
+    "loadSampleData": "샘플 데이터 불러오기",
+    "showOnboarding": "온보딩 보기",
+    "viewCrashLog": "충돌 로그 보기",
+    "settings": "설정...",
+    "about": "정보"
+  },
+  "about": {
+    "title": "Kuma 정보",
+    "titleKuro": "Kuro 정보",
+    "titleMame": "Mame 정보",
+    "checkForUpdates": "업데이트 확인",
+    "checking": "확인 중...",
+    "upToDate": "최신 버전입니다 (v{{version}}).",
+    "updateAvailable": "업데이트 가능: v{{current}} -> v{{next}}",
+    "downloadAndInstall": "다운로드 및 설치",
+    "installing": "설치 중...",
+    "later": "나중에",
+    "notConfigured": "업데이트 확인이 설정되지 않았습니다.",
+    "howToCite": "인용 방법",
+    "copyBibtex": "BibTeX 복사",
+    "copied": "복사됨!",
+    "license": "라이선스",
+    "licenseText": "내부 사용, KRIBB C1 Lab - DOI/인용 예정",
+    "thirdPartyLicenses": "서드파티 라이선스",
+    "viewLicenses": "라이선스 보기",
+    "licensesLoading": "불러오는 중...",
+    "licensesNotBundled": "서드파티 라이선스는 배포 패키지에 포함됩니다.",
+    "advanced": "고급",
+    "externalServices": "외부 서비스",
+    "build": "빌드",
+    "codesigning": "코드 서명:",
+    "sidecar": "Sidecar:",
+    "diagnostics": "진단",
+    "generateDiagnostics": "진단 생성",
+    "generating": "생성 중...",
+    "diagnosticsNote": "앱 정보 및 충돌 로그가 포함된 JSON 번들을 저장합니다. 사용자 데이터나 시퀀스는 포함되지 않습니다.",
+    "copyCrashLog": "충돌 로그 복사",
+    "ok": "확인",
+    "updates": "업데이트"
+  },
+  "settings": {
+    "title": "설정",
+    "accessibility": "접근성",
+    "colorblindMode": "색상 보조 (도형 접두사)",
+    "colorblindModeDesc": "색상이 유일한 식별자가 되지 않도록 상태 표시기에 도형 마커를 추가합니다.",
+    "keyboardShortcuts": "키보드 단축키",
+    "shortcutKeys": "단축키",
+    "shortcutAction": "동작",
+    "notifications": "알림",
+    "notificationsEnabled": "활성화됨",
+    "notificationsDisabled": "비활성화됨",
+    "enableNotifications": "알림 활성화",
+    "notificationsNote": "5분 이상 걸리는 작업에 대해 알림이 표시됩니다.",
+    "sleepPrevention": "작업 실행 중 절전 모드 방지: 활성화됨.",
+    "dataFolder": "데이터 폴더",
+    "dataFolderLoading": "불러오는 중...",
+    "dataFolderChange": "변경...",
+    "language": "언어",
+    "languageNote": "언어 설정이 로컬에 저장됩니다.",
+    "close": "닫기"
+  },
+  "mame": {
+    "input": {
+      "redetect": "재감지",
+      "redetecting": "감지 중..."
+    }
+  },
+  "common": {
+    "ok": "확인",
+    "cancel": "취소",
+    "close": "닫기",
+    "loading": "불러오는 중...",
+    "openFolder": "폴더 열기"
+  }
+}

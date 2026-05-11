@@ -1,0 +1,105 @@
+{
+  "menu": {
+    "file": "File",
+    "edit": "Edit",
+    "export": "Export",
+    "help": "Help"
+  },
+  "file": {
+    "openSequence": "Open Sequence...",
+    "restartSidecar": "Restart Sidecar",
+    "openWorkspace": "Open Workspace...",
+    "saveWorkspace": "Save Workspace...",
+    "validateInputs": "Validate Inputs",
+    "runAnalysis": "Run Analysis",
+    "cancelAnalysis": "Cancel Analysis",
+    "compareWorkspaces": "Compare workspaces...",
+    "exportWorkspaceZip": "Export workspace as zip..."
+  },
+  "export": {
+    "all": "Export All",
+    "excel": "Export Excel...",
+    "echo": "Export Echo Mapping...",
+    "janus": "Export JANUS Mapping...",
+    "janusMapping": "Export Janus Mapping...",
+    "runReport": "Export Run Report..."
+  },
+  "edit": {
+    "clearResults": "Clear Results"
+  },
+  "help": {
+    "loadSampleData": "Load Sample Data",
+    "showOnboarding": "Show Onboarding",
+    "viewCrashLog": "View Crash Log",
+    "settings": "Settings...",
+    "about": "About"
+  },
+  "about": {
+    "title": "About Kuma",
+    "titleKuro": "About Kuro",
+    "titleMame": "About Mame",
+    "checkForUpdates": "Check for updates",
+    "checking": "Checking...",
+    "upToDate": "You're on the latest version (v{{version}}).",
+    "updateAvailable": "Update available: v{{current}} to v{{next}}",
+    "downloadAndInstall": "Download and Install",
+    "installing": "Installing...",
+    "later": "Later",
+    "notConfigured": "Update check not configured.",
+    "howToCite": "How to cite",
+    "copyBibtex": "Copy BibTeX",
+    "copied": "Copied!",
+    "license": "License",
+    "licenseText": "Internal use, KRIBB C1 Lab - DOI/citation forthcoming",
+    "thirdPartyLicenses": "Third-party licenses",
+    "viewLicenses": "View licenses",
+    "licensesLoading": "Loading...",
+    "licensesNotBundled": "Third-party licenses available in distribution package.",
+    "advanced": "Advanced",
+    "externalServices": "External services",
+    "build": "Build",
+    "codesigning": "Code Signing:",
+    "sidecar": "Sidecar:",
+    "diagnostics": "Diagnostics",
+    "generateDiagnostics": "Generate Diagnostics",
+    "generating": "Generating...",
+    "diagnosticsNote": "Saves a JSON bundle (app info + crash log) to a location you choose. No user data or sequences are included.",
+    "copyCrashLog": "Copy Crash Log",
+    "ok": "OK",
+    "updates": "Updates"
+  },
+  "settings": {
+    "title": "Settings",
+    "accessibility": "Accessibility",
+    "colorblindMode": "Color assist (shape prefix)",
+    "colorblindModeDesc": "Adds shape markers to status indicators so colors are not the only differentiator.",
+    "keyboardShortcuts": "Keyboard Shortcuts",
+    "shortcutKeys": "Keys",
+    "shortcutAction": "Action",
+    "notifications": "Notifications",
+    "notificationsEnabled": "enabled",
+    "notificationsDisabled": "disabled",
+    "enableNotifications": "Enable Notifications",
+    "notificationsNote": "Fired for jobs lasting longer than 5 minutes.",
+    "sleepPrevention": "Sleep prevention: enabled while jobs run.",
+    "dataFolder": "Data folder",
+    "dataFolderLoading": "loading...",
+    "dataFolderChange": "Change...",
+    "language": "Language",
+    "languageNote": "Language preference is saved locally.",
+    "close": "Close"
+  },
+  "mame": {
+    "input": {
+      "redetect": "Re-detect",
+      "redetecting": "Detecting..."
+    }
+  },
+  "common": {
+    "ok": "OK",
+    "cancel": "Cancel",
+    "close": "Close",
+    "loading": "loading...",
+    "openFolder": "Open folder"
+  }
+}

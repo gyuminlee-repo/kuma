@@ -84,6 +84,9 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
   // §6 Settings: sidecar binary path (lazy-loaded when About opens)
   const [sidecarPath, setSidecarPath] = useState<string | null>(null);
 
+  // D-7: Advanced collapsible state
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+
   // §8 A11y: keyboard shortcuts table data
   const mameShortcuts = getShortcutsFor("mame");
 
@@ -115,13 +118,13 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
     })();
   }, [aboutOpen, noticeText]);
 
-  // §11 Build & Distribution: load codesign status once when About opens
+  // §11 Build & Distribution: load codesign status once when Advanced section opens
   useEffect(() => {
-    if (!aboutOpen || codesignStatus !== null) return;
+    if (!aboutOpen || !advancedOpen || codesignStatus !== null) return;
     void invoke<string>("get_codesign_status")
       .then((s) => setCodesignStatus(s))
       .catch(() => setCodesignStatus("unknown"));
-  }, [aboutOpen, codesignStatus]);
+  }, [aboutOpen, advancedOpen, codesignStatus]);
 
   // §6 Settings: load data folder path once when About opens
   useEffect(() => {
@@ -131,13 +134,13 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
       .catch(() => setDataFolder("unknown"));
   }, [aboutOpen, dataFolder]);
 
-  // §6 Settings: load sidecar binary path once when About opens
+  // §6 Settings: load sidecar binary path once when Advanced section opens
   useEffect(() => {
-    if (!aboutOpen || sidecarPath !== null) return;
+    if (!aboutOpen || !advancedOpen || sidecarPath !== null) return;
     void invoke<string>("get_sidecar_path", { kind: "mame" })
       .then(setSidecarPath)
       .catch(() => setSidecarPath("mame-sidecar (path unavailable)"));
-  }, [aboutOpen, sidecarPath]);
+  }, [aboutOpen, advancedOpen, sidecarPath]);
 
   // §4 Error UX: copy repro info (app version + OS + sidecar version + last RPC error trace)
   async function handleCopyCrashLog() {
@@ -387,6 +390,7 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
             setCodesignStatus(null);
             setDataFolder(null);
             setDiagnosticsError(null);
+            setAdvancedOpen(false);
           }
         }}
       >
@@ -478,14 +482,6 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
             </p>
           </div>
 
-          {/* External services */}
-          <div className="flex flex-col gap-1.5">
-            <p className="text-sm font-semibold text-foreground">External services</p>
-            <p className="text-xs text-muted-foreground">
-              MAME는 외부 네트워크 서비스를 사용하지 않습니다. 모든 분석은 로컬에서 실행됩니다.
-            </p>
-          </div>
-
           {/* §8 A11y: Keyboard shortcuts table */}
           <div className="flex flex-col gap-1.5">
             <p className="text-sm font-semibold text-foreground">Keyboard Shortcuts</p>
@@ -514,43 +510,7 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
               <LocaleToggle variant="icon-label" />
             </div>
             <p className="text-xs text-muted-foreground">
-              현재는 슬롯만 제공됩니다. 향후 번역 도입 시 활성화됩니다.
-            </p>
-          </div>
-
-          {/* §20 Third-party licenses */}
-          <div className="flex flex-col gap-1">
-            <p className="text-sm font-semibold text-foreground">Third-party licenses</p>
-            {noticeLoading ? (
-              <p className="text-xs text-muted-foreground">Loading...</p>
-            ) : noticeText !== null ? (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setNoticeOpen(true)}
-              >
-                View licenses
-              </Button>
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                Third-party licenses available in distribution package.
-              </p>
-            )}
-          </div>
-
-          {/* §11 Build & Distribution + §6 Settings: Build info */}
-          <div className="flex flex-col gap-1">
-            <p className="text-sm font-semibold text-foreground">Build</p>
-            <p className="font-mono text-xs text-muted-foreground">
-              SHA: {__BUILD_SHA__}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Code Signing:{" "}
-              <span className="font-mono">{codesignStatus ?? "loading..."}</span>
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Sidecar:{" "}
-              <span className="font-mono break-all">{sidecarPath ?? "loading..."}</span>
+              Language preference is saved locally.
             </p>
           </div>
 
@@ -575,8 +535,27 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
             </Button>
           </div>
 
-          {/* §4 Error UX: copy repro info (crash log) for bug reports */}
+          {/* §20 Third-party licenses */}
           <div className="flex flex-col gap-1">
+            <p className="text-sm font-semibold text-foreground">Third-party licenses</p>
+            {noticeLoading ? (
+              <p className="text-xs text-muted-foreground">Loading...</p>
+            ) : noticeText !== null ? (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setNoticeOpen(true)}
+              >
+                View licenses
+              </Button>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Third-party licenses available in distribution package.
+              </p>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-2 mt-1">
             <Button
               size="sm"
               variant="outline"
@@ -586,24 +565,79 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
             </Button>
           </div>
 
-          {/* §16 Local Diagnostics */}
-          <div className="flex flex-col gap-1.5">
-            <p className="text-sm font-semibold text-foreground">Diagnostics</p>
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={diagnosticsGenerating}
-              onClick={() => void handleGenerateDiagnostics()}
+          {/* Advanced collapsible: External services, Build info, Diagnostics, Codesign */}
+          <div className="border-t border-border pt-2">
+            <button
+              type="button"
+              aria-expanded={advancedOpen}
+              aria-controls="mame-about-advanced"
+              onClick={() => setAdvancedOpen((v) => !v)}
+              className="flex w-full items-center gap-1.5 text-sm font-semibold text-foreground hover:text-foreground/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
-              {diagnosticsGenerating ? "Generating..." : "Generate Diagnostics"}
-            </Button>
-            {diagnosticsError && (
-              <p className="text-xs text-destructive">{diagnosticsError}</p>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className={`shrink-0 transition-transform ${advancedOpen ? "rotate-90" : ""}`}
+                aria-hidden="true"
+              >
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+              Advanced
+            </button>
+            {advancedOpen && (
+              <div id="mame-about-advanced" className="mt-3 flex flex-col gap-3">
+                {/* External services */}
+                <div className="flex flex-col gap-1.5">
+                  <p className="text-sm font-semibold text-foreground">External services</p>
+                  <p className="text-xs text-muted-foreground">
+                    MAME does not use external network services. All analysis runs locally.
+                  </p>
+                </div>
+
+                {/* §11 Build info + Codesign */}
+                <div className="flex flex-col gap-1">
+                  <p className="text-sm font-semibold text-foreground">Build</p>
+                  <p className="font-mono text-xs text-muted-foreground">
+                    SHA: {__BUILD_SHA__}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Code Signing:{" "}
+                    <span className="font-mono">{codesignStatus ?? "loading..."}</span>
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Sidecar:{" "}
+                    <span className="font-mono break-all">{sidecarPath ?? "loading..."}</span>
+                  </p>
+                </div>
+
+                {/* §16 Local Diagnostics */}
+                <div className="flex flex-col gap-1.5">
+                  <p className="text-sm font-semibold text-foreground">Diagnostics</p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={diagnosticsGenerating}
+                    onClick={() => void handleGenerateDiagnostics()}
+                  >
+                    {diagnosticsGenerating ? "Generating..." : "Generate Diagnostics"}
+                  </Button>
+                  {diagnosticsError && (
+                    <p className="text-xs text-destructive">{diagnosticsError}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Saves a JSON bundle (app info + crash log) to a location you choose.
+                    No user data or sequences are included.
+                  </p>
+                </div>
+              </div>
             )}
-            <p className="text-xs text-muted-foreground">
-              Saves a JSON bundle (app info + crash log) to a location you choose.
-              No user data or sequences are included.
-            </p>
           </div>
 
           <DialogFooter>

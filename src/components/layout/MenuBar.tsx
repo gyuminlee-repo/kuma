@@ -1,10 +1,8 @@
 import { useState, useEffect } from "react";
-import { notificationPermissionGranted, requestNotificationPermission } from "../../lib/notify";
 import { useAppStore } from "../../store/appStore";
 import { generateDiagnosticsBundle } from "../../lib/diagnostics";
 import { revealInOSFolder } from "../../lib/openFolder";
 import { useKumaProject } from "../../state/projectContext";
-import { Label } from "../ui/label";
 import { Button } from "../ui/button";
 import {
   Dialog,
@@ -26,8 +24,6 @@ import { CrashLogDialog } from "../dialogs/CrashLogDialog";
 import {
   handleExportExcel,
   handleExportMappingWithParams,
-  handleSaveWorkspace,
-  handleLoadWorkspace,
   handleOpenSequence,
   executeMigrateAndLoad,
   MIGRATE_DIALOG_CLOSED,
@@ -37,14 +33,10 @@ import type { MigrateDialogState } from "../dialogs/WorkspaceMigrateDialog";
 import { MappingExportDialog } from "../dialogs/MappingExportDialog";
 import { SubtoolMenuBar } from "./SubtoolMenuBar";
 import { LocaleToggle } from "../ui/LocaleToggle";
-import { browseFile } from "../../lib/file-utils";
-import { loadManifestFromFile } from "../../lib/runManifest";
 import type { RunManifest } from "../../lib/runManifest";
-import { verifyInputs } from "../../lib/reRun";
 import type { InputVerifyResult } from "../../lib/reRun";
 import { readTextFile } from "@tauri-apps/plugin-fs";
 import { resolveResource } from "@tauri-apps/api/path";
-import { getConfig } from "../../lib/project";
 import { ReRunManifestDialog } from "../dialogs/ReRunManifestDialog";
 import { ManifestDiffDialog } from "../dialogs/ManifestDiffDialog";
 import { checkForUpdates, downloadAndInstall, type UpdateCheckResult } from "../../lib/updater";
@@ -52,10 +44,7 @@ import type { Update } from "@tauri-apps/plugin-updater";
 import { invoke } from "@tauri-apps/api/core";
 import { killSidecar } from "../../lib/ipc";
 import { getShortcutsFor } from "../../lib/shortcuts";
-import { compareWorkspaces } from "../../lib/workspaceCompare";
-import type { WorkspaceComparison, WorkspaceDiff } from "../../lib/workspaceCompare";
-import { open as openFilePicker } from "@tauri-apps/plugin-dialog";
-import { readTextFile as readTextFileFs } from "@tauri-apps/plugin-fs";
+import { SettingsDialog } from "./SettingsDialog";
 
 const MOD_KEY = navigator.userAgent.includes("Mac") ? "⌘" : "Ctrl+";
 
@@ -87,7 +76,6 @@ export function MenuBar() {
 
   // §12 Reproducibility: manifest 파일 picker
   const [reRunManifest, setReRunManifest] = useState<RunManifest | null>(null);
-  const [notifyPermission, setNotifyPermission] = useState<boolean | null>(null);
 
   // §12 Reproducibility: manifest diff 모달 상태
   const [diffManifestA, setDiffManifestA] = useState<RunManifest | null>(null);
@@ -102,32 +90,18 @@ export function MenuBar() {
   // §11 Build & Distribution: codesign status (lazy-loaded when About opens)
   const [codesignStatus, setCodesignStatus] = useState<string | null>(null);
 
-  // §8 A11y: colorblind mode toggle (per-machine; persisted in localStorage)
-  const CB_KEY = "kuma:kuro:colorblindMode";
-  const [colorblindMode, setColorblindModeState] = useState<boolean>(
-    () => localStorage.getItem(CB_KEY) === "true",
-  );
-  function toggleColorblindMode(val: boolean) {
-    setColorblindModeState(val);
-    localStorage.setItem(CB_KEY, String(val));
-    window.dispatchEvent(new CustomEvent("kuma:colorblindMode", { detail: val }));
-  }
-
   // §8 A11y: keyboard shortcuts table data
   const kuroShortcuts = getShortcutsFor("kuro");
 
-  // §6 Settings: data folder path (lazy-loaded when About opens)
-  const [dataFolder, setDataFolder] = useState<string | null>(null);
   // §6 Settings: sidecar binary path (lazy-loaded when About opens)
   const [sidecarPath, setSidecarPath] = useState<string | null>(null);
 
-  // §21 Multi-workspace: compare workspaces modal
-  const [wsCompareOpen, setWsCompareOpen] = useState(false);
-  const [wsComparison, setWsComparison] = useState<WorkspaceComparison | null>(null);
+  // D-5: Advanced collapsible state
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
-  useEffect(() => {
-    void notificationPermissionGranted().then(setNotifyPermission);
-  }, []);
+  // D-6: Settings dialog state
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
 
   // §20: Load NOTICE.md from Tauri resources when About dialog opens.
   // Fails gracefully: if the file is absent (dev mode or pre-release build),
@@ -149,91 +123,28 @@ export function MenuBar() {
     })();
   }, [aboutOpen, noticeText]);
 
-  // §11 Build & Distribution: load codesign status once when About opens
+  // §11 Build & Distribution: load codesign status once when About opens (advanced section)
   useEffect(() => {
-    if (!aboutOpen || codesignStatus !== null) return;
+    if (!aboutOpen || !advancedOpen || codesignStatus !== null) return;
     void invoke<string>("get_codesign_status")
       .then((s) => setCodesignStatus(s))
       .catch(() => setCodesignStatus("unknown"));
-  }, [aboutOpen, codesignStatus]);
+  }, [aboutOpen, advancedOpen, codesignStatus]);
 
-  // §6 Settings: load data folder path once when About opens
+  // §6 Settings: load sidecar binary path once when About opens (advanced section)
   useEffect(() => {
-    if (!aboutOpen || dataFolder !== null) return;
-    void getConfig()
-      .then((cfg) => setDataFolder(cfg.projects_root))
-      .catch(() => setDataFolder("unknown"));
-  }, [aboutOpen, dataFolder]);
-
-  // §6 Settings: load sidecar binary path once when About opens
-  useEffect(() => {
-    if (!aboutOpen || sidecarPath !== null) return;
+    if (!aboutOpen || !advancedOpen || sidecarPath !== null) return;
     void invoke<string>("get_sidecar_path", { kind: "kuro" })
       .then(setSidecarPath)
       .catch(() => setSidecarPath("kuro-sidecar (path unavailable)"));
-  }, [aboutOpen, sidecarPath]);
+  }, [aboutOpen, advancedOpen, sidecarPath]);
 
-  async function handleEnableNotifications() {
-    const granted = await requestNotificationPermission();
-    setNotifyPermission(granted);
-  }
   const [reRunVerify, setReRunVerify] = useState<InputVerifyResult | null>(null);
 
   // §14 Migration dialog state
   const [migrateDialog, setMigrateDialog] = useState<MigrateDialogState>(MIGRATE_DIALOG_CLOSED);
   const [migratePending, setMigratePending] = useState<Record<string, unknown> | null>(null);
   const [migrateLoading, setMigrateLoading] = useState(false);
-
-  async function handleOpenManifest() {
-    await browseFile(
-      [{ name: "Run manifest", extensions: ["json"] }],
-      async (path: string) => {
-        try {
-          const manifest = await loadManifestFromFile(path);
-          const verify = await verifyInputs(manifest);
-          setReRunVerify(verify);
-          setReRunManifest(manifest);
-        } catch (err) {
-          useAppStore.setState({ statusMessage: `Manifest 로드 실패: ${String(err)}` });
-        }
-      },
-    );
-  }
-
-  // §12 Reproducibility: 두 manifest 파일 picker (A → B 순차 선택)
-  async function handleCompareManifests() {
-    let manifestA: RunManifest | null = null;
-
-    // 첫 번째 파일 (A)
-    await browseFile(
-      [{ name: "Run manifest A", extensions: ["json"] }],
-      async (pathA: string) => {
-        try {
-          manifestA = await loadManifestFromFile(pathA);
-        } catch (err) {
-          useAppStore.setState({ statusMessage: `Manifest A 로드 실패: ${String(err)}` });
-        }
-      },
-    );
-
-    if (!manifestA) return;
-
-    // 두 번째 파일 (B) — manifestA 를 로컬 const 로 캡처 (TS narrowing 유지)
-    const capturedA = manifestA;
-    await browseFile(
-      [{ name: "Run manifest B", extensions: ["json"] }],
-      async (pathB: string) => {
-        try {
-          const manifestB = await loadManifestFromFile(pathB);
-          setDiffManifestA(capturedA);
-          setDiffManifestB(manifestB);
-          setDiffOpen(true);
-        } catch (err) {
-          useAppStore.setState({ statusMessage: `Manifest B 로드 실패: ${String(err)}` });
-        }
-      },
-    );
-  }
 
   const KURO_BIBTEX = `@software{kuro_TBD,
   title  = {KURO: Kernel for Upstream Recombination Oligodesign},
@@ -261,36 +172,6 @@ export function MenuBar() {
       setDiagnosticsError(err instanceof Error ? err.message : String(err));
     } finally {
       setDiagnosticsGenerating(false);
-    }
-  }
-
-  // §21 Multi-workspace: compare two workspace JSON files
-  async function handleCompareWorkspaces() {
-    const pathA = await openFilePicker({
-      multiple: false,
-      filters: [{ name: "Workspace JSON", extensions: ["json"] }],
-      title: "Select first workspace (A)",
-    });
-    if (!pathA || typeof pathA !== "string") return;
-
-    const pathB = await openFilePicker({
-      multiple: false,
-      filters: [{ name: "Workspace JSON", extensions: ["json"] }],
-      title: "Select second workspace (B)",
-    });
-    if (!pathB || typeof pathB !== "string") return;
-
-    try {
-      const [textA, textB] = await Promise.all([
-        readTextFileFs(pathA),
-        readTextFileFs(pathB),
-      ]);
-      const a = JSON.parse(textA) as unknown;
-      const b = JSON.parse(textB) as unknown;
-      setWsComparison(compareWorkspaces(a, b));
-      setWsCompareOpen(true);
-    } catch (err) {
-      useAppStore.setState({ statusMessage: `Workspace compare failed: ${String(err)}` });
     }
   }
 
@@ -351,38 +232,6 @@ export function MenuBar() {
             <kbd className="ml-4 text-caption text-muted-foreground">{MOD_KEY}O</kbd>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => void handleSaveWorkspace(project)}>
-            <span className="flex-1">Save Workspace...</span>
-            <kbd className="ml-4 text-caption text-muted-foreground">{MOD_KEY}S</kbd>
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() =>
-              void handleLoadWorkspace(project, (dialogState, rawWs) => {
-                setMigratePending(rawWs);
-                setMigrateDialog(dialogState);
-              })
-            }
-          >
-            Load Workspace...
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => void handleOpenManifest()}>
-            Open run manifest...
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => void handleCompareManifests()}>
-            Compare run manifests...
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          {/* §21 Multi-workspace */}
-          <DropdownMenuItem onClick={() => void handleCompareWorkspaces()}>
-            Compare workspaces...
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => window.alert("Export workspace as zip — coming soon")}
-          >
-            Export workspace as zip...
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
           {/* §1 Recovery: UI 상태 보존 sidecar 재시작. Zustand 스토어는 메모리에 유지됨 */}
           <DropdownMenuItem
             onClick={() => {
@@ -394,6 +243,22 @@ export function MenuBar() {
           >
             Restart Sidecar
           </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* Export 메뉴 */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button className={TRIGGER_CLS}>Export</button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start">
+          <DropdownMenuItem
+            onClick={() => window.alert("Export All coming soon (Feature C)")}
+            disabled={!hasDesignResults || isExporting}
+          >
+            <span className="flex-1">Export All</span>
+            <kbd className="ml-4 text-caption text-muted-foreground">{MOD_KEY}Shift+E</kbd>
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={() => handleExportExcel(project?.project_id)}
@@ -402,7 +267,6 @@ export function MenuBar() {
             <span className="flex-1">Export Excel...</span>
             <kbd className="ml-4 text-caption text-muted-foreground">{MOD_KEY}E</kbd>
           </DropdownMenuItem>
-          <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={() => { setMappingDialogFormat("echo"); setMappingDialogOpen(true); }}
             disabled={!hasDesignResults || isExporting}
@@ -435,8 +299,11 @@ export function MenuBar() {
             View Crash Log
           </DropdownMenuItem>
           <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => setSettingsOpen(true)}>
+            Settings...
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setAboutOpen(true)}>
-            About
+            About Kuma
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -450,6 +317,8 @@ export function MenuBar() {
         subtitle="Kernel for Upstream Recombination Oligodesign"
         menus={menus}
       />
+
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} scope="kuro" />
 
       <CrashLogDialog open={crashLogOpen} onOpenChange={setCrashLogOpen} />
 
@@ -473,13 +342,13 @@ export function MenuBar() {
             setUpdateResult(null);
             setDiagnosticsError(null);
             setCodesignStatus(null);
-            setDataFolder(null);
+            setAdvancedOpen(false);
           }
         }}
       >
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>About Kuro</DialogTitle>
+            <DialogTitle>About Kuma</DialogTitle>
             <DialogDescription>
               Kuro v{__APP_VERSION__}
               <br />
@@ -521,7 +390,7 @@ export function MenuBar() {
                 {updateResult.status === "available" && (
                   <div className="flex flex-col gap-1.5">
                     <p className="text-foreground">
-                      Update available: v{__APP_VERSION__} → v{updateResult.newVersion}
+                      Update available: v{__APP_VERSION__} to v{updateResult.newVersion}
                     </p>
                     <div className="flex gap-2">
                       <Button
@@ -570,91 +439,7 @@ export function MenuBar() {
           <div className="flex flex-col gap-1">
             <p className="text-sm font-semibold text-foreground">License</p>
             <p className="text-xs text-muted-foreground">
-              Internal use, KRIBB C1 Lab — DOI/citation forthcoming
-            </p>
-          </div>
-
-          {/* External services */}
-          <div className="flex flex-col gap-1.5">
-            <p className="text-sm font-semibold text-foreground">External services</p>
-            <ul className="text-xs text-muted-foreground space-y-0.5 list-none pl-0">
-              <li>
-                <span className="font-medium text-foreground">UniProt</span>
-                {" ("}
-                <a
-                  href="https://www.uniprot.org"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  uniprot.org
-                </a>
-                {") — protein sequence search"}
-              </li>
-              <li>
-                <span className="font-medium text-foreground">NCBI BLAST (EBI)</span>
-                {" ("}
-                <a
-                  href="https://www.ebi.ac.uk"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  ebi.ac.uk
-                </a>
-                {") — sequence similarity search"}
-              </li>
-              <li>
-                <span className="font-medium text-foreground">AlphaFold (EBI)</span>
-                {" ("}
-                <a
-                  href="https://alphafold.ebi.ac.uk"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  alphafold.ebi.ac.uk
-                </a>
-                {") — structure prediction lookup"}
-              </li>
-              <li>
-                <span className="font-medium text-foreground">InterPro / Pfam (EBI)</span>
-                {" ("}
-                <a
-                  href="https://www.ebi.ac.uk/interpro"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  ebi.ac.uk/interpro
-                </a>
-                {") — protein domain annotation"}
-              </li>
-            </ul>
-            <p className="text-xs text-muted-foreground">
-              동의 상태:{" "}
-              <span className={networkConsentGranted ? "text-success font-medium" : "text-warning font-medium"}>
-                {networkConsentGranted ? "동의함" : "미동의"}
-              </span>
-            </p>
-          </div>
-
-          {/* §8 A11y: Colorblind mode toggle */}
-          <div className="flex flex-col gap-1.5">
-            <p className="text-sm font-semibold text-foreground">Accessibility</p>
-            <label className="flex items-center gap-2 text-xs cursor-pointer">
-              <input
-                type="checkbox"
-                id="kuro-colorblind-mode"
-                checked={colorblindMode}
-                onChange={(e) => toggleColorblindMode(e.target.checked)}
-                className="h-3.5 w-3.5 accent-primary"
-                aria-label="Shape-prefix colorblind assist"
-              />
-              <span className="text-foreground">Color assist (shape prefix ●/■/▲)</span>
-            </label>
-            <p className="text-xs text-muted-foreground pl-5">
-              Adds shape markers to status indicators so colors are not the only differentiator.
+              Internal use, KRIBB C1 Lab. DOI/citation forthcoming.
             </p>
           </div>
 
@@ -686,33 +471,7 @@ export function MenuBar() {
               <LocaleToggle variant="icon-label" />
             </div>
             <p className="text-xs text-muted-foreground">
-              현재는 슬롯만 제공됩니다. 향후 번역 도입 시 활성화됩니다.
-            </p>
-          </div>
-
-          {/* Notifications */}
-          <div className="flex flex-col gap-1">
-            <p className="text-sm font-semibold text-foreground">Notifications</p>
-            <p className="text-xs text-muted-foreground">
-              OS Notifications:{" "}
-              <span className={notifyPermission ? "text-success font-medium" : "text-warning font-medium"}>
-                {notifyPermission ? "enabled" : "disabled"}
-              </span>
-            </p>
-            {!notifyPermission && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => void handleEnableNotifications()}
-              >
-                Enable Notifications
-              </Button>
-            )}
-            <p className="text-xs text-muted-foreground">
-              Fired for jobs lasting longer than 5 minutes.
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Sleep prevention: enabled while jobs run.
+              Language preference is saved locally.
             </p>
           </div>
 
@@ -726,12 +485,12 @@ export function MenuBar() {
               className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-primary"
               aria-label="오프라인 모드 토글"
             />
-            <Label htmlFor="kuro-offline-mode" className="text-sm cursor-pointer">
+            <label htmlFor="kuro-offline-mode" className="text-sm cursor-pointer">
               오프라인 모드
               <span className="block text-xs text-muted-foreground font-normal">
                 켜면 모든 외부 서비스 호출이 차단됩니다
               </span>
-            </Label>
+            </label>
           </div>
 
           {/* §20 Third-party licenses */}
@@ -754,43 +513,6 @@ export function MenuBar() {
             )}
           </div>
 
-          {/* §11 Build & Distribution + §6 Settings: Build info */}
-          <div className="flex flex-col gap-1">
-            <p className="text-sm font-semibold text-foreground">Build</p>
-            <p className="font-mono text-xs text-muted-foreground">
-              SHA: {__BUILD_SHA__}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Code Signing:{" "}
-              <span className="font-mono">{codesignStatus ?? "loading..."}</span>
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Sidecar:{" "}
-              <span className="font-mono break-all">{sidecarPath ?? "loading..."}</span>
-            </p>
-          </div>
-
-          {/* §6 Settings: Data folder */}
-          <div className="flex flex-col gap-1.5">
-            <p className="text-sm font-semibold text-foreground">Data folder</p>
-            <p
-              className="font-mono text-xs text-muted-foreground break-all"
-              title={dataFolder ?? undefined}
-            >
-              {dataFolder ?? "loading..."}
-            </p>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => {
-                setAboutOpen(false);
-                window.dispatchEvent(new CustomEvent("kuma:show-onboarding"));
-              }}
-            >
-              Change...
-            </Button>
-          </div>
-
           <div className="flex flex-col gap-2 mt-1">
             <Button
               size="sm"
@@ -799,27 +521,141 @@ export function MenuBar() {
             >
               {crashCopied ? "Copied!" : "Copy Crash Log"}
             </Button>
-
-            {/* §16 Local Diagnostics */}
-            <div className="flex flex-col gap-1">
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={diagnosticsGenerating}
-                onClick={() => { void handleGenerateDiagnostics(); }}
-              >
-                {diagnosticsGenerating ? "Generating..." : "Generate Diagnostics"}
-              </Button>
-              {diagnosticsError && (
-                <p className="text-xs text-destructive" role="alert">
-                  {diagnosticsError}
-                </p>
-              )}
-              <p className="text-xs text-muted-foreground">
-                Saves app version, crash log, and recent logs to a local JSON file. No data is sent externally.
-              </p>
-            </div>
           </div>
+
+          {/* Advanced collapsible: External services, Build info, Diagnostics, Codesign */}
+          <div className="border-t border-border pt-2">
+            <button
+              type="button"
+              aria-expanded={advancedOpen}
+              aria-controls="kuro-about-advanced"
+              onClick={() => setAdvancedOpen((v) => !v)}
+              className="flex w-full items-center gap-1.5 text-sm font-semibold text-foreground hover:text-foreground/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className={`shrink-0 transition-transform ${advancedOpen ? "rotate-90" : ""}`}
+                aria-hidden="true"
+              >
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+              Advanced
+            </button>
+            {advancedOpen && (
+              <div id="kuro-about-advanced" className="mt-3 flex flex-col gap-3">
+                {/* External services */}
+                <div className="flex flex-col gap-1.5">
+                  <p className="text-sm font-semibold text-foreground">External services</p>
+                  <ul className="text-xs text-muted-foreground space-y-0.5 list-none pl-0">
+                    <li>
+                      <span className="font-medium text-foreground">UniProt</span>
+                      {" ("}
+                      <a
+                        href="https://www.uniprot.org"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        uniprot.org
+                      </a>
+                      {") -- protein sequence search"}
+                    </li>
+                    <li>
+                      <span className="font-medium text-foreground">NCBI BLAST (EBI)</span>
+                      {" ("}
+                      <a
+                        href="https://www.ebi.ac.uk"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        ebi.ac.uk
+                      </a>
+                      {") -- sequence similarity search"}
+                    </li>
+                    <li>
+                      <span className="font-medium text-foreground">AlphaFold (EBI)</span>
+                      {" ("}
+                      <a
+                        href="https://alphafold.ebi.ac.uk"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        alphafold.ebi.ac.uk
+                      </a>
+                      {") -- structure prediction lookup"}
+                    </li>
+                    <li>
+                      <span className="font-medium text-foreground">InterPro / Pfam (EBI)</span>
+                      {" ("}
+                      <a
+                        href="https://www.ebi.ac.uk/interpro"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        ebi.ac.uk/interpro
+                      </a>
+                      {") -- protein domain annotation"}
+                    </li>
+                  </ul>
+                  <p className="text-xs text-muted-foreground">
+                    동의 상태:{" "}
+                    <span className={networkConsentGranted ? "text-success font-medium" : "text-warning font-medium"}>
+                      {networkConsentGranted ? "동의함" : "미동의"}
+                    </span>
+                  </p>
+                </div>
+
+                {/* §11 Build info + Codesign */}
+                <div className="flex flex-col gap-1">
+                  <p className="text-sm font-semibold text-foreground">Build</p>
+                  <p className="font-mono text-xs text-muted-foreground">
+                    SHA: {__BUILD_SHA__}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Code Signing:{" "}
+                    <span className="font-mono">{codesignStatus ?? "loading..."}</span>
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Sidecar:{" "}
+                    <span className="font-mono break-all">{sidecarPath ?? "loading..."}</span>
+                  </p>
+                </div>
+
+                {/* §16 Local Diagnostics */}
+                <div className="flex flex-col gap-1">
+                  <p className="text-sm font-semibold text-foreground">Diagnostics</p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={diagnosticsGenerating}
+                    onClick={() => { void handleGenerateDiagnostics(); }}
+                  >
+                    {diagnosticsGenerating ? "Generating..." : "Generate Diagnostics"}
+                  </Button>
+                  {diagnosticsError && (
+                    <p className="text-xs text-destructive" role="alert">
+                      {diagnosticsError}
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Saves app version, crash log, and recent logs to a local JSON file. No data is sent externally.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
           <DialogFooter>
             <Button size="sm" onClick={() => setAboutOpen(false)}>
               OK
@@ -904,54 +740,6 @@ export function MenuBar() {
         </DialogContent>
       </Dialog>
 
-      {/* §21 Multi-workspace: compare workspaces result modal */}
-      <Dialog open={wsCompareOpen} onOpenChange={setWsCompareOpen}>
-        <DialogContent className="max-w-2xl max-h-[70vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle>Compare Workspaces</DialogTitle>
-            <DialogDescription>
-              {wsComparison && wsComparison.differences.length === 0
-                ? "The two workspaces are identical."
-                : wsComparison
-                  ? `${wsComparison.differences.length} difference${wsComparison.differences.length === 1 ? "" : "s"} found.`
-                  : ""}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex-1 overflow-y-auto">
-            {wsComparison && wsComparison.differences.length > 0 ? (
-              <table className="w-full text-xs font-mono border-collapse">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th className="py-1 px-2 text-left text-muted-foreground font-semibold">Field</th>
-                    <th className="py-1 px-2 text-left text-muted-foreground font-semibold">Workspace A</th>
-                    <th className="py-1 px-2 text-left text-muted-foreground font-semibold">Workspace B</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {wsComparison.differences.map((diff: WorkspaceDiff) => (
-                    <tr key={diff.path} className="border-b border-border/50">
-                      <td className="py-1 px-2 text-foreground break-all">{diff.path}</td>
-                      <td className="py-1 px-2 text-destructive/80 break-all">
-                        {JSON.stringify(diff.left) ?? "—"}
-                      </td>
-                      <td className="py-1 px-2 text-success/80 break-all">
-                        {JSON.stringify(diff.right) ?? "—"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : wsComparison ? (
-              <p className="p-4 text-sm text-muted-foreground text-center">No differences found.</p>
-            ) : null}
-          </div>
-          <DialogFooter>
-            <Button size="sm" onClick={() => setWsCompareOpen(false)}>
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }
