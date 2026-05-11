@@ -5,7 +5,9 @@ import { reorderMappings, getSortedMutations, wellName } from "../../lib/plate-u
 import type { PlateMapping } from "../../types/models";
 import { Button } from "../ui/button";
 import { MappingExportDialog } from "../dialogs/MappingExportDialog";
-import { handleExportMappingWithParams } from "../layout/export-handlers";
+import { handleExportAll, handleExportMappingWithParams } from "../layout/export-handlers";
+import { useKumaProject } from "@/state/projectContext";
+import { toast } from "sonner";
 import { StateView } from "../ui/StateView";
 
 const ROWS = ["A", "B", "C", "D", "E", "F", "G", "H"];
@@ -203,6 +205,7 @@ export function PlateMap() {
     })),
   );
   const sortedMutations = useSortedMutations();
+  const project = useKumaProject();
   const [activeTab, setActiveTab] = useState<"fwd" | "rev">("fwd");
   const [page, setPage] = useState(0);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
@@ -291,8 +294,10 @@ export function PlateMap() {
             variant="outline"
             className="h-control rounded-full border-border px-3 text-caption"
             onClick={() => setExportDialogOpen(true)}
+            disabled={!project || project.scratch || !project.path}
+            title={!project || project.scratch ? "Open a project first to use Export All." : undefined}
           >
-            Export Mapping...
+            Export All...
           </Button>
         </div>
       </div>
@@ -323,9 +328,18 @@ export function PlateMap() {
       <MappingExportDialog
         open={exportDialogOpen}
         onOpenChange={setExportDialogOpen}
-        onExport={({ format, transferVol, bom }) => {
+        onExport={async ({ format, transferVol, bom }) => {
           setExportDialogOpen(false);
-          handleExportMappingWithParams(format, { transferVol, bom });
+          // Export All from Plate plan: bundle mapping (with configured params)
+          // + sdm_primers.xlsx so the user gets every artifact in one click.
+          try {
+            await handleExportMappingWithParams(format, { transferVol, bom });
+            await handleExportAll(project);
+            toast.success("Export All complete");
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            toast.error(`Export All failed: ${msg}`);
+          }
         }}
       />
     </div>

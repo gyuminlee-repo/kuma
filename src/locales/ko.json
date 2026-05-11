@@ -164,7 +164,7 @@
     },
     "activity": {
       "title": "활성 데이터",
-      "subtitle": "실험에서 측정한 well-level activity를 적재 → genotype과 병합 → EVOLVEpro 학습용 xlsx로 내보냅니다. 각 단계는 시간상 분리되어 진행됩니다.",
+      "subtitle": "Phase 1 (Barcode Setup), Phase 2 (Analyze) 이후 실험·측정이 끝난 시점(보통 며칠~몇 주 뒤)에 진입하는 단계입니다. 측정값 적재 → genotype 병합 → EVOLVEpro 학습용 xlsx 내보내기를 수행합니다.",
       "tabIngest": "1. Ingest",
       "tabMerge": "2. Merge",
       "tabExport": "3. Export",

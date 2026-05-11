@@ -44,7 +44,6 @@ import type { PreflightResult } from "@/lib/preflight";
 import {
   handleExportExcel,
   handleExportAll,
-  handleSaveWorkspace,
   handleOpenSequence,
 } from "./export-handlers";
 import { startDeadlockWatch } from "@/lib/deadlockDetector";
@@ -283,10 +282,6 @@ export function AppLayout() {
     const isInput = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
 
     switch (e.key.toLowerCase()) {
-      case "s":
-        e.preventDefault();
-        void handleSaveWorkspace(project);
-        break;
       case "e":
         if (isInput) return;
         e.preventDefault();

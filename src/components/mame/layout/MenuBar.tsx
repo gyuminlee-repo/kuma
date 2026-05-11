@@ -287,11 +287,9 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => void loadWorkspace(project)}>
             <span className="flex-1">{t("file.openWorkspace")}</span>
-            <DropdownMenuShortcut>{MOD_KEY}O</DropdownMenuShortcut>
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => void saveWorkspace(project)}>
             <span className="flex-1">{t("file.saveWorkspace")}</span>
-            <DropdownMenuShortcut>{MOD_KEY}S</DropdownMenuShortcut>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => void validateInputs()} disabled={isAnalyzing}>

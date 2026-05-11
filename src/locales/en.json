@@ -164,7 +164,7 @@
     },
     "activity": {
       "title": "Activity data",
-      "subtitle": "Load well-level activity measurements, merge them with genotype, then export the EVOLVEpro training input. The three steps are temporally separated.",
+      "subtitle": "Enter this phase once wet-lab activity measurements are ready (typically days to weeks after Phase 1 Barcode Setup and Phase 2 Analyze). Load measurements, merge with genotype, then export the EVOLVEpro training input.",
       "tabIngest": "1. Ingest",
       "tabMerge": "2. Merge",
       "tabExport": "3. Export",

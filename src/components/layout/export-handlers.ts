@@ -96,26 +96,32 @@ export async function handleExportAll(project: KumaProject | null | undefined): 
   const designDir = await join(project.path, "design");
   const targetPath = await join(designDir, "sdm_primers.xlsx");
 
-  useAppStore.setState({ isExporting: true });
-  try {
-    await mkdir(designDir, { recursive: true });
-    await exportSdmPrimersExcel(targetPath, project.project_id);
+  // §13 Background Job Queue: route export through the queue so users see it
+  // in the Jobs panel (and to back-pressure when multiple exports run in
+  // sequence, e.g. mapping + sdm_primers from the Plate plan Export All).
+  await state.enqueueJob("export", "Export sdm_primers.xlsx", async () => {
+    useAppStore.setState({ isExporting: true });
+    try {
+      await mkdir(designDir, { recursive: true });
+      await exportSdmPrimersExcel(targetPath, project.project_id);
 
-    toast.success("Exported sdm_primers.xlsx", {
-      description: "design/sdm_primers.xlsx",
-      duration: 6000,
-      action: {
-        label: "Open folder",
-        onClick: () => void revealInOSFolder(targetPath),
-      },
-    });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    toast.error(`Export All failed: ${msg}`);
-    state.setStatus(`Export All failed: ${msg}`);
-  } finally {
-    useAppStore.setState({ isExporting: false });
-  }
+      toast.success("Exported sdm_primers.xlsx", {
+        description: "design/sdm_primers.xlsx",
+        duration: 6000,
+        action: {
+          label: "Open folder",
+          onClick: () => void revealInOSFolder(targetPath),
+        },
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(`Export All failed: ${msg}`);
+      state.setStatus(`Export All failed: ${msg}`);
+      throw err;
+    } finally {
+      useAppStore.setState({ isExporting: false });
+    }
+  });
 }
 
 export async function handleExportMappingWithParams(
@@ -137,38 +143,41 @@ export async function handleExportMappingWithParams(
     if (decision === "cancel") return;
   }
 
-  useAppStore.setState({ isExporting: true });
-  try {
-    const { orderedMappings, dedupInfo } = getCurrentExportState();
-    const payload = {
-      format,
-      transfer_vol: params.transferVol,
-      mappings: orderedMappings,
-      dedup_info: dedupInfo,
-      bom: params.bom,
-    };
-    await sendRequest("export_mapping", { ...payload, filepath: xlsxPath });
-    await sendRequest("export_mapping", { ...payload, filepath: csvPath });
-    useAppStore.getState().setStatus(`${label} mapping exported: ${xlsxPath} + .csv`);
+  await useAppStore.getState().enqueueJob("export", `${label} mapping export`, async () => {
+    useAppStore.setState({ isExporting: true });
+    try {
+      const { orderedMappings, dedupInfo } = getCurrentExportState();
+      const payload = {
+        format,
+        transfer_vol: params.transferVol,
+        mappings: orderedMappings,
+        dedup_info: dedupInfo,
+        bom: params.bom,
+      };
+      await sendRequest("export_mapping", { ...payload, filepath: xlsxPath });
+      await sendRequest("export_mapping", { ...payload, filepath: csvPath });
+      useAppStore.getState().setStatus(`${label} mapping exported: ${xlsxPath} + .csv`);
 
-    // §5 Open folder toast
-    toast.success(`${label} mapping exported`, {
-      description: xlsxPath,
-      duration: 6000,
-      action: {
-        label: "Open folder",
-        onClick: () => void revealInOSFolder(xlsxPath),
-      },
-    });
-  } catch (err) {
+      // §5 Open folder toast
+      toast.success(`${label} mapping exported`, {
+        description: xlsxPath,
+        duration: 6000,
+        action: {
+          label: "Open folder",
+          onClick: () => void revealInOSFolder(xlsxPath),
+        },
+      });
+    } catch (err) {
     useAppStore
       .getState()
       .setStatus(
         `${label} mapping export failed: ${err instanceof Error ? err.message : String(err)}`,
       );
-  } finally {
-    useAppStore.setState({ isExporting: false });
-  }
+      throw err;
+    } finally {
+      useAppStore.setState({ isExporting: false });
+    }
+  });
 }
 
 export async function handleSaveWorkspace(project: KumaProject) {

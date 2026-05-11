@@ -18,8 +18,6 @@ export const SHORTCUTS: ShortcutEntry[] = [
   // Run shortcuts — Cmd/Ctrl+D is the primary; Enter is an alias
   { keys: `${MOD}+D`,           action: "Run / Analyze",          scope: "both" },
   { keys: `${MOD}+Enter`,       action: "Run / Analyze (alias)",  scope: "both" },
-  { keys: `${MOD}+S`,           action: "Save Workspace",         scope: "both" },
-  { keys: `${MOD}+O`,           action: "Open Workspace",         scope: "both" },
   { keys: `${MOD}+Shift+E`,     action: "Export All",             scope: "kuro" },
   { keys: `${MOD}+E`,           action: "Export Results",         scope: "both" },
   { keys: `${MOD}+Shift+R`,     action: "Reset All",              scope: "both" },

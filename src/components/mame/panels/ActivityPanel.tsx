@@ -12,7 +12,7 @@
  * through a single stacked section.
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { save } from "@tauri-apps/plugin-dialog";
 import { useStore } from "zustand";
@@ -314,6 +314,17 @@ export function ActivityPanel() {
   const { t } = useTranslation();
   const activityTab = useMameAppStore((s) => s.activityTab);
   const setActivityTab = useMameAppStore((s) => s.setActivityTab);
+
+  // Auto-create a round when entering the Activity phase if none exists.
+  // Without this, uploadActivityFile is permanently disabled because
+  // active_round_id stays null until something calls addRound.
+  const activeRoundId = useRoundStore((s) => s.active_round_id);
+  const addRound = useRoundStore((s) => s.addRound);
+  useEffect(() => {
+    if (activeRoundId === null) {
+      addRound({ plate_meta: { plates: [] } });
+    }
+  }, [activeRoundId, addRound]);
 
   return (
     <div className="h-full overflow-y-auto">
