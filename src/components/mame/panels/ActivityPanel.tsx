@@ -16,7 +16,6 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { save } from "@tauri-apps/plugin-dialog";
 import { useStore } from "zustand";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { ActivityUploadPanel } from "./ActivityUploadPanel";
 import { WtWellEditor } from "@/components/mame/dialogs/WtWellEditor";
@@ -24,7 +23,6 @@ import { RoundHandoffButton } from "@/components/round/RoundHandoffButton";
 import { RoundSummaryPanel } from "@/components/round/RoundSummaryPanel";
 import { useActivityStore, type ActivitySlice } from "@/store/mame/activitySlice";
 import { useRoundStore } from "@/store/round/roundSlice";
-import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { useKumaProject } from "@/state/projectContext";
 import { isExportBlockedError } from "@/lib/errors";
 import { checkMameInputSize, type InputSizeLevel } from "@/lib/inputThresholds";
@@ -98,41 +96,41 @@ function buildDemoMetrics(stats: MergeStats, roundId: string): RoundMetrics {
 }
 
 // ---------------------------------------------------------------------------
-// Sub-tab: Ingest
+// Section: Ingest (upload + WT annotation)
 // ---------------------------------------------------------------------------
-function IngestTab() {
+function IngestSection() {
   const { t } = useTranslation();
   const activeRoundId = useRoundStore((s) => s.active_round_id);
   const recordCount = useRoundStore(
     (s) => s.rounds.find((r) => r.id === activeRoundId)?.activity?.records?.length ?? 0,
   );
   return (
-    <div className="space-y-4">
-      <section className="space-y-2">
+    <section className="space-y-4" aria-label="Ingest">
+      <div className="space-y-2">
         <h3 className="text-sm font-semibold text-foreground">{t("mame.activity.ingest.uploadHeading")}</h3>
         <p className="text-xs text-muted-foreground">{t("mame.activity.ingest.uploadDesc")}</p>
         <ActivityUploadPanel />
-      </section>
+      </div>
 
-      <section className="space-y-2 border-t border-border pt-4">
+      <div className="space-y-2 border-t border-border pt-4">
         <h3 className="text-sm font-semibold text-foreground">{t("mame.activity.ingest.wtHeading")}</h3>
         <p className="text-xs text-muted-foreground">{t("mame.activity.ingest.wtDesc")}</p>
         <WtWellEditor />
-      </section>
+      </div>
 
       {recordCount > 0 && (
         <p className="text-caption text-muted-foreground" aria-live="polite">
           {t("mame.activity.ingest.loaded", { count: recordCount })}
         </p>
       )}
-    </div>
+    </section>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Sub-tab: Merge
+// Section: Merge
 // ---------------------------------------------------------------------------
-function MergeTab() {
+function MergeSection() {
   const { t } = useTranslation();
   const activeRoundId = useRoundStore((s) => s.active_round_id);
   const activityStore = useActivityStore();
@@ -166,7 +164,7 @@ function MergeTab() {
   }
 
   return (
-    <div className="space-y-3">
+    <section className="space-y-3 border-t border-border pt-4" aria-label="Merge">
       <header>
         <h3 className="text-sm font-semibold text-foreground">{t("mame.activity.merge.heading")}</h3>
         <p className="text-xs text-muted-foreground">{t("mame.activity.merge.desc")}</p>
@@ -232,14 +230,14 @@ function MergeTab() {
           onCancel={() => setMameSizeWarning(null)}
         />
       )}
-    </div>
+    </section>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Sub-tab: Export
+// Section: Export
 // ---------------------------------------------------------------------------
-function ExportTab() {
+function ExportSection() {
   const { t } = useTranslation();
   const activeRoundId = useRoundStore((s) => s.active_round_id);
   const roundN = useRoundStore(
@@ -273,7 +271,7 @@ function ExportTab() {
   }
 
   return (
-    <div className="space-y-3">
+    <section className="space-y-3 border-t border-border pt-4" aria-label="Export">
       <header>
         <h3 className="text-sm font-semibold text-foreground">{t("mame.activity.export.heading")}</h3>
         <p className="text-xs text-muted-foreground">{t("mame.activity.export.desc")}</p>
@@ -303,17 +301,15 @@ function ExportTab() {
       )}
 
       {activeRoundId && <RoundHandoffButton round_id={activeRoundId} />}
-    </div>
+    </section>
   );
 }
 
 // ---------------------------------------------------------------------------
-// ActivityPanel — top-level phase wrapper
+// ActivityPanel — top-level phase wrapper (single linear flow)
 // ---------------------------------------------------------------------------
 export function ActivityPanel() {
   const { t } = useTranslation();
-  const activityTab = useMameAppStore((s) => s.activityTab);
-  const setActivityTab = useMameAppStore((s) => s.setActivityTab);
 
   // Auto-create a round when entering the Activity phase if none exists.
   // Without this, uploadActivityFile is permanently disabled because
@@ -328,28 +324,15 @@ export function ActivityPanel() {
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="mx-auto max-w-2xl space-y-4 p-4">
+      <div className="mx-auto max-w-2xl space-y-6 p-4">
         <header>
           <h2 className="text-base font-semibold text-foreground">{t("mame.activity.title")}</h2>
           <p className="mt-1 text-xs text-muted-foreground">{t("mame.activity.subtitle")}</p>
         </header>
 
-        <Tabs value={activityTab} onValueChange={(v) => setActivityTab(v as "ingest" | "merge" | "export")}>
-          <TabsList>
-            <TabsTrigger value="ingest">{t("mame.activity.tabIngest")}</TabsTrigger>
-            <TabsTrigger value="merge">{t("mame.activity.tabMerge")}</TabsTrigger>
-            <TabsTrigger value="export">{t("mame.activity.tabExport")}</TabsTrigger>
-          </TabsList>
-          <TabsContent value="ingest" className="mt-4">
-            <IngestTab />
-          </TabsContent>
-          <TabsContent value="merge" className="mt-4">
-            <MergeTab />
-          </TabsContent>
-          <TabsContent value="export" className="mt-4">
-            <ExportTab />
-          </TabsContent>
-        </Tabs>
+        <IngestSection />
+        <MergeSection />
+        <ExportSection />
       </div>
     </div>
   );
