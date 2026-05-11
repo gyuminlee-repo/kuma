@@ -11,6 +11,7 @@ import { useKumaProject } from "@/state/projectContext";
 import { readAutosave } from "@/lib/autosave";
 import { KURO_SCHEMA } from "@/lib/kuroSnapshot";
 import { MAME_SCHEMA } from "@/lib/mame/autosaveSnapshot";
+import { detectProjectFiles } from "@/lib/mame/detectProjectFiles";
 import { useAppStore } from "@/store/appStore";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import type { AutosaveSnapshot } from "@/lib/autosave";
@@ -153,6 +154,46 @@ async function applyKuroSnapshot(snapshot: AutosaveSnapshot): Promise<void> {
   }
 }
 
+// ─── Mame 자동 탐지 ──────────────────────────────────────────────────────
+
+async function applyMameAutoDetect(
+  projectPath: string,
+  onMessage: (msg: HydrationStatusMessage) => void,
+): Promise<void> {
+  const detected = await detectProjectFiles(projectPath);
+  const store = useMameAppStore.getState();
+  const filled: string[] = [];
+
+  if (!store.inputDir && detected.inputDir) {
+    store.setInputDir(detected.inputDir);
+    filled.push("run folder");
+  }
+  if (!store.referencePath && detected.referencePath) {
+    store.setReferencePath(detected.referencePath);
+    filled.push("reference");
+  }
+  if (!store.expectedPath && detected.expectedPath) {
+    store.setExpectedPath(detected.expectedPath);
+    filled.push("expected");
+  }
+  if (!store.sampleMapPath && detected.sampleMapPath) {
+    store.setSampleMapPath(detected.sampleMapPath);
+    filled.push("sample map");
+  }
+  if (!store.rawRunParams.customBarcodesPath && detected.customBarcodesPath) {
+    store.setParams({ rawRunParams: { customBarcodesPath: detected.customBarcodesPath } });
+    filled.push("custom barcodes");
+  }
+
+  if (filled.length > 0) {
+    onMessage({
+      kind: "mame",
+      variant: "restored",
+      message: `Auto-detected: ${filled.join(", ")}`,
+    });
+  }
+}
+
 // ─── Mame 복원 ────────────────────────────────────────────────────────────
 
 function applyMameSnapshot(snapshot: MameAutosaveSnapshot): void {
@@ -162,6 +203,8 @@ function applyMameSnapshot(snapshot: MameAutosaveSnapshot): void {
   store.setParams({
     mode: parameters.mode as Parameters<typeof store.setParams>[0]["mode"],
     ingestMode: parameters.ingest_mode as Parameters<typeof store.setParams>[0]["ingestMode"],
+    inputMode: (parameters.input_mode as Parameters<typeof store.setParams>[0]["inputMode"]) ?? "raw_run",
+    rawRunParams: parameters.raw_run_params ?? undefined,
     cdsStart: parameters.cds_start,
     cdsEnd: parameters.cds_end,
     minFileSizeKb: parameters.min_file_size_kb,
@@ -171,6 +214,7 @@ function applyMameSnapshot(snapshot: MameAutosaveSnapshot): void {
   store.setExpectedPath(input.expected_path);
   store.setReferencePath(input.reference_path);
   store.setOutputPath(input.output_path);
+  if (input.sample_map_path) store.setSampleMapPath(input.sample_map_path);
 
   useMameAppStore.setState({
     validationErrors: [],
@@ -261,6 +305,9 @@ export function useAutosaveHydration(
         });
       }
       // missing → 침묵
+
+      // ── auto-detect: autosave 복원 후 여전히 비어있는 필드를 프로젝트 디렉토리에서 채운다
+      await applyMameAutoDetect(path, onMessage);
     })();
   }, [project?.path, project?.scratch, onMessage]);
 }

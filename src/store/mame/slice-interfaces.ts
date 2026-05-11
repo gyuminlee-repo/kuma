@@ -35,6 +35,7 @@ export interface InputSlice {
   expectedPath: string;
   referencePath: string;
   outputPath: string;
+  sampleMapPath: string;
   mode: "amplicon" | "plasmid";
   ingestMode: "barcode" | "amplicon";
   inputMode: InputMode;
@@ -59,6 +60,7 @@ export interface InputSlice {
   setExpectedPath: (path: string) => void;
   setReferencePath: (path: string) => void;
   setOutputPath: (path: string) => void;
+  setSampleMapPath: (path: string) => void;
   setParams: (
     params: Partial<{
       mode: "amplicon" | "plasmid";

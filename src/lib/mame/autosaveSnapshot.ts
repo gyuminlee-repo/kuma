@@ -7,8 +7,9 @@
 
 import type { AutosaveSnapshot } from "@/lib/autosave";
 import type { AppState } from "@/store/mame/types";
+import type { RawRunParams } from "@/store/mame/slice-interfaces";
 
-export const MAME_SCHEMA = 1;
+export const MAME_SCHEMA = 2;
 
 /** buildMameSnapshot에 전달하는 상태 서브셋. AppState의 입력 필드만 포함. */
 export type MameSnapshotState = Pick<
@@ -17,8 +18,11 @@ export type MameSnapshotState = Pick<
   | "expectedPath"
   | "referencePath"
   | "outputPath"
+  | "sampleMapPath"
   | "mode"
   | "ingestMode"
+  | "inputMode"
+  | "rawRunParams"
   | "cdsStart"
   | "cdsEnd"
   | "minFileSizeKb"
@@ -32,10 +36,13 @@ export interface MameAutosaveSnapshot extends AutosaveSnapshot {
     expected_path: string;
     reference_path: string;
     output_path: string;
+    sample_map_path: string;
   };
   parameters: {
     mode: string;
     ingest_mode: string;
+    input_mode: string;
+    raw_run_params: RawRunParams;
     cds_start: number;
     cds_end: number;
     min_file_size_kb: number;
@@ -57,10 +64,13 @@ export function buildMameSnapshot(state: MameSnapshotState): MameAutosaveSnapsho
       expected_path: state.expectedPath,
       reference_path: state.referencePath,
       output_path: state.outputPath,
+      sample_map_path: state.sampleMapPath,
     },
     parameters: {
       mode: state.mode,
       ingest_mode: state.ingestMode,
+      input_mode: state.inputMode,
+      raw_run_params: state.rawRunParams,
       cds_start: state.cdsStart,
       cds_end: state.cdsEnd,
       min_file_size_kb: state.minFileSizeKb,

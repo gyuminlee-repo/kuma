@@ -13,13 +13,28 @@ import { useMameAppStore } from "@/store/mame/mameAppStore";
 
 /** 자동 저장 대상 입력 필드 선택자. 결과물 필드는 제외. */
 function selectMameInputs(s: ReturnType<typeof useMameAppStore.getState>) {
+  const r = s.rawRunParams;
   return [
     s.inputDir,
     s.expectedPath,
     s.referencePath,
     s.outputPath,
+    s.sampleMapPath,
     s.mode,
     s.ingestMode,
+    s.inputMode,
+    // rawRunParams — spread individual fields for change detection (object ref stays stable)
+    r.customBarcodesPath,
+    r.sequencingSummaryPath,
+    r.minQscore,
+    r.lengthMin,
+    r.lengthMax,
+    r.minBarcodeScore,
+    r.targetLength,
+    r.lengthToleranceBp,
+    r.linkedTrim,
+    r.revPrimerUniversal,
+    r.normalizeHeaders,
     s.cdsStart,
     s.cdsEnd,
     s.minFileSizeKb,

@@ -71,6 +71,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   expectedPath: "",
   referencePath: "",
   outputPath: "",
+  sampleMapPath: "",
   mode: "amplicon",
   ingestMode: "barcode",
   inputMode: "raw_run",
@@ -96,6 +97,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   setExpectedPath: (expectedPath) => set({ expectedPath, validationErrors: [] }),
   setReferencePath: (referencePath) => set({ referencePath, validationErrors: [] }),
   setOutputPath: (outputPath) => set({ outputPath, validationErrors: [] }),
+  setSampleMapPath: (sampleMapPath) => set({ sampleMapPath }),
   setParams: (params) =>
     set((state) => ({
       mode: params.mode ?? state.mode,
@@ -233,6 +235,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
             output_dir: sortedOutputDir,
             error_tolerance: 0.1,
             use_cutadapt: true,
+            sample_map_path: state.sampleMapPath || undefined,
           },
           600_000,
         );
@@ -306,6 +309,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
           expectedPath: s.expectedPath,
           referencePath: s.referencePath,
           outputPath: s.outputPath,
+          sampleMapPath: s.sampleMapPath,
           mode: s.mode,
           ingestMode: s.ingestMode,
           inputMode: s.inputMode,
@@ -332,6 +336,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         expectedPath: snap.expectedPath,
         referencePath: snap.referencePath,
         outputPath: snap.outputPath,
+        sampleMapPath: snap.sampleMapPath ?? "",
         mode: snap.mode,
         ingestMode: snap.ingestMode,
         inputMode: coerceInputMode(snap.inputMode),

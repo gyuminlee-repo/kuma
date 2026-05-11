@@ -45,12 +45,14 @@ export function InputPanel() {
   const expectedPath = useMameAppStore((s) => s.expectedPath);
   const referencePath = useMameAppStore((s) => s.referencePath);
   const outputPath = useMameAppStore((s) => s.outputPath);
+  const sampleMapPath = useMameAppStore((s) => s.sampleMapPath);
   const rawRunParams = useMameAppStore((s) => s.rawRunParams);
   const verdictCount = useMameAppStore((s) => s.verdicts.length);
   const setInputDir = useMameAppStore((s) => s.setInputDir);
   const setExpectedPath = useMameAppStore((s) => s.setExpectedPath);
   const setReferencePath = useMameAppStore((s) => s.setReferencePath);
   const setOutputPath = useMameAppStore((s) => s.setOutputPath);
+  const setSampleMapPath = useMameAppStore((s) => s.setSampleMapPath);
   const setParams = useMameAppStore((s) => s.setParams);
 
   function updateRaw(partial: Partial<typeof rawRunParams>) {
@@ -118,6 +120,17 @@ export function InputPanel() {
     if (selected) updateRaw({ sequencingSummaryPath: selected });
   }
 
+  async function browseSampleMap() {
+    const selected = toSinglePath(
+      await open({
+        directory: false,
+        filters: [{ name: "Sample map", extensions: ["xlsx"] }],
+        title: "Select sample map (mutants well layout)",
+      }),
+    );
+    if (selected) setSampleMapPath(selected);
+  }
+
   return (
     <div className="rounded-lg border border-border bg-background p-4 space-y-4">
       <header>
@@ -161,6 +174,17 @@ export function InputPanel() {
             filled={Boolean(rawRunParams.sequencingSummaryPath)}
             helperText="Optional MinKNOW metadata for qscore, length, and barcode score filters"
             helpText="When present, MAME can filter reads by MinKNOW metadata before writing per-well FASTA outputs."
+          />
+          <FileField
+            label="Sample Map (optional)"
+            value={sampleMapPath}
+            onChange={setSampleMapPath}
+            onBrowse={browseSampleMap}
+            placeholder=".xlsx file path (mutants well layout)"
+            stateLabel="Optional"
+            filled={Boolean(sampleMapPath)}
+            helperText="Well-to-sample name mapping — adds mutant name to sorted FASTA filenames (e.g. A01_V5F_F1_R1.fasta)"
+            helpText="Col A: sample name, Col B: well position (e.g. A1). KURO mutants.xlsx 레이아웃과 동일하면 바로 사용 가능합니다."
           />
         </>
       )}

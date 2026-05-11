@@ -16,6 +16,7 @@
     "fs:allow-write-text-file",
     "fs:allow-read-text-file",
     "fs:allow-exists",
+    "fs:allow-read-dir",
     "fs:allow-rename",
     "opener:allow-reveal-item-in-dir",
     "updater:default",

@@ -10,6 +10,8 @@ export interface WorkspaceSnapshot {
   expectedPath: string;
   referencePath: string;
   outputPath: string;
+  // R7: sample map for descriptive sort_barcode filenames (optional for back-compat)
+  sampleMapPath?: string;
   mode: "amplicon" | "plasmid";
   ingestMode: "barcode" | "amplicon";
   // R6 additions (optional for backwards-compat with v1 snapshots).
