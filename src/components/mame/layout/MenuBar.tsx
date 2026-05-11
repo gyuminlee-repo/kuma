@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { readTextFile } from "@tauri-apps/plugin-fs";
 import { resolveResource } from "@tauri-apps/api/path";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
@@ -50,6 +51,7 @@ interface MenuBarProps {
 }
 
 export function MenuBar({ onClearRequest }: MenuBarProps) {
+  const { t } = useTranslation();
   const project = useKumaProject();
   const hasResults = useMameAppStore((s) => s.verdicts.length > 0);
   const isAnalyzing = useMameAppStore((s) => s.isAnalyzing);
@@ -278,12 +280,17 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
           <button className={TRIGGER_CLS}>File</button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
+          <DropdownMenuItem
+            onClick={() => window.dispatchEvent(new CustomEvent("kuma:return-to-home"))}
+          >
+            <span className="flex-1">{t("file.openProject")}</span>
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={() => void loadWorkspace(project)}>
-            <span className="flex-1">Open Workspace…</span>
+            <span className="flex-1">{t("file.openWorkspace")}</span>
             <DropdownMenuShortcut>{MOD_KEY}O</DropdownMenuShortcut>
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => void saveWorkspace(project)}>
-            <span className="flex-1">Save Workspace…</span>
+            <span className="flex-1">{t("file.saveWorkspace")}</span>
             <DropdownMenuShortcut>{MOD_KEY}S</DropdownMenuShortcut>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
@@ -347,21 +354,21 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
       {/* Help 메뉴 */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className={TRIGGER_CLS}>Help</button>
+          <button className={TRIGGER_CLS}>{t("menu.help")}</button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
           <DropdownMenuItem onClick={loadSampleData} disabled={isAnalyzing}>
-            Load Sample Data
+            {t("help.loadSampleData")}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => window.dispatchEvent(new CustomEvent("kuma:show-onboarding"))}>
-            Show Onboarding
+            {t("help.showOnboarding")}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setCrashLogOpen(true)}>
-            View Crash Log
+            {t("help.viewCrashLog")}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => setAboutOpen(true)}>About</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setAboutOpen(true)}>{t("about.titleMame")}</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </>
@@ -395,40 +402,40 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
       >
         <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>About Mame</DialogTitle>
+            <DialogTitle>{t("about.titleMame")}</DialogTitle>
             <DialogDescription>
               MAME v{__APP_VERSION__}
               <br />
-              Mutagenesis Assessment &amp; Microplate Export
+              {t("about.mameTagline")}
               <br />
-              Desktop verdict analysis tool for NB-plate mutagenesis runs.
+              {t("about.mameSummary")}
               <br />
-              Built with Tauri + React + Python sidecar.
+              {t("about.mameBuiltWith")}
             </DialogDescription>
           </DialogHeader>
 
           {/* §9 Updates */}
           <div className="flex flex-col gap-1.5">
-            <p className="text-sm font-semibold text-foreground">Updates</p>
+            <p className="text-sm font-semibold text-foreground">{t("about.updates")}</p>
             <Button
               size="sm"
               variant="outline"
               disabled={updateChecking || updateInstalling}
               onClick={() => void handleCheckForUpdates()}
             >
-              {updateChecking ? "Checking..." : "Check for updates"}
+              {updateChecking ? t("about.checking") : t("about.checkForUpdates")}
             </Button>
             {updateResult && (
               <div className="rounded-md border border-border px-3 py-2 text-xs">
                 {updateResult.status === "up-to-date" && (
                   <p className="text-success">
-                    You&apos;re on the latest version (v{updateResult.currentVersion}).
+                    {t("about.upToDate", { version: updateResult.currentVersion })}
                   </p>
                 )}
                 {updateResult.status === "available" && (
                   <div className="flex flex-col gap-1.5">
                     <p className="text-foreground">
-                      Update available: v{__APP_VERSION__} → v{updateResult.newVersion}
+                      {t("about.updateAvailable", { current: __APP_VERSION__, next: updateResult.newVersion })}
                     </p>
                     <div className="flex gap-2">
                       <Button
@@ -436,14 +443,14 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
                         disabled={updateInstalling}
                         onClick={() => void handleDownloadAndInstall(updateResult.update)}
                       >
-                        {updateInstalling ? "Installing..." : "Download and Install"}
+                        {updateInstalling ? t("about.installing") : t("about.downloadAndInstall")}
                       </Button>
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => setUpdateResult(null)}
                       >
-                        Later
+                        {t("about.later")}
                       </Button>
                     </div>
                   </div>
@@ -452,7 +459,7 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
                   <p className="text-warning">{updateResult.message}</p>
                 )}
                 {updateResult.status === "error" && (
-                  <p className="text-destructive">Update check failed: {updateResult.message}</p>
+                  <p className="text-destructive">{t("about.updateCheckFailed", { message: updateResult.message })}</p>
                 )}
               </div>
             )}
@@ -460,7 +467,7 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
 
           {/* How to cite */}
           <div className="flex flex-col gap-1.5">
-            <p className="text-sm font-semibold text-foreground">How to cite</p>
+            <p className="text-sm font-semibold text-foreground">{t("about.howToCite")}</p>
             <pre className="max-w-full overflow-x-auto whitespace-pre rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
               {MAME_BIBTEX}
             </pre>
@@ -469,26 +476,26 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
               variant="outline"
               onClick={() => void handleCopyBibtex()}
             >
-              {bibtexCopied ? "Copied!" : "Copy BibTeX"}
+              {bibtexCopied ? t("about.copied") : t("about.copyBibtex")}
             </Button>
           </div>
 
           {/* License */}
           <div className="flex flex-col gap-1">
-            <p className="text-sm font-semibold text-foreground">License</p>
+            <p className="text-sm font-semibold text-foreground">{t("about.license")}</p>
             <p className="text-xs text-muted-foreground">
-              Internal use, KRIBB C1 Lab — DOI/citation forthcoming
+              {t("about.licenseText")}
             </p>
           </div>
 
           {/* §8 A11y: Keyboard shortcuts table */}
           <div className="flex flex-col gap-1.5">
-            <p className="text-sm font-semibold text-foreground">Keyboard Shortcuts</p>
+            <p className="text-sm font-semibold text-foreground">{t("settings.keyboardShortcuts")}</p>
             <table className="w-full text-xs border-collapse">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="py-0.5 pr-3 text-left font-semibold text-muted-foreground">Keys</th>
-                  <th className="py-0.5 text-left font-semibold text-muted-foreground">Action</th>
+                  <th className="py-0.5 pr-3 text-left font-semibold text-muted-foreground">{t("settings.shortcutKeys")}</th>
+                  <th className="py-0.5 text-left font-semibold text-muted-foreground">{t("settings.shortcutAction")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -504,12 +511,12 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
 
           {/* §6 Settings: Data folder */}
           <div className="flex flex-col gap-1.5">
-            <p className="text-sm font-semibold text-foreground">Data folder</p>
+            <p className="text-sm font-semibold text-foreground">{t("settings.dataFolder")}</p>
             <p
               className="font-mono text-xs text-muted-foreground break-all"
               title={dataFolder ?? undefined}
             >
-              {dataFolder ?? "loading..."}
+              {dataFolder ?? t("common.loading")}
             </p>
             <Button
               size="sm"
@@ -519,26 +526,26 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
                 window.dispatchEvent(new CustomEvent("kuma:show-onboarding"));
               }}
             >
-              Change...
+              {t("settings.dataFolderChange")}
             </Button>
           </div>
 
           {/* §20 Third-party licenses */}
           <div className="flex flex-col gap-1">
-            <p className="text-sm font-semibold text-foreground">Third-party licenses</p>
+            <p className="text-sm font-semibold text-foreground">{t("about.thirdPartyLicenses")}</p>
             {noticeLoading ? (
-              <p className="text-xs text-muted-foreground">Loading...</p>
+              <p className="text-xs text-muted-foreground">{t("about.licensesLoading")}</p>
             ) : noticeText !== null ? (
               <Button
                 size="sm"
                 variant="outline"
                 onClick={() => setNoticeOpen(true)}
               >
-                View licenses
+                {t("about.viewLicenses")}
               </Button>
             ) : (
               <p className="text-xs text-muted-foreground">
-                Third-party licenses available in distribution package.
+                {t("about.licensesNotBundled")}
               </p>
             )}
           </div>
@@ -549,7 +556,7 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
               variant="outline"
               onClick={() => { void handleCopyCrashLog(); }}
             >
-              {crashCopied ? "Copied!" : "Copy Crash Log"}
+              {crashCopied ? t("about.copied") : t("about.copyCrashLog")}
             </Button>
           </div>
 
@@ -577,51 +584,50 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
               >
                 <polyline points="9 18 15 12 9 6" />
               </svg>
-              Advanced
+              {t("about.advanced")}
             </button>
             {advancedOpen && (
               <div id="mame-about-advanced" className="mt-3 flex flex-col gap-3">
                 {/* External services */}
                 <div className="flex flex-col gap-1.5">
-                  <p className="text-sm font-semibold text-foreground">External services</p>
+                  <p className="text-sm font-semibold text-foreground">{t("about.externalServices")}</p>
                   <p className="text-xs text-muted-foreground">
-                    MAME does not use external network services. All analysis runs locally.
+                    {t("about.mameNoExternalServices")}
                   </p>
                 </div>
 
                 {/* §11 Build info + Codesign */}
                 <div className="flex flex-col gap-1">
-                  <p className="text-sm font-semibold text-foreground">Build</p>
+                  <p className="text-sm font-semibold text-foreground">{t("about.build")}</p>
                   <p className="font-mono text-xs text-muted-foreground">
                     SHA: {__BUILD_SHA__}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Code Signing:{" "}
-                    <span className="font-mono">{codesignStatus ?? "loading..."}</span>
+                    {t("about.codesigning")}{" "}
+                    <span className="font-mono">{codesignStatus ?? t("common.loading")}</span>
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Sidecar:{" "}
-                    <span className="font-mono break-all">{sidecarPath ?? "loading..."}</span>
+                    {t("about.sidecar")}{" "}
+                    <span className="font-mono break-all">{sidecarPath ?? t("common.loading")}</span>
                   </p>
                 </div>
 
                 {/* §16 Local Diagnostics */}
                 <div className="flex flex-col gap-1.5">
-                  <p className="text-sm font-semibold text-foreground">Diagnostics</p>
+                  <p className="text-sm font-semibold text-foreground">{t("about.diagnostics")}</p>
                   <Button
                     size="sm"
                     variant="outline"
                     disabled={diagnosticsGenerating}
                     onClick={() => void handleGenerateDiagnostics()}
                   >
-                    {diagnosticsGenerating ? "Generating..." : "Generate Diagnostics"}
+                    {diagnosticsGenerating ? t("about.generating") : t("about.generateDiagnostics")}
                   </Button>
                   {diagnosticsError && (
                     <p className="text-xs text-destructive">{diagnosticsError}</p>
                   )}
                   <p className="text-xs text-muted-foreground">
-                    Saves a JSON bundle (app info + crash log) to a location you choose.
-                    No user data or sequences are included.
+                    {t("about.diagnosticsNote")}
                   </p>
                 </div>
               </div>
@@ -630,7 +636,7 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
 
           <DialogFooter>
             <Button size="sm" onClick={() => setAboutOpen(false)}>
-              OK
+              {t("about.ok")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -640,9 +646,9 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
       <Dialog open={noticeOpen} onOpenChange={setNoticeOpen}>
         <DialogContent className="max-w-2xl max-h-[70vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle>Third-Party Licenses</DialogTitle>
+            <DialogTitle>{t("about.thirdPartyLicensesTitle")}</DialogTitle>
             <DialogDescription>
-              Open-source components bundled with this application.
+              {t("about.thirdPartyLicensesDesc")}
             </DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto">
@@ -652,7 +658,7 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
           </div>
           <DialogFooter>
             <Button size="sm" onClick={() => setNoticeOpen(false)}>
-              Close
+              {t("common.close")}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
-import { readDir } from "@tauri-apps/plugin-fs";
 import { FolderOpen, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { useKumaProject } from "@/state/projectContext";
 import { applyMameAutoDetect } from "@/hooks/useAutosaveHydration";
+import { detectFromInputDir } from "@/lib/mame/detectProjectFiles";
 import type { InputMode } from "@/store/mame/slice-interfaces";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,6 +63,7 @@ export function InputPanel() {
 
   const project = useKumaProject();
   const [isDetecting, setIsDetecting] = useState(false);
+  const [isAutoFilling, setIsAutoFilling] = useState(false);
 
   async function handleRedetect() {
     if (!project?.path) return;
@@ -97,21 +98,42 @@ export function InputPanel() {
   }
 
   async function browseDirectory() {
+    if (isAutoFilling) return;
     const selected = toSinglePath(await open({ directory: true }));
     if (!selected) return;
     setInputDir(selected);
-    if (inputMode === "raw_run" && !rawRunParams.sequencingSummaryPath) {
-      try {
-        const entries = (await readDir(selected)) as { name?: string; isFile: boolean }[];
-        const summary = entries.find(
-          (e) => e.isFile && e.name && /^sequencing_summary.*\.txt$/i.test(e.name),
-        );
-        if (summary?.name) {
-          updateRaw({ sequencingSummaryPath: joinPath(selected, summary.name) });
-        }
-      } catch {
-        // 탐색 실패 시 무시
+    setIsAutoFilling(true);
+    try {
+      const detectedPaths = await detectFromInputDir(selected);
+      const store = useMameAppStore.getState();
+      const filled: string[] = [];
+
+      if (!store.referencePath && detectedPaths.referencePath) {
+        store.setReferencePath(detectedPaths.referencePath);
+        filled.push("reference");
       }
+      if (!store.expectedPath && detectedPaths.expectedPath) {
+        store.setExpectedPath(detectedPaths.expectedPath);
+        filled.push("expected");
+      }
+      if (!store.sampleMapPath && detectedPaths.sampleMapPath) {
+        store.setSampleMapPath(detectedPaths.sampleMapPath);
+        filled.push("sample map");
+      }
+      if (!store.rawRunParams.customBarcodesPath && detectedPaths.customBarcodesPath) {
+        store.setParams({ rawRunParams: { customBarcodesPath: detectedPaths.customBarcodesPath } });
+        filled.push("custom barcodes");
+      }
+      if (!store.rawRunParams.sequencingSummaryPath && detectedPaths.sequencingSummaryPath) {
+        store.setParams({ rawRunParams: { sequencingSummaryPath: detectedPaths.sequencingSummaryPath } });
+        filled.push("sequencing summary");
+      }
+
+      if (filled.length > 0) {
+        toast.success(`Auto-detected: ${filled.join(", ")}`);
+      }
+    } finally {
+      setIsAutoFilling(false);
     }
   }
 

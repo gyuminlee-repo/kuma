@@ -32,9 +32,22 @@ export interface DetectedPaths {
 const MINKNOW_DIR_RE = /^\d{8}_\d{4}_/;
 const BARCODES_RE = /^(custom_)?barcode[s]?.*\.(xlsx|csv)$/i;
 const SAMPLE_MAP_RE = /^(mutant[s]?|sample_map|well_map|plate_map).*\.xlsx$/i;
-const REFERENCE_RE = /\.(fa|fasta)$/i;
+const REFERENCE_RE = /\.(fa|fasta|fna)$/i;
 const EXPECTED_RE = /^(expected|genotype|template).*\.(xlsx|csv)$/i;
-const SEQ_SUMMARY_RE = /^sequencing_summary.*\.txt$/i;
+const SEQ_SUMMARY_RE = /^sequencing_summary.*\.(txt|tsv)$/i;
+
+/** MinKNOW 출력 하위 폴더 이름 (FASTA 파일 참조 시 제외 대상) */
+const MINKNOW_SUBDIRS = new Set([
+  "fastq_pass",
+  "fastq_fail",
+  "bam_pass",
+  "bam_fail",
+  "pod5",
+  "fast5",
+  "fast5_pass",
+  "fast5_fail",
+  "other_reports",
+]);
 
 type DirEntry = { name?: string; isDirectory: boolean; isFile: boolean };
 
@@ -196,6 +209,63 @@ export async function detectProjectFiles(projectPath: string): Promise<DetectedP
           detected.sequencingSummaryPath = fullPath;
         }
       }
+    }
+  }
+
+  return detected;
+}
+
+/**
+ * 사용자가 Browse로 선택한 inputDir 내부를 shallow 스캔하여
+ * MAME 입력 파일 후보를 반환한다.
+ *
+ * detectProjectFiles 와 달리:
+ * - 부모 디렉토리 스캔 없음
+ * - MinKNOW run dir 탐색 없음
+ * - inputDir 자체 스캔만 수행
+ * - MinKNOW 출력 하위 폴더(fastq_pass 등)에 속한 파일은 reference 후보에서 제외
+ *
+ * 실패 시 빈 객체 반환 (safeReadDir 패턴).
+ */
+export async function detectFromInputDir(
+  inputDir: string,
+): Promise<Omit<DetectedPaths, "inputDir">> {
+  const detected: Omit<DetectedPaths, "inputDir"> = {};
+  const entries = await safeReadDir(inputDir);
+
+  for (const entry of entries) {
+    if (!entry.name) continue;
+    const fullPath = joinPath(inputDir, entry.name);
+
+    if (entry.isFile) {
+      if (!detected.customBarcodesPath && BARCODES_RE.test(entry.name)) {
+        detected.customBarcodesPath = fullPath;
+      }
+      if (!detected.sampleMapPath && SAMPLE_MAP_RE.test(entry.name)) {
+        detected.sampleMapPath = fullPath;
+      }
+      if (!detected.referencePath && REFERENCE_RE.test(entry.name)) {
+        detected.referencePath = fullPath;
+      }
+      if (!detected.expectedPath && EXPECTED_RE.test(entry.name)) {
+        detected.expectedPath = fullPath;
+      }
+      if (!detected.sequencingSummaryPath && SEQ_SUMMARY_RE.test(entry.name)) {
+        detected.sequencingSummaryPath = fullPath;
+      }
+    }
+
+    // MinKNOW 출력 하위 폴더(isDirectory)는 reference 스캔 제외
+    // sequencing_summary 는 inputDir 루트에 있을 수도 있으므로 위에서 이미 처리
+  }
+
+  // MinKNOW 출력 하위 폴더 내 reference 오탐 방지: referencePath 가
+  // MinKNOW 서브디렉토리 하위에 있으면 무효화
+  if (detected.referencePath) {
+    const parts = detected.referencePath.split(/[/\\]/);
+    const refParentDir = parts[parts.length - 2] ?? "";
+    if (MINKNOW_SUBDIRS.has(refParentDir.toLowerCase())) {
+      detected.referencePath = undefined;
     }
   }
 

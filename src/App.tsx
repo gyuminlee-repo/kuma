@@ -76,6 +76,18 @@ export function App() {
     };
   }, [screen]);
 
+  // File menu: Return to project picker (Home screen)
+  useEffect(() => {
+    function handleReturnHome() {
+      setProject(null);
+      setScreen("home");
+    }
+    window.addEventListener("kuma:return-to-home", handleReturnHome);
+    return () => {
+      window.removeEventListener("kuma:return-to-home", handleReturnHome);
+    };
+  }, []);
+
   function handleDone(cfg: Config) {
     setConfig(cfg);
     // If re-opened from workspace/home, return there instead of forcing home

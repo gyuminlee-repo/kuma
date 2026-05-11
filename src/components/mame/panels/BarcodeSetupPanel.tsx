@@ -8,10 +8,12 @@
  */
 
 import { useState, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { open } from "@tauri-apps/plugin-dialog";
 import { CheckCircle2, FolderOpen, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useKumaProject } from "@/state/projectContext";
+import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { rpc } from "@/lib/ipc";
 import { revealInOSFolder } from "@/lib/openFolder";
 import { Button } from "@/components/ui/button";
@@ -125,10 +127,13 @@ function toSinglePath(result: string | string[] | null): string | null {
 // ─── 메인 컴포넌트 ────────────────────────────────────────────────────────────
 
 export function BarcodeSetupPanel() {
+  const { t } = useTranslation();
   const project = useKumaProject();
   const [form, setFormRaw] = useState<SetupFormState>(() => loadFromStorage());
   const [isGenerating, setIsGenerating] = useState(false);
   const [result, setResult] = useState<MamePackageResult | null>(null);
+  const setParams = useMameAppStore((s) => s.setParams);
+  const currentTargetLength = useMameAppStore((s) => s.rawRunParams.targetLength);
 
   function setForm(partial: Partial<SetupFormState>) {
     setFormRaw((prev) => {
@@ -184,7 +189,7 @@ export function BarcodeSetupPanel() {
   async function handleGenerate() {
     if (!project?.path) return;
     if (!isRangeValid) {
-      toast.error("gene_end must be greater than gene_start");
+      toast.error(t("mame.barcodeSetup.geneEndError"));
       return;
     }
 
@@ -223,12 +228,18 @@ export function BarcodeSetupPanel() {
       // generate_mame_package는 프라이머 설계 작업으로 시간이 걸릴 수 있다.
       const res = await rpc<MamePackageResult>("mame", "generate_mame_package", params);
       setResult(res);
-      toast.success("Barcode package generated", {
-        description: "Files saved to design/",
+      if (res.amplicon_length != null && currentTargetLength === null) {
+        setParams({ rawRunParams: { targetLength: res.amplicon_length } });
+      }
+      const lengthDesc = res.amplicon_length != null
+        ? t("mame.barcodeSetup.toastSuccessDescWithLength", { length: res.amplicon_length })
+        : t("mame.barcodeSetup.toastSuccessDesc");
+      toast.success(t("mame.barcodeSetup.toastSuccess"), {
+        description: lengthDesc,
         duration: 4000,
       });
     } catch (err) {
-      toast.error("Generation failed", {
+      toast.error(t("mame.barcodeSetup.toastError"), {
         description: String(err),
         duration: 6000,
       });
@@ -243,21 +254,21 @@ export function BarcodeSetupPanel() {
     <div className="h-full overflow-y-auto">
       <div className="mx-auto max-w-2xl space-y-6 p-4">
         <header>
-          <h2 className="text-base font-semibold text-foreground">Barcode Package Setup</h2>
+          <h2 className="text-base font-semibold text-foreground">{t("mame.barcodeSetup.title")}</h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            CDS FASTA와 바코드 시드 파일로 MAME 바코드 패키지를 생성합니다.
+            {t("mame.barcodeSetup.subtitle")}
           </p>
         </header>
 
         {/* 섹션 1: 입력 파일 */}
         <section aria-labelledby="section-files">
           <h3 id="section-files" className="mb-3 text-sm font-medium text-foreground">
-            Input files
+            {t("mame.barcodeSetup.inputFiles")}
           </h3>
           <div className="space-y-4">
             <FilePickerField
               id="fasta-path"
-              label="CDS FASTA"
+              label={t("mame.barcodeSetup.cdsFasta")}
               stateLabel="Required"
               filled={Boolean(form.fastaPath)}
               value={form.fastaPath}
@@ -269,7 +280,7 @@ export function BarcodeSetupPanel() {
 
             <FilePickerField
               id="barcode-seeds"
-              label="Barcode Seeds xlsx"
+              label={t("mame.barcodeSetup.barcodeSeedsXlsx")}
               stateLabel="Required"
               filled={Boolean(form.barcodeSeedsPath)}
               value={form.barcodeSeedsPath}
@@ -284,7 +295,7 @@ export function BarcodeSetupPanel() {
         {/* 섹션 2: 유전자 좌표 */}
         <section aria-labelledby="section-coords">
           <h3 id="section-coords" className="mb-3 text-sm font-medium text-foreground">
-            Gene coordinates
+            {t("mame.barcodeSetup.geneCoordinates")}
           </h3>
           <div className="grid grid-cols-2 gap-3">
             <NumberField
@@ -312,7 +323,7 @@ export function BarcodeSetupPanel() {
           </div>
           {form.geneStart !== "" && form.geneEnd !== "" && !isRangeValid && (
             <p role="alert" className="mt-1 text-xs text-destructive">
-              gene_end must be greater than gene_start.
+              {t("mame.barcodeSetup.geneEndError")}
             </p>
           )}
         </section>
@@ -320,12 +331,12 @@ export function BarcodeSetupPanel() {
         {/* 섹션 3: 프로젝트 메타 */}
         <section aria-labelledby="section-meta">
           <h3 id="section-meta" className="mb-3 text-sm font-medium text-foreground">
-            Project metadata
+            {t("mame.barcodeSetup.projectMetadata")}
           </h3>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="gene-name" className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Gene name
+                {t("mame.barcodeSetup.geneName")}
               </Label>
               <Input
                 id="gene-name"
@@ -337,7 +348,7 @@ export function BarcodeSetupPanel() {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="polymerase" className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Polymerase
+                {t("mame.barcodeSetup.polymerase")}
               </Label>
               <Select
                 value={form.polymerase}
@@ -361,7 +372,7 @@ export function BarcodeSetupPanel() {
         {/* 섹션 4: 플랭크 파라미터 */}
         <section aria-labelledby="section-flank">
           <h3 id="section-flank" className="mb-3 text-sm font-medium text-foreground">
-            Flank parameters
+            {t("mame.barcodeSetup.flankParameters")}
           </h3>
           <div className="grid grid-cols-2 gap-3">
             <NumberField
@@ -388,7 +399,7 @@ export function BarcodeSetupPanel() {
         {/* 섹션 5: 바인딩 파라미터 */}
         <section aria-labelledby="section-binding">
           <h3 id="section-binding" className="mb-3 text-sm font-medium text-foreground">
-            Binding parameters
+            {t("mame.barcodeSetup.bindingParameters")}
           </h3>
           <div className="grid grid-cols-2 gap-3">
             <NumberField
@@ -442,7 +453,7 @@ export function BarcodeSetupPanel() {
               htmlFor="require-gc-clamp"
               className="cursor-pointer text-sm text-foreground"
             >
-              Require GC clamp (3-prime end)
+              {t("mame.barcodeSetup.requireGcClamp")}
             </Label>
           </div>
         </section>
@@ -450,7 +461,7 @@ export function BarcodeSetupPanel() {
         {/* 프로젝트 없음 안내 */}
         {!project?.path && (
           <p role="status" className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
-            프로젝트를 열어야 패키지를 생성할 수 있습니다. File menu에서 Open Project를 선택하세요.
+            {t("mame.barcodeSetup.noProjectWarning")}
           </p>
         )}
 
@@ -465,10 +476,10 @@ export function BarcodeSetupPanel() {
           {isGenerating ? (
             <>
               <Loader2 size={14} className="mr-2 animate-spin" aria-hidden="true" />
-              Generating...
+              {t("mame.barcodeSetup.generating")}
             </>
           ) : (
-            "Generate Barcode Package"
+            t("mame.barcodeSetup.generateBarcodePackage")
           )}
         </Button>
 
@@ -476,7 +487,7 @@ export function BarcodeSetupPanel() {
         {result && (
           <section aria-labelledby="section-output" aria-live="polite">
             <h3 id="section-output" className="mb-3 text-sm font-medium text-foreground">
-              Generated files
+              {t("mame.barcodeSetup.generatedFiles")}
             </h3>
             <div className="rounded-md border border-border bg-muted/30 p-3 space-y-2">
               {(
@@ -535,7 +546,7 @@ export function BarcodeSetupPanel() {
               }
             >
               <FolderOpen size={12} className="mr-1.5" aria-hidden="true" />
-              Open folder
+              {t("common.openFolder")}
             </Button>
           </section>
         )}

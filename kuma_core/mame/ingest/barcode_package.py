@@ -471,6 +471,7 @@ class MamePackageResult:
     sample_map_template: Path
     context_json: Path
     warnings: list[str] = field(default_factory=list)
+    amplicon_length: int | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -630,13 +631,46 @@ def generate_mame_package(
         sample_map_template=template_path,
     )
 
+    amplicon_length = _compute_amplicon_length(
+        cds_seq=cds_seq,
+        fwd_flanking=fwd_flanking,
+        rev_flanking=rev_flanking,
+    )
+
     return MamePackageResult(
         barcodes_xlsx=barcodes_xlsx_path,
         amplicon_fa=amplicon_fa_path,
         sample_map_template=template_path,
         context_json=context_json_path,
         warnings=pkg_warnings,
+        amplicon_length=amplicon_length,
     )
+
+
+def _compute_amplicon_length(
+    cds_seq: str,
+    fwd_flanking: str,
+    rev_flanking: str,
+) -> int | None:
+    """Locate primer binding sites on the template and return PCR amplicon length.
+
+    Returns None if either primer is not found on the template (defensive — this
+    should not happen since design_flanking_primers picks the sequences directly
+    from cds_seq, but search may fail if rev primer is reverse-complemented).
+    """
+    seq_upper = cds_seq.upper()
+    fwd_upper = fwd_flanking.upper()
+    fwd_pos = seq_upper.find(fwd_upper)
+    if fwd_pos < 0:
+        return None
+
+    complement = str.maketrans("ACGTNacgtn", "TGCANtgcan")
+    rev_binding = rev_flanking.translate(complement)[::-1].upper()
+    rev_pos = seq_upper.rfind(rev_binding)
+    if rev_pos < 0:
+        return None
+
+    return (rev_pos + len(rev_binding)) - fwd_pos
 
 
 # ---------------------------------------------------------------------------

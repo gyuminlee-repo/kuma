@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { save } from "@tauri-apps/plugin-dialog";
 import { Input } from "@/components/ui/input";
@@ -115,6 +116,7 @@ function AmpliconLengthBadge({
 }
 
 function RawRunParamPanel() {
+  const { t } = useTranslation();
   const rawRunParams = useMameAppStore((s) => s.rawRunParams);
   const isDemuxing = useMameAppStore((s) => s.isDemuxing);
   const demuxProgress = useMameAppStore((s) => s.demuxProgress);
@@ -130,10 +132,10 @@ function RawRunParamPanel() {
   return (
     <fieldset
       className="mt-3 space-y-3 rounded-md border border-border p-3"
-      aria-label="Raw run demux and filter options"
+      aria-label={t("mame.parameters.rawRunOptionsAriaLabel")}
     >
       <legend className="px-1 text-caption font-semibold uppercase tracking-wide text-muted-foreground">
-        Raw Run Options
+        {t("mame.parameters.rawRunOptions")}
       </legend>
 
       {/* Amplicon length — target + tolerance */}
@@ -144,8 +146,8 @@ function RawRunParamPanel() {
             className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
           >
             <span className="inline-flex items-center gap-1.5">
-              Target Amplicon Length (bp)
-              <InlineHelp text="Expected amplicon length after barcode sorting. Leave blank to auto-detect from sample reads; set manually when the distribution is noisy." />
+              {t("mame.parameters.targetAmpliconLength")}
+              <InlineHelp text={t("mame.parameters.targetAmpliconLengthHelp")} />
             </span>
           </Label>
           <Input
@@ -159,9 +161,9 @@ function RawRunParamPanel() {
                 targetLength: raw === "" ? null : Math.round(Number(raw)),
               });
             }}
-            placeholder="Leave blank to auto-detect"
+            placeholder={t("mame.parameters.targetAmpliconLengthPlaceholder")}
             className="h-8 min-w-0 text-xs"
-            aria-label="Target amplicon length in bp; leave blank to auto-detect"
+            aria-label={t("mame.parameters.targetAmpliconLengthAriaLabel")}
             disabled={isDemuxing}
           />
           {/* Show auto-detect result from previous run */}
@@ -182,8 +184,8 @@ function RawRunParamPanel() {
               className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
             >
               <span className="inline-flex items-center gap-1.5">
-                Length Tolerance ± bp
-                <InlineHelp text="Allowed window around target amplicon length. Reads outside target ± tolerance are filtered when length filtering is active." />
+                {t("mame.parameters.lengthTolerance")}
+                <InlineHelp text={t("mame.parameters.lengthToleranceHelp")} />
               </span>
             </Label>
             <span
@@ -212,21 +214,21 @@ function RawRunParamPanel() {
       <div className="grid gap-3 sm:grid-cols-2">
         <NumericField
           id="min-qscore"
-          label="Min Q-score"
+          label={t("mame.parameters.minQscore")}
           value={rawRunParams.minQscore}
           step="0.5"
           onChange={(v) => updateRaw({ minQscore: v })}
           disabled={isDemuxing}
-          helpText="Minimum per-read qscore threshold when sequencing_summary metadata is available."
+          helpText={t("mame.parameters.minQscoreHelp")}
         />
         <NumericField
           id="min-barcode-score"
-          label="Min Barcode Score"
+          label={t("mame.parameters.minBarcodeScore")}
           value={rawRunParams.minBarcodeScore}
           step="1"
           onChange={(v) => updateRaw({ minBarcodeScore: v })}
           disabled={isDemuxing}
-          helpText="Minimum MinKNOW barcode_score threshold when sequencing_summary metadata is available."
+          helpText={t("mame.parameters.minBarcodeScoreHelp")}
         />
       </div>
 
@@ -238,8 +240,8 @@ function RawRunParamPanel() {
             className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
           >
             <span className="inline-flex items-center gap-1.5">
-              Trim Adapters
-              <InlineHelp text="Optionally trims the forward barcode and universal reverse primer from assigned reads before downstream FASTA output." />
+              {t("mame.parameters.trimAdapters")}
+              <InlineHelp text={t("mame.parameters.trimAdaptersHelp")} />
             </span>
           </Label>
           <button
@@ -273,8 +275,8 @@ function RawRunParamPanel() {
               className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
             >
               <span className="inline-flex items-center gap-1.5">
-                Universal Rev Primer (5′→3′)
-                <InlineHelp text="Universal reverse primer sequence in 5′ to 3′ orientation. Used only when Trim Adapters is enabled." />
+                {t("mame.parameters.universalRevPrimer")}
+                <InlineHelp text={t("mame.parameters.universalRevPrimerHelp")} />
               </span>
             </Label>
             <Input
@@ -300,8 +302,8 @@ function RawRunParamPanel() {
           className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
         >
           <span className="inline-flex items-center gap-1.5">
-            Normalize Headers
-            <InlineHelp text="Writes the well name into FASTA headers instead of preserving ONT read IDs. This makes downstream per-well parsing more consistent." />
+            {t("mame.parameters.normalizeHeaders")}
+            <InlineHelp text={t("mame.parameters.normalizeHeadersHelp")} />
           </span>
         </Label>
         <button
@@ -372,7 +374,7 @@ function RawRunParamPanel() {
       )}
 
       <p className="text-caption text-muted-foreground">
-        Barcode sorting runs automatically when you press the main Run button.
+        {t("mame.parameters.barcodeRunsAutomatically")}
       </p>
     </fieldset>
   );
@@ -640,6 +642,7 @@ function ActivityDataSection() {
 }
 
 export function ParameterPanel() {
+  const { t } = useTranslation();
   const mode = useMameAppStore((s) => s.mode);
   const ingestMode = useMameAppStore((s) => s.ingestMode);
   const inputMode = useMameAppStore((s) => s.inputMode);
@@ -654,9 +657,9 @@ export function ParameterPanel() {
   return (
     <div className="rounded-lg border border-border bg-background p-4 space-y-3">
       <header>
-        <h3 className="text-sm font-semibold text-foreground">Parameters</h3>
+        <h3 className="text-sm font-semibold text-foreground">{t("mame.parameters.title")}</h3>
         <p className="mt-1 text-xs text-muted-foreground">
-          Thresholds and ingest mode for this batch.
+          {t("mame.parameters.subtitle")}
         </p>
       </header>
 
@@ -667,7 +670,7 @@ export function ParameterPanel() {
             htmlFor="mode-select"
             className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
           >
-            Mode
+            {t("mame.parameters.mode")}
           </Label>
           <Select
             value={mode}
@@ -692,7 +695,7 @@ export function ParameterPanel() {
               htmlFor="ingest-mode-select"
               className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
             >
-              Ingest
+              {t("mame.parameters.ingest")}
             </Label>
             <Select
               value={ingestMode}
@@ -717,7 +720,7 @@ export function ParameterPanel() {
             htmlFor="input-mode-select"
             className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
           >
-            Input Source
+            {t("mame.parameters.inputSource")}
           </Label>
           <Select
             value={inputMode}
@@ -744,17 +747,17 @@ export function ParameterPanel() {
 
         <NumericField
           id="cds-start"
-          label="CDS Start"
+          label={t("mame.parameters.cdsStart")}
           value={cdsStart}
           onChange={(value) => setParams({ cdsStart: value })}
-          helpText="0-based CDS start offset used when translating consensus sequence to amino acids."
+          helpText={t("mame.parameters.cdsStartHelp")}
         />
         <NumericField
           id="cds-end"
-          label="CDS End"
+          label={t("mame.parameters.cdsEnd")}
           value={cdsEnd}
           onChange={(value) => setParams({ cdsEnd: value })}
-          helpText="CDS end coordinate used for translation. Must match the reference FASTA frame."
+          helpText={t("mame.parameters.cdsEndHelp")}
         />
 
         {/* Min filtered depth (reads) — primary depth-based cutoff */}
@@ -825,10 +828,10 @@ export function ParameterPanel() {
 
         <NumericField
           id="many-cutoff"
-          label="Many Cutoff"
+          label={t("mame.parameters.manyCutoff")}
           value={manyCutoff}
           onChange={(value) => setParams({ manyCutoff: value })}
-          helpText="Number of observed amino-acid changes above which a result is classified as MANY."
+          helpText={t("mame.parameters.manyCutoffHelp")}
         />
       </div>
 

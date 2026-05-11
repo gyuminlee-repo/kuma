@@ -11,7 +11,7 @@ import { useKumaProject } from "@/state/projectContext";
 import { readAutosave } from "@/lib/autosave";
 import { KURO_SCHEMA } from "@/lib/kuroSnapshot";
 import { MAME_SCHEMA } from "@/lib/mame/autosaveSnapshot";
-import { detectProjectFiles } from "@/lib/mame/detectProjectFiles";
+import { detectProjectFiles, detectFromInputDir } from "@/lib/mame/detectProjectFiles";
 import { useAppStore } from "@/store/appStore";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import type { AutosaveSnapshot } from "@/lib/autosave";
@@ -173,7 +173,10 @@ export async function applyMameAutoDetect(
   const store = useMameAppStore.getState();
   const filled: string[] = [];
 
-  if (!store.inputDir && detected.inputDir) {
+  // store.inputDir가 비어있었는지 기록 (setInputDir 이전 캡처)
+  const inputDirWasEmpty = !store.inputDir;
+
+  if (inputDirWasEmpty && detected.inputDir) {
     store.setInputDir(detected.inputDir);
     filled.push("run folder");
   }
@@ -196,6 +199,34 @@ export async function applyMameAutoDetect(
   if (!store.rawRunParams.sequencingSummaryPath && detected.sequencingSummaryPath) {
     store.setParams({ rawRunParams: { sequencingSummaryPath: detected.sequencingSummaryPath } });
     filled.push("sequencing summary");
+  }
+
+  // inputDir가 비어있었고 새로 설정되었으며, inputDir ≠ projectPath 인 경우
+  // — MinKNOW run 폴더 내부를 추가 스캔해 남은 빈 필드를 보충한다.
+  if (inputDirWasEmpty && detected.inputDir && detected.inputDir !== projectPath) {
+    const fromInputDir = await detectFromInputDir(detected.inputDir);
+    const storeAfter = useMameAppStore.getState();
+
+    if (!storeAfter.referencePath && fromInputDir.referencePath) {
+      storeAfter.setReferencePath(fromInputDir.referencePath);
+      filled.push("reference");
+    }
+    if (!storeAfter.expectedPath && fromInputDir.expectedPath) {
+      storeAfter.setExpectedPath(fromInputDir.expectedPath);
+      filled.push("expected");
+    }
+    if (!storeAfter.sampleMapPath && fromInputDir.sampleMapPath) {
+      storeAfter.setSampleMapPath(fromInputDir.sampleMapPath);
+      filled.push("sample map");
+    }
+    if (!storeAfter.rawRunParams.customBarcodesPath && fromInputDir.customBarcodesPath) {
+      storeAfter.setParams({ rawRunParams: { customBarcodesPath: fromInputDir.customBarcodesPath } });
+      filled.push("custom barcodes");
+    }
+    if (!storeAfter.rawRunParams.sequencingSummaryPath && fromInputDir.sequencingSummaryPath) {
+      storeAfter.setParams({ rawRunParams: { sequencingSummaryPath: fromInputDir.sequencingSummaryPath } });
+      filled.push("sequencing summary");
+    }
   }
 
   onMessage(filled);

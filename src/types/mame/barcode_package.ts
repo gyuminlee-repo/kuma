@@ -52,4 +52,6 @@ export interface MamePackageResult {
   context_json: string
   /** Non-critical warnings from primer design. */
   warnings: string[]
+  /** Computed PCR amplicon length (bp) from primer binding positions, or null if unresolved. */
+  amplicon_length: number | null
 }

@@ -150,6 +150,7 @@ def handle_generate_mame_package(params: dict) -> dict:
         "sample_map_template": str(result.sample_map_template),
         "context_json": str(result.context_json),
         "warnings": result.warnings,
+        "amplicon_length": result.amplicon_length,
     }
 
 
