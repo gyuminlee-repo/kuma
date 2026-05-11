@@ -155,6 +155,11 @@ export function InputPanel() {
         helperText={INPUT_DIR_CONFIG[inputMode].helperText}
         helpText={INPUT_DIR_CONFIG[inputMode].helperText}
       />
+      {inputMode === "raw_run" && rawRunParams.sequencingSummaryPath && (
+        <p className="text-xs text-muted-foreground -mt-2 pl-1">
+          ✓ {rawRunParams.sequencingSummaryPath.split(/[/\\]/).pop()}
+        </p>
+      )}
       {inputMode === "raw_run" && (
         <>
           <FileField
