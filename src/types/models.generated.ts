@@ -509,6 +509,7 @@ export interface LoadEvolveproParams {
   max_per_position?: number;
   pareto_diversity?: boolean;
   pool_multiplier?: number;
+  ref_seq?: string;
   round_size?: number;
   structure_accession?: string | null;
   top_n?: number;

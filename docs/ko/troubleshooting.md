@@ -26,9 +26,9 @@ BLAST에 이메일 필요. `KURO_CONTACT_EMAIL` 또는 `~/.kuro/config.json`의 
 - Advanced Options에서 **Tm tolerance** (`tol_max`) 상향
 - **Fill on Failure** 활성화로 버퍼 후보 활용
 
-## CSV file missing required 'mutation' column
+## CSV file missing required variant column
 
-EVOLVEpro CSV는 정확히 `mutation`이라는 이름의 컬럼 필요 (대소문자 구분). 컬럼명 변경.
+EVOLVEpro CSV는 `variant`, `variants`, `mutation`, `mutations`, `mutant`, `mutation_list` 중 하나의 컬럼명 필요 (대소문자 구분, 첫 매칭). 컬럼명을 위 중 하나로 변경.
 
 ## No valid primer pair found within Tm tolerance
 

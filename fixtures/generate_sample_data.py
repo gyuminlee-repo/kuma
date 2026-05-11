@@ -422,7 +422,7 @@ def write_evolvepro_csv(
 def verify_genbank(gb_path: Path, cds_list: list[dict]) -> bool:
     """Verify GenBank file loads correctly via load_sequence."""
     import sys
-    sys.path.insert(0, str(gb_path.parent.parent))
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
     try:
         from kuma_core.kuro.sdm_engine import load_sequence
@@ -482,7 +482,7 @@ def verify_design_failures(gb_path: Path, csv_path: Path) -> bool:
     Returns True if failure count is in [2, 3].
     """
     import sys
-    sys.path.insert(0, str(gb_path.parent.parent))
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
     try:
         from kuma_core.kuro.sdm_engine import load_sequence, design_sdm_primers

@@ -18,9 +18,13 @@ E335A
 
 ## EVOLVEpro CSV
 
-Required columns: `mutation`, `y_pred` (predicted fitness). Optional: `position`, `domain`.
+Required columns: variant identifier and a score column. Variant column name is auto-detected from `variant`, `variants`, `mutation`, `mutations`, `mutant`, `mutation_list` (first match wins). Score column from `y_pred`, `activity`, `score` (and common variants). Optional: `position`, `domain`.
 
-Loading a CSV switches the input to **EVOLVEpro mode** — enables ranking by `y_pred` and exposes diversity controls ([Diversity Strategies](diversity-strategies.md)).
+Variant notation accepted:
+- Internal form `Q232A` (`{WT}{position}{MT}`)
+- EVOLVEpro short form `232A` (position + mutant only) — converted to internal form using the loaded protein sequence as reference. Conversion requires a sequence to be loaded first; otherwise short-form rows pass through unchanged.
+
+Loading a CSV switches the input to **EVOLVEpro mode** — enables ranking by score and exposes diversity controls ([Diversity Strategies](diversity-strategies.md)).
 
 ## MULTI-evolve CSV
 

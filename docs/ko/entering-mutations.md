@@ -18,9 +18,13 @@ E335A
 
 ## EVOLVEpro CSV
 
-필수 컬럼: `mutation`, `y_pred` (예측 fitness). 선택: `position`, `domain`.
+필수: variant 식별자 컬럼과 점수 컬럼. variant 컬럼명은 `variant`, `variants`, `mutation`, `mutations`, `mutant`, `mutation_list` 중 첫 매칭으로 자동 감지. 점수 컬럼은 `y_pred`, `activity`, `score` 등에서 자동 감지. 선택: `position`, `domain`.
 
-CSV 로드 시 **EVOLVEpro 모드**로 전환 — `y_pred` 기준 정렬 활성화, diversity 컨트롤 노출 ([다양성 전략](diversity-strategies.md)).
+허용되는 variant 표기:
+- 내부 표기 `Q232A` (`{WT}{위치}{MT}`)
+- EVOLVEpro short form `232A` (위치 + 변이만) — 로드된 단백질 서열을 참조하여 내부 표기로 자동 변환. 변환에는 서열이 먼저 로드돼 있어야 하며, 서열이 없으면 short-form 행은 그대로 통과.
+
+CSV 로드 시 **EVOLVEpro 모드**로 전환 — 점수 기준 정렬 활성화, diversity 컨트롤 노출 ([다양성 전략](diversity-strategies.md)).
 
 ## MULTI-evolve CSV
 

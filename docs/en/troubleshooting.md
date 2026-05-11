@@ -26,9 +26,9 @@ The mutation's WT letter doesn't match the CDS at that position.
 - Raise **Tm tolerance** (`tol_max`) in Advanced Options
 - Enable **Fill on Failure** to pull buffer candidates
 
-## CSV file missing required 'mutation' column
+## CSV file missing required variant column
 
-EVOLVEpro CSV must have a column named exactly `mutation` (case-sensitive). Rename your column.
+EVOLVEpro CSV must have one variant column named `variant`, `variants`, `mutation`, `mutations`, `mutant`, or `mutation_list` (first match wins, case-sensitive). Rename your column to one of these.
 
 ## No valid primer pair found within Tm tolerance
 
