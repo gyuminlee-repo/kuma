@@ -101,6 +101,9 @@ python -m pytest tests/test_sdm_engine.py::test_name  # Single test
 | `python-core/build_sidecar.py` MAME exclusions (`torch`, `sklearn`, `transformers`, optional ML/plotting) | PyInstaller 4 GB CArchive 한도 회피 — 신규 ML 의존 추가 시 exclusion 재검토 |
 | `scripts/build-notice.mjs` or `src-tauri/about.hbs` format, or pip-licenses/pnpm licenses output schema | `src/components/layout/MenuBar.tsx` NOTICE.md modal renderer assumes same text format; test by running `build-notice.mjs` locally |
 | Python production dependencies added/removed in `pyproject.toml` `[project.dependencies]` | `build.yml` `pip-licenses --packages` list in "Collect Python dependency licenses" step must stay in sync |
+| `kuma_core/mame/ingest/barcode_package.py` `generate_mame_package` / `design_flanking_primers` params (gene_start, gene_end, polymerase, flank_min/max, binding_min/max_len, tm_min/max, require_gc_clamp) | `python-core/sidecar_mame/handlers/barcode_package.py` handler dict + `src/types/mame/barcode_package.ts` `GenerateMamePackageParams` / `MamePackageResult` interfaces + dispatcher `generate_mame_package` registration stay in sync |
+| `kuma_core/mame/ingest/polymerase.py` `POLYMERASE_PROFILES` keys (Q5, Taq, Phusion) | `src/components/mame/panels/BarcodeSetupPanel.tsx` polymerase dropdown options stay in sync |
+| `mame_context.json` schema (custom_barcodes_path, reference_path, sample_map_template_path) | `src/types/mame/mame_context.ts` `MameContext` interface + `src/lib/mame/detectProjectFiles.ts` field mapping stay in sync. Schema version bump requires migration logic. |
 
 ## Rules
 - 절대 경로 하드코딩 금지 — 상대 경로 또는 환경변수 사용

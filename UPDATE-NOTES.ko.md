@@ -4,6 +4,39 @@
 
 ---
 
+## v0.3.9 (2026-05-11)
+
+KURO-MAME 통합 rev2. 실사용자 피드백에 따라 바코드 생성 기능을 KURO에서 MAME로 이동. MAME이 시퀀싱 준비 단계부터 시퀀싱 후 분석까지 포괄하는 도구로 확장. 스펙: `notes/specs/2026-05-11-kuro-mame-integration.md`.
+
+### Feature B — MAME Barcode Setup (Phase 1)
+
+- **MAME 2-Phase 탭**: `MameAppLayout.tsx`에 `[1. Barcode Setup] [2. Analyze]` 탭 추가. Phase 상태는 `kuma:mame:phase` localStorage 키에 영속화 (`src/store/mame/slices/phaseSlice.ts`).
+- **BarcodeSetupPanel** (`src/components/mame/panels/BarcodeSetupPanel.tsx`): 프라이머 설계 옵션(polymerase 프로파일, flank_min/max, binding 길이 범위, Tm 범위, GC clamp) + 바코드 시드 파일 + 참조 FASTA + gene 좌표 입력. 마지막 사용값은 `kuma:mame:barcodeSetup` localStorage 영속화.
+- **Python 백엔드**: `kuma_core/mame/ingest/barcode_package.py`가 단순 `primer_len=20` 슬라이싱에서 `primer3.calc_tm` 기반 Tm 탐색으로 업그레이드. Polymerase 프로파일(`kuma_core/mame/ingest/polymerase.py`: Q5, Taq, Phusion) 적용. 파라미터명 `amplicon_start/end` → `gene_start/end`로 변경하여 플랭킹 프라이머가 gene 경계에서 `flank_min..flank_max` bp 만큼 떨어진 위치에 자리잡음을 명시.
+- **RPC 이동**: `generate_mame_package` 핸들러를 `sidecar_kuro`에서 `sidecar_mame`으로 이동. 반환값에 `warnings` 추가.
+- 단위 테스트 21건 통과 (`tests/mame/test_barcode_package.py`).
+
+### Feature A — MAME Context Bridge
+
+- `mame_context.json` 스키마 1: `{custom_barcodes_path, reference_path, sample_map_template_path}` (프로젝트 루트 상대 경로).
+- `src/lib/mame/detectProjectFiles.ts` 우선순위: autosave 다음 mame_context.json 다음 readDir 스캔. 이미 채워진 필드는 보존.
+- **Re-detect 버튼**을 `InputPanel.tsx` 상단 우측에 추가(ghost variant). toast로 채워진 필드 또는 "No new files detected" 표시.
+- `applyMameAutoDetect(projectPath, onMessage)`를 `useAutosaveHydration.ts`에서 export.
+
+### Feature C — KURO Export All
+
+- `Ctrl+Shift+E`로 `design/sdm_primers.xlsx`를 프로젝트 디렉토리에 다이얼로그 없이 자동 저장.
+- rev1 대비 단순화: SDM primers Excel만. 바코드 패키지 생성은 MAME Phase 1로 이동.
+- `exportSdmPrimersExcel(targetPath, projectId?)` 헬퍼를 `export-handlers.ts`에서 분리 추출하여 재사용.
+
+### Feature D — UI 정리
+
+- **i18n 활성화**: `react-i18next` + `i18next` 의존성 추가. `src/locales/en.json`, `src/locales/ko.json`. `src/main.tsx`에서 `initI18n(resolvedLng)` 호출로 초기화 (`src/lib/i18n.ts`).
+- **KURO MenuBar 정리**: Save/Load Workspace, run manifest open/compare, workspace compare/zip export, IDT/Twist CSV export 제거. File 메뉴는 `Open Sequence...` + `Restart Sidecar`로 축소. **Export** 서브메뉴 신규 분리: `Export All` (Ctrl+Shift+E), `Export Excel...` (Cmd+E), `Export Echo Mapping...`, `Export JANUS Mapping...`.
+- **Settings 다이얼로그 분리** (`src/components/layout/SettingsDialog.tsx`): Accessibility(colorblind mode), Notifications, Data folder를 About에서 분리. About는 External services / Build info / Diagnostics / Codesign을 `Advanced` 접힌 섹션으로 축소.
+
+---
+
 ## v0.3.7 (2026-05-07)
 
 kuro·mame 양 앱에 Common Frontend Standards 헌장 적용. 헌장(`docs/standards/common-frontend-standards.md`, v1.1 stable)은 UI 안전·관측성·재현성·무결성·접근성 등 22 카테고리를 정의하고, Phase 1–8 구현으로 양 앱의 모든 [필수] 카테고리 ❌ Req 0건 달성.

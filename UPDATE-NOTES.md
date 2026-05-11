@@ -4,6 +4,39 @@
 
 ---
 
+## v0.3.9 (2026-05-11)
+
+KURO-MAME integration rev2: barcode generation feature moves from KURO to MAME based on end-user feedback. MAME now covers both pre-sequencing setup and post-sequencing analysis. Spec: `notes/specs/2026-05-11-kuro-mame-integration.md`.
+
+### Feature B — MAME Barcode Setup (Phase 1)
+
+- **MAME 2-Phase tabs**: `[1. Barcode Setup] [2. Analyze]` in `MameAppLayout.tsx`. Phase state persisted via `kuma:mame:phase` localStorage key (`src/store/mame/slices/phaseSlice.ts`).
+- **BarcodeSetupPanel** (`src/components/mame/panels/BarcodeSetupPanel.tsx`): primer design options (polymerase profile, flank_min/max, binding length range, Tm range, GC clamp) + barcode seeds picker + reference FASTA picker + gene coordinates. Settings persist via `kuma:mame:barcodeSetup` localStorage.
+- **Python backend**: `kuma_core/mame/ingest/barcode_package.py` upgraded from naïve `primer_len=20` slicing to Tm-based flanking primer search using `primer3.calc_tm` with polymerase profiles (`kuma_core/mame/ingest/polymerase.py`: Q5, Taq, Phusion). Parameter names changed from `amplicon_start/end` to `gene_start/end` to reflect that flanking primers extend beyond gene boundaries by `flank_min..flank_max` bp.
+- **RPC moved**: `generate_mame_package` handler moved from `sidecar_kuro` to `sidecar_mame`. Returns `barcodes_xlsx`, `amplicon_fa`, `sample_map_template`, `context_json`, `warnings`.
+- 21 unit tests (`tests/mame/test_barcode_package.py`) pass.
+
+### Feature A — MAME Context Bridge
+
+- `mame_context.json` schema 1: `{custom_barcodes_path, reference_path, sample_map_template_path}` (relative to project root).
+- `src/lib/mame/detectProjectFiles.ts`: priority order is autosave then mame_context.json then readDir scan. Already-filled fields are preserved.
+- **Re-detect button** on `InputPanel.tsx` (ghost variant, top-right): re-runs detection on demand. Toast feedback for filled fields or "No new files detected".
+- `applyMameAutoDetect(projectPath, onMessage)` exported from `useAutosaveHydration.ts`.
+
+### Feature C — KURO Export All
+
+- `Ctrl+Shift+E` exports `design/sdm_primers.xlsx` to project directory with no dialog.
+- Simplified from rev1: only the SDM primers Excel file. Barcode package generation moved to MAME Phase 1.
+- `exportSdmPrimersExcel(targetPath, projectId?)` extracted as a reusable helper in `export-handlers.ts`.
+
+### Feature D — UI cleanup
+
+- **i18n activated**: `react-i18next` + `i18next` dependencies. `src/locales/en.json`, `src/locales/ko.json`. Initialised in `src/main.tsx` via `initI18n(resolvedLng)` from `src/lib/i18n.ts`.
+- **KURO MenuBar cleanup**: removed Save/Load Workspace, run manifest open/compare, workspace compare/zip export, IDT/Twist CSV export. File menu reduced to `Open Sequence...` + `Restart Sidecar`. New **Export** submenu: `Export All` (Ctrl+Shift+E), `Export Excel...` (Cmd+E), `Export Echo Mapping...`, `Export JANUS Mapping...`.
+- **Settings dialog split** (`src/components/layout/SettingsDialog.tsx`): Accessibility (colorblind mode), Notifications, Data folder moved out of About. About dialog folds External services / Build info / Diagnostics / Codesign into a collapsed `Advanced` section.
+
+---
+
 ## v0.3.7 (2026-05-07)
 
 Common Frontend Standards charter applied across kuro and mame. The charter (`docs/standards/common-frontend-standards.md`, v1.1 stable) defines 22 categories — UI safety, observability, reproducibility, integrity, accessibility, etc. — and Phase 1 through Phase 8 implementations close every required category for both apps.
