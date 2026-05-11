@@ -292,7 +292,7 @@ export function BarcodeSetupPanel() {
               onChange={(v) => setForm({ barcodeSeedsPath: v })}
               onBrowse={browseBarcodeSeeds}
               placeholder=".xlsx file path"
-              helperText="fwd_1..12, rev_1..8 시드 서열이 담긴 xlsx 파일입니다."
+              helperText={t("mame.barcodeSetup.barcodeSeedsXlsxHelper")}
             />
           </div>
         </section>

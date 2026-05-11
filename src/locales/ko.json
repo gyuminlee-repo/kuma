@@ -159,7 +159,42 @@
       "toastSuccessDescWithLength": "앰플리콘 길이: {{length}} bp. design/ 폴더에 저장되었습니다.",
       "toastError": "생성 실패",
       "geneEndError": "gene_end는 gene_start보다 커야 합니다.",
-      "noProjectWarning": "패키지를 생성하려면 프로젝트를 열어야 합니다. 파일 메뉴에서 프로젝트 열기를 선택하세요."
+      "noProjectWarning": "패키지를 생성하려면 프로젝트를 열어야 합니다. 파일 메뉴에서 프로젝트 열기를 선택하세요.",
+      "barcodeSeedsXlsxHelper": "fwd_1..12, rev_1..8 시드 서열이 담긴 xlsx 파일입니다."
+    },
+    "activity": {
+      "title": "활성 데이터",
+      "subtitle": "실험에서 측정한 well-level activity를 적재 → genotype과 병합 → EVOLVEpro 학습용 xlsx로 내보냅니다. 각 단계는 시간상 분리되어 진행됩니다.",
+      "tabIngest": "1. Ingest",
+      "tabMerge": "2. Merge",
+      "tabExport": "3. Export",
+      "ingest": {
+        "uploadHeading": "활성 데이터 업로드",
+        "uploadDesc": "Long 형식 CSV / Excel (well, replicate, value 컬럼)을 현재 Round에 적재합니다.",
+        "wtHeading": "WT well 지정",
+        "wtDesc": "정규화 기준이 되는 wild-type well 위치를 지정합니다. Merge 전에 설정해야 합니다.",
+        "loaded": "✓ {{count}} wells 적재됨"
+      },
+      "merge": {
+        "heading": "Genotype과 활성 데이터 병합",
+        "desc": "업로드된 activity와 Round의 genotype을 조인하고 WT로 정규화합니다.",
+        "btnLegacy": "Genotype과 병합",
+        "btnLegacyBusy": "병합 중…",
+        "btnEvolvepro": "EVOLVEpro용 병합 (v0.3)",
+        "btnEvolveproBusy": "병합 중…",
+        "btnEvolveproAria": "v0.3 신규 RPC: replicate 병합 + 라벨 교체 가드 실행",
+        "v3Note": "v0.3: 라벨 교체 가드 + replicate 병합 통합. 5/12 데모는 기존 버튼 사용."
+      },
+      "export": {
+        "heading": "EVOLVEpro xlsx 내보내기",
+        "desc": "병합된 표를 EVOLVEpro 학습 입력 xlsx로 저장합니다 (strict 2-column [Variant, activity], 89W 짧은 표기).",
+        "btn": "EVOLVEpro xlsx 내보내기",
+        "btnBusy": "내보내는 중…"
+      },
+      "exportBlocked": {
+        "title": "내보내기 차단 — 라벨 교체 감지",
+        "body": "이전 라운드 EVOLVEpro 결과와 비교해 같은 활성값을 가진 변이의 라벨 매핑을 확인하세요."
+      }
     }
   },
   "common": {
