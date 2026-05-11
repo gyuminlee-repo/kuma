@@ -101,3 +101,46 @@ class TestDomainAwareSelect:
 
         assert len(selected) == 2
         assert sum(item["quota"] for item in stats.values()) == 2
+
+
+class TestRefSeqConversion:
+    """v0.3 §4: ref_seq enables 89W → F89W conversion (EVOLVEpro short notation)."""
+
+    def test_short_form_converts_with_ref_seq(self, tmp_path):
+        csv_file = tmp_path / "ep_short.csv"
+        csv_file.write_text(
+            "variant,y_pred\n"
+            "2W,1.5\n"
+            "5K,1.2\n"
+        )
+        # ref_seq pos 1=M, 2=F, 3=L, 4=S, 5=I
+        result = load_evolvepro_csv(csv_file, top_n=10, ref_seq="MFLSI")
+        assert "F2W" in result["variants"]
+        assert "I5K" in result["variants"]
+
+    def test_short_form_passthrough_without_ref_seq(self, tmp_path):
+        csv_file = tmp_path / "ep_short_noref.csv"
+        csv_file.write_text(
+            "variant,y_pred\n"
+            "2W,1.5\n"
+        )
+        result = load_evolvepro_csv(csv_file, top_n=10)
+        assert result["variants"] == ["2W"]
+
+    def test_internal_form_passes_through(self, tmp_path):
+        csv_file = tmp_path / "ep_internal.csv"
+        csv_file.write_text(
+            "variant,y_pred\n"
+            "F89W,1.5\n"
+        )
+        result = load_evolvepro_csv(csv_file, top_n=10, ref_seq="M" * 100)
+        assert result["variants"] == ["F89W"]
+
+    def test_out_of_range_position_not_converted(self, tmp_path):
+        csv_file = tmp_path / "ep_oor.csv"
+        csv_file.write_text(
+            "variant,y_pred\n"
+            "100W,1.5\n"
+        )
+        result = load_evolvepro_csv(csv_file, top_n=10, ref_seq="MFLSI")
+        assert result["variants"] == ["100W"]

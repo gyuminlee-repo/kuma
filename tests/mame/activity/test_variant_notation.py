@@ -7,7 +7,11 @@ Covers:
 
 import pytest
 
-from kuma_core.mame.activity.variant_notation import from_evolvepro, to_evolvepro
+from kuma_core.mame.activity.variant_notation import (
+    from_evolvepro,
+    is_canonical_internal,
+    to_evolvepro,
+)
 
 
 REF = "MFLSIGKAFVIGILLLSVVQANDTAEQRHKNASLAERDYGKVSITLNLTPAGDFLFEAIPASQNLHQFFLRNNGTLKIQYEGERNFTYQIPDGQPNTNLSVTIPANQFLEFESPLTIQGGVAGSSNTYLHLQLLGDQTFNLTSVNVNGSVLQLPQPVTLGDTATFRCYVGYALPKEIGIWHHWNDVGHLYHDFAHQPYALGADSAVDGALNYLSQQLSNLTVPQNLVSFECTERYGDQAQLHGQSYNSAIVNCSLTPCHQSAPVDCDKFNWTGASCRYFGVSPTFAIWWIRQPRSGGGLYGSNAVPYYSWLPTTDPATGAVYSVGSSNTYLNLSVTMKGNTLQIPYEGERNFTYQIPDGQPNTNLSVTIPANQFLEFESPLTIQGGVAGSSNTYLHLQLLGDQTFNLTSVNVNGSVLQLPQPVTLGDTATFRCYVGYALPKEIG"
@@ -113,3 +117,24 @@ def test_round_trip(internal: str):
     assert recovered == internal or recovered[1:] == internal[1:], (
         f"Round-trip mismatch: {internal!r} → {short!r} → {recovered!r}"
     )
+
+
+# ---------------------------------------------------------------------------
+# is_canonical_internal
+# ---------------------------------------------------------------------------
+
+def test_is_canonical_internal_accepts_single_substitution():
+    assert is_canonical_internal("F89W") is True
+    assert is_canonical_internal("A1K") is True
+
+
+def test_is_canonical_internal_rejects_wt():
+    assert is_canonical_internal("WT") is False
+
+
+def test_is_canonical_internal_rejects_multi_substitution():
+    assert is_canonical_internal("F89W/L70V") is False
+
+
+def test_is_canonical_internal_rejects_short_form():
+    assert is_canonical_internal("89W") is False

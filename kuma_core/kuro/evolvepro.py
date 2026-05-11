@@ -264,15 +264,46 @@ VARIANT_COLUMNS = ["variant", "variants", "mutation", "mutations", "mutant", "mu
 SCORE_COLUMNS = ["y_pred", "property_value", "predicted_fitness", "fitness", "score", "DMS_score"]
 
 
-def _load_evolvepro_rows(filepath: str | Path) -> list[tuple[str, float]]:
+_SHORT_VARIANT_RE = re.compile(r"^(\d+)([A-Z])$")
+
+
+def _normalize_variant_notation(variant: str, ref_seq: str) -> str:
+    """Convert EVOLVEpro short notation (``89W``) to internal (``F89W``).
+
+    Pass-through for internal-form variants (``[A-Z]\\d+[A-Z]``), WT, and
+    multi-substitution strings. Conversion runs only when ``variant``
+    matches ``\\d+[A-Z]`` AND ``ref_seq`` is non-empty AND the position
+    fits ``ref_seq``. Otherwise ``variant`` is returned unchanged so
+    callers that still receive internal notation continue to work.
+    """
+    if not ref_seq:
+        return variant
+    m = _SHORT_VARIANT_RE.match(variant)
+    if m is None:
+        return variant
+    pos = int(m.group(1))
+    if pos < 1 or pos > len(ref_seq):
+        return variant
+    return f"{ref_seq[pos - 1]}{pos}{m.group(2)}"
+
+
+def _load_evolvepro_rows(
+    filepath: str | Path, ref_seq: str = ""
+) -> list[tuple[str, float]]:
     """Parse EVOLVEpro CSV and return (variant, y_pred) pairs.
 
     Column detection uses VARIANT_COLUMNS and SCORE_COLUMNS (first match).
     Rows with empty variant strings are skipped.
     Non-finite y_pred values are replaced with 0.0.
 
+    When ``ref_seq`` is provided, EVOLVEpro short-form variants (``89W``)
+    are converted to internal notation (``F89W``) per v0.3 spec §4. Internal
+    notation rows are passed through unchanged.
+
     Args:
         filepath: Path to an EVOLVEpro-compatible CSV file.
+        ref_seq: Protein reference sequence (1-indexed positions). When
+            empty (default), variant strings pass through unchanged.
 
     Returns:
         List of (variant, y_pred) tuples in file order (not sorted).
@@ -297,6 +328,7 @@ def _load_evolvepro_rows(filepath: str | Path) -> list[tuple[str, float]]:
             variant = row.get(variant_col, "").strip()
             if not variant:
                 continue
+            variant = _normalize_variant_notation(variant, ref_seq)
             try:
                 y_pred = float(row[score_col]) if score_col and row.get(score_col) else 0.0
             except (ValueError, TypeError):
@@ -326,6 +358,7 @@ def load_evolvepro_csv(
     ca_coords: list[tuple[float, float, float] | None] | None = None,
     evolvepro_round: int = 0,
     round_size: int = 96,
+    ref_seq: str = "",
 ) -> dict:
     """Load EVOLVEpro df_test.csv and return selected variants.
 
@@ -353,7 +386,7 @@ def load_evolvepro_csv(
         Keys: variants, y_preds, total_count, selected_count,
         filtered_count, domain_stats, pareto_replaced.
     """
-    rows = _load_evolvepro_rows(filepath)
+    rows = _load_evolvepro_rows(filepath, ref_seq=ref_seq)
     # Detect whether score column was present (for sort decision)
     with open(str(filepath), encoding="utf-8") as f:
         _cols = csv.DictReader(f).fieldnames or []

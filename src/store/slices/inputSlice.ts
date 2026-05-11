@@ -77,6 +77,18 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       const excludedDomains = domains.filter((d) => disabledDomains.includes(`${d.name}-${d.start}`));
       const isMultiEvolve = get().mutationInputMode === "multi-evolve";
       const modeLabel = isMultiEvolve ? "MULTI-evolve" : "EVOLVEpro";
+
+      // v0.3 §4: pass protein ref_seq so sidecar can convert EVOLVEpro
+      // short-form variants (89W) back to internal notation (F89W).
+      // Pulled from the selected gene's translation when available.
+      const seqInfo = get().seqInfo;
+      const selectedGeneKey = get().selectedGene;
+      const refSeq = (() => {
+        if (!seqInfo) return "";
+        const gene = seqInfo.genes.find((g) => String(g.cds_start) === selectedGeneKey)
+          ?? seqInfo.genes[0];
+        return gene?.translation ?? "";
+      })();
       set({ statusMessage: `Loading ${modeLabel} CSV...`, evolveproCsvPath: filepath });
 
       // §3 Input Guards: sidecar 호출 전 헤더 컬럼 검증
@@ -120,6 +132,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
           structureAccession: get().uniprotAccession,
           evolveproRound,
           roundSize,
+          refSeq,
         });
       const result = await sendRequest("load_evolvepro_csv", params);
       if (gen !== csvLoadGeneration) return;

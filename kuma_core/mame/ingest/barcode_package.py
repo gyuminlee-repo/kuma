@@ -83,8 +83,48 @@ def _calc_tm(seq: str, profile: PolymeraseProfile) -> float:
 
 
 # ---------------------------------------------------------------------------
-# FASTA parser
+# Sequence parser (FASTA / GenBank / SnapGene)
 # ---------------------------------------------------------------------------
+
+_GENBANK_SUFFIXES = {".gb", ".gbk", ".gbff"}
+_SNAPGENE_SUFFIXES = {".dna"}
+_FASTA_SUFFIXES = {".fa", ".fasta", ".fna"}
+
+
+def _parse_first_cds_sequence(seq_path: Path) -> str:
+    """Return the first record sequence from a FASTA, GenBank, or SnapGene file.
+
+    GenBank/SnapGene are routed to Biopython via kuro's ``load_sequence``.
+    FASTA uses a lightweight inline parser to keep the dependency surface small.
+
+    Raises
+    ------
+    FileNotFoundError
+        If ``seq_path`` does not exist.
+    ValueError
+        If no record is found or the resulting sequence is empty.
+    """
+    if not seq_path.exists():
+        raise FileNotFoundError(f"Sequence file not found: {seq_path}")
+
+    suffix = seq_path.suffix.lower()
+
+    if suffix in _GENBANK_SUFFIXES or suffix in _SNAPGENE_SUFFIXES:
+        from kuma_core.kuro.sdm_engine import load_sequence
+
+        _header, sequence, _genes = load_sequence(seq_path)
+        if not sequence:
+            raise ValueError(f"Empty sequence in: {seq_path}")
+        return sequence.upper()
+
+    if suffix not in _FASTA_SUFFIXES:
+        raise ValueError(
+            f"Unsupported sequence file extension {suffix!r}; "
+            "use .fa/.fasta/.fna, .gb/.gbk/.gbff, or .dna."
+        )
+
+    return _parse_first_fasta_sequence(seq_path)
+
 
 def _parse_first_fasta_sequence(fasta_path: Path) -> str:
     """Return the sequence of the first record in a FASTA file.
@@ -578,7 +618,7 @@ def generate_mame_package(
     profile = get_profile(polymerase)
 
     # Step 1: parse CDS
-    cds_seq = _parse_first_fasta_sequence(Path(fasta_path))
+    cds_seq = _parse_first_cds_sequence(Path(fasta_path))
 
     # Step 2: flanking primers (Tm-guided)
     fwd_flanking, rev_flanking, pkg_warnings = design_flanking_primers(

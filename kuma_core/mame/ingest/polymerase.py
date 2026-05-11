@@ -43,6 +43,13 @@ POLYMERASE_PROFILES: dict[str, PolymeraseProfile] = {
         dntp_conc=0.2,
         dna_conc=250.0,
     ),
+    "KOD": PolymeraseProfile(
+        "KOD",
+        mv_conc=50.0,
+        dv_conc=1.5,
+        dntp_conc=0.2,
+        dna_conc=250.0,
+    ),
 }
 
 

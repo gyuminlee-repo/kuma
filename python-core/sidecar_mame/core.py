@@ -117,6 +117,7 @@ def _progress(value: int, message: str = "") -> None:
 # Path validation — resolves symlinks and blocks traversal tokens.
 # ---------------------------------------------------------------------------
 _ALLOWED_FASTA_EXTENSIONS = {".fa", ".fasta", ".fna"}
+_ALLOWED_SEQUENCE_EXTENSIONS = {".fa", ".fasta", ".fna", ".gb", ".gbk", ".gbff", ".dna"}
 _ALLOWED_EXCEL_EXTENSIONS = {".xlsx"}
 
 

@@ -4,6 +4,43 @@
 
 ---
 
+## v0.3.15 (2026-05-11)
+
+MAME activity workflow split into a dedicated phase with three sub-tabs, EVOLVEpro export switched to xlsx per the v0.3 spec, and KURO can read EVOLVEpro short-form variants (`89W`) by converting them back to internal notation using the protein reference. Locale toggle now actually applies, CDS input in MAME accepts the same sequence formats as KURO, and KOD joins the polymerase preset list.
+
+### MAME 3-Phase tabs
+
+- New top-level **`3. Activity`** phase in `MameAppLayout.tsx`. Internal sub-tabs **Ingest / Merge / Export** (`src/components/mame/panels/ActivityPanel.tsx`) reflect the temporal separation between uploading raw activity data, joining with genotype, and exporting EVOLVEpro input.
+- Activity controls (`ActivityUploadPanel`, `WtWellEditor`, merge buttons, `RoundHandoffButton`, `RoundSummaryPanel`) moved out of the Analyze sidebar (`ParameterPanel.tsx`) into the new phase.
+- Active sub-tab persists via `kuma:mame:activityTab` localStorage key; phase enum widened to `"setup" | "analyze" | "activity"` in `phaseSlice.ts`.
+
+### EVOLVEpro export → xlsx (Hyemin spec §2.4)
+
+- New RPC `activity.export_evolvepro_xlsx` (handler in `python-core/sidecar_mame/handlers/activity.py`, dispatcher entry added). Returns `{written_rows, columns, excluded[], manifest_path, checksum_path}`.
+- `export_evolvepro_xlsx(rows, path)` in `kuma_core/mame/activity/export_evolvepro.py` delegates to the existing spec-compliant `write_evolvepro_xlsx` writer (strict 2-column `[Variant, activity]` sheet `EVOLVEpro`).
+- Variant column uses EVOLVEpro short notation (`89W`); conversion via `to_evolvepro` from `variant_notation`. `activity` column uses `relative_activity`, falling back to `fold_change`.
+- Exclusion filter extended: `ngs_success=False`, `mutation=WT`, `non_canonical_variant` (multi-substitution like `F89W/L70V`), `relative_activity=None`. Excluded rows returned to the caller for diagnostic display.
+- CSV export (`export_evolvepro_csv`) kept for the existing round-trip integration test; the Activity panel exposes only xlsx.
+
+### KURO reads short-form variants
+
+- `_load_evolvepro_rows(filepath, ref_seq="")` and `load_evolvepro_csv(..., ref_seq="")` in `kuma_core/kuro/evolvepro.py` convert `\d+[A-Z]` rows to internal `[A-Z]\d+[A-Z]` when a protein `ref_seq` is supplied. Internal notation, multi-substitution, position out-of-range, and empty `ref_seq` all pass through unchanged for backward compatibility.
+- RPC `load_evolvepro_csv` accepts a new optional `ref_seq` parameter (`LoadEvolveproParams` in `python-core/sidecar_kuro/models.py`).
+- Frontend `inputSlice.loadEvolveproCsv` pulls the selected gene's `translation` from `seqInfo` and threads it as `refSeq` through `buildEvolveproLoadParams`. The field is omitted when empty.
+
+### Other UI / backend changes
+
+- `src/lib/i18n.ts:setLocale` now invokes `i18next.changeLanguage(resolveActiveLocale())` so the locale toggle re-renders translated components instead of only writing to localStorage.
+- MAME CDS input (`BarcodeSetupPanel.tsx`) now accepts `.fa/.fasta/.fna/.gb/.gbk/.gbff/.dna` like the KURO sequence loader. `_parse_first_cds_sequence` in `kuma_core/mame/ingest/barcode_package.py` routes GenBank/SnapGene through `kuma_core.kuro.sdm_engine.load_sequence`; FASTA keeps the existing inline parser. New `_ALLOWED_SEQUENCE_EXTENSIONS` constant in `python-core/sidecar_mame/core.py`.
+- KOD added to `POLYMERASE_PROFILES` (`kuma_core/mame/ingest/polymerase.py`) and the BarcodeSetup polymerase dropdown.
+
+### Tests
+
+- New: `tests/mame/activity/test_export_evolvepro.py` xlsx coverage (2-column spec, fold_change fallback, non-canonical exclusion). `tests/test_evolvepro.py::TestRefSeqConversion` four cases (short→internal, passthrough without ref_seq, internal passthrough, out-of-range). `tests/mame/activity/test_variant_notation.py::is_canonical_internal` four cases.
+- Mock updates in `WtWellEditor.test.tsx` and `ActivityUploadPanel.test.tsx` for the new `exportEvolveproXlsx` action.
+
+---
+
 ## v0.3.9 (2026-05-11)
 
 KURO-MAME integration rev2: barcode generation feature moves from KURO to MAME based on end-user feedback. MAME now covers both pre-sequencing setup and post-sequencing analysis. Spec: `notes/specs/2026-05-11-kuro-mame-integration.md`.

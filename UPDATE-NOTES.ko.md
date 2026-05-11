@@ -4,6 +4,43 @@
 
 ---
 
+## v0.3.15 (2026-05-11)
+
+MAME activity 워크플로우를 별도 phase + 3 sub-tab으로 분리. EVOLVEpro 출력을 spec v0.3에 맞춰 xlsx로 전환. KURO가 EVOLVEpro 출력의 short-form variant(`89W`)를 protein 참조 서열로 내부 표기(`F89W`)로 자동 변환. 언어 토글이 실제로 적용되도록 수정. MAME CDS 입력이 KURO와 같은 서열 포맷을 받도록 확장. KOD가 polymerase 프리셋에 추가.
+
+### MAME 3-Phase 탭
+
+- `MameAppLayout.tsx`에 신규 top-level **`3. Activity`** 탭. 내부 sub-tab **Ingest / Merge / Export** (`src/components/mame/panels/ActivityPanel.tsx`) — ingest → merge → export가 며칠~몇 주 간격으로 시간상 분리되는 작업이므로 sub-tab으로 진입 시점마다 진행 상태가 보임.
+- Activity 컨트롤(`ActivityUploadPanel`, `WtWellEditor`, merge 버튼들, `RoundHandoffButton`, `RoundSummaryPanel`)을 Analyze 사이드바(`ParameterPanel.tsx`)에서 신규 phase로 이동.
+- 활성 sub-tab은 `kuma:mame:activityTab` localStorage에 영속화. Phase enum은 `phaseSlice.ts`에서 `"setup" | "analyze" | "activity"`로 확장.
+
+### EVOLVEpro 출력 → xlsx (혜민 spec §2.4)
+
+- 신규 RPC `activity.export_evolvepro_xlsx` (핸들러 `python-core/sidecar_mame/handlers/activity.py`, dispatcher 등록). 반환값 `{written_rows, columns, excluded[], manifest_path, checksum_path}`.
+- `kuma_core/mame/activity/export_evolvepro.py` `export_evolvepro_xlsx(rows, path)`는 기존 spec 준수 writer(`write_evolvepro_xlsx`)에 위임. **strict 2-column `[Variant, activity]`** 단일 시트 `EVOLVEpro` 출력.
+- Variant 컬럼은 EVOLVEpro short notation(`89W`) — `variant_notation.to_evolvepro` 변환 적용. `activity` 컬럼은 `relative_activity` 우선, 없으면 `fold_change` fallback.
+- 제외 사유 확장: `ngs_success=False`, `mutation=WT`, `non_canonical_variant` (`F89W/L70V` 같은 multi-sub), `relative_activity=None`. 제외 행은 호출자에 (label, reason) 형태로 반환되어 UI 진단에 활용 가능.
+- CSV 출력 경로(`export_evolvepro_csv`)는 기존 round-trip 통합 테스트가 의존하므로 유지. Activity 패널은 xlsx만 노출.
+
+### KURO short-form variant 읽기
+
+- `kuma_core/kuro/evolvepro.py` `_load_evolvepro_rows(filepath, ref_seq="")`, `load_evolvepro_csv(..., ref_seq="")`. ref_seq이 주어지면 `\d+[A-Z]` 패턴을 `[A-Z]\d+[A-Z]` 내부 표기로 변환. 이미 내부형이거나 multi-sub, position out-of-range, ref_seq 비어 있음 → pass-through(backward compatible).
+- RPC `load_evolvepro_csv`에 optional `ref_seq` 파라미터 추가 (`python-core/sidecar_kuro/models.py` `LoadEvolveproParams`).
+- 프론트엔드 `inputSlice.loadEvolveproCsv`가 `seqInfo`에서 선택된 gene의 `translation`을 가져와 `refSeq`로 `buildEvolveproLoadParams`에 전달. 빈 문자열이면 RPC params에서 생략.
+
+### 기타 UI / 백엔드 변경
+
+- `src/lib/i18n.ts:setLocale`이 이제 `i18next.changeLanguage(resolveActiveLocale())`를 호출하여 locale 토글이 실제로 번역 컴포넌트를 재렌더(이전: localStorage 쓰기만 함).
+- MAME CDS 입력(`BarcodeSetupPanel.tsx`)이 KURO 서열 로더와 동일하게 `.fa/.fasta/.fna/.gb/.gbk/.gbff/.dna` 수용. `kuma_core/mame/ingest/barcode_package.py` `_parse_first_cds_sequence`가 GenBank/SnapGene은 `kuma_core.kuro.sdm_engine.load_sequence`로 위임, FASTA는 기존 경량 파서 유지. `python-core/sidecar_mame/core.py`에 `_ALLOWED_SEQUENCE_EXTENSIONS` 신설.
+- KOD를 `POLYMERASE_PROFILES`(`kuma_core/mame/ingest/polymerase.py`) 및 BarcodeSetup polymerase 드롭다운에 추가.
+
+### 테스트
+
+- 신규: `tests/mame/activity/test_export_evolvepro.py` xlsx 커버리지(2-column spec, fold_change fallback, non-canonical 제외). `tests/test_evolvepro.py::TestRefSeqConversion` 4건(short→internal, ref_seq 없으면 pass-through, 내부형 pass-through, out-of-range). `tests/mame/activity/test_variant_notation.py::is_canonical_internal` 4건.
+- `WtWellEditor.test.tsx`, `ActivityUploadPanel.test.tsx`의 mock에 `exportEvolveproXlsx` 추가.
+
+---
+
 ## v0.3.9 (2026-05-11)
 
 KURO-MAME 통합 rev2. 실사용자 피드백에 따라 바코드 생성 기능을 KURO에서 MAME로 이동. MAME이 시퀀싱 준비 단계부터 시퀀싱 후 분석까지 포괄하는 도구로 확장. 스펙: `notes/specs/2026-05-11-kuro-mame-integration.md`.

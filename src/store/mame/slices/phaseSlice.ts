@@ -10,17 +10,31 @@ import type { AppState } from "../types";
 
 const PHASE_STORAGE_KEY = "kuma:mame:phase";
 
-export type MamePhase = "setup" | "analyze";
+export type MamePhase = "setup" | "analyze" | "activity";
+export type ActivityTab = "ingest" | "merge" | "export";
+const ACTIVITY_TAB_STORAGE_KEY = "kuma:mame:activityTab";
+
+function readActivityTabFromStorage(): ActivityTab {
+  try {
+    const stored = localStorage.getItem(ACTIVITY_TAB_STORAGE_KEY);
+    if (stored === "ingest" || stored === "merge" || stored === "export") return stored;
+  } catch {
+    // localStorage 접근 실패 시 기본값
+  }
+  return "ingest";
+}
 
 export interface PhaseSlice {
   mamePhase: MamePhase;
   setMamePhase: (phase: MamePhase) => void;
+  activityTab: ActivityTab;
+  setActivityTab: (tab: ActivityTab) => void;
 }
 
 function readPhaseFromStorage(): MamePhase {
   try {
     const stored = localStorage.getItem(PHASE_STORAGE_KEY);
-    if (stored === "setup" || stored === "analyze") return stored;
+    if (stored === "setup" || stored === "analyze" || stored === "activity") return stored;
   } catch {
     // localStorage 접근 실패 시 기본값 사용
   }
@@ -36,5 +50,14 @@ export const createPhaseSlice: StateCreator<AppState, [], [], PhaseSlice> = (set
       // 저장 실패 시 상태만 업데이트
     }
     set({ mamePhase: phase });
+  },
+  activityTab: readActivityTabFromStorage(),
+  setActivityTab: (tab) => {
+    try {
+      localStorage.setItem(ACTIVITY_TAB_STORAGE_KEY, tab);
+    } catch {
+      // 저장 실패 시 상태만 업데이트
+    }
+    set({ activityTab: tab });
   },
 });

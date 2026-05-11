@@ -88,3 +88,62 @@ def export_evolvepro_csv(
             })
 
     return len(kept)
+
+
+def export_evolvepro_xlsx(
+    rows: list[MergedRow],
+    path: Path,
+) -> tuple[int, list[tuple[str, str]]]:
+    """Export filtered MergedRow list to an EVOLVEpro-compatible xlsx workbook.
+
+    Spec: notes/specs/2026-05-06-mame-activity-v0.3-xlsx-pipeline.md §1, §2.4
+
+    Strict 2-column format ``[Variant, activity]`` (case-exact headers).
+    Variant uses EVOLVEpro short notation (``89W``); activity is
+    relative activity (fold-change vs WT mean).
+
+    Inclusion filter (mirrors :func:`export_evolvepro_csv` §3.4 step 8 plus
+    notation guard):
+      - ``ngs_success`` is True
+      - ``mutation`` is not ``"WT"`` and not ``None``
+      - ``mutation`` matches the canonical ``[A-Z]\\d+[A-Z]`` pattern
+      - relative activity (``relative_activity`` or, fallback,
+        ``fold_change``) is not ``None``
+
+    Args:
+        rows: Full merged table.
+        path: Output xlsx path. Parent directory must exist.
+
+    Returns:
+        Tuple of ``(n_written, excluded)`` where ``excluded`` is a list of
+        ``(mutation_or_well, reason)`` pairs for rows the caller may want
+        to surface in a diagnostic UI.
+    """
+    from kuma_core.mame.activity.evolvepro_xlsx import write_evolvepro_xlsx
+    from kuma_core.mame.activity.variant_notation import (
+        is_canonical_internal,
+        to_evolvepro,
+    )
+
+    kept: list[tuple[str, float]] = []
+    excluded: list[tuple[str, str]] = []
+
+    for r in rows:
+        label = r.mutation or r.well_id
+        if not r.ngs_success:
+            excluded.append((label, "ngs_success=False"))
+            continue
+        if not r.mutation or r.mutation == "WT":
+            excluded.append((label, "mutation=WT"))
+            continue
+        if not is_canonical_internal(r.mutation):
+            excluded.append((label, "non_canonical_variant"))
+            continue
+        activity = r.relative_activity if r.relative_activity is not None else r.fold_change
+        if activity is None:
+            excluded.append((label, "relative_activity=None"))
+            continue
+        kept.append((to_evolvepro(r.mutation), activity))
+
+    n_written = write_evolvepro_xlsx(kept, path)
+    return n_written, excluded

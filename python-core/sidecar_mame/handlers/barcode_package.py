@@ -42,7 +42,7 @@ from pathlib import Path
 
 from sidecar_mame.core import (
     _validate_filepath,
-    _ALLOWED_FASTA_EXTENSIONS,
+    _ALLOWED_SEQUENCE_EXTENSIONS,
     _ALLOWED_EXCEL_EXTENSIONS,
 )
 
@@ -98,7 +98,7 @@ def handle_generate_mame_package(params: dict) -> dict:
     # Validate input file paths (existence + extension check)
     fasta_path = _validate_filepath(
         fasta_path_str,
-        allowed_extensions=_ALLOWED_FASTA_EXTENSIONS,
+        allowed_extensions=_ALLOWED_SEQUENCE_EXTENSIONS,
         must_exist=True,
     )
     barcode_seeds_path = _validate_filepath(

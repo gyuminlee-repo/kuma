@@ -164,8 +164,8 @@ KUMA now connects the complete ALE cycle: Kuro designs primers for Round N, wet 
 3. MAME NGS      →  per-clone genotype verdict (6-class)
 4. Activity assay→  plate-reader / fluorescence measurement
 5. MAME Activity →  load long-format CSV; compute fold_change / log2_fc
-6. EVOLVEpro export → variant + y_pred CSV for next round
-7. Round Handoff →  1-click: create Round N+1, load EVOLVEpro CSV into Kuro
+6. EVOLVEpro export → variant + activity xlsx for next round (`[Variant, activity]` 2-column, `89W` short notation)
+7. Round Handoff →  1-click: create Round N+1, load EVOLVEpro output into Kuro (short-form variants auto-converted via protein ref_seq)
 8. Repeat        →  Kuro designs Round N+1 from updated scores
 ```
 

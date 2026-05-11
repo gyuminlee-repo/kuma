@@ -94,6 +94,7 @@ def handle_load_evolvepro_csv(params: dict) -> dict:
         ca_coords=ca_coords,
         evolvepro_round=p.evolvepro_round,
         round_size=p.round_size,
+        ref_seq=p.ref_seq,
     )
 
 

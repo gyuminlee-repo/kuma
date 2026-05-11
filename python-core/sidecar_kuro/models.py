@@ -628,6 +628,11 @@ class LoadEvolveproParams(BaseModel):
     structure_accession: Optional[str] = None
     evolvepro_round: int = Field(default=0, ge=0)
     round_size: int = Field(default=96, ge=1, le=10000)
+    # v0.3 §4: protein reference sequence (1-indexed positions) used to
+    # convert short EVOLVEpro variant notation (`89W`) into internal
+    # MAME/kuro notation (`F89W`). Optional — if omitted, short-form
+    # variants pass through unchanged for backward compatibility.
+    ref_seq: str = ""
 
 
 class LandscapeEntry(BaseModel):

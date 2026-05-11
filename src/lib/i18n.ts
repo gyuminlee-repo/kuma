@@ -29,13 +29,14 @@ export function getLocale(): Locale {
   return "system";
 }
 
-/** locale 설정을 localStorage에 저장 */
+/** locale 설정을 localStorage에 저장하고 i18next 활성 언어를 즉시 갱신 */
 export function setLocale(locale: Locale): void {
   try {
     localStorage.setItem(LOCALE_KEY, locale);
   } catch {
     // 저장 실패 시 세션 내 동작은 호출 측 상태로 유지
   }
+  void i18next.changeLanguage(resolveActiveLocale());
 }
 
 /**

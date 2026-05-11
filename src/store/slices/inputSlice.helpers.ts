@@ -27,6 +27,13 @@ export interface EvolveproLoadConfig {
   structureAccession: string;
   evolveproRound: number;
   roundSize: number;
+  /**
+   * Protein reference sequence (1-indexed positions). Used by the kuro
+   * sidecar to convert EVOLVEpro short-form variants (`89W`) back to
+   * internal notation (`F89W`). Optional — empty string means
+   * pass-through (backward compatible).
+   */
+  refSeq: string;
 }
 
 export interface EvolveproLoadStateUpdate {
@@ -64,6 +71,7 @@ export function buildEvolveproLoadParams(config: EvolveproLoadConfig): Record<st
     structureAccession,
     evolveproRound,
     roundSize,
+    refSeq,
   } = config;
 
   return {
@@ -92,6 +100,7 @@ export function buildEvolveproLoadParams(config: EvolveproLoadConfig): Record<st
       evolvepro_round: evolveproRound,
       round_size: roundSize,
     }),
+    ...(refSeq && { ref_seq: refSeq }),
   };
 }
 

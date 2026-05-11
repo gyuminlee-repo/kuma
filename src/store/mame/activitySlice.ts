@@ -92,6 +92,11 @@ export interface ActivitySliceActions {
    */
   exportEvolveproCsv: (round_id: string, path: string) => Promise<void>
   /**
+   * EVOLVEpro xlsx 내보내기 (혜민 spec v0.3 §2.4).
+   * activity.export_evolvepro_xlsx RPC 호출.
+   */
+  exportEvolveproXlsx: (round_id: string, path: string) => Promise<void>
+  /**
    * v0.3 신규: 라벨 교체 가드 + replicate 병합 통합 병합.
    * mame.activity.merge_for_evolvepro RPC → round.merged_table 갱신 + status="activity_linked".
    * 기존 mergeActivity와 별도 분기. 5/12 demo path를 건드리지 않음.
@@ -215,6 +220,21 @@ export function createActivityStore(roundStore: RoundStoreRef) {
       try {
         await sendRequest(
           "activity.export_evolvepro_csv",
+          { round_id, path },
+          RPC_TIMEOUT_MS
+        )
+      } catch (err) {
+        set({ exportError: formatError(err) })
+      } finally {
+        set({ isExporting: false })
+      }
+    },
+
+    exportEvolveproXlsx: async (round_id, path) => {
+      set({ isExporting: true, exportError: null })
+      try {
+        await sendRequest(
+          "activity.export_evolvepro_xlsx",
           { round_id, path },
           RPC_TIMEOUT_MS
         )

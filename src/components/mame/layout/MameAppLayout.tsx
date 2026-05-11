@@ -37,6 +37,7 @@ import { VerdictTable } from "../widgets/VerdictTable";
 import { RunHealthPanel } from "../widgets/RunHealthPanel";
 import { DataPanel } from "@/components/ui/Panel";
 import { BarcodeSetupPanel } from "@/components/mame/panels/BarcodeSetupPanel";
+import { ActivityPanel } from "@/components/mame/panels/ActivityPanel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { MamePhase } from "@/store/mame/slices/phaseSlice";
 
@@ -239,6 +240,7 @@ export function MameAppLayout() {
         <TabsList className="shrink-0 mx-3 mt-2 w-fit">
           <TabsTrigger value="setup">1. Barcode Setup</TabsTrigger>
           <TabsTrigger value="analyze">2. Analyze</TabsTrigger>
+          <TabsTrigger value="activity">3. Activity</TabsTrigger>
         </TabsList>
 
         {/* Phase 1: Barcode Setup */}
@@ -274,6 +276,11 @@ export function MameAppLayout() {
               )}
             </main>
           </div>
+        </TabsContent>
+
+        {/* Phase 3: Activity (Ingest / Merge / Export sub-tabs) */}
+        <TabsContent value="activity" className="flex-1 min-h-0 overflow-hidden mt-0">
+          <ActivityPanel />
         </TabsContent>
       </Tabs>
 

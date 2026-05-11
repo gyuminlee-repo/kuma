@@ -37,7 +37,7 @@ interface SetupFormState {
   geneStart: string;
   geneEnd: string;
   geneName: string;
-  polymerase: "Q5" | "Taq" | "Phusion";
+  polymerase: "Q5" | "Taq" | "Phusion" | "KOD";
   flankMin: string;
   flankMax: string;
   bindingMinLen: string;
@@ -73,7 +73,7 @@ function loadFromStorage(): SetupFormState {
     // polymerase 값 검증
     const p = parsed as Record<string, unknown>;
     const poly =
-      p.polymerase === "Q5" || p.polymerase === "Taq" || p.polymerase === "Phusion"
+      p.polymerase === "Q5" || p.polymerase === "Taq" || p.polymerase === "Phusion" || p.polymerase === "KOD"
         ? p.polymerase
         : DEFAULT_STATE.polymerase;
     return {
@@ -149,8 +149,13 @@ export function BarcodeSetupPanel() {
     const selected = toSinglePath(
       await open({
         directory: false,
-        filters: [{ name: "FASTA", extensions: ["fa", "fasta", "fna"] }],
-        title: "Select CDS FASTA file",
+        filters: [
+          {
+            name: "Sequence",
+            extensions: ["fa", "fasta", "fna", "gb", "gbk", "gbff", "dna"],
+          },
+        ],
+        title: "Select CDS sequence file",
       }),
     );
     if (selected) setForm({ fastaPath: selected });
@@ -274,8 +279,8 @@ export function BarcodeSetupPanel() {
               value={form.fastaPath}
               onChange={(v) => setForm({ fastaPath: v })}
               onBrowse={browseFasta}
-              placeholder=".fa / .fasta / .fna file path"
-              helperText="기준 CDS FASTA 파일입니다. 유전자 좌표(gene_start, gene_end)는 이 서열 내 0-based 인덱스입니다."
+              placeholder={t("mame.barcodeSetup.cdsFastaPlaceholder")}
+              helperText={t("mame.barcodeSetup.cdsFastaHelper")}
             />
 
             <FilePickerField
@@ -353,7 +358,7 @@ export function BarcodeSetupPanel() {
               <Select
                 value={form.polymerase}
                 onValueChange={(v) =>
-                  setForm({ polymerase: v as "Q5" | "Taq" | "Phusion" })
+                  setForm({ polymerase: v as "Q5" | "Taq" | "Phusion" | "KOD" })
                 }
               >
                 <SelectTrigger id="polymerase" className="h-8 text-xs">
@@ -363,6 +368,7 @@ export function BarcodeSetupPanel() {
                   <SelectItem value="Q5">Q5</SelectItem>
                   <SelectItem value="Taq">Taq</SelectItem>
                   <SelectItem value="Phusion">Phusion</SelectItem>
+                  <SelectItem value="KOD">KOD</SelectItem>
                 </SelectContent>
               </Select>
             </div>

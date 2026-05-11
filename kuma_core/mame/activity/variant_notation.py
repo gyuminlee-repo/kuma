@@ -18,6 +18,14 @@ _SHORT_RE = re.compile(r"^(\d+)([A-Z])$")
 _WT_LITERAL = "WT"
 
 
+def is_canonical_internal(variant: str) -> bool:
+    """Return True iff *variant* matches the single-substitution pattern.
+
+    Excludes ``WT`` and multi-substitution strings.
+    """
+    return _INTERNAL_RE.match(variant) is not None
+
+
 def to_evolvepro(internal: str) -> str:
     """Convert internal notation 'F89W' to EVOLVEpro short notation '89W'.
 

@@ -77,3 +77,14 @@ export async function activityExportEvolveproCsv(
 ): Promise<{ path: string }> {
   return rpc("mame", "activity.export_evolvepro_csv", { round_id, path });
 }
+
+/**
+ * EVOLVEpro xlsx 내보내기 (혜민 연구원 spec v0.3 §2.4 준수).
+ * MAME sidecar activity.export_evolvepro_xlsx 호출.
+ */
+export async function activityExportEvolveproXlsx(
+  round_id: string,
+  path: string,
+): Promise<{ path: string }> {
+  return rpc("mame", "activity.export_evolvepro_xlsx", { round_id, path });
+}
