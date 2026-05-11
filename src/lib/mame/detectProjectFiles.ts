@@ -23,6 +23,8 @@ export interface DetectedPaths {
   referencePath?: string;
   /** expected genotype xlsx */
   expectedPath?: string;
+  /** MinKNOW sequencing_summary*.txt */
+  sequencingSummaryPath?: string;
 }
 
 const MINKNOW_DIR_RE = /^\d{8}_\d{4}_/;
@@ -30,6 +32,7 @@ const BARCODES_RE = /^(custom_)?barcode[s]?.*\.(xlsx|csv)$/i;
 const SAMPLE_MAP_RE = /^(mutant[s]?|sample_map|well_map|plate_map).*\.xlsx$/i;
 const REFERENCE_RE = /\.(fa|fasta)$/i;
 const EXPECTED_RE = /^(expected|genotype|template).*\.(xlsx|csv)$/i;
+const SEQ_SUMMARY_RE = /^sequencing_summary.*\.txt$/i;
 
 type DirEntry = { name?: string; isDirectory: boolean; isFile: boolean };
 
@@ -88,6 +91,16 @@ export async function detectProjectFiles(projectPath: string): Promise<DetectedP
       const fullPath = joinPath(parentPath, entry.name);
       if (entry.isDirectory && !detected.inputDir && MINKNOW_DIR_RE.test(entry.name)) {
         detected.inputDir = fullPath;
+        // MinKNOW run 폴더 안의 sequencing_summary*.txt 탐색
+        if (!detected.sequencingSummaryPath) {
+          const runEntries = await safeReadDir(fullPath);
+          for (const re of runEntries) {
+            if (re.name && re.isFile && SEQ_SUMMARY_RE.test(re.name)) {
+              detected.sequencingSummaryPath = joinPath(fullPath, re.name);
+              break;
+            }
+          }
+        }
       }
       if (entry.isFile) {
         if (!detected.customBarcodesPath && BARCODES_RE.test(entry.name)) {
@@ -101,6 +114,9 @@ export async function detectProjectFiles(projectPath: string): Promise<DetectedP
         }
         if (!detected.expectedPath && EXPECTED_RE.test(entry.name)) {
           detected.expectedPath = fullPath;
+        }
+        if (!detected.sequencingSummaryPath && SEQ_SUMMARY_RE.test(entry.name)) {
+          detected.sequencingSummaryPath = fullPath;
         }
       }
     }

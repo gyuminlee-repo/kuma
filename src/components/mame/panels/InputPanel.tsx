@@ -1,4 +1,5 @@
 import { open } from "@tauri-apps/plugin-dialog";
+import { readDir } from "@tauri-apps/plugin-fs";
 import { FolderOpen } from "lucide-react";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import type { InputMode } from "@/store/mame/slice-interfaces";
@@ -73,7 +74,21 @@ export function InputPanel() {
 
   async function browseDirectory() {
     const selected = toSinglePath(await open({ directory: true }));
-    if (selected) setInputDir(selected);
+    if (!selected) return;
+    setInputDir(selected);
+    if (inputMode === "raw_run" && !rawRunParams.sequencingSummaryPath) {
+      try {
+        const entries = (await readDir(selected)) as { name?: string; isFile: boolean }[];
+        const summary = entries.find(
+          (e) => e.isFile && e.name && /^sequencing_summary.*\.txt$/i.test(e.name),
+        );
+        if (summary?.name) {
+          updateRaw({ sequencingSummaryPath: joinPath(selected, summary.name) });
+        }
+      } catch {
+        // 탐색 실패 시 무시
+      }
+    }
   }
 
   async function browseExpected() {
@@ -107,17 +122,6 @@ export function InputPanel() {
       }),
     );
     if (selected) updateRaw({ customBarcodesPath: selected });
-  }
-
-  async function browseSequencingSummary() {
-    const selected = toSinglePath(
-      await open({
-        directory: false,
-        filters: [{ name: "Sequencing summary", extensions: ["txt", "tsv", "csv"] }],
-        title: "Select sequencing summary file",
-      }),
-    );
-    if (selected) updateRaw({ sequencingSummaryPath: selected });
   }
 
   async function browseSampleMap() {
@@ -163,17 +167,6 @@ export function InputPanel() {
             filled={Boolean(rawRunParams.customBarcodesPath)}
             helperText="Combinatorial barcode definition used before analysis"
             helpText="Raw MinKNOW run mode uses this file to assign reads to per-well FASTA outputs before analysis."
-          />
-          <FileField
-            label="Sequencing Summary (optional)"
-            value={rawRunParams.sequencingSummaryPath}
-            onChange={(value) => updateRaw({ sequencingSummaryPath: value })}
-            onBrowse={browseSequencingSummary}
-            placeholder=".txt / .tsv / .csv file path"
-            stateLabel="Optional"
-            filled={Boolean(rawRunParams.sequencingSummaryPath)}
-            helperText="Optional MinKNOW metadata for qscore, length, and barcode score filters"
-            helpText="When present, MAME can filter reads by MinKNOW metadata before writing per-well FASTA outputs."
           />
           <FileField
             label="Sample Map (optional)"

@@ -184,6 +184,10 @@ async function applyMameAutoDetect(
     store.setParams({ rawRunParams: { customBarcodesPath: detected.customBarcodesPath } });
     filled.push("custom barcodes");
   }
+  if (!store.rawRunParams.sequencingSummaryPath && detected.sequencingSummaryPath) {
+    store.setParams({ rawRunParams: { sequencingSummaryPath: detected.sequencingSummaryPath } });
+    filled.push("sequencing summary");
+  }
 
   if (filled.length > 0) {
     onMessage({

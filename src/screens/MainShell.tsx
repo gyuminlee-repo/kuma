@@ -144,6 +144,9 @@ export function MainShell() {
       lastSavedAtRef.current = msg.savedAt;
       setAutosaveState("saved");
       setAutosaveLabel(`Restored from autosave (${formatRelativeTime(msg.savedAt)})`);
+    } else if (msg.variant === "restored" && msg.kind === "mame") {
+      // auto-detect 결과: savedAt 없이 오는 복원 메시지 (e.g. "Auto-detected: run folder, custom barcodes")
+      showStatusMessage(msg.message);
     } else if (msg.variant === "corrupted" || msg.variant === "schema_too_new") {
       showStatusMessage(msg.message);
     }
