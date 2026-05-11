@@ -1,7 +1,7 @@
 {
   "name": "kuma",
   "private": true,
-  "version": "0.4.0",
+  "version": "0.5.0",
   "packageManager": "pnpm@10.33.0",
   "type": "module",
   "scripts": {
@@ -17,6 +17,8 @@
     "build:all": "pnpm run sidecar:build && pnpm run sidecar:hash && pnpm run tauri build",
     "smoke:ui": "node scripts/ui-smoke.mjs",
     "sync:check": "node scripts/sync-check.mjs",
+    "gen:models": "node scripts/gen-models.mjs",
+    "gen:models:check": "node scripts/gen-models.mjs --check",
     "capture-guide": "tsx --tsconfig tsconfig.scripts.json scripts/capture-guide.ts",
     "record-tutorial": "tsx --tsconfig tsconfig.scripts.json scripts/record-tutorial.ts"
   },
@@ -61,6 +63,7 @@
     "@vitejs/plugin-react-swc": "^4.2.3",
     "autoprefixer": "^10.4.0",
     "jsdom": "^26.1.0",
+    "json-schema-to-typescript": "^15.0.4",
     "playwright": "^1.49.0",
     "postcss": "^8.4.0",
     "tailwindcss": "^3.4.0",

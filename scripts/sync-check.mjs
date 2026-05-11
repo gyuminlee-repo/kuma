@@ -10,6 +10,7 @@
 //
 // Add new checks by appending to `checks` array.
 
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -127,6 +128,21 @@ function checkKuroMethods() {
   for (const m of orphanInTs) fail("K", `RpcMethodMap entry "${m}" has no kuro dispatcher handler`);
 }
 
+// G) Generated TS models freshness ------------------------------------------
+function checkGeneratedModels() {
+  const out = spawnSync(
+    process.execPath,
+    [path.join(ROOT, "scripts/gen-models.mjs"), "--check"],
+    { encoding: "utf-8" },
+  );
+  if (out.status === 0) {
+    pass("G", "src/types/models.generated.ts up to date");
+  } else {
+    const msg = (out.stderr || out.stdout || "").trim().split("\n").pop();
+    fail("G", msg || "gen-models --check failed");
+  }
+}
+
 // M) Mame dispatcher presence (smoke) ---------------------------------------
 function checkMameMethods() {
   const methods = parseDispatcherMethods(
@@ -145,6 +161,7 @@ const checks = [
   ["R", checkTauriResources],
   ["K", checkKuroMethods],
   ["M", checkMameMethods],
+  ["G", checkGeneratedModels],
 ];
 
 for (const [name, fn] of checks) {

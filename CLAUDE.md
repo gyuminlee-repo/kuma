@@ -72,7 +72,9 @@ python -m pytest tests/test_sdm_engine.py::test_name  # Single test
 
 ## Cross-layer Change Checklist
 
-> Automated subset: `pnpm sync:check` (`scripts/sync-check.mjs`). Runs on CI in `frontend-typecheck`. Reports drift only (no auto-fix). Currently covers 3-way version sync, tauri.conf resources, kuro dispatcher ↔ `RpcMethodMap`, mame dispatcher smoke. Extend by adding to the `checks` array.
+> Automated subset: `pnpm sync:check` (`scripts/sync-check.mjs`). Runs on CI in `frontend-typecheck`. Reports drift only (no auto-fix). Currently covers 3-way version sync, tauri.conf resources, kuro dispatcher ↔ `RpcMethodMap`, mame dispatcher smoke, generated TS models freshness. Extend by adding to the `checks` array.
+>
+> **Phase 2 — Pydantic → TS generation**: `pnpm gen:models` regenerates `src/types/models.generated.ts` from `python-core/sidecar_kuro/models.py`. Hand-written `src/types/models.ts` is **not** replaced (it owns `RpcMethodMap`, validators, hand-curated names). The generated file ships alongside as the source-of-truth mirror; `gen:models:check` (called by sync-check) fails CI when stale. Requires Python + `pip install -e .` for pydantic.
 
 
 | Changed file | Also check |
