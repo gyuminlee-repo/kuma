@@ -9,7 +9,7 @@ name = "kuma_lib"
 crate-type = ["lib", "cdylib"]
 
 [build-dependencies]
-tauri-build = { version = "~2.11", features = [] }
+tauri-build = { version = "2", features = [] }
 
 [dependencies]
 tauri = { version = "~2.11", features = [] }
