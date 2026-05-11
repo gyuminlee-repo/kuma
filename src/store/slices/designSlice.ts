@@ -50,7 +50,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
   revLenMin: 19,
   revLenMax: 27,
   fillOnFailure: true,
-  tmTolerance: 3.0,
+  tmTolerance: 4.0,
   overlapMode: "partial",
   randomSeed: null,
   manuallySwapped: {},
@@ -487,7 +487,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
     const startState = get();
     if (startState.failedMutations.length === 0 || startState.designResults.length === 0) return;
 
-    const baseTol = startState.tmTolerance ?? 3.0;
+    const baseTol = startState.tmTolerance ?? 4.0;
     const baseInput = {
       tmFwd: startState.tmFwdTarget,
       tmRev: startState.tmRevTarget,
