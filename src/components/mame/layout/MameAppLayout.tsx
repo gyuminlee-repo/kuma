@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { useKumaProject } from "@/state/projectContext";
@@ -49,6 +50,7 @@ const SEQUENCE_EXTENSIONS = new Set([".fa", ".fasta", ".fna"]);
 const XLSX_EXTENSIONS = new Set([".xlsx"]);
 
 export function MameAppLayout() {
+  const { t } = useTranslation();
   const project = useKumaProject();
   const { status, retry } = useMameSidecar();
   const clearResults = useMameAppStore((s) => s.clearResults);
@@ -124,7 +126,7 @@ export function MameAppLayout() {
           void tryHandleTwoManifestsDrop(paths).then(async (twoResult) => {
             if (twoResult.handled) {
               if (twoResult.error) {
-                setReRunStatusMsg(`Manifest 로드 실패: ${twoResult.error}`);
+                setReRunStatusMsg(t("mame.appLayout.manifestLoadFailed", { err: twoResult.error }));
                 return;
               }
               if (twoResult.manifestA && twoResult.manifestB) {
@@ -157,7 +159,7 @@ export function MameAppLayout() {
               }
 
               if (result.error) {
-                setReRunStatusMsg(`Manifest 로드 실패: ${result.error}`);
+                setReRunStatusMsg(t("mame.appLayout.manifestLoadFailed", { err: result.error }));
                 return;
               }
 
@@ -304,14 +306,14 @@ export function MameAppLayout() {
       <Dialog open={deadlockOpen} onOpenChange={setDeadlockOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>응답 없음</DialogTitle>
+            <DialogTitle>{t("mame.appLayout.deadlockTitle")}</DialogTitle>
             <DialogDescription>
-              30초 이상 진행 상태가 업데이트되지 않았습니다. 작업이 멈춘 것 같습니다.
+              {t("mame.appLayout.deadlockDescription")}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => setDeadlockOpen(false)}>
-              계속 대기
+              {t("mame.appLayout.deadlockWait")}
             </Button>
             <Button
               size="sm"

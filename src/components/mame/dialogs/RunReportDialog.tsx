@@ -14,6 +14,7 @@
 import { useState } from "react";
 import { save } from "@tauri-apps/plugin-dialog";
 import { AlertCircle, CheckCircle2, Download, FolderOpen, Info } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useKumaProject } from "@/state/projectContext";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ interface RunReportDialogProps {
 }
 
 export function RunReportDialog({ open, onOpenChange }: RunReportDialogProps) {
+  const { t } = useTranslation();
   const project = useKumaProject();
 
   const storeIsExporting = useMameAppStore((s) => s.isExporting);
@@ -70,7 +72,7 @@ export function RunReportDialog({ open, onOpenChange }: RunReportDialogProps) {
   async function doExport() {
     const target = outputPath || deriveDefaultPath(format);
     if (!target) {
-      setExportError("Output path is required.");
+      setExportError(t("mame.dialogs.runReport.exportErrorPathRequired"));
       return;
     }
     setIsExporting(true);
@@ -94,18 +96,19 @@ export function RunReportDialog({ open, onOpenChange }: RunReportDialogProps) {
     <Dialog open={open} onOpenChange={(next) => !isExporting && onOpenChange(next)}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Export Run Report</DialogTitle>
+          <DialogTitle>{t("mame.dialogs.runReport.title")}</DialogTitle>
           <DialogDescription>
-            Generate a 1-page summary report combining run metadata, verdict
-            statistics, plate breakdown, and file-size distribution.
+            {t("mame.dialogs.runReport.description")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           {/* Format selection */}
           <fieldset className="space-y-1.5">
-            <legend className="text-xs font-medium text-muted-foreground">Format</legend>
-            <div className="flex gap-4" role="radiogroup" aria-label="Report format">
+            <legend className="text-xs font-medium text-muted-foreground">
+              {t("mame.dialogs.runReport.formatLabel")}
+            </legend>
+            <div className="flex gap-4" role="radiogroup" aria-label={t("mame.dialogs.runReport.formatAriaLabel")}>
               {(["html", "pdf"] as const).map((fmt) => (
                 <label
                   key={fmt}
@@ -134,10 +137,7 @@ export function RunReportDialog({ open, onOpenChange }: RunReportDialogProps) {
             >
               <Info size={14} className="mt-0.5 flex-shrink-0 text-primary" aria-hidden="true" />
               <p className="text-caption text-muted-foreground">
-                PDF export requires{" "}
-                <code className="font-mono text-xs">weasyprint</code> to be
-                installed. If unavailable, an HTML file is saved instead and
-                the result will indicate the fallback.
+                {t("mame.dialogs.runReport.pdfNote")}
               </p>
             </div>
           )}
@@ -148,16 +148,16 @@ export function RunReportDialog({ open, onOpenChange }: RunReportDialogProps) {
               htmlFor="report-output-path"
               className="text-xs font-medium text-muted-foreground"
             >
-              Output file path
+              {t("mame.dialogs.runReport.outputPathLabel")}
             </Label>
             <div className="flex gap-2">
               <Input
                 id="report-output-path"
                 value={resolvedPath}
                 onChange={(e) => setOutputPath(e.target.value)}
-                placeholder={`Target .${format} file path`}
+                placeholder={t("mame.dialogs.runReport.outputPathPlaceholder", { ext: format })}
                 className="h-9 flex-1 min-w-0 text-sm font-mono"
-                aria-label="Output file path"
+                aria-label={t("mame.dialogs.runReport.outputPathAriaLabel")}
                 disabled={isExporting}
               />
               <Button
@@ -166,11 +166,10 @@ export function RunReportDialog({ open, onOpenChange }: RunReportDialogProps) {
                 size="sm"
                 onClick={() => void browseOutput()}
                 className="h-9 gap-1.5 px-3 flex-shrink-0"
-                aria-label="Browse save path"
+                aria-label={t("mame.dialogs.runReport.browseAriaLabel")}
                 disabled={isExporting}
               >
                 <FolderOpen size={14} aria-hidden="true" />
-                Browse
               </Button>
             </div>
           </div>
@@ -184,7 +183,7 @@ export function RunReportDialog({ open, onOpenChange }: RunReportDialogProps) {
             >
               <Info size={14} className="mt-0.5 flex-shrink-0 text-warning" aria-hidden="true" />
               <p className="text-caption text-warning">
-                weasyprint was not found — report saved as HTML instead.
+                {t("mame.dialogs.runReport.fallbackNotice")}
               </p>
             </div>
           )}
@@ -207,7 +206,7 @@ export function RunReportDialog({ open, onOpenChange }: RunReportDialogProps) {
               <div className="flex items-center gap-2">
                 <CheckCircle2 size={13} className="text-success" aria-hidden="true" />
                 <span className="text-caption font-medium text-success">
-                  Exported as {lastResult.format.toUpperCase()}
+                  {t("mame.dialogs.runReport.exportedAs", { format: lastResult.format.toUpperCase() })}
                 </span>
               </div>
               <p className="mt-1 text-caption font-mono text-foreground break-all">
@@ -221,7 +220,9 @@ export function RunReportDialog({ open, onOpenChange }: RunReportDialogProps) {
             <div className="rounded-control border border-warning/40 bg-warning/5 px-3 py-2">
               <div className="flex items-center gap-2">
                 <CheckCircle2 size={13} className="text-success" aria-hidden="true" />
-                <span className="text-caption font-medium text-foreground">Saved (HTML fallback)</span>
+                <span className="text-caption font-medium text-foreground">
+                  {t("mame.dialogs.runReport.savedHtmlFallback")}
+                </span>
               </div>
               <p className="mt-1 text-caption font-mono text-foreground break-all">
                 {lastResult.output_path}
@@ -237,7 +238,7 @@ export function RunReportDialog({ open, onOpenChange }: RunReportDialogProps) {
             onClick={() => onOpenChange(false)}
             disabled={isExporting}
           >
-            Close
+            {t("common.close")}
           </Button>
           <Button
             size="sm"
@@ -246,7 +247,7 @@ export function RunReportDialog({ open, onOpenChange }: RunReportDialogProps) {
             className="gap-2"
           >
             <Download size={14} aria-hidden="true" />
-            {isExporting ? "Exporting…" : "Export Report"}
+            {isExporting ? t("mame.dialogs.runReport.exporting") : t("mame.dialogs.runReport.exportReport")}
           </Button>
         </DialogFooter>
       </DialogContent>

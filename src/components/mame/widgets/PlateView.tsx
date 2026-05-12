@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { AlertTriangle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { VerdictBadge } from "./VerdictBadge";
 import { WellPlate } from "./WellPlate";
@@ -21,6 +22,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 }
 
 export function PlateView() {
+  const { t } = useTranslation();
   const verdicts = useMameAppStore((state) => state.verdicts);
   const wells = useMameAppStore((state) => state.wells);
   const selectedWell = useMameAppStore((state) => state.selectedWell);
@@ -42,16 +44,16 @@ export function PlateView() {
       <div className="flex items-center justify-between border-b border-border px-3 py-1.5">
         <div className="flex items-center gap-2 text-caption text-muted-foreground">
           <span>
-            Plate:{" "}
+            {t("mame.plateView.plate")}:{" "}
             <span className="font-medium text-foreground">
               {getSelectedPlateLabel(selectedWell?.barcode ?? null)}
             </span>
           </span>
           <span className="rounded-full border border-border/70 bg-muted px-2 py-0.5 text-caption font-medium text-muted-foreground">
-            {filledCount} wells
+            {t("mame.plateView.wells", { count: filledCount })}
           </span>
           <span className="rounded-full border border-primary/15 bg-primary/10 px-2 py-0.5 text-caption font-medium text-primary">
-            {selectedCount} picked
+            {t("mame.plateView.picked", { count: selectedCount })}
           </span>
         </div>
         <label className="flex items-center gap-1 text-caption text-muted-foreground">
@@ -60,9 +62,9 @@ export function PlateView() {
             checked={colorblindMode}
             onChange={(e) => setColorblindMode(e.target.checked)}
             className="h-3 w-3 rounded accent-primary"
-            aria-label="Enable colorblind support pattern"
+            aria-label={t("mame.plateView.colorAssistAriaLabel")}
           />
-          Color assist
+          {t("mame.plateView.colorAssist")}
         </label>
       </div>
 
@@ -74,7 +76,7 @@ export function PlateView() {
             onWellClick={(well) => setSelectedWell(well)}
             colorblindMode={colorblindMode}
           />
-          <div className="mt-2 flex flex-wrap gap-1" aria-label="Verdict color legend">
+          <div className="mt-2 flex flex-wrap gap-1" aria-label={t("mame.plateView.verdictLegendAriaLabel")}>
             {(
               [
                 "PASS",
@@ -93,7 +95,7 @@ export function PlateView() {
         <aside
           className="flex min-h-0 flex-col overflow-auto rounded-control border border-border bg-background p-2"
           aria-live="polite"
-          aria-label="Selected well details"
+          aria-label={t("mame.plateView.selectedWellAriaLabel")}
         >
           {selectedWell ? (
             <div className="space-y-2">
@@ -101,7 +103,7 @@ export function PlateView() {
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <p className="text-caption font-medium uppercase tracking-wide text-muted-foreground">
-                      Selected Well
+                      {t("mame.plateView.selectedWellLabel")}
                     </p>
                     <p className="font-display text-lg font-semibold leading-none text-foreground">
                       {selectedWell.well}
@@ -115,24 +117,24 @@ export function PlateView() {
                   </span>
                   {selectedWell.selected && (
                     <span className="rounded-full border border-primary/15 bg-primary/10 px-2 py-0.5 text-caption font-medium text-primary">
-                      Selected replicate
+                      {t("mame.plateView.selectedReplicate")}
                     </span>
                   )}
                 </div>
               </div>
 
               <div className="space-y-0">
-              <DetailRow label="Well" value={selectedWell.well} />
-              <DetailRow label="Barcode" value={selectedWell.barcode} />
-              <DetailRow label="Native BC" value={selectedWell.native_barcode} />
-              <DetailRow label="Mutant" value={selectedWell.mutant_id || "—"} />
-              <DetailRow label="Notes" value={selectedWell.notes || "—"} />
+              <DetailRow label={t("mame.plateView.detailWell")} value={selectedWell.well} />
+              <DetailRow label={t("mame.plateView.detailBarcode")} value={selectedWell.barcode} />
+              <DetailRow label={t("mame.plateView.detailNativeBc")} value={selectedWell.native_barcode} />
+              <DetailRow label={t("mame.plateView.detailMutant")} value={selectedWell.mutant_id || "—"} />
+              <DetailRow label={t("mame.plateView.detailNotes")} value={selectedWell.notes || "—"} />
               </div>
               {selectedWell.is_fallback && (
                 <div
                   className="mt-2 flex items-start gap-1.5 rounded-control border border-warning/40 bg-warning/10 px-2.5 py-2"
                   role="note"
-                  aria-label="Fallback replicate notice"
+                  aria-label={t("mame.plateView.fallbackNoticeAriaLabel")}
                 >
                   <AlertTriangle
                     size={12}
@@ -141,10 +143,10 @@ export function PlateView() {
                   />
                   <div className="space-y-0.5">
                     <p className="text-caption font-semibold text-warning">
-                      Fallback replicate
+                      {t("mame.plateView.fallbackTitle")}
                     </p>
                     <p className="text-caption text-muted-foreground">
-                      Original cutoff missed all plates.
+                      {t("mame.plateView.fallbackDesc")}
                     </p>
                     {selectedWell.fallback_reason && (
                       <p className="text-caption text-muted-foreground">
@@ -159,7 +161,7 @@ export function PlateView() {
             <div className="flex flex-1 flex-col items-center justify-center text-center">
               <span className="mb-1 text-base text-muted-foreground" aria-hidden="true">◎</span>
               <p className="text-caption text-muted-foreground">
-                Click a well to inspect.
+                {t("mame.plateView.clickWellHint")}
               </p>
             </div>
           )}

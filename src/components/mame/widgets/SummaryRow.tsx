@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import type { VerdictClass } from "@/types/mame/models";
 import { cn } from "@/lib/utils";
@@ -36,6 +37,7 @@ function getStatusTone(args: {
 }
 
 export function SummaryRow() {
+  const { t } = useTranslation();
   const verdicts = useMameAppStore((s) => s.verdicts);
   const wells = useMameAppStore((s) => s.wells);
   const inputDir = useMameAppStore((s) => s.inputDir);
@@ -70,35 +72,35 @@ export function SummaryRow() {
   const plateEstimate = wells.length > 0 ? Math.ceil(wells.length / 96) : null;
 
   const statusLabel = isAnalyzing
-    ? `Analyzing ${analyzeProgress}%`
+    ? t("mame.summaryRow.statusAnalyzing", { progress: analyzeProgress })
     : validationErrors.length > 0
-      ? `${validationErrors.length} error(s)`
+      ? t("mame.summaryRow.statusErrors", { count: validationErrors.length })
       : verdicts.length > 0
-        ? "Results ready"
+        ? t("mame.summaryRow.statusReady")
         : readyCount === 4
-          ? "Ready to run"
-          : "Draft setup";
+          ? t("mame.summaryRow.statusReadyToRun")
+          : t("mame.summaryRow.statusDraft");
 
   return (
     <div className="grid grid-cols-2 gap-3 md:grid-cols-4" aria-label="Analysis summary">
       <SummaryTile
         className="bg-gradient-to-br from-[hsl(var(--hero-start))] to-[hsl(var(--hero-end))]"
-        label="Success rate"
+        label={t("mame.summaryRow.successRate")}
         value={stats.successRate !== null ? `${stats.successRate}%` : "—"}
-        hint={stats.total > 0 ? `${stats.pass}/${stats.total} PASS` : "No results yet"}
+        hint={stats.total > 0 ? t("mame.summaryRow.successRateHint", { pass: stats.pass, total: stats.total }) : t("mame.summaryRow.successRateEmpty")}
       />
       <SummaryTile
-        label="Plates"
+        label={t("mame.summaryRow.plates")}
         value={plateEstimate ?? "—"}
         valueClassName="text-primary"
-        hint={plateEstimate ? `${wells.length} wells` : "Awaiting analysis"}
+        hint={plateEstimate ? t("mame.summaryRow.platesHint", { count: wells.length }) : t("mame.summaryRow.platesEmpty")}
       />
       <SummaryTile
         className={getReadinessTone(readiness)}
-        label="Readiness"
+        label={t("mame.summaryRow.readiness")}
         value={`${readiness}%`}
         valueClassName="text-foreground"
-        hint={`${readyCount}/${requiredInputs.length} inputs filled`}
+        hint={t("mame.summaryRow.readinessHint", { ready: readyCount, total: requiredInputs.length })}
       />
       <SummaryTile
         className={getStatusTone({
@@ -108,10 +110,10 @@ export function SummaryRow() {
           readyCount,
           requiredCount: requiredInputs.length,
         })}
-        label="Status"
+        label={t("mame.summaryRow.status")}
         value={statusLabel}
         valueClassName="text-base"
-        hint={isAnalyzing ? "In progress" : undefined}
+        hint={isAnalyzing ? t("mame.summaryRow.statusInProgress") : undefined}
       />
     </div>
   );

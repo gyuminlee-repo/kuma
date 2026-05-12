@@ -10,6 +10,7 @@ import {
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { AlertTriangle, Search, SlidersHorizontal } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { useRoundStore } from "@/store/round/roundSlice";
 import type { VerdictRecord } from "@/types/mame/models";
@@ -86,6 +87,7 @@ function getVerdictRowTone(verdict: VerdictRow["verdict"]): string {
 }
 
 export function VerdictTable() {
+  const { t } = useTranslation();
   const verdicts = useMameAppStore((state) => state.verdicts);
 
   if (verdicts.length === 0) {
@@ -93,8 +95,8 @@ export function VerdictTable() {
       <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
         <StateView
           variant="empty"
-          title="No results yet"
-          description="Run analysis to populate the verdict table."
+          title={t("mame.verdictTable.emptyTitle")}
+          description={t("mame.verdictTable.emptyDesc")}
         />
       </div>
     );
@@ -104,6 +106,7 @@ export function VerdictTable() {
 }
 
 function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
+  const { t } = useTranslation();
   const replicates = useMameAppStore((state) => state.replicates);
   const plateFilter = useMameAppStore((state) => state.plateFilter);
   const searchQuery = useMameAppStore((state) => state.searchQuery);
@@ -183,21 +186,21 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
     () => [
       {
         accessorKey: "custom_barcode",
-        header: "Barcode",
+        header: t("mame.verdictTable.colBarcode"),
         cell: ({ getValue }) => (
           <span className="font-mono text-xs text-foreground">{getValue<string>()}</span>
         ),
       },
       {
         accessorKey: "mutant_id",
-        header: "Mutant ID",
+        header: t("mame.verdictTable.colMutantId"),
         cell: ({ row }) => (
           <span className="flex items-center gap-1">
             {row.original.is_fallback && (
               <span
                 className="inline-flex cursor-help items-center text-warning"
-                aria-label={row.original.fallback_reason ?? "Fallback replicate"}
-                title={row.original.fallback_reason ?? "Fallback replicate"}
+                aria-label={row.original.fallback_reason ?? t("mame.verdictTable.fallbackAriaLabel")}
+                title={row.original.fallback_reason ?? t("mame.verdictTable.fallbackAriaLabel")}
                 role="img"
               >
                 <AlertTriangle size={11} aria-hidden="true" />
@@ -209,12 +212,12 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
       },
       {
         accessorKey: "verdict",
-        header: "Verdict",
+        header: t("mame.verdictTable.colVerdict"),
         cell: ({ row }) => <VerdictBadge verdict={row.original.verdict} />,
       },
       {
         id: "observed_aa_changes",
-        header: "AA Changes",
+        header: t("mame.verdictTable.colAaChanges"),
         accessorFn: (row) => row.observed_aa_changes.join(", "),
         cell: ({ getValue }) => (
           <span className="font-mono text-xs text-muted-foreground">{getValue<string>() || "—"}</span>
@@ -222,7 +225,7 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
       },
       {
         id: "reads",
-        header: "Depth (reads)",
+        header: t("mame.verdictTable.colDepth"),
         // Sort by read_count primary; fallback rows sort to bottom (0)
         accessorFn: (row) => row.read_count ?? 0,
         cell: ({ row }) => {
@@ -234,8 +237,8 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
                 <span className="font-mono text-xs text-foreground">{rc.toLocaleString()}</span>
                 <span
                   className="font-mono text-caption text-muted-foreground/60"
-                  aria-label={`File size: ${kb.toFixed(1)} KB`}
-                  title={`File size: ${kb.toFixed(1)} KB`}
+                  aria-label={t("mame.verdictTable.fileSizeAriaLabel", { kb: kb.toFixed(1) })}
+                  title={t("mame.verdictTable.fileSizeAriaLabel", { kb: kb.toFixed(1) })}
                 >
                   {kb.toFixed(1)} KB
                 </span>
@@ -255,7 +258,7 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
       },
       {
         accessorKey: "verdict_notes",
-        header: "Notes",
+        header: t("mame.verdictTable.colNotes"),
         cell: ({ row }) => {
           const notes = row.original.verdict_notes;
           const fbReason = row.original.is_fallback ? row.original.fallback_reason : null;
@@ -419,9 +422,9 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search barcode / mutant ID…"
+              placeholder={t("mame.verdictTable.searchPlaceholder")}
               className="h-7 min-w-0 pl-6 text-xs"
-              aria-label="Search results"
+              aria-label={t("mame.verdictTable.searchAriaLabel")}
             />
           </div>
           <DropdownMenu>
@@ -431,13 +434,13 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
                 variant="outline"
                 size="sm"
                 className="h-7 shrink-0 px-2 text-xs"
-                aria-label="Toggle column visibility"
+                aria-label={t("mame.verdictTable.columnToggleAriaLabel")}
               >
                 <SlidersHorizontal size={12} aria-hidden="true" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-44">
-              <DropdownMenuLabel>Activity columns</DropdownMenuLabel>
+              <DropdownMenuLabel>{t("mame.verdictTable.activityColumnsLabel")}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               {ACTIVITY_COLUMN_IDS.map((colId) => {
                 const col = table.getColumn(colId);
@@ -458,7 +461,7 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
 
       {isVirtual && (
         <p className="bg-primary/10 px-3 py-0.5 text-caption text-primary" aria-live="polite">
-          Virtual scroll active ({tableRows.length.toLocaleString()} rows)
+          {t("mame.verdictTable.virtualScrollActive", { count: tableRows.length.toLocaleString() })}
         </p>
       )}
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-auto">
@@ -559,14 +562,14 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
                   {verdicts.length === 0 ? (
                     <StateView
                       variant="empty"
-                      title="No results yet"
-                      description="Run analysis to populate the verdict table."
+                      title={t("mame.verdictTable.emptyTitle")}
+                      description={t("mame.verdictTable.emptyDesc")}
                     />
                   ) : (
                     <StateView
                       variant="empty"
-                      title="No matches"
-                      description="No results match the current search or filter."
+                      title={t("mame.verdictTable.noMatchTitle")}
+                      description={t("mame.verdictTable.noMatchDesc")}
                     />
                   )}
                 </TableCell>
@@ -579,8 +582,9 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
       {filteredRows.length > 0 && (
         <div className="border-t border-border px-3 py-1.5">
           <p className="text-caption text-muted-foreground">
-            {filteredRows.length} result(s)
-            {searchQuery && ` (search: "${searchQuery}")`}
+            {searchQuery
+              ? t("mame.verdictTable.resultCountWithSearch", { count: filteredRows.length, query: searchQuery })
+              : t("mame.verdictTable.resultCount", { count: filteredRows.length })}
           </p>
         </div>
       )}

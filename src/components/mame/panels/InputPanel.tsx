@@ -2,6 +2,7 @@ import { useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { FolderOpen, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { useKumaProject } from "@/state/projectContext";
 import { applyMameAutoDetect } from "@/hooks/useAutosaveHydration";
@@ -14,24 +15,21 @@ import { InlineHelp } from "@/components/ui/InlineHelp";
 import { Spinner } from "@/components/ui/Spinner";
 import { defaultMameExportFilename } from "@/lib/filename";
 
-const INPUT_DIR_CONFIG: Record<
-  InputMode,
-  { label: string; helperText: string; placeholder: string }
-> = {
+const INPUT_DIR_CONFIG_KEYS: Record<InputMode, { labelKey: string; helperTextKey: string; placeholderKey: string }> = {
   consensus: {
-    label: "Amplicon consensus directory",
-    helperText: "Folder containing *-consensus.fasta files (amplicon mode)",
-    placeholder: "Choose a directory path",
+    labelKey: "mame.inputPanel.consensus.label",
+    helperTextKey: "mame.inputPanel.consensus.helperText",
+    placeholderKey: "mame.inputPanel.consensus.placeholder",
   },
   sorted_barcode: {
-    label: "Sorted barcode directory",
-    helperText: "Folder containing NB01/, NB02/, … subdirectories with consensus FASTA ({R}_{F}.fasta)",
-    placeholder: "Choose a directory path",
+    labelKey: "mame.inputPanel.sorted_barcode.label",
+    helperTextKey: "mame.inputPanel.sorted_barcode.helperText",
+    placeholderKey: "mame.inputPanel.sorted_barcode.placeholder",
   },
   raw_run: {
-    label: "MinKNOW run folder",
-    helperText: "Folder containing fastq_pass/ subtree from MinKNOW; Run will sort barcodes before analysis",
-    placeholder: "Choose a run folder path",
+    labelKey: "mame.inputPanel.raw_run.label",
+    helperTextKey: "mame.inputPanel.raw_run.helperText",
+    placeholderKey: "mame.inputPanel.raw_run.placeholder",
   },
 };
 
@@ -46,6 +44,7 @@ function getPathPreview(value: string): string {
 }
 
 export function InputPanel() {
+  const { t } = useTranslation();
   const inputDir = useMameAppStore((s) => s.inputDir);
   const inputMode = useMameAppStore((s) => s.inputMode);
   const expectedPath = useMameAppStore((s) => s.expectedPath);
@@ -71,9 +70,9 @@ export function InputPanel() {
     try {
       await applyMameAutoDetect(project.path, (filled) => {
         if (filled.length === 0) {
-          toast.info("No new files detected");
+          toast.info(t("mame.inputPanel.toastNoFiles"));
         } else {
-          toast.success(`Auto-detected: ${filled.join(", ")}`);
+          toast.success(t("mame.inputPanel.toastAutoDetected", { items: filled.join(", ") }));
         }
       });
     } finally {
@@ -130,7 +129,7 @@ export function InputPanel() {
       }
 
       if (filled.length > 0) {
-        toast.success(`Auto-detected: ${filled.join(", ")}`);
+        toast.success(t("mame.inputPanel.toastAutoDetected", { items: filled.join(", ") }));
       }
     } finally {
       setIsAutoFilling(false);
@@ -181,13 +180,17 @@ export function InputPanel() {
     if (selected) setSampleMapPath(selected);
   }
 
+  const inputDirKeys = INPUT_DIR_CONFIG_KEYS[inputMode];
+  const noPathLabel = t("mame.inputPanel.noPathSelected");
+  const readyLabel = t("mame.inputPanel.fileReady");
+
   return (
     <div className="rounded-lg border border-border bg-background p-4 space-y-4">
       <header className="flex items-start justify-between gap-2">
         <div>
-          <h3 className="text-sm font-semibold text-foreground">Input files</h3>
+          <h3 className="text-sm font-semibold text-foreground">{t("mame.inputPanel.title")}</h3>
           <p className="mt-1 text-xs text-muted-foreground">
-            Primary run inputs and output location.
+            {t("mame.inputPanel.subtitle")}
           </p>
         </div>
         <Button
@@ -195,7 +198,7 @@ export function InputPanel() {
           size="sm"
           onClick={() => void handleRedetect()}
           disabled={!project?.path || isDetecting}
-          aria-label="Re-detect input files from project directory"
+          aria-label={t("mame.inputPanel.redetectAriaLabel")}
           className="h-7 shrink-0"
         >
           {isDetecting ? (
@@ -203,20 +206,25 @@ export function InputPanel() {
           ) : (
             <RefreshCw className="h-3 w-3" aria-hidden="true" />
           )}
-          <span className="ml-1">Re-detect</span>
+          <span className="ml-1">
+            {isDetecting ? t("mame.inputPanel.redetecting") : t("mame.inputPanel.redetect")}
+          </span>
         </Button>
       </header>
 
       <FileField
-        label={INPUT_DIR_CONFIG[inputMode].label}
+        label={t(inputDirKeys.labelKey)}
         value={inputDir}
         onChange={setInputDir}
         onBrowse={browseDirectory}
-        placeholder={INPUT_DIR_CONFIG[inputMode].placeholder}
-        stateLabel="Required"
+        placeholder={t(inputDirKeys.placeholderKey)}
+        stateLabel={t("mame.inputPanel.kuroXlsx.stateLabel")}
         filled={Boolean(inputDir)}
-        helperText={INPUT_DIR_CONFIG[inputMode].helperText}
-        helpText={INPUT_DIR_CONFIG[inputMode].helperText}
+        helperText={t(inputDirKeys.helperTextKey)}
+        helpText={t(inputDirKeys.helperTextKey)}
+        noPathLabel={noPathLabel}
+        readyLabel={readyLabel}
+        browseAriaLabel={t("mame.inputPanel.browseFolderAriaLabel", { label: t(inputDirKeys.labelKey) })}
       />
       {inputMode === "raw_run" && rawRunParams.sequencingSummaryPath && (
         <p className="text-xs text-muted-foreground -mt-2 pl-1">
@@ -226,61 +234,78 @@ export function InputPanel() {
       {inputMode === "raw_run" && (
         <>
           <FileField
-            label="Custom Barcodes (xlsx or csv)"
+            label={t("mame.inputPanel.customBarcodes.label")}
             value={rawRunParams.customBarcodesPath}
             onChange={(value) => updateRaw({ customBarcodesPath: value })}
             onBrowse={browseCustomBarcodes}
-            placeholder=".xlsx / .csv file path"
-            stateLabel="Required"
+            placeholder={t("mame.inputPanel.customBarcodes.placeholder")}
+            stateLabel={t("mame.inputPanel.customBarcodes.stateLabel")}
             filled={Boolean(rawRunParams.customBarcodesPath)}
-            helperText="Combinatorial barcode definition used before analysis"
-            helpText="Raw MinKNOW run mode uses this file to assign reads to per-well FASTA outputs before analysis."
+            helperText={t("mame.inputPanel.customBarcodes.helperText")}
+            helpText={t("mame.inputPanel.customBarcodes.helpText")}
+            noPathLabel={noPathLabel}
+            readyLabel={readyLabel}
+            browseAriaLabel={t("mame.inputPanel.browseFolderAriaLabel", { label: t("mame.inputPanel.customBarcodes.label") })}
           />
           <FileField
-            label="Sample Map (optional)"
+            label={t("mame.inputPanel.sampleMap.label")}
             value={sampleMapPath}
             onChange={setSampleMapPath}
             onBrowse={browseSampleMap}
-            placeholder=".xlsx file path (mutants well layout)"
-            stateLabel="Optional"
+            placeholder={t("mame.inputPanel.sampleMap.placeholder")}
+            stateLabel={t("mame.inputPanel.sampleMap.stateLabel")}
             filled={Boolean(sampleMapPath)}
-            helperText="Well-to-sample name mapping — adds mutant name to sorted FASTA filenames (e.g. A01_V5F_F1_R1.fasta)"
-            helpText="Col A: sample name, Col B: well position (e.g. A1). KURO mutants.xlsx 레이아웃과 동일하면 바로 사용 가능합니다."
+            helperText={t("mame.inputPanel.sampleMap.helperText")}
+            helpText={t("mame.inputPanel.sampleMap.helpText")}
+            noPathLabel={noPathLabel}
+            readyLabel={readyLabel}
+            browseAriaLabel={t("mame.inputPanel.browseFolderAriaLabel", { label: t("mame.inputPanel.sampleMap.label") })}
           />
         </>
       )}
       <FileField
-        label="KURO xlsx"
+        label={t("mame.inputPanel.kuroXlsx.label")}
         value={expectedPath}
         onChange={setExpectedPath}
         onBrowse={browseExpected}
-        placeholder=".xlsx file path"
-        stateLabel="Required"
+        placeholder={t("mame.inputPanel.kuroXlsx.placeholder")}
+        stateLabel={t("mame.inputPanel.kuroXlsx.stateLabel")}
         filled={Boolean(expectedPath)}
-        helperText="expected_mutations sheet from KURO"
-        helpText="KURO에서 export한 expected_mutations .xlsx 파일입니다. MAME는 이 파일의 기대 변이와 NGS consensus 결과를 비교합니다."
+        helperText={t("mame.inputPanel.kuroXlsx.helperText")}
+        helpText={t("mame.inputPanel.kuroXlsx.helpText")}
+        noPathLabel={noPathLabel}
+        readyLabel={readyLabel}
+        browseAriaLabel={t("mame.inputPanel.browseFolderAriaLabel", { label: t("mame.inputPanel.kuroXlsx.label") })}
       />
       <FileField
-        label="Reference FASTA"
+        label={t("mame.inputPanel.referenceFasta.label")}
         value={referencePath}
         onChange={setReferencePath}
         onBrowse={browseReference}
-        placeholder=".fasta / .fa file path"
-        stateLabel="Required"
+        placeholder={t("mame.inputPanel.referenceFasta.placeholder")}
+        stateLabel={t("mame.inputPanel.referenceFasta.stateLabel")}
         filled={Boolean(referencePath)}
-        helperText="Reference sequence used for variant calling against consensus"
-        helpText="Variant calling 기준이 되는 reference FASTA입니다. KURO 설계에 사용한 동일 reference를 쓰는 것이 안전합니다."
+        helperText={t("mame.inputPanel.referenceFasta.helperText")}
+        helpText={t("mame.inputPanel.referenceFasta.helpText")}
+        noPathLabel={noPathLabel}
+        readyLabel={readyLabel}
+        browseAriaLabel={t("mame.inputPanel.browseFolderAriaLabel", { label: t("mame.inputPanel.referenceFasta.label") })}
       />
       <FileField
-        label="Export destination folder"
+        label={t("mame.inputPanel.exportDest.label")}
         value={outputPath}
         onChange={setOutputPath}
         onBrowse={browseOutput}
-        placeholder={`Choose a folder; ${defaultMameExportFilename({ referencePath, inputDir, verdictCount })} will be created`}
-        stateLabel="Save to"
+        placeholder={t("mame.inputPanel.exportDest.placeholder", {
+          filename: defaultMameExportFilename({ referencePath, inputDir, verdictCount }),
+        })}
+        stateLabel={t("mame.inputPanel.exportDest.stateLabel")}
         filled={Boolean(outputPath)}
-        helperText="Analysis report will use a KURO-style rule-based .xlsx filename"
-        helpText="분석 결과 Excel을 저장할 폴더입니다. 파일명은 KURO와 같은 규칙으로 날짜, reference/input 토큰, MAME target, 결과 개수 토큰을 조합해 생성합니다."
+        helperText={t("mame.inputPanel.exportDest.helperText")}
+        helpText={t("mame.inputPanel.exportDest.helpText")}
+        noPathLabel={noPathLabel}
+        readyLabel={readyLabel}
+        browseAriaLabel={t("mame.inputPanel.browseFolderAriaLabel", { label: t("mame.inputPanel.exportDest.label") })}
       />
     </div>
   );
@@ -296,6 +321,9 @@ function FileField({
   filled,
   helperText,
   helpText,
+  noPathLabel,
+  readyLabel,
+  browseAriaLabel,
 }: {
   label: string;
   value: string;
@@ -306,6 +334,9 @@ function FileField({
   filled: boolean;
   helperText?: string;
   helpText?: string;
+  noPathLabel: string;
+  readyLabel: string;
+  browseAriaLabel?: string;
 }) {
   const inputId = `file-field-${label.replace(/\s+/g, "-").toLowerCase()}`;
   const preview = getPathPreview(value);
@@ -326,7 +357,7 @@ function FileField({
               : "bg-muted text-muted-foreground"
           }`}
         >
-          {filled ? "Ready" : stateLabel}
+          {filled ? readyLabel : stateLabel}
         </span>
       </div>
       <div className="flex gap-1.5">
@@ -344,7 +375,7 @@ function FileField({
           size="sm"
           onClick={() => void onBrowse()}
           className="h-8 gap-1 px-2"
-          aria-label={`Browse ${label}`}
+          aria-label={browseAriaLabel ?? label}
         >
           <FolderOpen size={12} aria-hidden="true" />
         </Button>
@@ -353,7 +384,7 @@ function FileField({
         <p className="text-caption text-muted-foreground/90">{helperText}</p>
       )}
       <p className="truncate text-caption text-muted-foreground" title={value || undefined}>
-        {filled ? preview : "No path selected"}
+        {filled ? preview : noPathLabel}
       </p>
     </div>
   );

@@ -306,7 +306,7 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
           {/* §1 Recovery: UI 상태 보존 sidecar 재시작. Zustand 스토어는 메모리에 유지됨 */}
           <DropdownMenuItem
             onClick={() => {
-              if (isAnalyzing && !window.confirm("분석이 진행 중입니다. 그래도 sidecar를 재시작하시겠습니까?")) return;
+              if (isAnalyzing && !window.confirm(t("mame.menuBar.restartSidecarConfirm"))) return;
               void killSidecar("mame");
             }}
             disabled={false}

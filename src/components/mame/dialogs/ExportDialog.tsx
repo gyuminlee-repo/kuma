@@ -1,5 +1,6 @@
 import { save } from "@tauri-apps/plugin-dialog";
 import { AlertCircle, CheckCircle2, Download, FolderOpen } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +17,7 @@ import { revealInOSFolder } from "@/lib/openFolder";
 import { fileExists, requestOverwriteConfirm } from "@/lib/overwriteConfirm";
 
 export function ExportDialog() {
+  const { t } = useTranslation();
   const open = useMameAppStore((s) => s.showExport);
   const closeExport = useMameAppStore((s) => s.closeExport);
   const outputPath = useMameAppStore((s) => s.outputPath);
@@ -35,29 +37,28 @@ export function ExportDialog() {
     <Dialog open={open} onOpenChange={(next) => !next && closeExport()}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Export Results</DialogTitle>
+          <DialogTitle>{t("mame.dialogs.export.title")}</DialogTitle>
           <DialogDescription>
-            Save the complete verdict set as an Excel workbook.{" "}
+            {t("mame.dialogs.export.descriptionBase")}{" "}
             <span className="font-medium text-foreground">
-              Reference format included
-            </span>{" "}
-            — sheets: NB01/NB02/NB03, Final, NGS 결과, Final (matrix).
+              {t("mame.dialogs.export.descriptionSheets")}
+            </span>
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="export-output-path" className="text-xs font-medium text-muted-foreground">
-              Output file path
+              {t("mame.dialogs.export.outputPathLabel")}
             </Label>
             <div className="flex gap-2">
               <Input
                 id="export-output-path"
                 value={outputPath}
                 onChange={(e) => setOutputPath(e.target.value)}
-                placeholder="Target .xlsx file path"
+                placeholder={t("mame.dialogs.export.outputPathPlaceholder")}
                 className="h-9 flex-1 text-sm font-mono"
-                aria-label="Output file path"
+                aria-label={t("mame.dialogs.export.outputPathAriaLabel")}
               />
               <Button
                 type="button"
@@ -65,10 +66,10 @@ export function ExportDialog() {
                 size="sm"
                 onClick={() => void browseOutput()}
                 className="h-9 gap-1.5 px-3 flex-shrink-0"
-                aria-label="Browse save path"
+                aria-label={t("mame.dialogs.export.browseAriaLabel")}
               >
                 <FolderOpen size={14} aria-hidden="true" />
-                Browse
+                {t("common.browse")}
               </Button>
             </div>
           </div>
@@ -89,7 +90,9 @@ export function ExportDialog() {
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 size={13} className="text-success" aria-hidden="true" />
-                  <span className="text-caption font-medium text-success">Last export</span>
+                  <span className="text-caption font-medium text-success">
+                    {t("mame.dialogs.export.lastExport")}
+                  </span>
                 </div>
                 {lastExportPath && (
                   <Button
@@ -98,10 +101,10 @@ export function ExportDialog() {
                     size="sm"
                     className="h-6 gap-1 px-2 text-caption text-muted-foreground hover:text-foreground"
                     onClick={() => void revealInOSFolder(lastExportPath)}
-                    aria-label="Open export folder in file explorer"
+                    aria-label={t("mame.dialogs.export.openFolderAriaLabel")}
                   >
                     <FolderOpen size={12} aria-hidden="true" />
-                    Open folder
+                    {t("common.openFolder")}
                   </Button>
                 )}
               </div>
@@ -115,7 +118,7 @@ export function ExportDialog() {
 
         <DialogFooter>
           <Button variant="outline" size="sm" onClick={closeExport} disabled={isExporting}>
-            Close
+            {t("common.close")}
           </Button>
           <Button
             size="sm"
@@ -132,7 +135,7 @@ export function ExportDialog() {
             className="gap-2"
           >
             <Download size={14} aria-hidden="true" />
-            {isExporting ? "Exporting…" : "Export Excel"}
+            {isExporting ? t("mame.dialogs.export.exporting") : t("mame.dialogs.export.exportExcel")}
           </Button>
         </DialogFooter>
       </DialogContent>

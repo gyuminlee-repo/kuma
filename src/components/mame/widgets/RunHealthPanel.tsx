@@ -20,6 +20,7 @@
  */
 
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import type {
   CrossTalkCandidate,
@@ -56,6 +57,7 @@ interface VerdictBreakdownProps {
 }
 
 function VerdictBreakdown({ perPlate }: VerdictBreakdownProps) {
+  const { t } = useTranslation();
   const plates = Object.entries(perPlate);
   if (plates.length === 0) return null;
 
@@ -69,15 +71,15 @@ function VerdictBreakdown({ perPlate }: VerdictBreakdownProps) {
   const maxTotal = safeMax(plates.map(([, v]) => v.total));
 
   return (
-    <figure className="w-full overflow-x-auto" aria-label="Verdict breakdown by plate">
+    <figure className="w-full overflow-x-auto" aria-label={t("mame.runHealth.verdictBreakdown")}>
       <svg
         viewBox={`0 0 ${svgW} ${svgH}`}
         width="100%"
         preserveAspectRatio="xMinYMin meet"
         role="img"
-        aria-label="Stacked bar chart: verdict counts per plate"
+        aria-label={t("mame.runHealth.verdictBreakdown")}
       >
-        <title>Verdict breakdown per plate</title>
+        <title>{t("mame.runHealth.verdictBreakdown")}</title>
         {plates.map(([plate, breakdown], i) => {
           const x = gap + i * (barW + gap);
           const scale = maxTotal > 0 ? chartH / maxTotal : 0;
@@ -132,7 +134,7 @@ function VerdictBreakdown({ perPlate }: VerdictBreakdownProps) {
         })}
       </svg>
       <figcaption className="sr-only">
-        Stacked bar showing PASS, Ambiguous, Fail, and Fallback counts per plate.
+        {t("mame.runHealth.figureVerdictBreakdownCaption")}
       </figcaption>
     </figure>
   );
@@ -150,6 +152,7 @@ interface FileSizeHistogramProps {
 const HIST_KEYS = ["min", "p05", "p25", "median", "p75", "p95", "max"] as const;
 
 function FileSizeHistogram({ distribution, cutoffKb, bimodal, method }: FileSizeHistogramProps) {
+  const { t } = useTranslation();
   const values = HIST_KEYS.map((k) => distribution[k] ?? 0);
   const maxVal = safeMax(values);
 
@@ -168,16 +171,20 @@ function FileSizeHistogram({ distribution, cutoffKb, bimodal, method }: FileSize
   return (
     <figure
       className="w-full overflow-x-auto"
-      aria-label={`File size distribution histogram. Suggested cutoff: ${cutoffKb.toFixed(1)} KB (${method})${bimodal ? ", bimodal distribution detected" : ""}`}
+      aria-label={
+        bimodal
+          ? t("mame.runHealth.fileSizeAriaLabelBimodal", { cutoffKb: cutoffKb.toFixed(1), method })
+          : t("mame.runHealth.fileSizeAriaLabel", { cutoffKb: cutoffKb.toFixed(1), method })
+      }
     >
       <svg
         viewBox={`0 0 ${svgW} ${svgH}`}
         width="100%"
         preserveAspectRatio="xMinYMin meet"
         role="img"
-        aria-label="File size distribution histogram with cutoff marker"
+        aria-label={t("mame.runHealth.fileSizeDistribution")}
       >
-        <title>File size distribution</title>
+        <title>{t("mame.runHealth.fileSizeDistribution")}</title>
         {HIST_KEYS.map((key, i) => {
           const val = distribution[key] ?? 0;
           const h = maxVal > 0 ? (val / maxVal) * chartH : 0;
@@ -231,7 +238,9 @@ function FileSizeHistogram({ distribution, cutoffKb, bimodal, method }: FileSize
         </text>
       </svg>
       <figcaption className="sr-only">
-        {`7-bucket file size histogram. Suggested cutoff at ${cutoffKb.toFixed(1)} KB using ${method} method.${bimodal ? " Bimodal distribution detected." : ""}`}
+        {bimodal
+          ? t("mame.runHealth.figureFileSizeCaptionBimodal", { cutoffKb: cutoffKb.toFixed(1), method })
+          : t("mame.runHealth.figureFileSizeCaptionBase", { cutoffKb: cutoffKb.toFixed(1), method })}
       </figcaption>
     </figure>
   );
@@ -244,6 +253,7 @@ interface BarcodeDistributionProps {
 }
 
 function BarcodeDistribution({ distribution }: BarcodeDistributionProps) {
+  const { t } = useTranslation();
   const entries = useMemo(
     () => Object.entries(distribution).sort((a, b) => b[1] - a[1]),
     [distribution],
@@ -259,15 +269,15 @@ function BarcodeDistribution({ distribution }: BarcodeDistributionProps) {
   const maxCount = safeMax(entries.map(([, v]) => v));
 
   return (
-    <figure className="w-full max-h-72 overflow-y-auto" aria-label="Barcode read count distribution">
+    <figure className="w-full max-h-72 overflow-y-auto" aria-label={t("mame.runHealth.barcodeDistribution")}>
       <svg
         viewBox={`0 0 ${svgW} ${svgH}`}
         width="100%"
         preserveAspectRatio="xMinYMin meet"
         role="img"
-        aria-label="Horizontal bar chart: read counts per barcode"
+        aria-label={t("mame.runHealth.barcodeDistribution")}
       >
-        <title>Barcode read distribution</title>
+        <title>{t("mame.runHealth.barcodeDistribution")}</title>
         {entries.map(([barcode, count], i) => {
           const y = i * (rowH + gap);
           const barLen = maxCount > 0 ? (count / maxCount) * chartW : 0;
@@ -303,7 +313,7 @@ function BarcodeDistribution({ distribution }: BarcodeDistributionProps) {
         })}
       </svg>
       <figcaption className="sr-only">
-        Horizontal bar chart showing read counts for each detected barcode.
+        {t("mame.runHealth.figureBarcodeCaption")}
       </figcaption>
     </figure>
   );
@@ -316,6 +326,7 @@ interface ThroughputTimelineProps {
 }
 
 function ThroughputTimeline({ points }: ThroughputTimelineProps) {
+  const { t } = useTranslation();
   if (points.length < 2) return null;
 
   const chartW = 240;
@@ -351,16 +362,16 @@ function ThroughputTimeline({ points }: ThroughputTimelineProps) {
   return (
     <figure
       className="w-full overflow-x-auto"
-      aria-label={`Throughput timeline over ${maxTime.toFixed(1)} hours`}
+      aria-label={t("mame.runHealth.throughputAriaLabel", { maxTime: maxTime.toFixed(1) })}
     >
       <svg
         viewBox={`0 0 ${svgW} ${totalH}`}
         width="100%"
         preserveAspectRatio="xMinYMin meet"
         role="img"
-        aria-label="Line chart: reads per second over experiment time"
+        aria-label={t("mame.runHealth.throughputTimeline")}
       >
-        <title>Throughput timeline</title>
+        <title>{t("mame.runHealth.throughputTimeline")}</title>
         {/* Area fill */}
         <path d={areaPath} style={{ fill: C.area }} />
         {/* Line */}
@@ -385,7 +396,7 @@ function ThroughputTimeline({ points }: ThroughputTimelineProps) {
         </text>
       </svg>
       <figcaption className="sr-only">
-        {`Line chart showing reads per second from experiment start to ${maxTime.toFixed(1)} hours.`}
+        {t("mame.runHealth.figureThroughputCaption", { maxTime: maxTime.toFixed(1) })}
       </figcaption>
     </figure>
   );
@@ -398,6 +409,7 @@ interface PoreYieldProps {
 }
 
 function PoreYield({ pct }: PoreYieldProps) {
+  const { t } = useTranslation();
   const toneClass =
     pct >= 75
       ? "text-success"
@@ -409,13 +421,13 @@ function PoreYield({ pct }: PoreYieldProps) {
     <div
       className="flex flex-col items-center gap-1 py-2"
       role="status"
-      aria-label={`Final pore yield: ${pct.toFixed(1)}%`}
+      aria-label={t("mame.runHealth.poreYieldAriaLabel", { pct: pct.toFixed(1) })}
     >
       <span className={cn("font-display text-4xl font-bold tabular-nums", toneClass)}>
         {pct.toFixed(1)}%
       </span>
       <span className="text-caption text-muted-foreground">
-        Final active pore yield
+        {t("mame.runHealth.finalActivePoreYield")}
       </span>
     </div>
   );
@@ -424,6 +436,7 @@ function PoreYield({ pct }: PoreYieldProps) {
 // ── Legend ────────────────────────────────────────────────────────────────────
 
 function Legend() {
+  const { t } = useTranslation();
   const items = [
     { label: "PASS", color: C.pass },
     { label: "Ambiguous", color: C.ambiguous },
@@ -431,7 +444,7 @@ function Legend() {
     { label: "Fallback", color: C.fallback },
   ];
   return (
-    <div className="flex flex-wrap gap-3" aria-label="Chart legend" role="list">
+    <div className="flex flex-wrap gap-3" aria-label={t("mame.runHealth.legendAriaLabel")} role="list">
       {items.map(({ label, color }) => (
         <div key={label} className="flex items-center gap-1.5" role="listitem">
           <span
@@ -465,36 +478,37 @@ const SEVERITY_BORDER: Record<CrossTalkCandidate["severity"], string> = {
 };
 
 function CrossTalkAlerts({ candidates }: CrossTalkAlertsProps) {
+  const { t } = useTranslation();
   // Sort by z_score descending (defensive: backend already sorts, but guard here too)
   const sorted = [...candidates].sort((a, b) => b.z_score - a.z_score);
 
   if (sorted.length === 0) {
     return (
       <p className="text-caption text-muted-foreground" role="status">
-        No cross-talk candidates detected.
+        {t("mame.runHealth.noCrossTalk")}
       </p>
     );
   }
 
   return (
-    <div className="overflow-x-auto" role="region" aria-label="Cross-talk candidate table">
-      <table className="w-full text-caption" aria-label="Cross-talk candidates">
+    <div className="overflow-x-auto" role="region" aria-label={t("mame.runHealth.crossTalkAriaLabel")}>
+      <table className="w-full text-caption" aria-label={t("mame.runHealth.crossTalkTableAriaLabel")}>
         <thead>
           <tr className="border-b border-border text-left text-muted-foreground">
             <th scope="col" className="py-1 pr-3 font-medium">
-              Well
+              {t("mame.runHealth.colWell")}
             </th>
             <th scope="col" className="py-1 pr-3 font-medium">
-              Reads
+              {t("mame.runHealth.colReads")}
             </th>
             <th scope="col" className="py-1 pr-3 font-medium">
-              Neighbor avg
+              {t("mame.runHealth.colNeighborAvg")}
             </th>
             <th scope="col" className="py-1 pr-3 font-medium">
-              Z-score
+              {t("mame.runHealth.colZScore")}
             </th>
             <th scope="col" className="py-1 font-medium">
-              Severity
+              {t("mame.runHealth.colSeverity")}
             </th>
           </tr>
         </thead>
@@ -520,7 +534,7 @@ function CrossTalkAlerts({ candidates }: CrossTalkAlertsProps) {
                     SEVERITY_CLASS[c.severity],
                     SEVERITY_BORDER[c.severity],
                   )}
-                  aria-label={`Severity: ${c.severity}`}
+                  aria-label={t("mame.runHealth.severityAriaLabel", { severity: c.severity })}
                 >
                   {c.severity}
                 </span>
@@ -541,6 +555,7 @@ interface RunHealthPanelProps {
 }
 
 export function RunHealthPanel({ health, className }: RunHealthPanelProps) {
+  const { t } = useTranslation();
   const hasMinKnow =
     health.pore_yield_pct !== null ||
     health.throughput_timeline !== null ||
@@ -550,7 +565,7 @@ export function RunHealthPanel({ health, className }: RunHealthPanelProps) {
     <div
       className={cn("grid gap-4 p-4 md:grid-cols-2", className)}
       role="region"
-      aria-label="Run health panel"
+      aria-label={t("mame.runHealth.panelAriaLabel")}
     >
       {/* Section 1: Verdict breakdown */}
       <section aria-labelledby="vh-verdict-heading" className="flex flex-col gap-2">
@@ -558,7 +573,7 @@ export function RunHealthPanel({ health, className }: RunHealthPanelProps) {
           id="vh-verdict-heading"
           className="text-caption font-semibold uppercase tracking-widest text-muted-foreground"
         >
-          Verdict breakdown
+          {t("mame.runHealth.verdictBreakdown")}
         </h3>
         <Legend />
         <VerdictBreakdown perPlate={health.per_plate_summary} />
@@ -570,16 +585,16 @@ export function RunHealthPanel({ health, className }: RunHealthPanelProps) {
           id="vh-dist-heading"
           className="text-caption font-semibold uppercase tracking-widest text-muted-foreground"
         >
-          File size distribution
+          {t("mame.runHealth.fileSizeDistribution")}
         </h3>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-muted-foreground">
           <span>
-            Method:{" "}
+            {t("mame.runHealth.method")}:{" "}
             <span className="font-medium text-foreground">{health.suggested_method}</span>
           </span>
           {health.bimodal && (
             <span className="rounded-control border border-warning/40 px-1.5 py-0.5 text-warning">
-              Bimodal
+              {t("mame.runHealth.bimodalBadge")}
             </span>
           )}
         </div>
@@ -591,7 +606,7 @@ export function RunHealthPanel({ health, className }: RunHealthPanelProps) {
             method={health.suggested_method}
           />
         ) : (
-          <p className="text-caption text-muted-foreground">No distribution data.</p>
+          <p className="text-caption text-muted-foreground">{t("mame.runHealth.noDistributionData")}</p>
         )}
       </section>
 
@@ -652,7 +667,7 @@ export function RunHealthPanel({ health, className }: RunHealthPanelProps) {
           id="vh-crosstalk-heading"
           className="text-caption font-semibold uppercase tracking-widest text-muted-foreground"
         >
-          Cross-talk candidates
+          {t("mame.runHealth.crossTalkCandidates")}
         </h3>
         <CrossTalkAlerts candidates={health.cross_talk_candidates} />
       </section>
@@ -660,8 +675,7 @@ export function RunHealthPanel({ health, className }: RunHealthPanelProps) {
       {!hasMinKnow && (
         <div className="col-span-full">
           <p className="text-caption text-muted-foreground">
-            MinKNOW raw run directory not detected — pore yield, throughput, and
-            barcode charts are unavailable.
+            {t("mame.runHealth.noMinKnow")}
           </p>
         </div>
       )}
