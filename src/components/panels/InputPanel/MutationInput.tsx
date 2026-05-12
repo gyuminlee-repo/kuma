@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useAppStore } from "../../../store/appStore";
 import { basename } from "../../../lib/utils";
 import { browseFile } from "../../../lib/file-utils";
@@ -6,6 +7,7 @@ import { Button } from "../../ui/button";
 import { DiversityOptions } from "./DiversityOptions";
 
 export function MutationInput() {
+  const { t } = useTranslation();
   const mutationInputMode = useAppStore((s) => s.mutationInputMode);
   const mutationText = useAppStore((s) => s.mutationText);
   const parsedMutations = useAppStore((s) => s.parsedMutations);
@@ -42,8 +44,8 @@ export function MutationInput() {
 
   return (
     <div className="space-y-1">
-      <label className="text-xs font-medium text-foreground">Mutations</label>
-      <div className="flex gap-2 text-xs" role="radiogroup" aria-label="Mutation input source">
+      <label className="text-xs font-medium text-foreground">{t("mutationInput.mutations")}</label>
+      <div className="flex gap-2 text-xs" role="radiogroup" aria-label={t("mutationInput.mutationInputAriaLabel")}>
         <label className="flex items-center gap-1 rounded-full border border-border bg-card px-2 py-1 text-muted-foreground">
           <input
             type="radio"
@@ -111,7 +113,7 @@ export function MutationInput() {
               Browse
             </Button>
             <span className="self-center truncate text-xs text-muted-foreground">
-              {evolveproCsvPath ? basename(evolveproCsvPath) : "No file selected"}
+              {evolveproCsvPath ? basename(evolveproCsvPath) : t("mutationInput.noFileSelected")}
             </span>
           </div>
 
@@ -119,20 +121,20 @@ export function MutationInput() {
           {evolveproTotalCount > 0 && (
             <div className="rounded-xl border border-border bg-muted px-3 py-2 text-xs font-medium text-foreground">
               {mutationInputMode === "multi-evolve" ? "MULTI-evolve" : "EVOLVEpro"}:{" "}
-              {evolveproTotalCount} variants loaded
+              {t("mutationInput.variantsLoaded", { count: evolveproTotalCount })}
             </div>
           )}
 
           {/* Selection mode / Pipeline UI — only for evolvepro (multi-evolve uses all combinations) */}
           {mutationInputMode === "multi-evolve" ? (
             <div className="rounded-md border border-border bg-muted px-3 py-2 text-xs text-muted-foreground">
-              MULTI-evolve: all combinations selected (no filtering)
+              {t("mutationInput.allCombinations")}
             </div>
           ) : (
             <>
               <div className="space-y-1">
                 <div className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">
-                  Selection mode
+                  {t("mutationInput.selectionMode")}
                 </div>
                 <div className="space-y-0.5">
                   <label className="flex items-center gap-1.5 cursor-pointer text-xs">
@@ -143,8 +145,8 @@ export function MutationInput() {
                       checked={!pipelineMode}
                       onChange={() => setPipelineMode(false)}
                     />
-                    <span className="text-foreground">Top-N only</span>
-                    <span className="text-caption text-muted-foreground">(y_pred descending)</span>
+                    <span className="text-foreground">{t("mutationInput.topNOnly")}</span>
+                    <span className="text-caption text-muted-foreground">{t("mutationInput.topNDesc")}</span>
                   </label>
                   <label className="flex items-center gap-1.5 cursor-pointer text-xs">
                     <input
@@ -154,8 +156,8 @@ export function MutationInput() {
                       checked={pipelineMode}
                       onChange={() => setPipelineMode(true)}
                     />
-                    <span className="text-foreground">Pipeline</span>
-                    <span className="text-caption text-muted-foreground">(step-by-step filtering)</span>
+                    <span className="text-foreground">{t("mutationInput.pipeline")}</span>
+                    <span className="text-caption text-muted-foreground">{t("mutationInput.pipelineDesc")}</span>
                   </label>
                 </div>
               </div>
@@ -170,7 +172,7 @@ export function MutationInput() {
               className="h-32 w-full resize-none rounded-2xl border border-border bg-muted p-3 font-mono text-xs"
               value={mutationText}
               onChange={(e) => setMutationText(e.target.value)}
-              title="Top-N variants by y_pred (editable)"
+              title={t("mutationInput.topNVariantsTitle")}
             />
           )}
         </div>
@@ -178,14 +180,14 @@ export function MutationInput() {
 
       {mutationText.trim() && (
         <div className="text-xs text-muted-foreground">
-          {mutationCount} mutations entered
+          {t("mutationInput.mutationsEntered", { count: mutationCount })}
           {parsedMutations.length > 0 && (
             <span className="ml-1 text-emerald-600">
-              ({parsedMutations.length} validated)
+              {t("mutationInput.mutationsValidated", { count: parsedMutations.length })}
             </span>
           )}
           {parseErrors.length > 0 && (
-            <span className="text-destructive ml-1">({parseErrors.length} failed)</span>
+            <span className="text-destructive ml-1">{t("mutationInput.mutationsFailed", { count: parseErrors.length })}</span>
           )}
         </div>
       )}

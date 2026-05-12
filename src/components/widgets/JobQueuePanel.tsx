@@ -13,6 +13,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import type { PointerEvent } from "react";
 import { useAppStore } from "@/store/appStore";
 import type { Job, JobKind, JobStatus } from "@/store/slices/jobQueueSlice";
@@ -29,23 +30,31 @@ const KIND_ICON: Record<JobKind, string> = {
   merge: "⊕",
 };
 
-const KIND_LABEL: Record<JobKind, string> = {
-  design: "Design",
-  export: "Export",
-  analyze: "Analyze",
-  merge: "Merge",
+const KIND_LABEL_KEY: Record<JobKind, string> = {
+  design: "jobQueue.kindDesign",
+  export: "jobQueue.kindExport",
+  analyze: "jobQueue.kindAnalyze",
+  merge: "jobQueue.kindMerge",
 };
 
 // ── Status → badge variant + label ──────────────────────────────────────────
 
 type BadgeVariant = "default" | "secondary" | "success" | "warning" | "destructive" | "outline";
 
-const STATUS_BADGE: Record<JobStatus, { variant: BadgeVariant; label: string }> = {
-  pending:   { variant: "secondary", label: "Pending" },
-  running:   { variant: "default",   label: "Running" },
-  completed: { variant: "success",   label: "Done" },
-  failed:    { variant: "destructive", label: "Failed" },
-  cancelled: { variant: "outline",   label: "Cancelled" },
+const STATUS_BADGE_VARIANT: Record<JobStatus, BadgeVariant> = {
+  pending:   "secondary",
+  running:   "default",
+  completed: "success",
+  failed:    "destructive",
+  cancelled: "outline",
+};
+
+const STATUS_LABEL_KEY: Record<JobStatus, string> = {
+  pending:   "jobQueue.statusPending",
+  running:   "jobQueue.statusRunning",
+  completed: "jobQueue.statusDone",
+  failed:    "jobQueue.statusFailed",
+  cancelled: "jobQueue.statusCancelled",
 };
 
 // ── Elapsed time helper ──────────────────────────────────────────────────────
@@ -71,7 +80,9 @@ function JobRow({
   progress: number;
   onCancel: (id: string) => void;
 }) {
-  const { variant, label: statusLabel } = STATUS_BADGE[job.status];
+  const { t } = useTranslation();
+  const variant = STATUS_BADGE_VARIANT[job.status];
+  const statusLabel = t(STATUS_LABEL_KEY[job.status]);
   const isRunning = job.status === "running";
   const isCancellable = job.status === "pending" || job.status === "running";
 
@@ -90,7 +101,7 @@ function JobRow({
       <span
         className="mt-0.5 shrink-0 text-sm text-muted-foreground select-none"
         aria-hidden="true"
-        title={KIND_LABEL[job.kind]}
+        title={t(KIND_LABEL_KEY[job.kind])}
       >
         {KIND_ICON[job.kind]}
       </span>
@@ -128,7 +139,7 @@ function JobRow({
       <Badge
         variant={variant}
         className="shrink-0 text-xs px-1.5 py-0"
-        aria-label={`Status: ${statusLabel}`}
+        aria-label={t("jobQueue.statusAriaLabel", { status: statusLabel })}
       >
         {statusLabel}
       </Badge>
@@ -140,7 +151,7 @@ function JobRow({
           size="sm"
           className="h-5 w-5 shrink-0 p-0 text-muted-foreground hover:text-destructive"
           onClick={() => { onCancel(job.id); }}
-          aria-label={`Cancel job: ${job.label}`}
+          aria-label={t("jobQueue.cancelJobAriaLabel", { label: job.label })}
         >
           ✕
         </Button>
@@ -196,6 +207,7 @@ function readPosition(): FloatingPanelPosition {
 }
 
 export function JobQueuePanel({ onClose }: JobQueuePanelProps) {
+  const { t } = useTranslation();
   const jobs = useAppStore((s) => s.jobs);
   const cancelJob = useAppStore((s) => s.cancelJob);
   const clearCompleted = useAppStore((s) => s.clearCompleted);
@@ -270,16 +282,16 @@ export function JobQueuePanel({ onClose }: JobQueuePanelProps) {
 
   const summaryLabel =
     runningCount > 0 || pendingCount > 0
-      ? `Jobs (running ${runningCount}, pending ${pendingCount})`
+      ? t("jobQueue.summaryRunning", { running: runningCount, pending: pendingCount })
       : jobs.length === 0
-        ? "Jobs (0)"
-        : `Jobs (${doneCount} done)`;
+        ? t("jobQueue.summaryEmpty")
+        : t("jobQueue.summaryDone", { done: doneCount });
 
   return (
     <section
       className="fixed z-40 w-72 rounded-xl border border-border bg-background/95 shadow-lg backdrop-blur-sm"
       style={{ left: position.x, top: position.y }}
-      aria-label="Background job queue"
+      aria-label={t("jobQueue.panelAriaLabel")}
     >
       {/* Collapsed / header row */}
       <div
@@ -289,7 +301,7 @@ export function JobQueuePanel({ onClose }: JobQueuePanelProps) {
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
       >
-        <span className="flex min-w-0 items-center gap-1.5" title="Background job queue. Drag to move.">
+        <span className="flex min-w-0 items-center gap-1.5" title={t("jobQueue.dragTitle")}>
           {/* Activity indicator dot */}
           <span
             className={`h-2 w-2 rounded-full shrink-0 transition-colors ${
@@ -311,7 +323,7 @@ export function JobQueuePanel({ onClose }: JobQueuePanelProps) {
             onClick={() => { setExpanded((v) => !v); }}
             aria-expanded={expanded}
             aria-controls="job-queue-list"
-            aria-label="Toggle background job queue"
+            aria-label={t("jobQueue.toggleAriaLabel")}
           >
             {expanded ? "▲" : "▼"}
           </button>
@@ -320,7 +332,7 @@ export function JobQueuePanel({ onClose }: JobQueuePanelProps) {
               type="button"
               className="rounded px-1 text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               onClick={onClose}
-              aria-label="Hide background job queue"
+              aria-label={t("jobQueue.hideAriaLabel")}
             >
               ×
             </button>
@@ -336,13 +348,13 @@ export function JobQueuePanel({ onClose }: JobQueuePanelProps) {
         >
           {jobs.length === 0 ? (
             <p className="py-3 text-center text-xs text-muted-foreground">
-              No jobs queued
+              {t("jobQueue.noJobs")}
             </p>
           ) : (
             <>
               <ul
                 className="max-h-56 overflow-y-auto"
-                aria-label="Job list"
+                aria-label={t("jobQueue.jobListAriaLabel")}
               >
                 {jobs.map((job) => (
                   <JobRow
@@ -362,9 +374,9 @@ export function JobQueuePanel({ onClose }: JobQueuePanelProps) {
                     size="sm"
                     className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
                     onClick={handleClear}
-                    aria-label="Clear completed jobs"
+                    aria-label={t("jobQueue.clearDoneAriaLabel")}
                   >
-                    Clear done ({doneCount})
+                    {t("jobQueue.clearDone", { count: doneCount })}
                   </Button>
                 </div>
               )}

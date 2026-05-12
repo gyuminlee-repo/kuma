@@ -300,6 +300,89 @@
       "compareWorkspacesSame": "두 워크스페이스가 동일합니다.",
       "compareWorkspacesTitle": "워크스페이스 비교",
       "restartSidecarConfirm": "분석이 실행 중입니다. 그래도 sidecar를 재시작하시겠습니까?"
+    },
+    "appLayout": {
+      "deadlockTitle": "응답 없음",
+      "deadlockDescription": "30초 이상 진행 상태가 업데이트되지 않았습니다. 작업이 멈춘 것 같습니다.",
+      "deadlockWait": "계속 대기",
+      "manifestLoadFailed": "Manifest 로드 실패: {{err}}"
+    },
+    "dialogs": {
+      "export": {
+        "title": "결과 내보내기",
+        "descriptionBase": "전체 verdict 세트를 Excel 워크북으로 저장합니다.",
+        "descriptionSheets": "참조 형식 포함",
+        "outputPathLabel": "출력 파일 경로",
+        "outputPathPlaceholder": "저장할 .xlsx 파일 경로",
+        "outputPathAriaLabel": "출력 파일 경로",
+        "browseAriaLabel": "저장 경로 찾아보기",
+        "lastExport": "마지막 내보내기",
+        "openFolderAriaLabel": "파일 탐색기에서 내보내기 폴더 열기",
+        "exporting": "내보내는 중…",
+        "exportExcel": "Excel 내보내기"
+      }
+    },
+    "inputPanel": {
+      "title": "입력 파일",
+      "subtitle": "주요 실행 입력 파일 및 출력 위치입니다.",
+      "redetect": "재감지",
+      "redetecting": "감지 중...",
+      "redetectAriaLabel": "프로젝트 디렉터리에서 입력 파일 재감지",
+      "toastNoFiles": "새로 감지된 파일 없음",
+      "toastAutoDetected": "자동 감지됨: {{items}}",
+      "noPathSelected": "경로 미선택",
+      "fileReady": "준비됨",
+      "browseFolderAriaLabel": "{{label}} 찾아보기",
+      "consensus": {
+        "label": "Consensus FASTA 폴더",
+        "placeholder": "well별 .fasta 파일이 있는 폴더",
+        "helperText": "미리 정렬된 well별 FASTA 파일 폴더 (consensus 모드)"
+      },
+      "sorted_barcode": {
+        "label": "정렬된 barcode 폴더",
+        "placeholder": "정렬된 barcode FASTA 파일이 있는 폴더",
+        "helperText": "demux로 생성된 정렬된 barcode FASTA 출력 폴더"
+      },
+      "raw_run": {
+        "label": "MinKNOW 실행 폴더",
+        "placeholder": "MinKNOW 원시 실행 디렉터리 경로",
+        "helperText": "MinKNOW 루트 실행 디렉터리 (fastq_pass/ 포함)"
+      },
+      "kuroXlsx": {
+        "label": "KURO xlsx",
+        "placeholder": ".xlsx 파일 경로",
+        "stateLabel": "필수",
+        "helperText": "KURO의 expected_mutations 시트",
+        "helpText": "KURO에서 내보낸 expected_mutations .xlsx 파일입니다. MAME은 이 파일의 예상 돌연변이를 NGS consensus 결과와 비교합니다."
+      },
+      "referenceFasta": {
+        "label": "참조 FASTA",
+        "placeholder": ".fasta / .fa 파일 경로",
+        "stateLabel": "필수",
+        "helperText": "consensus 대비 변이 호출에 사용하는 참조 서열",
+        "helpText": "변이 호출 기준이 되는 참조 FASTA입니다. KURO 설계에 사용한 참조 서열과 동일하게 설정하는 것을 권장합니다."
+      },
+      "customBarcodes": {
+        "label": "Custom Barcode (xlsx 또는 csv)",
+        "placeholder": ".xlsx / .csv 파일 경로",
+        "stateLabel": "필수",
+        "helperText": "분석 전에 사용하는 조합 barcode 정의 파일",
+        "helpText": "Raw MinKNOW 실행 모드에서 reads를 well별 FASTA 출력에 할당하는 데 사용합니다."
+      },
+      "sampleMap": {
+        "label": "샘플 맵 (선택)",
+        "placeholder": ".xlsx 파일 경로 (변이체 well 레이아웃)",
+        "stateLabel": "선택",
+        "helperText": "Well-to-sample 이름 매핑. 정렬된 FASTA 파일명에 변이체 이름 추가 (예: A01_V5F_F1_R1.fasta)",
+        "helpText": "A열: 샘플 이름, B열: well 위치 (예: A1). KURO mutants.xlsx 레이아웃과 호환됩니다."
+      },
+      "exportDest": {
+        "label": "내보내기 대상 폴더",
+        "placeholder": "폴더 선택; {{filename}} 파일이 생성됩니다",
+        "stateLabel": "저장 위치",
+        "helperText": "분석 보고서는 KURO 방식의 규칙 기반 .xlsx 파일명을 사용합니다",
+        "helpText": "분석 결과 Excel이 저장될 폴더입니다. 파일명은 날짜, 참조/입력 토큰, MAME 대상, 결과 수 토큰을 조합한 KURO 방식으로 자동 생성됩니다."
+      }
     }
   },
   "home": {
@@ -334,7 +417,8 @@
     "close": "닫기",
     "loading": "불러오는 중...",
     "openFolder": "폴더 열기",
-    "retry": "재시도"
+    "retry": "재시도",
+    "browse": "찾아보기"
   },
   "globalAppBar": {
     "navAriaLabel": "앱 내비게이션",

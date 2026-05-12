@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useAppStore } from "../../../store/appStore";
 import { Button } from "../../ui/button";
 
 export function UniprotSearch() {
+  const { t } = useTranslation();
   const uniprotAccession = useAppStore((s) => s.uniprotAccession);
   const uniprotCandidates = useAppStore((s) => s.uniprotCandidates);
   const uniprotSearching = useAppStore((s) => s.uniprotSearching);
@@ -42,7 +44,7 @@ export function UniprotSearch() {
           onClick={() => handleManualFetch(true)}
           disabled={domainLoading || uniprotSearching || !accessionInput}
         >
-          {domainLoading || uniprotSearching ? "..." : "Fetch"}
+          {domainLoading || uniprotSearching ? "..." : t("uniprotSearch.fetchBtn")}
         </Button>
         <Button
           variant="outline"
@@ -62,16 +64,18 @@ export function UniprotSearch() {
             );
           }}
           disabled={uniprotSearching || !seqInfo?.genes.length}
-          title="Search UniProt using gene info from the loaded sequence file"
+          title={t("uniprotSearch.autoSearchTitle")}
         >
-          {uniprotSearching ? "..." : "Auto Search"}
+          {uniprotSearching ? "..." : t("uniprotSearch.autoSearchBtn")}
         </Button>
       </div>
       {uniprotCandidates.length > 0 && (
         <div className="space-y-1">
           <div className="px-1 text-[11px] font-medium text-muted-foreground">
-            Top candidates {visibleCandidates.length}
-            {uniprotCandidates.length > visibleCandidates.length ? ` / ${uniprotCandidates.length}` : ""}
+            {t("uniprotSearch.topCandidates", {
+              shown: visibleCandidates.length,
+              total: uniprotCandidates.length > visibleCandidates.length ? ` / ${uniprotCandidates.length}` : "",
+            })}
           </div>
           <div className="space-y-0.5 max-h-40 overflow-auto rounded border border-border/70 bg-muted/20 p-1">
             {visibleCandidates.map((c) => (

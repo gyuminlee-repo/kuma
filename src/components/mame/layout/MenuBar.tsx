@@ -277,7 +277,7 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
       {/* File 메뉴 */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className={TRIGGER_CLS}>File</button>
+          <button className={TRIGGER_CLS}>{t("menu.file")}</button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
           <DropdownMenuItem
@@ -293,14 +293,14 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => void validateInputs()} disabled={isAnalyzing}>
-            <span className="flex-1">Validate Inputs</span>
+            <span className="flex-1">{t("file.validateInputs")}</span>
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => void runAnalysis()} disabled={!canRun}>
-            <span className="flex-1">Run Analysis</span>
+            <span className="flex-1">{t("file.runAnalysis")}</span>
             <DropdownMenuShortcut>{MOD_KEY}D</DropdownMenuShortcut>
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => void cancelAnalysis()} disabled={!isAnalyzing}>
-            <span className="flex-1">Cancel Analysis</span>
+            <span className="flex-1">{t("file.cancelAnalysis")}</span>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           {/* §1 Recovery: UI 상태 보존 sidecar 재시작. Zustand 스토어는 메모리에 유지됨 */}
@@ -311,28 +311,28 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
             }}
             disabled={false}
           >
-            Restart Sidecar
+            {t("file.restartSidecar")}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={openExport} disabled={!hasResults}>
-            <span className="flex-1">Export Excel…</span>
+            <span className="flex-1">{t("export.excel")}</span>
             <DropdownMenuShortcut>{MOD_KEY}E</DropdownMenuShortcut>
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setJanusOpen(true)} disabled={!hasResults}>
-            <span className="flex-1">Export Janus Mapping…</span>
+            <span className="flex-1">{t("export.janusMapping")}</span>
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setRunReportOpen(true)} disabled={!hasResults}>
-            <span className="flex-1">Export Run Report…</span>
+            <span className="flex-1">{t("export.runReport")}</span>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           {/* §21 Multi-workspace */}
           <DropdownMenuItem onClick={() => void handleCompareWorkspaces()}>
-            <span className="flex-1">Compare workspaces…</span>
+            <span className="flex-1">{t("file.compareWorkspaces")}</span>
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => window.alert("Export workspace as zip — coming soon")}
           >
-            <span className="flex-1">Export workspace as zip…</span>
+            <span className="flex-1">{t("file.exportWorkspaceZip")}</span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -340,11 +340,11 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
       {/* Edit 메뉴 */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className={TRIGGER_CLS}>Edit</button>
+          <button className={TRIGGER_CLS}>{t("menu.edit")}</button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
           <DropdownMenuItem onClick={onClearRequest} disabled={!hasResults || isAnalyzing}>
-            Clear Results
+            {t("edit.clearResults")}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -380,7 +380,7 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
 
       <SubtoolMenuBar
         label="Mame"
-        subtitle="Mutagenesis Assessment & Microplate Export"
+        subtitle={t("about.mameTagline")}
         menus={menus}
       />
 
@@ -666,12 +666,15 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
       <Dialog open={wsCompareOpen} onOpenChange={setWsCompareOpen}>
         <DialogContent className="max-w-2xl max-h-[70vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle>Compare Workspaces</DialogTitle>
+            <DialogTitle>{t("mame.menuBar.compareWorkspacesTitle")}</DialogTitle>
             <DialogDescription>
               {wsComparison && wsComparison.differences.length === 0
-                ? "The two workspaces are identical."
+                ? t("mame.menuBar.compareWorkspacesSame")
                 : wsComparison
-                  ? `${wsComparison.differences.length} difference${wsComparison.differences.length === 1 ? "" : "s"} found.`
+                  ? t("mame.menuBar.compareWorkspacesDiff", {
+                      count: wsComparison.differences.length,
+                      plural: wsComparison.differences.length === 1 ? "" : "s",
+                    })
                   : ""}
             </DialogDescription>
           </DialogHeader>
@@ -680,9 +683,9 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
               <table className="w-full text-xs font-mono border-collapse">
                 <thead>
                   <tr className="border-b border-border">
-                    <th className="py-1 px-2 text-left text-muted-foreground font-semibold">Field</th>
-                    <th className="py-1 px-2 text-left text-muted-foreground font-semibold">Workspace A</th>
-                    <th className="py-1 px-2 text-left text-muted-foreground font-semibold">Workspace B</th>
+                    <th className="py-1 px-2 text-left text-muted-foreground font-semibold">{t("mame.menuBar.compareWorkspacesColField")}</th>
+                    <th className="py-1 px-2 text-left text-muted-foreground font-semibold">{t("mame.menuBar.compareWorkspacesColA")}</th>
+                    <th className="py-1 px-2 text-left text-muted-foreground font-semibold">{t("mame.menuBar.compareWorkspacesColB")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -700,12 +703,12 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
                 </tbody>
               </table>
             ) : wsComparison ? (
-              <p className="p-4 text-sm text-muted-foreground text-center">No differences found.</p>
+              <p className="p-4 text-sm text-muted-foreground text-center">{t("mame.menuBar.compareWorkspacesNoDiff")}</p>
             ) : null}
           </div>
           <DialogFooter>
             <Button size="sm" onClick={() => setWsCompareOpen(false)}>
-              Close
+              {t("mame.menuBar.closeBtn")}
             </Button>
           </DialogFooter>
         </DialogContent>

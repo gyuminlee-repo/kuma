@@ -300,6 +300,89 @@
       "compareWorkspacesColB": "Workspace B",
       "compareWorkspacesNoDiff": "No differences found.",
       "closeBtn": "Close"
+    },
+    "appLayout": {
+      "deadlockTitle": "No response",
+      "deadlockDescription": "No progress update for 30+ seconds. The job may be stuck.",
+      "deadlockWait": "Keep waiting",
+      "manifestLoadFailed": "Manifest load failed: {{err}}"
+    },
+    "dialogs": {
+      "export": {
+        "title": "Export Results",
+        "descriptionBase": "Save the complete verdict set as an Excel workbook.",
+        "descriptionSheets": "Reference format included",
+        "outputPathLabel": "Output file path",
+        "outputPathPlaceholder": "Target .xlsx file path",
+        "outputPathAriaLabel": "Output file path",
+        "browseAriaLabel": "Browse save path",
+        "lastExport": "Last export",
+        "openFolderAriaLabel": "Open export folder in file explorer",
+        "exporting": "Exporting…",
+        "exportExcel": "Export Excel"
+      }
+    },
+    "inputPanel": {
+      "title": "Input files",
+      "subtitle": "Primary run inputs and output location.",
+      "redetect": "Re-detect",
+      "redetecting": "Detecting...",
+      "redetectAriaLabel": "Re-detect input files from project directory",
+      "toastNoFiles": "No new files detected",
+      "toastAutoDetected": "Auto-detected: {{items}}",
+      "noPathSelected": "No path selected",
+      "fileReady": "Ready",
+      "browseFolderAriaLabel": "Browse {{label}}",
+      "consensus": {
+        "label": "Consensus FASTA folder",
+        "placeholder": "Folder containing per-well .fasta files",
+        "helperText": "Folder with pre-sorted per-well FASTA files (consensus mode)"
+      },
+      "sorted_barcode": {
+        "label": "Sorted barcode folder",
+        "placeholder": "Folder containing sorted barcode FASTA files",
+        "helperText": "Folder with sorted barcode FASTA outputs from demux"
+      },
+      "raw_run": {
+        "label": "MinKNOW run folder",
+        "placeholder": "MinKNOW raw run directory path",
+        "helperText": "Root MinKNOW run directory (contains fastq_pass/)"
+      },
+      "kuroXlsx": {
+        "label": "KURO xlsx",
+        "placeholder": ".xlsx file path",
+        "stateLabel": "Required",
+        "helperText": "expected_mutations sheet from KURO",
+        "helpText": "The expected_mutations .xlsx file exported from KURO. MAME compares the expected mutations in this file against NGS consensus results."
+      },
+      "referenceFasta": {
+        "label": "Reference FASTA",
+        "placeholder": ".fasta / .fa file path",
+        "stateLabel": "Required",
+        "helperText": "Reference sequence used for variant calling against consensus",
+        "helpText": "Reference FASTA used as the baseline for variant calling. Using the same reference as KURO design is recommended."
+      },
+      "customBarcodes": {
+        "label": "Custom Barcodes (xlsx or csv)",
+        "placeholder": ".xlsx / .csv file path",
+        "stateLabel": "Required",
+        "helperText": "Combinatorial barcode definition used before analysis",
+        "helpText": "Raw MinKNOW run mode uses this file to assign reads to per-well FASTA outputs before analysis."
+      },
+      "sampleMap": {
+        "label": "Sample Map (optional)",
+        "placeholder": ".xlsx file path (mutants well layout)",
+        "stateLabel": "Optional",
+        "helperText": "Well-to-sample name mapping — adds mutant name to sorted FASTA filenames (e.g. A01_V5F_F1_R1.fasta)",
+        "helpText": "Col A: sample name, Col B: well position (e.g. A1). Compatible with KURO mutants.xlsx layout."
+      },
+      "exportDest": {
+        "label": "Export destination folder",
+        "placeholder": "Choose a folder; {{filename}} will be created",
+        "stateLabel": "Save to",
+        "helperText": "Analysis report will use a KURO-style rule-based .xlsx filename",
+        "helpText": "Folder where the analysis result Excel will be saved. The filename is auto-generated using KURO-style rules combining date, reference/input tokens, MAME target, and result count tokens."
+      }
     }
   },
   "home": {
@@ -334,7 +417,8 @@
     "close": "Close",
     "loading": "loading...",
     "openFolder": "Open folder",
-    "retry": "retry"
+    "retry": "retry",
+    "browse": "Browse"
   },
   "globalAppBar": {
     "navAriaLabel": "Application navigation",

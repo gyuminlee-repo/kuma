@@ -316,14 +316,14 @@ export function PlateMap() {
 
       <div className="mt-2 flex flex-wrap items-center justify-between gap-3 text-caption text-muted-foreground">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-full border border-success/30 bg-success/8 px-3 py-1 font-medium text-success">Forward {totalFwd}</span>
-          <span className="rounded-full border border-warning/30 bg-warning/8 px-3 py-1 font-medium text-warning">Reverse {totalRev}</span>
-          <span className="rounded-full border border-info/30 bg-info/8 px-3 py-1 font-medium text-info">Shared reverse {sharedReverseCount}</span>
+          <span className="rounded-full border border-success/30 bg-success/8 px-3 py-1 font-medium text-success">{t("plateMap.forward")} {totalFwd}</span>
+          <span className="rounded-full border border-warning/30 bg-warning/8 px-3 py-1 font-medium text-warning">{t("plateMap.reverse")} {totalRev}</span>
+          <span className="rounded-full border border-info/30 bg-info/8 px-3 py-1 font-medium text-info">{t("plateMap.sharedReverse")} {sharedReverseCount}</span>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-sm border border-success/30 bg-success/10 align-middle" />Forward primer</span>
-          <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-sm border border-warning/30 bg-warning/10 align-middle" />Reverse primer</span>
-          <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-sm border border-info/30 bg-info/10 align-middle" />Shared reverse</span>
+          <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-sm border border-success/30 bg-success/10 align-middle" />{t("plateMap.forwardPrimer")}</span>
+          <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-sm border border-warning/30 bg-warning/10 align-middle" />{t("plateMap.reversePrimer")}</span>
+          <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-sm border border-info/30 bg-info/10 align-middle" />{t("plateMap.sharedReverse")}</span>
         </div>
       </div>
 
@@ -337,10 +337,10 @@ export function PlateMap() {
           try {
             await handleExportMappingWithParams(format, { transferVol, bom });
             await handleExportAll(project);
-            toast.success("Export All complete");
+            toast.success(t("plateMap.exportAllComplete"));
           } catch (err) {
             const msg = err instanceof Error ? err.message : String(err);
-            toast.error(`Export All failed: ${msg}`);
+            toast.error(t("plateMap.exportAllFailed", { message: msg }));
           }
         }}
       />

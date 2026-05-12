@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { useAppStore } from "../../../store/appStore";
 import { basename } from "../../../lib/utils";
@@ -8,6 +9,7 @@ import { Button } from "../../ui/button";
 const SEQUENCE_DROP_EXTENSIONS = new Set([".gb", ".gbk", ".gbff", ".dna", ".fa", ".fasta"]);
 
 export function SequenceInput() {
+  const { t } = useTranslation();
   const [isDragOver, setIsDragOver] = useState(false);
   const fastaPath = useAppStore((s) => s.fastaPath);
   const seqInfo = useAppStore((s) => s.seqInfo);
@@ -44,9 +46,9 @@ export function SequenceInput() {
       {/* Sequence File */}
       <div
         className={`space-y-1 rounded-control border transition-colors duration-fast ${isDragOver ? "border-dashed border-info bg-info/5" : "border-transparent"}`}
-        aria-label="Drop sequence file here"
+        aria-label={t("sequenceInput.dropAriaLabel")}
       >
-        <label className="text-xs font-medium text-foreground">Sequence File</label>
+        <label className="text-xs font-medium text-foreground">{t("sequenceInput.sequenceFile")}</label>
         <div className="flex gap-1">
           <Button
             variant="outline"
@@ -63,10 +65,10 @@ export function SequenceInput() {
             }
             className="flex-shrink-0"
           >
-            Browse
+            {t("sequenceInput.browse")}
           </Button>
           <span className="self-center truncate text-xs text-muted-foreground">
-            {fastaPath ? basename(fastaPath) : "No file selected (.gb / .dna)"}
+            {fastaPath ? basename(fastaPath) : t("sequenceInput.noFileSelected")}
           </span>
         </div>
         {seqInfo && (
@@ -85,7 +87,7 @@ export function SequenceInput() {
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
             </svg>
-            UniProt BLAST search in progress… (Step 2 available after)
+            {t("sequenceInput.uniprotBlastInProgress")}
           </div>
         )}
       </div>
@@ -94,9 +96,9 @@ export function SequenceInput() {
       <div className="space-y-1">
         <label
           className="text-xs font-medium text-foreground"
-          title="CDS region to design primers for. Auto-selected by longest coding sequence."
+          title={t("sequenceInput.targetGeneTitle")}
         >
-          Target Gene
+          {t("sequenceInput.targetGene")}
         </label>
         {seqInfo && seqInfo.genes.length > 0 ? (
           <select
@@ -126,7 +128,7 @@ export function SequenceInput() {
           </select>
         ) : (
           <span className="block text-xs italic text-muted-foreground">
-            Load a sequence file first
+            {t("sequenceInput.loadFirst")}
           </span>
         )}
       </div>
@@ -135,9 +137,9 @@ export function SequenceInput() {
       <div className="space-y-1">
         <label
           className="text-xs font-medium text-foreground"
-          title="Organism codon usage table for mutant codon selection."
+          title={t("sequenceInput.organismTitle")}
         >
-          Organism
+          {t("sequenceInput.organism")}
         </label>
         <select
           className="h-8 w-full rounded-control border border-border bg-card px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
