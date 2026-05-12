@@ -1,4 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { WifiOff } from "lucide-react";
 import { classifyError } from "@/lib/errorClassifier";
@@ -55,6 +56,7 @@ const LazyDesignReport = lazy(async () => import("../dialogs/DesignReport").then
 const LazyBenchmarkDialog = lazy(async () => import("../dialogs/BenchmarkDialog").then((m) => ({ default: m.BenchmarkDialog })));
 
 export function AppLayout() {
+  const { t } = useTranslation();
   const project = useKumaProject();
   const { status: sidecarStatus, retry: retrySidecar } = useSidecar();
   const isDesigning = useAppStore((s) => s.isDesigning);
@@ -115,10 +117,10 @@ export function AppLayout() {
   const collectMissingFields = useCallback((): string[] => {
     const s = useAppStore.getState();
     const missing: string[] = [];
-    if (!s.seqInfo) missing.push("Sequence file (Browse a .gb / .fasta / .dna file)");
-    if (!s.mutationText.trim()) missing.push("Mutations (enter at least one mutation in the Mutation panel)");
+    if (!s.seqInfo) missing.push(t("appLayout.missingSeqFile"));
+    if (!s.mutationText.trim()) missing.push(t("appLayout.missingMutations"));
     if (s.seqInfo && s.seqInfo.genes.length > 1 && !s.selectedGene) {
-      missing.push("Target gene (select one in the Sequence panel)");
+      missing.push(t("appLayout.missingTargetGene"));
     }
     return missing;
   }, []);
@@ -358,7 +360,7 @@ export function AppLayout() {
                 role={statusErrorKind === "network" ? "alert" : undefined}
                 className="px-1"
               >
-                <span className="text-caption text-muted-foreground">Status</span>
+                <span className="text-caption text-muted-foreground">{t("appLayout.status")}</span>
                 <div className="flex items-center gap-1.5 min-w-0">
                   {statusErrorKind === "network" && (
                     <WifiOff
@@ -384,7 +386,7 @@ export function AppLayout() {
                   onClick={tryRunDesign}
                   disabled={isDesigning}
                 >
-                  {isDesigning ? "Designing..." : "Run Design"}
+                  {isDesigning ? t("appLayout.designing") : t("appLayout.runDesign")}
                   {!isDesigning && (
                     <kbd className="ml-2 text-caption text-muted-foreground font-normal opacity-70">{RUN_HINT}</kbd>
                   )}
@@ -395,7 +397,7 @@ export function AppLayout() {
                     className="h-control-primary rounded-control px-3 text-error border-error/40 hover:bg-error/8"
                     onClick={() => useAppStore.getState().cancelDesign()}
                   >
-                    Cancel
+                    {t("common.cancel")}
                   </Button>
                 )}
               </div>
@@ -411,7 +413,7 @@ export function AppLayout() {
                 }}
                 disabled={isDesigning}
               >
-                Clear All
+                {t("appLayout.clearAll")}
               </Button>
             </footer>
           </aside>
@@ -427,8 +429,8 @@ export function AppLayout() {
             <PanelGroup direction="vertical" autoSaveId="kuma-main-v" className="flex-1 min-h-0">
               <Panel defaultSize={18} minSize={10} className="min-h-0">
                 <DataPanel
-                  title="Sequence context"
-                  description={selectedGeneInfo ? `${selectedGeneInfo.gene} · ${selectedGeneInfo.aa_length} aa` : "Load a target gene"}
+                  title={t("appLayout.sequenceContext")}
+                  description={selectedGeneInfo ? `${selectedGeneInfo.gene} · ${selectedGeneInfo.aa_length} aa` : t("appLayout.loadTargetGene")}
                   className="h-full overflow-hidden"
                 >
                   <div className="h-full">
@@ -441,8 +443,8 @@ export function AppLayout() {
 
               <Panel defaultSize={34} minSize={15} className="min-h-0">
                 <DataPanel
-                  title="Design output"
-                  description={hasDesignResults ? `${successCount}/${totalCount} successful` : "No results yet"}
+                  title={t("appLayout.designOutput")}
+                  description={hasDesignResults ? t("appLayout.designSuccessCount", { successCount, totalCount }) : t("appLayout.noResultsYet")}
                   className="h-full min-h-0 overflow-hidden"
                 >
                   <div className="min-h-0 h-full">
@@ -455,8 +457,8 @@ export function AppLayout() {
 
               <Panel defaultSize={48} minSize={35} className="min-h-0">
                 <DataPanel
-                  title="Plate plan"
-                  description={plateEstimate ? `${plateEstimate} plate${plateEstimate > 1 ? "s" : ""}` : "Awaiting design"}
+                  title={t("appLayout.platePlan")}
+                  description={plateEstimate ? t("appLayout.plateCount", { count: plateEstimate }) : t("appLayout.awaitingDesign")}
                   className="h-full overflow-hidden"
                 >
                   <div className="h-full min-h-[400px] overflow-auto">
@@ -475,14 +477,14 @@ export function AppLayout() {
       <Dialog open={clearConfirmOpen} onOpenChange={setClearConfirmOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Clear All</DialogTitle>
+            <DialogTitle>{t("appLayout.clearAll")}</DialogTitle>
             <DialogDescription>
-              All design results will be lost. Continue?
+              {t("appLayout.clearAllDesc")}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => setClearConfirmOpen(false)}>
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               size="sm"
@@ -493,7 +495,7 @@ export function AppLayout() {
                 setClearConfirmOpen(false);
               }}
             >
-              Clear
+              {t("appLayout.clear")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -507,9 +509,9 @@ export function AppLayout() {
       >
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Cannot run design yet</DialogTitle>
+            <DialogTitle>{t("appLayout.cannotRunTitle")}</DialogTitle>
             <DialogDescription>
-              Fill in the following before running design:
+              {t("appLayout.cannotRunDesc")}
             </DialogDescription>
           </DialogHeader>
           <ul className="list-disc pl-5 text-body text-foreground space-y-1">
@@ -519,7 +521,7 @@ export function AppLayout() {
           </ul>
           <DialogFooter>
             <Button size="sm" onClick={() => setMissingFields(null)}>
-              OK
+              {t("common.ok")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -529,14 +531,14 @@ export function AppLayout() {
       <Dialog open={deadlockOpen} onOpenChange={setDeadlockOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>응답 없음</DialogTitle>
+            <DialogTitle>{t("appLayout.deadlockTitle")}</DialogTitle>
             <DialogDescription>
-              30초 이상 진행 상태가 업데이트되지 않았습니다. 작업이 멈춘 것 같습니다.
+              {t("appLayout.deadlockDesc")}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => setDeadlockOpen(false)}>
-              계속 대기
+              {t("appLayout.deadlockWait")}
             </Button>
             <Button
               size="sm"
@@ -547,7 +549,7 @@ export function AppLayout() {
                 setDeadlockOpen(false);
               }}
             >
-              Reset
+              {t("appLayout.deadlockReset")}
             </Button>
           </DialogFooter>
         </DialogContent>

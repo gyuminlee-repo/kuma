@@ -9,6 +9,7 @@
  * - 키보드: 좌우 화살표로 Kuro/Mame 간 이동, Home/End 지원.
  */
 import { useRef, type KeyboardEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LocaleToggle } from "@/components/ui/LocaleToggle";
@@ -27,6 +28,7 @@ export interface GlobalAppBarProps {
 }
 
 export function GlobalAppBar({ activeTab, onTabChange, onOpenSettings }: GlobalAppBarProps) {
+  const { t } = useTranslation();
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   function handleKeyDown(e: KeyboardEvent<HTMLDivElement>) {
@@ -56,7 +58,7 @@ export function GlobalAppBar({ activeTab, onTabChange, onOpenSettings }: GlobalA
   return (
     <header
       className="h-12 shrink-0 flex items-center border-b bg-background px-4 gap-4"
-      aria-label="Application navigation"
+      aria-label={t("globalAppBar.navAriaLabel")}
     >
       {/* 좌측: 브랜드 로고 */}
       <span className="shrink-0 text-lg font-semibold tracking-tight text-foreground select-none">
@@ -66,7 +68,7 @@ export function GlobalAppBar({ activeTab, onTabChange, onOpenSettings }: GlobalA
       {/* 중앙: 탭 네비게이션 */}
       <nav
         role="tablist"
-        aria-label="Application tabs"
+        aria-label={t("globalAppBar.tabsAriaLabel")}
         className="flex items-center gap-1"
         onKeyDown={handleKeyDown}
       >
@@ -102,8 +104,8 @@ export function GlobalAppBar({ activeTab, onTabChange, onOpenSettings }: GlobalA
           size="sm"
           className="h-8 w-8 p-0 text-foreground/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           onClick={onOpenSettings}
-          aria-label="설정 열기"
-          title="Settings"
+          aria-label={t("globalAppBar.openSettingsAriaLabel")}
+          title={t("globalAppBar.openSettingsTitle")}
         >
           <Settings size={16} aria-hidden="true" />
         </Button>

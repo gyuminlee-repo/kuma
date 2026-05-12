@@ -8,6 +8,7 @@
  * - Keyboard shortcuts 표
  */
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogContent,
@@ -33,6 +34,8 @@ interface SettingsDialogProps {
 }
 
 export function SettingsDialog({ open, onOpenChange, scope = "kuro" }: SettingsDialogProps) {
+  const { t } = useTranslation();
+
   // §8 A11y: colorblind mode
   const [colorblindMode, setColorblindModeState] = useState<boolean>(
     () => localStorage.getItem(CB_KEY) === "true",
@@ -72,13 +75,13 @@ export function SettingsDialog({ open, onOpenChange, scope = "kuro" }: SettingsD
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Settings</DialogTitle>
+          <DialogTitle>{t("settings.title")}</DialogTitle>
         </DialogHeader>
 
         {/* §8 Accessibility */}
         <section aria-labelledby="settings-accessibility-heading" className="flex flex-col gap-1.5">
           <p id="settings-accessibility-heading" className="text-sm font-semibold text-foreground">
-            Accessibility
+            {t("settings.accessibility")}
           </p>
           <label className="flex items-center gap-2 text-xs cursor-pointer">
             <input
@@ -89,26 +92,26 @@ export function SettingsDialog({ open, onOpenChange, scope = "kuro" }: SettingsD
               className="h-3.5 w-3.5 accent-primary"
               aria-describedby="settings-colorblind-desc"
             />
-            <span className="text-foreground">Color assist (shape prefix)</span>
+            <span className="text-foreground">{t("settings.colorblindMode")}</span>
           </label>
           <p id="settings-colorblind-desc" className="text-xs text-muted-foreground pl-5">
-            Adds shape markers to status indicators so colors are not the only differentiator.
+            {t("settings.colorblindModeDesc")}
           </p>
         </section>
 
         {/* Keyboard shortcuts */}
         <section aria-labelledby="settings-shortcuts-heading" className="flex flex-col gap-1.5">
           <p id="settings-shortcuts-heading" className="text-sm font-semibold text-foreground">
-            Keyboard Shortcuts
+            {t("settings.keyboardShortcuts")}
           </p>
           <table className="w-full text-xs border-collapse" role="table">
             <thead>
               <tr className="border-b border-border">
                 <th scope="col" className="py-0.5 pr-3 text-left font-semibold text-muted-foreground">
-                  Keys
+                  {t("settings.shortcutKeys")}
                 </th>
                 <th scope="col" className="py-0.5 text-left font-semibold text-muted-foreground">
-                  Action
+                  {t("settings.shortcutAction")}
                 </th>
               </tr>
             </thead>
@@ -126,14 +129,14 @@ export function SettingsDialog({ open, onOpenChange, scope = "kuro" }: SettingsD
         {/* §3 Notifications */}
         <section aria-labelledby="settings-notifications-heading" className="flex flex-col gap-1">
           <p id="settings-notifications-heading" className="text-sm font-semibold text-foreground">
-            Notifications
+            {t("settings.notifications")}
           </p>
           <p className="text-xs text-muted-foreground">
-            OS Notifications:{" "}
+            {t("settings.notificationsStatus")}{" "}
             <span
               className={notifyPermission ? "text-success font-medium" : "text-warning font-medium"}
             >
-              {notifyPermission ? "enabled" : "disabled"}
+              {notifyPermission ? t("settings.notificationsEnabled") : t("settings.notificationsDisabled")}
             </span>
           </p>
           {!notifyPermission && (
@@ -142,27 +145,27 @@ export function SettingsDialog({ open, onOpenChange, scope = "kuro" }: SettingsD
               variant="outline"
               onClick={() => void handleEnableNotifications()}
             >
-              Enable Notifications
+              {t("settings.enableNotifications")}
             </Button>
           )}
           <p className="text-xs text-muted-foreground">
-            Fired for jobs lasting longer than 5 minutes.
+            {t("settings.notificationsNote")}
           </p>
           <p className="text-xs text-muted-foreground">
-            Sleep prevention: enabled while jobs run.
+            {t("settings.sleepPrevention")}
           </p>
         </section>
 
         {/* §6 Data folder */}
         <section aria-labelledby="settings-datafolder-heading" className="flex flex-col gap-1.5">
           <p id="settings-datafolder-heading" className="text-sm font-semibold text-foreground">
-            Data folder
+            {t("settings.dataFolder")}
           </p>
           <p
             className="font-mono text-xs text-muted-foreground break-all"
             title={dataFolder ?? undefined}
           >
-            {dataFolder ?? "loading..."}
+            {dataFolder ?? t("settings.dataFolderLoading")}
           </p>
           <Button
             size="sm"
@@ -172,29 +175,29 @@ export function SettingsDialog({ open, onOpenChange, scope = "kuro" }: SettingsD
               window.dispatchEvent(new CustomEvent("kuma:show-onboarding"));
             }}
           >
-            Change...
+            {t("settings.dataFolderChange")}
           </Button>
         </section>
 
         {/* Language */}
         <section aria-labelledby="settings-language-heading" className="flex flex-col gap-1.5">
           <p id="settings-language-heading" className="text-sm font-semibold text-foreground">
-            Language
+            {t("settings.language")}
           </p>
           <div className="flex items-center gap-2">
             <Label htmlFor="settings-locale-toggle" className="sr-only">
-              Language selection
+              {t("settings.languageSelectionLabel")}
             </Label>
             <LocaleToggle variant="icon-label" />
           </div>
           <p className="text-xs text-muted-foreground">
-            Language preference is saved locally.
+            {t("settings.languageNote")}
           </p>
         </section>
 
         <DialogFooter>
           <Button size="sm" onClick={() => onOpenChange(false)}>
-            Close
+            {t("settings.close")}
           </Button>
         </DialogFooter>
       </DialogContent>

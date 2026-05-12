@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { Spinner } from "../ui/Spinner";
 
 /**
@@ -85,6 +86,7 @@ function buildSidecarTooltip(info: SidecarInfo): string | undefined {
 }
 
 export function GlobalStatusBar({ message, centerSlot, sidecar, autosave }: GlobalStatusBarProps) {
+  const { t } = useTranslation();
   const sidecarDotClass = SIDECAR_DOT_COLOR[sidecar.state];
   const sidecarTooltip = buildSidecarTooltip(sidecar);
   const showAutosave = autosave !== undefined && autosave.state !== "disabled";
@@ -93,7 +95,7 @@ export function GlobalStatusBar({ message, centerSlot, sidecar, autosave }: Glob
     <footer
       className="h-statusbar px-3 text-caption flex items-center justify-between bg-background border-t border-border dark:bg-background dark:border-border dark:text-foreground"
       role="contentinfo"
-      aria-label="Status bar"
+      aria-label={t("globalStatusBar.statusBarAriaLabel")}
     >
       {/* 좌측: 상태 메시지 (aria-live 영역) */}
       <span
@@ -117,7 +119,7 @@ export function GlobalStatusBar({ message, centerSlot, sidecar, autosave }: Glob
         {showAutosave && (
           <span
             className="flex items-center gap-1.5 text-muted-foreground"
-            aria-label={`Autosave: ${autosave.label}`}
+            aria-label={t("globalStatusBar.autosaveAriaLabel", { label: autosave.label })}
           >
             <span
               className={`h-2 w-2 rounded-full shrink-0 ${AUTOSAVE_DOT_COLOR[autosave.state]}`}
@@ -130,9 +132,9 @@ export function GlobalStatusBar({ message, centerSlot, sidecar, autosave }: Glob
                 type="button"
                 className="text-error underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-colors duration-fast"
                 onClick={autosave.onRetry}
-                aria-label="Retry autosave"
+                aria-label={t("globalStatusBar.retryAutosaveAriaLabel")}
               >
-                retry
+                {t("common.retry")}
               </button>
             )}
           </span>
@@ -142,7 +144,11 @@ export function GlobalStatusBar({ message, centerSlot, sidecar, autosave }: Glob
         <span
           className="flex items-center gap-1.5 text-muted-foreground"
           title={sidecarTooltip}
-          aria-label={sidecarTooltip ? `Sidecar: ${sidecar.label} (${sidecarTooltip})` : `Sidecar: ${sidecar.label}`}
+          aria-label={
+            sidecarTooltip
+              ? t("globalStatusBar.sidecarAriaLabelWithTooltip", { label: sidecar.label, tooltip: sidecarTooltip })
+              : t("globalStatusBar.sidecarAriaLabel", { label: sidecar.label })
+          }
         >
           {/* 8px 원형 상태 점 */}
           <span
@@ -164,9 +170,9 @@ export function GlobalStatusBar({ message, centerSlot, sidecar, autosave }: Glob
               type="button"
               className="text-error underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-colors duration-fast"
               onClick={sidecar.onRetry}
-              aria-label="Retry sidecar connection"
+              aria-label={t("globalStatusBar.retrySidecarAriaLabel")}
             >
-              retry
+              {t("common.retry")}
             </button>
           )}
         </span>

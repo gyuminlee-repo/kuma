@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { open } from "@tauri-apps/plugin-dialog";
 import { Button } from "../components/ui/button";
 import {
@@ -25,6 +26,7 @@ type HomeProps = {
 };
 
 export function Home({ onOpenProject, onOpenScratch, onOpenSettings }: HomeProps) {
+  const { t } = useTranslation();
   const [recentProjects, setRecentProjects] = useState<RecentProject[]>([]);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [projectName, setProjectName] = useState("");
@@ -54,7 +56,7 @@ export function Home({ onOpenProject, onOpenScratch, onOpenSettings }: HomeProps
   async function handleCreateProject() {
     const trimmedName = projectName.trim();
     if (!trimmedName) {
-      setError("Enter a project name.");
+      setError(t("home.errorEnterName"));
       return;
     }
 
@@ -119,13 +121,13 @@ export function Home({ onOpenProject, onOpenScratch, onOpenSettings }: HomeProps
             setError("");
             setIsCreateOpen(true);
           }}>
-            + New project
+            {t("home.newProject")}
           </Button>
           <Button variant="outline" className="min-w-32" onClick={() => void handleOpenFile()}>
-            Open file
+            {t("home.openFile")}
           </Button>
           <Button variant="outline" className="min-w-24" onClick={onOpenSettings}>
-            Settings
+            {t("home.settings")}
           </Button>
         </div>
 
@@ -133,13 +135,13 @@ export function Home({ onOpenProject, onOpenScratch, onOpenSettings }: HomeProps
 
         <section className="mt-12 w-full rounded-container border border-border bg-card p-6">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Recent projects</h2>
+            <h2 className="text-lg font-semibold">{t("home.recentProjects")}</h2>
           </div>
 
           <div className="space-y-3">
             {recentProjects.length === 0 ? (
               <div className="rounded-container border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
-                No projects yet
+                {t("home.noProjects")}
               </div>
             ) : (
               recentProjects.map((project) => (
@@ -165,8 +167,8 @@ export function Home({ onOpenProject, onOpenScratch, onOpenSettings }: HomeProps
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>New project</DialogTitle>
-            <DialogDescription>Enter a project name.</DialogDescription>
+            <DialogTitle>{t("home.dialogTitle")}</DialogTitle>
+            <DialogDescription>{t("home.dialogDescription")}</DialogDescription>
           </DialogHeader>
 
           <form
@@ -179,13 +181,13 @@ export function Home({ onOpenProject, onOpenScratch, onOpenSettings }: HomeProps
             <Input
               value={projectName}
               onChange={(event) => setProjectName(event.target.value)}
-              placeholder="Project name"
-              aria-label="Project name"
+              placeholder={t("home.projectNamePlaceholder")}
+              aria-label={t("home.projectNameLabel")}
             />
 
             <DialogFooter>
               <Button type="submit" disabled={isCreating}>
-                Create
+                {t("home.createButton")}
               </Button>
             </DialogFooter>
           </form>

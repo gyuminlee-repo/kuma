@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -16,6 +17,7 @@ import { useKumaProject } from "@/state/projectContext";
 type MatchCandidate = { path: string; name: string };
 
 export function MameTab() {
+  const { t } = useTranslation();
   const project = useKumaProject();
   const [match, setMatch] = useState<MatchCandidate | null>(null);
 
@@ -72,16 +74,16 @@ export function MameTab() {
       <Dialog open={match !== null} onOpenChange={(open) => !open && setMatch(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Matching project found</DialogTitle>
+            <DialogTitle>{t("mameTab.matchingProjectTitle")}</DialogTitle>
             <DialogDescription>
-              {match ? `Load "${match.name}"?` : ""}
+              {match ? t("mameTab.matchingProjectDescription", { name: match.name }) : ""}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setMatch(null)}>
-              Cancel
+              {t("mameTab.cancelButton")}
             </Button>
-            <Button onClick={() => void confirmLoad()}>Load</Button>
+            <Button onClick={() => void confirmLoad()}>{t("mameTab.loadButton")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

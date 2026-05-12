@@ -87,8 +87,10 @@
     "shortcutKeys": "Keys",
     "shortcutAction": "Action",
     "notifications": "Notifications",
+    "notificationsStatus": "OS Notifications:",
     "notificationsEnabled": "enabled",
     "notificationsDisabled": "disabled",
+    "languageSelectionLabel": "Language selection",
     "enableNotifications": "Enable Notifications",
     "notificationsNote": "Fired for jobs lasting longer than 5 minutes.",
     "sleepPrevention": "Sleep prevention: enabled while jobs run.",
@@ -289,12 +291,46 @@
       "statusInProgress": "In progress"
     }
   },
+  "home": {
+    "newProject": "+ New project",
+    "openFile": "Open file",
+    "settings": "Settings",
+    "recentProjects": "Recent projects",
+    "noProjects": "No projects yet",
+    "dialogTitle": "New project",
+    "dialogDescription": "Enter a project name.",
+    "projectNamePlaceholder": "Project name",
+    "projectNameLabel": "Project name",
+    "createButton": "Create",
+    "errorEnterName": "Enter a project name."
+  },
+  "mameTab": {
+    "matchingProjectTitle": "Matching project found",
+    "matchingProjectDescription": "Load \"{{name}}\"?",
+    "cancelButton": "Cancel",
+    "loadButton": "Load"
+  },
   "common": {
     "ok": "OK",
     "cancel": "Cancel",
     "close": "Close",
     "loading": "loading...",
-    "openFolder": "Open folder"
+    "openFolder": "Open folder",
+    "retry": "retry"
+  },
+  "globalAppBar": {
+    "navAriaLabel": "Application navigation",
+    "tabsAriaLabel": "Application tabs",
+    "openSettingsAriaLabel": "Open settings",
+    "openSettingsTitle": "Settings"
+  },
+  "globalStatusBar": {
+    "statusBarAriaLabel": "Status bar",
+    "autosaveAriaLabel": "Autosave: {{label}}",
+    "retryAutosaveAriaLabel": "Retry autosave",
+    "sidecarAriaLabel": "Sidecar: {{label}}",
+    "sidecarAriaLabelWithTooltip": "Sidecar: {{label}} ({{tooltip}})",
+    "retrySidecarAriaLabel": "Retry sidecar connection"
   },
   "parameterPanel": {
     "sectionLabel": "Control",
@@ -650,5 +686,80 @@
     "cancel": "Cancel",
     "save": "Save",
     "saving": "Saving..."
+  },
+  "mainShell": {
+    "alreadyRunning": "Already running.",
+    "scratchSuffix": "Scratch",
+    "workspaceFallback": "Workspace",
+    "autosave": {
+      "on": "Autosave on",
+      "saving": "Saving…",
+      "savedJustNow": "Saved just now",
+      "savedRelative": "Saved {{relative}}",
+      "saveFailed": "Save failed",
+      "failedWarning": "Autosave failed 3 times. Check disk space or permissions.",
+      "retryAriaLabel": "Retry autosave",
+      "restoredRelative": "Restored from autosave ({{relative}})",
+      "indicatorAriaLabel": "Autosave: {{label}}",
+      "autosaveIntro": "Autosave is on for this project."
+    },
+    "relativeTime": {
+      "justNow": "just now",
+      "minAgo": "{{count}} min ago",
+      "hrAgo": "{{count}} hr ago",
+      "daysAgo": "{{count}} day(s) ago"
+    },
+    "memory": {
+      "warningBannerLabel": "Memory: {{pct}}% (sidecar {{rss}} MB)",
+      "dismissAriaLabel": "Dismiss memory warning",
+      "blockTitle": "Memory limit exceeded",
+      "blockDesc": "Sidecar process memory reached {{pct}}% ({{rss}} MB). Stop any running jobs and restart the app."
+    },
+    "panels": {
+      "label": "Panels",
+      "logTitle": "Log: sidecar progress messages",
+      "jobsTitle": "Jobs: queued background tasks",
+      "panelAriaLabel": "Floating panel visibility controls"
+    }
+  },
+  "onboarding": {
+    "titleChange": "Change projects folder",
+    "titleNew": "Get started",
+    "descChange": "Pick a new default folder. Existing projects stay where they are.",
+    "descNew": "Choose a default folder for projects. kuma keeps every Kuro design and Mame verdict run inside its own project folder so the work survives across weeks-long sequencing turnaround.",
+    "projectsFolder": "Projects folder",
+    "folderPlaceholder": "~/Documents/kuma/",
+    "chooseFolder": "Choose folder",
+    "done": "Done",
+    "insideProject": "Inside each project",
+    "kuroDesc": "Kernel for Upstream Recombination Oligodesign. Batch SDM primer design from Gibson Assembly templates.",
+    "mameDesc": "Mutagenesis Assessment & Microplate Export. Oxford Nanopore NGS verdict.",
+    "autosaveNote": "Inputs and parameters autosave per project. Nothing leaks between projects."
+  },
+  "appLayout": {
+    "status": "Status",
+    "runDesign": "Run Design",
+    "designing": "Designing...",
+    "clearAll": "Clear All",
+    "clear": "Clear",
+    "clearAllDesc": "All design results will be lost. Continue?",
+    "sequenceContext": "Sequence context",
+    "loadTargetGene": "Load a target gene",
+    "designOutput": "Design output",
+    "designSuccessCount": "{{successCount}}/{{totalCount}} successful",
+    "noResultsYet": "No results yet",
+    "platePlan": "Plate plan",
+    "awaitingDesign": "Awaiting design",
+    "cannotRunTitle": "Cannot run design yet",
+    "cannotRunDesc": "Fill in the following before running design:",
+    "missingSeqFile": "Sequence file (Browse a .gb / .fasta / .dna file)",
+    "missingMutations": "Mutations (enter at least one mutation in the Mutation panel)",
+    "missingTargetGene": "Target gene (select one in the Sequence panel)",
+    "deadlockTitle": "No response",
+    "deadlockDesc": "No progress update for 30+ seconds. The job may be stuck.",
+    "deadlockWait": "Keep waiting",
+    "deadlockReset": "Reset",
+    "plateCount": "{{count}} plate",
+    "plateCount_other": "{{count}} plates"
   }
 }

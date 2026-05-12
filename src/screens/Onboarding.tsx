@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { open } from "@tauri-apps/plugin-dialog";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -11,6 +12,7 @@ type OnboardingProps = {
 };
 
 export function Onboarding({ initialPath, onDone }: OnboardingProps) {
+  const { t } = useTranslation();
   const [path, setPath] = useState(initialPath ?? "");
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -50,49 +52,49 @@ export function Onboarding({ initialPath, onDone }: OnboardingProps) {
     <div className="min-h-screen bg-muted px-6 py-12 text-foreground">
       <div className="mx-auto flex w-full max-w-2xl flex-col rounded-container border border-border bg-card p-8">
         <h1 className="text-3xl font-bold tracking-tight">
-          {isReentry ? "Change projects folder" : "Get started"}
+          {isReentry ? t("onboarding.titleChange") : t("onboarding.titleNew")}
         </h1>
         <p className="mt-3 text-sm leading-6 text-muted-foreground">
           {isReentry
-            ? "Pick a new default folder. Existing projects stay where they are."
-            : "Choose a default folder for projects. kuma keeps every Kuro design and Mame verdict run inside its own project folder so the work survives across weeks-long sequencing turnaround."}
+            ? t("onboarding.descChange")
+            : t("onboarding.descNew")}
         </p>
 
         <label className="mt-8 text-sm font-medium text-foreground" htmlFor="projects-root">
-          Projects folder
+          {t("onboarding.projectsFolder")}
         </label>
         <Input
           id="projects-root"
           value={path}
           onChange={(event) => setPath(event.target.value)}
-          placeholder={initialPath ? undefined : "~/Documents/kuma/"}
+          placeholder={initialPath ? undefined : t("onboarding.folderPlaceholder")}
           className="mt-2"
         />
 
         <div className="mt-4 flex flex-wrap gap-3">
           <Button type="button" variant="outline" onClick={() => void handlePickFolder()}>
-            Choose folder
+            {t("onboarding.chooseFolder")}
           </Button>
           <Button type="button" onClick={() => void handleSubmit()} disabled={!path.trim() || isSaving}>
-            Done
+            {t("onboarding.done")}
           </Button>
         </div>
 
         {error ? <p className="mt-4 text-sm text-error">{error}</p> : null}
 
         <div className="mt-8 border-t border-border pt-6">
-          <p className="text-sm font-medium text-foreground">Inside each project</p>
+          <p className="text-sm font-medium text-foreground">{t("onboarding.insideProject")}</p>
           <dl className="mt-3 space-y-2">
             <div className="flex gap-2 text-sm text-muted-foreground">
               <dt className="font-semibold text-foreground">Kuro</dt>
-              <dd>Kernel for Upstream Recombination Oligodesign. Batch SDM primer design from Gibson Assembly templates.</dd>
+              <dd>{t("onboarding.kuroDesc")}</dd>
             </div>
             <div className="flex gap-2 text-sm text-muted-foreground">
               <dt className="font-semibold text-foreground">Mame</dt>
-              <dd>Mutagenesis Assessment &amp; Microplate Export. Oxford Nanopore NGS verdict.</dd>
+              <dd>{t("onboarding.mameDesc")}</dd>
             </div>
             <div className="mt-3 text-sm text-muted-foreground">
-              Inputs and parameters autosave per project. Nothing leaks between projects.
+              {t("onboarding.autosaveNote")}
             </div>
           </dl>
         </div>
