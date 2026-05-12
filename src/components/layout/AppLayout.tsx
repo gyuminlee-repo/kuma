@@ -1,10 +1,10 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
-import { WifiOff } from "lucide-react";
 import { classifyError } from "@/lib/errorClassifier";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { AppShell } from "../shell/AppShell";
 import { useAppStore } from "../../store/appStore";
 import { useSidecar } from "../../hooks/useSidecar";
 import { useKumaProject } from "../../state/projectContext";
@@ -326,104 +326,78 @@ export function AppLayout() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
-  return (
-    <div data-tool="kuro" className={`flex h-screen flex-col bg-background ${isDragOver ? "ring-2 ring-inset ring-ring" : ""}`}>
-      <WhatsNewDialog />
-      <NetworkConsentDialog />
-      <MenuBar />
+  // kuro sidebar 콘텐츠 (InputPanel + ParameterPanel + 버튼 footer)
+  const sidebarContent = (
+    <aside
+      data-testid="sidebar"
+      className="flex h-full min-h-0 flex-col overflow-hidden rounded-container border border-border bg-card"
+    >
+      <div className="min-h-0 flex-1 overflow-y-auto p-3 space-y-3">
+        <InputPanel />
+        <ParameterPanel />
+      </div>
 
-      <div className="flex flex-1 overflow-hidden px-3 pb-3 pt-2">
-        <PanelGroup
-          direction="horizontal"
-          autoSaveId="kuma-main-h"
-          className="flex-1 min-w-0 overflow-hidden"
+      <footer className="border-t border-border bg-muted/40 px-3 py-3 space-y-2">
+        <div className="flex gap-2">
+          <Button
+            className="h-control-primary flex-1 min-w-0 rounded-control text-body font-semibold"
+            onClick={tryRunDesign}
+            disabled={isDesigning}
+          >
+            {isDesigning ? t("appLayout.designing") : t("appLayout.runDesign")}
+            {!isDesigning && (
+              <kbd className="ml-2 text-caption text-muted-foreground font-normal opacity-70">{RUN_HINT}</kbd>
+            )}
+          </Button>
+          {isDesigning && (
+            <Button
+              variant="outline"
+              className="h-control-primary rounded-control px-3 text-error border-error/40 hover:bg-error/8"
+              onClick={() => useAppStore.getState().cancelDesign()}
+            >
+              {t("common.cancel")}
+            </Button>
+          )}
+        </div>
+        <Button
+          variant="outline"
+          className="h-control w-full rounded-control"
+          onClick={() => {
+            if (hasDesignResults) {
+              setClearConfirmOpen(true);
+            } else {
+              useAppStore.getState().resetAll();
+            }
+          }}
+          disabled={isDesigning}
         >
-          <Panel
-            defaultSize={22}
-            minSize={16}
-            maxSize={40}
-            className="flex min-h-0 flex-col"
-          >
-          <aside
-            data-testid="sidebar"
-            className="flex h-full min-h-0 flex-col overflow-hidden rounded-container border border-border bg-card"
-          >
-            <div className="min-h-0 flex-1 overflow-y-auto p-3 space-y-3">
-              <InputPanel />
-              <ParameterPanel />
-            </div>
+          {t("appLayout.clearAll")}
+        </Button>
+      </footer>
+    </aside>
+  );
 
-            <footer className="border-t border-border bg-muted/40 px-3 py-3 space-y-2">
-              <div
-                aria-live="polite"
-                aria-atomic="true"
-                role={statusErrorKind === "network" ? "alert" : undefined}
-                className="px-1"
-              >
-                <span className="text-caption text-muted-foreground">{t("appLayout.status")}</span>
-                <div className="flex items-center gap-1.5 min-w-0">
-                  {statusErrorKind === "network" && (
-                    <WifiOff
-                      size={13}
-                      className="flex-shrink-0 text-amber-500 dark:text-amber-400"
-                      aria-hidden="true"
-                    />
-                  )}
-                  <p
-                    className={
-                      statusErrorKind === "network"
-                        ? "truncate text-body font-medium text-amber-500 dark:text-amber-400"
-                        : "truncate text-body font-medium text-foreground"
-                    }
-                  >
-                    {statusMessage}
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  className="h-control-primary flex-1 min-w-0 rounded-control text-body font-semibold"
-                  onClick={tryRunDesign}
-                  disabled={isDesigning}
-                >
-                  {isDesigning ? t("appLayout.designing") : t("appLayout.runDesign")}
-                  {!isDesigning && (
-                    <kbd className="ml-2 text-caption text-muted-foreground font-normal opacity-70">{RUN_HINT}</kbd>
-                  )}
-                </Button>
-                {isDesigning && (
-                  <Button
-                    variant="outline"
-                    className="h-control-primary rounded-control px-3 text-error border-error/40 hover:bg-error/8"
-                    onClick={() => useAppStore.getState().cancelDesign()}
-                  >
-                    {t("common.cancel")}
-                  </Button>
-                )}
-              </div>
-              <Button
-                variant="outline"
-                className="h-control w-full rounded-control"
-                onClick={() => {
-                  if (hasDesignResults) {
-                    setClearConfirmOpen(true);
-                  } else {
-                    useAppStore.getState().resetAll();
-                  }
-                }}
-                disabled={isDesigning}
-              >
-                {t("appLayout.clearAll")}
-              </Button>
-            </footer>
-          </aside>
-          </Panel>
+  // kuro main 콘텐츠: horizontal PanelGroup으로 sidebar/main을 포함 (resizable 보존)
+  const mainContent = (
+    <div className="flex flex-1 overflow-hidden px-3 pb-3 pt-2 min-h-0 w-full">
+      <PanelGroup
+        direction="horizontal"
+        autoSaveId="kuma-main-h"
+        className="flex-1 min-w-0 overflow-hidden"
+      >
+        <Panel
+          defaultSize={22}
+          minSize={16}
+          maxSize={40}
+          className="flex min-h-0 flex-col"
+        >
+          {sidebarContent}
+        </Panel>
 
-          <PanelResizeHandle className="w-1.5 mx-1 rounded-full bg-transparent hover:bg-border data-[resize-handle-active]:bg-ring transition-colors" />
+        <PanelResizeHandle className="w-1.5 mx-1 rounded-full bg-transparent hover:bg-border data-[resize-handle-active]:bg-ring transition-colors" />
 
-          <Panel className="flex min-h-0 flex-col" minSize={40}>
-          <main
-            data-testid="main-content"
+        <Panel className="flex min-h-0 flex-col" minSize={40}>
+          <div
             className="flex h-full min-h-0 flex-col overflow-hidden"
           >
             <PanelGroup direction="vertical" autoSaveId="kuma-main-v" className="flex-1 min-h-0">
@@ -467,12 +441,31 @@ export function AppLayout() {
                 </DataPanel>
               </Panel>
             </PanelGroup>
-          </main>
-          </Panel>
-        </PanelGroup>
-      </div>
+          </div>
+        </Panel>
+      </PanelGroup>
+    </div>
+  );
 
-      <StatusBar sidecarStatus={sidecarStatus} onRetry={retrySidecar} />
+  // kuro statusbar: StatusBar가 statusMessage + WifiOff 아이콘을 통합 표시
+  const statusbarContent = (
+    <StatusBar
+      sidecarStatus={sidecarStatus}
+      onRetry={retrySidecar}
+      statusErrorKind={statusErrorKind}
+    />
+  );
+
+  return (
+    <AppShell
+      tool="kuro"
+      titlebar={<MenuBar />}
+      main={mainContent}
+      statusbar={statusbarContent}
+      isDragOver={isDragOver}
+    >
+      <WhatsNewDialog />
+      <NetworkConsentDialog />
 
       <Dialog open={clearConfirmOpen} onOpenChange={setClearConfirmOpen}>
         <DialogContent className="max-w-sm">
@@ -616,6 +609,6 @@ export function AppLayout() {
 
       {/* §5 Output Persistence: 덮어쓰기 confirm */}
       <OverwriteConfirmDialog />
-    </div>
+    </AppShell>
   );
 }

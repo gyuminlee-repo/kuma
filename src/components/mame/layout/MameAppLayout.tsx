@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
+import { AppShell } from "@/components/shell/AppShell";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { useKumaProject } from "@/state/projectContext";
 import { selectCanRun } from "@/store/mame/selectors";
@@ -226,162 +227,168 @@ export function MameAppLayout() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [project, tryRunAnalysis]);
 
-  return (
-    <div
-      data-tool="mame"
-      className={`flex h-full flex-col bg-background ${isDragOver ? "ring-2 ring-inset ring-ring" : ""}`}
-    >
-      <WhatsNewDialog />
-      <MenuBar onClearRequest={() => setClearConfirmOpen(true)} />
+  // mame main 슬롯: Tabs 컨텍스트 안에서 TabsContent 전체
+  const tabsMainContent = (
+    <>
+      {/* Phase 1: Barcode Setup */}
+      <TabsContent value="setup" className="flex-1 min-h-0 overflow-hidden mt-0">
+        <BarcodeSetupPanel />
+      </TabsContent>
 
-      {/* Phase 탭: MenuBar 아래, StatusBar 위 */}
-      <Tabs
-        value={mamePhase}
-        onValueChange={(v) => setMamePhase(v as MamePhase)}
-        className="flex flex-1 min-h-0 flex-col"
-      >
-        <TabsList className="shrink-0 mx-3 mt-2 w-fit">
-          <TabsTrigger value="setup">{t("mame.appLayout.barcodeSetupTab")}</TabsTrigger>
-          <TabsTrigger value="analyze">{t("mame.appLayout.analyzeTab")}</TabsTrigger>
-          <TabsTrigger value="activity">{t("mame.appLayout.activityTab")}</TabsTrigger>
-        </TabsList>
+      {/* Phase 2: Analyze (기존 분석 UI 전체) */}
+      {/* NOTE: drag-drop 이벤트는 외부 useEffect에 등록되어 있어 setup 탭에서도 동작 (v1 acceptable) */}
+      <TabsContent value="analyze" className="flex-1 min-h-0 overflow-hidden mt-0">
+        <div className="flex h-full gap-3 overflow-hidden p-3">
+          <Sidebar
+            onClearRequest={() => setClearConfirmOpen(true)}
+            onRunRequest={tryRunAnalysis}
+          />
 
-        {/* Phase 1: Barcode Setup */}
-        <TabsContent value="setup" className="flex-1 min-h-0 overflow-hidden mt-0">
-          <BarcodeSetupPanel />
-        </TabsContent>
-
-        {/* Phase 2: Analyze (기존 분석 UI 전체) */}
-        {/* NOTE: drag-drop 이벤트는 외부 div에 등록되어 있어 setup 탭에서도 동작할 수 있음 (v1 acceptable) */}
-        <TabsContent value="analyze" className="flex-1 min-h-0 overflow-hidden mt-0">
-          <div className="flex h-full gap-3 overflow-hidden p-3">
-            <Sidebar
-              onClearRequest={() => setClearConfirmOpen(true)}
-              onRunRequest={tryRunAnalysis}
-            />
-
-            <main
-              className="grid min-h-0 flex-1 min-w-0 grid-rows-[auto_minmax(0,1fr)_320px_auto] gap-3 overflow-hidden"
-              role="main"
-              aria-label={t("mame.appLayout.analysisWorkspaceAriaLabel")}
-            >
-              <SummaryRow />
-              <DataPanel title={t("mame.appLayout.verdictTableTitle")} className="min-h-0">
-                <VerdictTable />
+          <div
+            className="grid min-h-0 flex-1 min-w-0 grid-rows-[auto_minmax(0,1fr)_320px_auto] gap-3 overflow-hidden"
+            role="main"
+            aria-label={t("mame.appLayout.analysisWorkspaceAriaLabel")}
+          >
+            <SummaryRow />
+            <DataPanel title={t("mame.appLayout.verdictTableTitle")} className="min-h-0">
+              <VerdictTable />
+            </DataPanel>
+            <DataPanel title={t("mame.appLayout.platePlanTitle")}>
+              <PlateView />
+            </DataPanel>
+            {verdictsLength > 0 && runHealth !== null && (
+              <DataPanel title={t("mame.appLayout.runHealthTitle")}>
+                <RunHealthPanel health={runHealth} />
               </DataPanel>
-              <DataPanel title={t("mame.appLayout.platePlanTitle")}>
-                <PlateView />
-              </DataPanel>
-              {verdictsLength > 0 && runHealth !== null && (
-                <DataPanel title={t("mame.appLayout.runHealthTitle")}>
-                  <RunHealthPanel health={runHealth} />
-                </DataPanel>
-              )}
-            </main>
+            )}
           </div>
-        </TabsContent>
-
-        {/* Phase 3: Activity (Ingest / Merge / Export sub-tabs) */}
-        <TabsContent value="activity" className="flex-1 min-h-0 overflow-hidden mt-0">
-          <ActivityPanel />
-        </TabsContent>
-      </Tabs>
-
-      <StatusBar sidecarStatus={status} onRetry={retry} />
-
-      {/* §19 Performance Guardrails: pre-flight check 결과 모달 */}
-      {preflightResult && (
-        <PreflightDialog
-          open={preflightResult !== null}
-          result={preflightResult.result}
-          onContinue={() => {
-            const action = preflightResult.pendingAction;
-            setPreflightResult(null);
-            action();
-          }}
-          onCancel={() => setPreflightResult(null)}
-        />
-      )}
-
-      {/* §1 Recovery: Dead-lock 감지 모달 */}
-      <Dialog open={deadlockOpen} onOpenChange={setDeadlockOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>{t("mame.appLayout.deadlockTitle")}</DialogTitle>
-            <DialogDescription>
-              {t("mame.appLayout.deadlockDescription")}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => setDeadlockOpen(false)}>
-              {t("mame.appLayout.deadlockWait")}
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              className="text-error border-error/40 hover:bg-error/8"
-              onClick={() => {
-                void useMameAppStore.getState().cancelAnalysis();
-                setDeadlockOpen(false);
-              }}
-            >
-              {t("mame.appLayout.deadlockReset")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <ExportDialog />
-      <ClearConfirmDialog
-        open={clearConfirmOpen}
-        onOpenChange={setClearConfirmOpen}
-        onConfirm={clearResults}
-      />
-
-      {/* §12 Reproducibility: re-run status 표시 (4초 자동 소멸) */}
-      {reRunStatusMsg && (
-        <div
-          role="status"
-          aria-live="polite"
-          aria-atomic="true"
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 rounded-md border border-border bg-card px-4 py-2 text-sm shadow-md text-foreground"
-          onAnimationEnd={() => setReRunStatusMsg("")}
-        >
-          {reRunStatusMsg}
         </div>
-      )}
+      </TabsContent>
 
-      {/* §12 Reproducibility: manifest re-run 확인 모달 */}
-      <ReRunManifestDialog
-        open={reRunManifest !== null}
-        manifest={reRunManifest}
-        verifyResult={reRunVerify}
-        onClose={() => {
-          setReRunManifest(null);
-          setReRunVerify(null);
-          reRunVerifyRef.current = null;
-        }}
-        onStatusMessage={(msg) => {
-          setReRunStatusMsg(msg);
-          setTimeout(() => setReRunStatusMsg(""), 4000);
-        }}
-      />
+      {/* Phase 3: Activity (Ingest / Merge / Export sub-tabs) */}
+      <TabsContent value="activity" className="flex-1 min-h-0 overflow-hidden mt-0">
+        <ActivityPanel />
+      </TabsContent>
+    </>
+  );
 
-      {/* §12 Reproducibility: manifest diff 모달 */}
-      <ManifestDiffDialog
-        open={diffOpen}
-        manifestA={diffManifestA}
-        manifestB={diffManifestB}
-        onClose={() => {
-          setDiffOpen(false);
-          setDiffManifestA(null);
-          setDiffManifestB(null);
-        }}
-      />
+  return (
+    <Tabs
+      value={mamePhase}
+      onValueChange={(v) => setMamePhase(v as MamePhase)}
+      className="flex h-full flex-col"
+    >
+      <AppShell
+        tool="mame"
+        titlebar={<MenuBar onClearRequest={() => setClearConfirmOpen(true)} />}
+        subnav={
+          <TabsList className="shrink-0 mx-3 mt-2 w-fit">
+            <TabsTrigger value="setup">{t("mame.appLayout.barcodeSetupTab")}</TabsTrigger>
+            <TabsTrigger value="analyze">{t("mame.appLayout.analyzeTab")}</TabsTrigger>
+            <TabsTrigger value="activity">{t("mame.appLayout.activityTab")}</TabsTrigger>
+          </TabsList>
+        }
+        main={tabsMainContent}
+        statusbar={<StatusBar sidecarStatus={status} onRetry={retry} />}
+        isDragOver={isDragOver}
+        className="h-full"
+      >
+        <WhatsNewDialog />
 
-      {/* §5 Output Persistence: 덮어쓰기 confirm */}
-      <OverwriteConfirmDialog />
-    </div>
+        {/* §19 Performance Guardrails: pre-flight check 결과 모달 */}
+        {preflightResult && (
+          <PreflightDialog
+            open={preflightResult !== null}
+            result={preflightResult.result}
+            onContinue={() => {
+              const action = preflightResult.pendingAction;
+              setPreflightResult(null);
+              action();
+            }}
+            onCancel={() => setPreflightResult(null)}
+          />
+        )}
+
+        {/* §1 Recovery: Dead-lock 감지 모달 */}
+        <Dialog open={deadlockOpen} onOpenChange={setDeadlockOpen}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>{t("mame.appLayout.deadlockTitle")}</DialogTitle>
+              <DialogDescription>
+                {t("mame.appLayout.deadlockDescription")}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setDeadlockOpen(false)}>
+                {t("mame.appLayout.deadlockWait")}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-error border-error/40 hover:bg-error/8"
+                onClick={() => {
+                  void useMameAppStore.getState().cancelAnalysis();
+                  setDeadlockOpen(false);
+                }}
+              >
+                {t("mame.appLayout.deadlockReset")}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <ExportDialog />
+        <ClearConfirmDialog
+          open={clearConfirmOpen}
+          onOpenChange={setClearConfirmOpen}
+          onConfirm={clearResults}
+        />
+
+        {/* §12 Reproducibility: re-run status 표시 (4초 자동 소멸) */}
+        {reRunStatusMsg && (
+          <div
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 rounded-md border border-border bg-card px-4 py-2 text-sm shadow-md text-foreground"
+            onAnimationEnd={() => setReRunStatusMsg("")}
+          >
+            {reRunStatusMsg}
+          </div>
+        )}
+
+        {/* §12 Reproducibility: manifest re-run 확인 모달 */}
+        <ReRunManifestDialog
+          open={reRunManifest !== null}
+          manifest={reRunManifest}
+          verifyResult={reRunVerify}
+          onClose={() => {
+            setReRunManifest(null);
+            setReRunVerify(null);
+            reRunVerifyRef.current = null;
+          }}
+          onStatusMessage={(msg) => {
+            setReRunStatusMsg(msg);
+            setTimeout(() => setReRunStatusMsg(""), 4000);
+          }}
+        />
+
+        {/* §12 Reproducibility: manifest diff 모달 */}
+        <ManifestDiffDialog
+          open={diffOpen}
+          manifestA={diffManifestA}
+          manifestB={diffManifestB}
+          onClose={() => {
+            setDiffOpen(false);
+            setDiffManifestA(null);
+            setDiffManifestB(null);
+          }}
+        />
+
+        {/* §5 Output Persistence: 덮어쓰기 confirm */}
+        <OverwriteConfirmDialog />
+      </AppShell>
+    </Tabs>
   );
 }
 
