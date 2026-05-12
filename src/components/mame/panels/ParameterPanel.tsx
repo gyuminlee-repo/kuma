@@ -503,8 +503,8 @@ export function ParameterPanel() {
             className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
           >
             <span className="inline-flex items-center gap-1.5">
-              {t("mameParameters.minFilteredDepth")}
-              <InlineHelp text={t("mameParameters.minFilteredDepthHelp")} />
+              {t("mame.parameters.minFilteredDepth")}
+              <InlineHelp text={t("mame.parameters.minFilteredDepthHelp")} />
             </span>
           </Label>
           <Input
@@ -520,11 +520,11 @@ export function ParameterPanel() {
               if (Number.isFinite(n) && n > 0) setParams({ minFilteredDepth: n });
             }}
             className="h-8 text-xs"
-            aria-label={t("mameParameters.minFilteredDepthAria")}
-            title={t("mameParameters.minFilteredDepthTitle")}
+            aria-label={t("mame.parameters.minFilteredDepthAria")}
+            title={t("mame.parameters.minFilteredDepthTitle")}
           />
           <p className="text-caption text-muted-foreground">
-            {t("mameParameters.minFilteredDepthFootnote")}
+            {t("mame.parameters.minFilteredDepthFootnote")}
           </p>
         </div>
 
@@ -536,7 +536,7 @@ export function ParameterPanel() {
           >
             <span className="inline-flex items-center gap-1.5">
               {t("mame.parameters.legacyKbCutoff")}
-              <InlineHelp text={t("mameParameters.legacyKbHelp")} />
+              <InlineHelp text={t("mame.parameters.legacyKbHelp")} />
             </span>
           </Label>
           <Input
@@ -552,7 +552,7 @@ export function ParameterPanel() {
             }}
             className="h-7 text-xs opacity-70"
             aria-label={t("mame.parameters.legacyKbCutoffAriaLabel")}
-            title={t("mameParameters.legacyKbTooltip")}
+            title={t("mame.parameters.legacyKbTooltip")}
           />
           {distributionStats !== null && (
             <RecommendedCutoff

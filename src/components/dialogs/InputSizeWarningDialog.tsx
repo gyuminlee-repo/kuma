@@ -41,7 +41,8 @@ export function InputSizeWarningDialog({
       ? t("inputSizeWarning.titleBlock")
       : t("inputSizeWarning.title");
 
-  const continueLabel = level === "block" ? "Continue anyway" : "Continue";
+  const continueLabel =
+    level === "block" ? t("inputSizeWarning.continueLabelBlock") : t("inputSizeWarning.continueLabel");
 
   return (
     <Dialog
@@ -64,7 +65,7 @@ export function InputSizeWarningDialog({
             size="sm"
             onClick={onCancel}
           >
-            Cancel
+            {t("inputSizeWarning.cancelLabel")}
           </Button>
           <Button
             size="sm"

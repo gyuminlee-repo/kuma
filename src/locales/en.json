@@ -163,7 +163,14 @@
       "ingestAmpliconTitle": "Group reads by amplicon identity. Use when multiple amplicons share a barcode or when demultiplexing by sequence match.",
       "inputModeConsensusTitle": "Start from pre-computed consensus FASTA (one sequence per barcode). Skips sorting and consensus calling.",
       "inputModeSortedBarcodeTitle": "Start from already-sorted barcode directories (fastq.gz per barcode). Skips MinKNOW sorting; runs consensus calling.",
-      "inputModeRawRunTitle": "Start from a raw MinKNOW run folder (fastq_pass/ + run metadata). Full pipeline: sort barcodes, filter, then consensus."
+      "inputModeRawRunTitle": "Start from a raw MinKNOW run folder (fastq_pass/ + run metadata). Full pipeline: sort barcodes, filter, then consensus.",
+      "minFilteredDepth": "Min Filtered Depth (reads)",
+      "minFilteredDepthHelp": "Cutoff based on read count passing the length-window filter. This is the primary depth-based quality cutoff.",
+      "minFilteredDepthAria": "Min filtered depth (reads). Length-window-filtered read count cutoff.",
+      "minFilteredDepthTitle": "Primary depth cutoff. Based on reads passing the length-window filter.",
+      "minFilteredDepthFootnote": "Length-window-filtered read count. ONT R10.4.1 consensus: Q35+ ~15x. Does not convert 1:1 with legacy KB cutoff.",
+      "legacyKbHelp": "Legacy cutoff using FASTA file size as a proxy for read depth. Affected by compression ratio, length distribution, and library variation.",
+      "legacyKbTooltip": "File-size-based proxy cutoff. Affected by compression ratio, length distribution, and library variation. Use as reference only."
     },
     "barcodeSetup": {
       "title": "Barcode Package Setup",
@@ -1135,7 +1142,10 @@
   },
   "inputSizeWarning": {
     "title": "Input size warning",
-    "titleBlock": "Input size warning (very large job)"
+    "titleBlock": "Input size warning (very large job)",
+    "continueLabel": "Continue",
+    "continueLabelBlock": "Continue anyway",
+    "cancelLabel": "Cancel"
   },
   "localeToggle": {
     "currentLanguageAria": "Current language: {{label}}. Change language"

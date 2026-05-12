@@ -163,7 +163,14 @@
       "ingestAmpliconTitle": "앰플리콘 서열로 reads 묶음. 바코드를 공유하는 여러 앰플리콘이 있거나 서열 기반 역다중화 시 사용합니다.",
       "inputModeConsensusTitle": "사전 계산된 컨센서스 FASTA(바코드당 서열 1개)에서 시작합니다. 정렬 및 컨센서스 호출을 건너뜁니다.",
       "inputModeSortedBarcodeTitle": "이미 정렬된 바코드 디렉토리(바코드당 fastq.gz)에서 시작합니다. MinKNOW 정렬을 건너뛰고 컨센서스 호출을 실행합니다.",
-      "inputModeRawRunTitle": "MinKNOW 원시 실행 폴더(fastq_pass/ + 실행 메타데이터)에서 시작합니다. 바코드 정렬, 필터링, 컨센서스 호출로 이어지는 전체 파이프라인을 실행합니다."
+      "inputModeRawRunTitle": "MinKNOW 원시 실행 폴더(fastq_pass/ + 실행 메타데이터)에서 시작합니다. 바코드 정렬, 필터링, 컨센서스 호출로 이어지는 전체 파이프라인을 실행합니다.",
+      "minFilteredDepth": "최소 Filtered Depth (reads)",
+      "minFilteredDepthHelp": "length-window filter를 통과한 read 수 기준 cutoff입니다. 기본 depth 품질 기준입니다.",
+      "minFilteredDepthAria": "최소 filtered depth (reads). Length-window-filtered read count cutoff.",
+      "minFilteredDepthTitle": "기본 depth cutoff. length-window filter를 통과한 read 수 기준.",
+      "minFilteredDepthFootnote": "Length-window-filtered read count. ONT R10.4.1 consensus: Q35+ ~15x. KB cutoff와 1:1 자동 변환되지 않습니다.",
+      "legacyKbHelp": "FASTA 파일 크기를 read depth의 대리값으로 쓰는 기존 cutoff입니다. 압축률, 길이 분포, 라이브러리 변동에 영향받습니다.",
+      "legacyKbTooltip": "파일 크기 기반 proxy cutoff. 압축률, 길이 분포, 라이브러리 변동에 영향받음. 보조 참고용."
     },
     "barcodeSetup": {
       "title": "바코드 패키지 설정",
@@ -1130,7 +1137,10 @@
   },
   "inputSizeWarning": {
     "title": "입력 크기 경고",
-    "titleBlock": "입력 크기 경고 (매우 큰 작업)"
+    "titleBlock": "입력 크기 경고 (매우 큰 작업)",
+    "continueLabel": "계속",
+    "continueLabelBlock": "그래도 계속",
+    "cancelLabel": "취소"
   },
   "statusBar": {
     "ready": "준비",
