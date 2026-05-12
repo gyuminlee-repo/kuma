@@ -65,6 +65,7 @@ describe("MAME_SUBSTEP_ORDER", () => {
       "setup.output",
     ]);
     expect(MAME_SUBSTEP_ORDER.analyze).toEqual([
+      "analyze.inputs",
       "analyze.verdict",
       "analyze.plate",
       "analyze.health",
@@ -108,11 +109,11 @@ describe("PhaseSlice — setMamePhase sub-step 자동 리셋", () => {
     store = makeStore();
   });
 
-  it("setMamePhase('analyze') → currentMameSubStep이 analyze.verdict로 리셋된다", () => {
+  it("setMamePhase('analyze') → currentMameSubStep이 analyze.inputs로 리셋된다", () => {
     store.setMameSubStep("setup.output");
     store.setMamePhase("analyze");
     expect(store.mamePhase).toBe("analyze");
-    expect(store.currentMameSubStep).toBe("analyze.verdict");
+    expect(store.currentMameSubStep).toBe("analyze.inputs");
   });
 
   it("setMamePhase('activity') → currentMameSubStep이 activity.ingest로 리셋된다", () => {
@@ -133,7 +134,7 @@ describe("PhaseSlice — setMamePhase sub-step 자동 리셋", () => {
     expect(store.currentMameSubStep).toBe("setup.files");
 
     store.setMamePhase("analyze");
-    expect(store.currentMameSubStep).toBe("analyze.verdict");
+    expect(store.currentMameSubStep).toBe("analyze.inputs");
 
     store.setMamePhase("activity");
     expect(store.currentMameSubStep).toBe("activity.ingest");
