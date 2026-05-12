@@ -54,10 +54,10 @@ function readStoredTheme(): Theme {
   return "system";
 }
 
-const THEME_LABELS: Record<Theme, string> = {
-  light: "Light",
-  dark: "Dark",
-  system: "System",
+const THEME_LABEL_KEYS: Record<Theme, string> = {
+  light: "themeToggle.labelLight",
+  dark: "themeToggle.labelDark",
+  system: "themeToggle.labelSystem",
 };
 
 /** 테마 아이콘 (SVG inline) */
@@ -132,6 +132,10 @@ export function ThemeToggle({ variant = "icon" }: ThemeToggleProps) {
   const { t } = useTranslation();
   const [theme, setTheme] = useState<Theme>(readStoredTheme);
 
+  function getThemeLabel(th: Theme): string {
+    return t(THEME_LABEL_KEYS[th]);
+  }
+
   // 초기 마운트 + 시스템 테마 변경 구독
   useEffect(() => {
     applyTheme(theme);
@@ -162,25 +166,25 @@ export function ThemeToggle({ variant = "icon" }: ThemeToggleProps) {
           variant="ghost"
           size="sm"
           className="h-control px-2 gap-1.5 text-foreground/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          aria-label={t("themeToggle.currentThemeAria", { label: THEME_LABELS[theme] })}
+          aria-label={t("themeToggle.currentThemeAria", { label: getThemeLabel(theme) })}
         >
           <ThemeIcon theme={theme} />
           {variant === "icon-label" && (
-            <span className="text-caption">{THEME_LABELS[theme]}</span>
+            <span className="text-caption">{getThemeLabel(theme)}</span>
           )}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        {(["light", "dark", "system"] as Theme[]).map((t) => (
+        {(["light", "dark", "system"] as Theme[]).map((th) => (
           <DropdownMenuItem
-            key={t}
-            onClick={() => handleSelect(t)}
-            aria-current={theme === t ? "true" : undefined}
+            key={th}
+            onClick={() => handleSelect(th)}
+            aria-current={theme === th ? "true" : undefined}
           >
             <span className="flex items-center gap-2">
-              <ThemeIcon theme={t} />
-              <span>{THEME_LABELS[t]}</span>
-              {theme === t && (
+              <ThemeIcon theme={th} />
+              <span>{getThemeLabel(th)}</span>
+              {theme === th && (
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="12"

@@ -1151,7 +1151,10 @@
     "currentLanguageAria": "현재 언어: {{label}}. 언어 변경"
   },
   "themeToggle": {
-    "currentThemeAria": "현재 테마: {{label}}. 테마 변경"
+    "currentThemeAria": "현재 테마: {{label}}. 테마 변경",
+    "labelLight": "라이트",
+    "labelDark": "다크",
+    "labelSystem": "시스템"
   },
   "menuBar": {
     "restartSidecarBusyConfirm": "작업이 진행 중입니다. 그래도 sidecar를 재시작하시겠습니까?",
@@ -1171,6 +1174,23 @@
   "panel": {
     "errorTitle": "표시할 수 없습니다",
     "errorDescription": "컴포넌트 렌더링 중 오류가 발생했습니다."
+  },
+  "ui": {
+    "stateView": {
+      "showDetails": "상세 보기",
+      "hideDetails": "상세 숨기기"
+    },
+    "inlineHelp": {
+      "showHelp": "도움말 보기",
+      "hideHelp": "도움말 숨기기"
+    }
+  },
+  "round": {
+    "handoffButton": {
+      "label": "Round {{n}} 시작",
+      "ariaLabel": "Round {{n}} 시작",
+      "disabledTitle": "핸드오프를 활성화하려면 먼저 활성 데이터를 유전형과 병합하세요"
+    }
   },
   "roundSummary": {
     "exportBlocked": "내보내기 차단 — {{count}}건의 라벨 교체 오류가 감지되었습니다.",
@@ -1420,7 +1440,27 @@
     "basisCol": "근거",
     "roundSignalsHeading": "라운드 신호",
     "demoModeAriaLabel": "데모 모드: 지표는 라이브 백엔드 RPC가 아닌 로컬 병합 통계에서 생성됩니다.",
-    "noMetricsYet": "라운드 지표 없음 — ALE 라운드를 완료하면 신호가 계산됩니다."
+    "noMetricsYet": "라운드 지표 없음 — ALE 라운드를 완료하면 신호가 계산됩니다.",
+    "labelT1": "T1 — Throughput",
+    "labelT2": "T2 — Plateau",
+    "labelT3": "T3 — Hit rate",
+    "labelT4": "T4 — Position convergence",
+    "labelTActive": "T_active — Active site",
+    "labelTUnused": "T_unused — Unused beneficial",
+    "t2Unavailable": "WT replicate < 4, T2 산출 불가",
+    "t2Threshold": "threshold = {{value}}",
+    "t2DeltaBest": "Δ_best = {{value}} | {{threshold}}",
+    "slopeUnavailable": "< 2 rounds, slope 산출 불가",
+    "slopeValue": "slope = {{slope}} ({{rates}})",
+    "t4Jaccard": "Jaccard = {{value}} (threshold ≥ 0.5)",
+    "tActiveInSite": "{{count}} / {{total}} active site 내",
+    "tActiveEmpty": "active-residue 목록 또는 top-K 비어 있음",
+    "tUnusedCount": "{{count}} 미사용 (M_min = 5)",
+    "rationaleAnchorLit": "문헌 기반 신호.",
+    "rationaleAnchorInfer": "추론 기반 신호 (MLDE 문헌에 직접 정의되지 않음).",
+    "rationaleAriaLabel": "근거: {{text}}",
+    "rationaleTagLit": "lit",
+    "rationaleTagInfer": "infer"
   },
   "uniprotSearchExtra": {
     "placeholder": "UniProt ID",

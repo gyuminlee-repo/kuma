@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { useRoundStore } from "@/store/round/roundSlice";
 import { useAppStore } from "@/store/appStore";
 import { ArrowRight } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface RoundHandoffButtonProps {
   round_id: string;
@@ -21,6 +22,7 @@ interface RoundHandoffButtonProps {
 }
 
 export function RoundHandoffButton({ round_id, onHandoffSuccess }: RoundHandoffButtonProps) {
+  const { t } = useTranslation();
   const round = useRoundStore((s) => s.rounds.find((r) => r.id === round_id) ?? null);
   const handoffNextRound = useRoundStore((s) => s.handoffNextRound);
   const loadRoundActivity = useAppStore((s) => s.loadRoundActivity);
@@ -40,15 +42,15 @@ export function RoundHandoffButton({ round_id, onHandoffSuccess }: RoundHandoffB
       className="w-full text-xs"
       disabled={disabled}
       onClick={handleClick}
-      aria-label={`Start Round ${nextRoundN}`}
+      aria-label={t("round.handoffButton.ariaLabel", { n: nextRoundN })}
       title={
         disabled
-          ? "Merge activity data with genotype first to enable handoff"
+          ? t("round.handoffButton.disabledTitle")
           : undefined
       }
     >
       <ArrowRight size={12} aria-hidden="true" className="mr-1.5" />
-      Start Round {nextRoundN}
+      {t("round.handoffButton.label", { n: nextRoundN })}
     </Button>
   );
 }

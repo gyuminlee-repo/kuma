@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { WifiOff } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/utils";
@@ -43,6 +44,7 @@ export function StateView({
   action,
   className,
 }: StateViewProps) {
+  const { t } = useTranslation();
   const [showDetails, setShowDetails] = useState(false);
   const icon = VARIANT_ICON[variant];
   const isNetwork = variant === "error" && errorKind === "network";
@@ -91,7 +93,7 @@ export function StateView({
             )}
           >
             <span aria-hidden="true">{showDetails ? "▾" : "▸"}</span>
-            {showDetails ? "Hide details" : "Show details"}
+            {showDetails ? t("ui.stateView.hideDetails") : t("ui.stateView.showDetails")}
           </button>
 
           {showDetails ? (

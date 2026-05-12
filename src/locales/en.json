@@ -1151,7 +1151,10 @@
     "currentLanguageAria": "Current language: {{label}}. Change language"
   },
   "themeToggle": {
-    "currentThemeAria": "Current theme: {{label}}. Change theme"
+    "currentThemeAria": "Current theme: {{label}}. Change theme",
+    "labelLight": "Light",
+    "labelDark": "Dark",
+    "labelSystem": "System"
   },
   "menuBar": {
     "restartSidecarBusyConfirm": "A job is running. Restart sidecar anyway?",
@@ -1171,6 +1174,23 @@
   "panel": {
     "errorTitle": "Cannot display",
     "errorDescription": "An error occurred while rendering the component."
+  },
+  "ui": {
+    "stateView": {
+      "showDetails": "Show details",
+      "hideDetails": "Hide details"
+    },
+    "inlineHelp": {
+      "showHelp": "Show help",
+      "hideHelp": "Hide help"
+    }
+  },
+  "round": {
+    "handoffButton": {
+      "label": "Start Round {{n}}",
+      "ariaLabel": "Start Round {{n}}",
+      "disabledTitle": "Merge activity data with genotype first to enable handoff"
+    }
   },
   "roundSummary": {
     "exportBlocked": "Export blocked — {{count}} label-swap error(s) detected.",
@@ -1420,7 +1440,27 @@
     "basisCol": "Basis",
     "roundSignalsHeading": "Round Signals",
     "demoModeAriaLabel": "Demo mode: metrics are synthesised from local merge stats, not a live backend RPC",
-    "noMetricsYet": "No round metrics yet — complete an ALE round to compute signals."
+    "noMetricsYet": "No round metrics yet — complete an ALE round to compute signals.",
+    "labelT1": "T1 — Throughput",
+    "labelT2": "T2 — Plateau",
+    "labelT3": "T3 — Hit rate",
+    "labelT4": "T4 — Position convergence",
+    "labelTActive": "T_active — Active site",
+    "labelTUnused": "T_unused — Unused beneficial",
+    "t2Unavailable": "WT replicates < 4, T2 unavailable",
+    "t2Threshold": "threshold = {{value}}",
+    "t2DeltaBest": "Δ_best = {{value}} | {{threshold}}",
+    "slopeUnavailable": "< 2 rounds, slope unavailable",
+    "slopeValue": "slope = {{slope}} ({{rates}})",
+    "t4Jaccard": "Jaccard = {{value}} (threshold ≥ 0.5)",
+    "tActiveInSite": "{{count}} / {{total}} in active site",
+    "tActiveEmpty": "active-residue list or top-K empty",
+    "tUnusedCount": "{{count}} unused (M_min = 5)",
+    "rationaleAnchorLit": "Literature-anchored signal.",
+    "rationaleAnchorInfer": "Reasoning-based signal (not directly formalised in MLDE literature).",
+    "rationaleAriaLabel": "Rationale: {{text}}",
+    "rationaleTagLit": "lit",
+    "rationaleTagInfer": "infer"
   },
   "uniprotSearchExtra": {
     "placeholder": "UniProt ID",

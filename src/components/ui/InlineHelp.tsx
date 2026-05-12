@@ -9,6 +9,7 @@
  */
 import { useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
 interface InlineHelpProps {
@@ -18,6 +19,7 @@ interface InlineHelpProps {
 }
 
 export function InlineHelp({ text, className }: InlineHelpProps) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
@@ -46,7 +48,7 @@ export function InlineHelp({ text, className }: InlineHelpProps) {
       <button
         ref={buttonRef}
         type="button"
-        aria-label={open ? "Hide help" : "Show help"}
+        aria-label={open ? t("ui.inlineHelp.hideHelp") : t("ui.inlineHelp.showHelp")}
         aria-expanded={open}
         className={cn(
           "inline-flex h-4 w-4 items-center justify-center rounded-full text-plate-tiny font-bold leading-none transition-colors",

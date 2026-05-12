@@ -50,15 +50,15 @@ function jaccardDisplay(a: number[], b: number[]): string {
 }
 
 /** Computes T2 threshold string (1.96·σ·√(2/r)) for display. */
-function t2ThresholdDisplay(sigma_assay: number | null, r: number): string {
-  if (sigma_assay == null) return "WT replicates < 4, T2 unavailable";
+function t2ThresholdDisplay(sigma_assay: number | null, r: number, t: (key: string, opts?: Record<string, string | number>) => string): string {
+  if (sigma_assay == null) return t("roundSummarySignals.t2Unavailable");
   const threshold = 1.96 * sigma_assay * Math.sqrt(2 / r);
-  return `threshold = ${threshold.toFixed(4)}`;
+  return t("roundSummarySignals.t2Threshold", { value: threshold.toFixed(4) });
 }
 
 /** Computes hit rate slope label from array of rates. */
-function hitRateSlopeDisplay(hit_rates: number[]): string {
-  if (hit_rates.length < 2) return "< 2 rounds, slope unavailable";
+function hitRateSlopeDisplay(hit_rates: number[], t: (key: string, opts?: Record<string, string | number>) => string): string {
+  if (hit_rates.length < 2) return t("roundSummarySignals.slopeUnavailable");
   const n = hit_rates.length;
   const x = Array.from({ length: n }, (_, i) => i);
   const xMean = x.reduce((a, b) => a + b, 0) / n;
@@ -66,7 +66,7 @@ function hitRateSlopeDisplay(hit_rates: number[]): string {
   const num = x.reduce((sum, xi, i) => sum + (xi - xMean) * (hit_rates[i] - yMean), 0);
   const den = x.reduce((sum, xi) => sum + (xi - xMean) ** 2, 0);
   const slope = den === 0 ? 0 : num / den;
-  return `slope = ${slope.toFixed(4)} (${hit_rates.map((v) => (v * 100).toFixed(1) + "%").join(", ")})`;
+  return t("roundSummarySignals.slopeValue", { slope: slope.toFixed(4), rates: hit_rates.map((v) => (v * 100).toFixed(1) + "%").join(", ") });
 }
 
 // ---------------------------------------------------------------------------
@@ -87,11 +87,11 @@ interface SignalRowData {
   literatureAnchor: boolean;
 }
 
-function buildSignalRows(m: RoundMetrics): SignalRowData[] {
+function buildSignalRows(m: RoundMetrics, t: (key: string, opts?: Record<string, string | number>) => string): SignalRowData[] {
   return [
     {
       id: "T1",
-      label: "T1 — Throughput",
+      label: t("roundSummarySignals.labelT1"),
       met: m.T1,
       inputValue: `${m.cumulative_beneficial} / K=${m.K_throughput}`,
       rationale:
@@ -100,51 +100,51 @@ function buildSignalRows(m: RoundMetrics): SignalRowData[] {
     },
     {
       id: "T2",
-      label: "T2 — Plateau",
+      label: t("roundSummarySignals.labelT2"),
       met: m.T2,
       inputValue:
         m.sigma_assay != null
-          ? `Δ_best = ${fmt(m.delta_best_ema, 4)} | ${t2ThresholdDisplay(m.sigma_assay, m.r)}`
-          : t2ThresholdDisplay(null, m.r),
+          ? t("roundSummarySignals.t2DeltaBest", { value: fmt(m.delta_best_ema, 4), threshold: t2ThresholdDisplay(m.sigma_assay, m.r, t) })
+          : t2ThresholdDisplay(null, m.r, t),
       rationale:
         "Statistical 95% MDE. If Δ_best_EMA < 1.96·σ·√(2/r), no statistically meaningful improvement detected. Reasoning-based signal (not directly formalised in MLDE literature).",
       literatureAnchor: false,
     },
     {
       id: "T3",
-      label: "T3 — Hit rate",
+      label: t("roundSummarySignals.labelT3"),
       met: m.T3,
-      inputValue: hitRateSlopeDisplay(m.hit_rates),
+      inputValue: hitRateSlopeDisplay(m.hit_rates, t),
       rationale:
         "Hit rate slope ≤ 0 indicates active-learning convergence / local saturation. Reasoning-based signal (general active-learning principle).",
       literatureAnchor: false,
     },
     {
       id: "T4",
-      label: "T4 — Position convergence",
+      label: t("roundSummarySignals.labelT4"),
       met: m.T4,
-      inputValue: `Jaccard = ${jaccardDisplay(m.top_k_positions_n, m.top_k_positions_n1)} (threshold ≥ 0.5)`,
+      inputValue: t("roundSummarySignals.t4Jaccard", { value: jaccardDisplay(m.top_k_positions_n, m.top_k_positions_n1) }),
       rationale:
         "Top-K mutation positions converging across rounds → exploration stalling. Reasoning-based signal (post-hoc justification from Lind 2024 active-site convergence).",
       literatureAnchor: false,
     },
     {
       id: "T_active",
-      label: "T_active — Active site",
+      label: t("roundSummarySignals.labelTActive"),
       met: m.T_active,
       inputValue:
         m.top_k_positions.length > 0 && m.active_residues.length > 0
-          ? `${m.top_k_positions.filter((p) => m.active_residues.includes(p)).length} / ${m.top_k_positions.length} in active site`
-          : "active-residue list or top-K empty",
+          ? t("roundSummarySignals.tActiveInSite", { count: String(m.top_k_positions.filter((p) => m.active_residues.includes(p)).length), total: String(m.top_k_positions.length) })
+          : t("roundSummarySignals.tActiveEmpty"),
       rationale:
         "Fraction of top-K positions in active site ≥ 0.4. Direct literature anchor: Lind 2024 PNAS sign epistasis; Wu 2019 PNAS epistatic sites.",
       literatureAnchor: true,
     },
     {
       id: "T_unused",
-      label: "T_unused — Unused beneficial",
+      label: t("roundSummarySignals.labelTUnused"),
       met: m.T_unused,
-      inputValue: `${m.unused_beneficial_count} unused (M_min = 5)`,
+      inputValue: t("roundSummarySignals.tUnusedCount", { count: String(m.unused_beneficial_count) }),
       rationale:
         "Baseline-walking uses only the single best variant as next baseline, leaving other beneficial epistatic interactions unexplored. T_unused signals this opportunity. Reasoning-based signal (baseline-walking specific).",
       literatureAnchor: false,
@@ -328,15 +328,16 @@ function RationaleTooltip({
   rationale: string;
   literatureAnchor: boolean;
 }) {
+  const { t } = useTranslation();
   const anchor = literatureAnchor
-    ? "Literature-anchored signal."
-    : "Reasoning-based signal (not directly formalised in MLDE literature).";
+    ? t("roundSummarySignals.rationaleAnchorLit")
+    : t("roundSummarySignals.rationaleAnchorInfer");
   const fullText = `${anchor}\n\n${rationale}`;
 
   return (
     <span
       role="img"
-      aria-label={`Rationale: ${fullText}`}
+      aria-label={t("roundSummarySignals.rationaleAriaLabel", { text: fullText })}
       title={fullText}
       className={cn(
         "inline-flex cursor-help items-center rounded-full px-1 py-0.5 text-[10px] font-medium",
@@ -345,13 +346,14 @@ function RationaleTooltip({
           : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
       )}
     >
-      {literatureAnchor ? "lit" : "infer"}
+      {literatureAnchor ? t("roundSummarySignals.rationaleTagLit") : t("roundSummarySignals.rationaleTagInfer")}
     </span>
   );
 }
 
-function SignalsTable({ rows }: { rows: SignalRowData[] }) {
+function SignalsTable({ metrics }: { metrics: RoundMetrics }) {
   const { t } = useTranslation();
+  const rows = buildSignalRows(metrics, (key, opts) => t(key, opts as Record<string, string>));
   return (
     <Table aria-label={t("roundSummarySignals.signalsTableAriaLabel")}>
       <TableHeader>
@@ -504,7 +506,7 @@ export function RoundSummaryPanel({
         </p>
       ) : (
         <div className="overflow-x-auto rounded-md border">
-          <SignalsTable rows={buildSignalRows(metrics)} />
+          <SignalsTable metrics={metrics} />
         </div>
       )}
     </section>
