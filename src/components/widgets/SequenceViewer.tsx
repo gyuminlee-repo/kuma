@@ -1,4 +1,5 @@
 import { memo, useMemo, useState, useCallback, useRef, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
 import { useAppStore } from "../../store/appStore";
 import type { DomainInfo } from "../../types/models";
@@ -322,6 +323,7 @@ const TickLayer = memo(function TickLayer({
 // --- Component ---
 
 export function SequenceViewer() {
+  const { t } = useTranslation();
   const {
     seqInfo,
     designResults,
@@ -489,7 +491,7 @@ export function SequenceViewer() {
   }, [designResults, failedMutations]);
 
   return (
-    <div className="h-full overflow-hidden rounded-container border border-border bg-card" role="region" aria-label="Sequence Map">
+    <div className="h-full overflow-hidden rounded-container border border-border bg-card" role="region" aria-label={t("sequenceViewer.regionAriaLabel")}>
       {/* Header */}
       <button
         className="flex w-full items-center h-control border-b border-border bg-muted/40 px-4 text-caption font-semibold text-foreground transition-colors select-none hover:bg-muted/60"
@@ -509,12 +511,12 @@ export function SequenceViewer() {
             clipRule="evenodd"
           />
         </svg>
-        <span title="Linear CDS map showing mutation positions. Green=designed, Red=failed. Density histogram below shows clustering — spread-out mutations are better for library diversity">Sequence Map</span>
+        <span title={t("sequenceViewer.titleHint")}>{t("sequenceViewer.title")}</span>
         {hasTicks && (
           <span className="ml-2 font-normal text-muted-foreground">
-            {successCount} designed
-            {failedCount > 0 && ` / ${failedCount} failed`}
-            {maxAa > 0 && ` — ${maxAa} aa`}
+            {t("sequenceViewer.statDesigned", { count: successCount })}
+            {failedCount > 0 && ` ${t("sequenceViewer.statFailed", { count: failedCount })}`}
+            {maxAa > 0 && ` ${t("sequenceViewer.statAa", { count: maxAa })}`}
           </span>
         )}
       </button>
@@ -525,8 +527,8 @@ export function SequenceViewer() {
           {!hasData ? (
             <StateView
               variant="empty"
-              title="No sequence loaded"
-              description="Load a target gene to view the mutation map."
+              title={t("emptyTitle")}
+              description={t("emptyDesc")}
               className="h-16 py-2"
             />
           ) : (
@@ -537,7 +539,7 @@ export function SequenceViewer() {
                 className="w-full"
                 style={{ maxHeight: 100 }}
                 role="img"
-                aria-label={`Linear sequence map: ${maxAa} amino acids, ${ticks.length} mutations`}
+                aria-label={t("svgAriaLabel", { maxAa, count: ticks.length })}
               >
                 {/* CDS bar background */}
                 <rect
@@ -604,7 +606,7 @@ export function SequenceViewer() {
                   }}
                 >
                   <div className="font-semibold">aa {densityTooltip.startAa}–{densityTooltip.endAa}</div>
-                  <div className="text-background/70">{densityTooltip.count} mutation{densityTooltip.count !== 1 ? "s" : ""}</div>
+                  <div className="text-background/70">{densityTooltip.count === 1 ? t("densityCountSingle", { count: densityTooltip.count }) : t("densityCountPlural", { count: densityTooltip.count })}</div>
                 </div>
               )}
 
@@ -633,7 +635,7 @@ export function SequenceViewer() {
                       tooltip.tick.status === "success" ? "text-success" : "text-error"
                     }
                   >
-                    {tooltip.tick.status === "success" ? "Designed" : `Failed: ${tooltip.tick.reason ?? "unknown"}`}
+                    {tooltip.tick.status === "success" ? t("tooltipDesigned") : t("tooltipFailed", { reason: tooltip.tick.reason ?? "unknown" })}
                   </div>
                 </div>
               )}
@@ -642,16 +644,16 @@ export function SequenceViewer() {
               <div className="flex items-center gap-3 mt-1 text-caption text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: TICK_SUCCESS }} />
-                  success
+                  {t("legendSuccess")}
                 </span>
                 <span className="flex items-center gap-1">
                   <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: TICK_FAILED }} />
-                  failed
+                  {t("legendFailed")}
                 </span>
                 {selectedMutation && (
                   <span className="flex items-center gap-1">
                     <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: TICK_SELECTED }} />
-                    selected
+                    {t("legendSelected")}
                   </span>
                 )}
                 {domains.length > 0 && (

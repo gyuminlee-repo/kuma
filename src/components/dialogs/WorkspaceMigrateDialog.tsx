@@ -5,6 +5,7 @@
  * Presents a confirmation UI with backup + migrate or cancel options.
  */
 
+import { useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogContent,
@@ -48,6 +49,7 @@ export function WorkspaceMigrateDialog({
   onCancel,
   loading = false,
 }: WorkspaceMigrateDialogProps) {
+  const { t } = useTranslation();
   const { open, filePath, fromVersion, toVersion, noPath } = state;
 
   return (
@@ -58,12 +60,9 @@ export function WorkspaceMigrateDialog({
         onInteractOutside={(e) => e.preventDefault()}
       >
         <DialogHeader>
-          <DialogTitle>Workspace Version Mismatch</DialogTitle>
+          <DialogTitle>{t("workspaceMigrate.title")}</DialogTitle>
           <DialogDescription>
-            The selected workspace uses schema version{" "}
-            <strong className="text-foreground">{fromVersion}</strong>, but the
-            current app requires{" "}
-            <strong className="text-foreground">{toVersion}</strong>.
+            {t("workspaceMigrate.description", { from: fromVersion, to: toVersion })}
           </DialogDescription>
         </DialogHeader>
 
@@ -74,30 +73,24 @@ export function WorkspaceMigrateDialog({
 
           {noPath ? (
             <p className="text-warning text-sm" role="alert">
-              No automatic migration is defined for this version pair. Manual
-              upgrade is required — the workspace cannot be loaded.
+              {t("workspaceMigrate.noPathAlert")}
             </p>
           ) : (
             <>
               <p>
-                Migrating will:
+                {t("workspaceMigrate.migratingWillTitle")}
               </p>
               <ul className="ml-4 list-disc space-y-1 text-sm text-muted-foreground">
                 <li>
-                  Create a backup copy:{" "}
-                  <span className="font-mono text-xs">
-                    {"<filename>.backup-<timestamp>.json"}
-                  </span>
+                  {t("workspaceMigrate.backupItem", { template: "<filename>.backup-<timestamp>.json" })}
                 </li>
                 <li>
-                  Convert the workspace to version{" "}
-                  <strong>{toVersion}</strong>
+                  {t("workspaceMigrate.convertItem", { toVersion })}
                 </li>
-                <li>Load the converted workspace</li>
+                <li>{t("workspaceMigrate.loadItem")}</li>
               </ul>
               <p className="text-caption text-muted-foreground">
-                The original file is preserved as a backup. Migration cannot be
-                undone automatically — restore the backup manually if needed.
+                {t("workspaceMigrate.backupNote")}
               </p>
             </>
           )}
@@ -108,17 +101,17 @@ export function WorkspaceMigrateDialog({
             variant="outline"
             onClick={onCancel}
             disabled={loading}
-            aria-label="Cancel workspace load"
+            aria-label={t("workspaceMigrate.cancelAriaLabel")}
           >
-            Cancel
+            {t("workspaceMigrate.cancelBtn")}
           </Button>
           {!noPath && (
             <Button
               onClick={() => void onConfirm()}
               disabled={loading}
-              aria-label="Backup original file and migrate workspace"
+              aria-label={t("workspaceMigrate.migrateAriaLabel")}
             >
-              {loading ? "Migrating…" : "Migrate (Backup + Convert)"}
+              {loading ? t("workspaceMigrate.migratingBtn") : t("workspaceMigrate.migrateBtn")}
             </Button>
           )}
         </DialogFooter>

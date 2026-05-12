@@ -136,7 +136,24 @@
       "cdsEnd": "CDS 끝",
       "cdsEndHelp": "번역에 사용하는 CDS 끝 좌표입니다. 참조 FASTA 프레임과 일치해야 합니다.",
       "manyCutoff": "Many 기준값",
-      "manyCutoffHelp": "아미노산 변화 수가 이 값을 초과하면 결과가 MANY로 분류됩니다."
+      "manyCutoffHelp": "아미노산 변화 수가 이 값을 초과하면 결과가 MANY로 분류됩니다.",
+      "inputSourceConsensus": "Consensus FASTA",
+      "inputSourceSortedBarcode": "정렬된 바코드 파일",
+      "inputSourceRawRun": "MinKNOW 원시 실행 폴더",
+      "recommendedCutoff": "권장값: {{value}} KB ({{method}})",
+      "useCutoffBtn": "적용",
+      "bimodalTooltip": "분포가 이중봉 형태로 보입니다. 권장 방식은 knee 감지입니다.",
+      "autoDetected": "자동 감지: {{length}} bp",
+      "trimAdaptersAriaLabel": "reads에서 forward 바코드와 universal reverse primer를 트리밍",
+      "revPrimerPlaceholder": "ACGT...",
+      "universalRevPrimerAriaLabel": "Universal reverse primer 서열 (5' to 3' 방향)",
+      "normalizeHeadersAriaLabel": "FASTA 헤더에 ONT read ID 대신 well 이름 기록",
+      "demuxProgressAriaLabel": "Demux 진행률",
+      "demuxComplete": "Demux 완료:",
+      "demuxCompleteReads": "{{assigned}}개 reads 할당 / 전체 {{total}}개 ({{backend}})",
+      "lengthFilter": "Length filter: {{mode}}",
+      "legacyKbCutoff": "Legacy KB 기준값 (proxy)",
+      "legacyKbCutoffAriaLabel": "Legacy 최소 파일 크기 KB 기준값 (read depth 대리값)"
     },
     "barcodeSetup": {
       "title": "바코드 패키지 설정",
@@ -162,7 +179,10 @@
       "toastError": "생성 실패",
       "geneEndError": "gene_end는 gene_start보다 커야 합니다.",
       "noProjectWarning": "패키지를 생성하려면 프로젝트를 열어야 합니다. 파일 메뉴에서 프로젝트 열기를 선택하세요.",
-      "barcodeSeedsXlsxHelper": "fwd_1..12, rev_1..8 시드 서열이 담긴 xlsx 파일입니다."
+      "barcodeSeedsXlsxHelper": "fwd_1..12, rev_1..8 시드 서열이 담긴 xlsx 파일입니다.",
+      "barcodeSeedsXlsxPlaceholder": ".xlsx 파일 경로",
+      "warningsLabel": "경고",
+      "warningsAriaLabel": "경고"
     },
     "activity": {
       "title": "활성 데이터",
@@ -305,7 +325,14 @@
       "deadlockTitle": "응답 없음",
       "deadlockDescription": "30초 이상 진행 상태가 업데이트되지 않았습니다. 작업이 멈춘 것 같습니다.",
       "deadlockWait": "계속 대기",
-      "manifestLoadFailed": "Manifest 로드 실패: {{err}}"
+      "deadlockReset": "초기화",
+      "manifestLoadFailed": "Manifest 로드 실패: {{err}}",
+      "barcodeSetupTab": "1. 바코드 설정",
+      "analyzeTab": "2. 분석",
+      "activityTab": "3. Activity",
+      "verdictTableTitle": "판정 테이블",
+      "platePlanTitle": "Plate 계획",
+      "runHealthTitle": "Run 상태"
     },
     "dialogs": {
       "export": {
@@ -1008,7 +1035,10 @@
     "sequenceFile": "시퀀스 파일",
     "targetGene": "타겟 유전자",
     "targetGeneTitle": "primer를 설계할 CDS 영역. 가장 긴 coding sequence로 자동 선택됩니다.",
-    "uniprotBlastInProgress": "UniProt BLAST 검색 중… (완료 후 Step 2 사용 가능)"
+    "uniprotBlastInProgress": "UniProt BLAST 검색 중… (완료 후 Step 2 사용 가능)",
+    "ecoliTitle": "Escherichia coli K-12 코돈 사용 빈도표. E. coli BL21, DH5α, K-12 계열에서 발현 시 사용.",
+    "bsubtilisTitle": "Bacillus subtilis 168 코돈 사용 빈도표. B. subtilis 또는 관련 그람 양성 숙주에서 발현 시 사용.",
+    "scerevisiaeTitle": "Saccharomyces cerevisiae 코돈 사용 빈도표. 출아 효모 숙주에서 발현 시 사용."
   },
   "uniprotSearch": {
     "autoSearchBtn": "자동 검색",
@@ -1065,7 +1095,13 @@
     "offlineModeDesc": "켜면 모든 외부 서비스 호출이 차단됩니다",
     "consentStatusLabel": "동의 상태:",
     "consentGranted": "동의함",
-    "consentNotGranted": "미동의"
+    "consentNotGranted": "미동의",
+    "fileMenuTrigger": "파일",
+    "exportMenuTrigger": "내보내기",
+    "uniprotServiceSuffix": " -- 단백질 서열 검색",
+    "ncbiBlastServiceSuffix": " -- 서열 유사성 검색",
+    "alphafoldServiceSuffix": " -- 구조 예측 조회",
+    "interproServiceSuffix": " -- 단백질 도메인 주석"
   },
   "panel": {
     "errorTitle": "표시할 수 없습니다",
@@ -1143,5 +1179,183 @@
   },
   "inputSlice": {
     "csvFormatError": "{{mode}} CSV 형식 오류: {{detail}}"
+  },
+  "benchmarkDialog": {
+    "strategyTopN": "Top-N",
+    "strategyRandom": "Random",
+    "strategyPositionCap": "Position Cap",
+    "strategyDomain": "Domain",
+    "strategyPareto1d": "Pareto 1D",
+    "strategyPareto3d": "Pareto 3D",
+    "strategyParetoEntropy": "Pareto + Entropy",
+    "metricHitRate": "Hit rate",
+    "metricMeanFitness": "Mean fitness",
+    "metricPositionCov": "Position cov",
+    "metricStructuralSpread": "Structural spread",
+    "baselinePrefix": "기준: {{strategy}}",
+    "vsBaseline": "vs 기준",
+    "strategyColHeader": "전략",
+    "blueBarLegend": "파란 막대: 이번 benchmark run 내 절대값 백분위.",
+    "deltaLegend": "Delta 라벨/막대: {{baseline}} 대비 차이.",
+    "compareAgainst": "각 전략을 다음 기준과 비교:",
+    "saveSummaryJson": "Summary JSON 저장",
+    "exportRawJson": "Raw JSON 내보내기",
+    "exportCsv": "CSV 내보내기"
+  },
+  "sequenceViewer": {
+    "regionAriaLabel": "Sequence Map",
+    "title": "Sequence Map",
+    "titleHint": "돌연변이 위치를 나타내는 CDS 선형 지도입니다. 초록=디자인 완료, 빨강=실패. 아래 밀도 히스토그램은 클러스터링을 보여줍니다. 돌연변이가 고르게 분포될수록 라이브러리 다양성이 높습니다.",
+    "statDesigned": "{{count}}개 디자인 완료",
+    "statFailed": "/ {{count}}개 실패",
+    "statAa": "{{count}} aa",
+    "emptyTitle": "시퀀스 없음",
+    "emptyDesc": "대상 유전자를 불러오면 돌연변이 지도를 볼 수 있습니다.",
+    "svgAriaLabel": "선형 시퀀스 지도: {{maxAa}} 아미노산, {{count}}개 돌연변이",
+    "densityCountSingle": "{{count}}개 돌연변이",
+    "densityCountPlural": "{{count}}개 돌연변이",
+    "tooltipDesigned": "디자인 완료",
+    "tooltipFailed": "실패: {{reason}}",
+    "legendSuccess": "성공",
+    "legendFailed": "실패",
+    "legendSelected": "선택됨"
+  },
+  "workspaceMigrate": {
+    "title": "Workspace 버전 불일치",
+    "description": "선택한 workspace 의 schema 버전은 {{from}} 이지만, 현재 앱은 {{to}} 를 요구합니다.",
+    "noPathAlert": "이 버전 쌍에 대한 자동 마이그레이션이 정의되어 있지 않습니다. 수동 업그레이드가 필요합니다. Workspace 를 불러올 수 없습니다.",
+    "migratingWillTitle": "마이그레이션 시 수행 작업:",
+    "backupItem": "백업 파일 생성: {{template}}",
+    "convertItem": "Workspace 를 버전 {{toVersion}} 으로 변환",
+    "loadItem": "변환된 workspace 불러오기",
+    "backupNote": "원본 파일은 백업으로 보존됩니다. 마이그레이션은 자동으로 되돌릴 수 없습니다. 필요 시 백업 파일을 수동으로 복원하세요.",
+    "cancelAriaLabel": "workspace 불러오기 취소",
+    "cancelBtn": "취소",
+    "migrateBtn": "마이그레이션 (백업 + 변환)",
+    "migratingBtn": "마이그레이션 중...",
+    "migrateAriaLabel": "원본 파일을 백업하고 workspace 를 마이그레이션"
+  },
+  "wtWellEditor": {
+    "openBtnAriaLabel": "WT well 설정: plate 지도 편집기 열기",
+    "openBtnLabel": "WT Well 설정",
+    "selectedCount": "({{count}}개 선택됨)",
+    "dialogTitle": "WT Well 설정: Plate P01",
+    "gridAriaLabel": "96-well plate 그리드. 클릭하여 WT 지정을 토글합니다.",
+    "selectedSingle": "WT well {{count}}개 선택됨",
+    "selectedPlural": "WT well {{count}}개 선택됨",
+    "cancelBtn": "취소",
+    "saveAriaLabel": "WT well 선택 저장",
+    "saveBtn": "저장",
+    "savingBtn": "저장 중..."
+  },
+  "inputPanel": {
+    "sectionLabel": "Workspace",
+    "title": "입력"
+  },
+  "activityUpload": {
+    "panelAriaLabel": "Activity 데이터 업로드",
+    "formatLabel": "형식",
+    "formatAriaLabel": "Activity 파일 형식",
+    "uploadingAriaLabel": "Activity 데이터 업로드 중...",
+    "browseAriaLabel": "Activity 파일 찾아보기 및 업로드",
+    "uploadingBtn": "업로드 중...",
+    "browseBtn": "찾아보기 및 업로드",
+    "recordsLoaded": "{{count}}개 well 불러옴"
+  },
+  "preflight": {
+    "titleFailed": "사전 점검 실패",
+    "titleWarnings": "사전 점검 (경고)",
+    "descErrors": "실행 전에 다음 문제를 해결해야 합니다.",
+    "descWarnings": "계속하기 전에 다음 사항을 확인하세요.",
+    "errorsLabel": "오류",
+    "warningsLabel": "경고",
+    "cancelBtn": "취소",
+    "continueBtn": "경고 무시하고 계속"
+  },
+  "crashLog": {
+    "title": "Crash Log",
+    "descEntries_one": "localStorage 에 {{count}}개 항목이 저장되어 있습니다.",
+    "descEntries_other": "localStorage 에 {{count}}개 항목이 저장되어 있습니다.",
+    "descEmpty": "기록된 crash 항목이 없습니다.",
+    "contentAriaLabel": "Crash log 내용",
+    "copyBtn": "복사",
+    "copiedBtn": "복사됨!",
+    "closeBtn": "닫기"
+  },
+  "mappingExportDialog": {
+    "titleEcho": "Echo 매핑 내보내기",
+    "titleJanus": "JANUS 매핑 내보내기",
+    "descriptionFiles": "동일한 경로에 두 파일이 저장됩니다.",
+    "machineLabel": "장비",
+    "transferVolumeLabel": "이동 부피",
+    "bomCheckboxAriaLabel": "Excel 호환을 위해 UTF-8 BOM 추가",
+    "bomCheckboxLabel": "UTF-8 BOM 추가",
+    "bomCheckboxHint": "(Excel 호환)",
+    "cancelBtn": "취소",
+    "exportBtn": "내보내기"
+  },
+  "whatsNewDialog": {
+    "title": "v{{version}} 새로운 기능",
+    "description": "최신 업데이트의 주요 변경 사항입니다.",
+    "gotItBtn": "확인"
+  },
+  "primerDisplay": {
+    "copySeqTitle": "서열 복사",
+    "copySeqAriaLabel": "클립보드에 서열 복사: {{seq}}"
+  },
+  "resultTable": {
+    "allFailedTitle": "{{count}}개 변이 모두 실패",
+    "allFailedDesc": "아래 실패 원인을 확인한 후 파라미터를 조정하고 다시 시도하세요.",
+    "noResultsTitle": "결과 없음",
+    "noResultsDesc": "서열을 불러오고 변이를 정의한 후 디자인을 실행하세요.",
+    "pipelineFillHint": "파이프라인 + 실패 시 채우기가 이미 해당 위치를 대체했으므로 재시도가 비활성화됩니다.",
+    "pipelineFillNote": "파이프라인 + 실패 시 채우기가 해당 위치를 대체했으므로 재시도가 불필요합니다."
+  },
+  "mameSidebar": {
+    "runStateLabel": "실행 상태",
+    "statusAnalyzing": "분석 중…",
+    "statusReady": "실행 준비됨",
+    "statusIncomplete": "설정 미완료",
+    "validationIssues_one": "{{count}}개 유효성 검사 문제",
+    "validationIssues_other": "{{count}}개 유효성 검사 문제",
+    "noValidationIssues": "유효성 검사 문제 없음",
+    "inputErrors_one": "{{count}}개 입력 오류",
+    "inputErrors_other": "{{count}}개 입력 오류",
+    "validatingBtn": "검사 중…",
+    "validateBtn": "유효성 검사",
+    "cancelBtn": "취소",
+    "runBtn": "실행",
+    "clearBtn": "초기화",
+    "exportBtn": "내보내기"
+  },
+  "wellPlate": {
+    "gridAriaLabel": "96-Well 플레이트",
+    "columnAriaLabel": "{{col}}열",
+    "rowAriaLabel": "{{row}}행",
+    "fallbackReplicateTitle": "대체 반복 측정"
+  },
+  "clearConfirmDialog": {
+    "title": "전체 초기화",
+    "description": "모든 분석 결과가 삭제됩니다. 계속하시겠습니까?",
+    "cancelBtn": "취소",
+    "clearBtn": "초기화"
+  },
+  "roundSummarySignals": {
+    "calibrationBannerHeading": "교정 기간 — 분류 비활성.",
+    "calibrationBannerBody": "신호 값은 모니터링 목적으로만 표시됩니다. 자동 분류 결정은 어드바이저리 모드 활성화 시(Round 3+, v0.3)까지 표시되지 않습니다.",
+    "signalMetAriaLabel": "신호 충족",
+    "signalNotMetAriaLabel": "신호 미충족",
+    "signalsTableAriaLabel": "라운드 전략 신호",
+    "signalCol": "신호",
+    "metCol": "충족",
+    "inputValueCol": "입력값",
+    "basisCol": "근거",
+    "roundSignalsHeading": "라운드 신호",
+    "demoModeAriaLabel": "데모 모드: 지표는 라이브 백엔드 RPC가 아닌 로컬 병합 통계에서 생성됩니다.",
+    "noMetricsYet": "라운드 지표 없음 — ALE 라운드를 완료하면 신호가 계산됩니다."
+  },
+  "uniprotSearchExtra": {
+    "placeholder": "UniProt ID",
+    "afStructureTitle": "AlphaFold 구조 이용 가능"
   }
 }

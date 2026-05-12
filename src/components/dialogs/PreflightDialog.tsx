@@ -7,6 +7,7 @@
  * "Continue with warnings" proceeds; "Cancel" aborts the run.
  */
 
+import { useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogContent,
@@ -31,12 +32,11 @@ export function PreflightDialog({
   onContinue,
   onCancel,
 }: PreflightDialogProps) {
+  const { t } = useTranslation();
   const hasErrors = result.errors.length > 0;
   const hasWarnings = result.warnings.length > 0;
 
-  const title = hasErrors
-    ? "Pre-flight check failed"
-    : "Pre-flight check — warnings";
+  const title = hasErrors ? t("preflight.titleFailed") : t("preflight.titleWarnings");
 
   return (
     <Dialog
@@ -54,15 +54,13 @@ export function PreflightDialog({
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
-            {hasErrors
-              ? "The following issues must be resolved before running."
-              : "Review the following before continuing."}
+            {hasErrors ? t("preflight.descErrors") : t("preflight.descWarnings")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3 text-sm">
           {hasErrors && (
-            <section aria-label="Errors">
+            <section aria-label={t("preflight.errorsLabel")}>
               <ul className="space-y-1" role="list">
                 {result.errors.map((msg) => (
                   <li
@@ -80,7 +78,7 @@ export function PreflightDialog({
           )}
 
           {hasWarnings && (
-            <section aria-label="Warnings">
+            <section aria-label={t("preflight.warningsLabel")}>
               <ul className="space-y-1" role="list">
                 {result.warnings.map((msg) => (
                   <li
@@ -100,7 +98,7 @@ export function PreflightDialog({
 
         <DialogFooter className="flex gap-2">
           <Button variant="outline" size="sm" onClick={onCancel}>
-            Cancel
+            {t("preflight.cancelBtn")}
           </Button>
           <Button
             size="sm"
@@ -108,7 +106,7 @@ export function PreflightDialog({
             className="text-warning border-warning/40 hover:bg-warning/8"
             onClick={onContinue}
           >
-            Continue with warnings
+            {t("preflight.continueBtn")}
           </Button>
         </DialogFooter>
       </DialogContent>

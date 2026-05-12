@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "../ui/button";
 import {
   Dialog,
@@ -20,6 +21,7 @@ function formatEntry(e: CrashEntry): string {
 }
 
 export function CrashLogDialog({ open, onOpenChange }: CrashLogDialogProps) {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const log = getCrashLog();
   const text = log.length > 0 ? log.map(formatEntry).join("\n---\n") : "(no crash entries)";
@@ -40,16 +42,16 @@ export function CrashLogDialog({ open, onOpenChange }: CrashLogDialogProps) {
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Crash Log</DialogTitle>
+          <DialogTitle>{t("crashLog.title")}</DialogTitle>
           <DialogDescription>
-            {log.length > 0 ? `${log.length} entr${log.length === 1 ? "y" : "ies"} stored in localStorage.` : "No crash entries recorded."}
+            {log.length > 0 ? t("crashLog.descEntries", { count: log.length }) : t("crashLog.descEmpty")}
           </DialogDescription>
         </DialogHeader>
 
         <pre
           className="text-caption font-mono whitespace-pre-wrap max-h-96 overflow-auto rounded-control border border-border bg-muted/50 p-3 text-foreground"
           tabIndex={0}
-          aria-label="Crash log content"
+          aria-label={t("crashLog.contentAriaLabel")}
         >
           {text}
         </pre>
@@ -61,10 +63,10 @@ export function CrashLogDialog({ open, onOpenChange }: CrashLogDialogProps) {
             onClick={() => void handleCopy()}
             disabled={log.length === 0}
           >
-            {copied ? "Copied!" : "Copy"}
+            {copied ? t("crashLog.copiedBtn") : t("crashLog.copyBtn")}
           </Button>
           <Button size="sm" onClick={() => onOpenChange(false)}>
-            Close
+            {t("crashLog.closeBtn")}
           </Button>
         </DialogFooter>
       </DialogContent>

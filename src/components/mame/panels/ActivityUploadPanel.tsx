@@ -10,6 +10,7 @@
  */
 
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { open } from "@tauri-apps/plugin-dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -40,6 +41,7 @@ const FORMAT_TOOLTIPS: Record<ActivityFormat, string> = {
 };
 
 export function ActivityUploadPanel() {
+  const { t } = useTranslation("activityUpload");
   const [format, setFormat] = useState<ActivityFormat>("long_csv");
 
   const activeRoundId = useRoundStore((s) => s.active_round_id);
@@ -76,13 +78,13 @@ export function ActivityUploadPanel() {
   }
 
   return (
-    <div className="space-y-2" aria-label="Activity data upload">
+    <div className="space-y-2" aria-label={t("panelAriaLabel")}>
       <div className="space-y-1">
         <Label
           htmlFor="activity-format-select"
           className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
         >
-          Format
+          {t("formatLabel")}
         </Label>
         <Select
           value={format}
@@ -91,7 +93,7 @@ export function ActivityUploadPanel() {
           <SelectTrigger
             id="activity-format-select"
             className="h-8 min-w-0 text-xs"
-            aria-label="Activity file format"
+            aria-label={t("formatAriaLabel")}
           >
             <SelectValue />
           </SelectTrigger>
@@ -113,10 +115,10 @@ export function ActivityUploadPanel() {
         onClick={() => void handleUpload()}
         disabled={disabled}
         aria-busy={isUploading}
-        aria-label={isUploading ? "Uploading activity data…" : "Browse & Upload activity file"}
+        aria-label={isUploading ? t("uploadingAriaLabel") : t("browseAriaLabel")}
       >
         <Upload size={12} aria-hidden="true" className="mr-1.5" />
-        {isUploading ? "Uploading…" : "Browse & Upload"}
+        {isUploading ? t("uploadingBtn") : t("browseBtn")}
       </Button>
 
       {recordCount > 0 && (
@@ -125,7 +127,7 @@ export function ActivityUploadPanel() {
           aria-live="polite"
           role="status"
         >
-          {recordCount} wells loaded
+          {t("recordsLoaded", { count: recordCount })}
         </p>
       )}
 

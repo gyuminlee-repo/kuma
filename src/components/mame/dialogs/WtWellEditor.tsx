@@ -9,6 +9,7 @@
  */
 
 import { Fragment, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import {
   Dialog,
@@ -98,6 +99,7 @@ export function WtWellEditor() {
     }
   }
 
+  const { t } = useTranslation();
   const disabled = !activeRoundId;
 
   return (
@@ -109,12 +111,12 @@ export function WtWellEditor() {
         className="w-full text-xs"
         onClick={handleOpen}
         disabled={disabled}
-        aria-label="Set WT Wells — open plate map editor"
+        aria-label={t("openBtnAriaLabel")}
       >
-        Set WT Wells
+        {t("openBtnLabel")}
         {activeRound && activeRound.plate_meta.plates[0]?.wt_wells.length > 0 && (
           <span className="ml-1.5 text-muted-foreground">
-            ({activeRound.plate_meta.plates[0].wt_wells.length} selected)
+            {t("selectedCount", { count: activeRound.plate_meta.plates[0].wt_wells.length })}
           </span>
         )}
       </Button>
@@ -125,13 +127,13 @@ export function WtWellEditor() {
           aria-describedby={undefined}
         >
           <DialogHeader>
-            <DialogTitle>Set WT Wells — Plate P01</DialogTitle>
+            <DialogTitle>{t("dialogTitle")}</DialogTitle>
           </DialogHeader>
 
           {/* Column headers */}
           <div
             className="overflow-auto"
-            aria-label="96-well plate grid. Click to toggle WT designation."
+            aria-label={t("gridAriaLabel")}
           >
             <div className="grid grid-cols-[1.5rem_repeat(12,1.5rem)] gap-0.5">
               {/* top-left empty cell */}
@@ -184,7 +186,7 @@ export function WtWellEditor() {
           </div>
 
           <p className="text-caption text-muted-foreground">
-            {localWt.size} WT {localWt.size === 1 ? "well" : "wells"} selected
+            {localWt.size === 1 ? t("selectedSingle", { count: localWt.size }) : t("selectedPlural", { count: localWt.size })}
           </p>
 
           <DialogFooter>
@@ -195,7 +197,7 @@ export function WtWellEditor() {
               onClick={() => setOpen(false)}
               className="text-xs"
             >
-              Cancel
+              {t("cancelBtn")}
             </Button>
             <Button
               type="button"
@@ -204,9 +206,9 @@ export function WtWellEditor() {
               disabled={isSaving || !activeRoundId}
               aria-busy={isSaving}
               className="text-xs"
-              aria-label="Save WT well selection"
+              aria-label={t("saveAriaLabel")}
             >
-              {isSaving ? "Saving…" : "Save"}
+              {isSaving ? t("savingBtn") : t("saveBtn")}
             </Button>
           </DialogFooter>
         </DialogContent>

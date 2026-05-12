@@ -136,7 +136,24 @@
       "cdsEnd": "CDS End",
       "cdsEndHelp": "CDS end coordinate used for translation. Must match the reference FASTA frame.",
       "manyCutoff": "Many Cutoff",
-      "manyCutoffHelp": "Number of observed amino-acid changes above which a result is classified as MANY."
+      "manyCutoffHelp": "Number of observed amino-acid changes above which a result is classified as MANY.",
+      "inputSourceConsensus": "Consensus FASTA",
+      "inputSourceSortedBarcode": "Sorted barcode files",
+      "inputSourceRawRun": "MinKNOW raw run folder",
+      "recommendedCutoff": "Recommended: {{value}} KB ({{method}})",
+      "useCutoffBtn": "Use",
+      "bimodalTooltip": "Distribution looks bimodal. Recommended uses knee detection.",
+      "autoDetected": "Auto-detected: {{length}} bp",
+      "trimAdaptersAriaLabel": "Trim forward barcode and universal reverse primer from reads",
+      "revPrimerPlaceholder": "ACGT...",
+      "universalRevPrimerAriaLabel": "Universal reverse primer sequence 5 prime to 3 prime",
+      "normalizeHeadersAriaLabel": "Write well name as FASTA header instead of ONT read ID",
+      "demuxProgressAriaLabel": "Demux progress",
+      "demuxComplete": "Demux complete:",
+      "demuxCompleteReads": "{{assigned}} reads assigned / {{total}} total ({{backend}})",
+      "lengthFilter": "Length filter: {{mode}}",
+      "legacyKbCutoff": "Legacy KB Cutoff (proxy)",
+      "legacyKbCutoffAriaLabel": "Legacy min file size KB cutoff (proxy for read depth)"
     },
     "barcodeSetup": {
       "title": "Barcode Package Setup",
@@ -162,7 +179,10 @@
       "toastError": "Generation failed",
       "geneEndError": "gene_end must be greater than gene_start.",
       "noProjectWarning": "A project must be open to generate a package. Select Open Project from the File menu.",
-      "barcodeSeedsXlsxHelper": "xlsx file containing fwd_1..12 and rev_1..8 seed sequences."
+      "barcodeSeedsXlsxHelper": "xlsx file containing fwd_1..12 and rev_1..8 seed sequences.",
+      "barcodeSeedsXlsxPlaceholder": ".xlsx file path",
+      "warningsLabel": "Warnings",
+      "warningsAriaLabel": "Warnings"
     },
     "activity": {
       "title": "Activity data",
@@ -305,7 +325,14 @@
       "deadlockTitle": "No response",
       "deadlockDescription": "No progress update for 30+ seconds. The job may be stuck.",
       "deadlockWait": "Keep waiting",
-      "manifestLoadFailed": "Manifest load failed: {{err}}"
+      "deadlockReset": "Reset",
+      "manifestLoadFailed": "Manifest load failed: {{err}}",
+      "barcodeSetupTab": "1. Barcode Setup",
+      "analyzeTab": "2. Analyze",
+      "activityTab": "3. Activity",
+      "verdictTableTitle": "Verdict table",
+      "platePlanTitle": "Plate plan",
+      "runHealthTitle": "Run health"
     },
     "dialogs": {
       "export": {
@@ -992,7 +1019,10 @@
     "loadFirst": "Load a sequence file first",
     "organism": "Organism",
     "organismTitle": "Organism codon usage table for mutant codon selection.",
-    "uniprotBlastInProgress": "UniProt BLAST search in progress… (Step 2 available after)"
+    "uniprotBlastInProgress": "UniProt BLAST search in progress… (Step 2 available after)",
+    "ecoliTitle": "Escherichia coli K-12 codon usage table. Use when expressing in E. coli BL21, DH5α, K-12 derivatives.",
+    "bsubtilisTitle": "Bacillus subtilis 168 codon usage table. Use when expressing in B. subtilis or related Gram-positive hosts.",
+    "scerevisiaeTitle": "Saccharomyces cerevisiae codon usage table. Use when expressing in budding yeast hosts."
   },
   "mutationInput": {
     "mutations": "Mutations",
@@ -1065,7 +1095,13 @@
     "offlineModeDesc": "When on, all external service calls are blocked",
     "consentStatusLabel": "Consent status:",
     "consentGranted": "Granted",
-    "consentNotGranted": "Not granted"
+    "consentNotGranted": "Not granted",
+    "fileMenuTrigger": "File",
+    "exportMenuTrigger": "Export",
+    "uniprotServiceSuffix": " -- protein sequence search",
+    "ncbiBlastServiceSuffix": " -- sequence similarity search",
+    "alphafoldServiceSuffix": " -- structure prediction lookup",
+    "interproServiceSuffix": " -- protein domain annotation"
   },
   "panel": {
     "errorTitle": "Cannot display",
@@ -1143,5 +1179,183 @@
   },
   "inputSlice": {
     "csvFormatError": "{{mode}} CSV format error: {{detail}}"
+  },
+  "benchmarkDialog": {
+    "strategyTopN": "Top-N",
+    "strategyRandom": "Random",
+    "strategyPositionCap": "Position Cap",
+    "strategyDomain": "Domain",
+    "strategyPareto1d": "Pareto 1D",
+    "strategyPareto3d": "Pareto 3D",
+    "strategyParetoEntropy": "Pareto + Entropy",
+    "metricHitRate": "Hit rate",
+    "metricMeanFitness": "Mean fitness",
+    "metricPositionCov": "Position cov",
+    "metricStructuralSpread": "Structural spread",
+    "baselinePrefix": "Baseline: {{strategy}}",
+    "vsBaseline": "vs baseline",
+    "strategyColHeader": "Strategy",
+    "blueBarLegend": "Blue bar: absolute value percentile within this benchmark run.",
+    "deltaLegend": "Delta label/bar: difference from {{baseline}}.",
+    "compareAgainst": "Compare each strategy against",
+    "saveSummaryJson": "Save Summary JSON",
+    "exportRawJson": "Export Raw JSON",
+    "exportCsv": "Export CSV"
+  },
+  "sequenceViewer": {
+    "regionAriaLabel": "Sequence Map",
+    "title": "Sequence Map",
+    "titleHint": "Linear CDS map showing mutation positions. Green=designed, Red=failed. Density histogram below shows clustering — spread-out mutations are better for library diversity",
+    "statDesigned": "{{count}} designed",
+    "statFailed": "/ {{count}} failed",
+    "statAa": "{{count}} aa",
+    "emptyTitle": "No sequence loaded",
+    "emptyDesc": "Load a target gene to view the mutation map.",
+    "svgAriaLabel": "Linear sequence map: {{maxAa}} amino acids, {{count}} mutations",
+    "densityCountSingle": "{{count}} mutation",
+    "densityCountPlural": "{{count}} mutations",
+    "tooltipDesigned": "Designed",
+    "tooltipFailed": "Failed: {{reason}}",
+    "legendSuccess": "success",
+    "legendFailed": "failed",
+    "legendSelected": "selected"
+  },
+  "workspaceMigrate": {
+    "title": "Workspace Version Mismatch",
+    "description": "The selected workspace uses schema version {{from}}, but the current app requires {{to}}.",
+    "noPathAlert": "No automatic migration is defined for this version pair. Manual upgrade is required. The workspace cannot be loaded.",
+    "migratingWillTitle": "Migrating will:",
+    "backupItem": "Create a backup copy: {{template}}",
+    "convertItem": "Convert the workspace to version {{toVersion}}",
+    "loadItem": "Load the converted workspace",
+    "backupNote": "The original file is preserved as a backup. Migration cannot be undone automatically. Restore the backup manually if needed.",
+    "cancelAriaLabel": "Cancel workspace load",
+    "cancelBtn": "Cancel",
+    "migrateBtn": "Migrate (Backup + Convert)",
+    "migratingBtn": "Migrating...",
+    "migrateAriaLabel": "Backup original file and migrate workspace"
+  },
+  "wtWellEditor": {
+    "openBtnAriaLabel": "Set WT Wells: open plate map editor",
+    "openBtnLabel": "Set WT Wells",
+    "selectedCount": "({{count}} selected)",
+    "dialogTitle": "Set WT Wells: Plate P01",
+    "gridAriaLabel": "96-well plate grid. Click to toggle WT designation.",
+    "selectedSingle": "{{count}} WT well selected",
+    "selectedPlural": "{{count}} WT wells selected",
+    "cancelBtn": "Cancel",
+    "saveAriaLabel": "Save WT well selection",
+    "saveBtn": "Save",
+    "savingBtn": "Saving..."
+  },
+  "inputPanel": {
+    "sectionLabel": "Workspace",
+    "title": "Input"
+  },
+  "activityUpload": {
+    "panelAriaLabel": "Activity data upload",
+    "formatLabel": "Format",
+    "formatAriaLabel": "Activity file format",
+    "uploadingAriaLabel": "Uploading activity data...",
+    "browseAriaLabel": "Browse & Upload activity file",
+    "uploadingBtn": "Uploading...",
+    "browseBtn": "Browse & Upload",
+    "recordsLoaded": "{{count}} wells loaded"
+  },
+  "preflight": {
+    "titleFailed": "Pre-flight check failed",
+    "titleWarnings": "Pre-flight check (warnings)",
+    "descErrors": "The following issues must be resolved before running.",
+    "descWarnings": "Review the following before continuing.",
+    "errorsLabel": "Errors",
+    "warningsLabel": "Warnings",
+    "cancelBtn": "Cancel",
+    "continueBtn": "Continue with warnings"
+  },
+  "crashLog": {
+    "title": "Crash Log",
+    "descEntries_one": "{{count}} entry stored in localStorage.",
+    "descEntries_other": "{{count}} entries stored in localStorage.",
+    "descEmpty": "No crash entries recorded.",
+    "contentAriaLabel": "Crash log content",
+    "copyBtn": "Copy",
+    "copiedBtn": "Copied!",
+    "closeBtn": "Close"
+  },
+  "mappingExportDialog": {
+    "titleEcho": "Export Echo Mapping",
+    "titleJanus": "Export JANUS Mapping",
+    "descriptionFiles": "Two files are written to the same path.",
+    "machineLabel": "Machine",
+    "transferVolumeLabel": "Transfer Volume",
+    "bomCheckboxAriaLabel": "Add UTF-8 BOM for Excel compatibility",
+    "bomCheckboxLabel": "Add UTF-8 BOM",
+    "bomCheckboxHint": "(Excel compatibility)",
+    "cancelBtn": "Cancel",
+    "exportBtn": "Export"
+  },
+  "whatsNewDialog": {
+    "title": "What's New in v{{version}}",
+    "description": "Highlights from the latest update.",
+    "gotItBtn": "Got it"
+  },
+  "primerDisplay": {
+    "copySeqTitle": "Copy sequence",
+    "copySeqAriaLabel": "Copy sequence to clipboard: {{seq}}"
+  },
+  "resultTable": {
+    "allFailedTitle": "All {{count}} mutations failed",
+    "allFailedDesc": "Review failure reasons below, then adjust parameters and retry.",
+    "noResultsTitle": "No results yet",
+    "noResultsDesc": "Load a sequence, define mutations, then run design.",
+    "pipelineFillHint": "Pipeline + Fill on failure already substituted these positions; retry is disabled.",
+    "pipelineFillNote": "Pipeline + Fill on failure substituted these positions; retry is unnecessary."
+  },
+  "mameSidebar": {
+    "runStateLabel": "Run state",
+    "statusAnalyzing": "Analyzing…",
+    "statusReady": "Ready to run",
+    "statusIncomplete": "Setup incomplete",
+    "validationIssues_one": "{{count}} validation issue",
+    "validationIssues_other": "{{count}} validation issue(s)",
+    "noValidationIssues": "No validation issues",
+    "inputErrors_one": "{{count}} input error",
+    "inputErrors_other": "{{count}} input error(s)",
+    "validatingBtn": "Validating…",
+    "validateBtn": "Validate",
+    "cancelBtn": "Cancel",
+    "runBtn": "Run",
+    "clearBtn": "Clear",
+    "exportBtn": "Export"
+  },
+  "wellPlate": {
+    "gridAriaLabel": "96-Well Plate",
+    "columnAriaLabel": "Column {{col}}",
+    "rowAriaLabel": "Row {{row}}",
+    "fallbackReplicateTitle": "Fallback replicate"
+  },
+  "clearConfirmDialog": {
+    "title": "Clear All",
+    "description": "All analysis results will be lost. Continue?",
+    "cancelBtn": "Cancel",
+    "clearBtn": "Clear"
+  },
+  "roundSummarySignals": {
+    "calibrationBannerHeading": "Calibration period — classification inactive.",
+    "calibrationBannerBody": "Signal values are displayed for monitoring only. Automated classification decisions are not shown until advisory mode is enabled (Round 3+, v0.3).",
+    "signalMetAriaLabel": "Signal met",
+    "signalNotMetAriaLabel": "Signal not met",
+    "signalsTableAriaLabel": "Round strategy signals",
+    "signalCol": "Signal",
+    "metCol": "Met",
+    "inputValueCol": "Input value",
+    "basisCol": "Basis",
+    "roundSignalsHeading": "Round Signals",
+    "demoModeAriaLabel": "Demo mode: metrics are synthesised from local merge stats, not a live backend RPC",
+    "noMetricsYet": "No round metrics yet — complete an ALE round to compute signals."
+  },
+  "uniprotSearchExtra": {
+    "placeholder": "UniProt ID",
+    "afStructureTitle": "AlphaFold structure available"
   }
 }
