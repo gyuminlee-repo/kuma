@@ -90,7 +90,7 @@ describe("SwapWarningBanner", () => {
 
   it("warning만 있으면 경고 배지를 표시한다", () => {
     render(<SwapWarningBanner warnings={warningOnly} />);
-    expect(screen.getByText("경고 1건")).toBeTruthy();
+    expect(screen.getByText("1 warnings")).toBeTruthy();
   });
 
   it("warning만 있을 때 role=alert이 렌더되지 않는다", () => {
@@ -100,7 +100,7 @@ describe("SwapWarningBanner", () => {
 
   it("error가 있으면 오류 배지를 표시한다", () => {
     render(<SwapWarningBanner warnings={errorAndWarning} />);
-    expect(screen.getByText("오류 1건")).toBeTruthy();
+    expect(screen.getByText("1 errors")).toBeTruthy();
   });
 
   it("error가 있으면 role=alert이 렌더된다", () => {
@@ -110,13 +110,13 @@ describe("SwapWarningBanner", () => {
 
   it("error와 warning이 함께 있으면 두 배지 모두 표시된다", () => {
     render(<SwapWarningBanner warnings={errorAndWarning} />);
-    expect(screen.getByText("오류 1건")).toBeTruthy();
-    expect(screen.getByText("경고 1건")).toBeTruthy();
+    expect(screen.getByText("1 errors")).toBeTruthy();
+    expect(screen.getByText("1 warnings")).toBeTruthy();
   });
 
   it("error 2건 시 오류 2건 배지를 표시한다", () => {
     render(<SwapWarningBanner warnings={twoErrors} />);
-    expect(screen.getByText("오류 2건")).toBeTruthy();
+    expect(screen.getByText("2 errors")).toBeTruthy();
   });
 
   it("각 경고 항목의 메시지가 렌더된다", () => {
@@ -134,7 +134,7 @@ describe("SwapWarningBanner", () => {
 
   it("접근성: 경고 목록 영역에 aria-label이 있다", () => {
     render(<SwapWarningBanner warnings={warningOnly} />);
-    expect(screen.getByLabelText("경고 상세")).toBeTruthy();
+    expect(screen.getByLabelText("Warning details")).toBeTruthy();
   });
 });
 
@@ -145,10 +145,10 @@ describe("SwapWarningBanner", () => {
 describe("ReplicateMergeStats", () => {
   it("4개 레이블(재측정, 1차측정, 병합, 불일치)이 표시된다", () => {
     render(<ReplicateMergeStats replicateStats={replicateStatsNoMismatch} />);
-    expect(screen.getByText("재측정")).toBeTruthy();
-    expect(screen.getByText("1차측정")).toBeTruthy();
-    expect(screen.getByText("병합")).toBeTruthy();
-    expect(screen.getByText("불일치")).toBeTruthy();
+    expect(screen.getByText("Re-measured")).toBeTruthy();
+    expect(screen.getByText("Primary")).toBeTruthy();
+    expect(screen.getByText("Merged")).toBeTruthy();
+    expect(screen.getByText("Mismatched")).toBeTruthy();
   });
 
   it("props 값이 하드코딩 없이 그대로 표시된다", () => {

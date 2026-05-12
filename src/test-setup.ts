@@ -22,3 +22,8 @@ if (typeof globalThis.matchMedia === "undefined") {
     dispatchEvent: () => false,
   })) as unknown as typeof window.matchMedia;
 }
+
+// Initialize i18n with English locale so tests can match the source-of-truth
+// labels (en.json values). Without this, useTranslation()'s t() returns keys.
+import { initI18n } from "./lib/i18n";
+initI18n("en");
