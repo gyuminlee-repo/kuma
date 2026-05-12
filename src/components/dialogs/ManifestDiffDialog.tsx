@@ -12,6 +12,7 @@
  */
 
 import { useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogContent,
@@ -53,12 +54,6 @@ const STATUS_BADGE_CLASSES: Record<DiffStatus, string> = {
   same: "bg-muted text-muted-foreground",
 };
 
-const STATUS_LABEL: Record<DiffStatus, string> = {
-  added: "added",
-  removed: "removed",
-  changed: "changed",
-  same: "same",
-};
 
 // ── 헬퍼: 값 렌더 ────────────────────────────────────────────────────────────
 
@@ -94,13 +89,14 @@ function SectionHeader({
   label: string;
   count: number;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center gap-2 mb-1">
       <span className="font-medium text-sm text-foreground">{label}</span>
       {count > 0 && (
         <span
           className="inline-flex items-center rounded-full bg-yellow-100 dark:bg-yellow-900/40 px-2 py-0.5 text-xs font-medium text-yellow-700 dark:text-yellow-400"
-          aria-label={`${count}개 변경`}
+          aria-label={t("manifestDiff.changedAriaLabel", { count })}
         >
           {count}
         </span>
@@ -117,12 +113,13 @@ interface DiffTableProps {
 }
 
 function DiffTable({ entries, showSame }: DiffTableProps) {
+  const { t } = useTranslation();
   const visible = showSame ? entries : entries.filter((e) => e.status !== "same");
 
   if (visible.length === 0) {
     return (
       <p className="py-6 text-center text-sm text-muted-foreground">
-        {showSame ? "항목 없음" : "변경된 항목 없음"}
+        {showSame ? t("manifestDiff.emptyNoItems") : t("manifestDiff.emptyNoChanges")}
       </p>
     );
   }
@@ -136,25 +133,25 @@ function DiffTable({ entries, showSame }: DiffTableProps) {
               scope="col"
               className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground w-48 min-w-0"
             >
-              Path
+              {t("manifestDiff.colPath")}
             </th>
             <th
               scope="col"
               className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground"
             >
-              A (before)
+              {t("manifestDiff.colA")}
             </th>
             <th
               scope="col"
               className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground"
             >
-              B (after)
+              {t("manifestDiff.colB")}
             </th>
             <th
               scope="col"
               className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground w-24"
             >
-              Status
+              {t("manifestDiff.colStatus")}
             </th>
           </tr>
         </thead>
@@ -173,7 +170,7 @@ function DiffTable({ entries, showSame }: DiffTableProps) {
                 <span
                   className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE_CLASSES[entry.status]}`}
                 >
-                  {STATUS_LABEL[entry.status]}
+                  {t(`manifestDiff.status.${entry.status}`)}
                 </span>
               </td>
             </tr>
@@ -192,19 +189,20 @@ interface ManifestSummaryCardProps {
 }
 
 function ManifestSummaryCard({ label, manifest }: ManifestSummaryCardProps) {
+  const { t } = useTranslation();
   return (
     <div className="flex-1 rounded-md border border-border bg-muted/30 px-3 py-2 text-xs space-y-0.5">
       <p className="font-semibold text-foreground">{label}</p>
       <p className="text-muted-foreground">
-        <span className="text-foreground/70">Method</span>{" "}
+        <span className="text-foreground/70">{t("manifestDiff.summaryMethod")}</span>{" "}
         <span className="font-mono">{manifest.method}</span>
       </p>
       <p className="text-muted-foreground">
-        <span className="text-foreground/70">Version</span>{" "}
+        <span className="text-foreground/70">{t("manifestDiff.summaryVersion")}</span>{" "}
         <span className="font-mono">{manifest.kuma_version}</span>
       </p>
       <p className="text-muted-foreground">
-        <span className="text-foreground/70">Started</span>{" "}
+        <span className="text-foreground/70">{t("manifestDiff.summaryStarted")}</span>{" "}
         <span className="font-mono">{manifest.started_at}</span>
       </p>
     </div>
@@ -219,6 +217,7 @@ export function ManifestDiffDialog({
   manifestB,
   onClose,
 }: ManifestDiffDialogProps) {
+  const { t } = useTranslation();
   const [showSame, setShowSame] = useState(false);
 
   const diff = useMemo(() => {
@@ -241,12 +240,11 @@ export function ManifestDiffDialog({
         aria-label="Manifest diff dialog"
       >
         <DialogHeader>
-          <DialogTitle>Run manifest 비교</DialogTitle>
+          <DialogTitle>{t("manifestDiff.title")}</DialogTitle>
           <DialogDescription>
-            두 manifest 파일의 파라미터와 입력 파일 차이를 확인합니다.
             {totalChanged > 0
-              ? ` 총 ${totalChanged}개 항목이 다릅니다.`
-              : " 두 manifest 가 동일합니다."}
+              ? t("manifestDiff.descriptionChanged", { count: totalChanged })
+              : t("manifestDiff.descriptionSame")}
           </DialogDescription>
         </DialogHeader>
 
@@ -265,7 +263,7 @@ export function ManifestDiffDialog({
             aria-pressed={showSame}
             className="text-xs h-7 px-2"
           >
-            {showSame ? "Same 숨기기" : "Same 표시"}
+            {showSame ? t("manifestDiff.hideSame") : t("manifestDiff.showSame")}
           </Button>
         </div>
 
@@ -273,7 +271,7 @@ export function ManifestDiffDialog({
         <Tabs defaultValue="params" className="flex-1 overflow-hidden flex flex-col">
           <TabsList className="shrink-0">
             <TabsTrigger value="params">
-              Params
+              {t("manifestDiff.tabParams")}
               {changedCount(diff.params) > 0 && (
                 <span className="ml-1.5 inline-flex items-center rounded-full bg-yellow-100 dark:bg-yellow-900/40 px-1.5 py-0.5 text-xs font-medium text-yellow-700 dark:text-yellow-400">
                   {changedCount(diff.params)}
@@ -281,7 +279,7 @@ export function ManifestDiffDialog({
               )}
             </TabsTrigger>
             <TabsTrigger value="inputs">
-              Inputs
+              {t("manifestDiff.tabInputs")}
               {changedCount(diff.inputs) > 0 && (
                 <span className="ml-1.5 inline-flex items-center rounded-full bg-yellow-100 dark:bg-yellow-900/40 px-1.5 py-0.5 text-xs font-medium text-yellow-700 dark:text-yellow-400">
                   {changedCount(diff.inputs)}
@@ -289,7 +287,7 @@ export function ManifestDiffDialog({
               )}
             </TabsTrigger>
             <TabsTrigger value="meta">
-              Meta
+              {t("manifestDiff.tabMeta")}
               {changedCount(diff.meta) > 0 && (
                 <span className="ml-1.5 inline-flex items-center rounded-full bg-yellow-100 dark:bg-yellow-900/40 px-1.5 py-0.5 text-xs font-medium text-yellow-700 dark:text-yellow-400">
                   {changedCount(diff.meta)}
@@ -297,7 +295,7 @@ export function ManifestDiffDialog({
               )}
             </TabsTrigger>
             <TabsTrigger value="timing">
-              Timing
+              {t("manifestDiff.tabTiming")}
               {changedCount(diff.timing) > 0 && (
                 <span className="ml-1.5 inline-flex items-center rounded-full bg-yellow-100 dark:bg-yellow-900/40 px-1.5 py-0.5 text-xs font-medium text-yellow-700 dark:text-yellow-400">
                   {changedCount(diff.timing)}
@@ -309,7 +307,7 @@ export function ManifestDiffDialog({
           <div className="flex-1 overflow-y-auto mt-2">
             <TabsContent value="params" className="mt-0">
               <SectionHeader
-                label="Parameters"
+                label={t("manifestDiff.sectionParameters")}
                 count={changedCount(diff.params)}
               />
               <DiffTable entries={diff.params} showSame={showSame} />
@@ -317,7 +315,7 @@ export function ManifestDiffDialog({
 
             <TabsContent value="inputs" className="mt-0">
               <SectionHeader
-                label="Input files"
+                label={t("manifestDiff.sectionInputFiles")}
                 count={changedCount(diff.inputs)}
               />
               <DiffTable entries={diff.inputs} showSame={showSame} />
@@ -325,7 +323,7 @@ export function ManifestDiffDialog({
 
             <TabsContent value="meta" className="mt-0">
               <SectionHeader
-                label="Metadata"
+                label={t("manifestDiff.sectionMetadata")}
                 count={changedCount(diff.meta)}
               />
               <DiffTable entries={diff.meta} showSame={showSame} />
@@ -333,7 +331,7 @@ export function ManifestDiffDialog({
 
             <TabsContent value="timing" className="mt-0">
               <SectionHeader
-                label="Timing"
+                label={t("manifestDiff.sectionTiming")}
                 count={changedCount(diff.timing)}
               />
               <DiffTable entries={diff.timing} showSame={showSame} />

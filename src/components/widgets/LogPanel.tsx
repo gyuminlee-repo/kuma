@@ -13,6 +13,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { PointerEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { useAppStore } from "@/store/appStore";
 import { Button } from "@/components/ui/button";
 
@@ -63,6 +64,7 @@ function readPosition(): FloatingPanelPosition {
 }
 
 export function LogPanel({ onClose }: LogPanelProps) {
+  const { t } = useTranslation();
   const logLines = useAppStore((s) => s.logLines);
   const clearLogLines = useAppStore((s) => s.clearLogLines);
 
@@ -157,7 +159,7 @@ export function LogPanel({ onClose }: LogPanelProps) {
     <section
       className="fixed z-40 w-72 rounded-xl border border-border bg-background/95 shadow-lg backdrop-blur-sm"
       style={{ left: position.x, top: position.y }}
-      aria-label="Sidecar log panel"
+      aria-label={t("logPanel.panelAriaLabel")}
     >
       {/* Header / toggle row */}
       <div
@@ -167,12 +169,12 @@ export function LogPanel({ onClose }: LogPanelProps) {
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
       >
-        <span className="flex min-w-0 items-center gap-1.5" title="Sidecar progress log. Drag to move.">
+        <span className="flex min-w-0 items-center gap-1.5" title={t("logPanel.titleTooltip")}>
           <span
             className="h-2 w-2 rounded-full shrink-0 bg-muted-foreground/40"
             aria-hidden="true"
           />
-          <span>Log ({lineCount})</span>
+          <span>{t("logPanel.lineCount", { count: lineCount })}</span>
         </span>
         <span className="flex shrink-0 items-center gap-1">
           <button
@@ -181,7 +183,7 @@ export function LogPanel({ onClose }: LogPanelProps) {
             onClick={() => { setExpanded((v) => !v); }}
             aria-expanded={expanded}
             aria-controls="log-panel-content"
-            aria-label="Toggle sidecar log panel"
+            aria-label={t("logPanel.toggleAriaLabel")}
           >
             {expanded ? "▲" : "▼"}
           </button>
@@ -190,7 +192,7 @@ export function LogPanel({ onClose }: LogPanelProps) {
               type="button"
               className="rounded px-1 text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               onClick={onClose}
-              aria-label="Hide sidecar log panel"
+              aria-label={t("logPanel.closeAriaLabel")}
             >
               ×
             </button>
@@ -210,14 +212,14 @@ export function LogPanel({ onClose }: LogPanelProps) {
             onScroll={handleScroll}
             className="max-h-48 overflow-y-auto px-2 pt-1.5 pb-0"
             role="log"
-            aria-label="Sidecar log messages"
+            aria-label={t("logPanel.logAriaLabel")}
             aria-live="polite"
             aria-atomic="false"
             aria-relevant="additions"
           >
             {lineCount === 0 ? (
               <p className="py-3 text-center text-xs text-muted-foreground">
-                No log messages yet
+                {t("logPanel.emptyMessage")}
               </p>
             ) : (
               <ul className="list-none p-0 m-0 space-y-0.5">
@@ -241,20 +243,20 @@ export function LogPanel({ onClose }: LogPanelProps) {
               size="sm"
               className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
               onClick={() => { clearLogLines(); userScrolledUpRef.current = false; }}
-              aria-label="Clear all log messages"
+              aria-label={t("logPanel.clearAriaLabel")}
               disabled={lineCount === 0}
             >
-              Clear
+              {t("logPanel.clear")}
             </Button>
             <Button
               variant="ghost"
               size="sm"
               className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
               onClick={() => { void handleCopyAll(); }}
-              aria-label="Copy all log messages to clipboard"
+              aria-label={t("logPanel.copyAriaLabel")}
               disabled={lineCount === 0}
             >
-              {copied ? "Copied!" : "Copy all"}
+              {copied ? t("logPanel.copied") : t("logPanel.copy")}
             </Button>
           </div>
         </div>

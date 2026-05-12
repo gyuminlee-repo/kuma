@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
 import { useAppStore } from "../../store/appStore";
 import {
@@ -41,6 +42,7 @@ function formatDomainAllocation(
 }
 
 export function DesignReport() {
+  const { t } = useTranslation();
   const setShowReport = useAppStore((s) => s.setShowReport);
   const data = useAppStore(
     useShallow((s) => {
@@ -164,112 +166,119 @@ export function DesignReport() {
       <DialogContent className="max-h-[80vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <span className="text-xl">Design Report</span>
+            <span className="text-xl">{t("designReport.title")}</span>
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            {successCount}/{totalCount} primers designed ({successRate}% success)
+            {t("designReport.description", { success: successCount, total: totalCount, rate: successRate })}
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 md:grid-cols-2">
           {/* Pipeline Summary */}
           {pipelineMode && (
-            <Section title="Pipeline">
+            <Section title={t("designReport.sectionPipeline")}>
               <Stat
-                label="Step 1 filter"
+                label={t("designReport.statStep1Filter")}
                 value={
                   positionDiversityEnabled
-                    ? `max ${maxPerPosition}/pos${positionRemoved != null && positionRemoved > 0 ? ` (−${positionRemoved})` : ""}`
+                    ? positionRemoved != null && positionRemoved > 0
+                      ? t("designReport.statStep1_onRemoved", { max: maxPerPosition, removed: positionRemoved })
+                      : t("designReport.statStep1_on", { max: maxPerPosition })
                     : "OFF"
                 }
               />
               <Stat
-                label="Step 2 domains"
+                label={t("designReport.statStep2Domains")}
                 value={formatDomainAllocation(domainDiversityEnabled, domains, domainStats, domainStrategy)}
               />
               {domainDiversityEnabled && (
-                <Stat label="Step 2 overlap" value={domainOverlapPolicy === "largest" ? "LARGEST" : "FIRST"} />
+                <Stat label={t("designReport.statStep2Overlap")} value={domainOverlapPolicy === "largest" ? "LARGEST" : "FIRST"} />
               )}
               {domainDiversityEnabled && (
-                <Stat label="Step 2 linker" value={linkerHandling.toUpperCase()} />
+                <Stat label={t("designReport.statStep2Linker")} value={linkerHandling.toUpperCase()} />
               )}
               {domainDiversityEnabled && (
-                <Stat label="Step 2 min quota" value={domainQuotaMin} />
+                <Stat label={t("designReport.statStep2MinQuota")} value={domainQuotaMin} />
               )}
               <Stat
-                label="Step 3 Pareto"
+                label={t("designReport.statStep3Pareto")}
                 value={
                   paretoDiversityEnabled
-                    ? `ON${paretoExchanges != null && paretoExchanges > 0 ? ` (${paretoExchanges} swapped)` : ""}`
+                    ? paretoExchanges != null && paretoExchanges > 0
+                      ? t("designReport.statPareto_onSwapped", { count: paretoExchanges })
+                      : t("designReport.statPareto_on")
                     : "OFF"
                 }
               />
-              <Stat label="Distance mode" value={distanceMode === "auto" ? (structureLoaded ? "AUTO -> 3D" : "AUTO -> 1D") : distanceMode.toUpperCase()} />
-              <Stat label="Pareto pool" value={`${paretoPoolMultiplier.toFixed(2)}x`} />
-              <Stat label="Entropy-guided" value={entropyWeightEnabled ? `ON (${entropyWeight.toFixed(2)})` : "OFF"} />
-              <Stat label="AlphaFold 3D" value={structureLoaded ? "ON (Cα distance)" : "OFF (1D distance)"} />
+              <Stat label={t("designReport.statDistanceMode")} value={distanceMode === "auto" ? (structureLoaded ? t("designReport.statDistanceAuto3D") : t("designReport.statDistanceAuto1D")) : distanceMode.toUpperCase()} />
+              <Stat label={t("designReport.statParetoPool")} value={`${paretoPoolMultiplier.toFixed(2)}x`} />
+              <Stat label={t("designReport.statEntropyGuided")} value={entropyWeightEnabled ? `ON (${entropyWeight.toFixed(2)})` : "OFF"} />
+              <Stat label={t("designReport.statAlphaFold3D")} value={structureLoaded ? "ON (Cα distance)" : "OFF (1D distance)"} />
               {positionRemoved != null && positionDiversityEnabled && (
-                <Stat label="Removed by Step 1" value={positionRemoved} />
+                <Stat label={t("designReport.statRemovedByStep1")} value={positionRemoved} />
               )}
               {domainSelected != null && domainDiversityEnabled && (
-                <Stat label="After Step 2" value={domainSelected} />
+                <Stat label={t("designReport.statAfterStep2")} value={domainSelected} />
               )}
               {paretoExchanges != null && paretoDiversityEnabled && (
-                <Stat label="Step 3 exchanges" value={paretoExchanges} />
+                <Stat label={t("designReport.statStep3Exchanges")} value={paretoExchanges} />
               )}
               {evolveproTotalCount > 0 && (
-                <Stat label={mutationInputMode === "multi-evolve" ? "MULTI-evolve pool" : "EVOLVEpro pool"} value={`${evolveproTotalCount} variants`} />
+                <Stat
+                  label={mutationInputMode === "multi-evolve" ? t("designReport.statMultiEvolvePool") : t("designReport.statEvolveproPool")}
+                  value={t("designReport.statVariants", { count: evolveproTotalCount })}
+                />
               )}
             </Section>
           )}
 
-          <Section title="Benchmark Defaults">
-            <Stat label="Top percentile" value={`${benchmarkTopPercentile}%`} />
-            <Stat label="Random trials" value={benchmarkRandomTrials} />
-            <Stat label="Random seed" value={benchmarkRandomSeed ?? "AUTO"} />
+          <Section title={t("designReport.sectionBenchmarkDefaults")}>
+            <Stat label={t("designReport.statTopPercentile")} value={`${benchmarkTopPercentile}%`} />
+            <Stat label={t("designReport.statRandomTrials")} value={benchmarkRandomTrials} />
+            <Stat label={t("designReport.statRandomSeed")} value={benchmarkRandomSeed ?? t("designReport.statSeedAuto")} />
           </Section>
 
           {/* Primer Design Results */}
-          <Section title="Primer Design">
-            <Stat label="Succeeded" value={`${successCount}/${totalCount}`} />
-            <Stat label="Tm condition met" value={`${tmMet}/${successCount}`} warn={tmMet < successCount} />
-            {failCount > 0 && <Stat label="Failed" value={failCount} warn />}
+          <Section title={t("designReport.sectionPrimerDesign")}>
+            <Stat label={t("designReport.statSucceeded")} value={`${successCount}/${totalCount}`} />
+            <Stat label={t("designReport.statTmMet")} value={`${tmMet}/${successCount}`} warn={tmMet < successCount} />
+            {failCount > 0 && <Stat label={t("designReport.statFailed")} value={failCount} warn />}
           </Section>
 
           {/* Position Rescue */}
           {rescueTotal > 0 && (
-            <Section title="Position Rescue">
+            <Section title={t("designReport.sectionPositionRescue")}>
               <Stat
-                label="Position coverage"
+                label={t("designReport.statPositionCoverage")}
                 value={rescueStats.positions_attempted > 0
-                  ? `${rescueTotal}/${rescueStats.positions_attempted} rescued`
+                  ? t("designReport.statPositionCoverageValue", { rescued: rescueTotal, attempted: rescueStats.positions_attempted })
                   : "0"}
               />
               {rescueStats.pool_cascade > 0 && (
-                <Stat label="Pool cascade" value={`${rescueStats.pool_cascade} (${rescueStats.pool_variants_tried} tried)`} />
+                <Stat label={t("designReport.statPoolCascade")} value={t("designReport.statPoolCascadeValue", { cascade: rescueStats.pool_cascade, tried: rescueStats.pool_variants_tried })} />
               )}
               {rescueStats.auto_relax > 0 && (
-                <Stat label="Auto-relax (\u00B13\u2192\u00B15\u00B0C)" value={rescueStats.auto_relax} />
+                <Stat label={t("designReport.statAutoRelax")} value={rescueStats.auto_relax} />
               )}
               {rescuedMutationDetails.filter((r) => r.type === "auto_suggestion").length > 0 && (
                 <Stat
-                  label="Auto-retry (suggestion)"
+                  label={t("designReport.statAutoRetry")}
                   value={rescuedMutationDetails.filter((r) => r.type === "auto_suggestion").length}
                 />
               )}
               {cascadeTotal > 0 && (
                 <Stat
-                  label="Cascade rescues"
+                  label={t("designReport.statCascadeRescues")}
                   value={`↻¹ ${cascadeCounts.samePos} · ↻² ${cascadeCounts.diffPos} · \u{1F3AF}¹ ${cascadeCounts.l1} · \u{1F3AF}² ${cascadeCounts.l2} · \u{1F3AF}³ ${cascadeCounts.l3} · \u{1F3AF}⁴ ${cascadeCounts.l4}`}
                 />
               )}
               {failCount > 0 && (
-                <Stat label="Still failed" value={failCount} warn />
+                <Stat label={t("designReport.statStillFailed")} value={failCount} warn />
               )}
               {rescuePenalties.length > 0 && (
                 <Stat
-                  label="Rescued avg penalty"
-                  value={`${avgRescuePenalty.toFixed(1)} vs ${avgNormalPenalty.toFixed(1)} normal`}
+                  label={t("designReport.statRescuedAvgPenalty")}
+                  value={t("designReport.statRescuedPenaltyValue", { rescued: avgRescuePenalty.toFixed(1), normal: avgNormalPenalty.toFixed(1) })}
                   warn={avgRescuePenalty > avgNormalPenalty * 1.5}
                 />
               )}
@@ -313,7 +322,7 @@ export function DesignReport() {
                     </div>
                   ))}
                   {rescuedMutationDetails.length > 5 && (
-                    <div className="text-muted-foreground">+{rescuedMutationDetails.length - 5} more</div>
+                    <div className="text-muted-foreground">{t("designReport.moreItems", { count: rescuedMutationDetails.length - 5 })}</div>
                   )}
                 </div>
               )}
@@ -322,16 +331,16 @@ export function DesignReport() {
 
           {/* Tm Distribution */}
           {fwdTms.length > 0 && (
-            <Section title="Tm Distribution">
-              <Stat label="Forward" value={`${avg(fwdTms).toFixed(1)} \u00b1 ${std(fwdTms).toFixed(1)} \u00b0C`} />
-              <Stat label="Reverse" value={`${avg(revTms).toFixed(1)} \u00b1 ${std(revTms).toFixed(1)} \u00b0C`} />
-              <Stat label="Overlap" value={`${avg(ovTms).toFixed(1)} \u00b1 ${std(ovTms).toFixed(1)} \u00b0C`} />
+            <Section title={t("designReport.sectionTmDistribution")}>
+              <Stat label={t("designReport.statForward")} value={`${avg(fwdTms).toFixed(1)} ± ${std(fwdTms).toFixed(1)} °C`} />
+              <Stat label={t("designReport.statReverse")} value={`${avg(revTms).toFixed(1)} ± ${std(revTms).toFixed(1)} °C`} />
+              <Stat label={t("designReport.statOverlap")} value={`${avg(ovTms).toFixed(1)} ± ${std(ovTms).toFixed(1)} °C`} />
             </Section>
           )}
 
           {/* Domain Stats */}
           {Object.keys(domainStats).length > 0 && (
-            <Section title="Domain Allocation">
+            <Section title={t("designReport.sectionDomainAllocation")}>
               {Object.entries(domainStats).map(([name, stat]) => (
                 <Stat
                   key={name}
@@ -345,7 +354,7 @@ export function DesignReport() {
 
           {/* Failed Mutations */}
           {failCount > 0 && (
-            <Section title="Failed Mutations">
+            <Section title={t("designReport.sectionFailedMutations")}>
               <div className="space-y-0.5 text-xs text-muted-foreground">
                 {failedMutations.slice(0, 5).map((f) => (
                   <div key={f.mutation} className="flex justify-between">
@@ -353,7 +362,7 @@ export function DesignReport() {
                     <span className="ml-2 truncate text-muted-foreground">{f.reason}</span>
                   </div>
                 ))}
-                {failCount > 5 && <div className="text-muted-foreground">+{failCount - 5} more</div>}
+                {failCount > 5 && <div className="text-muted-foreground">{t("designReport.moreItems", { count: failCount - 5 })}</div>}
               </div>
             </Section>
           )}
@@ -361,7 +370,7 @@ export function DesignReport() {
 
         <DialogFooter>
           <Button variant="outline" size="sm" className="rounded-full" onClick={() => setShowReport(false)}>
-            Close
+            {t("designReport.close")}
           </Button>
         </DialogFooter>
       </DialogContent>

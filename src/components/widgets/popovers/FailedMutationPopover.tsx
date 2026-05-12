@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAppStore } from "../../../store/appStore";
 import { useFocusTrap } from "../../../hooks/useFocusTrap";
 import type { SdmPrimerResult, FailedMutation } from "../../../types/models";
@@ -75,6 +76,7 @@ export function FailedMutationPopover({
   const [seqError, setSeqError] = useState<string | null>(null);
   const [showManual, setShowManual] = useState(false);
 
+  const { t } = useTranslation();
   const focusTrapRef = useFocusTrap<HTMLDivElement>();
   const retryFailedMutation = useAppStore((s) => s.retryFailedMutation);
   const evaluateCustomPrimer = useAppStore((s) => s.evaluateCustomPrimer);
@@ -133,7 +135,7 @@ export function FailedMutationPopover({
         codon_strategy: storeCodon,
       });
       if (results.length === 0) {
-        setRetryError("No candidates found with these parameters");
+        setRetryError(t("failedMutationPopover.errorNoCandidates"));
       } else {
         setCandidates(results);
       }
@@ -155,7 +157,7 @@ export function FailedMutationPopover({
     const fwdErr = validateSeq(fwdSeq);
     const revErr = validateSeq(revSeq);
     if (fwdErr || revErr) {
-      setSeqError(`Invalid sequence: ${fwdErr || revErr}`);
+      setSeqError(t("failedMutationPopover.errorInvalidSeq", { message: fwdErr ?? revErr }));
       return;
     }
     setSeqError(null);
@@ -182,42 +184,42 @@ export function FailedMutationPopover({
       <div ref={focusTrapRef} role="dialog" aria-modal="true" aria-labelledby="failed-mutation-title" className="min-w-[520px] max-h-[80vh] max-w-2xl overflow-y-auto rounded-container border border-border bg-card p-5 shadow-lg" onClick={(e) => e.stopPropagation()}>
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <div className="text-caption font-semibold uppercase tracking-widest text-destructive">Failure Recovery</div>
-            <h3 id="failed-mutation-title" className="mt-1 text-lg font-semibold text-foreground">{failed.mutation} — Design Failed</h3>
+            <div className="text-caption font-semibold uppercase tracking-widest text-destructive">{t("failedMutationPopover.recoveryHeading")}</div>
+            <h3 id="failed-mutation-title" className="mt-1 text-lg font-semibold text-foreground">{t("failedMutationPopover.designFailed", { mutation: failed.mutation })}</h3>
           </div>
-          <button onClick={onClose} className="px-2 text-lg text-muted-foreground hover:text-foreground" aria-label="Close">×</button>
+          <button onClick={onClose} className="px-2 text-lg text-muted-foreground hover:text-foreground" aria-label={t("common.close")}>×</button>
         </div>
 
         <div className="mb-4 rounded-2xl border border-destructive/20 bg-destructive/10 px-3 py-3 text-xs text-destructive">
-          <span className="font-semibold">Reason:</span> {failed.reason}
+          <span className="font-semibold">{t("failedMutationPopover.reasonLabel")}</span> {failed.reason}
         </div>
 
         {/* Retry with parameters */}
-        <div className="mb-1 text-caption font-semibold uppercase tracking-widest text-muted-foreground">Retry with parameters</div>
+        <div className="mb-1 text-caption font-semibold uppercase tracking-widest text-muted-foreground">{t("failedMutationPopover.retrySection")}</div>
         <div className="mb-3 space-y-2 rounded-2xl border border-border bg-card p-3">
           <div className="flex items-center gap-1 text-caption">
-            <span className="w-10 text-muted-foreground">Tm:</span>
-            <span className="text-muted-foreground">F</span><input className={inp} value={tmFwd} onChange={(e) => setTmFwd(e.target.value)} />
-            <span className="text-muted-foreground">R</span><input className={inp} value={tmRev} onChange={(e) => setTmRev(e.target.value)} />
-            <span className="text-muted-foreground">Ov</span><input className={inp} value={tmOv} onChange={(e) => setTmOv(e.target.value)} />
-            <span className="text-muted-foreground">°C</span>
+            <span className="w-10 text-muted-foreground">{t("failedMutationPopover.labelTm")}</span>
+            <span className="text-muted-foreground">{t("failedMutationPopover.labelF")}</span><input className={inp} value={tmFwd} onChange={(e) => setTmFwd(e.target.value)} />
+            <span className="text-muted-foreground">{t("failedMutationPopover.labelR")}</span><input className={inp} value={tmRev} onChange={(e) => setTmRev(e.target.value)} />
+            <span className="text-muted-foreground">{t("failedMutationPopover.labelOv")}</span><input className={inp} value={tmOv} onChange={(e) => setTmOv(e.target.value)} />
+            <span className="text-muted-foreground">{t("failedMutationPopover.labelDegC")}</span>
           </div>
           <div className="flex items-center gap-1 text-caption">
-            <span className="w-10 text-muted-foreground">GC%:</span>
+            <span className="w-10 text-muted-foreground">{t("failedMutationPopover.labelGc")}</span>
             <input className={inp} value={gcMin} onChange={(e) => setGcMin(e.target.value)} />
             <span className="text-muted-foreground">~</span>
             <input className={inp} value={gcMax} onChange={(e) => setGcMax(e.target.value)} />
-            <span className="ml-2 text-muted-foreground">Tol max</span>
+            <span className="ml-2 text-muted-foreground">{t("failedMutationPopover.labelTolMax")}</span>
             <input className={inp} value={tolMax} onChange={(e) => setTolMax(e.target.value)} />
-            <span className="text-muted-foreground">°C</span>
+            <span className="text-muted-foreground">{t("failedMutationPopover.labelDegC")}</span>
           </div>
           <div className="flex items-center gap-1 text-caption">
-            <span className="w-10 text-muted-foreground">Length:</span>
-            <span className="text-muted-foreground">F</span><input className={inp} value={fwdMin} onChange={(e) => setFwdMin(e.target.value)} />
+            <span className="w-10 text-muted-foreground">{t("failedMutationPopover.labelLength")}</span>
+            <span className="text-muted-foreground">{t("failedMutationPopover.labelF")}</span><input className={inp} value={fwdMin} onChange={(e) => setFwdMin(e.target.value)} />
             <span className="text-muted-foreground">~</span><input className={inp} value={fwdMax} onChange={(e) => setFwdMax(e.target.value)} />
-            <span className="ml-1 text-muted-foreground">R</span><input className={inp} value={revMin} onChange={(e) => setRevMin(e.target.value)} />
+            <span className="ml-1 text-muted-foreground">{t("failedMutationPopover.labelR")}</span><input className={inp} value={revMin} onChange={(e) => setRevMin(e.target.value)} />
             <span className="text-muted-foreground">~</span><input className={inp} value={revMax} onChange={(e) => setRevMax(e.target.value)} />
-            <span className="text-muted-foreground">bp</span>
+            <span className="text-muted-foreground">{t("failedMutationPopover.labelBp")}</span>
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-2">
             <button
@@ -225,7 +227,7 @@ export function FailedMutationPopover({
               onClick={handleRetry}
               disabled={retrying}
             >
-              {retrying ? "Designing..." : "Retry"}
+              {retrying ? t("failedMutationPopover.btnRetrying") : t("failedMutationPopover.btnRetry")}
             </button>
             {suggested.sampleSize > 0 && (
               <button
@@ -243,15 +245,27 @@ export function FailedMutationPopover({
                   setRevMax(String(suggested.revLenMax));
                   setTolMax(String(suggested.tolMax));
                 }}
-                title={`Tm F${suggested.tmFwd} / R${suggested.tmRev} / Ov${suggested.tmOverlap}, GC ${suggested.gcMin}-${suggested.gcMax}%, Fwd ${suggested.fwdLenMin}-${suggested.fwdLenMax}, Rev ${suggested.revLenMin}-${suggested.revLenMax}, tol ±${suggested.tolMax}°C — derived from ${suggested.sampleSize} successful primers`}
+                title={t("failedMutationPopover.suggestionTip", {
+                  tmFwd: suggested.tmFwd,
+                  tmRev: suggested.tmRev,
+                  tmOv: suggested.tmOverlap,
+                  count: suggested.sampleSize,
+                  tolMax: suggested.tolMax,
+                })}
               >
-                Use suggestion ({suggested.sampleSize})
+                {t("failedMutationPopover.btnUseSuggestion", { count: suggested.sampleSize })}
               </button>
             )}
           </div>
           {suggested.sampleSize > 0 && (
             <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
-              Suggestion uses median Tm ({suggested.tmFwd}/{suggested.tmRev}/{suggested.tmOverlap}°C) and observed GC/length ranges from {suggested.sampleSize} successful primers, with tol ±{suggested.tolMax}°C.
+              {t("failedMutationPopover.suggestionTip", {
+                tmFwd: suggested.tmFwd,
+                tmRev: suggested.tmRev,
+                tmOv: suggested.tmOverlap,
+                count: suggested.sampleSize,
+                tolMax: suggested.tolMax,
+              })}
             </p>
           )}
         </div>
@@ -263,16 +277,16 @@ export function FailedMutationPopover({
         {/* Candidate list */}
         {candidates.length > 0 && (
           <div className="mb-3">
-            <div className="mb-1 text-caption font-semibold uppercase tracking-widest text-muted-foreground">Candidates ({candidates.length})</div>
+            <div className="mb-1 text-caption font-semibold uppercase tracking-widest text-muted-foreground">{t("failedMutationPopover.candidatesSection", { count: candidates.length })}</div>
             <div className="max-h-40 overflow-y-auto rounded-2xl border border-border">
               <table className="w-full text-caption">
                 <thead className="sticky top-0 bg-muted">
                   <tr>
-                    <th className="px-1 py-0.5 text-left">Fwd</th>
-                    <th className="px-1 py-0.5 text-left">Rev</th>
-                    <th className="px-1 py-0.5">Tm F</th>
-                    <th className="px-1 py-0.5">Tm R</th>
-                    <th className="px-1 py-0.5">Pen</th>
+                    <th className="px-1 py-0.5 text-left">{t("failedMutationPopover.colFwd")}</th>
+                    <th className="px-1 py-0.5 text-left">{t("failedMutationPopover.colRev")}</th>
+                    <th className="px-1 py-0.5">{t("failedMutationPopover.colTmF")}</th>
+                    <th className="px-1 py-0.5">{t("failedMutationPopover.colTmR")}</th>
+                    <th className="px-1 py-0.5">{t("failedMutationPopover.colPen")}</th>
                     <th className="px-1 py-0.5"></th>
                   </tr>
                 </thead>
@@ -289,7 +303,7 @@ export function FailedMutationPopover({
                           className="rounded-full bg-success px-2 py-0.5 text-plate-tiny text-white hover:bg-success/80"
                           onClick={() => handleSelect(c)}
                         >
-                          Select
+                          {t("failedMutationPopover.btnSelect")}
                         </button>
                       </td>
                     </tr>
@@ -305,21 +319,21 @@ export function FailedMutationPopover({
           className="mb-1 text-caption text-muted-foreground underline hover:text-foreground"
           onClick={() => setShowManual(!showManual)}
         >
-          {showManual ? "Hide manual input" : "Or enter manually..."}
+          {showManual ? t("failedMutationPopover.btnHideManual") : t("failedMutationPopover.btnShowManual")}
         </button>
         {showManual && (
           <div className="space-y-1">
             <div className="flex items-center gap-0.5">
-              <span className="w-6 text-plate-tiny text-muted-foreground">Fwd:</span>
-              <input className="flex-1 text-caption font-mono border border-info/30 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-info" style={{ color: "hsl(var(--info))" }} placeholder="Overlap" value={customOverlap} onChange={(e) => setCustomOverlap(e.target.value.toUpperCase())} />
-              <input className="w-12 text-caption font-mono font-semibold border border-destructive/30 rounded px-1 py-1 text-center focus:outline-none focus:ring-1 focus:ring-destructive" style={{ color: "hsl(var(--destructive))" }} placeholder="Codon" maxLength={3} value={customCodon} onChange={(e) => setCustomCodon(e.target.value.toUpperCase())} />
-              <input className="flex-1 text-caption font-mono border border-border rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-ring" placeholder="Downstream" value={customDownstream} onChange={(e) => setCustomDownstream(e.target.value.toUpperCase())} />
+              <span className="w-6 text-plate-tiny text-muted-foreground">{t("candidatePopover.inputLabelFwd")}</span>
+              <input className="flex-1 text-caption font-mono border border-info/30 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-info" style={{ color: "hsl(var(--info))" }} placeholder={t("candidatePopover.inputPlaceholderOverlap")} value={customOverlap} onChange={(e) => setCustomOverlap(e.target.value.toUpperCase())} />
+              <input className="w-12 text-caption font-mono font-semibold border border-destructive/30 rounded px-1 py-1 text-center focus:outline-none focus:ring-1 focus:ring-destructive" style={{ color: "hsl(var(--destructive))" }} placeholder={t("candidatePopover.inputPlaceholderCodon")} maxLength={3} value={customCodon} onChange={(e) => setCustomCodon(e.target.value.toUpperCase())} />
+              <input className="flex-1 text-caption font-mono border border-border rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-ring" placeholder={t("candidatePopover.inputPlaceholderDownstream")} value={customDownstream} onChange={(e) => setCustomDownstream(e.target.value.toUpperCase())} />
             </div>
             <div className="flex items-center gap-0.5">
-              <span className="w-6 text-plate-tiny text-muted-foreground">Rev:</span>
-              <input className="flex-1 text-caption font-mono border border-warning/30 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-warning" placeholder="Reverse sequence (5' → 3')" value={customRev} onChange={(e) => setCustomRev(e.target.value.toUpperCase())} />
+              <span className="w-6 text-plate-tiny text-muted-foreground">{t("candidatePopover.inputLabelRev")}</span>
+              <input className="flex-1 text-caption font-mono border border-warning/30 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-warning" placeholder={t("candidatePopover.inputPlaceholderRev")} value={customRev} onChange={(e) => setCustomRev(e.target.value.toUpperCase())} />
               <button className="rounded-full bg-primary px-3 py-1 text-caption text-primary-foreground hover:bg-primary/80 disabled:opacity-40" disabled={!(customOverlap + customCodon + customDownstream).trim() || !customRev.trim() || evaluating} onClick={handleEvaluate}>
-                {evaluating ? "..." : "Evaluate"}
+                {evaluating ? t("candidatePopover.btnEvaluating") : t("candidatePopover.btnEvaluate")}
               </button>
             </div>
             {seqError && <div className="text-caption text-destructive bg-destructive/10 rounded px-2 py-1 mt-1">{seqError}</div>}

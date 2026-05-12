@@ -1,5 +1,6 @@
 import type { ChangeEvent, KeyboardEvent } from "react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { UniprotSearch } from "./UniprotSearch";
 
 const LINKER_HANDLING_OPTIONS: Array<"include" | "separate-bin" | "exclude"> = [
@@ -25,6 +26,7 @@ const DISTANCE_MODE_OPTIONS: Array<"auto" | "1d" | "3d"> = [
 ];
 
 export function HelpTip({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   return (
     <span>
@@ -35,7 +37,7 @@ export function HelpTip({ children }: { children: React.ReactNode }) {
           e.preventDefault();
           setOpen((p) => !p);
         }}
-        aria-label={open ? "Hide help" : "Show help"}
+        aria-label={open ? t("diversitySections.helpHide") : t("diversitySections.helpShow")}
       >
         ?
       </button>
@@ -61,6 +63,7 @@ export function PipelineStep({
   onToggle: (v: boolean) => void;
   children?: React.ReactNode;
 }) {
+  const { t } = useTranslation();
   return (
     <div className={`relative rounded-container border px-3 py-3 transition-opacity ${enabled ? "border-border bg-card opacity-100" : "border-border bg-muted/40 opacity-60"}`}>
       <div
@@ -76,13 +79,14 @@ export function PipelineStep({
           onChange={(e) => onToggle(e.target.checked)}
         />
         <span className="text-foreground">
-          Step {step}: {label}
+          {t("diversitySections.stepLabel", { step, label })}
         </span>
       </label>
       {enabled && children && <div className="pl-4 space-y-1">{children}</div>}
     </div>
   );
 }
+
 
 export function PipelineArrow({ active }: { active: boolean }) {
   return (
@@ -131,10 +135,12 @@ export function DomainAllocationSection(props: {
     setDomains,
   } = props;
 
+  const { t } = useTranslation();
+
   return (
     <div className="space-y-1.5">
       <div className="flex flex-wrap items-center gap-2 text-caption text-muted-foreground">
-        <span>Linker</span>
+        <span>{t("diversitySections.linkerLabel")}</span>
         {LINKER_HANDLING_OPTIONS.map((v) => (
           <label key={v} className="flex items-center gap-0.5 cursor-pointer">
             <input
@@ -144,10 +150,10 @@ export function DomainAllocationSection(props: {
               checked={linkerHandling === v}
               onChange={() => setLinkerHandling(v)}
             />
-            {v === "include" ? "Fill only" : v === "separate-bin" ? "Separate" : "Exclude"}
+            {v === "include" ? t("diversitySections.linkerOption_fillOnly") : v === "separate-bin" ? t("diversitySections.linkerOption_separate") : t("diversitySections.linkerOption_exclude")}
           </label>
         ))}
-        <HelpTip>Choose whether non-domain residues only backfill spare slots, get their own quota bin, or are excluded from Step 2 entirely.</HelpTip>
+        <HelpTip>{t("diversitySections.linkerHelp")}</HelpTip>
       </div>
 
       <UniprotSearch />
@@ -191,20 +197,20 @@ export function DomainAllocationSection(props: {
           className="text-caption text-muted-foreground hover:text-foreground"
           onClick={() => setAddingDomain(true)}
         >
-          + Add manually
+          {t("diversitySections.addManually")}
         </button>
       ) : (
         <div className="flex items-center gap-1 text-caption">
           <input
             type="text"
-            placeholder="Name"
+            placeholder={t("diversitySections.domainNamePlaceholder")}
             className="h-6 w-16 rounded-control border border-border px-1 text-caption"
             value={newDomainName}
             onChange={(e) => setNewDomainName(e.target.value)}
           />
           <input
             type="number"
-            placeholder="Start"
+            placeholder={t("diversitySections.domainStartPlaceholder")}
             className="h-6 w-10 rounded-control border border-border px-0.5 text-caption text-center"
             value={newDomainStart}
             onChange={(e) => setNewDomainStart(e.target.value)}
@@ -212,7 +218,7 @@ export function DomainAllocationSection(props: {
           <span className="text-muted-foreground">-</span>
           <input
             type="number"
-            placeholder="End"
+            placeholder={t("diversitySections.domainEndPlaceholder")}
             className="h-6 w-10 rounded-control border border-border px-0.5 text-caption text-center"
             value={newDomainEnd}
             onChange={(e) => setNewDomainEnd(e.target.value)}
@@ -249,19 +255,20 @@ export function OptimizationSummarySection(props: {
   distanceMode: "auto" | "1d" | "3d";
 }) {
   const { distanceBadge, structureLoading, structureLoaded, distanceMode } = props;
+  const { t } = useTranslation();
   return (
     <div className="flex flex-wrap items-center gap-1.5 text-caption text-muted-foreground">
       <span>{distanceBadge}</span>
-      {structureLoading && <span className="text-muted-foreground">(loading AlphaFold...)</span>}
+      {structureLoading && <span className="text-muted-foreground">{t("diversitySections.alphaFoldLoading")}</span>}
       {structureLoaded && (
         <span className="inline-flex items-center rounded-full bg-info/10 px-2 py-0.5 text-caption font-medium text-info">
-          AlphaFold
+          {t("diversitySections.alphaFoldBadge")}
         </span>
       )}
       <HelpTip>
         {(distanceMode === "3d" || (distanceMode === "auto" && structureLoaded))
-          ? "Selects variants spread apart in 3D space using AlphaFold C\u03B1 coordinates."
-          : "Greedy Pareto selection that maximises minimum sequence-distance between chosen positions."}
+          ? t("diversitySections.helpTip3D")
+          : t("diversitySections.helpTip1D")}
       </HelpTip>
     </div>
   );
@@ -290,11 +297,13 @@ export function RoundSettingsSection(props: {
     autoEntropy,
   } = props;
 
+  const { t } = useTranslation();
+
   return (
     <div className="ml-2 mt-3 space-y-1.5 border-l-2 border-transparent pl-3 text-caption text-muted-foreground">
-      <div className="font-semibold uppercase tracking-wide text-muted-foreground/60">Round</div>
+      <div className="font-semibold uppercase tracking-wide text-muted-foreground/60">{t("diversitySections.roundSectionLabel")}</div>
       <div className="flex items-center gap-2 flex-wrap">
-        <span>EVOLVEpro Round</span>
+        <span>{t("diversitySections.evolveproRoundLabel")}</span>
         <input
           type="number"
           min={1}
@@ -304,7 +313,7 @@ export function RoundSettingsSection(props: {
           onBlur={commitRound}
           onKeyDown={onEnterBlur}
         />
-        <span className="text-muted-foreground">Size</span>
+        <span className="text-muted-foreground">{t("diversitySections.roundSizeLabel")}</span>
         <input
           type="number"
           min={1}
@@ -315,15 +324,15 @@ export function RoundSettingsSection(props: {
           onBlur={commitRoundSize}
           onKeyDown={onEnterBlur}
         />
-        <HelpTip>{"Round × size = cumulative data points used to estimate model quality (ρ).\nLower ρ → wider pool and higher entropy weight for exploration."}</HelpTip>
+        <HelpTip>{t("diversitySections.roundHelp")}</HelpTip>
       </div>
       <div className="flex items-center gap-2 font-mono text-caption text-info">
         <span className="inline-flex items-center rounded-full border border-info/20 bg-info/10 px-2 py-0.5 text-plate-tiny font-medium text-info">
-          Auto
+          {t("diversitySections.autoLabel")}
         </span>
-        <span>K = {autoK.toFixed(2)}</span>
+        <span>{t("diversitySections.autoKValue", { k: autoK.toFixed(2) })}</span>
         <span className="text-muted-foreground">/</span>
-        <span>entropy = {autoEntropy.toFixed(2)}</span>
+        <span>{t("diversitySections.autoEntropyValue", { entropy: autoEntropy.toFixed(2) })}</span>
       </div>
     </div>
   );
@@ -378,6 +387,8 @@ export function AdvancedSettingsSection(props: {
     setEntropyWeight,
   } = props;
 
+  const { t } = useTranslation();
+
   return (
     <div className="ml-2 mt-2 border-l-2 border-transparent pl-3">
       <button
@@ -390,14 +401,14 @@ export function AdvancedSettingsSection(props: {
         <span className="text-muted-foreground" aria-hidden="true">
           {showAdvanced ? "▾" : "▸"}
         </span>
-        <span>Advanced settings</span>
+        <span>{t("diversitySections.advancedSettings")}</span>
       </button>
       {showAdvanced && (
         <div id="advanced-settings-panel" className="mt-1.5 space-y-2 rounded-container border border-border bg-card p-3 text-caption text-muted-foreground">
           <div>
-            <div className="mb-0.5 text-plate-tiny uppercase tracking-wide text-muted-foreground/60">Step 1</div>
+            <div className="mb-0.5 text-plate-tiny uppercase tracking-wide text-muted-foreground/60">{t("diversitySections.step1SectionLabel")}</div>
             <div className="flex items-center gap-1 flex-wrap">
-              <span>Position cap</span>
+              <span>{t("diversitySections.positionCap")}</span>
               <input
                 type="number"
                 min={1}
@@ -408,26 +419,26 @@ export function AdvancedSettingsSection(props: {
                 onBlur={commitMaxPerPos}
                 onKeyDown={onEnterBlur}
               />
-              <span>/position</span>
-              <HelpTip>Max substitutions per residue. Cap=1 keeps one best variant per position. Uses Grantham-distance tie-break when scores are within 2%.</HelpTip>
+              <span>{t("diversitySections.positionCapUnit")}</span>
+              <HelpTip>{t("diversitySections.positionCapHelp")}</HelpTip>
             </div>
           </div>
 
           <div>
-            <div className="mb-0.5 text-plate-tiny uppercase tracking-wide text-muted-foreground/60">Step 2</div>
+            <div className="mb-0.5 text-plate-tiny uppercase tracking-wide text-muted-foreground/60">{t("diversitySections.step2SectionLabel")}</div>
             <div className="space-y-1">
               <div className="flex items-center gap-2 flex-wrap" role="radiogroup" aria-label="Domain strategy">
-                <span>Strategy</span>
+                <span>{t("diversitySections.strategyLabel")}</span>
                 {DOMAIN_STRATEGY_OPTIONS.map((v) => (
                   <label key={v} className="flex items-center gap-0.5 cursor-pointer">
                     <input type="radio" name="domainStrategy" className="w-2.5 h-2.5" checked={domainStrategy === v} onChange={() => setDomainStrategy(v)} />
                     {v.charAt(0).toUpperCase() + v.slice(1)}
                   </label>
                 ))}
-                <HelpTip>Proportional: quota proportional to domain length. Equal: same quota per domain.</HelpTip>
+                <HelpTip>{t("diversitySections.domainStrategyHelp")}</HelpTip>
               </div>
               <div className="flex items-center gap-2 flex-wrap">
-                <span>Overlap</span>
+                <span>{t("diversitySections.overlapLabel")}</span>
                 {DOMAIN_OVERLAP_OPTIONS.map((v) => (
                   <label key={v} className="flex items-center gap-0.5 cursor-pointer">
                     <input type="radio" name="domainOverlapPolicy" className="w-2.5 h-2.5" checked={domainOverlapPolicy === v} onChange={() => setDomainOverlapPolicy(v)} />
@@ -436,7 +447,7 @@ export function AdvancedSettingsSection(props: {
                 ))}
               </div>
               <div className="flex items-center gap-2">
-                <span>Min quota</span>
+                <span>{t("diversitySections.minQuotaLabel")}</span>
                 <input
                   type="number"
                   min={0}
@@ -450,20 +461,20 @@ export function AdvancedSettingsSection(props: {
           </div>
 
           <div>
-            <div className="mb-0.5 text-plate-tiny uppercase tracking-wide text-muted-foreground/60">Step 3</div>
+            <div className="mb-0.5 text-plate-tiny uppercase tracking-wide text-muted-foreground/60">{t("diversitySections.step3SectionLabel")}</div>
             <div className="space-y-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <span>Distance</span>
+                <span>{t("diversitySections.distanceLabel")}</span>
                 {DISTANCE_MODE_OPTIONS.map((v) => (
                   <label key={v} className="flex items-center gap-1 cursor-pointer">
                     <input type="radio" name="distanceMode" className="w-2.5 h-2.5" checked={distanceMode === v} onChange={() => setDistanceMode(v)} />
                     {v.toUpperCase()}
                   </label>
                 ))}
-                <HelpTip>Auto uses AlphaFold Cα when structure is loaded. Force 1D/3D for controlled comparisons.</HelpTip>
+                <HelpTip>{t("diversitySections.distanceHelp")}</HelpTip>
               </div>
               <div className="flex items-center gap-2">
-                <span className="w-16">Pool K</span>
+                <span className="w-16">{t("diversitySections.poolKLabel")}</span>
                 <input
                   type="range"
                   min="1"
@@ -472,10 +483,10 @@ export function AdvancedSettingsSection(props: {
                   value={paretoPoolMultiplier}
                   onChange={(e) => setParetoPoolMultiplier(Number(e.target.value))}
                   className="w-20 accent-primary"
-                  title="Manual pool size override (ignored when Round > 0)"
+                  title={t("diversitySections.poolKTitle")}
                 />
                 <span className="font-mono text-foreground">{paretoPoolMultiplier.toFixed(2)}x</span>
-                <HelpTip>{"Manual pool multiplier. Ignored when EVOLVEpro Round ≥ 1 (σ-adaptive mode).\nAuto K = " + autoK.toFixed(2) + " based on current round."}</HelpTip>
+                <HelpTip>{t("diversitySections.poolKHelp", { autoK: autoK.toFixed(2) })}</HelpTip>
               </div>
               <div className="flex items-center gap-1">
                 <label className="flex items-center gap-1.5 cursor-pointer">
@@ -485,14 +496,14 @@ export function AdvancedSettingsSection(props: {
                     checked={entropyWeightEnabled}
                     onChange={(e) => setEntropyWeightEnabled(e.target.checked)}
                   />
-                  <span>Entropy-guided</span>
+                  <span>{t("diversitySections.entropyGuided")}</span>
                   <span className="inline-flex items-center rounded-full bg-info/10 px-2 py-0.5 text-plate-tiny font-medium text-info">β</span>
                 </label>
-                <HelpTip>Positions where EVOLVEpro scores multiple substitutions similarly get an uncertainty bonus. Auto weight = {autoEntropy.toFixed(2)} based on current round.</HelpTip>
+                <HelpTip>{t("diversitySections.entropyGuidedHelp", { autoEntropy: autoEntropy.toFixed(2) })}</HelpTip>
               </div>
               {entropyWeightEnabled && (
                 <div className="flex items-center gap-2 pl-4">
-                  <span>Weight</span>
+                  <span>{t("diversitySections.entropyWeight")}</span>
                   <input
                     type="range"
                     min="0"
@@ -501,7 +512,7 @@ export function AdvancedSettingsSection(props: {
                     value={entropyWeight}
                     onChange={(e) => setEntropyWeight(Number(e.target.value))}
                     className="w-20 accent-primary"
-                    title="Manual entropy weight override (ignored when Round > 0)"
+                    title={t("diversitySections.entropyWeightTitle")}
                   />
                   <span className="font-mono text-foreground">{entropyWeight.toFixed(2)}</span>
                 </div>
@@ -521,16 +532,17 @@ export function WorkspaceSection(props: {
   setSaveCache: (v: boolean) => void;
 }) {
   const { autoRedesignOnLoad, setAutoRedesignOnLoad, saveCache, setSaveCache } = props;
+  const { t } = useTranslation();
   return (
     <div className="ml-2 mt-2 space-y-1 border-l-2 border-transparent pl-3 text-caption text-muted-foreground">
-      <div className="font-semibold uppercase tracking-wide text-muted-foreground/60">Workspace</div>
+      <div className="font-semibold uppercase tracking-wide text-muted-foreground/60">{t("diversitySections.workspaceSectionLabel")}</div>
       <label className="flex items-center gap-1.5 cursor-pointer">
         <input type="checkbox" className="h-2.5 w-2.5 accent-primary" checked={autoRedesignOnLoad} onChange={(e) => setAutoRedesignOnLoad(e.target.checked)} />
-        Auto re-design on load
+        {t("diversitySections.autoRedesignOnLoad")}
       </label>
       <label className="flex items-center gap-1.5 cursor-pointer">
         <input type="checkbox" className="h-2.5 w-2.5 accent-primary" checked={saveCache} onChange={(e) => setSaveCache(e.target.checked)} />
-        Save pipeline cache
+        {t("diversitySections.savePipelineCache")}
       </label>
     </div>
   );
@@ -559,11 +571,13 @@ export function BenchmarkSection(props: {
     hasBenchmarkData,
   } = props;
 
+  const { t } = useTranslation();
+
   return (
     <div className="ml-2 mt-2 space-y-1 border-l-2 border-transparent pl-3 text-caption text-muted-foreground">
-      <div className="font-semibold uppercase tracking-wide text-muted-foreground/60">Benchmark</div>
+      <div className="font-semibold uppercase tracking-wide text-muted-foreground/60">{t("diversitySections.benchmarkSectionLabel")}</div>
       <div className="flex items-center gap-2">
-        <span className="w-20">Top percentile</span>
+        <span className="w-20">{t("diversitySections.topPercentile")}</span>
         <input
           type="number"
           min={1}
@@ -576,7 +590,7 @@ export function BenchmarkSection(props: {
         <span>%</span>
       </div>
       <div className="flex items-center gap-2">
-        <span className="w-20">Random trials</span>
+        <span className="w-20">{t("diversitySections.randomTrials")}</span>
         <input
           type="number"
           min={1}
@@ -588,7 +602,7 @@ export function BenchmarkSection(props: {
         />
       </div>
       <div className="flex items-center gap-2">
-        <span className="w-20">Random seed</span>
+        <span className="w-20">{t("diversitySections.randomSeed")}</span>
         <input
           type="number"
           className="h-6 w-16 rounded-control border border-border bg-background px-1 text-center text-caption"
@@ -599,7 +613,7 @@ export function BenchmarkSection(props: {
             setBenchmarkRandomSeed(raw === "" ? null : Number(raw));
           }}
         />
-        <HelpTip>Leave blank for fresh randomness. Set a seed to reproduce random baseline comparisons exactly.</HelpTip>
+        <HelpTip>{t("diversitySections.randomSeedHelp")}</HelpTip>
       </div>
       <button
         type="button"
@@ -609,7 +623,7 @@ export function BenchmarkSection(props: {
         }}
         disabled={benchmarkRunning || !hasBenchmarkData}
       >
-        {benchmarkRunning ? "Running..." : "Run Benchmark"}
+        {benchmarkRunning ? t("diversitySections.runBenchmarkBusy") : t("diversitySections.runBenchmark")}
       </button>
     </div>
   );

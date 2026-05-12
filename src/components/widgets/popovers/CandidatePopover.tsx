@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAppStore } from "../../../store/appStore";
 import { useFocusTrap } from "../../../hooks/useFocusTrap";
 import type { SdmPrimerResult } from "../../../types/models";
@@ -55,6 +56,7 @@ export function CandidatePopover({
   current: SdmPrimerResult;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const [candidates, setCandidates] = useState<SdmPrimerResult[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [customOverlap, setCustomOverlap] = useState("");
@@ -115,13 +117,13 @@ export function CandidatePopover({
     const fwdErr = validateSeq(fwdInput);
     const revErr = validateSeq(revInput);
     if (fwdErr || revErr) {
-      setSeqError(`Invalid sequence: ${fwdErr || revErr}`);
+      setSeqError(t("candidatePopover.errorInvalidSeq", { message: fwdErr ?? revErr }));
       return;
     }
     setSeqError(null);
     const isDup = customCandidates.some((c) => c.forward_seq === fwdSeq && c.reverse_seq === revSeq);
     if (isDup) {
-      setSeqError("Duplicate custom primer — already added");
+      setSeqError(t("candidatePopover.errorDuplicate"));
       return;
     }
     setEvaluating(true);
@@ -169,55 +171,57 @@ export function CandidatePopover({
       >
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <div className="text-caption font-semibold uppercase tracking-widest text-muted-foreground">Candidate Review</div>
+            <div className="text-caption font-semibold uppercase tracking-widest text-muted-foreground">{t("candidatePopover.reviewHeading")}</div>
             <h3 id="candidate-popover-title" className="mt-1 text-lg font-semibold text-foreground">
-            {mutation} — {candidates?.length ?? "..."} candidates
+              {candidates?.length != null
+                ? t("candidatePopover.candidateCount", { mutation, count: candidates.length })
+                : t("candidatePopover.candidateCountLoading", { mutation })}
             </h3>
           </div>
           <button
             onClick={onClose}
             className="px-2 text-lg text-muted-foreground hover:text-foreground"
-            aria-label="Close"
+            aria-label={t("common.close")}
           >
             ×
           </button>
         </div>
 
         {loading ? (
-          <div className="text-xs text-muted-foreground py-4 text-center">Loading...</div>
+          <div className="text-xs text-muted-foreground py-4 text-center">{t("candidatePopover.loading")}</div>
         ) : !candidates || candidates.length === 0 ? (
-          <div className="text-xs text-muted-foreground py-4 text-center">No candidates</div>
+          <div className="text-xs text-muted-foreground py-4 text-center">{t("candidatePopover.noCandidates")}</div>
         ) : (
           <>
           {!backendDesignStateSynced && (
             <div className="mb-2 rounded bg-warning/10 px-2 py-1 text-caption text-warning">
-              Backend alternatives are unavailable until you re-design this workspace. Manual primer evaluation still works.
+              {t("candidatePopover.backendUnavailable")}
             </div>
           )}
           {alternativesError && (
             <div className="mb-2 rounded bg-destructive/10 px-2 py-1 text-caption text-destructive">
-              Failed to load alternatives: {alternativesError}
+              {t("candidatePopover.alternativesError", { message: alternativesError })}
             </div>
           )}
           <div className="mb-2 text-caption text-muted-foreground">
-            Ranked by penalty (lower = better). #1 is auto-selected as default.
+            {t("candidatePopover.rankedByPenalty")}
           </div>
           <table className="w-full border-collapse text-caption">
             <thead>
               <tr className="bg-muted text-muted-foreground font-semibold">
-                <th className="px-2 py-1 text-left">#</th>
-                <th className="px-2 py-1 text-left">Forward</th>
-                <th className="px-2 py-1 text-left">Reverse</th>
-                <th className="px-2 py-1">Fwd</th>
-                <th className="px-2 py-1">Rev</th>
-                <th className="px-2 py-1">Tm F</th>
-                <th className="px-2 py-1">Tm R</th>
-                {!isFullOverlap && <th className="px-2 py-1">Tm Ov</th>}
-                <th className="px-2 py-1">GC% F</th>
-                <th className="px-2 py-1">GC% R</th>
-                <th className="px-2 py-1">Tol</th>
-                <th className="px-2 py-1" title="Penalty = Tm deviation + GC deviation + codon changes + hairpin/homodimer">Pen</th>
-                <th className="px-2 py-1">OT</th>
+                <th className="px-2 py-1 text-left">{t("candidatePopover.colHash")}</th>
+                <th className="px-2 py-1 text-left">{t("candidatePopover.colForward")}</th>
+                <th className="px-2 py-1 text-left">{t("candidatePopover.colReverse")}</th>
+                <th className="px-2 py-1">{t("candidatePopover.colFwdLen")}</th>
+                <th className="px-2 py-1">{t("candidatePopover.colRevLen")}</th>
+                <th className="px-2 py-1">{t("candidatePopover.colTmF")}</th>
+                <th className="px-2 py-1">{t("candidatePopover.colTmR")}</th>
+                {!isFullOverlap && <th className="px-2 py-1">{t("candidatePopover.colTmOv")}</th>}
+                <th className="px-2 py-1">{t("candidatePopover.colGcF")}</th>
+                <th className="px-2 py-1">{t("candidatePopover.colGcR")}</th>
+                <th className="px-2 py-1">{t("candidatePopover.colTol")}</th>
+                <th className="px-2 py-1" title={t("candidatePopover.colPenTitle")}>{t("candidatePopover.colPen")}</th>
+                <th className="px-2 py-1">{t("candidatePopover.colOt")}</th>
                 <th className="px-2 py-1"></th>
               </tr>
             </thead>
@@ -233,22 +237,22 @@ export function CandidatePopover({
                     : "hover:bg-muted/50";
                 return (
                   <CandidateRow key={idx} c={c} rowClass={rowClass} onOtClick={setOtDetailCand} isFullOverlap={isFullOverlap}
-                    label={<>{idx + 1}{isBest && <span className="ml-0.5 text-success text-plate-tiny">best</span>}</>}
+                    label={<>{idx + 1}{isBest && <span className="ml-0.5 text-success text-plate-tiny">{t("candidatePopover.labelBest")}</span>}</>}
                     actions={
                       <div className="flex gap-0.5 justify-center items-center">
                         {isCurrent && <span className="text-warning text-plate-tiny mr-0.5">✓</span>}
                         <button
                           className="rounded px-1 py-0.5 text-plate-tiny text-foreground bg-foreground/10 hover:bg-foreground/20 disabled:opacity-40"
                           onClick={() => handleSwap(idx, "both")}
-                          title={backendDesignStateSynced ? "Use both Fwd+Rev" : "Re-design to enable swapping"}
+                          title={backendDesignStateSynced ? t("candidatePopover.btnBothTitle") : t("candidatePopover.btnRedesignNeeded")}
                           disabled={!backendDesignStateSynced}
                         >
-                          Both
+                          {t("candidatePopover.btnBoth")}
                         </button>
                         <button
                           className="rounded bg-success px-1 py-0.5 text-plate-tiny text-white hover:bg-success/80 disabled:opacity-40"
                           onClick={() => handleSwap(idx, "fwd")}
-                          title={backendDesignStateSynced ? "Use Forward only" : "Re-design to enable swapping"}
+                          title={backendDesignStateSynced ? t("candidatePopover.btnFwdTitle") : t("candidatePopover.btnRedesignNeeded")}
                           disabled={!backendDesignStateSynced}
                         >
                           F
@@ -256,7 +260,7 @@ export function CandidatePopover({
                         <button
                           className="rounded bg-warning px-1 py-0.5 text-plate-tiny text-white hover:bg-warning/80 disabled:opacity-40"
                           onClick={() => handleSwap(idx, "rev")}
-                          title={backendDesignStateSynced ? "Use Reverse only" : "Re-design to enable swapping"}
+                          title={backendDesignStateSynced ? t("candidatePopover.btnRevTitle") : t("candidatePopover.btnRedesignNeeded")}
                           disabled={!backendDesignStateSynced}
                         >
                           R
@@ -271,8 +275,8 @@ export function CandidatePopover({
                   label={<span className="text-primary text-plate-tiny">C{ci + 1}</span>}
                   actions={
                     <div className="flex gap-0.5 justify-center">
-                      <button className="rounded bg-primary px-1 py-0.5 text-plate-tiny text-primary-foreground hover:bg-primary/80" onClick={() => handleApplyCustom(c)} title="Apply this custom primer">Use</button>
-                      <button className="rounded bg-muted-foreground/50 px-1 py-0.5 text-plate-tiny text-white hover:bg-muted-foreground" onClick={() => handleDeleteCustom(ci)} title="Remove">×</button>
+                      <button className="rounded bg-primary px-1 py-0.5 text-plate-tiny text-primary-foreground hover:bg-primary/80" onClick={() => handleApplyCustom(c)} title={t("candidatePopover.btnApplyCustomTitle")}>{t("candidatePopover.btnApplyCustom")}</button>
+                      <button className="rounded bg-muted-foreground/50 px-1 py-0.5 text-plate-tiny text-white hover:bg-muted-foreground" onClick={() => handleDeleteCustom(ci)} title={t("candidatePopover.btnRemoveCustomTitle")}>{t("candidatePopover.btnRemoveCustom")}</button>
                     </div>
                   }
                 />
@@ -282,37 +286,37 @@ export function CandidatePopover({
 
           {/* Custom primer input */}
           <div className="mt-4 border-t border-border pt-4">
-            <div className="mb-2 text-caption font-semibold uppercase tracking-widest text-muted-foreground">Custom Primer</div>
+            <div className="mb-2 text-caption font-semibold uppercase tracking-widest text-muted-foreground">{t("candidatePopover.customSection")}</div>
             <div className="space-y-1">
               <div className="flex items-center gap-0.5">
-                <span className="text-plate-tiny text-muted-foreground w-6">Fwd:</span>
+                <span className="text-plate-tiny text-muted-foreground w-6">{t("candidatePopover.inputLabelFwd")}</span>
                 <input
                   className="flex-1 text-caption font-mono border border-info/30 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-info"
                   style={{ color: "hsl(var(--info))" }}
-                  placeholder="Overlap"
+                  placeholder={t("candidatePopover.inputPlaceholderOverlap")}
                   value={customOverlap}
                   onChange={(e) => setCustomOverlap(e.target.value.toUpperCase())}
                 />
                 <input
                   className="w-12 text-caption font-mono font-semibold border border-destructive/30 rounded px-1 py-1 text-center focus:outline-none focus:ring-1 focus:ring-destructive"
                   style={{ color: "hsl(var(--destructive))" }}
-                  placeholder="Codon"
+                  placeholder={t("candidatePopover.inputPlaceholderCodon")}
                   maxLength={3}
                   value={customCodon}
                   onChange={(e) => setCustomCodon(e.target.value.toUpperCase())}
                 />
                 <input
                   className="flex-1 text-caption font-mono border border-border rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-ring"
-                  placeholder="Downstream"
+                  placeholder={t("candidatePopover.inputPlaceholderDownstream")}
                   value={customDownstream}
                   onChange={(e) => setCustomDownstream(e.target.value.toUpperCase())}
                 />
               </div>
               <div className="flex items-center gap-0.5">
-                <span className="text-plate-tiny text-muted-foreground w-6">Rev:</span>
+                <span className="text-plate-tiny text-muted-foreground w-6">{t("candidatePopover.inputLabelRev")}</span>
                 <input
                   className="flex-1 text-caption font-mono border border-warning/30 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-warning"
-                  placeholder="Reverse sequence (5' → 3')"
+                  placeholder={t("candidatePopover.inputPlaceholderRev")}
                   value={customRev}
                   onChange={(e) => setCustomRev(e.target.value.toUpperCase())}
                 />
@@ -321,7 +325,7 @@ export function CandidatePopover({
                   disabled={(!(customOverlap + customCodon + customDownstream).trim() && !customRev.trim()) || evaluating}
                   onClick={handleEvaluate}
                 >
-                  {evaluating ? "..." : "Evaluate"}
+                  {evaluating ? t("candidatePopover.btnEvaluating") : t("candidatePopover.btnEvaluate")}
                 </button>
               </div>
             </div>

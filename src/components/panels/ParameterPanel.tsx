@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { sendRequest } from "../../lib/ipc-kuro";
 import { formatError } from "../../lib/utils";
 import type { CodonStrategy, OverlapMode, PolymeraseProfile } from "../../types/models";
@@ -27,6 +28,7 @@ function isOverlapMode(value: string): value is OverlapMode {
 }
 
 export function ParameterPanel() {
+  const { t } = useTranslation();
   const polymerases = useAppStore((s) => s.polymerases);
   const selectedPolymerase = useAppStore((s) => s.selectedPolymerase);
   const setSelectedPolymerase = useAppStore((s) => s.setSelectedPolymerase);
@@ -118,8 +120,8 @@ export function ParameterPanel() {
   return (
     <section className="space-y-3 rounded-container border border-border bg-card p-3">
       <div>
-        <div className="text-caption font-semibold uppercase tracking-widest text-muted-foreground">Control</div>
-        <h3 className="text-title font-semibold text-foreground">Parameters</h3>
+        <div className="text-caption font-semibold uppercase tracking-widest text-muted-foreground">{t("parameterPanel.sectionLabel")}</div>
+        <h3 className="text-title font-semibold text-foreground">{t("parameterPanel.title")}</h3>
       </div>
 
       {/* Strategy — top-level switch that changes the meaning of parameters below */}
@@ -128,8 +130,8 @@ export function ParameterPanel() {
           htmlFor="design-strategy-select"
           className="flex items-center gap-2 text-caption"
         >
-          <span className="w-24 text-muted-foreground">Strategy:</span>
-          <InlineHelp text={"Partial (Gibson): overlap upstream of the codon; fwd and rev are independent.\nFull (Q5 SDM): rev = rc(fwd); single primer covers the mutation."} />
+          <span className="w-24 text-muted-foreground">{t("parameterPanel.strategyLabel")}</span>
+          <InlineHelp text={t("parameterPanel.strategyHelp")} />
           <select
             id="design-strategy-select"
             className="h-control min-w-0 flex-1 rounded-control border border-border bg-card px-3 text-caption focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
@@ -141,21 +143,21 @@ export function ParameterPanel() {
             }}
             aria-describedby="design-strategy-hint"
           >
-            <option value="partial" title="Gibson assembly style. Forward and reverse primers are independent; overlap is placed upstream of the target codon. Standard for in-house SDM.">Partial overlap (Gibson)</option>
-            <option value="full" title="NEB Q5 SDM kit style. Reverse primer = reverse-complement of forward; a single back-to-back primer pair covers the mutation site.">Full overlap (Q5 SDM)</option>
+            <option value="partial" title={t("parameterPanel.strategyOption_partial_title")}>{t("parameterPanel.strategyOption_partial")}</option>
+            <option value="full" title={t("parameterPanel.strategyOption_full_title")}>{t("parameterPanel.strategyOption_full")}</option>
           </select>
         </label>
         <p id="design-strategy-hint" className="pl-26 text-caption text-muted-foreground">
           {isFullOverlap
-            ? "Reverse = rc(forward). Single primer Tm and length apply to both."
-            : "Forward and reverse are independent with overlap upstream of the codon."}
+            ? t("parameterPanel.strategyHint_full")
+            : t("parameterPanel.strategyHint_partial")}
         </p>
       </div>
 
       <div className="space-y-1">
         <label htmlFor="polymerase-select" className="flex items-center gap-2 text-caption">
-          <span className="w-24 text-muted-foreground">Polymerase:</span>
-          <InlineHelp text={"Selects Tm calculation preset (extension Tm target + tolerance defaults).\nChoose the polymerase used in your SDM reaction.\nUse 'Custom Polymerase' to define your own extension Tm."} />
+          <span className="w-24 text-muted-foreground">{t("parameterPanel.polymeraseLabel")}</span>
+          <InlineHelp text={t("parameterPanel.polymeraseHelp")} />
           <select
             id="polymerase-select"
             className="h-control min-w-0 flex-1 rounded-control border border-border bg-card px-3 text-caption focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
@@ -164,8 +166,8 @@ export function ParameterPanel() {
           >
             {polymerases.map((poly) => {
               const parts = [
-                poly.manufacturer ? `Manufacturer: ${poly.manufacturer}` : "",
-                poly.fidelity ? `Fidelity: ${poly.fidelity}` : "",
+                poly.manufacturer ? t("parameterPanel.polymeraseManufacturer", { manufacturer: poly.manufacturer }) : "",
+                poly.fidelity ? t("parameterPanel.polymeraseFidelity", { fidelity: poly.fidelity }) : "",
               ].filter(Boolean);
               return (
                 <option
@@ -182,14 +184,14 @@ export function ParameterPanel() {
         </label>
         <div className="flex justify-end">
           <Button type="button" variant="outline" size="sm" className="h-control rounded-control" onClick={() => void openCustomEditor()}>
-            Custom Polymerase
+            {t("parameterPanel.customPolymerase")}
           </Button>
         </div>
       </div>
 
       <label htmlFor="codon-strategy" className="flex items-center gap-2 text-caption">
-        <span className="w-24 text-muted-foreground">Codon:</span>
-        <InlineHelp text={"Min. changes: fewest nucleotide changes from wild-type codon (minimises synthesis cost).\nOptimal: highest-frequency codon for the selected organism (maximises expression)."} />
+        <span className="w-24 text-muted-foreground">{t("parameterPanel.codonLabel")}</span>
+        <InlineHelp text={t("parameterPanel.codonHelp")} />
         <select
           id="codon-strategy"
           className="h-control min-w-0 flex-1 rounded-control border border-border bg-card px-3 text-caption focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
@@ -200,14 +202,14 @@ export function ParameterPanel() {
             }
           }}
         >
-          <option value="closest" title="Pick the mutant codon with the fewest nucleotide changes from the wild-type codon. Minimises primer mismatch and synthesis cost.">Min. changes (fewest nt changes from WT)</option>
-          <option value="optimal" title="Pick the highest-frequency codon for the selected organism's codon usage table. Maximises expression but may require more nt changes.">Optimal (organism codon usage)</option>
+          <option value="closest" title={t("parameterPanel.codonOption_closest_title")}>{t("parameterPanel.codonOption_closest")}</option>
+          <option value="optimal" title={t("parameterPanel.codonOption_optimal_title")}>{t("parameterPanel.codonOption_optimal")}</option>
         </select>
       </label>
 
       <label className="flex items-center gap-2 text-caption">
-        <span className="w-24 text-muted-foreground">Mutations:</span>
-        <InlineHelp text={"Maximum number of primer designs to generate.\nFor EVOLVEpro / multi-evolve mode: capped by the CSV variant count.\nOne 96-well plate fits 95 mutants + 1 WT control."} />
+        <span className="w-24 text-muted-foreground">{t("parameterPanel.mutationsLabel")}</span>
+        <InlineHelp text={t("parameterPanel.mutationsHelp")} />
         <input
           type="number"
           min={1}
@@ -218,12 +220,12 @@ export function ParameterPanel() {
           {...maxPrimersInput}
         />
         <span className="text-caption text-muted-foreground">
-          {Math.ceil(maxPrimers / 96)} plate(s)
+          {t("parameterPanel.plates", { count: Math.ceil(maxPrimers / 96) })}
         </span>
       </label>
       {overLimit && (
         <div className="text-caption text-warning pl-26">
-          CSV contains only {evolveproTotalCount} variants
+          {t("parameterPanel.csvVariantWarning", { count: evolveproTotalCount })}
         </div>
       )}
 
@@ -232,40 +234,40 @@ export function ParameterPanel() {
         className="text-caption font-medium text-muted-foreground underline underline-offset-4 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         onClick={() => setShowAdvanced(!showAdvanced)}
       >
-        {showAdvanced ? "Hide advanced" : "Advanced options..."}
+        {showAdvanced ? t("parameterPanel.advancedToggleHide") : t("parameterPanel.advancedToggleShow")}
       </button>
 
       {showAdvanced && (
         <div className="space-y-1 rounded-container border border-border bg-card/80 p-3">
           {/* Tm — branches by strategy */}
-          <div className="pt-0.5 text-caption uppercase tracking-wider text-muted-foreground" title="Melting temperature targets. SantaLucia 1998 parameters.">Tm</div>
+          <div className="pt-0.5 text-caption uppercase tracking-wider text-muted-foreground" title={t("parameterPanel.tmSectionTitle")}>{t("parameterPanel.tmSectionLabel")}</div>
           {isFullOverlap ? (
-            <div className="flex items-center gap-2 text-caption" title="Single Tm target. rev = rc(fwd), so both primers share Tm by construction.">
-              <span className="w-20 text-muted-foreground">Primer:</span>
+            <div className="flex items-center gap-2 text-caption" title={t("parameterPanel.tmPrimerTitle")}>
+              <span className="w-20 text-muted-foreground">{t("parameterPanel.tmPrimerLabel")}</span>
               <input type="number" className={numInput} {...tmFwdInput} />
               <span className="text-muted-foreground">°C</span>
             </div>
           ) : (
             <>
-              <div className="flex items-center gap-2 text-caption" title="Melting temperature targets. SantaLucia 1998 parameters.">
-                <span className="w-20 text-muted-foreground">Fwd:</span>
+              <div className="flex items-center gap-2 text-caption" title={t("parameterPanel.tmSectionTitle")}>
+                <span className="w-20 text-muted-foreground">{t("parameterPanel.tmFwdLabel")}</span>
                 <input type="number" className={numInput} {...tmFwdInput} />
                 <span className="text-muted-foreground">°C</span>
               </div>
-              <div className="flex items-center gap-2 text-caption" title="Melting temperature targets. SantaLucia 1998 parameters.">
-                <span className="w-20 text-muted-foreground">Rev:</span>
+              <div className="flex items-center gap-2 text-caption" title={t("parameterPanel.tmSectionTitle")}>
+                <span className="w-20 text-muted-foreground">{t("parameterPanel.tmRevLabel")}</span>
                 <input type="number" className={numInput} {...tmRevInput} />
                 <span className="text-muted-foreground">°C</span>
               </div>
-              <div className="flex items-center gap-2 text-caption" title="Melting temperature targets. SantaLucia 1998 parameters.">
-                <span className="w-20 text-muted-foreground">Overlap:</span>
+              <div className="flex items-center gap-2 text-caption" title={t("parameterPanel.tmSectionTitle")}>
+                <span className="w-20 text-muted-foreground">{t("parameterPanel.tmOverlapLabel")}</span>
                 <input type="number" className={numInput} {...tmOvInput} />
                 <span className="text-muted-foreground">°C</span>
               </div>
             </>
           )}
           <div className="flex items-center gap-2 text-caption">
-            <span className="w-20 text-muted-foreground">Tm tol ±</span>
+            <span className="w-20 text-muted-foreground">{t("parameterPanel.tmTolLabel")}</span>
             <input
               type="number"
               min={0.5}
@@ -275,16 +277,16 @@ export function ParameterPanel() {
               {...tmTolInput}
             />
             <span className="text-muted-foreground">°C</span>
-            <HelpTip>Allowed deviation from Tm targets. Cascade stages add delta on top. Recommended 2-5°C.</HelpTip>
+            <HelpTip>{t("parameterPanel.tmTolHelp")}</HelpTip>
           </div>
 
           {/* GC */}
           <div className="flex items-center gap-1 pt-1.5 text-caption uppercase tracking-wider text-muted-foreground">
-            GC%
-            <InlineHelp text={"Recommended range: 40–60%.\nPrimers outside this range receive a penalty score.\nVery low GC (<30%) or very high GC (>70%) reduces synthesis quality."} />
+            {t("parameterPanel.gcSectionLabel")}
+            <InlineHelp text={t("parameterPanel.gcHelp")} />
           </div>
-          <div className="flex items-center gap-2 text-caption" title="Recommended range: 40-60%. Primers outside this range receive a penalty.">
-            <span className="w-20 text-muted-foreground">Range:</span>
+          <div className="flex items-center gap-2 text-caption" title={t("parameterPanel.gcRangeTitle")}>
+            <span className="w-20 text-muted-foreground">{t("parameterPanel.gcRangeLabel")}</span>
             <input type="number"
               className={`${gcInputBase} ${gcInvalid ? "border-error focus:ring-error" : "border-border"}`}
               {...gcMinInput} />
@@ -295,23 +297,13 @@ export function ParameterPanel() {
             <span className="text-muted-foreground">%</span>
           </div>
           {gcInvalid && (
-            <div className="text-caption text-error pl-20">Min must be less than Max</div>
+            <div className="text-caption text-error pl-20">{t("parameterPanel.gcInvalidError")}</div>
           )}
 
           {/* Primer Length — branches by strategy */}
           <div className="flex items-center gap-1 pt-1.5 text-caption uppercase tracking-wider text-muted-foreground">
-            Primer Length
-            <HelpTip>
-              {"KOD One PCR Master Mix\n" +
-               "  Standard:     22–35 bp, Tm >63°C\n" +
-               "  Long targets: 25–35 bp, Tm >65°C\n" +
-               "\n" +
-               "Experimental (IspS SDM, n=165)\n" +
-               "  Forward total: 19–38 bp (incl. overlap)\n" +
-               "  Reverse total: 18–32 bp (incl. overlap)\n" +
-               "\n" +
-               "KURO primer length = overlap + priming region"}
-            </HelpTip>
+            {t("parameterPanel.primerLenSectionLabel")}
+            <HelpTip>{t("parameterPanel.primerLenHelp")}</HelpTip>
           </div>
           <label className="flex items-center gap-1 text-caption cursor-pointer">
             <input
@@ -320,9 +312,9 @@ export function ParameterPanel() {
               checked={primerLenEnabled}
               onChange={(e) => setPrimerLenEnabled(e.target.checked)}
             />
-            <span className="text-muted-foreground">Limit</span>
+            <span className="text-muted-foreground">{t("parameterPanel.primerLenLimit")}</span>
             {primerLenEnabled && isFullOverlap && (
-              <span className="flex items-center gap-1 ml-1" title="Single length range applies to both primers (rev = rc(fwd)).">
+              <span className="flex items-center gap-1 ml-1" title={t("parameterPanel.primerLenSingleTitle")}>
                 <input type="number" className={numInput} {...fullLenMinInput} />
                 <span className="text-muted-foreground">~</span>
                 <input type="number" className={numInput} {...fullLenMaxInput} />
@@ -331,7 +323,7 @@ export function ParameterPanel() {
             )}
             {primerLenEnabled && !isFullOverlap && (
               <span className="flex items-center gap-1 ml-1">
-                <span className="text-muted-foreground">F</span>
+                <span className="text-muted-foreground">{t("parameterPanel.primerLenFwdLabel")}</span>
                 <input type="number" className={numInput} {...fwdLenMinInput} />
                 <span className="text-muted-foreground">~</span>
                 <input type="number" className={numInput} {...fwdLenMaxInput} />
@@ -341,51 +333,51 @@ export function ParameterPanel() {
           {primerLenEnabled && !isFullOverlap && (
             <>
               <div className="flex items-center gap-1 text-caption pl-4">
-                <span className="ml-3 text-muted-foreground">R</span>
+                <span className="ml-3 text-muted-foreground">{t("parameterPanel.primerLenRevLabel")}</span>
                 <input type="number" className={numInput} {...revLenMinInput} />
                 <span className="text-muted-foreground">~</span>
                 <input type="number" className={numInput} {...revLenMaxInput} />
                 <span className="text-caption text-muted-foreground">bp</span>
               </div>
               {(fwdLenMin >= fwdLenMax || revLenMin >= revLenMax) && (
-                <div className="text-caption text-error pl-8">Min must be less than Max</div>
+                <div className="text-caption text-error pl-8">{t("parameterPanel.primerLenInvalidError")}</div>
               )}
             </>
           )}
           {primerLenEnabled && isFullOverlap && fwdLenMin >= fwdLenMax && (
-            <div className="text-caption text-error pl-8">Min must be less than Max</div>
+            <div className="text-caption text-error pl-8">{t("parameterPanel.primerLenInvalidError")}</div>
           )}
 
           {/* Design Behavior */}
-          <div className="pt-1.5 text-caption uppercase tracking-wider text-muted-foreground">Design</div>
-          <label className="flex items-center gap-1 text-caption cursor-pointer" title="When enabled, retries failed mutations through 4 (top-N) or 6 (pipeline) stages of relaxed parameters. When disabled, failed mutations remain as-is with no auto-retry.">
+          <div className="pt-1.5 text-caption uppercase tracking-wider text-muted-foreground">{t("parameterPanel.designSectionLabel")}</div>
+          <label className="flex items-center gap-1 text-caption cursor-pointer" title={t("parameterPanel.autoRescueTitle")}>
             <input
               type="checkbox"
               className="h-3 w-3 accent-primary"
               checked={fillOnFailure}
               onChange={(e) => setFillOnFailure(e.target.checked)}
             />
-            <span className="text-muted-foreground">Auto-rescue failed mutations</span>
+            <span className="text-muted-foreground">{t("parameterPanel.autoRescueLabel")}</span>
           </label>
 
           {/* §12 Random seed */}
           <div
             className="flex items-center gap-2 text-caption"
-            title="Optional integer seed. Will be passed to the backend and recorded in run manifests once manifest wiring is complete (backend integration pending)."
+            title={t("parameterPanel.seedTitle")}
           >
             <label
               htmlFor="random-seed-input"
               className="w-20 text-muted-foreground shrink-0"
             >
-              Seed:
+              {t("parameterPanel.seedLabel")}
             </label>
             <input
               id="random-seed-input"
               type="number"
               min={0}
               step={1}
-              placeholder="auto"
-              aria-label="Random seed (optional)"
+              placeholder={t("parameterPanel.seedAuto")}
+              aria-label={t("parameterPanel.seedAriaLabel")}
               aria-describedby="random-seed-hint"
               className={`${numInput} w-20`}
               value={seedStr}
@@ -406,7 +398,7 @@ export function ParameterPanel() {
               onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
             />
             <span id="random-seed-hint" className="text-caption text-muted-foreground">
-              {randomSeed !== null ? `fixed: ${randomSeed}` : "auto"}
+              {randomSeed !== null ? t("parameterPanel.seedFixed", { seed: randomSeed }) : t("parameterPanel.seedAuto")}
             </span>
           </div>
         </div>

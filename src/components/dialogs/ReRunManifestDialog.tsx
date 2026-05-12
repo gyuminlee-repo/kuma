@@ -9,6 +9,7 @@
  */
 
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogContent,
@@ -36,17 +37,6 @@ export interface ReRunManifestDialogProps {
 
 // ── 헬퍼 ─────────────────────────────────────────────────────────────────────
 
-function methodLabel(method: string): string {
-  switch (method) {
-    case "design_sdm_primers": return "Kuro — SDM primer design";
-    case "merge_for_evolvepro": return "Mame — merge for EVOLVEpro";
-    case "export_order": return "Export: order sheet (re-run 불가)";
-    case "export_mapping": return "Export: plate mapping (re-run 불가)";
-    case "export_excel": return "Export: Excel (re-run 불가)";
-    default: return method;
-  }
-}
-
 const EXPORT_ONLY = new Set(["export_order", "export_mapping", "export_excel"]);
 
 // ── 컴포넌트 ─────────────────────────────────────────────────────────────────
@@ -58,6 +48,7 @@ export function ReRunManifestDialog({
   onClose,
   onStatusMessage,
 }: ReRunManifestDialogProps) {
+  const { t } = useTranslation();
   const [running, setRunning] = useState(false);
   const [runError, setRunError] = useState<string | null>(null);
 
@@ -76,7 +67,7 @@ export function ReRunManifestDialog({
     setRunError(null);
     try {
       await reRunFromManifest(manifest);
-      onStatusMessage(`Re-run 완료: ${manifest.method}`);
+      onStatusMessage(t("reRunManifest.statusDone", { method: manifest.method }));
       onClose();
     } catch (err) {
       setRunError(String(err));
@@ -89,9 +80,9 @@ export function ReRunManifestDialog({
     <Dialog open={open} onOpenChange={(v) => { if (!v && !running) onClose(); }}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>재현 실행 확인</DialogTitle>
+          <DialogTitle>{t("reRunManifest.title")}</DialogTitle>
           <DialogDescription>
-            저장된 manifest 에서 동일한 작업을 재현합니다.
+            {t("reRunManifest.description")}
           </DialogDescription>
         </DialogHeader>
 
@@ -99,26 +90,26 @@ export function ReRunManifestDialog({
         <div className="space-y-3 text-sm">
           {/* method */}
           <div className="flex gap-2">
-            <span className="w-28 shrink-0 text-muted-foreground">Method</span>
-            <span className="font-medium text-foreground">{methodLabel(manifest.method)}</span>
+            <span className="w-28 shrink-0 text-muted-foreground">{t("reRunManifest.labelMethod")}</span>
+            <span className="font-medium text-foreground">{t(`reRunManifest.method.${manifest.method}`, { defaultValue: manifest.method })}</span>
           </div>
 
           {/* kuma version */}
           <div className="flex gap-2">
-            <span className="w-28 shrink-0 text-muted-foreground">kuma version</span>
+            <span className="w-28 shrink-0 text-muted-foreground">{t("reRunManifest.labelVersion")}</span>
             <span className="text-foreground">{manifest.kuma_version}</span>
           </div>
 
           {/* platform */}
           <div className="flex gap-2">
-            <span className="w-28 shrink-0 text-muted-foreground">Platform</span>
-            <span className="text-foreground">{manifest.platform} / Python {manifest.python_version}</span>
+            <span className="w-28 shrink-0 text-muted-foreground">{t("reRunManifest.labelPlatform")}</span>
+            <span className="text-foreground">{t("reRunManifest.labelPlatformValue", { platform: manifest.platform, pythonVersion: manifest.python_version })}</span>
           </div>
 
           {/* inputs */}
           {inputKeys.length > 0 && (
             <div className="flex gap-2">
-              <span className="w-28 shrink-0 text-muted-foreground">Inputs</span>
+              <span className="w-28 shrink-0 text-muted-foreground">{t("reRunManifest.labelInputs")}</span>
               <ul className="space-y-0.5 text-foreground">
                 {inputKeys.map((k) => (
                   <li key={k} className="truncate max-w-xs">
@@ -133,15 +124,15 @@ export function ReRunManifestDialog({
           {/* params 개수 */}
           {paramKeys.length > 0 && (
             <div className="flex gap-2">
-              <span className="w-28 shrink-0 text-muted-foreground">Params</span>
-              <span className="text-foreground">{paramKeys.length}개 매개변수</span>
+              <span className="w-28 shrink-0 text-muted-foreground">{t("reRunManifest.labelParams")}</span>
+              <span className="text-foreground">{t("reRunManifest.labelParamsValue", { count: paramKeys.length })}</span>
             </div>
           )}
 
           {/* seed */}
           {manifest.seed !== null && (
             <div className="flex gap-2">
-              <span className="w-28 shrink-0 text-muted-foreground">Seed</span>
+              <span className="w-28 shrink-0 text-muted-foreground">{t("reRunManifest.labelSeed")}</span>
               <span className="text-foreground font-mono">{manifest.seed}</span>
             </div>
           )}
@@ -153,18 +144,18 @@ export function ReRunManifestDialog({
             role="alert"
             className="rounded-md border border-warning/40 bg-warning/8 px-3 py-2 text-sm text-warning"
           >
-            <p className="font-semibold">입력 파일이 변경되었습니다.</p>
+            <p className="font-semibold">{t("reRunManifest.warningTitle")}</p>
             <p className="mt-0.5 text-warning/80">
-              동일 결과가 보장되지 않습니다. 계속 진행하시겠습니까?
+              {t("reRunManifest.warningBody")}
             </p>
             {verifyResult!.missing.length > 0 && (
               <p className="mt-0.5">
-                경로 없음: {verifyResult!.missing.join(", ")}
+                {t("reRunManifest.warningMissingPaths", { paths: verifyResult!.missing.join(", ") })}
               </p>
             )}
             {verifyResult!.mismatched.length > 0 && (
               <p className="mt-0.5">
-                해시 불일치: {verifyResult!.mismatched.join(", ")}
+                {t("reRunManifest.warningHashMismatch", { paths: verifyResult!.mismatched.join(", ") })}
               </p>
             )}
           </div>
@@ -176,8 +167,7 @@ export function ReRunManifestDialog({
             role="status"
             className="rounded-md border border-border bg-muted px-3 py-2 text-sm text-muted-foreground"
           >
-            이 manifest 는 export 작업입니다. 직접 re-run 할 수 없습니다.
-            원본 데이터에서 다시 export 하세요.
+            {t("reRunManifest.exportOnlyNotice")}
           </div>
         )}
 
@@ -198,7 +188,7 @@ export function ReRunManifestDialog({
             onClick={onClose}
             disabled={running}
           >
-            취소
+            {t("reRunManifest.btnCancel")}
           </Button>
           <Button
             size="sm"
@@ -206,7 +196,7 @@ export function ReRunManifestDialog({
             disabled={running || isExportOnly}
             aria-busy={running}
           >
-            {running ? "실행 중…" : "Re-run"}
+            {running ? t("reRunManifest.btnRunning") : t("reRunManifest.btnRerun")}
           </Button>
         </DialogFooter>
       </DialogContent>

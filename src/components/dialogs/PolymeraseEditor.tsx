@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { PolymeraseProfile } from "../../types/models";
 import { Button } from "../ui/button";
@@ -102,6 +103,7 @@ export function PolymeraseEditor({
   onOpenChange,
   onSave,
 }: PolymeraseEditorProps) {
+  const { t } = useTranslation();
   const [form, setForm] = useState<PolymeraseProfile>(profile ?? DEFAULT_PROFILE);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -122,7 +124,7 @@ export function PolymeraseEditor({
       await onSave(form);
       onOpenChange(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save polymerase");
+      setError(err instanceof Error ? err.message : t("polymeraseEditor.saveError"));
     } finally {
       setSaving(false);
     }
@@ -144,106 +146,106 @@ export function PolymeraseEditor({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle className="text-xl">Custom Polymerase</DialogTitle>
+          <DialogTitle className="text-xl">{t("polymeraseEditor.title")}</DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            Primer design defaults and asymmetric Tm targets for KURO.
+            {t("polymeraseEditor.description")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div className="col-span-2 rounded-2xl border border-border bg-card p-4">
-            <label className="text-xs text-muted-foreground">Name</label>
+            <label className="text-xs text-muted-foreground">{t("polymeraseEditor.nameLabel")}</label>
             <Input value={form.name} onChange={(e) => update("name", e.target.value)} />
           </div>
           <div className="rounded-2xl border border-border bg-card p-4">
-            <label className="text-xs text-muted-foreground">Tm method</label>
+            <label className="text-xs text-muted-foreground">{t("polymeraseEditor.tmMethodLabel")}</label>
             <select
               className="flex h-9 w-full rounded-xl border border-input bg-white px-3 py-1 text-sm"
               value={form.tm_method}
               onChange={(e) => update("tm_method", e.target.value)}
             >
-              <option value="santalucia" title="SantaLucia 1998 nearest-neighbour parameters. Modern default; accurate for most PCR primers (DNA/DNA, 25-mers, physiological salt).">SantaLucia</option>
-              <option value="breslauer" title="Breslauer 1986 nearest-neighbour parameters. Legacy table; tends to overestimate Tm vs SantaLucia by 1-3 °C.">Breslauer</option>
+              <option value="santalucia" title={t("polymeraseEditor.tmMethodOption_santalucia_title")}>{t("polymeraseEditor.tmMethodOption_santalucia")}</option>
+              <option value="breslauer" title={t("polymeraseEditor.tmMethodOption_breslauer_title")}>{t("polymeraseEditor.tmMethodOption_breslauer")}</option>
             </select>
           </div>
           <div className="rounded-2xl border border-border bg-card p-4">
-            <label className="text-xs text-muted-foreground">Salt correction</label>
+            <label className="text-xs text-muted-foreground">{t("polymeraseEditor.saltCorrectionLabel")}</label>
             <select
               className="flex h-9 w-full rounded-xl border border-input bg-white px-3 py-1 text-sm"
               value={form.salt_correction}
               onChange={(e) => update("salt_correction", e.target.value)}
             >
-              <option value="owczarzy" title="Owczarzy 2004/2008 monovalent + Mg²⁺ correction. Recommended when Mg²⁺ or dNTP concentrations are non-standard.">Owczarzy</option>
-              <option value="santalucia" title="SantaLucia 1996 monovalent-only correction. Suitable for standard buffers without Mg²⁺ adjustment.">SantaLucia</option>
-              <option value="schildkraut" title="Schildkraut-Lifson 1965 empirical Na⁺ correction. Legacy; coarser than Owczarzy or SantaLucia.">Schildkraut</option>
+              <option value="owczarzy" title={t("polymeraseEditor.saltOption_owczarzy_title")}>{t("polymeraseEditor.saltOption_owczarzy")}</option>
+              <option value="santalucia" title={t("polymeraseEditor.saltOption_santalucia_title")}>{t("polymeraseEditor.saltOption_santalucia")}</option>
+              <option value="schildkraut" title={t("polymeraseEditor.saltOption_schildkraut_title")}>{t("polymeraseEditor.saltOption_schildkraut")}</option>
             </select>
           </div>
           <div className="rounded-2xl border border-border bg-card p-4">
-            <label className="text-xs text-muted-foreground">Opt Tm</label>
+            <label className="text-xs text-muted-foreground">{t("polymeraseEditor.optTmLabel")}</label>
             <Input type="number" step="0.1" {...num("opt_tm")} />
           </div>
           <div className="rounded-2xl border border-border bg-card p-4">
-            <label className="text-xs text-muted-foreground">Max Tm diff</label>
+            <label className="text-xs text-muted-foreground">{t("polymeraseEditor.maxTmDiffLabel")}</label>
             <Input type="number" step="0.1" {...num("max_tm_diff")} />
           </div>
           <div className="rounded-2xl border border-border bg-card p-4">
-            <label className="text-xs text-muted-foreground">Min Tm</label>
+            <label className="text-xs text-muted-foreground">{t("polymeraseEditor.minTmLabel")}</label>
             <Input type="number" step="0.1" {...num("min_tm")} />
           </div>
           <div className="rounded-2xl border border-border bg-card p-4">
-            <label className="text-xs text-muted-foreground">Max Tm</label>
+            <label className="text-xs text-muted-foreground">{t("polymeraseEditor.maxTmLabel")}</label>
             <Input type="number" step="0.1" {...num("max_tm")} />
           </div>
           <div className="rounded-2xl border border-border bg-card p-4">
-            <label className="text-xs text-muted-foreground">Fwd Tm</label>
+            <label className="text-xs text-muted-foreground">{t("polymeraseEditor.fwdTmLabel")}</label>
             <Input type="number" step="0.1" {...num("opt_tm_fwd")} />
           </div>
           <div className="rounded-2xl border border-border bg-card p-4">
-            <label className="text-xs text-muted-foreground">Rev Tm</label>
+            <label className="text-xs text-muted-foreground">{t("polymeraseEditor.revTmLabel")}</label>
             <Input type="number" step="0.1" {...num("opt_tm_rev")} />
           </div>
           <div className="rounded-2xl border border-border bg-card p-4">
-            <label className="text-xs text-muted-foreground">Overlap Tm</label>
+            <label className="text-xs text-muted-foreground">{t("polymeraseEditor.overlapTmLabel")}</label>
             <Input type="number" step="0.1" {...num("opt_tm_overlap")} />
           </div>
           <div className="rounded-2xl border border-border bg-card p-4">
-            <label className="text-xs text-muted-foreground">Min 3' distance</label>
+            <label className="text-xs text-muted-foreground">{t("polymeraseEditor.min3PrimeDistLabel")}</label>
             <Input type="number" {...num("min_3prime_dist")} />
           </div>
           <div className="rounded-2xl border border-border bg-card p-4">
-            <label className="text-xs text-muted-foreground">Opt size</label>
+            <label className="text-xs text-muted-foreground">{t("polymeraseEditor.optSizeLabel")}</label>
             <Input type="number" {...num("opt_size")} />
           </div>
           <div className="rounded-2xl border border-border bg-card p-4">
-            <label className="text-xs text-muted-foreground">Min size</label>
+            <label className="text-xs text-muted-foreground">{t("polymeraseEditor.minSizeLabel")}</label>
             <Input type="number" {...num("min_size")} />
           </div>
           <div className="rounded-2xl border border-border bg-card p-4">
-            <label className="text-xs text-muted-foreground">Max size</label>
+            <label className="text-xs text-muted-foreground">{t("polymeraseEditor.maxSizeLabel")}</label>
             <Input type="number" {...num("max_size")} />
           </div>
           <div className="rounded-2xl border border-border bg-card p-4">
-            <label className="text-xs text-muted-foreground">Min GC</label>
+            <label className="text-xs text-muted-foreground">{t("polymeraseEditor.minGcLabel")}</label>
             <Input type="number" step="0.1" {...num("min_gc")} />
           </div>
           <div className="rounded-2xl border border-border bg-card p-4">
-            <label className="text-xs text-muted-foreground">Max GC</label>
+            <label className="text-xs text-muted-foreground">{t("polymeraseEditor.maxGcLabel")}</label>
             <Input type="number" step="0.1" {...num("max_gc")} />
           </div>
           <div className="rounded-2xl border border-border bg-card p-4">
-            <label className="text-xs text-muted-foreground">Monovalent salt</label>
+            <label className="text-xs text-muted-foreground">{t("polymeraseEditor.monovalentSaltLabel")}</label>
             <Input type="number" step="0.1" {...num("salt_monovalent")} />
           </div>
           <div className="rounded-2xl border border-border bg-card p-4">
-            <label className="text-xs text-muted-foreground">Divalent salt</label>
+            <label className="text-xs text-muted-foreground">{t("polymeraseEditor.divalentSaltLabel")}</label>
             <Input type="number" step="0.1" {...num("salt_divalent")} />
           </div>
           <div className="rounded-2xl border border-border bg-card p-4">
-            <label className="text-xs text-muted-foreground">dNTP</label>
+            <label className="text-xs text-muted-foreground">{t("polymeraseEditor.dntpLabel")}</label>
             <Input type="number" step="0.1" {...num("dntp_conc")} />
           </div>
           <div className="rounded-2xl border border-border bg-card p-4">
-            <label className="text-xs text-muted-foreground">DNA conc</label>
+            <label className="text-xs text-muted-foreground">{t("polymeraseEditor.dnaConcLabel")}</label>
             <Input type="number" step="0.1" {...num("dna_conc")} />
           </div>
         </div>
@@ -252,10 +254,10 @@ export function PolymeraseEditor({
 
         <DialogFooter>
           <Button variant="outline" className="rounded-full" onClick={() => onOpenChange(false)} disabled={saving}>
-            Cancel
+            {t("polymeraseEditor.cancel")}
           </Button>
           <Button className="rounded-full" onClick={handleSave} disabled={saving || !form.name.trim()}>
-            {saving ? "Saving..." : "Save"}
+            {saving ? t("polymeraseEditor.saving") : t("polymeraseEditor.save")}
           </Button>
         </DialogFooter>
       </DialogContent>
