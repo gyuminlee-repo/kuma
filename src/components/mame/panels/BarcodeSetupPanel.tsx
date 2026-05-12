@@ -274,7 +274,7 @@ export function BarcodeSetupPanel() {
             <FilePickerField
               id="fasta-path"
               label={t("mame.barcodeSetup.cdsFasta")}
-              stateLabel="Required"
+              stateLabel={t("mame.barcodeSetup.requiredStateLabel")}
               filled={Boolean(form.fastaPath)}
               value={form.fastaPath}
               onChange={(v) => setForm({ fastaPath: v })}
@@ -286,7 +286,7 @@ export function BarcodeSetupPanel() {
             <FilePickerField
               id="barcode-seeds"
               label={t("mame.barcodeSetup.barcodeSeedsXlsx")}
-              stateLabel="Required"
+              stateLabel={t("mame.barcodeSetup.requiredStateLabel")}
               filled={Boolean(form.barcodeSeedsPath)}
               value={form.barcodeSeedsPath}
               onChange={(v) => setForm({ barcodeSeedsPath: v })}
@@ -365,10 +365,10 @@ export function BarcodeSetupPanel() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Q5" title="NEB Q5 High-Fidelity. Tm preset ~72 °C, low Mg²⁺. Default choice for high-fidelity amplification.">Q5</SelectItem>
-                  <SelectItem value="Taq" title="Standard Taq polymerase. Tm preset ~60 °C, higher Mg²⁺. Use for routine PCR or when 3'A overhangs are desired.">Taq</SelectItem>
-                  <SelectItem value="Phusion" title="Thermo Phusion High-Fidelity. Tm preset ~72 °C, blunt-end, fast extension.">Phusion</SelectItem>
-                  <SelectItem value="KOD" title="Toyobo KOD One / KOD Hot Start. Tm preset ~68 °C with Mg²⁺/dNTP correction. High-fidelity, fast.">KOD</SelectItem>
+                  <SelectItem value="Q5" title={t("mame.barcodeSetup.polymeraseQ5Title")}>Q5</SelectItem>
+                  <SelectItem value="Taq" title={t("mame.barcodeSetup.polymeraseTaqTitle")}>Taq</SelectItem>
+                  <SelectItem value="Phusion" title={t("mame.barcodeSetup.polymerasePhusionTitle")}>Phusion</SelectItem>
+                  <SelectItem value="KOD" title={t("mame.barcodeSetup.polymeraseKODTitle")}>KOD</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -453,7 +453,7 @@ export function BarcodeSetupPanel() {
               checked={form.requireGcClamp}
               onChange={(e) => setForm({ requireGcClamp: e.target.checked })}
               className="h-4 w-4 cursor-pointer accent-primary"
-              aria-label="Require GC clamp on 3-prime end"
+              aria-label={t("mame.barcodeSetup.requireGcClampAriaLabel")}
             />
             <Label
               htmlFor="require-gc-clamp"

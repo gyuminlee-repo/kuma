@@ -64,7 +64,7 @@ function RecommendedCutoff({
         size="sm"
         className="h-5 px-1.5 text-caption"
         onClick={() => onApply(stats.suggested_cutoff_kb)}
-        aria-label={`Apply recommended cutoff of ${stats.suggested_cutoff_kb.toFixed(1)} KB`}
+        aria-label={t("mame.parameters.applyCutoffAriaLabel", { kb: stats.suggested_cutoff_kb.toFixed(1) })}
       >
         {t("mame.parameters.useCutoffBtn")}
       </Button>
@@ -88,7 +88,7 @@ function AmpliconLengthBadge({
   return (
     <span
       className={`inline-flex items-center gap-1 text-caption ${confidenceColor}`}
-      aria-label={`Auto-detected amplicon length: ${estimate.detected_length} bp, confidence ${estimate.confidence}, sampled ${estimate.n_sample_reads.toLocaleString()} reads`}
+      aria-label={t("mame.parameters.autoDetectedAriaLabel", { length: estimate.detected_length, confidence: estimate.confidence, reads: estimate.n_sample_reads.toLocaleString() })}
     >
       <Dna size={11} aria-hidden="true" />
       {t("mame.parameters.autoDetected", { length: estimate.detected_length.toLocaleString() })}
@@ -174,7 +174,7 @@ function RawRunParamPanel() {
             </Label>
             <span
               className="text-caption font-medium text-foreground"
-              aria-label={`Length tolerance: ±${rawRunParams.lengthToleranceBp} bp`}
+              aria-label={t("mame.parameters.lengthToleranceAriaLabel", { bp: rawRunParams.lengthToleranceBp })}
             >
               ±{rawRunParams.lengthToleranceBp}
             </span>
@@ -189,7 +189,7 @@ function RawRunParamPanel() {
             onChange={(e) => updateRaw({ lengthToleranceBp: Number(e.target.value) })}
             disabled={isDemuxing}
             className="w-full cursor-pointer accent-primary disabled:cursor-not-allowed disabled:opacity-50"
-            aria-label={`Length tolerance: ±${rawRunParams.lengthToleranceBp} bp`}
+            aria-label={t("mame.parameters.lengthToleranceAriaLabel", { bp: rawRunParams.lengthToleranceBp })}
           />
         </div>
       </div>
@@ -409,8 +409,8 @@ export function ParameterPanel() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="amplicon" title="Linear PCR amplicon target. Reads cover a single defined region; consensus called per barcode within that region.">amplicon</SelectItem>
-              <SelectItem value="plasmid" title="Circular plasmid target. Reads can wrap the origin; consensus accounts for full plasmid topology.">plasmid</SelectItem>
+              <SelectItem value="amplicon" title={t("mame.parameters.modeAmpliconTitle")}>amplicon</SelectItem>
+              <SelectItem value="plasmid" title={t("mame.parameters.modePlasmidTitle")}>plasmid</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -434,8 +434,8 @@ export function ParameterPanel() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="barcode" title="Group reads by Nanopore barcode (NB01, NB02, ...). Each barcode bin becomes one sample.">barcode</SelectItem>
-                <SelectItem value="amplicon" title="Group reads by amplicon identity. Use when multiple amplicons share a barcode or when demultiplexing by sequence match.">amplicon</SelectItem>
+                <SelectItem value="barcode" title={t("mame.parameters.ingestBarcodeTitle")}>barcode</SelectItem>
+                <SelectItem value="amplicon" title={t("mame.parameters.ingestAmpliconTitle")}>amplicon</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -461,19 +461,19 @@ export function ParameterPanel() {
             <SelectContent>
               <SelectItem
                 value="consensus"
-                title="Start from pre-computed consensus FASTA (one sequence per barcode). Skips sorting and consensus calling."
+                title={t("mame.parameters.inputModeConsensusTitle")}
               >
                 {t(INPUT_MODE_I18N_KEYS.consensus)}
               </SelectItem>
               <SelectItem
                 value="sorted_barcode"
-                title="Start from already-sorted barcode directories (fastq.gz per barcode). Skips MinKNOW sorting; runs consensus calling."
+                title={t("mame.parameters.inputModeSortedBarcodeTitle")}
               >
                 {t(INPUT_MODE_I18N_KEYS.sorted_barcode)}
               </SelectItem>
               <SelectItem
                 value="raw_run"
-                title="Start from a raw MinKNOW run folder (fastq_pass/ + run metadata). Full pipeline: sort barcodes, filter, then consensus."
+                title={t("mame.parameters.inputModeRawRunTitle")}
               >
                 {t(INPUT_MODE_I18N_KEYS.raw_run)}
               </SelectItem>
@@ -521,7 +521,7 @@ export function ParameterPanel() {
             }}
             className="h-8 text-xs"
             aria-label={t("mameParameters.minFilteredDepthAria")}
-            title="Length-window-filtered read count. ONT R10.4.1 consensus reaches Q35+ around 15× depth."
+            title={t("mameParameters.minFilteredDepthTitle")}
           />
           <p className="text-caption text-muted-foreground">
             {t("mameParameters.minFilteredDepthFootnote")}

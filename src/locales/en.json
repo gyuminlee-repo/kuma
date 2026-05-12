@@ -153,7 +153,17 @@
       "demuxCompleteReads": "{{assigned}} reads assigned / {{total}} total ({{backend}})",
       "lengthFilter": "Length filter: {{mode}}",
       "legacyKbCutoff": "Legacy KB Cutoff (proxy)",
-      "legacyKbCutoffAriaLabel": "Legacy min file size KB cutoff (proxy for read depth)"
+      "legacyKbCutoffAriaLabel": "Legacy min file size KB cutoff (proxy for read depth)",
+      "lengthToleranceAriaLabel": "Length tolerance: ±{{bp}} bp",
+      "applyCutoffAriaLabel": "Apply recommended cutoff of {{kb}} KB",
+      "autoDetectedAriaLabel": "Auto-detected amplicon length: {{length}} bp, confidence {{confidence}}, sampled {{reads}} reads",
+      "modeAmpliconTitle": "Linear PCR amplicon target. Reads cover a single defined region; consensus called per barcode within that region.",
+      "modePlasmidTitle": "Circular plasmid target. Reads can wrap the origin; consensus accounts for full plasmid topology.",
+      "ingestBarcodeTitle": "Group reads by Nanopore barcode (NB01, NB02, ...). Each barcode bin becomes one sample.",
+      "ingestAmpliconTitle": "Group reads by amplicon identity. Use when multiple amplicons share a barcode or when demultiplexing by sequence match.",
+      "inputModeConsensusTitle": "Start from pre-computed consensus FASTA (one sequence per barcode). Skips sorting and consensus calling.",
+      "inputModeSortedBarcodeTitle": "Start from already-sorted barcode directories (fastq.gz per barcode). Skips MinKNOW sorting; runs consensus calling.",
+      "inputModeRawRunTitle": "Start from a raw MinKNOW run folder (fastq_pass/ + run metadata). Full pipeline: sort barcodes, filter, then consensus."
     },
     "barcodeSetup": {
       "title": "Barcode Package Setup",
@@ -182,7 +192,13 @@
       "barcodeSeedsXlsxHelper": "xlsx file containing fwd_1..12 and rev_1..8 seed sequences.",
       "barcodeSeedsXlsxPlaceholder": ".xlsx file path",
       "warningsLabel": "Warnings",
-      "warningsAriaLabel": "Warnings"
+      "warningsAriaLabel": "Warnings",
+      "requiredStateLabel": "Required",
+      "requireGcClampAriaLabel": "Require GC clamp on 3-prime end",
+      "polymeraseQ5Title": "NEB Q5 High-Fidelity. Tm preset ~72 °C, low Mg²⁺. Default choice for high-fidelity amplification.",
+      "polymeraseTaqTitle": "Standard Taq polymerase. Tm preset ~60 °C, higher Mg²⁺. Use for routine PCR or when 3'A overhangs are desired.",
+      "polymerasePhusionTitle": "Thermo Phusion High-Fidelity. Tm preset ~72 °C, blunt-end, fast extension.",
+      "polymeraseKODTitle": "Toyobo KOD One / KOD Hot Start. Tm preset ~68 °C with Mg²⁺/dNTP correction. High-fidelity, fast."
     },
     "activity": {
       "title": "Activity data",
@@ -1133,6 +1149,7 @@
     "minFilteredDepthHelp": "Cutoff based on the number of reads that passed the length-window filter. A more direct depth indicator than FASTA file size, although the current verdict backend still receives a legacy KB cutoff.",
     "minFilteredDepthAria": "Minimum filtered depth (reads). Length-window-filtered read count. ONT R10.4.1 consensus reaches Q35+ around 15× depth.",
     "minFilteredDepthFootnote": "Length-window-filtered read count. ONT R10.4.1 consensus: Q35+ ~15×. Not auto-converted 1:1 with the KB cutoff.",
+    "minFilteredDepthTitle": "Length-window-filtered read count. ONT R10.4.1 consensus reaches Q35+ around 15× depth.",
     "legacyKbHelp": "Legacy cutoff using FASTA file size as a proxy for read depth. The KB value can vary for the same read count depending on read length, header length, line wrapping, and the consensus/intermediate output format, so it cannot be auto-synced with Filtered Depth.",
     "legacyKbTooltip": "File-size-based proxy cutoff. Affected by compression ratio, length distribution, and library variation. Reference only."
   },
