@@ -4,6 +4,22 @@
 
 ---
 
+## v0.3.16 (2026-05-12)
+
+KURO·MAME 전 선택지에 호버 툴팁 추가.
+
+### 선택지 툴팁
+
+- 모든 `<option>` 및 Radix `SelectItem`에 네이티브 `title` 속성 추가. 드롭다운을 펼친 상태에서 항목 위에 마우스를 올리면 브라우저 툴팁이 표시되며 신규 의존성 없음.
+- KURO `ParameterPanel.tsx`: Strategy (Partial Gibson / Full Q5 SDM), Polymerase (동적, `PolymeraseInfo`의 manufacturer·fidelity 포함), Codon (Min. changes / Optimal).
+- KURO `SequenceInput.tsx`: Gene (CDS 좌표·aa 길이·product), Organism (E. coli K-12 / B. subtilis 168 / S. cerevisiae).
+- KURO `PolymeraseEditor.tsx`: Tm method (SantaLucia / Breslauer), Salt correction (Owczarzy / SantaLucia / Schildkraut).
+- MAME `BarcodeSetupPanel.tsx`: Polymerase Q5 / Taq / Phusion / KOD.
+- MAME `ParameterPanel.tsx`: mode (amplicon / plasmid), ingest (barcode / amplicon), input source (consensus / sorted_barcode / raw_run).
+- MAME `ActivityUploadPanel.tsx`: format (Long CSV / Long Excel), 신규 `FORMAT_TOOLTIPS` 상수 사용.
+
+---
+
 ## v0.3.15 (2026-05-11)
 
 MAME activity 워크플로우를 별도 phase + 3 sub-tab으로 분리. EVOLVEpro 출력을 spec v0.3에 맞춰 xlsx로 전환. KURO가 EVOLVEpro 출력의 short-form variant(`89W`)를 protein 참조 서열로 내부 표기(`F89W`)로 자동 변환. 언어 토글이 실제로 적용되도록 수정. MAME CDS 입력이 KURO와 같은 서열 포맷을 받도록 확장. KOD가 polymerase 프리셋에 추가.

@@ -4,6 +4,22 @@
 
 ---
 
+## v0.3.16 (2026-05-12)
+
+Hover tooltips on every selector across KURO and MAME.
+
+### Selector tooltips
+
+- Native `title` attribute added to all `<option>` and Radix `SelectItem` entries. Browser shows a tooltip when the dropdown is open and the user hovers an item; no new dependency.
+- KURO `ParameterPanel.tsx`: Strategy (Partial Gibson / Full Q5 SDM), Polymerase (dynamic, includes manufacturer and fidelity from `PolymeraseInfo`), Codon (Min. changes / Optimal).
+- KURO `SequenceInput.tsx`: Gene (CDS coordinates, aa length, product), Organism (E. coli K-12 / B. subtilis 168 / S. cerevisiae).
+- KURO `PolymeraseEditor.tsx`: Tm method (SantaLucia / Breslauer), Salt correction (Owczarzy / SantaLucia / Schildkraut).
+- MAME `BarcodeSetupPanel.tsx`: Polymerase Q5 / Taq / Phusion / KOD.
+- MAME `ParameterPanel.tsx`: mode (amplicon / plasmid), ingest (barcode / amplicon), input source (consensus / sorted_barcode / raw_run).
+- MAME `ActivityUploadPanel.tsx`: format (Long CSV / Long Excel) via new `FORMAT_TOOLTIPS` constant.
+
+---
+
 ## v0.3.15 (2026-05-11)
 
 MAME activity workflow split into a dedicated phase with three sub-tabs, EVOLVEpro export switched to xlsx per the v0.3 spec, and KURO can read EVOLVEpro short-form variants (`89W`) by converting them back to internal notation using the protein reference. Locale toggle now actually applies, CDS input in MAME accepts the same sequence formats as KURO, and KOD joins the polymerase preset list.

@@ -109,8 +109,15 @@ export function SequenceInput() {
               .map((g) => {
                 const isNamed = g.gene !== "ORF1" && g.gene !== "unknown";
                 const label = isNamed ? `[${g.gene}]` : `(${g.gene})`;
+                const tooltip = [
+                  `Gene: ${g.gene}`,
+                  `CDS: ${g.cds_start}-${g.cds_end} (${g.aa_length} aa)`,
+                  g.product ? `Product: ${g.product}` : "",
+                ]
+                  .filter(Boolean)
+                  .join("\n");
                 return (
-                  <option key={g.cds_start} value={String(g.cds_start)}>
+                  <option key={g.cds_start} value={String(g.cds_start)} title={tooltip}>
                     {label} {g.cds_start}-{g.cds_end} ({g.aa_length} aa)
                     {g.product ? ` ${g.product}` : ""}
                   </option>
@@ -137,9 +144,9 @@ export function SequenceInput() {
           value={organism}
           onChange={(e) => setOrganism(e.target.value)}
         >
-          <option value="ecoli">E. coli K-12</option>
-          <option value="bsubtilis">B. subtilis 168</option>
-          <option value="scerevisiae">S. cerevisiae</option>
+          <option value="ecoli" title="Escherichia coli K-12 codon usage table. Use when expressing in E. coli BL21, DH5α, K-12 derivatives.">E. coli K-12</option>
+          <option value="bsubtilis" title="Bacillus subtilis 168 codon usage table. Use when expressing in B. subtilis or related Gram-positive hosts.">B. subtilis 168</option>
+          <option value="scerevisiae" title="Saccharomyces cerevisiae codon usage table. Use when expressing in budding yeast hosts.">S. cerevisiae</option>
         </select>
       </div>
     </>

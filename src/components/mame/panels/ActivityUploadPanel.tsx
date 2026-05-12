@@ -32,6 +32,13 @@ const FORMAT_LABELS: Record<ActivityFormat, string> = {
   long_xlsx: "Long Excel",
 };
 
+const FORMAT_TOOLTIPS: Record<ActivityFormat, string> = {
+  long_csv:
+    "Long-format CSV with one measurement per row (variant, replicate, activity, ...). Plain text, easy to diff.",
+  long_xlsx:
+    "Long-format Excel (.xlsx) with one measurement per row. Use when the source comes straight from Excel with formatting.",
+};
+
 export function ActivityUploadPanel() {
   const [format, setFormat] = useState<ActivityFormat>("long_csv");
 
@@ -90,7 +97,7 @@ export function ActivityUploadPanel() {
           </SelectTrigger>
           <SelectContent>
             {(["long_csv", "long_xlsx"] as const).map((f) => (
-              <SelectItem key={f} value={f} className="text-xs">
+              <SelectItem key={f} value={f} className="text-xs" title={FORMAT_TOOLTIPS[f]}>
                 {FORMAT_LABELS[f]}
               </SelectItem>
             ))}

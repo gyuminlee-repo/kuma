@@ -162,8 +162,8 @@ export function PolymeraseEditor({
               value={form.tm_method}
               onChange={(e) => update("tm_method", e.target.value)}
             >
-              <option value="santalucia">SantaLucia</option>
-              <option value="breslauer">Breslauer</option>
+              <option value="santalucia" title="SantaLucia 1998 nearest-neighbour parameters. Modern default; accurate for most PCR primers (DNA/DNA, 25-mers, physiological salt).">SantaLucia</option>
+              <option value="breslauer" title="Breslauer 1986 nearest-neighbour parameters. Legacy table; tends to overestimate Tm vs SantaLucia by 1-3 °C.">Breslauer</option>
             </select>
           </div>
           <div className="rounded-2xl border border-border bg-card p-4">
@@ -173,9 +173,9 @@ export function PolymeraseEditor({
               value={form.salt_correction}
               onChange={(e) => update("salt_correction", e.target.value)}
             >
-              <option value="owczarzy">Owczarzy</option>
-              <option value="santalucia">SantaLucia</option>
-              <option value="schildkraut">Schildkraut</option>
+              <option value="owczarzy" title="Owczarzy 2004/2008 monovalent + Mg²⁺ correction. Recommended when Mg²⁺ or dNTP concentrations are non-standard.">Owczarzy</option>
+              <option value="santalucia" title="SantaLucia 1996 monovalent-only correction. Suitable for standard buffers without Mg²⁺ adjustment.">SantaLucia</option>
+              <option value="schildkraut" title="Schildkraut-Lifson 1965 empirical Na⁺ correction. Legacy; coarser than Owczarzy or SantaLucia.">Schildkraut</option>
             </select>
           </div>
           <div className="rounded-2xl border border-border bg-card p-4">

@@ -365,10 +365,10 @@ export function BarcodeSetupPanel() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Q5">Q5</SelectItem>
-                  <SelectItem value="Taq">Taq</SelectItem>
-                  <SelectItem value="Phusion">Phusion</SelectItem>
-                  <SelectItem value="KOD">KOD</SelectItem>
+                  <SelectItem value="Q5" title="NEB Q5 High-Fidelity. Tm preset ~72 °C, low Mg²⁺. Default choice for high-fidelity amplification.">Q5</SelectItem>
+                  <SelectItem value="Taq" title="Standard Taq polymerase. Tm preset ~60 °C, higher Mg²⁺. Use for routine PCR or when 3'A overhangs are desired.">Taq</SelectItem>
+                  <SelectItem value="Phusion" title="Thermo Phusion High-Fidelity. Tm preset ~72 °C, blunt-end, fast extension.">Phusion</SelectItem>
+                  <SelectItem value="KOD" title="Toyobo KOD One / KOD Hot Start. Tm preset ~68 °C with Mg²⁺/dNTP correction. High-fidelity, fast.">KOD</SelectItem>
                 </SelectContent>
               </Select>
             </div>

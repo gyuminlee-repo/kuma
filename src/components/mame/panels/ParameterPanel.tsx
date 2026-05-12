@@ -408,8 +408,8 @@ export function ParameterPanel() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="amplicon">amplicon</SelectItem>
-              <SelectItem value="plasmid">plasmid</SelectItem>
+              <SelectItem value="amplicon" title="Linear PCR amplicon target. Reads cover a single defined region; consensus called per barcode within that region.">amplicon</SelectItem>
+              <SelectItem value="plasmid" title="Circular plasmid target. Reads can wrap the origin; consensus accounts for full plasmid topology.">plasmid</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -433,8 +433,8 @@ export function ParameterPanel() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="barcode">barcode</SelectItem>
-                <SelectItem value="amplicon">amplicon</SelectItem>
+                <SelectItem value="barcode" title="Group reads by Nanopore barcode (NB01, NB02, ...). Each barcode bin becomes one sample.">barcode</SelectItem>
+                <SelectItem value="amplicon" title="Group reads by amplicon identity. Use when multiple amplicons share a barcode or when demultiplexing by sequence match.">amplicon</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -458,13 +458,22 @@ export function ParameterPanel() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="consensus">
+              <SelectItem
+                value="consensus"
+                title="Start from pre-computed consensus FASTA (one sequence per barcode). Skips sorting and consensus calling."
+              >
                 {INPUT_MODE_LABELS.consensus}
               </SelectItem>
-              <SelectItem value="sorted_barcode">
+              <SelectItem
+                value="sorted_barcode"
+                title="Start from already-sorted barcode directories (fastq.gz per barcode). Skips MinKNOW sorting; runs consensus calling."
+              >
                 {INPUT_MODE_LABELS.sorted_barcode}
               </SelectItem>
-              <SelectItem value="raw_run">
+              <SelectItem
+                value="raw_run"
+                title="Start from a raw MinKNOW run folder (fastq_pass/ + run metadata). Full pipeline: sort barcodes, filter, then consensus."
+              >
                 {INPUT_MODE_LABELS.raw_run}
               </SelectItem>
             </SelectContent>

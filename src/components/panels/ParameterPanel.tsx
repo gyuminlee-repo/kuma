@@ -141,8 +141,8 @@ export function ParameterPanel() {
             }}
             aria-describedby="design-strategy-hint"
           >
-            <option value="partial">Partial overlap (Gibson)</option>
-            <option value="full">Full overlap (Q5 SDM)</option>
+            <option value="partial" title="Gibson assembly style. Forward and reverse primers are independent; overlap is placed upstream of the target codon. Standard for in-house SDM.">Partial overlap (Gibson)</option>
+            <option value="full" title="NEB Q5 SDM kit style. Reverse primer = reverse-complement of forward; a single back-to-back primer pair covers the mutation site.">Full overlap (Q5 SDM)</option>
           </select>
         </label>
         <p id="design-strategy-hint" className="pl-26 text-caption text-muted-foreground">
@@ -162,12 +162,22 @@ export function ParameterPanel() {
             value={selectedPolymerase}
             onChange={(e) => void setSelectedPolymerase(e.target.value)}
           >
-            {polymerases.map((poly) => (
-              <option key={poly.name} value={poly.name}>
-                {poly.name}
-                {poly.manufacturer ? ` (${poly.manufacturer})` : ""}
-              </option>
-            ))}
+            {polymerases.map((poly) => {
+              const parts = [
+                poly.manufacturer ? `Manufacturer: ${poly.manufacturer}` : "",
+                poly.fidelity ? `Fidelity: ${poly.fidelity}` : "",
+              ].filter(Boolean);
+              return (
+                <option
+                  key={poly.name}
+                  value={poly.name}
+                  title={parts.length ? `${poly.name} — ${parts.join(", ")}` : poly.name}
+                >
+                  {poly.name}
+                  {poly.manufacturer ? ` (${poly.manufacturer})` : ""}
+                </option>
+              );
+            })}
           </select>
         </label>
         <div className="flex justify-end">
@@ -190,8 +200,8 @@ export function ParameterPanel() {
             }
           }}
         >
-          <option value="closest">Min. changes (fewest nt changes from WT)</option>
-          <option value="optimal">Optimal (organism codon usage)</option>
+          <option value="closest" title="Pick the mutant codon with the fewest nucleotide changes from the wild-type codon. Minimises primer mismatch and synthesis cost.">Min. changes (fewest nt changes from WT)</option>
+          <option value="optimal" title="Pick the highest-frequency codon for the selected organism's codon usage table. Maximises expression but may require more nt changes.">Optimal (organism codon usage)</option>
         </select>
       </label>
 
