@@ -228,6 +228,7 @@ export function MameAppLayout() {
 
   return (
     <div
+      data-tool="mame"
       className={`flex h-full flex-col bg-background ${isDragOver ? "ring-2 ring-inset ring-ring" : ""}`}
     >
       <WhatsNewDialog />

@@ -81,6 +81,30 @@
     --text-plate-tiny: 8px;
   }
 
+  [data-tool="kuro"] {
+    --primary: 221.1 13.5% 27.6%;       /* #3D4350 */
+    --primary-foreground: 0 0% 100%;
+    --ring: 221.1 13.5% 27.6%;
+  }
+
+  [data-tool="mame"] {
+    --primary: 27.4 16.7% 41.0%;        /* #7A6757 */
+    --primary-foreground: 0 0% 100%;
+    --ring: 27.4 16.7% 41.0%;
+  }
+
+  .dark[data-tool="kuro"] {
+    --primary: 221.1 13.5% 70%;
+    --primary-foreground: 222 14% 12%;
+    --ring: 221.1 13.5% 70%;
+  }
+
+  .dark[data-tool="mame"] {
+    --primary: 27.4 16.7% 70%;
+    --primary-foreground: 24 17% 12%;
+    --ring: 27.4 16.7% 70%;
+  }
+
   .dark {
     --background: 222.2 47% 7%;
     --foreground: 210 40% 96%;

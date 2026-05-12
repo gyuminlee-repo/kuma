@@ -327,7 +327,7 @@ export function AppLayout() {
   }, [handleKeyDown]);
 
   return (
-    <div className={`flex h-screen flex-col bg-background ${isDragOver ? "ring-2 ring-inset ring-ring" : ""}`}>
+    <div data-tool="kuro" className={`flex h-screen flex-col bg-background ${isDragOver ? "ring-2 ring-inset ring-ring" : ""}`}>
       <WhatsNewDialog />
       <NetworkConsentDialog />
       <MenuBar />
