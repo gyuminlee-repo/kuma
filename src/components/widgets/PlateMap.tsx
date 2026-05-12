@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
 import { useAppStore } from "../../store/appStore";
 import { reorderMappings, getSortedMutations, wellName } from "../../lib/plate-utils";
@@ -198,6 +199,7 @@ function useSortedMutations(): string[] | null {
 }
 
 export function PlateMap() {
+  const { t } = useTranslation();
   const { plateMappings, dedupInfo } = useAppStore(
     useShallow((s) => ({
       plateMappings: s.plateMappings,
@@ -222,8 +224,8 @@ export function PlateMap() {
       <div className="flex h-full items-center justify-center p-8">
         <StateView
           variant="empty"
-          title="No plate layout yet"
-          description="Run design to assign primers to plate wells."
+          title={t("plateMap.noPlateLayout")}
+          description={t("plateMap.noPlateLayoutDesc")}
         />
       </div>
     );
@@ -237,8 +239,8 @@ export function PlateMap() {
     <div className="flex h-full min-h-0 flex-col overflow-hidden p-3">
       <div className="mb-2 flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-caption font-semibold text-muted-foreground">Plate pair review</div>
-          <div className="mt-1 text-caption text-muted-foreground">Each page shows one forward plate and its deduplicated reverse partner.</div>
+          <div className="text-caption font-semibold text-muted-foreground">{t("plateMap.platePairReview")}</div>
+          <div className="mt-1 text-caption text-muted-foreground">{t("plateMap.platePairDesc")}</div>
         </div>
       </div>
 
@@ -252,7 +254,7 @@ export function PlateMap() {
             }`}
             onClick={() => setActiveTab("fwd")}
           >
-            Forward ({pair.fwdCount})
+            {t("plateMap.forward")} ({pair.fwdCount})
           </button>
           <button
             className={`h-control rounded-full border px-3 text-caption font-semibold transition-colors ${
@@ -262,7 +264,7 @@ export function PlateMap() {
             }`}
             onClick={() => setActiveTab("rev")}
           >
-            Reverse ({pair.revCount})
+            {t("plateMap.reverse")} ({pair.revCount})
           </button>
         </div>
 
@@ -276,7 +278,7 @@ export function PlateMap() {
               ‹
             </button>
             <span className="rounded-full border border-border bg-muted/40 px-2 py-0.5 text-muted-foreground">
-              Plate {safeIdx + 1}/{pairs.length}
+              {t("plateMap.plate")} {safeIdx + 1}/{pairs.length}
             </span>
             <button
               className="h-control rounded-full border border-border px-2 hover:bg-muted/60 disabled:opacity-30"
@@ -295,9 +297,9 @@ export function PlateMap() {
             className="h-control rounded-full border-border px-3 text-caption"
             onClick={() => setExportDialogOpen(true)}
             disabled={!project || project.scratch || !project.path}
-            title={!project || project.scratch ? "Open a project first to use Export All." : undefined}
+            title={!project || project.scratch ? t("plateMap.exportAllTitle") : undefined}
           >
-            Export All...
+            {t("plateMap.exportAll")}
           </Button>
         </div>
       </div>

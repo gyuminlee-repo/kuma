@@ -70,11 +70,11 @@ export function HairpinDetail({
                     <span className="text-muted-foreground">—</span>
                   ) : r.tm > 40 ? (
                     <span className="inline-block px-1.5 py-0.5 rounded text-caption font-medium bg-warning/10 text-warning">
-                      warn
+                      {t("hairpinDetail.statusWarn")}
                     </span>
                   ) : (
                     <span className="inline-block px-1.5 py-0.5 rounded text-caption font-medium bg-success/10 text-success">
-                      OK
+                      {t("hairpinDetail.statusOk")}
                     </span>
                   )}
                 </td>
@@ -85,7 +85,7 @@ export function HairpinDetail({
 
         {result.warnings.length > 0 && (
           <div className="mt-3 space-y-0.5 text-caption text-muted-foreground">
-            <div className="font-semibold text-foreground">Warnings:</div>
+            <div className="font-semibold text-foreground">{t("hairpinDetail.warningsLabel")}</div>
             {result.warnings.map((w, i) => (
               <div key={i} className="text-warning">{w}</div>
             ))}
