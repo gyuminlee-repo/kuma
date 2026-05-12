@@ -1,6 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { classifyError } from "@/lib/errorClassifier";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -13,16 +12,7 @@ import { tryHandleManifestDrop, tryHandleTwoManifestsDrop, verifyInputs, type In
 import { type RunManifest } from "@/lib/runManifest";
 import { ReRunManifestDialog } from "../dialogs/ReRunManifestDialog";
 import { ManifestDiffDialog } from "../dialogs/ManifestDiffDialog";
-
-const IS_MAC = typeof navigator !== "undefined" && navigator.userAgent.includes("Mac");
-const RUN_HINT = IS_MAC ? "⌘↵" : "Ctrl+↵";
-import { InputPanel } from "../panels/InputPanel";
-import { ParameterPanel } from "../panels/ParameterPanel";
-import { ResultTable } from "../widgets/ResultTable";
-import { SequenceViewer } from "../widgets/SequenceViewer";
-import { PlateMap } from "../widgets/PlateMap";
 import { Button } from "../ui/button";
-import { DataPanel } from "../ui/Panel";
 import {
   Dialog,
   DialogContent,
@@ -32,6 +22,10 @@ import {
   DialogFooter,
 } from "../ui/dialog";
 import { MenuBar } from "./MenuBar";
+import { KuroAppBar } from "./KuroAppBar";
+import { MajorSubnav, type MajorNavItem } from "./MajorSubnav";
+import { SubStepNav, type SubNavItem } from "./SubStepNav";
+import { MajorStepView } from "../steps/MajorStepView";
 import { StatusBar } from "./StatusBar";
 import { WhatsNewDialog } from "../dialogs/WhatsNewDialog";
 import { NetworkConsentDialog } from "../dialogs/NetworkConsentDialog";
@@ -42,13 +36,11 @@ import { checkKuroInputSize } from "@/lib/inputThresholds";
 import type { InputSizeLevel } from "@/lib/inputThresholds";
 import { runPreflightCheck } from "@/lib/preflight";
 import type { PreflightResult } from "@/lib/preflight";
-import {
-  handleExportExcel,
-  handleExportAll,
-  handleOpenSequence,
-} from "./export-handlers";
+import { handleOpenSequence } from "./export-handlers";
 import { startDeadlockWatch } from "@/lib/deadlockDetector";
 import { getLastProgressAt } from "@/lib/ipc-kuro";
+import { MAJOR_ORDER, SUBSTEP_ORDER } from "@/store/slices/navigationSlice";
+import type { MajorStepId } from "@/store/slices/navigationSlice";
 
 const SEQUENCE_EXTENSIONS = new Set([".gb", ".gbk", ".gbff", ".dna", ".fa", ".fasta"]);
 const CSV_EXTENSIONS = new Set([".csv"]);
@@ -61,8 +53,6 @@ export function AppLayout() {
   const { status: sidecarStatus, retry: retrySidecar } = useSidecar();
   const isDesigning = useAppStore((s) => s.isDesigning);
   const statusMessage = useAppStore((s) => s.statusMessage);
-  const hasDesignResults = useAppStore((s) => s.designResults.length > 0);
-
   // §4 네트워크 에러 분리 — statusMessage를 분류해 WifiOff 아이콘 표시
   const statusErrorKind = useMemo(() => {
     if (!statusMessage) return null;
@@ -70,15 +60,10 @@ export function AppLayout() {
     if (!/fail|error|timeout|refused/i.test(statusMessage)) return null;
     return classifyError(statusMessage).kind;
   }, [statusMessage]);
-  const successCount = useAppStore((s) => s.successCount);
-  const totalCount = useAppStore((s) => s.totalCount);
-  const seqInfo = useAppStore((s) => s.seqInfo);
-  const selectedGene = useAppStore((s) => s.selectedGene);
   const loadPolymerases = useAppStore((s) => s.loadPolymerases);
   const showReport = useAppStore((s) => s.showReport);
   const showBenchmark = useAppStore((s) => s.showBenchmark);
   const loadNetworkConsentSettings = useAppStore((s) => s.loadNetworkConsentSettings);
-  const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
   const [missingFields, setMissingFields] = useState<string[] | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   // §1 Dead-lock 감지 모달 상태
@@ -175,8 +160,24 @@ export function AppLayout() {
     runWithPreflight();
   }, [collectMissingFields, flushBeforeDesign]);
 
-  const selectedGeneInfo = seqInfo?.genes.find((gene) => String(gene.cds_start) === selectedGene);
-  const plateEstimate = totalCount > 0 ? Math.ceil(totalCount / 96) : null;
+  // Navigation state for AppShell slot wiring
+  const currentMajor = useAppStore((s) => s.currentMajor);
+
+  // Build MAJORS and SUBSTEPS arrays from navigationSlice constants
+  const MAJORS: MajorNavItem[] = MAJOR_ORDER.map((id) => ({
+    id,
+    labelKey: `phaseC.majors.${id}`,
+  }));
+
+  const SUBSTEPS: Record<MajorStepId, SubNavItem[]> = Object.fromEntries(
+    MAJOR_ORDER.map((major) => [
+      major,
+      SUBSTEP_ORDER[major].map((id) => ({
+        id,
+        labelKey: `phaseC.subSteps.${id}`,
+      })),
+    ]),
+  ) as Record<MajorStepId, SubNavItem[]>;
 
   useEffect(() => {
     loadNetworkConsentSettings();
@@ -284,19 +285,13 @@ export function AppLayout() {
     const isInput = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
 
     switch (e.key.toLowerCase()) {
-      case "e":
-        if (isInput) return;
-        e.preventDefault();
-        if (e.shiftKey) {
-          // Ctrl/Cmd+Shift+E: Export All (no dialog)
-          void handleExportAll(project);
-        } else if (useAppStore.getState().designResults.length > 0) {
-          handleExportExcel(project?.project_id);
-        }
-        break;
       case "d":
         if (isInput) return;
         e.preventDefault();
+        // Auto-navigate to sdm.run sub-step when shortcut is pressed from elsewhere
+        if (useAppStore.getState().currentSubStep !== "sdm.run") {
+          useAppStore.getState().setSubStep("sdm.run");
+        }
         tryRunDesign();
         break;
       case "o":
@@ -306,193 +301,59 @@ export function AppLayout() {
       case "enter":
         if (isInput) return;
         e.preventDefault();
+        // Auto-navigate to sdm.run sub-step (spec §9: 단축키 sdm.run 자동 전환)
+        if (useAppStore.getState().currentSubStep !== "sdm.run") {
+          useAppStore.getState().setSubStep("sdm.run");
+        }
         tryRunDesign();
         break;
       case "r":
         // Cmd/Ctrl+Shift+R: Reset All (isInput 포함 — 폼 입력 도중에도 동작해야 함)
         if (!e.shiftKey) return;
         e.preventDefault();
-        if (hasDesignResults) {
-          setClearConfirmOpen(true);
-        } else {
-          useAppStore.getState().resetAll();
-        }
+        useAppStore.getState().resetAll();
         break;
     }
-  }, [flushBeforeDesign, hasDesignResults, project, tryRunDesign]);
+  }, [tryRunDesign]);
 
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
-  // kuro sidebar 콘텐츠 (InputPanel + ParameterPanel + 버튼 footer)
-  const sidebarContent = (
-    <aside
-      data-testid="sidebar"
-      className="flex h-full min-h-0 flex-col overflow-hidden rounded-container border border-border bg-card"
-    >
-      <div className="min-h-0 flex-1 overflow-y-auto p-3 space-y-3">
-        <InputPanel />
-        <ParameterPanel />
-      </div>
-
-      <footer className="border-t border-border bg-muted/40 px-3 py-3 space-y-2">
-        <div className="flex gap-2">
-          <Button
-            className="h-control-primary flex-1 min-w-0 rounded-control text-body font-semibold"
-            onClick={tryRunDesign}
-            disabled={isDesigning}
-          >
-            {isDesigning ? t("appLayout.designing") : t("appLayout.runDesign")}
-            {!isDesigning && (
-              <kbd className="ml-2 text-caption text-muted-foreground font-normal opacity-70">{RUN_HINT}</kbd>
-            )}
-          </Button>
-          {isDesigning && (
-            <Button
-              variant="outline"
-              className="h-control-primary rounded-control px-3 text-error border-error/40 hover:bg-error/8"
-              onClick={() => useAppStore.getState().cancelDesign()}
-            >
-              {t("common.cancel")}
-            </Button>
-          )}
-        </div>
-        <Button
-          variant="outline"
-          className="h-control w-full rounded-control"
-          onClick={() => {
-            if (hasDesignResults) {
-              setClearConfirmOpen(true);
-            } else {
-              useAppStore.getState().resetAll();
-            }
-          }}
-          disabled={isDesigning}
-        >
-          {t("appLayout.clearAll")}
-        </Button>
-      </footer>
-    </aside>
-  );
-
-  // kuro main 콘텐츠: horizontal PanelGroup으로 sidebar/main을 포함 (resizable 보존)
-  const mainContent = (
-    <div className="flex flex-1 overflow-hidden px-3 pb-3 pt-2 min-h-0 w-full">
-      <PanelGroup
-        direction="horizontal"
-        autoSaveId="kuma-main-h"
-        className="flex-1 min-w-0 overflow-hidden"
-      >
-        <Panel
-          defaultSize={22}
-          minSize={16}
-          maxSize={40}
-          className="flex min-h-0 flex-col"
-        >
-          {sidebarContent}
-        </Panel>
-
-        <PanelResizeHandle className="w-1.5 mx-1 rounded-full bg-transparent hover:bg-border data-[resize-handle-active]:bg-ring transition-colors" />
-
-        <Panel className="flex min-h-0 flex-col" minSize={40}>
-          <div
-            className="flex h-full min-h-0 flex-col overflow-hidden"
-          >
-            <PanelGroup direction="vertical" autoSaveId="kuma-main-v" className="flex-1 min-h-0">
-              <Panel defaultSize={18} minSize={10} className="min-h-0">
-                <DataPanel
-                  title={t("appLayout.sequenceContext")}
-                  description={selectedGeneInfo ? `${selectedGeneInfo.gene} · ${selectedGeneInfo.aa_length} aa` : t("appLayout.loadTargetGene")}
-                  className="h-full overflow-hidden"
-                >
-                  <div className="h-full">
-                    <SequenceViewer />
-                  </div>
-                </DataPanel>
-              </Panel>
-
-              <PanelResizeHandle className="h-1.5 my-1 rounded-full bg-transparent hover:bg-border data-[resize-handle-active]:bg-ring transition-colors" />
-
-              <Panel defaultSize={34} minSize={15} className="min-h-0">
-                <DataPanel
-                  title={t("appLayout.designOutput")}
-                  description={hasDesignResults ? t("appLayout.designSuccessCount", { successCount, totalCount }) : t("appLayout.noResultsYet")}
-                  className="h-full min-h-0 overflow-hidden"
-                >
-                  <div className="min-h-0 h-full">
-                    <ResultTable />
-                  </div>
-                </DataPanel>
-              </Panel>
-
-              <PanelResizeHandle className="h-1.5 my-1 rounded-full bg-transparent hover:bg-border data-[resize-handle-active]:bg-ring transition-colors" />
-
-              <Panel defaultSize={48} minSize={35} className="min-h-0">
-                <DataPanel
-                  title={t("appLayout.platePlan")}
-                  description={plateEstimate ? t("appLayout.plateCount", { count: plateEstimate }) : t("appLayout.awaitingDesign")}
-                  className="h-full overflow-hidden"
-                >
-                  <div className="h-full min-h-[400px] overflow-auto">
-                    <PlateMap />
-                  </div>
-                </DataPanel>
-              </Panel>
-            </PanelGroup>
-          </div>
-        </Panel>
-      </PanelGroup>
-    </div>
-  );
-
-  // kuro statusbar: StatusBar가 statusMessage + WifiOff 아이콘을 통합 표시
-  const statusbarContent = (
-    <StatusBar
-      sidecarStatus={sidecarStatus}
-      onRetry={retrySidecar}
-      statusErrorKind={statusErrorKind}
-    />
-  );
-
   return (
     <AppShell
       tool="kuro"
       titlebar={<MenuBar />}
-      main={mainContent}
-      statusbar={statusbarContent}
+      appbar={<KuroAppBar />}
+      subnav={<MajorSubnav majors={MAJORS} />}
+      sidebar={
+        <SubStepNav
+          major={currentMajor}
+          subSteps={SUBSTEPS[currentMajor]}
+        />
+      }
+      main={
+        <div
+          id="major-step-main"
+          className="flex flex-1 min-h-0 min-w-0 overflow-hidden"
+          role="tabpanel"
+          aria-label={t(`phaseC.majors.${currentMajor}`, currentMajor)}
+        >
+          <MajorStepView />
+        </div>
+      }
+      statusbar={
+        <StatusBar
+          sidecarStatus={sidecarStatus}
+          onRetry={retrySidecar}
+          statusErrorKind={statusErrorKind}
+        />
+      }
       isDragOver={isDragOver}
     >
       <WhatsNewDialog />
       <NetworkConsentDialog />
-
-      <Dialog open={clearConfirmOpen} onOpenChange={setClearConfirmOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>{t("appLayout.clearAll")}</DialogTitle>
-            <DialogDescription>
-              {t("appLayout.clearAllDesc")}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => setClearConfirmOpen(false)}>
-              {t("common.cancel")}
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              className="text-error border-error/40 hover:bg-error/8"
-              onClick={() => {
-                useAppStore.getState().resetAll();
-                setClearConfirmOpen(false);
-              }}
-            >
-              {t("appLayout.clear")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <Dialog
         open={missingFields !== null}

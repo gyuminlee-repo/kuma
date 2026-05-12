@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 import { useAppStore } from "../../store/appStore";
 import { generateDiagnosticsBundle } from "../../lib/diagnostics";
 import { revealInOSFolder } from "../../lib/openFolder";
-import { useKumaProject } from "../../state/projectContext";
 import { Button } from "../ui/button";
 import {
   Dialog,
@@ -23,8 +22,6 @@ import {
 import { getCrashLog } from "../../lib/crashLog";
 import { CrashLogDialog } from "../dialogs/CrashLogDialog";
 import {
-  handleExportExcel,
-  handleExportAll,
   handleExportMappingWithParams,
   handleOpenSequence,
   executeMigrateAndLoad,
@@ -54,8 +51,6 @@ const TRIGGER_CLS =
 
 export function MenuBar() {
   const { t } = useTranslation();
-  const project = useKumaProject();
-  const hasDesignResults = useAppStore((s) => s.designResults.length > 0);
   const isExporting = useAppStore((s) => s.isExporting);
   const isDesigning = useAppStore((s) => s.isDesigning);
   const loadSampleData = useAppStore((s) => s.loadSampleData);
@@ -69,7 +64,6 @@ export function MenuBar() {
   const [diagnosticsError, setDiagnosticsError] = useState<string | null>(null);
   const [crashLogOpen, setCrashLogOpen] = useState(false);
   const [mappingDialogOpen, setMappingDialogOpen] = useState(false);
-  const [mappingDialogFormat, setMappingDialogFormat] = useState<"echo" | "janus">("echo");
   // §20 Citation & Licensing: NOTICE.md from bundled resources
   const [noticeText, setNoticeText] = useState<string | null>(null);
   const [noticeOpen, setNoticeOpen] = useState(false);
@@ -250,42 +244,6 @@ export function MenuBar() {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Export 메뉴 */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button className={TRIGGER_CLS}>{t("menuBar.exportMenuTrigger")}</button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start">
-          <DropdownMenuItem
-            onClick={() => void handleExportAll(project)}
-            disabled={!hasDesignResults || isExporting || !project || project.scratch || !project.path}
-          >
-            <span className="flex-1">{t("export.all")}</span>
-            <kbd className="ml-4 text-caption text-muted-foreground">{MOD_KEY}Shift+E</kbd>
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onClick={() => handleExportExcel(project?.project_id)}
-            disabled={!hasDesignResults || isExporting}
-          >
-            <span className="flex-1">{t("export.excel")}</span>
-            <kbd className="ml-4 text-caption text-muted-foreground">{MOD_KEY}E</kbd>
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => { setMappingDialogFormat("echo"); setMappingDialogOpen(true); }}
-            disabled={!hasDesignResults || isExporting}
-          >
-            {t("export.echo")}
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => { setMappingDialogFormat("janus"); setMappingDialogOpen(true); }}
-            disabled={!hasDesignResults || isExporting}
-          >
-            {t("export.janus")}
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-
       {/* Help 메뉴 */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -323,7 +281,7 @@ export function MenuBar() {
 
       <MappingExportDialog
         open={mappingDialogOpen}
-        initialFormat={mappingDialogFormat}
+        initialFormat="echo"
         onOpenChange={setMappingDialogOpen}
         onExport={({ format, transferVol, bom }) => {
           setMappingDialogOpen(false);

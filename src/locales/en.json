@@ -1516,5 +1516,76 @@
     "fieldSampleMap": "sample map",
     "fieldCustomBarcodes": "custom barcodes",
     "fieldSequencingSummary": "sequencing summary"
+  },
+  "phaseC": {
+    "majors": {
+      "variant": "Variant Selection",
+      "sdm": "SDM Design",
+      "plate": "Plate Mapping",
+      "export": "Export"
+    },
+    "subSteps": {
+      "variant": {
+        "load": "Load EVOLVEpro CSV",
+        "select": "Variant Selection",
+        "adaptive": "α-adaptive Pool",
+        "domain": "Domain Filter",
+        "pareto": "Pareto + Cα"
+      },
+      "sdm": {
+        "mutations": "Mutation list",
+        "codon": "Codon strategy",
+        "polymerase": "Polymerase + Tm",
+        "gc": "GC + length",
+        "run": "Run design"
+      },
+      "plate": {
+        "size": "Plate size",
+        "layout": "Layout view",
+        "labels": "Well labels"
+      },
+      "export": {
+        "format": "Format",
+        "summary": "Order summary",
+        "workspace": "Workspace save"
+      }
+    },
+    "badge": {
+      "done": "DONE",
+      "active": "{{n}}",
+      "pending": "{{n}}"
+    },
+    "plate": {
+      "size96": "96-well",
+      "size384": "384-well",
+      "selectSize": "Select plate size",
+      "labelFormat": {
+        "primerName": "Primer name",
+        "mutation": "Mutation",
+        "variantId": "Variant ID"
+      },
+      "selectLabel": "Select well label format"
+    },
+    "export": {
+      "format": {
+        "idt": "IDT CSV",
+        "twist": "Twist CSV",
+        "fasta": "FASTA"
+      },
+      "runExport": "Export",
+      "workspace": {
+        "save": "Save workspace",
+        "load": "Load workspace"
+      },
+      "summary": {
+        "plateCount": "Plates",
+        "primerCount": "Total primers",
+        "mutationCount": "Mutations"
+      }
+    },
+    "run": {
+      "primary": "Run Design",
+      "cancel": "Cancel"
+    }
   }
 }

@@ -33,11 +33,16 @@ function getPlateBadge(barcode: string): "NB01" | "NB02" | "NB03" | null {
   return `NB0${match[1]}` as "NB01" | "NB02" | "NB03";
 }
 
+/** Color override: { bg, text, border } hex strings. null/undefined = use verdict default. */
+export type WellColorOverride = { bg: string; text: string; border: string };
+
 interface WellPlateProps {
   wells: WellEntry[];
   onWellClick?: (well: WellEntry) => void;
   selectedWellId?: string;
   colorblindMode?: boolean;
+  /** Optional callback to override per-well fill colors. Default = verdict-mode. */
+  wellColorOf?: (well: WellEntry) => WellColorOverride | null;
 }
 
 export function WellPlate({
@@ -45,6 +50,7 @@ export function WellPlate({
   onWellClick,
   selectedWellId,
   colorblindMode = false,
+  wellColorOf,
 }: WellPlateProps) {
   const { t } = useTranslation();
   const wellMap = new Map(wells.map((w) => [w.well, w]));
@@ -90,7 +96,9 @@ export function WellPlate({
               const well = wellMap.get(id);
               const isFocused = selectedWellId === id;
               const plate = well ? getPlateBadge(well.barcode) : null;
-              const fill = well ? verdictFill[well.verdict] : emptyFill;
+              const fill = well
+                ? (wellColorOf?.(well) ?? verdictFill[well.verdict])
+                : emptyFill;
               const pattern = colorblindMode && well ? cbPatterns[well.verdict] : undefined;
               const isFallback = well?.is_fallback ?? false;
 

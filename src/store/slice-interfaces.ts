@@ -295,6 +295,17 @@ export type { JobKind, JobStatus, Job, JobQueueSlice } from "./slices/jobQueueSl
 export type { LogSlice } from "./slices/logSlice";
 
 // ---------------------------------------------------------------------------
+// NavigationSlice — Phase C subnav + sub-step navigation
+// ---------------------------------------------------------------------------
+export type {
+  MajorStepId,
+  SubStepId,
+  StepStatus,
+  NavigationSlice,
+} from "./slices/navigationSlice";
+export { MAJOR_ORDER, SUBSTEP_ORDER } from "./slices/navigationSlice";
+
+// ---------------------------------------------------------------------------
 // MemorySlice — §19 Performance Guardrails: RSS memory monitor
 // ---------------------------------------------------------------------------
 export interface MemoryWarning {

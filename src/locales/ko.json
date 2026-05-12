@@ -237,7 +237,7 @@
         "btnBusy": "내보내는 중…"
       },
       "exportBlocked": {
-        "title": "내보내기 차단 — 라벨 교체 감지",
+        "title": "내보내기 차단: 라벨 교체 감지",
         "body": "이전 라운드 EVOLVEpro 결과와 비교해 같은 활성값을 가진 변이의 라벨 매핑을 확인하세요."
       }
     },
@@ -1206,7 +1206,7 @@
     }
   },
   "roundSummary": {
-    "exportBlocked": "내보내기 차단 — {{count}}건의 라벨 교체 오류가 감지되었습니다.",
+    "exportBlocked": "내보내기 차단: {{count}}건의 라벨 교체 오류가 감지되었습니다.",
     "warningsListAria": "라벨 교체 경고 목록",
     "errorBadge": "오류 {{count}}건",
     "warnBadge": "경고 {{count}}건",
@@ -1220,7 +1220,7 @@
     "labelMismatched": "불일치",
     "mismatchedVariantsTooltip": "불일치 변이: {{list}}",
     "mismatchedVariantsAria": "불일치 변이: {{list}}",
-    "exportBlockedShort": "내보내기 차단 — {{count}}건의 라벨 교체 오류"
+    "exportBlockedShort": "내보내기 차단: {{count}}건의 라벨 교체 오류"
   },
   "mameParameters": {
     "minFilteredDepth": "최소 Filtered Depth (reads)",
@@ -1240,10 +1240,10 @@
     "readFailed": "manifest 파일을 읽을 수 없습니다: {{path}}\n{{cause}}",
     "parseFailed": "manifest JSON 파싱 실패: {{path}}\n{{cause}}",
     "invalidStructure": "manifest 구조가 올바르지 않습니다. 필수 필드가 누락되었을 수 있습니다: {{path}}",
-    "unsupportedSchema": "지원하지 않는 manifest schema_version: \"{{version}}\". 현재 지원 버전: \"{{supported}}\". kuma 를 업데이트하거나, 이전 버전으로 생성된 manifest 인지 확인하세요."
+    "unsupportedSchema": "지원하지 않는 manifest schema_version: \"{{version}}\". 현재 지원 버전: \"{{supported}}\". kuma를 업데이트하거나, 이전 버전으로 생성된 manifest인지 확인하세요."
   },
   "reRun": {
-    "noRoundId": "manifest.params.round_id 가 없습니다. mame 탭에서 라운드를 먼저 선택한 뒤 re-run 해주세요.",
+    "noRoundId": "manifest.params.round_id가 없습니다. mame 탭에서 라운드를 먼저 선택한 뒤 re-run 해주세요.",
     "exportNotRunnable": "\"{{method}}\" 는 export 작업입니다. export manifest 는 직접 re-run 할 수 없습니다. 원본 데이터에서 다시 export 하세요.",
     "unsupportedMethod": "지원하지 않는 method: \"{{method}}\". 지원 method: {{supported}}"
   },
@@ -1419,7 +1419,7 @@
   "mameSidebar": {
     "runStateLabel": "실행 상태",
     "statusAnalyzing": "분석 중…",
-    "statusReady": "실행 준비됨",
+    "statusReady": "실행 준비 완료",
     "statusIncomplete": "설정 미완료",
     "validationIssues_one": "{{count}}개 유효성 검사 문제",
     "validationIssues_other": "{{count}}개 유효성 검사 문제",
@@ -1449,8 +1449,8 @@
     "clearBtn": "초기화"
   },
   "roundSummarySignals": {
-    "calibrationBannerHeading": "교정 기간 — 분류 비활성.",
-    "calibrationBannerBody": "신호 값은 모니터링 목적으로만 표시됩니다. 자동 분류 결정은 어드바이저리 모드 활성화 시(Round 3+, v0.3)까지 표시되지 않습니다.",
+    "calibrationBannerHeading": "교정 기간: 분류 비활성화.",
+    "calibrationBannerBody": "신호 값은 모니터링 목적으로만 표시됩니다. 자동 분류 결정은 advisory 모드 활성화 시(Round 3+, v0.3)까지 표시되지 않습니다.",
     "signalMetAriaLabel": "신호 충족",
     "signalNotMetAriaLabel": "신호 미충족",
     "signalsTableAriaLabel": "라운드 전략 신호",
@@ -1460,13 +1460,13 @@
     "basisCol": "근거",
     "roundSignalsHeading": "라운드 신호",
     "demoModeAriaLabel": "데모 모드: 지표는 라이브 백엔드 RPC가 아닌 로컬 병합 통계에서 생성됩니다.",
-    "noMetricsYet": "라운드 지표 없음 — ALE 라운드를 완료하면 신호가 계산됩니다.",
-    "labelT1": "T1 — Throughput",
-    "labelT2": "T2 — Plateau",
-    "labelT3": "T3 — Hit rate",
-    "labelT4": "T4 — Position convergence",
-    "labelTActive": "T_active — Active site",
-    "labelTUnused": "T_unused — Unused beneficial",
+    "noMetricsYet": "라운드 지표 없음. ALE 라운드를 완료하면 신호가 계산됩니다.",
+    "labelT1": "T1: Throughput",
+    "labelT2": "T2: Plateau",
+    "labelT3": "T3: Hit rate",
+    "labelT4": "T4: Position convergence",
+    "labelTActive": "T_active: Active site",
+    "labelTUnused": "T_unused: Unused beneficial",
     "t2Unavailable": "WT replicate < 4, T2 산출 불가",
     "t2Threshold": "threshold = {{value}}",
     "t2DeltaBest": "Δ_best = {{value}} | {{threshold}}",
@@ -1516,5 +1516,76 @@
     "fieldSampleMap": "샘플 맵",
     "fieldCustomBarcodes": "커스텀 바코드",
     "fieldSequencingSummary": "시퀀싱 요약"
+  },
+  "phaseC": {
+    "majors": {
+      "variant": "변이체 선택",
+      "sdm": "SDM 설계",
+      "plate": "플레이트 배치",
+      "export": "내보내기"
+    },
+    "subSteps": {
+      "variant": {
+        "load": "EVOLVEpro CSV 불러오기",
+        "select": "변이체 선택",
+        "adaptive": "α-적응 풀",
+        "domain": "도메인 필터",
+        "pareto": "Pareto + Cα"
+      },
+      "sdm": {
+        "mutations": "돌연변이 목록",
+        "codon": "코돈 전략",
+        "polymerase": "폴리머라제 + Tm",
+        "gc": "GC + 길이",
+        "run": "설계 실행"
+      },
+      "plate": {
+        "size": "플레이트 크기",
+        "layout": "배치 보기",
+        "labels": "Well 라벨"
+      },
+      "export": {
+        "format": "형식",
+        "summary": "주문 요약",
+        "workspace": "워크스페이스 저장"
+      }
+    },
+    "badge": {
+      "done": "완료",
+      "active": "{{n}}",
+      "pending": "{{n}}"
+    },
+    "plate": {
+      "size96": "96-웰",
+      "size384": "384-웰",
+      "selectSize": "플레이트 크기 선택",
+      "labelFormat": {
+        "primerName": "프라이머 이름",
+        "mutation": "돌연변이",
+        "variantId": "변이체 ID"
+      },
+      "selectLabel": "Well 라벨 형식 선택"
+    },
+    "export": {
+      "format": {
+        "idt": "IDT CSV",
+        "twist": "Twist CSV",
+        "fasta": "FASTA"
+      },
+      "runExport": "내보내기",
+      "workspace": {
+        "save": "워크스페이스 저장",
+        "load": "워크스페이스 불러오기"
+      },
+      "summary": {
+        "plateCount": "플레이트",
+        "primerCount": "총 프라이머",
+        "mutationCount": "돌연변이"
+      }
+    },
+    "run": {
+      "primary": "설계 실행",
+      "cancel": "취소"
+    }
   }
 }

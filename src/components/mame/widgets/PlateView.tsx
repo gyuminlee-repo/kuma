@@ -4,7 +4,8 @@ import { useTranslation } from "react-i18next";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { VerdictBadge } from "./VerdictBadge";
 import { WellPlate } from "./WellPlate";
-import type { VerdictClass } from "@/types/mame/models";
+import type { WellColorOverride } from "./WellPlate";
+import type { VerdictClass, WellEntry } from "@/types/mame/models";
 
 function getSelectedPlateLabel(barcode: string | null): string {
   if (!barcode) return "None";
@@ -21,23 +22,38 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function PlateView() {
+interface PlateViewProps {
+  /** Optional callback to override per-well fill colors. Default = verdict-mode (mame). */
+  wellColorOf?: (well: WellEntry) => WellColorOverride | null;
+  /**
+   * Optional external wells array. When provided, mameAppStore wells are NOT used
+   * and loadPlateData is NOT triggered. mame callers omit this prop — default store behavior preserved.
+   */
+  wells?: WellEntry[];
+}
+
+export function PlateView({ wellColorOf, wells: externalWells }: PlateViewProps = {}) {
   const { t } = useTranslation();
   const verdicts = useMameAppStore((state) => state.verdicts);
-  const wells = useMameAppStore((state) => state.wells);
+  const storeWells = useMameAppStore((state) => state.wells);
   const selectedWell = useMameAppStore((state) => state.selectedWell);
   const setSelectedWell = useMameAppStore((state) => state.setSelectedWell);
   const loadPlateData = useMameAppStore((state) => state.loadPlateData);
+
+  // Use external wells if provided (kuro mode), otherwise fall back to mame store wells
+  const wells = externalWells ?? storeWells;
 
   const [colorblindMode, setColorblindMode] = useState(false);
   const selectedCount = wells.filter((well) => well.selected).length;
   const filledCount = wells.length;
 
   useEffect(() => {
-    if (verdicts.length > 0 && wells.length === 0) {
+    // Only trigger mame store load when external wells are NOT provided
+    if (externalWells !== undefined) return;
+    if (verdicts.length > 0 && storeWells.length === 0) {
       void loadPlateData();
     }
-  }, [loadPlateData, verdicts.length, wells.length]);
+  }, [externalWells, loadPlateData, verdicts.length, storeWells.length]);
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
@@ -75,6 +91,7 @@ export function PlateView() {
             selectedWellId={selectedWell?.well}
             onWellClick={(well) => setSelectedWell(well)}
             colorblindMode={colorblindMode}
+            wellColorOf={wellColorOf}
           />
           <div className="mt-2 flex flex-wrap gap-1" aria-label={t("mame.plateView.verdictLegendAriaLabel")}>
             {(
