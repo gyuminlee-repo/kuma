@@ -205,7 +205,14 @@
       "polymeraseQ5Title": "NEB Q5 고충실도 중합효소. Tm 기준 ~72 °C, 낮은 Mg²⁺. 고충실도 증폭 기본 선택입니다.",
       "polymeraseTaqTitle": "표준 Taq 중합효소. Tm 기준 ~60 °C, Mg²⁺ 농도 높음. 일반 PCR 또는 3'A 오버행이 필요할 때 사용합니다.",
       "polymerasePhusionTitle": "Thermo Phusion 고충실도 중합효소. Tm 기준 ~72 °C, blunt-end 산물, 빠른 신장 반응.",
-      "polymeraseKODTitle": "Toyobo KOD One / KOD Hot Start. Tm 기준 ~68 °C (Mg²⁺/dNTP 보정 적용). 고충실도, 빠른 반응 속도."
+      "polymeraseKODTitle": "Toyobo KOD One / KOD Hot Start. Tm 기준 ~68 °C (Mg²⁺/dNTP 보정 적용). 고충실도, 빠른 반응 속도.",
+      "autoDetect": {
+        "button": "CDS로부터 자동 인식",
+        "success": "{{source}}로부터 인식됨",
+        "failed": "ORF를 찾을 수 없음",
+        "noReference": "Reference 파일이 필요함",
+        "readError": "Reference 파일 읽기 실패"
+      }
     },
     "activity": {
       "title": "활성 데이터",
@@ -1199,7 +1206,12 @@
     "ncbiBlastServiceSuffix": " -- 서열 유사성 검색",
     "alphafoldServiceSuffix": " -- 구조 예측 조회",
     "interproServiceSuffix": " -- 단백질 도메인 주석",
-    "kuroSubtitle": "Kernel for Upstream Recombination Oligodesign"
+    "kuroSubtitle": "Kernel for Upstream Recombination Oligodesign",
+    "view": {
+      "title": "보기",
+      "logs": "로그 표시",
+      "jobs": "작업 표시"
+    }
   },
   "panel": {
     "errorTitle": "표시할 수 없습니다",
@@ -1610,6 +1622,23 @@
     "run": {
       "primary": "설계 실행",
       "cancel": "취소"
+    },
+    "mameSubSteps": {
+      "setup": {
+        "files": "파일 및 좌표",
+        "design": "설계 파라미터",
+        "output": "패키지 생성"
+      },
+      "analyze": {
+        "verdict": "판정 결과",
+        "plate": "플레이트 계획",
+        "health": "런 품질"
+      },
+      "activity": {
+        "ingest": "데이터 수집",
+        "merge": "병합",
+        "export": "내보내기"
+      }
     }
   }
 }

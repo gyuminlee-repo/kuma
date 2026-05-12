@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { readTextFile } from "@tauri-apps/plugin-fs";
 import { resolveResource } from "@tauri-apps/api/path";
@@ -39,6 +39,7 @@ import { compareWorkspaces } from "@/lib/workspaceCompare";
 import type { WorkspaceComparison, WorkspaceDiff } from "@/lib/workspaceCompare";
 import { open as openFilePicker } from "@tauri-apps/plugin-dialog";
 import { readTextFile as readTextFileFs } from "@tauri-apps/plugin-fs";
+import { useAppStore } from "@/store/appStore";
 
 const MOD_KEY = typeof navigator !== "undefined" && navigator.userAgent.includes("Mac") ? "⌘" : "Ctrl+";
 
@@ -63,6 +64,10 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
   const cancelAnalysis = useMameAppStore((s) => s.cancelAnalysis);
   const loadSampleData = useMameAppStore((s) => s.loadSampleData);
   const canRun = useMameAppStore(selectCanRun);
+  const logPanelVisible = useAppStore((s) => s.logPanelVisible);
+  const toggleLogPanel = useAppStore((s) => s.toggleLogPanel);
+  const jobsPanelVisible = useAppStore((s) => s.jobsPanelVisible);
+  const toggleJobsPanel = useAppStore((s) => s.toggleJobsPanel);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [bibtexCopied, setBibtexCopied] = useState(false);
   const [crashLogOpen, setCrashLogOpen] = useState(false);
@@ -142,6 +147,26 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
       .then(setSidecarPath)
       .catch(() => setSidecarPath("mame-sidecar (path unavailable)"));
   }, [aboutOpen, advancedOpen, sidecarPath]);
+
+  // §D3.5: View 메뉴 단축키 (Ctrl/Cmd+L: Logs, Ctrl/Cmd+J: Jobs)
+  const handleViewKeyDown = useCallback((e: KeyboardEvent) => {
+    if (!(e.metaKey || e.ctrlKey)) return;
+    switch (e.key.toLowerCase()) {
+      case "l":
+        e.preventDefault();
+        toggleLogPanel();
+        break;
+      case "j":
+        e.preventDefault();
+        toggleJobsPanel();
+        break;
+    }
+  }, [toggleLogPanel, toggleJobsPanel]);
+
+  useEffect(() => {
+    window.addEventListener("keydown", handleViewKeyDown);
+    return () => window.removeEventListener("keydown", handleViewKeyDown);
+  }, [handleViewKeyDown]);
 
   // §4 Error UX: copy repro info (app version + OS + sidecar version + last RPC error trace)
   async function handleCopyCrashLog() {
@@ -345,6 +370,27 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
         <DropdownMenuContent align="start">
           <DropdownMenuItem onClick={onClearRequest} disabled={!hasResults || isAnalyzing}>
             {t("edit.clearResults")}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* View 메뉴 */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button className={TRIGGER_CLS}>{t("menuBar.view.title")}</button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start">
+          <DropdownMenuItem onClick={toggleLogPanel}>
+            <span className="flex-1">
+              {logPanelVisible ? "✓ " : ""}{t("menuBar.view.logs")}
+            </span>
+            <kbd className="ml-4 text-caption text-muted-foreground">{MOD_KEY}L</kbd>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={toggleJobsPanel}>
+            <span className="flex-1">
+              {jobsPanelVisible ? "✓ " : ""}{t("menuBar.view.jobs")}
+            </span>
+            <kbd className="ml-4 text-caption text-muted-foreground">{MOD_KEY}J</kbd>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

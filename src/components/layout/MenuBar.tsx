@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useAppStore } from "../../store/appStore";
 import { generateDiagnosticsBundle } from "../../lib/diagnostics";
@@ -55,6 +55,10 @@ export function MenuBar() {
   const offlineMode = useAppStore((s) => s.offlineMode);
   const setOfflineMode = useAppStore((s) => s.setOfflineMode);
   const networkConsentGranted = useAppStore((s) => s.networkConsentGranted);
+  const logPanelVisible = useAppStore((s) => s.logPanelVisible);
+  const toggleLogPanel = useAppStore((s) => s.toggleLogPanel);
+  const jobsPanelVisible = useAppStore((s) => s.jobsPanelVisible);
+  const toggleJobsPanel = useAppStore((s) => s.toggleJobsPanel);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [crashCopied, setCrashCopied] = useState(false);
   const [bibtexCopied, setBibtexCopied] = useState(false);
@@ -130,6 +134,26 @@ export function MenuBar() {
   }, [aboutOpen, advancedOpen, sidecarPath]);
 
   const [reRunVerify, setReRunVerify] = useState<InputVerifyResult | null>(null);
+
+  // §D3.5: View 메뉴 단축키 (Ctrl/Cmd+L: Logs, Ctrl/Cmd+J: Jobs)
+  const handleViewKeyDown = useCallback((e: KeyboardEvent) => {
+    if (!(e.metaKey || e.ctrlKey)) return;
+    switch (e.key.toLowerCase()) {
+      case "l":
+        e.preventDefault();
+        toggleLogPanel();
+        break;
+      case "j":
+        e.preventDefault();
+        toggleJobsPanel();
+        break;
+    }
+  }, [toggleLogPanel, toggleJobsPanel]);
+
+  useEffect(() => {
+    window.addEventListener("keydown", handleViewKeyDown);
+    return () => window.removeEventListener("keydown", handleViewKeyDown);
+  }, [handleViewKeyDown]);
 
   // §14 Migration dialog state
   const [migrateDialog, setMigrateDialog] = useState<MigrateDialogState>(MIGRATE_DIALOG_CLOSED);
@@ -237,6 +261,27 @@ export function MenuBar() {
             disabled={false}
           >
             {t("file.restartSidecar")}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* View 메뉴 */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button className={TRIGGER_CLS}>{t("menuBar.view.title")}</button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start">
+          <DropdownMenuItem onClick={toggleLogPanel}>
+            <span className="flex-1">
+              {logPanelVisible ? "✓ " : ""}{t("menuBar.view.logs")}
+            </span>
+            <kbd className="ml-4 text-caption text-muted-foreground">{MOD_KEY}L</kbd>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={toggleJobsPanel}>
+            <span className="flex-1">
+              {jobsPanelVisible ? "✓ " : ""}{t("menuBar.view.jobs")}
+            </span>
+            <kbd className="ml-4 text-caption text-muted-foreground">{MOD_KEY}J</kbd>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

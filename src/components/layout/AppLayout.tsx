@@ -22,7 +22,6 @@ import {
   DialogFooter,
 } from "../ui/dialog";
 import { MenuBar } from "./MenuBar";
-import { KuroAppBar } from "./KuroAppBar";
 import { MajorSubnav, type MajorNavItem } from "./MajorSubnav";
 import { SubStepNav, type SubNavItem } from "./SubStepNav";
 import { MajorStepView } from "../steps/MajorStepView";
@@ -241,7 +240,6 @@ export function AppLayout() {
     <AppShell
       tool="kuro"
       titlebar={<MenuBar />}
-      appbar={<KuroAppBar />}
       subnav={<MajorSubnav majors={MAJORS} />}
       sidebar={
         <SubStepNav

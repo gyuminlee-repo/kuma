@@ -39,8 +39,6 @@ function formatRelativeTime(isoString: string, t: TFunc): string {
 // ─── autosave intro localStorage 키 ──────────────────────────────────────
 
 const AUTOSAVE_INTRO_KEY = "kuma:autosave-intro-shown";
-const LOG_PANEL_VISIBLE_KEY = "kuma:floating-panel:log:visible";
-const JOBS_PANEL_VISIBLE_KEY = "kuma:floating-panel:jobs:visible";
 
 // ─── autosave 상태 타입 (인디케이터 전용) ────────────────────────────────
 
@@ -53,11 +51,6 @@ const AUTOSAVE_DOT: Record<AutosaveIndicatorState, string> = {
   error: "bg-error",
 };
 
-function readVisiblePreference(key: string): boolean {
-  if (typeof window === "undefined") return true;
-  const raw = window.localStorage.getItem(key);
-  return raw === null ? true : raw === "true";
-}
 
 function hasTauriBridge(): boolean {
   return typeof (globalThis as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ !== "undefined";
@@ -103,12 +96,10 @@ export function MainShell() {
   // ── 상태바 좌측 메시지 (4초 자동 소멸)
   const [statusMessage, setStatusMessage] = useState("");
   const msgTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [logPanelVisible, setLogPanelVisible] = useState(() =>
-    readVisiblePreference(LOG_PANEL_VISIBLE_KEY),
-  );
-  const [jobsPanelVisible, setJobsPanelVisible] = useState(() =>
-    readVisiblePreference(JOBS_PANEL_VISIBLE_KEY),
-  );
+  const logPanelVisible = useAppStore((s) => s.logPanelVisible);
+  const setLogPanelVisible = useAppStore((s) => s.setLogPanelVisible);
+  const jobsPanelVisible = useAppStore((s) => s.jobsPanelVisible);
+  const setJobsPanelVisible = useAppStore((s) => s.setJobsPanelVisible);
 
   const showStatusMessage = useCallback((msg: string) => {
     if (msgTimerRef.current !== null) clearTimeout(msgTimerRef.current);
@@ -133,14 +124,6 @@ export function MainShell() {
       void unlisten.then((fn) => fn());
     };
   }, [showStatusMessage]);
-
-  useEffect(() => {
-    window.localStorage.setItem(LOG_PANEL_VISIBLE_KEY, String(logPanelVisible));
-  }, [logPanelVisible]);
-
-  useEffect(() => {
-    window.localStorage.setItem(JOBS_PANEL_VISIBLE_KEY, String(jobsPanelVisible));
-  }, [jobsPanelVisible]);
 
   // ── autosave 인디케이터 상태
   const [autosaveState, setAutosaveState] = useState<AutosaveIndicatorState>("idle");
@@ -486,39 +469,6 @@ export function MainShell() {
           </TabsContent>
         </div>
       </Tabs>
-
-      <div
-        className="fixed bottom-10 left-1/2 z-50 flex -translate-x-1/2 items-center gap-1 rounded-full border border-border bg-background/95 px-2 py-1 text-caption shadow-md backdrop-blur-sm"
-        aria-label={t("mainShell.panels.panelAriaLabel")}
-      >
-        <span className="px-1 text-muted-foreground">{t("mainShell.panels.label")}</span>
-        <button
-          type="button"
-          className={`rounded-full px-2 py-0.5 font-medium transition-colors ${
-            logPanelVisible
-              ? "bg-primary/10 text-primary"
-              : "text-muted-foreground hover:bg-accent hover:text-foreground"
-          }`}
-          onClick={() => setLogPanelVisible((v) => !v)}
-          aria-pressed={logPanelVisible}
-          title={t("mainShell.panels.logTitle")}
-        >
-          Log
-        </button>
-        <button
-          type="button"
-          className={`rounded-full px-2 py-0.5 font-medium transition-colors ${
-            jobsPanelVisible
-              ? "bg-primary/10 text-primary"
-              : "text-muted-foreground hover:bg-accent hover:text-foreground"
-          }`}
-          onClick={() => setJobsPanelVisible((v) => !v)}
-          aria-pressed={jobsPanelVisible}
-          title={t("mainShell.panels.jobsTitle")}
-        >
-          Jobs
-        </button>
-      </div>
 
       {/* §13 Background Job Queue floating panel */}
       {jobsPanelVisible && (

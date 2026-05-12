@@ -10,8 +10,10 @@
 import { useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { open } from "@tauri-apps/plugin-dialog";
-import { CheckCircle2, FolderOpen, Loader2 } from "lucide-react";
+import { readTextFile } from "@tauri-apps/plugin-fs";
+import { CheckCircle2, FolderOpen, Loader2, Wand2 } from "lucide-react";
 import { toast } from "sonner";
+import { autoDetectCds } from "@/lib/sequence/autoDetectCds";
 import { useKumaProject } from "@/state/projectContext";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { rpc } from "@/lib/ipc";
@@ -312,9 +314,39 @@ export function BarcodeSetupPanel({ group }: BarcodeSetupPanelProps = {}) {
 
         {/* 섹션 2: 유전자 좌표 (group: files 또는 undefined) */}
         {(!group || group === "files") && <section aria-labelledby="section-coords">
-          <h3 id="section-coords" className="mb-3 text-sm font-medium text-foreground">
-            {t("mame.barcodeSetup.geneCoordinates")}
-          </h3>
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <h3 id="section-coords" className="text-sm font-medium text-foreground">
+              {t("mame.barcodeSetup.geneCoordinates")}
+            </h3>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 gap-1.5 text-xs"
+              onClick={async () => {
+                if (!form.fastaPath) {
+                  toast.error(t("mame.barcodeSetup.autoDetect.noReference"));
+                  return;
+                }
+                try {
+                  const content = await readTextFile(form.fastaPath);
+                  const cds = autoDetectCds(content);
+                  if (cds) {
+                    setForm({ geneStart: String(cds.start), geneEnd: String(cds.end) });
+                    toast.success(t("mame.barcodeSetup.autoDetect.success", { source: cds.source }));
+                  } else {
+                    toast.error(t("mame.barcodeSetup.autoDetect.failed"));
+                  }
+                } catch {
+                  toast.error(t("mame.barcodeSetup.autoDetect.readError"));
+                }
+              }}
+              aria-label={t("mame.barcodeSetup.autoDetect.button")}
+            >
+              <Wand2 size={12} aria-hidden="true" />
+              {t("mame.barcodeSetup.autoDetect.button")}
+            </Button>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <NumberField
               id="gene-start"

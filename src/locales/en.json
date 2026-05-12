@@ -205,7 +205,14 @@
       "polymeraseQ5Title": "NEB Q5 High-Fidelity. Tm preset ~72 °C, low Mg²⁺. Default choice for high-fidelity amplification.",
       "polymeraseTaqTitle": "Standard Taq polymerase. Tm preset ~60 °C, higher Mg²⁺. Use for routine PCR or when 3'A overhangs are desired.",
       "polymerasePhusionTitle": "Thermo Phusion High-Fidelity. Tm preset ~72 °C, blunt-end, fast extension.",
-      "polymeraseKODTitle": "Toyobo KOD One / KOD Hot Start. Tm preset ~68 °C with Mg²⁺/dNTP correction. High-fidelity, fast."
+      "polymeraseKODTitle": "Toyobo KOD One / KOD Hot Start. Tm preset ~68 °C with Mg²⁺/dNTP correction. High-fidelity, fast.",
+      "autoDetect": {
+        "button": "Auto-detect from CDS",
+        "success": "Detected from {{source}}",
+        "failed": "No ORF found",
+        "noReference": "Reference file required",
+        "readError": "Failed to read reference file"
+      }
     },
     "activity": {
       "title": "Activity data",
@@ -1199,7 +1206,12 @@
     "ncbiBlastServiceSuffix": " -- sequence similarity search",
     "alphafoldServiceSuffix": " -- structure prediction lookup",
     "interproServiceSuffix": " -- protein domain annotation",
-    "kuroSubtitle": "Kernel for Upstream Recombination Oligodesign"
+    "kuroSubtitle": "Kernel for Upstream Recombination Oligodesign",
+    "view": {
+      "title": "View",
+      "logs": "Show Logs",
+      "jobs": "Show Jobs"
+    }
   },
   "panel": {
     "errorTitle": "Cannot display",
@@ -1610,6 +1622,23 @@
     "run": {
       "primary": "Run Design",
       "cancel": "Cancel"
+    },
+    "mameSubSteps": {
+      "setup": {
+        "files": "Files & Coordinates",
+        "design": "Design Parameters",
+        "output": "Generate Package"
+      },
+      "analyze": {
+        "verdict": "Verdicts",
+        "plate": "Plate Plan",
+        "health": "Run Health"
+      },
+      "activity": {
+        "ingest": "Ingest Data",
+        "merge": "Merge",
+        "export": "Export"
+      }
     }
   }
 }

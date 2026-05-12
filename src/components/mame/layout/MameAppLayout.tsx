@@ -30,17 +30,14 @@ import { OverwriteConfirmDialog } from "@/components/dialogs/OverwriteConfirmDia
 import { runPreflightCheck } from "@/lib/preflight";
 import type { PreflightResult } from "@/lib/preflight";
 import { MenuBar } from "./MenuBar";
-import { Sidebar } from "./Sidebar";
 import { WhatsNewDialog } from "@/components/dialogs/WhatsNewDialog";
 import { StatusBar } from "./StatusBar";
-import { PlateView } from "../widgets/PlateView";
-import { SummaryRow } from "../widgets/SummaryRow";
-import { VerdictTable } from "../widgets/VerdictTable";
-import { RunHealthPanel } from "../widgets/RunHealthPanel";
-import { DataPanel } from "@/components/ui/Panel";
-import { BarcodeSetupPanel } from "@/components/mame/panels/BarcodeSetupPanel";
-import { ActivityPanel } from "@/components/mame/panels/ActivityPanel";
+import { SubStepNav, type SubNavItem } from "@/components/layout/SubStepNav";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SetupStepView } from "@/components/mame/steps/SetupStepView";
+import { AnalyzeStepView } from "@/components/mame/steps/AnalyzeStepView";
+import { ActivityStepView } from "@/components/mame/steps/ActivityStepView";
+import { MAME_SUBSTEP_ORDER, type MameSubStepId } from "@/store/mame/slices/mameSubSteps";
 import type { MamePhase } from "@/store/mame/slices/phaseSlice";
 
 // Activity store는 RoundStore를 주입받아 초기화 (lazy singleton).
@@ -50,13 +47,32 @@ initActivityStore(useRoundStore);
 const SEQUENCE_EXTENSIONS = new Set([".fa", ".fasta", ".fna"]);
 const XLSX_EXTENSIONS = new Set([".xlsx"]);
 
+// MAME sub-step → i18n 레이블 매핑
+const MAME_SUBSTEP_LABEL_KEYS: Record<MameSubStepId, string> = {
+  "setup.files": "phaseC.mameSubSteps.setup.files",
+  "setup.design": "phaseC.mameSubSteps.setup.design",
+  "setup.output": "phaseC.mameSubSteps.setup.output",
+  "analyze.verdict": "phaseC.mameSubSteps.analyze.verdict",
+  "analyze.plate": "phaseC.mameSubSteps.analyze.plate",
+  "analyze.health": "phaseC.mameSubSteps.analyze.health",
+  "activity.ingest": "phaseC.mameSubSteps.activity.ingest",
+  "activity.merge": "phaseC.mameSubSteps.activity.merge",
+  "activity.export": "phaseC.mameSubSteps.activity.export",
+};
+
+function getMameSubSteps(phase: "setup" | "analyze" | "activity"): SubNavItem[] {
+  return MAME_SUBSTEP_ORDER[phase].map((id) => ({
+    id,
+    labelKey: MAME_SUBSTEP_LABEL_KEYS[id],
+  }));
+}
+
 export function MameAppLayout() {
   const { t } = useTranslation();
   const project = useKumaProject();
   const { status, retry } = useMameSidecar();
   const clearResults = useMameAppStore((s) => s.clearResults);
   const runHealth = useMameAppStore((s) => s.runHealth);
-  const verdictsLength = useMameAppStore((s) => s.verdicts.length);
   const isAnalyzing = useMameAppStore((s) => s.isAnalyzing);
   const mamePhase = useMameAppStore((s) => s.mamePhase);
   const setMamePhase = useMameAppStore((s) => s.setMamePhase);
@@ -84,7 +100,7 @@ export function MameAppLayout() {
 
   /**
    * Run 트리거 — pre-flight 검사 후 분석 실행.
-   * Sidebar Run 버튼과 키보드 단축키 모두 이 콜백을 사용.
+   * AnalyzeStepView와 키보드 단축키 모두 이 콜백을 사용.
    */
   const tryRunAnalysis = useCallback(() => {
     const s = useMameAppStore.getState();
@@ -227,50 +243,9 @@ export function MameAppLayout() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [project, tryRunAnalysis]);
 
-  // mame main 슬롯: Tabs 컨텍스트 안에서 TabsContent 전체
-  const tabsMainContent = (
-    <>
-      {/* Phase 1: Barcode Setup */}
-      <TabsContent value="setup" className="flex-1 min-h-0 overflow-hidden mt-0">
-        <BarcodeSetupPanel />
-      </TabsContent>
-
-      {/* Phase 2: Analyze (기존 분석 UI 전체) */}
-      {/* NOTE: drag-drop 이벤트는 외부 useEffect에 등록되어 있어 setup 탭에서도 동작 (v1 acceptable) */}
-      <TabsContent value="analyze" className="flex-1 min-h-0 overflow-hidden mt-0">
-        <div className="flex h-full gap-3 overflow-hidden p-3">
-          <Sidebar
-            onClearRequest={() => setClearConfirmOpen(true)}
-            onRunRequest={tryRunAnalysis}
-          />
-
-          <div
-            className="grid min-h-0 flex-1 min-w-0 grid-rows-[auto_minmax(0,1fr)_320px_auto] gap-3 overflow-hidden"
-            role="main"
-            aria-label={t("mame.appLayout.analysisWorkspaceAriaLabel")}
-          >
-            <SummaryRow />
-            <DataPanel title={t("mame.appLayout.verdictTableTitle")} className="min-h-0">
-              <VerdictTable />
-            </DataPanel>
-            <DataPanel title={t("mame.appLayout.platePlanTitle")}>
-              <PlateView />
-            </DataPanel>
-            {verdictsLength > 0 && runHealth !== null && (
-              <DataPanel title={t("mame.appLayout.runHealthTitle")}>
-                <RunHealthPanel health={runHealth} />
-              </DataPanel>
-            )}
-          </div>
-        </div>
-      </TabsContent>
-
-      {/* Phase 3: Activity (Ingest / Merge / Export sub-tabs) */}
-      <TabsContent value="activity" className="flex-1 min-h-0 overflow-hidden mt-0">
-        <ActivityPanel />
-      </TabsContent>
-    </>
-  );
+  // 현재 phase의 sub-step 목록
+  const currentPhaseForNav = mamePhase as "setup" | "analyze" | "activity";
+  const subSteps = getMameSubSteps(currentPhaseForNav);
 
   return (
     <Tabs
@@ -288,7 +263,35 @@ export function MameAppLayout() {
             <TabsTrigger value="activity">{t("mame.appLayout.activityTab")}</TabsTrigger>
           </TabsList>
         }
-        main={tabsMainContent}
+        sidebar={
+          <SubStepNav
+            major={mamePhase}
+            subSteps={subSteps}
+            store="mame"
+          />
+        }
+        main={
+          <>
+            {/* Phase 1: Barcode Setup */}
+            <TabsContent value="setup" className="flex-1 min-h-0 overflow-hidden mt-0">
+              <SetupStepView />
+            </TabsContent>
+
+            {/* Phase 2: Analyze */}
+            <TabsContent value="analyze" className="flex-1 min-h-0 overflow-hidden mt-0">
+              <AnalyzeStepView
+                runHealth={runHealth}
+                onRunRequest={tryRunAnalysis}
+                onClearRequest={() => setClearConfirmOpen(true)}
+              />
+            </TabsContent>
+
+            {/* Phase 3: Activity */}
+            <TabsContent value="activity" className="flex-1 min-h-0 overflow-hidden mt-0">
+              <ActivityStepView />
+            </TabsContent>
+          </>
+        }
         statusbar={<StatusBar sidecarStatus={status} onRetry={retry} />}
         isDragOver={isDragOver}
         className="h-full"
@@ -391,4 +394,3 @@ export function MameAppLayout() {
     </Tabs>
   );
 }
-
