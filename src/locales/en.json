@@ -362,12 +362,29 @@
       "deadlockReset": "Reset",
       "analysisWorkspaceAriaLabel": "Analysis workspace",
       "manifestLoadFailed": "Manifest load failed: {{err}}",
-      "barcodeSetupTab": "1. Barcode Setup",
-      "analyzeTab": "2. Analyze",
-      "activityTab": "3. Activity",
+      "barcodeSetupTab": "1. Run Setup",
+      "analyzeTab": "2. Sequencing QC",
+      "activityTab": "3. Activity Data",
       "verdictTableTitle": "Verdict table",
       "platePlanTitle": "Plate plan",
-      "runHealthTitle": "Run health"
+      "runHealthTitle": "Run health",
+      "subSteps": {
+        "setup": {
+          "files": "Input Files",
+          "design": "Primer Settings",
+          "output": "Preview"
+        },
+        "analyze": {
+          "verdict": "Verdicts",
+          "plate": "Plate Plan",
+          "health": "Run Health"
+        },
+        "activity": {
+          "ingest": "Ingest",
+          "merge": "Merge",
+          "export": "Export"
+        }
+      }
     },
     "dialogs": {
       "export": {

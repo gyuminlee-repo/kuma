@@ -362,12 +362,29 @@
       "deadlockReset": "초기화",
       "analysisWorkspaceAriaLabel": "분석 작업 공간",
       "manifestLoadFailed": "Manifest 로드 실패: {{err}}",
-      "barcodeSetupTab": "1. 바코드 설정",
-      "analyzeTab": "2. 분석",
-      "activityTab": "3. Activity",
+      "barcodeSetupTab": "1. 런 설정",
+      "analyzeTab": "2. 시퀀싱 QC",
+      "activityTab": "3. 활성도 데이터",
       "verdictTableTitle": "판정 테이블",
       "platePlanTitle": "Plate 계획",
-      "runHealthTitle": "Run 상태"
+      "runHealthTitle": "Run 상태",
+      "subSteps": {
+        "setup": {
+          "files": "입력 파일",
+          "design": "프라이머 설정",
+          "output": "미리보기"
+        },
+        "analyze": {
+          "verdict": "판정",
+          "plate": "플레이트 계획",
+          "health": "런 헬스"
+        },
+        "activity": {
+          "ingest": "인제스트",
+          "merge": "병합",
+          "export": "내보내기"
+        }
+      }
     },
     "dialogs": {
       "export": {

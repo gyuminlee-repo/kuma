@@ -3,6 +3,7 @@ import { subscribeWithSelector } from "zustand/middleware";
 import { createAnalysisSlice } from "./slices/analysisSlice";
 import { createExportSlice } from "./slices/exportSlice";
 import { createInputSlice } from "./slices/inputSlice";
+import { createNavigationSlice } from "./slices/navigationSlice";
 import { createPhaseSlice } from "./slices/phaseSlice";
 import type { AppState } from "./types";
 export type { AppState };
@@ -13,5 +14,6 @@ export const useMameAppStore = create<AppState>()(
     ...createAnalysisSlice(...args),
     ...createExportSlice(...args),
     ...createPhaseSlice(...args),
+    ...createNavigationSlice(...args),
   })),
 );

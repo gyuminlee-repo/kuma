@@ -7,6 +7,7 @@
 
 import type { StateCreator } from "zustand";
 import type { AppState } from "../types";
+import { MAME_SUBSTEP_ORDER } from "./mameSubSteps";
 
 const PHASE_STORAGE_KEY = "kuma:mame:phase";
 
@@ -49,7 +50,10 @@ export const createPhaseSlice: StateCreator<AppState, [], [], PhaseSlice> = (set
     } catch {
       // 저장 실패 시 상태만 업데이트
     }
-    set({ mamePhase: phase });
+    set({
+      mamePhase: phase,
+      currentMameSubStep: MAME_SUBSTEP_ORDER[phase][0],
+    });
   },
   activityTab: readActivityTabFromStorage(),
   setActivityTab: (tab) => {
