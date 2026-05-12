@@ -339,8 +339,8 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   searchUniprot: async (geneName: string, organism: string, translation: string, knownAccession: string) => {
     const consentGranted = await get().requireNetworkConsent();
     if (!consentGranted) {
-      const reason = get().offlineMode ? "오프라인 모드입니다" : "외부 서비스 사용 동의가 필요합니다";
-      set({ statusMessage: `UniProt 검색 취소: ${reason}` });
+      const reason = get().offlineMode ? i18next.t("diversity.offlineReason") : i18next.t("diversity.consentReason");
+      set({ statusMessage: i18next.t("diversity.uniprotSearchCancelled", { reason }) });
       return;
     }
     const searchGeneration = ++uniprotSearchGeneration;
@@ -394,8 +394,8 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   fetchStructure: async (accession: string) => {
     const consentGranted = await get().requireNetworkConsent();
     if (!consentGranted) {
-      const reason = get().offlineMode ? "오프라인 모드입니다" : "외부 서비스 사용 동의가 필요합니다";
-      set({ statusMessage: `AlphaFold fetch 취소: ${reason}` });
+      const reason = get().offlineMode ? i18next.t("diversity.offlineReason") : i18next.t("diversity.consentReason");
+      set({ statusMessage: i18next.t("diversity.alphafoldFetchCancelled", { reason }) });
       return;
     }
     const requestedAccession = accession.trim();

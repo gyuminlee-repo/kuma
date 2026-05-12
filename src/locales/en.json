@@ -1027,5 +1027,37 @@
     "noRoundId": "manifest.params.round_id is missing. Select a round in the mame tab before re-running.",
     "exportNotRunnable": "\"{{method}}\" is an export job. Export manifests cannot be re-run directly. Export again from the source data.",
     "unsupportedMethod": "Unsupported method: \"{{method}}\". Supported methods: {{supported}}"
+  },
+  "activitySlice": {
+    "csvFormatError": "CSV format error: {{detail}}",
+    "initRequired": "useActivityStore: call initActivityStore() first."
+  },
+  "diversity": {
+    "offlineReason": "Offline mode",
+    "consentReason": "External service consent required",
+    "domainFetchCancelled": "Domain fetch cancelled: {{reason}}",
+    "uniprotSearchCancelled": "UniProt search cancelled: {{reason}}",
+    "alphafoldFetchCancelled": "AlphaFold fetch cancelled: {{reason}}"
+  },
+  "inputThresholds": {
+    "estimateSec": "~{{sec}}s estimated",
+    "estimateMin": "~{{min}}m estimated",
+    "kuroLargeBlock": "Input is very large (mutations: {{rowCount}} rows{{fastaWarning}}). {{estimate}} (estimate). Continuing may result in very long run times.",
+    "kuroLargeWarn": "Input is large (mutations: {{rowCount}} rows{{fastaWarning}}). {{estimate}} (estimate).",
+    "mameLargeBlock": "Active data is very large ({{rowCount}} rows). {{estimate}} (estimate). Continuing may result in very long run times.",
+    "mameLargeWarn": "Active data is large ({{rowCount}} rows). {{estimate}} (estimate)."
+  },
+  "schemaValidator": {
+    "aliasNote": " (or {{aliases}})",
+    "missingColumn": "Required column missing: \"{{column}}\"{{aliasNote}}"
+  },
+  "toast": {
+    "completedWithDuration": "Completed ({{duration}})"
+  },
+  "exportSlice": {
+    "legacyWorkspaceUnsupported": "Workspaces older than v0.3 are not supported. Start a new workspace."
+  },
+  "inputSlice": {
+    "csvFormatError": "{{mode}} CSV format error: {{detail}}"
   }
 }

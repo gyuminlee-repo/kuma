@@ -1,3 +1,4 @@
+import i18next from "i18next";
 import type { StateCreator } from "zustand";
 import type { SortingState, Updater } from "@tanstack/react-table";
 import { sendRequest } from "../../lib/ipc-kuro";
@@ -483,7 +484,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
     const wsWithSchema = ws as WorkspaceData & { schema_version?: string };
     if (!wsWithSchema.schema_version || wsWithSchema.schema_version < "0.3") {
       throw new Error(
-        "v0.3 이전 워크스페이스는 지원하지 않습니다. 새 워크스페이스로 시작하세요."
+        i18next.t("exportSlice.legacyWorkspaceUnsupported")
       );
     }
     // schema_version >= "0.3" 이면 WorkspaceV3이므로 legacy normalize는 불필요.

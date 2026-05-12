@@ -361,9 +361,9 @@
     "strategyHint_partial": "Forward와 reverse는 독립적이며, overlap은 코돈 상류에 위치합니다.",
     "strategyHint_full": "Reverse = rc(forward). 단일 primer의 Tm과 길이가 양쪽 모두에 적용됩니다.",
     "strategyHelp": "Partial (Gibson): 코돈 상류에 overlap 배치. fwd와 rev 독립 설계.\nFull (Q5 SDM): rev = rc(fwd). 단일 primer 쌍이 돌연변이 위치를 커버합니다.",
-    "strategyOption_partial": "Partial overlap (Gibson)",
+    "strategyOption_partial": "부분 오버랩 (Gibson)",
     "strategyOption_partial_title": "Gibson assembly 방식. Forward와 reverse primer가 독립적이며 overlap은 목표 코돈 상류에 배치됩니다. 인하우스 SDM 표준입니다.",
-    "strategyOption_full": "Full overlap (Q5 SDM)",
+    "strategyOption_full": "전체 오버랩 (Q5 SDM)",
     "strategyOption_full_title": "NEB Q5 SDM kit 방식. Reverse primer = forward의 reverse-complement. 단일 back-to-back primer 쌍이 돌연변이 위치를 커버합니다.",
     "polymeraseLabel": "중합효소:",
     "polymeraseHelp": "Tm 계산 프리셋(연장 Tm 목표 및 허용 오차 기본값)을 선택합니다.\nSDM 반응에 사용하는 중합효소를 선택하세요.\n'Custom Polymerase'로 직접 연장 Tm을 정의할 수 있습니다.",
@@ -426,8 +426,8 @@
     "sectionFailedMutations": "실패한 돌연변이",
     "statStep1Filter": "Step 1 필터",
     "statStep2Domains": "Step 2 도메인",
-    "statStep2Overlap": "Step 2 overlap",
-    "statStep2Linker": "Step 2 linker",
+    "statStep2Overlap": "Step 2 오버랩",
+    "statStep2Linker": "Step 2 링커",
     "statStep2MinQuota": "Step 2 최소 할당량",
     "statStep3Pareto": "Step 3 Pareto",
     "statDistanceMode": "거리 모드",
@@ -486,7 +486,7 @@
     "helpTip3D": "AlphaFold Cα 좌표를 사용해 3D 공간에서 멀리 분포한 변이를 선택합니다.",
     "helpTip1D": "선택된 위치 간 최소 서열 거리를 최대화하는 greedy Pareto 선택입니다.",
     "roundSectionLabel": "라운드",
-    "evolveproRoundLabel": "EVOLVEpro Round",
+    "evolveproRoundLabel": "EVOLVEpro 라운드",
     "roundSizeLabel": "크기",
     "roundHelp": "Round × size = 모델 품질(ρ) 추정에 사용되는 누적 데이터 수입니다.\nρ가 낮을수록 풀이 넓어지고 탐색을 위한 entropy 가중치가 높아집니다.",
     "autoLabel": "자동",
@@ -564,7 +564,7 @@
     "inputPlaceholderDownstream": "하류",
     "inputPlaceholderRev": "Reverse 서열 (5' → 3')",
     "btnEvaluate": "평가",
-    "btnEvaluating": "...",
+    "btnEvaluating": "평가 중...",
     "errorDuplicate": "중복된 custom primer입니다. 이미 추가되었습니다.",
     "errorInvalidSeq": "잘못된 서열: {{message}}"
   },
@@ -836,7 +836,7 @@
     "rowHairpinRev": "Hairpin 역방향",
     "rowHomodimerFwd": "Homodimer 정방향",
     "rowHomodimerRev": "Homodimer 역방향",
-    "statusOk": "OK",
+    "statusOk": "정상",
     "statusWarn": "경고",
     "title": "{{mutation}} - 이차 구조",
     "warningsLabel": "경고:"
@@ -885,7 +885,7 @@
     "closeAriaLabel": "닫기",
     "colMatch": "일치 (bp)",
     "colPosition": "위치",
-    "colPrimer": "Primer",
+    "colPrimer": "프라이머",
     "colSequence": "서열",
     "colStrand": "가닥",
     "colTm": "Tm (°C)",
@@ -907,7 +907,7 @@
     "forwardPrimer": "정방향 primer",
     "noPlateLayout": "아직 plate 배치 없음",
     "noPlateLayoutDesc": "설계를 실행하면 primer가 plate well에 배정됩니다.",
-    "plate": "Plate",
+    "plate": "플레이트",
     "platePairDesc": "각 페이지는 정방향 plate 1개와 중복 제거된 역방향 파트너를 함께 표시합니다.",
     "platePairReview": "Plate 쌍 검토",
     "reverse": "역방향",
@@ -1027,5 +1027,37 @@
     "noRoundId": "manifest.params.round_id 가 없습니다. mame 탭에서 라운드를 먼저 선택한 뒤 re-run 해주세요.",
     "exportNotRunnable": "\"{{method}}\" 는 export 작업입니다. export manifest 는 직접 re-run 할 수 없습니다. 원본 데이터에서 다시 export 하세요.",
     "unsupportedMethod": "지원하지 않는 method: \"{{method}}\". 지원 method: {{supported}}"
+  },
+  "activitySlice": {
+    "csvFormatError": "CSV 형식 오류: {{detail}}",
+    "initRequired": "useActivityStore: initActivityStore()를 먼저 호출하세요."
+  },
+  "diversity": {
+    "offlineReason": "오프라인 모드입니다",
+    "consentReason": "외부 서비스 사용 동의가 필요합니다",
+    "domainFetchCancelled": "Domain fetch 취소: {{reason}}",
+    "uniprotSearchCancelled": "UniProt 검색 취소: {{reason}}",
+    "alphafoldFetchCancelled": "AlphaFold fetch 취소: {{reason}}"
+  },
+  "inputThresholds": {
+    "estimateSec": "약 {{sec}}초 소요 예상",
+    "estimateMin": "약 {{min}}분 소요 예상",
+    "kuroLargeBlock": "입력 크기가 매우 큽니다 (mutations: {{rowCount}}행{{fastaWarning}}). {{estimate}} (예상값). 계속하면 실행 시간이 매우 길 수 있습니다.",
+    "kuroLargeWarn": "입력 크기가 큽니다 (mutations: {{rowCount}}행{{fastaWarning}}). {{estimate}} (예상값).",
+    "mameLargeBlock": "활성 데이터 크기가 매우 큽니다 ({{rowCount}}행). {{estimate}} (예상값). 계속하면 실행 시간이 매우 길 수 있습니다.",
+    "mameLargeWarn": "활성 데이터가 큽니다 ({{rowCount}}행). {{estimate}} (예상값)."
+  },
+  "schemaValidator": {
+    "aliasNote": " (또는 {{aliases}})",
+    "missingColumn": "필수 컬럼 누락: \"{{column}}\"{{aliasNote}}"
+  },
+  "toast": {
+    "completedWithDuration": "완료 ({{duration}})"
+  },
+  "exportSlice": {
+    "legacyWorkspaceUnsupported": "v0.3 이전 워크스페이스는 지원하지 않습니다. 새 워크스페이스로 시작하세요."
+  },
+  "inputSlice": {
+    "csvFormatError": "{{mode}} CSV 형식 오류: {{detail}}"
   }
 }

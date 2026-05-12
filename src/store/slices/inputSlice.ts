@@ -1,3 +1,4 @@
+import i18next from "i18next";
 import type { StateCreator } from "zustand";
 import { resolveResource } from "@tauri-apps/api/path";
 import { readTextFile } from "@tauri-apps/plugin-fs";
@@ -100,7 +101,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         if (!validation.valid) {
           const detail = validation.errors.join("; ");
           set({
-            statusMessage: `${modeLabel} CSV 형식 오류: ${detail}`,
+            statusMessage: i18next.t("inputSlice.csvFormatError", { mode: modeLabel, detail }),
             evolveproCsvPath: "",
           });
           return;

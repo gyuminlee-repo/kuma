@@ -7,6 +7,7 @@
  * Spec: notes/specs/2026-05-04-mame-activity-integration.md §4
  */
 
+import i18next from "i18next"
 import { create } from "zustand"
 import { readTextFile } from "@tauri-apps/plugin-fs"
 import { notifyJobComplete } from "@/lib/notify"
@@ -143,7 +144,7 @@ export function createActivityStore(roundStore: RoundStoreRef) {
           if (!validation.valid) {
             const detail = validation.errors.join("; ")
             set({
-              uploadError: `CSV 형식 오류: ${detail}`,
+              uploadError: i18next.t("activitySlice.csvFormatError", { detail }),
               isUploading: false,
             })
             return
@@ -321,7 +322,7 @@ export function initActivityStore(roundStore: RoundStoreRef): void {
 export function useActivityStore(): ReturnType<typeof createActivityStore> {
   if (!_store) {
     throw new Error(
-      "useActivityStore: initActivityStore()를 먼저 호출하세요."
+      i18next.t("activitySlice.initRequired")
     )
   }
   return _store
