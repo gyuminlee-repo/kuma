@@ -1,0 +1,65 @@
+#!/usr/bin/env node
+/**
+ * i18n-lint — Detect hardcoded Korean in src/ outside locales/.
+ *
+ * Exit codes:
+ *   0  pass (no hardcoded Korean except allowlist)
+ *   1  fail (hardcoded Korean found)
+ *
+ * Allowlist: src/components/ui/LocaleToggle.tsx — `ko: "한국어"` self-label.
+ */
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import { join, relative } from "node:path";
+
+const ROOT = new URL("..", import.meta.url).pathname;
+const SRC = join(ROOT, "src");
+const KOREAN = /[가-힯]/;
+const JSX_COMMENT = /^\s*\{\s*\/\*.*\*\/\s*\}\s*$/;
+const LINE_COMMENT = /^\s*(\/\/|\*|\/\*)/;
+
+const ALLOWLIST = {
+  "src/components/ui/LocaleToggle.tsx": new Set([21]),
+};
+
+function walk(dir, out = []) {
+  for (const name of readdirSync(dir)) {
+    const p = join(dir, name);
+    const st = statSync(p);
+    if (st.isDirectory()) {
+      if (name === "locales" || name === "node_modules") continue;
+      walk(p, out);
+    } else if (/\.(ts|tsx)$/.test(name) && !name.includes(".test.")) {
+      out.push(p);
+    }
+  }
+  return out;
+}
+
+const offenders = [];
+for (const file of walk(SRC)) {
+  const rel = relative(ROOT, file).replace(/\\/g, "/");
+  const allowed = ALLOWLIST[rel] || new Set();
+  const lines = readFileSync(file, "utf8").split("\n");
+  lines.forEach((ln, i) => {
+    const n = i + 1;
+    if (allowed.has(n)) return;
+    const trimmed = ln.trim();
+    if (!trimmed) return;
+    if (LINE_COMMENT.test(trimmed)) return;
+    if (JSX_COMMENT.test(trimmed)) return;
+    if (KOREAN.test(ln)) {
+      offenders.push(`${rel}:${n}: ${trimmed.slice(0, 140)}`);
+    }
+  });
+}
+
+if (offenders.length === 0) {
+  console.log("i18n-lint: ok (0 hardcoded Korean lines)");
+  process.exit(0);
+}
+
+console.error(`i18n-lint: ${offenders.length} hardcoded Korean line(s) found:`);
+for (const o of offenders) console.error("  " + o);
+console.error("\nFix: extract to src/locales/{en,ko}.json and use t() / i18next.t().");
+console.error("Allowlist intentional Korean in scripts/i18n-lint.mjs ALLOWLIST.");
+process.exit(1);

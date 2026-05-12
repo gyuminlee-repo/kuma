@@ -64,6 +64,12 @@ jobs:
       - name: Cross-layer sync check
         run: node scripts/sync-check.mjs
 
+      - name: i18n hardcoded-Korean lint
+        run: node scripts/i18n-lint.mjs
+
+      - name: i18n en/ko key parity
+        run: node scripts/i18n-parity.mjs
+
   rust-check:
     runs-on: ubuntu-22.04
 
