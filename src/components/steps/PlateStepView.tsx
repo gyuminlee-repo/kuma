@@ -10,7 +10,7 @@ import { PlateMap } from "@/components/widgets/PlateMap";
 
 export function PlateStepView() {
   return (
-    <div className="p-6">
+    <div className="p-[var(--section-pad)]">
       <PlateMap />
     </div>
   );

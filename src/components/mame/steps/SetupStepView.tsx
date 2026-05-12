@@ -15,14 +15,20 @@ import { BarcodeSetupPanel } from "@/components/mame/panels/BarcodeSetupPanel";
 export function SetupStepView() {
   const subStep = useMameAppStore((s) => s.currentMameSubStep);
 
-  switch (subStep) {
-    case "setup.files":
-      return <BarcodeSetupPanel group="files" />;
-    case "setup.design":
-      return <BarcodeSetupPanel group="design" />;
-    case "setup.output":
-      return <BarcodeSetupPanel group="output" />;
-    default:
-      return null;
-  }
+  return (
+    <div className="content-card">
+      {(() => {
+        switch (subStep) {
+          case "setup.files":
+            return <BarcodeSetupPanel group="files" />;
+          case "setup.design":
+            return <BarcodeSetupPanel group="design" />;
+          case "setup.output":
+            return <BarcodeSetupPanel group="output" />;
+          default:
+            return null;
+        }
+      })()}
+    </div>
+  );
 }

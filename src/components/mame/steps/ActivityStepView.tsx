@@ -31,7 +31,7 @@ export function ActivityStepView() {
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="mx-auto max-w-2xl space-y-6 p-4">
+      <div className="content-card space-y-6">
         {(() => {
           switch (subStep) {
             case "activity.ingest":

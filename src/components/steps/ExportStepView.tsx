@@ -12,7 +12,7 @@ import { WorkspaceSaveLoad } from "./WorkspaceSaveLoad";
 
 export function ExportStepView() {
   return (
-    <div className="p-6 space-y-6 max-w-3xl mx-auto">
+    <div className="content-card space-y-6">
       <ExportFormatSelector />
       <OrderSummary />
       <WorkspaceSaveLoad />

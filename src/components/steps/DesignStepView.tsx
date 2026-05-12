@@ -27,31 +27,33 @@ export function DesignStepView() {
       <div className="flex-shrink-0 border-b border-border">
         <SequenceViewer />
       </div>
-      <div className="flex-1 overflow-auto p-6">
-        {(() => {
-          switch (subStep) {
-            case "design.load":
-              return <SequenceInput />;
-            case "design.variant":
-              return (
-                <>
-                  <UniprotSearch />
-                  <DiversityOptions />
-                </>
-              );
-            case "design.mutation":
-              return <MutationInput />;
-            case "design.params":
-              return (
-                <>
-                  <ParameterPanel />
-                  <RunDesignAction />
-                </>
-              );
-            default:
-              return null;
-          }
-        })()}
+      <div className="flex-1 overflow-auto">
+        <div className="content-card">
+          {(() => {
+            switch (subStep) {
+              case "design.load":
+                return <SequenceInput />;
+              case "design.variant":
+                return (
+                  <>
+                    <UniprotSearch />
+                    <DiversityOptions />
+                  </>
+                );
+              case "design.mutation":
+                return <MutationInput />;
+              case "design.params":
+                return (
+                  <>
+                    <ParameterPanel />
+                    <RunDesignAction />
+                  </>
+                );
+              default:
+                return null;
+            }
+          })()}
+        </div>
       </div>
     </div>
   );

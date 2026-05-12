@@ -79,6 +79,10 @@
     /* domain-specific (well plate) */
     --text-plate: 10px;
     --text-plate-tiny: 8px;
+
+    /* === Phase D4 tokens === */
+    --content-max-w: 56rem;
+    --section-pad: 1.5rem;
   }
 
   [data-tool="kuro"] {
@@ -140,6 +144,20 @@
 
 @media (prefers-reduced-motion: reduce) {
   :root { --duration-fast: 0ms; --duration-base: 0ms; }
+}
+
+@layer utilities {
+  .text-body-lg {
+    font-size: 0.9375rem;
+    line-height: 1.5;
+  }
+
+  .content-card {
+    max-width: var(--content-max-w);
+    padding: var(--section-pad);
+    margin-left: auto;
+    margin-right: auto;
+  }
 }
 
 @layer base {
