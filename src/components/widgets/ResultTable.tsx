@@ -1,4 +1,5 @@
 import { lazy, Suspense, useCallback, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   flexRender,
   getCoreRowModel,
@@ -64,8 +65,9 @@ export function ResultTable() {
     })),
   );
 
+  const { t } = useTranslation();
   const failedRetryDisabled = pipelineMode && fillOnFailure;
-  const failedRetryDisabledHint = "Pipeline + Fill on failure already substituted these positions; retry is disabled.";
+  const failedRetryDisabledHint = t("resultTable.pipelineFillHint");
 
   const [popover, setPopover] = useState<{ mutation: string; current: SdmPrimerResult } | null>(null);
   const [hpDetail, setHpDetail] = useState<SdmPrimerResult | null>(null);
@@ -98,6 +100,7 @@ export function ResultTable() {
         removeDesignResult,
         yPredMap,
         colorblindMode,
+        t,
       }),
     [
       groupColorMap,
@@ -110,6 +113,7 @@ export function ResultTable() {
       removeDesignResult,
       yPredMap,
       colorblindMode,
+      t,
     ],
   );
 
@@ -159,8 +163,8 @@ export function ResultTable() {
         <div className="h-full overflow-auto p-5">
           <StateView
             variant="error"
-            title={`All ${totalCount} mutations failed`}
-            description="Review failure reasons below, then adjust parameters and retry."
+            title={t("resultTable.allFailedTitle", { count: totalCount })}
+            description={t("resultTable.allFailedDesc")}
             className="pb-4"
           />
           <FailedMutationList
@@ -185,8 +189,8 @@ export function ResultTable() {
       <div className="flex h-full items-center justify-center p-8">
         <StateView
           variant="empty"
-          title="No results yet"
-          description="Load a sequence, define mutations, then run design."
+          title={t("resultTable.noResultsTitle")}
+          description={t("resultTable.noResultsDesc")}
         />
       </div>
     );
@@ -313,7 +317,7 @@ export function ResultTable() {
           />
           {failedRetryDisabled && (
             <p className="mt-1 text-[11px] text-muted-foreground">
-              Pipeline + Fill on failure substituted these positions; retry is unnecessary.
+              {t("resultTable.pipelineFillNote")}
             </p>
           )}
         </div>

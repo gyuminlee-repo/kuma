@@ -13,6 +13,7 @@
  *   - On dismiss ("Got it"): write current version to localStorage, close.
  */
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogContent,
@@ -61,6 +62,7 @@ interface WhatsNewDialogProps {
 }
 
 export function WhatsNewDialog({ onDismiss }: WhatsNewDialogProps) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -88,9 +90,9 @@ export function WhatsNewDialog({ onDismiss }: WhatsNewDialogProps) {
         aria-describedby="whats-new-desc"
       >
         <DialogHeader>
-          <DialogTitle>What&apos;s New in v{__APP_VERSION__}</DialogTitle>
+          <DialogTitle>{t("whatsNewDialog.title", { version: __APP_VERSION__ })}</DialogTitle>
           <DialogDescription id="whats-new-desc">
-            Highlights from the latest update.
+            {t("whatsNewDialog.description")}
           </DialogDescription>
         </DialogHeader>
 
@@ -107,7 +109,7 @@ export function WhatsNewDialog({ onDismiss }: WhatsNewDialogProps) {
 
         <DialogFooter>
           <Button size="sm" onClick={handleDismiss} autoFocus>
-            Got it
+            {t("whatsNewDialog.gotItBtn")}
           </Button>
         </DialogFooter>
       </DialogContent>

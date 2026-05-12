@@ -1,4 +1,5 @@
 import { AlertCircle, Download, Play, ShieldCheck, Square, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 
 const RUN_HINT = typeof navigator !== "undefined" && navigator.userAgent.includes("Mac") ? "⌘↵" : "Ctrl+↵";
@@ -15,6 +16,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ onClearRequest, onRunRequest }: SidebarProps) {
+  const { t } = useTranslation();
   const inputDir = useMameAppStore((s) => s.inputDir);
   const expectedPath = useMameAppStore((s) => s.expectedPath);
   const referencePath = useMameAppStore((s) => s.referencePath);
@@ -51,13 +53,13 @@ export function Sidebar({ onClearRequest, onRunRequest }: SidebarProps) {
       <footer className="space-y-2 border-t border-border px-3 py-3">
         <div className="space-y-1 px-1">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-caption text-muted-foreground">Run state</span>
+            <span className="text-caption text-muted-foreground">{t("mameSidebar.runStateLabel")}</span>
             <span className="rounded-full border border-border/70 bg-muted px-2 py-0.5 text-caption font-medium text-muted-foreground">
               {readyCount}/{requiredInputs.length} ready
             </span>
           </div>
           <div className="truncate text-body font-medium text-foreground" aria-live="polite">
-            {analyzeMessage || (isAnalyzing ? "Analyzing…" : canRun ? "Ready to run" : "Setup incomplete")}
+            {analyzeMessage || (isAnalyzing ? t("mameSidebar.statusAnalyzing") : canRun ? t("mameSidebar.statusReady") : t("mameSidebar.statusIncomplete"))}
           </div>
           <Progress
             value={readiness}
@@ -73,7 +75,7 @@ export function Sidebar({ onClearRequest, onRunRequest }: SidebarProps) {
           )}
           {!isAnalyzing && (
             <p className="mt-1.5 text-caption text-muted-foreground">
-              {validationErrors.length > 0 ? `${validationErrors.length} validation issue(s)` : "No validation issues"}
+              {validationErrors.length > 0 ? t("mameSidebar.validationIssues", { count: validationErrors.length }) : t("mameSidebar.noValidationIssues")}
             </p>
           )}
         </div>
@@ -85,7 +87,7 @@ export function Sidebar({ onClearRequest, onRunRequest }: SidebarProps) {
           >
             <AlertCircle size={12} className="mt-0.5 flex-shrink-0 text-error" aria-hidden="true" />
             <div className="min-w-0 space-y-1 text-caption text-error">
-              <p className="font-medium">{validationErrors.length} input error(s)</p>
+              <p className="font-medium">{t("mameSidebar.inputErrors", { count: validationErrors.length })}</p>
               <ul className="list-disc space-y-0.5 pl-4">
                 {validationErrors.map((error, index) => (
                   <li key={`${index}-${error}`} className="break-words">
@@ -106,7 +108,7 @@ export function Sidebar({ onClearRequest, onRunRequest }: SidebarProps) {
             disabled={isValidating || isAnalyzing}
           >
             <ShieldCheck size={12} aria-hidden="true" />
-            {isValidating ? "Validating…" : "Validate"}
+            {isValidating ? t("mameSidebar.validatingBtn") : t("mameSidebar.validateBtn")}
           </Button>
           {isAnalyzing ? (
             <Button
@@ -116,7 +118,7 @@ export function Sidebar({ onClearRequest, onRunRequest }: SidebarProps) {
               onClick={() => void cancelAnalysis()}
             >
               <Square size={12} aria-hidden="true" />
-              Cancel
+              {t("mameSidebar.cancelBtn")}
             </Button>
           ) : (
             <Button
@@ -126,7 +128,7 @@ export function Sidebar({ onClearRequest, onRunRequest }: SidebarProps) {
               disabled={!canRun}
             >
               <Play size={12} aria-hidden="true" />
-              Run
+              {t("mameSidebar.runBtn")}
               <kbd className="ml-1 text-caption font-normal opacity-70">{RUN_HINT}</kbd>
             </Button>
           )}
@@ -140,7 +142,7 @@ export function Sidebar({ onClearRequest, onRunRequest }: SidebarProps) {
             disabled={!hasResults || isAnalyzing}
           >
             <Trash2 size={12} aria-hidden="true" />
-            Clear
+            {t("mameSidebar.clearBtn")}
           </Button>
           <Button
             variant="outline"
@@ -150,7 +152,7 @@ export function Sidebar({ onClearRequest, onRunRequest }: SidebarProps) {
             disabled={!hasResults}
           >
             <Download size={12} aria-hidden="true" />
-            Export
+            {t("mameSidebar.exportBtn")}
           </Button>
         </div>
       </footer>

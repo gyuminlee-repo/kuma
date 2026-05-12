@@ -283,6 +283,7 @@ export function ReplicateMergeStats({ replicateStats }: { replicateStats: MergeR
 }
 
 function CalibrationBanner() {
+  const { t } = useTranslation();
   return (
     <div
       role="status"
@@ -295,16 +296,15 @@ function CalibrationBanner() {
         className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400"
       />
       <span>
-        <strong>Calibration period — classification inactive.</strong> Signal
-        values are displayed for monitoring only. Automated classification
-        decisions are not shown until advisory mode is enabled (Round 3+,
-        v0.3).
+        <strong>{t("roundSummarySignals.calibrationBannerHeading")}</strong>{" "}
+        {t("roundSummarySignals.calibrationBannerBody")}
       </span>
     </div>
   );
 }
 
 function SignalBadge({ met }: { met: boolean }) {
+  const { t } = useTranslation();
   return (
     <Badge
       variant={met ? "default" : "outline"}
@@ -314,7 +314,7 @@ function SignalBadge({ met }: { met: boolean }) {
           ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200"
           : "text-muted-foreground"
       )}
-      aria-label={met ? "Signal met" : "Signal not met"}
+      aria-label={met ? t("roundSummarySignals.signalMetAriaLabel") : t("roundSummarySignals.signalNotMetAriaLabel")}
     >
       {met ? "✓" : "—"}
     </Badge>
@@ -351,21 +351,22 @@ function RationaleTooltip({
 }
 
 function SignalsTable({ rows }: { rows: SignalRowData[] }) {
+  const { t } = useTranslation();
   return (
-    <Table aria-label="Round strategy signals">
+    <Table aria-label={t("roundSummarySignals.signalsTableAriaLabel")}>
       <TableHeader>
         <TableRow>
           <TableHead scope="col" className="w-36 text-xs">
-            Signal
+            {t("roundSummarySignals.signalCol")}
           </TableHead>
           <TableHead scope="col" className="w-12 text-center text-xs">
-            Met
+            {t("roundSummarySignals.metCol")}
           </TableHead>
           <TableHead scope="col" className="text-xs">
-            Input value
+            {t("roundSummarySignals.inputValueCol")}
           </TableHead>
           <TableHead scope="col" className="w-14 text-center text-xs">
-            Basis
+            {t("roundSummarySignals.basisCol")}
           </TableHead>
         </TableRow>
       </TableHeader>
@@ -458,11 +459,11 @@ export function RoundSummaryPanel({
           id="round-summary-heading"
           className="flex items-center gap-1.5 text-sm font-semibold text-foreground"
         >
-          Round Signals
+          {t("roundSummarySignals.roundSignalsHeading")}
           {demoMode && (
             <span
               className="rounded bg-amber-100 px-1 py-0.5 text-[9px] font-medium uppercase tracking-wide text-amber-700 dark:bg-amber-900 dark:text-amber-300"
-              aria-label="Demo mode: metrics are synthesised from local merge stats, not a live backend RPC"
+              aria-label={t("roundSummarySignals.demoModeAriaLabel")}
             >
               demo
             </span>
@@ -499,7 +500,7 @@ export function RoundSummaryPanel({
           className="py-6 text-center text-xs text-muted-foreground"
           aria-live="polite"
         >
-          No round metrics yet — complete an ALE round to compute signals.
+          {t("roundSummarySignals.noMetricsYet")}
         </p>
       ) : (
         <div className="overflow-x-auto rounded-md border">

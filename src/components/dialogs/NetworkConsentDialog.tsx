@@ -58,7 +58,7 @@ export function NetworkConsentDialog() {
                   >
                     uniprot.org
                   </a>
-                  {" — protein sequence search"}
+                  {" — "}{t("networkConsent.serviceUniprotDesc")}
                 </li>
                 <li>
                   <span className="font-medium">NCBI BLAST (EBI)</span>
@@ -71,7 +71,7 @@ export function NetworkConsentDialog() {
                   >
                     ebi.ac.uk
                   </a>
-                  {" — sequence similarity search"}
+                  {" — "}{t("networkConsent.serviceBlastDesc")}
                 </li>
                 <li>
                   <span className="font-medium">AlphaFold (EBI)</span>
@@ -84,7 +84,7 @@ export function NetworkConsentDialog() {
                   >
                     alphafold.ebi.ac.uk
                   </a>
-                  {" — structure prediction lookup"}
+                  {" — "}{t("networkConsent.serviceAlphafoldDesc")}
                 </li>
                 <li>
                   <span className="font-medium">InterPro / Pfam (EBI)</span>
@@ -97,7 +97,7 @@ export function NetworkConsentDialog() {
                   >
                     ebi.ac.uk/interpro
                   </a>
-                  {" — protein domain annotation"}
+                  {" — "}{t("networkConsent.serviceInterproDesc")}
                 </li>
               </ul>
               <p className="text-xs">

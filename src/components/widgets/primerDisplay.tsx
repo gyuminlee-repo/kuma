@@ -1,4 +1,5 @@
 import type { MouseEvent } from "react";
+import { useTranslation } from "react-i18next";
 
 export function formatTolerance(tf?: number, tr?: number, fallback?: number): string {
   if (tf != null && tr != null) return `\u00B1${tf.toFixed(1)}/\u00B1${tr.toFixed(1)}`;
@@ -32,12 +33,13 @@ export function CopySeqButton({
   copied: boolean;
   onCopy: (e: MouseEvent<HTMLButtonElement>) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <button
       className="ml-1 flex-shrink-0 text-muted-foreground/50 hover:text-muted-foreground text-caption leading-none"
       onClick={onCopy}
-      title="Copy sequence"
-      aria-label={`Copy sequence to clipboard: ${seq}`}
+      title={t("primerDisplay.copySeqTitle")}
+      aria-label={t("primerDisplay.copySeqAriaLabel", { seq })}
     >
       {copied ? "\u2713" : "\uD83D\uDCCB"}
     </button>

@@ -111,12 +111,12 @@ export function WtWellEditor() {
         className="w-full text-xs"
         onClick={handleOpen}
         disabled={disabled}
-        aria-label={t("openBtnAriaLabel")}
+        aria-label={t("wtWellEditor.openBtnAriaLabel")}
       >
-        {t("openBtnLabel")}
+        {t("wtWellEditor.openBtnLabel")}
         {activeRound && activeRound.plate_meta.plates[0]?.wt_wells.length > 0 && (
           <span className="ml-1.5 text-muted-foreground">
-            {t("selectedCount", { count: activeRound.plate_meta.plates[0].wt_wells.length })}
+            {t("wtWellEditor.selectedCount", { count: activeRound.plate_meta.plates[0].wt_wells.length })}
           </span>
         )}
       </Button>
@@ -127,13 +127,13 @@ export function WtWellEditor() {
           aria-describedby={undefined}
         >
           <DialogHeader>
-            <DialogTitle>{t("dialogTitle")}</DialogTitle>
+            <DialogTitle>{t("wtWellEditor.dialogTitle")}</DialogTitle>
           </DialogHeader>
 
           {/* Column headers */}
           <div
             className="overflow-auto"
-            aria-label={t("gridAriaLabel")}
+            aria-label={t("wtWellEditor.gridAriaLabel")}
           >
             <div className="grid grid-cols-[1.5rem_repeat(12,1.5rem)] gap-0.5">
               {/* top-left empty cell */}
@@ -186,7 +186,7 @@ export function WtWellEditor() {
           </div>
 
           <p className="text-caption text-muted-foreground">
-            {localWt.size === 1 ? t("selectedSingle", { count: localWt.size }) : t("selectedPlural", { count: localWt.size })}
+            {localWt.size === 1 ? t("wtWellEditor.selectedSingle", { count: localWt.size }) : t("wtWellEditor.selectedPlural", { count: localWt.size })}
           </p>
 
           <DialogFooter>
@@ -197,7 +197,7 @@ export function WtWellEditor() {
               onClick={() => setOpen(false)}
               className="text-xs"
             >
-              {t("cancelBtn")}
+              {t("wtWellEditor.cancelBtn")}
             </Button>
             <Button
               type="button"
@@ -206,9 +206,9 @@ export function WtWellEditor() {
               disabled={isSaving || !activeRoundId}
               aria-busy={isSaving}
               className="text-xs"
-              aria-label={t("saveAriaLabel")}
+              aria-label={t("wtWellEditor.saveAriaLabel")}
             >
-              {isSaving ? t("savingBtn") : t("saveBtn")}
+              {isSaving ? t("wtWellEditor.savingBtn") : t("wtWellEditor.saveBtn")}
             </Button>
           </DialogFooter>
         </DialogContent>

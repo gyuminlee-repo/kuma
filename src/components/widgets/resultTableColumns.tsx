@@ -1,4 +1,5 @@
 import { useState, type MouseEvent } from "react";
+import type { TFunction } from "i18next";
 import { createColumnHelper } from "@tanstack/react-table";
 import type { RescuedMutation, SdmPrimerResult } from "../../types/models";
 import { ColoredFwdSeq, CopySeqButton, formatTolerance } from "./primerDisplay";
@@ -75,6 +76,8 @@ export function makeResultTableColumns(opts: {
   /** When true, adds a visible border to rescue badges so state is
    *  distinguishable without colour (WCAG 1.4.1 compliance). */
   colorblindMode?: boolean;
+  /** i18next translate function passed from the parent component. */
+  t: TFunction;
 }) {
   const {
     groupColorMap,
@@ -87,6 +90,7 @@ export function makeResultTableColumns(opts: {
     removeDesignResult,
     yPredMap,
     colorblindMode = false,
+    t,
   } = opts;
 
   return [
@@ -202,7 +206,7 @@ export function makeResultTableColumns(opts: {
             {isRescued && !rescueDetail && (
               <button
                 className="ml-1 px-1 py-0.5 bg-error/10 text-error rounded-control text-plate-tiny hover:bg-error/20 leading-none"
-                title="Remove custom rescue — restore to Failed"
+                title={t("resultTable.removeCustomRescueTitle")}
                 onClick={(e) => {
                   e.stopPropagation();
                   removeDesignResult(row.mutation, "Manually removed custom rescue");

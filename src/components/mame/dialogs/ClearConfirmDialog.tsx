@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -15,18 +16,19 @@ interface ClearConfirmDialogProps {
 }
 
 export function ClearConfirmDialog({ open, onOpenChange, onConfirm }: ClearConfirmDialogProps) {
+  const { t } = useTranslation();
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle>Clear All</DialogTitle>
+          <DialogTitle>{t("clearConfirmDialog.title")}</DialogTitle>
           <DialogDescription>
-            All analysis results will be lost. Continue?
+            {t("clearConfirmDialog.description")}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t("clearConfirmDialog.cancelBtn")}
           </Button>
           <Button
             size="sm"
@@ -37,7 +39,7 @@ export function ClearConfirmDialog({ open, onOpenChange, onConfirm }: ClearConfi
               onOpenChange(false);
             }}
           >
-            Clear
+            {t("clearConfirmDialog.clearBtn")}
           </Button>
         </DialogFooter>
       </DialogContent>

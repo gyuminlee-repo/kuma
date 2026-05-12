@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import type { WellEntry, VerdictClass } from "@/types/mame/models";
 
@@ -45,10 +46,11 @@ export function WellPlate({
   selectedWellId,
   colorblindMode = false,
 }: WellPlateProps) {
+  const { t } = useTranslation();
   const wellMap = new Map(wells.map((w) => [w.well, w]));
 
   return (
-    <div className="w-full overflow-x-auto rounded-container border border-border/70 bg-card p-2.5" role="grid" aria-label="96-Well Plate">
+    <div className="w-full overflow-x-auto rounded-container border border-border/70 bg-card p-2.5" role="grid" aria-label={t("wellPlate.gridAriaLabel")}>
       <div
         className="grid items-center text-center"
         style={{ gridTemplateColumns: plateGridTemplate, gap: plateGridGap }}
@@ -60,7 +62,7 @@ export function WellPlate({
           <div
             key={col}
             className="rounded-full bg-muted/55 py-1 text-center text-caption font-semibold text-muted-foreground"
-            aria-label={`Column ${col}`}
+            aria-label={t("wellPlate.columnAriaLabel", { col })}
           >
             {col}
           </div>
@@ -77,7 +79,7 @@ export function WellPlate({
           >
             <div
               className="font-display text-center text-caption font-semibold text-muted-foreground"
-              aria-label={`Row ${row}`}
+              aria-label={t("wellPlate.rowAriaLabel", { row })}
               role="rowheader"
             >
               {row}
@@ -137,7 +139,7 @@ export function WellPlate({
                       <span
                         className="absolute bottom-0.5 left-0.5 flex items-center justify-center rounded-full bg-warning/80 p-0.5"
                         aria-hidden="true"
-                        title="Fallback replicate"
+                        title={t("wellPlate.fallbackReplicateTitle")}
                       >
                         <svg
                           width="8"

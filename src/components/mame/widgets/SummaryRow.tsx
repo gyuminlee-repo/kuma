@@ -82,7 +82,7 @@ export function SummaryRow() {
           : t("mame.summaryRow.statusDraft");
 
   return (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-4" aria-label="Analysis summary">
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-4" aria-label={t("mame.summaryRow.ariaLabel")}>
       <SummaryTile
         className="bg-gradient-to-br from-[hsl(var(--hero-start))] to-[hsl(var(--hero-end))]"
         label={t("mame.summaryRow.successRate")}

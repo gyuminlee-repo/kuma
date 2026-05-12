@@ -620,7 +620,7 @@ export function RunHealthPanel({ health, className }: RunHealthPanelProps) {
                 id="vh-pore-heading"
                 className="text-caption font-semibold uppercase tracking-widest text-muted-foreground"
               >
-                Pore yield
+                {t("mame.runHealth.poreYield")}
               </h3>
               <PoreYield pct={health.pore_yield_pct} />
             </section>
@@ -633,7 +633,7 @@ export function RunHealthPanel({ health, className }: RunHealthPanelProps) {
                 id="vh-throughput-heading"
                 className="text-caption font-semibold uppercase tracking-widest text-muted-foreground"
               >
-                Throughput timeline
+                {t("mame.runHealth.throughputTimeline")}
               </h3>
               <ThroughputTimeline points={health.throughput_timeline} />
             </section>
@@ -650,7 +650,7 @@ export function RunHealthPanel({ health, className }: RunHealthPanelProps) {
                   id="vh-barcode-heading"
                   className="text-caption font-semibold uppercase tracking-widest text-muted-foreground"
                 >
-                  Barcode distribution
+                  {t("mame.runHealth.barcodeDistribution")}
                 </h3>
                 <BarcodeDistribution distribution={health.barcode_distribution} />
               </section>

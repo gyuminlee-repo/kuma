@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "../ui/button";
 import {
   Dialog,
@@ -33,6 +34,7 @@ export function MappingExportDialog({
   onOpenChange,
   onExport,
 }: MappingExportDialogProps) {
+  const { t } = useTranslation();
   const [format, setFormat] = useState<"echo" | "janus">(initialFormat);
   const cfg = FORMAT_DEFAULTS[format];
   const [transferVol, setTransferVol] = useState<number>(cfg.transferVol);
@@ -51,15 +53,13 @@ export function MappingExportDialog({
     onExport({ format, transferVol, bom });
   }
 
-  const label = format === "echo" ? "Echo" : "JANUS";
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-xl">Export {label} Mapping</DialogTitle>
+          <DialogTitle className="text-xl">{format === "echo" ? t("mappingExportDialog.titleEcho") : t("mappingExportDialog.titleJanus")}</DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            Two files are written to the same path.
+            {t("mappingExportDialog.descriptionFiles")}
             <br />
             <span className="text-muted-foreground">.xlsx</span> — human-readable layout preview
             <br />
@@ -71,7 +71,7 @@ export function MappingExportDialog({
           {/* Machine Format */}
           <div className="flex flex-col gap-2 rounded-container border border-border bg-card p-4">
             <label className="text-sm font-medium text-foreground">
-              Machine
+              {t("mappingExportDialog.machineLabel")}
             </label>
             <div className="flex gap-2">
               <Button
@@ -98,7 +98,7 @@ export function MappingExportDialog({
           {/* Transfer Volume */}
           <div className="flex flex-col gap-2 rounded-container border border-border bg-card p-4">
             <label className="text-sm font-medium text-foreground">
-              Transfer Volume
+              {t("mappingExportDialog.transferVolumeLabel")}
             </label>
             <div className="flex items-center gap-2">
               <Input
@@ -131,14 +131,14 @@ export function MappingExportDialog({
               checked={bom}
               onChange={(e) => setBom(e.target.checked)}
               className="h-4 w-4 rounded border-border accent-primary cursor-pointer"
-              aria-label="Add UTF-8 BOM for Excel compatibility"
+              aria-label={t("mappingExportDialog.bomCheckboxAriaLabel")}
             />
             <label
               htmlFor="mapping-bom-checkbox"
               className="text-sm text-foreground cursor-pointer select-none"
             >
-              Add UTF-8 BOM
-              <span className="ml-1 text-muted-foreground">(Excel compatibility)</span>
+              {t("mappingExportDialog.bomCheckboxLabel")}
+              <span className="ml-1 text-muted-foreground">{t("mappingExportDialog.bomCheckboxHint")}</span>
             </label>
           </div>
 
@@ -150,10 +150,10 @@ export function MappingExportDialog({
             onClick={() => onOpenChange(false)}
             type="button"
           >
-            Cancel
+            {t("mappingExportDialog.cancelBtn")}
           </Button>
           <Button size="sm" className="rounded-full" onClick={handleExportClick} type="button">
-            Export
+            {t("mappingExportDialog.exportBtn")}
           </Button>
         </DialogFooter>
       </DialogContent>

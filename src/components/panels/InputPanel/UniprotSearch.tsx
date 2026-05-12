@@ -30,7 +30,7 @@ export function UniprotSearch() {
         <input
           type="text"
           className="w-24 h-6 text-xs border border-border rounded px-1 focus:outline-none focus:ring-1 focus:ring-ring"
-          placeholder="UniProt ID"
+          placeholder={t("uniprotSearchExtra.placeholder")}
           value={accessionInput}
           onChange={(e) => setAccessionInput(e.target.value)}
           onKeyDown={(e) => {
@@ -102,7 +102,7 @@ export function UniprotSearch() {
               <span className="font-mono text-info">{c.accession}</span>
               <span className="text-muted-foreground truncate">{c.name}</span>
               {c.has_structure && (
-                <span className="flex-shrink-0 inline-flex items-center rounded bg-info/10 px-1 py-0.5 text-plate-tiny font-medium text-info" title="AlphaFold structure available">
+                <span className="flex-shrink-0 inline-flex items-center rounded bg-info/10 px-1 py-0.5 text-plate-tiny font-medium text-info" title={t("uniprotSearchExtra.afStructureTitle")}>
                   AF
                 </span>
               )}
