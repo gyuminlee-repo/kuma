@@ -29,8 +29,6 @@ import { MajorStepView } from "../steps/MajorStepView";
 import { StatusBar } from "./StatusBar";
 import { WhatsNewDialog } from "../dialogs/WhatsNewDialog";
 import { NetworkConsentDialog } from "../dialogs/NetworkConsentDialog";
-import { InputSizeWarningDialog } from "../dialogs/InputSizeWarningDialog";
-import { PreflightDialog } from "../dialogs/PreflightDialog";
 import { OverwriteConfirmDialog } from "../dialogs/OverwriteConfirmDialog";
 import { handleOpenSequence } from "./export-handlers";
 import { startDeadlockWatch } from "@/lib/deadlockDetector";
@@ -75,13 +73,8 @@ export function AppLayout() {
   const [diffOpen, setDiffOpen] = useState(false);
 
   // Shared Run Design logic (validation / preflight / flush / design)
-  const {
-    run: tryRunDesign,
-    sizeWarning: kuroSizeWarning,
-    setSizeWarning: setKuroSizeWarning,
-    preflightResult,
-    setPreflightResult,
-  } = useRunDesign();
+  // Dialog state (sizeWarning, preflightResult) is owned by RunDesignAction, not here.
+  const { run: tryRunDesign } = useRunDesign();
 
   // Navigation state for AppShell slot wiring
   const currentMajor = useAppStore((s) => s.currentMajor);
@@ -305,35 +298,6 @@ export function AppLayout() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* §19 Performance Guardrails: pre-flight check 결과 모달 */}
-      {preflightResult && (
-        <PreflightDialog
-          open={preflightResult !== null}
-          result={preflightResult.result}
-          onContinue={() => {
-            const action = preflightResult.pendingAction;
-            setPreflightResult(null);
-            action();
-          }}
-          onCancel={() => setPreflightResult(null)}
-        />
-      )}
-
-      {/* §19 Performance Guardrails: kuro 입력 크기 사전 경고 */}
-      {kuroSizeWarning && (
-        <InputSizeWarningDialog
-          open={kuroSizeWarning !== null}
-          level={kuroSizeWarning.level}
-          message={kuroSizeWarning.message}
-          onContinue={() => {
-            const action = kuroSizeWarning.pendingAction;
-            setKuroSizeWarning(null);
-            action();
-          }}
-          onCancel={() => setKuroSizeWarning(null)}
-        />
-      )}
 
       {/* §12 Reproducibility: manifest re-run 확인 모달 */}
       <ReRunManifestDialog
