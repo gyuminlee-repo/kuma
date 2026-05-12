@@ -172,7 +172,7 @@ describe("exportSlice — schema_version 0.3", () => {
       results: { designResults: [], successCount: 0, totalCount: 0, failedMutations: [], plateMappings: [], dedupInfo: {}, manuallySwapped: {}, customCandidates: {} },
       ui: { tableSorting: [] },
     }
-    await expect(store.slice.restoreWorkspace(oldWorkspace)).rejects.toThrow(/v0\.3 이전/)
+    await expect(store.slice.restoreWorkspace(oldWorkspace)).rejects.toThrow(/older than v0\.3/i)
   })
 
   it("restoreWorkspace rejects v1 workspace", async () => {
@@ -200,7 +200,7 @@ describe("exportSlice — schema_version 0.3", () => {
       gcMin: 40,
       gcMax: 60,
     }
-    await expect(store.slice.restoreWorkspace(oldWorkspace)).rejects.toThrow(/v0\.3 이전/)
+    await expect(store.slice.restoreWorkspace(oldWorkspace)).rejects.toThrow(/older than v0\.3/i)
   })
 
   it("getWorkspaceSnapshot still includes kuro inputs (backward compat)", () => {

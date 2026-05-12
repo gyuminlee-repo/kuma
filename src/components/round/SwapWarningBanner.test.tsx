@@ -182,7 +182,7 @@ describe("ReplicateMergeStats", () => {
     render(
       <ReplicateMergeStats replicateStats={replicateStatsNoMismatch} />
     );
-    expect(screen.getByLabelText("Replicate merge 통계")).toBeTruthy();
+    expect(screen.getByLabelText("Replicate merge statistics")).toBeTruthy();
   });
 
   it("다른 수치가 주어지면 그 수치를 표시한다", () => {

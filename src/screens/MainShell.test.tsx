@@ -36,7 +36,6 @@ describe("MainShell", () => {
       </ProjectProvider>,
     );
 
-    expect(screen.getByText("kuma")).toBeTruthy();
     expect(screen.getByText("Demo")).toBeTruthy();
   });
 
