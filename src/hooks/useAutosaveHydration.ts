@@ -7,6 +7,7 @@
  */
 
 import { useEffect, useRef } from "react";
+import i18next from "i18next";
 import { useKumaProject } from "@/state/projectContext";
 import { readAutosave } from "@/lib/autosave";
 import { KURO_SCHEMA } from "@/lib/kuroSnapshot";
@@ -32,11 +33,11 @@ export interface HydrationStatusMessage {
 function formatRelativeTime(isoString: string): string {
   const diffMs = Date.now() - new Date(isoString).getTime();
   const diffMin = Math.floor(diffMs / 60_000);
-  if (diffMin < 1) return "just now";
-  if (diffMin < 60) return `${diffMin} min ago`;
+  if (diffMin < 1) return i18next.t("autosaveHydration.relativeJustNow");
+  if (diffMin < 60) return i18next.t("autosaveHydration.relativeMinAgo", { count: diffMin });
   const diffHr = Math.floor(diffMin / 60);
-  if (diffHr < 24) return `${diffHr} hr ago`;
-  return `${Math.floor(diffHr / 24)} day(s) ago`;
+  if (diffHr < 24) return i18next.t("autosaveHydration.relativeHrAgo", { count: diffHr });
+  return i18next.t("autosaveHydration.relativeDayAgo", { count: Math.floor(diffHr / 24) });
 }
 
 // ─── Kuro 복원 ────────────────────────────────────────────────────────────
@@ -178,27 +179,27 @@ export async function applyMameAutoDetect(
 
   if (inputDirWasEmpty && detected.inputDir) {
     store.setInputDir(detected.inputDir);
-    filled.push("run folder");
+    filled.push(i18next.t("autosaveHydration.fieldRunFolder"));
   }
   if (!store.referencePath && detected.referencePath) {
     store.setReferencePath(detected.referencePath);
-    filled.push("reference");
+    filled.push(i18next.t("autosaveHydration.fieldReference"));
   }
   if (!store.expectedPath && detected.expectedPath) {
     store.setExpectedPath(detected.expectedPath);
-    filled.push("expected");
+    filled.push(i18next.t("autosaveHydration.fieldExpected"));
   }
   if (!store.sampleMapPath && detected.sampleMapPath) {
     store.setSampleMapPath(detected.sampleMapPath);
-    filled.push("sample map");
+    filled.push(i18next.t("autosaveHydration.fieldSampleMap"));
   }
   if (!store.rawRunParams.customBarcodesPath && detected.customBarcodesPath) {
     store.setParams({ rawRunParams: { customBarcodesPath: detected.customBarcodesPath } });
-    filled.push("custom barcodes");
+    filled.push(i18next.t("autosaveHydration.fieldCustomBarcodes"));
   }
   if (!store.rawRunParams.sequencingSummaryPath && detected.sequencingSummaryPath) {
     store.setParams({ rawRunParams: { sequencingSummaryPath: detected.sequencingSummaryPath } });
-    filled.push("sequencing summary");
+    filled.push(i18next.t("autosaveHydration.fieldSequencingSummary"));
   }
 
   // inputDir가 비어있었고 새로 설정되었으며, inputDir ≠ projectPath 인 경우
@@ -209,23 +210,23 @@ export async function applyMameAutoDetect(
 
     if (!storeAfter.referencePath && fromInputDir.referencePath) {
       storeAfter.setReferencePath(fromInputDir.referencePath);
-      filled.push("reference");
+      filled.push(i18next.t("autosaveHydration.fieldReference"));
     }
     if (!storeAfter.expectedPath && fromInputDir.expectedPath) {
       storeAfter.setExpectedPath(fromInputDir.expectedPath);
-      filled.push("expected");
+      filled.push(i18next.t("autosaveHydration.fieldExpected"));
     }
     if (!storeAfter.sampleMapPath && fromInputDir.sampleMapPath) {
       storeAfter.setSampleMapPath(fromInputDir.sampleMapPath);
-      filled.push("sample map");
+      filled.push(i18next.t("autosaveHydration.fieldSampleMap"));
     }
     if (!storeAfter.rawRunParams.customBarcodesPath && fromInputDir.customBarcodesPath) {
       storeAfter.setParams({ rawRunParams: { customBarcodesPath: fromInputDir.customBarcodesPath } });
-      filled.push("custom barcodes");
+      filled.push(i18next.t("autosaveHydration.fieldCustomBarcodes"));
     }
     if (!storeAfter.rawRunParams.sequencingSummaryPath && fromInputDir.sequencingSummaryPath) {
       storeAfter.setParams({ rawRunParams: { sequencingSummaryPath: fromInputDir.sequencingSummaryPath } });
-      filled.push("sequencing summary");
+      filled.push(i18next.t("autosaveHydration.fieldSequencingSummary"));
     }
   }
 
@@ -256,7 +257,7 @@ function applyMameSnapshot(snapshot: MameAutosaveSnapshot): void {
 
   useMameAppStore.setState({
     validationErrors: [],
-    analyzeMessage: "Workspace restored",
+    analyzeMessage: i18next.t("autosaveHydration.workspaceRestored"),
   });
 }
 
@@ -295,7 +296,7 @@ export function useAutosaveHydration(
           onMessage({
             kind: "kuro",
             variant: "restored",
-            message: `Restored from autosave (${formatRelativeTime(kuroResult.snapshot.saved_at)})`,
+            message: i18next.t("autosaveHydration.restored", { relative: formatRelativeTime(kuroResult.snapshot.saved_at) }),
             savedAt: kuroResult.snapshot.saved_at,
           });
         } catch (err) {
@@ -305,13 +306,13 @@ export function useAutosaveHydration(
         onMessage({
           kind: "kuro",
           variant: "corrupted",
-          message: `Autosave file was corrupted. A backup was kept as ${kuroResult.backupPath.split("/").pop() ?? "kuro.json.bad-…"}`,
+          message: i18next.t("autosaveHydration.corrupted", { filename: kuroResult.backupPath.split("/").pop() ?? "kuro.json.bad-…" }),
         });
       } else if (kuroResult.status === "schema_too_new") {
         onMessage({
           kind: "kuro",
           variant: "schema_too_new",
-          message: "Autosave is from a newer kuma version. Skipping restore.",
+          message: i18next.t("autosaveHydration.schemaTooNew"),
         });
       }
       // missing → 침묵
@@ -323,7 +324,7 @@ export function useAutosaveHydration(
           onMessage({
             kind: "mame",
             variant: "restored",
-            message: `Restored from autosave (${formatRelativeTime(mameResult.snapshot.saved_at)})`,
+            message: i18next.t("autosaveHydration.restored", { relative: formatRelativeTime(mameResult.snapshot.saved_at) }),
             savedAt: mameResult.snapshot.saved_at,
           });
         } catch (err) {
@@ -333,13 +334,13 @@ export function useAutosaveHydration(
         onMessage({
           kind: "mame",
           variant: "corrupted",
-          message: `Autosave file was corrupted. A backup was kept as ${mameResult.backupPath.split("/").pop() ?? "mame.json.bad-…"}`,
+          message: i18next.t("autosaveHydration.corrupted", { filename: mameResult.backupPath.split("/").pop() ?? "mame.json.bad-…" }),
         });
       } else if (mameResult.status === "schema_too_new") {
         onMessage({
           kind: "mame",
           variant: "schema_too_new",
-          message: "Autosave is from a newer kuma version. Skipping restore.",
+          message: i18next.t("autosaveHydration.schemaTooNew"),
         });
       }
       // missing → 침묵
@@ -350,7 +351,7 @@ export function useAutosaveHydration(
           onMessage({
             kind: "mame",
             variant: "restored",
-            message: `Auto-detected: ${filled.join(", ")}`,
+            message: i18next.t("autosaveHydration.autoDetected", { fields: filled.join(", ") }),
           });
         }
       });

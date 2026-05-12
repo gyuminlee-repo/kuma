@@ -12,6 +12,8 @@
  * If no path exists for a given (from, to) pair, `migrateWorkspace` throws.
  */
 
+import i18next from "i18next";
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- intentional: migration fn operates on unknown JSON blobs
 export type MigrationFn = (workspace: Record<string, unknown>) => Record<string, unknown>;
 
@@ -138,7 +140,7 @@ export function migrateWorkspace(
   const fn = MIGRATIONS[key];
   if (!fn) {
     throw new Error(
-      `No migration path defined for workspace ${fromVer} → ${toVer}. Manual upgrade required.`,
+      i18next.t("workspaceMigrate.noMigrationPath", { from: fromVer, to: toVer }),
     );
   }
   return fn(json);

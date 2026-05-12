@@ -1,4 +1,5 @@
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import i18next from "i18next";
 import { killSidecar as killSidecarRpc, rpc } from "../ipc";
 import type {
   ProgressNotification,
@@ -83,13 +84,13 @@ export async function sendRequest<K extends RpcMethod>(
   const request = rpc<unknown>("kuro", method, params);
   const timeout = new Promise<never>((_, reject) => {
     const timer = setTimeout(() => {
-      reject(new Error(`RPC timeout: ${method} after ${timeoutMs}ms`));
+      reject(new Error(i18next.t("ipcKuro.rpcTimeout", { method, timeoutMs })));
     }, timeoutMs);
     void request.finally(() => clearTimeout(timer));
   });
   const result = await Promise.race([request, timeout]);
   if (!validateResult(result)) {
-    throw new Error(`Invalid RPC result shape for ${method}`);
+    throw new Error(i18next.t("ipcKuro.invalidResultShape", { method }));
   }
   running = true;
   return result as RpcMethodResult<K>;

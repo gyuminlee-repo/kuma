@@ -1145,7 +1145,8 @@
   "statusBar": {
     "ready": "준비",
     "connecting": "연결 중",
-    "failed": "Sidecar 오류"
+    "failed": "Sidecar 오류",
+    "networkError": "네트워크 오류"
   },
   "localeToggle": {
     "currentLanguageAria": "현재 언어: {{label}}. 언어 변경"
@@ -1320,7 +1321,8 @@
     "cancelBtn": "취소",
     "migrateBtn": "마이그레이션 (백업 + 변환)",
     "migratingBtn": "마이그레이션 중...",
-    "migrateAriaLabel": "원본 파일을 백업하고 workspace 를 마이그레이션"
+    "migrateAriaLabel": "원본 파일을 백업하고 workspace 를 마이그레이션",
+    "noMigrationPath": "Workspace {{from}} 에서 {{to}} 로의 마이그레이션 경로가 정의되어 있지 않습니다. 수동 업그레이드가 필요합니다."
   },
   "wtWellEditor": {
     "openBtnAriaLabel": "WT well 설정: plate 지도 편집기 열기",
@@ -1357,7 +1359,10 @@
     "errorsLabel": "오류",
     "warningsLabel": "경고",
     "cancelBtn": "취소",
-    "continueBtn": "경고 무시하고 계속"
+    "continueBtn": "경고 무시하고 계속",
+    "errSidecarNotReady": "Sidecar 준비되지 않았습니다 (상태: {{status}}). 앱을 재시작하거나 상태 표시줄의 재시도 버튼을 사용하세요.",
+    "warnDiskUnavailable": "이 플랫폼에서는 디스크 공간 확인을 사용할 수 없습니다. 실행 전 충분한 여유 공간을 확인하세요.",
+    "errNoNetwork": "네트워크 연결이 감지되지 않았습니다. 이 실행은 인터넷 접속이 필요합니다 (예: UniProt/BLAST)."
   },
   "crashLog": {
     "title": "Crash Log",
@@ -1466,5 +1471,35 @@
     "placeholder": "UniProt ID",
     "afStructureTitle": "AlphaFold 구조 이용 가능"
   },
-  "sectionLabel": "입력"
+  "sectionLabel": "입력",
+  "updater": {
+    "notConfigured": "이 빌드에서는 업데이터가 구성되어 있지 않습니다. 키 생성 단계는 RELEASE_CHECKLIST.md 를 참조하세요."
+  },
+  "mameWorkspace": {
+    "unsupportedVersion": "지원하지 않는 workspace 버전: {{version}}"
+  },
+  "ipcKuro": {
+    "rpcTimeout": "RPC 타임아웃: {{method}} ({{timeoutMs}}ms 초과)",
+    "invalidResultShape": "{{method}} 의 RPC 결과 형식이 올바르지 않습니다"
+  },
+  "autosaveHydration": {
+    "relativeJustNow": "방금 전",
+    "relativeMinAgo_one": "{{count}}분 전",
+    "relativeMinAgo_other": "{{count}}분 전",
+    "relativeHrAgo_one": "{{count}}시간 전",
+    "relativeHrAgo_other": "{{count}}시간 전",
+    "relativeDayAgo_one": "{{count}}일 전",
+    "relativeDayAgo_other": "{{count}}일 전",
+    "restored": "자동 저장에서 복원됨 ({{relative}})",
+    "corrupted": "자동 저장 파일이 손상되었습니다. 백업이 {{filename}} 으로 보존됩니다",
+    "schemaTooNew": "자동 저장 파일이 최신 kuma 버전에서 생성되었습니다. 복원을 건너뜁니다.",
+    "workspaceRestored": "Workspace 복원됨",
+    "autoDetected": "자동 감지: {{fields}}",
+    "fieldRunFolder": "실행 폴더",
+    "fieldReference": "레퍼런스",
+    "fieldExpected": "예상 유전형",
+    "fieldSampleMap": "샘플 맵",
+    "fieldCustomBarcodes": "커스텀 바코드",
+    "fieldSequencingSummary": "시퀀싱 요약"
+  }
 }

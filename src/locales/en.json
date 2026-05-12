@@ -1107,7 +1107,8 @@
   "statusBar": {
     "ready": "Ready",
     "connecting": "Connecting",
-    "failed": "Sidecar failed"
+    "failed": "Sidecar failed",
+    "networkError": "Network error"
   },
   "closeConfirm": {
     "designing": {
@@ -1320,7 +1321,8 @@
     "cancelBtn": "Cancel",
     "migrateBtn": "Migrate (Backup + Convert)",
     "migratingBtn": "Migrating...",
-    "migrateAriaLabel": "Backup original file and migrate workspace"
+    "migrateAriaLabel": "Backup original file and migrate workspace",
+    "noMigrationPath": "No migration path defined for workspace {{from}} to {{to}}. Manual upgrade required."
   },
   "wtWellEditor": {
     "openBtnAriaLabel": "Set WT Wells: open plate map editor",
@@ -1357,7 +1359,10 @@
     "errorsLabel": "Errors",
     "warningsLabel": "Warnings",
     "cancelBtn": "Cancel",
-    "continueBtn": "Continue with warnings"
+    "continueBtn": "Continue with warnings",
+    "errSidecarNotReady": "Sidecar is not ready (status: {{status}}). Restart the app or use the Retry button in the status bar.",
+    "warnDiskUnavailable": "Disk space check is unavailable on this platform. Ensure sufficient free space before running.",
+    "errNoNetwork": "No network connection detected. This run requires internet access (e.g. UniProt/BLAST)."
   },
   "crashLog": {
     "title": "Crash Log",
@@ -1466,5 +1471,35 @@
     "placeholder": "UniProt ID",
     "afStructureTitle": "AlphaFold structure available"
   },
-  "sectionLabel": "Input"
+  "sectionLabel": "Input",
+  "updater": {
+    "notConfigured": "Updater is not configured for this build. See RELEASE_CHECKLIST.md for key generation steps."
+  },
+  "mameWorkspace": {
+    "unsupportedVersion": "Unsupported workspace version: {{version}}"
+  },
+  "ipcKuro": {
+    "rpcTimeout": "RPC timeout: {{method}} after {{timeoutMs}}ms",
+    "invalidResultShape": "Invalid RPC result shape for {{method}}"
+  },
+  "autosaveHydration": {
+    "relativeJustNow": "just now",
+    "relativeMinAgo_one": "{{count}} min ago",
+    "relativeMinAgo_other": "{{count}} min ago",
+    "relativeHrAgo_one": "{{count}} hr ago",
+    "relativeHrAgo_other": "{{count}} hr ago",
+    "relativeDayAgo_one": "{{count}} day ago",
+    "relativeDayAgo_other": "{{count}} days ago",
+    "restored": "Restored from autosave ({{relative}})",
+    "corrupted": "Autosave file was corrupted. A backup was kept as {{filename}}",
+    "schemaTooNew": "Autosave is from a newer kuma version. Skipping restore.",
+    "workspaceRestored": "Workspace restored",
+    "autoDetected": "Auto-detected: {{fields}}",
+    "fieldRunFolder": "run folder",
+    "fieldReference": "reference",
+    "fieldExpected": "expected",
+    "fieldSampleMap": "sample map",
+    "fieldCustomBarcodes": "custom barcodes",
+    "fieldSequencingSummary": "sequencing summary"
+  }
 }

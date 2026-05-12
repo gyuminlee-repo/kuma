@@ -5,6 +5,8 @@
  * Each failed check appends to errors (ok:false) or warnings (ok:true with caveats).
  */
 
+import i18next from "i18next";
+
 export interface PreflightResult {
   ok: boolean;
   warnings: string[];
@@ -29,7 +31,7 @@ export async function runPreflightCheck(
   // 1. Sidecar alive
   if (opts.sidecarStatus !== "ready") {
     errors.push(
-      `Sidecar is not ready (status: ${opts.sidecarStatus}). Restart the app or use the Retry button in the status bar.`,
+      i18next.t("preflight.errSidecarNotReady", { status: opts.sidecarStatus }),
     );
   }
 
@@ -37,14 +39,14 @@ export async function runPreflightCheck(
   //    navigator.storage.estimate() returns origin quota, not actual disk free,
   //    so it is intentionally skipped to avoid misleading numbers.
   warnings.push(
-    "Disk space check is unavailable on this platform. Ensure sufficient free space before running.",
+    i18next.t("preflight.warnDiskUnavailable"),
   );
 
   // 3. Network reachability (only when requiresNetwork is true)
   if (opts.requiresNetwork) {
     if (!navigator.onLine) {
       errors.push(
-        "No network connection detected. This run requires internet access (e.g. UniProt/BLAST).",
+        i18next.t("preflight.errNoNetwork"),
       );
     }
   }

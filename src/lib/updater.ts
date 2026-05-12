@@ -6,6 +6,7 @@
  */
 
 import { check, type Update } from "@tauri-apps/plugin-updater";
+import i18next from "i18next";
 
 export type UpdateCheckResult =
   | { status: "up-to-date"; currentVersion: string }
@@ -40,8 +41,7 @@ export async function checkForUpdates(): Promise<UpdateCheckResult> {
     ) {
       return {
         status: "not-configured",
-        message:
-          "Updater is not configured for this build. See RELEASE_CHECKLIST.md for key generation steps.",
+        message: i18next.t("updater.notConfigured"),
       };
     }
 

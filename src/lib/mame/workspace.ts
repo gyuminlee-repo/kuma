@@ -1,5 +1,6 @@
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
+import i18next from "i18next";
 import { buildWorkspaceDefaultPath } from "../filename";
 import type { KumaProject } from "../../state/projectContext";
 import type { InputMode, RawRunParams } from "@/store/mame/slice-interfaces";
@@ -49,7 +50,7 @@ export async function loadWorkspaceFromFile(project: KumaProject): Promise<Works
   const text = await readTextFile(path);
   const parsed = JSON.parse(text) as Partial<WorkspaceSnapshot>;
   if (parsed.version !== 1) {
-    throw new Error(`Unsupported workspace version: ${String(parsed.version)}`);
+    throw new Error(i18next.t("mameWorkspace.unsupportedVersion", { version: String(parsed.version) }));
   }
   return parsed as WorkspaceSnapshot;
 }
