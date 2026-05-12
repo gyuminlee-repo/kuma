@@ -1,5 +1,5 @@
 /**
- * PlateStepView.test.tsx — plate.layout 단일 sub-step 마운트 어설션 (D1.1)
+ * PlateStepView.test.tsx — PlateMap 마운트 어설션 (D2.2)
  */
 
 import { render } from "@testing-library/react";
@@ -11,15 +11,15 @@ vi.mock("@/lib/ipc-kuro", () => ({
   cancelAndRespawn: vi.fn(),
 }));
 
-vi.mock("@/components/widgets/KuroPlateView", () => ({
-  KuroPlateView: () => <div data-testid="kuro-plate-view" />,
+vi.mock("@/components/widgets/PlateMap", () => ({
+  PlateMap: () => <div data-testid="plate-map" />,
 }));
 
 import { PlateStepView } from "./PlateStepView";
 
 describe("PlateStepView", () => {
-  it("plate.layout mounts KuroPlateView", () => {
-    const { getByTestId } = render(<PlateStepView subStep="plate.layout" />);
-    expect(getByTestId("kuro-plate-view")).toBeTruthy();
+  it("mounts PlateMap", () => {
+    const { getByTestId } = render(<PlateStepView />);
+    expect(getByTestId("plate-map")).toBeTruthy();
   });
 });

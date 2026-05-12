@@ -12,6 +12,9 @@ vi.mock("@/lib/ipc-kuro", () => ({
 }));
 
 // Mock child step views to isolate MajorStepView dispatcher
+vi.mock("./DesignStepView", () => ({
+  DesignStepView: () => <div data-testid="design-step-view" />,
+}));
 vi.mock("./PlateStepView", () => ({
   PlateStepView: () => <div data-testid="plate-step-view" />,
 }));
@@ -30,9 +33,9 @@ describe("MajorStepView dispatcher (3-major)", () => {
     });
   });
 
-  it("mounts design-placeholder when currentMajor=design", () => {
+  it("mounts DesignStepView when currentMajor=design", () => {
     const { getByTestId } = render(<MajorStepView />);
-    expect(getByTestId("design-placeholder")).toBeTruthy();
+    expect(getByTestId("design-step-view")).toBeTruthy();
   });
 
   it("mounts PlateStepView when currentMajor=plate", () => {
@@ -50,7 +53,7 @@ describe("MajorStepView dispatcher (3-major)", () => {
   it("does not mount multiple step views simultaneously", () => {
     useAppStore.setState({ currentMajor: "plate", currentSubStep: "plate.layout" });
     const { queryByTestId } = render(<MajorStepView />);
-    expect(queryByTestId("design-placeholder")).toBeNull();
+    expect(queryByTestId("design-step-view")).toBeNull();
     expect(queryByTestId("plate-step-view")).toBeTruthy();
     expect(queryByTestId("export-step-view")).toBeNull();
   });

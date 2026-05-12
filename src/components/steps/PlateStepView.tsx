@@ -1,27 +1,17 @@
 /**
- * PlateStepView — sub-step dispatcher for "plate" major step.
+ * PlateStepView — "plate" major step 단일 페이지.
  *
- * [source: spec §1 — Plate Mapping major, 1 sub-step (D1.1)]
+ * [source: spec §1 — Plate Mapping major, 1 sub-step (D2.2)]
  *
- * Sub-step mapping:
- *   plate.layout → KuroPlateView
+ * PlateMap은 내부에서 store를 직접 구독하므로 props 없이 마운트.
  */
 
-import { useAppStore } from "@/store/appStore";
-import type { SubStepId } from "@/store/slices/navigationSlice";
-import { KuroPlateView } from "@/components/widgets/KuroPlateView";
+import { PlateMap } from "@/components/widgets/PlateMap";
 
-interface PlateStepViewProps {
-  subStep: SubStepId;
-}
-
-export function PlateStepView({ subStep: _subStep }: PlateStepViewProps) {
-  const plateMappings = useAppStore((s) => s.plateMappings);
-
-  // plate.layout is now the only sub-step; render directly
+export function PlateStepView() {
   return (
-    <div className="w-full h-full overflow-hidden">
-      <KuroPlateView plateMappings={plateMappings} />
+    <div className="p-6">
+      <PlateMap />
     </div>
   );
 }

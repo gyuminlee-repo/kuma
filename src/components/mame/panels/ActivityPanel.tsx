@@ -98,7 +98,7 @@ function buildDemoMetrics(stats: MergeStats, roundId: string): RoundMetrics {
 // ---------------------------------------------------------------------------
 // Section: Ingest (upload + WT annotation)
 // ---------------------------------------------------------------------------
-function IngestSection() {
+export function IngestSection() {
   const { t } = useTranslation();
   const activeRoundId = useRoundStore((s) => s.active_round_id);
   const recordCount = useRoundStore(
@@ -130,7 +130,7 @@ function IngestSection() {
 // ---------------------------------------------------------------------------
 // Section: Merge
 // ---------------------------------------------------------------------------
-function MergeSection() {
+export function MergeSection() {
   const { t } = useTranslation();
   const activeRoundId = useRoundStore((s) => s.active_round_id);
   const activityStore = useActivityStore();
@@ -237,7 +237,7 @@ function MergeSection() {
 // ---------------------------------------------------------------------------
 // Section: Export
 // ---------------------------------------------------------------------------
-function ExportSection() {
+export function ExportSection() {
   const { t } = useTranslation();
   const activeRoundId = useRoundStore((s) => s.active_round_id);
   const roundN = useRoundStore(

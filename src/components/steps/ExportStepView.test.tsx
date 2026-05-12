@@ -25,7 +25,7 @@ import { ExportStepView } from "./ExportStepView";
 
 describe("ExportStepView", () => {
   it("export.all renders all export sections", () => {
-    const { getByTestId } = render(<ExportStepView subStep="export.all" />);
+    const { getByTestId } = render(<ExportStepView />);
     expect(getByTestId("export-format-selector")).toBeTruthy();
     expect(getByTestId("order-summary")).toBeTruthy();
     expect(getByTestId("workspace-save-load")).toBeTruthy();

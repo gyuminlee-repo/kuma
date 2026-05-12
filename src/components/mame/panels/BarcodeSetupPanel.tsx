@@ -126,7 +126,20 @@ function toSinglePath(result: string | string[] | null): string | null {
 
 // ─── 메인 컴포넌트 ────────────────────────────────────────────────────────────
 
-export function BarcodeSetupPanel() {
+/**
+ * group prop: sub-step 전용 섹션 필터.
+ * - "files":  section-files + section-coords + section-meta (setup.files)
+ * - "design": section-flank + section-binding (setup.design)
+ * - "output": section-output + 생성 버튼 (setup.output)
+ * - undefined: 전체 렌더 (mame Sidebar 호환)
+ */
+export type BarcodeSetupGroup = "files" | "design" | "output";
+
+interface BarcodeSetupPanelProps {
+  group?: BarcodeSetupGroup;
+}
+
+export function BarcodeSetupPanel({ group }: BarcodeSetupPanelProps = {}) {
   const { t } = useTranslation();
   const project = useKumaProject();
   const [form, setFormRaw] = useState<SetupFormState>(() => loadFromStorage());
@@ -265,8 +278,8 @@ export function BarcodeSetupPanel() {
           </p>
         </header>
 
-        {/* 섹션 1: 입력 파일 */}
-        <section aria-labelledby="section-files">
+        {/* 섹션 1: 입력 파일 (group: files 또는 undefined) */}
+        {(!group || group === "files") && <section aria-labelledby="section-files">
           <h3 id="section-files" className="mb-3 text-sm font-medium text-foreground">
             {t("mame.barcodeSetup.inputFiles")}
           </h3>
@@ -295,10 +308,10 @@ export function BarcodeSetupPanel() {
               helperText={t("mame.barcodeSetup.barcodeSeedsXlsxHelper")}
             />
           </div>
-        </section>
+        </section>}
 
-        {/* 섹션 2: 유전자 좌표 */}
-        <section aria-labelledby="section-coords">
+        {/* 섹션 2: 유전자 좌표 (group: files 또는 undefined) */}
+        {(!group || group === "files") && <section aria-labelledby="section-coords">
           <h3 id="section-coords" className="mb-3 text-sm font-medium text-foreground">
             {t("mame.barcodeSetup.geneCoordinates")}
           </h3>
@@ -331,10 +344,10 @@ export function BarcodeSetupPanel() {
               {t("mame.barcodeSetup.geneEndError")}
             </p>
           )}
-        </section>
+        </section>}
 
-        {/* 섹션 3: 프로젝트 메타 */}
-        <section aria-labelledby="section-meta">
+        {/* 섹션 3: 프로젝트 메타 (group: files 또는 undefined) */}
+        {(!group || group === "files") && <section aria-labelledby="section-meta">
           <h3 id="section-meta" className="mb-3 text-sm font-medium text-foreground">
             {t("mame.barcodeSetup.projectMetadata")}
           </h3>
@@ -373,10 +386,10 @@ export function BarcodeSetupPanel() {
               </Select>
             </div>
           </div>
-        </section>
+        </section>}
 
-        {/* 섹션 4: 플랭크 파라미터 */}
-        <section aria-labelledby="section-flank">
+        {/* 섹션 4: 플랭크 파라미터 (group: design 또는 undefined) */}
+        {(!group || group === "design") && <section aria-labelledby="section-flank">
           <h3 id="section-flank" className="mb-3 text-sm font-medium text-foreground">
             {t("mame.barcodeSetup.flankParameters")}
           </h3>
@@ -400,10 +413,10 @@ export function BarcodeSetupPanel() {
               placeholder="400"
             />
           </div>
-        </section>
+        </section>}
 
-        {/* 섹션 5: 바인딩 파라미터 */}
-        <section aria-labelledby="section-binding">
+        {/* 섹션 5: 바인딩 파라미터 (group: design 또는 undefined) */}
+        {(!group || group === "design") && <section aria-labelledby="section-binding">
           <h3 id="section-binding" className="mb-3 text-sm font-medium text-foreground">
             {t("mame.barcodeSetup.bindingParameters")}
           </h3>
@@ -462,9 +475,10 @@ export function BarcodeSetupPanel() {
               {t("mame.barcodeSetup.requireGcClamp")}
             </Label>
           </div>
-        </section>
+        </section>}
 
-        {/* 프로젝트 없음 안내 */}
+        {/* 프로젝트 없음 안내 + 생성 버튼 + 출력 섹션 (group: output 또는 undefined) */}
+        {(!group || group === "output") && <>
         {!project?.path && (
           <p role="status" className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
             {t("mame.barcodeSetup.noProjectWarning")}
@@ -556,6 +570,7 @@ export function BarcodeSetupPanel() {
             </Button>
           </section>
         )}
+        </>}
       </div>
     </div>
   );
