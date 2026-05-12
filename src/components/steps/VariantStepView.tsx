@@ -14,7 +14,7 @@
  * 두 sub-step 간 동일 UI가 표시되는 것은 Stage 2 의도된 동작 (Stage 3에서 분할).
  */
 
-import type { SubStepId } from "@/store/slices/navigationSlice";
+
 import { SequenceInput } from "@/components/panels/InputPanel/SequenceInput";
 import { UniprotSearch } from "@/components/panels/InputPanel/UniprotSearch";
 import { DiversityOptions } from "@/components/panels/InputPanel/DiversityOptions";
@@ -25,7 +25,7 @@ import { SequenceViewer } from "@/components/widgets/SequenceViewer";
 // TODO Stage 3: split DiversitySections into domain-only / pareto-only mounts.
 
 interface VariantStepViewProps {
-  subStep: SubStepId;
+  subStep: string; // D2.1: will be replaced by DesignStepView
 }
 
 export function VariantStepView({ subStep }: VariantStepViewProps) {

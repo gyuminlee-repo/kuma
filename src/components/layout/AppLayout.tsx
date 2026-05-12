@@ -204,9 +204,9 @@ export function AppLayout() {
       case "d":
         if (isInput) return;
         e.preventDefault();
-        // Auto-navigate to sdm.run sub-step when shortcut is pressed from elsewhere
-        if (useAppStore.getState().currentSubStep !== "sdm.run") {
-          useAppStore.getState().setSubStep("sdm.run");
+        // Auto-navigate to design.params sub-step when shortcut is pressed from elsewhere
+        if (useAppStore.getState().currentSubStep !== "design.params") {
+          useAppStore.getState().setSubStep("design.params");
         }
         tryRunDesign();
         break;
@@ -217,9 +217,9 @@ export function AppLayout() {
       case "enter":
         if (isInput) return;
         e.preventDefault();
-        // Auto-navigate to sdm.run sub-step (spec §9: 단축키 sdm.run 자동 전환)
-        if (useAppStore.getState().currentSubStep !== "sdm.run") {
-          useAppStore.getState().setSubStep("sdm.run");
+        // Auto-navigate to design.params sub-step (spec §9: 단축키 design.params 자동 전환)
+        if (useAppStore.getState().currentSubStep !== "design.params") {
+          useAppStore.getState().setSubStep("design.params");
         }
         tryRunDesign();
         break;

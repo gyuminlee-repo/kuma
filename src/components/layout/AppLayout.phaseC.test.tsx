@@ -1,21 +1,20 @@
 /**
- * AppLayout.phaseC.test.tsx — Phase C integration tests
+ * AppLayout.phaseC.test.tsx — Phase C integration tests (D1.1: 3-major)
  *
  * Tests:
- *   1. data-tool="kuro" attribute preserved (Phase A token selector)
+ *   1. data-tool="kuro" attribute preserved
  *   2. sidebar region exists
  *   3. main content region exists
- *   4. MajorSubnav 4 major tabs rendered
- *   5. clicking sdm tab → currentMajor = "sdm"
- *   6. SubStepNav click → currentSubStep changes
- *   7. Ctrl+Enter → auto-navigate to sdm.run
+ *   4. MajorSubnav 3 major tabs rendered
+ *   5. clicking plate tab changes currentMajor to plate
+ *   6. SubStepNav click changes currentSubStep
+ *   7. Ctrl+Enter auto-navigates to design.params
  *   8. SummaryMetric / WorkflowStep not in DOM (regression)
  */
 
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 
-// ipc-kuro dependency shim (required for all AppLayout tests)
 vi.mock("@/lib/ipc-kuro", () => ({
   sendRequest: vi.fn(),
   setProgressHandler: vi.fn(),
@@ -27,8 +26,6 @@ vi.mock("@/lib/ipc-kuro", () => ({
 import { AppLayout } from "./AppLayout";
 import { useAppStore } from "@/store/appStore";
 
-// Helper: select major tabs (aria-controls="major-step-main" + no data-active attr = MajorSubnav buttons)
-// SubStepNav buttons also have aria-controls="major-step-main" but have data-active attr
 function getMajorTabs() {
   return screen
     .getAllByRole("tab")
@@ -49,7 +46,7 @@ function getSubStepTabs() {
     );
 }
 
-describe("AppLayout Phase C — layout structure", () => {
+describe("AppLayout Phase C -- layout structure", () => {
   it("renders data-tool='kuro' (Phase A token selector preserved)", () => {
     render(<AppLayout />);
     expect(document.querySelector("[data-tool='kuro']")).toBeTruthy();
@@ -76,81 +73,80 @@ describe("AppLayout Phase C — layout structure", () => {
   });
 });
 
-describe("AppLayout Phase C — MajorSubnav navigation", () => {
-  it("renders at least 4 major tabs", () => {
-    useAppStore.setState({ currentMajor: "variant", currentSubStep: "variant.load" });
+describe("AppLayout Phase C -- MajorSubnav navigation (3-major)", () => {
+  it("renders at least 3 major tabs", () => {
+    useAppStore.setState({ currentMajor: "design", currentSubStep: "design.load" });
     render(<AppLayout />);
     const tabs = getMajorTabs();
-    expect(tabs.length).toBeGreaterThanOrEqual(4);
+    expect(tabs.length).toBeGreaterThanOrEqual(3);
   });
 
-  it("first major tab is aria-selected when currentMajor='variant'", () => {
-    useAppStore.setState({ currentMajor: "variant", currentSubStep: "variant.load" });
+  it("first major tab (design) is aria-selected when currentMajor='design'", () => {
+    useAppStore.setState({ currentMajor: "design", currentSubStep: "design.load" });
     render(<AppLayout />);
     const tabs = getMajorTabs();
     expect(tabs[0].getAttribute("aria-selected")).toBe("true");
   });
 
-  it("clicking sdm tab changes currentMajor to sdm", () => {
-    useAppStore.setState({ currentMajor: "variant", currentSubStep: "variant.load" });
+  it("clicking plate tab changes currentMajor to plate", () => {
+    useAppStore.setState({ currentMajor: "design", currentSubStep: "design.load" });
     render(<AppLayout />);
     const tabs = getMajorTabs();
-    fireEvent.click(tabs[1]); // sdm is index 1
-    expect(useAppStore.getState().currentMajor).toBe("sdm");
+    fireEvent.click(tabs[1]); // plate is index 1
+    expect(useAppStore.getState().currentMajor).toBe("plate");
   });
 
-  it("clicking plate tab changes currentMajor to plate", () => {
-    useAppStore.setState({ currentMajor: "variant", currentSubStep: "variant.load" });
+  it("clicking export tab changes currentMajor to export", () => {
+    useAppStore.setState({ currentMajor: "design", currentSubStep: "design.load" });
     render(<AppLayout />);
     const tabs = getMajorTabs();
-    fireEvent.click(tabs[2]); // plate is index 2
-    expect(useAppStore.getState().currentMajor).toBe("plate");
+    fireEvent.click(tabs[2]); // export is index 2
+    expect(useAppStore.getState().currentMajor).toBe("export");
   });
 });
 
-describe("AppLayout Phase C — SubStepNav navigation", () => {
-  it("SubStepNav items render for current major", () => {
-    useAppStore.setState({ currentMajor: "variant", currentSubStep: "variant.load" });
+describe("AppLayout Phase C -- SubStepNav navigation", () => {
+  it("SubStepNav items render for design major", () => {
+    useAppStore.setState({ currentMajor: "design", currentSubStep: "design.load" });
     render(<AppLayout />);
     const subTabs = getSubStepTabs();
-    // variant has 5 sub-steps
-    expect(subTabs.length).toBeGreaterThanOrEqual(5);
+    // design has 4 sub-steps
+    expect(subTabs.length).toBeGreaterThanOrEqual(4);
   });
 
-  it("first sub-step tab is active for variant.load", () => {
-    useAppStore.setState({ currentMajor: "variant", currentSubStep: "variant.load" });
+  it("first sub-step tab is active for design.load", () => {
+    useAppStore.setState({ currentMajor: "design", currentSubStep: "design.load" });
     render(<AppLayout />);
     const subTabs = getSubStepTabs();
     expect(subTabs[0].getAttribute("aria-selected")).toBe("true");
   });
 
-  it("clicking second sub-step changes currentSubStep to variant.select", () => {
-    useAppStore.setState({ currentMajor: "variant", currentSubStep: "variant.load" });
+  it("clicking second sub-step changes currentSubStep to design.variant", () => {
+    useAppStore.setState({ currentMajor: "design", currentSubStep: "design.load" });
     render(<AppLayout />);
     const subTabs = getSubStepTabs();
-    fireEvent.click(subTabs[1]); // variant.select
-    expect(useAppStore.getState().currentSubStep).toBe("variant.select");
+    fireEvent.click(subTabs[1]); // design.variant
+    expect(useAppStore.getState().currentSubStep).toBe("design.variant");
   });
 });
 
-describe("AppLayout Phase C — keyboard shortcut sdm.run auto-navigate", () => {
-  it("Ctrl+Enter from non-sdm.run sub-step auto-navigates to sdm.run", () => {
-    useAppStore.setState({ currentMajor: "variant", currentSubStep: "variant.load" });
+describe("AppLayout Phase C -- keyboard shortcut auto-navigate", () => {
+  it("Ctrl+Enter from non-design.params sub-step auto-navigates to design.params", () => {
+    useAppStore.setState({ currentMajor: "design", currentSubStep: "design.load" });
     render(<AppLayout />);
 
     act(() => {
-      // Dispatch on document.body so e.target instanceof Element is true and tagName is "BODY"
       document.body.dispatchEvent(
         new KeyboardEvent("keydown", { key: "Enter", ctrlKey: true, bubbles: true }),
       );
     });
 
-    expect(useAppStore.getState().currentSubStep).toBe("sdm.run");
-    expect(useAppStore.getState().currentMajor).toBe("sdm");
+    expect(useAppStore.getState().currentSubStep).toBe("design.params");
+    expect(useAppStore.getState().currentMajor).toBe("design");
   });
 
-  it("Ctrl+D from non-sdm.run sub-step auto-navigates to sdm.run", () => {
-    useAppStore.setState({ currentMajor: "variant", currentSubStep: "variant.load" });
+  it("Ctrl+D from non-design.params sub-step auto-navigates to design.params", () => {
+    useAppStore.setState({ currentMajor: "design", currentSubStep: "design.load" });
     render(<AppLayout />);
 
     act(() => {
@@ -159,6 +155,6 @@ describe("AppLayout Phase C — keyboard shortcut sdm.run auto-navigate", () => 
       );
     });
 
-    expect(useAppStore.getState().currentSubStep).toBe("sdm.run");
+    expect(useAppStore.getState().currentSubStep).toBe("design.params");
   });
 });

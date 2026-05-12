@@ -5,8 +5,14 @@ import type { AppState } from "../types";
 // Types
 // ---------------------------------------------------------------------------
 
-export type MajorStepId = "variant" | "sdm" | "plate" | "export";
-export type SubStepId = string; // e.g. "variant.load"
+export type MajorStepId = "design" | "plate" | "export";
+export type SubStepId =
+  | "design.load"
+  | "design.variant"
+  | "design.mutation"
+  | "design.params"
+  | "plate.layout"
+  | "export.all";
 
 export interface StepStatus {
   done: boolean;
@@ -29,25 +35,17 @@ export interface NavigationSlice {
 // Constants
 // ---------------------------------------------------------------------------
 
-export const MAJOR_ORDER: MajorStepId[] = ["variant", "sdm", "plate", "export"];
+export const MAJOR_ORDER: MajorStepId[] = ["design", "plate", "export"];
 
 export const SUBSTEP_ORDER: Record<MajorStepId, SubStepId[]> = {
-  variant: [
-    "variant.load",
-    "variant.select",
-    "variant.adaptive",
-    "variant.domain",
-    "variant.pareto",
+  design: [
+    "design.load",
+    "design.variant",
+    "design.mutation",
+    "design.params",
   ],
-  sdm: [
-    "sdm.mutations",
-    "sdm.codon",
-    "sdm.polymerase",
-    "sdm.gc",
-    "sdm.run",
-  ],
-  plate: ["plate.size", "plate.layout", "plate.labels"],
-  export: ["export.format", "export.summary", "export.workspace"],
+  plate: ["plate.layout"],
+  export: ["export.all"],
 };
 
 // ---------------------------------------------------------------------------
@@ -55,7 +53,7 @@ export const SUBSTEP_ORDER: Record<MajorStepId, SubStepId[]> = {
 // ---------------------------------------------------------------------------
 
 function buildInitialStepStatus(): Record<SubStepId, StepStatus> {
-  const status: Record<SubStepId, StepStatus> = {};
+  const status: Record<SubStepId, StepStatus> = {} as Record<SubStepId, StepStatus>;
   for (const steps of Object.values(SUBSTEP_ORDER)) {
     for (const id of steps) {
       status[id] = { done: false, reachable: true };
@@ -74,8 +72,8 @@ export const createNavigationSlice: StateCreator<
   [],
   NavigationSlice
 > = (set) => ({
-  currentMajor: "variant",
-  currentSubStep: "variant.load",
+  currentMajor: "design",
+  currentSubStep: "design.load",
   stepStatus: buildInitialStepStatus(),
 
   setMajor(id: MajorStepId) {

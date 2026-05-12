@@ -11,14 +11,14 @@
  *   sdm.run        → RunDesignAction + ResultTable (run button + results)
  */
 
-import type { SubStepId } from "@/store/slices/navigationSlice";
+
 import { MutationInput } from "@/components/panels/InputPanel/MutationInput";
 import { ParameterPanelSection } from "@/components/panels/ParameterPanelSection";
 import { ResultTable } from "@/components/widgets/ResultTable";
 import { RunDesignAction } from "./RunDesignAction";
 
 interface SdmStepViewProps {
-  subStep: SubStepId;
+  subStep: string; // D2.1: will be replaced by DesignStepView
 }
 
 export function SdmStepView({ subStep }: SdmStepViewProps) {

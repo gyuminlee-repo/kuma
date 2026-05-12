@@ -1,39 +1,27 @@
 /**
  * PlateStepView — sub-step dispatcher for "plate" major step.
  *
- * [source: spec §1 — Plate Mapping major, 3 sub-steps]
+ * [source: spec §1 — Plate Mapping major, 1 sub-step (D1.1)]
  *
  * Sub-step mapping:
- *   plate.size   → PlateSizeSelector (96/384 toggle)
- *   plate.layout → KuroPlateView (wells wire in Stage 3)
- *   plate.labels → WellLabelOptions (label format selector)
+ *   plate.layout → KuroPlateView
  */
 
 import { useAppStore } from "@/store/appStore";
 import type { SubStepId } from "@/store/slices/navigationSlice";
 import { KuroPlateView } from "@/components/widgets/KuroPlateView";
-import { PlateSizeSelector } from "./PlateSizeSelector";
-import { WellLabelOptions } from "./WellLabelOptions";
 
 interface PlateStepViewProps {
   subStep: SubStepId;
 }
 
-export function PlateStepView({ subStep }: PlateStepViewProps) {
+export function PlateStepView({ subStep: _subStep }: PlateStepViewProps) {
   const plateMappings = useAppStore((s) => s.plateMappings);
 
-  switch (subStep) {
-    case "plate.size":
-      return <PlateSizeSelector />;
-    case "plate.layout":
-      return (
-        <div className="w-full h-full overflow-hidden">
-          <KuroPlateView plateMappings={plateMappings} />
-        </div>
-      );
-    case "plate.labels":
-      return <WellLabelOptions />;
-    default:
-      return null;
-  }
+  // plate.layout is now the only sub-step; render directly
+  return (
+    <div className="w-full h-full overflow-hidden">
+      <KuroPlateView plateMappings={plateMappings} />
+    </div>
+  );
 }
