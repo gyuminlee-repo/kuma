@@ -315,7 +315,7 @@ export function MenuBar() {
     <>
       <SubtoolMenuBar
         label="Kuro"
-        subtitle="Kernel for Upstream Recombination Oligodesign"
+        subtitle={t("menuBar.kuroSubtitle")}
         menus={menus}
       />
 

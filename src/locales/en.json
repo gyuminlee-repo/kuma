@@ -342,7 +342,18 @@
       "compareWorkspacesColA": "Workspace A",
       "compareWorkspacesColB": "Workspace B",
       "compareWorkspacesNoDiff": "No differences found.",
-      "closeBtn": "Close"
+      "closeBtn": "Close",
+      "selectWorkspaceA": "Select first workspace (A)",
+      "selectWorkspaceB": "Select second workspace (B)",
+      "compareWorkspacesFailed": "Workspace compare failed: {{error}}",
+      "exportWorkspaceZipSoon": "Export workspace as zip - coming soon"
+    },
+    "statusBar": {
+      "ready": "Ready",
+      "connecting": "Connecting",
+      "sidecarError": "Sidecar error",
+      "disconnected": "Disconnected",
+      "summaryStats": "Total {{total}} · PASS {{pass}} · Ambiguous {{ambiguous}} · Fail {{fail}}"
     },
     "appLayout": {
       "deadlockTitle": "No response",
@@ -1170,7 +1181,8 @@
     "uniprotServiceSuffix": " -- protein sequence search",
     "ncbiBlastServiceSuffix": " -- sequence similarity search",
     "alphafoldServiceSuffix": " -- structure prediction lookup",
-    "interproServiceSuffix": " -- protein domain annotation"
+    "interproServiceSuffix": " -- protein domain annotation",
+    "kuroSubtitle": "Kernel for Upstream Recombination Oligodesign"
   },
   "panel": {
     "errorTitle": "Cannot display",
@@ -1419,7 +1431,10 @@
     "cancelBtn": "Cancel",
     "runBtn": "Run",
     "clearBtn": "Clear",
-    "exportBtn": "Export"
+    "exportBtn": "Export",
+    "readyCount": "{{ready}}/{{total}} ready",
+    "inputReadinessAria": "Input readiness {{percent}}%",
+    "analysisProgressAria": "Analysis progress {{percent}}%"
   },
   "wellPlate": {
     "gridAriaLabel": "96-Well Plate",

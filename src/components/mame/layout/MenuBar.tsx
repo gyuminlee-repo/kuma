@@ -244,14 +244,14 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
     const pathA = await openFilePicker({
       multiple: false,
       filters: [{ name: "Workspace JSON", extensions: ["json"] }],
-      title: "Select first workspace (A)",
+      title: t("mame.menuBar.selectWorkspaceA"),
     });
     if (!pathA || typeof pathA !== "string") return;
 
     const pathB = await openFilePicker({
       multiple: false,
       filters: [{ name: "Workspace JSON", extensions: ["json"] }],
-      title: "Select second workspace (B)",
+      title: t("mame.menuBar.selectWorkspaceB"),
     });
     if (!pathB || typeof pathB !== "string") return;
 
@@ -265,7 +265,7 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
       setWsComparison(compareWorkspaces(a, b));
       setWsCompareOpen(true);
     } catch (err) {
-      window.alert(`Workspace compare failed: ${String(err)}`);
+      window.alert(t("mame.menuBar.compareWorkspacesFailed", { error: String(err) }));
     }
   }
 
@@ -330,7 +330,7 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
             <span className="flex-1">{t("file.compareWorkspaces")}</span>
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={() => window.alert("Export workspace as zip — coming soon")}
+            onClick={() => window.alert(t("mame.menuBar.exportWorkspaceZipSoon"))}
           >
             <span className="flex-1">{t("file.exportWorkspaceZip")}</span>
           </DropdownMenuItem>

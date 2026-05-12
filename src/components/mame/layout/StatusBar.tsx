@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import type { SidecarStatus } from "@/types/mame/models";
 import { GlobalStatusBar } from "@/components/layout/GlobalStatusBar";
@@ -27,6 +28,7 @@ function mapSidecarState(
   status: SidecarStatus,
   onRetry: () => void,
   healthInfo: HealthInfo | null,
+  t: (key: string) => string,
 ): SidecarInfo {
   const health = healthInfo !== null
     ? { pid: healthInfo.pid, rssMb: healthInfo.rss_bytes / (1024 * 1024) }
@@ -34,13 +36,13 @@ function mapSidecarState(
 
   switch (status) {
     case "ready":
-      return { state: "ready", label: "Ready", ...health };
+      return { state: "ready", label: t("mame.statusBar.ready"), ...health };
     case "connecting":
-      return { state: "connecting", label: "Connecting" };
+      return { state: "connecting", label: t("mame.statusBar.connecting") };
     case "error":
-      return { state: "error", label: "Sidecar error", onRetry };
+      return { state: "error", label: t("mame.statusBar.sidecarError"), onRetry };
     case "disconnected":
-      return { state: "error", label: "Disconnected", onRetry };
+      return { state: "error", label: t("mame.statusBar.disconnected"), onRetry };
   }
 }
 
@@ -58,6 +60,7 @@ export function StatusBar({
   sidecarStatus: SidecarStatus;
   onRetry: () => void;
 }) {
+  const { t } = useTranslation();
   const analyzeMessage = useMameAppStore((state) => state.analyzeMessage);
   const summary = useMameAppStore((state) => state.summary);
   const [healthInfo, setHealthInfo] = useState<HealthInfo | null>(null);
@@ -95,8 +98,12 @@ export function StatusBar({
 
   const centerSlot = summary ? (
     <span className="tabular-nums">
-      Total {summary.total} · PASS {summary.pass_count} · Ambiguous{" "}
-      {summary.ambiguous_count} · Fail {summary.fail_count}
+      {t("mame.statusBar.summaryStats", {
+        total: summary.total,
+        pass: summary.pass_count,
+        ambiguous: summary.ambiguous_count,
+        fail: summary.fail_count,
+      })}
     </span>
   ) : undefined;
 
@@ -104,7 +111,7 @@ export function StatusBar({
     <GlobalStatusBar
       message={analyzeMessage}
       centerSlot={centerSlot}
-      sidecar={mapSidecarState(sidecarStatus, onRetry, healthInfo)}
+      sidecar={mapSidecarState(sidecarStatus, onRetry, healthInfo, t)}
     />
   );
 }

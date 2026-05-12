@@ -55,7 +55,7 @@ export function Sidebar({ onClearRequest, onRunRequest }: SidebarProps) {
           <div className="flex items-center justify-between gap-2">
             <span className="text-caption text-muted-foreground">{t("mameSidebar.runStateLabel")}</span>
             <span className="rounded-full border border-border/70 bg-muted px-2 py-0.5 text-caption font-medium text-muted-foreground">
-              {readyCount}/{requiredInputs.length} ready
+              {t("mameSidebar.readyCount", { ready: readyCount, total: requiredInputs.length })}
             </span>
           </div>
           <div className="truncate text-body font-medium text-foreground" aria-live="polite">
@@ -64,13 +64,13 @@ export function Sidebar({ onClearRequest, onRunRequest }: SidebarProps) {
           <Progress
             value={readiness}
             className="mt-1.5 h-1"
-            aria-label={`Input readiness ${readiness}%`}
+            aria-label={t("mameSidebar.inputReadinessAria", { percent: readiness })}
           />
           {isAnalyzing && (
             <Progress
               value={analyzeProgress}
               className="mt-1.5 h-1"
-              aria-label={`Analysis progress ${analyzeProgress}%`}
+              aria-label={t("mameSidebar.analysisProgressAria", { percent: analyzeProgress })}
             />
           )}
           {!isAnalyzing && (

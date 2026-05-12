@@ -342,7 +342,18 @@
       "compareWorkspacesNoDiff": "차이가 없습니다.",
       "compareWorkspacesSame": "두 워크스페이스가 동일합니다.",
       "compareWorkspacesTitle": "워크스페이스 비교",
-      "restartSidecarConfirm": "분석이 실행 중입니다. 그래도 sidecar를 재시작하시겠습니까?"
+      "restartSidecarConfirm": "분석이 실행 중입니다. 그래도 sidecar를 재시작하시겠습니까?",
+      "selectWorkspaceA": "첫 번째 워크스페이스 선택 (A)",
+      "selectWorkspaceB": "두 번째 워크스페이스 선택 (B)",
+      "compareWorkspacesFailed": "워크스페이스 비교 실패: {{error}}",
+      "exportWorkspaceZipSoon": "워크스페이스를 zip으로 내보내기 - 준비 중"
+    },
+    "statusBar": {
+      "ready": "준비됨",
+      "connecting": "연결 중",
+      "sidecarError": "Sidecar 오류",
+      "disconnected": "연결 끊김",
+      "summaryStats": "전체 {{total}} · 통과 {{pass}} · 불확정 {{ambiguous}} · 실패 {{fail}}"
     },
     "appLayout": {
       "deadlockTitle": "응답 없음",
@@ -1170,7 +1181,8 @@
     "uniprotServiceSuffix": " -- 단백질 서열 검색",
     "ncbiBlastServiceSuffix": " -- 서열 유사성 검색",
     "alphafoldServiceSuffix": " -- 구조 예측 조회",
-    "interproServiceSuffix": " -- 단백질 도메인 주석"
+    "interproServiceSuffix": " -- 단백질 도메인 주석",
+    "kuroSubtitle": "Kernel for Upstream Recombination Oligodesign"
   },
   "panel": {
     "errorTitle": "표시할 수 없습니다",
@@ -1419,7 +1431,10 @@
     "cancelBtn": "취소",
     "runBtn": "실행",
     "clearBtn": "초기화",
-    "exportBtn": "내보내기"
+    "exportBtn": "내보내기",
+    "readyCount": "{{ready}}/{{total}} 준비됨",
+    "inputReadinessAria": "입력 준비도 {{percent}}%",
+    "analysisProgressAria": "분석 진행률 {{percent}}%"
   },
   "wellPlate": {
     "gridAriaLabel": "96-Well 플레이트",
