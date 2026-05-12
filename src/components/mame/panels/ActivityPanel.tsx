@@ -105,7 +105,7 @@ function IngestSection() {
     (s) => s.rounds.find((r) => r.id === activeRoundId)?.activity?.records?.length ?? 0,
   );
   return (
-    <section className="space-y-4" aria-label="Ingest">
+    <section className="space-y-4" aria-label={t("mame.activity.tabIngest")}>
       <div className="space-y-2">
         <h3 className="text-sm font-semibold text-foreground">{t("mame.activity.ingest.uploadHeading")}</h3>
         <p className="text-xs text-muted-foreground">{t("mame.activity.ingest.uploadDesc")}</p>
@@ -164,7 +164,7 @@ function MergeSection() {
   }
 
   return (
-    <section className="space-y-3 border-t border-border pt-4" aria-label="Merge">
+    <section className="space-y-3 border-t border-border pt-4" aria-label={t("mame.activity.tabMerge")}>
       <header>
         <h3 className="text-sm font-semibold text-foreground">{t("mame.activity.merge.heading")}</h3>
         <p className="text-xs text-muted-foreground">{t("mame.activity.merge.desc")}</p>
@@ -271,7 +271,7 @@ function ExportSection() {
   }
 
   return (
-    <section className="space-y-3 border-t border-border pt-4" aria-label="Export">
+    <section className="space-y-3 border-t border-border pt-4" aria-label={t("mame.activity.tabExport")}>
       <header>
         <h3 className="text-sm font-semibold text-foreground">{t("mame.activity.export.heading")}</h3>
         <p className="text-xs text-muted-foreground">{t("mame.activity.export.desc")}</p>

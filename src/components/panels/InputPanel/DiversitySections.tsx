@@ -427,7 +427,7 @@ export function AdvancedSettingsSection(props: {
           <div>
             <div className="mb-0.5 text-plate-tiny uppercase tracking-wide text-muted-foreground/60">{t("diversitySections.step2SectionLabel")}</div>
             <div className="space-y-1">
-              <div className="flex items-center gap-2 flex-wrap" role="radiogroup" aria-label="Domain strategy">
+              <div className="flex items-center gap-2 flex-wrap" role="radiogroup" aria-label={t("diversitySections.domainStrategyAriaLabel")}>
                 <span>{t("diversitySections.strategyLabel")}</span>
                 {DOMAIN_STRATEGY_OPTIONS.map((v) => (
                   <label key={v} className="flex items-center gap-0.5 cursor-pointer">

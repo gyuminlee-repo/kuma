@@ -342,6 +342,7 @@
       "deadlockDescription": "30초 이상 진행 상태가 업데이트되지 않았습니다. 작업이 멈춘 것 같습니다.",
       "deadlockWait": "계속 대기",
       "deadlockReset": "초기화",
+      "analysisWorkspaceAriaLabel": "분석 작업 공간",
       "manifestLoadFailed": "Manifest 로드 실패: {{err}}",
       "barcodeSetupTab": "1. 바코드 설정",
       "analyzeTab": "2. 분석",
@@ -596,6 +597,7 @@
     "statOverlap": "오버랩"
   },
   "diversitySections": {
+    "domainStrategyAriaLabel": "도메인 전략",
     "helpShow": "도움말 표시",
     "helpHide": "도움말 숨기기",
     "stepLabel": "Step {{step}}: {{label}}",

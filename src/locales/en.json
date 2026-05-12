@@ -342,6 +342,7 @@
       "deadlockDescription": "No progress update for 30+ seconds. The job may be stuck.",
       "deadlockWait": "Keep waiting",
       "deadlockReset": "Reset",
+      "analysisWorkspaceAriaLabel": "Analysis workspace",
       "manifestLoadFailed": "Manifest load failed: {{err}}",
       "barcodeSetupTab": "1. Barcode Setup",
       "analyzeTab": "2. Analyze",
@@ -596,6 +597,7 @@
     "statOverlap": "Overlap"
   },
   "diversitySections": {
+    "domainStrategyAriaLabel": "Domain strategy",
     "helpShow": "Show help",
     "helpHide": "Hide help",
     "stepLabel": "Step {{step}}: {{label}}",
