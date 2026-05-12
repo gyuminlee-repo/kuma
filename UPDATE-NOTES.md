@@ -4,6 +4,29 @@
 
 ---
 
+## v0.3.17 – v0.3.22.07 (2026-05-12)
+
+Full English / Korean i18n coverage across the desktop app.
+
+### Coverage
+
+- `src/locales/en.json` and `ko.json` parity at the same key count (1151+ keys across menu/file/export/edit/help/about/settings/common, plus per-component namespaces).
+- All user-facing surfaces converted to `useTranslation` + `t()`: parameter and design dialogs, popovers, manifest diff, MAME widgets/dialogs/InputPanel, Activity panels, screens (Home, MainShell, MameTab, Onboarding), layout (AppLayout, GlobalAppBar, GlobalStatusBar, SettingsDialog, Sidebar, StatusBar, SubtoolMenuBar, MenuBar), and residual dialogs (CloseConfirm, NetworkConsent, OverwriteConfirm, InputSizeWarning, BenchmarkDialog, WorkspaceMigrate, WtWellEditor, CrashLog, PreflightDialog).
+- Domain abbreviations (Fwd, Rev, Tm, GC%, Pen, Tol, AlphaFold, EVOLVEpro, Q5 SDM, Gibson, Owczarzy / SantaLucia / Schildkraut / Breslauer) intentionally kept in English. Only labels with natural Korean equivalents (titles, section headings, status badges, tab labels) translated.
+
+### Infrastructure
+
+- `src/lib/i18n.ts` keeps the existing localStorage key (`kuma:locale`) and en/ko/system resolution. No new dependency.
+- Lint and parity guards added in CI (v0.3.22.01): block PRs that drift en/ko key counts or leave hardcoded user-facing strings in covered files.
+- Em dashes in `reRunManifest.method.*` replaced with colons for consistency with the project writing rule.
+
+### Operational notes
+
+- Restart the sidecar after applying the update; cached strings in long-running jobs do not retranslate.
+- Language preference (`File → Settings → Language`) persists per machine.
+
+---
+
 ## v0.3.16 (2026-05-12)
 
 Hover tooltips on every selector across KURO and MAME.

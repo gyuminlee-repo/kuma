@@ -4,6 +4,29 @@
 
 ---
 
+## v0.3.17 – v0.3.22.07 (2026-05-12)
+
+데스크톱 앱 전반의 영어/한국어 i18n 커버리지 완성.
+
+### 커버리지
+
+- `src/locales/en.json`과 `ko.json` 키 개수 동등 (menu/file/export/edit/help/about/settings/common 및 컴포넌트별 네임스페이스 포함 1151+ 키).
+- 사용자 가시 영역 전수 `useTranslation` + `t()` 적용: parameter·design 다이얼로그, popover, manifest diff, MAME widgets·dialogs·InputPanel, Activity 패널, screens (Home, MainShell, MameTab, Onboarding), layout (AppLayout, GlobalAppBar, GlobalStatusBar, SettingsDialog, Sidebar, StatusBar, SubtoolMenuBar, MenuBar), 잔여 다이얼로그 (CloseConfirm, NetworkConsent, OverwriteConfirm, InputSizeWarning, BenchmarkDialog, WorkspaceMigrate, WtWellEditor, CrashLog, PreflightDialog).
+- 도메인 약어(Fwd, Rev, Tm, GC%, Pen, Tol, AlphaFold, EVOLVEpro, Q5 SDM, Gibson, Owczarzy / SantaLucia / Schildkraut / Breslauer)는 의도적으로 영문 유지. 자연스러운 한국어 대응어가 있는 라벨(제목, 섹션 헤딩, 상태 배지, 탭 라벨)만 번역.
+
+### 인프라
+
+- `src/lib/i18n.ts` 기존 localStorage 키(`kuma:locale`)와 en/ko/system 해석 유지. 신규 의존성 없음.
+- CI에 lint·parity 가드 추가(v0.3.22.01): en/ko 키 수 drift나 하드코딩 사용자 문자열 잔존 시 PR 차단.
+- `reRunManifest.method.*`의 em dash를 콜론으로 교체, 프로젝트 작문 규칙과 정렬.
+
+### 운용 메모
+
+- 업데이트 적용 후 사이드카 재시작 권장. 장시간 진행 작업 내 캐시된 문자열은 자동 재번역되지 않음.
+- 언어 설정(`File → Settings → Language`)은 머신별로 보존.
+
+---
+
 ## v0.3.16 (2026-05-12)
 
 KURO·MAME 전 선택지에 호버 툴팁 추가.

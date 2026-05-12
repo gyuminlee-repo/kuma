@@ -837,8 +837,8 @@
     "btnRunning": "Running...",
     "statusDone": "Re-run complete: {{method}}",
     "method": {
-      "design_sdm_primers": "Kuro — SDM primer design",
-      "merge_for_evolvepro": "Mame — merge for EVOLVEpro",
+      "design_sdm_primers": "Kuro: SDM primer design",
+      "merge_for_evolvepro": "Mame: merge for EVOLVEpro",
       "export_order": "Export: order sheet (not re-runnable)",
       "export_mapping": "Export: plate mapping (not re-runnable)",
       "export_excel": "Export: Excel (not re-runnable)"
