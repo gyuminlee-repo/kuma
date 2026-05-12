@@ -364,6 +364,39 @@
         "openFolderAriaLabel": "파일 탐색기에서 내보내기 폴더 열기",
         "exporting": "내보내는 중…",
         "exportExcel": "Excel 내보내기"
+      },
+      "janusMapping": {
+        "title": "Janus 매핑 내보내기",
+        "description": "최종 cell-stock Janus 매핑 파일 (K4 spec)을 CSV 또는 XLSX로 내보냅니다.",
+        "formatLabel": "형식",
+        "formatAriaLabel": "Janus 매핑 내보내기 형식",
+        "outputPathLabel": "출력 파일 경로",
+        "outputPathPlaceholder": "저장할 .{{ext}} 파일 경로",
+        "outputPathAriaLabel": "Janus 매핑 출력 파일 경로",
+        "browseAriaLabel": "Janus 매핑 저장 경로 찾아보기",
+        "columnsNote": "열 구성: well, custom_barcode, variant, verdict, plate 좌표.",
+        "phase1Note": "Phase 1: 통과된 well만 포함됩니다.",
+        "exportJanus": "Janus 매핑 내보내기",
+        "exporting": "내보내는 중…",
+        "exported": "내보내기 완료",
+        "exportErrorPathRequired": "출력 경로를 입력하세요."
+      },
+      "runReport": {
+        "title": "실행 보고서 내보내기",
+        "description": "1페이지 실행 요약 보고서를 HTML 또는 PDF로 내보냅니다.",
+        "formatLabel": "형식",
+        "formatAriaLabel": "실행 보고서 내보내기 형식",
+        "outputPathLabel": "출력 파일 경로",
+        "outputPathPlaceholder": "저장할 .{{ext}} 파일 경로",
+        "outputPathAriaLabel": "실행 보고서 출력 파일 경로",
+        "browseAriaLabel": "실행 보고서 저장 경로 찾아보기",
+        "pdfNote": "PDF 내보내기는 weasyprint가 필요합니다. 설치되지 않은 경우 HTML로 저장됩니다.",
+        "fallbackNotice": "weasyprint를 찾을 수 없어 HTML로 저장되었습니다.",
+        "savedHtmlFallback": "HTML로 저장됨 (PDF 대체)",
+        "exportedAs": "{{format}}으로 내보내기 완료",
+        "exportReport": "보고서 내보내기",
+        "exporting": "내보내는 중…",
+        "exportErrorPathRequired": "출력 경로를 입력하세요."
       }
     },
     "inputPanel": {
@@ -1382,5 +1415,6 @@
   "uniprotSearchExtra": {
     "placeholder": "UniProt ID",
     "afStructureTitle": "AlphaFold 구조 이용 가능"
-  }
+  },
+  "sectionLabel": "입력"
 }

@@ -364,6 +364,39 @@
         "openFolderAriaLabel": "Open export folder in file explorer",
         "exporting": "Exporting…",
         "exportExcel": "Export Excel"
+      },
+      "janusMapping": {
+        "title": "Export Janus Mapping",
+        "description": "Export the final cell-stock Janus mapping file (K4 spec) as CSV or XLSX.",
+        "formatLabel": "Format",
+        "formatAriaLabel": "Janus mapping export format",
+        "outputPathLabel": "Output file path",
+        "outputPathPlaceholder": "Target .{{ext}} file path",
+        "outputPathAriaLabel": "Output file path for Janus mapping",
+        "browseAriaLabel": "Browse save path for Janus mapping",
+        "columnsNote": "Columns: well, custom_barcode, variant, verdict, and plate coordinates.",
+        "phase1Note": "Phase 1: only passed wells are included.",
+        "exportJanus": "Export Janus Mapping",
+        "exporting": "Exporting…",
+        "exported": "Exported successfully",
+        "exportErrorPathRequired": "Output path is required."
+      },
+      "runReport": {
+        "title": "Export Run Report",
+        "description": "Export a one-page run summary report as HTML or PDF.",
+        "formatLabel": "Format",
+        "formatAriaLabel": "Run report export format",
+        "outputPathLabel": "Output file path",
+        "outputPathPlaceholder": "Target .{{ext}} file path",
+        "outputPathAriaLabel": "Output file path for run report",
+        "browseAriaLabel": "Browse save path for run report",
+        "pdfNote": "PDF export requires weasyprint. If not installed, the report is saved as HTML.",
+        "fallbackNotice": "weasyprint not found — report was saved as HTML instead.",
+        "savedHtmlFallback": "Saved as HTML (PDF fallback)",
+        "exportedAs": "Exported as {{format}}",
+        "exportReport": "Export Report",
+        "exporting": "Exporting…",
+        "exportErrorPathRequired": "Output path is required."
       }
     },
     "inputPanel": {
@@ -1382,5 +1415,6 @@
   "uniprotSearchExtra": {
     "placeholder": "UniProt ID",
     "afStructureTitle": "AlphaFold structure available"
-  }
+  },
+  "sectionLabel": "Input"
 }
