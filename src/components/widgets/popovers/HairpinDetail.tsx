@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useFocusTrap } from "../../../hooks/useFocusTrap";
 import type { SdmPrimerResult } from "../../../types/models";
 
@@ -8,13 +9,14 @@ export function HairpinDetail({
   result: SdmPrimerResult;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const focusTrapRef = useFocusTrap<HTMLDivElement>();
 
   const rows = [
-    { label: "Hairpin Fwd", tm: result.hairpin_tm_fwd ?? 0, dg: result.hairpin_dg_fwd ?? 0 },
-    { label: "Hairpin Rev", tm: result.hairpin_tm_rev ?? 0, dg: result.hairpin_dg_rev ?? 0 },
-    { label: "Homodimer Fwd", tm: result.homodimer_tm_fwd ?? 0, dg: result.homodimer_dg_fwd ?? 0 },
-    { label: "Homodimer Rev", tm: result.homodimer_tm_rev ?? 0, dg: result.homodimer_dg_rev ?? 0 },
+    { label: t("hairpinDetail.rowHairpinFwd"), tm: result.hairpin_tm_fwd ?? 0, dg: result.hairpin_dg_fwd ?? 0 },
+    { label: t("hairpinDetail.rowHairpinRev"), tm: result.hairpin_tm_rev ?? 0, dg: result.hairpin_dg_rev ?? 0 },
+    { label: t("hairpinDetail.rowHomodimerFwd"), tm: result.homodimer_tm_fwd ?? 0, dg: result.homodimer_dg_fwd ?? 0 },
+    { label: t("hairpinDetail.rowHomodimerRev"), tm: result.homodimer_tm_rev ?? 0, dg: result.homodimer_dg_rev ?? 0 },
   ];
 
   return (
@@ -33,12 +35,12 @@ export function HairpinDetail({
       >
         <div className="mb-4 flex items-center justify-between">
           <h3 id="hairpin-detail-title" className="text-lg font-semibold text-foreground">
-            {result.mutation} — Secondary Structure
+            {t("hairpinDetail.title", { mutation: result.mutation })}
           </h3>
           <button
             onClick={onClose}
             className="px-2 text-lg text-muted-foreground hover:text-foreground"
-            aria-label="Close"
+            aria-label={t("hairpinDetail.closeAriaLabel")}
           >
             ×
           </button>
@@ -47,10 +49,10 @@ export function HairpinDetail({
         <table className="w-full text-xs border-collapse">
           <thead>
             <tr className="bg-muted text-muted-foreground font-semibold">
-              <th className="px-3 py-1.5 text-left">Type</th>
-              <th className="px-3 py-1.5 text-right">Tm (°C)</th>
-              <th className="px-3 py-1.5 text-right">dG (kcal/mol)</th>
-              <th className="px-3 py-1.5 text-center">Status</th>
+              <th className="px-3 py-1.5 text-left">{t("hairpinDetail.colType")}</th>
+              <th className="px-3 py-1.5 text-right">{t("hairpinDetail.colTm")}</th>
+              <th className="px-3 py-1.5 text-right">{t("hairpinDetail.colDg")}</th>
+              <th className="px-3 py-1.5 text-center">{t("hairpinDetail.colStatus")}</th>
             </tr>
           </thead>
           <tbody>

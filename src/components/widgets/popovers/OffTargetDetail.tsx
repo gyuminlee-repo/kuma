@@ -15,6 +15,7 @@ export function OffTargetDetail({
   result: SdmPrimerResult;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const focusTrapRef = useFocusTrap<HTMLDivElement>();
 
   const fwdHits = result.offtarget_fwd ?? [];
@@ -40,29 +41,29 @@ export function OffTargetDetail({
       >
         <div className="mb-4 flex items-center justify-between">
           <h3 id="offtarget-detail-title" className="text-lg font-semibold text-foreground">
-            {result.mutation} — Off-Target Sites ({allHits.length})
+            {t("offTargetDetail.title", { mutation: result.mutation, count: allHits.length })}
           </h3>
           <button
             onClick={onClose}
             className="px-2 text-lg text-muted-foreground hover:text-foreground"
-            aria-label="Close"
+            aria-label={t("offTargetDetail.closeAriaLabel")}
           >
             ×
           </button>
         </div>
 
         {allHits.length === 0 ? (
-          <div className="py-4 text-center text-xs text-muted-foreground">No off-target hits</div>
+          <div className="py-4 text-center text-xs text-muted-foreground">{t("offTargetDetail.noHits")}</div>
         ) : (
           <table className="w-full text-xs border-collapse">
             <thead>
               <tr className="bg-muted text-muted-foreground font-semibold">
-                <th className="px-2 py-1.5 text-left">Primer</th>
-                <th className="px-2 py-1.5 text-right">Position</th>
-                <th className="px-2 py-1.5 text-center">Strand</th>
-                <th className="px-2 py-1.5 text-right">Match (bp)</th>
-                <th className="px-2 py-1.5 text-right">Tm (°C)</th>
-                <th className="px-2 py-1.5 text-left">Sequence</th>
+                <th className="px-2 py-1.5 text-left">{t("offTargetDetail.colPrimer")}</th>
+                <th className="px-2 py-1.5 text-right">{t("offTargetDetail.colPosition")}</th>
+                <th className="px-2 py-1.5 text-center">{t("offTargetDetail.colStrand")}</th>
+                <th className="px-2 py-1.5 text-right">{t("offTargetDetail.colMatch")}</th>
+                <th className="px-2 py-1.5 text-right">{t("offTargetDetail.colTm")}</th>
+                <th className="px-2 py-1.5 text-left">{t("offTargetDetail.colSequence")}</th>
               </tr>
             </thead>
             <tbody>
