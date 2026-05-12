@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useAppStore } from "../../store/appStore";
 import { Button } from "../ui/button";
 import {
@@ -14,6 +15,7 @@ import {
  * AppLayout / MameLayout 루트에 마운트해 두고 store 상태로 열림 여부를 제어한다.
  */
 export function NetworkConsentDialog() {
+  const { t } = useTranslation();
   const pending = useAppStore((s) => s.networkConsentPending);
   const grantNetworkConsent = useAppStore((s) => s.grantNetworkConsent);
   const denyNetworkConsent = useAppStore((s) => s.denyNetworkConsent);
@@ -33,18 +35,17 @@ export function NetworkConsentDialog() {
       >
         <DialogHeader>
           <DialogTitle id="network-consent-title">
-            외부 데이터베이스 사용 동의
+            {t("networkConsent.title")}
           </DialogTitle>
           <DialogDescription id="network-consent-desc" asChild>
             <div className="space-y-3 text-sm text-muted-foreground">
               <p>
-                이 기능은 다음 외부 서비스를 호출합니다. 입력한 서열 데이터가
-                해당 서비스로 전송됩니다.
+                {t("networkConsent.description")}
               </p>
               <ul
                 className="list-disc pl-5 space-y-1 text-foreground"
                 role="list"
-                aria-label="외부 서비스 목록"
+                aria-label={t("networkConsent.serviceListAriaLabel")}
               >
                 <li>
                   <span className="font-medium">UniProt</span>
@@ -100,8 +101,7 @@ export function NetworkConsentDialog() {
                 </li>
               </ul>
               <p className="text-xs">
-                동의는 재시작 후에도 유지됩니다. Settings에서 오프라인 모드를
-                켜면 언제든지 외부 호출을 차단할 수 있습니다.
+                {t("networkConsent.persistNote")}
               </p>
             </div>
           </DialogDescription>
@@ -113,14 +113,14 @@ export function NetworkConsentDialog() {
             size="sm"
             onClick={denyNetworkConsent}
           >
-            취소
+            {t("networkConsent.btnCancel")}
           </Button>
           <Button
             size="sm"
             onClick={grantNetworkConsent}
             autoFocus
           >
-            동의하고 계속
+            {t("networkConsent.btnAccept")}
           </Button>
         </DialogFooter>
       </DialogContent>

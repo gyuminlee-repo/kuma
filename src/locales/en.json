@@ -289,6 +289,17 @@
       "statusReadyToRun": "Ready to run",
       "statusDraft": "Draft setup",
       "statusInProgress": "In progress"
+    },
+    "menuBar": {
+      "restartSidecarConfirm": "Analysis is running. Restart sidecar anyway?",
+      "compareWorkspacesTitle": "Compare Workspaces",
+      "compareWorkspacesSame": "The two workspaces are identical.",
+      "compareWorkspacesDiff": "{{count}} difference{{plural}} found.",
+      "compareWorkspacesColField": "Field",
+      "compareWorkspacesColA": "Workspace A",
+      "compareWorkspacesColB": "Workspace B",
+      "compareWorkspacesNoDiff": "No differences found.",
+      "closeBtn": "Close"
     }
   },
   "home": {
@@ -302,13 +313,20 @@
     "projectNamePlaceholder": "Project name",
     "projectNameLabel": "Project name",
     "createButton": "Create",
-    "errorEnterName": "Enter a project name."
+    "errorEnterName": "Enter a project name.",
+    "newProjectTitle": "New project",
+    "newProjectDesc": "Enter a project name.",
+    "projectNameAriaLabel": "Project name",
+    "createBtn": "Create",
+    "enterProjectName": "Enter a project name."
   },
   "mameTab": {
     "matchingProjectTitle": "Matching project found",
     "matchingProjectDescription": "Load \"{{name}}\"?",
     "cancelButton": "Cancel",
-    "loadButton": "Load"
+    "loadButton": "Load",
+    "matchingProjectDesc": "Load \"{{name}}\"?",
+    "loadBtn": "Load"
   },
   "common": {
     "ok": "OK",
@@ -322,7 +340,11 @@
     "navAriaLabel": "Application navigation",
     "tabsAriaLabel": "Application tabs",
     "openSettingsAriaLabel": "Open settings",
-    "openSettingsTitle": "Settings"
+    "openSettingsTitle": "Settings",
+    "appNavAriaLabel": "Application navigation",
+    "appTabsAriaLabel": "Application tabs",
+    "settingsAriaLabel": "Open Settings",
+    "settingsTitle": "Settings"
   },
   "globalStatusBar": {
     "statusBarAriaLabel": "Status bar",
@@ -575,7 +597,11 @@
       "removed": "removed",
       "changed": "changed",
       "same": "same"
-    }
+    },
+    "labelA": "A (before)",
+    "labelB": "B (after)",
+    "tableAriaLabel": "Manifest diff table",
+    "dialogAriaLabel": "Manifest diff dialog"
   },
   "failedMutationPopover": {
     "recoveryHeading": "Failure Recovery",
@@ -707,7 +733,9 @@
       "justNow": "just now",
       "minAgo": "{{count}} min ago",
       "hrAgo": "{{count}} hr ago",
-      "daysAgo": "{{count}} day(s) ago"
+      "daysAgo": "{{count}} day(s) ago",
+      "minutesAgo": "{{n}} min ago",
+      "hoursAgo": "{{n}} hr ago"
     },
     "memory": {
       "warningBannerLabel": "Memory: {{pct}}% (sidecar {{rss}} MB)",
@@ -720,7 +748,30 @@
       "logTitle": "Log: sidecar progress messages",
       "jobsTitle": "Jobs: queued background tasks",
       "panelAriaLabel": "Floating panel visibility controls"
-    }
+    },
+    "logPanel": "Log",
+    "logPanelTitle": "Log: sidecar progress messages",
+    "jobsPanel": "Jobs",
+    "jobsPanelTitle": "Jobs: queued background tasks",
+    "floatingPanelAriaLabel": "Floating panel visibility controls",
+    "workspace": "Workspace",
+    "scratch": "Scratch",
+    "autosaveOn": "Autosave on",
+    "autosaveSaving": "Saving…",
+    "autosaveSavedJustNow": "Saved just now",
+    "autosaveSavedAgo": "Saved {{time}}",
+    "autosaveRestoredAgo": "Restored from autosave ({{time}})",
+    "autosaveFailed": "Save failed",
+    "autosaveRetry": "retry",
+    "autosaveRetryAriaLabel": "Retry autosave",
+    "autosaveAriaLabel": "Autosave: {{label}}",
+    "autosaveFailedStreak": "Autosave failed 3 times. Check disk space or permissions.",
+    "autosaveIsOn": "Autosave is on for this project.",
+    "memoryWarning": "Memory: {{ratio}}% (sidecar {{rss}} MB)",
+    "memoryWarningDismissAriaLabel": "Dismiss memory warning",
+    "memoryBlockTitle": "Memory limit exceeded",
+    "memoryBlockDesc": "The sidecar process memory usage has reached {{ratio}}% ({{rss}} MB). Stop current work and restart the app.",
+    "memoryBlockConfirm": "OK"
   },
   "onboarding": {
     "titleChange": "Change projects folder",
@@ -734,7 +785,12 @@
     "insideProject": "Inside each project",
     "kuroDesc": "Kernel for Upstream Recombination Oligodesign. Batch SDM primer design from Gibson Assembly templates.",
     "mameDesc": "Mutagenesis Assessment & Microplate Export. Oxford Nanopore NGS verdict.",
-    "autosaveNote": "Inputs and parameters autosave per project. Nothing leaks between projects."
+    "autosaveNote": "Inputs and parameters autosave per project. Nothing leaks between projects.",
+    "titleStart": "Get started",
+    "descStart": "Choose a default folder for projects. kuma keeps every Kuro design and Mame verdict run inside its own project folder so the work survives across weeks-long sequencing turnaround.",
+    "chooseFolderBtn": "Choose folder",
+    "doneBtn": "Done",
+    "insideEachProject": "Inside each project"
   },
   "appLayout": {
     "status": "Status",
@@ -760,6 +816,156 @@
     "deadlockWait": "Keep waiting",
     "deadlockReset": "Reset",
     "plateCount": "{{count}} plate",
-    "plateCount_other": "{{count}} plates"
+    "plateCount_other": "{{count}} plates",
+    "cancel": "Cancel",
+    "clearAllTitle": "Clear All",
+    "clearBtn": "Clear",
+    "successful": "{{success}}/{{total}} successful",
+    "plates_one": "{{count}} plate",
+    "plates_other": "{{count}} plates",
+    "missingSequence": "Sequence file (Browse a .gb / .fasta / .dna file)",
+    "manifestLoadFailed": "Manifest load failed: {{error}}"
+  },
+  "overwriteConfirm": {
+    "title": "File already exists",
+    "description": "already exists. Do you want to overwrite it?",
+    "btnCancel": "Cancel",
+    "btnOverwrite": "Overwrite"
+  },
+  "offTargetDetail": {
+    "title": "{{mutation}} — Off-Target Sites ({{count}})",
+    "noHits": "No off-target hits",
+    "closeAriaLabel": "Close",
+    "colPrimer": "Primer",
+    "colPosition": "Position",
+    "colStrand": "Strand",
+    "colMatch": "Match (bp)",
+    "colTm": "Tm (°C)",
+    "colSequence": "Sequence"
+  },
+  "hairpinDetail": {
+    "title": "{{mutation}} — Secondary Structure",
+    "closeAriaLabel": "Close",
+    "colType": "Type",
+    "colTm": "Tm (°C)",
+    "colDg": "dG (kcal/mol)",
+    "colStatus": "Status",
+    "statusWarn": "warn",
+    "statusOk": "OK",
+    "warningsLabel": "Warnings:",
+    "rowHairpinFwd": "Hairpin Fwd",
+    "rowHairpinRev": "Hairpin Rev",
+    "rowHomodimerFwd": "Homodimer Fwd",
+    "rowHomodimerRev": "Homodimer Rev"
+  },
+  "plateMap": {
+    "platePairReview": "Plate pair review",
+    "platePairDesc": "Each page shows one forward plate and its deduplicated reverse partner.",
+    "forward": "Forward",
+    "reverse": "Reverse",
+    "plate": "Plate",
+    "exportAll": "Export All...",
+    "exportAllTitle": "Open a project first to use Export All.",
+    "sharedReverse": "Shared reverse",
+    "forwardPrimer": "Forward primer",
+    "reversePrimer": "Reverse primer",
+    "noPlateLayout": "No plate layout yet",
+    "noPlateLayoutDesc": "Run design to assign primers to plate wells.",
+    "exportAllComplete": "Export All complete",
+    "exportAllFailed": "Export All failed: {{message}}"
+  },
+  "jobQueue": {
+    "panelAriaLabel": "Background job queue",
+    "dragTitle": "Background job queue. Drag to move.",
+    "summaryRunning": "Jobs (running {{running}}, pending {{pending}})",
+    "summaryEmpty": "Jobs (0)",
+    "summaryDone": "Jobs ({{done}} done)",
+    "toggleAriaLabel": "Toggle background job queue",
+    "hideAriaLabel": "Hide background job queue",
+    "noJobs": "No jobs queued",
+    "jobListAriaLabel": "Job list",
+    "clearDone": "Clear done ({{count}})",
+    "clearDoneAriaLabel": "Clear completed jobs",
+    "cancelJobAriaLabel": "Cancel job: {{label}}",
+    "statusAriaLabel": "Status: {{status}}",
+    "statusPending": "Pending",
+    "statusRunning": "Running",
+    "statusDone": "Done",
+    "statusFailed": "Failed",
+    "statusCancelled": "Cancelled",
+    "kindDesign": "Design",
+    "kindExport": "Export",
+    "kindAnalyze": "Analyze",
+    "kindMerge": "Merge"
+  },
+  "sequenceInput": {
+    "sequenceFile": "Sequence File",
+    "dropAriaLabel": "Drop sequence file here",
+    "browse": "Browse",
+    "noFileSelected": "No file selected (.gb / .dna)",
+    "targetGene": "Target Gene",
+    "targetGeneTitle": "CDS region to design primers for. Auto-selected by longest coding sequence.",
+    "loadFirst": "Load a sequence file first",
+    "organism": "Organism",
+    "organismTitle": "Organism codon usage table for mutant codon selection.",
+    "uniprotBlastInProgress": "UniProt BLAST search in progress… (Step 2 available after)"
+  },
+  "mutationInput": {
+    "mutations": "Mutations",
+    "mutationInputAriaLabel": "Mutation input source",
+    "noFileSelected": "No file selected",
+    "variantsLoaded": "{{count}} variants loaded",
+    "allCombinations": "MULTI-evolve: all combinations selected (no filtering)",
+    "selectionMode": "Selection mode",
+    "topNOnly": "Top-N only",
+    "topNDesc": "(y_pred descending)",
+    "pipeline": "Pipeline",
+    "pipelineDesc": "(step-by-step filtering)",
+    "topNVariantsTitle": "Top-N variants by y_pred (editable)",
+    "mutationsEntered": "{{count}} mutations entered",
+    "mutationsValidated": "({{count}} validated)",
+    "mutationsFailed": "({{count}} failed)"
+  },
+  "uniprotSearch": {
+    "topCandidates": "Top candidates {{shown}}{{total}}",
+    "autoSearchTitle": "Search UniProt using gene info from the loaded sequence file",
+    "fetchBtn": "Fetch",
+    "autoSearchBtn": "Auto Search"
+  },
+  "statusBar": {
+    "ready": "Ready",
+    "connecting": "Connecting",
+    "failed": "Sidecar failed"
+  },
+  "closeConfirm": {
+    "designing": {
+      "title": "Design in progress",
+      "description": "Primer design is running. Closing now will cancel the job."
+    },
+    "analyzing": {
+      "title": "Analysis in progress",
+      "description": "Sequencing data analysis is running. Closing now will cancel the job."
+    },
+    "exporting": {
+      "title": "Export in progress",
+      "description": "Files are being saved. Closing now may corrupt or discard the output.",
+      "forceCloseWarning": "Force-closing during export may corrupt the output file."
+    },
+    "waitLabel": "Wait (auto-close when done)",
+    "waitAriaLabel": "Wait until the job finishes",
+    "forceCloseLabel": "Force close",
+    "forceCloseAriaLabel": "Force close now"
+  },
+  "networkConsent": {
+    "title": "External database consent",
+    "description": "This feature calls the following external services. Your sequence data will be sent to those services.",
+    "serviceListAriaLabel": "External service list",
+    "persistNote": "Consent persists after restart. You can block external calls at any time by enabling offline mode in Settings.",
+    "btnCancel": "Cancel",
+    "btnAccept": "Accept and continue"
+  },
+  "inputSizeWarning": {
+    "title": "Input size warning",
+    "titleBlock": "Input size warning (very large job)"
   }
 }

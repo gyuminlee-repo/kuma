@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAppStore } from "../../store/appStore";
 import { GlobalStatusBar } from "./GlobalStatusBar";
 import { rpc } from "../../lib/ipc";
@@ -19,6 +20,7 @@ interface HealthInfo {
  * §2 Observability: ready 상태에서 30초마다 health_info RPC 폴링 → tooltip에 PID + RSS 표시.
  */
 export function StatusBar({ sidecarStatus, onRetry }: { sidecarStatus: string; onRetry: () => void }) {
+  const { t } = useTranslation();
   const statusMessage = useAppStore((s) => s.statusMessage);
   const [healthInfo, setHealthInfo] = useState<HealthInfo | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -62,10 +64,10 @@ export function StatusBar({ sidecarStatus, onRetry }: { sidecarStatus: string; o
 
   const sidecarLabel =
     sidecarStatus === "ready"
-      ? "Ready"
+      ? t("statusBar.ready")
       : sidecarStatus === "connecting"
-        ? "Connecting"
-        : "Sidecar failed";
+        ? t("statusBar.connecting")
+        : t("statusBar.failed");
 
   return (
     <GlobalStatusBar

@@ -289,6 +289,17 @@
       "statusReadyToRun": "실행 준비 완료",
       "statusDraft": "설정 중",
       "statusInProgress": "진행 중"
+    },
+    "menuBar": {
+      "closeBtn": "닫기",
+      "compareWorkspacesColA": "워크스페이스 A",
+      "compareWorkspacesColB": "워크스페이스 B",
+      "compareWorkspacesColField": "항목",
+      "compareWorkspacesDiff": "{{count}}개 차이{{plural}} 발견.",
+      "compareWorkspacesNoDiff": "차이가 없습니다.",
+      "compareWorkspacesSame": "두 워크스페이스가 동일합니다.",
+      "compareWorkspacesTitle": "워크스페이스 비교",
+      "restartSidecarConfirm": "분석이 실행 중입니다. 그래도 sidecar를 재시작하시겠습니까?"
     }
   },
   "home": {
@@ -302,13 +313,20 @@
     "projectNamePlaceholder": "프로젝트 이름",
     "projectNameLabel": "프로젝트 이름",
     "createButton": "생성",
-    "errorEnterName": "프로젝트 이름을 입력하세요."
+    "errorEnterName": "프로젝트 이름을 입력하세요.",
+    "newProjectTitle": "새 프로젝트",
+    "newProjectDesc": "프로젝트 이름을 입력하세요.",
+    "projectNameAriaLabel": "프로젝트 이름",
+    "createBtn": "만들기",
+    "enterProjectName": "프로젝트 이름을 입력하세요."
   },
   "mameTab": {
     "matchingProjectTitle": "일치하는 프로젝트 발견",
     "matchingProjectDescription": "\"{{name}}\"을 불러오시겠습니까?",
     "cancelButton": "취소",
-    "loadButton": "불러오기"
+    "loadButton": "불러오기",
+    "matchingProjectDesc": "\"{{name}}\"을(를) 불러올까요?",
+    "loadBtn": "불러오기"
   },
   "common": {
     "ok": "확인",
@@ -322,7 +340,11 @@
     "navAriaLabel": "앱 내비게이션",
     "tabsAriaLabel": "앱 탭",
     "openSettingsAriaLabel": "설정 열기",
-    "openSettingsTitle": "설정"
+    "openSettingsTitle": "설정",
+    "appNavAriaLabel": "앱 내비게이션",
+    "appTabsAriaLabel": "앱 탭",
+    "settingsAriaLabel": "설정 열기",
+    "settingsTitle": "설정"
   },
   "globalStatusBar": {
     "statusBarAriaLabel": "상태 바",
@@ -575,7 +597,11 @@
       "removed": "제거됨",
       "changed": "변경됨",
       "same": "동일"
-    }
+    },
+    "labelA": "A (이전)",
+    "labelB": "B (이후)",
+    "tableAriaLabel": "Manifest diff 표",
+    "dialogAriaLabel": "Manifest diff 다이얼로그"
   },
   "failedMutationPopover": {
     "recoveryHeading": "실패 복구",
@@ -707,7 +733,9 @@
       "justNow": "방금 전",
       "minAgo": "{{count}}분 전",
       "hrAgo": "{{count}}시간 전",
-      "daysAgo": "{{count}}일 전"
+      "daysAgo": "{{count}}일 전",
+      "minutesAgo": "{{n}}분 전",
+      "hoursAgo": "{{n}}시간 전"
     },
     "memory": {
       "warningBannerLabel": "메모리: {{pct}}% (sidecar {{rss}} MB)",
@@ -720,7 +748,30 @@
       "logTitle": "Log: sidecar 진행 메시지",
       "jobsTitle": "Jobs: 대기 중인 백그라운드 작업",
       "panelAriaLabel": "플로팅 패널 표시 제어"
-    }
+    },
+    "logPanel": "로그",
+    "logPanelTitle": "로그: sidecar 진행 메시지",
+    "jobsPanel": "작업",
+    "jobsPanelTitle": "작업: 대기 중인 백그라운드 작업",
+    "floatingPanelAriaLabel": "플로팅 패널 표시 조절",
+    "workspace": "워크스페이스",
+    "scratch": "임시",
+    "autosaveOn": "자동 저장 켜짐",
+    "autosaveSaving": "저장 중…",
+    "autosaveSavedJustNow": "방금 저장됨",
+    "autosaveSavedAgo": "{{time}}에 저장됨",
+    "autosaveRestoredAgo": "자동 저장에서 복원됨 ({{time}})",
+    "autosaveFailed": "저장 실패",
+    "autosaveRetry": "재시도",
+    "autosaveRetryAriaLabel": "자동 저장 재시도",
+    "autosaveAriaLabel": "자동 저장: {{label}}",
+    "autosaveFailedStreak": "자동 저장이 3회 실패했습니다. 디스크 공간 또는 권한을 확인하세요.",
+    "autosaveIsOn": "이 프로젝트에서 자동 저장이 켜졌습니다.",
+    "memoryWarning": "메모리: {{ratio}}% (sidecar {{rss}} MB)",
+    "memoryWarningDismissAriaLabel": "메모리 경고 닫기",
+    "memoryBlockTitle": "메모리 한계 초과",
+    "memoryBlockDesc": "Sidecar 프로세스 메모리 사용량이 {{ratio}}% ({{rss}} MB)에 도달했습니다. 진행 중인 작업을 중단하고 앱을 재시작해 주세요.",
+    "memoryBlockConfirm": "확인"
   },
   "onboarding": {
     "titleChange": "프로젝트 폴더 변경",
@@ -734,7 +785,12 @@
     "insideProject": "각 프로젝트 내부",
     "kuroDesc": "Kernel for Upstream Recombination Oligodesign. Gibson Assembly 템플릿 기반 SDM primer 일괄 설계 도구.",
     "mameDesc": "Mutagenesis Assessment & Microplate Export. Oxford Nanopore NGS 기반 변이 판정 도구.",
-    "autosaveNote": "입력값 및 파라미터는 프로젝트별로 자동 저장됩니다. 프로젝트 간 데이터가 섞이지 않습니다."
+    "autosaveNote": "입력값 및 파라미터는 프로젝트별로 자동 저장됩니다. 프로젝트 간 데이터가 섞이지 않습니다.",
+    "titleStart": "시작하기",
+    "descStart": "프로젝트 기본 폴더를 선택하세요. kuma는 Kuro 설계와 Mame 판정 실행 결과를 각 프로젝트 폴더에 저장하여 장기 시퀀싱 작업 전반에 걸쳐 데이터를 보존합니다.",
+    "chooseFolderBtn": "폴더 선택",
+    "doneBtn": "완료",
+    "insideEachProject": "각 프로젝트 안에는"
   },
   "appLayout": {
     "status": "상태",
@@ -760,6 +816,156 @@
     "deadlockWait": "계속 대기",
     "deadlockReset": "초기화",
     "plateCount": "{{count}} 플레이트",
-    "plateCount_other": "{{count}} 플레이트"
+    "plateCount_other": "{{count}} 플레이트",
+    "cancel": "취소",
+    "clearAllTitle": "전체 초기화",
+    "clearBtn": "초기화",
+    "successful": "{{success}}/{{total}} 성공",
+    "plates_one": "{{count}}개 플레이트",
+    "plates_other": "{{count}}개 플레이트",
+    "missingSequence": "시퀀스 파일 (.gb / .fasta / .dna 파일을 탐색하세요)",
+    "manifestLoadFailed": "매니페스트 로드 실패: {{error}}"
+  },
+  "hairpinDetail": {
+    "closeAriaLabel": "닫기",
+    "colDg": "dG (kcal/mol)",
+    "colStatus": "상태",
+    "colTm": "Tm (°C)",
+    "colType": "유형",
+    "rowHairpinFwd": "Hairpin 정방향",
+    "rowHairpinRev": "Hairpin 역방향",
+    "rowHomodimerFwd": "Homodimer 정방향",
+    "rowHomodimerRev": "Homodimer 역방향",
+    "statusOk": "OK",
+    "statusWarn": "경고",
+    "title": "{{mutation}} - 이차 구조",
+    "warningsLabel": "경고:"
+  },
+  "jobQueue": {
+    "cancelJobAriaLabel": "작업 취소: {{label}}",
+    "clearDone": "완료 지우기 ({{count}})",
+    "clearDoneAriaLabel": "완료된 작업 지우기",
+    "dragTitle": "백그라운드 작업 대기열. 드래그하여 이동.",
+    "hideAriaLabel": "백그라운드 작업 대기열 숨기기",
+    "jobListAriaLabel": "작업 목록",
+    "kindAnalyze": "분석",
+    "kindDesign": "설계",
+    "kindExport": "내보내기",
+    "kindMerge": "병합",
+    "noJobs": "대기 중인 작업 없음",
+    "panelAriaLabel": "백그라운드 작업 대기열",
+    "statusAriaLabel": "상태: {{status}}",
+    "statusCancelled": "취소됨",
+    "statusDone": "완료",
+    "statusFailed": "실패",
+    "statusPending": "대기 중",
+    "statusRunning": "실행 중",
+    "summaryDone": "작업 ({{done}}개 완료)",
+    "summaryEmpty": "작업 (0)",
+    "summaryRunning": "작업 (실행 중 {{running}}, 대기 중 {{pending}})",
+    "toggleAriaLabel": "백그라운드 작업 대기열 토글"
+  },
+  "mutationInput": {
+    "allCombinations": "MULTI-evolve: 모든 조합 선택됨 (필터링 없음)",
+    "mutationInputAriaLabel": "변이 입력 소스",
+    "mutations": "변이",
+    "mutationsEntered": "{{count}}개 변이 입력됨",
+    "mutationsFailed": "({{count}}개 실패)",
+    "mutationsValidated": "({{count}}개 검증됨)",
+    "noFileSelected": "파일 선택 없음",
+    "pipeline": "파이프라인",
+    "pipelineDesc": "(단계별 필터링)",
+    "selectionMode": "선택 모드",
+    "topNDesc": "(y_pred 내림차순)",
+    "topNOnly": "Top-N만",
+    "topNVariantsTitle": "y_pred 기준 Top-N 변이 (편집 가능)",
+    "variantsLoaded": "{{count}}개 변이 불러옴"
+  },
+  "offTargetDetail": {
+    "closeAriaLabel": "닫기",
+    "colMatch": "일치 (bp)",
+    "colPosition": "위치",
+    "colPrimer": "Primer",
+    "colSequence": "서열",
+    "colStrand": "가닥",
+    "colTm": "Tm (°C)",
+    "noHits": "Off-target 위치 없음",
+    "title": "{{mutation}} - Off-Target 위치 ({{count}})"
+  },
+  "overwriteConfirm": {
+    "title": "파일이 이미 존재합니다",
+    "description": "이(가) 이미 존재합니다. 덮어쓰시겠습니까?",
+    "btnCancel": "취소",
+    "btnOverwrite": "덮어쓰기"
+  },
+  "plateMap": {
+    "exportAll": "전체 내보내기...",
+    "exportAllComplete": "전체 내보내기 완료",
+    "exportAllFailed": "전체 내보내기 실패: {{message}}",
+    "exportAllTitle": "Export All을 사용하려면 먼저 프로젝트를 여세요.",
+    "forward": "정방향",
+    "forwardPrimer": "정방향 primer",
+    "noPlateLayout": "아직 plate 배치 없음",
+    "noPlateLayoutDesc": "설계를 실행하면 primer가 plate well에 배정됩니다.",
+    "plate": "Plate",
+    "platePairDesc": "각 페이지는 정방향 plate 1개와 중복 제거된 역방향 파트너를 함께 표시합니다.",
+    "platePairReview": "Plate 쌍 검토",
+    "reverse": "역방향",
+    "reversePrimer": "역방향 primer",
+    "sharedReverse": "공유 역방향"
+  },
+  "sequenceInput": {
+    "browse": "찾아보기",
+    "dropAriaLabel": "시퀀스 파일을 여기에 드롭",
+    "loadFirst": "먼저 시퀀스 파일을 불러오세요",
+    "noFileSelected": "파일 선택 없음 (.gb / .dna)",
+    "organism": "생물체",
+    "organismTitle": "변이 코돈 선택에 사용할 생물체 코돈 사용 빈도표.",
+    "sequenceFile": "시퀀스 파일",
+    "targetGene": "타겟 유전자",
+    "targetGeneTitle": "primer를 설계할 CDS 영역. 가장 긴 coding sequence로 자동 선택됩니다.",
+    "uniprotBlastInProgress": "UniProt BLAST 검색 중… (완료 후 Step 2 사용 가능)"
+  },
+  "uniprotSearch": {
+    "autoSearchBtn": "자동 검색",
+    "autoSearchTitle": "불러온 시퀀스 파일의 유전자 정보로 UniProt 검색",
+    "fetchBtn": "가져오기",
+    "topCandidates": "상위 후보 {{shown}}{{total}}"
+  },
+  "closeConfirm": {
+    "designing": {
+      "title": "디자인 진행 중",
+      "description": "프라이머 디자인이 실행 중입니다. 지금 닫으면 작업이 취소됩니다."
+    },
+    "analyzing": {
+      "title": "분석 진행 중",
+      "description": "시퀀싱 데이터 분석이 실행 중입니다. 지금 닫으면 작업이 취소됩니다."
+    },
+    "exporting": {
+      "title": "Export 진행 중",
+      "description": "파일을 저장하는 중입니다. 지금 닫으면 파일이 손상되거나 저장되지 않을 수 있습니다.",
+      "forceCloseWarning": "Export 중 강제 종료 시 출력 파일이 손상될 수 있습니다."
+    },
+    "waitLabel": "대기 (작업 완료 후 자동 종료)",
+    "waitAriaLabel": "작업 완료까지 대기",
+    "forceCloseLabel": "강제 종료",
+    "forceCloseAriaLabel": "지금 강제 종료"
+  },
+  "networkConsent": {
+    "title": "외부 데이터베이스 사용 동의",
+    "description": "이 기능은 다음 외부 서비스를 호출합니다. 입력한 서열 데이터가 해당 서비스로 전송됩니다.",
+    "serviceListAriaLabel": "외부 서비스 목록",
+    "persistNote": "동의는 재시작 후에도 유지됩니다. Settings에서 오프라인 모드를 켜면 언제든지 외부 호출을 차단할 수 있습니다.",
+    "btnCancel": "취소",
+    "btnAccept": "동의하고 계속"
+  },
+  "inputSizeWarning": {
+    "title": "입력 크기 경고",
+    "titleBlock": "입력 크기 경고 (매우 큰 작업)"
+  },
+  "statusBar": {
+    "ready": "준비",
+    "connecting": "연결 중",
+    "failed": "Sidecar 오류"
   }
 }

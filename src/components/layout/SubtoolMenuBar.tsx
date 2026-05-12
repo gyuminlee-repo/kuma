@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 
 export interface SubtoolMenuBarProps {
   /** 서브툴 이름. 메뉴바 좌측 라벨로 표시된다. */
@@ -35,11 +36,12 @@ export function SubtoolMenuBar({
   menus,
   rightSlot,
 }: SubtoolMenuBarProps) {
+  const { t } = useTranslation();
   return (
     <div
       className="px-4 py-2 flex flex-col gap-2 bg-background border-b border-border dark:bg-background dark:border-border"
       role="navigation"
-      aria-label={`${label} menu bar`}
+      aria-label={t("globalAppBar.appNavAriaLabel") + ` — ${label}`}
     >
       {/* 1행: 라벨 + 부제 (좌) · 우측 슬롯 */}
       <div className="flex items-center justify-between gap-4">

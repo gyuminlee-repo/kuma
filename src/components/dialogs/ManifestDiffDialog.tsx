@@ -126,7 +126,7 @@ function DiffTable({ entries, showSame }: DiffTableProps) {
 
   return (
     <div className="overflow-x-auto rounded-md border border-border">
-      <table className="w-full text-sm" aria-label="Manifest diff table">
+      <table className="w-full text-sm" aria-label={t("manifestDiff.tableAriaLabel")}>
         <thead>
           <tr className="border-b border-border bg-muted/40">
             <th
@@ -237,7 +237,7 @@ export function ManifestDiffDialog({
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent
         className="max-w-3xl max-h-[90vh] flex flex-col"
-        aria-label="Manifest diff dialog"
+        aria-label={t("manifestDiff.dialogAriaLabel")}
       >
         <DialogHeader>
           <DialogTitle>{t("manifestDiff.title")}</DialogTitle>
@@ -250,8 +250,8 @@ export function ManifestDiffDialog({
 
         {/* 두 manifest 요약 헤더 */}
         <div className="flex gap-3">
-          <ManifestSummaryCard label="A (before)" manifest={manifestA} />
-          <ManifestSummaryCard label="B (after)" manifest={manifestB} />
+          <ManifestSummaryCard label={t("manifestDiff.labelA")} manifest={manifestA} />
+          <ManifestSummaryCard label={t("manifestDiff.labelB")} manifest={manifestB} />
         </div>
 
         {/* "Same 항목 표시" 토글 */}

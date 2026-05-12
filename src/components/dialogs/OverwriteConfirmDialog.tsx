@@ -6,6 +6,7 @@
  */
 
 import { useEffect, useSyncExternalStore } from "react";
+import { useTranslation } from "react-i18next";
 import {
   subscribeOverwriteConfirm,
   getPendingOverwritePath,
@@ -26,6 +27,7 @@ function getSnapshot() {
 }
 
 export function OverwriteConfirmDialog() {
+  const { t } = useTranslation();
   const pendingPath = useSyncExternalStore(subscribeOverwriteConfirm, getSnapshot);
   const open = pendingPath !== null;
 
@@ -53,10 +55,10 @@ export function OverwriteConfirmDialog() {
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>File already exists</DialogTitle>
+          <DialogTitle>{t("overwriteConfirm.title")}</DialogTitle>
           <DialogDescription>
             <span className="font-mono text-foreground break-all">{filename}</span>
-            {" "}already exists. Do you want to overwrite it?
+            {" "}{t("overwriteConfirm.description")}
           </DialogDescription>
         </DialogHeader>
 
@@ -66,7 +68,7 @@ export function OverwriteConfirmDialog() {
             size="sm"
             onClick={() => resolveOverwriteConfirm("cancel")}
           >
-            Cancel
+            {t("overwriteConfirm.btnCancel")}
           </Button>
           <Button
             variant="destructive"
@@ -75,7 +77,7 @@ export function OverwriteConfirmDialog() {
             // eslint-disable-next-line jsx-a11y/no-autofocus
             autoFocus
           >
-            Overwrite
+            {t("overwriteConfirm.btnOverwrite")}
           </Button>
         </DialogFooter>
       </DialogContent>

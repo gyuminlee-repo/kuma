@@ -7,6 +7,7 @@
  */
 
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,19 +29,18 @@ interface CloseConfirmDialogProps {
   onForceClose: () => void;
 }
 
-const REASON_LABELS: Record<BusyReason, { title: string; description: string }> = {
+const REASON_KEYS: Record<BusyReason, { titleKey: string; descriptionKey: string }> = {
   designing: {
-    title: "디자인 진행 중",
-    description: "프라이머 디자인이 실행 중입니다. 지금 닫으면 작업이 취소됩니다.",
+    titleKey: "closeConfirm.designing.title",
+    descriptionKey: "closeConfirm.designing.description",
   },
   analyzing: {
-    title: "분석 진행 중",
-    description: "시퀀싱 데이터 분석이 실행 중입니다. 지금 닫으면 작업이 취소됩니다.",
+    titleKey: "closeConfirm.analyzing.title",
+    descriptionKey: "closeConfirm.analyzing.description",
   },
   exporting: {
-    title: "Export 진행 중",
-    description:
-      "파일을 저장하는 중입니다. 지금 닫으면 파일이 손상되거나 저장되지 않을 수 있습니다.",
+    titleKey: "closeConfirm.exporting.title",
+    descriptionKey: "closeConfirm.exporting.description",
   },
 };
 
@@ -51,6 +51,8 @@ export function CloseConfirmDialog({
   onWait,
   onForceClose,
 }: CloseConfirmDialogProps) {
+  const { t } = useTranslation();
+
   // isBusy가 false로 바뀌면 자동 close (Wait 선택 후 작업 완료 시)
   useEffect(() => {
     if (open && !isBusy) {
@@ -58,7 +60,7 @@ export function CloseConfirmDialog({
     }
   }, [open, isBusy, onForceClose]);
 
-  const labels = reason ? REASON_LABELS[reason] : REASON_LABELS.designing;
+  const keys = reason ? REASON_KEYS[reason] : REASON_KEYS.designing;
   const isExportingReason = reason === "exporting";
 
   return (
@@ -77,10 +79,10 @@ export function CloseConfirmDialog({
               aria-hidden="true"
               className={isExportingReason ? "text-destructive" : "text-warning"}
             />
-            <DialogTitle id="close-confirm-title">{labels.title}</DialogTitle>
+            <DialogTitle id="close-confirm-title">{t(keys.titleKey)}</DialogTitle>
           </div>
           <DialogDescription id="close-confirm-desc" className="pt-1">
-            {labels.description}
+            {t(keys.descriptionKey)}
           </DialogDescription>
         </DialogHeader>
 
@@ -89,7 +91,7 @@ export function CloseConfirmDialog({
             className="rounded-control border border-destructive/30 bg-destructive/5 px-3 py-2 text-caption text-destructive"
             role="alert"
           >
-            Export 중 강제 종료 시 출력 파일이 손상될 수 있습니다.
+            {t("closeConfirm.exporting.forceCloseWarning")}
           </p>
         )}
 
@@ -98,17 +100,17 @@ export function CloseConfirmDialog({
             variant="outline"
             size="sm"
             onClick={onWait}
-            aria-label="작업 완료까지 대기"
+            aria-label={t("closeConfirm.waitAriaLabel")}
           >
-            대기 (작업 완료 후 자동 종료)
+            {t("closeConfirm.waitLabel")}
           </Button>
           <Button
             variant="destructive"
             size="sm"
             onClick={onForceClose}
-            aria-label="지금 강제 종료"
+            aria-label={t("closeConfirm.forceCloseAriaLabel")}
           >
-            강제 종료
+            {t("closeConfirm.forceCloseLabel")}
           </Button>
         </DialogFooter>
       </DialogContent>

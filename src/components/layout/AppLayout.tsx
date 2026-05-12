@@ -220,7 +220,7 @@ export function AppLayout() {
           void tryHandleTwoManifestsDrop(paths).then(async (twoResult) => {
             if (twoResult.handled) {
               if (twoResult.error) {
-                useAppStore.setState({ statusMessage: `Manifest 로드 실패: ${twoResult.error}` });
+                useAppStore.setState({ statusMessage: t("appLayout.manifestLoadFailed", { error: twoResult.error }) });
                 return;
               }
               if (twoResult.manifestA && twoResult.manifestB) {
@@ -250,7 +250,7 @@ export function AppLayout() {
               }
 
               if (result.error) {
-                useAppStore.setState({ statusMessage: `Manifest 로드 실패: ${result.error}` });
+                useAppStore.setState({ statusMessage: t("appLayout.manifestLoadFailed", { error: result.error }) });
                 return;
               }
 

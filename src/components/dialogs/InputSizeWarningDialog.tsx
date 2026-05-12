@@ -8,6 +8,7 @@
  * level "block" = 강권 톤, continue 버튼 "Continue anyway"
  */
 
+import { useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogContent,
@@ -34,10 +35,11 @@ export function InputSizeWarningDialog({
   onContinue,
   onCancel,
 }: InputSizeWarningDialogProps) {
+  const { t } = useTranslation();
   const title =
     level === "block"
-      ? "입력 크기 경고 — 매우 큰 작업"
-      : "입력 크기 경고";
+      ? t("inputSizeWarning.titleBlock")
+      : t("inputSizeWarning.title");
 
   const continueLabel = level === "block" ? "Continue anyway" : "Continue";
 
