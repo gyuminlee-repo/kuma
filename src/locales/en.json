@@ -1630,6 +1630,7 @@
         "output": "Generate Package"
       },
       "analyze": {
+        "inputs": "Inputs",
         "verdict": "Verdicts",
         "plate": "Plate Plan",
         "health": "Run Health"

@@ -382,6 +382,7 @@
           "output": "미리보기"
         },
         "analyze": {
+          "inputs": "입력 설정",
           "verdict": "판정",
           "plate": "플레이트 계획",
           "health": "런 헬스"

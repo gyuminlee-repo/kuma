@@ -22,6 +22,8 @@ import { SummaryRow } from "@/components/mame/widgets/SummaryRow";
 import { VerdictTable } from "@/components/mame/widgets/VerdictTable";
 import { PlateView } from "@/components/mame/widgets/PlateView";
 import { RunHealthPanel } from "@/components/mame/widgets/RunHealthPanel";
+import { InputPanel } from "@/components/mame/panels/InputPanel";
+import { ParameterPanel } from "@/components/mame/panels/ParameterPanel";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import type { RunHealthData } from "@/types/mame/models";
@@ -55,6 +57,14 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
   // 메인 콘텐츠 영역
   let mainContent: React.ReactNode;
   switch (subStep) {
+    case "analyze.inputs":
+      mainContent = (
+        <div className="flex flex-col gap-3 p-3 h-full overflow-y-auto">
+          <InputPanel />
+          <ParameterPanel />
+        </div>
+      );
+      break;
     case "analyze.verdict":
       mainContent = (
         <div className="flex flex-col gap-3 p-3 h-full overflow-hidden">
