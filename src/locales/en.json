@@ -1076,7 +1076,11 @@
     "serviceListAriaLabel": "External service list",
     "persistNote": "Consent persists after restart. You can block external calls at any time by enabling offline mode in Settings.",
     "btnCancel": "Cancel",
-    "btnAccept": "Accept and continue"
+    "btnAccept": "Accept and continue",
+    "serviceUniprotDesc": "protein sequence search",
+    "serviceBlastDesc": "sequence similarity search",
+    "serviceAlphafoldDesc": "structure prediction lookup",
+    "serviceInterproDesc": "protein domain annotation"
   },
   "inputSizeWarning": {
     "title": "Input size warning",
@@ -1181,6 +1185,7 @@
     "csvFormatError": "{{mode}} CSV format error: {{detail}}"
   },
   "benchmarkDialog": {
+    "title": "Benchmark",
     "strategyTopN": "Top-N",
     "strategyRandom": "Random",
     "strategyPositionCap": "Position Cap",
@@ -1309,7 +1314,8 @@
     "noResultsTitle": "No results yet",
     "noResultsDesc": "Load a sequence, define mutations, then run design.",
     "pipelineFillHint": "Pipeline + Fill on failure already substituted these positions; retry is disabled.",
-    "pipelineFillNote": "Pipeline + Fill on failure substituted these positions; retry is unnecessary."
+    "pipelineFillNote": "Pipeline + Fill on failure substituted these positions; retry is unnecessary.",
+    "removeCustomRescueTitle": "Remove custom rescue: restore to Failed"
   },
   "mameSidebar": {
     "runStateLabel": "Run state",

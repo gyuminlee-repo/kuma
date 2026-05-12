@@ -23,14 +23,11 @@ const METHOD_LABELS: Record<DistributionStats["suggested_method"], string> = {
   fixed_50: "floor 50",
 };
 
-const INPUT_MODE_LABELS: Record<InputMode, string> = {
-  consensus: "Consensus FASTA",
-  sorted_barcode: "Sorted barcode files",
-  raw_run: "MinKNOW raw run folder",
+const INPUT_MODE_I18N_KEYS: Record<InputMode, string> = {
+  consensus: "mame.parameters.inputSourceConsensus",
+  sorted_barcode: "mame.parameters.inputSourceSortedBarcode",
+  raw_run: "mame.parameters.inputSourceRawRun",
 };
-
-const BIMODAL_TOOLTIP =
-  "Distribution looks bimodal. Recommended uses knee detection.";
 
 function RecommendedCutoff({
   stats,
@@ -39,22 +36,23 @@ function RecommendedCutoff({
   stats: DistributionStats;
   onApply: (value: number) => void;
 }) {
+  const { t } = useTranslation();
   const methodLabel = METHOD_LABELS[stats.suggested_method];
+  const bimodalTooltip = t("mame.parameters.bimodalTooltip");
 
   return (
     <div className="flex items-center gap-1.5">
       <span className="text-caption text-muted-foreground">
-        Recommended:{" "}
-        <span className="font-medium text-foreground">
-          {stats.suggested_cutoff_kb.toFixed(1)} KB
-        </span>{" "}
-        <span className="text-muted-foreground">({methodLabel})</span>
+        {t("mame.parameters.recommendedCutoff", {
+          value: stats.suggested_cutoff_kb.toFixed(1),
+          method: methodLabel,
+        })}
       </span>
       {stats.bimodal && (
         <span
           className="inline-flex cursor-help items-center text-warning"
-          aria-label={BIMODAL_TOOLTIP}
-          title={BIMODAL_TOOLTIP}
+          aria-label={bimodalTooltip}
+          title={bimodalTooltip}
           role="img"
         >
           <AlertTriangle size={11} aria-hidden="true" />
@@ -68,7 +66,7 @@ function RecommendedCutoff({
         onClick={() => onApply(stats.suggested_cutoff_kb)}
         aria-label={`Apply recommended cutoff of ${stats.suggested_cutoff_kb.toFixed(1)} KB`}
       >
-        Use
+        {t("mame.parameters.useCutoffBtn")}
       </Button>
     </div>
   );
@@ -79,6 +77,7 @@ function AmpliconLengthBadge({
 }: {
   estimate: AmpliconLengthEstimate | null;
 }) {
+  const { t } = useTranslation();
   if (!estimate) return null;
   const confidenceColor =
     estimate.confidence === "high"
@@ -92,7 +91,7 @@ function AmpliconLengthBadge({
       aria-label={`Auto-detected amplicon length: ${estimate.detected_length} bp, confidence ${estimate.confidence}, sampled ${estimate.n_sample_reads.toLocaleString()} reads`}
     >
       <Dna size={11} aria-hidden="true" />
-      Auto-detected: {estimate.detected_length.toLocaleString()} bp
+      {t("mame.parameters.autoDetected", { length: estimate.detected_length.toLocaleString() })}
       <span className="text-muted-foreground">
         (n={estimate.n_sample_reads.toLocaleString()}, {estimate.confidence})
       </span>
@@ -234,7 +233,7 @@ function RawRunParamPanel() {
             type="button"
             role="switch"
             aria-checked={rawRunParams.linkedTrim}
-            aria-label="Trim forward barcode and universal reverse primer from reads"
+            aria-label={t("mame.parameters.trimAdaptersAriaLabel")}
             disabled={isDemuxing}
             onClick={() => updateRaw({ linkedTrim: !rawRunParams.linkedTrim })}
             className={cn(
@@ -271,9 +270,9 @@ function RawRunParamPanel() {
               onChange={(e) =>
                 updateRaw({ revPrimerUniversal: e.target.value.trim().toUpperCase() })
               }
-              placeholder="ACGT..."
+              placeholder={t("mame.parameters.revPrimerPlaceholder")}
               className="h-8 min-w-0 font-mono text-xs"
-              aria-label="Universal reverse primer sequence 5 prime to 3 prime"
+              aria-label={t("mame.parameters.universalRevPrimerAriaLabel")}
               disabled={isDemuxing}
             />
           </div>
@@ -296,7 +295,7 @@ function RawRunParamPanel() {
           type="button"
           role="switch"
           aria-checked={rawRunParams.normalizeHeaders}
-          aria-label="Write well name as FASTA header instead of ONT read ID"
+          aria-label={t("mame.parameters.normalizeHeadersAriaLabel")}
           disabled={isDemuxing}
           onClick={() => updateRaw({ normalizeHeaders: !rawRunParams.normalizeHeaders })}
           className={cn(
@@ -321,7 +320,7 @@ function RawRunParamPanel() {
         <div role="status" aria-live="polite" className="space-y-1">
           <div
             className="h-1.5 w-full overflow-hidden rounded-full bg-muted"
-            aria-label="Demux progress"
+            aria-label={t("mame.parameters.demuxProgressAriaLabel")}
           >
             <div
               className="h-full bg-primary transition-all"
@@ -344,16 +343,18 @@ function RawRunParamPanel() {
           className="space-y-1 rounded-md bg-muted px-3 py-2 text-caption text-muted-foreground"
         >
           <div>
-            <span className="font-medium text-foreground">Demux complete:</span>{" "}
-            {demuxResult.n_assigned.toLocaleString()} reads assigned /{" "}
-            {demuxResult.n_input_reads.toLocaleString()} total (
-            {demuxResult.backend})
+            <span className="font-medium text-foreground">{t("mame.parameters.demuxComplete")}</span>{" "}
+            {t("mame.parameters.demuxCompleteReads", {
+              assigned: demuxResult.n_assigned.toLocaleString(),
+              total: demuxResult.n_input_reads.toLocaleString(),
+              backend: demuxResult.backend,
+            })}
           </div>
           {demuxResult.amplicon_length_estimate !== null && (
             <AmpliconLengthBadge estimate={demuxResult.amplicon_length_estimate} />
           )}
           <div className="text-caption text-muted-foreground">
-            Length filter: {demuxResult.length_filter_mode.replace("_", " ")}
+            {t("mame.parameters.lengthFilter", { mode: demuxResult.length_filter_mode.replace("_", " ") })}
           </div>
         </div>
       )}
@@ -462,19 +463,19 @@ export function ParameterPanel() {
                 value="consensus"
                 title="Start from pre-computed consensus FASTA (one sequence per barcode). Skips sorting and consensus calling."
               >
-                {INPUT_MODE_LABELS.consensus}
+                {t(INPUT_MODE_I18N_KEYS.consensus)}
               </SelectItem>
               <SelectItem
                 value="sorted_barcode"
                 title="Start from already-sorted barcode directories (fastq.gz per barcode). Skips MinKNOW sorting; runs consensus calling."
               >
-                {INPUT_MODE_LABELS.sorted_barcode}
+                {t(INPUT_MODE_I18N_KEYS.sorted_barcode)}
               </SelectItem>
               <SelectItem
                 value="raw_run"
                 title="Start from a raw MinKNOW run folder (fastq_pass/ + run metadata). Full pipeline: sort barcodes, filter, then consensus."
               >
-                {INPUT_MODE_LABELS.raw_run}
+                {t(INPUT_MODE_I18N_KEYS.raw_run)}
               </SelectItem>
             </SelectContent>
           </Select>
@@ -534,7 +535,7 @@ export function ParameterPanel() {
             className="text-caption font-medium uppercase tracking-wide text-muted-foreground/60"
           >
             <span className="inline-flex items-center gap-1.5">
-              Legacy KB Cutoff (proxy)
+              {t("mame.parameters.legacyKbCutoff")}
               <InlineHelp text={t("mameParameters.legacyKbHelp")} />
             </span>
           </Label>
@@ -550,7 +551,7 @@ export function ParameterPanel() {
               if (Number.isFinite(n)) setParams({ minFileSizeKb: n });
             }}
             className="h-7 text-xs opacity-70"
-            aria-label="Legacy min file size KB cutoff (proxy for read depth)"
+            aria-label={t("mame.parameters.legacyKbCutoffAriaLabel")}
             title={t("mameParameters.legacyKbTooltip")}
           />
           {distributionStats !== null && (

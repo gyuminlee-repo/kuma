@@ -291,7 +291,7 @@ export function BarcodeSetupPanel() {
               value={form.barcodeSeedsPath}
               onChange={(v) => setForm({ barcodeSeedsPath: v })}
               onBrowse={browseBarcodeSeeds}
-              placeholder=".xlsx file path"
+              placeholder={t("mame.barcodeSetup.barcodeSeedsXlsxPlaceholder")}
               helperText={t("mame.barcodeSetup.barcodeSeedsXlsxHelper")}
             />
           </div>
@@ -526,11 +526,11 @@ export function BarcodeSetupPanel() {
             {result.warnings.length > 0 && (
               <div
                 role="status"
-                aria-label="Warnings"
+                aria-label={t("mame.barcodeSetup.warningsAriaLabel")}
                 className="mt-3 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 space-y-1"
               >
                 <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">
-                  Warnings
+                  {t("mame.barcodeSetup.warningsLabel")}
                 </p>
                 {result.warnings.map((w, i) => (
                   <p key={i} className="text-xs text-amber-700 dark:text-amber-400">
@@ -584,6 +584,7 @@ function FilePickerField({
   placeholder?: string;
   helperText?: string;
 }) {
+  const { t } = useTranslation();
   const preview = getFilename(value);
   return (
     <div className="space-y-1.5">
@@ -599,7 +600,7 @@ function FilePickerField({
             filled ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
           }`}
         >
-          {filled ? "Ready" : stateLabel}
+          {filled ? t("mame.inputPanel.fileReady") : stateLabel}
         </span>
       </div>
       <div className="flex gap-1.5">
@@ -617,14 +618,14 @@ function FilePickerField({
           size="sm"
           onClick={() => void onBrowse()}
           className="h-8 gap-1 px-2"
-          aria-label={`Browse ${label}`}
+          aria-label={t("mame.inputPanel.browseFolderAriaLabel", { label })}
         >
           <FolderOpen size={12} aria-hidden="true" />
         </Button>
       </div>
       {helperText && <p className="text-xs text-muted-foreground/90">{helperText}</p>}
       <p className="truncate text-xs text-muted-foreground" title={value || undefined}>
-        {filled ? preview : "No path selected"}
+        {filled ? preview : t("mame.inputPanel.noPathSelected")}
       </p>
     </div>
   );

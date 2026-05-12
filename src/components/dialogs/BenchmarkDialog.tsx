@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
 import { useAppStore } from "../../store/appStore";
 import type { BenchmarkResult } from "../../types/models";
@@ -13,41 +14,41 @@ import {
 import { Button } from "../ui/button";
 import { handleExportBenchmarkCsv, handleSaveBenchmarkJson } from "../layout/export-handlers";
 
-const STRATEGY_LABELS: Record<string, string> = {
-  topn: "Top-N",
-  random: "Random",
-  position_cap: "Position Cap",
-  domain: "Domain",
-  pareto_1d: "Pareto 1D",
-  pareto_3d: "Pareto 3D",
-  pareto_entropy: "Pareto + Entropy",
+const STRATEGY_I18N_KEYS: Record<string, string> = {
+  topn: "benchmarkDialog.strategyTopN",
+  random: "benchmarkDialog.strategyRandom",
+  position_cap: "benchmarkDialog.strategyPositionCap",
+  domain: "benchmarkDialog.strategyDomain",
+  pareto_1d: "benchmarkDialog.strategyPareto1d",
+  pareto_3d: "benchmarkDialog.strategyPareto3d",
+  pareto_entropy: "benchmarkDialog.strategyParetoEntropy",
 };
 
 const METRICS = [
   {
     key: "hit_rate",
-    label: "Hit rate",
+    labelKey: "benchmarkDialog.metricHitRate",
     format: (value: number) => `${value.toFixed(1)}%`,
     deltaUnit: "pp",
     decimals: 1,
   },
   {
     key: "mean_fitness",
-    label: "Mean fitness",
+    labelKey: "benchmarkDialog.metricMeanFitness",
     format: (value: number) => value.toFixed(3),
     deltaUnit: "",
     decimals: 3,
   },
   {
     key: "position_coverage",
-    label: "Position cov",
+    labelKey: "benchmarkDialog.metricPositionCov",
     format: (value: number) => `${value.toFixed(1)}%`,
     deltaUnit: "pp",
     decimals: 1,
   },
   {
     key: "structural_spread",
-    label: "Structural spread",
+    labelKey: "benchmarkDialog.metricStructuralSpread",
     format: (value: number) => `${value.toFixed(1)}%`,
     deltaUnit: "pp",
     decimals: 1,
@@ -108,10 +109,11 @@ function BaselineSelector({
   selected: BaselineKey;
   onChange: (key: BaselineKey) => void;
 }) {
+  const { t } = useTranslation();
   if (options.length <= 1) {
     return (
       <span className="rounded-full border border-border bg-muted/50 px-3 py-1 text-caption font-medium text-muted-foreground">
-        Baseline: {STRATEGY_LABELS[selected]}
+        {t("benchmarkDialog.baselinePrefix", { strategy: t(STRATEGY_I18N_KEYS[selected] ?? selected) })}
       </span>
     );
   }
@@ -129,7 +131,7 @@ function BaselineSelector({
           }`}
           onClick={() => onChange(option)}
         >
-          {STRATEGY_LABELS[option]}
+          {t(STRATEGY_I18N_KEYS[option] ?? option)}
         </button>
       ))}
     </div>
@@ -153,6 +155,7 @@ function MetricCell({
   decimals: number;
   deltaUnit: string;
 }) {
+  const { t } = useTranslation();
   const delta = value - baselineValue;
   const deltaAbsMax = Math.max(Math.abs(min - baselineValue), Math.abs(max - baselineValue), 0.0001);
   const deltaPct = `${Math.max(4, Math.min(100, Math.abs(delta) / deltaAbsMax * 100))}%`;
@@ -172,7 +175,7 @@ function MetricCell({
         />
       </div>
       <div className="mt-1 flex items-center gap-2">
-        <span className="text-[11px] text-muted-foreground">vs baseline</span>
+        <span className="text-[11px] text-muted-foreground">{t("benchmarkDialog.vsBaseline")}</span>
         <div className="h-1.5 flex-1 rounded-full bg-muted/40">
           <div
             className={`h-full rounded-full ${deltaBarTone(delta)}`}
@@ -185,6 +188,7 @@ function MetricCell({
 }
 
 export function BenchmarkDialog() {
+  const { t } = useTranslation();
   const data = useAppStore(
     useShallow((s) => ({
       open: s.showBenchmark,
@@ -230,7 +234,7 @@ export function BenchmarkDialog() {
     <Dialog open={data.open} onOpenChange={data.setOpen}>
       <DialogContent className="max-h-[84vh] max-w-6xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl">Benchmark</DialogTitle>
+          <DialogTitle className="text-xl">{t("benchmarkDialog.title")}</DialogTitle>
           <DialogDescription className="text-muted-foreground">
             Top {data.topPercentile}% hit threshold, random {data.randomTrials} trials, seed {data.randomSeed ?? "AUTO"}
           </DialogDescription>
@@ -238,7 +242,7 @@ export function BenchmarkDialog() {
 
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="text-caption text-muted-foreground">
-            Compare each strategy against <span className="font-medium text-foreground">{STRATEGY_LABELS[normalizedBaseline]}</span>.
+            {t("benchmarkDialog.compareAgainst")} <span className="font-medium text-foreground">{t(STRATEGY_I18N_KEYS[normalizedBaseline] ?? normalizedBaseline)}</span>.
           </div>
           <BaselineSelector
             options={baselineChoices}
@@ -252,14 +256,14 @@ export function BenchmarkDialog() {
             <thead className="sticky top-0 z-10 bg-card">
               <tr>
                 <th className="border-b border-border px-3 py-2 text-left font-semibold text-muted-foreground">
-                  Strategy
+                  {t("benchmarkDialog.strategyColHeader")}
                 </th>
                 {METRICS.map((metric) => (
                   <th
                     key={metric.key}
                     className="border-b border-border px-3 py-2 text-left font-semibold text-muted-foreground"
                   >
-                    {metric.label}
+                    {t(metric.labelKey)}
                   </th>
                 ))}
               </tr>
@@ -269,7 +273,7 @@ export function BenchmarkDialog() {
                 <tr key={strategy} className="hover:bg-muted/20">
                   <td className="border-b border-border/70 px-3 py-2 align-top">
                     <div className="font-medium text-foreground">
-                      {STRATEGY_LABELS[strategy] ?? strategy}
+                      {t(STRATEGY_I18N_KEYS[strategy] ?? strategy)}
                     </div>
                     <div className="mt-1 text-[11px] text-muted-foreground">
                       hits {metrics.hits}
@@ -295,12 +299,8 @@ export function BenchmarkDialog() {
         </div>
 
         <div className="grid gap-2 text-caption text-muted-foreground md:grid-cols-2">
-          <div>
-            Blue bar: absolute value percentile within this benchmark run.
-          </div>
-          <div>
-            Delta label/bar: difference from {STRATEGY_LABELS[normalizedBaseline]}.
-          </div>
+          <div>{t("benchmarkDialog.blueBarLegend")}</div>
+          <div>{t("benchmarkDialog.deltaLegend", { baseline: t(STRATEGY_I18N_KEYS[normalizedBaseline] ?? normalizedBaseline) })}</div>
         </div>
 
         <DialogFooter>
@@ -325,7 +325,7 @@ export function BenchmarkDialog() {
               });
             }}
           >
-            Save Summary JSON
+            {t("benchmarkDialog.saveSummaryJson")}
           </Button>
           <Button
             variant="outline"
@@ -355,7 +355,7 @@ export function BenchmarkDialog() {
               });
             }}
           >
-            Export Raw JSON
+            {t("benchmarkDialog.exportRawJson")}
           </Button>
           <Button
             variant="outline"
@@ -365,10 +365,10 @@ export function BenchmarkDialog() {
               void handleExportBenchmarkCsv(results);
             }}
           >
-            Export CSV
+            {t("benchmarkDialog.exportCsv")}
           </Button>
           <Button variant="outline" size="sm" className="rounded-full" onClick={() => data.setOpen(false)}>
-            Close
+            {t("common.close")}
           </Button>
         </DialogFooter>
       </DialogContent>

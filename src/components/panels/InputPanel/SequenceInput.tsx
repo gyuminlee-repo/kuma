@@ -146,9 +146,9 @@ export function SequenceInput() {
           value={organism}
           onChange={(e) => setOrganism(e.target.value)}
         >
-          <option value="ecoli" title="Escherichia coli K-12 codon usage table. Use when expressing in E. coli BL21, DH5α, K-12 derivatives.">E. coli K-12</option>
-          <option value="bsubtilis" title="Bacillus subtilis 168 codon usage table. Use when expressing in B. subtilis or related Gram-positive hosts.">B. subtilis 168</option>
-          <option value="scerevisiae" title="Saccharomyces cerevisiae codon usage table. Use when expressing in budding yeast hosts.">S. cerevisiae</option>
+          <option value="ecoli" title={t("sequenceInput.ecoliTitle")}>E. coli K-12</option>
+          <option value="bsubtilis" title={t("sequenceInput.bsubtilisTitle")}>B. subtilis 168</option>
+          <option value="scerevisiae" title={t("sequenceInput.scerevisiaeTitle")}>S. cerevisiae</option>
         </select>
       </div>
     </>

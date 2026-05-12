@@ -223,7 +223,7 @@ export function MenuBar() {
       {/* File 메뉴 */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className={TRIGGER_CLS}>File</button>
+          <button className={TRIGGER_CLS}>{t("menuBar.fileMenuTrigger")}</button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
           <DropdownMenuItem onClick={handleOpenSequence}>
@@ -245,7 +245,7 @@ export function MenuBar() {
             }}
             disabled={false}
           >
-            Restart Sidecar
+            {t("file.restartSidecar")}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -253,14 +253,14 @@ export function MenuBar() {
       {/* Export 메뉴 */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className={TRIGGER_CLS}>Export</button>
+          <button className={TRIGGER_CLS}>{t("menuBar.exportMenuTrigger")}</button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
           <DropdownMenuItem
             onClick={() => void handleExportAll(project)}
             disabled={!hasDesignResults || isExporting || !project || project.scratch || !project.path}
           >
-            <span className="flex-1">Export All</span>
+            <span className="flex-1">{t("export.all")}</span>
             <kbd className="ml-4 text-caption text-muted-foreground">{MOD_KEY}Shift+E</kbd>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
@@ -268,20 +268,20 @@ export function MenuBar() {
             onClick={() => handleExportExcel(project?.project_id)}
             disabled={!hasDesignResults || isExporting}
           >
-            <span className="flex-1">Export Excel...</span>
+            <span className="flex-1">{t("export.excel")}</span>
             <kbd className="ml-4 text-caption text-muted-foreground">{MOD_KEY}E</kbd>
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => { setMappingDialogFormat("echo"); setMappingDialogOpen(true); }}
             disabled={!hasDesignResults || isExporting}
           >
-            Export Echo Mapping...
+            {t("export.echo")}
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => { setMappingDialogFormat("janus"); setMappingDialogOpen(true); }}
             disabled={!hasDesignResults || isExporting}
           >
-            Export JANUS Mapping...
+            {t("export.janus")}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -554,7 +554,7 @@ export function MenuBar() {
                       >
                         uniprot.org
                       </a>
-                      {") -- protein sequence search"}
+                      {t("menuBar.uniprotServiceSuffix")}
                     </li>
                     <li>
                       <span className="font-medium text-foreground">NCBI BLAST (EBI)</span>
@@ -567,7 +567,7 @@ export function MenuBar() {
                       >
                         ebi.ac.uk
                       </a>
-                      {") -- sequence similarity search"}
+                      {t("menuBar.ncbiBlastServiceSuffix")}
                     </li>
                     <li>
                       <span className="font-medium text-foreground">AlphaFold (EBI)</span>
@@ -580,7 +580,7 @@ export function MenuBar() {
                       >
                         alphafold.ebi.ac.uk
                       </a>
-                      {") -- structure prediction lookup"}
+                      {t("menuBar.alphafoldServiceSuffix")}
                     </li>
                     <li>
                       <span className="font-medium text-foreground">InterPro / Pfam (EBI)</span>
@@ -593,7 +593,7 @@ export function MenuBar() {
                       >
                         ebi.ac.uk/interpro
                       </a>
-                      {") -- protein domain annotation"}
+                      {t("menuBar.interproServiceSuffix")}
                     </li>
                   </ul>
                   <p className="text-xs text-muted-foreground">

@@ -527,8 +527,8 @@ export function SequenceViewer() {
           {!hasData ? (
             <StateView
               variant="empty"
-              title={t("emptyTitle")}
-              description={t("emptyDesc")}
+              title={t("sequenceViewer.emptyTitle")}
+              description={t("sequenceViewer.emptyDesc")}
               className="h-16 py-2"
             />
           ) : (
@@ -539,7 +539,7 @@ export function SequenceViewer() {
                 className="w-full"
                 style={{ maxHeight: 100 }}
                 role="img"
-                aria-label={t("svgAriaLabel", { maxAa, count: ticks.length })}
+                aria-label={t("sequenceViewer.svgAriaLabel", { maxAa, count: ticks.length })}
               >
                 {/* CDS bar background */}
                 <rect
@@ -606,7 +606,7 @@ export function SequenceViewer() {
                   }}
                 >
                   <div className="font-semibold">aa {densityTooltip.startAa}–{densityTooltip.endAa}</div>
-                  <div className="text-background/70">{densityTooltip.count === 1 ? t("densityCountSingle", { count: densityTooltip.count }) : t("densityCountPlural", { count: densityTooltip.count })}</div>
+                  <div className="text-background/70">{densityTooltip.count === 1 ? t("sequenceViewer.densityCountSingle", { count: densityTooltip.count }) : t("sequenceViewer.densityCountPlural", { count: densityTooltip.count })}</div>
                 </div>
               )}
 
@@ -635,7 +635,7 @@ export function SequenceViewer() {
                       tooltip.tick.status === "success" ? "text-success" : "text-error"
                     }
                   >
-                    {tooltip.tick.status === "success" ? t("tooltipDesigned") : t("tooltipFailed", { reason: tooltip.tick.reason ?? "unknown" })}
+                    {tooltip.tick.status === "success" ? t("sequenceViewer.tooltipDesigned") : t("sequenceViewer.tooltipFailed", { reason: tooltip.tick.reason ?? "unknown" })}
                   </div>
                 </div>
               )}
@@ -644,16 +644,16 @@ export function SequenceViewer() {
               <div className="flex items-center gap-3 mt-1 text-caption text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: TICK_SUCCESS }} />
-                  {t("legendSuccess")}
+                  {t("sequenceViewer.legendSuccess")}
                 </span>
                 <span className="flex items-center gap-1">
                   <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: TICK_FAILED }} />
-                  {t("legendFailed")}
+                  {t("sequenceViewer.legendFailed")}
                 </span>
                 {selectedMutation && (
                   <span className="flex items-center gap-1">
                     <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: TICK_SELECTED }} />
-                    {t("legendSelected")}
+                    {t("sequenceViewer.legendSelected")}
                   </span>
                 )}
                 {domains.length > 0 && (

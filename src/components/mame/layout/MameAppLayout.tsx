@@ -240,9 +240,9 @@ export function MameAppLayout() {
         className="flex flex-1 min-h-0 flex-col"
       >
         <TabsList className="shrink-0 mx-3 mt-2 w-fit">
-          <TabsTrigger value="setup">1. Barcode Setup</TabsTrigger>
-          <TabsTrigger value="analyze">2. Analyze</TabsTrigger>
-          <TabsTrigger value="activity">3. Activity</TabsTrigger>
+          <TabsTrigger value="setup">{t("mame.appLayout.barcodeSetupTab")}</TabsTrigger>
+          <TabsTrigger value="analyze">{t("mame.appLayout.analyzeTab")}</TabsTrigger>
+          <TabsTrigger value="activity">{t("mame.appLayout.activityTab")}</TabsTrigger>
         </TabsList>
 
         {/* Phase 1: Barcode Setup */}
@@ -265,14 +265,14 @@ export function MameAppLayout() {
               aria-label="Analysis workspace"
             >
               <SummaryRow />
-              <DataPanel title="Verdict table" className="min-h-0">
+              <DataPanel title={t("mame.appLayout.verdictTableTitle")} className="min-h-0">
                 <VerdictTable />
               </DataPanel>
-              <DataPanel title="Plate plan">
+              <DataPanel title={t("mame.appLayout.platePlanTitle")}>
                 <PlateView />
               </DataPanel>
               {verdictsLength > 0 && runHealth !== null && (
-                <DataPanel title="Run health">
+                <DataPanel title={t("mame.appLayout.runHealthTitle")}>
                   <RunHealthPanel health={runHealth} />
                 </DataPanel>
               )}
@@ -324,7 +324,7 @@ export function MameAppLayout() {
                 setDeadlockOpen(false);
               }}
             >
-              Reset
+              {t("mame.appLayout.deadlockReset")}
             </Button>
           </DialogFooter>
         </DialogContent>
