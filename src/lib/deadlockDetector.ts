@@ -59,7 +59,7 @@ export function startDeadlockWatch(opts: DeadlockWatchOptions): () => void {
       fired = true;
       onDeadlock();
     }
-  }, 5_000); // 5초 폴링
+  }, 5_000); // 5s polling
 
   return () => clearInterval(id);
 }

@@ -9,6 +9,7 @@
  */
 
 import { readTextFile } from "@tauri-apps/plugin-fs";
+import i18next from "i18next";
 
 // ── 스키마 버전 (backend 동기화 단일 포인트) ─────────────────────────────────
 export const SCHEMA_VERSION = "1.0";
@@ -82,28 +83,25 @@ export async function loadManifestFromFile(path: string): Promise<RunManifest> {
   try {
     text = await readTextFile(path);
   } catch (cause) {
-    throw new Error(`manifest 파일을 읽을 수 없습니다: ${path}\n${String(cause)}`);
+    throw new Error(i18next.t("runManifest.readFailed", { path, cause: String(cause) }));
   }
 
   let parsed: unknown;
   try {
     parsed = JSON.parse(text) as unknown;
   } catch (cause) {
-    throw new Error(`manifest JSON 파싱 실패: ${path}\n${String(cause)}`);
+    throw new Error(i18next.t("runManifest.parseFailed", { path, cause: String(cause) }));
   }
 
   if (!isRunManifest(parsed)) {
-    throw new Error(
-      `manifest 구조가 올바르지 않습니다. 필수 필드가 누락되었을 수 있습니다: ${path}`,
-    );
+    throw new Error(i18next.t("runManifest.invalidStructure", { path }));
   }
 
   if (parsed.schema_version !== SCHEMA_VERSION) {
-    throw new Error(
-      `지원하지 않는 manifest schema_version: "${parsed.schema_version}". ` +
-        `현재 지원 버전: "${SCHEMA_VERSION}". ` +
-        `kuma 를 업데이트하거나, 이전 버전으로 생성된 manifest 인지 확인하세요.`,
-    );
+    throw new Error(i18next.t("runManifest.unsupportedSchema", {
+      version: parsed.schema_version,
+      supported: SCHEMA_VERSION,
+    }));
   }
 
   return parsed;

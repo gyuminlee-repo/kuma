@@ -15,6 +15,7 @@
  */
 
 import { readFile } from "@tauri-apps/plugin-fs";
+import i18next from "i18next";
 import { loadManifestFromFile, type RunManifest } from "./runManifest";
 import { useAppStore } from "@/store/appStore";
 import { useActivityStore } from "@/store/mame/activitySlice";
@@ -127,7 +128,7 @@ async function runMergeForEvolvepro(manifest: RunManifest): Promise<void> {
   const roundId = typeof params["round_id"] === "string" ? params["round_id"] : null;
   if (!roundId) {
     throw new Error(
-      "manifest.params.round_id 가 없습니다. mame 탭에서 라운드를 먼저 선택한 뒤 re-run 해주세요.",
+      i18next.t("reRun.noRoundId"),
     );
   }
 
@@ -161,16 +162,13 @@ async function runMergeForEvolvepro(manifest: RunManifest): Promise<void> {
 export async function reRunFromManifest(manifest: RunManifest): Promise<void> {
   if (EXPORT_ONLY_METHODS.has(manifest.method)) {
     throw new Error(
-      `"${manifest.method}" 는 export 작업입니다. ` +
-        "export manifest 는 직접 re-run 할 수 없습니다. " +
-        "원본 데이터에서 다시 export 하세요.",
+      i18next.t("reRun.exportNotRunnable", { method: manifest.method }),
     );
   }
 
   if (!RUNNABLE_METHODS.has(manifest.method)) {
     throw new Error(
-      `지원하지 않는 method: "${manifest.method}". ` +
-        `지원 method: ${[...RUNNABLE_METHODS].join(", ")}`,
+      i18next.t("reRun.unsupportedMethod", { method: manifest.method, supported: [...RUNNABLE_METHODS].join(", ") }),
     );
   }
 

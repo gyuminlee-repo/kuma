@@ -7,6 +7,8 @@
  * Storage key: `kuma:eta-history:{kind}` → JSON array of last N durationMs values.
  */
 
+import i18next from "i18next";
+
 const HISTORY_KEY_PREFIX = "kuma:eta-history:";
 const MAX_HISTORY = 10;
 
@@ -71,9 +73,9 @@ export function formatETA(ms: number): string {
   if (totalSec <= 0) return "";
   const min = Math.floor(totalSec / 60);
   const sec = totalSec % 60;
-  if (min === 0) return `약 ${sec}초 남음`;
-  if (sec === 0) return `약 ${min}분 남음`;
-  return `약 ${min}분 ${sec}초 남음`;
+  if (min === 0) return i18next.t("eta.secOnly", { sec });
+  if (sec === 0) return i18next.t("eta.minOnly", { min });
+  return i18next.t("eta.minSec", { min, sec });
 }
 
 /**

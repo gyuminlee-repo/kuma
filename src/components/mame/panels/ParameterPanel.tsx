@@ -502,8 +502,8 @@ export function ParameterPanel() {
             className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
           >
             <span className="inline-flex items-center gap-1.5">
-              최소 Filtered Depth (reads)
-              <InlineHelp text="Length-window filter를 통과한 read 수 기준 cutoff입니다. FASTA 파일 크기보다 직접적인 depth 지표지만, 현재 판정 backend에는 아직 legacy KB cutoff가 전달됩니다." />
+              {t("mameParameters.minFilteredDepth")}
+              <InlineHelp text={t("mameParameters.minFilteredDepthHelp")} />
             </span>
           </Label>
           <Input
@@ -519,11 +519,11 @@ export function ParameterPanel() {
               if (Number.isFinite(n) && n > 0) setParams({ minFilteredDepth: n });
             }}
             className="h-8 text-xs"
-            aria-label="최소 filtered depth (reads). Length-window-filtered read count. ONT R10.4.1 consensus reaches Q35+ around 15× depth."
+            aria-label={t("mameParameters.minFilteredDepthAria")}
             title="Length-window-filtered read count. ONT R10.4.1 consensus reaches Q35+ around 15× depth."
           />
           <p className="text-caption text-muted-foreground">
-            Length-window-filtered read count. ONT R10.4.1 consensus: Q35+ ~15×. KB cutoff와 1:1 자동 변환되지 않습니다.
+            {t("mameParameters.minFilteredDepthFootnote")}
           </p>
         </div>
 
@@ -535,7 +535,7 @@ export function ParameterPanel() {
           >
             <span className="inline-flex items-center gap-1.5">
               Legacy KB Cutoff (proxy)
-              <InlineHelp text="FASTA 파일 크기를 read depth의 대리값으로 쓰는 기존 cutoff입니다. read 길이, header 길이, line wrapping, consensus/intermediate 산출 방식에 따라 같은 read 수라도 KB가 달라져 Filtered Depth와 자동 동기화할 수 없습니다." />
+              <InlineHelp text={t("mameParameters.legacyKbHelp")} />
             </span>
           </Label>
           <Input
@@ -551,7 +551,7 @@ export function ParameterPanel() {
             }}
             className="h-7 text-xs opacity-70"
             aria-label="Legacy min file size KB cutoff (proxy for read depth)"
-            title="파일 크기 기반 proxy cutoff. 압축률·길이분포·라이브러리 변동에 영향받음. 보조 참고용."
+            title={t("mameParameters.legacyKbTooltip")}
           />
           {distributionStats !== null && (
             <RecommendedCutoff

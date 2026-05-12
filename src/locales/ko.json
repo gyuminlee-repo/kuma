@@ -967,5 +967,65 @@
     "ready": "준비",
     "connecting": "연결 중",
     "failed": "Sidecar 오류"
+  },
+  "localeToggle": {
+    "currentLanguageAria": "현재 언어: {{label}}. 언어 변경"
+  },
+  "themeToggle": {
+    "currentThemeAria": "현재 테마: {{label}}. 테마 변경"
+  },
+  "menuBar": {
+    "restartSidecarBusyConfirm": "작업이 진행 중입니다. 그래도 sidecar를 재시작하시겠습니까?",
+    "offlineModeToggleAria": "오프라인 모드 토글",
+    "offlineModeLabel": "오프라인 모드",
+    "offlineModeDesc": "켜면 모든 외부 서비스 호출이 차단됩니다",
+    "consentStatusLabel": "동의 상태:",
+    "consentGranted": "동의함",
+    "consentNotGranted": "미동의"
+  },
+  "panel": {
+    "errorTitle": "표시할 수 없습니다",
+    "errorDescription": "컴포넌트 렌더링 중 오류가 발생했습니다."
+  },
+  "roundSummary": {
+    "exportBlocked": "내보내기 차단 — {{count}}건의 라벨 교체 오류가 감지되었습니다.",
+    "warningsListAria": "라벨 교체 경고 목록",
+    "errorBadge": "오류 {{count}}건",
+    "warnBadge": "경고 {{count}}건",
+    "warningDetailAria": "경고 상세",
+    "warningTooltip": "{{message}}\n변이: {{variants}}\n웰: {{wells}}",
+    "replicateStatsAria": "Replicate merge 통계",
+    "replicateMergeTitle": "Replicate 병합",
+    "labelRemeasure": "재측정",
+    "labelPrimary": "1차측정",
+    "labelMerged": "병합",
+    "labelMismatched": "불일치",
+    "mismatchedVariantsTooltip": "불일치 변이: {{list}}",
+    "mismatchedVariantsAria": "불일치 변이: {{list}}",
+    "exportBlockedShort": "내보내기 차단 — {{count}}건의 라벨 교체 오류"
+  },
+  "mameParameters": {
+    "minFilteredDepth": "최소 Filtered Depth (reads)",
+    "minFilteredDepthHelp": "Length-window filter를 통과한 read 수 기준 cutoff입니다. FASTA 파일 크기보다 직접적인 depth 지표지만, 현재 판정 backend에는 아직 legacy KB cutoff가 전달됩니다.",
+    "minFilteredDepthAria": "최소 filtered depth (reads). Length-window-filtered read count. ONT R10.4.1 consensus reaches Q35+ around 15× depth.",
+    "minFilteredDepthFootnote": "Length-window-filtered read count. ONT R10.4.1 consensus: Q35+ ~15×. KB cutoff와 1:1 자동 변환되지 않습니다.",
+    "legacyKbHelp": "FASTA 파일 크기를 read depth의 대리값으로 쓰는 기존 cutoff입니다. read 길이, header 길이, line wrapping, consensus/intermediate 산출 방식에 따라 같은 read 수라도 KB가 달라져 Filtered Depth와 자동 동기화할 수 없습니다.",
+    "legacyKbTooltip": "파일 크기 기반 proxy cutoff. 압축률·길이분포·라이브러리 변동에 영향받음. 보조 참고용."
+  },
+  "eta": {
+    "secOnly": "약 {{sec}}초 남음",
+    "minOnly": "약 {{min}}분 남음",
+    "minSec": "약 {{min}}분 {{sec}}초 남음"
+  },
+  "runManifest": {
+    "readFailed": "manifest 파일을 읽을 수 없습니다: {{path}}\n{{cause}}",
+    "parseFailed": "manifest JSON 파싱 실패: {{path}}\n{{cause}}",
+    "invalidStructure": "manifest 구조가 올바르지 않습니다. 필수 필드가 누락되었을 수 있습니다: {{path}}",
+    "unsupportedSchema": "지원하지 않는 manifest schema_version: \"{{version}}\". 현재 지원 버전: \"{{supported}}\". kuma 를 업데이트하거나, 이전 버전으로 생성된 manifest 인지 확인하세요."
+  },
+  "reRun": {
+    "noRoundId": "manifest.params.round_id 가 없습니다. mame 탭에서 라운드를 먼저 선택한 뒤 re-run 해주세요.",
+    "exportNotRunnable": "\"{{method}}\" 는 export 작업입니다. export manifest 는 직접 re-run 할 수 없습니다. 원본 데이터에서 다시 export 하세요.",
+    "unsupportedMethod": "지원하지 않는 method: \"{{method}}\". 지원 method: {{supported}}"
   }
 }

@@ -5,6 +5,7 @@
  * Always fires (no threshold guard) — use in addition to notify.ts (OS notifications).
  */
 
+import i18next from "i18next";
 import { toast } from "sonner";
 
 /** Format elapsed milliseconds as human-readable string. */
@@ -36,7 +37,7 @@ export interface NotifyJobDoneOptions {
  */
 export function notifyJobDone(opts: NotifyJobDoneOptions): void {
   toast.success(opts.title, {
-    description: opts.description ?? `완료 (${formatDuration(opts.durationMs)})`,
+    description: opts.description ?? i18next.t("toast.completedWithDuration", { duration: formatDuration(opts.durationMs) }),
     duration: 4000,
   });
 }

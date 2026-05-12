@@ -1,3 +1,4 @@
+import i18next from "i18next";
 import type { StateCreator } from "zustand";
 import { sendRequest } from "../../lib/ipc-kuro";
 import { formatError } from "../../lib/utils";
@@ -153,8 +154,8 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   fetchDomains: async (accession: string, clearCandidates = false) => {
     const consentGranted = await get().requireNetworkConsent();
     if (!consentGranted) {
-      const reason = get().offlineMode ? "오프라인 모드입니다" : "외부 서비스 사용 동의가 필요합니다";
-      set({ statusMessage: `Domain fetch 취소: ${reason}` });
+      const reason = get().offlineMode ? i18next.t("diversity.offlineReason") : i18next.t("diversity.consentReason");
+      set({ statusMessage: i18next.t("diversity.domainFetchCancelled", { reason }) });
       return;
     }
     const requestedAccession = accession.trim();

@@ -199,8 +199,8 @@ export async function readAutosave(
  */
 function drainQueue(kind: AutosaveKind): void {
   const state = kindState[kind];
-  if (state.inFlight !== null) return; // 이미 실행 중
-  if (state.pending === null) return; // 할 일 없음
+  if (state.inFlight !== null) return; // already running
+  if (state.pending === null) return; // nothing pending
 
   const task = state.pending;
   state.pending = null;

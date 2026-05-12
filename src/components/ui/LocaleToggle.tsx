@@ -6,6 +6,7 @@
  * - 실제 번역은 현재 미구현. 향후 react-i18next 등 도입 시 i18n.resolveActiveLocale() 바인딩.
  */
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,6 +50,7 @@ export interface LocaleToggleProps {
 }
 
 export function LocaleToggle({ variant = "icon" }: LocaleToggleProps) {
+  const { t } = useTranslation();
   const [locale, setLocaleState] = useState<Locale>(getLocale);
 
   function handleSelect(next: Locale) {
@@ -63,7 +65,7 @@ export function LocaleToggle({ variant = "icon" }: LocaleToggleProps) {
           variant="ghost"
           size="sm"
           className="h-control px-2 gap-1.5 text-foreground/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          aria-label={`현재 언어: ${LOCALE_LABELS[locale]}. 언어 변경`}
+          aria-label={t("localeToggle.currentLanguageAria", { label: LOCALE_LABELS[locale] })}
         >
           <GlobeIcon />
           {variant === "icon-label" && (

@@ -24,14 +24,16 @@ import { toast } from "sonner";
 
 // ─── 상대 시간 포맷 헬퍼 ──────────────────────────────────────────────────
 
-function formatRelativeTime(isoString: string, t: (key: string, opts?: Record<string, unknown>) => string): string {
+type TFunc = (key: string, opts?: Record<string, string | number>) => string;
+
+function formatRelativeTime(isoString: string, t: TFunc): string {
   const diffMs = Date.now() - new Date(isoString).getTime();
   const diffMin = Math.floor(diffMs / 60_000);
   if (diffMin < 1) return t("mainShell.relativeTime.justNow");
-  if (diffMin < 60) return t("mainShell.relativeTime.minAgo", { count: diffMin });
+  if (diffMin < 60) return t("mainShell.relativeTime.minutesAgo", { n: diffMin });
   const diffHr = Math.floor(diffMin / 60);
-  if (diffHr < 24) return t("mainShell.relativeTime.hrAgo", { count: diffHr });
-  return t("mainShell.relativeTime.daysAgo", { count: Math.floor(diffHr / 24) });
+  if (diffHr < 24) return t("mainShell.relativeTime.hoursAgo", { n: diffHr });
+  return t("mainShell.relativeTime.daysAgo", { n: Math.floor(diffHr / 24) });
 }
 
 // ─── autosave intro localStorage 키 ──────────────────────────────────────
@@ -90,8 +92,8 @@ export function MainShell() {
   const { t } = useTranslation();
   const project = useKumaProject();
   const projectName = project
-    ? `${project.name}${project.scratch ? ` (${t("mainShell.scratchSuffix")})` : ""}`
-    : t("mainShell.workspaceFallback");
+    ? `${project.name}${project.scratch ? ` (${t("mainShell.scratch")})` : ""}`
+    : t("mainShell.workspace");
 
   // ── 활성 탭 (controlled)
   const [activeTab, setActiveTab] = useState<AppTab>("kuro");
@@ -142,7 +144,7 @@ export function MainShell() {
 
   // ── autosave 인디케이터 상태
   const [autosaveState, setAutosaveState] = useState<AutosaveIndicatorState>("idle");
-  const [autosaveLabel, setAutosaveLabel] = useState(() => t("mainShell.autosave.on"));
+  const [autosaveLabel, setAutosaveLabel] = useState(() => t("mainShell.autosaveOn"));
 
   // ── 마지막 saved 시각 (상대 시간 갱신용)
   const lastSavedAtRef = useRef<string | null>(null);
@@ -154,14 +156,14 @@ export function MainShell() {
     if (msg.variant === "restored" && msg.savedAt) {
       lastSavedAtRef.current = msg.savedAt;
       setAutosaveState("saved");
-      setAutosaveLabel(t("mainShell.autosave.restoredRelative", { relative: formatRelativeTime(msg.savedAt, t) }));
+      setAutosaveLabel(t("mainShell.autosaveRestoredAgo", { time: formatRelativeTime(msg.savedAt, t) }));
     } else if (msg.variant === "restored" && msg.kind === "mame") {
       // auto-detect 결과: savedAt 없이 오는 복원 메시지 (e.g. "Auto-detected: run folder, custom barcodes")
       showStatusMessage(msg.message);
     } else if (msg.variant === "corrupted" || msg.variant === "schema_too_new") {
       showStatusMessage(msg.message);
     }
-  }, [showStatusMessage]);
+  }, [showStatusMessage, t]);
 
   // Phase 2: Kuro 자동 저장 구독 등록
   useKuroAutosave();
@@ -174,33 +176,33 @@ export function MainShell() {
       if (ev.type === "saving") {
         errorStreakRef.current = 0;
         setAutosaveState("saving");
-        setAutosaveLabel(t("mainShell.autosave.saving"));
+        setAutosaveLabel(t("mainShell.autosaveSaving"));
       } else if (ev.type === "saved") {
         errorStreakRef.current = 0;
         lastSavedAtRef.current = ev.savedAt;
         setAutosaveState("saved");
-        setAutosaveLabel(t("mainShell.autosave.savedJustNow"));
+        setAutosaveLabel(t("mainShell.autosaveSavedJustNow"));
       } else if (ev.type === "error") {
         errorStreakRef.current += 1;
         setAutosaveState("error");
-        setAutosaveLabel(t("mainShell.autosave.saveFailed"));
+        setAutosaveLabel(t("mainShell.autosaveFailed"));
         if (errorStreakRef.current >= 3) {
-          showStatusMessage(t("mainShell.autosave.failedWarning"));
+          showStatusMessage(t("mainShell.autosaveFailedStreak"));
         }
       }
     });
     return unsub;
-  }, [showStatusMessage]);
+  }, [showStatusMessage, t]);
 
   // ── 1분 단위 상대 시간 갱신 (saved 상태 전용)
   useEffect(() => {
     const id = setInterval(() => {
       if (lastSavedAtRef.current !== null && autosaveState === "saved") {
-        setAutosaveLabel(t("mainShell.autosave.savedRelative", { relative: formatRelativeTime(lastSavedAtRef.current, t) }));
+        setAutosaveLabel(t("mainShell.autosaveSavedAgo", { time: formatRelativeTime(lastSavedAtRef.current, t) }));
       }
     }, 60_000);
     return () => clearInterval(id);
-  }, [autosaveState]);
+  }, [autosaveState, t]);
 
   // ── 첫 자동 저장 인트로 (글로벌 1회, scratch 아닌 프로젝트에서만)
   useEffect(() => {
@@ -208,7 +210,7 @@ export function MainShell() {
     const shown = localStorage.getItem(AUTOSAVE_INTRO_KEY);
     if (shown) return;
     localStorage.setItem(AUTOSAVE_INTRO_KEY, "1");
-    showStatusMessage(t("mainShell.autosave.autosaveIntro"));
+    showStatusMessage(t("mainShell.autosaveIsOn"));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project?.path, project?.scratch]);
 
@@ -373,11 +375,14 @@ export function MainShell() {
           className="flex items-center justify-between px-3 py-1 text-caption bg-warning/20 text-warning-foreground border-b border-warning/40 shrink-0"
         >
           <span>
-            {t("mainShell.memory.warningBannerLabel", { pct: Math.round(memoryWarning.ratio * 100), rss: memoryWarning.rss_mb.toFixed(0) })}
+            {t("mainShell.memoryWarning", {
+              ratio: Math.round(memoryWarning.ratio * 100),
+              rss: memoryWarning.rss_mb.toFixed(0),
+            })}
           </span>
           <button
             type="button"
-            aria-label={t("mainShell.memory.dismissAriaLabel")}
+            aria-label={t("mainShell.memoryWarningDismissAriaLabel")}
             className="ml-2 text-warning-foreground opacity-70 hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             onClick={() => setMemoryWarning(null)}
           >
@@ -397,17 +402,20 @@ export function MainShell() {
         >
           <div className="mx-4 max-w-sm rounded-xl border border-destructive bg-background p-6 shadow-xl">
             <h2 id="mem-block-title" className="mb-2 text-base font-semibold text-destructive">
-              {t("mainShell.memory.blockTitle")}
+              {t("mainShell.memoryBlockTitle")}
             </h2>
             <p id="mem-block-desc" className="mb-4 text-sm text-muted-foreground">
-              {t("mainShell.memory.blockDesc", { pct: Math.round(memoryWarning.ratio * 100), rss: memoryWarning.rss_mb.toFixed(0) })}
+              {t("mainShell.memoryBlockDesc", {
+                ratio: Math.round(memoryWarning.ratio * 100),
+                rss: memoryWarning.rss_mb.toFixed(0),
+              })}
             </p>
             <button
               type="button"
               className="w-full rounded-lg bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               onClick={() => setMemoryWarning(null)}
             >
-              {t("common.ok")}
+              {t("mainShell.memoryBlockConfirm")}
             </button>
           </div>
         </div>
@@ -442,7 +450,7 @@ export function MainShell() {
             {isAutosaveActive && (
               <span
                 className="flex shrink-0 items-center gap-1.5 text-caption text-muted-foreground"
-                aria-label={t("mainShell.autosave.indicatorAriaLabel", { label: autosaveLabel })}
+                aria-label={t("mainShell.autosaveAriaLabel", { label: autosaveLabel })}
               >
                 <span
                   className={`h-2 w-2 rounded-full shrink-0 ${AUTOSAVE_DOT[autosaveState]}`}
@@ -457,11 +465,11 @@ export function MainShell() {
                     onClick={() => {
                       errorStreakRef.current = 0;
                       setAutosaveState("idle");
-                      setAutosaveLabel(t("mainShell.autosave.on"));
+                      setAutosaveLabel(t("mainShell.autosaveOn"));
                     }}
-                    aria-label={t("mainShell.autosave.retryAriaLabel")}
+                    aria-label={t("mainShell.autosaveRetryAriaLabel")}
                   >
-                    {t("common.retry")}
+                    {t("mainShell.autosaveRetry")}
                   </button>
                 )}
               </span>

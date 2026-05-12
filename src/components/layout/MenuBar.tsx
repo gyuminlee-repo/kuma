@@ -240,7 +240,7 @@ export function MenuBar() {
           <DropdownMenuItem
             onClick={() => {
               const busy = isDesigning || isExporting;
-              if (busy && !window.confirm("작업이 진행 중입니다. 그래도 sidecar를 재시작하시겠습니까?")) return;
+              if (busy && !window.confirm(t("menuBar.restartSidecarBusyConfirm"))) return;
               void killSidecar("kuro");
             }}
             disabled={false}
@@ -471,12 +471,12 @@ export function MenuBar() {
               checked={offlineMode}
               onChange={(e) => setOfflineMode(e.target.checked)}
               className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-primary"
-              aria-label="오프라인 모드 토글"
+              aria-label={t("menuBar.offlineModeToggleAria")}
             />
             <label htmlFor="kuro-offline-mode" className="text-sm cursor-pointer">
-              오프라인 모드
+              {t("menuBar.offlineModeLabel")}
               <span className="block text-xs text-muted-foreground font-normal">
-                켜면 모든 외부 서비스 호출이 차단됩니다
+                {t("menuBar.offlineModeDesc")}
               </span>
             </label>
           </div>
@@ -597,9 +597,9 @@ export function MenuBar() {
                     </li>
                   </ul>
                   <p className="text-xs text-muted-foreground">
-                    동의 상태:{" "}
+                    {t("menuBar.consentStatusLabel")}{" "}
                     <span className={networkConsentGranted ? "text-success font-medium" : "text-warning font-medium"}>
-                      {networkConsentGranted ? "동의함" : "미동의"}
+                      {networkConsentGranted ? t("menuBar.consentGranted") : t("menuBar.consentNotGranted")}
                     </span>
                   </p>
                 </div>

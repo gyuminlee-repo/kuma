@@ -1,9 +1,11 @@
 /**
- * §19 Performance Guardrails — 입력 크기 사전 경고 상수 및 체크 함수
+ * §19 Performance Guardrails — input size pre-check constants and functions.
  *
- * 임계 초과 시 UI가 AlertDialog를 표시하고 사용자 confirm 후 실행.
- * 완전 차단은 하지 않음 — level "warn"/"block" 모두 continue 버튼 제공.
+ * When a threshold is exceeded, the UI shows an AlertDialog and waits for user confirm.
+ * Execution is never fully blocked — both "warn" and "block" levels offer a continue button.
  */
+
+import i18next from "i18next";
 
 export const KURO_INPUT_THRESHOLDS = {
   /** mutation 행 수 경고 임계 */
@@ -45,9 +47,9 @@ interface MameCheckParams {
 }
 
 function formatEstimate(seconds: number): string {
-  if (seconds < 60) return `약 ${Math.ceil(seconds)}초 소요 예상`;
+  if (seconds < 60) return i18next.t("inputThresholds.estimateSec", { sec: Math.ceil(seconds) });
   const minutes = Math.ceil(seconds / 60);
-  return `약 ${minutes}분 소요 예상`;
+  return i18next.t("inputThresholds.estimateMin", { min: minutes });
 }
 
 /** kuro design 실행 전 입력 크기 검사 */
@@ -61,7 +63,7 @@ export function checkKuroInputSize({ rowCount, fastaMb }: KuroCheckParams): Inpu
   if (rowCount >= KURO_INPUT_THRESHOLDS.ROW_BLOCK) {
     return {
       level: "block",
-      message: `입력 크기가 매우 큽니다 (mutations: ${rowCount}행${fastaWarning}). ${formatEstimate(estimatedSeconds)} (예상값). 계속하면 실행 시간이 매우 길 수 있습니다.`,
+      message: i18next.t("inputThresholds.kuroLargeBlock", { rowCount, fastaWarning, estimate: formatEstimate(estimatedSeconds) }),
       estimatedSeconds,
     };
   }
@@ -69,7 +71,7 @@ export function checkKuroInputSize({ rowCount, fastaMb }: KuroCheckParams): Inpu
   if (rowCount >= KURO_INPUT_THRESHOLDS.ROW_WARN || (fastaMb !== undefined && fastaMb > KURO_INPUT_THRESHOLDS.FASTA_WARN_MB)) {
     return {
       level: "warn",
-      message: `입력 크기가 큽니다 (mutations: ${rowCount}행${fastaWarning}). ${formatEstimate(estimatedSeconds)} (예상값).`,
+      message: i18next.t("inputThresholds.kuroLargeWarn", { rowCount, fastaWarning, estimate: formatEstimate(estimatedSeconds) }),
       estimatedSeconds,
     };
   }
@@ -84,7 +86,7 @@ export function checkMameInputSize({ rowCount }: MameCheckParams): InputSizeChec
   if (rowCount >= MAME_INPUT_THRESHOLDS.ROW_BLOCK) {
     return {
       level: "block",
-      message: `활성 데이터 크기가 매우 큽니다 (${rowCount}행). ${formatEstimate(estimatedSeconds)} (예상값). 계속하면 실행 시간이 매우 길 수 있습니다.`,
+      message: i18next.t("inputThresholds.mameLargeBlock", { rowCount, estimate: formatEstimate(estimatedSeconds) }),
       estimatedSeconds,
     };
   }
@@ -92,7 +94,7 @@ export function checkMameInputSize({ rowCount }: MameCheckParams): InputSizeChec
   if (rowCount >= MAME_INPUT_THRESHOLDS.ROW_WARN) {
     return {
       level: "warn",
-      message: `활성 데이터가 큽니다 (${rowCount}행). ${formatEstimate(estimatedSeconds)} (예상값).`,
+      message: i18next.t("inputThresholds.mameLargeWarn", { rowCount, estimate: formatEstimate(estimatedSeconds) }),
       estimatedSeconds,
     };
   }

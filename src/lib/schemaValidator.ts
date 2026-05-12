@@ -9,6 +9,8 @@
  * 누락/불인식 컬럼을 명시적으로 보고하기 위해 사용한다.
  */
 
+import i18next from "i18next";
+
 export interface SchemaSpec {
   /** 반드시 존재해야 하는 컬럼명 목록 (소문자 정규화 후 비교). */
   required: string[];
@@ -65,8 +67,8 @@ export function validateCsvHeader(header: string[], spec: SchemaSpec): Validatio
     const found = candidates.some((c) => normalized.includes(c));
     if (!found) {
       missing.push(req);
-      const aliasNote = aliases.length > 0 ? ` (또는 ${aliases.join(", ")})` : "";
-      errors.push(`필수 컬럼 누락: "${req}"${aliasNote}`);
+      const aliasNote = aliases.length > 0 ? i18next.t("schemaValidator.aliasNote", { aliases: aliases.join(", ") }) : "";
+      errors.push(i18next.t("schemaValidator.missingColumn", { column: req, aliasNote }));
     }
   }
 

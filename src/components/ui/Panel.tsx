@@ -11,6 +11,7 @@
  *   <ActionPanel title="Run" statusBadge={<Badge>Ready</Badge>}>…CTA…</ActionPanel>
  */
 import { type ReactNode, Children, isValidElement } from "react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { StateView } from "./StateView";
@@ -44,7 +45,7 @@ function warnNestedPanel(children: ReactNode): void {
         PANEL_DISPLAY_NAMES.has((child.type as { displayName?: string }).displayName ?? "")
       ) {
         console.warn(
-          "[Panel] 카드 안에 카드 중첩 감지됨. 패널은 서로 nest하지 않는다 (§6.4).",
+          "[Panel] Nested panel detected. Panels must not be nested inside each other (§6.4).",
         );
       }
     });
@@ -123,14 +124,15 @@ export function DataPanel({
   children,
   onError: _onError,
 }: DataPanelProps) {
+  const { t } = useTranslation();
   warnNestedPanel(children);
 
   const fallback = (
     <div className="flex flex-1 items-center justify-center p-4">
       <StateView
         variant="error"
-        title="표시할 수 없습니다"
-        description="컴포넌트 렌더링 중 오류가 발생했습니다."
+        title={t("panel.errorTitle")}
+        description={t("panel.errorDescription")}
       />
     </div>
   );

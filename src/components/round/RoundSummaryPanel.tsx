@@ -15,6 +15,7 @@
  */
 
 import { InfoIcon } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import {
   Table,
   TableBody,
@@ -164,6 +165,7 @@ function buildSignalRows(m: RoundMetrics): SignalRowData[] {
  * error count > 0 이면 aria-live="assertive" 알림 포함.
  */
 export function SwapWarningBanner({ warnings }: { warnings: SwapWarning[] }) {
+  const { t } = useTranslation();
   if (warnings.length === 0) return null;
 
   const errorCount = warnings.filter((w) => w.severity === "error").length;
@@ -179,27 +181,27 @@ export function SwapWarningBanner({ warnings }: { warnings: SwapWarning[] }) {
         >
           <span className="mt-0.5 shrink-0 font-bold" aria-hidden="true">🚫</span>
           <span>
-            <strong>내보내기 차단 — {errorCount}건의 라벨 교체 오류가 감지되었습니다.</strong>
+            <strong>{t("roundSummary.exportBlocked", { count: errorCount })}</strong>
           </span>
         </div>
       )}
-      <div className="flex flex-wrap gap-1.5" aria-label="라벨 교체 경고 목록">
+      <div className="flex flex-wrap gap-1.5" aria-label={t("roundSummary.warningsListAria")}>
         {errorCount > 0 && (
           <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900 dark:text-red-200">
-            오류 {errorCount}건
+            {t("roundSummary.errorBadge", { count: errorCount })}
           </span>
         )}
         {warnCount > 0 && (
           <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200">
-            경고 {warnCount}건
+            {t("roundSummary.warnBadge", { count: warnCount })}
           </span>
         )}
       </div>
-      <ul className="space-y-1" aria-label="경고 상세">
+      <ul className="space-y-1" aria-label={t("roundSummary.warningDetailAria")}>
         {warnings.map((w, idx) => (
           <li
             key={idx}
-            title={`${w.message}\n변이: ${w.variants.join(", ")}\n웰: ${w.wells.join(", ")}`}
+            title={t("roundSummary.warningTooltip", { message: w.message, variants: w.variants.join(", "), wells: w.wells.join(", ") })}
             className={cn(
               "cursor-help rounded px-2 py-1 text-xs",
               w.severity === "error"
@@ -225,31 +227,32 @@ export function SwapWarningBanner({ warnings }: { warnings: SwapWarning[] }) {
  * mismatched > 0이면 amber accent + tooltip에 변이 목록.
  */
 export function ReplicateMergeStats({ replicateStats }: { replicateStats: MergeReplicatesStats }) {
+  const { t } = useTranslation();
   const hasMismatched = replicateStats.mismatched.length > 0;
 
   return (
     <div
       className="rounded-md border border-border bg-muted/30 px-3 py-2"
-      aria-label="Replicate merge 통계"
+      aria-label={t("roundSummary.replicateStatsAria")}
     >
       <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-        Replicate 병합
+        {t("roundSummary.replicateMergeTitle")}
       </p>
       <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs sm:grid-cols-4">
         <div className="flex flex-col">
-          <dt className="text-muted-foreground">재측정</dt>
+          <dt className="text-muted-foreground">{t("roundSummary.labelRemeasure")}</dt>
           <dd className="font-mono font-medium">{replicateStats.authoritative_count}</dd>
         </div>
         <div className="flex flex-col">
-          <dt className="text-muted-foreground">1차측정</dt>
+          <dt className="text-muted-foreground">{t("roundSummary.labelPrimary")}</dt>
           <dd className="font-mono font-medium">{replicateStats.fallback_count}</dd>
         </div>
         <div className="flex flex-col">
-          <dt className="text-muted-foreground">병합</dt>
+          <dt className="text-muted-foreground">{t("roundSummary.labelMerged")}</dt>
           <dd className="font-mono font-medium">{replicateStats.merged_count}</dd>
         </div>
         <div className="flex flex-col">
-          <dt className="text-muted-foreground">불일치</dt>
+          <dt className="text-muted-foreground">{t("roundSummary.labelMismatched")}</dt>
           <dd
             className={cn(
               "font-mono font-medium",
@@ -259,7 +262,7 @@ export function ReplicateMergeStats({ replicateStats }: { replicateStats: MergeR
             )}
             title={
               hasMismatched
-                ? `불일치 변이: ${replicateStats.mismatched.join(", ")}`
+                ? t("roundSummary.mismatchedVariantsTooltip", { list: replicateStats.mismatched.join(", ") })
                 : undefined
             }
           >
@@ -267,7 +270,7 @@ export function ReplicateMergeStats({ replicateStats }: { replicateStats: MergeR
             {hasMismatched && (
               <span
                 className="ml-1 inline-flex items-center rounded-full bg-amber-100 px-1 py-0.5 text-[9px] text-amber-800 dark:bg-amber-900 dark:text-amber-200"
-                aria-label={`불일치 변이: ${replicateStats.mismatched.join(", ")}`}
+                aria-label={t("roundSummary.mismatchedVariantsAria", { list: replicateStats.mismatched.join(", ") })}
               >
                 !
               </span>
@@ -440,6 +443,7 @@ export function RoundSummaryPanel({
   replicateStats,
   className,
 }: RoundSummaryPanelProps) {
+  const { t } = useTranslation();
   const warnings = mergeStats?.warnings ?? [];
   const errorCount = warnings.filter((w) => w.severity === "error").length;
   const hasErrors = errorCount > 0;
@@ -468,7 +472,7 @@ export function RoundSummaryPanel({
               aria-live="assertive"
               className="rounded bg-red-100 px-1 py-0.5 text-[9px] font-medium text-red-700 dark:bg-red-900 dark:text-red-300"
             >
-              내보내기 차단 — {errorCount}건의 라벨 교체 오류
+              {t("roundSummary.exportBlockedShort", { count: errorCount })}
             </span>
           )}
         </h3>

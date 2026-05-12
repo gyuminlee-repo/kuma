@@ -7,6 +7,7 @@
  * - <html> 엘리먼트에 .dark 클래스를 토글 (Tailwind darkMode: ["class"] 방식)
  */
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -128,6 +129,7 @@ export interface ThemeToggleProps {
 }
 
 export function ThemeToggle({ variant = "icon" }: ThemeToggleProps) {
+  const { t } = useTranslation();
   const [theme, setTheme] = useState<Theme>(readStoredTheme);
 
   // 초기 마운트 + 시스템 테마 변경 구독
@@ -160,7 +162,7 @@ export function ThemeToggle({ variant = "icon" }: ThemeToggleProps) {
           variant="ghost"
           size="sm"
           className="h-control px-2 gap-1.5 text-foreground/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          aria-label={`현재 테마: ${THEME_LABELS[theme]}. 테마 변경`}
+          aria-label={t("themeToggle.currentThemeAria", { label: THEME_LABELS[theme] })}
         >
           <ThemeIcon theme={theme} />
           {variant === "icon-label" && (
