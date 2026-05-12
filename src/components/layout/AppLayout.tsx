@@ -7,7 +7,7 @@ import { AppShell } from "../shell/AppShell";
 import { useAppStore } from "../../store/appStore";
 import { useSidecar } from "../../hooks/useSidecar";
 import { useKumaProject } from "../../state/projectContext";
-import { useFlushKuroBeforeDesign } from "../../hooks/useKuroAutosave";
+import { useRunDesign } from "../../hooks/useRunDesign";
 import { tryHandleManifestDrop, tryHandleTwoManifestsDrop, verifyInputs, type InputVerifyResult } from "@/lib/reRun";
 import { type RunManifest } from "@/lib/runManifest";
 import { ReRunManifestDialog } from "../dialogs/ReRunManifestDialog";
@@ -32,10 +32,6 @@ import { NetworkConsentDialog } from "../dialogs/NetworkConsentDialog";
 import { InputSizeWarningDialog } from "../dialogs/InputSizeWarningDialog";
 import { PreflightDialog } from "../dialogs/PreflightDialog";
 import { OverwriteConfirmDialog } from "../dialogs/OverwriteConfirmDialog";
-import { checkKuroInputSize } from "@/lib/inputThresholds";
-import type { InputSizeLevel } from "@/lib/inputThresholds";
-import { runPreflightCheck } from "@/lib/preflight";
-import type { PreflightResult } from "@/lib/preflight";
 import { handleOpenSequence } from "./export-handlers";
 import { startDeadlockWatch } from "@/lib/deadlockDetector";
 import { getLastProgressAt } from "@/lib/ipc-kuro";
@@ -64,23 +60,9 @@ export function AppLayout() {
   const showReport = useAppStore((s) => s.showReport);
   const showBenchmark = useAppStore((s) => s.showBenchmark);
   const loadNetworkConsentSettings = useAppStore((s) => s.loadNetworkConsentSettings);
-  const [missingFields, setMissingFields] = useState<string[] | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   // §1 Dead-lock 감지 모달 상태
   const [deadlockOpen, setDeadlockOpen] = useState(false);
-
-  // §19 Performance Guardrails: 입력 크기 사전 경고 상태
-  const [kuroSizeWarning, setKuroSizeWarning] = useState<{
-    level: InputSizeLevel;
-    message: string;
-    pendingAction: () => void;
-  } | null>(null);
-
-  // §19 Performance Guardrails: pre-flight check 결과 상태
-  const [preflightResult, setPreflightResult] = useState<{
-    result: PreflightResult;
-    pendingAction: () => void;
-  } | null>(null);
 
   // §12 Reproducibility: manifest re-run 모달 상태
   const [reRunManifest, setReRunManifest] = useState<RunManifest | null>(null);
@@ -92,73 +74,14 @@ export function AppLayout() {
   const [diffManifestB, setDiffManifestB] = useState<RunManifest | null>(null);
   const [diffOpen, setDiffOpen] = useState(false);
 
-  // C-1: Run Design 직전 flush (입력 보존 — 실패 시에도 복원 가능)
-  const flushBeforeDesign = useFlushKuroBeforeDesign();
-
-  /**
-   * Collect missing required inputs for design.
-   * Returns an empty array when ready to run.
-   */
-  const collectMissingFields = useCallback((): string[] => {
-    const s = useAppStore.getState();
-    const missing: string[] = [];
-    if (!s.seqInfo) missing.push(t("appLayout.missingSeqFile"));
-    if (!s.mutationText.trim()) missing.push(t("appLayout.missingMutations"));
-    if (s.seqInfo && s.seqInfo.genes.length > 1 && !s.selectedGene) {
-      missing.push(t("appLayout.missingTargetGene"));
-    }
-    return missing;
-  }, []);
-
-  /**
-   * Click handler: validate first, then run. If anything is missing, show a popup.
-   * §19: After validation, check input size; show warning dialog if threshold exceeded.
-   */
-  const tryRunDesign = useCallback(() => {
-    if (useAppStore.getState().isDesigning) return;
-    const missing = collectMissingFields();
-    if (missing.length > 0) {
-      setMissingFields(missing);
-      return;
-    }
-
-    // §19 입력 크기 검사
-    const mutationText = useAppStore.getState().mutationText;
-    const rowCount = mutationText
-      .trim()
-      .split("\n")
-      .filter((l) => l.trim() && !l.trim().startsWith("#")).length;
-    const sizeCheck = checkKuroInputSize({ rowCount });
-
-    // §19 pre-flight: sidecar alive + disk space (best-effort) — kuro design은 외부 호출 없음
-    const runWithPreflight = () => {
-      void runPreflightCheck({ sidecarStatus, requiresNetwork: false }).then(
-        (pfResult) => {
-          const actualRun = () => {
-            void flushBeforeDesign().then(() =>
-              useAppStore.getState().designPrimers(),
-            );
-          };
-          if (!pfResult.ok || pfResult.warnings.length > 0) {
-            setPreflightResult({ result: pfResult, pendingAction: actualRun });
-          } else {
-            actualRun();
-          }
-        },
-      );
-    };
-
-    if (sizeCheck.level !== "ok") {
-      setKuroSizeWarning({
-        level: sizeCheck.level,
-        message: sizeCheck.message,
-        pendingAction: runWithPreflight,
-      });
-      return;
-    }
-
-    runWithPreflight();
-  }, [collectMissingFields, flushBeforeDesign]);
+  // Shared Run Design logic (validation / preflight / flush / design)
+  const {
+    run: tryRunDesign,
+    sizeWarning: kuroSizeWarning,
+    setSizeWarning: setKuroSizeWarning,
+    preflightResult,
+    setPreflightResult,
+  } = useRunDesign();
 
   // Navigation state for AppShell slot wiring
   const currentMajor = useAppStore((s) => s.currentMajor);
@@ -354,32 +277,6 @@ export function AppLayout() {
     >
       <WhatsNewDialog />
       <NetworkConsentDialog />
-
-      <Dialog
-        open={missingFields !== null}
-        onOpenChange={(open) => {
-          if (!open) setMissingFields(null);
-        }}
-      >
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>{t("appLayout.cannotRunTitle")}</DialogTitle>
-            <DialogDescription>
-              {t("appLayout.cannotRunDesc")}
-            </DialogDescription>
-          </DialogHeader>
-          <ul className="list-disc pl-5 text-body text-foreground space-y-1">
-            {missingFields?.map((m) => (
-              <li key={m}>{m}</li>
-            ))}
-          </ul>
-          <DialogFooter>
-            <Button size="sm" onClick={() => setMissingFields(null)}>
-              {t("common.ok")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* §1 Recovery: Dead-lock 감지 모달 */}
       <Dialog open={deadlockOpen} onOpenChange={setDeadlockOpen}>

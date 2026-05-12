@@ -1581,6 +1581,13 @@
         "plateCount": "Plates",
         "primerCount": "Total primers",
         "mutationCount": "Mutations"
+      },
+      "orderExport": {
+        "heading": "Primer Order Export"
+      },
+      "mappingExport": {
+        "heading": "Plate Mapping Export",
+        "runExport": "Export Mapping"
       }
     },
     "run": {

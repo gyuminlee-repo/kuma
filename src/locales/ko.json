@@ -1581,6 +1581,13 @@
         "plateCount": "플레이트",
         "primerCount": "총 프라이머",
         "mutationCount": "돌연변이"
+      },
+      "orderExport": {
+        "heading": "프라이머 주문 내보내기"
+      },
+      "mappingExport": {
+        "heading": "플레이트 매핑 내보내기",
+        "runExport": "매핑 내보내기"
       }
     },
     "run": {

@@ -22,14 +22,12 @@ import {
 import { getCrashLog } from "../../lib/crashLog";
 import { CrashLogDialog } from "../dialogs/CrashLogDialog";
 import {
-  handleExportMappingWithParams,
   handleOpenSequence,
   executeMigrateAndLoad,
   MIGRATE_DIALOG_CLOSED,
 } from "./export-handlers";
 import { WorkspaceMigrateDialog } from "../dialogs/WorkspaceMigrateDialog";
 import type { MigrateDialogState } from "../dialogs/WorkspaceMigrateDialog";
-import { MappingExportDialog } from "../dialogs/MappingExportDialog";
 import { SubtoolMenuBar } from "./SubtoolMenuBar";
 import type { RunManifest } from "../../lib/runManifest";
 import type { InputVerifyResult } from "../../lib/reRun";
@@ -63,7 +61,6 @@ export function MenuBar() {
   const [diagnosticsGenerating, setDiagnosticsGenerating] = useState(false);
   const [diagnosticsError, setDiagnosticsError] = useState<string | null>(null);
   const [crashLogOpen, setCrashLogOpen] = useState(false);
-  const [mappingDialogOpen, setMappingDialogOpen] = useState(false);
   // §20 Citation & Licensing: NOTICE.md from bundled resources
   const [noticeText, setNoticeText] = useState<string | null>(null);
   const [noticeOpen, setNoticeOpen] = useState(false);
@@ -278,16 +275,6 @@ export function MenuBar() {
       />
 
       <CrashLogDialog open={crashLogOpen} onOpenChange={setCrashLogOpen} />
-
-      <MappingExportDialog
-        open={mappingDialogOpen}
-        initialFormat="echo"
-        onOpenChange={setMappingDialogOpen}
-        onExport={({ format, transferVol, bom }) => {
-          setMappingDialogOpen(false);
-          handleExportMappingWithParams(format, { transferVol, bom });
-        }}
-      />
 
       <Dialog
         open={aboutOpen}
