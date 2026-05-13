@@ -3,10 +3,16 @@ import ReactDOM from "react-dom/client";
 import { App } from "./App";
 import { appendCrashLog } from "./lib/crashLog";
 import { initI18n, resolveActiveLocale } from "./lib/i18n";
+import { restorePersistedWorkspace } from "./lib/workspace";
 import "./index.css";
 
 // i18n 초기화 (앱 마운트 전)
 initI18n(resolveActiveLocale());
+
+// Restore artifact registry from last session (no-op if absent or path gone).
+void restorePersistedWorkspace().catch(() => {
+  // best-effort: never block app boot on registry restore
+});
 
 declare global {
   interface Window {

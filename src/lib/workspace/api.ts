@@ -13,18 +13,61 @@ import type {
   WorkspaceManifest,
 } from "./types";
 
+const ACTIVE_REGISTRY_LS_KEY = "kuma:artifact-registry:active";
+
 let activeDir: string | null = null;
+
+function tryReadPersistedDir(): string | null {
+  if (typeof localStorage === "undefined") return null;
+  try {
+    const v = localStorage.getItem(ACTIVE_REGISTRY_LS_KEY);
+    return v && isAbsolute(v) ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+function persistActiveDir(dir: string | null): void {
+  if (typeof localStorage === "undefined") return;
+  try {
+    if (dir) localStorage.setItem(ACTIVE_REGISTRY_LS_KEY, dir);
+    else localStorage.removeItem(ACTIVE_REGISTRY_LS_KEY);
+  } catch {
+    // persistence is best-effort
+  }
+}
 
 export async function openWorkspace(dir: string): Promise<void> {
   if (!isAbsolute(dir)) {
     throw new Error(`workspace dir must be absolute: ${dir}`);
   }
   activeDir = dir;
+  persistActiveDir(dir);
   const existing = await readManifest(dir);
   if (!existing) {
     await writeManifest(dir, createEmptyManifest());
   }
   emit("workspace:updated");
+}
+
+export async function ensureWorkspaceFromExportPath(absoluteExportPath: string): Promise<void> {
+  if (activeDir) return;
+  if (!isAbsolute(absoluteExportPath)) return;
+  const dir = absoluteExportPath.replace(/[\\/][^\\/]*$/, "");
+  if (!dir || !isAbsolute(dir)) return;
+  await openWorkspace(dir);
+}
+
+export async function restorePersistedWorkspace(): Promise<boolean> {
+  if (activeDir) return true;
+  const dir = tryReadPersistedDir();
+  if (!dir) return false;
+  if (!existsSync(dir)) {
+    persistActiveDir(null);
+    return false;
+  }
+  await openWorkspace(dir);
+  return true;
 }
 
 export function getActiveWorkspace(): string | null {

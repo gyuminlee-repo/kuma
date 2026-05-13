@@ -1,7 +1,7 @@
 import type { StateCreator } from "zustand";
 import { sendRequest } from "@/lib/ipc-mame";
 import { formatError } from "@/lib/utils";
-import { registerArtifacts, getActiveWorkspace } from "@/lib/workspace";
+import { registerArtifacts, ensureWorkspaceFromExportPath } from "@/lib/workspace";
 import type { ExportResult } from "@/types/mame/models";
 import type { ExportSlice } from "../slice-interfaces";
 import type { AppState } from "../types";
@@ -31,19 +31,18 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
         isExporting: false,
       });
       get().setOutputPath(result.output_path);
-      if (getActiveWorkspace()) {
-        try {
-          await registerArtifacts([
-            {
-              app: "mame",
-              step: "analysis",
-              type: "mame_consensus_fasta",
-              absolutePath: result.output_path,
-            },
-          ]);
-        } catch {
-          // do not surface manifest failures to the user
-        }
+      try {
+        await ensureWorkspaceFromExportPath(result.output_path);
+        await registerArtifacts([
+          {
+            app: "mame",
+            step: "analysis",
+            type: "mame_consensus_fasta",
+            absolutePath: result.output_path,
+          },
+        ]);
+      } catch {
+        // registry failure must not surface to the user
       }
     } catch (error) {
       set({
