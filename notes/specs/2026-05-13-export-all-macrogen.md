@@ -296,3 +296,130 @@ export async function handleExportAll(params: {
 - [필수] Cross-platform — Dockerfile 갱신 후 ubuntu / windows / macos CI 통과 필요.
 - [필수] A11y — Range / 검증 오류는 `aria-describedby` 로 연결.
 - [필수] No-hardcoded-constants — Amount / Purification 옵션은 한 곳 (models.py) 에서 정의 후 백엔드/프론트 양쪽 참조.
+
+---
+
+## 15. 사이드바 통일 + 드래그 리사이즈 (kUMA 전역)
+
+### 15.1 배경 / 문제
+
+`AppShell.sidebar` 슬롯 (`src/components/shell/AppShell.tsx:75`) 이 명시적 너비 없이 내부 컨텐츠 (SubStepNav) 길이로 결정됨. kuro / mame 양쪽 동일 AppShell 사용. 결과:
+- phase 전환마다 sub-step 레이블 길이에 따라 사이드바 너비 점프
+- kuro 와 mame 가 다른 너비로 보일 수 있음
+- 사용자가 너비 조절 불가
+
+### 15.2 목표 (in-scope)
+
+- AppShell.sidebar 단일 슬롯 (kuro AppLayout + mame MameAppLayout 공용) 너비 통일.
+- 모든 phase 의 SubStepNav 최장 레이블 기준 default width 자동 계산 — phase 전환 시 점프 없음.
+- 마우스 드래그 핸들로 너비 조절 가능 (min 180 px, max 480 px).
+- 변경 너비 실시간 (debounce 200 ms) localStorage 저장 — Zustand `layoutSlice` 신규 추가.
+
+### 15.3 비목표 (out-of-scope)
+
+- mame `PlateView.tsx:112` 우측 aside (선택된 well 상세 패널) — 용도 다름, 별도 PR.
+- 사이드바 collapse/expand toggle.
+- 다중 모니터 cross-machine 동기화.
+
+### 15.4 Default width 자동 계산
+
+- 시점: 빌드 타임 정적 계산 (i18n 키 사전 등록되어 있으므로 가능).
+- 방법:
+  1. 빌드 스크립트 `scripts/compute-sidebar-width.mjs` 신규.
+  2. 입력: `src/i18n/locales/{ko,en}.json` 의 `phaseC.subSteps.*`, `mame.subSteps.*` 키 전체.
+  3. canvas 2D `measureText` 또는 폰트 메트릭 룩업으로 픽셀 너비 추정 (font: 14 px, weight 500).
+  4. 추가 패딩 (badge 20 px + 좌우 padding 24 px) 합산.
+  5. 모든 레이블 최댓값 → `src/lib/sidebar-default-width.ts` 에 상수로 emit.
+  6. 보수 fallback 240 px (스크립트 실패 시).
+
+- 런타임 fallback: `useEffect` 에서 실제 DOM `getBoundingClientRect` 로 재측정 후 store 의 `computedDefault` 갱신.
+
+### 15.5 Drag handle 구현
+
+- AppShell `<aside>` 우측 끝에 4 px 너비 `<div role="separator" aria-orientation="vertical" aria-valuenow={width} aria-valuemin={180} aria-valuemax={480}>` 배치.
+- 핸들 mousedown → document mousemove 리스너 → `width = e.clientX - aside.left` 계산 후 clamp.
+- mouseup 시 리스너 해제 + store persist.
+- 키보드 접근: `ArrowLeft/Right` 1 px, `Shift+Arrow` 10 px 조정. `Home/End` 로 min/max.
+- 호버 시 핸들 시각화 (`bg-border` → `bg-primary` 색상 전환).
+- 드래그 중 `cursor: col-resize` + `user-select: none` 전역 적용 (드래그 종료 시 해제).
+
+### 15.6 상태 관리 — `layoutSlice`
+
+신규 파일 `src/store/slices/layoutSlice.ts`:
+
+```ts
+export interface LayoutSlice {
+  sidebarWidth: number | null;   // null = use computedDefault
+  computedDefault: number;        // runtime-measured, default 240
+  setSidebarWidth: (w: number | null) => void;
+  setComputedDefault: (w: number) => void;
+}
+```
+
+- `useAppStore` (kuro) 와 `useMameAppStore` (mame) 양쪽 같은 store 슬라이스 참조 — 이미 두 store 가 분리되어 있으므로 슬라이스 정의 1회 + 양쪽 inject.
+- persist 미들웨어 `zustand/middleware` 의 `persist` 로 localStorage 키 `kuma.layout.v1` 자동 저장.
+- partial persist: `sidebarWidth` 만 저장. `computedDefault` 는 매 빌드 결과 채택.
+
+### 15.7 AppShell 변경
+
+- `<aside>` 에 inline style `{ width: sidebarWidth ?? computedDefault }` 적용.
+- 기존 `shrink-0 flex-col` 유지. `width` 명시로 flex shrink 무관.
+- 핸들 `<ResizeHandle />` 신규 컴포넌트로 분리 (`src/components/shell/ResizeHandle.tsx`).
+- AppShell prop 으로 `disableResize?: boolean` 추가 — 향후 PlateView 등에서 비활성화 가능.
+
+### 15.8 테스트
+
+- `AppShell.test.tsx`
+  - 초기 렌더 시 width = computedDefault.
+  - mousedown → mousemove → width 변경, store 갱신.
+  - mouseup 시 localStorage 키 존재 확인.
+  - min/max clamp 확인.
+  - 키보드 ArrowLeft/Right 동작 확인.
+- `layoutSlice.test.ts`
+  - localStorage 모킹 후 persist round-trip.
+  - `setSidebarWidth(null)` 시 default 로 복귀.
+- `compute-sidebar-width.test.mjs`
+  - 알려진 레이블 셋 → 예상 너비 ±10 px.
+
+### 15.9 i18n / 접근성
+
+- 핸들 `aria-label`: `t("appShell.sidebarResize")` — ko: "사이드바 너비 조절", en: "Resize sidebar".
+- 키보드 단축키 안내 tooltip (`title` 속성).
+
+### 15.10 마이그레이션
+
+- localStorage 미존재 사용자 = 자동 default 적용 (마이그레이션 불필요).
+- 기존 사용자도 동일 — 신규 키이므로 충돌 없음.
+
+### 15.11 헌장 / 룰 체크리스트
+
+- [필수] A11y — `role="separator"`, `aria-orientation`, `aria-valuenow/min/max`, 키보드 조작.
+- [필수] Settings — `sidebarWidth` 가 store 영구화.
+- [필수] Performance — drag mousemove 는 `requestAnimationFrame` 으로 throttle.
+- [필수] Cross-platform — Tauri webview (Chromium 기반) macOS/Windows/Linux 일관 동작.
+- [권장] UI Safety — drag 도중 다른 마우스 이벤트 차단 (`pointer-events: none` 메인 영역).
+
+### 15.12 미확정 / 추후 검증
+
+- canvas `measureText` 와 실제 DOM 렌더링 사이의 픽셀 오차 허용 범위 (현재 ±5 px 가정).
+- 폰트 로드 전 (FOUT) computed width 가 부정확할 수 있음 → `document.fonts.ready` 대기 후 재측정 필요한지 확인.
+- 사이드바 hide/show toggle 은 후속 PR — store 슬라이스에 `sidebarVisible` 자리는 미리 비워둘지.
+
+### 15.13 관련 파일 (cross-layer group 추가)
+
+`.cross-layer-sync.json` `groups[]` 에 추가:
+
+```json
+{
+  "id": "sidebar-resize-flow",
+  "files": [
+    "src/components/shell/AppShell.tsx",
+    "src/components/shell/ResizeHandle.tsx",
+    "src/store/slices/layoutSlice.ts",
+    "src/lib/sidebar-default-width.ts",
+    "scripts/compute-sidebar-width.mjs"
+  ],
+  "note": "Sidebar default width 계산 ↔ store ↔ AppShell 렌더 정합성",
+  "severity": "warning"
+}
+```
