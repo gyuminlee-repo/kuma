@@ -183,7 +183,6 @@ export function MergeSection() {
         {isMerging ? t("mame.activity.merge.btnLegacyBusy") : t("mame.activity.merge.btnLegacy")}
       </Button>
 
-      <p className="text-[10px] text-muted-foreground">{t("mame.activity.merge.v3Note")}</p>
       <Button
         type="button"
         size="sm"
