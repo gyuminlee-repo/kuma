@@ -1,5 +1,6 @@
 /**
- * SubStepNav.test.tsx — sub-step 클릭 + badge status 어설션 (D1.1: 3-major)
+ * SubStepNav.test.tsx — Phase G: sub-step 클릭 + badge status 어설션
+ * [source: spec Phase G — Design 4 sub-step 재배치 (design.variant 제거, design.submit 신규)]
  */
 
 import { render, screen, fireEvent } from "@testing-library/react";
@@ -18,14 +19,14 @@ import type { SubStepId, StepStatus } from "@/store/slices/navigationSlice";
 
 const DESIGN_SUBSTEPS: SubNavItem[] = [
   { id: "design.load",     labelKey: "phaseC.subSteps.design.load" },
-  { id: "design.variant",  labelKey: "phaseC.subSteps.design.variant" },
   { id: "design.mutation", labelKey: "phaseC.subSteps.design.mutation" },
   { id: "design.params",   labelKey: "phaseC.subSteps.design.params" },
+  { id: "design.submit",   labelKey: "phaseC.subSteps.design.submit" },
 ];
 
 const ALL_SUB_STEPS: SubStepId[] = [
-  "design.load", "design.variant", "design.mutation", "design.params",
-  "plate.layout",
+  "design.load", "design.mutation", "design.params", "design.submit",
+  "output.summary",
   "export.all",
 ];
 
@@ -36,7 +37,7 @@ function makeStepStatus(overrides?: Partial<Record<SubStepId, StepStatus>>): Rec
   return { ...base, ...overrides };
 }
 
-describe("SubStepNav", () => {
+describe("SubStepNav (Phase G)", () => {
   beforeEach(() => {
     useAppStore.setState({
       currentMajor: "design",
@@ -58,11 +59,18 @@ describe("SubStepNav", () => {
     expect(tabs[1].getAttribute("aria-selected")).toBe("false");
   });
 
-  it("clicking design.variant changes currentSubStep", () => {
+  it("clicking design.mutation changes currentSubStep", () => {
     render(<SubStepNav major="design" subSteps={DESIGN_SUBSTEPS} />);
     const tabs = screen.getAllByRole("tab");
-    fireEvent.click(tabs[1]); // design.variant
-    expect(useAppStore.getState().currentSubStep).toBe("design.variant");
+    fireEvent.click(tabs[1]); // design.mutation
+    expect(useAppStore.getState().currentSubStep).toBe("design.mutation");
+  });
+
+  it("clicking design.submit changes currentSubStep", () => {
+    render(<SubStepNav major="design" subSteps={DESIGN_SUBSTEPS} />);
+    const tabs = screen.getAllByRole("tab");
+    fireEvent.click(tabs[3]); // design.submit
+    expect(useAppStore.getState().currentSubStep).toBe("design.submit");
   });
 
   it("active badge (index=1) for first sub-step by default", () => {

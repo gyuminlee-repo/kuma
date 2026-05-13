@@ -4,17 +4,17 @@
  * [source: spec §D2.4 — mame StepView 신규]
  * [updated: spec §D3.2 — Run/Cancel/Validate/Clear/Export footer 흡수]
  * [updated: spec Phase F F6 — WizardContainer 적용]
+ * [updated: spec Phase G #18 — analyze.health 폐지, RunHealth 섹션을 verdict/plate에 흡수]
  *
  * Sub-step 매핑:
  *   analyze.inputs  → InputPanel + ParameterPanel + Run/Validate/Cancel action row
- *   analyze.verdict → SummaryRow + VerdictTable
- *   analyze.plate   → PlateView
- *   analyze.health  → RunHealthPanel
+ *   analyze.verdict → SummaryRow + VerdictTable + RunHealth(file-size/throughput/pore-yield)
+ *   analyze.plate   → PlateView + RunHealth(verdict-breakdown/barcode/cross-talk)
  *
  * WizardContainer 전략:
  *   - analyze.inputs: Next = "Run Analysis" (isAnalyzing 중 = "Cancel").
  *     Validate / Clear / Export는 children 내부 secondary row로 표시.
- *   - analyze.verdict/plate/health: Next = 일반 다음 sub-step 이동.
+ *   - analyze.verdict/plate: Next = 일반 다음 sub-step 이동.
  *   - Ctrl/Cmd+Enter는 MameAppLayout 레벨에서 독립적으로 처리됨.
  */
 
@@ -26,7 +26,7 @@ import { DataPanel } from "@/components/ui/Panel";
 import { SummaryRow } from "@/components/mame/widgets/SummaryRow";
 import { VerdictTable } from "@/components/mame/widgets/VerdictTable";
 import { PlateView } from "@/components/mame/widgets/PlateView";
-import { RunHealthPanel } from "@/components/mame/widgets/RunHealthPanel";
+import { RunHealthPanel, RUN_HEALTH_VERDICT_SECTIONS, RUN_HEALTH_PLATE_SECTIONS } from "@/components/mame/widgets/RunHealthPanel";
 import { InputPanel } from "@/components/mame/panels/InputPanel";
 import { ParameterPanel } from "@/components/mame/panels/ParameterPanel";
 import { Button } from "@/components/ui/button";
@@ -59,11 +59,6 @@ const STEP_CONFIG = {
     titleKey: "phaseC.mameSubSteps.analyze.plate",
     descriptionKey: "phaseE.mameDescriptions.analyze.plate",
   },
-  "analyze.health": {
-    index: 4,
-    titleKey: "phaseC.mameSubSteps.analyze.health",
-    descriptionKey: "phaseE.mameDescriptions.analyze.health",
-  },
 } as const;
 
 export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest }: AnalyzeStepViewProps = {}) {
@@ -86,8 +81,7 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
   if (
     subStep !== "analyze.inputs" &&
     subStep !== "analyze.verdict" &&
-    subStep !== "analyze.plate" &&
-    subStep !== "analyze.health"
+    subStep !== "analyze.plate"
   ) {
     return null;
   }
@@ -199,6 +193,12 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
           <DataPanel title={t("mame.appLayout.verdictTableTitle")} className="flex-1 min-h-0">
             <VerdictTable />
           </DataPanel>
+          {runHealth !== null && (
+            <RunHealthPanel
+              health={runHealth}
+              sections={RUN_HEALTH_VERDICT_SECTIONS}
+            />
+          )}
         </div>
       );
       break;
@@ -208,20 +208,11 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
           <DataPanel title={t("mame.appLayout.platePlanTitle")} className="flex-1 min-h-0">
             <PlateView />
           </DataPanel>
-        </div>
-      );
-      break;
-    case "analyze.health":
-      mainContent = (
-        <div className="flex flex-col gap-3 h-full overflow-hidden">
-          {runHealth !== null ? (
-            <DataPanel title={t("mame.appLayout.runHealthTitle")} className="flex-1 min-h-0">
-              <RunHealthPanel health={runHealth} />
-            </DataPanel>
-          ) : (
-            <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
-              {t("mame.analyze.healthNoData", "Run analysis to see health metrics.")}
-            </div>
+          {runHealth !== null && (
+            <RunHealthPanel
+              health={runHealth}
+              sections={RUN_HEALTH_PLATE_SECTIONS}
+            />
           )}
         </div>
       );
@@ -233,7 +224,7 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
   return (
     <WizardContainer
       stepIndex={config.index}
-      stepTotal={4}
+      stepTotal={3}
       titleKey={config.titleKey}
       descriptionKey={config.descriptionKey}
       onPrev={goToPrevStep}

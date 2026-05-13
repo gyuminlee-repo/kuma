@@ -371,13 +371,11 @@
         "analyze": {
           "inputs": "Entradas",
           "verdict": "Verdicts",
-          "plate": "Plan de placa",
-          "health": "Salud de la corrida"
+          "plate": "Plan de placa"
         },
         "activity": {
           "ingest": "Ingest",
-          "merge": "Merge",
-          "export": "Export"
+          "mergeExport": "Merge & Export"
         }
       }
     },
@@ -1539,19 +1537,15 @@
   "phaseC": {
     "majors": {
       "design": "Diseño",
-      "plate": "Mapa de placa",
       "export": "Exportar",
-      "report": "Informe"
+      "output": "Resultados"
     },
     "subSteps": {
       "design": {
         "load": "Cargar variantes",
-        "variant": "Filtros de pool",
         "mutation": "Mutaciones",
-        "params": "Parámetros del primer"
-      },
-      "plate": {
-        "layout": "Mapa de placa"
+        "params": "Parámetros del primer",
+        "submit": "Filtros de grupo & Ejecutar"
       },
       "export": {
         "all": "Exportar",
@@ -1559,7 +1553,7 @@
         "summary": "Resumen de pedido",
         "workspace": "Guardado de workspace"
       },
-      "report": {
+      "output": {
         "summary": "Resumen"
       }
     },
@@ -1616,13 +1610,11 @@
       "analyze": {
         "inputs": "Entradas",
         "verdict": "Verdicts",
-        "plate": "Plan de placa",
-        "health": "Salud de la corrida"
+        "plate": "Plan de placa"
       },
       "activity": {
         "ingest": "Ingest de datos",
-        "merge": "Merge",
-        "export": "Exportar"
+        "mergeExport": "Merge & Export"
       }
     }
   },
@@ -1636,15 +1628,12 @@
     "descriptions": {
       "design": {
         "load": "Subir un CSV EVOLVEpro o pegar una secuencia de proteína.",
-        "variant": "Configurar filtros del pool de variantes.",
         "mutation": "Definir mutaciones a incluir.",
-        "params": "Ajustar parámetros de diseño de primer y ejecutar."
+        "params": "Ajustar parámetros de diseño de primer y ejecutar.",
+        "submit": "Seleccione los filtros del grupo de variantes y ejecute el diseño de primers."
       },
-      "plate": {
-        "layout": "Revisar el layout de la placa de primers y exportar todos los artefactos."
-      },
-      "report": {
-        "summary": "Revisar los resultados del diseño y estadísticas antes del mapeo de placa."
+      "output": {
+        "summary": "Revise los resultados del diseño, estadísticas y el diseño de placa."
       }
     },
     "mameDescriptions": {
@@ -1656,13 +1645,11 @@
       "analyze": {
         "inputs": "Definir el directorio de entrada y los parámetros del análisis, luego ejecutar.",
         "verdict": "Revisar los verdicts pass/fail por well y las estadísticas resumen.",
-        "plate": "Inspeccionar el layout de placa con las asignaciones de barcode y variante.",
-        "health": "Examinar las métricas de calidad de secuenciación de esta corrida."
+        "plate": "Inspeccionar el layout de placa con las asignaciones de barcode y variante."
       },
       "activity": {
         "ingest": "Subir archivos CSV o Excel de actividad y anotar el wild-type.",
-        "merge": "Combinar datos de actividad con calls de genotype entre replicates.",
-        "export": "Exportar la tabla de actividad combinada como entrada para EVOLVEpro."
+        "mergeExport": "Merge activity data with genotype calls, then export the merged table for EVOLVEpro input."
       }
     }
   },
@@ -1674,6 +1661,13 @@
       "plates": "Placas",
       "failed": "Fallidos",
       "rescued": "Rescatados"
+    }
+  },
+  "wizardContainer": {
+    "validationDialog": {
+      "title": "Información faltante",
+      "description": "Complete lo siguiente antes de continuar.",
+      "missingItemsLabel": "Elementos faltantes"
     }
   }
 }

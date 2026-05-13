@@ -56,10 +56,8 @@ const MAME_SUBSTEP_LABEL_KEYS: Record<MameSubStepId, string> = {
   "analyze.inputs": "phaseC.mameSubSteps.analyze.inputs",
   "analyze.verdict": "phaseC.mameSubSteps.analyze.verdict",
   "analyze.plate": "phaseC.mameSubSteps.analyze.plate",
-  "analyze.health": "phaseC.mameSubSteps.analyze.health",
   "activity.ingest": "phaseC.mameSubSteps.activity.ingest",
-  "activity.merge": "phaseC.mameSubSteps.activity.merge",
-  "activity.export": "phaseC.mameSubSteps.activity.export",
+  "activity.mergeExport": "phaseC.mameSubSteps.activity.mergeExport",
 };
 
 function getMameSubSteps(phase: "setup" | "analyze" | "activity"): SubNavItem[] {

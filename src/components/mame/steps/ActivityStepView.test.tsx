@@ -1,5 +1,7 @@
 /**
- * ActivityStepView.test.tsx — 3 sub-step 마운트 어설션 (D2.4)
+ * ActivityStepView.test.tsx — activity sub-step 마운트 어설션 (D2.4, Phase G #19)
+ *
+ * Phase G #19: activity.export 폐지 — activity.mergeExport로 2-step 통합.
  */
 
 import { render } from "@testing-library/react";
@@ -26,6 +28,7 @@ vi.mock("@/components/mame/panels/ActivityPanel", () => ({
   IngestSection: () => <div data-testid="ingest-section" />,
   MergeSection: () => <div data-testid="merge-section" />,
   ExportSection: () => <div data-testid="export-section" />,
+  MergeExportSection: () => <div data-testid="merge-export-section" />,
   ActivityPanel: () => <div data-testid="activity-panel" />,
 }));
 
@@ -42,15 +45,9 @@ describe("ActivityStepView", () => {
     expect(getByTestId("ingest-section")).toBeTruthy();
   });
 
-  it("activity.merge mounts MergeSection", () => {
-    useMameAppStore.setState({ currentMameSubStep: "activity.merge" });
+  it("activity.mergeExport mounts MergeExportSection", () => {
+    useMameAppStore.setState({ currentMameSubStep: "activity.mergeExport" });
     const { getByTestId } = render(<ActivityStepView />);
-    expect(getByTestId("merge-section")).toBeTruthy();
-  });
-
-  it("activity.export mounts ExportSection", () => {
-    useMameAppStore.setState({ currentMameSubStep: "activity.export" });
-    const { getByTestId } = render(<ActivityStepView />);
-    expect(getByTestId("export-section")).toBeTruthy();
+    expect(getByTestId("merge-export-section")).toBeTruthy();
   });
 });

@@ -1,8 +1,10 @@
 /**
- * DesignStepView.test.tsx — 4 sub-step 마운트 어설션 (D2.1, Phase E)
+ * DesignStepView.test.tsx — Phase G: 4 sub-step 마운트 어설션
  *
+ * [source: spec Phase G — Design 4 sub-step 재배치 (#2)]
  * E3: SequenceViewer는 AppLayout main slot으로 호이스팅됨 — DesignStepView 내에서 미포함.
  * E2: 각 sub-step은 WizardContainer로 감싸짐.
+ * G7: design.submit에서 UniprotSearch 직접 마운트 없음 (DiversitySections 경유).
  */
 
 import { render } from "@testing-library/react";
@@ -36,7 +38,7 @@ vi.mock("./RunDesignAction", () => ({
 import { DesignStepView } from "./DesignStepView";
 import { useAppStore } from "@/store/appStore";
 
-describe("DesignStepView", () => {
+describe("DesignStepView (Phase G)", () => {
   beforeEach(() => {
     useAppStore.setState({ currentSubStep: "design.load" });
   });
@@ -52,32 +54,47 @@ describe("DesignStepView", () => {
     expect(queryByTestId("sequence-viewer")).toBeNull();
   });
 
-  it("design.variant mounts UniprotSearch and DiversityOptions", () => {
-    useAppStore.setState({ currentSubStep: "design.variant" });
-    const { getByTestId } = render(<DesignStepView />);
-    expect(getByTestId("uniprot-search")).toBeTruthy();
-    expect(getByTestId("diversity-options")).toBeTruthy();
-  });
-
   it("design.mutation mounts MutationInput", () => {
     useAppStore.setState({ currentSubStep: "design.mutation" });
     const { getByTestId } = render(<DesignStepView />);
     expect(getByTestId("mutation-input")).toBeTruthy();
   });
 
-  it("design.params mounts ParameterPanel and RunDesignAction", () => {
+  it("design.params mounts ParameterPanel (RunDesignAction removed from this step)", () => {
     useAppStore.setState({ currentSubStep: "design.params" });
-    const { getByTestId } = render(<DesignStepView />);
+    const { getByTestId, queryByTestId } = render(<DesignStepView />);
     expect(getByTestId("parameter-panel")).toBeTruthy();
+    expect(queryByTestId("run-design-action")).toBeNull();
+  });
+
+  it("design.submit mounts DiversityOptions + RunDesignAction", () => {
+    useAppStore.setState({ currentSubStep: "design.submit" });
+    const { getByTestId } = render(<DesignStepView />);
+    expect(getByTestId("diversity-options")).toBeTruthy();
     expect(getByTestId("run-design-action")).toBeTruthy();
+  });
+
+  it("design.submit does NOT mount UniprotSearch directly (Phase G #7 — via DiversitySections)", () => {
+    useAppStore.setState({ currentSubStep: "design.submit" });
+    // UniprotSearch is mocked — if DesignStepView directly mounted it, it would appear
+    // DiversityOptions mock does NOT include UniprotSearch, so this asserts direct mount is absent
+    const { queryByTestId } = render(<DesignStepView />);
+    expect(queryByTestId("uniprot-search")).toBeNull();
+  });
+
+  it("design.variant sub-step no longer exists (Phase G)", () => {
+    useAppStore.setState({ currentSubStep: "design.variant" as never });
+    const { container } = render(<DesignStepView />);
+    // Falls through to default: null
+    expect(container.firstChild).toBeNull();
   });
 
   it("each sub-step renders inside WizardContainer", () => {
     const steps = [
       "design.load",
-      "design.variant",
       "design.mutation",
       "design.params",
+      "design.submit",
     ] as const;
 
     for (const step of steps) {

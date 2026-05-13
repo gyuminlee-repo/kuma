@@ -29,14 +29,14 @@ describe("WizardContainer", () => {
 
   it("renders heading with step label and translated title", () => {
     render(
-      <WizardContainer stepIndex={2} stepTotal={4} titleKey="phaseC.subSteps.design.variant">
+      <WizardContainer stepIndex={2} stepTotal={4} titleKey="phaseC.subSteps.design.mutation">
         <div />
       </WizardContainer>,
     );
     const heading = screen.getByRole("heading", { level: 2 });
-    // "Step 2: Pool Filters" (en.json values)
+    // "Step 2: Mutations" (en.json values, Phase G)
     expect(heading.textContent).toContain("Step 2");
-    expect(heading.textContent).toContain("Pool Filters");
+    expect(heading.textContent).toContain("Mutations");
   });
 
   it("renders description when descriptionKey is provided", () => {
@@ -83,7 +83,7 @@ describe("WizardContainer", () => {
       <WizardContainer
         stepIndex={2}
         stepTotal={4}
-        titleKey="phaseC.subSteps.design.variant"
+        titleKey="phaseC.subSteps.design.mutation"
         onPrev={() => {}}
         onNext={() => {}}
       >

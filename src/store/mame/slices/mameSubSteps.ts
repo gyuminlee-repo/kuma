@@ -13,16 +13,14 @@ export type MameSubStepId =
   | "analyze.inputs"
   | "analyze.verdict"
   | "analyze.plate"
-  | "analyze.health"
   | "activity.ingest"
-  | "activity.merge"
-  | "activity.export";
+  | "activity.mergeExport";
 
 export const MAME_SUBSTEP_ORDER: Record<
   "setup" | "analyze" | "activity",
   MameSubStepId[]
 > = {
   setup: ["setup.files", "setup.design", "setup.output"],
-  analyze: ["analyze.inputs", "analyze.verdict", "analyze.plate", "analyze.health"],
-  activity: ["activity.ingest", "activity.merge", "activity.export"],
+  analyze: ["analyze.inputs", "analyze.verdict", "analyze.plate"],
+  activity: ["activity.ingest", "activity.mergeExport"],
 };

@@ -1,5 +1,7 @@
 /**
- * AnalyzeStepView.test.tsx — 3 sub-step 마운트 어설션 (D2.4)
+ * AnalyzeStepView.test.tsx — analyze sub-step 마운트 어설션 (D2.4, Phase G #18)
+ *
+ * Phase G #18: analyze.health 폐지 — RunHealthPanel이 verdict/plate에 분산 흡수됨.
  */
 
 import { render } from "@testing-library/react";
@@ -30,6 +32,8 @@ vi.mock("@/components/mame/widgets/PlateView", () => ({
 }));
 vi.mock("@/components/mame/widgets/RunHealthPanel", () => ({
   RunHealthPanel: () => <div data-testid="run-health-panel" />,
+  RUN_HEALTH_VERDICT_SECTIONS: ["file-size", "throughput", "pore-yield"],
+  RUN_HEALTH_PLATE_SECTIONS: ["verdict-breakdown", "barcode", "cross-talk"],
 }));
 
 import { AnalyzeStepView } from "./AnalyzeStepView";
@@ -65,14 +69,26 @@ describe("AnalyzeStepView", () => {
     expect(getByTestId("plate-view")).toBeTruthy();
   });
 
-  it("analyze.health with runHealth mounts RunHealthPanel", () => {
-    useMameAppStore.setState({ currentMameSubStep: "analyze.health" });
+  it("analyze.verdict with runHealth mounts RunHealthPanel (verdict sections)", () => {
+    useMameAppStore.setState({ currentMameSubStep: "analyze.verdict" });
     const { getByTestId } = render(<AnalyzeStepView runHealth={fakeHealth} />);
     expect(getByTestId("run-health-panel")).toBeTruthy();
   });
 
-  it("analyze.health without runHealth shows empty state", () => {
-    useMameAppStore.setState({ currentMameSubStep: "analyze.health" });
+  it("analyze.verdict without runHealth does not mount RunHealthPanel", () => {
+    useMameAppStore.setState({ currentMameSubStep: "analyze.verdict" });
+    const { queryByTestId } = render(<AnalyzeStepView />);
+    expect(queryByTestId("run-health-panel")).toBeNull();
+  });
+
+  it("analyze.plate with runHealth mounts RunHealthPanel (plate sections)", () => {
+    useMameAppStore.setState({ currentMameSubStep: "analyze.plate" });
+    const { getByTestId } = render(<AnalyzeStepView runHealth={fakeHealth} />);
+    expect(getByTestId("run-health-panel")).toBeTruthy();
+  });
+
+  it("analyze.plate without runHealth does not mount RunHealthPanel", () => {
+    useMameAppStore.setState({ currentMameSubStep: "analyze.plate" });
     const { queryByTestId } = render(<AnalyzeStepView />);
     expect(queryByTestId("run-health-panel")).toBeNull();
   });

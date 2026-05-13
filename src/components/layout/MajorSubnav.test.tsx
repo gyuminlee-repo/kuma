@@ -1,5 +1,5 @@
 /**
- * MajorSubnav.test.tsx — 4탭 렌더링 + 클릭 시 setMajor 호출 + active 표시 (Phase F: shadcn TabsList)
+ * MajorSubnav.test.tsx — Phase G: 3-tab (Design / Output / Export) 렌더링 + 클릭 시 setMajor 호출 + active 표시
  */
 
 import { render, screen } from "@testing-library/react";
@@ -19,12 +19,11 @@ import type { MajorNavItem } from "./MajorSubnav";
 
 const MAJORS: MajorNavItem[] = [
   { id: "design", labelKey: "phaseC.majors.design" },
-  { id: "report", labelKey: "phaseC.majors.report" },
-  { id: "plate",  labelKey: "phaseC.majors.plate" },
+  { id: "output", labelKey: "phaseC.majors.output" },
   { id: "export", labelKey: "phaseC.majors.export" },
 ];
 
-describe("MajorSubnav (shadcn TabsList, 4-major)", () => {
+describe("MajorSubnav (shadcn TabsList, 3-major, Phase G)", () => {
   beforeEach(() => {
     useAppStore.setState({
       currentMajor: "design",
@@ -32,10 +31,10 @@ describe("MajorSubnav (shadcn TabsList, 4-major)", () => {
     });
   });
 
-  it("renders all 4 tabs", () => {
+  it("renders all 3 tabs", () => {
     render(<MajorSubnav majors={MAJORS} />);
     const tabs = screen.getAllByRole("tab");
-    expect(tabs).toHaveLength(4);
+    expect(tabs).toHaveLength(3);
   });
 
   it("first tab is aria-selected when currentMajor=design", () => {
@@ -44,30 +43,21 @@ describe("MajorSubnav (shadcn TabsList, 4-major)", () => {
     expect(tabs[0].getAttribute("aria-selected")).toBe("true");
     expect(tabs[1].getAttribute("aria-selected")).toBe("false");
     expect(tabs[2].getAttribute("aria-selected")).toBe("false");
-    expect(tabs[3].getAttribute("aria-selected")).toBe("false");
   });
 
-  it("clicking report tab updates currentMajor to report", async () => {
+  it("clicking output tab updates currentMajor to output", async () => {
     const user = userEvent.setup();
     render(<MajorSubnav majors={MAJORS} />);
     const tabs = screen.getAllByRole("tab");
-    await user.click(tabs[1]); // report
-    expect(useAppStore.getState().currentMajor).toBe("report");
-  });
-
-  it("clicking plate tab calls setMajor('plate') and updates currentMajor", async () => {
-    const user = userEvent.setup();
-    render(<MajorSubnav majors={MAJORS} />);
-    const tabs = screen.getAllByRole("tab");
-    await user.click(tabs[2]); // plate
-    expect(useAppStore.getState().currentMajor).toBe("plate");
+    await user.click(tabs[1]); // output
+    expect(useAppStore.getState().currentMajor).toBe("output");
   });
 
   it("clicking export tab calls setMajor('export')", async () => {
     const user = userEvent.setup();
     render(<MajorSubnav majors={MAJORS} />);
     const tabs = screen.getAllByRole("tab");
-    await user.click(tabs[3]); // export
+    await user.click(tabs[2]); // export
     expect(useAppStore.getState().currentMajor).toBe("export");
   });
 

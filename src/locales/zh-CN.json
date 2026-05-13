@@ -371,13 +371,11 @@
         "analyze": {
           "inputs": "输入",
           "verdict": "Verdicts",
-          "plate": "Plate 布局",
-          "health": "Run Health"
+          "plate": "Plate 布局"
         },
         "activity": {
           "ingest": "Ingest",
-          "merge": "Merge",
-          "export": "Export"
+          "mergeExport": "Merge & Export"
         }
       }
     },
@@ -1539,19 +1537,15 @@
   "phaseC": {
     "majors": {
       "design": "Design",
-      "plate": "Plate Map",
       "export": "Export",
-      "report": "Report"
+      "output": "输出"
     },
     "subSteps": {
       "design": {
         "load": "加载 Variants",
-        "variant": "Pool Filters",
         "mutation": "Mutations",
-        "params": "Primer 参数"
-      },
-      "plate": {
-        "layout": "Plate Map"
+        "params": "Primer 参数",
+        "submit": "池筛选 & 运行"
       },
       "export": {
         "all": "Export",
@@ -1559,7 +1553,7 @@
         "summary": "订单摘要",
         "workspace": "保存工作区"
       },
-      "report": {
+      "output": {
         "summary": "摘要"
       }
     },
@@ -1616,13 +1610,11 @@
       "analyze": {
         "inputs": "输入",
         "verdict": "Verdicts",
-        "plate": "Plate 布局",
-        "health": "Run Health"
+        "plate": "Plate 布局"
       },
       "activity": {
         "ingest": "Ingest 数据",
-        "merge": "Merge",
-        "export": "Export"
+        "mergeExport": "Merge & Export"
       }
     }
   },
@@ -1636,15 +1628,12 @@
     "descriptions": {
       "design": {
         "load": "上传 EVOLVEpro CSV 或粘贴蛋白质序列。",
-        "variant": "配置 variant pool 过滤器。",
         "mutation": "定义要包含的 mutation。",
-        "params": "设置 primer 设计参数并运行。"
+        "params": "设置 primer 设计参数并运行。",
+        "submit": "选择变体池过滤条件，然后运行引物设计。"
       },
-      "plate": {
-        "layout": "审阅 primer plate 布局并导出所有产物。"
-      },
-      "report": {
-        "summary": "在 plate mapping 之前审阅设计结果与统计。"
+      "output": {
+        "summary": "查看设计结果、统计数据和板布局。"
       }
     },
     "mameDescriptions": {
@@ -1656,13 +1645,11 @@
       "analyze": {
         "inputs": "设置输入目录与分析参数,然后运行。",
         "verdict": "审阅每个 well 的 pass/fail verdict 与摘要统计。",
-        "plate": "查看带 barcode 与 variant 分配的 plate 布局。",
-        "health": "检查本次 run 的测序质量指标。"
+        "plate": "查看带 barcode 与 variant 分配的 plate 布局。"
       },
       "activity": {
         "ingest": "上传 activity CSV 或 Excel 文件并标注野生型。",
-        "merge": "跨 replicate 合并 activity 数据与 genotype call。",
-        "export": "导出合并后的 activity 表作为 EVOLVEpro 输入。"
+        "mergeExport": "Merge activity data with genotype calls, then export the merged table for EVOLVEpro input."
       }
     }
   },
@@ -1674,6 +1661,13 @@
       "plates": "板数",
       "failed": "失败",
       "rescued": "已 rescue"
+    }
+  },
+  "wizardContainer": {
+    "validationDialog": {
+      "title": "缺少信息",
+      "description": "请在继续之前完成以下内容。",
+      "missingItemsLabel": "缺少项目"
     }
   }
 }
