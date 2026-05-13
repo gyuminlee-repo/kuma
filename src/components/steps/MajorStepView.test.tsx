@@ -1,5 +1,5 @@
 /**
- * MajorStepView.test.tsx — 각 major 선택 시 올바른 *StepView 마운트 (D1.1: 3-major)
+ * MajorStepView.test.tsx — 각 major 선택 시 올바른 *StepView 마운트 (Phase F: 4-major)
  */
 
 import { render } from "@testing-library/react";
@@ -15,6 +15,9 @@ vi.mock("@/lib/ipc-kuro", () => ({
 vi.mock("./DesignStepView", () => ({
   DesignStepView: () => <div data-testid="design-step-view" />,
 }));
+vi.mock("./ReportStepView", () => ({
+  ReportStepView: () => <div data-testid="report-step-view" />,
+}));
 vi.mock("./PlateStepView", () => ({
   PlateStepView: () => <div data-testid="plate-step-view" />,
 }));
@@ -25,7 +28,7 @@ vi.mock("./ExportStepView", () => ({
 import { MajorStepView } from "./MajorStepView";
 import { useAppStore } from "@/store/appStore";
 
-describe("MajorStepView dispatcher (3-major)", () => {
+describe("MajorStepView dispatcher (4-major)", () => {
   beforeEach(() => {
     useAppStore.setState({
       currentMajor: "design",
@@ -36,6 +39,12 @@ describe("MajorStepView dispatcher (3-major)", () => {
   it("mounts DesignStepView when currentMajor=design", () => {
     const { getByTestId } = render(<MajorStepView />);
     expect(getByTestId("design-step-view")).toBeTruthy();
+  });
+
+  it("mounts ReportStepView when currentMajor=report", () => {
+    useAppStore.setState({ currentMajor: "report", currentSubStep: "report.summary" });
+    const { getByTestId } = render(<MajorStepView />);
+    expect(getByTestId("report-step-view")).toBeTruthy();
   });
 
   it("mounts PlateStepView when currentMajor=plate", () => {
@@ -51,10 +60,11 @@ describe("MajorStepView dispatcher (3-major)", () => {
   });
 
   it("does not mount multiple step views simultaneously", () => {
-    useAppStore.setState({ currentMajor: "plate", currentSubStep: "plate.layout" });
+    useAppStore.setState({ currentMajor: "report", currentSubStep: "report.summary" });
     const { queryByTestId } = render(<MajorStepView />);
     expect(queryByTestId("design-step-view")).toBeNull();
-    expect(queryByTestId("plate-step-view")).toBeTruthy();
+    expect(queryByTestId("report-step-view")).toBeTruthy();
+    expect(queryByTestId("plate-step-view")).toBeNull();
     expect(queryByTestId("export-step-view")).toBeNull();
   });
 });

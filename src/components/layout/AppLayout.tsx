@@ -35,6 +35,7 @@ import { startDeadlockWatch } from "@/lib/deadlockDetector";
 import { getLastProgressAt } from "@/lib/ipc-kuro";
 import { MAJOR_ORDER, SUBSTEP_ORDER } from "@/store/slices/navigationSlice";
 import type { MajorStepId } from "@/store/slices/navigationSlice";
+import { useMainZoom } from "@/hooks/useMainZoom";
 
 const SEQUENCE_EXTENSIONS = new Set([".gb", ".gbk", ".gbff", ".dna", ".fa", ".fasta"]);
 const CSV_EXTENSIONS = new Set([".csv"]);
@@ -78,6 +79,9 @@ export function AppLayout() {
 
   // Navigation state for AppShell slot wiring
   const currentMajor = useAppStore((s) => s.currentMajor);
+
+  // F3: main content zoom (Ctrl+wheel + Ctrl+=/−/0, persisted to localStorage)
+  const zoom = useMainZoom();
 
   // Build MAJORS and SUBSTEPS arrays from navigationSlice constants
   const MAJORS: MajorNavItem[] = MAJOR_ORDER.map((id) => ({
@@ -253,6 +257,7 @@ export function AppLayout() {
           id="major-step-main"
           className="flex flex-col flex-1 min-h-0 min-w-0 overflow-hidden"
           role="tabpanel"
+          style={{ zoom }}
           aria-label={t(`phaseC.majors.${currentMajor}`, currentMajor)}
         >
           <div className="flex-shrink-0 border-b border-border">
