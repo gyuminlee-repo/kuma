@@ -1412,6 +1412,8 @@
     "bomCheckboxAriaLabel": "Add UTF-8 BOM for Excel compatibility",
     "bomCheckboxLabel": "Add UTF-8 BOM",
     "bomCheckboxHint": "(Excel compatibility)",
+    "transferVolumeRange": "Range: {{min}}–{{max}} {{unit}}",
+    "echoMaxNote": "(最大 500 nL)",
     "cancelBtn": "Cancel",
     "exportBtn": "Export"
   },

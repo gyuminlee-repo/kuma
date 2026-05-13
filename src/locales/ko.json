@@ -1412,6 +1412,8 @@
     "bomCheckboxAriaLabel": "Excel 호환을 위해 UTF-8 BOM 추가",
     "bomCheckboxLabel": "UTF-8 BOM 추가",
     "bomCheckboxHint": "(Excel 호환)",
+    "transferVolumeRange": "범위: {{min}}–{{max}} {{unit}}",
+    "echoMaxNote": "(최대 500 nL)",
     "cancelBtn": "취소",
     "exportBtn": "내보내기"
   },
