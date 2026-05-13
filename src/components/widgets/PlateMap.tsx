@@ -4,11 +4,6 @@ import { useShallow } from "zustand/react/shallow";
 import { useAppStore } from "../../store/appStore";
 import { reorderMappings, getSortedMutations, wellName } from "../../lib/plate-utils";
 import type { PlateMapping } from "../../types/models";
-import { Button } from "../ui/button";
-import { MappingExportDialog } from "../dialogs/MappingExportDialog";
-import { handleExportAll, handleExportMappingWithParams } from "../layout/export-handlers";
-import { useKumaProject } from "@/state/projectContext";
-import { toast } from "sonner";
 import { StateView } from "../ui/StateView";
 
 const ROWS = ["A", "B", "C", "D", "E", "F", "G", "H"];
@@ -207,10 +202,8 @@ export function PlateMap() {
     })),
   );
   const sortedMutations = useSortedMutations();
-  const project = useKumaProject();
   const [activeTab, setActiveTab] = useState<"fwd" | "rev">("fwd");
   const [page, setPage] = useState(0);
-  const [exportDialogOpen, setExportDialogOpen] = useState(false);
 
   const pairs = useMemo(() => buildPairsFromStore(plateMappings, dedupInfo, sortedMutations), [plateMappings, dedupInfo, sortedMutations]);
   const safeIdx = Math.min(page, Math.max(0, pairs.length - 1));
@@ -289,19 +282,6 @@ export function PlateMap() {
             </button>
           </div>
         )}
-
-        <div className="ml-auto">
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-control rounded-full border-border px-3 text-caption"
-            onClick={() => setExportDialogOpen(true)}
-            disabled={!project || project.scratch || !project.path}
-            title={!project || project.scratch ? t("plateMap.exportAllTitle") : undefined}
-          >
-            {t("plateMap.exportAll")}
-          </Button>
-        </div>
       </div>
 
       <div className="min-h-0 flex-1 overflow-auto">
@@ -326,24 +306,6 @@ export function PlateMap() {
           <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-sm border border-info/30 bg-info/10 align-middle" />{t("plateMap.sharedReverse")}</span>
         </div>
       </div>
-
-      <MappingExportDialog
-        open={exportDialogOpen}
-        onOpenChange={setExportDialogOpen}
-        onExport={async ({ format, transferVol, bom }) => {
-          setExportDialogOpen(false);
-          // Export All from Plate plan: bundle mapping (with configured params)
-          // + sdm_primers.xlsx so the user gets every artifact in one click.
-          try {
-            await handleExportMappingWithParams(format, { transferVol, bom });
-            await handleExportAll(project);
-            toast.success(t("plateMap.exportAllComplete"));
-          } catch (err) {
-            const msg = err instanceof Error ? err.message : String(err);
-            toast.error(t("plateMap.exportAllFailed", { message: msg }));
-          }
-        }}
-      />
     </div>
   );
 }
