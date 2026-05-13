@@ -4,6 +4,47 @@
 
 ---
 
+## v0.8.4 (2026-05-13)
+
+분기 통합: `feat/workspace-artifact-handoff` (v0.8.3.x), `fix/load-sample-data` (v0.8.2.5), `worktree-spec-export-all-macrogen` (v0.4.x 묶음)을 `feat/kuma-integration`에 머지. `worktree-locale-ko-fixes`는 실제 적용 가능한 부분만 cherry-pick.
+
+### Export All + Macrogen + 사이드바 리사이즈 (worktree-spec-export-all-macrogen)
+
+- `ExportFormatSelector`를 단일 **Export All** 버튼으로 재작성 (`v0.4.2.00`). 구 `MappingExportDialog`와 IDT / Twist 분기 제거. 프런트 핸들러 `handleExportAll` / `handleExportMacrogen` (`v0.4.1.05`)가 새 흐름을 구동.
+- Sidecar에 `export_macrogen` / `export_all` JSON-RPC 핸들러 추가 (`v0.4.1.03`). Pydantic 모델 `ExportMacrogenParams` / `ExportAllParams` (`v0.4.1.01`) 및 TS validator (`v0.4.1.04`) 등록. Macrogen xls export는 `xlwt 1.3.0` + column-major well 레이아웃 사용 (`v0.4.1.00`). round-trip 테스트용 `xlrd 1.2.0` 핀.
+- Macrogen / Export-All 핸들러에 `output_path` / `output_dir` 검증 추가 (`v0.4.2.03`).
+- `ResizeHandle` 컴포넌트 (`v0.4.3.02`): 마우스 드래그, 키보드 nudge, ARIA 지원. `AppShell` aside가 영속 width 사용 (`v0.4.3.03`). `layoutSlice` + 독립 `useLayoutStore` + localStorage 영속화 (`v0.4.3.01`). 기본 width 상수를 emit하는 `compute-sidebar-width.mjs` 빌드 스크립트 (`v0.4.3.00`).
+- 신규 cross-layer-sync 그룹: `macrogen-export-flow` (`v0.4.1.06`), `sidebar-resize-flow` (`v0.4.3.04`).
+- Windows 테스트 가이드 `notes/TEST-WINDOWS.md` (`v0.4.2.04`).
+
+### loadSampleData 강화 (fix/load-sample-data)
+
+- `inputSlice.loadSampleData`가 `loadSequence` silent 실패를 방어 (`v0.8.2.5`). 체인이 빈 상태로 다음 단계로 진행하던 회귀 차단.
+- 신규 테스트: `src/store/slices/inputSlice.loadSampleData.test.ts`, `tests/test_load_sample_data_e2e.py` (Python 핸들러 체인), `tests/test_load_sample_data_sidecar_e2e.py` (UI 체인을 재현하는 sidecar JSON-RPC e2e).
+
+### 로케일 톤 픽스 (worktree-locale-ko-fixes 일부 cherry-pick)
+
+- en / ko: 데드락 메시지 헤징 제거 — `The job may be stuck.` / `작업이 멈춘 것 같습니다.` → `The job is stuck.` / `작업이 멈췄습니다.` (`v0.8.4.1`).
+- en: `Require GC clamp (3-prime end)` → `Require GC clamp (3' end)` 및 aria 라벨 (`v0.8.4.4`).
+- ko 독립 라벨을 영문으로 정렬 (브랜치 commit message 의도): `colReads` (리드 → read), `colDepth` (깊이 (리드) → depth (read)), `fieldReference` (레퍼런스 → Reference), Breslauer / Schildkraut title의 `레거시` → `Legacy`. 한국어 조사가 결합되는 문장 중 명사는 문법 보존을 위해 유지.
+
+### 머지 회귀 복구
+
+- `worktree-spec-export-all-macrogen`이 kuma의 플러그인 흡수 이전 시점(v0.4.x)에서 분기되어 있어, 머지 시 i18next / sonner / radix-tabs / `@tauri-apps/plugin-fs` / `plugin-notification` / `plugin-opener` / `plugin-updater` / `plugin-single-instance`와 `sync:check`, `gen:models`, `i18n:lint`, `i18n:parity` 스크립트가 자동 삭제됨. `v0.8.4.3`에서 `package.json`, `tauri.conf.json`, `pyproject.toml`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`을 머지 직전 HEAD 상태로 복원하고 신규 Macrogen 익스포터가 필요로 하는 `xlwt` / `xlrd`를 재추가.
+- 신규 `export_macrogen` / `export_all` 스키마 반영을 위해 `sidecar_kuro.models`에서 TS 모델 재생성 (`v0.8.4.2`).
+
+### 버전 동기화
+
+- `package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, `pyproject.toml` 모두 `0.8.4`.
+
+### 검증
+
+- `npx tsc --noEmit`: 0 errors.
+- `cargo check` (src-tauri): Tauri 플러그인 7개 복원 후 클린 빌드.
+- `node scripts/sync-check.mjs`: 43 passed, 0 warned, 0 failed.
+
+---
+
 ## v0.8.3 (2026-05-13)
 
 워크스페이스 artifact 핸드오프와 MAME Clear All.

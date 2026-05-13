@@ -4,6 +4,47 @@
 
 ---
 
+## v0.8.4 (2026-05-13)
+
+Branch consolidation: merges `feat/workspace-artifact-handoff` (v0.8.3.x), `fix/load-sample-data` (v0.8.2.5), and `worktree-spec-export-all-macrogen` (v0.4.x batch) into `feat/kuma-integration`, plus the actionable subset of `worktree-locale-ko-fixes`.
+
+### Export All + Macrogen + sidebar resize (from worktree-spec-export-all-macrogen)
+
+- `ExportFormatSelector` rewritten as a single **Export All** button (`v0.4.2.00`), replacing the legacy `MappingExportDialog` and the IDT / Twist branch. Frontend handlers `handleExportAll` and `handleExportMacrogen` (`v0.4.1.05`) drive the new flow.
+- Sidecar adds `export_macrogen` and `export_all` JSON-RPC handlers (`v0.4.1.03`) with `ExportMacrogenParams` / `ExportAllParams` Pydantic models (`v0.4.1.01`) and registered TS validators (`v0.4.1.04`). Macrogen xls export uses `xlwt 1.3.0` with column-major well layout (`v0.4.1.00`); `xlrd 1.2.0` pinned for round-trip tests.
+- `output_path` / `output_dir` validation added in both Macrogen and Export-All handlers (`v0.4.2.03`).
+- `ResizeHandle` component (`v0.4.3.02`) with mouse drag, keyboard nudge, and ARIA wiring; `AppShell` aside consumes persisted width (`v0.4.3.03`). `layoutSlice` + standalone `useLayoutStore` with localStorage persistence (`v0.4.3.01`). New `compute-sidebar-width.mjs` build script emits default-width constant (`v0.4.3.00`).
+- New cross-layer-sync groups: `macrogen-export-flow` (`v0.4.1.06`), `sidebar-resize-flow` (`v0.4.3.04`).
+- Windows-side testing guide at `notes/TEST-WINDOWS.md` (`v0.4.2.04`).
+
+### loadSampleData hardening (from fix/load-sample-data)
+
+- `inputSlice.loadSampleData` defends against silent `loadSequence` failures (`v0.8.2.5`): the chain now propagates errors instead of leaving subsequent steps with empty state.
+- New unit + e2e coverage: `src/store/slices/inputSlice.loadSampleData.test.ts`, `tests/test_load_sample_data_e2e.py` (Python handler chain), and `tests/test_load_sample_data_sidecar_e2e.py` (sidecar JSON-RPC e2e reproducing the UI chain).
+
+### Locale tone fixes (cherry-picked subset of worktree-locale-ko-fixes)
+
+- en / ko: deadlock message hedging removed — `The job may be stuck.` / `작업이 멈춘 것 같습니다.` → `The job is stuck.` / `작업이 멈췄습니다.` (`v0.8.4.1`).
+- en: `Require GC clamp (3-prime end)` → `Require GC clamp (3' end)` (and the matching aria label) (`v0.8.4.4`).
+- ko standalone labels English-ified per branch intent: `colReads` (리드 → read), `colDepth` (깊이 (리드) → depth (read)), `fieldReference` (레퍼런스 → Reference), Breslauer / Schildkraut titles use `Legacy` instead of `레거시`. Mid-sentence Korean particles left untouched to preserve grammar.
+
+### Merge-regression recovery
+
+- `worktree-spec-export-all-macrogen` had branched from an old base (v0.4.x) before kuma absorbed several plugins. Its merge auto-dropped i18next / sonner / radix-tabs / `@tauri-apps/plugin-fs` / `plugin-notification` / `plugin-opener` / `plugin-updater` / `plugin-single-instance` and the `sync:check`, `gen:models`, `i18n:lint`, `i18n:parity` scripts. `v0.8.4.3` restores `package.json`, `tauri.conf.json`, `pyproject.toml`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock` from the pre-merge HEAD and re-adds `xlwt` / `xlrd` needed by the new Macrogen exporter.
+- TS models regenerated from `sidecar_kuro.models` to absorb the new `export_macrogen` / `export_all` schemas (`v0.8.4.2`).
+
+### Version bump
+
+- `package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, `pyproject.toml` synced to `0.8.4`.
+
+### Validation
+
+- `npx tsc --noEmit`: 0 errors.
+- `cargo check` (src-tauri): clean build with the seven Tauri plugins restored.
+- `node scripts/sync-check.mjs`: 43 passed, 0 warned, 0 failed.
+
+---
+
 ## v0.8.3 (2026-05-13)
 
 Workspace artifact handoff and MAME Clear All.
