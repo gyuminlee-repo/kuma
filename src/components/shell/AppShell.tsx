@@ -1,4 +1,5 @@
 import type { DragEventHandler, ReactNode, RefObject } from "react";
+import { PanelRightOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLayoutStore } from "@/store/layoutStore";
 import { ResizeHandle } from "./ResizeHandle";
@@ -6,6 +7,9 @@ import { ResizeHandle } from "./ResizeHandle";
 /** Min/max sidebar width constants (spec §15.5). */
 const SIDEBAR_MIN = 180;
 const SIDEBAR_MAX = 480;
+
+/** Default inspector panel width (mockup grid §2). */
+const INSPECTOR_DEFAULT_WIDTH = 320;
 
 type AppShellProps = {
   tool: "kuro" | "mame";
@@ -34,6 +38,14 @@ type AppShellProps = {
    * mame PlateView 우측 aside 등 리사이즈 불필요한 슬롯에 사용 (spec §15.3).
    */
   disableResize?: boolean;
+  /** 우측 inspector 슬롯. null/undefined 시 inspector 미렌더. */
+  inspector?: ReactNode;
+  /** inspector 표시 여부. 기본 true (사용자 결정: 항상 열림). */
+  inspectorOpen?: boolean;
+  /** inspector 토글 버튼 클릭 콜백. */
+  onInspectorToggle?: () => void;
+  /** inspector 고정 폭(px). 기본 320. */
+  inspectorWidth?: number;
 };
 
 /**
@@ -59,10 +71,17 @@ export function AppShell({
   className,
   children,
   disableResize = false,
+  inspector,
+  inspectorOpen,
+  onInspectorToggle,
+  inspectorWidth = INSPECTOR_DEFAULT_WIDTH,
   ...handlers
 }: AppShellProps) {
   const sidebarWidth = useLayoutStore((s) => s.sidebarWidth ?? s.computedDefault);
   const setSidebarWidth = useLayoutStore((s) => s.setSidebarWidth);
+
+  const showInspector = inspector != null && (inspectorOpen ?? true);
+  const showToggle = inspector != null && (inspectorOpen ?? true) === false;
 
   return (
     <div
@@ -105,10 +124,29 @@ export function AppShell({
         )}
         <main
           data-testid="main-content"
-          className="flex flex-1 min-w-0 min-h-0 flex-col overflow-hidden"
+          className="relative flex flex-1 min-w-0 min-h-0 flex-col overflow-hidden"
         >
           {main}
+          {showToggle && (
+            <button
+              type="button"
+              aria-label="Open inspector"
+              onClick={onInspectorToggle}
+              className="absolute top-2 right-3 h-6 px-2 rounded border border-border bg-card text-muted-foreground hover:bg-muted"
+            >
+              <PanelRightOpen className="h-3.5 w-3.5" />
+            </button>
+          )}
         </main>
+        {showInspector && (
+          <aside
+            data-testid="inspector"
+            style={{ width: inspectorWidth }}
+            className="flex shrink-0 flex-col overflow-x-hidden border-l border-border bg-card"
+          >
+            {inspector}
+          </aside>
+        )}
       </div>
 
       {/* statusbar 슬롯 */}

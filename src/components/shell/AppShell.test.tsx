@@ -2,6 +2,7 @@
 // Run: npx vitest run src/components/shell/AppShell.test.tsx
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { AppShell } from "./AppShell";
 import { useLayoutStore } from "@/store/layoutStore";
 
@@ -85,5 +86,64 @@ describe("AppShell sidebar width", () => {
       />,
     );
     expect(queryByRole("separator")).toBeNull();
+  });
+});
+
+describe("AppShell inspector slot", () => {
+  it("does not render inspector aside when inspector prop is omitted", () => {
+    const { queryByTestId } = render(
+      <AppShell
+        tool="kuro"
+        titlebar={<div />}
+        main={<div />}
+        statusbar={<div />}
+      />,
+    );
+    expect(queryByTestId("inspector")).toBeNull();
+  });
+
+  it("renders inspector aside when inspector prop is provided (default open)", () => {
+    const { getByTestId } = render(
+      <AppShell
+        tool="kuro"
+        titlebar={<div />}
+        main={<div />}
+        statusbar={<div />}
+        inspector={<div>inspect content</div>}
+      />,
+    );
+    expect(getByTestId("inspector")).toBeInTheDocument();
+  });
+
+  it("does not render inspector aside when inspectorOpen=false, shows toggle button", () => {
+    const { queryByTestId, getByRole } = render(
+      <AppShell
+        tool="kuro"
+        titlebar={<div />}
+        main={<div />}
+        statusbar={<div />}
+        inspector={<div>inspect content</div>}
+        inspectorOpen={false}
+      />,
+    );
+    expect(queryByTestId("inspector")).toBeNull();
+    expect(getByRole("button", { name: /open inspector/i })).toBeInTheDocument();
+  });
+
+  it("calls onInspectorToggle when toggle button is clicked", async () => {
+    const onToggle = vi.fn();
+    const { getByRole } = render(
+      <AppShell
+        tool="kuro"
+        titlebar={<div />}
+        main={<div />}
+        statusbar={<div />}
+        inspector={<div>inspect content</div>}
+        inspectorOpen={false}
+        onInspectorToggle={onToggle}
+      />,
+    );
+    await userEvent.setup().click(getByRole("button", { name: /open inspector/i }));
+    expect(onToggle).toHaveBeenCalledOnce();
   });
 });
