@@ -341,19 +341,7 @@
       "statusInProgress": "In progress"
     },
     "menuBar": {
-      "restartSidecarConfirm": "Analysis is running. Restart sidecar anyway?",
-      "compareWorkspacesTitle": "Compare Workspaces",
-      "compareWorkspacesSame": "The two workspaces are identical.",
-      "compareWorkspacesDiff": "{{count}} difference{{plural}} found.",
-      "compareWorkspacesColField": "Field",
-      "compareWorkspacesColA": "Workspace A",
-      "compareWorkspacesColB": "Workspace B",
-      "compareWorkspacesNoDiff": "No differences found.",
-      "closeBtn": "Close",
-      "selectWorkspaceA": "Select first workspace (A)",
-      "selectWorkspaceB": "Select second workspace (B)",
-      "compareWorkspacesFailed": "Workspace compare failed: {{error}}",
-      "exportWorkspaceZipSoon": "Export workspace as zip - coming soon"
+      "restartSidecarConfirm": "Analysis is running. Restart sidecar anyway?"
     },
     "statusBar": {
       "ready": "Ready",
@@ -1551,7 +1539,8 @@
     "majors": {
       "design": "Design",
       "plate": "Plate Map",
-      "export": "Export"
+      "export": "Export",
+      "report": "Report"
     },
     "subSteps": {
       "design": {
@@ -1568,6 +1557,9 @@
         "format": "Format",
         "summary": "Order summary",
         "workspace": "Workspace save"
+      },
+      "report": {
+        "summary": "Summary"
       }
     },
     "badge": {
@@ -1646,7 +1638,41 @@
         "variant": "Configure variant pool filters.",
         "mutation": "Define mutations to include.",
         "params": "Set primer design parameters and run."
+      },
+      "plate": {
+        "layout": "Review primer plate layout and export all artifacts."
+      },
+      "report": {
+        "summary": "Review design results and statistics before plate mapping."
       }
+    },
+    "mameDescriptions": {
+      "setup": {
+        "files": "Select the MinKNOW run folder and reference sequence for this run.",
+        "design": "Configure flanking primer and binding length parameters.",
+        "output": "Preview settings and generate the barcode package."
+      },
+      "analyze": {
+        "inputs": "Set the input directory and analysis parameters, then run.",
+        "verdict": "Review per-well pass/fail verdicts and summary statistics.",
+        "plate": "Inspect the plate layout with barcode and variant assignments.",
+        "health": "Examine sequencing quality metrics for this run."
+      },
+      "activity": {
+        "ingest": "Upload activity CSV or Excel files and annotate the wild-type.",
+        "merge": "Merge activity data with genotype calls across replicates.",
+        "export": "Export the merged activity table for EVOLVEpro input."
+      }
+    }
+  },
+  "report": {
+    "noResultsTitle": "No results yet",
+    "noResultsDesc": "Run Design first to see primer results here.",
+    "stats": {
+      "primers": "Primers",
+      "plates": "Plates",
+      "failed": "Failed",
+      "rescued": "Rescued"
     }
   }
 }

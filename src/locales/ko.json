@@ -341,19 +341,7 @@
       "statusInProgress": "진행 중"
     },
     "menuBar": {
-      "closeBtn": "닫기",
-      "compareWorkspacesColA": "워크스페이스 A",
-      "compareWorkspacesColB": "워크스페이스 B",
-      "compareWorkspacesColField": "항목",
-      "compareWorkspacesDiff": "{{count}}개 차이{{plural}} 발견.",
-      "compareWorkspacesNoDiff": "차이가 없습니다.",
-      "compareWorkspacesSame": "두 워크스페이스가 동일합니다.",
-      "compareWorkspacesTitle": "워크스페이스 비교",
-      "restartSidecarConfirm": "분석이 실행 중입니다. 그래도 sidecar를 재시작하시겠습니까?",
-      "selectWorkspaceA": "첫 번째 워크스페이스 선택 (A)",
-      "selectWorkspaceB": "두 번째 워크스페이스 선택 (B)",
-      "compareWorkspacesFailed": "워크스페이스 비교 실패: {{error}}",
-      "exportWorkspaceZipSoon": "워크스페이스를 zip으로 내보내기 - 준비 중"
+      "restartSidecarConfirm": "분석이 실행 중입니다. 그래도 sidecar를 재시작하시겠습니까?"
     },
     "statusBar": {
       "ready": "준비됨",
@@ -1551,7 +1539,8 @@
     "majors": {
       "design": "설계",
       "plate": "플레이트 맵",
-      "export": "내보내기"
+      "export": "내보내기",
+      "report": "리포트"
     },
     "subSteps": {
       "design": {
@@ -1568,6 +1557,9 @@
         "format": "형식",
         "summary": "주문 요약",
         "workspace": "워크스페이스 저장"
+      },
+      "report": {
+        "summary": "요약"
       }
     },
     "badge": {
@@ -1646,7 +1638,41 @@
         "variant": "변이체 풀 필터를 설정하세요.",
         "mutation": "포함할 변이를 정의하세요.",
         "params": "프라이머 설계 파라미터를 설정하고 실행하세요."
+      },
+      "plate": {
+        "layout": "프라이머 플레이트 레이아웃을 확인하고 전체 결과를 내보내세요."
+      },
+      "report": {
+        "summary": "플레이트 매핑 전 설계 결과와 통계를 확인하세요."
       }
+    },
+    "mameDescriptions": {
+      "setup": {
+        "files": "이번 런에 사용할 MinKNOW 런 폴더와 참조 시퀀스를 선택하세요.",
+        "design": "플랭킹 프라이머 및 결합 길이 파라미터를 설정하세요.",
+        "output": "설정을 확인하고 바코드 패키지를 생성하세요."
+      },
+      "analyze": {
+        "inputs": "입력 디렉토리와 분석 파라미터를 설정한 뒤 실행하세요.",
+        "verdict": "웰별 통과/실패 판정 및 요약 통계를 확인하세요.",
+        "plate": "바코드 및 변이체가 할당된 플레이트 레이아웃을 검사하세요.",
+        "health": "이번 런의 시퀀싱 품질 지표를 확인하세요."
+      },
+      "activity": {
+        "ingest": "활성도 CSV 또는 Excel 파일을 업로드하고 야생형을 어노테이션하세요.",
+        "merge": "레플리케이트 간 활성도 데이터와 유전형 정보를 병합하세요.",
+        "export": "EVOLVEpro 입력용 병합 활성도 테이블을 내보내세요."
+      }
+    }
+  },
+  "report": {
+    "noResultsTitle": "결과 없음",
+    "noResultsDesc": "먼저 설계를 실행하면 프라이머 결과가 여기에 표시됩니다.",
+    "stats": {
+      "primers": "프라이머",
+      "plates": "플레이트",
+      "failed": "실패",
+      "rescued": "복구됨"
     }
   }
 }

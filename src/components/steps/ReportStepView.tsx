@@ -5,6 +5,7 @@
  *
  * ResultTable + design 통계 (primer 수, plate 추정, rescue stats)
  * WizardContainer로 감쌈. onPrev=Design, onNext=Plate Map
+ * stepIndex=1, stepTotal=1 (각 major별 sub-step 카운팅 v1 단순화)
  */
 
 import { useTranslation } from "react-i18next";
@@ -37,8 +38,8 @@ export function ReportStepView() {
 
   return (
     <WizardContainer
-      stepIndex={2}
-      stepTotal={4}
+      stepIndex={1}
+      stepTotal={1}
       titleKey="phaseC.subSteps.report.summary"
       descriptionKey="phaseE.descriptions.report.summary"
       onPrev={() => goToPrevStep()}
