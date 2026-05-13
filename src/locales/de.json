@@ -1,13 +1,13 @@
 {
   "menu": {
-    "file": "File",
-    "edit": "Edit",
-    "export": "Export",
-    "help": "Help"
+    "file": "Datei",
+    "edit": "Bearbeiten",
+    "export": "Exportieren",
+    "help": "Hilfe"
   },
   "file": {
-    "openSequence": "Open Sequence...",
-    "openProject": "Open Project...",
+    "openSequence": "Sequenz öffnen...",
+    "openProject": "Projekt öffnen...",
     "restartSidecar": "Restart Sidecar",
     "openWorkspace": "Open Workspace...",
     "saveWorkspace": "Save Workspace...",
@@ -33,7 +33,7 @@
     "showOnboarding": "Show Onboarding",
     "viewCrashLog": "View Crash Log",
     "settings": "Settings...",
-    "about": "About"
+    "about": "Über"
   },
   "about": {
     "title": "About Kuma",
@@ -56,15 +56,15 @@
     "howToCite": "How to cite",
     "copyBibtex": "Copy BibTeX",
     "copied": "Copied!",
-    "license": "License",
+    "license": "Lizenz",
     "licenseText": "Internal use, KRIBB C1 Lab - DOI/citation forthcoming",
     "thirdPartyLicenses": "Third-party licenses",
     "thirdPartyLicensesTitle": "Third-Party Licenses",
     "thirdPartyLicensesDesc": "Open-source components bundled with this application.",
     "viewLicenses": "View licenses",
-    "licensesLoading": "Loading...",
+    "licensesLoading": "Lädt...",
     "licensesNotBundled": "Third-party licenses available in distribution package.",
-    "advanced": "Advanced",
+    "advanced": "Erweitert",
     "externalServices": "External services",
     "mameNoExternalServices": "MAME does not use external network services. All analysis runs locally.",
     "build": "Build",
@@ -79,7 +79,7 @@
     "updates": "Updates"
   },
   "settings": {
-    "title": "Settings",
+    "title": "Einstellungen",
     "accessibility": "Accessibility",
     "colorblindMode": "Color assist (shape prefix)",
     "colorblindModeDesc": "Adds shape markers to status indicators so colors are not the only differentiator.",
@@ -97,9 +97,9 @@
     "dataFolder": "Data folder",
     "dataFolderLoading": "loading...",
     "dataFolderChange": "Change...",
-    "language": "Language",
+    "language": "Sprache",
     "languageNote": "Language preference is saved locally.",
-    "close": "Close"
+    "close": "Schließen"
   },
   "mame": {
     "input": {
@@ -107,7 +107,7 @@
       "redetecting": "Detecting..."
     },
     "parameters": {
-      "title": "Parameters",
+      "title": "Parameter",
       "subtitle": "Thresholds and ingest mode for this batch.",
       "targetAmpliconLength": "Target Amplicon Length (bp)",
       "targetAmpliconLengthHelp": "Expected amplicon length after barcode sorting. Leave blank to auto-detect from sample reads; set manually when the distribution is noisy.",
@@ -200,7 +200,7 @@
       "barcodeSeedsXlsxPlaceholder": ".xlsx file path",
       "warningsLabel": "Warnings",
       "warningsAriaLabel": "Warnings",
-      "requiredStateLabel": "Required",
+      "requiredStateLabel": "Erforderlich",
       "requireGcClampAriaLabel": "Require GC clamp on 3-prime end",
       "polymeraseQ5Title": "NEB Q5 High-Fidelity. Tm preset ~72 °C, low Mg²⁺. Default choice for high-fidelity amplification.",
       "polymeraseTaqTitle": "Standard Taq polymerase. Tm preset ~60 °C, higher Mg²⁺. Use for routine PCR or when 3'A overhangs are desired.",
@@ -210,7 +210,7 @@
         "button": "Auto-detect from CDS",
         "success": "Detected from {{source}}",
         "failed": "No ORF found",
-        "noReference": "Reference file required",
+        "noReference": "Referenzdatei erforderlich",
         "readError": "Failed to read reference file"
       }
     },
@@ -230,17 +230,17 @@
       "merge": {
         "heading": "Merge activity with genotype",
         "desc": "Join uploaded activity with the Round genotype and normalise by WT.",
-        "btnLegacy": "Merge with genotype",
-        "btnLegacyBusy": "Merging…",
+        "btnLegacy": "Mit genotype zusammenführen",
+        "btnLegacyBusy": "Wird zusammengeführt…",
         "btnEvolvepro": "Merge for EVOLVEpro (v0.3)",
-        "btnEvolveproBusy": "Merging…",
+        "btnEvolveproBusy": "Wird zusammengeführt…",
         "btnEvolveproAria": "Run v0.3 RPC: replicate merge + label-swap guard"
       },
       "export": {
-        "heading": "Export EVOLVEpro xlsx",
+        "heading": "EVOLVEpro xlsx exportieren",
         "desc": "Save the merged table as an EVOLVEpro training input xlsx (strict 2-column [Variant, activity] format, short variant notation such as F89W → 89W).",
-        "btn": "Export EVOLVEpro xlsx",
-        "btnBusy": "Exporting…"
+        "btn": "EVOLVEpro xlsx exportieren",
+        "btnBusy": "Exportiert…"
       },
       "exportBlocked": {
         "title": "Export blocked — label-swap detected",
@@ -337,23 +337,23 @@
       "statusReady": "Results ready",
       "statusReadyToRun": "Ready to run",
       "statusDraft": "Draft setup",
-      "statusInProgress": "In progress"
+      "statusInProgress": "In Bearbeitung"
     },
     "menuBar": {
       "restartSidecarConfirm": "Analysis is running. Restart sidecar anyway?"
     },
     "statusBar": {
-      "ready": "Ready",
+      "ready": "Bereit",
       "connecting": "Connecting",
       "sidecarError": "Sidecar error",
-      "disconnected": "Disconnected",
+      "disconnected": "Getrennt",
       "summaryStats": "Total {{total}} · PASS {{pass}} · Ambiguous {{ambiguous}} · Fail {{fail}}"
     },
     "appLayout": {
-      "deadlockTitle": "No response",
+      "deadlockTitle": "Keine Antwort",
       "deadlockDescription": "No progress update for 30+ seconds. The job is stuck.",
-      "deadlockWait": "Keep waiting",
-      "deadlockReset": "Reset",
+      "deadlockWait": "Weiter warten",
+      "deadlockReset": "Zurücksetzen",
       "analysisWorkspaceAriaLabel": "Analysis workspace",
       "manifestLoadFailed": "Manifest load failed: {{err}}",
       "barcodeSetupTab": "1. Run Setup",
@@ -390,7 +390,7 @@
         "browseAriaLabel": "Browse save path",
         "lastExport": "Last export",
         "openFolderAriaLabel": "Open export folder in file explorer",
-        "exporting": "Exporting…",
+        "exporting": "Exportiert…",
         "exportExcel": "Export Excel"
       },
       "janusMapping": {
@@ -405,7 +405,7 @@
         "columnsNote": "Columns: well, custom_barcode, variant, verdict, and plate coordinates.",
         "phase1Note": "Phase 1: only passed wells are included.",
         "exportJanus": "Export Janus Mapping",
-        "exporting": "Exporting…",
+        "exporting": "Exportiert…",
         "exported": "Exported successfully",
         "exportErrorPathRequired": "Output path is required."
       },
@@ -423,7 +423,7 @@
         "savedHtmlFallback": "Saved as HTML (PDF fallback)",
         "exportedAs": "Exported as {{format}}",
         "exportReport": "Export Report",
-        "exporting": "Exporting…",
+        "exporting": "Exportiert…",
         "exportErrorPathRequired": "Output path is required."
       }
     },
@@ -436,7 +436,7 @@
       "toastNoFiles": "No new files detected",
       "toastAutoDetected": "Auto-detected: {{items}}",
       "noPathSelected": "No path selected",
-      "fileReady": "Ready",
+      "fileReady": "Bereit",
       "browseFolderAriaLabel": "Browse {{label}}",
       "consensus": {
         "label": "Consensus FASTA folder",
@@ -456,21 +456,21 @@
       "kuroXlsx": {
         "label": "KURO xlsx",
         "placeholder": ".xlsx file path",
-        "stateLabel": "Required",
+        "stateLabel": "Erforderlich",
         "helperText": "expected_mutations sheet from KURO",
         "helpText": "The expected_mutations .xlsx file exported from KURO. MAME compares the expected mutations in this file against NGS consensus results."
       },
       "referenceFasta": {
         "label": "Reference FASTA",
         "placeholder": ".fasta / .fa file path",
-        "stateLabel": "Required",
+        "stateLabel": "Erforderlich",
         "helperText": "Reference sequence used for variant calling against consensus",
         "helpText": "Reference FASTA used as the baseline for variant calling. Using the same reference as KURO design is recommended."
       },
       "customBarcodes": {
         "label": "Custom Barcodes (xlsx or csv)",
         "placeholder": ".xlsx / .csv file path",
-        "stateLabel": "Required",
+        "stateLabel": "Erforderlich",
         "helperText": "Combinatorial barcode definition used before analysis",
         "helpText": "Raw MinKNOW run mode uses this file to assign reads to per-well FASTA outputs before analysis."
       },
@@ -493,7 +493,7 @@
   "home": {
     "newProject": "+ New project",
     "openFile": "Open file",
-    "settings": "Settings",
+    "settings": "Einstellungen",
     "recentProjects": "Recent projects",
     "noProjects": "No projects yet",
     "dialogTitle": "New project",
@@ -511,29 +511,29 @@
   "mameTab": {
     "matchingProjectTitle": "Matching project found",
     "matchingProjectDescription": "Load \"{{name}}\"?",
-    "cancelButton": "Cancel",
+    "cancelButton": "Abbrechen",
     "loadButton": "Load",
     "matchingProjectDesc": "Load \"{{name}}\"?",
     "loadBtn": "Load"
   },
   "common": {
     "ok": "OK",
-    "cancel": "Cancel",
-    "close": "Close",
+    "cancel": "Abbrechen",
+    "close": "Schließen",
     "loading": "loading...",
     "openFolder": "Open folder",
     "retry": "retry",
-    "browse": "Browse"
+    "browse": "Durchsuchen"
   },
   "globalAppBar": {
     "navAriaLabel": "Application navigation",
     "tabsAriaLabel": "Application tabs",
     "openSettingsAriaLabel": "Open settings",
-    "openSettingsTitle": "Settings",
+    "openSettingsTitle": "Einstellungen",
     "appNavAriaLabel": "Application navigation",
     "appTabsAriaLabel": "Application tabs",
     "settingsAriaLabel": "Open Settings",
-    "settingsTitle": "Settings"
+    "settingsTitle": "Einstellungen"
   },
   "globalStatusBar": {
     "statusBarAriaLabel": "Status bar",
@@ -545,7 +545,7 @@
   },
   "parameterPanel": {
     "sectionLabel": "Control",
-    "title": "Parameters",
+    "title": "Parameter",
     "strategyLabel": "Strategy:",
     "strategyHint_partial": "Forward and reverse are independent with overlap upstream of the codon.",
     "strategyHint_full": "Reverse = rc(forward). Single primer Tm and length apply to both.",
@@ -605,7 +605,7 @@
   "designReport": {
     "title": "Design Report",
     "description": "{{success}}/{{total}} primers designed ({{rate}}% success)",
-    "close": "Close",
+    "close": "Schließen",
     "sectionPipeline": "Pipeline",
     "sectionBenchmarkDefaults": "Benchmark Defaults",
     "sectionPrimerDesign": "Primer Design",
@@ -641,7 +641,7 @@
     "statSeedAuto": "AUTO",
     "statSucceeded": "Succeeded",
     "statTmMet": "Tm condition met",
-    "statFailed": "Failed",
+    "statFailed": "Fehlgeschlagen",
     "statPositionCoverage": "Position coverage",
     "statPositionCoverageValue": "{{rescued}}/{{attempted}} rescued",
     "statPoolCascade": "Pool cascade",
@@ -677,7 +677,7 @@
     "helpTip1D": "Greedy Pareto selection that maximises minimum sequence-distance between chosen positions.",
     "roundSectionLabel": "Round",
     "evolveproRoundLabel": "EVOLVEpro Round",
-    "roundSizeLabel": "Size",
+    "roundSizeLabel": "Größe",
     "roundHelp": "Round × size = cumulative data points used to estimate model quality (ρ).\nLower ρ → wider pool and higher entropy weight for exploration.",
     "autoLabel": "Auto",
     "autoKValue": "K = {{k}}",
@@ -717,7 +717,7 @@
     "reviewHeading": "Candidate Review",
     "candidateCount": "{{mutation}} ({{count}} candidates)",
     "candidateCountLoading": "{{mutation}} (...)",
-    "loading": "Loading...",
+    "loading": "Lädt...",
     "noCandidates": "No candidates",
     "backendUnavailable": "Backend alternatives are unavailable until you re-design this workspace. Manual primer evaluation still works.",
     "alternativesError": "Failed to load alternatives: {{message}}",
@@ -745,7 +745,7 @@
     "btnApplyCustom": "Use",
     "btnApplyCustomTitle": "Apply this custom primer",
     "btnRemoveCustom": "×",
-    "btnRemoveCustomTitle": "Remove",
+    "btnRemoveCustomTitle": "Entfernen",
     "customSection": "Custom Primer",
     "inputLabelFwd": "Fwd:",
     "inputLabelRev": "Rev:",
@@ -768,15 +768,15 @@
     "tabInputs": "Inputs",
     "tabMeta": "Meta",
     "tabTiming": "Timing",
-    "sectionParameters": "Parameters",
+    "sectionParameters": "Parameter",
     "sectionInputFiles": "Input files",
     "sectionMetadata": "Metadata",
     "sectionTiming": "Timing",
-    "colPath": "Path",
+    "colPath": "Pfad",
     "colA": "A (before)",
     "colB": "B (after)",
     "colStatus": "Status",
-    "emptyNoItems": "No items",
+    "emptyNoItems": "Keine Einträge",
     "emptyNoChanges": "No changed items",
     "changedAriaLabel": "{{count}} changes",
     "summaryMethod": "Method",
@@ -807,7 +807,7 @@
     "labelTolMax": "Tol max",
     "labelLength": "Length:",
     "labelBp": "bp",
-    "btnRetry": "Retry",
+    "btnRetry": "Erneut versuchen",
     "btnRetrying": "Designing...",
     "btnUseSuggestion": "Use suggestion ({{count}})",
     "suggestionTip": "Suggestion uses median Tm ({{tmFwd}}/{{tmRev}}/{{tmOv}}°C) and observed GC/length ranges from {{count}} successful primers, with tol ±{{tolMax}}°C.",
@@ -832,7 +832,7 @@
     "logAriaLabel": "Sidecar log messages",
     "emptyMessage": "No log messages yet",
     "clearAriaLabel": "Clear all log messages",
-    "clear": "Clear",
+    "clear": "Löschen",
     "copyAriaLabel": "Copy all log messages to clipboard",
     "copy": "Copy all",
     "copied": "Copied!"
@@ -853,7 +853,7 @@
     "warningMissingPaths": "Missing paths: {{paths}}",
     "warningHashMismatch": "Hash mismatch: {{paths}}",
     "exportOnlyNotice": "This manifest is an export-only operation and cannot be re-run directly. Re-export from the original data.",
-    "btnCancel": "Cancel",
+    "btnCancel": "Abbrechen",
     "btnRerun": "Re-run",
     "btnRunning": "Running...",
     "statusDone": "Re-run complete: {{method}}",
@@ -899,9 +899,9 @@
     "dntpLabel": "dNTP",
     "dnaConcLabel": "DNA conc",
     "saveError": "Failed to save polymerase",
-    "cancel": "Cancel",
-    "save": "Save",
-    "saving": "Saving..."
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "saving": "Speichert..."
   },
   "mainShell": {
     "alreadyRunning": "Already running.",
@@ -971,7 +971,7 @@
     "projectsFolder": "Projects folder",
     "folderPlaceholder": "~/Documents/kuma/",
     "chooseFolder": "Choose folder",
-    "done": "Done",
+    "done": "Fertig",
     "insideProject": "Inside each project",
     "kuroDesc": "Kernel for Upstream Recombination Oligodesign. Batch SDM primer design from Gibson Assembly templates.",
     "mameDesc": "Mutagenesis Assessment & Microplate Export. Oxford Nanopore NGS verdict.",
@@ -979,15 +979,15 @@
     "titleStart": "Get started",
     "descStart": "Choose a default folder for projects. kuma keeps every Kuro design and Mame verdict run inside its own project folder so the work survives across weeks-long sequencing turnaround.",
     "chooseFolderBtn": "Choose folder",
-    "doneBtn": "Done",
+    "doneBtn": "Fertig",
     "insideEachProject": "Inside each project"
   },
   "appLayout": {
     "status": "Status",
     "runDesign": "Run Design",
     "designing": "Designing...",
-    "clearAll": "Clear All",
-    "clear": "Clear",
+    "clearAll": "Alles löschen",
+    "clear": "Löschen",
     "clearAllDesc": "All design results will be lost. Continue?",
     "sequenceContext": "Sequence context",
     "loadTargetGene": "Load a target gene",
@@ -1001,15 +1001,15 @@
     "missingSeqFile": "Sequence file (Browse a .gb / .fasta / .dna file)",
     "missingMutations": "Mutations (enter at least one mutation in the Mutation panel)",
     "missingTargetGene": "Target gene (select one in the Sequence panel)",
-    "deadlockTitle": "No response",
+    "deadlockTitle": "Keine Antwort",
     "deadlockDesc": "No progress update for 30+ seconds. The job may be stuck.",
-    "deadlockWait": "Keep waiting",
-    "deadlockReset": "Reset",
+    "deadlockWait": "Weiter warten",
+    "deadlockReset": "Zurücksetzen",
     "plateCount": "{{count}} plate",
     "plateCount_other": "{{count}} plates",
-    "cancel": "Cancel",
-    "clearAllTitle": "Clear All",
-    "clearBtn": "Clear",
+    "cancel": "Abbrechen",
+    "clearAllTitle": "Alles löschen",
+    "clearBtn": "Löschen",
     "successful": "{{success}}/{{total}} successful",
     "plates_one": "{{count}} plate",
     "plates_other": "{{count}} plates",
@@ -1019,24 +1019,24 @@
   "overwriteConfirm": {
     "title": "File already exists",
     "description": "already exists. Do you want to overwrite it?",
-    "btnCancel": "Cancel",
+    "btnCancel": "Abbrechen",
     "btnOverwrite": "Overwrite"
   },
   "offTargetDetail": {
     "title": "{{mutation}} — Off-Target Sites ({{count}})",
     "noHits": "No off-target hits",
-    "closeAriaLabel": "Close",
+    "closeAriaLabel": "Schließen",
     "colPrimer": "Primer",
     "colPosition": "Position",
     "colStrand": "Strand",
     "colMatch": "Match (bp)",
     "colTm": "Tm (°C)",
-    "colSequence": "Sequence"
+    "colSequence": "Sequenz"
   },
   "hairpinDetail": {
     "title": "{{mutation}} — Secondary Structure",
-    "closeAriaLabel": "Close",
-    "colType": "Type",
+    "closeAriaLabel": "Schließen",
+    "colType": "Typ",
     "colTm": "Tm (°C)",
     "colDg": "dG (kcal/mol)",
     "colStatus": "Status",
@@ -1078,20 +1078,20 @@
     "clearDoneAriaLabel": "Clear completed jobs",
     "cancelJobAriaLabel": "Cancel job: {{label}}",
     "statusAriaLabel": "Status: {{status}}",
-    "statusPending": "Pending",
-    "statusRunning": "Running",
-    "statusDone": "Done",
-    "statusFailed": "Failed",
+    "statusPending": "Ausstehend",
+    "statusRunning": "Läuft",
+    "statusDone": "Fertig",
+    "statusFailed": "Fehlgeschlagen",
     "statusCancelled": "Cancelled",
     "kindDesign": "Design",
-    "kindExport": "Export",
+    "kindExport": "Exportieren",
     "kindAnalyze": "Analyze",
     "kindMerge": "Merge"
   },
   "sequenceInput": {
     "sequenceFile": "Sequence File",
     "dropAriaLabel": "Drop sequence file here",
-    "browse": "Browse",
+    "browse": "Durchsuchen",
     "noFileSelected": "No file selected (.gb / .dna)",
     "targetGene": "Target Gene",
     "targetGeneTitle": "CDS region to design primers for. Auto-selected by longest coding sequence.",
@@ -1126,7 +1126,7 @@
     "autoSearchBtn": "Auto Search"
   },
   "statusBar": {
-    "ready": "Ready",
+    "ready": "Bereit",
     "connecting": "Connecting",
     "failed": "Sidecar failed",
     "networkError": "Network error"
@@ -1155,7 +1155,7 @@
     "description": "This feature calls the following external services. Your sequence data will be sent to those services.",
     "serviceListAriaLabel": "External service list",
     "persistNote": "Consent persists after restart. You can block external calls at any time by enabling offline mode in Settings.",
-    "btnCancel": "Cancel",
+    "btnCancel": "Abbrechen",
     "btnAccept": "Accept and continue",
     "serviceUniprotDesc": "protein sequence search",
     "serviceBlastDesc": "sequence similarity search",
@@ -1165,17 +1165,17 @@
   "inputSizeWarning": {
     "title": "Input size warning",
     "titleBlock": "Input size warning (very large job)",
-    "continueLabel": "Continue",
+    "continueLabel": "Fortfahren",
     "continueLabelBlock": "Continue anyway",
-    "cancelLabel": "Cancel"
+    "cancelLabel": "Abbrechen"
   },
   "localeToggle": {
     "currentLanguageAria": "Current language: {{label}}. Change language"
   },
   "themeToggle": {
     "currentThemeAria": "Current theme: {{label}}. Change theme",
-    "labelLight": "Light",
-    "labelDark": "Dark",
+    "labelLight": "Hell",
+    "labelDark": "Dunkel",
     "labelSystem": "System"
   },
   "menuBar": {
@@ -1186,15 +1186,15 @@
     "consentStatusLabel": "Consent status:",
     "consentGranted": "Granted",
     "consentNotGranted": "Not granted",
-    "fileMenuTrigger": "File",
-    "exportMenuTrigger": "Export",
+    "fileMenuTrigger": "Datei",
+    "exportMenuTrigger": "Exportieren",
     "uniprotServiceSuffix": " -- protein sequence search",
     "ncbiBlastServiceSuffix": " -- sequence similarity search",
     "alphafoldServiceSuffix": " -- structure prediction lookup",
     "interproServiceSuffix": " -- protein domain annotation",
     "kuroSubtitle": "Kernel for Upstream Recombination Oligodesign",
     "view": {
-      "title": "View",
+      "title": "Ansicht",
       "logs": "Show Logs",
       "jobs": "Show Jobs"
     }
@@ -1345,7 +1345,7 @@
     "loadItem": "Load the converted workspace",
     "backupNote": "The original file is preserved as a backup. Migration cannot be undone automatically. Restore the backup manually if needed.",
     "cancelAriaLabel": "Cancel workspace load",
-    "cancelBtn": "Cancel",
+    "cancelBtn": "Abbrechen",
     "migrateBtn": "Migrate (Backup + Convert)",
     "migratingBtn": "Migrating...",
     "migrateAriaLabel": "Backup original file and migrate workspace",
@@ -1359,14 +1359,14 @@
     "gridAriaLabel": "96-well plate grid. Click to toggle WT designation.",
     "selectedSingle": "{{count}} WT well selected",
     "selectedPlural": "{{count}} WT wells selected",
-    "cancelBtn": "Cancel",
+    "cancelBtn": "Abbrechen",
     "saveAriaLabel": "Save WT well selection",
-    "saveBtn": "Save",
-    "savingBtn": "Saving..."
+    "saveBtn": "Speichern",
+    "savingBtn": "Speichert..."
   },
   "inputPanel": {
     "sectionLabel": "Workspace",
-    "title": "Input"
+    "title": "Eingabe"
   },
   "activityUpload": {
     "panelAriaLabel": "Activity data upload",
@@ -1385,7 +1385,7 @@
     "descWarnings": "Review the following before continuing.",
     "errorsLabel": "Errors",
     "warningsLabel": "Warnings",
-    "cancelBtn": "Cancel",
+    "cancelBtn": "Abbrechen",
     "continueBtn": "Continue with warnings",
     "errSidecarNotReady": "Sidecar is not ready (status: {{status}}). Restart the app or use the Retry button in the status bar.",
     "warnDiskUnavailable": "Disk space check is unavailable on this platform. Ensure sufficient free space before running.",
@@ -1397,9 +1397,9 @@
     "descEntries_other": "{{count}} entries stored in localStorage.",
     "descEmpty": "No crash entries recorded.",
     "contentAriaLabel": "Crash log content",
-    "copyBtn": "Copy",
+    "copyBtn": "Kopieren",
     "copiedBtn": "Copied!",
-    "closeBtn": "Close"
+    "closeBtn": "Schließen"
   },
   "mappingExportDialog": {
     "titleEcho": "Export Echo Mapping",
@@ -1412,8 +1412,8 @@
     "bomCheckboxHint": "(Excel compatibility)",
     "transferVolumeRange": "Range: {{min}}–{{max}} {{unit}}",
     "echoMaxNote": "(Max 500 nL)",
-    "cancelBtn": "Cancel",
-    "exportBtn": "Export"
+    "cancelBtn": "Abbrechen",
+    "exportBtn": "Exportieren"
   },
   "whatsNewDialog": {
     "title": "What's New in v{{version}}",
@@ -1445,10 +1445,10 @@
     "inputErrors_other": "{{count}} input error(s)",
     "validatingBtn": "Validating…",
     "validateBtn": "Validate",
-    "cancelBtn": "Cancel",
-    "runBtn": "Run",
-    "clearBtn": "Clear",
-    "exportBtn": "Export",
+    "cancelBtn": "Abbrechen",
+    "runBtn": "Ausführen",
+    "clearBtn": "Löschen",
+    "exportBtn": "Exportieren",
     "readyCount": "{{ready}}/{{total}} ready",
     "inputReadinessAria": "Input readiness {{percent}}%",
     "analysisProgressAria": "Analysis progress {{percent}}%"
@@ -1460,10 +1460,10 @@
     "fallbackReplicateTitle": "Fallback replicate"
   },
   "clearConfirmDialog": {
-    "title": "Clear All",
+    "title": "Alles löschen",
     "description": "All analysis results will be lost. Continue?",
-    "cancelBtn": "Cancel",
-    "clearBtn": "Clear"
+    "cancelBtn": "Abbrechen",
+    "clearBtn": "Löschen"
   },
   "roundSummarySignals": {
     "calibrationBannerHeading": "Calibration period — classification inactive.",
@@ -1503,7 +1503,7 @@
     "placeholder": "UniProt ID",
     "afStructureTitle": "AlphaFold structure available"
   },
-  "sectionLabel": "Input",
+  "sectionLabel": "Eingabe",
   "updater": {
     "notConfigured": "Updater is not configured for this build. See RELEASE_CHECKLIST.md for key generation steps."
   },
@@ -1537,18 +1537,18 @@
   "phaseC": {
     "majors": {
       "design": "Design",
-      "export": "Export",
-      "output": "Ergebnis"
+      "export": "Exportieren",
+      "output": "Ausgabe"
     },
     "subSteps": {
       "design": {
         "load": "Load Variants",
         "mutation": "Mutations",
         "params": "Primer Parameters",
-        "submit": "Pool-Filter & Start"
+        "submit": "Pool Filters & Run"
       },
       "export": {
-        "all": "Export",
+        "all": "Exportieren",
         "format": "Format",
         "summary": "Order summary",
         "workspace": "Workspace save"
@@ -1579,7 +1579,7 @@
         "twist": "Twist CSV",
         "fasta": "FASTA"
       },
-      "runExport": "Export",
+      "runExport": "Exportieren",
       "workspace": {
         "save": "Save workspace",
         "load": "Load workspace"
@@ -1599,7 +1599,7 @@
     },
     "run": {
       "primary": "Run Design",
-      "cancel": "Cancel"
+      "cancel": "Abbrechen"
     },
     "mameSubSteps": {
       "setup": {
@@ -1622,18 +1622,18 @@
     "wizard": {
       "stepLabel": "Step {{n}}",
       "progress": "Step {{current}} / {{total}}",
-      "back": "Back",
-      "next": "Next"
+      "back": "Zurück",
+      "next": "Weiter"
     },
     "descriptions": {
       "design": {
         "load": "Upload an EVOLVEpro CSV or paste a protein sequence.",
         "mutation": "Define mutations to include.",
         "params": "Set primer design parameters and run.",
-        "submit": "Varianten-Pool-Filter auswählen und Primer-Design starten."
+        "submit": "Select variant pool filters, then run primer design."
       },
       "output": {
-        "summary": "Design-Ergebnisse, Statistiken und Plattenlayout überprüfen."
+        "summary": "Review design results, statistics, and plate layout."
       }
     },
     "mameDescriptions": {
@@ -1644,8 +1644,8 @@
       },
       "analyze": {
         "inputs": "Set the input directory and analysis parameters, then run.",
-        "verdict": "Review per-well pass/fail verdicts and summary statistics.",
-        "plate": "Inspect the plate layout with barcode and variant assignments."
+        "verdict": "Review per-well pass/fail verdicts, summary statistics, and sequencing throughput metrics.",
+        "plate": "Inspect the plate layout with barcode and variant assignments, and per-plate health indicators."
       },
       "activity": {
         "ingest": "Upload activity CSV or Excel files and annotate the wild-type.",
@@ -1659,15 +1659,15 @@
     "stats": {
       "primers": "Primers",
       "plates": "Plates",
-      "failed": "Failed",
+      "failed": "Fehlgeschlagen",
       "rescued": "Rescued"
     }
   },
   "wizardContainer": {
     "validationDialog": {
-      "title": "Fehlende Eingaben",
-      "description": "Bitte vervollständigen Sie folgende Angaben, bevor Sie fortfahren.",
-      "missingItemsLabel": "Fehlende Elemente"
+      "title": "Missing Information",
+      "description": "Please complete the following before continuing.",
+      "missingItemsLabel": "Missing items"
     }
   }
 }
