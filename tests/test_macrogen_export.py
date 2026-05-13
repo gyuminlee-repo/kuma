@@ -3,7 +3,7 @@
 import pytest
 import xlrd
 
-from kuro.plate_mapper import PlateMapping, export_macrogen_xls
+from kuma_core.kuro.plate_mapper import PlateMapping, export_macrogen_xls
 
 
 def _mk(seq: str, name: str, ptype: str = "forward") -> PlateMapping:

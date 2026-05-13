@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from sidecar.models import ExportAllParams, ExportMacrogenParams
+from sidecar_kuro.models import ExportAllParams, ExportMacrogenParams
 
 
 def test_macrogen_params_defaults():
