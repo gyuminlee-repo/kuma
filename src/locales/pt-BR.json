@@ -1365,8 +1365,6 @@
   },
   "activityUpload": {
     "panelAriaLabel": "Upload de dados de atividade",
-    "formatLabel": "Formato",
-    "formatAriaLabel": "Formato do arquivo de atividade",
     "uploadingAriaLabel": "Enviando dados de atividade...",
     "browseAriaLabel": "Procurar e enviar arquivo de atividade",
     "uploadingBtn": "Enviando...",
@@ -1628,6 +1626,9 @@
       },
       "output": {
         "summary": "Revise os resultados do design, estatísticas e layout da placa."
+      },
+      "export": {
+        "all": "Exporte os pedidos de primers para CSV IDT/Twist ou FASTA."
       }
     },
     "mameDescriptions": {

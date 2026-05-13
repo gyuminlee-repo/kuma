@@ -1365,8 +1365,6 @@
   },
   "activityUpload": {
     "panelAriaLabel": "活性データアップロード",
-    "formatLabel": "形式",
-    "formatAriaLabel": "活性ファイル形式",
     "uploadingAriaLabel": "活性データをアップロード中...",
     "browseAriaLabel": "活性ファイルを参照してアップロード",
     "uploadingBtn": "アップロード中...",
@@ -1628,6 +1626,9 @@
       },
       "output": {
         "summary": "設計結果、統計、プレートレイアウトを確認します。"
+      },
+      "export": {
+        "all": "Primer 注文書を IDT/Twist CSV または FASTA に書き出します。"
       }
     },
     "mameDescriptions": {
