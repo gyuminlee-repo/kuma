@@ -273,12 +273,16 @@ export function BarcodeSetupPanel({ group }: BarcodeSetupPanelProps = {}) {
   return (
     <div className="h-full overflow-y-auto">
       <div className="mx-auto max-w-2xl space-y-6 p-4">
-        <header>
-          <h2 className="text-base font-semibold text-foreground">{t("mame.barcodeSetup.title")}</h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {t("mame.barcodeSetup.subtitle")}
-          </p>
-        </header>
+        {/* group prop이 없을 때만 최상단 heading을 표시한다.
+            group이 전달되면 WizardContainer가 step 헤딩을 이미 제공하므로 숨긴다. */}
+        {group === undefined && (
+          <header>
+            <h2 className="text-base font-semibold text-foreground">{t("mame.barcodeSetup.title")}</h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {t("mame.barcodeSetup.subtitle")}
+            </p>
+          </header>
+        )}
 
         {/* 섹션 1: 입력 파일 (group: files 또는 undefined) */}
         {(!group || group === "files") && <section aria-labelledby="section-files">
