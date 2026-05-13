@@ -1663,5 +1663,11 @@
       "description": "계속하기 전에 다음 항목을 완료해 주세요.",
       "missingItemsLabel": "누락 항목"
     }
+  },
+  "artifact": {
+    "badge": {
+      "detected": "Step {{step}} 출력 자동 감지",
+      "staleHint": "Export 이후 파일이 변경됨"
+    }
   }
 }

@@ -48,6 +48,19 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       searchQuery: "",
       runHealth: null,
     }),
+  resetAnalysis: () =>
+    set({
+      verdicts: [],
+      replicates: [],
+      summary: null,
+      plateFilter: "ALL",
+      searchQuery: "",
+      sorting: [],
+      showExport: false,
+      wells: [],
+      selectedWell: null,
+      runHealth: null,
+    }),
   loadPlateData: async () => {
     try {
       const result = await sendRequest<PlateDataResult>("get_plate_data", {});
