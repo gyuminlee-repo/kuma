@@ -3,20 +3,19 @@
  *
  * [source: spec §D2.4 — mame StepView 신규]
  * [updated: spec Phase F F6 — WizardContainer 적용]
+ * [updated: spec Phase G #19 — activity.export 폐지, activity.mergeExport로 통합 (2-step)]
  *
  * Sub-step 매핑:
- *   activity.ingest → IngestSection (CSV/Excel 업로드 + WT 어노테이션)
- *   activity.merge  → MergeSection (genotype merge + replicate priority)
- *   activity.export → ExportSection (EVOLVEpro xlsx 저장 + round handoff)
+ *   activity.ingest      → IngestSection (CSV/Excel 업로드 + WT 어노테이션)
+ *   activity.mergeExport → MergeExportSection (genotype merge + EVOLVEpro xlsx 저장 + round handoff)
  *
  * ActivityPanel은 wrapper로 유지되므로 테스트 호환성 유지.
- * NOTE: D3.2 전까지 이 컴포넌트는 mount되지 않는다.
  */
 
 import { useEffect } from "react";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { useRoundStore } from "@/store/round/roundSlice";
-import { IngestSection, MergeSection, ExportSection } from "@/components/mame/panels/ActivityPanel";
+import { IngestSection, MergeExportSection } from "@/components/mame/panels/ActivityPanel";
 import { WizardContainer } from "@/components/steps/WizardContainer";
 
 const STEP_CONFIG = {
@@ -25,15 +24,10 @@ const STEP_CONFIG = {
     titleKey: "phaseC.mameSubSteps.activity.ingest",
     descriptionKey: "phaseE.mameDescriptions.activity.ingest",
   },
-  "activity.merge": {
+  "activity.mergeExport": {
     index: 2,
-    titleKey: "phaseC.mameSubSteps.activity.merge",
-    descriptionKey: "phaseE.mameDescriptions.activity.merge",
-  },
-  "activity.export": {
-    index: 3,
-    titleKey: "phaseC.mameSubSteps.activity.export",
-    descriptionKey: "phaseE.mameDescriptions.activity.export",
+    titleKey: "phaseC.mameSubSteps.activity.mergeExport",
+    descriptionKey: "phaseE.mameDescriptions.activity.mergeExport",
   },
 } as const;
 
@@ -53,19 +47,18 @@ export function ActivityStepView() {
 
   if (
     subStep !== "activity.ingest" &&
-    subStep !== "activity.merge" &&
-    subStep !== "activity.export"
+    subStep !== "activity.mergeExport"
   ) {
     return null;
   }
 
   const config = STEP_CONFIG[subStep];
-  const isLast = subStep === "activity.export";
+  const isLast = subStep === "activity.mergeExport";
 
   return (
     <WizardContainer
       stepIndex={config.index}
-      stepTotal={3}
+      stepTotal={2}
       titleKey={config.titleKey}
       descriptionKey={config.descriptionKey}
       onPrev={goToPrevStep}
@@ -73,8 +66,7 @@ export function ActivityStepView() {
     >
       <div className="space-y-6">
         {subStep === "activity.ingest" && <IngestSection />}
-        {subStep === "activity.merge" && <MergeSection />}
-        {subStep === "activity.export" && <ExportSection />}
+        {subStep === "activity.mergeExport" && <MergeExportSection />}
       </div>
     </WizardContainer>
   );

@@ -1,14 +1,14 @@
 /**
- * AppLayout.phaseC.test.tsx — Phase C integration tests (D1.1: 4-major)
+ * AppLayout.phaseC.test.tsx — Phase G integration tests (3-major: Design / Output / Export)
  *
  * Tests:
  *   1. data-tool="kuro" attribute preserved
  *   2. sidebar region exists
  *   3. main content region exists
- *   4. MajorSubnav 4 major tabs rendered
- *   5. clicking plate tab changes currentMajor to plate
- *   6. SubStepNav click changes currentSubStep
- *   7. Ctrl+Enter auto-navigates to design.params
+ *   4. MajorSubnav 3 major tabs rendered (Phase G)
+ *   5. clicking output tab changes currentMajor to output
+ *   6. SubStepNav click changes currentSubStep to design.mutation
+ *   7. Ctrl+Enter auto-navigates to design.submit (Phase G)
  *   8. SummaryMetric / WorkflowStep not in DOM (regression)
  */
 
@@ -67,12 +67,12 @@ describe("AppLayout Phase C -- layout structure", () => {
   });
 });
 
-describe("AppLayout Phase C -- MajorSubnav navigation (4-major)", () => {
-  it("renders at least 4 major tabs", () => {
+describe("AppLayout Phase C -- MajorSubnav navigation (3-major, Phase G)", () => {
+  it("renders exactly 3 major tabs (Design / Output / Export)", () => {
     useAppStore.setState({ currentMajor: "design", currentSubStep: "design.load" });
     render(<AppLayout />);
     const tabs = getMajorTabs();
-    expect(tabs.length).toBeGreaterThanOrEqual(4);
+    expect(tabs.length).toBeGreaterThanOrEqual(3);
   });
 
   it("first major tab (design) is aria-selected when currentMajor='design'", () => {
@@ -82,21 +82,21 @@ describe("AppLayout Phase C -- MajorSubnav navigation (4-major)", () => {
     expect(tabs[0].getAttribute("aria-selected")).toBe("true");
   });
 
-  it("clicking plate tab changes currentMajor to plate", async () => {
+  it("clicking output tab (index 1) changes currentMajor to output", async () => {
     const user = userEvent.setup();
     useAppStore.setState({ currentMajor: "design", currentSubStep: "design.load" });
     render(<AppLayout />);
     const tabs = getMajorTabs();
-    await user.click(tabs[2]); // plate is index 2 (design=0, report=1, plate=2, export=3)
-    expect(useAppStore.getState().currentMajor).toBe("plate");
+    await user.click(tabs[1]); // output is index 1 (design=0, output=1, export=2)
+    expect(useAppStore.getState().currentMajor).toBe("output");
   });
 
-  it("clicking export tab changes currentMajor to export", async () => {
+  it("clicking export tab (index 2) changes currentMajor to export", async () => {
     const user = userEvent.setup();
     useAppStore.setState({ currentMajor: "design", currentSubStep: "design.load" });
     render(<AppLayout />);
     const tabs = getMajorTabs();
-    await user.click(tabs[3]); // export is index 3
+    await user.click(tabs[2]); // export is index 2
     expect(useAppStore.getState().currentMajor).toBe("export");
   });
 });
@@ -106,7 +106,7 @@ describe("AppLayout Phase C -- SubStepNav navigation", () => {
     useAppStore.setState({ currentMajor: "design", currentSubStep: "design.load" });
     render(<AppLayout />);
     const subTabs = getSubStepTabs();
-    // design has 4 sub-steps
+    // design has 4 sub-steps (Phase G)
     expect(subTabs.length).toBeGreaterThanOrEqual(4);
   });
 
@@ -117,17 +117,17 @@ describe("AppLayout Phase C -- SubStepNav navigation", () => {
     expect(subTabs[0].getAttribute("aria-selected")).toBe("true");
   });
 
-  it("clicking second sub-step changes currentSubStep to design.variant", () => {
+  it("clicking second sub-step changes currentSubStep to design.mutation (Phase G)", () => {
     useAppStore.setState({ currentMajor: "design", currentSubStep: "design.load" });
     render(<AppLayout />);
     const subTabs = getSubStepTabs();
-    fireEvent.click(subTabs[1]); // design.variant
-    expect(useAppStore.getState().currentSubStep).toBe("design.variant");
+    fireEvent.click(subTabs[1]); // design.mutation (index 1, Phase G — variant removed)
+    expect(useAppStore.getState().currentSubStep).toBe("design.mutation");
   });
 });
 
 describe("AppLayout Phase C -- keyboard shortcut auto-navigate", () => {
-  it("Ctrl+Enter from non-design.params sub-step auto-navigates to design.params", () => {
+  it("Ctrl+Enter from non-design.submit sub-step auto-navigates to design.submit (Phase G)", () => {
     useAppStore.setState({ currentMajor: "design", currentSubStep: "design.load" });
     render(<AppLayout />);
 
@@ -137,11 +137,11 @@ describe("AppLayout Phase C -- keyboard shortcut auto-navigate", () => {
       );
     });
 
-    expect(useAppStore.getState().currentSubStep).toBe("design.params");
+    expect(useAppStore.getState().currentSubStep).toBe("design.submit");
     expect(useAppStore.getState().currentMajor).toBe("design");
   });
 
-  it("Ctrl+D from non-design.params sub-step auto-navigates to design.params", () => {
+  it("Ctrl+D from non-design.submit sub-step auto-navigates to design.submit (Phase G)", () => {
     useAppStore.setState({ currentMajor: "design", currentSubStep: "design.load" });
     render(<AppLayout />);
 
@@ -151,6 +151,6 @@ describe("AppLayout Phase C -- keyboard shortcut auto-navigate", () => {
       );
     });
 
-    expect(useAppStore.getState().currentSubStep).toBe("design.params");
+    expect(useAppStore.getState().currentSubStep).toBe("design.submit");
   });
 });

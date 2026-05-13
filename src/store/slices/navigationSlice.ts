@@ -5,14 +5,13 @@ import type { AppState } from "../types";
 // Types
 // ---------------------------------------------------------------------------
 
-export type MajorStepId = "design" | "report" | "plate" | "export";
+export type MajorStepId = "design" | "output" | "export";
 export type SubStepId =
   | "design.load"
-  | "design.variant"
   | "design.mutation"
   | "design.params"
-  | "report.summary"
-  | "plate.layout"
+  | "design.submit"
+  | "output.summary"
   | "export.all";
 
 export interface StepStatus {
@@ -40,17 +39,16 @@ export interface NavigationSlice {
 // Constants
 // ---------------------------------------------------------------------------
 
-export const MAJOR_ORDER: MajorStepId[] = ["design", "report", "plate", "export"];
+export const MAJOR_ORDER: MajorStepId[] = ["design", "output", "export"];
 
 export const SUBSTEP_ORDER: Record<MajorStepId, SubStepId[]> = {
   design: [
     "design.load",
-    "design.variant",
     "design.mutation",
     "design.params",
+    "design.submit",
   ],
-  report: ["report.summary"],
-  plate: ["plate.layout"],
+  output: ["output.summary"],
   export: ["export.all"],
 };
 

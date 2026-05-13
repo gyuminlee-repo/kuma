@@ -208,9 +208,9 @@ export function AppLayout() {
       case "d":
         if (isInput) return;
         e.preventDefault();
-        // Auto-navigate to design.params sub-step when shortcut is pressed from elsewhere
-        if (useAppStore.getState().currentSubStep !== "design.params") {
-          useAppStore.getState().setSubStep("design.params");
+        // Auto-navigate to design.submit sub-step when shortcut is pressed from elsewhere
+        if (useAppStore.getState().currentSubStep !== "design.submit") {
+          useAppStore.getState().setSubStep("design.submit");
         }
         tryRunDesign();
         break;
@@ -221,9 +221,9 @@ export function AppLayout() {
       case "enter":
         if (isInput) return;
         e.preventDefault();
-        // Auto-navigate to design.params sub-step (spec §9: 단축키 design.params 자동 전환)
-        if (useAppStore.getState().currentSubStep !== "design.params") {
-          useAppStore.getState().setSubStep("design.params");
+        // Auto-navigate to design.submit sub-step (Phase G: Run Design moved to submit step)
+        if (useAppStore.getState().currentSubStep !== "design.submit") {
+          useAppStore.getState().setSubStep("design.submit");
         }
         tryRunDesign();
         break;

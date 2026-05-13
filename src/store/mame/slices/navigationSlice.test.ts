@@ -68,12 +68,10 @@ describe("MAME_SUBSTEP_ORDER", () => {
       "analyze.inputs",
       "analyze.verdict",
       "analyze.plate",
-      "analyze.health",
     ]);
     expect(MAME_SUBSTEP_ORDER.activity).toEqual([
       "activity.ingest",
-      "activity.merge",
-      "activity.export",
+      "activity.mergeExport",
     ]);
   });
 });
@@ -96,8 +94,8 @@ describe("NavigationSlice — setMameSubStep", () => {
   });
 
   it("setMameSubStep으로 activity sub-step을 설정할 수 있다", () => {
-    store.setMameSubStep("activity.export");
-    expect(store.currentMameSubStep).toBe("activity.export");
+    store.setMameSubStep("activity.mergeExport");
+    expect(store.currentMameSubStep).toBe("activity.mergeExport");
   });
 });
 
@@ -123,7 +121,7 @@ describe("PhaseSlice — setMamePhase sub-step 자동 리셋", () => {
   });
 
   it("setMamePhase('setup') → currentMameSubStep이 setup.files로 리셋된다", () => {
-    store.setMameSubStep("analyze.health");
+    store.setMameSubStep("analyze.plate");
     store.setMamePhase("setup");
     expect(store.mamePhase).toBe("setup");
     expect(store.currentMameSubStep).toBe("setup.files");

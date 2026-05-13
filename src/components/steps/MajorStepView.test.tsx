@@ -1,5 +1,6 @@
 /**
- * MajorStepView.test.tsx — 각 major 선택 시 올바른 *StepView 마운트 (Phase F: 4-major)
+ * MajorStepView.test.tsx — Phase G: 3-major (Design / Output / Export) 마운트 어설션
+ * [source: spec Phase G — 3-tab (Design / Output / Export)]
  */
 
 import { render } from "@testing-library/react";
@@ -15,11 +16,8 @@ vi.mock("@/lib/ipc-kuro", () => ({
 vi.mock("./DesignStepView", () => ({
   DesignStepView: () => <div data-testid="design-step-view" />,
 }));
-vi.mock("./ReportStepView", () => ({
-  ReportStepView: () => <div data-testid="report-step-view" />,
-}));
-vi.mock("./PlateStepView", () => ({
-  PlateStepView: () => <div data-testid="plate-step-view" />,
+vi.mock("./OutputStepView", () => ({
+  OutputStepView: () => <div data-testid="output-step-view" />,
 }));
 vi.mock("./ExportStepView", () => ({
   ExportStepView: () => <div data-testid="export-step-view" />,
@@ -28,7 +26,7 @@ vi.mock("./ExportStepView", () => ({
 import { MajorStepView } from "./MajorStepView";
 import { useAppStore } from "@/store/appStore";
 
-describe("MajorStepView dispatcher (4-major)", () => {
+describe("MajorStepView dispatcher (3-major, Phase G)", () => {
   beforeEach(() => {
     useAppStore.setState({
       currentMajor: "design",
@@ -41,16 +39,10 @@ describe("MajorStepView dispatcher (4-major)", () => {
     expect(getByTestId("design-step-view")).toBeTruthy();
   });
 
-  it("mounts ReportStepView when currentMajor=report", () => {
-    useAppStore.setState({ currentMajor: "report", currentSubStep: "report.summary" });
+  it("mounts OutputStepView when currentMajor=output", () => {
+    useAppStore.setState({ currentMajor: "output", currentSubStep: "output.summary" });
     const { getByTestId } = render(<MajorStepView />);
-    expect(getByTestId("report-step-view")).toBeTruthy();
-  });
-
-  it("mounts PlateStepView when currentMajor=plate", () => {
-    useAppStore.setState({ currentMajor: "plate", currentSubStep: "plate.layout" });
-    const { getByTestId } = render(<MajorStepView />);
-    expect(getByTestId("plate-step-view")).toBeTruthy();
+    expect(getByTestId("output-step-view")).toBeTruthy();
   });
 
   it("mounts ExportStepView when currentMajor=export", () => {
@@ -60,11 +52,16 @@ describe("MajorStepView dispatcher (4-major)", () => {
   });
 
   it("does not mount multiple step views simultaneously", () => {
-    useAppStore.setState({ currentMajor: "report", currentSubStep: "report.summary" });
+    useAppStore.setState({ currentMajor: "output", currentSubStep: "output.summary" });
     const { queryByTestId } = render(<MajorStepView />);
     expect(queryByTestId("design-step-view")).toBeNull();
-    expect(queryByTestId("report-step-view")).toBeTruthy();
-    expect(queryByTestId("plate-step-view")).toBeNull();
+    expect(queryByTestId("output-step-view")).toBeTruthy();
     expect(queryByTestId("export-step-view")).toBeNull();
+  });
+
+  it("does not mount ReportStepView or PlateStepView (deleted in Phase G)", () => {
+    const { queryByTestId } = render(<MajorStepView />);
+    expect(queryByTestId("report-step-view")).toBeNull();
+    expect(queryByTestId("plate-step-view")).toBeNull();
   });
 });

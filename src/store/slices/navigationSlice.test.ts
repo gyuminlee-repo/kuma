@@ -1,6 +1,7 @@
 /**
- * navigationSlice.test.ts — D1.1: 3-major 구조 단위 테스트
+ * navigationSlice.test.ts — Phase G: 3-major 구조 단위 테스트
  * setMajor / setSubStep prefix 매칭 / markDone
+ * [source: spec Phase G — navigationSlice 재구조 (Track A G1)]
  */
 
 import { describe, it, expect, vi } from "vitest";
@@ -51,29 +52,29 @@ function makeSlice(): NavState {
 // ---------------------------------------------------------------------------
 
 describe("MAJOR_ORDER / SUBSTEP_ORDER constants", () => {
-  it("MAJOR_ORDER contains all 4 majors in order", () => {
-    expect(MAJOR_ORDER).toEqual(["design", "report", "plate", "export"]);
+  it("MAJOR_ORDER contains 3 majors in order (Phase G)", () => {
+    expect(MAJOR_ORDER).toEqual(["design", "output", "export"]);
   });
 
-  it("SUBSTEP_ORDER covers 7 sub-steps (4+1+1+1)", () => {
+  it("SUBSTEP_ORDER covers 6 sub-steps (4+1+1)", () => {
     const total = Object.values(SUBSTEP_ORDER).reduce(
       (acc, steps) => acc + steps.length,
       0,
     );
-    expect(total).toBe(7);
+    expect(total).toBe(6);
   });
 
-  it("design major has 4 sub-steps", () => {
+  it("design major has 4 sub-steps (Phase G order)", () => {
     expect(SUBSTEP_ORDER.design).toEqual([
       "design.load",
-      "design.variant",
       "design.mutation",
       "design.params",
+      "design.submit",
     ]);
   });
 
-  it("plate major has 1 sub-step", () => {
-    expect(SUBSTEP_ORDER.plate).toEqual(["plate.layout"]);
+  it("output major has 1 sub-step", () => {
+    expect(SUBSTEP_ORDER.output).toEqual(["output.summary"]);
   });
 
   it("export major has 1 sub-step", () => {
@@ -108,17 +109,17 @@ describe("setMajor", () => {
 
   it("setMajor('design') -> currentSubStep becomes design.load", () => {
     const slice = makeSlice();
-    slice.setMajor("plate");
+    slice.setMajor("output");
     slice.setMajor("design");
     expect(slice.currentMajor).toBe("design");
     expect(slice.currentSubStep).toBe("design.load");
   });
 
-  it("switching to plate major sets plate.layout", () => {
+  it("switching to output major sets output.summary", () => {
     const slice = makeSlice();
-    slice.setMajor("plate");
-    expect(slice.currentMajor).toBe("plate");
-    expect(slice.currentSubStep).toBe("plate.layout");
+    slice.setMajor("output");
+    expect(slice.currentMajor).toBe("output");
+    expect(slice.currentSubStep).toBe("output.summary");
   });
 
   it("switching to export major sets export.all", () => {
@@ -137,11 +138,18 @@ describe("setSubStep -- prefix 매칭으로 major 자동 추론", () => {
     expect(slice.currentSubStep).toBe("design.mutation");
   });
 
-  it("plate.layout -> currentMajor becomes plate", () => {
+  it("design.submit -> currentMajor becomes design", () => {
     const slice = makeSlice();
-    slice.setSubStep("plate.layout");
-    expect(slice.currentMajor).toBe("plate");
-    expect(slice.currentSubStep).toBe("plate.layout");
+    slice.setSubStep("design.submit");
+    expect(slice.currentMajor).toBe("design");
+    expect(slice.currentSubStep).toBe("design.submit");
+  });
+
+  it("output.summary -> currentMajor becomes output", () => {
+    const slice = makeSlice();
+    slice.setSubStep("output.summary");
+    expect(slice.currentMajor).toBe("output");
+    expect(slice.currentSubStep).toBe("output.summary");
   });
 
   it("export.all -> currentMajor becomes export", () => {
@@ -171,31 +179,24 @@ describe("markDone", () => {
   it("does not affect other sub-steps", () => {
     const slice = makeSlice();
     slice.markDone("design.load");
-    expect(slice.stepStatus["design.variant"].done).toBe(false);
-    expect(slice.stepStatus["plate.layout"].done).toBe(false);
+    expect(slice.stepStatus["design.mutation"].done).toBe(false);
+    expect(slice.stepStatus["output.summary"].done).toBe(false);
   });
 
   it("reachable remains true after markDone", () => {
     const slice = makeSlice();
-    slice.markDone("design.params");
-    expect(slice.stepStatus["design.params"].reachable).toBe(true);
+    slice.markDone("design.submit");
+    expect(slice.stepStatus["design.submit"].reachable).toBe(true);
   });
 });
 
-describe("goToNextStep (E5)", () => {
-  it("design.load → goToNextStep → design.variant", () => {
+describe("goToNextStep (Phase G)", () => {
+  it("design.load → goToNextStep → design.mutation", () => {
     const slice = makeSlice();
     slice.setSubStep("design.load");
     slice.goToNextStep();
-    expect(slice.currentSubStep).toBe("design.variant");
-    expect(slice.currentMajor).toBe("design");
-  });
-
-  it("design.variant → design.mutation", () => {
-    const slice = makeSlice();
-    slice.setSubStep("design.variant");
-    slice.goToNextStep();
     expect(slice.currentSubStep).toBe("design.mutation");
+    expect(slice.currentMajor).toBe("design");
   });
 
   it("design.mutation → design.params", () => {
@@ -205,17 +206,24 @@ describe("goToNextStep (E5)", () => {
     expect(slice.currentSubStep).toBe("design.params");
   });
 
-  it("design.params → goToNextStep → report.summary (next major)", () => {
+  it("design.params → design.submit", () => {
     const slice = makeSlice();
     slice.setSubStep("design.params");
     slice.goToNextStep();
-    expect(slice.currentMajor).toBe("report");
-    expect(slice.currentSubStep).toBe("report.summary");
+    expect(slice.currentSubStep).toBe("design.submit");
   });
 
-  it("plate.layout → goToNextStep → export.all (next major)", () => {
+  it("design.submit → goToNextStep → output.summary (next major)", () => {
     const slice = makeSlice();
-    slice.setSubStep("plate.layout");
+    slice.setSubStep("design.submit");
+    slice.goToNextStep();
+    expect(slice.currentMajor).toBe("output");
+    expect(slice.currentSubStep).toBe("output.summary");
+  });
+
+  it("output.summary → goToNextStep → export.all (next major)", () => {
+    const slice = makeSlice();
+    slice.setSubStep("output.summary");
     slice.goToNextStep();
     expect(slice.currentMajor).toBe("export");
     expect(slice.currentSubStep).toBe("export.all");
@@ -230,7 +238,7 @@ describe("goToNextStep (E5)", () => {
   });
 });
 
-describe("goToPrevStep (E5)", () => {
+describe("goToPrevStep (Phase G)", () => {
   it("design.load → goToPrevStep → noop (first step)", () => {
     const slice = makeSlice();
     slice.setSubStep("design.load");
@@ -239,31 +247,31 @@ describe("goToPrevStep (E5)", () => {
     expect(slice.currentSubStep).toBe("design.load");
   });
 
-  it("design.variant → goToPrevStep → design.load", () => {
+  it("design.mutation → goToPrevStep → design.load", () => {
     const slice = makeSlice();
-    slice.setSubStep("design.variant");
+    slice.setSubStep("design.mutation");
     slice.goToPrevStep();
     expect(slice.currentSubStep).toBe("design.load");
   });
 
-  it("plate.layout → goToPrevStep → report.summary (prev major last step)", () => {
+  it("output.summary → goToPrevStep → design.submit (prev major last step)", () => {
     const slice = makeSlice();
-    slice.setSubStep("plate.layout");
+    slice.setSubStep("output.summary");
     slice.goToPrevStep();
-    expect(slice.currentMajor).toBe("report");
-    expect(slice.currentSubStep).toBe("report.summary");
+    expect(slice.currentMajor).toBe("design");
+    expect(slice.currentSubStep).toBe("design.submit");
   });
 
-  it("export.all → goToPrevStep → plate.layout (prev major last step)", () => {
+  it("export.all → goToPrevStep → output.summary (prev major last step)", () => {
     const slice = makeSlice();
     slice.setSubStep("export.all");
     slice.goToPrevStep();
-    expect(slice.currentMajor).toBe("plate");
-    expect(slice.currentSubStep).toBe("plate.layout");
+    expect(slice.currentMajor).toBe("output");
+    expect(slice.currentSubStep).toBe("output.summary");
   });
 });
 
-describe("canGoNext / canGoPrev (E5)", () => {
+describe("canGoNext / canGoPrev (Phase G)", () => {
   it("canGoNext is true at design.load", () => {
     const slice = makeSlice();
     slice.setSubStep("design.load");
@@ -282,15 +290,15 @@ describe("canGoNext / canGoPrev (E5)", () => {
     expect(slice.canGoPrev()).toBe(false);
   });
 
-  it("canGoPrev is true at design.variant", () => {
+  it("canGoPrev is true at design.mutation", () => {
     const slice = makeSlice();
-    slice.setSubStep("design.variant");
+    slice.setSubStep("design.mutation");
     expect(slice.canGoPrev()).toBe(true);
   });
 
-  it("canGoPrev is true at plate.layout", () => {
+  it("canGoPrev is true at output.summary", () => {
     const slice = makeSlice();
-    slice.setSubStep("plate.layout");
+    slice.setSubStep("output.summary");
     expect(slice.canGoPrev()).toBe(true);
   });
 });

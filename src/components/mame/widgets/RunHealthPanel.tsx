@@ -549,17 +549,41 @@ function CrossTalkAlerts({ candidates }: CrossTalkAlertsProps) {
 
 // ── Main panel component ──────────────────────────────────────────────────────
 
+export type RunHealthSection =
+  | "verdict-breakdown"
+  | "file-size"
+  | "throughput"
+  | "pore-yield"
+  | "barcode"
+  | "cross-talk";
+
+/** Sub-set presets for embedding inside other sub-steps. */
+export const RUN_HEALTH_VERDICT_SECTIONS: readonly RunHealthSection[] = [
+  "file-size",
+  "throughput",
+  "pore-yield",
+];
+export const RUN_HEALTH_PLATE_SECTIONS: readonly RunHealthSection[] = [
+  "verdict-breakdown",
+  "barcode",
+  "cross-talk",
+];
+
 interface RunHealthPanelProps {
   health: RunHealthData;
+  /** Filter which sections to render. Renders all sections when omitted. */
+  sections?: readonly RunHealthSection[];
   className?: string;
 }
 
-export function RunHealthPanel({ health, className }: RunHealthPanelProps) {
+export function RunHealthPanel({ health, sections, className }: RunHealthPanelProps) {
   const { t } = useTranslation();
   const hasMinKnow =
     health.pore_yield_pct !== null ||
     health.throughput_timeline !== null ||
     health.barcode_distribution !== null;
+
+  const show = (s: RunHealthSection) => sections === undefined || sections.includes(s);
 
   return (
     <div
@@ -568,53 +592,57 @@ export function RunHealthPanel({ health, className }: RunHealthPanelProps) {
       aria-label={t("mame.runHealth.panelAriaLabel")}
     >
       {/* Section 1: Verdict breakdown */}
-      <section aria-labelledby="vh-verdict-heading" className="flex flex-col gap-2">
-        <h3
-          id="vh-verdict-heading"
-          className="text-caption font-semibold uppercase tracking-widest text-muted-foreground"
-        >
-          {t("mame.runHealth.verdictBreakdown")}
-        </h3>
-        <Legend />
-        <VerdictBreakdown perPlate={health.per_plate_summary} />
-      </section>
+      {show("verdict-breakdown") && (
+        <section aria-labelledby="vh-verdict-heading" className="flex flex-col gap-2">
+          <h3
+            id="vh-verdict-heading"
+            className="text-caption font-semibold uppercase tracking-widest text-muted-foreground"
+          >
+            {t("mame.runHealth.verdictBreakdown")}
+          </h3>
+          <Legend />
+          <VerdictBreakdown perPlate={health.per_plate_summary} />
+        </section>
+      )}
 
       {/* Section 2: File size distribution */}
-      <section aria-labelledby="vh-dist-heading" className="flex flex-col gap-2">
-        <h3
-          id="vh-dist-heading"
-          className="text-caption font-semibold uppercase tracking-widest text-muted-foreground"
-        >
-          {t("mame.runHealth.fileSizeDistribution")}
-        </h3>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-muted-foreground">
-          <span>
-            {t("mame.runHealth.method")}:{" "}
-            <span className="font-medium text-foreground">{health.suggested_method}</span>
-          </span>
-          {health.bimodal && (
-            <span className="rounded-control border border-warning/40 px-1.5 py-0.5 text-warning">
-              {t("mame.runHealth.bimodalBadge")}
+      {show("file-size") && (
+        <section aria-labelledby="vh-dist-heading" className="flex flex-col gap-2">
+          <h3
+            id="vh-dist-heading"
+            className="text-caption font-semibold uppercase tracking-widest text-muted-foreground"
+          >
+            {t("mame.runHealth.fileSizeDistribution")}
+          </h3>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-muted-foreground">
+            <span>
+              {t("mame.runHealth.method")}:{" "}
+              <span className="font-medium text-foreground">{health.suggested_method}</span>
             </span>
+            {health.bimodal && (
+              <span className="rounded-control border border-warning/40 px-1.5 py-0.5 text-warning">
+                {t("mame.runHealth.bimodalBadge")}
+              </span>
+            )}
+          </div>
+          {Object.keys(health.file_size_distribution).length > 0 ? (
+            <FileSizeHistogram
+              distribution={health.file_size_distribution}
+              cutoffKb={health.suggested_cutoff_kb}
+              bimodal={health.bimodal}
+              method={health.suggested_method}
+            />
+          ) : (
+            <p className="text-caption text-muted-foreground">{t("mame.runHealth.noDistributionData")}</p>
           )}
-        </div>
-        {Object.keys(health.file_size_distribution).length > 0 ? (
-          <FileSizeHistogram
-            distribution={health.file_size_distribution}
-            cutoffKb={health.suggested_cutoff_kb}
-            bimodal={health.bimodal}
-            method={health.suggested_method}
-          />
-        ) : (
-          <p className="text-caption text-muted-foreground">{t("mame.runHealth.noDistributionData")}</p>
-        )}
-      </section>
+        </section>
+      )}
 
       {/* MinKNOW sections: rendered only when raw run data is available */}
       {hasMinKnow && (
         <>
           {/* Section 5: Pore yield */}
-          {health.pore_yield_pct !== null && (
+          {show("pore-yield") && health.pore_yield_pct !== null && (
             <section aria-labelledby="vh-pore-heading" className="flex flex-col gap-2">
               <h3
                 id="vh-pore-heading"
@@ -627,7 +655,7 @@ export function RunHealthPanel({ health, className }: RunHealthPanelProps) {
           )}
 
           {/* Section 4: Throughput timeline */}
-          {health.throughput_timeline !== null && health.throughput_timeline.length >= 2 && (
+          {show("throughput") && health.throughput_timeline !== null && health.throughput_timeline.length >= 2 && (
             <section aria-labelledby="vh-throughput-heading" className="flex flex-col gap-2">
               <h3
                 id="vh-throughput-heading"
@@ -640,7 +668,7 @@ export function RunHealthPanel({ health, className }: RunHealthPanelProps) {
           )}
 
           {/* Section 3: Barcode distribution */}
-          {health.barcode_distribution !== null &&
+          {show("barcode") && health.barcode_distribution !== null &&
             Object.keys(health.barcode_distribution).length > 0 && (
               <section
                 aria-labelledby="vh-barcode-heading"
@@ -659,20 +687,22 @@ export function RunHealthPanel({ health, className }: RunHealthPanelProps) {
       )}
 
       {/* Section 6: Cross-talk detection (A9) */}
-      <section
-        aria-labelledby="vh-crosstalk-heading"
-        className="col-span-full flex flex-col gap-2"
-      >
-        <h3
-          id="vh-crosstalk-heading"
-          className="text-caption font-semibold uppercase tracking-widest text-muted-foreground"
+      {show("cross-talk") && (
+        <section
+          aria-labelledby="vh-crosstalk-heading"
+          className="col-span-full flex flex-col gap-2"
         >
-          {t("mame.runHealth.crossTalkCandidates")}
-        </h3>
-        <CrossTalkAlerts candidates={health.cross_talk_candidates} />
-      </section>
+          <h3
+            id="vh-crosstalk-heading"
+            className="text-caption font-semibold uppercase tracking-widest text-muted-foreground"
+          >
+            {t("mame.runHealth.crossTalkCandidates")}
+          </h3>
+          <CrossTalkAlerts candidates={health.cross_talk_candidates} />
+        </section>
+      )}
 
-      {!hasMinKnow && (
+      {!hasMinKnow && sections === undefined && (
         <div className="col-span-full">
           <p className="text-caption text-muted-foreground">
             {t("mame.runHealth.noMinKnow")}

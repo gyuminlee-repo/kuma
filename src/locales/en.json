@@ -371,13 +371,11 @@
         "analyze": {
           "inputs": "Inputs",
           "verdict": "Verdicts",
-          "plate": "Plate Plan",
-          "health": "Run Health"
+          "plate": "Plate Plan"
         },
         "activity": {
           "ingest": "Ingest",
-          "merge": "Merge",
-          "export": "Export"
+          "mergeExport": "Merge & Export"
         }
       }
     },
@@ -1539,19 +1537,15 @@
   "phaseC": {
     "majors": {
       "design": "Design",
-      "plate": "Plate Map",
       "export": "Export",
-      "report": "Report"
+      "output": "Output"
     },
     "subSteps": {
       "design": {
         "load": "Load Variants",
-        "variant": "Pool Filters",
         "mutation": "Mutations",
-        "params": "Primer Parameters"
-      },
-      "plate": {
-        "layout": "Plate Map"
+        "params": "Primer Parameters",
+        "submit": "Pool Filters & Run"
       },
       "export": {
         "all": "Export",
@@ -1559,7 +1553,7 @@
         "summary": "Order summary",
         "workspace": "Workspace save"
       },
-      "report": {
+      "output": {
         "summary": "Summary"
       }
     },
@@ -1616,13 +1610,11 @@
       "analyze": {
         "inputs": "Inputs",
         "verdict": "Verdicts",
-        "plate": "Plate Plan",
-        "health": "Run Health"
+        "plate": "Plate Plan"
       },
       "activity": {
         "ingest": "Ingest Data",
-        "merge": "Merge",
-        "export": "Export"
+        "mergeExport": "Merge & Export"
       }
     }
   },
@@ -1636,15 +1628,12 @@
     "descriptions": {
       "design": {
         "load": "Upload an EVOLVEpro CSV or paste a protein sequence.",
-        "variant": "Configure variant pool filters.",
         "mutation": "Define mutations to include.",
-        "params": "Set primer design parameters and run."
+        "params": "Set primer design parameters and run.",
+        "submit": "Select variant pool filters, then run primer design."
       },
-      "plate": {
-        "layout": "Review primer plate layout and export all artifacts."
-      },
-      "report": {
-        "summary": "Review design results and statistics before plate mapping."
+      "output": {
+        "summary": "Review design results, statistics, and plate layout."
       }
     },
     "mameDescriptions": {
@@ -1655,14 +1644,12 @@
       },
       "analyze": {
         "inputs": "Set the input directory and analysis parameters, then run.",
-        "verdict": "Review per-well pass/fail verdicts and summary statistics.",
-        "plate": "Inspect the plate layout with barcode and variant assignments.",
-        "health": "Examine sequencing quality metrics for this run."
+        "verdict": "Review per-well pass/fail verdicts, summary statistics, and sequencing throughput metrics.",
+        "plate": "Inspect the plate layout with barcode and variant assignments, and per-plate health indicators."
       },
       "activity": {
         "ingest": "Upload activity CSV or Excel files and annotate the wild-type.",
-        "merge": "Merge activity data with genotype calls across replicates.",
-        "export": "Export the merged activity table for EVOLVEpro input."
+        "mergeExport": "Merge activity data with genotype calls, then export the merged table for EVOLVEpro input."
       }
     }
   },
@@ -1674,6 +1661,13 @@
       "plates": "Plates",
       "failed": "Failed",
       "rescued": "Rescued"
+    }
+  },
+  "wizardContainer": {
+    "validationDialog": {
+      "title": "Missing Information",
+      "description": "Please complete the following before continuing.",
+      "missingItemsLabel": "Missing items"
     }
   }
 }

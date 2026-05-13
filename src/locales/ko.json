@@ -371,13 +371,11 @@
         "analyze": {
           "inputs": "입력 설정",
           "verdict": "판정",
-          "plate": "플레이트 계획",
-          "health": "런 헬스"
+          "plate": "플레이트 계획"
         },
         "activity": {
           "ingest": "인제스트",
-          "merge": "병합",
-          "export": "내보내기"
+          "mergeExport": "병합 및 내보내기"
         }
       }
     },
@@ -1539,19 +1537,15 @@
   "phaseC": {
     "majors": {
       "design": "설계",
-      "plate": "플레이트 맵",
       "export": "내보내기",
-      "report": "리포트"
+      "output": "결과"
     },
     "subSteps": {
       "design": {
         "load": "변이체 로드",
-        "variant": "풀 필터",
         "mutation": "변이",
-        "params": "프라이머 파라미터"
-      },
-      "plate": {
-        "layout": "플레이트 맵"
+        "params": "프라이머 파라미터",
+        "submit": "풀 필터 및 실행"
       },
       "export": {
         "all": "내보내기",
@@ -1559,7 +1553,7 @@
         "summary": "주문 요약",
         "workspace": "워크스페이스 저장"
       },
-      "report": {
+      "output": {
         "summary": "요약"
       }
     },
@@ -1616,13 +1610,11 @@
       "analyze": {
         "inputs": "입력",
         "verdict": "판정 결과",
-        "plate": "플레이트 계획",
-        "health": "런 품질"
+        "plate": "플레이트 계획"
       },
       "activity": {
         "ingest": "데이터 수집",
-        "merge": "병합",
-        "export": "내보내기"
+        "mergeExport": "병합 및 내보내기"
       }
     }
   },
@@ -1636,15 +1628,12 @@
     "descriptions": {
       "design": {
         "load": "EVOLVEpro CSV를 업로드하거나 단백질 시퀀스를 붙여넣으세요.",
-        "variant": "변이체 풀 필터를 설정하세요.",
         "mutation": "포함할 변이를 정의하세요.",
-        "params": "프라이머 설계 파라미터를 설정하고 실행하세요."
+        "params": "프라이머 설계 파라미터를 설정하고 실행하세요.",
+        "submit": "변이체 풀 필터를 선택한 후 프라이머 설계를 실행합니다."
       },
-      "plate": {
-        "layout": "프라이머 플레이트 레이아웃을 확인하고 전체 결과를 내보내세요."
-      },
-      "report": {
-        "summary": "플레이트 매핑 전 설계 결과와 통계를 확인하세요."
+      "output": {
+        "summary": "설계 결과, 통계, 플레이트 레이아웃을 확인합니다."
       }
     },
     "mameDescriptions": {
@@ -1655,14 +1644,12 @@
       },
       "analyze": {
         "inputs": "입력 디렉토리와 분석 파라미터를 설정한 뒤 실행하세요.",
-        "verdict": "웰별 통과/실패 판정 및 요약 통계를 확인하세요.",
-        "plate": "바코드 및 변이체가 할당된 플레이트 레이아웃을 검사하세요.",
-        "health": "이번 런의 시퀀싱 품질 지표를 확인하세요."
+        "verdict": "웰별 통과/실패 판정, 요약 통계, 시퀀싱 처리량 지표를 확인하세요.",
+        "plate": "바코드 및 변이체가 할당된 플레이트 레이아웃과 플레이트별 품질 지표를 검사하세요."
       },
       "activity": {
         "ingest": "활성도 CSV 또는 Excel 파일을 업로드하고 야생형을 어노테이션하세요.",
-        "merge": "레플리케이트 간 활성도 데이터와 유전형 정보를 병합하세요.",
-        "export": "EVOLVEpro 입력용 병합 활성도 테이블을 내보내세요."
+        "mergeExport": "레플리케이트 간 활성도 데이터와 유전형 정보를 병합한 뒤 EVOLVEpro 입력용으로 내보내세요."
       }
     }
   },
@@ -1674,6 +1661,13 @@
       "plates": "플레이트",
       "failed": "실패",
       "rescued": "복구됨"
+    }
+  },
+  "wizardContainer": {
+    "validationDialog": {
+      "title": "필수 입력 누락",
+      "description": "계속하기 전에 다음 항목을 완료해 주세요.",
+      "missingItemsLabel": "누락 항목"
     }
   }
 }
