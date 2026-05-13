@@ -33,6 +33,12 @@ export function autoDetectCdsCandidates(content: string): CdsCandidate[] {
 
 /**
  * Backward-compatible single result. Returns the first candidate or null.
+ *
+ * Note: FASTA ORF results are subject to MIN_AA_LENGTH (30 aa) filtering,
+ * which means very short ORFs that the old implementation would have returned
+ * are now filtered out. GenBank CDS features are returned regardless of length.
+ * Existing callers in this codebase have all migrated to autoDetectCdsCandidates;
+ * this wrapper is retained for potential external use.
  */
 export function autoDetectCds(content: string): CdsCoords | null {
   const candidates = autoDetectCdsCandidates(content);
