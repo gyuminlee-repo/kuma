@@ -483,6 +483,23 @@
         "helperText": "Отчёт анализа использует KURO-style rule-based имя файла .xlsx",
         "helpText": "Папка, куда сохраняется Excel с результатом анализа. Имя файла генерируется автоматически по правилам KURO-style, объединяя дату, токены reference/input, MAME target и токены количества результатов."
       }
+    },
+    "janusDeck": {
+      "title": "JANUS Deck Layout",
+      "ariaLabel": "JANUS deck layout preview",
+      "deckImageAriaLabel": "JANUS deck slot positions: top row tip flush, source plates P1 P2 P3; bottom row waste, two blank slots, final 96 deep well",
+      "headFixedNote": "Head position fixed",
+      "aspDspNote": "Aspirate position = Dispense position (same coordinate).",
+      "matchByNameNote": "JANUS software matches plates by name; deck slot positions shown here are the conventional layout.",
+      "slot": {
+        "tipFlush": "Tip Flush",
+        "p1": "Stock Plate P1",
+        "p2": "Stock Plate P2",
+        "p3": "Stock Plate P3",
+        "waste": "Waste",
+        "blank": "Blank",
+        "final": "Final 96 Deep Well"
+      }
     }
   },
   "home": {

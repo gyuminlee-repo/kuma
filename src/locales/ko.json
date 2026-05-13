@@ -483,6 +483,23 @@
         "helperText": "분석 보고서는 KURO 방식의 규칙 기반 .xlsx 파일명을 사용합니다",
         "helpText": "분석 결과 Excel이 저장될 폴더입니다. 파일명은 날짜, 참조/입력 토큰, MAME 대상, 결과 수 토큰을 조합한 KURO 방식으로 자동 생성됩니다."
       }
+    },
+    "janusDeck": {
+      "title": "JANUS 데크 레이아웃",
+      "ariaLabel": "JANUS 데크 레이아웃 미리보기",
+      "deckImageAriaLabel": "JANUS 데크 슬롯 위치: 상단 팁 플러시, 소스 플레이트 P1 P2 P3; 하단 폐기물, 빈 슬롯 두 개, 최종 96 deep well",
+      "headFixedNote": "Head 위치 고정",
+      "aspDspNote": "Asp. Position = Dsp. Position (동일 좌표).",
+      "matchByNameNote": "JANUS 소프트웨어는 plate name 기반으로 매칭. 여기 표시된 데크 슬롯 위치는 관행적 배치.",
+      "slot": {
+        "tipFlush": "Tip Flush",
+        "p1": "Stock Plate P1",
+        "p2": "Stock Plate P2",
+        "p3": "Stock Plate P3",
+        "waste": "폐기물",
+        "blank": "빈 슬롯",
+        "final": "최종 96 Deep Well"
+      }
     }
   },
   "home": {
