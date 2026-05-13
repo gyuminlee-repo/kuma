@@ -528,6 +528,35 @@ export interface RpcMethodMap {
     params: RpcParams & { bom?: boolean };
     result: ExportMappingResult;
   };
+  export_macrogen: {
+    params: {
+      project_id?: string;
+      output_path: string;
+      fwd_plate_name?: string;
+      rev_plate_name?: string;
+      amount?: "0.05" | "0.2";
+      purification?: "MOPC";
+    };
+    result: { ok: true; path: string };
+  };
+  export_all: {
+    params: {
+      project_id?: string;
+      output_dir: string;
+      fwd_plate_name?: string;
+      rev_plate_name?: string;
+      amount?: "0.05" | "0.2";
+      purification?: "MOPC";
+      echo_transfer_vol?: number;
+      janus_transfer_vol?: number;
+      bom?: boolean;
+    };
+    result: {
+      success: string[];
+      failed: { path: string; reason: string }[];
+      output_dir: string;
+    };
+  };
   export_benchmark_csv: {
     params: { filepath: string; results: Record<string, BenchmarkResult>; bom?: boolean };
     result: ExportResult;

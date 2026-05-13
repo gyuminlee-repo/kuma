@@ -727,6 +727,15 @@ const rpcResultValidators = {
     isExportOrderResult(value),
   export_mapping: (value): value is RpcMethodResult<"export_mapping"> =>
     isExportMappingResult(value),
+  export_macrogen: (value): value is RpcMethodResult<"export_macrogen"> =>
+    typeof value === "object" && value !== null &&
+    (value as { ok?: unknown }).ok === true &&
+    typeof (value as { path?: unknown }).path === "string",
+  export_all: (value): value is RpcMethodResult<"export_all"> =>
+    typeof value === "object" && value !== null &&
+    Array.isArray((value as { success?: unknown }).success) &&
+    Array.isArray((value as { failed?: unknown }).failed) &&
+    typeof (value as { output_dir?: unknown }).output_dir === "string",
   export_benchmark_csv: (value): value is RpcMethodResult<"export_benchmark_csv"> =>
     isExportResult(value),
   evaluate_primer: (value): value is RpcMethodResult<"evaluate_primer"> =>
