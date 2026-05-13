@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { JanusDeckPreview } from "@/components/mame/widgets/JanusDeckPreview";
 import { buildJanusDefaultPath, handleExportMameJanusMapping } from "@/lib/mame/janus";
 import type { JanusExportFormat } from "@/types/mame/models";
 
@@ -100,6 +101,9 @@ export function JanusMappingDialog({ open, onOpenChange }: JanusMappingDialogPro
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Deck preview (PI hmk4 slide 5) */}
+          <JanusDeckPreview />
+
           {/* Format selection */}
           <fieldset className="space-y-1.5">
             <legend className="text-xs font-medium text-muted-foreground">
