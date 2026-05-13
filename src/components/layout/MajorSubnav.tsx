@@ -63,13 +63,12 @@ export function MajorSubnav({ majors }: MajorSubnavProps) {
           value={currentMajor}
           onValueChange={(v) => setMajor(v as MajorStepId)}
         >
-          <TabsList className="shrink-0 w-fit h-9 gap-0 bg-transparent p-0 rounded-none">
+          <TabsList className="shrink-0 mx-3 mt-2 w-fit">
             {majors.map((m) => (
               <TabsTrigger
                 key={m.id}
                 value={m.id}
                 data-major-tab={m.id}
-                className="relative flex items-center gap-1.5 rounded-none border-b-2 border-transparent px-3 py-1.5 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-foreground data-[state=inactive]:text-muted-foreground"
               >
                 <span>{t(m.labelKey)}</span>
                 {m.countBadge !== undefined && (

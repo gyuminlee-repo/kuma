@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "../ui/button";
+import { localeIsKorean } from "../../lib/localeUtils";
 import {
   Dialog,
   DialogContent,
@@ -38,7 +39,7 @@ export function MappingExportDialog({
   const [format, setFormat] = useState<"echo" | "janus">(initialFormat);
   const cfg = FORMAT_DEFAULTS[format];
   const [transferVol, setTransferVol] = useState<number>(cfg.transferVol);
-  const [bom, setBom] = useState<boolean>(false);
+  const [bom, setBom] = useState<boolean>(localeIsKorean());
 
   // Apply initial format when opened; reset transferVol when format changes.
   useEffect(() => {

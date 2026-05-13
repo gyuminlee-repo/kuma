@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { Toaster } from "sonner";
+import { toast, Toaster } from "sonner";
 import { getConfig, loadProject, type Config } from "./lib/project";
 import { MainShell } from "./screens/MainShell";
 import { Home } from "./screens/Home";
 import { Onboarding } from "./screens/Onboarding";
 import { ProjectProvider, type KumaProject } from "./state/projectContext";
 import { initTheme } from "./components/ui/ThemeToggle";
+import i18n from "./lib/i18n";
 
 // React 마운트 이전에 즉시 실행 — FOUC(플래시) 방지
 initTheme();
@@ -25,6 +26,18 @@ export function App() {
   const [prevScreen, setPrevScreen] = useState<AppScreen>("home");
   const [config, setConfig] = useState<Config | null>(null);
   const [project, setProject] = useState<KumaProject>(null);
+
+  // #4-1 첫 실행 maximize toast: localStorage 플래그가 없으면 toast 한 번 표시 후 플래그 set.
+  useEffect(() => {
+    const FLAG_KEY = "kuma.onboarding.maximizeShown";
+    if (!localStorage.getItem(FLAG_KEY)) {
+      // Sonner는 DOM mount 직후 바로 호출 가능. 언어 초기화 완료 후 렌더되도록 requestAnimationFrame 사용.
+      requestAnimationFrame(() => {
+        toast.info(i18n.t("onboarding.maximizeHint"), { duration: 6000 });
+      });
+      localStorage.setItem(FLAG_KEY, "1");
+    }
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
