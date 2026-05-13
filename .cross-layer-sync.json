@@ -257,10 +257,31 @@
     },
     {
       "id": "mame-phase-tabs",
-      "files": ["src/store/mame/slices/phaseSlice.ts", "src/components/mame/layout/MameAppLayout.tsx", "src/components/mame/panels/ActivityPanel.tsx"],
-      "symbols": ["MamePhase", "ActivityTab", "TabsTrigger", "TabsContent"],
-      "note": "MamePhase·ActivityTab enum ↔ MameAppLayout TabsTrigger values ↔ ActivityPanel sub-tab values. phase 추가 시 TabsContent 블록도 추가",
+      "files": ["src/store/mame/slices/phaseSlice.ts", "src/store/mame/slices/mameSubSteps.ts", "src/store/mame/slices/navigationSlice.ts", "src/components/mame/layout/MameAppLayout.tsx", "src/components/mame/panels/ActivityPanel.tsx", "src/components/mame/steps/SetupStepView.tsx", "src/components/mame/steps/AnalyzeStepView.tsx", "src/components/mame/steps/ActivityStepView.tsx"],
+      "symbols": ["MamePhase", "ActivityTab", "MameSubStepId", "MAME_SUBSTEP_ORDER", "TabsTrigger", "TabsContent"],
+      "note": "MamePhase·ActivityTab·MameSubStepId enum ↔ MameAppLayout TabsTrigger values ↔ ActivityPanel sub-tab values ↔ StepView dispatcher. phase 추가 시 sub-step + TabsContent + StepView 동시 추가",
       "severity": "blocking"
+    },
+    {
+      "id": "kuro-major-substep-i18n",
+      "files": ["src/store/slices/navigationSlice.ts", "src/locales/en.json", "src/locales/ko.json"],
+      "symbols": ["MajorStepId", "SubStepId", "MAJOR_ORDER", "SUBSTEP_ORDER", "phaseC", "phaseE"],
+      "note": "kuro navigationSlice union 타입 ↔ i18n phaseC.majors/subSteps/phaseE.descriptions 키 1:1. 신규 major/sub-step 추가 시 en+ko 동시 갱신 (D1.1 false positive 재발 방지)",
+      "severity": "blocking"
+    },
+    {
+      "id": "mame-major-substep-i18n",
+      "files": ["src/store/mame/slices/mameSubSteps.ts", "src/store/mame/slices/navigationSlice.ts", "src/locales/en.json", "src/locales/ko.json"],
+      "symbols": ["MameSubStepId", "MAME_SUBSTEP_ORDER", "mameSubSteps", "mameDescriptions"],
+      "note": "mame sub-step union ↔ i18n mame.subSteps/phaseE.mameDescriptions 키. setMamePhase에서 sub-step 자동 리셋이라 phase 추가 시 sub-step + i18n 동시 추가",
+      "severity": "blocking"
+    },
+    {
+      "id": "plate-export-handlers",
+      "files": ["src/components/layout/export-handlers.ts", "src/components/steps/PlateStepView.tsx"],
+      "symbols": ["handleExportAll", "handleExportMappingWithParams"],
+      "note": "export-handlers 시그니처 ↔ PlateStepView 호출. Phase F에서 PlateMap 호출 제거됨",
+      "severity": "warning"
     },
     {
       "id": "mame-context",
