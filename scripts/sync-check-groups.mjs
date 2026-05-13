@@ -4,8 +4,8 @@
 // upstream refresh path. Reads .cross-layer-sync.json groups[] and reports drift.
 //
 // Severity:
-//   blocking — drift => exit 1 (CI fail)
-//   warning  — drift => exit 0 with WARN log (CI pass)
+//   blocking: drift => exit 1 (CI fail)
+//   warning : drift => exit 0 with WARN log (CI pass)
 //
 // Run via `pnpm sync:check` (package.json chains this after sync-check.mjs).
 
@@ -83,7 +83,8 @@ for (const g of groups) {
   ids.add(g.id);
 
   let groupOk = true;
-  for (const pat of g.files ?? []) {
+  const fileList = (g.files ?? []).filter((f) => typeof f === "string" && f.length > 0);
+  for (const pat of fileList) {
     if (isGlob(pat)) {
       const matcher = picomatch(pat, { dot: true });
       if (!allFiles.some((f) => matcher(f))) {
@@ -98,7 +99,7 @@ for (const g of groups) {
 
   if (g.symbols?.length && sev === "blocking") {
     const sourcesConcat = (g.files ?? [])
-      .filter((pat) => !isGlob(pat))
+      .filter((pat) => typeof pat === "string" && !isGlob(pat))
       .map((pat) => path.join(ROOT, pat))
       .filter((full) => fs.existsSync(full))
       .filter((full) => {
@@ -109,7 +110,9 @@ for (const g of groups) {
       })
       .join("\n");
     for (const sym of g.symbols) {
-      if (!sourcesConcat.includes(sym)) {
+      const escaped = sym.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const re = new RegExp(`\\b${escaped}\\b`);
+      if (!re.test(sourcesConcat)) {
         record("groups-validity", `symbol "${sym}" missing across all files in group ${g.id}`);
         groupOk = false;
       }
