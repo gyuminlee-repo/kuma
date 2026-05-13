@@ -282,6 +282,20 @@
       "symbols": ["MameContext", "custom_barcodes_path", "reference_path", "sample_map_template_path"],
       "note": "mame_context.json 스키마 ↔ TS MameContext interface ↔ detectProjectFiles field mapping. 스키마 버전 bump 시 마이그레이션 로직 필요",
       "severity": "blocking"
+    },
+    {
+      "id": "macrogen-export-flow",
+      "files": [
+        "src/components/layout/export-handlers.ts",
+        "python-core/sidecar_kuro/handlers/export.py",
+        "python-core/sidecar_kuro/models.py",
+        "kuma_core/kuro/plate_mapper.py",
+        "src/types/models.ts",
+        "src/types/validators.ts"
+      ],
+      "symbols": ["export_macrogen", "export_all", "ExportMacrogenParams", "ExportAllParams", "export_macrogen_xls", "handleExportAll", "handleExportMacrogen"],
+      "note": "Export All UI 핸들러 ↔ TS RpcMethodMap/validators ↔ sidecar handler + Pydantic 모델 ↔ kuro exporter 정합성 (spec 2026-05-13)",
+      "severity": "blocking"
     }
   ]
 }
