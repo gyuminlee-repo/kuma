@@ -1,5 +1,11 @@
 import type { DragEventHandler, ReactNode, RefObject } from "react";
 import { cn } from "@/lib/utils";
+import { useLayoutStore } from "@/store/layoutStore";
+import { ResizeHandle } from "./ResizeHandle";
+
+/** Min/max sidebar width constants (spec §15.5). */
+const SIDEBAR_MIN = 180;
+const SIDEBAR_MAX = 480;
 
 type AppShellProps = {
   tool: "kuro" | "mame";
@@ -23,6 +29,11 @@ type AppShellProps = {
   className?: string;
   /** dialog, toast 등 absolute-positioned overlay. 형제 위치로 마운트. */
   children?: ReactNode;
+  /**
+   * 드래그 리사이즈 핸들 비활성화. 기본값 false.
+   * mame PlateView 우측 aside 등 리사이즈 불필요한 슬롯에 사용 (spec §15.3).
+   */
+  disableResize?: boolean;
 };
 
 /**
@@ -47,8 +58,12 @@ export function AppShell({
   isDragOver,
   className,
   children,
+  disableResize = false,
   ...handlers
 }: AppShellProps) {
+  const sidebarWidth = useLayoutStore((s) => s.sidebarWidth ?? s.computedDefault);
+  const setSidebarWidth = useLayoutStore((s) => s.setSidebarWidth);
+
   return (
     <div
       ref={rootRef}
@@ -74,9 +89,18 @@ export function AppShell({
         {sidebar != null && (
           <aside
             data-testid="sidebar"
-            className="flex shrink-0 flex-col border-r border-border bg-card"
+            style={{ width: sidebarWidth }}
+            className="relative flex shrink-0 flex-col overflow-x-hidden border-r border-border bg-card"
           >
             {sidebar}
+            {!disableResize && (
+              <ResizeHandle
+                width={sidebarWidth}
+                min={SIDEBAR_MIN}
+                max={SIDEBAR_MAX}
+                onResize={setSidebarWidth}
+              />
+            )}
           </aside>
         )}
         <main
