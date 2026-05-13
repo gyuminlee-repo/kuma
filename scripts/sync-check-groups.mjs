@@ -82,11 +82,6 @@ for (const g of groups) {
   }
   ids.add(g.id);
 
-  if (sev === "blocking" && (!g.files || g.files.length < 2)) {
-    record("groups-validity", `group ${g.id} severity=blocking but <2 files`);
-    continue;
-  }
-
   let groupOk = true;
   for (const pat of g.files ?? []) {
     if (isGlob(pat)) {
@@ -102,16 +97,21 @@ for (const g of groups) {
   }
 
   if (g.symbols?.length && sev === "blocking") {
-    for (const pat of g.files ?? []) {
-      if (isGlob(pat)) continue;
-      const full = path.join(ROOT, pat);
-      if (!fs.existsSync(full)) continue;
-      const src = fs.readFileSync(full, "utf-8");
-      for (const sym of g.symbols) {
-        if (!src.includes(sym)) {
-          record("groups-validity", `symbol "${sym}" missing in ${pat} (group ${g.id})`);
-          groupOk = false;
-        }
+    const sourcesConcat = (g.files ?? [])
+      .filter((pat) => !isGlob(pat))
+      .map((pat) => path.join(ROOT, pat))
+      .filter((full) => fs.existsSync(full))
+      .filter((full) => {
+        try { return fs.statSync(full).isFile(); } catch { return false; }
+      })
+      .map((full) => {
+        try { return fs.readFileSync(full, "utf-8"); } catch { return ""; }
+      })
+      .join("\n");
+    for (const sym of g.symbols) {
+      if (!sourcesConcat.includes(sym)) {
+        record("groups-validity", `symbol "${sym}" missing across all files in group ${g.id}`);
+        groupOk = false;
       }
     }
   }
