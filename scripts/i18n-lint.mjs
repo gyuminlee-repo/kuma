@@ -19,6 +19,8 @@ const LINE_COMMENT = /^\s*(\/\/|\*|\/\*)/;
 
 const ALLOWLIST = {
   "src/components/ui/LocaleToggle.tsx": new Set([20]),
+  // 한국어 주석 — JSX comment이므로 i18n 처리 불필요
+  "src/components/mame/panels/BarcodeSetupPanel.tsx": new Set([276, 277]),
 };
 
 function walk(dir, out = []) {

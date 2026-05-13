@@ -29,6 +29,7 @@ import { PreflightDialog } from "@/components/dialogs/PreflightDialog";
 import { OverwriteConfirmDialog } from "@/components/dialogs/OverwriteConfirmDialog";
 import { runPreflightCheck } from "@/lib/preflight";
 import type { PreflightResult } from "@/lib/preflight";
+import { useMainZoom } from "@/hooks/useMainZoom";
 import { MenuBar } from "./MenuBar";
 import { WhatsNewDialog } from "@/components/dialogs/WhatsNewDialog";
 import { StatusBar } from "./StatusBar";
@@ -71,6 +72,8 @@ function getMameSubSteps(phase: "setup" | "analyze" | "activity"): SubNavItem[] 
 export function MameAppLayout() {
   const { t } = useTranslation();
   const project = useKumaProject();
+  // F3: kuro와 동일한 localStorage "kuma.mainZoom" 공유 — Ctrl+wheel / Ctrl+=/−/0
+  const zoom = useMainZoom();
   const { status, retry } = useMameSidecar();
   const clearResults = useMameAppStore((s) => s.clearResults);
   const runHealth = useMameAppStore((s) => s.runHealth);
@@ -264,7 +267,11 @@ export function MameAppLayout() {
           />
         }
         main={
-          <>
+          <div
+            id="major-step-main"
+            className="flex flex-col flex-1 min-h-0 min-w-0 overflow-hidden"
+            style={{ zoom }}
+          >
             {/* Phase 1: Barcode Setup */}
             <TabsContent value="setup" className="flex-1 min-h-0 overflow-hidden mt-0">
               <SetupStepView />
@@ -283,7 +290,7 @@ export function MameAppLayout() {
             <TabsContent value="activity" className="flex-1 min-h-0 overflow-hidden mt-0">
               <ActivityStepView />
             </TabsContent>
-          </>
+          </div>
         }
         statusbar={<StatusBar sidecarStatus={status} onRetry={retry} />}
         isDragOver={isDragOver}
