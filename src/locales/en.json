@@ -1365,8 +1365,6 @@
   },
   "activityUpload": {
     "panelAriaLabel": "Activity data upload",
-    "formatLabel": "Format",
-    "formatAriaLabel": "Activity file format",
     "uploadingAriaLabel": "Uploading activity data...",
     "browseAriaLabel": "Browse & Upload activity file",
     "uploadingBtn": "Uploading...",
@@ -1628,6 +1626,9 @@
       },
       "output": {
         "summary": "Review design results, statistics, and plate layout."
+      },
+      "export": {
+        "all": "Export primer orders to IDT/Twist CSV or FASTA."
       }
     },
     "mameDescriptions": {

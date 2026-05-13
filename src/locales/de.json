@@ -1365,8 +1365,6 @@
   },
   "activityUpload": {
     "panelAriaLabel": "Activity-Daten-Upload",
-    "formatLabel": "Format",
-    "formatAriaLabel": "Activity Datei Format",
     "uploadingAriaLabel": "Uploading Activity data...",
     "browseAriaLabel": "Durchsuchen & Upload Activity Datei",
     "uploadingBtn": "Lade hoch...",
@@ -1628,6 +1626,9 @@
       },
       "output": {
         "summary": "Review design results, statistics, und Platte layout."
+      },
+      "export": {
+        "all": "Primer-Bestellungen als IDT/Twist CSV oder FASTA exportieren."
       }
     },
     "mameDescriptions": {

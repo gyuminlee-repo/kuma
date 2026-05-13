@@ -1365,8 +1365,6 @@
   },
   "activityUpload": {
     "panelAriaLabel": "Activity 数据上传",
-    "formatLabel": "格式",
-    "formatAriaLabel": "Activity 文件格式",
     "uploadingAriaLabel": "正在上传 activity 数据...",
     "browseAriaLabel": "浏览并上传 activity 文件",
     "uploadingBtn": "上传中...",
@@ -1628,6 +1626,9 @@
       },
       "output": {
         "summary": "查看设计结果、统计数据和板布局。"
+      },
+      "export": {
+        "all": "将 primer 订单导出为 IDT/Twist CSV 或 FASTA。"
       }
     },
     "mameDescriptions": {

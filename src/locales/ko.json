@@ -1365,8 +1365,6 @@
   },
   "activityUpload": {
     "panelAriaLabel": "Activity 데이터 업로드",
-    "formatLabel": "형식",
-    "formatAriaLabel": "Activity 파일 형식",
     "uploadingAriaLabel": "Activity 데이터 업로드 중...",
     "browseAriaLabel": "Activity 파일 찾아보기 및 업로드",
     "uploadingBtn": "업로드 중...",
@@ -1628,6 +1626,9 @@
       },
       "output": {
         "summary": "설계 결과, 통계, 플레이트 레이아웃을 확인합니다."
+      },
+      "export": {
+        "all": "프라이머 주문서를 IDT/Twist CSV 또는 FASTA로 내보냅니다."
       }
     },
     "mameDescriptions": {

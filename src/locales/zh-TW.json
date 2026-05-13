@@ -1365,8 +1365,6 @@
   },
   "activityUpload": {
     "panelAriaLabel": "Activity 資料上傳",
-    "formatLabel": "格式",
-    "formatAriaLabel": "Activity 檔案格式",
     "uploadingAriaLabel": "正在上傳 activity 資料...",
     "browseAriaLabel": "瀏覽並上傳 activity 檔案",
     "uploadingBtn": "上傳中...",
@@ -1628,6 +1626,9 @@
       },
       "output": {
         "summary": "查看設計結果、統計資料和板佈局。"
+      },
+      "export": {
+        "all": "將 primer 訂單匯出為 IDT/Twist CSV 或 FASTA。"
       }
     },
     "mameDescriptions": {

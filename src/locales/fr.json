@@ -1365,8 +1365,6 @@
   },
   "activityUpload": {
     "panelAriaLabel": "Téléversement de données d'activity",
-    "formatLabel": "Format",
-    "formatAriaLabel": "Format de fichier d'activity",
     "uploadingAriaLabel": "Téléversement des données d'activity...",
     "browseAriaLabel": "Parcourir et téléverser le fichier d'activity",
     "uploadingBtn": "Téléversement...",
@@ -1628,6 +1626,9 @@
       },
       "output": {
         "summary": "Examinez les résultats de conception, les statistiques et la disposition de la plaque."
+      },
+      "export": {
+        "all": "Exportez les commandes de primers en CSV IDT/Twist ou FASTA."
       }
     },
     "mameDescriptions": {

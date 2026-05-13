@@ -1365,8 +1365,6 @@
   },
   "activityUpload": {
     "panelAriaLabel": "Загрузка данных активности",
-    "formatLabel": "Формат",
-    "formatAriaLabel": "Формат файла активности",
     "uploadingAriaLabel": "Загрузка данных активности...",
     "browseAriaLabel": "Выбрать и загрузить файл активности",
     "uploadingBtn": "Загрузка...",
@@ -1628,6 +1626,9 @@
       },
       "output": {
         "summary": "Просмотрите результаты design, статистику и layout plate."
+      },
+      "export": {
+        "all": "Экспортируйте заказы primer в CSV IDT/Twist или FASTA."
       }
     },
     "mameDescriptions": {
