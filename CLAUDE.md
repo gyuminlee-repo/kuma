@@ -72,51 +72,25 @@ python -m pytest tests/test_sdm_engine.py::test_name  # Single test
 
 ## Cross-layer Change Checklist
 
-> Automated by **`cross-layer-sync` skill** (vendored from claude-dotfiles into `scripts/`). Config: `.cross-layer-sync.json`. Commands: `pnpm sync:check`, `pnpm gen:models`, `pnpm gen:models:check`. CI runs `node scripts/sync-check.mjs` in `frontend-typecheck`. Reports drift only.
->
-> Active checks: 3-way version sync, tauri.conf resources existence, kuro dispatcher ↔ `RpcMethodMap` registry match, Pydantic→TS generated file freshness.
->
-> **Extend**: edit `.cross-layer-sync.json` `checks[]`. Refresh vendored scripts via `node <dotfiles>/skills/cross-layer-sync/init.mjs --force` (config preserved).
->
-> **Pydantic → TS**: `pnpm gen:models` regenerates `src/types/models.generated.ts` from `python-core/sidecar_kuro/models.py`. Hand-written `src/types/models.ts` is **not** replaced (owns `RpcMethodMap`, validators, hand-curated names). Generated file ships as mirror; drift fails CI.
+cross-layer 의존은 **`.cross-layer-sync.json` `groups[]`** 로 관리. 단일 source-of-truth.
 
+**자동 인지**: 파일 Edit·Write·MultiEdit 시 PostToolUse hook (`scripts/kuma-deps-notify.mjs`) 이 변경 파일이 속한 그룹의 다른 파일을 stdout으로 보고 → Claude 다음 턴 컨텍스트 주입. 매칭 0건 무음.
 
-| Changed file | Also check |
-|---|---|
-| `kuro/evolvepro.py` VARIANT_COLUMNS / SCORE_COLUMNS | `fixtures/` CSV column names match |
-| `kuro/evolvepro.py`, `python-core/sidecar/models.py` | Re-run `fixtures/generate_sample_data.py` |
-| `src/types/models.ts` (TS interfaces) | `python-core/sidecar/models.py` (Pydantic models) stay in sync |
-| `src-tauri/samples/` new file | Add explicit mapping in `tauri.conf.json` resources (no glob `**`) |
-| `src/store/slices/inputSlice.ts` `loadSampleData` | `src-tauri/samples/` referenced files exist |
-| `python-core/sidecar/handlers/design.py` rescue constants | `_DEFAULT_TOL_MAX` must match `design_single_sdm()` default `tol_max` |
-| `src/store/slices/inputSlice.ts` `excluded_ranges` | `python-core/sidecar/models.py` `ExcludedRange` + `kuro/evolvepro.py` `excluded_ranges` param stay in sync |
-| `src/types/models.ts` `RescueStats` / `RescuedMutation` | `python-core/sidecar/handlers/design.py` `rescue_stats` / `rescued_info` dict keys stay in sync |
-| `src/types/mame/activity.ts` (TS interfaces) | `kuma_core/mame/activity/models.py` Pydantic models stay in sync (`ActivityRecord`, `MergedRow`, `MergeStats`, `PlateMeta`) |
-| `src/types/round.ts` `Round` interface | `kuma_core/mame/activity/round.py:Round` Pydantic model stay in sync (status enum, field names) |
-| `fixtures/activity_demo/generate.py` seed data | `kuma_core/mame/activity/models.py:ActivityRecord` column names match CSV header |
-| `python-core/sidecar_mame/handlers/activity.py` RPC params | `kuma_core/mame/activity/` module API (ingest_long_csv, merge_activity_with_genotype, export_evolvepro_csv) |
-| `src/store/slices/exportSlice.ts` `getWorkspaceSnapshot` | `Round` entity serialisation includes `rounds` array + `active_round_id` (schema_version 0.3) |
-| `src/store/slices/inputSlice.ts` `loadRoundActivity` | `kuro/evolvepro.py` VARIANT_COLUMNS must accept `variant`, `y_pred`, `round_n` from activity export CSV |
-| `kuma_core/mame/activity/models.py` `MergedRow.activity_merged_mean` | `src/types/mame/activity.ts:MergedRow` field stays in sync (Phase B) |
-| `python-core/sidecar_mame/handlers/activity.py:handle_merge_for_evolvepro` params | `src/types/mame/activity.ts:MergeForEvolveproParams`/`MergeForEvolveproResponse` + `src/store/mame/activitySlice.ts:mergeForEvolvepro` action |
-| `kuma_core/mame/activity/ref_seq.py:DEFAULT_ISPS_CDS_PATH` | `fixtures/ispS.fa` exists and contains a coding-frame nucleotide sequence (auto-load fallback for `ref_seq`) |
-| `kuma_core/mame/activity/merge.py:merge_replicates_priority` | `kuma_core/mame/activity/normalize.py:WT_PATTERN` + handler `_is_wt_key` keep WT keys out of variant-priority merge |
-| `kuma_core/mame/ingest/sort_barcode.py` `sort_barcode_run` params/return | `python-core/sidecar_mame/handlers/sort_barcode.py` handler dict + `src/types/mame/sort_barcode.ts` interfaces stay in sync |
-| `kuma_core/mame/ingest/sort_barcode.py` `parse_combinatorial_barcodes` xlsx schema (isps_f_/isps_r_  prefix) | `barcodes sequence.xlsx` or equivalent fixture format must remain consistent |
-| `python-core/sidecar_mame/dispatcher.py` `_METHODS` `sort_barcode_run` registration | RPC method name must match frontend IPC call site |
-| `kuma_core/shared/sidecar.py` (`JsonRpcWriter`, `append_crash_log`, `ensure_private_dir`, `validate_filepath`, `validate_output_path`) | `python-core/sidecar_kuro/core.py` + `python-core/sidecar_mame/core.py` import sites stay in sync. Behavior change must update `tests/shared/test_sidecar.py` |
-| `python-core/sidecar_kuro/handlers/export.py:handle_export_order` + `models.py:ExportOrderParams`/`ExportOrderResultModel` | `src/types/models.ts:ExportOrderResult` + `src/types/validators.ts:isExportOrderResult` + dispatcher `export_order` registration stay in sync (IDT/Twist CSV) |
-| `package.json` `sidecar:kill` script | `scripts/kill-sidecars.mjs` — must use self-safe pattern (`pkill -f` 단독 사용 금지, 빌드 명령 자기 종료 방지) |
-| `python-core/build_sidecar.py` MAME exclusions (`torch`, `sklearn`, `transformers`, optional ML/plotting) | PyInstaller 4 GB CArchive 한도 회피 — 신규 ML 의존 추가 시 exclusion 재검토 |
-| `scripts/build-notice.mjs` or `src-tauri/about.hbs` format, or pip-licenses/pnpm licenses output schema | `src/components/layout/MenuBar.tsx` NOTICE.md modal renderer assumes same text format; test by running `build-notice.mjs` locally |
-| Python production dependencies added/removed in `pyproject.toml` `[project.dependencies]` | `build.yml` `pip-licenses --packages` list in "Collect Python dependency licenses" step must stay in sync |
-| `kuma_core/mame/ingest/barcode_package.py` `generate_mame_package` / `design_flanking_primers` params (gene_start, gene_end, polymerase, flank_min/max, binding_min/max_len, tm_min/max, require_gc_clamp) | `python-core/sidecar_mame/handlers/barcode_package.py` handler dict + `src/types/mame/barcode_package.ts` `GenerateMamePackageParams` / `MamePackageResult` interfaces + dispatcher `generate_mame_package` registration stay in sync |
-| `kuma_core/mame/ingest/polymerase.py` `POLYMERASE_PROFILES` keys (Q5, Taq, Phusion, KOD) | `src/components/mame/panels/BarcodeSetupPanel.tsx` polymerase dropdown options + union type stay in sync |
-| `python-core/sidecar_mame/core.py:_ALLOWED_SEQUENCE_EXTENSIONS` (`.fa/.fasta/.fna/.gb/.gbk/.gbff/.dna`) | `src/components/mame/panels/BarcodeSetupPanel.tsx` browse dialog filter + helper text stay in sync. CDS routing logic in `kuma_core/mame/ingest/barcode_package.py:_parse_first_cds_sequence` must accept the same extension set |
-| `kuma_core/mame/activity/export_evolvepro.py:export_evolvepro_xlsx` signature `(rows, path) → (n_written, excluded)` | `python-core/sidecar_mame/handlers/activity.py:handle_activity_export_evolvepro_xlsx` response shape + `src/store/mame/activitySlice.ts:exportEvolveproXlsx` action + dispatcher `activity.export_evolvepro_xlsx` registration stay in sync |
-| `kuma_core/kuro/evolvepro.py:_load_evolvepro_rows` `ref_seq` parameter | `python-core/sidecar_kuro/models.py:LoadEvolveproParams.ref_seq` + `src/store/slices/inputSlice.helpers.ts:EvolveproLoadConfig.refSeq` + `inputSlice.ts:loadEvolveproCsv` (pulls `seqInfo.genes[].translation`) stay in sync |
-| `src/store/mame/slices/phaseSlice.ts:MamePhase` enum and `ActivityTab` enum | `src/components/mame/layout/MameAppLayout.tsx` `TabsTrigger` values + `src/components/mame/panels/ActivityPanel.tsx` sub-tab values stay in sync. Adding a phase requires adding a `TabsContent` block. |
-| `mame_context.json` schema (custom_barcodes_path, reference_path, sample_map_template_path) | `src/types/mame/mame_context.ts` `MameContext` interface + `src/lib/mame/detectProjectFiles.ts` field mapping stay in sync. Schema version bump requires migration logic. |
+**CI 검증**: `pnpm sync:check` 가 vendored `sync-check.mjs` (기존 4 체크) + `sync-check-groups.mjs` (groups[] 정합성) 를 순차 실행. severity `blocking` 그룹에서 drift 발생 시 CI fail, `warning` 그룹은 WARN 로그만.
+
+**그룹 스키마**: `{ id, files[], symbols?, note, severity: "blocking"|"warning" }`. 한 파일이 여러 그룹에 속할 수 있음. 자세한 사양은 `notes/specs/2026-05-13-kuma-deps.md` 참조.
+
+**신규 의존 추가**: `.cross-layer-sync.json` `groups[]` 에 항목 추가 → `pnpm sync:check:groups` 로 검증.
+
+**기존 자동 체크** (`checks[]`, vendored):
+- 3-way version sync (package.json, tauri.conf.json, Cargo.toml)
+- tauri.conf 리소스 존재 검증
+- kuro dispatcher `_METHODS` ↔ TS `RpcMethodMap` registry match
+- Pydantic→TS generated file freshness (`pnpm gen:models:check`)
+
+**Pydantic → TS 생성**: `pnpm gen:models` 가 `src/types/models.generated.ts` 를 `python-core/sidecar_kuro/models.py` 에서 재생성. 손작성 `src/types/models.ts` 는 미교체 (RpcMethodMap, validators 보유). 생성 파일 drift 시 CI fail.
+
+**vendored 본체**: `scripts/sync-check.mjs` 는 cross-layer-sync skill vendored. 직접 수정 금지. groups 검증은 별도 `scripts/sync-check-groups.mjs` 에서 처리하여 upstream refresh 안전.
 
 ## Rules
 - 절대 경로 하드코딩 금지 — 상대 경로 또는 환경변수 사용
