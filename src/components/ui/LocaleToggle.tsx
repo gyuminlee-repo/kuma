@@ -1,9 +1,8 @@
 /**
  * LocaleToggle
  *
- * English / 한국어 / System 3-way 언어 설정 슬롯 컴포넌트.
- * - localStorage key: "kuma:locale"
- * - 실제 번역은 현재 미구현. 향후 react-i18next 등 도입 시 i18n.resolveActiveLocale() 바인딩.
+ * 언어 설정 드롭다운. SUPPORTED_LOCALES + "system" 자동 메뉴 생성.
+ * localStorage key: "kuma:locale"
  */
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -14,13 +13,23 @@ import {
   DropdownMenuTrigger,
 } from "./dropdown-menu";
 import { Button } from "./button";
-import { getLocale, setLocale, type Locale } from "../../lib/i18n";
+import { getLocale, setLocale, SUPPORTED_LOCALES, type Locale } from "../../lib/i18n";
 
 const LOCALE_LABELS: Record<Locale, string> = {
   en: "English",
   ko: "한국어",
+  "zh-CN": "简体中文",
+  "zh-TW": "繁體中文",
+  ja: "日本語",
+  es: "Español",
+  de: "Deutsch",
+  fr: "Français",
+  "pt-BR": "Português (BR)",
+  ru: "Русский",
   system: "System",
 };
+
+const LOCALE_OPTIONS: Locale[] = [...SUPPORTED_LOCALES, "system"];
 
 /** 언어 선택 아이콘 (globe SVG) */
 function GlobeIcon({ size = 14 }: { size?: number }) {
@@ -74,7 +83,7 @@ export function LocaleToggle({ variant = "icon" }: LocaleToggleProps) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        {(["en", "ko", "system"] as Locale[]).map((l) => (
+        {LOCALE_OPTIONS.map((l) => (
           <DropdownMenuItem
             key={l}
             onClick={() => handleSelect(l)}
