@@ -1220,6 +1220,18 @@
       "title": "View",
       "logs": "ログを表示",
       "jobs": "ジョブを表示"
+    },
+    "edit": {
+      "title": "編集",
+      "preferences": "環境設定..."
+    },
+    "run": {
+      "title": "実行",
+      "diagnostics": "Sidecar diagnostics...",
+      "checkSidecar": "Sidecar ステータス確認"
+    },
+    "help": {
+      "reportIssue": "問題を報告"
     }
   },
   "panel": {
@@ -1690,6 +1702,18 @@
       "title": "入力不足",
       "description": "続行する前に次の項目を完了してください。",
       "missingItemsLabel": "不足項目"
+    }
+  },
+  "shortcutsDialog": {
+    "title": "キーボードショートカット",
+    "searchPlaceholder": "検索...",
+    "empty": "一致するショートカットがありません。",
+    "category": {
+      "file": "ファイル",
+      "edit": "編集",
+      "view": "表示",
+      "run": "実行",
+      "help": "ヘルプ"
     }
   }
 }

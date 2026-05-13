@@ -1220,6 +1220,18 @@
       "title": "보기",
       "logs": "로그 표시",
       "jobs": "작업 표시"
+    },
+    "edit": {
+      "title": "편집",
+      "preferences": "환경설정..."
+    },
+    "run": {
+      "title": "실행",
+      "diagnostics": "Sidecar diagnostics...",
+      "checkSidecar": "Sidecar 상태 확인"
+    },
+    "help": {
+      "reportIssue": "이슈 보고"
     }
   },
   "panel": {
@@ -1695,5 +1707,17 @@
   },
   "appShell": {
     "sidebarResize": "사이드바 너비 조절"
+  },
+  "shortcutsDialog": {
+    "title": "키보드 단축키",
+    "searchPlaceholder": "검색...",
+    "empty": "일치하는 단축키가 없습니다.",
+    "category": {
+      "file": "파일",
+      "edit": "편집",
+      "view": "보기",
+      "run": "실행",
+      "help": "도움말"
+    }
   }
 }

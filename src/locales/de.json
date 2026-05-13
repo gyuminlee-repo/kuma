@@ -1220,6 +1220,18 @@
       "title": "Anzeigen",
       "logs": "Anzeigen Logs",
       "jobs": "Anzeigen Jobs"
+    },
+    "edit": {
+      "title": "Edit",
+      "preferences": "Preferences..."
+    },
+    "run": {
+      "title": "Run",
+      "diagnostics": "Sidecar diagnostics...",
+      "checkSidecar": "Check sidecar status"
+    },
+    "help": {
+      "reportIssue": "Report issue"
     }
   },
   "panel": {
@@ -1690,6 +1702,18 @@
       "title": "Fehlende Information",
       "description": "Please abgeschlossen die following before continuing.",
       "missingItemsLabel": "Fehlende Einträge"
+    }
+  },
+  "shortcutsDialog": {
+    "title": "Keyboard shortcuts",
+    "searchPlaceholder": "Search...",
+    "empty": "No shortcuts match the search.",
+    "category": {
+      "file": "File",
+      "edit": "Edit",
+      "view": "View",
+      "run": "Run",
+      "help": "Help"
     }
   }
 }

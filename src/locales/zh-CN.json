@@ -1220,6 +1220,18 @@
       "title": "视图",
       "logs": "显示日志",
       "jobs": "显示作业"
+    },
+    "edit": {
+      "title": "编辑",
+      "preferences": "首选项..."
+    },
+    "run": {
+      "title": "运行",
+      "diagnostics": "Sidecar diagnostics...",
+      "checkSidecar": "检查 Sidecar 状态"
+    },
+    "help": {
+      "reportIssue": "报告问题"
     }
   },
   "panel": {
@@ -1690,6 +1702,18 @@
       "title": "缺少信息",
       "description": "请在继续之前完成以下内容。",
       "missingItemsLabel": "缺少项目"
+    }
+  },
+  "shortcutsDialog": {
+    "title": "键盘快捷键",
+    "searchPlaceholder": "搜索...",
+    "empty": "未找到匹配的快捷键。",
+    "category": {
+      "file": "文件",
+      "edit": "编辑",
+      "view": "视图",
+      "run": "运行",
+      "help": "帮助"
     }
   }
 }

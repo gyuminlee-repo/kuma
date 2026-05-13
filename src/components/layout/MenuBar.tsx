@@ -39,7 +39,8 @@ import { checkForUpdates, downloadAndInstall, type UpdateCheckResult } from "../
 import type { Update } from "@tauri-apps/plugin-updater";
 import { invoke } from "@tauri-apps/api/core";
 import { killSidecar } from "../../lib/ipc";
-import { getShortcutsFor } from "../../lib/shortcuts";
+import { SettingsDialog } from "./SettingsDialog";
+import { KeyboardShortcutsDialog } from "../dialogs/KeyboardShortcutsDialog";
 
 const MOD_KEY = navigator.userAgent.includes("Mac") ? "⌘" : "Ctrl+";
 
@@ -86,8 +87,9 @@ export function MenuBar() {
   // §11 Build & Distribution: codesign status (lazy-loaded when About opens)
   const [codesignStatus, setCodesignStatus] = useState<string | null>(null);
 
-  // §8 A11y: keyboard shortcuts table data
-  const kuroShortcuts = getShortcutsFor("kuro");
+  // Preferences / Keyboard shortcuts dialogs
+  const [preferencesOpen, setPreferencesOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
   // §6 Settings: sidecar binary path (lazy-loaded when About opens)
   const [sidecarPath, setSidecarPath] = useState<string | null>(null);
@@ -136,17 +138,28 @@ export function MenuBar() {
   const [reRunVerify, setReRunVerify] = useState<InputVerifyResult | null>(null);
 
   // §D3.5: View 메뉴 단축키 (Ctrl/Cmd+L: Logs, Ctrl/Cmd+J: Jobs)
+  // + Edit/Help 단축키 (Ctrl/Cmd+, Preferences, Ctrl/Cmd+/ Shortcuts)
   const handleViewKeyDown = useCallback((e: KeyboardEvent) => {
     if (!(e.metaKey || e.ctrlKey)) return;
-    switch (e.key.toLowerCase()) {
+    switch (e.key) {
       case "l":
+      case "L":
         e.preventDefault();
         toggleLogPanel();
-        break;
+        return;
       case "j":
+      case "J":
         e.preventDefault();
         toggleJobsPanel();
-        break;
+        return;
+      case ",":
+        e.preventDefault();
+        setPreferencesOpen((v) => !v);
+        return;
+      case "/":
+        e.preventDefault();
+        setShortcutsOpen((v) => !v);
+        return;
     }
   }, [toggleLogPanel, toggleJobsPanel]);
 
@@ -265,6 +278,19 @@ export function MenuBar() {
         </DropdownMenuContent>
       </DropdownMenu>
 
+      {/* Edit 메뉴 — Preferences 진입점 */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button className={TRIGGER_CLS}>{t("menuBar.edit.title")}</button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start">
+          <DropdownMenuItem onClick={() => setPreferencesOpen(true)}>
+            <span className="flex-1">{t("menuBar.edit.preferences")}</span>
+            <kbd className="ml-4 text-caption text-muted-foreground">{MOD_KEY},</kbd>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
       {/* View 메뉴 */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -286,6 +312,27 @@ export function MenuBar() {
         </DropdownMenuContent>
       </DropdownMenu>
 
+      {/* Run 메뉴 — Diagnostics 노출 */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button className={TRIGGER_CLS}>{t("menuBar.run.title")}</button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start">
+          <DropdownMenuItem
+            onClick={() => { void handleGenerateDiagnostics(); }}
+            disabled={diagnosticsGenerating}
+          >
+            {diagnosticsGenerating ? t("about.generating") : t("menuBar.run.diagnostics")}
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => { void handleCheckForUpdates(); setAboutOpen(true); }}
+            disabled={updateChecking}
+          >
+            {t("menuBar.run.checkSidecar")}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
       {/* Help 메뉴 */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -299,8 +346,28 @@ export function MenuBar() {
           <DropdownMenuItem onClick={() => window.dispatchEvent(new CustomEvent("kuma:show-onboarding"))}>
             {t("help.showOnboarding")}
           </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => setShortcutsOpen(true)}>
+            <span className="flex-1">{t("shortcutsDialog.title")}</span>
+            <kbd className="ml-4 text-caption text-muted-foreground">{MOD_KEY}/</kbd>
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setCrashLogOpen(true)}>
             {t("help.viewCrashLog")}
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => { void handleCheckForUpdates(); setAboutOpen(true); }}
+            disabled={updateChecking}
+          >
+            {t("about.checkForUpdates")}
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => {
+              void import("@tauri-apps/plugin-shell").then((m) =>
+                m.open("https://github.com/gyuminlee-repo/KURO/issues"),
+              );
+            }}
+          >
+            {t("menuBar.help.reportIssue")}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => setAboutOpen(true)}>
@@ -320,6 +387,10 @@ export function MenuBar() {
       />
 
       <CrashLogDialog open={crashLogOpen} onOpenChange={setCrashLogOpen} />
+
+      <SettingsDialog open={preferencesOpen} onOpenChange={setPreferencesOpen} scope="kuro" />
+
+      <KeyboardShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} scope="kuro" />
 
       <Dialog
         open={aboutOpen}
@@ -432,25 +503,16 @@ export function MenuBar() {
             </p>
           </div>
 
-          {/* §8 A11y: Keyboard shortcuts table */}
+          {/* §8 A11y: Keyboard shortcuts — 독립 dialog 로 이동 */}
           <div className="flex flex-col gap-1.5">
             <p className="text-sm font-semibold text-foreground">{t("settings.keyboardShortcuts")}</p>
-            <table className="w-full text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="py-0.5 pr-3 text-left font-semibold text-muted-foreground">{t("settings.shortcutKeys")}</th>
-                  <th className="py-0.5 text-left font-semibold text-muted-foreground">{t("settings.shortcutAction")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {kuroShortcuts.map((s) => (
-                  <tr key={s.keys} className="border-b border-border/40 last:border-0">
-                    <td className="py-0.5 pr-3 font-mono text-foreground">{s.keys}</td>
-                    <td className="py-0.5 text-muted-foreground">{s.action}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => { setAboutOpen(false); setShortcutsOpen(true); }}
+            >
+              {t("shortcutsDialog.title")}
+            </Button>
           </div>
 
           {/* Offline mode toggle */}

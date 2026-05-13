@@ -1220,6 +1220,18 @@
       "title": "Вид",
       "logs": "Показать логи",
       "jobs": "Показать задачи"
+    },
+    "edit": {
+      "title": "Edit",
+      "preferences": "Preferences..."
+    },
+    "run": {
+      "title": "Run",
+      "diagnostics": "Sidecar diagnostics...",
+      "checkSidecar": "Check sidecar status"
+    },
+    "help": {
+      "reportIssue": "Report issue"
     }
   },
   "panel": {
@@ -1690,6 +1702,18 @@
       "title": "Отсутствует информация",
       "description": "Пожалуйста, заполните следующее перед продолжением.",
       "missingItemsLabel": "Отсутствующие элементы"
+    }
+  },
+  "shortcutsDialog": {
+    "title": "Keyboard shortcuts",
+    "searchPlaceholder": "Search...",
+    "empty": "No shortcuts match the search.",
+    "category": {
+      "file": "File",
+      "edit": "Edit",
+      "view": "View",
+      "run": "Run",
+      "help": "Help"
     }
   }
 }

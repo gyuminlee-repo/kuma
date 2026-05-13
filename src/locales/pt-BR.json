@@ -1220,6 +1220,18 @@
       "title": "Ver",
       "logs": "Mostrar logs",
       "jobs": "Mostrar jobs"
+    },
+    "edit": {
+      "title": "Edit",
+      "preferences": "Preferences..."
+    },
+    "run": {
+      "title": "Run",
+      "diagnostics": "Sidecar diagnostics...",
+      "checkSidecar": "Check sidecar status"
+    },
+    "help": {
+      "reportIssue": "Report issue"
     }
   },
   "panel": {
@@ -1690,6 +1702,18 @@
       "title": "Informações ausentes",
       "description": "Preencha os itens abaixo antes de continuar.",
       "missingItemsLabel": "Itens ausentes"
+    }
+  },
+  "shortcutsDialog": {
+    "title": "Keyboard shortcuts",
+    "searchPlaceholder": "Search...",
+    "empty": "No shortcuts match the search.",
+    "category": {
+      "file": "File",
+      "edit": "Edit",
+      "view": "View",
+      "run": "Run",
+      "help": "Help"
     }
   }
 }
