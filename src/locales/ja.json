@@ -483,6 +483,23 @@
         "helperText": "解析レポートには KURO スタイルのルールベース .xlsx ファイル名を使用",
         "helpText": "解析結果 Excel を保存するフォルダ。日付、reference/input トークン、MAME ターゲット、結果カウントトークンを組み合わせた KURO スタイルのルールでファイル名が自動生成されます。"
       }
+    },
+    "janusDeck": {
+      "title": "JANUS Deck Layout",
+      "ariaLabel": "JANUS deck layout preview",
+      "deckImageAriaLabel": "JANUS deck slot positions: top row tip flush, source plates P1 P2 P3; bottom row waste, two blank slots, final 96 deep well",
+      "headFixedNote": "Head position fixed",
+      "aspDspNote": "Aspirate position = Dispense position (same coordinate).",
+      "matchByNameNote": "JANUS software matches plates by name; deck slot positions shown here are the conventional layout.",
+      "slot": {
+        "tipFlush": "Tip Flush",
+        "p1": "Stock Plate P1",
+        "p2": "Stock Plate P2",
+        "p3": "Stock Plate P3",
+        "waste": "Waste",
+        "blank": "Blank",
+        "final": "Final 96 Deep Well"
+      }
     }
   },
   "home": {
