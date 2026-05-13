@@ -1,8 +1,8 @@
 {
   "$schema": "https://raw.githubusercontent.com/nicedoc/schemas/main/tauri-v2.json",
-  "productName": "kuma",
-  "version": "0.8.2",
-  "identifier": "com.gyuminlee.kuma",
+  "productName": "KURO",
+  "version": "0.4.0",
+  "identifier": "com.kuro.app",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:1421",
@@ -12,17 +12,16 @@
   "app": {
     "windows": [
       {
-        "title": "kuma",
+        "title": "KURO",
         "width": 1200,
         "height": 800,
         "minWidth": 900,
         "minHeight": 600,
-        "resizable": true,
-        "maximized": true
+        "resizable": true
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://github.com https://*.githubusercontent.com"
+      "csp": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'"
     }
   },
   "bundle": {
@@ -33,16 +32,10 @@
       "appimage",
       "dmg"
     ],
-    "macOS": {
-      "signingIdentity": "-",
-      "minimumSystemVersion": "11.0"
-    },
     "resources": {
       "samples/sample_evolvepro.csv": "samples/sample_evolvepro.csv",
       "samples/sample_plasmid.gb": "samples/sample_plasmid.gb",
-      "samples/sample_multi_evolve.csv": "samples/sample_multi_evolve.csv",
-      "resources/NOTICE.md": "resources/NOTICE.md",
-      "sidecar-hashes.json": "sidecar-hashes.json"
+      "samples/sample_multi_evolve.csv": "samples/sample_multi_evolve.csv"
     },
     "icon": [
       "icons/32x32.png",
@@ -52,16 +45,7 @@
       "icons/icon.ico"
     ],
     "externalBin": [
-      "binaries/kuro-sidecar",
-      "binaries/mame-sidecar"
+      "binaries/kuro-sidecar"
     ]
-  },
-  "plugins": {
-    "updater": {
-      "pubkey": "",
-      "endpoints": [
-        "https://github.com/gyuminlee-repo/KURO/releases/latest/download/latest.json"
-      ]
-    }
   }
 }
