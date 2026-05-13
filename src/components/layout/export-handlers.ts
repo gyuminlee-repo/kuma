@@ -231,3 +231,61 @@ export async function handleOpenSequence() {
     await useAppStore.getState().loadSequence(path);
   }
 }
+
+// ---------------------------------------------------------------------------
+// Export All + Macrogen (spec 2026-05-13)
+// ---------------------------------------------------------------------------
+
+export interface ExportAllUiParams {
+  projectId?: string;
+  fwdPlateName?: string;
+  rvsPlateName?: string;
+  amount: "0.05" | "0.2";
+  echoTransferVol: number;
+  janusTransferVol: number;
+  bom: boolean;
+}
+
+/**
+ * Prompt user for an output directory and invoke the kuro sidecar `export_all`
+ * RPC. Returns null when the directory picker is cancelled.
+ */
+export async function handleExportAll(
+  params: ExportAllUiParams,
+): Promise<{ success: string[]; failed: { path: string; reason: string }[]; output_dir: string } | null> {
+  const dir = await open({ directory: true, multiple: false });
+  if (!dir || typeof dir !== "string") {
+    return null;
+  }
+  return sendRequest("export_all", {
+    project_id: params.projectId,
+    output_dir: dir,
+    fwd_plate_name: params.fwdPlateName ?? "",
+    rev_plate_name: params.rvsPlateName ?? "",
+    amount: params.amount,
+    echo_transfer_vol: params.echoTransferVol,
+    janus_transfer_vol: params.janusTransferVol,
+    bom: params.bom,
+  });
+}
+
+/**
+ * Invoke kuro sidecar `export_macrogen` RPC. Caller is responsible for the
+ * output path (typically via the save dialog).
+ */
+export async function handleExportMacrogen(args: {
+  projectId?: string;
+  outputPath: string;
+  fwdPlateName?: string;
+  rvsPlateName?: string;
+  amount?: "0.05" | "0.2";
+}): Promise<{ ok: true; path: string }> {
+  return sendRequest("export_macrogen", {
+    project_id: args.projectId,
+    output_path: args.outputPath,
+    fwd_plate_name: args.fwdPlateName ?? "",
+    rev_plate_name: args.rvsPlateName ?? "",
+    amount: args.amount ?? "0.05",
+    purification: "MOPC",
+  });
+}
