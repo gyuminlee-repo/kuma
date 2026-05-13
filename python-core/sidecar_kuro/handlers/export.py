@@ -511,6 +511,7 @@ def handle_export_macrogen(params: dict) -> dict:
     if rev and not p.rev_plate_name:
         raise ValueError("rev_plate_name is required when reverse primers exist")
 
+    resolved = _validate_output_path(p.output_path, allowed_extensions={".xls"})
     export_macrogen_xls(
         fwd_primers=fwd,
         rev_primers=rev,
@@ -518,9 +519,9 @@ def handle_export_macrogen(params: dict) -> dict:
         rev_plate_name=p.rev_plate_name,
         amount=p.amount,
         purification=p.purification,
-        output_path=p.output_path,
+        output_path=str(resolved),
     )
-    return {"ok": True, "path": p.output_path}
+    return {"ok": True, "path": str(resolved)}
 
 
 def _export_primers_fasta(mappings: list[PlateMapping], output_path: Path) -> None:
@@ -609,7 +610,11 @@ def handle_export_all(params: dict) -> dict:
     Individual exporter failures are recorded but do not raise.
     """
     p = ExportAllParams(**params)
-    out_dir = Path(p.output_dir)
+    out_dir = Path(p.output_dir).expanduser().resolve()
+    if not out_dir.is_absolute():
+        raise ValueError(f"output_dir must be absolute: {p.output_dir}")
+    if out_dir.exists() and not out_dir.is_dir():
+        raise ValueError(f"output_dir exists but is not a directory: {out_dir}")
     out_dir.mkdir(parents=True, exist_ok=True)
 
     with _core._state_lock:
