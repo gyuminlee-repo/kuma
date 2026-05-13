@@ -1663,5 +1663,8 @@
       "description": "Please complete the following before continuing.",
       "missingItemsLabel": "Missing items"
     }
+  },
+  "appShell": {
+    "sidebarResize": "Resize sidebar"
   }
 }
