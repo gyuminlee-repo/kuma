@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 import { readTextFile } from "@tauri-apps/plugin-fs";
 import { resolveResource } from "@tauri-apps/api/path";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
-import { useKumaProject } from "@/state/projectContext";
 import { CrashLogDialog } from "@/components/dialogs/CrashLogDialog";
 import { JanusMappingDialog } from "@/components/mame/dialogs/JanusMappingDialog";
 import { RunReportDialog } from "@/components/mame/dialogs/RunReportDialog";
@@ -35,10 +34,6 @@ import { getShortcutsFor } from "@/lib/shortcuts";
 import { getCrashLog } from "@/lib/crashLog";
 import { generateDiagnosticsBundle } from "@/lib/diagnostics";
 import { revealInOSFolder } from "@/lib/openFolder";
-import { compareWorkspaces } from "@/lib/workspaceCompare";
-import type { WorkspaceComparison, WorkspaceDiff } from "@/lib/workspaceCompare";
-import { open as openFilePicker } from "@tauri-apps/plugin-dialog";
-import { readTextFile as readTextFileFs } from "@tauri-apps/plugin-fs";
 import { useAppStore } from "@/store/appStore";
 
 const MOD_KEY = typeof navigator !== "undefined" && navigator.userAgent.includes("Mac") ? "⌘" : "Ctrl+";
@@ -53,14 +48,11 @@ interface MenuBarProps {
 
 export function MenuBar({ onClearRequest }: MenuBarProps) {
   const { t } = useTranslation();
-  const project = useKumaProject();
   const hasResults = useMameAppStore((s) => s.verdicts.length > 0);
   const isAnalyzing = useMameAppStore((s) => s.isAnalyzing);
   const runAnalysis = useMameAppStore((s) => s.runAnalysis);
   const validateInputs = useMameAppStore((s) => s.validateInputs);
   const openExport = useMameAppStore((s) => s.openExport);
-  const saveWorkspace = useMameAppStore((s) => s.saveWorkspace);
-  const loadWorkspace = useMameAppStore((s) => s.loadWorkspace);
   const cancelAnalysis = useMameAppStore((s) => s.cancelAnalysis);
   const loadSampleData = useMameAppStore((s) => s.loadSampleData);
   const canRun = useMameAppStore(selectCanRun);
@@ -245,10 +237,6 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
   const [diagnosticsGenerating, setDiagnosticsGenerating] = useState(false);
   const [diagnosticsError, setDiagnosticsError] = useState<string | null>(null);
 
-  // §21 Multi-workspace: compare workspaces modal
-  const [wsCompareOpen, setWsCompareOpen] = useState(false);
-  const [wsComparison, setWsComparison] = useState<WorkspaceComparison | null>(null);
-
   async function handleGenerateDiagnostics() {
     setDiagnosticsGenerating(true);
     setDiagnosticsError(null);
@@ -262,35 +250,6 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
       setDiagnosticsError(err instanceof Error ? err.message : String(err));
     } finally {
       setDiagnosticsGenerating(false);
-    }
-  }
-
-  async function handleCompareWorkspaces() {
-    const pathA = await openFilePicker({
-      multiple: false,
-      filters: [{ name: "Workspace JSON", extensions: ["json"] }],
-      title: t("mame.menuBar.selectWorkspaceA"),
-    });
-    if (!pathA || typeof pathA !== "string") return;
-
-    const pathB = await openFilePicker({
-      multiple: false,
-      filters: [{ name: "Workspace JSON", extensions: ["json"] }],
-      title: t("mame.menuBar.selectWorkspaceB"),
-    });
-    if (!pathB || typeof pathB !== "string") return;
-
-    try {
-      const [textA, textB] = await Promise.all([
-        readTextFileFs(pathA),
-        readTextFileFs(pathB),
-      ]);
-      const a = JSON.parse(textA) as unknown;
-      const b = JSON.parse(textB) as unknown;
-      setWsComparison(compareWorkspaces(a, b));
-      setWsCompareOpen(true);
-    } catch (err) {
-      window.alert(t("mame.menuBar.compareWorkspacesFailed", { error: String(err) }));
     }
   }
 
@@ -309,12 +268,6 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
             onClick={() => window.dispatchEvent(new CustomEvent("kuma:return-to-home"))}
           >
             <span className="flex-1">{t("file.openProject")}</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => void loadWorkspace(project)}>
-            <span className="flex-1">{t("file.openWorkspace")}</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => void saveWorkspace(project)}>
-            <span className="flex-1">{t("file.saveWorkspace")}</span>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => void validateInputs()} disabled={isAnalyzing}>
@@ -348,16 +301,6 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setRunReportOpen(true)} disabled={!hasResults}>
             <span className="flex-1">{t("export.runReport")}</span>
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          {/* §21 Multi-workspace */}
-          <DropdownMenuItem onClick={() => void handleCompareWorkspaces()}>
-            <span className="flex-1">{t("file.compareWorkspaces")}</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => window.alert(t("mame.menuBar.exportWorkspaceZipSoon"))}
-          >
-            <span className="flex-1">{t("file.exportWorkspaceZip")}</span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -708,57 +651,6 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
         </DialogContent>
       </Dialog>
 
-      {/* §21 Multi-workspace: compare workspaces result modal */}
-      <Dialog open={wsCompareOpen} onOpenChange={setWsCompareOpen}>
-        <DialogContent className="max-w-2xl max-h-[70vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle>{t("mame.menuBar.compareWorkspacesTitle")}</DialogTitle>
-            <DialogDescription>
-              {wsComparison && wsComparison.differences.length === 0
-                ? t("mame.menuBar.compareWorkspacesSame")
-                : wsComparison
-                  ? t("mame.menuBar.compareWorkspacesDiff", {
-                      count: wsComparison.differences.length,
-                      plural: wsComparison.differences.length === 1 ? "" : "s",
-                    })
-                  : ""}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex-1 overflow-y-auto">
-            {wsComparison && wsComparison.differences.length > 0 ? (
-              <table className="w-full text-xs font-mono border-collapse">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th className="py-1 px-2 text-left text-muted-foreground font-semibold">{t("mame.menuBar.compareWorkspacesColField")}</th>
-                    <th className="py-1 px-2 text-left text-muted-foreground font-semibold">{t("mame.menuBar.compareWorkspacesColA")}</th>
-                    <th className="py-1 px-2 text-left text-muted-foreground font-semibold">{t("mame.menuBar.compareWorkspacesColB")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {wsComparison.differences.map((diff: WorkspaceDiff) => (
-                    <tr key={diff.path} className="border-b border-border/50">
-                      <td className="py-1 px-2 text-foreground break-all">{diff.path}</td>
-                      <td className="py-1 px-2 text-destructive/80 break-all">
-                        {JSON.stringify(diff.left) ?? "—"}
-                      </td>
-                      <td className="py-1 px-2 text-success/80 break-all">
-                        {JSON.stringify(diff.right) ?? "—"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : wsComparison ? (
-              <p className="p-4 text-sm text-muted-foreground text-center">{t("mame.menuBar.compareWorkspacesNoDiff")}</p>
-            ) : null}
-          </div>
-          <DialogFooter>
-            <Button size="sm" onClick={() => setWsCompareOpen(false)}>
-              {t("mame.menuBar.closeBtn")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }
