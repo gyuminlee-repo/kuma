@@ -27,8 +27,10 @@ from sidecar_kuro.handlers.design import (
     handle_get_alternatives,
 )
 from sidecar_kuro.handlers.export import (
+    handle_export_all,
     handle_export_benchmark_csv,
     handle_export_excel,
+    handle_export_macrogen,
     handle_export_mapping,
     handle_export_order,
     handle_get_plate_map,
@@ -85,6 +87,8 @@ _METHODS = {
     "export_excel": handle_export_excel,
     "export_order": handle_export_order,
     "export_mapping": handle_export_mapping,
+    "export_macrogen": handle_export_macrogen,
+    "export_all": handle_export_all,
     "export_benchmark_csv": handle_export_benchmark_csv,
     "evaluate_primer": handle_evaluate_primer,
     "retry_failed_mutation": handle_retry_failed,
