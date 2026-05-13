@@ -30,9 +30,11 @@ vi.mock("@/state/projectContext", () => ({
   useKumaProject: () => ({ path: "/some/path", scratch: false }),
 }));
 
+let mockPlateMappings: unknown[] = [{ id: "mock" }];
+
 vi.mock("@/store/appStore", () => ({
   useAppStore: (sel: (s: Record<string, unknown>) => unknown) =>
-    sel({ goToPrevStep: vi.fn(), goToNextStep: vi.fn() }),
+    sel({ goToPrevStep: vi.fn(), goToNextStep: vi.fn(), plateMappings: mockPlateMappings }),
 }));
 
 import { PlateStepView } from "./PlateStepView";
@@ -45,6 +47,7 @@ describe("PlateStepView", () => {
   });
 
   it("Export All Next button opens MappingExportDialog when project is valid", () => {
+    mockPlateMappings = [{ id: "mock" }];
     render(<PlateStepView />);
     const dialog = screen.getByTestId("mapping-export-dialog");
     expect(dialog.getAttribute("data-open")).toBe("false");
@@ -54,5 +57,12 @@ describe("PlateStepView", () => {
     fireEvent.click(nextBtn);
 
     expect(screen.getByTestId("mapping-export-dialog").getAttribute("data-open")).toBe("true");
+  });
+
+  it("Next button is hidden when plateMappings is empty (empty state guard)", () => {
+    mockPlateMappings = [];
+    render(<PlateStepView />);
+    // onNext=undefined → WizardContainer hides Next button
+    expect(screen.queryByRole("button", { name: /export all/i })).toBeNull();
   });
 });

@@ -68,6 +68,7 @@ export function MajorSubnav({ majors }: MajorSubnavProps) {
               <TabsTrigger
                 key={m.id}
                 value={m.id}
+                data-major-tab={m.id}
                 className="relative flex items-center gap-1.5 rounded-none border-b-2 border-transparent px-3 py-1.5 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-foreground data-[state=inactive]:text-muted-foreground"
               >
                 <span>{t(m.labelKey)}</span>

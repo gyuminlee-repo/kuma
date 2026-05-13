@@ -22,6 +22,7 @@ export function PlateStepView() {
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const project = useKumaProject();
   const goToPrevStep = useAppStore((s) => s.goToPrevStep);
+  const hasPlate = useAppStore((s) => s.plateMappings.length > 0);
 
   function handleExportAllClick() {
     if (!project || project.scratch || !project.path) {
@@ -38,7 +39,7 @@ export function PlateStepView() {
       titleKey="phaseC.subSteps.plate.layout"
       descriptionKey="phaseE.descriptions.plate.layout"
       onPrev={() => goToPrevStep()}
-      onNext={handleExportAllClick}
+      onNext={hasPlate ? handleExportAllClick : undefined}
       nextLabelKey="plateMap.exportAll"
     >
       <PlateMap />
