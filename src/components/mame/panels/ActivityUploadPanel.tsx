@@ -2,25 +2,16 @@
  * ActivityUploadPanel — 활성 데이터 파일 업로드 패널
  *
  * - CSV/Excel 파일을 Tauri open dialog로 선택
- * - format select: long_csv | long_xlsx
+ * - 파일 확장자로 format 자동 감지 (long_csv | long_xlsx)
  * - uploadActivityFile RPC 호출
  * - 업로드 결과 (n records) 및 오류 표시
  *
  * Spec: notes/specs/2026-05-04-mame-activity-integration.md §4.4
  */
 
-import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { open } from "@tauri-apps/plugin-dialog";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useActivityStore, type ActivitySlice } from "@/store/mame/activitySlice";
 import { useRoundStore } from "@/store/round/roundSlice";
 import { useStore } from "zustand";
@@ -28,21 +19,14 @@ import { Upload } from "lucide-react";
 
 type ActivityFormat = "long_csv" | "long_xlsx";
 
-const FORMAT_LABELS: Record<ActivityFormat, string> = {
-  long_csv: "Long CSV",
-  long_xlsx: "Long Excel",
-};
-
-const FORMAT_TOOLTIPS: Record<ActivityFormat, string> = {
-  long_csv:
-    "Long-format CSV with one measurement per row (variant, replicate, activity, ...). Plain text, easy to diff.",
-  long_xlsx:
-    "Long-format Excel (.xlsx) with one measurement per row. Use when the source comes straight from Excel with formatting.",
-};
+function inferFormat(path: string): ActivityFormat {
+  const lower = path.toLowerCase();
+  if (lower.endsWith(".csv")) return "long_csv";
+  return "long_xlsx"; // .xlsx | .xls
+}
 
 export function ActivityUploadPanel() {
   const { t } = useTranslation();
-  const [format, setFormat] = useState<ActivityFormat>("long_csv");
 
   const activeRoundId = useRoundStore((s) => s.active_round_id);
   const activeRound = useRoundStore((s) =>
@@ -60,13 +44,12 @@ export function ActivityUploadPanel() {
   async function handleUpload() {
     if (!activeRoundId) return;
 
-    const extensions = format === "long_csv" ? ["csv"] : ["xlsx", "xls"];
     const selected = await open({
       multiple: false,
       filters: [
         {
-          name: format === "long_csv" ? "CSV files" : "Excel files",
-          extensions,
+          name: "Activity data",
+          extensions: ["csv", "xlsx", "xls"],
         },
       ],
       title: "Select activity data file",
@@ -74,39 +57,12 @@ export function ActivityUploadPanel() {
 
     if (typeof selected !== "string") return;
 
+    const format = inferFormat(selected);
     await uploadActivityFile(activeRoundId, selected, format);
   }
 
   return (
     <div className="space-y-2" aria-label={t("activityUpload.panelAriaLabel")}>
-      <div className="space-y-1">
-        <Label
-          htmlFor="activity-format-select"
-          className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
-        >
-          {t("activityUpload.formatLabel")}
-        </Label>
-        <Select
-          value={format}
-          onValueChange={(v) => setFormat(v as ActivityFormat)}
-        >
-          <SelectTrigger
-            id="activity-format-select"
-            className="h-8 min-w-0 text-xs"
-            aria-label={t("activityUpload.formatAriaLabel")}
-          >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {(["long_csv", "long_xlsx"] as const).map((f) => (
-              <SelectItem key={f} value={f} className="text-xs" title={FORMAT_TOOLTIPS[f]}>
-                {FORMAT_LABELS[f]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
       <Button
         type="button"
         variant="outline"
