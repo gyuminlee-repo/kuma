@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kuro"
-version = "0.4.3"
+version = "0.4.2"
 description = "EVOLVEpro SDM primer batch design tool"
 requires-python = ">=3.11"
 dependencies = [

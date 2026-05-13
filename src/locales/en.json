@@ -1588,6 +1588,28 @@
       "mappingExport": {
         "heading": "Plate Mapping Export",
         "runExport": "Export Mapping"
+      },
+      "all": {
+        "heading": "Export All (Macrogen Order)",
+        "plateNameFwd": "Forward primer plate name",
+        "plateNameRev": "Reverse primer plate name",
+        "wellCount": "{{count}} wells used",
+        "amountLabel": "Synthesis amount",
+        "purificationLabel": "Purification",
+        "echoVolLabel": "Echo transfer volume",
+        "janusVolLabel": "JANUS transfer volume",
+        "bomLabel": "Add UTF-8 BOM",
+        "bomHint": "(Excel compatible)",
+        "ruleHint": "Synthesis rules: 0.05 μmole MOPC / 0.2 μmole MOPC. Files are saved to the selected folder.",
+        "runExport": "Export",
+        "error": {
+          "plateNameRegex": "Plate name must be 1-20 alphanumeric, underscore, or hyphen characters.",
+          "wellOverflow": "{{count}} primers exceed the 96-well limit."
+        }
+      },
+      "toast": {
+        "success": "{{n}} file(s) saved.",
+        "partial": "{{ok}} succeeded, {{fail}} failed."
       }
     },
     "run": {
