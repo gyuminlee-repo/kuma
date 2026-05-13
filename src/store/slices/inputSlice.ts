@@ -202,6 +202,10 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         resolveResource(csvFilename),
       ]);
       await get().loadSequence(gbPath);
+      if (!get().seqInfo) {
+        // loadSequence swallowed an error and left statusMessage with the cause; preserve it.
+        return;
+      }
       await get().loadEvolveproCsv(csvPath);
     } catch (err) {
       set({ statusMessage: `Sample load failed: ${formatError(err)}` });
