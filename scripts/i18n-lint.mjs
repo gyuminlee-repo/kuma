@@ -18,7 +18,7 @@ const JSX_COMMENT = /^\s*\{\s*\/\*.*\*\/\s*\}\s*$/;
 const LINE_COMMENT = /^\s*(\/\/|\*|\/\*)/;
 
 const ALLOWLIST = {
-  "src/components/ui/LocaleToggle.tsx": new Set([21]),
+  "src/components/ui/LocaleToggle.tsx": new Set([20]),
 };
 
 function walk(dir, out = []) {

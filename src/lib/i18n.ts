@@ -1,27 +1,51 @@
 /**
  * i18n — Locale 설정 슬롯 + i18next 초기화
  *
- * 본 모듈은 locale 설정 슬롯과 i18next 초기화 헬퍼를 제공한다.
- * initI18n(resolvedLng)을 main.tsx에서 앱 마운트 전 호출한다.
- *
  * localStorage key: "kuma:locale"
- * 지원 값: "en" | "ko" | "system"
+ * 지원 값: SUPPORTED_LOCALES 전체 + "system"
  */
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import en from "../locales/en.json";
 import ko from "../locales/ko.json";
+import zhCN from "../locales/zh-CN.json";
+import zhTW from "../locales/zh-TW.json";
+import ja from "../locales/ja.json";
+import es from "../locales/es.json";
+import de from "../locales/de.json";
+import fr from "../locales/fr.json";
+import ptBR from "../locales/pt-BR.json";
+import ru from "../locales/ru.json";
 
-export type Locale = "en" | "ko" | "system";
+export const SUPPORTED_LOCALES = [
+  "en", "ko", "zh-CN", "zh-TW", "ja", "es", "de", "fr", "pt-BR", "ru",
+] as const;
+export type ActiveLocale = (typeof SUPPORTED_LOCALES)[number];
+export type Locale = ActiveLocale | "system";
 
 const LOCALE_KEY = "kuma:locale";
 
-/** localStorage에서 현재 locale 읽기. 저장값이 없거나 유효하지 않으면 "system" 반환 */
+function matchSupportedLocale(tag: string | undefined | null): ActiveLocale {
+  if (!tag) return "en";
+  const lower = tag.toLowerCase();
+  const exact = SUPPORTED_LOCALES.find((l) => l.toLowerCase() === lower);
+  if (exact) return exact;
+  if (lower.startsWith("zh")) {
+    if (lower.includes("tw") || lower.includes("hk") || lower.includes("hant")) return "zh-TW";
+    return "zh-CN";
+  }
+  if (lower.startsWith("pt")) return "pt-BR";
+  const base = lower.split("-")[0];
+  const baseMatch = SUPPORTED_LOCALES.find((l) => l.toLowerCase().split("-")[0] === base);
+  return baseMatch ?? "en";
+}
+
 export function getLocale(): Locale {
   try {
     const stored = localStorage.getItem(LOCALE_KEY);
-    if (stored === "en" || stored === "ko" || stored === "system") {
-      return stored;
+    if (stored === "system") return "system";
+    if (stored && (SUPPORTED_LOCALES as readonly string[]).includes(stored)) {
+      return stored as ActiveLocale;
     }
   } catch {
     // localStorage 접근 실패 시 시스템 기본값 사용
@@ -29,7 +53,6 @@ export function getLocale(): Locale {
   return "system";
 }
 
-/** locale 설정을 localStorage에 저장하고 i18next 활성 언어를 즉시 갱신 */
 export function setLocale(locale: Locale): void {
   try {
     localStorage.setItem(LOCALE_KEY, locale);
@@ -39,33 +62,29 @@ export function setLocale(locale: Locale): void {
   void i18next.changeLanguage(resolveActiveLocale());
 }
 
-/**
- * 실제 활성 locale 결정.
- * "system" 선택 시 navigator.language 를 기반으로 ko/en 분기.
- * 번역 바인딩 도입 시 이 반환값을 사용한다.
- */
-export function resolveActiveLocale(): "en" | "ko" {
+export function resolveActiveLocale(): ActiveLocale {
   const locale = getLocale();
-  if (locale === "ko") return "ko";
-  if (locale === "en") return "en";
-  // system: navigator.language 가 ko로 시작하면 ko, 그 외 en
+  if (locale !== "system") return locale;
   try {
-    return navigator.language?.toLowerCase().startsWith("ko") ? "ko" : "en";
+    return matchSupportedLocale(navigator.language);
   } catch {
     return "en";
   }
 }
 
-/**
- * i18next 초기화.
- * main.tsx에서 ReactDOM.createRoot 이전에 await 없이 호출 가능.
- * (react-i18next suspense 없이 동기 초기화)
- */
 export function initI18n(resolvedLng: string): void {
   void i18next.use(initReactI18next).init({
     resources: {
       en: { translation: en },
       ko: { translation: ko },
+      "zh-CN": { translation: zhCN },
+      "zh-TW": { translation: zhTW },
+      ja: { translation: ja },
+      es: { translation: es },
+      de: { translation: de },
+      fr: { translation: fr },
+      "pt-BR": { translation: ptBR },
+      ru: { translation: ru },
     },
     lng: resolvedLng,
     fallbackLng: "en",
