@@ -277,13 +277,6 @@
       "severity": "blocking"
     },
     {
-      "id": "plate-export-handlers",
-      "files": ["src/components/layout/export-handlers.ts", "src/components/steps/PlateStepView.tsx"],
-      "symbols": ["handleExportAll", "handleExportMappingWithParams"],
-      "note": "export-handlers 시그니처 ↔ PlateStepView 호출. Phase F에서 PlateMap 호출 제거됨",
-      "severity": "warning"
-    },
-    {
       "id": "mame-context",
       "files": ["src/types/mame/mame_context.ts", "src/lib/mame/detectProjectFiles.ts"],
       "symbols": ["MameContext", "custom_barcodes_path", "reference_path", "sample_map_template_path"],

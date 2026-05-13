@@ -91,3 +91,5 @@ export function initI18n(resolvedLng: string): void {
     interpolation: { escapeValue: false },
   });
 }
+
+export default i18next;

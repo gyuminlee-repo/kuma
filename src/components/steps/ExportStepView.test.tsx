@@ -17,17 +17,13 @@ vi.mock("./ExportFormatSelector", () => ({
 vi.mock("./OrderSummary", () => ({
   OrderSummary: () => <div data-testid="order-summary" />,
 }));
-vi.mock("./WorkspaceSaveLoad", () => ({
-  WorkspaceSaveLoad: () => <div data-testid="workspace-save-load" />,
-}));
 
 import { ExportStepView } from "./ExportStepView";
 
 describe("ExportStepView", () => {
-  it("export.all renders all export sections", () => {
+  it("export.all renders export sections", () => {
     const { getByTestId } = render(<ExportStepView />);
     expect(getByTestId("export-format-selector")).toBeTruthy();
     expect(getByTestId("order-summary")).toBeTruthy();
-    expect(getByTestId("workspace-save-load")).toBeTruthy();
   });
 });

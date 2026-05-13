@@ -273,7 +273,7 @@ export interface ExportSlice {
   progress: number;
   statusMessage: string;
   tableSorting: SortingState;
-  /** true while an export RPC is in flight (Excel, mapping, benchmark, workspace) */
+  /** true while an export RPC is in flight (Excel, mapping, benchmark) */
   isExporting: boolean;
   getPlateMap: () => Promise<void>;
   exportExcel: (filepath: string, projectId?: string) => Promise<void>;

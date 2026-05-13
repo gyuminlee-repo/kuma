@@ -4,15 +4,12 @@ import { join } from "@tauri-apps/api/path";
 import { sendRequest } from "../../lib/ipc-kuro";
 import { useAppStore } from "../../store/appStore";
 import { getSortedMutations, reorderMappings } from "../../lib/plate-utils";
-import { defaultExportFilename, buildWorkspaceDefaultPath } from "../../lib/filename";
+import { defaultExportFilename } from "../../lib/filename";
 import type { KumaProject } from "../../state/projectContext";
 import type { BenchmarkResult, WorkspaceData } from "../../types/models";
 import {
-  detectWorkspaceVersion,
   migrateWorkspace,
-  MIGRATIONS,
 } from "../../lib/workspaceMigrate";
-import type { MigrateDialogState } from "../dialogs/WorkspaceMigrateDialog";
 import { MIGRATE_DIALOG_CLOSED } from "../dialogs/WorkspaceMigrateDialog";
 import { revealInOSFolder } from "../../lib/openFolder";
 import { fileExists, requestOverwriteConfirm } from "../../lib/overwriteConfirm";
@@ -178,78 +175,6 @@ export async function handleExportMappingWithParams(
       useAppStore.setState({ isExporting: false });
     }
   });
-}
-
-export async function handleSaveWorkspace(project: KumaProject) {
-  try {
-    const path = await save({
-      filters: [{ name: "KURO Workspace", extensions: ["json"] }],
-      defaultPath: buildWorkspaceDefaultPath(project, "kuro"),
-    });
-    if (!path) return;
-    const workspace = useAppStore.getState().getWorkspaceSnapshot();
-    await sendRequest("save_workspace", { filepath: path, data: workspace });
-    useAppStore.getState().setStatus(`Workspace saved: ${path}`);
-  } catch (err) {
-    useAppStore.getState().setStatus(`Save failed: ${err instanceof Error ? err.message : String(err)}`);
-  }
-}
-
-/**
- * §14 Migration-aware workspace loader.
- *
- * If the workspace is schema_version "0.3", loads directly.
- * If older (v1/v2), invokes `onMigrationNeeded` so the caller (MenuBar) can
- * show the migration confirmation modal. The modal's onConfirm callback should
- * call `executeMigrateAndLoad` with the already-fetched data.
- *
- * Returns the raw workspace object only if no migration is needed; otherwise
- * returns undefined (migration flow is handed off to the modal).
- */
-export async function handleLoadWorkspace(
-  project: KumaProject,
-  onMigrationNeeded: (state: MigrateDialogState, rawWs: Record<string, unknown>) => void,
-): Promise<void> {
-  try {
-    const path = await open({
-      filters: [{ name: "KURO Workspace", extensions: ["json"] }],
-      multiple: false,
-      defaultPath: project && !project.scratch && project.path ? project.path : undefined,
-    });
-    if (typeof path !== "string") return;
-    const ws = await sendRequest("load_workspace", { filepath: path });
-    const rawWs = ws as unknown as Record<string, unknown>;
-    const fromVer = detectWorkspaceVersion(rawWs);
-
-    if (fromVer === "unknown") {
-      useAppStore.getState().setStatus("Incompatible workspace version");
-      return;
-    }
-
-    // Already current — load directly.
-    if (fromVer === "0.3") {
-      await useAppStore.getState().restoreWorkspace(ws as WorkspaceData);
-      return;
-    }
-
-    // Older version — hand off to migration modal.
-    const targetVer = "0.3";
-    const migrationKey = `${fromVer}->${targetVer}`;
-    const noPath = !(migrationKey in MIGRATIONS);
-
-    onMigrationNeeded(
-      {
-        open: true,
-        filePath: path,
-        fromVersion: fromVer,
-        toVersion: targetVer,
-        noPath,
-      },
-      rawWs,
-    );
-  } catch (err) {
-    useAppStore.getState().setStatus(`Load failed: ${err instanceof Error ? err.message : String(err)}`);
-  }
 }
 
 /**
