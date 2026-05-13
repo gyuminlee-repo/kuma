@@ -1691,5 +1691,11 @@
       "description": "Please complete the following before continuing.",
       "missingItemsLabel": "Missing items"
     }
+  },
+  "artifact": {
+    "badge": {
+      "detected": "Step {{step}} output auto-detected",
+      "staleHint": "File changed since export"
+    }
   }
 }

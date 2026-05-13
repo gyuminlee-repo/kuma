@@ -94,6 +94,7 @@ export interface InputSlice {
   runDemuxAndFilter: () => Promise<void>;
   runAnalysis: () => Promise<void>;
   cancelAnalysis: () => Promise<void>;
+  resetInput: () => void;
 }
 
 export interface AnalysisSlice {
@@ -121,6 +122,7 @@ export interface AnalysisSlice {
   loadRunHealth: () => Promise<void>;
   clearResults: () => void;
   loadSampleData: () => void;
+  resetAnalysis: () => void;
 }
 
 export interface ExportSlice {
@@ -129,4 +131,5 @@ export interface ExportSlice {
   isExporting: boolean;
   exportError: string | null;
   exportExcel: (path: string) => Promise<void>;
+  resetExport: () => void;
 }

@@ -4,6 +4,40 @@
 
 ---
 
+## v0.8.3 (2026-05-13)
+
+워크스페이스 artifact 핸드오프와 MAME Clear All.
+
+### 워크스페이스 매니페스트
+
+- 신규 `src/lib/workspace/` 모듈이 사용자 export 폴더 안에 `.kuma-workspace.json` artifact registry를 관리한다. KURO Excel export (`sdm_primer_xlsx`)와 MAME export (`mame_consensus_fasta`)가 완료되면 `(app, step, type, path)` + mtime + 크기가 자동 등록된다.
+- `useArtifact(type)` React 훅이 `workspace:updated` 이벤트를 구독하여 최신 비-stale artifact 경로를 반환한다. 워크스페이스 미개방 시 안전하게 null fallback.
+- Stale 감지: 매니페스트 mtime과 현재 파일 mtime을 비교. 파일이 사라진 항목은 매니페스트에서 자동 제거. 손상된 매니페스트는 `.bak-{ts}`로 백업 후 새로 생성.
+
+### KURO 자동 prefill
+
+- `MutationInput` (EVOLVEpro / MULTI-evolve 모드)이 mount 시점에 매니페스트에서 `evolveproCsvPath`를 자동 prefill한다. 파일명 옆에 `ArtifactBadge` (`Step diversity 출력 자동 감지`)가 표시되고, stale일 때는 warning variant로 전환. Browse 버튼으로 수동 선택 시 `userOverridden=true`가 세션 내 추가 prefill을 차단.
+
+### Clear All
+
+- KURO `resetAll()`이 슬라이스 reset 후 `clearWorkspace("kuro")`를 호출하여 매니페스트의 KURO artifact를 정리.
+- MAME에 통합 `resetMameAll()` 신설: `resetInput`/`resetAnalysis`/`resetExport`/`resetPhase` + `clearWorkspace("mame")`. `ClearConfirmDialog`가 이 함수로 연결. `resetPhase`는 `kuma:mame:phase`/`kuma:mame:activityTab` localStorage 키도 함께 정리.
+- 앱 격리: 한 앱의 Clear All은 다른 앱의 artifact에 영향 없음.
+
+### 테스트
+
+- `tests/workspace/api.test.ts`: 12 케이스 (매니페스트 생성, register/list/getLatest, `(app,step,type)` upsert, 멀티앱 격리, mtime stale, 파일 누락 정리, 이벤트 emit, 손상 매니페스트 복구, 워크스페이스 미개방 에러).
+
+### i18n
+
+- `en.json` / `ko.json`에 `artifact.badge.detected` / `staleHint` 신규 키.
+
+### Cross-layer sync
+
+- `.cross-layer-sync.json`에 `workspace-artifact-registry` 그룹 추가 (registry 타입과 양쪽 export slice 동기화 감시).
+
+---
+
 ## v0.3.17 – v0.3.22.07 (2026-05-12)
 
 데스크톱 앱 전반의 영어/한국어 i18n 커버리지 완성.

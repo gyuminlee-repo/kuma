@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { AppShell } from "@/components/shell/AppShell";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
+import { resetMameAll } from "@/store/mame/resetAll";
 import { useKumaProject } from "@/state/projectContext";
 import { selectCanRun } from "@/store/mame/selectors";
 import { useMameSidecar } from "@/hooks/mame/useMameSidecar";
@@ -72,7 +73,10 @@ export function MameAppLayout() {
   // F3: kuro와 동일한 localStorage "kuma.mainZoom" 공유 — Ctrl+wheel / Ctrl+=/−/0
   const zoom = useMainZoom();
   const { status, retry } = useMameSidecar();
-  const clearResults = useMameAppStore((s) => s.clearResults);
+  // Clear All triggers full workspace reset (slices + manifest artifacts).
+  const handleClearAll = useCallback(() => {
+    void resetMameAll();
+  }, []);
   const runHealth = useMameAppStore((s) => s.runHealth);
   const isAnalyzing = useMameAppStore((s) => s.isAnalyzing);
   const mamePhase = useMameAppStore((s) => s.mamePhase);
@@ -347,7 +351,7 @@ export function MameAppLayout() {
         <ClearConfirmDialog
           open={clearConfirmOpen}
           onOpenChange={setClearConfirmOpen}
-          onConfirm={clearResults}
+          onConfirm={handleClearAll}
         />
 
         {/* §12 Reproducibility: re-run status 표시 (4초 자동 소멸) */}

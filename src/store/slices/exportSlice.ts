@@ -5,6 +5,7 @@ import { sendRequest } from "../../lib/ipc-kuro";
 import { getSortedMutations, reorderMappings } from "../../lib/plate-utils";
 import { formatError } from "../../lib/utils";
 import { notifyJobDone, notifyJobError } from "../../lib/toast";
+import { registerArtifacts, getActiveWorkspace } from "../../lib/workspace";
 import type { AppState } from "../types";
 import type {
   BenchmarkResult,
@@ -378,6 +379,15 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       });
       set({ statusMessage: `Exported Excel: ${filepath}` });
       notifyJobDone({ title: "Excel export complete", description: filepath, durationMs: Date.now() - _exportStartedAt });
+      if (getActiveWorkspace()) {
+        try {
+          await registerArtifacts([
+            { app: "kuro", step: "design", type: "sdm_primer_xlsx", absolutePath: filepath },
+          ]);
+        } catch {
+          // workspace registration failure must not break the user-visible export success
+        }
+      }
     } catch (err) {
       set({ statusMessage: `Excel export failed: ${formatError(err)}` });
       notifyJobError("Excel export failed", err);
@@ -707,5 +717,12 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       tableSorting: [],
       isExporting: false,
     });
+    if (getActiveWorkspace()) {
+      void import("../../lib/workspace").then(({ clearWorkspace }) =>
+        clearWorkspace("kuro").catch(() => {
+          // workspace manifest cleanup is best-effort
+        }),
+      );
+    }
   },
 });

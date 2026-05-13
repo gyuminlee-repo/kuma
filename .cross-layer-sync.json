@@ -39,6 +39,19 @@
   ],
   "groups": [
     {
+      "id": "workspace-artifact-registry",
+      "files": [
+        "src/lib/workspace/types.ts",
+        "src/lib/workspace/api.ts",
+        "src/store/slices/exportSlice.ts",
+        "src/store/mame/slices/exportSlice.ts",
+        "src/store/mame/resetAll.ts"
+      ],
+      "symbols": ["registerArtifacts", "ArtifactType", "AppId", "clearWorkspace"],
+      "note": "Export slices register artifacts via registerArtifacts(ArtifactType). Clear flows call clearWorkspace(AppId).",
+      "severity": "warning"
+    },
+    {
       "id": "evolvepro-columns",
       "files": ["kuma_core/kuro/evolvepro.py", "fixtures/*.csv"],
       "symbols": ["VARIANT_COLUMNS", "SCORE_COLUMNS"],
