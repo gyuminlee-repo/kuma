@@ -24,7 +24,7 @@ const FORMAT_DEFAULTS: Record<
   MappingFormat,
   { transferVol: number; unit: string; min: number; max: number; step: number }
 > = {
-  echo: { transferVol: 100, unit: "nL", min: 50, max: 5000, step: 1 },
+  echo: { transferVol: 100, unit: "nL", min: 25, max: 500, step: 1 },
   janus: { transferVol: 2.0, unit: "µL", min: 0.5, max: 10, step: 0.1 },
 };
 
@@ -113,10 +113,14 @@ export function MappingExportDialog({
               <span className="text-sm text-muted-foreground">{cfg.unit}</span>
             </div>
             <p className="text-caption text-muted-foreground">
-              Range: {cfg.min}–{cfg.max} {cfg.unit}
-              {format === "echo" && transferVol > 500 && (
-                <span className="ml-2 text-warning">
-                  ({Math.ceil(transferVol / 500)} transfers × ≤500 nL)
+              {t("mappingExportDialog.transferVolumeRange", {
+                min: cfg.min,
+                max: cfg.max,
+                unit: cfg.unit,
+              })}
+              {format === "echo" && (
+                <span className="ml-2 font-medium text-foreground">
+                  {t("mappingExportDialog.echoMaxNote")}
                 </span>
               )}
             </p>

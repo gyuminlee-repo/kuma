@@ -1412,6 +1412,8 @@
     "bomCheckboxAriaLabel": "Añadir BOM UTF-8 para compatibilidad con Excel",
     "bomCheckboxLabel": "Añadir BOM UTF-8",
     "bomCheckboxHint": "(compatibilidad con Excel)",
+    "transferVolumeRange": "Rango: {{min}}–{{max}} {{unit}}",
+    "echoMaxNote": "(Máx. 500 nL)",
     "cancelBtn": "Cancelar",
     "exportBtn": "Exportar"
   },
