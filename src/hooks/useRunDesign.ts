@@ -88,9 +88,14 @@ export function useRunDesign(): UseRunDesignReturn {
       void runPreflightCheck({ sidecarStatus, requiresNetwork: false }).then(
         (pfResult) => {
           const actualRun = () => {
-            void flushBeforeDesign().then(() =>
-              useAppStore.getState().designPrimers(),
-            );
+            const s = useAppStore.getState();
+            void flushBeforeDesign()
+              .then(() =>
+                s.mutationInputMode === "text"
+                  ? useAppStore.getState().parseMutations()
+                  : undefined,
+              )
+              .then(() => useAppStore.getState().designPrimers());
           };
           if (!pfResult.ok || pfResult.warnings.length > 0) {
             setPreflightResult({ result: pfResult, pendingAction: actualRun });
