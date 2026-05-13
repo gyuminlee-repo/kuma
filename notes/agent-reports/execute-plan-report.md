@@ -94,3 +94,45 @@ New cross-layer group `macrogen-export-flow` validates green.
 3. Remove `MappingExportDialog` + related legacy i18n keys.
 4. Install `json-schema-to-typescript` (the binary `json2ts`) so `generated-models` check turns green. Independent of this task but blocking any future cross-layer validation.
 5. Open questions in spec §13 (Oligo Name length cap, Amount cell string from Macrogen LIMS) remain unresolved — request user confirmation before committing UI labels.
+
+## A7+A8 deferred 완료
+
+**완료일:** 2026-05-13
+**담당:** @frontend (A7+A8 deferred agent)
+
+### 커밋
+
+| 커밋 | 메시지 |
+|---|---|
+| `9b2bb54` | v0.4.2.00: rewrite ExportFormatSelector as Export All single button |
+| `3059bd9` | v0.4.2.01: remove MappingExportDialog and legacy IDT/Twist i18n keys |
+
+### 변경 파일
+
+**A7 — ExportFormatSelector 재작성**
+- `src/components/steps/ExportFormatSelector.tsx` — 레거시 IDT/Twist/Mapping 이중 섹션 제거, Export All 단일 폼으로 재작성. `useAppStore` → `designResults.length` 로 well count 계산. PLATE_NAME_RE 검증, Echo/JANUS range, overflow alert, BOM 체크박스 포함.
+- `src/components/steps/ExportFormatSelector.test.tsx` — 신규 작성. 6개 케이스 (Echo range 렌더, JANUS range 렌더, 결과 없음 비활성, 유효 플레이트명 활성, 잘못된 플레이트명 비활성+alert, 96초과 overflow).
+- `src/locales/ko.json` — `phaseC.export.all.*` + `phaseC.export.toast.*` 추가.
+- `src/locales/en.json` — 동일 키 영문 추가.
+
+**A8 — MappingExportDialog 제거**
+- `src/components/dialogs/MappingExportDialog.tsx` — 삭제 (외부 참조 0 확인 후).
+- `src/components/dialogs/MappingExportDialog.test.tsx` — 삭제.
+- `src/locales/ko.json` — `mappingExportDialog` 블록 및 `phaseC.export.format.idt/twist`, `orderExport`, `mappingExport`, `runExport` 레거시 키 제거.
+- `src/locales/en.json` — 동일 키 제거.
+
+### TypeScript typecheck
+
+`npx tsc --noEmit` → **0 errors**
+
+초기 오류: `@/store` 모듈 미발견 (`@/store/appStore` 가 올바른 경로), selector `s` 파라미터 implicit any. 모두 수정 완료.
+
+### cross-layer sync
+
+`node scripts/sync-check.mjs` → **41 PASS, 0 WARN, 1 FAIL**
+
+FAIL `[generated-models]`: worktree에 `node_modules` 없어 `json2ts` 바이너리 미발견. 이번 작업 이전부터 존재한 환경 문제이며 코드 변경과 무관. 메인 repo merge 후 `pnpm install` 시 자동 해소.
+
+### vitest
+
+worktree `node_modules` 부재로 실행 불가. 메인 repo merge 후 `pnpm vitest run src/components/steps/ExportFormatSelector.test.tsx` 로 검증 필요.
