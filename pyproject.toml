@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kuro"
-version = "0.4.3"
+version = "0.4.0"
 description = "EVOLVEpro SDM primer batch design tool"
 requires-python = ">=3.11"
 dependencies = [
@@ -12,6 +12,8 @@ dependencies = [
     "biopython==1.84",
     "openpyxl==3.1.5",
     "pydantic>=2.0",
+    "xlwt==1.3.0",
+    "xlrd==1.2.0",
 ]
 
 [project.optional-dependencies]
