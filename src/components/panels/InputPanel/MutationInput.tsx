@@ -4,7 +4,6 @@ import { useAppStore } from "../../../store/appStore";
 import { basename } from "../../../lib/utils";
 import { browseFile } from "../../../lib/file-utils";
 import { Button } from "../../ui/button";
-import { DiversityOptions } from "./DiversityOptions";
 
 export function MutationInput() {
   const { t } = useTranslation();
@@ -162,7 +161,6 @@ export function MutationInput() {
                 </div>
               </div>
 
-              {pipelineMode && <DiversityOptions />}
             </>
           )}
 

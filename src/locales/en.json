@@ -382,6 +382,7 @@
           "output": "Preview"
         },
         "analyze": {
+          "inputs": "Inputs",
           "verdict": "Verdicts",
           "plate": "Plate Plan",
           "health": "Run Health"
@@ -1548,32 +1549,22 @@
   },
   "phaseC": {
     "majors": {
-      "variant": "Variant Selection",
-      "sdm": "SDM Design",
-      "plate": "Plate Mapping",
+      "design": "Design",
+      "plate": "Plate Map",
       "export": "Export"
     },
     "subSteps": {
-      "variant": {
-        "load": "Load EVOLVEpro CSV",
-        "select": "Variant Selection",
-        "adaptive": "α-adaptive Pool",
-        "domain": "Domain Filter",
-        "pareto": "Pareto + Cα"
-      },
-      "sdm": {
-        "mutations": "Mutation list",
-        "codon": "Codon strategy",
-        "polymerase": "Polymerase + Tm",
-        "gc": "GC + length",
-        "run": "Run design"
+      "design": {
+        "load": "Load Variants",
+        "variant": "Pool Filters",
+        "mutation": "Mutations",
+        "params": "Primer Parameters"
       },
       "plate": {
-        "size": "Plate size",
-        "layout": "Layout view",
-        "labels": "Well labels"
+        "layout": "Plate Map"
       },
       "export": {
+        "all": "Export",
         "format": "Format",
         "summary": "Order summary",
         "workspace": "Workspace save"
@@ -1639,6 +1630,22 @@
         "ingest": "Ingest Data",
         "merge": "Merge",
         "export": "Export"
+      }
+    }
+  },
+  "phaseE": {
+    "wizard": {
+      "stepLabel": "Step {{n}}",
+      "progress": "Step {{current}} / {{total}}",
+      "back": "Back",
+      "next": "Next"
+    },
+    "descriptions": {
+      "design": {
+        "load": "Upload an EVOLVEpro CSV or paste a protein sequence.",
+        "variant": "Configure variant pool filters.",
+        "mutation": "Define mutations to include.",
+        "params": "Set primer design parameters and run."
       }
     }
   }

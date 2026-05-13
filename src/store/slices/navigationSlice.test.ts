@@ -181,3 +181,116 @@ describe("markDone", () => {
     expect(slice.stepStatus["design.params"].reachable).toBe(true);
   });
 });
+
+describe("goToNextStep (E5)", () => {
+  it("design.load → goToNextStep → design.variant", () => {
+    const slice = makeSlice();
+    slice.setSubStep("design.load");
+    slice.goToNextStep();
+    expect(slice.currentSubStep).toBe("design.variant");
+    expect(slice.currentMajor).toBe("design");
+  });
+
+  it("design.variant → design.mutation", () => {
+    const slice = makeSlice();
+    slice.setSubStep("design.variant");
+    slice.goToNextStep();
+    expect(slice.currentSubStep).toBe("design.mutation");
+  });
+
+  it("design.mutation → design.params", () => {
+    const slice = makeSlice();
+    slice.setSubStep("design.mutation");
+    slice.goToNextStep();
+    expect(slice.currentSubStep).toBe("design.params");
+  });
+
+  it("design.params → goToNextStep → plate.layout (next major)", () => {
+    const slice = makeSlice();
+    slice.setSubStep("design.params");
+    slice.goToNextStep();
+    expect(slice.currentMajor).toBe("plate");
+    expect(slice.currentSubStep).toBe("plate.layout");
+  });
+
+  it("plate.layout → goToNextStep → export.all (next major)", () => {
+    const slice = makeSlice();
+    slice.setSubStep("plate.layout");
+    slice.goToNextStep();
+    expect(slice.currentMajor).toBe("export");
+    expect(slice.currentSubStep).toBe("export.all");
+  });
+
+  it("export.all → goToNextStep → noop (last step)", () => {
+    const slice = makeSlice();
+    slice.setSubStep("export.all");
+    slice.goToNextStep();
+    expect(slice.currentMajor).toBe("export");
+    expect(slice.currentSubStep).toBe("export.all");
+  });
+});
+
+describe("goToPrevStep (E5)", () => {
+  it("design.load → goToPrevStep → noop (first step)", () => {
+    const slice = makeSlice();
+    slice.setSubStep("design.load");
+    slice.goToPrevStep();
+    expect(slice.currentMajor).toBe("design");
+    expect(slice.currentSubStep).toBe("design.load");
+  });
+
+  it("design.variant → goToPrevStep → design.load", () => {
+    const slice = makeSlice();
+    slice.setSubStep("design.variant");
+    slice.goToPrevStep();
+    expect(slice.currentSubStep).toBe("design.load");
+  });
+
+  it("plate.layout → goToPrevStep → design.params (prev major last step)", () => {
+    const slice = makeSlice();
+    slice.setSubStep("plate.layout");
+    slice.goToPrevStep();
+    expect(slice.currentMajor).toBe("design");
+    expect(slice.currentSubStep).toBe("design.params");
+  });
+
+  it("export.all → goToPrevStep → plate.layout (prev major last step)", () => {
+    const slice = makeSlice();
+    slice.setSubStep("export.all");
+    slice.goToPrevStep();
+    expect(slice.currentMajor).toBe("plate");
+    expect(slice.currentSubStep).toBe("plate.layout");
+  });
+});
+
+describe("canGoNext / canGoPrev (E5)", () => {
+  it("canGoNext is true at design.load", () => {
+    const slice = makeSlice();
+    slice.setSubStep("design.load");
+    expect(slice.canGoNext()).toBe(true);
+  });
+
+  it("canGoNext is false at export.all (last step)", () => {
+    const slice = makeSlice();
+    slice.setSubStep("export.all");
+    expect(slice.canGoNext()).toBe(false);
+  });
+
+  it("canGoPrev is false at design.load (first step)", () => {
+    const slice = makeSlice();
+    slice.setSubStep("design.load");
+    expect(slice.canGoPrev()).toBe(false);
+  });
+
+  it("canGoPrev is true at design.variant", () => {
+    const slice = makeSlice();
+    slice.setSubStep("design.variant");
+    expect(slice.canGoPrev()).toBe(true);
+  });
+
+  it("canGoPrev is true at plate.layout", () => {
+    const slice = makeSlice();
+    slice.setSubStep("plate.layout");
+    expect(slice.canGoPrev()).toBe(true);
+  });
+});
