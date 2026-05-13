@@ -1394,20 +1394,6 @@
     "copiedBtn": "Copied!",
     "closeBtn": "Close"
   },
-  "mappingExportDialog": {
-    "titleEcho": "Export Echo Mapping",
-    "titleJanus": "Export JANUS Mapping",
-    "descriptionFiles": "Two files are written to the same path.",
-    "machineLabel": "Machine",
-    "transferVolumeLabel": "Transfer Volume",
-    "bomCheckboxAriaLabel": "Add UTF-8 BOM for Excel compatibility",
-    "bomCheckboxLabel": "Add UTF-8 BOM",
-    "bomCheckboxHint": "(Excel compatibility)",
-    "transferVolumeRange": "Range: {{min}}–{{max}} {{unit}}",
-    "echoMaxNote": "(Max 500 nL)",
-    "cancelBtn": "Cancel",
-    "exportBtn": "Export"
-  },
   "whatsNewDialog": {
     "title": "What's New in v{{version}}",
     "description": "Highlights from the latest update.",
@@ -1567,12 +1553,6 @@
       "selectLabel": "Select well label format"
     },
     "export": {
-      "format": {
-        "idt": "IDT CSV",
-        "twist": "Twist CSV",
-        "fasta": "FASTA"
-      },
-      "runExport": "Export",
       "workspace": {
         "save": "Save workspace",
         "load": "Load workspace"
@@ -1581,13 +1561,6 @@
         "plateCount": "Plates",
         "primerCount": "Total primers",
         "mutationCount": "Mutations"
-      },
-      "orderExport": {
-        "heading": "Primer Order Export"
-      },
-      "mappingExport": {
-        "heading": "Plate Mapping Export",
-        "runExport": "Export Mapping"
       },
       "all": {
         "heading": "Export All (Macrogen Order)",

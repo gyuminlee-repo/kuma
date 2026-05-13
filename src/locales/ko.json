@@ -1394,20 +1394,6 @@
     "copiedBtn": "복사됨!",
     "closeBtn": "닫기"
   },
-  "mappingExportDialog": {
-    "titleEcho": "Echo 매핑 내보내기",
-    "titleJanus": "JANUS 매핑 내보내기",
-    "descriptionFiles": "동일한 경로에 두 파일이 저장됩니다.",
-    "machineLabel": "장비",
-    "transferVolumeLabel": "이동 부피",
-    "bomCheckboxAriaLabel": "Excel 호환을 위해 UTF-8 BOM 추가",
-    "bomCheckboxLabel": "UTF-8 BOM 추가",
-    "bomCheckboxHint": "(Excel 호환)",
-    "transferVolumeRange": "범위: {{min}}–{{max}} {{unit}}",
-    "echoMaxNote": "(최대 500 nL)",
-    "cancelBtn": "취소",
-    "exportBtn": "내보내기"
-  },
   "whatsNewDialog": {
     "title": "v{{version}} 새로운 기능",
     "description": "최신 업데이트의 주요 변경 사항입니다.",
@@ -1567,12 +1553,6 @@
       "selectLabel": "Well 라벨 형식 선택"
     },
     "export": {
-      "format": {
-        "idt": "IDT CSV",
-        "twist": "Twist CSV",
-        "fasta": "FASTA"
-      },
-      "runExport": "내보내기",
       "workspace": {
         "save": "워크스페이스 저장",
         "load": "워크스페이스 불러오기"
@@ -1581,13 +1561,6 @@
         "plateCount": "플레이트",
         "primerCount": "총 프라이머",
         "mutationCount": "돌연변이"
-      },
-      "orderExport": {
-        "heading": "프라이머 주문 내보내기"
-      },
-      "mappingExport": {
-        "heading": "플레이트 매핑 내보내기",
-        "runExport": "매핑 내보내기"
       },
       "all": {
         "heading": "Macrogen 주문서 일괄 내보내기",

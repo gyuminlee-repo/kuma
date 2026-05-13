@@ -19,7 +19,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { handleExportAll } from "@/components/layout/export-handlers";
 import { useKumaProject } from "@/state/projectContext";
-import { useAppStore } from "@/store";
+import { useAppStore } from "@/store/appStore";
+import type { AppState } from "@/store/appStore";
 
 const PLATE_NAME_RE = /^[A-Za-z0-9_-]{1,20}$/;
 const ECHO_RANGE = { min: 25, max: 500, step: 1, unit: "nL" } as const;
@@ -29,7 +30,7 @@ const WELL_LIMIT = 96;
 export function ExportFormatSelector() {
   const { t } = useTranslation();
   const project = useKumaProject();
-  const designResults = useAppStore((s) => s.designResults);
+  const designResults = useAppStore((s: AppState) => s.designResults);
 
   const wellCount = designResults.length;
 
