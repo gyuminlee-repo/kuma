@@ -206,13 +206,8 @@
       "polymeraseTaqTitle": "표준 Taq 중합효소. Tm 기준 ~60 °C, Mg²⁺ 농도 높음. 일반 PCR 또는 3'A 오버행이 필요할 때 사용합니다.",
       "polymerasePhusionTitle": "Thermo Phusion 고충실도 중합효소. Tm 기준 ~72 °C, blunt-end 산물, 빠른 신장 반응.",
       "polymeraseKODTitle": "Toyobo KOD One / KOD Hot Start. Tm 기준 ~68 °C (Mg²⁺/dNTP 보정 적용). 고충실도, 빠른 반응 속도.",
-      "autoDetect": {
-        "button": "CDS로부터 자동 인식",
-        "success": "{{source}}에서 자동 인식했습니다",
-        "failed": "ORF를 찾을 수 없음",
-        "noReference": "Reference 파일이 필요합니다",
-        "readError": "Reference 파일 읽기 실패"
-      }
+      "cdsCandidate": "CDS/ORF 후보:",
+      "cdsCandidateNoneDetected": "CDS를 찾을 수 없음. 좌표를 직접 입력하세요."
     },
     "activity": {
       "title": "활성 데이터",

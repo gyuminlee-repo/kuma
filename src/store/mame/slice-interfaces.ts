@@ -10,6 +10,7 @@ import type {
   VerdictRecord,
   WellEntry,
 } from "@/types/mame/models";
+import type { CdsCandidate } from "@/lib/sequence/autoDetectCds";
 
 export type InputMode = "consensus" | "sorted_barcode" | "raw_run";
 
@@ -84,6 +85,11 @@ export interface InputSlice {
   setDemuxResult: (result: DemuxAndFilterResult | null) => void;
   setDistributionStats: (stats: DistributionStats | null) => void;
   setAmpliconLengthEstimate: (estimate: AmpliconLengthEstimate | null) => void;
+  // CDS candidate dropdown (BarcodeSetupPanel)
+  cdsCandidates: CdsCandidate[];
+  selectedCdsIndex: number;
+  setCdsCandidates: (candidates: CdsCandidate[]) => void;
+  setSelectedCdsIndex: (index: number) => void;
   validateInputs: () => Promise<void>;
   runDemuxAndFilter: () => Promise<void>;
   runAnalysis: () => Promise<void>;

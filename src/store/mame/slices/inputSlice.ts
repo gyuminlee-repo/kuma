@@ -84,6 +84,11 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   demuxResult: null,
   distributionStats: null,
   ampliconLengthEstimate: null,
+  // CDS candidate dropdown
+  cdsCandidates: [],
+  selectedCdsIndex: 0,
+  setCdsCandidates: (cdsCandidates) => set({ cdsCandidates, selectedCdsIndex: 0 }),
+  setSelectedCdsIndex: (selectedCdsIndex) => set({ selectedCdsIndex }),
   setInputDir: (inputDir) => set({ inputDir, validationErrors: [] }),
   setExpectedPath: (expectedPath) => set({ expectedPath, validationErrors: [] }),
   setReferencePath: (referencePath) => set({ referencePath, validationErrors: [] }),

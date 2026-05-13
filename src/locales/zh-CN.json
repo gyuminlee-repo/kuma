@@ -206,13 +206,8 @@
       "polymeraseTaqTitle": "标准 Taq 聚合酶。Tm preset ~60 °C, 较高 Mg²⁺。用于常规 PCR 或需要 3'A 突出端时。",
       "polymerasePhusionTitle": "Thermo Phusion High-Fidelity。Tm preset ~72 °C, 平末端, 快速延伸。",
       "polymeraseKODTitle": "Toyobo KOD One / KOD Hot Start。Tm preset ~68 °C, 含 Mg²⁺/dNTP 校正。高保真, 速度快。",
-      "autoDetect": {
-        "button": "从 CDS 自动检测",
-        "success": "已从 {{source}} 检测",
-        "failed": "未找到 ORF",
-        "noReference": "需要参考文件",
-        "readError": "读取参考文件失败"
-      }
+      "cdsCandidate": "CDS / ORF 候选:",
+      "cdsCandidateNoneDetected": "未检测到 CDS。请手动输入坐标。"
     },
     "activity": {
       "title": "Activity 数据",

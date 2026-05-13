@@ -206,13 +206,8 @@
       "polymeraseTaqTitle": "Taq polymerase standard. Tm préréglée ~60 °C, Mg²⁺ plus élevé. À utiliser pour PCR de routine ou lorsque des overhangs 3'A sont souhaités.",
       "polymerasePhusionTitle": "Thermo Phusion High-Fidelity. Tm préréglée ~72 °C, blunt-end, extension rapide.",
       "polymeraseKODTitle": "Toyobo KOD One / KOD Hot Start. Tm préréglée ~68 °C avec correction Mg²⁺/dNTP. Haute fidélité, rapide.",
-      "autoDetect": {
-        "button": "Auto-détection depuis le CDS",
-        "success": "Détecté depuis {{source}}",
-        "failed": "Aucun ORF trouvé",
-        "noReference": "Fichier de référence requis",
-        "readError": "Échec de lecture du fichier de référence"
-      }
+      "cdsCandidate": "Candidat CDS / ORF :",
+      "cdsCandidateNoneDetected": "Aucun CDS détecté. Entrez les coordonnées manuellement."
     },
     "activity": {
       "title": "Données d'activité",
