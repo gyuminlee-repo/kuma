@@ -1,13 +1,13 @@
 {
   "menu": {
-    "file": "File",
-    "edit": "Edit",
-    "export": "Export",
-    "help": "Help"
+    "file": "Файл",
+    "edit": "Правка",
+    "export": "Экспорт",
+    "help": "Справка"
   },
   "file": {
-    "openSequence": "Open Sequence...",
-    "openProject": "Open Project...",
+    "openSequence": "Открыть последовательность...",
+    "openProject": "Открыть проект...",
     "restartSidecar": "Restart Sidecar",
     "openWorkspace": "Open Workspace...",
     "saveWorkspace": "Save Workspace...",
@@ -33,7 +33,7 @@
     "showOnboarding": "Show Onboarding",
     "viewCrashLog": "View Crash Log",
     "settings": "Settings...",
-    "about": "About"
+    "about": "О программе"
   },
   "about": {
     "title": "About Kuma",
@@ -56,15 +56,15 @@
     "howToCite": "How to cite",
     "copyBibtex": "Copy BibTeX",
     "copied": "Copied!",
-    "license": "License",
+    "license": "Лицензия",
     "licenseText": "Internal use, KRIBB C1 Lab - DOI/citation forthcoming",
     "thirdPartyLicenses": "Third-party licenses",
     "thirdPartyLicensesTitle": "Third-Party Licenses",
     "thirdPartyLicensesDesc": "Open-source components bundled with this application.",
     "viewLicenses": "View licenses",
-    "licensesLoading": "Loading...",
+    "licensesLoading": "Загрузка...",
     "licensesNotBundled": "Third-party licenses available in distribution package.",
-    "advanced": "Advanced",
+    "advanced": "Расширенные",
     "externalServices": "External services",
     "mameNoExternalServices": "MAME does not use external network services. All analysis runs locally.",
     "build": "Build",
@@ -79,7 +79,7 @@
     "updates": "Updates"
   },
   "settings": {
-    "title": "Settings",
+    "title": "Настройки",
     "accessibility": "Accessibility",
     "colorblindMode": "Color assist (shape prefix)",
     "colorblindModeDesc": "Adds shape markers to status indicators so colors are not the only differentiator.",
@@ -97,9 +97,9 @@
     "dataFolder": "Data folder",
     "dataFolderLoading": "loading...",
     "dataFolderChange": "Change...",
-    "language": "Language",
+    "language": "Язык",
     "languageNote": "Language preference is saved locally.",
-    "close": "Close"
+    "close": "Закрыть"
   },
   "mame": {
     "input": {
@@ -107,7 +107,7 @@
       "redetecting": "Detecting..."
     },
     "parameters": {
-      "title": "Parameters",
+      "title": "Параметры",
       "subtitle": "Thresholds and ingest mode for this batch.",
       "targetAmpliconLength": "Target Amplicon Length (bp)",
       "targetAmpliconLengthHelp": "Expected amplicon length after barcode sorting. Leave blank to auto-detect from sample reads; set manually when the distribution is noisy.",
@@ -200,7 +200,7 @@
       "barcodeSeedsXlsxPlaceholder": ".xlsx file path",
       "warningsLabel": "Warnings",
       "warningsAriaLabel": "Warnings",
-      "requiredStateLabel": "Required",
+      "requiredStateLabel": "Обязательно",
       "requireGcClampAriaLabel": "Require GC clamp on 3-prime end",
       "polymeraseQ5Title": "NEB Q5 High-Fidelity. Tm preset ~72 °C, low Mg²⁺. Default choice for high-fidelity amplification.",
       "polymeraseTaqTitle": "Standard Taq polymerase. Tm preset ~60 °C, higher Mg²⁺. Use for routine PCR or when 3'A overhangs are desired.",
@@ -210,7 +210,7 @@
         "button": "Auto-detect from CDS",
         "success": "Detected from {{source}}",
         "failed": "No ORF found",
-        "noReference": "Reference file required",
+        "noReference": "Файл референса обязателен",
         "readError": "Failed to read reference file"
       }
     },
@@ -230,17 +230,17 @@
       "merge": {
         "heading": "Merge activity with genotype",
         "desc": "Join uploaded activity with the Round genotype and normalise by WT.",
-        "btnLegacy": "Merge with genotype",
-        "btnLegacyBusy": "Merging…",
+        "btnLegacy": "Объединить с genotype",
+        "btnLegacyBusy": "Объединение…",
         "btnEvolvepro": "Merge for EVOLVEpro (v0.3)",
-        "btnEvolveproBusy": "Merging…",
+        "btnEvolveproBusy": "Объединение…",
         "btnEvolveproAria": "Run v0.3 RPC: replicate merge + label-swap guard"
       },
       "export": {
-        "heading": "Export EVOLVEpro xlsx",
+        "heading": "Экспорт EVOLVEpro xlsx",
         "desc": "Save the merged table as an EVOLVEpro training input xlsx (strict 2-column [Variant, activity] format, short variant notation such as F89W → 89W).",
-        "btn": "Export EVOLVEpro xlsx",
-        "btnBusy": "Exporting…"
+        "btn": "Экспорт EVOLVEpro xlsx",
+        "btnBusy": "Экспорт…"
       },
       "exportBlocked": {
         "title": "Export blocked — label-swap detected",
@@ -331,29 +331,29 @@
       "platesEmpty": "Awaiting analysis",
       "readiness": "Readiness",
       "readinessHint": "{{ready}}/{{total}} inputs filled",
-      "status": "Status",
+      "status": "Статус",
       "statusAnalyzing": "Analyzing {{progress}}%",
       "statusErrors": "{{count}} error(s)",
       "statusReady": "Results ready",
       "statusReadyToRun": "Ready to run",
       "statusDraft": "Draft setup",
-      "statusInProgress": "In progress"
+      "statusInProgress": "В процессе"
     },
     "menuBar": {
       "restartSidecarConfirm": "Analysis is running. Restart sidecar anyway?"
     },
     "statusBar": {
-      "ready": "Ready",
+      "ready": "Готово",
       "connecting": "Connecting",
       "sidecarError": "Sidecar error",
-      "disconnected": "Disconnected",
+      "disconnected": "Отключено",
       "summaryStats": "Total {{total}} · PASS {{pass}} · Ambiguous {{ambiguous}} · Fail {{fail}}"
     },
     "appLayout": {
-      "deadlockTitle": "No response",
+      "deadlockTitle": "Нет ответа",
       "deadlockDescription": "No progress update for 30+ seconds. The job is stuck.",
-      "deadlockWait": "Keep waiting",
-      "deadlockReset": "Reset",
+      "deadlockWait": "Подождать ещё",
+      "deadlockReset": "Сбросить",
       "analysisWorkspaceAriaLabel": "Analysis workspace",
       "manifestLoadFailed": "Manifest load failed: {{err}}",
       "barcodeSetupTab": "1. Run Setup",
@@ -390,7 +390,7 @@
         "browseAriaLabel": "Browse save path",
         "lastExport": "Last export",
         "openFolderAriaLabel": "Open export folder in file explorer",
-        "exporting": "Exporting…",
+        "exporting": "Экспорт…",
         "exportExcel": "Export Excel"
       },
       "janusMapping": {
@@ -405,7 +405,7 @@
         "columnsNote": "Columns: well, custom_barcode, variant, verdict, and plate coordinates.",
         "phase1Note": "Phase 1: only passed wells are included.",
         "exportJanus": "Export Janus Mapping",
-        "exporting": "Exporting…",
+        "exporting": "Экспорт…",
         "exported": "Exported successfully",
         "exportErrorPathRequired": "Output path is required."
       },
@@ -423,7 +423,7 @@
         "savedHtmlFallback": "Saved as HTML (PDF fallback)",
         "exportedAs": "Exported as {{format}}",
         "exportReport": "Export Report",
-        "exporting": "Exporting…",
+        "exporting": "Экспорт…",
         "exportErrorPathRequired": "Output path is required."
       }
     },
@@ -436,7 +436,7 @@
       "toastNoFiles": "No new files detected",
       "toastAutoDetected": "Auto-detected: {{items}}",
       "noPathSelected": "No path selected",
-      "fileReady": "Ready",
+      "fileReady": "Готово",
       "browseFolderAriaLabel": "Browse {{label}}",
       "consensus": {
         "label": "Consensus FASTA folder",
@@ -456,28 +456,28 @@
       "kuroXlsx": {
         "label": "KURO xlsx",
         "placeholder": ".xlsx file path",
-        "stateLabel": "Required",
+        "stateLabel": "Обязательно",
         "helperText": "expected_mutations sheet from KURO",
         "helpText": "The expected_mutations .xlsx file exported from KURO. MAME compares the expected mutations in this file against NGS consensus results."
       },
       "referenceFasta": {
         "label": "Reference FASTA",
         "placeholder": ".fasta / .fa file path",
-        "stateLabel": "Required",
+        "stateLabel": "Обязательно",
         "helperText": "Reference sequence used for variant calling against consensus",
         "helpText": "Reference FASTA used as the baseline for variant calling. Using the same reference as KURO design is recommended."
       },
       "customBarcodes": {
         "label": "Custom Barcodes (xlsx or csv)",
         "placeholder": ".xlsx / .csv file path",
-        "stateLabel": "Required",
+        "stateLabel": "Обязательно",
         "helperText": "Combinatorial barcode definition used before analysis",
         "helpText": "Raw MinKNOW run mode uses this file to assign reads to per-well FASTA outputs before analysis."
       },
       "sampleMap": {
         "label": "Sample Map (optional)",
         "placeholder": ".xlsx file path (mutants well layout)",
-        "stateLabel": "Optional",
+        "stateLabel": "Опционально",
         "helperText": "Well-to-sample name mapping — adds mutant name to sorted FASTA filenames (e.g. A01_V5F_F1_R1.fasta)",
         "helpText": "Col A: sample name, Col B: well position (e.g. A1). Compatible with KURO mutants.xlsx layout."
       },
@@ -493,7 +493,7 @@
   "home": {
     "newProject": "+ New project",
     "openFile": "Open file",
-    "settings": "Settings",
+    "settings": "Настройки",
     "recentProjects": "Recent projects",
     "noProjects": "No projects yet",
     "dialogTitle": "New project",
@@ -511,29 +511,29 @@
   "mameTab": {
     "matchingProjectTitle": "Matching project found",
     "matchingProjectDescription": "Load \"{{name}}\"?",
-    "cancelButton": "Cancel",
+    "cancelButton": "Отмена",
     "loadButton": "Load",
     "matchingProjectDesc": "Load \"{{name}}\"?",
     "loadBtn": "Load"
   },
   "common": {
     "ok": "OK",
-    "cancel": "Cancel",
-    "close": "Close",
+    "cancel": "Отмена",
+    "close": "Закрыть",
     "loading": "loading...",
     "openFolder": "Open folder",
     "retry": "retry",
-    "browse": "Browse"
+    "browse": "Обзор"
   },
   "globalAppBar": {
     "navAriaLabel": "Application navigation",
     "tabsAriaLabel": "Application tabs",
     "openSettingsAriaLabel": "Open settings",
-    "openSettingsTitle": "Settings",
+    "openSettingsTitle": "Настройки",
     "appNavAriaLabel": "Application navigation",
     "appTabsAriaLabel": "Application tabs",
     "settingsAriaLabel": "Open Settings",
-    "settingsTitle": "Settings"
+    "settingsTitle": "Настройки"
   },
   "globalStatusBar": {
     "statusBarAriaLabel": "Status bar",
@@ -545,7 +545,7 @@
   },
   "parameterPanel": {
     "sectionLabel": "Control",
-    "title": "Parameters",
+    "title": "Параметры",
     "strategyLabel": "Strategy:",
     "strategyHint_partial": "Forward and reverse are independent with overlap upstream of the codon.",
     "strategyHint_full": "Reverse = rc(forward). Single primer Tm and length apply to both.",
@@ -605,7 +605,7 @@
   "designReport": {
     "title": "Design Report",
     "description": "{{success}}/{{total}} primers designed ({{rate}}% success)",
-    "close": "Close",
+    "close": "Закрыть",
     "sectionPipeline": "Pipeline",
     "sectionBenchmarkDefaults": "Benchmark Defaults",
     "sectionPrimerDesign": "Primer Design",
@@ -641,7 +641,7 @@
     "statSeedAuto": "AUTO",
     "statSucceeded": "Succeeded",
     "statTmMet": "Tm condition met",
-    "statFailed": "Failed",
+    "statFailed": "Ошибка",
     "statPositionCoverage": "Position coverage",
     "statPositionCoverageValue": "{{rescued}}/{{attempted}} rescued",
     "statPoolCascade": "Pool cascade",
@@ -668,8 +668,8 @@
     "linkerOption_exclude": "Exclude",
     "linkerHelp": "Choose whether non-domain residues only backfill spare slots, get their own quota bin, or are excluded from Step 2 entirely.",
     "addManually": "+ Add manually",
-    "domainNamePlaceholder": "Name",
-    "domainStartPlaceholder": "Start",
+    "domainNamePlaceholder": "Имя",
+    "domainStartPlaceholder": "Старт",
     "domainEndPlaceholder": "End",
     "alphaFoldLoading": "(loading AlphaFold...)",
     "alphaFoldBadge": "AlphaFold",
@@ -677,9 +677,9 @@
     "helpTip1D": "Greedy Pareto selection that maximises minimum sequence-distance between chosen positions.",
     "roundSectionLabel": "Round",
     "evolveproRoundLabel": "EVOLVEpro Round",
-    "roundSizeLabel": "Size",
+    "roundSizeLabel": "Размер",
     "roundHelp": "Round × size = cumulative data points used to estimate model quality (ρ).\nLower ρ → wider pool and higher entropy weight for exploration.",
-    "autoLabel": "Auto",
+    "autoLabel": "Авто",
     "autoKValue": "K = {{k}}",
     "autoEntropyValue": "entropy = {{entropy}}",
     "advancedSettings": "Advanced settings",
@@ -717,7 +717,7 @@
     "reviewHeading": "Candidate Review",
     "candidateCount": "{{mutation}} ({{count}} candidates)",
     "candidateCountLoading": "{{mutation}} (...)",
-    "loading": "Loading...",
+    "loading": "Загрузка...",
     "noCandidates": "No candidates",
     "backendUnavailable": "Backend alternatives are unavailable until you re-design this workspace. Manual primer evaluation still works.",
     "alternativesError": "Failed to load alternatives: {{message}}",
@@ -745,7 +745,7 @@
     "btnApplyCustom": "Use",
     "btnApplyCustomTitle": "Apply this custom primer",
     "btnRemoveCustom": "×",
-    "btnRemoveCustomTitle": "Remove",
+    "btnRemoveCustomTitle": "Удалить",
     "customSection": "Custom Primer",
     "inputLabelFwd": "Fwd:",
     "inputLabelRev": "Rev:",
@@ -768,19 +768,19 @@
     "tabInputs": "Inputs",
     "tabMeta": "Meta",
     "tabTiming": "Timing",
-    "sectionParameters": "Parameters",
+    "sectionParameters": "Параметры",
     "sectionInputFiles": "Input files",
     "sectionMetadata": "Metadata",
     "sectionTiming": "Timing",
-    "colPath": "Path",
+    "colPath": "Путь",
     "colA": "A (before)",
     "colB": "B (after)",
-    "colStatus": "Status",
-    "emptyNoItems": "No items",
+    "colStatus": "Статус",
+    "emptyNoItems": "Нет элементов",
     "emptyNoChanges": "No changed items",
     "changedAriaLabel": "{{count}} changes",
     "summaryMethod": "Method",
-    "summaryVersion": "Version",
+    "summaryVersion": "Версия",
     "summaryStarted": "Started",
     "status": {
       "added": "added",
@@ -807,7 +807,7 @@
     "labelTolMax": "Tol max",
     "labelLength": "Length:",
     "labelBp": "bp",
-    "btnRetry": "Retry",
+    "btnRetry": "Повторить",
     "btnRetrying": "Designing...",
     "btnUseSuggestion": "Use suggestion ({{count}})",
     "suggestionTip": "Suggestion uses median Tm ({{tmFwd}}/{{tmRev}}/{{tmOv}}°C) and observed GC/length ranges from {{count}} successful primers, with tol ±{{tolMax}}°C.",
@@ -832,7 +832,7 @@
     "logAriaLabel": "Sidecar log messages",
     "emptyMessage": "No log messages yet",
     "clearAriaLabel": "Clear all log messages",
-    "clear": "Clear",
+    "clear": "Очистить",
     "copyAriaLabel": "Copy all log messages to clipboard",
     "copy": "Copy all",
     "copied": "Copied!"
@@ -853,7 +853,7 @@
     "warningMissingPaths": "Missing paths: {{paths}}",
     "warningHashMismatch": "Hash mismatch: {{paths}}",
     "exportOnlyNotice": "This manifest is an export-only operation and cannot be re-run directly. Re-export from the original data.",
-    "btnCancel": "Cancel",
+    "btnCancel": "Отмена",
     "btnRerun": "Re-run",
     "btnRunning": "Running...",
     "statusDone": "Re-run complete: {{method}}",
@@ -868,7 +868,7 @@
   "polymeraseEditor": {
     "title": "Custom Polymerase",
     "description": "Primer design defaults and asymmetric Tm targets for KURO.",
-    "nameLabel": "Name",
+    "nameLabel": "Имя",
     "tmMethodLabel": "Tm method",
     "tmMethodOption_santalucia": "SantaLucia",
     "tmMethodOption_santalucia_title": "SantaLucia 1998 nearest-neighbour parameters. Modern default; accurate for most PCR primers (DNA/DNA, 25-mers, physiological salt).",
@@ -899,9 +899,9 @@
     "dntpLabel": "dNTP",
     "dnaConcLabel": "DNA conc",
     "saveError": "Failed to save polymerase",
-    "cancel": "Cancel",
-    "save": "Save",
-    "saving": "Saving..."
+    "cancel": "Отмена",
+    "save": "Сохранить",
+    "saving": "Сохранение..."
   },
   "mainShell": {
     "alreadyRunning": "Already running.",
@@ -971,7 +971,7 @@
     "projectsFolder": "Projects folder",
     "folderPlaceholder": "~/Documents/kuma/",
     "chooseFolder": "Choose folder",
-    "done": "Done",
+    "done": "Готово",
     "insideProject": "Inside each project",
     "kuroDesc": "Kernel for Upstream Recombination Oligodesign. Batch SDM primer design from Gibson Assembly templates.",
     "mameDesc": "Mutagenesis Assessment & Microplate Export. Oxford Nanopore NGS verdict.",
@@ -979,15 +979,15 @@
     "titleStart": "Get started",
     "descStart": "Choose a default folder for projects. kuma keeps every Kuro design and Mame verdict run inside its own project folder so the work survives across weeks-long sequencing turnaround.",
     "chooseFolderBtn": "Choose folder",
-    "doneBtn": "Done",
+    "doneBtn": "Готово",
     "insideEachProject": "Inside each project"
   },
   "appLayout": {
-    "status": "Status",
+    "status": "Статус",
     "runDesign": "Run Design",
     "designing": "Designing...",
-    "clearAll": "Clear All",
-    "clear": "Clear",
+    "clearAll": "Очистить всё",
+    "clear": "Очистить",
     "clearAllDesc": "All design results will be lost. Continue?",
     "sequenceContext": "Sequence context",
     "loadTargetGene": "Load a target gene",
@@ -1001,15 +1001,15 @@
     "missingSeqFile": "Sequence file (Browse a .gb / .fasta / .dna file)",
     "missingMutations": "Mutations (enter at least one mutation in the Mutation panel)",
     "missingTargetGene": "Target gene (select one in the Sequence panel)",
-    "deadlockTitle": "No response",
+    "deadlockTitle": "Нет ответа",
     "deadlockDesc": "No progress update for 30+ seconds. The job may be stuck.",
-    "deadlockWait": "Keep waiting",
-    "deadlockReset": "Reset",
+    "deadlockWait": "Подождать ещё",
+    "deadlockReset": "Сбросить",
     "plateCount": "{{count}} plate",
     "plateCount_other": "{{count}} plates",
-    "cancel": "Cancel",
-    "clearAllTitle": "Clear All",
-    "clearBtn": "Clear",
+    "cancel": "Отмена",
+    "clearAllTitle": "Очистить всё",
+    "clearBtn": "Очистить",
     "successful": "{{success}}/{{total}} successful",
     "plates_one": "{{count}} plate",
     "plates_other": "{{count}} plates",
@@ -1019,27 +1019,27 @@
   "overwriteConfirm": {
     "title": "File already exists",
     "description": "already exists. Do you want to overwrite it?",
-    "btnCancel": "Cancel",
+    "btnCancel": "Отмена",
     "btnOverwrite": "Overwrite"
   },
   "offTargetDetail": {
     "title": "{{mutation}} — Off-Target Sites ({{count}})",
     "noHits": "No off-target hits",
-    "closeAriaLabel": "Close",
+    "closeAriaLabel": "Закрыть",
     "colPrimer": "Primer",
     "colPosition": "Position",
     "colStrand": "Strand",
     "colMatch": "Match (bp)",
     "colTm": "Tm (°C)",
-    "colSequence": "Sequence"
+    "colSequence": "Последовательность"
   },
   "hairpinDetail": {
     "title": "{{mutation}} — Secondary Structure",
-    "closeAriaLabel": "Close",
-    "colType": "Type",
+    "closeAriaLabel": "Закрыть",
+    "colType": "Тип",
     "colTm": "Tm (°C)",
     "colDg": "dG (kcal/mol)",
-    "colStatus": "Status",
+    "colStatus": "Статус",
     "statusWarn": "warn",
     "statusOk": "OK",
     "warningsLabel": "Warnings:",
@@ -1078,20 +1078,20 @@
     "clearDoneAriaLabel": "Clear completed jobs",
     "cancelJobAriaLabel": "Cancel job: {{label}}",
     "statusAriaLabel": "Status: {{status}}",
-    "statusPending": "Pending",
-    "statusRunning": "Running",
-    "statusDone": "Done",
-    "statusFailed": "Failed",
+    "statusPending": "Ожидание",
+    "statusRunning": "Выполняется",
+    "statusDone": "Готово",
+    "statusFailed": "Ошибка",
     "statusCancelled": "Cancelled",
     "kindDesign": "Design",
-    "kindExport": "Export",
+    "kindExport": "Экспорт",
     "kindAnalyze": "Analyze",
     "kindMerge": "Merge"
   },
   "sequenceInput": {
     "sequenceFile": "Sequence File",
     "dropAriaLabel": "Drop sequence file here",
-    "browse": "Browse",
+    "browse": "Обзор",
     "noFileSelected": "No file selected (.gb / .dna)",
     "targetGene": "Target Gene",
     "targetGeneTitle": "CDS region to design primers for. Auto-selected by longest coding sequence.",
@@ -1126,7 +1126,7 @@
     "autoSearchBtn": "Auto Search"
   },
   "statusBar": {
-    "ready": "Ready",
+    "ready": "Готово",
     "connecting": "Connecting",
     "failed": "Sidecar failed",
     "networkError": "Network error"
@@ -1155,7 +1155,7 @@
     "description": "This feature calls the following external services. Your sequence data will be sent to those services.",
     "serviceListAriaLabel": "External service list",
     "persistNote": "Consent persists after restart. You can block external calls at any time by enabling offline mode in Settings.",
-    "btnCancel": "Cancel",
+    "btnCancel": "Отмена",
     "btnAccept": "Accept and continue",
     "serviceUniprotDesc": "protein sequence search",
     "serviceBlastDesc": "sequence similarity search",
@@ -1165,18 +1165,18 @@
   "inputSizeWarning": {
     "title": "Input size warning",
     "titleBlock": "Input size warning (very large job)",
-    "continueLabel": "Continue",
+    "continueLabel": "Продолжить",
     "continueLabelBlock": "Continue anyway",
-    "cancelLabel": "Cancel"
+    "cancelLabel": "Отмена"
   },
   "localeToggle": {
     "currentLanguageAria": "Current language: {{label}}. Change language"
   },
   "themeToggle": {
     "currentThemeAria": "Current theme: {{label}}. Change theme",
-    "labelLight": "Light",
-    "labelDark": "Dark",
-    "labelSystem": "System"
+    "labelLight": "Светлая",
+    "labelDark": "Тёмная",
+    "labelSystem": "Система"
   },
   "menuBar": {
     "restartSidecarBusyConfirm": "A job is running. Restart sidecar anyway?",
@@ -1186,15 +1186,15 @@
     "consentStatusLabel": "Consent status:",
     "consentGranted": "Granted",
     "consentNotGranted": "Not granted",
-    "fileMenuTrigger": "File",
-    "exportMenuTrigger": "Export",
+    "fileMenuTrigger": "Файл",
+    "exportMenuTrigger": "Экспорт",
     "uniprotServiceSuffix": " -- protein sequence search",
     "ncbiBlastServiceSuffix": " -- sequence similarity search",
     "alphafoldServiceSuffix": " -- structure prediction lookup",
     "interproServiceSuffix": " -- protein domain annotation",
     "kuroSubtitle": "Kernel for Upstream Recombination Oligodesign",
     "view": {
-      "title": "View",
+      "title": "Вид",
       "logs": "Show Logs",
       "jobs": "Show Jobs"
     }
@@ -1345,7 +1345,7 @@
     "loadItem": "Load the converted workspace",
     "backupNote": "The original file is preserved as a backup. Migration cannot be undone automatically. Restore the backup manually if needed.",
     "cancelAriaLabel": "Cancel workspace load",
-    "cancelBtn": "Cancel",
+    "cancelBtn": "Отмена",
     "migrateBtn": "Migrate (Backup + Convert)",
     "migratingBtn": "Migrating...",
     "migrateAriaLabel": "Backup original file and migrate workspace",
@@ -1359,14 +1359,14 @@
     "gridAriaLabel": "96-well plate grid. Click to toggle WT designation.",
     "selectedSingle": "{{count}} WT well selected",
     "selectedPlural": "{{count}} WT wells selected",
-    "cancelBtn": "Cancel",
+    "cancelBtn": "Отмена",
     "saveAriaLabel": "Save WT well selection",
-    "saveBtn": "Save",
-    "savingBtn": "Saving..."
+    "saveBtn": "Сохранить",
+    "savingBtn": "Сохранение..."
   },
   "inputPanel": {
     "sectionLabel": "Workspace",
-    "title": "Input"
+    "title": "Ввод"
   },
   "activityUpload": {
     "panelAriaLabel": "Activity data upload",
@@ -1385,7 +1385,7 @@
     "descWarnings": "Review the following before continuing.",
     "errorsLabel": "Errors",
     "warningsLabel": "Warnings",
-    "cancelBtn": "Cancel",
+    "cancelBtn": "Отмена",
     "continueBtn": "Continue with warnings",
     "errSidecarNotReady": "Sidecar is not ready (status: {{status}}). Restart the app or use the Retry button in the status bar.",
     "warnDiskUnavailable": "Disk space check is unavailable on this platform. Ensure sufficient free space before running.",
@@ -1397,9 +1397,9 @@
     "descEntries_other": "{{count}} entries stored in localStorage.",
     "descEmpty": "No crash entries recorded.",
     "contentAriaLabel": "Crash log content",
-    "copyBtn": "Copy",
+    "copyBtn": "Копировать",
     "copiedBtn": "Copied!",
-    "closeBtn": "Close"
+    "closeBtn": "Закрыть"
   },
   "mappingExportDialog": {
     "titleEcho": "Export Echo Mapping",
@@ -1411,9 +1411,9 @@
     "bomCheckboxLabel": "Add UTF-8 BOM",
     "bomCheckboxHint": "(Excel compatibility)",
     "transferVolumeRange": "Range: {{min}}–{{max}} {{unit}}",
-    "echoMaxNote": "(Макс. 500 нл)",
-    "cancelBtn": "Cancel",
-    "exportBtn": "Export"
+    "echoMaxNote": "(Max 500 nL)",
+    "cancelBtn": "Отмена",
+    "exportBtn": "Экспорт"
   },
   "whatsNewDialog": {
     "title": "What's New in v{{version}}",
@@ -1445,10 +1445,10 @@
     "inputErrors_other": "{{count}} input error(s)",
     "validatingBtn": "Validating…",
     "validateBtn": "Validate",
-    "cancelBtn": "Cancel",
-    "runBtn": "Run",
-    "clearBtn": "Clear",
-    "exportBtn": "Export",
+    "cancelBtn": "Отмена",
+    "runBtn": "Запустить",
+    "clearBtn": "Очистить",
+    "exportBtn": "Экспорт",
     "readyCount": "{{ready}}/{{total}} ready",
     "inputReadinessAria": "Input readiness {{percent}}%",
     "analysisProgressAria": "Analysis progress {{percent}}%"
@@ -1460,10 +1460,10 @@
     "fallbackReplicateTitle": "Fallback replicate"
   },
   "clearConfirmDialog": {
-    "title": "Clear All",
+    "title": "Очистить всё",
     "description": "All analysis results will be lost. Continue?",
-    "cancelBtn": "Cancel",
-    "clearBtn": "Clear"
+    "cancelBtn": "Отмена",
+    "clearBtn": "Очистить"
   },
   "roundSummarySignals": {
     "calibrationBannerHeading": "Calibration period — classification inactive.",
@@ -1503,7 +1503,7 @@
     "placeholder": "UniProt ID",
     "afStructureTitle": "AlphaFold structure available"
   },
-  "sectionLabel": "Input",
+  "sectionLabel": "Ввод",
   "updater": {
     "notConfigured": "Updater is not configured for this build. See RELEASE_CHECKLIST.md for key generation steps."
   },
@@ -1537,18 +1537,18 @@
   "phaseC": {
     "majors": {
       "design": "Design",
-      "export": "Export",
-      "output": "Результаты"
+      "export": "Экспорт",
+      "output": "Вывод"
     },
     "subSteps": {
       "design": {
         "load": "Load Variants",
         "mutation": "Mutations",
         "params": "Primer Parameters",
-        "submit": "Фильтры пула & Запуск"
+        "submit": "Pool Filters & Run"
       },
       "export": {
-        "all": "Export",
+        "all": "Экспорт",
         "format": "Format",
         "summary": "Order summary",
         "workspace": "Workspace save"
@@ -1579,7 +1579,7 @@
         "twist": "Twist CSV",
         "fasta": "FASTA"
       },
-      "runExport": "Export",
+      "runExport": "Экспорт",
       "workspace": {
         "save": "Save workspace",
         "load": "Load workspace"
@@ -1599,7 +1599,7 @@
     },
     "run": {
       "primary": "Run Design",
-      "cancel": "Cancel"
+      "cancel": "Отмена"
     },
     "mameSubSteps": {
       "setup": {
@@ -1622,18 +1622,18 @@
     "wizard": {
       "stepLabel": "Step {{n}}",
       "progress": "Step {{current}} / {{total}}",
-      "back": "Back",
-      "next": "Next"
+      "back": "Назад",
+      "next": "Далее"
     },
     "descriptions": {
       "design": {
         "load": "Upload an EVOLVEpro CSV or paste a protein sequence.",
         "mutation": "Define mutations to include.",
         "params": "Set primer design parameters and run.",
-        "submit": "Выберите фильтры пула вариантов и запустите разработку праймеров."
+        "submit": "Select variant pool filters, then run primer design."
       },
       "output": {
-        "summary": "Проверьте результаты дизайна, статистику и план планшета."
+        "summary": "Review design results, statistics, and plate layout."
       }
     },
     "mameDescriptions": {
@@ -1644,8 +1644,8 @@
       },
       "analyze": {
         "inputs": "Set the input directory and analysis parameters, then run.",
-        "verdict": "Review per-well pass/fail verdicts and summary statistics.",
-        "plate": "Inspect the plate layout with barcode and variant assignments."
+        "verdict": "Review per-well pass/fail verdicts, summary statistics, and sequencing throughput metrics.",
+        "plate": "Inspect the plate layout with barcode and variant assignments, and per-plate health indicators."
       },
       "activity": {
         "ingest": "Upload activity CSV or Excel files and annotate the wild-type.",
@@ -1659,15 +1659,15 @@
     "stats": {
       "primers": "Primers",
       "plates": "Plates",
-      "failed": "Failed",
+      "failed": "Ошибка",
       "rescued": "Rescued"
     }
   },
   "wizardContainer": {
     "validationDialog": {
-      "title": "Отсутствующая информация",
-      "description": "Пожалуйста, заполните следующие поля перед продолжением.",
-      "missingItemsLabel": "Отсутствующие элементы"
+      "title": "Missing Information",
+      "description": "Please complete the following before continuing.",
+      "missingItemsLabel": "Missing items"
     }
   }
 }
