@@ -205,7 +205,7 @@
     {
       "id": "mame-build-exclusions",
       "files": ["python-core/build_sidecar.py"],
-      "note": "MAME PyInstaller exclusions (torch, sklearn, transformers 등) — 4 GB CArchive 한도 회피. 신규 ML 의존 추가 시 재검토",
+      "note": "MAME PyInstaller exclusions (torch, sklearn, transformers 등). 4 GB CArchive 한도 회피, 신규 ML 의존 추가 시 재검토",
       "severity": "warning"
     },
     {
