@@ -1232,6 +1232,12 @@
     },
     "help": {
       "reportIssue": "报告问题"
+    },
+    "appMenu": {
+      "kuro": "kuro",
+      "mame": "mame",
+      "closeWindow": "关闭窗口",
+      "quit": "退出 kuma"
     }
   },
   "panel": {

@@ -1232,6 +1232,12 @@
     },
     "help": {
       "reportIssue": "問題を報告"
+    },
+    "appMenu": {
+      "kuro": "kuro",
+      "mame": "mame",
+      "closeWindow": "ウィンドウを閉じる",
+      "quit": "kuma を終了"
     }
   },
   "panel": {

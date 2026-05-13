@@ -38,6 +38,7 @@ import { ManifestDiffDialog } from "../dialogs/ManifestDiffDialog";
 import { checkForUpdates, downloadAndInstall, type UpdateCheckResult } from "../../lib/updater";
 import type { Update } from "@tauri-apps/plugin-updater";
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { killSidecar } from "../../lib/ipc";
 import { SettingsDialog } from "./SettingsDialog";
 import { KeyboardShortcutsDialog } from "../dialogs/KeyboardShortcutsDialog";
@@ -248,10 +249,10 @@ export function MenuBar() {
 
   const menus = (
     <>
-      {/* File 메뉴 */}
+      {/* App 메뉴 — mockup v5: 첫 메뉴는 앱명(kuro), 굵게. KURO 탭에서는 "kuro"만 노출. */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className={TRIGGER_CLS}>{t("menuBar.fileMenuTrigger")}</button>
+          <button className={`${TRIGGER_CLS} font-bold`}>{t("menuBar.appMenu.kuro")}</button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
           <DropdownMenuItem onClick={handleOpenSequence}>
@@ -274,6 +275,15 @@ export function MenuBar() {
             disabled={false}
           >
             {t("file.restartSidecar")}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => { void getCurrentWindow().close(); }}>
+            <span className="flex-1">{t("menuBar.appMenu.closeWindow")}</span>
+            <kbd className="ml-4 text-caption text-muted-foreground">{MOD_KEY}W</kbd>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => { void getCurrentWindow().close(); }}>
+            <span className="flex-1">{t("menuBar.appMenu.quit")}</span>
+            <kbd className="ml-4 text-caption text-muted-foreground">{MOD_KEY}Q</kbd>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

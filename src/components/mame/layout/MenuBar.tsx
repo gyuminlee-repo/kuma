@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { readTextFile } from "@tauri-apps/plugin-fs";
 import { resolveResource } from "@tauri-apps/api/path";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { CrashLogDialog } from "@/components/dialogs/CrashLogDialog";
 import { JanusMappingDialog } from "@/components/mame/dialogs/JanusMappingDialog";
@@ -258,10 +259,10 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
 
   const menus = (
     <>
-      {/* File 메뉴 */}
+      {/* App 메뉴 — mockup v5: 첫 메뉴는 앱명(mame), 굵게. MAME 탭에서는 "mame"만 노출. */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className={TRIGGER_CLS}>{t("menu.file")}</button>
+          <button className={`${TRIGGER_CLS} font-bold`}>{t("menuBar.appMenu.mame")}</button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
           <DropdownMenuItem
@@ -301,6 +302,15 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setRunReportOpen(true)} disabled={!hasResults}>
             <span className="flex-1">{t("export.runReport")}</span>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => { void getCurrentWindow().close(); }}>
+            <span className="flex-1">{t("menuBar.appMenu.closeWindow")}</span>
+            <DropdownMenuShortcut>{MOD_KEY}W</DropdownMenuShortcut>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => { void getCurrentWindow().close(); }}>
+            <span className="flex-1">{t("menuBar.appMenu.quit")}</span>
+            <DropdownMenuShortcut>{MOD_KEY}Q</DropdownMenuShortcut>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

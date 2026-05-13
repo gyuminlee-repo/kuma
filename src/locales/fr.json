@@ -1232,6 +1232,12 @@
     },
     "help": {
       "reportIssue": "Report issue"
+    },
+    "appMenu": {
+      "kuro": "kuro",
+      "mame": "mame",
+      "closeWindow": "Fermer la fenêtre",
+      "quit": "Quitter kuma"
     }
   },
   "panel": {

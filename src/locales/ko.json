@@ -1232,6 +1232,12 @@
     },
     "help": {
       "reportIssue": "이슈 보고"
+    },
+    "appMenu": {
+      "kuro": "kuro",
+      "mame": "mame",
+      "closeWindow": "창 닫기",
+      "quit": "kuma 종료"
     }
   },
   "panel": {
