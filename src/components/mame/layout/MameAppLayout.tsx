@@ -212,14 +212,6 @@ export function MameAppLayout() {
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
       const s = useMameAppStore.getState();
       switch (e.key.toLowerCase()) {
-        case "o":
-          e.preventDefault();
-          void s.loadWorkspace(project);
-          break;
-        case "s":
-          e.preventDefault();
-          void s.saveWorkspace(project);
-          break;
         case "e":
           e.preventDefault();
           if (s.verdicts.length > 0) s.openExport();

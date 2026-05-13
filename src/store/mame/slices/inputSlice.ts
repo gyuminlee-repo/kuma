@@ -1,7 +1,6 @@
 import type { StateCreator } from "zustand";
 import { cancelAndRespawn, sendRequest } from "@/lib/ipc-mame";
 import { formatError } from "@/lib/utils";
-import { loadWorkspaceFromFile, saveWorkspaceToFile } from "@/lib/mame/workspace";
 import type {
   AmpliconLengthEstimate,
   AnalyzeResult,
@@ -10,16 +9,8 @@ import type {
   ValidationResult,
 } from "@/types/mame/models";
 import type { SortBarcodeResult } from "@/types/mame/sort_barcode";
-import type { KumaProject } from "@/state/projectContext";
-import type { InputSlice, InputMode, RawRunParams } from "../slice-interfaces";
+import type { InputSlice, RawRunParams } from "../slice-interfaces";
 import type { AppState } from "../types";
-
-const VALID_INPUT_MODES: readonly InputMode[] = ["consensus", "sorted_barcode", "raw_run"];
-function coerceInputMode(value: unknown): InputMode {
-  return typeof value === "string" && (VALID_INPUT_MODES as readonly string[]).includes(value)
-    ? (value as InputMode)
-    : "sorted_barcode";
-}
 
 const DEFAULT_RAW_RUN_PARAMS: RawRunParams = {
   customBarcodesPath: "",
@@ -298,59 +289,5 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       analyzeProgress: 0,
       analyzeMessage: "Analysis cancelled",
     });
-  },
-  saveWorkspace: async (project: KumaProject) => {
-    const s = get();
-    try {
-      const savedTo = await saveWorkspaceToFile(
-        {
-          version: 1,
-          inputDir: s.inputDir,
-          expectedPath: s.expectedPath,
-          referencePath: s.referencePath,
-          outputPath: s.outputPath,
-          sampleMapPath: s.sampleMapPath,
-          mode: s.mode,
-          ingestMode: s.ingestMode,
-          inputMode: s.inputMode,
-          rawRunParams: s.rawRunParams,
-          cdsStart: s.cdsStart,
-          cdsEnd: s.cdsEnd,
-          minFileSizeKb: s.minFileSizeKb,
-          minFilteredDepth: s.minFilteredDepth,
-          manyCutoff: s.manyCutoff,
-        },
-        project,
-      );
-      if (savedTo) set({ analyzeMessage: `Workspace saved: ${savedTo}` });
-    } catch (error) {
-      set({ analyzeMessage: `Workspace save failed: ${formatError(error)}` });
-    }
-  },
-  loadWorkspace: async (project: KumaProject) => {
-    try {
-      const snap = await loadWorkspaceFromFile(project);
-      if (!snap) return;
-      set({
-        inputDir: snap.inputDir,
-        expectedPath: snap.expectedPath,
-        referencePath: snap.referencePath,
-        outputPath: snap.outputPath,
-        sampleMapPath: snap.sampleMapPath ?? "",
-        mode: snap.mode,
-        ingestMode: snap.ingestMode,
-        inputMode: coerceInputMode(snap.inputMode),
-        rawRunParams: snap.rawRunParams ?? { ...DEFAULT_RAW_RUN_PARAMS },
-        cdsStart: snap.cdsStart,
-        cdsEnd: snap.cdsEnd,
-        minFileSizeKb: snap.minFileSizeKb,
-        minFilteredDepth: snap.minFilteredDepth ?? 15,
-        manyCutoff: snap.manyCutoff,
-        validationErrors: [],
-        analyzeMessage: "Workspace loaded",
-      });
-    } catch (error) {
-      set({ analyzeMessage: `Workspace load failed: ${formatError(error)}` });
-    }
   },
 });

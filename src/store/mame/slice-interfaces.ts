@@ -10,7 +10,6 @@ import type {
   VerdictRecord,
   WellEntry,
 } from "@/types/mame/models";
-import type { KumaProject } from "@/state/projectContext";
 
 export type InputMode = "consensus" | "sorted_barcode" | "raw_run";
 
@@ -89,8 +88,6 @@ export interface InputSlice {
   runDemuxAndFilter: () => Promise<void>;
   runAnalysis: () => Promise<void>;
   cancelAnalysis: () => Promise<void>;
-  saveWorkspace: (project: KumaProject) => Promise<void>;
-  loadWorkspace: (project: KumaProject) => Promise<void>;
 }
 
 export interface AnalysisSlice {
