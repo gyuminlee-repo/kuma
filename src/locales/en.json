@@ -234,12 +234,11 @@
         "btnLegacyBusy": "Merging…",
         "btnEvolvepro": "Merge for EVOLVEpro (v0.3)",
         "btnEvolveproBusy": "Merging…",
-        "btnEvolveproAria": "Run v0.3 RPC: replicate merge + label-swap guard",
-        "v3Note": "v0.3: label-swap guard + replicate merge integrated. The 5/12 demo path uses the legacy button."
+        "btnEvolveproAria": "Run v0.3 RPC: replicate merge + label-swap guard"
       },
       "export": {
         "heading": "Export EVOLVEpro xlsx",
-        "desc": "Save the merged table as an EVOLVEpro training input xlsx (strict 2-column [Variant, activity], 89W short notation).",
+        "desc": "Save the merged table as an EVOLVEpro training input xlsx (strict 2-column [Variant, activity] format, short variant notation such as F89W → 89W).",
         "btn": "Export EVOLVEpro xlsx",
         "btnBusy": "Exporting…"
       },
@@ -352,7 +351,7 @@
     },
     "appLayout": {
       "deadlockTitle": "No response",
-      "deadlockDescription": "No progress update for 30+ seconds. The job may be stuck.",
+      "deadlockDescription": "No progress update for 30+ seconds. The job is stuck.",
       "deadlockWait": "Keep waiting",
       "deadlockReset": "Reset",
       "analysisWorkspaceAriaLabel": "Analysis workspace",
