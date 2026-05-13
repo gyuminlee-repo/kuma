@@ -1599,8 +1599,7 @@
     "mameSubSteps": {
       "setup": {
         "files": "Dateien & Coordinates",
-        "design": "Design-Parameter",
-        "output": "Paket erzeugen"
+        "design": "Design-Parameter"
       },
       "analyze": {
         "inputs": "Eingaben",
@@ -1634,8 +1633,7 @@
     "mameDescriptions": {
       "setup": {
         "files": "Auswählen die MinKNOW ausführen Ordner und Referenz sequence für this ausführen.",
-        "design": "Configure flanking Primer und binding Länge parameters.",
-        "output": "Vorschau Einstellungen und generate die barcode package."
+        "design": "Configure Primer-Design-Parameter und generiere das Barcode-Paket."
       },
       "analyze": {
         "inputs": "Set die Eingabe directory und analysis parameters, dann ausführen.",

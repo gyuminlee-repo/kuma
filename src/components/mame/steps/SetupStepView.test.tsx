@@ -39,9 +39,9 @@ describe("SetupStepView", () => {
     expect(getByTestId("barcode-setup-panel-design")).toBeTruthy();
   });
 
-  it("setup.output mounts BarcodeSetupPanel with group=output", () => {
-    useMameAppStore.setState({ currentMameSubStep: "setup.output" });
+  it("setup.design includes output sections (group=design absorbs output)", () => {
+    useMameAppStore.setState({ currentMameSubStep: "setup.design" });
     const { getByTestId } = render(<SetupStepView />);
-    expect(getByTestId("barcode-setup-panel-output")).toBeTruthy();
+    expect(getByTestId("barcode-setup-panel-design")).toBeTruthy();
   });
 });

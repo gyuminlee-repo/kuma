@@ -131,11 +131,10 @@ function toSinglePath(result: string | string[] | null): string | null {
 /**
  * group prop: sub-step 전용 섹션 필터.
  * - "files":  section-files + section-coords + section-meta (setup.files)
- * - "design": section-flank + section-binding (setup.design)
- * - "output": section-output + 생성 버튼 (setup.output)
+ * - "design": section-flank + section-binding + section-output + 생성 버튼 (setup.design)
  * - undefined: 전체 렌더 (mame Sidebar 호환)
  */
-export type BarcodeSetupGroup = "files" | "design" | "output";
+export type BarcodeSetupGroup = "files" | "design";
 
 interface BarcodeSetupPanelProps {
   group?: BarcodeSetupGroup;
@@ -568,8 +567,8 @@ export function BarcodeSetupPanel({ group }: BarcodeSetupPanelProps = {}) {
           </div>
         </section>}
 
-        {/* 프로젝트 없음 안내 + 생성 버튼 + 출력 섹션 (group: output 또는 undefined) */}
-        {(!group || group === "output") && <>
+        {/* 프로젝트 없음 안내 + 생성 버튼 + 출력 섹션 (group: design 또는 undefined) */}
+        {(!group || group === "design") && <>
         {!project?.path && (
           <p role="status" className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
             {t("mame.barcodeSetup.noProjectWarning")}

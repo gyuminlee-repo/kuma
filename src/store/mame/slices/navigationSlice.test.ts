@@ -62,7 +62,6 @@ describe("MAME_SUBSTEP_ORDER", () => {
     expect(MAME_SUBSTEP_ORDER.setup).toEqual([
       "setup.files",
       "setup.design",
-      "setup.output",
     ]);
     expect(MAME_SUBSTEP_ORDER.analyze).toEqual([
       "analyze.inputs",
@@ -108,7 +107,7 @@ describe("PhaseSlice — setMamePhase sub-step 자동 리셋", () => {
   });
 
   it("setMamePhase('analyze') → currentMameSubStep이 analyze.inputs로 리셋된다", () => {
-    store.setMameSubStep("setup.output");
+    store.setMameSubStep("setup.design");
     store.setMamePhase("analyze");
     expect(store.mamePhase).toBe("analyze");
     expect(store.currentMameSubStep).toBe("analyze.inputs");

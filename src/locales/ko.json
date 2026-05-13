@@ -1599,8 +1599,7 @@
     "mameSubSteps": {
       "setup": {
         "files": "파일 및 좌표",
-        "design": "설계 파라미터",
-        "output": "패키지 생성"
+        "design": "설계 파라미터"
       },
       "analyze": {
         "inputs": "입력",
@@ -1634,8 +1633,7 @@
     "mameDescriptions": {
       "setup": {
         "files": "이번 런에 사용할 MinKNOW 런 폴더와 참조 시퀀스를 선택하세요.",
-        "design": "플랭킹 프라이머 및 결합 길이 파라미터를 설정하세요.",
-        "output": "설정을 확인하고 바코드 패키지를 생성하세요."
+        "design": "프라이머 설계 파라미터를 설정하고 바코드 패키지를 생성하세요."
       },
       "analyze": {
         "inputs": "입력 디렉토리와 분석 파라미터를 설정한 뒤 실행하세요.",

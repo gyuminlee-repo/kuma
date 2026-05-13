@@ -1599,8 +1599,7 @@
     "mameSubSteps": {
       "setup": {
         "files": "檔案與座標",
-        "design": "Design 引數",
-        "output": "生成包"
+        "design": "Design 引數"
       },
       "analyze": {
         "inputs": "輸入",
@@ -1634,8 +1633,7 @@
     "mameDescriptions": {
       "setup": {
         "files": "為本次 run 選擇 MinKNOW run 資料夾與參考序列。",
-        "design": "配置 flanking primer 與 binding 長度引數。",
-        "output": "預覽設定並生成 barcode 包。"
+        "design": "配置 primer design 引數並生成 barcode 包。"
       },
       "analyze": {
         "inputs": "設定輸入目錄與分析引數,然後執行。",
