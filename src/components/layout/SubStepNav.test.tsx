@@ -1,5 +1,6 @@
 /**
  * SubStepNav.test.tsx — Phase G: sub-step 클릭 + badge status 어설션
+ *                       + keyboard navigation (ArrowUp/Down/Home/End)
  * [source: spec Phase G — Design 4 sub-step 재배치 (design.variant 제거, design.submit 신규)]
  */
 
@@ -91,5 +92,76 @@ describe("SubStepNav (Phase G)", () => {
     render(<SubStepNav major="design" subSteps={DESIGN_SUBSTEPS} />);
     expect(screen.getByText("2")).toBeTruthy();
     expect(screen.getByText("3")).toBeTruthy();
+  });
+
+  it("roving tabIndex: active tab has tabIndex=0, others -1", () => {
+    render(<SubStepNav major="design" subSteps={DESIGN_SUBSTEPS} />);
+    const tabs = screen.getAllByRole("tab");
+    expect(tabs[0].tabIndex).toBe(0);
+    expect(tabs[1].tabIndex).toBe(-1);
+    expect(tabs[2].tabIndex).toBe(-1);
+    expect(tabs[3].tabIndex).toBe(-1);
+  });
+});
+
+describe("SubStepNav keyboard navigation", () => {
+  beforeEach(() => {
+    useAppStore.setState({
+      currentMajor: "design",
+      currentSubStep: "design.load",
+      stepStatus: makeStepStatus(),
+    });
+  });
+
+  it("ArrowDown from first tab activates second sub-step", () => {
+    render(<SubStepNav major="design" subSteps={DESIGN_SUBSTEPS} />);
+    const tabs = screen.getAllByRole("tab");
+    fireEvent.keyDown(tabs[0], { key: "ArrowDown" });
+    expect(useAppStore.getState().currentSubStep).toBe("design.mutation");
+  });
+
+  it("ArrowDown from last tab is noop", () => {
+    useAppStore.setState({ currentSubStep: "design.submit" });
+    render(<SubStepNav major="design" subSteps={DESIGN_SUBSTEPS} />);
+    const tabs = screen.getAllByRole("tab");
+    fireEvent.keyDown(tabs[3], { key: "ArrowDown" });
+    expect(useAppStore.getState().currentSubStep).toBe("design.submit");
+  });
+
+  it("ArrowUp from second tab activates first sub-step", () => {
+    useAppStore.setState({ currentSubStep: "design.mutation" });
+    render(<SubStepNav major="design" subSteps={DESIGN_SUBSTEPS} />);
+    const tabs = screen.getAllByRole("tab");
+    fireEvent.keyDown(tabs[1], { key: "ArrowUp" });
+    expect(useAppStore.getState().currentSubStep).toBe("design.load");
+  });
+
+  it("ArrowUp from first tab is noop", () => {
+    render(<SubStepNav major="design" subSteps={DESIGN_SUBSTEPS} />);
+    const tabs = screen.getAllByRole("tab");
+    fireEvent.keyDown(tabs[0], { key: "ArrowUp" });
+    expect(useAppStore.getState().currentSubStep).toBe("design.load");
+  });
+
+  it("Home key activates first sub-step from any position", () => {
+    useAppStore.setState({ currentSubStep: "design.params" });
+    render(<SubStepNav major="design" subSteps={DESIGN_SUBSTEPS} />);
+    const tabs = screen.getAllByRole("tab");
+    fireEvent.keyDown(tabs[2], { key: "Home" });
+    expect(useAppStore.getState().currentSubStep).toBe("design.load");
+  });
+
+  it("End key activates last sub-step from any position", () => {
+    render(<SubStepNav major="design" subSteps={DESIGN_SUBSTEPS} />);
+    const tabs = screen.getAllByRole("tab");
+    fireEvent.keyDown(tabs[0], { key: "End" });
+    expect(useAppStore.getState().currentSubStep).toBe("design.submit");
+  });
+
+  it("click regression: clicking third tab still changes sub-step", () => {
+    render(<SubStepNav major="design" subSteps={DESIGN_SUBSTEPS} />);
+    const tabs = screen.getAllByRole("tab");
+    fireEvent.click(tabs[2]); // design.params
+    expect(useAppStore.getState().currentSubStep).toBe("design.params");
   });
 });

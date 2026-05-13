@@ -13,6 +13,8 @@
  * §D3.2: store prop 추가. "kuro" (default) | "mame"
  */
 
+import { useRef } from "react";
+import type { KeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store/appStore";
@@ -39,6 +41,20 @@ function KuroSubStepNav({ subSteps }: { subSteps: SubNavItem[] }) {
   const currentSubStep = useAppStore((s) => s.currentSubStep);
   const setSubStep = useAppStore((s) => s.setSubStep);
   const stepStatus = useAppStore((s) => s.stepStatus);
+  const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  function handleKeyDown(e: KeyboardEvent<HTMLButtonElement>, idx: number) {
+    const total = subSteps.length;
+    let nextIdx = idx;
+    if (e.key === "ArrowDown") nextIdx = Math.min(total - 1, idx + 1);
+    else if (e.key === "ArrowUp") nextIdx = Math.max(0, idx - 1);
+    else if (e.key === "Home") nextIdx = 0;
+    else if (e.key === "End") nextIdx = total - 1;
+    else return;
+    e.preventDefault();
+    setSubStep(subSteps[nextIdx].id as SubStepId);
+    buttonRefs.current[nextIdx]?.focus();
+  }
 
   return (
     <nav className="flex flex-col gap-1 p-2" role="navigation" aria-label="sub steps">
@@ -54,11 +70,14 @@ function KuroSubStepNav({ subSteps }: { subSteps: SubNavItem[] }) {
         return (
           <button
             key={step.id}
+            ref={(el) => { buttonRefs.current[idx] = el; }}
             role="tab"
             aria-selected={isCurrent}
             aria-controls="major-step-main"
             data-active={isCurrent}
+            tabIndex={isCurrent ? 0 : -1}
             onClick={() => setSubStep(step.id as SubStepId)}
+            onKeyDown={(e) => handleKeyDown(e, idx)}
             className={cn(
               "flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors text-left",
               "hover:bg-muted/40",
@@ -86,6 +105,20 @@ function MameSubStepNav({ subSteps }: { subSteps: SubNavItem[] }) {
   const { t } = useTranslation();
   const currentSubStep = useMameAppStore((s) => s.currentMameSubStep);
   const setSubStep = useMameAppStore((s) => s.setMameSubStep);
+  const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  function handleKeyDown(e: KeyboardEvent<HTMLButtonElement>, idx: number) {
+    const total = subSteps.length;
+    let nextIdx = idx;
+    if (e.key === "ArrowDown") nextIdx = Math.min(total - 1, idx + 1);
+    else if (e.key === "ArrowUp") nextIdx = Math.max(0, idx - 1);
+    else if (e.key === "Home") nextIdx = 0;
+    else if (e.key === "End") nextIdx = total - 1;
+    else return;
+    e.preventDefault();
+    setSubStep(subSteps[nextIdx].id as MameSubStepId);
+    buttonRefs.current[nextIdx]?.focus();
+  }
 
   return (
     <nav className="flex flex-col gap-1 p-2" role="navigation" aria-label="sub steps">
@@ -97,11 +130,14 @@ function MameSubStepNav({ subSteps }: { subSteps: SubNavItem[] }) {
         return (
           <button
             key={step.id}
+            ref={(el) => { buttonRefs.current[idx] = el; }}
             role="tab"
             aria-selected={isCurrent}
             aria-controls="major-step-main"
             data-active={isCurrent}
+            tabIndex={isCurrent ? 0 : -1}
             onClick={() => setSubStep(step.id as MameSubStepId)}
+            onKeyDown={(e) => handleKeyDown(e, idx)}
             className={cn(
               "flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors text-left",
               "hover:bg-muted/40",
