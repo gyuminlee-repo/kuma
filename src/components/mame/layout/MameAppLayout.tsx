@@ -251,9 +251,15 @@ export function MameAppLayout() {
         titlebar={<MenuBar onClearRequest={() => setClearConfirmOpen(true)} />}
         subnav={
           <TabsList className="shrink-0 mx-3 mt-2 w-fit">
-            <TabsTrigger value="setup">{t("mame.appLayout.barcodeSetupTab")}</TabsTrigger>
-            <TabsTrigger value="analyze">{t("mame.appLayout.analyzeTab")}</TabsTrigger>
-            <TabsTrigger value="activity">{t("mame.appLayout.activityTab")}</TabsTrigger>
+            <TabsTrigger value="setup" title={t("mame.appLayout.barcodeSetupTabTitle")}>
+              {t("mame.appLayout.barcodeSetupTab")}
+            </TabsTrigger>
+            <TabsTrigger value="analyze" title={t("mame.appLayout.analyzeTabTitle")}>
+              {t("mame.appLayout.analyzeTab")}
+            </TabsTrigger>
+            <TabsTrigger value="activity" title={t("mame.appLayout.activityTabTitle")}>
+              {t("mame.appLayout.activityTab")}
+            </TabsTrigger>
           </TabsList>
         }
         sidebar={
