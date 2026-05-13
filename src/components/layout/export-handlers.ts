@@ -1,7 +1,6 @@
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { sendRequest } from "../../lib/ipc-kuro";
 import { useAppStore } from "../../store/appStore";
-import { getSortedMutations, reorderMappings } from "../../lib/plate-utils";
 import { defaultExportFilename } from "../../lib/filename";
 import type { BenchmarkResult, WorkspaceData } from "../../types/models";
 import {
@@ -11,31 +10,6 @@ import { MIGRATE_DIALOG_CLOSED } from "../dialogs/WorkspaceMigrateDialog";
 import { revealInOSFolder } from "../../lib/openFolder";
 import { fileExists, requestOverwriteConfirm } from "../../lib/overwriteConfirm";
 import { toast } from "sonner";
-
-function deriveMappingExportPaths(path: string) {
-  const base = path.trim().replace(/\.(xlsx|csv)$/i, "");
-  return {
-    xlsxPath: `${base}.xlsx`,
-    csvPath: `${base}.csv`,
-  };
-}
-
-function getCurrentExportState() {
-  const state = useAppStore.getState();
-  const sortedMuts = getSortedMutations(state.designResults, state.tableSorting, {
-    yPredMap: state.yPredMap,
-    customCandidates: state.customCandidates,
-  });
-  return {
-    results: state.designResults.map((r) => ({
-      mutation: r.mutation,
-      forward_seq: r.forward_seq,
-      reverse_seq: r.reverse_seq,
-    })),
-    orderedMappings: reorderMappings(state.plateMappings, state.dedupInfo, sortedMuts),
-    dedupInfo: state.dedupInfo,
-  };
-}
 
 /**
  * Core export: writes sdm_primers.xlsx to `targetPath` via the store action.
@@ -68,62 +42,6 @@ export async function handleExportExcel(projectId?: string) {
       label: "Open folder",
       onClick: () => void revealInOSFolder(path),
     },
-  });
-}
-
-export async function handleExportMappingWithParams(
-  format: "echo" | "janus",
-  params: { transferVol: number; bom: boolean },
-) {
-  const target = format === "echo" ? "Echo" : "JANUS";
-  const selectedPath = await save({
-    filters: [{ name: "Excel", extensions: ["xlsx"] }],
-    defaultPath: defaultExportFilename({ target, ext: "xlsx" }),
-  });
-  if (!selectedPath) return;
-  const { xlsxPath, csvPath } = deriveMappingExportPaths(selectedPath);
-  const label = format === "echo" ? "Echo" : "JANUS";
-
-  // §5 덮어쓰기 confirm
-  if (await fileExists(xlsxPath)) {
-    const decision = await requestOverwriteConfirm(xlsxPath);
-    if (decision === "cancel") return;
-  }
-
-  await useAppStore.getState().enqueueJob("export", `${label} mapping export`, async () => {
-    useAppStore.setState({ isExporting: true });
-    try {
-      const { orderedMappings, dedupInfo } = getCurrentExportState();
-      const payload = {
-        format,
-        transfer_vol: params.transferVol,
-        mappings: orderedMappings,
-        dedup_info: dedupInfo,
-        bom: params.bom,
-      };
-      await sendRequest("export_mapping", { ...payload, filepath: xlsxPath });
-      await sendRequest("export_mapping", { ...payload, filepath: csvPath });
-      useAppStore.getState().setStatus(`${label} mapping exported: ${xlsxPath} + .csv`);
-
-      // §5 Open folder toast
-      toast.success(`${label} mapping exported`, {
-        description: xlsxPath,
-        duration: 6000,
-        action: {
-          label: "Open folder",
-          onClick: () => void revealInOSFolder(xlsxPath),
-        },
-      });
-    } catch (err) {
-    useAppStore
-      .getState()
-      .setStatus(
-        `${label} mapping export failed: ${err instanceof Error ? err.message : String(err)}`,
-      );
-      throw err;
-    } finally {
-      useAppStore.setState({ isExporting: false });
-    }
   });
 }
 
@@ -230,4 +148,62 @@ export async function handleOpenSequence() {
   if (typeof path === "string") {
     await useAppStore.getState().loadSequence(path);
   }
+}
+
+// ---------------------------------------------------------------------------
+// Export All + Macrogen (spec 2026-05-13)
+// ---------------------------------------------------------------------------
+
+export interface ExportAllUiParams {
+  projectId?: string;
+  fwdPlateName?: string;
+  rvsPlateName?: string;
+  amount: "0.05" | "0.2";
+  echoTransferVol: number;
+  janusTransferVol: number;
+  bom: boolean;
+}
+
+/**
+ * Prompt user for an output directory and invoke the kuro sidecar `export_all`
+ * RPC. Returns null when the directory picker is cancelled.
+ */
+export async function handleExportAll(
+  params: ExportAllUiParams,
+): Promise<{ success: string[]; failed: { path: string; reason: string }[]; output_dir: string } | null> {
+  const dir = await open({ directory: true, multiple: false });
+  if (!dir || typeof dir !== "string") {
+    return null;
+  }
+  return sendRequest("export_all", {
+    project_id: params.projectId,
+    output_dir: dir,
+    fwd_plate_name: params.fwdPlateName ?? "",
+    rev_plate_name: params.rvsPlateName ?? "",
+    amount: params.amount,
+    echo_transfer_vol: params.echoTransferVol,
+    janus_transfer_vol: params.janusTransferVol,
+    bom: params.bom,
+  });
+}
+
+/**
+ * Invoke kuro sidecar `export_macrogen` RPC. Caller is responsible for the
+ * output path (typically via the save dialog).
+ */
+export async function handleExportMacrogen(args: {
+  projectId?: string;
+  outputPath: string;
+  fwdPlateName?: string;
+  rvsPlateName?: string;
+  amount?: "0.05" | "0.2";
+}): Promise<{ ok: true; path: string }> {
+  return sendRequest("export_macrogen", {
+    project_id: args.projectId,
+    output_path: args.outputPath,
+    fwd_plate_name: args.fwdPlateName ?? "",
+    rev_plate_name: args.rvsPlateName ?? "",
+    amount: args.amount ?? "0.05",
+    purification: "MOPC",
+  });
 }

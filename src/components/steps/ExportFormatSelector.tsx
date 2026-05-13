@@ -1,230 +1,246 @@
 /**
- * ExportFormatSelector — two export sections on the export.format sub-step.
+ * ExportFormatSelector — Export All (Macrogen) single-form export.
  *
- * [source: spec §1 — "export.format: IDT CSV / Twist CSV / FASTA 선택"]
+ * [source: spec §5 — "export.format: Export All single button"]
  *
- * Section 1 — Primer Order Export: IDT CSV / Twist CSV / FASTA
- *   Uses handleExportExcel for IDT/Twist CSV.
+ * Replaces the legacy two-section (IDT/Twist order + Plate Mapping) UI
+ * with a single Export All form that calls handleExportAll(), which
+ * invokes the kuro sidecar `export_all` RPC.
  *
- * Section 2 — Plate Mapping Export: Echo / JANUS
- *   Inline form that reuses handleExportMappingWithParams, replacing the
- *   dead MenuBar MappingExportDialog that was removed in Phase C follow-up.
- *   PlateMap.tsx still mounts its own dialog (preserved, not touched).
+ * Plate names are optional; if empty, the sidecar uses a default name.
+ * Amount is either 0.05 or 0.2 μmole (Macrogen MOPC purification).
+ * Echo and JANUS transfer volumes are independent fields.
  */
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { handleExportExcel, handleExportMappingWithParams } from "@/components/layout/export-handlers";
+import { handleExportAll } from "@/components/layout/export-handlers";
 import { useKumaProject } from "@/state/projectContext";
+import { useAppStore } from "@/store/appStore";
+import type { AppState } from "@/store/appStore";
 
-export type ExportFormat = "idt" | "twist" | "fasta";
-type MappingFormat = "echo" | "janus";
-
-const ORDER_FORMATS: { value: ExportFormat; labelKey: string }[] = [
-  { value: "idt",   labelKey: "phaseC.export.format.idt" },
-  { value: "twist", labelKey: "phaseC.export.format.twist" },
-  { value: "fasta", labelKey: "phaseC.export.format.fasta" },
-];
-
-const MAPPING_FORMAT_DEFAULTS: Record<
-  MappingFormat,
-  { transferVol: number; unit: string; min: number; max: number; step: number }
-> = {
-  echo:  { transferVol: 100, unit: "nL", min: 50, max: 5000, step: 1 },
-  janus: { transferVol: 2.0, unit: "µL", min: 0.5, max: 10, step: 0.1 },
-};
+const PLATE_NAME_RE = /^[A-Za-z0-9_-]{1,20}$/;
+const ECHO_RANGE = { min: 25, max: 500, step: 1, unit: "nL" } as const;
+const JANUS_RANGE = { min: 0.5, max: 10, step: 0.1, unit: "μL" } as const;
+const WELL_LIMIT = 96;
 
 export function ExportFormatSelector() {
   const { t } = useTranslation();
   const project = useKumaProject();
+  const designResults = useAppStore((s: AppState) => s.designResults);
 
-  // --- Primer order section ---
-  const [format, setFormat] = useState<ExportFormat>("idt");
-  const [isExporting, setIsExporting] = useState(false);
+  const wellCount = designResults.length;
 
-  // --- Plate mapping section ---
-  const [mappingFormat, setMappingFormat] = useState<MappingFormat>("echo");
-  const cfg = MAPPING_FORMAT_DEFAULTS[mappingFormat];
-  const [transferVol, setTransferVol] = useState<number>(cfg.transferVol);
-  const [bom, setBom] = useState<boolean>(false);
-  const [isMappingExporting, setIsMappingExporting] = useState(false);
+  const [fwdPlate, setFwdPlate] = useState("");
+  const [rvsPlate, setRvsPlate] = useState("");
+  const [amount, setAmount] = useState<"0.05" | "0.2">("0.05");
+  const [echoVol, setEchoVol] = useState(100);
+  const [janusVol, setJanusVol] = useState(2.0);
+  const [bom, setBom] = useState(false);
+  const [running, setRunning] = useState(false);
 
-  // Reset transferVol when mapping format changes
-  useEffect(() => {
-    setTransferVol(MAPPING_FORMAT_DEFAULTS[mappingFormat].transferVol);
-  }, [mappingFormat]);
+  const fwdValid = fwdPlate === "" || PLATE_NAME_RE.test(fwdPlate);
+  const rvsValid = rvsPlate === "" || PLATE_NAME_RE.test(rvsPlate);
+  const wellOverflow = wellCount > WELL_LIMIT;
+  const canExport = fwdValid && rvsValid && !wellOverflow && !running && wellCount > 0;
 
-  const handleOrderExport = async () => {
-    setIsExporting(true);
+  const onExport = async () => {
+    setRunning(true);
     try {
-      if (format === "idt" || format === "twist") {
-        await handleExportExcel(project?.project_id);
-      }
-      // format === "fasta": TODO wire FASTA export
+      await handleExportAll({
+        projectId: project?.project_id,
+        fwdPlateName: fwdPlate || undefined,
+        rvsPlateName: rvsPlate || undefined,
+        amount,
+        echoTransferVol: echoVol,
+        janusTransferVol: janusVol,
+        bom,
+      });
     } finally {
-      setIsExporting(false);
-    }
-  };
-
-  const handleMappingExport = async () => {
-    setIsMappingExporting(true);
-    try {
-      await handleExportMappingWithParams(mappingFormat, { transferVol, bom });
-    } finally {
-      setIsMappingExporting(false);
+      setRunning(false);
     }
   };
 
   return (
-    <div
-      className="flex flex-col gap-8 p-6"
-      role="region"
-      aria-label={t("phaseC.subSteps.export.format")}
+    <section
+      aria-labelledby="export-all-heading"
+      className="flex flex-col gap-4 p-6"
     >
-      {/* ── Section 1: Primer Order Export ── */}
-      <section aria-labelledby="order-export-heading">
-        <h3
-          id="order-export-heading"
-          className="mb-4 text-sm font-semibold text-foreground"
-        >
-          {t("phaseC.export.orderExport.heading")}
-        </h3>
-        <div
-          role="radiogroup"
-          aria-label={t("phaseC.export.orderExport.heading")}
-          className="flex flex-col gap-3 mb-4"
-        >
-          {ORDER_FORMATS.map((fmt) => (
-            <label
-              key={fmt.value}
-              className={cn(
-                "flex items-center gap-2 cursor-pointer text-sm",
-                format === fmt.value ? "text-foreground" : "text-muted-foreground",
-              )}
-            >
-              <input
-                type="radio"
-                name="export-format"
-                value={fmt.value}
-                checked={format === fmt.value}
-                onChange={() => setFormat(fmt.value)}
-                className="accent-primary"
-              />
-              {t(fmt.labelKey)}
-            </label>
-          ))}
-        </div>
-        <Button
-          className="w-fit"
-          onClick={() => void handleOrderExport()}
-          disabled={isExporting}
-        >
-          {isExporting ? t("common.loading") : t("phaseC.export.runExport")}
-        </Button>
-      </section>
+      <h3
+        id="export-all-heading"
+        className="text-sm font-semibold text-foreground"
+      >
+        {t("phaseC.export.all.heading")}
+      </h3>
 
-      <hr className="border-border" />
-
-      {/* ── Section 2: Plate Mapping Export ── */}
-      <section aria-labelledby="mapping-export-heading">
-        <h3
-          id="mapping-export-heading"
-          className="mb-4 text-sm font-semibold text-foreground"
+      {/* Forward plate name */}
+      <div className="flex flex-col gap-1">
+        <label
+          htmlFor="fwd-plate"
+          className="text-sm font-medium text-foreground"
         >
-          {t("phaseC.export.mappingExport.heading")}
-        </h3>
-
-        {/* Machine format toggle */}
-        <div className="flex flex-col gap-2 rounded-container border border-border bg-card p-4 mb-3">
-          <span className="text-sm font-medium text-foreground">
-            {t("mappingExportDialog.machineLabel")}
+          {t("phaseC.export.all.plateNameFwd")}
+        </label>
+        <Input
+          id="fwd-plate"
+          value={fwdPlate}
+          onChange={(e) => setFwdPlate(e.target.value)}
+          placeholder="e.g. FWD_Plate_1"
+          aria-describedby="fwd-plate-help"
+          className={cn(!fwdValid && "border-destructive")}
+        />
+        <span
+          id="fwd-plate-help"
+          className="text-caption text-muted-foreground"
+        >
+          {t("phaseC.export.all.wellCount", { count: wellCount })}
+        </span>
+        {!fwdValid && (
+          <span role="alert" className="text-caption text-destructive">
+            {t("phaseC.export.all.error.plateNameRegex")}
           </span>
-          <div
-            role="radiogroup"
-            aria-label={t("mappingExportDialog.machineLabel")}
-            className="flex gap-2"
-          >
-            {(["echo", "janus"] as const).map((mf) => (
-              <label key={mf} className="flex items-center gap-1 cursor-pointer text-sm">
-                <input
-                  type="radio"
-                  name="mapping-format"
-                  value={mf}
-                  checked={mappingFormat === mf}
-                  onChange={() => setMappingFormat(mf)}
-                  className="accent-primary"
-                />
-                {mf === "echo" ? "Echo 525" : "JANUS"}
-              </label>
-            ))}
-          </div>
-        </div>
+        )}
+        {wellOverflow && (
+          <span role="alert" className="text-caption text-destructive">
+            {t("phaseC.export.all.error.wellOverflow", { count: wellCount })}
+          </span>
+        )}
+      </div>
 
-        {/* Transfer volume */}
-        <div className="flex flex-col gap-2 rounded-container border border-border bg-card p-4 mb-3">
-          <label
-            htmlFor="mapping-transfer-vol"
-            className="text-sm font-medium text-foreground"
-          >
-            {t("mappingExportDialog.transferVolumeLabel")}
-          </label>
-          <div className="flex items-center gap-2">
-            <Input
-              id="mapping-transfer-vol"
-              type="number"
-              min={cfg.min}
-              max={cfg.max}
-              step={cfg.step}
-              value={transferVol}
-              onChange={(e) => setTransferVol(Number(e.target.value))}
-              className="w-28"
-            />
-            <span className="text-sm text-muted-foreground">{cfg.unit}</span>
-          </div>
-          <p className="text-caption text-muted-foreground">
-            Range: {cfg.min}&ndash;{cfg.max} {cfg.unit}
-            {mappingFormat === "echo" && transferVol > 500 && (
-              <span className="ml-2 text-warning">
-                ({Math.ceil(transferVol / 500)} transfers &times; &le;500 nL)
-              </span>
-            )}
-          </p>
-        </div>
-
-        {/* BOM checkbox */}
-        <div className="flex items-center gap-2 rounded-container border border-border bg-card px-4 py-3 mb-4">
-          <input
-            id="mapping-bom-checkbox"
-            type="checkbox"
-            checked={bom}
-            onChange={(e) => setBom(e.target.checked)}
-            className="h-4 w-4 rounded border-border accent-primary cursor-pointer"
-            aria-label={t("mappingExportDialog.bomCheckboxAriaLabel")}
-          />
-          <label
-            htmlFor="mapping-bom-checkbox"
-            className="text-sm text-foreground cursor-pointer select-none"
-          >
-            {t("mappingExportDialog.bomCheckboxLabel")}
-            <span className="ml-1 text-muted-foreground">
-              {t("mappingExportDialog.bomCheckboxHint")}
-            </span>
-          </label>
-        </div>
-
-        <Button
-          className="w-fit"
-          onClick={() => void handleMappingExport()}
-          disabled={isMappingExporting}
+      {/* Reverse plate name */}
+      <div className="flex flex-col gap-1">
+        <label
+          htmlFor="rvs-plate"
+          className="text-sm font-medium text-foreground"
         >
-          {isMappingExporting
-            ? t("common.loading")
-            : t("phaseC.export.mappingExport.runExport")}
-        </Button>
-      </section>
-    </div>
+          {t("phaseC.export.all.plateNameRev")}
+        </label>
+        <Input
+          id="rvs-plate"
+          value={rvsPlate}
+          onChange={(e) => setRvsPlate(e.target.value)}
+          placeholder="e.g. REV_Plate_1"
+          className={cn(!rvsValid && "border-destructive")}
+        />
+        {!rvsValid && (
+          <span role="alert" className="text-caption text-destructive">
+            {t("phaseC.export.all.error.plateNameRegex")}
+          </span>
+        )}
+      </div>
+
+      {/* Amount */}
+      <div className="flex flex-col gap-1">
+        <label htmlFor="amount" className="text-sm font-medium text-foreground">
+          {t("phaseC.export.all.amountLabel")}
+        </label>
+        <div className="flex items-center gap-3">
+          <select
+            id="amount"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value as "0.05" | "0.2")}
+            className="rounded-md border border-input bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring min-w-0"
+          >
+            <option value="0.05">0.05 μmole</option>
+            <option value="0.2">0.2 μmole</option>
+          </select>
+          <span className="text-sm text-muted-foreground">
+            {t("phaseC.export.all.purificationLabel")}: MOPC
+          </span>
+        </div>
+      </div>
+
+      {/* Echo transfer volume */}
+      <div className="flex flex-col gap-1">
+        <label
+          htmlFor="echo-vol"
+          className="text-sm font-medium text-foreground"
+        >
+          {t("phaseC.export.all.echoVolLabel")}
+        </label>
+        <div className="flex items-center gap-2">
+          <Input
+            id="echo-vol"
+            type="number"
+            min={ECHO_RANGE.min}
+            max={ECHO_RANGE.max}
+            step={ECHO_RANGE.step}
+            value={echoVol}
+            onChange={(e) => setEchoVol(Number(e.target.value))}
+            className="w-28"
+          />
+          <span className="text-sm text-muted-foreground">{ECHO_RANGE.unit}</span>
+        </div>
+        <p className="text-caption text-muted-foreground">
+          Range: {ECHO_RANGE.min}&ndash;{ECHO_RANGE.max} {ECHO_RANGE.unit}
+          {echoVol > 500 && (
+            <span className="ml-2 text-warning">
+              ({Math.ceil(echoVol / 500)} transfers &times; &le;500 nL)
+            </span>
+          )}
+        </p>
+      </div>
+
+      {/* JANUS transfer volume */}
+      <div className="flex flex-col gap-1">
+        <label
+          htmlFor="janus-vol"
+          className="text-sm font-medium text-foreground"
+        >
+          {t("phaseC.export.all.janusVolLabel")}
+        </label>
+        <div className="flex items-center gap-2">
+          <Input
+            id="janus-vol"
+            type="number"
+            min={JANUS_RANGE.min}
+            max={JANUS_RANGE.max}
+            step={JANUS_RANGE.step}
+            value={janusVol}
+            onChange={(e) => setJanusVol(Number(e.target.value))}
+            className="w-28"
+          />
+          <span className="text-sm text-muted-foreground">{JANUS_RANGE.unit}</span>
+        </div>
+        <p className="text-caption text-muted-foreground">
+          Range: {JANUS_RANGE.min}&ndash;{JANUS_RANGE.max} {JANUS_RANGE.unit}
+        </p>
+      </div>
+
+      {/* BOM checkbox */}
+      <div className="flex items-center gap-2 rounded-container border border-border bg-card px-4 py-3">
+        <input
+          id="bom-checkbox"
+          type="checkbox"
+          checked={bom}
+          onChange={(e) => setBom(e.target.checked)}
+          className="h-4 w-4 rounded border-border accent-primary cursor-pointer"
+        />
+        <label
+          htmlFor="bom-checkbox"
+          className="text-sm text-foreground cursor-pointer select-none"
+        >
+          {t("phaseC.export.all.bomLabel")}
+          <span className="ml-1 text-muted-foreground">
+            {t("phaseC.export.all.bomHint")}
+          </span>
+        </label>
+      </div>
+
+      <p className="text-caption text-muted-foreground">
+        {t("phaseC.export.all.ruleHint")}
+      </p>
+
+      <Button
+        className="w-fit"
+        disabled={!canExport}
+        onClick={() => void onExport()}
+      >
+        {running ? t("common.loading") : t("phaseC.export.all.runExport")}
+      </Button>
+    </section>
   );
 }

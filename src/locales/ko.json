@@ -1422,20 +1422,6 @@
     "copiedBtn": "복사됨!",
     "closeBtn": "닫기"
   },
-  "mappingExportDialog": {
-    "titleEcho": "Echo 매핑 내보내기",
-    "titleJanus": "JANUS 매핑 내보내기",
-    "descriptionFiles": "동일한 경로에 두 파일이 저장됩니다.",
-    "machineLabel": "장비",
-    "transferVolumeLabel": "이동 부피",
-    "bomCheckboxAriaLabel": "Excel 호환을 위해 UTF-8 BOM 추가",
-    "bomCheckboxLabel": "UTF-8 BOM 추가",
-    "bomCheckboxHint": "(Excel 호환)",
-    "transferVolumeRange": "범위: {{min}}–{{max}} {{unit}}",
-    "echoMaxNote": "(최대 500 nL)",
-    "cancelBtn": "취소",
-    "exportBtn": "내보내기"
-  },
   "whatsNewDialog": {
     "title": "v{{version}} 새로운 기능",
     "description": "최신 업데이트의 주요 변경 사항입니다.",
@@ -1595,12 +1581,6 @@
       "selectLabel": "Well 라벨 형식 선택"
     },
     "export": {
-      "format": {
-        "idt": "IDT CSV",
-        "twist": "Twist CSV",
-        "fasta": "FASTA"
-      },
-      "runExport": "내보내기",
       "workspace": {
         "save": "워크스페이스 저장",
         "load": "워크스페이스 불러오기"
@@ -1610,12 +1590,27 @@
         "primerCount": "총 프라이머",
         "mutationCount": "돌연변이"
       },
-      "orderExport": {
-        "heading": "프라이머 주문 내보내기"
+      "all": {
+        "heading": "Macrogen 주문서 일괄 내보내기",
+        "plateNameFwd": "정방향 프라이머 플레이트 이름",
+        "plateNameRev": "역방향 프라이머 플레이트 이름",
+        "wellCount": "{{count}}개 위치 사용",
+        "amountLabel": "합성량",
+        "purificationLabel": "정제",
+        "echoVolLabel": "Echo 이송 부피",
+        "janusVolLabel": "JANUS 이송 부피",
+        "bomLabel": "UTF-8 BOM 추가",
+        "bomHint": "(Excel 호환)",
+        "ruleHint": "합성 규칙: 0.05 μmole MOPC / 0.2 μmole MOPC. 파일은 선택한 폴더에 저장됩니다.",
+        "runExport": "내보내기",
+        "error": {
+          "plateNameRegex": "플레이트 이름은 영문자·숫자·_·- (최대 20자)만 허용됩니다.",
+          "wellOverflow": "{{count}}개 위치가 96웰 한도를 초과합니다."
+        }
       },
-      "mappingExport": {
-        "heading": "플레이트 매핑 내보내기",
-        "runExport": "매핑 내보내기"
+      "toast": {
+        "success": "{{n}}개 파일이 저장되었습니다.",
+        "partial": "{{ok}}개 성공, {{fail}}개 실패."
       }
     },
     "run": {
@@ -1697,5 +1692,8 @@
       "detected": "Step {{step}} 출력 자동 감지",
       "staleHint": "Export 이후 파일이 변경됨"
     }
+  },
+  "appShell": {
+    "sidebarResize": "사이드바 너비 조절"
   }
 }

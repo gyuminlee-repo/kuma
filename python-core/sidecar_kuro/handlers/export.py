@@ -480,3 +480,216 @@ def handle_export_benchmark_csv(params: dict) -> dict:
         for strategy, metrics in p.results.items():
             writer.writerow({"strategy": strategy, **metrics})
     return FileExportResultModel(filepath=str(resolved)).to_rpc_dict()
+
+
+# ---------------------------------------------------------------------------
+# Export All + Macrogen (spec 2026-05-13)
+# ---------------------------------------------------------------------------
+
+from datetime import datetime as _dt
+
+from kuma_core.kuro.plate_mapper import export_macrogen_xls
+from sidecar_kuro.models import ExportAllParams, ExportMacrogenParams
+
+
+def _split_fwd_rev(mappings: list[PlateMapping]) -> tuple[list[PlateMapping], list[PlateMapping]]:
+    fwd = [m for m in mappings if m.primer_type == "forward"]
+    rev = [m for m in mappings if m.primer_type == "reverse"]
+    return fwd, rev
+
+
+def handle_export_macrogen(params: dict) -> dict:
+    """Export forward/reverse plate primers to Macrogen Plate Oligo .xls."""
+    p = ExportMacrogenParams(**params)
+    with _core._state_lock:
+        mappings = list(_core._state.plate_mappings)
+
+    fwd, rev = _split_fwd_rev(mappings)
+
+    if fwd and not p.fwd_plate_name:
+        raise ValueError("fwd_plate_name is required when forward primers exist")
+    if rev and not p.rev_plate_name:
+        raise ValueError("rev_plate_name is required when reverse primers exist")
+
+    resolved = _validate_output_path(p.output_path, allowed_extensions={".xls"})
+    export_macrogen_xls(
+        fwd_primers=fwd,
+        rev_primers=rev,
+        fwd_plate_name=p.fwd_plate_name,
+        rev_plate_name=p.rev_plate_name,
+        amount=p.amount,
+        purification=p.purification,
+        output_path=str(resolved),
+    )
+    return {"ok": True, "path": str(resolved)}
+
+
+def _export_primers_fasta(mappings: list[PlateMapping], output_path: Path) -> None:
+    lines = []
+    for m in mappings:
+        lines.append(f">{m.primer_name}\n{m.sequence}\n")
+    output_path.write_text("".join(lines), encoding="utf-8")
+
+
+def _export_echo_for_all(
+    fwd: list[PlateMapping],
+    rev: list[PlateMapping],
+    output_path: Path,
+    transfer_vol: int,
+    rev_groups: dict,
+    bom: bool,
+) -> None:
+    export_echo_mapping_csv(
+        fwd, rev, output_path,
+        transfer_vol=transfer_vol,
+        rev_groups=rev_groups,
+        encoding="utf-8-sig" if bom else "utf-8",
+    )
+
+
+def _export_janus_for_all(
+    fwd: list[PlateMapping],
+    rev: list[PlateMapping],
+    output_path: Path,
+    transfer_vol: float,
+    rev_groups: dict,
+    bom: bool,
+) -> None:
+    export_janus_mapping_csv(
+        fwd, rev, output_path,
+        transfer_vol=transfer_vol,
+        rev_groups=rev_groups,
+        encoding="utf-8-sig" if bom else "utf-8",
+    )
+
+
+def _export_platemap_for_all(
+    mappings: list[PlateMapping],
+    results,
+    rev_groups: dict,
+    output_path: Path,
+) -> None:
+    export_plate_excel(
+        mappings, output_path,
+        rev_groups=rev_groups,
+        results=results,
+    )
+
+
+def _export_run_json(
+    mappings: list[PlateMapping],
+    results,
+    rev_groups: dict,
+    output_path: Path,
+) -> None:
+    payload = {
+        "exported_at": _dt.now().isoformat(),
+        "mappings": [
+            {
+                "well": m.well,
+                "primer_name": m.primer_name,
+                "sequence": m.sequence,
+                "primer_type": m.primer_type,
+                "mutation": m.mutation,
+            }
+            for m in mappings
+        ],
+        "dedup_info": rev_groups,
+        "result_count": len(results) if results else 0,
+    }
+    output_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+
+def handle_export_all(params: dict) -> dict:
+    """Run the 6-file batch export pipeline.
+
+    Returns ``{"success": [filename, ...], "failed": [{path, reason}, ...], "output_dir": str}``.
+    Individual exporter failures are recorded but do not raise.
+    """
+    p = ExportAllParams(**params)
+    out_dir = Path(p.output_dir).expanduser().resolve()
+    if not out_dir.is_absolute():
+        raise ValueError(f"output_dir must be absolute: {p.output_dir}")
+    if out_dir.exists() and not out_dir.is_dir():
+        raise ValueError(f"output_dir exists but is not a directory: {out_dir}")
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    with _core._state_lock:
+        mappings = list(_core._state.plate_mappings)
+        results = list(_core._state.results)
+        rev_groups = dict(_core._state.dedup_info or {})
+
+    fwd, rev = _split_fwd_rev(mappings)
+
+    project_name = (
+        p.fwd_plate_name
+        or p.rev_plate_name
+        or "kuro_export"
+    )
+    ts = _dt.now().strftime("%Y%m%d")
+    base = f"{project_name}_{ts}.kuro"
+
+    success: list[str] = []
+    failed: list[dict] = []
+
+    def _try(name: str, fn) -> None:
+        try:
+            fn()
+            success.append(name)
+        except Exception as exc:  # noqa: BLE001 -- intentionally aggregating per-file
+            failed.append({"path": name, "reason": str(exc)})
+
+    # 1. Macrogen .xls
+    macrogen_name = f"{base}.macrogen.xls"
+    _try(macrogen_name, lambda: export_macrogen_xls(
+        fwd_primers=fwd,
+        rev_primers=rev,
+        fwd_plate_name=p.fwd_plate_name,
+        rev_plate_name=p.rev_plate_name,
+        amount=p.amount,
+        purification=p.purification,
+        output_path=str(out_dir / macrogen_name),
+    ))
+
+    # 2. Primers FASTA
+    fasta_name = f"{base}.primers.fasta"
+    _try(fasta_name, lambda: _export_primers_fasta(mappings, out_dir / fasta_name))
+
+    # 3. Echo CSV
+    echo_name = f"{base}.echo.csv"
+    _try(echo_name, lambda: _export_echo_for_all(
+        fwd, rev, out_dir / echo_name,
+        transfer_vol=int(p.echo_transfer_vol),
+        rev_groups=rev_groups,
+        bom=p.bom,
+    ))
+
+    # 4. JANUS CSV
+    janus_name = f"{base}.janus.csv"
+    _try(janus_name, lambda: _export_janus_for_all(
+        fwd, rev, out_dir / janus_name,
+        transfer_vol=float(p.janus_transfer_vol),
+        rev_groups=rev_groups,
+        bom=p.bom,
+    ))
+
+    # 5. Plate map XLSX
+    platemap_name = f"{base}.platemap.xlsx"
+    _try(platemap_name, lambda: _export_platemap_for_all(
+        mappings, results, rev_groups, out_dir / platemap_name,
+    ))
+
+    # 6. Run JSON
+    runjson_name = f"{base}.run.json"
+    _try(runjson_name, lambda: _export_run_json(
+        mappings, results, rev_groups, out_dir / runjson_name,
+    ))
+
+    return {
+        "success": success,
+        "failed": failed,
+        "output_dir": str(out_dir),
+    }
