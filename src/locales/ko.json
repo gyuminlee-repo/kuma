@@ -314,7 +314,15 @@
       "colDepth": "깊이 (리드)",
       "colNotes": "비고",
       "fileSizeAriaLabel": "파일 크기: {{kb}} KB",
-      "fallbackAriaLabel": "대체 반복"
+      "fallbackAriaLabel": "대체 반복",
+      "evolveproExport": {
+        "header": "EVOLVEpro",
+        "includedTitle": "EVOLVEpro 내보내기에 포함됩니다.",
+        "reasonNgsFail": "제외 — NGS 검증 실패.",
+        "reasonWt": "제외 — 야생형 샘플(변이 아님).",
+        "reasonNoLog2fc": "제외 — log₂FC를 계산할 수 없음.",
+        "reasonNoActivity": "제외 — 활성도 데이터 없음."
+      }
     },
     "summaryRow": {
       "ariaLabel": "분석 요약",
@@ -372,7 +380,10 @@
           "ingest": "인제스트",
           "mergeExport": "병합 및 내보내기"
         }
-      }
+      },
+      "barcodeSetupTabTitle": "런 설정 — NGS 검증의 일부 (PI 워크플로 ② 단계)",
+      "analyzeTabTitle": "시퀀싱 QC — NGS 검증의 일부 (PI 워크플로 ② 단계)",
+      "activityTabTitle": "활성도 데이터 — EVOLVEpro 입력 변환 (PI 워크플로 ④ 단계)"
     },
     "dialogs": {
       "export": {
