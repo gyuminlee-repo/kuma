@@ -39,7 +39,29 @@ type ActivityColumns = {
   activity_raw_sd: number | null;
   replicate_n: number | null;
   ngs_success: boolean | null;
+  mutation: string | null;
 };
+
+type EvolveproExportStatus = {
+  included: boolean;
+  reasonKey: string | null;
+};
+
+function deriveEvolveproExport(row: ActivityColumns): EvolveproExportStatus {
+  if (row.ngs_success === false) {
+    return { included: false, reasonKey: "mame.verdictTable.evolveproExport.reasonNgsFail" };
+  }
+  if (row.mutation === "WT") {
+    return { included: false, reasonKey: "mame.verdictTable.evolveproExport.reasonWt" };
+  }
+  if (row.activity_log2fc === null) {
+    return { included: false, reasonKey: "mame.verdictTable.evolveproExport.reasonNoLog2fc" };
+  }
+  if (row.ngs_success === null && row.mutation === null && row.activity_log2fc === null) {
+    return { included: false, reasonKey: "mame.verdictTable.evolveproExport.reasonNoActivity" };
+  }
+  return { included: true, reasonKey: null };
+}
 
 type VerdictRow = VerdictRecord &
   ActivityColumns & {
@@ -55,6 +77,7 @@ const ACTIVITY_COLUMN_IDS = [
   "raw_mean_sd",
   "replicate_n",
   "ngs_success",
+  "evolvepro_export",
 ] as const;
 
 const ACTIVITY_COLUMN_LABELS: Record<(typeof ACTIVITY_COLUMN_IDS)[number], string> = {
@@ -63,6 +86,7 @@ const ACTIVITY_COLUMN_LABELS: Record<(typeof ACTIVITY_COLUMN_IDS)[number], strin
   raw_mean_sd: "Raw Mean ± SD",
   replicate_n: "Replicates",
   ngs_success: "NGS",
+  evolvepro_export: "EVOLVEpro Export",
 };
 
 const VIRTUAL_THRESHOLD = 1000;
@@ -167,6 +191,7 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
           activity_raw_sd: merged?.activity_raw_sd ?? null,
           replicate_n: merged?.replicate_n ?? null,
           ngs_success: merged?.ngs_success ?? null,
+          mutation: merged?.mutation ?? null,
         };
       });
   }, [plateFilter, replicates, verdicts, mergedByWell]);
@@ -363,8 +388,36 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
           );
         },
       },
+      {
+        id: "evolvepro_export",
+        header: t("mame.verdictTable.evolveproExport.header"),
+        accessorFn: (row) => deriveEvolveproExport(row).included,
+        cell: ({ row }) => {
+          const status = deriveEvolveproExport(row.original);
+          if (status.included) {
+            return (
+              <Badge
+                variant="outline"
+                title={t("mame.verdictTable.evolveproExport.includedTitle")}
+                className="border-green-500 text-green-600 dark:text-green-400 text-[10px] px-1 py-0"
+              >
+                ✓
+              </Badge>
+            );
+          }
+          return (
+            <Badge
+              variant="outline"
+              title={status.reasonKey ? t(status.reasonKey) : undefined}
+              className="border-muted-foreground/50 text-muted-foreground text-[10px] px-1 py-0"
+            >
+              ✗
+            </Badge>
+          );
+        },
+      },
     ],
-    [],
+    [t],
   );
 
   const table = useReactTable({
