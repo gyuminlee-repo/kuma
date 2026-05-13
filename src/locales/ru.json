@@ -1209,7 +1209,6 @@
     "consentStatusLabel": "Статус согласия:",
     "consentGranted": "Предоставлено",
     "consentNotGranted": "Не предоставлено",
-    "fileMenuTrigger": "Файл",
     "exportMenuTrigger": "Экспорт",
     "uniprotServiceSuffix": " -- поиск protein sequence",
     "ncbiBlastServiceSuffix": " -- поиск similarity sequence",
@@ -1232,6 +1231,12 @@
     },
     "help": {
       "reportIssue": "Report issue"
+    },
+    "appMenu": {
+      "kuro": "kuro",
+      "mame": "mame",
+      "closeWindow": "Закрыть окно",
+      "quit": "Выйти из kuma"
     }
   },
   "panel": {

@@ -1209,7 +1209,6 @@
     "consentStatusLabel": "Statut du consentement :",
     "consentGranted": "Accordé",
     "consentNotGranted": "Non accordé",
-    "fileMenuTrigger": "Fichier",
     "exportMenuTrigger": "Exporter",
     "uniprotServiceSuffix": " -- recherche de séquence protéique",
     "ncbiBlastServiceSuffix": " -- recherche de similarité de séquence",
@@ -1232,6 +1231,12 @@
     },
     "help": {
       "reportIssue": "Report issue"
+    },
+    "appMenu": {
+      "kuro": "kuro",
+      "mame": "mame",
+      "closeWindow": "Fermer la fenêtre",
+      "quit": "Quitter kuma"
     }
   },
   "panel": {

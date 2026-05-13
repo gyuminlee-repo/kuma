@@ -4,6 +4,51 @@
 
 ---
 
+## v0.8.6 (2026-05-13)
+
+mockup v5 (`010.lab/.../kuma_program_mockup_detailed_v5.html`) 정합 + v0.8.5 spec (`notes/specs/2026-05-13-menubar-prefs-shortcuts.md`) 마감.
+
+### 메뉴바 — 첫 메뉴 앱명
+
+- 첫 메뉴 트리거가 `File`에서 활성 도구 이름으로 변경. KURO 컨텍스트에서는 **`kuro`**, MAME 컨텍스트에서는 **`mame`**, 모두 굵게. 10개 로케일에 `menuBar.appMenu.kuro` / `menuBar.appMenu.mame` 키 추가.
+- KURO·MAME 양쪽 앱 메뉴에 `Close window` (Ctrl/Cmd+W) 및 `Quit kuma` (Ctrl/Cmd+Q) 항목 추가. `Close window`는 autosave 핸들러를 통과하는 `getCurrentWindow().close()` 호출. `Quit kuma`는 즉시·취소 불가 종료를 위한 `getCurrentWindow().destroy()` 호출.
+- 사용되지 않게 된 `menuBar.fileMenuTrigger` i18n 키를 10개 로케일에서 제거.
+
+### SettingsDialog — 중복 단축키 표 제거
+
+- Preferences 내부 단축키 표 삭제. v0.8.5에서 도입된 `KeyboardShortcutsDialog` (Ctrl/Cmd+/)가 단축키 노출 단일 창구.
+
+### 버전 정렬
+
+- `package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, `pyproject.toml` 모두 `0.8.6`.
+
+### 검증
+
+- `npx tsc --noEmit` 통과. `pnpm sync:check` 애플리케이션 그룹 통과. (기존 `tauri-resources/NOTICE.md`·`generated-models/Node 20` 실패는 본 커밋과 무관.)
+
+---
+
+## v0.8.5 (2026-05-13)
+
+spec 구현 — `notes/specs/2026-05-13-menubar-prefs-shortcuts.md` 항목 2·3.
+
+### Edit / Run 메뉴 + 다이얼로그
+
+- `MenuBar`에 **Edit** 메뉴 (Preferences, Ctrl/Cmd+,)와 **Run** 메뉴 (Sidecar diagnostics, Check sidecar status) 추가.
+- 신규 `KeyboardShortcutsDialog` (Ctrl/Cmd+/)는 검색 + 카테고리 그룹화. 데이터 원본은 `src/lib/shortcuts.ts` (`category` 필드 추가).
+- About 다이얼로그 내 단축키 표 제거. 단축키 노출은 새 다이얼로그로 단일화.
+- Help 메뉴에 `Report issue` (GitHub 외부 링크) 및 `Check for updates` 추가.
+
+### i18n
+
+- 10개 로케일에 신규 키 추가 (`menuBar.edit.*`, `menuBar.run.*`, `menuBar.help.reportIssue`, `shortcutsDialog.*`). ko/ja/zh-CN/zh-TW 번역 완료.
+
+### 버전 정렬
+
+- `package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, `pyproject.toml` 모두 `0.8.5`.
+
+---
+
 ## v0.8.4 (2026-05-13)
 
 분기 통합: `feat/workspace-artifact-handoff` (v0.8.3.x), `fix/load-sample-data` (v0.8.2.5), `worktree-spec-export-all-macrogen` (v0.4.x 묶음)을 `feat/kuma-integration`에 머지. `worktree-locale-ko-fixes`는 실제 적용 가능한 부분만 cherry-pick.

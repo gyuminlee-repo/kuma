@@ -1209,7 +1209,6 @@
     "consentStatusLabel": "同意ステータス:",
     "consentGranted": "同意済み",
     "consentNotGranted": "未同意",
-    "fileMenuTrigger": "ファイル",
     "exportMenuTrigger": "エクスポート",
     "uniprotServiceSuffix": " -- タンパク質配列検索",
     "ncbiBlastServiceSuffix": " -- 配列類似度検索",
@@ -1232,6 +1231,12 @@
     },
     "help": {
       "reportIssue": "問題を報告"
+    },
+    "appMenu": {
+      "kuro": "kuro",
+      "mame": "mame",
+      "closeWindow": "ウィンドウを閉じる",
+      "quit": "kuma を終了"
     }
   },
   "panel": {

@@ -1209,7 +1209,6 @@
     "consentStatusLabel": "同意狀態:",
     "consentGranted": "已授權",
     "consentNotGranted": "未授權",
-    "fileMenuTrigger": "檔案",
     "exportMenuTrigger": "匯出",
     "uniprotServiceSuffix": " -- 蛋白質序列搜尋",
     "ncbiBlastServiceSuffix": " -- 序列相似性搜尋",
@@ -1232,6 +1231,12 @@
     },
     "help": {
       "reportIssue": "回報問題"
+    },
+    "appMenu": {
+      "kuro": "kuro",
+      "mame": "mame",
+      "closeWindow": "關閉視窗",
+      "quit": "結束 kuma"
     }
   },
   "panel": {

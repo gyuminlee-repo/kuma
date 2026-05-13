@@ -4,6 +4,51 @@
 
 ---
 
+## v0.8.6 (2026-05-13)
+
+Aligns the menubar shell to mockup v5 (`010.lab/.../kuma_program_mockup_detailed_v5.html`) and finishes the v0.8.5 spec (`notes/specs/2026-05-13-menubar-prefs-shortcuts.md`).
+
+### Menubar — app-name first menu
+
+- First menu trigger renamed from generic `File` to the active tool name. KURO context shows **`kuro`**, MAME context shows **`mame`**, both bold, matching the mockup convention (`menuBar.appMenu.kuro` / `menuBar.appMenu.mame` keys added to 10 locales).
+- New items inside the app menu (KURO and MAME): `Close window` (Ctrl/Cmd+W) and `Quit kuma` (Ctrl/Cmd+Q). `Close window` calls `getCurrentWindow().close()` (goes through the autosave-aware close handler); `Quit kuma` calls `getCurrentWindow().destroy()` for an immediate, non-cancellable exit.
+- Legacy `menuBar.fileMenuTrigger` i18n key removed from all 10 locale files (dead reference).
+
+### SettingsDialog — duplicate shortcuts table removed
+
+- Keyboard shortcuts table dropped from `SettingsDialog`. `KeyboardShortcutsDialog` (Ctrl/Cmd+/) introduced in v0.8.5 is now the single surface for shortcut listing — prevents dual exposure inside Preferences.
+
+### Version bump
+
+- `package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, `pyproject.toml` synced to `0.8.6`.
+
+### Validation
+
+- `npx tsc --noEmit` clean. `pnpm sync:check` passes on application groups (pre-existing `tauri-resources/NOTICE.md` and `generated-models/Node 20` failures unrelated to this commit).
+
+---
+
+## v0.8.5 (2026-05-13)
+
+Spec implementation — `notes/specs/2026-05-13-menubar-prefs-shortcuts.md` items 2 and 3.
+
+### Edit / Run menus + dialogs
+
+- `MenuBar` gains an **Edit** menu (Preferences entry, Ctrl/Cmd+,) and a **Run** menu (Sidecar diagnostics, Check sidecar status).
+- New `KeyboardShortcutsDialog` (Ctrl/Cmd+/) lists shortcuts with search and category grouping; data source is `src/lib/shortcuts.ts`, which gained a `category` field.
+- The legacy About-dialog shortcuts table is removed; only the dedicated `KeyboardShortcutsDialog` exposes the list.
+- Help menu adds `Report issue` (external GitHub link) and `Check for updates` entries.
+
+### i18n
+
+- New keys added to all 10 locales (`menuBar.edit.*`, `menuBar.run.*`, `menuBar.help.reportIssue`, `shortcutsDialog.*`); ko/ja/zh-CN/zh-TW translated.
+
+### Version bump
+
+- `package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, `pyproject.toml` synced to `0.8.5`.
+
+---
+
 ## v0.8.4 (2026-05-13)
 
 Branch consolidation: merges `feat/workspace-artifact-handoff` (v0.8.3.x), `fix/load-sample-data` (v0.8.2.5), and `worktree-spec-export-all-macrogen` (v0.4.x batch) into `feat/kuma-integration`, plus the actionable subset of `worktree-locale-ko-fixes`.
