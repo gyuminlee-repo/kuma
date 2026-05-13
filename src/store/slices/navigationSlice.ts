@@ -29,6 +29,10 @@ export interface NavigationSlice {
   setMajor: (id: MajorStepId) => void;
   setSubStep: (id: SubStepId) => void;
   markDone: (id: SubStepId) => void;
+  goToNextStep: () => void;
+  goToPrevStep: () => void;
+  canGoNext: () => boolean;
+  canGoPrev: () => boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -71,7 +75,7 @@ export const createNavigationSlice: StateCreator<
   [],
   [],
   NavigationSlice
-> = (set) => ({
+> = (set, get) => ({
   currentMajor: "design",
   currentSubStep: "design.load",
   stepStatus: buildInitialStepStatus(),
@@ -99,5 +103,60 @@ export const createNavigationSlice: StateCreator<
         [id]: { ...state.stepStatus[id], done: true },
       },
     }));
+  },
+
+  goToNextStep() {
+    const { currentMajor, currentSubStep } = get();
+    const subSteps = SUBSTEP_ORDER[currentMajor];
+    const idx = subSteps.indexOf(currentSubStep);
+    if (idx < subSteps.length - 1) {
+      set({ currentSubStep: subSteps[idx + 1] });
+    } else {
+      const majorIdx = MAJOR_ORDER.indexOf(currentMajor);
+      if (majorIdx < MAJOR_ORDER.length - 1) {
+        const nextMajor = MAJOR_ORDER[majorIdx + 1];
+        set({ currentMajor: nextMajor, currentSubStep: SUBSTEP_ORDER[nextMajor][0] });
+      }
+      // 마지막 step이면 noop
+    }
+  },
+
+  goToPrevStep() {
+    const { currentMajor, currentSubStep } = get();
+    const subSteps = SUBSTEP_ORDER[currentMajor];
+    const idx = subSteps.indexOf(currentSubStep);
+    if (idx > 0) {
+      set({ currentSubStep: subSteps[idx - 1] });
+    } else {
+      const majorIdx = MAJOR_ORDER.indexOf(currentMajor);
+      if (majorIdx > 0) {
+        const prevMajor = MAJOR_ORDER[majorIdx - 1];
+        const prevSubSteps = SUBSTEP_ORDER[prevMajor];
+        set({
+          currentMajor: prevMajor,
+          currentSubStep: prevSubSteps[prevSubSteps.length - 1],
+        });
+      }
+      // 첫 step이면 noop
+    }
+  },
+
+  canGoNext() {
+    const { currentMajor, currentSubStep } = get();
+    const isLastMajor = currentMajor === MAJOR_ORDER[MAJOR_ORDER.length - 1];
+    if (isLastMajor) {
+      const subSteps = SUBSTEP_ORDER[currentMajor];
+      return currentSubStep !== subSteps[subSteps.length - 1];
+    }
+    return true;
+  },
+
+  canGoPrev() {
+    const { currentMajor, currentSubStep } = get();
+    const isFirstMajor = currentMajor === MAJOR_ORDER[0];
+    if (isFirstMajor) {
+      return currentSubStep !== SUBSTEP_ORDER[currentMajor][0];
+    }
+    return true;
   },
 });

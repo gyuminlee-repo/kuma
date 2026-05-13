@@ -1549,32 +1549,22 @@
   },
   "phaseC": {
     "majors": {
-      "variant": "변이체 선택",
-      "sdm": "SDM 설계",
-      "plate": "플레이트 배치",
+      "design": "설계",
+      "plate": "플레이트 맵",
       "export": "내보내기"
     },
     "subSteps": {
-      "variant": {
-        "load": "EVOLVEpro CSV 불러오기",
-        "select": "변이체 선택",
-        "adaptive": "α-적응 풀",
-        "domain": "도메인 필터",
-        "pareto": "Pareto + Cα"
-      },
-      "sdm": {
-        "mutations": "돌연변이 목록",
-        "codon": "코돈 전략",
-        "polymerase": "폴리머라제 + Tm",
-        "gc": "GC + 길이",
-        "run": "설계 실행"
+      "design": {
+        "load": "변이체 로드",
+        "variant": "풀 필터",
+        "mutation": "변이",
+        "params": "프라이머 파라미터"
       },
       "plate": {
-        "size": "플레이트 크기",
-        "layout": "배치 보기",
-        "labels": "Well 라벨"
+        "layout": "플레이트 맵"
       },
       "export": {
+        "all": "내보내기",
         "format": "형식",
         "summary": "주문 요약",
         "workspace": "워크스페이스 저장"
@@ -1631,6 +1621,7 @@
         "output": "패키지 생성"
       },
       "analyze": {
+        "inputs": "입력",
         "verdict": "판정 결과",
         "plate": "플레이트 계획",
         "health": "런 품질"
@@ -1639,6 +1630,22 @@
         "ingest": "데이터 수집",
         "merge": "병합",
         "export": "내보내기"
+      }
+    }
+  },
+  "phaseE": {
+    "wizard": {
+      "stepLabel": "단계 {{n}}",
+      "progress": "단계 {{current}} / {{total}}",
+      "back": "이전",
+      "next": "다음"
+    },
+    "descriptions": {
+      "design": {
+        "load": "EVOLVEpro CSV를 업로드하거나 단백질 시퀀스를 붙여넣으세요.",
+        "variant": "변이체 풀 필터를 설정하세요.",
+        "mutation": "포함할 변이를 정의하세요.",
+        "params": "프라이머 설계 파라미터를 설정하고 실행하세요."
       }
     }
   }

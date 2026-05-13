@@ -1,5 +1,8 @@
 /**
- * DesignStepView.test.tsx — 4 sub-step 마운트 어설션 (D2.1)
+ * DesignStepView.test.tsx — 4 sub-step 마운트 어설션 (D2.1, Phase E)
+ *
+ * E3: SequenceViewer는 AppLayout main slot으로 호이스팅됨 — DesignStepView 내에서 미포함.
+ * E2: 각 sub-step은 WizardContainer로 감싸짐.
  */
 
 import { render } from "@testing-library/react";
@@ -11,9 +14,6 @@ vi.mock("@/lib/ipc-kuro", () => ({
   cancelAndRespawn: vi.fn(),
 }));
 
-vi.mock("@/components/widgets/SequenceViewer", () => ({
-  SequenceViewer: () => <div data-testid="sequence-viewer" />,
-}));
 vi.mock("@/components/panels/InputPanel/SequenceInput", () => ({
   SequenceInput: () => <div data-testid="sequence-input" />,
 }));
@@ -41,10 +41,15 @@ describe("DesignStepView", () => {
     useAppStore.setState({ currentSubStep: "design.load" });
   });
 
-  it("design.load mounts SequenceViewer + SequenceInput", () => {
+  it("design.load mounts WizardContainer + SequenceInput", () => {
     const { getByTestId } = render(<DesignStepView />);
-    expect(getByTestId("sequence-viewer")).toBeTruthy();
+    expect(getByTestId("wizard-container")).toBeTruthy();
     expect(getByTestId("sequence-input")).toBeTruthy();
+  });
+
+  it("design.load does NOT mount SequenceViewer (hoisted to AppLayout, E3)", () => {
+    const { queryByTestId } = render(<DesignStepView />);
+    expect(queryByTestId("sequence-viewer")).toBeNull();
   });
 
   it("design.variant mounts UniprotSearch and DiversityOptions", () => {
@@ -67,9 +72,19 @@ describe("DesignStepView", () => {
     expect(getByTestId("run-design-action")).toBeTruthy();
   });
 
-  it("SequenceViewer mounts in all sub-steps (design.load baseline)", () => {
-    // SequenceViewer는 sub-step 무관하게 항상 상단에 마운트된다
-    const { getByTestId } = render(<DesignStepView />);
-    expect(getByTestId("sequence-viewer")).toBeTruthy();
+  it("each sub-step renders inside WizardContainer", () => {
+    const steps = [
+      "design.load",
+      "design.variant",
+      "design.mutation",
+      "design.params",
+    ] as const;
+
+    for (const step of steps) {
+      useAppStore.setState({ currentSubStep: step });
+      const { getByTestId, unmount } = render(<DesignStepView />);
+      expect(getByTestId("wizard-container"), `WizardContainer present for ${step}`).toBeTruthy();
+      unmount();
+    }
   });
 });

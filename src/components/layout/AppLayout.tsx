@@ -25,6 +25,7 @@ import { MenuBar } from "./MenuBar";
 import { MajorSubnav, type MajorNavItem } from "./MajorSubnav";
 import { SubStepNav, type SubNavItem } from "./SubStepNav";
 import { MajorStepView } from "../steps/MajorStepView";
+import { SequenceViewer } from "@/components/widgets/SequenceViewer";
 import { StatusBar } from "./StatusBar";
 import { WhatsNewDialog } from "../dialogs/WhatsNewDialog";
 import { NetworkConsentDialog } from "../dialogs/NetworkConsentDialog";
@@ -250,11 +251,16 @@ export function AppLayout() {
       main={
         <div
           id="major-step-main"
-          className="flex flex-1 min-h-0 min-w-0 overflow-hidden"
+          className="flex flex-col flex-1 min-h-0 min-w-0 overflow-hidden"
           role="tabpanel"
           aria-label={t(`phaseC.majors.${currentMajor}`, currentMajor)}
         >
-          <MajorStepView />
+          <div className="flex-shrink-0 border-b border-border">
+            <SequenceViewer />
+          </div>
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <MajorStepView />
+          </div>
         </div>
       }
       statusbar={
