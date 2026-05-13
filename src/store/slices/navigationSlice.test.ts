@@ -51,16 +51,16 @@ function makeSlice(): NavState {
 // ---------------------------------------------------------------------------
 
 describe("MAJOR_ORDER / SUBSTEP_ORDER constants", () => {
-  it("MAJOR_ORDER contains all 3 majors in order", () => {
-    expect(MAJOR_ORDER).toEqual(["design", "plate", "export"]);
+  it("MAJOR_ORDER contains all 4 majors in order", () => {
+    expect(MAJOR_ORDER).toEqual(["design", "report", "plate", "export"]);
   });
 
-  it("SUBSTEP_ORDER covers 6 total sub-steps (4+1+1)", () => {
+  it("SUBSTEP_ORDER covers 7 sub-steps (4+1+1+1)", () => {
     const total = Object.values(SUBSTEP_ORDER).reduce(
       (acc, steps) => acc + steps.length,
       0,
     );
-    expect(total).toBe(6);
+    expect(total).toBe(7);
   });
 
   it("design major has 4 sub-steps", () => {
@@ -205,12 +205,12 @@ describe("goToNextStep (E5)", () => {
     expect(slice.currentSubStep).toBe("design.params");
   });
 
-  it("design.params → goToNextStep → plate.layout (next major)", () => {
+  it("design.params → goToNextStep → report.summary (next major)", () => {
     const slice = makeSlice();
     slice.setSubStep("design.params");
     slice.goToNextStep();
-    expect(slice.currentMajor).toBe("plate");
-    expect(slice.currentSubStep).toBe("plate.layout");
+    expect(slice.currentMajor).toBe("report");
+    expect(slice.currentSubStep).toBe("report.summary");
   });
 
   it("plate.layout → goToNextStep → export.all (next major)", () => {
@@ -246,12 +246,12 @@ describe("goToPrevStep (E5)", () => {
     expect(slice.currentSubStep).toBe("design.load");
   });
 
-  it("plate.layout → goToPrevStep → design.params (prev major last step)", () => {
+  it("plate.layout → goToPrevStep → report.summary (prev major last step)", () => {
     const slice = makeSlice();
     slice.setSubStep("plate.layout");
     slice.goToPrevStep();
-    expect(slice.currentMajor).toBe("design");
-    expect(slice.currentSubStep).toBe("design.params");
+    expect(slice.currentMajor).toBe("report");
+    expect(slice.currentSubStep).toBe("report.summary");
   });
 
   it("export.all → goToPrevStep → plate.layout (prev major last step)", () => {

@@ -2,7 +2,8 @@
  * MajorSubnav.test.tsx — 4탭 렌더링 + 클릭 시 setMajor 호출 + active 표시 (Phase F: shadcn TabsList)
  */
 
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // ipc-kuro dependency 차단
@@ -46,24 +47,27 @@ describe("MajorSubnav (shadcn TabsList, 4-major)", () => {
     expect(tabs[3].getAttribute("aria-selected")).toBe("false");
   });
 
-  it("clicking report tab updates currentMajor to report", () => {
+  it("clicking report tab updates currentMajor to report", async () => {
+    const user = userEvent.setup();
     render(<MajorSubnav majors={MAJORS} />);
     const tabs = screen.getAllByRole("tab");
-    fireEvent.click(tabs[1]); // report
+    await user.click(tabs[1]); // report
     expect(useAppStore.getState().currentMajor).toBe("report");
   });
 
-  it("clicking plate tab calls setMajor('plate') and updates currentMajor", () => {
+  it("clicking plate tab calls setMajor('plate') and updates currentMajor", async () => {
+    const user = userEvent.setup();
     render(<MajorSubnav majors={MAJORS} />);
     const tabs = screen.getAllByRole("tab");
-    fireEvent.click(tabs[2]); // plate
+    await user.click(tabs[2]); // plate
     expect(useAppStore.getState().currentMajor).toBe("plate");
   });
 
-  it("clicking export tab calls setMajor('export')", () => {
+  it("clicking export tab calls setMajor('export')", async () => {
+    const user = userEvent.setup();
     render(<MajorSubnav majors={MAJORS} />);
     const tabs = screen.getAllByRole("tab");
-    fireEvent.click(tabs[3]); // export
+    await user.click(tabs[3]); // export
     expect(useAppStore.getState().currentMajor).toBe("export");
   });
 

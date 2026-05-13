@@ -1,11 +1,11 @@
 /**
- * AppLayout.phaseC.test.tsx — Phase C integration tests (D1.1: 3-major)
+ * AppLayout.phaseC.test.tsx — Phase C integration tests (D1.1: 4-major)
  *
  * Tests:
  *   1. data-tool="kuro" attribute preserved
  *   2. sidebar region exists
  *   3. main content region exists
- *   4. MajorSubnav 3 major tabs rendered
+ *   4. MajorSubnav 4 major tabs rendered
  *   5. clicking plate tab changes currentMajor to plate
  *   6. SubStepNav click changes currentSubStep
  *   7. Ctrl+Enter auto-navigates to design.params
@@ -13,6 +13,7 @@
  */
 
 import { render, screen, fireEvent, act } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi } from "vitest";
 
 vi.mock("@/lib/ipc-kuro", () => ({
@@ -27,13 +28,7 @@ import { AppLayout } from "./AppLayout";
 import { useAppStore } from "@/store/appStore";
 
 function getMajorTabs() {
-  return screen
-    .getAllByRole("tab")
-    .filter(
-      (el) =>
-        el.getAttribute("aria-controls") === "major-step-main" &&
-        el.getAttribute("data-active") === null,
-    );
+  return Array.from(document.querySelectorAll<HTMLElement>("[data-major-tab]"));
 }
 
 function getSubStepTabs() {
@@ -41,8 +36,7 @@ function getSubStepTabs() {
     .getAllByRole("tab")
     .filter(
       (el) =>
-        el.getAttribute("aria-controls") === "major-step-main" &&
-        el.hasAttribute("data-active"),
+        el.getAttribute("aria-controls") === "major-step-main",
     );
 }
 
@@ -73,12 +67,12 @@ describe("AppLayout Phase C -- layout structure", () => {
   });
 });
 
-describe("AppLayout Phase C -- MajorSubnav navigation (3-major)", () => {
-  it("renders at least 3 major tabs", () => {
+describe("AppLayout Phase C -- MajorSubnav navigation (4-major)", () => {
+  it("renders at least 4 major tabs", () => {
     useAppStore.setState({ currentMajor: "design", currentSubStep: "design.load" });
     render(<AppLayout />);
     const tabs = getMajorTabs();
-    expect(tabs.length).toBeGreaterThanOrEqual(3);
+    expect(tabs.length).toBeGreaterThanOrEqual(4);
   });
 
   it("first major tab (design) is aria-selected when currentMajor='design'", () => {
@@ -88,19 +82,21 @@ describe("AppLayout Phase C -- MajorSubnav navigation (3-major)", () => {
     expect(tabs[0].getAttribute("aria-selected")).toBe("true");
   });
 
-  it("clicking plate tab changes currentMajor to plate", () => {
+  it("clicking plate tab changes currentMajor to plate", async () => {
+    const user = userEvent.setup();
     useAppStore.setState({ currentMajor: "design", currentSubStep: "design.load" });
     render(<AppLayout />);
     const tabs = getMajorTabs();
-    fireEvent.click(tabs[1]); // plate is index 1
+    await user.click(tabs[2]); // plate is index 2 (design=0, report=1, plate=2, export=3)
     expect(useAppStore.getState().currentMajor).toBe("plate");
   });
 
-  it("clicking export tab changes currentMajor to export", () => {
+  it("clicking export tab changes currentMajor to export", async () => {
+    const user = userEvent.setup();
     useAppStore.setState({ currentMajor: "design", currentSubStep: "design.load" });
     render(<AppLayout />);
     const tabs = getMajorTabs();
-    fireEvent.click(tabs[2]); // export is index 2
+    await user.click(tabs[3]); // export is index 3
     expect(useAppStore.getState().currentMajor).toBe("export");
   });
 });
