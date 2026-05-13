@@ -281,7 +281,7 @@ export function MenuBar() {
             <span className="flex-1">{t("menuBar.appMenu.closeWindow")}</span>
             <kbd className="ml-4 text-caption text-muted-foreground">{MOD_KEY}W</kbd>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => { void getCurrentWindow().close(); }}>
+          <DropdownMenuItem onClick={() => { void getCurrentWindow().destroy(); }}>
             <span className="flex-1">{t("menuBar.appMenu.quit")}</span>
             <kbd className="ml-4 text-caption text-muted-foreground">{MOD_KEY}Q</kbd>
           </DropdownMenuItem>

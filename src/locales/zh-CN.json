@@ -1209,7 +1209,6 @@
     "consentStatusLabel": "同意状态:",
     "consentGranted": "已授权",
     "consentNotGranted": "未授权",
-    "fileMenuTrigger": "文件",
     "exportMenuTrigger": "导出",
     "uniprotServiceSuffix": " -- 蛋白质序列搜索",
     "ncbiBlastServiceSuffix": " -- 序列相似性搜索",

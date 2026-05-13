@@ -1209,7 +1209,6 @@
     "consentStatusLabel": "동의 상태:",
     "consentGranted": "동의함",
     "consentNotGranted": "미동의",
-    "fileMenuTrigger": "파일",
     "exportMenuTrigger": "내보내기",
     "uniprotServiceSuffix": " -- 단백질 서열 검색",
     "ncbiBlastServiceSuffix": " -- 서열 유사성 검색",

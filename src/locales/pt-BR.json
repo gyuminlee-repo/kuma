@@ -1209,7 +1209,6 @@
     "consentStatusLabel": "Status do consentimento:",
     "consentGranted": "Concedido",
     "consentNotGranted": "Não concedido",
-    "fileMenuTrigger": "Arquivo",
     "exportMenuTrigger": "Exportar",
     "uniprotServiceSuffix": " -- busca de sequência de proteína",
     "ncbiBlastServiceSuffix": " -- busca de similaridade de sequência",

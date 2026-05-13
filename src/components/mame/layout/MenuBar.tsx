@@ -308,7 +308,7 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
             <span className="flex-1">{t("menuBar.appMenu.closeWindow")}</span>
             <DropdownMenuShortcut>{MOD_KEY}W</DropdownMenuShortcut>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => { void getCurrentWindow().close(); }}>
+          <DropdownMenuItem onClick={() => { void getCurrentWindow().destroy(); }}>
             <span className="flex-1">{t("menuBar.appMenu.quit")}</span>
             <DropdownMenuShortcut>{MOD_KEY}Q</DropdownMenuShortcut>
           </DropdownMenuItem>
