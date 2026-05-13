@@ -10,9 +10,10 @@ import type { Round } from "@/types/round";
 vi.mock("@/store/mame/activitySlice");
 vi.mock("@/store/round/roundSlice");
 vi.mock("@tauri-apps/plugin-dialog", () => ({
-  open: vi.fn().mockResolvedValue("/fake/path/activity.csv"),
+  open: vi.fn(),
 }));
 
+import { open } from "@tauri-apps/plugin-dialog";
 import { useActivityStore } from "@/store/mame/activitySlice";
 import { useRoundStore } from "@/store/round/roundSlice";
 import { ActivityUploadPanel } from "./ActivityUploadPanel";
@@ -69,7 +70,7 @@ describe("ActivityUploadPanel", () => {
     vi.clearAllMocks();
   });
 
-  it("renders upload button and format select", () => {
+  it("renders upload button without format select", () => {
     vi.mocked(useActivityStore).mockReturnValue(makeActivityStore());
     vi.mocked(useRoundStore).mockImplementation(
       (sel: (s: RoundSlice) => unknown) => sel(makeRoundStore([baseRound], "round_1").getState())
@@ -78,7 +79,7 @@ describe("ActivityUploadPanel", () => {
     render(<ActivityUploadPanel />);
 
     expect(screen.getByRole("button", { name: /Browse & Upload/i })).toBeTruthy();
-    expect(screen.getByRole("combobox")).toBeTruthy();
+    expect(screen.queryByRole("combobox")).toBeNull();
   });
 
   it("shows disabled state when no active round", () => {
@@ -148,7 +149,8 @@ describe("ActivityUploadPanel", () => {
     expect(screen.getByRole("button", { name: /Uploading/i })).toBeTruthy();
   });
 
-  it("calls uploadActivityFile on button click with file path", async () => {
+  it("infers long_csv for .csv file and calls uploadActivityFile", async () => {
+    vi.mocked(open).mockResolvedValueOnce("/fake/path/activity.csv");
     mockUpload.mockResolvedValueOnce(undefined);
 
     vi.mocked(useActivityStore).mockReturnValue(makeActivityStore());
@@ -165,6 +167,50 @@ describe("ActivityUploadPanel", () => {
         "round_1",
         "/fake/path/activity.csv",
         "long_csv"
+      );
+    });
+  });
+
+  it("infers long_xlsx for .xlsx file and calls uploadActivityFile", async () => {
+    vi.mocked(open).mockResolvedValueOnce("/fake/path/activity.xlsx");
+    mockUpload.mockResolvedValueOnce(undefined);
+
+    vi.mocked(useActivityStore).mockReturnValue(makeActivityStore());
+    vi.mocked(useRoundStore).mockImplementation(
+      (sel: (s: RoundSlice) => unknown) => sel(makeRoundStore([baseRound], "round_1").getState())
+    );
+
+    render(<ActivityUploadPanel />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Browse & Upload/i }));
+
+    await waitFor(() => {
+      expect(mockUpload).toHaveBeenCalledWith(
+        "round_1",
+        "/fake/path/activity.xlsx",
+        "long_xlsx"
+      );
+    });
+  });
+
+  it("infers long_xlsx for .xls file and calls uploadActivityFile", async () => {
+    vi.mocked(open).mockResolvedValueOnce("/fake/path/activity.xls");
+    mockUpload.mockResolvedValueOnce(undefined);
+
+    vi.mocked(useActivityStore).mockReturnValue(makeActivityStore());
+    vi.mocked(useRoundStore).mockImplementation(
+      (sel: (s: RoundSlice) => unknown) => sel(makeRoundStore([baseRound], "round_1").getState())
+    );
+
+    render(<ActivityUploadPanel />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Browse & Upload/i }));
+
+    await waitFor(() => {
+      expect(mockUpload).toHaveBeenCalledWith(
+        "round_1",
+        "/fake/path/activity.xls",
+        "long_xlsx"
       );
     });
   });
