@@ -4,6 +4,40 @@
 
 ---
 
+## v0.8.3 (2026-05-13)
+
+Workspace artifact handoff and MAME Clear All.
+
+### Workspace manifest
+
+- New `src/lib/workspace/` module manages a `.kuma-workspace.json` artifact registry inside the user's export folder. Each Excel export from KURO (`sdm_primer_xlsx`) or MAME (`mame_consensus_fasta`) auto-registers `(app, step, type, path)` with mtime and size.
+- `useArtifact(type)` React hook subscribes to `workspace:updated` events and resolves the latest non-stale artifact path. Falls back gracefully when the workspace is not opened.
+- Stale detection compares manifest mtime against the file's current mtime; vanished files are silently pruned from the manifest. Corrupt manifests are backed up and treated as missing.
+
+### KURO auto-prefill
+
+- `MutationInput` (EVOLVEpro / MULTI-evolve modes) now auto-prefills `evolveproCsvPath` from the workspace registry on mount. An `ArtifactBadge` (`Step diversity output auto-detected`) shows next to the file name; stale state surfaces as a warning variant. Browse override sets a `userOverridden` flag that disables further auto-prefill in that session.
+
+### Clear All
+
+- KURO `resetAll()` additionally invokes `clearWorkspace("kuro")` after slice reset, so the manifest no longer points to stale KURO outputs.
+- MAME gains a unified `resetMameAll()` driving `resetInput`/`resetAnalysis`/`resetExport`/`resetPhase` plus `clearWorkspace("mame")`. `ClearConfirmDialog` is wired to this aggregator. PhaseSlice `resetPhase` also clears the `kuma:mame:phase` and `kuma:mame:activityTab` localStorage keys.
+- App isolation: clearing one app's workspace state never removes the other app's artifacts.
+
+### Tests
+
+- `tests/workspace/api.test.ts`: 12 cases (manifest creation, register / list / getLatest, upsert by `(app,step,type)`, multi-app isolation, mtime stale detection, missing-file cleanup, event emission, corrupt manifest recovery, missing workspace error).
+
+### i18n
+
+- New keys `artifact.badge.detected` and `artifact.badge.staleHint` in `en.json` / `ko.json`.
+
+### Cross-layer sync
+
+- `.cross-layer-sync.json` adds `workspace-artifact-registry` group covering the registry types and the two export slices.
+
+---
+
 ## v0.3.17 – v0.3.22.07 (2026-05-12)
 
 Full English / Korean i18n coverage across the desktop app.
