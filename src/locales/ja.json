@@ -206,13 +206,8 @@
       "polymeraseTaqTitle": "標準 Taq polymerase。Tm プリセット約 60 °C、高 Mg²⁺。汎用 PCR や 3'A 突出が必要なときに使用。",
       "polymerasePhusionTitle": "Thermo Phusion High-Fidelity。Tm プリセット約 72 °C、blunt-end、高速伸長。",
       "polymeraseKODTitle": "Toyobo KOD One / KOD Hot Start。Tm プリセット約 68 °C、Mg²⁺/dNTP 補正あり。高忠実度・高速。",
-      "autoDetect": {
-        "button": "CDS から自動検出",
-        "success": "{{source}} から検出しました",
-        "failed": "ORF が見つかりません",
-        "noReference": "Reference ファイルが必要です",
-        "readError": "Reference ファイルの読み込みに失敗しました"
-      }
+      "cdsCandidate": "CDS / ORF 候補:",
+      "cdsCandidateNoneDetected": "CDS が検出されませんでした。座標を手動で入力してください。"
     },
     "activity": {
       "title": "活性データ",

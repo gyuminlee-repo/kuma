@@ -7,13 +7,13 @@
  * 상태: 컴포넌트 local useState (마지막 값은 localStorage `kuma:mame:barcodeSetup`에 영속화)
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { open } from "@tauri-apps/plugin-dialog";
 import { readTextFile } from "@tauri-apps/plugin-fs";
-import { CheckCircle2, FolderOpen, Loader2, Wand2 } from "lucide-react";
+import { CheckCircle2, FolderOpen, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { autoDetectCds } from "@/lib/sequence/autoDetectCds";
+import { autoDetectCdsCandidates } from "@/lib/sequence/autoDetectCds";
 import { useKumaProject } from "@/state/projectContext";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { rpc } from "@/lib/ipc";
@@ -149,6 +149,10 @@ export function BarcodeSetupPanel({ group }: BarcodeSetupPanelProps = {}) {
   const [result, setResult] = useState<MamePackageResult | null>(null);
   const setParams = useMameAppStore((s) => s.setParams);
   const currentTargetLength = useMameAppStore((s) => s.rawRunParams.targetLength);
+  const cdsCandidates = useMameAppStore((s) => s.cdsCandidates);
+  const selectedCdsIndex = useMameAppStore((s) => s.selectedCdsIndex);
+  const setCdsCandidates = useMameAppStore((s) => s.setCdsCandidates);
+  const setSelectedCdsIndex = useMameAppStore((s) => s.setSelectedCdsIndex);
 
   function setForm(partial: Partial<SetupFormState>) {
     setFormRaw((prev) => {
@@ -157,6 +161,31 @@ export function BarcodeSetupPanel({ group }: BarcodeSetupPanelProps = {}) {
       return next;
     });
   }
+
+  // ─── fastaPath 변경 시 CDS 후보 자동 추출 ────────────────────────────────
+
+  useEffect(() => {
+    if (!form.fastaPath) {
+      setCdsCandidates([]);
+      return;
+    }
+    let cancelled = false;
+    readTextFile(form.fastaPath)
+      .then((content) => {
+        if (cancelled) return;
+        const candidates = autoDetectCdsCandidates(content);
+        setCdsCandidates(candidates);
+        if (candidates.length > 0) {
+          const first = candidates[0];
+          setForm({ geneStart: String(first.start), geneEnd: String(first.end) });
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setCdsCandidates([]);
+      });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.fastaPath]);
 
   // ─── 파일 브라우저 ───────────────────────────────────────────────────────
 
@@ -318,63 +347,89 @@ export function BarcodeSetupPanel({ group }: BarcodeSetupPanelProps = {}) {
 
         {/* 섹션 2: 유전자 좌표 (group: files 또는 undefined) */}
         {(!group || group === "files") && <section aria-labelledby="section-coords">
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <h3 id="section-coords" className="text-sm font-medium text-foreground">
-              {t("mame.barcodeSetup.geneCoordinates")}
-            </h3>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-7 gap-1.5 text-xs"
-              onClick={async () => {
-                if (!form.fastaPath) {
-                  toast.error(t("mame.barcodeSetup.autoDetect.noReference"));
-                  return;
-                }
-                try {
-                  const content = await readTextFile(form.fastaPath);
-                  const cds = autoDetectCds(content);
-                  if (cds) {
-                    setForm({ geneStart: String(cds.start), geneEnd: String(cds.end) });
-                    toast.success(t("mame.barcodeSetup.autoDetect.success", { source: cds.source }));
-                  } else {
-                    toast.error(t("mame.barcodeSetup.autoDetect.failed"));
+          <h3 id="section-coords" className="mb-3 text-sm font-medium text-foreground">
+            {t("mame.barcodeSetup.geneCoordinates")}
+          </h3>
+
+          {cdsCandidates.length > 0 ? (
+            /* CDS 후보 dropdown (kuro Target Gene 패턴) */
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="cds-candidate"
+                className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+              >
+                {t("mame.barcodeSetup.cdsCandidate")}
+              </Label>
+              <select
+                id="cds-candidate"
+                className="h-8 w-full min-w-0 rounded-md border border-input bg-background px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                value={String(selectedCdsIndex)}
+                onChange={(e) => {
+                  const i = Number(e.target.value);
+                  setSelectedCdsIndex(i);
+                  const cand = cdsCandidates[i];
+                  if (cand) {
+                    setForm({ geneStart: String(cand.start), geneEnd: String(cand.end) });
                   }
-                } catch {
-                  toast.error(t("mame.barcodeSetup.autoDetect.readError"));
-                }
-              }}
-              aria-label={t("mame.barcodeSetup.autoDetect.button")}
-            >
-              <Wand2 size={12} aria-hidden="true" />
-              {t("mame.barcodeSetup.autoDetect.button")}
-            </Button>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <NumberField
-              id="gene-start"
-              label="gene_start"
-              value={form.geneStart}
-              onChange={(v) => setForm({ geneStart: v })}
-              min={0}
-              step={1}
-              placeholder="0"
-              helperText="0-based inclusive"
-              hasError={form.geneStart !== "" && (!isStartValid || !isRangeValid)}
-            />
-            <NumberField
-              id="gene-end"
-              label="gene_end"
-              value={form.geneEnd}
-              onChange={(v) => setForm({ geneEnd: v })}
-              min={1}
-              step={1}
-              placeholder="e.g. 534"
-              helperText="0-based exclusive"
-              hasError={form.geneEnd !== "" && (!isEndValid || !isRangeValid)}
-            />
-          </div>
+                }}
+                aria-label={t("mame.barcodeSetup.cdsCandidate")}
+              >
+                {cdsCandidates.map((c, i) => {
+                  const labelPart = c.label ? `[${c.label}] ` : "";
+                  const tooltip = [
+                    c.label ? `Label: ${c.label}` : "",
+                    `Range: ${c.start}-${c.end}`,
+                    `Length: ${c.aa_length} aa`,
+                    `Source: ${c.source}`,
+                  ]
+                    .filter(Boolean)
+                    .join("\n");
+                  return (
+                    <option key={i} value={String(i)} title={tooltip}>
+                      {labelPart}{c.start}-{c.end} ({c.aa_length} aa)
+                    </option>
+                  );
+                })}
+              </select>
+              <p className="text-xs text-muted-foreground/90">
+                {t("mame.barcodeSetup.cdsFastaHelper")}
+              </p>
+            </div>
+          ) : (
+            /* 후보 없음 — 직접 입력 fallback */
+            <>
+              {form.fastaPath && (
+                <p className="mb-2 text-xs text-muted-foreground">
+                  {t("mame.barcodeSetup.cdsCandidateNoneDetected")}
+                </p>
+              )}
+              <div className="grid grid-cols-2 gap-3">
+                <NumberField
+                  id="gene-start"
+                  label="gene_start"
+                  value={form.geneStart}
+                  onChange={(v) => setForm({ geneStart: v })}
+                  min={0}
+                  step={1}
+                  placeholder="0"
+                  helperText="0-based inclusive"
+                  hasError={form.geneStart !== "" && (!isStartValid || !isRangeValid)}
+                />
+                <NumberField
+                  id="gene-end"
+                  label="gene_end"
+                  value={form.geneEnd}
+                  onChange={(v) => setForm({ geneEnd: v })}
+                  min={1}
+                  step={1}
+                  placeholder="e.g. 534"
+                  helperText="0-based exclusive"
+                  hasError={form.geneEnd !== "" && (!isEndValid || !isRangeValid)}
+                />
+              </div>
+            </>
+          )}
+
           {form.geneStart !== "" && form.geneEnd !== "" && !isRangeValid && (
             <p role="alert" className="mt-1 text-xs text-destructive">
               {t("mame.barcodeSetup.geneEndError")}
