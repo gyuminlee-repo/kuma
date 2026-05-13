@@ -36,5 +36,6 @@
       "pythonPath": "python-core",
       "output": "src/types/models.generated.ts"
     }
-  ]
+  ],
+  "groups": []
 }
