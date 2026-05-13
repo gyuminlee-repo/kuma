@@ -1,11 +1,8 @@
 import { open, save } from "@tauri-apps/plugin-dialog";
-import { mkdir } from "@tauri-apps/plugin-fs";
-import { join } from "@tauri-apps/api/path";
 import { sendRequest } from "../../lib/ipc-kuro";
 import { useAppStore } from "../../store/appStore";
 import { getSortedMutations, reorderMappings } from "../../lib/plate-utils";
 import { defaultExportFilename } from "../../lib/filename";
-import type { KumaProject } from "../../state/projectContext";
 import type { BenchmarkResult, WorkspaceData } from "../../types/models";
 import {
   migrateWorkspace,
@@ -71,53 +68,6 @@ export async function handleExportExcel(projectId?: string) {
       label: "Open folder",
       onClick: () => void revealInOSFolder(path),
     },
-  });
-}
-
-/**
- * Export All (Feature C): saves sdm_primers.xlsx to {project.path}/design/
- * without a save dialog. Auto-overwrites existing file.
- */
-export async function handleExportAll(project: KumaProject | null | undefined): Promise<void> {
-  if (!project || project.scratch || !project.path) {
-    toast.error("Open a project first to use Export All.");
-    return;
-  }
-
-  const state = useAppStore.getState();
-  if (state.designResults.length === 0) {
-    toast.error("No design results to export.");
-    return;
-  }
-
-  const designDir = await join(project.path, "design");
-  const targetPath = await join(designDir, "sdm_primers.xlsx");
-
-  // §13 Background Job Queue: route export through the queue so users see it
-  // in the Jobs panel (and to back-pressure when multiple exports run in
-  // sequence, e.g. mapping + sdm_primers from the Plate plan Export All).
-  await state.enqueueJob("export", "Export sdm_primers.xlsx", async () => {
-    useAppStore.setState({ isExporting: true });
-    try {
-      await mkdir(designDir, { recursive: true });
-      await exportSdmPrimersExcel(targetPath, project.project_id);
-
-      toast.success("Exported sdm_primers.xlsx", {
-        description: "design/sdm_primers.xlsx",
-        duration: 6000,
-        action: {
-          label: "Open folder",
-          onClick: () => void revealInOSFolder(targetPath),
-        },
-      });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      toast.error(`Export All failed: ${msg}`);
-      state.setStatus(`Export All failed: ${msg}`);
-      throw err;
-    } finally {
-      useAppStore.setState({ isExporting: false });
-    }
   });
 }
 
