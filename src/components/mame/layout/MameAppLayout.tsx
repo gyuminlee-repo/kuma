@@ -52,7 +52,6 @@ const XLSX_EXTENSIONS = new Set([".xlsx"]);
 const MAME_SUBSTEP_LABEL_KEYS: Record<MameSubStepId, string> = {
   "setup.files": "phaseC.mameSubSteps.setup.files",
   "setup.design": "phaseC.mameSubSteps.setup.design",
-  "setup.output": "phaseC.mameSubSteps.setup.output",
   "analyze.inputs": "phaseC.mameSubSteps.analyze.inputs",
   "analyze.verdict": "phaseC.mameSubSteps.analyze.verdict",
   "analyze.plate": "phaseC.mameSubSteps.analyze.plate",

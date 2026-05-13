@@ -1599,8 +1599,7 @@
     "mameSubSteps": {
       "setup": {
         "files": "Arquivos e coordenadas",
-        "design": "Parâmetros de design",
-        "output": "Gerar pacote"
+        "design": "Parâmetros de design"
       },
       "analyze": {
         "inputs": "Entradas",
@@ -1634,8 +1633,7 @@
     "mameDescriptions": {
       "setup": {
         "files": "Selecionar a pasta da execução MinKNOW e a sequência de referência para esta execução.",
-        "design": "Configurar os parâmetros do primer flanqueador e do comprimento de binding.",
-        "output": "Pré-visualizar ajustes e gerar o pacote de barcodes."
+        "design": "Configure os parâmetros de design de primer e gere o pacote de barcodes."
       },
       "analyze": {
         "inputs": "Definir o diretório de entrada e os parâmetros da análise, depois executar.",

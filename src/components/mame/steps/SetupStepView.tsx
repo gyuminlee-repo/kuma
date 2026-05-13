@@ -3,15 +3,13 @@
  *
  * [source: spec §D2.4 — mame StepView 신규]
  * [updated: spec Phase F F6 — WizardContainer 적용]
+ * [updated: 3→2 step — setup.output merged into setup.design]
  *
  * Sub-step 매핑:
  *   setup.files  → BarcodeSetupPanel(group="files")  — 입력 파일 + 유전자 좌표 + 프로젝트 메타
- *   setup.design → BarcodeSetupPanel(group="design") — 플랭크 + 바인딩 파라미터
- *   setup.output → BarcodeSetupPanel(group="output") — 생성 버튼 + 출력 파일
+ *   setup.design → BarcodeSetupPanel(group="design") — 플랭크 + 바인딩 파라미터 + Generate Package
  *
- * WizardContainer: 3 sub-step 순서대로 Next/Prev 탐색.
- * setup.output의 Next는 BarcodeSetupPanel 내부 "Generate Package" 버튼이 담당.
- * wizard footer Next는 setup.output에서 다음 phase(analyze)로 이동하는 데만 사용.
+ * WizardContainer: 2 sub-step 순서대로 Next/Prev 탐색.
  */
 
 import { useMameAppStore } from "@/store/mame/mameAppStore";
@@ -29,11 +27,6 @@ const STEP_CONFIG = {
     titleKey: "phaseC.mameSubSteps.setup.design",
     descriptionKey: "phaseE.mameDescriptions.setup.design",
   },
-  "setup.output": {
-    index: 3,
-    titleKey: "phaseC.mameSubSteps.setup.output",
-    descriptionKey: "phaseE.mameDescriptions.setup.output",
-  },
 } as const;
 
 export function SetupStepView() {
@@ -41,11 +34,7 @@ export function SetupStepView() {
   const goToNextStep = useMameAppStore((s) => s.goToNextStep);
   const goToPrevStep = useMameAppStore((s) => s.goToPrevStep);
 
-  if (
-    subStep !== "setup.files" &&
-    subStep !== "setup.design" &&
-    subStep !== "setup.output"
-  ) {
+  if (subStep !== "setup.files" && subStep !== "setup.design") {
     return null;
   }
 
@@ -55,7 +44,7 @@ export function SetupStepView() {
   return (
     <WizardContainer
       stepIndex={config.index}
-      stepTotal={3}
+      stepTotal={2}
       titleKey={config.titleKey}
       descriptionKey={config.descriptionKey}
       onPrev={isFirst ? undefined : goToPrevStep}
@@ -63,7 +52,6 @@ export function SetupStepView() {
     >
       {subStep === "setup.files" && <BarcodeSetupPanel group="files" />}
       {subStep === "setup.design" && <BarcodeSetupPanel group="design" />}
-      {subStep === "setup.output" && <BarcodeSetupPanel group="output" />}
     </WizardContainer>
   );
 }

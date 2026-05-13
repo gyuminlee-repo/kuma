@@ -1599,8 +1599,7 @@
     "mameSubSteps": {
       "setup": {
         "files": "Archivos y coordenadas",
-        "design": "Parámetros de diseño",
-        "output": "Generar paquete"
+        "design": "Parámetros de diseño"
       },
       "analyze": {
         "inputs": "Entradas",
@@ -1634,8 +1633,7 @@
     "mameDescriptions": {
       "setup": {
         "files": "Seleccionar la carpeta de la corrida MinKNOW y la secuencia de referencia para esta corrida.",
-        "design": "Configurar los parámetros del primer flanqueante y la longitud de binding.",
-        "output": "Vista previa de ajustes y generación del paquete de barcodes."
+        "design": "Configure los parámetros de diseño de primer y genere el paquete de barcodes."
       },
       "analyze": {
         "inputs": "Definir el directorio de entrada y los parámetros del análisis, luego ejecutar.",

@@ -1599,8 +1599,7 @@
     "mameSubSteps": {
       "setup": {
         "files": "Files & Coordinates",
-        "design": "Design パラメータ",
-        "output": "パッケージ生成"
+        "design": "Design パラメータ"
       },
       "analyze": {
         "inputs": "入力",
@@ -1634,8 +1633,7 @@
     "mameDescriptions": {
       "setup": {
         "files": "この run の MinKNOW run フォルダと reference 配列を選択。",
-        "design": "Flanking primer と binding 長パラメータを設定。",
-        "output": "設定を確認し barcode パッケージを生成。"
+        "design": "Primer design パラメータを設定し、barcode パッケージを生成。"
       },
       "analyze": {
         "inputs": "入力ディレクトリと解析パラメータを設定し、実行。",

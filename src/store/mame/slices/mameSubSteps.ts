@@ -9,7 +9,6 @@
 export type MameSubStepId =
   | "setup.files"
   | "setup.design"
-  | "setup.output"
   | "analyze.inputs"
   | "analyze.verdict"
   | "analyze.plate"
@@ -20,7 +19,7 @@ export const MAME_SUBSTEP_ORDER: Record<
   "setup" | "analyze" | "activity",
   MameSubStepId[]
 > = {
-  setup: ["setup.files", "setup.design", "setup.output"],
+  setup: ["setup.files", "setup.design"],
   analyze: ["analyze.inputs", "analyze.verdict", "analyze.plate"],
   activity: ["activity.ingest", "activity.mergeExport"],
 };

@@ -1599,8 +1599,7 @@
     "mameSubSteps": {
       "setup": {
         "files": "文件与坐标",
-        "design": "Design 参数",
-        "output": "生成包"
+        "design": "Design 参数"
       },
       "analyze": {
         "inputs": "输入",
@@ -1634,8 +1633,7 @@
     "mameDescriptions": {
       "setup": {
         "files": "为本次 run 选择 MinKNOW run 文件夹与参考序列。",
-        "design": "配置 flanking primer 与 binding 长度参数。",
-        "output": "预览设置并生成 barcode 包。"
+        "design": "配置 primer design 参数并生成 barcode 包。"
       },
       "analyze": {
         "inputs": "设置输入目录与分析参数,然后运行。",

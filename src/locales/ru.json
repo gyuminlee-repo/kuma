@@ -1599,8 +1599,7 @@
     "mameSubSteps": {
       "setup": {
         "files": "Файлы и координаты",
-        "design": "Параметры design",
-        "output": "Создать package"
+        "design": "Параметры design"
       },
       "analyze": {
         "inputs": "Входы",
@@ -1634,8 +1633,7 @@
     "mameDescriptions": {
       "setup": {
         "files": "Выберите папку MinKNOW run и reference sequence для этого запуска.",
-        "design": "Настройте параметры flanking primer и binding length.",
-        "output": "Просмотрите настройки и создайте barcode package."
+        "design": "Настройте параметры primer design и создайте barcode package."
       },
       "analyze": {
         "inputs": "Задайте директорию входа и параметры анализа, затем запустите.",
