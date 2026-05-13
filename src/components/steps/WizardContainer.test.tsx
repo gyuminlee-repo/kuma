@@ -133,4 +133,29 @@ describe("WizardContainer", () => {
     );
     expect(screen.getByText("Step 3 / 4")).toBeTruthy();
   });
+
+  it("heading is outside the scrollable body — wizard-header is not inside wizard-body", () => {
+    render(
+      <WizardContainer stepIndex={1} stepTotal={4} titleKey="phaseC.subSteps.design.load">
+        <div data-testid="child" />
+      </WizardContainer>,
+    );
+    const header = screen.getByTestId("wizard-header");
+    const body = screen.getByTestId("wizard-body");
+    // heading must not be a descendant of the scrollable body
+    expect(body.contains(header)).toBe(false);
+  });
+
+  it("footer px-6 and header px-6 share the same horizontal padding token", () => {
+    render(
+      <WizardContainer stepIndex={1} stepTotal={4} titleKey="phaseC.subSteps.design.load">
+        <div />
+      </WizardContainer>,
+    );
+    const header = screen.getByTestId("wizard-header");
+    const footer = screen.getByRole("contentinfo");
+    // Both slots must carry the px-6 class (same horizontal gutter)
+    expect(header.className).toContain("px-6");
+    expect(footer.className).toContain("px-6");
+  });
 });
