@@ -4,9 +4,18 @@
       "id": "version-sync",
       "type": "version_sync",
       "files": [
-        {"path": "package.json", "extract": "json:version"},
-        {"path": "src-tauri/tauri.conf.json", "extract": "json:version"},
-        {"path": "src-tauri/Cargo.toml", "extract": "regex:^version\\s*=\\s*\"([^\"]+)\""}
+        {
+          "path": "package.json",
+          "extract": "json:version"
+        },
+        {
+          "path": "src-tauri/tauri.conf.json",
+          "extract": "json:version"
+        },
+        {
+          "path": "src-tauri/Cargo.toml",
+          "extract": "regex:^version\\s*=\\s*\"([^\"]+)\""
+        }
       ]
     },
     {
@@ -19,9 +28,19 @@
     {
       "id": "kuro-dispatcher",
       "type": "registry_match",
-      "left":  {"path": "python-core/sidecar_kuro/dispatcher.py", "extract": "python_dict_keys:_METHODS"},
-      "right": {"path": "src/types/models.ts", "extract": "ts_interface_keys:RpcMethodMap"},
-      "exclude": ["ping", "shutdown", "health_info"]
+      "left": {
+        "path": "python-core/sidecar_kuro/dispatcher.py",
+        "extract": "python_dict_keys:_METHODS"
+      },
+      "right": {
+        "path": "src/types/models.ts",
+        "extract": "ts_interface_keys:RpcMethodMap"
+      },
+      "exclude": [
+        "ping",
+        "shutdown",
+        "health_info"
+      ]
     },
     {
       "id": "generated-models",
@@ -40,246 +59,486 @@
   "groups": [
     {
       "id": "evolvepro-columns",
-      "files": ["kuma_core/kuro/evolvepro.py", "fixtures/*.csv"],
-      "symbols": ["VARIANT_COLUMNS", "SCORE_COLUMNS"],
+      "files": [
+        "kuma_core/kuro/evolvepro.py",
+        "fixtures/*.csv"
+      ],
+      "symbols": [
+        "VARIANT_COLUMNS",
+        "SCORE_COLUMNS"
+      ],
       "note": "evolvepro.py VARIANT_COLUMNS/SCORE_COLUMNS ↔ fixtures CSV 컬럼명 일치",
       "severity": "blocking"
     },
     {
       "id": "evolvepro-fixture-regen",
-      "files": ["kuma_core/kuro/evolvepro.py", "python-core/sidecar_kuro/models.py", "fixtures/generate_sample_data.py"],
+      "files": [
+        "kuma_core/kuro/evolvepro.py",
+        "python-core/sidecar_kuro/models.py",
+        "fixtures/generate_sample_data.py"
+      ],
       "note": "evolvepro 모델 변경 시 fixtures/generate_sample_data.py 재실행 필요",
       "severity": "warning"
     },
     {
       "id": "kuro-models-ts-py",
-      "files": ["src/types/models.ts", "python-core/sidecar_kuro/models.py"],
+      "files": [
+        "src/types/models.ts",
+        "python-core/sidecar_kuro/models.py"
+      ],
       "note": "TS interfaces ↔ Pydantic models 동기화",
       "severity": "blocking"
     },
     {
       "id": "tauri-samples",
-      "files": ["src-tauri/samples", "src-tauri/tauri.conf.json"],
+      "files": [
+        "src-tauri/samples",
+        "src-tauri/tauri.conf.json"
+      ],
       "note": "src-tauri/samples/ 신규 파일은 tauri.conf.json resources에 명시 매핑 추가 (glob 금지)",
       "severity": "blocking"
     },
     {
       "id": "kuro-sample-data",
-      "files": ["src/store/slices/inputSlice.ts", "src-tauri/samples"],
-      "symbols": ["loadSampleData"],
+      "files": [
+        "src/store/slices/inputSlice.ts",
+        "src-tauri/samples"
+      ],
+      "symbols": [
+        "loadSampleData"
+      ],
       "note": "inputSlice loadSampleData가 참조하는 src-tauri/samples/ 파일 존재 확인",
       "severity": "blocking"
     },
     {
       "id": "kuro-rescue-constants",
-      "files": ["python-core/sidecar_kuro/handlers/design.py", "kuma_core/kuro/sdm_engine.py"],
-      "symbols": ["_DEFAULT_TOL_MAX", "tol_max"],
+      "files": [
+        "python-core/sidecar_kuro/handlers/design.py",
+        "kuma_core/kuro/sdm_engine.py"
+      ],
+      "symbols": [
+        "_DEFAULT_TOL_MAX",
+        "tol_max"
+      ],
       "note": "rescue 상수 _DEFAULT_TOL_MAX는 design_single_sdm() 기본 tol_max와 일치",
       "severity": "blocking"
     },
     {
       "id": "kuro-excluded-ranges",
-      "files": ["src/store/slices/inputSlice.ts", "python-core/sidecar_kuro/models.py", "kuma_core/kuro/evolvepro.py"],
-      "symbols": ["excluded_ranges", "ExcludedRange"],
+      "files": [
+        "src/store/slices/inputSlice.ts",
+        "python-core/sidecar_kuro/models.py",
+        "kuma_core/kuro/evolvepro.py"
+      ],
+      "symbols": [
+        "excluded_ranges",
+        "ExcludedRange"
+      ],
       "note": "excluded_ranges 파라미터 + ExcludedRange Pydantic 모델 + evolvepro param 동기화",
       "severity": "blocking"
     },
     {
       "id": "kuro-rescue-stats",
-      "files": ["src/types/models.ts", "python-core/sidecar_kuro/handlers/design.py"],
-      "symbols": ["RescueStats", "RescuedMutation", "rescue_stats", "rescued_info"],
+      "files": [
+        "src/types/models.ts",
+        "python-core/sidecar_kuro/handlers/design.py"
+      ],
+      "symbols": [
+        "RescueStats",
+        "RescuedMutation",
+        "rescue_stats",
+        "rescued_info"
+      ],
       "note": "design handler 응답 dict 키 ↔ TS RescueStats/RescuedMutation",
       "severity": "blocking"
     },
     {
       "id": "mame-activity-models",
-      "files": ["src/types/mame/activity.ts", "kuma_core/mame/activity/models.py"],
-      "symbols": ["ActivityRecord", "MergedRow", "MergeStats", "PlateMeta"],
+      "files": [
+        "src/types/mame/activity.ts",
+        "kuma_core/mame/activity/models.py"
+      ],
+      "symbols": [
+        "ActivityRecord",
+        "MergedRow",
+        "MergeStats",
+        "PlateMeta"
+      ],
       "note": "MAME activity TS interfaces ↔ Pydantic models",
       "severity": "blocking"
     },
     {
       "id": "mame-round",
-      "files": ["src/types/round.ts", "kuma_core/mame/activity/round.py"],
-      "symbols": ["Round"],
+      "files": [
+        "src/types/round.ts",
+        "kuma_core/mame/activity/round.py"
+      ],
+      "symbols": [
+        "Round"
+      ],
       "note": "Round TS interface ↔ Pydantic Round (status enum, field names)",
       "severity": "blocking"
     },
     {
       "id": "mame-activity-fixtures",
-      "files": ["fixtures/activity_demo/generate.py", "kuma_core/mame/activity/models.py"],
-      "symbols": ["ActivityRecord"],
+      "files": [
+        "fixtures/activity_demo/generate.py",
+        "kuma_core/mame/activity/models.py"
+      ],
+      "symbols": [
+        "ActivityRecord"
+      ],
       "note": "fixtures activity_demo seed CSV 헤더 ↔ ActivityRecord 컬럼명",
       "severity": "warning"
     },
     {
       "id": "mame-activity-handlers",
-      "files": ["python-core/sidecar_mame/handlers/activity.py", "kuma_core/mame/activity/models.py"],
+      "files": [
+        "python-core/sidecar_mame/handlers/activity.py",
+        "kuma_core/mame/activity/models.py"
+      ],
       "note": "MAME activity RPC params ↔ activity module API (ingest_long_csv, merge_activity_with_genotype, export_evolvepro_csv)",
       "severity": "blocking"
     },
     {
       "id": "kuro-workspace-snapshot",
-      "files": ["src/store/slices/exportSlice.ts", "src/types/round.ts"],
-      "symbols": ["getWorkspaceSnapshot", "rounds", "active_round_id"],
+      "files": [
+        "src/store/slices/exportSlice.ts",
+        "src/types/round.ts"
+      ],
+      "symbols": [
+        "getWorkspaceSnapshot",
+        "rounds",
+        "active_round_id"
+      ],
       "note": "Workspace snapshot에 rounds[] + active_round_id (schema_version 0.3) 포함",
       "severity": "blocking"
     },
     {
       "id": "kuro-load-round-activity",
-      "files": ["src/store/slices/inputSlice.ts", "kuma_core/kuro/evolvepro.py"],
-      "symbols": ["loadRoundActivity", "VARIANT_COLUMNS"],
+      "files": [
+        "src/store/slices/inputSlice.ts",
+        "kuma_core/kuro/evolvepro.py"
+      ],
+      "symbols": [
+        "loadRoundActivity",
+        "VARIANT_COLUMNS"
+      ],
       "note": "loadRoundActivity ↔ evolvepro VARIANT_COLUMNS가 variant/y_pred/round_n 수용",
       "severity": "blocking"
     },
     {
       "id": "mame-merged-row",
-      "files": ["kuma_core/mame/activity/models.py", "src/types/mame/activity.ts"],
-      "symbols": ["activity_merged_mean", "MergedRow"],
+      "files": [
+        "kuma_core/mame/activity/models.py",
+        "src/types/mame/activity.ts"
+      ],
+      "symbols": [
+        "activity_merged_mean",
+        "MergedRow"
+      ],
       "note": "MergedRow.activity_merged_mean Pydantic ↔ TS field (Phase B)",
       "severity": "blocking"
     },
     {
       "id": "mame-merge-for-evolvepro",
-      "files": ["python-core/sidecar_mame/handlers/activity.py", "src/types/mame/activity.ts", "src/store/mame/activitySlice.ts"],
-      "symbols": ["handle_merge_for_evolvepro", "MergeForEvolveproParams", "MergeForEvolveproResponse", "mergeForEvolvepro"],
+      "files": [
+        "python-core/sidecar_mame/handlers/activity.py",
+        "src/types/mame/activity.ts",
+        "src/store/mame/activitySlice.ts"
+      ],
+      "symbols": [
+        "handle_merge_for_evolvepro",
+        "MergeForEvolveproParams",
+        "MergeForEvolveproResponse",
+        "mergeForEvolvepro"
+      ],
       "note": "merge_for_evolvepro 핸들러 ↔ TS params/response ↔ store action",
       "severity": "blocking"
     },
     {
       "id": "mame-ref-seq-fallback",
-      "files": ["kuma_core/mame/activity/ref_seq.py", "fixtures/ispS.fa"],
-      "symbols": ["DEFAULT_ISPS_CDS_PATH"],
+      "files": [
+        "kuma_core/mame/activity/ref_seq.py",
+        "fixtures/ispS.fa"
+      ],
+      "symbols": [
+        "DEFAULT_ISPS_CDS_PATH"
+      ],
       "note": "DEFAULT_ISPS_CDS_PATH 기본 fallback이 fixtures/ispS.fa 존재 가정 (coding-frame nucleotide)",
       "severity": "blocking"
     },
     {
       "id": "mame-wt-merge",
-      "files": ["kuma_core/mame/activity/merge.py", "kuma_core/mame/activity/normalize.py", "python-core/sidecar_mame/handlers/activity.py"],
-      "symbols": ["merge_replicates_priority", "WT_PATTERN", "_is_wt_key"],
+      "files": [
+        "kuma_core/mame/activity/merge.py",
+        "kuma_core/mame/activity/normalize.py",
+        "python-core/sidecar_mame/handlers/activity.py"
+      ],
+      "symbols": [
+        "merge_replicates_priority",
+        "WT_PATTERN",
+        "_is_wt_key"
+      ],
       "note": "merge_replicates_priority + WT_PATTERN + 핸들러 _is_wt_key가 WT 키를 variant-priority merge에서 분리",
       "severity": "blocking"
     },
     {
       "id": "mame-sort-barcode",
-      "files": ["kuma_core/mame/ingest/sort_barcode.py", "python-core/sidecar_mame/handlers/sort_barcode.py", "src/types/mame/sort_barcode.ts"],
-      "symbols": ["sort_barcode_run"],
+      "files": [
+        "kuma_core/mame/ingest/sort_barcode.py",
+        "python-core/sidecar_mame/handlers/sort_barcode.py",
+        "src/types/mame/sort_barcode.ts"
+      ],
+      "symbols": [
+        "sort_barcode_run"
+      ],
       "note": "sort_barcode_run params/return ↔ 핸들러 dict ↔ TS interfaces",
       "severity": "blocking"
     },
     {
       "id": "mame-combinatorial-barcode-xlsx",
-      "files": ["kuma_core/mame/ingest/sort_barcode.py"],
-      "symbols": ["parse_combinatorial_barcodes"],
+      "files": [
+        "kuma_core/mame/ingest/sort_barcode.py"
+      ],
+      "symbols": [
+        "parse_combinatorial_barcodes"
+      ],
       "note": "parse_combinatorial_barcodes xlsx 스키마 (isps_f_/isps_r_ prefix) ↔ barcodes sequence.xlsx fixture 포맷",
       "severity": "warning"
     },
     {
       "id": "mame-dispatcher-sort-barcode",
-      "files": ["python-core/sidecar_mame/dispatcher.py"],
-      "symbols": ["_METHODS", "sort_barcode_run"],
+      "files": [
+        "python-core/sidecar_mame/dispatcher.py"
+      ],
+      "symbols": [
+        "_METHODS",
+        "sort_barcode_run"
+      ],
       "note": "sort_barcode_run RPC 등록명이 frontend IPC 호출과 일치",
       "severity": "blocking"
     },
     {
       "id": "shared-sidecar",
-      "files": ["kuma_core/shared/sidecar.py", "python-core/sidecar_kuro/core.py", "python-core/sidecar_mame/core.py", "tests/shared/test_sidecar.py"],
-      "symbols": ["JsonRpcWriter", "append_crash_log", "ensure_private_dir", "validate_filepath", "validate_output_path"],
+      "files": [
+        "kuma_core/shared/sidecar.py",
+        "python-core/sidecar_kuro/core.py",
+        "python-core/sidecar_mame/core.py",
+        "tests/shared/test_sidecar.py"
+      ],
+      "symbols": [
+        "JsonRpcWriter",
+        "append_crash_log",
+        "ensure_private_dir",
+        "validate_filepath",
+        "validate_output_path"
+      ],
       "note": "shared/sidecar.py 헬퍼 ↔ kuro/mame core import sites + tests/shared/test_sidecar.py 갱신",
       "severity": "blocking"
     },
     {
       "id": "kuro-export-order",
-      "files": ["python-core/sidecar_kuro/handlers/export.py", "python-core/sidecar_kuro/models.py", "src/types/models.ts", "src/types/validators.ts"],
-      "symbols": ["handle_export_order", "ExportOrderParams", "ExportOrderResultModel", "ExportOrderResult", "isExportOrderResult"],
+      "files": [
+        "python-core/sidecar_kuro/handlers/export.py",
+        "python-core/sidecar_kuro/models.py",
+        "src/types/models.ts",
+        "src/types/validators.ts"
+      ],
+      "symbols": [
+        "handle_export_order",
+        "ExportOrderParams",
+        "ExportOrderResultModel",
+        "ExportOrderResult",
+        "isExportOrderResult"
+      ],
       "note": "export_order 핸들러 + Pydantic 모델 ↔ TS ExportOrderResult + validator + dispatcher 등록 (IDT/Twist CSV)",
       "severity": "blocking"
     },
     {
       "id": "sidecar-kill",
-      "files": ["package.json", "scripts/kill-sidecars.mjs"],
-      "symbols": ["sidecar:kill"],
+      "files": [
+        "package.json",
+        "scripts/kill-sidecars.mjs"
+      ],
+      "symbols": [
+        "sidecar:kill"
+      ],
       "note": "sidecar:kill 스크립트는 self-safe 패턴 (pkill -f 단독 금지, 빌드 자기 종료 방지)",
       "severity": "blocking"
     },
     {
       "id": "mame-build-exclusions",
-      "files": ["python-core/build_sidecar.py"],
+      "files": [
+        "python-core/build_sidecar.py"
+      ],
       "note": "MAME PyInstaller exclusions (torch, sklearn, transformers 등). 4 GB CArchive 한도 회피, 신규 ML 의존 추가 시 재검토",
       "severity": "warning"
     },
     {
       "id": "notice-build",
-      "files": ["scripts/build-notice.mjs", "src-tauri/about.hbs", "src/components/layout/MenuBar.tsx"],
+      "files": [
+        "scripts/build-notice.mjs",
+        "src-tauri/about.hbs",
+        "src/components/layout/MenuBar.tsx"
+      ],
       "note": "build-notice.mjs 출력 포맷 또는 pip-licenses/pnpm licenses 스키마 변경 시 MenuBar.tsx NOTICE.md 렌더러 영향",
       "severity": "warning"
     },
     {
       "id": "python-deps-licenses",
-      "files": ["pyproject.toml", ".github/workflows/build.yml"],
+      "files": [
+        "pyproject.toml",
+        ".github/workflows/build.yml"
+      ],
       "note": "pyproject.toml [project.dependencies] 변경 시 build.yml pip-licenses --packages 리스트 동기화",
       "severity": "blocking"
     },
     {
       "id": "mame-barcode-package",
-      "files": ["kuma_core/mame/ingest/barcode_package.py", "python-core/sidecar_mame/handlers/barcode_package.py", "src/types/mame/barcode_package.ts"],
-      "symbols": ["generate_mame_package", "design_flanking_primers", "GenerateMamePackageParams", "MamePackageResult"],
+      "files": [
+        "kuma_core/mame/ingest/barcode_package.py",
+        "python-core/sidecar_mame/handlers/barcode_package.py",
+        "src/types/mame/barcode_package.ts"
+      ],
+      "symbols": [
+        "generate_mame_package",
+        "design_flanking_primers",
+        "GenerateMamePackageParams",
+        "MamePackageResult"
+      ],
       "note": "generate_mame_package/design_flanking_primers params ↔ handler dict ↔ TS interfaces ↔ dispatcher 등록",
       "severity": "blocking"
     },
     {
       "id": "mame-polymerase",
-      "files": ["kuma_core/mame/ingest/polymerase.py", "src/components/mame/panels/BarcodeSetupPanel.tsx"],
-      "symbols": ["POLYMERASE_PROFILES"],
+      "files": [
+        "kuma_core/mame/ingest/polymerase.py",
+        "src/components/mame/panels/BarcodeSetupPanel.tsx"
+      ],
+      "symbols": [
+        "POLYMERASE_PROFILES"
+      ],
       "note": "POLYMERASE_PROFILES keys (Q5, Taq, Phusion, KOD) ↔ BarcodeSetupPanel.tsx dropdown options + union type",
       "severity": "blocking"
     },
     {
       "id": "mame-sequence-extensions",
-      "files": ["python-core/sidecar_mame/core.py", "src/components/mame/panels/BarcodeSetupPanel.tsx", "kuma_core/mame/ingest/barcode_package.py"],
-      "symbols": ["_ALLOWED_SEQUENCE_EXTENSIONS", "_parse_first_cds_sequence"],
+      "files": [
+        "python-core/sidecar_mame/core.py",
+        "src/components/mame/panels/BarcodeSetupPanel.tsx",
+        "kuma_core/mame/ingest/barcode_package.py"
+      ],
+      "symbols": [
+        "_ALLOWED_SEQUENCE_EXTENSIONS",
+        "_parse_first_cds_sequence"
+      ],
       "note": "허용 시퀀스 확장자 (.fa/.fasta/.fna/.gb/.gbk/.gbff/.dna) ↔ browse 다이얼로그 필터 ↔ CDS 라우팅",
       "severity": "blocking"
     },
     {
       "id": "mame-evolvepro-xlsx",
-      "files": ["kuma_core/mame/activity/export_evolvepro.py", "python-core/sidecar_mame/handlers/activity.py", "src/store/mame/activitySlice.ts"],
-      "symbols": ["export_evolvepro_xlsx", "handle_activity_export_evolvepro_xlsx", "exportEvolveproXlsx"],
+      "files": [
+        "kuma_core/mame/activity/export_evolvepro.py",
+        "python-core/sidecar_mame/handlers/activity.py",
+        "src/store/mame/activitySlice.ts"
+      ],
+      "symbols": [
+        "export_evolvepro_xlsx",
+        "handle_activity_export_evolvepro_xlsx",
+        "exportEvolveproXlsx"
+      ],
       "note": "export_evolvepro_xlsx signature (rows, path) → (n_written, excluded) ↔ 핸들러 response ↔ store action ↔ dispatcher",
       "severity": "blocking"
     },
     {
       "id": "kuro-load-evolvepro-ref-seq",
-      "files": ["kuma_core/kuro/evolvepro.py", "python-core/sidecar_kuro/models.py", "src/store/slices/inputSlice.helpers.ts", "src/store/slices/inputSlice.ts"],
-      "symbols": ["_load_evolvepro_rows", "ref_seq", "LoadEvolveproParams", "EvolveproLoadConfig", "loadEvolveproCsv"],
+      "files": [
+        "kuma_core/kuro/evolvepro.py",
+        "python-core/sidecar_kuro/models.py",
+        "src/store/slices/inputSlice.helpers.ts",
+        "src/store/slices/inputSlice.ts"
+      ],
+      "symbols": [
+        "_load_evolvepro_rows",
+        "ref_seq",
+        "LoadEvolveproParams",
+        "EvolveproLoadConfig",
+        "loadEvolveproCsv"
+      ],
       "note": "_load_evolvepro_rows ref_seq param ↔ Pydantic LoadEvolveproParams.ref_seq ↔ TS EvolveproLoadConfig.refSeq ↔ store action (seqInfo.genes[].translation pull)",
       "severity": "blocking"
     },
     {
       "id": "mame-phase-tabs",
-      "files": ["src/store/mame/slices/phaseSlice.ts", "src/store/mame/slices/mameSubSteps.ts", "src/store/mame/slices/navigationSlice.ts", "src/components/mame/layout/MameAppLayout.tsx", "src/components/mame/panels/ActivityPanel.tsx", "src/components/mame/steps/SetupStepView.tsx", "src/components/mame/steps/AnalyzeStepView.tsx", "src/components/mame/steps/ActivityStepView.tsx"],
-      "symbols": ["MamePhase", "ActivityTab", "MameSubStepId", "MAME_SUBSTEP_ORDER", "TabsTrigger", "TabsContent"],
+      "files": [
+        "src/store/mame/slices/phaseSlice.ts",
+        "src/store/mame/slices/mameSubSteps.ts",
+        "src/store/mame/slices/navigationSlice.ts",
+        "src/components/mame/layout/MameAppLayout.tsx",
+        "src/components/mame/panels/ActivityPanel.tsx",
+        "src/components/mame/steps/SetupStepView.tsx",
+        "src/components/mame/steps/AnalyzeStepView.tsx",
+        "src/components/mame/steps/ActivityStepView.tsx"
+      ],
+      "symbols": [
+        "MamePhase",
+        "ActivityTab",
+        "MameSubStepId",
+        "MAME_SUBSTEP_ORDER",
+        "TabsTrigger",
+        "TabsContent"
+      ],
       "note": "MamePhase·ActivityTab·MameSubStepId enum ↔ MameAppLayout TabsTrigger values ↔ ActivityPanel sub-tab values ↔ StepView dispatcher. phase 추가 시 sub-step + TabsContent + StepView 동시 추가",
       "severity": "blocking"
     },
     {
       "id": "kuro-major-substep-i18n",
-      "files": ["src/store/slices/navigationSlice.ts", "src/locales/en.json", "src/locales/ko.json"],
-      "symbols": ["MajorStepId", "SubStepId", "MAJOR_ORDER", "SUBSTEP_ORDER", "phaseC", "phaseE"],
+      "files": [
+        "src/store/slices/navigationSlice.ts",
+        "src/locales/en.json",
+        "src/locales/ko.json"
+      ],
+      "symbols": [
+        "MajorStepId",
+        "SubStepId",
+        "MAJOR_ORDER",
+        "SUBSTEP_ORDER",
+        "phaseC",
+        "phaseE"
+      ],
       "note": "kuro navigationSlice union 타입 ↔ i18n phaseC.majors/subSteps/phaseE.descriptions 키 1:1. 신규 major/sub-step 추가 시 en+ko 동시 갱신 (D1.1 false positive 재발 방지)",
       "severity": "blocking"
     },
     {
       "id": "mame-major-substep-i18n",
-      "files": ["src/store/mame/slices/mameSubSteps.ts", "src/store/mame/slices/navigationSlice.ts", "src/locales/en.json", "src/locales/ko.json"],
-      "symbols": ["MameSubStepId", "MAME_SUBSTEP_ORDER", "mameSubSteps", "mameDescriptions"],
+      "files": [
+        "src/store/mame/slices/mameSubSteps.ts",
+        "src/store/mame/slices/navigationSlice.ts",
+        "src/locales/en.json",
+        "src/locales/ko.json"
+      ],
+      "symbols": [
+        "MameSubStepId",
+        "MAME_SUBSTEP_ORDER",
+        "mameSubSteps",
+        "mameDescriptions"
+      ],
       "note": "mame sub-step union ↔ i18n mame.subSteps/phaseE.mameDescriptions 키. setMamePhase에서 sub-step 자동 리셋이라 phase 추가 시 sub-step + i18n 동시 추가",
       "severity": "blocking"
     },
     {
       "id": "mame-context",
-      "files": ["src/types/mame/mame_context.ts", "src/lib/mame/detectProjectFiles.ts"],
-      "symbols": ["MameContext", "custom_barcodes_path", "reference_path", "sample_map_template_path"],
+      "files": [
+        "src/types/mame/mame_context.ts",
+        "src/lib/mame/detectProjectFiles.ts"
+      ],
+      "symbols": [
+        "MameContext",
+        "custom_barcodes_path",
+        "reference_path",
+        "sample_map_template_path"
+      ],
       "note": "mame_context.json 스키마 ↔ TS MameContext interface ↔ detectProjectFiles field mapping. 스키마 버전 bump 시 마이그레이션 로직 필요",
       "severity": "blocking"
     },
@@ -293,9 +552,29 @@
         "src/types/models.ts",
         "src/types/validators.ts"
       ],
-      "symbols": ["export_macrogen", "export_all", "ExportMacrogenParams", "ExportAllParams", "export_macrogen_xls", "handleExportAll", "handleExportMacrogen"],
+      "symbols": [
+        "export_macrogen",
+        "export_all",
+        "ExportMacrogenParams",
+        "ExportAllParams",
+        "export_macrogen_xls",
+        "handleExportAll",
+        "handleExportMacrogen"
+      ],
       "note": "Export All UI 핸들러 ↔ TS RpcMethodMap/validators ↔ sidecar handler + Pydantic 모델 ↔ kuro exporter 정합성 (spec 2026-05-13)",
       "severity": "blocking"
+    },
+    {
+      "id": "sidebar-resize-flow",
+      "files": [
+        "src/components/shell/AppShell.tsx",
+        "src/components/shell/ResizeHandle.tsx",
+        "src/store/slices/layoutSlice.ts",
+        "src/lib/sidebar-default-width.ts",
+        "scripts/compute-sidebar-width.mjs"
+      ],
+      "note": "Sidebar default width calc -> store -> AppShell render alignment",
+      "severity": "warning"
     }
   ]
 }
