@@ -82,6 +82,7 @@
 ```
 
 - fwd 또는 rev primer 가 없는 경우 해당 Plate Name 입력란을 숨김.
+- Plate Name 입력란 옆 실시간 well 카운트 표시 (예: `87/96 wells`). 96 초과 시 카운트 빨강 + 안내 캡션 "primer 수가 96 well 한계 초과. 설계 단계에서 분할 필요". Export All 버튼 disabled.
 - 검증 실패 시 Export All 버튼 disabled + 위반 항목별 메시지 (예: `Plate Name (fwd) 형식 오류: 한글 포함`).
 - BoM 체크박스는 mapping export 옵션 (Echo/JANUS) 에 그대로 전달.
 
@@ -98,9 +99,15 @@
 | Plate map xlsx | `<projectName>_<YYYYMMDD>.kuro.platemap.xlsx` | `export_plate_excel` |
 | Run report json | `<projectName>_<YYYYMMDD>.kuro.run.json` | 기존 |
 
-- `<projectName>` 가 없으면 fwd plate name 사용.
-- 폴더 default 가 이미 존재하면 그대로 사용 (덮어쓰기). 기존 동일 파일명 존재 시 `requestOverwriteConfirm` 으로 일괄 확인 1회 (개별 6회 묻지 않음 — 폴더 단위 confirm).
-- 한 파일이라도 검증/IO 실패 시 partial success — 성공한 파일은 보존하고 실패 파일 목록을 toast 에 표시 (헌장 §"Partial Success" 준수).
+- `<projectName>` fallback 순서: `project.name` → `fwd_plate_name` → `rev_plate_name` → 고정 문자열 `"kuro_export"`. 어느 것도 없는 시나리오에서도 export 가 차단되지 않음.
+- 폴더 default 가 이미 존재하면 그대로 사용. 기존 동일 파일명 존재 시 단일 confirm dialog 에서 6 종 파일 목록을 모두 보여주고 일괄 덮어쓰기 / 취소 (개별 confirm 없음).
+- 한 파일이라도 검증/IO 실패 시 partial success — 성공한 파일은 보존하고 toast 에 다음 형식으로 표시:
+  ```
+  Exported 4/6 files.
+    ✓ macrogen.xls, primers.fasta, echo.csv, platemap.xlsx
+    ✗ janus.csv (reason: ...), run.json (reason: ...)
+  ```
+  toast action 으로 [Open folder] 와 [Retry failed] 제공. retry 는 실패 파일 목록만 재시도.
 
 ## 7. Macrogen `.xls` 포맷 상세
 
@@ -126,9 +133,11 @@ def export_macrogen_xls(
     rev_plate_name: str,
     amount: Literal["0.05", "0.2"],
     purification: Literal["MOPC"],
-    output_path: str,
+    output_path: str,   # 단일 .xls 파일 절대 경로
 ) -> None: ...
 ```
+
+명명 규칙: `output_path` = 단일 파일 경로 (`.xls`, `.csv` 등 개별 exporter), `output_dir` = 폴더 경로 (Export All 처럼 다수 파일 작성). 본 spec 전체에서 일관 적용.
 
 - 입력 검증: plate name regex, oligo name regex, well count ≤ 96. 위반 시 `ValueError`.
 - column-major well order: `[f"{row}{col}" for col in range(1, 13) for row in "ABCDEFGH"]`.
