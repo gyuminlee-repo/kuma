@@ -149,7 +149,7 @@ def _serialize_result_with_counts(r: SdmPrimerResult) -> SdmPrimerResultModel:
 # Auto-relax increments (additive to user settings, not absolute values).
 # Rationale: SantaLucia (1998) nearest-neighbor Tm predictions have an
 # empirical standard error of ~1.0-1.5°C.  Widening tolerance by 2.0°C
-# (from ±3.0 to ±5.0) stays within 2 s.e. of the prediction, giving a
+# (from ±4.0 to ±6.0) stays within 2 s.e. of the prediction, giving a
 # high-confidence rescue without sacrificing primer specificity.
 # GC margin of ±5 pp keeps primers within the broadly accepted 20-80% range
 # while relaxing the user-specified optimum window.

@@ -13,8 +13,13 @@ import { useAppStore } from "@/store/appStore";
 import { useRunDesign } from "@/hooks/useRunDesign";
 import { InputSizeWarningDialog } from "@/components/dialogs/InputSizeWarningDialog";
 import { PreflightDialog } from "@/components/dialogs/PreflightDialog";
+import type { UseRunDesignReturn } from "@/hooks/useRunDesign";
 
-export function RunDesignAction() {
+export function RunDesignActionView({
+  controller,
+}: {
+  controller: UseRunDesignReturn;
+}) {
   const { t } = useTranslation();
   const {
     run,
@@ -25,7 +30,7 @@ export function RunDesignAction() {
     setSizeWarning,
     preflightResult,
     setPreflightResult,
-  } = useRunDesign();
+  } = controller;
 
   const handleCancel = () => {
     useAppStore.getState().cancelDesign();
@@ -100,4 +105,10 @@ export function RunDesignAction() {
       />
     </>
   );
+}
+
+export function RunDesignAction() {
+  const controller = useRunDesign();
+
+  return <RunDesignActionView controller={controller} />;
 }

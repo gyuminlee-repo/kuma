@@ -29,6 +29,8 @@ const WELL_LIMIT = 96;
 
 export function ExportFormatSelector() {
   const { t } = useTranslation();
+  const tx = (key: string, fallback: string, vars?: Record<string, unknown>) =>
+    t(key, { defaultValue: fallback, ...vars });
   const project = useKumaProject();
   const designResults = useAppStore((s: AppState) => s.designResults);
 
@@ -73,7 +75,7 @@ export function ExportFormatSelector() {
         id="export-all-heading"
         className="text-sm font-semibold text-foreground"
       >
-        {t("phaseC.export.all.heading")}
+        {tx("phaseC.export.all.heading", "Export All")}
       </h3>
 
       {/* Forward plate name */}
@@ -82,7 +84,7 @@ export function ExportFormatSelector() {
           htmlFor="fwd-plate"
           className="text-sm font-medium text-foreground"
         >
-          {t("phaseC.export.all.plateNameFwd")}
+          {tx("phaseC.export.all.plateNameFwd", "Forward primer plate name")}
         </label>
         <Input
           id="fwd-plate"
@@ -96,16 +98,16 @@ export function ExportFormatSelector() {
           id="fwd-plate-help"
           className="text-caption text-muted-foreground"
         >
-          {t("phaseC.export.all.wellCount", { count: wellCount })}
+          {tx("phaseC.export.all.wellCount", "{{count}} wells", { count: wellCount })}
         </span>
         {!fwdValid && (
           <span role="alert" className="text-caption text-destructive">
-            {t("phaseC.export.all.error.plateNameRegex")}
+            {tx("phaseC.export.all.error.plateNameRegex", "Use 1-20 letters, numbers, underscores, or hyphens.")}
           </span>
         )}
         {wellOverflow && (
           <span role="alert" className="text-caption text-destructive">
-            {t("phaseC.export.all.error.wellOverflow", { count: wellCount })}
+            {tx("phaseC.export.all.error.wellOverflow", "{{count}} wells exceed one 96-well plate.", { count: wellCount })}
           </span>
         )}
       </div>
@@ -116,7 +118,7 @@ export function ExportFormatSelector() {
           htmlFor="rvs-plate"
           className="text-sm font-medium text-foreground"
         >
-          {t("phaseC.export.all.plateNameRev")}
+          {tx("phaseC.export.all.plateNameRev", "Reverse primer plate name")}
         </label>
         <Input
           id="rvs-plate"
@@ -127,7 +129,7 @@ export function ExportFormatSelector() {
         />
         {!rvsValid && (
           <span role="alert" className="text-caption text-destructive">
-            {t("phaseC.export.all.error.plateNameRegex")}
+            {tx("phaseC.export.all.error.plateNameRegex", "Use 1-20 letters, numbers, underscores, or hyphens.")}
           </span>
         )}
       </div>
@@ -135,7 +137,7 @@ export function ExportFormatSelector() {
       {/* Amount */}
       <div className="flex flex-col gap-1">
         <label htmlFor="amount" className="text-sm font-medium text-foreground">
-          {t("phaseC.export.all.amountLabel")}
+          {tx("phaseC.export.all.amountLabel", "Amount")}
         </label>
         <div className="flex items-center gap-3">
           <select
@@ -148,7 +150,7 @@ export function ExportFormatSelector() {
             <option value="0.2">0.2 μmole</option>
           </select>
           <span className="text-sm text-muted-foreground">
-            {t("phaseC.export.all.purificationLabel")}: MOPC
+            {tx("phaseC.export.all.purificationLabel", "Purification")}: MOPC
           </span>
         </div>
       </div>
@@ -159,7 +161,7 @@ export function ExportFormatSelector() {
           htmlFor="echo-vol"
           className="text-sm font-medium text-foreground"
         >
-          {t("phaseC.export.all.echoVolLabel")}
+          {tx("phaseC.export.all.echoVolLabel", "Echo transfer volume")}
         </label>
         <div className="flex items-center gap-2">
           <Input
@@ -190,7 +192,7 @@ export function ExportFormatSelector() {
           htmlFor="janus-vol"
           className="text-sm font-medium text-foreground"
         >
-          {t("phaseC.export.all.janusVolLabel")}
+          {tx("phaseC.export.all.janusVolLabel", "JANUS transfer volume")}
         </label>
         <div className="flex items-center gap-2">
           <Input
@@ -223,15 +225,15 @@ export function ExportFormatSelector() {
           htmlFor="bom-checkbox"
           className="text-sm text-foreground cursor-pointer select-none"
         >
-          {t("phaseC.export.all.bomLabel")}
+          {tx("phaseC.export.all.bomLabel", "Include BOM")}
           <span className="ml-1 text-muted-foreground">
-            {t("phaseC.export.all.bomHint")}
+            {tx("phaseC.export.all.bomHint", "(bill of materials)")}
           </span>
         </label>
       </div>
 
       <p className="text-caption text-muted-foreground">
-        {t("phaseC.export.all.ruleHint")}
+        {tx("phaseC.export.all.ruleHint", "Plate names are optional. Empty names use backend defaults.")}
       </p>
 
       <Button
@@ -239,7 +241,7 @@ export function ExportFormatSelector() {
         disabled={!canExport}
         onClick={() => void onExport()}
       >
-        {running ? t("common.loading") : t("phaseC.export.all.runExport")}
+        {running ? t("common.loading") : tx("phaseC.export.all.runExport", "Export")}
       </Button>
     </section>
   );

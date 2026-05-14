@@ -1,5 +1,14 @@
 import { render, screen } from "@testing-library/react";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
+
+vi.mock("@/lib/ipc-kuro", () => ({
+  sendRequest: vi.fn(),
+  setProgressHandler: vi.fn(),
+  cancelAndRespawn: vi.fn(),
+  spawnSidecar: vi.fn(() => Promise.resolve()),
+  getLastProgressAt: vi.fn(() => Date.now()),
+}));
+
 import { AppLayout } from "./AppLayout";
 
 describe("AppLayout smoke", () => {

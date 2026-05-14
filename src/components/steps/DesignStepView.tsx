@@ -22,10 +22,32 @@ import { SequenceInput } from "@/components/panels/InputPanel/SequenceInput";
 import { DiversityOptions } from "@/components/panels/InputPanel/DiversityOptions";
 import { MutationInput } from "@/components/panels/InputPanel/MutationInput";
 import { ParameterPanel } from "@/components/panels/ParameterPanel";
-import { RunDesignAction } from "./RunDesignAction";
+import { RunDesignActionView } from "./RunDesignAction";
 import { WizardContainer } from "./WizardContainer";
+import { useRunDesign } from "@/hooks/useRunDesign";
 
 const TOTAL_STEPS = 4;
+
+function SubmitDesignStep({ onPrev }: { onPrev: () => void }) {
+  const runDesign = useRunDesign();
+
+  return (
+    <WizardContainer
+      stepIndex={4}
+      stepTotal={TOTAL_STEPS}
+      titleKey="phaseC.subSteps.design.submit"
+      descriptionKey="phaseE.descriptions.design.submit"
+      onPrev={onPrev}
+      onNext={runDesign.run}
+      nextLabelKey="phaseC.run.primary"
+      isValid={() => !runDesign.isDesigning && !runDesign.hasBlockingIssue}
+    >
+      {/* UniprotSearch は DiversityOptions → DiversitySections 内で自動マウント (Phase G #7) */}
+      <DiversityOptions />
+      <RunDesignActionView controller={runDesign} />
+    </WizardContainer>
+  );
+}
 
 export function DesignStepView() {
   const subStep = useAppStore((s) => s.currentSubStep);
@@ -74,18 +96,7 @@ export function DesignStepView() {
       );
     case "design.submit":
       return (
-        <WizardContainer
-          stepIndex={4}
-          stepTotal={TOTAL_STEPS}
-          titleKey="phaseC.subSteps.design.submit"
-          descriptionKey="phaseE.descriptions.design.submit"
-          onPrev={() => goToPrevStep()}
-          nextLabelKey="phaseC.run.primary"
-        >
-          {/* UniprotSearch は DiversityOptions → DiversitySections 内で自動マウント (Phase G #7) */}
-          <DiversityOptions />
-          <RunDesignAction />
-        </WizardContainer>
+        <SubmitDesignStep onPrev={() => goToPrevStep()} />
       );
     default:
       return null;

@@ -1,7 +1,40 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mkdtempSync, writeFileSync, unlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
+vi.mock("@tauri-apps/api/path", async () => {
+  const path = await import("node:path");
+  return {
+    isAbsolute: async (p: string) => path.isAbsolute(p),
+    join: async (...parts: string[]) => path.join(...parts),
+    resolve: async (...parts: string[]) => path.resolve(...parts),
+  };
+});
+
+vi.mock("@tauri-apps/plugin-fs", async () => {
+  const fs = await import("node:fs");
+  const fsp = await import("node:fs/promises");
+  return {
+    exists: async (p: string) => fs.existsSync(p),
+    stat: async (p: string) => {
+      const s = await fsp.stat(p);
+      return { mtime: s.mtime, size: s.size };
+    },
+    readTextFile: async (p: string) => fsp.readFile(p, "utf8"),
+    writeTextFile: async (p: string, contents: string) =>
+      fsp.writeFile(p, contents, "utf8"),
+    rename: async (from: string, to: string) => fsp.rename(from, to),
+    readDir: async (p: string) => {
+      const entries = await fsp.readdir(p, { withFileTypes: true });
+      return entries.map((entry) => ({
+        name: entry.name,
+        isDirectory: entry.isDirectory(),
+        isFile: entry.isFile(),
+      }));
+    },
+  };
+});
 import {
   openWorkspace,
   registerArtifacts,
