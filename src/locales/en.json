@@ -541,6 +541,133 @@
         "helperText": "Analysis report will use a KURO-style rule-based .xlsx filename",
         "helpText": "Folder where the analysis result Excel will be saved. The filename is auto-generated using KURO-style rules combining date, reference/input tokens, MAME target, and result count tokens."
       }
+    },
+    "setup": {
+      "files": {
+        "railTitle": "MAME Workflow",
+        "contextTitle": "Run Setup — Input Files",
+        "contextSubtitle": "Select a MinKNOW run folder and confirm detected files.",
+        "drawerLeft": "Detected",
+        "drawerLeftDesc": "Run folder scanned",
+        "drawerCenter": "Scan log",
+        "drawerRight": "Next",
+        "drawerRightDesc": "Map barcodes to design",
+        "inspectorTitle": "Run Inspector",
+        "inspectorSubtitle": "Selected run folder metadata",
+        "inspectorDevice": "Device",
+        "inspectorKit": "Kit",
+        "inspectorBarcodes": "Barcodes",
+        "inspectorNoFolder": "No run folder selected"
+      },
+      "design": {
+        "contextTitle": "Run Setup — Design Mapping",
+        "contextSubtitle": "Map KURO barcode package to this run.",
+        "drawerLeft": "KURO source",
+        "drawerLeftDesc": "Barcode package loaded",
+        "drawerCenter": "Map log",
+        "drawerRight": "Next",
+        "drawerRightDesc": "Proceed to QC",
+        "inspectorTitle": "Barcode Inspector",
+        "inspectorSubtitle": "BC01 mapping details",
+        "inspectorVariant": "Variant",
+        "inspectorDesignSource": "Design source",
+        "inspectorExpectedReads": "Expected reads",
+        "inspectorNoBarcodeSelected": "No barcode selected"
+      }
+    },
+    "qc": {
+      "inputs": {
+        "contextTitle": "Sequencing QC — Inputs",
+        "contextSubtitle": "Configure thresholds and run quality control.",
+        "drawerLeft": "Queue",
+        "drawerLeftDesc": "Wells queued for QC",
+        "drawerCenter": "Preflight log",
+        "drawerRight": "Shortcut",
+        "drawerRightDesc": "Ctrl+D to run",
+        "stickyRunBanner": "Run QC",
+        "inspectorTitle": "QC Inspector",
+        "inspectorSubtitle": "Estimated retention at current thresholds",
+        "inspectorEstRetention": "Est. retention",
+        "inspectorEstPass": "Est. PASS",
+        "inspectorMinDepth": "Min depth cutoff",
+        "inspectorMinIdentity": "Min identity cutoff"
+      },
+      "verdict": {
+        "contextTitle": "Sequencing QC — Verdicts",
+        "contextSubtitle": "Per-barcode sequencing outcome and call.",
+        "drawerLeft": "Analysis",
+        "drawerLeftDesc": "Consensus called",
+        "drawerCenter": "Consensus log",
+        "drawerRight": "Next",
+        "drawerRightDesc": "Review plate plan",
+        "inspectorTitle": "Barcode Verdict",
+        "inspectorSubtitle": "Selected barcode details",
+        "inspectorReads": "Reads",
+        "inspectorIdentity": "Identity",
+        "inspectorCall": "Call",
+        "inspectorExport": "Export",
+        "inspectorNoBarcodeSelected": "Select a row to inspect"
+      },
+      "plate": {
+        "contextTitle": "Sequencing QC — Plate Plan",
+        "contextSubtitle": "96-well layout with per-well verdict.",
+        "drawerLeft": "Selection",
+        "drawerLeftDesc": "Wells selected for pick",
+        "drawerCenter": "Plate log",
+        "drawerRight": "Next",
+        "drawerRightDesc": "Proceed to activity",
+        "inspectorTitle": "Well Inspector",
+        "inspectorSubtitle": "Selected well details",
+        "inspectorBarcode": "Barcode",
+        "inspectorReads": "Reads",
+        "inspectorReason": "Reason",
+        "inspectorNoWellSelected": "Click a well to inspect",
+        "clusterAlertTitle": "Cluster failure detected",
+        "clusterAlertDesc": "{{wells}} — adjacent wells failed simultaneously. This may indicate a pipetting issue.",
+        "clusterAlertAriaLabel": "Plate cluster failure alert"
+      }
+    },
+    "activity": {
+      "ingest": {
+        "contextTitle": "Activity Data — Ingest",
+        "contextSubtitle": "Upload wet-lab activity measurements for this round.",
+        "drawerLeft": "Activity",
+        "drawerLeftDesc": "Wells with measurements",
+        "drawerCenter": "Activity log",
+        "drawerRight": "Next",
+        "drawerRightDesc": "Merge and export",
+        "inspectorTitle": "Activity Inspector",
+        "inspectorSubtitle": "Replicate statistics",
+        "inspectorMean": "Mean activity",
+        "inspectorStdDev": "Std dev",
+        "inspectorReplicates": "Replicates",
+        "inspectorWtNorm": "WT-normalised",
+        "inspectorNoData": "No activity data loaded"
+      },
+      "mergeExport": {
+        "contextTitle": "Activity Data — Merge and Export",
+        "contextSubtitle": "Merge genotype with activity and export EVOLVEpro input.",
+        "drawerLeft": "Export files",
+        "drawerLeftDesc": "Files ready for export",
+        "drawerCenter": "Merge log",
+        "drawerRight": "Handoff",
+        "drawerRightDesc": "Return to KURO for next round",
+        "inspectorTitle": "Export Inspector",
+        "inspectorSubtitle": "R585A merge summary",
+        "inspectorVariant": "Variant",
+        "inspectorActivity": "Activity",
+        "inspectorMergedRows": "Merged rows",
+        "inspectorStatus": "Status",
+        "inspectorBridgeCallout": "Bidirectional bridge",
+        "inspectorBridgeDesc": "Merged table flows back to KURO as EVOLVEpro input for the next design round.",
+        "inspectorNoMerge": "No merge performed yet",
+        "openJanusExport": "Open JANUS export...",
+        "openJanusExportAriaLabel": "Open JANUS cell-stock mapping export dialog"
+      }
+    },
+    "inspector": {
+      "kvEmpty": "—",
+      "noDataPlaceholder": "No data available"
     }
   },
   "home": {

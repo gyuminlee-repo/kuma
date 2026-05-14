@@ -7,7 +7,6 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { CrashLogDialog } from "@/components/dialogs/CrashLogDialog";
-import { JanusMappingDialog } from "@/components/mame/dialogs/JanusMappingDialog";
 import { RunReportDialog } from "@/components/mame/dialogs/RunReportDialog";
 import { ReRunManifestDialog } from "@/components/dialogs/ReRunManifestDialog";
 import { selectCanRun } from "@/store/mame/selectors";
@@ -89,9 +88,11 @@ const THEME_ITEMS: { value: Theme; labelKey: string }[] = [
 
 interface MenuBarProps {
   onClearRequest: () => void;
+  /** JANUS export dialog 열기 — MameAppLayout에서 janusOpen 상태 소유. */
+  onJanusOpen?: () => void;
 }
 
-export function MenuBar({ onClearRequest }: MenuBarProps) {
+export function MenuBar({ onClearRequest, onJanusOpen }: MenuBarProps) {
   const { t } = useTranslation();
   const hasResults = useMameAppStore((s) => s.verdicts.length > 0);
   const isAnalyzing = useMameAppStore((s) => s.isAnalyzing);
@@ -367,8 +368,12 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
     }
   }
 
-  const [janusOpen, setJanusOpen] = useState(false);
   const [runReportOpen, setRunReportOpen] = useState(false);
+
+  // JANUS dialog는 MameAppLayout이 단독 소유. MenuBar는 prop 콜백만 호출.
+  const openJanus = () => {
+    onJanusOpen?.();
+  };
 
   const menus = (
     <>
@@ -410,7 +415,7 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
             <span className="flex-1">{t("export.excel")}</span>
             <DropdownMenuShortcut>{MOD_KEY}E</DropdownMenuShortcut>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setJanusOpen(true)} disabled={!hasResults}>
+          <DropdownMenuItem onClick={openJanus} disabled={!hasResults}>
             <span className="flex-1">{t("export.janusMapping")}</span>
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setRunReportOpen(true)} disabled={!hasResults}>
@@ -582,7 +587,6 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
   return (
     <>
       <CrashLogDialog open={crashLogOpen} onOpenChange={setCrashLogOpen} />
-      <JanusMappingDialog open={janusOpen} onOpenChange={setJanusOpen} />
       <RunReportDialog open={runReportOpen} onOpenChange={setRunReportOpen} />
 
       <SettingsDialog open={preferencesOpen} onOpenChange={setPreferencesOpen} scope="mame" />
