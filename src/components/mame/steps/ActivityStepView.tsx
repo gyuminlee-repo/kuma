@@ -15,7 +15,7 @@
 import { useEffect } from "react";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { useRoundStore } from "@/store/round/roundSlice";
-import { IngestSection, MergeExportSection } from "@/components/mame/panels/ActivityPanel";
+import { IngestSection, MergeSection, ExportSection } from "@/components/mame/panels/ActivityPanel";
 import { WizardContainer } from "@/components/steps/WizardContainer";
 
 const STEP_CONFIG = {
@@ -66,7 +66,12 @@ export function ActivityStepView() {
     >
       <div className="space-y-6">
         {subStep === "activity.ingest" && <IngestSection />}
-        {subStep === "activity.mergeExport" && <MergeExportSection />}
+        {subStep === "activity.mergeExport" && (
+          <>
+            <MergeSection />
+            <ExportSection />
+          </>
+        )}
       </div>
     </WizardContainer>
   );

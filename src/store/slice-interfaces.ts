@@ -35,6 +35,7 @@ import type {
   WorkspaceData,
   WorkspaceV3,
 } from "../types/models";
+import type { SettingsBundle } from "../types/models.generated";
 
 // ---------------------------------------------------------------------------
 // SequenceSlice
@@ -318,4 +319,24 @@ export interface MemorySlice {
   /** null = no warning active */
   memoryWarning: MemoryWarning | null;
   setMemoryWarning: (w: MemoryWarning | null) => void;
+}
+
+// ---------------------------------------------------------------------------
+// SettingsSlice
+// ---------------------------------------------------------------------------
+export interface SettingsSlice {
+  // State
+  settings: SettingsBundle | null;
+  isDirty: boolean;
+  isLoading: boolean;
+  lastSavedAt: number | null;
+
+  // Actions
+  /** IPC settings_load 호출 → state 갱신. App mount 시 자동 호출. */
+  loadSettings: () => Promise<void>;
+  /** 부분 업데이트 즉시 적용 + debounce 500ms 자동 저장. */
+  updateSettings: (partial: Partial<SettingsBundle>) => void;
+  /** IPC settings_save 호출 → lastSavedAt 갱신. */
+  saveSettings: () => Promise<void>;
+  resetDirty: () => void;
 }

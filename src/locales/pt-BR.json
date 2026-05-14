@@ -99,7 +99,46 @@
     "dataFolderChange": "Alterar...",
     "language": "Idioma",
     "languageNote": "A preferência de idioma é salva localmente.",
-    "close": "Fechar"
+    "close": "Fechar",
+    "tab": {
+      "general": "Geral",
+      "network": "Rede",
+      "sidecar": "Sidecar",
+      "telemetry": "Telemetria"
+    },
+    "theme": {
+      "label": "Tema",
+      "light": "Claro",
+      "dark": "Escuro",
+      "auto": "Sistema"
+    },
+    "network": {
+      "offlineMode": "Modo offline",
+      "offlineModeHint": "Quando ativado, todas as chamadas de rede externas (UniProt, BLAST, AlphaFold, InterPro) são bloqueadas.",
+      "consent": {
+        "title": "Consentimento para serviços externos",
+        "uniprot": "UniProt (busca de sequências)",
+        "blast": "NCBI BLAST via EBI (verificação off-target)",
+        "alphafold": "AlphaFold via EBI (consulta de estrutura)",
+        "interpro": "InterPro / Pfam via EBI (anotação de domínios)"
+      }
+    },
+    "sidecar": {
+      "concurrency": "Simultaneidade padrão",
+      "concurrencyHint": "Máximo de tarefas de design de primers em paralelo (1–16).",
+      "cancelTimeout": "Tempo limite de cancelamento",
+      "cancelTimeoutHint": "Segundos para aguardar cancelamento antes de encerrar forçadamente (5–120 s).",
+      "persistOnCancel": "Ao cancelar",
+      "persistPartial": "Manter resultados parciais",
+      "persistDiscard": "Descartar todos os resultados"
+    },
+    "telemetry": {
+      "crashLog": "Enviar logs de falha automaticamente",
+      "crashLogHint": "Envia relatórios de falha anonimizados para melhorar a estabilidade. Padrão: desativado.",
+      "anonymousStats": "Estatísticas de uso anônimas",
+      "anonymousStatsHint": "Compartilha dados de uso anônimos. Nenhuma informação pessoal ou de sequência é incluída. Padrão: desativado."
+    },
+    "savedAt": "Salvo às {{time}}"
   },
   "mame": {
     "input": {
@@ -511,6 +550,95 @@
         "blank": "Blank",
         "final": "Final 96 Deep Well"
       }
+    },
+    "setup": {
+      "files": {
+        "railTitle": "MAME Workflow",
+        "contextTitle": "Run Setup — Input Files",
+        "contextSubtitle": "Select a MinKNOW run folder and confirm detected files.",
+        "drawerLeft": "Detected",
+        "drawerLeftDesc": "Run folder scanned",
+        "drawerCenter": "Scan log",
+        "drawerRight": "Next",
+        "drawerRightDesc": "Map barcodes to design",
+        "inspectorTitle": "Run Inspector",
+        "inspectorSubtitle": "Selected run folder metadata",
+        "inspectorDevice": "Device",
+        "inspectorKit": "Kit",
+        "inspectorBarcodes": "Barcodes",
+        "inspectorNoFolder": "No run folder selected"
+      },
+      "design": {
+        "contextTitle": "Run Setup — Design Mapping",
+        "contextSubtitle": "Map KURO barcode package to this run.",
+        "drawerLeft": "KURO source",
+        "drawerLeftDesc": "Barcode package loaded",
+        "drawerCenter": "Map log",
+        "drawerRight": "Next",
+        "drawerRightDesc": "Proceed to QC",
+        "inspectorTitle": "Barcode Inspector",
+        "inspectorSubtitle": "BC01 mapping details",
+        "inspectorVariant": "Variant",
+        "inspectorDesignSource": "Design source",
+        "inspectorExpectedReads": "Expected reads",
+        "inspectorNoBarcodeSelected": "No barcode selected"
+      }
+    },
+    "qc": {
+      "inputs": {
+        "contextTitle": "Sequencing QC — Inputs",
+        "contextSubtitle": "Configure thresholds and run quality control.",
+        "drawerLeft": "Queue",
+        "drawerLeftDesc": "Wells queued for QC",
+        "drawerCenter": "Preflight log",
+        "drawerRight": "Shortcut",
+        "drawerRightDesc": "Ctrl+D to run",
+        "stickyRunBanner": "Run QC",
+        "inspectorTitle": "QC Inspector",
+        "inspectorSubtitle": "Estimated retention at current thresholds",
+        "inspectorEstRetention": "Est. retention",
+        "inspectorEstPass": "Est. PASS",
+        "inspectorMinDepth": "Min depth cutoff",
+        "inspectorMinIdentity": "Min identity cutoff"
+      },
+      "verdict": {
+        "contextTitle": "Sequencing QC — Verdicts",
+        "contextSubtitle": "Per-barcode sequencing outcome and call.",
+        "drawerLeft": "Analysis",
+        "drawerLeftDesc": "Consensus called",
+        "drawerCenter": "Consensus log",
+        "drawerRight": "Next",
+        "drawerRightDesc": "Review plate plan",
+        "inspectorTitle": "Barcode Verdict",
+        "inspectorSubtitle": "Selected barcode details",
+        "inspectorReads": "Reads",
+        "inspectorIdentity": "Identity",
+        "inspectorCall": "Call",
+        "inspectorExport": "Export",
+        "inspectorNoBarcodeSelected": "Select a row to inspect"
+      },
+      "plate": {
+        "contextTitle": "Sequencing QC — Plate Plan",
+        "contextSubtitle": "96-well layout with per-well verdict.",
+        "drawerLeft": "Selection",
+        "drawerLeftDesc": "Wells selected for pick",
+        "drawerCenter": "Plate log",
+        "drawerRight": "Next",
+        "drawerRightDesc": "Proceed to activity",
+        "inspectorTitle": "Well Inspector",
+        "inspectorSubtitle": "Selected well details",
+        "inspectorBarcode": "Barcode",
+        "inspectorReads": "Reads",
+        "inspectorReason": "Reason",
+        "inspectorNoWellSelected": "Click a well to inspect",
+        "clusterAlertTitle": "Cluster failure detected",
+        "clusterAlertDesc": "{{wells}} — adjacent wells failed simultaneously. This may indicate a pipetting issue.",
+        "clusterAlertAriaLabel": "Plate cluster failure alert"
+      }
+    },
+    "inspector": {
+      "kvEmpty": "—",
+      "noDataPlaceholder": "No data available"
     }
   },
   "home": {
@@ -1734,6 +1862,90 @@
       "view": "View",
       "run": "Run",
       "help": "Help"
+    }
+  },
+  "kuro": {
+    "load": {
+      "inspectorTitle": "Inspetor de Fonte",
+      "artifactLabel": "Artefato MAME",
+      "intentCallout": "Intenção de design: carregar o CSV de exportação MAME como fonte de variantes. Verificar o mapeamento de colunas antes de prosseguir.",
+      "drawerRecent": "Artefatos recentes",
+      "drawerAutosave": "Salvamento automático",
+      "sideCardBody": "Exportação da rodada 3 do MAME detectada. Use-a como fonte CSV ou substitua manualmente."
+    },
+    "nominate": {
+      "inspectorTitle": "Inspetor de Variantes",
+      "kvActivity": "Atividade",
+      "kvReads": "Leituras",
+      "kvDomain": "Domínio",
+      "kvMameLink": "Fonte MAME",
+      "calloutText": "Selecione uma linha de variante para inspecionar os detalhes. Variantes bloqueadas são excluídas do design de primers.",
+      "drawerActions": "Ações",
+      "drawerAutosave": "Salvamento automático",
+      "sideCardBody": "Revisar variantes pontuadas. Bloquear correspondências de baixa confiança antes dos parâmetros."
+    },
+    "params": {
+      "inspectorTitle": "Inspetor de Parâmetros",
+      "metricPrimers": "Primers",
+      "metricPlates": "Placas",
+      "metricWarn": "Avisos",
+      "metricRuntime": "Tempo de execução",
+      "calloutText": "As contagens esperadas são atualizadas em tempo real com as alterações de parâmetros. O tempo de execução é aproximado.",
+      "drawerEstimate": "Estimativa",
+      "drawerShortcut": "Atalho",
+      "sideCardBody": "Ajustar o alvo Tm e a sobreposição para minimizar avisos antes de enviar."
+    },
+    "submit": {
+      "inspectorTitle": "Mutação Atual",
+      "kvMutation": "Mutação",
+      "kvProgress": "Progresso",
+      "kvPartialSave": "Salvamento parcial",
+      "contractCallout": "Contrato de dados: o sidecar escreve JSONL parcial ao cancelar. Recarregar do salvamento automático se a guia fechar.",
+      "drawerJobQueue": "Fila de trabalhos",
+      "drawerRecovery": "Recuperação",
+      "sideCardBody": "Não ocultar o progresso. A tela de execução deve incluir cancelar, ETA, salvamento parcial e caminho de recuperação de deadlock."
+    },
+    "output": {
+      "inspectorTitle": "Inspetor de Primers",
+      "kvFwd": "Primer direto",
+      "kvRev": "Primer reverso",
+      "kvTm": "Tm",
+      "kvStatus": "Status",
+      "filterFailed": "Somente falhos",
+      "drawerDesignReport": "Relatório de design",
+      "drawerNext": "Próximo",
+      "sideCardBody": "Revisar pares de primers. Usar o mapa de placa para identificar lacunas de cobertura antes de exportar."
+    },
+    "export": {
+      "inspectorTitle": "Inspetor de Exportação",
+      "kvDestination": "Destino",
+      "kvPrefills": "Pré-preenchimentos",
+      "kvStaleness": "Frescor",
+      "handoffCallout": "Implementação: MAME lerá esta exportação como fonte de artefatos KURO na próxima rodada.",
+      "drawerExportQueue": "Fila de exportação",
+      "drawerNext": "Próximo",
+      "sideCardBody": "Confirmar destinos de exportação. O pacote de transferência MAME é gerado automaticamente."
+    },
+    "inspector": {
+      "noArtifact": "Nenhum artefato carregado",
+      "round": "Rodada",
+      "variants": "Variantes",
+      "format": "Formato",
+      "intentLabel": "Intenção de design",
+      "selectRowPrompt": "Selecionar uma linha para ver detalhes",
+      "selectedBadge": "selecionado",
+      "usefulLabel": "Adição útil",
+      "running": "Em execução...",
+      "partialSavePending": "pendente",
+      "partialSaveReady": "pronto",
+      "dataContractLabel": "Contrato de dados",
+      "noDesignResults": "Sem resultados de design",
+      "implementationLabel": "Implementação",
+      "stalenessLinked": "vinculado",
+      "exportTargets": "MAME handoff",
+      "plateMap": "Mapa de placa",
+      "nPlates": "{{count}} placa(s)",
+      "bridgeBadge": "bridge"
     }
   }
 }

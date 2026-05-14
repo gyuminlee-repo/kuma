@@ -99,7 +99,46 @@
     "dataFolderChange": "Change...",
     "language": "Language",
     "languageNote": "Language preference is saved locally.",
-    "close": "Close"
+    "close": "Close",
+    "tab": {
+      "general": "General",
+      "network": "Network",
+      "sidecar": "Sidecar",
+      "telemetry": "Telemetry"
+    },
+    "theme": {
+      "label": "Theme",
+      "light": "Light",
+      "dark": "Dark",
+      "auto": "System"
+    },
+    "network": {
+      "offlineMode": "Offline mode",
+      "offlineModeHint": "When enabled, all external network calls (UniProt, BLAST, AlphaFold, InterPro) are blocked.",
+      "consent": {
+        "title": "External service consent",
+        "uniprot": "UniProt (sequence search)",
+        "blast": "NCBI BLAST via EBI (off-target check)",
+        "alphafold": "AlphaFold via EBI (structure lookup)",
+        "interpro": "InterPro / Pfam via EBI (domain annotation)"
+      }
+    },
+    "sidecar": {
+      "concurrency": "Default concurrency",
+      "concurrencyHint": "Maximum parallel primer design jobs (1–16).",
+      "cancelTimeout": "Cancel timeout",
+      "cancelTimeoutHint": "Seconds to wait for a graceful cancel before force-killing the sidecar (5–120 s).",
+      "persistOnCancel": "On cancel",
+      "persistPartial": "Keep partial results",
+      "persistDiscard": "Discard all results"
+    },
+    "telemetry": {
+      "crashLog": "Auto-send crash logs",
+      "crashLogHint": "Automatically send anonymized crash reports to help improve stability. Default: off.",
+      "anonymousStats": "Anonymous usage statistics",
+      "anonymousStatsHint": "Share anonymous feature usage data. No personal or sequence data is included. Default: off."
+    },
+    "savedAt": "Saved at {{time}}"
   },
   "mame": {
     "input": {
@@ -212,9 +251,7 @@
         "failed": "No ORF found",
         "noReference": "Reference file required",
         "readError": "Failed to read reference file"
-      },
-      "cdsCandidate": "CDS / ORF candidate:",
-      "cdsCandidateNoneDetected": "No CDS detected. Enter coordinates manually."
+      }
     },
     "activity": {
       "title": "Activity data",
@@ -391,8 +428,7 @@
         "activity": {
           "ingest": "Ingest",
           "merge": "Merge",
-          "export": "Export",
-          "mergeExport": "Merge & Export"
+          "export": "Export"
         }
       }
     },
@@ -506,22 +542,132 @@
         "helpText": "Folder where the analysis result Excel will be saved. The filename is auto-generated using KURO-style rules combining date, reference/input tokens, MAME target, and result count tokens."
       }
     },
-    "janusDeck": {
-      "title": "JANUS Deck Layout",
-      "ariaLabel": "JANUS deck layout preview",
-      "deckImageAriaLabel": "JANUS deck slot positions: top row tip flush, source plates P1 P2 P3; bottom row waste, two blank slots, final 96 deep well",
-      "headFixedNote": "Head position fixed",
-      "aspDspNote": "Aspirate position = Dispense position (same coordinate).",
-      "matchByNameNote": "JANUS software matches plates by name; deck slot positions shown here are the conventional layout.",
-      "slot": {
-        "tipFlush": "Tip Flush",
-        "p1": "Stock Plate P1",
-        "p2": "Stock Plate P2",
-        "p3": "Stock Plate P3",
-        "waste": "Waste",
-        "blank": "Blank",
-        "final": "Final 96 Deep Well"
+    "setup": {
+      "files": {
+        "railTitle": "MAME Workflow",
+        "contextTitle": "Run Setup — Input Files",
+        "contextSubtitle": "Select a MinKNOW run folder and confirm detected files.",
+        "drawerLeft": "Detected",
+        "drawerLeftDesc": "Run folder scanned",
+        "drawerCenter": "Scan log",
+        "drawerRight": "Next",
+        "drawerRightDesc": "Map barcodes to design",
+        "inspectorTitle": "Run Inspector",
+        "inspectorSubtitle": "Selected run folder metadata",
+        "inspectorDevice": "Device",
+        "inspectorKit": "Kit",
+        "inspectorBarcodes": "Barcodes",
+        "inspectorNoFolder": "No run folder selected"
+      },
+      "design": {
+        "contextTitle": "Run Setup — Design Mapping",
+        "contextSubtitle": "Map KURO barcode package to this run.",
+        "drawerLeft": "KURO source",
+        "drawerLeftDesc": "Barcode package loaded",
+        "drawerCenter": "Map log",
+        "drawerRight": "Next",
+        "drawerRightDesc": "Proceed to QC",
+        "inspectorTitle": "Barcode Inspector",
+        "inspectorSubtitle": "BC01 mapping details",
+        "inspectorVariant": "Variant",
+        "inspectorDesignSource": "Design source",
+        "inspectorExpectedReads": "Expected reads",
+        "inspectorNoBarcodeSelected": "No barcode selected"
       }
+    },
+    "qc": {
+      "inputs": {
+        "contextTitle": "Sequencing QC — Inputs",
+        "contextSubtitle": "Configure thresholds and run quality control.",
+        "drawerLeft": "Queue",
+        "drawerLeftDesc": "Wells queued for QC",
+        "drawerCenter": "Preflight log",
+        "drawerRight": "Shortcut",
+        "drawerRightDesc": "Ctrl+D to run",
+        "stickyRunBanner": "Run QC",
+        "inspectorTitle": "QC Inspector",
+        "inspectorSubtitle": "Estimated retention at current thresholds",
+        "inspectorEstRetention": "Est. retention",
+        "inspectorEstPass": "Est. PASS",
+        "inspectorMinDepth": "Min depth cutoff",
+        "inspectorMinIdentity": "Min identity cutoff"
+      },
+      "verdict": {
+        "contextTitle": "Sequencing QC — Verdicts",
+        "contextSubtitle": "Per-barcode sequencing outcome and call.",
+        "drawerLeft": "Analysis",
+        "drawerLeftDesc": "Consensus called",
+        "drawerCenter": "Consensus log",
+        "drawerRight": "Next",
+        "drawerRightDesc": "Review plate plan",
+        "inspectorTitle": "Barcode Verdict",
+        "inspectorSubtitle": "Selected barcode details",
+        "inspectorReads": "Reads",
+        "inspectorIdentity": "Identity",
+        "inspectorCall": "Call",
+        "inspectorExport": "Export",
+        "inspectorNoBarcodeSelected": "Select a row to inspect"
+      },
+      "plate": {
+        "contextTitle": "Sequencing QC — Plate Plan",
+        "contextSubtitle": "96-well layout with per-well verdict.",
+        "drawerLeft": "Selection",
+        "drawerLeftDesc": "Wells selected for pick",
+        "drawerCenter": "Plate log",
+        "drawerRight": "Next",
+        "drawerRightDesc": "Proceed to activity",
+        "inspectorTitle": "Well Inspector",
+        "inspectorSubtitle": "Selected well details",
+        "inspectorBarcode": "Barcode",
+        "inspectorReads": "Reads",
+        "inspectorReason": "Reason",
+        "inspectorNoWellSelected": "Click a well to inspect",
+        "clusterAlertTitle": "Cluster failure detected",
+        "clusterAlertDesc": "{{wells}} — adjacent wells failed simultaneously. This may indicate a pipetting issue.",
+        "clusterAlertAriaLabel": "Plate cluster failure alert"
+      }
+    },
+    "activity": {
+      "ingest": {
+        "contextTitle": "Activity Data — Ingest",
+        "contextSubtitle": "Upload wet-lab activity measurements for this round.",
+        "drawerLeft": "Activity",
+        "drawerLeftDesc": "Wells with measurements",
+        "drawerCenter": "Activity log",
+        "drawerRight": "Next",
+        "drawerRightDesc": "Merge and export",
+        "inspectorTitle": "Activity Inspector",
+        "inspectorSubtitle": "Replicate statistics",
+        "inspectorMean": "Mean activity",
+        "inspectorStdDev": "Std dev",
+        "inspectorReplicates": "Replicates",
+        "inspectorWtNorm": "WT-normalised",
+        "inspectorNoData": "No activity data loaded"
+      },
+      "mergeExport": {
+        "contextTitle": "Activity Data — Merge and Export",
+        "contextSubtitle": "Merge genotype with activity and export EVOLVEpro input.",
+        "drawerLeft": "Export files",
+        "drawerLeftDesc": "Files ready for export",
+        "drawerCenter": "Merge log",
+        "drawerRight": "Handoff",
+        "drawerRightDesc": "Return to KURO for next round",
+        "inspectorTitle": "Export Inspector",
+        "inspectorSubtitle": "R585A merge summary",
+        "inspectorVariant": "Variant",
+        "inspectorActivity": "Activity",
+        "inspectorMergedRows": "Merged rows",
+        "inspectorStatus": "Status",
+        "inspectorBridgeCallout": "Bidirectional bridge",
+        "inspectorBridgeDesc": "Merged table flows back to KURO as EVOLVEpro input for the next design round.",
+        "inspectorNoMerge": "No merge performed yet",
+        "openJanusExport": "Open JANUS export...",
+        "openJanusExportAriaLabel": "Open JANUS cell-stock mapping export dialog"
+      }
+    },
+    "inspector": {
+      "kvEmpty": "—",
+      "noDataPlaceholder": "No data available"
     }
   },
   "home": {
@@ -593,12 +739,12 @@
     "polymeraseManufacturer": "Manufacturer: {{manufacturer}}",
     "polymeraseFidelity": "Fidelity: {{fidelity}}",
     "customPolymerase": "Custom Polymerase",
-    "codonLabel": "Mutation codon (3 nt):",
-    "codonHelp": "Applies only to the mutation site codon (3 nt). Flanking primer sequence remains wild-type.\n\nMin. changes: fewest nucleotide changes from wild-type codon (minimises synthesis cost).\nOptimal: highest-frequency codon for the selected organism (maximises expression).",
+    "codonLabel": "Codon:",
+    "codonHelp": "Min. changes: fewest nucleotide changes from wild-type codon (minimises synthesis cost).\nOptimal: highest-frequency codon for the selected organism (maximises expression).",
     "codonOption_closest": "Min. changes (fewest nt changes from WT)",
-    "codonOption_closest_title": "Pick the mutant codon with the fewest nucleotide changes from the wild-type codon. Minimises primer mismatch and synthesis cost. Only the mutation codon (3 nt) is altered.",
+    "codonOption_closest_title": "Pick the mutant codon with the fewest nucleotide changes from the wild-type codon. Minimises primer mismatch and synthesis cost.",
     "codonOption_optimal": "Optimal (organism codon usage)",
-    "codonOption_optimal_title": "Pick the highest-frequency codon for the selected organism's codon usage table. Maximises expression but may require more nt changes. Only the mutation codon (3 nt) is altered.",
+    "codonOption_optimal_title": "Pick the highest-frequency codon for the selected organism's codon usage table. Maximises expression but may require more nt changes.",
     "mutationsLabel": "Mutations:",
     "mutationsHelp": "Maximum number of primer designs to generate.\nFor EVOLVEpro / multi-evolve mode: capped by the CSV variant count.\nOne 96-well plate fits 95 mutants + 1 WT control.",
     "plates_one": "{{count}} plate",
@@ -1036,7 +1182,7 @@
     "missingMutations": "Mutations (enter at least one mutation in the Mutation panel)",
     "missingTargetGene": "Target gene (select one in the Sequence panel)",
     "deadlockTitle": "No response",
-    "deadlockDesc": "No progress update for 30+ seconds. The job may be stuck.",
+    "deadlockDesc": "No progress update for 30+ seconds. The job is stuck.",
     "deadlockWait": "Keep waiting",
     "deadlockReset": "Reset",
     "plateCount": "{{count}} plate",
@@ -1445,9 +1591,7 @@
     "bomCheckboxLabel": "Add UTF-8 BOM",
     "bomCheckboxHint": "(Excel compatibility)",
     "cancelBtn": "Cancel",
-    "exportBtn": "Export",
-    "transferVolumeRange": "Range: {{min}}–{{max}} {{unit}}",
-    "echoMaxNote": "(Max 500 nL)"
+    "exportBtn": "Export"
   },
   "whatsNewDialog": {
     "title": "What's New in v{{version}}",
@@ -1572,16 +1716,14 @@
     "majors": {
       "design": "Design",
       "plate": "Plate Map",
-      "export": "Export",
-      "output": "Output"
+      "export": "Export"
     },
     "subSteps": {
       "design": {
         "load": "Load Variants",
         "variant": "Pool Filters",
         "mutation": "Mutations",
-        "params": "Primer Parameters",
-        "submit": "Pool Filters & Run"
+        "params": "Primer Parameters"
       },
       "plate": {
         "layout": "Plate Map"
@@ -1591,9 +1733,6 @@
         "format": "Format",
         "summary": "Order summary",
         "workspace": "Workspace save"
-      },
-      "output": {
-        "summary": "Summary"
       }
     },
     "badge": {
@@ -1655,8 +1794,7 @@
       "activity": {
         "ingest": "Ingest Data",
         "merge": "Merge",
-        "export": "Export",
-        "mergeExport": "Merge & Export"
+        "export": "Export"
       }
     }
   },
@@ -1672,47 +1810,92 @@
         "load": "Upload an EVOLVEpro CSV or paste a protein sequence.",
         "variant": "Configure variant pool filters.",
         "mutation": "Define mutations to include.",
-        "params": "Set primer design parameters and run.",
-        "submit": "Select variant pool filters, then run primer design."
-      },
-      "output": {
-        "summary": "Review design results, statistics, and plate layout."
-      },
-      "export": {
-        "all": "Export primer orders to IDT/Twist CSV or FASTA."
+        "params": "Set primer design parameters and run."
       }
+    }
+  },
+  "kuro": {
+    "load": {
+      "inspectorTitle": "Source Inspector",
+      "artifactLabel": "MAME artifact",
+      "intentCallout": "Design intent: Load the MAME export CSV as the variant source. Verify column mapping before advancing.",
+      "drawerRecent": "Recent artifacts",
+      "drawerAutosave": "Autosave",
+      "sideCardBody": "MAME round 3 export detected. Use it as the CSV source or replace manually."
     },
-    "mameDescriptions": {
-      "setup": {
-        "files": "Select the MinKNOW run folder and reference sequence for this run.",
-        "design": "Configure primer design parameters and generate the barcode package."
-      },
-      "analyze": {
-        "inputs": "Set the input directory and analysis parameters, then run.",
-        "verdict": "Review per-well pass/fail verdicts, summary statistics, and sequencing throughput metrics.",
-        "plate": "Inspect the plate layout with barcode and variant assignments, and per-plate health indicators."
-      },
-      "activity": {
-        "ingest": "Upload activity CSV or Excel files and annotate the wild-type.",
-        "mergeExport": "Merge activity data with genotype calls, then export the merged table for EVOLVEpro input."
-      }
-    }
-  },
-  "report": {
-    "noResultsTitle": "No results yet",
-    "noResultsDesc": "Run Design first to see primer results here.",
-    "stats": {
-      "primers": "Primers",
-      "plates": "Plates",
-      "failed": "Failed",
-      "rescued": "Rescued"
-    }
-  },
-  "wizardContainer": {
-    "validationDialog": {
-      "title": "Missing Information",
-      "description": "Please complete the following before continuing.",
-      "missingItemsLabel": "Missing items"
+    "nominate": {
+      "inspectorTitle": "Variant Inspector",
+      "kvActivity": "Activity",
+      "kvReads": "Reads",
+      "kvDomain": "Domain",
+      "kvMameLink": "MAME source",
+      "calloutText": "Select a variant row to inspect details. Blocked variants are excluded from primer design.",
+      "drawerActions": "Actions",
+      "drawerAutosave": "Autosave",
+      "sideCardBody": "Review scored variants. Block low-confidence hits before advancing to Parameters."
+    },
+    "params": {
+      "inspectorTitle": "Parameter Inspector",
+      "metricPrimers": "Primers",
+      "metricPlates": "Plates",
+      "metricWarn": "Warnings",
+      "metricRuntime": "Runtime",
+      "calloutText": "Expected counts update live as parameters change. Runtime estimate is approximate.",
+      "drawerEstimate": "Estimate",
+      "drawerShortcut": "Shortcut",
+      "sideCardBody": "Adjust Tm target and overlap to minimise warnings before submitting."
+    },
+    "submit": {
+      "inspectorTitle": "Current Mutation",
+      "kvMutation": "Mutation",
+      "kvProgress": "Progress",
+      "kvPartialSave": "Partial save",
+      "contractCallout": "Data contract: sidecar writes partial JSONL on cancel. Reload from autosave if browser tab closes.",
+      "drawerJobQueue": "Job queue",
+      "drawerRecovery": "Recovery",
+      "sideCardBody": "Do not hide progress. Run screen must include cancel, ETA, partial save, and deadlock recovery."
+    },
+    "output": {
+      "inspectorTitle": "Primer Inspector",
+      "kvFwd": "Forward primer",
+      "kvRev": "Reverse primer",
+      "kvTm": "Tm",
+      "kvStatus": "Status",
+      "filterFailed": "Failed only",
+      "drawerDesignReport": "Design report",
+      "drawerNext": "Next",
+      "sideCardBody": "Review primer pairs. Use the Plate Map to spot coverage gaps before exporting."
+    },
+    "export": {
+      "inspectorTitle": "Export Inspector",
+      "kvDestination": "Destination",
+      "kvPrefills": "Prefills",
+      "kvStaleness": "Staleness",
+      "handoffCallout": "Implementation: MAME will read this export as its KURO artifact source in the next round.",
+      "drawerExportQueue": "Export queue",
+      "drawerNext": "Next",
+      "sideCardBody": "Confirm export targets. The MAME handoff bundle is generated automatically."
+    },
+    "inspector": {
+      "noArtifact": "No artifact loaded",
+      "round": "Round",
+      "variants": "Variants",
+      "format": "Format",
+      "intentLabel": "Design intent",
+      "selectRowPrompt": "Select a row to view details",
+      "selectedBadge": "selected",
+      "usefulLabel": "Useful addition",
+      "running": "Running...",
+      "partialSavePending": "pending",
+      "partialSaveReady": "ready",
+      "dataContractLabel": "Data contract",
+      "noDesignResults": "No design results yet",
+      "implementationLabel": "Implementation",
+      "stalenessLinked": "linked",
+      "exportTargets": "MAME handoff",
+      "plateMap": "Plate map",
+      "nPlates": "{{count}} plate(s)",
+      "bridgeBadge": "bridge"
     }
   }
 }

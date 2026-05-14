@@ -10,6 +10,7 @@ import { createMemorySlice } from "./slices/memorySlice";
 import { createJobQueueSlice } from "./slices/jobQueueSlice";
 import { createLogSlice } from "./slices/logSlice";
 import { createNavigationSlice } from "./slices/navigationSlice";
+import { createSettingsSlice } from "./slices/settingsSlice";
 import { recordRunDuration } from "../lib/eta";
 import type { AppState } from "./types";
 export type { AppState };
@@ -47,6 +48,7 @@ export const useAppStore = create<AppState>()((...a) => {
     ...createJobQueueSlice(...a),
     ...createLogSlice(...a),
     ...createNavigationSlice(...a),
+    ...createSettingsSlice(...a),
   };
 });
 

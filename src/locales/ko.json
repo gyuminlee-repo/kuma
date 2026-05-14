@@ -99,7 +99,46 @@
     "dataFolderChange": "변경...",
     "language": "언어",
     "languageNote": "언어 설정이 로컬에 저장됩니다.",
-    "close": "닫기"
+    "close": "닫기",
+    "tab": {
+      "general": "일반",
+      "network": "네트워크",
+      "sidecar": "Sidecar",
+      "telemetry": "원격 측정"
+    },
+    "theme": {
+      "label": "테마",
+      "light": "라이트",
+      "dark": "다크",
+      "auto": "시스템"
+    },
+    "network": {
+      "offlineMode": "오프라인 모드",
+      "offlineModeHint": "활성화 시 모든 외부 네트워크 호출(UniProt, BLAST, AlphaFold, InterPro)이 차단됩니다.",
+      "consent": {
+        "title": "외부 서비스 동의",
+        "uniprot": "UniProt (서열 검색)",
+        "blast": "NCBI BLAST via EBI (오프타겟 확인)",
+        "alphafold": "AlphaFold via EBI (구조 조회)",
+        "interpro": "InterPro / Pfam via EBI (도메인 주석)"
+      }
+    },
+    "sidecar": {
+      "concurrency": "기본 동시 실행 수",
+      "concurrencyHint": "최대 병렬 프라이머 설계 작업 수 (1–16).",
+      "cancelTimeout": "취소 타임아웃",
+      "cancelTimeoutHint": "강제 종료 전 정상 취소를 대기하는 시간 (5–120 초).",
+      "persistOnCancel": "취소 시 처리",
+      "persistPartial": "부분 결과 유지",
+      "persistDiscard": "모든 결과 삭제"
+    },
+    "telemetry": {
+      "crashLog": "충돌 로그 자동 전송",
+      "crashLogHint": "안정성 개선을 위해 익명화된 충돌 보고서를 자동으로 전송합니다. 기본값: 꺼짐.",
+      "anonymousStats": "익명 사용 통계",
+      "anonymousStatsHint": "익명 기능 사용 데이터를 공유합니다. 개인 정보 및 서열 데이터는 포함되지 않습니다. 기본값: 꺼짐."
+    },
+    "savedAt": "{{time}}에 저장됨"
   },
   "mame": {
     "input": {
@@ -212,9 +251,7 @@
         "failed": "ORF를 찾을 수 없음",
         "noReference": "Reference 파일이 필요합니다",
         "readError": "Reference 파일 읽기 실패"
-      },
-      "cdsCandidate": "CDS/ORF 후보:",
-      "cdsCandidateNoneDetected": "CDS를 찾을 수 없음. 좌표를 직접 입력하세요."
+      }
     },
     "activity": {
       "title": "활성 데이터",
@@ -391,8 +428,7 @@
         "activity": {
           "ingest": "인제스트",
           "merge": "병합",
-          "export": "내보내기",
-          "mergeExport": "병합 및 내보내기"
+          "export": "내보내기"
         }
       }
     },
@@ -506,22 +542,132 @@
         "helpText": "분석 결과 Excel이 저장될 폴더입니다. 파일명은 날짜, 참조/입력 토큰, MAME 대상, 결과 수 토큰을 조합한 KURO 방식으로 자동 생성됩니다."
       }
     },
-    "janusDeck": {
-      "title": "JANUS 데크 레이아웃",
-      "ariaLabel": "JANUS 데크 레이아웃 미리보기",
-      "deckImageAriaLabel": "JANUS 데크 슬롯 위치: 상단 팁 플러시, 소스 플레이트 P1 P2 P3; 하단 폐기물, 빈 슬롯 두 개, 최종 96 deep well",
-      "headFixedNote": "Head 위치 고정",
-      "aspDspNote": "Asp. Position = Dsp. Position (동일 좌표).",
-      "matchByNameNote": "JANUS 소프트웨어는 plate name 기반으로 매칭. 여기 표시된 데크 슬롯 위치는 관행적 배치.",
-      "slot": {
-        "tipFlush": "Tip Flush",
-        "p1": "Stock Plate P1",
-        "p2": "Stock Plate P2",
-        "p3": "Stock Plate P3",
-        "waste": "폐기물",
-        "blank": "빈 슬롯",
-        "final": "최종 96 Deep Well"
+    "setup": {
+      "files": {
+        "railTitle": "MAME 워크플로우",
+        "contextTitle": "실행 설정 — 입력 파일",
+        "contextSubtitle": "MinKNOW 실행 폴더를 선택하고 감지된 파일을 확인합니다.",
+        "drawerLeft": "감지됨",
+        "drawerLeftDesc": "실행 폴더 스캔 완료",
+        "drawerCenter": "스캔 로그",
+        "drawerRight": "다음",
+        "drawerRightDesc": "바코드를 설계에 매핑",
+        "inspectorTitle": "실행 Inspector",
+        "inspectorSubtitle": "선택한 실행 폴더 메타데이터",
+        "inspectorDevice": "장치",
+        "inspectorKit": "키트",
+        "inspectorBarcodes": "바코드",
+        "inspectorNoFolder": "실행 폴더가 선택되지 않음"
+      },
+      "design": {
+        "contextTitle": "실행 설정 — 설계 매핑",
+        "contextSubtitle": "KURO 바코드 패키지를 이 실행에 매핑합니다.",
+        "drawerLeft": "KURO 소스",
+        "drawerLeftDesc": "바코드 패키지 로드됨",
+        "drawerCenter": "매핑 로그",
+        "drawerRight": "다음",
+        "drawerRightDesc": "QC로 진행",
+        "inspectorTitle": "바코드 Inspector",
+        "inspectorSubtitle": "BC01 매핑 세부사항",
+        "inspectorVariant": "변이체",
+        "inspectorDesignSource": "설계 소스",
+        "inspectorExpectedReads": "예상 읽기 수",
+        "inspectorNoBarcodeSelected": "바코드가 선택되지 않음"
       }
+    },
+    "qc": {
+      "inputs": {
+        "contextTitle": "시퀀싱 QC — 입력",
+        "contextSubtitle": "임계값을 설정하고 품질 관리를 실행합니다.",
+        "drawerLeft": "대기열",
+        "drawerLeftDesc": "QC 대기 중인 well",
+        "drawerCenter": "Preflight 로그",
+        "drawerRight": "단축키",
+        "drawerRightDesc": "Ctrl+D로 실행",
+        "stickyRunBanner": "QC 실행",
+        "inspectorTitle": "QC Inspector",
+        "inspectorSubtitle": "현재 임계값에서의 예상 유지율",
+        "inspectorEstRetention": "예상 유지율",
+        "inspectorEstPass": "예상 PASS",
+        "inspectorMinDepth": "최소 깊이 임계값",
+        "inspectorMinIdentity": "최소 동일성 임계값"
+      },
+      "verdict": {
+        "contextTitle": "시퀀싱 QC — 판정",
+        "contextSubtitle": "바코드별 시퀀싱 결과 및 판정.",
+        "drawerLeft": "분석",
+        "drawerLeftDesc": "Consensus 호출 완료",
+        "drawerCenter": "Consensus 로그",
+        "drawerRight": "다음",
+        "drawerRightDesc": "플레이트 계획 검토",
+        "inspectorTitle": "바코드 판정",
+        "inspectorSubtitle": "선택한 바코드 세부사항",
+        "inspectorReads": "읽기 수",
+        "inspectorIdentity": "동일성",
+        "inspectorCall": "판정",
+        "inspectorExport": "내보내기",
+        "inspectorNoBarcodeSelected": "행을 선택하여 검사"
+      },
+      "plate": {
+        "contextTitle": "시퀀싱 QC — 플레이트 계획",
+        "contextSubtitle": "well별 판정이 포함된 96-well 레이아웃.",
+        "drawerLeft": "선택",
+        "drawerLeftDesc": "선택된 well 수",
+        "drawerCenter": "플레이트 로그",
+        "drawerRight": "다음",
+        "drawerRightDesc": "활성 데이터로 진행",
+        "inspectorTitle": "Well Inspector",
+        "inspectorSubtitle": "선택한 well 세부사항",
+        "inspectorBarcode": "바코드",
+        "inspectorReads": "읽기 수",
+        "inspectorReason": "이유",
+        "inspectorNoWellSelected": "well을 클릭하여 검사",
+        "clusterAlertTitle": "클러스터 실패 감지",
+        "clusterAlertDesc": "{{wells}} — 인접 well이 동시에 실패했습니다. 피펫팅 문제가 의심됩니다.",
+        "clusterAlertAriaLabel": "플레이트 클러스터 실패 경고"
+      }
+    },
+    "activity": {
+      "ingest": {
+        "contextTitle": "활성 데이터 — 수집",
+        "contextSubtitle": "이번 라운드의 wet-lab 활성 측정값을 업로드합니다.",
+        "drawerLeft": "활성",
+        "drawerLeftDesc": "측정값이 있는 well",
+        "drawerCenter": "활성 로그",
+        "drawerRight": "다음",
+        "drawerRightDesc": "병합 및 내보내기",
+        "inspectorTitle": "활성 Inspector",
+        "inspectorSubtitle": "반복 통계",
+        "inspectorMean": "평균 활성",
+        "inspectorStdDev": "표준편차",
+        "inspectorReplicates": "반복수",
+        "inspectorWtNorm": "WT 정규화",
+        "inspectorNoData": "활성 데이터가 로드되지 않음"
+      },
+      "mergeExport": {
+        "contextTitle": "활성 데이터 — 병합 및 내보내기",
+        "contextSubtitle": "유전형과 활성을 병합하고 EVOLVEpro 입력을 내보냅니다.",
+        "drawerLeft": "내보내기 파일",
+        "drawerLeftDesc": "내보낼 준비 완료",
+        "drawerCenter": "병합 로그",
+        "drawerRight": "핸드오프",
+        "drawerRightDesc": "다음 라운드를 위해 KURO로 복귀",
+        "inspectorTitle": "내보내기 Inspector",
+        "inspectorSubtitle": "R585A 병합 요약",
+        "inspectorVariant": "변이체",
+        "inspectorActivity": "활성",
+        "inspectorMergedRows": "병합된 행",
+        "inspectorStatus": "상태",
+        "inspectorBridgeCallout": "양방향 브리지",
+        "inspectorBridgeDesc": "병합된 테이블이 다음 설계 라운드를 위해 EVOLVEpro 입력으로 KURO에 전달됩니다.",
+        "inspectorNoMerge": "병합이 수행되지 않음",
+        "openJanusExport": "JANUS 내보내기 열기...",
+        "openJanusExportAriaLabel": "JANUS 세포 재고 매핑 내보내기 대화상자 열기"
+      }
+    },
+    "inspector": {
+      "kvEmpty": "—",
+      "noDataPlaceholder": "데이터 없음"
     }
   },
   "home": {
@@ -593,12 +739,12 @@
     "polymeraseManufacturer": "제조사: {{manufacturer}}",
     "polymeraseFidelity": "정확도: {{fidelity}}",
     "customPolymerase": "사용자 폴리머라제",
-    "codonLabel": "돌연변이 코돈 (3 nt):",
-    "codonHelp": "돌연변이 site의 3 nt 코돈에만 적용. flanking primer 영역은 WT 그대로.\n\nMin. changes: wild-type 코돈에서 뉴클레오타이드 변화가 가장 적은 코돈 선택 (합성 비용 최소화).\nOptimal: 선택한 생물체의 코돈 사용 빈도가 가장 높은 코돈 선택 (발현 최대화).",
+    "codonLabel": "코돈:",
+    "codonHelp": "Min. changes: wild-type 코돈에서 뉴클레오타이드 변화가 가장 적은 코돈 선택 (합성 비용 최소화).\nOptimal: 선택한 생물체의 코돈 사용 빈도가 가장 높은 코돈 선택 (발현 최대화).",
     "codonOption_closest": "Min. changes (WT 대비 최소 nt 변화)",
-    "codonOption_closest_title": "wild-type 코돈 대비 뉴클레오타이드 변화가 가장 적은 돌연변이 코돈을 선택합니다. primer mismatch와 합성 비용을 최소화합니다. 돌연변이 코돈 (3 nt)만 변경됩니다.",
+    "codonOption_closest_title": "wild-type 코돈 대비 뉴클레오타이드 변화가 가장 적은 돌연변이 코돈을 선택합니다. primer mismatch와 합성 비용을 최소화합니다.",
     "codonOption_optimal": "Optimal (생물체 코돈 사용 빈도)",
-    "codonOption_optimal_title": "선택한 생물체의 코돈 사용 빈도표에서 가장 높은 코돈을 선택합니다. 발현을 최대화하지만 더 많은 nt 변화가 필요할 수 있습니다. 돌연변이 코돈 (3 nt)만 변경됩니다.",
+    "codonOption_optimal_title": "선택한 생물체의 코돈 사용 빈도표에서 가장 높은 코돈을 선택합니다. 발현을 최대화하지만 더 많은 nt 변화가 필요할 수 있습니다.",
     "mutationsLabel": "돌연변이:",
     "mutationsHelp": "생성할 primer 설계 최대 수입니다.\nEVOLVEpro / multi-evolve 모드: CSV 변이 수로 제한됩니다.\n96-well 플레이트 1개에 돌연변이 95개 + WT 대조군 1개가 들어갑니다.",
     "plates_one": "{{count}}개 플레이트",
@@ -1036,7 +1182,7 @@
     "missingMutations": "변이 정보 (변이 패널에 최소 1개의 변이를 입력하세요)",
     "missingTargetGene": "대상 유전자 (시퀀스 패널에서 유전자를 선택하세요)",
     "deadlockTitle": "응답 없음",
-    "deadlockDesc": "30초 이상 진행 상태가 업데이트되지 않았습니다. 작업이 멈춘 것 같습니다.",
+    "deadlockDesc": "30초 이상 진행 상태가 업데이트되지 않았습니다. 작업이 멈췄습니다.",
     "deadlockWait": "계속 대기",
     "deadlockReset": "초기화",
     "plateCount": "{{count}} 플레이트",
@@ -1445,9 +1591,7 @@
     "bomCheckboxLabel": "UTF-8 BOM 추가",
     "bomCheckboxHint": "(Excel 호환)",
     "cancelBtn": "취소",
-    "exportBtn": "내보내기",
-    "transferVolumeRange": "범위: {{min}}–{{max}} {{unit}}",
-    "echoMaxNote": "(최대 500 nL)"
+    "exportBtn": "내보내기"
   },
   "whatsNewDialog": {
     "title": "v{{version}} 새로운 기능",
@@ -1572,16 +1716,14 @@
     "majors": {
       "design": "설계",
       "plate": "플레이트 맵",
-      "export": "내보내기",
-      "output": "결과"
+      "export": "내보내기"
     },
     "subSteps": {
       "design": {
         "load": "변이체 로드",
         "variant": "풀 필터",
         "mutation": "변이",
-        "params": "프라이머 파라미터",
-        "submit": "풀 필터 및 실행"
+        "params": "프라이머 파라미터"
       },
       "plate": {
         "layout": "플레이트 맵"
@@ -1591,9 +1733,6 @@
         "format": "형식",
         "summary": "주문 요약",
         "workspace": "워크스페이스 저장"
-      },
-      "output": {
-        "summary": "요약"
       }
     },
     "badge": {
@@ -1655,8 +1794,7 @@
       "activity": {
         "ingest": "데이터 수집",
         "merge": "병합",
-        "export": "내보내기",
-        "mergeExport": "병합 및 내보내기"
+        "export": "내보내기"
       }
     }
   },
@@ -1672,47 +1810,92 @@
         "load": "EVOLVEpro CSV를 업로드하거나 단백질 시퀀스를 붙여넣으세요.",
         "variant": "변이체 풀 필터를 설정하세요.",
         "mutation": "포함할 변이를 정의하세요.",
-        "params": "프라이머 설계 파라미터를 설정하고 실행하세요.",
-        "submit": "변이체 풀 필터를 선택한 후 프라이머 설계를 실행합니다."
-      },
-      "output": {
-        "summary": "설계 결과, 통계, 플레이트 레이아웃을 확인합니다."
-      },
-      "export": {
-        "all": "프라이머 주문서를 IDT/Twist CSV 또는 FASTA로 내보냅니다."
+        "params": "프라이머 설계 파라미터를 설정하고 실행하세요."
       }
+    }
+  },
+  "kuro": {
+    "load": {
+      "inspectorTitle": "소스 검사기",
+      "artifactLabel": "MAME 아티팩트",
+      "intentCallout": "설계 의도: MAME 내보내기 CSV를 변이체 소스로 불러옵니다. 열 매핑을 확인한 후 다음 단계로 진행하세요.",
+      "drawerRecent": "최근 아티팩트",
+      "drawerAutosave": "자동 저장",
+      "sideCardBody": "MAME round 3 내보내기 파일이 감지되었습니다. CSV 소스로 사용하거나 직접 교체하세요."
     },
-    "mameDescriptions": {
-      "setup": {
-        "files": "이번 런에 사용할 MinKNOW 런 폴더와 참조 시퀀스를 선택하세요.",
-        "design": "프라이머 설계 파라미터를 설정하고 바코드 패키지를 생성하세요."
-      },
-      "analyze": {
-        "inputs": "입력 디렉토리와 분석 파라미터를 설정한 뒤 실행하세요.",
-        "verdict": "웰별 통과/실패 판정, 요약 통계, 시퀀싱 처리량 지표를 확인하세요.",
-        "plate": "바코드 및 변이체가 할당된 플레이트 레이아웃과 플레이트별 품질 지표를 검사하세요."
-      },
-      "activity": {
-        "ingest": "활성도 CSV 또는 Excel 파일을 업로드하고 야생형을 어노테이션하세요.",
-        "mergeExport": "레플리케이트 간 활성도 데이터와 유전형 정보를 병합한 뒤 EVOLVEpro 입력용으로 내보내세요."
-      }
-    }
-  },
-  "report": {
-    "noResultsTitle": "결과 없음",
-    "noResultsDesc": "먼저 설계를 실행하면 프라이머 결과가 여기에 표시됩니다.",
-    "stats": {
-      "primers": "프라이머",
-      "plates": "플레이트",
-      "failed": "실패",
-      "rescued": "복구됨"
-    }
-  },
-  "wizardContainer": {
-    "validationDialog": {
-      "title": "필수 입력 누락",
-      "description": "계속하기 전에 다음 항목을 완료해 주세요.",
-      "missingItemsLabel": "누락 항목"
+    "nominate": {
+      "inspectorTitle": "변이체 검사기",
+      "kvActivity": "활성도",
+      "kvReads": "리드",
+      "kvDomain": "도메인",
+      "kvMameLink": "MAME 소스",
+      "calloutText": "변이체 행을 선택하면 세부 정보를 확인할 수 있습니다. 차단된 변이체는 프라이머 설계에서 제외됩니다.",
+      "drawerActions": "액션",
+      "drawerAutosave": "자동 저장",
+      "sideCardBody": "점수가 매겨진 변이체를 검토하세요. 파라미터 단계로 이동하기 전에 낮은 신뢰도 항목을 차단하세요."
+    },
+    "params": {
+      "inspectorTitle": "파라미터 검사기",
+      "metricPrimers": "프라이머",
+      "metricPlates": "플레이트",
+      "metricWarn": "경고",
+      "metricRuntime": "실행 시간",
+      "calloutText": "파라미터 변경 시 예상 수치가 실시간으로 업데이트됩니다. 실행 시간 예측은 근사값입니다.",
+      "drawerEstimate": "예측",
+      "drawerShortcut": "단축키",
+      "sideCardBody": "경고를 최소화하기 위해 Tm 목표값과 오버랩을 조정하세요."
+    },
+    "submit": {
+      "inspectorTitle": "현재 변이",
+      "kvMutation": "변이",
+      "kvProgress": "진행률",
+      "kvPartialSave": "부분 저장",
+      "contractCallout": "데이터 계약: 취소 시 사이드카가 부분 JSONL을 기록합니다. 브라우저 탭이 닫히면 자동 저장에서 복원하세요.",
+      "drawerJobQueue": "작업 큐",
+      "drawerRecovery": "복구",
+      "sideCardBody": "진행 상황을 숨기지 마세요. 취소, ETA, 부분 저장, 데드락 복구 경로가 포함되어야 합니다."
+    },
+    "output": {
+      "inspectorTitle": "프라이머 검사기",
+      "kvFwd": "정방향 프라이머",
+      "kvRev": "역방향 프라이머",
+      "kvTm": "Tm",
+      "kvStatus": "상태",
+      "filterFailed": "실패만",
+      "drawerDesignReport": "설계 보고서",
+      "drawerNext": "다음",
+      "sideCardBody": "프라이머 쌍을 검토하세요. 내보내기 전에 플레이트 맵에서 커버리지 공백을 확인하세요."
+    },
+    "export": {
+      "inspectorTitle": "내보내기 검사기",
+      "kvDestination": "대상",
+      "kvPrefills": "사전 입력",
+      "kvStaleness": "신선도",
+      "handoffCallout": "구현: MAME이 다음 라운드에서 이 내보내기를 KURO 아티팩트 소스로 읽습니다.",
+      "drawerExportQueue": "내보내기 큐",
+      "drawerNext": "다음",
+      "sideCardBody": "내보내기 대상을 확인하세요. MAME 핸드오프 번들이 자동으로 생성됩니다."
+    },
+    "inspector": {
+      "noArtifact": "아티팩트가 없습니다",
+      "round": "라운드",
+      "variants": "변형",
+      "format": "형식",
+      "intentLabel": "설계 의도",
+      "selectRowPrompt": "행을 선택하면 상세 정보가 표시됩니다",
+      "selectedBadge": "선택됨",
+      "usefulLabel": "유용한 추가",
+      "running": "실행 중...",
+      "partialSavePending": "대기 중",
+      "partialSaveReady": "준비됨",
+      "dataContractLabel": "데이터 계약",
+      "noDesignResults": "설계 결과가 없습니다",
+      "implementationLabel": "구현",
+      "stalenessLinked": "연결됨",
+      "exportTargets": "MAME handoff",
+      "plateMap": "플레이트 맵",
+      "nPlates": "{{count}}개 플레이트",
+      "bridgeBadge": "bridge"
     }
   }
 }

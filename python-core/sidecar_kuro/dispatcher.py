@@ -52,6 +52,10 @@ from sidecar_kuro.handlers.misc import (
     handle_load_evolvepro_csv,
     handle_run_benchmark,
 )
+from sidecar_kuro.handlers.settings import (
+    handle_load as handle_settings_load,
+    handle_save as handle_settings_save,
+)
 
 def _handle_health_info(_params: dict) -> dict:
     """Return PID, RSS, and Python version for the status bar tooltip."""
@@ -104,6 +108,9 @@ _METHODS = {
         "cancelled": True,
         "active_design": _cancel_active_design(),
     },
+    # Phase 3: Settings
+    "settings_load": handle_settings_load,
+    "settings_save": handle_settings_save,
     # §22 graceful shutdown — ack immediately; main() breaks on this method
     "shutdown": lambda _: {"ok": True, "message": "shutdown_acked"},
 }

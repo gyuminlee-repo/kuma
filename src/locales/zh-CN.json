@@ -99,7 +99,46 @@
     "dataFolderChange": "更改...",
     "language": "语言",
     "languageNote": "语言偏好保存在本地。",
-    "close": "关闭"
+    "close": "关闭",
+    "tab": {
+      "general": "通用",
+      "network": "网络",
+      "sidecar": "Sidecar",
+      "telemetry": "遥测"
+    },
+    "theme": {
+      "label": "主题",
+      "light": "浅色",
+      "dark": "深色",
+      "auto": "系统"
+    },
+    "network": {
+      "offlineMode": "离线模式",
+      "offlineModeHint": "启用后，所有外部网络调用（UniProt、BLAST、AlphaFold、InterPro）将被阻止。",
+      "consent": {
+        "title": "外部服务授权",
+        "uniprot": "UniProt（序列搜索）",
+        "blast": "NCBI BLAST via EBI（脱靶检查）",
+        "alphafold": "AlphaFold via EBI（结构查询）",
+        "interpro": "InterPro / Pfam via EBI（域注释）"
+      }
+    },
+    "sidecar": {
+      "concurrency": "默认并发数",
+      "concurrencyHint": "最大并行引物设计任务数（1–16）。",
+      "cancelTimeout": "取消超时",
+      "cancelTimeoutHint": "强制终止前等待正常取消的秒数（5–120 秒）。",
+      "persistOnCancel": "取消时",
+      "persistPartial": "保留部分结果",
+      "persistDiscard": "丢弃所有结果"
+    },
+    "telemetry": {
+      "crashLog": "自动发送崩溃日志",
+      "crashLogHint": "自动发送匿名崩溃报告以改善稳定性。默认：关闭。",
+      "anonymousStats": "匿名使用统计",
+      "anonymousStatsHint": "共享匿名功能使用数据。不包含任何个人或序列数据。默认：关闭。"
+    },
+    "savedAt": "已于 {{time}} 保存"
   },
   "mame": {
     "input": {
@@ -511,6 +550,95 @@
         "blank": "Blank",
         "final": "Final 96 Deep Well"
       }
+    },
+    "setup": {
+      "files": {
+        "railTitle": "MAME Workflow",
+        "contextTitle": "Run Setup — Input Files",
+        "contextSubtitle": "Select a MinKNOW run folder and confirm detected files.",
+        "drawerLeft": "Detected",
+        "drawerLeftDesc": "Run folder scanned",
+        "drawerCenter": "Scan log",
+        "drawerRight": "Next",
+        "drawerRightDesc": "Map barcodes to design",
+        "inspectorTitle": "Run Inspector",
+        "inspectorSubtitle": "Selected run folder metadata",
+        "inspectorDevice": "Device",
+        "inspectorKit": "Kit",
+        "inspectorBarcodes": "Barcodes",
+        "inspectorNoFolder": "No run folder selected"
+      },
+      "design": {
+        "contextTitle": "Run Setup — Design Mapping",
+        "contextSubtitle": "Map KURO barcode package to this run.",
+        "drawerLeft": "KURO source",
+        "drawerLeftDesc": "Barcode package loaded",
+        "drawerCenter": "Map log",
+        "drawerRight": "Next",
+        "drawerRightDesc": "Proceed to QC",
+        "inspectorTitle": "Barcode Inspector",
+        "inspectorSubtitle": "BC01 mapping details",
+        "inspectorVariant": "Variant",
+        "inspectorDesignSource": "Design source",
+        "inspectorExpectedReads": "Expected reads",
+        "inspectorNoBarcodeSelected": "No barcode selected"
+      }
+    },
+    "qc": {
+      "inputs": {
+        "contextTitle": "Sequencing QC — Inputs",
+        "contextSubtitle": "Configure thresholds and run quality control.",
+        "drawerLeft": "Queue",
+        "drawerLeftDesc": "Wells queued for QC",
+        "drawerCenter": "Preflight log",
+        "drawerRight": "Shortcut",
+        "drawerRightDesc": "Ctrl+D to run",
+        "stickyRunBanner": "Run QC",
+        "inspectorTitle": "QC Inspector",
+        "inspectorSubtitle": "Estimated retention at current thresholds",
+        "inspectorEstRetention": "Est. retention",
+        "inspectorEstPass": "Est. PASS",
+        "inspectorMinDepth": "Min depth cutoff",
+        "inspectorMinIdentity": "Min identity cutoff"
+      },
+      "verdict": {
+        "contextTitle": "Sequencing QC — Verdicts",
+        "contextSubtitle": "Per-barcode sequencing outcome and call.",
+        "drawerLeft": "Analysis",
+        "drawerLeftDesc": "Consensus called",
+        "drawerCenter": "Consensus log",
+        "drawerRight": "Next",
+        "drawerRightDesc": "Review plate plan",
+        "inspectorTitle": "Barcode Verdict",
+        "inspectorSubtitle": "Selected barcode details",
+        "inspectorReads": "Reads",
+        "inspectorIdentity": "Identity",
+        "inspectorCall": "Call",
+        "inspectorExport": "Export",
+        "inspectorNoBarcodeSelected": "Select a row to inspect"
+      },
+      "plate": {
+        "contextTitle": "Sequencing QC — Plate Plan",
+        "contextSubtitle": "96-well layout with per-well verdict.",
+        "drawerLeft": "Selection",
+        "drawerLeftDesc": "Wells selected for pick",
+        "drawerCenter": "Plate log",
+        "drawerRight": "Next",
+        "drawerRightDesc": "Proceed to activity",
+        "inspectorTitle": "Well Inspector",
+        "inspectorSubtitle": "Selected well details",
+        "inspectorBarcode": "Barcode",
+        "inspectorReads": "Reads",
+        "inspectorReason": "Reason",
+        "inspectorNoWellSelected": "Click a well to inspect",
+        "clusterAlertTitle": "Cluster failure detected",
+        "clusterAlertDesc": "{{wells}} — adjacent wells failed simultaneously. This may indicate a pipetting issue.",
+        "clusterAlertAriaLabel": "Plate cluster failure alert"
+      }
+    },
+    "inspector": {
+      "kvEmpty": "—",
+      "noDataPlaceholder": "No data available"
     }
   },
   "home": {
@@ -1734,6 +1862,90 @@
       "view": "视图",
       "run": "运行",
       "help": "帮助"
+    }
+  },
+  "kuro": {
+    "load": {
+      "inspectorTitle": "源检查器",
+      "artifactLabel": "MAME制品",
+      "intentCallout": "设计意图：将MAME导出CSV作为变体源加载。在推进之前验证列映射。",
+      "drawerRecent": "最近制品",
+      "drawerAutosave": "自动保存",
+      "sideCardBody": "检测到MAME第3轮导出文件。将其用作CSV源或手动替换。"
+    },
+    "nominate": {
+      "inspectorTitle": "变体检查器",
+      "kvActivity": "活性",
+      "kvReads": "读取数",
+      "kvDomain": "域",
+      "kvMameLink": "MAME源",
+      "calloutText": "选择变体行以检查详细信息。被阻止的变体将从引物设计中排除。",
+      "drawerActions": "操作",
+      "drawerAutosave": "自动保存",
+      "sideCardBody": "检查评分变体。在进入参数之前阻止低置信度命中。"
+    },
+    "params": {
+      "inspectorTitle": "参数检查器",
+      "metricPrimers": "引物",
+      "metricPlates": "板",
+      "metricWarn": "警告",
+      "metricRuntime": "运行时间",
+      "calloutText": "参数更改时预期计数实时更新。运行时间估计是近似值。",
+      "drawerEstimate": "估计",
+      "drawerShortcut": "快捷键",
+      "sideCardBody": "调整Tm目标和重叠以在提交前最小化警告。"
+    },
+    "submit": {
+      "inspectorTitle": "当前变异",
+      "kvMutation": "变异",
+      "kvProgress": "进度",
+      "kvPartialSave": "部分保存",
+      "contractCallout": "数据合约：取消时侧车写入部分JSONL。如果浏览器标签关闭，从自动保存重新加载。",
+      "drawerJobQueue": "作业队列",
+      "drawerRecovery": "恢复",
+      "sideCardBody": "不要隐藏进度。运行界面必须包含取消、ETA、部分保存和死锁恢复路径。"
+    },
+    "output": {
+      "inspectorTitle": "引物检查器",
+      "kvFwd": "正向引物",
+      "kvRev": "反向引物",
+      "kvTm": "Tm",
+      "kvStatus": "状态",
+      "filterFailed": "仅失败",
+      "drawerDesignReport": "设计报告",
+      "drawerNext": "下一步",
+      "sideCardBody": "检查引物对。在导出之前使用板图发现覆盖缺口。"
+    },
+    "export": {
+      "inspectorTitle": "导出检查器",
+      "kvDestination": "目标",
+      "kvPrefills": "预填",
+      "kvStaleness": "新鲜度",
+      "handoffCallout": "实现：MAME将在下一轮中将此导出读取为KURO制品源。",
+      "drawerExportQueue": "导出队列",
+      "drawerNext": "下一步",
+      "sideCardBody": "确认导出目标。MAME交接包自动生成。"
+    },
+    "inspector": {
+      "noArtifact": "未加载制品",
+      "round": "轮次",
+      "variants": "变体",
+      "format": "格式",
+      "intentLabel": "设计意图",
+      "selectRowPrompt": "选择行以查看详情",
+      "selectedBadge": "已选择",
+      "usefulLabel": "有用的补充",
+      "running": "运行中...",
+      "partialSavePending": "待处理",
+      "partialSaveReady": "就绪",
+      "dataContractLabel": "数据契约",
+      "noDesignResults": "尚无设计结果",
+      "implementationLabel": "实现",
+      "stalenessLinked": "已关联",
+      "exportTargets": "MAME handoff",
+      "plateMap": "板图",
+      "nPlates": "{{count}} 块板",
+      "bridgeBadge": "bridge"
     }
   }
 }

@@ -99,7 +99,46 @@
     "dataFolderChange": "更改...",
     "language": "語言",
     "languageNote": "語言偏好儲存在本地。",
-    "close": "關閉"
+    "close": "關閉",
+    "tab": {
+      "general": "一般",
+      "network": "網路",
+      "sidecar": "Sidecar",
+      "telemetry": "遙測"
+    },
+    "theme": {
+      "label": "主題",
+      "light": "淺色",
+      "dark": "深色",
+      "auto": "系統"
+    },
+    "network": {
+      "offlineMode": "離線模式",
+      "offlineModeHint": "啟用後，所有外部網路呼叫（UniProt、BLAST、AlphaFold、InterPro）將被封鎖。",
+      "consent": {
+        "title": "外部服務授權",
+        "uniprot": "UniProt（序列搜尋）",
+        "blast": "NCBI BLAST via EBI（脫靶檢查）",
+        "alphafold": "AlphaFold via EBI（結構查詢）",
+        "interpro": "InterPro / Pfam via EBI（域註釋）"
+      }
+    },
+    "sidecar": {
+      "concurrency": "預設並行數",
+      "concurrencyHint": "最大並行引物設計任務數（1–16）。",
+      "cancelTimeout": "取消逾時",
+      "cancelTimeoutHint": "強制終止前等待正常取消的秒數（5–120 秒）。",
+      "persistOnCancel": "取消時",
+      "persistPartial": "保留部分結果",
+      "persistDiscard": "捨棄所有結果"
+    },
+    "telemetry": {
+      "crashLog": "自動傳送當機記錄",
+      "crashLogHint": "自動傳送匿名當機報告以改善穩定性。預設：關閉。",
+      "anonymousStats": "匿名使用統計",
+      "anonymousStatsHint": "共享匿名功能使用資料。不含任何個人或序列資料。預設：關閉。"
+    },
+    "savedAt": "已於 {{time}} 儲存"
   },
   "mame": {
     "input": {
@@ -511,6 +550,95 @@
         "blank": "Blank",
         "final": "Final 96 Deep Well"
       }
+    },
+    "setup": {
+      "files": {
+        "railTitle": "MAME Workflow",
+        "contextTitle": "Run Setup — Input Files",
+        "contextSubtitle": "Select a MinKNOW run folder and confirm detected files.",
+        "drawerLeft": "Detected",
+        "drawerLeftDesc": "Run folder scanned",
+        "drawerCenter": "Scan log",
+        "drawerRight": "Next",
+        "drawerRightDesc": "Map barcodes to design",
+        "inspectorTitle": "Run Inspector",
+        "inspectorSubtitle": "Selected run folder metadata",
+        "inspectorDevice": "Device",
+        "inspectorKit": "Kit",
+        "inspectorBarcodes": "Barcodes",
+        "inspectorNoFolder": "No run folder selected"
+      },
+      "design": {
+        "contextTitle": "Run Setup — Design Mapping",
+        "contextSubtitle": "Map KURO barcode package to this run.",
+        "drawerLeft": "KURO source",
+        "drawerLeftDesc": "Barcode package loaded",
+        "drawerCenter": "Map log",
+        "drawerRight": "Next",
+        "drawerRightDesc": "Proceed to QC",
+        "inspectorTitle": "Barcode Inspector",
+        "inspectorSubtitle": "BC01 mapping details",
+        "inspectorVariant": "Variant",
+        "inspectorDesignSource": "Design source",
+        "inspectorExpectedReads": "Expected reads",
+        "inspectorNoBarcodeSelected": "No barcode selected"
+      }
+    },
+    "qc": {
+      "inputs": {
+        "contextTitle": "Sequencing QC — Inputs",
+        "contextSubtitle": "Configure thresholds and run quality control.",
+        "drawerLeft": "Queue",
+        "drawerLeftDesc": "Wells queued for QC",
+        "drawerCenter": "Preflight log",
+        "drawerRight": "Shortcut",
+        "drawerRightDesc": "Ctrl+D to run",
+        "stickyRunBanner": "Run QC",
+        "inspectorTitle": "QC Inspector",
+        "inspectorSubtitle": "Estimated retention at current thresholds",
+        "inspectorEstRetention": "Est. retention",
+        "inspectorEstPass": "Est. PASS",
+        "inspectorMinDepth": "Min depth cutoff",
+        "inspectorMinIdentity": "Min identity cutoff"
+      },
+      "verdict": {
+        "contextTitle": "Sequencing QC — Verdicts",
+        "contextSubtitle": "Per-barcode sequencing outcome and call.",
+        "drawerLeft": "Analysis",
+        "drawerLeftDesc": "Consensus called",
+        "drawerCenter": "Consensus log",
+        "drawerRight": "Next",
+        "drawerRightDesc": "Review plate plan",
+        "inspectorTitle": "Barcode Verdict",
+        "inspectorSubtitle": "Selected barcode details",
+        "inspectorReads": "Reads",
+        "inspectorIdentity": "Identity",
+        "inspectorCall": "Call",
+        "inspectorExport": "Export",
+        "inspectorNoBarcodeSelected": "Select a row to inspect"
+      },
+      "plate": {
+        "contextTitle": "Sequencing QC — Plate Plan",
+        "contextSubtitle": "96-well layout with per-well verdict.",
+        "drawerLeft": "Selection",
+        "drawerLeftDesc": "Wells selected for pick",
+        "drawerCenter": "Plate log",
+        "drawerRight": "Next",
+        "drawerRightDesc": "Proceed to activity",
+        "inspectorTitle": "Well Inspector",
+        "inspectorSubtitle": "Selected well details",
+        "inspectorBarcode": "Barcode",
+        "inspectorReads": "Reads",
+        "inspectorReason": "Reason",
+        "inspectorNoWellSelected": "Click a well to inspect",
+        "clusterAlertTitle": "Cluster failure detected",
+        "clusterAlertDesc": "{{wells}} — adjacent wells failed simultaneously. This may indicate a pipetting issue.",
+        "clusterAlertAriaLabel": "Plate cluster failure alert"
+      }
+    },
+    "inspector": {
+      "kvEmpty": "—",
+      "noDataPlaceholder": "No data available"
     }
   },
   "home": {
@@ -1734,6 +1862,90 @@
       "view": "檢視",
       "run": "執行",
       "help": "說明"
+    }
+  },
+  "kuro": {
+    "load": {
+      "inspectorTitle": "來源檢查器",
+      "artifactLabel": "MAME 製品",
+      "intentCallout": "設計意圖：將 MAME 匯出 CSV 作為變體來源載入。在繼續之前驗證欄位對映。",
+      "drawerRecent": "最近製品",
+      "drawerAutosave": "自動儲存",
+      "sideCardBody": "偵測到 MAME 第 3 輪匯出檔案。將其用作 CSV 來源或手動替換。"
+    },
+    "nominate": {
+      "inspectorTitle": "變體檢查器",
+      "kvActivity": "活性",
+      "kvReads": "讀取數",
+      "kvDomain": "域",
+      "kvMameLink": "MAME 來源",
+      "calloutText": "選取變體列以檢查詳細資訊。被封鎖的變體將從引子設計中排除。",
+      "drawerActions": "操作",
+      "drawerAutosave": "自動儲存",
+      "sideCardBody": "檢查評分變體。在進入參數之前封鎖低信賴度命中。"
+    },
+    "params": {
+      "inspectorTitle": "參數檢查器",
+      "metricPrimers": "引子",
+      "metricPlates": "板",
+      "metricWarn": "警告",
+      "metricRuntime": "執行時間",
+      "calloutText": "參數更改時預期計數即時更新。執行時間估計為近似值。",
+      "drawerEstimate": "估計",
+      "drawerShortcut": "快速鍵",
+      "sideCardBody": "調整 Tm 目標和重疊以在提交前最小化警告。"
+    },
+    "submit": {
+      "inspectorTitle": "目前變異",
+      "kvMutation": "變異",
+      "kvProgress": "進度",
+      "kvPartialSave": "部分儲存",
+      "contractCallout": "資料合約：取消時側車寫入部分 JSONL。如果瀏覽器標籤關閉，從自動儲存重新載入。",
+      "drawerJobQueue": "作業佇列",
+      "drawerRecovery": "復原",
+      "sideCardBody": "不要隱藏進度。執行介面必須包含取消、ETA、部分儲存和死鎖復原路徑。"
+    },
+    "output": {
+      "inspectorTitle": "引子檢查器",
+      "kvFwd": "正向引子",
+      "kvRev": "反向引子",
+      "kvTm": "Tm",
+      "kvStatus": "狀態",
+      "filterFailed": "僅失敗",
+      "drawerDesignReport": "設計報告",
+      "drawerNext": "下一步",
+      "sideCardBody": "檢查引子對。在匯出之前使用板圖找出覆蓋缺口。"
+    },
+    "export": {
+      "inspectorTitle": "匯出檢查器",
+      "kvDestination": "目標",
+      "kvPrefills": "預填",
+      "kvStaleness": "新鮮度",
+      "handoffCallout": "實作：MAME 將在下一輪中將此匯出讀取為 KURO 製品來源。",
+      "drawerExportQueue": "匯出佇列",
+      "drawerNext": "下一步",
+      "sideCardBody": "確認匯出目標。MAME 交接套件自動產生。"
+    },
+    "inspector": {
+      "noArtifact": "未載入製品",
+      "round": "輪次",
+      "variants": "變體",
+      "format": "格式",
+      "intentLabel": "設計意圖",
+      "selectRowPrompt": "選取行以查看詳情",
+      "selectedBadge": "已選取",
+      "usefulLabel": "有用的補充",
+      "running": "執行中...",
+      "partialSavePending": "待處理",
+      "partialSaveReady": "就緒",
+      "dataContractLabel": "資料契約",
+      "noDesignResults": "尚無設計結果",
+      "implementationLabel": "實作",
+      "stalenessLinked": "已連結",
+      "exportTargets": "MAME handoff",
+      "plateMap": "板圖",
+      "nPlates": "{{count}} 塊板",
+      "bridgeBadge": "bridge"
     }
   }
 }
