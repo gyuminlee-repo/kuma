@@ -46,6 +46,7 @@ async fn sidecar_is_running(
 #[derive(serde::Serialize)]
 struct SidecarHealth {
     alive: bool,
+    responsive: bool,   // health_info RPC 응답을 받았는가
     kind: String,
     pid: Option<u32>,
     version: Option<String>,   // sidecar Python 인터프리터 버전 (py_version)
@@ -58,11 +59,17 @@ async fn check_sidecar_health(
     kind: String,
     state: State<'_, sidecar::SidecarManager>,
 ) -> Result<SidecarHealth, String> {
+    // 0. kind allow-list 가드
+    if !matches!(kind.as_str(), "kuro" | "mame") {
+        return Err(format!("invalid sidecar kind: {kind}"));
+    }
+
     // 1. Spawn 없이 alive 여부만 확인
     let is_alive = state.is_running(&kind).await?;
     if !is_alive {
         return Ok(SidecarHealth {
             alive: false,
+            responsive: false,
             kind: kind.clone(),
             pid: None,
             version: None,
@@ -88,7 +95,7 @@ async fn check_sidecar_health(
 
     match rpc_result {
         Ok(info) => {
-            let pid = info.get("pid").and_then(|v| v.as_u64()).map(|v| v as u32);
+            let pid = info.get("pid").and_then(|v| v.as_u64()).and_then(|v| u32::try_from(v).ok());
             let py_version = info
                 .get("py_version")
                 .and_then(|v| v.as_str())
@@ -104,6 +111,7 @@ async fn check_sidecar_health(
             };
             Ok(SidecarHealth {
                 alive: true,
+                responsive: true,
                 kind,
                 pid,
                 version: py_version,
@@ -112,13 +120,14 @@ async fn check_sidecar_health(
             })
         }
         Err(err) => {
-            // health_info RPC 실패(응답 없음 또는 타임아웃) = 사이드카 응답 불가
+            // health_info RPC 실패(응답 없음 또는 타임아웃) = 프로세스는 살아있으나 응답 불가
             Ok(SidecarHealth {
-                alive: false,
+                alive: true,
+                responsive: false,
                 kind: kind.clone(),
                 pid: None,
                 version: None,
-                uptime_secs: None,
+                uptime_secs,
                 message: format!("{kind} 사이드카 응답 없음: {err}"),
             })
         }

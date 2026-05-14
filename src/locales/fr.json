@@ -1226,7 +1226,8 @@
         "dark": "Dark",
         "system": "System auto"
       },
-      "fullscreen": "Full screen"
+      "fullscreen": "Full screen",
+      "fullscreenError": "Failed to toggle fullscreen: {{message}}"
     },
     "edit": {
       "title": "Edit",
@@ -1239,6 +1240,7 @@
       "replay": "Replay saved run...",
       "replayError": "Failed to load manifest: {{message}}",
       "sidecarHealthAlive": "sidecar ready · v{{version}} · uptime {{uptime}}s",
+      "sidecarHealthUnresponsive": "sidecar process not responding · {{message}}",
       "sidecarHealthDead": "sidecar not responding. Use Restart Sidecar"
     },
     "help": {

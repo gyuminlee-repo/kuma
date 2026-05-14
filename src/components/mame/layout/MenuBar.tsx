@@ -53,6 +53,17 @@ import type { InputVerifyResult } from "@/lib/reRun";
 
 const MOD_KEY = typeof navigator !== "undefined" && navigator.userAgent.includes("Mac") ? "⌘" : "Ctrl+";
 
+/** A: SidecarHealth — 모듈 스코프 (architect §responsive 필드 추가) */
+interface SidecarHealth {
+  alive: boolean;
+  responsive: boolean;
+  kind: string;
+  pid: number | null;
+  version: string | null;
+  uptime_secs: number | null;
+  message: string;
+}
+
 /** 메뉴 트리거 공통 클래스 (계획서 §6.1 권장) */
 const TRIGGER_CLS =
   "h-control px-3 rounded-control hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-colors duration-fast text-caption font-medium text-foreground/80";
@@ -188,11 +199,16 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
   // §D3.5: View 메뉴 단축키 (Ctrl/Cmd+L: Logs, Ctrl/Cmd+J: Jobs)
   // + 2-A: Ctrl+, Preferences, Ctrl+/ Shortcuts
   const handleViewKeyDown = useCallback((e: KeyboardEvent) => {
-    // F11: fullscreen toggle (modifier 없음)
+    // B: input/textarea/contenteditable 포커스 시 전역 단축키 무시
+    const target = e.target as HTMLElement;
+    if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return;
+    // F11: fullscreen toggle (modifier 없음) — C: .catch 추가
     if (e.key === "F11") {
       e.preventDefault();
       void getCurrentWindow().isFullscreen().then((full) =>
         getCurrentWindow().setFullscreen(!full)
+      ).catch((err: unknown) =>
+        toast.error(t("menuBar.view.fullscreenError", { message: err instanceof Error ? err.message : String(err) }))
       );
       return;
     }
@@ -222,34 +238,34 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
     return () => window.removeEventListener("keydown", handleViewKeyDown);
   }, [handleViewKeyDown]);
 
-  // 2-B: Replay saved run
+  // 2-B: Replay saved run — D: openDialog 자체 실패도 catch
   async function handleMameReplay() {
-    const selected = await openDialog({
-      filters: [{ name: "Manifest", extensions: ["json"] }],
-    });
-    if (!selected) return;
-    const path = typeof selected === "string" ? selected : selected[0];
-    if (!path) return;
     try {
-      const manifest = await loadManifestFromFile(path);
-      setReRunManifest(manifest);
+      const selected = await openDialog({
+        filters: [{ name: "Manifest", extensions: ["json"] }],
+      });
+      if (!selected) return;
+      const path = typeof selected === "string" ? selected : selected[0];
+      if (!path) return;
+      try {
+        const manifest = await loadManifestFromFile(path);
+        setReRunManifest(manifest);
+      } catch (err) {
+        toast.error(t("menuBar.run.replayError", { message: err instanceof Error ? err.message : String(err) }));
+      }
     } catch (err) {
       toast.error(t("menuBar.run.replayError", { message: err instanceof Error ? err.message : String(err) }));
     }
   }
 
-  // 2-B: Check sidecar health
-  interface SidecarHealth {
-    alive: boolean;
-    uptime_secs: number | null;
-    version: string | null;
-  }
-
+  // 2-B: Check sidecar health — A: interface 모듈 스코프 이동 완료, 토스트 3-way 분기
   async function handleCheckMameSidecarHealth() {
     try {
       const health = await invoke<SidecarHealth>("check_sidecar_health", { kind: "mame" });
-      if (health.alive) {
+      if (health.alive && health.responsive) {
         toast.success(t("menuBar.run.sidecarHealthAlive", { version: health.version ?? "unknown", uptime: health.uptime_secs ?? 0 }));
+      } else if (health.alive && !health.responsive) {
+        toast.warning(t("menuBar.run.sidecarHealthUnresponsive", { message: health.message }));
       } else {
         toast.warning(t("menuBar.run.sidecarHealthDead"));
       }

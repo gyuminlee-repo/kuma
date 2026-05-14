@@ -1226,7 +1226,8 @@
         "dark": "다크",
         "system": "시스템 자동"
       },
-      "fullscreen": "전체 화면"
+      "fullscreen": "전체 화면",
+      "fullscreenError": "전체 화면 전환 실패: {{message}}"
     },
     "edit": {
       "title": "편집",
@@ -1239,6 +1240,7 @@
       "replay": "이전 실행 재현...",
       "replayError": "매니페스트 로드 실패: {{message}}",
       "sidecarHealthAlive": "sidecar 응답 OK · v{{version}} · 가동 {{uptime}}초",
+      "sidecarHealthUnresponsive": "사이드카 프로세스 응답 없음 · {{message}}",
       "sidecarHealthDead": "sidecar 응답 없음. Restart Sidecar 사용"
     },
     "help": {
