@@ -58,12 +58,20 @@ describe("WorkflowRail", () => {
     expect(onStepClick).toHaveBeenCalledWith(0);
   });
 
-  it("lock step button is disabled", () => {
+  it("lock step button is clickable (spec #17: free rail navigation)", async () => {
+    const onStepClick = vi.fn();
     render(
-      <WorkflowRail title="Design workflow" progressPercent={34} steps={BASE_STEPS} />,
+      <WorkflowRail
+        title="Design workflow"
+        progressPercent={34}
+        steps={BASE_STEPS}
+        onStepClick={onStepClick}
+      />,
     );
     const lockBtn = screen.getByRole("button", { name: /params/i });
-    expect(lockBtn).toBeDisabled();
+    expect(lockBtn).not.toBeDisabled();
+    await userEvent.click(lockBtn);
+    expect(onStepClick).toHaveBeenCalledWith(2);
   });
 
   it("renders side-card when provided", () => {
