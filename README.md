@@ -2,6 +2,8 @@
 
 [한국어](README.ko.md) | **English**
 
+📖 User guide: https://gyuminlee-repo.github.io/kuma/ — built with MkDocs (Material).
+
 `kuma` packages two subtools into one Tauri desktop app:
 
 - **Kuro** — *Kernel for Upstream Recombination Oligodesign.* Batch SDM primer design from Gibson Assembly templates.
