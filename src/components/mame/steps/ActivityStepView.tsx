@@ -19,14 +19,19 @@ import { IngestSection, MergeSection, ExportSection } from "@/components/mame/pa
 import { WizardContainer } from "@/components/steps/WizardContainer";
 import { StepRedirectFallback } from "./StepRedirectFallback";
 
+const ACTIVITY_TOTAL = 2;
 const STEP_CONFIG = {
   "activity.ingest": {
     index: 1,
+    label: "3.1",
+    progressLabel: `3.1 / ${ACTIVITY_TOTAL}`,
     titleKey: "phaseC.mameSubSteps.activity.ingest",
     descriptionKey: "phaseE.mameDescriptions.activity.ingest",
   },
   "activity.mergeExport": {
     index: 2,
+    label: "3.2",
+    progressLabel: `3.2 / ${ACTIVITY_TOTAL}`,
     titleKey: "phaseC.mameSubSteps.activity.mergeExport",
     descriptionKey: "phaseE.mameDescriptions.activity.mergeExport",
   },
@@ -66,7 +71,9 @@ export function ActivityStepView() {
   return (
     <WizardContainer
       stepIndex={config.index}
-      stepTotal={2}
+      stepTotal={ACTIVITY_TOTAL}
+      stepLabel={config.label}
+      progressLabel={config.progressLabel}
       titleKey={config.titleKey}
       descriptionKey={config.descriptionKey}
       onPrev={goToPrevStep}

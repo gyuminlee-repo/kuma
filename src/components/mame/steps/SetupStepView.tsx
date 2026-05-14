@@ -17,14 +17,19 @@ import { BarcodeSetupPanel } from "@/components/mame/panels/BarcodeSetupPanel";
 import { WizardContainer } from "@/components/steps/WizardContainer";
 import { StepRedirectFallback } from "./StepRedirectFallback";
 
+const SETUP_TOTAL = 2;
 const STEP_CONFIG = {
   "setup.files": {
     index: 1,
+    label: "1.1",
+    progressLabel: `1.1 / ${SETUP_TOTAL}`,
     titleKey: "phaseC.mameSubSteps.setup.files",
     descriptionKey: "phaseE.mameDescriptions.setup.files",
   },
   "setup.design": {
     index: 2,
+    label: "1.2",
+    progressLabel: `1.2 / ${SETUP_TOTAL}`,
     titleKey: "phaseC.mameSubSteps.setup.design",
     descriptionKey: "phaseE.mameDescriptions.setup.design",
   },
@@ -52,7 +57,9 @@ export function SetupStepView() {
   return (
     <WizardContainer
       stepIndex={config.index}
-      stepTotal={2}
+      stepTotal={SETUP_TOTAL}
+      stepLabel={config.label}
+      progressLabel={config.progressLabel}
       titleKey={config.titleKey}
       descriptionKey={config.descriptionKey}
       onPrev={isFirst ? undefined : goToPrevStep}

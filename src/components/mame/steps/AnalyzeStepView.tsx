@@ -44,19 +44,26 @@ interface AnalyzeStepViewProps {
   onClearRequest?: () => void;
 }
 
+const ANALYZE_TOTAL = 3;
 const STEP_CONFIG = {
   "analyze.inputs": {
     index: 1,
+    label: "2.1",
+    progressLabel: `2.1 / ${ANALYZE_TOTAL}`,
     titleKey: "phaseC.mameSubSteps.analyze.inputs",
     descriptionKey: "phaseE.mameDescriptions.analyze.inputs",
   },
   "analyze.verdict": {
     index: 2,
+    label: "2.2",
+    progressLabel: `2.2 / ${ANALYZE_TOTAL}`,
     titleKey: "phaseC.mameSubSteps.analyze.verdict",
     descriptionKey: "phaseE.mameDescriptions.analyze.verdict",
   },
   "analyze.plate": {
     index: 3,
+    label: "2.3",
+    progressLabel: `2.3 / ${ANALYZE_TOTAL}`,
     titleKey: "phaseC.mameSubSteps.analyze.plate",
     descriptionKey: "phaseE.mameDescriptions.analyze.plate",
   },
@@ -232,7 +239,9 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
   return (
     <WizardContainer
       stepIndex={config.index}
-      stepTotal={3}
+      stepTotal={ANALYZE_TOTAL}
+      stepLabel={config.label}
+      progressLabel={config.progressLabel}
       titleKey={config.titleKey}
       descriptionKey={config.descriptionKey}
       onPrev={goToPrevStep}

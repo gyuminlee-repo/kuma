@@ -25,6 +25,42 @@ const ALL_SUBSTEPS: MameSubStepId[] = [
 
 const STEP_TOTAL = ALL_SUBSTEPS.length; // 7
 
+/** Major.Sub 표기 (spec §5.2). KURO는 단일 카운트, MAME는 Major.Sub. */
+const SUBSTEP_DISPLAY: Record<MameSubStepId, string> = {
+  "setup.files": "1.1",
+  "setup.design": "1.2",
+  "analyze.inputs": "2.1",
+  "analyze.verdict": "2.2",
+  "analyze.plate": "2.3",
+  "activity.ingest": "3.1",
+  "activity.mergeExport": "3.2",
+};
+
+/** 각 sub-step이 속한 major group. */
+const SUBSTEP_MAJOR: Record<MameSubStepId, "setup" | "analyze" | "activity"> = {
+  "setup.files": "setup",
+  "setup.design": "setup",
+  "analyze.inputs": "analyze",
+  "analyze.verdict": "analyze",
+  "analyze.plate": "analyze",
+  "activity.ingest": "activity",
+  "activity.mergeExport": "activity",
+};
+
+/** Major group labels reuse the existing `mame.appLayout.*Tab` strings (without the
+ * leading "1. "/"2. "/"3. " prefix; the rail prepends its own numbering). */
+const MAJOR_ORDER: Array<{ id: "setup" | "analyze" | "activity"; num: number; labelKey: string }> = [
+  { id: "setup", num: 1, labelKey: "mame.appLayout.barcodeSetupTab" },
+  { id: "analyze", num: 2, labelKey: "mame.appLayout.analyzeTab" },
+  { id: "activity", num: 3, labelKey: "mame.appLayout.activityTab" },
+];
+
+/** Strip a leading numeric prefix like "1. " from translated major labels so the
+ * rail can render its own `1.` prefix consistently across locales. */
+function stripLeadingNumber(label: string): string {
+  return label.replace(/^\s*\d+\.?\s*/, "");
+}
+
 /** 각 sub-step의 i18n 레이블 키 */
 const STEP_LABEL_KEYS: Record<MameSubStepId, string> = {
   "setup.files": "phaseC.mameSubSteps.setup.files",
@@ -49,38 +85,53 @@ export function MameWorkflowRail() {
   const activeIndex = ALL_SUBSTEPS.indexOf(currentSubStep);
   const progressPercent = computeProgress(Math.max(0, activeIndex));
 
-  const steps: WorkflowStep[] = ALL_SUBSTEPS.map((id, idx) => {
-    let state: WorkflowStep["state"];
-    if (idx < activeIndex) {
-      state = "done";
-    } else if (idx === activeIndex) {
-      state = "active";
-    } else {
-      state = "default";
-    }
+  // Build a heterogeneous list: [header, sub, sub, header, sub, sub, sub, ...]
+  // Track the mapping rendered-index -> sub-step id so onStepClick navigates correctly.
+  const steps: WorkflowStep[] = [];
+  const renderedTargets: (MameSubStepId | null)[] = [];
 
-    return {
-      num: idx + 1,
-      title: t(STEP_LABEL_KEYS[id]),
-      state,
-      mini: idx === activeIndex ? "now" : idx === activeIndex + 1 ? "next" : undefined,
-    };
-  });
+  for (const major of MAJOR_ORDER) {
+    steps.push({
+      kind: "header",
+      num: major.num,
+      title: stripLeadingNumber(t(major.labelKey)),
+      state: "default",
+    });
+    renderedTargets.push(null);
+
+    const subs = ALL_SUBSTEPS.filter((id) => SUBSTEP_MAJOR[id] === major.id);
+    for (const id of subs) {
+      const idx = ALL_SUBSTEPS.indexOf(id);
+      let state: WorkflowStep["state"];
+      if (idx < activeIndex) state = "done";
+      else if (idx === activeIndex) state = "active";
+      else state = "default";
+
+      steps.push({
+        num: SUBSTEP_DISPLAY[id],
+        title: t(STEP_LABEL_KEYS[id]),
+        state,
+        indent: true,
+        mini: idx === activeIndex ? "now" : idx === activeIndex + 1 ? "next" : undefined,
+      });
+      renderedTargets.push(id);
+    }
+  }
 
   return (
     <WorkflowRail
       title={t("mame.setup.files.railTitle")}
       progressPercent={progressPercent}
       steps={steps}
-      onStepClick={(idx) => {
-        const targetId = ALL_SUBSTEPS[idx];
+      onStepClick={(renderedIdx) => {
+        const targetId = renderedTargets[renderedIdx];
         if (targetId) setMameSubStep(targetId);
       }}
       sideCard={
         activeIndex >= 0
           ? {
               title: t(STEP_LABEL_KEYS[ALL_SUBSTEPS[activeIndex]]),
-              body: `${activeIndex + 1} / ${STEP_TOTAL}`,
+              body: `${SUBSTEP_DISPLAY[ALL_SUBSTEPS[activeIndex]]} / ${STEP_TOTAL}`,
             }
           : undefined
       }

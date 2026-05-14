@@ -134,6 +134,48 @@ describe("WizardContainer", () => {
     expect(screen.getByText("Step 3 / 4")).toBeTruthy();
   });
 
+  it("stepLabel overrides stepIndex in heading (MAME Major.Sub)", () => {
+    render(
+      <WizardContainer
+        stepIndex={2}
+        stepTotal={3}
+        stepLabel="2.1"
+        titleKey="phaseC.subSteps.design.mutation"
+      >
+        <div />
+      </WizardContainer>,
+    );
+    const heading = screen.getByRole("heading", { level: 2 });
+    expect(heading.textContent).toContain("Step 2.1");
+    expect(heading.textContent).not.toMatch(/Step 2:/);
+  });
+
+  it("progressLabel overrides default footer progress text", () => {
+    render(
+      <WizardContainer
+        stepIndex={1}
+        stepTotal={2}
+        progressLabel="1.1 / 2"
+        titleKey="phaseC.subSteps.design.load"
+      >
+        <div />
+      </WizardContainer>,
+    );
+    expect(screen.getByText("1.1 / 2")).toBeTruthy();
+    // The default "Step 1 / 2" text should not be present.
+    expect(screen.queryByText("Step 1 / 2")).toBeNull();
+  });
+
+  it("omitting stepLabel falls back to stepIndex (KURO backwards compat)", () => {
+    render(
+      <WizardContainer stepIndex={4} stepTotal={6} titleKey="phaseC.subSteps.design.params">
+        <div />
+      </WizardContainer>,
+    );
+    const heading = screen.getByRole("heading", { level: 2 });
+    expect(heading.textContent).toContain("Step 4");
+  });
+
   it("heading is outside the scrollable body — wizard-header is not inside wizard-body", () => {
     render(
       <WizardContainer stepIndex={1} stepTotal={4} titleKey="phaseC.subSteps.design.load">
