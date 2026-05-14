@@ -16,6 +16,7 @@ import { ResultTable } from "@/components/widgets/ResultTable";
 import { PlateMap } from "@/components/widgets/PlateMap";
 import { WizardContainer } from "./WizardContainer";
 import { StateView } from "@/components/ui/StateView";
+import { KURO_STEP_INDEX, TOTAL_KURO_STEPS } from "./constants";
 
 export function OutputStepView() {
   const { t } = useTranslation();
@@ -42,8 +43,8 @@ export function OutputStepView() {
 
   return (
     <WizardContainer
-      stepIndex={1}
-      stepTotal={1}
+      stepIndex={KURO_STEP_INDEX["output.summary"]}
+      stepTotal={TOTAL_KURO_STEPS}
       titleKey="phaseC.subSteps.output.summary"
       descriptionKey="phaseE.descriptions.output.summary"
       maxWidth="full"

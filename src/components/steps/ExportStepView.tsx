@@ -15,14 +15,15 @@ import { useAppStore } from "@/store/appStore";
 import { WizardContainer } from "./WizardContainer";
 import { ExportFormatSelector } from "./ExportFormatSelector";
 import { OrderSummary } from "./OrderSummary";
+import { KURO_STEP_INDEX, TOTAL_KURO_STEPS } from "./constants";
 
 export function ExportStepView() {
   const goToPrevStep = useAppStore((s) => s.goToPrevStep);
 
   return (
     <WizardContainer
-      stepIndex={1}
-      stepTotal={1}
+      stepIndex={KURO_STEP_INDEX["export.all"]}
+      stepTotal={TOTAL_KURO_STEPS}
       titleKey="phaseC.subSteps.export.all"
       descriptionKey="phaseE.descriptions.export.all"
       maxWidth="4xl"

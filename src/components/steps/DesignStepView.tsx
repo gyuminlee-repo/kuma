@@ -24,8 +24,7 @@ import { MutationInput } from "@/components/panels/InputPanel/MutationInput";
 import { ParameterPanel } from "@/components/panels/ParameterPanel";
 import { RunDesignAction } from "./RunDesignAction";
 import { WizardContainer } from "./WizardContainer";
-
-const TOTAL_STEPS = 4;
+import { KURO_STEP_INDEX, TOTAL_KURO_STEPS } from "./constants";
 
 export function DesignStepView() {
   const subStep = useAppStore((s) => s.currentSubStep);
@@ -36,8 +35,8 @@ export function DesignStepView() {
     case "design.load":
       return (
         <WizardContainer
-          stepIndex={1}
-          stepTotal={TOTAL_STEPS}
+          stepIndex={KURO_STEP_INDEX["design.load"]}
+          stepTotal={TOTAL_KURO_STEPS}
           titleKey="phaseC.subSteps.design.load"
           descriptionKey="phaseE.descriptions.design.load"
           onNext={() => goToNextStep()}
@@ -49,8 +48,8 @@ export function DesignStepView() {
     case "design.mutation":
       return (
         <WizardContainer
-          stepIndex={2}
-          stepTotal={TOTAL_STEPS}
+          stepIndex={KURO_STEP_INDEX["design.mutation"]}
+          stepTotal={TOTAL_KURO_STEPS}
           titleKey="phaseC.subSteps.design.mutation"
           descriptionKey="phaseE.descriptions.design.mutation"
           onNext={() => goToNextStep()}
@@ -62,8 +61,8 @@ export function DesignStepView() {
     case "design.params":
       return (
         <WizardContainer
-          stepIndex={3}
-          stepTotal={TOTAL_STEPS}
+          stepIndex={KURO_STEP_INDEX["design.params"]}
+          stepTotal={TOTAL_KURO_STEPS}
           titleKey="phaseC.subSteps.design.params"
           descriptionKey="phaseE.descriptions.design.params"
           onNext={() => goToNextStep()}
@@ -75,8 +74,8 @@ export function DesignStepView() {
     case "design.submit":
       return (
         <WizardContainer
-          stepIndex={4}
-          stepTotal={TOTAL_STEPS}
+          stepIndex={KURO_STEP_INDEX["design.submit"]}
+          stepTotal={TOTAL_KURO_STEPS}
           titleKey="phaseC.subSteps.design.submit"
           descriptionKey="phaseE.descriptions.design.submit"
           onPrev={() => goToPrevStep()}
