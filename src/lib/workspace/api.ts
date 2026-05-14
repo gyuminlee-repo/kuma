@@ -1,7 +1,5 @@
-import { randomUUID } from "node:crypto";
-import { stat } from "node:fs/promises";
-import { existsSync } from "node:fs";
-import { relative, resolve, isAbsolute } from "node:path";
+import { stat, exists } from "@tauri-apps/plugin-fs";
+import { resolve, isAbsolute } from "@tauri-apps/api/path";
 import { readManifest, writeManifest, createEmptyManifest } from "./manifest";
 import { emit } from "./events";
 import type {
@@ -17,11 +15,26 @@ const ACTIVE_REGISTRY_LS_KEY = "kuma:artifact-registry:active";
 
 let activeDir: string | null = null;
 
-function tryReadPersistedDir(): string | null {
+/**
+ * Compute a relative path from base to target via string ops.
+ * Returns target unchanged if it does not start with base.
+ */
+function computeRelative(base: string, target: string): string {
+  // Normalise separators to forward-slash for cross-platform consistency
+  const normBase = base.replace(/\\/g, "/").replace(/\/$/, "");
+  const normTarget = target.replace(/\\/g, "/");
+  if (normTarget.startsWith(normBase + "/")) {
+    return normTarget.slice(normBase.length + 1);
+  }
+  return normTarget;
+}
+
+async function tryReadPersistedDir(): Promise<string | null> {
   if (typeof localStorage === "undefined") return null;
   try {
     const v = localStorage.getItem(ACTIVE_REGISTRY_LS_KEY);
-    return v && isAbsolute(v) ? v : null;
+    if (!v) return null;
+    return (await isAbsolute(v)) ? v : null;
   } catch {
     return null;
   }
@@ -38,7 +51,7 @@ function persistActiveDir(dir: string | null): void {
 }
 
 export async function openWorkspace(dir: string): Promise<void> {
-  if (!isAbsolute(dir)) {
+  if (!(await isAbsolute(dir))) {
     throw new Error(`workspace dir must be absolute: ${dir}`);
   }
   activeDir = dir;
@@ -52,17 +65,17 @@ export async function openWorkspace(dir: string): Promise<void> {
 
 export async function ensureWorkspaceFromExportPath(absoluteExportPath: string): Promise<void> {
   if (activeDir) return;
-  if (!isAbsolute(absoluteExportPath)) return;
+  if (!(await isAbsolute(absoluteExportPath))) return;
   const dir = absoluteExportPath.replace(/[\\/][^\\/]*$/, "");
-  if (!dir || !isAbsolute(dir)) return;
+  if (!dir || !(await isAbsolute(dir))) return;
   await openWorkspace(dir);
 }
 
 export async function restorePersistedWorkspace(): Promise<boolean> {
   if (activeDir) return true;
-  const dir = tryReadPersistedDir();
+  const dir = await tryReadPersistedDir();
   if (!dir) return false;
-  if (!existsSync(dir)) {
+  if (!(await exists(dir))) {
     persistActiveDir(null);
     return false;
   }
@@ -97,19 +110,19 @@ export async function registerArtifacts(items: NewArtifact[]): Promise<void> {
   const m = await loadOrCreate(dir);
   const now = new Date().toISOString();
   for (const it of items) {
-    if (!existsSync(it.absolutePath)) {
+    if (!(await exists(it.absolutePath))) {
       throw new Error(`artifact path does not exist: ${it.absolutePath}`);
     }
     const st = await stat(it.absolutePath);
-    const rel = relative(dir, it.absolutePath);
+    const rel = computeRelative(dir, it.absolutePath);
     const entry: ManifestArtifact = {
-      id: randomUUID(),
+      id: crypto.randomUUID(),
       app: it.app,
       step: it.step,
       type: it.type,
       path: rel,
       producedAt: now,
-      mtime: new Date(st.mtimeMs).toISOString(),
+      mtime: (st.mtime ?? new Date()).toISOString(),
       sizeBytes: st.size,
     };
     m.artifacts = m.artifacts.filter((a) => key(a) !== key(entry));
@@ -128,8 +141,8 @@ export async function listArtifacts(
   const refs: ArtifactRef[] = [];
   let changed = false;
   for (const a of m.artifacts) {
-    const abs = resolve(dir, a.path);
-    if (!existsSync(abs)) {
+    const abs = await resolve(dir, a.path);
+    if (!(await exists(abs))) {
       changed = true;
       continue;
     }
@@ -137,7 +150,7 @@ export async function listArtifacts(
     if (filter?.app && a.app !== filter.app) continue;
     if (filter?.type && a.type !== filter.type) continue;
     const st = await stat(abs);
-    const currentMtime = new Date(st.mtimeMs).toISOString();
+    const currentMtime = (st.mtime ?? new Date()).toISOString();
     refs.push({ ...a, path: abs, stale: currentMtime !== a.mtime });
   }
   if (changed) {
@@ -166,3 +179,4 @@ export async function clearWorkspace(appId: AppId): Promise<void> {
     emit("workspace:updated");
   }
 }
+

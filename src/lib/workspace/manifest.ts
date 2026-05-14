@@ -1,7 +1,11 @@
-import { readFile, writeFile, rename, readdir } from "node:fs/promises";
-import { existsSync } from "node:fs";
-import { join } from "node:path";
-import { randomUUID } from "node:crypto";
+import {
+  readTextFile,
+  writeTextFile,
+  rename,
+  readDir,
+  exists,
+} from "@tauri-apps/plugin-fs";
+import { join } from "@tauri-apps/api/path";
 import type { WorkspaceManifest } from "./types";
 import { SCHEMA_VERSION, MANIFEST_FILENAME } from "./types";
 
@@ -9,7 +13,7 @@ export function createEmptyManifest(): WorkspaceManifest {
   const now = new Date().toISOString();
   return {
     schemaVersion: SCHEMA_VERSION,
-    workspaceId: randomUUID(),
+    workspaceId: crypto.randomUUID(),
     createdAt: now,
     updatedAt: now,
     artifacts: [],
@@ -17,11 +21,11 @@ export function createEmptyManifest(): WorkspaceManifest {
 }
 
 export async function readManifest(dir: string): Promise<WorkspaceManifest | null> {
-  const path = join(dir, MANIFEST_FILENAME);
-  if (!existsSync(path)) return null;
+  const path = await join(dir, MANIFEST_FILENAME);
+  if (!(await exists(path))) return null;
   let raw: string;
   try {
-    raw = await readFile(path, "utf-8");
+    raw = await readTextFile(path);
   } catch {
     return null;
   }
@@ -38,12 +42,14 @@ export async function readManifest(dir: string): Promise<WorkspaceManifest | nul
 }
 
 export async function writeManifest(dir: string, m: WorkspaceManifest): Promise<void> {
-  const path = join(dir, MANIFEST_FILENAME);
+  const path = await join(dir, MANIFEST_FILENAME);
   m.updatedAt = new Date().toISOString();
-  await writeFile(path, JSON.stringify(m, null, 2), "utf-8");
+  await writeTextFile(path, JSON.stringify(m, null, 2));
 }
 
 export async function listBackups(dir: string): Promise<string[]> {
-  const entries = await readdir(dir);
-  return entries.filter((f) => f.startsWith(`${MANIFEST_FILENAME}.bak-`));
+  const entries = await readDir(dir);
+  return entries
+    .filter((e) => e.name.startsWith(`${MANIFEST_FILENAME}.bak-`))
+    .map((e) => e.name);
 }
