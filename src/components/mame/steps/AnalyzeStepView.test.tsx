@@ -32,8 +32,13 @@ vi.mock("@/components/mame/widgets/PlateView", () => ({
 }));
 vi.mock("@/components/mame/widgets/RunHealthPanel", () => ({
   RunHealthPanel: () => <div data-testid="run-health-panel" />,
-  RUN_HEALTH_VERDICT_SECTIONS: ["file-size", "throughput", "pore-yield"],
-  RUN_HEALTH_PLATE_SECTIONS: ["verdict-breakdown", "barcode", "cross-talk"],
+}));
+
+// react-resizable-panels: PanelGroup/Panel/PanelResizeHandle are passthrough wrappers
+vi.mock("react-resizable-panels", () => ({
+  PanelGroup: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  Panel: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  PanelResizeHandle: () => <div data-testid="resize-handle" />,
 }));
 
 import { AnalyzeStepView } from "./AnalyzeStepView";
@@ -52,43 +57,24 @@ const fakeHealth: RunHealthData = {
   cross_talk_candidates: [],
 };
 
-describe("AnalyzeStepView", () => {
+describe("AnalyzeStepView (Task #12 — analyze.review)", () => {
   beforeEach(() => {
-    useMameAppStore.setState({ currentMameSubStep: "analyze.verdict" });
+    useMameAppStore.setState({ currentMameSubStep: "analyze.review" });
   });
 
-  it("analyze.verdict mounts SummaryRow and VerdictTable", () => {
+  it("analyze.review mounts SummaryRow + VerdictTable + PlateView (unified split)", () => {
     const { getByTestId } = render(<AnalyzeStepView />);
     expect(getByTestId("summary-row")).toBeTruthy();
     expect(getByTestId("verdict-table")).toBeTruthy();
-  });
-
-  it("analyze.plate mounts PlateView", () => {
-    useMameAppStore.setState({ currentMameSubStep: "analyze.plate" });
-    const { getByTestId } = render(<AnalyzeStepView />);
     expect(getByTestId("plate-view")).toBeTruthy();
   });
 
-  it("analyze.verdict with runHealth mounts RunHealthPanel (verdict sections)", () => {
-    useMameAppStore.setState({ currentMameSubStep: "analyze.verdict" });
+  it("analyze.review with runHealth mounts RunHealthPanel (per-plate verdict chart)", () => {
     const { getByTestId } = render(<AnalyzeStepView runHealth={fakeHealth} />);
     expect(getByTestId("run-health-panel")).toBeTruthy();
   });
 
-  it("analyze.verdict without runHealth does not mount RunHealthPanel", () => {
-    useMameAppStore.setState({ currentMameSubStep: "analyze.verdict" });
-    const { queryByTestId } = render(<AnalyzeStepView />);
-    expect(queryByTestId("run-health-panel")).toBeNull();
-  });
-
-  it("analyze.plate with runHealth mounts RunHealthPanel (plate sections)", () => {
-    useMameAppStore.setState({ currentMameSubStep: "analyze.plate" });
-    const { getByTestId } = render(<AnalyzeStepView runHealth={fakeHealth} />);
-    expect(getByTestId("run-health-panel")).toBeTruthy();
-  });
-
-  it("analyze.plate without runHealth does not mount RunHealthPanel", () => {
-    useMameAppStore.setState({ currentMameSubStep: "analyze.plate" });
+  it("analyze.review without runHealth does not mount RunHealthPanel", () => {
     const { queryByTestId } = render(<AnalyzeStepView />);
     expect(queryByTestId("run-health-panel")).toBeNull();
   });

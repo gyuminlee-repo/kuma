@@ -35,6 +35,8 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
   failedMutations: [],
   polymerases: [],
   selectedPolymerase: "Benchling",
+  // @deprecated Phase C (v0.9.2): legacy popup mount removed; slice kept for
+  // DesignReport.tsx Dialog wrapper only. Always init false; never persist.
   showReport: false,
   setShowReport: (show: boolean) => set({ showReport: show }),
   codonStrategy: "closest",
@@ -280,8 +282,13 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         set({
           isDesigning: false,
           progress: hasResults ? 100 : 0,
-          ...(hasResults && { showReport: true }),
         });
+        // Spec #2/#16: auto-advance to output.summary on success.
+        // Legacy popup mount (showReport) removed from AppLayout; report now
+        // renders in the right inspector via DesignReportInspector (Phase C).
+        if (hasResults) {
+          get().setSubStep("output.summary");
+        }
       }
     }
   },

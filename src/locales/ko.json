@@ -456,6 +456,7 @@
       "activityTab": "3. 활성도 데이터",
       "verdictTableTitle": "판정 테이블",
       "platePlanTitle": "Plate 계획",
+      "efficiencyChartTitle": "Plate별 verdict 분포",
       "runHealthTitle": "Run 상태",
       "subSteps": {
         "setup": {
@@ -673,6 +674,16 @@
         "clusterAlertTitle": "클러스터 실패 감지",
         "clusterAlertDesc": "{{wells}} — 인접 well이 동시에 실패했습니다. 피펫팅 문제가 의심됩니다.",
         "clusterAlertAriaLabel": "플레이트 클러스터 실패 경고"
+      },
+      "review": {
+        "contextTitle": "시퀀싱 QC — 검토",
+        "contextSubtitle": "판정 테이블, 플레이트 계획, plate별 verdict 분포를 한 화면에서 검토합니다.",
+        "drawerLeft": "요약",
+        "drawerCenter": "검토 로그",
+        "drawerRight": "다음",
+        "drawerRightDesc": "활성 데이터로 진행",
+        "inspectorTitle": "검토 Inspector",
+        "inspectorSubtitle": "well 선택 시 well 정보, 미선택 시 판정 요약"
       }
     },
     "inspector": {
@@ -1851,6 +1862,7 @@
       },
       "analyze": {
         "inputs": "입력",
+        "review": "검토 (판정 + 플레이트)",
         "verdict": "판정 결과",
         "plate": "플레이트 계획",
         "health": "런 품질"
@@ -1860,6 +1872,9 @@
         "merge": "병합",
         "export": "내보내기",
         "mergeExport": "병합 및 내보내기"
+      },
+      "fallback": {
+        "redirecting": "탭으로 이동 중…"
       }
     }
   },
@@ -1869,6 +1884,29 @@
       "progress": "단계 {{current}} / {{total}}",
       "back": "이전",
       "next": "다음"
+    },
+    "summary": {
+      "heading": "현재 입력 요약",
+      "sequence": {
+        "label": "서열",
+        "empty": "미로딩",
+        "unnamed": "(이름 없음)"
+      },
+      "mutation": {
+        "label": "변이 입력"
+      },
+      "selectionMode": {
+        "label": "선택 모드",
+        "allCombinations": "모든 조합",
+        "pipeline": "Pipeline (failover)",
+        "topN": "Top-N"
+      },
+      "variants": {
+        "label": "변이 개수"
+      },
+      "polymerase": {
+        "label": "Polymerase"
+      }
     },
     "descriptions": {
       "design": {
@@ -1892,6 +1930,7 @@
       },
       "analyze": {
         "inputs": "입력 디렉토리와 분석 매개변수를 설정한 후 실행합니다.",
+        "review": "판정 테이블, 플레이트 레이아웃, plate별 verdict 분포를 한 화면에서 검토합니다.",
         "plate": "바코드 및 변이체 할당과 플레이트별 상태 지표가 포함된 플레이트 레이아웃을 검사합니다.",
         "verdict": "웰별 합격/불합격 판정, 요약 통계 및 시퀀싱 처리량 지표를 검토합니다."
       },
@@ -1983,7 +2022,10 @@
       "exportTargets": "MAME handoff",
       "plateMap": "플레이트 맵",
       "nPlates": "{{count}}개 플레이트",
-      "bridgeBadge": "bridge"
+      "bridgeBadge": "bridge",
+      "report": {
+        "empty": "Run Design 실행 후 리포트가 표시됩니다"
+      }
     }
   },
   "shortcutsDialog": {
@@ -2005,6 +2047,12 @@
       "title": "정보 누락"
     }
   },
+  "validation": {
+    "missing": {
+      "sequence": "Sequence 파일이 필요합니다",
+      "mutation": "Mutation 입력이 필요합니다"
+    }
+  },
   "report": {
     "noResultsDesc": "프라이머 결과를 보려면 먼저 설계를 실행하세요.",
     "noResultsTitle": "아직 결과 없음",
@@ -2013,6 +2061,14 @@
       "plates": "플레이트",
       "primers": "프라이머",
       "rescued": "복구됨"
+    }
+  },
+  "errors": {
+    "sidecar": {
+      "methodNotFound": {
+        "kuro": "KURO 사이드카가 구버전입니다. `pnpm run sidecar:build` 후 재시도하세요.",
+        "mame": "MAME 사이드카가 구버전입니다. `pnpm run sidecar:build` 후 재시도하세요."
+      }
     }
   }
 }

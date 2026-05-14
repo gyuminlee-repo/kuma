@@ -191,10 +191,14 @@ export interface DesignSlice {
   rescuedMutations: string[];
   rescueStats: RescueStats;
   rescuedMutationDetails: RescuedMutation[];
+  /** @deprecated Phase C (v0.9.2): popup auto-mount removed. Report now renders
+   * inline via DesignReportInspector. Slice retained for legacy Dialog wrapper
+   * (DesignReport.tsx) in case manual entry is reintroduced. Do not persist. */
   showReport: boolean;
 
   // Actions
   designPrimers: () => Promise<void>;
+  /** @deprecated See showReport — legacy Dialog wrapper only. */
   setShowReport: (show: boolean) => void;
   cancelDesign: () => Promise<void>;
   getAlternatives: (mutation: string) => Promise<SdmPrimerResult[]>;

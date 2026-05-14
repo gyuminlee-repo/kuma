@@ -39,6 +39,19 @@ const MAX_WIDTH_CLASS: Record<MaxWidth, string> = {
 export interface WizardContainerProps {
   stepIndex: number;
   stepTotal: number;
+  /**
+   * Optional display-only step label override. When provided, header renders
+   * `Step {stepLabel}: {title}` instead of `Step {stepIndex}: {title}`.
+   * Used by MAME wizard to present Major.Sub numbering (e.g. "1.1", "2.3").
+   * KURO callers omit this and continue to use `stepIndex` directly.
+   */
+  stepLabel?: string;
+  /**
+   * Optional display-only progress label override. When provided, replaces
+   * the default `Step {current} / {total}` footer text. Used by MAME wizard
+   * to present sub-step progress within a major group (e.g. "1.1 / 1.2").
+   */
+  progressLabel?: string;
   titleKey: string;
   descriptionKey?: string;
   onNext?: () => void;
@@ -70,6 +83,8 @@ export interface WizardContainerProps {
 export function WizardContainer({
   stepIndex,
   stepTotal,
+  stepLabel,
+  progressLabel,
   titleKey,
   descriptionKey,
   onNext,
@@ -107,7 +122,7 @@ export function WizardContainer({
           data-testid="wizard-header"
         >
           <h2 className="text-xl font-semibold text-foreground">
-            {t("phaseE.wizard.stepLabel", { n: stepIndex })}: {t(titleKey)}
+            {t("phaseE.wizard.stepLabel", { n: stepLabel ?? stepIndex })}: {t(titleKey)}
           </h2>
           {descriptionKey && (
             <p className="text-sm text-muted-foreground">
@@ -124,16 +139,20 @@ export function WizardContainer({
         </div>
         <footer
           className="flex-shrink-0 border-t border-border bg-muted/20 px-6 h-12 flex items-center justify-between"
-          aria-label={t("phaseE.wizard.progress", {
-            current: stepIndex,
-            total: stepTotal,
-          })}
-        >
-          <div className="text-xs text-muted-foreground">
-            {t("phaseE.wizard.progress", {
+          aria-label={
+            progressLabel ??
+            t("phaseE.wizard.progress", {
               current: stepIndex,
               total: stepTotal,
-            })}
+            })
+          }
+        >
+          <div className="text-xs text-muted-foreground">
+            {progressLabel ??
+              t("phaseE.wizard.progress", {
+                current: stepIndex,
+                total: stepTotal,
+              })}
           </div>
           <div className="flex gap-2">
             <Button
@@ -176,7 +195,7 @@ export function WizardContainer({
               aria-label={t("wizardContainer.validationDialog.missingItemsLabel")}
             >
               {missingItems.map((item) => (
-                <li key={item}>{item}</li>
+                <li key={item}>{t(item)}</li>
               ))}
             </ul>
           )}

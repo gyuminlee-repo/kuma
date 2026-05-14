@@ -61,8 +61,10 @@ const CONTEXT_TITLE_KEYS: Record<MameSubStepId, { title: string; subtitle: strin
   "setup.files":        { title: "mame.setup.files.contextTitle",         subtitle: "mame.setup.files.contextSubtitle" },
   "setup.design":       { title: "mame.setup.design.contextTitle",        subtitle: "mame.setup.design.contextSubtitle" },
   "analyze.inputs":     { title: "mame.qc.inputs.contextTitle",           subtitle: "mame.qc.inputs.contextSubtitle" },
-  "analyze.verdict":    { title: "mame.qc.verdict.contextTitle",          subtitle: "mame.qc.verdict.contextSubtitle" },
-  "analyze.plate":      { title: "mame.qc.plate.contextTitle",            subtitle: "mame.qc.plate.contextSubtitle" },
+  "analyze.review":     { title: "mame.qc.review.contextTitle",           subtitle: "mame.qc.review.contextSubtitle" },
+  // Legacy ids (Task #12 통합 후 redirect 진입 표시용)
+  "analyze.verdict":    { title: "mame.qc.review.contextTitle",           subtitle: "mame.qc.review.contextSubtitle" },
+  "analyze.plate":      { title: "mame.qc.review.contextTitle",           subtitle: "mame.qc.review.contextSubtitle" },
   "activity.ingest":    { title: "mame.activity.ingest.contextTitle",     subtitle: "mame.activity.ingest.contextSubtitle" },
   "activity.mergeExport": { title: "mame.activity.mergeExport.contextTitle", subtitle: "mame.activity.mergeExport.contextSubtitle" },
 };
@@ -311,7 +313,7 @@ export function MameAppLayout() {
             {/* Phase 2: Analyze */}
             <TabsContent value="analyze" className="flex-1 min-h-0 overflow-hidden mt-0">
               {/* QC/Plate 화면에서 cluster alert 표시 */}
-              {currentSubStep === "analyze.plate" && (
+              {(currentSubStep === "analyze.review" || currentSubStep === "analyze.plate") && (
                 <div className="px-4 pt-3">
                   <PlateClusterAlert />
                 </div>

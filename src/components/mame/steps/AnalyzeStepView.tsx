@@ -6,32 +6,35 @@
  * [updated: spec Phase F F6 — WizardContainer 적용]
  * [updated: spec Phase G #18 — analyze.health 폐지, RunHealth 섹션을 verdict/plate에 흡수]
  *
- * Sub-step 매핑:
+ * Sub-step 매핑 (patch-260514 Task #12 — analyze.verdict + analyze.plate 통합):
  *   analyze.inputs  → InputPanel + ParameterPanel + Run/Validate/Cancel action row
- *   analyze.verdict → SummaryRow + VerdictTable + RunHealth(file-size/throughput/pore-yield)
- *   analyze.plate   → PlateView + RunHealth(verdict-breakdown/barcode/cross-talk)
+ *   analyze.review  → 좌: SummaryRow + VerdictTable / 우상: PlateView / 우하: per-plate verdict chart
+ *
+ * Legacy analyze.verdict / analyze.plate ids 진입 시 StepRedirectFallback 으로 분기 → analyze.inputs.
  *
  * WizardContainer 전략:
  *   - analyze.inputs: Next = "Run Analysis" (isAnalyzing 중 = "Cancel").
  *     Validate / Clear / Export는 children 내부 secondary row로 표시.
- *   - analyze.verdict/plate: Next = 일반 다음 sub-step 이동.
+ *   - analyze.review: Next = 일반 다음 sub-step 이동.
  *   - Ctrl/Cmd+Enter는 MameAppLayout 레벨에서 독립적으로 처리됨.
  */
 
 import { AlertCircle, Download, ShieldCheck, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { selectCanRun } from "@/store/mame/selectors";
 import { DataPanel } from "@/components/ui/Panel";
 import { SummaryRow } from "@/components/mame/widgets/SummaryRow";
 import { VerdictTable } from "@/components/mame/widgets/VerdictTable";
 import { PlateView } from "@/components/mame/widgets/PlateView";
-import { RunHealthPanel, RUN_HEALTH_VERDICT_SECTIONS, RUN_HEALTH_PLATE_SECTIONS } from "@/components/mame/widgets/RunHealthPanel";
+import { RunHealthPanel } from "@/components/mame/widgets/RunHealthPanel";
 import { InputPanel } from "@/components/mame/panels/InputPanel";
 import { ParameterPanel } from "@/components/mame/panels/ParameterPanel";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { WizardContainer } from "@/components/steps/WizardContainer";
+import { StepRedirectFallback } from "./StepRedirectFallback";
 import type { RunHealthData } from "@/types/mame/models";
 
 interface AnalyzeStepViewProps {
@@ -43,21 +46,21 @@ interface AnalyzeStepViewProps {
   onClearRequest?: () => void;
 }
 
+const ANALYZE_TOTAL = 2;
 const STEP_CONFIG = {
   "analyze.inputs": {
     index: 1,
+    label: "2.1",
+    progressLabel: `2.1 / ${ANALYZE_TOTAL}`,
     titleKey: "phaseC.mameSubSteps.analyze.inputs",
     descriptionKey: "phaseE.mameDescriptions.analyze.inputs",
   },
-  "analyze.verdict": {
+  "analyze.review": {
     index: 2,
-    titleKey: "phaseC.mameSubSteps.analyze.verdict",
-    descriptionKey: "phaseE.mameDescriptions.analyze.verdict",
-  },
-  "analyze.plate": {
-    index: 3,
-    titleKey: "phaseC.mameSubSteps.analyze.plate",
-    descriptionKey: "phaseE.mameDescriptions.analyze.plate",
+    label: "2.2",
+    progressLabel: `2.2 / ${ANALYZE_TOTAL}`,
+    titleKey: "phaseC.mameSubSteps.analyze.review",
+    descriptionKey: "phaseE.mameDescriptions.analyze.review",
   },
 } as const;
 
@@ -77,13 +80,20 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
   const canRun = useMameAppStore(selectCanRun);
   const goToNextStep = useMameAppStore((s) => s.goToNextStep);
   const goToPrevStep = useMameAppStore((s) => s.goToPrevStep);
+  const setMameSubStep = useMameAppStore((s) => s.setMameSubStep);
 
+  // Legacy ids fall through StepRedirectFallback → analyze.inputs.
   if (
     subStep !== "analyze.inputs" &&
-    subStep !== "analyze.verdict" &&
-    subStep !== "analyze.plate"
+    subStep !== "analyze.review"
   ) {
-    return null;
+    return (
+      <StepRedirectFallback
+        currentSub={subStep}
+        expectedFor="analyze"
+        setSubStep={setMameSubStep}
+      />
+    );
   }
 
   const config = STEP_CONFIG[subStep];
@@ -186,34 +196,54 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
         </div>
       );
       break;
-    case "analyze.verdict":
+    case "analyze.review":
+      // Unified review: left = Summary + Verdict table, right = Plate (top) + per-plate verdict chart (bottom).
+      // Other RunHealth sections (file-size/throughput/pore-yield/barcode/cross-talk) are still reachable from
+      // analyze.inputs's RunHealthPanel and the QC inspector; not duplicated here per PI spec slide 6.
       mainContent = (
-        <div className="flex flex-col gap-3 h-full overflow-hidden">
-          <SummaryRow />
-          <DataPanel title={t("mame.appLayout.verdictTableTitle")} className="flex-1 min-h-0">
-            <VerdictTable />
-          </DataPanel>
-          {runHealth !== null && (
-            <RunHealthPanel
-              health={runHealth}
-              sections={RUN_HEALTH_VERDICT_SECTIONS}
+        <div className="h-full min-h-0">
+          <PanelGroup direction="horizontal" autoSaveId="mame.analyze.review.split">
+            <Panel defaultSize={50} minSize={25}>
+              <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden">
+                <div className="flex-shrink-0">
+                  <SummaryRow />
+                </div>
+                <DataPanel title={t("mame.appLayout.verdictTableTitle")} className="flex-1 min-h-0">
+                  <VerdictTable />
+                </DataPanel>
+              </div>
+            </Panel>
+            <PanelResizeHandle
+              className="w-2 bg-border hover:bg-border/70 transition-colors"
+              aria-label={t("mame.appLayout.verdictTableTitle")}
             />
-          )}
-        </div>
-      );
-      break;
-    case "analyze.plate":
-      mainContent = (
-        <div className="flex flex-col gap-3 h-full overflow-hidden">
-          <DataPanel title={t("mame.appLayout.platePlanTitle")} className="flex-1 min-h-0">
-            <PlateView />
-          </DataPanel>
-          {runHealth !== null && (
-            <RunHealthPanel
-              health={runHealth}
-              sections={RUN_HEALTH_PLATE_SECTIONS}
-            />
-          )}
+            <Panel defaultSize={50} minSize={25}>
+              <PanelGroup direction="vertical" autoSaveId="mame.analyze.review.vsplit">
+                <Panel defaultSize={55} minSize={20}>
+                  <DataPanel title={t("mame.appLayout.platePlanTitle")} className="h-full min-h-0 overflow-auto">
+                    <PlateView />
+                  </DataPanel>
+                </Panel>
+                <PanelResizeHandle
+                  className="h-2 bg-border hover:bg-border/70 transition-colors"
+                />
+                <Panel defaultSize={45} minSize={20}>
+                  <DataPanel title={t("mame.appLayout.efficiencyChartTitle")} className="h-full min-h-0 overflow-auto">
+                    {runHealth !== null ? (
+                      <RunHealthPanel
+                        health={runHealth}
+                        sections={["verdict-breakdown"]}
+                      />
+                    ) : (
+                      <div className="p-4 text-caption text-muted-foreground">
+                        {t("mameSidebar.statusIncomplete")}
+                      </div>
+                    )}
+                  </DataPanel>
+                </Panel>
+              </PanelGroup>
+            </Panel>
+          </PanelGroup>
         </div>
       );
       break;
@@ -224,7 +254,9 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
   return (
     <WizardContainer
       stepIndex={config.index}
-      stepTotal={3}
+      stepTotal={ANALYZE_TOTAL}
+      stepLabel={config.label}
+      progressLabel={config.progressLabel}
       titleKey={config.titleKey}
       descriptionKey={config.descriptionKey}
       onPrev={goToPrevStep}

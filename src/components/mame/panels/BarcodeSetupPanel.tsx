@@ -17,6 +17,7 @@ import { autoDetectCdsCandidates } from "@/lib/sequence/autoDetectCds";
 import { useKumaProject } from "@/state/projectContext";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { rpc } from "@/lib/ipc";
+import { describeRpcError } from "@/lib/errors";
 import { revealInOSFolder } from "@/lib/openFolder";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -287,8 +288,11 @@ export function BarcodeSetupPanel({ group }: BarcodeSetupPanelProps = {}) {
         duration: 4000,
       });
     } catch (err) {
+      // describeRpcError가 i18n 키를 돌려주면 t()로 번역, 그렇지 않으면 원본 메시지 사용.
+      const descRaw = describeRpcError(err, "mame");
+      const description = descRaw.startsWith("errors.") ? t(descRaw) : descRaw;
       toast.error(t("mame.barcodeSetup.toastError"), {
-        description: String(err),
+        description,
         duration: 6000,
       });
     } finally {

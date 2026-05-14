@@ -9,6 +9,13 @@ export type WorkflowStep = {
   state: WorkflowStepState;
   /** Short right-aligned label, e.g. "now", "next" */
   mini?: string;
+  /**
+   * If "header", renders a non-clickable bold group header row (MAME wizard
+   * major-group label such as "1. Setup"). Default behavior is "step".
+   */
+  kind?: "header" | "step";
+  /** If true, the row is rendered with extra left padding (MAME sub-step). */
+  indent?: boolean;
 };
 
 export type WorkflowRailProps = {
@@ -77,18 +84,35 @@ export function WorkflowRail({
       <div className="min-h-0 flex-1 overflow-y-auto p-[9px]">
         <ul role="list" className="space-y-1">
           {steps.map((step, i) => {
-            const isClickable =
-              step.state === "done" || step.state === "default";
+            // Group header row: non-clickable, bold, no step circle.
+            if (step.kind === "header") {
+              return (
+                <li key={i}>
+                  <div
+                    className="px-[9px] pt-3 pb-1 text-[12px] font-bold uppercase tracking-wide text-foreground"
+                    data-testid="workflow-rail-header"
+                  >
+                    {step.num !== undefined && step.num !== "" ? (
+                      <span className="mr-1">{step.num}.</span>
+                    ) : null}
+                    {step.title}
+                  </div>
+                </li>
+              );
+            }
+
             const baseRow =
               "grid w-full items-start gap-2 rounded-lg px-[9px] py-[9px] text-left";
+            const indentClass = step.indent ? " pl-[24px]" : "";
+            // Spec #17: All rail items remain clickable. `lock` state only
+            // mutes visuals; navigation guard (validateBeforeNext) lives on
+            // the Next button, not the rail.
             const stateRow =
-              step.state === "active"
+              (step.state === "active"
                 ? `${baseRow} bg-accent outline outline-1 outline-ring`
                 : step.state === "lock"
-                  ? `${baseRow} opacity-55 cursor-not-allowed`
-                  : isClickable
-                    ? `${baseRow} hover:bg-muted/60 cursor-pointer`
-                    : baseRow;
+                  ? `${baseRow} opacity-55 hover:bg-muted/60 cursor-pointer`
+                  : `${baseRow} hover:bg-muted/60 cursor-pointer`) + indentClass;
 
             return (
               <li key={i}>
@@ -96,9 +120,8 @@ export function WorkflowRail({
                   type="button"
                   className={stateRow}
                   style={{ gridTemplateColumns: "26px 1fr auto" }}
-                  disabled={!isClickable}
                   aria-current={step.state === "active" ? "step" : undefined}
-                  onClick={isClickable ? () => onStepClick?.(i) : undefined}
+                  onClick={() => onStepClick?.(i)}
                 >
                   <StepNum state={step.state}>
                     {step.state === "done" ? (

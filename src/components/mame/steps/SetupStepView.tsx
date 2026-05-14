@@ -15,15 +15,21 @@
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { BarcodeSetupPanel } from "@/components/mame/panels/BarcodeSetupPanel";
 import { WizardContainer } from "@/components/steps/WizardContainer";
+import { StepRedirectFallback } from "./StepRedirectFallback";
 
+const SETUP_TOTAL = 2;
 const STEP_CONFIG = {
   "setup.files": {
     index: 1,
+    label: "1.1",
+    progressLabel: `1.1 / ${SETUP_TOTAL}`,
     titleKey: "phaseC.mameSubSteps.setup.files",
     descriptionKey: "phaseE.mameDescriptions.setup.files",
   },
   "setup.design": {
     index: 2,
+    label: "1.2",
+    progressLabel: `1.2 / ${SETUP_TOTAL}`,
     titleKey: "phaseC.mameSubSteps.setup.design",
     descriptionKey: "phaseE.mameDescriptions.setup.design",
   },
@@ -31,11 +37,18 @@ const STEP_CONFIG = {
 
 export function SetupStepView() {
   const subStep = useMameAppStore((s) => s.currentMameSubStep);
+  const setMameSubStep = useMameAppStore((s) => s.setMameSubStep);
   const goToNextStep = useMameAppStore((s) => s.goToNextStep);
   const goToPrevStep = useMameAppStore((s) => s.goToPrevStep);
 
   if (subStep !== "setup.files" && subStep !== "setup.design") {
-    return null;
+    return (
+      <StepRedirectFallback
+        currentSub={subStep}
+        expectedFor="setup"
+        setSubStep={setMameSubStep}
+      />
+    );
   }
 
   const config = STEP_CONFIG[subStep];
@@ -44,7 +57,9 @@ export function SetupStepView() {
   return (
     <WizardContainer
       stepIndex={config.index}
-      stepTotal={2}
+      stepTotal={SETUP_TOTAL}
+      stepLabel={config.label}
+      progressLabel={config.progressLabel}
       titleKey={config.titleKey}
       descriptionKey={config.descriptionKey}
       onPrev={isFirst ? undefined : goToPrevStep}

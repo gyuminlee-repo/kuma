@@ -30,7 +30,7 @@ import {
   VariantInspector,
   ParameterInspector,
   CurrentMutationInspector,
-  PrimerInspector,
+  DesignReportInspector,
   ExportInspector,
 } from "@/components/inspectors/kuro";
 
@@ -271,20 +271,22 @@ export function KuroDrawerStrip() {
       );
     case "design.submit":
       return (
-        <DrawerStrip
-          left={{
-            title: t("kuro.submit.drawerJobQueue"),
-            children: <MiniRow label="Queue" value="idle" />,
-          }}
-          center={{
-            title: "Sidecar log",
-            children: <LogLine level="dim" text={logText} />,
-          }}
-          right={{
-            title: t("kuro.submit.drawerRecovery"),
-            children: <MiniRow label="Autosave" value="ready" />,
-          }}
-        />
+        <div className="flex min-h-0 min-w-0 flex-col overflow-hidden">
+          <DrawerStrip
+            left={{
+              title: t("kuro.submit.drawerJobQueue"),
+              children: <MiniRow label="Queue" value="idle" />,
+            }}
+            center={{
+              title: "Sidecar log",
+              children: <LogLine level="dim" text={logText} />,
+            }}
+            right={{
+              title: t("kuro.submit.drawerRecovery"),
+              children: <MiniRow label="Autosave" value="ready" />,
+            }}
+          />
+        </div>
       );
     case "output.summary":
       return (
@@ -334,12 +336,6 @@ export function KuroDrawerStrip() {
  */
 export function KuroInspector() {
   const currentSubStep = useAppStore((s) => s.currentSubStep);
-  const { designResults, plateMappings } = useAppStore(
-    useShallow((s) => ({
-      designResults: s.designResults,
-      plateMappings: s.plateMappings,
-    })),
-  );
 
   switch (currentSubStep) {
     case "design.load":
@@ -351,12 +347,7 @@ export function KuroInspector() {
     case "design.submit":
       return <CurrentMutationInspector />;
     case "output.summary":
-      return (
-        <PrimerInspector
-          selected={designResults[0] ?? null}
-          plateMappings={plateMappings}
-        />
-      );
+      return <DesignReportInspector />;
     case "export.all":
       return <ExportInspector />;
     default:

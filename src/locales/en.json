@@ -456,6 +456,7 @@
       "activityTab": "3. Activity Data",
       "verdictTableTitle": "Verdict table",
       "platePlanTitle": "Plate plan",
+      "efficiencyChartTitle": "Per-plate verdict breakdown",
       "runHealthTitle": "Run health",
       "subSteps": {
         "setup": {
@@ -673,6 +674,16 @@
         "clusterAlertTitle": "Cluster failure detected",
         "clusterAlertDesc": "{{wells}} — adjacent wells failed simultaneously. This may indicate a pipetting issue.",
         "clusterAlertAriaLabel": "Plate cluster failure alert"
+      },
+      "review": {
+        "contextTitle": "Sequencing QC — Review",
+        "contextSubtitle": "Verdict table, plate plan, and per-plate verdict distribution in one view.",
+        "drawerLeft": "Summary",
+        "drawerCenter": "Review log",
+        "drawerRight": "Next",
+        "drawerRightDesc": "Proceed to activity",
+        "inspectorTitle": "Review Inspector",
+        "inspectorSubtitle": "Shows well details when a well is selected, otherwise verdict summary"
       }
     },
     "inspector": {
@@ -1851,6 +1862,7 @@
       },
       "analyze": {
         "inputs": "Inputs",
+        "review": "Review (Verdict + Plate)",
         "verdict": "Verdicts",
         "plate": "Plate Plan",
         "health": "Run Health"
@@ -1860,6 +1872,9 @@
         "merge": "Merge",
         "export": "Export",
         "mergeExport": "Merge & Export"
+      },
+      "fallback": {
+        "redirecting": "Redirecting…"
       }
     }
   },
@@ -1869,6 +1884,29 @@
       "progress": "Step {{current}} / {{total}}",
       "back": "Back",
       "next": "Next"
+    },
+    "summary": {
+      "heading": "Design summary",
+      "sequence": {
+        "label": "Sequence",
+        "empty": "Not loaded",
+        "unnamed": "(unnamed)"
+      },
+      "mutation": {
+        "label": "Mutation source"
+      },
+      "selectionMode": {
+        "label": "Selection mode",
+        "allCombinations": "All combinations",
+        "pipeline": "Pipeline (failover)",
+        "topN": "Top-N only"
+      },
+      "variants": {
+        "label": "Variants"
+      },
+      "polymerase": {
+        "label": "Polymerase"
+      }
     },
     "descriptions": {
       "design": {
@@ -1892,6 +1930,7 @@
       },
       "analyze": {
         "inputs": "Set the input directory and analysis parameters, then run.",
+        "review": "Review the verdict table, plate layout, and per-plate verdict distribution in one view.",
         "plate": "Inspect the plate layout with barcode and variant assignments, and per-plate health indicators.",
         "verdict": "Review per-well pass/fail verdicts, summary statistics, and sequencing throughput metrics."
       },
@@ -1983,7 +2022,10 @@
       "exportTargets": "MAME handoff",
       "plateMap": "Plate map",
       "nPlates": "{{count}} plate(s)",
-      "bridgeBadge": "bridge"
+      "bridgeBadge": "bridge",
+      "report": {
+        "empty": "Run Design first — the report will appear here"
+      }
     }
   },
   "shortcutsDialog": {
@@ -2005,6 +2047,12 @@
       "title": "Missing information"
     }
   },
+  "validation": {
+    "missing": {
+      "sequence": "Sequence file is required",
+      "mutation": "Mutation input is required"
+    }
+  },
   "report": {
     "noResultsDesc": "Run Design first to see primer results here.",
     "noResultsTitle": "No results yet",
@@ -2013,6 +2061,14 @@
       "plates": "Plates",
       "primers": "Primers",
       "rescued": "Rescued"
+    }
+  },
+  "errors": {
+    "sidecar": {
+      "methodNotFound": {
+        "kuro": "KURO sidecar is outdated. Run `pnpm run sidecar:build` and retry.",
+        "mame": "MAME sidecar is outdated. Run `pnpm run sidecar:build` and retry."
+      }
     }
   }
 }

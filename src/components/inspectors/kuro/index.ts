@@ -3,5 +3,5 @@ export { VariantInspector } from "./VariantInspector";
 export type { VariantRow } from "./VariantInspector";
 export { ParameterInspector } from "./ParameterInspector";
 export { CurrentMutationInspector } from "./CurrentMutationInspector";
-export { PrimerInspector } from "./PrimerInspector";
+export { DesignReportInspector } from "./DesignReportInspector";
 export { ExportInspector } from "./ExportInspector";

@@ -58,7 +58,7 @@ export function RunDesignActionView({
           </ul>
         )}
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap justify-center gap-2">
           <Button
             className="h-control-primary min-w-[160px] rounded-control text-body font-semibold"
             onClick={run}

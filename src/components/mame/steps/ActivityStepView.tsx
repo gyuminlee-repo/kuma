@@ -17,15 +17,21 @@ import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { useRoundStore } from "@/store/round/roundSlice";
 import { IngestSection, MergeSection, ExportSection } from "@/components/mame/panels/ActivityPanel";
 import { WizardContainer } from "@/components/steps/WizardContainer";
+import { StepRedirectFallback } from "./StepRedirectFallback";
 
+const ACTIVITY_TOTAL = 2;
 const STEP_CONFIG = {
   "activity.ingest": {
     index: 1,
+    label: "3.1",
+    progressLabel: `3.1 / ${ACTIVITY_TOTAL}`,
     titleKey: "phaseC.mameSubSteps.activity.ingest",
     descriptionKey: "phaseE.mameDescriptions.activity.ingest",
   },
   "activity.mergeExport": {
     index: 2,
+    label: "3.2",
+    progressLabel: `3.2 / ${ACTIVITY_TOTAL}`,
     titleKey: "phaseC.mameSubSteps.activity.mergeExport",
     descriptionKey: "phaseE.mameDescriptions.activity.mergeExport",
   },
@@ -33,6 +39,7 @@ const STEP_CONFIG = {
 
 export function ActivityStepView() {
   const subStep = useMameAppStore((s) => s.currentMameSubStep);
+  const setMameSubStep = useMameAppStore((s) => s.setMameSubStep);
   const goToNextStep = useMameAppStore((s) => s.goToNextStep);
   const goToPrevStep = useMameAppStore((s) => s.goToPrevStep);
 
@@ -49,7 +56,13 @@ export function ActivityStepView() {
     subStep !== "activity.ingest" &&
     subStep !== "activity.mergeExport"
   ) {
-    return null;
+    return (
+      <StepRedirectFallback
+        currentSub={subStep}
+        expectedFor="activity"
+        setSubStep={setMameSubStep}
+      />
+    );
   }
 
   const config = STEP_CONFIG[subStep];
@@ -58,7 +71,9 @@ export function ActivityStepView() {
   return (
     <WizardContainer
       stepIndex={config.index}
-      stepTotal={2}
+      stepTotal={ACTIVITY_TOTAL}
+      stepLabel={config.label}
+      progressLabel={config.progressLabel}
       titleKey={config.titleKey}
       descriptionKey={config.descriptionKey}
       onPrev={goToPrevStep}
