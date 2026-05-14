@@ -2008,6 +2008,12 @@
       "title": "Missing information"
     }
   },
+  "validation": {
+    "missing": {
+      "sequence": "Sequence file is required",
+      "mutation": "Mutation input is required"
+    }
+  },
   "report": {
     "noResultsDesc": "Run Design first to see primer results here.",
     "noResultsTitle": "No results yet",

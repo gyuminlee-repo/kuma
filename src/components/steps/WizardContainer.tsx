@@ -195,7 +195,7 @@ export function WizardContainer({
               aria-label={t("wizardContainer.validationDialog.missingItemsLabel")}
             >
               {missingItems.map((item) => (
-                <li key={item}>{item}</li>
+                <li key={item}>{t(item)}</li>
               ))}
             </ul>
           )}

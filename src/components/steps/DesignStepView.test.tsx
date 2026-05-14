@@ -7,7 +7,7 @@
  * G7: design.submit에서 UniprotSearch 직접 마운트 없음 (DiversitySections 경유).
  */
 
-import { render } from "@testing-library/react";
+import { render, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@/lib/ipc-kuro", () => ({
@@ -87,6 +87,28 @@ describe("DesignStepView (Phase G)", () => {
     const { container } = render(<DesignStepView />);
     // Falls through to default: null
     expect(container.firstChild).toBeNull();
+  });
+
+  it("design.load shows missing-input dialog when seqInfo absent and Next clicked", () => {
+    useAppStore.setState({ currentSubStep: "design.load", seqInfo: null });
+    const { getByRole, queryByRole } = render(<DesignStepView />);
+    expect(queryByRole("dialog")).toBeNull();
+    const nextBtn = getByRole("button", { name: /next|다음/i });
+    fireEvent.click(nextBtn);
+    expect(getByRole("dialog")).toBeTruthy();
+  });
+
+  it("design.mutation shows missing-input dialog when mutationText empty and evolveproTotalCount 0", () => {
+    useAppStore.setState({
+      currentSubStep: "design.mutation",
+      mutationText: "",
+      evolveproTotalCount: 0,
+    });
+    const { getByRole, queryByRole } = render(<DesignStepView />);
+    expect(queryByRole("dialog")).toBeNull();
+    const nextBtn = getByRole("button", { name: /next|다음/i });
+    fireEvent.click(nextBtn);
+    expect(getByRole("dialog")).toBeTruthy();
   });
 
   it("each sub-step renders inside WizardContainer", () => {

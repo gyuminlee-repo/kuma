@@ -2008,6 +2008,12 @@
       "title": "정보 누락"
     }
   },
+  "validation": {
+    "missing": {
+      "sequence": "Sequence 파일이 필요합니다",
+      "mutation": "Mutation 입력이 필요합니다"
+    }
+  },
   "report": {
     "noResultsDesc": "프라이머 결과를 보려면 먼저 설계를 실행하세요.",
     "noResultsTitle": "아직 결과 없음",

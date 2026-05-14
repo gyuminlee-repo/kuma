@@ -25,6 +25,7 @@ import { ParameterPanel } from "@/components/panels/ParameterPanel";
 import { RunDesignAction } from "./RunDesignAction";
 import { WizardContainer } from "./WizardContainer";
 import { KURO_STEP_INDEX, TOTAL_KURO_STEPS } from "./constants";
+import { validateForNext, type KuroSubStepId } from "@/store/validation";
 
 export function DesignStepView() {
   const subStep = useAppStore((s) => s.currentSubStep);
@@ -41,6 +42,9 @@ export function DesignStepView() {
           descriptionKey="phaseE.descriptions.design.load"
           onNext={() => goToNextStep()}
           onPrev={undefined}
+          validateBeforeNext={() =>
+            validateForNext("design.load" as KuroSubStepId, useAppStore.getState())
+          }
         >
           <SequenceInput />
         </WizardContainer>
@@ -54,6 +58,9 @@ export function DesignStepView() {
           descriptionKey="phaseE.descriptions.design.mutation"
           onNext={() => goToNextStep()}
           onPrev={() => goToPrevStep()}
+          validateBeforeNext={() =>
+            validateForNext("design.mutation" as KuroSubStepId, useAppStore.getState())
+          }
         >
           <MutationInput />
         </WizardContainer>
@@ -67,6 +74,9 @@ export function DesignStepView() {
           descriptionKey="phaseE.descriptions.design.params"
           onNext={() => goToNextStep()}
           onPrev={() => goToPrevStep()}
+          validateBeforeNext={() =>
+            validateForNext("design.params" as KuroSubStepId, useAppStore.getState())
+          }
         >
           <ParameterPanel />
         </WizardContainer>
