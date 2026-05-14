@@ -187,7 +187,7 @@
       "barcodeSeedsXlsx": "Barcode Seeds xlsx",
       "geneName": "Gene name",
       "polymerase": "Polymerase",
-      "requireGcClamp": "Require GC clamp (3' end)",
+      "requireGcClamp": "Require GC clamp (3-prime end)",
       "generating": "Generating...",
       "generateBarcodePackage": "Generate Barcode Package",
       "toastSuccess": "Barcode package generated",
@@ -201,13 +201,18 @@
       "warningsLabel": "Warnings",
       "warningsAriaLabel": "Warnings",
       "requiredStateLabel": "Required",
-      "requireGcClampAriaLabel": "Require GC clamp on 3' end",
+      "requireGcClampAriaLabel": "Require GC clamp on 3-prime end",
       "polymeraseQ5Title": "NEB Q5 High-Fidelity. Tm preset ~72 °C, low Mg²⁺. Default choice for high-fidelity amplification.",
       "polymeraseTaqTitle": "Standard Taq polymerase. Tm preset ~60 °C, higher Mg²⁺. Use for routine PCR or when 3'A overhangs are desired.",
       "polymerasePhusionTitle": "Thermo Phusion High-Fidelity. Tm preset ~72 °C, blunt-end, fast extension.",
       "polymeraseKODTitle": "Toyobo KOD One / KOD Hot Start. Tm preset ~68 °C with Mg²⁺/dNTP correction. High-fidelity, fast.",
-      "cdsCandidate": "CDS / ORF candidate:",
-      "cdsCandidateNoneDetected": "No CDS detected. Enter coordinates manually."
+      "autoDetect": {
+        "button": "Auto-detect from CDS",
+        "success": "Detected from {{source}}",
+        "failed": "No ORF found",
+        "noReference": "Reference file required",
+        "readError": "Failed to read reference file"
+      }
     },
     "activity": {
       "title": "Activity data",
@@ -314,15 +319,7 @@
       "colDepth": "Depth (reads)",
       "colNotes": "Notes",
       "fileSizeAriaLabel": "File size: {{kb}} KB",
-      "fallbackAriaLabel": "Fallback replicate",
-      "evolveproExport": {
-        "header": "EVOLVEpro",
-        "includedTitle": "Will be included in EVOLVEpro export.",
-        "reasonNgsFail": "Excluded — NGS validation failed.",
-        "reasonWt": "Excluded — wild-type sample (not a variant).",
-        "reasonNoLog2fc": "Excluded — log₂FC could not be computed.",
-        "reasonNoActivity": "Excluded — no activity data available."
-      }
+      "fallbackAriaLabel": "Fallback replicate"
     },
     "summaryRow": {
       "ariaLabel": "Analysis summary",
@@ -343,7 +340,19 @@
       "statusInProgress": "In progress"
     },
     "menuBar": {
-      "restartSidecarConfirm": "Analysis is running. Restart sidecar anyway?"
+      "restartSidecarConfirm": "Analysis is running. Restart sidecar anyway?",
+      "compareWorkspacesTitle": "Compare Workspaces",
+      "compareWorkspacesSame": "The two workspaces are identical.",
+      "compareWorkspacesDiff": "{{count}} difference{{plural}} found.",
+      "compareWorkspacesColField": "Field",
+      "compareWorkspacesColA": "Workspace A",
+      "compareWorkspacesColB": "Workspace B",
+      "compareWorkspacesNoDiff": "No differences found.",
+      "closeBtn": "Close",
+      "selectWorkspaceA": "Select first workspace (A)",
+      "selectWorkspaceB": "Select second workspace (B)",
+      "compareWorkspacesFailed": "Workspace compare failed: {{error}}",
+      "exportWorkspaceZipSoon": "Export workspace as zip - coming soon"
     },
     "statusBar": {
       "ready": "Ready",
@@ -374,16 +383,15 @@
         "analyze": {
           "inputs": "Inputs",
           "verdict": "Verdicts",
-          "plate": "Plate Plan"
+          "plate": "Plate Plan",
+          "health": "Run Health"
         },
         "activity": {
           "ingest": "Ingest",
-          "mergeExport": "Merge & Export"
+          "merge": "Merge",
+          "export": "Export"
         }
-      },
-      "barcodeSetupTabTitle": "Run Setup — part of NGS Validation (step ② of PI workflow)",
-      "analyzeTabTitle": "Sequencing QC — part of NGS Validation (step ② of PI workflow)",
-      "activityTabTitle": "Activity Data — EVOLVEpro input conversion (step ④ of PI workflow)"
+      }
     },
     "dialogs": {
       "export": {
@@ -494,23 +502,6 @@
         "helperText": "Analysis report will use a KURO-style rule-based .xlsx filename",
         "helpText": "Folder where the analysis result Excel will be saved. The filename is auto-generated using KURO-style rules combining date, reference/input tokens, MAME target, and result count tokens."
       }
-    },
-    "janusDeck": {
-      "title": "JANUS Deck Layout",
-      "ariaLabel": "JANUS deck layout preview",
-      "deckImageAriaLabel": "JANUS deck slot positions: top row tip flush, source plates P1 P2 P3; bottom row waste, two blank slots, final 96 deep well",
-      "headFixedNote": "Head position fixed",
-      "aspDspNote": "Aspirate position = Dispense position (same coordinate).",
-      "matchByNameNote": "JANUS software matches plates by name; deck slot positions shown here are the conventional layout.",
-      "slot": {
-        "tipFlush": "Tip Flush",
-        "p1": "Stock Plate P1",
-        "p2": "Stock Plate P2",
-        "p3": "Stock Plate P3",
-        "waste": "Waste",
-        "blank": "Blank",
-        "final": "Final 96 Deep Well"
-      }
     }
   },
   "home": {
@@ -582,12 +573,12 @@
     "polymeraseManufacturer": "Manufacturer: {{manufacturer}}",
     "polymeraseFidelity": "Fidelity: {{fidelity}}",
     "customPolymerase": "Custom Polymerase",
-    "codonLabel": "Mutation codon (3 nt):",
-    "codonHelp": "Applies only to the mutation site codon (3 nt). Flanking primer sequence remains wild-type.\n\nMin. changes: fewest nucleotide changes from wild-type codon (minimises synthesis cost).\nOptimal: highest-frequency codon for the selected organism (maximises expression).",
+    "codonLabel": "Codon:",
+    "codonHelp": "Min. changes: fewest nucleotide changes from wild-type codon (minimises synthesis cost).\nOptimal: highest-frequency codon for the selected organism (maximises expression).",
     "codonOption_closest": "Min. changes (fewest nt changes from WT)",
-    "codonOption_closest_title": "Pick the mutant codon with the fewest nucleotide changes from the wild-type codon. Minimises primer mismatch and synthesis cost. Only the mutation codon (3 nt) is altered.",
+    "codonOption_closest_title": "Pick the mutant codon with the fewest nucleotide changes from the wild-type codon. Minimises primer mismatch and synthesis cost.",
     "codonOption_optimal": "Optimal (organism codon usage)",
-    "codonOption_optimal_title": "Pick the highest-frequency codon for the selected organism's codon usage table. Maximises expression but may require more nt changes. Only the mutation codon (3 nt) is altered.",
+    "codonOption_optimal_title": "Pick the highest-frequency codon for the selected organism's codon usage table. Maximises expression but may require more nt changes.",
     "mutationsLabel": "Mutations:",
     "mutationsHelp": "Maximum number of primer designs to generate.\nFor EVOLVEpro / multi-evolve mode: capped by the CSV variant count.\nOne 96-well plate fits 95 mutants + 1 WT control.",
     "plates_one": "{{count}} plate",
@@ -1209,6 +1200,7 @@
     "consentStatusLabel": "Consent status:",
     "consentGranted": "Granted",
     "consentNotGranted": "Not granted",
+    "fileMenuTrigger": "File",
     "exportMenuTrigger": "Export",
     "uniprotServiceSuffix": " -- protein sequence search",
     "ncbiBlastServiceSuffix": " -- sequence similarity search",
@@ -1218,39 +1210,7 @@
     "view": {
       "title": "View",
       "logs": "Show Logs",
-      "jobs": "Show Jobs",
-      "language": "Language",
-      "theme": {
-        "title": "Theme",
-        "light": "Light",
-        "dark": "Dark",
-        "system": "System auto"
-      },
-      "fullscreen": "Full screen",
-      "fullscreenError": "Failed to toggle fullscreen: {{message}}"
-    },
-    "edit": {
-      "title": "Edit",
-      "preferences": "Preferences..."
-    },
-    "run": {
-      "title": "Run",
-      "diagnostics": "Sidecar diagnostics...",
-      "checkSidecar": "Check sidecar status",
-      "replay": "Replay saved run...",
-      "replayError": "Failed to load manifest: {{message}}",
-      "sidecarHealthAlive": "sidecar ready · v{{version}} · uptime {{uptime}}s",
-      "sidecarHealthUnresponsive": "sidecar process not responding · {{message}}",
-      "sidecarHealthDead": "sidecar not responding. Use Restart Sidecar"
-    },
-    "help": {
-      "reportIssue": "Report issue"
-    },
-    "appMenu": {
-      "kuro": "kuro",
-      "mame": "mame",
-      "closeWindow": "Close window",
-      "quit": "Quit kuma"
+      "jobs": "Show Jobs"
     }
   },
   "panel": {
@@ -1424,6 +1384,8 @@
   },
   "activityUpload": {
     "panelAriaLabel": "Activity data upload",
+    "formatLabel": "Format",
+    "formatAriaLabel": "Activity file format",
     "uploadingAriaLabel": "Uploading activity data...",
     "browseAriaLabel": "Browse & Upload activity file",
     "uploadingBtn": "Uploading...",
@@ -1452,6 +1414,18 @@
     "copyBtn": "Copy",
     "copiedBtn": "Copied!",
     "closeBtn": "Close"
+  },
+  "mappingExportDialog": {
+    "titleEcho": "Export Echo Mapping",
+    "titleJanus": "Export JANUS Mapping",
+    "descriptionFiles": "Two files are written to the same path.",
+    "machineLabel": "Machine",
+    "transferVolumeLabel": "Transfer Volume",
+    "bomCheckboxAriaLabel": "Add UTF-8 BOM for Excel compatibility",
+    "bomCheckboxLabel": "Add UTF-8 BOM",
+    "bomCheckboxHint": "(Excel compatibility)",
+    "cancelBtn": "Cancel",
+    "exportBtn": "Export"
   },
   "whatsNewDialog": {
     "title": "What's New in v{{version}}",
@@ -1575,24 +1549,24 @@
   "phaseC": {
     "majors": {
       "design": "Design",
-      "export": "Export",
-      "output": "Output"
+      "plate": "Plate Map",
+      "export": "Export"
     },
     "subSteps": {
       "design": {
         "load": "Load Variants",
+        "variant": "Pool Filters",
         "mutation": "Mutations",
-        "params": "Primer Parameters",
-        "submit": "Pool Filters & Run"
+        "params": "Primer Parameters"
+      },
+      "plate": {
+        "layout": "Plate Map"
       },
       "export": {
         "all": "Export",
         "format": "Format",
         "summary": "Order summary",
         "workspace": "Workspace save"
-      },
-      "output": {
-        "summary": "Summary"
       }
     },
     "badge": {
@@ -1612,6 +1586,12 @@
       "selectLabel": "Select well label format"
     },
     "export": {
+      "format": {
+        "idt": "IDT CSV",
+        "twist": "Twist CSV",
+        "fasta": "FASTA"
+      },
+      "runExport": "Export",
       "workspace": {
         "save": "Save workspace",
         "load": "Load workspace"
@@ -1621,27 +1601,12 @@
         "primerCount": "Total primers",
         "mutationCount": "Mutations"
       },
-      "all": {
-        "heading": "Export All (Macrogen Order)",
-        "plateNameFwd": "Forward primer plate name",
-        "plateNameRev": "Reverse primer plate name",
-        "wellCount": "{{count}} wells used",
-        "amountLabel": "Synthesis amount",
-        "purificationLabel": "Purification",
-        "echoVolLabel": "Echo transfer volume",
-        "janusVolLabel": "JANUS transfer volume",
-        "bomLabel": "Add UTF-8 BOM",
-        "bomHint": "(Excel compatible)",
-        "ruleHint": "Synthesis rules: 0.05 μmole MOPC / 0.2 μmole MOPC. Files are saved to the selected folder.",
-        "runExport": "Export",
-        "error": {
-          "plateNameRegex": "Plate name must be 1-20 alphanumeric, underscore, or hyphen characters.",
-          "wellOverflow": "{{count}} primers exceed the 96-well limit."
-        }
+      "orderExport": {
+        "heading": "Primer Order Export"
       },
-      "toast": {
-        "success": "{{n}} file(s) saved.",
-        "partial": "{{ok}} succeeded, {{fail}} failed."
+      "mappingExport": {
+        "heading": "Plate Mapping Export",
+        "runExport": "Export Mapping"
       }
     },
     "run": {
@@ -1651,16 +1616,19 @@
     "mameSubSteps": {
       "setup": {
         "files": "Files & Coordinates",
-        "design": "Design Parameters"
+        "design": "Design Parameters",
+        "output": "Generate Package"
       },
       "analyze": {
         "inputs": "Inputs",
         "verdict": "Verdicts",
-        "plate": "Plate Plan"
+        "plate": "Plate Plan",
+        "health": "Run Health"
       },
       "activity": {
         "ingest": "Ingest Data",
-        "mergeExport": "Merge & Export"
+        "merge": "Merge",
+        "export": "Export"
       }
     }
   },
@@ -1674,69 +1642,10 @@
     "descriptions": {
       "design": {
         "load": "Upload an EVOLVEpro CSV or paste a protein sequence.",
+        "variant": "Configure variant pool filters.",
         "mutation": "Define mutations to include.",
-        "params": "Set primer design parameters and run.",
-        "submit": "Select variant pool filters, then run primer design."
-      },
-      "output": {
-        "summary": "Review design results, statistics, and plate layout."
-      },
-      "export": {
-        "all": "Export primer orders to IDT/Twist CSV or FASTA."
+        "params": "Set primer design parameters and run."
       }
-    },
-    "mameDescriptions": {
-      "setup": {
-        "files": "Select the MinKNOW run folder and reference sequence for this run.",
-        "design": "Configure primer design parameters and generate the barcode package."
-      },
-      "analyze": {
-        "inputs": "Set the input directory and analysis parameters, then run.",
-        "verdict": "Review per-well pass/fail verdicts, summary statistics, and sequencing throughput metrics.",
-        "plate": "Inspect the plate layout with barcode and variant assignments, and per-plate health indicators."
-      },
-      "activity": {
-        "ingest": "Upload activity CSV or Excel files and annotate the wild-type.",
-        "mergeExport": "Merge activity data with genotype calls, then export the merged table for EVOLVEpro input."
-      }
-    }
-  },
-  "report": {
-    "noResultsTitle": "No results yet",
-    "noResultsDesc": "Run Design first to see primer results here.",
-    "stats": {
-      "primers": "Primers",
-      "plates": "Plates",
-      "failed": "Failed",
-      "rescued": "Rescued"
-    }
-  },
-  "wizardContainer": {
-    "validationDialog": {
-      "title": "Missing Information",
-      "description": "Please complete the following before continuing.",
-      "missingItemsLabel": "Missing items"
-    }
-  },
-  "artifact": {
-    "badge": {
-      "detected": "Step {{step}} output auto-detected",
-      "staleHint": "File changed since export"
-    }
-  },
-  "appShell": {
-    "sidebarResize": "Resize sidebar"
-  },
-  "shortcutsDialog": {
-    "title": "Keyboard shortcuts",
-    "searchPlaceholder": "Search...",
-    "empty": "No shortcuts match the search.",
-    "category": {
-      "file": "File",
-      "edit": "Edit",
-      "view": "View",
-      "run": "Run",
-      "help": "Help"
     }
   }
 }

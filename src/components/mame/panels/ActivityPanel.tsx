@@ -305,18 +305,6 @@ export function ExportSection() {
 }
 
 // ---------------------------------------------------------------------------
-// Section: MergeExport (Merge + Export combined — Phase G #19)
-// ---------------------------------------------------------------------------
-export function MergeExportSection() {
-  return (
-    <>
-      <MergeSection />
-      <ExportSection />
-    </>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // ActivityPanel — top-level phase wrapper (single linear flow)
 // ---------------------------------------------------------------------------
 export function ActivityPanel() {

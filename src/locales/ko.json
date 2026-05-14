@@ -206,8 +206,13 @@
       "polymeraseTaqTitle": "표준 Taq 중합효소. Tm 기준 ~60 °C, Mg²⁺ 농도 높음. 일반 PCR 또는 3'A 오버행이 필요할 때 사용합니다.",
       "polymerasePhusionTitle": "Thermo Phusion 고충실도 중합효소. Tm 기준 ~72 °C, blunt-end 산물, 빠른 신장 반응.",
       "polymeraseKODTitle": "Toyobo KOD One / KOD Hot Start. Tm 기준 ~68 °C (Mg²⁺/dNTP 보정 적용). 고충실도, 빠른 반응 속도.",
-      "cdsCandidate": "CDS/ORF 후보:",
-      "cdsCandidateNoneDetected": "CDS를 찾을 수 없음. 좌표를 직접 입력하세요."
+      "autoDetect": {
+        "button": "CDS로부터 자동 인식",
+        "success": "{{source}}에서 자동 인식했습니다",
+        "failed": "ORF를 찾을 수 없음",
+        "noReference": "Reference 파일이 필요합니다",
+        "readError": "Reference 파일 읽기 실패"
+      }
     },
     "activity": {
       "title": "활성 데이터",
@@ -269,7 +274,7 @@
       "poreYieldAriaLabel": "최종 pore 수율: {{pct}}%",
       "legendAriaLabel": "차트 범례",
       "colWell": "웰",
-      "colReads": "read",
+      "colReads": "리드",
       "colNeighborAvg": "인접 평균",
       "colZScore": "Z-score",
       "colSeverity": "심각도",
@@ -311,18 +316,10 @@
       "colMutantId": "변이체 ID",
       "colVerdict": "판정",
       "colAaChanges": "AA 변이",
-      "colDepth": "depth (read)",
+      "colDepth": "깊이 (리드)",
       "colNotes": "비고",
       "fileSizeAriaLabel": "파일 크기: {{kb}} KB",
-      "fallbackAriaLabel": "대체 반복",
-      "evolveproExport": {
-        "header": "EVOLVEpro",
-        "includedTitle": "EVOLVEpro 내보내기에 포함됩니다.",
-        "reasonNgsFail": "제외 — NGS 검증 실패.",
-        "reasonWt": "제외 — 야생형 샘플(변이 아님).",
-        "reasonNoLog2fc": "제외 — log₂FC를 계산할 수 없음.",
-        "reasonNoActivity": "제외 — 활성도 데이터 없음."
-      }
+      "fallbackAriaLabel": "대체 반복"
     },
     "summaryRow": {
       "ariaLabel": "분석 요약",
@@ -343,7 +340,19 @@
       "statusInProgress": "진행 중"
     },
     "menuBar": {
-      "restartSidecarConfirm": "분석이 실행 중입니다. 그래도 sidecar를 재시작하시겠습니까?"
+      "closeBtn": "닫기",
+      "compareWorkspacesColA": "워크스페이스 A",
+      "compareWorkspacesColB": "워크스페이스 B",
+      "compareWorkspacesColField": "항목",
+      "compareWorkspacesDiff": "{{count}}개 차이{{plural}} 발견.",
+      "compareWorkspacesNoDiff": "차이가 없습니다.",
+      "compareWorkspacesSame": "두 워크스페이스가 동일합니다.",
+      "compareWorkspacesTitle": "워크스페이스 비교",
+      "restartSidecarConfirm": "분석이 실행 중입니다. 그래도 sidecar를 재시작하시겠습니까?",
+      "selectWorkspaceA": "첫 번째 워크스페이스 선택 (A)",
+      "selectWorkspaceB": "두 번째 워크스페이스 선택 (B)",
+      "compareWorkspacesFailed": "워크스페이스 비교 실패: {{error}}",
+      "exportWorkspaceZipSoon": "워크스페이스를 zip으로 내보내기 - 준비 중"
     },
     "statusBar": {
       "ready": "준비됨",
@@ -374,16 +383,15 @@
         "analyze": {
           "inputs": "입력 설정",
           "verdict": "판정",
-          "plate": "플레이트 계획"
+          "plate": "플레이트 계획",
+          "health": "런 헬스"
         },
         "activity": {
           "ingest": "인제스트",
-          "mergeExport": "병합 및 내보내기"
+          "merge": "병합",
+          "export": "내보내기"
         }
-      },
-      "barcodeSetupTabTitle": "런 설정 — NGS 검증의 일부 (PI 워크플로 ② 단계)",
-      "analyzeTabTitle": "시퀀싱 QC — NGS 검증의 일부 (PI 워크플로 ② 단계)",
-      "activityTabTitle": "활성도 데이터 — EVOLVEpro 입력 변환 (PI 워크플로 ④ 단계)"
+      }
     },
     "dialogs": {
       "export": {
@@ -494,23 +502,6 @@
         "helperText": "분석 보고서는 KURO 방식의 규칙 기반 .xlsx 파일명을 사용합니다",
         "helpText": "분석 결과 Excel이 저장될 폴더입니다. 파일명은 날짜, 참조/입력 토큰, MAME 대상, 결과 수 토큰을 조합한 KURO 방식으로 자동 생성됩니다."
       }
-    },
-    "janusDeck": {
-      "title": "JANUS 데크 레이아웃",
-      "ariaLabel": "JANUS 데크 레이아웃 미리보기",
-      "deckImageAriaLabel": "JANUS 데크 슬롯 위치: 상단 팁 플러시, 소스 플레이트 P1 P2 P3; 하단 폐기물, 빈 슬롯 두 개, 최종 96 deep well",
-      "headFixedNote": "Head 위치 고정",
-      "aspDspNote": "Asp. Position = Dsp. Position (동일 좌표).",
-      "matchByNameNote": "JANUS 소프트웨어는 plate name 기반으로 매칭. 여기 표시된 데크 슬롯 위치는 관행적 배치.",
-      "slot": {
-        "tipFlush": "Tip Flush",
-        "p1": "Stock Plate P1",
-        "p2": "Stock Plate P2",
-        "p3": "Stock Plate P3",
-        "waste": "폐기물",
-        "blank": "빈 슬롯",
-        "final": "최종 96 Deep Well"
-      }
     }
   },
   "home": {
@@ -582,12 +573,12 @@
     "polymeraseManufacturer": "제조사: {{manufacturer}}",
     "polymeraseFidelity": "정확도: {{fidelity}}",
     "customPolymerase": "사용자 폴리머라제",
-    "codonLabel": "돌연변이 코돈 (3 nt):",
-    "codonHelp": "돌연변이 site의 3 nt 코돈에만 적용. flanking primer 영역은 WT 그대로.\n\nMin. changes: wild-type 코돈에서 뉴클레오타이드 변화가 가장 적은 코돈 선택 (합성 비용 최소화).\nOptimal: 선택한 생물체의 코돈 사용 빈도가 가장 높은 코돈 선택 (발현 최대화).",
+    "codonLabel": "코돈:",
+    "codonHelp": "Min. changes: wild-type 코돈에서 뉴클레오타이드 변화가 가장 적은 코돈 선택 (합성 비용 최소화).\nOptimal: 선택한 생물체의 코돈 사용 빈도가 가장 높은 코돈 선택 (발현 최대화).",
     "codonOption_closest": "Min. changes (WT 대비 최소 nt 변화)",
-    "codonOption_closest_title": "wild-type 코돈 대비 뉴클레오타이드 변화가 가장 적은 돌연변이 코돈을 선택합니다. primer mismatch와 합성 비용을 최소화합니다. 돌연변이 코돈 (3 nt)만 변경됩니다.",
+    "codonOption_closest_title": "wild-type 코돈 대비 뉴클레오타이드 변화가 가장 적은 돌연변이 코돈을 선택합니다. primer mismatch와 합성 비용을 최소화합니다.",
     "codonOption_optimal": "Optimal (생물체 코돈 사용 빈도)",
-    "codonOption_optimal_title": "선택한 생물체의 코돈 사용 빈도표에서 가장 높은 코돈을 선택합니다. 발현을 최대화하지만 더 많은 nt 변화가 필요할 수 있습니다. 돌연변이 코돈 (3 nt)만 변경됩니다.",
+    "codonOption_optimal_title": "선택한 생물체의 코돈 사용 빈도표에서 가장 높은 코돈을 선택합니다. 발현을 최대화하지만 더 많은 nt 변화가 필요할 수 있습니다.",
     "mutationsLabel": "돌연변이:",
     "mutationsHelp": "생성할 primer 설계 최대 수입니다.\nEVOLVEpro / multi-evolve 모드: CSV 변이 수로 제한됩니다.\n96-well 플레이트 1개에 돌연변이 95개 + WT 대조군 1개가 들어갑니다.",
     "plates_one": "{{count}}개 플레이트",
@@ -896,14 +887,14 @@
     "tmMethodOption_santalucia": "SantaLucia",
     "tmMethodOption_santalucia_title": "SantaLucia 1998 최근접 이웃 파라미터. 대부분의 PCR primer에 적합한 현대적 기본값 (DNA/DNA, 25-mer, 생리적 염 농도).",
     "tmMethodOption_breslauer": "Breslauer",
-    "tmMethodOption_breslauer_title": "Breslauer 1986 최근접 이웃 파라미터. Legacy 테이블로 SantaLucia 대비 Tm을 1-3°C 과대 추정하는 경향이 있습니다.",
+    "tmMethodOption_breslauer_title": "Breslauer 1986 최근접 이웃 파라미터. 레거시 테이블로 SantaLucia 대비 Tm을 1-3°C 과대 추정하는 경향이 있습니다.",
     "saltCorrectionLabel": "염 보정",
     "saltOption_owczarzy": "Owczarzy",
     "saltOption_owczarzy_title": "Owczarzy 2004/2008 단가 이온 + Mg²⁺ 보정. Mg²⁺ 또는 dNTP 농도가 비표준일 때 권장합니다.",
     "saltOption_santalucia": "SantaLucia",
     "saltOption_santalucia_title": "SantaLucia 1996 단가 이온 전용 보정. Mg²⁺ 조정이 없는 표준 버퍼에 적합합니다.",
     "saltOption_schildkraut": "Schildkraut",
-    "saltOption_schildkraut_title": "Schildkraut-Lifson 1965 경험적 Na⁺ 보정. Legacy 방식으로 Owczarzy나 SantaLucia보다 정밀도가 낮습니다.",
+    "saltOption_schildkraut_title": "Schildkraut-Lifson 1965 경험적 Na⁺ 보정. 레거시 방식으로 Owczarzy나 SantaLucia보다 정밀도가 낮습니다.",
     "optTmLabel": "최적 Tm",
     "maxTmDiffLabel": "최대 Tm 차이",
     "minTmLabel": "최소 Tm",
@@ -1209,6 +1200,7 @@
     "consentStatusLabel": "동의 상태:",
     "consentGranted": "동의함",
     "consentNotGranted": "미동의",
+    "fileMenuTrigger": "파일",
     "exportMenuTrigger": "내보내기",
     "uniprotServiceSuffix": " -- 단백질 서열 검색",
     "ncbiBlastServiceSuffix": " -- 서열 유사성 검색",
@@ -1218,39 +1210,7 @@
     "view": {
       "title": "보기",
       "logs": "로그 표시",
-      "jobs": "작업 표시",
-      "language": "언어",
-      "theme": {
-        "title": "테마",
-        "light": "라이트",
-        "dark": "다크",
-        "system": "시스템 자동"
-      },
-      "fullscreen": "전체 화면",
-      "fullscreenError": "전체 화면 전환 실패: {{message}}"
-    },
-    "edit": {
-      "title": "편집",
-      "preferences": "환경설정..."
-    },
-    "run": {
-      "title": "실행",
-      "diagnostics": "Sidecar diagnostics...",
-      "checkSidecar": "Sidecar 상태 확인",
-      "replay": "이전 실행 재현...",
-      "replayError": "매니페스트 로드 실패: {{message}}",
-      "sidecarHealthAlive": "sidecar 응답 OK · v{{version}} · 가동 {{uptime}}초",
-      "sidecarHealthUnresponsive": "사이드카 프로세스 응답 없음 · {{message}}",
-      "sidecarHealthDead": "sidecar 응답 없음. Restart Sidecar 사용"
-    },
-    "help": {
-      "reportIssue": "이슈 보고"
-    },
-    "appMenu": {
-      "kuro": "kuro",
-      "mame": "mame",
-      "closeWindow": "창 닫기",
-      "quit": "kuma 종료"
+      "jobs": "작업 표시"
     }
   },
   "panel": {
@@ -1424,6 +1384,8 @@
   },
   "activityUpload": {
     "panelAriaLabel": "Activity 데이터 업로드",
+    "formatLabel": "형식",
+    "formatAriaLabel": "Activity 파일 형식",
     "uploadingAriaLabel": "Activity 데이터 업로드 중...",
     "browseAriaLabel": "Activity 파일 찾아보기 및 업로드",
     "uploadingBtn": "업로드 중...",
@@ -1452,6 +1414,18 @@
     "copyBtn": "복사",
     "copiedBtn": "복사됨!",
     "closeBtn": "닫기"
+  },
+  "mappingExportDialog": {
+    "titleEcho": "Echo 매핑 내보내기",
+    "titleJanus": "JANUS 매핑 내보내기",
+    "descriptionFiles": "동일한 경로에 두 파일이 저장됩니다.",
+    "machineLabel": "장비",
+    "transferVolumeLabel": "이동 부피",
+    "bomCheckboxAriaLabel": "Excel 호환을 위해 UTF-8 BOM 추가",
+    "bomCheckboxLabel": "UTF-8 BOM 추가",
+    "bomCheckboxHint": "(Excel 호환)",
+    "cancelBtn": "취소",
+    "exportBtn": "내보내기"
   },
   "whatsNewDialog": {
     "title": "v{{version}} 새로운 기능",
@@ -1566,7 +1540,7 @@
     "workspaceRestored": "Workspace 복원됨",
     "autoDetected": "자동 감지: {{fields}}",
     "fieldRunFolder": "실행 폴더",
-    "fieldReference": "Reference",
+    "fieldReference": "레퍼런스",
     "fieldExpected": "예상 유전형",
     "fieldSampleMap": "샘플 맵",
     "fieldCustomBarcodes": "커스텀 바코드",
@@ -1575,24 +1549,24 @@
   "phaseC": {
     "majors": {
       "design": "설계",
-      "export": "내보내기",
-      "output": "결과"
+      "plate": "플레이트 맵",
+      "export": "내보내기"
     },
     "subSteps": {
       "design": {
         "load": "변이체 로드",
+        "variant": "풀 필터",
         "mutation": "변이",
-        "params": "프라이머 파라미터",
-        "submit": "풀 필터 및 실행"
+        "params": "프라이머 파라미터"
+      },
+      "plate": {
+        "layout": "플레이트 맵"
       },
       "export": {
         "all": "내보내기",
         "format": "형식",
         "summary": "주문 요약",
         "workspace": "워크스페이스 저장"
-      },
-      "output": {
-        "summary": "요약"
       }
     },
     "badge": {
@@ -1612,6 +1586,12 @@
       "selectLabel": "Well 라벨 형식 선택"
     },
     "export": {
+      "format": {
+        "idt": "IDT CSV",
+        "twist": "Twist CSV",
+        "fasta": "FASTA"
+      },
+      "runExport": "내보내기",
       "workspace": {
         "save": "워크스페이스 저장",
         "load": "워크스페이스 불러오기"
@@ -1621,27 +1601,12 @@
         "primerCount": "총 프라이머",
         "mutationCount": "돌연변이"
       },
-      "all": {
-        "heading": "Macrogen 주문서 일괄 내보내기",
-        "plateNameFwd": "정방향 프라이머 플레이트 이름",
-        "plateNameRev": "역방향 프라이머 플레이트 이름",
-        "wellCount": "{{count}}개 위치 사용",
-        "amountLabel": "합성량",
-        "purificationLabel": "정제",
-        "echoVolLabel": "Echo 이송 부피",
-        "janusVolLabel": "JANUS 이송 부피",
-        "bomLabel": "UTF-8 BOM 추가",
-        "bomHint": "(Excel 호환)",
-        "ruleHint": "합성 규칙: 0.05 μmole MOPC / 0.2 μmole MOPC. 파일은 선택한 폴더에 저장됩니다.",
-        "runExport": "내보내기",
-        "error": {
-          "plateNameRegex": "플레이트 이름은 영문자·숫자·_·- (최대 20자)만 허용됩니다.",
-          "wellOverflow": "{{count}}개 위치가 96웰 한도를 초과합니다."
-        }
+      "orderExport": {
+        "heading": "프라이머 주문 내보내기"
       },
-      "toast": {
-        "success": "{{n}}개 파일이 저장되었습니다.",
-        "partial": "{{ok}}개 성공, {{fail}}개 실패."
+      "mappingExport": {
+        "heading": "플레이트 매핑 내보내기",
+        "runExport": "매핑 내보내기"
       }
     },
     "run": {
@@ -1651,16 +1616,19 @@
     "mameSubSteps": {
       "setup": {
         "files": "파일 및 좌표",
-        "design": "설계 파라미터"
+        "design": "설계 파라미터",
+        "output": "패키지 생성"
       },
       "analyze": {
         "inputs": "입력",
         "verdict": "판정 결과",
-        "plate": "플레이트 계획"
+        "plate": "플레이트 계획",
+        "health": "런 품질"
       },
       "activity": {
         "ingest": "데이터 수집",
-        "mergeExport": "병합 및 내보내기"
+        "merge": "병합",
+        "export": "내보내기"
       }
     }
   },
@@ -1674,69 +1642,10 @@
     "descriptions": {
       "design": {
         "load": "EVOLVEpro CSV를 업로드하거나 단백질 시퀀스를 붙여넣으세요.",
+        "variant": "변이체 풀 필터를 설정하세요.",
         "mutation": "포함할 변이를 정의하세요.",
-        "params": "프라이머 설계 파라미터를 설정하고 실행하세요.",
-        "submit": "변이체 풀 필터를 선택한 후 프라이머 설계를 실행합니다."
-      },
-      "output": {
-        "summary": "설계 결과, 통계, 플레이트 레이아웃을 확인합니다."
-      },
-      "export": {
-        "all": "프라이머 주문서를 IDT/Twist CSV 또는 FASTA로 내보냅니다."
+        "params": "프라이머 설계 파라미터를 설정하고 실행하세요."
       }
-    },
-    "mameDescriptions": {
-      "setup": {
-        "files": "이번 런에 사용할 MinKNOW 런 폴더와 참조 시퀀스를 선택하세요.",
-        "design": "프라이머 설계 파라미터를 설정하고 바코드 패키지를 생성하세요."
-      },
-      "analyze": {
-        "inputs": "입력 디렉토리와 분석 파라미터를 설정한 뒤 실행하세요.",
-        "verdict": "웰별 통과/실패 판정, 요약 통계, 시퀀싱 처리량 지표를 확인하세요.",
-        "plate": "바코드 및 변이체가 할당된 플레이트 레이아웃과 플레이트별 품질 지표를 검사하세요."
-      },
-      "activity": {
-        "ingest": "활성도 CSV 또는 Excel 파일을 업로드하고 야생형을 어노테이션하세요.",
-        "mergeExport": "레플리케이트 간 활성도 데이터와 유전형 정보를 병합한 뒤 EVOLVEpro 입력용으로 내보내세요."
-      }
-    }
-  },
-  "report": {
-    "noResultsTitle": "결과 없음",
-    "noResultsDesc": "먼저 설계를 실행하면 프라이머 결과가 여기에 표시됩니다.",
-    "stats": {
-      "primers": "프라이머",
-      "plates": "플레이트",
-      "failed": "실패",
-      "rescued": "복구됨"
-    }
-  },
-  "wizardContainer": {
-    "validationDialog": {
-      "title": "필수 입력 누락",
-      "description": "계속하기 전에 다음 항목을 완료해 주세요.",
-      "missingItemsLabel": "누락 항목"
-    }
-  },
-  "artifact": {
-    "badge": {
-      "detected": "Step {{step}} 출력 자동 감지",
-      "staleHint": "Export 이후 파일이 변경됨"
-    }
-  },
-  "appShell": {
-    "sidebarResize": "사이드바 너비 조절"
-  },
-  "shortcutsDialog": {
-    "title": "키보드 단축키",
-    "searchPlaceholder": "검색...",
-    "empty": "일치하는 단축키가 없습니다.",
-    "category": {
-      "file": "파일",
-      "edit": "편집",
-      "view": "보기",
-      "run": "실행",
-      "help": "도움말"
     }
   }
 }
