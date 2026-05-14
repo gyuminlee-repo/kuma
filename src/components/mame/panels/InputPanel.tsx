@@ -366,7 +366,7 @@ function FileField({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="h-8 flex-1 text-xs font-mono"
+          className="h-8 flex-1 min-w-0 text-xs font-mono"
           aria-label={label}
         />
         <Button

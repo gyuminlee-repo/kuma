@@ -147,17 +147,18 @@ export function SettingsDialog({ open, onOpenChange, scope = "kuro" }: SettingsD
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>{t("settings.title")}</DialogTitle>
         </DialogHeader>
 
+        <div className="flex-1 overflow-y-auto pr-1 -mr-1">
         <Tabs defaultValue="general" className="w-full">
           <TabsList className="w-full grid grid-cols-4">
-            <TabsTrigger value="general">{t("settings.tab.general")}</TabsTrigger>
-            <TabsTrigger value="network">{t("settings.tab.network")}</TabsTrigger>
-            <TabsTrigger value="sidecar">{t("settings.tab.sidecar")}</TabsTrigger>
-            <TabsTrigger value="telemetry">{t("settings.tab.telemetry")}</TabsTrigger>
+            <TabsTrigger value="general" className="min-w-0 truncate">{t("settings.tab.general")}</TabsTrigger>
+            <TabsTrigger value="network" className="min-w-0 truncate">{t("settings.tab.network")}</TabsTrigger>
+            <TabsTrigger value="sidecar" className="min-w-0 truncate">{t("settings.tab.sidecar")}</TabsTrigger>
+            <TabsTrigger value="telemetry" className="min-w-0 truncate">{t("settings.tab.telemetry")}</TabsTrigger>
           </TabsList>
 
           {/* ── General ──────────────────────────────────────────────────────── */}
@@ -461,6 +462,7 @@ export function SettingsDialog({ open, onOpenChange, scope = "kuro" }: SettingsD
             </section>
           </TabsContent>
         </Tabs>
+        </div>
 
         <DialogFooter className="flex items-center justify-between">
           {savedAtStr && (

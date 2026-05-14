@@ -565,7 +565,7 @@ export function MenuBar() {
           }
         }}
       >
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>{t("about.title")}</DialogTitle>
             <DialogDescription>
@@ -588,6 +588,7 @@ export function MenuBar() {
             </DialogDescription>
           </DialogHeader>
 
+          <div className="flex-1 overflow-y-auto pr-1 -mr-1">
           {/* §9 Updates */}
           <div className="flex flex-col gap-1.5">
             <p className="text-sm font-semibold text-foreground">{t("about.updates")}</p>
@@ -855,6 +856,7 @@ export function MenuBar() {
             )}
           </div>
 
+          </div>
           <DialogFooter>
             <Button size="sm" onClick={() => setAboutOpen(false)}>
               {t("about.ok")}
@@ -919,7 +921,7 @@ export function MenuBar() {
 
       {/* §20 Third-party licenses modal */}
       <Dialog open={noticeOpen} onOpenChange={setNoticeOpen}>
-        <DialogContent className="max-w-2xl max-h-[70vh] flex flex-col">
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>{t("about.thirdPartyLicensesTitle")}</DialogTitle>
             <DialogDescription>

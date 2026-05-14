@@ -23,7 +23,7 @@ export function DrawerStrip({ left, center, right }: DrawerStripProps) {
       style={{
         height: "92px",
         display: "grid",
-        gridTemplateColumns: "260px 1fr 250px",
+        gridTemplateColumns: "minmax(180px, 260px) minmax(0, 1fr) minmax(180px, 250px)",
       }}
       role="region"
       aria-label="action-drawer"
@@ -39,7 +39,7 @@ function SlotCell({ slot, border }: { slot?: DrawerSlot; border?: boolean }) {
   return (
     <div
       className={[
-        "flex min-w-0 flex-col overflow-hidden px-3 py-[9px]",
+        "flex min-w-0 flex-col overflow-hidden gap-1 px-3 py-[9px]",
         border ? "border-r border-border" : "",
       ]
         .filter(Boolean)
@@ -47,7 +47,7 @@ function SlotCell({ slot, border }: { slot?: DrawerSlot; border?: boolean }) {
     >
       {slot && (
         <>
-          <h4 className="mb-1.5 shrink-0 text-[12px] font-semibold text-foreground">
+          <h4 className="mb-1.5 shrink-0 truncate text-[12px] font-semibold text-foreground">
             {slot.title}
           </h4>
           <div className="min-h-0 flex-1 overflow-hidden text-[11px]">

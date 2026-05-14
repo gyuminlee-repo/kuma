@@ -45,7 +45,7 @@ export function KeyboardShortcutsDialog({ open, onOpenChange, scope = "kuro" }: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>{t("shortcutsDialog.title")}</DialogTitle>
         </DialogHeader>
@@ -59,6 +59,7 @@ export function KeyboardShortcutsDialog({ open, onOpenChange, scope = "kuro" }: 
           className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
 
+        <div className="flex-1 overflow-y-auto pr-1 -mr-1">
         <div className="flex flex-col gap-3">
           {CATEGORY_ORDER.map((cat) => {
             const items = groups[cat];
@@ -94,6 +95,7 @@ export function KeyboardShortcutsDialog({ open, onOpenChange, scope = "kuro" }: 
               {t("shortcutsDialog.empty")}
             </p>
           )}
+        </div>
         </div>
 
         <DialogFooter>

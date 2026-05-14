@@ -246,7 +246,14 @@
       "polymerasePhusionTitle": "Thermo Phusion High-Fidelity. Tm préréglée ~72 °C, blunt-end, extension rapide.",
       "polymeraseKODTitle": "Toyobo KOD One / KOD Hot Start. Tm préréglée ~68 °C avec correction Mg²⁺/dNTP. Haute fidélité, rapide.",
       "cdsCandidate": "Candidat CDS / ORF :",
-      "cdsCandidateNoneDetected": "Aucun CDS détecté. Entrez les coordonnées manuellement."
+      "cdsCandidateNoneDetected": "Aucun CDS détecté. Entrez les coordonnées manuellement.",
+      "autoDetect": {
+        "button": "Auto-detect from CDS",
+        "failed": "No ORF found",
+        "noReference": "Reference file required",
+        "readError": "Failed to read reference file",
+        "success": "Detected from {{source}}"
+      }
     },
     "activity": {
       "title": "Données d'activité",
@@ -259,7 +266,21 @@
         "uploadDesc": "Charger un fichier CSV / Excel au long format (colonnes well, replicate, value) dans le Round courant.",
         "wtHeading": "Annotation des wells WT",
         "wtDesc": "Désigner les wells wild-type utilisés pour la normalisation. Doit être défini avant la fusion.",
-        "loaded": "✓ {{count}} wells chargés"
+        "loaded": "✓ {{count}} wells chargés",
+        "contextSubtitle": "Upload wet-lab activity measurements for this round.",
+        "contextTitle": "Activity Data — Ingest",
+        "drawerCenter": "Activity log",
+        "drawerLeft": "Activity",
+        "drawerLeftDesc": "Wells with measurements",
+        "drawerRight": "Next",
+        "drawerRightDesc": "Merge and export",
+        "inspectorMean": "Mean activity",
+        "inspectorNoData": "No activity data loaded",
+        "inspectorReplicates": "Replicates",
+        "inspectorStdDev": "Std dev",
+        "inspectorSubtitle": "Replicate statistics",
+        "inspectorTitle": "Activity Inspector",
+        "inspectorWtNorm": "WT-normalised"
       },
       "merge": {
         "heading": "Fusionner activity avec genotype",
@@ -279,6 +300,26 @@
       "exportBlocked": {
         "title": "Export bloqué — label-swap détecté",
         "body": "Comparez avec le résultat EVOLVEpro du round précédent et vérifiez le label mapping pour les variants qui partagent une même valeur d'activity."
+      },
+      "mergeExport": {
+        "contextSubtitle": "Merge genotype with activity and export EVOLVEpro input.",
+        "contextTitle": "Activity Data — Merge and Export",
+        "drawerCenter": "Merge log",
+        "drawerLeft": "Export files",
+        "drawerLeftDesc": "Files ready for export",
+        "drawerRight": "Handoff",
+        "drawerRightDesc": "Return to KURO for next round",
+        "inspectorActivity": "Activity",
+        "inspectorBridgeCallout": "Bidirectional bridge",
+        "inspectorBridgeDesc": "Merged table flows back to KURO as EVOLVEpro input for the next design round.",
+        "inspectorMergedRows": "Merged rows",
+        "inspectorNoMerge": "No merge performed yet",
+        "inspectorStatus": "Status",
+        "inspectorSubtitle": "R585A merge summary",
+        "inspectorTitle": "Export Inspector",
+        "inspectorVariant": "Variant",
+        "openJanusExport": "Open JANUS export...",
+        "openJanusExportAriaLabel": "Open JANUS cell-stock mapping export dialog"
       }
     },
     "runHealth": {
@@ -382,7 +423,19 @@
       "statusInProgress": "En cours"
     },
     "menuBar": {
-      "restartSidecarConfirm": "Une analyse est en cours. Redémarrer le sidecar quand même ?"
+      "restartSidecarConfirm": "Une analyse est en cours. Redémarrer le sidecar quand même ?",
+      "closeBtn": "Close",
+      "compareWorkspacesColA": "Workspace A",
+      "compareWorkspacesColB": "Workspace B",
+      "compareWorkspacesColField": "Field",
+      "compareWorkspacesDiff": "{{count}} difference{{plural}} found.",
+      "compareWorkspacesFailed": "Workspace compare failed: {{error}}",
+      "compareWorkspacesNoDiff": "No differences found.",
+      "compareWorkspacesSame": "The two workspaces are identical.",
+      "compareWorkspacesTitle": "Compare Workspaces",
+      "exportWorkspaceZipSoon": "Export workspace as zip - coming soon",
+      "selectWorkspaceA": "Select first workspace (A)",
+      "selectWorkspaceB": "Select second workspace (B)"
     },
     "statusBar": {
       "ready": "Prêt",
@@ -413,11 +466,14 @@
         "analyze": {
           "inputs": "Entrées",
           "verdict": "Verdicts",
-          "plate": "Plan de plaque"
+          "plate": "Plan de plaque",
+          "health": "Run Health"
         },
         "activity": {
           "ingest": "Ingestion",
-          "mergeExport": "Merge & Export"
+          "mergeExport": "Merge & Export",
+          "export": "Export",
+          "merge": "Merge"
         }
       },
       "barcodeSetupTabTitle": "Run Setup — part of NGS Validation (step ② of PI workflow)",
@@ -1379,7 +1435,8 @@
       "mame": "mame",
       "closeWindow": "Fermer la fenêtre",
       "quit": "Quitter kuma"
-    }
+    },
+    "fileMenuTrigger": "File"
   },
   "panel": {
     "errorTitle": "Affichage impossible",
@@ -1556,7 +1613,9 @@
     "browseAriaLabel": "Parcourir et téléverser le fichier d'activity",
     "uploadingBtn": "Téléversement...",
     "browseBtn": "Parcourir et téléverser",
-    "recordsLoaded": "{{count}} wells chargés"
+    "recordsLoaded": "{{count}} wells chargés",
+    "formatAriaLabel": "Activity file format",
+    "formatLabel": "Format"
   },
   "preflight": {
     "titleFailed": "Échec du contrôle pre-flight",
@@ -1590,8 +1649,6 @@
     "bomCheckboxAriaLabel": "Ajouter un BOM UTF-8 pour la compatibilité Excel",
     "bomCheckboxLabel": "Ajouter un BOM UTF-8",
     "bomCheckboxHint": "(compatibilité Excel)",
-    "transferVolumeRange": "Plage : {{min}}–{{max}} {{unit}}",
-    "echoMaxNote": "(Max 500 nL)",
     "cancelBtn": "Annuler",
     "exportBtn": "Exporter"
   },
@@ -1718,14 +1775,16 @@
     "majors": {
       "design": "Design",
       "export": "Export",
-      "output": "Résultats"
+      "output": "Résultats",
+      "plate": "Plate Map"
     },
     "subSteps": {
       "design": {
         "load": "Charger les variants",
         "mutation": "Mutations",
         "params": "Paramètres de primer",
-        "submit": "Filtres de pool & Lancer"
+        "submit": "Filtres de pool & Lancer",
+        "variant": "Pool Filters"
       },
       "export": {
         "all": "Export",
@@ -1735,6 +1794,9 @@
       },
       "output": {
         "summary": "Résumé"
+      },
+      "plate": {
+        "layout": "Plate Map"
       }
     },
     "badge": {
@@ -1784,16 +1846,20 @@
     "mameSubSteps": {
       "setup": {
         "files": "Fichiers et coordonnées",
-        "design": "Paramètres de design"
+        "design": "Paramètres de design",
+        "output": "Generate Package"
       },
       "analyze": {
         "inputs": "Entrées",
         "verdict": "Verdicts",
-        "plate": "Plan de plaque"
+        "plate": "Plan de plaque",
+        "health": "Run Health"
       },
       "activity": {
         "ingest": "Ingérer les données",
-        "mergeExport": "Merge & Export"
+        "mergeExport": "Merge & Export",
+        "export": "Export",
+        "merge": "Merge"
       }
     }
   },
@@ -1809,7 +1875,8 @@
         "load": "Téléverser un CSV EVOLVEpro ou coller une séquence protéique.",
         "mutation": "Définir les mutations à inclure.",
         "params": "Définir les paramètres de design de primer et lancer.",
-        "submit": "Sélectionnez les filtres du pool de variants, puis lancez la conception des amorces."
+        "submit": "Sélectionnez les filtres du pool de variants, puis lancez la conception des amorces.",
+        "variant": "Configure variant pool filters."
       },
       "output": {
         "summary": "Examinez les résultats de conception, les statistiques et la disposition de la plaque."
