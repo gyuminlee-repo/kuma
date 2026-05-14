@@ -541,6 +541,133 @@
         "helperText": "분석 보고서는 KURO 방식의 규칙 기반 .xlsx 파일명을 사용합니다",
         "helpText": "분석 결과 Excel이 저장될 폴더입니다. 파일명은 날짜, 참조/입력 토큰, MAME 대상, 결과 수 토큰을 조합한 KURO 방식으로 자동 생성됩니다."
       }
+    },
+    "setup": {
+      "files": {
+        "railTitle": "MAME 워크플로우",
+        "contextTitle": "실행 설정 — 입력 파일",
+        "contextSubtitle": "MinKNOW 실행 폴더를 선택하고 감지된 파일을 확인합니다.",
+        "drawerLeft": "감지됨",
+        "drawerLeftDesc": "실행 폴더 스캔 완료",
+        "drawerCenter": "스캔 로그",
+        "drawerRight": "다음",
+        "drawerRightDesc": "바코드를 설계에 매핑",
+        "inspectorTitle": "실행 Inspector",
+        "inspectorSubtitle": "선택한 실행 폴더 메타데이터",
+        "inspectorDevice": "장치",
+        "inspectorKit": "키트",
+        "inspectorBarcodes": "바코드",
+        "inspectorNoFolder": "실행 폴더가 선택되지 않음"
+      },
+      "design": {
+        "contextTitle": "실행 설정 — 설계 매핑",
+        "contextSubtitle": "KURO 바코드 패키지를 이 실행에 매핑합니다.",
+        "drawerLeft": "KURO 소스",
+        "drawerLeftDesc": "바코드 패키지 로드됨",
+        "drawerCenter": "매핑 로그",
+        "drawerRight": "다음",
+        "drawerRightDesc": "QC로 진행",
+        "inspectorTitle": "바코드 Inspector",
+        "inspectorSubtitle": "BC01 매핑 세부사항",
+        "inspectorVariant": "변이체",
+        "inspectorDesignSource": "설계 소스",
+        "inspectorExpectedReads": "예상 읽기 수",
+        "inspectorNoBarcodeSelected": "바코드가 선택되지 않음"
+      }
+    },
+    "qc": {
+      "inputs": {
+        "contextTitle": "시퀀싱 QC — 입력",
+        "contextSubtitle": "임계값을 설정하고 품질 관리를 실행합니다.",
+        "drawerLeft": "대기열",
+        "drawerLeftDesc": "QC 대기 중인 well",
+        "drawerCenter": "Preflight 로그",
+        "drawerRight": "단축키",
+        "drawerRightDesc": "Ctrl+D로 실행",
+        "stickyRunBanner": "QC 실행",
+        "inspectorTitle": "QC Inspector",
+        "inspectorSubtitle": "현재 임계값에서의 예상 유지율",
+        "inspectorEstRetention": "예상 유지율",
+        "inspectorEstPass": "예상 PASS",
+        "inspectorMinDepth": "최소 깊이 임계값",
+        "inspectorMinIdentity": "최소 동일성 임계값"
+      },
+      "verdict": {
+        "contextTitle": "시퀀싱 QC — 판정",
+        "contextSubtitle": "바코드별 시퀀싱 결과 및 판정.",
+        "drawerLeft": "분석",
+        "drawerLeftDesc": "Consensus 호출 완료",
+        "drawerCenter": "Consensus 로그",
+        "drawerRight": "다음",
+        "drawerRightDesc": "플레이트 계획 검토",
+        "inspectorTitle": "바코드 판정",
+        "inspectorSubtitle": "선택한 바코드 세부사항",
+        "inspectorReads": "읽기 수",
+        "inspectorIdentity": "동일성",
+        "inspectorCall": "판정",
+        "inspectorExport": "내보내기",
+        "inspectorNoBarcodeSelected": "행을 선택하여 검사"
+      },
+      "plate": {
+        "contextTitle": "시퀀싱 QC — 플레이트 계획",
+        "contextSubtitle": "well별 판정이 포함된 96-well 레이아웃.",
+        "drawerLeft": "선택",
+        "drawerLeftDesc": "선택된 well 수",
+        "drawerCenter": "플레이트 로그",
+        "drawerRight": "다음",
+        "drawerRightDesc": "활성 데이터로 진행",
+        "inspectorTitle": "Well Inspector",
+        "inspectorSubtitle": "선택한 well 세부사항",
+        "inspectorBarcode": "바코드",
+        "inspectorReads": "읽기 수",
+        "inspectorReason": "이유",
+        "inspectorNoWellSelected": "well을 클릭하여 검사",
+        "clusterAlertTitle": "클러스터 실패 감지",
+        "clusterAlertDesc": "{{wells}} — 인접 well이 동시에 실패했습니다. 피펫팅 문제가 의심됩니다.",
+        "clusterAlertAriaLabel": "플레이트 클러스터 실패 경고"
+      }
+    },
+    "activity": {
+      "ingest": {
+        "contextTitle": "활성 데이터 — 수집",
+        "contextSubtitle": "이번 라운드의 wet-lab 활성 측정값을 업로드합니다.",
+        "drawerLeft": "활성",
+        "drawerLeftDesc": "측정값이 있는 well",
+        "drawerCenter": "활성 로그",
+        "drawerRight": "다음",
+        "drawerRightDesc": "병합 및 내보내기",
+        "inspectorTitle": "활성 Inspector",
+        "inspectorSubtitle": "반복 통계",
+        "inspectorMean": "평균 활성",
+        "inspectorStdDev": "표준편차",
+        "inspectorReplicates": "반복수",
+        "inspectorWtNorm": "WT 정규화",
+        "inspectorNoData": "활성 데이터가 로드되지 않음"
+      },
+      "mergeExport": {
+        "contextTitle": "활성 데이터 — 병합 및 내보내기",
+        "contextSubtitle": "유전형과 활성을 병합하고 EVOLVEpro 입력을 내보냅니다.",
+        "drawerLeft": "내보내기 파일",
+        "drawerLeftDesc": "내보낼 준비 완료",
+        "drawerCenter": "병합 로그",
+        "drawerRight": "핸드오프",
+        "drawerRightDesc": "다음 라운드를 위해 KURO로 복귀",
+        "inspectorTitle": "내보내기 Inspector",
+        "inspectorSubtitle": "R585A 병합 요약",
+        "inspectorVariant": "변이체",
+        "inspectorActivity": "활성",
+        "inspectorMergedRows": "병합된 행",
+        "inspectorStatus": "상태",
+        "inspectorBridgeCallout": "양방향 브리지",
+        "inspectorBridgeDesc": "병합된 테이블이 다음 설계 라운드를 위해 EVOLVEpro 입력으로 KURO에 전달됩니다.",
+        "inspectorNoMerge": "병합이 수행되지 않음",
+        "openJanusExport": "JANUS 내보내기 열기...",
+        "openJanusExportAriaLabel": "JANUS 세포 재고 매핑 내보내기 대화상자 열기"
+      }
+    },
+    "inspector": {
+      "kvEmpty": "—",
+      "noDataPlaceholder": "데이터 없음"
     }
   },
   "home": {

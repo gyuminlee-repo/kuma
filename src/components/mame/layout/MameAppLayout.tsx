@@ -34,13 +34,20 @@ import { useMainZoom } from "@/hooks/useMainZoom";
 import { MenuBar } from "./MenuBar";
 import { WhatsNewDialog } from "@/components/dialogs/WhatsNewDialog";
 import { StatusBar } from "./StatusBar";
-import { SubStepNav, type SubNavItem } from "@/components/layout/SubStepNav";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SetupStepView } from "@/components/mame/steps/SetupStepView";
 import { AnalyzeStepView } from "@/components/mame/steps/AnalyzeStepView";
 import { ActivityStepView } from "@/components/mame/steps/ActivityStepView";
-import { MAME_SUBSTEP_ORDER, type MameSubStepId } from "@/store/mame/slices/mameSubSteps";
+import type { MameSubStepId } from "@/store/mame/slices/mameSubSteps";
 import type { MamePhase } from "@/store/mame/slices/phaseSlice";
+import { MameWorkflowRail } from "./MameWorkflowRail";
+import { MameInspectorContent, useMameInspectorMeta } from "./MameInspectorContent";
+import { useMameDrawerProps } from "./MameDrawerContent";
+import { InspectorPanel } from "@/components/widgets/InspectorPanel";
+import { ContextHeader } from "@/components/widgets/ContextHeader";
+import { DrawerStrip } from "@/components/widgets/DrawerStrip";
+import { PlateClusterAlert } from "@/components/mame/widgets/PlateClusterAlert";
+import { JanusMappingDialog } from "@/components/mame/dialogs/JanusMappingDialog";
 
 // Activity store는 RoundStore를 주입받아 초기화 (lazy singleton).
 // MameAppLayout 모듈 로드 시 단 한 번만 실행.
@@ -49,23 +56,16 @@ initActivityStore(useRoundStore);
 const SEQUENCE_EXTENSIONS = new Set([".fa", ".fasta", ".fna"]);
 const XLSX_EXTENSIONS = new Set([".xlsx"]);
 
-// MAME sub-step → i18n 레이블 매핑
-const MAME_SUBSTEP_LABEL_KEYS: Record<MameSubStepId, string> = {
-  "setup.files": "phaseC.mameSubSteps.setup.files",
-  "setup.design": "phaseC.mameSubSteps.setup.design",
-  "analyze.inputs": "phaseC.mameSubSteps.analyze.inputs",
-  "analyze.verdict": "phaseC.mameSubSteps.analyze.verdict",
-  "analyze.plate": "phaseC.mameSubSteps.analyze.plate",
-  "activity.ingest": "phaseC.mameSubSteps.activity.ingest",
-  "activity.mergeExport": "phaseC.mameSubSteps.activity.mergeExport",
+// ContextHeader 제목/부제 — sub-step별 i18n 키 매핑
+const CONTEXT_TITLE_KEYS: Record<MameSubStepId, { title: string; subtitle: string }> = {
+  "setup.files":        { title: "mame.setup.files.contextTitle",         subtitle: "mame.setup.files.contextSubtitle" },
+  "setup.design":       { title: "mame.setup.design.contextTitle",        subtitle: "mame.setup.design.contextSubtitle" },
+  "analyze.inputs":     { title: "mame.qc.inputs.contextTitle",           subtitle: "mame.qc.inputs.contextSubtitle" },
+  "analyze.verdict":    { title: "mame.qc.verdict.contextTitle",          subtitle: "mame.qc.verdict.contextSubtitle" },
+  "analyze.plate":      { title: "mame.qc.plate.contextTitle",            subtitle: "mame.qc.plate.contextSubtitle" },
+  "activity.ingest":    { title: "mame.activity.ingest.contextTitle",     subtitle: "mame.activity.ingest.contextSubtitle" },
+  "activity.mergeExport": { title: "mame.activity.mergeExport.contextTitle", subtitle: "mame.activity.mergeExport.contextSubtitle" },
 };
-
-function getMameSubSteps(phase: "setup" | "analyze" | "activity"): SubNavItem[] {
-  return MAME_SUBSTEP_ORDER[phase].map((id) => ({
-    id,
-    labelKey: MAME_SUBSTEP_LABEL_KEYS[id],
-  }));
-}
 
 export function MameAppLayout() {
   const { t } = useTranslation();
@@ -240,9 +240,23 @@ export function MameAppLayout() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [project, tryRunAnalysis]);
 
-  // 현재 phase의 sub-step 목록
-  const currentPhaseForNav = mamePhase as "setup" | "analyze" | "activity";
-  const subSteps = getMameSubSteps(currentPhaseForNav);
+  // 현재 sub-step 기반 ContextHeader 메타
+  const currentSubStep = useMameAppStore((s) => s.currentMameSubStep);
+  const contextMeta = CONTEXT_TITLE_KEYS[currentSubStep];
+
+  // Inspector 메타 (제목/부제)
+  const inspectorMeta = useMameInspectorMeta();
+
+  // DrawerStrip props
+  const drawerProps = useMameDrawerProps();
+
+  const hasResults = useMameAppStore((s) => s.verdicts.length > 0);
+
+  // JANUS dialog 상태 — Layout이 단독 소유. MenuBar와 CTA 버튼이 같은 setter 공유.
+  const [janusOpen, setJanusOpen] = useState(false);
+
+  // Merge & Export 화면에서만 JANUS CTA 표시.
+  const showJanusCta = currentSubStep === "activity.mergeExport";
 
   return (
     <Tabs
@@ -252,7 +266,12 @@ export function MameAppLayout() {
     >
       <AppShell
         tool="mame"
-        titlebar={<MenuBar onClearRequest={() => setClearConfirmOpen(true)} />}
+        titlebar={
+          <MenuBar
+            onClearRequest={() => setClearConfirmOpen(true)}
+            onJanusOpen={() => setJanusOpen(true)}
+          />
+        }
         subnav={
           <TabsList className="shrink-0 mx-3 mt-2 w-fit">
             <TabsTrigger value="setup" title={t("mame.appLayout.barcodeSetupTabTitle")}>
@@ -266,12 +285,11 @@ export function MameAppLayout() {
             </TabsTrigger>
           </TabsList>
         }
-        sidebar={
-          <SubStepNav
-            major={mamePhase}
-            subSteps={subSteps}
-            store="mame"
-          />
+        sidebar={<MameWorkflowRail />}
+        inspector={
+          <InspectorPanel title={inspectorMeta.title} subtitle={inspectorMeta.subtitle}>
+            <MameInspectorContent />
+          </InspectorPanel>
         }
         main={
           <div
@@ -279,6 +297,12 @@ export function MameAppLayout() {
             className="flex flex-col flex-1 min-h-0 min-w-0 overflow-hidden"
             style={{ zoom }}
           >
+            {/* ContextHeader — 현재 화면 제목/부제 */}
+            <ContextHeader
+              title={t(contextMeta.title)}
+              subtitle={t(contextMeta.subtitle)}
+            />
+
             {/* Phase 1: Barcode Setup */}
             <TabsContent value="setup" className="flex-1 min-h-0 overflow-hidden mt-0">
               <SetupStepView />
@@ -286,6 +310,12 @@ export function MameAppLayout() {
 
             {/* Phase 2: Analyze */}
             <TabsContent value="analyze" className="flex-1 min-h-0 overflow-hidden mt-0">
+              {/* QC/Plate 화면에서 cluster alert 표시 */}
+              {currentSubStep === "analyze.plate" && (
+                <div className="px-4 pt-3">
+                  <PlateClusterAlert />
+                </div>
+              )}
               <AnalyzeStepView
                 runHealth={runHealth}
                 onRunRequest={tryRunAnalysis}
@@ -296,7 +326,29 @@ export function MameAppLayout() {
             {/* Phase 3: Activity */}
             <TabsContent value="activity" className="flex-1 min-h-0 overflow-hidden mt-0">
               <ActivityStepView />
+              {/* Merge & Export 화면 JANUS CTA (GAP P1) — MenuBar가 dialog 소유 */}
+              {showJanusCta && (
+                <div className="shrink-0 border-t border-border px-4 py-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                    onClick={() => setJanusOpen(true)}
+                    disabled={!hasResults}
+                    aria-label={t("mame.activity.mergeExport.openJanusExportAriaLabel")}
+                  >
+                    {t("mame.activity.mergeExport.openJanusExport")}
+                  </Button>
+                </div>
+              )}
             </TabsContent>
+
+            {/* DrawerStrip — 하단 3-슬롯 */}
+            <DrawerStrip
+              left={drawerProps.left}
+              center={drawerProps.center}
+              right={drawerProps.right}
+            />
           </div>
         }
         statusbar={<StatusBar sidecarStatus={status} onRetry={retry} />}
@@ -397,6 +449,9 @@ export function MameAppLayout() {
 
         {/* §5 Output Persistence: 덮어쓰기 confirm */}
         <OverwriteConfirmDialog />
+
+        {/* JANUS CTA 진입 dialog — main pane "Open JANUS export..." 버튼 전용 (GAP P1) */}
+        <JanusMappingDialog open={janusOpen} onOpenChange={setJanusOpen} />
       </AppShell>
     </Tabs>
   );
