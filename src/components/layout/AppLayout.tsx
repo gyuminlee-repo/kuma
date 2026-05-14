@@ -42,7 +42,9 @@ import {
 
 const SEQUENCE_EXTENSIONS = new Set([".gb", ".gbk", ".gbff", ".dna", ".fa", ".fasta"]);
 const CSV_EXTENSIONS = new Set([".csv"]);
-const LazyDesignReport = lazy(async () => import("../dialogs/DesignReport").then((m) => ({ default: m.DesignReport })));
+// Spec #2/#16: DesignReport popup mount removed. Report now renders in the
+// right inspector via DesignReportInspector (Phase C). DesignReport.tsx
+// retained for body extraction in C1.
 const LazyBenchmarkDialog = lazy(async () => import("../dialogs/BenchmarkDialog").then((m) => ({ default: m.BenchmarkDialog })));
 
 export function AppLayout() {
@@ -59,7 +61,6 @@ export function AppLayout() {
     return classifyError(statusMessage).kind;
   }, [statusMessage]);
   const loadPolymerases = useAppStore((s) => s.loadPolymerases);
-  const showReport = useAppStore((s) => s.showReport);
   const showBenchmark = useAppStore((s) => s.showBenchmark);
   const loadNetworkConsentSettings = useAppStore((s) => s.loadNetworkConsentSettings);
   const loadSettings = useAppStore((s) => s.loadSettings);
@@ -335,7 +336,6 @@ export function AppLayout() {
       />
 
       <Suspense fallback={null}>
-        {showReport && <LazyDesignReport />}
         {showBenchmark && <LazyBenchmarkDialog />}
       </Suspense>
 
