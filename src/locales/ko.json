@@ -99,7 +99,46 @@
     "dataFolderChange": "변경...",
     "language": "언어",
     "languageNote": "언어 설정이 로컬에 저장됩니다.",
-    "close": "닫기"
+    "close": "닫기",
+    "tab": {
+      "general": "일반",
+      "network": "네트워크",
+      "sidecar": "Sidecar",
+      "telemetry": "원격 측정"
+    },
+    "theme": {
+      "label": "테마",
+      "light": "라이트",
+      "dark": "다크",
+      "auto": "시스템"
+    },
+    "network": {
+      "offlineMode": "오프라인 모드",
+      "offlineModeHint": "활성화 시 모든 외부 네트워크 호출(UniProt, BLAST, AlphaFold, InterPro)이 차단됩니다.",
+      "consent": {
+        "title": "외부 서비스 동의",
+        "uniprot": "UniProt (서열 검색)",
+        "blast": "NCBI BLAST via EBI (오프타겟 확인)",
+        "alphafold": "AlphaFold via EBI (구조 조회)",
+        "interpro": "InterPro / Pfam via EBI (도메인 주석)"
+      }
+    },
+    "sidecar": {
+      "concurrency": "기본 동시 실행 수",
+      "concurrencyHint": "최대 병렬 프라이머 설계 작업 수 (1–16).",
+      "cancelTimeout": "취소 타임아웃",
+      "cancelTimeoutHint": "강제 종료 전 정상 취소를 대기하는 시간 (5–120 초).",
+      "persistOnCancel": "취소 시 처리",
+      "persistPartial": "부분 결과 유지",
+      "persistDiscard": "모든 결과 삭제"
+    },
+    "telemetry": {
+      "crashLog": "충돌 로그 자동 전송",
+      "crashLogHint": "안정성 개선을 위해 익명화된 충돌 보고서를 자동으로 전송합니다. 기본값: 꺼짐.",
+      "anonymousStats": "익명 사용 통계",
+      "anonymousStatsHint": "익명 기능 사용 데이터를 공유합니다. 개인 정보 및 서열 데이터는 포함되지 않습니다. 기본값: 꺼짐."
+    },
+    "savedAt": "{{time}}에 저장됨"
   },
   "mame": {
     "input": {

@@ -55,6 +55,14 @@ export interface SidecarKuroModels {
   SaveWorkspaceParams?: SaveWorkspaceParams;
   SdmPrimerResultModel?: SdmPrimerResultModel;
   SearchUniprotParams?: SearchUniprotParams;
+  SettingsBundle?: SettingsBundle;
+  SettingsLoadRequest?: SettingsLoadRequest;
+  SettingsLoadResponse?: SettingsLoadResponse;
+  SettingsNetwork?: SettingsNetwork;
+  SettingsSaveRequest?: SettingsSaveRequest;
+  SettingsSaveResponse?: SettingsSaveResponse;
+  SettingsSidecar?: SettingsSidecar;
+  SettingsTelemetry?: SettingsTelemetry;
   SortingEntry?: SortingEntry;
   SwapPrimerParams?: SwapPrimerParams;
   WorkspaceCacheModel?: WorkspaceCacheModel;
@@ -646,6 +654,74 @@ export interface SearchUniprotParams {
   known_accession?: string;
   organism?: string;
   translation?: string;
+  [k: string]: unknown;
+}
+/**
+ * Complete application preferences bundle persisted to ~/.kuma/preferences.json.
+ */
+export interface SettingsBundle {
+  default_workspace_folder?: string | null;
+  language?: string;
+  network?: SettingsNetwork;
+  sidecar?: SettingsSidecar;
+  telemetry?: SettingsTelemetry;
+  theme?: "light" | "dark" | "auto";
+  [k: string]: unknown;
+}
+/**
+ * Network consent flags and offline mode for Settings.
+ */
+export interface SettingsNetwork {
+  consent_alphafold?: boolean;
+  consent_blast?: boolean;
+  consent_interpro?: boolean;
+  consent_uniprot?: boolean;
+  offline_mode?: boolean;
+  [k: string]: unknown;
+}
+/**
+ * Sidecar runtime tuning parameters for Settings.
+ */
+export interface SettingsSidecar {
+  cancel_timeout_secs?: number;
+  concurrency_default?: number;
+  persist_on_cancel?: "partial" | "discard";
+  [k: string]: unknown;
+}
+/**
+ * Telemetry opt-in flags for Settings.
+ */
+export interface SettingsTelemetry {
+  anonymous_stats?: boolean;
+  crash_log_auto_send?: boolean;
+  [k: string]: unknown;
+}
+/**
+ * Empty request body for settings_load RPC.
+ */
+export interface SettingsLoadRequest {
+  [k: string]: unknown;
+}
+/**
+ * Response body for settings_load RPC.
+ */
+export interface SettingsLoadResponse {
+  settings: SettingsBundle;
+  [k: string]: unknown;
+}
+/**
+ * Request body for settings_save RPC -- full SettingsBundle payload.
+ */
+export interface SettingsSaveRequest {
+  settings: SettingsBundle;
+  [k: string]: unknown;
+}
+/**
+ * Response body for settings_save RPC.
+ */
+export interface SettingsSaveResponse {
+  ok: boolean;
+  path: string;
   [k: string]: unknown;
 }
 export interface SortingEntry {

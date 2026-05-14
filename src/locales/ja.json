@@ -99,7 +99,46 @@
     "dataFolderChange": "変更...",
     "language": "言語",
     "languageNote": "言語設定はローカルに保存されます。",
-    "close": "閉じる"
+    "close": "閉じる",
+    "tab": {
+      "general": "一般",
+      "network": "ネットワーク",
+      "sidecar": "Sidecar",
+      "telemetry": "テレメトリ"
+    },
+    "theme": {
+      "label": "テーマ",
+      "light": "ライト",
+      "dark": "ダーク",
+      "auto": "システム"
+    },
+    "network": {
+      "offlineMode": "オフラインモード",
+      "offlineModeHint": "有効にすると、すべての外部ネットワーク呼び出し（UniProt、BLAST、AlphaFold、InterPro）がブロックされます。",
+      "consent": {
+        "title": "外部サービスへの同意",
+        "uniprot": "UniProt（配列検索）",
+        "blast": "NCBI BLAST via EBI（オフターゲット確認）",
+        "alphafold": "AlphaFold via EBI（構造参照）",
+        "interpro": "InterPro / Pfam via EBI（ドメインアノテーション）"
+      }
+    },
+    "sidecar": {
+      "concurrency": "デフォルト同時実行数",
+      "concurrencyHint": "並列プライマー設計ジョブの最大数（1〜16）。",
+      "cancelTimeout": "キャンセルタイムアウト",
+      "cancelTimeoutHint": "強制終了前に正常キャンセルを待機する秒数（5〜120秒）。",
+      "persistOnCancel": "キャンセル時の動作",
+      "persistPartial": "部分結果を保持",
+      "persistDiscard": "すべての結果を破棄"
+    },
+    "telemetry": {
+      "crashLog": "クラッシュログを自動送信",
+      "crashLogHint": "安定性向上のため、匿名化されたクラッシュレポートを自動送信します。デフォルト：オフ。",
+      "anonymousStats": "匿名使用統計",
+      "anonymousStatsHint": "匿名の機能使用データを共有します。個人情報や配列データは含まれません。デフォルト：オフ。"
+    },
+    "savedAt": "{{time}} に保存済み"
   },
   "mame": {
     "input": {

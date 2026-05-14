@@ -99,7 +99,46 @@
     "dataFolderChange": "Modifier...",
     "language": "Langue",
     "languageNote": "La préférence de langue est enregistrée localement.",
-    "close": "Fermer"
+    "close": "Fermer",
+    "tab": {
+      "general": "Général",
+      "network": "Réseau",
+      "sidecar": "Sidecar",
+      "telemetry": "Télémétrie"
+    },
+    "theme": {
+      "label": "Thème",
+      "light": "Clair",
+      "dark": "Sombre",
+      "auto": "Système"
+    },
+    "network": {
+      "offlineMode": "Mode hors ligne",
+      "offlineModeHint": "Lorsqu'activé, tous les appels réseau externes (UniProt, BLAST, AlphaFold, InterPro) sont bloqués.",
+      "consent": {
+        "title": "Consentement aux services externes",
+        "uniprot": "UniProt (recherche de séquences)",
+        "blast": "NCBI BLAST via EBI (vérification hors-cible)",
+        "alphafold": "AlphaFold via EBI (recherche de structure)",
+        "interpro": "InterPro / Pfam via EBI (annotation de domaines)"
+      }
+    },
+    "sidecar": {
+      "concurrency": "Simultanéité par défaut",
+      "concurrencyHint": "Nombre maximum de tâches de conception de primers en parallèle (1–16).",
+      "cancelTimeout": "Délai d'annulation",
+      "cancelTimeoutHint": "Secondes d'attente avant l'arrêt forcé après annulation (5–120 s).",
+      "persistOnCancel": "À l'annulation",
+      "persistPartial": "Conserver les résultats partiels",
+      "persistDiscard": "Supprimer tous les résultats"
+    },
+    "telemetry": {
+      "crashLog": "Envoyer automatiquement les journaux de plantage",
+      "crashLogHint": "Envoie des rapports de plantage anonymisés pour améliorer la stabilité. Par défaut : désactivé.",
+      "anonymousStats": "Statistiques d'utilisation anonymes",
+      "anonymousStatsHint": "Partage des données d'utilisation anonymes. Aucune information personnelle ou de séquence incluse. Par défaut : désactivé."
+    },
+    "savedAt": "Enregistré à {{time}}"
   },
   "mame": {
     "input": {

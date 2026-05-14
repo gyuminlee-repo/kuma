@@ -707,3 +707,69 @@ class ExportAllParams(BaseModel):
                 f"plate name '{v}' violates ^[A-Za-z0-9_-]{{1,20}}$"
             )
         return v
+
+
+# ---------------------------------------------------------------------------
+# Phase 3: Settings
+# ---------------------------------------------------------------------------
+
+SettingsTheme = Literal["light", "dark", "auto"]
+
+
+class SettingsNetwork(BaseModel):
+    """Network consent flags and offline mode for Settings."""
+
+    offline_mode: bool = False
+    consent_uniprot: bool = True
+    consent_blast: bool = True
+    consent_alphafold: bool = True
+    consent_interpro: bool = True
+
+
+class SettingsSidecar(BaseModel):
+    """Sidecar runtime tuning parameters for Settings."""
+
+    concurrency_default: int = 4
+    cancel_timeout_secs: int = 30
+    persist_on_cancel: Literal["partial", "discard"] = "partial"
+
+
+class SettingsTelemetry(BaseModel):
+    """Telemetry opt-in flags for Settings."""
+
+    crash_log_auto_send: bool = False
+    anonymous_stats: bool = False
+
+
+class SettingsBundle(BaseModel):
+    """Complete application preferences bundle persisted to ~/.kuma/preferences.json."""
+
+    language: str = "en"
+    theme: SettingsTheme = "auto"
+    default_workspace_folder: Optional[str] = None
+    network: SettingsNetwork = Field(default_factory=SettingsNetwork)
+    sidecar: SettingsSidecar = Field(default_factory=SettingsSidecar)
+    telemetry: SettingsTelemetry = Field(default_factory=SettingsTelemetry)
+
+
+class SettingsLoadRequest(BaseModel):
+    """Empty request body for settings_load RPC."""
+
+
+class SettingsLoadResponse(BaseModel):
+    """Response body for settings_load RPC."""
+
+    settings: SettingsBundle
+
+
+class SettingsSaveRequest(BaseModel):
+    """Request body for settings_save RPC -- full SettingsBundle payload."""
+
+    settings: SettingsBundle
+
+
+class SettingsSaveResponse(BaseModel):
+    """Response body for settings_save RPC."""
+
+    ok: bool
+    path: str

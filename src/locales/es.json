@@ -99,7 +99,46 @@
     "dataFolderChange": "Cambiar...",
     "language": "Idioma",
     "languageNote": "La preferencia de idioma se guarda localmente.",
-    "close": "Cerrar"
+    "close": "Cerrar",
+    "tab": {
+      "general": "General",
+      "network": "Red",
+      "sidecar": "Sidecar",
+      "telemetry": "Telemetría"
+    },
+    "theme": {
+      "label": "Tema",
+      "light": "Claro",
+      "dark": "Oscuro",
+      "auto": "Sistema"
+    },
+    "network": {
+      "offlineMode": "Modo sin conexión",
+      "offlineModeHint": "Cuando está activado, se bloquean todas las llamadas de red externas (UniProt, BLAST, AlphaFold, InterPro).",
+      "consent": {
+        "title": "Consentimiento de servicios externos",
+        "uniprot": "UniProt (búsqueda de secuencias)",
+        "blast": "NCBI BLAST via EBI (verificación off-target)",
+        "alphafold": "AlphaFold via EBI (consulta de estructura)",
+        "interpro": "InterPro / Pfam via EBI (anotación de dominios)"
+      }
+    },
+    "sidecar": {
+      "concurrency": "Concurrencia predeterminada",
+      "concurrencyHint": "Máximo de trabajos de diseño de primers en paralelo (1–16).",
+      "cancelTimeout": "Tiempo de espera de cancelación",
+      "cancelTimeoutHint": "Segundos para esperar una cancelación correcta antes de forzar el cierre (5–120 s).",
+      "persistOnCancel": "Al cancelar",
+      "persistPartial": "Mantener resultados parciales",
+      "persistDiscard": "Descartar todos los resultados"
+    },
+    "telemetry": {
+      "crashLog": "Enviar registros de errores automáticamente",
+      "crashLogHint": "Envía informes de errores anonimizados para mejorar la estabilidad. Predeterminado: desactivado.",
+      "anonymousStats": "Estadísticas de uso anónimas",
+      "anonymousStatsHint": "Comparte datos de uso anónimos. No se incluye información personal ni de secuencias. Predeterminado: desactivado."
+    },
+    "savedAt": "Guardado a las {{time}}"
   },
   "mame": {
     "input": {

@@ -59,6 +59,7 @@ export function AppLayout() {
   const showReport = useAppStore((s) => s.showReport);
   const showBenchmark = useAppStore((s) => s.showBenchmark);
   const loadNetworkConsentSettings = useAppStore((s) => s.loadNetworkConsentSettings);
+  const loadSettings = useAppStore((s) => s.loadSettings);
   const [isDragOver, setIsDragOver] = useState(false);
   // §1 Dead-lock 감지 모달 상태
   const [deadlockOpen, setDeadlockOpen] = useState(false);
@@ -102,6 +103,10 @@ export function AppLayout() {
   useEffect(() => {
     loadNetworkConsentSettings();
   }, [loadNetworkConsentSettings]);
+
+  useEffect(() => {
+    void loadSettings();
+  }, [loadSettings]);
 
   useEffect(() => {
     if (sidecarStatus === "ready") {

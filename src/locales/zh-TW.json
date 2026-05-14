@@ -99,7 +99,46 @@
     "dataFolderChange": "更改...",
     "language": "語言",
     "languageNote": "語言偏好儲存在本地。",
-    "close": "關閉"
+    "close": "關閉",
+    "tab": {
+      "general": "一般",
+      "network": "網路",
+      "sidecar": "Sidecar",
+      "telemetry": "遙測"
+    },
+    "theme": {
+      "label": "主題",
+      "light": "淺色",
+      "dark": "深色",
+      "auto": "系統"
+    },
+    "network": {
+      "offlineMode": "離線模式",
+      "offlineModeHint": "啟用後，所有外部網路呼叫（UniProt、BLAST、AlphaFold、InterPro）將被封鎖。",
+      "consent": {
+        "title": "外部服務授權",
+        "uniprot": "UniProt（序列搜尋）",
+        "blast": "NCBI BLAST via EBI（脫靶檢查）",
+        "alphafold": "AlphaFold via EBI（結構查詢）",
+        "interpro": "InterPro / Pfam via EBI（域註釋）"
+      }
+    },
+    "sidecar": {
+      "concurrency": "預設並行數",
+      "concurrencyHint": "最大並行引物設計任務數（1–16）。",
+      "cancelTimeout": "取消逾時",
+      "cancelTimeoutHint": "強制終止前等待正常取消的秒數（5–120 秒）。",
+      "persistOnCancel": "取消時",
+      "persistPartial": "保留部分結果",
+      "persistDiscard": "捨棄所有結果"
+    },
+    "telemetry": {
+      "crashLog": "自動傳送當機記錄",
+      "crashLogHint": "自動傳送匿名當機報告以改善穩定性。預設：關閉。",
+      "anonymousStats": "匿名使用統計",
+      "anonymousStatsHint": "共享匿名功能使用資料。不含任何個人或序列資料。預設：關閉。"
+    },
+    "savedAt": "已於 {{time}} 儲存"
   },
   "mame": {
     "input": {

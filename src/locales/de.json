@@ -99,7 +99,46 @@
     "dataFolderChange": "Ändern...",
     "language": "Sprache",
     "languageNote": "Spracheinstellung wird lokal gespeichert.",
-    "close": "Schließen"
+    "close": "Schließen",
+    "tab": {
+      "general": "Allgemein",
+      "network": "Netzwerk",
+      "sidecar": "Sidecar",
+      "telemetry": "Telemetrie"
+    },
+    "theme": {
+      "label": "Design",
+      "light": "Hell",
+      "dark": "Dunkel",
+      "auto": "System"
+    },
+    "network": {
+      "offlineMode": "Offline-Modus",
+      "offlineModeHint": "Wenn aktiviert, werden alle externen Netzwerkaufrufe (UniProt, BLAST, AlphaFold, InterPro) blockiert.",
+      "consent": {
+        "title": "Zustimmung zu externen Diensten",
+        "uniprot": "UniProt (Sequenzsuche)",
+        "blast": "NCBI BLAST via EBI (Off-Target-Prüfung)",
+        "alphafold": "AlphaFold via EBI (Strukturabfrage)",
+        "interpro": "InterPro / Pfam via EBI (Domänen-Annotation)"
+      }
+    },
+    "sidecar": {
+      "concurrency": "Standard-Parallelität",
+      "concurrencyHint": "Maximale parallele Primer-Design-Aufträge (1–16).",
+      "cancelTimeout": "Abbruch-Timeout",
+      "cancelTimeoutHint": "Sekunden bis zum erzwungenen Beenden nach Abbruch (5–120 s).",
+      "persistOnCancel": "Bei Abbruch",
+      "persistPartial": "Teilergebnisse behalten",
+      "persistDiscard": "Alle Ergebnisse verwerfen"
+    },
+    "telemetry": {
+      "crashLog": "Absturzberichte automatisch senden",
+      "crashLogHint": "Anonymisierte Absturzberichte zur Verbesserung der Stabilität senden. Standard: aus.",
+      "anonymousStats": "Anonyme Nutzungsstatistiken",
+      "anonymousStatsHint": "Anonyme Nutzungsdaten teilen. Keine persönlichen oder Sequenzdaten enthalten. Standard: aus."
+    },
+    "savedAt": "Gespeichert um {{time}}"
   },
   "mame": {
     "input": {

@@ -1,4 +1,5 @@
 import type { SortingState } from "@tanstack/react-table";
+import type { SettingsBundle } from "./models.generated";
 
 /** TypeScript interfaces for KURO JSON-RPC communication. */
 
@@ -604,6 +605,15 @@ export interface RpcMethodMap {
   cancel_design: {
     params: Record<string, never>;
     result: CancelDesignResult;
+  };
+  // Phase 3: Settings
+  settings_load: {
+    params: Record<string, never>;
+    result: { settings: SettingsBundle };
+  };
+  settings_save: {
+    params: { settings: SettingsBundle };
+    result: { ok: boolean; path: string };
   };
 }
 

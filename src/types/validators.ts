@@ -760,6 +760,11 @@ const rpcResultValidators = {
     isRunBenchmarkResult(value),
   cancel_design: (value): value is RpcMethodResult<"cancel_design"> =>
     isCancelDesignResult(value),
+  // Phase 3: Settings
+  settings_load: (value): value is RpcMethodResult<"settings_load"> =>
+    typeof value === "object" && value !== null && "settings" in value,
+  settings_save: (value): value is RpcMethodResult<"settings_save"> =>
+    typeof value === "object" && value !== null && "ok" in value && "path" in value,
 } satisfies { [K in RpcMethod]: (value: unknown) => value is RpcMethodResult<K> };
 
 export function getRpcResultValidator<K extends RpcMethod>(

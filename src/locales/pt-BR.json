@@ -99,7 +99,46 @@
     "dataFolderChange": "Alterar...",
     "language": "Idioma",
     "languageNote": "A preferência de idioma é salva localmente.",
-    "close": "Fechar"
+    "close": "Fechar",
+    "tab": {
+      "general": "Geral",
+      "network": "Rede",
+      "sidecar": "Sidecar",
+      "telemetry": "Telemetria"
+    },
+    "theme": {
+      "label": "Tema",
+      "light": "Claro",
+      "dark": "Escuro",
+      "auto": "Sistema"
+    },
+    "network": {
+      "offlineMode": "Modo offline",
+      "offlineModeHint": "Quando ativado, todas as chamadas de rede externas (UniProt, BLAST, AlphaFold, InterPro) são bloqueadas.",
+      "consent": {
+        "title": "Consentimento para serviços externos",
+        "uniprot": "UniProt (busca de sequências)",
+        "blast": "NCBI BLAST via EBI (verificação off-target)",
+        "alphafold": "AlphaFold via EBI (consulta de estrutura)",
+        "interpro": "InterPro / Pfam via EBI (anotação de domínios)"
+      }
+    },
+    "sidecar": {
+      "concurrency": "Simultaneidade padrão",
+      "concurrencyHint": "Máximo de tarefas de design de primers em paralelo (1–16).",
+      "cancelTimeout": "Tempo limite de cancelamento",
+      "cancelTimeoutHint": "Segundos para aguardar cancelamento antes de encerrar forçadamente (5–120 s).",
+      "persistOnCancel": "Ao cancelar",
+      "persistPartial": "Manter resultados parciais",
+      "persistDiscard": "Descartar todos os resultados"
+    },
+    "telemetry": {
+      "crashLog": "Enviar logs de falha automaticamente",
+      "crashLogHint": "Envia relatórios de falha anonimizados para melhorar a estabilidade. Padrão: desativado.",
+      "anonymousStats": "Estatísticas de uso anônimas",
+      "anonymousStatsHint": "Compartilha dados de uso anônimos. Nenhuma informação pessoal ou de sequência é incluída. Padrão: desativado."
+    },
+    "savedAt": "Salvo às {{time}}"
   },
   "mame": {
     "input": {

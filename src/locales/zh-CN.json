@@ -99,7 +99,46 @@
     "dataFolderChange": "更改...",
     "language": "语言",
     "languageNote": "语言偏好保存在本地。",
-    "close": "关闭"
+    "close": "关闭",
+    "tab": {
+      "general": "通用",
+      "network": "网络",
+      "sidecar": "Sidecar",
+      "telemetry": "遥测"
+    },
+    "theme": {
+      "label": "主题",
+      "light": "浅色",
+      "dark": "深色",
+      "auto": "系统"
+    },
+    "network": {
+      "offlineMode": "离线模式",
+      "offlineModeHint": "启用后，所有外部网络调用（UniProt、BLAST、AlphaFold、InterPro）将被阻止。",
+      "consent": {
+        "title": "外部服务授权",
+        "uniprot": "UniProt（序列搜索）",
+        "blast": "NCBI BLAST via EBI（脱靶检查）",
+        "alphafold": "AlphaFold via EBI（结构查询）",
+        "interpro": "InterPro / Pfam via EBI（域注释）"
+      }
+    },
+    "sidecar": {
+      "concurrency": "默认并发数",
+      "concurrencyHint": "最大并行引物设计任务数（1–16）。",
+      "cancelTimeout": "取消超时",
+      "cancelTimeoutHint": "强制终止前等待正常取消的秒数（5–120 秒）。",
+      "persistOnCancel": "取消时",
+      "persistPartial": "保留部分结果",
+      "persistDiscard": "丢弃所有结果"
+    },
+    "telemetry": {
+      "crashLog": "自动发送崩溃日志",
+      "crashLogHint": "自动发送匿名崩溃报告以改善稳定性。默认：关闭。",
+      "anonymousStats": "匿名使用统计",
+      "anonymousStatsHint": "共享匿名功能使用数据。不包含任何个人或序列数据。默认：关闭。"
+    },
+    "savedAt": "已于 {{time}} 保存"
   },
   "mame": {
     "input": {

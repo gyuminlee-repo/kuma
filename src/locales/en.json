@@ -99,7 +99,46 @@
     "dataFolderChange": "Change...",
     "language": "Language",
     "languageNote": "Language preference is saved locally.",
-    "close": "Close"
+    "close": "Close",
+    "tab": {
+      "general": "General",
+      "network": "Network",
+      "sidecar": "Sidecar",
+      "telemetry": "Telemetry"
+    },
+    "theme": {
+      "label": "Theme",
+      "light": "Light",
+      "dark": "Dark",
+      "auto": "System"
+    },
+    "network": {
+      "offlineMode": "Offline mode",
+      "offlineModeHint": "When enabled, all external network calls (UniProt, BLAST, AlphaFold, InterPro) are blocked.",
+      "consent": {
+        "title": "External service consent",
+        "uniprot": "UniProt (sequence search)",
+        "blast": "NCBI BLAST via EBI (off-target check)",
+        "alphafold": "AlphaFold via EBI (structure lookup)",
+        "interpro": "InterPro / Pfam via EBI (domain annotation)"
+      }
+    },
+    "sidecar": {
+      "concurrency": "Default concurrency",
+      "concurrencyHint": "Maximum parallel primer design jobs (1–16).",
+      "cancelTimeout": "Cancel timeout",
+      "cancelTimeoutHint": "Seconds to wait for a graceful cancel before force-killing the sidecar (5–120 s).",
+      "persistOnCancel": "On cancel",
+      "persistPartial": "Keep partial results",
+      "persistDiscard": "Discard all results"
+    },
+    "telemetry": {
+      "crashLog": "Auto-send crash logs",
+      "crashLogHint": "Automatically send anonymized crash reports to help improve stability. Default: off.",
+      "anonymousStats": "Anonymous usage statistics",
+      "anonymousStatsHint": "Share anonymous feature usage data. No personal or sequence data is included. Default: off."
+    },
+    "savedAt": "Saved at {{time}}"
   },
   "mame": {
     "input": {
