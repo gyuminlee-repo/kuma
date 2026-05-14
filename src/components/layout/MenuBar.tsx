@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import { useAppStore } from "../../store/appStore";
 import { generateDiagnosticsBundle } from "../../lib/diagnostics";
 import { revealInOSFolder } from "../../lib/openFolder";
@@ -18,7 +19,15 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
 } from "../ui/dropdown-menu";
+import { useTheme } from "../ui/ThemeToggle";
+import type { Theme } from "../ui/ThemeToggle";
+import i18next, { setLocale, SUPPORTED_LOCALES } from "../../lib/i18n";
+import { open as openDialog } from "@tauri-apps/plugin-dialog";
+import { loadManifestFromFile } from "../../lib/runManifest";
 import { getCrashLog } from "../../lib/crashLog";
 import { CrashLogDialog } from "../dialogs/CrashLogDialog";
 import {
@@ -48,6 +57,25 @@ const MOD_KEY = navigator.userAgent.includes("Mac") ? "⌘" : "Ctrl+";
 /** 메뉴 트리거 공통 클래스 (계획서 §6.1 권장) */
 const TRIGGER_CLS =
   "h-control px-3 rounded-control hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-colors duration-fast text-caption font-medium text-foreground/80";
+
+const LOCALE_NATIVE_NAMES: Record<typeof SUPPORTED_LOCALES[number], string> = {
+  en: "English",
+  ko: "한국어",
+  "zh-CN": "中文(简体)",
+  "zh-TW": "中文(繁體)",
+  ja: "日本語",
+  es: "Español",
+  de: "Deutsch",
+  fr: "Français",
+  "pt-BR": "Português (BR)",
+  ru: "Русский",
+};
+
+const THEME_ITEMS: { value: Theme; labelKey: string }[] = [
+  { value: "light", labelKey: "menuBar.view.theme.light" },
+  { value: "dark", labelKey: "menuBar.view.theme.dark" },
+  { value: "system", labelKey: "menuBar.view.theme.system" },
+];
 
 export function MenuBar() {
   const { t } = useTranslation();
@@ -141,6 +169,14 @@ export function MenuBar() {
   // §D3.5: View 메뉴 단축키 (Ctrl/Cmd+L: Logs, Ctrl/Cmd+J: Jobs)
   // + Edit/Help 단축키 (Ctrl/Cmd+, Preferences, Ctrl/Cmd+/ Shortcuts)
   const handleViewKeyDown = useCallback((e: KeyboardEvent) => {
+    // F11: fullscreen toggle (modifier 없음)
+    if (e.key === "F11") {
+      e.preventDefault();
+      void getCurrentWindow().isFullscreen().then((full) =>
+        getCurrentWindow().setFullscreen(!full)
+      );
+      return;
+    }
     if (!(e.metaKey || e.ctrlKey)) return;
     switch (e.key) {
       case "l":
@@ -168,6 +204,45 @@ export function MenuBar() {
     window.addEventListener("keydown", handleViewKeyDown);
     return () => window.removeEventListener("keydown", handleViewKeyDown);
   }, [handleViewKeyDown]);
+
+  // §12 Reproducibility: manifest 파일 picker (1-A)
+  async function handleReplay() {
+    const selected = await openDialog({
+      filters: [{ name: "Manifest", extensions: ["json"] }],
+    });
+    if (!selected) return;
+    const path = typeof selected === "string" ? selected : selected[0];
+    if (!path) return;
+    try {
+      const manifest = await loadManifestFromFile(path);
+      setReRunManifest(manifest);
+    } catch (err) {
+      toast.error(t("menuBar.run.replayError", { message: err instanceof Error ? err.message : String(err) }));
+    }
+  }
+
+  // §1-B: Check sidecar health
+  interface SidecarHealth {
+    alive: boolean;
+    uptime_secs: number | null;
+    version: string | null;
+  }
+
+  async function handleCheckSidecarHealth() {
+    try {
+      const health = await invoke<SidecarHealth>("check_sidecar_health", { kind: "kuro" });
+      if (health.alive) {
+        toast.success(t("menuBar.run.sidecarHealthAlive", { version: health.version ?? "unknown", uptime: health.uptime_secs ?? 0 }));
+      } else {
+        toast.warning(t("menuBar.run.sidecarHealthDead"));
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  // Theme hook (1-D)
+  const { theme, setTheme } = useTheme();
 
   // §14 Migration dialog state
   const [migrateDialog, setMigrateDialog] = useState<MigrateDialogState>(MIGRATE_DIALOG_CLOSED);
@@ -319,10 +394,65 @@ export function MenuBar() {
             </span>
             <kbd className="ml-4 text-caption text-muted-foreground">{MOD_KEY}J</kbd>
           </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          {/* 1-C: Language 서브메뉴 */}
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+              {t("menuBar.view.language")}
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent>
+              {SUPPORTED_LOCALES.map((code) => (
+                <DropdownMenuItem
+                  key={code}
+                  onClick={() => {
+                    setLocale(code);
+                  }}
+                  aria-current={i18next.language === code ? "true" : undefined}
+                >
+                  <span className="flex-1">
+                    {i18next.language === code ? "✓ " : ""}
+                    {LOCALE_NATIVE_NAMES[code]}
+                  </span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+          {/* 1-D: Theme 서브메뉴 */}
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+              {t("menuBar.view.theme.title")}
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent>
+              {THEME_ITEMS.map(({ value, labelKey }) => (
+                <DropdownMenuItem
+                  key={value}
+                  onClick={() => setTheme(value)}
+                  aria-current={theme === value ? "true" : undefined}
+                >
+                  <span className="flex-1">
+                    {theme === value ? "✓ " : ""}
+                    {t(labelKey)}
+                  </span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+          <DropdownMenuSeparator />
+          {/* 1-E: Full screen */}
+          <DropdownMenuItem
+            onClick={() => {
+              void getCurrentWindow().isFullscreen().then((full) =>
+                getCurrentWindow().setFullscreen(!full)
+              );
+            }}
+          >
+            <span className="flex-1">{t("menuBar.view.fullscreen")}</span>
+            <kbd className="ml-4 text-caption text-muted-foreground">F11</kbd>
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Run 메뉴 — Diagnostics 노출 */}
+      {/* Run 메뉴 — Diagnostics + Replay + Check sidecar */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button className={TRIGGER_CLS}>{t("menuBar.run.title")}</button>
@@ -334,10 +464,13 @@ export function MenuBar() {
           >
             {diagnosticsGenerating ? t("about.generating") : t("menuBar.run.diagnostics")}
           </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => { void handleCheckForUpdates(); setAboutOpen(true); }}
-            disabled={updateChecking}
-          >
+          {/* 1-A: Replay saved run */}
+          <DropdownMenuItem onClick={() => { void handleReplay(); }}>
+            {t("menuBar.run.replay")}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          {/* 1-B: Check sidecar health (was incorrectly wired to handleCheckForUpdates) */}
+          <DropdownMenuItem onClick={() => { void handleCheckSidecarHealth(); }}>
             {t("menuBar.run.checkSidecar")}
           </DropdownMenuItem>
         </DropdownMenuContent>

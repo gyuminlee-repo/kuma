@@ -7,7 +7,7 @@ use std::{
         atomic::{AtomicBool, AtomicI64, Ordering},
         Arc,
     },
-    time::Duration,
+    time::{Duration, Instant},
 };
 use tauri::{AppHandle, Emitter, Wry};
 use tauri_plugin_shell::{
@@ -190,6 +190,7 @@ pub struct SidecarProcess {
     child: Mutex<Option<CommandChild>>,
     protocol: Arc<LineProtocol>,
     terminated: AtomicBool,
+    pub started_at: Instant,
 }
 
 impl SidecarProcess {
@@ -198,6 +199,7 @@ impl SidecarProcess {
             child: Mutex::new(Some(child)),
             protocol: Arc::new(LineProtocol::new()),
             terminated: AtomicBool::new(false),
+            started_at: Instant::now(),
         }
     }
 
@@ -362,6 +364,20 @@ impl SidecarManager {
         let slot = self.slot(kind)?;
         let process = slot.lock().await.clone();
         Ok(process.is_some_and(|proc| !proc.is_terminated()))
+    }
+
+    /// Return a snapshot of the running process state without spawning.
+    /// Returns `None` if the sidecar is not running (slot empty or terminated).
+    /// Returns `Some((pid, uptime_secs))` if alive.
+    pub async fn health_snapshot(&self, kind: &str) -> Result<Option<(u32, u64)>, String> {
+        let slot = self.slot(kind)?;
+        let process = slot.lock().await.clone();
+        let Some(proc) = process else { return Ok(None); };
+        if proc.is_terminated() { return Ok(None); }
+        let uptime_secs = proc.started_at.elapsed().as_secs();
+        // PID comes from the `health_info` RPC; snapshot it cheaply without an RPC
+        // by returning 0 as a sentinel — callers use the RPC pid field instead.
+        Ok(Some((0, uptime_secs)))
     }
 
     async fn ensure_spawned(&self, kind: &str) -> Result<Arc<SidecarProcess>, String> {

@@ -18,7 +18,7 @@ import { Button } from "./button";
 
 export type Theme = "light" | "dark" | "system";
 
-const STORAGE_KEY = "theme";
+export const THEME_STORAGE_KEY = "theme";
 
 /** 현재 적용되어야 할 실제 테마 결정 (system → OS 설정 참조) */
 function resolveTheme(theme: Theme): "light" | "dark" {
@@ -44,7 +44,7 @@ function applyTheme(theme: Theme): void {
 /** localStorage에서 초기 테마 읽기 */
 function readStoredTheme(): Theme {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = localStorage.getItem(THEME_STORAGE_KEY);
     if (stored === "light" || stored === "dark" || stored === "system") {
       return stored;
     }
@@ -52,6 +52,36 @@ function readStoredTheme(): Theme {
     // localStorage 접근 실패 시 시스템 기본값 사용
   }
   return "system";
+}
+
+/**
+ * useTheme
+ *
+ * ThemeToggle 로직을 재사용 가능한 훅으로 추출.
+ * MenuBar 서브메뉴 등 ThemeToggle UI 외부에서 테마 읽기/쓰기가 필요할 때 사용.
+ */
+export function useTheme(): { theme: Theme; setTheme: (next: Theme) => void } {
+  const [theme, setThemeState] = useState<Theme>(readStoredTheme);
+
+  useEffect(() => {
+    applyTheme(theme);
+    if (theme !== "system") return;
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const handler = () => applyTheme("system");
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, [theme]);
+
+  function setTheme(next: Theme) {
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, next);
+    } catch {
+      // 저장 실패해도 세션 내 동작 유지
+    }
+    setThemeState(next);
+  }
+
+  return { theme, setTheme };
 }
 
 const THEME_LABEL_KEYS: Record<Theme, string> = {
@@ -130,33 +160,10 @@ export interface ThemeToggleProps {
 
 export function ThemeToggle({ variant = "icon" }: ThemeToggleProps) {
   const { t } = useTranslation();
-  const [theme, setTheme] = useState<Theme>(readStoredTheme);
+  const { theme, setTheme } = useTheme();
 
   function getThemeLabel(th: Theme): string {
     return t(THEME_LABEL_KEYS[th]);
-  }
-
-  // 초기 마운트 + 시스템 테마 변경 구독
-  useEffect(() => {
-    applyTheme(theme);
-
-    if (theme !== "system") {
-      return;
-    }
-
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const handler = () => applyTheme("system");
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, [theme]);
-
-  function handleSelect(next: Theme) {
-    try {
-      localStorage.setItem(STORAGE_KEY, next);
-    } catch {
-      // 저장 실패해도 세션 내 동작은 유지
-    }
-    setTheme(next);
   }
 
   return (
@@ -178,7 +185,7 @@ export function ThemeToggle({ variant = "icon" }: ThemeToggleProps) {
         {(["light", "dark", "system"] as Theme[]).map((th) => (
           <DropdownMenuItem
             key={th}
-            onClick={() => handleSelect(th)}
+            onClick={() => setTheme(th)}
             aria-current={theme === th ? "true" : undefined}
           >
             <span className="flex items-center gap-2">

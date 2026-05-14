@@ -1218,7 +1218,15 @@
     "view": {
       "title": "보기",
       "logs": "로그 표시",
-      "jobs": "작업 표시"
+      "jobs": "작업 표시",
+      "language": "언어",
+      "theme": {
+        "title": "테마",
+        "light": "라이트",
+        "dark": "다크",
+        "system": "시스템 자동"
+      },
+      "fullscreen": "전체 화면"
     },
     "edit": {
       "title": "편집",
@@ -1227,7 +1235,11 @@
     "run": {
       "title": "실행",
       "diagnostics": "Sidecar diagnostics...",
-      "checkSidecar": "Sidecar 상태 확인"
+      "checkSidecar": "Sidecar 상태 확인",
+      "replay": "이전 실행 재현...",
+      "replayError": "매니페스트 로드 실패: {{message}}",
+      "sidecarHealthAlive": "sidecar 응답 OK · v{{version}} · 가동 {{uptime}}초",
+      "sidecarHealthDead": "sidecar 응답 없음. Restart Sidecar 사용"
     },
     "help": {
       "reportIssue": "이슈 보고"

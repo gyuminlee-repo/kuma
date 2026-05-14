@@ -1218,7 +1218,15 @@
     "view": {
       "title": "视图",
       "logs": "显示日志",
-      "jobs": "显示作业"
+      "jobs": "显示作业",
+      "language": "Language",
+      "theme": {
+        "title": "Theme",
+        "light": "Light",
+        "dark": "Dark",
+        "system": "System auto"
+      },
+      "fullscreen": "Full screen"
     },
     "edit": {
       "title": "编辑",
@@ -1227,7 +1235,11 @@
     "run": {
       "title": "运行",
       "diagnostics": "Sidecar diagnostics...",
-      "checkSidecar": "检查 Sidecar 状态"
+      "checkSidecar": "检查 Sidecar 状态",
+      "replay": "Replay saved run...",
+      "replayError": "Failed to load manifest: {{message}}",
+      "sidecarHealthAlive": "sidecar ready · v{{version}} · uptime {{uptime}}s",
+      "sidecarHealthDead": "sidecar not responding. Use Restart Sidecar"
     },
     "help": {
       "reportIssue": "报告问题"

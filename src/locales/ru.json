@@ -1218,7 +1218,15 @@
     "view": {
       "title": "Вид",
       "logs": "Показать логи",
-      "jobs": "Показать задачи"
+      "jobs": "Показать задачи",
+      "language": "Language",
+      "theme": {
+        "title": "Theme",
+        "light": "Light",
+        "dark": "Dark",
+        "system": "System auto"
+      },
+      "fullscreen": "Full screen"
     },
     "edit": {
       "title": "Edit",
@@ -1227,7 +1235,11 @@
     "run": {
       "title": "Run",
       "diagnostics": "Sidecar diagnostics...",
-      "checkSidecar": "Check sidecar status"
+      "checkSidecar": "Check sidecar status",
+      "replay": "Replay saved run...",
+      "replayError": "Failed to load manifest: {{message}}",
+      "sidecarHealthAlive": "sidecar ready · v{{version}} · uptime {{uptime}}s",
+      "sidecarHealthDead": "sidecar not responding. Use Restart Sidecar"
     },
     "help": {
       "reportIssue": "Report issue"
