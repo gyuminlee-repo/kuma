@@ -1,15 +1,23 @@
 import type { StateCreator } from "zustand";
 import { sendRequest } from "@/lib/ipc-mame";
 import { formatError } from "@/lib/utils";
+import { registerArtifacts, ensureWorkspaceFromExportPath } from "@/lib/workspace";
 import type { ExportResult } from "@/types/mame/models";
 import type { ExportSlice } from "../slice-interfaces";
 import type { AppState } from "../types";
 
-export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (set, get) => ({
+const mameInitialExportState: Pick<
+  ExportSlice,
+  "lastExportPath" | "lastExportAt" | "isExporting" | "exportError"
+> = {
   lastExportPath: null,
   lastExportAt: null,
   isExporting: false,
   exportError: null,
+};
+
+export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (set, get) => ({
+  ...mameInitialExportState,
   exportExcel: async (path) => {
     set({ isExporting: true, exportError: null });
     try {
@@ -23,6 +31,19 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
         isExporting: false,
       });
       get().setOutputPath(result.output_path);
+      try {
+        await ensureWorkspaceFromExportPath(result.output_path);
+        await registerArtifacts([
+          {
+            app: "mame",
+            step: "analysis",
+            type: "mame_consensus_fasta",
+            absolutePath: result.output_path,
+          },
+        ]);
+      } catch {
+        // registry failure must not surface to the user
+      }
     } catch (error) {
       set({
         exportError: formatError(error),
@@ -31,4 +52,5 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       throw error;
     }
   },
+  resetExport: () => set({ ...mameInitialExportState }),
 });

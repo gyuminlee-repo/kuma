@@ -4,6 +4,126 @@
 
 ---
 
+## v0.8.6 (2026-05-13)
+
+Aligns the menubar shell to mockup v5 (`010.lab/.../kuma_program_mockup_detailed_v5.html`) and finishes the v0.8.5 spec (`notes/specs/2026-05-13-menubar-prefs-shortcuts.md`).
+
+### Menubar — app-name first menu
+
+- First menu trigger renamed from generic `File` to the active tool name. KURO context shows **`kuro`**, MAME context shows **`mame`**, both bold, matching the mockup convention (`menuBar.appMenu.kuro` / `menuBar.appMenu.mame` keys added to 10 locales).
+- New items inside the app menu (KURO and MAME): `Close window` (Ctrl/Cmd+W) and `Quit kuma` (Ctrl/Cmd+Q). `Close window` calls `getCurrentWindow().close()` (goes through the autosave-aware close handler); `Quit kuma` calls `getCurrentWindow().destroy()` for an immediate, non-cancellable exit.
+- Legacy `menuBar.fileMenuTrigger` i18n key removed from all 10 locale files (dead reference).
+
+### SettingsDialog — duplicate shortcuts table removed
+
+- Keyboard shortcuts table dropped from `SettingsDialog`. `KeyboardShortcutsDialog` (Ctrl/Cmd+/) introduced in v0.8.5 is now the single surface for shortcut listing — prevents dual exposure inside Preferences.
+
+### Version bump
+
+- `package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, `pyproject.toml` synced to `0.8.6`.
+
+### Validation
+
+- `npx tsc --noEmit` clean. `pnpm sync:check` passes on application groups (pre-existing `tauri-resources/NOTICE.md` and `generated-models/Node 20` failures unrelated to this commit).
+
+---
+
+## v0.8.5 (2026-05-13)
+
+Spec implementation — `notes/specs/2026-05-13-menubar-prefs-shortcuts.md` items 2 and 3.
+
+### Edit / Run menus + dialogs
+
+- `MenuBar` gains an **Edit** menu (Preferences entry, Ctrl/Cmd+,) and a **Run** menu (Sidecar diagnostics, Check sidecar status).
+- New `KeyboardShortcutsDialog` (Ctrl/Cmd+/) lists shortcuts with search and category grouping; data source is `src/lib/shortcuts.ts`, which gained a `category` field.
+- The legacy About-dialog shortcuts table is removed; only the dedicated `KeyboardShortcutsDialog` exposes the list.
+- Help menu adds `Report issue` (external GitHub link) and `Check for updates` entries.
+
+### i18n
+
+- New keys added to all 10 locales (`menuBar.edit.*`, `menuBar.run.*`, `menuBar.help.reportIssue`, `shortcutsDialog.*`); ko/ja/zh-CN/zh-TW translated.
+
+### Version bump
+
+- `package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, `pyproject.toml` synced to `0.8.5`.
+
+---
+
+## v0.8.4 (2026-05-13)
+
+Branch consolidation: merges `feat/workspace-artifact-handoff` (v0.8.3.x), `fix/load-sample-data` (v0.8.2.5), and `worktree-spec-export-all-macrogen` (v0.4.x batch) into `feat/kuma-integration`, plus the actionable subset of `worktree-locale-ko-fixes`.
+
+### Export All + Macrogen + sidebar resize (from worktree-spec-export-all-macrogen)
+
+- `ExportFormatSelector` rewritten as a single **Export All** button (`v0.4.2.00`), replacing the legacy `MappingExportDialog` and the IDT / Twist branch. Frontend handlers `handleExportAll` and `handleExportMacrogen` (`v0.4.1.05`) drive the new flow.
+- Sidecar adds `export_macrogen` and `export_all` JSON-RPC handlers (`v0.4.1.03`) with `ExportMacrogenParams` / `ExportAllParams` Pydantic models (`v0.4.1.01`) and registered TS validators (`v0.4.1.04`). Macrogen xls export uses `xlwt 1.3.0` with column-major well layout (`v0.4.1.00`); `xlrd 1.2.0` pinned for round-trip tests.
+- `output_path` / `output_dir` validation added in both Macrogen and Export-All handlers (`v0.4.2.03`).
+- `ResizeHandle` component (`v0.4.3.02`) with mouse drag, keyboard nudge, and ARIA wiring; `AppShell` aside consumes persisted width (`v0.4.3.03`). `layoutSlice` + standalone `useLayoutStore` with localStorage persistence (`v0.4.3.01`). New `compute-sidebar-width.mjs` build script emits default-width constant (`v0.4.3.00`).
+- New cross-layer-sync groups: `macrogen-export-flow` (`v0.4.1.06`), `sidebar-resize-flow` (`v0.4.3.04`).
+- Windows-side testing guide at `notes/TEST-WINDOWS.md` (`v0.4.2.04`).
+
+### loadSampleData hardening (from fix/load-sample-data)
+
+- `inputSlice.loadSampleData` defends against silent `loadSequence` failures (`v0.8.2.5`): the chain now propagates errors instead of leaving subsequent steps with empty state.
+- New unit + e2e coverage: `src/store/slices/inputSlice.loadSampleData.test.ts`, `tests/test_load_sample_data_e2e.py` (Python handler chain), and `tests/test_load_sample_data_sidecar_e2e.py` (sidecar JSON-RPC e2e reproducing the UI chain).
+
+### Locale tone fixes (cherry-picked subset of worktree-locale-ko-fixes)
+
+- en / ko: deadlock message hedging removed — `The job may be stuck.` / `작업이 멈춘 것 같습니다.` → `The job is stuck.` / `작업이 멈췄습니다.` (`v0.8.4.1`).
+- en: `Require GC clamp (3-prime end)` → `Require GC clamp (3' end)` (and the matching aria label) (`v0.8.4.4`).
+- ko standalone labels English-ified per branch intent: `colReads` (리드 → read), `colDepth` (깊이 (리드) → depth (read)), `fieldReference` (레퍼런스 → Reference), Breslauer / Schildkraut titles use `Legacy` instead of `레거시`. Mid-sentence Korean particles left untouched to preserve grammar.
+
+### Merge-regression recovery
+
+- `worktree-spec-export-all-macrogen` had branched from an old base (v0.4.x) before kuma absorbed several plugins. Its merge auto-dropped i18next / sonner / radix-tabs / `@tauri-apps/plugin-fs` / `plugin-notification` / `plugin-opener` / `plugin-updater` / `plugin-single-instance` and the `sync:check`, `gen:models`, `i18n:lint`, `i18n:parity` scripts. `v0.8.4.3` restores `package.json`, `tauri.conf.json`, `pyproject.toml`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock` from the pre-merge HEAD and re-adds `xlwt` / `xlrd` needed by the new Macrogen exporter.
+- TS models regenerated from `sidecar_kuro.models` to absorb the new `export_macrogen` / `export_all` schemas (`v0.8.4.2`).
+
+### Version bump
+
+- `package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, `pyproject.toml` synced to `0.8.4`.
+
+### Validation
+
+- `npx tsc --noEmit`: 0 errors.
+- `cargo check` (src-tauri): clean build with the seven Tauri plugins restored.
+- `node scripts/sync-check.mjs`: 43 passed, 0 warned, 0 failed.
+
+---
+
+## v0.8.3 (2026-05-13)
+
+Workspace artifact handoff and MAME Clear All.
+
+### Workspace manifest
+
+- New `src/lib/workspace/` module manages a `.kuma-workspace.json` artifact registry inside the user's export folder. Each Excel export from KURO (`sdm_primer_xlsx`) or MAME (`mame_consensus_fasta`) auto-registers `(app, step, type, path)` with mtime and size.
+- `useArtifact(type)` React hook subscribes to `workspace:updated` events and resolves the latest non-stale artifact path. Falls back gracefully when the workspace is not opened.
+- Stale detection compares manifest mtime against the file's current mtime; vanished files are silently pruned from the manifest. Corrupt manifests are backed up and treated as missing.
+
+### KURO auto-prefill
+
+- `MutationInput` (EVOLVEpro / MULTI-evolve modes) now auto-prefills `evolveproCsvPath` from the workspace registry on mount. An `ArtifactBadge` (`Step diversity output auto-detected`) shows next to the file name; stale state surfaces as a warning variant. Browse override sets a `userOverridden` flag that disables further auto-prefill in that session.
+
+### Clear All
+
+- KURO `resetAll()` additionally invokes `clearWorkspace("kuro")` after slice reset, so the manifest no longer points to stale KURO outputs.
+- MAME gains a unified `resetMameAll()` driving `resetInput`/`resetAnalysis`/`resetExport`/`resetPhase` plus `clearWorkspace("mame")`. `ClearConfirmDialog` is wired to this aggregator. PhaseSlice `resetPhase` also clears the `kuma:mame:phase` and `kuma:mame:activityTab` localStorage keys.
+- App isolation: clearing one app's workspace state never removes the other app's artifacts.
+
+### Tests
+
+- `tests/workspace/api.test.ts`: 12 cases (manifest creation, register / list / getLatest, upsert by `(app,step,type)`, multi-app isolation, mtime stale detection, missing-file cleanup, event emission, corrupt manifest recovery, missing workspace error).
+
+### i18n
+
+- New keys `artifact.badge.detected` and `artifact.badge.staleHint` in `en.json` / `ko.json`.
+
+### Cross-layer sync
+
+- `.cross-layer-sync.json` adds `workspace-artifact-registry` group covering the registry types and the two export slices.
+
+---
+
 ## v0.3.17 – v0.3.22.07 (2026-05-12)
 
 Full English / Korean i18n coverage across the desktop app.

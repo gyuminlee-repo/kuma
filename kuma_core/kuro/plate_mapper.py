@@ -979,3 +979,100 @@ def export_janus_mapping_xlsx(
         ws2.column_dimensions[col[0].column_letter].width = min(max_len + 2, 30)
 
     wb.save(output_path)
+
+
+# ---------------------------------------------------------------------------
+# Macrogen Plate Oligo .xls exporter
+# ---------------------------------------------------------------------------
+
+import re as _re
+
+_MACROGEN_NAME_RE = _re.compile(r"^[A-Za-z0-9_-]{1,20}$")
+_MACROGEN_HEADERS = [
+    "No.",
+    "Plate Name",
+    "Well",
+    "Oligo Name",
+    "5' - Oligo Seq - 3'",
+    "Amount",
+    "Purification",
+]
+
+
+def _macrogen_column_major_wells() -> list[str]:
+    """Return 96-well names in column-major order (A1..H1, A2..H2, ...)."""
+    return [f"{r}{c}" for c in range(1, 13) for r in "ABCDEFGH"]
+
+
+def _validate_macrogen_plate_name(name: str, label: str) -> None:
+    if not _MACROGEN_NAME_RE.fullmatch(name):
+        raise ValueError(
+            f"{label} plate name '{name}' violates ^[A-Za-z0-9_-]{{1,20}}$"
+        )
+
+
+def _validate_macrogen_oligo_names(primers, label: str) -> None:
+    for p in primers:
+        if not _MACROGEN_NAME_RE.fullmatch(p.primer_name):
+            raise ValueError(
+                f"{label} oligo name '{p.primer_name}' violates ^[A-Za-z0-9_-]{{1,20}}$"
+            )
+
+
+def export_macrogen_xls(
+    fwd_primers,
+    rev_primers,
+    fwd_plate_name: str,
+    rev_plate_name: str,
+    amount: str,
+    purification: str,
+    output_path: str,
+) -> None:
+    """Export forward/reverse primer plates to a Macrogen Plate Oligo .xls file.
+
+    Layout: 1 header row, then 96 rows per plate (column-major wells).
+    Empty wells receive only No./Plate/Well; oligo columns blank.
+    """
+    import xlwt
+
+    if len(fwd_primers) > 96:
+        raise ValueError(
+            f"fwd primer count {len(fwd_primers)} exceeds 96 well limit"
+        )
+    if len(rev_primers) > 96:
+        raise ValueError(
+            f"rev primer count {len(rev_primers)} exceeds 96 well limit"
+        )
+
+    plates = []
+    if fwd_primers:
+        _validate_macrogen_plate_name(fwd_plate_name, "fwd")
+        _validate_macrogen_oligo_names(fwd_primers, "fwd")
+        plates.append((fwd_plate_name, fwd_primers))
+    if rev_primers:
+        _validate_macrogen_plate_name(rev_plate_name, "rev")
+        _validate_macrogen_oligo_names(rev_primers, "rev")
+        plates.append((rev_plate_name, rev_primers))
+
+    wb = xlwt.Workbook(encoding="utf-8")
+    sheet = wb.add_sheet("Sheet")
+    for c, h in enumerate(_MACROGEN_HEADERS):
+        sheet.write(0, c, h)
+
+    wells = _macrogen_column_major_wells()
+    row = 1
+    no = 1
+    for plate_name, primers in plates:
+        for i, well in enumerate(wells):
+            sheet.write(row, 0, no)
+            sheet.write(row, 1, plate_name)
+            sheet.write(row, 2, well)
+            if i < len(primers):
+                p = primers[i]
+                sheet.write(row, 3, p.primer_name)
+                sheet.write(row, 4, p.sequence)
+                sheet.write(row, 5, amount)
+                sheet.write(row, 6, purification)
+            row += 1
+            no += 1
+    wb.save(output_path)

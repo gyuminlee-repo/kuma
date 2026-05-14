@@ -206,6 +206,13 @@
       "polymeraseTaqTitle": "표준 Taq 중합효소. Tm 기준 ~60 °C, Mg²⁺ 농도 높음. 일반 PCR 또는 3'A 오버행이 필요할 때 사용합니다.",
       "polymerasePhusionTitle": "Thermo Phusion 고충실도 중합효소. Tm 기준 ~72 °C, blunt-end 산물, 빠른 신장 반응.",
       "polymeraseKODTitle": "Toyobo KOD One / KOD Hot Start. Tm 기준 ~68 °C (Mg²⁺/dNTP 보정 적용). 고충실도, 빠른 반응 속도.",
+      "autoDetect": {
+        "button": "CDS로부터 자동 인식",
+        "success": "{{source}}에서 자동 인식했습니다",
+        "failed": "ORF를 찾을 수 없음",
+        "noReference": "Reference 파일이 필요합니다",
+        "readError": "Reference 파일 읽기 실패"
+      },
       "cdsCandidate": "CDS/ORF 후보:",
       "cdsCandidateNoneDetected": "CDS를 찾을 수 없음. 좌표를 직접 입력하세요."
     },
@@ -335,7 +342,19 @@
       "statusInProgress": "진행 중"
     },
     "menuBar": {
-      "restartSidecarConfirm": "분석이 실행 중입니다. 그래도 sidecar를 재시작하시겠습니까?"
+      "closeBtn": "닫기",
+      "compareWorkspacesColA": "워크스페이스 A",
+      "compareWorkspacesColB": "워크스페이스 B",
+      "compareWorkspacesColField": "항목",
+      "compareWorkspacesDiff": "{{count}}개 차이{{plural}} 발견.",
+      "compareWorkspacesNoDiff": "차이가 없습니다.",
+      "compareWorkspacesSame": "두 워크스페이스가 동일합니다.",
+      "compareWorkspacesTitle": "워크스페이스 비교",
+      "restartSidecarConfirm": "분석이 실행 중입니다. 그래도 sidecar를 재시작하시겠습니까?",
+      "selectWorkspaceA": "첫 번째 워크스페이스 선택 (A)",
+      "selectWorkspaceB": "두 번째 워크스페이스 선택 (B)",
+      "compareWorkspacesFailed": "워크스페이스 비교 실패: {{error}}",
+      "exportWorkspaceZipSoon": "워크스페이스를 zip으로 내보내기 - 준비 중"
     },
     "statusBar": {
       "ready": "준비됨",
@@ -366,10 +385,13 @@
         "analyze": {
           "inputs": "입력 설정",
           "verdict": "판정",
-          "plate": "플레이트 계획"
+          "plate": "플레이트 계획",
+          "health": "런 헬스"
         },
         "activity": {
           "ingest": "인제스트",
+          "merge": "병합",
+          "export": "내보내기",
           "mergeExport": "병합 및 내보내기"
         }
       }
@@ -1382,6 +1404,8 @@
   },
   "activityUpload": {
     "panelAriaLabel": "Activity 데이터 업로드",
+    "formatLabel": "형식",
+    "formatAriaLabel": "Activity 파일 형식",
     "uploadingAriaLabel": "Activity 데이터 업로드 중...",
     "browseAriaLabel": "Activity 파일 찾아보기 및 업로드",
     "uploadingBtn": "업로드 중...",
@@ -1420,10 +1444,10 @@
     "bomCheckboxAriaLabel": "Excel 호환을 위해 UTF-8 BOM 추가",
     "bomCheckboxLabel": "UTF-8 BOM 추가",
     "bomCheckboxHint": "(Excel 호환)",
-    "transferVolumeRange": "범위: {{min}}–{{max}} {{unit}}",
-    "echoMaxNote": "(최대 500 nL)",
     "cancelBtn": "취소",
-    "exportBtn": "내보내기"
+    "exportBtn": "내보내기",
+    "transferVolumeRange": "범위: {{min}}–{{max}} {{unit}}",
+    "echoMaxNote": "(최대 500 nL)"
   },
   "whatsNewDialog": {
     "title": "v{{version}} 새로운 기능",
@@ -1547,15 +1571,20 @@
   "phaseC": {
     "majors": {
       "design": "설계",
+      "plate": "플레이트 맵",
       "export": "내보내기",
       "output": "결과"
     },
     "subSteps": {
       "design": {
         "load": "변이체 로드",
+        "variant": "풀 필터",
         "mutation": "변이",
         "params": "프라이머 파라미터",
         "submit": "풀 필터 및 실행"
+      },
+      "plate": {
+        "layout": "플레이트 맵"
       },
       "export": {
         "all": "내보내기",
@@ -1614,15 +1643,19 @@
     "mameSubSteps": {
       "setup": {
         "files": "파일 및 좌표",
-        "design": "설계 파라미터"
+        "design": "설계 파라미터",
+        "output": "패키지 생성"
       },
       "analyze": {
         "inputs": "입력",
         "verdict": "판정 결과",
-        "plate": "플레이트 계획"
+        "plate": "플레이트 계획",
+        "health": "런 품질"
       },
       "activity": {
         "ingest": "데이터 수집",
+        "merge": "병합",
+        "export": "내보내기",
         "mergeExport": "병합 및 내보내기"
       }
     }
@@ -1637,6 +1670,7 @@
     "descriptions": {
       "design": {
         "load": "EVOLVEpro CSV를 업로드하거나 단백질 시퀀스를 붙여넣으세요.",
+        "variant": "변이체 풀 필터를 설정하세요.",
         "mutation": "포함할 변이를 정의하세요.",
         "params": "프라이머 설계 파라미터를 설정하고 실행하세요.",
         "submit": "변이체 풀 필터를 선택한 후 프라이머 설계를 실행합니다."

@@ -21,7 +21,6 @@ import { Label } from "../ui/label";
 import { LocaleToggle } from "../ui/LocaleToggle";
 import { notificationPermissionGranted, requestNotificationPermission } from "../../lib/notify";
 import { getConfig } from "../../lib/project";
-import { getShortcutsFor } from "../../lib/shortcuts";
 
 // §8 A11y: colorblind mode localStorage key (shared with MenuBar)
 const CB_KEY = "kuma:kuro:colorblindMode";
@@ -69,7 +68,8 @@ export function SettingsDialog({ open, onOpenChange, scope = "kuro" }: SettingsD
       .catch(() => setDataFolder("unknown"));
   }, [open, dataFolder]);
 
-  const shortcuts = getShortcutsFor(scope);
+  // scope: 향후 도구별 분기용 보존 (Shortcuts 다이얼로그가 별도로 존재)
+  void scope;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -99,32 +99,7 @@ export function SettingsDialog({ open, onOpenChange, scope = "kuro" }: SettingsD
           </p>
         </section>
 
-        {/* Keyboard shortcuts */}
-        <section aria-labelledby="settings-shortcuts-heading" className="flex flex-col gap-1.5">
-          <p id="settings-shortcuts-heading" className="text-sm font-semibold text-foreground">
-            {t("settings.keyboardShortcuts")}
-          </p>
-          <table className="w-full text-xs border-collapse" role="table">
-            <thead>
-              <tr className="border-b border-border">
-                <th scope="col" className="py-0.5 pr-3 text-left font-semibold text-muted-foreground">
-                  {t("settings.shortcutKeys")}
-                </th>
-                <th scope="col" className="py-0.5 text-left font-semibold text-muted-foreground">
-                  {t("settings.shortcutAction")}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {shortcuts.map((s) => (
-                <tr key={s.keys} className="border-b border-border/40 last:border-0">
-                  <td className="py-0.5 pr-3 font-mono text-foreground">{s.keys}</td>
-                  <td className="py-0.5 text-muted-foreground">{s.action}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
+        {/* Keyboard shortcuts 섹션은 KeyboardShortcutsDialog(⌘/)로 분리 — 이중 노출 제거 */}
 
         {/* §3 Notifications */}
         <section aria-labelledby="settings-notifications-heading" className="flex flex-col gap-1">

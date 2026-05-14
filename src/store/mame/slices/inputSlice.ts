@@ -57,23 +57,22 @@ function getDemuxInputErrors(state: AppState): string[] {
   return errors;
 }
 
-export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set, get) => ({
+const mameInputInitialState = {
   inputDir: "",
   expectedPath: "",
   referencePath: "",
   outputPath: "",
   sampleMapPath: "",
-  mode: "amplicon",
-  ingestMode: "barcode",
-  inputMode: "raw_run",
+  mode: "amplicon" as const,
+  ingestMode: "barcode" as const,
+  inputMode: "raw_run" as const,
   rawRunParams: { ...DEFAULT_RAW_RUN_PARAMS },
   cdsStart: 0,
   cdsEnd: 0,
   minFileSizeKb: 50,
-  // UI-only: not forwarded to backend yet; backend still uses min_file_size_kb
   minFilteredDepth: 15,
   manyCutoff: 5,
-  validationErrors: [],
+  validationErrors: [] as string[],
   isValidating: false,
   isAnalyzing: false,
   isDemuxing: false,
@@ -87,6 +86,10 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   // CDS candidate dropdown
   cdsCandidates: [],
   selectedCdsIndex: 0,
+};
+
+export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set, get) => ({
+  ...mameInputInitialState,
   setCdsCandidates: (cdsCandidates) => set({ cdsCandidates, selectedCdsIndex: 0 }),
   setSelectedCdsIndex: (selectedCdsIndex) => set({ selectedCdsIndex }),
   setInputDir: (inputDir) => set({ inputDir, validationErrors: [] }),
@@ -295,4 +298,5 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       analyzeMessage: "Analysis cancelled",
     });
   },
+  resetInput: () => set({ ...mameInputInitialState }),
 });

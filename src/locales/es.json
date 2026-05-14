@@ -314,7 +314,15 @@
       "colDepth": "Depth (reads)",
       "colNotes": "Notas",
       "fileSizeAriaLabel": "Tamaño de archivo: {{kb}} KB",
-      "fallbackAriaLabel": "Replicate de fallback"
+      "fallbackAriaLabel": "Replicate de fallback",
+      "evolveproExport": {
+        "header": "EVOLVEpro",
+        "includedTitle": "Will be included in EVOLVEpro export.",
+        "reasonNgsFail": "Excluded — NGS validation failed.",
+        "reasonWt": "Excluded — wild-type sample (not a variant).",
+        "reasonNoLog2fc": "Excluded — log₂FC could not be computed.",
+        "reasonNoActivity": "Excluded — no activity data available."
+      }
     },
     "summaryRow": {
       "ariaLabel": "Resumen del análisis",
@@ -372,7 +380,10 @@
           "ingest": "Ingest",
           "mergeExport": "Merge & Export"
         }
-      }
+      },
+      "barcodeSetupTabTitle": "Run Setup — part of NGS Validation (step ② of PI workflow)",
+      "analyzeTabTitle": "Sequencing QC — part of NGS Validation (step ② of PI workflow)",
+      "activityTabTitle": "Activity Data — EVOLVEpro input conversion (step ④ of PI workflow)"
     },
     "dialogs": {
       "export": {
@@ -1198,7 +1209,6 @@
     "consentStatusLabel": "Estado del consentimiento:",
     "consentGranted": "Otorgado",
     "consentNotGranted": "No otorgado",
-    "fileMenuTrigger": "Archivo",
     "exportMenuTrigger": "Exportar",
     "uniprotServiceSuffix": " -- búsqueda de secuencia de proteína",
     "ncbiBlastServiceSuffix": " -- búsqueda de similitud de secuencia",
@@ -1208,8 +1218,41 @@
     "view": {
       "title": "Ver",
       "logs": "Mostrar logs",
-      "jobs": "Mostrar jobs"
-    }
+      "jobs": "Mostrar jobs",
+      "language": "Language",
+      "theme": {
+        "title": "Theme",
+        "light": "Light",
+        "dark": "Dark",
+        "system": "System auto"
+      },
+      "fullscreen": "Full screen",
+      "fullscreenError": "Failed to toggle fullscreen: {{message}}"
+    },
+    "edit": {
+      "title": "Edit",
+      "preferences": "Preferences..."
+    },
+    "run": {
+      "title": "Run",
+      "diagnostics": "Sidecar diagnostics...",
+      "checkSidecar": "Check sidecar status",
+      "replay": "Replay saved run...",
+      "replayError": "Failed to load manifest: {{message}}",
+      "sidecarHealthAlive": "sidecar ready · v{{version}} · uptime {{uptime}}s",
+      "sidecarHealthUnresponsive": "sidecar process not responding · {{message}}",
+      "sidecarHealthDead": "sidecar not responding. Use Restart Sidecar"
+    },
+    "help": {
+      "reportIssue": "Report issue"
+    },
+    "appMenu": {
+      "kuro": "kuro",
+      "mame": "mame",
+      "closeWindow": "Cerrar ventana",
+      "quit": "Salir de kuma"
+    },
+    "fileMenuTrigger": "Archivo"
   },
   "panel": {
     "errorTitle": "No se puede mostrar",
@@ -1679,6 +1722,18 @@
       "title": "Información faltante",
       "description": "Complete lo siguiente antes de continuar.",
       "missingItemsLabel": "Elementos faltantes"
+    }
+  },
+  "shortcutsDialog": {
+    "title": "Keyboard shortcuts",
+    "searchPlaceholder": "Search...",
+    "empty": "No shortcuts match the search.",
+    "category": {
+      "file": "File",
+      "edit": "Edit",
+      "view": "View",
+      "run": "Run",
+      "help": "Help"
     }
   }
 }

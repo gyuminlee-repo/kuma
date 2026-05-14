@@ -314,7 +314,15 @@
       "colDepth": "Depth (reads)",
       "colNotes": "备注",
       "fileSizeAriaLabel": "文件大小: {{kb}} KB",
-      "fallbackAriaLabel": "Fallback replicate"
+      "fallbackAriaLabel": "Fallback replicate",
+      "evolveproExport": {
+        "header": "EVOLVEpro",
+        "includedTitle": "Will be included in EVOLVEpro export.",
+        "reasonNgsFail": "Excluded — NGS validation failed.",
+        "reasonWt": "Excluded — wild-type sample (not a variant).",
+        "reasonNoLog2fc": "Excluded — log₂FC could not be computed.",
+        "reasonNoActivity": "Excluded — no activity data available."
+      }
     },
     "summaryRow": {
       "ariaLabel": "分析摘要",
@@ -372,7 +380,10 @@
           "ingest": "Ingest",
           "mergeExport": "Merge & Export"
         }
-      }
+      },
+      "barcodeSetupTabTitle": "Run Setup — part of NGS Validation (step ② of PI workflow)",
+      "analyzeTabTitle": "Sequencing QC — part of NGS Validation (step ② of PI workflow)",
+      "activityTabTitle": "Activity Data — EVOLVEpro input conversion (step ④ of PI workflow)"
     },
     "dialogs": {
       "export": {
@@ -1198,7 +1209,6 @@
     "consentStatusLabel": "同意状态:",
     "consentGranted": "已授权",
     "consentNotGranted": "未授权",
-    "fileMenuTrigger": "文件",
     "exportMenuTrigger": "导出",
     "uniprotServiceSuffix": " -- 蛋白质序列搜索",
     "ncbiBlastServiceSuffix": " -- 序列相似性搜索",
@@ -1208,8 +1218,41 @@
     "view": {
       "title": "视图",
       "logs": "显示日志",
-      "jobs": "显示作业"
-    }
+      "jobs": "显示作业",
+      "language": "Language",
+      "theme": {
+        "title": "Theme",
+        "light": "Light",
+        "dark": "Dark",
+        "system": "System auto"
+      },
+      "fullscreen": "Full screen",
+      "fullscreenError": "Failed to toggle fullscreen: {{message}}"
+    },
+    "edit": {
+      "title": "编辑",
+      "preferences": "首选项..."
+    },
+    "run": {
+      "title": "运行",
+      "diagnostics": "Sidecar diagnostics...",
+      "checkSidecar": "检查 Sidecar 状态",
+      "replay": "Replay saved run...",
+      "replayError": "Failed to load manifest: {{message}}",
+      "sidecarHealthAlive": "sidecar ready · v{{version}} · uptime {{uptime}}s",
+      "sidecarHealthUnresponsive": "sidecar process not responding · {{message}}",
+      "sidecarHealthDead": "sidecar not responding. Use Restart Sidecar"
+    },
+    "help": {
+      "reportIssue": "报告问题"
+    },
+    "appMenu": {
+      "kuro": "kuro",
+      "mame": "mame",
+      "closeWindow": "关闭窗口",
+      "quit": "退出 kuma"
+    },
+    "fileMenuTrigger": "文件"
   },
   "panel": {
     "errorTitle": "无法显示",
@@ -1679,6 +1722,18 @@
       "title": "缺少信息",
       "description": "请在继续之前完成以下内容。",
       "missingItemsLabel": "缺少项目"
+    }
+  },
+  "shortcutsDialog": {
+    "title": "键盘快捷键",
+    "searchPlaceholder": "搜索...",
+    "empty": "未找到匹配的快捷键。",
+    "category": {
+      "file": "文件",
+      "edit": "编辑",
+      "view": "视图",
+      "run": "运行",
+      "help": "帮助"
     }
   }
 }

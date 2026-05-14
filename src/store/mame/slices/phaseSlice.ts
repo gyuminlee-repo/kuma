@@ -30,7 +30,11 @@ export interface PhaseSlice {
   setMamePhase: (phase: MamePhase) => void;
   activityTab: ActivityTab;
   setActivityTab: (tab: ActivityTab) => void;
+  resetPhase: () => void;
 }
+
+const PHASE_INITIAL: MamePhase = "analyze";
+const ACTIVITY_TAB_INITIAL: ActivityTab = "ingest";
 
 function readPhaseFromStorage(): MamePhase {
   try {
@@ -63,5 +67,18 @@ export const createPhaseSlice: StateCreator<AppState, [], [], PhaseSlice> = (set
       // 저장 실패 시 상태만 업데이트
     }
     set({ activityTab: tab });
+  },
+  resetPhase: () => {
+    try {
+      localStorage.removeItem(PHASE_STORAGE_KEY);
+      localStorage.removeItem(ACTIVITY_TAB_STORAGE_KEY);
+    } catch {
+      // localStorage 접근 실패 시 in-memory만 초기화
+    }
+    set({
+      mamePhase: PHASE_INITIAL,
+      activityTab: ACTIVITY_TAB_INITIAL,
+      currentMameSubStep: MAME_SUBSTEP_ORDER[PHASE_INITIAL][0],
+    });
   },
 });

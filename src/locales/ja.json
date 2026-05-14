@@ -314,7 +314,15 @@
       "colDepth": "Depth (reads)",
       "colNotes": "Notes",
       "fileSizeAriaLabel": "ファイルサイズ: {{kb}} KB",
-      "fallbackAriaLabel": "Fallback replicate"
+      "fallbackAriaLabel": "Fallback replicate",
+      "evolveproExport": {
+        "header": "EVOLVEpro",
+        "includedTitle": "Will be included in EVOLVEpro export.",
+        "reasonNgsFail": "Excluded — NGS validation failed.",
+        "reasonWt": "Excluded — wild-type sample (not a variant).",
+        "reasonNoLog2fc": "Excluded — log₂FC could not be computed.",
+        "reasonNoActivity": "Excluded — no activity data available."
+      }
     },
     "summaryRow": {
       "ariaLabel": "解析サマリー",
@@ -372,7 +380,10 @@
           "ingest": "Ingest",
           "mergeExport": "Merge & Export"
         }
-      }
+      },
+      "barcodeSetupTabTitle": "Run Setup — part of NGS Validation (step ② of PI workflow)",
+      "analyzeTabTitle": "Sequencing QC — part of NGS Validation (step ② of PI workflow)",
+      "activityTabTitle": "Activity Data — EVOLVEpro input conversion (step ④ of PI workflow)"
     },
     "dialogs": {
       "export": {
@@ -1198,7 +1209,6 @@
     "consentStatusLabel": "同意ステータス:",
     "consentGranted": "同意済み",
     "consentNotGranted": "未同意",
-    "fileMenuTrigger": "ファイル",
     "exportMenuTrigger": "エクスポート",
     "uniprotServiceSuffix": " -- タンパク質配列検索",
     "ncbiBlastServiceSuffix": " -- 配列類似度検索",
@@ -1208,8 +1218,41 @@
     "view": {
       "title": "View",
       "logs": "ログを表示",
-      "jobs": "ジョブを表示"
-    }
+      "jobs": "ジョブを表示",
+      "language": "Language",
+      "theme": {
+        "title": "Theme",
+        "light": "Light",
+        "dark": "Dark",
+        "system": "System auto"
+      },
+      "fullscreen": "Full screen",
+      "fullscreenError": "Failed to toggle fullscreen: {{message}}"
+    },
+    "edit": {
+      "title": "編集",
+      "preferences": "環境設定..."
+    },
+    "run": {
+      "title": "実行",
+      "diagnostics": "Sidecar diagnostics...",
+      "checkSidecar": "Sidecar ステータス確認",
+      "replay": "Replay saved run...",
+      "replayError": "Failed to load manifest: {{message}}",
+      "sidecarHealthAlive": "sidecar ready · v{{version}} · uptime {{uptime}}s",
+      "sidecarHealthUnresponsive": "sidecar process not responding · {{message}}",
+      "sidecarHealthDead": "sidecar not responding. Use Restart Sidecar"
+    },
+    "help": {
+      "reportIssue": "問題を報告"
+    },
+    "appMenu": {
+      "kuro": "kuro",
+      "mame": "mame",
+      "closeWindow": "ウィンドウを閉じる",
+      "quit": "kuma を終了"
+    },
+    "fileMenuTrigger": "ファイル"
   },
   "panel": {
     "errorTitle": "表示できません",
@@ -1679,6 +1722,18 @@
       "title": "入力不足",
       "description": "続行する前に次の項目を完了してください。",
       "missingItemsLabel": "不足項目"
+    }
+  },
+  "shortcutsDialog": {
+    "title": "キーボードショートカット",
+    "searchPlaceholder": "検索...",
+    "empty": "一致するショートカットがありません。",
+    "category": {
+      "file": "ファイル",
+      "edit": "編集",
+      "view": "表示",
+      "run": "実行",
+      "help": "ヘルプ"
     }
   }
 }

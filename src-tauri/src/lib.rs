@@ -5,7 +5,7 @@ pub mod sidecar;
 pub mod sidecar_verify;
 
 use serde_json::Value;
-use std::path::PathBuf;
+use std::{path::PathBuf, time::Duration};
 use tauri::{AppHandle, Emitter, Manager, RunEvent, State, Wry};
 
 #[tauri::command]
@@ -32,6 +32,106 @@ async fn sidecar_is_running(
     state: State<'_, sidecar::SidecarManager>,
 ) -> Result<bool, String> {
     state.is_running(&kind).await
+}
+
+/// 사이드카 프로세스의 상태를 확인한다.
+///
+/// `invoke('check_sidecar_health', { kind: 'kuro' | 'mame' })` 형태로 호출.
+/// - `alive: false` — 사이드카가 실행 중이 아님. 스폰하지 않음.
+/// - `alive: true`  — 실행 중. `health_info` RPC 결과(pid, py_version)와
+///                    Rust 측 uptime_secs를 함께 반환.
+///
+/// 중요: 이 커맨드는 사이드카를 새로 스폰하지 않는다.
+/// 스폰이 필요하면 `sidecar_rpc`를 호출해야 한다.
+#[derive(serde::Serialize)]
+struct SidecarHealth {
+    alive: bool,
+    responsive: bool,   // health_info RPC 응답을 받았는가
+    kind: String,
+    pid: Option<u32>,
+    version: Option<String>,   // sidecar Python 인터프리터 버전 (py_version)
+    uptime_secs: Option<u64>,
+    message: String,
+}
+
+#[tauri::command]
+async fn check_sidecar_health(
+    kind: String,
+    state: State<'_, sidecar::SidecarManager>,
+) -> Result<SidecarHealth, String> {
+    // 0. kind allow-list 가드
+    if !matches!(kind.as_str(), "kuro" | "mame") {
+        return Err(format!("invalid sidecar kind: {kind}"));
+    }
+
+    // 1. Spawn 없이 alive 여부만 확인
+    let is_alive = state.is_running(&kind).await?;
+    if !is_alive {
+        return Ok(SidecarHealth {
+            alive: false,
+            responsive: false,
+            kind: kind.clone(),
+            pid: None,
+            version: None,
+            uptime_secs: None,
+            message: format!("{kind} 사이드카가 실행 중이 아닙니다."),
+        });
+    }
+
+    // 2. Rust 측에서 uptime 스냅샷 (RPC 없이)
+    let snapshot = state.health_snapshot(&kind).await?;
+    let uptime_secs = snapshot.map(|(_, uptime)| uptime);
+
+    // 3. 이미 실행 중인 프로세스에 health_info RPC 전송 (spawn 없음, 2초 타임아웃)
+    let rpc_result = match tokio::time::timeout(
+        Duration::from_secs(2),
+        state.rpc(&kind, "health_info", serde_json::json!({})),
+    )
+    .await
+    {
+        Ok(inner) => inner,
+        Err(_) => Err(format!("{kind} health_info 응답 타임아웃(2초)")),
+    };
+
+    match rpc_result {
+        Ok(info) => {
+            let pid = info.get("pid").and_then(|v| v.as_u64()).and_then(|v| u32::try_from(v).ok());
+            let py_version = info
+                .get("py_version")
+                .and_then(|v| v.as_str())
+                .map(str::to_owned);
+            let message = match (pid, py_version.as_deref(), uptime_secs) {
+                (Some(p), Some(ver), Some(up)) => {
+                    format!("{kind} 사이드카 정상 (PID {p}, Python {ver}, 가동 {up}초)")
+                }
+                (Some(p), Some(ver), None) => {
+                    format!("{kind} 사이드카 정상 (PID {p}, Python {ver})")
+                }
+                _ => format!("{kind} 사이드카 응답 수신"),
+            };
+            Ok(SidecarHealth {
+                alive: true,
+                responsive: true,
+                kind,
+                pid,
+                version: py_version,
+                uptime_secs,
+                message,
+            })
+        }
+        Err(err) => {
+            // health_info RPC 실패(응답 없음 또는 타임아웃) = 프로세스는 살아있으나 응답 불가
+            Ok(SidecarHealth {
+                alive: true,
+                responsive: false,
+                kind: kind.clone(),
+                pid: None,
+                version: None,
+                uptime_secs,
+                message: format!("{kind} 사이드카 응답 없음: {err}"),
+            })
+        }
+    }
 }
 
 /// §6 Settings: Return the resolved on-disk path for a sidecar binary.
@@ -177,6 +277,7 @@ pub fn run() {
             sidecar_rpc,
             sidecar_kill,
             sidecar_is_running,
+            check_sidecar_health,
             keep_awake::keep_awake_start,
             keep_awake::keep_awake_stop,
             get_codesign_status,

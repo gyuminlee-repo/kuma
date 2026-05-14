@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAppStore } from "../../../store/appStore";
 import { basename } from "../../../lib/utils";
 import { browseFile } from "../../../lib/file-utils";
+import { useArtifact } from "../../../lib/workspace";
 import { Button } from "../../ui/button";
+import { ArtifactBadge } from "../../widgets/ArtifactBadge";
 
 export function MutationInput() {
   const { t } = useTranslation();
@@ -16,6 +18,19 @@ export function MutationInput() {
   const parseMutations = useAppStore((s) => s.parseMutations);
   const evolveproCsvPath = useAppStore((s) => s.evolveproCsvPath);
   const loadEvolveproCsv = useAppStore((s) => s.loadEvolveproCsv);
+  const artifact = useArtifact("evolvepro_csv");
+  const [userOverridden, setUserOverridden] = useState(false);
+
+  // Auto-prefill from workspace manifest when user hasn't manually overridden.
+  useEffect(() => {
+    if (userOverridden) return;
+    if (!artifact) return;
+    if (artifact.path === evolveproCsvPath) return;
+    void loadEvolveproCsv(artifact.path);
+  }, [artifact, userOverridden, evolveproCsvPath, loadEvolveproCsv]);
+
+  const showArtifactBadge =
+    artifact !== null && !userOverridden && artifact.path === evolveproCsvPath;
   const pipelineMode = useAppStore((s) => s.pipelineMode);
   const setPipelineMode = useAppStore((s) => s.setPipelineMode);
   const evolveproTotalCount = useAppStore((s) => s.evolveproTotalCount);
@@ -104,7 +119,10 @@ export function MutationInput() {
                       extensions: ["csv"],
                     },
                   ],
-                  loadEvolveproCsv,
+                  (path) => {
+                    setUserOverridden(true);
+                    loadEvolveproCsv(path);
+                  },
                 )
               }
               className="flex-shrink-0"
@@ -114,6 +132,9 @@ export function MutationInput() {
             <span className="self-center truncate text-xs text-muted-foreground">
               {evolveproCsvPath ? basename(evolveproCsvPath) : t("mutationInput.noFileSelected")}
             </span>
+            {showArtifactBadge && artifact && (
+              <ArtifactBadge artifact={artifact} className="self-center" />
+            )}
           </div>
 
           {/* Variant count summary */}

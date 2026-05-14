@@ -24,8 +24,10 @@ export interface SidecarKuroModels {
   EvaluatePrimerParams?: EvaluatePrimerParams;
   EvolveproStepStatsModel?: EvolveproStepStatsModel;
   ExcludedRange?: ExcludedRange;
+  ExportAllParams?: ExportAllParams;
   ExportBenchmarkCsvParams?: ExportBenchmarkCsvParams;
   ExportExcelParams?: ExportExcelParams;
+  ExportMacrogenParams?: ExportMacrogenParams;
   ExportMappingParams?: ExportMappingParams;
   ExportMappingResultModel?: ExportMappingResultModel;
   ExportOrderItem?: ExportOrderItem;
@@ -395,6 +397,21 @@ export interface ExcludedRange {
   start: number;
   [k: string]: unknown;
 }
+/**
+ * Params for `export_all` RPC method (6-file batch export).
+ */
+export interface ExportAllParams {
+  amount?: "0.05" | "0.2";
+  bom?: boolean;
+  echo_transfer_vol?: number;
+  fwd_plate_name?: string;
+  janus_transfer_vol?: number;
+  output_dir: string;
+  project_id?: string | null;
+  purification?: "MOPC";
+  rev_plate_name?: string;
+  [k: string]: unknown;
+}
 export interface ExportBenchmarkCsvParams {
   bom?: boolean;
   filepath: string;
@@ -426,6 +443,18 @@ export interface PlateMappingItem {
   tm_overlap?: number | null;
   well: string;
   wt_codon?: string | null;
+  [k: string]: unknown;
+}
+/**
+ * Params for `export_macrogen` RPC method (Macrogen Plate Oligo .xls).
+ */
+export interface ExportMacrogenParams {
+  amount?: "0.05" | "0.2";
+  fwd_plate_name?: string;
+  output_path: string;
+  project_id?: string | null;
+  purification?: "MOPC";
+  rev_plate_name?: string;
   [k: string]: unknown;
 }
 export interface ExportMappingParams {

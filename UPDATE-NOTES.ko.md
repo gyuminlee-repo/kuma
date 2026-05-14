@@ -4,6 +4,126 @@
 
 ---
 
+## v0.8.6 (2026-05-13)
+
+mockup v5 (`010.lab/.../kuma_program_mockup_detailed_v5.html`) 정합 + v0.8.5 spec (`notes/specs/2026-05-13-menubar-prefs-shortcuts.md`) 마감.
+
+### 메뉴바 — 첫 메뉴 앱명
+
+- 첫 메뉴 트리거가 `File`에서 활성 도구 이름으로 변경. KURO 컨텍스트에서는 **`kuro`**, MAME 컨텍스트에서는 **`mame`**, 모두 굵게. 10개 로케일에 `menuBar.appMenu.kuro` / `menuBar.appMenu.mame` 키 추가.
+- KURO·MAME 양쪽 앱 메뉴에 `Close window` (Ctrl/Cmd+W) 및 `Quit kuma` (Ctrl/Cmd+Q) 항목 추가. `Close window`는 autosave 핸들러를 통과하는 `getCurrentWindow().close()` 호출. `Quit kuma`는 즉시·취소 불가 종료를 위한 `getCurrentWindow().destroy()` 호출.
+- 사용되지 않게 된 `menuBar.fileMenuTrigger` i18n 키를 10개 로케일에서 제거.
+
+### SettingsDialog — 중복 단축키 표 제거
+
+- Preferences 내부 단축키 표 삭제. v0.8.5에서 도입된 `KeyboardShortcutsDialog` (Ctrl/Cmd+/)가 단축키 노출 단일 창구.
+
+### 버전 정렬
+
+- `package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, `pyproject.toml` 모두 `0.8.6`.
+
+### 검증
+
+- `npx tsc --noEmit` 통과. `pnpm sync:check` 애플리케이션 그룹 통과. (기존 `tauri-resources/NOTICE.md`·`generated-models/Node 20` 실패는 본 커밋과 무관.)
+
+---
+
+## v0.8.5 (2026-05-13)
+
+spec 구현 — `notes/specs/2026-05-13-menubar-prefs-shortcuts.md` 항목 2·3.
+
+### Edit / Run 메뉴 + 다이얼로그
+
+- `MenuBar`에 **Edit** 메뉴 (Preferences, Ctrl/Cmd+,)와 **Run** 메뉴 (Sidecar diagnostics, Check sidecar status) 추가.
+- 신규 `KeyboardShortcutsDialog` (Ctrl/Cmd+/)는 검색 + 카테고리 그룹화. 데이터 원본은 `src/lib/shortcuts.ts` (`category` 필드 추가).
+- About 다이얼로그 내 단축키 표 제거. 단축키 노출은 새 다이얼로그로 단일화.
+- Help 메뉴에 `Report issue` (GitHub 외부 링크) 및 `Check for updates` 추가.
+
+### i18n
+
+- 10개 로케일에 신규 키 추가 (`menuBar.edit.*`, `menuBar.run.*`, `menuBar.help.reportIssue`, `shortcutsDialog.*`). ko/ja/zh-CN/zh-TW 번역 완료.
+
+### 버전 정렬
+
+- `package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, `pyproject.toml` 모두 `0.8.5`.
+
+---
+
+## v0.8.4 (2026-05-13)
+
+분기 통합: `feat/workspace-artifact-handoff` (v0.8.3.x), `fix/load-sample-data` (v0.8.2.5), `worktree-spec-export-all-macrogen` (v0.4.x 묶음)을 `feat/kuma-integration`에 머지. `worktree-locale-ko-fixes`는 실제 적용 가능한 부분만 cherry-pick.
+
+### Export All + Macrogen + 사이드바 리사이즈 (worktree-spec-export-all-macrogen)
+
+- `ExportFormatSelector`를 단일 **Export All** 버튼으로 재작성 (`v0.4.2.00`). 구 `MappingExportDialog`와 IDT / Twist 분기 제거. 프런트 핸들러 `handleExportAll` / `handleExportMacrogen` (`v0.4.1.05`)가 새 흐름을 구동.
+- Sidecar에 `export_macrogen` / `export_all` JSON-RPC 핸들러 추가 (`v0.4.1.03`). Pydantic 모델 `ExportMacrogenParams` / `ExportAllParams` (`v0.4.1.01`) 및 TS validator (`v0.4.1.04`) 등록. Macrogen xls export는 `xlwt 1.3.0` + column-major well 레이아웃 사용 (`v0.4.1.00`). round-trip 테스트용 `xlrd 1.2.0` 핀.
+- Macrogen / Export-All 핸들러에 `output_path` / `output_dir` 검증 추가 (`v0.4.2.03`).
+- `ResizeHandle` 컴포넌트 (`v0.4.3.02`): 마우스 드래그, 키보드 nudge, ARIA 지원. `AppShell` aside가 영속 width 사용 (`v0.4.3.03`). `layoutSlice` + 독립 `useLayoutStore` + localStorage 영속화 (`v0.4.3.01`). 기본 width 상수를 emit하는 `compute-sidebar-width.mjs` 빌드 스크립트 (`v0.4.3.00`).
+- 신규 cross-layer-sync 그룹: `macrogen-export-flow` (`v0.4.1.06`), `sidebar-resize-flow` (`v0.4.3.04`).
+- Windows 테스트 가이드 `notes/TEST-WINDOWS.md` (`v0.4.2.04`).
+
+### loadSampleData 강화 (fix/load-sample-data)
+
+- `inputSlice.loadSampleData`가 `loadSequence` silent 실패를 방어 (`v0.8.2.5`). 체인이 빈 상태로 다음 단계로 진행하던 회귀 차단.
+- 신규 테스트: `src/store/slices/inputSlice.loadSampleData.test.ts`, `tests/test_load_sample_data_e2e.py` (Python 핸들러 체인), `tests/test_load_sample_data_sidecar_e2e.py` (UI 체인을 재현하는 sidecar JSON-RPC e2e).
+
+### 로케일 톤 픽스 (worktree-locale-ko-fixes 일부 cherry-pick)
+
+- en / ko: 데드락 메시지 헤징 제거 — `The job may be stuck.` / `작업이 멈춘 것 같습니다.` → `The job is stuck.` / `작업이 멈췄습니다.` (`v0.8.4.1`).
+- en: `Require GC clamp (3-prime end)` → `Require GC clamp (3' end)` 및 aria 라벨 (`v0.8.4.4`).
+- ko 독립 라벨을 영문으로 정렬 (브랜치 commit message 의도): `colReads` (리드 → read), `colDepth` (깊이 (리드) → depth (read)), `fieldReference` (레퍼런스 → Reference), Breslauer / Schildkraut title의 `레거시` → `Legacy`. 한국어 조사가 결합되는 문장 중 명사는 문법 보존을 위해 유지.
+
+### 머지 회귀 복구
+
+- `worktree-spec-export-all-macrogen`이 kuma의 플러그인 흡수 이전 시점(v0.4.x)에서 분기되어 있어, 머지 시 i18next / sonner / radix-tabs / `@tauri-apps/plugin-fs` / `plugin-notification` / `plugin-opener` / `plugin-updater` / `plugin-single-instance`와 `sync:check`, `gen:models`, `i18n:lint`, `i18n:parity` 스크립트가 자동 삭제됨. `v0.8.4.3`에서 `package.json`, `tauri.conf.json`, `pyproject.toml`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`을 머지 직전 HEAD 상태로 복원하고 신규 Macrogen 익스포터가 필요로 하는 `xlwt` / `xlrd`를 재추가.
+- 신규 `export_macrogen` / `export_all` 스키마 반영을 위해 `sidecar_kuro.models`에서 TS 모델 재생성 (`v0.8.4.2`).
+
+### 버전 동기화
+
+- `package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, `pyproject.toml` 모두 `0.8.4`.
+
+### 검증
+
+- `npx tsc --noEmit`: 0 errors.
+- `cargo check` (src-tauri): Tauri 플러그인 7개 복원 후 클린 빌드.
+- `node scripts/sync-check.mjs`: 43 passed, 0 warned, 0 failed.
+
+---
+
+## v0.8.3 (2026-05-13)
+
+워크스페이스 artifact 핸드오프와 MAME Clear All.
+
+### 워크스페이스 매니페스트
+
+- 신규 `src/lib/workspace/` 모듈이 사용자 export 폴더 안에 `.kuma-workspace.json` artifact registry를 관리한다. KURO Excel export (`sdm_primer_xlsx`)와 MAME export (`mame_consensus_fasta`)가 완료되면 `(app, step, type, path)` + mtime + 크기가 자동 등록된다.
+- `useArtifact(type)` React 훅이 `workspace:updated` 이벤트를 구독하여 최신 비-stale artifact 경로를 반환한다. 워크스페이스 미개방 시 안전하게 null fallback.
+- Stale 감지: 매니페스트 mtime과 현재 파일 mtime을 비교. 파일이 사라진 항목은 매니페스트에서 자동 제거. 손상된 매니페스트는 `.bak-{ts}`로 백업 후 새로 생성.
+
+### KURO 자동 prefill
+
+- `MutationInput` (EVOLVEpro / MULTI-evolve 모드)이 mount 시점에 매니페스트에서 `evolveproCsvPath`를 자동 prefill한다. 파일명 옆에 `ArtifactBadge` (`Step diversity 출력 자동 감지`)가 표시되고, stale일 때는 warning variant로 전환. Browse 버튼으로 수동 선택 시 `userOverridden=true`가 세션 내 추가 prefill을 차단.
+
+### Clear All
+
+- KURO `resetAll()`이 슬라이스 reset 후 `clearWorkspace("kuro")`를 호출하여 매니페스트의 KURO artifact를 정리.
+- MAME에 통합 `resetMameAll()` 신설: `resetInput`/`resetAnalysis`/`resetExport`/`resetPhase` + `clearWorkspace("mame")`. `ClearConfirmDialog`가 이 함수로 연결. `resetPhase`는 `kuma:mame:phase`/`kuma:mame:activityTab` localStorage 키도 함께 정리.
+- 앱 격리: 한 앱의 Clear All은 다른 앱의 artifact에 영향 없음.
+
+### 테스트
+
+- `tests/workspace/api.test.ts`: 12 케이스 (매니페스트 생성, register/list/getLatest, `(app,step,type)` upsert, 멀티앱 격리, mtime stale, 파일 누락 정리, 이벤트 emit, 손상 매니페스트 복구, 워크스페이스 미개방 에러).
+
+### i18n
+
+- `en.json` / `ko.json`에 `artifact.badge.detected` / `staleHint` 신규 키.
+
+### Cross-layer sync
+
+- `.cross-layer-sync.json`에 `workspace-artifact-registry` 그룹 추가 (registry 타입과 양쪽 export slice 동기화 감시).
+
+---
+
 ## v0.3.17 – v0.3.22.07 (2026-05-12)
 
 데스크톱 앱 전반의 영어/한국어 i18n 커버리지 완성.

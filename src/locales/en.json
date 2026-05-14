@@ -206,6 +206,13 @@
       "polymeraseTaqTitle": "Standard Taq polymerase. Tm preset ~60 °C, higher Mg²⁺. Use for routine PCR or when 3'A overhangs are desired.",
       "polymerasePhusionTitle": "Thermo Phusion High-Fidelity. Tm preset ~72 °C, blunt-end, fast extension.",
       "polymeraseKODTitle": "Toyobo KOD One / KOD Hot Start. Tm preset ~68 °C with Mg²⁺/dNTP correction. High-fidelity, fast.",
+      "autoDetect": {
+        "button": "Auto-detect from CDS",
+        "success": "Detected from {{source}}",
+        "failed": "No ORF found",
+        "noReference": "Reference file required",
+        "readError": "Failed to read reference file"
+      },
       "cdsCandidate": "CDS / ORF candidate:",
       "cdsCandidateNoneDetected": "No CDS detected. Enter coordinates manually."
     },
@@ -335,7 +342,19 @@
       "statusInProgress": "In progress"
     },
     "menuBar": {
-      "restartSidecarConfirm": "Analysis is running. Restart sidecar anyway?"
+      "restartSidecarConfirm": "Analysis is running. Restart sidecar anyway?",
+      "compareWorkspacesTitle": "Compare Workspaces",
+      "compareWorkspacesSame": "The two workspaces are identical.",
+      "compareWorkspacesDiff": "{{count}} difference{{plural}} found.",
+      "compareWorkspacesColField": "Field",
+      "compareWorkspacesColA": "Workspace A",
+      "compareWorkspacesColB": "Workspace B",
+      "compareWorkspacesNoDiff": "No differences found.",
+      "closeBtn": "Close",
+      "selectWorkspaceA": "Select first workspace (A)",
+      "selectWorkspaceB": "Select second workspace (B)",
+      "compareWorkspacesFailed": "Workspace compare failed: {{error}}",
+      "exportWorkspaceZipSoon": "Export workspace as zip - coming soon"
     },
     "statusBar": {
       "ready": "Ready",
@@ -366,10 +385,13 @@
         "analyze": {
           "inputs": "Inputs",
           "verdict": "Verdicts",
-          "plate": "Plate Plan"
+          "plate": "Plate Plan",
+          "health": "Run Health"
         },
         "activity": {
           "ingest": "Ingest",
+          "merge": "Merge",
+          "export": "Export",
           "mergeExport": "Merge & Export"
         }
       }
@@ -1382,6 +1404,8 @@
   },
   "activityUpload": {
     "panelAriaLabel": "Activity data upload",
+    "formatLabel": "Format",
+    "formatAriaLabel": "Activity file format",
     "uploadingAriaLabel": "Uploading activity data...",
     "browseAriaLabel": "Browse & Upload activity file",
     "uploadingBtn": "Uploading...",
@@ -1420,10 +1444,10 @@
     "bomCheckboxAriaLabel": "Add UTF-8 BOM for Excel compatibility",
     "bomCheckboxLabel": "Add UTF-8 BOM",
     "bomCheckboxHint": "(Excel compatibility)",
-    "transferVolumeRange": "Range: {{min}}–{{max}} {{unit}}",
-    "echoMaxNote": "(Max 500 nL)",
     "cancelBtn": "Cancel",
-    "exportBtn": "Export"
+    "exportBtn": "Export",
+    "transferVolumeRange": "Range: {{min}}–{{max}} {{unit}}",
+    "echoMaxNote": "(Max 500 nL)"
   },
   "whatsNewDialog": {
     "title": "What's New in v{{version}}",
@@ -1547,15 +1571,20 @@
   "phaseC": {
     "majors": {
       "design": "Design",
+      "plate": "Plate Map",
       "export": "Export",
       "output": "Output"
     },
     "subSteps": {
       "design": {
         "load": "Load Variants",
+        "variant": "Pool Filters",
         "mutation": "Mutations",
         "params": "Primer Parameters",
         "submit": "Pool Filters & Run"
+      },
+      "plate": {
+        "layout": "Plate Map"
       },
       "export": {
         "all": "Export",
@@ -1614,15 +1643,19 @@
     "mameSubSteps": {
       "setup": {
         "files": "Files & Coordinates",
-        "design": "Design Parameters"
+        "design": "Design Parameters",
+        "output": "Generate Package"
       },
       "analyze": {
         "inputs": "Inputs",
         "verdict": "Verdicts",
-        "plate": "Plate Plan"
+        "plate": "Plate Plan",
+        "health": "Run Health"
       },
       "activity": {
         "ingest": "Ingest Data",
+        "merge": "Merge",
+        "export": "Export",
         "mergeExport": "Merge & Export"
       }
     }
@@ -1637,6 +1670,7 @@
     "descriptions": {
       "design": {
         "load": "Upload an EVOLVEpro CSV or paste a protein sequence.",
+        "variant": "Configure variant pool filters.",
         "mutation": "Define mutations to include.",
         "params": "Set primer design parameters and run.",
         "submit": "Select variant pool filters, then run primer design."

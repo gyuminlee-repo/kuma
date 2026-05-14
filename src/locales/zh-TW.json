@@ -314,7 +314,15 @@
       "colDepth": "Depth (reads)",
       "colNotes": "備註",
       "fileSizeAriaLabel": "檔案大小: {{kb}} KB",
-      "fallbackAriaLabel": "Fallback replicate"
+      "fallbackAriaLabel": "Fallback replicate",
+      "evolveproExport": {
+        "header": "EVOLVEpro",
+        "includedTitle": "Will be included in EVOLVEpro export.",
+        "reasonNgsFail": "Excluded — NGS validation failed.",
+        "reasonWt": "Excluded — wild-type sample (not a variant).",
+        "reasonNoLog2fc": "Excluded — log₂FC could not be computed.",
+        "reasonNoActivity": "Excluded — no activity data available."
+      }
     },
     "summaryRow": {
       "ariaLabel": "分析摘要",
@@ -372,7 +380,10 @@
           "ingest": "Ingest",
           "mergeExport": "Merge & Export"
         }
-      }
+      },
+      "barcodeSetupTabTitle": "Run Setup — part of NGS Validation (step ② of PI workflow)",
+      "analyzeTabTitle": "Sequencing QC — part of NGS Validation (step ② of PI workflow)",
+      "activityTabTitle": "Activity Data — EVOLVEpro input conversion (step ④ of PI workflow)"
     },
     "dialogs": {
       "export": {
@@ -1198,7 +1209,6 @@
     "consentStatusLabel": "同意狀態:",
     "consentGranted": "已授權",
     "consentNotGranted": "未授權",
-    "fileMenuTrigger": "檔案",
     "exportMenuTrigger": "匯出",
     "uniprotServiceSuffix": " -- 蛋白質序列搜尋",
     "ncbiBlastServiceSuffix": " -- 序列相似性搜尋",
@@ -1208,8 +1218,41 @@
     "view": {
       "title": "檢視",
       "logs": "顯示日誌",
-      "jobs": "顯示作業"
-    }
+      "jobs": "顯示作業",
+      "language": "Language",
+      "theme": {
+        "title": "Theme",
+        "light": "Light",
+        "dark": "Dark",
+        "system": "System auto"
+      },
+      "fullscreen": "Full screen",
+      "fullscreenError": "Failed to toggle fullscreen: {{message}}"
+    },
+    "edit": {
+      "title": "編輯",
+      "preferences": "偏好設定..."
+    },
+    "run": {
+      "title": "執行",
+      "diagnostics": "Sidecar diagnostics...",
+      "checkSidecar": "檢查 Sidecar 狀態",
+      "replay": "Replay saved run...",
+      "replayError": "Failed to load manifest: {{message}}",
+      "sidecarHealthAlive": "sidecar ready · v{{version}} · uptime {{uptime}}s",
+      "sidecarHealthUnresponsive": "sidecar process not responding · {{message}}",
+      "sidecarHealthDead": "sidecar not responding. Use Restart Sidecar"
+    },
+    "help": {
+      "reportIssue": "回報問題"
+    },
+    "appMenu": {
+      "kuro": "kuro",
+      "mame": "mame",
+      "closeWindow": "關閉視窗",
+      "quit": "結束 kuma"
+    },
+    "fileMenuTrigger": "檔案"
   },
   "panel": {
     "errorTitle": "無法顯示",
@@ -1679,6 +1722,18 @@
       "title": "缺少資訊",
       "description": "請在繼續之前完成以下內容。",
       "missingItemsLabel": "缺少項目"
+    }
+  },
+  "shortcutsDialog": {
+    "title": "鍵盤快捷鍵",
+    "searchPlaceholder": "搜尋...",
+    "empty": "未找到符合的快捷鍵。",
+    "category": {
+      "file": "檔案",
+      "edit": "編輯",
+      "view": "檢視",
+      "run": "執行",
+      "help": "說明"
     }
   }
 }

@@ -655,3 +655,55 @@ class RunBenchmarkParams(BaseModel):
     distance_mode: Literal["auto", "1d", "3d"] = "auto"
     structure_accession: Optional[str] = None
     random_seed: Optional[int] = None
+
+
+# ---------------------------------------------------------------------------
+# Export All + Macrogen models (spec 2026-05-13)
+# ---------------------------------------------------------------------------
+
+import re as _re_export
+
+_MACROGEN_PLATE_NAME_RE = _re_export.compile(r"^[A-Za-z0-9_-]{1,20}$")
+
+
+class ExportMacrogenParams(BaseModel):
+    """Params for `export_macrogen` RPC method (Macrogen Plate Oligo .xls)."""
+
+    project_id: Optional[str] = None
+    output_path: str
+    fwd_plate_name: str = ""
+    rev_plate_name: str = ""
+    amount: Literal["0.05", "0.2"] = "0.05"
+    purification: Literal["MOPC"] = "MOPC"
+
+    @field_validator("fwd_plate_name", "rev_plate_name")
+    @classmethod
+    def _plate_name_rule(cls, v: str) -> str:
+        if v and not _MACROGEN_PLATE_NAME_RE.fullmatch(v):
+            raise ValueError(
+                f"plate name '{v}' violates ^[A-Za-z0-9_-]{{1,20}}$"
+            )
+        return v
+
+
+class ExportAllParams(BaseModel):
+    """Params for `export_all` RPC method (6-file batch export)."""
+
+    project_id: Optional[str] = None
+    output_dir: str
+    fwd_plate_name: str = ""
+    rev_plate_name: str = ""
+    amount: Literal["0.05", "0.2"] = "0.05"
+    purification: Literal["MOPC"] = "MOPC"
+    echo_transfer_vol: int = Field(default=100, ge=25, le=500)
+    janus_transfer_vol: float = Field(default=2.0, ge=0.5, le=10.0)
+    bom: bool = False
+
+    @field_validator("fwd_plate_name", "rev_plate_name")
+    @classmethod
+    def _plate_name_rule(cls, v: str) -> str:
+        if v and not _MACROGEN_PLATE_NAME_RE.fullmatch(v):
+            raise ValueError(
+                f"plate name '{v}' violates ^[A-Za-z0-9_-]{{1,20}}$"
+            )
+        return v

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import { useAppStore } from "../../store/appStore";
 import { generateDiagnosticsBundle } from "../../lib/diagnostics";
 import { revealInOSFolder } from "../../lib/openFolder";
@@ -18,7 +19,15 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
 } from "../ui/dropdown-menu";
+import { useTheme } from "../ui/ThemeToggle";
+import type { Theme } from "../ui/ThemeToggle";
+import i18next, { setLocale, SUPPORTED_LOCALES } from "../../lib/i18n";
+import { open as openDialog } from "@tauri-apps/plugin-dialog";
+import { loadManifestFromFile } from "../../lib/runManifest";
 import { getCrashLog } from "../../lib/crashLog";
 import { CrashLogDialog } from "../dialogs/CrashLogDialog";
 import {
@@ -38,14 +47,46 @@ import { ManifestDiffDialog } from "../dialogs/ManifestDiffDialog";
 import { checkForUpdates, downloadAndInstall, type UpdateCheckResult } from "../../lib/updater";
 import type { Update } from "@tauri-apps/plugin-updater";
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { killSidecar } from "../../lib/ipc";
-import { getShortcutsFor } from "../../lib/shortcuts";
+import { SettingsDialog } from "./SettingsDialog";
+import { KeyboardShortcutsDialog } from "../dialogs/KeyboardShortcutsDialog";
 
 const MOD_KEY = navigator.userAgent.includes("Mac") ? "⌘" : "Ctrl+";
+
+/** A: SidecarHealth — 모듈 스코프 (architect §responsive 필드 추가) */
+interface SidecarHealth {
+  alive: boolean;
+  responsive: boolean;
+  kind: string;
+  pid: number | null;
+  version: string | null;
+  uptime_secs: number | null;
+  message: string;
+}
 
 /** 메뉴 트리거 공통 클래스 (계획서 §6.1 권장) */
 const TRIGGER_CLS =
   "h-control px-3 rounded-control hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-colors duration-fast text-caption font-medium text-foreground/80";
+
+const LOCALE_NATIVE_NAMES: Record<typeof SUPPORTED_LOCALES[number], string> = {
+  en: "English",
+  ko: "한국어",
+  "zh-CN": "中文(简体)",
+  "zh-TW": "中文(繁體)",
+  ja: "日本語",
+  es: "Español",
+  de: "Deutsch",
+  fr: "Français",
+  "pt-BR": "Português (BR)",
+  ru: "Русский",
+};
+
+const THEME_ITEMS: { value: Theme; labelKey: string }[] = [
+  { value: "light", labelKey: "menuBar.view.theme.light" },
+  { value: "dark", labelKey: "menuBar.view.theme.dark" },
+  { value: "system", labelKey: "menuBar.view.theme.system" },
+];
 
 export function MenuBar() {
   const { t } = useTranslation();
@@ -86,8 +127,9 @@ export function MenuBar() {
   // §11 Build & Distribution: codesign status (lazy-loaded when About opens)
   const [codesignStatus, setCodesignStatus] = useState<string | null>(null);
 
-  // §8 A11y: keyboard shortcuts table data
-  const kuroShortcuts = getShortcutsFor("kuro");
+  // Preferences / Keyboard shortcuts dialogs
+  const [preferencesOpen, setPreferencesOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
   // §6 Settings: sidecar binary path (lazy-loaded when About opens)
   const [sidecarPath, setSidecarPath] = useState<string | null>(null);
@@ -136,17 +178,41 @@ export function MenuBar() {
   const [reRunVerify, setReRunVerify] = useState<InputVerifyResult | null>(null);
 
   // §D3.5: View 메뉴 단축키 (Ctrl/Cmd+L: Logs, Ctrl/Cmd+J: Jobs)
+  // + Edit/Help 단축키 (Ctrl/Cmd+, Preferences, Ctrl/Cmd+/ Shortcuts)
   const handleViewKeyDown = useCallback((e: KeyboardEvent) => {
+    // B: input/textarea/contenteditable 포커스 시 전역 단축키 무시
+    const target = e.target as HTMLElement;
+    if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return;
+    // F11: fullscreen toggle (modifier 없음) — C: .catch 추가
+    if (e.key === "F11") {
+      e.preventDefault();
+      void getCurrentWindow().isFullscreen().then((full) =>
+        getCurrentWindow().setFullscreen(!full)
+      ).catch((err: unknown) =>
+        toast.error(t("menuBar.view.fullscreenError", { message: err instanceof Error ? err.message : String(err) }))
+      );
+      return;
+    }
     if (!(e.metaKey || e.ctrlKey)) return;
-    switch (e.key.toLowerCase()) {
+    switch (e.key) {
       case "l":
+      case "L":
         e.preventDefault();
         toggleLogPanel();
-        break;
+        return;
       case "j":
+      case "J":
         e.preventDefault();
         toggleJobsPanel();
-        break;
+        return;
+      case ",":
+        e.preventDefault();
+        setPreferencesOpen((v) => !v);
+        return;
+      case "/":
+        e.preventDefault();
+        setShortcutsOpen((v) => !v);
+        return;
     }
   }, [toggleLogPanel, toggleJobsPanel]);
 
@@ -154,6 +220,45 @@ export function MenuBar() {
     window.addEventListener("keydown", handleViewKeyDown);
     return () => window.removeEventListener("keydown", handleViewKeyDown);
   }, [handleViewKeyDown]);
+
+  // §12 Reproducibility: manifest 파일 picker (1-A) — D: openDialog 자체 실패도 catch
+  async function handleReplay() {
+    try {
+      const selected = await openDialog({
+        filters: [{ name: "Manifest", extensions: ["json"] }],
+      });
+      if (!selected) return;
+      const path = typeof selected === "string" ? selected : selected[0];
+      if (!path) return;
+      try {
+        const manifest = await loadManifestFromFile(path);
+        setReRunManifest(manifest);
+      } catch (err) {
+        toast.error(t("menuBar.run.replayError", { message: err instanceof Error ? err.message : String(err) }));
+      }
+    } catch (err) {
+      toast.error(t("menuBar.run.replayError", { message: err instanceof Error ? err.message : String(err) }));
+    }
+  }
+
+  // §1-B: Check sidecar health — A: interface 모듈 스코프 이동 완료, 토스트 3-way 분기
+  async function handleCheckSidecarHealth() {
+    try {
+      const health = await invoke<SidecarHealth>("check_sidecar_health", { kind: "kuro" });
+      if (health.alive && health.responsive) {
+        toast.success(t("menuBar.run.sidecarHealthAlive", { version: health.version ?? "unknown", uptime: health.uptime_secs ?? 0 }));
+      } else if (health.alive && !health.responsive) {
+        toast.warning(t("menuBar.run.sidecarHealthUnresponsive", { message: health.message }));
+      } else {
+        toast.warning(t("menuBar.run.sidecarHealthDead"));
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  // Theme hook (1-D)
+  const { theme, setTheme } = useTheme();
 
   // §14 Migration dialog state
   const [migrateDialog, setMigrateDialog] = useState<MigrateDialogState>(MIGRATE_DIALOG_CLOSED);
@@ -235,10 +340,10 @@ export function MenuBar() {
 
   const menus = (
     <>
-      {/* File 메뉴 */}
+      {/* App 메뉴 — mockup v5: 첫 메뉴는 앱명(kuro), 굵게. KURO 탭에서는 "kuro"만 노출. */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className={TRIGGER_CLS}>{t("menuBar.fileMenuTrigger")}</button>
+          <button className={`${TRIGGER_CLS} font-bold`}>{t("menuBar.appMenu.kuro")}</button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
           <DropdownMenuItem onClick={handleOpenSequence}>
@@ -262,6 +367,28 @@ export function MenuBar() {
           >
             {t("file.restartSidecar")}
           </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => { void getCurrentWindow().close(); }}>
+            <span className="flex-1">{t("menuBar.appMenu.closeWindow")}</span>
+            <kbd className="ml-4 text-caption text-muted-foreground">{MOD_KEY}W</kbd>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => { void getCurrentWindow().destroy(); }}>
+            <span className="flex-1">{t("menuBar.appMenu.quit")}</span>
+            <kbd className="ml-4 text-caption text-muted-foreground">{MOD_KEY}Q</kbd>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* Edit 메뉴 — Preferences 진입점 */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button className={TRIGGER_CLS}>{t("menuBar.edit.title")}</button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start">
+          <DropdownMenuItem onClick={() => setPreferencesOpen(true)}>
+            <span className="flex-1">{t("menuBar.edit.preferences")}</span>
+            <kbd className="ml-4 text-caption text-muted-foreground">{MOD_KEY},</kbd>
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -283,6 +410,85 @@ export function MenuBar() {
             </span>
             <kbd className="ml-4 text-caption text-muted-foreground">{MOD_KEY}J</kbd>
           </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          {/* 1-C: Language 서브메뉴 */}
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+              {t("menuBar.view.language")}
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent>
+              {SUPPORTED_LOCALES.map((code) => (
+                <DropdownMenuItem
+                  key={code}
+                  onClick={() => {
+                    setLocale(code);
+                  }}
+                  aria-current={i18next.language === code ? "true" : undefined}
+                >
+                  <span className="flex-1">
+                    {i18next.language === code ? "✓ " : ""}
+                    {LOCALE_NATIVE_NAMES[code]}
+                  </span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+          {/* 1-D: Theme 서브메뉴 */}
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+              {t("menuBar.view.theme.title")}
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent>
+              {THEME_ITEMS.map(({ value, labelKey }) => (
+                <DropdownMenuItem
+                  key={value}
+                  onClick={() => setTheme(value)}
+                  aria-current={theme === value ? "true" : undefined}
+                >
+                  <span className="flex-1">
+                    {theme === value ? "✓ " : ""}
+                    {t(labelKey)}
+                  </span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+          <DropdownMenuSeparator />
+          {/* 1-E: Full screen */}
+          <DropdownMenuItem
+            onClick={() => {
+              void getCurrentWindow().isFullscreen().then((full) =>
+                getCurrentWindow().setFullscreen(!full)
+              );
+            }}
+          >
+            <span className="flex-1">{t("menuBar.view.fullscreen")}</span>
+            <kbd className="ml-4 text-caption text-muted-foreground">F11</kbd>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* Run 메뉴 — Diagnostics + Replay + Check sidecar */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button className={TRIGGER_CLS}>{t("menuBar.run.title")}</button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start">
+          <DropdownMenuItem
+            onClick={() => { void handleGenerateDiagnostics(); }}
+            disabled={diagnosticsGenerating}
+          >
+            {diagnosticsGenerating ? t("about.generating") : t("menuBar.run.diagnostics")}
+          </DropdownMenuItem>
+          {/* 1-A: Replay saved run */}
+          <DropdownMenuItem onClick={() => { void handleReplay(); }}>
+            {t("menuBar.run.replay")}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          {/* 1-B: Check sidecar health (was incorrectly wired to handleCheckForUpdates) */}
+          <DropdownMenuItem onClick={() => { void handleCheckSidecarHealth(); }}>
+            {t("menuBar.run.checkSidecar")}
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -299,8 +505,28 @@ export function MenuBar() {
           <DropdownMenuItem onClick={() => window.dispatchEvent(new CustomEvent("kuma:show-onboarding"))}>
             {t("help.showOnboarding")}
           </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => setShortcutsOpen(true)}>
+            <span className="flex-1">{t("shortcutsDialog.title")}</span>
+            <kbd className="ml-4 text-caption text-muted-foreground">{MOD_KEY}/</kbd>
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setCrashLogOpen(true)}>
             {t("help.viewCrashLog")}
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => { void handleCheckForUpdates(); setAboutOpen(true); }}
+            disabled={updateChecking}
+          >
+            {t("about.checkForUpdates")}
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => {
+              void import("@tauri-apps/plugin-shell").then((m) =>
+                m.open("https://github.com/gyuminlee-repo/KURO/issues"),
+              );
+            }}
+          >
+            {t("menuBar.help.reportIssue")}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => setAboutOpen(true)}>
@@ -320,6 +546,10 @@ export function MenuBar() {
       />
 
       <CrashLogDialog open={crashLogOpen} onOpenChange={setCrashLogOpen} />
+
+      <SettingsDialog open={preferencesOpen} onOpenChange={setPreferencesOpen} scope="kuro" />
+
+      <KeyboardShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} scope="kuro" />
 
       <Dialog
         open={aboutOpen}
@@ -432,25 +662,16 @@ export function MenuBar() {
             </p>
           </div>
 
-          {/* §8 A11y: Keyboard shortcuts table */}
+          {/* §8 A11y: Keyboard shortcuts — 독립 dialog 로 이동 */}
           <div className="flex flex-col gap-1.5">
             <p className="text-sm font-semibold text-foreground">{t("settings.keyboardShortcuts")}</p>
-            <table className="w-full text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="py-0.5 pr-3 text-left font-semibold text-muted-foreground">{t("settings.shortcutKeys")}</th>
-                  <th className="py-0.5 text-left font-semibold text-muted-foreground">{t("settings.shortcutAction")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {kuroShortcuts.map((s) => (
-                  <tr key={s.keys} className="border-b border-border/40 last:border-0">
-                    <td className="py-0.5 pr-3 font-mono text-foreground">{s.keys}</td>
-                    <td className="py-0.5 text-muted-foreground">{s.action}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => { setAboutOpen(false); setShortcutsOpen(true); }}
+            >
+              {t("shortcutsDialog.title")}
+            </Button>
           </div>
 
           {/* Offline mode toggle */}
