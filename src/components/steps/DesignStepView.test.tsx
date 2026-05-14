@@ -7,13 +7,31 @@
  * G7: design.submit에서 UniprotSearch 직접 마운트 없음 (DiversitySections 경유).
  */
 
-import { render, fireEvent } from "@testing-library/react";
+import { render, fireEvent, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
+
+const mocks = vi.hoisted(() => ({
+  runDesign: vi.fn(),
+}));
 
 vi.mock("@/lib/ipc-kuro", () => ({
   sendRequest: vi.fn(),
   setProgressHandler: vi.fn(),
   cancelAndRespawn: vi.fn(),
+}));
+
+vi.mock("@/hooks/useRunDesign", () => ({
+  useRunDesign: () => ({
+    run: mocks.runDesign,
+    isDesigning: false,
+    missingFields: [],
+    hasBlockingIssue: false,
+    sizeWarning: null,
+    setSizeWarning: vi.fn(),
+    preflightResult: null,
+    setPreflightResult: vi.fn(),
+  }),
 }));
 
 vi.mock("@/components/panels/InputPanel/SequenceInput", () => ({
@@ -33,6 +51,7 @@ vi.mock("@/components/panels/ParameterPanel", () => ({
 }));
 vi.mock("./RunDesignAction", () => ({
   RunDesignAction: () => <div data-testid="run-design-action" />,
+  RunDesignActionView: () => <div data-testid="run-design-action" />,
 }));
 
 import { DesignStepView } from "./DesignStepView";
@@ -41,6 +60,7 @@ import { useAppStore } from "@/store/appStore";
 describe("DesignStepView (Phase G)", () => {
   beforeEach(() => {
     useAppStore.setState({ currentSubStep: "design.load" });
+    mocks.runDesign.mockReset();
   });
 
   it("design.load mounts WizardContainer + SequenceInput", () => {
@@ -72,6 +92,13 @@ describe("DesignStepView (Phase G)", () => {
     const { getByTestId } = render(<DesignStepView />);
     expect(getByTestId("diversity-options")).toBeTruthy();
     expect(getByTestId("run-design-action")).toBeTruthy();
+  });
+
+  it("design.submit footer Run Design button calls shared run action", async () => {
+    useAppStore.setState({ currentSubStep: "design.submit" });
+    render(<DesignStepView />);
+    await userEvent.setup().click(screen.getByRole("button", { name: "Run Design" }));
+    expect(mocks.runDesign).toHaveBeenCalledOnce();
   });
 
   it("design.submit does NOT mount UniprotSearch directly (Phase G #7 — via DiversitySections)", () => {

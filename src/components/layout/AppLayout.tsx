@@ -104,7 +104,9 @@ export function AppLayout() {
 
   useEffect(() => {
     if (sidecarStatus === "ready") {
-      void loadPolymerases();
+      void loadPolymerases().catch((err) => {
+        console.warn("[AppLayout] loadPolymerases failed:", err);
+      });
     }
   }, [loadPolymerases, sidecarStatus]);
 

@@ -1,0 +1,84 @@
+site_name: KUMA — KURO & MAME User Guide
+site_url: https://gyuminlee-repo.github.io/kuma/
+repo_url: https://github.com/gyuminlee-repo/kuma
+repo_name: gyuminlee-repo/kuma
+docs_dir: docs
+
+exclude_docs: |
+  README.md
+  README.ko.md
+  debug-findings.md
+  design/
+  en/
+  ko/
+  screenshots/
+  standards/
+  user-guide-screenshots/
+
+
+theme:
+  name: material
+  language: ko
+  palette:
+    - scheme: default
+      primary: indigo
+      toggle:
+        icon: material/weather-night
+        name: 다크 모드
+    - scheme: slate
+      primary: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: 라이트 모드
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - toc.integrate
+    - content.code.copy
+
+nav:
+  - 시작하기:
+    - index.md
+    - 설치: getting-started/installation.md
+    - 프로젝트 구조: getting-started/project-structure.md
+    - 사이드카 바이너리: getting-started/sidecar-binaries.md
+  - KURO:
+    - 개요: kuro/index.md
+    - 1. Sequence Load: kuro/01-load.md
+    - 2. Mutation Input: kuro/02-mutation.md
+    - 3. Parameters: kuro/03-params.md
+    - 4. Submit Design: kuro/04-submit.md
+    - 5. Output Summary: kuro/05-output.md
+    - 6. Export: kuro/06-export.md
+  - MAME:
+    - 개요: mame/index.md
+    - 1. Run Setup: mame/01-setup.md
+    - 2. Sequencing Review: mame/02-review.md
+    - 3. Activity Data: mame/03-activity.md
+  - 입력 파일:
+    - 서열: inputs/sequence.md
+    - 변이 입력: inputs/mutations.md
+    - Expected mutations: inputs/expected-mutations.md
+    - Barcodes: inputs/barcodes.md
+  - 트러블슈팅:
+    - 개요: troubleshooting/index.md
+    - Sidecar Method not found: troubleshooting/sidecar-method-not-found.md
+    - 빌드 버전 표기: troubleshooting/build-version.md
+    - Sidebar Navigation: troubleshooting/sidebar-navigation.md
+  - 참고:
+    - 단축키: reference/keybindings.md
+    - 설정: reference/settings.md
+    - Workspace 포맷: reference/workspace-format.md
+    - Changelog: reference/changelog.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.snippets
+  - tables
+  - toc:
+      permalink: true

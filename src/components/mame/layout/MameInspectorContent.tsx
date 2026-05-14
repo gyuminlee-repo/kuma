@@ -98,7 +98,7 @@ function QcInputsInspector() {
       <KVRow label={t("mame.qc.inputs.inspectorEstRetention")} value={estRetention} />
       <KVRow label={t("mame.qc.inputs.inspectorEstPass")} value={totalWells > 0 ? `${passCount}/${totalWells}` : "—"} />
       <KVRow label={t("mame.qc.inputs.inspectorMinDepth")} value={`${minFilteredDepth} reads`} />
-      <KVRow label={t("mame.qc.inputs.inspectorMinIdentity")} value={`${minFileSizeKb} KB`} />
+      <KVRow label={t("mame.parameters.legacyKbCutoff")} value={`${minFileSizeKb} KB`} />
     </div>
   );
 }

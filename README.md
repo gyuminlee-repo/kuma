@@ -2,6 +2,8 @@
 
 [한국어](README.ko.md) | **English**
 
+📖 User guide: https://gyuminlee-repo.github.io/kuma/ — built with MkDocs (Material).
+
 `kuma` packages two subtools into one Tauri desktop app:
 
 - **Kuro** — *Kernel for Upstream Recombination Oligodesign.* Batch SDM primer design from Gibson Assembly templates.
@@ -25,7 +27,7 @@ Given a mutation list (plain text / EVOLVEpro CSV / MULTI-evolve CSV) and a temp
 - **Batch mutation parsing**: Mutation list in `Q232A` format → automatic codon position calculation + WT codon validation
 - **Codon strategy selection**: Choose between Min. changes (fewest base changes from WT) or Optimal (E. coli-optimized codon)
 - **Overlap upstream design**: Overlap region is placed immediately upstream of the mutation codon (EVOLVEpro convention)
-- **Polymerase profile selector**: Seven built-in profiles (Benchling, Taq, Phusion, Q5, KOD, DreamTaq, TAKARA_GXL), each with Tm method, salt concentration, DNA concentration, and GC range calibrated to the manufacturer manual. Custom profiles can be created via the Custom Polymerase dialog and are persisted at `~/.kuma/kuro/custom_polymerases.json`. Selecting a profile immediately updates Tm targets and GC range in the UI
+- **Polymerase profile selector**: Eight built-in profiles (Benchling, Taq, Phusion, Q5, Q5 SDM, KOD, DreamTaq, TAKARA_GXL), each with Tm method, salt concentration, DNA concentration, and GC range calibrated to the manufacturer manual. Custom profiles can be created via the Custom Polymerase dialog and are persisted at `~/.kuma/kuro/custom_polymerases.json`. Selecting a profile immediately updates Tm targets and GC range in the UI
 - **Tm calculation**: SantaLucia 1998 nearest-neighbor model; salt/DNA/divalent conditions vary per polymerase profile (e.g. Phusion HF 222 mM monovalent, Q5 150 mM monovalent + 2000 nM DNA). Default Tm targets: Fwd 62°C, Rev 58°C, Overlap 42°C — adjustable in Advanced Options
 - **Progressive Tm tolerance**: Starts at ±0.5°C for Fwd/Rev independently, expanding by ±0.5°C per step (up to ±3.0°C)
 - **GC% range**: Default 40-60% (adjustable in Advanced Options). Primers outside range receive a penalty

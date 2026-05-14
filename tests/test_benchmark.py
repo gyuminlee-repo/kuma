@@ -482,4 +482,4 @@ class TestAutoRelaxTolMax:
         from kuma_core.kuro.sdm_engine import design_single_sdm
         sig = inspect.signature(design_single_sdm)
         assert "tol_max" in sig.parameters
-        assert sig.parameters["tol_max"].default == 3.0
+        assert sig.parameters["tol_max"].default == 4.0

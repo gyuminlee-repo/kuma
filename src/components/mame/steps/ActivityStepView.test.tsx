@@ -45,9 +45,10 @@ describe("ActivityStepView", () => {
     expect(getByTestId("ingest-section")).toBeTruthy();
   });
 
-  it("activity.mergeExport mounts MergeExportSection", () => {
+  it("activity.mergeExport mounts MergeSection and ExportSection", () => {
     useMameAppStore.setState({ currentMameSubStep: "activity.mergeExport" });
     const { getByTestId } = render(<ActivityStepView />);
-    expect(getByTestId("merge-export-section")).toBeTruthy();
+    expect(getByTestId("merge-section")).toBeTruthy();
+    expect(getByTestId("export-section")).toBeTruthy();
   });
 });

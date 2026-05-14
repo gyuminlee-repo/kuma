@@ -12,6 +12,7 @@ import { useTranslation } from "react-i18next";
 import { WorkflowRail, type WorkflowStep } from "@/components/widgets/WorkflowRail";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import type { MameSubStepId } from "@/store/mame/slices/mameSubSteps";
+import type { MamePhase } from "@/store/mame/slices/phaseSlice";
 
 const ALL_SUBSTEPS: MameSubStepId[] = [
   "setup.files",
@@ -80,9 +81,16 @@ function computeProgress(activeIndex: number): number {
   return Math.round(((activeIndex + 1) / STEP_TOTAL) * 100);
 }
 
+function phaseOfSubStep(id: MameSubStepId): MamePhase {
+  if (id.startsWith("setup.")) return "setup";
+  if (id.startsWith("analyze.")) return "analyze";
+  return "activity";
+}
+
 export function MameWorkflowRail() {
   const { t } = useTranslation();
   const currentSubStep = useMameAppStore((s) => s.currentMameSubStep);
+  const setMamePhase = useMameAppStore((s) => s.setMamePhase);
   const setMameSubStep = useMameAppStore((s) => s.setMameSubStep);
 
   const activeIndex = ALL_SUBSTEPS.indexOf(currentSubStep);
@@ -128,7 +136,9 @@ export function MameWorkflowRail() {
       steps={steps}
       onStepClick={(renderedIdx) => {
         const targetId = renderedTargets[renderedIdx];
-        if (targetId) setMameSubStep(targetId);
+        if (!targetId) return;
+        setMamePhase(phaseOfSubStep(targetId));
+        setMameSubStep(targetId);
       }}
       sideCard={
         activeIndex >= 0

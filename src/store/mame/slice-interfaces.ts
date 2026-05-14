@@ -121,7 +121,7 @@ export interface AnalysisSlice {
   loadPlateData: () => Promise<void>;
   loadRunHealth: () => Promise<void>;
   clearResults: () => void;
-  loadSampleData: () => void;
+  loadSampleData: () => Promise<void>;
   resetAnalysis: () => void;
 }
 

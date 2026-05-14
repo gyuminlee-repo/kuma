@@ -122,7 +122,7 @@ describe("ExportFormatSelector — Export All form", () => {
       }),
     });
     render(<ExportFormatSelector />);
-    expect(screen.getByText(/50/)).toBeInTheDocument();
+    expect(screen.getByText("50 wells")).toBeInTheDocument();
   });
 
   it("disables Export button and shows overflow error when well count > 96", () => {
