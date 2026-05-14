@@ -1909,6 +1909,7 @@
       "kvFwd": "Amorce directe",
       "kvRev": "Amorce inverse",
       "kvTm": "Tm",
+      "kvPlate": "Plate",
       "kvStatus": "Statut",
       "filterFailed": "Échecs uniquement",
       "drawerDesignReport": "Rapport de conception",

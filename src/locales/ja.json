@@ -1909,6 +1909,7 @@
       "kvFwd": "フォワードプライマー",
       "kvRev": "リバースプライマー",
       "kvTm": "Tm",
+      "kvPlate": "Plate",
       "kvStatus": "ステータス",
       "filterFailed": "失敗のみ",
       "drawerDesignReport": "設計レポート",

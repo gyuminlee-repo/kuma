@@ -1909,6 +1909,7 @@
       "kvFwd": "Прямой праймер",
       "kvRev": "Обратный праймер",
       "kvTm": "Tm",
+      "kvPlate": "Plate",
       "kvStatus": "Статус",
       "filterFailed": "Только неудачные",
       "drawerDesignReport": "Отчет о дизайне",

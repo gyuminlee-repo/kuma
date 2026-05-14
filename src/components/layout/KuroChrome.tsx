@@ -334,6 +334,12 @@ export function KuroDrawerStrip() {
  */
 export function KuroInspector() {
   const currentSubStep = useAppStore((s) => s.currentSubStep);
+  const { designResults, plateMappings } = useAppStore(
+    useShallow((s) => ({
+      designResults: s.designResults,
+      plateMappings: s.plateMappings,
+    })),
+  );
 
   switch (currentSubStep) {
     case "design.load":
@@ -345,7 +351,12 @@ export function KuroInspector() {
     case "design.submit":
       return <CurrentMutationInspector />;
     case "output.summary":
-      return <PrimerInspector />;
+      return (
+        <PrimerInspector
+          selected={designResults[0] ?? null}
+          plateMappings={plateMappings}
+        />
+      );
     case "export.all":
       return <ExportInspector />;
     default:

@@ -1909,6 +1909,7 @@
       "kvFwd": "正向引子",
       "kvRev": "反向引子",
       "kvTm": "Tm",
+      "kvPlate": "Plate",
       "kvStatus": "狀態",
       "filterFailed": "僅失敗",
       "drawerDesignReport": "設計報告",

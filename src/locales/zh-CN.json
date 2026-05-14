@@ -1909,6 +1909,7 @@
       "kvFwd": "正向引物",
       "kvRev": "反向引物",
       "kvTm": "Tm",
+      "kvPlate": "Plate",
       "kvStatus": "状态",
       "filterFailed": "仅失败",
       "drawerDesignReport": "设计报告",

@@ -1909,6 +1909,7 @@
       "kvFwd": "Cebador directo",
       "kvRev": "Cebador inverso",
       "kvTm": "Tm",
+      "kvPlate": "Plate",
       "kvStatus": "Estado",
       "filterFailed": "Solo fallidos",
       "drawerDesignReport": "Informe de diseño",

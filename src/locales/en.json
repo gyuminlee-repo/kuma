@@ -1860,6 +1860,7 @@
       "kvFwd": "Forward primer",
       "kvRev": "Reverse primer",
       "kvTm": "Tm",
+      "kvPlate": "Plate",
       "kvStatus": "Status",
       "filterFailed": "Failed only",
       "drawerDesignReport": "Design report",

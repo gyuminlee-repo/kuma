@@ -1909,6 +1909,7 @@
       "kvFwd": "Forward-Primer",
       "kvRev": "Reverse-Primer",
       "kvTm": "Tm",
+      "kvPlate": "Plate",
       "kvStatus": "Status",
       "filterFailed": "Nur Fehlgeschlagene",
       "drawerDesignReport": "Entwurfsbericht",

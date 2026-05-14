@@ -74,7 +74,7 @@ export function PrimerInspector({ selected, plateMappings = [] }: PrimerInspecto
             v: truncateSeq(selected.reverse_seq),
           },
           {
-            k: "Plate",
+            k: t("kuro.output.kvPlate"),
             v: wellValue,
           },
           {

@@ -1860,6 +1860,7 @@
       "kvFwd": "정방향 프라이머",
       "kvRev": "역방향 프라이머",
       "kvTm": "Tm",
+      "kvPlate": "Plate",
       "kvStatus": "상태",
       "filterFailed": "실패만",
       "drawerDesignReport": "설계 보고서",
