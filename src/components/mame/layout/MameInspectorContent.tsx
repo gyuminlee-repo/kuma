@@ -206,11 +206,20 @@ function ActivityMergeExportInspector() {
   );
 }
 
+/** Task #12 — analyze.review 통합 Inspector: 선택된 well 있으면 Plate 인스펙터,
+ * 없으면 Verdict 인스펙터로 fallback. */
+function QcReviewInspector() {
+  const selectedWell = useMameAppStore((s) => s.selectedWell);
+  return selectedWell ? <QcPlateInspector /> : <QcVerdictInspector />;
+}
+
 /** 화면별 Inspector 디스패처 */
 const INSPECTOR_MAP: Record<MameSubStepId, React.ComponentType> = {
   "setup.files": SetupFilesInspector,
   "setup.design": SetupDesignInspector,
   "analyze.inputs": QcInputsInspector,
+  "analyze.review": QcReviewInspector,
+  // Legacy ids (redirect 진입 시 표시)
   "analyze.verdict": QcVerdictInspector,
   "analyze.plate": QcPlateInspector,
   "activity.ingest": ActivityIngestInspector,
@@ -243,13 +252,17 @@ export function useMameInspectorMeta(): { title: string; subtitle: string } {
       titleKey: "mame.qc.inputs.inspectorTitle",
       subtitleKey: "mame.qc.inputs.inspectorSubtitle",
     },
+    "analyze.review": {
+      titleKey: "mame.qc.review.inspectorTitle",
+      subtitleKey: "mame.qc.review.inspectorSubtitle",
+    },
     "analyze.verdict": {
-      titleKey: "mame.qc.verdict.inspectorTitle",
-      subtitleKey: "mame.qc.verdict.inspectorSubtitle",
+      titleKey: "mame.qc.review.inspectorTitle",
+      subtitleKey: "mame.qc.review.inspectorSubtitle",
     },
     "analyze.plate": {
-      titleKey: "mame.qc.plate.inspectorTitle",
-      subtitleKey: "mame.qc.plate.inspectorSubtitle",
+      titleKey: "mame.qc.review.inspectorTitle",
+      subtitleKey: "mame.qc.review.inspectorSubtitle",
     },
     "activity.ingest": {
       titleKey: "mame.activity.ingest.inspectorTitle",

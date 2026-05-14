@@ -456,6 +456,7 @@
       "activityTab": "3. 활성도 데이터",
       "verdictTableTitle": "판정 테이블",
       "platePlanTitle": "Plate 계획",
+      "efficiencyChartTitle": "Plate별 verdict 분포",
       "runHealthTitle": "Run 상태",
       "subSteps": {
         "setup": {
@@ -673,6 +674,16 @@
         "clusterAlertTitle": "클러스터 실패 감지",
         "clusterAlertDesc": "{{wells}} — 인접 well이 동시에 실패했습니다. 피펫팅 문제가 의심됩니다.",
         "clusterAlertAriaLabel": "플레이트 클러스터 실패 경고"
+      },
+      "review": {
+        "contextTitle": "시퀀싱 QC — 검토",
+        "contextSubtitle": "판정 테이블, 플레이트 계획, plate별 verdict 분포를 한 화면에서 검토합니다.",
+        "drawerLeft": "요약",
+        "drawerCenter": "검토 로그",
+        "drawerRight": "다음",
+        "drawerRightDesc": "활성 데이터로 진행",
+        "inspectorTitle": "검토 Inspector",
+        "inspectorSubtitle": "well 선택 시 well 정보, 미선택 시 판정 요약"
       }
     },
     "inspector": {
@@ -1851,6 +1862,7 @@
       },
       "analyze": {
         "inputs": "입력",
+        "review": "검토 (판정 + 플레이트)",
         "verdict": "판정 결과",
         "plate": "플레이트 계획",
         "health": "런 품질"
@@ -1918,6 +1930,7 @@
       },
       "analyze": {
         "inputs": "입력 디렉토리와 분석 매개변수를 설정한 후 실행합니다.",
+        "review": "판정 테이블, 플레이트 레이아웃, plate별 verdict 분포를 한 화면에서 검토합니다.",
         "plate": "바코드 및 변이체 할당과 플레이트별 상태 지표가 포함된 플레이트 레이아웃을 검사합니다.",
         "verdict": "웰별 합격/불합격 판정, 요약 통계 및 시퀀싱 처리량 지표를 검토합니다."
       },

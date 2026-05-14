@@ -153,18 +153,19 @@ export function useMameDrawerProps(): SlotProps {
       },
     },
 
-    "analyze.verdict": {
+    "analyze.review": {
       left: {
-        title: t("mame.qc.verdict.drawerLeft"),
+        title: t("mame.qc.review.drawerLeft"),
         children: (
           <div className="space-y-0.5">
             <StatLine label="Total" value={summary?.total ?? verdicts.length} />
             <StatLine label="PASS" value={summary?.pass_count ?? 0} />
+            <StatLine label="Selected" value={selectedCount} />
           </div>
         ),
       },
       center: {
-        title: t("mame.qc.verdict.drawerCenter"),
+        title: t("mame.qc.review.drawerCenter"),
         children: (
           <div className="space-y-0.5">
             <LogLine
@@ -174,14 +175,27 @@ export function useMameDrawerProps(): SlotProps {
                   : "[WAIT] No results yet"
               }
             />
-            <LogLine text="[INFO] Consensus called per barcode" />
+            <LogLine
+              text={
+                selectedWell
+                  ? `[SEL] ${selectedWell.well}: ${selectedWell.verdict}`
+                  : "[INFO] Click a well to inspect"
+              }
+            />
           </div>
         ),
       },
       right: {
-        title: t("mame.qc.verdict.drawerRight"),
-        children: <LogLine text={t("mame.qc.verdict.drawerRightDesc")} />,
+        title: t("mame.qc.review.drawerRight"),
+        children: <LogLine text={t("mame.qc.review.drawerRightDesc")} />,
       },
+    },
+
+    // Legacy ids retained so MAP lookup never returns undefined during redirect.
+    "analyze.verdict": {
+      left: { title: t("mame.qc.review.drawerLeft"), children: null },
+      center: { title: t("mame.qc.review.drawerCenter"), children: null },
+      right: { title: t("mame.qc.review.drawerRight"), children: null },
     },
 
     "analyze.plate": {

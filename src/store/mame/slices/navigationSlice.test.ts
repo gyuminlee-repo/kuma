@@ -65,8 +65,7 @@ describe("MAME_SUBSTEP_ORDER", () => {
     ]);
     expect(MAME_SUBSTEP_ORDER.analyze).toEqual([
       "analyze.inputs",
-      "analyze.verdict",
-      "analyze.plate",
+      "analyze.review",
     ]);
     expect(MAME_SUBSTEP_ORDER.activity).toEqual([
       "activity.ingest",
