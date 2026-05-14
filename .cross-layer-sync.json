@@ -534,10 +534,9 @@
       "symbols": [
         "MameSubStepId",
         "MAME_SUBSTEP_ORDER",
-        "mameSubSteps",
-        "mameDescriptions"
+        "mameSubSteps"
       ],
-      "note": "mame sub-step union ↔ i18n mame.subSteps/phaseE.mameDescriptions 키. setMamePhase에서 sub-step 자동 리셋이라 phase 추가 시 sub-step + i18n 동시 추가",
+      "note": "mame sub-step union ↔ i18n phaseE.descriptions. setMamePhase에서 sub-step 자동 리셋이라 phase 추가 시 sub-step + i18n 동시 추가",
       "severity": "blocking"
     },
     {
