@@ -24,6 +24,7 @@ import { MutationInput } from "@/components/panels/InputPanel/MutationInput";
 import { ParameterPanel } from "@/components/panels/ParameterPanel";
 import { RunDesignAction } from "./RunDesignAction";
 import { WizardContainer } from "./WizardContainer";
+import { DesignSummaryCard } from "./DesignSummaryCard";
 import { KURO_STEP_INDEX, TOTAL_KURO_STEPS } from "./constants";
 import { validateForNext, type KuroSubStepId } from "@/store/validation";
 
@@ -91,6 +92,8 @@ export function DesignStepView() {
           onPrev={() => goToPrevStep()}
           nextLabelKey="phaseC.run.primary"
         >
+          {/* Phase B6 (#1,#15): 직전 step 변경값을 카드로 한눈에 — stale 인상 제거 */}
+          <DesignSummaryCard />
           {/* UniprotSearch は DiversityOptions → DiversitySections 内で自動マウント (Phase G #7) */}
           <DiversityOptions />
           <RunDesignAction />

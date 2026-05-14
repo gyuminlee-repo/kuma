@@ -1873,6 +1873,29 @@
       "back": "Back",
       "next": "Next"
     },
+    "summary": {
+      "heading": "Design summary",
+      "sequence": {
+        "label": "Sequence",
+        "empty": "Not loaded",
+        "unnamed": "(unnamed)"
+      },
+      "mutation": {
+        "label": "Mutation source"
+      },
+      "selectionMode": {
+        "label": "Selection mode",
+        "allCombinations": "All combinations",
+        "pipeline": "Pipeline (failover)",
+        "topN": "Top-N only"
+      },
+      "variants": {
+        "label": "Variants"
+      },
+      "polymerase": {
+        "label": "Polymerase"
+      }
+    },
     "descriptions": {
       "design": {
         "load": "Upload an EVOLVEpro CSV or paste a protein sequence.",

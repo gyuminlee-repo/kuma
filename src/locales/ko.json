@@ -1873,6 +1873,29 @@
       "back": "이전",
       "next": "다음"
     },
+    "summary": {
+      "heading": "현재 입력 요약",
+      "sequence": {
+        "label": "서열",
+        "empty": "미로딩",
+        "unnamed": "(이름 없음)"
+      },
+      "mutation": {
+        "label": "변이 입력"
+      },
+      "selectionMode": {
+        "label": "선택 모드",
+        "allCombinations": "모든 조합",
+        "pipeline": "Pipeline (failover)",
+        "topN": "Top-N"
+      },
+      "variants": {
+        "label": "변이 개수"
+      },
+      "polymerase": {
+        "label": "Polymerase"
+      }
+    },
     "descriptions": {
       "design": {
         "load": "EVOLVEpro CSV를 업로드하거나 단백질 시퀀스를 붙여넣으세요.",
