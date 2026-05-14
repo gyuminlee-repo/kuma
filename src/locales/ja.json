@@ -1773,5 +1773,68 @@
       "run": "実行",
       "help": "ヘルプ"
     }
+  },
+  "kuro": {
+    "load": {
+      "inspectorTitle": "ソースインスペクター",
+      "artifactLabel": "MAMEアーティファクト",
+      "intentCallout": "設計意図：MAMEエクスポートCSVをバリアントソースとして読み込みます。次のステップに進む前に列マッピングを確認してください。",
+      "drawerRecent": "最近のアーティファクト",
+      "drawerAutosave": "自動保存",
+      "sideCardBody": "MAMEラウンド3エクスポートが検出されました。CSVソースとして使用するか手動で置き換えてください。"
+    },
+    "nominate": {
+      "inspectorTitle": "バリアントインスペクター",
+      "kvActivity": "活性",
+      "kvReads": "リード",
+      "kvDomain": "ドメイン",
+      "kvMameLink": "MAMEソース",
+      "calloutText": "バリアント行を選択して詳細を確認します。ブロックされたバリアントはプライマー設計から除外されます。",
+      "drawerActions": "アクション",
+      "drawerAutosave": "自動保存",
+      "sideCardBody": "スコア付きバリアントを確認してください。パラメーターに進む前に低信頼度のヒットをブロックしてください。"
+    },
+    "params": {
+      "inspectorTitle": "パラメーターインスペクター",
+      "metricPrimers": "プライマー",
+      "metricPlates": "プレート",
+      "metricWarn": "警告",
+      "metricRuntime": "実行時間",
+      "calloutText": "パラメーター変更時に予想値がリアルタイムで更新されます。実行時間の見積もりは近似値です。",
+      "drawerEstimate": "見積もり",
+      "drawerShortcut": "ショートカット",
+      "sideCardBody": "送信前に警告を最小化するためTmターゲットとオーバーラップを調整してください。"
+    },
+    "submit": {
+      "inspectorTitle": "現在の変異",
+      "kvMutation": "変異",
+      "kvProgress": "進捗",
+      "kvPartialSave": "部分保存",
+      "contractCallout": "データ契約：キャンセル時にサイドカーが部分JONLを書き込みます。ブラウザタブが閉じた場合は自動保存から復元してください。",
+      "drawerJobQueue": "ジョブキュー",
+      "drawerRecovery": "リカバリー",
+      "sideCardBody": "進捗を隠さないでください。キャンセル、ETA、部分保存、デッドロック回復パスが含まれている必要があります。"
+    },
+    "output": {
+      "inspectorTitle": "プライマーインスペクター",
+      "kvFwd": "フォワードプライマー",
+      "kvRev": "リバースプライマー",
+      "kvTm": "Tm",
+      "kvStatus": "ステータス",
+      "filterFailed": "失敗のみ",
+      "drawerDesignReport": "設計レポート",
+      "drawerNext": "次へ",
+      "sideCardBody": "プライマーペアを確認してください。エクスポート前にプレートマップでカバレッジのギャップを確認してください。"
+    },
+    "export": {
+      "inspectorTitle": "エクスポートインスペクター",
+      "kvDestination": "宛先",
+      "kvPrefills": "事前入力",
+      "kvStaleness": "鮮度",
+      "handoffCallout": "実装：MAMEは次のラウンドでこのエクスポートをKUROアーティファクトソースとして読み込みます。",
+      "drawerExportQueue": "エクスポートキュー",
+      "drawerNext": "次へ",
+      "sideCardBody": "エクスポートターゲットを確認してください。MAMEハンドオフバンドルが自動的に生成されます。"
+    }
   }
 }

@@ -1773,5 +1773,68 @@
       "run": "运行",
       "help": "帮助"
     }
+  },
+  "kuro": {
+    "load": {
+      "inspectorTitle": "源检查器",
+      "artifactLabel": "MAME制品",
+      "intentCallout": "设计意图：将MAME导出CSV作为变体源加载。在推进之前验证列映射。",
+      "drawerRecent": "最近制品",
+      "drawerAutosave": "自动保存",
+      "sideCardBody": "检测到MAME第3轮导出文件。将其用作CSV源或手动替换。"
+    },
+    "nominate": {
+      "inspectorTitle": "变体检查器",
+      "kvActivity": "活性",
+      "kvReads": "读取数",
+      "kvDomain": "域",
+      "kvMameLink": "MAME源",
+      "calloutText": "选择变体行以检查详细信息。被阻止的变体将从引物设计中排除。",
+      "drawerActions": "操作",
+      "drawerAutosave": "自动保存",
+      "sideCardBody": "检查评分变体。在进入参数之前阻止低置信度命中。"
+    },
+    "params": {
+      "inspectorTitle": "参数检查器",
+      "metricPrimers": "引物",
+      "metricPlates": "板",
+      "metricWarn": "警告",
+      "metricRuntime": "运行时间",
+      "calloutText": "参数更改时预期计数实时更新。运行时间估计是近似值。",
+      "drawerEstimate": "估计",
+      "drawerShortcut": "快捷键",
+      "sideCardBody": "调整Tm目标和重叠以在提交前最小化警告。"
+    },
+    "submit": {
+      "inspectorTitle": "当前变异",
+      "kvMutation": "变异",
+      "kvProgress": "进度",
+      "kvPartialSave": "部分保存",
+      "contractCallout": "数据合约：取消时侧车写入部分JSONL。如果浏览器标签关闭，从自动保存重新加载。",
+      "drawerJobQueue": "作业队列",
+      "drawerRecovery": "恢复",
+      "sideCardBody": "不要隐藏进度。运行界面必须包含取消、ETA、部分保存和死锁恢复路径。"
+    },
+    "output": {
+      "inspectorTitle": "引物检查器",
+      "kvFwd": "正向引物",
+      "kvRev": "反向引物",
+      "kvTm": "Tm",
+      "kvStatus": "状态",
+      "filterFailed": "仅失败",
+      "drawerDesignReport": "设计报告",
+      "drawerNext": "下一步",
+      "sideCardBody": "检查引物对。在导出之前使用板图发现覆盖缺口。"
+    },
+    "export": {
+      "inspectorTitle": "导出检查器",
+      "kvDestination": "目标",
+      "kvPrefills": "预填",
+      "kvStaleness": "新鲜度",
+      "handoffCallout": "实现：MAME将在下一轮中将此导出读取为KURO制品源。",
+      "drawerExportQueue": "导出队列",
+      "drawerNext": "下一步",
+      "sideCardBody": "确认导出目标。MAME交接包自动生成。"
+    }
   }
 }

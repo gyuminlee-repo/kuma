@@ -1773,5 +1773,68 @@
       "run": "Run",
       "help": "Help"
     }
+  },
+  "kuro": {
+    "load": {
+      "inspectorTitle": "Inspecteur de Source",
+      "artifactLabel": "Artefact MAME",
+      "intentCallout": "Intention de conception : charger le CSV d'exportation MAME comme source de variantes. Vérifier le mappage de colonnes avant de continuer.",
+      "drawerRecent": "Artefacts récents",
+      "drawerAutosave": "Sauvegarde automatique",
+      "sideCardBody": "Export MAME round 3 détecté. Utilisez-le comme source CSV ou remplacez-le manuellement."
+    },
+    "nominate": {
+      "inspectorTitle": "Inspecteur de Variantes",
+      "kvActivity": "Activité",
+      "kvReads": "Lectures",
+      "kvDomain": "Domaine",
+      "kvMameLink": "Source MAME",
+      "calloutText": "Sélectionnez une ligne de variante pour inspecter les détails. Les variantes bloquées sont exclues de la conception d'amorces.",
+      "drawerActions": "Actions",
+      "drawerAutosave": "Sauvegarde automatique",
+      "sideCardBody": "Examiner les variantes notées. Bloquer les correspondances à faible confiance avant les paramètres."
+    },
+    "params": {
+      "inspectorTitle": "Inspecteur de Paramètres",
+      "metricPrimers": "Amorces",
+      "metricPlates": "Plaques",
+      "metricWarn": "Avertissements",
+      "metricRuntime": "Durée d'exécution",
+      "calloutText": "Les décomptes attendus se mettent à jour en temps réel lors des changements de paramètres. Le temps d'exécution est approximatif.",
+      "drawerEstimate": "Estimation",
+      "drawerShortcut": "Raccourci",
+      "sideCardBody": "Ajuster la cible Tm et le chevauchement pour minimiser les avertissements avant de soumettre."
+    },
+    "submit": {
+      "inspectorTitle": "Mutation Actuelle",
+      "kvMutation": "Mutation",
+      "kvProgress": "Progression",
+      "kvPartialSave": "Sauvegarde partielle",
+      "contractCallout": "Contrat de données : le sidecar écrit un JSONL partiel lors de l'annulation. Recharger depuis la sauvegarde automatique si l'onglet se ferme.",
+      "drawerJobQueue": "File de travaux",
+      "drawerRecovery": "Récupération",
+      "sideCardBody": "Ne pas masquer la progression. L'écran d'exécution doit inclure annuler, ETA, sauvegarde partielle et chemin de récupération de blocage."
+    },
+    "output": {
+      "inspectorTitle": "Inspecteur d'Amorces",
+      "kvFwd": "Amorce directe",
+      "kvRev": "Amorce inverse",
+      "kvTm": "Tm",
+      "kvStatus": "Statut",
+      "filterFailed": "Échecs uniquement",
+      "drawerDesignReport": "Rapport de conception",
+      "drawerNext": "Suivant",
+      "sideCardBody": "Examiner les paires d'amorces. Utiliser la carte de plaque pour repérer les lacunes de couverture avant d'exporter."
+    },
+    "export": {
+      "inspectorTitle": "Inspecteur d'Exportation",
+      "kvDestination": "Destination",
+      "kvPrefills": "Pré-remplissages",
+      "kvStaleness": "Fraîcheur",
+      "handoffCallout": "Implémentation : MAME lira cette exportation comme source d'artefacts KURO lors du prochain tour.",
+      "drawerExportQueue": "File d'exportation",
+      "drawerNext": "Suivant",
+      "sideCardBody": "Confirmer les cibles d'exportation. Le paquet de transfert MAME est généré automatiquement."
+    }
   }
 }

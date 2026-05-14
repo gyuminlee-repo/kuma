@@ -1773,5 +1773,68 @@
       "run": "執行",
       "help": "說明"
     }
+  },
+  "kuro": {
+    "load": {
+      "inspectorTitle": "來源檢查器",
+      "artifactLabel": "MAME 製品",
+      "intentCallout": "設計意圖：將 MAME 匯出 CSV 作為變體來源載入。在繼續之前驗證欄位對映。",
+      "drawerRecent": "最近製品",
+      "drawerAutosave": "自動儲存",
+      "sideCardBody": "偵測到 MAME 第 3 輪匯出檔案。將其用作 CSV 來源或手動替換。"
+    },
+    "nominate": {
+      "inspectorTitle": "變體檢查器",
+      "kvActivity": "活性",
+      "kvReads": "讀取數",
+      "kvDomain": "域",
+      "kvMameLink": "MAME 來源",
+      "calloutText": "選取變體列以檢查詳細資訊。被封鎖的變體將從引子設計中排除。",
+      "drawerActions": "操作",
+      "drawerAutosave": "自動儲存",
+      "sideCardBody": "檢查評分變體。在進入參數之前封鎖低信賴度命中。"
+    },
+    "params": {
+      "inspectorTitle": "參數檢查器",
+      "metricPrimers": "引子",
+      "metricPlates": "板",
+      "metricWarn": "警告",
+      "metricRuntime": "執行時間",
+      "calloutText": "參數更改時預期計數即時更新。執行時間估計為近似值。",
+      "drawerEstimate": "估計",
+      "drawerShortcut": "快速鍵",
+      "sideCardBody": "調整 Tm 目標和重疊以在提交前最小化警告。"
+    },
+    "submit": {
+      "inspectorTitle": "目前變異",
+      "kvMutation": "變異",
+      "kvProgress": "進度",
+      "kvPartialSave": "部分儲存",
+      "contractCallout": "資料合約：取消時側車寫入部分 JSONL。如果瀏覽器標籤關閉，從自動儲存重新載入。",
+      "drawerJobQueue": "作業佇列",
+      "drawerRecovery": "復原",
+      "sideCardBody": "不要隱藏進度。執行介面必須包含取消、ETA、部分儲存和死鎖復原路徑。"
+    },
+    "output": {
+      "inspectorTitle": "引子檢查器",
+      "kvFwd": "正向引子",
+      "kvRev": "反向引子",
+      "kvTm": "Tm",
+      "kvStatus": "狀態",
+      "filterFailed": "僅失敗",
+      "drawerDesignReport": "設計報告",
+      "drawerNext": "下一步",
+      "sideCardBody": "檢查引子對。在匯出之前使用板圖找出覆蓋缺口。"
+    },
+    "export": {
+      "inspectorTitle": "匯出檢查器",
+      "kvDestination": "目標",
+      "kvPrefills": "預填",
+      "kvStaleness": "新鮮度",
+      "handoffCallout": "實作：MAME 將在下一輪中將此匯出讀取為 KURO 製品來源。",
+      "drawerExportQueue": "匯出佇列",
+      "drawerNext": "下一步",
+      "sideCardBody": "確認匯出目標。MAME 交接套件自動產生。"
+    }
   }
 }

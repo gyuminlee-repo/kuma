@@ -1773,5 +1773,68 @@
       "run": "Run",
       "help": "Help"
     }
+  },
+  "kuro": {
+    "load": {
+      "inspectorTitle": "Quell-Inspektor",
+      "artifactLabel": "MAME-Artefakt",
+      "intentCallout": "Entwurfsabsicht: MAME-Export-CSV als Variantenquelle laden. Spalten-Mapping vor dem Fortfahren überprüfen.",
+      "drawerRecent": "Zuletzt verwendete Artefakte",
+      "drawerAutosave": "Autospeichern",
+      "sideCardBody": "MAME-Runde-3-Export erkannt. Als CSV-Quelle verwenden oder manuell ersetzen."
+    },
+    "nominate": {
+      "inspectorTitle": "Varianten-Inspektor",
+      "kvActivity": "Aktivität",
+      "kvReads": "Reads",
+      "kvDomain": "Domäne",
+      "kvMameLink": "MAME-Quelle",
+      "calloutText": "Variantenzeile auswählen, um Details zu prüfen. Blockierte Varianten werden vom Primer-Design ausgeschlossen.",
+      "drawerActions": "Aktionen",
+      "drawerAutosave": "Autospeichern",
+      "sideCardBody": "Bewertete Varianten überprüfen. Schwach vertrauenswürdige Treffer vor den Parametern blockieren."
+    },
+    "params": {
+      "inspectorTitle": "Parameter-Inspektor",
+      "metricPrimers": "Primer",
+      "metricPlates": "Platten",
+      "metricWarn": "Warnungen",
+      "metricRuntime": "Laufzeit",
+      "calloutText": "Erwartete Werte werden bei Parameteränderungen in Echtzeit aktualisiert. Laufzeitschätzung ist näherungsweise.",
+      "drawerEstimate": "Schätzung",
+      "drawerShortcut": "Tastenkürzel",
+      "sideCardBody": "Tm-Ziel und Überlappung anpassen, um Warnungen vor dem Einreichen zu minimieren."
+    },
+    "submit": {
+      "inspectorTitle": "Aktuelle Mutation",
+      "kvMutation": "Mutation",
+      "kvProgress": "Fortschritt",
+      "kvPartialSave": "Teilspeicherung",
+      "contractCallout": "Datenvertrag: Sidecar schreibt bei Abbruch partielle JSONL. Bei Tab-Schließung aus Autosave neu laden.",
+      "drawerJobQueue": "Auftragswarteschlange",
+      "drawerRecovery": "Wiederherstellung",
+      "sideCardBody": "Fortschritt nicht ausblenden. Laufbildschirm muss Abbruch, ETA, Teilspeicherung und Deadlock-Wiederherstellung enthalten."
+    },
+    "output": {
+      "inspectorTitle": "Primer-Inspektor",
+      "kvFwd": "Forward-Primer",
+      "kvRev": "Reverse-Primer",
+      "kvTm": "Tm",
+      "kvStatus": "Status",
+      "filterFailed": "Nur Fehlgeschlagene",
+      "drawerDesignReport": "Entwurfsbericht",
+      "drawerNext": "Weiter",
+      "sideCardBody": "Primerpaare überprüfen. Vor dem Export Abdeckungslücken in der Plattenansicht prüfen."
+    },
+    "export": {
+      "inspectorTitle": "Export-Inspektor",
+      "kvDestination": "Ziel",
+      "kvPrefills": "Vorausfüllungen",
+      "kvStaleness": "Aktualität",
+      "handoffCallout": "Implementierung: MAME liest diesen Export in der nächsten Runde als KURO-Artefaktquelle.",
+      "drawerExportQueue": "Export-Warteschlange",
+      "drawerNext": "Weiter",
+      "sideCardBody": "Export-Ziele bestätigen. MAME-Übergabepaket wird automatisch generiert."
+    }
   }
 }

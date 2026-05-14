@@ -23,7 +23,6 @@ import {
 } from "../ui/dialog";
 import { MenuBar } from "./MenuBar";
 import { MajorSubnav, type MajorNavItem } from "./MajorSubnav";
-import { SubStepNav, type SubNavItem } from "./SubStepNav";
 import { MajorStepView } from "../steps/MajorStepView";
 import { SequenceViewer } from "@/components/widgets/SequenceViewer";
 import { StatusBar } from "./StatusBar";
@@ -33,9 +32,13 @@ import { OverwriteConfirmDialog } from "../dialogs/OverwriteConfirmDialog";
 import { handleOpenSequence } from "./export-handlers";
 import { startDeadlockWatch } from "@/lib/deadlockDetector";
 import { getLastProgressAt } from "@/lib/ipc-kuro";
-import { MAJOR_ORDER, SUBSTEP_ORDER } from "@/store/slices/navigationSlice";
-import type { MajorStepId } from "@/store/slices/navigationSlice";
+import { MAJOR_ORDER } from "@/store/slices/navigationSlice";
 import { useMainZoom } from "@/hooks/useMainZoom";
+import {
+  KuroWorkflowRail,
+  KuroDrawerStrip,
+  KuroInspector,
+} from "./KuroChrome";
 
 const SEQUENCE_EXTENSIONS = new Set([".gb", ".gbk", ".gbff", ".dna", ".fa", ".fasta"]);
 const CSV_EXTENSIONS = new Set([".csv"]);
@@ -89,16 +92,6 @@ export function AppLayout() {
     id,
     labelKey: `phaseC.majors.${id}`,
   }));
-
-  const SUBSTEPS: Record<MajorStepId, SubNavItem[]> = Object.fromEntries(
-    MAJOR_ORDER.map((major) => [
-      major,
-      SUBSTEP_ORDER[major].map((id) => ({
-        id,
-        labelKey: `phaseC.subSteps.${id}`,
-      })),
-    ]),
-  ) as Record<MajorStepId, SubNavItem[]>;
 
   useEffect(() => {
     loadNetworkConsentSettings();
@@ -252,10 +245,9 @@ export function AppLayout() {
       titlebar={<MenuBar />}
       subnav={<MajorSubnav majors={MAJORS} />}
       sidebar={
-        <SubStepNav
-          major={currentMajor}
-          subSteps={SUBSTEPS[currentMajor]}
-        />
+        /* Phase 4: WorkflowRail replaces SubStepNav in sidebar slot.
+           SubStepNav is preserved below for fallback via MajorSubnav. */
+        <KuroWorkflowRail />
       }
       main={
         <div
@@ -271,8 +263,12 @@ export function AppLayout() {
           <div className="flex-1 min-h-0 overflow-hidden">
             <MajorStepView />
           </div>
+          {/* Phase 4: DrawerStrip 92px bottom slot (screen-specific content) */}
+          <KuroDrawerStrip />
         </div>
       }
+      inspector={<KuroInspector />}
+      inspectorOpen
       statusbar={
         <StatusBar
           sidecarStatus={sidecarStatus}

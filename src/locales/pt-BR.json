@@ -1773,5 +1773,68 @@
       "run": "Run",
       "help": "Help"
     }
+  },
+  "kuro": {
+    "load": {
+      "inspectorTitle": "Inspetor de Fonte",
+      "artifactLabel": "Artefato MAME",
+      "intentCallout": "Intenção de design: carregar o CSV de exportação MAME como fonte de variantes. Verificar o mapeamento de colunas antes de prosseguir.",
+      "drawerRecent": "Artefatos recentes",
+      "drawerAutosave": "Salvamento automático",
+      "sideCardBody": "Exportação da rodada 3 do MAME detectada. Use-a como fonte CSV ou substitua manualmente."
+    },
+    "nominate": {
+      "inspectorTitle": "Inspetor de Variantes",
+      "kvActivity": "Atividade",
+      "kvReads": "Leituras",
+      "kvDomain": "Domínio",
+      "kvMameLink": "Fonte MAME",
+      "calloutText": "Selecione uma linha de variante para inspecionar os detalhes. Variantes bloqueadas são excluídas do design de primers.",
+      "drawerActions": "Ações",
+      "drawerAutosave": "Salvamento automático",
+      "sideCardBody": "Revisar variantes pontuadas. Bloquear correspondências de baixa confiança antes dos parâmetros."
+    },
+    "params": {
+      "inspectorTitle": "Inspetor de Parâmetros",
+      "metricPrimers": "Primers",
+      "metricPlates": "Placas",
+      "metricWarn": "Avisos",
+      "metricRuntime": "Tempo de execução",
+      "calloutText": "As contagens esperadas são atualizadas em tempo real com as alterações de parâmetros. O tempo de execução é aproximado.",
+      "drawerEstimate": "Estimativa",
+      "drawerShortcut": "Atalho",
+      "sideCardBody": "Ajustar o alvo Tm e a sobreposição para minimizar avisos antes de enviar."
+    },
+    "submit": {
+      "inspectorTitle": "Mutação Atual",
+      "kvMutation": "Mutação",
+      "kvProgress": "Progresso",
+      "kvPartialSave": "Salvamento parcial",
+      "contractCallout": "Contrato de dados: o sidecar escreve JSONL parcial ao cancelar. Recarregar do salvamento automático se a guia fechar.",
+      "drawerJobQueue": "Fila de trabalhos",
+      "drawerRecovery": "Recuperação",
+      "sideCardBody": "Não ocultar o progresso. A tela de execução deve incluir cancelar, ETA, salvamento parcial e caminho de recuperação de deadlock."
+    },
+    "output": {
+      "inspectorTitle": "Inspetor de Primers",
+      "kvFwd": "Primer direto",
+      "kvRev": "Primer reverso",
+      "kvTm": "Tm",
+      "kvStatus": "Status",
+      "filterFailed": "Somente falhos",
+      "drawerDesignReport": "Relatório de design",
+      "drawerNext": "Próximo",
+      "sideCardBody": "Revisar pares de primers. Usar o mapa de placa para identificar lacunas de cobertura antes de exportar."
+    },
+    "export": {
+      "inspectorTitle": "Inspetor de Exportação",
+      "kvDestination": "Destino",
+      "kvPrefills": "Pré-preenchimentos",
+      "kvStaleness": "Frescor",
+      "handoffCallout": "Implementação: MAME lerá esta exportação como fonte de artefatos KURO na próxima rodada.",
+      "drawerExportQueue": "Fila de exportação",
+      "drawerNext": "Próximo",
+      "sideCardBody": "Confirmar destinos de exportação. O pacote de transferência MAME é gerado automaticamente."
+    }
   }
 }

@@ -1773,5 +1773,68 @@
       "run": "Run",
       "help": "Help"
     }
+  },
+  "kuro": {
+    "load": {
+      "inspectorTitle": "Inspector de Fuente",
+      "artifactLabel": "Artefacto MAME",
+      "intentCallout": "Intención de diseño: Cargar el CSV de exportación de MAME como fuente de variantes. Verificar el mapeo de columnas antes de continuar.",
+      "drawerRecent": "Artefactos recientes",
+      "drawerAutosave": "Autoguardado",
+      "sideCardBody": "Se detectó la exportación de ronda 3 de MAME. Úsela como fuente CSV o reemplácela manualmente."
+    },
+    "nominate": {
+      "inspectorTitle": "Inspector de Variantes",
+      "kvActivity": "Actividad",
+      "kvReads": "Lecturas",
+      "kvDomain": "Dominio",
+      "kvMameLink": "Fuente MAME",
+      "calloutText": "Seleccione una fila de variante para inspeccionar los detalles. Las variantes bloqueadas se excluyen del diseño de cebadores.",
+      "drawerActions": "Acciones",
+      "drawerAutosave": "Autoguardado",
+      "sideCardBody": "Revisar variantes con puntuación. Bloquear coincidencias de baja confianza antes de los parámetros."
+    },
+    "params": {
+      "inspectorTitle": "Inspector de Parámetros",
+      "metricPrimers": "Cebadores",
+      "metricPlates": "Placas",
+      "metricWarn": "Advertencias",
+      "metricRuntime": "Tiempo de ejecución",
+      "calloutText": "Los recuentos esperados se actualizan en tiempo real al cambiar parámetros. El tiempo de ejecución es aproximado.",
+      "drawerEstimate": "Estimación",
+      "drawerShortcut": "Atajo",
+      "sideCardBody": "Ajustar el objetivo de Tm y el solapamiento para minimizar advertencias antes de enviar."
+    },
+    "submit": {
+      "inspectorTitle": "Mutación Actual",
+      "kvMutation": "Mutación",
+      "kvProgress": "Progreso",
+      "kvPartialSave": "Guardado parcial",
+      "contractCallout": "Contrato de datos: el sidecar escribe JSONL parcial al cancelar. Recargar desde autoguardado si se cierra la pestaña.",
+      "drawerJobQueue": "Cola de trabajos",
+      "drawerRecovery": "Recuperación",
+      "sideCardBody": "No ocultar el progreso. La pantalla de ejecución debe incluir cancelar, ETA, guardado parcial y recuperación de bloqueo."
+    },
+    "output": {
+      "inspectorTitle": "Inspector de Cebadores",
+      "kvFwd": "Cebador directo",
+      "kvRev": "Cebador inverso",
+      "kvTm": "Tm",
+      "kvStatus": "Estado",
+      "filterFailed": "Solo fallidos",
+      "drawerDesignReport": "Informe de diseño",
+      "drawerNext": "Siguiente",
+      "sideCardBody": "Revisar pares de cebadores. Usar el mapa de placa para identificar brechas de cobertura antes de exportar."
+    },
+    "export": {
+      "inspectorTitle": "Inspector de Exportación",
+      "kvDestination": "Destino",
+      "kvPrefills": "Rellenos previos",
+      "kvStaleness": "Frescura",
+      "handoffCallout": "Implementación: MAME leerá esta exportación como fuente de artefactos KURO en la siguiente ronda.",
+      "drawerExportQueue": "Cola de exportación",
+      "drawerNext": "Siguiente",
+      "sideCardBody": "Confirmar destinos de exportación. El paquete de transferencia MAME se genera automáticamente."
+    }
   }
 }

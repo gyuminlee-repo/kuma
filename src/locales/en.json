@@ -1686,5 +1686,68 @@
         "params": "Set primer design parameters and run."
       }
     }
+  },
+  "kuro": {
+    "load": {
+      "inspectorTitle": "Source Inspector",
+      "artifactLabel": "MAME artifact",
+      "intentCallout": "Design intent: Load the MAME export CSV as the variant source. Verify column mapping before advancing.",
+      "drawerRecent": "Recent artifacts",
+      "drawerAutosave": "Autosave",
+      "sideCardBody": "MAME round 3 export detected. Use it as the CSV source or replace manually."
+    },
+    "nominate": {
+      "inspectorTitle": "Variant Inspector",
+      "kvActivity": "Activity",
+      "kvReads": "Reads",
+      "kvDomain": "Domain",
+      "kvMameLink": "MAME source",
+      "calloutText": "Select a variant row to inspect details. Blocked variants are excluded from primer design.",
+      "drawerActions": "Actions",
+      "drawerAutosave": "Autosave",
+      "sideCardBody": "Review scored variants. Block low-confidence hits before advancing to Parameters."
+    },
+    "params": {
+      "inspectorTitle": "Parameter Inspector",
+      "metricPrimers": "Primers",
+      "metricPlates": "Plates",
+      "metricWarn": "Warnings",
+      "metricRuntime": "Runtime",
+      "calloutText": "Expected counts update live as parameters change. Runtime estimate is approximate.",
+      "drawerEstimate": "Estimate",
+      "drawerShortcut": "Shortcut",
+      "sideCardBody": "Adjust Tm target and overlap to minimise warnings before submitting."
+    },
+    "submit": {
+      "inspectorTitle": "Current Mutation",
+      "kvMutation": "Mutation",
+      "kvProgress": "Progress",
+      "kvPartialSave": "Partial save",
+      "contractCallout": "Data contract: sidecar writes partial JSONL on cancel. Reload from autosave if browser tab closes.",
+      "drawerJobQueue": "Job queue",
+      "drawerRecovery": "Recovery",
+      "sideCardBody": "Do not hide progress. Run screen must include cancel, ETA, partial save, and deadlock recovery."
+    },
+    "output": {
+      "inspectorTitle": "Primer Inspector",
+      "kvFwd": "Forward primer",
+      "kvRev": "Reverse primer",
+      "kvTm": "Tm",
+      "kvStatus": "Status",
+      "filterFailed": "Failed only",
+      "drawerDesignReport": "Design report",
+      "drawerNext": "Next",
+      "sideCardBody": "Review primer pairs. Use the Plate Map to spot coverage gaps before exporting."
+    },
+    "export": {
+      "inspectorTitle": "Export Inspector",
+      "kvDestination": "Destination",
+      "kvPrefills": "Prefills",
+      "kvStaleness": "Staleness",
+      "handoffCallout": "Implementation: MAME will read this export as its KURO artifact source in the next round.",
+      "drawerExportQueue": "Export queue",
+      "drawerNext": "Next",
+      "sideCardBody": "Confirm export targets. The MAME handoff bundle is generated automatically."
+    }
   }
 }

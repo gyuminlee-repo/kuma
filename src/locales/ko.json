@@ -1686,5 +1686,68 @@
         "params": "프라이머 설계 파라미터를 설정하고 실행하세요."
       }
     }
+  },
+  "kuro": {
+    "load": {
+      "inspectorTitle": "소스 검사기",
+      "artifactLabel": "MAME 아티팩트",
+      "intentCallout": "설계 의도: MAME 내보내기 CSV를 변이체 소스로 불러옵니다. 열 매핑을 확인한 후 다음 단계로 진행하세요.",
+      "drawerRecent": "최근 아티팩트",
+      "drawerAutosave": "자동 저장",
+      "sideCardBody": "MAME round 3 내보내기 파일이 감지되었습니다. CSV 소스로 사용하거나 직접 교체하세요."
+    },
+    "nominate": {
+      "inspectorTitle": "변이체 검사기",
+      "kvActivity": "활성도",
+      "kvReads": "리드",
+      "kvDomain": "도메인",
+      "kvMameLink": "MAME 소스",
+      "calloutText": "변이체 행을 선택하면 세부 정보를 확인할 수 있습니다. 차단된 변이체는 프라이머 설계에서 제외됩니다.",
+      "drawerActions": "액션",
+      "drawerAutosave": "자동 저장",
+      "sideCardBody": "점수가 매겨진 변이체를 검토하세요. 파라미터 단계로 이동하기 전에 낮은 신뢰도 항목을 차단하세요."
+    },
+    "params": {
+      "inspectorTitle": "파라미터 검사기",
+      "metricPrimers": "프라이머",
+      "metricPlates": "플레이트",
+      "metricWarn": "경고",
+      "metricRuntime": "실행 시간",
+      "calloutText": "파라미터 변경 시 예상 수치가 실시간으로 업데이트됩니다. 실행 시간 예측은 근사값입니다.",
+      "drawerEstimate": "예측",
+      "drawerShortcut": "단축키",
+      "sideCardBody": "경고를 최소화하기 위해 Tm 목표값과 오버랩을 조정하세요."
+    },
+    "submit": {
+      "inspectorTitle": "현재 변이",
+      "kvMutation": "변이",
+      "kvProgress": "진행률",
+      "kvPartialSave": "부분 저장",
+      "contractCallout": "데이터 계약: 취소 시 사이드카가 부분 JSONL을 기록합니다. 브라우저 탭이 닫히면 자동 저장에서 복원하세요.",
+      "drawerJobQueue": "작업 큐",
+      "drawerRecovery": "복구",
+      "sideCardBody": "진행 상황을 숨기지 마세요. 취소, ETA, 부분 저장, 데드락 복구 경로가 포함되어야 합니다."
+    },
+    "output": {
+      "inspectorTitle": "프라이머 검사기",
+      "kvFwd": "정방향 프라이머",
+      "kvRev": "역방향 프라이머",
+      "kvTm": "Tm",
+      "kvStatus": "상태",
+      "filterFailed": "실패만",
+      "drawerDesignReport": "설계 보고서",
+      "drawerNext": "다음",
+      "sideCardBody": "프라이머 쌍을 검토하세요. 내보내기 전에 플레이트 맵에서 커버리지 공백을 확인하세요."
+    },
+    "export": {
+      "inspectorTitle": "내보내기 검사기",
+      "kvDestination": "대상",
+      "kvPrefills": "사전 입력",
+      "kvStaleness": "신선도",
+      "handoffCallout": "구현: MAME이 다음 라운드에서 이 내보내기를 KURO 아티팩트 소스로 읽습니다.",
+      "drawerExportQueue": "내보내기 큐",
+      "drawerNext": "다음",
+      "sideCardBody": "내보내기 대상을 확인하세요. MAME 핸드오프 번들이 자동으로 생성됩니다."
+    }
   }
 }
