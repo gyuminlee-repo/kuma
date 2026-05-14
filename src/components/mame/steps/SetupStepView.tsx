@@ -15,6 +15,7 @@
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { BarcodeSetupPanel } from "@/components/mame/panels/BarcodeSetupPanel";
 import { WizardContainer } from "@/components/steps/WizardContainer";
+import { StepRedirectFallback } from "./StepRedirectFallback";
 
 const STEP_CONFIG = {
   "setup.files": {
@@ -31,11 +32,18 @@ const STEP_CONFIG = {
 
 export function SetupStepView() {
   const subStep = useMameAppStore((s) => s.currentMameSubStep);
+  const setMameSubStep = useMameAppStore((s) => s.setMameSubStep);
   const goToNextStep = useMameAppStore((s) => s.goToNextStep);
   const goToPrevStep = useMameAppStore((s) => s.goToPrevStep);
 
   if (subStep !== "setup.files" && subStep !== "setup.design") {
-    return null;
+    return (
+      <StepRedirectFallback
+        currentSub={subStep}
+        expectedFor="setup"
+        setSubStep={setMameSubStep}
+      />
+    );
   }
 
   const config = STEP_CONFIG[subStep];

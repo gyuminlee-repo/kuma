@@ -1860,6 +1860,9 @@
         "merge": "Merge",
         "export": "Export",
         "mergeExport": "Merge & Export"
+      },
+      "fallback": {
+        "redirecting": "Redirecting…"
       }
     }
   },
@@ -2013,6 +2016,14 @@
       "plates": "Plates",
       "primers": "Primers",
       "rescued": "Rescued"
+    }
+  },
+  "errors": {
+    "sidecar": {
+      "methodNotFound": {
+        "kuro": "KURO sidecar is outdated. Run `pnpm run sidecar:build` and retry.",
+        "mame": "MAME sidecar is outdated. Run `pnpm run sidecar:build` and retry."
+      }
     }
   }
 }

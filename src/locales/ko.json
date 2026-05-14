@@ -1860,6 +1860,9 @@
         "merge": "병합",
         "export": "내보내기",
         "mergeExport": "병합 및 내보내기"
+      },
+      "fallback": {
+        "redirecting": "탭으로 이동 중…"
       }
     }
   },
@@ -2013,6 +2016,14 @@
       "plates": "플레이트",
       "primers": "프라이머",
       "rescued": "복구됨"
+    }
+  },
+  "errors": {
+    "sidecar": {
+      "methodNotFound": {
+        "kuro": "KURO 사이드카가 구버전입니다. `pnpm run sidecar:build` 후 재시도하세요.",
+        "mame": "MAME 사이드카가 구버전입니다. `pnpm run sidecar:build` 후 재시도하세요."
+      }
     }
   }
 }

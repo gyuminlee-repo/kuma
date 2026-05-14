@@ -17,6 +17,7 @@ import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { useRoundStore } from "@/store/round/roundSlice";
 import { IngestSection, MergeSection, ExportSection } from "@/components/mame/panels/ActivityPanel";
 import { WizardContainer } from "@/components/steps/WizardContainer";
+import { StepRedirectFallback } from "./StepRedirectFallback";
 
 const STEP_CONFIG = {
   "activity.ingest": {
@@ -33,6 +34,7 @@ const STEP_CONFIG = {
 
 export function ActivityStepView() {
   const subStep = useMameAppStore((s) => s.currentMameSubStep);
+  const setMameSubStep = useMameAppStore((s) => s.setMameSubStep);
   const goToNextStep = useMameAppStore((s) => s.goToNextStep);
   const goToPrevStep = useMameAppStore((s) => s.goToPrevStep);
 
@@ -49,7 +51,13 @@ export function ActivityStepView() {
     subStep !== "activity.ingest" &&
     subStep !== "activity.mergeExport"
   ) {
-    return null;
+    return (
+      <StepRedirectFallback
+        currentSub={subStep}
+        expectedFor="activity"
+        setSubStep={setMameSubStep}
+      />
+    );
   }
 
   const config = STEP_CONFIG[subStep];

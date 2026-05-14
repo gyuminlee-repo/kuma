@@ -32,6 +32,7 @@ import { ParameterPanel } from "@/components/mame/panels/ParameterPanel";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { WizardContainer } from "@/components/steps/WizardContainer";
+import { StepRedirectFallback } from "./StepRedirectFallback";
 import type { RunHealthData } from "@/types/mame/models";
 
 interface AnalyzeStepViewProps {
@@ -77,13 +78,20 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
   const canRun = useMameAppStore(selectCanRun);
   const goToNextStep = useMameAppStore((s) => s.goToNextStep);
   const goToPrevStep = useMameAppStore((s) => s.goToPrevStep);
+  const setMameSubStep = useMameAppStore((s) => s.setMameSubStep);
 
   if (
     subStep !== "analyze.inputs" &&
     subStep !== "analyze.verdict" &&
     subStep !== "analyze.plate"
   ) {
-    return null;
+    return (
+      <StepRedirectFallback
+        currentSub={subStep}
+        expectedFor="analyze"
+        setSubStep={setMameSubStep}
+      />
+    );
   }
 
   const config = STEP_CONFIG[subStep];
@@ -204,7 +212,7 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
       break;
     case "analyze.plate":
       mainContent = (
-        <div className="flex flex-col gap-3 h-full overflow-hidden">
+        <div className="flex flex-col gap-3 h-full min-h-0 overflow-auto">
           <DataPanel title={t("mame.appLayout.platePlanTitle")} className="flex-1 min-h-0">
             <PlateView />
           </DataPanel>
