@@ -49,12 +49,15 @@ export const createSettingsSlice: StateCreator<
       const bundle = response.settings;
 
       // theme 동기화: backend "auto" → ThemeToggle "system"
-      const mappedTheme = mapThemeFromBundle(bundle.theme);
-      try {
-        localStorage.setItem(THEME_STORAGE_KEY, mappedTheme);
-        applyThemeValue(mappedTheme);
-      } catch {
-        // localStorage 불가 환경
+      // bundle.theme 이 undefined 이면 기존 localStorage 값을 보존한다 (업그레이드 안전).
+      if (bundle.theme !== undefined) {
+        const mappedTheme = mapThemeFromBundle(bundle.theme);
+        try {
+          localStorage.setItem(THEME_STORAGE_KEY, mappedTheme);
+          applyThemeValue(mappedTheme);
+        } catch {
+          // localStorage 불가 환경
+        }
       }
 
       // offlineMode 동기화: settingsSlice → networkConsentSlice
