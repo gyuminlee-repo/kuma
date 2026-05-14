@@ -1924,6 +1924,27 @@
       "drawerExportQueue": "匯出佇列",
       "drawerNext": "下一步",
       "sideCardBody": "確認匯出目標。MAME 交接套件自動產生。"
+    },
+    "inspector": {
+      "noArtifact": "未載入製品",
+      "round": "輪次",
+      "variants": "變體",
+      "format": "格式",
+      "intentLabel": "設計意圖",
+      "selectRowPrompt": "選取行以查看詳情",
+      "selectedBadge": "已選取",
+      "usefulLabel": "有用的補充",
+      "running": "執行中...",
+      "partialSavePending": "待處理",
+      "partialSaveReady": "就緒",
+      "dataContractLabel": "資料契約",
+      "noDesignResults": "尚無設計結果",
+      "implementationLabel": "實作",
+      "stalenessLinked": "已連結",
+      "exportTargets": "MAME handoff",
+      "plateMap": "板圖",
+      "nPlates": "{{count}} 塊板",
+      "bridgeBadge": "bridge"
     }
   }
 }

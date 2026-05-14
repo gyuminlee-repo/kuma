@@ -1924,6 +1924,27 @@
       "drawerExportQueue": "导出队列",
       "drawerNext": "下一步",
       "sideCardBody": "确认导出目标。MAME交接包自动生成。"
+    },
+    "inspector": {
+      "noArtifact": "未加载制品",
+      "round": "轮次",
+      "variants": "变体",
+      "format": "格式",
+      "intentLabel": "设计意图",
+      "selectRowPrompt": "选择行以查看详情",
+      "selectedBadge": "已选择",
+      "usefulLabel": "有用的补充",
+      "running": "运行中...",
+      "partialSavePending": "待处理",
+      "partialSaveReady": "就绪",
+      "dataContractLabel": "数据契约",
+      "noDesignResults": "尚无设计结果",
+      "implementationLabel": "实现",
+      "stalenessLinked": "已关联",
+      "exportTargets": "MAME handoff",
+      "plateMap": "板图",
+      "nPlates": "{{count}} 块板",
+      "bridgeBadge": "bridge"
     }
   }
 }

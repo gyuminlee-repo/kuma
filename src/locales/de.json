@@ -1924,6 +1924,27 @@
       "drawerExportQueue": "Export-Warteschlange",
       "drawerNext": "Weiter",
       "sideCardBody": "Export-Ziele bestätigen. MAME-Übergabepaket wird automatisch generiert."
+    },
+    "inspector": {
+      "noArtifact": "Kein Artefakt geladen",
+      "round": "Runde",
+      "variants": "Varianten",
+      "format": "Format",
+      "intentLabel": "Designabsicht",
+      "selectRowPrompt": "Zeile auswählen, um Details anzuzeigen",
+      "selectedBadge": "ausgewählt",
+      "usefulLabel": "Nützliche Ergänzung",
+      "running": "Wird ausgeführt...",
+      "partialSavePending": "ausstehend",
+      "partialSaveReady": "bereit",
+      "dataContractLabel": "Datenvertrag",
+      "noDesignResults": "Noch keine Designergebnisse",
+      "implementationLabel": "Implementierung",
+      "stalenessLinked": "verknüpft",
+      "exportTargets": "MAME handoff",
+      "plateMap": "Plattenübersicht",
+      "nPlates": "{{count}} Platte(n)",
+      "bridgeBadge": "bridge"
     }
   }
 }

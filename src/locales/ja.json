@@ -1924,6 +1924,27 @@
       "drawerExportQueue": "エクスポートキュー",
       "drawerNext": "次へ",
       "sideCardBody": "エクスポートターゲットを確認してください。MAMEハンドオフバンドルが自動的に生成されます。"
+    },
+    "inspector": {
+      "noArtifact": "アーティファクトがありません",
+      "round": "ラウンド",
+      "variants": "バリアント",
+      "format": "形式",
+      "intentLabel": "設計意図",
+      "selectRowPrompt": "行を選択して詳細を表示",
+      "selectedBadge": "選択済み",
+      "usefulLabel": "有用な追加",
+      "running": "実行中...",
+      "partialSavePending": "保留中",
+      "partialSaveReady": "準備完了",
+      "dataContractLabel": "データ契約",
+      "noDesignResults": "設計結果がありません",
+      "implementationLabel": "実装",
+      "stalenessLinked": "リンク済み",
+      "exportTargets": "MAME handoff",
+      "plateMap": "プレートマップ",
+      "nPlates": "{{count}}プレート",
+      "bridgeBadge": "bridge"
     }
   }
 }

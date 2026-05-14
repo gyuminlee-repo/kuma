@@ -1924,6 +1924,27 @@
       "drawerExportQueue": "Cola de exportación",
       "drawerNext": "Siguiente",
       "sideCardBody": "Confirmar destinos de exportación. El paquete de transferencia MAME se genera automáticamente."
+    },
+    "inspector": {
+      "noArtifact": "No hay artefacto cargado",
+      "round": "Ronda",
+      "variants": "Variantes",
+      "format": "Formato",
+      "intentLabel": "Intención de diseño",
+      "selectRowPrompt": "Seleccionar una fila para ver detalles",
+      "selectedBadge": "seleccionado",
+      "usefulLabel": "Adición útil",
+      "running": "En ejecución...",
+      "partialSavePending": "pendiente",
+      "partialSaveReady": "listo",
+      "dataContractLabel": "Contrato de datos",
+      "noDesignResults": "Sin resultados de diseño",
+      "implementationLabel": "Implementación",
+      "stalenessLinked": "vinculado",
+      "exportTargets": "MAME handoff",
+      "plateMap": "Mapa de placa",
+      "nPlates": "{{count}} placa(s)",
+      "bridgeBadge": "bridge"
     }
   }
 }

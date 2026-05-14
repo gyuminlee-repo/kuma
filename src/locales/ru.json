@@ -1924,6 +1924,27 @@
       "drawerExportQueue": "Очередь экспорта",
       "drawerNext": "Далее",
       "sideCardBody": "Подтвердить цели экспорта. Пакет передачи MAME генерируется автоматически."
+    },
+    "inspector": {
+      "noArtifact": "Артефакт не загружен",
+      "round": "Раунд",
+      "variants": "Варианты",
+      "format": "Формат",
+      "intentLabel": "Намерение дизайна",
+      "selectRowPrompt": "Выберите строку для просмотра деталей",
+      "selectedBadge": "выбрано",
+      "usefulLabel": "Полезное дополнение",
+      "running": "Выполняется...",
+      "partialSavePending": "ожидание",
+      "partialSaveReady": "готово",
+      "dataContractLabel": "Контракт данных",
+      "noDesignResults": "Нет результатов дизайна",
+      "implementationLabel": "Реализация",
+      "stalenessLinked": "связано",
+      "exportTargets": "MAME handoff",
+      "plateMap": "Карта планшета",
+      "nPlates": "{{count}} планшет(а)",
+      "bridgeBadge": "bridge"
     }
   }
 }
