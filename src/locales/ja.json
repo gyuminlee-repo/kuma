@@ -246,7 +246,14 @@
       "polymerasePhusionTitle": "Thermo Phusion High-Fidelity。Tm プリセット約 72 °C、blunt-end、高速伸長。",
       "polymeraseKODTitle": "Toyobo KOD One / KOD Hot Start。Tm プリセット約 68 °C、Mg²⁺/dNTP 補正あり。高忠実度・高速。",
       "cdsCandidate": "CDS / ORF 候補:",
-      "cdsCandidateNoneDetected": "CDS が検出されませんでした。座標を手動で入力してください。"
+      "cdsCandidateNoneDetected": "CDS が検出されませんでした。座標を手動で入力してください。",
+      "autoDetect": {
+        "button": "Auto-detect from CDS",
+        "failed": "No ORF found",
+        "noReference": "Reference file required",
+        "readError": "Failed to read reference file",
+        "success": "Detected from {{source}}"
+      }
     },
     "activity": {
       "title": "活性データ",
@@ -259,7 +266,21 @@
         "uploadDesc": "long format の CSV / Excel ファイル (well, replicate, value カラム) を現在の Round に読み込み。",
         "wtHeading": "WT well 指定",
         "wtDesc": "正規化に使う wild-type well を指定します。Merge 前に必ず設定してください。",
-        "loaded": "✓ {{count}} wells 読み込み完了"
+        "loaded": "✓ {{count}} wells 読み込み完了",
+        "contextSubtitle": "Upload wet-lab activity measurements for this round.",
+        "contextTitle": "Activity Data — Ingest",
+        "drawerCenter": "Activity log",
+        "drawerLeft": "Activity",
+        "drawerLeftDesc": "Wells with measurements",
+        "drawerRight": "Next",
+        "drawerRightDesc": "Merge and export",
+        "inspectorMean": "Mean activity",
+        "inspectorNoData": "No activity data loaded",
+        "inspectorReplicates": "Replicates",
+        "inspectorStdDev": "Std dev",
+        "inspectorSubtitle": "Replicate statistics",
+        "inspectorTitle": "Activity Inspector",
+        "inspectorWtNorm": "WT-normalised"
       },
       "merge": {
         "heading": "活性データを genotype とマージ",
@@ -279,6 +300,26 @@
       "exportBlocked": {
         "title": "Export ブロック — label-swap を検出",
         "body": "前 round の EVOLVEpro 結果と比較し、activity 値を共有する variants の label マッピングを確認してください。"
+      },
+      "mergeExport": {
+        "contextSubtitle": "Merge genotype with activity and export EVOLVEpro input.",
+        "contextTitle": "Activity Data — Merge and Export",
+        "drawerCenter": "Merge log",
+        "drawerLeft": "Export files",
+        "drawerLeftDesc": "Files ready for export",
+        "drawerRight": "Handoff",
+        "drawerRightDesc": "Return to KURO for next round",
+        "inspectorActivity": "Activity",
+        "inspectorBridgeCallout": "Bidirectional bridge",
+        "inspectorBridgeDesc": "Merged table flows back to KURO as EVOLVEpro input for the next design round.",
+        "inspectorMergedRows": "Merged rows",
+        "inspectorNoMerge": "No merge performed yet",
+        "inspectorStatus": "Status",
+        "inspectorSubtitle": "R585A merge summary",
+        "inspectorTitle": "Export Inspector",
+        "inspectorVariant": "Variant",
+        "openJanusExport": "Open JANUS export...",
+        "openJanusExportAriaLabel": "Open JANUS cell-stock mapping export dialog"
       }
     },
     "runHealth": {
@@ -382,7 +423,19 @@
       "statusInProgress": "進行中"
     },
     "menuBar": {
-      "restartSidecarConfirm": "解析が実行中です。Sidecar を再起動しますか?"
+      "restartSidecarConfirm": "解析が実行中です。Sidecar を再起動しますか?",
+      "closeBtn": "Close",
+      "compareWorkspacesColA": "Workspace A",
+      "compareWorkspacesColB": "Workspace B",
+      "compareWorkspacesColField": "Field",
+      "compareWorkspacesDiff": "{{count}} difference{{plural}} found.",
+      "compareWorkspacesFailed": "Workspace compare failed: {{error}}",
+      "compareWorkspacesNoDiff": "No differences found.",
+      "compareWorkspacesSame": "The two workspaces are identical.",
+      "compareWorkspacesTitle": "Compare Workspaces",
+      "exportWorkspaceZipSoon": "Export workspace as zip - coming soon",
+      "selectWorkspaceA": "Select first workspace (A)",
+      "selectWorkspaceB": "Select second workspace (B)"
     },
     "statusBar": {
       "ready": "準備完了",
@@ -413,11 +466,14 @@
         "analyze": {
           "inputs": "入力",
           "verdict": "Verdicts",
-          "plate": "Plate Plan"
+          "plate": "Plate Plan",
+          "health": "Run Health"
         },
         "activity": {
           "ingest": "Ingest",
-          "mergeExport": "Merge & Export"
+          "mergeExport": "Merge & Export",
+          "export": "Export",
+          "merge": "Merge"
         }
       },
       "barcodeSetupTabTitle": "Run Setup — part of NGS Validation (step ② of PI workflow)",
@@ -1379,7 +1435,8 @@
       "mame": "mame",
       "closeWindow": "ウィンドウを閉じる",
       "quit": "kuma を終了"
-    }
+    },
+    "fileMenuTrigger": "File"
   },
   "panel": {
     "errorTitle": "表示できません",
@@ -1556,7 +1613,9 @@
     "browseAriaLabel": "活性ファイルを参照してアップロード",
     "uploadingBtn": "アップロード中...",
     "browseBtn": "参照してアップロード",
-    "recordsLoaded": "{{count}} wells 読み込み完了"
+    "recordsLoaded": "{{count}} wells 読み込み完了",
+    "formatAriaLabel": "Activity file format",
+    "formatLabel": "Format"
   },
   "preflight": {
     "titleFailed": "プリフライトチェック失敗",
@@ -1590,8 +1649,6 @@
     "bomCheckboxAriaLabel": "Excel 互換のため UTF-8 BOM を追加",
     "bomCheckboxLabel": "UTF-8 BOM を追加",
     "bomCheckboxHint": "(Excel 互換)",
-    "transferVolumeRange": "範囲: {{min}}–{{max}} {{unit}}",
-    "echoMaxNote": "(最大 500 nL)",
     "cancelBtn": "キャンセル",
     "exportBtn": "エクスポート"
   },
@@ -1718,14 +1775,16 @@
     "majors": {
       "design": "Design",
       "export": "Export",
-      "output": "出力"
+      "output": "出力",
+      "plate": "Plate Map"
     },
     "subSteps": {
       "design": {
         "load": "Variants を読み込み",
         "mutation": "Mutations",
         "params": "Primer パラメータ",
-        "submit": "プールフィルター & 実行"
+        "submit": "プールフィルター & 実行",
+        "variant": "Pool Filters"
       },
       "export": {
         "all": "Export",
@@ -1735,6 +1794,9 @@
       },
       "output": {
         "summary": "サマリー"
+      },
+      "plate": {
+        "layout": "Plate Map"
       }
     },
     "badge": {
@@ -1784,16 +1846,20 @@
     "mameSubSteps": {
       "setup": {
         "files": "Files & Coordinates",
-        "design": "Design パラメータ"
+        "design": "Design パラメータ",
+        "output": "Generate Package"
       },
       "analyze": {
         "inputs": "入力",
         "verdict": "Verdicts",
-        "plate": "Plate Plan"
+        "plate": "Plate Plan",
+        "health": "Run Health"
       },
       "activity": {
         "ingest": "データ Ingest",
-        "mergeExport": "Merge & Export"
+        "mergeExport": "Merge & Export",
+        "export": "Export",
+        "merge": "Merge"
       }
     }
   },
@@ -1809,7 +1875,8 @@
         "load": "EVOLVEpro CSV をアップロード、またはタンパク質配列を貼り付けてください。",
         "mutation": "含める mutations を定義。",
         "params": "Primer 設計パラメータを設定して実行。",
-        "submit": "バリアントプールフィルターを選択し、プライマー設計を実行します。"
+        "submit": "バリアントプールフィルターを選択し、プライマー設計を実行します。",
+        "variant": "Configure variant pool filters."
       },
       "output": {
         "summary": "設計結果、統計、プレートレイアウトを確認します。"

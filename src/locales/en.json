@@ -251,40 +251,76 @@
         "failed": "No ORF found",
         "noReference": "Reference file required",
         "readError": "Failed to read reference file"
-      }
+      },
+      "cdsCandidate": "CDS / ORF candidate:",
+      "cdsCandidateNoneDetected": "No CDS detected. Enter coordinates manually."
     },
     "activity": {
-      "title": "Activity data",
-      "subtitle": "Enter this phase once wet-lab activity measurements are ready (typically days to weeks after Phase 1 Barcode Setup and Phase 2 Analyze). Load measurements, merge with genotype, then export the EVOLVEpro training input.",
-      "tabIngest": "1. Ingest",
-      "tabMerge": "2. Merge",
-      "tabExport": "3. Export",
       "ingest": {
-        "uploadHeading": "Upload activity data",
-        "uploadDesc": "Load a long-format CSV / Excel file (well, replicate, value columns) into the current Round.",
-        "wtHeading": "WT well annotation",
+        "contextTitle": "Activity Data — Ingest",
+        "contextSubtitle": "Upload wet-lab activity measurements for this round.",
+        "drawerLeft": "Activity",
+        "drawerLeftDesc": "Wells with measurements",
+        "drawerCenter": "Activity log",
+        "drawerRight": "Next",
+        "drawerRightDesc": "Merge and export",
+        "inspectorTitle": "Activity Inspector",
+        "inspectorSubtitle": "Replicate statistics",
+        "inspectorMean": "Mean activity",
+        "inspectorStdDev": "Std dev",
+        "inspectorReplicates": "Replicates",
+        "inspectorWtNorm": "WT-normalised",
+        "inspectorNoData": "No activity data loaded",
+        "loaded": "✓ {{count}} wells loaded",
+        "uploadDesc": "Load a long-format CSV / Excel file (well, replicate, value columns) into the current round.",
+        "uploadHeading": "Upload Activity data",
         "wtDesc": "Designate the wild-type wells used for normalisation. Must be set before Merge.",
-        "loaded": "✓ {{count}} wells loaded"
+        "wtHeading": "WT-well annotation"
       },
-      "merge": {
-        "heading": "Merge activity with genotype",
-        "desc": "Join uploaded activity with the Round genotype and normalise by WT.",
-        "btnLegacy": "Merge with genotype",
-        "btnLegacyBusy": "Merging…",
-        "btnEvolvepro": "Merge for EVOLVEpro (v0.3)",
-        "btnEvolveproBusy": "Merging…",
-        "btnEvolveproAria": "Run v0.3 RPC: replicate merge + label-swap guard"
+      "mergeExport": {
+        "contextTitle": "Activity Data — Merge and Export",
+        "contextSubtitle": "Merge genotype with activity and export EVOLVEpro input.",
+        "drawerLeft": "Export files",
+        "drawerLeftDesc": "Files ready for export",
+        "drawerCenter": "Merge log",
+        "drawerRight": "Handoff",
+        "drawerRightDesc": "Return to KURO for next round",
+        "inspectorTitle": "Export Inspector",
+        "inspectorSubtitle": "R585A merge summary",
+        "inspectorVariant": "Variant",
+        "inspectorActivity": "Activity",
+        "inspectorMergedRows": "Merged rows",
+        "inspectorStatus": "Status",
+        "inspectorBridgeCallout": "Bidirectional bridge",
+        "inspectorBridgeDesc": "Merged table flows back to KURO as EVOLVEpro input for the next design round.",
+        "inspectorNoMerge": "No merge performed yet",
+        "openJanusExport": "Open JANUS export...",
+        "openJanusExportAriaLabel": "Open JANUS cell-stock mapping export dialog"
       },
       "export": {
-        "heading": "Export EVOLVEpro xlsx",
-        "desc": "Save the merged table as an EVOLVEpro training input xlsx (strict 2-column [Variant, activity] format, short variant notation such as F89W → 89W).",
         "btn": "Export EVOLVEpro xlsx",
-        "btnBusy": "Exporting…"
+        "btnBusy": "Exporting...",
+        "desc": "Save the merged table as an EVOLVEpro training input xlsx (strict 2-column [Variant, Activity] format, short variant notation such as F89W → 89W).",
+        "heading": "Export EVOLVEpro xlsx"
       },
       "exportBlocked": {
-        "title": "Export blocked — label-swap detected",
-        "body": "Compare with the previous round's EVOLVEpro result and verify the label mapping for variants that share an activity value."
-      }
+        "body": "Compare with the previous round's EVOLVEpro result and verify the label mapping for variants that share an Activity value.",
+        "title": "Export blocked — label-swap detected"
+      },
+      "merge": {
+        "btnEvolvepro": "Merge for EVOLVEpro (v0.3)",
+        "btnEvolveproAria": "Run v0.3 RPC: replicate merge + label-swap guard",
+        "btnEvolveproBusy": "Merging...",
+        "btnLegacy": "Merge with genotype",
+        "btnLegacyBusy": "Merging...",
+        "desc": "Join uploaded activity with the round genotype and normalise by WT.",
+        "heading": "Merge activity with genotype"
+      },
+      "tabExport": "3. Export",
+      "tabIngest": "1. Ingest",
+      "tabMerge": "2. Merge",
+      "subtitle": "Enter this phase once wet-lab activity measurements are ready (typically days to weeks after Phase 1 Barcode Setup and Phase 2 Analyze). Load measurements, merge with genotype, then export the EVOLVEpro training input.",
+      "title": "Activity data"
     },
     "runHealth": {
       "panelAriaLabel": "Run health panel",
@@ -358,7 +394,15 @@
       "colDepth": "Depth (reads)",
       "colNotes": "Notes",
       "fileSizeAriaLabel": "File size: {{kb}} KB",
-      "fallbackAriaLabel": "Fallback replicate"
+      "fallbackAriaLabel": "Fallback replicate",
+      "evolveproExport": {
+        "header": "EVOLVEpro",
+        "includedTitle": "Will be included in EVOLVEpro export.",
+        "reasonNgsFail": "Excluded — NGS validation failed.",
+        "reasonNoActivity": "Excluded — no activity data available.",
+        "reasonNoLog2fc": "Excluded — log₂FC could not be computed.",
+        "reasonWt": "Excluded — wild-type sample (not a variant)."
+      }
     },
     "summaryRow": {
       "ariaLabel": "Analysis summary",
@@ -428,9 +472,13 @@
         "activity": {
           "ingest": "Ingest",
           "merge": "Merge",
-          "export": "Export"
+          "export": "Export",
+          "mergeExport": "Merge & Export"
         }
-      }
+      },
+      "activityTabTitle": "Activity Data — EVOLVEpro input conversion (step ④ of PI workflow)",
+      "analyzeTabTitle": "Sequencing QC — part of NGS Validation (step ② of PI workflow)",
+      "barcodeSetupTabTitle": "Run Setup — part of NGS Validation (step ② of PI workflow)"
     },
     "dialogs": {
       "export": {
@@ -627,47 +675,26 @@
         "clusterAlertAriaLabel": "Plate cluster failure alert"
       }
     },
-    "activity": {
-      "ingest": {
-        "contextTitle": "Activity Data — Ingest",
-        "contextSubtitle": "Upload wet-lab activity measurements for this round.",
-        "drawerLeft": "Activity",
-        "drawerLeftDesc": "Wells with measurements",
-        "drawerCenter": "Activity log",
-        "drawerRight": "Next",
-        "drawerRightDesc": "Merge and export",
-        "inspectorTitle": "Activity Inspector",
-        "inspectorSubtitle": "Replicate statistics",
-        "inspectorMean": "Mean activity",
-        "inspectorStdDev": "Std dev",
-        "inspectorReplicates": "Replicates",
-        "inspectorWtNorm": "WT-normalised",
-        "inspectorNoData": "No activity data loaded"
-      },
-      "mergeExport": {
-        "contextTitle": "Activity Data — Merge and Export",
-        "contextSubtitle": "Merge genotype with activity and export EVOLVEpro input.",
-        "drawerLeft": "Export files",
-        "drawerLeftDesc": "Files ready for export",
-        "drawerCenter": "Merge log",
-        "drawerRight": "Handoff",
-        "drawerRightDesc": "Return to KURO for next round",
-        "inspectorTitle": "Export Inspector",
-        "inspectorSubtitle": "R585A merge summary",
-        "inspectorVariant": "Variant",
-        "inspectorActivity": "Activity",
-        "inspectorMergedRows": "Merged rows",
-        "inspectorStatus": "Status",
-        "inspectorBridgeCallout": "Bidirectional bridge",
-        "inspectorBridgeDesc": "Merged table flows back to KURO as EVOLVEpro input for the next design round.",
-        "inspectorNoMerge": "No merge performed yet",
-        "openJanusExport": "Open JANUS export...",
-        "openJanusExportAriaLabel": "Open JANUS cell-stock mapping export dialog"
-      }
-    },
     "inspector": {
       "kvEmpty": "—",
       "noDataPlaceholder": "No data available"
+    },
+    "janusDeck": {
+      "ariaLabel": "JANUS deck layout preview",
+      "aspDspNote": "Aspirate position = Dispense position (same coordinate).",
+      "deckImageAriaLabel": "JANUS deck slot positions: top row tip flush, source plates P1 P2 P3; bottom row waste, two blank slots, final 96 deep well",
+      "headFixedNote": "Head position fixed",
+      "matchByNameNote": "JANUS software matches plates by name; deck slot positions shown here are the conventional layout.",
+      "slot": {
+        "blank": "Blank",
+        "final": "Final 96 Deep Well",
+        "p1": "Stock Plate P1",
+        "p2": "Stock Plate P2",
+        "p3": "Stock Plate P3",
+        "tipFlush": "Tip Flush",
+        "waste": "Waste"
+      },
+      "title": "JANUS Deck Layout"
     }
   },
   "home": {
@@ -1376,7 +1403,39 @@
     "view": {
       "title": "View",
       "logs": "Show Logs",
-      "jobs": "Show Jobs"
+      "jobs": "Show Jobs",
+      "fullscreen": "Full screen",
+      "fullscreenError": "Failed to toggle fullscreen: {{message}}",
+      "language": "Language",
+      "theme": {
+        "dark": "Dark",
+        "light": "Light",
+        "system": "System auto",
+        "title": "Theme"
+      }
+    },
+    "appMenu": {
+      "closeWindow": "Close window",
+      "kuro": "kuro",
+      "mame": "mame",
+      "quit": "Quit kuma"
+    },
+    "edit": {
+      "preferences": "Preferences...",
+      "title": "Edit"
+    },
+    "help": {
+      "reportIssue": "Report issue"
+    },
+    "run": {
+      "checkSidecar": "Check sidecar status",
+      "diagnostics": "Sidecar diagnostics...",
+      "replay": "Replay saved run...",
+      "replayError": "Failed to load manifest: {{message}}",
+      "sidecarHealthAlive": "sidecar ready · v{{version}} · uptime {{uptime}}s",
+      "sidecarHealthDead": "sidecar not responding. Use Restart Sidecar",
+      "sidecarHealthUnresponsive": "sidecar process not responding · {{message}}",
+      "title": "Run"
     }
   },
   "panel": {
@@ -1716,14 +1775,16 @@
     "majors": {
       "design": "Design",
       "plate": "Plate Map",
-      "export": "Export"
+      "export": "Export",
+      "output": "Output"
     },
     "subSteps": {
       "design": {
         "load": "Load Variants",
         "variant": "Pool Filters",
         "mutation": "Mutations",
-        "params": "Primer Parameters"
+        "params": "Primer Parameters",
+        "submit": "Pool Filters & Run"
       },
       "plate": {
         "layout": "Plate Map"
@@ -1733,6 +1794,9 @@
         "format": "Format",
         "summary": "Order summary",
         "workspace": "Workspace save"
+      },
+      "output": {
+        "summary": "Summary"
       }
     },
     "badge": {
@@ -1794,7 +1858,8 @@
       "activity": {
         "ingest": "Ingest Data",
         "merge": "Merge",
-        "export": "Export"
+        "export": "Export",
+        "mergeExport": "Merge & Export"
       }
     }
   },
@@ -1810,7 +1875,29 @@
         "load": "Upload an EVOLVEpro CSV or paste a protein sequence.",
         "variant": "Configure variant pool filters.",
         "mutation": "Define mutations to include.",
-        "params": "Set primer design parameters and run."
+        "params": "Set primer design parameters and run.",
+        "submit": "Select variant pool filters, then run primer design."
+      },
+      "export": {
+        "all": "Export primer orders as IDT/Twist CSV or FASTA."
+      },
+      "output": {
+        "summary": "Review design results, statistics, and plate layout."
+      }
+    },
+    "mameDescriptions": {
+      "activity": {
+        "ingest": "Upload activity CSV or Excel files and annotate the wild-type.",
+        "mergeExport": "Merge activity data with genotype calls, then export the merged table for EVOLVEpro input."
+      },
+      "analyze": {
+        "inputs": "Set the input directory and analysis parameters, then run.",
+        "plate": "Inspect the plate layout with barcode and variant assignments, and per-plate health indicators.",
+        "verdict": "Review per-well pass/fail verdicts, summary statistics, and sequencing throughput metrics."
+      },
+      "setup": {
+        "design": "Configure primer design parameters and generate the barcode package.",
+        "files": "Select the MinKNOW run folder and reference sequence for this run."
       }
     }
   },
@@ -1897,6 +1984,35 @@
       "plateMap": "Plate map",
       "nPlates": "{{count}} plate(s)",
       "bridgeBadge": "bridge"
+    }
+  },
+  "shortcutsDialog": {
+    "category": {
+      "edit": "Edit",
+      "file": "File",
+      "help": "Help",
+      "run": "Run",
+      "view": "View"
+    },
+    "empty": "No shortcuts match the search.",
+    "searchPlaceholder": "Search...",
+    "title": "Keyboard shortcuts"
+  },
+  "wizardContainer": {
+    "validationDialog": {
+      "description": "Please complete the following before continuing.",
+      "missingItemsLabel": "Missing items",
+      "title": "Missing information"
+    }
+  },
+  "report": {
+    "noResultsDesc": "Run Design first to see primer results here.",
+    "noResultsTitle": "No results yet",
+    "stats": {
+      "failed": "Failed",
+      "plates": "Plates",
+      "primers": "Primers",
+      "rescued": "Rescued"
     }
   }
 }

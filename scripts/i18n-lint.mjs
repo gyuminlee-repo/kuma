@@ -21,6 +21,9 @@ const ALLOWLIST = {
   "src/components/ui/LocaleToggle.tsx": new Set([20]),
   // 한국어 주석 — JSX comment이므로 i18n 처리 불필요
   "src/components/mame/panels/BarcodeSetupPanel.tsx": new Set([304, 305]),
+  // language endonym — conventionally untranslated in language pickers
+  "src/components/layout/MenuBar.tsx": new Set([74]),
+  "src/components/mame/layout/MenuBar.tsx": new Set([72]),
 };
 
 function walk(dir, out = []) {

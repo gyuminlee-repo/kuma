@@ -41,7 +41,7 @@
     "titleMame": "Mame 정보",
     "kuroDescription": "Tm 기반 오버랩 연장을 활용한 SDM 프라이머 배치 설계 도구.",
     "kuroBuiltWith": "Tauri + React + primer3-py로 구축",
-    "mameTagline": "돌연변이 평가 및 마이크로플레이트 내보내기",
+    "mameTagline": "Mutagenesis Assessment & Microplate Export",
     "mameSummary": "NB-plate 돌연변이 실험 결과 분석 데스크톱 도구.",
     "mameBuiltWith": "Tauri + React + Python sidecar로 구축.",
     "checkForUpdates": "업데이트 확인",
@@ -251,40 +251,76 @@
         "failed": "ORF를 찾을 수 없음",
         "noReference": "Reference 파일이 필요합니다",
         "readError": "Reference 파일 읽기 실패"
-      }
+      },
+      "cdsCandidate": "CDS / ORF 후보:",
+      "cdsCandidateNoneDetected": "CDS를 감지하지 못했습니다. 좌표를 수동으로 입력하세요."
     },
     "activity": {
-      "title": "활성 데이터",
-      "subtitle": "Phase 1 (Barcode Setup), Phase 2 (Analyze) 이후 실험·측정이 끝난 시점(보통 며칠~몇 주 뒤)에 진입하는 단계입니다. 측정값 적재 → genotype 병합 → EVOLVEpro 학습용 xlsx 내보내기를 수행합니다.",
-      "tabIngest": "1. 수집",
-      "tabMerge": "2. 병합",
-      "tabExport": "3. 내보내기",
       "ingest": {
+        "contextTitle": "활성 데이터 — 수집",
+        "contextSubtitle": "이번 라운드의 wet-lab 활성 측정값을 업로드합니다.",
+        "drawerLeft": "활성",
+        "drawerLeftDesc": "측정값이 있는 well",
+        "drawerCenter": "활성 로그",
+        "drawerRight": "다음",
+        "drawerRightDesc": "병합 및 내보내기",
+        "inspectorTitle": "활성 Inspector",
+        "inspectorSubtitle": "반복 통계",
+        "inspectorMean": "평균 활성",
+        "inspectorStdDev": "표준편차",
+        "inspectorReplicates": "반복수",
+        "inspectorWtNorm": "WT 정규화",
+        "inspectorNoData": "활성 데이터가 로드되지 않음",
+        "loaded": "✓ {{count}}개 웰 로드됨",
+        "uploadDesc": "현재 라운드에 롱 포맷 CSV / Excel 파일 (웰, 반복 실험, 값 열)을 로드합니다.",
         "uploadHeading": "활성 데이터 업로드",
-        "uploadDesc": "Long 형식 CSV / Excel (well, replicate, value 컬럼)을 현재 Round에 적재합니다.",
-        "wtHeading": "WT well 지정",
-        "wtDesc": "정규화 기준이 되는 wild-type well 위치를 지정합니다. Merge 전에 설정해야 합니다.",
-        "loaded": "✓ {{count}} wells 적재됨"
+        "wtDesc": "정규화에 사용할 야생형 웰을 지정합니다. 병합 전에 설정해야 합니다.",
+        "wtHeading": "WT 웰 주석"
       },
-      "merge": {
-        "heading": "genotype과 활성 데이터 병합",
-        "desc": "업로드된 activity와 Round의 genotype을 조인하고 WT로 정규화합니다.",
-        "btnLegacy": "genotype과 병합",
-        "btnLegacyBusy": "병합 중…",
-        "btnEvolvepro": "EVOLVEpro용 병합 (v0.3)",
-        "btnEvolveproBusy": "병합 중…",
-        "btnEvolveproAria": "v0.3 신규 RPC: replicate 병합 + 라벨 교체 가드 실행"
+      "mergeExport": {
+        "contextTitle": "활성 데이터 — 병합 및 내보내기",
+        "contextSubtitle": "유전형과 활성을 병합하고 EVOLVEpro 입력을 내보냅니다.",
+        "drawerLeft": "내보내기 파일",
+        "drawerLeftDesc": "내보낼 준비 완료",
+        "drawerCenter": "병합 로그",
+        "drawerRight": "핸드오프",
+        "drawerRightDesc": "다음 라운드를 위해 KURO로 복귀",
+        "inspectorTitle": "내보내기 Inspector",
+        "inspectorSubtitle": "R585A 병합 요약",
+        "inspectorVariant": "변이체",
+        "inspectorActivity": "활성",
+        "inspectorMergedRows": "병합된 행",
+        "inspectorStatus": "상태",
+        "inspectorBridgeCallout": "양방향 브리지",
+        "inspectorBridgeDesc": "병합된 테이블이 다음 설계 라운드를 위해 EVOLVEpro 입력으로 KURO에 전달됩니다.",
+        "inspectorNoMerge": "병합이 수행되지 않음",
+        "openJanusExport": "JANUS 내보내기 열기...",
+        "openJanusExportAriaLabel": "JANUS 세포 재고 매핑 내보내기 대화상자 열기"
       },
       "export": {
-        "heading": "EVOLVEpro xlsx 내보내기",
-        "desc": "병합된 표를 EVOLVEpro 학습 입력 xlsx로 저장합니다 (엄격한 2열 [Variant, activity] 형식, F89W → 89W 같은 축약 변이 표기 사용).",
         "btn": "EVOLVEpro xlsx 내보내기",
-        "btnBusy": "내보내는 중…"
+        "btnBusy": "내보내는 중...",
+        "desc": "병합된 표를 EVOLVEpro 훈련 입력 xlsx로 저장합니다 (엄격한 2열 [변이체, 활성] 형식, F89W → 89W와 같은 약식 변이체 표기).",
+        "heading": "EVOLVEpro xlsx 내보내기"
       },
       "exportBlocked": {
-        "title": "내보내기 차단: 라벨 교체 감지",
-        "body": "이전 라운드 EVOLVEpro 결과와 비교해 같은 활성값을 가진 변이의 라벨 매핑을 확인하세요."
-      }
+        "body": "이전 라운드의 EVOLVEpro 결과와 비교하고 동일한 활성값을 가진 변이체의 레이블 매핑을 확인하세요.",
+        "title": "내보내기 차단됨 — 레이블 교체 감지"
+      },
+      "merge": {
+        "btnEvolvepro": "EVOLVEpro용 병합 (v0.3)",
+        "btnEvolveproAria": "v0.3 RPC 실행: 반복 실험 병합 + 레이블 교체 감지",
+        "btnEvolveproBusy": "병합 중...",
+        "btnLegacy": "유전자형과 병합",
+        "btnLegacyBusy": "병합 중...",
+        "desc": "업로드된 활성 데이터를 라운드 유전자형과 결합하고 야생형으로 정규화합니다.",
+        "heading": "활성 데이터를 유전자형과 병합"
+      },
+      "tabExport": "3. 내보내기",
+      "tabIngest": "1. 수집",
+      "tabMerge": "2. 병합",
+      "subtitle": "Phase 1 바코드 설정 및 Phase 2 분석 이후 (보통 며칠~수 주 후) 습식 실험 활성 측정이 완료되면 이 단계에 진입합니다. 측정값을 로드하고 유전자형과 병합한 후 EVOLVEpro 훈련 입력을 내보냅니다.",
+      "title": "활성 데이터"
     },
     "runHealth": {
       "panelAriaLabel": "실행 상태 패널",
@@ -358,7 +394,15 @@
       "colDepth": "깊이 (리드)",
       "colNotes": "비고",
       "fileSizeAriaLabel": "파일 크기: {{kb}} KB",
-      "fallbackAriaLabel": "대체 반복"
+      "fallbackAriaLabel": "대체 반복",
+      "evolveproExport": {
+        "header": "EVOLVEpro",
+        "includedTitle": "EVOLVEpro 내보내기에 포함됩니다.",
+        "reasonNgsFail": "제외됨 — NGS 검증 실패.",
+        "reasonNoActivity": "제외됨 — 활성 데이터 없음.",
+        "reasonNoLog2fc": "제외됨 — log₂FC를 계산할 수 없음.",
+        "reasonWt": "제외됨 — 야생형 샘플 (변이체 아님)."
+      }
     },
     "summaryRow": {
       "ariaLabel": "분석 요약",
@@ -428,9 +472,13 @@
         "activity": {
           "ingest": "인제스트",
           "merge": "병합",
-          "export": "내보내기"
+          "export": "내보내기",
+          "mergeExport": "병합 및 내보내기"
         }
-      }
+      },
+      "activityTabTitle": "활성 데이터 — EVOLVEpro 입력 변환 (PI 워크플로우 단계 ④)",
+      "analyzeTabTitle": "시퀀싱 QC — NGS 검증의 일부 (PI 워크플로우 단계 ②)",
+      "barcodeSetupTabTitle": "실행 설정 — NGS 검증의 일부 (PI 워크플로우 단계 ②)"
     },
     "dialogs": {
       "export": {
@@ -627,47 +675,26 @@
         "clusterAlertAriaLabel": "플레이트 클러스터 실패 경고"
       }
     },
-    "activity": {
-      "ingest": {
-        "contextTitle": "활성 데이터 — 수집",
-        "contextSubtitle": "이번 라운드의 wet-lab 활성 측정값을 업로드합니다.",
-        "drawerLeft": "활성",
-        "drawerLeftDesc": "측정값이 있는 well",
-        "drawerCenter": "활성 로그",
-        "drawerRight": "다음",
-        "drawerRightDesc": "병합 및 내보내기",
-        "inspectorTitle": "활성 Inspector",
-        "inspectorSubtitle": "반복 통계",
-        "inspectorMean": "평균 활성",
-        "inspectorStdDev": "표준편차",
-        "inspectorReplicates": "반복수",
-        "inspectorWtNorm": "WT 정규화",
-        "inspectorNoData": "활성 데이터가 로드되지 않음"
-      },
-      "mergeExport": {
-        "contextTitle": "활성 데이터 — 병합 및 내보내기",
-        "contextSubtitle": "유전형과 활성을 병합하고 EVOLVEpro 입력을 내보냅니다.",
-        "drawerLeft": "내보내기 파일",
-        "drawerLeftDesc": "내보낼 준비 완료",
-        "drawerCenter": "병합 로그",
-        "drawerRight": "핸드오프",
-        "drawerRightDesc": "다음 라운드를 위해 KURO로 복귀",
-        "inspectorTitle": "내보내기 Inspector",
-        "inspectorSubtitle": "R585A 병합 요약",
-        "inspectorVariant": "변이체",
-        "inspectorActivity": "활성",
-        "inspectorMergedRows": "병합된 행",
-        "inspectorStatus": "상태",
-        "inspectorBridgeCallout": "양방향 브리지",
-        "inspectorBridgeDesc": "병합된 테이블이 다음 설계 라운드를 위해 EVOLVEpro 입력으로 KURO에 전달됩니다.",
-        "inspectorNoMerge": "병합이 수행되지 않음",
-        "openJanusExport": "JANUS 내보내기 열기...",
-        "openJanusExportAriaLabel": "JANUS 세포 재고 매핑 내보내기 대화상자 열기"
-      }
-    },
     "inspector": {
       "kvEmpty": "—",
       "noDataPlaceholder": "데이터 없음"
+    },
+    "janusDeck": {
+      "ariaLabel": "JANUS 덱 레이아웃 미리보기",
+      "aspDspNote": "흡입 위치 = 분배 위치 (동일 좌표).",
+      "deckImageAriaLabel": "JANUS 덱 슬롯 위치: 상단 열 팁 플러시, 소스 플레이트 P1 P2 P3; 하단 열 폐기물, 빈 슬롯 2개, 최종 96 딥웰",
+      "headFixedNote": "헤드 위치 고정",
+      "matchByNameNote": "JANUS 소프트웨어는 이름으로 플레이트를 매칭합니다; 여기 표시된 덱 슬롯 위치는 일반적인 레이아웃입니다.",
+      "slot": {
+        "blank": "빈 슬롯",
+        "final": "최종 96 딥웰",
+        "p1": "스톡 플레이트 P1",
+        "p2": "스톡 플레이트 P2",
+        "p3": "스톡 플레이트 P3",
+        "tipFlush": "팁 플러시",
+        "waste": "폐기물"
+      },
+      "title": "JANUS 덱 레이아웃"
     }
   },
   "home": {
@@ -1376,7 +1403,39 @@
     "view": {
       "title": "보기",
       "logs": "로그 표시",
-      "jobs": "작업 표시"
+      "jobs": "작업 표시",
+      "fullscreen": "전체 화면",
+      "fullscreenError": "전체 화면 전환 실패: {{message}}",
+      "language": "언어",
+      "theme": {
+        "dark": "어두운 테마",
+        "light": "밝은 테마",
+        "system": "시스템 자동",
+        "title": "테마"
+      }
+    },
+    "appMenu": {
+      "closeWindow": "창 닫기",
+      "kuro": "kuro",
+      "mame": "mame",
+      "quit": "kuma 종료"
+    },
+    "edit": {
+      "preferences": "환경설정...",
+      "title": "편집"
+    },
+    "help": {
+      "reportIssue": "문제 보고"
+    },
+    "run": {
+      "checkSidecar": "사이드카 상태 확인",
+      "diagnostics": "사이드카 진단...",
+      "replay": "저장된 실행 재생...",
+      "replayError": "매니페스트 로드 실패: {{message}}",
+      "sidecarHealthAlive": "사이드카 준비됨 · v{{version}} · 가동시간 {{uptime}}s",
+      "sidecarHealthDead": "사이드카가 응답하지 않습니다. 사이드카 재시작을 사용하세요",
+      "sidecarHealthUnresponsive": "사이드카 프로세스가 응답하지 않음 · {{message}}",
+      "title": "실행"
     }
   },
   "panel": {
@@ -1716,14 +1775,16 @@
     "majors": {
       "design": "설계",
       "plate": "플레이트 맵",
-      "export": "내보내기"
+      "export": "내보내기",
+      "output": "출력"
     },
     "subSteps": {
       "design": {
         "load": "변이체 로드",
         "variant": "풀 필터",
         "mutation": "변이",
-        "params": "프라이머 파라미터"
+        "params": "프라이머 파라미터",
+        "submit": "풀 필터 및 실행"
       },
       "plate": {
         "layout": "플레이트 맵"
@@ -1733,6 +1794,9 @@
         "format": "형식",
         "summary": "주문 요약",
         "workspace": "워크스페이스 저장"
+      },
+      "output": {
+        "summary": "요약"
       }
     },
     "badge": {
@@ -1794,7 +1858,8 @@
       "activity": {
         "ingest": "데이터 수집",
         "merge": "병합",
-        "export": "내보내기"
+        "export": "내보내기",
+        "mergeExport": "병합 및 내보내기"
       }
     }
   },
@@ -1810,7 +1875,29 @@
         "load": "EVOLVEpro CSV를 업로드하거나 단백질 시퀀스를 붙여넣으세요.",
         "variant": "변이체 풀 필터를 설정하세요.",
         "mutation": "포함할 변이를 정의하세요.",
-        "params": "프라이머 설계 파라미터를 설정하고 실행하세요."
+        "params": "프라이머 설계 파라미터를 설정하고 실행하세요.",
+        "submit": "변이체 풀 필터를 선택한 후 프라이머 설계를 실행합니다."
+      },
+      "export": {
+        "all": "프라이머 주문을 IDT/Twist CSV 또는 FASTA로 내보냅니다."
+      },
+      "output": {
+        "summary": "설계 결과, 통계 및 플레이트 레이아웃을 검토합니다."
+      }
+    },
+    "mameDescriptions": {
+      "activity": {
+        "ingest": "활성 CSV 또는 Excel 파일을 업로드하고 야생형을 주석 처리합니다.",
+        "mergeExport": "활성 데이터와 유전자형 호출을 병합한 후 병합된 표를 EVOLVEpro 입력으로 내보냅니다."
+      },
+      "analyze": {
+        "inputs": "입력 디렉토리와 분석 매개변수를 설정한 후 실행합니다.",
+        "plate": "바코드 및 변이체 할당과 플레이트별 상태 지표가 포함된 플레이트 레이아웃을 검사합니다.",
+        "verdict": "웰별 합격/불합격 판정, 요약 통계 및 시퀀싱 처리량 지표를 검토합니다."
+      },
+      "setup": {
+        "design": "프라이머 설계 매개변수를 구성하고 바코드 패키지를 생성합니다.",
+        "files": "이 실행의 MinKNOW 실행 폴더와 참조 시퀀스를 선택합니다."
       }
     }
   },
@@ -1897,6 +1984,35 @@
       "plateMap": "플레이트 맵",
       "nPlates": "{{count}}개 플레이트",
       "bridgeBadge": "bridge"
+    }
+  },
+  "shortcutsDialog": {
+    "category": {
+      "edit": "편집",
+      "file": "파일",
+      "help": "도움말",
+      "run": "실행",
+      "view": "보기"
+    },
+    "empty": "검색 결과가 없습니다.",
+    "searchPlaceholder": "검색...",
+    "title": "키보드 단축키"
+  },
+  "wizardContainer": {
+    "validationDialog": {
+      "description": "계속하기 전에 다음 항목을 완료해 주세요.",
+      "missingItemsLabel": "누락된 항목",
+      "title": "정보 누락"
+    }
+  },
+  "report": {
+    "noResultsDesc": "프라이머 결과를 보려면 먼저 설계를 실행하세요.",
+    "noResultsTitle": "아직 결과 없음",
+    "stats": {
+      "failed": "실패",
+      "plates": "플레이트",
+      "primers": "프라이머",
+      "rescued": "복구됨"
     }
   }
 }

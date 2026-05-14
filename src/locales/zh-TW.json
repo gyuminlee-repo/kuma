@@ -246,7 +246,14 @@
       "polymerasePhusionTitle": "Thermo Phusion High-Fidelity。Tm preset ~72 °C, 平末端, 快速延伸。",
       "polymeraseKODTitle": "Toyobo KOD One / KOD Hot Start。Tm preset ~68 °C, 含 Mg²⁺/dNTP 校正。高保真, 速度快。",
       "cdsCandidate": "CDS / ORF 候選:",
-      "cdsCandidateNoneDetected": "未偵測到 CDS。請手動輸入座標。"
+      "cdsCandidateNoneDetected": "未偵測到 CDS。請手動輸入座標。",
+      "autoDetect": {
+        "button": "Auto-detect from CDS",
+        "failed": "No ORF found",
+        "noReference": "Reference file required",
+        "readError": "Failed to read reference file",
+        "success": "Detected from {{source}}"
+      }
     },
     "activity": {
       "title": "Activity 資料",
@@ -259,7 +266,21 @@
         "uploadDesc": "將 long-format CSV / Excel 檔案 (well, replicate, value 列) 載入到當前 Round。",
         "wtHeading": "WT well 標註",
         "wtDesc": "指定用於歸一化的野生型 well。Merge 前必須設定。",
-        "loaded": "✓ 已載入 {{count}} wells"
+        "loaded": "✓ 已載入 {{count}} wells",
+        "contextSubtitle": "Upload wet-lab activity measurements for this round.",
+        "contextTitle": "Activity Data — Ingest",
+        "drawerCenter": "Activity log",
+        "drawerLeft": "Activity",
+        "drawerLeftDesc": "Wells with measurements",
+        "drawerRight": "Next",
+        "drawerRightDesc": "Merge and export",
+        "inspectorMean": "Mean activity",
+        "inspectorNoData": "No activity data loaded",
+        "inspectorReplicates": "Replicates",
+        "inspectorStdDev": "Std dev",
+        "inspectorSubtitle": "Replicate statistics",
+        "inspectorTitle": "Activity Inspector",
+        "inspectorWtNorm": "WT-normalised"
       },
       "merge": {
         "heading": "合併 activity 與 genotype",
@@ -279,6 +300,26 @@
       "exportBlocked": {
         "title": "匯出被阻止 — 檢測到 label-swap",
         "body": "請與上一輪的 EVOLVEpro 結果對比,核實共享同一 activity 值的 variant 的 label 對映。"
+      },
+      "mergeExport": {
+        "contextSubtitle": "Merge genotype with activity and export EVOLVEpro input.",
+        "contextTitle": "Activity Data — Merge and Export",
+        "drawerCenter": "Merge log",
+        "drawerLeft": "Export files",
+        "drawerLeftDesc": "Files ready for export",
+        "drawerRight": "Handoff",
+        "drawerRightDesc": "Return to KURO for next round",
+        "inspectorActivity": "Activity",
+        "inspectorBridgeCallout": "Bidirectional bridge",
+        "inspectorBridgeDesc": "Merged table flows back to KURO as EVOLVEpro input for the next design round.",
+        "inspectorMergedRows": "Merged rows",
+        "inspectorNoMerge": "No merge performed yet",
+        "inspectorStatus": "Status",
+        "inspectorSubtitle": "R585A merge summary",
+        "inspectorTitle": "Export Inspector",
+        "inspectorVariant": "Variant",
+        "openJanusExport": "Open JANUS export...",
+        "openJanusExportAriaLabel": "Open JANUS cell-stock mapping export dialog"
       }
     },
     "runHealth": {
@@ -382,7 +423,19 @@
       "statusInProgress": "進行中"
     },
     "menuBar": {
-      "restartSidecarConfirm": "分析正在執行。仍要重啟 sidecar 嗎?"
+      "restartSidecarConfirm": "分析正在執行。仍要重啟 sidecar 嗎?",
+      "closeBtn": "Close",
+      "compareWorkspacesColA": "Workspace A",
+      "compareWorkspacesColB": "Workspace B",
+      "compareWorkspacesColField": "Field",
+      "compareWorkspacesDiff": "{{count}} difference{{plural}} found.",
+      "compareWorkspacesFailed": "Workspace compare failed: {{error}}",
+      "compareWorkspacesNoDiff": "No differences found.",
+      "compareWorkspacesSame": "The two workspaces are identical.",
+      "compareWorkspacesTitle": "Compare Workspaces",
+      "exportWorkspaceZipSoon": "Export workspace as zip - coming soon",
+      "selectWorkspaceA": "Select first workspace (A)",
+      "selectWorkspaceB": "Select second workspace (B)"
     },
     "statusBar": {
       "ready": "就緒",
@@ -413,11 +466,14 @@
         "analyze": {
           "inputs": "輸入",
           "verdict": "Verdicts",
-          "plate": "Plate 佈局"
+          "plate": "Plate 佈局",
+          "health": "Run Health"
         },
         "activity": {
           "ingest": "Ingest",
-          "mergeExport": "Merge & Export"
+          "mergeExport": "Merge & Export",
+          "export": "Export",
+          "merge": "Merge"
         }
       },
       "barcodeSetupTabTitle": "Run Setup — part of NGS Validation (step ② of PI workflow)",
@@ -1379,7 +1435,8 @@
       "mame": "mame",
       "closeWindow": "關閉視窗",
       "quit": "結束 kuma"
-    }
+    },
+    "fileMenuTrigger": "File"
   },
   "panel": {
     "errorTitle": "無法顯示",
@@ -1556,7 +1613,9 @@
     "browseAriaLabel": "瀏覽並上傳 activity 檔案",
     "uploadingBtn": "上傳中...",
     "browseBtn": "瀏覽並上傳",
-    "recordsLoaded": "已載入 {{count}} wells"
+    "recordsLoaded": "已載入 {{count}} wells",
+    "formatAriaLabel": "Activity file format",
+    "formatLabel": "Format"
   },
   "preflight": {
     "titleFailed": "Pre-flight 檢查失敗",
@@ -1590,8 +1649,6 @@
     "bomCheckboxAriaLabel": "新增 UTF-8 BOM 以相容 Excel",
     "bomCheckboxLabel": "新增 UTF-8 BOM",
     "bomCheckboxHint": "(Excel 相容)",
-    "transferVolumeRange": "範圍：{{min}}–{{max}} {{unit}}",
-    "echoMaxNote": "(最大 500 nL)",
     "cancelBtn": "取消",
     "exportBtn": "匯出"
   },
@@ -1718,14 +1775,16 @@
     "majors": {
       "design": "Design",
       "export": "Export",
-      "output": "輸出"
+      "output": "輸出",
+      "plate": "Plate Map"
     },
     "subSteps": {
       "design": {
         "load": "載入 Variants",
         "mutation": "Mutations",
         "params": "Primer 引數",
-        "submit": "池篩選 & 執行"
+        "submit": "池篩選 & 執行",
+        "variant": "Pool Filters"
       },
       "export": {
         "all": "Export",
@@ -1735,6 +1794,9 @@
       },
       "output": {
         "summary": "摘要"
+      },
+      "plate": {
+        "layout": "Plate Map"
       }
     },
     "badge": {
@@ -1784,16 +1846,20 @@
     "mameSubSteps": {
       "setup": {
         "files": "檔案與座標",
-        "design": "Design 引數"
+        "design": "Design 引數",
+        "output": "Generate Package"
       },
       "analyze": {
         "inputs": "輸入",
         "verdict": "Verdicts",
-        "plate": "Plate 佈局"
+        "plate": "Plate 佈局",
+        "health": "Run Health"
       },
       "activity": {
         "ingest": "Ingest 資料",
-        "mergeExport": "Merge & Export"
+        "mergeExport": "Merge & Export",
+        "export": "Export",
+        "merge": "Merge"
       }
     }
   },
@@ -1809,7 +1875,8 @@
         "load": "上傳 EVOLVEpro CSV 或貼上蛋白質序列。",
         "mutation": "定義要包含的 mutation。",
         "params": "設定 primer 設計引數並執行。",
-        "submit": "選擇變體池篩選條件，然後執行引物設計。"
+        "submit": "選擇變體池篩選條件，然後執行引物設計。",
+        "variant": "Configure variant pool filters."
       },
       "output": {
         "summary": "查看設計結果、統計資料和板佈局。"

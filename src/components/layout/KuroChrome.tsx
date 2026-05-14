@@ -74,7 +74,7 @@ function MiniRow({
   value: string;
 }) {
   return (
-    <div className="flex items-center gap-2 py-0.5 text-[11px]">
+    <div className="flex min-w-0 items-center gap-2 py-0.5 text-[11px]">
       <span className="shrink-0 font-medium text-muted-foreground">{label}:</span>
       <span className="truncate text-foreground">{value}</span>
     </div>

@@ -246,7 +246,14 @@
       "polymerasePhusionTitle": "Thermo Phusion High-Fidelity。Tm preset ~72 °C, 平末端, 快速延伸。",
       "polymeraseKODTitle": "Toyobo KOD One / KOD Hot Start。Tm preset ~68 °C, 含 Mg²⁺/dNTP 校正。高保真, 速度快。",
       "cdsCandidate": "CDS / ORF 候选:",
-      "cdsCandidateNoneDetected": "未检测到 CDS。请手动输入坐标。"
+      "cdsCandidateNoneDetected": "未检测到 CDS。请手动输入坐标。",
+      "autoDetect": {
+        "button": "Auto-detect from CDS",
+        "failed": "No ORF found",
+        "noReference": "Reference file required",
+        "readError": "Failed to read reference file",
+        "success": "Detected from {{source}}"
+      }
     },
     "activity": {
       "title": "Activity 数据",
@@ -259,7 +266,21 @@
         "uploadDesc": "将 long-format CSV / Excel 文件 (well, replicate, value 列) 加载到当前 Round。",
         "wtHeading": "WT well 标注",
         "wtDesc": "指定用于归一化的野生型 well。Merge 前必须设置。",
-        "loaded": "✓ 已加载 {{count}} wells"
+        "loaded": "✓ 已加载 {{count}} wells",
+        "contextSubtitle": "Upload wet-lab activity measurements for this round.",
+        "contextTitle": "Activity Data — Ingest",
+        "drawerCenter": "Activity log",
+        "drawerLeft": "Activity",
+        "drawerLeftDesc": "Wells with measurements",
+        "drawerRight": "Next",
+        "drawerRightDesc": "Merge and export",
+        "inspectorMean": "Mean activity",
+        "inspectorNoData": "No activity data loaded",
+        "inspectorReplicates": "Replicates",
+        "inspectorStdDev": "Std dev",
+        "inspectorSubtitle": "Replicate statistics",
+        "inspectorTitle": "Activity Inspector",
+        "inspectorWtNorm": "WT-normalised"
       },
       "merge": {
         "heading": "合并 activity 与 genotype",
@@ -279,6 +300,26 @@
       "exportBlocked": {
         "title": "导出被阻止 — 检测到 label-swap",
         "body": "请与上一轮的 EVOLVEpro 结果对比,核实共享同一 activity 值的 variant 的 label 映射。"
+      },
+      "mergeExport": {
+        "contextSubtitle": "Merge genotype with activity and export EVOLVEpro input.",
+        "contextTitle": "Activity Data — Merge and Export",
+        "drawerCenter": "Merge log",
+        "drawerLeft": "Export files",
+        "drawerLeftDesc": "Files ready for export",
+        "drawerRight": "Handoff",
+        "drawerRightDesc": "Return to KURO for next round",
+        "inspectorActivity": "Activity",
+        "inspectorBridgeCallout": "Bidirectional bridge",
+        "inspectorBridgeDesc": "Merged table flows back to KURO as EVOLVEpro input for the next design round.",
+        "inspectorMergedRows": "Merged rows",
+        "inspectorNoMerge": "No merge performed yet",
+        "inspectorStatus": "Status",
+        "inspectorSubtitle": "R585A merge summary",
+        "inspectorTitle": "Export Inspector",
+        "inspectorVariant": "Variant",
+        "openJanusExport": "Open JANUS export...",
+        "openJanusExportAriaLabel": "Open JANUS cell-stock mapping export dialog"
       }
     },
     "runHealth": {
@@ -382,7 +423,19 @@
       "statusInProgress": "进行中"
     },
     "menuBar": {
-      "restartSidecarConfirm": "分析正在运行。仍要重启 sidecar 吗?"
+      "restartSidecarConfirm": "分析正在运行。仍要重启 sidecar 吗?",
+      "closeBtn": "Close",
+      "compareWorkspacesColA": "Workspace A",
+      "compareWorkspacesColB": "Workspace B",
+      "compareWorkspacesColField": "Field",
+      "compareWorkspacesDiff": "{{count}} difference{{plural}} found.",
+      "compareWorkspacesFailed": "Workspace compare failed: {{error}}",
+      "compareWorkspacesNoDiff": "No differences found.",
+      "compareWorkspacesSame": "The two workspaces are identical.",
+      "compareWorkspacesTitle": "Compare Workspaces",
+      "exportWorkspaceZipSoon": "Export workspace as zip - coming soon",
+      "selectWorkspaceA": "Select first workspace (A)",
+      "selectWorkspaceB": "Select second workspace (B)"
     },
     "statusBar": {
       "ready": "就绪",
@@ -413,11 +466,14 @@
         "analyze": {
           "inputs": "输入",
           "verdict": "Verdicts",
-          "plate": "Plate 布局"
+          "plate": "Plate 布局",
+          "health": "Run Health"
         },
         "activity": {
           "ingest": "Ingest",
-          "mergeExport": "Merge & Export"
+          "mergeExport": "Merge & Export",
+          "export": "Export",
+          "merge": "Merge"
         }
       },
       "barcodeSetupTabTitle": "Run Setup — part of NGS Validation (step ② of PI workflow)",
@@ -1379,7 +1435,8 @@
       "mame": "mame",
       "closeWindow": "关闭窗口",
       "quit": "退出 kuma"
-    }
+    },
+    "fileMenuTrigger": "File"
   },
   "panel": {
     "errorTitle": "无法显示",
@@ -1556,7 +1613,9 @@
     "browseAriaLabel": "浏览并上传 activity 文件",
     "uploadingBtn": "上传中...",
     "browseBtn": "浏览并上传",
-    "recordsLoaded": "已加载 {{count}} wells"
+    "recordsLoaded": "已加载 {{count}} wells",
+    "formatAriaLabel": "Activity file format",
+    "formatLabel": "Format"
   },
   "preflight": {
     "titleFailed": "Pre-flight 检查失败",
@@ -1590,8 +1649,6 @@
     "bomCheckboxAriaLabel": "添加 UTF-8 BOM 以兼容 Excel",
     "bomCheckboxLabel": "添加 UTF-8 BOM",
     "bomCheckboxHint": "(Excel 兼容)",
-    "transferVolumeRange": "范围：{{min}}–{{max}} {{unit}}",
-    "echoMaxNote": "(最大 500 nL)",
     "cancelBtn": "取消",
     "exportBtn": "导出"
   },
@@ -1718,14 +1775,16 @@
     "majors": {
       "design": "Design",
       "export": "Export",
-      "output": "输出"
+      "output": "输出",
+      "plate": "Plate Map"
     },
     "subSteps": {
       "design": {
         "load": "加载 Variants",
         "mutation": "Mutations",
         "params": "Primer 参数",
-        "submit": "池筛选 & 运行"
+        "submit": "池筛选 & 运行",
+        "variant": "Pool Filters"
       },
       "export": {
         "all": "Export",
@@ -1735,6 +1794,9 @@
       },
       "output": {
         "summary": "摘要"
+      },
+      "plate": {
+        "layout": "Plate Map"
       }
     },
     "badge": {
@@ -1784,16 +1846,20 @@
     "mameSubSteps": {
       "setup": {
         "files": "文件与坐标",
-        "design": "Design 参数"
+        "design": "Design 参数",
+        "output": "Generate Package"
       },
       "analyze": {
         "inputs": "输入",
         "verdict": "Verdicts",
-        "plate": "Plate 布局"
+        "plate": "Plate 布局",
+        "health": "Run Health"
       },
       "activity": {
         "ingest": "Ingest 数据",
-        "mergeExport": "Merge & Export"
+        "mergeExport": "Merge & Export",
+        "export": "Export",
+        "merge": "Merge"
       }
     }
   },
@@ -1809,7 +1875,8 @@
         "load": "上传 EVOLVEpro CSV 或粘贴蛋白质序列。",
         "mutation": "定义要包含的 mutation。",
         "params": "设置 primer 设计参数并运行。",
-        "submit": "选择变体池过滤条件，然后运行引物设计。"
+        "submit": "选择变体池过滤条件，然后运行引物设计。",
+        "variant": "Configure variant pool filters."
       },
       "output": {
         "summary": "查看设计结果、统计数据和板布局。"

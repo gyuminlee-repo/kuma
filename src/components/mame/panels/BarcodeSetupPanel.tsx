@@ -359,37 +359,39 @@ export function BarcodeSetupPanel({ group }: BarcodeSetupPanelProps = {}) {
               >
                 {t("mame.barcodeSetup.cdsCandidate")}
               </Label>
-              <select
-                id="cds-candidate"
-                className="h-8 w-full min-w-0 rounded-md border border-input bg-background px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+              <Select
                 value={String(selectedCdsIndex)}
-                onChange={(e) => {
-                  const i = Number(e.target.value);
+                onValueChange={(v) => {
+                  const i = Number(v);
                   setSelectedCdsIndex(i);
                   const cand = cdsCandidates[i];
                   if (cand) {
                     setForm({ geneStart: String(cand.start), geneEnd: String(cand.end) });
                   }
                 }}
-                aria-label={t("mame.barcodeSetup.cdsCandidate")}
               >
-                {cdsCandidates.map((c, i) => {
-                  const labelPart = c.label ? `[${c.label}] ` : "";
-                  const tooltip = [
-                    c.label ? `Label: ${c.label}` : "",
-                    `Range: ${c.start}-${c.end}`,
-                    `Length: ${c.aa_length} aa`,
-                    `Source: ${c.source}`,
-                  ]
-                    .filter(Boolean)
-                    .join("\n");
-                  return (
-                    <option key={i} value={String(i)} title={tooltip}>
-                      {labelPart}{c.start}-{c.end} ({c.aa_length} aa)
-                    </option>
-                  );
-                })}
-              </select>
+                <SelectTrigger id="cds-candidate" className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {cdsCandidates.map((c, i) => {
+                    const labelPart = c.label ? `[${c.label}] ` : "";
+                    const tooltip = [
+                      c.label ? `Label: ${c.label}` : "",
+                      `Range: ${c.start}-${c.end}`,
+                      `Length: ${c.aa_length} aa`,
+                      `Source: ${c.source}`,
+                    ]
+                      .filter(Boolean)
+                      .join("\n");
+                    return (
+                      <SelectItem key={i} value={String(i)} title={tooltip}>
+                        {labelPart}{c.start}-{c.end} ({c.aa_length} aa)
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
               <p className="text-xs text-muted-foreground/90">
                 {t("mame.barcodeSetup.cdsFastaHelper")}
               </p>
