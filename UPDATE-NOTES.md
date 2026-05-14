@@ -4,6 +4,91 @@
 
 ---
 
+## v0.9.1.2 (2026-05-14)
+
+Workspace artifact registry now runs through Tauri plugin APIs instead of node built-ins so it actually works in the browser-side webview.
+
+### Workspace lib — node:* removed
+
+- `src/lib/workspace/manifest.ts` and `src/lib/workspace/api.ts` no longer import from `node:fs`, `node:fs/promises`, `node:path`, `node:crypto`. The previous code built fine via Vite externalization but threw at runtime when the browser hit `readFile`, `randomUUID`, etc. Replaced 8 node imports total.
+- `readFile/writeFile/rename/readDir/stat/exists` route to `@tauri-apps/plugin-fs`. `join/resolve/isAbsolute` route to `@tauri-apps/api/path` (all async). `relative` is implemented inline (`@tauri-apps/api/path` has no equivalent). `randomUUID` uses the web Crypto API directly (Tauri webview runs in a secure context).
+- `src-tauri/capabilities/default.json` adds `fs:allow-stat`; the other fs permissions were already covered by `fs:default`.
+
+---
+
+## v0.9.1.1 (2026-05-14)
+
+### PrimerInspector polish
+
+- Removed the hardcoded "Plate" label in `PrimerInspector.tsx`; now reads `t("kuro.output.kvPlate")`. New `kvPlate` key added to all 10 locale files under `kuro.output` (English string kept across languages per the scientific-term policy).
+- KuroInspector for `output.summary` now binds the first design result by default so the inspector shows data instead of the empty state when results are ready (`selected={designResults[0] ?? null}`).
+
+---
+
+## v0.9.1.0 (2026-05-14)
+
+Fills in the inspector content for the six KURO sub-steps that v0.8.0.0 had wired only at the shell level.
+
+### KURO inspector content (6 sub-steps)
+
+- New per-sub-step components under `src/components/inspectors/kuro/`: `SourceInspector`, `VariantInspector`, `ParameterInspector`, `CurrentMutationInspector`, `PrimerInspector`, `ExportInspector`.
+- Shared primitives added alongside: `KvList`, `InspectorCallout`, `InspectorEmptyState`.
+- `KuroChrome.tsx` switches between the six inspectors based on `currentSubStep`. Row-selection-driven inspectors (Variant, Primer) accept an optional `selected` prop.
+- i18n keys added under `kuro.inspector.*` and per-screen `kuro.<screen>.inspector*` across all 10 locales.
+
+---
+
+## v0.9.0.1 (2026-05-14)
+
+### Cleanup
+
+- Removed a stale tracked file under `.claire/worktrees/...` (the directory was a typo for `.claude/` and the file was already deleted on disk).
+- `src-tauri/Cargo.lock` regenerated to match the `kuma` package version bump to `0.9.0`.
+
+---
+
+## v0.9.0.0 (2026-05-14)
+
+Closes the v5 mockup alignment program. Phases 3, 4, and 5 of the kuma-integration roadmap land on `main` and the three version files sync to `0.9.0`.
+
+### Phase 3 — SettingsDialog full-stack
+
+- New `SettingsDialog` with four sections under shadcn Tabs: General, Network, Sidecar, Telemetry. Theme reuses the existing `ThemeToggle` component.
+- Backend: `python-core/sidecar_kuro/models.py` gains `SettingsBundle`, `SettingsTheme`, `SettingsNetwork`, `SettingsSidecar`, `SettingsTelemetry`, plus load/save request/response pairs. New `handlers/settings.py` reads and writes `$HOME/.kuma/preferences.json` atomically; respects `KUMA_PREFERENCES_PATH` if set.
+- Dispatcher registers `settings_load` and `settings_save` ahead of `shutdown` (ordering rule from `notes/specs/phase4-5-namespacing.md`).
+- Frontend: new `settingsSlice` (Zustand) with 500 ms debounced auto-save; mount-time `loadSettings()` from `AppLayout`. 10 locale files gain a `settings.*` block appended at end-of-file (no alphabetic sort).
+- Theme guard: undefined `bundle.theme` no longer wipes the user existing `localStorage` choice on first load after upgrade.
+
+### Phase 4 — KURO chrome shell (six screens)
+
+- `KuroChrome.tsx` (478 lines) introduced as the per-screen shell wrapping `WorkflowRail`, `ContextHeader`, and `DrawerStrip` for the six KURO sub-steps (Design Load/Mutation/Params/Submit, Output Summary, Export All).
+- `AppLayout.tsx` forwards `inspector={<KuroInspector />}` into the three-pane `AppShell` slot.
+- 10 locale files gain a `kuro.*` block (Load/Nominate/Parameters/Submit/Output/Export) appended end-of-file.
+
+### Phase 5 — MAME seven-screen widgets + JANUS + plate cluster alert
+
+- New widgets: `MameWorkflowRail`, `MameInspectorContent` (with `INSPECTOR_MAP` covering all seven MAME sub-steps), `MameDrawerContent`, and `widgets/PlateClusterAlert.tsx`.
+- JANUS export now has an `Open JANUS export...` CTA in the main pane of `activity.mergeExport` (`MameAppLayout.tsx`); deck preview stays inside the modal as before.
+- Plate cluster alert: when adjacent wells on the plate fail simultaneously, an alert surfaces inside `analyze.plate` (e.g., "B03-B04 may indicate a pipetting issue").
+- 10 locale files gain a `mame.*` block appended end-of-file.
+
+### Version bump (Phase 8)
+
+- `package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml` all `0.9.0`.
+
+### Validation
+
+- `npx tsc --noEmit`: 0 errors.
+- `pnpm sync:check`: 43 passed, 0 failed (baseline NOTICE.md / Node version warnings only).
+- `cd src-tauri && cargo check`: exit 0.
+- `pnpm test`: settingsSlice 11/11; broader suite not exhaustively re-run.
+
+### Cross-layer hygiene
+
+- `.cross-layer-sync.json` lost the stale `mameDescriptions` symbol from the `mame-major-substep-i18n` group (the symbol had been removed from code in prior work).
+
+---
+
 ## v0.8.6 (2026-05-13)
 
 Aligns the menubar shell to mockup v5 (`010.lab/.../kuma_program_mockup_detailed_v5.html`) and finishes the v0.8.5 spec (`notes/specs/2026-05-13-menubar-prefs-shortcuts.md`).

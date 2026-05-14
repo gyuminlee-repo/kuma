@@ -4,6 +4,91 @@
 
 ---
 
+## v0.9.1.2 (2026-05-14)
+
+Workspace artifact registry가 node 내장 모듈 대신 Tauri plugin API로 동작하여 브라우저 webview에서 실제로 작동.
+
+### Workspace lib — node:* 제거
+
+- `src/lib/workspace/manifest.ts`, `src/lib/workspace/api.ts` 에서 `node:fs`, `node:fs/promises`, `node:path`, `node:crypto` import 제거. 기존 코드는 Vite externalize로 빌드는 통과했으나 브라우저 런타임에 `readFile`, `randomUUID` 등 접근 시 모듈 미존재 에러 발생. 총 8개 node import 교체.
+- `readFile/writeFile/rename/readDir/stat/exists` -> `@tauri-apps/plugin-fs`. `join/resolve/isAbsolute` -> `@tauri-apps/api/path` (모두 async). `relative`는 `@tauri-apps/api/path`에 없어 인라인 구현. `randomUUID`는 브라우저 web Crypto API 직접 호출 (Tauri webview는 secure context).
+- `src-tauri/capabilities/default.json` 에 `fs:allow-stat` 권한 추가. 다른 fs 권한은 `fs:default`에 포함.
+
+---
+
+## v0.9.1.1 (2026-05-14)
+
+### PrimerInspector 정리
+
+- `PrimerInspector.tsx` 하드코딩된 "Plate" 라벨 제거, `t("kuro.output.kvPlate")` 사용으로 교체. 10 로케일 `kuro.output`에 `kvPlate` 키 추가 (과학용어 영문 유지 정책).
+- KuroInspector `output.summary` 케이스가 첫 디자인 결과를 기본 바인딩 (`selected={designResults[0] ?? null}`). 결과 있을 때 빈 상태 대신 데이터 표시.
+
+---
+
+## v0.9.1.0 (2026-05-14)
+
+v0.8.0.0이 shell까지만 연결한 KURO 6 sub-step Inspector 콘텐츠 보강.
+
+### KURO Inspector 콘텐츠 (6 sub-step)
+
+- `src/components/inspectors/kuro/` 에 sub-step별 컴포넌트 6개 신규: `SourceInspector`, `VariantInspector`, `ParameterInspector`, `CurrentMutationInspector`, `PrimerInspector`, `ExportInspector`.
+- 공용 primitive 동봉: `KvList`, `InspectorCallout`, `InspectorEmptyState`.
+- `KuroChrome.tsx`가 `currentSubStep` 기반 6개 Inspector switch. row 선택 기반(Variant, Primer)은 optional `selected` prop 수신.
+- 10 로케일에 `kuro.inspector.*` 및 화면별 `kuro.<screen>.inspector*` 키 추가.
+
+---
+
+## v0.9.0.1 (2026-05-14)
+
+### 정리
+
+- `.claire/worktrees/...` 하위 stale tracked file 제거 (`.claude/` 오타 디렉토리, 디스크에서는 이미 삭제됨).
+- `src-tauri/Cargo.lock` `kuma` 패키지 0.9.0 정합 갱신.
+
+---
+
+## v0.9.0.0 (2026-05-14)
+
+v5 mockup 정합 프로그램 마감. kuma-integration 로드맵 Phase 3·4·5가 main에 반영, 3-way version 파일 `0.9.0` 정렬.
+
+### Phase 3 — SettingsDialog 풀스택
+
+- shadcn Tabs 기반 `SettingsDialog` 4섹션: General, Network, Sidecar, Telemetry. Theme은 기존 `ThemeToggle` 컴포넌트 재사용.
+- 백엔드: `python-core/sidecar_kuro/models.py` 에 `SettingsBundle`, `SettingsTheme`, `SettingsNetwork`, `SettingsSidecar`, `SettingsTelemetry` + load/save request/response 추가. `handlers/settings.py` 신규로 `$HOME/.kuma/preferences.json` atomic 읽기/쓰기. `KUMA_PREFERENCES_PATH` 환경변수 우선.
+- Dispatcher `settings_load`, `settings_save`를 `shutdown` 앞에 등록 (`notes/specs/phase4-5-namespacing.md` 순서 규칙).
+- 프론트엔드: `settingsSlice` (Zustand) 신규, 500ms debounce 자동저장. `AppLayout` 마운트 시 `loadSettings()`. 10 로케일에 `settings.*` 블록 파일 끝 append (알파벳 정렬 안 함).
+- Theme 가드: 업그레이드 후 첫 로드 시 `bundle.theme`이 undefined여도 기존 `localStorage` 선택 보존.
+
+### Phase 4 — KURO chrome shell (6 화면)
+
+- `KuroChrome.tsx` (478줄) 신규 — KURO 6 sub-step (Design Load/Mutation/Params/Submit, Output Summary, Export All) 공용 `WorkflowRail`/`ContextHeader`/`DrawerStrip` 통합 shell.
+- `AppLayout.tsx`가 3-pane `AppShell` slot에 `inspector={<KuroInspector />}` 전달.
+- 10 로케일에 `kuro.*` 블록 (Load/Nominate/Parameters/Submit/Output/Export) 파일 끝 append.
+
+### Phase 5 — MAME 7화면 위젯 + JANUS + plate cluster alert
+
+- 신규 위젯: `MameWorkflowRail`, `MameInspectorContent` (`INSPECTOR_MAP`이 MAME 7 sub-step 전체 cover), `MameDrawerContent`, `widgets/PlateClusterAlert.tsx`.
+- JANUS export: `activity.mergeExport` main pane에 `Open JANUS export...` CTA 추가 (`MameAppLayout.tsx`). deck preview는 modal 내부 유지.
+- Plate cluster alert: `analyze.plate`에서 인접 well 동시 실패 감지 시 경고 (예: "B03-B04 may indicate a pipetting issue").
+- 10 로케일에 `mame.*` 블록 파일 끝 append.
+
+### 버전 정렬 (Phase 8)
+
+- `package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml` 모두 `0.9.0`.
+
+### 검증
+
+- `npx tsc --noEmit`: 0 errors.
+- `pnpm sync:check`: 43 passed, 0 failed (baseline NOTICE.md / Node 버전 경고만).
+- `cd src-tauri && cargo check`: exit 0.
+- `pnpm test`: settingsSlice 11/11. 광범위 회귀 suite 전체 재실행은 생략.
+
+### Cross-layer 정리
+
+- `.cross-layer-sync.json` 의 `mame-major-substep-i18n` 그룹에서 stale `mameDescriptions` 심볼 제거 (코드에서는 이전에 제거됐던 잔재).
+
+---
+
 ## v0.8.6 (2026-05-13)
 
 mockup v5 (`010.lab/.../kuma_program_mockup_detailed_v5.html`) 정합 + v0.8.5 spec (`notes/specs/2026-05-13-menubar-prefs-shortcuts.md`) 마감.
