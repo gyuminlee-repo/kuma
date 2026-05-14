@@ -204,30 +204,36 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
     case "analyze.verdict":
       mainContent = (
         <div className="flex flex-col gap-3 h-full overflow-hidden">
-          <SummaryRow />
+          <div className="flex-shrink-0">
+            <SummaryRow />
+          </div>
           <DataPanel title={t("mame.appLayout.verdictTableTitle")} className="flex-1 min-h-0">
             <VerdictTable />
           </DataPanel>
           {runHealth !== null && (
-            <RunHealthPanel
-              health={runHealth}
-              sections={RUN_HEALTH_VERDICT_SECTIONS}
-            />
+            <div className="flex-shrink-0">
+              <RunHealthPanel
+                health={runHealth}
+                sections={RUN_HEALTH_VERDICT_SECTIONS}
+              />
+            </div>
           )}
         </div>
       );
       break;
     case "analyze.plate":
       mainContent = (
-        <div className="flex flex-col gap-3 h-full min-h-0 overflow-auto">
-          <DataPanel title={t("mame.appLayout.platePlanTitle")} className="flex-1 min-h-0">
+        <div className="flex flex-col gap-3 h-full min-h-0 overflow-hidden">
+          <DataPanel title={t("mame.appLayout.platePlanTitle")} className="flex-1 min-h-0 overflow-auto">
             <PlateView />
           </DataPanel>
           {runHealth !== null && (
-            <RunHealthPanel
-              health={runHealth}
-              sections={RUN_HEALTH_PLATE_SECTIONS}
-            />
+            <div className="flex-shrink-0">
+              <RunHealthPanel
+                health={runHealth}
+                sections={RUN_HEALTH_PLATE_SECTIONS}
+              />
+            </div>
           )}
         </div>
       );
