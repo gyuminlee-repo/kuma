@@ -2009,7 +2009,10 @@
       "exportTargets": "MAME handoff",
       "plateMap": "플레이트 맵",
       "nPlates": "{{count}}개 플레이트",
-      "bridgeBadge": "bridge"
+      "bridgeBadge": "bridge",
+      "report": {
+        "empty": "Run Design 실행 후 리포트가 표시됩니다"
+      }
     }
   },
   "shortcutsDialog": {

@@ -2009,7 +2009,10 @@
       "exportTargets": "MAME handoff",
       "plateMap": "Plate map",
       "nPlates": "{{count}} plate(s)",
-      "bridgeBadge": "bridge"
+      "bridgeBadge": "bridge",
+      "report": {
+        "empty": "Run Design first — the report will appear here"
+      }
     }
   },
   "shortcutsDialog": {
