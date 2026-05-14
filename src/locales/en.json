@@ -1875,6 +1875,27 @@
       "drawerExportQueue": "Export queue",
       "drawerNext": "Next",
       "sideCardBody": "Confirm export targets. The MAME handoff bundle is generated automatically."
+    },
+    "inspector": {
+      "noArtifact": "No artifact loaded",
+      "round": "Round",
+      "variants": "Variants",
+      "format": "Format",
+      "intentLabel": "Design intent",
+      "selectRowPrompt": "Select a row to view details",
+      "selectedBadge": "selected",
+      "usefulLabel": "Useful addition",
+      "running": "Running...",
+      "partialSavePending": "pending",
+      "partialSaveReady": "ready",
+      "dataContractLabel": "Data contract",
+      "noDesignResults": "No design results yet",
+      "implementationLabel": "Implementation",
+      "stalenessLinked": "linked",
+      "exportTargets": "MAME handoff",
+      "plateMap": "Plate map",
+      "nPlates": "{{count}} plate(s)",
+      "bridgeBadge": "bridge"
     }
   }
 }

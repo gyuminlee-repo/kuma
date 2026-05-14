@@ -24,69 +24,19 @@ import { useShallow } from "zustand/react/shallow";
 import { WorkflowRail, type WorkflowStep } from "@/components/widgets/WorkflowRail";
 import { ContextHeader } from "@/components/widgets/ContextHeader";
 import { DrawerStrip } from "@/components/widgets/DrawerStrip";
-import { InspectorPanel } from "@/components/widgets/InspectorPanel";
 import type { SubStepId } from "@/store/slices/navigationSlice";
+import {
+  SourceInspector,
+  VariantInspector,
+  ParameterInspector,
+  CurrentMutationInspector,
+  PrimerInspector,
+  ExportInspector,
+} from "@/components/inspectors/kuro";
 
 // ---------------------------------------------------------------------------
-// KV Row primitive
+// (KvRow, Callout, MetricCards primitives moved to inspectors/kuro/shared/)
 // ---------------------------------------------------------------------------
-
-function KvRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="grid gap-x-2 py-1.5 text-[12px]" style={{ gridTemplateColumns: "92px 1fr" }}>
-      <dt className="truncate font-medium text-muted-foreground">{label}</dt>
-      <dd className="truncate text-foreground">{value}</dd>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Callout box primitive
-// ---------------------------------------------------------------------------
-
-function Callout({ text }: { text: string }) {
-  return (
-    <div
-      className="mt-3 rounded-md border border-ring/30 bg-accent/20 px-3 py-2 text-[11px] leading-snug text-muted-foreground"
-      role="note"
-    >
-      {text}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Metric card 2x2 grid primitive
-// ---------------------------------------------------------------------------
-
-function MetricCards({
-  cards,
-}: {
-  cards: { label: string; value: string; variant?: "default" | "warn" | "ok" }[];
-}) {
-  const variantCls: Record<string, string> = {
-    default: "text-foreground",
-    warn: "text-warning",
-    ok: "text-success",
-  };
-  return (
-    <div className="grid grid-cols-2 gap-2">
-      {cards.map(({ label, value, variant = "default" }) => (
-        <div
-          key={label}
-          className="rounded-md border border-border bg-muted/30 px-3 py-2"
-        >
-          <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-            {label}
-          </div>
-          <div className={`mt-0.5 text-[18px] font-bold tabular-nums ${variantCls[variant]}`}>
-            {value}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Log line primitive (terminal-style)
@@ -377,101 +327,27 @@ export function KuroDrawerStrip() {
 
 /**
  * KuroInspector — inspector panel content per sub-step.
- * Returns null for sub-steps without inspector content (none in KURO).
+ *
+ * Delegates to per-screen inspector components in inspectors/kuro/.
+ * VariantInspector and PrimerInspector accept an optional `selected` prop;
+ * until row-selection state is added to the store they render empty states.
  */
 export function KuroInspector() {
-  const { t } = useTranslation();
   const currentSubStep = useAppStore((s) => s.currentSubStep);
-
-  // Retrieve store values needed for inspector panels
-  const { designResults } = useAppStore(
-    useShallow((s) => ({
-      designResults: s.designResults,
-    })),
-  );
 
   switch (currentSubStep) {
     case "design.load":
-      return (
-        <InspectorPanel title={t("kuro.load.inspectorTitle")}>
-          <dl>
-            <KvRow label={t("kuro.load.artifactLabel")} value="mame_round3_export.csv" />
-            <KvRow label="Source" value="MAME round 3" />
-            <KvRow label="Variants" value="128" />
-            <KvRow label="Format" value="EVOLVEpro CSV" />
-          </dl>
-          <Callout text={t("kuro.load.intentCallout")} />
-        </InspectorPanel>
-      );
-
+      return <SourceInspector />;
     case "design.mutation":
-      return (
-        <InspectorPanel title={t("kuro.nominate.inspectorTitle")}>
-          <dl>
-            <KvRow label={t("kuro.nominate.kvActivity")} value="0.82" />
-            <KvRow label={t("kuro.nominate.kvReads")} value="4 120" />
-            <KvRow label={t("kuro.nominate.kvDomain")} value="kinase" />
-            <KvRow label={t("kuro.nominate.kvMameLink")} value="BC04" />
-          </dl>
-          <Callout text={t("kuro.nominate.calloutText")} />
-        </InspectorPanel>
-      );
-
-    case "design.params": {
-      const primerCount = designResults.length;
-      return (
-        <InspectorPanel title={t("kuro.params.inspectorTitle")}>
-          <MetricCards
-            cards={[
-              { label: t("kuro.params.metricPrimers"), value: primerCount > 0 ? String(primerCount) : "--" },
-              { label: t("kuro.params.metricPlates"), value: "--" },
-              { label: t("kuro.params.metricWarn"), value: "0", variant: "ok" },
-              { label: t("kuro.params.metricRuntime"), value: "~2 min" },
-            ]}
-          />
-          <Callout text={t("kuro.params.calloutText")} />
-        </InspectorPanel>
-      );
-    }
-
+      return <VariantInspector />;
+    case "design.params":
+      return <ParameterInspector />;
     case "design.submit":
-      return (
-        <InspectorPanel title={t("kuro.submit.inspectorTitle")}>
-          <dl>
-            <KvRow label={t("kuro.submit.kvMutation")} value="R585A" />
-            <KvRow label={t("kuro.submit.kvProgress")} value="--" />
-            <KvRow label={t("kuro.submit.kvPartialSave")} value="pending" />
-          </dl>
-          <Callout text={t("kuro.submit.contractCallout")} />
-        </InspectorPanel>
-      );
-
-    case "output.summary": {
-      const firstResult = designResults[0];
-      return (
-        <InspectorPanel title={t("kuro.output.inspectorTitle")}>
-          <dl>
-            <KvRow label={t("kuro.output.kvFwd")} value={firstResult ? "ATCG..." : "--"} />
-            <KvRow label={t("kuro.output.kvRev")} value={firstResult ? "CGTA..." : "--"} />
-            <KvRow label={t("kuro.output.kvTm")} value={firstResult ? `${firstResult.tm_no_fwd.toFixed(1)} / ${firstResult.tm_no_rev.toFixed(1)} °C` : "--"} />
-            <KvRow label={t("kuro.output.kvStatus")} value={firstResult ? (firstResult.warnings.length > 0 ? "warn" : "ok") : "--"} />
-          </dl>
-        </InspectorPanel>
-      );
-    }
-
+      return <CurrentMutationInspector />;
+    case "output.summary":
+      return <PrimerInspector />;
     case "export.all":
-      return (
-        <InspectorPanel title={t("kuro.export.inspectorTitle")}>
-          <dl>
-            <KvRow label={t("kuro.export.kvDestination")} value="IDT + Twist + MAME" />
-            <KvRow label={t("kuro.export.kvPrefills")} value="3 targets" />
-            <KvRow label={t("kuro.export.kvStaleness")} value="fresh" />
-          </dl>
-          <Callout text={t("kuro.export.handoffCallout")} />
-        </InspectorPanel>
-      );
-
+      return <ExportInspector />;
     default:
       return null;
   }

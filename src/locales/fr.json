@@ -1924,6 +1924,27 @@
       "drawerExportQueue": "File d'exportation",
       "drawerNext": "Suivant",
       "sideCardBody": "Confirmer les cibles d'exportation. Le paquet de transfert MAME est généré automatiquement."
+    },
+    "inspector": {
+      "noArtifact": "Aucun artefact chargé",
+      "round": "Tour",
+      "variants": "Variants",
+      "format": "Format",
+      "intentLabel": "Intention de conception",
+      "selectRowPrompt": "Sélectionner une ligne pour afficher les détails",
+      "selectedBadge": "sélectionné",
+      "usefulLabel": "Ajout utile",
+      "running": "En cours...",
+      "partialSavePending": "en attente",
+      "partialSaveReady": "prêt",
+      "dataContractLabel": "Contrat de données",
+      "noDesignResults": "Aucun résultat de conception",
+      "implementationLabel": "Implémentation",
+      "stalenessLinked": "lié",
+      "exportTargets": "MAME handoff",
+      "plateMap": "Carte de plaque",
+      "nPlates": "{{count}} plaque(s)",
+      "bridgeBadge": "bridge"
     }
   }
 }

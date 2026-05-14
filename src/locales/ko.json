@@ -1875,6 +1875,27 @@
       "drawerExportQueue": "내보내기 큐",
       "drawerNext": "다음",
       "sideCardBody": "내보내기 대상을 확인하세요. MAME 핸드오프 번들이 자동으로 생성됩니다."
+    },
+    "inspector": {
+      "noArtifact": "아티팩트가 없습니다",
+      "round": "라운드",
+      "variants": "변형",
+      "format": "형식",
+      "intentLabel": "설계 의도",
+      "selectRowPrompt": "행을 선택하면 상세 정보가 표시됩니다",
+      "selectedBadge": "선택됨",
+      "usefulLabel": "유용한 추가",
+      "running": "실행 중...",
+      "partialSavePending": "대기 중",
+      "partialSaveReady": "준비됨",
+      "dataContractLabel": "데이터 계약",
+      "noDesignResults": "설계 결과가 없습니다",
+      "implementationLabel": "구현",
+      "stalenessLinked": "연결됨",
+      "exportTargets": "MAME handoff",
+      "plateMap": "플레이트 맵",
+      "nPlates": "{{count}}개 플레이트",
+      "bridgeBadge": "bridge"
     }
   }
 }
