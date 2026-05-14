@@ -35,6 +35,8 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
   failedMutations: [],
   polymerases: [],
   selectedPolymerase: "Benchling",
+  // @deprecated Phase C (v0.9.2): legacy popup mount removed; slice kept for
+  // DesignReport.tsx Dialog wrapper only. Always init false; never persist.
   showReport: false,
   setShowReport: (show: boolean) => set({ showReport: show }),
   codonStrategy: "closest",
