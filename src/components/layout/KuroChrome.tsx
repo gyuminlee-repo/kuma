@@ -271,20 +271,22 @@ export function KuroDrawerStrip() {
       );
     case "design.submit":
       return (
-        <DrawerStrip
-          left={{
-            title: t("kuro.submit.drawerJobQueue"),
-            children: <MiniRow label="Queue" value="idle" />,
-          }}
-          center={{
-            title: "Sidecar log",
-            children: <LogLine level="dim" text={logText} />,
-          }}
-          right={{
-            title: t("kuro.submit.drawerRecovery"),
-            children: <MiniRow label="Autosave" value="ready" />,
-          }}
-        />
+        <div className="flex min-h-0 min-w-0 flex-col overflow-hidden">
+          <DrawerStrip
+            left={{
+              title: t("kuro.submit.drawerJobQueue"),
+              children: <MiniRow label="Queue" value="idle" />,
+            }}
+            center={{
+              title: "Sidecar log",
+              children: <LogLine level="dim" text={logText} />,
+            }}
+            right={{
+              title: t("kuro.submit.drawerRecovery"),
+              children: <MiniRow label="Autosave" value="ready" />,
+            }}
+          />
+        </div>
       );
     case "output.summary":
       return (
