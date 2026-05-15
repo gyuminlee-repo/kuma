@@ -12,6 +12,7 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
+import { toast } from "sonner";
 import { useActivityStore, type ActivitySlice } from "@/store/mame/activitySlice";
 import { useRoundStore } from "@/store/round/roundSlice";
 import { cn } from "@/lib/utils";
@@ -101,9 +102,15 @@ export function WtWellGrid() {
         setStatus((s) => (s === "saved" ? "idle" : s));
       }, 2000);
     } catch (err) {
-      // Task 5: rollback + toast
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(t("wtWellGrid.errorStatus", { reason: msg }));
+      // Rollback localWt to the last known server snapshot.
+      const r = useRoundStore.getState().rounds.find((x) => x.id === roundId);
+      setLocalWt(r ? getWtWells(r.plate_meta) : new Set());
       setStatus("error");
-      throw err;
+      setTimeout(() => {
+        setStatus((s) => (s === "error" ? "idle" : s));
+      }, 3000);
     }
   }
 

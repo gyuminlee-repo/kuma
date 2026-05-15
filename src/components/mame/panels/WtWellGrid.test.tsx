@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { create } from "zustand";
 import type { ActivitySlice } from "@/store/mame/activitySlice";
@@ -13,6 +13,7 @@ vi.mock("sonner", () => ({
 
 import { useActivityStore } from "@/store/mame/activitySlice";
 import { useRoundStore } from "@/store/round/roundSlice";
+import { toast } from "sonner";
 import { WtWellGrid } from "./WtWellGrid";
 
 const mockSetPlateMeta = vi.fn();
@@ -144,6 +145,31 @@ describe("WtWellGrid — unmount flush", () => {
     await vi.advanceTimersByTimeAsync(1);
     expect(mockSetPlateMeta).toHaveBeenCalledTimes(1);
     expect(mockSetPlateMeta.mock.calls[0][1].plates[0].wt_wells).toEqual(["A03"]);
+    vi.useRealTimers();
+  });
+});
+
+describe("WtWellGrid — RPC failure", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(useActivityStore).mockReturnValue(makeActivityStore());
+    setupRoundStore([makeRound("r1")], "r1");
+  });
+
+  it("rolls back localWt and shows error toast on RPC fail", async () => {
+    vi.useFakeTimers();
+    mockSetPlateMeta.mockRejectedValue(new Error("boom"));
+    render(<WtWellGrid />);
+    const a03 = screen.getByRole("button", { name: "A03" });
+    fireEvent.click(a03);
+    expect(a03.textContent).toContain("WT");
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+    expect(toast.error).toHaveBeenCalled();
+    expect(
+      screen.getByRole("button", { name: "A03" }).textContent,
+    ).not.toContain("WT");
     vi.useRealTimers();
   });
 });
