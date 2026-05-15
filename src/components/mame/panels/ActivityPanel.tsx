@@ -20,7 +20,7 @@ import { useStore } from "zustand";
 import { validateMergeActivity } from "@/store/validation";
 import { Button } from "@/components/ui/button";
 import { ActivityUploadPanel } from "./ActivityUploadPanel";
-import { WtWellEditor } from "@/components/mame/dialogs/WtWellEditor";
+import { WtWellGrid } from "@/components/mame/panels/WtWellGrid";
 import { RoundHandoffButton } from "@/components/round/RoundHandoffButton";
 import { RoundSummaryPanel } from "@/components/round/RoundSummaryPanel";
 import { useActivityStore, type ActivitySlice } from "@/store/mame/activitySlice";
@@ -117,7 +117,7 @@ export function IngestSection() {
       <div className="space-y-2 border-t border-border pt-4">
         <h3 className="text-sm font-semibold text-foreground">{t("mame.activity.ingest.wtHeading")}</h3>
         <p className="text-xs text-muted-foreground">{t("mame.activity.ingest.wtDesc")}</p>
-        <WtWellEditor />
+        <WtWellGrid />
       </div>
 
       {recordCount > 0 && (

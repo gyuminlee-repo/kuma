@@ -1590,19 +1590,6 @@
     "migrateAriaLabel": "Hacer backup del archivo original y migrar el workspace",
     "noMigrationPath": "No hay ruta de migración definida del workspace {{from}} a {{to}}. Se requiere upgrade manual."
   },
-  "wtWellEditor": {
-    "openBtnAriaLabel": "Definir wells WT: abrir editor de mapa de placa",
-    "openBtnLabel": "Definir wells WT",
-    "selectedCount": "({{count}} seleccionados)",
-    "dialogTitle": "Definir wells WT: placa P01",
-    "gridAriaLabel": "Grilla de placa de 96 wells. Hacer clic para alternar designación WT.",
-    "selectedSingle": "{{count}} well WT seleccionado",
-    "selectedPlural": "{{count}} wells WT seleccionados",
-    "cancelBtn": "Cancelar",
-    "saveAriaLabel": "Guardar selección de wells WT",
-    "saveBtn": "Guardar",
-    "savingBtn": "Guardando..."
-  },
   "inputPanel": {
     "sectionLabel": "Workspace",
     "title": "Entrada"
@@ -2014,5 +2001,17 @@
       "nPlates": "{{count}} placa(s)",
       "bridgeBadge": "bridge"
     }
+  },
+  "wtWellGrid": {
+    "heading": "WT-well annotation",
+    "description": "Designate wild-type wells used for normalisation. Click a well to toggle.",
+    "gridAriaLabel": "96-well plate, click to toggle WT",
+    "noActiveRound": "Activate a round to designate WT wells.",
+    "selectedSingle": "Selected: {{count}} well",
+    "selectedPlural": "Selected: {{count}} wells",
+    "idleStatus": "",
+    "savingStatus": "saving...",
+    "savedStatus": "saved",
+    "errorStatus": "error: {{reason}}"
   }
 }

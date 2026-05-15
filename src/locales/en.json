@@ -1601,18 +1601,17 @@
     "migrateAriaLabel": "Backup original file and migrate workspace",
     "noMigrationPath": "No migration path defined for workspace {{from}} to {{to}}. Manual upgrade required."
   },
-  "wtWellEditor": {
-    "openBtnAriaLabel": "Set WT Wells: open plate map editor",
-    "openBtnLabel": "Set WT Wells",
-    "selectedCount": "({{count}} selected)",
-    "dialogTitle": "Set WT Wells: Plate P01",
-    "gridAriaLabel": "96-well plate grid. Click to toggle WT designation.",
-    "selectedSingle": "{{count}} WT well selected",
-    "selectedPlural": "{{count}} WT wells selected",
-    "cancelBtn": "Cancel",
-    "saveAriaLabel": "Save WT well selection",
-    "saveBtn": "Save",
-    "savingBtn": "Saving..."
+  "wtWellGrid": {
+    "heading": "WT-well annotation",
+    "description": "Designate wild-type wells used for normalisation. Click a well to toggle.",
+    "gridAriaLabel": "96-well plate, click to toggle WT",
+    "noActiveRound": "Activate a round to designate WT wells.",
+    "selectedSingle": "Selected: {{count}} well",
+    "selectedPlural": "Selected: {{count}} wells",
+    "idleStatus": "",
+    "savingStatus": "saving...",
+    "savedStatus": "saved",
+    "errorStatus": "error: {{reason}}"
   },
   "inputPanel": {
     "sectionLabel": "Workspace",

@@ -1590,19 +1590,6 @@
     "migrateAriaLabel": "Сделать резервную копию и мигрировать workspace",
     "noMigrationPath": "Путь миграции от {{from}} к {{to}} workspace не определён. Требуется ручное обновление."
   },
-  "wtWellEditor": {
-    "openBtnAriaLabel": "Set WT Wells: открыть редактор plate map",
-    "openBtnLabel": "Set WT Wells",
-    "selectedCount": "({{count}} выбрано)",
-    "dialogTitle": "Set WT Wells: Plate P01",
-    "gridAriaLabel": "Сетка 96-well plate. Клик переключает обозначение WT.",
-    "selectedSingle": "{{count}} WT well выбран",
-    "selectedPlural": "{{count}} WT wells выбрано",
-    "cancelBtn": "Отмена",
-    "saveAriaLabel": "Сохранить выбор WT well",
-    "saveBtn": "Сохранить",
-    "savingBtn": "Сохранение..."
-  },
   "inputPanel": {
     "sectionLabel": "Workspace",
     "title": "Input"
@@ -2014,5 +2001,17 @@
       "nPlates": "{{count}} планшет(а)",
       "bridgeBadge": "bridge"
     }
+  },
+  "wtWellGrid": {
+    "heading": "WT-well annotation",
+    "description": "Designate wild-type wells used for normalisation. Click a well to toggle.",
+    "gridAriaLabel": "96-well plate, click to toggle WT",
+    "noActiveRound": "Activate a round to designate WT wells.",
+    "selectedSingle": "Selected: {{count}} well",
+    "selectedPlural": "Selected: {{count}} wells",
+    "idleStatus": "",
+    "savingStatus": "saving...",
+    "savedStatus": "saved",
+    "errorStatus": "error: {{reason}}"
   }
 }

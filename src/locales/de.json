@@ -1590,19 +1590,6 @@
     "migrateAriaLabel": "Backup original Datei und migrate Workspace",
     "noMigrationPath": "Nein migration Pfad defined für Workspace {{von}} zu {{zu}}. Manual upgrade erforderlich."
   },
-  "wtWellEditor": {
-    "openBtnAriaLabel": "Set WT Wells: öffnen Platte map editor",
-    "openBtnLabel": "WT-Wells festlegen",
-    "selectedCount": "({{count}} ausgewählt)",
-    "dialogTitle": "Set WT Wells: Platte P01",
-    "gridAriaLabel": "96-well Platte grid. Click zu toggle WT designation.",
-    "selectedSingle": "{{count}} WT-Well ausgewählt",
-    "selectedPlural": "{{count}} WT-Wells ausgewählt",
-    "cancelBtn": "Abbrechen",
-    "saveAriaLabel": "Speichern WT well selection",
-    "saveBtn": "Speichern",
-    "savingBtn": "Speichere..."
-  },
   "inputPanel": {
     "sectionLabel": "Workspace",
     "title": "Eingabe"
@@ -2014,5 +2001,17 @@
       "nPlates": "{{count}} Platte(n)",
       "bridgeBadge": "bridge"
     }
+  },
+  "wtWellGrid": {
+    "heading": "WT-well annotation",
+    "description": "Designate wild-type wells used for normalisation. Click a well to toggle.",
+    "gridAriaLabel": "96-well plate, click to toggle WT",
+    "noActiveRound": "Activate a round to designate WT wells.",
+    "selectedSingle": "Selected: {{count}} well",
+    "selectedPlural": "Selected: {{count}} wells",
+    "idleStatus": "",
+    "savingStatus": "saving...",
+    "savedStatus": "saved",
+    "errorStatus": "error: {{reason}}"
   }
 }
