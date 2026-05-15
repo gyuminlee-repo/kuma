@@ -112,7 +112,7 @@ export function ReRunManifestDialog({
               <span className="w-28 shrink-0 text-muted-foreground">{t("reRunManifest.labelInputs")}</span>
               <ul className="space-y-0.5 text-foreground">
                 {inputKeys.map((k) => (
-                  <li key={k} className="truncate max-w-xs">
+                  <li key={k} className="break-all" title={manifest.inputs[k].path}>
                     <span className="text-muted-foreground">{k}:</span>{" "}
                     <span className="font-mono text-xs">{manifest.inputs[k].path}</span>
                   </li>
