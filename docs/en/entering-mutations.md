@@ -26,10 +26,6 @@ Variant notation accepted:
 
 Loading a CSV switches the input to **EVOLVEpro mode** — enables ranking by score and exposes diversity controls ([Diversity Strategies](diversity-strategies.md)).
 
-## MULTI-evolve CSV
-
-For multi-target design rounds. Extra `target` column groups variants per gene.
-
 ## Max size
 
 Up to 10,000 mutations per run (v1.33.6). Overriding the **Mutations** count below the CSV total trims to the top-N by score.

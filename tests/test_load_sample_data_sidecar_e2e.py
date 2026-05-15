@@ -6,7 +6,6 @@ reproduces the exact sequence the frontend's loadSampleData() action performs:
 
   1. load_fasta on samples/sample_plasmid.gb
   2. load_evolvepro_csv on samples/sample_evolvepro.csv  (text/evolvepro mode)
-  3. load_evolvepro_csv on samples/sample_multi_evolve.csv (multi-evolve mode)
 
 This validates the full IPC pipeline minus only the Rust shell, which is a
 thin transport layer. If this passes, clicking "Load Sample Data" in the
@@ -40,7 +39,7 @@ class SidecarClient:
         )
         self._req_id = 0
 
-    def call(self, method: str, params: dict, timeout: float = 30.0) -> dict:
+    def call(self, method: str, params: dict, _timeout: float = 30.0) -> dict:
         self._req_id += 1
         req = {"jsonrpc": "2.0", "id": self._req_id, "method": method, "params": params}
         assert self.proc.stdin is not None and self.proc.stdout is not None
@@ -105,18 +104,3 @@ def test_load_sample_data_text_mode_full_chain(client: SidecarClient) -> None:
     assert len(csv_result["variants"]) > 0
 
 
-def test_load_sample_data_multi_evolve_mode_full_chain(client: SidecarClient) -> None:
-    """Reproduce frontend loadSampleData() in multi-evolve mode."""
-    seq = client.call("load_fasta", {"filepath": str(SAMPLE_DIR / "sample_plasmid.gb")})
-    assert seq["seq_length"] == 5000
-
-    csv_result = client.call(
-        "load_evolvepro_csv",
-        {
-            "filepath": str(SAMPLE_DIR / "sample_multi_evolve.csv"),
-            "top_n": 24,
-            "ref_seq": "",
-        },
-    )
-    assert csv_result["total_count"] > 0
-    assert len(csv_result["variants"]) > 0

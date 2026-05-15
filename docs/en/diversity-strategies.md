@@ -4,7 +4,7 @@
 
 ![Domain diversity with InterPro domains](../screenshots/09-diversity-domain.png)
 
-Available only in EVOLVEpro / MULTI-evolve mode. Strategies stack: enabling multiple combines their filters.
+Available only in EVOLVEpro mode. Strategies stack: enabling multiple combines their filters.
 
 ## Position diversity
 

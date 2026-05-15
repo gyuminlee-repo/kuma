@@ -4,29 +4,10 @@ from __future__ import annotations
 
 import pytest
 
-from kuma_core.kuro.evolvepro import SCORE_COLUMNS, VARIANT_COLUMNS, domain_aware_select, load_evolvepro_csv
+from kuma_core.kuro.evolvepro import VARIANT_COLUMNS, domain_aware_select, load_evolvepro_csv
 
 
 class TestLoadEvolveproCsv:
-    def test_load_multievolve_csv(self, tmp_path):
-        """MULTI-evolve CSV with 'mutation' and 'property_value' columns loads correctly."""
-        csv_file = tmp_path / "multievolve.csv"
-        csv_file.write_text(
-            "mutation,property_value\n"
-            "A40P,1.23\n"
-            "E61Y,0.95\n"
-            "K100R,0.80\n"
-        )
-
-        result = load_evolvepro_csv(csv_file, top_n=10)
-
-        assert result["selected_count"] == 3
-        assert "A40P" in result["variants"]
-        assert "E61Y" in result["variants"]
-        assert "K100R" in result["variants"]
-        # Scores should be read from property_value
-        assert result["y_preds"][0] == pytest.approx(1.23)
-
     def test_load_variant_csv_backward_compat(self, tmp_path):
         """Legacy CSV with 'variant' and 'y_pred' columns loads without error."""
         csv_file = tmp_path / "legacy.csv"

@@ -4,7 +4,7 @@
 
 ![InterPro 도메인 기반 다양성](../screenshots/09-diversity-domain.png)
 
-EVOLVEpro / MULTI-evolve 모드에서만 사용 가능. 전략들은 누적 적용 — 여러 개 활성화 시 필터가 결합됨.
+EVOLVEpro 모드에서만 사용 가능. 전략들은 누적 적용. 여러 개 활성화 시 필터가 결합됨.
 
 ## Position diversity
 

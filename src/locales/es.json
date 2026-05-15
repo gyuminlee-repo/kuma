@@ -773,7 +773,7 @@
     "codonOption_optimal": "Optimal (codon usage del organismo)",
     "codonOption_optimal_title": "Elegir el codón de mayor frecuencia en la tabla de codon usage del organismo seleccionado. Maximiza expresión pero puede requerir más cambios nt. Solo se modifica el codón de mutación (3 nt).",
     "mutationsLabel": "Mutaciones:",
-    "mutationsHelp": "Número máximo de diseños de primer a generar.\nPara modo EVOLVEpro / multi-evolve: limitado por el conteo de variantes del CSV.\nUna placa de 96 wells admite 95 mutantes + 1 control WT.",
+    "mutationsHelp": "Número máximo de diseños de primer a generar.\nPara modo EVOLVEpro: limitado por el conteo de variantes del CSV.\nUna placa de 96 wells admite 95 mutantes + 1 control WT.",
     "plates_one": "{{count}} placa",
     "plates_other": "{{count}} placas",
     "csvVariantWarning": "El CSV contiene sólo {{count}} variantes",
@@ -834,7 +834,6 @@
     "statAfterStep2": "Tras Step 2",
     "statStep3Exchanges": "Intercambios Step 3",
     "statEvolveproPool": "Pool EVOLVEpro",
-    "statMultiEvolvePool": "Pool MULTI-evolve",
     "statVariants": "{{count}} variantes",
     "statPareto_on": "ON",
     "statPareto_onSwapped": "ON ({{count}} intercambiados)",
@@ -1315,7 +1314,6 @@
     "mutationInputAriaLabel": "Fuente de entrada de mutaciones",
     "noFileSelected": "Ningún archivo seleccionado",
     "variantsLoaded": "{{count}} variantes cargadas",
-    "allCombinations": "MULTI-evolve: todas las combinaciones seleccionadas (sin filtrado)",
     "selectionMode": "Modo de selección",
     "topNOnly": "Sólo Top-N",
     "topNDesc": "(y_pred descendente)",
@@ -1324,7 +1322,8 @@
     "topNVariantsTitle": "Variantes Top-N por y_pred (editables)",
     "mutationsEntered": "{{count}} mutaciones introducidas",
     "mutationsValidated": "({{count}} validadas)",
-    "mutationsFailed": "({{count}} fallidas)"
+    "mutationsFailed": "({{count}} fallidas)",
+    "topNZeroHint": "Establece top-N en 0 para cargar todas las variantes del CSV"
   },
   "uniprotSearch": {
     "topCandidates": "Candidatos principales {{shown}}{{total}}",

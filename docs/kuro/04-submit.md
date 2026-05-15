@@ -9,8 +9,8 @@ Submit step 상단에 표시되는 read-only 요약 카드. zustand store 를 me
 | 항목 | 출처 |
 |---|---|
 | Sequence | `seqInfo.name` + 길이 |
-| Mutation source | `single` / `evolvepro` / `multi-evolve` |
-| Selection mode | `Pipeline (failover)` / `Top-N only` / `All combinations` |
+| Mutation source | `single` / `evolvepro` |
+| Selection mode | `Pipeline (failover)` / `Top-N only` |
 | Variant count | `evolveproTotalCount` 또는 mutation row 개수 |
 | Polymerase | 선택된 profile 이름 |
 | Codon strategy | `Min. changes` / `Optimal` |

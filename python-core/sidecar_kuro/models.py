@@ -337,7 +337,7 @@ class SaveCustomPolymeraseResultModel(WorkspaceModel):
 
 class WorkspaceInputsModel(WorkspaceModel):
     fastaPath: str
-    mutationInputMode: Literal["text", "evolvepro", "multi-evolve"]
+    mutationInputMode: Literal["text", "evolvepro"]
     mutationText: str
     evolveproCsvPath: str
     selectedGene: str
@@ -413,7 +413,7 @@ class WorkspaceCacheModel(WorkspaceModel):
 class WorkspaceV1Data(WorkspaceModel):
     version: Literal[1]
     fastaPath: str
-    mutationInputMode: Literal["text", "evolvepro", "multi-evolve"]
+    mutationInputMode: Literal["text", "evolvepro"]
     mutationText: str
     evolveproCsvPath: str
     selectedGene: str

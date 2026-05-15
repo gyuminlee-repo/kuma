@@ -2,10 +2,10 @@
 
 Exercises the same handlers the frontend invokes via JSON-RPC:
 - handle_load_fasta on samples/sample_plasmid.gb
-- handle_load_evolvepro_csv on samples/sample_evolvepro.csv and sample_multi_evolve.csv
+- handle_load_evolvepro_csv on samples/sample_evolvepro.csv
 
 Verifies the bundled sample data is internally consistent so the Tauri UI
-button "Load Sample Data" produces a runnable design state for both modes.
+button "Load Sample Data" produces a runnable design state.
 """
 
 from __future__ import annotations
@@ -74,20 +74,9 @@ def test_sample_evolvepro_variants_fit_target_gene(gb_info: dict) -> None:
     assert not mismatches, f"variant/sequence mismatches: {mismatches[:5]}"
 
 
-def test_sample_multi_evolve_loads() -> None:
-    """multi-evolve sample loads without error via the same RPC handler."""
-    result = handle_load_evolvepro_csv({
-        "filepath": str(SAMPLE_DIR / "sample_multi_evolve.csv"),
-        "top_n": 24,
-        "ref_seq": "",
-    })
-    assert result["total_count"] > 0
-    assert len(result["variants"]) > 0
-
-
 def test_sample_files_are_bundled() -> None:
-    """tauri.conf.json must bundle these three files; CI sync-check verifies but
+    """tauri.conf.json must bundle these files; CI sync-check verifies but
     add a direct on-disk check here so the test reports clearly if a sample is
     moved or renamed without updating tauri.conf.json."""
-    for name in ("sample_plasmid.gb", "sample_evolvepro.csv", "sample_multi_evolve.csv"):
+    for name in ("sample_plasmid.gb", "sample_evolvepro.csv"):
         assert (SAMPLE_DIR / name).exists(), f"missing bundled sample: {name}"

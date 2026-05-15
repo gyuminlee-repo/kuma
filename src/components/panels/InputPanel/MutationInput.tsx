@@ -80,16 +80,6 @@ export function MutationInput() {
           />
           EVOLVEpro
         </label>
-        <label className="flex items-center gap-1 rounded-full border border-border bg-card px-2 py-1 text-muted-foreground">
-          <input
-            type="radio"
-            name="mutInput"
-            checked={mutationInputMode === "multi-evolve"}
-            onChange={() => setMutationInputMode("multi-evolve")}
-            className="w-3 h-3"
-          />
-          MULTI-evolve
-        </label>
       </div>
 
       {mutationInputMode === "text" && (
@@ -101,7 +91,7 @@ export function MutationInput() {
         />
       )}
 
-      {(mutationInputMode === "evolvepro" || mutationInputMode === "multi-evolve") && (
+      {mutationInputMode === "evolvepro" && (
         <div className="space-y-2">
           {/* CSV file loader */}
           <div className="flex gap-1">
@@ -112,10 +102,7 @@ export function MutationInput() {
                 browseFile(
                   [
                     {
-                      name:
-                        mutationInputMode === "multi-evolve"
-                          ? "MULTI-evolve CSV"
-                          : "EVOLVEpro CSV",
+                      name: "EVOLVEpro CSV",
                       extensions: ["csv"],
                     },
                   ],
@@ -140,50 +127,44 @@ export function MutationInput() {
           {/* Variant count summary */}
           {evolveproTotalCount > 0 && (
             <div className="rounded-xl border border-border bg-muted px-3 py-2 text-xs font-medium text-foreground">
-              {mutationInputMode === "multi-evolve" ? "MULTI-evolve" : "EVOLVEpro"}:{" "}
+              EVOLVEpro:{" "}
               {t("mutationInput.variantsLoaded", { count: evolveproTotalCount })}
             </div>
           )}
 
-          {/* Selection mode / Pipeline UI — only for evolvepro (multi-evolve uses all combinations) */}
-          {mutationInputMode === "multi-evolve" ? (
-            <div className="rounded-md border border-border bg-muted px-3 py-2 text-xs text-muted-foreground">
-              {t("mutationInput.allCombinations")}
+          {/* Selection mode / Pipeline UI */}
+          <div className="space-y-1">
+            <div className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">
+              {t("mutationInput.selectionMode")}
             </div>
-          ) : (
-            <>
-              <div className="space-y-1">
-                <div className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">
-                  {t("mutationInput.selectionMode")}
-                </div>
-                <div className="space-y-0.5">
-                  <label className="flex items-center gap-1.5 cursor-pointer text-xs">
-                    <input
-                      type="radio"
-                      name="selectionMode"
-                      className="w-3 h-3"
-                      checked={!pipelineMode}
-                      onChange={() => setPipelineMode(false)}
-                    />
-                    <span className="text-foreground">{t("mutationInput.topNOnly")}</span>
-                    <span className="text-caption text-muted-foreground">{t("mutationInput.topNDesc")}</span>
-                  </label>
-                  <label className="flex items-center gap-1.5 cursor-pointer text-xs">
-                    <input
-                      type="radio"
-                      name="selectionMode"
-                      className="w-3 h-3"
-                      checked={pipelineMode}
-                      onChange={() => setPipelineMode(true)}
-                    />
-                    <span className="text-foreground">{t("mutationInput.pipeline")}</span>
-                    <span className="text-caption text-muted-foreground">{t("mutationInput.pipelineDesc")}</span>
-                  </label>
-                </div>
+            <div className="space-y-0.5">
+              <label className="flex items-center gap-1.5 cursor-pointer text-xs">
+                <input
+                  type="radio"
+                  name="selectionMode"
+                  className="w-3 h-3"
+                  checked={!pipelineMode}
+                  onChange={() => setPipelineMode(false)}
+                />
+                <span className="text-foreground">{t("mutationInput.topNOnly")}</span>
+                <span className="text-caption text-muted-foreground">{t("mutationInput.topNDesc")}</span>
+              </label>
+              <div className="ml-5 text-caption text-muted-foreground/70">
+                {t("mutationInput.topNZeroHint")}
               </div>
-
-            </>
-          )}
+              <label className="flex items-center gap-1.5 cursor-pointer text-xs">
+                <input
+                  type="radio"
+                  name="selectionMode"
+                  className="w-3 h-3"
+                  checked={pipelineMode}
+                  onChange={() => setPipelineMode(true)}
+                />
+                <span className="text-foreground">{t("mutationInput.pipeline")}</span>
+                <span className="text-caption text-muted-foreground">{t("mutationInput.pipelineDesc")}</span>
+              </label>
+            </div>
+          </div>
 
           {/* Editable variant textarea */}
           {mutationText && (

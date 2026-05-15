@@ -41,7 +41,6 @@
       "samples/sample_evolvepro.csv": "samples/sample_evolvepro.csv",
       "samples/sample_plasmid.gb": "samples/sample_plasmid.gb",
       "samples/egfp.fa": "samples/egfp.fa",
-      "samples/sample_multi_evolve.csv": "samples/sample_multi_evolve.csv",
       "samples/mame/reference.fasta": "samples/mame/reference.fasta",
       "samples/mame/03_mame_expected_mutations.xlsx": "samples/mame/03_mame_expected_mutations.xlsx",
       "samples/mame/04_mame_custom_barcodes.xlsx": "samples/mame/04_mame_custom_barcodes.xlsx",

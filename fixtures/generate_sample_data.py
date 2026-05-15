@@ -131,6 +131,7 @@ def make_random_linker(length: int) -> str:
     result: list[str] = []
     for _ in range(length):
         # Try random base, check GC balance in trailing 50bp window
+        b = random.choice(bases)
         for _ in range(10):
             b = random.choice(bases)
             window = result[-49:] + [b]
@@ -538,7 +539,7 @@ def verify_design_failures(gb_path: Path, csv_path: Path) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# FASTA-based EVOLVEpro / multi-evolve CSV generators
+# FASTA-based EVOLVEpro CSV generators
 # ---------------------------------------------------------------------------
 
 def _read_fasta(filepath: Path) -> tuple[str, str]:
@@ -641,93 +642,6 @@ def write_fasta_evolvepro_csv(
             writer.writerow([notation, notation, y_pred])
 
 
-def write_multi_evolve_csv(
-    filepath: Path,
-    protein: str,
-    gene_label: str,
-    n_singles: int = 5,
-) -> None:
-    """Generate multi-evolve batch CSV from actual protein sequence.
-
-    Creates n_singles single mutations + 3 combination variants.
-    """
-    aa_len = len(protein)
-    all_aas = list(AMINO_ACIDS)
-    used: set[str] = set()
-    singles: list[dict] = []
-
-    attempts = 0
-    while len(singles) < n_singles and attempts < n_singles * 20:
-        attempts += 1
-        pos = random.randint(2, aa_len)
-        wt_aa = protein[pos - 1]
-        if wt_aa not in all_aas:
-            continue
-        candidates = [aa for aa in all_aas if aa != wt_aa]
-        mt_aa = random.choice(candidates)
-        notation = f"{wt_aa}{pos}{mt_aa}"
-        if notation in used:
-            continue
-        used.add(notation)
-        wt_codon = ECOLI_BEST.get(wt_aa, "NNN")
-        mt_codon = ECOLI_BEST.get(mt_aa, "NNN")
-        singles.append({
-            "variant_id": f"{gene_label}_{notation}",
-            "mutations": notation,
-            "position": str(pos),
-            "wt_aa": wt_aa,
-            "mut_aa": mt_aa,
-            "codon_wt": wt_codon,
-            "codon_mut": mt_codon,
-            "predicted_fitness": round(random.uniform(1.2, 2.0), 3),
-            "domain": "auto",
-            "site_category": "auto",
-        })
-
-    # Generate 2-3 combination variants from the singles
-    combos: list[dict] = []
-    if len(singles) >= 2:
-        s = singles
-        # Double combo
-        combos.append({
-            "variant_id": f"{gene_label}_{s[0]['mutations']}_{s[1]['mutations']}",
-            "mutations": f"{s[0]['mutations']}/{s[1]['mutations']}",
-            "position": f"{s[0]['position']},{s[1]['position']}",
-            "wt_aa": f"{s[0]['wt_aa']},{s[1]['wt_aa']}",
-            "mut_aa": f"{s[0]['mut_aa']},{s[1]['mut_aa']}",
-            "codon_wt": f"{s[0]['codon_wt']},{s[1]['codon_wt']}",
-            "codon_mut": f"{s[0]['codon_mut']},{s[1]['codon_mut']}",
-            "predicted_fitness": round(random.uniform(2.5, 3.5), 3),
-            "domain": "multi_domain",
-            "site_category": "combination",
-        })
-    if len(singles) >= 3:
-        # Triple combo
-        combos.append({
-            "variant_id": f"{gene_label}_{s[0]['mutations']}_{s[1]['mutations']}_{s[2]['mutations']}",
-            "mutations": f"{s[0]['mutations']}/{s[1]['mutations']}/{s[2]['mutations']}",
-            "position": f"{s[0]['position']},{s[1]['position']},{s[2]['position']}",
-            "wt_aa": f"{s[0]['wt_aa']},{s[1]['wt_aa']},{s[2]['wt_aa']}",
-            "mut_aa": f"{s[0]['mut_aa']},{s[1]['mut_aa']},{s[2]['mut_aa']}",
-            "codon_wt": f"{s[0]['codon_wt']},{s[1]['codon_wt']},{s[2]['codon_wt']}",
-            "codon_mut": f"{s[0]['codon_mut']},{s[1]['codon_mut']},{s[2]['codon_mut']}",
-            "predicted_fitness": round(random.uniform(3.5, 4.5), 3),
-            "domain": "multi_domain",
-            "site_category": "combination",
-        })
-
-    all_rows = singles + combos
-    fieldnames = [
-        "variant_id", "mutations", "position", "wt_aa", "mut_aa",
-        "codon_wt", "codon_mut", "predicted_fitness", "domain", "site_category",
-    ]
-    with open(filepath, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        writer.writeheader()
-        for row in all_rows:
-            writer.writerow(row)
-
-
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -774,7 +688,7 @@ def main() -> int:
     print(f"  Size: {csv_size} bytes ({csv_size / 1024:.1f} KB)")
 
     # ---------------------------------------------------------------------------
-    # 3. Generate EVOLVEpro + multi-evolve CSVs for each FASTA fixture
+    # 3. Generate EVOLVEpro CSVs for each FASTA fixture
     # ---------------------------------------------------------------------------
     fasta_configs = [
         {
@@ -809,25 +723,12 @@ def main() -> int:
         )
         print(f"    {evo_path.stat().st_size} bytes, {cfg['n_evo']} variants")
 
-        # Multi-evolve batch CSV
-        multi_path = fixtures_dir / f"{cfg['label']}_multi_evolve.csv"
-        print(f"  Writing {multi_path.name}...")
-        write_multi_evolve_csv(multi_path, protein, cfg["label"], n_singles=cfg["n_singles"])
-        print(f"    {multi_path.stat().st_size} bytes")
-
     # Also copy ispS evolvepro to samples dir for easy app testing
     ispS_evo_src = fixtures_dir / "ispS_evolvepro.csv"
     if ispS_evo_src.exists():
         ispS_evo_dst = samples_dir / "ispS_evolvepro.csv"
         ispS_evo_dst.write_text(ispS_evo_src.read_text(encoding="utf-8"), encoding="utf-8")
         print(f"\nCopied {ispS_evo_src.name} → {ispS_evo_dst}")
-
-    # Also copy ispS multi-evolve to samples dir for multi-evolve Try sample
-    ispS_multi_src = fixtures_dir / "ispS_multi_evolve.csv"
-    if ispS_multi_src.exists():
-        multi_dst = samples_dir / "sample_multi_evolve.csv"
-        multi_dst.write_text(ispS_multi_src.read_text(encoding="utf-8"), encoding="utf-8")
-        print(f"\nCopied {ispS_multi_src.name} → {multi_dst}")
 
     # ---------------------------------------------------------------------------
     # Verification

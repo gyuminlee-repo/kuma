@@ -78,7 +78,7 @@ function isOptionalNullable<T>(
 }
 
 function isMutationInputMode(value: unknown): boolean {
-  return value === "text" || value === "evolvepro" || value === "multi-evolve";
+  return value === "text" || value === "evolvepro";
 }
 
 function isCodonStrategy(value: unknown): boolean {

@@ -784,7 +784,7 @@
     "codonOption_optimal": "Optimal (생물체 코돈 사용 빈도)",
     "codonOption_optimal_title": "선택한 생물체의 코돈 사용 빈도표에서 가장 높은 코돈을 선택합니다. 발현을 최대화하지만 더 많은 nt 변화가 필요할 수 있습니다.",
     "mutationsLabel": "돌연변이:",
-    "mutationsHelp": "생성할 primer 설계 최대 수입니다.\nEVOLVEpro / multi-evolve 모드: CSV 변이 수로 제한됩니다.\n96-well 플레이트 1개에 돌연변이 95개 + WT 대조군 1개가 들어갑니다.",
+    "mutationsHelp": "생성할 primer 설계 최대 수입니다.\nEVOLVEpro 모드: CSV 변이 수로 제한됩니다.\n96-well 플레이트 1개에 돌연변이 95개 + WT 대조군 1개가 들어갑니다.",
     "plates_one": "{{count}}개 플레이트",
     "plates_other": "{{count}}개 플레이트",
     "csvVariantWarning": "CSV에 변이가 {{count}}개뿐입니다",
@@ -845,7 +845,6 @@
     "statAfterStep2": "Step 2 이후",
     "statStep3Exchanges": "Step 3 교환 수",
     "statEvolveproPool": "EVOLVEpro 풀",
-    "statMultiEvolvePool": "MULTI-evolve 풀",
     "statVariants": "{{count}}개 변이",
     "statPareto_on": "ON",
     "statPareto_onSwapped": "ON ({{count}}개 교환)",
@@ -1274,7 +1273,6 @@
     "toggleAriaLabel": "백그라운드 작업 대기열 토글"
   },
   "mutationInput": {
-    "allCombinations": "MULTI-evolve: 모든 조합 선택됨 (필터링 없음)",
     "mutationInputAriaLabel": "변이 입력 소스",
     "mutations": "변이",
     "mutationsEntered": "{{count}}개 변이 입력됨",
@@ -1287,7 +1285,8 @@
     "topNDesc": "(y_pred 내림차순)",
     "topNOnly": "Top-N만",
     "topNVariantsTitle": "y_pred 기준 Top-N 변이 (편집 가능)",
-    "variantsLoaded": "{{count}}개 변이 불러옴"
+    "variantsLoaded": "{{count}}개 변이 불러옴",
+    "topNZeroHint": "top-N을 0으로 두면 CSV의 모든 변이를 불러옵니다"
   },
   "offTargetDetail": {
     "closeAriaLabel": "닫기",
@@ -1899,7 +1898,6 @@
       },
       "selectionMode": {
         "label": "선택 모드",
-        "allCombinations": "모든 조합",
         "pipeline": "Pipeline (failover)",
         "topN": "Top-N"
       },

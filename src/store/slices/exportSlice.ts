@@ -185,7 +185,7 @@ function buildReportData(state: AppState) {
         ...(domainSelected != null && state.domainDiversityEnabled ? [{ label: "After Step 2", value: domainSelected }] : []),
         ...(paretoExchanges != null && state.paretoDiversityEnabled ? [{ label: "Step 3 exchanges", value: paretoExchanges }] : []),
         ...(state.evolveproTotalCount > 0 ? [{
-          label: state.mutationInputMode === "multi-evolve" ? "MULTI-evolve pool" : "EVOLVEpro pool",
+          label: "EVOLVEpro pool",
           value: `${state.evolveproTotalCount} variants`,
         }] : []),
       ],

@@ -3,7 +3,7 @@ import type { SettingsBundle } from "./models.generated";
 
 /** TypeScript interfaces for KURO JSON-RPC communication. */
 
-export type MutationInputMode = "text" | "evolvepro" | "multi-evolve";
+export type MutationInputMode = "text" | "evolvepro";
 export type CodonStrategy = "closest" | "optimal";
 export type OverlapMode = "partial" | "full";
 

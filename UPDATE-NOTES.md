@@ -4,6 +4,12 @@
 
 ---
 
+## v0.9.4.0 (2026-05-15)
+
+Remove multi-evolve mutation input option (dormant feature consolidated into EVOLVEpro; top-N=0 loads all variants from CSV).
+
+---
+
 ## v0.9.1.2 (2026-05-14)
 
 Workspace artifact registry now runs through Tauri plugin APIs instead of node built-ins so it actually works in the browser-side webview.

@@ -9,7 +9,6 @@ export interface EvolveproLoadConfig {
   filepath: string;
   topN: number;
   usePipeline: boolean;
-  isMultiEvolve: boolean;
   positionDiversityEnabled: boolean;
   maxPerPosition: number;
   activeDomains: DomainInfo[];
@@ -53,7 +52,6 @@ export function buildEvolveproLoadParams(config: EvolveproLoadConfig): Record<st
     filepath,
     topN,
     usePipeline,
-    isMultiEvolve,
     positionDiversityEnabled,
     maxPerPosition,
     activeDomains,
@@ -76,7 +74,7 @@ export function buildEvolveproLoadParams(config: EvolveproLoadConfig): Record<st
 
   return {
     filepath,
-    top_n: isMultiEvolve ? 0 : topN,
+    top_n: topN,
     ...(usePipeline && positionDiversityEnabled && { max_per_position: maxPerPosition }),
     ...(usePipeline && excludedDomains.length > 0 && {
       excluded_ranges: excludedDomains.map((d) => ({ start: d.start, end: d.end })),
@@ -106,10 +104,10 @@ export function buildEvolveproLoadParams(config: EvolveproLoadConfig): Record<st
 
 export function buildEvolveproLoadStateUpdate(params: {
   result: EvolveproLoadResult;
-  currentMode: "text" | "evolvepro" | "multi-evolve";
+  currentMode: "text" | "evolvepro";
   maxPerPosition: number;
 }): EvolveproLoadStateUpdate {
-  const { result, currentMode, maxPerPosition } = params;
+  const { result, maxPerPosition } = params;
   const yPredMap: Record<string, number> = {};
   result.variants.forEach((v, i) => {
     yPredMap[v] = result.y_preds[i] ?? 0;
@@ -126,7 +124,7 @@ export function buildEvolveproLoadStateUpdate(params: {
   const paretoMsg = result.pareto_replaced != null && result.pareto_replaced > 0
     ? ` | Pareto: ${result.pareto_replaced} diversified`
     : "";
-  const modeLabel = currentMode === "multi-evolve" ? "MULTI-evolve" : "EVOLVEpro";
+  const modeLabel = "EVOLVEpro";
 
   return {
     mutationText: result.variants.join("\n"),

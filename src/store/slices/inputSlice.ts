@@ -14,7 +14,6 @@ import {
   validateCsvHeader,
   extractCsvHeader,
   EVOLVEPRO_CSV_SCHEMA,
-  MULTI_EVOLVE_CSV_SCHEMA,
 } from "../../lib/schemaValidator";
 
 import type { InputSlice } from "../slice-interfaces";
@@ -76,8 +75,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       const effectiveTopN = topNOverride ?? maxPrimers;
       const activeDomains = domains.filter((d) => !disabledDomains.includes(`${d.name}-${d.start}`));
       const excludedDomains = domains.filter((d) => disabledDomains.includes(`${d.name}-${d.start}`));
-      const isMultiEvolve = get().mutationInputMode === "multi-evolve";
-      const modeLabel = isMultiEvolve ? "MULTI-evolve" : "EVOLVEpro";
+      const modeLabel = "EVOLVEpro";
 
       // v0.3 §4: pass protein ref_seq so sidecar can convert EVOLVEpro
       // short-form variants (89W) back to internal notation (F89W).
@@ -96,7 +94,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       try {
         const csvText = await readTextFile(filepath);
         const header = extractCsvHeader(csvText);
-        const spec = isMultiEvolve ? MULTI_EVOLVE_CSV_SCHEMA : EVOLVEPRO_CSV_SCHEMA;
+        const spec = EVOLVEPRO_CSV_SCHEMA;
         const validation = validateCsvHeader(header, spec);
         if (!validation.valid) {
           const detail = validation.errors.join("; ");
@@ -110,12 +108,11 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         // 파일 읽기 실패 시 sidecar 에 위임 (경로 오류는 sidecar가 처리)
       }
 
-      const usePipeline = pipelineMode && !isMultiEvolve;
+      const usePipeline = pipelineMode;
         const params = buildEvolveproLoadParams({
           filepath,
           topN: effectiveTopN,
           usePipeline,
-          isMultiEvolve,
         positionDiversityEnabled,
         maxPerPosition,
         activeDomains,
@@ -145,10 +142,9 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       if (result.total_count > 0 && maxPrimers > result.total_count) {
         get().setMaxPrimers(result.total_count);
       }
-      const currentMode = get().mutationInputMode;
       set({
         mutationText: update.mutationText,
-        mutationInputMode: currentMode === "multi-evolve" ? "multi-evolve" : "evolvepro",
+        mutationInputMode: "evolvepro",
         yPredMap: update.yPredMap,
         domainStats: update.domainStats,
         poolVariants: update.poolVariants,
@@ -169,7 +165,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
           yPredMap: {},
           domainStats: {},
           poolVariants: [],
-          statusMessage: `${get().mutationInputMode === "multi-evolve" ? "MULTI-evolve" : "EVOLVEpro"} CSV load failed: ${formatError(err)}`,
+          statusMessage: `EVOLVEpro CSV load failed: ${formatError(err)}`,
         });
       }
       throw err;

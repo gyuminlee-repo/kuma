@@ -8,9 +8,8 @@
  *
  * 표시 항목 (4 + sequence):
  *   1. Sequence            seqInfo.header / seq_length          (Not loaded)
- *   2. Mutation source     mutationInputMode                    (single | evolvepro | multi-evolve)
- *   3. Selection mode      multi-evolve → All combinations
- *                          else pipelineMode ? Pipeline (failover) : Top-N only
+ *   2. Mutation source     mutationInputMode                    (single | evolvepro)
+ *   3. Selection mode      pipelineMode ? Pipeline (failover) : Top-N only
  *   4. Variant count       evolveproTotalCount (mutationInputMode=single → parsedMutations.length)
  *   5. Polymerase / codon  selectedPolymerase · codonStrategy · tmFwdTarget · maxPrimers
  *
@@ -37,12 +36,9 @@ export function DesignSummaryCard() {
     ? `${seqInfo.header || t("phaseE.summary.sequence.unnamed")} (${seqInfo.seq_length} nt)`
     : t("phaseE.summary.sequence.empty");
 
-  const selectionText =
-    mutationInputMode === "multi-evolve"
-      ? t("phaseE.summary.selectionMode.allCombinations")
-      : pipelineMode
-        ? t("phaseE.summary.selectionMode.pipeline")
-        : t("phaseE.summary.selectionMode.topN");
+  const selectionText = pipelineMode
+    ? t("phaseE.summary.selectionMode.pipeline")
+    : t("phaseE.summary.selectionMode.topN");
 
   const variantCount =
     mutationInputMode === "text" ? parsedMutationCount : evolveproTotalCount;

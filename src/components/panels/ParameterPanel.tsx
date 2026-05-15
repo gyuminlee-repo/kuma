@@ -39,7 +39,7 @@ export function ParameterPanel() {
   const setMaxPrimers = useAppStore((s) => s.setMaxPrimers);
   const mutationInputMode = useAppStore((s) => s.mutationInputMode);
   const evolveproTotalCount = useAppStore((s) => s.evolveproTotalCount);
-  const isEvolvepro = mutationInputMode === "evolvepro" || mutationInputMode === "multi-evolve";
+  const isEvolvepro = mutationInputMode === "evolvepro";
   const maxLimit = isEvolvepro && evolveproTotalCount > 0 ? evolveproTotalCount : 10000;
   const overLimit = isEvolvepro && evolveproTotalCount > 0 && maxPrimers > evolveproTotalCount;
 

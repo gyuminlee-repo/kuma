@@ -26,10 +26,6 @@ E335A
 
 CSV 로드 시 **EVOLVEpro 모드**로 전환 — 점수 기준 정렬 활성화, diversity 컨트롤 노출 ([다양성 전략](diversity-strategies.md)).
 
-## MULTI-evolve CSV
-
-다중 타깃 라운드용. `target` 컬럼이 유전자별 그룹을 분리.
-
 ## 최대 크기
 
 한 번에 최대 10,000개 (v1.33.6). CSV 전체보다 **Mutations** 값이 작으면 상위 N개만 사용 (score 기준).

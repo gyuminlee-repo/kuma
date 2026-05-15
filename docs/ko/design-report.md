@@ -6,7 +6,7 @@
 
 ## 섹션
 
-1. **입력 요약** — 서열 이름, 유전자, 변이 수, 모드 (text / EVOLVEpro / multi-evolve)
+1. **입력 요약**: 서열 이름, 유전자, 변이 수, 모드 (text / EVOLVEpro)
 2. **파라미터 스냅샷** — 폴리머레이즈, Tm / GC / 길이, 코돈 전략
 3. **파이프라인 통계** (EVOLVEpro 모드에서만) — 단계별 counts (Step 1 top-N, Step 2 diversity, Step 3 Pareto/entropy)
 4. **도메인 통계** — 도메인별 픽 수 vs quota
