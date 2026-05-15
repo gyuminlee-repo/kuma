@@ -1,10 +1,10 @@
 /**
  * inputSlice.loadSampleData.test.ts
  *
- * loadSampleData() 동작 검증:
- * - text 모드 시작 → evolvepro CSV 로딩 후 mode="evolvepro"
- * - multi-evolve 모드 → multi_evolve CSV 사용, mode="multi-evolve" 유지
- * - loadSequence 실패(seqInfo=null) 시 후속 loadEvolveproCsv 호출 안 됨, 상태 메시지 보존
+ * loadSampleData() 동작 검증 (Item 1, PI 2026-05-15):
+ * - EGFP FASTA 로드 후 text 모드로 전환 + 데모 mutationText 채움
+ * - mutationInputMode 무관하게 동일 동작 (Item 1: wizard Next 통과용 단일 경로)
+ * - loadSequence 실패(seqInfo=null) 시 후속 텍스트 채움 안 됨, 상태 메시지 보존
  * - 리소스 경로 resolveResource로 해석
  */
 
@@ -94,14 +94,14 @@ describe("inputSlice.loadSampleData", () => {
     vi.clearAllMocks()
   })
 
-  it("resolves bundled gb + evolvepro CSV in text mode, runs both loaders", async () => {
+  it("loads EGFP FASTA, forces text mode, and populates demo mutationText", async () => {
     const loadSequence = vi.fn(async () => {
       // simulate successful sequence load
       ;(store.state as { seqInfo: unknown }).seqInfo = {
         header: "x",
-        seq_length: 5000,
+        seq_length: 720,
         genes: [
-          { gene: "synR", aa_length: 381, translation: "M", cds_start: 1, cds_end: 1146 },
+          { gene: "egfp", aa_length: 239, translation: "M", cds_start: 1, cds_end: 720 },
         ],
       }
     })
@@ -110,13 +110,15 @@ describe("inputSlice.loadSampleData", () => {
 
     await store.slice.loadSampleData()
 
-    expect(resolveResource).toHaveBeenCalledWith("samples/sample_plasmid.gb")
-    expect(resolveResource).toHaveBeenCalledWith("samples/sample_evolvepro.csv")
-    expect(loadSequence).toHaveBeenCalledWith("/resolved/samples/sample_plasmid.gb")
-    expect(loadEvolveproCsv).toHaveBeenCalledWith("/resolved/samples/sample_evolvepro.csv")
+    expect(resolveResource).toHaveBeenCalledWith("samples/egfp.fa")
+    expect(loadSequence).toHaveBeenCalledWith("/resolved/samples/egfp.fa")
+    // Item 1: CSV loader is intentionally skipped (CSV is invalid for EGFP).
+    expect(loadEvolveproCsv).not.toHaveBeenCalled()
+    expect(store.state.mutationInputMode).toBe("text")
+    expect(store.state.mutationText).toBe("L65A, F100A, N150A, H200A")
   })
 
-  it("uses sample_multi_evolve.csv when mode is multi-evolve", async () => {
+  it("forces text mode even when starting in multi-evolve mode", async () => {
     const loadSequence = vi.fn(async () => {
       ;(store.state as { seqInfo: unknown }).seqInfo = { genes: [] }
     })
@@ -129,10 +131,9 @@ describe("inputSlice.loadSampleData", () => {
 
     await store.slice.loadSampleData()
 
-    expect(resolveResource).toHaveBeenCalledWith("samples/sample_multi_evolve.csv")
-    expect(loadEvolveproCsv).toHaveBeenCalledWith(
-      "/resolved/samples/sample_multi_evolve.csv",
-    )
+    expect(loadEvolveproCsv).not.toHaveBeenCalled()
+    expect(store.state.mutationInputMode).toBe("text")
+    expect(store.state.mutationText).toBe("L65A, F100A, N150A, H200A")
   })
 
   it("aborts before CSV load if loadSequence silently failed (seqInfo stays null)", async () => {

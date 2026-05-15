@@ -529,6 +529,40 @@ export interface RpcMethodMap {
     params: RpcParams & { bom?: boolean };
     result: ExportMappingResult;
   };
+  export_echo_mapping_dry_run: {
+    params: { transfer_vol?: number };
+    result: {
+      rows: Array<{
+        source_plate: string;
+        source_well_name: string;
+        source_well: string;
+        dest_plate: string;
+        dest_well_name: string;
+        dest_well: string;
+        transfer_vol: number;
+      }>;
+      total: number;
+      transfer_vol: number;
+    };
+  };
+  export_janus_mapping_dry_run: {
+    params: { transfer_vol?: number };
+    result: {
+      rows: Array<{
+        name: string;
+        type: string;
+        dsp_rack_label: string;
+        no: number;
+        asp_rack: number;
+        asp_posi: string;
+        dsp_rack: number;
+        dsp_posi: string;
+        volume: number;
+      }>;
+      total: number;
+      transfer_vol: number;
+    };
+  };
   export_macrogen: {
     params: {
       project_id?: string;

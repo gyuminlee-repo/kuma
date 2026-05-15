@@ -175,16 +175,61 @@ export async function handleExportAll(
   if (!dir || typeof dir !== "string") {
     return null;
   }
-  return sendRequest("export_all", {
-    project_id: params.projectId,
-    output_dir: dir,
-    fwd_plate_name: params.fwdPlateName ?? "",
-    rev_plate_name: params.rvsPlateName ?? "",
-    amount: params.amount,
-    echo_transfer_vol: params.echoTransferVol,
-    janus_transfer_vol: params.janusTransferVol,
-    bom: params.bom,
-  });
+  try {
+    const result = (await sendRequest("export_all", {
+      project_id: params.projectId,
+      output_dir: dir,
+      fwd_plate_name: params.fwdPlateName ?? "",
+      rev_plate_name: params.rvsPlateName ?? "",
+      amount: params.amount,
+      echo_transfer_vol: params.echoTransferVol,
+      janus_transfer_vol: params.janusTransferVol,
+      bom: params.bom,
+    })) as { success: string[]; failed: { path: string; reason: string }[]; output_dir: string };
+
+    const successCount = result.success?.length ?? 0;
+    const failedCount = result.failed?.length ?? 0;
+    const totalCount = successCount + failedCount;
+    const outputDir = result.output_dir ?? dir;
+
+    if (failedCount === 0 && successCount > 0) {
+      toast.success("Export all complete", {
+        description: `${successCount} of ${totalCount} files exported to ${outputDir}`,
+        duration: 6000,
+        action: { label: "Open folder", onClick: () => void revealInOSFolder(outputDir) },
+      });
+    } else if (successCount > 0 && failedCount > 0) {
+      const firstFailed = result.failed
+        .slice(0, 3)
+        .map((f) => f.path)
+        .join(", ");
+      toast.warning("Export all: partial success", {
+        description: `${successCount} of ${totalCount} files exported to ${outputDir}. Failed: ${firstFailed}${failedCount > 3 ? ` (+${failedCount - 3} more)` : ""}`,
+        duration: 8000,
+        action: { label: "Open folder", onClick: () => void revealInOSFolder(outputDir) },
+      });
+    } else if (failedCount > 0) {
+      const firstFailed = result.failed
+        .slice(0, 3)
+        .map((f) => `${f.path}: ${f.reason}`)
+        .join("; ");
+      toast.error("Export all failed", {
+        description: `0 of ${totalCount} files exported. ${firstFailed}${failedCount > 3 ? ` (+${failedCount - 3} more)` : ""}`,
+        duration: 8000,
+      });
+    } else {
+      toast.info("Export all: nothing to export", {
+        description: `No files were generated in ${outputDir}.`,
+        duration: 6000,
+      });
+    }
+
+    return result;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    toast.error("Export all failed", { description: msg, duration: 8000 });
+    return null;
+  }
 }
 
 /**

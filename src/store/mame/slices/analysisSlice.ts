@@ -8,6 +8,8 @@ import {
   sampleVerdicts,
   sampleWells,
 } from "@/lib/mame/sampleData";
+import { useRoundStore } from "@/store/round/roundSlice";
+import type { ActivityRecord, PlateMeta } from "@/types/mame/activity";
 import type { PlateDataResult, RunHealthData } from "@/types/mame/models";
 import type { AnalysisSlice } from "../slice-interfaces";
 import type { AppState } from "../types";
@@ -113,22 +115,37 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
     state.setSampleMapPath(sampleMapPath);
     state.setParams({ rawRunParams: { customBarcodesPath: barcodesPath } });
 
-    // Activity pipeline: set plate meta + upload measurements.
+    // Activity pipeline: create round + set plate meta (WT wells) + upload measurements.
+    // WT wells A1/A2/A3 derived from 05_mame_sample_map.xlsx (rows 2-4 → WT_r1/r2/r3).
+    // Round entity is required so WtWellEditor / ActivityPanel can surface the
+    // pre-annotated WT wells without forcing the user to redo the click-grid.
     // Partial-success allowed per Wave B1 spec: RPC failure must not block the
     // mock results screen — user is notified via analyzeMessage.
-    const roundId = "sample-round-1";
+    const samplePlateMeta: PlateMeta = {
+      plates: [
+        { plate_id: "plate01", wt_wells: ["A1", "A2", "A3"], control_wells: [] },
+      ],
+    };
+    const roundId = useRoundStore.getState().addRound({ plate_meta: samplePlateMeta });
     let activityErr: unknown = null;
     try {
       await sendRequest("activity.set_plate_meta", {
         round_id: roundId,
-        plate_meta: {
-          plates: [{ plate_id: "plate01", wt_wells: ["A1", "A2", "A3"] }],
-        },
+        plate_meta: samplePlateMeta,
       });
-      await sendRequest("activity.upload", {
+      const uploadResult = await sendRequest<{
+        records: ActivityRecord[];
+        plate_meta: PlateMeta;
+      }>("activity.upload", {
         round_id: roundId,
         file_path: activityCsvPath,
         format: "csv",
+      });
+      // Hydrate round.activity so WtWellEditor + ActivityPanel reflect the
+      // uploaded records and WT-well annotation without re-running upload.
+      useRoundStore.getState().updateRoundField(roundId, "activity", {
+        records: uploadResult?.records ?? [],
+        plate_meta: uploadResult?.plate_meta ?? samplePlateMeta,
       });
     } catch (rpcErr) {
       activityErr = rpcErr;

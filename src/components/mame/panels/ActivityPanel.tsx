@@ -15,7 +15,9 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { save } from "@tauri-apps/plugin-dialog";
+import { toast } from "sonner";
 import { useStore } from "zustand";
+import { validateMergeActivity } from "@/store/validation";
 import { Button } from "@/components/ui/button";
 import { ActivityUploadPanel } from "./ActivityUploadPanel";
 import { WtWellEditor } from "@/components/mame/dialogs/WtWellEditor";
@@ -154,10 +156,21 @@ export function MergeSection() {
     pendingAction: () => void;
   } | null>(null);
 
-  function guardedMerge(action: () => void) {
-    const check = checkMameInputSize({ rowCount: activityRowCount });
-    if (check.level !== "ok") {
-      setMameSizeWarning({ level: check.level, message: check.message, pendingAction: action });
+  function guardedMerge(action: () => void, requireActivity: boolean) {
+    // PI 2026-05-15 (Item 2): activeRound·activity 누락 시 toast.warning.
+    const check = validateMergeActivity({
+      activeRoundId,
+      hasActivity: requireActivity ? hasActivity : true,
+    });
+    if (!check.ok) {
+      toast.warning(t("validation.actionBlockedTitle"), {
+        description: check.missing.map((k) => t(k)).join("\n"),
+      });
+      return;
+    }
+    const sizeCheck = checkMameInputSize({ rowCount: activityRowCount });
+    if (sizeCheck.level !== "ok") {
+      setMameSizeWarning({ level: sizeCheck.level, message: sizeCheck.message, pendingAction: action });
       return;
     }
     action();
@@ -175,8 +188,13 @@ export function MergeSection() {
         size="sm"
         variant="outline"
         className="w-full text-xs"
-        onClick={() => activeRoundId && guardedMerge(() => void mergeActivity(activeRoundId))}
-        disabled={!activeRoundId || isMerging}
+        onClick={() =>
+          guardedMerge(
+            () => activeRoundId && void mergeActivity(activeRoundId),
+            false,
+          )
+        }
+        disabled={isMerging}
         aria-busy={isMerging}
         aria-label={t("mame.activity.merge.btnLegacy")}
       >
@@ -188,8 +206,13 @@ export function MergeSection() {
         size="sm"
         variant="outline"
         className="w-full text-xs"
-        onClick={() => activeRoundId && guardedMerge(() => void mergeForEvolvepro(activeRoundId))}
-        disabled={!activeRoundId || isMerging || !hasActivity}
+        onClick={() =>
+          guardedMerge(
+            () => activeRoundId && void mergeForEvolvepro(activeRoundId),
+            true,
+          )
+        }
+        disabled={isMerging}
         aria-busy={isMerging}
         aria-label={t("mame.activity.merge.btnEvolveproAria")}
       >
@@ -249,7 +272,19 @@ export function ExportSection() {
   const exportEvolveproXlsx = useStore(activityStore, (s: ActivitySlice) => s.exportEvolveproXlsx);
   const project = useKumaProject();
 
+  const hasActivity = useRoundStore(
+    (s) => (s.rounds.find((r) => r.id === activeRoundId)?.activity?.records?.length ?? 0) > 0,
+  );
+
   async function handleExport() {
+    // PI 2026-05-15 (Item 2): round/activity 누락 시 toast.warning.
+    const check = validateMergeActivity({ activeRoundId, hasActivity });
+    if (!check.ok) {
+      toast.warning(t("validation.actionBlockedTitle"), {
+        description: check.missing.map((k) => t(k)).join("\n"),
+      });
+      return;
+    }
     if (!activeRoundId) return;
     let defaultPath = "evolvepro_export.xlsx";
     if (project && !project.scratch) {
@@ -282,7 +317,7 @@ export function ExportSection() {
         variant="outline"
         className="w-full text-xs"
         onClick={() => void handleExport()}
-        disabled={!activeRoundId || isExporting}
+        disabled={isExporting}
         aria-busy={isExporting}
         aria-label={t("mame.activity.export.btn")}
       >

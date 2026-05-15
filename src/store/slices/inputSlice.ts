@@ -190,23 +190,40 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   },
 
   loadSampleData: async () => {
+    // Item 1 (PI 2026-05-15): "Load sample data" must auto-populate every required
+    // field so the user can press Next at each wizard step without manual setup.
+    //
+    // Why text mode (not evolvepro) for the EGFP fixture:
+    //   The bundled `sample_evolvepro.csv` was authored for the legacy ispS sample
+    //   and references high residue positions / WT residues that do not match the
+    //   EGFP CDS (239 aa) introduced in Item 4. Loading that CSV against EGFP
+    //   yields position/WT-residue validation failures inside `load_evolvepro_csv`
+    //   and leaves `mutationText` empty, breaking the design.mutation Next gate.
+    //   Until the CSV is regenerated for EGFP (separate follow-up), the sample
+    //   loader uses text-mode with a small demo set of valid EGFP mutations.
+    //
+    //   The four mutations below use the actual WT residues at positions 65, 100,
+    //   150, 200 of the bundled EGFP translation, so the design pipeline accepts
+    //   them without further user intervention.
+    //
+    // Other required defaults (codon strategy "closest", polymerase "Benchling",
+    // pipelineMode / diversity flags) are already set by the respective slice
+    // initial state, so the wizard's design.submit gate clears on its own once
+    // seqInfo + mutationText are present and the single-gene FASTA auto-selects
+    // selectedGene inside loadSequence.
     try {
       set({ statusMessage: "Loading sample data..." });
-      const mode = get().mutationInputMode;
-      const csvFilename =
-        mode === "multi-evolve"
-          ? "samples/sample_multi_evolve.csv"
-          : "samples/sample_evolvepro.csv";
-      const [gbPath, csvPath] = await Promise.all([
-        resolveResource("samples/sample_plasmid.gb"),
-        resolveResource(csvFilename),
-      ]);
+      const gbPath = await resolveResource("samples/egfp.fa");
       await get().loadSequence(gbPath);
       if (!get().seqInfo) {
         // loadSequence swallowed an error and left statusMessage with the cause; preserve it.
         return;
       }
-      await get().loadEvolveproCsv(csvPath);
+      // Force text mode (clears any stale evolvepro CSV state).
+      get().setMutationInputMode("text");
+      // Demo mutations valid against the bundled EGFP translation.
+      get().setMutationText("L65A, F100A, N150A, H200A");
+      set({ statusMessage: "Sample data loaded (EGFP + 4 demo mutations)." });
     } catch (err) {
       set({ statusMessage: `Sample load failed: ${formatError(err)}` });
     }

@@ -96,13 +96,24 @@ class TestHandleActivityUpload:
         assert by_well["A01"]["is_wt"] is True
         assert by_well["B03"]["is_wt"] is False
 
-    def test_missing_round_raises_runtime_error(self, tmp_path: Path):
+    def test_missing_round_lazy_inits_round(self, tmp_path: Path):
+        # Behaviour change: handle_activity_upload now lazily creates the round
+        # so frontend addRound (which only mutates Zustand) does not require
+        # a separate sidecar round.create RPC. Empty round_id still raises.
         csv_file = tmp_path / "x.csv"
         csv_file.write_text("plate_id,well_id,value\nP01,A01,1.0\n")
 
-        with pytest.raises(RuntimeError, match="Round not found"):
+        res = handle_activity_upload({
+            "round_id": "lazy_round",
+            "file_path": str(csv_file),
+            "format": "long_csv",
+        })
+        assert "records" in res
+        assert _rounds["lazy_round"]["activity"]["raw_records"]
+
+        with pytest.raises(ValueError, match="round_id"):
             handle_activity_upload({
-                "round_id": "nonexistent",
+                "round_id": "",
                 "file_path": str(csv_file),
                 "format": "long_csv",
             })
@@ -150,10 +161,20 @@ class TestHandleActivitySetPlateMeta:
         assert res == {"ok": True}
         assert _rounds["round_1"]["plate_meta"]["plates"][0]["plate_id"] == "P02"
 
-    def test_missing_round_raises_runtime_error(self):
-        with pytest.raises(RuntimeError, match="Round not found"):
+    def test_missing_round_lazy_inits_round(self):
+        # Behaviour change: handle_activity_set_plate_meta now lazily creates
+        # the round to match the frontend addRound flow. Empty round_id still
+        # raises ValueError (-32602).
+        res = handle_activity_set_plate_meta({
+            "round_id": "lazy_setmeta",
+            "plate_meta": {"plates": []},
+        })
+        assert res == {"ok": True}
+        assert _rounds["lazy_setmeta"]["plate_meta"] == {"plates": []}
+
+        with pytest.raises(ValueError, match="round_id"):
             handle_activity_set_plate_meta({
-                "round_id": "no_such_round",
+                "round_id": "",
                 "plate_meta": {"plates": []},
             })
 

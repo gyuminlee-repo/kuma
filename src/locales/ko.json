@@ -1848,6 +1848,9 @@
       "mappingExport": {
         "heading": "플레이트 매핑 내보내기",
         "runExport": "매핑 내보내기"
+      },
+      "all": {
+        "runExport": "모두 내보내기"
       }
     },
     "run": {
@@ -2050,8 +2053,21 @@
   "validation": {
     "missing": {
       "sequence": "Sequence 파일이 필요합니다",
-      "mutation": "Mutation 입력이 필요합니다"
-    }
+      "mutation": "Mutation 입력이 필요합니다",
+      "fwdPlateName": "Forward primer plate name을 입력해 주세요",
+      "fwdPlateNameInvalid": "Forward primer plate name: 영문/숫자/_/- 1~20자",
+      "rvsPlateName": "Reverse primer plate name을 입력해 주세요",
+      "rvsPlateNameInvalid": "Reverse primer plate name: 영문/숫자/_/- 1~20자",
+      "designResults": "내보낼 설계 결과가 없습니다",
+      "cdsFasta": "CDS FASTA 파일이 필요합니다",
+      "barcodeSeeds": "Barcode seeds xlsx가 필요합니다",
+      "geneCoordinates": "gene_start, gene_end 좌표가 필요합니다",
+      "geneRangeInvalid": "gene_end가 gene_start보다 커야 합니다",
+      "projectPath": "프로젝트를 먼저 열거나 생성해 주세요",
+      "activeRound": "Round를 먼저 선택해 주세요",
+      "activityData": "Activity 데이터를 먼저 업로드해 주세요"
+    },
+    "actionBlockedTitle": "필수 입력이 누락되어 진행할 수 없습니다"
   },
   "report": {
     "noResultsDesc": "프라이머 결과를 보려면 먼저 설계를 실행하세요.",

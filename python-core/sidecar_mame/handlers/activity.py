@@ -39,10 +39,42 @@ _ALLOWED_EXPORT_XLSX_EXTENSIONS = {".xlsx"}
 # ---------------------------------------------------------------------------
 
 def _get_round(round_id: str) -> dict:
-    """Return the round dict or raise RuntimeError (-32002 in dispatcher)."""
+    """Return the round dict or raise RuntimeError (-32002 in dispatcher).
+
+    Raises ValueError for empty/missing round_id (-32602 in dispatcher).
+    """
+    if not round_id:
+        raise ValueError("round_id is required")
     rd = _rounds.get(round_id)
     if rd is None:
         raise RuntimeError(f"Round not found: {round_id}")
+    return rd
+
+
+def _ensure_round(round_id: str, *, n: int = 1) -> dict:
+    """Return the round dict, lazily creating it with defaults if missing.
+
+    Frontend ``addRound`` only mutates the React Zustand store; the sidecar
+    has no corresponding state until an activity.* RPC is called. Without
+    lazy-init, the first ``activity.upload`` call after entering the Activity
+    phase fails with ``Round not found`` because no prior RPC seeded
+    ``_rounds[round_id]``. Lazy-init keeps the dispatcher API ergonomic
+    (frontend does not need a separate ``round.create`` RPC) without breaking
+    tests that pre-populate ``_rounds`` directly.
+
+    Caller must hold ``_rounds_lock``.
+    """
+    if not round_id:
+        raise ValueError("round_id is required")
+    rd = _rounds.get(round_id)
+    if rd is None:
+        rd = {
+            "round_id": round_id,
+            "n": n,
+            "status": "design",
+            "plate_meta": {"plates": []},
+        }
+        _rounds[round_id] = rd
     return rd
 
 
@@ -115,7 +147,9 @@ def handle_activity_upload(params: dict) -> dict:
     round_id: str = params["round_id"]
 
     with _rounds_lock:
-        rd = _get_round(round_id)
+        # Lazy-init: frontend addRound only mutates Zustand; sidecar would
+        # otherwise raise "Round not found" on the first upload call.
+        rd = _ensure_round(round_id)
 
         resolved = _validate_filepath(
             params.get("file_path"),
@@ -136,7 +170,7 @@ def handle_activity_upload(params: dict) -> dict:
         }
 
     serialised = [r.model_dump() for r in table.records]
-    return {"records": serialised, "warnings": []}
+    return {"records": serialised, "plate_meta": pmeta_raw, "warnings": []}
 
 
 def handle_activity_set_plate_meta(params: dict) -> dict:
@@ -154,7 +188,8 @@ def handle_activity_set_plate_meta(params: dict) -> dict:
     new_meta: dict = params["plate_meta"]  # KeyError if missing — maps to -32602
 
     with _rounds_lock:
-        rd = _get_round(round_id)
+        # Lazy-init so the very first frontend call after addRound succeeds.
+        rd = _ensure_round(round_id)
         rd["plate_meta"] = new_meta
 
     return {"ok": True}
@@ -439,7 +474,8 @@ def handle_merge_for_evolvepro(params: dict) -> dict:
             # Convert short EVOLVEpro notation → internal notation.
             # ValueError from from_evolvepro (bad notation) → -32602 via dispatcher.
             # ref_seq is guaranteed non-None here (checked above).
-            assert ref_seq is not None  # type narrowing for pyright
+            if ref_seq is None:  # pragma: no cover — defensive narrowing
+                raise ValueError("ref_seq required for replicate merge")
             authoritative_internal: dict[Variant, list[float]] = {
                 Variant(from_evolvepro(k, ref_seq)): v
                 for k, v in authoritative_measurements.items()

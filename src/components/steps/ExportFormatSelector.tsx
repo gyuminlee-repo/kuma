@@ -14,6 +14,7 @@
 
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,7 @@ import { handleExportAll } from "@/components/layout/export-handlers";
 import { useKumaProject } from "@/state/projectContext";
 import { useAppStore } from "@/store/appStore";
 import type { AppState } from "@/store/appStore";
+import { validateExportAll } from "@/store/validation";
 
 const PLATE_NAME_RE = /^[A-Za-z0-9_-]{1,20}$/;
 const ECHO_RANGE = { min: 25, max: 500, step: 1, unit: "nL" } as const;
@@ -44,12 +46,27 @@ export function ExportFormatSelector() {
   const [bom, setBom] = useState(false);
   const [running, setRunning] = useState(false);
 
+  // PI 2026-05-15 (Item 2): plate name 빈칸 시각 표시는 유지하되 버튼은
+  // 클릭 가능 — 클릭 순간 toast.warning로 누락 항목 안내. wellOverflow / running은
+  // 여전히 hard disable (액션 불가 상태).
   const fwdValid = fwdPlate === "" || PLATE_NAME_RE.test(fwdPlate);
   const rvsValid = rvsPlate === "" || PLATE_NAME_RE.test(rvsPlate);
   const wellOverflow = wellCount > WELL_LIMIT;
-  const canExport = fwdValid && rvsValid && !wellOverflow && !running && wellCount > 0;
+  const canExport = !wellOverflow && !running;
 
   const onExport = async () => {
+    const check = validateExportAll({
+      fwdPlate,
+      rvsPlate,
+      wellCount,
+      plateNameRe: PLATE_NAME_RE,
+    });
+    if (!check.ok) {
+      toast.warning(t("validation.actionBlockedTitle"), {
+        description: check.missing.map((k) => t(k)).join("\n"),
+      });
+      return;
+    }
     setRunning(true);
     try {
       await handleExportAll({
@@ -61,6 +78,7 @@ export function ExportFormatSelector() {
         janusTransferVol: janusVol,
         bom,
       });
+      // toast surfacing handled inside handleExportAll
     } finally {
       setRunning(false);
     }
@@ -241,7 +259,7 @@ export function ExportFormatSelector() {
         disabled={!canExport}
         onClick={() => void onExport()}
       >
-        {running ? t("common.loading") : tx("phaseC.export.all.runExport", "Export")}
+        {running ? t("common.loading") : tx("phaseC.export.all.runExport", "Export all")}
       </Button>
     </section>
   );

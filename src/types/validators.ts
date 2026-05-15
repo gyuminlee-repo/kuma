@@ -727,6 +727,16 @@ const rpcResultValidators = {
     isExportOrderResult(value),
   export_mapping: (value): value is RpcMethodResult<"export_mapping"> =>
     isExportMappingResult(value),
+  export_echo_mapping_dry_run: (value): value is RpcMethodResult<"export_echo_mapping_dry_run"> =>
+    typeof value === "object" && value !== null &&
+    Array.isArray((value as { rows?: unknown }).rows) &&
+    typeof (value as { total?: unknown }).total === "number" &&
+    typeof (value as { transfer_vol?: unknown }).transfer_vol === "number",
+  export_janus_mapping_dry_run: (value): value is RpcMethodResult<"export_janus_mapping_dry_run"> =>
+    typeof value === "object" && value !== null &&
+    Array.isArray((value as { rows?: unknown }).rows) &&
+    typeof (value as { total?: unknown }).total === "number" &&
+    typeof (value as { transfer_vol?: unknown }).transfer_vol === "number",
   export_macrogen: (value): value is RpcMethodResult<"export_macrogen"> =>
     typeof value === "object" && value !== null &&
     (value as { ok?: unknown }).ok === true &&

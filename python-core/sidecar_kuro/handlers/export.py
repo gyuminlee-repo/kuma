@@ -603,6 +603,165 @@ def _export_run_json(
     )
 
 
+def _build_echo_preview_rows(
+    fwd: list[PlateMapping],
+    rev: list[PlateMapping],
+    transfer_vol: int,
+    rev_groups: dict,
+) -> list[dict]:
+    """Build Echo mapping preview rows in-memory (no file I/O).
+
+    Mirrors the row schema of ``export_echo_mapping_csv``.
+    """
+    from kuma_core.kuro.plate_mapper import (
+        _build_rev_lookups,
+        _parse_well_plate,
+        _to_384_well_fwd,
+        _to_384_well_rev,
+        _split_echo_volume,
+    )
+
+    fwd_by_mut, rev_by_seq, mut_to_rev_seq = _build_rev_lookups(fwd, rev, rev_groups)
+
+    rows: list[dict] = []
+    for m in fwd:
+        plate_idx, base_well = _parse_well_plate(m.well)
+        src_plate = f"Source [{plate_idx + 1}]"
+        dest_plate = f"Destination [{plate_idx + 1}]"
+        src_well = _to_384_well_fwd(base_well)
+        for vol in _split_echo_volume(transfer_vol):
+            rows.append({
+                "source_plate": src_plate,
+                "source_well_name": m.primer_name,
+                "source_well": src_well,
+                "dest_plate": dest_plate,
+                "dest_well_name": m.mutation,
+                "dest_well": base_well,
+                "transfer_vol": vol,
+            })
+
+    for fwd_m in fwd:
+        rev_seq = mut_to_rev_seq.get(fwd_m.mutation)
+        if rev_seq is None:
+            continue
+        rev_m = rev_by_seq.get(rev_seq)
+        if rev_m is None:
+            continue
+
+        fwd_plate_idx, _ = _parse_well_plate(fwd_m.well)
+        src_plate = f"Source [{fwd_plate_idx + 1}]"
+        dest_plate = f"Destination [{fwd_plate_idx + 1}]"
+        _, rev_base_well = _parse_well_plate(rev_m.well)
+        src_well = _to_384_well_rev(rev_base_well)
+        _, dest_well = _parse_well_plate(fwd_by_mut.get(fwd_m.mutation, fwd_m.well))
+
+        for vol in _split_echo_volume(transfer_vol):
+            rows.append({
+                "source_plate": src_plate,
+                "source_well_name": rev_m.primer_name,
+                "source_well": src_well,
+                "dest_plate": dest_plate,
+                "dest_well_name": fwd_m.mutation,
+                "dest_well": dest_well,
+                "transfer_vol": vol,
+            })
+    return rows
+
+
+def _build_janus_preview_rows(
+    fwd: list[PlateMapping],
+    rev: list[PlateMapping],
+    transfer_vol: float,
+    rev_groups: dict,
+) -> list[dict]:
+    """Build JANUS mapping preview rows in-memory (no file I/O)."""
+    from kuma_core.kuro.plate_mapper import _build_rev_lookups
+
+    fwd_by_mut, rev_by_seq, mut_to_rev_seq = _build_rev_lookups(fwd, rev, rev_groups)
+
+    rows: list[dict] = []
+    seq_no = 1
+
+    for m in fwd:
+        rows.append({
+            "name": f"{m.mutation}-fw",
+            "type": "primer",
+            "dsp_rack_label": "Oligo 5pmol/ul",
+            "no": seq_no,
+            "asp_rack": 1,
+            "asp_posi": m.well,
+            "dsp_rack": 2,
+            "dsp_posi": m.well,
+            "volume": transfer_vol,
+        })
+        seq_no += 1
+
+    for fwd_m in fwd:
+        rev_seq = mut_to_rev_seq.get(fwd_m.mutation)
+        if rev_seq is None:
+            continue
+        rev_m = rev_by_seq.get(rev_seq)
+        if rev_m is None:
+            continue
+        dest_well = fwd_by_mut.get(fwd_m.mutation, fwd_m.well)
+        rows.append({
+            "name": f"{fwd_m.mutation}-rv",
+            "type": "primer",
+            "dsp_rack_label": "Oligo 5pmol/ul",
+            "no": seq_no,
+            "asp_rack": 2,
+            "asp_posi": rev_m.well,
+            "dsp_rack": 2,
+            "dsp_posi": dest_well,
+            "volume": transfer_vol,
+        })
+        seq_no += 1
+
+    return rows
+
+
+def handle_export_echo_mapping_dry_run(params: dict) -> dict:
+    """Return Echo 525 mapping rows for preview without writing a file.
+
+    Params:
+        transfer_vol: optional override (nL, integer). Default 100.
+
+    Returns:
+        ``{"rows": [...], "total": N, "transfer_vol": int}``.
+    """
+    transfer_vol = params.get("transfer_vol")
+    vol = _resolve_mapping_transfer_volume("echo", transfer_vol)
+    with _core._state_lock:
+        if not _core._state.results:
+            return {"rows": [], "total": 0, "transfer_vol": int(vol)}
+        mappings = list(_core._state.plate_mappings)
+        rev_groups = dict(_core._state.dedup_info or {})
+    fwd, rev = _split_fwd_rev(mappings)
+    rows = _build_echo_preview_rows(fwd, rev, int(vol), rev_groups)
+    return {"rows": rows, "total": len(rows), "transfer_vol": int(vol)}
+
+
+def handle_export_janus_mapping_dry_run(params: dict) -> dict:
+    """Return JANUS mapping rows for preview without writing a file.
+
+    Params:
+        transfer_vol: optional override (µL, float). Default 2.0.
+
+    Returns:
+        ``{"rows": [...], "total": N, "transfer_vol": float}``.
+    """
+    transfer_vol = params.get("transfer_vol")
+    vol = _resolve_mapping_transfer_volume("janus", transfer_vol)
+    with _core._state_lock:
+        if not _core._state.results:
+            return {"rows": [], "total": 0, "transfer_vol": float(vol)}
+        mappings = list(_core._state.plate_mappings)
+        rev_groups = dict(_core._state.dedup_info or {})
+    fwd, rev = _split_fwd_rev(mappings)
+    rows = _build_janus_preview_rows(fwd, rev, float(vol), rev_groups)
+    return {"rows": rows, "total": len(rows), "transfer_vol": float(vol)}
+
+
 def handle_export_all(params: dict) -> dict:
     """Run the 6-file batch export pipeline.
 
