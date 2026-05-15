@@ -72,7 +72,7 @@ export function SharedAboutDialog({
   onOpenChange,
   kind,
   onOpenShortcuts,
-}: SharedAboutDialogProps): JSX.Element {
+}: SharedAboutDialogProps) {
   const { t } = useTranslation();
   const offlineMode = useAppStore((s) => s.offlineMode);
   const setOfflineMode = useAppStore((s) => s.setOfflineMode);

@@ -80,9 +80,6 @@ export function MenuBar() {
   const isExporting = useAppStore((s) => s.isExporting);
   const isDesigning = useAppStore((s) => s.isDesigning);
   const loadSampleData = useAppStore((s) => s.loadSampleData);
-  const offlineMode = useAppStore((s) => s.offlineMode);
-  const setOfflineMode = useAppStore((s) => s.setOfflineMode);
-  const networkConsentGranted = useAppStore((s) => s.networkConsentGranted);
   const logPanelVisible = useAppStore((s) => s.logPanelVisible);
   const toggleLogPanel = useAppStore((s) => s.toggleLogPanel);
   const jobsPanelVisible = useAppStore((s) => s.jobsPanelVisible);
