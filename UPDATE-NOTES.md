@@ -4,6 +4,11 @@
 
 ---
 
+## v0.9.6.0 (2026-05-15)
+- Added optional EVOLVEpro GUI wrapper (Jiang et al. 2025 Science) as a separate tab. KUMA shells out to user's own conda installation via subprocess; does not bundle or modify EVOLVEpro code. Users accept MIT TLO Internal Research EULA directly. See `docs/en/evolvepro-integration.md`.
+
+---
+
 ## v0.9.4.0 (2026-05-15)
 
 Remove multi-evolve mutation input option (dormant feature consolidated into EVOLVEpro; top-N=0 loads all variants from CSV).

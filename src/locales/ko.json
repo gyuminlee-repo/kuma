@@ -2083,5 +2083,50 @@
         "mame": "MAME 사이드카가 구버전입니다 (누락 메서드: {{method}}). `pnpm run sidecar:build` 후 재시도하세요."
       }
     }
+  },
+  "evolvePro": {
+    "panel": {
+      "title": "EVOLVEpro 변이체 선택"
+    },
+    "onboarding": {
+      "title": "EVOLVEpro 환경 설정",
+      "detecting": "conda 환경 감지 중...",
+      "retry": "다시 감지"
+    },
+    "runForm": {
+      "title": "EVOLVEpro 실행",
+      "inputCsv": "입력 CSV",
+      "wtSequence": "WT 서열",
+      "nRounds": "라운드 수",
+      "topN": "Top N",
+      "outputDir": "출력 디렉토리",
+      "outputCsv": "출력 CSV",
+      "browse": "찾아보기...",
+      "submit": "실행",
+      "cancel": "취소",
+      "running": "실행 중...",
+      "elapsed": "경과 시간",
+      "topVariants": "Top 변이체",
+      "resultTitle": "EVOLVEpro 결과",
+      "stage": {
+        "starting": "시작 중",
+        "detect": "환경 감지 중",
+        "loading": "ESM-2 모델 로딩 중",
+        "scoring": "변이체 스코어링 중",
+        "selecting": "Top 변이체 선택 중",
+        "done": "완료"
+      }
+    },
+    "error": {
+      "dismiss": "닫기",
+      "kind": {
+        "env_not_found": "EVOLVEpro conda 환경을 찾을 수 없습니다",
+        "network": "모델 가중치 다운로드 중 네트워크 오류",
+        "disk_full": "디스크 공간 부족",
+        "permission": "권한 거부",
+        "runtime_error": "런타임 오류",
+        "unknown": "알 수 없는 오류"
+      }
+    }
   }
 }

@@ -773,3 +773,60 @@ class SettingsSaveResponse(BaseModel):
 
     ok: bool
     path: str
+
+
+# ---------------------------------------------------------------------------
+# EVOLVEpro GUI wrapper (subprocess shell-out to user-installed conda env)
+# ---------------------------------------------------------------------------
+
+
+class EvolveProDetectResponse(BaseModel):
+    """Response body for evolvepro_detect RPC."""
+
+    env_found: bool
+    env_path: Optional[str] = None
+    evolvepro_version: Optional[str] = None
+    weights_cached: bool = False
+    weights_path: Optional[str] = None
+
+
+class EvolveProRunRequest(BaseModel):
+    """Request body for evolvepro_run RPC."""
+
+    input_csv: str = Field(min_length=1)
+    wt_sequence: str = Field(min_length=1, max_length=4000)
+    n_rounds: int = Field(ge=1, le=10)
+    output_dir: str = Field(min_length=1)
+    top_n: int = Field(ge=0, default=20)
+    env_name: str = Field(default="evolvepro", min_length=1, max_length=64)
+
+
+class EvolveProRunStartResponse(BaseModel):
+    """Response body for evolvepro_run RPC (returned immediately on spawn)."""
+
+    run_id: str
+
+
+class EvolveProRunProgress(BaseModel):
+    """Progress notification payload streamed during evolvepro_run."""
+
+    run_id: str
+    stage: Literal["detect", "loading", "scoring", "selecting", "done"]
+    current: int = Field(ge=0)
+    total: int = Field(ge=0)
+    message: str = ""
+
+
+class EvolveProRunResult(BaseModel):
+    """Terminal result payload for an EVOLVEpro run."""
+
+    run_id: str
+    output_csv: str
+    top_variants: list[str] = Field(default_factory=list)
+    elapsed_sec: float = Field(ge=0)
+
+
+class EvolveProCancelRequest(BaseModel):
+    """Request body for evolvepro_cancel RPC."""
+
+    run_id: str = Field(min_length=1)

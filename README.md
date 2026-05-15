@@ -231,6 +231,20 @@ Tauri v2 + React 19 shell with two Python sidecars (kuro-sidecar, mame-sidecar) 
 +----------------+   +----------------+
 ```
 
+## Optional: EVOLVEpro Integration
+
+KUMA provides an optional GUI wrapper for EVOLVEpro (Jiang et al. 2025
+Science, https://doi.org/10.1126/science.adr6006). EVOLVEpro is licensed
+under MIT TLO Internal Research EULA (academic, non-commercial). KUMA
+does not bundle or redistribute EVOLVEpro. Users install EVOLVEpro
+themselves in a conda environment and accept the EULA directly.
+
+Requirements: 16 GB RAM, 10 GB free disk space, conda environment named
+`evolvepro` with the EVOLVEpro package installed. First run downloads
+ESM-2 650M weights (~2.5 GB) to `~/.cache/torch/hub/checkpoints/`.
+
+See `docs/en/evolvepro-integration.md` for full setup instructions.
+
 ## Common Frontend Standards
 
 Kuro and Mame conform to the **Common Frontend Standards charter** (`docs/standards/common-frontend-standards.md`, v1.1 stable) — 22 categories covering recovery, observability, input guards, error UX, output persistence, settings, UI safety, accessibility, versioning, telemetry, build, reproducibility (`run.json`), long-running jobs (queue + OS notification + sleep inhibit), data integrity (input/output SHA-256, sidecar binary hash, schema dry-run migration), onboarding, local diagnostics, cross-platform, partial success, performance guardrails, citation/licensing, multi-workspace, graceful shutdown. PrimerBench applies the same charter through its Phase A-E rollout.

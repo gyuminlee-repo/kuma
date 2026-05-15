@@ -14,11 +14,12 @@ import { Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LocaleToggle } from "@/components/ui/LocaleToggle";
 
-export type AppTab = "kuro" | "mame";
+export type AppTab = "kuro" | "mame" | "evolvepro";
 
 const TABS: { value: AppTab; label: string }[] = [
   { value: "kuro", label: "Kuro" },
   { value: "mame", label: "Mame" },
+  { value: "evolvepro", label: "EVOLVEpro" },
 ];
 
 export interface GlobalAppBarProps {
