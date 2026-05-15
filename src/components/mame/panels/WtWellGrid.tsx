@@ -9,19 +9,33 @@
  * Spec: notes/specs/2026-05-15-mame-inline-wt-grid.md
  */
 
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useStore } from "zustand";
+import { useActivityStore, type ActivitySlice } from "@/store/mame/activitySlice";
 import { useRoundStore } from "@/store/round/roundSlice";
 import { cn } from "@/lib/utils";
-import type { PlateMeta } from "@/types/mame/activity";
+import type { PlateMeta, PlateConfig } from "@/types/mame/activity";
 
 const ROWS = ["A", "B", "C", "D", "E", "F", "G", "H"] as const;
 const COLS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0"));
+const DEBOUNCE_MS = 400;
 
 function getWtWells(plateMeta: PlateMeta): Set<string> {
   const plate = plateMeta.plates.find((p) => p.plate_id === "P01");
   return new Set(plate?.wt_wells ?? []);
 }
+
+function buildPlateMeta(wt: Set<string>, controlWells: string[]): PlateMeta {
+  const plate: PlateConfig = {
+    plate_id: "P01",
+    wt_wells: Array.from(wt).sort(),
+    control_wells: controlWells,
+  };
+  return { plates: [plate] };
+}
+
+type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 export function WtWellGrid() {
   const { t } = useTranslation();
@@ -29,25 +43,73 @@ export function WtWellGrid() {
   const activeRound = useRoundStore((s) =>
     s.rounds.find((r) => r.id === s.active_round_id) ?? null,
   );
+  const updateRoundField = useRoundStore((s) => s.updateRoundField);
+  const activityStore = useActivityStore();
+  const setPlateMeta = useStore(activityStore, (s: ActivitySlice) => s.setPlateMeta);
+
   const disabled = activeRoundId === null;
 
   const [localWt, setLocalWt] = useState<Set<string>>(() =>
     activeRound ? getWtWells(activeRound.plate_meta) : new Set(),
   );
+  const [status, setStatus] = useState<SaveStatus>("idle");
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setLocalWt(activeRound ? getWtWells(activeRound.plate_meta) : new Set());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeRound?.id, activeRound?.plate_meta]);
 
+  async function commit(
+    wt: Set<string>,
+    roundId: string | null,
+    controlWells: string[],
+  ) {
+    if (!roundId) return;
+    if (roundId !== useRoundStore.getState().active_round_id) return;
+    const meta = buildPlateMeta(wt, controlWells);
+    setStatus("saving");
+    try {
+      await setPlateMeta(roundId, meta);
+      updateRoundField(roundId, "plate_meta", meta);
+      setStatus("saved");
+      setTimeout(() => {
+        setStatus((s) => (s === "saved" ? "idle" : s));
+      }, 2000);
+    } catch (err) {
+      // Task 5: rollback + toast
+      setStatus("error");
+      throw err;
+    }
+  }
+
+  function scheduleSave(nextWt: Set<string>) {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    const capturedRoundId = activeRound?.id ?? null;
+    const capturedControl =
+      activeRound?.plate_meta.plates.find((p) => p.plate_id === "P01")
+        ?.control_wells ?? [];
+    timerRef.current = setTimeout(() => {
+      void commit(nextWt, capturedRoundId, capturedControl);
+    }, DEBOUNCE_MS);
+  }
+
   function toggleWell(wellId: string) {
     setLocalWt((prev) => {
       const next = new Set(prev);
       if (next.has(wellId)) next.delete(wellId);
       else next.add(wellId);
+      scheduleSave(next);
       return next;
     });
   }
+
+  const statusText =
+    status === "saving"
+      ? t("wtWellGrid.savingStatus")
+      : status === "saved"
+        ? t("wtWellGrid.savedStatus")
+        : "";
 
   return (
     <div className="space-y-2">
@@ -109,6 +171,7 @@ export function WtWellGrid() {
         </p>
       ) : (
         <p className="text-caption text-muted-foreground">
+          {statusText ? <span>{statusText} </span> : null}
           {localWt.size === 1
             ? t("wtWellGrid.selectedSingle", { count: 1 })
             : t("wtWellGrid.selectedPlural", { count: localWt.size })}

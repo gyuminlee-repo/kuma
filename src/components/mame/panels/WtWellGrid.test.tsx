@@ -91,6 +91,43 @@ describe("WtWellGrid — active round toggle", () => {
   });
 });
 
+describe("WtWellGrid — debounce save", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(useActivityStore).mockReturnValue(makeActivityStore());
+    setupRoundStore([makeRound("r1")], "r1");
+  });
+
+  it("calls setPlateMeta once 400ms after last click (debounce coalesces)", async () => {
+    vi.useFakeTimers();
+    mockSetPlateMeta.mockResolvedValue(undefined);
+    render(<WtWellGrid />);
+    fireEvent.click(screen.getByRole("button", { name: "A03" }));
+    vi.advanceTimersByTime(200);
+    fireEvent.click(screen.getByRole("button", { name: "B05" }));
+    vi.advanceTimersByTime(399);
+    expect(mockSetPlateMeta).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(2);
+    expect(mockSetPlateMeta).toHaveBeenCalledTimes(1);
+    const call = mockSetPlateMeta.mock.calls[0];
+    expect(call[0]).toBe("r1");
+    expect(call[1].plates[0].wt_wells).toEqual(["A03", "B05"]);
+    vi.useRealTimers();
+  });
+
+  it("aborts save when active round changes mid-debounce", async () => {
+    vi.useFakeTimers();
+    mockSetPlateMeta.mockResolvedValue(undefined);
+    render(<WtWellGrid />);
+    fireEvent.click(screen.getByRole("button", { name: "A03" }));
+    // Simulate round change before debounce fires
+    setupRoundStore([makeRound("r2")], "r2");
+    await vi.advanceTimersByTimeAsync(500);
+    expect(mockSetPlateMeta).not.toHaveBeenCalled();
+    vi.useRealTimers();
+  });
+});
+
 describe("WtWellGrid — no active round", () => {
   beforeEach(() => {
     vi.clearAllMocks();
