@@ -6,15 +6,15 @@
 
 ### 신규 기능
 
-- **EVOLVEpro 통합 (v0.9.6.0)** — 사용자가 직접 설치한 EVOLVEpro conda 환경을 KUMA에서 별도 탭으로 호출할 수 있습니다. 단백질 변이 점수화 결과를 GUI에서 바로 확인하세요. → [`evolvepro-integration`](../en/evolvepro-integration.md)
+- **EVOLVEpro 통합 (v0.9.6.0)** — 사용자가 직접 설치한 EVOLVEpro conda 환경을 KUMA에서 별도 탭으로 호출할 수 있습니다. 단백질 변이 점수화 결과를 GUI에서 바로 확인하세요. → [`inputs/mutations`](../inputs/mutations.md)
 - **Settings 대화상자 (v0.9.0.0)** — General · Network · Sidecar · Telemetry 네 개 탭에서 설정을 관리하고, 변경 사항은 0.5초 디바운스로 자동 저장됩니다. 테마 토글도 동일 화면에서 사용할 수 있습니다. → [`settings`](settings.md)
 - **KURO Inspector — 6개 서브스텝 전체 지원 (v0.9.1.0)** — Source / Variant / Parameter / Current Mutation / Primer / Export 각 단계마다 전용 인스펙터 패널이 추가되어 우측 패널에서 컨텍스트 정보를 바로 볼 수 있습니다.
 - **MAME 7-스크린 위젯 + Plate cluster 경고 (v0.9.0.0)** — MAME 모든 서브스텝에 워크플로 레일·인스펙터·드로어가 채워지고, 인접 웰이 동시에 실패할 때 `B03-B04 may indicate a pipetting issue` 형식의 경고가 표시됩니다. JANUS export는 메인 패널의 *Open JANUS export…* CTA로 열립니다.
-- **Export All 단일 버튼 + Macrogen 발주 (v0.8.4)** — IDT / Twist 분기를 합친 단일 *Export All* 버튼으로 대체되었고, 신규 Macrogen xls 발주 양식이 추가되었습니다. → [`export-excel`](../en/export-excel.md), [`export-orders`](../en/export-orders.md)
+- **Export All 단일 버튼 + Macrogen 발주 (v0.8.4)** — IDT / Twist 분기를 합친 단일 *Export All* 버튼으로 대체되었고, 신규 Macrogen xls 발주 양식이 추가되었습니다. → [`kuro/06-export`](../kuro/06-export.md)
 - **사이드바 리사이즈 (v0.8.4)** — 사이드바 폭을 마우스 드래그 또는 키보드로 조절할 수 있고, 폭은 다음 실행에도 유지됩니다.
-- **Keyboard Shortcuts 대화상자 (v0.8.5)** — `Ctrl/Cmd + /` 로 검색·카테고리 그룹화가 지원되는 단축키 목록을 띄울 수 있습니다. → [`keybindings`](keybindings.md), [`keyboard-shortcuts`](../en/keyboard-shortcuts.md)
+- **Keyboard Shortcuts 대화상자 (v0.8.5)** — `Ctrl/Cmd + /` 로 검색·카테고리 그룹화가 지원되는 단축키 목록을 띄울 수 있습니다. → [`keybindings`](keybindings.md)
 - **Edit / Run 메뉴 (v0.8.5)** — 메뉴바에 *Edit* (Preferences, `Ctrl/Cmd + ,`), *Run* (Sidecar diagnostics, Check sidecar status) 메뉴가 추가되었습니다. Help 메뉴에서는 *Report issue*, *Check for updates* 도 사용할 수 있습니다.
-- **Workspace 아티팩트 핸드오프 (v0.8.3 → v0.8.4)** — KURO/MAME 엑셀 export 결과가 워크스페이스 매니페스트에 자동 등록되어 다음 단계에서 곧바로 불러올 수 있습니다. → [`workspace-save-load`](../en/workspace-save-load.md)
+- **Workspace 아티팩트 핸드오프 (v0.8.3 → v0.8.4)** — KURO/MAME 엑셀 export 결과가 워크스페이스 매니페스트에 자동 등록되어 다음 단계에서 곧바로 불러올 수 있습니다. → [`workspace-format`](workspace-format.md)
 
 ### 업데이트
 
