@@ -218,7 +218,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       // Force text mode (clears any stale evolvepro CSV state).
       get().setMutationInputMode("text");
       // Demo mutations valid against the bundled EGFP translation.
-      get().setMutationText("L65A, F100A, N150A, H200A");
+      // Parser expects one mutation per line (sidecar_kuro/handlers/sequence.py:55).
+      get().setMutationText("L65A\nF100A\nN150A\nH200A");
       set({ statusMessage: "Sample data loaded (EGFP + 4 demo mutations)." });
     } catch (err) {
       set({ statusMessage: `Sample load failed: ${formatError(err)}` });
