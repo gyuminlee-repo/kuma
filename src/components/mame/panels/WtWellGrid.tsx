@@ -54,9 +54,32 @@ export function WtWellGrid() {
   );
   const [status, setStatus] = useState<SaveStatus>("idle");
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const localWtRef = useRef<Set<string>>(localWt);
+  const activeRoundRef = useRef(activeRound);
+  const lastCommittedMetaRef = useRef<PlateMeta | null>(null);
 
   useEffect(() => {
-    setLocalWt(activeRound ? getWtWells(activeRound.plate_meta) : new Set());
+    localWtRef.current = localWt;
+  }, [localWt]);
+
+  useEffect(() => {
+    activeRoundRef.current = activeRound;
+  }, [activeRound]);
+
+  useEffect(() => {
+    if (!activeRound) {
+      setLocalWt(new Set());
+      return;
+    }
+    // Self-echo skip: server snapshot equals what we just committed.
+    if (
+      lastCommittedMetaRef.current &&
+      JSON.stringify(lastCommittedMetaRef.current) ===
+        JSON.stringify(activeRound.plate_meta)
+    ) {
+      return;
+    }
+    setLocalWt(getWtWells(activeRound.plate_meta));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeRound?.id, activeRound?.plate_meta]);
 
@@ -71,6 +94,7 @@ export function WtWellGrid() {
     setStatus("saving");
     try {
       await setPlateMeta(roundId, meta);
+      lastCommittedMetaRef.current = meta;
       updateRoundField(roundId, "plate_meta", meta);
       setStatus("saved");
       setTimeout(() => {
@@ -93,6 +117,25 @@ export function WtWellGrid() {
       void commit(nextWt, capturedRoundId, capturedControl);
     }, DEBOUNCE_MS);
   }
+
+  // Unmount flush: pending timer fires immediately with latest snapshot.
+  // Empty deps + refs to capture latest state without re-binding cleanup.
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+        const round = activeRoundRef.current;
+        if (round) {
+          const control =
+            round.plate_meta.plates.find((p) => p.plate_id === "P01")
+              ?.control_wells ?? [];
+          void commit(localWtRef.current, round.id, control);
+        }
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function toggleWell(wellId: string) {
     setLocalWt((prev) => {

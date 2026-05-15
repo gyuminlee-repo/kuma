@@ -128,6 +128,26 @@ describe("WtWellGrid — debounce save", () => {
   });
 });
 
+describe("WtWellGrid — unmount flush", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(useActivityStore).mockReturnValue(makeActivityStore());
+    setupRoundStore([makeRound("r1")], "r1");
+  });
+
+  it("flushes pending save on unmount", async () => {
+    vi.useFakeTimers();
+    mockSetPlateMeta.mockResolvedValue(undefined);
+    const { unmount } = render(<WtWellGrid />);
+    fireEvent.click(screen.getByRole("button", { name: "A03" }));
+    unmount();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(mockSetPlateMeta).toHaveBeenCalledTimes(1);
+    expect(mockSetPlateMeta.mock.calls[0][1].plates[0].wt_wells).toEqual(["A03"]);
+    vi.useRealTimers();
+  });
+});
+
 describe("WtWellGrid — no active round", () => {
   beforeEach(() => {
     vi.clearAllMocks();
