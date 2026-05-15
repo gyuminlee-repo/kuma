@@ -1,6 +1,6 @@
 # Step 2. Mutation Input
 
-세 가지 입력 모드 중 하나를 선택한다.
+두 가지 입력 모드 중 하나를 선택한다.
 
 ## Mode 1 — Text (수기 입력)
 
@@ -16,10 +16,6 @@
 | Domain diversity | InterPro/Pfam domain 별 quota 분배 |
 | Pareto diversity | greedy maximin position spread |
 | σ-Adaptive Pool | EVOLVEpro Round 기반 K·entropy 보정 |
-
-## Mode 3 — MULTI-evolve CSV
-
-`mutation`, `property_value` 컬럼. 조합 변이 (`Q232A_K15R`) 지원.
 
 ## v0.9.2.x 변경
 

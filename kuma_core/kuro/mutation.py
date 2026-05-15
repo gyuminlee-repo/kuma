@@ -49,7 +49,7 @@ def parse_mutation_notation(notation: str) -> tuple[str, int, str]:
 def split_multi_notation(notation: str) -> list[str]:
     """Split a multi-mutation notation into individual single-mutation strings.
 
-    Supports MULTI-evolve (Science 2026, Arc Institute) output format:
+    Supports the following notation formats:
     - Single:        "A40P"        -> ["A40P"]
     - Multi:         "A40P/E61Y"   -> ["A40P", "E61Y"]
     - Multi-chain:   "A40P/E61Y:WT" -> ["A40P", "E61Y"]  (WT chain ignored)

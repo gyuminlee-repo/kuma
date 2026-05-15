@@ -1,8 +1,0 @@
-variant_id,mutations,position,wt_aa,mut_aa,codon_wt,codon_mut,predicted_fitness,domain,site_category
-dmpR_R395V,R395V,395,R,V,CGC,GTG,1.69,auto,auto
-dmpR_G165Q,G165Q,165,G,Q,GGC,CAG,1.64,auto,auto
-dmpR_A46H,A46H,46,A,H,GCG,CAC,1.93,auto,auto
-dmpR_Y155G,Y155G,155,Y,G,TAT,GGC,1.895,auto,auto
-dmpR_V185C,V185C,185,V,C,GTG,TGC,1.536,auto,auto
-dmpR_R395V_G165Q,R395V/G165Q,"395,165","R,G","V,Q","CGC,GGC","GTG,CAG",2.81,multi_domain,combination
-dmpR_R395V_G165Q_A46H,R395V/G165Q/A46H,"395,165,46","R,G,A","V,Q,H","CGC,GGC,GCG","GTG,CAG,CAC",4.269,multi_domain,combination

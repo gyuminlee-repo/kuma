@@ -118,24 +118,6 @@ describe("inputSlice.loadSampleData", () => {
     expect(store.state.mutationText).toBe("L65A, F100A, N150A, H200A")
   })
 
-  it("forces text mode even when starting in multi-evolve mode", async () => {
-    const loadSequence = vi.fn(async () => {
-      ;(store.state as { seqInfo: unknown }).seqInfo = { genes: [] }
-    })
-    const loadEvolveproCsv = vi.fn(async () => {})
-    const store = makeStore({
-      mutationInputMode: "multi-evolve",
-      loadSequence,
-      loadEvolveproCsv,
-    })
-
-    await store.slice.loadSampleData()
-
-    expect(loadEvolveproCsv).not.toHaveBeenCalled()
-    expect(store.state.mutationInputMode).toBe("text")
-    expect(store.state.mutationText).toBe("L65A, F100A, N150A, H200A")
-  })
-
   it("aborts before CSV load if loadSequence silently failed (seqInfo stays null)", async () => {
     const loadSequence = vi.fn(async () => {
       // simulate the swallowed-error path: seqInfo never gets set, statusMessage carries the cause

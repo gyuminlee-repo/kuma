@@ -25,16 +25,7 @@ T100S
 
 추가 컬럼은 무시. score 내림차순 정렬 후 top-N 자동 선택.
 
-## MULTI-evolve CSV
-
-조합 변이 지원.
-
-| 컬럼 | 의미 |
-|---|---|
-| `mutation` | `Q232A_K15R` 등 조합 (`_` 구분) |
-| `property_value` | fitness score |
-
-## Selection mode 옵션 (EVOLVEpro / MULTI-evolve)
+## Selection mode 옵션 (EVOLVEpro)
 
 | 옵션 | 효과 |
 |---|---|

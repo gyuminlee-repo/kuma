@@ -784,7 +784,7 @@
     "codonOption_optimal": "Optimal (organism codon usage)",
     "codonOption_optimal_title": "Pick the highest-frequency codon for the selected organism's codon usage table. Maximises expression but may require more nt changes.",
     "mutationsLabel": "Mutations:",
-    "mutationsHelp": "Maximum number of primer designs to generate.\nFor EVOLVEpro / multi-evolve mode: capped by the CSV variant count.\nOne 96-well plate fits 95 mutants + 1 WT control.",
+    "mutationsHelp": "Maximum number of primer designs to generate.\nFor EVOLVEpro mode: capped by the CSV variant count.\nOne 96-well plate fits 95 mutants + 1 WT control.",
     "plates_one": "{{count}} plate",
     "plates_other": "{{count}} plates",
     "csvVariantWarning": "CSV contains only {{count}} variants",
@@ -845,7 +845,6 @@
     "statAfterStep2": "After Step 2",
     "statStep3Exchanges": "Step 3 exchanges",
     "statEvolveproPool": "EVOLVEpro pool",
-    "statMultiEvolvePool": "MULTI-evolve pool",
     "statVariants": "{{count}} variants",
     "statPareto_on": "ON",
     "statPareto_onSwapped": "ON ({{count}} swapped)",
@@ -1326,7 +1325,6 @@
     "mutationInputAriaLabel": "Mutation input source",
     "noFileSelected": "No file selected",
     "variantsLoaded": "{{count}} variants loaded",
-    "allCombinations": "MULTI-evolve: all combinations selected (no filtering)",
     "selectionMode": "Selection mode",
     "topNOnly": "Top-N only",
     "topNDesc": "(y_pred descending)",
@@ -1335,7 +1333,8 @@
     "topNVariantsTitle": "Top-N variants by y_pred (editable)",
     "mutationsEntered": "{{count}} mutations entered",
     "mutationsValidated": "({{count}} validated)",
-    "mutationsFailed": "({{count}} failed)"
+    "mutationsFailed": "({{count}} failed)",
+    "topNZeroHint": "Set top-N to 0 to load every variant from CSV"
   },
   "uniprotSearch": {
     "topCandidates": "Top candidates {{shown}}{{total}}",
@@ -1900,7 +1899,6 @@
       },
       "selectionMode": {
         "label": "Selection mode",
-        "allCombinations": "All combinations",
         "pipeline": "Pipeline (failover)",
         "topN": "Top-N only"
       },

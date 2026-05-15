@@ -4,6 +4,12 @@
 
 ---
 
+## v0.9.4.0 (2026-05-15)
+
+multi-evolve 변이 입력 옵션 제거 (dormant 기능 정리, EVOLVEpro로 통합; top-N=0이면 CSV의 모든 변이 로드).
+
+---
+
 ## v0.9.1.2 (2026-05-14)
 
 Workspace artifact registry가 node 내장 모듈 대신 Tauri plugin API로 동작하여 브라우저 webview에서 실제로 작동.

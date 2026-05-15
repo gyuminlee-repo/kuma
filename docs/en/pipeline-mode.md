@@ -14,10 +14,6 @@ Active automatically when an EVOLVEpro CSV is loaded **and** at least one divers
 2. **Domain / position diversity** — apply quotas
 3. **Pareto / entropy** — re-score the pool on (fitness, diversity) and keep the final target count
 
-Each step reports counts in the Design Report — see [Design Report](design-report.md).
+Each step reports counts in the Design Report, see [Design Report](design-report.md).
 
-## Multi-evolve
-
-MULTI-evolve CSVs run the same 3-step pipeline **per target group** (grouped by the `target` column).
-
-*Stub — flowchart coming.*
+*Stub, flowchart coming.*

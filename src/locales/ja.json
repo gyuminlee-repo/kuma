@@ -773,7 +773,7 @@
     "codonOption_optimal": "Optimal (生物 codon usage)",
     "codonOption_optimal_title": "選択した生物の codon usage テーブルで最高頻度の codon を選択。発現を最大化しますが、nt 変化が多くなる場合があります。変異 codon (3 nt) のみ変更されます。",
     "mutationsLabel": "Mutations:",
-    "mutationsHelp": "生成する primer 設計の最大数。\nEVOLVEpro / multi-evolve モード: CSV variant 数で上限。\n96-well プレート 1 枚に 95 mutants + 1 WT コントロールが収まります。",
+    "mutationsHelp": "生成する primer 設計の最大数。\nEVOLVEpro モード: CSV variant 数で上限。\n96-well プレート 1 枚に 95 mutants + 1 WT コントロールが収まります。",
     "plates_one": "{{count}} plate",
     "plates_other": "{{count}} plates",
     "csvVariantWarning": "CSV には {{count}} variants しか含まれていません",
@@ -834,7 +834,6 @@
     "statAfterStep2": "Step 2 後",
     "statStep3Exchanges": "Step 3 exchanges",
     "statEvolveproPool": "EVOLVEpro pool",
-    "statMultiEvolvePool": "MULTI-evolve pool",
     "statVariants": "{{count}} variants",
     "statPareto_on": "ON",
     "statPareto_onSwapped": "ON ({{count}} swapped)",
@@ -1315,7 +1314,6 @@
     "mutationInputAriaLabel": "Mutation 入力ソース",
     "noFileSelected": "ファイル未選択",
     "variantsLoaded": "{{count}} variants 読み込み完了",
-    "allCombinations": "MULTI-evolve: すべての組み合わせを選択 (フィルタなし)",
     "selectionMode": "選択モード",
     "topNOnly": "Top-N のみ",
     "topNDesc": "(y_pred 降順)",
@@ -1324,7 +1322,8 @@
     "topNVariantsTitle": "y_pred 上位 N variants (編集可能)",
     "mutationsEntered": "{{count}} mutations 入力",
     "mutationsValidated": "({{count}} 検証済み)",
-    "mutationsFailed": "({{count}} 失敗)"
+    "mutationsFailed": "({{count}} 失敗)",
+    "topNZeroHint": "top-Nを0にするとCSVの全バリアントを読み込みます"
   },
   "uniprotSearch": {
     "topCandidates": "Top 候補 {{shown}}{{total}}",

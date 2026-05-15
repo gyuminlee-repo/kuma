@@ -21,9 +21,9 @@ Project folders keep Kuro design output and Mame verification linked across the 
 
 ### Kuro — SDM primer design
 
-Given a mutation list (plain text / EVOLVEpro CSV / MULTI-evolve CSV) and a template sequence (GenBank / SnapGene), Kuro automatically designs SDM primer pairs using the overlap extension method.
+Given a mutation list (plain text / EVOLVEpro CSV) and a template sequence (GenBank / SnapGene), Kuro automatically designs SDM primer pairs using the overlap extension method.
 
-- **EVOLVEpro / MULTI-evolve CSV input**: Load EVOLVEpro (`variant`, `y_pred`) or MULTI-evolve (`mutation`, `property_value`) output CSV — column format is auto-detected. Sorts by score descending → auto-selects the configured number of variants. Optional **position diversity** filter limits mutations per amino acid position (uses Grantham 1974 distance as tie-breaker when scores are within 2%). Optional **domain diversity** distributes selections across protein structural domains (auto-fetched from InterPro/Pfam or manual input). Optional **Pareto diversity** maximizes position spread via MODIFY-style fitness-diversity co-optimization. **σ-Adaptive Pool**: enter EVOLVEpro Round and Round size to automatically calibrate the candidate pool width and entropy weight based on cumulative data (K = 0.50→0.25, entropy = 0.30→0.15 across rounds 1–5+)
+- **EVOLVEpro CSV input**: Load EVOLVEpro (`variant`, `y_pred`) output CSV. Sorts by score descending, auto-selects the configured number of variants. Optional **position diversity** filter limits mutations per amino acid position (uses Grantham 1974 distance as tie-breaker when scores are within 2%). Optional **domain diversity** distributes selections across protein structural domains (auto-fetched from InterPro/Pfam or manual input). Optional **Pareto diversity** maximizes position spread via MODIFY-style fitness-diversity co-optimization. **σ-Adaptive Pool**: enter EVOLVEpro Round and Round size to automatically calibrate the candidate pool width and entropy weight based on cumulative data (K = 0.50→0.25, entropy = 0.30→0.15 across rounds 1–5+)
 - **Batch mutation parsing**: Mutation list in `Q232A` format → automatic codon position calculation + WT codon validation
 - **Codon strategy selection**: Choose between Min. changes (fewest base changes from WT) or Optimal (E. coli-optimized codon)
 - **Overlap upstream design**: Overlap region is placed immediately upstream of the mutation codon (EVOLVEpro convention)
@@ -64,9 +64,9 @@ Given a Kuro-exported `expected_mutations.xlsx`, a reference FASTA, and Oxford N
 - **Single-view workbench**: Input files panel, parameter panel (mode, CDS end, cutoffs), verdict table with NB01/NB02/NB03/ALL filter, 96-well map with colorblind-safe toggle.
 - **Substitution support**: Phase 1 focuses on single-residue substitutions. Deletion / insertion reserved for later.
 
-## Selection Strategies (Kuro, EVOLVEpro / MULTI-evolve mode)
+## Selection Strategies (Kuro, EVOLVEpro mode)
 
-When loading a scored CSV (EVOLVEpro or MULTI-evolve), Kuro applies the configured selection strategy to choose which mutations to design primers for. Strategies are independent checkboxes and can be combined.
+When loading an EVOLVEpro scored CSV, Kuro applies the configured selection strategy to choose which mutations to design primers for. Strategies are independent checkboxes and can be combined.
 
 | Strategy | Description | When to use |
 |----------|-------------|-------------|
@@ -138,7 +138,7 @@ Subsequent launches require no further action.
 1. **Help → Load Sample Data** to load examples, or:
 2. Load a sequence file (GenBank `.gb` / SnapGene `.dna`)
 3. Verify the target CDS in the Target Gene dropdown (auto-selected)
-4. Enter mutations (text / EVOLVEpro CSV / MULTI-evolve CSV)
+4. Enter mutations (text / EVOLVEpro CSV)
 5. Select codon strategy (Min. changes / Optimal)
 6. *(Optional)* Adjust Tm, GC%, length in Advanced Options
 7. Click **Design Primers**

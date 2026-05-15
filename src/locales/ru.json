@@ -773,7 +773,7 @@
     "codonOption_optimal": "Optimal (codon usage организма)",
     "codonOption_optimal_title": "Выбрать самый частый кодон из таблицы codon usage выбранного организма. Максимизирует экспрессию, но может требовать больше nt изменений. Изменяется только кодон мутации (3 nt).",
     "mutationsLabel": "Мутации:",
-    "mutationsHelp": "Maximum number of primer designs to generate.\nFor EVOLVEpro / multi-evolve mode: capped by the CSV variant count.\nOne 96-well plate fits 95 mutants + 1 WT control.",
+    "mutationsHelp": "Maximum number of primer designs to generate.\nFor EVOLVEpro mode: capped by the CSV variant count.\nOne 96-well plate fits 95 mutants + 1 WT control.",
     "plates_one": "{{count}} plate",
     "plates_other": "{{count}} plates",
     "csvVariantWarning": "CSV содержит только {{count}} variants",
@@ -834,7 +834,6 @@
     "statAfterStep2": "После Step 2",
     "statStep3Exchanges": "Step 3 exchanges",
     "statEvolveproPool": "EVOLVEpro pool",
-    "statMultiEvolvePool": "MULTI-evolve pool",
     "statVariants": "{{count}} variants",
     "statPareto_on": "ON",
     "statPareto_onSwapped": "ON ({{count}} swapped)",
@@ -1315,7 +1314,6 @@
     "mutationInputAriaLabel": "Источник ввода мутаций",
     "noFileSelected": "Файл не выбран",
     "variantsLoaded": "{{count}} variants загружено",
-    "allCombinations": "MULTI-evolve: выбраны все комбинации (без фильтрации)",
     "selectionMode": "Режим выбора",
     "topNOnly": "Только Top-N",
     "topNDesc": "(y_pred по убыванию)",
@@ -1324,7 +1322,8 @@
     "topNVariantsTitle": "Top-N variants по y_pred (редактируемый)",
     "mutationsEntered": "{{count}} мутаций введено",
     "mutationsValidated": "({{count}} проверено)",
-    "mutationsFailed": "({{count}} failed)"
+    "mutationsFailed": "({{count}} failed)",
+    "topNZeroHint": "Установите top-N равным 0, чтобы загрузить все варианты из CSV"
   },
   "uniprotSearch": {
     "topCandidates": "Top кандидаты {{shown}}{{total}}",

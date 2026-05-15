@@ -748,7 +748,7 @@ export interface WorkspaceCacheModel {
 export interface WorkspaceInputsModel {
   evolveproCsvPath: string;
   fastaPath: string;
-  mutationInputMode: "text" | "evolvepro" | "multi-evolve";
+  mutationInputMode: "text" | "evolvepro";
   mutationText: string;
   selectedGene: string;
   [k: string]: unknown;
@@ -854,7 +854,7 @@ export interface WorkspaceV1Data {
   };
   maxPerPosition?: number | null;
   maxPrimers: number;
-  mutationInputMode: "text" | "evolvepro" | "multi-evolve";
+  mutationInputMode: "text" | "evolvepro";
   mutationText: string;
   organism?: string | null;
   overlapMode?: ("partial" | "full") | null;

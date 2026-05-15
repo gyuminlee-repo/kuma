@@ -6,7 +6,6 @@
  * 시나리오:
  *  (a) sequence 없음 → "Not loaded"
  *  (b) pipelineMode=true, mode=single → "Pipeline (failover)"
- *  (c) mutationInputMode=multi-evolve → "All combinations"
  *  (d) variants count = mode=single이면 parsedMutations.length, 아니면 evolveproTotalCount
  *  (e) polymerase row: selectedPolymerase + codonStrategy + tmFwdTarget + maxPrimers
  */
@@ -54,7 +53,7 @@ describe("DesignSummaryCard (Phase B6)", () => {
     expect(getByText(/1200 nt/)).toBeTruthy();
   });
 
-  it("(b) selection mode reads 'Pipeline (failover)' when pipelineMode=true and mode!=multi-evolve", () => {
+  it("(b) selection mode reads 'Pipeline (failover)' when pipelineMode=true", () => {
     useAppStore.setState({
       pipelineMode: true,
       mutationInputMode: "text",
@@ -63,22 +62,13 @@ describe("DesignSummaryCard (Phase B6)", () => {
     expect(getByText("Pipeline (failover)")).toBeTruthy();
   });
 
-  it("(b) selection mode reads 'Top-N only' when pipelineMode=false and mode!=multi-evolve", () => {
+  it("(b) selection mode reads 'Top-N only' when pipelineMode=false", () => {
     useAppStore.setState({
       pipelineMode: false,
       mutationInputMode: "evolvepro",
     } as never);
     const { getByText } = render(<DesignSummaryCard />);
     expect(getByText("Top-N only")).toBeTruthy();
-  });
-
-  it("(c) selection mode = 'All combinations' when mode=multi-evolve (regardless of pipelineMode)", () => {
-    useAppStore.setState({
-      pipelineMode: true,
-      mutationInputMode: "multi-evolve",
-    } as never);
-    const { getByText } = render(<DesignSummaryCard />);
-    expect(getByText("All combinations")).toBeTruthy();
   });
 
   it("(d) variant count uses parsedMutations.length in 'single' mode", () => {

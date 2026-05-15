@@ -125,3 +125,5 @@ def test_workspace_v2_to_rpc_dict_excludes_none_nested_optionals():
     assert "selectedPolymerase" not in workspace["settings"]
     assert "uniprotAccession" not in workspace["settings"]
     assert workspace["version"] == 2
+
+

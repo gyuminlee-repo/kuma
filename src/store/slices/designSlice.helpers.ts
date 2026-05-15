@@ -60,7 +60,7 @@ export function prepareDesignInput(params: {
   mutationText: string;
   maxPrimers: number;
   fillOnFailure: boolean;
-  mutationInputMode: "text" | "evolvepro" | "multi-evolve";
+  mutationInputMode: "text" | "evolvepro";
   selectedGene: string;
   poolVariants: string[];
 }): PreparedDesignInput {
@@ -76,7 +76,7 @@ export function prepareDesignInput(params: {
   const sendCount = fillOnFailure
     ? Math.max(Math.ceil(maxPrimers * 1.5), maxPrimers + 20)
     : maxPrimers;
-  const isEvolveMode = mutationInputMode === "evolvepro" || mutationInputMode === "multi-evolve";
+  const isEvolveMode = mutationInputMode === "evolvepro";
   const allLines = mutationText
     .trim()
     .split("\n")

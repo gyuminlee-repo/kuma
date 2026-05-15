@@ -773,7 +773,7 @@
     "codonOption_optimal": "Optimal (codon usage de l'organisme)",
     "codonOption_optimal_title": "Choisir le codon le plus fréquent dans la table de codon usage de l'organisme sélectionné. Maximise l'expression mais peut exiger plus de changements nt. Seul le codon de mutation (3 nt) est modifié.",
     "mutationsLabel": "Mutations :",
-    "mutationsHelp": "Nombre maximum de designs de primers à générer.\nPour EVOLVEpro / mode multi-evolve : plafonné par le nombre de variants du CSV.\nUne plaque 96-well contient 95 mutants + 1 contrôle WT.",
+    "mutationsHelp": "Nombre maximum de designs de primers à générer.\nPour EVOLVEpro mode : plafonné par le nombre de variants du CSV.\nUne plaque 96-well contient 95 mutants + 1 contrôle WT.",
     "plates_one": "{{count}} plaque",
     "plates_other": "{{count}} plaques",
     "csvVariantWarning": "Le CSV ne contient que {{count}} variants",
@@ -834,7 +834,6 @@
     "statAfterStep2": "Après étape 2",
     "statStep3Exchanges": "Échanges étape 3",
     "statEvolveproPool": "Pool EVOLVEpro",
-    "statMultiEvolvePool": "Pool MULTI-evolve",
     "statVariants": "{{count}} variants",
     "statPareto_on": "ON",
     "statPareto_onSwapped": "ON ({{count}} échangés)",
@@ -1315,7 +1314,6 @@
     "mutationInputAriaLabel": "Source d'entrée de mutation",
     "noFileSelected": "Aucun fichier sélectionné",
     "variantsLoaded": "{{count}} variants chargés",
-    "allCombinations": "MULTI-evolve : toutes les combinaisons sélectionnées (aucun filtrage)",
     "selectionMode": "Mode de sélection",
     "topNOnly": "Top-N seul",
     "topNDesc": "(y_pred décroissant)",
@@ -1324,7 +1322,8 @@
     "topNVariantsTitle": "Variants Top-N par y_pred (éditable)",
     "mutationsEntered": "{{count}} mutations saisies",
     "mutationsValidated": "({{count}} validées)",
-    "mutationsFailed": "({{count}} échouées)"
+    "mutationsFailed": "({{count}} échouées)",
+    "topNZeroHint": "Définir top-N à 0 pour charger toutes les variantes du CSV"
   },
   "uniprotSearch": {
     "topCandidates": "Top candidats {{shown}}{{total}}",

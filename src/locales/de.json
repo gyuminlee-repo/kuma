@@ -773,7 +773,7 @@
     "codonOption_optimal": "Optimal (organism Codon usage)",
     "codonOption_optimal_title": "Pick die highest-frequency Codon für die selected organism's Codon usage table. Maximises expression but may require mehr nt Änderungen. Only the mutation codon (3 nt) is altered.",
     "mutationsLabel": "Mutationen:",
-    "mutationsHelp": "Maximum Anzahl von Primer designs zu generate.\nFor EVOLVEpro / multi-evolve Modus: capped durch die CSV Variante count.\nOne 96-well Platte fits 95 mutants + 1 WT control.",
+    "mutationsHelp": "Maximum Anzahl von Primer designs zu generate.\nFor EVOLVEpro Modus: capped durch die CSV Variante count.\nOne 96-well Platte fits 95 mutants + 1 WT control.",
     "plates_one": "{{count}} Platte",
     "plates_other": "{{count}} Platten",
     "csvVariantWarning": "CSV contains only {{count}} Varianten",
@@ -834,7 +834,6 @@
     "statAfterStep2": "Nach Schritt 2",
     "statStep3Exchanges": "Schritt 3 Tausche",
     "statEvolveproPool": "EVOLVEpro-Pool",
-    "statMultiEvolvePool": "MULTI-evolve-Pool",
     "statVariants": "{{count}} Varianten",
     "statPareto_on": "ON",
     "statPareto_onSwapped": "AN ({{count}} getauscht)",
@@ -1315,7 +1314,6 @@
     "mutationInputAriaLabel": "Mutation Eingabe Quelle",
     "noFileSelected": "Nein Datei selected",
     "variantsLoaded": "{{count}} Varianten loaded",
-    "allCombinations": "MULTI-evolve: alle combinations selected (kein filtering)",
     "selectionMode": "Selection Modus",
     "topNOnly": "Nur Top-N",
     "topNDesc": "(y_pred absteigend)",
@@ -1324,7 +1322,8 @@
     "topNVariantsTitle": "Top-N Varianten durch y_pred (editable)",
     "mutationsEntered": "{{count}} Mutationen entered",
     "mutationsValidated": "({{count}} validiert)",
-    "mutationsFailed": "({{count}} fehlgeschlagen)"
+    "mutationsFailed": "({{count}} fehlgeschlagen)",
+    "topNZeroHint": "Top-N auf 0 setzen, um alle Varianten aus der CSV zu laden"
   },
   "uniprotSearch": {
     "topCandidates": "Top-Kandidaten {{shown}}{{total}}",

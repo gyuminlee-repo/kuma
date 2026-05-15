@@ -773,7 +773,7 @@
     "codonOption_optimal": "Optimal (codon usage do organismo)",
     "codonOption_optimal_title": "Escolher o códon de maior frequência na tabela de codon usage do organismo selecionado. Maximiza a expressão mas pode exigir mais mudanças nt. Apenas o códon de mutação (3 nt) é alterado.",
     "mutationsLabel": "Mutações:",
-    "mutationsHelp": "Número máximo de designs de primer a gerar.\nPara modo EVOLVEpro / multi-evolve: limitado pela contagem de variants do CSV.\nUma placa de 96 wells comporta 95 mutantes + 1 controle WT.",
+    "mutationsHelp": "Número máximo de designs de primer a gerar.\nPara modo EVOLVEpro: limitado pela contagem de variants do CSV.\nUma placa de 96 wells comporta 95 mutantes + 1 controle WT.",
     "plates_one": "{{count}} placa",
     "plates_other": "{{count}} placas",
     "csvVariantWarning": "O CSV contém apenas {{count}} variants",
@@ -834,7 +834,6 @@
     "statAfterStep2": "Após Step 2",
     "statStep3Exchanges": "Trocas Step 3",
     "statEvolveproPool": "Pool EVOLVEpro",
-    "statMultiEvolvePool": "Pool MULTI-evolve",
     "statVariants": "{{count}} variants",
     "statPareto_on": "ON",
     "statPareto_onSwapped": "ON ({{count}} trocados)",
@@ -1315,7 +1314,6 @@
     "mutationInputAriaLabel": "Fonte de entrada de mutações",
     "noFileSelected": "Nenhum arquivo selecionado",
     "variantsLoaded": "{{count}} variants carregados",
-    "allCombinations": "MULTI-evolve: todas as combinações selecionadas (sem filtragem)",
     "selectionMode": "Modo de seleção",
     "topNOnly": "Apenas Top-N",
     "topNDesc": "(y_pred decrescente)",
@@ -1324,7 +1322,8 @@
     "topNVariantsTitle": "Variants Top-N por y_pred (editáveis)",
     "mutationsEntered": "{{count}} mutações inseridas",
     "mutationsValidated": "({{count}} validadas)",
-    "mutationsFailed": "({{count}} falhadas)"
+    "mutationsFailed": "({{count}} falhadas)",
+    "topNZeroHint": "Defina top-N como 0 para carregar todas as variantes do CSV"
   },
   "uniprotSearch": {
     "topCandidates": "Candidatos principais {{shown}}{{total}}",

@@ -773,7 +773,7 @@
     "codonOption_optimal": "Optimal (物种 codon usage)",
     "codonOption_optimal_title": "选择所选物种 codon usage 表中频率最高的 codon。最大化表达但可能需要更多核苷酸变化。仅修改突变 codon (3 nt)。",
     "mutationsLabel": "Mutations:",
-    "mutationsHelp": "要生成的 primer 设计的最大数量。\n对于 EVOLVEpro / multi-evolve 模式: 上限取决于 CSV variant 数。\n一个 96-well plate 可容纳 95 个 mutant + 1 个 WT 对照。",
+    "mutationsHelp": "要生成的 primer 设计的最大数量。\n对于 EVOLVEpro 模式: 上限取决于 CSV variant 数。\n一个 96-well plate 可容纳 95 个 mutant + 1 个 WT 对照。",
     "plates_one": "{{count}} 板",
     "plates_other": "{{count}} 板",
     "csvVariantWarning": "CSV 仅包含 {{count}} 个 variant",
@@ -834,7 +834,6 @@
     "statAfterStep2": "Step 2 之后",
     "statStep3Exchanges": "Step 3 exchanges",
     "statEvolveproPool": "EVOLVEpro pool",
-    "statMultiEvolvePool": "MULTI-evolve pool",
     "statVariants": "{{count}} 个 variant",
     "statPareto_on": "ON",
     "statPareto_onSwapped": "ON (已交换 {{count}})",
@@ -1315,7 +1314,6 @@
     "mutationInputAriaLabel": "Mutation 输入源",
     "noFileSelected": "未选择文件",
     "variantsLoaded": "已加载 {{count}} 个 variant",
-    "allCombinations": "MULTI-evolve: 已选择所有组合 (无过滤)",
     "selectionMode": "选择模式",
     "topNOnly": "仅 Top-N",
     "topNDesc": "(按 y_pred 降序)",
@@ -1324,7 +1322,8 @@
     "topNVariantsTitle": "按 y_pred 的 Top-N variant (可编辑)",
     "mutationsEntered": "已输入 {{count}} 个 mutation",
     "mutationsValidated": "(已验证 {{count}})",
-    "mutationsFailed": "(失败 {{count}})"
+    "mutationsFailed": "(失败 {{count}})",
+    "topNZeroHint": "将 top-N 设为 0 可加载 CSV 中的所有变体"
   },
   "uniprotSearch": {
     "topCandidates": "Top 候选 {{shown}}{{total}}",

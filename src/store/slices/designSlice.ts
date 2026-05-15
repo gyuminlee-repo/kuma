@@ -436,8 +436,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
     set({ maxPrimers: clamped });
     // If an EVOLVEpro CSV failed to load (mutationText cleared but path retained),
     // re-trigger load so user can recover by adjusting the mutation count.
-    const isEvolvepro =
-      state.mutationInputMode === "evolvepro" || state.mutationInputMode === "multi-evolve";
+    const isEvolvepro = state.mutationInputMode === "evolvepro";
     const loadFailed =
       isEvolvepro && !!state.evolveproCsvPath && state.evolveproTotalCount === 0 &&
       !state.mutationText.trim();

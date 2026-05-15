@@ -119,14 +119,6 @@ export const EVOLVEPRO_CSV_SCHEMA: SchemaSpec = {
 };
 
 /**
- * kuro multi-evolve CSV 스키마.
- *
- * multi-evolve 모드는 일반 evolvepro CSV 와 동일한 컬럼을 허용한다.
- * 동일 spec 공유.
- */
-export const MULTI_EVOLVE_CSV_SCHEMA: SchemaSpec = EVOLVEPRO_CSV_SCHEMA;
-
-/**
  * mame activity long CSV 스키마.
  *
  * 출처: kuma_core/mame/activity/ingest_long_csv.py

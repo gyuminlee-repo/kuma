@@ -26,7 +26,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
       await state.loadEvolveproCsv(state.evolveproCsvPath);
     } catch (err) {
       set({
-        statusMessage: `${state.mutationInputMode === "multi-evolve" ? "MULTI-evolve" : "EVOLVEpro"} reload failed after ${reason}: ${formatError(err)}`,
+        statusMessage: `EVOLVEpro reload failed after ${reason}: ${formatError(err)}`,
       });
     }
   }

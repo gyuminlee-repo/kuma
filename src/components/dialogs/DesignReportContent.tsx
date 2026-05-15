@@ -148,7 +148,6 @@ export function DesignReportContent({ onClose }: DesignReportContentProps) {
     evolveproFilteredCount,
     evolveproParetoExchanges,
     evolveproStepStats,
-    mutationInputMode,
     rescueStats,
     rescuedMutationDetails,
   } = data;
@@ -260,7 +259,7 @@ export function DesignReportContent({ onClose }: DesignReportContentProps) {
             )}
             {evolveproTotalCount > 0 && (
               <Stat
-                label={mutationInputMode === "multi-evolve" ? t("designReport.statMultiEvolvePool") : t("designReport.statEvolveproPool")}
+                label={t("designReport.statEvolveproPool")}
                 value={t("designReport.statVariants", { count: evolveproTotalCount })}
               />
             )}

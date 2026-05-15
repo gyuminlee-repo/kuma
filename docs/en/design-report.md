@@ -6,7 +6,7 @@ Post-design summary dialog. Opens automatically after a successful run and via H
 
 ## Sections
 
-1. **Input summary** — sequence name, gene, mutation count, mode (text / EVOLVEpro / multi-evolve)
+1. **Input summary**: sequence name, gene, mutation count, mode (text / EVOLVEpro)
 2. **Parameter snapshot** — polymerase, Tm / GC / length, codon strategy
 3. **Pipeline stats** (EVOLVEpro modes only) — per-step counts (Step 1 top-N, Step 2 diversity, Step 3 Pareto/entropy)
 4. **Domain stats** — picks vs quota per domain
