@@ -57,3 +57,21 @@ export function describeRpcError(
 
   return message || "unknown error";
 }
+
+/**
+ * -32601 메시지에서 누락된 메서드 이름을 추출. 디버깅 메시지 본문에
+ * 메서드 이름을 노출하기 위함. 매칭 실패 시 빈 문자열.
+ *
+ * 예: "Method not found: generate_mame_package" → "generate_mame_package"
+ */
+export function extractMissingMethod(err: unknown): string {
+  let message = "";
+  if (err && typeof err === "object") {
+    const e = err as { message?: unknown };
+    if (typeof e.message === "string") message = e.message;
+  } else if (typeof err === "string") {
+    message = err;
+  }
+  const m = message.match(/method not found:\s*([A-Za-z0-9_.]+)/i);
+  return m ? m[1] : "";
+}

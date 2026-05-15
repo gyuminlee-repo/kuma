@@ -2082,8 +2082,8 @@
   "errors": {
     "sidecar": {
       "methodNotFound": {
-        "kuro": "KURO 사이드카가 구버전입니다. `pnpm run sidecar:build` 후 재시도하세요.",
-        "mame": "MAME 사이드카가 구버전입니다. `pnpm run sidecar:build` 후 재시도하세요."
+        "kuro": "KURO 사이드카가 구버전입니다 (누락 메서드: {{method}}). `pnpm run sidecar:build` 후 재시도하세요.",
+        "mame": "MAME 사이드카가 구버전입니다 (누락 메서드: {{method}}). `pnpm run sidecar:build` 후 재시도하세요."
       }
     }
   }

@@ -2082,8 +2082,8 @@
   "errors": {
     "sidecar": {
       "methodNotFound": {
-        "kuro": "KURO sidecar is outdated. Run `pnpm run sidecar:build` and retry.",
-        "mame": "MAME sidecar is outdated. Run `pnpm run sidecar:build` and retry."
+        "kuro": "KURO sidecar is outdated (missing method: {{method}}). Run `pnpm run sidecar:build` and retry.",
+        "mame": "MAME sidecar is outdated (missing method: {{method}}). Run `pnpm run sidecar:build` and retry."
       }
     }
   }
