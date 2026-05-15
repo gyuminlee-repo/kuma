@@ -25,12 +25,23 @@ vi.mock("@/state/projectContext", () => ({
   useKumaProject: vi.fn().mockReturnValue({ project_id: "test-proj" }),
 }));
 
+const toastWarning = vi.fn();
+vi.mock("sonner", () => ({
+  toast: {
+    warning: (...args: unknown[]) => toastWarning(...args),
+    success: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+  },
+}));
+
 import { ExportFormatSelector } from "./ExportFormatSelector";
 import { useAppStore } from "@/store/appStore";
 
 describe("ExportFormatSelector — Export All form", () => {
   beforeEach(() => {
     useAppStore.setState({ designResults: [] });
+    toastWarning.mockClear();
   });
 
   it("renders Echo volume range hint 25–500 nL", () => {
@@ -43,11 +54,15 @@ describe("ExportFormatSelector — Export All form", () => {
     expect(screen.getByText(/0\.5.*10.*μL/)).toBeInTheDocument();
   });
 
-  it("disables Export button when no design results", () => {
+  it("blocks Export with toast.warning when no design results", async () => {
     useAppStore.setState({ designResults: [] });
     render(<ExportFormatSelector />);
     const btn = screen.getByRole("button");
-    expect(btn).toBeDisabled();
+    // PI 2026-05-15 (Item 2): button stays clickable so the warning toast can fire.
+    expect(btn).not.toBeDisabled();
+    fireEvent.click(btn);
+    await Promise.resolve();
+    expect(toastWarning).toHaveBeenCalled();
   });
 
   it("enables Export button when design results exist and plate names are valid", () => {
@@ -74,7 +89,7 @@ describe("ExportFormatSelector — Export All form", () => {
     expect(btn).not.toBeDisabled();
   });
 
-  it("disables Export button and shows error when forward plate name contains invalid chars", () => {
+  it("flags invalid forward plate name with destructive border and blocks Export via toast.warning", async () => {
     useAppStore.setState({
       designResults: Array(1).fill({
         mutation: "A1V",
@@ -96,10 +111,13 @@ describe("ExportFormatSelector — Export All form", () => {
     render(<ExportFormatSelector />);
     const fwdInput = screen.getByLabelText(/forward primer plate name/i);
     fireEvent.change(fwdInput, { target: { value: "한글이름" } });
+    // PI 2026-05-15 (Item 2): visual error via border-destructive, button stays clickable.
+    expect(fwdInput.className).toMatch(/border-destructive/);
     const btn = screen.getByRole("button");
-    expect(btn).toBeDisabled();
-    // error alert should be present
-    expect(screen.getAllByRole("alert").length).toBeGreaterThan(0);
+    expect(btn).not.toBeDisabled();
+    fireEvent.click(btn);
+    await Promise.resolve();
+    expect(toastWarning).toHaveBeenCalled();
   });
 
   it("shows well count in forward plate description area", () => {
