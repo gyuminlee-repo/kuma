@@ -260,7 +260,7 @@ export function AppLayout() {
           style={{ zoom }}
           aria-label={t(`phaseC.majors.${currentMajor}`, currentMajor)}
         >
-          <div className="flex-shrink-0 border-b border-border">
+          <div className="flex-shrink-0 max-h-[180px] overflow-y-auto border-b border-border">
             <SequenceViewer />
           </div>
           <div className="flex-1 min-h-0 overflow-hidden">
