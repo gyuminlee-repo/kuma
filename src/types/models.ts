@@ -649,6 +649,32 @@ export interface RpcMethodMap {
     params: { settings: SettingsBundle };
     result: { ok: boolean; path: string };
   };
+  // EVOLVEpro GUI wrapper (Wave 1a)
+  "evolvepro.detect": {
+    params: Record<string, never>;
+    result: {
+      env_found: boolean;
+      env_path: string | null;
+      evolvepro_version: string | null;
+      weights_cached: boolean;
+      weights_path: string | null;
+    };
+  };
+  "evolvepro.run": {
+    params: {
+      input_csv: string;
+      wt_sequence: string;
+      n_rounds: number;
+      output_dir: string;
+      top_n?: number;
+      env_name?: string;
+    };
+    result: { run_id: string };
+  };
+  "evolvepro.cancel": {
+    params: { run_id: string };
+    result: { ok: boolean; reason?: string };
+  };
 }
 
 export type RpcMethod = keyof RpcMethodMap;

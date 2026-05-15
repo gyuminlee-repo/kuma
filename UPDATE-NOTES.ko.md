@@ -4,6 +4,11 @@
 
 ---
 
+## v0.9.6.0 (2026-05-15)
+- 별도 탭으로 EVOLVEpro GUI wrapper(Jiang et al. 2025 Science) 옵셔널 추가. KUMA는 사용자의 conda 설치를 subprocess로 호출만 함, EVOLVEpro 코드 번들·수정 없음. 사용자가 MIT TLO Internal Research EULA를 직접 수락. 안내: `docs/ko/evolvepro-integration.md`.
+
+---
+
 ## v0.9.4.0 (2026-05-15)
 
 multi-evolve 변이 입력 옵션 제거 (dormant 기능 정리, EVOLVEpro로 통합; top-N=0이면 CSV의 모든 변이 로드).

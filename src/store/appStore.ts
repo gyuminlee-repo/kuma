@@ -11,6 +11,8 @@ import { createJobQueueSlice } from "./slices/jobQueueSlice";
 import { createLogSlice } from "./slices/logSlice";
 import { createNavigationSlice } from "./slices/navigationSlice";
 import { createSettingsSlice } from "./slices/settingsSlice";
+import { createEvolveProSlice } from "./slices/evolveProSlice";
+import type { EvolveProProgress } from "./slice-interfaces";
 import { recordRunDuration } from "../lib/eta";
 import type { AppState } from "./types";
 export type { AppState };
@@ -27,6 +29,25 @@ export const useAppStore = create<AppState>()((...a) => {
       const rss_mb = typeof raw["rss_mb"] === "number" ? raw["rss_mb"] : 0;
       const level = raw["level"] === "block" ? "block" : "warn";
       set({ memoryWarning: { ratio, rss_mb, level } });
+      return;
+    }
+    // Wave 1b: EVOLVEpro progress notifications
+    if (raw["type"] === "evolvepro_progress") {
+      const stageRaw = raw["stage"];
+      const validStages = ["detect", "loading", "scoring", "selecting", "done"] as const;
+      type Stage = (typeof validStages)[number];
+      const stage: Stage =
+        typeof stageRaw === "string" && (validStages as readonly string[]).includes(stageRaw)
+          ? (stageRaw as Stage)
+          : "loading";
+      const evt: EvolveProProgress = {
+        run_id: typeof raw["run_id"] === "string" ? raw["run_id"] : "",
+        stage,
+        current: typeof raw["current"] === "number" ? raw["current"] : 0,
+        total: typeof raw["total"] === "number" ? raw["total"] : 0,
+        message: typeof raw["message"] === "string" ? raw["message"] : "",
+      };
+      get().setEvolveProProgress(evt);
       return;
     }
     set({ progress: p.value, statusMessage: p.message });
@@ -49,6 +70,7 @@ export const useAppStore = create<AppState>()((...a) => {
     ...createLogSlice(...a),
     ...createNavigationSlice(...a),
     ...createSettingsSlice(...a),
+    ...createEvolveProSlice(...a),
   };
 });
 

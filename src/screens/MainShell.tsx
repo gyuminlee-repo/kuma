@@ -13,6 +13,7 @@ import { useAutosaveHydration, type HydrationStatusMessage } from "@/hooks/useAu
 import { Spinner } from "@/components/ui/Spinner";
 import { KuroTab } from "./KuroTab";
 import { MameTab } from "./MameTab";
+import { EvolveProPanel } from "@/components/evolvepro/EvolveProPanel";
 import { useAppStore } from "@/store/appStore";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { getActivityStore } from "@/store/mame/activitySlice";
@@ -413,7 +414,7 @@ export function MainShell() {
         onOpenSettings={() => setSettingsOpen(true)}
       />
 
-      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} scope={activeTab} />
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} scope={activeTab === "mame" ? "mame" : "kuro"} />
 
       <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as AppTab); void handleTabChange(v); }} className="flex min-h-0 flex-1 flex-col">
         <header className="h-header flex shrink-0 items-center border-b bg-background px-4">
@@ -466,6 +467,9 @@ export function MainShell() {
           </TabsContent>
           <TabsContent value="mame" className="mt-0 h-full overflow-hidden">
             <MameTab />
+          </TabsContent>
+          <TabsContent value="evolvepro" className="mt-0 h-full overflow-auto">
+            <EvolveProPanel />
           </TabsContent>
         </div>
       </Tabs>

@@ -228,6 +228,20 @@ Tauri v2 + React 19 shell과 두 개의 Python sidecar (kuro-sidecar, mame-sidec
 +----------------+   +----------------+
 ```
 
+## 선택 기능: EVOLVEpro 연동
+
+KUMA는 EVOLVEpro (Jiang et al. 2025 Science,
+https://doi.org/10.1126/science.adr6006) GUI 래퍼를 선택 기능으로 제공한다.
+EVOLVEpro는 MIT TLO Internal Research EULA (학술·비상업 용도)로 배포된다.
+KUMA는 EVOLVEpro를 번들·재배포하지 않는다. 사용자가 직접 conda 환경에
+EVOLVEpro를 설치하고 EULA를 직접 수락해야 한다.
+
+요구 사항: 16 GB RAM, 디스크 여유 10 GB, EVOLVEpro 패키지가 설치된
+`evolvepro` 이름의 conda 환경. 첫 실행 시 ESM-2 650M 가중치(약 2.5 GB)가
+`~/.cache/torch/hub/checkpoints/` 에 다운로드된다.
+
+자세한 설정 절차는 `docs/ko/evolvepro-integration.md` 참고.
+
 ## 공통 프론트엔드 헌장 (Common Frontend Standards)
 
 Kuro·Mame 는 `docs/standards/common-frontend-standards.md` (v1.1 stable) 의 22 카테고리를 따른다 — 복구, 관측성, 입력 검증, 에러 UX, 결과 영속성, 설정, UI 안전, 접근성, 버전·업데이트, 텔레메트리, 빌드, 재현성(`run.json`), 장시간 작업(잡 큐 + OS 알림 + sleep inhibit), 데이터 무결성(입력/출력 SHA-256, sidecar binary hash, schema dry-run 마이그레이션), 온보딩, 로컬 진단, 크로스플랫폼, 부분 실패, 성능 가드레일, 인용·라이선스, 멀티 워크스페이스, 안전한 종료. PrimerBench 도 Phase A-E 로 동일 헌장을 적용한다.
