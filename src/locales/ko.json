@@ -1601,18 +1601,17 @@
     "migrateAriaLabel": "원본 파일을 백업하고 workspace 를 마이그레이션",
     "noMigrationPath": "Workspace {{from}} 에서 {{to}} 로의 마이그레이션 경로가 정의되어 있지 않습니다. 수동 업그레이드가 필요합니다."
   },
-  "wtWellEditor": {
-    "openBtnAriaLabel": "WT well 설정: plate 지도 편집기 열기",
-    "openBtnLabel": "WT Well 설정",
-    "selectedCount": "({{count}}개 선택됨)",
-    "dialogTitle": "WT Well 설정: Plate P01",
-    "gridAriaLabel": "96-well plate 그리드. 클릭하여 WT 지정을 토글합니다.",
-    "selectedSingle": "WT well {{count}}개 선택됨",
-    "selectedPlural": "WT well {{count}}개 선택됨",
-    "cancelBtn": "취소",
-    "saveAriaLabel": "WT well 선택 저장",
-    "saveBtn": "저장",
-    "savingBtn": "저장 중..."
+  "wtWellGrid": {
+    "heading": "WT well 지정",
+    "description": "정규화에 사용할 wild-type well을 지정합니다. well을 클릭하여 토글하세요.",
+    "gridAriaLabel": "96-well plate, 클릭하여 WT 토글",
+    "noActiveRound": "Round를 활성화하면 WT well을 지정할 수 있습니다.",
+    "selectedSingle": "선택: {{count}}개",
+    "selectedPlural": "선택: {{count}}개",
+    "idleStatus": "",
+    "savingStatus": "저장 중...",
+    "savedStatus": "저장됨",
+    "errorStatus": "오류: {{reason}}"
   },
   "inputPanel": {
     "sectionLabel": "Workspace",
