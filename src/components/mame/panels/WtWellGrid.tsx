@@ -9,18 +9,45 @@
  * Spec: notes/specs/2026-05-15-mame-inline-wt-grid.md
  */
 
-import { Fragment } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useRoundStore } from "@/store/round/roundSlice";
 import { cn } from "@/lib/utils";
+import type { PlateMeta } from "@/types/mame/activity";
 
 const ROWS = ["A", "B", "C", "D", "E", "F", "G", "H"] as const;
 const COLS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0"));
 
+function getWtWells(plateMeta: PlateMeta): Set<string> {
+  const plate = plateMeta.plates.find((p) => p.plate_id === "P01");
+  return new Set(plate?.wt_wells ?? []);
+}
+
 export function WtWellGrid() {
   const { t } = useTranslation();
   const activeRoundId = useRoundStore((s) => s.active_round_id);
+  const activeRound = useRoundStore((s) =>
+    s.rounds.find((r) => r.id === s.active_round_id) ?? null,
+  );
   const disabled = activeRoundId === null;
+
+  const [localWt, setLocalWt] = useState<Set<string>>(() =>
+    activeRound ? getWtWells(activeRound.plate_meta) : new Set(),
+  );
+
+  useEffect(() => {
+    setLocalWt(activeRound ? getWtWells(activeRound.plate_meta) : new Set());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeRound?.id, activeRound?.plate_meta]);
+
+  function toggleWell(wellId: string) {
+    setLocalWt((prev) => {
+      const next = new Set(prev);
+      if (next.has(wellId)) next.delete(wellId);
+      else next.add(wellId);
+      return next;
+    });
+  }
 
   return (
     <div className="space-y-2">
@@ -50,21 +77,41 @@ export function WtWellGrid() {
               >
                 {row}
               </div>
-              {COLS.map((col) => (
-                <button
-                  key={`${row}${col}`}
-                  type="button"
-                  aria-label={`${row}${col}`}
-                  className="flex h-6 w-6 items-center justify-center rounded-sm bg-muted text-muted-foreground text-[9px] font-medium"
-                />
-              ))}
+              {COLS.map((col) => {
+                const wellId = `${row}${col}`;
+                const isWt = localWt.has(wellId);
+                return (
+                  <button
+                    key={wellId}
+                    type="button"
+                    aria-pressed={isWt}
+                    aria-label={wellId}
+                    onClick={() => toggleWell(wellId)}
+                    className={cn(
+                      "flex h-6 w-6 items-center justify-center rounded-sm text-[9px] font-medium transition-colors",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      isWt
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground hover:bg-muted/70",
+                    )}
+                  >
+                    {isWt ? "WT" : ""}
+                  </button>
+                );
+              })}
             </Fragment>
           ))}
         </div>
       </div>
-      {disabled && (
+      {disabled ? (
         <p className="text-caption text-muted-foreground">
           {t("wtWellGrid.noActiveRound")}
+        </p>
+      ) : (
+        <p className="text-caption text-muted-foreground">
+          {localWt.size === 1
+            ? t("wtWellGrid.selectedSingle", { count: 1 })
+            : t("wtWellGrid.selectedPlural", { count: localWt.size })}
         </p>
       )}
     </div>

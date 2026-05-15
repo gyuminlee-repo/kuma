@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { create } from "zustand";
 import type { ActivitySlice } from "@/store/mame/activitySlice";
@@ -70,6 +70,26 @@ function setupRoundStore(rounds: Round[], activeId: string | null) {
   );
   (useRoundStore as unknown as { getState: () => RoundSlice }).getState = () => state;
 }
+
+describe("WtWellGrid — active round toggle", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(useActivityStore).mockReturnValue(makeActivityStore());
+    setupRoundStore([makeRound("r1")], "r1");
+  });
+
+  it("renders 96 buttons and toggles WT label on click", () => {
+    render(<WtWellGrid />);
+    const wellButtons = screen.getAllByRole("button", {
+      name: /^[A-H](0[1-9]|1[0-2])$/,
+    });
+    expect(wellButtons.length).toBe(96);
+    const a03 = screen.getByRole("button", { name: "A03" });
+    expect(a03.textContent).not.toContain("WT");
+    fireEvent.click(a03);
+    expect(a03.textContent).toContain("WT");
+  });
+});
 
 describe("WtWellGrid — no active round", () => {
   beforeEach(() => {
