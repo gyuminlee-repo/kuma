@@ -44,7 +44,10 @@ function getWorkflowRailSteps() {
 describe("AppLayout Phase C -- layout structure", () => {
   it("renders data-tool='kuro' (Phase A token selector preserved)", () => {
     render(<AppLayout />);
-    expect(document.querySelector("[data-tool='kuro']")).toBeTruthy();
+    const shell = document.querySelector("[data-tool='kuro']");
+    expect(shell).toBeTruthy();
+    expect(shell?.className).toContain("h-full");
+    expect(shell?.className).not.toContain("h-screen");
   });
 
   it("sidebar region exists (AppShell sidebar slot)", () => {

@@ -280,6 +280,7 @@ export function AppLayout() {
         />
       }
       isDragOver={isDragOver}
+      className="h-full"
     >
       <WhatsNewDialog />
       <NetworkConsentDialog />
