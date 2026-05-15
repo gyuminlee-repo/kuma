@@ -14,6 +14,7 @@ python-core/build/
 python-core/*.spec
 __pycache__/
 *.pyc
+uv.lock
 results/
 
 # Generated/large files
