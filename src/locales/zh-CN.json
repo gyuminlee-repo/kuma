@@ -1590,19 +1590,6 @@
     "migrateAriaLabel": "备份原始文件并迁移工作区",
     "noMigrationPath": "未定义从工作区 {{from}} 到 {{to}} 的迁移路径。需要手动升级。"
   },
-  "wtWellEditor": {
-    "openBtnAriaLabel": "设置 WT Wells: 打开 plate map 编辑器",
-    "openBtnLabel": "设置 WT Wells",
-    "selectedCount": "(已选 {{count}})",
-    "dialogTitle": "设置 WT Wells: Plate P01",
-    "gridAriaLabel": "96-well plate 网格。点击以切换 WT 标记。",
-    "selectedSingle": "已选 {{count}} 个 WT well",
-    "selectedPlural": "已选 {{count}} 个 WT wells",
-    "cancelBtn": "取消",
-    "saveAriaLabel": "保存 WT well 选择",
-    "saveBtn": "保存",
-    "savingBtn": "保存中..."
-  },
   "inputPanel": {
     "sectionLabel": "工作区",
     "title": "输入"
@@ -2014,5 +2001,17 @@
       "nPlates": "{{count}} 块板",
       "bridgeBadge": "bridge"
     }
+  },
+  "wtWellGrid": {
+    "heading": "WT-well annotation",
+    "description": "Designate wild-type wells used for normalisation. Click a well to toggle.",
+    "gridAriaLabel": "96-well plate, click to toggle WT",
+    "noActiveRound": "Activate a round to designate WT wells.",
+    "selectedSingle": "Selected: {{count}} well",
+    "selectedPlural": "Selected: {{count}} wells",
+    "idleStatus": "",
+    "savingStatus": "saving...",
+    "savedStatus": "saved",
+    "errorStatus": "error: {{reason}}"
   }
 }

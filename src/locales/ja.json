@@ -1590,19 +1590,6 @@
     "migrateAriaLabel": "元ファイルをバックアップしてワークスペースを移行",
     "noMigrationPath": "ワークスペース {{from}} から {{to}} への migration path が定義されていません。手動アップグレードが必要です。"
   },
-  "wtWellEditor": {
-    "openBtnAriaLabel": "WT Wells を設定: plate map エディタを開く",
-    "openBtnLabel": "WT Wells を設定",
-    "selectedCount": "({{count}} 選択)",
-    "dialogTitle": "WT Wells を設定: Plate P01",
-    "gridAriaLabel": "96-well plate グリッド。クリックで WT 指定を切替。",
-    "selectedSingle": "{{count}} WT well 選択",
-    "selectedPlural": "{{count}} WT wells 選択",
-    "cancelBtn": "キャンセル",
-    "saveAriaLabel": "WT well 選択を保存",
-    "saveBtn": "保存",
-    "savingBtn": "保存中..."
-  },
   "inputPanel": {
     "sectionLabel": "ワークスペース",
     "title": "入力"
@@ -2014,5 +2001,17 @@
       "nPlates": "{{count}}プレート",
       "bridgeBadge": "bridge"
     }
+  },
+  "wtWellGrid": {
+    "heading": "WT-well annotation",
+    "description": "Designate wild-type wells used for normalisation. Click a well to toggle.",
+    "gridAriaLabel": "96-well plate, click to toggle WT",
+    "noActiveRound": "Activate a round to designate WT wells.",
+    "selectedSingle": "Selected: {{count}} well",
+    "selectedPlural": "Selected: {{count}} wells",
+    "idleStatus": "",
+    "savingStatus": "saving...",
+    "savedStatus": "saved",
+    "errorStatus": "error: {{reason}}"
   }
 }
