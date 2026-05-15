@@ -1,8 +1,8 @@
 {
-  "kuro-sidecar-x86_64-pc-windows-msvc.exe": "4e565f1a81b461a2b254a882891eb0e60349921a6ad3ce15a08d7bac9c6bffb4",
+  "kuro-sidecar-x86_64-pc-windows-msvc.exe": "0d8724e3154a93fbdad4a9ce492642eb4dc3249b34870da0ea301ce1e43fd3e2",
   "kuro-sidecar": "1a86683b7dc5895da295803cb5b03234b9ff8a8b023fd6a748f1ee0aeb6f4224",
   "kuro-sidecar-x86_64-unknown-linux-gnu": "1a86683b7dc5895da295803cb5b03234b9ff8a8b023fd6a748f1ee0aeb6f4224",
-  "mame-sidecar-x86_64-pc-windows-msvc.exe": "63d406df90fe58d79724c2cdbd907d6a297b846b827df9739c97fefc171eaf6d",
+  "mame-sidecar-x86_64-pc-windows-msvc.exe": "150cd7f65e1d4176d34a1f5f3fcaab658101f9d2164bddc91f33da1d378ba35c",
   "mame-sidecar": "6aed3eaedf5090c04ae82e81f3307894e8ffc8b06a7a8b7a5d6f5fd6bfdadb6a",
   "mame-sidecar-x86_64-unknown-linux-gnu": "6aed3eaedf5090c04ae82e81f3307894e8ffc8b06a7a8b7a5d6f5fd6bfdadb6a"
 }
