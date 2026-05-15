@@ -29,6 +29,7 @@ import {
   sampleVerdicts,
   sampleWells,
 } from "@/lib/mame/sampleData";
+import { useRoundStore } from "@/store/round/roundSlice";
 import type { AppState } from "../types";
 import { createAnalysisSlice } from "./analysisSlice";
 
@@ -97,10 +98,27 @@ describe("mame analysisSlice.loadSampleData", () => {
     (resolveResource as unknown as ReturnType<typeof vi.fn>).mockImplementation(
       (p: string) => Promise.resolve(`/resolved/${p}`),
     );
+    // Reset singleton roundStore between tests so addRound id assertions are stable.
+    useRoundStore.setState({ rounds: [], active_round_id: null });
   });
 
-  it("resolves 6 bundled resources, calls activity RPCs, populates input + results", async () => {
-    mockSendRequest.mockResolvedValue({});
+  it("resolves 6 bundled resources, creates round + WT-well plate meta, calls activity RPCs, populates input + results", async () => {
+    // activity.upload returns records + plate_meta; hydrated into round.activity
+    mockSendRequest.mockImplementation((method: string) => {
+      if (method === "activity.upload") {
+        return Promise.resolve({
+          records: [
+            { plate_id: "plate01", well_id: "A1", value: 1.011, replicate_idx: 1, is_wt: true },
+          ],
+          plate_meta: {
+            plates: [
+              { plate_id: "plate01", wt_wells: ["A1", "A2", "A3"], control_wells: [] },
+            ],
+          },
+        });
+      }
+      return Promise.resolve({});
+    });
     const store = makeStore();
 
     await store.loadSampleData();
@@ -119,28 +137,46 @@ describe("mame analysisSlice.loadSampleData", () => {
       expect(resolveResource).toHaveBeenCalledWith(p);
     }
 
-    // 2. activity.set_plate_meta RPC
+    // 2. Round created in roundStore with sample WT-well plate meta
+    const roundState = useRoundStore.getState();
+    expect(roundState.rounds.length).toBe(1);
+    const round = roundState.rounds[0]!;
+    expect(round.plate_meta.plates).toEqual([
+      { plate_id: "plate01", wt_wells: ["A1", "A2", "A3"], control_wells: [] },
+    ]);
+    expect(roundState.active_round_id).toBe(round.id);
+
+    // 3. activity.set_plate_meta RPC uses the freshly created round id + WT wells
     expect(mockSendRequest).toHaveBeenCalledWith(
       "activity.set_plate_meta",
       expect.objectContaining({
-        round_id: "sample-round-1",
+        round_id: round.id,
         plate_meta: expect.objectContaining({
           plates: [
-            { plate_id: "plate01", wt_wells: ["A1", "A2", "A3"] },
+            { plate_id: "plate01", wt_wells: ["A1", "A2", "A3"], control_wells: [] },
           ],
         }),
       }),
     );
 
-    // 3. activity.upload RPC
+    // 4. activity.upload RPC
     expect(mockSendRequest).toHaveBeenCalledWith(
       "activity.upload",
       expect.objectContaining({
-        round_id: "sample-round-1",
+        round_id: round.id,
         file_path: "/resolved/samples/mame/07_mame_activity_long.csv",
         format: "csv",
       }),
     );
+
+    // 5. round.activity hydrated from upload response
+    expect(round.activity).not.toBeNull();
+    expect(round.activity?.plate_meta.plates[0]?.wt_wells).toEqual([
+      "A1",
+      "A2",
+      "A3",
+    ]);
+    expect(round.activity?.records.length).toBeGreaterThan(0);
 
     // 4. 입력 경로 store populated
     expect(store.referencePath).toBe("/resolved/samples/mame/reference.fasta");

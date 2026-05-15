@@ -1,13 +1,11 @@
 """JSON-RPC dispatcher: method registry, main loop, parent watchdog."""
 
 import json
-import logging
 import os
 import sys
 import threading
 import time
 import traceback
-from pathlib import Path
 
 from sidecar_kuro.core import (
     _append_crash_log,
@@ -29,7 +27,9 @@ from sidecar_kuro.handlers.design import (
 from sidecar_kuro.handlers.export import (
     handle_export_all,
     handle_export_benchmark_csv,
+    handle_export_echo_mapping_dry_run,
     handle_export_excel,
+    handle_export_janus_mapping_dry_run,
     handle_export_macrogen,
     handle_export_mapping,
     handle_export_order,
@@ -91,6 +91,8 @@ _METHODS = {
     "export_excel": handle_export_excel,
     "export_order": handle_export_order,
     "export_mapping": handle_export_mapping,
+    "export_echo_mapping_dry_run": handle_export_echo_mapping_dry_run,
+    "export_janus_mapping_dry_run": handle_export_janus_mapping_dry_run,
     "export_macrogen": handle_export_macrogen,
     "export_all": handle_export_all,
     "export_benchmark_csv": handle_export_benchmark_csv,
@@ -140,7 +142,7 @@ def _dispatch_handler(req_id: int | None, method: str, handler, params: dict) ->
     except (KeyError, ValueError) as exc:
         _append_crash_log(method, str(params)[:200], traceback.format_exc())
         _error(req_id, -32602, str(exc))
-    except Exception as exc:
+    except Exception:
         logger.exception("Unhandled error in %s", method)
         _append_crash_log(method, str(params)[:200], traceback.format_exc())
         _error(req_id, -32603, "Internal error")

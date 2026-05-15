@@ -1848,6 +1848,9 @@
       "mappingExport": {
         "heading": "Plate Mapping Export",
         "runExport": "Export Mapping"
+      },
+      "all": {
+        "runExport": "Export all"
       }
     },
     "run": {
@@ -2050,8 +2053,21 @@
   "validation": {
     "missing": {
       "sequence": "Sequence file is required",
-      "mutation": "Mutation input is required"
-    }
+      "mutation": "Mutation input is required",
+      "fwdPlateName": "Forward primer plate name is required",
+      "fwdPlateNameInvalid": "Forward primer plate name: use 1-20 letters, numbers, underscores, or hyphens",
+      "rvsPlateName": "Reverse primer plate name is required",
+      "rvsPlateNameInvalid": "Reverse primer plate name: use 1-20 letters, numbers, underscores, or hyphens",
+      "designResults": "No designed primers to export",
+      "cdsFasta": "CDS FASTA file is required",
+      "barcodeSeeds": "Barcode seeds xlsx is required",
+      "geneCoordinates": "Gene start and end coordinates are required",
+      "geneRangeInvalid": "Gene end must be greater than gene start",
+      "projectPath": "Open or create a project first",
+      "activeRound": "Select a round first",
+      "activityData": "Upload activity data first"
+    },
+    "actionBlockedTitle": "Cannot proceed — missing required input"
   },
   "report": {
     "noResultsDesc": "Run Design first to see primer results here.",

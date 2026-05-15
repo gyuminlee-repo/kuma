@@ -30,6 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { GenerateMamePackageParams, MamePackageResult } from "@/types/mame/barcode_package";
+import { validateGenerateBarcodePackage } from "@/store/validation";
 
 // ─── localStorage 영속화 ─────────────────────────────────────────────────────
 
@@ -224,23 +225,31 @@ export function BarcodeSetupPanel({ group }: BarcodeSetupPanelProps = {}) {
   const isEndValid = form.geneEnd !== "" && !isNaN(geneEndNum) && geneEndNum >= 1;
   const isRangeValid = isStartValid && isEndValid && geneEndNum > geneStartNum;
 
-  const isFormReady =
-    Boolean(form.fastaPath) &&
-    Boolean(form.barcodeSeedsPath) &&
-    isStartValid &&
-    isEndValid &&
-    isRangeValid;
-
-  const canGenerate = isFormReady && Boolean(project?.path) && !isGenerating;
+  // PI 2026-05-15 (Item 2): 입력 누락 시에도 버튼은 클릭 가능. 핸들러에서
+  // validate → 누락이면 toast.warning. isGenerating 상태만 hard disable.
+  // isStartValid·isEndValid는 NumberField hasError 표시용으로 유지.
+  void isStartValid;
+  void isEndValid;
+  const canGenerate = !isGenerating;
 
   // ─── RPC 호출 ─────────────────────────────────────────────────────────────
 
   async function handleGenerate() {
-    if (!project?.path) return;
-    if (!isRangeValid) {
-      toast.error(t("mame.barcodeSetup.geneEndError"));
+    const check = validateGenerateBarcodePackage({
+      fastaPath: form.fastaPath,
+      barcodeSeedsPath: form.barcodeSeedsPath,
+      geneStart: form.geneStart,
+      geneEnd: form.geneEnd,
+      isRangeValid,
+      projectPath: project?.path,
+    });
+    if (!check.ok) {
+      toast.warning(t("validation.actionBlockedTitle"), {
+        description: check.missing.map((k) => t(k)).join("\n"),
+      });
       return;
     }
+    if (!project?.path) return;
 
     const destDir = `${project.path}/design`;
     setIsGenerating(true);

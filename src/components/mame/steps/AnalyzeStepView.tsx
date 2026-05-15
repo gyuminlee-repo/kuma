@@ -259,6 +259,7 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
       progressLabel={config.progressLabel}
       titleKey={config.titleKey}
       descriptionKey={config.descriptionKey}
+      maxWidth={subStep === "analyze.review" ? "full" : "3xl"}
       onPrev={goToPrevStep}
       onNext={wizardOnNext}
       nextLabelKey={
