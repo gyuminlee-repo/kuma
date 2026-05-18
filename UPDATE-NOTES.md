@@ -4,6 +4,11 @@
 
 ---
 
+## v0.9.8.0 (2026-05-15)
+- Removed EVOLVEpro wrapper integration. The wrapper is now a standalone application at `$WORKSPACE_ROOT/cc/evolvepro-gui` to maintain a clean separation of concerns.
+
+---
+
 ## v0.9.7.0 (2026-05-18)
 
 macOS install pass — eight functional fixes + build-pipeline hardening rolled into one release.
@@ -26,11 +31,6 @@ macOS install pass — eight functional fixes + build-pipeline hardening rolled 
 ### Build pipeline
 - `scripts/sidecar-hash-postbuild.mjs` re-signs sidecars without hardened runtime (kills the PyInstaller libpython Team-ID validation crash on Apple Silicon) and rewrites the bundled manifest hash, then regenerates the DMG.
 - PyInstaller hidden imports gain `setuptools._vendor.backports*` (Python 3.11 `ModuleNotFoundError` fix).
-
----
-
-## v0.9.6.0 (2026-05-15)
-- Added optional EVOLVEpro GUI wrapper (Jiang et al. 2025 Science) as a separate tab. KUMA shells out to user's own conda installation via subprocess; does not bundle or modify EVOLVEpro code. Users accept MIT TLO Internal Research EULA directly. See `docs/en/evolvepro-integration.md`.
 
 ---
 

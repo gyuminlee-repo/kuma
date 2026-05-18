@@ -34,7 +34,6 @@ diversitySlice → inputSlice.loadEvolveproCsv, sequenceSlice.seqInfo
 inputSlice → diversitySlice.pipelineMode/domains/disabledDomains
 designSlice → inputSlice.mutationText, diversitySlice.cancelDiversityReload
 exportSlice → all slices (read-only for workspace save/load)
-evolveProSlice → (independent, no main slice dependencies; separate module)
 ```
 
 ### Frontend ↔ Sidecar communication

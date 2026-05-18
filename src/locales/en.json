@@ -2083,50 +2083,5 @@
         "mame": "MAME sidecar is outdated (missing method: {{method}}). Run `pnpm run sidecar:build` and retry."
       }
     }
-  },
-  "evolvePro": {
-    "panel": {
-      "title": "EVOLVEpro Variant Selection"
-    },
-    "onboarding": {
-      "title": "EVOLVEpro environment setup",
-      "detecting": "Detecting conda environment...",
-      "retry": "Retry detection"
-    },
-    "runForm": {
-      "title": "Run EVOLVEpro",
-      "inputCsv": "Input CSV",
-      "wtSequence": "WT sequence",
-      "nRounds": "Rounds",
-      "topN": "Top N",
-      "outputDir": "Output directory",
-      "outputCsv": "Output CSV",
-      "browse": "Browse...",
-      "submit": "Run",
-      "cancel": "Cancel",
-      "running": "Running...",
-      "elapsed": "Elapsed",
-      "topVariants": "Top variants",
-      "resultTitle": "EVOLVEpro result",
-      "stage": {
-        "starting": "Starting",
-        "detect": "Detecting environment",
-        "loading": "Loading ESM-2 model",
-        "scoring": "Scoring variants",
-        "selecting": "Selecting top variants",
-        "done": "Done"
-      }
-    },
-    "error": {
-      "dismiss": "Dismiss",
-      "kind": {
-        "env_not_found": "EVOLVEpro conda environment not found",
-        "network": "Network error while downloading model weights",
-        "disk_full": "Insufficient disk space",
-        "permission": "Permission denied",
-        "runtime_error": "Runtime error",
-        "unknown": "Unknown error"
-      }
-    }
   }
 }

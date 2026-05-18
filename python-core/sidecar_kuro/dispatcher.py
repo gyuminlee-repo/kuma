@@ -44,11 +44,6 @@ from sidecar_kuro.handlers.external import (
     handle_search_uniprot,
     handle_fetch_structure,
 )
-from sidecar_kuro.handlers.evolvepro import (
-    handle_evolvepro_cancel,
-    handle_evolvepro_detect,
-    handle_evolvepro_run,
-)
 from sidecar_kuro.handlers.misc import (
     handle_list_polymerases,
     handle_get_polymerase_details,
@@ -61,24 +56,6 @@ from sidecar_kuro.handlers.settings import (
     handle_load as handle_settings_load,
     handle_save as handle_settings_save,
 )
-
-def _send_evolvepro_progress(
-    run_id: str, stage: str, current: int, total: int, message: str
-) -> None:
-    """Publish an EVOLVEpro progress notification over JSON-RPC stdout."""
-    _send({
-        "jsonrpc": "2.0",
-        "method": "progress",
-        "params": {
-            "type": "evolvepro_progress",
-            "run_id": run_id,
-            "stage": stage,
-            "current": current,
-            "total": total,
-            "message": message,
-        },
-    })
-
 
 def _handle_health_info(_params: dict) -> dict:
     """Return PID, RSS, and Python version for the status bar tooltip."""
@@ -129,11 +106,6 @@ _METHODS = {
     "check_structures_available": handle_check_structures_available,
     "fetch_structure": handle_fetch_structure,
     "run_benchmark": handle_run_benchmark,
-    "evolvepro.detect": handle_evolvepro_detect,
-    "evolvepro.run": lambda params: handle_evolvepro_run(
-        params, progress_send=_send_evolvepro_progress
-    ),
-    "evolvepro.cancel": handle_evolvepro_cancel,
     "cancel_design": lambda _: {
         "cancelled": True,
         "active_design": _cancel_active_design(),
@@ -155,7 +127,6 @@ _ASYNC_METHODS = {
     "fetch_structure",
     "fetch_domains",
     "run_benchmark",
-    "evolvepro.run",
 }
 
 
