@@ -11,7 +11,7 @@
     "tauri": "node scripts/run-tauri.mjs",
     "setup": "node scripts/safe-install.mjs",
     "sidecar:kill": "node scripts/kill-sidecars.mjs",
-    "sidecar:build": "pnpm run sidecar:kill && cd python-core && node -e \"require('child_process').execSync((process.platform==='win32'?'python':'python3')+' build_sidecar.py',{stdio:'inherit'})\"",
+    "sidecar:build": "pnpm run sidecar:kill && cd python-core && node -e \"require('child_process').execSync((process.platform==='win32'?'python':'python3')+' build_sidecar.py',{stdio:'inherit'})\" && cd .. && pnpm run sidecar:hash",
     "sidecar:build:onedir": "cd python-core && node -e \"require('child_process').execSync((process.platform==='win32'?'python':'python3')+' build_sidecar.py',{stdio:'inherit'})\"",
     "sidecar:hash": "node scripts/sidecar-hash.mjs",
     "sidecar:hash:postbuild": "node scripts/sidecar-hash-postbuild.mjs",
