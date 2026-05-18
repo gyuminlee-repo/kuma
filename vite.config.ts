@@ -1,9 +1,26 @@
 import { defineConfig } from "vite";
 import { resolve } from "path";
 import { readFileSync } from "fs";
+import { execSync } from "child_process";
 import react from "@vitejs/plugin-react-swc";
 
 const pkg = JSON.parse(readFileSync(resolve(__dirname, "package.json"), "utf-8"));
+
+// 4-part version from git tag (vA.BB.CC.DD). Fallback to package.json (3-part) if
+// git missing or no 4-part tag reachable. See docs/troubleshooting/build-version.md.
+function getAppVersion(): string {
+  try {
+    const desc = execSync("git describe --tags --always", {
+      encoding: "utf-8",
+      cwd: __dirname,
+    }).trim();
+    const match = desc.match(/^v?(\d+\.\d+\.\d+\.\d+)/);
+    if (match) return match[1];
+  } catch {
+    /* fall through to pkg.version */
+  }
+  return pkg.version;
+}
 
 export default defineConfig(({ }) => {
   const isMockMode = process.env.MOCK_MODE === "1";
@@ -42,7 +59,7 @@ export default defineConfig(({ }) => {
     },
     envPrefix: ["VITE_", "TAURI_"],
     define: {
-      __APP_VERSION__: JSON.stringify(pkg.version),
+      __APP_VERSION__: JSON.stringify(getAppVersion()),
       // §11 CI build SHA (GitHub Actions: GITHUB_SHA env var, local dev: "dev")
       __BUILD_SHA__: JSON.stringify(process.env.GITHUB_SHA ?? "dev"),
     },
