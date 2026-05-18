@@ -39,3 +39,7 @@ export async function loadProject(path: string): Promise<Project> {
 export async function listRecentProjects(): Promise<RecentProject[]> {
   return invoke<RecentProject[]>("list_recent_projects_cmd");
 }
+
+export async function removeRecentProject(path: string): Promise<Config> {
+  return invoke<Config>("remove_recent_project_cmd", { path });
+}

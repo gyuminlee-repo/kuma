@@ -22,15 +22,20 @@ const ROWS = ["A", "B", "C", "D", "E", "F", "G", "H"] as const;
 const COLS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0"));
 const DEBOUNCE_MS = 400;
 
-function getWtWells(plateMeta: PlateMeta): Set<string> {
+// Single-select: reduce backend wt_wells[] to one selection.
+// Legacy multi-selection data picks first sorted to surface divergence
+// rather than silently dropping data.
+function getWtWell(plateMeta: PlateMeta): string | null {
   const plate = plateMeta.plates.find((p) => p.plate_id === "P01");
-  return new Set(plate?.wt_wells ?? []);
+  const wells = plate?.wt_wells ?? [];
+  if (wells.length === 0) return null;
+  return [...wells].sort()[0];
 }
 
-function buildPlateMeta(wt: Set<string>, controlWells: string[]): PlateMeta {
+function buildPlateMeta(wt: string | null, controlWells: string[]): PlateMeta {
   const plate: PlateConfig = {
     plate_id: "P01",
-    wt_wells: Array.from(wt).sort(),
+    wt_wells: wt ? [wt] : [],
     control_wells: controlWells,
   };
   return { plates: [plate] };
@@ -50,12 +55,12 @@ export function WtWellGrid() {
 
   const disabled = activeRoundId === null;
 
-  const [localWt, setLocalWt] = useState<Set<string>>(() =>
-    activeRound ? getWtWells(activeRound.plate_meta) : new Set(),
+  const [localWt, setLocalWt] = useState<string | null>(() =>
+    activeRound ? getWtWell(activeRound.plate_meta) : null,
   );
   const [status, setStatus] = useState<SaveStatus>("idle");
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const localWtRef = useRef<Set<string>>(localWt);
+  const localWtRef = useRef<string | null>(localWt);
   const activeRoundRef = useRef(activeRound);
   const lastCommittedMetaRef = useRef<PlateMeta | null>(null);
 
@@ -69,7 +74,7 @@ export function WtWellGrid() {
 
   useEffect(() => {
     if (!activeRound) {
-      setLocalWt(new Set());
+      setLocalWt(null);
       return;
     }
     // Self-echo skip: server snapshot equals what we just committed.
@@ -80,12 +85,12 @@ export function WtWellGrid() {
     ) {
       return;
     }
-    setLocalWt(getWtWells(activeRound.plate_meta));
+    setLocalWt(getWtWell(activeRound.plate_meta));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeRound?.id, activeRound?.plate_meta]);
 
   async function commit(
-    wt: Set<string>,
+    wt: string | null,
     roundId: string | null,
     controlWells: string[],
   ) {
@@ -106,7 +111,7 @@ export function WtWellGrid() {
       toast.error(t("wtWellGrid.errorStatus", { reason: msg }));
       // Rollback localWt to the last known server snapshot.
       const r = useRoundStore.getState().rounds.find((x) => x.id === roundId);
-      setLocalWt(r ? getWtWells(r.plate_meta) : new Set());
+      setLocalWt(r ? getWtWell(r.plate_meta) : null);
       setStatus("error");
       setTimeout(() => {
         setStatus((s) => (s === "error" ? "idle" : s));
@@ -114,7 +119,7 @@ export function WtWellGrid() {
     }
   }
 
-  function scheduleSave(nextWt: Set<string>) {
+  function scheduleSave(nextWt: string | null) {
     if (timerRef.current) clearTimeout(timerRef.current);
     const capturedRoundId = activeRound?.id ?? null;
     const capturedControl =
@@ -144,11 +149,10 @@ export function WtWellGrid() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function toggleWell(wellId: string) {
+  function selectWell(wellId: string) {
     setLocalWt((prev) => {
-      const next = new Set(prev);
-      if (next.has(wellId)) next.delete(wellId);
-      else next.add(wellId);
+      // Click same well = deselect; click different = replace.
+      const next = prev === wellId ? null : wellId;
       scheduleSave(next);
       return next;
     });
@@ -165,6 +169,7 @@ export function WtWellGrid() {
     <div className="space-y-2">
       <div
         aria-label={t("wtWellGrid.gridAriaLabel")}
+        role="radiogroup"
         className={cn(
           "overflow-auto",
           disabled && "opacity-50 pointer-events-none",
@@ -191,14 +196,15 @@ export function WtWellGrid() {
               </div>
               {COLS.map((col) => {
                 const wellId = `${row}${col}`;
-                const isWt = localWt.has(wellId);
+                const isWt = localWt === wellId;
                 return (
                   <button
                     key={wellId}
                     type="button"
-                    aria-pressed={isWt}
+                    role="radio"
+                    aria-checked={isWt}
                     aria-label={wellId}
-                    onClick={() => toggleWell(wellId)}
+                    onClick={() => selectWell(wellId)}
                     className={cn(
                       "flex h-6 w-6 items-center justify-center rounded-sm text-[9px] font-medium transition-colors",
                       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
@@ -222,9 +228,9 @@ export function WtWellGrid() {
       ) : (
         <p className="text-caption text-muted-foreground">
           {statusText ? <span>{statusText} </span> : null}
-          {localWt.size === 1
+          {localWt
             ? t("wtWellGrid.selectedSingle", { count: 1 })
-            : t("wtWellGrid.selectedPlural", { count: localWt.size })}
+            : t("wtWellGrid.selectedPlural", { count: 0 })}
         </p>
       )}
     </div>

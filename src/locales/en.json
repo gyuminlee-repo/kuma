@@ -724,7 +724,11 @@
     "newProjectDesc": "Enter a project name.",
     "projectNameAriaLabel": "Project name",
     "createBtn": "Create",
-    "enterProjectName": "Enter a project name."
+    "enterProjectName": "Enter a project name.",
+    "deleteButton": "Delete project",
+    "deleteConfirmTitle": "Remove project from list?",
+    "deleteConfirmDesc": "The project files on disk will not be deleted. Only the entry in the recent list is removed.",
+    "delete": "Remove"
   },
   "mameTab": {
     "matchingProjectTitle": "Matching project found",

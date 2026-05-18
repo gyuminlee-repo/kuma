@@ -137,3 +137,15 @@ pub fn list_recent_projects_cmd() -> Result<Vec<RecentProject>, String> {
     let cfg = load_or_init_config(&prod_config_root())?;
     Ok(cfg.recent_projects)
 }
+
+#[tauri::command]
+pub fn remove_recent_project_cmd(path: String) -> Result<Vec<RecentProject>, String> {
+    let root = prod_config_root();
+    let mut cfg = read_config_file(&root)?;
+    let before = cfg.recent_projects.len();
+    cfg.recent_projects.retain(|r| r.path != path);
+    if cfg.recent_projects.len() != before {
+        save_config(&root, &cfg)?;
+    }
+    Ok(cfg.recent_projects)
+}

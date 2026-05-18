@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { open } from "@tauri-apps/plugin-dialog";
+import { Trash2 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import {
   Dialog,
@@ -16,6 +17,7 @@ import {
   createProject,
   listRecentProjects,
   loadProject,
+  removeRecentProject,
   type RecentProject,
 } from "../lib/project";
 
@@ -32,6 +34,7 @@ export function Home({ onOpenProject, onOpenScratch, onOpenSettings }: HomeProps
   const [projectName, setProjectName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState("");
+  const [pendingDelete, setPendingDelete] = useState<RecentProject | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -145,19 +148,33 @@ export function Home({ onOpenProject, onOpenScratch, onOpenSettings }: HomeProps
               </div>
             ) : (
               recentProjects.map((project) => (
-                <button
-                  key={project.path}
-                  type="button"
-                  onClick={() => void handleOpenRecentProject(project.path)}
-                  className={cn(
-                    "w-full rounded-container border border-border bg-muted/50 px-4 py-3 text-left transition",
-                    "hover:border-border hover:bg-muted",
-                  )}
-                >
-                  <div className="font-medium text-foreground">{project.name}</div>
-                  <div className="mt-1 text-sm text-muted-foreground">{project.path}</div>
-                  <div className="mt-2 text-xs text-muted-foreground">{project.last_opened}</div>
-                </button>
+                <div key={project.path} className="relative">
+                  <button
+                    type="button"
+                    onClick={() => void handleOpenRecentProject(project.path)}
+                    className={cn(
+                      "w-full rounded-container border border-border bg-muted/50 px-4 py-3 pr-12 text-left transition",
+                      "hover:border-border hover:bg-muted",
+                    )}
+                  >
+                    <div className="font-medium text-foreground">{project.name}</div>
+                    <div className="mt-1 text-sm text-muted-foreground">{project.path}</div>
+                    <div className="mt-2 text-xs text-muted-foreground">{project.last_opened}</div>
+                  </button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label={t("home.deleteButton")}
+                    className="absolute right-2 top-2 h-8 w-8 text-muted-foreground hover:text-error"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPendingDelete(project);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               ))
             )}
           </div>
@@ -191,6 +208,39 @@ export function Home({ onOpenProject, onOpenScratch, onOpenSettings }: HomeProps
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!pendingDelete} onOpenChange={(o) => !o && setPendingDelete(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t("home.deleteConfirmTitle")}</DialogTitle>
+            <DialogDescription>{t("home.deleteConfirmDesc")}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setPendingDelete(null)}>
+              {t("common.cancel")}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-error border-error/40 hover:bg-error/8"
+              onClick={async () => {
+                if (!pendingDelete) return;
+                try {
+                  await removeRecentProject(pendingDelete.path);
+                  const items = await listRecentProjects();
+                  setRecentProjects(items);
+                } catch (err) {
+                  setError(formatError(err));
+                } finally {
+                  setPendingDelete(null);
+                }
+              }}
+            >
+              {t("home.delete")}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
