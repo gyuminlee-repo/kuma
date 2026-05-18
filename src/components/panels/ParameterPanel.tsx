@@ -331,6 +331,7 @@ export function ParameterPanel() {
               onChange={(e) => setPrimerLenEnabled(e.target.checked)}
             />
             <span className="text-muted-foreground">{t("parameterPanel.primerLenLimit")}</span>
+            <InlineHelp text={t("parameterPanel.primerLenLimitHelp")} />
             {primerLenEnabled && isFullOverlap && (
               <span className="flex items-center gap-1 ml-1" title={t("parameterPanel.primerLenSingleTitle")}>
                 <input type="number" className={numInput} {...fullLenMinInput} />
@@ -345,6 +346,7 @@ export function ParameterPanel() {
                 <input type="number" className={numInput} {...fwdLenMinInput} />
                 <span className="text-muted-foreground">~</span>
                 <input type="number" className={numInput} {...fwdLenMaxInput} />
+                <InlineHelp text={t("parameterPanel.primerLenFwdHelp")} />
               </span>
             )}
           </label>
@@ -356,6 +358,7 @@ export function ParameterPanel() {
                 <span className="text-muted-foreground">~</span>
                 <input type="number" className={numInput} {...revLenMaxInput} />
                 <span className="text-caption text-muted-foreground">bp</span>
+                <InlineHelp text={t("parameterPanel.primerLenRevHelp")} />
               </div>
               {(fwdLenMin >= fwdLenMax || revLenMin >= revLenMax) && (
                 <div className="text-caption text-error pl-8">{t("parameterPanel.primerLenInvalidError")}</div>
@@ -376,6 +379,7 @@ export function ParameterPanel() {
               onChange={(e) => setFillOnFailure(e.target.checked)}
             />
             <span className="text-muted-foreground">{t("parameterPanel.autoRescueLabel")}</span>
+            <InlineHelp text={t("parameterPanel.autoRescueHelp")} />
           </label>
 
           {/* §12 Random seed */}
@@ -418,6 +422,7 @@ export function ParameterPanel() {
             <span id="random-seed-hint" className="text-caption text-muted-foreground">
               {randomSeed !== null ? t("parameterPanel.seedFixed", { seed: randomSeed }) : t("parameterPanel.seedAuto")}
             </span>
+            <InlineHelp text={t("parameterPanel.seedHelp")} />
           </div>
         </div>
       )}
