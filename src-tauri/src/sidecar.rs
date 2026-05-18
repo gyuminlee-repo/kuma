@@ -522,13 +522,14 @@ fn binary_name(kind: &str) -> Result<&'static str, String> {
 ///   target-triple suffix from externalBin names in release bundles, so on all
 ///   platforms the binary is found at the bare base name.
 ///
-/// Manifest key lookup priority:
-/// 1. `{base_name}-{BUILD_TARGET}{ext}` — e.g. `kuro-sidecar-x86_64-pc-windows-msvc.exe`
+/// Manifest key lookup priority (fail-fast, platform-deterministic):
+/// 1. `{base_name}-{BUILD_TARGET}{ext}`, e.g. `kuro-sidecar-x86_64-pc-windows-msvc.exe`.
 ///    This is what `scripts/sidecar-hash.mjs` writes for each full filename.
-/// 2. `{base_name}{ext}` — e.g. `kuro-sidecar.exe`
-///    Fallback for a future hash script that strips the triple suffix.
-/// 3. `{base_name}` — e.g. `kuro-sidecar`
-///    Legacy/base-key fallback (NOTE: cross-build last-wins; not platform-deterministic).
+/// 2. `{base_name}{ext}`, e.g. `kuro-sidecar.exe`.
+///    Backward-compat for single-platform manifests that strip the triple suffix.
+///
+/// The bare base-name fallback (`{base_name}`) was removed because
+/// cross-build last-wins entries could silently match the wrong platform hash.
 ///
 /// In debug builds the function returns `Ok(())` immediately without reading
 /// any file, so developers do not need to regenerate hashes on every recompile.
@@ -572,10 +573,11 @@ fn verify_binary_hash(
             )
         })?;
 
-    // Build the three candidate keys in priority order:
+    // Build the two candidate keys in priority order (fail-fast):
     //   1. triple-suffixed full key (matches sidecar-hash.mjs output exactly)
-    //   2. ext-only key (future-proofing)
-    //   3. bare base name (legacy cross-build fallback; not platform-deterministic)
+    //   2. ext-only key (single-platform manifests, backward compat)
+    // The bare base-name fallback was removed: cross-build last-wins entries
+    // could silently match a hash from the wrong platform.
     let build_target = env!("BUILD_TARGET");
     let triple_key = format!("{base_name}-{build_target}{ext}");
     let ext_key = format!("{base_name}{ext}");
@@ -583,12 +585,17 @@ fn verify_binary_hash(
     let expected_hash = manifest
         .get(&triple_key)
         .or_else(|| manifest.get(&ext_key))
-        .or_else(|| manifest.get(base_name))
         .and_then(|v| v.as_str())
         .filter(|s| !s.is_empty())
         .ok_or_else(|| {
+            let mut present_keys: Vec<&str> =
+                manifest.keys().map(|k| k.as_str()).collect();
+            present_keys.sort_unstable();
             format!(
-                "[sidecar:{kind}] No hash entry for '{triple_key}', '{ext_key}', or '{base_name}' in manifest"
+                "[sidecar:{kind}] No hash entry found for binary {bin}\n  manifest:    {mp}\n  keys tried:  ['{triple_key}', '{ext_key}']\n  keys present: {present:?}",
+                bin = binary_path.display(),
+                mp = manifest_path.display(),
+                present = present_keys,
             )
         })?;
 
