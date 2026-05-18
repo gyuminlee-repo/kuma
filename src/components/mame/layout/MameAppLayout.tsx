@@ -323,11 +323,9 @@ export function MameAppLayout() {
 
             {/* Phase 2: Analyze */}
             <TabsContent value="analyze" className="flex-1 min-h-0 overflow-hidden mt-0">
-              {/* QC/Plate 화면에서 cluster alert 표시 */}
+              {/* QC/Plate 화면에서 cluster alert 표시. PlateClusterAlert가 cluster 없으면 null 반환. 빈 wrapper 제거하여 step 2.2 콘텐츠가 다른 step과 동일 Y에서 시작. */}
               {(currentSubStep === "analyze.review" || currentSubStep === "analyze.plate") && (
-                <div className="px-4 pt-3">
-                  <PlateClusterAlert />
-                </div>
+                <PlateClusterAlert />
               )}
               <AnalyzeStepView
                 runHealth={runHealth}
