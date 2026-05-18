@@ -34,8 +34,18 @@ TARGETS = {
             "sidecar_kuro",
             "sidecar_kuro.dispatcher",
             "kuma_core.kuro",
+            # setuptools vendored packages are accessed under bare names
+            # (e.g. `from backports import tarfile` inside jaraco.context).
+            # PyInstaller's pre_safe_import_module alias only fires for
+            # `backports.tarfile` not bare `backports`, so include the
+            # vendored modules explicitly.
+            "setuptools._vendor.backports",
+            "setuptools._vendor.backports.tarfile",
+            "setuptools._vendor.jaraco.context",
+            "setuptools._vendor.jaraco.text",
+            "setuptools._vendor.jaraco.functools",
         ],
-        "collect_all": ["pydantic", "primer3", "sidecar_kuro", "kuma_core"],
+        "collect_all": ["pydantic", "primer3", "sidecar_kuro", "kuma_core", "setuptools"],
         "excludes": [],
     },
     "mame": {
@@ -47,11 +57,18 @@ TARGETS = {
             "pandas",
             "Bio.Seq",
             "python_calamine",
+            "primer3",
             "sidecar_mame",
             "sidecar_mame.dispatcher",
             "kuma_core.mame",
+            # See note on kuro target; same setuptools vendored fix.
+            "setuptools._vendor.backports",
+            "setuptools._vendor.backports.tarfile",
+            "setuptools._vendor.jaraco.context",
+            "setuptools._vendor.jaraco.text",
+            "setuptools._vendor.jaraco.functools",
         ],
-        "collect_all": ["openpyxl", "sidecar_mame", "kuma_core"],
+        "collect_all": ["openpyxl", "primer3", "sidecar_mame", "kuma_core", "setuptools"],
         "excludes": [
             "matplotlib",
             "sklearn",

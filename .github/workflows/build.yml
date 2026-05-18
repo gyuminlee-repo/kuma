@@ -123,6 +123,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # --- Post-bundle sidecar hash injection (Shape A) ---
+      # `sidecar:hash` (run earlier) records unsigned hashes. `tauri build`
+      # ad-hoc signs the sidecars on macOS, mutating bytes. This step rehashes
+      # the post-signing binaries inside the bundle, writes the manifest into
+      # the .app, re-seals the top-level signature, and regenerates the DMG.
+      # On Linux/Windows it is a no-op (legacy manifest stays authoritative).
+      - name: Inject post-bundle sidecar hash manifest
+        run: node scripts/sidecar-hash-postbuild.mjs
+        shell: bash
+
       # --- macOS ad-hoc signature verification ---
       - name: Verify macOS ad-hoc signature
         if: matrix.platform == 'macos-latest'

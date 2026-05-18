@@ -443,7 +443,7 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
   });
 
   return (
-    <div className="flex min-h-0 flex-col overflow-hidden">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden">
       <div className="flex flex-col gap-2 border-b border-border px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
         <Tabs
           value={plateFilter}

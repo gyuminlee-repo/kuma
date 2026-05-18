@@ -12,6 +12,7 @@ import { tryHandleManifestDrop, tryHandleTwoManifestsDrop, verifyInputs, type In
 import { type RunManifest } from "@/lib/runManifest";
 import { ReRunManifestDialog } from "../dialogs/ReRunManifestDialog";
 import { ManifestDiffDialog } from "../dialogs/ManifestDiffDialog";
+import { ClearConfirmDialog } from "../dialogs/ClearConfirmDialog";
 import { Button } from "../ui/button";
 import {
   Dialog,
@@ -77,6 +78,9 @@ export function AppLayout() {
   const [diffManifestA, setDiffManifestA] = useState<RunManifest | null>(null);
   const [diffManifestB, setDiffManifestB] = useState<RunManifest | null>(null);
   const [diffOpen, setDiffOpen] = useState(false);
+
+  // Clear All 확인 모달 — Edit 메뉴 + Cmd/Ctrl+Shift+R 단축키 공통 진입점
+  const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
 
   // Shared Run Design logic (validation / preflight / flush / design)
   // Dialog state (sizeWarning, preflightResult) is owned by RunDesignAction, not here.
@@ -229,10 +233,10 @@ export function AppLayout() {
         tryRunDesign();
         break;
       case "r":
-        // Cmd/Ctrl+Shift+R: Reset All (isInput 포함 — 폼 입력 도중에도 동작해야 함)
+        // Cmd/Ctrl+Shift+R: Clear All 확인 모달 열기 (이전: 즉시 resetAll)
         if (!e.shiftKey) return;
         e.preventDefault();
-        useAppStore.getState().resetAll();
+        setClearConfirmOpen(true);
         break;
     }
   }, [tryRunDesign]);
@@ -245,7 +249,7 @@ export function AppLayout() {
   return (
     <AppShell
       tool="kuro"
-      titlebar={<MenuBar />}
+      titlebar={<MenuBar onClearRequest={() => setClearConfirmOpen(true)} />}
       subnav={<MajorSubnav majors={MAJORS} />}
       sidebar={
         /* Phase 4: WorkflowRail replaces SubStepNav in sidebar slot.
@@ -344,6 +348,13 @@ export function AppLayout() {
 
       {/* §5 Output Persistence: 덮어쓰기 confirm */}
       <OverwriteConfirmDialog />
+
+      {/* Edit → Clear All + Cmd/Ctrl+Shift+R 단축키 공통 확인 모달 */}
+      <ClearConfirmDialog
+        open={clearConfirmOpen}
+        onOpenChange={setClearConfirmOpen}
+        onConfirm={() => useAppStore.getState().resetAll()}
+      />
     </AppShell>
   );
 }

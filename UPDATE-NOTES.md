@@ -4,6 +4,31 @@
 
 ---
 
+## v0.9.7.0 (2026-05-18)
+
+macOS install pass — eight functional fixes + build-pipeline hardening rolled into one release.
+
+### mame
+- `Load Sample Data` now yields 22/22 wells. `ingest_long_csv` accepts unpadded well IDs (`A1` → `A01`). Barcode seeds xlsx is bundled (12 fwd + 8 rev, 11 bp each) and Step 1 inputs auto-populate via Zustand prefill (fastaPath + barcodeSeedsPath).
+- `generate_mame_package` end-to-end fixed: `_validate_filepath` kwarg corrected, primer3 added to PyInstaller mame target, `reference.fasta` padded with 500 nt flanks (CDS at `[500, 1250]`).
+- User-typed `gene_name` flows end-to-end into output xlsx rows and filenames (no more silent `ispS` fallback). New empty-gene_name guard tests added.
+- Step 2.1 inputs Next button always renders (disabled until `canRun`).
+- Step 2.2 review page-level scroll on short viewports (`min-h-[720px]`).
+- Verdict table inner vertical scroll fixed (`h-full` added).
+
+### kuro
+- Polymerase select shows a `Loading…` placeholder before the list arrives (no more blank field on slow first launch). i18n locale fanout deferred.
+
+### Shared
+- `Clear All` unified across kuro/mame: shared `ClearConfirmDialog`, both apps `Edit → Clear All`, `Cmd+Shift+R` always routes through the confirm dialog.
+- macOS `Cmd+wheel` zoom (in addition to `Ctrl+wheel`).
+
+### Build pipeline
+- `scripts/sidecar-hash-postbuild.mjs` re-signs sidecars without hardened runtime (kills the PyInstaller libpython Team-ID validation crash on Apple Silicon) and rewrites the bundled manifest hash, then regenerates the DMG.
+- PyInstaller hidden imports gain `setuptools._vendor.backports*` (Python 3.11 `ModuleNotFoundError` fix).
+
+---
+
 ## v0.9.6.0 (2026-05-15)
 - Added optional EVOLVEpro GUI wrapper (Jiang et al. 2025 Science) as a separate tab. KUMA shells out to user's own conda installation via subprocess; does not bundle or modify EVOLVEpro code. Users accept MIT TLO Internal Research EULA directly. See `docs/en/evolvepro-integration.md`.
 

@@ -13,7 +13,7 @@ import { tryHandleManifestDrop, tryHandleTwoManifestsDrop, verifyInputs, type In
 import { type RunManifest } from "@/lib/runManifest";
 import { ReRunManifestDialog } from "@/components/dialogs/ReRunManifestDialog";
 import { ManifestDiffDialog } from "@/components/dialogs/ManifestDiffDialog";
-import { ClearConfirmDialog } from "../dialogs/ClearConfirmDialog";
+import { ClearConfirmDialog } from "@/components/dialogs/ClearConfirmDialog";
 import { ExportDialog } from "../dialogs/ExportDialog";
 import {
   Dialog,

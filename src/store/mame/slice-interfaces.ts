@@ -123,6 +123,11 @@ export interface AnalysisSlice {
   clearResults: () => void;
   loadSampleData: () => Promise<void>;
   resetAnalysis: () => void;
+  // Sample-data prefill bridge: analysisSlice publishes resolved sample paths
+  // (fasta + barcode seeds xlsx); BarcodeSetupPanel reads + consumes them so
+  // the user does not have to re-click Browse for the demo files.
+  mameSamplePrefill: { fastaPath: string; barcodeSeedsPath: string } | null;
+  consumeMameSamplePrefill: () => void;
 }
 
 export interface ExportSlice {

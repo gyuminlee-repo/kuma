@@ -28,6 +28,8 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
   wells: [],
   selectedWell: null,
   runHealth: null,
+  mameSamplePrefill: null,
+  consumeMameSamplePrefill: () => set({ mameSamplePrefill: null }),
   setVerdicts: (verdicts) => set({ verdicts }),
   setReplicates: (replicates) => set({ replicates }),
   setSummary: (summary) => set({ summary }),
@@ -92,8 +94,9 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
     let barcodesPath: string;
     let sampleMapPath: string;
     let activityCsvPath: string;
+    let barcodeSeedsPath: string;
     try {
-      [refPath, expectedPath, barcodesPath, sampleMapPath, , activityCsvPath] =
+      [refPath, expectedPath, barcodesPath, sampleMapPath, , activityCsvPath, barcodeSeedsPath] =
         await Promise.all([
           resolveResource("samples/mame/reference.fasta"),
           resolveResource("samples/mame/03_mame_expected_mutations.xlsx"),
@@ -101,6 +104,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
           resolveResource("samples/mame/05_mame_sample_map.xlsx"),
           resolveResource("samples/mame/06_mame_plate_layout.xlsx"),
           resolveResource("samples/mame/07_mame_activity_long.csv"),
+          resolveResource("samples/mame/02_mame_barcode_seeds.xlsx"),
         ]);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -114,6 +118,11 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
     state.setExpectedPath(expectedPath);
     state.setSampleMapPath(sampleMapPath);
     state.setParams({ rawRunParams: { customBarcodesPath: barcodesPath } });
+
+    // Publish Phase 1 setup prefill for BarcodeSetupPanel (fasta + seeds).
+    // The panel's existing fastaPath useEffect autoDetects geneStart/geneEnd
+    // via autoDetectCdsCandidates, so we only need to seed these two paths.
+    set({ mameSamplePrefill: { fastaPath: refPath, barcodeSeedsPath } });
 
     // Activity pipeline: create round + set plate meta (WT wells) + upload measurements.
     // WT wells A1/A2/A3 derived from 05_mame_sample_map.xlsx (rows 2-4 → WT_r1/r2/r3).

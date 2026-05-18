@@ -6,10 +6,10 @@
  * - Range: 1.0 – 2.0 (no zoom-out below 100%)
  * - Step: 0.1 per notch / keypress
  * - Persists to localStorage "kuma.mainZoom"
- * - Ctrl+wheel on #major-step-main
- * - Ctrl+= / Ctrl++ → zoom in
- * - Ctrl+- → zoom out
- * - Ctrl+0 → reset to 1.0
+ * - Cmd/Ctrl+wheel on #major-step-main (Cmd on macOS, Ctrl on Win/Linux)
+ * - Cmd/Ctrl+= / Cmd/Ctrl++ → zoom in
+ * - Cmd/Ctrl+- → zoom out
+ * - Cmd/Ctrl+0 → reset to 1.0
  * - CSS `zoom` property (Tauri Chromium webview supports it)
  */
 
@@ -47,10 +47,10 @@ export function useMainZoom(): number {
     }
   }, [zoom]);
 
-  // Ctrl+wheel listener on #major-step-main
+  // Cmd/Ctrl+wheel listener on #major-step-main (Cmd on macOS, Ctrl on Win/Linux)
   useEffect(() => {
     const handler = (e: WheelEvent) => {
-      if (!e.ctrlKey) return;
+      if (!(e.ctrlKey || e.metaKey)) return;
       e.preventDefault();
       setZoom((z) => clamp(e.deltaY < 0 ? z + ZOOM_STEP : z - ZOOM_STEP));
     };

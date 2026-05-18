@@ -100,13 +100,21 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
 
   // analyze.inputs: Next = Run/Cancel 버튼 (wizard footer에 배치)
   // 나머지: Next = 일반 이동
+  //
+  // Next 버튼은 항상 렌더되어야 한다. 미완료 상태에서는 disabled(isValid=false)로 표시하며,
+  // onNext 자체를 undefined로 두면 WizardContainer가 버튼을 숨겨 사용자 혼란을 유발한다.
   let wizardOnNext: (() => void) | undefined;
+  let wizardIsValid: (() => boolean) | undefined;
 
   if (subStep === "analyze.inputs") {
     if (isAnalyzing) {
+      // 진행 중에는 Cancel로 작동 — 항상 활성
       wizardOnNext = () => void cancelAnalysis();
+      wizardIsValid = () => true;
     } else {
-      wizardOnNext = canRun ? () => (onRunRequest ? onRunRequest() : void runAnalysis()) : undefined;
+      // canRun=false일 때도 버튼은 표시하되 disabled
+      wizardOnNext = () => (onRunRequest ? onRunRequest() : void runAnalysis());
+      wizardIsValid = () => canRun;
     }
   } else {
     // 마지막 sub-step에서도 Next를 허용 (다음 phase로 이동)
@@ -201,7 +209,7 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
       // Other RunHealth sections (file-size/throughput/pore-yield/barcode/cross-talk) are still reachable from
       // analyze.inputs's RunHealthPanel and the QC inspector; not duplicated here per PI spec slide 6.
       mainContent = (
-        <div className="h-full min-h-0">
+        <div className="h-full min-h-[720px]">
           <PanelGroup direction="horizontal" autoSaveId="mame.analyze.review.split">
             <Panel defaultSize={50} minSize={25}>
               <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden">
@@ -262,6 +270,7 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
       maxWidth={subStep === "analyze.review" ? "full" : "3xl"}
       onPrev={goToPrevStep}
       onNext={wizardOnNext}
+      isValid={wizardIsValid}
       nextLabelKey={
         subStep === "analyze.inputs"
           ? isAnalyzing

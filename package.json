@@ -1,7 +1,7 @@
 {
   "name": "kuma",
   "private": true,
-  "version": "0.9.6",
+  "version": "0.9.7",
   "packageManager": "pnpm@10.33.0",
   "type": "module",
   "scripts": {
@@ -14,7 +14,8 @@
     "sidecar:build": "pnpm run sidecar:kill && cd python-core && node -e \"require('child_process').execSync((process.platform==='win32'?'python':'python3')+' build_sidecar.py',{stdio:'inherit'})\"",
     "sidecar:build:onedir": "cd python-core && node -e \"require('child_process').execSync((process.platform==='win32'?'python':'python3')+' build_sidecar.py',{stdio:'inherit'})\"",
     "sidecar:hash": "node scripts/sidecar-hash.mjs",
-    "build:all": "pnpm run sidecar:build && pnpm run sidecar:hash && pnpm run tauri build",
+    "sidecar:hash:postbuild": "node scripts/sidecar-hash-postbuild.mjs",
+    "build:all": "pnpm run sidecar:build && pnpm run sidecar:hash && pnpm run tauri build && pnpm run sidecar:hash:postbuild",
     "smoke:ui": "node scripts/ui-smoke.mjs",
     "sync:check": "node scripts/sync-check.mjs",
     "i18n:lint": "node scripts/i18n-lint.mjs",
