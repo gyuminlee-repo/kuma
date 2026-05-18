@@ -19,6 +19,28 @@ import {
 import type { InputSlice } from "../slice-interfaces";
 export type { InputSlice };
 
+// EGFP sample mutation set: 120 mutations selected from safe positions of the
+// bundled EGFP CDS (samples/egfp.fa). Verified against design_sdm_primers with
+// the default "Benchling" polymerase profile: 118/120 succeed (≥96/96-well
+// plate target). Positions in the 6–7, 15–16, 23, 33–42, 54–63, 67, 75, 93,
+// 114–115, 179–199, 229–232, 239 ranges are excluded because primer design
+// fails there with default Tm/length parameters (no valid primer pair).
+// Source: fixtures/generate_egfp_sample_mutations.py (seeded random.seed(42)).
+const EGFP_SAMPLE_MUTATIONS_120 = [
+  "Q205E","T10K","A88K","T50E","K215W","S29Y","I137C","G11D","Q81I","Q158A",
+  "I172H","V225W","N136I","E143Y","T98A","T64Q","E116L","P55H","V113E","V30P",
+  "S31N","G117L","V17R","F166E","E125D","H170M","L202P","S176H","L222D","V17I",
+  "F101D","F85E","L126K","N145P","L65P","T119H","N213K","L221D","I189G","N165I",
+  "L65S","Q205W","H82N","D20K","V12M","F131L","D22I","D174N","K80T","D130S",
+  "T51K","T50I","E236W","F166L","L237Y","L138Y","F131P","H82F","K159T","V30C",
+  "L43F","L202G","R216Q","N186D","K127Q","N186S","V164K","H170A","R216E","R216W",
+  "Y238K","S206M","L43M","H140G","N145A","T226K","K157G","Q158E","L202M","Q205V",
+  "I189H","P55N","L65W","V164A","T187M","M154A","L43P","G105K","D174E","F28T",
+  "N24W","F47G","K210T","R169G","V94T","I189R","K80W","A228I","F224M","K141V",
+  "Y144E","M89I","D22N","F9Y","H170K","Q184I","S3D","E223C","F84D","G25V",
+  "K86L","N213T","I48Y","S176T","A88T","E133I","S31E","K210R","T119Q","D134S",
+].join("\n");
+
 export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set, get) => {
   let csvLoadGeneration = 0;
 
@@ -219,8 +241,11 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       get().setMutationInputMode("text");
       // Demo mutations valid against the bundled EGFP translation.
       // Parser expects one mutation per line (sidecar_kuro/handlers/sequence.py:55).
-      get().setMutationText("L65A\nF100A\nN150A\nH200A");
-      set({ statusMessage: "Sample data loaded (EGFP + 4 demo mutations)." });
+      // 120-variant set: chosen from EGFP positions where default Benchling
+      // Tm/length parameters yield a valid primer pair, so the user can fill
+      // a full 96-well plate without manual deletion. Verified: 118/120 succeed.
+      get().setMutationText(EGFP_SAMPLE_MUTATIONS_120);
+      set({ statusMessage: "Sample data loaded (EGFP + 120 demo mutations)." });
     } catch (err) {
       set({ statusMessage: `Sample load failed: ${formatError(err)}` });
     }

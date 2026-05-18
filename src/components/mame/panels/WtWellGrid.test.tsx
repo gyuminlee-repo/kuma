@@ -72,47 +72,60 @@ function setupRoundStore(rounds: Round[], activeId: string | null) {
   (useRoundStore as unknown as { getState: () => RoundSlice }).getState = () => state;
 }
 
-describe("WtWellGrid — active round toggle", () => {
+describe("WtWellGrid (single-select) active round toggle", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(useActivityStore).mockReturnValue(makeActivityStore());
     setupRoundStore([makeRound("r1")], "r1");
   });
 
-  it("renders 96 buttons and toggles WT label on click", () => {
+  it("renders 96 radios and selects WT on click, deselects on second click", () => {
     render(<WtWellGrid />);
-    const wellButtons = screen.getAllByRole("button", {
+    const wellButtons = screen.getAllByRole("radio", {
       name: /^[A-H](0[1-9]|1[0-2])$/,
     });
     expect(wellButtons.length).toBe(96);
-    const a03 = screen.getByRole("button", { name: "A03" });
+    const a03 = screen.getByRole("radio", { name: "A03" });
     expect(a03.textContent).not.toContain("WT");
     fireEvent.click(a03);
     expect(a03.textContent).toContain("WT");
+    fireEvent.click(a03);
+    expect(a03.textContent).not.toContain("WT");
+  });
+
+  it("replaces previous selection when a different well is clicked", () => {
+    render(<WtWellGrid />);
+    const a03 = screen.getByRole("radio", { name: "A03" });
+    const b05 = screen.getByRole("radio", { name: "B05" });
+    fireEvent.click(a03);
+    expect(a03.textContent).toContain("WT");
+    fireEvent.click(b05);
+    expect(a03.textContent).not.toContain("WT");
+    expect(b05.textContent).toContain("WT");
   });
 });
 
-describe("WtWellGrid — debounce save", () => {
+describe("WtWellGrid (single-select) debounce save", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(useActivityStore).mockReturnValue(makeActivityStore());
     setupRoundStore([makeRound("r1")], "r1");
   });
 
-  it("calls setPlateMeta once 400ms after last click (debounce coalesces)", async () => {
+  it("calls setPlateMeta once 400ms after last click with the latest single well", async () => {
     vi.useFakeTimers();
     mockSetPlateMeta.mockResolvedValue(undefined);
     render(<WtWellGrid />);
-    fireEvent.click(screen.getByRole("button", { name: "A03" }));
+    fireEvent.click(screen.getByRole("radio", { name: "A03" }));
     vi.advanceTimersByTime(200);
-    fireEvent.click(screen.getByRole("button", { name: "B05" }));
+    fireEvent.click(screen.getByRole("radio", { name: "B05" }));
     vi.advanceTimersByTime(399);
     expect(mockSetPlateMeta).not.toHaveBeenCalled();
     await vi.advanceTimersByTimeAsync(2);
     expect(mockSetPlateMeta).toHaveBeenCalledTimes(1);
     const call = mockSetPlateMeta.mock.calls[0];
     expect(call[0]).toBe("r1");
-    expect(call[1].plates[0].wt_wells).toEqual(["A03", "B05"]);
+    expect(call[1].plates[0].wt_wells).toEqual(["B05"]);
     vi.useRealTimers();
   });
 
@@ -120,7 +133,7 @@ describe("WtWellGrid — debounce save", () => {
     vi.useFakeTimers();
     mockSetPlateMeta.mockResolvedValue(undefined);
     render(<WtWellGrid />);
-    fireEvent.click(screen.getByRole("button", { name: "A03" }));
+    fireEvent.click(screen.getByRole("radio", { name: "A03" }));
     // Simulate round change before debounce fires
     setupRoundStore([makeRound("r2")], "r2");
     await vi.advanceTimersByTimeAsync(500);
@@ -140,7 +153,7 @@ describe("WtWellGrid — unmount flush", () => {
     vi.useFakeTimers();
     mockSetPlateMeta.mockResolvedValue(undefined);
     const { unmount } = render(<WtWellGrid />);
-    fireEvent.click(screen.getByRole("button", { name: "A03" }));
+    fireEvent.click(screen.getByRole("radio", { name: "A03" }));
     unmount();
     await vi.advanceTimersByTimeAsync(1);
     expect(mockSetPlateMeta).toHaveBeenCalledTimes(1);
@@ -160,7 +173,7 @@ describe("WtWellGrid — RPC failure", () => {
     vi.useFakeTimers();
     mockSetPlateMeta.mockRejectedValue(new Error("boom"));
     render(<WtWellGrid />);
-    const a03 = screen.getByRole("button", { name: "A03" });
+    const a03 = screen.getByRole("radio", { name: "A03" });
     fireEvent.click(a03);
     expect(a03.textContent).toContain("WT");
     await act(async () => {
@@ -168,7 +181,7 @@ describe("WtWellGrid — RPC failure", () => {
     });
     expect(toast.error).toHaveBeenCalled();
     expect(
-      screen.getByRole("button", { name: "A03" }).textContent,
+      screen.getByRole("radio", { name: "A03" }).textContent,
     ).not.toContain("WT");
     vi.useRealTimers();
   });

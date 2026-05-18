@@ -724,7 +724,11 @@
     "newProjectDesc": "프로젝트 이름을 입력하세요.",
     "projectNameAriaLabel": "프로젝트 이름",
     "createBtn": "만들기",
-    "enterProjectName": "프로젝트 이름을 입력하세요."
+    "enterProjectName": "프로젝트 이름을 입력하세요.",
+    "deleteButton": "프로젝트 삭제",
+    "deleteConfirmTitle": "프로젝트를 목록에서 제거할까요?",
+    "deleteConfirmDesc": "디스크의 프로젝트 파일은 삭제되지 않습니다. 최근 목록 항목만 제거됩니다.",
+    "delete": "제거"
   },
   "mameTab": {
     "matchingProjectTitle": "일치하는 프로젝트 발견",

@@ -115,7 +115,12 @@ describe("inputSlice.loadSampleData", () => {
     // Item 1: CSV loader is intentionally skipped (CSV is invalid for EGFP).
     expect(loadEvolveproCsv).not.toHaveBeenCalled()
     expect(store.state.mutationInputMode).toBe("text")
-    expect(store.state.mutationText).toBe("L65A, F100A, N150A, H200A")
+    // 120-variant EGFP sample set (see inputSlice.ts EGFP_SAMPLE_MUTATIONS_120):
+    // verify count + first/last entries instead of pasting the full list.
+    const lines = (store.state.mutationText as string).split("\n")
+    expect(lines.length).toBe(120)
+    expect(lines[0]).toBe("Q205E")
+    expect(lines[lines.length - 1]).toBe("D134S")
   })
 
   it("aborts before CSV load if loadSequence silently failed (seqInfo stays null)", async () => {
