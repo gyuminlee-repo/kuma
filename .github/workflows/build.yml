@@ -143,6 +143,17 @@ jobs:
           codesign --verify --deep --strict --verbose=2 "$APP" || exit 1
           codesign --display --verbose=4 "$APP" 2>&1 | head -20
 
+      # --- Rename artifacts to match 4-part GitHub tag ---
+      # Tauri/Cargo enforce semver MAJOR.MINOR.PATCH, but the project tags
+      # releases as v{A.B.C.D} per CLAUDE.md "Git Convention". Bundle file
+      # names ship the 3-part Tauri version, which makes it hard to map an
+      # installer back to the exact GitHub release. Append the 4th component
+      # so installer file names equal the tag (minus the "v" prefix).
+      - name: Rename bundle artifacts to 4-part tag version
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: node scripts/rename-bundle-to-tag.mjs "${GITHUB_REF_NAME}"
+
       # --- Upload artifacts ---
       - name: Upload build artifacts
         uses: actions/upload-artifact@v5
