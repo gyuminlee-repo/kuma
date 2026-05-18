@@ -75,7 +75,15 @@ const THEME_ITEMS: { value: Theme; labelKey: string }[] = [
   { value: "system", labelKey: "menuBar.view.theme.system" },
 ];
 
-export function MenuBar() {
+interface MenuBarProps {
+  /**
+   * Edit → Clear All 메뉴 항목 클릭 시 호출. AppLayout이 shared
+   * ClearConfirmDialog 열도록 setter 주입.
+   */
+  onClearRequest?: () => void;
+}
+
+export function MenuBar({ onClearRequest }: MenuBarProps = {}) {
   const { t } = useTranslation();
   const isExporting = useAppStore((s) => s.isExporting);
   const isDesigning = useAppStore((s) => s.isDesigning);
@@ -245,12 +253,20 @@ export function MenuBar() {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Edit 메뉴 — Preferences 진입점 */}
+      {/* Edit 메뉴 — Clear All + Preferences 진입점 */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button className={TRIGGER_CLS}>{t("menuBar.edit.title")}</button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
+          <DropdownMenuItem
+            onClick={() => onClearRequest?.()}
+            disabled={!onClearRequest || isDesigning}
+          >
+            <span className="flex-1">{t("appLayout.clearAll")}</span>
+            <kbd className="ml-4 text-caption text-muted-foreground">{MOD_KEY}⇧R</kbd>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => setPreferencesOpen(true)}>
             <span className="flex-1">{t("menuBar.edit.preferences")}</span>
             <kbd className="ml-4 text-caption text-muted-foreground">{MOD_KEY},</kbd>

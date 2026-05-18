@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/nicedoc/schemas/main/tauri-v2.json",
   "productName": "kuma",
-  "version": "0.9.6",
+  "version": "0.9.7",
   "identifier": "com.gyuminlee.kuma",
   "build": {
     "frontendDist": "../dist",
@@ -42,6 +42,7 @@
       "samples/sample_plasmid.gb": "samples/sample_plasmid.gb",
       "samples/egfp.fa": "samples/egfp.fa",
       "samples/mame/reference.fasta": "samples/mame/reference.fasta",
+      "samples/mame/02_mame_barcode_seeds.xlsx": "samples/mame/02_mame_barcode_seeds.xlsx",
       "samples/mame/03_mame_expected_mutations.xlsx": "samples/mame/03_mame_expected_mutations.xlsx",
       "samples/mame/04_mame_custom_barcodes.xlsx": "samples/mame/04_mame_custom_barcodes.xlsx",
       "samples/mame/05_mame_sample_map.xlsx": "samples/mame/05_mame_sample_map.xlsx",

@@ -434,3 +434,60 @@ class TestGenerateMamePackage:
                 output_dir=project_root / "design",
                 project_root=project_root,
             )
+
+    def test_gene_name_flows_to_row_names_and_filename(self, tmp_path: Path) -> None:
+        """Custom gene_name must propagate to xlsx row names and amplicon filename.
+
+        Round-trips through ``sort_barcode.parse_combinatorial_barcodes`` to
+        verify the gene-agnostic reader still accepts non-ispS prefixes.
+        """
+        from kuma_core.mame.ingest.sort_barcode import parse_combinatorial_barcodes
+
+        fasta, seeds, project_root = _make_project(tmp_path)
+        output_dir = project_root / "design"
+
+        result = generate_mame_package(
+            fasta_path=fasta,
+            gene_start=500,
+            gene_end=800,
+            barcode_seeds_path=seeds,
+            output_dir=output_dir,
+            project_root=project_root,
+            gene_name="MYGENE",
+        )
+
+        # Amplicon FASTA filename + header must use the gene name.
+        assert result.amplicon_fa.name == "MYGENE_amplicon.fa"
+        header = result.amplicon_fa.read_text(encoding="utf-8").splitlines()[0]
+        assert header.startswith(">MYGENE_amplicon")
+
+        # Barcode xlsx rows must use the sanitized gene prefix (mygene_f_*, mygene_r_*).
+        wb = openpyxl.load_workbook(str(result.barcodes_xlsx), read_only=True)
+        try:
+            ws = wb.worksheets[0]
+            rows = list(ws.iter_rows(values_only=True))
+        finally:
+            wb.close()
+        names = [str(r[0]) for r in rows[1:] if r[0] is not None]
+        assert "mygene_f_1" in names
+        assert "mygene_r_8" in names
+        assert not any(n.startswith("isps_") for n in names)
+
+        # Reader must still parse the custom-prefix xlsx into the 96-well map.
+        well_map = parse_combinatorial_barcodes(result.barcodes_xlsx)
+        assert len(well_map) == 96
+        assert "A01" in well_map and "H12" in well_map
+
+    def test_empty_gene_name_raises(self, tmp_path: Path) -> None:
+        """Empty gene_name must raise ValueError, never silently fall back."""
+        fasta, seeds, project_root = _make_project(tmp_path)
+        with pytest.raises(ValueError, match="sanitize"):
+            generate_mame_package(
+                fasta_path=fasta,
+                gene_start=500,
+                gene_end=800,
+                barcode_seeds_path=seeds,
+                output_dir=project_root / "design",
+                project_root=project_root,
+                gene_name="   ",
+            )

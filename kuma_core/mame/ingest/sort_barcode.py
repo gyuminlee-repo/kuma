@@ -71,8 +71,13 @@ _N_ROWS = 8
 
 _NB_DIR_PATTERN = re.compile(r"^(?:barcode|NB)(\d{1,3})$", re.IGNORECASE)
 
-_FWD_PREFIX = "isps_f_"
-_REV_PREFIX = "isps_r_"
+# Barcode row names follow ``<gene_prefix>_f_<int>`` / ``<gene_prefix>_r_<int>``
+# where ``<gene_prefix>`` is derived from the user-provided gene_name
+# (see ``barcode_package._sanitize_gene_prefix``). The reader is gene-agnostic
+# and only requires the trailing ``_f_<n>`` / ``_r_<n>`` marker. Backward
+# compatible with legacy ``isps_f_*`` / ``isps_r_*`` xlsx files.
+_FWD_ROW_RE = re.compile(r"^(?P<prefix>.+?)_f_(?P<n>\d+)$")
+_REV_ROW_RE = re.compile(r"^(?P<prefix>.+?)_r_(?P<n>\d+)$")
 
 # Suffix search window: last N bases of the read (Nanopore 3' end is noisy).
 _REV_SEARCH_TAIL_BP = 80
@@ -205,17 +210,21 @@ def _make_well_filename(
 
 
 def parse_combinatorial_barcodes(path: Path) -> dict[str, tuple[str, str]]:
-    """Parse ``isps_f_*`` / ``isps_r_*`` barcodes from xlsx and expand to 96 wells.
+    """Parse ``<gene>_f_*`` / ``<gene>_r_*`` barcodes from xlsx and expand to 96 wells.
 
     File format (Sheet1)
     --------------------
-    Column A: barcode name  (e.g. ``isps_f_1``, ``isps_r_3``)
+    Column A: barcode name  (e.g. ``isps_f_1``, ``mygene_r_3``)
     Column B: sequence (ACGT, any length ≥ 5)
+
+    The ``<gene>`` prefix is gene-agnostic — any string ending in
+    ``_f_<int>`` / ``_r_<int>`` is accepted. Legacy ``isps_f_*`` / ``isps_r_*``
+    files remain compatible.
 
     Expansion rule
     --------------
-    - ``isps_f_N`` (N=1..12): forward barcode, used for column index.
-    - ``isps_r_N`` (N=1..8):  reverse barcode, used for row index.
+    - ``<gene>_f_N`` (N=1..12): forward barcode, used for column index.
+    - ``<gene>_r_N`` (N=1..8):  reverse barcode, used for row index.
     - ``well_id = f"{ROW_LETTER[r-1]}{c:02d}"`` where r = rev index, c = fwd index.
     - Example: fwd=1, rev=1 → A01; fwd=12, rev=8 → H12.
 
@@ -250,30 +259,20 @@ def parse_combinatorial_barcodes(path: Path) -> dict[str, tuple[str, str]]:
             if not seq_raw or len(seq_raw) < 5:
                 continue
 
-            if name_raw.startswith(_FWD_PREFIX):
-                try:
-                    n = int(name_raw[len(_FWD_PREFIX):])
-                except ValueError:
-                    raise ValueError(
-                        f"Cannot parse fwd barcode index from {name_raw!r}. "
-                        f"Expected format: {_FWD_PREFIX}<integer>"
-                    )
+            fwd_match = _FWD_ROW_RE.match(name_raw)
+            if fwd_match is not None:
+                n = int(fwd_match.group("n"))
                 fwd_map[n] = seq_raw
-
-            elif name_raw.startswith(_REV_PREFIX):
-                try:
-                    n = int(name_raw[len(_REV_PREFIX):])
-                except ValueError:
-                    raise ValueError(
-                        f"Cannot parse rev barcode index from {name_raw!r}. "
-                        f"Expected format: {_REV_PREFIX}<integer>"
-                    )
-                rev_map[n] = seq_raw
-
-            else:
-                # Rows that do not match either prefix are silently skipped
-                # (header rows, comments, blank names).
                 continue
+
+            rev_match = _REV_ROW_RE.match(name_raw)
+            if rev_match is not None:
+                n = int(rev_match.group("n"))
+                rev_map[n] = seq_raw
+                continue
+
+            # Rows that do not match either pattern are silently skipped
+            # (header rows, comments, blank names).
     finally:
         wb.close()
 
@@ -281,13 +280,13 @@ def parse_combinatorial_barcodes(path: Path) -> dict[str, tuple[str, str]]:
     missing_fwd = [i for i in range(1, _N_COLS + 1) if i not in fwd_map]
     if missing_fwd:
         raise ValueError(
-            f"Missing forward barcodes (expected {_FWD_PREFIX}1 … {_FWD_PREFIX}{_N_COLS}): "
+            f"Missing forward barcodes (expected <gene>_f_1 ... <gene>_f_{_N_COLS}): "
             f"indices {missing_fwd}"
         )
     missing_rev = [i for i in range(1, _N_ROWS + 1) if i not in rev_map]
     if missing_rev:
         raise ValueError(
-            f"Missing reverse barcodes (expected {_REV_PREFIX}1 … {_REV_PREFIX}{_N_ROWS}): "
+            f"Missing reverse barcodes (expected <gene>_r_1 ... <gene>_r_{_N_ROWS}): "
             f"indices {missing_rev}"
         )
 

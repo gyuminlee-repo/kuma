@@ -4,6 +4,31 @@
 
 ---
 
+## v0.9.7.0 (2026-05-18)
+
+macOS 설치 검증 패스 — 8건 기능 수정과 빌드 파이프라인 보강을 한 릴리스로 통합.
+
+### mame
+- `Load Sample Data` 가 이제 22/22 well 을 모두 로드. `ingest_long_csv` 가 패딩 없는 well ID (`A1` → `A01`) 를 허용. barcode seeds xlsx (정방향 12 + 역방향 8, 11 bp) 가 번들되며 Zustand prefill 로 Step 1 입력 (fastaPath + barcodeSeedsPath) 도 자동 채움.
+- `generate_mame_package` 전구간 수정: `_validate_filepath` kwarg 보정, PyInstaller mame 타깃에 primer3 추가, `reference.fasta` 양쪽 500 nt flank 추가 (CDS 좌표 `[500, 1250]`).
+- 사용자가 입력한 `gene_name` 이 출력 xlsx 행/파일명까지 전구간 반영 (기본값 `ispS` 로 무음 대체되던 버그 해결). 빈 gene_name 가드 테스트 신규 추가.
+- Step 2.1 입력 Next 버튼이 항상 렌더 (입력 검증 통과 전에는 disabled).
+- Step 2.2 review 페이지가 짧은 뷰포트에서도 스크롤 (`min-h-[720px]`).
+- Verdict 표 내부 세로 스크롤 정상화 (`h-full` 추가).
+
+### kuro
+- Polymerase select 가 목록 도착 전 `Loading…` placeholder 표시 (첫 실행이 느릴 때 빈 필드 회피). 로케일 확장은 다음 릴리스로 연기.
+
+### 공통
+- `Clear All` 통합 (kuro/mame 양쪽): 공용 `ClearConfirmDialog`, 두 앱 모두 `Edit → Clear All`, `Cmd+Shift+R` 도 항상 확인 다이얼로그 경유.
+- macOS `Cmd+wheel` 줌 추가 (기존 `Ctrl+wheel` 과 병행).
+
+### 빌드 파이프라인
+- `scripts/sidecar-hash-postbuild.mjs` 가 sidecar 를 hardened runtime 없이 재서명 (Apple Silicon 에서 PyInstaller libpython Team-ID 검증 실패로 죽던 문제 제거), 번들된 매니페스트 해시 재계산 후 DMG 재생성.
+- PyInstaller hidden imports 에 `setuptools._vendor.backports*` 추가 (Python 3.11 `ModuleNotFoundError` 해결).
+
+---
+
 ## v0.9.6.0 (2026-05-15)
 - 별도 탭으로 EVOLVEpro GUI wrapper(Jiang et al. 2025 Science) 옵셔널 추가. KUMA는 사용자의 conda 설치를 subprocess로 호출만 함, EVOLVEpro 코드 번들·수정 없음. 사용자가 MIT TLO Internal Research EULA를 직접 수락. 안내: `docs/ko/evolvepro-integration.md`.
 

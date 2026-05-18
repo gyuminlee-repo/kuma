@@ -76,7 +76,17 @@ def handle_generate_mame_package(params: dict) -> dict:
         ) from exc
 
     # Optional parameters
-    gene_name: str = str(params.get("gene_name", "ispS"))
+    # gene_name: required to be a non-empty string when present. The UI seeds
+    # a default ("ispS") in the input panel, so empty here implies the user
+    # explicitly cleared it. Silently substituting a hardcoded literal would
+    # mislead operators expecting their typed gene name to flow through.
+    gene_name_raw = params.get("gene_name", "ispS")
+    if gene_name_raw is None or str(gene_name_raw).strip() == "":
+        raise ValueError(
+            "gene_name must be a non-empty string; received empty value. "
+            "Type a gene name in the Project metadata panel before generating."
+        )
+    gene_name: str = str(gene_name_raw).strip()
     polymerase: str = str(params.get("polymerase", "Q5"))
 
     try:
@@ -96,15 +106,14 @@ def handle_generate_mame_package(params: dict) -> dict:
         require_gc_clamp = bool(require_gc_clamp_raw)
 
     # Validate input file paths (existence + extension check)
+    # _validate_filepath already enforces existence by default.
     fasta_path = _validate_filepath(
         fasta_path_str,
         allowed_extensions=_ALLOWED_SEQUENCE_EXTENSIONS,
-        must_exist=True,
     )
     barcode_seeds_path = _validate_filepath(
         barcode_seeds_str,
         allowed_extensions=_ALLOWED_EXCEL_EXTENSIONS,
-        must_exist=True,
     )
 
     # output_dir and project_root are directories that may not yet exist;

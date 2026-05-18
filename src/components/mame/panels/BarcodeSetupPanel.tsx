@@ -154,6 +154,8 @@ export function BarcodeSetupPanel({ group }: BarcodeSetupPanelProps = {}) {
   const selectedCdsIndex = useMameAppStore((s) => s.selectedCdsIndex);
   const setCdsCandidates = useMameAppStore((s) => s.setCdsCandidates);
   const setSelectedCdsIndex = useMameAppStore((s) => s.setSelectedCdsIndex);
+  const samplePrefill = useMameAppStore((s) => s.mameSamplePrefill);
+  const consumeSamplePrefill = useMameAppStore((s) => s.consumeMameSamplePrefill);
 
   function setForm(partial: Partial<SetupFormState>) {
     setFormRaw((prev) => {
@@ -187,6 +189,21 @@ export function BarcodeSetupPanel({ group }: BarcodeSetupPanelProps = {}) {
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.fastaPath]);
+
+  // ─── Sample-data prefill (Help → Load Sample Data 트리거) ────────────────
+  // analysisSlice.loadSampleData가 fastaPath + barcodeSeedsPath를 publish하면
+  // 폼에 주입하고 즉시 consume. geneStart/geneEnd는 위 fastaPath effect가
+  // autoDetectCdsCandidates를 통해 채움.
+
+  useEffect(() => {
+    if (!samplePrefill) return;
+    setForm({
+      fastaPath: samplePrefill.fastaPath,
+      barcodeSeedsPath: samplePrefill.barcodeSeedsPath,
+    });
+    consumeSamplePrefill();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [samplePrefill]);
 
   // ─── 파일 브라우저 ───────────────────────────────────────────────────────
 

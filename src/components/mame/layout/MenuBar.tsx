@@ -273,7 +273,7 @@ export function MenuBar({ onClearRequest, onJanusOpen }: MenuBarProps) {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
           <DropdownMenuItem onClick={onClearRequest} disabled={!hasResults || isAnalyzing}>
-            {t("edit.clearResults")}
+            {t("appLayout.clearAll")}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => setPreferencesOpen(true)}>

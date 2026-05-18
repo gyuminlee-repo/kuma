@@ -19,6 +19,24 @@ from kuma_core.mame.activity.models import (
 WELL_RE_96 = re.compile(r"^[A-H](0[1-9]|1[0-2])$")
 WELL_RE_384 = re.compile(r"^[A-P](0[1-9]|1[0-9]|2[0-4])$")
 
+# Accepts both padded (A01) and unpadded (A1) column identifiers prior to
+# normalisation. Canonical well_id format across kuma_core is zero-padded
+# 2-digit column (see plate_layout_xlsx._normalise_well).
+WELL_RE_RAW = re.compile(r"^([A-P])(\d{1,2})$")
+
+
+def _normalise_well(well: str) -> str | None:
+    """Normalise raw well coordinate to canonical letter + 2-digit column.
+
+    Returns None if the raw string does not parse as a well coordinate.
+    'A1' → 'A01', 'a1' → 'A01', 'H12' stays 'H12'.
+    """
+    m = WELL_RE_RAW.match(well)
+    if not m:
+        return None
+    letter, col = m.group(1), int(m.group(2))
+    return f"{letter}{col:02d}"
+
 
 def _is_valid_well(well: str) -> bool:
     return bool(WELL_RE_96.match(well) or WELL_RE_384.match(well))
@@ -57,10 +75,28 @@ def ingest_long_csv(
     if "replicate_idx" not in df.columns:
         df["replicate_idx"] = 1
 
+    # Normalise WT well coordinates so unpadded callers (e.g. 'A1') still
+    # match the normalised well_id used downstream ('A01').
+    normalised_wt_lookup: dict[str, list[str]] = {}
+    for pid, raws in plate_meta_wt_wells.items():
+        norm: list[str] = []
+        for raw in raws:
+            n = _normalise_well(str(raw).strip().upper())
+            if n is not None:
+                norm.append(n)
+        normalised_wt_lookup[pid] = norm
+
     records: list[ActivityRecord] = []
     for _, row in df.iterrows():
         plate_id = str(row["plate_id"]).strip()
-        well_id = str(row["well_id"]).strip().upper()
+        well_raw = str(row["well_id"]).strip().upper()
+
+        # Normalise to canonical zero-padded form (A1 → A01) so single-digit
+        # column inputs match the validator and downstream WT-well lookup.
+        normalised = _normalise_well(well_raw)
+        if normalised is None or not _is_valid_well(normalised):
+            continue
+        well_id = normalised
 
         try:
             value = float(row["value"])
@@ -70,10 +106,7 @@ def ingest_long_csv(
         if math.isnan(value) or value < 0:
             continue
 
-        if not _is_valid_well(well_id):
-            continue
-
-        is_wt = well_id in plate_meta_wt_wells.get(plate_id, [])
+        is_wt = well_id in normalised_wt_lookup.get(plate_id, [])
         records.append(
             ActivityRecord(
                 plate_id=plate_id,

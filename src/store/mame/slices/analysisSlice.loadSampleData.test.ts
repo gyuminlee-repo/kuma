@@ -2,7 +2,7 @@
  * analysisSlice.loadSampleData.test.ts
  *
  * MAME loadSampleData() 동작 검증:
- * - resolveResource 6개 경로 호출
+ * - resolveResource 7개 경로 호출 (Phase 1 setup prefill seeds 포함)
  * - activity.set_plate_meta + activity.upload RPC 호출 파라미터
  * - 입력 경로 setter + hardcoded sample 결과 populate
  * - activity RPC 실패 시 fallback (결과는 populate, 메시지 변경)
@@ -123,7 +123,7 @@ describe("mame analysisSlice.loadSampleData", () => {
 
     await store.loadSampleData();
 
-    // 1. resolveResource 6번
+    // 1. resolveResource 7번 (Phase 1 setup prefill 추가로 seeds xlsx 포함)
     const expectedPaths = [
       "samples/mame/reference.fasta",
       "samples/mame/03_mame_expected_mutations.xlsx",
@@ -131,8 +131,9 @@ describe("mame analysisSlice.loadSampleData", () => {
       "samples/mame/05_mame_sample_map.xlsx",
       "samples/mame/06_mame_plate_layout.xlsx",
       "samples/mame/07_mame_activity_long.csv",
+      "samples/mame/02_mame_barcode_seeds.xlsx",
     ];
-    expect(resolveResource).toHaveBeenCalledTimes(6);
+    expect(resolveResource).toHaveBeenCalledTimes(7);
     for (const p of expectedPaths) {
       expect(resolveResource).toHaveBeenCalledWith(p);
     }

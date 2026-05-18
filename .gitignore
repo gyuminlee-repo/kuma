@@ -17,6 +17,10 @@ __pycache__/
 uv.lock
 results/
 
+# Local build venv (PyInstaller + Python deps for sidecar bundling)
+.venv-build/
+.venv/
+
 # Generated/large files
 docs/tutorial.webm
 scripts/primer-data.json

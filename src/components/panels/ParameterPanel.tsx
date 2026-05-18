@@ -160,26 +160,34 @@ export function ParameterPanel() {
           <InlineHelp text={t("parameterPanel.polymeraseHelp")} />
           <select
             id="polymerase-select"
-            className="h-control min-w-0 flex-1 rounded-control border border-border bg-card px-3 text-caption focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            value={selectedPolymerase}
+            className="h-control min-w-0 flex-1 rounded-control border border-border bg-card px-3 text-caption focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-60"
+            value={polymerases.length === 0 ? "" : selectedPolymerase}
+            disabled={polymerases.length === 0}
             onChange={(e) => void setSelectedPolymerase(e.target.value)}
           >
-            {polymerases.map((poly) => {
-              const parts = [
-                poly.manufacturer ? t("parameterPanel.polymeraseManufacturer", { manufacturer: poly.manufacturer }) : "",
-                poly.fidelity ? t("parameterPanel.polymeraseFidelity", { fidelity: poly.fidelity }) : "",
-              ].filter(Boolean);
-              return (
-                <option
-                  key={poly.name}
-                  value={poly.name}
-                  title={parts.length ? `${poly.name} — ${parts.join(", ")}` : poly.name}
-                >
-                  {poly.name}
-                  {poly.manufacturer ? ` (${poly.manufacturer})` : ""}
-                </option>
-              );
-            })}
+            {polymerases.length === 0 ? (
+              // i18n note: hardcoded English placeholder; locale fanout deferred.
+              <option value="" disabled>
+                Loading polymerase profiles…
+              </option>
+            ) : (
+              polymerases.map((poly) => {
+                const parts = [
+                  poly.manufacturer ? t("parameterPanel.polymeraseManufacturer", { manufacturer: poly.manufacturer }) : "",
+                  poly.fidelity ? t("parameterPanel.polymeraseFidelity", { fidelity: poly.fidelity }) : "",
+                ].filter(Boolean);
+                return (
+                  <option
+                    key={poly.name}
+                    value={poly.name}
+                    title={parts.length ? `${poly.name} — ${parts.join(", ")}` : poly.name}
+                  >
+                    {poly.name}
+                    {poly.manufacturer ? ` (${poly.manufacturer})` : ""}
+                  </option>
+                );
+              })
+            )}
           </select>
         </label>
         <div className="flex justify-end">

@@ -46,9 +46,41 @@ _VALID_BASES = frozenset("ATGC")
 _FWD_PREFIX = "fwd_"
 _REV_PREFIX = "rev_"
 
-# Prefix convention for the output barcodes_sequence.xlsx (MAME side)
-_ISPS_FWD_PREFIX = "isps_f_"
-_ISPS_REV_PREFIX = "isps_r_"
+# Suffix convention for the output barcodes_sequence.xlsx (MAME side).
+# Row names are derived as ``{sanitized_gene_name}{_FWD_SUFFIX}{i}`` /
+# ``{sanitized_gene_name}{_REV_SUFFIX}{i}``. The matching reader in
+# ``sort_barcode.parse_combinatorial_barcodes`` is gene-agnostic — it parses
+# any prefix that ends with ``_f_<int>`` / ``_r_<int>``.
+_FWD_SUFFIX = "_f_"
+_REV_SUFFIX = "_r_"
+
+
+def _sanitize_gene_prefix(gene_name: str) -> str:
+    """Return a filesystem- and excel-safe prefix derived from ``gene_name``.
+
+    - Lower-cases.
+    - Replaces any run of non-alphanumeric chars with a single ``_``.
+    - Strips leading/trailing ``_``.
+    - Strips embedded ``_f_`` / ``_r_`` substrings so the suffix on row names
+      stays unambiguous for the reader's regex parser.
+
+    Raises
+    ------
+    ValueError
+        If the sanitized result is empty (pathological input such as ``""``
+        or all-punctuation).
+    """
+    import re as _re
+    s = _re.sub(r"[^a-z0-9]+", "_", gene_name.lower()).strip("_")
+    # Strip any embedded _f_ / _r_ runs so the suffix on row names remains
+    # the only such marker in the final string.
+    s = s.replace("_f_", "_").replace("_r_", "_").strip("_")
+    if not s:
+        raise ValueError(
+            f"gene_name {gene_name!r} sanitizes to an empty prefix; "
+            "provide a gene name containing at least one alphanumeric character."
+        )
+    return s
 
 
 # ---------------------------------------------------------------------------
@@ -543,7 +575,10 @@ def generate_mame_package(
     2. Call :func:`design_flanking_primers` to obtain fwd/rev flanking sequences.
     3. Call :func:`parse_barcode_seeds` to obtain 12 fwd + 8 rev seed sequences.
     4. Write ``barcodes_sequence.xlsx`` (20 data rows, 1 header row).
-       Row format: name ``isps_f_N`` / ``isps_r_N``, sequence = SEED + flanking (all upper).
+       Row format: name ``{sanitized_gene}_f_N`` / ``{sanitized_gene}_r_N``,
+       sequence = SEED + flanking (all upper). The ``sanitized_gene`` prefix
+       is derived from the ``gene_name`` parameter via
+       :func:`_sanitize_gene_prefix`.
     5. Write ``{gene_name}_amplicon.fa`` containing the gene region subsequence.
     6. Write ``sample_map_template.xlsx`` (blank: column A "name", column B "well").
     7. Write ``mame_context.json`` at ``project_root`` with schema 1.
@@ -639,12 +674,15 @@ def generate_mame_package(
     seeds = parse_barcode_seeds(Path(barcode_seeds_path))
 
     # Step 4: barcodes_sequence.xlsx
+    # Derive sanitized prefix from gene_name (raises ValueError on empty).
+    gene_prefix = _sanitize_gene_prefix(gene_name)
     barcodes_xlsx_path = output_dir / "barcodes_sequence.xlsx"
     _write_barcodes_xlsx(
         path=barcodes_xlsx_path,
         seeds=seeds,
         fwd_flanking=fwd_flanking,
         rev_flanking=rev_flanking,
+        gene_prefix=gene_prefix,
     )
 
     # Step 5: amplicon FASTA (gene region only)
@@ -722,12 +760,18 @@ def _write_barcodes_xlsx(
     seeds: dict[str, str],
     fwd_flanking: str,
     rev_flanking: str,
+    gene_prefix: str,
 ) -> None:
     """Write the 20-row barcodes_sequence.xlsx consumed by MAME.
 
     Output sequence = SEED (uppercase) + flanking (lowercase), concatenated.
     The MAME sort_barcode module trims the flanking part during matching, so
     including it here satisfies the full-primer column B requirement.
+
+    Row names are ``{gene_prefix}{_FWD_SUFFIX}{i}`` /
+    ``{gene_prefix}{_REV_SUFFIX}{i}``. The reader (``parse_combinatorial_barcodes``)
+    is gene-agnostic and matches any prefix that ends with ``_f_<int>`` /
+    ``_r_<int>``.
     """
     import openpyxl  # local import
 
@@ -739,12 +783,12 @@ def _write_barcodes_xlsx(
     ws.append(["name", "sequence"])
 
     for i in range(1, _N_FWD + 1):
-        name = f"{_ISPS_FWD_PREFIX}{i}"
+        name = f"{gene_prefix}{_FWD_SUFFIX}{i}"
         seq = seeds[f"fwd_{i}"].upper() + fwd_flanking
         ws.append([name, seq])
 
     for i in range(1, _N_REV + 1):
-        name = f"{_ISPS_REV_PREFIX}{i}"
+        name = f"{gene_prefix}{_REV_SUFFIX}{i}"
         seq = seeds[f"rev_{i}"].upper() + rev_flanking
         ws.append([name, seq])
 
