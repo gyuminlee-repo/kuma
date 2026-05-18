@@ -31,3 +31,12 @@ drift 발견 시 release 차단.
 ## Release
 
 `/release` 스킬이 3개 파일 동시 bump → tag `vA.BB.CC.DD` 생성. tag 의 `DD` 는 release commit 만 의미하며 SemVer 와 다르다.
+
+## 구현 상태 (v0.9.9.2+)
+
+`vite.config.ts` 의 `getAppVersion()` 함수가 빌드 시 `git describe --tags --always` 결과에서 정규식 `^v?(\d+\.\d+\.\d+\.\d+)` 로 4-part 버전을 추출하여 `__APP_VERSION__` 상수에 주입한다. git 이 없거나 4-part tag 가 없으면 `pkg.version` (3-part) 로 fallback.
+
+UI 표시 위치:
+
+- `src/components/layout/SharedAboutDialog.tsx`
+- `src/components/dialogs/WhatsNewDialog.tsx`
