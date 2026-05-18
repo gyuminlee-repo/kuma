@@ -65,7 +65,7 @@ describe("adaptEchoRows", () => {
 });
 
 describe("adaptJanusRows", () => {
-  it("splits rack 1 (asp source) and rack 2 (dsp dest)", () => {
+  it("splits rack 1 (asp_rack=1) and rack 2 (asp_rack=2) by asp_rack value", () => {
     const { rack1, rack2 } = adaptJanusRows([
       {
         name: "P1-fw",
@@ -74,7 +74,7 @@ describe("adaptJanusRows", () => {
         no: 1,
         asp_rack: 1,
         asp_posi: "A1",
-        dsp_rack: 2,
+        dsp_rack: 3,
         dsp_posi: "A1",
         volume: 2.0,
       },
@@ -83,15 +83,15 @@ describe("adaptJanusRows", () => {
         type: "primer",
         dsp_rack_label: "x",
         no: 2,
-        asp_rack: 1,
-        asp_posi: "A2",
-        dsp_rack: 2,
+        asp_rack: 2,
+        asp_posi: "B2",
+        dsp_rack: 3,
         dsp_posi: "A1",
         volume: 2.0,
       },
     ]);
-    expect(rack1).toHaveLength(2);
-    expect(rack2).toHaveLength(2);
+    expect(rack1).toHaveLength(1);
+    expect(rack2).toHaveLength(1);
     expect(rack1[0]).toMatchObject({
       rack: 1,
       well: "A1",
@@ -100,25 +100,62 @@ describe("adaptJanusRows", () => {
       name: "P1-fw",
       volumeUl: 2.0,
     });
-    expect(rack2[0]).toMatchObject({ rack: 2, well: "A1" });
+    expect(rack2[0]).toMatchObject({
+      rack: 2,
+      well: "B2",
+      rowLetter: "B",
+      colNumber: 2,
+      name: "P1-rv",
+      volumeUl: 2.0,
+    });
   });
 
-  it("boundary H12 row=H col=12", () => {
-    const { rack1 } = adaptJanusRows([
+  it("skips rows with asp_rack outside {1,2}", () => {
+    const { rack1, rack2 } = adaptJanusRows([
+      {
+        name: "stray",
+        type: "primer",
+        dsp_rack_label: "x",
+        no: 3,
+        asp_rack: 0,
+        asp_posi: "A1",
+        dsp_rack: 3,
+        dsp_posi: "A1",
+        volume: 2.0,
+      },
+      {
+        name: "stray2",
+        type: "primer",
+        dsp_rack_label: "x",
+        no: 4,
+        asp_rack: 5,
+        asp_posi: "B2",
+        dsp_rack: 3,
+        dsp_posi: "A1",
+        volume: 2.0,
+      },
+    ]);
+    expect(rack1).toHaveLength(0);
+    expect(rack2).toHaveLength(0);
+  });
+
+  it("boundary H12 row=H col=12 in rack 2 when asp_rack=2", () => {
+    const { rack1, rack2 } = adaptJanusRows([
       {
         name: "last",
         type: "primer",
         dsp_rack_label: "x",
         no: 96,
-        asp_rack: 1,
+        asp_rack: 2,
         asp_posi: "H12",
-        dsp_rack: 2,
+        dsp_rack: 3,
         dsp_posi: "H12",
         volume: 1.5,
       },
     ]);
-    expect(rack1[0]).toMatchObject({
-      rack: 1,
+    expect(rack1).toHaveLength(0);
+    expect(rack2[0]).toMatchObject({
+      rack: 2,
       well: "H12",
       rowLetter: "H",
       colNumber: 12,
