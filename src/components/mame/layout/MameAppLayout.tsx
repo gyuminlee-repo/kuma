@@ -275,17 +275,28 @@ export function MameAppLayout() {
           />
         }
         subnav={
-          <TabsList className="shrink-0 mx-3 mt-2 w-fit">
-            <TabsTrigger value="setup" title={t("mame.appLayout.barcodeSetupTabTitle")}>
-              {t("mame.appLayout.barcodeSetupTab")}
-            </TabsTrigger>
-            <TabsTrigger value="analyze" title={t("mame.appLayout.analyzeTabTitle")}>
-              {t("mame.appLayout.analyzeTab")}
-            </TabsTrigger>
-            <TabsTrigger value="activity" title={t("mame.appLayout.activityTabTitle")}>
-              {t("mame.appLayout.activityTab")}
-            </TabsTrigger>
-          </TabsList>
+          <div className="flex items-center w-full mx-3 mt-2">
+            <TabsList className="shrink-0 w-fit">
+              <TabsTrigger value="setup" title={t("mame.appLayout.barcodeSetupTabTitle")}>
+                {t("mame.appLayout.barcodeSetupTab")}
+              </TabsTrigger>
+              <TabsTrigger value="analyze" title={t("mame.appLayout.analyzeTabTitle")}>
+                {t("mame.appLayout.analyzeTab")}
+              </TabsTrigger>
+              <TabsTrigger value="activity" title={t("mame.appLayout.activityTabTitle")}>
+                {t("mame.appLayout.activityTab")}
+              </TabsTrigger>
+            </TabsList>
+            <Button
+              variant="outline"
+              size="sm"
+              className="ml-auto mr-3 h-7 rounded-control text-caption"
+              onClick={() => setClearConfirmOpen(true)}
+              disabled={isAnalyzing}
+            >
+              {t("appLayout.clearAll")}
+            </Button>
+          </div>
         }
         sidebar={<MameWorkflowRail />}
         inspector={

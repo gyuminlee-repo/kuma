@@ -53,6 +53,9 @@ import {
   statSync,
   writeFileSync,
 } from "node:fs";
+// Merge-mode manifest helpers: cross-platform safety so writing the manifest
+// from one host (e.g. macOS post-build) does not erase the Windows/Linux
+// hashes recorded in src-tauri/sidecar-hashes.json by previous builds.
 import { dirname, resolve, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
@@ -168,25 +171,66 @@ function stripHardenedRuntimeFromSidecars(appPath) {
 }
 
 /**
- * Hash both sidecars under <appPath>/Contents/MacOS, return the manifest
- * object in the legacy schema.
+ * Triple-suffixed key shape (e.g. "kuro-sidecar-aarch64-apple-darwin").
+ * Bare "kuro-sidecar"/"mame-sidecar" base-name keys are platform-ambiguous
+ * and intentionally dropped on rewrite.
+ */
+function isTripleSuffixedKey(key) {
+  if (key === "kuro-sidecar" || key === "mame-sidecar") return false;
+  return key.startsWith("kuro-sidecar-") || key.startsWith("mame-sidecar-");
+}
+
+/**
+ * Read existing manifest as an object, fail-fast on malformed JSON to avoid
+ * silently dropping other-platform hashes.
+ */
+function readExistingManifest(path) {
+  if (!existsSync(path)) return {};
+  const text = readFileSync(path, "utf8");
+  const parsed = JSON.parse(text);
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    fail(
+      `Existing manifest at ${path} is not a JSON object (got ${
+        Array.isArray(parsed) ? "array" : typeof parsed
+      }).`,
+    );
+  }
+  return parsed;
+}
+
+/** Merge `additions` into existing triple-suffixed entries, drop base-name keys. */
+function mergeManifest(existing, additions) {
+  const merged = {};
+  for (const [k, v] of Object.entries(existing)) {
+    if (isTripleSuffixedKey(k) && typeof v === "string") merged[k] = v;
+  }
+  for (const [k, v] of Object.entries(additions)) {
+    merged[k] = v;
+  }
+  const sorted = {};
+  for (const key of Object.keys(merged).sort()) sorted[key] = merged[key];
+  return sorted;
+}
+
+/**
+ * Hash both sidecars under <appPath>/Contents/MacOS. Returns ONLY the entries
+ * for this build (caller merges with the existing manifest).
  */
 async function hashMacosSidecars(appPath) {
   const macosDir = join(appPath, "Contents", "MacOS");
   if (!existsSync(macosDir)) fail(`MacOS dir missing: ${macosDir}`);
 
-  const manifest = {};
+  const additions = {};
   for (const base of ["kuro-sidecar", "mame-sidecar"]) {
     const filePath = join(macosDir, base);
     if (!existsSync(filePath)) {
       fail(`Expected sidecar inside bundle: ${filePath}`);
     }
     const h = await sha256File(filePath);
-    manifest[`${base}-${TRIPLE}`] = h;
-    manifest[base] = h;
+    additions[`${base}-${TRIPLE}`] = h;
     log(`hashed ${filePath} = ${h.slice(0, 16)}...`);
   }
-  return manifest;
+  return additions;
 }
 
 /**
@@ -250,27 +294,27 @@ function regenerateDmg(appPath, dmgDir) {
 
 /**
  * Hash the unsigned binaries under src-tauri/binaries/ (Linux/Windows path)
- * and write the legacy `src-tauri/sidecar-hashes.json` so the runtime in
- * those bundles (where tauri does not mutate the binary) still validates.
+ * and MERGE the result into `src-tauri/sidecar-hashes.json`. Other-platform
+ * entries already in the manifest are preserved; base-name keys are dropped.
  */
 async function writeLegacyManifest() {
   const binariesDir = join(REPO_ROOT, "src-tauri", "binaries");
   if (!existsSync(binariesDir)) return;
-  const manifest = {};
+  const out = join(REPO_ROOT, "src-tauri", "sidecar-hashes.json");
+  const existing = readExistingManifest(out);
+
+  const additions = {};
   const files = readdirSync(binariesDir).filter(
     (f) => f.startsWith("kuro-sidecar") || f.startsWith("mame-sidecar"),
   );
   for (const file of files.sort()) {
     const full = join(binariesDir, file);
     if (!statSync(full).isFile()) continue;
-    const h = await sha256File(full);
-    manifest[file] = h;
-    const noExt = file.replace(/\.exe$/, "");
-    const base = noExt.match(/^((?:kuro|mame)-sidecar)/)?.[1] || noExt;
-    manifest[base] = h;
+    additions[file] = await sha256File(full);
   }
-  const out = join(REPO_ROOT, "src-tauri", "sidecar-hashes.json");
-  writeFileSync(out, JSON.stringify(manifest, null, 2) + "\n", "utf8");
+
+  const merged = mergeManifest(existing, additions);
+  writeFileSync(out, JSON.stringify(merged, null, 2) + "\n", "utf8");
   log(`wrote legacy manifest → ${out}`);
 }
 
@@ -293,14 +337,17 @@ async function main() {
   //    runtime). Must precede hashing because re-signing mutates bytes.
   stripHardenedRuntimeFromSidecars(bundle.appPath);
 
-  // 2. Hash post-re-sign sidecars.
-  const manifest = await hashMacosSidecars(bundle.appPath);
+  // 2. Hash post-re-sign sidecars. additions only; merge against any
+  //    existing in-bundle manifest so cross-platform entries are preserved.
+  const additions = await hashMacosSidecars(bundle.appPath);
   const targetManifest = join(
     bundle.appPath,
     "Contents",
     "Resources",
     "sidecar-hashes.json",
   );
+  const existingInBundle = readExistingManifest(targetManifest);
+  const manifest = mergeManifest(existingInBundle, additions);
 
   // 3. Write manifest into bundle.
   writeManifest(targetManifest, manifest);
