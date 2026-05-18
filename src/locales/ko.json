@@ -747,6 +747,15 @@
     "retry": "재시도",
     "browse": "찾아보기"
   },
+  "exportPreview": {
+    "title": "매핑 미리보기",
+    "loading": "미리보기 로딩 중...",
+    "empty": "미리보기 없음. 먼저 프라이머를 디자인하세요.",
+    "echoTab": "Echo 525 (384-well)",
+    "janusTab": "JANUS (96-well x 2)",
+    "rack1Label": "Rack 1 (Forward 프라이머)",
+    "rack2Label": "Rack 2 (Destination)"
+  },
   "globalAppBar": {
     "navAriaLabel": "앱 내비게이션",
     "tabsAriaLabel": "앱 탭",
@@ -1921,7 +1930,7 @@
         "submit": "변이체 풀 필터를 선택한 후 프라이머 설계를 실행합니다."
       },
       "export": {
-        "all": "프라이머 주문을 IDT/Twist CSV 또는 FASTA로 내보냅니다."
+        "all": "Macrogen 호환 plate XLS와 FASTA, Echo CSV, JANUS CSV, plate map XLSX를 한 번에 내보냅니다."
       },
       "output": {
         "summary": "설계 결과, 통계 및 플레이트 레이아웃을 검토합니다."

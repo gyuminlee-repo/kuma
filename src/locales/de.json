@@ -1868,7 +1868,7 @@
         "summary": "Review design results, statistics, und Platte layout."
       },
       "export": {
-        "all": "Primer-Bestellungen als IDT/Twist CSV oder FASTA exportieren."
+        "all": "Macrogen-kompatible plate XLS plus FASTA, Echo CSV, JANUS CSV und plate map XLSX in einem Batch exportieren."
       }
     },
     "mameDescriptions": {
@@ -2012,5 +2012,14 @@
     "savingStatus": "saving...",
     "savedStatus": "saved",
     "errorStatus": "error: {{reason}}"
+  },
+  "exportPreview": {
+    "title": "Mapping Preview",
+    "loading": "Loading preview...",
+    "empty": "No mapping to preview. Design primers first.",
+    "echoTab": "Echo 525 (384-well)",
+    "janusTab": "JANUS (96-well x 2)",
+    "rack1Label": "Rack 1 (Forward primers)",
+    "rack2Label": "Rack 2 (Destination)"
   }
 }

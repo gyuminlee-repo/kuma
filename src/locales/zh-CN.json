@@ -1868,7 +1868,7 @@
         "summary": "查看设计结果、统计数据和板布局。"
       },
       "export": {
-        "all": "将 primer 订单导出为 IDT/Twist CSV 或 FASTA。"
+        "all": "一次性导出 Macrogen 兼容 plate XLS、FASTA、Echo CSV、JANUS CSV 与 plate map XLSX。"
       }
     },
     "mameDescriptions": {
@@ -2012,5 +2012,14 @@
     "savingStatus": "saving...",
     "savedStatus": "saved",
     "errorStatus": "error: {{reason}}"
+  },
+  "exportPreview": {
+    "title": "Mapping Preview",
+    "loading": "Loading preview...",
+    "empty": "No mapping to preview. Design primers first.",
+    "echoTab": "Echo 525 (384-well)",
+    "janusTab": "JANUS (96-well x 2)",
+    "rack1Label": "Rack 1 (Forward primers)",
+    "rack2Label": "Rack 2 (Destination)"
   }
 }

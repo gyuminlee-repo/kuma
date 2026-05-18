@@ -1,16 +1,8 @@
-import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
 import { useAppStore } from "../../store/appStore";
-import { rpc } from "../../lib/ipc";
-import type { RpcMethodResult } from "../../types/models";
 import { DialogFooter } from "../ui/dialog";
 import { Button } from "../ui/button";
-
-type EchoMappingPreview = RpcMethodResult<"export_echo_mapping_dry_run">;
-type JanusMappingPreview = RpcMethodResult<"export_janus_mapping_dry_run">;
-
-const PREVIEW_LIMIT = 20;
 
 function Stat({ label, value, warn }: { label: string; value: string | number; warn?: boolean }) {
   return (
@@ -85,39 +77,6 @@ export function DesignReportContent({ onClose }: DesignReportContentProps) {
       rescuedMutationDetails: s.rescuedMutationDetails,
     })),
   );
-
-  const [echoPreview, setEchoPreview] = useState<EchoMappingPreview | null>(null);
-  const [janusPreview, setJanusPreview] = useState<JanusMappingPreview | null>(null);
-  const [previewLoading, setPreviewLoading] = useState(false);
-  const [previewError, setPreviewError] = useState<string | null>(null);
-
-  const hasDesign = data.designResults.length > 0;
-
-  useEffect(() => {
-    if (!hasDesign) return;
-    let cancelled = false;
-    setPreviewLoading(true);
-    setPreviewError(null);
-    Promise.all([
-      rpc<EchoMappingPreview>("kuro", "export_echo_mapping_dry_run", {}),
-      rpc<JanusMappingPreview>("kuro", "export_janus_mapping_dry_run", {}),
-    ])
-      .then(([echo, janus]) => {
-        if (cancelled) return;
-        setEchoPreview(echo);
-        setJanusPreview(janus);
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        setPreviewError(err instanceof Error ? err.message : String(err));
-      })
-      .finally(() => {
-        if (!cancelled) setPreviewLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [hasDesign]);
 
   if (data.designResults.length === 0) return null;
 
@@ -400,89 +359,6 @@ export function DesignReportContent({ onClose }: DesignReportContentProps) {
             </div>
           </Section>
         )}
-      </div>
-
-      {/* Echo / JANUS mapping preview */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <Section title="Echo 525 mapping preview">
-          {previewLoading && <div className="text-xs text-muted-foreground">Loading...</div>}
-          {previewError && <div className="text-xs text-warning break-words">{previewError}</div>}
-          {!previewLoading && !previewError && echoPreview && (
-            echoPreview.total === 0 ? (
-              <div className="text-xs text-muted-foreground">No mapping rows.</div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-[11px] font-mono">
-                  <thead>
-                    <tr className="text-left text-muted-foreground border-b border-border">
-                      <th className="pr-2 py-1 font-medium">Src plate</th>
-                      <th className="pr-2 py-1 font-medium">Src well</th>
-                      <th className="pr-2 py-1 font-medium">Dst plate</th>
-                      <th className="pr-2 py-1 font-medium">Dst well</th>
-                      <th className="pr-2 py-1 font-medium text-right">Vol (nL)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {echoPreview.rows.slice(0, PREVIEW_LIMIT).map((r, i) => (
-                      <tr key={i} className="border-b border-border/40">
-                        <td className="pr-2 py-0.5">{r.source_plate}</td>
-                        <td className="pr-2 py-0.5">{r.source_well}</td>
-                        <td className="pr-2 py-0.5">{r.dest_plate}</td>
-                        <td className="pr-2 py-0.5">{r.dest_well}</td>
-                        <td className="pr-2 py-0.5 text-right">{r.transfer_vol}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {echoPreview.total > PREVIEW_LIMIT && (
-                  <div className="mt-1 text-[10px] text-muted-foreground">
-                    Showing first {PREVIEW_LIMIT} of {echoPreview.total} rows
-                  </div>
-                )}
-              </div>
-            )
-          )}
-        </Section>
-
-        <Section title="JANUS mapping preview">
-          {previewLoading && <div className="text-xs text-muted-foreground">Loading...</div>}
-          {previewError && <div className="text-xs text-warning break-words">{previewError}</div>}
-          {!previewLoading && !previewError && janusPreview && (
-            janusPreview.total === 0 ? (
-              <div className="text-xs text-muted-foreground">No mapping rows.</div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-[11px] font-mono">
-                  <thead>
-                    <tr className="text-left text-muted-foreground border-b border-border">
-                      <th className="pr-2 py-1 font-medium">Name</th>
-                      <th className="pr-2 py-1 font-medium text-right">No</th>
-                      <th className="pr-2 py-1 font-medium">Asp</th>
-                      <th className="pr-2 py-1 font-medium">Dsp</th>
-                      <th className="pr-2 py-1 font-medium text-right">Vol (uL)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {janusPreview.rows.slice(0, PREVIEW_LIMIT).map((r, i) => (
-                      <tr key={i} className="border-b border-border/40">
-                        <td className="pr-2 py-0.5">{r.name}</td>
-                        <td className="pr-2 py-0.5 text-right">{r.no}</td>
-                        <td className="pr-2 py-0.5">R{r.asp_rack}/{r.asp_posi}</td>
-                        <td className="pr-2 py-0.5">R{r.dsp_rack}/{r.dsp_posi}</td>
-                        <td className="pr-2 py-0.5 text-right">{r.volume}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {janusPreview.total > PREVIEW_LIMIT && (
-                  <div className="mt-1 text-[10px] text-muted-foreground">
-                    Showing first {PREVIEW_LIMIT} of {janusPreview.total} rows
-                  </div>
-                )}
-              </div>
-            )
-          )}
-        </Section>
       </div>
 
       {onClose && (
