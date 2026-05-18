@@ -209,7 +209,10 @@
       "minFilteredDepthTitle": "基本 depth cutoff。length-window filter を通過した read 数を基準。",
       "minFilteredDepthFootnote": "Length-window-filtered read count。ONT R10.4.1 consensus: Q35+ で約 15x。legacy KB cutoff とは 1:1 変換されません。",
       "legacyKbHelp": "FASTA ファイルサイズを read depth の代理値として使う既存 cutoff。圧縮率、長さ分布、ライブラリ変動の影響を受けます。",
-      "legacyKbTooltip": "ファイルサイズベースの proxy cutoff。圧縮率、長さ分布、ライブラリ変動の影響あり。参考用。"
+      "legacyKbTooltip": "ファイルサイズベースの proxy cutoff。圧縮率、長さ分布、ライブラリ変動の影響あり。参考用。",
+      "modeHelp": "Analysis mode: amplicon (linear PCR product) or plasmid (circular). Choose plasmid for whole-vector consensus.",
+      "ingestHelp": "Ingest layout: barcode (per-well demultiplexed) or amplicon (single bulk read set).",
+      "inputSourceHelp": "Input source: consensus (pre-called), sorted_barcode (per-well FASTQ), or raw_run (MinKNOW run folder)."
     },
     "barcodeSetup": {
       "title": "Barcode パッケージセットアップ",
@@ -253,7 +256,16 @@
         "noReference": "Reference file required",
         "readError": "Failed to read reference file",
         "success": "Detected from {{source}}"
-      }
+      },
+      "cdsCandidateHelp": "CDS candidate auto-detected from the FASTA. Coordinates apply on selection.",
+      "geneNameHelp": "Short gene identifier used in output filenames and labels (e.g. ispS).",
+      "polymeraseHelp": "Polymerase profile used to set default Tm/binding constraints. Q5 recommended for high-fidelity PCR.",
+      "geneStartHelp": "CDS start coordinate (0-based, inclusive).",
+      "geneEndHelp": "CDS end coordinate (0-based, exclusive).",
+      "flankMinHelp": "Minimum flank length (nt) around CDS for barcode primer search. Default 100.",
+      "flankMaxHelp": "Maximum flank length (nt). Larger windows give more primer candidates but slow search.",
+      "bindingMinLenHelp": "Minimum primer binding length (nt). Typical 18-22 for stable PCR priming.",
+      "bindingMaxLenHelp": "Maximum primer binding length (nt). Above 35 increases secondary structure risk."
     },
     "activity": {
       "title": "活性データ",
@@ -807,7 +819,18 @@
     "seedTitle": "任意の整数 seed。Manifest 連携が完了次第、バックエンドに渡され run manifest に記録されます (バックエンド統合は保留中)。",
     "seedAriaLabel": "Random seed (任意)",
     "seedFixed": "固定: {{seed}}",
-    "seedAuto": "自動"
+    "seedAuto": "自動",
+    "tmPrimerHelp": "Target Tm (°C) for symmetric full-overlap primers. Default 62.",
+    "tmFwdHelp": "Target Tm (°C) for forward primer in partial-overlap mode. Lower value increases mismatch tolerance.",
+    "tmRevHelp": "Target Tm (°C) for reverse primer. Should approximate tmFwd for balanced PCR.",
+    "tmOverlapHelp": "Target Tm (°C) of the overlap region between two primers.",
+    "gcRangeHelp": "Accepted GC content range (%) for primer regions. Recommended 40-60.",
+    "primerLenLimitHelp": "Toggle to bound primer length. When off, engine uses Tm-only optimization.",
+    "primerLenFwdHelp": "Forward primer length range (nt). Default 17-39 covers most SDM cases.",
+    "primerLenRevHelp": "Reverse primer length range (nt). Default 19-27.",
+    "autoRescueHelp": "Auto-fill failed mutations with relaxed constraints in a second pass.",
+    "seedHelp": "Random seed for reproducible primer ranking. Leave empty for auto (time-based).",
+    "tmSectionHelp": "Melting temperature targets define how the engine balances primer stability and selectivity."
   },
   "designReport": {
     "title": "Design レポート",
@@ -917,7 +940,22 @@
     "randomSeed": "Random seed",
     "randomSeedHelp": "空欄で新しい乱数を使用。seed を指定すると random baseline 比較を正確に再現可能。",
     "runBenchmark": "Benchmark を実行",
-    "runBenchmarkBusy": "実行中..."
+    "runBenchmarkBusy": "実行中...",
+    "evolveproRoundHelp": "EVOLVEpro round number for adaptive primer selection.",
+    "roundSizeHelp": "Number of primers per round (1-960). Multiples of 96 align with plate capacity.",
+    "overlapHelp": "Domain overlap policy when adjacent domains share residues.",
+    "minQuotaHelp": "Minimum primer quota per domain (0-20). Ensures each domain represented.",
+    "poolKLabelHelp": "Pool-K diversity weighting target. Auto value derived from sequence properties.",
+    "entropyWeightHelp": "Weight (0-1) for entropy-guided primer selection vs pure diversity.",
+    "autoRedesignOnLoadHelp": "Re-run primer design automatically when a workspace is loaded.",
+    "savePipelineCacheHelp": "Save intermediate pipeline outputs to disk for faster re-runs.",
+    "topPercentileHelp": "Benchmark top percentile (1-100) cutoff for primer scoring.",
+    "randomTrialsHelp": "Number of random baseline trials for benchmark (1-1000). Higher value yields more reliable estimate.",
+    "benchmarkRandomSeedHelp": "Random seed for benchmark reproducibility. Empty value defaults to auto.",
+    "linkerLabelHelp": "How to treat known linker regions during primer search.",
+    "positionCapLabelHelp": "Maximum primers per residue position (1-20). Caps over-representation.",
+    "roundSectionHelp": "EVOLVEpro round controls iterative primer batches with adaptive selection.",
+    "benchmarkSectionHelp": "Benchmark compares designed primers against random baselines to estimate quality lift."
   },
   "candidatePopover": {
     "reviewHeading": "Candidate レビュー",
@@ -1307,7 +1345,8 @@
     "uniprotBlastInProgress": "UniProt BLAST 検索を実行中… (完了後に Step 2 が利用可能)",
     "ecoliTitle": "Escherichia coli K-12 codon usage テーブル。E. coli BL21、DH5α、K-12 派生株で発現する際に使用。",
     "bsubtilisTitle": "Bacillus subtilis 168 codon usage テーブル。B. subtilis や関連グラム陽性宿主で発現する際に使用。",
-    "scerevisiaeTitle": "Saccharomyces cerevisiae codon usage テーブル。出芽酵母宿主で発現する際に使用。"
+    "scerevisiaeTitle": "Saccharomyces cerevisiae codon usage テーブル。出芽酵母宿主で発現する際に使用。",
+    "sequenceFileHelp": "Reference sequence file (.fasta/.gb) used as template for primer design."
   },
   "mutationInput": {
     "mutations": "Mutations",
@@ -1323,7 +1362,8 @@
     "mutationsEntered": "{{count}} mutations 入力",
     "mutationsValidated": "({{count}} 検証済み)",
     "mutationsFailed": "({{count}} 失敗)",
-    "topNZeroHint": "top-Nを0にするとCSVの全バリアントを読み込みます"
+    "topNZeroHint": "top-Nを0にするとCSVの全バリアントを読み込みます",
+    "mutationsHelp": "Mutations in HGVS or plain format (e.g. A123V, L45*). One per line or comma-separated."
   },
   "uniprotSearch": {
     "topCandidates": "Top 候補 {{shown}}{{total}}",

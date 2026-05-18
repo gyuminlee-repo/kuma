@@ -5,6 +5,7 @@ import { useAppStore } from "../../../store/appStore";
 import { basename } from "../../../lib/utils";
 import { browseFile } from "../../../lib/file-utils";
 import { Button } from "../../ui/button";
+import { InlineHelp } from "../../ui/InlineHelp";
 
 const SEQUENCE_DROP_EXTENSIONS = new Set([".gb", ".gbk", ".gbff", ".dna", ".fa", ".fasta"]);
 
@@ -48,7 +49,10 @@ export function SequenceInput() {
         className={`space-y-1 rounded-control border transition-colors duration-fast ${isDragOver ? "border-dashed border-info bg-info/5" : "border-transparent"}`}
         aria-label={t("sequenceInput.dropAriaLabel")}
       >
-        <label className="text-xs font-medium text-foreground">{t("sequenceInput.sequenceFile")}</label>
+        <label className="text-xs font-medium text-foreground inline-flex items-center gap-1.5">
+          {t("sequenceInput.sequenceFile")}
+          <InlineHelp text={t("sequenceInput.sequenceFileHelp")} />
+        </label>
         <div className="flex gap-1">
           <Button
             variant="outline"

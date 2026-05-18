@@ -5,6 +5,7 @@ import { basename } from "../../../lib/utils";
 import { browseFile } from "../../../lib/file-utils";
 import { useArtifact } from "../../../lib/workspace";
 import { Button } from "../../ui/button";
+import { InlineHelp } from "../../ui/InlineHelp";
 import { ArtifactBadge } from "../../widgets/ArtifactBadge";
 
 export function MutationInput() {
@@ -58,7 +59,10 @@ export function MutationInput() {
 
   return (
     <div className="space-y-1">
-      <label className="text-xs font-medium text-foreground">{t("mutationInput.mutations")}</label>
+      <label className="text-xs font-medium text-foreground inline-flex items-center gap-1.5">
+        {t("mutationInput.mutations")}
+        <InlineHelp text={t("mutationInput.mutationsHelp")} />
+      </label>
       <div className="flex gap-2 text-xs" role="radiogroup" aria-label={t("mutationInput.mutationInputAriaLabel")}>
         <label className="flex items-center gap-1 rounded-full border border-border bg-card px-2 py-1 text-muted-foreground">
           <input

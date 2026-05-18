@@ -209,7 +209,10 @@
       "minFilteredDepthTitle": "Primary depth cutoff. Based on reads passing the length-window filter.",
       "minFilteredDepthFootnote": "Length-window-filtered read count. ONT R10.4.1 consensus: Q35+ ~15x. Does not convert 1:1 with legacy KB cutoff.",
       "legacyKbHelp": "Legacy cutoff using FASTA file size as a proxy for read depth. Affected by compression ratio, length distribution, and library variation.",
-      "legacyKbTooltip": "File-size-based proxy cutoff. Affected by compression ratio, length distribution, and library variation. Use as reference only."
+      "legacyKbTooltip": "File-size-based proxy cutoff. Affected by compression ratio, length distribution, and library variation. Use as reference only.",
+      "modeHelp": "Analysis mode: amplicon (linear PCR product) or plasmid (circular). Choose plasmid for whole-vector consensus.",
+      "ingestHelp": "Ingest layout: barcode (per-well demultiplexed) or amplicon (single bulk read set).",
+      "inputSourceHelp": "Input source: consensus (pre-called), sorted_barcode (per-well FASTQ), or raw_run (MinKNOW run folder)."
     },
     "barcodeSetup": {
       "title": "Barcode Package Setup",
@@ -253,7 +256,16 @@
         "readError": "Failed to read reference file"
       },
       "cdsCandidate": "CDS / ORF candidate:",
-      "cdsCandidateNoneDetected": "No CDS detected. Enter coordinates manually."
+      "cdsCandidateNoneDetected": "No CDS detected. Enter coordinates manually.",
+      "cdsCandidateHelp": "CDS candidate auto-detected from the FASTA. Coordinates apply on selection.",
+      "geneNameHelp": "Short gene identifier used in output filenames and labels (e.g. ispS).",
+      "polymeraseHelp": "Polymerase profile used to set default Tm/binding constraints. Q5 recommended for high-fidelity PCR.",
+      "geneStartHelp": "CDS start coordinate (0-based, inclusive).",
+      "geneEndHelp": "CDS end coordinate (0-based, exclusive).",
+      "flankMinHelp": "Minimum flank length (nt) around CDS for barcode primer search. Default 100.",
+      "flankMaxHelp": "Maximum flank length (nt). Larger windows give more primer candidates but slow search.",
+      "bindingMinLenHelp": "Minimum primer binding length (nt). Typical 18-22 for stable PCR priming.",
+      "bindingMaxLenHelp": "Maximum primer binding length (nt). Above 35 increases secondary structure risk."
     },
     "activity": {
       "ingest": {
@@ -831,7 +843,18 @@
     "seedTitle": "Optional integer seed. Will be passed to the backend and recorded in run manifests once manifest wiring is complete (backend integration pending).",
     "seedAriaLabel": "Random seed (optional)",
     "seedFixed": "fixed: {{seed}}",
-    "seedAuto": "auto"
+    "seedAuto": "auto",
+    "tmPrimerHelp": "Target Tm (°C) for symmetric full-overlap primers. Default 62.",
+    "tmFwdHelp": "Target Tm (°C) for forward primer in partial-overlap mode. Lower value increases mismatch tolerance.",
+    "tmRevHelp": "Target Tm (°C) for reverse primer. Should approximate tmFwd for balanced PCR.",
+    "tmOverlapHelp": "Target Tm (°C) of the overlap region between two primers.",
+    "gcRangeHelp": "Accepted GC content range (%) for primer regions. Recommended 40-60.",
+    "primerLenLimitHelp": "Toggle to bound primer length. When off, engine uses Tm-only optimization.",
+    "primerLenFwdHelp": "Forward primer length range (nt). Default 17-39 covers most SDM cases.",
+    "primerLenRevHelp": "Reverse primer length range (nt). Default 19-27.",
+    "autoRescueHelp": "Auto-fill failed mutations with relaxed constraints in a second pass.",
+    "seedHelp": "Random seed for reproducible primer ranking. Leave empty for auto (time-based).",
+    "tmSectionHelp": "Melting temperature targets define how the engine balances primer stability and selectivity."
   },
   "designReport": {
     "title": "Design Report",
@@ -941,7 +964,22 @@
     "randomSeed": "Random seed",
     "randomSeedHelp": "Leave blank for fresh randomness. Set a seed to reproduce random baseline comparisons exactly.",
     "runBenchmark": "Run Benchmark",
-    "runBenchmarkBusy": "Running..."
+    "runBenchmarkBusy": "Running...",
+    "evolveproRoundHelp": "EVOLVEpro round number for adaptive primer selection.",
+    "roundSizeHelp": "Number of primers per round (1-960). Multiples of 96 align with plate capacity.",
+    "overlapHelp": "Domain overlap policy when adjacent domains share residues.",
+    "minQuotaHelp": "Minimum primer quota per domain (0-20). Ensures each domain represented.",
+    "poolKLabelHelp": "Pool-K diversity weighting target. Auto value derived from sequence properties.",
+    "entropyWeightHelp": "Weight (0-1) for entropy-guided primer selection vs pure diversity.",
+    "autoRedesignOnLoadHelp": "Re-run primer design automatically when a workspace is loaded.",
+    "savePipelineCacheHelp": "Save intermediate pipeline outputs to disk for faster re-runs.",
+    "topPercentileHelp": "Benchmark top percentile (1-100) cutoff for primer scoring.",
+    "randomTrialsHelp": "Number of random baseline trials for benchmark (1-1000). Higher value yields more reliable estimate.",
+    "benchmarkRandomSeedHelp": "Random seed for benchmark reproducibility. Empty value defaults to auto.",
+    "linkerLabelHelp": "How to treat known linker regions during primer search.",
+    "positionCapLabelHelp": "Maximum primers per residue position (1-20). Caps over-representation.",
+    "roundSectionHelp": "EVOLVEpro round controls iterative primer batches with adaptive selection.",
+    "benchmarkSectionHelp": "Benchmark compares designed primers against random baselines to estimate quality lift."
   },
   "candidatePopover": {
     "reviewHeading": "Candidate Review",
@@ -1331,7 +1369,8 @@
     "uniprotBlastInProgress": "UniProt BLAST search in progress… (Step 2 available after)",
     "ecoliTitle": "Escherichia coli K-12 codon usage table. Use when expressing in E. coli BL21, DH5α, K-12 derivatives.",
     "bsubtilisTitle": "Bacillus subtilis 168 codon usage table. Use when expressing in B. subtilis or related Gram-positive hosts.",
-    "scerevisiaeTitle": "Saccharomyces cerevisiae codon usage table. Use when expressing in budding yeast hosts."
+    "scerevisiaeTitle": "Saccharomyces cerevisiae codon usage table. Use when expressing in budding yeast hosts.",
+    "sequenceFileHelp": "Reference sequence file (.fasta/.gb) used as template for primer design."
   },
   "mutationInput": {
     "mutations": "Mutations",
@@ -1347,7 +1386,8 @@
     "mutationsEntered": "{{count}} mutations entered",
     "mutationsValidated": "({{count}} validated)",
     "mutationsFailed": "({{count}} failed)",
-    "topNZeroHint": "Set top-N to 0 to load every variant from CSV"
+    "topNZeroHint": "Set top-N to 0 to load every variant from CSV",
+    "mutationsHelp": "Mutations in HGVS or plain format (e.g. A123V, L45*). One per line or comma-separated."
   },
   "uniprotSearch": {
     "topCandidates": "Top candidates {{shown}}{{total}}",

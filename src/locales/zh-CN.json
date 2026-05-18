@@ -209,7 +209,10 @@
       "minFilteredDepthTitle": "主 depth cutoff。基于通过 length-window 过滤的 read 数。",
       "minFilteredDepthFootnote": "length-window 过滤后的 read 计数。ONT R10.4.1 consensus: Q35+ ~15x。与 legacy KB cutoff 不按 1:1 转换。",
       "legacyKbHelp": "以 FASTA 文件大小作为 read depth 代理的 legacy cutoff。受压缩率、长度分布、文库变异影响。",
-      "legacyKbTooltip": "基于文件大小的代理 cutoff。受压缩率、长度分布、文库变异影响。仅作参考。"
+      "legacyKbTooltip": "基于文件大小的代理 cutoff。受压缩率、长度分布、文库变异影响。仅作参考。",
+      "modeHelp": "Analysis mode: amplicon (linear PCR product) or plasmid (circular). Choose plasmid for whole-vector consensus.",
+      "ingestHelp": "Ingest layout: barcode (per-well demultiplexed) or amplicon (single bulk read set).",
+      "inputSourceHelp": "Input source: consensus (pre-called), sorted_barcode (per-well FASTQ), or raw_run (MinKNOW run folder)."
     },
     "barcodeSetup": {
       "title": "Barcode 包设置",
@@ -253,7 +256,16 @@
         "noReference": "Reference file required",
         "readError": "Failed to read reference file",
         "success": "Detected from {{source}}"
-      }
+      },
+      "cdsCandidateHelp": "CDS candidate auto-detected from the FASTA. Coordinates apply on selection.",
+      "geneNameHelp": "Short gene identifier used in output filenames and labels (e.g. ispS).",
+      "polymeraseHelp": "Polymerase profile used to set default Tm/binding constraints. Q5 recommended for high-fidelity PCR.",
+      "geneStartHelp": "CDS start coordinate (0-based, inclusive).",
+      "geneEndHelp": "CDS end coordinate (0-based, exclusive).",
+      "flankMinHelp": "Minimum flank length (nt) around CDS for barcode primer search. Default 100.",
+      "flankMaxHelp": "Maximum flank length (nt). Larger windows give more primer candidates but slow search.",
+      "bindingMinLenHelp": "Minimum primer binding length (nt). Typical 18-22 for stable PCR priming.",
+      "bindingMaxLenHelp": "Maximum primer binding length (nt). Above 35 increases secondary structure risk."
     },
     "activity": {
       "title": "Activity 数据",
@@ -807,7 +819,18 @@
     "seedTitle": "可选的整数 seed。Manifest wiring 完成后将传递给后端并记录在 run manifest 中 (后端集成待办)。",
     "seedAriaLabel": "随机 seed (可选)",
     "seedFixed": "已固定: {{seed}}",
-    "seedAuto": "自动"
+    "seedAuto": "自动",
+    "tmPrimerHelp": "Target Tm (°C) for symmetric full-overlap primers. Default 62.",
+    "tmFwdHelp": "Target Tm (°C) for forward primer in partial-overlap mode. Lower value increases mismatch tolerance.",
+    "tmRevHelp": "Target Tm (°C) for reverse primer. Should approximate tmFwd for balanced PCR.",
+    "tmOverlapHelp": "Target Tm (°C) of the overlap region between two primers.",
+    "gcRangeHelp": "Accepted GC content range (%) for primer regions. Recommended 40-60.",
+    "primerLenLimitHelp": "Toggle to bound primer length. When off, engine uses Tm-only optimization.",
+    "primerLenFwdHelp": "Forward primer length range (nt). Default 17-39 covers most SDM cases.",
+    "primerLenRevHelp": "Reverse primer length range (nt). Default 19-27.",
+    "autoRescueHelp": "Auto-fill failed mutations with relaxed constraints in a second pass.",
+    "seedHelp": "Random seed for reproducible primer ranking. Leave empty for auto (time-based).",
+    "tmSectionHelp": "Melting temperature targets define how the engine balances primer stability and selectivity."
   },
   "designReport": {
     "title": "Design Report",
@@ -917,7 +940,22 @@
     "randomSeed": "Random seed",
     "randomSeedHelp": "留空以使用新的随机性。设置 seed 可精确复现随机基线对比。",
     "runBenchmark": "运行 Benchmark",
-    "runBenchmarkBusy": "运行中..."
+    "runBenchmarkBusy": "运行中...",
+    "evolveproRoundHelp": "EVOLVEpro round number for adaptive primer selection.",
+    "roundSizeHelp": "Number of primers per round (1-960). Multiples of 96 align with plate capacity.",
+    "overlapHelp": "Domain overlap policy when adjacent domains share residues.",
+    "minQuotaHelp": "Minimum primer quota per domain (0-20). Ensures each domain represented.",
+    "poolKLabelHelp": "Pool-K diversity weighting target. Auto value derived from sequence properties.",
+    "entropyWeightHelp": "Weight (0-1) for entropy-guided primer selection vs pure diversity.",
+    "autoRedesignOnLoadHelp": "Re-run primer design automatically when a workspace is loaded.",
+    "savePipelineCacheHelp": "Save intermediate pipeline outputs to disk for faster re-runs.",
+    "topPercentileHelp": "Benchmark top percentile (1-100) cutoff for primer scoring.",
+    "randomTrialsHelp": "Number of random baseline trials for benchmark (1-1000). Higher value yields more reliable estimate.",
+    "benchmarkRandomSeedHelp": "Random seed for benchmark reproducibility. Empty value defaults to auto.",
+    "linkerLabelHelp": "How to treat known linker regions during primer search.",
+    "positionCapLabelHelp": "Maximum primers per residue position (1-20). Caps over-representation.",
+    "roundSectionHelp": "EVOLVEpro round controls iterative primer batches with adaptive selection.",
+    "benchmarkSectionHelp": "Benchmark compares designed primers against random baselines to estimate quality lift."
   },
   "candidatePopover": {
     "reviewHeading": "Candidate Review",
@@ -1307,7 +1345,8 @@
     "uniprotBlastInProgress": "UniProt BLAST 搜索进行中… (Step 2 在此之后可用)",
     "ecoliTitle": "Escherichia coli K-12 codon usage 表。在 E. coli BL21、DH5α、K-12 衍生株中表达时使用。",
     "bsubtilisTitle": "Bacillus subtilis 168 codon usage 表。在 B. subtilis 或相关革兰氏阳性宿主中表达时使用。",
-    "scerevisiaeTitle": "Saccharomyces cerevisiae codon usage 表。在 budding yeast 宿主中表达时使用。"
+    "scerevisiaeTitle": "Saccharomyces cerevisiae codon usage 表。在 budding yeast 宿主中表达时使用。",
+    "sequenceFileHelp": "Reference sequence file (.fasta/.gb) used as template for primer design."
   },
   "mutationInput": {
     "mutations": "Mutations",
@@ -1323,7 +1362,8 @@
     "mutationsEntered": "已输入 {{count}} 个 mutation",
     "mutationsValidated": "(已验证 {{count}})",
     "mutationsFailed": "(失败 {{count}})",
-    "topNZeroHint": "将 top-N 设为 0 可加载 CSV 中的所有变体"
+    "topNZeroHint": "将 top-N 设为 0 可加载 CSV 中的所有变体",
+    "mutationsHelp": "Mutations in HGVS or plain format (e.g. A123V, L45*). One per line or comma-separated."
   },
   "uniprotSearch": {
     "topCandidates": "Top 候选 {{shown}}{{total}}",

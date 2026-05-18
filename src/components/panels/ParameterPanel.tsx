@@ -248,12 +248,18 @@ export function ParameterPanel() {
       {showAdvanced && (
         <div className="space-y-1 rounded-container border border-border bg-card/80 p-3">
           {/* Tm — branches by strategy */}
-          <div className="pt-0.5 text-caption uppercase tracking-wider text-muted-foreground" title={t("parameterPanel.tmSectionTitle")}>{t("parameterPanel.tmSectionLabel")}</div>
+          <div className="pt-0.5 text-caption uppercase tracking-wider text-muted-foreground" title={t("parameterPanel.tmSectionTitle")}>
+            <span className="inline-flex items-center gap-1.5">
+              {t("parameterPanel.tmSectionLabel")}
+              <InlineHelp text={t("parameterPanel.tmSectionHelp")} />
+            </span>
+          </div>
           {isFullOverlap ? (
             <div className="flex items-center gap-2 text-caption" title={t("parameterPanel.tmPrimerTitle")}>
               <span className="w-20 text-muted-foreground">{t("parameterPanel.tmPrimerLabel")}</span>
               <input type="number" className={numInput} {...tmFwdInput} />
               <span className="text-muted-foreground">°C</span>
+              <InlineHelp text={t("parameterPanel.tmPrimerHelp")} />
             </div>
           ) : (
             <>
@@ -261,16 +267,19 @@ export function ParameterPanel() {
                 <span className="w-20 text-muted-foreground">{t("parameterPanel.tmFwdLabel")}</span>
                 <input type="number" className={numInput} {...tmFwdInput} />
                 <span className="text-muted-foreground">°C</span>
+                <InlineHelp text={t("parameterPanel.tmFwdHelp")} />
               </div>
               <div className="flex items-center gap-2 text-caption" title={t("parameterPanel.tmSectionTitle")}>
                 <span className="w-20 text-muted-foreground">{t("parameterPanel.tmRevLabel")}</span>
                 <input type="number" className={numInput} {...tmRevInput} />
                 <span className="text-muted-foreground">°C</span>
+                <InlineHelp text={t("parameterPanel.tmRevHelp")} />
               </div>
               <div className="flex items-center gap-2 text-caption" title={t("parameterPanel.tmSectionTitle")}>
                 <span className="w-20 text-muted-foreground">{t("parameterPanel.tmOverlapLabel")}</span>
                 <input type="number" className={numInput} {...tmOvInput} />
                 <span className="text-muted-foreground">°C</span>
+                <InlineHelp text={t("parameterPanel.tmOverlapHelp")} />
               </div>
             </>
           )}
@@ -303,6 +312,7 @@ export function ParameterPanel() {
               className={`${gcInputBase} ${gcInvalid ? "border-error focus:ring-error" : "border-border"}`}
               {...gcMaxInput} />
             <span className="text-muted-foreground">%</span>
+            <InlineHelp text={t("parameterPanel.gcRangeHelp")} />
           </div>
           {gcInvalid && (
             <div className="text-caption text-error pl-20">{t("parameterPanel.gcInvalidError")}</div>
@@ -321,6 +331,7 @@ export function ParameterPanel() {
               onChange={(e) => setPrimerLenEnabled(e.target.checked)}
             />
             <span className="text-muted-foreground">{t("parameterPanel.primerLenLimit")}</span>
+            <InlineHelp text={t("parameterPanel.primerLenLimitHelp")} />
             {primerLenEnabled && isFullOverlap && (
               <span className="flex items-center gap-1 ml-1" title={t("parameterPanel.primerLenSingleTitle")}>
                 <input type="number" className={numInput} {...fullLenMinInput} />
@@ -335,6 +346,7 @@ export function ParameterPanel() {
                 <input type="number" className={numInput} {...fwdLenMinInput} />
                 <span className="text-muted-foreground">~</span>
                 <input type="number" className={numInput} {...fwdLenMaxInput} />
+                <InlineHelp text={t("parameterPanel.primerLenFwdHelp")} />
               </span>
             )}
           </label>
@@ -346,6 +358,7 @@ export function ParameterPanel() {
                 <span className="text-muted-foreground">~</span>
                 <input type="number" className={numInput} {...revLenMaxInput} />
                 <span className="text-caption text-muted-foreground">bp</span>
+                <InlineHelp text={t("parameterPanel.primerLenRevHelp")} />
               </div>
               {(fwdLenMin >= fwdLenMax || revLenMin >= revLenMax) && (
                 <div className="text-caption text-error pl-8">{t("parameterPanel.primerLenInvalidError")}</div>
@@ -366,6 +379,7 @@ export function ParameterPanel() {
               onChange={(e) => setFillOnFailure(e.target.checked)}
             />
             <span className="text-muted-foreground">{t("parameterPanel.autoRescueLabel")}</span>
+            <InlineHelp text={t("parameterPanel.autoRescueHelp")} />
           </label>
 
           {/* §12 Random seed */}
@@ -408,6 +422,7 @@ export function ParameterPanel() {
             <span id="random-seed-hint" className="text-caption text-muted-foreground">
               {randomSeed !== null ? t("parameterPanel.seedFixed", { seed: randomSeed }) : t("parameterPanel.seedAuto")}
             </span>
+            <InlineHelp text={t("parameterPanel.seedHelp")} />
           </div>
         </div>
       )}

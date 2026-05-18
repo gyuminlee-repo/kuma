@@ -1,6 +1,7 @@
 import type { ChangeEvent, KeyboardEvent } from "react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { InlineHelp } from "../../ui/InlineHelp";
 import { UniprotSearch } from "./UniprotSearch";
 
 const LINKER_HANDLING_OPTIONS: Array<"include" | "separate-bin" | "exclude"> = [
@@ -141,6 +142,7 @@ export function DomainAllocationSection(props: {
     <div className="space-y-1.5">
       <div className="flex flex-wrap items-center gap-2 text-caption text-muted-foreground">
         <span>{t("diversitySections.linkerLabel")}</span>
+        <InlineHelp text={t("diversitySections.linkerLabelHelp")} />
         {LINKER_HANDLING_OPTIONS.map((v) => (
           <label key={v} className="flex items-center gap-0.5 cursor-pointer">
             <input
@@ -301,9 +303,15 @@ export function RoundSettingsSection(props: {
 
   return (
     <div className="ml-2 mt-3 space-y-1.5 border-l-2 border-transparent pl-3 text-caption text-muted-foreground">
-      <div className="font-semibold uppercase tracking-wide text-muted-foreground/60">{t("diversitySections.roundSectionLabel")}</div>
+      <div className="font-semibold uppercase tracking-wide text-muted-foreground/60">
+        <span className="inline-flex items-center gap-1.5">
+          {t("diversitySections.roundSectionLabel")}
+          <HelpTip>{t("diversitySections.roundSectionHelp")}</HelpTip>
+        </span>
+      </div>
       <div className="flex items-center gap-2 flex-wrap">
         <span>{t("diversitySections.evolveproRoundLabel")}</span>
+        <InlineHelp text={t("diversitySections.evolveproRoundHelp")} />
         <input
           type="number"
           min={1}
@@ -314,6 +322,7 @@ export function RoundSettingsSection(props: {
           onKeyDown={onEnterBlur}
         />
         <span className="text-muted-foreground">{t("diversitySections.roundSizeLabel")}</span>
+        <InlineHelp text={t("diversitySections.roundSizeHelp")} />
         <input
           type="number"
           min={1}
@@ -409,6 +418,7 @@ export function AdvancedSettingsSection(props: {
             <div className="mb-0.5 text-plate-tiny uppercase tracking-wide text-muted-foreground/60">{t("diversitySections.step1SectionLabel")}</div>
             <div className="flex items-center gap-1 flex-wrap">
               <span>{t("diversitySections.positionCap")}</span>
+              <InlineHelp text={t("diversitySections.positionCapLabelHelp")} />
               <input
                 type="number"
                 min={1}
@@ -445,6 +455,7 @@ export function AdvancedSettingsSection(props: {
                     {v.charAt(0).toUpperCase() + v.slice(1)}
                   </label>
                 ))}
+                <InlineHelp text={t("diversitySections.overlapHelp")} />
               </div>
               <div className="flex items-center gap-2">
                 <span>{t("diversitySections.minQuotaLabel")}</span>
@@ -456,6 +467,7 @@ export function AdvancedSettingsSection(props: {
                   value={domainQuotaMin}
                   onChange={(e) => setDomainQuotaMin(Number(e.target.value))}
                 />
+                <InlineHelp text={t("diversitySections.minQuotaHelp")} />
               </div>
             </div>
           </div>
@@ -475,6 +487,7 @@ export function AdvancedSettingsSection(props: {
               </div>
               <div className="flex items-center gap-2">
                 <span className="w-16">{t("diversitySections.poolKLabel")}</span>
+                <InlineHelp text={t("diversitySections.poolKLabelHelp")} />
                 <input
                   type="range"
                   min="1"
@@ -504,6 +517,7 @@ export function AdvancedSettingsSection(props: {
               {entropyWeightEnabled && (
                 <div className="flex items-center gap-2 pl-4">
                   <span>{t("diversitySections.entropyWeight")}</span>
+                  <InlineHelp text={t("diversitySections.entropyWeightHelp")} />
                   <input
                     type="range"
                     min="0"
@@ -539,10 +553,12 @@ export function WorkspaceSection(props: {
       <label className="flex items-center gap-1.5 cursor-pointer">
         <input type="checkbox" className="h-2.5 w-2.5 accent-primary" checked={autoRedesignOnLoad} onChange={(e) => setAutoRedesignOnLoad(e.target.checked)} />
         {t("diversitySections.autoRedesignOnLoad")}
+        <InlineHelp text={t("diversitySections.autoRedesignOnLoadHelp")} />
       </label>
       <label className="flex items-center gap-1.5 cursor-pointer">
         <input type="checkbox" className="h-2.5 w-2.5 accent-primary" checked={saveCache} onChange={(e) => setSaveCache(e.target.checked)} />
         {t("diversitySections.savePipelineCache")}
+        <InlineHelp text={t("diversitySections.savePipelineCacheHelp")} />
       </label>
     </div>
   );
@@ -575,7 +591,12 @@ export function BenchmarkSection(props: {
 
   return (
     <div className="ml-2 mt-2 space-y-1 border-l-2 border-transparent pl-3 text-caption text-muted-foreground">
-      <div className="font-semibold uppercase tracking-wide text-muted-foreground/60">{t("diversitySections.benchmarkSectionLabel")}</div>
+      <div className="font-semibold uppercase tracking-wide text-muted-foreground/60">
+        <span className="inline-flex items-center gap-1.5">
+          {t("diversitySections.benchmarkSectionLabel")}
+          <HelpTip>{t("diversitySections.benchmarkSectionHelp")}</HelpTip>
+        </span>
+      </div>
       <div className="flex items-center gap-2">
         <span className="w-20">{t("diversitySections.topPercentile")}</span>
         <input
@@ -588,6 +609,7 @@ export function BenchmarkSection(props: {
           onChange={(e) => setBenchmarkTopPercentile(Number(e.target.value))}
         />
         <span>%</span>
+        <InlineHelp text={t("diversitySections.topPercentileHelp")} />
       </div>
       <div className="flex items-center gap-2">
         <span className="w-20">{t("diversitySections.randomTrials")}</span>
@@ -600,6 +622,7 @@ export function BenchmarkSection(props: {
           value={benchmarkRandomTrials}
           onChange={(e) => setBenchmarkRandomTrials(Number(e.target.value))}
         />
+        <InlineHelp text={t("diversitySections.randomTrialsHelp")} />
       </div>
       <div className="flex items-center gap-2">
         <span className="w-20">{t("diversitySections.randomSeed")}</span>
@@ -614,6 +637,7 @@ export function BenchmarkSection(props: {
           }}
         />
         <HelpTip>{t("diversitySections.randomSeedHelp")}</HelpTip>
+        <InlineHelp text={t("diversitySections.benchmarkRandomSeedHelp")} />
       </div>
       <button
         type="button"

@@ -209,7 +209,10 @@
       "minFilteredDepthTitle": "기본 depth cutoff. length-window filter를 통과한 read 수 기준.",
       "minFilteredDepthFootnote": "Length-window-filtered read count. ONT R10.4.1 consensus: Q35+ ~15x. KB cutoff와 1:1 자동 변환되지 않습니다.",
       "legacyKbHelp": "FASTA 파일 크기를 read depth의 대리값으로 쓰는 기존 cutoff입니다. 압축률, 길이 분포, 라이브러리 변동에 영향받습니다.",
-      "legacyKbTooltip": "파일 크기 기반 proxy cutoff. 압축률, 길이 분포, 라이브러리 변동에 영향받음. 보조 참고용."
+      "legacyKbTooltip": "파일 크기 기반 proxy cutoff. 압축률, 길이 분포, 라이브러리 변동에 영향받음. 보조 참고용.",
+      "modeHelp": "분석 모드: amplicon(선형 PCR 산물) 또는 plasmid(원형). 전체 벡터 consensus는 plasmid 선택.",
+      "ingestHelp": "Ingest 레이아웃: barcode(well별 분리) 또는 amplicon(단일 read 집합).",
+      "inputSourceHelp": "입력 소스: consensus(이미 계산됨), sorted_barcode(well별 FASTQ), raw_run(MinKNOW run 폴더)."
     },
     "barcodeSetup": {
       "title": "바코드 패키지 설정",
@@ -253,7 +256,16 @@
         "readError": "Reference 파일 읽기 실패"
       },
       "cdsCandidate": "CDS / ORF 후보:",
-      "cdsCandidateNoneDetected": "CDS를 감지하지 못했습니다. 좌표를 수동으로 입력하세요."
+      "cdsCandidateNoneDetected": "CDS를 감지하지 못했습니다. 좌표를 수동으로 입력하세요.",
+      "cdsCandidateHelp": "FASTA에서 자동 감지된 CDS 후보. 선택 시 좌표가 자동 입력됨.",
+      "geneNameHelp": "출력 파일명/라벨에 사용되는 짧은 gene 식별자(예: ispS).",
+      "polymeraseHelp": "기본 Tm/binding 제약을 정하는 polymerase profile. 고정밀 PCR은 Q5 권장.",
+      "geneStartHelp": "CDS 시작 좌표 (0-based, inclusive).",
+      "geneEndHelp": "CDS 종료 좌표 (0-based, exclusive).",
+      "flankMinHelp": "barcode primer 탐색용 CDS 양옆 flank 최소 길이(nt). 기본 100.",
+      "flankMaxHelp": "flank 최대 길이(nt). 클수록 후보는 많아지나 탐색이 느려짐.",
+      "bindingMinLenHelp": "primer binding 최소 길이(nt). 안정적 PCR은 18-22 권장.",
+      "bindingMaxLenHelp": "primer binding 최대 길이(nt). 35 초과 시 secondary structure 위험 증가."
     },
     "activity": {
       "ingest": {
@@ -831,7 +843,18 @@
     "seedTitle": "선택적 정수 시드입니다. 백엔드에 전달되어 실행 매니페스트에 기록됩니다 (백엔드 연동 예정).",
     "seedAriaLabel": "랜덤 시드 (선택 사항)",
     "seedFixed": "고정: {{seed}}",
-    "seedAuto": "자동"
+    "seedAuto": "자동",
+    "tmPrimerHelp": "대칭형 full-overlap primer 목표 Tm(°C). 기본 62.",
+    "tmFwdHelp": "partial-overlap 모드에서 forward primer 목표 Tm(°C). 낮을수록 mismatch 허용 증가.",
+    "tmRevHelp": "reverse primer 목표 Tm(°C). 균형 잡힌 PCR은 tmFwd와 근접 권장.",
+    "tmOverlapHelp": "두 primer 간 overlap 영역의 목표 Tm(°C).",
+    "gcRangeHelp": "primer 영역 허용 GC content 범위(%). 권장 40-60.",
+    "primerLenLimitHelp": "primer 길이 제한 토글. off 시 Tm 단독 최적화로 길이 자유.",
+    "primerLenFwdHelp": "forward primer 길이 범위(nt). 기본 17-39이 대부분 SDM 케이스 포괄.",
+    "primerLenRevHelp": "reverse primer 길이 범위(nt). 기본 19-27.",
+    "autoRescueHelp": "1차 실패 mutation을 완화된 제약으로 2차 시도하여 자동 채움.",
+    "seedHelp": "재현 가능한 primer 순위용 random seed. 비우면 자동(시간 기반).",
+    "tmSectionHelp": "Tm 목표값은 engine이 primer 안정성과 선택성을 균형 잡는 기준."
   },
   "designReport": {
     "title": "디자인 보고서",
@@ -941,7 +964,22 @@
     "randomSeed": "랜덤 시드",
     "randomSeedHelp": "빈칸이면 매번 새로운 무작위값을 사용합니다. 시드를 설정하면 무작위 기준선 비교를 정확히 재현할 수 있습니다.",
     "runBenchmark": "Benchmark 실행",
-    "runBenchmarkBusy": "실행 중..."
+    "runBenchmarkBusy": "실행 중...",
+    "evolveproRoundHelp": "적응형 primer 선택용 EVOLVEpro round 번호.",
+    "roundSizeHelp": "라운드당 primer 개수(1-960). 96의 배수는 plate 용량과 정합.",
+    "overlapHelp": "인접 domain이 잔기 공유 시 overlap 정책.",
+    "minQuotaHelp": "domain별 최소 primer 할당(0-20). 각 domain 대표성 보장.",
+    "poolKLabelHelp": "Pool-K 다양성 가중치 목표. 자동값은 서열 특성에서 유도.",
+    "entropyWeightHelp": "entropy-guided primer 선택 vs 순수 다양성 가중치(0-1).",
+    "autoRedesignOnLoadHelp": "workspace 로드 시 primer design 자동 재실행.",
+    "savePipelineCacheHelp": "재실행 가속을 위해 파이프라인 중간 결과를 디스크에 저장.",
+    "topPercentileHelp": "primer 채점 benchmark 상위 백분위(1-100) 컷오프.",
+    "randomTrialsHelp": "benchmark용 random baseline 시행 횟수(1-1000). 클수록 안정.",
+    "benchmarkRandomSeedHelp": "benchmark 재현성용 random seed. 비우면 자동.",
+    "linkerLabelHelp": "primer 탐색 중 알려진 linker 영역 처리 방식.",
+    "positionCapLabelHelp": "잔기 위치당 최대 primer 수(1-20). 과대 대표 방지.",
+    "roundSectionHelp": "EVOLVEpro round는 적응형 선택을 통한 반복적 primer 배치 제어.",
+    "benchmarkSectionHelp": "benchmark는 설계된 primer와 random baseline을 비교하여 품질 향상도 추정."
   },
   "candidatePopover": {
     "reviewHeading": "후보 검토",
@@ -1299,7 +1337,8 @@
     "topNOnly": "Top-N만",
     "topNVariantsTitle": "y_pred 기준 Top-N 변이 (편집 가능)",
     "variantsLoaded": "{{count}}개 변이 불러옴",
-    "topNZeroHint": "top-N을 0으로 두면 CSV의 모든 변이를 불러옵니다"
+    "topNZeroHint": "top-N을 0으로 두면 CSV의 모든 변이를 불러옵니다",
+    "mutationsHelp": "HGVS 또는 단순 형식 mutation(예: A123V, L45*). 줄 단위 또는 콤마 구분."
   },
   "offTargetDetail": {
     "closeAriaLabel": "닫기",
@@ -1347,7 +1386,8 @@
     "uniprotBlastInProgress": "UniProt BLAST 검색 중… (완료 후 Step 2 사용 가능)",
     "ecoliTitle": "Escherichia coli K-12 코돈 사용 빈도표. E. coli BL21, DH5α, K-12 계열에서 발현 시 사용.",
     "bsubtilisTitle": "Bacillus subtilis 168 코돈 사용 빈도표. B. subtilis 또는 관련 그람 양성 숙주에서 발현 시 사용.",
-    "scerevisiaeTitle": "Saccharomyces cerevisiae 코돈 사용 빈도표. 출아 효모 숙주에서 발현 시 사용."
+    "scerevisiaeTitle": "Saccharomyces cerevisiae 코돈 사용 빈도표. 출아 효모 숙주에서 발현 시 사용.",
+    "sequenceFileHelp": "primer design template으로 사용되는 참조 서열 파일(.fasta/.gb)."
   },
   "uniprotSearch": {
     "autoSearchBtn": "자동 검색",
