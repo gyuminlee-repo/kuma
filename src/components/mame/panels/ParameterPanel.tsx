@@ -397,7 +397,10 @@ export function ParameterPanel() {
             htmlFor="mode-select"
             className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
           >
-            {t("mame.parameters.mode")}
+            <span className="inline-flex items-center gap-1.5">
+              {t("mame.parameters.mode")}
+              <InlineHelp text={t("mame.parameters.modeHelp")} />
+            </span>
           </Label>
           <Select
             value={mode}
@@ -422,7 +425,10 @@ export function ParameterPanel() {
               htmlFor="ingest-mode-select"
               className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
             >
-              {t("mame.parameters.ingest")}
+              <span className="inline-flex items-center gap-1.5">
+                {t("mame.parameters.ingest")}
+                <InlineHelp text={t("mame.parameters.ingestHelp")} />
+              </span>
             </Label>
             <Select
               value={ingestMode}
@@ -447,7 +453,10 @@ export function ParameterPanel() {
             htmlFor="input-mode-select"
             className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
           >
-            {t("mame.parameters.inputSource")}
+            <span className="inline-flex items-center gap-1.5">
+              {t("mame.parameters.inputSource")}
+              <InlineHelp text={t("mame.parameters.inputSourceHelp")} />
+            </span>
           </Label>
           <Select
             value={inputMode}
