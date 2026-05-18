@@ -2,7 +2,8 @@
 // Assumptions:
 // - Echo source plate is 384-well. Well code format "<RowLetter><2-digit col>" e.g. "A01".."P24".
 // - Rows alternate fwd/rev: A(idx 0)=fwd, B(idx 1)=rev, ... P(idx 15)=rev. isFwd = rowIndex % 2 === 0.
-// - Janus uses 96-well racks (A1..H12). asp_posi populates rack 1 (source), dsp_posi populates rack 2 (dest).
+// - Janus uses 96-well racks (A1..H12). Row's asp_rack value (1 or 2) determines target rack;
+//   rack 1 = forward primer source, rack 2 = reverse primer source. Other asp_rack values are skipped.
 
 export interface EchoCell {
   well: string;
@@ -80,24 +81,19 @@ export function adaptJanusRows(rows: JanusDryRunRow[]): {
   const rack1: JanusCell[] = [];
   const rack2: JanusCell[] = [];
   for (const r of rows) {
-    const asp = parseWell(r.asp_posi);
-    rack1.push({
+    if (r.asp_rack !== 1 && r.asp_rack !== 2) continue;
+    const { rowLetter, colNumber } = parseWell(r.asp_posi);
+    if (!rowLetter) continue;
+    const cell: JanusCell = {
       well: r.asp_posi,
-      rowLetter: asp.rowLetter,
-      colNumber: asp.colNumber,
-      rack: 1,
+      rowLetter,
+      colNumber,
+      rack: r.asp_rack === 1 ? 1 : 2,
       name: r.name,
       volumeUl: r.volume,
-    });
-    const dsp = parseWell(r.dsp_posi);
-    rack2.push({
-      well: r.dsp_posi,
-      rowLetter: dsp.rowLetter,
-      colNumber: dsp.colNumber,
-      rack: 2,
-      name: r.name,
-      volumeUl: r.volume,
-    });
+    };
+    if (r.asp_rack === 1) rack1.push(cell);
+    else rack2.push(cell);
   }
   return { rack1, rack2 };
 }
