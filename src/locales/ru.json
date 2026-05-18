@@ -742,7 +742,8 @@
     "loading": "загрузка...",
     "openFolder": "Открыть папку",
     "retry": "повторить",
-    "browse": "Обзор"
+    "browse": "Обзор",
+    "tip": "Совет"
   },
   "globalAppBar": {
     "navAriaLabel": "Навигация приложения",

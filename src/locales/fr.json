@@ -742,7 +742,8 @@
     "loading": "chargement...",
     "openFolder": "Ouvrir le dossier",
     "retry": "réessayer",
-    "browse": "Parcourir"
+    "browse": "Parcourir",
+    "tip": "Astuce"
   },
   "globalAppBar": {
     "navAriaLabel": "Navigation de l'application",

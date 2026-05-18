@@ -757,7 +757,8 @@
     "loading": "loading...",
     "openFolder": "Open folder",
     "retry": "retry",
-    "browse": "Browse"
+    "browse": "Browse",
+    "tip": "Tip"
   },
   "exportPreview": {
     "title": "Mapping Preview",
@@ -766,7 +767,11 @@
     "echoTab": "Echo 525 (384-well)",
     "janusTab": "JANUS (96-well x 2)",
     "rack1Label": "Rack 1 (Forward primers)",
-    "rack2Label": "Rack 2 (Destination)"
+    "rack2Label": "Rack 2 (Destination)",
+    "legend": "Color legend",
+    "legendForward": "Forward primer (Echo source / Janus Rack 1)",
+    "legendReverse": "Reverse primer (Echo source row)",
+    "legendDest": "Destination (Janus Rack 2 / Echo dest)"
   },
   "globalAppBar": {
     "navAriaLabel": "Application navigation",

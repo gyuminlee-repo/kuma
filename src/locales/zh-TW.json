@@ -742,7 +742,8 @@
     "loading": "載入中...",
     "openFolder": "開啟資料夾",
     "retry": "重試",
-    "browse": "瀏覽"
+    "browse": "瀏覽",
+    "tip": "提示"
   },
   "globalAppBar": {
     "navAriaLabel": "應用導航",

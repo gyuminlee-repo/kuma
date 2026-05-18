@@ -742,7 +742,8 @@
     "loading": "cargando...",
     "openFolder": "Abrir carpeta",
     "retry": "reintentar",
-    "browse": "Explorar"
+    "browse": "Explorar",
+    "tip": "Consejo"
   },
   "globalAppBar": {
     "navAriaLabel": "Navegación de la aplicación",

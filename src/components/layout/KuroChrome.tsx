@@ -155,7 +155,7 @@ export function KuroWorkflowRail() {
       progressPercent={progressPercent}
       steps={steps}
       sideCard={{
-        title: "Tip",
+        title: t("common.tip"),
         body: t(sideCardBodyKey),
       }}
       onStepClick={(idx) => {

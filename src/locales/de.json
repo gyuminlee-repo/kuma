@@ -742,7 +742,8 @@
     "loading": "lade...",
     "openFolder": "Ordner öffnen",
     "retry": "wiederholen",
-    "browse": "Durchsuchen"
+    "browse": "Durchsuchen",
+    "tip": "Tipp"
   },
   "globalAppBar": {
     "navAriaLabel": "Anwendungs-Navigation",

@@ -757,7 +757,8 @@
     "loading": "불러오는 중...",
     "openFolder": "폴더 열기",
     "retry": "재시도",
-    "browse": "찾아보기"
+    "browse": "찾아보기",
+    "tip": "팁"
   },
   "exportPreview": {
     "title": "매핑 미리보기",
@@ -766,7 +767,11 @@
     "echoTab": "Echo 525 (384-well)",
     "janusTab": "JANUS (96-well x 2)",
     "rack1Label": "Rack 1 (Forward 프라이머)",
-    "rack2Label": "Rack 2 (Destination)"
+    "rack2Label": "Rack 2 (Destination)",
+    "legend": "색상 범례",
+    "legendForward": "Forward 프라이머 (Echo source / Janus Rack 1)",
+    "legendReverse": "Reverse 프라이머 (Echo source row)",
+    "legendDest": "Destination (Janus Rack 2 / Echo dest)"
   },
   "globalAppBar": {
     "navAriaLabel": "앱 내비게이션",

@@ -742,7 +742,8 @@
     "loading": "carregando...",
     "openFolder": "Abrir pasta",
     "retry": "tentar novamente",
-    "browse": "Procurar"
+    "browse": "Procurar",
+    "tip": "Dica"
   },
   "globalAppBar": {
     "navAriaLabel": "Navegação do aplicativo",
