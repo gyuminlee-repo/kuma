@@ -747,6 +747,15 @@
     "retry": "retry",
     "browse": "Browse"
   },
+  "exportPreview": {
+    "title": "Mapping Preview",
+    "loading": "Loading preview...",
+    "empty": "No mapping to preview. Design primers first.",
+    "echoTab": "Echo 525 (384-well)",
+    "janusTab": "JANUS (96-well x 2)",
+    "rack1Label": "Rack 1 (Forward primers)",
+    "rack2Label": "Rack 2 (Destination)"
+  },
   "globalAppBar": {
     "navAriaLabel": "Application navigation",
     "tabsAriaLabel": "Application tabs",

@@ -747,6 +747,15 @@
     "retry": "재시도",
     "browse": "찾아보기"
   },
+  "exportPreview": {
+    "title": "매핑 미리보기",
+    "loading": "미리보기 로딩 중...",
+    "empty": "미리보기 없음. 먼저 프라이머를 디자인하세요.",
+    "echoTab": "Echo 525 (384-well)",
+    "janusTab": "JANUS (96-well x 2)",
+    "rack1Label": "Rack 1 (Forward 프라이머)",
+    "rack2Label": "Rack 2 (Destination)"
+  },
   "globalAppBar": {
     "navAriaLabel": "앱 내비게이션",
     "tabsAriaLabel": "앱 탭",
