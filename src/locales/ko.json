@@ -1335,6 +1335,7 @@
     "mutationsFailed": "({{count}}개 실패)",
     "mutationsValidated": "({{count}}개 검증됨)",
     "noFileSelected": "파일 선택 없음",
+    "loadSample": "Load sample",
     "pipeline": "파이프라인",
     "pipelineDesc": "(단계별 필터링)",
     "selectionMode": "선택 모드",

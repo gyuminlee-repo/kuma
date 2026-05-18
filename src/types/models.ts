@@ -585,6 +585,8 @@ export interface RpcMethodMap {
       echo_transfer_vol?: number;
       janus_transfer_vol?: number;
       bom?: boolean;
+      mappings?: PlateMapping[];
+      dedup_info?: Record<string, string[]>;
     };
     result: {
       success: string[];

@@ -164,7 +164,7 @@ def _manifest_path_for(output_path: Path) -> Path:
     return output_path.parent / (output_path.stem + ".run.json")
 
 
-def handle_get_plate_map(_params: dict) -> dict:
+def handle_get_plate_map(_params: dict) -> dict:  # noqa: ARG001
     """Return the plate map from last design."""
     with _core._state_lock:
         if not _core._state.results:
@@ -300,9 +300,9 @@ def handle_export_order(params: dict) -> dict:
 
     encoding = "utf-8-sig" if p.bom else "utf-8"
     if p.format == "idt":
-        export_idt_csv(results, resolved, encoding=encoding)
+        export_idt_csv(results, resolved, encoding=encoding)  # pyright: ignore[reportArgumentType]
     else:
-        export_twist_csv(results, resolved, encoding=encoding)
+        export_twist_csv(results, resolved, encoding=encoding)  # pyright: ignore[reportArgumentType]
 
     finished_at = datetime.now(timezone.utc)
 
@@ -356,7 +356,7 @@ def handle_export_mapping(params: dict) -> dict:
 
     encoding = "utf-8-sig" if p.bom else "utf-8"
     if p.format == "echo":
-        vol = _resolve_mapping_transfer_volume(p.format, p.transfer_vol)
+        vol = int(_resolve_mapping_transfer_volume(p.format, p.transfer_vol))
         if use_xlsx:
             export_echo_mapping_xlsx(fwd_mappings, rev_mappings, resolved,
                                      transfer_vol=vol, rev_groups=rev_groups)

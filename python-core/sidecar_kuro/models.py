@@ -698,6 +698,8 @@ class ExportAllParams(BaseModel):
     echo_transfer_vol: int = Field(default=100, ge=25, le=500)
     janus_transfer_vol: float = Field(default=2.0, ge=0.5, le=10.0)
     bom: bool = False
+    mappings: Optional[list[PlateMappingItem]] = None
+    dedup_info: Optional[dict[str, list[str]]] = None
 
     @field_validator("fwd_plate_name", "rev_plate_name")
     @classmethod

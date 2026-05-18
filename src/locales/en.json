@@ -1381,6 +1381,7 @@
     "mutations": "Mutations",
     "mutationInputAriaLabel": "Mutation input source",
     "noFileSelected": "No file selected",
+    "loadSample": "Load sample",
     "variantsLoaded": "{{count}} variants loaded",
     "selectionMode": "Selection mode",
     "topNOnly": "Top-N only",

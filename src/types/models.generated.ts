@@ -411,13 +411,29 @@ export interface ExcludedRange {
 export interface ExportAllParams {
   amount?: "0.05" | "0.2";
   bom?: boolean;
+  dedup_info?: {
+    [k: string]: string[];
+  } | null;
   echo_transfer_vol?: number;
   fwd_plate_name?: string;
   janus_transfer_vol?: number;
+  mappings?: PlateMappingItem[] | null;
   output_dir: string;
   project_id?: string | null;
   purification?: "MOPC";
   rev_plate_name?: string;
+  [k: string]: unknown;
+}
+export interface PlateMappingItem {
+  mt_codon?: string | null;
+  mutation: string;
+  primer_name: string;
+  primer_type: string;
+  sequence: string;
+  tm?: number | null;
+  tm_overlap?: number | null;
+  well: string;
+  wt_codon?: string | null;
   [k: string]: unknown;
 }
 export interface ExportBenchmarkCsvParams {
@@ -439,18 +455,6 @@ export interface ExportExcelParams {
   project_id?: string | null;
   report_data?: unknown;
   rescued_info?: RescuedMutationModel[] | null;
-  [k: string]: unknown;
-}
-export interface PlateMappingItem {
-  mt_codon?: string | null;
-  mutation: string;
-  primer_name: string;
-  primer_type: string;
-  sequence: string;
-  tm?: number | null;
-  tm_overlap?: number | null;
-  well: string;
-  wt_codon?: string | null;
   [k: string]: unknown;
 }
 /**

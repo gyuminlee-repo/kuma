@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { resolveResource } from "@tauri-apps/api/path";
 import { useAppStore } from "../../../store/appStore";
 import { basename } from "../../../lib/utils";
 import { browseFile } from "../../../lib/file-utils";
@@ -119,6 +120,22 @@ export function MutationInput() {
               className="flex-shrink-0"
             >
               Browse
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                try {
+                  const path = await resolveResource("samples/sample_evolvepro.csv");
+                  setUserOverridden(true);
+                  await loadEvolveproCsv(path);
+                } catch {
+                  // inputSlice statusMessage surfaces errors
+                }
+              }}
+              className="flex-shrink-0"
+            >
+              {t("mutationInput.loadSample")}
             </Button>
             <span className="self-center truncate text-xs text-muted-foreground">
               {evolveproCsvPath ? basename(evolveproCsvPath) : t("mutationInput.noFileSelected")}

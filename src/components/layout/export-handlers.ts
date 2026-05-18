@@ -9,6 +9,7 @@ import {
 import { MIGRATE_DIALOG_CLOSED } from "../dialogs/WorkspaceMigrateDialog";
 import { revealInOSFolder } from "../../lib/openFolder";
 import { fileExists, requestOverwriteConfirm } from "../../lib/overwriteConfirm";
+import { getSortedMutations, reorderMappings } from "../../lib/plate-utils";
 import { toast } from "sonner";
 
 /**
@@ -176,6 +177,29 @@ export async function handleExportAll(
     return null;
   }
   try {
+    // Mirror exportExcel: pass UI-capped mappings so Export All respects
+    // maxPrimers cap (frontend designResults is the source of truth, backend
+    // state may contain uncapped plate_mappings).
+    const state = useAppStore.getState();
+    const { designResults, plateMappings, dedupInfo, tableSorting } = state;
+    const sortedMuts = getSortedMutations(designResults, tableSorting, {
+      yPredMap: state.yPredMap,
+      customCandidates: state.customCandidates,
+    });
+    const ordered = reorderMappings(plateMappings, dedupInfo, sortedMuts);
+    const resultByMut = new Map(designResults.map((r) => [r.mutation, r]));
+    const enriched = ordered.map((m) => {
+      const r = resultByMut.get(m.mutation);
+      if (!r) return m;
+      return {
+        ...m,
+        tm: m.primer_type === "forward" ? r.tm_no_fwd : r.tm_no_rev,
+        tm_overlap: r.tm_overlap,
+        wt_codon: r.wt_codon,
+        mt_codon: r.mt_codon,
+      };
+    });
+
     const result = (await sendRequest("export_all", {
       project_id: params.projectId,
       output_dir: dir,
@@ -185,6 +209,8 @@ export async function handleExportAll(
       echo_transfer_vol: params.echoTransferVol,
       janus_transfer_vol: params.janusTransferVol,
       bom: params.bom,
+      mappings: enriched,
+      dedup_info: dedupInfo,
     })) as { success: string[]; failed: { path: string; reason: string }[]; output_dir: string };
 
     const successCount = result.success?.length ?? 0;
