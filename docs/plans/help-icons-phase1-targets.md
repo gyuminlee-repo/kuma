@@ -1,5 +1,7 @@
 # Phase 1 Help-Icon Targets (40)
 
+> **Status: completed** (Phase 1 구현 머지 PR #13, v0.9.9.1)
+
 **작성**: 2026-05-18 (Phase P2-T0, Task 0 인벤토리)
 
 ## 인벤토리 도출 과정

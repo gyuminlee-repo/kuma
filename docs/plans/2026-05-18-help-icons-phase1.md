@@ -1,5 +1,7 @@
 # ? Help Icons Phase 1 구현 계획
 
+> **Status: completed** (구현 머지 PR #13, v0.9.9.1)
+
 **목표:** kuro/mame 핵심 파라미터·섹션에 ? 도움말 아이콘 ~40개 추가 (en + ko)
 
 **아키텍처:** 기존 `src/components/ui/InlineHelp.tsx` 100% 재사용. 컴포넌트 신규 0. Label 옆에 `<InlineHelp text={t("...Help")} />` 패턴 반복. i18n 키만 80개(40 × 2 언어) 추가.
