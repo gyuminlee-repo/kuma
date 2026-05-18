@@ -14,6 +14,8 @@ import {
 } from "@/lib/echoJanusAdapter";
 import { EchoPlateView } from "./EchoPlateView";
 import { JanusPlateView } from "./JanusPlateView";
+import { PlateLegendsPanel } from "./PlateLegendsPanel";
+import { useAppStore } from "@/store/appStore";
 
 interface EchoDryRunResult {
   rows: EchoDryRunRow[];
@@ -52,6 +54,7 @@ export function ExportPlatePreview() {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const designResults = useAppStore((s) => s.designResults);
 
   const load = useCallback(async (): Promise<void> => {
     setLoading(true);
@@ -72,7 +75,7 @@ export function ExportPlatePreview() {
 
   useEffect(() => {
     void load();
-  }, [load]);
+  }, [load, designResults]);
 
   if (error) {
     return (
@@ -113,6 +116,7 @@ export function ExportPlatePreview() {
         <CardTitle>{t("exportPreview.title")}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
+        <PlateLegendsPanel />
         <Tabs value={view} onValueChange={(v) => setView(v as View)}>
           <TabsList>
             <TabsTrigger value="echo">{t("exportPreview.echoTab")}</TabsTrigger>
