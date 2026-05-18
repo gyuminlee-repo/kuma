@@ -1868,7 +1868,7 @@
         "summary": "Revise os resultados do design, estatísticas e layout da placa."
       },
       "export": {
-        "all": "Exporte os pedidos de primers para CSV IDT/Twist ou FASTA."
+        "all": "Exporta plate XLS compatível com Macrogen junto com FASTA, Echo CSV, JANUS CSV e plate map XLSX em um único lote."
       }
     },
     "mameDescriptions": {

@@ -1868,7 +1868,7 @@
         "summary": "查看設計結果、統計資料和板佈局。"
       },
       "export": {
-        "all": "將 primer 訂單匯出為 IDT/Twist CSV 或 FASTA。"
+        "all": "一次匯出 Macrogen 相容 plate XLS、FASTA、Echo CSV、JANUS CSV 與 plate map XLSX。"
       }
     },
     "mameDescriptions": {

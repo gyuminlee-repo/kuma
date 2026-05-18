@@ -1868,7 +1868,7 @@
         "summary": "Examinez les résultats de conception, les statistiques et la disposition de la plaque."
       },
       "export": {
-        "all": "Exportez les commandes de primers en CSV IDT/Twist ou FASTA."
+        "all": "Exporte un plate XLS compatible Macrogen avec FASTA, Echo CSV, JANUS CSV et plate map XLSX en un lot."
       }
     },
     "mameDescriptions": {

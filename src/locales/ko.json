@@ -1930,7 +1930,7 @@
         "submit": "변이체 풀 필터를 선택한 후 프라이머 설계를 실행합니다."
       },
       "export": {
-        "all": "프라이머 주문을 IDT/Twist CSV 또는 FASTA로 내보냅니다."
+        "all": "Macrogen 호환 plate XLS와 FASTA, Echo CSV, JANUS CSV, plate map XLSX를 한 번에 내보냅니다."
       },
       "output": {
         "summary": "설계 결과, 통계 및 플레이트 레이아웃을 검토합니다."

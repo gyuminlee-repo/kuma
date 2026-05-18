@@ -1930,7 +1930,7 @@
         "submit": "Select variant pool filters, then run primer design."
       },
       "export": {
-        "all": "Export primer orders as IDT/Twist CSV or FASTA."
+        "all": "Export Macrogen-compatible plate XLS plus FASTA, Echo CSV, JANUS CSV, and a plate map XLSX in one batch."
       },
       "output": {
         "summary": "Review design results, statistics, and plate layout."

@@ -1868,7 +1868,7 @@
         "summary": "設計結果、統計、プレートレイアウトを確認します。"
       },
       "export": {
-        "all": "Primer 注文書を IDT/Twist CSV または FASTA に書き出します。"
+        "all": "Macrogen 互換の plate XLS、FASTA、Echo CSV、JANUS CSV、plate map XLSX を一括出力します。"
       }
     },
     "mameDescriptions": {

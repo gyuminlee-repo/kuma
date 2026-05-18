@@ -1868,7 +1868,7 @@
         "summary": "Просмотрите результаты design, статистику и layout plate."
       },
       "export": {
-        "all": "Экспортируйте заказы primer в CSV IDT/Twist или FASTA."
+        "all": "Экспортирует Macrogen-совместимый plate XLS, FASTA, Echo CSV, JANUS CSV и plate map XLSX одним пакетом."
       }
     },
     "mameDescriptions": {
