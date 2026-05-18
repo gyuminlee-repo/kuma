@@ -776,10 +776,19 @@ def handle_export_all(params: dict) -> dict:
         raise ValueError(f"output_dir exists but is not a directory: {out_dir}")
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    with _core._state_lock:
-        mappings = list(_core._state.plate_mappings)
-        results = list(_core._state.results)
-        rev_groups = dict(_core._state.dedup_info or {})
+    if p.mappings:
+        mappings = _pydantic_to_plate_mappings(p.mappings)
+        rev_groups = dict(p.dedup_info or {})
+        # Filter backend results to only those present in frontend mappings
+        # so capped designs (e.g. maxPrimers=95) export the capped set.
+        mut_keys = {m.mutation for m in mappings}
+        with _core._state_lock:
+            results = [r for r in _core._state.results if r.mutation.raw in mut_keys]
+    else:
+        with _core._state_lock:
+            mappings = list(_core._state.plate_mappings)
+            results = list(_core._state.results)
+            rev_groups = dict(_core._state.dedup_info or {})
 
     fwd, rev = _split_fwd_rev(mappings)
 
