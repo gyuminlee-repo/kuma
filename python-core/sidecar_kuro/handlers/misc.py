@@ -28,6 +28,8 @@ _POLYMERASE_META = {
     "Taq": {"manufacturer": "Various", "fidelity": "low"},
     "DreamTaq": {"manufacturer": "Thermo", "fidelity": "low"},
     "KOD": {"manufacturer": "Toyobo", "fidelity": "high"},
+    "TAKARA_GXL": {"manufacturer": "Takara", "fidelity": "high"},
+    "Q5 SDM": {"manufacturer": "NEB", "fidelity": "high"},
 }
 
 
