@@ -15,6 +15,10 @@ Post-design summary dialog. Opens automatically after a successful run and via H
 
 ## Use
 
-Gives an auditable record of what the design actually did — useful for lab notebook entries and troubleshooting unexpected plate compositions.
+Gives an auditable record of what the design actually did, useful for lab notebook entries and troubleshooting unexpected plate compositions.
 
-*Stub — report screenshot coming.*
+## Echo / Janus mapping preview
+
+Moved out of this dialog in v0.9.9.0. The mapping preview now lives at the top of the **Export** tab in KURO. See the Export tab preview section for source plate, destination plate, and pick list rendering.
+
+*Stub, report screenshot coming.*

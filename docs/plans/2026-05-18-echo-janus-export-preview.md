@@ -1,5 +1,7 @@
 # Echo/Janus Export Plate Preview 구현 계획
 
+> **Status: completed** (구현 머지 PR #12, v0.9.9.0)
+
 **목표:** KURO Export 탭 메인 최상단에 Echo 384-well + Janus 96-well plate 시각화 추가, Design Report 기존 미리보기 제거
 
 **아키텍처:** 기존 dry-run RPC 응답을 어댑터로 변환해 plate 그리드에 렌더. EchoPlateView(384 신규), JanusPlateView(96 2-rack 신규), ExportPlatePreview(컨테이너)로 분리. 백엔드 무변경.

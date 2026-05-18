@@ -1,5 +1,7 @@
 # 오더 CSV 내보내기
 
+> **공지 (v0.8.4+)**: IDT/Twist export 메뉴 항목은 v0.8.4부터 단일 **Export All** 버튼으로 통합되었습니다. Export All은 Macrogen .xls, FASTA, Echo CSV, JANUS CSV, plate map XLSX, run JSON을 한 번에 출력합니다. 본 페이지는 이전 흐름을 설명하며 재작성 예정입니다. 현재 동작은 `docs/reference/changelog.md` v0.8.4 항목 참조.
+
 File 메뉴 → *Export IDT Order* / *Export Twist Order*.
 
 ## 기본 파일명

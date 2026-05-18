@@ -1,5 +1,7 @@
 # Export — Oligo Order CSVs
 
+> **Notice (v0.8.4+)**: The IDT/Twist export menu items have been replaced by a single **Export All** action that emits Macrogen .xls, FASTA, Echo CSV, JANUS CSV, plate map XLSX, and run JSON in one batch. This page describes the legacy flow and is being rewritten. See `docs/reference/changelog.md` (v0.8.4) for the current behaviour.
+
 File menu → *Export IDT Order* / *Export Twist Order*.
 
 ## Default filename

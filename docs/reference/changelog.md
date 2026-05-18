@@ -1,5 +1,42 @@
 # Changelog
 
+## 주간 업데이트 (2026-05-18)
+
+2026-05-16 부터 2026-05-18 까지 출시된 KUMA v0.9.8.1 ~ v0.9.9.3 주요 변경 사항입니다.
+
+### 신규 기능
+
+- **Home 프로젝트 카드 휴지통 삭제 (v0.9.8.5)**: Home 화면의 최근 프로젝트 카드에서 휴지통 아이콘으로 항목을 제거할 수 있습니다. Rust 측 `remove_recent_project_cmd` 가 인덱스 항목만 지우고 디스크 파일은 보존합니다.
+- **Echo, JANUS 플레이트 미리보기 (v0.9.9.0)**: Design Report 다이얼로그 안에 있던 Echo (384-well) 및 JANUS (96-well, 2 rack) 매핑 미리보기를 KURO Export 탭 상단으로 이전했습니다. `EchoPlateView`, `JanusPlateView`, `ExportPlatePreview` (ToggleGroup) 컴포넌트가 신규 도입되었습니다. 9개 locale 의 Export tooltip 문구도 실제 Macrogen 발주 흐름에 맞춰 갱신되었습니다.
+- **InlineHelp ? 아이콘 1차 도입 (v0.9.9.1)**: KURO 와 MAME 파라미터 입력 약 40 곳에 `InlineHelp` ? 아이콘이 추가되어 각 옵션의 의미를 즉시 확인할 수 있습니다. en/ko 키가 신규 정의되었고, 나머지 8개 언어는 영문 fallback 으로 동작합니다.
+
+### 업데이트
+
+- **MAME Well Grid 단일 선택 (v0.9.8.5)**: `WtWellGrid` 가 다중 선택에서 단일 선택 모드로 변경되었습니다.
+- **KURO 샘플 데이터 96-well 보장 (v0.9.8.5)**: 샘플 데이터를 120개로 확장하고, 디폴트 파라미터로도 96-well 플레이트가 가득 차도록 조정되었습니다.
+- **MAME Step 2.2 Review 정렬 (v0.9.9.2)**: Step 2.2 Review 콘텐츠의 수직 정렬이 다른 단계와 통일되었습니다.
+- **vite 4-part 버전 추출 (v0.9.9.2)**: `vite.config.ts` 가 `git describe` 결과에서 4-part 버전 (예: 0.9.9.2) 을 추출하도록 보강되었습니다.
+- **Polymerase profile 메타데이터 (v0.9.9.3)**: TAKARA_GXL (Takara high) 과 Q5 SDM (NEB high) 두 항목이 polymerase profile 에 추가되었습니다.
+
+### 버그 수정
+
+- **Windows installer sidecar hash 무결성 (v0.9.8.1)**: cross-platform 환경에서 sidecar hash 검증이 재발하던 회귀를 merge mode 및 fail-fast 정책으로 수정했습니다. 동시에 KURO `MajorSubnav` 와 MAME `MameAppLayout` subnav 의 outline *Clear All* 버튼이 복원되었습니다.
+- **sidecar-hashes.json 3 플랫폼 hash 완전 포함 (v0.9.9.2)**: macOS, Windows, Linux 세 플랫폼 hash 가 모두 포함되었습니다. 이전에 남아 있던 conflict marker 가 빌드에 번들되어 Windows installer 가 크래시하던 문제를 수정합니다. v0.9.8.1, 0.9.8.5, 0.9.9.0, 0.9.9.1, 0.9.9.2 git tag 가 새로 생성되었습니다.
+- **JANUS 어댑터 rack 할당 (v0.9.9.3)**: JANUS 어댑터가 `asp_rack` 값 기반으로 분기하도록 P0 수정을 적용하여 spec Project2-2 와 일치시켰습니다.
+
+### 이번 주 출시된 버전
+
+| 버전 | 날짜 | 요약 |
+|---|---|---|
+| v0.9.9.3 | 2026-05-18 | polymerase profile 메타데이터 추가, JANUS rack 할당 fix |
+| v0.9.9.2 | 2026-05-18 | sidecar-hashes.json 3 플랫폼 완전 포함, 4-part 버전 추출, MAME Step 2.2 정렬 |
+| v0.9.9.1 | 2026-05-17 | InlineHelp ? 아이콘 약 40곳 도입 (Phase 1) |
+| v0.9.9.0 | 2026-05-17 | Echo, JANUS 플레이트 미리보기를 Export 탭 상단으로 이전 |
+| v0.9.8.5 | 2026-05-16 | Home 카드 휴지통 삭제, MAME 단일 선택, 96-well 보장 |
+| v0.9.8.1 | 2026-05-16 | Windows installer sidecar hash 회귀 fix, Clear All 복원 |
+
+---
+
 ## 주간 업데이트 — 2026-05-15
 
 이번 주(2026-05-13 ~ 2026-05-15) 출시된 KUMA v0.8.4 → v0.9.6.0 주요 변경 사항입니다.
