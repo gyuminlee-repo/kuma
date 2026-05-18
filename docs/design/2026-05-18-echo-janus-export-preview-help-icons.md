@@ -58,9 +58,13 @@ Echo/Janus dry-run RPC 핸들러는 그대로 유지 (`handle_export_echo_mappin
 
 `src/components/dialogs/DesignReportContent.tsx:405-486` 영역 (Echo + JANUS 두 테이블 + state echoPreview/janusPreview + 자동 RPC 호출 L101-104) 전부 제거. 관련 import 정리.
 
-### KURO Export 탭 진입점
+### KURO Export 탭 진입점 (메인 최상단)
 
-`src/components/inspectors/kuro/ExportInspector.tsx` 우측 inspector 패널에 `<ExportPlatePreview />` 섹션 추가. 기존 정보 표시 영역 아래에 위치.
+`src/components/steps/ExportStepView.tsx:33-36`의 `<div className="space-y-6">` 최상단에 `<ExportPlatePreview />` 삽입. 순서: ExportPlatePreview → ExportFormatSelector → OrderSummary.
+
+근거: Inspector(320px 고정)는 384-well plate(최소 500-700px) 강제 가로 스크롤. 메인 WizardContainer는 maxWidth="4xl"(~896px)로 충분. 사용자 동선 "설정 입력 → mapping 시각화 확인 → Summary → Export" 자연스러움. Output step도 메인에 시각화 두는 일관 패턴.
+
+`src/components/inspectors/kuro/ExportInspector.tsx`는 변경 없음 (정보 표시 전용 유지).
 
 ### 데이터 흐름
 
