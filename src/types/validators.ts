@@ -775,24 +775,6 @@ const rpcResultValidators = {
     typeof value === "object" && value !== null && "settings" in value,
   settings_save: (value): value is RpcMethodResult<"settings_save"> =>
     typeof value === "object" && value !== null && "ok" in value && "path" in value,
-  // EVOLVEpro GUI wrapper (Wave 1b)
-  "evolvepro.detect": (value): value is RpcMethodResult<"evolvepro.detect"> => {
-    if (typeof value !== "object" || value === null) return false;
-    const v = value as Record<string, unknown>;
-    return (
-      typeof v.env_found === "boolean" &&
-      (v.env_path === null || typeof v.env_path === "string") &&
-      (v.evolvepro_version === null || typeof v.evolvepro_version === "string") &&
-      typeof v.weights_cached === "boolean" &&
-      (v.weights_path === null || typeof v.weights_path === "string")
-    );
-  },
-  "evolvepro.run": (value): value is RpcMethodResult<"evolvepro.run"> =>
-    typeof value === "object" && value !== null &&
-    typeof (value as { run_id?: unknown }).run_id === "string",
-  "evolvepro.cancel": (value): value is RpcMethodResult<"evolvepro.cancel"> =>
-    typeof value === "object" && value !== null &&
-    typeof (value as { ok?: unknown }).ok === "boolean",
 } satisfies { [K in RpcMethod]: (value: unknown) => value is RpcMethodResult<K> };
 
 export function getRpcResultValidator<K extends RpcMethod>(

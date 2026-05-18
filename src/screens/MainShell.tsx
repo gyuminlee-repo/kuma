@@ -13,7 +13,6 @@ import { useAutosaveHydration, type HydrationStatusMessage } from "@/hooks/useAu
 import { Spinner } from "@/components/ui/Spinner";
 import { KuroTab } from "./KuroTab";
 import { MameTab } from "./MameTab";
-import { EvolveProPanel } from "@/components/evolvepro/EvolveProPanel";
 import { useAppStore } from "@/store/appStore";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { getActivityStore } from "@/store/mame/activitySlice";
@@ -467,9 +466,6 @@ export function MainShell() {
           </TabsContent>
           <TabsContent value="mame" className="mt-0 h-full overflow-hidden">
             <MameTab />
-          </TabsContent>
-          <TabsContent value="evolvepro" className="mt-0 h-full overflow-auto">
-            <EvolveProPanel />
           </TabsContent>
         </div>
       </Tabs>

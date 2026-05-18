@@ -7,10 +7,6 @@ import sys
 import threading
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from kuma_core.kuro.evolvepro_runner import RunHandle
 
 # ensure kuro package is importable from any working directory
 _SCRIPT_DIR = Path(__file__).parent.parent.resolve()  # python-core/
@@ -106,9 +102,6 @@ class SidecarState:
     ca_coords: list[tuple[float, float, float] | None] | None = None  # AlphaFold Cα coordinates
     ca_coords_accession: str | None = None
     active_design_cancel: threading.Event | None = None
-    # Active EVOLVEpro subprocess runs keyed by run_id. Forward-ref string to
-    # avoid importing kuma_core.kuro.evolvepro_runner at module load time.
-    evolvepro_runs: dict[str, "RunHandle"] = field(default_factory=dict)
 
 
 _state = SidecarState()

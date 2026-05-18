@@ -590,20 +590,6 @@
       ],
       "note": "Sidebar default width calc -> store -> AppShell render alignment",
       "severity": "warning"
-    },
-    {
-      "id": "evolvepro-wrapper",
-      "files": [
-        "python-core/sidecar_kuro/handlers/evolvepro.py",
-        "kuma_core/kuro/evolvepro_runner.py",
-        "src/components/evolvepro/EvolveProPanel.tsx",
-        "src/components/evolvepro/EvolveProRunForm.tsx",
-        "src/store/slices/evolveProSlice.ts",
-        "src/lib/ipc-kuro/index.ts",
-        "src/types/models.ts"
-      ],
-      "note": "EVOLVEpro wrapper cross-layer file group (modify together when changing wrapper API)",
-      "severity": "warning"
     }
   ]
 }

@@ -109,22 +109,3 @@ export async function cancelAndRespawn(): Promise<void> {
 export function isSidecarRunning(): boolean {
   return running;
 }
-
-// EVOLVEpro GUI wrapper (Wave 1b)
-export async function detectEvolveProEnv(): Promise<
-  RpcMethodResult<"evolvepro.detect">
-> {
-  return sendRequest("evolvepro.detect", {}, 15_000);
-}
-
-export async function startEvolveProRun(
-  req: RpcMethodMap["evolvepro.run"]["params"],
-): Promise<RpcMethodResult<"evolvepro.run">> {
-  return sendRequest("evolvepro.run", req, 30_000);
-}
-
-export async function cancelEvolveProRun(
-  run_id: string,
-): Promise<RpcMethodResult<"evolvepro.cancel">> {
-  return sendRequest("evolvepro.cancel", { run_id }, 15_000);
-}
