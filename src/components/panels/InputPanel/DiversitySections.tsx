@@ -301,7 +301,12 @@ export function RoundSettingsSection(props: {
 
   return (
     <div className="ml-2 mt-3 space-y-1.5 border-l-2 border-transparent pl-3 text-caption text-muted-foreground">
-      <div className="font-semibold uppercase tracking-wide text-muted-foreground/60">{t("diversitySections.roundSectionLabel")}</div>
+      <div className="font-semibold uppercase tracking-wide text-muted-foreground/60">
+        <span className="inline-flex items-center gap-1.5">
+          {t("diversitySections.roundSectionLabel")}
+          <HelpTip>{t("diversitySections.roundSectionHelp")}</HelpTip>
+        </span>
+      </div>
       <div className="flex items-center gap-2 flex-wrap">
         <span>{t("diversitySections.evolveproRoundLabel")}</span>
         <input
@@ -575,7 +580,12 @@ export function BenchmarkSection(props: {
 
   return (
     <div className="ml-2 mt-2 space-y-1 border-l-2 border-transparent pl-3 text-caption text-muted-foreground">
-      <div className="font-semibold uppercase tracking-wide text-muted-foreground/60">{t("diversitySections.benchmarkSectionLabel")}</div>
+      <div className="font-semibold uppercase tracking-wide text-muted-foreground/60">
+        <span className="inline-flex items-center gap-1.5">
+          {t("diversitySections.benchmarkSectionLabel")}
+          <HelpTip>{t("diversitySections.benchmarkSectionHelp")}</HelpTip>
+        </span>
+      </div>
       <div className="flex items-center gap-2">
         <span className="w-20">{t("diversitySections.topPercentile")}</span>
         <input
