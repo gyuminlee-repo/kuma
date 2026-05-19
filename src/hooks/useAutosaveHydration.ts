@@ -112,7 +112,7 @@ async function applyKuroSnapshot(snapshot: AutosaveSnapshot): Promise<void> {
 
   // diversity
   if (typeof diversity?.pipeline_mode === "boolean") {
-    store.setPipelineMode(diversity.pipeline_mode);
+    store.setEvolveproMode(diversity.pipeline_mode ? "pipeline" : "topN");
   }
   if (Array.isArray(diversity?.domains) && Array.isArray(diversity?.disabled_domains)) {
     useAppStore.setState({

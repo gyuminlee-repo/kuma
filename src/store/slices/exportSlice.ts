@@ -70,7 +70,6 @@ function normalizeWorkspace(ws: WorkspaceV1 | WorkspaceV2): WorkspaceV2 {
       autoRedesignOnLoad: true,
       saveCache: true,
       organism: legacy.organism,
-      pipelineMode: legacy.pipelineMode,
       positionDiversityEnabled: legacy.positionDiversityEnabled,
       maxPerPosition: legacy.maxPerPosition,
       overlapMode: undefined,
@@ -144,7 +143,7 @@ function buildReportData(state: AppState) {
 
   const sections: Array<{ title: string; items: Array<{ label: string; value: string | number; warn?: boolean }> }> = [];
 
-  if (state.pipelineMode) {
+  if (state.evolveproMode !== "topN") {
     sections.push({
       title: "Pipeline",
       items: [
@@ -453,7 +452,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
         autoRedesignOnLoad: s.autoRedesignOnLoad,
         saveCache: s.saveCache,
         organism: s.organism,
-        pipelineMode: s.pipelineMode,
+        pipelineMode: s.evolveproMode !== "topN",
         positionDiversityEnabled: s.positionDiversityEnabled,
         maxPerPosition: s.maxPerPosition,
         evolveproRound: s.evolveproRound,
@@ -601,7 +600,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       autoRedesignOnLoad: settings.autoRedesignOnLoad ?? true,
       saveCache: settings.saveCache ?? true,
       ...(settings.organism && { organism: settings.organism }),
-      pipelineMode: settings.pipelineMode ?? true,
+      evolveproMode: settings.pipelineMode === false ? "topN" : "pipeline",
       positionDiversityEnabled: settings.positionDiversityEnabled ?? true,
       maxPerPosition: settings.maxPerPosition ?? 1,
       evolveproRound: settings.evolveproRound ?? 1,
@@ -639,7 +638,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       mutationText: "",
       evolveproCsvPath: "",
       yPredMap: {},
-      pipelineMode: true,
+      evolveproMode: "pipeline" as const,
       positionDiversityEnabled: true,
       maxPerPosition: 1,
       domainDiversityEnabled: true,

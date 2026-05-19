@@ -25,7 +25,7 @@ import { useAppStore } from "@/store/appStore";
 const baseState = {
   seqInfo: null,
   mutationInputMode: "text" as const,
-  pipelineMode: false,
+  evolveproMode: "topN" as const,
   evolveproTotalCount: 0,
   parsedMutations: [],
   selectedPolymerase: "Q5",
@@ -53,18 +53,18 @@ describe("DesignSummaryCard (Phase B6)", () => {
     expect(getByText(/1200 nt/)).toBeTruthy();
   });
 
-  it("(b) selection mode reads 'Pipeline (failover)' when pipelineMode=true", () => {
+  it("(b) selection mode reads 'Pipeline (failover)' when evolveproMode=pipeline", () => {
     useAppStore.setState({
-      pipelineMode: true,
+      evolveproMode: "pipeline",
       mutationInputMode: "text",
     } as never);
     const { getByText } = render(<DesignSummaryCard />);
     expect(getByText("Pipeline (failover)")).toBeTruthy();
   });
 
-  it("(b) selection mode reads 'Top-N only' when pipelineMode=false", () => {
+  it("(b) selection mode reads 'Top-N only' when evolveproMode=topN", () => {
     useAppStore.setState({
-      pipelineMode: false,
+      evolveproMode: "topN",
       mutationInputMode: "evolvepro",
     } as never);
     const { getByText } = render(<DesignSummaryCard />);

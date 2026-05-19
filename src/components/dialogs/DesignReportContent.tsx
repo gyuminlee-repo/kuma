@@ -49,7 +49,7 @@ export function DesignReportContent({ onClose }: DesignReportContentProps) {
       designResults: s.designResults,
       failedMutations: s.failedMutations,
       totalCount: s.totalCount,
-      pipelineMode: s.pipelineMode,
+      evolveproMode: s.evolveproMode,
       positionDiversityEnabled: s.positionDiversityEnabled,
       maxPerPosition: s.maxPerPosition,
       domainDiversityEnabled: s.domainDiversityEnabled,
@@ -84,7 +84,7 @@ export function DesignReportContent({ onClose }: DesignReportContentProps) {
     designResults,
     failedMutations,
     totalCount,
-    pipelineMode,
+    evolveproMode,
     positionDiversityEnabled,
     maxPerPosition,
     domainDiversityEnabled,
@@ -168,7 +168,7 @@ export function DesignReportContent({ onClose }: DesignReportContentProps) {
 
       <div className="grid gap-4 md:grid-cols-2">
         {/* Pipeline Summary */}
-        {pipelineMode && (
+        {evolveproMode !== "topN" && (
           <Section title={t("designReport.sectionPipeline")}>
             <Stat
               label={t("designReport.statStep1Filter")}

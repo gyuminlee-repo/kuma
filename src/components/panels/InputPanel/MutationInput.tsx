@@ -32,8 +32,8 @@ export function MutationInput() {
 
   const showArtifactBadge =
     artifact !== null && !userOverridden && artifact.path === evolveproCsvPath;
-  const pipelineMode = useAppStore((s) => s.pipelineMode);
-  const setPipelineMode = useAppStore((s) => s.setPipelineMode);
+  const evolveproMode = useAppStore((s) => s.evolveproMode);
+  const setEvolveproMode = useAppStore((s) => s.setEvolveproMode);
   const evolveproTotalCount = useAppStore((s) => s.evolveproTotalCount);
 
   // Debounced mutation validation
@@ -147,8 +147,8 @@ export function MutationInput() {
                   type="radio"
                   name="selectionMode"
                   className="w-3 h-3"
-                  checked={!pipelineMode}
-                  onChange={() => setPipelineMode(false)}
+                  checked={evolveproMode === "topN"}
+                  onChange={() => setEvolveproMode("topN")}
                 />
                 <span className="text-foreground">{t("mutationInput.topNOnly")}</span>
                 <span className="text-caption text-muted-foreground">{t("mutationInput.topNDesc")}</span>
@@ -161,8 +161,8 @@ export function MutationInput() {
                   type="radio"
                   name="selectionMode"
                   className="w-3 h-3"
-                  checked={pipelineMode}
-                  onChange={() => setPipelineMode(true)}
+                  checked={evolveproMode === "pipeline"}
+                  onChange={() => setEvolveproMode("pipeline")}
                 />
                 <span className="text-foreground">{t("mutationInput.pipeline")}</span>
                 <span className="text-caption text-muted-foreground">{t("mutationInput.pipelineDesc")}</span>

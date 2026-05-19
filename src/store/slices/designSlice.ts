@@ -253,9 +253,9 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       const postFailed = get().failedMutations;
       if (postFailed.length === 0 || get().designResults.length === 0) {
         // nothing to retry
-      } else if (fillOnFailure && get().pipelineMode) {
+      } else if (fillOnFailure && get().evolveproMode !== "topN") {
         await get().cascadeFailedRetry("pipeline-fill");
-      } else if (fillOnFailure && !get().pipelineMode) {
+      } else if (fillOnFailure && get().evolveproMode === "topN") {
         await get().cascadeFailedRetry("topn-fill");
       }
       // fillOnFailure=false: no auto-retry; mutations remain as failed

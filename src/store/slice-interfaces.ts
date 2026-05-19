@@ -17,6 +17,7 @@ import type {
   DomainInfo,
   DomainOverlapPolicy,
   DomainStrategy,
+  EvolveproPreview,
   EvolveproStepStats,
   FailedMutation,
   LinkerHandling,
@@ -36,6 +37,8 @@ import type {
   WorkspaceV3,
 } from "../types/models";
 import type { SettingsBundle } from "../types/models.generated";
+
+export type EvolveproMode = "topN" | "pipeline" | "others";
 
 // ---------------------------------------------------------------------------
 // SequenceSlice
@@ -58,7 +61,6 @@ export interface SequenceSlice {
 // ---------------------------------------------------------------------------
 export interface DiversitySlice {
   // State
-  pipelineMode: boolean;
   positionDiversityEnabled: boolean;
   maxPerPosition: number;
   domainDiversityEnabled: boolean;
@@ -94,7 +96,6 @@ export interface DiversitySlice {
   uniprotSearching: boolean;
 
   // Actions
-  setPipelineMode: (enabled: boolean) => void;
   setPositionDiversityEnabled: (enabled: boolean) => void;
   setMaxPerPosition: (n: number) => void;
   setDomainDiversityEnabled: (enabled: boolean) => void;
@@ -139,6 +140,13 @@ export interface InputSlice {
   evolveproParetoExchanges: number | null;
   evolveproStepStats: EvolveproStepStats | null;
   yPredMap: Record<string, number>;
+  /** EVOLVEpro selection mode: "topN" | "pipeline" | "others" */
+  evolveproMode: EvolveproMode;
+  evolveproVariantColumn: string | null;
+  evolveproScoreColumn: string | null;
+  evolveproScoreOrder: "desc" | "asc";
+  evolveproSheetName: string | null;
+  evolveproPreview: EvolveproPreview | null;
 
   // Actions
   setMutationInputMode: (mode: MutationInputMode) => void;
@@ -146,6 +154,12 @@ export interface InputSlice {
   parseMutations: () => Promise<void>;
   loadEvolveproCsv: (filepath: string, topNOverride?: number) => Promise<void>;
   loadSampleData: () => Promise<void>;
+  setEvolveproMode: (mode: EvolveproMode) => void;
+  setEvolveproVariantColumn: (col: string | null) => void;
+  setEvolveproScoreColumn: (col: string | null) => void;
+  setEvolveproScoreOrder: (order: "desc" | "asc") => void;
+  setEvolveproSheetName: (name: string | null) => void;
+  setEvolveproPreview: (preview: EvolveproPreview | null) => void;
   /**
    * Round handoff hydration.
    * prevRound.merged_table를 필터링하여 EVOLVEpro 형식으로 inputSlice를 hydrate.

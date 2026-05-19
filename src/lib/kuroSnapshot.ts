@@ -14,7 +14,7 @@ export interface KuroSnapshotState
     AppState,
     | "fastaPath" | "selectedGene" | "organism"
     | "mutationText" | "mutationInputMode" | "evolveproCsvPath"
-    | "uniprotAccession" | "pipelineMode" | "domains" | "disabledDomains"
+    | "uniprotAccession" | "evolveproMode" | "domains" | "disabledDomains"
     | "positionDiversityEnabled" | "maxPerPosition"
     | "domainDiversityEnabled" | "domainStrategy" | "domainOverlapPolicy"
     | "linkerHandling" | "domainQuotaMin"
@@ -61,7 +61,7 @@ export function buildKuroSnapshot(state: KuroSnapshotState): AutosaveSnapshot {
       overlap_mode: state.overlapMode,
     },
     diversity: {
-      pipeline_mode: state.pipelineMode,
+      pipeline_mode: state.evolveproMode !== "topN",
       domains: state.domains,
       disabled_domains: state.disabledDomains,
       position_diversity_enabled: state.positionDiversityEnabled,

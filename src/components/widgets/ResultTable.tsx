@@ -42,7 +42,7 @@ export function ResultTable() {
     rescuedMutationDetails,
     removeDesignResult,
     yPredMap,
-    pipelineMode,
+    evolveproMode,
     fillOnFailure,
   } = useAppStore(
     useShallow((s) => ({
@@ -60,13 +60,13 @@ export function ResultTable() {
       rescuedMutationDetails: s.rescuedMutationDetails,
       removeDesignResult: s.removeDesignResult,
       yPredMap: s.yPredMap,
-      pipelineMode: s.pipelineMode,
+      evolveproMode: s.evolveproMode,
       fillOnFailure: s.fillOnFailure,
     })),
   );
 
   const { t } = useTranslation();
-  const failedRetryDisabled = pipelineMode && fillOnFailure;
+  const failedRetryDisabled = evolveproMode !== "topN" && fillOnFailure;
   const failedRetryDisabledHint = t("resultTable.pipelineFillHint");
 
   const [popover, setPopover] = useState<{ mutation: string; current: SdmPrimerResult } | null>(null);
