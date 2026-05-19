@@ -110,8 +110,8 @@ describe("inputSlice.loadSampleData", () => {
 
     await store.slice.loadSampleData()
 
-    expect(resolveResource).toHaveBeenCalledWith("samples/egfp.fa")
-    expect(loadSequence).toHaveBeenCalledWith("/resolved/samples/egfp.fa")
+    expect(resolveResource).toHaveBeenCalledWith("samples/sample_plasmid.gb")
+    expect(loadSequence).toHaveBeenCalledWith("/resolved/samples/sample_plasmid.gb")
     // Item 1: CSV loader is intentionally skipped (CSV is invalid for EGFP).
     expect(loadEvolveproCsv).not.toHaveBeenCalled()
     expect(store.state.mutationInputMode).toBe("text")

@@ -1,7 +1,7 @@
 """End-to-end verification of the LOAD SAMPLE DATA flow.
 
 Exercises the same handlers the frontend invokes via JSON-RPC:
-- handle_load_fasta on samples/egfp.fa (the loadSampleData target since v0.9.9.X)
+- handle_load_fasta on samples/sample_plasmid.gb (the loadSampleData target since v0.10.0.X)
 - handle_load_evolvepro_csv on samples/sample_evolvepro.csv (EGFP-paired)
 
 Verifies the bundled sample data is internally consistent so the Tauri UI
@@ -28,18 +28,23 @@ SAMPLE_DIR = REPO_ROOT / "src-tauri" / "samples"
 
 @pytest.fixture(scope="module")
 def gb_info() -> dict:
-    return handle_load_fasta({"filepath": str(SAMPLE_DIR / "egfp.fa")})
+    return handle_load_fasta({"filepath": str(SAMPLE_DIR / "sample_plasmid.gb")})
 
 
 def test_sample_gb_exists_and_loads(gb_info: dict) -> None:
-    assert gb_info["seq_length"] == 720
+    assert gb_info["seq_length"] == 2700
     assert len(gb_info["genes"]) >= 1
 
 
 def test_auto_selected_gene_is_longest(gb_info: dict) -> None:
     """Frontend picks the longest gene by aa_length as default; sample design target."""
     longest = max(gb_info["genes"], key=lambda g: g["aa_length"])
-    assert longest["aa_length"] == 239
+    assert longest["gene"].lower() == "egfp"
+    # aa_length is CDS_len/3 (includes stop codon position); translation excludes stop
+    assert longest["aa_length"] == 240
+    assert len(longest["translation"]) == 239
+    assert longest["translation"].startswith("MVSKGEELFTGVVPIL")
+    assert longest["translation"].endswith("MDELYK")
 
 
 def test_sample_evolvepro_variants_fit_target_gene(gb_info: dict) -> None:
