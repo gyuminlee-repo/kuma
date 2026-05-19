@@ -63,17 +63,17 @@ export function getSortedMutations(
   const stringGetter = stringKeys[sort.id];
   if (!getter && !stringGetter) return null;
 
+  const direction = sort.desc ? -1 : 1;
   const sorted = [...results].sort((a, b) => {
     if (getter) {
       const diff = getter(a) - getter(b);
-      if (diff !== 0) return diff;
+      if (diff !== 0) return diff * direction;
     } else if (stringGetter) {
       const diff = stringGetter(a).localeCompare(stringGetter(b));
-      if (diff !== 0) return diff;
+      if (diff !== 0) return diff * direction;
     }
     return (originalOrder.get(a.mutation) ?? 0) - (originalOrder.get(b.mutation) ?? 0);
   });
-  if (sort.desc) sorted.reverse();
   return sorted.map((r) => r.mutation);
 }
 

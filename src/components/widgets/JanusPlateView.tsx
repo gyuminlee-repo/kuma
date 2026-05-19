@@ -79,9 +79,8 @@ function Rack({
           </div>
         ))}
         {ROWS.map((r) => (
-          <>
+          <div key={r} className="contents">
             <div
-              key={`label-${r}`}
               data-row-label={r}
               aria-label={`Row ${r}`}
               className="text-caption text-muted-foreground text-right pr-1 before:content-[attr(data-row-label)]"
@@ -138,7 +137,7 @@ function Rack({
                 </Popover>
               );
             })}
-          </>
+          </div>
         ))}
       </div>
     </div>
