@@ -46,8 +46,9 @@ def test_export_mapping_xlsx_has_layout_sheet(tmp_path):
         "dedup_info": {},
     })
     wb = load_workbook(path)
-    assert "layout" in wb.sheetnames  # nosec B101
-    assert "Echo mapping file" in wb.sheetnames  # nosec B101
+    sheets = wb.sheetnames
+    _require("layout" in sheets, f"missing 'layout' sheet: {sheets}")
+    _require("Echo mapping file" in sheets, f"missing 'Echo mapping file' sheet: {sheets}")
 
 
 def test_export_janus_mapping_xlsx_has_layout_sheet(tmp_path):
@@ -60,5 +61,6 @@ def test_export_janus_mapping_xlsx_has_layout_sheet(tmp_path):
         "dedup_info": {},
     })
     wb = load_workbook(path)
-    assert "layout" in wb.sheetnames  # nosec B101
-    assert "primer_mapping file" in wb.sheetnames  # nosec B101
+    sheets = wb.sheetnames
+    _require("layout" in sheets, f"missing 'layout' sheet: {sheets}")
+    _require("primer_mapping file" in sheets, f"missing 'primer_mapping file' sheet: {sheets}")
