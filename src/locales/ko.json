@@ -1907,7 +1907,13 @@
         "runExport": "매핑 내보내기"
       },
       "all": {
-        "runExport": "모두 내보내기"
+        "runExport": "모두 내보내기",
+        "projectName": "프로젝트 이름",
+        "projectNamePlaceholder": "예: Q232A_K287R",
+        "projectNameHint": "비워두면 kuro_YYMMDD_HHMM 형식으로 자동 명명",
+        "error": {
+          "projectNameRegex": "영문, 숫자, 한글, 밑줄, 하이픈을 40자 이내로 입력하세요."
+        }
       }
     },
     "run": {

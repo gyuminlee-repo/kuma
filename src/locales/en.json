@@ -1907,7 +1907,13 @@
         "runExport": "Export Mapping"
       },
       "all": {
-        "runExport": "Export all"
+        "runExport": "Export all",
+        "projectName": "Project name",
+        "projectNamePlaceholder": "e.g. Q232A_K287R",
+        "projectNameHint": "Leave empty to auto-name kuro_YYMMDD_HHMM",
+        "error": {
+          "projectNameRegex": "Use up to 40 letters, numbers, Korean characters, underscores, or hyphens."
+        }
       }
     },
     "run": {

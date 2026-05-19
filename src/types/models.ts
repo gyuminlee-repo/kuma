@@ -577,6 +577,7 @@ export interface RpcMethodMap {
   export_all: {
     params: {
       project_id?: string;
+      project_name?: string | null;
       output_dir: string;
       fwd_plate_name?: string;
       rev_plate_name?: string;
