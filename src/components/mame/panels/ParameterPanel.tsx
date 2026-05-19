@@ -391,6 +391,10 @@ export function ParameterPanel() {
   const inputMode = useMameAppStore((s) => s.inputMode);
   const cdsStart = useMameAppStore((s) => s.cdsStart);
   const cdsEnd = useMameAppStore((s) => s.cdsEnd);
+  const analyzeCdsCandidates = useMameAppStore((s) => s.analyzeCdsCandidates);
+  const selectedAnalyzeCdsIndex = useMameAppStore((s) => s.selectedAnalyzeCdsIndex);
+  const setSelectedAnalyzeCdsIndex = useMameAppStore((s) => s.setSelectedAnalyzeCdsIndex);
+  const referencePath = useMameAppStore((s) => s.referencePath);
   const minFileSizeKb = useMameAppStore((s) => s.minFileSizeKb);
   const minFilteredDepth = useMameAppStore((s) => s.minFilteredDepth);
   const manyCutoff = useMameAppStore((s) => s.manyCutoff);
@@ -507,20 +511,74 @@ export function ParameterPanel() {
           </Select>
         </div>
 
-        <NumericField
-          id="cds-start"
-          label={t("mame.parameters.cdsStart")}
-          value={cdsStart}
-          onChange={(value) => setParams({ cdsStart: value })}
-          helpText={t("mame.parameters.cdsStartHelp")}
-        />
-        <NumericField
-          id="cds-end"
-          label={t("mame.parameters.cdsEnd")}
-          value={cdsEnd}
-          onChange={(value) => setParams({ cdsEnd: value })}
-          helpText={t("mame.parameters.cdsEndHelp")}
-        />
+        {analyzeCdsCandidates.length > 0 ? (
+          <div className="space-y-1 sm:col-span-2">
+            <Label
+              htmlFor="analyze-cds-candidate"
+              className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
+            >
+              <span className="inline-flex items-center gap-1.5">
+                {t("mame.parameters.cdsStart")} / {t("mame.parameters.cdsEnd")}
+                <InlineHelp text={t("mame.parameters.cdsStartHelp")} />
+              </span>
+            </Label>
+            <Select
+              value={selectedAnalyzeCdsIndex === null ? "" : String(selectedAnalyzeCdsIndex)}
+              onValueChange={(v) => {
+                const i = Number(v);
+                setSelectedAnalyzeCdsIndex(i);
+                const cand = analyzeCdsCandidates[i];
+                if (cand) {
+                  setParams({ cdsStart: cand.start, cdsEnd: cand.end });
+                }
+              }}
+            >
+              <SelectTrigger id="analyze-cds-candidate" className="h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {analyzeCdsCandidates.map((c, i) => {
+                  const labelPart = c.label ? `[${c.label}] ` : "";
+                  const tooltip = [
+                    c.label ? `Label: ${c.label}` : "",
+                    `Range: ${c.start}-${c.end}`,
+                    `Length: ${c.aa_length} aa`,
+                    `Source: ${c.source}`,
+                  ]
+                    .filter(Boolean)
+                    .join("\n");
+                  return (
+                    <SelectItem key={i} value={String(i)} title={tooltip}>
+                      {labelPart}{c.start}-{c.end} ({c.aa_length} aa)
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+            <p className="text-caption text-muted-foreground/90">
+              {referencePath
+                ? `${analyzeCdsCandidates.length} CDS candidate(s) detected in reference`
+                : ""}
+            </p>
+          </div>
+        ) : (
+          <>
+            <NumericField
+              id="cds-start"
+              label={t("mame.parameters.cdsStart")}
+              value={cdsStart}
+              onChange={(value) => setParams({ cdsStart: value })}
+              helpText={t("mame.parameters.cdsStartHelp")}
+            />
+            <NumericField
+              id="cds-end"
+              label={t("mame.parameters.cdsEnd")}
+              value={cdsEnd}
+              onChange={(value) => setParams({ cdsEnd: value })}
+              helpText={t("mame.parameters.cdsEndHelp")}
+            />
+          </>
+        )}
 
         {/* Min filtered depth (reads) — primary depth-based cutoff */}
         <div className="space-y-1 sm:col-span-2">

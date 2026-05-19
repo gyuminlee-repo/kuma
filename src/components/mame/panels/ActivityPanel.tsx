@@ -122,8 +122,6 @@ export function IngestSection() {
       </div>
 
       <div className="space-y-2 border-t border-border pt-4">
-        <h3 className="text-sm font-semibold text-foreground">{t("mame.activity.ingest.wtHeading")}</h3>
-        <p className="text-xs text-muted-foreground">{t("mame.activity.ingest.wtDesc")}</p>
         <WtWellGrid />
       </div>
 

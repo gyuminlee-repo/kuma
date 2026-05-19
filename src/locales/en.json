@@ -295,9 +295,7 @@
         "inspectorNoData": "No activity data loaded",
         "loaded": "✓ {{count}} wells loaded",
         "uploadDesc": "Load a long-format CSV / Excel file (well, replicate, value columns) into the current round.",
-        "uploadHeading": "Upload Activity data",
-        "wtDesc": "Designate the wild-type wells used for normalisation. Must be set before Merge.",
-        "wtHeading": "WT-well annotation"
+        "uploadHeading": "Upload Activity data"
       },
       "wtWells": {
         "title": "WT wells (normalization reference)",

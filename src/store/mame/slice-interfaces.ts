@@ -90,6 +90,15 @@ export interface InputSlice {
   selectedCdsIndex: number;
   setCdsCandidates: (candidates: CdsCandidate[]) => void;
   setSelectedCdsIndex: (index: number) => void;
+  // CDS candidate dropdown (ParameterPanel / analyze phase). Populated by
+  // mame.ingest.parse_reference when the reference path changes; empty for
+  // plain FASTA, in which case ParameterPanel falls back to manual numeric
+  // entry for cds_start / cds_end.
+  analyzeCdsCandidates: CdsCandidate[];
+  selectedAnalyzeCdsIndex: number | null;
+  setAnalyzeCdsCandidates: (candidates: CdsCandidate[]) => void;
+  setSelectedAnalyzeCdsIndex: (index: number | null) => void;
+  refreshAnalyzeCdsCandidates: (referencePath: string) => Promise<void>;
   // Shared file paths between KURO and MAME. KURO loadSequence/loadEvolveproCsv
   // dual-write here so MAME panels can prefill without manual re-Browse.
   sharedFastaPath: string | null;

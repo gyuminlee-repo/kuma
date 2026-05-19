@@ -40,6 +40,7 @@ from sidecar_mame.handlers.activity import (
 )
 from sidecar_mame.handlers.sort_barcode import handle_sort_barcode_run
 from sidecar_mame.handlers.barcode_package import handle_generate_mame_package
+from sidecar_mame.handlers.ingest import handle_parse_reference
 
 def _handle_health_info(_params: dict) -> dict:
     """Return PID, RSS, and Python version for the status bar tooltip."""
@@ -87,6 +88,8 @@ _METHODS = {
     "sort_barcode_run": handle_sort_barcode_run,
     # Feature B: MAME Barcode Setup
     "generate_mame_package": handle_generate_mame_package,
+    # Analyze-phase CDS picker: parse reference (FASTA / GenBank / SnapGene)
+    "mame.ingest.parse_reference": handle_parse_reference,
     # §22 graceful shutdown — ack immediately; main() breaks on this method
     "shutdown": lambda _: {"ok": True, "message": "shutdown_acked"},
 }

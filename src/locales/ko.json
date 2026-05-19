@@ -295,9 +295,7 @@
         "inspectorNoData": "활성 데이터가 로드되지 않음",
         "loaded": "✓ {{count}}개 웰 로드됨",
         "uploadDesc": "현재 라운드에 롱 포맷 CSV / Excel 파일 (웰, 반복 실험, 값 열)을 로드합니다.",
-        "uploadHeading": "활성 데이터 업로드",
-        "wtDesc": "정규화에 사용할 야생형 웰을 지정합니다. 병합 전에 설정해야 합니다.",
-        "wtHeading": "WT 웰 주석"
+        "uploadHeading": "활성 데이터 업로드"
       },
       "wtWells": {
         "title": "WT wells (normalization reference)",

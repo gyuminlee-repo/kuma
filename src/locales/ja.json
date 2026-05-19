@@ -212,7 +212,17 @@
       "legacyKbTooltip": "ファイルサイズベースの proxy cutoff。圧縮率、長さ分布、ライブラリ変動の影響あり。参考用。",
       "modeHelp": "Analysis mode: amplicon (linear PCR product) or plasmid (circular). Choose plasmid for whole-vector consensus.",
       "ingestHelp": "Ingest layout: barcode (per-well demultiplexed) or amplicon (single bulk read set).",
-      "inputSourceHelp": "Input source: consensus (pre-called), sorted_barcode (per-well FASTQ), or raw_run (MinKNOW run folder)."
+      "inputSourceHelp": "Input source: consensus (pre-called), sorted_barcode (per-well FASTQ), or raw_run (MinKNOW run folder).",
+      "tooltips": {
+        "flankMin": "遺伝子境界に対する primer 開始位置の外側範囲 (nt)",
+        "flankMax": "遺伝子境界に対する primer 開始位置の外側範囲 (nt)",
+        "bindingMinLen": "候補列挙時に探索する primer 長範囲 (nt)",
+        "bindingMaxLen": "候補列挙時に探索する primer 長範囲 (nt)",
+        "tmMin": "primer binding 領域の許容 melting temperature 範囲 (°C)",
+        "tmMax": "primer binding 領域の許容 melting temperature 範囲 (°C)"
+      },
+      "legacyOptionsToggle": "Legacy オプションを表示",
+      "legacyOptionsDeprecationWarning": "これらのオプションは非推奨であり、将来のバージョンで削除されます。Min Filtered Depth を推奨します。"
     },
     "barcodeSetup": {
       "title": "Barcode パッケージセットアップ",
@@ -276,8 +286,6 @@
       "ingest": {
         "uploadHeading": "活性データをアップロード",
         "uploadDesc": "long format の CSV / Excel ファイル (well, replicate, value カラム) を現在の Round に読み込み。",
-        "wtHeading": "WT well 指定",
-        "wtDesc": "正規化に使う wild-type well を指定します。Merge 前に必ず設定してください。",
         "loaded": "✓ {{count}} wells 読み込み完了",
         "contextSubtitle": "Upload wet-lab activity measurements for this round.",
         "contextTitle": "Activity Data — Ingest",
@@ -301,7 +309,11 @@
         "btnLegacyBusy": "マージ中…",
         "btnEvolvepro": "EVOLVEpro 用にマージ (v0.3)",
         "btnEvolveproBusy": "マージ中…",
-        "btnEvolveproAria": "v0.3 RPC を実行: replicate merge + label-swap ガード"
+        "btnEvolveproAria": "v0.3 RPC を実行: replicate merge + label-swap ガード",
+        "btnCombined": "activity + genotype をマージ",
+        "btnCombinedBusy": "マージ中…",
+        "menuLegacy": "Legacy 出力 (CSV)",
+        "menuEvolvepro": "EVOLVEpro v0.3 形式 (WT normalization 付き)"
       },
       "export": {
         "heading": "EVOLVEpro xlsx をエクスポート",
@@ -332,6 +344,12 @@
         "inspectorVariant": "Variant",
         "openJanusExport": "Open JANUS export...",
         "openJanusExportAriaLabel": "Open JANUS cell-stock mapping export dialog"
+      },
+      "wtWells": {
+        "title": "WT wells (normalization 基準)",
+        "helpText": "ここで指定した wells は activity fold-change normalization の wild-type baseline として使用されます。",
+        "suggestButton": "Control wells から提案",
+        "alreadySetTooltip": "WT wells は既に設定済み"
       }
     },
     "runHealth": {

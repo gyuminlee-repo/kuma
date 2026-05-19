@@ -212,7 +212,17 @@
       "legacyKbTooltip": "基于文件大小的代理 cutoff。受压缩率、长度分布、文库变异影响。仅作参考。",
       "modeHelp": "Analysis mode: amplicon (linear PCR product) or plasmid (circular). Choose plasmid for whole-vector consensus.",
       "ingestHelp": "Ingest layout: barcode (per-well demultiplexed) or amplicon (single bulk read set).",
-      "inputSourceHelp": "Input source: consensus (pre-called), sorted_barcode (per-well FASTQ), or raw_run (MinKNOW run folder)."
+      "inputSourceHelp": "Input source: consensus (pre-called), sorted_barcode (per-well FASTQ), or raw_run (MinKNOW run folder).",
+      "tooltips": {
+        "flankMin": "primer 起始位置相对于基因边界的外侧范围 (nt)",
+        "flankMax": "primer 起始位置相对于基因边界的外侧范围 (nt)",
+        "bindingMinLen": "候选枚举过程中探索的 primer 长度范围 (nt)",
+        "bindingMaxLen": "候选枚举过程中探索的 primer 长度范围 (nt)",
+        "tmMin": "primer binding 区域可接受的 melting temperature 范围 (°C)",
+        "tmMax": "primer binding 区域可接受的 melting temperature 范围 (°C)"
+      },
+      "legacyOptionsToggle": "显示 legacy 选项",
+      "legacyOptionsDeprecationWarning": "这些选项已弃用,将在未来版本中移除。推荐使用 Min Filtered Depth。"
     },
     "barcodeSetup": {
       "title": "Barcode 包设置",
@@ -276,8 +286,6 @@
       "ingest": {
         "uploadHeading": "上传 activity 数据",
         "uploadDesc": "将 long-format CSV / Excel 文件 (well, replicate, value 列) 加载到当前 Round。",
-        "wtHeading": "WT well 标注",
-        "wtDesc": "指定用于归一化的野生型 well。Merge 前必须设置。",
         "loaded": "✓ 已加载 {{count}} wells",
         "contextSubtitle": "Upload wet-lab activity measurements for this round.",
         "contextTitle": "Activity Data — Ingest",
@@ -301,7 +309,11 @@
         "btnLegacyBusy": "合并中…",
         "btnEvolvepro": "为 EVOLVEpro 合并 (v0.3)",
         "btnEvolveproBusy": "合并中…",
-        "btnEvolveproAria": "运行 v0.3 RPC: replicate merge + label-swap guard"
+        "btnEvolveproAria": "运行 v0.3 RPC: replicate merge + label-swap guard",
+        "btnCombined": "合并 activity + genotype",
+        "btnCombinedBusy": "合并中…",
+        "menuLegacy": "Legacy 输出 (CSV)",
+        "menuEvolvepro": "EVOLVEpro v0.3 格式 (含 WT normalization)"
       },
       "export": {
         "heading": "导出 EVOLVEpro xlsx",
@@ -332,6 +344,12 @@
         "inspectorVariant": "Variant",
         "openJanusExport": "Open JANUS export...",
         "openJanusExportAriaLabel": "Open JANUS cell-stock mapping export dialog"
+      },
+      "wtWells": {
+        "title": "WT wells (normalization 参考)",
+        "helpText": "此处标记的 wells 作为 activity fold-change normalization 的 wild-type baseline。",
+        "suggestButton": "从对照 wells 建议",
+        "alreadySetTooltip": "WT wells 已设置"
       }
     },
     "runHealth": {

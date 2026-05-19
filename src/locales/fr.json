@@ -212,7 +212,17 @@
       "legacyKbTooltip": "Cutoff proxy basé sur la taille de fichier. Affecté par le taux de compression, la distribution des longueurs et la variation de librairie. À utiliser uniquement à titre de référence.",
       "modeHelp": "Analysis mode: amplicon (linear PCR product) or plasmid (circular). Choose plasmid for whole-vector consensus.",
       "ingestHelp": "Ingest layout: barcode (per-well demultiplexed) or amplicon (single bulk read set).",
-      "inputSourceHelp": "Input source: consensus (pre-called), sorted_barcode (per-well FASTQ), or raw_run (MinKNOW run folder)."
+      "inputSourceHelp": "Input source: consensus (pre-called), sorted_barcode (per-well FASTQ), or raw_run (MinKNOW run folder).",
+      "tooltips": {
+        "flankMin": "Plage externe (nt) pour la position de départ du primer par rapport à la limite du gène",
+        "flankMax": "Plage externe (nt) pour la position de départ du primer par rapport à la limite du gène",
+        "bindingMinLen": "Plage de longueur du primer (nt) explorée pendant l'énumération des candidats",
+        "bindingMaxLen": "Plage de longueur du primer (nt) explorée pendant l'énumération des candidats",
+        "tmMin": "Plage acceptable de melting temperature (°C) pour la région de liaison du primer",
+        "tmMax": "Plage acceptable de melting temperature (°C) pour la région de liaison du primer"
+      },
+      "legacyOptionsToggle": "Afficher les options legacy",
+      "legacyOptionsDeprecationWarning": "Ces options sont obsolètes et seront supprimées dans une future version. Préférez Min Filtered Depth."
     },
     "barcodeSetup": {
       "title": "Configuration du paquet de barcodes",
@@ -276,8 +286,6 @@
       "ingest": {
         "uploadHeading": "Téléverser les données d'activité",
         "uploadDesc": "Charger un fichier CSV / Excel au long format (colonnes well, replicate, value) dans le Round courant.",
-        "wtHeading": "Annotation des wells WT",
-        "wtDesc": "Désigner les wells wild-type utilisés pour la normalisation. Doit être défini avant la fusion.",
         "loaded": "✓ {{count}} wells chargés",
         "contextSubtitle": "Upload wet-lab activity measurements for this round.",
         "contextTitle": "Activity Data — Ingest",
@@ -301,7 +309,11 @@
         "btnLegacyBusy": "Fusion en cours…",
         "btnEvolvepro": "Fusionner pour EVOLVEpro (v0.3)",
         "btnEvolveproBusy": "Fusion en cours…",
-        "btnEvolveproAria": "Exécuter le RPC v0.3 : fusion de replicate + garde label-swap"
+        "btnEvolveproAria": "Exécuter le RPC v0.3 : fusion de replicate + garde label-swap",
+        "btnCombined": "Fusionner activity + genotype",
+        "btnCombinedBusy": "Fusion en cours…",
+        "menuLegacy": "Sortie legacy (CSV)",
+        "menuEvolvepro": "Format EVOLVEpro v0.3 (avec normalisation WT)"
       },
       "export": {
         "heading": "Exporter xlsx EVOLVEpro",
@@ -332,6 +344,12 @@
         "inspectorVariant": "Variant",
         "openJanusExport": "Open JANUS export...",
         "openJanusExportAriaLabel": "Open JANUS cell-stock mapping export dialog"
+      },
+      "wtWells": {
+        "title": "WT wells (référence de normalisation)",
+        "helpText": "Les wells marqués ici servent de baseline wild-type pour la normalisation activity fold-change.",
+        "suggestButton": "Suggérer depuis les wells de contrôle",
+        "alreadySetTooltip": "WT wells déjà définis"
       }
     },
     "runHealth": {

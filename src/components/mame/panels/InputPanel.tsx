@@ -147,7 +147,12 @@ export function InputPanel() {
     const selected = toSinglePath(
       await open({
         directory: false,
-        filters: [{ name: "FASTA", extensions: ["fasta", "fa", "fna"] }],
+        filters: [
+          {
+            name: "Sequence (FASTA / GenBank / SnapGene)",
+            extensions: ["fasta", "fa", "fna", "gb", "gbk", "gbff", "dna"],
+          },
+        ],
       }),
     );
     if (selected) setReferencePath(selected);

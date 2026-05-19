@@ -9,8 +9,15 @@ import type {
   ValidationResult,
 } from "@/types/mame/models";
 import type { SortBarcodeResult } from "@/types/mame/sort_barcode";
+import type { CdsCandidate } from "@/lib/sequence/autoDetectCds";
 import type { InputSlice, RawRunParams } from "../slice-interfaces";
 import type { AppState } from "../types";
+
+interface ParseReferenceResult {
+  cds_candidates: CdsCandidate[];
+  sequence_length: number;
+  format: "fasta" | "genbank" | "snapgene";
+}
 
 const DEFAULT_RAW_RUN_PARAMS: RawRunParams = {
   customBarcodesPath: "",
@@ -85,6 +92,8 @@ const mameInputInitialState = {
   ampliconLengthEstimate: null,
   cdsCandidates: [],
   selectedCdsIndex: 0,
+  analyzeCdsCandidates: [] as CdsCandidate[],
+  selectedAnalyzeCdsIndex: null as number | null,
   sharedFastaPath: null as string | null,
   sharedEvolveproCsvPath: null as string | null,
   resetEpoch: 0,
@@ -94,12 +103,52 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   ...mameInputInitialState,
   setCdsCandidates: (cdsCandidates) => set({ cdsCandidates, selectedCdsIndex: 0 }),
   setSelectedCdsIndex: (selectedCdsIndex) => set({ selectedCdsIndex }),
+  setAnalyzeCdsCandidates: (analyzeCdsCandidates) =>
+    set({
+      analyzeCdsCandidates,
+      selectedAnalyzeCdsIndex: analyzeCdsCandidates.length > 0 ? 0 : null,
+    }),
+  setSelectedAnalyzeCdsIndex: (selectedAnalyzeCdsIndex) =>
+    set({ selectedAnalyzeCdsIndex }),
+  refreshAnalyzeCdsCandidates: async (referencePath: string) => {
+    if (!referencePath) {
+      set({ analyzeCdsCandidates: [], selectedAnalyzeCdsIndex: null });
+      return;
+    }
+    try {
+      const result = await sendRequest<ParseReferenceResult>(
+        "mame.ingest.parse_reference",
+        { path: referencePath },
+        15_000,
+      );
+      // Race guard: only commit if the referencePath has not changed since the
+      // call was issued (user may have picked another file mid-flight).
+      if (get().referencePath !== referencePath) return;
+      const candidates = result.cds_candidates ?? [];
+      set({
+        analyzeCdsCandidates: candidates,
+        selectedAnalyzeCdsIndex: candidates.length > 0 ? 0 : null,
+      });
+      if (candidates.length === 1) {
+        const c = candidates[0];
+        set({ cdsStart: c.start, cdsEnd: c.end });
+      }
+    } catch (error) {
+      // Silent fallback to manual entry; surface as console warn only.
+      console.warn("[inputSlice] parse_reference failed:", error);
+      if (get().referencePath !== referencePath) return;
+      set({ analyzeCdsCandidates: [], selectedAnalyzeCdsIndex: null });
+    }
+  },
   setSharedFastaPath: (sharedFastaPath) => set({ sharedFastaPath }),
   setSharedEvolveproCsvPath: (sharedEvolveproCsvPath) => set({ sharedEvolveproCsvPath }),
   bumpResetEpoch: () => set((s) => ({ resetEpoch: s.resetEpoch + 1 })),
   setInputDir: (inputDir) => set({ inputDir, validationErrors: [] }),
   setExpectedPath: (expectedPath) => set({ expectedPath, validationErrors: [] }),
-  setReferencePath: (referencePath) => set({ referencePath, validationErrors: [] }),
+  setReferencePath: (referencePath) => {
+    set({ referencePath, validationErrors: [] });
+    void get().refreshAnalyzeCdsCandidates(referencePath);
+  },
   setOutputPath: (outputPath) => set({ outputPath, validationErrors: [] }),
   setSampleMapPath: (sampleMapPath) => set({ sampleMapPath }),
   setParams: (params) =>
