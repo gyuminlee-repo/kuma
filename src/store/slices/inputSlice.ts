@@ -124,21 +124,25 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       set({ statusMessage: `Loading ${modeLabel} CSV...`, evolveproCsvPath: filepath });
 
       // §3 Input Guards: sidecar 호출 전 헤더 컬럼 검증
-      try {
-        const csvText = await readTextFile(filepath);
-        const header = extractCsvHeader(csvText);
-        const spec = EVOLVEPRO_CSV_SCHEMA;
-        const validation = validateCsvHeader(header, spec);
-        if (!validation.valid) {
-          const detail = validation.errors.join("; ");
-          set({
-            statusMessage: i18next.t("inputSlice.csvFormatError", { mode: modeLabel, detail }),
-            evolveproCsvPath: "",
-          });
-          return;
+      // xlsx/xls 는 바이너리이므로 클라이언트 사전 검증 스킵 (sidecar 에서 검증)
+      const ext = filepath.toLowerCase().split(".").pop() ?? "";
+      if (ext === "csv" || ext === "tsv") {
+        try {
+          const csvText = await readTextFile(filepath);
+          const header = extractCsvHeader(csvText, ext);
+          const spec = EVOLVEPRO_CSV_SCHEMA;
+          const validation = validateCsvHeader(header, spec);
+          if (!validation.valid) {
+            const detail = validation.errors.join("; ");
+            set({
+              statusMessage: i18next.t("inputSlice.csvFormatError", { mode: modeLabel, detail }),
+              evolveproCsvPath: "",
+            });
+            return;
+          }
+        } catch {
+          // 파일 읽기 실패 시 sidecar 에 위임 (경로 오류는 sidecar가 처리)
         }
-      } catch {
-        // 파일 읽기 실패 시 sidecar 에 위임 (경로 오류는 sidecar가 처리)
       }
 
       const usePipeline = evolveproMode !== "topN";
