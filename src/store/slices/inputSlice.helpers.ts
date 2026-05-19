@@ -4,11 +4,22 @@ import type {
   EvolveproLoadResult,
   EvolveproStepStats,
 } from "../../types/models";
+import type { EvolveproMode } from "../slice-interfaces";
 
 export interface EvolveproLoadConfig {
   filepath: string;
   topN: number;
   usePipeline: boolean;
+  /** Full mode enum, drives 3-way branching in buildEvolveproLoadParams */
+  evolveproMode: EvolveproMode;
+  /** "others" mode: mutation column name (null = auto-detect) */
+  evolveproVariantColumn: string | null;
+  /** "others" mode: ranking/score column name (null = auto-detect) */
+  evolveproScoreColumn: string | null;
+  /** "others" mode: score ordering direction */
+  evolveproScoreOrder: "asc" | "desc";
+  /** "others" mode: sheet name for XLSX files (null = first sheet) */
+  evolveproSheetName: string | null;
   positionDiversityEnabled: boolean;
   maxPerPosition: number;
   activeDomains: DomainInfo[];
@@ -52,6 +63,11 @@ export function buildEvolveproLoadParams(config: EvolveproLoadConfig): Record<st
     filepath,
     topN,
     usePipeline,
+    evolveproMode,
+    evolveproVariantColumn,
+    evolveproScoreColumn,
+    evolveproScoreOrder,
+    evolveproSheetName,
     positionDiversityEnabled,
     maxPerPosition,
     activeDomains,
@@ -72,6 +88,20 @@ export function buildEvolveproLoadParams(config: EvolveproLoadConfig): Record<st
     refSeq,
   } = config;
 
+  // "others" mode: pass column override params, skip diversity pipeline params
+  if (evolveproMode === "others") {
+    return {
+      filepath,
+      top_n: topN,
+      ...(evolveproVariantColumn && { variant_column: evolveproVariantColumn }),
+      ...(evolveproScoreColumn && { score_column: evolveproScoreColumn }),
+      score_order: evolveproScoreOrder,
+      ...(evolveproSheetName && { sheet_name: evolveproSheetName }),
+      ...(refSeq && { ref_seq: refSeq }),
+    };
+  }
+
+  // "topN" and "pipeline" modes: standard diversity pipeline params
   return {
     filepath,
     top_n: topN,
