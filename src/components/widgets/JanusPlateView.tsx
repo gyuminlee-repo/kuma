@@ -1,5 +1,10 @@
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/components/ui/popover";
 
 // Inline type until T1 adapter (src/lib/echoJanusAdapter.ts) is added.
 // Keep in sync with the JanusCell interface defined in the plan
@@ -21,6 +26,16 @@ interface Props {
 
 const ROWS = ["A", "B", "C", "D", "E", "F", "G", "H"] as const;
 const COLS = Array.from({ length: 12 }, (_, i) => i + 1);
+
+function parseJanusName(name: string): {
+  mutation: string;
+  tag: "F" | "R" | null;
+} {
+  const [mut, side] = name.split("-");
+  if (side === "fw") return { mutation: mut, tag: "F" };
+  if (side === "rv") return { mutation: mut, tag: "R" };
+  return { mutation: mut ?? name, tag: null };
+}
 
 function Rack({
   rack,
@@ -67,29 +82,60 @@ function Rack({
           <>
             <div
               key={`label-${r}`}
-              className="text-caption text-muted-foreground text-right pr-1"
-            >
-              {r}
-            </div>
+              data-row-label={r}
+              aria-label={`Row ${r}`}
+              className="text-caption text-muted-foreground text-right pr-1 before:content-[attr(data-row-label)]"
+            />
+
             {COLS.map((c) => {
               const well = `${r}${c}`;
               const cell = byWell.get(well);
               const tip = cell
                 ? `${cell.name} (${cell.volumeUl} µL), well ${well}`
                 : well;
-              return (
+              const parsed = cell ? parseJanusName(cell.name) : null;
+              const cellNode = (
                 <div
-                  key={well}
                   data-testid="janus-cell"
                   data-rack={rack}
                   data-well={well}
                   data-row={r}
                   title={tip}
                   className={cn(
-                    "aspect-square rounded-[2px] border border-border/50",
+                    "aspect-square rounded-[2px] border border-border/50 flex flex-col items-center justify-center",
                     cell ? filledBg : emptyBg,
+                    cell ? "cursor-pointer" : "",
                   )}
-                />
+                >
+                  {cell && parsed ? (
+                    <>
+                      <span className="text-[10px] font-mono leading-none">
+                        {parsed.mutation}
+                      </span>
+                      {parsed.tag ? (
+                        <span className="text-[9px] leading-none text-muted-foreground">
+                          {parsed.tag}
+                        </span>
+                      ) : null}
+                    </>
+                  ) : null}
+                </div>
+              );
+              if (!cell) {
+                return <div key={well}>{cellNode}</div>;
+              }
+              return (
+                <Popover key={well}>
+                  <PopoverTrigger asChild>{cellNode}</PopoverTrigger>
+                  <PopoverContent className="w-auto text-xs">
+                    <div className="space-y-1">
+                      <div className="font-mono font-medium">{cell.name}</div>
+                      <div>Well: {cell.well}</div>
+                      <div>Rack: {cell.rack}</div>
+                      <div>Volume: {cell.volumeUl} µL</div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
               );
             })}
           </>

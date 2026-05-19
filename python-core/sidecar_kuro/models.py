@@ -664,6 +664,7 @@ class RunBenchmarkParams(BaseModel):
 import re as _re_export
 
 _MACROGEN_PLATE_NAME_RE = _re_export.compile(r"^[A-Za-z0-9_-]{1,20}$")
+_PROJECT_NAME_RE = _re_export.compile(r"^[A-Za-z0-9가-힣_\-]{1,40}$")
 
 
 class ExportMacrogenParams(BaseModel):
@@ -690,6 +691,7 @@ class ExportAllParams(BaseModel):
     """Params for `export_all` RPC method (6-file batch export)."""
 
     project_id: Optional[str] = None
+    project_name: Optional[str] = None
     output_dir: str
     fwd_plate_name: str = ""
     rev_plate_name: str = ""
@@ -707,6 +709,17 @@ class ExportAllParams(BaseModel):
         if v and not _MACROGEN_PLATE_NAME_RE.fullmatch(v):
             raise ValueError(
                 f"plate name '{v}' violates ^[A-Za-z0-9_-]{{1,20}}$"
+            )
+        return v
+
+    @field_validator("project_name")
+    @classmethod
+    def _project_name_rule(cls, v: Optional[str]) -> Optional[str]:
+        if v is None or v == "":
+            return None
+        if not _PROJECT_NAME_RE.fullmatch(v):
+            raise ValueError(
+                f"project_name '{v}' violates ^[A-Za-z0-9가-힣_\\-]{{1,40}}$"
             )
         return v
 

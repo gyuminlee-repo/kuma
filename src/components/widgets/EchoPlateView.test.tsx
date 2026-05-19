@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, it, expect } from "vitest";
 import { EchoPlateView } from "./EchoPlateView";
 
@@ -48,5 +49,42 @@ describe("EchoPlateView", () => {
     const { container } = render(<EchoPlateView cells={[]} />);
     const rowPCells = container.querySelectorAll("[data-row='P']");
     expect(rowPCells).toHaveLength(24);
+  });
+
+  it("renders mutation code inside well cell", () => {
+    const cells = [
+      {
+        well: "A01",
+        rowLetter: "A",
+        colNumber: 1,
+        isFwd: true,
+        sourceWellName: "Q232A_F",
+        destPlate: "Destination [1]",
+        destWell: "A1",
+        transferVolNl: 100,
+      },
+    ];
+    render(<EchoPlateView cells={cells} />);
+    expect(screen.getByText("Q232A")).toBeInTheDocument();
+  });
+
+  it("opens popover with primer details on cell click", async () => {
+    const cells = [
+      {
+        well: "A01",
+        rowLetter: "A",
+        colNumber: 1,
+        isFwd: true,
+        sourceWellName: "Q232A_F",
+        destPlate: "Destination [1]",
+        destWell: "A1",
+        transferVolNl: 100,
+      },
+    ];
+    render(<EchoPlateView cells={cells} />);
+    await userEvent.click(screen.getByText("Q232A"));
+    expect(await screen.findByText(/Q232A_F/)).toBeInTheDocument();
+    expect(screen.getByText(/Destination \[1\] A1/)).toBeInTheDocument();
+    expect(screen.getByText(/100 nL/)).toBeInTheDocument();
   });
 });

@@ -19,12 +19,14 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { handleExportAll } from "@/components/layout/export-handlers";
+import { ExportMacrogenSection } from "@/components/widgets/ExportMacrogenSection";
 import { useKumaProject } from "@/state/projectContext";
 import { useAppStore } from "@/store/appStore";
 import type { AppState } from "@/store/appStore";
 import { validateExportAll } from "@/store/validation";
 
 const PLATE_NAME_RE = /^[A-Za-z0-9_-]{1,20}$/;
+const PROJECT_NAME_RE = /^[A-Za-z0-9가-힣_\-]{0,40}$/;
 const ECHO_RANGE = { min: 25, max: 500, step: 1, unit: "nL" } as const;
 const JANUS_RANGE = { min: 0.5, max: 10, step: 0.1, unit: "μL" } as const;
 const WELL_LIMIT = 96;
@@ -38,6 +40,7 @@ export function ExportFormatSelector() {
 
   const wellCount = designResults.length;
 
+  const [projectName, setProjectName] = useState("");
   const [fwdPlate, setFwdPlate] = useState("");
   const [rvsPlate, setRvsPlate] = useState("");
   const [amount, setAmount] = useState<"0.05" | "0.2">("0.05");
@@ -51,8 +54,9 @@ export function ExportFormatSelector() {
   // 여전히 hard disable (액션 불가 상태).
   const fwdValid = fwdPlate === "" || PLATE_NAME_RE.test(fwdPlate);
   const rvsValid = rvsPlate === "" || PLATE_NAME_RE.test(rvsPlate);
+  const projectNameValid = PROJECT_NAME_RE.test(projectName);
   const wellOverflow = wellCount > WELL_LIMIT;
-  const canExport = !wellOverflow && !running;
+  const canExport = !wellOverflow && !running && projectNameValid;
 
   const onExport = async () => {
     const check = validateExportAll({
@@ -71,6 +75,7 @@ export function ExportFormatSelector() {
     try {
       await handleExportAll({
         projectId: project?.project_id,
+        projectName: projectName || undefined,
         fwdPlateName: fwdPlate || undefined,
         rvsPlateName: rvsPlate || undefined,
         amount,
@@ -85,6 +90,7 @@ export function ExportFormatSelector() {
   };
 
   return (
+    <>
     <section
       aria-labelledby="export-all-heading"
       className="flex flex-col gap-4 p-6"
@@ -95,6 +101,39 @@ export function ExportFormatSelector() {
       >
         {tx("phaseC.export.all.heading", "Export All")}
       </h3>
+
+      {/* Project name */}
+      <div className="flex flex-col gap-1">
+        <label
+          htmlFor="project-name"
+          className="text-sm font-medium text-foreground"
+        >
+          {tx("phaseC.export.all.projectName", "Project name")}
+        </label>
+        <Input
+          id="project-name"
+          value={projectName}
+          onChange={(e) => setProjectName(e.target.value)}
+          placeholder={tx("phaseC.export.all.projectNamePlaceholder", "e.g. Q232A_K287R")}
+          aria-invalid={!projectNameValid}
+          aria-describedby="project-name-help"
+          className={cn(!projectNameValid && "border-destructive")}
+        />
+        <span
+          id="project-name-help"
+          className="text-caption text-muted-foreground"
+        >
+          {tx("phaseC.export.all.projectNameHint", "Leave empty to auto-name kuro_YYMMDD_HHMM")}
+        </span>
+        {!projectNameValid && (
+          <span role="alert" className="text-caption text-destructive">
+            {tx(
+              "phaseC.export.all.error.projectNameRegex",
+              "Use up to 40 letters, numbers, Korean characters, underscores, or hyphens.",
+            )}
+          </span>
+        )}
+      </div>
 
       {/* Forward plate name */}
       <div className="flex flex-col gap-1">
@@ -262,5 +301,7 @@ export function ExportFormatSelector() {
         {running ? t("common.loading") : tx("phaseC.export.all.runExport", "Export all")}
       </Button>
     </section>
+    <ExportMacrogenSection />
+    </>
   );
 }

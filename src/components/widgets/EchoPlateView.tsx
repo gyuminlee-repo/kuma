@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import type { EchoCell } from "@/lib/echoJanusAdapter";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 
 const ROWS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P"] as const;
 const COLS = Array.from({ length: 24 }, (_, i) => i + 1);
@@ -7,6 +8,10 @@ const COLS = Array.from({ length: 24 }, (_, i) => i + 1);
 interface Props {
   cells: EchoCell[];
   className?: string;
+}
+
+function mutationOf(sourceWellName: string): string {
+  return sourceWellName.replace(/_[FR]$/, "");
 }
 
 export function EchoPlateView({ cells, className }: Props) {
@@ -28,21 +33,63 @@ export function EchoPlateView({ cells, className }: Props) {
               {COLS.map((c) => {
                 const well = `${r}${String(c).padStart(2, "0")}`;
                 const cell = byWell.get(well);
-                const tip = cell
-                  ? `${cell.sourceWellName} → ${cell.destPlate} ${cell.destWell} (${cell.transferVolNl} nL)`
-                  : well;
+                if (!cell) {
+                  return (
+                    <div
+                      key={well}
+                      data-testid="echo-cell"
+                      data-row={r}
+                      title={well}
+                      className={cn(
+                        "aspect-square rounded-[2px] border border-border/50",
+                        isFwdRow ? "bg-blue-50 dark:bg-blue-950/30" : "bg-orange-50 dark:bg-orange-950/30",
+                      )}
+                    />
+                  );
+                }
+                const mutation = mutationOf(cell.sourceWellName);
+                const tip = `${cell.sourceWellName} → ${cell.destPlate} ${cell.destWell} (${cell.transferVolNl} nL)`;
                 return (
-                  <div
-                    key={well}
-                    data-testid="echo-cell"
-                    data-row={r}
-                    title={tip}
-                    className={cn(
-                      "aspect-square rounded-[2px] border border-border/50",
-                      isFwdRow ? "bg-blue-50 dark:bg-blue-950/30" : "bg-orange-50 dark:bg-orange-950/30",
-                      cell && (isFwdRow ? "bg-blue-400" : "bg-orange-400"),
-                    )}
-                  />
+                  <Popover key={well}>
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        data-testid="echo-cell"
+                        data-row={r}
+                        title={tip}
+                        className={cn(
+                          "aspect-square rounded-[2px] border border-border/50 flex items-center justify-center overflow-hidden p-0",
+                          isFwdRow ? "bg-blue-400" : "bg-orange-400",
+                        )}
+                      >
+                        <span className="text-[8px] font-mono leading-none text-white truncate">
+                          {mutation}
+                        </span>
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto text-xs space-y-1">
+                      <div>
+                        <span className="text-muted-foreground">Primer: </span>
+                        <span className="font-mono">{cell.sourceWellName}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Direction: </span>
+                        <span>{cell.isFwd ? "Forward" : "Reverse"}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Source well: </span>
+                        <span className="font-mono">{cell.well}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Destination: </span>
+                        <span className="font-mono">{cell.destPlate} {cell.destWell}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Transfer: </span>
+                        <span>{cell.transferVolNl} nL</span>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 );
               })}
             </div>

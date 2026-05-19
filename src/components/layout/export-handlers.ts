@@ -157,6 +157,7 @@ export async function handleOpenSequence() {
 
 export interface ExportAllUiParams {
   projectId?: string;
+  projectName?: string;
   fwdPlateName?: string;
   rvsPlateName?: string;
   amount: "0.05" | "0.2";
@@ -202,6 +203,7 @@ export async function handleExportAll(
 
     const result = (await sendRequest("export_all", {
       project_id: params.projectId,
+      project_name: params.projectName || null,
       output_dir: dir,
       fwd_plate_name: params.fwdPlateName ?? "",
       rev_plate_name: params.rvsPlateName ?? "",

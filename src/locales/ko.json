@@ -761,11 +761,12 @@
     "tip": "팁"
   },
   "exportPreview": {
-    "title": "매핑 미리보기",
+    "title": "매핑 파일 미리보기",
+    "subtitle": "Echo와 Janus 매핑 파일은 각각 독립적인 Excel/CSV 출력입니다.",
     "loading": "미리보기 로딩 중...",
     "empty": "미리보기 없음. 먼저 프라이머를 디자인하세요.",
-    "echoTab": "Echo 525 (384-well)",
-    "janusTab": "JANUS (96-well x 2)",
+    "echoTab": "Echo 매핑 파일",
+    "janusTab": "Janus 매핑 파일",
     "rack1Label": "Rack 1 (Forward 프라이머)",
     "rack2Label": "Rack 2 (Destination)",
     "legend": "색상 범례",
@@ -1906,7 +1907,25 @@
         "runExport": "매핑 내보내기"
       },
       "all": {
-        "runExport": "모두 내보내기"
+        "runExport": "모두 내보내기",
+        "projectName": "프로젝트 이름",
+        "projectNamePlaceholder": "예: Q232A_K287R",
+        "projectNameHint": "비워두면 kuro_YYMMDD_HHMM 형식으로 자동 명명",
+        "error": {
+          "projectNameRegex": "영문, 숫자, 한글, 밑줄, 하이픈을 40자 이내로 입력하세요."
+        }
+      },
+      "macrogen": {
+        "title": "프라이머 주문 (Macrogen)",
+        "fwdPlateName": "Forward 플레이트 이름",
+        "revPlateName": "Reverse 플레이트 이름",
+        "amount": "합성량",
+        "purificationFixed": "Purification",
+        "orderButton": "프라이머 주문 (Macrogen)",
+        "success": "Macrogen 주문 파일 생성: {{path}}",
+        "error": {
+          "plateNameRegex": "영문, 숫자, 밑줄, 하이픈을 1-20자로 입력하세요."
+        }
       }
     },
     "run": {

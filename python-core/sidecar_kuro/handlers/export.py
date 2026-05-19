@@ -792,13 +792,26 @@ def handle_export_all(params: dict) -> dict:
 
     fwd, rev = _split_fwd_rev(mappings)
 
-    project_name = (
-        p.fwd_plate_name
-        or p.rev_plate_name
-        or "kuro_export"
-    )
-    ts = _dt.now().strftime("%Y%m%d")
-    base = f"{project_name}_{ts}.kuro"
+    now = _dt.now()
+    if p.project_name:
+        base_folder_name = f"{p.project_name}_{now.strftime('%Y%m%d')}"
+    else:
+        base_folder_name = f"kuro_{now.strftime('%y%m%d_%H%M')}"
+    target_dir = out_dir / base_folder_name
+    suffix = 1
+    while target_dir.exists():
+        suffix += 1
+        target_dir = out_dir / f"{base_folder_name}_{suffix}"
+    target_dir.mkdir(parents=True)
+
+    ECHO_CSV = "echo.csv"
+    ECHO_XLSX = "echo.xlsx"
+    JANUS_CSV = "janus.csv"
+    JANUS_XLSX = "janus.xlsx"
+    MACROGEN = "macrogen.xls"
+    PRIMERS_FASTA = "primers.fasta"
+    PLATEMAP_XLSX = "platemap.xlsx"
+    RUN_JSON = "run.json"
 
     success: list[str] = []
     failed: list[dict] = []
@@ -810,54 +823,54 @@ def handle_export_all(params: dict) -> dict:
         except Exception as exc:  # noqa: BLE001 -- intentionally aggregating per-file
             failed.append({"path": name, "reason": str(exc)})
 
-    # 1. Macrogen .xls
-    macrogen_name = f"{base}.macrogen.xls"
-    _try(macrogen_name, lambda: export_macrogen_xls(
+    _try(MACROGEN, lambda: export_macrogen_xls(
         fwd_primers=fwd,
         rev_primers=rev,
         fwd_plate_name=p.fwd_plate_name,
         rev_plate_name=p.rev_plate_name,
         amount=p.amount,
         purification=p.purification,
-        output_path=str(out_dir / macrogen_name),
+        output_path=str(target_dir / MACROGEN),
     ))
 
-    # 2. Primers FASTA
-    fasta_name = f"{base}.primers.fasta"
-    _try(fasta_name, lambda: _export_primers_fasta(mappings, out_dir / fasta_name))
+    _try(PRIMERS_FASTA, lambda: _export_primers_fasta(mappings, target_dir / PRIMERS_FASTA))
 
-    # 3. Echo CSV
-    echo_name = f"{base}.echo.csv"
-    _try(echo_name, lambda: _export_echo_for_all(
-        fwd, rev, out_dir / echo_name,
+    _try(ECHO_CSV, lambda: _export_echo_for_all(
+        fwd, rev, target_dir / ECHO_CSV,
         transfer_vol=int(p.echo_transfer_vol),
         rev_groups=rev_groups,
         bom=p.bom,
     ))
 
-    # 4. JANUS CSV
-    janus_name = f"{base}.janus.csv"
-    _try(janus_name, lambda: _export_janus_for_all(
-        fwd, rev, out_dir / janus_name,
+    _try(ECHO_XLSX, lambda: export_echo_mapping_xlsx(
+        fwd, rev, target_dir / ECHO_XLSX,
+        transfer_vol=int(p.echo_transfer_vol),
+        rev_groups=rev_groups,
+    ))
+
+    _try(JANUS_CSV, lambda: _export_janus_for_all(
+        fwd, rev, target_dir / JANUS_CSV,
         transfer_vol=float(p.janus_transfer_vol),
         rev_groups=rev_groups,
         bom=p.bom,
     ))
 
-    # 5. Plate map XLSX
-    platemap_name = f"{base}.platemap.xlsx"
-    _try(platemap_name, lambda: _export_platemap_for_all(
-        mappings, results, rev_groups, out_dir / platemap_name,
+    _try(JANUS_XLSX, lambda: export_janus_mapping_xlsx(
+        fwd, rev, target_dir / JANUS_XLSX,
+        transfer_vol=float(p.janus_transfer_vol),
+        rev_groups=rev_groups,
     ))
 
-    # 6. Run JSON
-    runjson_name = f"{base}.run.json"
-    _try(runjson_name, lambda: _export_run_json(
-        mappings, results, rev_groups, out_dir / runjson_name,
+    _try(PLATEMAP_XLSX, lambda: _export_platemap_for_all(
+        mappings, results, rev_groups, target_dir / PLATEMAP_XLSX,
+    ))
+
+    _try(RUN_JSON, lambda: _export_run_json(
+        mappings, results, rev_groups, target_dir / RUN_JSON,
     ))
 
     return {
         "success": success,
         "failed": failed,
-        "output_dir": str(out_dir),
+        "output_dir": str(target_dir),
     }
