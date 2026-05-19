@@ -251,7 +251,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     // mutations verified against the bundled EGFP translation.
     try {
       set({ statusMessage: "Loading sample data..." });
-      const gbPath = await resolveResource("samples/egfp.fa");
+      const gbPath = await resolveResource("samples/sample_plasmid.gb");
       await get().loadSequence(gbPath);
       if (!get().seqInfo) {
         // loadSequence swallowed an error and left statusMessage with the cause; preserve it.
