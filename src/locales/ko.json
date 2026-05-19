@@ -174,6 +174,10 @@
       "cdsStartHelp": "컨센서스 서열을 아미노산으로 번역할 때 사용하는 0-based CDS 시작 오프셋입니다.",
       "cdsEnd": "CDS 끝",
       "cdsEndHelp": "번역에 사용하는 CDS 끝 좌표입니다. 참조 FASTA 프레임과 일치해야 합니다.",
+      "cdsPicker": {
+        "detected_one": "참조에서 CDS 후보 {{count}}개를 감지했습니다",
+        "detected_other": "참조에서 CDS 후보 {{count}}개를 감지했습니다"
+      },
       "manyCutoff": "웰당 허용 가능한 비예상 AA 변화 최대치",
       "manyCutoffHelp": "이 임계값보다 많은 아미노산 변화가 있는 웰은 MANY로 분류됩니다 (신뢰도 낮음, 픽 불가).",
       "inputSourceConsensus": "Consensus FASTA",

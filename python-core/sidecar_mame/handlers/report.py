@@ -8,8 +8,9 @@ then renders an HTML or PDF run report.
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import cast
 
+from kuma_core.mame.ingest.run_meta import NgsRunMeta
 from sidecar_mame.core import _validate_output_path, get_state
 
 _ALLOWED_REPORT_EXTENSIONS = {".html", ".pdf"}
@@ -70,7 +71,7 @@ def handle_export_run_report(params: dict) -> dict:
     report_data = build_run_report_data(
         verdicts=state.last_verdicts,
         replicates=state.last_replicates,
-        run_meta=state.last_run_meta,
+        run_meta=cast(NgsRunMeta | None, state.last_run_meta),
         project_name=project_name,
         kuma_version=KUMA_VERSION,
     )

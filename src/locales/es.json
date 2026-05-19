@@ -174,6 +174,10 @@
       "cdsStartHelp": "Offset 0-based del inicio del CDS usado al traducir la secuencia consensus a aminoácidos.",
       "cdsEnd": "CDS End",
       "cdsEndHelp": "Coordenada de fin del CDS usada para la traducción. Debe coincidir con el frame del FASTA de referencia.",
+      "cdsPicker": {
+        "detected_one": "{{count}} candidato a CDS detectado en la referencia",
+        "detected_other": "{{count}} candidatos a CDS detectados en la referencia"
+      },
       "manyCutoff": "Máx. cambios de AA inesperados por pocillo",
       "manyCutoffHelp": "Los pocillos con más cambios de aminoácidos que este umbral se marcan como MANY (baja confianza, no recogibles).",
       "inputSourceConsensus": "FASTA de consensus",

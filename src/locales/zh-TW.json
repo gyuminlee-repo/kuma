@@ -174,6 +174,10 @@
       "cdsStartHelp": "將 consensus 序列翻譯為氨基酸時使用的 0-based CDS 起點偏移。",
       "cdsEnd": "CDS 終點",
       "cdsEndHelp": "翻譯所用的 CDS 終點座標。必須與參考 FASTA 的 frame 匹配。",
+      "cdsPicker": {
+        "detected_one": "在參考序列中偵測到 {{count}} 個 CDS 候選",
+        "detected_other": "在參考序列中偵測到 {{count}} 個 CDS 候選"
+      },
       "manyCutoff": "每孔最大意外 AA 變化數",
       "manyCutoffHelp": "氨基酸變化數超過此閾值的孔會被標記為 MANY(低可信度,不可挑取)。",
       "inputSourceConsensus": "Consensus FASTA",

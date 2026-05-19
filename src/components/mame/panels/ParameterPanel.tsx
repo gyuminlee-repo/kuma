@@ -557,7 +557,7 @@ export function ParameterPanel() {
             </Select>
             <p className="text-caption text-muted-foreground/90">
               {referencePath
-                ? `${analyzeCdsCandidates.length} CDS candidate(s) detected in reference`
+                ? t("mame.parameters.cdsPicker.detected", { count: analyzeCdsCandidates.length })
                 : ""}
             </p>
           </div>
