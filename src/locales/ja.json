@@ -258,7 +258,7 @@
         "success": "Detected from {{source}}"
       },
       "cdsCandidateHelp": "CDS candidate auto-detected from the FASTA. Coordinates apply on selection.",
-      "geneNameHelp": "Short gene identifier used in output filenames and labels (e.g. ispS).",
+      "geneNameHelp": "Short gene identifier used in output filenames and labels (e.g. egfp).",
       "polymeraseHelp": "Polymerase profile used to set default Tm/binding constraints. Q5 recommended for high-fidelity PCR.",
       "geneStartHelp": "CDS start coordinate (0-based, inclusive).",
       "geneEndHelp": "CDS end coordinate (0-based, exclusive).",
@@ -807,7 +807,7 @@
     "gcRangeTitle": "推奨範囲: 40-60%。この範囲外の primer はペナルティを受けます。",
     "gcInvalidError": "Min は Max より小さくしてください",
     "primerLenSectionLabel": "Primer 長",
-    "primerLenHelp": "KOD One PCR Master Mix\n  標準:         22–35 bp, Tm >63°C\n  長いターゲット: 25–35 bp, Tm >65°C\n\n実験データ (IspS SDM, n=165)\n  Forward 合計: 19–38 bp (overlap 含む)\n  Reverse 合計: 18–32 bp (overlap 含む)\n\nKURO primer 長 = overlap + priming region",
+    "primerLenHelp": "KOD One PCR Master Mix\n  標準:         22–35 bp, Tm >63°C\n  長いターゲット: 25–35 bp, Tm >65°C\n\n実験データ (EGFP SDM, demo)\n  Forward 合計: 19–38 bp (overlap 含む)\n  Reverse 合計: 18–32 bp (overlap 含む)\n\nKURO primer 長 = overlap + priming region",
     "primerLenLimit": "制限",
     "primerLenSingleTitle": "両 primer に単一の長さ範囲を適用 (rev = rc(fwd))。",
     "primerLenFwdLabel": "F",

@@ -258,7 +258,7 @@
         "success": "Detected from {{source}}"
       },
       "cdsCandidateHelp": "CDS candidate auto-detected from the FASTA. Coordinates apply on selection.",
-      "geneNameHelp": "Short gene identifier used in output filenames and labels (e.g. ispS).",
+      "geneNameHelp": "Short gene identifier used in output filenames and labels (e.g. egfp).",
       "polymeraseHelp": "Polymerase profile used to set default Tm/binding constraints. Q5 recommended for high-fidelity PCR.",
       "geneStartHelp": "CDS start coordinate (0-based, inclusive).",
       "geneEndHelp": "CDS end coordinate (0-based, exclusive).",
@@ -807,7 +807,7 @@
     "gcRangeTitle": "Empfohlen range: 40-60%. Primer outside this range receive ein penalty.",
     "gcInvalidError": "Min must be weniger than Max",
     "primerLenSectionLabel": "Primer Länge",
-    "primerLenHelp": "KOD One PCR Master Mix\n  Standard:     22–35 bp, Tm >63°C\n  Long targets: 25–35 bp, Tm >65°C\n\nExperimental (IspS SDM, n=165)\n  Forward total: 19–38 bp (incl. overlap)\n  Reverse total: 18–32 bp (incl. overlap)\n\nKURO Primer Länge = overlap + priming region",
+    "primerLenHelp": "KOD One PCR Master Mix\n  Standard:     22–35 bp, Tm >63°C\n  Long targets: 25–35 bp, Tm >65°C\n\nExperimental (EGFP SDM, demo)\n  Forward total: 19–38 bp (incl. overlap)\n  Reverse total: 18–32 bp (incl. overlap)\n\nKURO Primer Länge = overlap + priming region",
     "primerLenLimit": "Limit",
     "primerLenSingleTitle": "Single Länge range applies zu both Primer (rev = rc(fwd)).",
     "primerLenFwdLabel": "F",

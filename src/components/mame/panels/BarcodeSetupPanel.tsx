@@ -56,7 +56,7 @@ const DEFAULT_STATE: SetupFormState = {
   fastaPath: "",
   geneStart: "",
   geneEnd: "",
-  geneName: "ispS",
+  geneName: "egfp",
   polymerase: "Q5",
   flankMin: "100",
   flankMax: "400",
@@ -506,7 +506,7 @@ export function BarcodeSetupPanel({ group }: BarcodeSetupPanelProps = {}) {
                 id="gene-name"
                 value={form.geneName}
                 onChange={(e) => setForm({ geneName: e.target.value })}
-                placeholder="ispS"
+                placeholder="egfp"
                 className="h-8 text-xs font-mono"
               />
             </div>
