@@ -208,27 +208,10 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   },
 
   loadSampleData: async () => {
-    // Item 1 (PI 2026-05-15): "Load sample data" must auto-populate every required
-    // field so the user can press Next at each wizard step without manual setup.
-    //
-    // Why text mode (not evolvepro) for the EGFP fixture:
-    //   The bundled `sample_evolvepro.csv` was authored for the legacy ispS sample
-    //   and references high residue positions / WT residues that do not match the
-    //   EGFP CDS (239 aa) introduced in Item 4. Loading that CSV against EGFP
-    //   yields position/WT-residue validation failures inside `load_evolvepro_csv`
-    //   and leaves `mutationText` empty, breaking the design.mutation Next gate.
-    //   Until the CSV is regenerated for EGFP (separate follow-up), the sample
-    //   loader uses text-mode with a small demo set of valid EGFP mutations.
-    //
-    //   The four mutations below use the actual WT residues at positions 65, 100,
-    //   150, 200 of the bundled EGFP translation, so the design pipeline accepts
-    //   them without further user intervention.
-    //
-    // Other required defaults (codon strategy "closest", polymerase "Benchling",
-    // pipelineMode / diversity flags) are already set by the respective slice
-    // initial state, so the wizard's design.submit gate clears on its own once
-    // seqInfo + mutationText are present and the single-gene FASTA auto-selects
-    // selectedGene inside loadSequence.
+    // Auto-populate every required field so the user can press Next at each
+    // wizard step without manual setup. Mode-aware: evolvepro mode loads the
+    // EGFP-compatible CSV (since v0.9.9.X), text mode injects the 120 demo
+    // mutations verified against the bundled EGFP translation.
     try {
       set({ statusMessage: "Loading sample data..." });
       const gbPath = await resolveResource("samples/egfp.fa");
@@ -237,15 +220,16 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         // loadSequence swallowed an error and left statusMessage with the cause; preserve it.
         return;
       }
-      // Force text mode (clears any stale evolvepro CSV state).
-      get().setMutationInputMode("text");
-      // Demo mutations valid against the bundled EGFP translation.
-      // Parser expects one mutation per line (sidecar_kuro/handlers/sequence.py:55).
-      // 120-variant set: chosen from EGFP positions where default Benchling
-      // Tm/length parameters yield a valid primer pair, so the user can fill
-      // a full 96-well plate without manual deletion. Verified: 118/120 succeed.
-      get().setMutationText(EGFP_SAMPLE_MUTATIONS_120);
-      set({ statusMessage: "Sample data loaded (EGFP + 120 demo mutations)." });
+      if (get().mutationInputMode === "evolvepro") {
+        const csvPath = await resolveResource("samples/sample_evolvepro.csv");
+        await get().loadEvolveproCsv(csvPath);
+        set({ statusMessage: "Sample data loaded (EGFP + EVOLVEpro CSV)." });
+      } else {
+        // Text mode: clear any stale evolvepro CSV state and inject demo set.
+        get().setMutationInputMode("text");
+        get().setMutationText(EGFP_SAMPLE_MUTATIONS_120);
+        set({ statusMessage: "Sample data loaded (EGFP + 120 demo mutations)." });
+      }
     } catch (err) {
       set({ statusMessage: `Sample load failed: ${formatError(err)}` });
     }

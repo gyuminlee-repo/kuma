@@ -1,11 +1,12 @@
 """End-to-end verification of the LOAD SAMPLE DATA flow.
 
 Exercises the same handlers the frontend invokes via JSON-RPC:
-- handle_load_fasta on samples/sample_plasmid.gb
-- handle_load_evolvepro_csv on samples/sample_evolvepro.csv
+- handle_load_fasta on samples/egfp.fa (the loadSampleData target since v0.9.9.X)
+- handle_load_evolvepro_csv on samples/sample_evolvepro.csv (EGFP-paired)
 
 Verifies the bundled sample data is internally consistent so the Tauri UI
-button "Load Sample Data" produces a runnable design state.
+button "Load Sample Data" produces a runnable design state in both text and
+evolvepro mutation input modes.
 """
 
 from __future__ import annotations
@@ -27,24 +28,23 @@ SAMPLE_DIR = REPO_ROOT / "src-tauri" / "samples"
 
 @pytest.fixture(scope="module")
 def gb_info() -> dict:
-    return handle_load_fasta({"filepath": str(SAMPLE_DIR / "sample_plasmid.gb")})
+    return handle_load_fasta({"filepath": str(SAMPLE_DIR / "egfp.fa")})
 
 
 def test_sample_gb_exists_and_loads(gb_info: dict) -> None:
-    assert gb_info["seq_length"] == 5000
+    assert gb_info["seq_length"] == 720
     assert len(gb_info["genes"]) >= 1
 
 
 def test_auto_selected_gene_is_longest(gb_info: dict) -> None:
     """Frontend picks the longest gene by aa_length as default; sample design target."""
     longest = max(gb_info["genes"], key=lambda g: g["aa_length"])
-    assert longest["gene"] == "synR"
-    assert longest["aa_length"] == 381
+    assert longest["aa_length"] == 239
 
 
 def test_sample_evolvepro_variants_fit_target_gene(gb_info: dict) -> None:
     """All variants in sample_evolvepro.csv must reference positions/WT residues
-    consistent with the auto-selected gene (synR), or the design step will fail.
+    consistent with the auto-selected gene (EGFP), or the design step will fail.
     """
     longest = max(gb_info["genes"], key=lambda g: g["aa_length"])
     translation = longest["translation"]
