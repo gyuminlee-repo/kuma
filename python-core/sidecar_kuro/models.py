@@ -641,9 +641,14 @@ class LoadEvolveproParams(BaseModel):
     round_size: int = Field(default=96, ge=1, le=10000)
     # v0.3 §4: protein reference sequence (1-indexed positions) used to
     # convert short EVOLVEpro variant notation (`89W`) into internal
-    # MAME/kuro notation (`F89W`). Optional — if omitted, short-form
+    # MAME/kuro notation (`F89W`). Optional -- if omitted, short-form
     # variants pass through unchanged for backward compatibility.
     ref_seq: str = ""
+    # Others mode: user-specified column overrides and sort direction.
+    variant_column: Optional[str] = None
+    score_column: Optional[str] = None
+    score_order: Literal["desc", "asc"] = "desc"
+    sheet_name: Optional[str] = None
 
 
 class LandscapeEntry(BaseModel):
