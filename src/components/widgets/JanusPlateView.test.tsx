@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, it, expect } from "vitest";
 import { JanusPlateView } from "./JanusPlateView";
 
@@ -62,6 +63,39 @@ describe("JanusPlateView", () => {
     // Look for label elements by data-testid so test stays robust whether key is resolved or not.
     expect(container.querySelector("[data-testid='janus-rack1-label']")).not.toBeNull();
     expect(container.querySelector("[data-testid='janus-rack2-label']")).not.toBeNull();
+  });
+
+  it("renders mutation code and F/R tag in each well", () => {
+    const rack1 = [
+      {
+        well: "A1",
+        rowLetter: "A",
+        colNumber: 1,
+        rack: 1 as const,
+        name: "Q232A-fw",
+        volumeUl: 2.0,
+      },
+    ];
+    render(<JanusPlateView rack1={rack1} rack2={[]} />);
+    expect(screen.getByText("Q232A")).toBeInTheDocument();
+    expect(screen.getByText("F")).toBeInTheDocument();
+  });
+
+  it("opens popover with details on cell click", async () => {
+    const rack1 = [
+      {
+        well: "A1",
+        rowLetter: "A",
+        colNumber: 1,
+        rack: 1 as const,
+        name: "Q232A-fw",
+        volumeUl: 2.0,
+      },
+    ];
+    render(<JanusPlateView rack1={rack1} rack2={[]} />);
+    await userEvent.click(screen.getByText("Q232A"));
+    expect(await screen.findByText(/Q232A-fw/)).toBeInTheDocument();
+    expect(screen.getByText(/2(\.0)? ?[μu]L/i)).toBeInTheDocument();
   });
 
   it("empty racks still render the full grid", () => {
