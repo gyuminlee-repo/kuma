@@ -287,56 +287,102 @@ def _normalize_variant_notation(variant: str, ref_seq: str) -> str:
     return f"{ref_seq[pos - 1]}{pos}{m.group(2)}"
 
 
+def _read_table_rows(
+    filepath: str | Path,
+    sheet_name: str | None,
+    ext: str,
+) -> tuple[list[dict[str, str]], list[str]]:
+    """Read all rows and column names from a CSV or XLSX file.
+
+    Returns a (rows, columns) pair where rows is a list of dicts keyed by
+    column name and columns is the list of header strings in file order.
+    Values are always strings.
+    """
+    if ext == ".xlsx":
+        import openpyxl
+        wb = openpyxl.load_workbook(str(filepath), read_only=True, data_only=True)
+        target = sheet_name if sheet_name is not None else wb.sheetnames[0]
+        if target not in wb.sheetnames:
+            wb.close()
+            raise ValueError(
+                f"sheet '{target}' not found. Available: {wb.sheetnames}"
+            )
+        ws = wb[target]
+        all_rows = list(ws.iter_rows(values_only=True))
+        wb.close()
+        if not all_rows:
+            return [], []
+        columns = [str(c) if c is not None else "" for c in all_rows[0]]
+        rows = [
+            {columns[i]: (str(cell) if cell is not None else "") for i, cell in enumerate(row)}
+            for row in all_rows[1:]
+        ]
+        return rows, columns
+    else:
+        with open(str(filepath), encoding="utf-8", newline="") as f:
+            reader = csv.DictReader(f)
+            columns = list(reader.fieldnames or [])
+            rows = [{k: (v or "") for k, v in row.items()} for row in reader]
+        return rows, columns
+
+
 def _load_evolvepro_rows(
-    filepath: str | Path, ref_seq: str = ""
-) -> list[tuple[str, float]]:
-    """Parse EVOLVEpro CSV and return (variant, y_pred) pairs.
+    filepath: str | Path,
+    ref_seq: str = "",
+    *,
+    variant_column: str | None = None,
+    score_column: str | None = None,
+    score_order: str = "desc",
+    sheet_name: str | None = None,
+) -> list[tuple[str, float, float]]:
+    """Parse EVOLVEpro CSV/XLSX and return (variant, sort_score, raw_score) triples.
 
-    Column detection uses VARIANT_COLUMNS and SCORE_COLUMNS (first match).
-    Rows with empty variant strings are skipped.
-    Non-finite y_pred values are replaced with 0.0.
+    Column detection uses VARIANT_COLUMNS and SCORE_COLUMNS (first match)
+    unless explicit overrides are provided.
 
-    When ``ref_seq`` is provided, EVOLVEpro short-form variants (``89W``)
-    are converted to internal notation (``F89W``) per v0.3 spec §4. Internal
-    notation rows are passed through unchanged.
+    sort_score = raw_score when score_order == "desc".
+    sort_score = -raw_score when score_order == "asc" (lower raw = better rank).
 
     Args:
-        filepath: Path to an EVOLVEpro-compatible CSV file.
-        ref_seq: Protein reference sequence (1-indexed positions). When
-            empty (default), variant strings pass through unchanged.
+        filepath: Path to CSV or XLSX file.
+        ref_seq: Protein reference sequence for short-form variant conversion.
+        variant_column: Explicit variant column name. When None, alias lookup applies.
+        score_column: Explicit score column name. When None, alias lookup applies.
+        score_order: "desc" (higher = better) or "asc" (lower = better, e.g. rank).
+        sheet_name: XLSX sheet name. None selects the first sheet. Ignored for CSV.
 
     Returns:
-        List of (variant, y_pred) tuples in file order (not sorted).
+        List of (variant, sort_score, raw_score) triples in file order (not sorted).
 
     Raises:
-        ValueError: If no recognised variant column is found.
+        ValueError: If no recognisable variant column is found.
     """
-    rows: list[tuple[str, float]] = []
-    with open(str(filepath), encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        columns = reader.fieldnames or []
+    ext = Path(str(filepath)).suffix.lower()
+    table_rows, columns = _read_table_rows(filepath, sheet_name, ext)
 
-        variant_col = next((c for c in VARIANT_COLUMNS if c in columns), None)
-        if variant_col is None:
-            raise ValueError(
-                f"EVOLVEpro CSV must have a variant column. "
-                f"Supported: {VARIANT_COLUMNS}. Found: {columns}"
-            )
-        score_col = next((c for c in SCORE_COLUMNS if c in columns), None)
+    v_col = variant_column or next((c for c in VARIANT_COLUMNS if c in columns), None)
+    if v_col is None:
+        raise ValueError(
+            f"EVOLVEpro file must have a variant column. "
+            f"Supported aliases: {VARIANT_COLUMNS}. Found: {columns}"
+        )
+    s_col = score_column or next((c for c in SCORE_COLUMNS if c in columns), None)
 
-        for row in reader:
-            variant = row.get(variant_col, "").strip()
-            if not variant:
-                continue
-            variant = _normalize_variant_notation(variant, ref_seq)
-            try:
-                y_pred = float(row[score_col]) if score_col and row.get(score_col) else 0.0
-            except (ValueError, TypeError):
-                y_pred = 0.0
-            if not math.isfinite(y_pred):
-                y_pred = 0.0
-            rows.append((variant, y_pred))
-    return rows
+    result: list[tuple[str, float, float]] = []
+    for row in table_rows:
+        variant = row.get(v_col, "").strip()
+        if not variant:
+            continue
+        variant = _normalize_variant_notation(variant, ref_seq)
+        try:
+            raw = float(row[s_col]) if s_col and row.get(s_col) else 0.0
+        except (ValueError, TypeError):
+            raw = 0.0
+        if not math.isfinite(raw):
+            raw = 0.0
+        sort_score = -raw if score_order == "asc" else raw
+        result.append((variant, sort_score, raw))
+    return result
 
 
 
@@ -386,12 +432,15 @@ def load_evolvepro_csv(
         Keys: variants, y_preds, total_count, selected_count,
         filtered_count, domain_stats, pareto_replaced.
     """
-    rows = _load_evolvepro_rows(filepath, ref_seq=ref_seq)
-    # Detect whether score column was present (for sort decision)
-    with open(str(filepath), encoding="utf-8") as f:
-        _cols = csv.DictReader(f).fieldnames or []
-    score_col = next((c for c in SCORE_COLUMNS if c in _cols), None)
-    has_score = score_col is not None
+    raw_rows = _load_evolvepro_rows(filepath, ref_seq=ref_seq)
+    # Build (variant, sort_score) pairs for all downstream filters/selectors.
+    # raw_map keeps the original score for the final response yPredMap.
+    score_rows: list[tuple[str, float]] = [(v, s) for v, s, _ in raw_rows]
+    raw_map: dict[str, float] = {v: r for v, _, r in raw_rows}
+    # has_score: True when at least one row carried a non-zero score.
+    # Used to gate sort and sigma-adaptive logic (score-free files skip both).
+    has_score = any(r != 0.0 for _, _, r in raw_rows)
+    rows = score_rows
     if has_score:
         rows.sort(key=lambda r: r[1], reverse=True)
 
@@ -467,7 +516,7 @@ def load_evolvepro_csv(
 
     return {
         "variants": [v for v, _ in selected],
-        "y_preds": [round(y if math.isfinite(y) else 0.0, 4) for _, y in selected],
+        "y_preds": [round(raw_map.get(v, 0.0) if math.isfinite(raw_map.get(v, 0.0)) else 0.0, 4) for v in (v for v, _ in selected)],
         "total_count": pre_filter_count,
         "selected_count": len(selected),
         "filtered_count": position_filter_removed,
