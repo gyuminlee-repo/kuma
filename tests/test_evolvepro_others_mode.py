@@ -169,3 +169,46 @@ def test_load_rows_xlsx_multi_sheet(tmp_path):
         pytest.fail(f"Expected 1 row from Predictions sheet, got {len(rows)}")
     if rows[0][0] != "M20L":
         pytest.fail(f"Expected M20L, got {rows[0][0]}")
+
+
+# ---------------------------------------------------------------------------
+# Task 5 tests: load_evolvepro_csv with asc mode + Top-N
+# ---------------------------------------------------------------------------
+
+def test_load_evolvepro_csv_asc_top_n(tmp_path):
+    """asc mode: Top-N=3 picks rank 1, 2, 3 and yPredMap shows raw ranks."""
+    from kuma_core.kuro.evolvepro import load_evolvepro_csv
+
+    csv_file = tmp_path / "ranks.csv"
+    _write_csv([
+        ["variant", "rank"],
+        ["A1V", "1"],
+        ["B2C", "2"],
+        ["D3E", "3"],
+        ["E4F", "4"],
+        ["G5H", "5"],
+    ], csv_file)
+
+    result = load_evolvepro_csv(
+        str(csv_file),
+        top_n=3,
+        score_column="rank",
+        score_order="asc",
+    )
+
+    selected = result["variants"]
+    y_preds = result["y_preds"]
+
+    if len(selected) != 3:
+        pytest.fail(f"Expected 3 selected variants, got {len(selected)}: {selected}")
+
+    if "A1V" not in selected:
+        pytest.fail(f"Expected A1V (rank 1) in top 3, got {selected}")
+    if "B2C" not in selected:
+        pytest.fail(f"Expected B2C (rank 2) in top 3, got {selected}")
+    if "D3E" not in selected:
+        pytest.fail(f"Expected D3E (rank 3) in top 3, got {selected}")
+
+    idx_a1v = selected.index("A1V")
+    if abs(y_preds[idx_a1v] - 1.0) > 1e-6:
+        pytest.fail(f"Expected yPredMap to show raw rank=1.0, got {y_preds[idx_a1v]}")

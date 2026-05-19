@@ -405,6 +405,10 @@ def load_evolvepro_csv(
     evolvepro_round: int = 0,
     round_size: int = 96,
     ref_seq: str = "",
+    variant_column: str | None = None,
+    score_column: str | None = None,
+    score_order: str = "desc",
+    sheet_name: str | None = None,
 ) -> dict:
     """Load EVOLVEpro df_test.csv and return selected variants.
 
@@ -432,7 +436,14 @@ def load_evolvepro_csv(
         Keys: variants, y_preds, total_count, selected_count,
         filtered_count, domain_stats, pareto_replaced.
     """
-    raw_rows = _load_evolvepro_rows(filepath, ref_seq=ref_seq)
+    raw_rows = _load_evolvepro_rows(
+        filepath,
+        ref_seq=ref_seq,
+        variant_column=variant_column,
+        score_column=score_column,
+        score_order=score_order,
+        sheet_name=sheet_name,
+    )
     # Build (variant, sort_score) pairs for all downstream filters/selectors.
     # raw_map keeps the original score for the final response yPredMap.
     score_rows: list[tuple[str, float]] = [(v, s) for v, s, _ in raw_rows]

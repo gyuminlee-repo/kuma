@@ -107,7 +107,7 @@ def test_round_trip(tmp_path: Path) -> None:
     kept_rows = [r for r in rows if r.ngs_success and r.mutation != "WT" and r.log2_fc is not None]
     original_ypreds = {r.mutation: r.log2_fc for r in kept_rows}
 
-    for variant, y_pred_reloaded in reloaded:
+    for variant, _sort_score, y_pred_reloaded in reloaded:
         assert variant in original_ypreds, (
             f"Variant '{variant}' in reloaded CSV not found in original rows"
         )

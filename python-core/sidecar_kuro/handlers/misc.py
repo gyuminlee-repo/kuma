@@ -157,6 +157,10 @@ def handle_load_evolvepro_csv(params: dict) -> dict:
         evolvepro_round=p.evolvepro_round,
         round_size=p.round_size,
         ref_seq=p.ref_seq,
+        variant_column=p.variant_column,
+        score_column=p.score_column,
+        score_order=p.score_order,
+        sheet_name=p.sheet_name,
     )
 
 
