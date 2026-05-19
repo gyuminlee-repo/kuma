@@ -153,5 +153,6 @@ Three files must have matching version on release:
 ### Git
 - Commit format: `vX.X.X: summary in English`
 - Tags: `vX.X.X` (semver)
+- Version bump 시 `git tag` 최신값뿐 아니라 `git log --oneline -5`의 커밋 메시지 `vX.X.X.YY` 시퀀스도 함께 확인 (태그 없이 커밋만 진행된 구간이 있으면 역행 위험)
 - `Cargo.lock` is committed (binary app needs reproducible builds)
 - CI pins `ubuntu-22.04` (not `ubuntu-latest`) for WebKit dependency compatibility
