@@ -775,6 +775,13 @@ const rpcResultValidators = {
     typeof value === "object" && value !== null && "settings" in value,
   settings_save: (value): value is RpcMethodResult<"settings_save"> =>
     typeof value === "object" && value !== null && "ok" in value && "path" in value,
+  preview_evolvepro_source: (value): value is RpcMethodResult<"preview_evolvepro_source"> =>
+    typeof value === "object" && value !== null && "result" in value &&
+    typeof (value as { result: unknown }).result === "object" &&
+    (value as { result: unknown }).result !== null &&
+    "sheets" in (value as { result: object }).result &&
+    "headers" in (value as { result: object }).result &&
+    "rows" in (value as { result: object }).result,
 } satisfies { [K in RpcMethod]: (value: unknown) => value is RpcMethodResult<K> };
 
 export function getRpcResultValidator<K extends RpcMethod>(
