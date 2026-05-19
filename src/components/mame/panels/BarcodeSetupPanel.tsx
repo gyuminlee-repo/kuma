@@ -22,6 +22,7 @@ import { revealInOSFolder } from "@/lib/openFolder";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { InlineHelp } from "@/components/ui/InlineHelp";
 import {
   Select,
   SelectContent,
@@ -543,6 +544,7 @@ export function BarcodeSetupPanel({ group }: BarcodeSetupPanelProps = {}) {
             <NumberField
               id="flank-min"
               label="flank_min (nt)"
+              tooltip={t("mame.parameters.tooltips.flankMin")}
               value={form.flankMin}
               onChange={(v) => setForm({ flankMin: v })}
               min={0}
@@ -552,6 +554,7 @@ export function BarcodeSetupPanel({ group }: BarcodeSetupPanelProps = {}) {
             <NumberField
               id="flank-max"
               label="flank_max (nt)"
+              tooltip={t("mame.parameters.tooltips.flankMax")}
               value={form.flankMax}
               onChange={(v) => setForm({ flankMax: v })}
               min={1}
@@ -570,6 +573,7 @@ export function BarcodeSetupPanel({ group }: BarcodeSetupPanelProps = {}) {
             <NumberField
               id="binding-min-len"
               label="binding_min_len (nt)"
+              tooltip={t("mame.parameters.tooltips.bindingMinLen")}
               value={form.bindingMinLen}
               onChange={(v) => setForm({ bindingMinLen: v })}
               min={1}
@@ -579,6 +583,7 @@ export function BarcodeSetupPanel({ group }: BarcodeSetupPanelProps = {}) {
             <NumberField
               id="binding-max-len"
               label="binding_max_len (nt)"
+              tooltip={t("mame.parameters.tooltips.bindingMaxLen")}
               value={form.bindingMaxLen}
               onChange={(v) => setForm({ bindingMaxLen: v })}
               min={1}
@@ -587,7 +592,8 @@ export function BarcodeSetupPanel({ group }: BarcodeSetupPanelProps = {}) {
             />
             <NumberField
               id="tm-min"
-              label="Tm min (degC)"
+              label="Tm min (°C)"
+              tooltip={t("mame.parameters.tooltips.tmMin")}
               value={form.tmMin}
               onChange={(v) => setForm({ tmMin: v })}
               min={0}
@@ -596,7 +602,8 @@ export function BarcodeSetupPanel({ group }: BarcodeSetupPanelProps = {}) {
             />
             <NumberField
               id="tm-max"
-              label="Tm max (degC)"
+              label="Tm max (°C)"
+              tooltip={t("mame.parameters.tooltips.tmMax")}
               value={form.tmMax}
               onChange={(v) => setForm({ tmMax: v })}
               min={0}
@@ -795,6 +802,7 @@ function FilePickerField({
 function NumberField({
   id,
   label,
+  tooltip,
   value,
   onChange,
   min,
@@ -805,6 +813,7 @@ function NumberField({
 }: {
   id: string;
   label: string;
+  tooltip?: string;
   value: string;
   onChange: (v: string) => void;
   min?: number;
@@ -817,9 +826,12 @@ function NumberField({
     <div className="space-y-1.5">
       <Label
         htmlFor={id}
-        className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+        className="text-xs font-medium normal-case tracking-wide text-muted-foreground"
       >
-        {label}
+        <span className="inline-flex items-center gap-1.5">
+          {label}
+          {tooltip && <InlineHelp text={tooltip} />}
+        </span>
       </Label>
       <Input
         id={id}

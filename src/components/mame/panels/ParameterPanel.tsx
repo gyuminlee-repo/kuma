@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { Input } from "@/components/ui/input";
@@ -395,6 +396,7 @@ export function ParameterPanel() {
   const manyCutoff = useMameAppStore((s) => s.manyCutoff);
   const distributionStats = useMameAppStore((s) => s.distributionStats);
   const setParams = useMameAppStore((s) => s.setParams);
+  const [showLegacyOptions, setShowLegacyOptions] = useState(false);
 
   return (
     <div className="rounded-lg border border-border bg-background p-4 space-y-3">
@@ -552,37 +554,57 @@ export function ParameterPanel() {
           </p>
         </div>
 
-        {/* Min File KB — legacy proxy cutoff (강등: 보조 표시) */}
-        <div className="space-y-1 sm:col-span-2 rounded-md border border-dashed border-border/60 p-2">
-          <Label
-            htmlFor="min-file-kb"
-            className="text-caption font-medium uppercase tracking-wide text-muted-foreground/60"
+        {/* Legacy options toggle (deprecated KB cutoff hidden by default) */}
+        <div className="sm:col-span-2">
+          <button
+            type="button"
+            onClick={() => setShowLegacyOptions((v) => !v)}
+            aria-expanded={showLegacyOptions}
+            aria-controls="legacy-options-section"
+            className="text-caption text-muted-foreground underline-offset-2 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 rounded"
           >
-            <span className="inline-flex items-center gap-1.5">
-              {t("mame.parameters.legacyKbCutoff")}
-              <InlineHelp text={t("mame.parameters.legacyKbHelp")} />
-            </span>
-          </Label>
-          <Input
-            id="min-file-kb"
-            type="number"
-            step="0.1"
-            value={Number.isFinite(minFileSizeKb) ? minFileSizeKb : ""}
-            onChange={(e) => {
-              const raw = e.target.value;
-              if (raw === "") return;
-              const n = Number(raw);
-              if (Number.isFinite(n)) setParams({ minFileSizeKb: n });
-            }}
-            className="h-7 text-xs opacity-70"
-            aria-label={t("mame.parameters.legacyKbCutoffAriaLabel")}
-            title={t("mame.parameters.legacyKbTooltip")}
-          />
-          {distributionStats !== null && (
-            <RecommendedCutoff
-              stats={distributionStats}
-              onApply={(value) => setParams({ minFileSizeKb: value })}
-            />
+            {showLegacyOptions ? "▾ " : "▸ "}
+            {t("mame.parameters.legacyOptionsToggle")}
+          </button>
+          {showLegacyOptions && (
+            <div
+              id="legacy-options-section"
+              className="mt-2 space-y-1 rounded-md border border-dashed border-border/60 p-2"
+            >
+              <p className="text-caption text-amber-700 dark:text-amber-400">
+                {t("mame.parameters.legacyOptionsDeprecationWarning")}
+              </p>
+              <Label
+                htmlFor="min-file-kb"
+                className="text-caption font-medium uppercase tracking-wide text-muted-foreground/60"
+              >
+                <span className="inline-flex items-center gap-1.5">
+                  {t("mame.parameters.legacyKbCutoff")}
+                  <InlineHelp text={t("mame.parameters.legacyKbHelp")} />
+                </span>
+              </Label>
+              <Input
+                id="min-file-kb"
+                type="number"
+                step="0.1"
+                value={Number.isFinite(minFileSizeKb) ? minFileSizeKb : ""}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  if (raw === "") return;
+                  const n = Number(raw);
+                  if (Number.isFinite(n)) setParams({ minFileSizeKb: n });
+                }}
+                className="h-7 text-xs opacity-70"
+                aria-label={t("mame.parameters.legacyKbCutoffAriaLabel")}
+                title={t("mame.parameters.legacyKbTooltip")}
+              />
+              {distributionStats !== null && (
+                <RecommendedCutoff
+                  stats={distributionStats}
+                  onApply={(value) => setParams({ minFileSizeKb: value })}
+                />
+              )}
+            </div>
           )}
         </div>
 

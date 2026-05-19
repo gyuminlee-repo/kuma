@@ -29,6 +29,7 @@ import { SummaryRow } from "@/components/mame/widgets/SummaryRow";
 import { VerdictTable } from "@/components/mame/widgets/VerdictTable";
 import { PlateView } from "@/components/mame/widgets/PlateView";
 import { RunHealthPanel } from "@/components/mame/widgets/RunHealthPanel";
+import { PlateClusterAlert } from "@/components/mame/widgets/PlateClusterAlert";
 import { InputPanel } from "@/components/mame/panels/InputPanel";
 import { ParameterPanel } from "@/components/mame/panels/ParameterPanel";
 import { Button } from "@/components/ui/button";
@@ -209,7 +210,9 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
       // Other RunHealth sections (file-size/throughput/pore-yield/barcode/cross-talk) are still reachable from
       // analyze.inputs's RunHealthPanel and the QC inspector; not duplicated here per PI spec slide 6.
       mainContent = (
-        <div className="h-full min-h-[720px]">
+        <div className="flex h-full min-h-[720px] flex-col">
+          <PlateClusterAlert />
+          <div className="flex-1 min-h-0">
           <PanelGroup direction="horizontal" autoSaveId="mame.analyze.review.split">
             <Panel defaultSize={50} minSize={25}>
               <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden">
@@ -252,6 +255,7 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
               </PanelGroup>
             </Panel>
           </PanelGroup>
+          </div>
         </div>
       );
       break;

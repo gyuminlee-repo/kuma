@@ -19,6 +19,13 @@ import { toast } from "sonner";
 import { useStore } from "zustand";
 import { validateMergeActivity } from "@/store/validation";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
+import { ChevronDown } from "lucide-react";
 import { ActivityUploadPanel } from "./ActivityUploadPanel";
 import { WtWellGrid } from "@/components/mame/panels/WtWellGrid";
 import { RoundHandoffButton } from "@/components/round/RoundHandoffButton";
@@ -183,41 +190,54 @@ export function MergeSection() {
         <p className="text-xs text-muted-foreground">{t("mame.activity.merge.desc")}</p>
       </header>
 
-      <Button
-        type="button"
-        size="sm"
-        variant="outline"
-        className="w-full text-xs"
-        onClick={() =>
-          guardedMerge(
-            () => activeRoundId && void mergeActivity(activeRoundId),
-            false,
-          )
-        }
-        disabled={isMerging}
-        aria-busy={isMerging}
-        aria-label={t("mame.activity.merge.btnLegacy")}
-      >
-        {isMerging ? t("mame.activity.merge.btnLegacyBusy") : t("mame.activity.merge.btnLegacy")}
-      </Button>
-
-      <Button
-        type="button"
-        size="sm"
-        variant="outline"
-        className="w-full text-xs"
-        onClick={() =>
-          guardedMerge(
-            () => activeRoundId && void mergeForEvolvepro(activeRoundId),
-            true,
-          )
-        }
-        disabled={isMerging}
-        aria-busy={isMerging}
-        aria-label={t("mame.activity.merge.btnEvolveproAria")}
-      >
-        {isMerging ? t("mame.activity.merge.btnEvolveproBusy") : t("mame.activity.merge.btnEvolvepro")}
-      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="w-full text-xs"
+            disabled={isMerging}
+            aria-busy={isMerging}
+            aria-label={t("mame.activity.merge.btnCombined")}
+          >
+            <span className="flex w-full items-center justify-between gap-2">
+              <span>
+                {isMerging
+                  ? t("mame.activity.merge.btnCombinedBusy")
+                  : t("mame.activity.merge.btnCombined")}
+              </span>
+              <ChevronDown size={12} aria-hidden="true" />
+            </span>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-[var(--radix-dropdown-menu-trigger-width)]">
+          <DropdownMenuItem
+            onClick={() =>
+              guardedMerge(
+                () => activeRoundId && void mergeActivity(activeRoundId),
+                false,
+              )
+            }
+            disabled={isMerging}
+            aria-label={t("mame.activity.merge.btnLegacy")}
+          >
+            {t("mame.activity.merge.menuLegacy")}
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() =>
+              guardedMerge(
+                () => activeRoundId && void mergeForEvolvepro(activeRoundId),
+                true,
+              )
+            }
+            disabled={isMerging}
+            aria-label={t("mame.activity.merge.btnEvolveproAria")}
+          >
+            {t("mame.activity.merge.menuEvolvepro")}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       {mergeError && (
         isExportBlockedError(mergeError) ? (

@@ -1,0 +1,147 @@
+{
+  "exported_at": "2026-05-19T14:15:16.861478",
+  "mappings": [
+    {
+      "well": "A1",
+      "primer_name": "Q232A_F",
+      "sequence": "ACAAACAGGAAGGCGCGTACTACG",
+      "primer_type": "forward",
+      "mutation": "Q232A"
+    },
+    {
+      "well": "B1",
+      "primer_name": "Y233A_F",
+      "sequence": "ACAGGAAGGCCAGGCGTACG",
+      "primer_type": "forward",
+      "mutation": "Y233A"
+    },
+    {
+      "well": "C1",
+      "primer_name": "E335A_F",
+      "sequence": "ACCATCTTCCTTGACGCGGTGATCG",
+      "primer_type": "forward",
+      "mutation": "E335A"
+    },
+    {
+      "well": "D1",
+      "primer_name": "K200A_F",
+      "sequence": "GTTGCCAGCTTCGCACAGTATTTCAAGAA",
+      "primer_type": "forward",
+      "mutation": "K200A"
+    },
+    {
+      "well": "E1",
+      "primer_name": "F203A_F",
+      "sequence": "CAGCTTCAAACAGTATGCCAAGAACGACC",
+      "primer_type": "forward",
+      "mutation": "F203A"
+    },
+    {
+      "well": "F1",
+      "primer_name": "D227A_F",
+      "sequence": "GCGTACCAACCTCGCCAAACAGG",
+      "primer_type": "forward",
+      "mutation": "D227A"
+    },
+    {
+      "well": "G1",
+      "primer_name": "G237A_F",
+      "sequence": "AGTACTACGGCATCGCTCAGACCC",
+      "primer_type": "forward",
+      "mutation": "G237A"
+    },
+    {
+      "well": "H1",
+      "primer_name": "P240A_F",
+      "sequence": "CATCGGTCAGACCGCGGCC",
+      "primer_type": "forward",
+      "mutation": "P240A"
+    },
+    {
+      "well": "A2",
+      "primer_name": "Y155A_F",
+      "sequence": "ACTCTGCTCGGCGCCGC",
+      "primer_type": "forward",
+      "mutation": "Y155A"
+    },
+    {
+      "well": "B2",
+      "primer_name": "C175A_F",
+      "sequence": "TCAAGGAAGTCAGCGCCCGC",
+      "primer_type": "forward",
+      "mutation": "C175A"
+    },
+    {
+      "well": "A1",
+      "primer_name": "Q232A_R",
+      "sequence": "GCCTTCCTGTTTGTCGAGGTTG",
+      "primer_type": "reverse",
+      "mutation": "Q232A"
+    },
+    {
+      "well": "B1",
+      "primer_name": "Y233A_R",
+      "sequence": "CTGGCCTTCCTGTTTGTCGAG",
+      "primer_type": "reverse",
+      "mutation": "Y233A"
+    },
+    {
+      "well": "C1",
+      "primer_name": "E335A_R",
+      "sequence": "GTCAAGGAAGATGGTGCCCTTG",
+      "primer_type": "reverse",
+      "mutation": "E335A"
+    },
+    {
+      "well": "D1",
+      "primer_name": "K200A_R",
+      "sequence": "GAAGCTGGCAACGTCGTCC",
+      "primer_type": "reverse",
+      "mutation": "K200A"
+    },
+    {
+      "well": "E1",
+      "primer_name": "F203A_R",
+      "sequence": "ATACTGTTTGAAGCTGGCAACGTC",
+      "primer_type": "reverse",
+      "mutation": "F203A"
+    },
+    {
+      "well": "F1",
+      "primer_name": "D227A_R",
+      "sequence": "GAGGTTGGTACGCAGCGAC",
+      "primer_type": "reverse",
+      "mutation": "D227A"
+    },
+    {
+      "well": "G1",
+      "primer_name": "G237A_R",
+      "sequence": "GATGCCGTAGTACTGGCCTTCC",
+      "primer_type": "reverse",
+      "mutation": "G237A"
+    },
+    {
+      "well": "H1",
+      "primer_name": "P240A_R",
+      "sequence": "GGTCTGACCGATGCCGTAGT",
+      "primer_type": "reverse",
+      "mutation": "P240A"
+    },
+    {
+      "well": "A2",
+      "primer_name": "Y155A_R",
+      "sequence": "GCCGAGCAGAGTCCAGCAC",
+      "primer_type": "reverse",
+      "mutation": "Y155A"
+    },
+    {
+      "well": "B2",
+      "primer_name": "C175A_R",
+      "sequence": "GCTGACTTCCTTGAAGATGATTTCCC",
+      "primer_type": "reverse",
+      "mutation": "C175A"
+    }
+  ],
+  "dedup_info": {},
+  "result_count": 10
+}

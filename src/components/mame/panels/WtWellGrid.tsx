@@ -55,6 +55,10 @@ export function WtWellGrid() {
 
   const disabled = activeRoundId === null;
 
+  const controlWells: string[] =
+    activeRound?.plate_meta.plates.find((p) => p.plate_id === "P01")
+      ?.control_wells ?? [];
+
   const [localWt, setLocalWt] = useState<string | null>(() =>
     activeRound ? getWtWell(activeRound.plate_meta) : null,
   );
@@ -149,6 +153,14 @@ export function WtWellGrid() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  function suggestFromControl() {
+    if (controlWells.length === 0) return;
+    if (localWt !== null) return;
+    const next = [...controlWells].sort()[0];
+    setLocalWt(next);
+    scheduleSave(next);
+  }
+
   function selectWell(wellId: string) {
     setLocalWt((prev) => {
       // Click same well = deselect; click different = replace.
@@ -165,8 +177,33 @@ export function WtWellGrid() {
         ? t("wtWellGrid.savedStatus")
         : "";
 
+  const showSuggestButton =
+    !disabled && controlWells.length > 0 && localWt === null;
+
   return (
     <div className="space-y-2">
+      <div className="space-y-1">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-xs font-medium text-foreground">
+            {t("mame.activity.wtWells.title")}
+          </p>
+          {showSuggestButton ? (
+            <button
+              type="button"
+              onClick={suggestFromControl}
+              className={cn(
+                "rounded-sm border border-border bg-background px-2 py-0.5 text-caption text-foreground",
+                "hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              )}
+            >
+              {t("mame.activity.wtWells.suggestButton")}
+            </button>
+          ) : null}
+        </div>
+        <p className="text-caption text-muted-foreground">
+          {t("mame.activity.wtWells.helpText")}
+        </p>
+      </div>
       <div
         aria-label={t("wtWellGrid.gridAriaLabel")}
         role="radiogroup"

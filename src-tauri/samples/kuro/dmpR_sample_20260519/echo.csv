@@ -1,0 +1,21 @@
+Source Plate Name,Source Well Name,Source Well,Dest Plate Name,Dest Well Name,Dest Well,Transfer Vol
+Source [1],Q232A_F,A1,Destination [1],Q232A,A1,100
+Source [1],Y233A_F,C1,Destination [1],Y233A,B1,100
+Source [1],E335A_F,E1,Destination [1],E335A,C1,100
+Source [1],K200A_F,G1,Destination [1],K200A,D1,100
+Source [1],F203A_F,I1,Destination [1],F203A,E1,100
+Source [1],D227A_F,K1,Destination [1],D227A,F1,100
+Source [1],G237A_F,M1,Destination [1],G237A,G1,100
+Source [1],P240A_F,O1,Destination [1],P240A,H1,100
+Source [1],Y155A_F,A2,Destination [1],Y155A,A2,100
+Source [1],C175A_F,C2,Destination [1],C175A,B2,100
+Source [1],Q232A_R,B1,Destination [1],Q232A,A1,100
+Source [1],Y233A_R,D1,Destination [1],Y233A,B1,100
+Source [1],E335A_R,F1,Destination [1],E335A,C1,100
+Source [1],K200A_R,H1,Destination [1],K200A,D1,100
+Source [1],F203A_R,J1,Destination [1],F203A,E1,100
+Source [1],D227A_R,L1,Destination [1],D227A,F1,100
+Source [1],G237A_R,N1,Destination [1],G237A,G1,100
+Source [1],P240A_R,P1,Destination [1],P240A,H1,100
+Source [1],Y155A_R,B2,Destination [1],Y155A,A2,100
+Source [1],C175A_R,D2,Destination [1],C175A,B2,100
