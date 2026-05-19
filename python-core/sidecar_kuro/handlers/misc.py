@@ -11,7 +11,6 @@ from sidecar_kuro.core import (
     _poly_registry,
     _codon_registry,
     _CUSTOM_POLYMERASE_PATH,
-    _ALLOWED_CSV_EXTENSIONS,
     _get_cached_ca_coords,
 )
 from sidecar_kuro.models import (
@@ -20,6 +19,11 @@ from sidecar_kuro.models import (
     RunBenchmarkParams,
     SaveCustomPolymeraseResultModel,
 )
+
+# EVOLVEpro-specific table extensions: CSV and XLSX only.
+# .tsv/.txt are excluded intentionally (not supported for column mapping).
+_ALLOWED_TABLE_EXTENSIONS = {".csv", ".xlsx"}
+
 
 _POLYMERASE_META = {
     "Benchling": {"manufacturer": "SantaLucia 1998", "fidelity": "standard"},
@@ -74,7 +78,7 @@ def handle_load_evolvepro_csv(params: dict) -> dict:
     p = LoadEvolveproParams(**params)
     if not p.filepath:
         raise ValueError("filepath is required")
-    resolved = _validate_filepath(p.filepath, allowed_extensions=_ALLOWED_CSV_EXTENSIONS)
+    resolved = _validate_filepath(p.filepath, allowed_extensions=_ALLOWED_TABLE_EXTENSIONS)
 
     ca_coords = _get_cached_ca_coords(p.structure_accession)
 
