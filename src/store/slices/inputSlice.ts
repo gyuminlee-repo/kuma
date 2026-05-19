@@ -15,6 +15,7 @@ import {
   extractCsvHeader,
   EVOLVEPRO_CSV_SCHEMA,
 } from "../../lib/schemaValidator";
+import { useMameAppStore } from "../mame/mameAppStore";
 
 import type { InputSlice } from "../slice-interfaces";
 export type { InputSlice };
@@ -176,6 +177,13 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         evolveproStepStats: update.evolveproStepStats,
         statusMessage: update.statusMessage,
       });
+
+      // Dual-write to MAME shared store so other panels can auto-fill.
+      try {
+        useMameAppStore.getState().setSharedEvolveproCsvPath(filepath);
+      } catch {
+        // Defensive: never let the cross-store hand-off break CSV load.
+      }
     } catch (err) {
       if (gen === csvLoadGeneration) {
         set({

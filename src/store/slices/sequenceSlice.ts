@@ -2,6 +2,7 @@ import type { StateCreator } from "zustand";
 import { sendRequest } from "../../lib/ipc-kuro";
 import { formatError } from "../../lib/utils";
 import type { AppState } from "../types";
+import { useMameAppStore } from "../mame/mameAppStore";
 
 import type { SequenceSlice } from "../slice-interfaces";
 export type { SequenceSlice };
@@ -46,6 +47,13 @@ export const createSequenceSlice: StateCreator<AppState, [], [], SequenceSlice> 
         structureLoading: false,
         statusMessage: `Loaded: ${info.header} (${info.seq_length} bp) | ${info.genes.length} gene(s) | Target: ${bestGene?.gene ?? "none"}`,
       });
+
+      // Dual-write to MAME shared store so BarcodeSetupPanel can auto-fill.
+      try {
+        useMameAppStore.getState().setSharedFastaPath(filepath);
+      } catch {
+        // Defensive: never let the cross-store hand-off break sequence load.
+      }
 
       // Auto-trigger UniProt search if gene has db_xref or translation
       if (bestGene) {

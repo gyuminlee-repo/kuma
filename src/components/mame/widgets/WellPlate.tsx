@@ -113,8 +113,9 @@ export function WellPlate({
                     disabled={!well}
                     onClick={() => well && onWellClick?.(well)}
                     aria-pressed={isFocused}
+                    title={well?.mutant_id || undefined}
                     className={cn(
-                      "well-button relative flex aspect-square w-full flex-col items-center justify-center rounded-md border text-center shadow-sm",
+                      "well-button relative flex aspect-square w-full flex-col items-stretch justify-between overflow-hidden rounded-md border text-center shadow-sm",
                       "text-plate font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
                       !well && "cursor-default",
                       isFocused && "well-button-selected",
@@ -128,55 +129,64 @@ export function WellPlate({
                       backgroundImage: pattern,
                     }}
                   >
-                    {/* Well ID label — uses plate token (10px) */}
+                    {/* Well ID label (plate token 10px) */}
                     <span className="font-display text-caption font-semibold leading-tight">{id}</span>
                     {well && (
-                      <span className="mt-0.5 max-w-full truncate px-0.5 text-plate-tiny leading-tight opacity-85">
-                        {well.mutant_id || "—"}
+                      <span
+                        className="min-w-0 flex-1 truncate px-0.5 text-plate-tiny leading-tight opacity-85"
+                        title={well.mutant_id || undefined}
+                      >
+                        {well.mutant_id || "-"}
                       </span>
                     )}
-                    {well?.selected && (
-                      <span
-                        className="absolute left-0.5 top-0.5 rounded-full bg-card px-1 py-0.5 text-plate-tiny font-semibold uppercase tracking-widest text-surface-contrast"
-                        aria-hidden="true"
-                      >
-                        Pick
-                      </span>
-                    )}
-                    {isFallback && (
-                      <span
-                        className="absolute bottom-0.5 left-0.5 flex items-center justify-center rounded-full bg-warning/80 p-0.5"
-                        aria-hidden="true"
-                        title={t("wellPlate.fallbackReplicateTitle")}
-                      >
-                        <svg
-                          width="8"
-                          height="8"
-                          viewBox="0 0 16 16"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                          aria-hidden="true"
-                        >
-                          <path
-                            d="M8 2L14.928 14H1.072L8 2Z"
-                            fill="currentColor"
-                            className="text-warning-foreground"
-                          />
-                          <path d="M8 6v4M8 11v1" stroke="hsl(var(--warning-foreground, 0 0% 10%))" strokeWidth="1.5" strokeLinecap="round" />
-                        </svg>
-                      </span>
-                    )}
-                    {plate && (
-                      <span
-                        className="absolute right-0.5 top-0.5 rounded-full px-1 py-0.5 text-plate-tiny font-bold leading-tight"
-                        style={{
-                          backgroundColor: "rgba(0,0,0,0.25)",
-                          color: fill.text,
-                        }}
-                        aria-hidden="true"
-                      >
-                        {plate}
-                      </span>
+                    {/* Badge row at bottom (flex, no absolute positioning) */}
+                    {(well?.selected || isFallback || plate) && (
+                      <div className="flex h-3 w-full items-center justify-between gap-0.5 px-0.5">
+                        <div className="flex items-center gap-0.5">
+                          {well?.selected && (
+                            <span
+                              className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-card"
+                              aria-label="Pick"
+                              title="Pick"
+                            />
+                          )}
+                          {isFallback && (
+                            <span
+                              className="inline-flex shrink-0 items-center justify-center rounded-full bg-warning/80 p-[1px]"
+                              aria-hidden="true"
+                              title={t("wellPlate.fallbackReplicateTitle")}
+                            >
+                              <svg
+                                width="7"
+                                height="7"
+                                viewBox="0 0 16 16"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                                aria-hidden="true"
+                              >
+                                <path
+                                  d="M8 2L14.928 14H1.072L8 2Z"
+                                  fill="currentColor"
+                                  className="text-warning-foreground"
+                                />
+                                <path d="M8 6v4M8 11v1" stroke="hsl(var(--warning-foreground, 0 0% 10%))" strokeWidth="1.5" strokeLinecap="round" />
+                              </svg>
+                            </span>
+                          )}
+                        </div>
+                        {plate && (
+                          <span
+                            className="shrink-0 rounded-full px-0.5 text-[7px] font-bold leading-none"
+                            style={{
+                              backgroundColor: "rgba(0,0,0,0.25)",
+                              color: fill.text,
+                            }}
+                            aria-hidden="true"
+                          >
+                            {plate}
+                          </span>
+                        )}
+                      </div>
                     )}
                   </button>
                 </div>

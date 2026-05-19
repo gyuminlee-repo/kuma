@@ -172,12 +172,27 @@ function RawRunParamPanel() {
                 <InlineHelp text={t("mame.parameters.lengthToleranceHelp")} />
               </span>
             </Label>
-            <span
-              className="text-caption font-medium text-foreground"
-              aria-label={t("mame.parameters.lengthToleranceAriaLabel", { bp: rawRunParams.lengthToleranceBp })}
-            >
-              ±{rawRunParams.lengthToleranceBp}
-            </span>
+            <div className="flex items-center gap-1">
+              <span className="text-caption font-medium text-foreground" aria-hidden="true">±</span>
+              <Input
+                type="number"
+                min={5}
+                max={200}
+                step={1}
+                value={rawRunParams.lengthToleranceBp}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  if (raw === "") return;
+                  const n = Number(raw);
+                  if (!Number.isFinite(n)) return;
+                  const clamped = Math.max(5, Math.min(200, Math.round(n)));
+                  updateRaw({ lengthToleranceBp: clamped });
+                }}
+                disabled={isDemuxing}
+                className="h-7 w-20 px-1.5 text-right text-xs"
+                aria-label={t("mame.parameters.lengthToleranceAriaLabel", { bp: rawRunParams.lengthToleranceBp })}
+              />
+            </div>
           </div>
           <input
             id="length-tolerance"

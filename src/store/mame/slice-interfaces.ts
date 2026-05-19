@@ -90,6 +90,16 @@ export interface InputSlice {
   selectedCdsIndex: number;
   setCdsCandidates: (candidates: CdsCandidate[]) => void;
   setSelectedCdsIndex: (index: number) => void;
+  // Shared file paths between KURO and MAME. KURO loadSequence/loadEvolveproCsv
+  // dual-write here so MAME panels can prefill without manual re-Browse.
+  sharedFastaPath: string | null;
+  sharedEvolveproCsvPath: string | null;
+  setSharedFastaPath: (path: string | null) => void;
+  setSharedEvolveproCsvPath: (path: string | null) => void;
+  // Bumped on resetMameAll so component-local form state (BarcodeSetupPanel)
+  // can subscribe and re-initialise via a useEffect dependency.
+  resetEpoch: number;
+  bumpResetEpoch: () => void;
   validateInputs: () => Promise<void>;
   runDemuxAndFilter: () => Promise<void>;
   runAnalysis: () => Promise<void>;

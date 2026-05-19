@@ -85,12 +85,18 @@ const mameInputInitialState = {
   ampliconLengthEstimate: null,
   cdsCandidates: [],
   selectedCdsIndex: 0,
+  sharedFastaPath: null as string | null,
+  sharedEvolveproCsvPath: null as string | null,
+  resetEpoch: 0,
 };
 
 export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set, get) => ({
   ...mameInputInitialState,
   setCdsCandidates: (cdsCandidates) => set({ cdsCandidates, selectedCdsIndex: 0 }),
   setSelectedCdsIndex: (selectedCdsIndex) => set({ selectedCdsIndex }),
+  setSharedFastaPath: (sharedFastaPath) => set({ sharedFastaPath }),
+  setSharedEvolveproCsvPath: (sharedEvolveproCsvPath) => set({ sharedEvolveproCsvPath }),
+  bumpResetEpoch: () => set((s) => ({ resetEpoch: s.resetEpoch + 1 })),
   setInputDir: (inputDir) => set({ inputDir, validationErrors: [] }),
   setExpectedPath: (expectedPath) => set({ expectedPath, validationErrors: [] }),
   setReferencePath: (referencePath) => set({ referencePath, validationErrors: [] }),

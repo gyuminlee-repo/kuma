@@ -89,40 +89,76 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
   loadSampleData: async () => {
     set({ analyzeMessage: "Loading sample data..." });
 
-    let refPath: string;
-    let expectedPath: string;
-    let barcodesPath: string;
-    let sampleMapPath: string;
-    let activityCsvPath: string;
-    let barcodeSeedsPath: string;
-    try {
-      [refPath, expectedPath, barcodesPath, sampleMapPath, , activityCsvPath, barcodeSeedsPath] =
-        await Promise.all([
-          resolveResource("samples/mame/reference.fasta"),
-          resolveResource("samples/mame/03_mame_expected_mutations.xlsx"),
-          resolveResource("samples/mame/04_mame_custom_barcodes.xlsx"),
-          resolveResource("samples/mame/05_mame_sample_map.xlsx"),
-          resolveResource("samples/mame/06_mame_plate_layout.xlsx"),
-          resolveResource("samples/mame/07_mame_activity_long.csv"),
-          resolveResource("samples/mame/02_mame_barcode_seeds.xlsx"),
-        ]);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      set({ analyzeMessage: `Sample load failed: ${msg}` });
+    // Resolve each resource independently so a single missing bundle entry
+    // does not abort the whole flow. Critical files (reference.fasta,
+    // activity csv) abort with a specific message naming the file; the
+    // rest degrade gracefully with a warning listing the failures.
+    const relPaths = [
+      "samples/mame/reference.fasta",
+      "samples/mame/03_mame_expected_mutations.xlsx",
+      "samples/mame/04_mame_custom_barcodes.xlsx",
+      "samples/mame/05_mame_sample_map.xlsx",
+      "samples/mame/06_mame_plate_layout.xlsx",
+      "samples/mame/07_mame_activity_long.csv",
+      "samples/mame/02_mame_barcode_seeds.xlsx",
+    ];
+    const settled = await Promise.allSettled(relPaths.map((p) => resolveResource(p)));
+    const resolved: (string | null)[] = settled.map((r, i) => {
+      if (r.status === "fulfilled") return r.value;
+      console.warn(`[analysisSlice] resolveResource failed for ${relPaths[i]}:`, r.reason);
+      return null;
+    });
+    const [
+      refPath,
+      expectedPath,
+      barcodesPath,
+      sampleMapPath,
+      ,
+      activityCsvPath,
+      barcodeSeedsPath,
+    ] = resolved;
+
+    // Critical inputs: reference.fasta and activity CSV. Abort with a
+    // specific error naming the failing file (explicit user-facing message).
+    if (!refPath) {
+      set({
+        analyzeMessage:
+          "Sample load failed: samples/mame/reference.fasta not found in bundle resources",
+      });
+      return;
+    }
+    if (!activityCsvPath) {
+      set({
+        analyzeMessage:
+          "Sample load failed: samples/mame/07_mame_activity_long.csv not found in bundle resources",
+      });
       return;
     }
 
-    // Populate input store via cross-slice setters
+    // Non-critical: collect failed file names for surfacing to the user.
+    const optionalFailures: string[] = [];
+    if (!expectedPath) optionalFailures.push("03_mame_expected_mutations.xlsx");
+    if (!barcodesPath) optionalFailures.push("04_mame_custom_barcodes.xlsx");
+    if (!sampleMapPath) optionalFailures.push("05_mame_sample_map.xlsx");
+    if (!barcodeSeedsPath) optionalFailures.push("02_mame_barcode_seeds.xlsx");
+
+    // Populate input store via cross-slice setters (skip ones that failed).
     const state = get();
     state.setReferencePath(refPath);
-    state.setExpectedPath(expectedPath);
-    state.setSampleMapPath(sampleMapPath);
-    state.setParams({ rawRunParams: { customBarcodesPath: barcodesPath } });
+    if (expectedPath) state.setExpectedPath(expectedPath);
+    if (sampleMapPath) state.setSampleMapPath(sampleMapPath);
+    if (barcodesPath)
+      state.setParams({ rawRunParams: { customBarcodesPath: barcodesPath } });
 
     // Publish Phase 1 setup prefill for BarcodeSetupPanel (fasta + seeds).
     // The panel's existing fastaPath useEffect autoDetects geneStart/geneEnd
     // via autoDetectCdsCandidates, so we only need to seed these two paths.
-    set({ mameSamplePrefill: { fastaPath: refPath, barcodeSeedsPath } });
+    set({
+      mameSamplePrefill: {
+        fastaPath: refPath,
+        barcodeSeedsPath: barcodeSeedsPath ?? "",
+      },
+    });
 
     // Activity pipeline: create round + set plate meta (WT wells) + upload measurements.
     // WT wells A1/A2/A3 derived from 05_mame_sample_map.xlsx (rows 2-4 → WT_r1/r2/r3).
@@ -169,11 +205,14 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       wells,
       selectedWell: wells.find((w) => w.selected) ?? wells[0] ?? null,
       analyzeMessage:
-        activityErr === null
+        (activityErr === null
           ? "Sample data loaded (22 wells, plate01)"
           : `Sample data loaded (results only; activity RPC unavailable: ${
               activityErr instanceof Error ? activityErr.message : String(activityErr)
-            })`,
+            })`) +
+        (optionalFailures.length > 0
+          ? ` (missing optional files: ${optionalFailures.join(", ")})`
+          : ""),
     });
   },
 });

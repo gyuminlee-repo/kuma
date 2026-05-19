@@ -156,6 +156,8 @@ export function BarcodeSetupPanel({ group }: BarcodeSetupPanelProps = {}) {
   const setSelectedCdsIndex = useMameAppStore((s) => s.setSelectedCdsIndex);
   const samplePrefill = useMameAppStore((s) => s.mameSamplePrefill);
   const consumeSamplePrefill = useMameAppStore((s) => s.consumeMameSamplePrefill);
+  const resetEpoch = useMameAppStore((s) => s.resetEpoch);
+  const sharedFastaPath = useMameAppStore((s) => s.sharedFastaPath);
 
   function setForm(partial: Partial<SetupFormState>) {
     setFormRaw((prev) => {
@@ -204,6 +206,26 @@ export function BarcodeSetupPanel({ group }: BarcodeSetupPanelProps = {}) {
     consumeSamplePrefill();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [samplePrefill]);
+
+  // ─── Clear-all: reinitialise local form state when resetMameAll bumps epoch ─
+  // resetEpoch starts at 0 and increments only on resetMameAll. Skip the
+  // initial mount (epoch=0) so we do not clobber the localStorage-loaded form.
+  useEffect(() => {
+    if (resetEpoch === 0) return;
+    setFormRaw(DEFAULT_STATE);
+    setResult(null);
+  }, [resetEpoch]);
+
+  // ─── KURO ↔ MAME shared file auto-load ───────────────────────────────────
+  // When KURO loadSequence succeeds it dual-writes sharedFastaPath. Populate
+  // this panel only if the user has not already provided a fastaPath, to avoid
+  // overwriting manual input.
+  useEffect(() => {
+    if (!sharedFastaPath) return;
+    if (form.fastaPath) return;
+    setForm({ fastaPath: sharedFastaPath });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sharedFastaPath]);
 
   // ─── 파일 브라우저 ───────────────────────────────────────────────────────
 

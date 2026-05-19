@@ -207,7 +207,8 @@ export function KuroDrawerStrip() {
           left={{
             title: t("kuro.load.drawerRecent"),
             children: (
-              <MiniRow label="Last" value="mame_round3_export.csv" />
+              // TODO: wire to live state (e.g., last loaded reference file) when store field exists
+              <MiniRow label="Last" value="-" />
             ),
           }}
           center={{
