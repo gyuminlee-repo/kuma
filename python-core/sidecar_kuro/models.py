@@ -610,6 +610,17 @@ class ExcludedRange(BaseModel):
     end: int
 
 
+class PreviewEvolveproSourceParams(BaseModel):
+    """Params for preview_evolvepro_source RPC.
+
+    Returns the sheet names, column headers, and first max_rows data rows
+    from a CSV or XLSX file without loading the full dataset.
+    """
+    filepath: str
+    sheet_name: Optional[str] = None
+    max_rows: int = Field(default=8, ge=1, le=100)
+
+
 class LoadEvolveproParams(BaseModel):
     filepath: str = ""
     top_n: int = Field(default=96, ge=0, le=10000)

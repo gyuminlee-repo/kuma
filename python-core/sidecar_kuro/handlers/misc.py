@@ -1,6 +1,8 @@
 """Handlers: polymerase list, organism list, EVOLVEpro CSV, benchmark."""
 
+import csv
 from dataclasses import asdict
+from pathlib import Path
 
 from kuma_core.kuro.evolvepro import load_evolvepro_csv
 from kuma_core.kuro.polymerase import _dict_to_profile
@@ -16,6 +18,7 @@ from sidecar_kuro.core import (
 from sidecar_kuro.models import (
     LoadEvolveproParams,
     PolymeraseProfileModel,
+    PreviewEvolveproSourceParams,
     RunBenchmarkParams,
     SaveCustomPolymeraseResultModel,
 )
@@ -71,6 +74,59 @@ def handle_save_custom_polymerase(params: dict) -> dict:
 def handle_list_organisms(_params: dict) -> list[dict]:
     """Return available organism codon tables for the UI dropdown."""
     return _codon_registry.list_organisms_detailed()
+
+
+def _preview_csv(filepath: str, max_rows: int) -> dict:
+    """Read headers and first max_rows data rows from a CSV file."""
+    with open(filepath, encoding="utf-8", newline="") as f:
+        reader = csv.reader(f)
+        headers = next(reader, [])
+        rows = []
+        for i, row in enumerate(reader):
+            if i >= max_rows:
+                break
+            rows.append([str(c) for c in row])
+    return {"sheets": [], "headers": headers, "rows": rows}
+
+
+def _preview_xlsx(filepath: str, sheet_name: str | None, max_rows: int) -> dict:
+    """Read sheet names, headers, and first max_rows rows from an XLSX file."""
+    import openpyxl
+
+    wb = openpyxl.load_workbook(filepath, read_only=True, data_only=True)
+    sheet_names = wb.sheetnames
+
+    target = sheet_name if sheet_name is not None else sheet_names[0]
+    if target not in sheet_names:
+        wb.close()
+        raise ValueError(
+            f"sheet '{target}' not found in {filepath}. "
+            f"Available sheets: {sheet_names}"
+        )
+
+    ws = wb[target]
+    all_rows = list(ws.iter_rows(values_only=True))
+    wb.close()
+
+    if not all_rows:
+        return {"sheets": sheet_names, "headers": [], "rows": []}
+
+    headers = [str(c) if c is not None else "" for c in all_rows[0]]
+    data_rows = [
+        [str(c) if c is not None else "" for c in row]
+        for row in all_rows[1 : max_rows + 1]
+    ]
+    return {"sheets": sheet_names, "headers": headers, "rows": data_rows}
+
+
+def handle_preview_evolvepro_source(params: dict) -> dict:
+    """Preview first rows and column headers of a CSV or XLSX EVOLVEpro source."""
+    p = PreviewEvolveproSourceParams(**params)
+    resolved = _validate_filepath(p.filepath, allowed_extensions=_ALLOWED_TABLE_EXTENSIONS)
+    ext = Path(str(resolved)).suffix.lower()
+    if ext == ".csv":
+        return _preview_csv(str(resolved), p.max_rows)
+    return _preview_xlsx(str(resolved), p.sheet_name, p.max_rows)
 
 
 def handle_load_evolvepro_csv(params: dict) -> dict:
