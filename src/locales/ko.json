@@ -762,7 +762,7 @@
   },
   "exportPreview": {
     "title": "매핑 파일 미리보기",
-    "subtitle": "Echo와 Janus 매핑 파일은 각각 독립적인 Excel 출력입니다.",
+    "subtitle": "Echo와 Janus 매핑 파일은 각각 독립적인 Excel/CSV 출력입니다.",
     "loading": "미리보기 로딩 중...",
     "empty": "미리보기 없음. 먼저 프라이머를 디자인하세요.",
     "echoTab": "Echo 매핑 파일",

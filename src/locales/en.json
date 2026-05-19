@@ -762,7 +762,7 @@
   },
   "exportPreview": {
     "title": "Mapping File Preview",
-    "subtitle": "Echo and Janus mapping files are independent Excel outputs.",
+    "subtitle": "Echo and Janus mapping files are independent Excel/CSV outputs.",
     "loading": "Loading preview...",
     "empty": "No mapping to preview. Design primers first.",
     "echoTab": "Echo mapping file",

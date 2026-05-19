@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { rpc } from "@/lib/ipc";
@@ -114,6 +114,7 @@ export function ExportPlatePreview() {
     <Card>
       <CardHeader>
         <CardTitle>{t("exportPreview.title")}</CardTitle>
+        <CardDescription>{t("exportPreview.subtitle")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         <PlateLegendsPanel />
