@@ -40,7 +40,6 @@
     "resources": {
       "samples/sample_evolvepro.csv": "samples/sample_evolvepro.csv",
       "samples/sample_plasmid.gb": "samples/sample_plasmid.gb",
-      "samples/egfp.fa": "samples/egfp.fa",
       "samples/mame/reference.fasta": "samples/mame/reference.fasta",
       "samples/mame/02_mame_barcode_seeds.xlsx": "samples/mame/02_mame_barcode_seeds.xlsx",
       "samples/mame/03_mame_expected_mutations.xlsx": "samples/mame/03_mame_expected_mutations.xlsx",
