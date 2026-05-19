@@ -761,11 +761,12 @@
     "tip": "Tip"
   },
   "exportPreview": {
-    "title": "Mapping Preview",
+    "title": "Mapping File Preview",
+    "subtitle": "Echo and Janus mapping files are independent Excel outputs.",
     "loading": "Loading preview...",
     "empty": "No mapping to preview. Design primers first.",
-    "echoTab": "Echo 525 (384-well)",
-    "janusTab": "JANUS (96-well x 2)",
+    "echoTab": "Echo mapping file",
+    "janusTab": "Janus mapping file",
     "rack1Label": "Rack 1 (Forward primers)",
     "rack2Label": "Rack 2 (Destination)",
     "legend": "Color legend",
