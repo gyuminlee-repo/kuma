@@ -4,6 +4,49 @@
 
 ---
 
+## v0.10.0 (2026-05-19)
+
+EGFP 중심 합성 plasmid 샘플이 단독 `egfp.fa` 를 대체합니다. MAME 샘플 fixture 와 로케일 문자열도 IspS 에서 EGFP 로 이전되었습니다. `sample_plasmid.gb` 가 Kuro/MAME 샘플 워크플로의 단일 번들 템플릿입니다.
+
+### Kuro
+
+- `loadSampleData` 가 `sample_plasmid.gb` 로 전환되고, 번들과 샘플에서 `egfp.fa` 가 제거되었습니다.
+- `src-tauri/samples/kuro/dmpR_sample_20260519/` 에 8개 파일 (echo.csv/xlsx, janus.csv/xlsx, macrogen.xls, platemap.xlsx, primers.fasta, run.json) 의 완전한 export 번들 fixture 가 추가되었습니다.
+
+### MAME
+
+- `parse_reference` 핸들러 (sidecar_mame): FASTA, GenBank, SnapGene `.dna` 를 받아 CDS 후보를 반환합니다. 단일 CDS 파일은 `detected` i18n 메시지를 표시합니다.
+- MAME UI 라벨 정리, WT 자동 제안이 `WtWellGrid` / `BarcodeSetupPanel` / `ParameterPanel` 에 도입되었습니다.
+
+---
+
+## v0.9.10 (2026-05-19)
+
+`mapping-preview-excel` 와 `EVOLVEpro Others mode` 가 한 릴리스에 포함됩니다.
+
+### Kuro export
+
+- Export 탭 상단의 **Macrogen 발주 Card** 와 **Project name** 입력이 `ExportAllParams.project_name` (validator 포함) 으로 연결됩니다. Export All 은 project-name 폴더 아래 8개 평면 파일 (Macrogen .xls, FASTA, Echo CSV/XLSX, JANUS CSV/XLSX, plate map XLSX, run JSON) 을 생성합니다.
+- Echo 384-well 미리보기 셀에 mutation code, JANUS 96-well 셀에 `mutation + F/R` 가 표시되며 hover Popover 로 상세 확인이 가능합니다. shadcn `Popover` primitive 가 추가되었습니다.
+
+### EVOLVEpro
+
+- **Others 모드**: 기본 스키마와 다른 EVOLVEpro CSV/XLSX 를 위한 사용자 정의 컬럼 매핑. `EvolveproOthersPanel`, `preview_evolvepro_source` 핸들러, `load_evolvepro_params` 확장 포함.
+
+### 수정
+
+- v0.9.9.5: `ExportPlatePreview` 가 design 변경 시 refetch 하고, 색상 범례 (`PlateLegendsPanel`) 와 WorkflowRail Tip 라벨 10개 로케일 번역.
+- v0.9.9.6 / .9.9.7: evolvepro 모드에서 Load Sample 이 EVOLVEpro CSV 를 채우고, Export All `maxPrimers` cap 이 복원되었습니다.
+- v0.9.9.8: MAME UX 회귀 6 건 (Clear All, cross-app 동기화, Length 입력, WellPlate 렌더, Sample Data 로드, Round 라벨).
+- v0.9.9.9: MAME 샘플 fixture / 로케일 IspS → EGFP 이전.
+
+### 문서 (v0.9.9.4)
+
+- `docs/troubleshooting/build-version.md` 와 `docs/getting-started/sidecar-binaries.md` 가 4-part 버전 추출 및 sidecar hash 무결성 흐름을 기술합니다.
+- `docs/en/design-report.md`, `docs/en/export-orders.md` 가 Export 탭 플레이트 미리보기와 Export All 흐름 (v0.8.4 이후 Macrogen) 에 맞춰 갱신되었습니다.
+
+---
+
 ## v0.9.8.0 (2026-05-15)
 - EVOLVEpro wrapper 통합 제거. wrapper는 별도 독립 프로그램 `$WORKSPACE_ROOT/cc/evolvepro-gui`로 분리되었습니다.
 

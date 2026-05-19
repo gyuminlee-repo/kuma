@@ -207,7 +207,7 @@ Fold change와 log2_fc는 플레이트별 WT 평균을 기준으로 계산된다
 
 `mame.activity.merge_for_evolvepro` (v0.2.9.0)가 EVOLVEpro 내보내기용 병합을 대체: 활성-지노타입 join + `merge_replicates_priority` (authoritative 우선·mismatch 플래그) + 라벨 교체 가드. 응답에 `replicate_stats`·`export_blocked` 노출. 5/12 데모는 기존 `activity.merge`를 그대로 사용하며 v0.3 버튼 "EVOLVEpro용 병합 (v0.3)"이 패널에 병행 배치.
 
-IspS 라운드의 경우 `ref_seq` 미전달 시 `fixtures/ispS.fa` (Populus alba ispS CDS, AB198180.1)를 BioPython으로 translate하여 자동 로드 — UI 추가 배선 불필요.
+기본 reference 는 `ref_seq` 미전달 시 `fixtures/egfp.fa` 를 BioPython translate 로 자동 로드합니다 (OQ-④ 결정, v0.9.9.9). 레거시 IspS 라운드용 `fixtures/ispS.fa` (Populus alba ispS CDS, AB198180.1) 도 보존됩니다. UI 추가 배선 불필요.
 
 ---
 

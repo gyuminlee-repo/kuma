@@ -4,6 +4,49 @@
 
 ---
 
+## v0.10.0 (2026-05-19)
+
+EGFP-centric synthetic plasmid sample replaces the standalone `egfp.fa`. MAME sample fixtures and locale strings migrate from IspS to EGFP. `sample_plasmid.gb` is now the single bundled template for both Kuro and MAME sample workflows.
+
+### Kuro
+
+- `loadSampleData` switches to `sample_plasmid.gb`; the obsolete `egfp.fa` is dropped from the bundle and from samples.
+- New `dmpR_sample_20260519/` fixture pack under `src-tauri/samples/kuro/` ships a complete export bundle (echo.csv/xlsx, janus.csv/xlsx, macrogen.xls, platemap.xlsx, primers.fasta, run.json) for regression and demo use.
+
+### MAME
+
+- `parse_reference` handler (sidecar_mame): accepts FASTA, GenBank, and SnapGene `.dna`, returns CDS candidates for the picker UI. Single-CDS files emit a `detected` i18n message.
+- MAME UI labels tightened; WT (wild-type) well auto-suggest added in `WtWellGrid` / `BarcodeSetupPanel` / `ParameterPanel`.
+
+---
+
+## v0.9.10 (2026-05-19)
+
+`mapping-preview-excel` and `EVOLVEpro Others mode` land in one release.
+
+### Kuro export
+
+- **Macrogen order Card** in the Export tab and a **Project name** input feed `ExportAllParams.project_name` (validated). Export All now produces 8 flat files under a project-name folder (Macrogen .xls, FASTA, Echo CSV/XLSX, JANUS CSV/XLSX, plate map XLSX, run JSON).
+- Echo 384-well preview cells show the mutation code, JANUS 96-well cells show `mutation + F/R`, with hover Popover detail. shadcn `Popover` primitive added.
+
+### EVOLVEpro
+
+- **Others mode**: user-defined column mapping for non-default EVOLVEpro CSV/XLSX. New `EvolveproOthersPanel`, `preview_evolvepro_source` handler, extended `load_evolvepro_params`.
+
+### Fixes
+
+- v0.9.9.5: `ExportPlatePreview` refetch on design change + color legend (`PlateLegendsPanel`); WorkflowRail Tip label localised across 10 locales.
+- v0.9.9.6 / .9.9.7: EVOLVEpro Load Sample now populates the CSV in evolvepro mode; Export All `maxPrimers` cap restored.
+- v0.9.9.8: six MAME UX regressions (Clear All, cross-app sync, Length input, WellPlate render, Sample Data load, Round label).
+- v0.9.9.9: MAME sample fixtures and locale strings migrated from IspS to EGFP.
+
+### Docs (v0.9.9.4)
+
+- `docs/troubleshooting/build-version.md` and `docs/getting-started/sidecar-binaries.md` document the 4-part version extraction and sidecar hash integrity flow.
+- `docs/en/design-report.md` and `docs/en/export-orders.md` updated for the Export-tab plate preview and the Export All flow (Macrogen since v0.8.4).
+
+---
+
 ## v0.9.8.0 (2026-05-15)
 - Removed EVOLVEpro wrapper integration. The wrapper is now a standalone application at `$WORKSPACE_ROOT/cc/evolvepro-gui` to maintain a clean separation of concerns.
 

@@ -210,7 +210,7 @@ xlsx-native readers cover the inputs the wet-lab actually produces: `mutants-wel
 
 `mame.activity.merge_for_evolvepro` (v0.2.9.0) replaces the legacy merge for EVOLVEpro export: it joins activity to genotype, runs `merge_replicates_priority` (authoritative-prefer with mismatch flag), executes the label-swap guard, and surfaces `replicate_stats` plus `export_blocked` in the response. The 5/12 demo continues to use the legacy `activity.merge` path; the v0.3 button "EVOLVEpro용 병합 (v0.3)" lives next to it in the panel and never replaces it.
 
-The IspS WT amino acid sequence is auto-loaded from `fixtures/ispS.fa` (Populus alba ispS CDS, AB198180.1) via BioPython translate when `ref_seq` is omitted — no UI plumbing required for IspS rounds.
+The EGFP WT amino acid sequence is auto-loaded from `fixtures/egfp.fa` via BioPython translate when `ref_seq` is omitted (OQ-④ decision, v0.9.9.9). `fixtures/ispS.fa` (Populus alba ispS CDS, AB198180.1) is retained for legacy IspS rounds. No UI plumbing required for the default reference path.
 
 ---
 

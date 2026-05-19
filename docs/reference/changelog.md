@@ -1,5 +1,53 @@
 # Changelog
 
+## 주간 업데이트 (2026-05-19)
+
+2026-05-18 부터 2026-05-19 까지 출시된 KUMA v0.9.9.4 ~ v0.10.0.07 주요 변경 사항입니다.
+
+### 신규 기능
+
+- **EVOLVEpro Others 모드 (v0.9.10)**: EVOLVEpro 결과 CSV/XLSX 의 컬럼 이름이 기본 스키마와 다른 경우를 위한 사용자 정의 컬럼 매핑 모드가 추가되었습니다. `EvolveproOthersPanel` 컴포넌트, `preview_evolvepro_source` 핸들러, `load_evolvepro_params` 확장으로 mutation/score/구분자 컬럼을 직접 지정할 수 있습니다.
+- **Macrogen 발주 Card 와 Project name 입력 (v0.9.10)**: Export 탭 상단에 Macrogen 주문 Card 가 추가되고, Export All 전에 `project_name` 을 직접 입력하면 해당 이름의 폴더 아래에 8개 파일 (Macrogen xls, FASTA, Echo CSV/XLSX, JANUS CSV/XLSX, plate map XLSX, run JSON) 이 평면 구조로 출력됩니다. `ExportAllParams.project_name` 필드와 validator 가 추가되었습니다.
+- **Echo, Janus 플레이트 셀 mutation 정보 (v0.9.10)**: Echo 384-well 미리보기 셀에 mutation code, Janus 96-well 셀에 `mutation + F/R` 가 표시되고, hover 시 Popover 로 상세 정보를 확인할 수 있습니다. shadcn `Popover` primitive 가 신규 도입되었습니다.
+- **MAME parse_reference 핸들러 (v0.9.12)**: FASTA / GenBank / SnapGene `.dna` 파일에서 CDS 후보를 자동으로 추출하여 사용자에게 선택지를 제시하는 핸들러가 추가되었습니다. `python-core/sidecar_mame/handlers/ingest.py` 의 `parse_reference` 가 multi-CDS 파일에서도 동작하며, 단일 CDS 검출 시 i18n 메시지로 안내합니다.
+- **EGFP 중심 합성 plasmid 샘플 (v0.10.0)**: 기존 `egfp.fa` 가 제거되고 EGFP 를 중심으로 한 합성 plasmid GenBank (`sample_plasmid.gb`) 로 단일화되었습니다. MAME 샘플 fixture 와 로케일 문자열도 IspS 에서 EGFP 로 일괄 이전되었습니다.
+
+### 업데이트
+
+- **Export All 평면 8-file 출력 (v0.9.10)**: Export All 이 입력된 project name 폴더 아래 8개 파일을 평면으로 배치하도록 변경되었습니다. 기존 하위 폴더 분리 구조는 제거되었습니다.
+- **MAME UI 라벨 및 WT 자동 제안 (v0.9.11)**: MAME Step 의 UI 라벨이 정리되고, WT (wild-type) 위치 자동 제안이 도입되었습니다. `WtWellGrid`, `BarcodeSetupPanel`, `ParameterPanel` 이 갱신되었습니다.
+- **ExportPlatePreview 색상 범례와 리프레시 (v0.9.9.5)**: ExportPlatePreview 가 design 변경 시 자동 refetch 하고, Echo/Janus 셀 색상 범례를 위한 `PlateLegendsPanel` 이 추가되었습니다. WorkflowRail sideCard 의 *Tip* 라벨도 10개 로케일에 번역되었습니다.
+- **Polymerase profile EVOLVEpro 가중치 정리 (v0.9.10 ~ v0.10.0)**: `kuma_core/kuro/evolvepro.py` 와 `python-core/sidecar_kuro/handlers/export.py`, `models.py` 의 EVOLVEpro 핸들러가 정리되었습니다.
+
+### 버그 수정
+
+- **6 건 MAME UX 회귀 (v0.9.9.8)**: Clear All, kuro/mame cross-app 동기화, Length 입력, WellPlate 렌더, Sample Data 로드, Round 라벨의 6 가지 UX 회귀가 한 번에 수정되었습니다.
+- **EVOLVEpro Load Sample 및 Export All maxPrimers cap (v0.9.9.6 ~ v0.9.9.7)**: evolvepro 모드에서 Load Sample Data 가 EVOLVEpro CSV 까지 채우지 못하던 회귀와, Export All 의 maxPrimers cap 누락이 수정되었습니다.
+
+### 문서
+
+- **build-version 와 sidecar-hash 구현 문서 (v0.9.9.4)**: `docs/troubleshooting/build-version.md`, `docs/getting-started/sidecar-binaries.md` 가 추가/갱신되어 4-part 버전 추출과 sidecar hash 무결성 검증 흐름이 기술되었습니다.
+- **design-report / export-orders 갱신 (v0.9.9.4)**: Echo/Janus 매핑 미리보기가 Export 탭으로 이동한 사실을 design-report 에 반영하고, export-orders 에 legacy notice (Export All since v0.8.4) 가 추가되었습니다.
+
+### 이번 주 출시된 버전
+
+| 버전 | 날짜 | 요약 |
+|---|---|---|
+| v0.10.0.07 | 2026-05-19 | CDS picker detected 메시지 i18n, report run_meta typing |
+| v0.10.0.06 | 2026-05-19 | parse_reference 테스트 docstring 정리, 예외 타입 좁힘 |
+| v0.10.0 | 2026-05-19 | egfp.fa 제거, EGFP 중심 합성 plasmid GenBank 로 단일화 |
+| v0.9.12 | 2026-05-19 | MAME parse_reference 핸들러 (FASTA/GenBank/SnapGene CDS picker) |
+| v0.9.11 | 2026-05-19 | MAME UI 라벨, 샘플 fixture, WT 자동 제안 |
+| v0.9.10 | 2026-05-19 | mapping-preview-excel, EVOLVEpro Others 모드, Macrogen Card, Project name 입력 |
+| v0.9.9.9 | 2026-05-18 | MAME 샘플 fixture / 로케일 IspS → EGFP 이전 |
+| v0.9.9.8 | 2026-05-18 | 6 건 MAME UX 회귀 수정 |
+| v0.9.9.7 | 2026-05-18 | Load Sample 이 evolvepro 모드 EVOLVEpro CSV 채움 |
+| v0.9.9.6 | 2026-05-18 | EVOLVEpro Load Sample + Export All maxPrimers cap fix |
+| v0.9.9.5 | 2026-05-18 | ExportPlatePreview 색상 범례 / refetch, Tip 라벨 i18n |
+| v0.9.9.4 | 2026-05-18 | build-version, sidecar-hash 문서화, 주간 changelog 정리 |
+
+---
+
 ## 주간 업데이트 (2026-05-18)
 
 2026-05-16 부터 2026-05-18 까지 출시된 KUMA v0.9.8.1 ~ v0.9.9.3 주요 변경 사항입니다.
