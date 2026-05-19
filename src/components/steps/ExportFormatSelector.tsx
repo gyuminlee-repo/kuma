@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { handleExportAll } from "@/components/layout/export-handlers";
+import { ExportMacrogenSection } from "@/components/widgets/ExportMacrogenSection";
 import { useKumaProject } from "@/state/projectContext";
 import { useAppStore } from "@/store/appStore";
 import type { AppState } from "@/store/appStore";
@@ -89,6 +90,7 @@ export function ExportFormatSelector() {
   };
 
   return (
+    <>
     <section
       aria-labelledby="export-all-heading"
       className="flex flex-col gap-4 p-6"
@@ -299,5 +301,7 @@ export function ExportFormatSelector() {
         {running ? t("common.loading") : tx("phaseC.export.all.runExport", "Export all")}
       </Button>
     </section>
+    <ExportMacrogenSection />
+    </>
   );
 }

@@ -1914,6 +1914,18 @@
         "error": {
           "projectNameRegex": "Use up to 40 letters, numbers, Korean characters, underscores, or hyphens."
         }
+      },
+      "macrogen": {
+        "title": "Order Primers (Macrogen)",
+        "fwdPlateName": "Forward plate name",
+        "revPlateName": "Reverse plate name",
+        "amount": "Synthesis amount",
+        "purificationFixed": "Purification",
+        "orderButton": "Order primers (Macrogen)",
+        "success": "Macrogen order exported: {{path}}",
+        "error": {
+          "plateNameRegex": "Use 1-20 letters, numbers, underscores, or hyphens."
+        }
       }
     },
     "run": {
