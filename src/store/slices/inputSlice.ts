@@ -21,7 +21,7 @@ import type { InputSlice, EvolveproMode } from "../slice-interfaces";
 export type { InputSlice };
 
 // EGFP sample mutation set: 120 mutations selected from safe positions of the
-// bundled EGFP CDS (samples/egfp.fa). Verified against design_sdm_primers with
+// bundled EGFP CDS (samples/sample_plasmid.gb). Verified against design_sdm_primers with
 // the default "Benchling" polymerase profile: 118/120 succeed (≥96/96-well
 // plate target). Positions in the 6–7, 15–16, 23, 33–42, 54–63, 67, 75, 93,
 // 114–115, 179–199, 229–232, 239 ranges are excluded because primer design
