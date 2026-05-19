@@ -523,6 +523,19 @@ class ExportMappingParams(BaseModel):
     bom: bool = False
 
 
+class ExportMappingDryRunParams(BaseModel):
+    """Params for `export_{echo,janus}_mapping_dry_run` RPC methods.
+
+    Optional ``mappings``/``dedup_info`` lets the frontend ship a pre-reordered
+    plate layout (e.g. matching the ResultTable Mutation sort) instead of
+    relying on the sidecar's stored ``_state.plate_mappings`` ordering.
+    """
+
+    transfer_vol: Optional[float] = None
+    mappings: Optional[list[PlateMappingItem]] = None
+    dedup_info: Optional[dict[str, list[str]]] = None
+
+
 class SaveWorkspaceParams(BaseModel):
     filepath: str
     data: Any  # arbitrary JSON object

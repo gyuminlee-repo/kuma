@@ -38,6 +38,7 @@ from sidecar_kuro.models import (
     ExportExcelParams,
     ExportMappingResultModel,
     ExportMappingParams,
+    ExportMappingDryRunParams,
     ExportOrderParams,
     ExportOrderResultModel,
     ExportBenchmarkCsvParams,
@@ -725,17 +726,25 @@ def handle_export_echo_mapping_dry_run(params: dict) -> dict:
 
     Params:
         transfer_vol: optional override (nL, integer). Default 100.
+        mappings: optional pre-reordered plate layout (matches frontend sort).
+        dedup_info: companion to ``mappings``.
 
     Returns:
         ``{"rows": [...], "total": N, "transfer_vol": int}``.
     """
-    transfer_vol = params.get("transfer_vol")
-    vol = _resolve_mapping_transfer_volume("echo", transfer_vol)
-    with _core._state_lock:
-        if not _core._state.results:
+    p = ExportMappingDryRunParams(**params)
+    vol = _resolve_mapping_transfer_volume("echo", p.transfer_vol)
+    if p.mappings is not None:
+        mappings = _pydantic_to_plate_mappings(p.mappings)
+        rev_groups = dict(p.dedup_info or {})
+        if not mappings:
             return {"rows": [], "total": 0, "transfer_vol": int(vol)}
-        mappings = list(_core._state.plate_mappings)
-        rev_groups = dict(_core._state.dedup_info or {})
+    else:
+        with _core._state_lock:
+            if not _core._state.results:
+                return {"rows": [], "total": 0, "transfer_vol": int(vol)}
+            mappings = list(_core._state.plate_mappings)
+            rev_groups = dict(_core._state.dedup_info or {})
     fwd, rev = _split_fwd_rev(mappings)
     rows = _build_echo_preview_rows(fwd, rev, int(vol), rev_groups)
     return {"rows": rows, "total": len(rows), "transfer_vol": int(vol)}
@@ -746,17 +755,25 @@ def handle_export_janus_mapping_dry_run(params: dict) -> dict:
 
     Params:
         transfer_vol: optional override (µL, float). Default 2.0.
+        mappings: optional pre-reordered plate layout (matches frontend sort).
+        dedup_info: companion to ``mappings``.
 
     Returns:
         ``{"rows": [...], "total": N, "transfer_vol": float}``.
     """
-    transfer_vol = params.get("transfer_vol")
-    vol = _resolve_mapping_transfer_volume("janus", transfer_vol)
-    with _core._state_lock:
-        if not _core._state.results:
+    p = ExportMappingDryRunParams(**params)
+    vol = _resolve_mapping_transfer_volume("janus", p.transfer_vol)
+    if p.mappings is not None:
+        mappings = _pydantic_to_plate_mappings(p.mappings)
+        rev_groups = dict(p.dedup_info or {})
+        if not mappings:
             return {"rows": [], "total": 0, "transfer_vol": float(vol)}
-        mappings = list(_core._state.plate_mappings)
-        rev_groups = dict(_core._state.dedup_info or {})
+    else:
+        with _core._state_lock:
+            if not _core._state.results:
+                return {"rows": [], "total": 0, "transfer_vol": float(vol)}
+            mappings = list(_core._state.plate_mappings)
+            rev_groups = dict(_core._state.dedup_info or {})
     fwd, rev = _split_fwd_rev(mappings)
     rows = _build_janus_preview_rows(fwd, rev, float(vol), rev_groups)
     return {"rows": rows, "total": len(rows), "transfer_vol": float(vol)}

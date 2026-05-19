@@ -1,5 +1,6 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import { useShallow } from "zustand/react/shallow";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import { EchoPlateView } from "./EchoPlateView";
 import { JanusPlateView } from "./JanusPlateView";
 import { PlateLegendsPanel } from "./PlateLegendsPanel";
 import { useAppStore } from "@/store/appStore";
+import { getSortedMutations, reorderMappings } from "@/lib/plate-utils";
 
 interface EchoDryRunResult {
   rows: EchoDryRunRow[];
@@ -54,15 +56,30 @@ export function ExportPlatePreview() {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const designResults = useAppStore((s) => s.designResults);
+  const { designResults, plateMappings, dedupInfo, tableSorting, yPredMap, customCandidates } = useAppStore(
+    useShallow((s) => ({
+      designResults: s.designResults,
+      plateMappings: s.plateMappings,
+      dedupInfo: s.dedupInfo,
+      tableSorting: s.tableSorting,
+      yPredMap: s.yPredMap,
+      customCandidates: s.customCandidates,
+    })),
+  );
+
+  const sortedMappings = useMemo(() => {
+    const sortedMuts = getSortedMutations(designResults, tableSorting, { yPredMap, customCandidates });
+    return reorderMappings(plateMappings, dedupInfo, sortedMuts);
+  }, [designResults, tableSorting, yPredMap, customCandidates, plateMappings, dedupInfo]);
 
   const load = useCallback(async (): Promise<void> => {
     setLoading(true);
     setError(null);
     try {
+      const payload = { mappings: sortedMappings, dedup_info: dedupInfo };
       const [e, j] = await Promise.all([
-        rpc<EchoDryRunResult>("kuro", "export_echo_mapping_dry_run", {}),
-        rpc<JanusDryRunResult>("kuro", "export_janus_mapping_dry_run", {}),
+        rpc<EchoDryRunResult>("kuro", "export_echo_mapping_dry_run", payload),
+        rpc<JanusDryRunResult>("kuro", "export_janus_mapping_dry_run", payload),
       ]);
       setEcho(adaptEchoRows(e?.rows ?? []));
       setJanus(adaptJanusRows(j?.rows ?? []));
@@ -71,11 +88,11 @@ export function ExportPlatePreview() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [sortedMappings, dedupInfo]);
 
   useEffect(() => {
     void load();
-  }, [load, designResults]);
+  }, [load]);
 
   if (error) {
     return (

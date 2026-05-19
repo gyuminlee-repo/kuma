@@ -540,7 +540,11 @@ export interface RpcMethodMap {
     result: ExportMappingResult;
   };
   export_echo_mapping_dry_run: {
-    params: { transfer_vol?: number };
+    params: {
+      transfer_vol?: number;
+      mappings?: PlateMapping[];
+      dedup_info?: Record<string, string[]>;
+    };
     result: {
       rows: Array<{
         source_plate: string;
@@ -556,7 +560,11 @@ export interface RpcMethodMap {
     };
   };
   export_janus_mapping_dry_run: {
-    params: { transfer_vol?: number };
+    params: {
+      transfer_vol?: number;
+      mappings?: PlateMapping[];
+      dedup_info?: Record<string, string[]>;
+    };
     result: {
       rows: Array<{
         name: string;
