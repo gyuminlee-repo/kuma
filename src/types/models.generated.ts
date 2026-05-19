@@ -420,6 +420,7 @@ export interface ExportAllParams {
   mappings?: PlateMappingItem[] | null;
   output_dir: string;
   project_id?: string | null;
+  project_name?: string | null;
   purification?: "MOPC";
   rev_plate_name?: string;
   [k: string]: unknown;
