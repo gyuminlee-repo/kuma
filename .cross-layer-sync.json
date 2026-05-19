@@ -69,7 +69,12 @@
         "src/store/mame/slices/exportSlice.ts",
         "src/store/mame/resetAll.ts"
       ],
-      "symbols": ["registerArtifacts", "ArtifactType", "AppId", "clearWorkspace"],
+      "symbols": [
+        "registerArtifacts",
+        "ArtifactType",
+        "AppId",
+        "clearWorkspace"
+      ],
       "note": "Export slices register artifacts via registerArtifacts(ArtifactType). Clear flows call clearWorkspace(AppId).",
       "severity": "warning"
     },
@@ -590,6 +595,50 @@
       ],
       "note": "Sidebar default width calc -> store -> AppShell render alignment",
       "severity": "warning"
+    },
+    {
+      "id": "evolvepro-column-override",
+      "files": [
+        "python-core/sidecar_kuro/models.py",
+        "src/store/slices/inputSlice.helpers.ts",
+        "src/types/models.generated.ts"
+      ],
+      "symbols": [
+        "variant_column",
+        "score_column",
+        "score_order",
+        "sheet_name"
+      ],
+      "severity": "blocking",
+      "note": "LoadEvolveproParams override fields must stay in sync across Pydantic model, store helper, and generated TS types"
+    },
+    {
+      "id": "evolvepro-preview-rpc",
+      "files": [
+        "python-core/sidecar_kuro/dispatcher.py",
+        "src/lib/ipc.ts"
+      ],
+      "symbols": [
+        "preview_evolvepro_source"
+      ],
+      "severity": "blocking",
+      "note": "preview_evolvepro_source RPC name must match between dispatcher registry and ipc.ts client (Wave C: ipc.ts client to be added)"
+    },
+    {
+      "id": "mutation-input-mode-enum",
+      "files": [
+        "src/store/slices/inputSlice.ts",
+        "src/locales/en.json",
+        "src/locales/ko.json"
+      ],
+      "symbols": [
+        "evolveproMode",
+        "topN",
+        "pipeline",
+        "others"
+      ],
+      "severity": "warning",
+      "note": "EvolveproMode literal values (topN/pipeline/others) and i18n keys must align across store and locale files"
     }
   ]
 }
