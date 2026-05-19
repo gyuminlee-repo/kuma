@@ -93,6 +93,25 @@ def test_preview_xlsx_multi_sheet():
         pytest.fail(f"Expected 3 rows from Summary, got {len(result_sheet2['rows'])}")
 
 
+def test_preview_tsv_tab_delimited():
+    """TSV preview parses tab-delimited rows the same as CSV."""
+    from sidecar_kuro.handlers.misc import handle_preview_evolvepro_source
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        p = Path(tmp_dir) / "test_preview.tsv"
+        with open(p, "w", newline="", encoding="utf-8") as f:
+            f.write("variant\ty_pred\n")
+            f.write("M1A\t0.85\n")
+        result = handle_preview_evolvepro_source({"filepath": str(p)})
+
+    if result["sheets"] != []:
+        pytest.fail(f"Expected sheets=[] for TSV, got {result['sheets']}")
+    if result["headers"] != ["variant", "y_pred"]:
+        pytest.fail(f"Expected tab-split headers, got {result['headers']}")
+    if result["rows"] != [["M1A", "0.85"]]:
+        pytest.fail(f"Expected tab-split row, got {result['rows']}")
+
+
 def test_preview_xlsx_invalid_sheet_name():
     """Requesting a non-existent sheet raises ValueError."""
     from sidecar_kuro.handlers.misc import handle_preview_evolvepro_source

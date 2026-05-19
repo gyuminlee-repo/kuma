@@ -319,8 +319,9 @@ def _read_table_rows(
         ]
         return rows, columns
     else:
+        delimiter = "\t" if ext == ".tsv" else ","
         with open(str(filepath), encoding="utf-8", newline="") as f:
-            reader = csv.DictReader(f)
+            reader = csv.DictReader(f, delimiter=delimiter)
             columns = list(reader.fieldnames or [])
             rows = [{k: (v or "") for k, v in row.items()} for row in reader]
         return rows, columns
