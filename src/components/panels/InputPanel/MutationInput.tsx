@@ -79,8 +79,11 @@ export function MutationInput() {
           <input
             type="radio"
             name="mutInput"
-            checked={mutationInputMode === "evolvepro"}
-            onChange={() => setMutationInputMode("evolvepro")}
+            checked={mutationInputMode === "evolvepro" && evolveproMode !== "others"}
+            onChange={() => {
+              setMutationInputMode("evolvepro");
+              setEvolveproMode("topN");
+            }}
             className="w-3 h-3"
           />
           EVOLVEpro
