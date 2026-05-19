@@ -9,13 +9,13 @@ This module produces three output files and a context JSON:
 Typical call site::
 
     result = generate_mame_package(
-        fasta_path=Path("seq/ispS.fa"),
+        fasta_path=Path("seq/egfp.fa"),
         gene_start=400,
         gene_end=700,
         barcode_seeds_path=Path("design/barcode_seeds.xlsx"),
         output_dir=Path("project/design"),
         project_root=Path("project"),
-        gene_name="ispS",
+        gene_name="egfp",
         polymerase="Q5",
     )
 """
@@ -557,7 +557,7 @@ def generate_mame_package(
     barcode_seeds_path: Path,
     output_dir: Path,
     project_root: Path,
-    gene_name: str = "ispS",
+    gene_name: str = "egfp",
     polymerase: str = "Q5",
     flank_min: int = 100,
     flank_max: int = 400,

@@ -276,12 +276,12 @@
       "id": "mame-ref-seq-fallback",
       "files": [
         "kuma_core/mame/activity/ref_seq.py",
-        "fixtures/ispS.fa"
+        "fixtures/egfp.fa"
       ],
       "symbols": [
-        "DEFAULT_ISPS_CDS_PATH"
+        "DEFAULT_EGFP_CDS_PATH"
       ],
-      "note": "DEFAULT_ISPS_CDS_PATH 기본 fallback이 fixtures/ispS.fa 존재 가정 (coding-frame nucleotide)",
+      "note": "DEFAULT_EGFP_CDS_PATH 기본 fallback이 fixtures/egfp.fa 존재 가정 (coding-frame nucleotide)",
       "severity": "blocking"
     },
     {
@@ -320,7 +320,7 @@
       "symbols": [
         "parse_combinatorial_barcodes"
       ],
-      "note": "parse_combinatorial_barcodes xlsx 스키마 (isps_f_/isps_r_ prefix) ↔ barcodes sequence.xlsx fixture 포맷",
+      "note": "parse_combinatorial_barcodes xlsx 스키마 (egfp_f_/egfp_r_ prefix) ↔ barcodes sequence.xlsx fixture 포맷",
       "severity": "warning"
     },
     {

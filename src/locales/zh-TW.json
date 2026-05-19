@@ -258,7 +258,7 @@
         "success": "Detected from {{source}}"
       },
       "cdsCandidateHelp": "CDS candidate auto-detected from the FASTA. Coordinates apply on selection.",
-      "geneNameHelp": "Short gene identifier used in output filenames and labels (e.g. ispS).",
+      "geneNameHelp": "Short gene identifier used in output filenames and labels (e.g. egfp).",
       "polymeraseHelp": "Polymerase profile used to set default Tm/binding constraints. Q5 recommended for high-fidelity PCR.",
       "geneStartHelp": "CDS start coordinate (0-based, inclusive).",
       "geneEndHelp": "CDS end coordinate (0-based, exclusive).",
@@ -807,7 +807,7 @@
     "gcRangeTitle": "建議範圍: 40-60%。超出範圍的 primer 會受到懲罰。",
     "gcInvalidError": "Min 必須小於 Max",
     "primerLenSectionLabel": "Primer 長度",
-    "primerLenHelp": "KOD One PCR Master Mix\n  標準:     22–35 bp, Tm >63°C\n  長靶標: 25–35 bp, Tm >65°C\n\n實驗性 (IspS SDM, n=165)\n  Forward 總長: 19–38 bp (含 overlap)\n  Reverse 總長: 18–32 bp (含 overlap)\n\nKURO primer 長度 = overlap + priming 區段",
+    "primerLenHelp": "KOD One PCR Master Mix\n  標準:     22–35 bp, Tm >63°C\n  長靶標: 25–35 bp, Tm >65°C\n\n實驗性 (EGFP SDM, demo)\n  Forward 總長: 19–38 bp (含 overlap)\n  Reverse 總長: 18–32 bp (含 overlap)\n\nKURO primer 長度 = overlap + priming 區段",
     "primerLenLimit": "限制",
     "primerLenSingleTitle": "單一長度範圍同時應用於兩條 primer (rev = rc(fwd))。",
     "primerLenFwdLabel": "F",

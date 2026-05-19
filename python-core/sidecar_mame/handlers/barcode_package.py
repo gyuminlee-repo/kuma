@@ -16,7 +16,7 @@ Required
   project_root         (str) -- project root for mame_context.json
 
 Optional
-  gene_name            (str,   default "ispS")
+  gene_name            (str,   default "egfp")
   polymerase           (str,   default "Q5")
   flank_min            (int,   default 100)
   flank_max            (int,   default 400)
@@ -77,10 +77,10 @@ def handle_generate_mame_package(params: dict) -> dict:
 
     # Optional parameters
     # gene_name: required to be a non-empty string when present. The UI seeds
-    # a default ("ispS") in the input panel, so empty here implies the user
+    # a default ("egfp") in the input panel, so empty here implies the user
     # explicitly cleared it. Silently substituting a hardcoded literal would
     # mislead operators expecting their typed gene name to flow through.
-    gene_name_raw = params.get("gene_name", "ispS")
+    gene_name_raw = params.get("gene_name", "egfp")
     if gene_name_raw is None or str(gene_name_raw).strip() == "":
         raise ValueError(
             "gene_name must be a non-empty string; received empty value. "

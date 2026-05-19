@@ -3,7 +3,7 @@
 Fixtures
 --------
 - Synthetic FASTQ files with known barcode sequences.
-- Minimal combinatorial xlsx: 12 fwd (isps_f_1..12) + 8 rev (isps_r_1..8).
+- Minimal combinatorial xlsx: 12 fwd (egfp_f_1..12) + 8 rev (egfp_r_1..8).
 
 All tests use pure-Python path (no cutadapt dependency).
 """
@@ -48,8 +48,8 @@ def _make_fastq(path: Path, reads: list[tuple[str, str, str]]) -> None:
 
 # Deterministic barcode sequences for testing.
 _FWD_SEQS: dict[int, str] = {
-    1:  "AATCCCACTACCACAGGAGGTTAAACC",   # isps_f_1 (unique length per spec)
-    2:  "TGAACTGAGCGCACAGGAGGTTAAACC",   # isps_f_2 (unique length per spec)
+    1:  "AATCCCACTACCACAGGAGGTTAAACC",   # egfp_f_1 (unique length per spec)
+    2:  "TGAACTGAGCGCACAGGAGGTTAAACC",   # egfp_f_2 (unique length per spec)
     3:  "AAACGTCACAGGAGGTTAAACC",
     4:  "TTGCAATCACAGGAGGTTAAACC",
     5:  "CCAGTTTTCACAGGAGGTTAAACC",
@@ -82,16 +82,16 @@ def _make_barcode_xlsx(path: Path) -> None:
     ws.title = "Sheet1"
 
     for n, seq in _FWD_SEQS.items():
-        ws.append([f"isps_f_{n}", seq])
+        ws.append([f"egfp_f_{n}", seq])
 
     for n, seq in _REV_SEQS.items():
-        ws.append([f"isps_r_{n}", seq])
+        ws.append([f"egfp_r_{n}", seq])
 
     wb.save(str(path))
 
 
 def _make_barcode_xlsx_missing_fwd(path: Path) -> None:
-    """xlsx with only 11 fwd barcodes (isps_f_12 missing)."""
+    """xlsx with only 11 fwd barcodes (egfp_f_12 missing)."""
     wb = openpyxl.Workbook()
     ws = wb.active
     assert ws is not None
@@ -99,24 +99,24 @@ def _make_barcode_xlsx_missing_fwd(path: Path) -> None:
     for n, seq in _FWD_SEQS.items():
         if n == 12:
             continue
-        ws.append([f"isps_f_{n}", seq])
+        ws.append([f"egfp_f_{n}", seq])
     for n, seq in _REV_SEQS.items():
-        ws.append([f"isps_r_{n}", seq])
+        ws.append([f"egfp_r_{n}", seq])
     wb.save(str(path))
 
 
 def _make_barcode_xlsx_missing_rev(path: Path) -> None:
-    """xlsx with only 7 rev barcodes (isps_r_8 missing)."""
+    """xlsx with only 7 rev barcodes (egfp_r_8 missing)."""
     wb = openpyxl.Workbook()
     ws = wb.active
     assert ws is not None
     ws.title = "Sheet1"
     for n, seq in _FWD_SEQS.items():
-        ws.append([f"isps_f_{n}", seq])
+        ws.append([f"egfp_f_{n}", seq])
     for n, seq in _REV_SEQS.items():
         if n == 8:
             continue
-        ws.append([f"isps_r_{n}", seq])
+        ws.append([f"egfp_r_{n}", seq])
     wb.save(str(path))
 
 
@@ -248,16 +248,16 @@ class TestParseCombinatorial:
             parse_combinatorial_barcodes(tmp_path / "nonexistent.xlsx")
 
     def test_invalid_prefix_skipped(self, tmp_path: Path) -> None:
-        """Rows with neither isps_f_ nor isps_r_ prefix are silently skipped."""
+        """Rows with neither egfp_f_ nor egfp_r_ prefix are silently skipped."""
         wb = openpyxl.Workbook()
         ws = wb.active
         assert ws is not None
         ws.title = "Sheet1"
         # Add valid fwd + rev
         for n, seq in _FWD_SEQS.items():
-            ws.append([f"isps_f_{n}", seq])
+            ws.append([f"egfp_f_{n}", seq])
         for n, seq in _REV_SEQS.items():
-            ws.append([f"isps_r_{n}", seq])
+            ws.append([f"egfp_r_{n}", seq])
         # Add an unrecognised row — should be silently skipped
         ws.append(["random_barcode", "ACGTACGTAC"])
         xlsx = tmp_path / "barcodes_extra.xlsx"

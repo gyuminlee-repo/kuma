@@ -99,7 +99,7 @@ def _make_project(tmp_path: Path) -> tuple[Path, Path, Path]:
     project_root = tmp_path / "project"
     project_root.mkdir()
     fasta = project_root / "cds.fa"
-    _make_fasta(fasta, [("ispS_cds", _CDS_1200)])
+    _make_fasta(fasta, [("egfp_cds", _CDS_1200)])
     seeds = project_root / "seeds.xlsx"
     _make_seeds_xlsx(seeds, _FWD_SEEDS, _REV_SEEDS)
     return fasta, seeds, project_root
@@ -300,7 +300,7 @@ class TestGenerateMamePackage:
             barcode_seeds_path=seeds,
             output_dir=output_dir,
             project_root=project_root,
-            gene_name="ispS",
+            gene_name="egfp",
         )
 
         assert isinstance(result, MamePackageResult)
