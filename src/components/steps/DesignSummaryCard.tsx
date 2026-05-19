@@ -24,7 +24,7 @@ export function DesignSummaryCard() {
 
   const seqInfo = useAppStore((s) => s.seqInfo);
   const mutationInputMode = useAppStore((s) => s.mutationInputMode);
-  const pipelineMode = useAppStore((s) => s.pipelineMode);
+  const evolveproMode = useAppStore((s) => s.evolveproMode);
   const evolveproTotalCount = useAppStore((s) => s.evolveproTotalCount);
   const parsedMutationCount = useAppStore((s) => s.parsedMutations.length);
   const selectedPolymerase = useAppStore((s) => s.selectedPolymerase);
@@ -36,7 +36,7 @@ export function DesignSummaryCard() {
     ? `${seqInfo.header || t("phaseE.summary.sequence.unnamed")} (${seqInfo.seq_length} nt)`
     : t("phaseE.summary.sequence.empty");
 
-  const selectionText = pipelineMode
+  const selectionText = evolveproMode !== "topN"
     ? t("phaseE.summary.selectionMode.pipeline")
     : t("phaseE.summary.selectionMode.topN");
 

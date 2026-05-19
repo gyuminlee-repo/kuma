@@ -43,7 +43,7 @@ function makeStore(overrides: Record<string, unknown> = {}) {
     evolveproParetoExchanges: null,
     evolveproStepStats: null,
     yPredMap: {},
-    pipelineMode: false,
+    evolveproMode: "topN" as const,
     positionDiversityEnabled: false,
     maxPerPosition: 1,
     domainDiversityEnabled: false,

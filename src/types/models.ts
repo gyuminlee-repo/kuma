@@ -191,6 +191,12 @@ export interface EvolveproLoadResult {
   step_stats?: EvolveproStepStats;
 }
 
+export interface EvolveproPreview {
+  sheets: string[];
+  headers: string[];
+  rows: string[][];
+}
+
 export interface FailedMutation {
   mutation: string;
   rank: number;
@@ -500,6 +506,10 @@ export interface RpcMethodMap {
   load_evolvepro_csv: {
     params: RpcParams;
     result: EvolveproLoadResult;
+  };
+  preview_evolvepro_source: {
+    params: RpcParams;
+    result: EvolveproPreview;
   };
   get_plate_map: {
     params: Record<string, never>;

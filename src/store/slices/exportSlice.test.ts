@@ -93,7 +93,7 @@ function makeStore() {
     autoRedesignOnLoad: true,
     saveCache: true,
     organism: "ecoli",
-    pipelineMode: true,
+    evolveproMode: "pipeline" as const,
     positionDiversityEnabled: true,
     maxPerPosition: 1,
     evolveproRound: 1,

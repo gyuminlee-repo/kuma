@@ -30,7 +30,7 @@ function kuroAutosaveSelector(s: AppState): readonly unknown[] {
     s.evolveproCsvPath,
     // diversity
     s.uniprotAccession,
-    s.pipelineMode,
+    s.evolveproMode,
     s.domains,
     s.disabledDomains,
     s.positionDiversityEnabled,

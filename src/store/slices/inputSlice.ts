@@ -17,7 +17,7 @@ import {
 } from "../../lib/schemaValidator";
 import { useMameAppStore } from "../mame/mameAppStore";
 
-import type { InputSlice } from "../slice-interfaces";
+import type { InputSlice, EvolveproMode } from "../slice-interfaces";
 export type { InputSlice };
 
 // EGFP sample mutation set: 120 mutations selected from safe positions of the
@@ -56,6 +56,12 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   evolveproParetoExchanges: null,
   evolveproStepStats: null,
   yPredMap: {},
+  evolveproMode: "topN" as EvolveproMode,
+  evolveproVariantColumn: null,
+  evolveproScoreColumn: null,
+  evolveproScoreOrder: "desc" as const,
+  evolveproSheetName: null,
+  evolveproPreview: null,
 
   setMutationInputMode: (mode) => set({
     mutationInputMode: mode,
@@ -76,7 +82,11 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     const gen = ++csvLoadGeneration;
     try {
       const {
-        pipelineMode,
+        evolveproMode,
+        evolveproVariantColumn,
+        evolveproScoreColumn,
+        evolveproScoreOrder,
+        evolveproSheetName,
         positionDiversityEnabled,
         maxPerPosition,
         domainDiversityEnabled,
@@ -131,11 +141,16 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         // 파일 읽기 실패 시 sidecar 에 위임 (경로 오류는 sidecar가 처리)
       }
 
-      const usePipeline = pipelineMode;
+      const usePipeline = evolveproMode !== "topN";
         const params = buildEvolveproLoadParams({
           filepath,
           topN: effectiveTopN,
           usePipeline,
+          evolveproMode,
+          evolveproVariantColumn,
+          evolveproScoreColumn,
+          evolveproScoreOrder,
+          evolveproSheetName,
         positionDiversityEnabled,
         maxPerPosition,
         activeDomains,
@@ -201,6 +216,20 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       throw err;
     }
   },
+
+  setEvolveproMode: (mode: EvolveproMode) => {
+    set({ evolveproMode: mode });
+    // Switching modes changes which params are sent; reload CSV if loaded.
+    const path = get().evolveproCsvPath;
+    if (path) {
+      void get().loadEvolveproCsv(path);
+    }
+  },
+  setEvolveproVariantColumn: (col) => set({ evolveproVariantColumn: col }),
+  setEvolveproScoreColumn: (col) => set({ evolveproScoreColumn: col }),
+  setEvolveproScoreOrder: (order) => set({ evolveproScoreOrder: order }),
+  setEvolveproSheetName: (name) => set({ evolveproSheetName: name }),
+  setEvolveproPreview: (preview) => set({ evolveproPreview: preview }),
 
   parseMutations: async () => {
     const { mutationText } = get();

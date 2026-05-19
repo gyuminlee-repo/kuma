@@ -7,6 +7,7 @@ import { useArtifact } from "../../../lib/workspace";
 import { Button } from "../../ui/button";
 import { InlineHelp } from "../../ui/InlineHelp";
 import { ArtifactBadge } from "../../widgets/ArtifactBadge";
+import { EvolveproOthersPanel } from "./EvolveproOthersPanel";
 
 export function MutationInput() {
   const { t } = useTranslation();
@@ -32,8 +33,8 @@ export function MutationInput() {
 
   const showArtifactBadge =
     artifact !== null && !userOverridden && artifact.path === evolveproCsvPath;
-  const pipelineMode = useAppStore((s) => s.pipelineMode);
-  const setPipelineMode = useAppStore((s) => s.setPipelineMode);
+  const evolveproMode = useAppStore((s) => s.evolveproMode);
+  const setEvolveproMode = useAppStore((s) => s.setEvolveproMode);
   const evolveproTotalCount = useAppStore((s) => s.evolveproTotalCount);
 
   // Debounced mutation validation
@@ -63,7 +64,7 @@ export function MutationInput() {
         {t("mutationInput.mutations")}
         <InlineHelp text={t("mutationInput.mutationsHelp")} />
       </label>
-      <div className="flex gap-2 text-xs" role="radiogroup" aria-label={t("mutationInput.mutationInputAriaLabel")}>
+      <div className="flex flex-wrap gap-2 text-xs" role="radiogroup" aria-label={t("mutationInput.mutationInputAriaLabel")}>
         <label className="flex items-center gap-1 rounded-full border border-border bg-card px-2 py-1 text-muted-foreground">
           <input
             type="radio"
@@ -78,11 +79,27 @@ export function MutationInput() {
           <input
             type="radio"
             name="mutInput"
-            checked={mutationInputMode === "evolvepro"}
-            onChange={() => setMutationInputMode("evolvepro")}
+            checked={mutationInputMode === "evolvepro" && evolveproMode !== "others"}
+            onChange={() => {
+              setMutationInputMode("evolvepro");
+              setEvolveproMode("topN");
+            }}
             className="w-3 h-3"
           />
           EVOLVEpro
+        </label>
+        <label className="flex items-center gap-1 rounded-full border border-border bg-card px-2 py-1 text-muted-foreground">
+          <input
+            type="radio"
+            name="mutInput"
+            checked={mutationInputMode === "evolvepro" && evolveproMode === "others"}
+            onChange={() => {
+              setMutationInputMode("evolvepro");
+              setEvolveproMode("others");
+            }}
+            className="w-3 h-3"
+          />
+          {t("mutationInput.others")}
         </label>
       </div>
 
@@ -97,7 +114,7 @@ export function MutationInput() {
 
       {mutationInputMode === "evolvepro" && (
         <div className="space-y-2">
-          {/* CSV file loader */}
+          {/* CSV / XLSX file loader (shared by evolvepro and others modes) */}
           <div className="flex gap-1">
             <Button
               variant="outline"
@@ -106,8 +123,8 @@ export function MutationInput() {
                 browseFile(
                   [
                     {
-                      name: "EVOLVEpro CSV",
-                      extensions: ["csv"],
+                      name: "EVOLVEpro CSV/XLSX",
+                      extensions: ["csv", "xlsx", "xls"],
                     },
                   ],
                   (path) => {
@@ -136,42 +153,47 @@ export function MutationInput() {
             </div>
           )}
 
-          {/* Selection mode / Pipeline UI */}
-          <div className="space-y-1">
-            <div className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">
-              {t("mutationInput.selectionMode")}
-            </div>
-            <div className="space-y-0.5">
-              <label className="flex items-center gap-1.5 cursor-pointer text-xs">
-                <input
-                  type="radio"
-                  name="selectionMode"
-                  className="w-3 h-3"
-                  checked={!pipelineMode}
-                  onChange={() => setPipelineMode(false)}
-                />
-                <span className="text-foreground">{t("mutationInput.topNOnly")}</span>
-                <span className="text-caption text-muted-foreground">{t("mutationInput.topNDesc")}</span>
-              </label>
-              <div className="ml-5 text-caption text-muted-foreground/70">
-                {t("mutationInput.topNZeroHint")}
-              </div>
-              <label className="flex items-center gap-1.5 cursor-pointer text-xs">
-                <input
-                  type="radio"
-                  name="selectionMode"
-                  className="w-3 h-3"
-                  checked={pipelineMode}
-                  onChange={() => setPipelineMode(true)}
-                />
-                <span className="text-foreground">{t("mutationInput.pipeline")}</span>
-                <span className="text-caption text-muted-foreground">{t("mutationInput.pipelineDesc")}</span>
-              </label>
-            </div>
-          </div>
+          {/* Others mode: column mapping panel */}
+          {evolveproMode === "others" && <EvolveproOthersPanel />}
 
-          {/* Editable variant textarea */}
-          {mutationText && (
+          {/* topN / pipeline mode: selection mode radiogroup */}
+          {evolveproMode !== "others" && (
+            <div className="space-y-1">
+              <div className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">
+                {t("mutationInput.selectionMode")}
+              </div>
+              <div className="space-y-0.5">
+                <label className="flex items-center gap-1.5 cursor-pointer text-xs">
+                  <input
+                    type="radio"
+                    name="selectionMode"
+                    className="w-3 h-3"
+                    checked={evolveproMode === "topN"}
+                    onChange={() => setEvolveproMode("topN")}
+                  />
+                  <span className="text-foreground">{t("mutationInput.topNOnly")}</span>
+                  <span className="text-caption text-muted-foreground">{t("mutationInput.topNDesc")}</span>
+                </label>
+                <div className="ml-5 text-caption text-muted-foreground/70">
+                  {t("mutationInput.topNZeroHint")}
+                </div>
+                <label className="flex items-center gap-1.5 cursor-pointer text-xs">
+                  <input
+                    type="radio"
+                    name="selectionMode"
+                    className="w-3 h-3"
+                    checked={evolveproMode === "pipeline"}
+                    onChange={() => setEvolveproMode("pipeline")}
+                  />
+                  <span className="text-foreground">{t("mutationInput.pipeline")}</span>
+                  <span className="text-caption text-muted-foreground">{t("mutationInput.pipelineDesc")}</span>
+                </label>
+              </div>
+            </div>
+          )}
+
+          {/* Editable variant textarea (topN / pipeline only) */}
+          {evolveproMode !== "others" && mutationText && (
             <textarea
               className="h-32 w-full resize-none rounded-2xl border border-border bg-muted p-3 font-mono text-xs"
               value={mutationText}

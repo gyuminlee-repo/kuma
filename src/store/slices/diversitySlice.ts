@@ -73,7 +73,6 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   }
 
   return ({
-  pipelineMode: true,
   positionDiversityEnabled: true,
   maxPerPosition: 1,
   domainDiversityEnabled: true,
@@ -107,14 +106,6 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   structureAccession: "",
   uniprotCandidates: [],
   uniprotSearching: false,
-
-  setPipelineMode: (enabled: boolean) => {
-    set({ pipelineMode: enabled });
-    if (!enabled) {
-      // Pipeline off -> Top-N only: reload with no diversity options
-      debouncedReload();
-    }
-  },
 
   setPositionDiversityEnabled: (enabled: boolean) => {
     set({ positionDiversityEnabled: enabled });

@@ -46,6 +46,7 @@ export interface SidecarKuroModels {
   ParseMutationsTextParams?: ParseMutationsTextParams;
   PlateMappingItem?: PlateMappingItem;
   PolymeraseProfileModel?: PolymeraseProfileModel;
+  PreviewEvolveproSourceParams?: PreviewEvolveproSourceParams;
   RescueStatsModel?: RescueStatsModel;
   RescuedMutationModel?: RescuedMutationModel;
   RetryFailedParams?: RetryFailedParams;
@@ -553,8 +554,12 @@ export interface LoadEvolveproParams {
   pool_multiplier?: number;
   ref_seq?: string;
   round_size?: number;
+  score_column?: string | null;
+  score_order?: "desc" | "asc";
+  sheet_name?: string | null;
   structure_accession?: string | null;
   top_n?: number;
+  variant_column?: string | null;
   [k: string]: unknown;
 }
 export interface LoadFastaParams {
@@ -596,6 +601,18 @@ export interface PolymeraseProfileModel {
   salt_divalent: number;
   salt_monovalent: number;
   tm_method: string;
+  [k: string]: unknown;
+}
+/**
+ * Params for preview_evolvepro_source RPC.
+ *
+ * Returns the sheet names, column headers, and first max_rows data rows
+ * from a CSV or XLSX file without loading the full dataset.
+ */
+export interface PreviewEvolveproSourceParams {
+  filepath: string;
+  max_rows?: number;
+  sheet_name?: string | null;
   [k: string]: unknown;
 }
 export interface RetryFailedParams {

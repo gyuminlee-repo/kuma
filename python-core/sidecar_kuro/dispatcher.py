@@ -50,6 +50,7 @@ from sidecar_kuro.handlers.misc import (
     handle_save_custom_polymerase,
     handle_list_organisms,
     handle_load_evolvepro_csv,
+    handle_preview_evolvepro_source,
     handle_run_benchmark,
 )
 from sidecar_kuro.handlers.settings import (
@@ -84,6 +85,7 @@ _METHODS = {
     "parse_mutations_text": handle_parse_mutations_text,
     "design_sdm_primers": handle_design_sdm_primers,
     "load_evolvepro_csv": handle_load_evolvepro_csv,
+    "preview_evolvepro_source": handle_preview_evolvepro_source,
     "get_plate_map": handle_get_plate_map,
     "get_alternatives": handle_get_alternatives,
     "swap_primer": handle_swap_primer,

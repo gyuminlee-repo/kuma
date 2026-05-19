@@ -51,7 +51,7 @@ function makeInputStore() {
     evolveproStepStats: null,
     yPredMap: {},
     // diversity fields referenced by slice
-    pipelineMode: true,
+    evolveproMode: "pipeline" as const,
     positionDiversityEnabled: true,
     maxPerPosition: 1,
     domainDiversityEnabled: true,
