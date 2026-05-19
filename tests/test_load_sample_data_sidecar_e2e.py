@@ -86,10 +86,15 @@ def test_sidecar_ping(client: SidecarClient) -> None:
 def test_load_sample_data_text_mode_full_chain(client: SidecarClient) -> None:
     """Reproduce frontend loadSampleData() in text→evolvepro mode."""
     seq = client.call("load_fasta", {"filepath": str(SAMPLE_DIR / "sample_plasmid.gb")})
-    assert seq["seq_length"] == 5000
+    assert seq["seq_length"] == 2700
     longest = max(seq["genes"], key=lambda g: g["aa_length"])
-    assert longest["gene"] == "synR"
+    assert longest["gene"].lower() == "egfp"
+    # aa_length is CDS_len/3 (includes stop codon position); translation excludes stop
+    assert longest["aa_length"] == 240
     translation = longest["translation"]
+    assert len(translation) == 239
+    assert translation.startswith("MVSKGEELFTGVVPIL")
+    assert translation.endswith("MDELYK")
 
     csv_result = client.call(
         "load_evolvepro_csv",
