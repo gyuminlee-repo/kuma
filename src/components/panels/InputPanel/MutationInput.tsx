@@ -123,8 +123,8 @@ export function MutationInput() {
                 browseFile(
                   [
                     {
-                      name: "EVOLVEpro CSV/XLSX",
-                      extensions: ["csv", "xlsx", "xls"],
+                      name: "EVOLVEpro CSV/TSV/XLSX",
+                      extensions: ["csv", "tsv", "xlsx", "xls"],
                     },
                   ],
                   (path) => {

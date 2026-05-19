@@ -92,13 +92,17 @@ export function validateCsvHeader(header: string[], spec: SchemaSpec): Validatio
 /**
  * CSV 텍스트의 첫 줄에서 헤더 컬럼 배열을 추출한다.
  *
- * 단순 쉼표 분리 방식. quoted CSV 내 쉼표는 처리하지 않는다
+ * 단순 분리 방식. quoted CSV 내 구분자는 처리하지 않는다
  * (헤더 행에서 quoted field 는 실무상 없음).
  * CRLF, LF 양쪽 처리.
+ *
+ * @param csvText 텍스트 본문
+ * @param ext 확장자 힌트 (소문자, dot 제외). "tsv" 이면 탭 분리, 그 외 쉼표 분리.
  */
-export function extractCsvHeader(csvText: string): string[] {
+export function extractCsvHeader(csvText: string, ext?: string): string[] {
   const firstLine = csvText.split(/\r?\n/)[0] ?? "";
-  return firstLine.split(",");
+  const delimiter = ext === "tsv" ? "\t" : ",";
+  return firstLine.split(delimiter);
 }
 
 // ─── 사전 정의 SchemaSpec ──────────────────────────────────────────────────────

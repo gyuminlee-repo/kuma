@@ -23,9 +23,9 @@ from sidecar_kuro.models import (
     SaveCustomPolymeraseResultModel,
 )
 
-# EVOLVEpro-specific table extensions: CSV and XLSX only.
-# .tsv/.txt are excluded intentionally (not supported for column mapping).
-_ALLOWED_TABLE_EXTENSIONS = {".csv", ".xlsx"}
+# EVOLVEpro-specific table extensions: CSV, TSV, and XLSX.
+# .txt is excluded intentionally (ambiguous delimiter, not supported for column mapping).
+_ALLOWED_TABLE_EXTENSIONS = {".csv", ".tsv", ".xlsx"}
 
 
 _POLYMERASE_META = {
@@ -77,9 +77,10 @@ def handle_list_organisms(_params: dict) -> list[dict]:
 
 
 def _preview_csv(filepath: str, max_rows: int) -> dict:
-    """Read headers and first max_rows data rows from a CSV file."""
+    """Read headers and first max_rows data rows from a CSV or TSV file."""
+    delimiter = "\t" if Path(filepath).suffix.lower() == ".tsv" else ","
     with open(filepath, encoding="utf-8", newline="") as f:
-        reader = csv.reader(f)
+        reader = csv.reader(f, delimiter=delimiter)
         headers = next(reader, [])
         rows = []
         for i, row in enumerate(reader):
@@ -124,9 +125,9 @@ def handle_preview_evolvepro_source(params: dict) -> dict:
     p = PreviewEvolveproSourceParams(**params)
     resolved = _validate_filepath(p.filepath, allowed_extensions=_ALLOWED_TABLE_EXTENSIONS)
     ext = Path(str(resolved)).suffix.lower()
-    if ext == ".csv":
-        return _preview_csv(str(resolved), p.max_rows)
-    return _preview_xlsx(str(resolved), p.sheet_name, p.max_rows)
+    if ext == ".xlsx":
+        return _preview_xlsx(str(resolved), p.sheet_name, p.max_rows)
+    return _preview_csv(str(resolved), p.max_rows)
 
 
 def handle_load_evolvepro_csv(params: dict) -> dict:
