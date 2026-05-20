@@ -83,6 +83,38 @@ class TestDomainAwareSelect:
         assert len(selected) == 2
         assert sum(item["quota"] for item in stats.values()) == 2
 
+    def test_shortfall_does_not_oversubscribe_high_score_domain(self):
+        """회귀 감지: D1에 high y_pred가 몰려 있어도 D1이 자기 quota를 초과해서 가져가지 않음."""
+        # D1: high y_pred 20개 (positions 1-100)
+        # D2: mid y_pred 2개 (positions 101-200)
+        # D3: low y_pred 1개 (positions 201-300)
+        rows: list[tuple[str, float]] = []
+        for i, pos in enumerate(range(5, 100, 5)):
+            rows.append((f"A{pos}P", 0.95 - i * 0.01))
+        rows.append(("R150K", 0.55))
+        rows.append(("R160K", 0.50))
+        rows.append(("E250Q", 0.20))
+
+        domains = [
+            {"name": "D1", "start": 1, "end": 100},
+            {"name": "D2", "start": 101, "end": 200},
+            {"name": "D3", "start": 201, "end": 300},
+        ]
+
+        selected, stats = domain_aware_select(
+            rows, domains, top_n=9,
+            strategy="equal",
+            domain_quota_min=1,
+        )
+
+        # Hard constraint: D1은 quota 초과 금지
+        d1_count = sum(1 for v, _ in selected if 1 <= int(v[1:-1]) <= 100)
+        assert d1_count <= stats["D1"]["quota"], (
+            f"D1 oversubscribed: {d1_count} > quota {stats['D1']['quota']}"
+        )
+        # top_n 미충족 허용 (D3 후보 부족 → 총 선택 < 9)
+        assert len(selected) <= 9
+
 
 class TestRefSeqConversion:
     """v0.3 §4: ref_seq enables 89W → F89W conversion (EVOLVEpro short notation)."""
