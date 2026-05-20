@@ -32,6 +32,8 @@ export function EvolveproOthersPanel() {
   const othersScoreColumn = useAppStore((s) => s.othersScoreColumn);
   const othersScoreOrder = useAppStore((s) => s.othersScoreOrder);
   const othersSheetName = useAppStore((s) => s.othersSheetName);
+  const othersUsedVariantColumn = useAppStore((s) => s.othersUsedVariantColumn);
+  const othersUsedScoreColumn = useAppStore((s) => s.othersUsedScoreColumn);
   const setOthersPreview = useAppStore((s) => s.setOthersPreview);
   const setOthersVariantColumn = useAppStore((s) => s.setOthersVariantColumn);
   const setOthersScoreColumn = useAppStore((s) => s.setOthersScoreColumn);
@@ -165,6 +167,11 @@ export function EvolveproOthersPanel() {
               ))}
             </SelectContent>
           </Select>
+          {othersUsedVariantColumn && (
+            <div className="text-caption text-muted-foreground">
+              {t("mutationInput.othersUsedColumn", { column: othersUsedVariantColumn })}
+            </div>
+          )}
         </div>
       )}
 
@@ -200,6 +207,11 @@ export function EvolveproOthersPanel() {
               ))}
             </SelectContent>
           </Select>
+          {othersUsedScoreColumn && (
+            <div className="text-caption text-muted-foreground">
+              {t("mutationInput.othersUsedColumn", { column: othersUsedScoreColumn })}
+            </div>
+          )}
         </div>
 
         <div className="space-y-1">

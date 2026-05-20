@@ -345,6 +345,21 @@ def _read_table_rows(
         return rows, columns
 
 
+def _resolve_evolvepro_columns(
+    columns: list[str],
+    variant_column: str | None = None,
+    score_column: str | None = None,
+) -> tuple[str, str | None]:
+    v_col = variant_column or next((c for c in VARIANT_COLUMNS if c in columns), None)
+    if v_col is None:
+        raise ValueError(
+            f"EVOLVEpro file must have a variant column. "
+            f"Supported aliases: {VARIANT_COLUMNS}. Found: {columns}"
+        )
+    s_col = score_column or next((c for c in SCORE_COLUMNS if c in columns), None)
+    return v_col, s_col
+
+
 def _load_evolvepro_rows(
     filepath: str | Path,
     ref_seq: str = "",
@@ -379,13 +394,7 @@ def _load_evolvepro_rows(
     ext = Path(str(filepath)).suffix.lower()
     table_rows, columns = _read_table_rows(filepath, sheet_name, ext)
 
-    v_col = variant_column or next((c for c in VARIANT_COLUMNS if c in columns), None)
-    if v_col is None:
-        raise ValueError(
-            f"EVOLVEpro file must have a variant column. "
-            f"Supported aliases: {VARIANT_COLUMNS}. Found: {columns}"
-        )
-    s_col = score_column or next((c for c in SCORE_COLUMNS if c in columns), None)
+    v_col, s_col = _resolve_evolvepro_columns(columns, variant_column, score_column)
 
     result: list[tuple[str, float, float]] = []
     for row in table_rows:
@@ -455,11 +464,18 @@ def load_evolvepro_csv(
         Keys: variants, y_preds, total_count, selected_count,
         filtered_count, domain_stats, pareto_replaced.
     """
+    ext = Path(str(filepath)).suffix.lower()
+    _, source_columns = _read_table_rows(filepath, sheet_name, ext)
+    used_variant_column, used_score_column = _resolve_evolvepro_columns(
+        source_columns,
+        variant_column,
+        score_column,
+    )
     raw_rows = _load_evolvepro_rows(
         filepath,
         ref_seq=ref_seq,
-        variant_column=variant_column,
-        score_column=score_column,
+        variant_column=used_variant_column,
+        score_column=used_score_column,
         score_order=score_order,
         sheet_name=sheet_name,
     )
@@ -553,6 +569,8 @@ def load_evolvepro_csv(
         "domain_stats": domain_stats,
         "pareto_replaced": pareto_exchanges,
         "pool_variants": pool_variants,
+        "used_variant_column": used_variant_column,
+        "used_score_column": used_score_column,
         "step_stats": {
             "position_filter_removed": position_filter_removed,
             "domain_selected": domain_selected,

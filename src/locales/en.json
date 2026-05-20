@@ -1433,7 +1433,8 @@
     "othersPreviewEmpty": "No preview available. Load a file first.",
     "othersPreviewError": "Preview failed: {{message}}",
     "othersApplyBtn": "Apply selected columns",
-    "othersApplyError": "Column load failed: {{message}}"
+    "othersApplyError": "Column load failed: {{message}}",
+    "othersUsedColumn": "Applied column: {{column}}"
   },
   "uniprotSearch": {
     "topCandidates": "Top candidates {{shown}}{{total}}",

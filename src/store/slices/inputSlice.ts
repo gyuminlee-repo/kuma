@@ -68,6 +68,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   othersScoreOrder: "desc" as const,
   othersSheetName: null,
   othersPreview: null,
+  othersUsedVariantColumn: null,
+  othersUsedScoreColumn: null,
 
   setMutationInputMode: (mode) => set({
     mutationInputMode: mode,
@@ -75,6 +77,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       evolveproCsvPath: "",
       othersSourcePath: "",
       othersPreview: null,
+      othersUsedVariantColumn: null,
+      othersUsedScoreColumn: null,
       evolveproTotalCount: 0,
       evolveproFilteredCount: null,
       evolveproParetoExchanges: null,
@@ -215,6 +219,10 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         evolveproParetoExchanges: update.evolveproParetoExchanges,
         evolveproStepStats: update.evolveproStepStats,
         statusMessage: update.statusMessage,
+        ...(isOthersMode && {
+          othersUsedVariantColumn: result.used_variant_column ?? null,
+          othersUsedScoreColumn: result.used_score_column ?? null,
+        }),
       });
 
       // Dual-write to MAME shared store so other panels can auto-fill.
@@ -255,9 +263,13 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   setEvolveproScoreOrder: (order) => set({ evolveproScoreOrder: order }),
   setEvolveproSheetName: (name) => set({ evolveproSheetName: name }),
   setEvolveproPreview: (preview) => set({ evolveproPreview: preview }),
-  setOthersSourcePath: (path) => set({ othersSourcePath: path }),
-  setOthersVariantColumn: (col) => set({ othersVariantColumn: col }),
-  setOthersScoreColumn: (col) => set({ othersScoreColumn: col }),
+  setOthersSourcePath: (path) => set({
+    othersSourcePath: path,
+    othersUsedVariantColumn: null,
+    othersUsedScoreColumn: null,
+  }),
+  setOthersVariantColumn: (col) => set({ othersVariantColumn: col, othersUsedVariantColumn: null }),
+  setOthersScoreColumn: (col) => set({ othersScoreColumn: col, othersUsedScoreColumn: null }),
   setOthersScoreOrder: (order) => set({ othersScoreOrder: order }),
   setOthersSheetName: (name) => set({ othersSheetName: name }),
   setOthersPreview: (preview) => set({ othersPreview: preview }),

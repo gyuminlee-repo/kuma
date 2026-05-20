@@ -153,6 +153,8 @@ export interface InputSlice {
   othersScoreOrder: "desc" | "asc";
   othersSheetName: string | null;
   othersPreview: EvolveproPreview | null;
+  othersUsedVariantColumn: string | null;
+  othersUsedScoreColumn: string | null;
 
   // Actions
   setMutationInputMode: (mode: MutationInputMode) => void;

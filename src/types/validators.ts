@@ -344,6 +344,8 @@ function isEvolveproLoadResult(value: unknown): value is EvolveproLoadResult {
     isOptionalNullable(value.domain_stats, (item) => isRecordOf(item, isDomainStat)) &&
     isOptionalNullable(value.pareto_replaced, isNumber) &&
     isOptionalNullable(value.pool_variants, isStringArray) &&
+    isOptionalNullable(value.used_variant_column, isString) &&
+    isOptionalNullable(value.used_score_column, isString) &&
     isOptionalNullable(value.step_stats, isEvolveproStepStats)
   );
 }

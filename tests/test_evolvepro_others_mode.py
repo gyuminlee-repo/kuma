@@ -252,3 +252,26 @@ def test_load_evolvepro_csv_asc_top_n(tmp_path):
     idx_a1v = selected.index("A1V")
     if abs(y_preds[idx_a1v] - 1.0) > 1e-6:
         pytest.fail(f"Expected yPredMap to show raw rank=1.0, got {y_preds[idx_a1v]}")
+    if result.get("used_variant_column") != "variant":
+        pytest.fail(f"Expected used variant column 'variant', got {result.get('used_variant_column')}")
+    if result.get("used_score_column") != "rank":
+        pytest.fail(f"Expected used score column 'rank', got {result.get('used_score_column')}")
+
+
+def test_load_evolvepro_csv_reports_auto_detected_columns(tmp_path):
+    """Auto-detected columns are returned so UI can show the actual applied columns."""
+    from kuma_core.kuro.evolvepro import load_evolvepro_csv
+
+    csv_file = tmp_path / "auto.csv"
+    _write_csv([
+        ["mutant", "score"],
+        ["A1V", "0.9"],
+        ["B2C", "0.7"],
+    ], csv_file)
+
+    result = load_evolvepro_csv(str(csv_file), top_n=2)
+
+    if result.get("used_variant_column") != "mutant":
+        pytest.fail(f"Expected auto-detected mutant column, got {result.get('used_variant_column')}")
+    if result.get("used_score_column") != "score":
+        pytest.fail(f"Expected auto-detected score column, got {result.get('used_score_column')}")

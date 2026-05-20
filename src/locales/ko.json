@@ -1384,7 +1384,8 @@
     "othersPreviewEmpty": "미리보기 없음. 먼저 파일을 불러오세요.",
     "othersPreviewError": "미리보기 실패: {{message}}",
     "othersApplyBtn": "선택한 column 적용",
-    "othersApplyError": "Column 불러오기 실패: {{message}}"
+    "othersApplyError": "Column 불러오기 실패: {{message}}",
+    "othersUsedColumn": "적용된 column: {{column}}"
   },
   "offTargetDetail": {
     "closeAriaLabel": "닫기",

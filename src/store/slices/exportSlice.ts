@@ -648,6 +648,8 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       othersScoreOrder: "desc",
       othersSheetName: null,
       othersPreview: null,
+      othersUsedVariantColumn: null,
+      othersUsedScoreColumn: null,
       yPredMap: {},
       evolveproMode: "pipeline" as const,
       positionDiversityEnabled: true,

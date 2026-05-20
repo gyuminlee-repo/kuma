@@ -188,6 +188,8 @@ export interface EvolveproLoadResult {
   domain_stats?: Record<string, DomainStat>;
   pareto_replaced?: number;
   pool_variants?: string[];
+  used_variant_column?: string | null;
+  used_score_column?: string | null;
   step_stats?: EvolveproStepStats;
 }
 
