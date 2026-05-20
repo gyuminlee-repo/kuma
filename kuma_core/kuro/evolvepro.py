@@ -746,22 +746,8 @@ def domain_aware_select(
         if actual < quota:
             remaining_capacity += quota - actual
 
-    # Redistribute remaining capacity from under-filled domains
-    if remaining_capacity > 0:
-        unpicked: list[tuple[str, float]] = []
-        for name in quota_names:
-            for v, y in domain_bins.get(name, []):
-                if v not in selected_set:
-                    unpicked.append((v, y))
-        if linker_handling != "exclude" and linker_handling != "separate-bin":
-            for v, y in domain_bins["linker"]:
-                if v not in selected_set:
-                    unpicked.append((v, y))
-        unpicked.sort(key=lambda r: r[1], reverse=True)
-        for v, y in unpicked[:remaining_capacity]:
-            if v not in selected_set:
-                selected.append((v, y))
-                selected_set.add(v)
+    # Hard constraint: domain quota 미충족 시 전역 재분배 없음 (v0.9.36 동작 복원).
+    # top_n 미충족 허용. shortfall 재분배는 의도적으로 제거 (회귀 수정).
 
     # Fill any remaining slots if total selected < top_n
     if len(selected) < top_n and linker_handling != "exclude":
