@@ -150,6 +150,8 @@ export function BarcodeSetupPanel({ group }: BarcodeSetupPanelProps = {}) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [result, setResult] = useState<MamePackageResult | null>(null);
   const setParams = useMameAppStore((s) => s.setParams);
+  const setReferencePath = useMameAppStore((s) => s.setReferencePath);
+  const setSampleMapPath = useMameAppStore((s) => s.setSampleMapPath);
   const currentTargetLength = useMameAppStore((s) => s.rawRunParams.targetLength);
   const cdsCandidates = useMameAppStore((s) => s.cdsCandidates);
   const selectedCdsIndex = useMameAppStore((s) => s.selectedCdsIndex);
@@ -326,9 +328,18 @@ export function BarcodeSetupPanel({ group }: BarcodeSetupPanelProps = {}) {
       // generate_mame_package는 프라이머 설계 작업으로 시간이 걸릴 수 있다.
       const res = await rpc<MamePackageResult>("mame", "generate_mame_package", params);
       setResult(res);
-      if (res.amplicon_length != null && currentTargetLength === null) {
-        setParams({ rawRunParams: { targetLength: res.amplicon_length } });
-      }
+      setReferencePath(res.amplicon_fa);
+      setSampleMapPath(res.sample_map_template);
+      setParams({
+        cdsStart: 0,
+        cdsEnd: geneEndNum - geneStartNum,
+        rawRunParams: {
+          customBarcodesPath: res.barcodes_xlsx,
+          ...(res.amplicon_length != null && currentTargetLength === null
+            ? { targetLength: res.amplicon_length }
+            : {}),
+        },
+      });
       const lengthDesc = res.amplicon_length != null
         ? t("mame.barcodeSetup.toastSuccessDescWithLength", { length: res.amplicon_length })
         : t("mame.barcodeSetup.toastSuccessDesc");
