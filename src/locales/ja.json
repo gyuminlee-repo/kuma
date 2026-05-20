@@ -2082,11 +2082,16 @@
     "empty": "No mapping to preview. Design primers first.",
     "echoTab": "Echo 525 (384-well)",
     "janusTab": "JANUS (96-well x 2)",
-    "rack1Label": "Rack 1 (Forward primers)",
-    "rack2Label": "Rack 2 (Destination)",
+    "rack1Label": "Rack 1 (Forward source)",
+    "rack2Label": "Rack 2 (Reverse source)",
     "legend": "Color legend",
     "legendForward": "Forward primer (Echo source / Janus Rack 1)",
-    "legendReverse": "Reverse primer (Echo source row)",
-    "legendDest": "Destination (Janus Rack 2 / Echo dest)"
+    "legendReverse": "Reverse primer (Echo source / Janus Rack 2)",
+    "legendDest": "Destination (Janus Rack 3 / Echo dest)",
+    "legendDestMerged": "Both F+R arrived",
+    "legendDestPartial": "Only F or R arrived",
+    "mappingRange": "Mapping range",
+    "rowStart": "Start row",
+    "rowEnd": "End row"
   }
 }

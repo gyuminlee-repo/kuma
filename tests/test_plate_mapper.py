@@ -334,10 +334,11 @@ class TestJanusMappingExport:
             next(reader)
             rows = list(reader)
 
-        fw_rows = [r for r in rows if r[0].endswith("-fw")]
-        rv_rows = [r for r in rows if r[0].endswith("-rv")]
+        fw_rows = [r for r in rows if r[0].endswith("-F")]
+        rv_rows = [r for r in rows if r[0].endswith("-R")]
         assert all(r[4] == "1" for r in fw_rows), "fw rows must use Asp. Rack 1"
         assert all(r[4] == "2" for r in rv_rows), "rv rows must use Asp. Rack 2"
+        assert all(r[6] == "3" for r in fw_rows + rv_rows), "all rows must use Dsp. Rack 3"
 
     def test_transfer_vol_default(self, sdm_results, tmp_path):
         fwd, rev = generate_plate_map(sdm_results, deduplicate_rev=True)

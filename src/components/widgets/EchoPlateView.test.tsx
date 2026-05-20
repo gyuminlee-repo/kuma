@@ -38,6 +38,7 @@ describe("EchoPlateView", () => {
             destPlate: "D1",
             destWell: "A1",
             transferVolNl: 100,
+            mutation: "P1",
           },
         ]}
       />,
@@ -62,6 +63,7 @@ describe("EchoPlateView", () => {
         destPlate: "Destination [1]",
         destWell: "A1",
         transferVolNl: 100,
+        mutation: "Q232A",
       },
     ];
     render(<EchoPlateView cells={cells} />);
@@ -79,6 +81,7 @@ describe("EchoPlateView", () => {
         destPlate: "Destination [1]",
         destWell: "A1",
         transferVolNl: 100,
+        mutation: "Q232A",
       },
     ];
     render(<EchoPlateView cells={cells} />);

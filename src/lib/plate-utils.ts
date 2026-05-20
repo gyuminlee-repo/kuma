@@ -185,3 +185,15 @@ export function reorderMappings(
 }
 
 export { wellName };
+
+/**
+ * Normalize a Janus row label like `"V5F_F"` / `"V5F_R"` / `"V5F-F"` / `"V5F-R"`
+ * back to its bare mutation token (`"V5F"`). Safety net for legacy rows whose
+ * sidecar payload did not include a separate `mutation` field; new code should
+ * prefer reading `row.mutation` directly from the dry-run RPC response.
+ */
+export function normalizeMutationLabel(name: string): string {
+  if (!name) return name;
+  const m = /^(.+?)[_-]([FR]|fw|rv)$/.exec(name);
+  return m ? m[1] : name;
+}

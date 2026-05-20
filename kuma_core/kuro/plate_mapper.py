@@ -84,15 +84,70 @@ def deduplicate_reverse(
     return rev_map
 
 
+def _capacity_for_range(mapping_range: tuple[str, str] | None) -> int:
+    """Return per-96-plate well capacity given an optional 384-row range.
+
+    Default capacity is 96. With ``mapping_range=(row_start, row_end)`` (inclusive
+    over 384 rows A-P), capacity is ``(rows_in_range // 2) * 12`` because each
+    96-row consumes one fwd row + one rev row in the 384 destination.
+    """
+    rng = _validate_mapping_range(mapping_range)
+    if rng is None:
+        return 96
+    s, e = rng
+    pair_count = (e - s + 1) // 2
+    return pair_count * 12
+
+
+def _assign_well_with_range(
+    index: int,
+    well_order: str,
+    mapping_range: tuple[str, str] | None,
+) -> str:
+    """Assign well with overflow respecting an optional mapping_range capacity."""
+    capacity = _capacity_for_range(mapping_range)
+    plate_num = index // capacity
+    local_idx = index % capacity
+    # within a plate, use the same row/col scheme but constrained row count
+    rng = _validate_mapping_range(mapping_range)
+    if rng is None:
+        well = _well_name(local_idx, well_order)
+    else:
+        s, e = rng
+        rows_96 = (e - s + 1) // 2
+        rows = "ABCDEFGH"[:rows_96]
+        if well_order == "column":
+            col = local_idx // rows_96 + 1
+            row = local_idx % rows_96
+        else:
+            row = local_idx // 12
+            col = local_idx % 12 + 1
+        if row >= rows_96 or col > 12:
+            raise ValueError(
+                f"Well index {local_idx} exceeds reduced plate capacity "
+                f"({rows_96} rows × 12)"
+            )
+        well = f"{rows[row]}{col}"
+    if plate_num == 0:
+        return well
+    return f"P{plate_num + 1}-{well}"
+
+
 def generate_plate_map(
     results: list[SdmPrimerResult],
     well_order: str = "column",
     deduplicate_rev: bool = True,
+    mapping_range: tuple[str, str] | None = None,
 ) -> tuple[list[PlateMapping], list[PlateMapping]]:
     """Generate separate Fwd and Rev plate mappings.
 
     Forward plate: one primer per mutation, sequential well assignment.
     Reverse plate: deduplicated reverse primers, sequential well assignment.
+
+    Args:
+        mapping_range: Optional (row_start, row_end) inclusive over 384-well rows
+            A-P. When set, 96-well per-plate capacity shrinks to
+            ``(rows_in_range // 2) * 12`` and overflow rolls to P2 etc.
 
     Returns:
         Tuple of (fwd_mappings, rev_mappings).
@@ -100,7 +155,7 @@ def generate_plate_map(
     # Forward plate
     fwd_mappings: list[PlateMapping] = []
     for idx, r in enumerate(results):
-        well = _assign_well(idx, well_order)
+        well = _assign_well_with_range(idx, well_order, mapping_range)
         fwd_mappings.append(PlateMapping(
             well=well,
             primer_name=f"{r.mutation.raw}_F",
@@ -115,7 +170,7 @@ def generate_plate_map(
         rev_groups = deduplicate_reverse(results)
         for idx, (rev_seq, mut_names) in enumerate(rev_groups.items()):
             label = mut_names[0]
-            well = _assign_well(idx, well_order)
+            well = _assign_well_with_range(idx, well_order, mapping_range)
             rev_mappings.append(PlateMapping(
                 well=well,
                 primer_name=f"{label}_R",
@@ -125,7 +180,7 @@ def generate_plate_map(
             ))
     else:
         for idx, r in enumerate(results):
-            well = _assign_well(idx, well_order)
+            well = _assign_well_with_range(idx, well_order, mapping_range)
             rev_mappings.append(PlateMapping(
                 well=well,
                 primer_name=f"{r.mutation.raw}_R",
@@ -532,16 +587,73 @@ def _split_echo_volume(total_vol: int) -> list[int]:
     return steps
 
 
-def _to_384_well_fwd(well_96: str) -> str:
-    """Map 96-well address to 384-well forward primer position (odd rows A,C,E,G,I,K,M,O)."""
-    row_idx = _ROWS_96.index(well_96[0])
-    return f"{_ROWS_384[row_idx * 2]}{well_96[1:]}"
+def _validate_mapping_range(
+    mapping_range: tuple[str, str] | None,
+) -> tuple[int, int] | None:
+    """Validate (row_start, row_end) inclusive over 384-well rows A-P.
+
+    Returns (start_idx, end_idx) 0-based, or None if mapping_range is None.
+    The interval length must be even (fwd/rev row pairing) and >= 2.
+    """
+    if mapping_range is None:
+        return None
+    row_start, row_end = mapping_range
+    if row_start not in _ROWS_384 or row_end not in _ROWS_384:
+        raise ValueError(
+            f"mapping_range rows must be within A-P, got {mapping_range!r}"
+        )
+    s = _ROWS_384.index(row_start)
+    e = _ROWS_384.index(row_end)
+    if e < s:
+        raise ValueError(
+            f"mapping_range row_end ({row_end}) precedes row_start ({row_start})"
+        )
+    span = e - s + 1
+    if span % 2 != 0:
+        raise ValueError(
+            f"mapping_range span must be even (fwd/rev pairs); got {span} rows"
+        )
+    return s, e
 
 
-def _to_384_well_rev(well_96: str) -> str:
-    """Map 96-well address to 384-well reverse primer position (even rows B,D,F,H,J,L,N,P)."""
+def _to_384_well_fwd(
+    well_96: str,
+    mapping_range: tuple[str, str] | None = None,
+) -> str:
+    """Map 96-well address to 384-well forward primer position.
+
+    Default: forward primers occupy even-indexed 384 rows (A,C,E,G,I,K,M,O).
+    With ``mapping_range=(row_start, row_end)`` (inclusive, A-P), forward rows
+    are restricted to the even sub-offsets within that range.
+    """
+    rng = _validate_mapping_range(mapping_range)
     row_idx = _ROWS_96.index(well_96[0])
-    return f"{_ROWS_384[row_idx * 2 + 1]}{well_96[1:]}"
+    if rng is None:
+        return f"{_ROWS_384[row_idx * 2]}{well_96[1:]}"
+    s, e = rng
+    pair_count = (e - s + 1) // 2
+    sub = row_idx % pair_count
+    return f"{_ROWS_384[s + sub * 2]}{well_96[1:]}"
+
+
+def _to_384_well_rev(
+    well_96: str,
+    mapping_range: tuple[str, str] | None = None,
+) -> str:
+    """Map 96-well address to 384-well reverse primer position.
+
+    Default: reverse primers occupy odd-indexed 384 rows (B,D,F,H,J,L,N,P).
+    With ``mapping_range=(row_start, row_end)`` (inclusive, A-P), reverse rows
+    are restricted to the odd sub-offsets within that range.
+    """
+    rng = _validate_mapping_range(mapping_range)
+    row_idx = _ROWS_96.index(well_96[0])
+    if rng is None:
+        return f"{_ROWS_384[row_idx * 2 + 1]}{well_96[1:]}"
+    s, e = rng
+    pair_count = (e - s + 1) // 2
+    sub = row_idx % pair_count
+    return f"{_ROWS_384[s + sub * 2 + 1]}{well_96[1:]}"
 
 
 def export_echo_mapping_csv(
@@ -551,6 +663,7 @@ def export_echo_mapping_csv(
     transfer_vol: int = 100,
     rev_groups: dict[str, list[str]] | None = None,
     encoding: str = "utf-8",
+    mapping_range: tuple[str, str] | None = None,
 ) -> None:
     """Export Echo 525 acoustic dispenser mapping CSV.
 
@@ -589,7 +702,7 @@ def export_echo_mapping_csv(
             plate_idx, base_well = _parse_well_plate(m.well)
             src_plate = f"Source [{plate_idx + 1}]"
             dest_plate = f"Destination [{plate_idx + 1}]"
-            src_well = _to_384_well_fwd(base_well)
+            src_well = _to_384_well_fwd(base_well, mapping_range=mapping_range)
             for vol in _split_echo_volume(transfer_vol):
                 writer.writerow([
                     src_plate, m.primer_name, src_well,
@@ -609,7 +722,7 @@ def export_echo_mapping_csv(
             src_plate = f"Source [{fwd_plate_idx + 1}]"
             dest_plate = f"Destination [{fwd_plate_idx + 1}]"
             _, rev_base_well = _parse_well_plate(rev_m.well)
-            src_well = _to_384_well_rev(rev_base_well)
+            src_well = _to_384_well_rev(rev_base_well, mapping_range=mapping_range)
             _, dest_well = _parse_well_plate(fwd_by_mut.get(fwd_m.mutation, fwd_m.well))
 
             for vol in _split_echo_volume(transfer_vol):
@@ -629,9 +742,10 @@ def export_janus_mapping_csv(
 ) -> None:
     """Export JANUS liquid handler mapping CSV.
 
-    Uses two source racks:
-      - Rack 1: forward primers (96-well deep well plate).
-      - Rack 2: reverse primers (96-well deep well plate).
+    Uses two source racks and a separate destination rack:
+      - Asp. Rack 1: forward primers (96-well deep well plate).
+      - Asp. Rack 2: reverse primers (96-well deep well plate).
+      - Dsp. Rack 3: destination PCR plate.
 
     Shared reverse primers produce one row per destination well,
     all aspirating from the same source position.
@@ -660,15 +774,15 @@ def export_janus_mapping_csv(
 
         seq_no = 1
 
-        # Forward primers (Asp. Rack = 1)
+        # Forward primers (Asp. Rack = 1, Dsp. Rack = 3)
         for m in fwd_mappings:
             writer.writerow([
-                f"{m.mutation}-fw", "primer", "Oligo 5pmol/ul", seq_no,
-                1, m.well, 2, m.well, transfer_vol,
+                f"{m.mutation}-F", "primer", "Oligo 5pmol/ul", seq_no,
+                1, m.well, 3, m.well, transfer_vol,
             ])
             seq_no += 1
 
-        # Reverse primers (Asp. Rack = 2), expanding shared primers
+        # Reverse primers (Asp. Rack = 2, Dsp. Rack = 3), expanding shared primers
         for fwd_m in fwd_mappings:
             rev_seq = mut_to_rev_seq.get(fwd_m.mutation)
             if rev_seq is None:
@@ -679,8 +793,8 @@ def export_janus_mapping_csv(
 
             dest_well = fwd_by_mut.get(fwd_m.mutation, fwd_m.well)
             writer.writerow([
-                f"{fwd_m.mutation}-rv", "primer", "Oligo 5pmol/ul", seq_no,
-                2, rev_m.well, 2, dest_well, transfer_vol,
+                f"{fwd_m.mutation}-R", "primer", "Oligo 5pmol/ul", seq_no,
+                2, rev_m.well, 3, dest_well, transfer_vol,
             ])
             seq_no += 1
 
@@ -951,8 +1065,8 @@ def export_janus_mapping_xlsx(
 
     for m in fwd_mappings:
         for ci, val in enumerate([
-            f"{m.mutation}-fw", "primer", "Oligo 5pmol/ul", seq_no,
-            1, m.well, 2, m.well, transfer_vol,
+            f"{m.mutation}-F", "primer", "Oligo 5pmol/ul", seq_no,
+            1, m.well, 3, m.well, transfer_vol,
         ], 1):
             ws2.cell(row=row_num, column=ci, value=val)
         row_num += 1
@@ -967,8 +1081,8 @@ def export_janus_mapping_xlsx(
             continue
         dest_well = fwd_by_mut.get(fwd_m.mutation, fwd_m.well)
         for ci, val in enumerate([
-            f"{fwd_m.mutation}-rv", "primer", "Oligo 5pmol/ul", seq_no,
-            2, rev_m.well, 2, dest_well, transfer_vol,
+            f"{fwd_m.mutation}-R", "primer", "Oligo 5pmol/ul", seq_no,
+            2, rev_m.well, 3, dest_well, transfer_vol,
         ], 1):
             ws2.cell(row=row_num, column=ci, value=val)
         row_num += 1

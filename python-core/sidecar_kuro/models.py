@@ -514,12 +514,45 @@ class ExportOrderParams(BaseModel):
     bom: bool = False
 
 
+class MappingRange(BaseModel):
+    """Inclusive 384-well row range (e.g. ``A``..``H``) for Echo/Janus layout.
+
+    Both endpoints uppercase A-P; ``row_start`` must precede or equal ``row_end``.
+    Even-row spans are required so fwd/rev pairs fit; this is enforced downstream
+    by ``kuma_core.kuro.plate_mapper._validate_mapping_range``.
+    """
+
+    row_start: str
+    row_end: str
+
+    @field_validator("row_start", "row_end", mode="before")
+    @classmethod
+    def _normalize_row(cls, v):
+        if not isinstance(v, str) or len(v) != 1:
+            raise ValueError("row endpoints must be single A-P letters")
+        v = v.upper()
+        if v < "A" or v > "P":
+            raise ValueError("row endpoints must be within A-P")
+        return v
+
+    @field_validator("row_end")
+    @classmethod
+    def _check_order(cls, v, info):
+        start = info.data.get("row_start")
+        if start is not None and v < start:
+            raise ValueError(
+                f"mapping_range row_end ({v}) precedes row_start ({start})"
+            )
+        return v
+
+
 class ExportMappingParams(BaseModel):
     filepath: str
     format: Literal["echo", "janus"] = "echo"
     transfer_vol: Optional[float] = None  # nL for echo, µL for janus; None = format default
     mappings: Optional[list[PlateMappingItem]] = None
     dedup_info: Optional[dict[str, list[str]]] = None
+    mapping_range: Optional[MappingRange] = None
     bom: bool = False
 
 
@@ -534,6 +567,7 @@ class ExportMappingDryRunParams(BaseModel):
     transfer_vol: Optional[float] = None
     mappings: Optional[list[PlateMappingItem]] = None
     dedup_info: Optional[dict[str, list[str]]] = None
+    mapping_range: Optional[MappingRange] = None
 
 
 class SaveWorkspaceParams(BaseModel):

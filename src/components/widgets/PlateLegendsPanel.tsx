@@ -7,6 +7,8 @@ export function PlateLegendsPanel() {
     { cls: "bg-blue-400", key: "exportPreview.legendForward" },
     { cls: "bg-orange-400", key: "exportPreview.legendReverse" },
     { cls: "bg-emerald-400", key: "exportPreview.legendDest" },
+    { cls: "bg-emerald-500", key: "exportPreview.legendDestMerged" },
+    { cls: "bg-emerald-200", key: "exportPreview.legendDestPartial" },
   ];
   return (
     <Card>

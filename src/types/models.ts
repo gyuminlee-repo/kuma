@@ -538,7 +538,10 @@ export interface RpcMethodMap {
     result: ExportOrderResult;
   };
   export_mapping: {
-    params: RpcParams & { bom?: boolean };
+    params: RpcParams & {
+      bom?: boolean;
+      mapping_range?: { row_start: string; row_end: string } | null;
+    };
     result: ExportMappingResult;
   };
   export_echo_mapping_dry_run: {
@@ -546,6 +549,7 @@ export interface RpcMethodMap {
       transfer_vol?: number;
       mappings?: PlateMapping[];
       dedup_info?: Record<string, string[]>;
+      mapping_range?: { row_start: string; row_end: string } | null;
     };
     result: {
       rows: Array<{
@@ -556,6 +560,7 @@ export interface RpcMethodMap {
         dest_well_name: string;
         dest_well: string;
         transfer_vol: number;
+        mutation: string;
       }>;
       total: number;
       transfer_vol: number;
@@ -566,6 +571,7 @@ export interface RpcMethodMap {
       transfer_vol?: number;
       mappings?: PlateMapping[];
       dedup_info?: Record<string, string[]>;
+      mapping_range?: { row_start: string; row_end: string } | null;
     };
     result: {
       rows: Array<{
@@ -578,6 +584,7 @@ export interface RpcMethodMap {
         dsp_rack: number;
         dsp_posi: string;
         volume: number;
+        mutation: string;
       }>;
       total: number;
       transfer_vol: number;
