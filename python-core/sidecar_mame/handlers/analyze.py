@@ -7,11 +7,14 @@ multi-minute analyze is kicked off.
 
 from __future__ import annotations
 
+import tempfile
+from pathlib import Path
 from typing import Any
 
 from sidecar_mame.core import (
     _ALLOWED_EXCEL_EXTENSIONS,
     _ALLOWED_FASTA_EXTENSIONS,
+    _ALLOWED_SEQUENCE_EXTENSIONS,
     _progress,
     _validate_dirpath,
     _validate_filepath,
@@ -20,31 +23,62 @@ from sidecar_mame.core import (
 )
 
 
-def _read_fasta_length(path: Any) -> int:
-    """Return total sequence length from a FASTA file."""
-    seq_len = 0
-    with path.open("r", encoding="utf-8") as fh:
+def _read_fasta_sequence(path: Path) -> str:
+    """Return concatenated sequence content from a FASTA file."""
+    seq_parts: list[str] = []
+    with path.open("r", encoding="utf-8", errors="replace") as fh:
         for line in fh:
             line = line.strip()
             if not line or line.startswith(">"):
                 continue
-            seq_len += len(line)
-    if seq_len <= 0:
-        raise ValueError(f"Reference FASTA contains no sequence data: {path}")
-    return seq_len
+            seq_parts.append(line)
+    return "".join(seq_parts).upper()
 
 
-def _resolve_cds_end(raw_cds_end: Any, reference_path: Any) -> int:
+def _read_reference_sequence(path: Path) -> str:
+    """Return sequence content from FASTA, GenBank, or SnapGene input."""
+    if path.suffix.lower() in _ALLOWED_FASTA_EXTENSIONS:
+        sequence = _read_fasta_sequence(path)
+    else:
+        from kuma_core.kuro.sdm_engine import load_sequence
+
+        _header, sequence, _genes = load_sequence(path)
+        sequence = sequence.upper()
+    if not sequence:
+        raise ValueError(f"Reference sequence contains no sequence data: {path}")
+    return sequence
+
+
+def _read_reference_length(path: Path) -> int:
+    """Return total sequence length from a supported reference sequence file."""
+    return len(_read_reference_sequence(path))
+
+
+def _resolve_cds_end(raw_cds_end: Any, reference_path: Path) -> int:
     """Use explicit CDS end when positive; otherwise default to full reference."""
     if raw_cds_end is None:
-        return _read_fasta_length(reference_path)
+        return _read_reference_length(reference_path)
     try:
         cds_end = int(raw_cds_end)
     except (TypeError, ValueError):
         raise ValueError("cds_end must be an integer") from None
     if cds_end <= 0:
-        return _read_fasta_length(reference_path)
+        return _read_reference_length(reference_path)
     return cds_end
+
+
+def _write_reference_fasta(reference_path: Path, output_dir: Path) -> Path:
+    """Materialize non-FASTA sequence input as FASTA for the pipeline."""
+    if reference_path.suffix.lower() in _ALLOWED_FASTA_EXTENSIONS:
+        return reference_path
+
+    sequence = _read_reference_sequence(reference_path)
+    fasta_path = output_dir / f"{reference_path.stem or 'reference'}.reference.fa"
+    with fasta_path.open("w", encoding="utf-8") as fh:
+        fh.write(f">{reference_path.stem or 'reference'}\n")
+        for i in range(0, len(sequence), 80):
+            fh.write(sequence[i:i + 80] + "\n")
+    return fasta_path
 
 
 def _serialize_verdict(vr: Any) -> dict:
@@ -118,7 +152,7 @@ def handle_validate_inputs(params: dict) -> dict:
     else:
         try:
             reference_path = _validate_filepath(
-                reference, allowed_extensions=_ALLOWED_FASTA_EXTENSIONS
+                reference, allowed_extensions=_ALLOWED_SEQUENCE_EXTENSIONS
             )
         except (FileNotFoundError, ValueError) as exc:
             errors.append(f"reference: {exc}")
@@ -167,7 +201,7 @@ def handle_analyze(params: dict) -> dict:
 
     input_dir = _validate_dirpath(params["input_dir"])
     reference = _validate_filepath(
-        params["reference"], allowed_extensions=_ALLOWED_FASTA_EXTENSIONS
+        params["reference"], allowed_extensions=_ALLOWED_SEQUENCE_EXTENSIONS
     )
     expected = _validate_filepath(
         params["expected"], allowed_extensions=_ALLOWED_EXCEL_EXTENSIONS
@@ -197,18 +231,20 @@ def handle_analyze(params: dict) -> dict:
     _progress(30, "Translating sequences...")
     _progress(60, "Classifying verdicts...")
 
-    verdicts, replicates = run_analyze(
-        input_dir=input_dir,
-        reference_path=reference,
-        expected_path=expected,
-        output_path=output,
-        cds_start=cds_start,
-        cds_end=cds_end,
-        mode=mode,
-        min_file_size_kb=min_file_size_kb,
-        many_cutoff=many_cutoff,
-        ingest_mode=ingest_mode_enum,
-    )
+    with tempfile.TemporaryDirectory(prefix="mame-reference-") as tmpdir:
+        reference_for_pipeline = _write_reference_fasta(reference, Path(tmpdir))
+        verdicts, replicates = run_analyze(
+            input_dir=input_dir,
+            reference_path=reference_for_pipeline,
+            expected_path=expected,
+            output_path=output,
+            cds_start=cds_start,
+            cds_end=cds_end,
+            mode=mode,
+            min_file_size_kb=min_file_size_kb,
+            many_cutoff=many_cutoff,
+            ingest_mode=ingest_mode_enum,
+        )
 
     _progress(85, "Selecting best replicates...")
     _progress(100, "Writing Excel output...")

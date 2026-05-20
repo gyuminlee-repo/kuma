@@ -173,7 +173,7 @@
       "cdsStart": "CDS 起点",
       "cdsStartHelp": "将 consensus 序列翻译为氨基酸时使用的 0-based CDS 起点偏移。",
       "cdsEnd": "CDS 终点",
-      "cdsEndHelp": "翻译所用的 CDS 终点坐标。必须与参考 FASTA 的 frame 匹配。",
+      "cdsEndHelp": "翻译所用的 CDS 终点坐标。必须与参考序列的 frame 匹配。",
       "cdsPicker": {
         "detected_one": "在参考序列中检测到 {{count}} 个 CDS 候选",
         "detected_other": "在参考序列中检测到 {{count}} 个 CDS 候选"
@@ -596,11 +596,11 @@
         "helpText": "从 KURO 导出的 expected_mutations .xlsx 文件。MAME 会将该文件中的 expected mutations 与 NGS consensus 结果对比。"
       },
       "referenceFasta": {
-        "label": "Reference FASTA",
-        "placeholder": ".fasta / .fa 文件路径",
+        "label": "参考序列",
+        "placeholder": ".fasta / .fa / .gbk / .dna 文件路径",
         "stateLabel": "必填",
         "helperText": "用于对 consensus 做 variant calling 的参考序列",
-        "helpText": "用作 variant calling 基线的 Reference FASTA。建议使用与 KURO 设计相同的 reference。"
+        "helpText": "用作 variant calling 基线的参考序列。支持 FASTA、GenBank 和 SnapGene 文件。建议使用与 KURO 设计相同的 reference。"
       },
       "customBarcodes": {
         "label": "Custom Barcodes (xlsx 或 csv)",

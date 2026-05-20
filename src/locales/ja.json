@@ -173,7 +173,7 @@
       "cdsStart": "CDS 開始",
       "cdsStartHelp": "consensus 配列をアミノ酸に翻訳するときに使用する 0-based CDS 開始オフセット。",
       "cdsEnd": "CDS 終了",
-      "cdsEndHelp": "翻訳に使用する CDS 終了座標。reference FASTA のフレームと一致させる必要があります。",
+      "cdsEndHelp": "翻訳に使用する CDS 終了座標。reference 配列のフレームと一致させる必要があります。",
       "cdsPicker": {
         "detected_one": "リファレンスで CDS 候補 {{count}} 件を検出しました",
         "detected_other": "リファレンスで CDS 候補 {{count}} 件を検出しました"
@@ -596,11 +596,11 @@
         "helpText": "KURO からエクスポートされた expected_mutations .xlsx ファイル。MAME はこのファイルの expected mutations を NGS consensus 結果と比較します。"
       },
       "referenceFasta": {
-        "label": "Reference FASTA",
-        "placeholder": ".fasta / .fa ファイルパス",
+        "label": "Reference 配列",
+        "placeholder": ".fasta / .fa / .gbk / .dna ファイルパス",
         "stateLabel": "必須",
         "helperText": "consensus に対する variant calling の基準となる reference 配列",
-        "helpText": "Variant calling の基準となる Reference FASTA。KURO 設計と同じ reference の使用を推奨します。"
+        "helpText": "Variant calling の基準となる reference 配列。FASTA、GenBank、SnapGene ファイルに対応しています。KURO 設計と同じ reference の使用を推奨します。"
       },
       "customBarcodes": {
         "label": "Custom Barcodes (xlsx または csv)",

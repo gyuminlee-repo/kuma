@@ -173,7 +173,7 @@
       "cdsStart": "CDS Start",
       "cdsStartHelp": "Offset 0-based del inicio del CDS usado al traducir la secuencia consensus a aminoácidos.",
       "cdsEnd": "CDS End",
-      "cdsEndHelp": "Coordenada de fin del CDS usada para la traducción. Debe coincidir con el frame del FASTA de referencia.",
+      "cdsEndHelp": "Coordenada de fin del CDS usada para la traducción. Debe coincidir con el frame de la secuencia de referencia.",
       "cdsPicker": {
         "detected_one": "{{count}} candidato a CDS detectado en la referencia",
         "detected_other": "{{count}} candidatos a CDS detectados en la referencia"
@@ -596,11 +596,11 @@
         "helpText": "El archivo .xlsx expected_mutations exportado desde KURO. MAME compara las mutaciones esperadas en este archivo con los resultados de consensus NGS."
       },
       "referenceFasta": {
-        "label": "FASTA de referencia",
-        "placeholder": "Ruta del archivo .fasta / .fa",
+        "label": "Secuencia de referencia",
+        "placeholder": "Ruta del archivo .fasta / .fa / .gbk / .dna",
         "stateLabel": "Requerido",
         "helperText": "Secuencia de referencia usada para variant calling contra el consensus",
-        "helpText": "FASTA de referencia usado como baseline para variant calling. Se recomienda usar la misma referencia que el diseño KURO."
+        "helpText": "Secuencia de referencia usada como baseline para variant calling. Se admiten archivos FASTA, GenBank y SnapGene. Se recomienda usar la misma referencia que el diseño KURO."
       },
       "customBarcodes": {
         "label": "Custom Barcodes (xlsx o csv)",

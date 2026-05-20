@@ -8,7 +8,7 @@
 
 /** Parameters for the generate_mame_package RPC method. */
 export interface GenerateMamePackageParams {
-  /** Path to CDS FASTA file (.fa / .fasta / .fna). */
+  /** Path to sequence file (.fa / .fasta / .fna / .gb / .gbk / .gbff / .dna). */
   fasta_path: string
   /** 0-based inclusive gene start within CDS. */
   gene_start: number

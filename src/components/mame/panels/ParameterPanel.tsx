@@ -518,7 +518,7 @@ export function ParameterPanel() {
               className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
             >
               <span className="inline-flex items-center gap-1.5">
-                {t("mame.parameters.cdsStart")} / {t("mame.parameters.cdsEnd")}
+                {t("mame.barcodeSetup.cdsCandidate")}
                 <InlineHelp text={t("mame.parameters.cdsStartHelp")} />
               </span>
             </Label>
