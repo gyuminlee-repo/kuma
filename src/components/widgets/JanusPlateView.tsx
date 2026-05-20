@@ -5,18 +5,10 @@ import {
   PopoverTrigger,
   PopoverContent,
 } from "@/components/ui/popover";
+import type { JanusCell } from "@/lib/echoJanusAdapter";
+import { parseJanusName } from "@/lib/echoJanusAdapter";
 
-// Inline type until T1 adapter (src/lib/echoJanusAdapter.ts) is added.
-// Keep in sync with the JanusCell interface defined in the plan
-// (docs/plans/2026-05-18-echo-janus-export-preview.md).
-export interface JanusCell {
-  well: string;
-  rowLetter: string;
-  colNumber: number;
-  rack: 1 | 2;
-  name: string;
-  volumeUl: number;
-}
+export type { JanusCell };
 
 interface Props {
   rack1: JanusCell[];
@@ -27,14 +19,16 @@ interface Props {
 const ROWS = ["A", "B", "C", "D", "E", "F", "G", "H"] as const;
 const COLS = Array.from({ length: 12 }, (_, i) => i + 1);
 
-function parseJanusName(name: string): {
-  mutation: string;
-  tag: "F" | "R" | null;
-} {
-  const [mut, side] = name.split("-");
-  if (side === "fw") return { mutation: mut, tag: "F" };
-  if (side === "rv") return { mutation: mut, tag: "R" };
-  return { mutation: mut ?? name, tag: null };
+/**
+ * Resolve display mutation + F/R tag for a rack cell.
+ *
+ * Tag comes from rack number (Rack 1 = forward source, Rack 2 = reverse
+ * source, per Phase 1 layout). Mutation prefers `cell.mutation` (backend
+ * canonical key from Phase 2) and falls back to `parseJanusName(cell.name)`
+ * for legacy fixtures lacking the field.
+ */
+function rackTag(rack: 1 | 2): "F" | "R" {
+  return rack === 1 ? "F" : "R";
 }
 
 function Rack({
@@ -48,17 +42,17 @@ function Rack({
   cells: JanusCell[];
   label: string;
   labelTestId: string;
-  tone: "fwd" | "dest";
+  tone: "fwd" | "rev";
 }) {
   const byWell = new Map(cells.map((c) => [c.well, c]));
   const filledBg =
     tone === "fwd"
       ? "bg-blue-400 dark:bg-blue-500"
-      : "bg-emerald-400 dark:bg-emerald-500";
+      : "bg-orange-400 dark:bg-orange-500";
   const emptyBg =
     tone === "fwd"
       ? "bg-blue-50 dark:bg-blue-950/30"
-      : "bg-emerald-50 dark:bg-emerald-950/30";
+      : "bg-orange-50 dark:bg-orange-950/30";
 
   return (
     <div className="min-w-[340px] flex-1">
@@ -92,7 +86,10 @@ function Rack({
               const tip = cell
                 ? `${cell.name} (${cell.volumeUl} µL), well ${well}`
                 : well;
-              const parsed = cell ? parseJanusName(cell.name) : null;
+              const mutation = cell
+                ? cell.mutation || parseJanusName(cell.name).mutation
+                : "";
+              const tag = cell ? rackTag(cell.rack) : null;
               const cellNode = (
                 <div
                   data-testid="janus-cell"
@@ -106,14 +103,14 @@ function Rack({
                     cell ? "cursor-pointer" : "",
                   )}
                 >
-                  {cell && parsed ? (
+                  {cell ? (
                     <>
                       <span className="text-[10px] font-mono leading-none">
-                        {parsed.mutation}
+                        {mutation}
                       </span>
-                      {parsed.tag ? (
+                      {tag ? (
                         <span className="text-[9px] leading-none text-muted-foreground">
-                          {parsed.tag}
+                          {tag}
                         </span>
                       ) : null}
                     </>
@@ -160,7 +157,7 @@ export function JanusPlateView({ rack1, rack2, className }: Props) {
         cells={rack2}
         label={t("exportPreview.rack2Label")}
         labelTestId="janus-rack2-label"
-        tone="dest"
+        tone="rev"
       />
     </div>
   );

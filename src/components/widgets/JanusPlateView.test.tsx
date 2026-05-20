@@ -38,6 +38,7 @@ describe("JanusPlateView", () => {
             rack: 1,
             name: "P1-fw",
             volumeUl: 2.5,
+            mutation: "P1",
           },
         ]}
         rack2={[
@@ -48,6 +49,7 @@ describe("JanusPlateView", () => {
             rack: 2,
             name: "P1-dest",
             volumeUl: 5.0,
+            mutation: "P1",
           },
         ]}
       />,
@@ -74,6 +76,7 @@ describe("JanusPlateView", () => {
         rack: 1 as const,
         name: "Q232A-fw",
         volumeUl: 2.0,
+        mutation: "Q232A",
       },
     ];
     render(<JanusPlateView rack1={rack1} rack2={[]} />);
@@ -90,6 +93,7 @@ describe("JanusPlateView", () => {
         rack: 1 as const,
         name: "Q232A-fw",
         volumeUl: 2.0,
+        mutation: "Q232A",
       },
     ];
     render(<JanusPlateView rack1={rack1} rack2={[]} />);

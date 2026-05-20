@@ -28,6 +28,7 @@ export interface SidecarKuroModels {
   ExportBenchmarkCsvParams?: ExportBenchmarkCsvParams;
   ExportExcelParams?: ExportExcelParams;
   ExportMacrogenParams?: ExportMacrogenParams;
+  ExportMappingDryRunParams?: ExportMappingDryRunParams;
   ExportMappingParams?: ExportMappingParams;
   ExportMappingResultModel?: ExportMappingResultModel;
   ExportOrderItem?: ExportOrderItem;
@@ -42,6 +43,7 @@ export interface SidecarKuroModels {
   LoadEvolveproParams?: LoadEvolveproParams;
   LoadFastaParams?: LoadFastaParams;
   LoadWorkspaceParams?: LoadWorkspaceParams;
+  MappingRange?: MappingRange;
   OffTargetHitModel?: OffTargetHitModel;
   ParseMutationsTextParams?: ParseMutationsTextParams;
   PlateMappingItem?: PlateMappingItem;
@@ -471,6 +473,34 @@ export interface ExportMacrogenParams {
   rev_plate_name?: string;
   [k: string]: unknown;
 }
+/**
+ * Params for `export_{echo,janus}_mapping_dry_run` RPC methods.
+ *
+ * Optional ``mappings``/``dedup_info`` lets the frontend ship a pre-reordered
+ * plate layout (e.g. matching the ResultTable Mutation sort) instead of
+ * relying on the sidecar's stored ``_state.plate_mappings`` ordering.
+ */
+export interface ExportMappingDryRunParams {
+  dedup_info?: {
+    [k: string]: string[];
+  } | null;
+  mapping_range?: MappingRange | null;
+  mappings?: PlateMappingItem[] | null;
+  transfer_vol?: number | null;
+  [k: string]: unknown;
+}
+/**
+ * Inclusive 384-well row range (e.g. ``A``..``H``) for Echo/Janus layout.
+ *
+ * Both endpoints uppercase A-P; ``row_start`` must precede or equal ``row_end``.
+ * Even-row spans are required so fwd/rev pairs fit; this is enforced downstream
+ * by ``kuma_core.kuro.plate_mapper._validate_mapping_range``.
+ */
+export interface MappingRange {
+  row_end: string;
+  row_start: string;
+  [k: string]: unknown;
+}
 export interface ExportMappingParams {
   bom?: boolean;
   dedup_info?: {
@@ -478,6 +508,7 @@ export interface ExportMappingParams {
   } | null;
   filepath: string;
   format?: "echo" | "janus";
+  mapping_range?: MappingRange | null;
   mappings?: PlateMappingItem[] | null;
   transfer_vol?: number | null;
   [k: string]: unknown;

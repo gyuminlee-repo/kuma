@@ -12,6 +12,7 @@ describe("adaptEchoRows", () => {
         dest_well_name: "P1",
         dest_well: "A1",
         transfer_vol: 100,
+      mutation: "M",
       },
     ]);
     expect(cells[0]).toMatchObject({
@@ -36,6 +37,7 @@ describe("adaptEchoRows", () => {
         dest_well_name: "P1",
         dest_well: "A1",
         transfer_vol: 100,
+      mutation: "M",
       },
     ]);
     expect(cells[0]).toMatchObject({
@@ -56,6 +58,7 @@ describe("adaptEchoRows", () => {
         dest_well_name: "",
         dest_well: "",
         transfer_vol: 50,
+      mutation: "M",
       },
     ]);
     expect(cells[0].isFwd).toBe(false);
@@ -73,6 +76,7 @@ describe("adaptEchoRows", () => {
         dest_well_name: "",
         dest_well: "",
         transfer_vol: 25,
+      mutation: "M",
       },
     ]);
     expect(cells[0]).toMatchObject({
@@ -97,6 +101,7 @@ describe("adaptJanusRows", () => {
         dsp_rack: 3,
         dsp_posi: "A1",
         volume: 2.0,
+      mutation: "M",
       },
       {
         name: "P1-rv",
@@ -108,6 +113,7 @@ describe("adaptJanusRows", () => {
         dsp_rack: 3,
         dsp_posi: "A1",
         volume: 2.0,
+      mutation: "M",
       },
     ]);
     expect(rack1).toHaveLength(1);
@@ -142,6 +148,7 @@ describe("adaptJanusRows", () => {
         dsp_rack: 3,
         dsp_posi: "A1",
         volume: 2.0,
+      mutation: "M",
       },
       {
         name: "stray2",
@@ -153,6 +160,7 @@ describe("adaptJanusRows", () => {
         dsp_rack: 3,
         dsp_posi: "A1",
         volume: 2.0,
+      mutation: "M",
       },
     ]);
     expect(rack1).toHaveLength(0);
@@ -171,6 +179,7 @@ describe("adaptJanusRows", () => {
         dsp_rack: 3,
         dsp_posi: "H12",
         volume: 1.5,
+      mutation: "M",
       },
     ]);
     expect(rack1).toHaveLength(0);

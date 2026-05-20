@@ -789,12 +789,17 @@
     "empty": "미리보기 없음. 먼저 프라이머를 디자인하세요.",
     "echoTab": "Echo 매핑 파일",
     "janusTab": "Janus 매핑 파일",
-    "rack1Label": "Rack 1 (Forward 프라이머)",
-    "rack2Label": "Rack 2 (Destination)",
+    "rack1Label": "Rack 1 (Forward source)",
+    "rack2Label": "Rack 2 (Reverse source)",
     "legend": "색상 범례",
     "legendForward": "Forward 프라이머 (Echo source / Janus Rack 1)",
-    "legendReverse": "Reverse 프라이머 (Echo source row)",
-    "legendDest": "Destination (Janus Rack 2 / Echo dest)"
+    "legendReverse": "Reverse 프라이머 (Echo source / Janus Rack 2)",
+    "legendDest": "Destination (Janus Rack 3 / Echo dest)",
+    "legendDestMerged": "F+R primer 모두 도착",
+    "legendDestPartial": "F 또는 R 한쪽만 도착",
+    "mappingRange": "매핑 범위",
+    "rowStart": "Row 시작",
+    "rowEnd": "Row 끝"
   },
   "globalAppBar": {
     "navAriaLabel": "앱 내비게이션",

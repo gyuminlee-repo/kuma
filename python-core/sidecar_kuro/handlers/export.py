@@ -336,6 +336,12 @@ def handle_export_mapping(params: dict) -> dict:
     p = ExportMappingParams(**params)
     resolved = _validate_output_path(p.filepath, allowed_extensions=_ALLOWED_MAPPING_EXTENSIONS)
 
+    mapping_range = (
+        (p.mapping_range.row_start, p.mapping_range.row_end)
+        if p.mapping_range is not None
+        else None
+    )
+
     if p.mappings:
         mappings = _pydantic_to_plate_mappings(p.mappings)
         fwd_mappings = [m for m in mappings if m.primer_type == "forward"]
@@ -351,6 +357,7 @@ def handle_export_mapping(params: dict) -> dict:
         fwd_mappings, rev_mappings = generate_plate_map(
             results,
             deduplicate_rev=True,
+            mapping_range=mapping_range,
         )
 
     use_xlsx = resolved.suffix.lower() == ".xlsx"
@@ -364,7 +371,8 @@ def handle_export_mapping(params: dict) -> dict:
         else:
             export_echo_mapping_csv(fwd_mappings, rev_mappings, resolved,
                                     transfer_vol=vol, rev_groups=rev_groups,
-                                    encoding=encoding)
+                                    encoding=encoding,
+                                    mapping_range=mapping_range)
     else:
         vol = _resolve_mapping_transfer_volume(p.format, p.transfer_vol)
         if use_xlsx:
@@ -609,10 +617,13 @@ def _build_echo_preview_rows(
     rev: list[PlateMapping],
     transfer_vol: int,
     rev_groups: dict,
+    mapping_range: tuple[str, str] | None = None,
 ) -> list[dict]:
     """Build Echo mapping preview rows in-memory (no file I/O).
 
-    Mirrors the row schema of ``export_echo_mapping_csv``.
+    Mirrors the row schema of ``export_echo_mapping_csv``. When
+    ``mapping_range`` is provided, 384-well source positions are restricted
+    to the given inclusive row range (forwarded to ``_to_384_well_fwd/rev``).
     """
     from kuma_core.kuro.plate_mapper import (
         _build_rev_lookups,
@@ -629,7 +640,7 @@ def _build_echo_preview_rows(
         plate_idx, base_well = _parse_well_plate(m.well)
         src_plate = f"Source [{plate_idx + 1}]"
         dest_plate = f"Destination [{plate_idx + 1}]"
-        src_well = _to_384_well_fwd(base_well)
+        src_well = _to_384_well_fwd(base_well, mapping_range=mapping_range)
         for vol in _split_echo_volume(transfer_vol):
             rows.append({
                 "source_plate": src_plate,
@@ -639,6 +650,7 @@ def _build_echo_preview_rows(
                 "dest_well_name": m.mutation,
                 "dest_well": base_well,
                 "transfer_vol": vol,
+                "mutation": m.mutation,
             })
 
     for fwd_m in fwd:
@@ -653,7 +665,7 @@ def _build_echo_preview_rows(
         src_plate = f"Source [{fwd_plate_idx + 1}]"
         dest_plate = f"Destination [{fwd_plate_idx + 1}]"
         _, rev_base_well = _parse_well_plate(rev_m.well)
-        src_well = _to_384_well_rev(rev_base_well)
+        src_well = _to_384_well_rev(rev_base_well, mapping_range=mapping_range)
         _, dest_well = _parse_well_plate(fwd_by_mut.get(fwd_m.mutation, fwd_m.well))
 
         for vol in _split_echo_volume(transfer_vol):
@@ -665,6 +677,7 @@ def _build_echo_preview_rows(
                 "dest_well_name": fwd_m.mutation,
                 "dest_well": dest_well,
                 "transfer_vol": vol,
+                "mutation": fwd_m.mutation,
             })
     return rows
 
@@ -674,8 +687,15 @@ def _build_janus_preview_rows(
     rev: list[PlateMapping],
     transfer_vol: float,
     rev_groups: dict,
+    mapping_range: tuple[str, str] | None = None,
 ) -> list[dict]:
-    """Build JANUS mapping preview rows in-memory (no file I/O)."""
+    """Build JANUS mapping preview rows in-memory (no file I/O).
+
+    Dsp. Rack is always 3 (destination PCR plate); ``mapping_range`` is
+    accepted for parity with the Echo dry-run preview but JANUS layout
+    uses 96-well source/dest so the range only flows through if/when the
+    plate_mapper Janus paths consume it (currently unused, kept future-proof).
+    """
     from kuma_core.kuro.plate_mapper import _build_rev_lookups
 
     fwd_by_mut, rev_by_seq, mut_to_rev_seq = _build_rev_lookups(fwd, rev, rev_groups)
@@ -685,15 +705,16 @@ def _build_janus_preview_rows(
 
     for m in fwd:
         rows.append({
-            "name": f"{m.mutation}-fw",
+            "name": f"{m.mutation}-F",
             "type": "primer",
             "dsp_rack_label": "Oligo 5pmol/ul",
             "no": seq_no,
             "asp_rack": 1,
             "asp_posi": m.well,
-            "dsp_rack": 2,
+            "dsp_rack": 3,
             "dsp_posi": m.well,
             "volume": transfer_vol,
+            "mutation": m.mutation,
         })
         seq_no += 1
 
@@ -706,15 +727,16 @@ def _build_janus_preview_rows(
             continue
         dest_well = fwd_by_mut.get(fwd_m.mutation, fwd_m.well)
         rows.append({
-            "name": f"{fwd_m.mutation}-rv",
+            "name": f"{fwd_m.mutation}-R",
             "type": "primer",
             "dsp_rack_label": "Oligo 5pmol/ul",
             "no": seq_no,
             "asp_rack": 2,
             "asp_posi": rev_m.well,
-            "dsp_rack": 2,
+            "dsp_rack": 3,
             "dsp_posi": dest_well,
             "volume": transfer_vol,
+            "mutation": fwd_m.mutation,
         })
         seq_no += 1
 
@@ -734,6 +756,11 @@ def handle_export_echo_mapping_dry_run(params: dict) -> dict:
     """
     p = ExportMappingDryRunParams(**params)
     vol = _resolve_mapping_transfer_volume("echo", p.transfer_vol)
+    mapping_range = (
+        (p.mapping_range.row_start, p.mapping_range.row_end)
+        if p.mapping_range is not None
+        else None
+    )
     if p.mappings is not None:
         mappings = _pydantic_to_plate_mappings(p.mappings)
         rev_groups = dict(p.dedup_info or {})
@@ -746,7 +773,9 @@ def handle_export_echo_mapping_dry_run(params: dict) -> dict:
             mappings = list(_core._state.plate_mappings)
             rev_groups = dict(_core._state.dedup_info or {})
     fwd, rev = _split_fwd_rev(mappings)
-    rows = _build_echo_preview_rows(fwd, rev, int(vol), rev_groups)
+    rows = _build_echo_preview_rows(
+        fwd, rev, int(vol), rev_groups, mapping_range=mapping_range,
+    )
     return {"rows": rows, "total": len(rows), "transfer_vol": int(vol)}
 
 
@@ -763,6 +792,11 @@ def handle_export_janus_mapping_dry_run(params: dict) -> dict:
     """
     p = ExportMappingDryRunParams(**params)
     vol = _resolve_mapping_transfer_volume("janus", p.transfer_vol)
+    mapping_range = (
+        (p.mapping_range.row_start, p.mapping_range.row_end)
+        if p.mapping_range is not None
+        else None
+    )
     if p.mappings is not None:
         mappings = _pydantic_to_plate_mappings(p.mappings)
         rev_groups = dict(p.dedup_info or {})
@@ -775,7 +809,9 @@ def handle_export_janus_mapping_dry_run(params: dict) -> dict:
             mappings = list(_core._state.plate_mappings)
             rev_groups = dict(_core._state.dedup_info or {})
     fwd, rev = _split_fwd_rev(mappings)
-    rows = _build_janus_preview_rows(fwd, rev, float(vol), rev_groups)
+    rows = _build_janus_preview_rows(
+        fwd, rev, float(vol), rev_groups, mapping_range=mapping_range,
+    )
     return {"rows": rows, "total": len(rows), "transfer_vol": float(vol)}
 
 

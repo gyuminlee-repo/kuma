@@ -10,10 +10,6 @@ interface Props {
   className?: string;
 }
 
-function mutationOf(sourceWellName: string): string {
-  return sourceWellName.replace(/_[FR]$/, "");
-}
-
 export function EchoPlateView({ cells, className }: Props) {
   const byWell = new Map(cells.map((c) => [c.well, c]));
   return (
@@ -47,7 +43,7 @@ export function EchoPlateView({ cells, className }: Props) {
                     />
                   );
                 }
-                const mutation = mutationOf(cell.sourceWellName);
+                const mutation = cell.mutation || cell.sourceWellName;
                 const tip = `${cell.sourceWellName} → ${cell.destPlate} ${cell.destWell} (${cell.transferVolNl} nL)`;
                 return (
                   <Popover key={well}>
