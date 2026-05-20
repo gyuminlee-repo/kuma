@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { invoke } from "@tauri-apps/api/core";
 import { ExportPlatePreview } from "./ExportPlatePreview";
 import { useAppStore } from "@/store/appStore";
+import type { PlateMapping, SdmPrimerResult } from "@/types/models";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn(),
@@ -69,6 +70,136 @@ describe("ExportPlatePreview", () => {
     (invoke as ReturnType<typeof vi.fn>).mockImplementation(() => new Promise(() => {}));
     render(<ExportPlatePreview />);
     expect(screen.getByText(/loading preview/i)).toBeInTheDocument();
+  });
+
+  it("sends pre-reordered mappings reflecting tableSorting to the dry-run RPC", async () => {
+    // Seed store: two mutations with distinct fwd_len so sort by fwd_len reorders them.
+    const baseResult: SdmPrimerResult = {
+      mutation: "",
+      aa_position: 0,
+      codon_pos: 0,
+      forward_seq: "",
+      reverse_seq: "",
+      fwd_len: 0,
+      rev_len: 0,
+      overlap_len: 18,
+      tm_no_fwd: 60,
+      tm_no_rev: 60,
+      tm_overlap: 60,
+      tm_condition_met: true,
+      tolerance_used: 0,
+      has_offtarget: false,
+      penalty: 0,
+      gc_fwd: 50,
+      gc_rev: 50,
+      wt_codon: "AAA",
+      mt_codon: "GGG",
+      overlap_seq: "",
+      warnings: [],
+    };
+    const designResults: SdmPrimerResult[] = [
+      { ...baseResult, mutation: "K1A", aa_position: 1, fwd_len: 30 },
+      { ...baseResult, mutation: "L2B", aa_position: 2, fwd_len: 20 },
+    ];
+    const plateMappings: PlateMapping[] = [
+      { well: "A1", primer_name: "K1A-fw", sequence: "AAA", primer_type: "forward", mutation: "K1A" },
+      { well: "B1", primer_name: "L2B-fw", sequence: "CCC", primer_type: "forward", mutation: "L2B" },
+      { well: "A1", primer_name: "K1A-rv", sequence: "TTT", primer_type: "reverse", mutation: "K1A" },
+      { well: "B1", primer_name: "L2B-rv", sequence: "GGG", primer_type: "reverse", mutation: "L2B" },
+    ];
+    const dedupInfo = { TTT: ["K1A"], GGG: ["L2B"] };
+
+    useAppStore.setState({
+      designResults,
+      plateMappings,
+      dedupInfo,
+      tableSorting: [{ id: "fwd_len", desc: false }], // ascending → L2B(20) first, K1A(30) second
+    });
+
+    mockBothEmpty();
+    render(<ExportPlatePreview />);
+    await waitFor(() => {
+      const calls = (invoke as ReturnType<typeof vi.fn>).mock.calls;
+      expect(calls.length).toBeGreaterThan(0);
+    });
+
+    const calls = (invoke as ReturnType<typeof vi.fn>).mock.calls;
+    const echoCall = calls.find((c) => (c[1] as { method?: string })?.method === "export_echo_mapping_dry_run");
+    expect(echoCall).toBeDefined();
+    const payload = (echoCall![1] as { params: { mappings: PlateMapping[] } }).params;
+    expect(payload.mappings).toBeDefined();
+    // Forward mappings should be reordered: L2B (fwd_len=20) before K1A (fwd_len=30).
+    const fwdMappings = payload.mappings.filter((m) => m.primer_type === "forward");
+    expect(fwdMappings.map((m) => m.mutation)).toEqual(["L2B", "K1A"]);
+
+    // Reset state so subsequent tests don't see this fixture.
+    useAppStore.setState({ designResults: [], plateMappings: [], dedupInfo: {}, tableSorting: [] });
+  });
+
+  it("re-fires RPC when tableSorting changes after initial mount", async () => {
+    const baseResult: SdmPrimerResult = {
+      mutation: "",
+      aa_position: 0,
+      codon_pos: 0,
+      forward_seq: "",
+      reverse_seq: "",
+      fwd_len: 0,
+      rev_len: 0,
+      overlap_len: 18,
+      tm_no_fwd: 60,
+      tm_no_rev: 60,
+      tm_overlap: 60,
+      tm_condition_met: true,
+      tolerance_used: 0,
+      has_offtarget: false,
+      penalty: 0,
+      gc_fwd: 50,
+      gc_rev: 50,
+      wt_codon: "AAA",
+      mt_codon: "GGG",
+      overlap_seq: "",
+      warnings: [],
+    };
+    const designResults: SdmPrimerResult[] = [
+      { ...baseResult, mutation: "K1A", aa_position: 1, fwd_len: 30 },
+      { ...baseResult, mutation: "L2B", aa_position: 2, fwd_len: 20 },
+    ];
+    const plateMappings: PlateMapping[] = [
+      { well: "A1", primer_name: "K1A-fw", sequence: "AAA", primer_type: "forward", mutation: "K1A" },
+      { well: "B1", primer_name: "L2B-fw", sequence: "CCC", primer_type: "forward", mutation: "L2B" },
+    ];
+
+    useAppStore.setState({
+      designResults,
+      plateMappings,
+      dedupInfo: {},
+      tableSorting: [{ id: "fwd_len", desc: false }], // L2B first
+    });
+
+    mockBothEmpty();
+    render(<ExportPlatePreview />);
+    await waitFor(() => {
+      const calls = (invoke as ReturnType<typeof vi.fn>).mock.calls;
+      expect(calls.length).toBeGreaterThanOrEqual(2);
+    });
+
+    // Capture initial call count, then flip sort direction.
+    const initialCallCount = (invoke as ReturnType<typeof vi.fn>).mock.calls.length;
+    useAppStore.setState({ tableSorting: [{ id: "fwd_len", desc: true }] }); // now K1A first
+
+    await waitFor(() => {
+      const calls = (invoke as ReturnType<typeof vi.fn>).mock.calls;
+      expect(calls.length).toBeGreaterThan(initialCallCount);
+    });
+
+    const latestEchoCall = [...(invoke as ReturnType<typeof vi.fn>).mock.calls]
+      .reverse()
+      .find((c) => (c[1] as { method?: string })?.method === "export_echo_mapping_dry_run");
+    const latestPayload = (latestEchoCall![1] as { params: { mappings: PlateMapping[] } }).params;
+    const fwdLatest = latestPayload.mappings.filter((m) => m.primer_type === "forward");
+    expect(fwdLatest.map((m) => m.mutation)).toEqual(["K1A", "L2B"]);
+
+    useAppStore.setState({ designResults: [], plateMappings: [], dedupInfo: {}, tableSorting: [] });
   });
 
   it("renders Echo view by default and switches to Janus on tab click", async () => {
