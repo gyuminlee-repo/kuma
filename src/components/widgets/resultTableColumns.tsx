@@ -73,6 +73,12 @@ export function makeResultTableColumns(opts: {
   rescueDetailMap: Map<string, RescuedMutation>;
   removeDesignResult: (mutation: string, reason: string) => void;
   yPredMap: Record<string, number>;
+  /**
+   * Canonical row-order index map produced by sortPrimersCanonical().
+   * When provided, the Mutation column sortingFn uses this map as the
+   * single source of truth so ResultTable order matches Plate/Mapping views.
+   */
+  canonicalOrder?: Map<SdmPrimerResult, number>;
   /** When true, adds a visible border to rescue badges so state is
    *  distinguishable without colour (WCAG 1.4.1 compliance). */
   colorblindMode?: boolean;
@@ -89,6 +95,7 @@ export function makeResultTableColumns(opts: {
     rescueDetailMap,
     removeDesignResult,
     yPredMap,
+    canonicalOrder,
     colorblindMode = false,
     t,
   } = opts;
@@ -105,6 +112,12 @@ export function makeResultTableColumns(opts: {
       header: "Mutation",
       size: 90,
       sortingFn: (a, b) => {
+        if (canonicalOrder) {
+          const ia = canonicalOrder.get(a.original);
+          const ib = canonicalOrder.get(b.original);
+          if (ia != null && ib != null) return ia - ib;
+        }
+        // Fallback when canonicalOrder is not provided.
         const posA = a.original.aa_position ?? 0;
         const posB = b.original.aa_position ?? 0;
         if (posA !== posB) return posA - posB;

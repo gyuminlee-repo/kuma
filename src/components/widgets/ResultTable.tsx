@@ -16,6 +16,7 @@ import {
   HEADER_TOOLTIPS,
   makeResultTableColumns,
 } from "./resultTableColumns";
+import { sortPrimersCanonical } from "../../lib/plate-utils";
 import { StateView } from "../ui/StateView";
 import { useColorblindMode } from "../../hooks/useColorblindMode";
 
@@ -87,6 +88,18 @@ export function ResultTable() {
     [rescuedMutations],
   );
 
+  // Canonical order index map: row object → position in sortPrimersCanonical output.
+  // Used as the single source of truth for Mutation column ordering so ResultTable
+  // matches Plate/Mapping views. Null when no sort is active (react-table uses input order).
+  const canonicalOrder = useMemo(() => {
+    const sorted = sortPrimersCanonical(designResults, sorting, {
+      yPredMap,
+      customCandidates: customCandidatesAll,
+    });
+    if (!sorted) return undefined;
+    return new Map<SdmPrimerResult, number>(sorted.map((r, i) => [r, i]));
+  }, [designResults, sorting, yPredMap, customCandidatesAll]);
+
   const columns = useMemo(
     () =>
       makeResultTableColumns({
@@ -99,6 +112,7 @@ export function ResultTable() {
         rescueDetailMap,
         removeDesignResult,
         yPredMap,
+        canonicalOrder,
         colorblindMode,
         t,
       }),
@@ -112,6 +126,7 @@ export function ResultTable() {
       rescueDetailMap,
       removeDesignResult,
       yPredMap,
+      canonicalOrder,
       colorblindMode,
       t,
     ],

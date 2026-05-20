@@ -13,24 +13,31 @@ function wellName(idx: number): string {
 }
 
 /**
- * Compute sorted mutation order from designResults + tableSorting.
+ * Canonical sort: returns sorted SdmPrimerResult[] preserving per-row identity.
+ * Tiebreaker uses the row object's original array index (not mutation string),
+ * so duplicate mutations at the same sort-key position are ordered stably.
  * Returns null if no sort is active.
+ *
+ * This is the single source-of-truth for primer ordering used by all step5
+ * views (ResultTable, PlateMap, Mapping File Preview / Export).
  */
-export function getSortedMutations(
+export function sortPrimersCanonical(
   results: SdmPrimerResult[],
   sorting: SortingState,
   options?: {
     yPredMap?: Record<string, number>;
     customCandidates?: Record<string, SdmPrimerResult[]>;
   },
-): string[] | null {
+): SdmPrimerResult[] | null {
   if (sorting.length === 0) return null;
   const sort = sorting[0];
   const yPredMap = options?.yPredMap ?? {};
   const customCandidates = options?.customCandidates ?? {};
 
   type R = SdmPrimerResult;
-  const originalOrder = new Map(results.map((result, index) => [result.mutation, index]));
+  // Key by object identity so duplicate mutation strings each get their own index.
+  const originalIndex = new Map<R, number>(results.map((r, i) => [r, i]));
+
   const numericKeys: Record<string, (r: R) => number> = {
     mutation: (r) => r.aa_position ?? 0,
     y_pred: (r) => yPredMap[r.mutation] ?? -Infinity,
@@ -64,7 +71,7 @@ export function getSortedMutations(
   if (!getter && !stringGetter) return null;
 
   const direction = sort.desc ? -1 : 1;
-  const sorted = [...results].sort((a, b) => {
+  return [...results].sort((a, b) => {
     if (getter) {
       const diff = getter(a) - getter(b);
       if (diff !== 0) return diff * direction;
@@ -72,9 +79,37 @@ export function getSortedMutations(
       const diff = stringGetter(a).localeCompare(stringGetter(b));
       if (diff !== 0) return diff * direction;
     }
-    return (originalOrder.get(a.mutation) ?? 0) - (originalOrder.get(b.mutation) ?? 0);
+    // Tiebreaker: original array index (per-row, not per-mutation-string).
+    return (originalIndex.get(a) ?? 0) - (originalIndex.get(b) ?? 0);
   });
-  return sorted.map((r) => r.mutation);
+}
+
+/**
+ * Compute sorted mutation order from designResults + tableSorting.
+ * Thin wrapper over sortPrimersCanonical that deduplicates to unique mutation
+ * strings in canonical order (first occurrence wins).
+ * Returns null if no sort is active.
+ * Callers (PlateMap, ExportPlatePreview, exportSlice, export-handlers) are unchanged.
+ */
+export function getSortedMutations(
+  results: SdmPrimerResult[],
+  sorting: SortingState,
+  options?: {
+    yPredMap?: Record<string, number>;
+    customCandidates?: Record<string, SdmPrimerResult[]>;
+  },
+): string[] | null {
+  const sorted = sortPrimersCanonical(results, sorting, options);
+  if (!sorted) return null;
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const r of sorted) {
+    if (!seen.has(r.mutation)) {
+      seen.add(r.mutation);
+      out.push(r.mutation);
+    }
+  }
+  return out;
 }
 
 /**
