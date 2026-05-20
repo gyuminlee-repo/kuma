@@ -721,7 +721,6 @@ def domain_aware_select(
     selected: list[tuple[str, float]] = []
     selected_set: set[str] = set()
     stats: dict[str, dict] = {}
-    remaining_capacity = 0
 
     for name in quota_names:
         quota = quotas[name]
@@ -743,8 +742,6 @@ def domain_aware_select(
                 selected_set.add(v)
         actual = len(picked)
         stats[name] = {"quota": quota, "selected": actual}
-        if actual < quota:
-            remaining_capacity += quota - actual
 
     # Hard constraint: domain quota 미충족 시 전역 재분배 없음 (v0.9.36 동작 복원).
     # top_n 미충족 허용. shortfall 재분배는 의도적으로 제거 (회귀 수정).
