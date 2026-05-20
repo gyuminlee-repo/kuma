@@ -56,7 +56,7 @@ export function ExportPlatePreview() {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { designResults, plateMappings, dedupInfo, tableSorting, yPredMap, customCandidates } = useAppStore(
+  const { designResults, plateMappings, dedupInfo, tableSorting, yPredMap, customCandidates, echoTransferVol, janusTransferVol } = useAppStore(
     useShallow((s) => ({
       designResults: s.designResults,
       plateMappings: s.plateMappings,
@@ -64,6 +64,8 @@ export function ExportPlatePreview() {
       tableSorting: s.tableSorting,
       yPredMap: s.yPredMap,
       customCandidates: s.customCandidates,
+      echoTransferVol: s.echoTransferVol,
+      janusTransferVol: s.janusTransferVol,
     })),
   );
 
@@ -76,10 +78,17 @@ export function ExportPlatePreview() {
     setLoading(true);
     setError(null);
     try {
-      const payload = { mappings: sortedMappings, dedup_info: dedupInfo };
       const [e, j] = await Promise.all([
-        rpc<EchoDryRunResult>("kuro", "export_echo_mapping_dry_run", payload),
-        rpc<JanusDryRunResult>("kuro", "export_janus_mapping_dry_run", payload),
+        rpc<EchoDryRunResult>("kuro", "export_echo_mapping_dry_run", {
+          mappings: sortedMappings,
+          dedup_info: dedupInfo,
+          transfer_vol: echoTransferVol,
+        }),
+        rpc<JanusDryRunResult>("kuro", "export_janus_mapping_dry_run", {
+          mappings: sortedMappings,
+          dedup_info: dedupInfo,
+          transfer_vol: janusTransferVol,
+        }),
       ]);
       setEcho(adaptEchoRows(e?.rows ?? []));
       setJanus(adaptJanusRows(j?.rows ?? []));
@@ -88,7 +97,7 @@ export function ExportPlatePreview() {
     } finally {
       setLoading(false);
     }
-  }, [sortedMappings, dedupInfo]);
+  }, [sortedMappings, dedupInfo, echoTransferVol, janusTransferVol]);
 
   useEffect(() => {
     void load();

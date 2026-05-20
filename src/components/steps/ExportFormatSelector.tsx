@@ -19,7 +19,6 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { handleExportAll } from "@/components/layout/export-handlers";
-import { ExportMacrogenSection } from "@/components/widgets/ExportMacrogenSection";
 import { useKumaProject } from "@/state/projectContext";
 import { useAppStore } from "@/store/appStore";
 import type { AppState } from "@/store/appStore";
@@ -37,15 +36,18 @@ export function ExportFormatSelector() {
     t(key, { defaultValue: fallback, ...vars });
   const project = useKumaProject();
   const designResults = useAppStore((s: AppState) => s.designResults);
+  const echoVol = useAppStore((s: AppState) => s.echoTransferVol);
+  const janusVol = useAppStore((s: AppState) => s.janusTransferVol);
+  const setEchoVol = useAppStore((s: AppState) => s.setEchoTransferVol);
+  const setJanusVol = useAppStore((s: AppState) => s.setJanusTransferVol);
 
   const wellCount = designResults.length;
 
   const [projectName, setProjectName] = useState("");
   const [fwdPlate, setFwdPlate] = useState("");
   const [rvsPlate, setRvsPlate] = useState("");
+  const [orderVendor, setOrderVendor] = useState<"macrogen">("macrogen");
   const [amount, setAmount] = useState<"0.05" | "0.2">("0.05");
-  const [echoVol, setEchoVol] = useState(100);
-  const [janusVol, setJanusVol] = useState(2.0);
   const [bom, setBom] = useState(false);
   const [running, setRunning] = useState(false);
 
@@ -90,7 +92,6 @@ export function ExportFormatSelector() {
   };
 
   return (
-    <>
     <section
       aria-labelledby="export-all-heading"
       className="flex flex-col gap-4 p-6"
@@ -99,7 +100,7 @@ export function ExportFormatSelector() {
         id="export-all-heading"
         className="text-sm font-semibold text-foreground"
       >
-        {tx("phaseC.export.all.heading", "Export All")}
+        {tx("phaseC.export.all.heading", "Export Package")}
       </h3>
 
       {/* Project name */}
@@ -108,7 +109,7 @@ export function ExportFormatSelector() {
           htmlFor="project-name"
           className="text-sm font-medium text-foreground"
         >
-          {tx("phaseC.export.all.projectName", "Project name")}
+          {tx("phaseC.export.all.projectName", "Export name")}
         </label>
         <Input
           id="project-name"
@@ -123,7 +124,7 @@ export function ExportFormatSelector() {
           id="project-name-help"
           className="text-caption text-muted-foreground"
         >
-          {tx("phaseC.export.all.projectNameHint", "Leave empty to auto-name kuro_YYMMDD_HHMM")}
+          {tx("phaseC.export.all.projectNameHint", "Used as the export folder and file prefix. Leave empty to auto-name kuro_YYMMDD_HHMM.")}
         </span>
         {!projectNameValid && (
           <span role="alert" className="text-caption text-destructive">
@@ -189,6 +190,27 @@ export function ExportFormatSelector() {
             {tx("phaseC.export.all.error.plateNameRegex", "Use 1-20 letters, numbers, underscores, or hyphens.")}
           </span>
         )}
+      </div>
+
+      {/* Order vendor */}
+      <div className="flex flex-col gap-1">
+        <label
+          htmlFor="order-vendor"
+          className="text-sm font-medium text-foreground"
+        >
+          {tx("phaseC.export.all.orderVendor", "Order vendor")}
+        </label>
+        <select
+          id="order-vendor"
+          value={orderVendor}
+          onChange={(e) => setOrderVendor(e.target.value as "macrogen")}
+          className="w-fit rounded-md border border-input bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring min-w-0"
+        >
+          <option value="macrogen">Macrogen</option>
+        </select>
+        <span className="text-caption text-muted-foreground">
+          {tx("phaseC.export.all.orderVendorHint", "Included in Export all as a timestamp-prefixed Macrogen .xls file.")}
+        </span>
       </div>
 
       {/* Amount */}
@@ -301,7 +323,5 @@ export function ExportFormatSelector() {
         {running ? t("common.loading") : tx("phaseC.export.all.runExport", "Export all")}
       </Button>
     </section>
-    <ExportMacrogenSection />
-    </>
   );
 }

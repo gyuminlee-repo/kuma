@@ -19,7 +19,12 @@ export function MutationInput() {
   const setMutationText = useAppStore((s) => s.setMutationText);
   const parseMutations = useAppStore((s) => s.parseMutations);
   const evolveproCsvPath = useAppStore((s) => s.evolveproCsvPath);
+  const othersSourcePath = useAppStore((s) => s.othersSourcePath);
   const loadEvolveproCsv = useAppStore((s) => s.loadEvolveproCsv);
+  const setOthersSourcePath = useAppStore((s) => s.setOthersSourcePath);
+  const setOthersPreview = useAppStore((s) => s.setOthersPreview);
+  const setOthersVariantColumn = useAppStore((s) => s.setOthersVariantColumn);
+  const setOthersScoreColumn = useAppStore((s) => s.setOthersScoreColumn);
   const artifact = useArtifact("evolvepro_csv");
   const [userOverridden, setUserOverridden] = useState(false);
 
@@ -36,6 +41,7 @@ export function MutationInput() {
   const evolveproMode = useAppStore((s) => s.evolveproMode);
   const setEvolveproMode = useAppStore((s) => s.setEvolveproMode);
   const evolveproTotalCount = useAppStore((s) => s.evolveproTotalCount);
+  const activeTablePath = evolveproMode === "others" ? othersSourcePath : evolveproCsvPath;
 
   // Debounced mutation validation
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -129,6 +135,13 @@ export function MutationInput() {
                   ],
                   (path) => {
                     setUserOverridden(true);
+                    if (evolveproMode === "others") {
+                      setOthersSourcePath(path);
+                      setOthersPreview(null);
+                      setOthersVariantColumn(null);
+                      setOthersScoreColumn(null);
+                      return;
+                    }
                     loadEvolveproCsv(path);
                   },
                 )
@@ -138,7 +151,7 @@ export function MutationInput() {
               Browse
             </Button>
             <span className="self-center truncate text-xs text-muted-foreground">
-              {evolveproCsvPath ? basename(evolveproCsvPath) : t("mutationInput.noFileSelected")}
+              {activeTablePath ? basename(activeTablePath) : t("mutationInput.noFileSelected")}
             </span>
             {showArtifactBadge && artifact && (
               <ArtifactBadge artifact={artifact} className="self-center" />

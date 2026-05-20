@@ -19,11 +19,16 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   let uniprotSearchGeneration = 0;
   let structureFetchGeneration = 0;
 
+  function getActiveEvolveproPath(state: AppState): string {
+    return state.evolveproMode === "others" ? state.othersSourcePath : state.evolveproCsvPath;
+  }
+
   async function reloadEvolveproCsv(reason: string) {
     const state = get();
-    if (!state.evolveproCsvPath) return;
+    const activePath = getActiveEvolveproPath(state);
+    if (!activePath) return;
     try {
-      await state.loadEvolveproCsv(state.evolveproCsvPath);
+      await state.loadEvolveproCsv(activePath);
     } catch (err) {
       set({
         statusMessage: `EVOLVEpro reload failed after ${reason}: ${formatError(err)}`,
@@ -33,7 +38,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
 
   function shouldReloadAfterStructureFetch(state: AppState) {
     return Boolean(
-      state.evolveproCsvPath
+      getActiveEvolveproPath(state)
       && state.paretoDiversityEnabled
       && state.distanceMode !== "1d",
     );
@@ -190,10 +195,10 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
       });
       if (
         !deferReloadToStructureFetch
-        && state.evolveproCsvPath
+        && getActiveEvolveproPath(state)
         && result.domains.length > 0
       ) {
-        await get().loadEvolveproCsv(state.evolveproCsvPath);
+        await get().loadEvolveproCsv(getActiveEvolveproPath(state));
       }
       if (requestedAccession && !structureMatches) {
         void get().fetchStructure(requestedAccession);
@@ -206,8 +211,8 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
 
   setDomains: (domains: DomainInfo[]) => {
     set({ domains, disabledDomains: [] });
-    const { evolveproCsvPath, domainDiversityEnabled } = get();
-    if (evolveproCsvPath && domainDiversityEnabled) {
+    const state = get();
+    if (getActiveEvolveproPath(state) && state.domainDiversityEnabled) {
       void reloadEvolveproCsv("manual domain update");
     }
   },
@@ -418,7 +423,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
         });
         const state = get();
         if (shouldReloadAfterStructureFetch(state)) {
-          await state.loadEvolveproCsv(state.evolveproCsvPath);
+          await state.loadEvolveproCsv(getActiveEvolveproPath(state));
         }
       } else {
         set({
@@ -429,7 +434,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
         });
         const state = get();
         if (shouldReloadAfterStructureFetch(state)) {
-          await state.loadEvolveproCsv(state.evolveproCsvPath);
+          await state.loadEvolveproCsv(getActiveEvolveproPath(state));
         }
       }
     } catch (err) {

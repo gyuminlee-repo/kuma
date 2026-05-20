@@ -26,20 +26,23 @@ const PREVIEW_MAX_ROWS = 5;
 export function EvolveproOthersPanel() {
   const { t } = useTranslation();
 
-  const evolveproCsvPath = useAppStore((s) => s.evolveproCsvPath);
-  const evolveproPreview = useAppStore((s) => s.evolveproPreview);
-  const evolveproVariantColumn = useAppStore((s) => s.evolveproVariantColumn);
-  const evolveproScoreColumn = useAppStore((s) => s.evolveproScoreColumn);
-  const evolveproScoreOrder = useAppStore((s) => s.evolveproScoreOrder);
-  const evolveproSheetName = useAppStore((s) => s.evolveproSheetName);
-  const setEvolveproPreview = useAppStore((s) => s.setEvolveproPreview);
-  const setEvolveproVariantColumn = useAppStore((s) => s.setEvolveproVariantColumn);
-  const setEvolveproScoreColumn = useAppStore((s) => s.setEvolveproScoreColumn);
-  const setEvolveproScoreOrder = useAppStore((s) => s.setEvolveproScoreOrder);
-  const setEvolveproSheetName = useAppStore((s) => s.setEvolveproSheetName);
+  const othersSourcePath = useAppStore((s) => s.othersSourcePath);
+  const othersPreview = useAppStore((s) => s.othersPreview);
+  const othersVariantColumn = useAppStore((s) => s.othersVariantColumn);
+  const othersScoreColumn = useAppStore((s) => s.othersScoreColumn);
+  const othersScoreOrder = useAppStore((s) => s.othersScoreOrder);
+  const othersSheetName = useAppStore((s) => s.othersSheetName);
+  const setOthersPreview = useAppStore((s) => s.setOthersPreview);
+  const setOthersVariantColumn = useAppStore((s) => s.setOthersVariantColumn);
+  const setOthersScoreColumn = useAppStore((s) => s.setOthersScoreColumn);
+  const setOthersScoreOrder = useAppStore((s) => s.setOthersScoreOrder);
+  const setOthersSheetName = useAppStore((s) => s.setOthersSheetName);
+  const loadEvolveproCsv = useAppStore((s) => s.loadEvolveproCsv);
 
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [applyLoading, setApplyLoading] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
+  const [applyError, setApplyError] = useState<string | null>(null);
 
   const scoreOrderId = useId();
   const variantColId = useId();
@@ -48,54 +51,68 @@ export function EvolveproOthersPanel() {
   const previewStatusId = useId();
 
   const isXlsx =
-    evolveproCsvPath.toLowerCase().endsWith(".xlsx") ||
-    evolveproCsvPath.toLowerCase().endsWith(".xls");
+    othersSourcePath.toLowerCase().endsWith(".xlsx") ||
+    othersSourcePath.toLowerCase().endsWith(".xls");
 
   const showSheetPicker =
-    isXlsx && evolveproPreview !== null && evolveproPreview.sheets.length > 1;
+    isXlsx && othersPreview !== null && othersPreview.sheets.length > 1;
 
-  const headers = evolveproPreview?.headers ?? [];
+  const headers = othersPreview?.headers ?? [];
   const hasHeaders = headers.length > 0;
+  const canApply = Boolean(othersSourcePath && othersVariantColumn && othersScoreColumn);
 
   const handlePreview = useCallback(async () => {
-    if (!evolveproCsvPath) return;
+    if (!othersSourcePath) return;
     setPreviewLoading(true);
     setPreviewError(null);
     try {
       const params: PreviewEvolveproSourceParams = {
-        filepath: evolveproCsvPath,
+        filepath: othersSourcePath,
         max_rows: PREVIEW_MAX_ROWS,
-        sheet_name: evolveproSheetName ?? null,
+        sheet_name: othersSheetName ?? null,
       };
       const preview = await sendRequest("preview_evolvepro_source", params);
-      setEvolveproPreview(preview);
-      setEvolveproVariantColumn(null);
-      setEvolveproScoreColumn(null);
+      setOthersPreview(preview);
+      setOthersVariantColumn(null);
+      setOthersScoreColumn(null);
     } catch (err) {
       setPreviewError(err instanceof Error ? err.message : String(err));
-      setEvolveproPreview(null);
+      setOthersPreview(null);
     } finally {
       setPreviewLoading(false);
     }
   }, [
-    evolveproCsvPath,
-    evolveproSheetName,
-    setEvolveproPreview,
-    setEvolveproVariantColumn,
-    setEvolveproScoreColumn,
+    othersSourcePath,
+    othersSheetName,
+    setOthersPreview,
+    setOthersVariantColumn,
+    setOthersScoreColumn,
   ]);
 
   const handleSheetChange = useCallback(
     (value: string) => {
-      setEvolveproSheetName(value === "__first__" ? null : value);
-      setEvolveproPreview(null);
-      setEvolveproVariantColumn(null);
-      setEvolveproScoreColumn(null);
+      setOthersSheetName(value === "__first__" ? null : value);
+      setOthersPreview(null);
+      setOthersVariantColumn(null);
+      setOthersScoreColumn(null);
     },
-    [setEvolveproSheetName, setEvolveproPreview, setEvolveproVariantColumn, setEvolveproScoreColumn],
+    [setOthersSheetName, setOthersPreview, setOthersVariantColumn, setOthersScoreColumn],
   );
 
-  const noFileLoaded = !evolveproCsvPath;
+  const handleApply = useCallback(async () => {
+    if (!canApply) return;
+    setApplyLoading(true);
+    setApplyError(null);
+    try {
+      await loadEvolveproCsv(othersSourcePath);
+    } catch (err) {
+      setApplyError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setApplyLoading(false);
+    }
+  }, [canApply, loadEvolveproCsv, othersSourcePath]);
+
+  const noFileLoaded = !othersSourcePath;
 
   return (
     <div className="space-y-3">
@@ -122,7 +139,7 @@ export function EvolveproOthersPanel() {
               {t("mutationInput.othersPreviewError", { message: previewError })}
             </span>
           )}
-          {!previewLoading && !previewError && evolveproPreview === null && !noFileLoaded && (
+          {!previewLoading && !previewError && othersPreview === null && !noFileLoaded && (
             <span>{t("mutationInput.othersPreviewEmpty")}</span>
           )}
         </span>
@@ -134,14 +151,14 @@ export function EvolveproOthersPanel() {
             {t("mutationInput.othersSheetName")}
           </Label>
           <Select
-            value={evolveproSheetName ?? "__first__"}
+            value={othersSheetName ?? "__first__"}
             onValueChange={handleSheetChange}
           >
             <SelectTrigger id={sheetId} className="h-7 text-xs">
               <SelectValue placeholder={t("mutationInput.othersSheetNamePlaceholder")} />
             </SelectTrigger>
             <SelectContent>
-              {evolveproPreview.sheets.map((sheet) => (
+              {othersPreview.sheets.map((sheet) => (
                 <SelectItem key={sheet} value={sheet} className="text-xs">
                   {sheet}
                 </SelectItem>
@@ -161,9 +178,9 @@ export function EvolveproOthersPanel() {
             {t("mutationInput.othersVariantColumn")}
           </Label>
           <Select
-            value={evolveproVariantColumn ?? "__auto__"}
+            value={othersVariantColumn ?? "__auto__"}
             onValueChange={(v) =>
-              setEvolveproVariantColumn(v === "__auto__" ? null : v)
+              setOthersVariantColumn(v === "__auto__" ? null : v)
             }
             disabled={!hasHeaders}
           >
@@ -190,9 +207,9 @@ export function EvolveproOthersPanel() {
             {t("mutationInput.othersScoreColumn")}
           </Label>
           <Select
-            value={evolveproScoreColumn ?? "__auto__"}
+            value={othersScoreColumn ?? "__auto__"}
             onValueChange={(v) =>
-              setEvolveproScoreColumn(v === "__auto__" ? null : v)
+              setOthersScoreColumn(v === "__auto__" ? null : v)
             }
             disabled={!hasHeaders}
           >
@@ -227,8 +244,8 @@ export function EvolveproOthersPanel() {
               type="radio"
               name="othersScoreOrder"
               className="w-3 h-3"
-              checked={evolveproScoreOrder === "desc"}
-              onChange={() => setEvolveproScoreOrder("desc")}
+              checked={othersScoreOrder === "desc"}
+              onChange={() => setOthersScoreOrder("desc")}
             />
             <span className="text-foreground">
               {t("mutationInput.othersScoreOrderDesc")}
@@ -239,8 +256,8 @@ export function EvolveproOthersPanel() {
               type="radio"
               name="othersScoreOrder"
               className="w-3 h-3"
-              checked={evolveproScoreOrder === "asc"}
-              onChange={() => setEvolveproScoreOrder("asc")}
+              checked={othersScoreOrder === "asc"}
+              onChange={() => setOthersScoreOrder("asc")}
             />
             <span className="text-foreground">
               {t("mutationInput.othersScoreOrderAsc")}
@@ -249,7 +266,22 @@ export function EvolveproOthersPanel() {
         </div>
       </div>
 
-      {evolveproPreview !== null && evolveproPreview.rows.length > 0 && (
+      {applyError && (
+        <div className="text-xs text-destructive">
+          {t("mutationInput.othersApplyError", { message: applyError })}
+        </div>
+      )}
+
+      <Button
+        variant="secondary"
+        size="sm"
+        disabled={!canApply || applyLoading}
+        onClick={() => void handleApply()}
+      >
+        {applyLoading ? t("common.loading") : t("mutationInput.othersApplyBtn")}
+      </Button>
+
+      {othersPreview !== null && othersPreview.rows.length > 0 && (
         <div className="overflow-auto rounded-xl border border-border">
           <Table>
             <caption className="sr-only">
@@ -257,7 +289,7 @@ export function EvolveproOthersPanel() {
             </caption>
             <TableHeader>
               <TableRow>
-                {evolveproPreview.headers.map((h) => (
+                {othersPreview.headers.map((h) => (
                   <TableHead
                     key={h}
                     scope="col"
@@ -269,7 +301,7 @@ export function EvolveproOthersPanel() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {evolveproPreview.rows.map((row, ri) => (
+              {othersPreview.rows.map((row, ri) => (
                 <TableRow key={ri}>
                   {row.map((cell, ci) => (
                     <TableCell

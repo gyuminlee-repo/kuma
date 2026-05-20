@@ -26,6 +26,26 @@ describe("adaptEchoRows", () => {
     });
   });
 
+  it("normalizes backend well A1 to grid key A01", () => {
+    const cells = adaptEchoRows([
+      {
+        source_plate: "Source [1]",
+        source_well_name: "P1-fw",
+        source_well: "A1",
+        dest_plate: "Dest [1]",
+        dest_well_name: "P1",
+        dest_well: "A1",
+        transfer_vol: 100,
+      },
+    ]);
+    expect(cells[0]).toMatchObject({
+      well: "A01",
+      rowLetter: "A",
+      colNumber: 1,
+      isFwd: true,
+    });
+  });
+
   it("rev row B even = isFwd=false", () => {
     const cells = adaptEchoRows([
       {

@@ -25,7 +25,7 @@ from sidecar_kuro.models import (
 
 # EVOLVEpro-specific table extensions: CSV, TSV, and XLSX.
 # .txt is excluded intentionally (ambiguous delimiter, not supported for column mapping).
-_ALLOWED_TABLE_EXTENSIONS = {".csv", ".tsv", ".xlsx"}
+_ALLOWED_TABLE_EXTENSIONS = {".csv", ".tsv", ".xlsx", ".xls"}
 
 
 _POLYMERASE_META = {
@@ -120,6 +120,30 @@ def _preview_xlsx(filepath: str, sheet_name: str | None, max_rows: int) -> dict:
     return {"sheets": sheet_names, "headers": headers, "rows": data_rows}
 
 
+def _preview_xls(filepath: str, sheet_name: str | None, max_rows: int) -> dict:
+    """Read sheet names, headers, and first max_rows rows from a legacy XLS file."""
+    import xlrd
+
+    wb = xlrd.open_workbook(filepath)
+    sheet_names = wb.sheet_names()
+    target = sheet_name if sheet_name is not None else sheet_names[0]
+    if target not in sheet_names:
+        raise ValueError(
+            f"sheet '{target}' not found in {filepath}. "
+            f"Available sheets: {sheet_names}"
+        )
+
+    ws = wb.sheet_by_name(target)
+    if ws.nrows == 0:
+        return {"sheets": sheet_names, "headers": [], "rows": []}
+
+    headers = [str(c.value) if c.value is not None else "" for c in ws.row(0)]
+    rows = []
+    for ridx in range(1, min(ws.nrows, max_rows + 1)):
+        rows.append([str(c.value) if c.value is not None else "" for c in ws.row(ridx)])
+    return {"sheets": sheet_names, "headers": headers, "rows": rows}
+
+
 def handle_preview_evolvepro_source(params: dict) -> dict:
     """Preview first rows and column headers of a CSV or XLSX EVOLVEpro source."""
     p = PreviewEvolveproSourceParams(**params)
@@ -127,6 +151,8 @@ def handle_preview_evolvepro_source(params: dict) -> dict:
     ext = Path(str(resolved)).suffix.lower()
     if ext == ".xlsx":
         return _preview_xlsx(str(resolved), p.sheet_name, p.max_rows)
+    if ext == ".xls":
+        return _preview_xls(str(resolved), p.sheet_name, p.max_rows)
     return _preview_csv(str(resolved), p.max_rows)
 
 

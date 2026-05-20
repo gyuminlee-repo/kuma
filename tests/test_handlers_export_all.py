@@ -1,6 +1,7 @@
 """Tests for handle_export_macrogen and handle_export_all sidecar handlers."""
 
 from datetime import datetime
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -46,7 +47,7 @@ def test_handle_export_macrogen_writes_file(tmp_path):
         raise AssertionError("xls missing")
 
 
-EXPECTED_FLAT_FILES = [
+EXPECTED_EXPORT_SUFFIXES = [
     "echo.csv",
     "echo.xlsx",
     "janus.csv",
@@ -56,6 +57,10 @@ EXPECTED_FLAT_FILES = [
     "platemap.xlsx",
     "run.json",
 ]
+
+
+def _expected_files(prefix: str) -> list[str]:
+    return [f"{prefix}_{suffix}" for suffix in EXPECTED_EXPORT_SUFFIXES]
 
 
 def _seed_state() -> None:
@@ -76,9 +81,10 @@ def test_handle_export_all_writes_multiple_files(tmp_path):
     })
     if "success" not in res or "failed" not in res:
         raise AssertionError("missing keys")
-    if "macrogen.xls" not in res["success"]:
+    prefix = Path(res["output_dir"]).name
+    if f"{prefix}_macrogen.xls" not in res["success"]:
         raise AssertionError(f"macrogen missing; got: {res}")
-    if "primers.fasta" not in res["success"]:
+    if f"{prefix}_primers.fasta" not in res["success"]:
         raise AssertionError(f"fasta missing; got: {res}")
 
 
@@ -95,7 +101,7 @@ def test_export_all_creates_project_name_folder(tmp_path):
     subdir = tmp_path / "Q232A_20260519"
     if not subdir.is_dir():
         raise AssertionError(f"missing folder: {subdir}; res={res}")
-    for name in EXPECTED_FLAT_FILES:
+    for name in _expected_files("Q232A_20260519"):
         if not (subdir / name).exists():
             raise AssertionError(f"missing file: {name}, failed list: {res.get('failed')}")
     if res["output_dir"] != str(subdir):
@@ -111,8 +117,12 @@ def test_export_all_fallback_folder(tmp_path):
             "fwd_plate_name": "F1",
             "rev_plate_name": "R1",
         })
-    if not (tmp_path / "kuro_260519_1025").is_dir():
+    subdir = tmp_path / "kuro_260519_1025"
+    if not subdir.is_dir():
         raise AssertionError(f"fallback folder name not produced; tmp={list(tmp_path.iterdir())}")
+    for name in _expected_files("kuro_260519_1025"):
+        if not (subdir / name).exists():
+            raise AssertionError(f"missing fallback-prefixed file: {name}")
 
 
 def test_export_all_dedup_suffix(tmp_path):

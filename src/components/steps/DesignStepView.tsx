@@ -30,6 +30,8 @@ import { useRunDesign } from "@/hooks/useRunDesign";
 
 function SubmitDesignStep({ onPrev }: { onPrev: () => void }) {
   const runDesign = useRunDesign();
+  const evolveproMode = useAppStore((s) => s.evolveproMode);
+  const showPoolFilters = evolveproMode !== "topN";
 
   return (
     <WizardContainer
@@ -45,7 +47,7 @@ function SubmitDesignStep({ onPrev }: { onPrev: () => void }) {
       {/* Phase B6 (#1,#15): 직전 step 변경값을 카드로 한눈에 — stale 인상 제거 */}
       <DesignSummaryCard />
       {/* UniprotSearch は DiversityOptions → DiversitySections 内で自動マウント (Phase G #7) */}
-      <DiversityOptions />
+      {showPoolFilters && <DiversityOptions />}
       <RunDesignActionView controller={runDesign} />
     </WizardContainer>
   );

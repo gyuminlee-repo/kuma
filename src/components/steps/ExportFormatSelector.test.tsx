@@ -54,6 +54,12 @@ describe("ExportFormatSelector — Export All form", () => {
     expect(screen.getByText(/0\.5.*10.*μL/)).toBeInTheDocument();
   });
 
+  it("renders vendor selection without standalone Macrogen order button", () => {
+    render(<ExportFormatSelector />);
+    expect(screen.getByLabelText(/order vendor/i)).toHaveValue("macrogen");
+    expect(screen.queryByRole("button", { name: /order primers/i })).not.toBeInTheDocument();
+  });
+
   it("blocks Export with toast.warning when no design results", async () => {
     useAppStore.setState({ designResults: [] });
     render(<ExportFormatSelector />);

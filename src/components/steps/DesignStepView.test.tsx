@@ -59,7 +59,7 @@ import { useAppStore } from "@/store/appStore";
 
 describe("DesignStepView (Phase G)", () => {
   beforeEach(() => {
-    useAppStore.setState({ currentSubStep: "design.load" });
+    useAppStore.setState({ currentSubStep: "design.load", evolveproMode: "topN" });
     mocks.runDesign.mockReset();
   });
 
@@ -87,8 +87,15 @@ describe("DesignStepView (Phase G)", () => {
     expect(queryByTestId("run-design-action")).toBeNull();
   });
 
-  it("design.submit mounts DiversityOptions + RunDesignAction", () => {
-    useAppStore.setState({ currentSubStep: "design.submit" });
+  it("design.submit in top-N mode hides DiversityOptions and mounts RunDesignAction", () => {
+    useAppStore.setState({ currentSubStep: "design.submit", evolveproMode: "topN" });
+    const { getByTestId, queryByTestId } = render(<DesignStepView />);
+    expect(queryByTestId("diversity-options")).toBeNull();
+    expect(getByTestId("run-design-action")).toBeTruthy();
+  });
+
+  it("design.submit in pipeline mode mounts DiversityOptions + RunDesignAction", () => {
+    useAppStore.setState({ currentSubStep: "design.submit", evolveproMode: "pipeline" });
     const { getByTestId } = render(<DesignStepView />);
     expect(getByTestId("diversity-options")).toBeTruthy();
     expect(getByTestId("run-design-action")).toBeTruthy();

@@ -62,7 +62,7 @@ export function adaptEchoRows(rows: EchoDryRunRow[]): EchoCell[] {
     const { rowLetter, colNumber } = parseWell(r.source_well);
     const idx = rowIndex(rowLetter);
     return {
-      well: r.source_well,
+      well: rowLetter && colNumber > 0 ? `${rowLetter}${String(colNumber).padStart(2, "0")}` : r.source_well,
       rowLetter,
       colNumber,
       isFwd: idx % 2 === 0,

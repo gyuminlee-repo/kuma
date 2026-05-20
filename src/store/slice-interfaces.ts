@@ -147,6 +147,12 @@ export interface InputSlice {
   evolveproScoreOrder: "desc" | "asc";
   evolveproSheetName: string | null;
   evolveproPreview: EvolveproPreview | null;
+  othersSourcePath: string;
+  othersVariantColumn: string | null;
+  othersScoreColumn: string | null;
+  othersScoreOrder: "desc" | "asc";
+  othersSheetName: string | null;
+  othersPreview: EvolveproPreview | null;
 
   // Actions
   setMutationInputMode: (mode: MutationInputMode) => void;
@@ -160,6 +166,12 @@ export interface InputSlice {
   setEvolveproScoreOrder: (order: "desc" | "asc") => void;
   setEvolveproSheetName: (name: string | null) => void;
   setEvolveproPreview: (preview: EvolveproPreview | null) => void;
+  setOthersSourcePath: (path: string) => void;
+  setOthersVariantColumn: (col: string | null) => void;
+  setOthersScoreColumn: (col: string | null) => void;
+  setOthersScoreOrder: (order: "desc" | "asc") => void;
+  setOthersSheetName: (name: string | null) => void;
+  setOthersPreview: (preview: EvolveproPreview | null) => void;
   /**
    * Round handoff hydration.
    * prevRound.merged_table를 필터링하여 EVOLVEpro 형식으로 inputSlice를 hydrate.
@@ -294,8 +306,12 @@ export interface ExportSlice {
   tableSorting: SortingState;
   /** true while an export RPC is in flight (Excel, mapping, benchmark) */
   isExporting: boolean;
+  echoTransferVol: number;
+  janusTransferVol: number;
   getPlateMap: () => Promise<void>;
   exportExcel: (filepath: string, projectId?: string) => Promise<void>;
+  setEchoTransferVol: (value: number) => void;
+  setJanusTransferVol: (value: number) => void;
   setTableSorting: (updater: Updater<SortingState>) => void;
   setStatus: (msg: string) => void;
   getWorkspaceSnapshot: () => WorkspaceV3;

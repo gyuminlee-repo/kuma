@@ -1431,7 +1431,9 @@
     "othersPreviewBtn": "Preview",
     "othersPreviewLoading": "Loading preview...",
     "othersPreviewEmpty": "No preview available. Load a file first.",
-    "othersPreviewError": "Preview failed: {{message}}"
+    "othersPreviewError": "Preview failed: {{message}}",
+    "othersApplyBtn": "Apply selected columns",
+    "othersApplyError": "Column load failed: {{message}}"
   },
   "uniprotSearch": {
     "topCandidates": "Top candidates {{shown}}{{total}}",
@@ -1945,10 +1947,13 @@
         "runExport": "Export Mapping"
       },
       "all": {
+        "heading": "Export Package",
         "runExport": "Export all",
-        "projectName": "Project name",
+        "orderVendor": "Order vendor",
+        "orderVendorHint": "Included in Export all as a timestamp-prefixed Macrogen .xls file.",
+        "projectName": "Export name",
         "projectNamePlaceholder": "e.g. Q232A_K287R",
-        "projectNameHint": "Leave empty to auto-name kuro_YYMMDD_HHMM",
+        "projectNameHint": "Used as the export folder and file prefix. Leave empty to auto-name kuro_YYMMDD_HHMM.",
         "error": {
           "projectNameRegex": "Use up to 40 letters, numbers, Korean characters, underscores, or hyphens."
         }

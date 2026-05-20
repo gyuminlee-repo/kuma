@@ -88,23 +88,13 @@ export function buildEvolveproLoadParams(config: EvolveproLoadConfig): Record<st
     refSeq,
   } = config;
 
-  // "others" mode: pass column override params, skip diversity pipeline params
-  if (evolveproMode === "others") {
-    return {
-      filepath,
-      top_n: topN,
-      ...(evolveproVariantColumn && { variant_column: evolveproVariantColumn }),
-      ...(evolveproScoreColumn && { score_column: evolveproScoreColumn }),
-      score_order: evolveproScoreOrder,
-      ...(evolveproSheetName && { sheet_name: evolveproSheetName }),
-      ...(refSeq && { ref_seq: refSeq }),
-    };
-  }
-
-  // "topN" and "pipeline" modes: standard diversity pipeline params
-  return {
+  const params: Record<string, unknown> = {
     filepath,
     top_n: topN,
+    ...(evolveproMode === "others" && evolveproVariantColumn && { variant_column: evolveproVariantColumn }),
+    ...(evolveproMode === "others" && evolveproScoreColumn && { score_column: evolveproScoreColumn }),
+    ...(evolveproMode === "others" && { score_order: evolveproScoreOrder }),
+    ...(evolveproMode === "others" && evolveproSheetName && { sheet_name: evolveproSheetName }),
     ...(usePipeline && positionDiversityEnabled && { max_per_position: maxPerPosition }),
     ...(usePipeline && excludedDomains.length > 0 && {
       excluded_ranges: excludedDomains.map((d) => ({ start: d.start, end: d.end })),
@@ -130,6 +120,7 @@ export function buildEvolveproLoadParams(config: EvolveproLoadConfig): Record<st
     }),
     ...(refSeq && { ref_seq: refSeq }),
   };
+  return params;
 }
 
 export function buildEvolveproLoadStateUpdate(params: {

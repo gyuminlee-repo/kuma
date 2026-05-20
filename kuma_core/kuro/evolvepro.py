@@ -318,6 +318,24 @@ def _read_table_rows(
             for row in all_rows[1:]
         ]
         return rows, columns
+    elif ext == ".xls":
+        import xlrd
+
+        wb = xlrd.open_workbook(str(filepath))
+        target = sheet_name if sheet_name is not None else wb.sheet_names()[0]
+        if target not in wb.sheet_names():
+            raise ValueError(
+                f"sheet '{target}' not found. Available: {wb.sheet_names()}"
+            )
+        ws = wb.sheet_by_name(target)
+        if ws.nrows == 0:
+            return [], []
+        columns = [str(c.value) if c.value is not None else "" for c in ws.row(0)]
+        rows = [
+            {columns[i]: (str(cell.value) if cell.value is not None else "") for i, cell in enumerate(ws.row(ridx))}
+            for ridx in range(1, ws.nrows)
+        ]
+        return rows, columns
     else:
         delimiter = "\t" if ext == ".tsv" else ","
         with open(str(filepath), encoding="utf-8", newline="") as f:

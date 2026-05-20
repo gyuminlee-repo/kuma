@@ -1382,7 +1382,9 @@
     "othersPreviewBtn": "미리보기",
     "othersPreviewLoading": "미리보기 불러오는 중...",
     "othersPreviewEmpty": "미리보기 없음. 먼저 파일을 불러오세요.",
-    "othersPreviewError": "미리보기 실패: {{message}}"
+    "othersPreviewError": "미리보기 실패: {{message}}",
+    "othersApplyBtn": "선택한 column 적용",
+    "othersApplyError": "Column 불러오기 실패: {{message}}"
   },
   "offTargetDetail": {
     "closeAriaLabel": "닫기",
@@ -1945,10 +1947,13 @@
         "runExport": "매핑 내보내기"
       },
       "all": {
+        "heading": "내보내기 패키지",
         "runExport": "모두 내보내기",
-        "projectName": "프로젝트 이름",
+        "orderVendor": "주문 업체",
+        "orderVendorHint": "모두 내보내기에 타임스탬프 prefix가 붙은 Macrogen .xls 파일로 포함됩니다.",
+        "projectName": "내보내기 이름",
         "projectNamePlaceholder": "예: Q232A_K287R",
-        "projectNameHint": "비워두면 kuro_YYMMDD_HHMM 형식으로 자동 명명",
+        "projectNameHint": "내보내기 폴더와 파일 prefix로 사용됩니다. 비워두면 kuro_YYMMDD_HHMM 형식으로 자동 생성됩니다.",
         "error": {
           "projectNameRegex": "영문, 숫자, 한글, 밑줄, 하이픈을 40자 이내로 입력하세요."
         }

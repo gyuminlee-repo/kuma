@@ -8,6 +8,7 @@ from pathlib import Path
 
 import openpyxl
 import pytest
+import xlwt
 
 
 def _make_csv(rows: list[list[str]], tmp_dir: str) -> str:
@@ -33,6 +34,19 @@ def _make_xlsx(sheets: dict[str, list[list[str]]], tmp_dir: str) -> str:
             ws = wb.create_sheet(sheet_name)
         for row in rows:
             ws.append(row)
+    wb.save(str(p))
+    return str(p)
+
+
+def _make_xls(sheets: dict[str, list[list[str]]], tmp_dir: str) -> str:
+    """Write a temporary legacy XLS file with given sheets and return its path."""
+    p = Path(tmp_dir) / "test_preview.xls"
+    wb = xlwt.Workbook()
+    for sheet_name, rows in sheets.items():
+        ws = wb.add_sheet(sheet_name)
+        for ridx, row in enumerate(rows):
+            for cidx, value in enumerate(row):
+                ws.write(ridx, cidx, value)
     wb.save(str(p))
     return str(p)
 
@@ -91,6 +105,30 @@ def test_preview_xlsx_multi_sheet():
         pytest.fail(f"Expected 4 rows from Predictions, got {len(result_sheet1['rows'])}")
     if len(result_sheet2["rows"]) != 3:
         pytest.fail(f"Expected 3 rows from Summary, got {len(result_sheet2['rows'])}")
+
+
+def test_preview_xls_multi_sheet():
+    """Legacy XLS preview lists sheets and reads selected sheet rows."""
+    from sidecar_kuro.handlers.misc import handle_preview_evolvepro_source
+
+    sheets_data = {
+        "Predictions": [["mut", "rank"], ["A1V", 1], ["L2P", 2]],
+        "Other": [["mut", "rank"], ["K3R", 3]],
+    }
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        xls_path = _make_xls(sheets_data, tmp_dir)
+        result = handle_preview_evolvepro_source({
+            "filepath": xls_path,
+            "sheet_name": "Other",
+        })
+
+    if set(result["sheets"]) != {"Predictions", "Other"}:
+        pytest.fail(f"Expected XLS sheet names, got {result['sheets']}")
+    if result["headers"] != ["mut", "rank"]:
+        pytest.fail(f"Unexpected XLS headers: {result['headers']}")
+    if result["rows"] != [["K3R", "3.0"]]:
+        pytest.fail(f"Unexpected XLS rows: {result['rows']}")
 
 
 def test_preview_tsv_tab_delimited():

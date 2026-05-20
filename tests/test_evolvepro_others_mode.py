@@ -7,6 +7,7 @@ from pathlib import Path
 
 import openpyxl
 import pytest
+import xlwt
 
 
 def _write_csv(rows: list[list[str]], path: Path) -> None:
@@ -27,6 +28,16 @@ def _write_xlsx(sheets: dict[str, list[list[str]]], path: Path) -> None:
             ws = wb.create_sheet(sheet_name)
         for row in rows:
             ws.append(row)
+    wb.save(str(path))
+
+
+def _write_xls(sheets: dict[str, list[list[str]]], path: Path) -> None:
+    wb = xlwt.Workbook()
+    for sheet_name, rows in sheets.items():
+        ws = wb.add_sheet(sheet_name)
+        for ridx, row in enumerate(rows):
+            for cidx, value in enumerate(row):
+                ws.write(ridx, cidx, value)
     wb.save(str(path))
 
 
@@ -167,6 +178,35 @@ def test_load_rows_xlsx_multi_sheet(tmp_path):
 
     if len(rows) != 1:
         pytest.fail(f"Expected 1 row from Predictions sheet, got {len(rows)}")
+    if rows[0][0] != "M20L":
+        pytest.fail(f"Expected M20L, got {rows[0][0]}")
+
+
+def test_load_rows_xls_multi_sheet(tmp_path):
+    """Legacy XLS with multiple sheets reads the specified sheet."""
+    from kuma_core.kuro.evolvepro import _load_evolvepro_rows
+
+    xls_file = tmp_path / "multi.xls"
+    _write_xls({
+        "Predictions": [
+            ["mutation_id", "ranking_score"],
+            ["M20L", 0.88],
+        ],
+        "Other": [
+            ["mutation_id", "ranking_score"],
+            ["IGNORE1", 0.99],
+        ],
+    }, xls_file)
+
+    rows = _load_evolvepro_rows(
+        str(xls_file),
+        sheet_name="Predictions",
+        variant_column="mutation_id",
+        score_column="ranking_score",
+    )
+
+    if len(rows) != 1:
+        pytest.fail(f"Expected 1 row from XLS Predictions sheet, got {len(rows)}")
     if rows[0][0] != "M20L":
         pytest.fail(f"Expected M20L, got {rows[0][0]}")
 

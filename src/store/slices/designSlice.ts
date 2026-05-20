@@ -150,11 +150,14 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
     });
     const { sendCount, isEvolveMode } = initialPrep;
 
-    if (isEvolveMode && state.evolveproCsvPath) {
+    const activeEvolveproPath = state.evolveproMode === "others"
+      ? state.othersSourcePath
+      : state.evolveproCsvPath;
+    if (isEvolveMode && activeEvolveproPath) {
       state.cancelDiversityReload();
       try {
         await state.loadEvolveproCsv(
-          state.evolveproCsvPath,
+          activeEvolveproPath,
           fillOnFailure ? sendCount * 2 : undefined,
         );
       } catch {
@@ -246,8 +249,11 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         statusMessage: processed.statusMessage,
       });
 
-      if (fillOnFailure && isEvolveMode && get().evolveproCsvPath) {
-        await get().loadEvolveproCsv(get().evolveproCsvPath!);
+      const fillSourcePath = get().evolveproMode === "others"
+        ? get().othersSourcePath
+        : get().evolveproCsvPath;
+      if (fillOnFailure && isEvolveMode && fillSourcePath) {
+        await get().loadEvolveproCsv(fillSourcePath);
       }
 
       const postFailed = get().failedMutations;
@@ -437,11 +443,14 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
     // If an EVOLVEpro CSV failed to load (mutationText cleared but path retained),
     // re-trigger load so user can recover by adjusting the mutation count.
     const isEvolvepro = state.mutationInputMode === "evolvepro";
+    const activeEvolveproPath = state.evolveproMode === "others"
+      ? state.othersSourcePath
+      : state.evolveproCsvPath;
     const loadFailed =
-      isEvolvepro && !!state.evolveproCsvPath && state.evolveproTotalCount === 0 &&
+      isEvolvepro && !!activeEvolveproPath && state.evolveproTotalCount === 0 &&
       !state.mutationText.trim();
     if (loadFailed && clamped !== prev) {
-      void state.loadEvolveproCsv(state.evolveproCsvPath!);
+      void state.loadEvolveproCsv(activeEvolveproPath);
     }
   },
 

@@ -821,14 +821,15 @@ def handle_export_all(params: dict) -> dict:
         target_dir = out_dir / f"{base_folder_name}_{suffix}"
     target_dir.mkdir(parents=True)
 
-    ECHO_CSV = "echo.csv"
-    ECHO_XLSX = "echo.xlsx"
-    JANUS_CSV = "janus.csv"
-    JANUS_XLSX = "janus.xlsx"
-    MACROGEN = "macrogen.xls"
-    PRIMERS_FASTA = "primers.fasta"
-    PLATEMAP_XLSX = "platemap.xlsx"
-    RUN_JSON = "run.json"
+    file_prefix = target_dir.name
+    ECHO_CSV = f"{file_prefix}_echo.csv"
+    ECHO_XLSX = f"{file_prefix}_echo.xlsx"
+    JANUS_CSV = f"{file_prefix}_janus.csv"
+    JANUS_XLSX = f"{file_prefix}_janus.xlsx"
+    MACROGEN = f"{file_prefix}_macrogen.xls"
+    PRIMERS_FASTA = f"{file_prefix}_primers.fasta"
+    PLATEMAP_XLSX = f"{file_prefix}_platemap.xlsx"
+    RUN_JSON = f"{file_prefix}_run.json"
 
     success: list[str] = []
     failed: list[dict] = []

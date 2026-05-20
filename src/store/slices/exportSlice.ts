@@ -323,6 +323,8 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
   statusMessage: "Ready",
   tableSorting: [],
   isExporting: false,
+  echoTransferVol: 100,
+  janusTransferVol: 2.0,
 
   getPlateMap: async () => {
     try {
@@ -399,6 +401,9 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
     const next = typeof updater === "function" ? updater(current) : updater;
     set({ tableSorting: next });
   },
+
+  setEchoTransferVol: (value: number) => set({ echoTransferVol: value }),
+  setJanusTransferVol: (value: number) => set({ janusTransferVol: value }),
 
   setStatus: (msg: string) => set({ statusMessage: msg }),
 
@@ -637,6 +642,12 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       mutationInputMode: "text",
       mutationText: "",
       evolveproCsvPath: "",
+      othersSourcePath: "",
+      othersVariantColumn: null,
+      othersScoreColumn: null,
+      othersScoreOrder: "desc",
+      othersSheetName: null,
+      othersPreview: null,
       yPredMap: {},
       evolveproMode: "pipeline" as const,
       positionDiversityEnabled: true,
@@ -714,6 +725,8 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       statusMessage: "Ready",
       tableSorting: [],
       isExporting: false,
+      echoTransferVol: 100,
+      janusTransferVol: 2.0,
     });
     if (getActiveWorkspace()) {
       void import("../../lib/workspace").then(({ clearWorkspace }) =>

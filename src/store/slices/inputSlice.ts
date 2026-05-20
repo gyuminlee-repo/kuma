@@ -62,11 +62,19 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   evolveproScoreOrder: "desc" as const,
   evolveproSheetName: null,
   evolveproPreview: null,
+  othersSourcePath: "",
+  othersVariantColumn: null,
+  othersScoreColumn: null,
+  othersScoreOrder: "desc" as const,
+  othersSheetName: null,
+  othersPreview: null,
 
   setMutationInputMode: (mode) => set({
     mutationInputMode: mode,
     ...(mode === "text" && {
       evolveproCsvPath: "",
+      othersSourcePath: "",
+      othersPreview: null,
       evolveproTotalCount: 0,
       evolveproFilteredCount: null,
       evolveproParetoExchanges: null,
@@ -87,6 +95,10 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         evolveproScoreColumn,
         evolveproScoreOrder,
         evolveproSheetName,
+        othersVariantColumn,
+        othersScoreColumn,
+        othersScoreOrder,
+        othersSheetName,
         positionDiversityEnabled,
         maxPerPosition,
         domainDiversityEnabled,
@@ -108,7 +120,12 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       const effectiveTopN = topNOverride ?? maxPrimers;
       const activeDomains = domains.filter((d) => !disabledDomains.includes(`${d.name}-${d.start}`));
       const excludedDomains = domains.filter((d) => disabledDomains.includes(`${d.name}-${d.start}`));
-      const modeLabel = "EVOLVEpro";
+      const isOthersMode = evolveproMode === "others";
+      const modeLabel = isOthersMode ? "Others" : "EVOLVEpro";
+      const activeVariantColumn = isOthersMode ? othersVariantColumn : evolveproVariantColumn;
+      const activeScoreColumn = isOthersMode ? othersScoreColumn : evolveproScoreColumn;
+      const activeScoreOrder = isOthersMode ? othersScoreOrder : evolveproScoreOrder;
+      const activeSheetName = isOthersMode ? othersSheetName : evolveproSheetName;
 
       // v0.3 §4: pass protein ref_seq so sidecar can convert EVOLVEpro
       // short-form variants (89W) back to internal notation (F89W).
@@ -121,12 +138,15 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
           ?? seqInfo.genes[0];
         return gene?.translation ?? "";
       })();
-      set({ statusMessage: `Loading ${modeLabel} CSV...`, evolveproCsvPath: filepath });
+      set({
+        statusMessage: `Loading ${modeLabel} file...`,
+        ...(isOthersMode ? { othersSourcePath: filepath } : { evolveproCsvPath: filepath }),
+      });
 
       // §3 Input Guards: sidecar 호출 전 헤더 컬럼 검증
       // xlsx/xls 는 바이너리이므로 클라이언트 사전 검증 스킵 (sidecar 에서 검증)
       const ext = filepath.toLowerCase().split(".").pop() ?? "";
-      if (ext === "csv" || ext === "tsv") {
+      if (!isOthersMode && (ext === "csv" || ext === "tsv")) {
         try {
           const csvText = await readTextFile(filepath);
           const header = extractCsvHeader(csvText, ext);
@@ -151,10 +171,10 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
           topN: effectiveTopN,
           usePipeline,
           evolveproMode,
-          evolveproVariantColumn,
-          evolveproScoreColumn,
-          evolveproScoreOrder,
-          evolveproSheetName,
+          evolveproVariantColumn: activeVariantColumn,
+          evolveproScoreColumn: activeScoreColumn,
+          evolveproScoreOrder: activeScoreOrder,
+          evolveproSheetName: activeSheetName,
         positionDiversityEnabled,
         maxPerPosition,
         activeDomains,
@@ -205,6 +225,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       }
     } catch (err) {
       if (gen === csvLoadGeneration) {
+        const modeLabel = get().evolveproMode === "others" ? "Others" : "EVOLVEpro";
         set({
           mutationText: "",
           evolveproTotalCount: 0,
@@ -214,7 +235,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
           yPredMap: {},
           domainStats: {},
           poolVariants: [],
-          statusMessage: `EVOLVEpro CSV load failed: ${formatError(err)}`,
+          statusMessage: `${modeLabel} file load failed: ${formatError(err)}`,
         });
       }
       throw err;
@@ -224,7 +245,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   setEvolveproMode: (mode: EvolveproMode) => {
     set({ evolveproMode: mode });
     // Switching modes changes which params are sent; reload CSV if loaded.
-    const path = get().evolveproCsvPath;
+    const path = mode === "others" ? "" : get().evolveproCsvPath;
     if (path) {
       void get().loadEvolveproCsv(path);
     }
@@ -234,6 +255,12 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   setEvolveproScoreOrder: (order) => set({ evolveproScoreOrder: order }),
   setEvolveproSheetName: (name) => set({ evolveproSheetName: name }),
   setEvolveproPreview: (preview) => set({ evolveproPreview: preview }),
+  setOthersSourcePath: (path) => set({ othersSourcePath: path }),
+  setOthersVariantColumn: (col) => set({ othersVariantColumn: col }),
+  setOthersScoreColumn: (col) => set({ othersScoreColumn: col }),
+  setOthersScoreOrder: (order) => set({ othersScoreOrder: order }),
+  setOthersSheetName: (name) => set({ othersSheetName: name }),
+  setOthersPreview: (preview) => set({ othersPreview: preview }),
 
   parseMutations: async () => {
     const { mutationText } = get();
