@@ -91,8 +91,17 @@ export function ResultTable() {
   // Canonical order index map: row object → position in sortPrimersCanonical output.
   // Used as the single source of truth for Mutation column ordering so ResultTable
   // matches Plate/Mapping views. Null when no sort is active (react-table uses input order).
+  //
+  // IMPORTANT: build the index map using ASC direction regardless of the active
+  // sort.desc. TanStack Table inverts the sortingFn return value when desc=true,
+  // so if we baked direction into canonicalOrder here, the direction would be
+  // applied twice and the Mutation column would render opposite to its ▼/▲
+  // indicator (observed bug: low aa_position first while indicator shows ▼).
   const canonicalOrder = useMemo(() => {
-    const sorted = sortPrimersCanonical(designResults, sorting, {
+    const ascSorting = sorting.length > 0
+      ? [{ id: sorting[0].id, desc: false }]
+      : sorting;
+    const sorted = sortPrimersCanonical(designResults, ascSorting, {
       yPredMap,
       customCandidates: customCandidatesAll,
     });
