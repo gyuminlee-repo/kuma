@@ -15,6 +15,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import { Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,7 +47,6 @@ export function ExportFormatSelector() {
   const [projectName, setProjectName] = useState("");
   const [fwdPlate, setFwdPlate] = useState("");
   const [rvsPlate, setRvsPlate] = useState("");
-  const [orderVendor, setOrderVendor] = useState<"macrogen">("macrogen");
   const [amount, setAmount] = useState<"0.05" | "0.2">("0.05");
   const [bom, setBom] = useState(false);
   const [running, setRunning] = useState(false);
@@ -192,46 +192,59 @@ export function ExportFormatSelector() {
         )}
       </div>
 
-      {/* Order vendor */}
-      <div className="flex flex-col gap-1">
-        <label
-          htmlFor="order-vendor"
-          className="text-sm font-medium text-foreground"
-        >
-          {tx("phaseC.export.all.orderVendor", "Order vendor")}
-        </label>
-        <select
-          id="order-vendor"
-          value={orderVendor}
-          onChange={(e) => setOrderVendor(e.target.value as "macrogen")}
-          className="w-fit rounded-md border border-input bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring min-w-0"
-        >
-          <option value="macrogen">Macrogen</option>
-        </select>
-        <span className="text-caption text-muted-foreground">
-          {tx("phaseC.export.all.orderVendorHint", "Included in Export all as a timestamp-prefixed Macrogen .xls file.")}
-        </span>
-      </div>
-
-      {/* Amount */}
-      <div className="flex flex-col gap-1">
-        <label htmlFor="amount" className="text-sm font-medium text-foreground">
-          {tx("phaseC.export.all.amountLabel", "Amount")}
-        </label>
-        <div className="flex items-center gap-3">
-          <select
-            id="amount"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value as "0.05" | "0.2")}
-            className="rounded-md border border-input bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring min-w-0"
-          >
-            <option value="0.05">0.05 μmole</option>
-            <option value="0.2">0.2 μmole</option>
-          </select>
-          <span className="text-sm text-muted-foreground">
-            {tx("phaseC.export.all.purificationLabel", "Purification")}: MOPC
+      {/* Order Vendor group: vendor header + Amount + Purification */}
+      <div className="rounded-md border border-border p-3 space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium text-foreground">
+            {tx("phaseC.export.all.orderVendor", "Order vendor")}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            Macrogen Plate Oligo
           </span>
         </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-1">
+            <label
+              htmlFor="amount"
+              className="text-sm font-medium text-foreground"
+            >
+              {tx("phaseC.export.all.amountLabel", "Amount")}
+            </label>
+            <select
+              id="amount"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value as "0.05" | "0.2")}
+              className="rounded-md border border-input bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring min-w-0"
+            >
+              <option value="0.05">0.05 μmole</option>
+              <option value="0.2">0.2 μmole</option>
+            </select>
+          </div>
+          <div className="flex flex-col gap-1">
+            <span className="text-sm font-medium text-foreground">
+              {tx("phaseC.export.all.purificationLabel", "Purification")}
+            </span>
+            <span
+              className="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-muted-foreground"
+              title={tx(
+                "phaseC.export.all.purificationTooltip",
+                "MOPC (Macrogen Oligo Purification Cartridge): Macrogen 표준 정제 방식, 변경 불가.",
+              )}
+            >
+              MOPC
+              <Info
+                className="h-3 w-3 text-muted-foreground"
+                aria-hidden="true"
+              />
+            </span>
+          </div>
+        </div>
+        <span className="text-caption text-muted-foreground block">
+          {tx(
+            "phaseC.export.all.orderVendorHint",
+            "Included in Export all as a timestamp-prefixed Macrogen .xls file.",
+          )}
+        </span>
       </div>
 
       {/* Echo transfer volume */}
