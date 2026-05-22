@@ -184,8 +184,11 @@ export function BarcodeSetupPanel({ group }: BarcodeSetupPanelProps = {}) {
         const candidates = autoDetectCdsCandidates(content);
         setCdsCandidates(candidates);
         if (candidates.length > 0) {
-          const first = candidates[0];
-          setForm({ geneStart: String(first.start), geneEnd: String(first.end) });
+          let best = candidates[0];
+          for (const c of candidates) {
+            if (c.aa_length > best.aa_length) best = c;
+          }
+          setForm({ geneStart: String(best.start), geneEnd: String(best.end) });
         }
       })
       .catch(() => {
