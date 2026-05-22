@@ -717,6 +717,62 @@ def domain_aware_select(
                 quotas[name] -= 1
                 overflow -= 1
 
+    # Pre-quota rebalance: clamp quotas by actual candidate availability,
+    # redistribute deficit to domains with spare capacity (proportional weight).
+    # equal strategy: 사용자 의도 보존, 미적용. linker는 재분배 대상 제외.
+    if strategy != "equal":
+        rebalance_names = [d["name"] for d in domains]
+        length_weight = {
+            d["name"]: max(d["end"] - d["start"] + 1, 1) for d in domains
+        }
+        for _ in range(4):
+            deficit = 0
+            flex_names: list[str] = []
+            for name in rebalance_names:
+                available = len(domain_bins.get(name, []))
+                current = quotas.get(name, 0)
+                if current > available:
+                    deficit += current - available
+                    quotas[name] = available
+                elif current < available:
+                    flex_names.append(name)
+            if deficit == 0 or not flex_names:
+                break
+            weight_total = sum(length_weight[n] for n in flex_names)
+            if weight_total == 0:
+                break
+            remaining = deficit
+            for n in flex_names:
+                spare = len(domain_bins[n]) - quotas[n]
+                add = min(
+                    int(round(deficit * length_weight[n] / weight_total)),
+                    spare,
+                )
+                if add > 0:
+                    quotas[n] += add
+                    remaining -= add
+            # Rounding leftover: distribute to flex names with most spare
+            flex_sorted = sorted(
+                flex_names,
+                key=lambda n: len(domain_bins[n]) - quotas[n],
+                reverse=True,
+            )
+            safety = 0
+            while remaining > 0 and flex_sorted:
+                progressed = False
+                for n in flex_sorted:
+                    if remaining <= 0:
+                        break
+                    if len(domain_bins[n]) > quotas[n]:
+                        quotas[n] += 1
+                        remaining -= 1
+                        progressed = True
+                if not progressed:
+                    break
+                safety += 1
+                if safety > 1000:
+                    break
+
     # Select within each domain by y_pred order (rows already sorted)
     selected: list[tuple[str, float]] = []
     selected_set: set[str] = set()
