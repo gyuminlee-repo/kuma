@@ -115,6 +115,64 @@ class TestDomainAwareSelect:
         # top_n 미충족 허용 (D3 후보 부족 → 총 선택 < 9)
         assert len(selected) <= 9
 
+    def test_proportional_rebalances_when_domain_understaffed(self):
+        """Pre-quota rebalance: D2 candidate가 quota보다 적으면 결손이 D1로 재분배되어 top_n 충족."""
+        # D1 (pos 10-100): 50 candidates
+        # D2 (pos 150-160): 5 candidates only
+        rows: list[tuple[str, float]] = [
+            (f"A{pos}P", 0.99 - i * 0.001) for i, pos in enumerate(range(10, 100))
+        ] + [
+            (f"R{pos}K", 0.40 - i * 0.01) for i, pos in enumerate(range(150, 155))
+        ]
+
+        domains = [
+            {"name": "D1", "start": 1, "end": 100},
+            {"name": "D2", "start": 101, "end": 200},
+        ]
+
+        selected, stats = domain_aware_select(
+            rows, domains, top_n=40,
+            strategy="proportional",
+            domain_quota_min=1,
+        )
+
+        d2_count = sum(1 for v, _ in selected if 101 <= int(v[1:-1]) <= 200)
+        d1_count = sum(1 for v, _ in selected if 1 <= int(v[1:-1]) <= 100)
+
+        # D2 candidate=5 → quota clamp to 5, deficit (~15) flows to D1
+        assert stats["D2"]["quota"] == 5
+        assert d2_count == 5
+        assert d1_count >= 35
+        assert len(selected) == 40
+
+    def test_equal_strategy_does_not_rebalance(self):
+        """equal strategy는 의도 보존: 후보 부족 도메인 결손이 다른 도메인으로 흐르지 않는다."""
+        rows: list[tuple[str, float]] = []
+        for i, pos in enumerate(range(10, 60)):
+            rows.append((f"A{pos}P", 0.99 - i * 0.001))
+        rows.append(("R150K", 0.30))
+        rows.append(("R151K", 0.29))
+
+        domains = [
+            {"name": "D1", "start": 1, "end": 100},
+            {"name": "D2", "start": 101, "end": 200},
+        ]
+
+        selected, stats = domain_aware_select(
+            rows, domains, top_n=20,
+            strategy="equal",
+            domain_quota_min=1,
+        )
+
+        # equal: each domain has quota=10. D2 caps at 2 candidates, no flow-over.
+        assert stats["D1"]["quota"] == 10
+        assert stats["D2"]["quota"] == 10
+        d1_count = sum(1 for v, _ in selected if 1 <= int(v[1:-1]) <= 100)
+        d2_count = sum(1 for v, _ in selected if 101 <= int(v[1:-1]) <= 200)
+        assert d1_count == 10
+        assert d2_count == 2  # only 2 available, no redistribution
+        assert len(selected) == 12  # top_n=20 not met by design
+
 
 class TestRefSeqConversion:
     """v0.3 §4: ref_seq enables 89W → F89W conversion (EVOLVEpro short notation)."""
