@@ -420,6 +420,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
         mutationText: s.mutationText,
         evolveproCsvPath: s.evolveproCsvPath,
         selectedGene: s.selectedGene,
+        othersSourcePath: s.othersSourcePath,
       },
       settings: {
         selectedPolymerase: s.selectedPolymerase,
@@ -458,6 +459,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
         saveCache: s.saveCache,
         organism: s.organism,
         pipelineMode: s.evolveproMode !== "topN",
+        evolveproMode: s.evolveproMode,
         positionDiversityEnabled: s.positionDiversityEnabled,
         maxPerPosition: s.maxPerPosition,
         evolveproRound: s.evolveproRound,
@@ -552,6 +554,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       mutationInputMode: inputs.mutationInputMode ?? "text",
       mutationText: inputs.mutationText ?? "",
       evolveproCsvPath: inputs.evolveproCsvPath ?? "",
+      othersSourcePath: inputs.othersSourcePath ?? "",
       fastaPath: inputs.fastaPath ?? "",
       seqInfo: loadedSeqInfo,
       selectedGene: restoredGene,
@@ -605,7 +608,12 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       autoRedesignOnLoad: settings.autoRedesignOnLoad ?? true,
       saveCache: settings.saveCache ?? true,
       ...(settings.organism && { organism: settings.organism }),
-      evolveproMode: settings.pipelineMode === false ? "topN" : "pipeline",
+      // Prefer the tri-state evolveproMode when present (saved by newer
+       // workspaces). Fall back to the legacy boolean pipelineMode for
+       // workspaces that pre-date the "others" mode.
+      evolveproMode:
+        settings.evolveproMode ??
+        (settings.pipelineMode === false ? "topN" : "pipeline"),
       positionDiversityEnabled: settings.positionDiversityEnabled ?? true,
       maxPerPosition: settings.maxPerPosition ?? 1,
       evolveproRound: settings.evolveproRound ?? 1,

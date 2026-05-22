@@ -341,6 +341,12 @@ export interface WorkspaceInputs {
   mutationText: string;
   evolveproCsvPath: string;
   selectedGene: string;
+  /**
+   * Path to the "Others" mode mutation source file (CSV/TSV/XLSX).
+   * Optional for backward compatibility with workspaces saved before
+   * this field existed. Empty string or undefined = no file selected.
+   */
+  othersSourcePath?: string;
 }
 
 export interface WorkspaceSettings {
@@ -380,6 +386,11 @@ export interface WorkspaceSettings {
   saveCache?: boolean;
   organism?: string;
   pipelineMode?: boolean;
+  /**
+   * EVOLVEpro selection mode tri-state. When present, takes priority over
+   * `pipelineMode` on restore. Optional for backward compatibility.
+   */
+  evolveproMode?: "topN" | "pipeline" | "others";
   positionDiversityEnabled?: boolean;
   maxPerPosition?: number;
   evolveproRound?: number;

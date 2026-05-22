@@ -341,6 +341,9 @@ class WorkspaceInputsModel(WorkspaceModel):
     mutationText: str
     evolveproCsvPath: str
     selectedGene: str
+    # Optional: Others-mode mutation source file path. Backward-compatible
+    # with workspaces saved before this field existed.
+    othersSourcePath: Optional[str] = None
 
 
 class WorkspaceSettingsModel(WorkspaceModel):
@@ -380,6 +383,8 @@ class WorkspaceSettingsModel(WorkspaceModel):
     organism: Optional[str] = None
     overlapMode: Optional[Literal["partial", "full"]] = None
     pipelineMode: Optional[bool] = None
+    # Tri-state EVOLVEpro mode. Takes priority over pipelineMode on restore.
+    evolveproMode: Optional[Literal["topN", "pipeline", "others"]] = None
     positionDiversityEnabled: Optional[bool] = None
     maxPerPosition: Optional[int] = None
     evolveproRound: Optional[int] = None
