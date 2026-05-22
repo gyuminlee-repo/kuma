@@ -2093,5 +2093,10 @@
     "mappingRange": "Mapping range",
     "rowStart": "Start row",
     "rowEnd": "End row"
+  },
+  "errors": {
+    "sequence": {
+      "fastaNotSupported": "需要CDS註釋。請使用GenBank(.gb/.gbk)或SnapGene(.dna)檔案。"
+    }
   }
 }

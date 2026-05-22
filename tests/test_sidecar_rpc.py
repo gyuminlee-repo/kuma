@@ -34,7 +34,7 @@ import sidecar_kuro.handlers.design as _design_handlers  # noqa: E402
 import sidecar_kuro.core as _sidecar_core  # noqa: E402
 
 FIXTURES_DIR = _PROJECT_ROOT / "fixtures"
-FASTA_PATH = str(FIXTURES_DIR / "pSHCE-dmpR.fa")
+FASTA_PATH = str(FIXTURES_DIR / "pSHCE-dmpR.gb")
 MUTATIONS_CSV = str(FIXTURES_DIR / "mutation_list_insilico_test.csv")
 TARGET_START = 1790
 

@@ -46,7 +46,8 @@ def _append_crash_log(method: str, params_summary: str, tb: str) -> None:
     append_crash_log(_get_crash_log_path(), method, params_summary, tb)
 
 
-_ALLOWED_FASTA_EXTENSIONS = {".fa", ".fasta", ".fna", ".dna", ".gb", ".gbff", ".gbk"}
+# FASTA 미허용. annotated sequence formats only (CDS 메타데이터 필요).
+_ALLOWED_FASTA_EXTENSIONS = {".dna", ".gb", ".gbff", ".gbk"}
 _ALLOWED_CSV_EXTENSIONS = {".csv", ".tsv", ".txt"}
 _ALLOWED_EXCEL_EXTENSIONS = {".xlsx"}
 _VALID_DNA_BASES = re.compile(r"^[ATGC]+$")

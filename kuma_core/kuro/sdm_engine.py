@@ -1123,81 +1123,84 @@ def load_sequence(filepath: Path) -> tuple[str, str, list[GeneInfo]]:
         header, sequence = _load_snapgene(filepath)
         genes = _extract_genes_from_biopython(filepath, "snapgene")
         if not genes:
-            # Fallback: detect ORFs when SnapGene file lacks CDS features
-            genes = _detect_orfs(sequence)
+            raise ValueError("CDS annotation required. Use GenBank (.gb/.gbk) or SnapGene (.dna).")
         return header, sequence, genes
 
-    # Plain FASTA: parse header for gene/organism hints
-    header, sequence = load_fasta(filepath)
-    gene_hint, organism_hint = _parse_fasta_header(header)
-    genes = _detect_orfs(sequence, gene_name=gene_hint or "ORF1", organism=organism_hint)
-    return header, sequence, genes
+    if suffix in {".fa", ".fasta", ".fna"}:
+        raise ValueError("CDS annotation required. Use GenBank (.gb/.gbk) or SnapGene (.dna).")
+
+    raise ValueError("CDS annotation required. Use GenBank (.gb/.gbk) or SnapGene (.dna).")
 
 
 def _load_genbank(gb_path: Path) -> tuple[str, str, list[GeneInfo]]:
-    """Load a GenBank file and extract CDS features."""
+    """Load a GenBank file and extract CDS features across all records."""
     from Bio import SeqIO
 
-    try:
-        with open(gb_path, encoding="utf-8", errors="replace") as fh:
-            record = SeqIO.read(fh, "genbank")
-    except ValueError:
-        with open(gb_path, encoding="utf-8", errors="replace") as fh:
-            records = list(SeqIO.parse(fh, "genbank"))
-        if not records:
-            raise ValueError(f"No records found in GenBank file: {gb_path.name}")
-        record = records[0]
-        logger.info("Multi-record GenBank: using first record (%s)", record.id)
+    with open(gb_path, encoding="utf-8", errors="replace") as fh:
+        records = list(SeqIO.parse(fh, "genbank"))
+    if not records:
+        raise ValueError(f"No records found in GenBank file: {gb_path.name}")
 
-    header = record.description if record.description else record.id
-    sequence = str(record.seq).upper()
+    first = records[0]
+    header = first.description if first.description else first.id
+    sequence = str(first.seq).upper()
     if not sequence:
         raise ValueError(f"Empty sequence in GenBank file: {gb_path.name}")
-    genes = _extract_cds_features(record)
+    genes = _extract_cds_features(records)
     return header, sequence, genes
 
 
 def _extract_cds_features(record) -> list[GeneInfo]:
-    """Extract CDS features from a Biopython SeqRecord."""
-    organism = ""
-    if hasattr(record, "annotations"):
-        organism = record.annotations.get("organism", "")
+    """Extract CDS features from a Biopython SeqRecord or iterable of records.
+
+    Uses feature.extract() so strand orientation (complement) is handled by Biopython.
+    """
+    if isinstance(record, list):
+        records = record
+    else:
+        records = [record]
 
     genes: list[GeneInfo] = []
-    for feature in record.features:
-        if feature.type != "CDS":
-            continue
-        qualifiers = feature.qualifiers
-        gene_name = qualifiers.get("gene", qualifiers.get("locus_tag", ["unknown"]))[0]
-        product = qualifiers.get("product", [""])[0]
-        start = int(feature.location.start)
-        end = int(feature.location.end)
-        aa_len = (end - start) // 3
+    for rec in records:
+        organism = ""
+        if hasattr(rec, "annotations"):
+            organism = rec.annotations.get("organism", "")
 
-        translation = qualifiers.get("translation", [""])[0]
-        if not translation:
-            cds_dna = str(record.seq[start:end]).upper()
-            translation = _translate_dna(cds_dna)
+        for feature in rec.features:
+            if feature.type != "CDS":
+                continue
+            qualifiers = feature.qualifiers
+            gene_name = qualifiers.get("gene", qualifiers.get("locus_tag", ["unknown"]))[0]
+            product = qualifiers.get("product", [""])[0]
+            start = int(feature.location.start)
+            end = int(feature.location.end)
+            aa_len = (end - start) // 3
 
-        uniprot_acc = ""
-        for xref in qualifiers.get("db_xref", []):
-            if xref.startswith("UniProtKB"):
-                uniprot_acc = xref.split(":", 1)[-1] if ":" in xref else ""
-                break
-            if xref.startswith("UniProtKB/"):
-                uniprot_acc = xref.split("/", 1)[-1].split(":")[0] if "/" in xref else ""
-                break
+            translation = qualifiers.get("translation", [""])[0]
+            if not translation:
+                # Strand-aware: extract() reverse-complements for complement strand
+                cds_seq = feature.extract(rec.seq)
+                translation = str(cds_seq.translate(to_stop=True))
 
-        genes.append(GeneInfo(
-            gene=gene_name,
-            product=product,
-            cds_start=start,
-            cds_end=end,
-            aa_length=aa_len,
-            organism=organism,
-            translation=translation,
-            uniprot_accession=uniprot_acc,
-        ))
+            uniprot_acc = ""
+            for xref in qualifiers.get("db_xref", []):
+                if xref.startswith("UniProtKB"):
+                    uniprot_acc = xref.split(":", 1)[-1] if ":" in xref else ""
+                    break
+                if xref.startswith("UniProtKB/"):
+                    uniprot_acc = xref.split("/", 1)[-1].split(":")[0] if "/" in xref else ""
+                    break
+
+            genes.append(GeneInfo(
+                gene=gene_name,
+                product=product,
+                cds_start=start,
+                cds_end=end,
+                aa_length=aa_len,
+                organism=organism,
+                translation=translation,
+                uniprot_accession=uniprot_acc,
+            ))
     return genes
 
 
@@ -1244,41 +1247,6 @@ def _parse_fasta_header(header: str) -> tuple[str, str]:
             return "", organism
 
     return "", ""
-
-
-def _detect_orfs(
-    sequence: str, gene_name: str = "ORF1", organism: str = "",
-) -> list[GeneInfo]:
-    """Detect ORFs from ATG positions as fallback for FASTA files."""
-    stop_codons = {"TAA", "TAG", "TGA"}
-    best_start = 0
-    best_len = 0
-    for i in range(len(sequence) - 2):
-        if sequence[i:i + 3] != "ATG":
-            continue
-        orf_len = 0
-        for j in range(i + 3, len(sequence) - 2, 3):
-            if sequence[j:j + 3] in stop_codons:
-                orf_len = j - i
-                break
-        else:
-            orf_len = len(sequence) - i
-        if orf_len > best_len:
-            best_len = orf_len
-            best_start = i
-    if best_len > 0:
-        orf_dna = sequence[best_start:best_start + best_len]
-        translation = _translate_dna(orf_dna)
-        return [GeneInfo(
-            gene=gene_name,
-            product="auto-detected longest ORF",
-            cds_start=best_start,
-            cds_end=best_start + best_len,
-            aa_length=best_len // 3,
-            organism=organism,
-            translation=translation,
-        )]
-    return []
 
 
 def _load_snapgene(dna_path: Path) -> tuple[str, str]:

@@ -625,6 +625,15 @@
       "note": "preview_evolvepro_source RPC name must match between dispatcher registry and ipc.ts client (Wave C: ipc.ts client to be added)"
     },
     {
+      "id": "kuro-mame-load-sequence",
+      "files": [
+        "kuma_core/kuro/sdm_engine.py",
+        "python-core/sidecar_mame/handlers/ingest.py"
+      ],
+      "severity": "blocking",
+      "note": "MAME parse_reference가 KURO load_sequence/load_fasta를 재사용하면 KURO 정책 변경이 MAME로 cascade. ingest.py가 KURO 모듈 import 시 함께 검토 필요."
+    },
+    {
       "id": "mutation-input-mode-enum",
       "files": [
         "src/store/slices/inputSlice.ts",

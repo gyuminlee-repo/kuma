@@ -25,9 +25,9 @@ from tests.conftest import FIXTURES_DIR, TARGET_START
 
 
 @pytest.fixture(scope="module")
-def sdm_results(fasta_path, mutations_csv) -> list[SdmPrimerResult]:
+def sdm_results(genbank_path, mutations_csv) -> list[SdmPrimerResult]:
     results, _, _f = design_sdm_primers(
-        fasta_path=fasta_path,
+        fasta_path=genbank_path,
         target_start=TARGET_START,
         mutations_csv=mutations_csv,
         polymerase="Q5",
