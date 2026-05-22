@@ -188,6 +188,8 @@ def handle_load_evolvepro_csv(params: dict) -> dict:
         score_column=p.score_column,
         score_order=p.score_order,
         sheet_name=p.sheet_name,
+        domain_pool_autoexpand=p.domain_pool_autoexpand,
+        domain_pool_max_multiplier=p.domain_pool_max_multiplier,
     )
 
 
