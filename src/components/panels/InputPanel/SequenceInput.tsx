@@ -7,7 +7,8 @@ import { browseFile } from "../../../lib/file-utils";
 import { Button } from "../../ui/button";
 import { InlineHelp } from "../../ui/InlineHelp";
 
-const SEQUENCE_DROP_EXTENSIONS = new Set([".gb", ".gbk", ".gbff", ".dna", ".fa", ".fasta"]);
+const SEQUENCE_DROP_EXTENSIONS = new Set([".gb", ".gbk", ".gbff", ".dna"]);
+const FASTA_EXTENSIONS = new Set([".fa", ".fasta", ".fna"]);
 
 export function SequenceInput() {
   const { t } = useTranslation();
@@ -20,6 +21,15 @@ export function SequenceInput() {
   const setOrganism = useAppStore((s) => s.setOrganism);
   const loadSequence = useAppStore((s) => s.loadSequence);
   const uniprotSearching = useAppStore((s) => s.uniprotSearching);
+
+  const handleBrowseSelect = async (path: string) => {
+    const ext = path.slice(path.lastIndexOf(".")).toLowerCase();
+    if (FASTA_EXTENSIONS.has(ext)) {
+      useAppStore.setState({ statusMessage: t("errors.sequence.fastaNotSupported") });
+      return;
+    }
+    await loadSequence(path);
+  };
 
   // Item 3: Drag-and-drop visual feedback via Tauri webview event
   useEffect(() => {
@@ -61,10 +71,9 @@ export function SequenceInput() {
               browseFile(
                 [
                   { name: "Sequence (GenBank/SnapGene)", extensions: ["gb", "gbff", "gbk", "dna"] },
-                  { name: "FASTA", extensions: ["fa", "fasta", "fna"] },
                   { name: "All Files", extensions: ["*"] },
                 ],
-                loadSequence,
+                handleBrowseSelect,
               )
             }
             className="flex-shrink-0"

@@ -11,7 +11,21 @@ FIXTURES_DIR = Path(__file__).parent.parent / "fixtures"
 
 @pytest.fixture(scope="session")
 def fasta_path() -> Path:
+    """Raw FASTA fixture. Use only with load_fasta() (raw reader).
+
+    For design_sdm_primers() which calls load_sequence(), use `genbank_path`
+    (CDS annotation required since the FASTA-rejection policy).
+    """
     return FIXTURES_DIR / "pSHCE-dmpR.fa"
+
+
+@pytest.fixture(scope="session")
+def genbank_path() -> Path:
+    """GenBank fixture with same sequence as pSHCE-dmpR.fa plus dmpR CDS
+    annotation at 1790..3482 (sense strand). Required by design_sdm_primers
+    and any code path going through load_sequence().
+    """
+    return FIXTURES_DIR / "pSHCE-dmpR.gb"
 
 
 @pytest.fixture(scope="session")

@@ -41,7 +41,8 @@ import {
   KuroInspector,
 } from "./KuroChrome";
 
-const SEQUENCE_EXTENSIONS = new Set([".gb", ".gbk", ".gbff", ".dna", ".fa", ".fasta"]);
+const SEQUENCE_EXTENSIONS = new Set([".gb", ".gbk", ".gbff", ".dna"]);
+const FASTA_EXTENSIONS = new Set([".fa", ".fasta", ".fna"]);
 const CSV_EXTENSIONS = new Set([".csv"]);
 // Spec #2/#16: DesignReport popup mount removed. Report now renders in the
 // right inspector via DesignReportInspector (Phase C). DesignReport.tsx
@@ -161,15 +162,28 @@ export function AppLayout() {
             void tryHandleManifestDrop(paths).then(async (result) => {
               if (!result.handled) {
                 // 기존 파일 처리 흐름
+                let handledOne = false;
                 for (const filePath of paths) {
                   const ext = filePath.slice(filePath.lastIndexOf(".")).toLowerCase();
                   if (SEQUENCE_EXTENSIONS.has(ext)) {
                     useAppStore.getState().loadSequence(filePath);
+                    handledOne = true;
                     break;
                   }
                   if (CSV_EXTENSIONS.has(ext)) {
                     useAppStore.getState().loadEvolveproCsv(filePath);
+                    handledOne = true;
                     break;
+                  }
+                }
+                if (!handledOne) {
+                  // FASTA 거부: CDS annotation 필요
+                  const hasFasta = paths.some((p) => {
+                    const ext = p.slice(p.lastIndexOf(".")).toLowerCase();
+                    return FASTA_EXTENSIONS.has(ext);
+                  });
+                  if (hasFasta) {
+                    useAppStore.setState({ statusMessage: t("errors.sequence.fastaNotSupported") });
                   }
                 }
                 return;

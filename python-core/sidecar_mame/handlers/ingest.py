@@ -4,11 +4,16 @@ Parses a reference sequence file (FASTA, GenBank, or SnapGene .dna) and
 returns its CDS candidates so the analyze-phase UI can offer a dropdown
 picker instead of forcing manual cds_start / cds_end entry.
 
-Implementation reuses ``kuma_core.kuro.sdm_engine.load_sequence`` so the
-analyze and barcode-setup phases share the same parser semantics. Plain
-FASTA files have no annotated CDS features, so the function returns an
-empty ``cds_candidates`` array (frontend falls back to manual numeric
-input).
+Branches by file extension to isolate MAME from KURO policy changes:
+- FASTA (.fa/.fasta/.fna): uses ``kuro.sdm_engine.load_fasta`` (raw reader,
+  no CDS requirement) and returns empty ``cds_candidates`` (FASTA carries
+  no annotated CDS features; UI falls back to manual numeric entry).
+- GenBank/SnapGene (.gb/.gbk/.gbff/.dna): uses ``kuro.sdm_engine.load_sequence``
+  to extract annotated CDS features for the dropdown.
+
+KURO ``load_sequence`` now requires CDS annotation (raises ValueError on
+FASTA); MAME legitimately accepts FASTA references for alignment, so it
+must not depend on that policy.
 """
 
 from __future__ import annotations
@@ -21,6 +26,7 @@ from sidecar_mame.core import _ALLOWED_SEQUENCE_EXTENSIONS, _validate_filepath
 
 _GENBANK_SUFFIXES = {".gb", ".gbk", ".gbff"}
 _SNAPGENE_SUFFIXES = {".dna"}
+_FASTA_SUFFIXES = {".fa", ".fasta", ".fna"}
 
 
 def _detect_format(path: Path) -> str:
@@ -48,16 +54,18 @@ def handle_parse_reference(params: dict) -> dict[str, Any]:
     )
     fmt = _detect_format(file_path)
 
+    # Branch by format: FASTA uses raw reader (no CDS), GenBank/SnapGene
+    # uses load_sequence to extract annotated CDS features.
     # Lazy import: kuma_core.kuro pulls in Biopython, which is heavy.
-    from kuma_core.kuro.sdm_engine import load_sequence
-
-    _header, sequence, genes = load_sequence(file_path)
-
-    # Plain FASTA: load_sequence falls back to ORF detection. ORFs are not
-    # annotated CDS features, so do not surface them in the dropdown. The
-    # frontend should let the user enter coordinates manually instead.
     candidates: list[dict[str, Any]] = []
-    if fmt != "fasta":
+    if fmt == "fasta":
+        from kuma_core.kuro.sdm_engine import load_fasta
+
+        _header, sequence = load_fasta(file_path)
+    else:
+        from kuma_core.kuro.sdm_engine import load_sequence
+
+        _header, sequence, genes = load_sequence(file_path)
         for gene in genes:
             label_parts: list[str] = []
             gene_name = (gene.gene or "").strip()

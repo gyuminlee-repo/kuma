@@ -2208,6 +2208,9 @@
         "kuro": "KURO sidecar is outdated (missing method: {{method}}). Run `pnpm run sidecar:build` and retry.",
         "mame": "MAME sidecar is outdated (missing method: {{method}}). Run `pnpm run sidecar:build` and retry."
       }
+    },
+    "sequence": {
+      "fastaNotSupported": "CDS annotation required. Use a GenBank (.gb/.gbk) or SnapGene (.dna) file."
     }
   }
 }

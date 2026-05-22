@@ -5,6 +5,10 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from Bio import SeqIO
+from Bio.Seq import Seq
+from Bio.SeqFeature import FeatureLocation, SeqFeature
+from Bio.SeqRecord import SeqRecord
 
 from kuma_core.kuro.sdm_engine import (
     OffTargetHit,
@@ -17,12 +21,18 @@ from kuma_core.kuro.sdm_engine import (
     design_single_sdm,
     export_results_tsv,
     load_fasta,
+    load_sequence,
 )
 from kuma_core.kuro.mutation import Mutation
 from tests.conftest import FIXTURES_DIR, TARGET_START
 
 
-class TestLoadFasta:
+class TestLoadFastaRaw:
+    """`load_fasta()` remains a raw FASTA reader (used by sidecar RPC).
+
+    The CDS-only enforcement is in `load_sequence()`, not `load_fasta()`.
+    """
+
     def test_load_fasta(self, fasta_path):
         header, seq = load_fasta(fasta_path)
         assert "pSHCE-dmpR" in header
@@ -34,13 +44,131 @@ class TestLoadFasta:
         assert seq[TARGET_START:TARGET_START + 3] == "ATG"
 
 
+class TestLoadSequenceFastaRejection:
+    """`load_sequence()` must reject FASTA inputs (CDS annotation required)."""
+
+    def test_fa_extension_rejected(self, fasta_path):
+        with pytest.raises(ValueError, match="CDS annotation required"):
+            load_sequence(fasta_path)
+
+    def test_fasta_extension_rejected(self, tmp_path):
+        p = tmp_path / "sample.fasta"
+        p.write_text(">hdr\nATGAAA\n")
+        with pytest.raises(ValueError, match="CDS annotation required"):
+            load_sequence(p)
+
+    def test_fna_extension_rejected(self, tmp_path):
+        p = tmp_path / "sample.fna"
+        p.write_text(">hdr\nATGAAA\n")
+        with pytest.raises(ValueError, match="CDS annotation required"):
+            load_sequence(p)
+
+
+class TestGenbankCdsExtraction:
+    """End-to-end GenBank CDS extraction (covers complement strand,
+    multi-record files, and missing /translation qualifier).
+    """
+
+    @staticmethod
+    def _write_genbank(path: Path, records) -> None:
+        SeqIO.write(records, str(path), "genbank")
+
+    def test_complement_strand_translation(self, tmp_path):
+        """A CDS on the complement strand must be extracted as reverse complement
+        and translated correctly when /translation is absent.
+        """
+        # Build a 60 bp sequence; place a CDS on complement strand at 10..40 (Python slice).
+        # On complement, the CDS reads as the reverse complement of seq[10:40].
+        # Use a clean ORF on the reverse strand: start with ATG, stop at TAA.
+        # Forward seq[10:40] = reverse_complement of "ATG AAA CCC GGG TTT TAA" (30 nt)
+        cds_rev = "ATGAAACCCGGGTTTTAA"  # 18 nt, ends with TAA stop
+        cds_fwd_segment = str(Seq(cds_rev).reverse_complement())
+        full_seq = "N" * 10 + cds_fwd_segment + "N" * (60 - 10 - len(cds_fwd_segment))
+        assert len(full_seq) == 60
+
+        feat = SeqFeature(
+            FeatureLocation(10, 10 + len(cds_fwd_segment), strand=-1),
+            type="CDS",
+            qualifiers={"gene": ["testGene"], "product": ["test product"]},
+        )
+        rec = SeqRecord(Seq(full_seq), id="TEST1", name="TEST1",
+                        description="complement strand test",
+                        annotations={"molecule_type": "DNA", "organism": "Test organism"})
+        rec.features.append(feat)
+
+        gb_path = tmp_path / "complement.gb"
+        self._write_genbank(gb_path, [rec])
+
+        header, sequence, genes = load_sequence(gb_path)
+        assert len(genes) == 1
+        gene = genes[0]
+        assert gene.gene == "testGene"
+        # Translation from extract() should drop stop codon → "MKPGF"
+        expected_aa = str(Seq(cds_rev).translate(to_stop=True))
+        assert gene.translation == expected_aa
+        assert gene.translation == "MKPGF"
+
+    def test_multi_record_genbank(self, tmp_path):
+        """Multi-record GenBank: all CDS across records must be collected."""
+        from Bio.Seq import Seq
+        from Bio.SeqFeature import SeqFeature, FeatureLocation
+        from Bio.SeqRecord import SeqRecord
+
+        def make_record(rid: str, gene_name: str) -> SeqRecord:
+            seq = "ATG" + "AAA" * 9 + "TAA" + "GGG" * 5
+            feat = SeqFeature(
+                FeatureLocation(0, 30, strand=1),
+                type="CDS",
+                qualifiers={"gene": [gene_name], "translation": ["MKKKKKKKKK"]},
+            )
+            rec = SeqRecord(Seq(seq), id=rid, name=rid, description=rid,
+                            annotations={"molecule_type": "DNA"})
+            rec.features.append(feat)
+            return rec
+
+        recs = [make_record("REC1", "geneA"), make_record("REC2", "geneB")]
+        gb_path = tmp_path / "multi.gb"
+        self._write_genbank(gb_path, recs)
+
+        _header, _sequence, genes = load_sequence(gb_path)
+        assert len(genes) == 2
+        names = {g.gene for g in genes}
+        assert names == {"geneA", "geneB"}
+
+    def test_missing_translation_sense_strand(self, tmp_path):
+        """CDS without /translation: translate from sense strand, stop at first stop codon."""
+        from Bio.Seq import Seq
+        from Bio.SeqFeature import SeqFeature, FeatureLocation
+        from Bio.SeqRecord import SeqRecord
+
+        # ATG AAA CCC GGG TTT TAA = MKPGF + stop
+        cds_seq = "ATGAAACCCGGGTTTTAA"
+        full_seq = "C" * 5 + cds_seq + "C" * 5
+        feat = SeqFeature(
+            FeatureLocation(5, 5 + len(cds_seq), strand=1),
+            type="CDS",
+            qualifiers={"gene": ["noTransGene"]},  # NO /translation qualifier
+        )
+        rec = SeqRecord(Seq(full_seq), id="NOTR", name="NOTR",
+                        description="missing translation test",
+                        annotations={"molecule_type": "DNA"})
+        rec.features.append(feat)
+
+        gb_path = tmp_path / "no_translation.gb"
+        self._write_genbank(gb_path, [rec])
+
+        _header, _sequence, genes = load_sequence(gb_path)
+        assert len(genes) == 1
+        assert genes[0].translation == "MKPGF"
+
+
 class TestDesignSdmPrimers:
     """Integration test: design primers for all 12 mutations."""
 
     @pytest.fixture(scope="class")
-    def sdm_results(self, fasta_path, mutations_csv) -> list[SdmPrimerResult]:
+    def sdm_results(self, genbank_path, mutations_csv) -> list[SdmPrimerResult]:
         results, _, _f = design_sdm_primers(
-            fasta_path=fasta_path,
+            fasta_path=genbank_path,
             target_start=TARGET_START,
             mutations_csv=mutations_csv,
             polymerase="Q5",
@@ -103,9 +231,9 @@ class TestDesignSdmPrimers:
 
 
 class TestExportTsv:
-    def test_export(self, fasta_path, mutations_csv, tmp_path):
+    def test_export(self, genbank_path, mutations_csv, tmp_path):
         results, _, _f = design_sdm_primers(
-            fasta_path=fasta_path,
+            fasta_path=genbank_path,
             target_start=TARGET_START,
             mutations_csv=mutations_csv,
             polymerase="Q5",
@@ -121,9 +249,9 @@ class TestExportTsv:
         assert "Mutation" in lines[1]
         assert "Tm_Overlap" in lines[1]  # partial mode keeps original column name
 
-    def test_export_full_overlap_renames_third_tm_column(self, fasta_path, mutations_csv, tmp_path):
+    def test_export_full_overlap_renames_third_tm_column(self, genbank_path, mutations_csv, tmp_path):
         results, _, _f = design_sdm_primers(
-            fasta_path=fasta_path,
+            fasta_path=genbank_path,
             target_start=TARGET_START,
             mutations_csv=mutations_csv,
             polymerase="Q5",
@@ -183,31 +311,31 @@ class TestSynthesisScore:
 
 
 class TestCancelCheck:
-    def test_immediate_cancel(self, fasta_path, mutations_csv):
+    def test_immediate_cancel(self, genbank_path, mutations_csv):
         results, _, _ = design_sdm_primers(
-            fasta_path=fasta_path,
+            fasta_path=genbank_path,
             target_start=TARGET_START,
             mutations_csv=mutations_csv,
             cancel_check=lambda: True,
         )
         assert len(results) == 0
 
-    def test_no_cancel(self, fasta_path, mutations_csv):
+    def test_no_cancel(self, genbank_path, mutations_csv):
         results, _, _ = design_sdm_primers(
-            fasta_path=fasta_path,
+            fasta_path=genbank_path,
             target_start=TARGET_START,
             mutations_csv=mutations_csv,
             cancel_check=lambda: False,
         )
         assert len(results) >= 10
 
-    def test_partial_cancel(self, fasta_path, mutations_csv):
+    def test_partial_cancel(self, genbank_path, mutations_csv):
         counter = {"n": 0}
         def cancel_after_3():
             counter["n"] += 1
             return counter["n"] > 3
         results, _, _ = design_sdm_primers(
-            fasta_path=fasta_path,
+            fasta_path=genbank_path,
             target_start=TARGET_START,
             mutations_csv=mutations_csv,
             cancel_check=cancel_after_3,
@@ -385,10 +513,10 @@ class TestDesignFullOverlap:
         assert r.tm_fwd == r.tm_rev, "Full overlap: fwd/rev Tm must be equal"
 
     @pytest.fixture(scope="class")
-    def partial_results(self, fasta_path, mutations_csv) -> list[SdmPrimerResult]:
+    def partial_results(self, genbank_path, mutations_csv) -> list[SdmPrimerResult]:
         """Run partial mode as regression baseline."""
         results, _, _ = design_sdm_primers(
-            fasta_path=fasta_path,
+            fasta_path=genbank_path,
             target_start=TARGET_START,
             mutations_csv=mutations_csv,
             polymerase="Q5",

@@ -2093,5 +2093,10 @@
     "mappingRange": "Mapping range",
     "rowStart": "Start row",
     "rowEnd": "End row"
+  },
+  "errors": {
+    "sequence": {
+      "fastaNotSupported": "CDS-Annotation erforderlich. Verwenden Sie eine GenBank (.gb/.gbk) oder SnapGene (.dna) Datei."
+    }
   }
 }
