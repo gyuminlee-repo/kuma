@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import random
 import re
+from collections.abc import Mapping, Sequence
 from itertools import combinations
+from typing import Any
+
 from typing_extensions import TypedDict
 
 from .alphafold import ca_max_dist, pairwise_ca_distance
@@ -80,7 +83,7 @@ def simulate_selection(
     *,
     rng: random.Random | None = None,
     max_per_position: int = 1,
-    domains: list[dict] | None = None,
+    domains: Sequence[Mapping[str, Any]] | None = None,
     domain_strategy: str = "proportional",
     domain_overlap_policy: str = "first",
     linker_handling: str = "include",
@@ -91,7 +94,7 @@ def simulate_selection(
     distance_mode: str = "auto",
 ) -> list[tuple[str, float]]:
     """Simulate variant selection with KURO-style strategies."""
-    _domains: list[dict] = domains or []
+    _domains: Sequence[Mapping[str, Any]] = domains or []
     if strategy == "topn":
         return fitness_landscape[:n_select]
     if strategy == "random":
@@ -162,7 +165,7 @@ def evaluate_selection(
     selected: list[tuple[str, float]],
     ground_truth: dict[str, float],
     top_percentile: float = 10.0,
-    domains: list[dict] | None = None,
+    domains: Sequence[Mapping[str, Any]] | None = None,
     ca_coords: list[tuple[float, float, float] | None] | None = None,
 ) -> SelectionMetrics:
     """Evaluate selection quality against ground truth fitness."""
@@ -182,12 +185,6 @@ def evaluate_selection(
 
     threshold_idx = max(1, int(len(all_fitness) * top_percentile / 100))
     hit_threshold = all_fitness[threshold_idx - 1]
-
-    known_positions = {
-        pos
-        for variant in ground_truth
-        if (pos := _variant_pos(variant)) is not None
-    }
 
     hits = 0
     total_fitness = 0.0
@@ -233,7 +230,7 @@ def run_benchmark(
     top_percentile: float = 10.0,
     strategies: list[str] | None = None,
     *,
-    domains: list[dict] | None = None,
+    domains: Sequence[Mapping[str, Any]] | None = None,
     domain_strategy: str = "proportional",
     max_per_position: int = 1,
     entropy_weight: float = 0.3,

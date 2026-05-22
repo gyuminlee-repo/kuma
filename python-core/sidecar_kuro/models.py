@@ -696,6 +696,13 @@ class LoadEvolveproParams(BaseModel):
     score_column: Optional[str] = None
     score_order: Literal["desc", "asc"] = "desc"
     sheet_name: Optional[str] = None
+    # Iterative pool expansion for proportional domain strategy.
+    # When True, the candidate pool grows until each domain meets its
+    # length-derived quota or the safety cap is reached. Preserves
+    # user-intended domain ratio when high-fitness candidates cluster
+    # in a subset of domains.
+    domain_pool_autoexpand: bool = True
+    domain_pool_max_multiplier: float = Field(default=10.0, ge=1.0, le=100.0)
 
 
 class LandscapeEntry(BaseModel):

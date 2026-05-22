@@ -173,6 +173,99 @@ class TestDomainAwareSelect:
         assert d2_count == 2  # only 2 available, no redistribution
         assert len(selected) == 12  # top_n=20 not met by design
 
+    def test_pool_autoexpand_fills_understaffed_domain(self):
+        """D2 후보가 점수상 낮아 초기 풀에서 누락되어도, autoexpand가 풀을 확장해 quota를 채운다."""
+        # D1 (pos 1-100): 50 high-fitness candidates (0.99..0.50)
+        # D2 (pos 101-200): 50 low-fitness candidates (0.49..0.00)
+        # top_n=20, pool_multiplier=2.0 → initial pool=40 (all D1)
+        # quota proportional (equal length): D1=10, D2=10
+        # autoexpand should grow pool to include D2 candidates so D2 quota is met.
+        rows: list[tuple[str, float]] = []
+        for i in range(50):
+            rows.append((f"A{i + 1}P", 0.99 - i * 0.01))
+        for i in range(50):
+            rows.append((f"R{101 + i}K", 0.49 - i * 0.01))
+        # rows already in descending score order.
+
+        domains = [
+            {"name": "D1", "start": 1, "end": 100},
+            {"name": "D2", "start": 101, "end": 200},
+        ]
+
+        selected, stats = domain_aware_select(
+            rows, domains, top_n=20,
+            strategy="proportional",
+            domain_quota_min=1,
+            pool_multiplier=2.0,
+            domain_pool_autoexpand=True,
+        )
+
+        d1_count = sum(1 for v, _ in selected if 1 <= int(v[1:-1]) <= 100)
+        d2_count = sum(1 for v, _ in selected if 101 <= int(v[1:-1]) <= 200)
+        assert stats["D1"]["quota"] == 10
+        assert stats["D2"]["quota"] == 10
+        assert d1_count == 10
+        assert d2_count == 10
+        assert len(selected) == 20
+
+    def test_pool_autoexpand_disabled_lets_rebalance_take_over(self):
+        """autoexpand=False면 풀 확장 없음. 후보가 진짜 부족하면 기존 pre-quota rebalance가 결손을 처리."""
+        # D1: 50 candidates, D2: only 5 candidates available in the dataset.
+        rows: list[tuple[str, float]] = [
+            (f"A{pos}P", 0.99 - i * 0.001) for i, pos in enumerate(range(10, 60))
+        ] + [
+            (f"R{pos}K", 0.40 - i * 0.01) for i, pos in enumerate(range(150, 155))
+        ]
+        domains = [
+            {"name": "D1", "start": 1, "end": 100},
+            {"name": "D2", "start": 101, "end": 200},
+        ]
+
+        selected, stats = domain_aware_select(
+            rows, domains, top_n=40,
+            strategy="proportional",
+            domain_quota_min=1,
+            pool_multiplier=2.0,
+            domain_pool_autoexpand=False,
+        )
+
+        # Same expectations as the existing pre-quota rebalance test:
+        # D2 truly depleted, deficit flows to D1.
+        assert stats["D2"]["quota"] == 5
+        d2_count = sum(1 for v, _ in selected if 101 <= int(v[1:-1]) <= 200)
+        d1_count = sum(1 for v, _ in selected if 1 <= int(v[1:-1]) <= 100)
+        assert d2_count == 5
+        assert d1_count >= 35
+        assert len(selected) == 40
+
+    def test_pool_autoexpand_skips_equal_strategy(self):
+        """equal strategy는 autoexpand 미적용 (사용자 의도 보존)."""
+        rows: list[tuple[str, float]] = []
+        for i in range(50):
+            rows.append((f"A{i + 1}P", 0.99 - i * 0.01))
+        for i in range(50):
+            rows.append((f"R{101 + i}K", 0.49 - i * 0.01))
+        domains = [
+            {"name": "D1", "start": 1, "end": 100},
+            {"name": "D2", "start": 101, "end": 200},
+        ]
+
+        selected, _stats = domain_aware_select(
+            rows, domains, top_n=20,
+            strategy="equal",
+            domain_quota_min=1,
+            pool_multiplier=2.0,
+            domain_pool_autoexpand=True,
+        )
+        # equal strategy under autoexpand=True still hits the equal quota
+        # via the existing logic because both domains have plenty of rows;
+        # the loop is skipped (equal is excluded), and selection proceeds
+        # against the full unrestricted rows list.
+        d1_count = sum(1 for v, _ in selected if 1 <= int(v[1:-1]) <= 100)
+        d2_count = sum(1 for v, _ in selected if 101 <= int(v[1:-1]) <= 200)
+        assert d1_count == 10
+        assert d2_count == 10
+
 
 class TestRefSeqConversion:
     """v0.3 §4: ref_seq enables 89W → F89W conversion (EVOLVEpro short notation)."""

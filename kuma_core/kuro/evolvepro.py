@@ -10,7 +10,9 @@ import csv
 import math
 import re
 import statistics
+from collections.abc import Mapping, Sequence
 from pathlib import Path
+from typing import Any
 
 from kuma_core.kuro.alphafold import pairwise_ca_distance, ca_max_dist
 
@@ -418,8 +420,8 @@ def load_evolvepro_csv(
     filepath: str | Path,
     top_n: int = 96,
     max_per_position: int = 0,
-    domains: list[dict] | None = None,
-    excluded_ranges: list[dict] | None = None,
+    domains: Sequence[Mapping[str, Any]] | None = None,
+    excluded_ranges: Sequence[Mapping[str, Any]] | None = None,
     domain_diversity: bool = False,
     domain_strategy: str = "proportional",
     domain_overlap_policy: str = "first",
@@ -437,6 +439,8 @@ def load_evolvepro_csv(
     score_column: str | None = None,
     score_order: str = "desc",
     sheet_name: str | None = None,
+    domain_pool_autoexpand: bool = True,
+    domain_pool_max_multiplier: float = 10.0,
 ) -> dict:
     """Load EVOLVEpro df_test.csv and return selected variants.
 
@@ -536,6 +540,8 @@ def load_evolvepro_csv(
             pool_size_override=sigma_pool_size,
             distance_mode=distance_mode,
             excluded_ranges=excluded_ranges,
+            domain_pool_autoexpand=domain_pool_autoexpand,
+            domain_pool_max_multiplier=domain_pool_max_multiplier,
         )
     elif domain_diversity and domain_info:
         selected, domain_stats = domain_aware_select(
@@ -544,6 +550,8 @@ def load_evolvepro_csv(
             linker_handling=linker_handling,
             domain_quota_min=domain_quota_min,
             excluded_ranges=excluded_ranges,
+            domain_pool_autoexpand=domain_pool_autoexpand,
+            domain_pool_max_multiplier=domain_pool_max_multiplier,
         )
     elif pareto_diversity:
         selected, pareto_replaced = pareto_diversity_select(
@@ -581,7 +589,7 @@ def load_evolvepro_csv(
 
 def domain_aware_select(
     rows: list[tuple[str, float]],
-    domains: list[dict],
+    domains: Sequence[Mapping[str, Any]],
     top_n: int,
     strategy: str = "proportional",
     domain_overlap_policy: str = "first",
@@ -593,7 +601,9 @@ def domain_aware_select(
     pool_multiplier: float = 2.0,
     pool_size_override: int | None = None,
     distance_mode: str = "auto",
-    excluded_ranges: list[dict] | None = None,
+    excluded_ranges: Sequence[Mapping[str, Any]] | None = None,
+    domain_pool_autoexpand: bool = True,
+    domain_pool_max_multiplier: float = 10.0,
 ) -> tuple[list[tuple[str, float]], dict]:
     """Domain-based quota Top-N selection.
 
@@ -619,6 +629,79 @@ def domain_aware_select(
     """
     if not domains or top_n <= 0:
         return rows[:top_n], {}
+
+    # Iterative pool expansion (proportional strategy only).
+    # When domain_pool_autoexpand=True, restrict binning to a top-ranked pool
+    # and grow that pool until every domain meets its quota, or until the
+    # safety cap (top_n * domain_pool_max_multiplier) is reached.
+    # Goal: preserve the user-intended domain ratio even when high-fitness
+    # candidates skew toward a subset of domains. The pre-quota rebalance
+    # block below remains responsible for residual deficits (true depletion).
+    # equal strategy and sigma-adaptive pool_size_override skip this loop
+    # (user intent / adaptive sizing already binds the pool).
+    if (
+        domain_pool_autoexpand
+        and strategy == "proportional"
+        and pool_size_override is None
+        and len(rows) > 0
+    ):
+        initial_pool = max(top_n, int(top_n * pool_multiplier))
+        safety_cap = min(len(rows), max(initial_pool, int(top_n * domain_pool_max_multiplier)))
+        pool_size = min(initial_pool, safety_cap)
+
+        # Precompute proportional quotas from domain lengths (independent of
+        # bin contents, so quotas do not shift as the pool grows).
+        total_length = sum(d["end"] - d["start"] + 1 for d in domains)
+        if total_length > 0:
+            target_quota = {
+                d["name"]: max(
+                    domain_quota_min if domain_quota_min > 0 else 0,
+                    int((d["end"] - d["start"] + 1) / total_length * top_n),
+                )
+                for d in domains
+            }
+
+            _ex = excluded_ranges or []
+
+            def _pos_in_excluded(p: int) -> bool:
+                return any(r["start"] <= p <= r["end"] for r in _ex)
+
+            def _count_bins(limit: int) -> dict[str, int]:
+                counts: dict[str, int] = {d["name"]: 0 for d in domains}
+                for variant, _ in rows[:limit]:
+                    mp = _POS_RE.search(variant)
+                    if not mp:
+                        continue
+                    pos = int(mp.group(1))
+                    if _pos_in_excluded(pos):
+                        continue
+                    matched = [d for d in domains if d["start"] <= pos <= d["end"]]
+                    if not matched:
+                        continue
+                    if domain_overlap_policy == "largest":
+                        chosen = max(matched, key=lambda d: d["end"] - d["start"])
+                    else:
+                        chosen = matched[0]
+                    counts[chosen["name"]] += 1
+                return counts
+
+            # Monotonic expansion: never shrink the pool. Stop when all
+            # domains satisfy their target quota, when the safety cap is hit,
+            # or when expansion no longer adds rows.
+            while pool_size < safety_cap:
+                counts = _count_bins(pool_size)
+                short = [
+                    name for name, q in target_quota.items()
+                    if counts.get(name, 0) < q
+                ]
+                if not short:
+                    break
+                new_size = min(safety_cap, max(pool_size + 1, int(pool_size * 1.5)))
+                if new_size <= pool_size:
+                    break
+                pool_size = new_size
+
+            rows = rows[:pool_size]
 
     _excluded = excluded_ranges or []
 

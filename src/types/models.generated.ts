@@ -572,6 +572,8 @@ export interface LoadEvolveproParams {
   distance_mode?: "auto" | "1d" | "3d";
   domain_diversity?: boolean;
   domain_overlap_policy?: "first" | "largest";
+  domain_pool_autoexpand?: boolean;
+  domain_pool_max_multiplier?: number;
   domain_quota_min?: number;
   domain_strategy?: string;
   domains?: DomainEntry[];
