@@ -55,7 +55,7 @@ function Rack({
       : "bg-orange-50 dark:bg-orange-950/30";
 
   return (
-    <div className="min-w-[340px] flex-1">
+    <div className="min-w-[340px] flex-1 overflow-hidden">
       <div
         data-testid={labelTestId}
         className="text-caption text-muted-foreground mb-1"
@@ -98,18 +98,18 @@ function Rack({
                   data-row={r}
                   title={tip}
                   className={cn(
-                    "aspect-square rounded-[2px] border border-border/50 flex flex-col items-center justify-center",
+                    "aspect-square rounded-[2px] border border-border/50 flex flex-col items-center justify-center overflow-hidden p-0",
                     cell ? filledBg : emptyBg,
                     cell ? "cursor-pointer" : "",
                   )}
                 >
                   {cell ? (
                     <>
-                      <span className="text-[10px] font-mono leading-none">
+                      <span className="text-[10px] font-mono leading-none w-full text-center truncate">
                         {mutation}
                       </span>
                       {tag ? (
-                        <span className="text-[9px] leading-none text-muted-foreground">
+                        <span className="text-[9px] leading-none text-muted-foreground w-full text-center truncate">
                           {tag}
                         </span>
                       ) : null}
