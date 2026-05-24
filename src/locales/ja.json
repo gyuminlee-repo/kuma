@@ -2087,7 +2087,7 @@
     "legend": "Color legend",
     "legendForward": "Forward primer (Echo source / Janus Rack 1)",
     "legendReverse": "Reverse primer (Echo source / Janus Rack 2)",
-    "legendDest": "Destination (Janus Rack 3 / Echo dest)",
+    "legendDest": "Destination (Echo dest / Janus Rack 3)",
     "legendDestMerged": "Both F+R arrived",
     "legendDestPartial": "Only F or R arrived",
     "mappingRange": "Mapping range",
