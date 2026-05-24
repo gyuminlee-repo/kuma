@@ -15,7 +15,7 @@
     "sidecar:build:onedir": "cd python-core && node -e \"require('child_process').execSync((process.platform==='win32'?'python':'python3')+' build_sidecar.py',{stdio:'inherit'})\"",
     "sidecar:hash": "node scripts/sidecar-hash.mjs",
     "sidecar:hash:postbuild": "node scripts/sidecar-hash-postbuild.mjs",
-    "build:all": "pnpm run sidecar:build && pnpm run sidecar:hash && pnpm run tauri build && pnpm run sidecar:hash:postbuild",
+    "build:all": "pnpm run sidecar:build && pnpm run sidecar:hash && pnpm run tauri build ; pnpm run sidecar:hash:postbuild",
     "smoke:ui": "node scripts/ui-smoke.mjs",
     "sync:check": "node scripts/sync-check.mjs",
     "i18n:lint": "node scripts/i18n-lint.mjs",
