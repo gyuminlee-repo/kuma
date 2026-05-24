@@ -57,7 +57,7 @@ const DEFAULT_STATE: SetupFormState = {
   fastaPath: "",
   geneStart: "",
   geneEnd: "",
-  geneName: "egfp",
+  geneName: "",
   polymerase: "Q5",
   flankMin: "100",
   flankMax: "400",

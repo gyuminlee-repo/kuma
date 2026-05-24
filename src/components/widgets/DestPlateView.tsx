@@ -110,7 +110,7 @@ export function DestPlateView({ cells, sourceMethod, title, className }: Props) 
                         bg,
                       )}
                     >
-                      <span className="text-[8px] font-mono leading-none text-white truncate px-0.5">
+                      <span className="text-[10px] font-mono leading-none text-white truncate px-0.5">
                         {cell.mutation}
                       </span>
                     </button>

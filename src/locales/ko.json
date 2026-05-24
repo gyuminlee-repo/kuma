@@ -794,7 +794,7 @@
     "legend": "색상 범례",
     "legendForward": "Forward 프라이머 (Echo source / Janus Rack 1)",
     "legendReverse": "Reverse 프라이머 (Echo source / Janus Rack 2)",
-    "legendDest": "Destination (Janus Rack 3 / Echo dest)",
+    "legendDest": "Destination (Echo dest / Janus Rack 3)",
     "legendDestMerged": "F+R primer 모두 도착",
     "legendDestPartial": "F 또는 R 한쪽만 도착",
     "mappingRange": "매핑 범위",
