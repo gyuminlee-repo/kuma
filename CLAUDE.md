@@ -51,11 +51,17 @@ pnpm run sidecar:build    # Build Python sidecar (PyInstaller --onefile)
 pnpm run build:all        # sidecar:build + tauri build (full release)
 ```
 
+### macOS Build Recovery
+DMG bundle 단계 실패 시 `pnpm run sidecar:hash:postbuild` 단독 실행으로 sidecar 재서명 + manifest 갱신 + DMG 재생성. 풀 재빌드 불필요. integrity check 자체는 비활성 금지 (공급망 방어).
+
 ### Pre-commit checks (must pass before tagging)
 ```bash
 npx tsc --noEmit                    # TypeScript typecheck
 cd src-tauri && cargo check         # Rust compile check
 ```
+
+### Python Sidecar Environment
+PyInstaller + biopython wheel 빌드 호환을 위해 `.venv` (Python 3.11) 사용. 시스템 Python 3.14는 PEP 668 + 일부 wheel 부재로 sidecar 빌드 실패. 새 머신·새 세션에서 `python3.11 -m venv .venv && .venv/bin/pip install -e ".[build]"` 선행.
 
 ### Python tests
 ```bash
