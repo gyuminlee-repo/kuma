@@ -805,6 +805,7 @@ export interface WorkspaceInputsModel {
   fastaPath: string;
   mutationInputMode: "text" | "evolvepro";
   mutationText: string;
+  othersSourcePath?: string | null;
   selectedGene: string;
   [k: string]: unknown;
 }
@@ -844,6 +845,7 @@ export interface WorkspaceSettingsModel {
   domains?: DomainInfoModel[] | null;
   entropyWeight?: number | null;
   entropyWeightEnabled?: boolean | null;
+  evolveproMode?: ("topN" | "pipeline" | "others") | null;
   evolveproRound?: number | null;
   fillOnFailure?: boolean | null;
   fwdLenMax?: number | null;
