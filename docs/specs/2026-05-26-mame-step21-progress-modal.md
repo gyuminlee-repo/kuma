@@ -204,10 +204,6 @@ set({
     "calculating": "Calculating…",
     "lessThanMinute": "1분 미만",
     "remaining": "약 {{min}}분 {{sec}}초 남음"
-  },
-  "phase": {
-    "sorting": "Sorting barcode {{nbIndex}}/{{nbTotal}}, {{nbLabel}} (file {{fileIdx}}/{{fileTotal}})",
-    "analyzing": "{{message}}"
   }
 }
 ```
