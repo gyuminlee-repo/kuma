@@ -67,7 +67,7 @@ export async function sendRequest<T>(
   params: Record<string, unknown> = {},
   timeoutMs = 60_000,
 ): Promise<T> {
-  const request = rpc<T>("mame", method, params);
+  const request = rpc<T>("mame", method, params, timeoutMs);
   const timeout = new Promise<never>((_, reject) => {
     const timer = setTimeout(() => {
       reject(new Error(`RPC timeout: ${method} after ${timeoutMs}ms`));

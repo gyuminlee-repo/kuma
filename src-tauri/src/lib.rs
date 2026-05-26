@@ -13,9 +13,11 @@ async fn sidecar_rpc(
     kind: String,
     method: String,
     params: Value,
+    timeout_ms: Option<u64>,
     state: State<'_, sidecar::SidecarManager>,
 ) -> Result<Value, String> {
-    state.rpc(&kind, &method, params).await
+    let timeout_override = timeout_ms.filter(|&v| v > 0).map(Duration::from_millis);
+    state.rpc_with_timeout(&kind, &method, params, timeout_override).await
 }
 
 #[tauri::command]

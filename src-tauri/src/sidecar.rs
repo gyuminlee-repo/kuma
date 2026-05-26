@@ -237,6 +237,18 @@ impl SidecarManager {
     }
 
     pub async fn rpc(&self, kind: &str, method: &str, params: Value) -> Result<Value, String> {
+        self.rpc_with_timeout(kind, method, params, None).await
+    }
+
+    /// `timeout_override`가 None이면 RPC_TIMEOUT 기본값 사용.
+    pub async fn rpc_with_timeout(
+        &self,
+        kind: &str,
+        method: &str,
+        params: Value,
+        timeout_override: Option<Duration>,
+    ) -> Result<Value, String> {
+        let timeout = timeout_override.unwrap_or(RPC_TIMEOUT);
         let process = self.ensure_spawned(kind).await?;
         let id = self.next_id.fetch_add(1, Ordering::SeqCst);
         let rx = process.protocol.insert_pending(id).await;
@@ -262,16 +274,16 @@ impl SidecarManager {
             return Err(message);
         }
 
-        match tokio::time::timeout(RPC_TIMEOUT, rx).await {
+        match tokio::time::timeout(timeout, rx).await {
             Ok(Ok(Ok(value))) => Ok(value),
             Ok(Ok(Err(err))) => Err(format!("{method}: {err}")),
             Ok(Err(_)) => Err("Sidecar response channel closed".to_string()),
             Err(_) => {
                 process
                     .protocol
-                    .fail_pending(id, format!("RPC timeout: {method} after {}ms", RPC_TIMEOUT.as_millis()))
+                    .fail_pending(id, format!("RPC timeout: {method} after {}ms", timeout.as_millis()))
                     .await;
-                Err(format!("RPC timeout: {method} after {}ms", RPC_TIMEOUT.as_millis()))
+                Err(format!("RPC timeout: {method} after {}ms", timeout.as_millis()))
             }
         }
     }

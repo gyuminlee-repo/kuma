@@ -81,7 +81,7 @@ export async function sendRequest<K extends RpcMethod>(
   timeoutMs = 60_000,
 ): Promise<RpcMethodMap[K]["result"]> {
   const validateResult = getRpcResultValidator(method);
-  const request = rpc<unknown>("kuro", method, params);
+  const request = rpc<unknown>("kuro", method, params, timeoutMs);
   const timeout = new Promise<never>((_, reject) => {
     const timer = setTimeout(() => {
       reject(new Error(i18next.t("ipcKuro.rpcTimeout", { method, timeoutMs })));
