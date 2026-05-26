@@ -15,6 +15,7 @@ import { MAME_SCHEMA } from "@/lib/mame/autosaveSnapshot";
 import { detectProjectFiles, detectFromInputDir } from "@/lib/mame/detectProjectFiles";
 import { useAppStore } from "@/store/appStore";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
+import type { AppState } from "@/store/appStore";
 import type { AutosaveSnapshot } from "@/lib/autosave";
 import type { MameAutosaveSnapshot } from "@/lib/mame/autosaveSnapshot";
 
@@ -42,116 +43,232 @@ function formatRelativeTime(isoString: string): string {
 
 // ─── Kuro 복원 ────────────────────────────────────────────────────────────
 
+function isMutationInputMode(value: unknown): value is AppState["mutationInputMode"] {
+  return value === "text" || value === "evolvepro";
+}
+
+function isEvolveproMode(value: unknown): value is AppState["evolveproMode"] {
+  return value === "topN" || value === "pipeline" || value === "others";
+}
+
+function isScoreOrder(value: unknown): value is "asc" | "desc" {
+  return value === "asc" || value === "desc";
+}
+
+function isCodonStrategy(value: unknown): value is AppState["codonStrategy"] {
+  return value === "closest" || value === "optimal";
+}
+
+function isOverlapMode(value: unknown): value is AppState["overlapMode"] {
+  return value === "partial" || value === "full";
+}
+
+function isDomainStrategy(value: unknown): value is AppState["domainStrategy"] {
+  return value === "proportional" || value === "equal";
+}
+
+function isDomainOverlapPolicy(value: unknown): value is AppState["domainOverlapPolicy"] {
+  return value === "first" || value === "largest";
+}
+
+function isLinkerHandling(value: unknown): value is AppState["linkerHandling"] {
+  return value === "include" || value === "separate-bin" || value === "exclude";
+}
+
+function isDistanceMode(value: unknown): value is AppState["distanceMode"] {
+  return value === "auto" || value === "1d" || value === "3d";
+}
+
 async function applyKuroSnapshot(snapshot: AutosaveSnapshot): Promise<void> {
-  const store = useAppStore.getState();
   const input = snapshot.input as Record<string, unknown> | undefined;
   const params = snapshot.parameters as Record<string, unknown> | undefined;
   const diversity = snapshot.diversity as Record<string, unknown> | undefined;
+  const patch: Partial<AppState> = {};
 
   // input
-  if (typeof input?.mutation_input_mode === "string") {
-    store.setMutationInputMode(
-      input.mutation_input_mode as Parameters<typeof store.setMutationInputMode>[0],
-    );
+  if (isMutationInputMode(input?.mutation_input_mode)) {
+    patch.mutationInputMode = input.mutation_input_mode;
   }
   if (typeof input?.mutation_text === "string") {
-    store.setMutationText(input.mutation_text);
+    patch.mutationText = input.mutation_text;
   }
+  if (input?.sequence_path === null) {
+    patch.fastaPath = "";
+    patch.seqInfo = null;
+    patch.selectedGene = "";
+  }
+  if (typeof input?.organism === "string") {
+    patch.organism = input.organism;
+  }
+  if (isEvolveproMode(input?.evolvepro_mode)) {
+    patch.evolveproMode = input.evolvepro_mode;
+  } else if (typeof diversity?.pipeline_mode === "boolean") {
+    patch.evolveproMode = diversity.pipeline_mode ? "pipeline" : "topN";
+  }
+  if (typeof input?.evolvepro_csv_path === "string" || input?.evolvepro_csv_path === null) {
+    patch.evolveproCsvPath = input.evolvepro_csv_path ?? "";
+  }
+  if (typeof input?.others_source_path === "string" || input?.others_source_path === null) {
+    patch.othersSourcePath = input.others_source_path ?? "";
+  }
+  if (typeof input?.evolvepro_variant_column === "string" || input?.evolvepro_variant_column === null) {
+    patch.evolveproVariantColumn = input.evolvepro_variant_column;
+  }
+  if (typeof input?.evolvepro_score_column === "string" || input?.evolvepro_score_column === null) {
+    patch.evolveproScoreColumn = input.evolvepro_score_column;
+  }
+  if (isScoreOrder(input?.evolvepro_score_order)) {
+    patch.evolveproScoreOrder = input.evolvepro_score_order;
+  }
+  if (typeof input?.evolvepro_sheet_name === "string" || input?.evolvepro_sheet_name === null) {
+    patch.evolveproSheetName = input.evolvepro_sheet_name;
+  }
+  if (typeof input?.others_variant_column === "string" || input?.others_variant_column === null) {
+    patch.othersVariantColumn = input.others_variant_column;
+  }
+  if (typeof input?.others_score_column === "string" || input?.others_score_column === null) {
+    patch.othersScoreColumn = input.others_score_column;
+  }
+  if (isScoreOrder(input?.others_score_order)) {
+    patch.othersScoreOrder = input.others_score_order;
+  }
+  if (typeof input?.others_sheet_name === "string" || input?.others_sheet_name === null) {
+    patch.othersSheetName = input.others_sheet_name;
+  }
+
+  // parameters
+  if (typeof params?.polymerase === "string") {
+    patch.selectedPolymerase = params.polymerase;
+  }
+  if (isCodonStrategy(params?.codon_strategy)) {
+    patch.codonStrategy = params.codon_strategy;
+  }
+  if (typeof params?.max_primers === "number") {
+    patch.maxPrimers = params.max_primers;
+  }
+  if (typeof params?.tm_fwd_target === "number") {
+    patch.tmFwdTarget = params.tm_fwd_target;
+  }
+  if (typeof params?.tm_rev_target === "number") {
+    patch.tmRevTarget = params.tm_rev_target;
+  }
+  if (typeof params?.tm_overlap_target === "number") {
+    patch.tmOverlapTarget = params.tm_overlap_target;
+  }
+  if (typeof params?.gc_min === "number") {
+    patch.gcMin = params.gc_min;
+  }
+  if (typeof params?.gc_max === "number") {
+    patch.gcMax = params.gc_max;
+  }
+  if (typeof params?.primer_len_enabled === "boolean") {
+    patch.primerLenEnabled = params.primer_len_enabled;
+  }
+  if (typeof params?.fwd_len_min === "number") {
+    patch.fwdLenMin = params.fwd_len_min;
+  }
+  if (typeof params?.fwd_len_max === "number") {
+    patch.fwdLenMax = params.fwd_len_max;
+  }
+  if (typeof params?.rev_len_min === "number") {
+    patch.revLenMin = params.rev_len_min;
+  }
+  if (typeof params?.rev_len_max === "number") {
+    patch.revLenMax = params.rev_len_max;
+  }
+  if (typeof params?.fill_on_failure === "boolean") {
+    patch.fillOnFailure = params.fill_on_failure;
+  }
+  if (isOverlapMode(params?.overlap_mode)) {
+    patch.overlapMode = params.overlap_mode;
+  }
+
+  // diversity
+  if (Array.isArray(diversity?.domains) && Array.isArray(diversity?.disabled_domains)) {
+    patch.domains = diversity.domains as AppState["domains"];
+    patch.disabledDomains = diversity.disabled_domains as string[];
+  }
+  if (typeof diversity?.position_diversity_enabled === "boolean") {
+    patch.positionDiversityEnabled = diversity.position_diversity_enabled;
+  }
+  if (typeof diversity?.max_per_position === "number") {
+    patch.maxPerPosition = diversity.max_per_position;
+  }
+  if (typeof diversity?.domain_diversity_enabled === "boolean") {
+    patch.domainDiversityEnabled = diversity.domain_diversity_enabled;
+  }
+  if (isDomainStrategy(diversity?.domain_strategy)) {
+    patch.domainStrategy = diversity.domain_strategy;
+  }
+  if (isDomainOverlapPolicy(diversity?.domain_overlap_policy)) {
+    patch.domainOverlapPolicy = diversity.domain_overlap_policy;
+  }
+  if (isLinkerHandling(diversity?.linker_handling)) {
+    patch.linkerHandling = diversity.linker_handling;
+  }
+  if (typeof diversity?.domain_quota_min === "number") {
+    patch.domainQuotaMin = diversity.domain_quota_min;
+  }
+  if (typeof input?.uniprot_accession === "string" || input?.uniprot_accession === null) {
+    patch.uniprotAccession = input.uniprot_accession ?? "";
+  }
+  if (typeof diversity?.pareto_diversity_enabled === "boolean") {
+    patch.paretoDiversityEnabled = diversity.pareto_diversity_enabled;
+  }
+  if (typeof diversity?.entropy_weight_enabled === "boolean") {
+    patch.entropyWeightEnabled = diversity.entropy_weight_enabled;
+  }
+  if (typeof diversity?.entropy_weight === "number") {
+    patch.entropyWeight = diversity.entropy_weight;
+  }
+  if (typeof diversity?.pareto_pool_multiplier === "number") {
+    patch.paretoPoolMultiplier = diversity.pareto_pool_multiplier;
+  }
+  if (isDistanceMode(diversity?.distance_mode)) {
+    patch.distanceMode = diversity.distance_mode;
+  }
+  if (typeof diversity?.evolvepro_round === "number") {
+    patch.evolveproRound = diversity.evolvepro_round;
+  }
+  if (typeof diversity?.round_size === "number") {
+    patch.roundSize = diversity.round_size;
+  }
+  if (typeof diversity?.auto_redesign_on_load === "boolean") {
+    patch.autoRedesignOnLoad = diversity.auto_redesign_on_load;
+  }
+  if (typeof diversity?.save_cache === "boolean") {
+    patch.saveCache = diversity.save_cache;
+  }
+
   if (typeof input?.sequence_path === "string" && input.sequence_path) {
-    // 비동기. 실패해도 나머지 복원은 계속 진행
     try {
-      await store.loadSequence(input.sequence_path);
+      await useAppStore.getState().loadSequence(input.sequence_path);
     } catch {
       console.warn("[autosave] kuro: sequence load failed, continuing restore");
     }
   }
 
-  // parameters
-  if (typeof params?.polymerase === "string") {
-    try {
-      await store.setSelectedPolymerase(params.polymerase);
-    } catch {
-      console.warn("[autosave] kuro: polymerase load failed, continuing restore");
+  const selectedCds = typeof input?.selected_cds === "string" ? input.selected_cds : "";
+  if (selectedCds) {
+    const state = useAppStore.getState();
+    const geneExists = state.seqInfo?.genes.some((g) => String(g.cds_start) === selectedCds) ?? false;
+    if (geneExists) {
+      patch.selectedGene = selectedCds;
     }
   }
-  if (params?.codon_strategy === "closest" || params?.codon_strategy === "optimal") {
-    store.setCodonStrategy(params.codon_strategy);
-  }
-  if (typeof params?.max_primers === "number") {
-    store.setMaxPrimers(params.max_primers);
-  }
-  if (
-    typeof params?.tm_fwd_target === "number" &&
-    typeof params?.tm_rev_target === "number" &&
-    typeof params?.tm_overlap_target === "number"
-  ) {
-    store.setTmTargets(params.tm_fwd_target, params.tm_rev_target, params.tm_overlap_target);
-  }
-  if (typeof params?.gc_min === "number" && typeof params?.gc_max === "number") {
-    store.setGcRange(params.gc_min, params.gc_max);
-  }
-  if (typeof params?.primer_len_enabled === "boolean") {
-    store.setPrimerLenEnabled(params.primer_len_enabled);
-  }
-  if (
-    typeof params?.fwd_len_min === "number" &&
-    typeof params?.fwd_len_max === "number" &&
-    typeof params?.rev_len_min === "number" &&
-    typeof params?.rev_len_max === "number"
-  ) {
-    store.setPrimerLenRange(
-      params.fwd_len_min,
-      params.fwd_len_max,
-      params.rev_len_min,
-      params.rev_len_max,
-    );
-  }
-  if (typeof params?.fill_on_failure === "boolean") {
-    store.setFillOnFailure(params.fill_on_failure);
-  }
 
-  // diversity
-  if (typeof diversity?.pipeline_mode === "boolean") {
-    store.setEvolveproMode(diversity.pipeline_mode ? "pipeline" : "topN");
-  }
-  if (Array.isArray(diversity?.domains) && Array.isArray(diversity?.disabled_domains)) {
-    useAppStore.setState({
-      domains: diversity.domains as ReturnType<typeof useAppStore.getState>["domains"],
-      disabledDomains: diversity.disabled_domains as string[],
-    });
-  }
-  if (typeof diversity?.position_diversity_enabled === "boolean") {
-    store.setPositionDiversityEnabled(diversity.position_diversity_enabled);
-  }
-  if (typeof diversity?.max_per_position === "number") {
-    store.setMaxPerPosition(diversity.max_per_position);
-  }
-  if (typeof diversity?.domain_diversity_enabled === "boolean") {
-    store.setDomainDiversityEnabled(diversity.domain_diversity_enabled);
-  }
-  if (typeof diversity?.pareto_diversity_enabled === "boolean") {
-    store.setParetoDiversityEnabled(diversity.pareto_diversity_enabled);
-  }
-  if (typeof diversity?.entropy_weight_enabled === "boolean") {
-    store.setEntropyWeightEnabled(diversity.entropy_weight_enabled);
-  }
-  if (typeof diversity?.entropy_weight === "number") {
-    store.setEntropyWeight(diversity.entropy_weight);
-  }
-  if (typeof diversity?.pareto_pool_multiplier === "number") {
-    store.setParetoPoolMultiplier(diversity.pareto_pool_multiplier);
-  }
-  if (typeof diversity?.evolvepro_round === "number") {
-    store.setEvolveproRound(diversity.evolvepro_round);
-  }
-  if (typeof diversity?.round_size === "number") {
-    store.setRoundSize(diversity.round_size);
-  }
-  if (typeof diversity?.auto_redesign_on_load === "boolean") {
-    store.setAutoRedesignOnLoad(diversity.auto_redesign_on_load);
-  }
-  if (typeof diversity?.save_cache === "boolean") {
-    store.setSaveCache(diversity.save_cache);
+  useAppStore.setState(patch);
+
+  const restoredMode = patch.evolveproMode ?? useAppStore.getState().evolveproMode;
+  const activeSourcePath = restoredMode === "others"
+    ? (typeof input?.others_source_path === "string" ? input.others_source_path : "")
+    : (typeof input?.evolvepro_csv_path === "string" ? input.evolvepro_csv_path : "");
+  if (activeSourcePath) {
+    try {
+      await useAppStore.getState().loadEvolveproCsv(activeSourcePath);
+    } catch {
+      console.warn("[autosave] kuro: EVOLVEpro source load failed, continuing restore");
+    }
   }
 }
 

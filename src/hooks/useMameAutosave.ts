@@ -5,7 +5,7 @@
  * 프로젝트가 scratch이거나 path가 null이면 silent skip.
  */
 
-import { useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useKumaProject } from "@/state/projectContext";
 import { scheduleAutosave, flushAutosave, type AutosaveTarget } from "@/lib/autosave";
 import { buildMameSnapshot } from "@/lib/mame/autosaveSnapshot";
@@ -58,16 +58,22 @@ function shallowEqualTuple(
  */
 export function useMameAutosave(): { flushMameAutosave: () => Promise<void> } {
   const project = useKumaProject();
+  const targetRef = useRef<AutosaveTarget>({
+    projectPath: project?.path ?? null,
+    scratch: project?.scratch ?? true,
+  });
+  targetRef.current = {
+    projectPath: project?.path ?? null,
+    scratch: project?.scratch ?? true,
+  };
 
   useEffect(() => {
     if (!project || project.scratch || !project.path) return;
 
-    const target: AutosaveTarget = { projectPath: project.path, scratch: project.scratch };
-
     const unsubscribe = useMameAppStore.subscribe(
       selectMameInputs,
       () => {
-        scheduleAutosave(target, "mame", () =>
+        scheduleAutosave(targetRef.current, "mame", () =>
           buildMameSnapshot(useMameAppStore.getState()),
         );
       },
@@ -77,11 +83,9 @@ export function useMameAutosave(): { flushMameAutosave: () => Promise<void> } {
     return unsubscribe;
   }, [project?.path, project?.scratch]);
 
-  const flushMameAutosave = async (): Promise<void> => {
-    if (!project || project.scratch || !project.path) return;
-    const target: AutosaveTarget = { projectPath: project.path, scratch: project.scratch };
-    await flushAutosave(target, "mame");
-  };
+  const flushMameAutosave = useCallback(async (): Promise<void> => {
+    await flushAutosave(targetRef.current, "mame");
+  }, []);
 
   return { flushMameAutosave };
 }

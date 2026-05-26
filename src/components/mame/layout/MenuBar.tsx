@@ -73,15 +73,15 @@ const THEME_ITEMS: { value: Theme; labelKey: string }[] = [
 
 interface MenuBarProps {
   onClearRequest: () => void;
+  onRunRequest: () => void;
   /** JANUS export dialog 열기 — MameAppLayout에서 janusOpen 상태 소유. */
   onJanusOpen?: () => void;
 }
 
-export function MenuBar({ onClearRequest, onJanusOpen }: MenuBarProps) {
+export function MenuBar({ onClearRequest, onRunRequest, onJanusOpen }: MenuBarProps) {
   const { t } = useTranslation();
   const hasResults = useMameAppStore((s) => s.verdicts.length > 0);
   const isAnalyzing = useMameAppStore((s) => s.isAnalyzing);
-  const runAnalysis = useMameAppStore((s) => s.runAnalysis);
   const validateInputs = useMameAppStore((s) => s.validateInputs);
   const openExport = useMameAppStore((s) => s.openExport);
   const cancelAnalysis = useMameAppStore((s) => s.cancelAnalysis);
@@ -225,7 +225,7 @@ export function MenuBar({ onClearRequest, onJanusOpen }: MenuBarProps) {
           <DropdownMenuItem onClick={() => void validateInputs()} disabled={isAnalyzing}>
             <span className="flex-1">{t("file.validateInputs")}</span>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => void runAnalysis()} disabled={!canRun}>
+          <DropdownMenuItem onClick={onRunRequest} disabled={!canRun}>
             <span className="flex-1">{t("file.runAnalysis")}</span>
             <DropdownMenuShortcut>{MOD_KEY}D</DropdownMenuShortcut>
           </DropdownMenuItem>

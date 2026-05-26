@@ -47,6 +47,7 @@ import { InspectorPanel } from "@/components/widgets/InspectorPanel";
 import { ContextHeader } from "@/components/widgets/ContextHeader";
 import { DrawerStrip } from "@/components/widgets/DrawerStrip";
 import { JanusMappingDialog } from "@/components/mame/dialogs/JanusMappingDialog";
+import { useMameAutosave } from "@/hooks/useMameAutosave";
 
 // Activity store는 RoundStore를 주입받아 초기화 (lazy singleton).
 // MameAppLayout 모듈 로드 시 단 한 번만 실행.
@@ -74,6 +75,7 @@ export function MameAppLayout() {
   // F3: kuro와 동일한 localStorage "kuma.mainZoom" 공유 — Ctrl+wheel / Ctrl+=/−/0
   const zoom = useMainZoom();
   const { status, retry } = useMameSidecar();
+  const { flushMameAutosave } = useMameAutosave();
   // Clear All triggers full workspace reset (slices + manifest artifacts).
   const handleClearAll = useCallback(() => {
     void resetMameAll();
@@ -113,7 +115,9 @@ export function MameAppLayout() {
     if (!selectCanRun(s)) return;
     void runPreflightCheck({ sidecarStatus: status, requiresNetwork: false }).then(
       (pfResult) => {
-        const actualRun = () => void s.runAnalysis();
+        const actualRun = () => {
+          void flushMameAutosave().then(() => useMameAppStore.getState().runAnalysis());
+        };
         if (!pfResult.ok || pfResult.warnings.length > 0) {
           setPreflightResult({ result: pfResult, pendingAction: actualRun });
         } else {
@@ -121,7 +125,7 @@ export function MameAppLayout() {
         }
       },
     );
-  }, [status]);
+  }, [flushMameAutosave, status]);
 
   // §1 Dead-lock 감지: analysis 진행 중 30초 progress 정적 시 모달 표시
   useEffect(() => {
@@ -270,6 +274,7 @@ export function MameAppLayout() {
         titlebar={
           <MenuBar
             onClearRequest={() => setClearConfirmOpen(true)}
+            onRunRequest={tryRunAnalysis}
             onJanusOpen={() => setJanusOpen(true)}
           />
         }
