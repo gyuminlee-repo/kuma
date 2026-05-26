@@ -34,6 +34,20 @@ const DEFAULT_RAW_RUN_PARAMS: RawRunParams = {
   normalizeHeaders: true,
 };
 
+function pickLongestIndex(candidates: CdsCandidate[]): number | null {
+  if (candidates.length === 0) return null;
+  let best = 0;
+  let bestLen = candidates[0].end - candidates[0].start;
+  for (let i = 1; i < candidates.length; i++) {
+    const len = candidates[i].end - candidates[i].start;
+    if (len > bestLen) {
+      best = i;
+      bestLen = len;
+    }
+  }
+  return best;
+}
+
 function deriveSortedBarcodeOutputDir(outputPath: string): string {
   const normalized = outputPath.replace(/\\/g, "/");
   const slashIdx = normalized.lastIndexOf("/");
@@ -103,11 +117,16 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   ...mameInputInitialState,
   setCdsCandidates: (cdsCandidates) => set({ cdsCandidates, selectedCdsIndex: 0 }),
   setSelectedCdsIndex: (selectedCdsIndex) => set({ selectedCdsIndex }),
-  setAnalyzeCdsCandidates: (analyzeCdsCandidates) =>
+  setAnalyzeCdsCandidates: (analyzeCdsCandidates) => {
+    const idx = pickLongestIndex(analyzeCdsCandidates);
     set({
       analyzeCdsCandidates,
-      selectedAnalyzeCdsIndex: analyzeCdsCandidates.length > 0 ? 0 : null,
-    }),
+      selectedAnalyzeCdsIndex: idx,
+      ...(idx !== null
+        ? { cdsStart: analyzeCdsCandidates[idx].start, cdsEnd: analyzeCdsCandidates[idx].end }
+        : {}),
+    });
+  },
   setSelectedAnalyzeCdsIndex: (selectedAnalyzeCdsIndex) =>
     set({ selectedAnalyzeCdsIndex }),
   refreshAnalyzeCdsCandidates: async (referencePath: string) => {
@@ -125,14 +144,14 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       // call was issued (user may have picked another file mid-flight).
       if (get().referencePath !== referencePath) return;
       const candidates = result.cds_candidates ?? [];
+      const idx = pickLongestIndex(candidates);
       set({
         analyzeCdsCandidates: candidates,
-        selectedAnalyzeCdsIndex: candidates.length > 0 ? 0 : null,
+        selectedAnalyzeCdsIndex: idx,
+        ...(idx !== null
+          ? { cdsStart: candidates[idx].start, cdsEnd: candidates[idx].end }
+          : {}),
       });
-      if (candidates.length === 1) {
-        const c = candidates[0];
-        set({ cdsStart: c.start, cdsEnd: c.end });
-      }
     } catch (error) {
       // Silent fallback to manual entry; surface as console warn only.
       console.warn("[inputSlice] parse_reference failed:", error);

@@ -6,7 +6,7 @@
  * 반환된 cleanup 함수를 useEffect 반환값으로 연결해야 한다.
  */
 
-export const DEADLOCK_THRESHOLD_MS = 30_000;
+export const DEADLOCK_THRESHOLD_MS = 300_000;
 
 export interface DeadlockWatchOptions {
   /** 마지막 progress 수신 timestamp(ms) 반환. progress 없으면 null. */
