@@ -2,8 +2,7 @@ name: CI
 
 on:
   push:
-    branches: ["main", "feat/**", "fix/**"]
-  pull_request:
+    tags: ["v*"]
   workflow_dispatch:
 
 env:
@@ -24,6 +23,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
 
       - uses: actions/setup-python@v6
         with:
@@ -40,6 +41,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
 
       - uses: pnpm/action-setup@v4
 
@@ -81,6 +84,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
 
       - name: Install Linux dependencies
         run: |
