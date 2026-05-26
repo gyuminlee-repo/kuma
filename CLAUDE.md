@@ -54,6 +54,9 @@ pnpm run build:all        # sidecar:build + tauri build (full release)
 ### macOS Build Recovery
 DMG bundle 단계 실패 시 `pnpm run sidecar:hash:postbuild` 단독 실행으로 sidecar 재서명 + manifest 갱신 + DMG 재생성. 풀 재빌드 불필요. integrity check 자체는 비활성 금지 (공급망 방어).
 
+### Git hooks (new machine setup)
+`bash bin/install-git-hooks.sh` — wires `.githooks/pre-push` (runs `pnpm sync:check && npx tsc --noEmit`). Emergency bypass: `git push --no-verify`.
+
 ### Pre-commit checks (must pass before tagging)
 ```bash
 npx tsc --noEmit                    # TypeScript typecheck

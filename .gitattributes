@@ -12,6 +12,7 @@
 *.rs text eol=lf
 *.sh text eol=lf
 *.bash text eol=lf
+.githooks/* text eol=lf
 
 # Config: LF
 *.toml text eol=lf
