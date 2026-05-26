@@ -48,6 +48,15 @@ src/components/mame/dialogs/AnalysisProgressModal.tsx (신규)
 - raw_run 모드: sort(0~50) → analyze(50~100). 호출자 `runAnalysis()`가 phase 합성.
 - barcode-sorted 모드: sort 생략. analyze가 0~100 통째로 점유 (기존 6-step을 0~100으로 rescale).
 
+### Phase 합성 책임 (3-point 동기화)
+
+1. **Sidecar `handle_sort_barcode_run`**: callback rescale로 0~50 emit. `on_progress = lambda f, msg: _progress(int(f * 50), msg)`.
+2. **Sidecar `handle_analyze`** (raw_run 모드 호출 시): `_progress` 값을 `50 + int(v * 0.5)` 로 rescale하는 별 헬퍼 사용. barcode-sorted 모드는 기존 0~100 그대로.
+   - 분기 신호: handle_analyze가 호출 직전 phase context 모름. 따라서 **호출자 `runAnalysis()` 측에서 두 phase 사이에 보정**.
+3. **Frontend `runAnalysis()`**: sort RPC await 직후 `set({ analyzeProgress: 50, analyzeMessage: "Sort complete, starting analyze..." })` 명시. 이후 analyze 단계 동안 들어오는 progress notification은 별 합성 헬퍼 `composeAnalysisProgress(rawPct, "analyze")`가 `50 + rawPct * 0.5`로 변환해 store 갱신.
+
+**기존 코드 충돌 (`inputSlice.ts:296-300`)**: 현재는 sort 완료 후 `analyzeProgress: 15` 설정 중. 본 PR에서 `50`으로 교체 필수. 그 후 analyze listener도 raw 값이 아닌 합성 값 저장하도록 변경.
+
 ## sort 내부 callback 시그니처
 
 ```python
@@ -80,9 +89,30 @@ for file_idx, fastq_path in enumerate(fastq_files):
     if on_progress is not None and (file_idx % 8 == 0 or file_idx == len(fastq_files) - 1):
         frac_in_nb = file_idx / max(len(fastq_files), 1)
         f = nb_offset + nb_weight * frac_in_nb
-        on_progress(f, f"Sorting {nb_label} ({nb_index}/{nb_total}), file {file_idx + 1}/{len(fastq_files)}")
+        # 메시지는 호출자(handler 또는 frontend)에서 locale 키로 변환.
+        # callback은 raw 데이터(나중에 i18n)만 전달.
+        on_progress(f, {
+            "phase": "sorting",
+            "nb_index": nb_index,
+            "nb_total": nb_total,
+            "nb_label": nb_label,
+            "file_idx": file_idx + 1,
+            "file_total": len(fastq_files),
+        })
     ...
 ```
+
+**Sidecar 측 변환**:
+```python
+def _format_sort_message(payload: dict) -> str:
+    # 영문 fallback. 실제 i18n은 frontend에서 적용.
+    return (f"Sorting barcode {payload['nb_index']}/{payload['nb_total']}, "
+            f"{payload['nb_label']} (file {payload['file_idx']}/{payload['file_total']})")
+
+on_progress=lambda f, payload: _progress(int(f * 50), _format_sort_message(payload))
+```
+
+**Frontend 측 i18n**: progress notification의 `message` 필드는 영문 fallback 그대로 사용 (sidecar에서 이미 포맷됨). 별도로 inputSlice가 progress payload 안의 raw key/값을 분리 저장하여 모달이 locale 재포맷할 수 있도록 확장하는 경로는 out of scope (이번 PR은 영문 메시지로 충분).
 
 호출 빈도: NB당 약 4~8회 (fastq 30개 기준), throttle 불필요할 정도의 저빈도.
 
@@ -140,8 +170,25 @@ function computeEta(progressPct: number, startedAt: number): string {
 |---|---|
 | sort RPC 실패 | 모달 닫기 + `validationErrors`에 메시지 적재 (기존 catch 흐름 유지) |
 | analyze RPC 실패 | 동일 |
-| Cancel 클릭 | `cancelAndRespawn()` 호출 → 모달 닫기 + toast |
+| Cancel 클릭 | `cancelAndRespawn()` 호출, 모달 닫기, toast 표시, 그리고 inputSlice 상태 명시 리셋 (아래 참조) |
 | RPC timeout | 600s(sort) / 300s(analyze) 초과 시 기존 error path |
+
+### Cancel 후 상태 리셋 (호출자 책임)
+
+`runAnalysis()` catch 블록에서 cancel 감지 시 (또는 cancel handler 안에서 직접) 다음 명시 리셋:
+
+```ts
+set({
+  isAnalyzing: false,
+  analyzeProgress: 0,
+  analyzeMessage: "",
+  validationErrors: [],
+});
+```
+
+이유: 기존 `inputSlice.ts:362-372` catch 블록은 `validationErrors`에 메시지 적재. cancel은 정상 종료이므로 errors 비워야 사용자가 Run 재클릭 시 깨끗한 상태. `analyzeMessage` 공백화로 step view의 인라인 표시도 초기화.
+
+재클릭 흐름: 사용자 Cancel → 위 리셋 → "Run Analysis" 버튼 재활성 (`!isAnalyzing && !validationErrors.length`) → 정상 재실행.
 
 ## Locale keys (신규)
 
