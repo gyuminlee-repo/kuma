@@ -61,8 +61,14 @@ jobs:
       - name: TypeScript typecheck
         run: npx tsc --noEmit
 
+      - name: Check generated TS models are up-to-date
+        run: node scripts/gen-models.mjs --check
+
       - name: Cross-layer sync check
         run: node scripts/sync-check.mjs
+
+      - name: Cross-layer groups co-evolve check
+        run: node scripts/sync-check-groups.mjs
 
       - name: i18n hardcoded-Korean lint
         run: node scripts/i18n-lint.mjs
