@@ -11,11 +11,17 @@ export async function rpc<T = unknown>(
   kind: SidecarKind,
   method: string,
   params: unknown = {},
+  timeoutMs?: number,
 ): Promise<T> {
   if (!hasTauriBridge()) {
     throw new Error("Tauri bridge unavailable");
   }
-  return invoke("sidecar_rpc", { kind, method, params }) as Promise<T>;
+  return invoke("sidecar_rpc", {
+    kind,
+    method,
+    params,
+    timeoutMs: timeoutMs ?? null,
+  }) as Promise<T>;
 }
 
 export async function killSidecar(kind: SidecarKind): Promise<void> {
