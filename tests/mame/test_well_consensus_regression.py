@@ -5,8 +5,8 @@ Two test classes:
 1. TestWellConsensusUnit — synthetic data with known truth.
    Tests the full align-to-consensus pipeline end-to-end.
 
-2. TestAporvaGroundTruth — integration test using Aporva ground-truth data.
-   Uses per-well raw reads from the Aporva pipeline (sort_barcode06/*.fasta)
+2. TestReferenceGroundTruth — integration test using per-well ground-truth data.
+   Uses per-well raw reads from the combinatorial demux pipeline (sort_barcode06/*.fasta)
    as input.  Because samtools consensus output is not available in this
    environment, the test validates:
    - Pipeline runs without error.
@@ -15,7 +15,7 @@ Two test classes:
    - Per-position consistency: majority base at >= 99.9% of covered positions
      matches the consensus call (self-consistency check).
 
-   NOTE: Aporva binary-level comparison is NOT performed (samtools consensus
+   NOTE: samtools binary-level comparison is NOT performed (samtools consensus
    output absent from this environment).  The regression target is internal
    pipeline consistency verified against the same ground-truth read set.
 
@@ -70,8 +70,8 @@ def _read_fasta_records(path: Path) -> list[tuple[str, str]]:
     return records
 
 
-def _aporva_sort_dir() -> Path:
-    """Return the Aporva sort_barcode06 directory, resolved via WORKSPACE_ROOT."""
+def _sort_barcode06_dir() -> Path:
+    """Return the sort_barcode06 directory, resolved via WORKSPACE_ROOT."""
     root = Path(os.environ.get("WORKSPACE_ROOT", str(Path.home() / "workspace")))
     return root / "020.admin/projects/060.nanopore_NGS/NGS_260212/sort_barcode06"
 
@@ -172,44 +172,44 @@ class TestWellConsensusUnit:
 
 
 # ---------------------------------------------------------------------------
-# Aporva ground-truth regression tests
+# Ground-truth regression tests
 # ---------------------------------------------------------------------------
 
-_APORVA_DIR = _aporva_sort_dir()
+_SORT_DIR = _sort_barcode06_dir()
 
 _SKIP_REGRESSION = (
     os.environ.get("SKIP_REGRESSION", "0") == "1"
-    or not _APORVA_DIR.exists()
+    or not _SORT_DIR.exists()
 )
 
 _SKIP_REASON = (
-    "Aporva ground-truth data not accessible. "
+    "Ground-truth read data not accessible. "
     "Set WORKSPACE_ROOT to the workspace root containing "
     "020.admin/projects/060.nanopore_NGS/NGS_260212/sort_barcode06, "
-    "or set SKIP_REGRESSION=1 to suppress."
+    "or set SKIP_REGRESSION=1 to skip."
     if _SKIP_REGRESSION else ""
 )
 
 
 @pytest.mark.skipif(_SKIP_REGRESSION, reason=_SKIP_REASON)
-class TestAporvaGroundTruth:
-    """Integration tests using Aporva pipeline ground-truth raw-read data.
+class TestReferenceGroundTruth:
+    """Integration tests using per-well ground-truth raw-read data.
 
-    sort_barcode06/*.fasta are per-well raw-read FASTA bundles (the output of
-    Aporva barcode_mapping.py, which is the input to per-well consensus).
+    sort_barcode06/*.fasta are per-well raw-read FASTA bundles produced by
+    the combinatorial demux pipeline, used as input to per-well consensus.
     Tests verify internal consistency in the absence of samtools output.
     """
 
     @pytest.fixture(scope="class")
     def ref_fasta_from_first_read(self, tmp_path_factory: pytest.TempPathFactory) -> Path:
         """Build a reference FASTA from the first read in 1_1.fasta."""
-        source = _APORVA_DIR / "1_1.fasta"
+        source = _SORT_DIR / "1_1.fasta"
         records = _read_fasta_records(source)
         assert records, f"No records in {source}"
         first_seq = records[0][1]
-        tmp_dir = tmp_path_factory.mktemp("aporva_ref")
+        tmp_dir = tmp_path_factory.mktemp("ground_truth_ref")
         ref_path = tmp_dir / "ref.fasta"
-        _write_fasta(ref_path, "aporva_ref", first_seq)
+        _write_fasta(ref_path, "ground_truth_ref", first_seq)
         return ref_path
 
     @pytest.fixture(scope="class")
@@ -218,7 +218,7 @@ class TestAporvaGroundTruth:
         wells_to_test = ["1_1", "1_2", "1_3"]
         per_well: dict[str, list[tuple[str, str]]] = {}
         for well_name in wells_to_test:
-            fasta_path = _APORVA_DIR / f"{well_name}.fasta"
+            fasta_path = _SORT_DIR / f"{well_name}.fasta"
             if not fasta_path.exists():
                 continue
             records = _read_fasta_records(fasta_path)

@@ -12,7 +12,7 @@ Header format is ``>{R}_{F}``; no metadata is carried
 in the header. File size (LOWDEPTH signal) is measured via ``os.path.getsize``.
 
 # TODO Phase 2: replace with native run-folder ingestion (now uses consumed directory)
-# TODO Phase 2: F_R <-> R_F remapping (hmk xlsx uses F{n}_R{m}; FASTA uses {R}_{F})
+# TODO Phase 2: F_R <-> R_F remapping (barcode xlsx uses F{n}_R{m}; FASTA uses {R}_{F})
 """
 
 from __future__ import annotations

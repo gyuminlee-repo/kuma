@@ -1,7 +1,7 @@
 """A4 — minimap2 alignment via mappy Python bindings.
 
 Wraps ``mappy.Aligner`` to provide alignment of per-well reads against a
-reference sequence.  Applies Aporva-equivalent filters:
+reference sequence.  Applies alignment filters:
 
 - MAPQ ≥ 25 (``samtools view -e "mapq>=25"``)
 - 100% reference span (``bedtools intersect -f 1.0``):
@@ -116,11 +116,11 @@ def align_reads(
         minimap2 preset; ``"map-ont"`` for Oxford Nanopore reads.
     min_mapq:
         Minimum mapping quality (MAPQ).  Reads below this threshold are
-        discarded.  Aporva pipeline uses ``mapq >= 25``.
+        discarded.
     require_full_span:
         When True, only accept alignments that span the full reference
         (``r_st == 0 and r_en == reference_length``).  Equivalent to
-        Aporva ``bedtools intersect -f 1.0``.
+        bedtools intersect -f 1.0.
 
     Returns
     -------
@@ -172,11 +172,11 @@ def align_reads(
 
         h: _MappyHit = best
 
-        # MAPQ filter (Aporva: samtools view -e "mapq>=25")
+        # MAPQ filter: discard reads below minimum mapping quality
         if h.mapq < min_mapq:
             continue
 
-        # Full-span filter (Aporva: bedtools intersect -f 1.0)
+        # Full-span filter: alignment must cover the full reference length
         if require_full_span and not (h.r_st == 0 and h.r_en == ref_len):
             continue
 
