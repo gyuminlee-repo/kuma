@@ -17,6 +17,10 @@ dependencies = [
     "pandas>=2.0",
     "python-calamine==0.6.2",
     "psutil>=5.9",
+    # edlib: C-level edit-distance with HW (infix) mode for barcode matching.
+    # Wheels are available for Linux/macOS/Windows on all supported Python
+    # versions, so no platform restriction is needed.
+    "edlib==1.3.9.post1",
     # mappy is only used by mame raw_run alignment. Source-only sdist; needs
     # zlib + sse2neon toolchain to build, which the Windows / macOS-aarch64
     # GitHub runners do not provide. Restrict to Linux so the cross-platform
