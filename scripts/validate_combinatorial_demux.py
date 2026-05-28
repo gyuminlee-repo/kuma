@@ -94,7 +94,7 @@ def main() -> None:
         barcodes_xlsx=BARCODES_XLSX,
         output_dir=OUTPUT_DIR,
         mapq_threshold=25,
-        coverage_fraction=1.0,
+        coverage_fraction=0.98,
         trim_flank_bp=30,
         min_depth=3,
     )
@@ -106,6 +106,7 @@ def main() -> None:
     print(f"Barcode assigned:     {stats.assigned_reads:>8}  ({100*stats.assigned_reads/max(1,stats.passed_coverage):.1f}% of filtered)")
     print(f"Wells with >=1 read:  {stats.wells_with_reads:>8} / 96")
     print(f"Wells with >=3 reads: {stats.wells_with_min_reads:>8} / 96")
+    print(f"Chimera splits:       {stats.chimera_splits:>8}")
 
     # Compare against reference sort output
     sample_wells = ["1_1", "1_2", "8_12", "3_5", "5_8"]
