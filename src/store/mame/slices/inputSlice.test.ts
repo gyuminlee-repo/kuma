@@ -72,7 +72,7 @@ describe("mame inputSlice", () => {
     expect(store.inputMode).toBe("raw_run");
   });
 
-  it("sorts a raw MinKNOW run before calling analyze", async () => {
+  it("runs combinatorial demux from a raw MinKNOW run before calling analyze", async () => {
     const store = makeStore({
       inputDir: "D:/runs/20260212_2227_X4_FBF10847_e7145f8e",
       expectedPath: "D:/project/KURO_expected.xlsx",
@@ -86,15 +86,25 @@ describe("mame inputSlice", () => {
       cdsEnd: 900,
     });
 
+    const demuxOutputDir = "D:/project/demux_filtered";
     mockSendRequest
       .mockResolvedValueOnce({
-        output_dir: "D:/project/mame_result_sorted_barcodes",
-        nb_dirs_processed: ["barcode06"],
-        n_total_reads: 10,
-        n_total_assigned: 8,
-        n_total_unassigned: 2,
-        per_nb_per_well_counts: { barcode06: { A01: 8 } },
-        skipped_nb_dirs: [],
+        output_dir: demuxOutputDir,
+        stats: {
+          total_reads: 10,
+          passed_mapq: 10,
+          passed_coverage: 9,
+          assigned_reads: 8,
+          ambiguous_dropped: 1,
+          chimera_splits: 0,
+          wells_with_reads: 2,
+          wells_with_min_reads: 2,
+        },
+        wells_with_reads: 2,
+        assigned_reads: 8,
+        chimera_splits: 0,
+        per_well_consensus: {},
+        per_well_read_counts: { "1_1": 5, "1_2": 3 },
       })
       .mockResolvedValueOnce({
         verdicts: [],
@@ -108,21 +118,23 @@ describe("mame inputSlice", () => {
 
     expect(mockSendRequest).toHaveBeenNthCalledWith(
       1,
-      "sort_barcode_run",
-      {
+      "mame.run_combinatorial_demux",
+      expect.objectContaining({
         minknow_run_dir: "D:/runs/20260212_2227_X4_FBF10847_e7145f8e",
-        custom_barcodes_path: "D:/project/barcodes sequence.xlsx",
-        output_dir: "D:/project/mame_result_sorted_barcodes",
-        error_tolerance: 0.1,
-        use_cutadapt: true,
-      },
+        custom_barcodes_xlsx: "D:/project/barcodes sequence.xlsx",
+        reference_fasta: "D:/project/ref.fasta",
+        output_dir: demuxOutputDir,
+        coverage_fraction: 0.98,
+        edit_dist_ratio: 0.25,
+        chimera_split: true,
+      }),
       600_000,
     );
     expect(mockSendRequest).toHaveBeenNthCalledWith(
       2,
       "analyze",
       expect.objectContaining({
-        input_dir: "D:/project/mame_result_sorted_barcodes",
+        input_dir: demuxOutputDir,
         ingest_mode: "barcode",
       }),
       300_000,

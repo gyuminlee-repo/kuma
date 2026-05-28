@@ -226,7 +226,18 @@
         "tmMax": "primer binding 区域可接受的 melting temperature 范围 (°C)"
       },
       "legacyOptionsToggle": "显示 legacy 选项",
-      "legacyOptionsDeprecationWarning": "这些选项已弃用,将在未来版本中移除。推荐使用 Min Filtered Depth。"
+      "legacyOptionsDeprecationWarning": "这些选项已弃用,将在未来版本中移除。推荐使用 Min Filtered Depth。",
+      "advancedOptions": "Advanced",
+      "advancedSectionAriaLabel": "Toggle advanced combinatorial demux options",
+      "coverageFraction": "Coverage Fraction",
+      "coverageFractionHelp": "Minimum fraction of the reference sequence that must be covered by each alignment hit (0.5 to 1.0). Higher values require more complete alignments.",
+      "coverageFractionAriaLabel": "Minimum coverage fraction for alignment hits",
+      "editDistRatio": "Edit Distance Ratio",
+      "editDistRatioHelp": "Maximum edit distance as a fraction of the barcode prefix length (0.0 to 0.5). Lower values require stricter barcode matches.",
+      "editDistRatioAriaLabel": "Maximum edit distance ratio for barcode matching",
+      "chimeraSplit": "Chimera Split",
+      "chimeraSplitHelp": "When enabled, all alignment hits per read are evaluated to detect chimeric reads that span multiple wells. Recommended to leave on.",
+      "chimeraSplitAriaLabel": "Enable chimera detection by evaluating all alignment hits per read"
     },
     "barcodeSetup": {
       "title": "Barcode 包设置",

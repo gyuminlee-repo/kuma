@@ -8,8 +8,8 @@ import type {
   DistributionStats,
   ValidationResult,
 } from "@/types/mame/models";
-import type { SortBarcodeResult } from "@/types/mame/sort_barcode";
 import type { CdsCandidate } from "@/lib/sequence/autoDetectCds";
+import type { CombinatorialDemuxResult } from "@/types/mame/combinatorial_demux";
 import type { InputSlice, RawRunParams } from "../slice-interfaces";
 import type { AppState } from "../types";
 
@@ -32,6 +32,10 @@ const DEFAULT_RAW_RUN_PARAMS: RawRunParams = {
   linkedTrim: false,
   revPrimerUniversal: "",
   normalizeHeaders: true,
+  // PR-A: combinatorial demux advanced defaults
+  coverageFraction: 0.98,
+  editDistRatio: 0.25,
+  chimeraSplit: true,
 };
 
 function pickLongestIndex(candidates: CdsCandidate[]): number | null {
@@ -46,16 +50,6 @@ function pickLongestIndex(candidates: CdsCandidate[]): number | null {
     }
   }
   return best;
-}
-
-function deriveSortedBarcodeOutputDir(outputPath: string): string {
-  const normalized = outputPath.replace(/\\/g, "/");
-  const slashIdx = normalized.lastIndexOf("/");
-  const dir = slashIdx >= 0 ? outputPath.slice(0, slashIdx) : "";
-  const file = slashIdx >= 0 ? outputPath.slice(slashIdx + 1) : outputPath;
-  const stem = file.replace(/\.xlsx$/i, "");
-  const sortedName = `${stem || "mame_analysis"}_sorted_barcodes`;
-  return dir ? `${dir}/${sortedName}` : sortedName;
 }
 
 function deriveDemuxOutputDir(outputPath: string): string {
@@ -294,28 +288,33 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
           throw new Error(inputErrors.join("\n"));
         }
 
-        const sortedOutputDir = deriveSortedBarcodeOutputDir(state.outputPath);
+        const combinatorialOutputDir = deriveDemuxOutputDir(state.outputPath);
         set({
           analyzeProgress: 3,
-          analyzeMessage: "Sorting combinatorial barcodes from raw MinKNOW run",
+          analyzeMessage: "Running combinatorial demux from raw MinKNOW run",
         });
-        const sortResult = await sendRequest<SortBarcodeResult>(
-          "sort_barcode_run",
+        const demuxResult = await sendRequest<CombinatorialDemuxResult>(
+          "mame.run_combinatorial_demux",
           {
             minknow_run_dir: state.inputDir,
-            custom_barcodes_path: rawRunParams.customBarcodesPath,
-            output_dir: sortedOutputDir,
-            error_tolerance: 0.1,
-            use_cutadapt: true,
-            sample_map_path: state.sampleMapPath || undefined,
+            custom_barcodes_xlsx: rawRunParams.customBarcodesPath,
+            reference_fasta: state.referencePath,
+            output_dir: combinatorialOutputDir,
+            sample_map_xlsx: state.sampleMapPath || null,
+            kuro_xlsx: null,
+            mapq_threshold: 25,
+            coverage_fraction: rawRunParams.coverageFraction,
+            edit_dist_ratio: rawRunParams.editDistRatio,
+            chimera_split: rawRunParams.chimeraSplit,
+            trim_flank_bp: 30,
           },
           600_000,
         );
-        analysisInputDir = sortResult.output_dir;
+        analysisInputDir = demuxResult.output_dir;
         analysisIngestMode = "barcode";
         set({
           analyzeProgress: 15,
-          analyzeMessage: `Barcode sorting complete: ${sortResult.n_total_assigned.toLocaleString()} reads assigned`,
+          analyzeMessage: `Combinatorial demux complete: ${demuxResult.assigned_reads.toLocaleString()} reads assigned`,
         });
       }
 

@@ -341,6 +341,35 @@
       "severity": "blocking"
     },
     {
+      "id": "mame-combinatorial-demux",
+      "files": [
+        "kuma_core/mame/ingest/combinatorial_demux.py",
+        "python-core/sidecar_mame/handlers/combinatorial_demux.py",
+        "python-core/sidecar_mame/models.py",
+        "src/types/mame/combinatorial_demux.ts"
+      ],
+      "symbols": [
+        "run_combinatorial_demux",
+        "CombinatorialDemuxParams",
+        "handle_run_combinatorial_demux",
+        "CombinatorialDemuxResult"
+      ],
+      "note": "mame.run_combinatorial_demux: core func <-> Pydantic model <-> handler dict <-> TS interfaces",
+      "severity": "blocking"
+    },
+    {
+      "id": "mame-dispatcher-combinatorial-demux",
+      "files": [
+        "python-core/sidecar_mame/dispatcher.py"
+      ],
+      "symbols": [
+        "_METHODS",
+        "mame.run_combinatorial_demux"
+      ],
+      "note": "mame.run_combinatorial_demux RPC 등록 + _ASYNC_METHODS 포함 확인",
+      "severity": "blocking"
+    },
+    {
       "id": "shared-sidecar",
       "files": [
         "kuma_core/shared/sidecar.py",
