@@ -1,0 +1,169 @@
+"""Pydantic parameter models for MAME sidecar RPC handlers.
+
+Each model corresponds to one JSON-RPC method and validates the ``params``
+dict before the handler logic executes.
+
+Usage pattern (in a handler)::
+
+    from sidecar_mame.models import CombinatorialDemuxParams
+    p = CombinatorialDemuxParams.model_validate(params)
+
+Convention: all path fields are plain strings in the JSON (not Path objects)
+so that serialisation round-trips cleanly.  Validators convert to ``Path``
+internally when existence checks are needed, but the model stores ``str``.
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+
+class CombinatorialDemuxParams(BaseModel):
+    """Parameters for the ``mame.run_combinatorial_demux`` RPC method.
+
+    Required fields
+    ---------------
+    minknow_run_dir
+        Root directory of a MinKNOW run.  Must contain a ``fastq_pass/``
+        sub-directory with at least one ``.fastq`` or ``.fastq.gz`` file.
+    custom_barcodes_xlsx
+        Path to the barcodes xlsx with ``isps_f_1..12`` and ``isps_r_1..8``
+        rows.
+    reference_fasta
+        Single-record DNA FASTA used as alignment reference.
+    output_dir
+        Destination directory for per-well FASTA and consensus files.
+        Parent must exist; the directory itself is created if absent.
+
+    Optional fields
+    ---------------
+    sample_map_xlsx
+        When provided, a per-well sample-name mapping xlsx (col A: name,
+        col B: well position e.g. "A1").  Not yet consumed by the core.
+        Raises ``NotImplementedError`` when set (deferred to PR-B).
+    kuro_xlsx
+        Path to a KURO results xlsx containing an ``expected_mutations``
+        sheet.  Not yet consumed by the core.
+        Raises ``NotImplementedError`` when set (deferred to PR-B).
+    mapq_threshold
+        Minimum MAPQ for alignment hits.  Range [0, 60].  Default 25.
+    coverage_fraction
+        Minimum fraction of reference covered by each alignment hit.
+        Range (0.0, 1.0].  Default 0.98.
+    edit_dist_ratio
+        Maximum allowed edit distance as a fraction of barcode prefix length.
+        Range (0.0, 1.0).  Default 0.25.
+    chimera_split
+        When True (default), evaluate all alignment hits per read (chimera /
+        concatemer splitting).  When False, only the first passing hit is used.
+    trim_flank_bp
+        Bases flanking each alignment hit to include in the per-well FASTA
+        slice.  Range [0, 200].  Default 30.
+    """
+
+    # Required fields
+    minknow_run_dir: str
+    custom_barcodes_xlsx: str
+    reference_fasta: str
+    output_dir: str
+
+    # Optional - future integration (PR-B)
+    sample_map_xlsx: str | None = None
+    kuro_xlsx: str | None = None
+
+    # Optional - algorithm params
+    mapq_threshold: int = Field(default=25, ge=0, le=60)
+    coverage_fraction: float = Field(default=0.98, gt=0.0, le=1.0)
+    edit_dist_ratio: float = Field(default=0.25, gt=0.0, lt=1.0)
+    chimera_split: bool = True
+    trim_flank_bp: int = Field(default=30, ge=0, le=200)
+
+    # Path existence validators
+
+    @field_validator("minknow_run_dir", mode="after")
+    @classmethod
+    def _check_minknow_run_dir(cls, v: str) -> str:
+        p = Path(v)
+        if ".." in p.parts:
+            raise ValueError(f"Path traversal not allowed: {v}")
+        if not p.exists():
+            raise ValueError(f"minknow_run_dir does not exist: {v}")
+        if not p.is_dir():
+            raise ValueError(f"minknow_run_dir is not a directory: {v}")
+        return v
+
+    @field_validator("custom_barcodes_xlsx", mode="after")
+    @classmethod
+    def _check_barcodes_xlsx(cls, v: str) -> str:
+        p = Path(v)
+        if ".." in p.parts:
+            raise ValueError(f"Path traversal not allowed: {v}")
+        if not p.exists():
+            raise ValueError(f"custom_barcodes_xlsx not found: {v}")
+        return v
+
+    @field_validator("reference_fasta", mode="after")
+    @classmethod
+    def _check_reference_fasta(cls, v: str) -> str:
+        p = Path(v)
+        if ".." in p.parts:
+            raise ValueError(f"Path traversal not allowed: {v}")
+        if not p.exists():
+            raise ValueError(f"reference_fasta not found: {v}")
+        return v
+
+    @field_validator("output_dir", mode="after")
+    @classmethod
+    def _check_output_dir(cls, v: str) -> str:
+        p = Path(v)
+        if ".." in p.parts:
+            raise ValueError(f"Path traversal not allowed: {v}")
+        if not p.parent.exists():
+            raise ValueError(
+                f"Parent of output_dir does not exist: {p.parent}"
+            )
+        return v
+
+    @field_validator("sample_map_xlsx", mode="after")
+    @classmethod
+    def _check_sample_map_xlsx(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        p = Path(v)
+        if ".." in p.parts:
+            raise ValueError(f"Path traversal not allowed: {v}")
+        if not p.exists():
+            raise ValueError(f"sample_map_xlsx not found: {v}")
+        return v
+
+    @field_validator("kuro_xlsx", mode="after")
+    @classmethod
+    def _check_kuro_xlsx(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        p = Path(v)
+        if ".." in p.parts:
+            raise ValueError(f"Path traversal not allowed: {v}")
+        if not p.exists():
+            raise ValueError(f"kuro_xlsx not found: {v}")
+        return v
+
+    @model_validator(mode="after")
+    def _check_pr_b_fields_deferred(self) -> CombinatorialDemuxParams:
+        """Reject PR-B fields until the core integration is implemented."""
+        if self.sample_map_xlsx is not None:
+            raise NotImplementedError(
+                "sample_map_xlsx integration is deferred to PR-B. "
+                "Pass null/omit to proceed without sample mapping."
+            )
+        if self.kuro_xlsx is not None:
+            raise NotImplementedError(
+                "kuro_xlsx (expected_mutations) integration is deferred to PR-B. "
+                "Pass null/omit to proceed without expected-mutation validation."
+            )
+        return self
+
+
+__all__ = ["CombinatorialDemuxParams"]

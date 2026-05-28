@@ -41,6 +41,7 @@ from sidecar_mame.handlers.activity import (
 from sidecar_mame.handlers.sort_barcode import handle_sort_barcode_run
 from sidecar_mame.handlers.barcode_package import handle_generate_mame_package
 from sidecar_mame.handlers.ingest import handle_parse_reference
+from sidecar_mame.handlers.combinatorial_demux import handle_run_combinatorial_demux
 
 def _handle_health_info(_params: dict) -> dict:
     """Return PID, RSS, and Python version for the status bar tooltip."""
@@ -90,6 +91,8 @@ _METHODS = {
     "generate_mame_package": handle_generate_mame_package,
     # Analyze-phase CDS picker: parse reference (FASTA / GenBank / SnapGene)
     "mame.ingest.parse_reference": handle_parse_reference,
+    # PR-A: alignment-anchored combinatorial demux pipeline
+    "mame.run_combinatorial_demux": handle_run_combinatorial_demux,
     # §22 graceful shutdown — ack immediately; main() breaks on this method
     "shutdown": lambda _: {"ok": True, "message": "shutdown_acked"},
 }
@@ -97,7 +100,7 @@ _METHODS = {
 # Long-running handlers run on a worker thread so stdin keeps draining.
 # "shutdown" is intentionally excluded — it must run on the main thread so the
 # ack flushes to stdout before the loop exits.
-_ASYNC_METHODS = {"analyze", "demux_and_filter", "sort_barcode_run"}
+_ASYNC_METHODS = {"analyze", "demux_and_filter", "sort_barcode_run", "mame.run_combinatorial_demux"}
 
 
 def _dispatch_handler(
