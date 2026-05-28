@@ -68,10 +68,10 @@ def compute_well_consensuses(
         Path to the reference FASTA used for alignment.  Must contain exactly
         one sequence record.
     min_mapq:
-        MAPQ threshold for the alignment filter (default 25, matching Aporva).
+        MAPQ threshold for the alignment filter (default 25).
     require_full_span:
         When True, only reads whose alignment spans the full reference are
-        counted.  Equivalent to Aporva ``bedtools intersect -f 1.0``.
+        counted.  Equivalent to bedtools intersect -f 1.0.
     min_depth:
         Minimum per-position depth for a base call (default 1).
 

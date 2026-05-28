@@ -42,6 +42,7 @@ notes/
 # Debug artifacts
 design_result.debug.json
 *.debug.json
+scripts/diagnose_demux.py
 
 # License collection build artifacts (generated at build time)
 NOTICE-rust.md

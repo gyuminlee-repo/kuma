@@ -1,14 +1,13 @@
-"""A4 — minimap2 alignment via mappy Python bindings.
+"""A4: minimap2 alignment via mappy Python bindings.
 
 Wraps ``mappy.Aligner`` to provide alignment of per-well reads against a
-reference sequence.  Applies Aporva-equivalent filters:
+reference sequence.  Applies alignment filters:
 
-- MAPQ ≥ 25 (``samtools view -e "mapq>=25"``)
-- 100% reference span (``bedtools intersect -f 1.0``):
-  aligned region must cover the full reference length
+- MAPQ >= 25
+- 100% reference span: aligned region must cover the full reference length
   (``r_st == 0 and r_en == reference_length``).
 
-samtools/pysam are NOT used — POSIX-only and unavailable as Windows wheels.
+samtools/pysam are NOT used (POSIX-only, unavailable as Windows wheels).
 """
 
 from __future__ import annotations
@@ -67,7 +66,7 @@ class Alignment:
         Full read sequence (as provided; not reverse-complemented).
         Callers should respect ``strand`` when iterating bases.
     mapq:
-        Mapping quality (0–60).
+        Mapping quality (0-60).
     cigar:
         CIGAR operations as list of ``[length, op]`` pairs (mappy format).
         Op codes follow the BAM spec (0=M, 1=I, 2=D, 4=S, 7==, 8=X).
@@ -116,11 +115,11 @@ def align_reads(
         minimap2 preset; ``"map-ont"`` for Oxford Nanopore reads.
     min_mapq:
         Minimum mapping quality (MAPQ).  Reads below this threshold are
-        discarded.  Aporva pipeline uses ``mapq >= 25``.
+        discarded.
     require_full_span:
         When True, only accept alignments that span the full reference
         (``r_st == 0 and r_en == reference_length``).  Equivalent to
-        Aporva ``bedtools intersect -f 1.0``.
+        bedtools intersect -f 1.0.
 
     Returns
     -------
@@ -172,11 +171,11 @@ def align_reads(
 
         h: _MappyHit = best
 
-        # MAPQ filter (Aporva: samtools view -e "mapq>=25")
+        # MAPQ filter: discard reads below minimum mapping quality
         if h.mapq < min_mapq:
             continue
 
-        # Full-span filter (Aporva: bedtools intersect -f 1.0)
+        # Full-span filter: alignment must cover the full reference length
         if require_full_span and not (h.r_st == 0 and h.r_en == ref_len):
             continue
 
@@ -198,6 +197,104 @@ def align_reads(
     return results
 
 
+def align_reads_multi(
+    reads: Iterable[tuple[str, str]],
+    reference_fasta: Path,
+    preset: str = "map-ont",
+    min_mapq: int = 25,
+    coverage_fraction: float = 0.98,
+    best_n: int = 20,
+) -> list[tuple[str, str, list[Alignment]]]:
+    """Align reads and return ALL passing hits per read (chimeric/concatemer support).
+
+    Unlike :func:`align_reads` which takes only the primary (first) hit,
+    this function iterates all hits mappy returns for each read.  Hits that
+    pass MAPQ and coverage-fraction filters are returned.  This allows
+    chimeric reads or concatemers carrying two distinct amplicons to be
+    demultiplexed into separate wells.
+
+    Parameters
+    ----------
+    reads:
+        Iterable of ``(read_id, sequence)`` pairs.
+    reference_fasta:
+        Path to reference FASTA file (must have exactly one record).
+    preset:
+        minimap2 preset; ``"map-ont"`` for Oxford Nanopore reads.
+    min_mapq:
+        Minimum mapping quality per hit (default 25).
+    coverage_fraction:
+        Minimum fraction of reference covered by each hit
+        (default 0.98 = 98%; replaces strict require_full_span==True).
+    best_n:
+        Maximum number of secondary/supplementary alignments mappy reports
+        per read.  Increase for high-copy concatemers (default 20).
+
+    Returns
+    -------
+    List of ``(read_id, read_seq, hits)`` tuples where ``hits`` is a
+    non-empty list of :class:`Alignment` objects for that read.  Reads with
+    no passing hits are omitted.
+
+    Notes
+    -----
+    Caller is responsible for deduplicating (read_id, well) assignments
+    to avoid counting the same physical read twice in one well.
+    """
+    try:
+        import mappy  # type: ignore[import]
+    except ImportError as exc:
+        raise ImportError(
+            "mappy is required for alignment. Install with: pip install mappy"
+        ) from exc
+
+    if not reference_fasta.exists():
+        raise FileNotFoundError(f"Reference FASTA not found: {reference_fasta}")
+
+    aligner = mappy.Aligner(str(reference_fasta), preset=preset, best_n=best_n)
+    if not aligner:
+        raise ValueError(f"mappy.Aligner initialisation failed for: {reference_fasta}")
+
+    ref_len = _get_reference_length(reference_fasta)
+
+    results: list[tuple[str, str, list[Alignment]]] = []
+
+    for read_id, seq in reads:
+        if not seq:
+            continue
+
+        passing: list[Alignment] = []
+        for raw_hit in aligner.map(seq):
+            h = cast(_MappyHit, raw_hit)
+
+            if h.mapq < min_mapq:
+                continue
+
+            ref_span = h.r_en - h.r_st
+            if ref_len > 0 and ref_span / ref_len < coverage_fraction:
+                continue
+
+            passing.append(
+                Alignment(
+                    read_id=read_id,
+                    read_seq=seq,
+                    mapq=h.mapq,
+                    cigar=[list(op) for op in h.cigar],
+                    r_st=h.r_st,
+                    r_en=h.r_en,
+                    q_st=h.q_st,
+                    q_en=h.q_en,
+                    strand=h.strand,
+                    reference_length=ref_len,
+                )
+            )
+
+        if passing:
+            results.append((read_id, seq, passing))
+
+    return results
+
+
 def _get_reference_length(reference_fasta: Path) -> int:
     """Return the total length of the first sequence in a FASTA file."""
     length = 0
@@ -207,7 +304,7 @@ def _get_reference_length(reference_fasta: Path) -> int:
             line = line.rstrip("\r\n")
             if line.startswith(">"):
                 if in_seq:
-                    # Second header found — stop; use length of first sequence.
+                    # Second header found -- stop; use length of first sequence.
                     break
                 in_seq = True
             elif in_seq:
@@ -217,4 +314,4 @@ def _get_reference_length(reference_fasta: Path) -> int:
     return length
 
 
-__all__ = ["Alignment", "align_reads", "_get_reference_length"]
+__all__ = ["Alignment", "align_reads", "align_reads_multi", "_get_reference_length"]

@@ -110,7 +110,7 @@ jobs:
         run: |
           pip install pip-licenses
           pip-licenses --format=markdown --output-file NOTICE-python.md \
-            --packages primer3-py biopython openpyxl pydantic pandas python-calamine pyinstaller
+            --packages primer3-py biopython openpyxl pydantic pandas python-calamine edlib pyinstaller
         shell: bash
 
       - name: Build NOTICE.md and copy to Tauri resources
