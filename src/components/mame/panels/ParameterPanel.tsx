@@ -210,7 +210,7 @@ function RawRunParamPanel() {
         </div>
       </div>
 
-      {/* Quality thresholds: Min Q-score only (Min Barcode Score hidden for combinatorial demux) */}
+      {/* Quality thresholds */}
       <div className="grid gap-3 sm:grid-cols-2">
         <NumericField
           id="min-qscore"

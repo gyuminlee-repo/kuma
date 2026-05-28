@@ -305,19 +305,6 @@
       "severity": "blocking"
     },
     {
-      "id": "mame-sort-barcode",
-      "files": [
-        "kuma_core/mame/ingest/sort_barcode.py",
-        "python-core/sidecar_mame/handlers/sort_barcode.py",
-        "src/types/mame/sort_barcode.ts"
-      ],
-      "symbols": [
-        "sort_barcode_run"
-      ],
-      "note": "sort_barcode_run params/return ↔ 핸들러 dict ↔ TS interfaces",
-      "severity": "blocking"
-    },
-    {
       "id": "mame-combinatorial-barcode-xlsx",
       "files": [
         "kuma_core/mame/ingest/sort_barcode.py"
@@ -327,18 +314,6 @@
       ],
       "note": "parse_combinatorial_barcodes xlsx 스키마 (egfp_f_/egfp_r_ prefix) ↔ barcodes sequence.xlsx fixture 포맷",
       "severity": "warning"
-    },
-    {
-      "id": "mame-dispatcher-sort-barcode",
-      "files": [
-        "python-core/sidecar_mame/dispatcher.py"
-      ],
-      "symbols": [
-        "_METHODS",
-        "sort_barcode_run"
-      ],
-      "note": "sort_barcode_run RPC 등록명이 frontend IPC 호출과 일치",
-      "severity": "blocking"
     },
     {
       "id": "mame-combinatorial-demux",

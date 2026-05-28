@@ -288,39 +288,39 @@ class TestCombinatorialDemuxParamsValidation:
                 }
             )
 
-    def test_sample_map_xlsx_raises_not_implemented(
+    def test_sample_map_xlsx_accepted(
         self, run_dir: Path, barcodes_xlsx: Path, reference_fasta: Path, tmp_path: Path
     ) -> None:
-        """sample_map_xlsx is deferred to PR-B; must raise NotImplementedError."""
+        """PR-B: sample_map_xlsx is now accepted (no longer raises NotImplementedError)."""
         sample_map = tmp_path / "sample_map.xlsx"
-        sample_map.touch()  # create file so existence check passes
-        with pytest.raises(NotImplementedError, match="PR-B"):
-            CombinatorialDemuxParams.model_validate(
-                {
-                    "minknow_run_dir": str(run_dir),
-                    "custom_barcodes_xlsx": str(barcodes_xlsx),
-                    "reference_fasta": str(reference_fasta),
-                    "output_dir": str(tmp_path / "out"),
-                    "sample_map_xlsx": str(sample_map),
-                }
-            )
+        sample_map.touch()
+        p = CombinatorialDemuxParams.model_validate(
+            {
+                "minknow_run_dir": str(run_dir),
+                "custom_barcodes_xlsx": str(barcodes_xlsx),
+                "reference_fasta": str(reference_fasta),
+                "output_dir": str(tmp_path / "out"),
+                "sample_map_xlsx": str(sample_map),
+            }
+        )
+        assert p.sample_map_xlsx == str(sample_map)
 
-    def test_kuro_xlsx_raises_not_implemented(
+    def test_kuro_xlsx_accepted(
         self, run_dir: Path, barcodes_xlsx: Path, reference_fasta: Path, tmp_path: Path
     ) -> None:
-        """kuro_xlsx is deferred to PR-B; must raise NotImplementedError."""
+        """PR-B: kuro_xlsx is now accepted (no longer raises NotImplementedError)."""
         kuro = tmp_path / "kuro.xlsx"
         kuro.touch()
-        with pytest.raises(NotImplementedError, match="PR-B"):
-            CombinatorialDemuxParams.model_validate(
-                {
-                    "minknow_run_dir": str(run_dir),
-                    "custom_barcodes_xlsx": str(barcodes_xlsx),
-                    "reference_fasta": str(reference_fasta),
-                    "output_dir": str(tmp_path / "out"),
-                    "kuro_xlsx": str(kuro),
-                }
-            )
+        p = CombinatorialDemuxParams.model_validate(
+            {
+                "minknow_run_dir": str(run_dir),
+                "custom_barcodes_xlsx": str(barcodes_xlsx),
+                "reference_fasta": str(reference_fasta),
+                "output_dir": str(tmp_path / "out"),
+                "kuro_xlsx": str(kuro),
+            }
+        )
+        assert p.kuro_xlsx == str(kuro)
 
 
 # ---------------------------------------------------------------------------

@@ -27,11 +27,8 @@ const BASE_RAW_RUN_PARAMS = {
   minQscore: 8.0,
   lengthMin: 800,
   lengthMax: 3000,
-  minBarcodeScore: 60.0,
   targetLength: null,
   lengthToleranceBp: 30,
-  linkedTrim: false,
-  revPrimerUniversal: "",
   normalizeHeaders: true,
   coverageFraction: 0.98,
   editDistRatio: 0.25,
@@ -49,63 +46,6 @@ function mockStore(overrides: Partial<AppState>) {
 describe("ParameterPanel", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  it("hides Min Barcode Score when inputMode is raw_run", () => {
-    mockStore({
-      inputMode: "raw_run",
-      mode: "amplicon",
-      ingestMode: "barcode",
-      cdsStart: 0,
-      cdsEnd: 0,
-      analyzeCdsCandidates: [],
-      selectedAnalyzeCdsIndex: null,
-      referencePath: "",
-      minFileSizeKb: 50,
-      minFilteredDepth: 15,
-      manyCutoff: 5,
-      distributionStats: null,
-      isDemuxing: false,
-      demuxProgress: 0,
-      demuxMessage: "",
-      demuxResult: null,
-      ampliconLengthEstimate: null,
-      setParams: vi.fn(),
-      setSelectedAnalyzeCdsIndex: vi.fn(),
-    });
-
-    render(<ParameterPanel />);
-
-    // minBarcodeScore field should not be present in raw_run mode
-    expect(screen.queryByLabelText("minBarcodeScore")).toBeNull();
-  });
-
-  it("hides Trim Adapters toggle when inputMode is raw_run", () => {
-    mockStore({
-      inputMode: "raw_run",
-      mode: "amplicon",
-      ingestMode: "barcode",
-      cdsStart: 0,
-      cdsEnd: 0,
-      analyzeCdsCandidates: [],
-      selectedAnalyzeCdsIndex: null,
-      referencePath: "",
-      minFileSizeKb: 50,
-      minFilteredDepth: 15,
-      manyCutoff: 5,
-      distributionStats: null,
-      isDemuxing: false,
-      demuxProgress: 0,
-      demuxMessage: "",
-      demuxResult: null,
-      ampliconLengthEstimate: null,
-      setParams: vi.fn(),
-      setSelectedAnalyzeCdsIndex: vi.fn(),
-    });
-
-    render(<ParameterPanel />);
-
-    expect(screen.queryByRole("switch", { name: /trimAdaptersAriaLabel/i })).toBeNull();
   });
 
   it("shows Advanced section summary in raw_run mode", () => {

@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator
 
 
 class CombinatorialDemuxParams(BaseModel):
@@ -41,12 +41,12 @@ class CombinatorialDemuxParams(BaseModel):
     ---------------
     sample_map_xlsx
         When provided, a per-well sample-name mapping xlsx (col A: name,
-        col B: well position e.g. "A1").  Not yet consumed by the core.
-        Raises ``NotImplementedError`` when set (deferred to PR-B).
+        col B: well position e.g. "A1").  Loaded into metadata; the core
+        pipeline uses it to annotate output filenames with mutant names.
     kuro_xlsx
         Path to a KURO results xlsx containing an ``expected_mutations``
-        sheet.  Not yet consumed by the core.
-        Raises ``NotImplementedError`` when set (deferred to PR-B).
+        sheet.  Stored in params metadata for downstream stages; combinatorial
+        demux itself does not consume mutation expectations.
     mapq_threshold
         Minimum MAPQ for alignment hits.  Range [0, 60].  Default 25.
     coverage_fraction
@@ -69,7 +69,7 @@ class CombinatorialDemuxParams(BaseModel):
     reference_fasta: str
     output_dir: str
 
-    # Optional - future integration (PR-B)
+    # Optional - sample mapping and KURO metadata
     sample_map_xlsx: str | None = None
     kuro_xlsx: str | None = None
 
@@ -149,21 +149,6 @@ class CombinatorialDemuxParams(BaseModel):
         if not p.exists():
             raise ValueError(f"kuro_xlsx not found: {v}")
         return v
-
-    @model_validator(mode="after")
-    def _check_pr_b_fields_deferred(self) -> CombinatorialDemuxParams:
-        """Reject PR-B fields until the core integration is implemented."""
-        if self.sample_map_xlsx is not None:
-            raise NotImplementedError(
-                "sample_map_xlsx integration is deferred to PR-B. "
-                "Pass null/omit to proceed without sample mapping."
-            )
-        if self.kuro_xlsx is not None:
-            raise NotImplementedError(
-                "kuro_xlsx (expected_mutations) integration is deferred to PR-B. "
-                "Pass null/omit to proceed without expected-mutation validation."
-            )
-        return self
 
 
 __all__ = ["CombinatorialDemuxParams"]
