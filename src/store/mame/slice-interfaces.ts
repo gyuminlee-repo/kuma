@@ -20,13 +20,9 @@ export interface RawRunParams {
   minQscore: number;
   lengthMin: number;
   lengthMax: number;
-  minBarcodeScore: number;
   // R6.5: amplicon length auto-detection
   targetLength: number | null;       // null → auto-detect
   lengthToleranceBp: number;         // ± window around targetLength
-  // R6.5: linked trim
-  linkedTrim: boolean;               // trim rev primer from 3′ end
-  revPrimerUniversal: string;        // 5′→3′ universal rev primer sequence
   // R6.5: header normalization
   normalizeHeaders: boolean;         // write >{well} FASTA headers
   // PR-A: combinatorial demux advanced params

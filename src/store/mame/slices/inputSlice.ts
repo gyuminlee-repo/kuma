@@ -25,12 +25,9 @@ const DEFAULT_RAW_RUN_PARAMS: RawRunParams = {
   minQscore: 8.0,
   lengthMin: 800,
   lengthMax: 3000,
-  minBarcodeScore: 60.0,
   // R6.5 defaults
   targetLength: null,
   lengthToleranceBp: 30,
-  linkedTrim: false,
-  revPrimerUniversal: "",
   normalizeHeaders: true,
   // PR-A: combinatorial demux advanced defaults
   coverageFraction: 0.98,
@@ -66,9 +63,6 @@ function getDemuxInputErrors(state: AppState): string[] {
     errors.push("Custom Barcodes (.xlsx or .csv) file is required.");
   }
   if (!state.outputPath) errors.push("Export destination folder is required.");
-  if (state.rawRunParams.linkedTrim && !state.rawRunParams.revPrimerUniversal) {
-    errors.push("Universal Rev Primer is required when Trim Adapters is enabled.");
-  }
   return errors;
 }
 
@@ -218,12 +212,9 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
           min_qscore: rawRunParams.minQscore,
           length_min: rawRunParams.lengthMin,
           length_max: rawRunParams.lengthMax,
-          min_barcode_score: rawRunParams.minBarcodeScore,
           target_length: rawRunParams.targetLength ?? undefined,
           length_tolerance_bp: rawRunParams.lengthToleranceBp,
           auto_detect_length: rawRunParams.targetLength === null,
-          linked_trim: rawRunParams.linkedTrim,
-          rev_primer_universal: rawRunParams.revPrimerUniversal || undefined,
           normalize_headers: rawRunParams.normalizeHeaders,
         },
         600_000,
