@@ -210,7 +210,7 @@ function RawRunParamPanel() {
         </div>
       </div>
 
-      {/* Quality thresholds */}
+      {/* Quality thresholds: Min Q-score only (Min Barcode Score hidden for combinatorial demux) */}
       <div className="grid gap-3 sm:grid-cols-2">
         <NumericField
           id="min-qscore"
@@ -221,79 +221,111 @@ function RawRunParamPanel() {
           disabled={isDemuxing}
           helpText={t("mame.parameters.minQscoreHelp")}
         />
-        <NumericField
-          id="min-barcode-score"
-          label={t("mame.parameters.minBarcodeScore")}
-          value={rawRunParams.minBarcodeScore}
-          step="1"
-          onChange={(v) => updateRaw({ minBarcodeScore: v })}
-          disabled={isDemuxing}
-          helpText={t("mame.parameters.minBarcodeScoreHelp")}
-        />
       </div>
 
-      {/* Linked adapter trim toggle */}
-      <div className="space-y-2 rounded-md bg-muted/50 p-2">
-        <div className="flex items-center justify-between">
-          <Label
-            htmlFor="linked-trim-toggle"
-            className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
-          >
-            <span className="inline-flex items-center gap-1.5">
-              {t("mame.parameters.trimAdapters")}
-              <InlineHelp text={t("mame.parameters.trimAdaptersHelp")} />
-            </span>
-          </Label>
-          <button
-            id="linked-trim-toggle"
-            type="button"
-            role="switch"
-            aria-checked={rawRunParams.linkedTrim}
-            aria-label={t("mame.parameters.trimAdaptersAriaLabel")}
-            disabled={isDemuxing}
-            onClick={() => updateRaw({ linkedTrim: !rawRunParams.linkedTrim })}
-            className={cn(
-              "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-              "disabled:cursor-not-allowed disabled:opacity-50",
-              rawRunParams.linkedTrim ? "bg-primary" : "bg-input",
-            )}
-          >
-            <span
-              aria-hidden="true"
-              className={cn(
-                "pointer-events-none inline-block h-4 w-4 rounded-full bg-background shadow-sm ring-0 transition-transform",
-                rawRunParams.linkedTrim ? "translate-x-4" : "translate-x-0",
-              )}
-            />
-          </button>
-        </div>
-        {rawRunParams.linkedTrim && (
+      {/* Advanced combinatorial demux options */}
+      <details className="group rounded-md border border-border/60">
+        <summary
+          className="flex cursor-pointer select-none items-center gap-1.5 px-3 py-2 text-caption font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
+          aria-label={t("mame.parameters.advancedSectionAriaLabel")}
+        >
+          <span aria-hidden="true" className="transition-transform group-open:rotate-90">▶</span>
+          {t("mame.parameters.advancedOptions")}
+        </summary>
+        <div className="space-y-3 px-3 pb-3">
+          {/* Coverage Fraction */}
           <div className="space-y-1">
             <Label
-              htmlFor="rev-primer"
+              htmlFor="coverage-fraction"
               className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
             >
               <span className="inline-flex items-center gap-1.5">
-                {t("mame.parameters.universalRevPrimer")}
-                <InlineHelp text={t("mame.parameters.universalRevPrimerHelp")} />
+                {t("mame.parameters.coverageFraction")}
+                <InlineHelp text={t("mame.parameters.coverageFractionHelp")} />
               </span>
             </Label>
             <Input
-              id="rev-primer"
-              type="text"
-              value={rawRunParams.revPrimerUniversal}
-              onChange={(e) =>
-                updateRaw({ revPrimerUniversal: e.target.value.trim().toUpperCase() })
-              }
-              placeholder={t("mame.parameters.revPrimerPlaceholder")}
-              className="h-8 min-w-0 font-mono text-xs"
-              aria-label={t("mame.parameters.universalRevPrimerAriaLabel")}
+              id="coverage-fraction"
+              type="number"
+              min={0.5}
+              max={1.0}
+              step={0.01}
+              value={rawRunParams.coverageFraction}
+              onChange={(e) => {
+                const n = Number(e.target.value);
+                if (Number.isFinite(n)) updateRaw({ coverageFraction: Math.max(0.5, Math.min(1.0, n)) });
+              }}
               disabled={isDemuxing}
+              className="h-8 text-xs"
+              aria-label={t("mame.parameters.coverageFractionAriaLabel")}
             />
           </div>
-        )}
-      </div>
+
+          {/* Edit Distance Ratio */}
+          <div className="space-y-1">
+            <Label
+              htmlFor="edit-dist-ratio"
+              className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
+            >
+              <span className="inline-flex items-center gap-1.5">
+                {t("mame.parameters.editDistRatio")}
+                <InlineHelp text={t("mame.parameters.editDistRatioHelp")} />
+              </span>
+            </Label>
+            <Input
+              id="edit-dist-ratio"
+              type="number"
+              min={0.0}
+              max={0.5}
+              step={0.01}
+              value={rawRunParams.editDistRatio}
+              onChange={(e) => {
+                const n = Number(e.target.value);
+                if (Number.isFinite(n)) updateRaw({ editDistRatio: Math.max(0.0, Math.min(0.5, n)) });
+              }}
+              disabled={isDemuxing}
+              className="h-8 text-xs"
+              aria-label={t("mame.parameters.editDistRatioAriaLabel")}
+            />
+          </div>
+
+          {/* Chimera Split */}
+          <div className="flex items-center justify-between">
+            <Label
+              htmlFor="chimera-split-toggle"
+              className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
+            >
+              <span className="inline-flex items-center gap-1.5">
+                {t("mame.parameters.chimeraSplit")}
+                <InlineHelp text={t("mame.parameters.chimeraSplitHelp")} />
+              </span>
+            </Label>
+            <button
+              id="chimera-split-toggle"
+              type="button"
+              role="switch"
+              aria-checked={rawRunParams.chimeraSplit}
+              aria-label={t("mame.parameters.chimeraSplitAriaLabel")}
+              disabled={isDemuxing}
+              onClick={() => updateRaw({ chimeraSplit: !rawRunParams.chimeraSplit })}
+              className={cn(
+                "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                "disabled:cursor-not-allowed disabled:opacity-50",
+                rawRunParams.chimeraSplit ? "bg-primary" : "bg-input",
+              )}
+            >
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "pointer-events-none inline-block h-4 w-4 rounded-full bg-background shadow-sm ring-0 transition-transform",
+                  rawRunParams.chimeraSplit ? "translate-x-4" : "translate-x-0",
+                )}
+              />
+            </button>
+          </div>
+        </div>
+      </details>
 
       {/* Normalize headers toggle */}
       <div className="flex items-center justify-between">

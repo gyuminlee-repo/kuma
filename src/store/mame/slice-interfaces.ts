@@ -29,6 +29,10 @@ export interface RawRunParams {
   revPrimerUniversal: string;        // 5′→3′ universal rev primer sequence
   // R6.5: header normalization
   normalizeHeaders: boolean;         // write >{well} FASTA headers
+  // PR-A: combinatorial demux advanced params
+  coverageFraction: number;          // min fraction of ref covered [0.5, 1.0], default 0.98
+  editDistRatio: number;             // max edit dist fraction of barcode prefix [0, 0.5], default 0.25
+  chimeraSplit: boolean;             // evaluate all alignment hits per read, default true
 }
 
 export interface InputSlice {
