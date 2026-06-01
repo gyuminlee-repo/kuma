@@ -59,8 +59,17 @@ async function sha256File(filePath) {
  * for cross-platform safety; base-name keys are dropped on rewrite.
  */
 function isTripleSuffixedKey(key) {
-  if (key === "kuro-sidecar" || key === "mame-sidecar") return false;
-  return key.startsWith("kuro-sidecar-") || key.startsWith("mame-sidecar-");
+  if (
+    key === "kuro-sidecar" ||
+    key === "mame-sidecar" ||
+    key === "evolvepro-sidecar"
+  )
+    return false;
+  return (
+    key.startsWith("kuro-sidecar-") ||
+    key.startsWith("mame-sidecar-") ||
+    key.startsWith("evolvepro-sidecar-")
+  );
 }
 
 /**
@@ -96,7 +105,10 @@ async function main() {
   }
 
   const files = readdirSync(BINARIES_DIR).filter(
-    (f) => f.startsWith("kuro-sidecar") || f.startsWith("mame-sidecar"),
+    (f) =>
+      f.startsWith("kuro-sidecar") ||
+      f.startsWith("mame-sidecar") ||
+      f.startsWith("evolvepro-sidecar"),
   );
 
   if (files.length === 0) {

@@ -4,10 +4,11 @@ Builds sidecar_main_<target>.py into standalone binaries and copies them to
 src-tauri/binaries/ with the correct Tauri target-triple suffix.
 
 Usage:
-    python build_sidecar.py                       # both kuro and mame (default)
+    python build_sidecar.py                       # kuro, mame, evolvepro (default)
     python build_sidecar.py --target kuro         # only kuro
     python build_sidecar.py --target mame         # only mame
-    python build_sidecar.py --target all          # both (explicit)
+    python build_sidecar.py --target evolvepro    # only evolvepro
+    python build_sidecar.py --target all          # kuro, mame, evolvepro (explicit)
     python build_sidecar.py --onedir              # multi-file mode (applies to all targets)
 """
 
@@ -252,7 +253,7 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    targets = ["kuro", "mame"] if args.target == "all" else [args.target]
+    targets = ["kuro", "mame", "evolvepro"] if args.target == "all" else [args.target]
     onefile = not args.onedir
 
     print(f"Platform: {platform.system()} {platform.machine()}")
