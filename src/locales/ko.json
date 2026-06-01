@@ -2217,5 +2217,174 @@
     "sequence": {
       "fastaNotSupported": "CDS annotation이 필요합니다. GenBank(.gb/.gbk) 또는 SnapGene(.dna) 파일을 사용하세요."
     }
+  },
+  "conda": {
+    "wizard": {
+      "title": "Conda 환경 설정",
+      "openButton": "설정 마법사 실행",
+      "idleHint": "이 마법사가 Miniforge 설치와 GUI용 단일 'evolvepro' conda 환경 생성을 자동으로 진행합니다.",
+      "start": "감지 시작",
+      "detecting": "conda 및 환경 감지 중...",
+      "needsConda": "Miniforge가 필요합니다. 지금 설치하시겠습니까?",
+      "installConda": "Miniforge 설치",
+      "installingConda": "Miniforge 설치 중...",
+      "needsEnv": "공식 EVOLVEpro GitHub 소스와 ESM, PyTorch, pandas 등 필수 패키지가 포함된 단일 'evolvepro' 환경을 생성/복구합니다",
+      "createEnv": "환경 생성",
+      "creatingEnv": "환경 생성 중...",
+      "needsRepair": "'evolvepro' 환경이 있지만 패키지 import가 실패했습니다. 재생성하시겠습니까?",
+      "needsRepairPackages": "누락된 패키지: {{packages}}. 필수 패키지를 설치/복구하시겠습니까?",
+      "recreate": "패키지 복구",
+      "verifying": "검증 중...",
+      "done": "EVOLVEpro 실행 준비 완료",
+      "close": "닫기",
+      "cancel": "취소",
+      "retry": "재시도",
+      "prefixConflict": "Miniforge 폴더는 있지만 conda가 정상 동작하지 않습니다. 폴더 삭제 후 재설치하거나 수동 정리해주세요.",
+      "removeAndReinstall": "폴더 삭제 후 재설치",
+      "installSkippedExisting": "이미 conda가 설치되어 있습니다 ({{path}})",
+      "creatingEnvHint": "이 단계는 PyTorch 다운로드 때문에 5-20분 소요될 수 있습니다. 잠시 기다려주세요.",
+      "resetAll": "전체 초기화",
+      "progressTitle": "설정 진행 상황",
+      "progressSteps": {
+        "conda": "Conda 확인",
+        "env": "환경 생성",
+        "packages": "패키지 설치",
+        "verify": "최종 검증"
+      },
+      "progress": {
+        "stepConda": "conda 환경 생성",
+        "stepPip": "패키지 설치",
+        "elapsed": "{{time}} 경과",
+        "eta": "~{{time}} 남음 (추정)",
+        "installing": "{{pkg}} 설치 중...",
+        "downloading": "{{pkg}} 다운로드 중..."
+      },
+      "currentWork": {
+        "detecting": "conda와 evolvepro 환경을 확인하는 중입니다.",
+        "prefixCheck": "기존 Miniforge 설치 위치를 확인하는 중입니다.",
+        "downloadMiniforge": "Miniforge 설치 파일을 다운로드하는 중입니다.",
+        "installMiniforge": "Miniforge를 설치하는 중입니다.",
+        "cancellingInstall": "Miniforge 설치 중단을 처리하고 부분 파일을 정리하는 중입니다.",
+        "createConda": "conda env를 만드는 중입니다.",
+        "pipInstall": "Python 패키지를 pip로 설치하는 중입니다. PyTorch 등 큰 패키지가 포함되어 시간이 오래 걸릴 수 있습니다.",
+        "evolveproInstall": "EvolvePro 소스를 설치하는 중입니다 (업스트림 __init__.py 누락 보정).",
+        "verify": "필수 패키지가 import 되는지 검증 중입니다.",
+        "preparing": "evolvepro 환경을 준비하는 중입니다.",
+        "cancelling": "중단 요청을 처리하고 환경을 정리하는 중입니다.",
+        "verifyingFinal": "필수 패키지가 import 되는지 최종 검증 중입니다.",
+        "done": "EVOLVEpro 실행 준비가 완료되었습니다.",
+        "error": "설정 중 오류가 발생했습니다. 아래 로그와 오류 메시지를 확인하세요."
+      },
+      "confirmCancelInstall": "정말 중단하시겠습니까? 진행 중인 다운로드와 부분 설치 파일은 삭제됩니다.",
+      "confirmCancelCreateEnv": "정말 중단하시겠습니까? 진행 중인 환경은 삭제됩니다.",
+      "cancellingPleaseWait": "중단 처리 중입니다. 잠시만 기다려 주세요.",
+      "resetConfirmPrompt": "evolvepro 환경 제거 진행?",
+      "resetConfirmYes": "확인",
+      "resetConfirmNo": "취소",
+      "resetEnvTitle": "evolvepro conda env를 제거하고 위저드를 초기 상태로 되돌립니다.",
+      "resetEnvRemoving": "Removing...",
+      "resetEnvButton": "evolvepro 환경 제거 후 재시작"
+    }
+  },
+  "evolvePro": {
+    "panel": {
+      "title": "EVOLVEpro 변이체 선택"
+    },
+    "onboarding": {
+      "title": "EVOLVEpro 환경 설정",
+      "detecting": "conda 환경 감지 중...",
+      "retry": "다시 감지",
+      "manualFallback": "마법사가 실패하면 GUI용 단일 환경을 수동으로 설치하세요:",
+      "singleEnvNote": "공식 EVOLVEpro 문서는 PLM 환경을 별도로 둡니다. 이 GUI는 데스크톱 실행 편의를 위해 EVOLVEpro, ESM, PyTorch를 한 환경에 함께 설치합니다."
+    },
+    "runForm": {
+      "title": "EVOLVEpro 실행",
+      "inputCsv": "입력 CSV",
+      "inputCsvHint": "CSV 또는 Excel 파일입니다. Variant와 activity 컬럼이 필요합니다.",
+      "roundData": "라운드 activity 파일",
+      "roundDataHint": "완료된 라운드 파일을 순서대로 추가하세요. Round 1만 넣으면 Round 2 후보를 예측하고, Round 1+2를 넣으면 Round 3 후보를 예측합니다.",
+      "roundFileColumns": "필수 컬럼: Variant, activity. Variant는 WT, S29I 같은 full notation, 29I 같은 short notation을 지원합니다.",
+      "addRound": "라운드 파일 추가",
+      "removeRound": "라운드 파일 삭제",
+      "roundLabel": "Round {{round}}",
+      "noRoundFiles": "아직 추가한 라운드 파일이 없습니다.",
+      "nextPrediction": "다음 예측: Round {{round}}",
+      "wtSequence": "WT 서열",
+      "wtFasta": "WT FASTA 파일",
+      "wtFastaPlaceholder": "WT FASTA를 선택하세요...",
+      "wtFastaHint": "단백질 FASTA만 지원합니다. EVOLVEpro/ESM-2는 DNA/RNA/NT 서열이 아니라 아미노산 서열이 필요합니다. 29I 같은 short variant를 S29I 같은 full notation으로 변환하는 기준 서열입니다.",
+      "nRounds": "라운드 수",
+      "topN": "Top N 요약 행",
+      "topNHint": "0이면 요약 파일에도 모든 예측을 저장합니다. df_test.csv에는 항상 모든 미측정 후보가 저장됩니다.",
+      "roundsFixedTitle": "누적 학습",
+      "roundsFixedHint": "업로드한 모든 라운드 파일을 누적해 학습하고 다음 라운드 후보를 예측합니다.",
+      "outputDir": "출력 디렉토리",
+      "outputCsv": "출력 CSV",
+      "browse": "찾아보기...",
+      "submit": "실행",
+      "cancel": "취소",
+      "running": "실행 중...",
+      "elapsed": "경과 시간",
+      "topVariants": "Top 변이체",
+      "resultTitle": "EVOLVEpro 결과",
+      "stage": {
+        "starting": "시작 중",
+        "detect": "환경 감지 중",
+        "loading": "ESM-2 모델 로딩 중",
+        "scoring": "변이체 스코어링 중",
+        "selecting": "Top 변이체 선택 중",
+        "done": "완료",
+        "error": "오류"
+      },
+      "selectModelFirst": "위 카드에서 설치된 ESM2 모델을 선택해주세요",
+      "usingModel": "사용 모델: {{label}}"
+    },
+    "esm2": {
+      "title": "ESM2 RAM 한도",
+      "description": "현재 RAM 한도를 초과하는 모델은 실행 중 멈춤을 막기 위해 비활성화합니다.",
+      "checking": "확인 중...",
+      "refresh": "새로고침",
+      "ram": "RAM",
+      "disk": "디스크",
+      "system": "시스템",
+      "recommended": "추천",
+      "ramRule": "최소 {{min}} GB, 권장 {{recommended}} GB",
+      "loading": "시스템 RAM 확인 중...",
+      "empty": "시스템 확인을 실행하면 사용 가능한 ESM2 모델을 볼 수 있습니다.",
+      "status": {
+        "safe": "가능",
+        "caution": "주의",
+        "blocked": "차단",
+        "unknown": "알 수 없음"
+      },
+      "download": {
+        "start": "다운로드",
+        "browser": "브라우저",
+        "cancel": "취소",
+        "installed": "설치됨",
+        "redownload": "재다운로드",
+        "blockedTooltip": "RAM 부족, 추론 불가",
+        "errorPrefix": "다운로드 실패: ",
+        "help": "Download: 앱이 캐시 폴더(~/.cache/torch/hub/checkpoints/)에 자동 저장, 검증, atomic 쓰기. Browser: .pt URL을 기본 브라우저로 열기 (aria2/IDM 같은 멀티커넥션 매니저로 더 빠르지만, 캐시 폴더로 직접 이동 필요)."
+      },
+      "docsLink": "ESM2 문서",
+      "activeModel": "활성: {{label}}",
+      "activeModelNone": "활성 없음 (설치된 모델 선택)",
+      "selectionDisabledHint": "먼저 이 모델을 다운로드해주세요",
+      "radioAriaLabel": "{{label}}을 활성 모델로 설정",
+      "installTitle": "ESM 지원 설치",
+      "installDescription": "새 ESM2 임베딩을 생성하기 전에 EVOLVEpro에서 사용하는 Python 환경에 fair-esm을 설치하세요."
+    },
+    "error": {
+      "dismiss": "닫기",
+      "kind": {
+        "env_not_found": "EVOLVEpro conda 환경을 찾을 수 없습니다",
+        "network": "모델 가중치 다운로드 중 네트워크 오류",
+        "disk_full": "디스크 공간 부족",
+        "permission": "권한 거부",
+        "runtime_error": "런타임 오류",
+        "unknown": "알 수 없는 오류"
+      }
+    }
   }
 }

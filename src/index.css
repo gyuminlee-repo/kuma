@@ -97,6 +97,12 @@
     --ring: 27.4 16.7% 41.0%;
   }
 
+  [data-tool="evolvepro"] {
+    --primary: 168 35% 30%;             /* #316B5F teal-green, distinct from kuro/mame */
+    --primary-foreground: 0 0% 100%;
+    --ring: 168 35% 30%;
+  }
+
   .dark[data-tool="kuro"] {
     --primary: 221.1 13.5% 70%;
     --primary-foreground: 222 14% 12%;
@@ -107,6 +113,12 @@
     --primary: 27.4 16.7% 70%;
     --primary-foreground: 24 17% 12%;
     --ring: 27.4 16.7% 70%;
+  }
+
+  .dark[data-tool="evolvepro"] {
+    --primary: 168 30% 62%;
+    --primary-foreground: 168 30% 12%;
+    --ring: 168 30% 62%;
   }
 
   .dark {

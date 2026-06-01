@@ -43,6 +43,10 @@
         {
           "name": "mame-sidecar",
           "sidecar": true
+        },
+        {
+          "name": "evolvepro-sidecar",
+          "sidecar": true
         }
       ]
     }

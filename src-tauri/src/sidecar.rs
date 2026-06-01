@@ -217,10 +217,12 @@ pub struct SidecarManager {
     pub binaries_dir: PathBuf,
     pub kuro: Mutex<Option<Arc<SidecarProcess>>>,
     pub mame: Mutex<Option<Arc<SidecarProcess>>>,
+    pub evolvepro: Mutex<Option<Arc<SidecarProcess>>>,
     pub next_id: AtomicI64,
     pub app_handle: AppHandle<Wry>,
     kuro_spawn_lock: Mutex<()>,
     mame_spawn_lock: Mutex<()>,
+    evolvepro_spawn_lock: Mutex<()>,
 }
 
 impl SidecarManager {
@@ -229,10 +231,12 @@ impl SidecarManager {
             binaries_dir,
             kuro: Mutex::new(None),
             mame: Mutex::new(None),
+            evolvepro: Mutex::new(None),
             next_id: AtomicI64::new(1),
             app_handle: app,
             kuro_spawn_lock: Mutex::new(()),
             mame_spawn_lock: Mutex::new(()),
+            evolvepro_spawn_lock: Mutex::new(()),
         }
     }
 
@@ -457,6 +461,12 @@ impl SidecarManager {
                         let kind = kind_owned.clone();
                         protocol
                             .drain_stdout_chunk(&chunk, move |params| {
+                                // evolvepro progress feeds the ProgressCache so the
+                                // frontend can recover run state after a webview reload.
+                                // Gated on kind so kuro/mame behaviour is unchanged.
+                                if kind == "evolvepro" {
+                                    crate::cache_evolvepro_progress(&app, &params);
+                                }
                                 let payload = SidecarProgressPayload {
                                     kind: kind.clone(),
                                     params,
@@ -502,6 +512,7 @@ impl SidecarManager {
         match kind {
             "kuro" => Ok(&self.kuro),
             "mame" => Ok(&self.mame),
+            "evolvepro" => Ok(&self.evolvepro),
             _ => Err(format!("Unknown sidecar kind: {kind}")),
         }
     }
@@ -510,6 +521,7 @@ impl SidecarManager {
         match kind {
             "kuro" => Ok(&self.kuro_spawn_lock),
             "mame" => Ok(&self.mame_spawn_lock),
+            "evolvepro" => Ok(&self.evolvepro_spawn_lock),
             _ => Err(format!("Unknown sidecar kind: {kind}")),
         }
     }
@@ -519,6 +531,7 @@ fn binary_name(kind: &str) -> Result<&'static str, String> {
     match kind {
         "kuro" => Ok("kuro-sidecar"),
         "mame" => Ok("mame-sidecar"),
+        "evolvepro" => Ok("evolvepro-sidecar"),
         _ => Err(format!("Unknown sidecar kind: {kind}")),
     }
 }

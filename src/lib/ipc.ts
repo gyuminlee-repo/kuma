@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { MergedRow, MergeStats, PlateMeta } from "@/types/mame/activity";
 
-export type SidecarKind = "kuro" | "mame";
+export type SidecarKind = "kuro" | "mame" | "evolvepro";
 
 function hasTauriBridge(): boolean {
   return typeof (globalThis as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ !== "undefined";

@@ -1,0 +1,405 @@
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { open as openDialog } from "@tauri-apps/plugin-dialog";
+import { Plus, X } from "lucide-react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
+import { useEvolveProStore } from "@/store/evolvepro/evolveProStore";
+import { EvolveProErrorAlert } from "./EvolveProErrorAlert";
+import {
+  validateRoundCsv,
+  validateFasta,
+  validateTopN,
+  validateOutputDir,
+} from "@/lib/evolveProValidation";
+
+interface FormErrors {
+  roundFiles?: string;
+  wtFasta?: string;
+  topN?: string;
+  outputDir?: string;
+}
+
+export interface EvolveProRunFormProps {
+  envName: string;
+}
+
+/**
+ * EVOLVEpro run input form. Independent module, does not touch the main flow.
+ * Uses only shadcn primitives (Card/Button/Input/Label/Progress) and tailwind
+ * tokens (text-foreground, bg-background, border-border) to maintain visual
+ * continuity with the rest of KUMA.
+ */
+export function EvolveProRunForm({ envName }: EvolveProRunFormProps) {
+  const { t } = useTranslation();
+  const startRun = useEvolveProStore((s) => s.startEvolveProRun);
+  const cancelRun = useEvolveProStore((s) => s.cancelEvolveProRun);
+  const running = useEvolveProStore((s) => s.evolveProRunning);
+  const progress = useEvolveProStore((s) => s.evolveProProgress);
+  const result = useEvolveProStore((s) => s.evolveProResult);
+  const error = useEvolveProStore((s) => s.evolveProError);
+  const activeEsm2ModelId = useEvolveProStore((s) => s.activeEsm2ModelId);
+  const esm2Installed = useEvolveProStore((s) => s.esm2Installed);
+  const esm2Recommendation = useEvolveProStore((s) => s.esm2Recommendation);
+
+  const [roundFiles, setRoundFiles] = useState<string[]>([]);
+  const [wtFasta, setWtFasta] = useState<string>("");
+  const [outputDir, setOutputDir] = useState<string>("");
+  const [topN, setTopN] = useState<number>(0);
+  const [errors, setErrors] = useState<FormErrors>({});
+
+  function setError(key: keyof FormErrors, msg: string | undefined) {
+    setErrors((prev) => {
+      const next = { ...prev };
+      if (msg) next[key] = msg;
+      else delete next[key];
+      return next;
+    });
+  }
+
+  async function validateRoundFiles(paths: string[]) {
+    for (const p of paths) {
+      const r = await validateRoundCsv(p);
+      if (!r.ok) {
+        setError("roundFiles", `${p}: ${r.message}`);
+        return;
+      }
+    }
+    setError("roundFiles", undefined);
+  }
+
+  async function addRoundFile() {
+    const paths = await openDialog({
+      multiple: true,
+      directory: false,
+      filters: [{ name: "Activity table", extensions: ["csv", "xlsx", "xls"] }],
+    });
+    let nextFiles: string[] | null = null;
+    if (typeof paths === "string") {
+      nextFiles = [...roundFiles, paths];
+    } else if (Array.isArray(paths)) {
+      nextFiles = [...roundFiles, ...paths];
+    }
+    if (nextFiles) {
+      setRoundFiles(nextFiles);
+      await validateRoundFiles(nextFiles);
+    }
+  }
+
+  function removeRoundFile(index: number) {
+    const next = roundFiles.filter((_, i) => i !== index);
+    setRoundFiles(next);
+    void validateRoundFiles(next);
+  }
+
+  async function pickWtFasta() {
+    const path = await openDialog({
+      multiple: false,
+      directory: false,
+      filters: [{ name: "FASTA", extensions: ["fa", "faa", "fasta", "fas"] }],
+    });
+    if (typeof path === "string") {
+      setWtFasta(path);
+      const r = await validateFasta(path);
+      setError("wtFasta", r.ok ? undefined : r.message);
+    }
+  }
+
+  async function pickOutputDir() {
+    const path = await openDialog({ multiple: false, directory: true });
+    if (typeof path === "string") {
+      setOutputDir(path);
+      // C is validated on submit. Clear any prior error on re-pick.
+      setError("outputDir", undefined);
+    }
+  }
+
+  function handleTopNChange(raw: string) {
+    const n = Number(raw);
+    setTopN(n);
+    const r = validateTopN(raw);
+    setError("topN", r.ok ? undefined : r.message);
+  }
+
+  const activeEsm2Installed =
+    activeEsm2ModelId !== null && esm2Installed[activeEsm2ModelId] === true;
+
+  const activeEsm2Label =
+    esm2Recommendation?.models.find((m) => m.model_id === activeEsm2ModelId)?.label ?? null;
+
+  const hasBlockingErrors =
+    Boolean(errors.roundFiles) || Boolean(errors.wtFasta) || Boolean(errors.topN);
+
+  const canSubmit =
+    !running &&
+    roundFiles.length > 0 &&
+    wtFasta.length > 0 &&
+    outputDir.length > 0 &&
+    topN >= 0 &&
+    activeEsm2Installed &&
+    !hasBlockingErrors;
+
+  async function handleSubmit() {
+    if (!activeEsm2ModelId) return;
+    const dirCheck = await validateOutputDir(outputDir);
+    if (!dirCheck.ok) {
+      setError("outputDir", dirCheck.message);
+      return;
+    }
+    setError("outputDir", undefined);
+    void startRun({
+      input_csv: roundFiles[0] ?? "",
+      round_files: roundFiles,
+      wt_sequence: "",
+      wt_fasta: wtFasta,
+      n_rounds: roundFiles.length,
+      output_dir: outputDir,
+      top_n: topN,
+      env_name: envName,
+      esm2_model_id: activeEsm2ModelId,
+    });
+  }
+
+  const handleSubmitClick = () => {
+    void handleSubmit();
+  };
+
+  const progressPct =
+    progress && progress.total > 0
+      ? Math.min(100, Math.round((progress.current / progress.total) * 100))
+      : running
+        ? 5
+        : 0;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>
+          {t("evolvePro.runForm.title", { defaultValue: "EVOLVEpro Variant Scoring" })}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {error ? <EvolveProErrorAlert error={error} /> : null}
+
+        <div className="space-y-2">
+          <Label>
+            {t("evolvePro.runForm.roundData", { defaultValue: "Round activity files" })}
+          </Label>
+          <p className="text-xs text-muted-foreground">
+            {t("evolvePro.runForm.roundDataHint", {
+              defaultValue:
+                "Add completed round tables in order. Round 1 predicts Round 2; Round 1 + Round 2 predicts Round 3.",
+            })}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {t("evolvePro.runForm.roundFileColumns", {
+              defaultValue:
+                "Required columns: Variant and activity. Variant supports WT, full notation like S29I, or short notation like 29I.",
+            })}
+          </p>
+          <div className="space-y-2">
+            {roundFiles.length === 0 ? (
+              <div className="rounded-md border border-dashed border-border px-3 py-2 text-sm text-muted-foreground">
+                {t("evolvePro.runForm.noRoundFiles", { defaultValue: "No round files added yet." })}
+              </div>
+            ) : (
+              roundFiles.map((file, index) => (
+                <div key={`${file}-${index}`} className="flex items-center gap-2 rounded-md border border-border px-3 py-2">
+                  <div className="min-w-20 text-sm font-medium">
+                    {t("evolvePro.runForm.roundLabel", {
+                      round: index + 1,
+                      defaultValue: `Round ${index + 1}`,
+                    })}
+                  </div>
+                  <div className="min-w-0 flex-1 truncate text-sm text-muted-foreground">{file}</div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeRoundFile(index)}
+                    disabled={running}
+                    aria-label={t("evolvePro.runForm.removeRound", { defaultValue: "Remove round file" })}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))
+            )}
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            <Button type="button" variant="outline" onClick={() => void addRoundFile()} disabled={running}>
+              <Plus className="mr-2 h-4 w-4" />
+              {t("evolvePro.runForm.addRound", { defaultValue: "Add round file" })}
+            </Button>
+            <div className="text-xs text-muted-foreground">
+              {t("evolvePro.runForm.nextPrediction", {
+                round: roundFiles.length + 1,
+                defaultValue: `Next prediction: Round ${roundFiles.length + 1}`,
+              })}
+            </div>
+          </div>
+          {errors.roundFiles ? (
+            <p className="text-xs text-destructive">{errors.roundFiles}</p>
+          ) : null}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="evolvepro-wt-fasta">
+            {t("evolvePro.runForm.wtFasta", { defaultValue: "WT FASTA file" })}
+          </Label>
+          <div className="flex gap-2">
+            <Input
+              id="evolvepro-wt-fasta"
+              type="text"
+              readOnly
+              value={wtFasta}
+              placeholder={t("evolvePro.runForm.wtFastaPlaceholder", {
+                defaultValue: "Click Browse to select WT FASTA...",
+              })}
+              className="min-w-0 flex-1"
+            />
+            <Button type="button" variant="outline" onClick={() => void pickWtFasta()} disabled={running}>
+              {t("evolvePro.runForm.browse", { defaultValue: "Browse" })}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {t("evolvePro.runForm.wtFastaHint", {
+              defaultValue:
+                "Used to expand short variants such as 29I into full notation such as S29I.",
+            })}
+          </p>
+          {errors.wtFasta ? (
+            <p className="text-xs text-destructive">{errors.wtFasta}</p>
+          ) : null}
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="evolvepro-top-n">
+              {t("evolvePro.runForm.topN", { defaultValue: "Top N summary rows" })}
+            </Label>
+            <Input
+              id="evolvepro-top-n"
+              type="number"
+              min={0}
+              max={1000}
+              value={topN}
+              onChange={(e) => handleTopNChange(e.target.value)}
+              disabled={running}
+            />
+            <p className="text-xs text-muted-foreground">
+              {t("evolvePro.runForm.topNHint", {
+                defaultValue: "0 writes all predictions to the summary file. df_test.csv always contains all unmeasured variants.",
+              })}
+            </p>
+            {errors.topN ? (
+              <p className="text-xs text-destructive">{errors.topN}</p>
+            ) : null}
+          </div>
+
+          <div className="space-y-2 rounded-md border border-border bg-muted/30 px-3 py-2">
+            <div className="text-sm font-medium">
+              {t("evolvePro.runForm.roundsFixedTitle", { defaultValue: "Cumulative training" })}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {t("evolvePro.runForm.roundsFixedHint", {
+                defaultValue:
+                  "The GUI trains from every uploaded round table and predicts candidates for the next round.",
+              })}
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="evolvepro-output-dir">
+            {t("evolvePro.runForm.outputDir", { defaultValue: "Output directory" })}
+          </Label>
+          <div className="flex gap-2">
+            <Input
+              id="evolvepro-output-dir"
+              type="text"
+              readOnly
+              value={outputDir}
+              placeholder={t("evolvePro.runForm.outputDirPlaceholder", {
+                defaultValue: "Click Browse to select…",
+              })}
+              className="min-w-0 flex-1"
+            />
+            <Button type="button" variant="outline" onClick={() => void pickOutputDir()} disabled={running}>
+              {t("evolvePro.runForm.browse", { defaultValue: "Browse" })}
+            </Button>
+          </div>
+          {errors.outputDir ? (
+            <p className="text-xs text-destructive">{errors.outputDir}</p>
+          ) : null}
+        </div>
+
+        {running || progress ? (
+          <div className="space-y-2 rounded-md border border-border bg-muted/30 p-3">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>
+                {progress?.stage
+                  ? t(`evolvePro.runForm.stage.${progress.stage}`, { defaultValue: progress.stage })
+                  : t("evolvePro.runForm.stage.starting", { defaultValue: "Starting…" })}
+              </span>
+              <span>{progressPct}%</span>
+            </div>
+            <Progress value={progressPct} />
+            {progress?.message ? (
+              <p className="text-xs text-muted-foreground">{progress.message}</p>
+            ) : null}
+          </div>
+        ) : null}
+
+        {result ? (
+          <div className="rounded-md border border-success/40 bg-success/10 p-3 text-sm">
+            <div className="font-medium text-foreground">
+              {t("evolvePro.runForm.resultTitle", { defaultValue: "Run complete" })}
+            </div>
+            <div className="mt-1 text-xs text-muted-foreground">
+              {t("evolvePro.runForm.outputCsv", { defaultValue: "Output" })}: {result.output_csv}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {t("evolvePro.runForm.topVariants", { defaultValue: "Top variants" })}: {result.top_variants.length}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {t("evolvePro.runForm.elapsed", { defaultValue: "Elapsed" })}: {result.elapsed_sec.toFixed(1)}s
+            </div>
+          </div>
+        ) : null}
+
+        {/* ESM2 active model status */}
+        {activeEsm2Label ? (
+          <div className="rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
+            {t("evolvePro.runForm.usingModel", {
+              defaultValue: "Using ESM2 model: {{label}}",
+              label: activeEsm2Label,
+            })}
+          </div>
+        ) : (
+          <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+            {t("evolvePro.runForm.selectModelFirst", {
+              defaultValue: "Select an installed ESM2 model from the card above",
+            })}
+          </div>
+        )}
+
+        <div className="flex gap-2">
+          <Button type="button" onClick={handleSubmitClick} disabled={!canSubmit}>
+            {running
+              ? t("evolvePro.runForm.running", { defaultValue: "Running…" })
+              : t("evolvePro.runForm.submit", { defaultValue: "Start EVOLVEpro" })}
+          </Button>
+          {running ? (
+            <Button type="button" variant="outline" onClick={() => void cancelRun()}>
+              {t("evolvePro.runForm.cancel", { defaultValue: "Cancel" })}
+            </Button>
+          ) : null}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

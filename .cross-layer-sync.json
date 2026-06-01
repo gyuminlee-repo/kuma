@@ -57,6 +57,11 @@
       "module": "sidecar_kuro.models",
       "pythonPath": "python-core",
       "output": "src/types/models.generated.ts"
+    },
+    {
+      "module": "sidecar_evolvepro.models",
+      "pythonPath": "python-core",
+      "output": "src/types/models.evolvepro.generated.ts"
     }
   ],
   "groups": [
