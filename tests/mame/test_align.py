@@ -176,3 +176,28 @@ class TestAlignReads:
         assert len(alns) == 3
         ids = [a.read_id for a in alns]
         assert ids == ["r1", "r2", "r3"]
+
+    def test_reverse_strand_q_st_in_original_read_coords(
+        self, ref_fasta: Path
+    ) -> None:
+        """Reverse-strand q_st must be relative to the as-input read 5' end.
+
+        The read is built as ``leftflank(L) + revcomp(REF) + rightflank(R)``
+        with L != R. mappy reports forward-query coordinates, so for the
+        reverse-mapped middle segment q_st must equal the leading flank length
+        L (not the trailing flank length R). The pre-fix code returned R.
+        """
+        left = 10
+        right = 40
+        # Distinct flank bases unlikely to extend the alignment into the flanks.
+        left_flank = "T" * left
+        right_flank = "A" * right
+        read = left_flank + _rc(_REF_SEQ) + right_flank
+        reads = [("rev_flanked", read)]
+        alns = align_reads(
+            reads, ref_fasta, min_mapq=0, require_full_span=False
+        )
+        assert len(alns) >= 1
+        aln = alns[0]
+        assert aln.strand == -1
+        assert aln.q_st == left

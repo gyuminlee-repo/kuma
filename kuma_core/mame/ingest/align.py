@@ -195,39 +195,46 @@ def _parse_cigar(cigar_str: str) -> list[list[int]]:
 
 
 def _coords_from_cigar(
-    cigar: list[list[int]], pos_1based: int
+    cigar: list[list[int]], pos_1based: int, reverse: bool
 ) -> tuple[int, int, int, int]:
     """Derive (r_st, r_en, q_st, q_en) from a CIGAR and 1-based SAM POS.
 
-    - r_st = pos - 1 (0-based).
-    - r_en = r_st + sum of reference-consuming op lengths.
-    - q_st = sum of leading clip lengths (S and H).
-    - q_en = q_st + sum of query-consuming aligned op lengths (M/I/=/X).
-
-    The q_* formula is strand-agnostic and SEQ-independent, matching mappy's
-    forward-oriented query coordinates for primary and supplementary records.
+    - r_st = pos - 1 (0-based); r_en = r_st + reference-consuming op lengths.
+    - SAM clips are relative to the SEQ as written. For reverse-strand records
+      SEQ is the reverse complement of the input read, so the SAM-oriented
+      q_st/q_en are flipped back to the original (as-input) read orientation to
+      match mappy's forward query coordinates that downstream code expects.
     """
     r_st = pos_1based - 1
     ref_span = 0
-    q_st = 0
+    lead_clip = 0
     q_aligned = 0
+    total_query = 0
     seen_aligned = False
     for length, op in cigar:
         if op in _REF_CONSUMING:
             ref_span += length
         if op in (_CIGAR_S, _CIGAR_H):
+            total_query += length
             if not seen_aligned:
-                q_st += length
-            # Trailing clips do not affect q_en (which is anchored on q_st).
+                lead_clip += length
         elif op in _QUERY_ALIGNED:
             seen_aligned = True
             q_aligned += length
+            total_query += length
         else:
-            # Deletion / skip / padding consume neither query clip nor query
-            # aligned bases; mark the aligned region as started for clip logic.
+            # Deletion / skip / padding consume neither query clip nor aligned
+            # query bases; mark the aligned region as started for clip logic.
             seen_aligned = True
     r_en = r_st + ref_span
-    q_en = q_st + q_aligned
+    q_st_sam = lead_clip
+    q_en_sam = lead_clip + q_aligned
+    if reverse:
+        q_st = total_query - q_en_sam
+        q_en = total_query - q_st_sam
+    else:
+        q_st = q_st_sam
+        q_en = q_en_sam
     return r_st, r_en, q_st, q_en
 
 
@@ -362,7 +369,7 @@ def align_reads(
         if read_index in primary:
             continue
         cigar = _parse_cigar(cigar_str)
-        r_st, r_en, q_st, q_en = _coords_from_cigar(cigar, pos)
+        r_st, r_en, q_st, q_en = _coords_from_cigar(cigar, pos, bool(flag & _FLAG_REVERSE))
         strand = -1 if (flag & _FLAG_REVERSE) else 1
         read_id, read_seq = index_map[read_index]
         primary[read_index] = Alignment(
@@ -462,7 +469,7 @@ def align_reads_multi(
         if mapq < min_mapq:
             continue
         cigar = _parse_cigar(cigar_str)
-        r_st, r_en, q_st, q_en = _coords_from_cigar(cigar, pos)
+        r_st, r_en, q_st, q_en = _coords_from_cigar(cigar, pos, bool(flag & _FLAG_REVERSE))
         ref_span = r_en - r_st
         if ref_len > 0 and ref_span / ref_len < coverage_fraction:
             continue
