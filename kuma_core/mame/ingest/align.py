@@ -238,6 +238,15 @@ def _coords_from_cigar(
     return r_st, r_en, q_st, q_en
 
 
+def _strip_clips(cigar: list[list[int]]) -> list[list[int]]:
+    """Drop soft/hard-clip ops to match mappy's clip-free ``.cigar``.
+
+    Clipping is conveyed by q_st/q_en; consensus walking starts at q_st and must
+    not re-advance over a leading clip op (which double-offsets the query).
+    """
+    return [[length, op] for length, op in cigar if op not in (_CIGAR_S, _CIGAR_H)]
+
+
 def _write_reads_fasta(
     reads: Iterable[tuple[str, str]], fasta_path: Path
 ) -> list[tuple[str, str]]:
@@ -376,7 +385,7 @@ def align_reads(
             read_id=read_id,
             read_seq=read_seq,
             mapq=mapq,
-            cigar=cigar,
+            cigar=_strip_clips(cigar),
             r_st=r_st,
             r_en=r_en,
             q_st=q_st,
@@ -480,7 +489,7 @@ def align_reads_multi(
                 read_id=read_id,
                 read_seq=read_seq,
                 mapq=mapq,
-                cigar=cigar,
+                cigar=_strip_clips(cigar),
                 r_st=r_st,
                 r_en=r_en,
                 q_st=q_st,

@@ -201,3 +201,21 @@ class TestAlignReads:
         aln = alns[0]
         assert aln.strand == -1
         assert aln.q_st == left
+
+    def test_alignment_cigar_has_no_clip_ops(self, ref_fasta: Path) -> None:
+        """Alignment.cigar must be clip-free like mappy (clips via q_st/q_en).
+
+        A flanked read (left + REF + right) is soft-clipped at both ends by the
+        aligner. The returned cigar must drop S(4)/H(5) ops; clipping is conveyed
+        by q_st/q_en so consensus walking does not double-offset the query.
+        """
+        read = "T" * 15 + _REF_SEQ + "A" * 25
+        alns = align_reads(
+            [("flanked", read)], ref_fasta, min_mapq=0, require_full_span=False
+        )
+        assert len(alns) >= 1
+        aln = alns[0]
+        # Soft/hard clip ops (4, 5) must be absent from the stored cigar.
+        assert all(op not in (4, 5) for _, op in aln.cigar)
+        # Clipping is still reflected in the query coordinates.
+        assert aln.q_st > 0
