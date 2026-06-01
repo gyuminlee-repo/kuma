@@ -27,6 +27,7 @@ from sidecar_evolvepro.handlers.esm2 import handle_esm2_recommend
 from sidecar_evolvepro.handlers.evolvepro import (
     handle_evolvepro_cancel,
     handle_evolvepro_detect,
+    handle_evolvepro_embedding_cache_status,
     handle_evolvepro_run,
 )
 
@@ -91,6 +92,7 @@ _METHODS = {
     "evolvepro.detect": handle_evolvepro_detect,
     "evolvepro.run": _evolvepro_run_with_progress,
     "evolvepro.cancel": handle_evolvepro_cancel,
+    "evolvepro.embedding_cache_status": handle_evolvepro_embedding_cache_status,
     "conda.detect": handle_conda_detect,
     "conda.detect_env": handle_conda_detect_env,
     "conda.verify_env": handle_conda_verify_env,

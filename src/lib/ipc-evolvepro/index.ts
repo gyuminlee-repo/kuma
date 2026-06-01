@@ -21,6 +21,7 @@ import type {
   Esm2RecommendationResponse,
   EvolveProCancelRequest,
   EvolveProDetectResponse,
+  EvolveProEmbeddingCacheStatusResponse,
   EvolveProProgressSnapshot,
   EvolveProRunProgress,
   EvolveProRunRequest,
@@ -46,6 +47,16 @@ export async function detectEvolveProEnv(): Promise<EvolveProDetectResponse> {
 
 export async function recommendEsm2Model(): Promise<Esm2RecommendationResponse> {
   return rpc<Esm2RecommendationResponse>("esm2.recommend", {});
+}
+
+export async function getEmbeddingCacheStatus(
+  wtSequence: string,
+  esm2ModelId: string,
+): Promise<EvolveProEmbeddingCacheStatusResponse> {
+  return rpc<EvolveProEmbeddingCacheStatusResponse>("evolvepro.embedding_cache_status", {
+    wt_sequence: wtSequence,
+    esm2_model_id: esm2ModelId,
+  });
 }
 
 export async function startEvolveProRun(

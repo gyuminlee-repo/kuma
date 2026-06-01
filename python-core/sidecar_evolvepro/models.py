@@ -62,6 +62,10 @@ class Esm2RecommendationResponse(BaseModel):
     recommended_label: Optional[str] = None
     models: list[Esm2ModelRecommendation] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
+    # T2 hardware spec fields; keys match recommend_esm2_model() return dict exactly
+    cpu_cores: Optional[int] = None
+    gpu_available: bool = False
+    gpu_kind: Optional[str] = None
 
 
 class EvolveProRunRequest(BaseModel):
@@ -107,6 +111,23 @@ class EvolveProCancelRequest(BaseModel):
     """Request body for evolvepro_cancel RPC."""
 
     run_id: str = Field(min_length=1)
+
+
+class EvolveProEmbeddingCacheStatusRequest(BaseModel):
+    """Request body for evolvepro.embedding_cache_status RPC."""
+
+    wt_sequence: str = Field(min_length=1, max_length=4000)
+    esm2_model_id: Esm2ModelId
+
+
+class EvolveProEmbeddingCacheStatusResponse(BaseModel):
+    """Response body for evolvepro.embedding_cache_status RPC."""
+
+    cached: bool
+    n_variants: int
+    estimate_seconds: Optional[float] = None
+    estimate_basis: Optional[str] = None
+    cache_dir: str
 
 
 class CondaStatusResponse(BaseModel):

@@ -138,6 +138,39 @@ def disk_free_gb(path: str | None = None) -> float | None:
 		return None
 
 
+
+def detect_gpu() -> dict:
+	"""Best-effort GPU detection without requiring torch as a hard dependency.
+
+	Returns {"gpu_available": bool, "gpu_kind": str | None}.
+	kind is one of: "cuda", "mps", "cuda?", "mps?", None.
+	"cuda?" / "mps?" indicate heuristic detection when torch is absent.
+	"""
+	# Attempt precise detection via torch first.
+	try:
+		import torch  # noqa: PLC0415
+
+		if torch.cuda.is_available():
+			return {"gpu_available": True, "gpu_kind": "cuda"}
+		if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+			return {"gpu_available": True, "gpu_kind": "mps"}
+		return {"gpu_available": False, "gpu_kind": None}
+	except ImportError:
+		pass
+
+	# Fallback: heuristic probes when torch is not installed.
+	if shutil.which("nvidia-smi") is not None:
+		return {"gpu_available": True, "gpu_kind": "cuda?"}
+	if platform.system() == "Darwin" and platform.machine() == "arm64":
+		return {"gpu_available": True, "gpu_kind": "mps?"}
+	return {"gpu_available": False, "gpu_kind": None}
+
+
+def cpu_cores() -> int | None:
+	"""Return the number of logical CPU cores, or None if undetermined."""
+	return os.cpu_count()
+
+
 def _model_status(spec: Esm2ModelSpec, ram_gb: float | None) -> str:
 	if ram_gb is None:
 		return "unknown"
@@ -198,6 +231,8 @@ def recommend_esm2_model() -> dict:
 	if ram_gb is not None and all(m["status"] == "blocked" for m in models):
 		warnings.append("No ESM2 model is within the detected RAM budget.")
 
+	gpu_info = detect_gpu()
+
 	result = {
 		"os": system,
 		"arch": machine,
@@ -207,6 +242,9 @@ def recommend_esm2_model() -> dict:
 		"recommended_label": recommended["label"] if recommended else None,
 		"models": models,
 		"warnings": warnings,
+		"cpu_cores": cpu_cores(),
+		"gpu_available": gpu_info["gpu_available"],
+		"gpu_kind": gpu_info["gpu_kind"],
 	}
 	_esm2_cache.append(result)
 	return result

@@ -1,4 +1,4 @@
-"""EVOLVEpro run/detect/cancel JSON-RPC handlers.
+"""EVOLVEpro run/detect/cancel/embedding_cache_status JSON-RPC handlers.
 
 Ported from evolvepro-gui/python-core/sidecar/handlers.py. KUMA does not bundle
 EVOLVEpro; these handlers shell out to the user's own conda installation.
@@ -12,11 +12,14 @@ from sidecar_evolvepro import core
 from sidecar_evolvepro.models import (
     EvolveProCancelRequest,
     EvolveProDetectResponse,
+    EvolveProEmbeddingCacheStatusRequest,
+    EvolveProEmbeddingCacheStatusResponse,
     EvolveProRunRequest,
     EvolveProRunStartResponse,
 )
 
-from kuma_core.evolvepro import runner as evolvepro_runner
+from kuma_core.evolvepro import embedding_cache, runner as evolvepro_runner, timing
+from kuma_core.shared import system_info
 
 
 def handle_evolvepro_detect(params: dict[str, Any]) -> dict[str, Any]:  # noqa: ARG001
@@ -77,8 +80,46 @@ def handle_evolvepro_cancel(params: dict[str, Any]) -> dict[str, Any]:
     return {"ok": ok}
 
 
+def handle_evolvepro_embedding_cache_status(params: dict[str, Any]) -> dict[str, Any]:
+    """Return embedding cache hit status and time estimate for a given wt_sequence + model."""
+    req = EvolveProEmbeddingCacheStatusRequest(**params)
+
+    cache_dir = embedding_cache.resolve_cache_dir()
+    cached = embedding_cache.is_cached(cache_dir, req.wt_sequence, req.esm2_model_id)
+    wl = timing.workload(req.wt_sequence)
+
+    if cached:
+        estimate_seconds = None
+        estimate_basis = None
+    else:
+        hw = system_info.recommend_esm2_model()
+        gpu = hw["gpu_available"]
+        measured = embedding_cache.read_throughput(
+            cache_dir,
+            embedding_cache.machine_fingerprint(),
+            req.esm2_model_id,
+        )
+        est = timing.estimate_seconds(
+            wl,
+            model_id=req.esm2_model_id,
+            gpu=gpu,
+            measured_tok_per_sec=measured,
+        )
+        estimate_seconds = est["seconds"]
+        estimate_basis = est["basis"]
+
+    return EvolveProEmbeddingCacheStatusResponse(
+        cached=cached,
+        n_variants=wl["n_variants"],
+        estimate_seconds=estimate_seconds,
+        estimate_basis=estimate_basis,
+        cache_dir=str(cache_dir),
+    ).model_dump()
+
+
 __all__ = [
     "handle_evolvepro_detect",
     "handle_evolvepro_run",
     "handle_evolvepro_cancel",
+    "handle_evolvepro_embedding_cache_status",
 ]

@@ -6,6 +6,7 @@ import {
   esm2CheckInstalled,
   esm2DownloadCancel,
   esm2DownloadStart,
+  getEmbeddingCacheStatus,
   recommendEsm2Model,
   startEvolveProRun,
 } from "@/lib/ipc-evolvepro";
@@ -14,6 +15,7 @@ import type {
   Esm2ModelRecommendation,
   Esm2RecommendationResponse,
   EvolveProDetectResponse,
+  EvolveProEmbeddingCacheStatusResponse,
   EvolveProRunProgress,
   EvolveProRunRequest,
   EvolveProRunResult,
@@ -73,6 +75,8 @@ export interface EvolveProState {
   esm2Downloads: Record<string, Esm2DownloadState>;
   esm2Installed: Record<string, boolean>;
   activeEsm2ModelId: string | null;
+  embeddingCacheStatus: EvolveProEmbeddingCacheStatusResponse | null;
+  embeddingCacheLoading: boolean;
 
   detectEvolveProEnv: () => Promise<void>;
   loadEsm2Recommendation: () => Promise<void>;
@@ -86,6 +90,7 @@ export interface EvolveProState {
   refreshEsm2Installed: () => Promise<void>;
   setActiveEsm2: (modelId: string | null) => void;
   resolveActiveEsm2: () => string | null;
+  loadEmbeddingCacheStatus: (wtSequence: string, modelId: string) => Promise<void>;
 }
 
 export const useEvolveProStore = create<EvolveProState>()(
@@ -103,6 +108,8 @@ export const useEvolveProStore = create<EvolveProState>()(
       esm2Downloads: {},
       esm2Installed: {},
       activeEsm2ModelId: null,
+      embeddingCacheStatus: null,
+      embeddingCacheLoading: false,
 
       detectEvolveProEnv: async () => {
         set({ evolveProDetecting: true, evolveProError: null });
@@ -205,6 +212,8 @@ export const useEvolveProStore = create<EvolveProState>()(
           esm2Downloads: {},
           esm2Installed: {},
           activeEsm2ModelId: null,
+          embeddingCacheStatus: null,
+          embeddingCacheLoading: false,
         });
       },
 
@@ -289,6 +298,25 @@ export const useEvolveProStore = create<EvolveProState>()(
 
       setActiveEsm2: (modelId) => {
         set({ activeEsm2ModelId: modelId });
+      },
+
+      loadEmbeddingCacheStatus: async (wtSequence, modelId) => {
+        if (!wtSequence || !modelId) {
+          set({ embeddingCacheStatus: null, embeddingCacheLoading: false });
+          return;
+        }
+        set({ embeddingCacheLoading: true });
+        try {
+          const status = await getEmbeddingCacheStatus(wtSequence, modelId);
+          set({ embeddingCacheStatus: status, embeddingCacheLoading: false });
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          set({
+            embeddingCacheStatus: null,
+            embeddingCacheLoading: false,
+            evolveProError: { kind: classifyError(message), message },
+          });
+        }
       },
 
       resolveActiveEsm2: () => {
