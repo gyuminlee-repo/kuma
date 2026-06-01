@@ -422,7 +422,7 @@ export function MainShell() {
         onOpenSettings={() => setSettingsOpen(true)}
       />
 
-      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} scope={activeTab === "mame" ? "mame" : "kuro"} />
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} scope={activeTab} />
 
       <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as AppTab); void handleTabChange(v); }} className="flex min-h-0 flex-1 flex-col">
         <header className="h-header flex shrink-0 items-center border-b bg-background px-4">

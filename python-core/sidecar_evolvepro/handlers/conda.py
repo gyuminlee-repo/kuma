@@ -50,7 +50,7 @@ def handle_conda_verify_env(params: dict[str, Any]) -> dict[str, Any]:
 
 def handle_conda_create_env(
     params: dict[str, Any],
-    progress_send: Callable[[str, str, int, int, str], None] | None = None,
+    progress_send: Callable[..., None] | None = None,
 ) -> dict[str, Any]:
     """Start conda env creation in a background thread and return immediately.
 
