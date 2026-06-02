@@ -40,6 +40,7 @@ export function EvolveProRunForm({ envName }: EvolveProRunFormProps) {
   const cancelRun = useEvolveProStore((s) => s.cancelEvolveProRun);
   const running = useEvolveProStore((s) => s.evolveProRunning);
   const progress = useEvolveProStore((s) => s.evolveProProgress);
+  const progressLog = useEvolveProStore((s) => s.evolveProProgressLog);
   const evolveProRunResult = useEvolveProStore((s) => s.evolveProRunResult);
   const error = useEvolveProStore((s) => s.evolveProError);
   const runStartedAt = useEvolveProStore((s) => s.evolveProRunStartedAt);
@@ -433,6 +434,20 @@ export function EvolveProRunForm({ envName }: EvolveProRunFormProps) {
             )}
             {progress?.message ? (
               <p className="text-xs text-muted-foreground">{progress.message}</p>
+            ) : null}
+            {progressLog.length > 0 ? (
+              <div className="rounded-md border border-border bg-background/60 p-2">
+                <div className="mb-1 text-xs font-medium text-foreground">
+                  {t("evolvePro.runForm.progressLog", { defaultValue: "Progress log" })}
+                </div>
+                <ol className="max-h-36 space-y-1 overflow-y-auto text-xs text-muted-foreground">
+                  {progressLog.slice(-10).map((line, index) => (
+                    <li key={`${index}-${line}`} className="font-mono">
+                      {line}
+                    </li>
+                  ))}
+                </ol>
+              </div>
             ) : null}
           </div>
         ) : null}

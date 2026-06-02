@@ -22,7 +22,9 @@ describe("useEvolveProStore", () => {
       evolveProRunId: null,
       esm2Recommendation: null,
       evolveProProgress: null,
+      evolveProProgressLog: [],
       evolveProResult: null,
+      evolveProRunResult: null,
       evolveProError: null,
       evolveProDetecting: false,
       evolveProRunning: false,
@@ -81,5 +83,29 @@ describe("useEvolveProStore", () => {
 
     expect(useEvolveProStore.getState().evolveProResult).toEqual(done.result);
     expect(useEvolveProStore.getState().evolveProRunning).toBe(false);
+  });
+
+  it("keeps visible EVOLVEpro progress messages after the done snapshot", () => {
+    useEvolveProStore.setState({ evolveProRunning: true });
+
+    useEvolveProStore.getState().setProgress({
+      run_id: "run-1",
+      stage: "embedding",
+      current: 14,
+      total: 152,
+      message: "batch 14/152 done | 2607.7 tok/s | ETA 12s",
+    });
+    useEvolveProStore.getState().setProgress({
+      run_id: "run-1",
+      stage: "done",
+      current: 1,
+      total: 1,
+      message: "EVOLVEpro run finished",
+    });
+
+    expect(useEvolveProStore.getState().evolveProProgressLog).toEqual([
+      "batch 14/152 done | 2607.7 tok/s | ETA 12s",
+      "EVOLVEpro run finished",
+    ]);
   });
 });

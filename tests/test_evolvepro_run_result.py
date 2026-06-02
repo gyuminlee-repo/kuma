@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+import subprocess
+import builtins
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, cast
+from typing import Iterable, TypedDict, cast
 
 from kuma_core.evolvepro.runner import RunHandle, _stream_stdout
 from kuma_core.evolvepro import runner
 from sidecar_evolvepro import dispatcher
+from sidecar_evolvepro.handlers.evolvepro import handle_evolvepro_run_result
 
 
 @dataclass
@@ -24,6 +28,11 @@ class _FakeHandle:
     process: _FakeProcess
     start_time: float = 0.0
     cancelled: bool = False
+
+
+class _PopenCapture(TypedDict):
+    cmd: list[str]
+    kwargs: dict[str, object]
 
 
 def test_stream_stdout_reports_loading_and_failure_without_result(tmp_path: Path):
@@ -94,6 +103,40 @@ def test_stream_stdout_success_should_parse_result_files(tmp_path: Path):
     assert result["result"].elapsed_sec >= 0
 
 
+def test_stream_stdout_embedding_progress_keeps_batch_counter(tmp_path: Path):
+    handle = _FakeHandle(
+        run_id="run",
+        process=_FakeProcess(
+            stdout=[
+                "throughput: 2607.7 tok/s\n",
+                "eta: 12 s\n",
+                "  batch 14/152 done (39 seqs)\n",
+            ],
+            returncode=0,
+        ),
+    )
+    calls: list[tuple[object, ...]] = []
+
+    def _capture_progress(
+        run_id: str,
+        stage: str,
+        current: int,
+        total: int,
+        message: str,
+        result: runner.RunResult | None = None,
+    ) -> None:
+        calls.append((run_id, stage, current, total, message, result))
+
+    _stream_stdout(cast(RunHandle, handle), _capture_progress, 1, tmp_path)
+
+    embedding_calls = [call for call in calls if call[1] == "embedding"]
+    assert embedding_calls
+    assert embedding_calls[-1][:4] == ("run", "embedding", 14, 152)
+    assert "batch 14/152" in str(embedding_calls[-1][4])
+    assert "2607.7 tok/s" in str(embedding_calls[-1][4])
+    assert "ETA 12s" in str(embedding_calls[-1][4])
+
+
 def test_send_evolvepro_progress_serializes_result_only_on_done(monkeypatch):
     messages: list[dict] = []
 
@@ -146,4 +189,70 @@ def test_send_evolvepro_progress_serializes_result_only_on_done(monkeypatch):
                 "elapsed_sec": 12.5,
             },
         },
+    }
+
+
+def test_run_starts_conda_subprocess_with_closed_stdin(monkeypatch, tmp_path: Path):
+    captured: _PopenCapture = {"cmd": [], "kwargs": {}}
+
+    def fake_popen(cmd: list[str], **kwargs: object) -> _FakeProcess:
+        captured["cmd"] = cmd
+        captured["kwargs"] = kwargs
+        return _FakeProcess(stdout=[], returncode=0)
+
+    monkeypatch.setattr(runner, "_find_conda_exe", lambda: "/opt/conda/bin/conda")
+    monkeypatch.setattr(runner, "_adapter_path", lambda: tmp_path / "adapter.py")
+    monkeypatch.setattr(runner.embedding_cache, "resolve_cache_dir", lambda: tmp_path / "cache")
+    monkeypatch.setattr(runner.subprocess, "Popen", fake_popen)
+
+    handle = runner.run(
+        input_csv=str(tmp_path / "round.csv"),
+        round_files=[str(tmp_path / "round.csv")],
+        wt_sequence="AC",
+        wt_fasta=None,
+        n_rounds=1,
+        output_dir=str(tmp_path / "out"),
+        top_n=3,
+        esm2_model_id="esm2_t6_8M_UR50D",
+    )
+
+    assert handle.process.returncode == 0
+    assert captured["kwargs"]["stdin"] is subprocess.DEVNULL
+
+
+def test_run_result_reads_csv_without_pandas(monkeypatch, tmp_path: Path):
+    (tmp_path / "top_variants.csv").write_text(
+        "rank,variant,y_predicted\n1,A1C,1.2\n2,C2A,0.8\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "df_test.csv").write_text(
+        "rank,variant,y_predicted\n1,A1C,1.2\n2,C2A,0.8\n3,A1G,0.7\n",
+        encoding="utf-8",
+    )
+
+    real_import = builtins.__import__
+
+    def import_without_pandas(
+        name: str,
+        globals: Mapping[str, object] | None = None,
+        locals: Mapping[str, object] | None = None,
+        fromlist: tuple[str, ...] = (),
+        level: int = 0,
+    ) -> object:
+        if name == "pandas":
+            raise ModuleNotFoundError("No module named 'pandas'")
+        return real_import(name, globals, locals, fromlist, level)
+
+    monkeypatch.setattr(builtins, "__import__", import_without_pandas)
+
+    result = handle_evolvepro_run_result({"output_dir": str(tmp_path)})
+
+    assert result == {
+        "output_csv": str(tmp_path / "df_test.csv"),
+        "top_variants": [
+            {"rank": "1", "variant": "A1C", "y_predicted": "1.2"},
+            {"rank": "2", "variant": "C2A", "y_predicted": "0.8"},
+        ],
+        "n_predictions": 3,
+        "elapsed_sec": None,
     }
