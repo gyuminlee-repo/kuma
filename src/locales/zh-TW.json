@@ -2269,6 +2269,7 @@
         "disk_full": "Insufficient disk space",
         "permission": "Permission denied",
         "runtime_error": "Runtime error",
+        "cancelled": "執行已取消",
         "unknown": "Unknown error"
       }
     }

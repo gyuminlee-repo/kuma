@@ -28,6 +28,7 @@ export type EvolveProErrorKind =
   | "disk_full"
   | "permission"
   | "runtime_error"
+  | "cancelled"
   | "unknown";
 
 export interface EvolveProErrorInfo {
@@ -43,6 +44,26 @@ function classifyError(message: string): EvolveProErrorKind {
   if (m.includes("permission") || m.includes("eacces") || m.includes("denied")) return "permission";
   if (m.includes("runtime") || m.includes("subprocess") || m.includes("exit")) return "runtime_error";
   return "unknown";
+}
+
+/**
+ * Returns true if the exit message represents a user-initiated cancellation.
+ * Covers:
+ *  - Windows STATUS_CONTROL_C_EXIT (0xC000013A = 3221225786)
+ *  - Unix SIGTERM (exit code -15 / 143), SIGINT (exit code -2 / 130)
+ */
+function isCancelExit(message: string): boolean {
+  const m = message.toLowerCase();
+  return (
+    m.includes("3221225786") ||
+    m.includes("0xc000013a") ||
+    m.includes("exit code -15") ||
+    m.includes("exit code 143") ||
+    m.includes("exit code -2") ||
+    m.includes("exit code 130") ||
+    m.includes("sigterm") ||
+    m.includes("sigint")
+  );
 }
 
 export type Esm2DownloadStatus = "idle" | "downloading" | "done" | "cancelled" | "error";
@@ -72,6 +93,7 @@ export interface EvolveProState {
   evolveProError: EvolveProErrorInfo | null;
   evolveProDetecting: boolean;
   evolveProRunning: boolean;
+  evolveProCancelling: boolean;
   evolveProRunStartedAt: number | null;
   esm2RecommendationLoading: boolean;
   esm2Downloads: Record<string, Esm2DownloadState>;
@@ -117,6 +139,7 @@ export const useEvolveProStore = create<EvolveProState>()(
       evolveProError: null,
       evolveProDetecting: false,
       evolveProRunning: false,
+      evolveProCancelling: false,
       evolveProRunStartedAt: null,
       esm2RecommendationLoading: false,
       esm2Downloads: {},
@@ -175,6 +198,7 @@ export const useEvolveProStore = create<EvolveProState>()(
         };
         set({
           evolveProRunning: true,
+          evolveProCancelling: false,
           evolveProError: null,
           evolveProResult: null,
           evolveProProgress: null,
@@ -196,6 +220,7 @@ export const useEvolveProStore = create<EvolveProState>()(
       cancelEvolveProRun: async () => {
         const runId = get().evolveProRunId;
         if (runId === null) return;
+        set({ evolveProCancelling: true });
         try {
           await cancelEvolveProRun(runId);
         } catch (err) {
@@ -211,11 +236,21 @@ export const useEvolveProStore = create<EvolveProState>()(
         if (p.stage === "done") {
           set({ evolveProRunning: false, evolveProRunStartedAt: null });
         } else if (p.stage === "error") {
-          set({
-            evolveProRunning: false,
-            evolveProRunStartedAt: null,
-            evolveProError: { kind: classifyError(p.message), message: p.message },
-          });
+          const wasCancelling = get().evolveProCancelling;
+          if (wasCancelling || isCancelExit(p.message)) {
+            set({
+              evolveProRunning: false,
+              evolveProCancelling: false,
+              evolveProRunStartedAt: null,
+              evolveProError: { kind: "cancelled", message: "" },
+            });
+          } else {
+            set({
+              evolveProRunning: false,
+              evolveProRunStartedAt: null,
+              evolveProError: { kind: classifyError(p.message), message: p.message },
+            });
+          }
         }
       },
 
@@ -229,6 +264,7 @@ export const useEvolveProStore = create<EvolveProState>()(
           evolveProError: null,
           evolveProDetecting: false,
           evolveProRunning: false,
+          evolveProCancelling: false,
           evolveProRunStartedAt: null,
           esm2RecommendationLoading: false,
           esm2Downloads: {},

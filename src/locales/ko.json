@@ -2386,6 +2386,7 @@
         "disk_full": "디스크 공간 부족",
         "permission": "권한 거부",
         "runtime_error": "런타임 오류",
+        "cancelled": "실행 취소됨",
         "unknown": "알 수 없는 오류"
       }
     }

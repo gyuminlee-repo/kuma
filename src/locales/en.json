@@ -2386,6 +2386,7 @@
         "disk_full": "Insufficient disk space",
         "permission": "Permission denied",
         "runtime_error": "Runtime error",
+        "cancelled": "Run cancelled",
         "unknown": "Unknown error"
       }
     }
