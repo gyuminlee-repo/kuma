@@ -8,6 +8,7 @@ import {
   esm2DownloadStart,
   getEmbeddingCacheStatus,
   recommendEsm2Model,
+  setProgressHandler,
   startEvolveProRun,
 } from "@/lib/ipc-evolvepro";
 import type {
@@ -71,6 +72,7 @@ export interface EvolveProState {
   evolveProError: EvolveProErrorInfo | null;
   evolveProDetecting: boolean;
   evolveProRunning: boolean;
+  evolveProRunStartedAt: number | null;
   esm2RecommendationLoading: boolean;
   esm2Downloads: Record<string, Esm2DownloadState>;
   esm2Installed: Record<string, boolean>;
@@ -115,6 +117,7 @@ export const useEvolveProStore = create<EvolveProState>()(
       evolveProError: null,
       evolveProDetecting: false,
       evolveProRunning: false,
+      evolveProRunStartedAt: null,
       esm2RecommendationLoading: false,
       esm2Downloads: {},
       esm2Installed: {},
@@ -176,6 +179,7 @@ export const useEvolveProStore = create<EvolveProState>()(
           evolveProResult: null,
           evolveProProgress: null,
           evolveProRunId: null,
+          evolveProRunStartedAt: Date.now(),
         });
         try {
           const resp = await startEvolveProRun(finalRequest);
@@ -205,10 +209,11 @@ export const useEvolveProStore = create<EvolveProState>()(
       setProgress: (p) => {
         set({ evolveProProgress: p });
         if (p.stage === "done") {
-          set({ evolveProRunning: false });
+          set({ evolveProRunning: false, evolveProRunStartedAt: null });
         } else if (p.stage === "error") {
           set({
             evolveProRunning: false,
+            evolveProRunStartedAt: null,
             evolveProError: { kind: classifyError(p.message), message: p.message },
           });
         }
@@ -224,6 +229,7 @@ export const useEvolveProStore = create<EvolveProState>()(
           evolveProError: null,
           evolveProDetecting: false,
           evolveProRunning: false,
+          evolveProRunStartedAt: null,
           esm2RecommendationLoading: false,
           esm2Downloads: {},
           esm2Installed: {},
@@ -394,3 +400,8 @@ export const useEvolveProStore = create<EvolveProState>()(
     }
   )
 );
+
+// Global progress handler registration (module singleton).
+// Registered once at module load time so progress updates reach the store
+// regardless of which component tab is currently mounted.
+setProgressHandler((p) => useEvolveProStore.getState().setProgress(p));

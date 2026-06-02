@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { Plus, X } from "lucide-react";
@@ -42,6 +42,7 @@ export function EvolveProRunForm({ envName }: EvolveProRunFormProps) {
   const progress = useEvolveProStore((s) => s.evolveProProgress);
   const result = useEvolveProStore((s) => s.evolveProResult);
   const error = useEvolveProStore((s) => s.evolveProError);
+  const runStartedAt = useEvolveProStore((s) => s.evolveProRunStartedAt);
   const activeEsm2ModelId = useEvolveProStore((s) => s.activeEsm2ModelId);
   const esm2Installed = useEvolveProStore((s) => s.esm2Installed);
   const esm2Recommendation = useEvolveProStore((s) => s.esm2Recommendation);
@@ -59,6 +60,31 @@ export function EvolveProRunForm({ envName }: EvolveProRunFormProps) {
   const topN = useEvolveProStore((s) => s.evolveProTopN);
   const setTopN = useEvolveProStore((s) => s.setEvolveProTopN);
   const [errors, setErrors] = useState<FormErrors>({});
+  const [elapsedSec, setElapsedSec] = useState(0);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (running && runStartedAt !== null) {
+      setElapsedSec(Math.max(0, Math.floor((Date.now() - runStartedAt) / 1000)));
+      intervalRef.current = setInterval(() => {
+        setElapsedSec(Math.max(0, Math.floor((Date.now() - runStartedAt) / 1000)));
+      }, 1000);
+    } else {
+      setElapsedSec(0);
+    }
+    return () => {
+      if (intervalRef.current !== null) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, [running, runStartedAt]);
+
+  function formatElapsed(totalSec: number): string {
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    return `${m}:${String(s).padStart(2, "0")}`;
+  }
 
   function setError(key: keyof FormErrors, msg: string | undefined) {
     setErrors((prev) => {
@@ -195,11 +221,13 @@ export function EvolveProRunForm({ envName }: EvolveProRunFormProps) {
     void handleSubmit();
   };
 
+  // Indeterminate when running but no countable total yet (e.g. ESM-2 embedding stage).
+  const isIndeterminate = running && (!progress || progress.total === 0);
   const progressPct =
-    progress && progress.total > 0
-      ? Math.min(100, Math.round((progress.current / progress.total) * 100))
-      : running
-        ? 5
+    progress?.stage === "done"
+      ? 100
+      : progress && progress.total > 0
+        ? Math.min(100, Math.round((progress.current / progress.total) * 100))
         : 0;
 
   return (
@@ -373,9 +401,28 @@ export function EvolveProRunForm({ envName }: EvolveProRunFormProps) {
                   ? t(`evolvePro.runForm.stage.${progress.stage}`, { defaultValue: progress.stage })
                   : t("evolvePro.runForm.stage.starting", { defaultValue: "Starting…" })}
               </span>
-              <span>{progressPct}%</span>
+              <span className="flex items-center gap-2">
+                {running ? (
+                  <span className="tabular-nums">
+                    {t("evolvePro.runForm.elapsed", { defaultValue: "Elapsed" })}{" "}
+                    {formatElapsed(elapsedSec)}
+                  </span>
+                ) : null}
+                {!isIndeterminate ? <span>{progressPct}%</span> : null}
+              </span>
             </div>
-            <Progress value={progressPct} />
+            {isIndeterminate ? (
+              <div
+                className="relative h-2 w-full overflow-hidden rounded-full bg-secondary"
+                role="progressbar"
+                aria-label={t("evolvePro.runForm.stage.loading", { defaultValue: "Loading ESM-2 model" })}
+                aria-busy="true"
+              >
+                <div className="absolute inset-y-0 w-1/3 animate-[indeterminate_1.5s_ease-in-out_infinite] rounded-full bg-primary" />
+              </div>
+            ) : (
+              <Progress value={progressPct} />
+            )}
             {progress?.message ? (
               <p className="text-xs text-muted-foreground">{progress.message}</p>
             ) : null}
