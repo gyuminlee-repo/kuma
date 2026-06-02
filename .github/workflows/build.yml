@@ -84,7 +84,10 @@ jobs:
           # Static-link so minimap2.exe is self-contained (no libwinpthread-1.dll /
           # zlib1.dll / libgcc_s_seh-1.dll runtime deps). PyInstaller --add-binary
           # does not auto-bundle a binary's DLL dependencies.
-          make LDFLAGS="-static" -j$(nproc)
+          # minimap2 Makefile ignores LDFLAGS in its link rule and uses LIBS only,
+          # so static-link via LIBS with -Wl,-Bstatic/-Bdynamic toggles (verified on
+          # MINGW64: leaves only system DLLs ntdll/KERNEL32/KERNELBASE/msvcrt).
+          make LIBS="-Wl,-Bstatic -lm -lz -lpthread -Wl,-Bdynamic" -j$(nproc)
           # Fail loudly if any MinGW runtime DLL remains (not fully static).
           echo "=== minimap2.exe runtime dependencies ==="
           ldd minimap2.exe || true
