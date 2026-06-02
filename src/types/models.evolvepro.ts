@@ -39,10 +39,11 @@ export interface EvolveProRunStartResponse {
 
 export interface EvolveProRunProgress {
   run_id: string;
-  stage: "detect" | "loading" | "scoring" | "selecting" | "done" | "error";
+  stage: "detect" | "loading" | "embedding" | "scoring" | "selecting" | "done" | "error";
   current: number;
   total: number;
   message: string;
+  result?: EvolveProRunResult;
 }
 
 /**
@@ -70,7 +71,11 @@ export interface EvolveProCancelRequest {
 }
 
 // Re-exported from generated file to keep all component imports on this file.
-export type { EvolveProEmbeddingCacheStatusResponse } from "./models.evolvepro.generated";
+export type {
+  EvolveProEmbeddingCacheStatusResponse,
+  EvolveProRunResultRequest,
+  EvolveProRunResultResponse,
+} from "./models.evolvepro.generated";
 
 export interface Esm2ModelRecommendation {
   model_id: string;

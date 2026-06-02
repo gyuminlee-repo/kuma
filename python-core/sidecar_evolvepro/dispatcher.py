@@ -14,6 +14,7 @@ import threading
 from typing import Any
 
 from sidecar_evolvepro.core import _send
+from sidecar_evolvepro.models import EvolveProRunResult
 from sidecar_evolvepro.handlers.conda import (
     handle_conda_cancel_create_env,
     handle_conda_create_env,
@@ -29,24 +30,40 @@ from sidecar_evolvepro.handlers.evolvepro import (
     handle_evolvepro_detect,
     handle_evolvepro_embedding_cache_status,
     handle_evolvepro_run,
+    handle_evolvepro_run_result,
 )
+
+from kuma_core.evolvepro.runner import RunResult
 
 
 def _send_evolvepro_progress(
-    run_id: str, stage: str, current: int, total: int, message: str
+    run_id: str,
+    stage: str,
+    current: int,
+    total: int,
+    message: str,
+    result: RunResult | None = None,
 ) -> None:
+    params: dict[str, object] = {
+        "type": "evolvepro_progress",
+        "run_id": run_id,
+        "stage": stage,
+        "current": current,
+        "total": total,
+        "message": message,
+    }
+    if result is not None:
+        params["result"] = EvolveProRunResult(
+            run_id=result.run_id,
+            output_csv=str(result.output_csv),
+            top_variants=result.top_variants,
+            elapsed_sec=result.elapsed_sec,
+        ).model_dump()
     _send(
         {
             "jsonrpc": "2.0",
             "method": "progress",
-            "params": {
-                "type": "evolvepro_progress",
-                "run_id": run_id,
-                "stage": stage,
-                "current": current,
-                "total": total,
-                "message": message,
-            },
+            "params": params,
         }
     )
 
@@ -93,6 +110,7 @@ _METHODS = {
     "evolvepro.run": _evolvepro_run_with_progress,
     "evolvepro.cancel": handle_evolvepro_cancel,
     "evolvepro.embedding_cache_status": handle_evolvepro_embedding_cache_status,
+    "evolvepro.run_result": handle_evolvepro_run_result,
     "conda.detect": handle_conda_detect,
     "conda.detect_env": handle_conda_detect_env,
     "conda.verify_env": handle_conda_verify_env,

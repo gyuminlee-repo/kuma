@@ -25,6 +25,8 @@ export interface SidecarEvolveproModels {
   EvolveProRunProgress?: EvolveProRunProgress;
   EvolveProRunRequest?: EvolveProRunRequest;
   EvolveProRunResult?: EvolveProRunResult;
+  EvolveProRunResultRequest?: EvolveProRunResultRequest;
+  EvolveProRunResultResponse?: EvolveProRunResultResponse;
   EvolveProRunStartResponse?: EvolveProRunStartResponse;
 }
 /**
@@ -147,9 +149,20 @@ export interface EvolveProEmbeddingCacheStatusResponse {
 export interface EvolveProRunProgress {
   current: number;
   message?: string;
+  result?: EvolveProRunResult | null;
   run_id: string;
   stage: "detect" | "loading" | "scoring" | "selecting" | "done" | "error";
   total: number;
+  [k: string]: unknown;
+}
+/**
+ * Terminal result payload for an EVOLVEpro run.
+ */
+export interface EvolveProRunResult {
+  elapsed_sec: number;
+  output_csv: string;
+  run_id: string;
+  top_variants?: string[];
   [k: string]: unknown;
 }
 /**
@@ -174,13 +187,27 @@ export interface EvolveProRunRequest {
   [k: string]: unknown;
 }
 /**
- * Terminal result payload for an EVOLVEpro run.
+ * Request body for evolvepro.run_result RPC.
  */
-export interface EvolveProRunResult {
-  elapsed_sec: number;
+export interface EvolveProRunResultRequest {
+  output_dir: string;
+  [k: string]: unknown;
+}
+/**
+ * Response body for evolvepro.run_result RPC.
+ *
+ * Note: top_variants is list[dict] (full rows from top_variants.csv), unlike
+ * the streaming EvolveProRunResult which carries list[str] variant names only.
+ * n_predictions is the row count of df_test.csv. elapsed_sec is optional
+ * because this handler reads from disk without a start timestamp.
+ */
+export interface EvolveProRunResultResponse {
+  elapsed_sec?: number | null;
+  n_predictions: number;
   output_csv: string;
-  run_id: string;
-  top_variants?: string[];
+  top_variants?: {
+    [k: string]: unknown;
+  }[];
   [k: string]: unknown;
 }
 /**

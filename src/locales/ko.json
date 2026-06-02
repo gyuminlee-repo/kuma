@@ -2329,6 +2329,7 @@
       "running": "실행 중...",
       "elapsed": "경과 시간",
       "topVariants": "Top 변이체",
+      "nPredictions": "예측 후보 수",
       "resultTitle": "EVOLVEpro 결과",
       "stage": {
         "starting": "시작 중",
@@ -2336,6 +2337,7 @@
         "loading": "ESM-2 모델 로딩 중",
         "scoring": "변이체 스코어링 중",
         "selecting": "Top 변이체 선택 중",
+        "embedding": "ESM-2 임베딩 추출 중",
         "done": "완료",
         "error": "오류"
       },

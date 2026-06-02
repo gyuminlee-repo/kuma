@@ -122,9 +122,10 @@ TARGETS = {
             "seaborn",
             "openpyxl",
         ],
-        # adapter.py must exist on disk at kuma_core/evolvepro/ so
-        # kuma_core.evolvepro.runner can invoke it via `conda run python <path>`.
-        "add_data": [("kuma_core/evolvepro/adapter.py", "kuma_core/evolvepro")],
+        "add_data": [
+            ("kuma_core/evolvepro/adapter.py", "kuma_core/evolvepro"),
+            ("kuma_core/evolvepro/embedding_cache.py", "kuma_core/evolvepro"),
+        ],
     },
 }
 
