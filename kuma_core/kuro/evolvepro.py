@@ -415,6 +415,22 @@ def _load_evolvepro_rows(
     return result
 
 
+def _variant_has_position_one(variant: str) -> bool:
+    """Return True if any token in a (possibly multi-variant) string is at position 1.
+
+    Tokens are split on '/' and ','. Each token is matched against
+    _SINGLE_POS_RE; if the captured position is 1 the function returns True
+    immediately.  Non-matching tokens (e.g. "WT") are silently ignored.
+    Position 1 encodes the initiator Met; substituting it abolishes protein
+    expression, so such variants must be excluded before primer design.
+    """
+    for token in re.split(r"[/,]", variant):
+        token = token.strip()
+        m = _SINGLE_POS_RE.match(token)
+        if m and int(m.group(1)) == 1:
+            return True
+    return False
+
 
 def load_evolvepro_csv(
     filepath: str | Path,
@@ -483,6 +499,13 @@ def load_evolvepro_csv(
         score_order=score_order,
         sheet_name=sheet_name,
     )
+    # Remove start-codon variants (position 1) before any downstream logic.
+    # Substituting the initiator Met abolishes translation; this is a biological
+    # constant, not a configurable filter.
+    _pre_pos1_count = len(raw_rows)
+    start_codon_removed_variants: list[str] = [r[0] for r in raw_rows if _variant_has_position_one(r[0])]
+    raw_rows = [r for r in raw_rows if not _variant_has_position_one(r[0])]
+    start_codon_removed = len(start_codon_removed_variants)
     # Build (variant, sort_score) pairs for all downstream filters/selectors.
     # raw_map keeps the original score for the final response yPredMap.
     score_rows: list[tuple[str, float]] = [(v, s) for v, s, _ in raw_rows]
@@ -579,10 +602,14 @@ def load_evolvepro_csv(
         "pool_variants": pool_variants,
         "used_variant_column": used_variant_column,
         "used_score_column": used_score_column,
+        "start_codon_removed": start_codon_removed,
+        "start_codon_removed_variants": start_codon_removed_variants,
         "step_stats": {
             "position_filter_removed": position_filter_removed,
             "domain_selected": domain_selected,
             "pareto_exchanges": pareto_exchanges,
+            "start_codon_removed": start_codon_removed,
+            "start_codon_removed_variants": start_codon_removed_variants,
         },
     }
 

@@ -25,21 +25,25 @@ class TestLoadEvolveproCsv:
         assert result["y_preds"][0] == pytest.approx(0.90)
 
     def test_top_n_zero_returns_all(self, tmp_path):
-        """top_n=0 selects all variants without count limit."""
+        """top_n=0 selects all variants without count limit.
+
+        Data uses positions 2-6 (not position 1) so the start-codon filter
+        does not interfere with the count assertion.
+        """
         csv_file = tmp_path / "all.csv"
         csv_file.write_text(
             "variant,y_pred\n"
-            "A1P,1.0\n"
-            "A2P,0.9\n"
-            "A3P,0.8\n"
-            "A4P,0.7\n"
-            "A5P,0.6\n"
+            "A2P,1.0\n"
+            "A3P,0.9\n"
+            "A4P,0.8\n"
+            "A5P,0.7\n"
+            "A6P,0.6\n"
         )
 
         result = load_evolvepro_csv(csv_file, top_n=0)
 
         assert result["selected_count"] == 5
-        assert set(result["variants"]) == {"A1P", "A2P", "A3P", "A4P", "A5P"}
+        assert set(result["variants"]) == {"A2P", "A3P", "A4P", "A5P", "A6P"}
 
     def test_load_csv_missing_column(self, tmp_path):
         """CSV with no supported variant column raises ValueError with column list."""
@@ -308,3 +312,89 @@ class TestRefSeqConversion:
         )
         result = load_evolvepro_csv(csv_file, top_n=10, ref_seq="MFLSI")
         assert result["variants"] == ["100W"]
+
+
+
+class TestStartCodonFilter:
+    """Position-1 variants (initiator Met substitutions) are excluded from load_evolvepro_csv results."""
+
+    def test_position_one_variant_excluded(self, tmp_path):
+        """Single position-1 variant is removed; other variants pass through."""
+        csv_file = tmp_path / "pos1.csv"
+        csv_file.write_text(
+            "variant,y_pred\n"
+            "M1V,0.95\n"
+            "A30G,0.80\n"
+            "Q50K,0.70\n"
+        )
+
+        result = load_evolvepro_csv(csv_file, top_n=10)
+
+        assert "M1V" not in result["variants"], "position-1 variant must be excluded"
+        assert "A30G" in result["variants"]
+        assert "Q50K" in result["variants"]
+        assert result["selected_count"] == 2
+        assert result["start_codon_removed"] == 1
+
+    def test_multi_variant_containing_position_one_excluded(self, tmp_path):
+        """Multi-variant string with a position-1 token is excluded as a whole."""
+        csv_file = tmp_path / "pos1_multi.csv"
+        csv_file.write_text(
+            "variant,y_pred\n"
+            "M1V/A30G,0.90\n"
+            "Q50K,0.75\n"
+        )
+
+        result = load_evolvepro_csv(csv_file, top_n=10)
+
+        # The compound variant "M1V/A30G" is excluded because one token is position 1.
+        assert not any("M1V" in v for v in result["variants"]), (
+            "compound variant containing position-1 token must be excluded"
+        )
+        assert "Q50K" in result["variants"]
+        assert result["start_codon_removed"] == 1
+
+    def test_start_codon_removed_count_is_zero_when_no_position_one(self, tmp_path):
+        """start_codon_removed is 0 when no position-1 variants are present."""
+        csv_file = tmp_path / "no_pos1.csv"
+        csv_file.write_text(
+            "variant,y_pred\n"
+            "A5G,0.85\n"
+            "Q50K,0.70\n"
+        )
+
+        result = load_evolvepro_csv(csv_file, top_n=10)
+
+        assert result["start_codon_removed"] == 0
+        assert result["selected_count"] == 2
+
+
+    def test_start_codon_removed_variants_list(self, tmp_path):
+        """start_codon_removed_variants lists excluded variant strings in input order."""
+        csv_file = tmp_path / "pos1_variants.csv"
+        csv_file.write_text(
+            "variant,y_pred\n"
+            "M1V,0.95\n"
+            "A30G,0.80\n"
+            "Q50K,0.70\n"
+        )
+
+        result = load_evolvepro_csv(csv_file, top_n=10)
+
+        assert result["start_codon_removed_variants"] == ["M1V"]
+        assert len(result["start_codon_removed_variants"]) == result["start_codon_removed"]
+        assert result["step_stats"]["start_codon_removed_variants"] == ["M1V"]
+
+    def test_start_codon_removed_variants_empty_when_none(self, tmp_path):
+        """start_codon_removed_variants is [] when no position-1 variants are present."""
+        csv_file = tmp_path / "no_pos1_variants.csv"
+        csv_file.write_text(
+            "variant,y_pred\n"
+            "A5G,0.85\n"
+            "Q50K,0.70\n"
+        )
+
+        result = load_evolvepro_csv(csv_file, top_n=10)
+
+        assert result["start_codon_removed_variants"] == []
+        assert len(result["start_codon_removed_variants"]) == result["start_codon_removed"]

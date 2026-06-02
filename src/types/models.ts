@@ -177,6 +177,8 @@ export interface EvolveproStepStats {
   position_filter_removed?: number | null;
   domain_selected?: number | null;
   pareto_exchanges?: number | null;
+  start_codon_removed?: number | null;
+  start_codon_removed_variants?: string[] | null;
 }
 
 export interface EvolveproLoadResult {

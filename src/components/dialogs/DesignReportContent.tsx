@@ -129,6 +129,12 @@ export function DesignReportContent({ onClose }: DesignReportContentProps) {
   const tmMet = designResults.filter((r) => r.tm_condition_met).length;
   const positionRemoved = evolveproStepStats?.position_filter_removed ?? evolveproFilteredCount;
   const domainSelected = evolveproStepStats?.domain_selected;
+  const startCodonRemoved = evolveproStepStats?.start_codon_removed ?? 0;
+  const startCodonRemovedVariants = evolveproStepStats?.start_codon_removed_variants ?? [];
+  const MAX_VARIANT_DISPLAY = 20;
+  const startCodonVariantLabel = startCodonRemovedVariants.length > MAX_VARIANT_DISPLAY
+    ? `${startCodonRemovedVariants.slice(0, MAX_VARIANT_DISPLAY).join(", ")} ${t("designReport.statStartCodonRemovedExtra", { count: startCodonRemovedVariants.length - MAX_VARIANT_DISPLAY })}`
+    : startCodonRemovedVariants.join(", ");
 
   const rescueTotal = rescueStats.pool_cascade + rescueStats.auto_relax;
 
@@ -180,6 +186,12 @@ export function DesignReportContent({ onClose }: DesignReportContentProps) {
                   : "OFF"
               }
             />
+            {startCodonRemoved > 0 && (
+              <Stat
+                label={t("designReport.statStartCodonRemoved")}
+                value={t("designReport.statStartCodonRemovedValue", { count: startCodonRemoved, variants: startCodonVariantLabel })}
+              />
+            )}
             <Stat
               label={t("designReport.statStep2Domains")}
               value={formatDomainAllocation(domainDiversityEnabled, domains, domainStats, domainStrategy)}

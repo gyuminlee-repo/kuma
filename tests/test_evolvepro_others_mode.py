@@ -216,13 +216,18 @@ def test_load_rows_xls_multi_sheet(tmp_path):
 # ---------------------------------------------------------------------------
 
 def test_load_evolvepro_csv_asc_top_n(tmp_path):
-    """asc mode: Top-N=3 picks rank 1, 2, 3 and yPredMap shows raw ranks."""
+    """asc mode: Top-N=3 picks rank 1, 2, 3 and yPredMap shows raw ranks.
+
+    Data uses A10V (position 10) for the top-rank variant so the start-codon
+    filter does not interfere.  The filter only removes position-1 variants
+    (initiator Met substitutions).
+    """
     from kuma_core.kuro.evolvepro import load_evolvepro_csv
 
     csv_file = tmp_path / "ranks.csv"
     _write_csv([
         ["variant", "rank"],
-        ["A1V", "1"],
+        ["A10V", "1"],
         ["B2C", "2"],
         ["D3E", "3"],
         ["E4F", "4"],
@@ -242,16 +247,16 @@ def test_load_evolvepro_csv_asc_top_n(tmp_path):
     if len(selected) != 3:
         pytest.fail(f"Expected 3 selected variants, got {len(selected)}: {selected}")
 
-    if "A1V" not in selected:
-        pytest.fail(f"Expected A1V (rank 1) in top 3, got {selected}")
+    if "A10V" not in selected:
+        pytest.fail(f"Expected A10V (rank 1) in top 3, got {selected}")
     if "B2C" not in selected:
         pytest.fail(f"Expected B2C (rank 2) in top 3, got {selected}")
     if "D3E" not in selected:
         pytest.fail(f"Expected D3E (rank 3) in top 3, got {selected}")
 
-    idx_a1v = selected.index("A1V")
-    if abs(y_preds[idx_a1v] - 1.0) > 1e-6:
-        pytest.fail(f"Expected yPredMap to show raw rank=1.0, got {y_preds[idx_a1v]}")
+    idx_a10v = selected.index("A10V")
+    if abs(y_preds[idx_a10v] - 1.0) > 1e-6:
+        pytest.fail(f"Expected yPredMap to show raw rank=1.0, got {y_preds[idx_a10v]}")
     if result.get("used_variant_column") != "variant":
         pytest.fail(f"Expected used variant column 'variant', got {result.get('used_variant_column')}")
     if result.get("used_score_column") != "rank":

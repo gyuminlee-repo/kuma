@@ -35,3 +35,5 @@ T100S
 | Pareto diversity | greedy maximin position spread |
 | Entropy-guided (β) | y_pred entropy weight (Pareto 필요) |
 | σ-Adaptive Pool | round 기반 K·entropy 자동 보정 |
+
+position 1 (개시코돈, initiator Met) 변이는 치환 시 단백질 발현이 사라지므로 EVOLVEpro 결과 로드 단계에서 자동 제외된다. 제외된 변이 목록과 개수는 Design Report 에 표시된다.
