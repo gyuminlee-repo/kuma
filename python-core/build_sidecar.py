@@ -189,6 +189,32 @@ def build_sidecar(target: str, onefile: bool = True) -> Path:
         src_abs = PROJECT_ROOT / src_rel
         cmd += ["--add-data", f"{src_abs}{separator}{dest}"]
 
+    # mame only: bundle the platform-appropriate minimap2 binary.
+    if target == "mame":
+        sep = ";" if platform.system() == "Windows" else ":"
+        machine = platform.machine().lower()
+        system = platform.system().lower()
+        if system == "linux":
+            plat = "linux-x64"
+        elif system == "darwin":
+            plat = "macos-arm64" if machine in ("arm64", "aarch64") else "macos-x64"
+        elif system == "windows":
+            plat = "windows-x64"
+        else:
+            plat = "linux-x64"
+        exe_name = "minimap2.exe" if system == "windows" else "minimap2"
+        vendor_bin = PROJECT_ROOT / "python-core" / "vendor" / "minimap2" / plat / exe_name
+        if not vendor_bin.is_file():
+            print(
+                f"ERROR: vendor minimap2 binary not found for {plat}: {vendor_bin}\n"
+                f"Run 'python python-core/scripts/vendor-minimap2.py' to download (linux-x64).\n"
+                f"For macOS/Windows, CI must compile the binary and place it at the path above.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        cmd += ["--add-binary", f"{vendor_bin}{sep}bin"]
+        print(f"[{target}] Adding minimap2 binary: {vendor_bin} -> bin/")
+
     cmd += [
         "--paths", str(PROJECT_ROOT),
         "--paths", str(SCRIPT_DIR),

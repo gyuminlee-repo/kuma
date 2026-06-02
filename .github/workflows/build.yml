@@ -55,6 +55,59 @@ jobs:
       - name: Install Python dependencies
         run: pip install -e '.[build]'
 
+      # --- Vendor minimap2 binary (must run BEFORE build_sidecar.py) ---
+      # Windows: build minimap2 from source using MSYS2 + MinGW-w64 toolchain.
+      # Official v2.30 releases do not ship a Windows exe; MinGW compile is the
+      # supported cross-compile path (see notes/specs/2026-06-02-phase3-windows-minimap2.md).
+      - name: Set up MSYS2 + MinGW-w64 (Windows only)
+        if: matrix.platform == 'windows-latest'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-zlib
+            make
+            git
+
+      - name: Build minimap2 from source (Windows / MinGW)
+        if: matrix.platform == 'windows-latest'
+        shell: msys2 {0}
+        env:
+          # MSYS2 converts backslashes; pass workspace as MSYS path explicitly
+          MSYS_WORKSPACE: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch v2.30 https://github.com/lh3/minimap2.git /tmp/minimap2-src
+          cd /tmp/minimap2-src
+          make -j$(nproc)
+          # Convert Windows path to MSYS2 path (e.g. D:\workspace -> /d/workspace)
+          WS_MSYS="$(cygpath -u "${MSYS_WORKSPACE}")"
+          VENDOR_DIR="${WS_MSYS}/python-core/vendor/minimap2/windows-x64"
+          mkdir -p "$VENDOR_DIR"
+          cp minimap2.exe "$VENDOR_DIR/minimap2.exe"
+          echo "minimap2 copied to $VENDOR_DIR"
+
+      - name: Verify minimap2.exe version (Windows)
+        if: matrix.platform == 'windows-latest'
+        shell: bash
+        run: |
+          EXE="python-core/vendor/minimap2/windows-x64/minimap2.exe"
+          test -f "$EXE" || { echo "ERROR: minimap2.exe not found at $EXE"; exit 1; }
+          VERSION=$("$EXE" --version 2>&1 | head -1)
+          echo "minimap2 version: $VERSION"
+          echo "$VERSION" | grep -E "^2\.30" || {
+            echo "WARNING: expected 2.30, got: $VERSION"
+          }
+
+      # Linux / macOS: vendor-minimap2.py downloads prebuilt binaries.
+      # The script auto-detects the current platform and fills the matching vendor/<plat>/ dir.
+      - name: Vendor minimap2 binary (Linux / macOS)
+        if: matrix.platform != 'windows-latest'
+        shell: bash
+        run: python python-core/scripts/vendor-minimap2.py
+
       - name: Build sidecar
         run: python build_sidecar.py
         working-directory: python-core

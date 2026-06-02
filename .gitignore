@@ -128,3 +128,9 @@ out/
 *.deb
 *.AppImage
 release/
+
+# minimap2 vendor binaries (populated at CI build time, not committed)
+python-core/vendor/minimap2/linux-x64/minimap2
+python-core/vendor/minimap2/macos-x64/minimap2
+python-core/vendor/minimap2/macos-arm64/minimap2
+python-core/vendor/minimap2/windows-x64/minimap2.exe
