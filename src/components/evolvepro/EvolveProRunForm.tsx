@@ -48,12 +48,16 @@ export function EvolveProRunForm({ envName }: EvolveProRunFormProps) {
   const embeddingCacheStatus = useEvolveProStore((s) => s.embeddingCacheStatus);
   const embeddingCacheLoading = useEvolveProStore((s) => s.embeddingCacheLoading);
   const loadEmbeddingCacheStatus = useEvolveProStore((s) => s.loadEmbeddingCacheStatus);
-
-  const [roundFiles, setRoundFiles] = useState<string[]>([]);
-  const [wtFasta, setWtFasta] = useState<string>("");
-  const [wtSequence, setWtSequence] = useState<string>("");
-  const [outputDir, setOutputDir] = useState<string>("");
-  const [topN, setTopN] = useState<number>(0);
+  const roundFiles = useEvolveProStore((s) => s.evolveProRoundFiles);
+  const setRoundFiles = useEvolveProStore((s) => s.setEvolveProRoundFiles);
+  const wtFasta = useEvolveProStore((s) => s.evolveProWtFasta);
+  const setWtFasta = useEvolveProStore((s) => s.setEvolveProWtFasta);
+  const wtSequence = useEvolveProStore((s) => s.evolveProWtSequence);
+  const setWtSequence = useEvolveProStore((s) => s.setEvolveProWtSequence);
+  const outputDir = useEvolveProStore((s) => s.evolveProOutputDir);
+  const setOutputDir = useEvolveProStore((s) => s.setEvolveProOutputDir);
+  const topN = useEvolveProStore((s) => s.evolveProTopN);
+  const setTopN = useEvolveProStore((s) => s.setEvolveProTopN);
   const [errors, setErrors] = useState<FormErrors>({});
 
   function setError(key: keyof FormErrors, msg: string | undefined) {

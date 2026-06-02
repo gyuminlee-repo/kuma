@@ -77,6 +77,12 @@ export interface EvolveProState {
   activeEsm2ModelId: string | null;
   embeddingCacheStatus: EvolveProEmbeddingCacheStatusResponse | null;
   embeddingCacheLoading: boolean;
+  // Form input fields (persisted across tab unmount and refresh)
+  evolveProRoundFiles: string[];
+  evolveProWtFasta: string;
+  evolveProWtSequence: string;
+  evolveProOutputDir: string;
+  evolveProTopN: number;
 
   detectEvolveProEnv: () => Promise<void>;
   loadEsm2Recommendation: () => Promise<void>;
@@ -91,6 +97,11 @@ export interface EvolveProState {
   setActiveEsm2: (modelId: string | null) => void;
   resolveActiveEsm2: () => string | null;
   loadEmbeddingCacheStatus: (wtSequence: string, modelId: string) => Promise<void>;
+  setEvolveProRoundFiles: (v: string[]) => void;
+  setEvolveProWtFasta: (v: string) => void;
+  setEvolveProWtSequence: (v: string) => void;
+  setEvolveProOutputDir: (v: string) => void;
+  setEvolveProTopN: (v: number) => void;
 }
 
 export const useEvolveProStore = create<EvolveProState>()(
@@ -110,6 +121,11 @@ export const useEvolveProStore = create<EvolveProState>()(
       activeEsm2ModelId: null,
       embeddingCacheStatus: null,
       embeddingCacheLoading: false,
+      evolveProRoundFiles: [],
+      evolveProWtFasta: "",
+      evolveProWtSequence: "",
+      evolveProOutputDir: "",
+      evolveProTopN: 0,
 
       detectEvolveProEnv: async () => {
         set({ evolveProDetecting: true, evolveProError: null });
@@ -214,6 +230,11 @@ export const useEvolveProStore = create<EvolveProState>()(
           activeEsm2ModelId: null,
           embeddingCacheStatus: null,
           embeddingCacheLoading: false,
+          evolveProRoundFiles: [],
+          evolveProWtFasta: "",
+          evolveProWtSequence: "",
+          evolveProOutputDir: "",
+          evolveProTopN: 0,
         });
       },
 
@@ -300,6 +321,12 @@ export const useEvolveProStore = create<EvolveProState>()(
         set({ activeEsm2ModelId: modelId });
       },
 
+      setEvolveProRoundFiles: (v) => set({ evolveProRoundFiles: v }),
+      setEvolveProWtFasta: (v) => set({ evolveProWtFasta: v }),
+      setEvolveProWtSequence: (v) => set({ evolveProWtSequence: v }),
+      setEvolveProOutputDir: (v) => set({ evolveProOutputDir: v }),
+      setEvolveProTopN: (v) => set({ evolveProTopN: v }),
+
       loadEmbeddingCacheStatus: async (wtSequence, modelId) => {
         if (!wtSequence || !modelId) {
           set({ embeddingCacheStatus: null, embeddingCacheLoading: false });
@@ -356,7 +383,14 @@ export const useEvolveProStore = create<EvolveProState>()(
     {
       name: "evolvepro-store",
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({ activeEsm2ModelId: state.activeEsm2ModelId }),
+      partialize: (state) => ({
+        activeEsm2ModelId: state.activeEsm2ModelId,
+        evolveProRoundFiles: state.evolveProRoundFiles,
+        evolveProWtFasta: state.evolveProWtFasta,
+        evolveProWtSequence: state.evolveProWtSequence,
+        evolveProOutputDir: state.evolveProOutputDir,
+        evolveProTopN: state.evolveProTopN,
+      }),
     }
   )
 );
