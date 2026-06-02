@@ -147,7 +147,9 @@ export function EvolveProRunForm({ envName }: EvolveProRunFormProps) {
             .split(/\r?\n/)
             .filter((l) => !l.startsWith(">") && l.length > 0)
             .join("")
-            .replace(/\s/g, "");
+            .replace(/\s/g, "")
+            .toUpperCase()
+            .replace(/\*+$/, "");
           setWtSequence(seq);
         } catch {
           setWtSequence("");
