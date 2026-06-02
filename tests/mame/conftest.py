@@ -57,3 +57,22 @@ def cds_params() -> dict[str, int]:
 @pytest.fixture()
 def mock_expected_list() -> list[str]:
     return ["V5F", "K53N"]
+
+
+def _minimap2_available() -> bool:
+    try:
+        from kuma_core.mame.ingest.align import _resolve_minimap2
+        _resolve_minimap2()
+        return True
+    except Exception:
+        return False
+
+
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+    if _minimap2_available():
+        return
+    skip = pytest.mark.skip(
+        reason="minimap2 binary unavailable (e.g. Windows CI leg); covered on linux/macos + build.yml"
+    )
+    for item in items:
+        item.add_marker(skip)
