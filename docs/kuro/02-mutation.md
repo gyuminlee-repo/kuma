@@ -17,6 +17,8 @@
 | Pareto diversity | greedy maximin position spread |
 | σ-Adaptive Pool | EVOLVEpro Round 기반 K·entropy 보정 |
 
+position 1 (개시코돈, initiator Met) 변이는 치환 시 단백질 발현이 사라지므로 로드 단계에서 자동 제외된다. 제외된 변이 목록과 개수는 Design Report 에 표시된다 (`start_codon_removed`, `start_codon_removed_variants`).
+
 ## v0.9.2.x 변경
 
 - Selection mode 라디오 변경값이 Submit step 의 Design summary 카드에 즉시 반영된다 (store flush).
