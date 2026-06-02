@@ -22,6 +22,8 @@ from pathlib import Path
 from collections.abc import Callable
 from typing import Literal, Optional
 
+from . import embedding_cache
+
 ProgressStage = Literal["detect", "loading", "scoring", "selecting", "done", "error"]
 ErrorKind = Literal[
     "env_not_found", "network", "disk_full", "permission", "runtime_error"
@@ -61,6 +63,8 @@ _RE_LOADING = re.compile(r"loading\s+(?:model|esm)", re.IGNORECASE)
 _RE_SCORING = re.compile(r"(?:scoring|computing|inference)", re.IGNORECASE)
 _RE_SELECTING = re.compile(r"(?:selecting|sampling)\s+(?:top|variants?)", re.IGNORECASE)
 _RE_DONE = re.compile(r"(?:complete|done|finished)", re.IGNORECASE)
+_RE_THROUGHPUT = re.compile(r"throughput:\s*([\d.]+)\s*tok/s", re.IGNORECASE)
+_RE_ETA = re.compile(r"eta:\s*([\d.]+)\s*s", re.IGNORECASE)
 
 
 def _adapter_path() -> Path:
@@ -271,6 +275,8 @@ def _stream_stdout(
     output_lines: list[str] = []
     current_round = 0
     last_stage: ProgressStage = "loading"
+    last_throughput: float | None = None
+    last_eta: float | None = None
     progress_cb(
         handle.run_id,
         "loading",
@@ -307,6 +313,31 @@ def _stream_stdout(
             )
         elif _RE_DONE.search(line):
             last_stage = "done"
+        elif m := _RE_THROUGHPUT.search(line):
+            last_throughput = float(m.group(1))
+            parts = [f"{last_throughput:.1f} tok/s"]
+            if last_eta is not None:
+                parts.append(f"ETA {last_eta:.0f}s")
+            progress_cb(
+                handle.run_id,
+                last_stage,
+                current_round,
+                n_rounds_expected,
+                " | ".join(parts),
+            )
+        elif m := _RE_ETA.search(line):
+            last_eta = float(m.group(1))
+            parts = []
+            if last_throughput is not None:
+                parts.append(f"{last_throughput:.1f} tok/s")
+            parts.append(f"ETA {last_eta:.0f}s")
+            progress_cb(
+                handle.run_id,
+                last_stage,
+                current_round,
+                n_rounds_expected,
+                " | ".join(parts),
+            )
         else:
             progress_cb(
                 handle.run_id,
@@ -394,6 +425,10 @@ def run(
         embeddings_csv = os.environ.get("EVOLVEPRO_EMBEDDINGS_CSV")
         if embeddings_csv:
             cmd.extend(["--embeddings-csv", embeddings_csv])
+        # Resolve embedding cache directory: env var overrides default.
+        _cache_dir_env = os.environ.get("EVOLVEPRO_EMBEDDINGS_CACHE_DIR")
+        _cache_dir = _cache_dir_env if _cache_dir_env else str(embedding_cache.resolve_cache_dir())
+        cmd.extend(["--embeddings-cache-dir", _cache_dir])
     if cli:
         if wt_fasta:
             cmd.extend(["--wt-fasta", wt_fasta])

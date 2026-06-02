@@ -20,6 +20,8 @@ export interface SidecarEvolveproModels {
   Esm2RecommendationResponse?: Esm2RecommendationResponse;
   EvolveProCancelRequest?: EvolveProCancelRequest;
   EvolveProDetectResponse?: EvolveProDetectResponse;
+  EvolveProEmbeddingCacheStatusRequest?: EvolveProEmbeddingCacheStatusRequest;
+  EvolveProEmbeddingCacheStatusResponse?: EvolveProEmbeddingCacheStatusResponse;
   EvolveProRunProgress?: EvolveProRunProgress;
   EvolveProRunRequest?: EvolveProRunRequest;
   EvolveProRunResult?: EvolveProRunResult;
@@ -81,7 +83,10 @@ export interface Esm2ModelRecommendation {
  */
 export interface Esm2RecommendationResponse {
   arch: string;
+  cpu_cores?: number | null;
   disk_free_gb?: number | null;
+  gpu_available?: boolean;
+  gpu_kind?: string | null;
   models?: Esm2ModelRecommendation[];
   os: string;
   ram_gb?: number | null;
@@ -109,6 +114,31 @@ export interface EvolveProDetectResponse {
   evolvepro_version?: string | null;
   weights_cached?: boolean;
   weights_path?: string | null;
+  [k: string]: unknown;
+}
+/**
+ * Request body for evolvepro.embedding_cache_status RPC.
+ */
+export interface EvolveProEmbeddingCacheStatusRequest {
+  esm2_model_id:
+    | "esm2_t6_8M_UR50D"
+    | "esm2_t12_35M_UR50D"
+    | "esm2_t30_150M_UR50D"
+    | "esm2_t33_650M_UR50D"
+    | "esm2_t36_3B_UR50D"
+    | "esm2_t48_15B_UR50D";
+  wt_sequence: string;
+  [k: string]: unknown;
+}
+/**
+ * Response body for evolvepro.embedding_cache_status RPC.
+ */
+export interface EvolveProEmbeddingCacheStatusResponse {
+  cache_dir: string;
+  cached: boolean;
+  estimate_basis?: string | null;
+  estimate_seconds?: number | null;
+  n_variants: number;
   [k: string]: unknown;
 }
 /**

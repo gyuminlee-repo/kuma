@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { Plus, X } from "lucide-react";
@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { useEvolveProStore } from "@/store/evolvepro/evolveProStore";
 import { EvolveProErrorAlert } from "./EvolveProErrorAlert";
+import { readTextHead } from "@/lib/ipc-evolvepro";
 import {
   validateRoundCsv,
   validateFasta,
@@ -44,9 +45,13 @@ export function EvolveProRunForm({ envName }: EvolveProRunFormProps) {
   const activeEsm2ModelId = useEvolveProStore((s) => s.activeEsm2ModelId);
   const esm2Installed = useEvolveProStore((s) => s.esm2Installed);
   const esm2Recommendation = useEvolveProStore((s) => s.esm2Recommendation);
+  const embeddingCacheStatus = useEvolveProStore((s) => s.embeddingCacheStatus);
+  const embeddingCacheLoading = useEvolveProStore((s) => s.embeddingCacheLoading);
+  const loadEmbeddingCacheStatus = useEvolveProStore((s) => s.loadEmbeddingCacheStatus);
 
   const [roundFiles, setRoundFiles] = useState<string[]>([]);
   const [wtFasta, setWtFasta] = useState<string>("");
+  const [wtSequence, setWtSequence] = useState<string>("");
   const [outputDir, setOutputDir] = useState<string>("");
   const [topN, setTopN] = useState<number>(0);
   const [errors, setErrors] = useState<FormErrors>({});
@@ -105,6 +110,21 @@ export function EvolveProRunForm({ envName }: EvolveProRunFormProps) {
       setWtFasta(path);
       const r = await validateFasta(path);
       setError("wtFasta", r.ok ? undefined : r.message);
+      if (r.ok) {
+        try {
+          const text = await readTextHead(path, 64 * 1024);
+          const seq = text
+            .split(/\r?\n/)
+            .filter((l) => !l.startsWith(">") && l.length > 0)
+            .join("")
+            .replace(/\s/g, "");
+          setWtSequence(seq);
+        } catch {
+          setWtSequence("");
+        }
+      } else {
+        setWtSequence("");
+      }
     }
   }
 
@@ -123,6 +143,10 @@ export function EvolveProRunForm({ envName }: EvolveProRunFormProps) {
     const r = validateTopN(raw);
     setError("topN", r.ok ? undefined : r.message);
   }
+
+  useEffect(() => {
+    void loadEmbeddingCacheStatus(wtSequence, activeEsm2ModelId ?? "");
+  }, [wtSequence, activeEsm2ModelId, loadEmbeddingCacheStatus]);
 
   const activeEsm2Installed =
     activeEsm2ModelId !== null && esm2Installed[activeEsm2ModelId] === true;
@@ -386,6 +410,68 @@ export function EvolveProRunForm({ envName }: EvolveProRunFormProps) {
             })}
           </div>
         )}
+
+        {/* Embedding cache status banner */}
+        {embeddingCacheLoading ? (
+          <div className="rounded-md border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+            {t("evolvePro.runForm.cacheChecking", { defaultValue: "Checking embedding cache..." })}
+          </div>
+        ) : wtSequence && activeEsm2ModelId && embeddingCacheStatus ? (
+          embeddingCacheStatus.cached ? (
+            <div
+              className="rounded-md border border-success/40 bg-success/10 px-3 py-2 text-sm"
+              role="status"
+              aria-live="polite"
+            >
+              <span className="font-medium text-foreground">
+                {t("evolvePro.runForm.cacheBannerHit", {
+                  defaultValue: "Embedding cache available. Fast run expected.",
+                })}
+              </span>
+              <span className="ml-2 text-xs text-muted-foreground">
+                {t("evolvePro.runForm.cacheVariants", {
+                  defaultValue: "({{n}} variants cached)",
+                  n: embeddingCacheStatus.n_variants,
+                })}
+              </span>
+            </div>
+          ) : (
+            <div
+              className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-sm"
+              role="status"
+              aria-live="polite"
+            >
+              <span className="font-medium text-foreground">
+                {t("evolvePro.runForm.cacheBannerMiss", {
+                  defaultValue: "No embedding cache. ESM-2 compute required.",
+                })}
+              </span>
+              {embeddingCacheStatus.estimate_seconds !== null &&
+              embeddingCacheStatus.estimate_seconds !== undefined ? (
+                <span className="ml-2 text-xs text-muted-foreground">
+                  {embeddingCacheStatus.estimate_seconds < 60
+                    ? t("evolvePro.runForm.cacheEstimateSec", {
+                        defaultValue: "Est. {{s}}s ({{basis}})",
+                        s: Math.round(embeddingCacheStatus.estimate_seconds),
+                        basis:
+                          embeddingCacheStatus.estimate_basis === "spec" ? "approx." : "measured",
+                      })
+                    : t("evolvePro.runForm.cacheEstimateMin", {
+                        defaultValue: "Est. ~{{m}} min ({{basis}})",
+                        m: Math.round(embeddingCacheStatus.estimate_seconds / 60),
+                        basis:
+                          embeddingCacheStatus.estimate_basis === "spec" ? "approx." : "measured",
+                      })}
+                  {" | "}
+                  {t("evolvePro.runForm.cacheVariants", {
+                    defaultValue: "{{n}} variants",
+                    n: embeddingCacheStatus.n_variants,
+                  })}
+                </span>
+              ) : null}
+            </div>
+          )
+        ) : null}
 
         <div className="flex gap-2">
           <Button type="button" onClick={handleSubmitClick} disabled={!canSubmit}>

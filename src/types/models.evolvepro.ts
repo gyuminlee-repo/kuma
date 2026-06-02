@@ -69,6 +69,9 @@ export interface EvolveProCancelRequest {
   run_id: string;
 }
 
+// Re-exported from generated file to keep all component imports on this file.
+export type { EvolveProEmbeddingCacheStatusResponse } from "./models.evolvepro.generated";
+
 export interface Esm2ModelRecommendation {
   model_id: string;
   label: string;

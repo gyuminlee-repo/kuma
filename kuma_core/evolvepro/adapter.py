@@ -10,11 +10,19 @@ import argparse
 import os
 import re
 import sys
+import time
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from Bio import SeqIO
+
+# Dual-context import: adapter.py is executed both as a __main__ script
+# (conda subprocess, __package__ is None) and as a package module (tests).
+if not __package__:
+    import embedding_cache  # type: ignore[import]
+else:
+    from . import embedding_cache
 
 AA_LIST = list("ACDEFGHIKLMNPQRSTVWY")
 AA_ALLOWED = set("ACDEFGHIKLMNPQRSTVWYXBZUO")
@@ -128,11 +136,13 @@ def extract_esm2_embeddings(
 	device_str: str,
 	toks_per_batch: int = 4096,
 	truncation_seq_length: int = 1022,
-) -> dict[str, np.ndarray]:
+) -> tuple[dict[str, np.ndarray], float]:
 	"""Extract per-residue ESM-2 representations from the final layer.
 
-	Returns ``{label: ndarray of shape (T, D)}`` where ``T`` is the (truncated)
-	sequence length and ``D`` the model embedding dimension.
+	Returns a tuple of:
+	  - ``{label: ndarray of shape (T, D)}`` where ``T`` is the (truncated)
+	    sequence length and ``D`` the model embedding dimension.
+	  - Measured throughput in tokens/sec (0.0 when no batches were processed).
 	"""
 	import torch
 
@@ -155,10 +165,19 @@ def extract_esm2_embeddings(
 	if current:
 		chunks.append(current)
 
+	# Pre-compute total tokens across all chunks for ETA denominator.
+	total_tokens = sum(
+		sum(min(len(seq), truncation_seq_length) + 2 for _, seq in chunk)
+		for chunk in chunks
+	)
+
 	msg = f"extracting ESM-2 embeddings for {len(sequences)} sequences (layer {repr_layer}, {len(chunks)} batches)"
 	print(msg, flush=True)  # noqa: T201
 
 	out: dict[str, np.ndarray] = {}
+	cumulative_tokens = 0
+	tok_per_sec = 0.0
+	t0 = time.perf_counter()
 	for chunk_idx, chunk in enumerate(chunks, start=1):
 		# Truncate sequences before tokenization to respect ESM context limit.
 		truncated = [(lbl, seq[:truncation_seq_length]) for lbl, seq in chunk]
@@ -171,6 +190,15 @@ def extract_esm2_embeddings(
 		for i, (label, seq) in enumerate(truncated):
 			seq_len = len(seq)
 			out[label] = representations[i, 1 : 1 + seq_len, :]
+		batch_tokens = sum(min(len(seq), truncation_seq_length) + 2 for _, seq in truncated)
+		cumulative_tokens += batch_tokens
+		elapsed = time.perf_counter() - t0
+		if elapsed > 0:
+			tok_per_sec = cumulative_tokens / elapsed
+			remaining_tokens = max(0, total_tokens - cumulative_tokens)
+			remaining_seconds = remaining_tokens / tok_per_sec if tok_per_sec > 0 else 0.0
+			print(f"throughput: {tok_per_sec:.1f} tok/s", flush=True)  # noqa: T201
+			print(f"eta: {remaining_seconds:.0f} s", flush=True)  # noqa: T201
 		batch_msg = f"  batch {chunk_idx}/{len(chunks)} done ({len(chunk)} seqs)"
 		print(batch_msg, flush=True)  # noqa: T201
 
@@ -178,24 +206,24 @@ def extract_esm2_embeddings(
 		any_label = next(iter(out))
 		done_msg = f"ESM-2 embeddings extracted (dim={out[any_label].shape[-1]})"
 		print(done_msg, flush=True)  # noqa: T201
-	return out
+	return out, tok_per_sec
 
 
 def _esm2_variant_embeddings(
 	variants: list[str], wt_sequence: str, model_id: str
-) -> pd.DataFrame:
+) -> tuple[pd.DataFrame, float]:
 	"""Run ESM-2 over WT + single-mutant variants and mean-pool per sequence.
 
-	Returns a DataFrame indexed by variant label with one row per variant. The
-	row is the per-residue representation averaged over the sequence length
-	(matching evolvepro's ``mean_representations`` workflow).
+	Returns a tuple of:
+	  - DataFrame indexed by variant label with one row per variant (mean-pooled).
+	  - Measured throughput in tokens/sec from extract_esm2_embeddings.
 	"""
 	sequences: list[tuple[str, str]] = []
 	for variant in variants:
 		sequences.append((variant, _mutate_sequence(wt_sequence, variant)))
 
 	model, alphabet, device_str = load_esm2_model(model_id)
-	emb_dict = extract_esm2_embeddings(model, alphabet, sequences, device_str)
+	emb_dict, final_tok_per_sec = extract_esm2_embeddings(model, alphabet, sequences, device_str)
 
 	rows: list[np.ndarray] = []
 	index: list[str] = []
@@ -203,19 +231,49 @@ def _esm2_variant_embeddings(
 		per_residue = emb_dict[variant]
 		rows.append(per_residue.mean(axis=0))
 		index.append(variant)
-	return pd.DataFrame(np.vstack(rows), index=index)
+	return pd.DataFrame(np.vstack(rows), index=index), final_tok_per_sec
 
 
 def _load_embeddings(
-	path: str | None, wt_sequence: str, model_id: str | None = None
+	path: str | None,
+	wt_sequence: str,
+	model_id: str | None = None,
+	cache_dir: str | None = None,
 ) -> pd.DataFrame:
+	"""Load embeddings with priority: explicit CSV > disk cache > on-the-fly > fallback.
+
+	Args:
+		path: Explicit embeddings CSV path (highest priority).
+		wt_sequence: Wild-type amino acid sequence.
+		model_id: ESM-2 model identifier; required for cache lookup and on-the-fly.
+		cache_dir: Path string to embedding cache directory. None disables caching.
+	"""
 	if path:
 		embeddings = pd.read_csv(path, index_col=0)
 		return embeddings.sort_index()
+
+	# Disk cache: only meaningful when model_id is known (cache key requires it).
+	if cache_dir and model_id and embedding_cache.is_cached(Path(cache_dir), wt_sequence, model_id):
+		cache_msg = f"loading embeddings from disk cache: {cache_dir}"
+		print(cache_msg, flush=True)  # noqa: T201
+		return embedding_cache.load_cached(Path(cache_dir), wt_sequence, model_id).sort_index()
+
 	variants = _single_mutant_index(wt_sequence)
 	if model_id:
 		try:
-			return _esm2_variant_embeddings(variants, wt_sequence, model_id).sort_index()
+			df, final_tok_per_sec = _esm2_variant_embeddings(variants, wt_sequence, model_id)
+			if cache_dir and final_tok_per_sec > 0:
+				embedding_cache.save_embeddings(df, Path(cache_dir), wt_sequence, model_id)
+				import torch  # only needed for gpu_flag on actual ESM-2 run
+				gpu_flag = torch.cuda.is_available()
+				embedding_cache.write_throughput(
+					Path(cache_dir),
+					embedding_cache.machine_fingerprint(),
+					model_id,
+					final_tok_per_sec,
+					gpu_flag,
+				)
+			return df.sort_index()
 		except ImportError as exc:
 			warn_msg = f"fair-esm not available ({exc}); falling back to deterministic features"
 			print(warn_msg, flush=True)  # noqa: T201
@@ -326,6 +384,7 @@ def run(
 	embeddings_csv: str | None,
 	model_id: str | None = None,
 	n_rounds: int = 1,
+	embeddings_cache_dir: str | None = None,
 ) -> None:
 	evolvepro_repo_path = os.environ.get("EVOLVEPRO_REPO_PATH")
 	if evolvepro_repo_path:
@@ -343,7 +402,7 @@ def run(
 	measured, manifest = _load_round_data(input_paths, wt_sequence)
 
 	print("loading embeddings", flush=True)  # noqa: T201
-	embeddings = _load_embeddings(embeddings_csv, wt_sequence, model_id)
+	embeddings = _load_embeddings(embeddings_csv, wt_sequence, model_id, embeddings_cache_dir)
 	missing = sorted(set(measured["variant"]) - set(embeddings.index.astype(str)))
 	if missing:
 		raise ValueError(f"measured variants missing from embeddings: {missing[:10]}")
@@ -399,6 +458,11 @@ def main() -> None:
 	parser.add_argument("--top-n", type=int, default=20)
 	parser.add_argument("--embeddings-csv", default=None)
 	parser.add_argument(
+		"--embeddings-cache-dir",
+		default=None,
+		help="Directory for disk-cached ESM-2 embeddings. Omit to disable caching.",
+	)
+	parser.add_argument(
 		"--model-id",
 		choices=_ESM2_CHOICES,
 		default="esm2_t33_650M_UR50D",
@@ -420,6 +484,7 @@ def main() -> None:
 		embeddings_csv=args.embeddings_csv,
 		model_id=args.model_id,
 		n_rounds=args.rounds,
+		embeddings_cache_dir=args.embeddings_cache_dir,
 	)
 
 
