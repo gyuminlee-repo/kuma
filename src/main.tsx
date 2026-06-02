@@ -1,5 +1,5 @@
 import React from "react";
-import ReactDOM from "react-dom/client";
+import { createRoot, type Root } from "react-dom/client";
 import { App } from "./App";
 import { appendCrashLog } from "./lib/crashLog";
 import { initI18n, resolveActiveLocale } from "./lib/i18n";
@@ -60,7 +60,18 @@ class ErrorBoundary extends React.Component<
   }
 }
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
+const container = document.getElementById("root");
+if (!container) throw new Error("root element not found");
+
+let root: Root;
+if (import.meta.hot?.data.root) {
+  root = import.meta.hot.data.root as Root;
+} else {
+  root = createRoot(container);
+  if (import.meta.hot) import.meta.hot.data.root = root;
+}
+
+root.render(
   <React.StrictMode>
     <ErrorBoundary>
       <App />
