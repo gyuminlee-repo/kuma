@@ -14,7 +14,7 @@ MAME 가 어떤 시퀀싱 run 을 분석할지 지정한다.
 
 ### Run mode
 
-- **`raw_run`** — basecaller 직출력 (barcoded). MAME 가 mappy 로 정렬 + Python consensus calling 수행.
+- **`raw_run`** — basecaller 직출력 (barcoded). MAME 가 minimap2 (CLI) 로 정렬 + Python consensus calling 수행.
 - **`sorted_barcode`** — 이미 barcode 별로 consensus FASTA 가 떨어져 있는 경우.
 
 ## 1.2 Expected Mutations

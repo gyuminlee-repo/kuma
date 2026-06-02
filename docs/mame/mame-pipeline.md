@@ -9,7 +9,7 @@ MinKNOW run dir (fastq_pass/)
         │
         ▼
 [1] minimap2 alignment
-    mappy map-ont preset
+    minimap2 CLI, map-ont preset
     barcodes.xlsx + reference.fasta 입력
         │
         ▼

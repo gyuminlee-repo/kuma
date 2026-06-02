@@ -31,7 +31,7 @@ open https://github.com/gyuminlee-repo/kuma/releases
 │           │ JSON-RPC     │
 │  ┌────────┴──────────┐  │
 │  │ kuro-sidecar.exe  │  │  PyInstaller 번들
-│  │ mame-sidecar.exe  │  │  primer3 / mappy / pandas
+│  │ mame-sidecar.exe  │  │  primer3 / minimap2 / pandas
 │  └───────────────────┘  │
 └─────────────────────────┘
 ```

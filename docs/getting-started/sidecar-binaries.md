@@ -1,13 +1,13 @@
 # 사이드카 바이너리
 
-KUMA 의 무거운 계산(서열 파싱, primer3, mappy, pandas, openpyxl)은 두 개의 Python 사이드카 프로세스에서 수행된다.
+KUMA 의 무거운 계산(서열 파싱, primer3, pandas, openpyxl)은 두 개의 Python 사이드카 프로세스에서 수행된다.
 
 | 사이드카 | 담당 |
 |---|---|
 | `kuro-sidecar` | KURO primer design, EVOLVEpro CSV 파싱, plate map export |
 | `mame-sidecar` | MAME consensus 정렬, verdict 산출, MAME package 생성 |
 
-릴리스 번들에는 PyInstaller 로 단일 실행파일로 묶여 포함된다. Tauri 셸은 OS 별 binary 를 `${RESOURCE_DIR}/sidecars/` 에서 spawn 한다.
+릴리스 번들에는 PyInstaller 로 단일 실행파일로 묶여 포함된다. Tauri 셸은 OS 별 binary 를 `${RESOURCE_DIR}/sidecars/` 에서 spawn 한다. mame-sidecar 에는 minimap2 바이너리가 _MEIPASS/bin/ 으로 함께 번들된다.
 
 ## 재빌드
 
