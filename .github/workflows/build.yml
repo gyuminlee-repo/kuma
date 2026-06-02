@@ -81,7 +81,18 @@ jobs:
           set -euo pipefail
           git clone --depth 1 --branch v2.30 https://github.com/lh3/minimap2.git /tmp/minimap2-src
           cd /tmp/minimap2-src
-          make -j$(nproc)
+          # Static-link so minimap2.exe is self-contained (no libwinpthread-1.dll /
+          # zlib1.dll / libgcc_s_seh-1.dll runtime deps). PyInstaller --add-binary
+          # does not auto-bundle a binary's DLL dependencies.
+          make LDFLAGS="-static" -j$(nproc)
+          # Fail loudly if any MinGW runtime DLL remains (not fully static).
+          echo "=== minimap2.exe runtime dependencies ==="
+          ldd minimap2.exe || true
+          if ldd minimap2.exe 2>/dev/null | grep -iE 'libwinpthread|zlib1|libgcc|libstdc\+\+|libgomp'; then
+            echo "ERROR: minimap2.exe is not fully static-linked (MinGW runtime DLL dependency present)"
+            exit 1
+          fi
+          echo "minimap2.exe is statically linked (no MinGW runtime DLLs)"
           # Convert Windows path to MSYS2 path (e.g. D:\workspace -> /d/workspace)
           WS_MSYS="$(cygpath -u "${MSYS_WORKSPACE}")"
           VENDOR_DIR="${WS_MSYS}/python-core/vendor/minimap2/windows-x64"

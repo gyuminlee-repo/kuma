@@ -21,6 +21,8 @@ const INPUTS = [
   { label: "Rust / Cargo dependencies", path: resolve(ROOT, "NOTICE-rust.md") },
   { label: "Node / pnpm dependencies", path: resolve(ROOT, "NOTICE-node.md") },
   { label: "Python dependencies", path: resolve(ROOT, "NOTICE-python.md") },
+  // Static partial (committed): bundled binaries not covered by npm/cargo/pip collectors.
+  { label: "Bundled binaries (minimap2, zlib)", path: resolve(ROOT, "NOTICE-bundled.md") },
 ];
 
 const OUTPUT = resolve(ROOT, "NOTICE.md");
