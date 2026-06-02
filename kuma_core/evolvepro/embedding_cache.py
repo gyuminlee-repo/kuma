@@ -15,7 +15,6 @@ import platform
 from datetime import datetime, timezone
 from pathlib import Path
 
-import pandas as pd
 
 logger = logging.getLogger(__name__)
 
@@ -91,6 +90,7 @@ def save_embeddings(
     Path
         Absolute path of the saved CSV file.
     """
+    import pandas as pd  # noqa: PLC0415 -- deferred: pandas excluded from sidecar build
     if df.empty:
         raise ValueError("Cannot cache an empty DataFrame")
     key = cache_key(wt_sequence, model_id)
@@ -123,6 +123,7 @@ def load_cached(
     FileNotFoundError
         When the cache file does not exist. Silent fallback is forbidden.
     """
+    import pandas as pd  # noqa: PLC0415 -- deferred: pandas excluded from sidecar build
     key = cache_key(wt_sequence, model_id)
     csv_path = cache_path(cache_dir, key)
     if not csv_path.exists():
