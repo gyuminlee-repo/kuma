@@ -40,7 +40,7 @@ export function EvolveProRunForm({ envName }: EvolveProRunFormProps) {
   const cancelRun = useEvolveProStore((s) => s.cancelEvolveProRun);
   const running = useEvolveProStore((s) => s.evolveProRunning);
   const progress = useEvolveProStore((s) => s.evolveProProgress);
-  const result = useEvolveProStore((s) => s.evolveProResult);
+  const evolveProRunResult = useEvolveProStore((s) => s.evolveProRunResult);
   const error = useEvolveProStore((s) => s.evolveProError);
   const runStartedAt = useEvolveProStore((s) => s.evolveProRunStartedAt);
   const activeEsm2ModelId = useEvolveProStore((s) => s.activeEsm2ModelId);
@@ -410,7 +410,13 @@ export function EvolveProRunForm({ envName }: EvolveProRunFormProps) {
                     {formatElapsed(elapsedSec)}
                   </span>
                 ) : null}
-                {!isIndeterminate ? <span>{progressPct}%</span> : null}
+                {!isIndeterminate && progress && progress.total > 0 ? (
+                  <span className="tabular-nums">
+                    {progress.current}/{progress.total} ({progressPct}%)
+                  </span>
+                ) : !isIndeterminate ? (
+                  <span>{progressPct}%</span>
+                ) : null}
               </span>
             </div>
             {isIndeterminate ? (
@@ -431,20 +437,25 @@ export function EvolveProRunForm({ envName }: EvolveProRunFormProps) {
           </div>
         ) : null}
 
-        {result ? (
+        {evolveProRunResult ? (
           <div className="rounded-md border border-success/40 bg-success/10 p-3 text-sm">
             <div className="font-medium text-foreground">
               {t("evolvePro.runForm.resultTitle", { defaultValue: "Run complete" })}
             </div>
             <div className="mt-1 text-xs text-muted-foreground">
-              {t("evolvePro.runForm.outputCsv", { defaultValue: "Output" })}: {result.output_csv}
+              {t("evolvePro.runForm.outputCsv", { defaultValue: "Output" })}: {evolveProRunResult.output_csv}
             </div>
             <div className="text-xs text-muted-foreground">
-              {t("evolvePro.runForm.topVariants", { defaultValue: "Top variants" })}: {result.top_variants.length}
+              {t("evolvePro.runForm.nPredictions", { defaultValue: "Predictions" })}: {evolveProRunResult.n_predictions}
             </div>
             <div className="text-xs text-muted-foreground">
-              {t("evolvePro.runForm.elapsed", { defaultValue: "Elapsed" })}: {result.elapsed_sec.toFixed(1)}s
+              {t("evolvePro.runForm.topVariants", { defaultValue: "Top variants" })}: {(evolveProRunResult.top_variants ?? []).length}
             </div>
+            {evolveProRunResult.elapsed_sec !== null && evolveProRunResult.elapsed_sec !== undefined ? (
+              <div className="text-xs text-muted-foreground">
+                {t("evolvePro.runForm.elapsed", { defaultValue: "Elapsed" })}: {evolveProRunResult.elapsed_sec.toFixed(1)}s
+              </div>
+            ) : null}
           </div>
         ) : null}
 

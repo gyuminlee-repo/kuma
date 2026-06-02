@@ -2212,6 +2212,7 @@
       "running": "Running...",
       "elapsed": "Elapsed",
       "topVariants": "Top variants",
+      "nPredictions": "預測數",
       "resultTitle": "EVOLVEpro result",
       "stage": {
         "starting": "Starting",
@@ -2219,6 +2220,7 @@
         "loading": "Loading ESM-2 model",
         "scoring": "Scoring variants",
         "selecting": "Selecting top variants",
+        "embedding": "正在提取 ESM-2 嵌入",
         "done": "Done",
         "error": "Error"
       },

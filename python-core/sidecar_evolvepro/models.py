@@ -88,6 +88,15 @@ class EvolveProRunStartResponse(BaseModel):
     run_id: str
 
 
+class EvolveProRunResult(BaseModel):
+    """Terminal result payload for an EVOLVEpro run."""
+
+    run_id: str
+    output_csv: str
+    top_variants: list[str] = Field(default_factory=list)
+    elapsed_sec: float = Field(ge=0)
+
+
 class EvolveProRunProgress(BaseModel):
     """Progress notification payload streamed during evolvepro_run."""
 
@@ -96,15 +105,7 @@ class EvolveProRunProgress(BaseModel):
     current: int = Field(ge=0)
     total: int = Field(ge=0)
     message: str = ""
-
-
-class EvolveProRunResult(BaseModel):
-    """Terminal result payload for an EVOLVEpro run."""
-
-    run_id: str
-    output_csv: str
-    top_variants: list[str] = Field(default_factory=list)
-    elapsed_sec: float = Field(ge=0)
+    result: Optional[EvolveProRunResult] = None
 
 
 class EvolveProCancelRequest(BaseModel):
@@ -158,3 +159,24 @@ class CondaCreateEnvResponse(BaseModel):
 
     ok: bool
     error: Optional[str] = None
+
+
+class EvolveProRunResultRequest(BaseModel):
+    """Request body for evolvepro.run_result RPC."""
+
+    output_dir: str = Field(min_length=1)
+
+
+class EvolveProRunResultResponse(BaseModel):
+    """Response body for evolvepro.run_result RPC.
+
+    Note: top_variants is list[dict] (full rows from top_variants.csv), unlike
+    the streaming EvolveProRunResult which carries list[str] variant names only.
+    n_predictions is the row count of df_test.csv. elapsed_sec is optional
+    because this handler reads from disk without a start timestamp.
+    """
+
+    output_csv: str
+    top_variants: list[dict] = Field(default_factory=list)
+    n_predictions: int
+    elapsed_sec: Optional[float] = None

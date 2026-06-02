@@ -5,7 +5,7 @@ EVOLVEpro; these handlers shell out to the user's own conda installation.
 """
 from __future__ import annotations
 
-from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 from sidecar_evolvepro import core
@@ -15,6 +15,8 @@ from sidecar_evolvepro.models import (
     EvolveProEmbeddingCacheStatusRequest,
     EvolveProEmbeddingCacheStatusResponse,
     EvolveProRunRequest,
+    EvolveProRunResultRequest,
+    EvolveProRunResultResponse,
     EvolveProRunStartResponse,
 )
 
@@ -38,19 +40,10 @@ def handle_evolvepro_detect(params: dict[str, Any]) -> dict[str, Any]:  # noqa: 
 
 def handle_evolvepro_run(
     params: dict[str, Any],
-    progress_send: Callable[[str, str, int, int, str], None] | None = None,
+    progress_send: evolvepro_runner.ProgressCallback | None = None,
 ) -> dict[str, Any]:
     """Start EVOLVEpro subprocess. Returns run_id; progress streams over notifications."""
     req = EvolveProRunRequest(**params)
-
-    callback: Callable[[str, str, int, int, str], None] | None = None
-    if progress_send is not None:
-        _send = progress_send
-
-        def _cb(run_id: str, stage: str, current: int, total: int, message: str) -> None:
-            _send(run_id, stage, current, total, message)
-
-        callback = _cb
 
     handle = evolvepro_runner.run(
         input_csv=req.input_csv,
@@ -62,7 +55,7 @@ def handle_evolvepro_run(
         top_n=req.top_n,
         env_name=req.env_name,
         esm2_model_id=req.esm2_model_id,
-        progress_callback=callback,
+        progress_callback=progress_send,
     )
     with core._state_lock:
         core._state.evolvepro_runs[handle.run_id] = handle
@@ -117,9 +110,42 @@ def handle_evolvepro_embedding_cache_status(params: dict[str, Any]) -> dict[str,
     ).model_dump()
 
 
+def handle_evolvepro_run_result(params: dict[str, Any]) -> dict[str, Any]:
+    """Read EVOLVEpro output files and return structured result.
+
+    Anti-fallback: raises FileNotFoundError explicitly if expected output files
+    are absent. The dispatcher wraps this into a JSON-RPC error response.
+    """
+    import pandas as pd  # noqa: PLC0415 -- deferred: pandas excluded from sidecar build
+
+    req = EvolveProRunResultRequest(**params)
+    output_dir = Path(req.output_dir)
+
+    top_variants_csv = output_dir / "top_variants.csv"
+    df_test_csv = output_dir / "df_test.csv"
+
+    if not top_variants_csv.exists():
+        raise FileNotFoundError(f"top_variants.csv not found in {req.output_dir}")
+    if not df_test_csv.exists():
+        raise FileNotFoundError(f"df_test.csv not found in {req.output_dir}")
+
+    df_top = pd.read_csv(top_variants_csv, nrows=200)
+    top_variants: list[dict] = df_top.to_dict(orient="records")
+
+    df_test = pd.read_csv(df_test_csv)
+    n_predictions = len(df_test)
+
+    return EvolveProRunResultResponse(
+        output_csv=str(df_test_csv),
+        top_variants=top_variants,
+        n_predictions=n_predictions,
+    ).model_dump()
+
+
 __all__ = [
     "handle_evolvepro_detect",
     "handle_evolvepro_run",
     "handle_evolvepro_cancel",
     "handle_evolvepro_embedding_cache_status",
+    "handle_evolvepro_run_result",
 ]

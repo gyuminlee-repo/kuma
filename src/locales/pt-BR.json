@@ -2212,6 +2212,7 @@
       "running": "Running...",
       "elapsed": "Elapsed",
       "topVariants": "Top variants",
+      "nPredictions": "Predições",
       "resultTitle": "EVOLVEpro result",
       "stage": {
         "starting": "Starting",
@@ -2219,6 +2220,7 @@
         "loading": "Loading ESM-2 model",
         "scoring": "Scoring variants",
         "selecting": "Selecting top variants",
+        "embedding": "Extraindo embeddings ESM-2",
         "done": "Done",
         "error": "Error"
       },

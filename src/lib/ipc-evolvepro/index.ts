@@ -24,7 +24,9 @@ import type {
   EvolveProEmbeddingCacheStatusResponse,
   EvolveProProgressSnapshot,
   EvolveProRunProgress,
+  EvolveProRunResult,
   EvolveProRunRequest,
+  EvolveProRunResultResponse,
   EvolveProRunStartResponse,
 } from "@/types/models.evolvepro";
 
@@ -72,6 +74,10 @@ export async function cancelEvolveProRun(
   return rpc<{ ok: boolean; reason?: string }>("evolvepro.cancel", req);
 }
 
+export async function getRunResult(outputDir: string): Promise<EvolveProRunResultResponse> {
+  return rpc<EvolveProRunResultResponse>("evolvepro.run_result", { output_dir: outputDir });
+}
+
 let progressUnlisten: UnlistenFn | null = null;
 let progressListenerPromise: Promise<UnlistenFn> | null = null;
 let onProgress: ((p: EvolveProRunProgress) => void) | null = null;
@@ -88,6 +94,7 @@ interface ProgressEventPayload {
     message?: string;
     current_package?: string | null;
     indeterminate?: boolean;
+    result?: EvolveProRunResult;
   };
 }
 
@@ -188,6 +195,7 @@ async function ensureProgressListener(): Promise<void> {
             current: params.current ?? 0,
             total: params.total ?? 0,
             message: params.message ?? "",
+            result: params.result,
           });
         }
       },

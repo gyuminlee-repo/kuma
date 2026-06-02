@@ -7,6 +7,7 @@ import {
   esm2DownloadCancel,
   esm2DownloadStart,
   getEmbeddingCacheStatus,
+  getRunResult,
   recommendEsm2Model,
   setProgressHandler,
   startEvolveProRun,
@@ -20,6 +21,7 @@ import type {
   EvolveProRunProgress,
   EvolveProRunRequest,
   EvolveProRunResult,
+  EvolveProRunResultResponse,
 } from "@/types/models.evolvepro";
 
 export type EvolveProErrorKind =
@@ -90,6 +92,8 @@ export interface EvolveProState {
   esm2Recommendation: Esm2RecommendationResponse | null;
   evolveProProgress: EvolveProRunProgress | null;
   evolveProResult: EvolveProRunResult | null;
+  /** Detailed run result fetched via evolvepro.run_result RPC after stage==="done". Not persisted. */
+  evolveProRunResult: EvolveProRunResultResponse | null;
   evolveProError: EvolveProErrorInfo | null;
   evolveProDetecting: boolean;
   evolveProRunning: boolean;
@@ -113,6 +117,7 @@ export interface EvolveProState {
   startEvolveProRun: (req: EvolveProRunRequest) => Promise<void>;
   cancelEvolveProRun: () => Promise<void>;
   setProgress: (p: EvolveProRunProgress) => void;
+  loadRunResult: (outputDir: string) => Promise<void>;
   reset: () => void;
   startEsm2Download: (model: Esm2ModelRecommendation) => Promise<void>;
   cancelEsm2Download: (modelId: string) => Promise<void>;
@@ -136,6 +141,7 @@ export const useEvolveProStore = create<EvolveProState>()(
       esm2Recommendation: null,
       evolveProProgress: null,
       evolveProResult: null,
+      evolveProRunResult: null,
       evolveProError: null,
       evolveProDetecting: false,
       evolveProRunning: false,
@@ -234,7 +240,15 @@ export const useEvolveProStore = create<EvolveProState>()(
       setProgress: (p) => {
         set({ evolveProProgress: p });
         if (p.stage === "done") {
-          set({ evolveProRunning: false, evolveProRunStartedAt: null });
+          set({
+            evolveProRunning: false,
+            evolveProRunStartedAt: null,
+            evolveProResult: p.result ?? null,
+          });
+          const outputDir = get().evolveProOutputDir;
+          if (outputDir) {
+            void get().loadRunResult(outputDir);
+          }
         } else if (p.stage === "error") {
           const wasCancelling = get().evolveProCancelling;
           if (wasCancelling || isCancelExit(p.message)) {
@@ -254,6 +268,16 @@ export const useEvolveProStore = create<EvolveProState>()(
         }
       },
 
+      loadRunResult: async (outputDir) => {
+        try {
+          const runResult = await getRunResult(outputDir);
+          set({ evolveProRunResult: runResult });
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          set({ evolveProError: { kind: classifyError(message), message } });
+        }
+      },
+
       reset: () => {
         set({
           evolveProEnvStatus: null,
@@ -261,6 +285,7 @@ export const useEvolveProStore = create<EvolveProState>()(
           esm2Recommendation: null,
           evolveProProgress: null,
           evolveProResult: null,
+          evolveProRunResult: null,
           evolveProError: null,
           evolveProDetecting: false,
           evolveProRunning: false,

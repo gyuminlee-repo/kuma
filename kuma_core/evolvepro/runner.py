@@ -8,6 +8,7 @@ to it via subprocess.
 from __future__ import annotations
 
 import os
+import csv
 import re
 import json
 import shutil
@@ -19,16 +20,14 @@ import time
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
-from collections.abc import Callable
-from typing import Literal, Optional
+from typing import Literal, Optional, Protocol
 
 from . import embedding_cache
 
-ProgressStage = Literal["detect", "loading", "scoring", "selecting", "done", "error"]
+ProgressStage = Literal["detect", "loading", "embedding", "scoring", "selecting", "done", "error"]
 ErrorKind = Literal[
     "env_not_found", "network", "disk_full", "permission", "runtime_error"
 ]
-ProgressCallback = Callable[[str, ProgressStage, int, int, str], None]
 
 CONDA_ENV_NAME_DEFAULT = "evolvepro"
 
@@ -65,6 +64,7 @@ _RE_SELECTING = re.compile(r"(?:selecting|sampling)\s+(?:top|variants?)", re.IGN
 _RE_DONE = re.compile(r"(?:complete|done|finished)", re.IGNORECASE)
 _RE_THROUGHPUT = re.compile(r"throughput:\s*([\d.]+)\s*tok/s", re.IGNORECASE)
 _RE_ETA = re.compile(r"eta:\s*([\d.]+)\s*s", re.IGNORECASE)
+_RE_BATCH = re.compile(r"batch\s+(\d+)\s*/\s*(\d+)\s+done", re.IGNORECASE)
 
 
 def _adapter_path() -> Path:
@@ -89,6 +89,26 @@ class RunHandle:
     start_time: float
     cancelled: bool = False
     thread: Optional[threading.Thread] = None
+
+
+@dataclass(frozen=True)
+class RunResult:
+    run_id: str
+    output_csv: Path
+    top_variants: list[str]
+    elapsed_sec: float
+
+
+class ProgressCallback(Protocol):
+    def __call__(
+        self,
+        run_id: str,
+        stage: ProgressStage,
+        current: int,
+        total: int,
+        message: str,
+        result: RunResult | None = None,
+    ) -> None: ...
 
 
 def _find_conda_exe() -> Optional[str]:
@@ -269,6 +289,7 @@ def _stream_stdout(
     handle: RunHandle,
     progress_cb: ProgressCallback,
     n_rounds_expected: int,
+    output_dir: Path,
 ) -> dict:
     """Background thread: parse subprocess stdout, emit progress, collect result."""
     proc = handle.process
@@ -277,6 +298,7 @@ def _stream_stdout(
     last_stage: ProgressStage = "loading"
     last_throughput: float | None = None
     last_eta: float | None = None
+    result: RunResult | None = None
     progress_cb(
         handle.run_id,
         "loading",
@@ -311,33 +333,23 @@ def _stream_stdout(
                 n_rounds_expected,
                 line[:120],
             )
+        elif m := _RE_BATCH.search(line):
+            batch_cur = int(m.group(1))
+            batch_total = int(m.group(2))
+            last_stage = "embedding"
+            parts: list[str] = []
+            if last_throughput is not None:
+                parts.append(f"{last_throughput:.1f} tok/s")
+            if last_eta is not None:
+                parts.append(f"ETA {last_eta:.0f}s")
+            msg = " | ".join(parts) if parts else line[:120]
+            progress_cb(handle.run_id, "embedding", batch_cur, batch_total, msg)
         elif _RE_DONE.search(line):
             last_stage = "done"
         elif m := _RE_THROUGHPUT.search(line):
             last_throughput = float(m.group(1))
-            parts = [f"{last_throughput:.1f} tok/s"]
-            if last_eta is not None:
-                parts.append(f"ETA {last_eta:.0f}s")
-            progress_cb(
-                handle.run_id,
-                last_stage,
-                current_round,
-                n_rounds_expected,
-                " | ".join(parts),
-            )
         elif m := _RE_ETA.search(line):
             last_eta = float(m.group(1))
-            parts = []
-            if last_throughput is not None:
-                parts.append(f"{last_throughput:.1f} tok/s")
-            parts.append(f"ETA {last_eta:.0f}s")
-            progress_cb(
-                handle.run_id,
-                last_stage,
-                current_round,
-                n_rounds_expected,
-                " | ".join(parts),
-            )
         else:
             progress_cb(
                 handle.run_id,
@@ -348,7 +360,30 @@ def _stream_stdout(
             )
     proc.wait()
     if proc.returncode == 0:
-        progress_cb(handle.run_id, "done", n_rounds_expected, n_rounds_expected, "EVOLVEpro run finished")
+        output_csv = output_dir / "df_test.csv"
+        top_variants_csv = output_dir / "top_variants.csv"
+        top_variants: list[str] = []
+        if top_variants_csv.exists():
+            with top_variants_csv.open(newline="", encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    variant = (row.get("variant") or "").strip()
+                    if variant:
+                        top_variants.append(variant)
+        result = RunResult(
+            run_id=handle.run_id,
+            output_csv=output_csv,
+            top_variants=top_variants,
+            elapsed_sec=max(0.0, time.time() - handle.start_time),
+        )
+        progress_cb(
+            handle.run_id,
+            "done",
+            n_rounds_expected,
+            n_rounds_expected,
+            "EVOLVEpro run finished",
+            result,
+        )
     else:
         detail = next(
             (
@@ -372,7 +407,10 @@ def _stream_stdout(
             n_rounds_expected,
             message,
         )
-    return {"stdout_lines": output_lines, "returncode": proc.returncode}
+    payload = {"stdout_lines": output_lines, "returncode": proc.returncode}
+    if result is not None:
+        payload["result"] = result
+    return payload
 
 
 def run(
@@ -450,7 +488,7 @@ def run(
     if progress_callback:
         thread = threading.Thread(
             target=_stream_stdout,
-            args=(handle, progress_callback, n_rounds),
+            args=(handle, progress_callback, n_rounds, Path(output_dir)),
             daemon=True,
         )
         handle.thread = thread
