@@ -1383,6 +1383,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#v0992" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        구현 상태 (v0.9.9.2+)
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1662,6 +1673,13 @@
 <p>drift 발견 시 release 차단.</p>
 <h2 id="release">Release<a class="headerlink" href="#release" title="Permanent link">&para;</a></h2>
 <p><code>/release</code> 스킬이 3개 파일 동시 bump → tag <code>vA.BB.CC.DD</code> 생성. tag 의 <code>DD</code> 는 release commit 만 의미하며 SemVer 와 다르다.</p>
+<h2 id="v0992">구현 상태 (v0.9.9.2+)<a class="headerlink" href="#v0992" title="Permanent link">&para;</a></h2>
+<p><code>vite.config.ts</code> 의 <code>getAppVersion()</code> 함수가 빌드 시 <code>git describe --tags --always</code> 결과에서 정규식 <code>^v?(\d+\.\d+\.\d+\.\d+)</code> 로 4-part 버전을 추출하여 <code>__APP_VERSION__</code> 상수에 주입한다. git 이 없거나 4-part tag 가 없으면 <code>pkg.version</code> (3-part) 로 fallback.</p>
+<p>UI 표시 위치:</p>
+<ul>
+<li><code>src/components/layout/SharedAboutDialog.tsx</code></li>
+<li><code>src/components/dialogs/WhatsNewDialog.tsx</code></li>
+</ul>
 
 
 

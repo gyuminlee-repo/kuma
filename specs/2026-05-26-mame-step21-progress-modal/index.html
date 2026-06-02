@@ -8,13 +8,9 @@
       
       
       
-        <link rel="canonical" href="https://gyuminlee-repo.github.io/kuma/getting-started/sidecar-binaries/">
+        <link rel="canonical" href="https://gyuminlee-repo.github.io/kuma/specs/2026-05-26-mame-step21-progress-modal/">
       
       
-        <link rel="prev" href="../project-structure/">
-      
-      
-        <link rel="next" href="../../kuro/">
       
       
         
@@ -25,7 +21,7 @@
     
     
       
-        <title>사이드카 바이너리 - KUMA — KURO & MAME User Guide</title>
+        <title>MAME step 2.1 Analysis Progress Modal - KUMA — KURO & MAME User Guide</title>
       
     
     
@@ -76,7 +72,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#_1" class="md-skip">
+        <a href="#mame-step-21-analysis-progress-modal" class="md-skip">
           콘텐츠로 이동
         </a>
       
@@ -110,7 +106,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              사이드카 바이너리
+              MAME step 2.1 Analysis Progress Modal
             
           </span>
         </div>
@@ -219,12 +215,10 @@
   
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
+      <li class="md-tabs__item">
         <a href="../.." class="md-tabs__link">
           
   
@@ -388,31 +382,28 @@
       
   
   
-    
   
   
-  
     
     
     
     
-      
-        
-        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" checked>
         
           
-          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
             
   
   
@@ -430,7 +421,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_1">
             <span class="md-nav__icon md-icon"></span>
             
@@ -476,7 +467,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../installation/" class="md-nav__link">
+      <a href="../../getting-started/installation/" class="md-nav__link">
         
   
   
@@ -504,7 +495,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../project-structure/" class="md-nav__link">
+      <a href="../../getting-started/project-structure/" class="md-nav__link">
         
   
   
@@ -529,37 +520,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    사이드카 바이너리
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../getting-started/sidecar-binaries/" class="md-nav__link">
         
   
   
@@ -575,59 +539,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="목차">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      목차
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#_2" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        재빌드
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#-32601-method-not-found" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        -32601 Method not found 발생 시
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#v0992" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        해시 매니페스트 (v0.9.9.2+)
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1609,52 +1520,307 @@
   
 
 
-<h1 id="_1">사이드카 바이너리<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h1>
-<p>KUMA 의 무거운 계산(서열 파싱, primer3, pandas, openpyxl)은 두 개의 Python 사이드카 프로세스에서 수행된다.</p>
+<h1 id="mame-step-21-analysis-progress-modal">MAME step 2.1 Analysis Progress Modal<a class="headerlink" href="#mame-step-21-analysis-progress-modal" title="Permanent link">&para;</a></h1>
+<h2 id="goal">Goal<a class="headerlink" href="#goal" title="Permanent link">&para;</a></h2>
+<p>MAME step 2.1 (Run Analysis) 한 번 클릭으로 실행되는 <code>sort_barcode_run</code> + <code>analyze</code> 두 RPC의 진행 정보를 차단 모달 다이얼로그로 시각화. 현재 sort는 진행률 emit이 전혀 없고, analyze는 30%에서 60% 구간이 길어 stuck 의심 발생. 사용자 요구는 "남은 시간 및 현재 단계 가시화"와 30초 deadlock 다이얼로그 제거.</p>
+<h2 id="non-goals">Non-goals<a class="headerlink" href="#non-goals" title="Permanent link">&para;</a></h2>
+<ul>
+<li>KURO 쪽 deadlock detector 동작 변경 (KURO design 흐름은 별개로 보존)</li>
+<li>analyze 핸들러 내부 progress emit 세분화 (기존 5/10/30/60/85/100 6-step 그대로 유지)</li>
+<li>sort_barcode_run 사전 read count 스캔 (정확도 환상, 분석 자체를 느리게 함)</li>
+</ul>
+<h2 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">&para;</a></h2>
+<p>세 레이어 분리. kuma_core는 <code>_progress</code> emit 매커니즘을 모르고 callback만 호출.</p>
+<div class="highlight"><pre><span></span><code>kuma_core.mame.ingest.sort_barcode.sort_barcode_run(on_progress=...)
+  └─ _sort_one_nb(on_progress=..., nb_weight=..., nb_offset=...)
+       ↓ callback
+python-core/sidecar_mame/handlers/sort_barcode.py
+  └─ on_progress=lambda f, msg: _progress(int(f*50), msg)   # sort = 0~50%
+       ↓ JSON-RPC progress notification (stdout)
+src-tauri/src/sidecar.rs (기존 forward, 변경 없음)
+       ↓ Tauri event &quot;sidecar://progress&quot;
+src/store/mame/slices/inputSlice.ts
+  └─ analyzeProgress / analyzeMessage 갱신 (기존 listener 재사용)
+       ↓ Zustand subscription
+src/components/mame/dialogs/AnalysisProgressModal.tsx (신규)
+  └─ shadcn Dialog. isAnalyzing 일 때만 open.
+</code></pre></div>
+<h2 id="progress-mapping-sort-analyze-0100">Progress mapping (sort + analyze 통합 0~100%)<a class="headerlink" href="#progress-mapping-sort-analyze-0100" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>사이드카</th>
-<th>담당</th>
+<th>RPC</th>
+<th>내부 %</th>
+<th>통합 %</th>
+<th>메시지 예시</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>kuro-sidecar</code></td>
-<td>KURO primer design, EVOLVEpro CSV 파싱, plate map export</td>
+<td>sort_barcode_run</td>
+<td>0 to 100</td>
+<td>0 to 50</td>
+<td>"Sorting barcode 3/12, barcode03 (file 8/24)"</td>
 </tr>
 <tr>
-<td><code>mame-sidecar</code></td>
-<td>MAME consensus 정렬, verdict 산출, MAME package 생성</td>
+<td>analyze</td>
+<td>5 to 100</td>
+<td>50 to 100</td>
+<td>"Analyzing, Classifying verdicts"</td>
 </tr>
 </tbody>
 </table>
-<p>릴리스 번들에는 PyInstaller 로 단일 실행파일로 묶여 포함된다. Tauri 셸은 OS 별 binary 를 <code>${RESOURCE_DIR}/sidecars/</code> 에서 spawn 한다. mame-sidecar 에는 minimap2 바이너리가 _MEIPASS/bin/ 으로 함께 번들된다.</p>
-<h2 id="_2">재빌드<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
-<p>소스에서 사이드카 코드를 수정했을 때:</p>
-<div class="highlight"><pre><span></span><code>pnpm<span class="w"> </span>run<span class="w"> </span>sidecar:build
+<ul>
+<li>raw_run 모드: sort(0~50) → analyze(50~100). 호출자 <code>runAnalysis()</code>가 phase 합성.</li>
+<li>barcode-sorted 모드: sort 생략. analyze가 0~100 통째로 점유 (기존 6-step을 0~100으로 rescale).</li>
+</ul>
+<h3 id="phase-3-point">Phase 합성 책임 (3-point 동기화)<a class="headerlink" href="#phase-3-point" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Sidecar <code>handle_sort_barcode_run</code></strong>: callback rescale로 0~50 emit. <code>on_progress = lambda f, msg: _progress(int(f * 50), msg)</code>.</li>
+<li><strong>Sidecar <code>handle_analyze</code></strong> (raw_run 모드 호출 시): <code>_progress</code> 값을 <code>50 + int(v * 0.5)</code> 로 rescale하는 별 헬퍼 사용. barcode-sorted 모드는 기존 0~100 그대로.</li>
+<li>분기 신호: handle_analyze가 호출 직전 phase context 모름. 따라서 <strong>호출자 <code>runAnalysis()</code> 측에서 두 phase 사이에 보정</strong>.</li>
+<li><strong>Frontend <code>runAnalysis()</code></strong>: sort RPC await 직후 <code>set({ analyzeProgress: 50, analyzeMessage: "Sort complete, starting analyze..." })</code> 명시. 이후 analyze 단계 동안 들어오는 progress notification은 별 합성 헬퍼 <code>composeAnalysisProgress(rawPct, "analyze")</code>가 <code>50 + rawPct * 0.5</code>로 변환해 store 갱신.</li>
+</ol>
+<p><strong>기존 코드 충돌 (<code>inputSlice.ts:296-300</code>)</strong>: 현재는 sort 완료 후 <code>analyzeProgress: 15</code> 설정 중. 본 PR에서 <code>50</code>으로 교체 필수. 그 후 analyze listener도 raw 값이 아닌 합성 값 저장하도록 변경.</p>
+<h2 id="sort-callback">sort 내부 callback 시그니처<a class="headerlink" href="#sort-callback" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">sort_barcode_run</span><span class="p">(</span>
+    <span class="o">...</span>
+    <span class="n">on_progress</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SortBarcodeResult</span><span class="p">:</span>
+    <span class="o">...</span>
+    <span class="n">n_nb</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">nb_dirs</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">nb_dir</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">nb_dirs</span><span class="p">):</span>
+        <span class="n">nb_weight</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">n_nb</span>
+        <span class="n">nb_offset</span> <span class="o">=</span> <span class="n">i</span> <span class="o">/</span> <span class="n">n_nb</span>
+        <span class="o">...</span>
+        <span class="n">_sort_one_nb</span><span class="p">(</span>
+            <span class="o">...</span>
+            <span class="n">on_progress</span><span class="o">=</span><span class="n">on_progress</span><span class="p">,</span>
+            <span class="n">nb_weight</span><span class="o">=</span><span class="n">nb_weight</span><span class="p">,</span>
+            <span class="n">nb_offset</span><span class="o">=</span><span class="n">nb_offset</span><span class="p">,</span>
+            <span class="n">nb_label</span><span class="o">=</span><span class="n">nb_dir</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">nb_index</span><span class="o">=</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="n">nb_total</span><span class="o">=</span><span class="n">n_nb</span><span class="p">,</span>
+        <span class="p">)</span>
 </code></pre></div>
-<p>내부적으로 <code>python-core/sidecar_kuro/</code>, <code>python-core/sidecar_mame/</code> 두 패키지를 PyInstaller 로 다시 묶는다.</p>
-<h2 id="-32601-method-not-found"><code>-32601 Method not found</code> 발생 시<a class="headerlink" href="#-32601-method-not-found" title="Permanent link">&para;</a></h2>
-<p>UI 또는 백엔드에서 새 RPC 메소드를 추가했는데 사이드카 바이너리가 구버전인 경우 발생한다. 해결:</p>
-<div class="highlight"><pre><span></span><code>pnpm<span class="w"> </span>run<span class="w"> </span>sidecar:build
+<p><code>_sort_one_nb</code> 내부:</p>
+<div class="highlight"><pre><span></span><code><span class="k">for</span> <span class="n">file_idx</span><span class="p">,</span> <span class="n">fastq_path</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">fastq_files</span><span class="p">):</span>
+    <span class="c1"># throttle: fastq 8개당 1회 emit</span>
+    <span class="k">if</span> <span class="n">on_progress</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span><span class="n">file_idx</span> <span class="o">%</span> <span class="mi">8</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">file_idx</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">fastq_files</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="n">frac_in_nb</span> <span class="o">=</span> <span class="n">file_idx</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">fastq_files</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="n">nb_offset</span> <span class="o">+</span> <span class="n">nb_weight</span> <span class="o">*</span> <span class="n">frac_in_nb</span>
+        <span class="c1"># 메시지는 호출자(handler 또는 frontend)에서 locale 키로 변환.</span>
+        <span class="c1"># callback은 raw 데이터(나중에 i18n)만 전달.</span>
+        <span class="n">on_progress</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="p">{</span>
+            <span class="s2">&quot;phase&quot;</span><span class="p">:</span> <span class="s2">&quot;sorting&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;nb_index&quot;</span><span class="p">:</span> <span class="n">nb_index</span><span class="p">,</span>
+            <span class="s2">&quot;nb_total&quot;</span><span class="p">:</span> <span class="n">nb_total</span><span class="p">,</span>
+            <span class="s2">&quot;nb_label&quot;</span><span class="p">:</span> <span class="n">nb_label</span><span class="p">,</span>
+            <span class="s2">&quot;file_idx&quot;</span><span class="p">:</span> <span class="n">file_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="s2">&quot;file_total&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">fastq_files</span><span class="p">),</span>
+        <span class="p">})</span>
+    <span class="o">...</span>
 </code></pre></div>
-<p>이후 KUMA 재실행. 자세한 절차는 <a href="../../troubleshooting/sidecar-method-not-found/">트러블슈팅 → Sidecar Method not found</a>.</p>
-<h2 id="v0992">해시 매니페스트 (v0.9.9.2+)<a class="headerlink" href="#v0992" title="Permanent link">&para;</a></h2>
-<p><code>pnpm run sidecar:build</code> 후 반드시 같은 플랫폼 머신에서 hash 갱신을 commit 한다.</p>
-<div class="highlight"><pre><span></span><code>pnpm<span class="w"> </span>run<span class="w"> </span>sidecar:build<span class="w">         </span><span class="c1"># PyInstaller 로 platform binary 생성</span>
-pnpm<span class="w"> </span>run<span class="w"> </span>sidecar:hash<span class="w">          </span><span class="c1"># src-tauri/sidecar-hashes.json merge mode 갱신</span>
-git<span class="w"> </span>diff<span class="w"> </span>src-tauri/sidecar-hashes.json
-git<span class="w"> </span>add<span class="w"> </span>src-tauri/sidecar-hashes.json<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;vX.X.X: refresh &lt;platform&gt; sidecar hashes&quot;</span>
+<p><strong>Sidecar 측 변환</strong>:
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_format_sort_message</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="c1"># 영문 fallback. 실제 i18n은 frontend에서 적용.</span>
+    <span class="k">return</span> <span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Sorting barcode </span><span class="si">{</span><span class="n">payload</span><span class="p">[</span><span class="s1">&#39;nb_index&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">payload</span><span class="p">[</span><span class="s1">&#39;nb_total&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">, &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">payload</span><span class="p">[</span><span class="s1">&#39;nb_label&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> (file </span><span class="si">{</span><span class="n">payload</span><span class="p">[</span><span class="s1">&#39;file_idx&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">payload</span><span class="p">[</span><span class="s1">&#39;file_total&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+
+<span class="n">on_progress</span><span class="o">=</span><span class="k">lambda</span> <span class="n">f</span><span class="p">,</span> <span class="n">payload</span><span class="p">:</span> <span class="n">_progress</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">f</span> <span class="o">*</span> <span class="mi">50</span><span class="p">),</span> <span class="n">_format_sort_message</span><span class="p">(</span><span class="n">payload</span><span class="p">))</span>
+</code></pre></div></p>
+<p><strong>Frontend 측 i18n</strong>: progress notification의 <code>message</code> 필드는 영문 fallback 그대로 사용 (sidecar에서 이미 포맷됨). 별도로 inputSlice가 progress payload 안의 raw key/값을 분리 저장하여 모달이 locale 재포맷할 수 있도록 확장하는 경로는 out of scope (이번 PR은 영문 메시지로 충분).</p>
+<p>호출 빈도: NB당 약 4~8회 (fastq 30개 기준), throttle 불필요할 정도의 저빈도.</p>
+<h2 id="eta">ETA 계산<a class="headerlink" href="#eta" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="kd">function</span><span class="w"> </span><span class="nx">computeEta</span><span class="p">(</span><span class="nx">progressPct</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">,</span><span class="w"> </span><span class="nx">startedAt</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">fraction</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">progressPct</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">100</span><span class="p">;</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">fraction</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mf">0.05</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nx">t</span><span class="p">(</span><span class="s2">&quot;mame.progressModal.eta.calculating&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">elapsed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">Date</span><span class="p">.</span><span class="nx">now</span><span class="p">()</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="nx">startedAt</span><span class="p">;</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">remainingMs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="nx">elapsed</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="nx">fraction</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="mf">1</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="nx">fraction</span><span class="p">);</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">remainingMs</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mf">60</span><span class="nx">_000</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nx">t</span><span class="p">(</span><span class="s2">&quot;mame.progressModal.eta.lessThanMinute&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">min</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">Math</span><span class="p">.</span><span class="nx">floor</span><span class="p">(</span><span class="nx">remainingMs</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">60</span><span class="nx">_000</span><span class="p">);</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">sec</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">Math</span><span class="p">.</span><span class="nx">floor</span><span class="p">((</span><span class="nx">remainingMs</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="mf">60</span><span class="nx">_000</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">1000</span><span class="p">);</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nx">t</span><span class="p">(</span><span class="s2">&quot;mame.progressModal.eta.remaining&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">min</span><span class="p">,</span><span class="w"> </span><span class="nx">sec</span><span class="w"> </span><span class="p">});</span>
+<span class="p">}</span>
 </code></pre></div>
-<p><code>sidecar-hash.mjs</code> 는 merge mode 로 동작한다. 본 머신 플랫폼의 triple-suffixed 키만 갱신, 타 플랫폼 키는 보존. 따라서 macOS/Windows/Linux 각자에서 hash 를 한 번씩 commit 해야 3 플랫폼 완전 manifest 가 된다.</p>
-<p>runtime 검증 (<code>src-tauri/src/sidecar.rs verify_binary_hash</code>) 은 triple_key → ext_key 순서로 lookup 하며 매칭 실패 시 fail-fast. base-name fallback 은 제거되었다 (이전 v0.9.7 회귀 방지).</p>
+<ul>
+<li><code>progressPct &lt; 5</code>: "Calculating…" (early-phase 노이즈 차단)</li>
+<li><code>&lt; 60초</code>: "1분 미만"</li>
+<li>그 외: "약 X분 Y초 남음"</li>
+</ul>
+<h2 id="modal-ui">Modal UI<a class="headerlink" href="#modal-ui" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>┌─────────────────────────────────────┐
+│  Running analysis…                  │
+│                                     │
+│  ████████████░░░░░░░░░░░  47%       │
+│                                     │
+│  Sorting barcode 3/12               │
+│  barcode03, file 8/24               │
+│                                     │
+│  약 3분 12초 남음                   │
+│                                     │
+│                       [Cancel]      │
+└─────────────────────────────────────┘
+</code></pre></div>
+<ul>
+<li>shadcn <code>Dialog</code> + <code>Progress</code> 컴포넌트</li>
+<li><code>open</code> 바인딩: <code>isAnalyzing</code> (inputSlice 기존 상태)</li>
+<li>닫기 버튼 및 바깥 클릭 닫기 비활성 (modal blocking)</li>
+<li><code>Cancel</code> = 기존 <code>cancelAndRespawn()</code> (<code>src/lib/ipc-mame/index.ts:88</code>). sidecar 강제종료 후 재기동.</li>
+<li>Cancel 후 toast: "Analysis cancelled"</li>
+</ul>
+<h2 id="deadlock-detector-mame">Deadlock detector 제거 (MAME 한정)<a class="headerlink" href="#deadlock-detector-mame" title="Permanent link">&para;</a></h2>
+<ul>
+<li><code>src/components/mame/layout/MameAppLayout.tsx:129</code>의 <code>startDeadlockWatch</code> 호출과 다이얼로그 마운트 코드 제거</li>
+<li><code>src/lib/deadlockDetector.ts</code> 파일은 <code>AppLayout.tsx</code>(KURO)에서 계속 사용하므로 보존</li>
+<li>이번 PR로 올린 <code>DEADLOCK_THRESHOLD_MS = 300_000</code>(v0.9.9.7)도 KURO 쪽엔 그대로 적용. 영향 없음.</li>
+</ul>
+<h2 id="error-handling">Error handling<a class="headerlink" href="#error-handling" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>케이스</th>
+<th>동작</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>sort RPC 실패</td>
+<td>모달 닫기 + <code>validationErrors</code>에 메시지 적재 (기존 catch 흐름 유지)</td>
+</tr>
+<tr>
+<td>analyze RPC 실패</td>
+<td>동일</td>
+</tr>
+<tr>
+<td>Cancel 클릭</td>
+<td><code>cancelAndRespawn()</code> 호출, 모달 닫기, toast 표시, 그리고 inputSlice 상태 명시 리셋 (아래 참조)</td>
+</tr>
+<tr>
+<td>RPC timeout</td>
+<td>600s(sort) / 300s(analyze) 초과 시 기존 error path</td>
+</tr>
+</tbody>
+</table>
+<h3 id="cancel">Cancel 후 상태 리셋 (호출자 책임)<a class="headerlink" href="#cancel" title="Permanent link">&para;</a></h3>
+<p><code>runAnalysis()</code> catch 블록에서 cancel 감지 시 (또는 cancel handler 안에서 직접) 다음 명시 리셋:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">set</span><span class="p">({</span>
+<span class="w">  </span><span class="nx">isAnalyzing</span><span class="o">:</span><span class="w"> </span><span class="kt">false</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">analyzeProgress</span><span class="o">:</span><span class="w"> </span><span class="kt">0</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">analyzeMessage</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">validationErrors</span><span class="o">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="p">});</span>
+</code></pre></div>
+<p>이유: 기존 <code>inputSlice.ts:362-372</code> catch 블록은 <code>validationErrors</code>에 메시지 적재. cancel은 정상 종료이므로 errors 비워야 사용자가 Run 재클릭 시 깨끗한 상태. <code>analyzeMessage</code> 공백화로 step view의 인라인 표시도 초기화.</p>
+<p>재클릭 흐름: 사용자 Cancel → 위 리셋 → "Run Analysis" 버튼 재활성 (<code>!isAnalyzing &amp;&amp; !validationErrors.length</code>) → 정상 재실행.</p>
+<h2 id="locale-keys">Locale keys (신규)<a class="headerlink" href="#locale-keys" title="Permanent link">&para;</a></h2>
+<p><code>src/locales/ko.json</code>, <code>en.json</code> (다른 9개 locale은 영문 fallback 그대로):</p>
+<div class="highlight"><pre><span></span><code><span class="nt">&quot;mame.progressModal&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Running analysis…&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;cancel&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Cancel&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;cancelling&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Cancelling…&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;cancelled&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Analysis cancelled&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;eta&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;calculating&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Calculating…&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;lessThanMinute&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1분 미만&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;remaining&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;약 {{min}}분 {{sec}}초 남음&quot;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>영문 키도 같이 추가.</p>
+<h2 id="tests">Tests<a class="headerlink" href="#tests" title="Permanent link">&para;</a></h2>
+<p><strong>Python</strong> (<code>kuma_core/mame/ingest/tests/test_sort_barcode.py</code>):
+- <code>test_sort_barcode_run_emits_progress</code>: mock callback이 (a) 최소 N번 호출되는지, (b) fraction이 [0, 1] 범위인지, (c) monotonic non-decreasing인지 검증
+- <code>test_sort_barcode_run_no_callback</code>: <code>on_progress=None</code>일 때 기존 동작 유지(에러 없음)</p>
+<p><strong>Frontend</strong> (<code>src/components/mame/dialogs/AnalysisProgressModal.test.tsx</code>):
+- progress 0 → ETA "Calculating…" 표기
+- progress 50, startedAt 30초 전 → ETA "약 0분 30초 남음" 근사값
+- Cancel 클릭 시 <code>cancelAndRespawn</code> 호출 확인
+- <code>isAnalyzing=false</code> 시 unmount</p>
+<p><strong>Frontend</strong> (<code>src/store/mame/slices/inputSlice.test.ts</code>):
+- raw_run 모드 phase 합성: sort progress 50% emit → store <code>analyzeProgress = 25</code> 검증
+- barcode-sorted 모드: analyze progress 50% emit → store <code>analyzeProgress = 50</code> 검증</p>
+<h2 id="files-changed">Files changed (예상)<a class="headerlink" href="#files-changed" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>파일</th>
+<th>신규/수정</th>
+<th>LOC</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>kuma_core/mame/ingest/sort_barcode.py</code></td>
+<td>수정</td>
+<td>~30</td>
+</tr>
+<tr>
+<td><code>python-core/sidecar_mame/handlers/sort_barcode.py</code></td>
+<td>수정</td>
+<td>~10</td>
+</tr>
+<tr>
+<td><code>src/store/mame/slices/inputSlice.ts</code></td>
+<td>수정</td>
+<td>~15</td>
+</tr>
+<tr>
+<td><code>src/components/mame/dialogs/AnalysisProgressModal.tsx</code></td>
+<td>신규</td>
+<td>~90</td>
+</tr>
+<tr>
+<td><code>src/components/mame/layout/MameAppLayout.tsx</code></td>
+<td>수정</td>
+<td>-10 / +5</td>
+</tr>
+<tr>
+<td><code>src/locales/ko.json</code>, <code>en.json</code></td>
+<td>수정</td>
+<td>~12</td>
+</tr>
+<tr>
+<td><code>kuma_core/mame/ingest/tests/test_sort_barcode.py</code></td>
+<td>수정/신규</td>
+<td>~40</td>
+</tr>
+<tr>
+<td><code>src/components/mame/dialogs/AnalysisProgressModal.test.tsx</code></td>
+<td>신규</td>
+<td>~40</td>
+</tr>
+<tr>
+<td><code>src/store/mame/slices/inputSlice.test.ts</code></td>
+<td>수정</td>
+<td>~20</td>
+</tr>
+</tbody>
+</table>
+<p>총 ~250 LOC.</p>
+<h2 id="risks">Risks<a class="headerlink" href="#risks" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>ETA 부정확성</strong>: 초기 NB 처리 시간과 후속 NB 차이가 크면 ETA 흔들림. 사용자는 "약" 단어로 부정확성 인지하도록 표기.</li>
+<li><strong>Cancel 중 race</strong>: sidecar respawn 직후 다른 step에서 즉시 RPC 호출 시 ensure_spawned 재진입. 기존 <code>cancelAndRespawn</code> 로직이 이미 await 보장하므로 신규 race 없음.</li>
+<li><strong>두 locale만 추가</strong>: 9개 다른 locale에서 영문 fallback 표시. 후속 PR에서 번역 보강 (별 작업).</li>
+<li><strong>inputSlice.ts에서 phase 합성 로직</strong>: sort/analyze 두 progress 소스를 합치는 코드가 inputSlice에 들어가면 책임 비대 우려. 별 헬퍼(<code>composeAnalysisProgress.ts</code>)로 분리 권장.</li>
+</ol>
+<h2 id="out-of-scope-pr">Out of scope (이번 PR 아님)<a class="headerlink" href="#out-of-scope-pr" title="Permanent link">&para;</a></h2>
+<ul>
+<li>analyze 핸들러 progress 세분화 (별 PR 후보)</li>
+<li>sort 사전 read count 스캔</li>
+<li>9개 비-영어 locale 번역 보강</li>
+<li>progress 모달의 expand/collapse 토글</li>
+</ul>
 
 
 
 
 
 
+
+  
+  
 
 
 
