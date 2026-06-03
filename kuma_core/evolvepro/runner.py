@@ -384,6 +384,14 @@ def _stream_stdout(
             "EVOLVEpro run finished",
             result,
         )
+    elif handle.cancelled:
+        progress_cb(
+            handle.run_id,
+            "error",
+            current_round,
+            n_rounds_expected,
+            "EVOLVEpro run cancelled",
+        )
     else:
         detail = next(
             (
@@ -504,11 +512,17 @@ def cancel(handle: RunHandle) -> bool:
     handle.cancelled = True
     try:
         if sys.platform == "win32":
-            handle.process.send_signal(signal.CTRL_BREAK_EVENT)  # type: ignore[attr-defined]
-        else:
-            os.killpg(os.getpgid(handle.process.pid), signal.SIGTERM)
+            result = subprocess.run(  # noqa: S603
+                ["taskkill", "/PID", str(handle.process.pid), "/T", "/F"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=10,
+                shell=False,
+            )
+            return result.returncode == 0
+        os.killpg(os.getpgid(handle.process.pid), signal.SIGTERM)
         return True
-    except (OSError, ProcessLookupError):
+    except (OSError, ProcessLookupError, subprocess.TimeoutExpired):
         return False
 
 

@@ -69,6 +69,34 @@ def test_stream_stdout_reports_loading_and_failure_without_result(tmp_path: Path
     assert "result" not in result
 
 
+def test_stream_stdout_reports_cancel_without_raw_exit_code(tmp_path: Path):
+    handle = _FakeHandle(
+        run_id="run",
+        process=_FakeProcess(stdout=["loading embeddings\n"], returncode=3221225786),
+        cancelled=True,
+    )
+    calls: list[tuple[object, ...]] = []
+
+    def _capture_progress(
+        run_id: str,
+        stage: str,
+        current: int,
+        total: int,
+        message: str,
+        result: runner.RunResult | None = None,
+    ) -> None:
+        calls.append((run_id, stage, current, total, message, result))
+
+    result = _stream_stdout(
+        cast(RunHandle, handle), _capture_progress, 1, tmp_path
+    )
+
+    assert calls[-1][:5] == ("run", "error", 0, 1, "EVOLVEpro run cancelled")
+    assert "3221225786" not in str(calls[-1][4])
+    assert result["returncode"] == 3221225786
+    assert "result" not in result
+
+
 def test_stream_stdout_success_should_parse_result_files(tmp_path: Path):
     (tmp_path / "df_test.csv").write_text("rank,variant,y_predicted\n1,A1V,1.0\n")
     (tmp_path / "top_variants.csv").write_text("rank,variant,y_predicted\n1,A1V,1.0\n")
@@ -218,6 +246,40 @@ def test_run_starts_conda_subprocess_with_closed_stdin(monkeypatch, tmp_path: Pa
 
     assert handle.process.returncode == 0
     assert captured["kwargs"]["stdin"] is subprocess.DEVNULL
+
+
+def test_cancel_uses_windows_process_tree_kill(monkeypatch):
+    calls: list[list[str]] = []
+
+    class _FakeRunningProcess:
+        pid = 1234
+
+        def poll(self) -> None:
+            return None
+
+        def send_signal(self, sig: int) -> None:  # noqa: ARG002
+            raise AssertionError("Windows cancel should use taskkill for the process tree")
+
+    def fake_run(cmd: list[str], **kwargs: object) -> object:
+        calls.append(cmd)
+
+        class _Completed:
+            returncode = 0
+
+        return _Completed()
+
+    monkeypatch.setattr(runner.sys, "platform", "win32")
+    monkeypatch.setattr(runner.subprocess, "run", fake_run)
+
+    handle = runner.RunHandle(
+        run_id="run",
+        process=cast(subprocess.Popen, _FakeRunningProcess()),
+        start_time=0.0,
+    )
+
+    assert runner.cancel(handle) is True
+    assert handle.cancelled is True
+    assert calls == [["taskkill", "/PID", "1234", "/T", "/F"]]
 
 
 def test_run_result_reads_csv_without_pandas(monkeypatch, tmp_path: Path):
