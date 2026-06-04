@@ -17,6 +17,9 @@ export function useMameSidecar() {
         analyzeProgress: progress.value,
         analyzeMessage: progress.message,
         isAnalyzing: state.isAnalyzing || progress.value < 100,
+        ...(progress.current !== undefined && progress.total !== undefined
+          ? { analyzeCurrent: progress.current, analyzeTotal: progress.total }
+          : {}),
       }));
       if (progress.message) {
         const ts = new Date().toLocaleTimeString();

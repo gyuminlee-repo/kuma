@@ -1,7 +1,7 @@
 /**
  * §1 Recovery — Dead-lock 감지 유틸리티.
  *
- * progress notification 이 thresholdMs(기본 30초) 이상 끊기면 onDeadlock 콜백을 호출.
+ * progress notification 이 thresholdMs(기본 300초) 이상 끊기면 onDeadlock 콜백을 호출.
  * 호출부는 getLastProgressAt 으로 최신 progress timestamp 를 제공하고,
  * 반환된 cleanup 함수를 useEffect 반환값으로 연결해야 한다.
  */
@@ -11,7 +11,7 @@ export const DEADLOCK_THRESHOLD_MS = 300_000;
 export interface DeadlockWatchOptions {
   /** 마지막 progress 수신 timestamp(ms) 반환. progress 없으면 null. */
   getLastProgressAt: () => number | null;
-  /** 감지 판정 임계값(ms). 기본값: DEADLOCK_THRESHOLD_MS(30초). */
+  /** 감지 판정 임계값(ms). 기본값: DEADLOCK_THRESHOLD_MS(300_000ms = 300초). */
   thresholdMs?: number;
   /** 데드락 감지 시 1회 호출되는 콜백. */
   onDeadlock: () => void;

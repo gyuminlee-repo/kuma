@@ -72,6 +72,8 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
   const isValidating = useMameAppStore((s) => s.isValidating);
   const analyzeProgress = useMameAppStore((s) => s.analyzeProgress);
   const analyzeMessage = useMameAppStore((s) => s.analyzeMessage);
+  const analyzeCurrent = useMameAppStore((s) => s.analyzeCurrent);
+  const analyzeTotal = useMameAppStore((s) => s.analyzeTotal);
   const validationErrors = useMameAppStore((s) => s.validationErrors);
   const hasResults = useMameAppStore((s) => s.verdicts.length > 0);
   const cancelAnalysis = useMameAppStore((s) => s.cancelAnalysis);
@@ -140,9 +142,9 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
                 aria-label={t("mameSidebar.analysisProgressAria", { percent: analyzeProgress })}
               />
             )}
-            {!isAnalyzing && validationErrors.length > 0 && (
-              <p className="mt-1.5 text-caption text-muted-foreground">
-                {t("mameSidebar.validationIssues", { count: validationErrors.length })}
+            {isAnalyzing && analyzeCurrent !== null && analyzeTotal !== null && (
+              <p className="mt-1 text-caption text-muted-foreground" aria-live="polite">
+                {analyzeCurrent.toLocaleString()} / {analyzeTotal.toLocaleString()}
               </p>
             )}
           </div>

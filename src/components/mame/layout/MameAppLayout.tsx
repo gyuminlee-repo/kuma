@@ -24,7 +24,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { startDeadlockWatch } from "@/lib/deadlockDetector";
+import { startDeadlockWatch, DEADLOCK_THRESHOLD_MS } from "@/lib/deadlockDetector";
 import { getLastProgressAt } from "@/lib/ipc-mame";
 import { PreflightDialog } from "@/components/dialogs/PreflightDialog";
 import { OverwriteConfirmDialog } from "@/components/dialogs/OverwriteConfirmDialog";
@@ -127,7 +127,7 @@ export function MameAppLayout() {
     );
   }, [flushMameAutosave, status]);
 
-  // §1 Dead-lock 감지: analysis 진행 중 30초 progress 정적 시 모달 표시
+  // §1 Dead-lock 감지: analysis 진행 중 DEADLOCK_THRESHOLD_MS 초과 시 모달 표시
   useEffect(() => {
     if (!isAnalyzing) return;
     return startDeadlockWatch({
@@ -388,7 +388,7 @@ export function MameAppLayout() {
             <DialogHeader>
               <DialogTitle>{t("mame.appLayout.deadlockTitle")}</DialogTitle>
               <DialogDescription>
-                {t("mame.appLayout.deadlockDescription")}
+                {t("mame.appLayout.deadlockDescription", { seconds: DEADLOCK_THRESHOLD_MS / 1000 })}
               </DialogDescription>
             </DialogHeader>
             <DialogFooter className="flex gap-2">

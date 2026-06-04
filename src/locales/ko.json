@@ -482,7 +482,7 @@
     },
     "appLayout": {
       "deadlockTitle": "응답 없음",
-      "deadlockDescription": "30초 이상 진행 상태가 업데이트되지 않았습니다. 작업이 멈췄습니다.",
+      "deadlockDescription": "{{seconds}}초 이상 진행 상태가 업데이트되지 않았습니다. 작업이 멈췄습니다.",
       "deadlockWait": "계속 대기",
       "deadlockReset": "초기화",
       "analysisWorkspaceAriaLabel": "분석 작업 공간",
@@ -1308,7 +1308,7 @@
     "missingMutations": "변이 정보 (변이 패널에 최소 1개의 변이를 입력하세요)",
     "missingTargetGene": "대상 유전자 (시퀀스 패널에서 유전자를 선택하세요)",
     "deadlockTitle": "응답 없음",
-    "deadlockDesc": "30초 이상 진행 상태가 업데이트되지 않았습니다. 작업이 멈췄습니다.",
+    "deadlockDesc": "{{seconds}}초 이상 진행 상태가 업데이트되지 않았습니다. 작업이 멈췄습니다.",
     "deadlockWait": "계속 대기",
     "deadlockReset": "초기화",
     "plateCount": "{{count}} 플레이트",

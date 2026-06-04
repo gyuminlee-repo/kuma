@@ -45,7 +45,9 @@ import logging
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterator
+import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Callable, Iterator
 
 from kuma_core.mame.ingest.align import (
     align_reads,
@@ -65,6 +67,13 @@ _F_FALLBACK_LEN = 11  # prefix length if F tail absent
 _R_FALLBACK_LEN = 10  # prefix length if R tail absent
 
 _COMP = str.maketrans("ACGTacgtNn", "TGCAtgcaNn")
+
+# Default worker count for per-well consensus ThreadPool.
+# KUMA_MAME_CONSENSUS_WORKERS env var takes priority.
+_CONSENSUS_WORKERS: int = int(
+    os.environ.get("KUMA_MAME_CONSENSUS_WORKERS", "")
+    or str(min(8, os.cpu_count() or 4))
+)
 
 
 def _reverse_complement(seq: str) -> str:
@@ -506,6 +515,7 @@ def run_combinatorial_demux(
     window_bp: int = 30,
     edit_dist_ratio: float = 0.25,
     chimera_split: bool = True,
+    progress_callback: Callable[[int, int, str], None] | None = None,
 ) -> DemuxResult:
     """MAPQ-filtered alignment-anchored fuzzy per-well demux with chimera splitting.
 
@@ -594,7 +604,11 @@ def run_combinatorial_demux(
             total_hit_count,
         )
 
-        for read_id, read_seq, hits in multi_results:
+        _demux_total = len(multi_results)
+        _demux_step = max(1, _demux_total // 100)  # ~1% interval throttle
+        for _demux_i, (read_id, read_seq, hits) in enumerate(multi_results):
+            if progress_callback is not None and _demux_i % _demux_step == 0:
+                progress_callback(_demux_i, _demux_total, "demux")
             # Track which wells this read has already been assigned to
             # to prevent double-counting the same read in the same well.
             assigned_wells_this_read: set[tuple[int, int]] = set()
@@ -708,17 +722,33 @@ def run_combinatorial_demux(
         stats.wells_with_min_reads,
     )
 
-    # Per-well consensus
+    # Per-well consensus — parallel across wells (each well is independent)
     ref_seq = _read_reference_seq(reference_fasta)
     per_well_consensus: dict[str, str] = {}
 
-    for well_name, reads in per_well_reads.items():
-        consensus_seq, depth = _compute_well_consensus(
+    _consensus_total = len(per_well_reads)
+
+    def _run_well(well_name: str, reads: list[tuple[str, str]]) -> tuple[str, str, int]:
+        """Worker: returns (well_name, consensus_seq, depth)."""
+        seq, depth = _compute_well_consensus(
             well_name, reads, reference_fasta, ref_seq, ref_len, min_depth
         )
-        per_well_consensus[well_name] = consensus_seq
-        with (output_dir / "consensus" / f"{well_name}.fasta").open("w") as fh:
-            fh.write(f">{well_name} depth={depth}\n{consensus_seq}\n")
+        return well_name, seq, depth
+
+    _consensus_done = 0
+    with ThreadPoolExecutor(max_workers=_CONSENSUS_WORKERS) as pool:
+        futures = {
+            pool.submit(_run_well, wn, rds): wn
+            for wn, rds in per_well_reads.items()
+        }
+        for fut in as_completed(futures):
+            wn, seq, depth = fut.result()
+            per_well_consensus[wn] = seq
+            with (output_dir / "consensus" / f"{wn}.fasta").open("w") as fh:
+                fh.write(f">{wn} depth={depth}\n{seq}\n")
+            _consensus_done += 1
+            if progress_callback is not None:
+                progress_callback(_consensus_done, _consensus_total, "consensus")
 
     return DemuxResult(
         stats=stats,

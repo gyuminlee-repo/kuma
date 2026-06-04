@@ -1,4 +1,5 @@
 import { save } from "@tauri-apps/plugin-dialog";
+import { useState, useEffect } from "react";
 import { AlertCircle, CheckCircle2, Download, FolderOpen } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
@@ -14,23 +15,48 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { revealInOSFolder } from "@/lib/openFolder";
+import { defaultMameExportFilename } from "@/lib/filename";
 import { fileExists, requestOverwriteConfirm } from "@/lib/overwriteConfirm";
+
+function joinPathDialog(dir: string, filename: string): string {
+  const sep = dir.includes("\\") ? "\\" : "/";
+  return `${dir.replace(/[\/]+$/, "")}${sep}${filename}`;
+}
 
 export function ExportDialog() {
   const { t } = useTranslation();
   const open = useMameAppStore((s) => s.showExport);
   const closeExport = useMameAppStore((s) => s.closeExport);
-  const outputPath = useMameAppStore((s) => s.outputPath);
-  const setOutputPath = useMameAppStore((s) => s.setOutputPath);
+  const outputPath = useMameAppStore((s) => s.outputPath); // folder
+  const inputDir = useMameAppStore((s) => s.inputDir);
+  const referencePath = useMameAppStore((s) => s.referencePath);
+  const verdictCount = useMameAppStore((s) => s.verdicts.length);
   const exportExcel = useMameAppStore((s) => s.exportExcel);
   const isExporting = useMameAppStore((s) => s.isExporting);
   const exportError = useMameAppStore((s) => s.exportError);
   const lastExportPath = useMameAppStore((s) => s.lastExportPath);
   const lastExportAt = useMameAppStore((s) => s.lastExportAt);
 
+  // Local full path state: seeded from outputPath(folder)+defaultFilename or lastExportPath.
+  const [fullPath, setFullPath] = useState<string>(() => {
+    if (lastExportPath) return lastExportPath;
+    if (outputPath) return joinPathDialog(outputPath, defaultMameExportFilename({ referencePath, inputDir, verdictCount }));
+    return "";
+  });
+
+  // Re-seed when dialog opens or outputPath folder changes.
+  useEffect(() => {
+    if (!open) return;
+    if (lastExportPath) {
+      setFullPath(lastExportPath);
+    } else if (outputPath) {
+      setFullPath(joinPathDialog(outputPath, defaultMameExportFilename({ referencePath, inputDir, verdictCount })));
+    }
+  }, [open, outputPath, lastExportPath, referencePath, inputDir, verdictCount]);
+
   async function browseOutput() {
     const selected = await save({ filters: [{ name: "Excel", extensions: ["xlsx"] }] });
-    if (selected) setOutputPath(selected);
+    if (selected) setFullPath(selected);
   }
 
   return (
@@ -54,8 +80,8 @@ export function ExportDialog() {
             <div className="flex gap-2">
               <Input
                 id="export-output-path"
-                value={outputPath}
-                onChange={(e) => setOutputPath(e.target.value)}
+                value={fullPath}
+                onChange={(e) => setFullPath(e.target.value)}
                 placeholder={t("mame.dialogs.export.outputPathPlaceholder")}
                 className="h-9 flex-1 text-sm font-mono"
                 aria-label={t("mame.dialogs.export.outputPathAriaLabel")}
@@ -123,15 +149,15 @@ export function ExportDialog() {
           <Button
             size="sm"
             onClick={async () => {
-              if (!outputPath) return;
+              if (!fullPath) return;
               // §5 덮어쓰기 confirm
-              if (await fileExists(outputPath)) {
-                const decision = await requestOverwriteConfirm(outputPath);
+              if (await fileExists(fullPath)) {
+                const decision = await requestOverwriteConfirm(fullPath);
                 if (decision === "cancel") return;
               }
-              await exportExcel(outputPath);
+              await exportExcel(fullPath);
             }}
-            disabled={isExporting || !outputPath}
+            disabled={isExporting || !fullPath}
             className="gap-2"
           >
             <Download size={14} aria-hidden="true" />

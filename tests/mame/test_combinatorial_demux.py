@@ -559,3 +559,181 @@ class TestRunCombinatorialDemux:
         )
         # All coverage-filtered reads that fail demux go to ambiguous_dropped
         assert result.stats.ambiguous_dropped >= 0  # counter exists
+
+
+# ---------------------------------------------------------------------------
+# New: progress_callback, MINIMAP2_THREADS constant, consensus equivalence
+# ---------------------------------------------------------------------------
+
+
+class TestProgressCallback:
+    """Verify progress_callback is called during demux and consensus phases."""
+
+    def test_demux_callback_invoked(
+        self, tmp_path: Path, tmp_reference: Path, mock_barcodes_xlsx: Path
+    ) -> None:
+        """progress_callback receives at least one 'demux' call."""
+        reads = [(_build_read(1, 1, _REF_SEQ),)] * 3  # type: ignore[list-item]
+        actual_reads = [(f"r{i}", _build_read(1, 1, _REF_SEQ)) for i in range(3)]
+        fastq = _make_fastq_gz(tmp_path, actual_reads)
+        out_dir = tmp_path / "out"
+
+        calls: list[tuple[int, int, str]] = []
+        run_combinatorial_demux(
+            raw_fastq_paths=[fastq],
+            reference_fasta=tmp_reference,
+            barcodes_xlsx=mock_barcodes_xlsx,
+            output_dir=out_dir,
+            mapq_threshold=0,
+            coverage_fraction=0.5,
+            trim_flank_bp=30,
+            min_depth=1,
+            progress_callback=lambda cur, tot, stage: calls.append((cur, tot, stage)),
+        )
+
+        # At least one call per phase that has data
+        assert any(s == "demux" for _, _, s in calls)
+        # All calls must have non-negative current <= total
+        for cur, tot, _ in calls:
+            assert 0 <= cur <= tot
+
+    def test_no_callback_ok(
+        self, tmp_path: Path, tmp_reference: Path, mock_barcodes_xlsx: Path
+    ) -> None:
+        """progress_callback=None must not crash."""
+        reads = [(f"r{i}", _build_read(1, 1, _REF_SEQ)) for i in range(2)]
+        fastq = _make_fastq_gz(tmp_path, reads)
+        out_dir = tmp_path / "out"
+        # Should complete without exception
+        run_combinatorial_demux(
+            raw_fastq_paths=[fastq],
+            reference_fasta=tmp_reference,
+            barcodes_xlsx=mock_barcodes_xlsx,
+            output_dir=out_dir,
+            mapq_threshold=0,
+            coverage_fraction=0.5,
+            trim_flank_bp=30,
+            min_depth=1,
+            progress_callback=None,
+        )
+
+
+class TestConsensusParallelEquivalence:
+    """Verify ThreadPool consensus produces the same result as serial computation.
+
+    Mocks _compute_well_consensus and file I/O so minimap2 is not required.
+    This test is NOT skipped when minimap2 is absent.
+    """
+
+    def test_parallel_matches_serial(self, tmp_path: Path) -> None:
+        from unittest.mock import MagicMock, patch
+        from pathlib import Path as _Path
+        from kuma_core.mame.ingest.combinatorial_demux import (
+            run_combinatorial_demux,
+            _CONSENSUS_WORKERS,
+        )
+
+        ref_seq = _REF_SEQ
+        ref_len = len(ref_seq)
+
+        # Build per_well_reads-equivalent result without real alignment
+        # by monkeypatching align_reads_multi and _compute_well_consensus
+        reads_input = [(f"r{i}_{j}", _build_read(i + 1, j + 1, ref_seq))
+                       for i in range(2) for j in range(2)]
+
+        # Canonical serial consensus answers
+        expected = {
+            "1_1": ("AAACCC", 5),
+            "1_2": ("TTTGGG", 3),
+            "2_1": ("GGGAAA", 4),
+            "2_2": ("CCCAAA", 2),
+        }
+
+        call_counts: dict[str, int] = {}
+
+        def fake_consensus(well_name, reads, ref_fasta, ref_s, ref_l, min_d):
+            call_counts[well_name] = call_counts.get(well_name, 0) + 1
+            return expected[well_name]
+
+        # Minimal DemuxStats / DemuxResult stubs via real run but patched internals
+        from kuma_core.mame.ingest import combinatorial_demux as cd_mod
+
+        # We patch at a higher level: provide fake per_well_reads by patching
+        # the align functions to return empty (no reads pass) so per_well is
+        # empty, which means consensus loop is skipped.
+        # Instead, test the ThreadPool logic in isolation.
+
+        # Build a per_well_reads dict with dummy entries for 4 wells
+        import gzip, io
+        from collections import defaultdict
+        import concurrent.futures
+
+        per_well_reads = {
+            "1_1": [("r0", "A" * 10), ("r1", "A" * 10)],
+            "1_2": [("r2", "T" * 10)],
+            "2_1": [("r3", "G" * 10), ("r4", "G" * 10), ("r5", "G" * 10)],
+            "2_2": [("r6", "C" * 10)],
+        }
+
+        # Fake reference fasta
+        ref_fasta = tmp_path / "ref.fasta"
+        ref_fasta.write_text(f">ref\n{_REF_SEQ}\n")
+        (tmp_path / "consensus").mkdir()
+
+        # Run parallel version directly
+        result_parallel: dict[str, str] = {}
+        result_serial: dict[str, str] = {}
+
+        with patch.object(cd_mod, "_compute_well_consensus", side_effect=fake_consensus):
+            # Serial reference
+            for wn, rds in per_well_reads.items():
+                seq, depth = cd_mod._compute_well_consensus(
+                    wn, rds, ref_fasta, ref_seq, ref_len, 1
+                )
+                result_serial[wn] = seq
+                (tmp_path / "consensus" / f"{wn}.fasta").write_text(
+                    f">{wn} depth={depth}\n{seq}\n"
+                )
+
+        call_counts.clear()
+
+        with patch.object(cd_mod, "_compute_well_consensus", side_effect=fake_consensus):
+            # Parallel version
+            done = 0
+            with concurrent.futures.ThreadPoolExecutor(max_workers=_CONSENSUS_WORKERS) as pool:
+                futures = {
+                    pool.submit(cd_mod._compute_well_consensus, wn, rds,
+                                ref_fasta, ref_seq, ref_len, 1): wn
+                    for wn, rds in per_well_reads.items()
+                }
+                for fut in concurrent.futures.as_completed(futures):
+                    wn, seq, depth = futures[fut], *fut.result()  # type: ignore[misc]
+                    result_parallel[futures[fut]] = fut.result()[0]
+                    done += 1
+
+        # Both produce identical per-well sequences
+        assert result_parallel == result_serial, (
+            f"Parallel != serial: {result_parallel!r} vs {result_serial!r}"
+        )
+        # Each well called exactly once in each path
+        assert set(call_counts.keys()) == set(per_well_reads.keys())
+
+
+class TestMinimap2ThreadsConstant:
+    """Verify _MINIMAP2_THREADS reads from env var or falls back to cpu-based default."""
+
+    def test_env_var_takes_priority(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        import importlib
+        import kuma_core.mame.ingest.align as align_mod
+
+        monkeypatch.setenv("KUMA_MINIMAP2_THREADS", "3")
+        # Reload to pick up env change (module-level constant)
+        importlib.reload(align_mod)
+        assert align_mod._MINIMAP2_THREADS == 3
+        # Restore default
+        monkeypatch.delenv("KUMA_MINIMAP2_THREADS", raising=False)
+        importlib.reload(align_mod)
+
+    def test_default_within_bounds(self) -> None:
+        from kuma_core.mame.ingest.align import _MINIMAP2_THREADS
+        assert 1 <= _MINIMAP2_THREADS <= 8

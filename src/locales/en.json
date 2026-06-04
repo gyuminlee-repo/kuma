@@ -482,7 +482,7 @@
     },
     "appLayout": {
       "deadlockTitle": "No response",
-      "deadlockDescription": "No progress update for 30+ seconds. The job is stuck.",
+      "deadlockDescription": "No progress update for {{seconds}}+ seconds. The job is stuck.",
       "deadlockWait": "Keep waiting",
       "deadlockReset": "Reset",
       "analysisWorkspaceAriaLabel": "Analysis workspace",
@@ -1308,7 +1308,7 @@
     "missingMutations": "Mutations (enter at least one mutation in the Mutation panel)",
     "missingTargetGene": "Target gene (select one in the Sequence panel)",
     "deadlockTitle": "No response",
-    "deadlockDesc": "No progress update for 30+ seconds. The job is stuck.",
+    "deadlockDesc": "No progress update for {{seconds}}+ seconds. The job is stuck.",
     "deadlockWait": "Keep waiting",
     "deadlockReset": "Reset",
     "plateCount": "{{count}} plate",

@@ -1,6 +1,7 @@
 import type { StateCreator } from "zustand";
 import { cancelAndRespawn, sendRequest } from "@/lib/ipc-mame";
 import { formatError } from "@/lib/utils";
+import { defaultMameExportFilename } from "@/lib/filename";
 import type {
   AmpliconLengthEstimate,
   AnalyzeResult,
@@ -12,6 +13,9 @@ import type { CdsCandidate } from "@/lib/sequence/autoDetectCds";
 import type { CombinatorialDemuxResult } from "@/types/mame/combinatorial_demux";
 import type { InputSlice, RawRunParams } from "../slice-interfaces";
 import type { AppState } from "../types";
+const MAME_DEMUX_RPC_TIMEOUT_MS = 1_800_000; // 30 min — demux of large runs (78 FASTQ incident)
+const MAME_ANALYZE_RPC_TIMEOUT_MS = 1_200_000; // 20 min — full analysis pipeline
+
 
 interface ParseReferenceResult {
   cds_candidates: CdsCandidate[];
@@ -49,11 +53,18 @@ function pickLongestIndex(candidates: CdsCandidate[]): number | null {
   return best;
 }
 
-function deriveDemuxOutputDir(outputPath: string): string {
-  const normalized = outputPath.replace(/\\/g, "/");
-  const slashIdx = normalized.lastIndexOf("/");
-  const dir = slashIdx >= 0 ? outputPath.slice(0, slashIdx) : "";
-  return dir ? `${dir}/demux_filtered` : "demux_filtered";
+/** Join cross-platform path segments. */
+function joinPathSlice(dir: string, filename: string): string {
+  const sep = dir.includes("\\") ? "\\" : "/";
+  return `${dir.replace(/[\/]+$/, "")}${sep}${filename}`;
+}
+
+/** outputPath is now a folder; append /demux_filtered directly. */
+function deriveDemuxOutputDir(outputFolder: string): string {
+  const trimmed = outputFolder.replace(/[\/]+$/, "");
+  if (!trimmed) return "demux_filtered";
+  const sep = trimmed.includes("\\") ? "\\" : "/";
+  return `${trimmed}${sep}demux_filtered`;
 }
 
 function getDemuxInputErrors(state: AppState): string[] {
@@ -87,6 +98,8 @@ const mameInputInitialState = {
   isDemuxing: false,
   analyzeProgress: 0,
   analyzeMessage: "Waiting for sidecar connection",
+  analyzeCurrent: null as number | null,
+  analyzeTotal: null as number | null,
   demuxProgress: 0,
   demuxMessage: "",
   demuxResult: null,
@@ -217,7 +230,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
           auto_detect_length: rawRunParams.targetLength === null,
           normalize_headers: rawRunParams.normalizeHeaders,
         },
-        600_000,
+        MAME_DEMUX_RPC_TIMEOUT_MS,
       );
       set({
         isDemuxing: false,
@@ -265,6 +278,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       isAnalyzing: true,
       analyzeProgress: 0,
       analyzeMessage: "Starting analysis",
+      analyzeCurrent: null,
+      analyzeTotal: null,
       validationErrors: [],
     });
     try {
@@ -299,7 +314,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
             chimera_split: rawRunParams.chimeraSplit,
             trim_flank_bp: 30,
           },
-          600_000,
+          MAME_DEMUX_RPC_TIMEOUT_MS,
         );
         analysisInputDir = demuxResult.output_dir;
         analysisIngestMode = "barcode";
@@ -315,7 +330,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
           input_dir: analysisInputDir,
           reference: state.referencePath,
           expected: state.expectedPath,
-          output: state.outputPath,
+          output: joinPathSlice(state.outputPath, defaultMameExportFilename({ referencePath: state.referencePath, inputDir: state.inputDir, verdictCount: 0 })),
           mode: state.mode,
           ingest_mode: analysisIngestMode,
           cds_start: state.cdsStart,
@@ -323,13 +338,19 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
           min_file_size_kb: state.minFileSizeKb,
           many_cutoff: state.manyCutoff,
         },
-        300_000,
+        MAME_ANALYZE_RPC_TIMEOUT_MS,
       );
 
       get().setVerdicts(result.verdicts);
       get().setReplicates(result.replicates);
       get().setSummary(result.summary);
-      get().setOutputPath(result.output_path);
+      // Store the folder only (outputPath is now a folder); lastExportPath tracks the full path.
+      const outDir = (() => {
+        const p = result.output_path.replace(/\\/g, "/");
+        const i = p.lastIndexOf("/");
+        return i >= 0 ? result.output_path.slice(0, i) : result.output_path;
+      })();
+      get().setOutputPath(outDir);
       get().setDistributionStats(result.distribution_stats ?? null);
       await get().loadPlateData();
       // A8: auto-load run health after analysis completes (non-blocking on failure)
@@ -338,6 +359,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         isAnalyzing: false,
         analyzeProgress: 100,
         analyzeMessage: "Analysis complete",
+        analyzeCurrent: null,
+        analyzeTotal: null,
       });
     } catch (error) {
       set({
