@@ -10,12 +10,14 @@ import pytest
 
 from kuma_core.mame.ingest.demux import (
     DemuxResult,
+    NativeBarcodeUsage,
     _hamming_prefix,
     _rc,
     _trim_rev_primer,
     _validate_custom_barcodes,
     _validate_error_tolerance,
     detect_native_barcode_dirs,
+    detect_used_native_barcodes,
     demux_native_barcode,
     parse_custom_barcodes,
 )
@@ -560,3 +562,74 @@ def test_detect_nb_dirs_not_a_directory(tmp_path: Path) -> None:
     """Non-existent path returns empty list (single-NB fallback)."""
     result = detect_native_barcode_dirs(tmp_path / "does_not_exist")
     assert result == []
+
+
+# ---------------------------------------------------------------------------
+# detect_used_native_barcodes: data-driven 'which NBs were used' detection
+# ---------------------------------------------------------------------------
+
+
+def _make_nb(root: Path, name: str, nbytes: int) -> None:
+    """Create root/name/reads.fastq.gz of *nbytes* bytes (size is the signal)."""
+    d = root / name
+    d.mkdir(parents=True, exist_ok=True)
+    (d / "reads.fastq.gz").write_bytes(b"x" * nbytes)
+
+
+def test_detect_used_picks_dominant_plates(tmp_path: Path) -> None:
+    """Real plates dominate cross-talk by orders of magnitude, so flagged used."""
+    # Mirrors the observed 260212 signal (barcode06/13/20 large, rest tiny).
+    _make_nb(tmp_path, "barcode06", 1_945_000)
+    _make_nb(tmp_path, "barcode13", 849_000)
+    _make_nb(tmp_path, "barcode20", 2_837_000)
+    for noise in ("barcode02", "barcode03", "barcode08", "barcode17"):
+        _make_nb(tmp_path, noise, 1_000)
+
+    result = detect_used_native_barcodes(tmp_path, min_share=0.05)
+
+    # Sorted by data volume descending.
+    assert [u.name for u in result[:3]] == ["barcode20", "barcode06", "barcode13"]
+    used = {u.name for u in result if u.is_used}
+    assert used == {"barcode06", "barcode13", "barcode20"}
+    # Cross-talk barcodes are present but not flagged used.
+    assert all(not u.is_used for u in result if u.name not in used)
+    # Shares sum to ~1.0 across all detected NB dirs.
+    assert abs(sum(u.share for u in result) - 1.0) < 1e-9
+
+
+def test_detect_used_excludes_unclassified(tmp_path: Path) -> None:
+    """unclassified is never a native barcode, even when large."""
+    _make_nb(tmp_path, "barcode06", 1_000_000)
+    _make_nb(tmp_path, "unclassified", 5_000_000)
+
+    result = detect_used_native_barcodes(tmp_path)
+
+    assert [u.name for u in result] == ["barcode06"]
+
+
+def test_detect_used_count_is_data_driven_not_fixed(tmp_path: Path) -> None:
+    """Number of used barcodes follows the data (here 2, not assumed 3)."""
+    _make_nb(tmp_path, "barcode06", 1_000_000)
+    _make_nb(tmp_path, "barcode13", 1_000_000)
+    _make_nb(tmp_path, "barcode02", 1_000)
+
+    used = [u.name for u in detect_used_native_barcodes(tmp_path) if u.is_used]
+
+    assert set(used) == {"barcode06", "barcode13"}
+
+
+def test_detect_used_empty_when_no_nb_dirs(tmp_path: Path) -> None:
+    """No native-barcode subdirs gives empty list (single-folder mode)."""
+    (tmp_path / "some_other_dir").mkdir()
+    assert detect_used_native_barcodes(tmp_path) == []
+
+
+def test_native_barcode_usage_fields(tmp_path: Path) -> None:
+    """NativeBarcodeUsage carries name, bytes, share, is_used."""
+    _make_nb(tmp_path, "barcode06", 2_000)
+    (usage,) = detect_used_native_barcodes(tmp_path)
+    assert isinstance(usage, NativeBarcodeUsage)
+    assert usage.name == "barcode06"
+    assert usage.fastq_bytes == 2_000
+    assert usage.share == 1.0
+    assert usage.is_used is True
