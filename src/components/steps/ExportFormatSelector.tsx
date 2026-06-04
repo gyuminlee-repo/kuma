@@ -24,6 +24,7 @@ import { useKumaProject } from "@/state/projectContext";
 import { useAppStore } from "@/store/appStore";
 import type { AppState } from "@/store/appStore";
 import { validateExportAll } from "@/store/validation";
+import { getIncludedDesignResults } from "@/store/slices/designSlice.helpers";
 
 const PLATE_NAME_RE = /^[A-Za-z0-9_-]{1,20}$/;
 const PROJECT_NAME_RE = /^[A-Za-z0-9가-힣_\-]{0,40}$/;
@@ -37,12 +38,18 @@ export function ExportFormatSelector() {
     t(key, { defaultValue: fallback, ...vars });
   const project = useKumaProject();
   const designResults = useAppStore((s: AppState) => s.designResults);
+  const excludedDesignMutations = useAppStore(
+    (s: AppState) => s.excludedDesignMutations,
+  );
   const echoVol = useAppStore((s: AppState) => s.echoTransferVol);
   const janusVol = useAppStore((s: AppState) => s.janusTransferVol);
   const setEchoVol = useAppStore((s: AppState) => s.setEchoTransferVol);
   const setJanusVol = useAppStore((s: AppState) => s.setJanusTransferVol);
 
-  const wellCount = designResults.length;
+  const wellCount = getIncludedDesignResults(
+    designResults,
+    excludedDesignMutations,
+  ).length;
 
   const [projectName, setProjectName] = useState("");
   const [fwdPlate, setFwdPlate] = useState("");
