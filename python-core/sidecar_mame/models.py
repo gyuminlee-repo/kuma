@@ -80,6 +80,12 @@ class CombinatorialDemuxParams(BaseModel):
     chimera_split: bool = True
     trim_flank_bp: int = Field(default=30, ge=0, le=200)
 
+    # Optional - per-native-barcode mode
+    # When set, run per-native-barcode demux into output_dir/sort_barcode{NN}/
+    # subdirs (one per selected MinKNOW barcode dir name like "barcode06"),
+    # processed in parallel across barcodes.  Omit/None for single-pool mode.
+    native_barcodes: list[str] | None = None
+
     # Path existence validators
 
     @field_validator("minknow_run_dir", mode="after")
@@ -150,5 +156,55 @@ class CombinatorialDemuxParams(BaseModel):
             raise ValueError(f"kuro_xlsx not found: {v}")
         return v
 
+    @field_validator("native_barcodes", mode="after")
+    @classmethod
+    def _check_native_barcodes(cls, v: list[str] | None) -> list[str] | None:
+        if v is None:
+            return None
+        if not v:
+            raise ValueError("native_barcodes must be a non-empty list when provided")
+        for entry in v:
+            if not isinstance(entry, str) or not entry.strip():
+                raise ValueError(
+                    f"native_barcodes entry must be a non-empty string: {entry!r}"
+                )
+            if "/" in entry or "\\" in entry or ".." in entry:
+                raise ValueError(
+                    f"native_barcodes entry contains path separators: {entry!r}"
+                )
+        return v
 
-__all__ = ["CombinatorialDemuxParams"]
+
+class DetectNativeBarcodesParams(BaseModel):
+    """Parameters for the ``mame.detect_native_barcodes`` RPC method.
+
+    Required fields
+    ---------------
+    minknow_run_dir
+        Root directory of a MinKNOW run.  Must contain a ``fastq_pass/``
+        sub-directory with native-barcode subdirs.
+
+    Optional fields
+    ---------------
+    min_share
+        Minimum fraction of total FASTQ bytes a native barcode must hold to be
+        flagged as used.  Range [0.0, 1.0].  Default 0.05.
+    """
+
+    minknow_run_dir: str
+    min_share: float = Field(default=0.05, ge=0.0, le=1.0)
+
+    @field_validator("minknow_run_dir", mode="after")
+    @classmethod
+    def _check_minknow_run_dir(cls, v: str) -> str:
+        p = Path(v)
+        if ".." in p.parts:
+            raise ValueError(f"Path traversal not allowed: {v}")
+        if not p.exists():
+            raise ValueError(f"minknow_run_dir does not exist: {v}")
+        if not p.is_dir():
+            raise ValueError(f"minknow_run_dir is not a directory: {v}")
+        return v
+
+
+__all__ = ["CombinatorialDemuxParams", "DetectNativeBarcodesParams"]

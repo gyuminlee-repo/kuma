@@ -145,6 +145,20 @@
       "redetect": "重新檢測",
       "redetecting": "檢測中..."
     },
+    "nativeBarcodeDialog": {
+      "title": "確認 native barcode",
+      "description": "從 FASTQ 容量中偵測到多個 native barcode。請選擇要 demultiplex 的 barcode (每個 barcode 會並行執行到各自的 sort_barcode 資料夾)。",
+      "detected": "偵測到 {{count}} 個 native barcode",
+      "colBarcode": "Barcode",
+      "colOutput": "輸出資料夾",
+      "colVolume": "FASTQ 容量",
+      "colShare": "佔比",
+      "colUse": "處理",
+      "inUse": "使用中",
+      "run": "執行 demux",
+      "cancel": "取消",
+      "noneSelected": "請至少選擇一個 barcode"
+    },
     "parameters": {
       "title": "引數",
       "subtitle": "本批次的閾值和 ingest 模式。",
@@ -563,6 +577,15 @@
         "exporting": "匯出中…",
         "exportErrorPathRequired": "必須提供輸出路徑。"
       }
+    },
+    "nativeBarcodeDialog": {
+      "title": "偵測到多個 native barcode",
+      "description": "本次 run 包含多個 MinKNOW native barcode。請選擇要 demultiplex 的 barcode；每個所選 barcode 都會處理到各自的輸出資料夾。",
+      "shareHeader": "占比",
+      "selectAriaLabel": "選擇 native barcode {{name}}",
+      "selectedCount": "已選擇 {{count}} 個 barcode",
+      "confirm": "執行所選",
+      "confirming": "執行中…"
     },
     "inputPanel": {
       "title": "輸入檔案",

@@ -145,6 +145,20 @@
       "redetect": "Erneut erkennen",
       "redetecting": "Erkenne..."
     },
+    "nativeBarcodeDialog": {
+      "title": "Native barcodes bestätigen",
+      "description": "Aus den FASTQ-Volumina wurden mehrere native barcodes erkannt. Wählen Sie aus, welche demultiplext werden sollen (jeder läuft parallel in seinen eigenen sort_barcode-Ordner).",
+      "detected": "{{count}} native barcodes erkannt",
+      "colBarcode": "Barcode",
+      "colOutput": "Ausgabeordner",
+      "colVolume": "FASTQ-Volumen",
+      "colShare": "Anteil",
+      "colUse": "Verarbeiten",
+      "inUse": "in Verwendung",
+      "run": "Demux ausführen",
+      "cancel": "Abbrechen",
+      "noneSelected": "Mindestens einen barcode auswählen"
+    },
     "parameters": {
       "title": "Parameter",
       "subtitle": "Thresholds und ingest Modus für this batch.",
@@ -563,6 +577,15 @@
         "exporting": "Exportiere…",
         "exportErrorPathRequired": "Ausgabepfad ist erforderlich."
       }
+    },
+    "nativeBarcodeDialog": {
+      "title": "Mehrere native barcodes erkannt",
+      "description": "Dieser Lauf enthält mehr als einen MinKNOW native barcode. Wählen Sie die zu demultiplexenden barcodes aus; jeder ausgewählte barcode wird in einen eigenen Ausgabeordner verarbeitet.",
+      "shareHeader": "Anteil",
+      "selectAriaLabel": "Native barcode {{name}} auswählen",
+      "selectedCount": "{{count}} barcode(s) ausgewählt",
+      "confirm": "Auswahl ausführen",
+      "confirming": "Wird ausgeführt…"
     },
     "inputPanel": {
       "title": "Eingabe Dateien",

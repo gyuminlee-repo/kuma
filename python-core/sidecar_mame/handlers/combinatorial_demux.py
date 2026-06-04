@@ -146,6 +146,102 @@ def handle_run_combinatorial_demux(params: dict) -> dict:
     output_dir = Path(p.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    if p.native_barcodes:
+        # --- PER-NB MODE: one demux per selected native barcode, in parallel ---
+        fastq_pass = run_dir / "fastq_pass"
+        if not fastq_pass.is_dir():
+            raise FileNotFoundError(f"fastq_pass/ not found under {run_dir}")
+
+        nb_to_fastq: dict[str, list[Path]] = {}
+        for nb_name in p.native_barcodes:
+            nb_input = fastq_pass / nb_name
+            if not nb_input.is_dir():
+                raise FileNotFoundError(f"native barcode dir not found: {nb_input}")
+            fq = sorted(nb_input.rglob("*.fastq")) + sorted(nb_input.rglob("*.fastq.gz"))
+            if not fq:
+                raise FileNotFoundError(f"No FASTQ files under {nb_input}")
+            nb_to_fastq[nb_name] = fq
+
+        from kuma_core.mame.ingest.combinatorial_demux import (
+            run_combinatorial_demux_per_nb,
+        )
+
+        # Mutable holder + heartbeat keep the frontend watchdog alive during the
+        # blocking parallel call (mirrors the single-pool path's scaffold).
+        _holder: dict = {
+            "stage": "demux",
+            "value": 10,
+            "message": "Aligning and demultiplexing reads...",
+            "current": None,
+            "total": None,
+        }
+
+        def cb(done: int, total: int, sort_name: str) -> None:
+            pct = 10 + int(80 * done / max(1, total))
+            _holder["stage"] = "demux"
+            _holder["value"] = pct
+            _holder["message"] = f"{sort_name} done ({done}/{total})"
+            _holder["current"] = done
+            _holder["total"] = total
+            _send_progress(
+                req_id, "demux", pct,
+                f"{sort_name} done ({done}/{total})",
+                current=done, total=total,
+            )
+
+        _stop = threading.Event()
+
+        def _hb() -> None:
+            while not _stop.wait(_HEARTBEAT_INTERVAL_S):
+                _send_progress(
+                    req_id,
+                    _holder["stage"],
+                    _holder["value"],
+                    _holder["message"],
+                    current=_holder["current"],
+                    total=_holder["total"],
+                )
+
+        _hb_thread = threading.Thread(target=_hb, daemon=True, name="demux-heartbeat")
+        _hb_thread.start()
+        _send_progress(
+            req_id, "demux", 10,
+            f"Demuxing {len(nb_to_fastq)} native barcode(s) in parallel...",
+        )
+        try:
+            res = run_combinatorial_demux_per_nb(
+                nb_to_fastq, reference_fasta, barcodes_xlsx, output_dir,
+                mapq_threshold=p.mapq_threshold,
+                coverage_fraction=p.coverage_fraction,
+                trim_flank_bp=p.trim_flank_bp,
+                edit_dist_ratio=p.edit_dist_ratio,
+                chimera_split=p.chimera_split,
+                parallel=True,
+                progress_callback=cb,
+            )
+        finally:
+            _stop.set()
+            _hb_thread.join(timeout=_HEARTBEAT_INTERVAL_S + 1.0)
+
+        _send_progress(req_id, "consensus", 100, "Done.")
+
+        merged = res["merged_stats"]
+        _logger.info(
+            "combinatorial_demux (per-nb) complete: %d assigned reads across %d barcode(s)",
+            merged["assigned_reads"],
+            len(res["per_nb"]),
+        )
+        return {
+            "output_dir": str(output_dir.resolve()),
+            "stats": merged,
+            "wells_with_reads": merged["wells_with_reads"],
+            "assigned_reads": merged["assigned_reads"],
+            "chimera_splits": merged["chimera_splits"],
+            "per_well_consensus": {},
+            "per_well_read_counts": {},
+            "native_barcodes": res["per_nb"],
+        }
+
     # Stage 1: collect FASTQ files
     _send_progress(req_id, "alignment", 0, "Collecting FASTQ files...")
     fastq_paths = _collect_fastq(run_dir)
@@ -273,6 +369,7 @@ def handle_run_combinatorial_demux(params: dict) -> dict:
         "chimera_splits": stats.chimera_splits,
         "per_well_consensus": result.per_well_consensus,
         "per_well_read_counts": per_well_read_counts,
+        "native_barcodes": None,
     }
 
 

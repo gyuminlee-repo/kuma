@@ -145,6 +145,20 @@
       "redetect": "再検出",
       "redetecting": "検出中..."
     },
+    "nativeBarcodeDialog": {
+      "title": "native barcode の確認",
+      "description": "FASTQ 容量から複数の native barcode が検出されました。demultiplex する barcode を選択してください (各 barcode はそれぞれの sort_barcode フォルダへ並列に実行されます)。",
+      "detected": "native barcode を {{count}} 件検出",
+      "colBarcode": "Barcode",
+      "colOutput": "出力フォルダ",
+      "colVolume": "FASTQ 容量",
+      "colShare": "比率",
+      "colUse": "処理",
+      "inUse": "使用中",
+      "run": "demux を実行",
+      "cancel": "キャンセル",
+      "noneSelected": "barcode を 1 つ以上選択してください"
+    },
     "parameters": {
       "title": "パラメータ",
       "subtitle": "このバッチの閾値と ingest モード。",
@@ -563,6 +577,15 @@
         "exporting": "エクスポート中…",
         "exportErrorPathRequired": "出力パスが必要です。"
       }
+    },
+    "nativeBarcodeDialog": {
+      "title": "複数の native barcode が検出されました",
+      "description": "この run には MinKNOW native barcode が複数含まれています。demultiplex する barcode を選択してください。選択した各 barcode はそれぞれ専用の出力フォルダーに処理されます。",
+      "shareHeader": "割合",
+      "selectAriaLabel": "native barcode {{name}} を選択",
+      "selectedCount": "barcode を {{count}} 件選択中",
+      "confirm": "選択を実行",
+      "confirming": "実行中…"
     },
     "inputPanel": {
       "title": "入力ファイル",

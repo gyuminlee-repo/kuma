@@ -149,6 +149,69 @@ def detect_native_barcode_dirs(fastq_dir: Path) -> list[Path]:
     return [p for _, p in sorted(matched, key=lambda t: t[0])]
 
 
+@dataclass
+class NativeBarcodeUsage:
+    """Per-native-barcode read-volume summary for data-driven 'used' detection.
+
+    ``fastq_bytes`` is the total on-disk size of all FASTQ(.gz) under the
+    barcode directory, used as a fast (decompression-free) proxy for read
+    count.  ``share`` is its fraction of the total across all native-barcode
+    dirs, and ``is_used`` flags barcodes whose share meets the threshold.
+    """
+
+    name: str
+    fastq_bytes: int
+    share: float
+    is_used: bool
+
+
+def detect_used_native_barcodes(
+    fastq_dir: Path,
+    min_share: float = 0.05,
+) -> list[NativeBarcodeUsage]:
+    """Detect which native barcodes were actually used, purely from the data.
+
+    Sums the size of every FASTQ(.gz) under each native-barcode subdir (a fast,
+    decompression-free proxy for read count) and flags a barcode as ``is_used``
+    when its share of the total meets *min_share*.  Genuine plates dominate
+    leftover cross-talk barcodes by orders of magnitude, so a small share
+    threshold cleanly separates the real (triplicate or otherwise) plates from
+    cross-talk.  The number of used barcodes is data-driven (1, 2, 3, ...), not
+    assumed.
+
+    Returns entries sorted by ``fastq_bytes`` descending.  Returns an empty list
+    when *fastq_dir* contains no native-barcode subdirs (single-folder mode).
+    """
+    nb_dirs = detect_native_barcode_dirs(fastq_dir)
+    if not nb_dirs:
+        return []
+
+    sizes: list[tuple[str, int]] = []
+    for d in nb_dirs:
+        total = 0
+        for pattern in ("*.fastq", "*.fastq.gz"):
+            for f in d.rglob(pattern):
+                try:
+                    total += f.stat().st_size
+                except OSError:
+                    # Unreadable/vanished file: skip rather than abort detection.
+                    continue
+        sizes.append((d.name, total))
+
+    grand = sum(s for _, s in sizes)
+    usages = [
+        NativeBarcodeUsage(
+            name=name,
+            fastq_bytes=size,
+            share=(size / grand) if grand > 0 else 0.0,
+            is_used=(grand > 0 and size / grand >= min_share),
+        )
+        for name, size in sizes
+    ]
+    usages.sort(key=lambda u: u.fastq_bytes, reverse=True)
+    return usages
+
+
 # ---------------------------------------------------------------------------
 # FASTQ reading (handles gzip-compressed files transparently)
 # ---------------------------------------------------------------------------

@@ -41,6 +41,7 @@ from sidecar_mame.handlers.activity import (
 from sidecar_mame.handlers.barcode_package import handle_generate_mame_package
 from sidecar_mame.handlers.ingest import handle_parse_reference
 from sidecar_mame.handlers.combinatorial_demux import handle_run_combinatorial_demux
+from sidecar_mame.handlers.detect_native_barcodes import handle_detect_native_barcodes
 
 def _handle_health_info(_params: dict) -> dict:
     """Return PID, RSS, and Python version for the status bar tooltip."""
@@ -90,6 +91,8 @@ _METHODS = {
     "mame.ingest.parse_reference": handle_parse_reference,
     # PR-A: alignment-anchored combinatorial demux pipeline
     "mame.run_combinatorial_demux": handle_run_combinatorial_demux,
+    # Native-barcode usage detection (stat-only, synchronous)
+    "mame.detect_native_barcodes": handle_detect_native_barcodes,
     # §22 graceful shutdown — ack immediately; main() breaks on this method
     "shutdown": lambda _: {"ok": True, "message": "shutdown_acked"},
 }
