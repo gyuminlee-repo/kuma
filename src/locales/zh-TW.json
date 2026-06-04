@@ -601,8 +601,8 @@
         "label": "參考序列",
         "placeholder": ".fasta / .fa / .gbk / .dna 檔案路徑",
         "stateLabel": "必填",
-        "helperText": "用於對 consensus 做 variant calling 的參考序列",
-        "helpText": "用作 variant calling 基線的參考序列。支援 FASTA、GenBank 和 SnapGene 檔案。建議使用與 KURO 設計相同的 reference。"
+        "helperText": "用於對 consensus 做 variant calling 的參考核酸序列(CDS)",
+        "helpText": "用作 variant calling 基線的參考序列。支援 FASTA、GenBank 和 SnapGene 檔案。建議使用與 KURO 設計相同的 reference。必須是用於 read 比對的核酸(DNA/CDS)序列，而非蛋白質序列。"
       },
       "customBarcodes": {
         "label": "Custom Barcodes (xlsx 或 csv)",

@@ -601,8 +601,8 @@
         "label": "Referenzsequenz",
         "placeholder": ".fasta / .fa / .gbk / .dna Datei Pfad",
         "stateLabel": "Erforderlich",
-        "helperText": "Referenz sequence used für Variante calling against Consensus",
-        "helpText": "Referenz sequence used as die baseline für Variante calling. FASTA, GenBank, and SnapGene files are supported. Using die same Referenz as KURO design ist empfohlen."
+        "helperText": "Referenz Nukleotidsequenz (CDS) used für Variante calling against Consensus",
+        "helpText": "Referenz sequence used as die baseline für Variante calling. FASTA, GenBank, and SnapGene files are supported. Using die same Referenz as KURO design ist empfohlen. Muss eine Nukleotidsequenz (DNA/CDS) für das Read-Alignment sein, keine Proteinsequenz."
       },
       "customBarcodes": {
         "label": "Benutzerdefiniert Barcodes (xlsx oder csv)",

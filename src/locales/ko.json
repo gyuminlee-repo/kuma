@@ -620,8 +620,8 @@
         "label": "참조 서열",
         "placeholder": ".fasta / .fa / .gbk / .dna 파일 경로",
         "stateLabel": "필수",
-        "helperText": "consensus 대비 변이 호출에 사용하는 참조 서열",
-        "helpText": "변이 호출 기준이 되는 참조 서열입니다. FASTA, GenBank, SnapGene 파일을 사용할 수 있으며 KURO 설계에 사용한 참조 서열과 동일하게 설정하는 것을 권장합니다."
+        "helperText": "consensus 대비 변이 호출에 사용하는 참조 염기서열(CDS)",
+        "helpText": "변이 호출 기준이 되는 참조 서열입니다. FASTA, GenBank, SnapGene 파일을 사용할 수 있으며 KURO 설계에 사용한 참조 서열과 동일하게 설정하는 것을 권장합니다. read 정렬에 사용되는 염기서열(DNA/CDS)이어야 하며, 단백질 서열은 사용할 수 없습니다."
       },
       "customBarcodes": {
         "label": "Custom Barcode (xlsx 또는 csv)",

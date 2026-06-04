@@ -601,8 +601,8 @@
         "label": "Reference sequence",
         "placeholder": "путь к .fasta / .fa / .gbk / .dna",
         "stateLabel": "Обязательно",
-        "helperText": "Reference последовательность для variant calling против consensus",
-        "helpText": "Reference sequence как baseline для variant calling. Поддерживаются FASTA, GenBank и SnapGene. Рекомендуется использовать тот же reference, что и в дизайне KURO."
+        "helperText": "Reference нуклеотидная последовательность (CDS) для variant calling против consensus",
+        "helpText": "Reference sequence как baseline для variant calling. Поддерживаются FASTA, GenBank и SnapGene. Рекомендуется использовать тот же reference, что и в дизайне KURO. Должна быть нуклеотидной (DNA/CDS) последовательностью для выравнивания reads, а не белковой последовательностью."
       },
       "customBarcodes": {
         "label": "Custom Barcodes (xlsx или csv)",

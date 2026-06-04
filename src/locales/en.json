@@ -620,8 +620,8 @@
         "label": "Reference sequence",
         "placeholder": ".fasta / .fa / .gbk / .dna file path",
         "stateLabel": "Required",
-        "helperText": "Reference sequence used for variant calling against consensus",
-        "helpText": "Reference sequence used as the baseline for variant calling. FASTA, GenBank, and SnapGene files are supported. Using the same reference as KURO design is recommended."
+        "helperText": "Reference nucleotide (CDS) sequence used for variant calling against consensus",
+        "helpText": "Reference sequence used as the baseline for variant calling. FASTA, GenBank, and SnapGene files are supported. Using the same reference as KURO design is recommended. It must be a nucleotide (DNA/CDS) sequence used for read alignment, not a protein sequence."
       },
       "customBarcodes": {
         "label": "Custom Barcodes (xlsx or csv)",
