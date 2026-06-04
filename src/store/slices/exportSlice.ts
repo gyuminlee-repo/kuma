@@ -2,7 +2,7 @@ import i18next from "i18next";
 import type { StateCreator } from "zustand";
 import type { SortingState, Updater } from "@tanstack/react-table";
 import { sendRequest } from "../../lib/ipc-kuro";
-import { getSortedMutations, reorderMappings } from "../../lib/plate-utils";
+import { getSortedMutations, reorderMappings, wellName } from "../../lib/plate-utils";
 import { formatError } from "../../lib/utils";
 import { notifyJobDone, notifyJobError } from "../../lib/toast";
 import { registerArtifacts, ensureWorkspaceFromExportPath, getActiveWorkspace } from "../../lib/workspace";
@@ -16,16 +16,24 @@ import type {
   WorkspaceV3,
 } from "../../types/models";
 import { useRoundStore } from "../round/roundSlice";
+import {
+  buildIncludedPlateState,
+  getIncludedDesignResults,
+  pruneExcludedDesignMutations,
+} from "./designSlice.helpers";
 
 import type { ExportSlice } from "../slice-interfaces";
 export type { ExportSlice };
 
-function normalizeWorkspace(ws: WorkspaceV1 | WorkspaceV2): WorkspaceV2 {
-  if (ws.version === 2) {
+function normalizeWorkspace(ws: WorkspaceV1 | WorkspaceV2 | WorkspaceV3): WorkspaceV2 | WorkspaceV3 {
+  if ("schema_version" in ws && ws.schema_version === "0.3") {
+    return ws;
+  }
+  if ("version" in ws && ws.version === 2) {
     return ws;
   }
 
-  const legacy: WorkspaceV1 = ws;
+  const legacy = ws as WorkspaceV1;
   return {
     version: 2,
     inputs: {
@@ -83,6 +91,7 @@ function normalizeWorkspace(ws: WorkspaceV1 | WorkspaceV2): WorkspaceV2 {
       dedupInfo: legacy.dedupInfo,
       manuallySwapped: legacy.manuallySwapped,
       customCandidates: legacy.customCandidates,
+      excludedDesignMutations: [],
       rescuedMutationDetails: [],
     },
     ui: {
@@ -121,13 +130,17 @@ function formatDomainAllocation(
 }
 
 function buildReportData(state: AppState) {
-  const successCount = state.designResults.length;
+  const includedDesignResults = getIncludedDesignResults(
+    state.designResults,
+    state.excludedDesignMutations,
+  );
+  const successCount = includedDesignResults.length;
   const failCount = state.failedMutations.length;
-  const totalCount = state.totalCount;
-  const tmMet = state.designResults.filter((r) => r.tm_condition_met).length;
-  const fwdTms = state.designResults.map((r) => r.tm_no_fwd).filter((t) => t > 0);
-  const revTms = state.designResults.map((r) => r.tm_no_rev).filter((t) => t > 0);
-  const ovTms = state.designResults.map((r) => r.tm_overlap).filter((t) => t > 0);
+  const totalCount = successCount;
+  const tmMet = includedDesignResults.filter((r) => r.tm_condition_met).length;
+  const fwdTms = includedDesignResults.map((r) => r.tm_no_fwd).filter((t) => t > 0);
+  const revTms = includedDesignResults.map((r) => r.tm_no_rev).filter((t) => t > 0);
+  const ovTms = includedDesignResults.map((r) => r.tm_overlap).filter((t) => t > 0);
   const positionRemoved = state.evolveproStepStats?.position_filter_removed ?? state.evolveproFilteredCount;
   const domainSelected = state.evolveproStepStats?.domain_selected;
   const paretoExchanges = state.evolveproStepStats?.pareto_exchanges ?? state.evolveproParetoExchanges;
@@ -138,7 +151,7 @@ function buildReportData(state: AppState) {
   const rescuedSet = new Set(state.rescuedMutationDetails.map((detail) => detail.rescued_by));
   const avgRescuePenalty = avg(rescuePenalties);
   const avgNormalPenalty = avg(
-    state.designResults.filter((r) => !rescuedSet.has(r.mutation)).map((r) => r.penalty),
+    includedDesignResults.filter((r) => !rescuedSet.has(r.mutation)).map((r) => r.penalty),
   );
 
   const sections: Array<{ title: string; items: Array<{ label: string; value: string | number; warn?: boolean }> }> = [];
@@ -469,6 +482,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       },
       results: {
         designResults: s.designResults,
+        excludedDesignMutations: s.excludedDesignMutations,
         successCount: s.successCount,
         totalCount: s.totalCount,
         failedMutations: s.failedMutations,
@@ -550,6 +564,16 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
 
     const store = get();
     store.resetAll();
+    const restoredDesignResults = results.designResults ?? [];
+    const restoredExcludedDesignMutations = pruneExcludedDesignMutations(
+      restoredDesignResults,
+      results.excludedDesignMutations ?? [],
+    );
+    const restoredPlateState = buildIncludedPlateState({
+      designResults: restoredDesignResults,
+      excludedDesignMutations: restoredExcludedDesignMutations,
+      wellName,
+    });
     set({
       mutationInputMode: inputs.mutationInputMode ?? "text",
       mutationText: inputs.mutationText ?? "",
@@ -561,12 +585,13 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       backendDesignStateSynced: false,
       codonStrategy: settings.codonStrategy ?? "closest",
       maxPrimers: settings.maxPrimers ?? 95,
-      designResults: results.designResults ?? [],
+      designResults: restoredDesignResults,
+      excludedDesignMutations: restoredExcludedDesignMutations,
       successCount: results.successCount ?? 0,
       totalCount: results.totalCount ?? 0,
       failedMutations: results.failedMutations ?? [],
-      plateMappings: results.plateMappings ?? [],
-      dedupInfo: results.dedupInfo ?? {},
+      plateMappings: restoredPlateState.plateMappings,
+      dedupInfo: restoredPlateState.dedupInfo,
       tableSorting: ui.tableSorting ?? [],
       manuallySwapped: (() => {
         const rawSwapped = results.manuallySwapped ?? {};
@@ -640,6 +665,21 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
     });
     if ((settings.autoRedesignOnLoad ?? true) && inputs.mutationText && inputs.fastaPath && !evolveproReloadError) {
       await get().designPrimers();
+      const redesignedResults = get().designResults;
+      const redesignedExcludedDesignMutations = pruneExcludedDesignMutations(
+        redesignedResults,
+        restoredExcludedDesignMutations,
+      );
+      const redesignedPlateState = buildIncludedPlateState({
+        designResults: redesignedResults,
+        excludedDesignMutations: redesignedExcludedDesignMutations,
+        wellName,
+      });
+      set({
+        excludedDesignMutations: redesignedExcludedDesignMutations,
+        plateMappings: redesignedPlateState.plateMappings,
+        dedupInfo: redesignedPlateState.dedupInfo,
+      });
     }
   },
 
@@ -697,6 +737,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       isDesigning: false,
       backendDesignStateSynced: false,
       designResults: [],
+      excludedDesignMutations: [],
       successCount: 0,
       totalCount: 0,
       failedMutations: [],

@@ -38,7 +38,7 @@ vi.mock("@/store/round/roundSlice", () => ({
 }))
 
 import { createExportSlice } from "./exportSlice"
-import type { WorkspaceV3 } from "@/types/models"
+import type { PlateMapping, SdmPrimerResult, WorkspaceV3 } from "@/types/models"
 
 // 최소 Zustand store 생성 helper
 function makeStore() {
@@ -53,6 +53,7 @@ function makeStore() {
     codonStrategy: "closest",
     maxPrimers: 95,
     designResults: [],
+    excludedDesignMutations: [],
     successCount: 0,
     totalCount: 0,
     failedMutations: [],
@@ -110,6 +111,14 @@ function makeStore() {
     rescuedMutationDetails: [],
     yPredMap: {},
     poolVariants: [],
+    resetAll: () => {
+      Object.assign(state, {
+        designResults: [],
+        excludedDesignMutations: [],
+        plateMappings: [],
+        dedupInfo: {},
+      })
+    },
   }
 
   const set = (updater: Record<string, unknown> | ((s: typeof state) => Record<string, unknown>)) => {
@@ -124,6 +133,35 @@ function makeStore() {
     {} as Parameters<typeof createExportSlice>[2]
   )
   return { state, slice }
+}
+
+function primer(mutation: string, aaPosition: number, reverseSeq = `GCAT${aaPosition}`): SdmPrimerResult {
+  return {
+    mutation,
+    aa_position: aaPosition,
+    codon_pos: (aaPosition - 1) * 3,
+    forward_seq: `ATGC${aaPosition}`,
+    reverse_seq: reverseSeq,
+    fwd_len: 20,
+    rev_len: 20,
+    overlap_len: 18,
+    candidate_fwd_count: 1,
+    candidate_rev_count: 1,
+    candidate_count: 1,
+    tm_no_fwd: 62,
+    tm_no_rev: 58,
+    tm_overlap: 42,
+    tm_condition_met: true,
+    tolerance_used: 3,
+    has_offtarget: false,
+    penalty: aaPosition,
+    gc_fwd: 50,
+    gc_rev: 50,
+    wt_codon: "GAA",
+    mt_codon: "GAT",
+    overlap_seq: "ATGC",
+    warnings: [],
+  }
 }
 
 describe("exportSlice — schema_version 0.3", () => {
@@ -162,6 +200,74 @@ describe("exportSlice — schema_version 0.3", () => {
     ]
     const snap = store.slice.getWorkspaceSnapshot() as WorkspaceV3
     expect(snap.results.rescuedMutationDetails).toEqual(store.state.rescuedMutationDetails)
+  })
+
+  it("getWorkspaceSnapshot persists excluded design mutations", () => {
+    store.state.excludedDesignMutations = ["M2A"]
+
+    const snap = store.slice.getWorkspaceSnapshot() as WorkspaceV3
+
+    expect(snap.results.excludedDesignMutations).toEqual(["M2A"])
+  })
+
+  it("restoreWorkspace preserves selection and rebuilds plate state from included rows", async () => {
+    const designResults = [
+      primer("M1A", 1, "SHARED"),
+      primer("M2A", 2, "SHARED"),
+      primer("M3A", 3, "GCAT3"),
+    ]
+    const staleMappings: PlateMapping[] = [
+      { well: "A1", primer_name: "M1A_F", sequence: "ATGC1", primer_type: "forward", mutation: "M1A" },
+      { well: "A2", primer_name: "M2A_F", sequence: "ATGC2", primer_type: "forward", mutation: "M2A" },
+    ]
+    const workspace: WorkspaceV3 = {
+      schema_version: "0.3",
+      rounds: [],
+      active_round_id: null,
+      inputs: {
+        fastaPath: "",
+        mutationInputMode: "evolvepro",
+        mutationText: "",
+        evolveproCsvPath: "",
+        selectedGene: "",
+      },
+      settings: {
+        codonStrategy: "closest",
+        maxPrimers: 95,
+        tmFwdTarget: 62,
+        tmRevTarget: 58,
+        tmOverlapTarget: 42,
+        gcMin: 40,
+        gcMax: 60,
+        autoRedesignOnLoad: false,
+      },
+      results: {
+        designResults,
+        excludedDesignMutations: ["M2A", "STALE"],
+        successCount: 3,
+        totalCount: 3,
+        failedMutations: [],
+        plateMappings: staleMappings,
+        dedupInfo: {},
+        manuallySwapped: {},
+        customCandidates: {},
+      },
+      ui: { tableSorting: [] },
+    }
+
+    await store.slice.restoreWorkspace(workspace)
+
+    expect(store.state.excludedDesignMutations).toEqual(["M2A"])
+    expect((store.state.plateMappings as PlateMapping[]).map((mapping) => mapping.mutation)).toEqual([
+      "M1A",
+      "M3A",
+      "M1A",
+      "M3A",
+    ])
+    expect(store.state.dedupInfo).toEqual({
+      SHARED: ["M1A"],
+      GCAT3: ["M3A"],
+    })
   })
 
   it("restoreWorkspace rejects schema_version < 0.3 (v2)", async () => {

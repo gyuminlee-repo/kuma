@@ -72,6 +72,9 @@ export function makeResultTableColumns(opts: {
   rescuedMutations: Set<string>;
   rescueDetailMap: Map<string, RescuedMutation>;
   removeDesignResult: (mutation: string, reason: string) => void;
+  excludedDesignMutations: Set<string>;
+  setDesignMutationIncluded: (mutation: string, included: boolean) => void;
+  selectionEnabled: boolean;
   yPredMap: Record<string, number>;
   /**
    * Canonical row-order index map produced by sortPrimersCanonical().
@@ -94,6 +97,9 @@ export function makeResultTableColumns(opts: {
     rescuedMutations,
     rescueDetailMap,
     removeDesignResult,
+    excludedDesignMutations,
+    setDesignMutationIncluded,
+    selectionEnabled,
     yPredMap,
     canonicalOrder,
     colorblindMode = false,
@@ -101,6 +107,33 @@ export function makeResultTableColumns(opts: {
   } = opts;
 
   return [
+    ...(selectionEnabled
+      ? [
+          col.display({
+            id: "include",
+            header: t("resultTable.includeHeader"),
+            size: 54,
+            enableSorting: false,
+            cell: (info) => {
+              const row = info.row.original;
+              const included = !excludedDesignMutations.has(row.mutation);
+              return (
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded-control accent-primary"
+                  checked={included}
+                  aria-label={t("resultTable.includeAriaLabel", { mutation: row.mutation })}
+                  title={included ? t("resultTable.excludeTitle") : t("resultTable.includeTitle")}
+                  onClick={(event) => event.stopPropagation()}
+                  onChange={(event) => {
+                    setDesignMutationIncluded(row.mutation, event.currentTarget.checked);
+                  }}
+                />
+              );
+            },
+          }),
+        ]
+      : []),
     col.display({
       id: "rank",
       header: "#",

@@ -42,6 +42,9 @@ export function ResultTable() {
     rescuedMutations,
     rescuedMutationDetails,
     removeDesignResult,
+    excludedDesignMutations,
+    setDesignMutationIncluded,
+    mutationInputMode,
     yPredMap,
     evolveproMode,
     fillOnFailure,
@@ -60,6 +63,9 @@ export function ResultTable() {
       rescuedMutations: s.rescuedMutations,
       rescuedMutationDetails: s.rescuedMutationDetails,
       removeDesignResult: s.removeDesignResult,
+      excludedDesignMutations: s.excludedDesignMutations,
+      setDesignMutationIncluded: s.setDesignMutationIncluded,
+      mutationInputMode: s.mutationInputMode,
       yPredMap: s.yPredMap,
       evolveproMode: s.evolveproMode,
       fillOnFailure: s.fillOnFailure,
@@ -86,6 +92,10 @@ export function ResultTable() {
   const rescuedMutationSet = useMemo(
     () => new Set(rescuedMutations),
     [rescuedMutations],
+  );
+  const excludedDesignMutationSet = useMemo(
+    () => new Set(excludedDesignMutations),
+    [excludedDesignMutations],
   );
 
   // Canonical order index map: row object → position in sortPrimersCanonical output.
@@ -120,6 +130,9 @@ export function ResultTable() {
         rescuedMutations: rescuedMutationSet,
         rescueDetailMap,
         removeDesignResult,
+        excludedDesignMutations: excludedDesignMutationSet,
+        setDesignMutationIncluded,
+        selectionEnabled: mutationInputMode === "evolvepro",
         yPredMap,
         canonicalOrder,
         colorblindMode,
@@ -134,6 +147,9 @@ export function ResultTable() {
       rescuedMutationSet,
       rescueDetailMap,
       removeDesignResult,
+      excludedDesignMutationSet,
+      setDesignMutationIncluded,
+      mutationInputMode,
       yPredMap,
       canonicalOrder,
       colorblindMode,
@@ -272,13 +288,15 @@ export function ResultTable() {
                   const row = tableRows[vRow.index];
                   if (!row) return null;
                   const isSwapped = !!manuallySwapped[row.original.mutation];
+                  const isExcluded = excludedDesignMutationSet.has(row.original.mutation);
                   return (
                     <tr
                       key={row.id}
                       data-index={vRow.index}
                       ref={rowVirtualizer.measureElement}
-                      className={`h-control border-b border-border/50 hover:bg-muted/30 ${isSwapped ? "border-l-2 border-l-warning bg-warning/5" : ""}`}
+                      className={`h-control border-b border-border/50 hover:bg-muted/30 ${isSwapped ? "border-l-2 border-l-warning bg-warning/5" : ""} ${isExcluded ? "bg-muted/30 opacity-55" : ""}`}
                       aria-rowindex={vRow.index + 1}
+                      aria-label={isExcluded ? t("resultTable.excludedRowAriaLabel", { mutation: row.original.mutation }) : undefined}
                     >
                       {row.getVisibleCells().map((cell) => {
                         const meta = cell.column.columnDef.meta;
@@ -302,10 +320,12 @@ export function ResultTable() {
           })() : (
             tableRows.map((row) => {
               const isSwapped = !!manuallySwapped[row.original.mutation];
+              const isExcluded = excludedDesignMutationSet.has(row.original.mutation);
               return (
                 <tr
                   key={row.id}
-                  className={`h-control border-b border-border/50 hover:bg-muted/30 ${isSwapped ? "border-l-2 border-l-warning bg-warning/5" : ""}`}
+                  className={`h-control border-b border-border/50 hover:bg-muted/30 ${isSwapped ? "border-l-2 border-l-warning bg-warning/5" : ""} ${isExcluded ? "bg-muted/30 opacity-55" : ""}`}
+                  aria-label={isExcluded ? t("resultTable.excludedRowAriaLabel", { mutation: row.original.mutation }) : undefined}
                 >
                   {row.getVisibleCells().map((cell) => {
                     const meta = cell.column.columnDef.meta;
