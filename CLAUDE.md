@@ -4,30 +4,34 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-KURO (Kernel for Upstream Recombination Oligodesign) is a cross-platform desktop app for batch SDM primer design based on Gibson Assembly. It's a **Tauri v2 + React 19 + Python sidecar** architecture — the GUI is TypeScript/React, the scientific compute engine is Python, and they communicate via JSON-RPC over stdin/stdout.
+kuma is a cross-platform desktop app that integrates KURO batch SDM primer design,
+MAME NGS verification, and EVOLVEpro execution. It uses a **Tauri v2 + React 19 +
+Python sidecar** architecture: the GUI is TypeScript/React, scientific behavior is
+implemented in Python, and the layers communicate through JSON-RPC.
 
 ## Architecture
 
 ```
 Frontend (React 19 + Zustand + TailwindCSS)
-  └── src/lib/ipc.ts  ← JSON-RPC client over stdin/stdout
-        ↕  (Tauri shell plugin spawns sidecar)
-Python Sidecar (PyInstaller binary)
-  └── python-core/sidecar/dispatcher.py  ← JSON-RPC server
-        └── handlers/{design,export,sequence,external,misc}.py
-              └── kuro/  ← pure-Python science library (no Tauri dependency)
+  └── src/lib/ipc.ts + src/lib/ipc-{mame,evolvepro}/
+        ↕  (Tauri commands route JSON-RPC requests to sidecar processes)
 Rust Shell (src-tauri/)
-  └── Thin Tauri v2 host: window, menu, sidecar lifecycle only
+  └── Desktop host: window, project config, progress cache, sidecar lifecycle
+Python Sidecars (PyInstaller binaries)
+  ├── python-core/sidecar_kuro/      → kuma_core/kuro/
+  ├── python-core/sidecar_mame/      → kuma_core/mame/
+  └── python-core/sidecar_evolvepro/ → kuma_core/evolvepro/
 ```
 
 ### Key layers
 
-- **`kuro/`** — Pure Python library: primer design engine (`sdm_engine.py`), EVOLVEpro selection (`evolvepro.py`), codon tables, overlap logic, plate mapping, benchmark, AlphaFold Cα distance. Has its own `pyproject.toml`, installable via `pip install -e .`
-- **`python-core/sidecar/`** — JSON-RPC server that wraps `kuro/` for the Tauri frontend. `dispatcher.py` routes methods to `handlers/`. `models.py` has Pydantic request validation. Built to a single binary via PyInstaller (`python-core/build_sidecar.py`)
-- **`src/`** — React 19 frontend. State management: Zustand store split into 5 slices (`src/store/slices/`). IPC layer: `src/lib/ipc.ts`. UI components: shadcn/ui + Radix primitives + TailwindCSS
-- **`src-tauri/`** — Minimal Rust: `main.rs` + `lib.rs` bootstrap Tauri, no business logic
+- **`kuma_core/`** — Installable Python domain package. `kuro/` handles primer design, `mame/` handles NGS verification, `evolvepro/` handles conda-backed execution, and `shared/` contains common helpers.
+- **`python-core/`** — JSON-RPC adapters and PyInstaller packaging. `sidecar_{kuro,mame,evolvepro}/dispatcher.py` route methods to handlers; Pydantic models validate requests. `build_sidecar.py` builds all three binaries.
+- **`src/`** — React 19 frontend. KURO, MAME, and EVOLVEpro each have dedicated state and UI areas. IPC clients live under `src/lib/ipc.ts`, `ipc-mame/`, and `ipc-evolvepro/`.
+- **`src-tauri/`** — Rust desktop host: Tauri commands, windowing, project config, progress cache, integrity verification, and sidecar lifecycle. Scientific logic does not belong here.
+- **`tests/`** — Python and cross-layer tests. Frontend Vitest files are colocated under `src/`; Rust host tests live under `src-tauri/tests/`.
 
-### Store slice dependency graph
+### KURO store slice dependency graph
 ```
 sequenceSlice → diversitySlice.searchUniprot
 diversitySlice → inputSlice.loadEvolveproCsv, sequenceSlice.seqInfo
@@ -37,9 +41,10 @@ exportSlice → all slices (read-only for workspace save/load)
 ```
 
 ### Frontend ↔ Sidecar communication
-- `src/lib/ipc.ts` spawns the sidecar via Tauri shell plugin and sends JSON-RPC requests over stdin
-- Sidecar writes JSON-RPC responses + `progress` notifications to stdout
-- TypeScript types in `src/types/models.ts` must match Pydantic models in `python-core/sidecar/models.py`
+- `src/lib/ipc.ts`, `src/lib/ipc-mame/`, and `src/lib/ipc-evolvepro/` call Tauri commands for their respective channels.
+- Rust manages the packaged sidecar processes and routes JSON-RPC requests over stdin/stdout.
+- Sidecars write JSON-RPC responses plus `progress` notifications to stdout.
+- TypeScript types in `src/types/models.ts` must match Pydantic models in `python-core/sidecar_kuro/models.py`.
 
 ## Common Commands
 
