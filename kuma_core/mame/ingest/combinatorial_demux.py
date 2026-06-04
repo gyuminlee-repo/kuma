@@ -72,7 +72,7 @@ _COMP = str.maketrans("ACGTacgtNn", "TGCAtgcaNn")
 # KUMA_MAME_CONSENSUS_WORKERS env var takes priority.
 _CONSENSUS_WORKERS: int = int(
     os.environ.get("KUMA_MAME_CONSENSUS_WORKERS", "")
-    or str(min(8, os.cpu_count() or 4))
+    or str(max(1, (os.cpu_count() or 4) - 1))
 )
 
 
@@ -787,6 +787,10 @@ def _compute_well_consensus(
         preset="map-ont",
         min_mapq=0,           # trimmed reads; already filtered upstream
         require_full_span=False,
+        # One thread per well: parallelism comes from the consensus
+        # ThreadPoolExecutor across wells, so per-well minimap2 must stay
+        # single-threaded to avoid workers x threads oversubscription.
+        threads=1,
     )
 
     if not well_alignments:
