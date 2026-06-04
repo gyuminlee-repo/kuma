@@ -88,3 +88,27 @@ export function clearETAHistory(jobKind: string): void {
     // ignore
   }
 }
+
+/**
+ * Compute ETA from current-run elapsed time and progress fraction.
+ * Differs from estimateETA (history-based): uses live elapsed/fraction.
+ *
+ * @param progressPct  0-100 progress percentage
+ * @param startedAt    Date.now() timestamp when run started
+ * @param t            i18next translation function
+ * @returns Localized ETA string
+ */
+export function computeEtaFromElapsed(
+  progressPct: number,
+  startedAt: number,
+  t: (key: string, vars?: Record<string, number>) => string,
+): string {
+  const fraction = progressPct / 100;
+  if (fraction < 0.05) return t("mame.progressModal.eta.calculating");
+  const elapsed = Date.now() - startedAt;
+  const remainingMs = (elapsed / fraction) * (1 - fraction);
+  if (remainingMs < 60_000) return t("mame.progressModal.eta.lessThanMinute");
+  const min = Math.floor(remainingMs / 60_000);
+  const sec = Math.floor((remainingMs % 60_000) / 1000);
+  return t("mame.progressModal.eta.remaining", { min, sec });
+}

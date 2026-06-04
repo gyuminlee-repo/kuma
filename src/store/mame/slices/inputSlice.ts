@@ -100,6 +100,9 @@ const mameInputInitialState = {
   analyzeMessage: "Waiting for sidecar connection",
   analyzeCurrent: null as number | null,
   analyzeTotal: null as number | null,
+  analyzeStage: null as string | null,
+  analyzeStartedAt: null as number | null,
+  analyzePhase: null as "demux" | "analyze" | null,
   demuxProgress: 0,
   demuxMessage: "",
   demuxResult: null,
@@ -280,6 +283,9 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       analyzeMessage: "Starting analysis",
       analyzeCurrent: null,
       analyzeTotal: null,
+      analyzeStage: null,
+      analyzeStartedAt: Date.now(),
+      analyzePhase: null,
       validationErrors: [],
     });
     try {
@@ -296,7 +302,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
 
         const combinatorialOutputDir = deriveDemuxOutputDir(state.outputPath);
         set({
-          analyzeProgress: 3,
+          analyzeProgress: 0,
+          analyzePhase: "demux",
           analyzeMessage: "Running combinatorial demux from raw MinKNOW run",
         });
         const demuxResult = await sendRequest<CombinatorialDemuxResult>(
@@ -319,7 +326,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         analysisInputDir = demuxResult.output_dir;
         analysisIngestMode = "barcode";
         set({
-          analyzeProgress: 15,
+          analyzeProgress: 50,
+          analyzePhase: "analyze",
           analyzeMessage: `Combinatorial demux complete: ${demuxResult.assigned_reads.toLocaleString()} reads assigned`,
         });
       }
@@ -361,11 +369,16 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         analyzeMessage: "Analysis complete",
         analyzeCurrent: null,
         analyzeTotal: null,
+        analyzeStage: null,
+        analyzeStartedAt: null,
+        analyzePhase: null,
       });
     } catch (error) {
       set({
         isAnalyzing: false,
         analyzeMessage: "Analysis failed",
+        analyzeStartedAt: null,
+        analyzePhase: null,
         validationErrors: [formatError(error)],
       });
     }
@@ -382,6 +395,9 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       isAnalyzing: false,
       analyzeProgress: 0,
       analyzeMessage: "Analysis cancelled",
+      analyzeStage: null,
+      analyzeStartedAt: null,
+      analyzePhase: null,
     });
   },
   resetInput: () => set({ ...mameInputInitialState }),

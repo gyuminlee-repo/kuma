@@ -145,6 +145,24 @@
       "redetect": "Re-detect",
       "redetecting": "Detecting..."
     },
+    "progressModal": {
+      "eta": {
+        "calculating": "Calculating…",
+        "lessThanMinute": "< 1 min",
+        "remaining": "~{{min}}m {{sec}}s left"
+      }
+    },
+    "analyze": {
+      "phase": {
+        "alignment": "Aligning",
+        "coverage_filter": "Coverage filter",
+        "demux": "Demultiplexing",
+        "consensus": "Building consensus",
+        "analyzing": "Analyzing"
+      },
+      "etaLabel": "ETA",
+      "progressAria": "Overall analysis progress {{percent}}%"
+    },
     "parameters": {
       "title": "Parameters",
       "subtitle": "Thresholds and ingest mode for this batch.",

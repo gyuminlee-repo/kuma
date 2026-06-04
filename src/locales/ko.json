@@ -145,6 +145,24 @@
       "redetect": "재감지",
       "redetecting": "감지 중..."
     },
+    "progressModal": {
+      "eta": {
+        "calculating": "계산 중…",
+        "lessThanMinute": "1분 미만",
+        "remaining": "약 {{min}}분 {{sec}}초 남음"
+      }
+    },
+    "analyze": {
+      "phase": {
+        "alignment": "정렬 중",
+        "coverage_filter": "커버리지 필터",
+        "demux": "역다중화 중",
+        "consensus": "컨센서스 생성 중",
+        "analyzing": "분석 중"
+      },
+      "etaLabel": "예상 완료",
+      "progressAria": "통합 분석 진행률 {{percent}}%"
+    },
     "parameters": {
       "title": "파라미터",
       "subtitle": "이 배치의 임계값과 수집 모드입니다.",

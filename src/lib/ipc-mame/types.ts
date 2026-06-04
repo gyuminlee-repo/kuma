@@ -3,4 +3,5 @@ export interface ProgressNotification {
   message: string;
   current?: number;
   total?: number;
+  stage?: string;
 }
