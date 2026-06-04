@@ -31,6 +31,11 @@ def _emit_ready_now() -> None:
 
 
 if __name__ == "__main__":
+    import multiprocessing
+
+    # Must run before any ProcessPool spawn so frozen Windows children do not
+    # re-run the RPC loop or emit a second ready notification.
+    multiprocessing.freeze_support()
     _emit_ready_now()
     from sidecar_mame.dispatcher import main  # noqa: E402
     main(emit_ready=False)

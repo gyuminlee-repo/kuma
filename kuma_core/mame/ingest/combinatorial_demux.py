@@ -46,7 +46,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
 import os
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from typing import Callable, Iterator
 
 from kuma_core.mame.ingest.align import (
@@ -521,6 +521,9 @@ def run_combinatorial_demux(
     window_bp: int = 30,
     edit_dist_ratio: float = 0.25,
     chimera_split: bool = True,
+    well_consensus_at_root: bool = False,
+    minimap2_threads: int | None = None,
+    consensus_workers: int | None = None,
     progress_callback: Callable[[int, int, str], None] | None = None,
 ) -> DemuxResult:
     """MAPQ-filtered alignment-anchored fuzzy per-well demux with chimera splitting.
@@ -564,13 +567,38 @@ def run_combinatorial_demux(
         attempt demux for each hit independently.  A chimeric read carrying
         two different amplicon copies may contribute to two wells.
         When False, only the first passing hit is used (legacy behaviour).
+    well_consensus_at_root:
+        When True, write single-record per-well consensus FASTA files at the
+        top level of ``output_dir`` (so a non-recursive top-level ``*.fasta``
+        glob sees only consensus files), the multi-record per-well reads under
+        ``output_dir/reads/``, and the combined consensus FASTA under
+        ``output_dir/final/``.  When False (default), keep the legacy layout
+        (reads at root, consensus under ``output_dir/consensus/``, combined at
+        root).
+    minimap2_threads:
+        Thread count passed through to the alignment minimap2 invocation.
+        ``None`` (default) keeps the module-level auto-detected default.
+    consensus_workers:
+        Worker count for the per-well consensus ThreadPool.  ``None`` (default)
+        keeps the module-level ``_CONSENSUS_WORKERS`` default.
 
     Returns
     -------
     DemuxResult with stats, per_well_reads, per_well_consensus.
     """
     output_dir.mkdir(parents=True, exist_ok=True)
-    (output_dir / "consensus").mkdir(exist_ok=True)
+    if well_consensus_at_root:
+        reads_dir = output_dir / "reads"
+        reads_dir.mkdir(exist_ok=True)
+        final_dir = output_dir / "final"
+        final_dir.mkdir(exist_ok=True)
+        consensus_dir = output_dir
+        combined_path = final_dir / _COMBINED_CONSENSUS_FILENAME
+    else:
+        consensus_dir = output_dir / "consensus"
+        consensus_dir.mkdir(exist_ok=True)
+        reads_dir = output_dir
+        combined_path = output_dir / _COMBINED_CONSENSUS_FILENAME
 
     stats = DemuxStats()
 
@@ -598,6 +626,7 @@ def run_combinatorial_demux(
             preset="map-ont",
             min_mapq=mapq_threshold,
             coverage_fraction=coverage_fraction,
+            threads=minimap2_threads,
         )
 
         reads_with_hits = len(multi_results)
@@ -672,6 +701,7 @@ def run_combinatorial_demux(
             preset="map-ont",
             min_mapq=mapq_threshold,
             require_full_span=(coverage_fraction >= 1.0),
+            threads=minimap2_threads,
         )
         stats.passed_coverage = len(alignments)
         stats.passed_mapq = len(alignments)
@@ -712,7 +742,7 @@ def run_combinatorial_demux(
     for (r_idx, f_idx), reads in per_well.items():
         well_name = f"{r_idx}_{f_idx}"
         per_well_reads[well_name] = reads
-        fasta_path = output_dir / f"{well_name}.fasta"
+        fasta_path = reads_dir / f"{well_name}.fasta"
         with fasta_path.open("w") as fh:
             for read_id, trimmed in reads:
                 fh.write(f">{read_id}\n{trimmed}\n")
@@ -742,7 +772,8 @@ def run_combinatorial_demux(
         return well_name, seq, depth
 
     _consensus_done = 0
-    with ThreadPoolExecutor(max_workers=_CONSENSUS_WORKERS) as pool:
+    n_workers = consensus_workers if consensus_workers is not None else _CONSENSUS_WORKERS
+    with ThreadPoolExecutor(max_workers=n_workers) as pool:
         futures = {
             pool.submit(_run_well, wn, rds): wn
             for wn, rds in per_well_reads.items()
@@ -750,7 +781,7 @@ def run_combinatorial_demux(
         for fut in as_completed(futures):
             wn, seq, depth = fut.result()
             per_well_consensus[wn] = seq
-            with (output_dir / "consensus" / f"{wn}.fasta").open("w") as fh:
+            with (consensus_dir / f"{wn}.fasta").open("w") as fh:
                 fh.write(f">{wn} depth={depth}\n{seq}\n")
             _consensus_done += 1
             if progress_callback is not None:
@@ -759,7 +790,6 @@ def run_combinatorial_demux(
     # Combined single-file consensus FASTA (all wells, sorted by R then F),
     # mirroring the Aporva pipeline's final/<...>_consensus_dna.fasta output.
     # The per-well consensus/ files above are still written.
-    combined_path = output_dir / _COMBINED_CONSENSUS_FILENAME
     with combined_path.open("w") as fh:
         for wn in sorted(
             per_well_consensus,
@@ -820,6 +850,136 @@ def _compute_well_consensus(
     return consensus_seq, len(well_alignments)
 
 
+# ---------------------------------------------------------------------------
+# Per-native-barcode parallel orchestration
+# ---------------------------------------------------------------------------
+
+
+def _demux_one_nb(payload: dict) -> dict:
+    """ProcessPool worker: run one native barcode, return a picklable summary."""
+    fastq = [Path(s) for s in payload["fastq_paths"]]
+    result = run_combinatorial_demux(
+        raw_fastq_paths=fastq, reference_fasta=Path(payload["reference_fasta"]),
+        barcodes_xlsx=Path(payload["barcodes_xlsx"]), output_dir=Path(payload["output_dir"]),
+        mapq_threshold=payload["mapq_threshold"], coverage_fraction=payload["coverage_fraction"],
+        trim_flank_bp=payload["trim_flank_bp"], edit_dist_ratio=payload["edit_dist_ratio"],
+        chimera_split=payload["chimera_split"], well_consensus_at_root=True,
+        minimap2_threads=payload["minimap2_threads"], consensus_workers=payload["consensus_workers"],
+        progress_callback=None)
+    s = result.stats
+    _keys = ("total_reads", "passed_mapq", "passed_coverage", "assigned_reads",
+             "ambiguous_dropped", "chimera_splits", "wells_with_reads", "wells_with_min_reads")
+    return {"nb_name": payload["nb_name"], "sort_barcode_name": payload["sort_barcode_name"],
+            "output_dir": str(Path(payload["output_dir"]).resolve()),
+            "stats": {k: getattr(s, k) for k in _keys},
+            "per_well_read_counts": {w: len(r) for w, r in result.per_well_reads.items()}}
+
+
+def run_combinatorial_demux_per_nb(
+    nb_to_fastq: dict[str, list[Path]],
+    reference_fasta: Path,
+    barcodes_xlsx: Path,
+    output_dir: Path,
+    *,
+    mapq_threshold: int = 25,
+    coverage_fraction: float = 0.98,
+    trim_flank_bp: int = 30,
+    edit_dist_ratio: float = 0.25,
+    chimera_split: bool = True,
+    parallel: bool = True,
+    max_workers: int | None = None,
+    progress_callback: Callable[[int, int, str], None] | None = None,
+) -> dict:
+    """Run combinatorial demux per native barcode, in parallel across barcodes.
+
+    Each native barcode in *nb_to_fastq* is demuxed into its own
+    ``output_dir/sort_barcode{NN}/`` subdir (well_consensus_at_root layout),
+    optionally across worker processes.  Iterates *nb_to_fastq* in dict order
+    (insertion order = caller order).
+
+    Returns a dict with ``merged_stats`` (8 stat keys summed across barcodes),
+    ``per_nb`` (per-barcode summaries in input order), ``parallel`` (whether the
+    parallel path was used), and ``workers`` (process count).
+    """
+    from kuma_core.mame.ingest.sort_barcode import _nb_to_sort_barcode_name
+
+    cpu = os.cpu_count() or 4
+    n = len(nb_to_fastq)
+    env_off = os.environ.get("KUMA_MAME_NB_PARALLEL", "1") == "0"
+    use_parallel = parallel and n > 1 and not env_off
+    if use_parallel:
+        _env_workers = os.environ.get("KUMA_MAME_NB_WORKERS", "").strip()
+        if max_workers:
+            P = max_workers
+        elif _env_workers.isdigit() and int(_env_workers) > 0:
+            P = int(_env_workers)
+        else:
+            P = min(n, cpu)
+        P = max(1, min(P, n, cpu))
+    else:
+        P = 1
+    threads_per = max(1, cpu // P)
+
+    payloads: list[dict] = []
+    for nb_name, paths in nb_to_fastq.items():
+        sort_barcode_name = _nb_to_sort_barcode_name(nb_name)
+        payloads.append({
+            "nb_name": nb_name,
+            "sort_barcode_name": sort_barcode_name,
+            "output_dir": str(output_dir / sort_barcode_name),
+            "fastq_paths": [str(p) for p in paths],
+            "reference_fasta": str(reference_fasta),
+            "barcodes_xlsx": str(barcodes_xlsx),
+            "mapq_threshold": mapq_threshold,
+            "coverage_fraction": coverage_fraction,
+            "trim_flank_bp": trim_flank_bp,
+            "edit_dist_ratio": edit_dist_ratio,
+            "chimera_split": chimera_split,
+            "minimap2_threads": threads_per,
+            "consensus_workers": threads_per,
+        })
+
+    # Fail fast if two entries map to the same sort_barcode output dir
+    # (e.g. both "barcode06" and "NB06"), which would silently overwrite.
+    _sort_names = [pl["sort_barcode_name"] for pl in payloads]
+    if len(set(_sort_names)) != len(_sort_names):
+        raise ValueError(
+            f"Native barcodes map to colliding sort_barcode output dirs: {_sort_names}"
+        )
+
+    summaries: list[dict] = []
+    if P > 1:
+        with ProcessPoolExecutor(max_workers=P) as ex:
+            futs = {ex.submit(_demux_one_nb, pl): pl["nb_name"] for pl in payloads}
+            done = 0
+            for fut in as_completed(futs):
+                summ = fut.result()  # propagate worker exceptions (fail-fast)
+                done += 1
+                if progress_callback:
+                    progress_callback(done, n, summ["sort_barcode_name"])
+                summaries.append(summ)
+    else:
+        for i, pl in enumerate(payloads):
+            summaries.append(_demux_one_nb(pl))
+            if progress_callback:
+                progress_callback(i + 1, n, pl["sort_barcode_name"])
+
+    # Order summaries by input nb order.
+    by_name = {s["nb_name"]: s for s in summaries}
+    ordered_summaries = [by_name[pl["nb_name"]] for pl in payloads]
+
+    # Merge stats: sum each of the 8 stat keys across summaries.
+    _stat_keys = ("total_reads", "passed_mapq", "passed_coverage", "assigned_reads",
+                  "ambiguous_dropped", "chimera_splits", "wells_with_reads",
+                  "wells_with_min_reads")
+    merged = {
+        k: sum(s["stats"][k] for s in ordered_summaries) for k in _stat_keys
+    }
+
+    return {"merged_stats": merged, "per_nb": ordered_summaries,
+            "parallel": P > 1, "workers": P}
+
+
 __all__ = [
     # Public types
     "DemuxResult",
@@ -828,6 +988,8 @@ __all__ = [
     "load_barcodes",
     "load_barcode_prefixes",
     "run_combinatorial_demux",
+    "run_combinatorial_demux_per_nb",
+    "_demux_one_nb",
     # Semi-private helpers exported for tests and diagnostic scripts
     "_extract_barcode_prefix",
     "_extract_f_prefix",

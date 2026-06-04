@@ -19,6 +19,23 @@ export interface CombinatorialDemuxStats {
   wells_with_min_reads: number
 }
 
+/**
+ * Per-native-barcode demux summary, present once per selected MinKNOW barcode
+ * dir when native_barcodes was supplied to run_combinatorial_demux.
+ */
+export interface NativeBarcodeDemuxSummary {
+  /** MinKNOW barcode dir name (e.g. "barcode06"). */
+  nb_name: string
+  /** Output subdir name derived from nb_name (e.g. "sort_barcode06"). */
+  sort_barcode_name: string
+  /** Resolved path to this native barcode's output subdir. */
+  output_dir: string
+  /** Full summary counters for this native barcode's demux run. */
+  stats: CombinatorialDemuxStats
+  /** Per-well read counts for this native barcode. Key: well name. */
+  per_well_read_counts: Record<string, number>
+}
+
 /** Result of a mame.run_combinatorial_demux RPC call. */
 export interface CombinatorialDemuxResult {
   /** Resolved path to the output directory. */
@@ -41,6 +58,12 @@ export interface CombinatorialDemuxResult {
    * Key: well name (e.g. "1_1"), value: number of reads assigned.
    */
   per_well_read_counts: Record<string, number>
+  /**
+   * Per-native-barcode demux summaries.
+   * Present only when native_barcodes was supplied (per-NB mode); one entry
+   * per selected MinKNOW barcode dir.
+   */
+  native_barcodes?: NativeBarcodeDemuxSummary[] | null
 }
 
 /** Parameters for the mame.run_combinatorial_demux RPC method. */
@@ -75,4 +98,6 @@ export interface CombinatorialDemuxParams {
   chimera_split?: boolean
   /** Bases flanking alignment hits to include in FASTA slice [0, 200]. Default 30. */
   trim_flank_bp?: number
+  /** When set, run per-native-barcode demux into output_dir/sort_barcode{NN}/ subdirs (one per selected MinKNOW barcode dir name like "barcode06"); processed in parallel across barcodes. Omit/null for single-pool. */
+  native_barcodes?: string[] | null
 }

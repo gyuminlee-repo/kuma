@@ -444,6 +444,7 @@ def align_reads_multi(
     min_mapq: int = 25,
     coverage_fraction: float = 0.98,
     best_n: int = 20,
+    threads: int | None = None,
 ) -> list[tuple[str, str, list[Alignment]]]:
     """Align reads and return ALL passing hits per read (chimera/concatemer support).
 
@@ -496,7 +497,8 @@ def align_reads_multi(
             return []
 
         _run_minimap2(
-            reference_fasta, reads_fasta, preset, sam_path, best_n=best_n
+            reference_fasta, reads_fasta, preset, sam_path, best_n=best_n,
+            threads=threads,
         )
 
         # Collect passing hits per read index (primary + supplementary).
