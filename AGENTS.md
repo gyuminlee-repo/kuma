@@ -174,3 +174,10 @@ Three files must have matching version on release:
 - Version bump 시 `git tag` 최신값뿐 아니라 `git log --oneline -5`의 커밋 메시지 `vX.X.X.YY` 시퀀스도 함께 확인 (태그 없이 커밋만 진행된 구간이 있으면 역행 위험)
 - `Cargo.lock` is committed (binary app needs reproducible builds)
 - CI pins `ubuntu-22.04` (not `ubuntu-latest`) for WebKit dependency compatibility
+- 라벨(`vX.X.X`) 결정 전 `git fetch --all` 후 `git log --oneline origin/<현재 브랜치> -5` 로 다른 머신 푸시분 확인 (다중 머신 동기화 환경에서 라벨 중복 방지)
+- "커밋만" 명시가 없으면 commit 후 즉시 push
+- push 후 `git --no-pager log origin/<branch>..<branch> --oneline | wc -l` 이 0 인지 확인 (silent push fail 차단)
+- push 전 `/simplify` 실행, 코드 변경 시 README·UPDATE-NOTES 동기 갱신
+
+### UI Language
+- UI 와 소스 코드 텍스트는 영어 전용. 한국어는 `docs/README.ko.md` 에만 둔다 (사용자 대면 프로그램 텍스트 영어 고정)

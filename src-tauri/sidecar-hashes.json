@@ -1,10 +1,10 @@
 {
-  "evolvepro-sidecar-x86_64-pc-windows-msvc.exe": "f2e1ce43552ea23605e9232818bc0938ca2e8c30db789bae0ff1dea8a2b81c0a",
+  "evolvepro-sidecar-x86_64-pc-windows-msvc.exe": "11f599f1c993a06f8b9255cbf098234a96a6e4f8583c6f0b6f05ad78db7c9bd7",
   "evolvepro-sidecar-x86_64-unknown-linux-gnu": "17a61eee1b03af4cca04c23deca8ccecfcb40ca46155faec4289db8c3372055e",
   "kuro-sidecar-aarch64-apple-darwin": "8dbdc1486c6dcee2b8c3e99cd43d73279f3c01833050b5257d2cdf9b428b2d85",
-  "kuro-sidecar-x86_64-pc-windows-msvc.exe": "6914bdb02184f9b08d7d4d7b75ed4e4d45664f4217eb8c0287f19973207f0d47",
+  "kuro-sidecar-x86_64-pc-windows-msvc.exe": "e34976d6bcc7e09dabcb8813da07dc28aefc25cfb31567cb047b1fd7c1ab9339",
   "kuro-sidecar-x86_64-unknown-linux-gnu": "1a86683b7dc5895da295803cb5b03234b9ff8a8b023fd6a748f1ee0aeb6f4224",
   "mame-sidecar-aarch64-apple-darwin": "5595ff4402af0352c20d94dae53c056b22061f1bb4bd03f418e79278af9a4961",
-  "mame-sidecar-x86_64-pc-windows-msvc.exe": "b8da4ddaf2d07958a997af83be716bd84cb417eb417f40bfe06ee1a2652c079c",
+  "mame-sidecar-x86_64-pc-windows-msvc.exe": "f1cb3bbb1015581634650ed6df9f2af3e598c55b7a40399e4260af84aa980dcf",
   "mame-sidecar-x86_64-unknown-linux-gnu": "d403adaaf3f2d05ffdb53f2f9cfca78ee503eea5ec2ab12d2443af1706356ff9"
 }

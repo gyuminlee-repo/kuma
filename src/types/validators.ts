@@ -523,6 +523,7 @@ function isWorkspaceResults(value: unknown): boolean {
     isNumber(value.successCount) &&
     isNumber(value.totalCount) &&
     isArrayOf(value.failedMutations, isFailedMutation) &&
+    isOptional(value.excludedDesignMutations, isStringArray) &&
     isArrayOf(value.plateMappings, isPlateMapping) &&
     isRecordOf(value.dedupInfo, isStringArray) &&
     isRecordOf(value.manuallySwapped, isString) &&

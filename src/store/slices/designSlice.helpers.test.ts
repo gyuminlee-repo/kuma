@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import type { SdmPrimerResult } from "../../types/models";
 import {
   addDesignResultState,
+  buildIncludedPlateState,
+  getIncludedDesignResults,
+  pruneExcludedDesignMutations,
   processDesignResult,
 } from "./designSlice.helpers";
 
@@ -81,5 +84,68 @@ describe("designSlice helpers rescue capping", () => {
     expect(next.designResults.map((r) => r.mutation)).toContain(rescued.mutation);
     expect(next.designResults.map((r) => r.mutation)).not.toContain("M5A");
     expect(next.successCount).toBe(5);
+  });
+});
+
+describe("designSlice helpers included result view", () => {
+  it("includes every designed result by default", () => {
+    const results = [primer("M1A", 1), primer("M2A", 2)];
+
+    expect(getIncludedDesignResults(results, [])).toEqual(results);
+  });
+
+  it("excludes matching mutation ids without mutating raw design results", () => {
+    const results = [primer("M1A", 1), primer("M2A", 2), primer("M3A", 3)];
+
+    const included = getIncludedDesignResults(results, ["M2A"]);
+
+    expect(included.map((result) => result.mutation)).toEqual(["M1A", "M3A"]);
+    expect(results.map((result) => result.mutation)).toEqual(["M1A", "M2A", "M3A"]);
+  });
+
+  it("prunes stale and duplicate exclusions against the current design results", () => {
+    const results = [primer("M1A", 1), primer("M2A", 2)];
+
+    expect(pruneExcludedDesignMutations(results, ["M2A", "STALE", "M2A", "M1A"])).toEqual([
+      "M2A",
+      "M1A",
+    ]);
+  });
+
+  it("builds plate state from the included view only", () => {
+    const sharedReverse = primer("M2A", 2);
+    const results = [
+      primer("M1A", 1),
+      sharedReverse,
+      { ...primer("M3A", 3), reverse_seq: sharedReverse.reverse_seq },
+    ];
+
+    const plateState = buildIncludedPlateState({
+      designResults: results,
+      excludedDesignMutations: ["M2A"],
+      wellName,
+    });
+
+    expect(plateState.plateMappings.map((mapping) => mapping.mutation)).toEqual([
+      "M1A",
+      "M3A",
+      "M1A",
+      "M3A",
+    ]);
+    expect(plateState.dedupInfo).toEqual({
+      GCAT1: ["M1A"],
+      GCAT2: ["M3A"],
+    });
+  });
+
+  it("returns empty downstream artifacts when every result is excluded", () => {
+    const plateState = buildIncludedPlateState({
+      designResults: [primer("M1A", 1), primer("M2A", 2)],
+      excludedDesignMutations: ["M1A", "M2A"],
+      wellName,
+    });
+
+    expect(plateState.plateMappings).toEqual([]);
+    expect(plateState.dedupInfo).toEqual({});
   });
 });

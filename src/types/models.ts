@@ -407,6 +407,7 @@ export interface WorkspaceResults {
   successCount: number;
   totalCount: number;
   failedMutations: FailedMutation[];
+  excludedDesignMutations?: string[];
   plateMappings: PlateMapping[];
   dedupInfo: Record<string, string[]>;
   manuallySwapped: Record<string, string>;
