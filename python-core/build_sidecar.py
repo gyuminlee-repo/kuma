@@ -64,6 +64,12 @@ TARGETS = {
             "Bio.Seq",
             "python_calamine",
             "primer3",
+            # edlib is imported lazily inside _best_infix_match
+            # (kuma_core/mame/ingest/combinatorial_demux.py:319) for fuzzy
+            # barcode matching, so PyInstaller's static analysis cannot see it.
+            # Without this entry the packaged sidecar raises ModuleNotFoundError
+            # at the demux step, surfaced to the UI as -32603 Internal error.
+            "edlib",
             "sidecar_mame",
             "sidecar_mame.dispatcher",
             "kuma_core.mame",
