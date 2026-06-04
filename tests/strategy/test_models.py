@@ -1,10 +1,11 @@
-"""Tests for kuma_core.strategy.models — TDD Phase 6 Task 6.2.
+"""Tests for kuma_core.strategy.models -- TDD Phase 6 Task 6.2.
 
 Spec: notes/specs/2026-05-04-mame-activity-integration.md §12-A.4
 Plan: notes/plans/2026-05-04-mame-activity-implementation-plan.md Phase 6
 """
 
 from datetime import datetime, timezone
+from typing import Any
 import pytest
 
 from kuma_core.strategy.models import StrategyDecisionLog, RoundMetrics
@@ -16,7 +17,7 @@ from kuma_core.strategy.models import StrategyDecisionLog, RoundMetrics
 
 def _make_log(**overrides) -> StrategyDecisionLog:
     """Minimal valid StrategyDecisionLog factory."""
-    defaults = dict(
+    defaults: dict[str, Any] = dict(
         round_id="round-001",
         decided_at=datetime(2026, 5, 4, 10, 0, 0, tzinfo=timezone.utc),
         activation_mode="calibration",
@@ -50,7 +51,7 @@ def _make_log(**overrides) -> StrategyDecisionLog:
 
 def _make_metrics(**overrides) -> RoundMetrics:
     """Minimal valid RoundMetrics factory."""
-    defaults = dict(
+    defaults: dict[str, Any] = dict(
         round_id="round-001",
         computed_at=datetime(2026, 5, 4, 10, 0, 0, tzinfo=timezone.utc),
         cumulative_beneficial=14,
@@ -76,7 +77,7 @@ def _make_metrics(**overrides) -> RoundMetrics:
 
 
 # ---------------------------------------------------------------------------
-# StrategyDecisionLog — construction + literals
+# StrategyDecisionLog -- construction + literals
 # ---------------------------------------------------------------------------
 
 def test_StrategyDecisionLog_all_decision_labels():
@@ -131,22 +132,50 @@ def test_StrategyDecisionLog_bootstrap_distribution_keys():
 
 
 def test_StrategyDecisionLog_signal_scores_mixed_types():
-    # signal_scores can hold bool or float values
-    log = _make_log(signal_scores={"T1": True, "T2": False, "T3": 0.7})
+    # M4 [P0]: signal_scores uses bool values (T3 is now Optional[bool], not float)
+    log = _make_log(signal_scores={"T1": True, "T2": False, "T3": True})
     assert log.signal_scores["T1"] is True
-    assert log.signal_scores["T3"] == 0.7
+    assert log.signal_scores["T3"] is True
 
 
 def test_StrategyDecisionLog_confidence_bounds():
-    # confidence is a float — no validation on bounds in schema, just type
     log = _make_log(decision_confidence=0.0)
     assert log.decision_confidence == 0.0
     log2 = _make_log(decision_confidence=1.0)
     assert log2.decision_confidence == 1.0
 
 
+def test_StrategyDecisionLog_signal_magnitudes_default_empty():
+    # M2 [P1]: signal_magnitudes defaults to empty dict
+    log = _make_log()
+    assert isinstance(log.signal_magnitudes, dict)
+    assert log.signal_magnitudes == {}
+
+
+def test_StrategyDecisionLog_signal_magnitudes_populated():
+    log = _make_log(signal_magnitudes={"T4_jaccard": 0.75, "T3_slope": -0.05})
+    assert log.signal_magnitudes["T4_jaccard"] == 0.75
+    assert log.signal_magnitudes["T3_slope"] == -0.05
+
+
+def test_StrategyDecisionLog_reproducibility_fields_optional():
+    # M3 [P0]: prev_signals_digest and effective_seed default to None
+    log = _make_log()
+    assert log.prev_signals_digest is None
+    assert log.effective_seed is None
+
+
+def test_StrategyDecisionLog_reproducibility_fields_populated():
+    log = _make_log(
+        prev_signals_digest="abc123",
+        effective_seed=42,
+    )
+    assert log.prev_signals_digest == "abc123"
+    assert log.effective_seed == 42
+
+
 # ---------------------------------------------------------------------------
-# RoundMetrics — construction
+# RoundMetrics -- construction
 # ---------------------------------------------------------------------------
 
 def test_RoundMetrics_all_signal_booleans():
@@ -175,7 +204,6 @@ def test_RoundMetrics_required_raw_inputs():
 
 
 def test_RoundMetrics_sigma_assay_optional_none():
-    # sigma_assay can be None (WT replicates < 4)
     m = _make_metrics(sigma_assay=None)
     assert m.sigma_assay is None
 
@@ -187,7 +215,41 @@ def test_RoundMetrics_top_k_sets():
 
 
 def test_RoundMetrics_no_decision_field():
-    # RoundMetrics must not have decision or decision_confidence fields
     m = _make_metrics()
     assert not hasattr(m, "decision")
     assert not hasattr(m, "decision_confidence")
+
+
+def test_RoundMetrics_optional_signals_accept_none():
+    # M1 [P0]: T2, T3, T4, T_active accept None
+    m = _make_metrics(T2=None, T3=None, T4=None, T_active=None)
+    assert m.T2 is None
+    assert m.T3 is None
+    assert m.T4 is None
+    assert m.T_active is None
+
+
+def test_RoundMetrics_T_model_field_exists():
+    # M1 [P0]: T_model field present, defaults to None
+    m = _make_metrics()
+    assert m.T_model is None
+
+
+def test_RoundMetrics_T_model_accepts_bool():
+    m_true = _make_metrics(T_model=True)
+    assert m_true.T_model is True
+    m_false = _make_metrics(T_model=False)
+    assert m_false.T_model is False
+
+
+def test_RoundMetrics_signal_magnitudes_default_empty():
+    # M2 [P1]: signal_magnitudes defaults to empty dict
+    m = _make_metrics()
+    assert isinstance(m.signal_magnitudes, dict)
+    assert m.signal_magnitudes == {}
+
+
+def test_RoundMetrics_signal_magnitudes_populated():
+    m = _make_metrics(signal_magnitudes={"T4_jaccard": 0.6, "T_active_fraction": 0.5})
+    assert m.signal_magnitudes["T4_jaccard"] == 0.6
+    assert m.signal_magnitudes["T_active_fraction"] == 0.5

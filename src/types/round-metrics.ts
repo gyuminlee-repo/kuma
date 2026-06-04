@@ -1,7 +1,7 @@
 /**
  * TypeScript mirror of kuma_core/strategy/models.py RoundMetrics Pydantic model.
- * Spec: notes/specs/2026-05-04-mame-activity-integration.md §12-A.1, §12-A.4
- * Phase 6 Task 6.3 — display-only type for RoundSummaryPanel.
+ * Spec: notes/specs/2026-05-04-mame-activity-integration.md §12-A.1, §12-A.2, §12-A.8
+ * Phase 6 Task 6.3: display-only type for RoundSummaryPanel.
  *
  * Keep in sync with:
  *   - kuma_core/strategy/models.py (RoundMetrics)
@@ -9,6 +9,10 @@
  *
  * NOTE: Python model uses set[int] for top_k_positions_n / top_k_positions_n1.
  * JSON serialisation cannot round-trip sets, so TS uses number[] (list semantics).
+ *
+ * NOTE: 7 signals total (T1, T2, T3, T4, T_active, T_unused, T_model).
+ * T2, T3, T4, T_active, T_model are nullable: null = NA (insufficient data).
+ * T1 and T_unused remain boolean (always computable).
  */
 
 export interface RoundMetrics {
@@ -53,14 +57,25 @@ export interface RoundMetrics {
 
   /** T1: cumulative_beneficial >= K_throughput */
   T1: boolean
-  /** T2: delta_best_ema below noise threshold (plateau) */
-  T2: boolean
-  /** T3: hit rate trend slope <= 0 */
-  T3: boolean
-  /** T4: top-K position Jaccard >= 0.5 */
-  T4: boolean
-  /** T_active: active-site fraction >= 0.4 */
-  T_active: boolean
+  /** T2: delta_best_ema below noise threshold (plateau); null = NA (insufficient data) */
+  T2: boolean | null
+  /** T3: hit rate trend slope <= 0; null = NA (insufficient data) */
+  T3: boolean | null
+  /** T4: top-K position Jaccard >= 0.5; null = NA (insufficient data) */
+  T4: boolean | null
+  /** T_active: active-site fraction >= 0.4; null = NA (insufficient data) */
+  T_active: boolean | null
   /** T_unused: unused_beneficial_count >= M_min */
   T_unused: boolean
+  /**
+   * T_model: surrogate predicts best-single gain within noise of measured best; null = NA (insufficient data).
+   * Signal that single-mutant space is exhausted via surrogate model prediction.
+   * EVOLVEpro Jiang 2024: 10.1126/science.adr6006
+   */
+  T_model: boolean | null
+  /**
+   * Raw signal magnitudes before binarisation, for auditing thresholds.
+   * Keys: jaccard, active_fraction, unused_count, t3_slope, t2_delta
+   */
+  signal_magnitudes: Record<string, number>
 }

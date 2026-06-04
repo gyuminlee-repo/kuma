@@ -1811,7 +1811,10 @@
     "rationaleAnchorInfer": "推論ベースの signal (MLDE 文献で直接定式化されていません)。",
     "rationaleAriaLabel": "理由: {{text}}",
     "rationaleTagLit": "lit",
-    "rationaleTagInfer": "infer"
+    "rationaleTagInfer": "infer",
+    "labelTModel": "T_model: Surrogate",
+    "signalNA": "NA",
+    "signalNAAriaLabel": "シグナル NA: データ不足"
   },
   "uniprotSearchExtra": {
     "placeholder": "UniProt ID",

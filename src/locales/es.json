@@ -1811,7 +1811,10 @@
     "rationaleAnchorInfer": "Señal basada en razonamiento (no formalizada directamente en la literatura MLDE).",
     "rationaleAriaLabel": "Justificación: {{text}}",
     "rationaleTagLit": "lit",
-    "rationaleTagInfer": "infer"
+    "rationaleTagInfer": "infer",
+    "labelTModel": "T_model: Sustituto",
+    "signalNA": "NA",
+    "signalNAAriaLabel": "Señal NA: datos insuficientes"
   },
   "uniprotSearchExtra": {
     "placeholder": "UniProt ID",
