@@ -519,6 +519,55 @@ class TestRunCombinatorialDemux:
 
         assert (out_dir / "consensus").is_dir()
 
+    def test_combined_consensus_fasta_written(
+        self, tmp_path: Path, tmp_reference: Path, mock_barcodes_xlsx: Path
+    ) -> None:
+        from kuma_core.mame.ingest.combinatorial_demux import (
+            _COMBINED_CONSENSUS_FILENAME,
+        )
+
+        reads = [
+            ("r_2_3", _build_read(2, 3, _REF_SEQ)),
+            ("r_1_1", _build_read(1, 1, _REF_SEQ)),
+        ]
+        fastq = _make_fastq_gz(tmp_path, reads)
+        out_dir = tmp_path / "out"
+
+        result = run_combinatorial_demux(
+            raw_fastq_paths=[fastq],
+            reference_fasta=tmp_reference,
+            barcodes_xlsx=mock_barcodes_xlsx,
+            output_dir=out_dir,
+            mapq_threshold=0,
+            coverage_fraction=0.5,
+            trim_flank_bp=30,
+            min_depth=1,
+        )
+
+        combined = out_dir / _COMBINED_CONSENSUS_FILENAME
+        assert combined.is_file()
+
+        # Parse the combined multi-record FASTA.
+        headers: list[str] = []
+        seqs: dict[str, str] = {}
+        cur: str | None = None
+        for line in combined.read_text().splitlines():
+            if line.startswith(">"):
+                cur = line[1:].strip()
+                headers.append(cur)
+                seqs[cur] = ""
+            elif cur is not None:
+                seqs[cur] += line.strip()
+
+        # One record per well that produced a consensus; content matches.
+        assert set(headers) == set(result.per_well_consensus)
+        for wn, seq in result.per_well_consensus.items():
+            assert seqs[wn] == seq
+        # Records sorted by (R, F).
+        assert headers == sorted(
+            headers, key=lambda w: tuple(int(p) for p in w.split("_"))
+        )
+
     def test_unassigned_reads_not_in_wells(
         self, tmp_path: Path, tmp_reference: Path, mock_barcodes_xlsx: Path
     ) -> None:

@@ -75,6 +75,12 @@ _CONSENSUS_WORKERS: int = int(
     or str(max(1, (os.cpu_count() or 4) - 1))
 )
 
+# Filename for the combined single-file consensus FASTA (all wells in one
+# multi-record file), written in output_dir alongside the per-well consensus/
+# directory. Mirrors the Aporva pipeline's final/<...>_consensus_dna.fasta so
+# downstream tools that expect one multi-record FASTA keep working.
+_COMBINED_CONSENSUS_FILENAME = "consensus_all.fasta"
+
 
 def _reverse_complement(seq: str) -> str:
     return seq.translate(_COMP)[::-1]
@@ -749,6 +755,17 @@ def run_combinatorial_demux(
             _consensus_done += 1
             if progress_callback is not None:
                 progress_callback(_consensus_done, _consensus_total, "consensus")
+
+    # Combined single-file consensus FASTA (all wells, sorted by R then F),
+    # mirroring the Aporva pipeline's final/<...>_consensus_dna.fasta output.
+    # The per-well consensus/ files above are still written.
+    combined_path = output_dir / _COMBINED_CONSENSUS_FILENAME
+    with combined_path.open("w") as fh:
+        for wn in sorted(
+            per_well_consensus,
+            key=lambda w: tuple(int(part) for part in w.split("_")),
+        ):
+            fh.write(f">{wn}\n{per_well_consensus[wn]}\n")
 
     return DemuxResult(
         stats=stats,
