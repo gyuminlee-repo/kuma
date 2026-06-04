@@ -79,7 +79,7 @@ _CONSENSUS_WORKERS: int = int(
 # multi-record file), written in output_dir alongside the per-well consensus/
 # directory. Mirrors the Aporva pipeline's final/<...>_consensus_dna.fasta so
 # downstream tools that expect one multi-record FASTA keep working.
-_COMBINED_CONSENSUS_FILENAME = "consensus_all.fasta"
+_COMBINED_CONSENSUS_FILENAME = "consensus_all_dna.fasta"
 
 
 def _reverse_complement(seq: str) -> str:
