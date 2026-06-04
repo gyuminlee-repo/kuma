@@ -132,9 +132,19 @@ pub fn load_project_cmd(path: String) -> Result<Project, String> {
     Ok(proj)
 }
 
+pub(crate) fn prune_missing(projects: Vec<RecentProject>) -> Vec<RecentProject> {
+    projects.into_iter().filter(|r| Path::new(&r.path).exists()).collect()
+}
+
 #[tauri::command]
 pub fn list_recent_projects_cmd() -> Result<Vec<RecentProject>, String> {
-    let cfg = load_or_init_config(&prod_config_root())?;
+    let root = prod_config_root();
+    let mut cfg = load_or_init_config(&root)?;
+    let before = cfg.recent_projects.len();
+    cfg.recent_projects = prune_missing(cfg.recent_projects);
+    if cfg.recent_projects.len() != before {
+        save_config(&root, &cfg)?;
+    }
     Ok(cfg.recent_projects)
 }
 
@@ -148,4 +158,62 @@ pub fn remove_recent_project_cmd(path: String) -> Result<Vec<RecentProject>, Str
         save_config(&root, &cfg)?;
     }
     Ok(cfg.recent_projects)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use tempfile::TempDir;
+
+    fn make_project(path: &str) -> RecentProject {
+        RecentProject {
+            path: path.to_string(),
+            name: "test".to_string(),
+            last_opened: "2026-01-01T00:00:00+00:00".to_string(),
+            project_id: None,
+        }
+    }
+
+    #[test]
+    fn prune_missing_keeps_existing_removes_absent() {
+        let dir = TempDir::new().unwrap();
+        let existing = dir.path().join("exists");
+        fs::create_dir_all(&existing).unwrap();
+
+        let projects = vec![
+            make_project(existing.to_str().unwrap()),
+            make_project("/nonexistent/path/that/cannot/exist/xyzzy"),
+        ];
+
+        let pruned = prune_missing(projects);
+        assert_eq!(pruned.len(), 1);
+        assert_eq!(pruned[0].path, existing.to_str().unwrap());
+    }
+
+    #[test]
+    fn prune_missing_all_present_returns_all() {
+        let dir = TempDir::new().unwrap();
+        let a = dir.path().join("a");
+        let b = dir.path().join("b");
+        fs::create_dir_all(&a).unwrap();
+        fs::create_dir_all(&b).unwrap();
+
+        let projects = vec![
+            make_project(a.to_str().unwrap()),
+            make_project(b.to_str().unwrap()),
+        ];
+        let pruned = prune_missing(projects);
+        assert_eq!(pruned.len(), 2);
+    }
+
+    #[test]
+    fn prune_missing_all_absent_returns_empty() {
+        let projects = vec![
+            make_project("/no/such/path/aaa"),
+            make_project("/no/such/path/bbb"),
+        ];
+        let pruned = prune_missing(projects);
+        assert!(pruned.is_empty());
+    }
 }

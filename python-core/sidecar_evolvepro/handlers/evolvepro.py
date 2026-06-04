@@ -5,6 +5,7 @@ EVOLVEpro; these handlers shell out to the user's own conda installation.
 """
 from __future__ import annotations
 
+import csv
 from pathlib import Path
 from typing import Any
 
@@ -116,8 +117,6 @@ def handle_evolvepro_run_result(params: dict[str, Any]) -> dict[str, Any]:
     Anti-fallback: raises FileNotFoundError explicitly if expected output files
     are absent. The dispatcher wraps this into a JSON-RPC error response.
     """
-    import pandas as pd  # noqa: PLC0415 -- deferred: pandas excluded from sidecar build
-
     req = EvolveProRunResultRequest(**params)
     output_dir = Path(req.output_dir)
 
@@ -129,11 +128,19 @@ def handle_evolvepro_run_result(params: dict[str, Any]) -> dict[str, Any]:
     if not df_test_csv.exists():
         raise FileNotFoundError(f"df_test.csv not found in {req.output_dir}")
 
-    df_top = pd.read_csv(top_variants_csv, nrows=200)
-    top_variants: list[dict] = df_top.to_dict(orient="records")
+    top_variants: list[dict[str, str]] = []
+    with top_variants_csv.open(newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for index, row in enumerate(reader):
+            if index >= 200:
+                break
+            top_variants.append(dict(row))
 
-    df_test = pd.read_csv(df_test_csv)
-    n_predictions = len(df_test)
+    n_predictions = 0
+    with df_test_csv.open(newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for _row in reader:
+            n_predictions += 1
 
     return EvolveProRunResultResponse(
         output_csv=str(df_test_csv),

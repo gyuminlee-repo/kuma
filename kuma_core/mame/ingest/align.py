@@ -266,56 +266,76 @@ def _write_reads_fasta(
     return index_map
 
 
+# Default thread count for minimap2: KUMA_MINIMAP2_THREADS env var takes
+# priority; otherwise use min(8, cpu_count) to avoid oversubscription.
+_MINIMAP2_THREADS: int = int(
+    os.environ.get("KUMA_MINIMAP2_THREADS", "")
+    or str(min(8, os.cpu_count() or 4))
+)
+
+
 def _run_minimap2(
     reference_fasta: Path,
     reads_fasta: Path,
     preset: str,
+    sam_out_path: Path,
     best_n: int | None = None,
-) -> str:
-    """Run minimap2 -a and return its stdout (SAM text).
+) -> None:
+    """Run minimap2 -a, streaming stdout to *sam_out_path*.
+
+    SAM output is written directly to the given file path instead of being
+    buffered in a Python string.  This keeps memory usage proportional to the
+    number of concurrent output lines rather than the total alignment size.
 
     Raises RuntimeError on a non-zero exit.
     """
     binary = _resolve_minimap2()
-    cmd = [binary, "-a", "-x", preset]
+    cmd = [binary, "-a", "-x", preset, "-t", str(_MINIMAP2_THREADS)]
     if best_n is not None:
         # -N caps secondary alignments reported per read.
         cmd += ["-N", str(best_n)]
     cmd += [str(reference_fasta), str(reads_fasta)]
-    proc = subprocess.run(
-        cmd,
-        capture_output=True,
-        text=True,
-        shell=False,
-    )
+    with open(sam_out_path, "w", encoding="utf-8") as out:
+        proc = subprocess.run(
+            cmd,
+            stdout=out,
+            stderr=subprocess.PIPE,
+            text=True,
+            shell=False,
+        )
     if proc.returncode != 0:
         raise RuntimeError(
             f"minimap2 failed (exit {proc.returncode}): "
             f"{proc.stderr.strip()[:500]}"
         )
-    return proc.stdout
 
 
-def _iter_sam_records(sam_text: str) -> Iterable[tuple[int, int, int, int, str]]:
+def _iter_sam_records(
+    sam_path: Path,
+) -> Iterable[tuple[int, int, int, int, str]]:
     """Yield (read_index, flag, pos_1based, mapq, cigar_str) per SAM record.
 
-    Header lines (starting with '@') and unmapped records (FLAG & 0x4) are
-    skipped.  ``read_index`` is parsed from the synthetic integer QNAME.
+    Reads the SAM file line-by-line from *sam_path* so that the full alignment
+    output is never loaded into RAM at once.  Header lines (starting with
+    '@') and unmapped records (FLAG & 0x4) are skipped.  ``read_index`` is
+    parsed from the synthetic integer QNAME.
     """
-    for line in sam_text.splitlines():
-        if not line or line.startswith("@"):
-            continue
-        fields = line.split("\t")
-        if len(fields) < 6:
-            continue
-        flag = int(fields[1])
-        if flag & _FLAG_UNMAPPED:
-            continue
-        read_index = int(fields[0])
-        pos = int(fields[3])
-        mapq = int(fields[4])
-        cigar_str = fields[5]
-        yield read_index, flag, pos, mapq, cigar_str
+    with open(sam_path, encoding="utf-8") as fh:
+        for line in fh:
+            line = line.rstrip("\n")
+            if not line or line.startswith("@"):
+                continue
+            fields = line.split("\t")
+            if len(fields) < 6:
+                continue
+            flag = int(fields[1])
+            if flag & _FLAG_UNMAPPED:
+                continue
+            read_index = int(fields[0])
+            pos = int(fields[3])
+            mapq = int(fields[4])
+            cigar_str = fields[5]
+            yield read_index, flag, pos, mapq, cigar_str
 
 
 def align_reads(
@@ -364,35 +384,37 @@ def align_reads(
 
     with tempfile.TemporaryDirectory(prefix="kuro_align_") as tmpdir:
         reads_fasta = Path(tmpdir) / "reads.fasta"
+        sam_path = Path(tmpdir) / "out.sam"
         index_map = _write_reads_fasta(reads, reads_fasta)
         if not index_map:
             return []
 
-        sam_text = _run_minimap2(reference_fasta, reads_fasta, preset)
+        _run_minimap2(reference_fasta, reads_fasta, preset, sam_path)
 
-    # Collect the single primary alignment per read index.
-    primary: dict[int, Alignment] = {}
-    for read_index, flag, pos, mapq, cigar_str in _iter_sam_records(sam_text):
-        if flag & (_FLAG_SECONDARY | _FLAG_SUPPLEMENTARY):
-            continue
-        if read_index in primary:
-            continue
-        cigar = _parse_cigar(cigar_str)
-        r_st, r_en, q_st, q_en = _coords_from_cigar(cigar, pos, bool(flag & _FLAG_REVERSE))
-        strand = -1 if (flag & _FLAG_REVERSE) else 1
-        read_id, read_seq = index_map[read_index]
-        primary[read_index] = Alignment(
-            read_id=read_id,
-            read_seq=read_seq,
-            mapq=mapq,
-            cigar=_strip_clips(cigar),
-            r_st=r_st,
-            r_en=r_en,
-            q_st=q_st,
-            q_en=q_en,
-            strand=strand,
-            reference_length=ref_len,
-        )
+        # Collect the single primary alignment per read index.
+        # Parsing happens inside the tmpdir context so the SAM file is still present.
+        primary: dict[int, Alignment] = {}
+        for read_index, flag, pos, mapq, cigar_str in _iter_sam_records(sam_path):
+            if flag & (_FLAG_SECONDARY | _FLAG_SUPPLEMENTARY):
+                continue
+            if read_index in primary:
+                continue
+            cigar = _parse_cigar(cigar_str)
+            r_st, r_en, q_st, q_en = _coords_from_cigar(cigar, pos, bool(flag & _FLAG_REVERSE))
+            strand = -1 if (flag & _FLAG_REVERSE) else 1
+            read_id, read_seq = index_map[read_index]
+            primary[read_index] = Alignment(
+                read_id=read_id,
+                read_seq=read_seq,
+                mapq=mapq,
+                cigar=_strip_clips(cigar),
+                r_st=r_st,
+                r_en=r_en,
+                q_st=q_st,
+                q_en=q_en,
+                strand=strand,
+                reference_length=ref_len,
+            )
 
     # Emit in input (index) order, applying filters.
     results: list[Alignment] = []
@@ -462,42 +484,44 @@ def align_reads_multi(
 
     with tempfile.TemporaryDirectory(prefix="kuro_align_") as tmpdir:
         reads_fasta = Path(tmpdir) / "reads.fasta"
+        sam_path = Path(tmpdir) / "out.sam"
         index_map = _write_reads_fasta(reads, reads_fasta)
         if not index_map:
             return []
 
-        sam_text = _run_minimap2(
-            reference_fasta, reads_fasta, preset, best_n=best_n
+        _run_minimap2(
+            reference_fasta, reads_fasta, preset, sam_path, best_n=best_n
         )
 
-    # Collect passing hits per read index (primary + supplementary).
-    hits_by_index: dict[int, list[Alignment]] = {}
-    for read_index, flag, pos, mapq, cigar_str in _iter_sam_records(sam_text):
-        if flag & _FLAG_SECONDARY:
-            continue
-        if mapq < min_mapq:
-            continue
-        cigar = _parse_cigar(cigar_str)
-        r_st, r_en, q_st, q_en = _coords_from_cigar(cigar, pos, bool(flag & _FLAG_REVERSE))
-        ref_span = r_en - r_st
-        if ref_len > 0 and ref_span / ref_len < coverage_fraction:
-            continue
-        strand = -1 if (flag & _FLAG_REVERSE) else 1
-        read_id, read_seq = index_map[read_index]
-        hits_by_index.setdefault(read_index, []).append(
-            Alignment(
-                read_id=read_id,
-                read_seq=read_seq,
-                mapq=mapq,
-                cigar=_strip_clips(cigar),
-                r_st=r_st,
-                r_en=r_en,
-                q_st=q_st,
-                q_en=q_en,
-                strand=strand,
-                reference_length=ref_len,
+        # Collect passing hits per read index (primary + supplementary).
+        # Parsing happens inside the tmpdir context so the SAM file is still present.
+        hits_by_index: dict[int, list[Alignment]] = {}
+        for read_index, flag, pos, mapq, cigar_str in _iter_sam_records(sam_path):
+            if flag & _FLAG_SECONDARY:
+                continue
+            if mapq < min_mapq:
+                continue
+            cigar = _parse_cigar(cigar_str)
+            r_st, r_en, q_st, q_en = _coords_from_cigar(cigar, pos, bool(flag & _FLAG_REVERSE))
+            ref_span = r_en - r_st
+            if ref_len > 0 and ref_span / ref_len < coverage_fraction:
+                continue
+            strand = -1 if (flag & _FLAG_REVERSE) else 1
+            read_id, read_seq = index_map[read_index]
+            hits_by_index.setdefault(read_index, []).append(
+                Alignment(
+                    read_id=read_id,
+                    read_seq=read_seq,
+                    mapq=mapq,
+                    cigar=_strip_clips(cigar),
+                    r_st=r_st,
+                    r_en=r_en,
+                    q_st=q_st,
+                    q_en=q_en,
+                    strand=strand,
+                    reference_length=ref_len,
+                )
             )
-        )
 
     results: list[tuple[str, str, list[Alignment]]] = []
     for idx in range(len(index_map)):

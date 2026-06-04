@@ -31,7 +31,7 @@ import { WhatsNewDialog } from "../dialogs/WhatsNewDialog";
 import { NetworkConsentDialog } from "../dialogs/NetworkConsentDialog";
 import { OverwriteConfirmDialog } from "../dialogs/OverwriteConfirmDialog";
 import { handleOpenSequence } from "./export-handlers";
-import { startDeadlockWatch } from "@/lib/deadlockDetector";
+import { startDeadlockWatch, DEADLOCK_THRESHOLD_MS } from "@/lib/deadlockDetector";
 import { getLastProgressAt } from "@/lib/ipc-kuro";
 import { MAJOR_ORDER } from "@/store/slices/navigationSlice";
 import { useMainZoom } from "@/hooks/useMainZoom";
@@ -115,7 +115,7 @@ export function AppLayout() {
     }
   }, [loadPolymerases, sidecarStatus]);
 
-  // §1 Dead-lock 감지: design 진행 중 30초 progress 정적 시 모달 표시
+  // §1 Dead-lock 감지: design 진행 중 DEADLOCK_THRESHOLD_MS 초과 시 모달 표시
   useEffect(() => {
     if (!isDesigning) return;
     return startDeadlockWatch({
@@ -309,7 +309,7 @@ export function AppLayout() {
           <DialogHeader>
             <DialogTitle>{t("appLayout.deadlockTitle")}</DialogTitle>
             <DialogDescription>
-              {t("appLayout.deadlockDesc")}
+              {t("appLayout.deadlockDesc", { seconds: DEADLOCK_THRESHOLD_MS / 1000 })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex gap-2">

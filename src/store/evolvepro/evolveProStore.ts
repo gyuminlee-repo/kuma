@@ -91,6 +91,7 @@ export interface EvolveProState {
   evolveProRunId: string | null;
   esm2Recommendation: Esm2RecommendationResponse | null;
   evolveProProgress: EvolveProRunProgress | null;
+  evolveProProgressLog: string[];
   evolveProResult: EvolveProRunResult | null;
   /** Detailed run result fetched via evolvepro.run_result RPC after stage==="done". Not persisted. */
   evolveProRunResult: EvolveProRunResultResponse | null;
@@ -140,6 +141,7 @@ export const useEvolveProStore = create<EvolveProState>()(
       evolveProRunId: null,
       esm2Recommendation: null,
       evolveProProgress: null,
+      evolveProProgressLog: [],
       evolveProResult: null,
       evolveProRunResult: null,
       evolveProError: null,
@@ -207,7 +209,9 @@ export const useEvolveProStore = create<EvolveProState>()(
           evolveProCancelling: false,
           evolveProError: null,
           evolveProResult: null,
+          evolveProRunResult: null,
           evolveProProgress: null,
+          evolveProProgressLog: [],
           evolveProRunId: null,
           evolveProRunStartedAt: Date.now(),
         });
@@ -238,7 +242,15 @@ export const useEvolveProStore = create<EvolveProState>()(
       },
 
       setProgress: (p) => {
-        set({ evolveProProgress: p });
+        set((state) => {
+          const message = p.message.trim();
+          const previous = state.evolveProProgressLog;
+          const nextLog =
+            message.length > 0 && previous[previous.length - 1] !== message
+              ? [...previous, message].slice(-80)
+              : previous;
+          return { evolveProProgress: p, evolveProProgressLog: nextLog };
+        });
         if (p.stage === "done") {
           set({
             evolveProRunning: false,
@@ -284,6 +296,7 @@ export const useEvolveProStore = create<EvolveProState>()(
           evolveProRunId: null,
           esm2Recommendation: null,
           evolveProProgress: null,
+          evolveProProgressLog: [],
           evolveProResult: null,
           evolveProRunResult: null,
           evolveProError: null,

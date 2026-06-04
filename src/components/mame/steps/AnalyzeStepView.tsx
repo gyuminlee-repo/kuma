@@ -20,6 +20,7 @@
  */
 
 import { AlertCircle, Download, ShieldCheck, Trash2 } from "lucide-react";
+import { computeEtaFromElapsed } from "@/lib/eta";
 import { useTranslation } from "react-i18next";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
@@ -72,6 +73,10 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
   const isValidating = useMameAppStore((s) => s.isValidating);
   const analyzeProgress = useMameAppStore((s) => s.analyzeProgress);
   const analyzeMessage = useMameAppStore((s) => s.analyzeMessage);
+  const analyzeCurrent = useMameAppStore((s) => s.analyzeCurrent);
+  const analyzeTotal = useMameAppStore((s) => s.analyzeTotal);
+  const analyzeStage = useMameAppStore((s) => s.analyzeStage);
+  const analyzeStartedAt = useMameAppStore((s) => s.analyzeStartedAt);
   const validationErrors = useMameAppStore((s) => s.validationErrors);
   const hasResults = useMameAppStore((s) => s.verdicts.length > 0);
   const cancelAnalysis = useMameAppStore((s) => s.cancelAnalysis);
@@ -140,9 +145,20 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
                 aria-label={t("mameSidebar.analysisProgressAria", { percent: analyzeProgress })}
               />
             )}
-            {!isAnalyzing && validationErrors.length > 0 && (
-              <p className="mt-1.5 text-caption text-muted-foreground">
-                {t("mameSidebar.validationIssues", { count: validationErrors.length })}
+            {isAnalyzing && analyzeCurrent !== null && analyzeTotal !== null && (
+              <p className="mt-1 text-caption text-muted-foreground" aria-live="polite">
+                {analyzeCurrent.toLocaleString()} / {analyzeTotal.toLocaleString()}
+              </p>
+            )}
+            {isAnalyzing && analyzeStage && (
+              <p className="mt-0.5 text-caption text-muted-foreground" aria-live="polite">
+                {t(`mame.analyze.phase.${analyzeStage}`, { defaultValue: analyzeStage })}
+              </p>
+            )}
+            {isAnalyzing && analyzeStartedAt !== null && analyzeProgress > 0 && (
+              <p className="mt-0.5 text-caption text-muted-foreground" aria-live="polite">
+                <span className="font-medium">{t("mame.analyze.etaLabel")}:</span>{" "}
+                {computeEtaFromElapsed(analyzeProgress, analyzeStartedAt, t)}
               </p>
             )}
           </div>

@@ -30,7 +30,13 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
         lastExportAt: new Date().toISOString(),
         isExporting: false,
       });
-      get().setOutputPath(result.output_path);
+      // Store the folder only; the full export path is tracked in lastExportPath.
+      const exportDir = (() => {
+        const p = result.output_path.replace(/\\/g, "/");
+        const i = p.lastIndexOf("/");
+        return i >= 0 ? result.output_path.slice(0, i) : result.output_path;
+      })();
+      get().setOutputPath(exportDir);
       try {
         await ensureWorkspaceFromExportPath(result.output_path);
         await registerArtifacts([

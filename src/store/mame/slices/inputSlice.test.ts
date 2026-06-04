@@ -77,7 +77,7 @@ describe("mame inputSlice", () => {
       inputDir: "D:/runs/20260212_2227_X4_FBF10847_e7145f8e",
       expectedPath: "D:/project/KURO_expected.xlsx",
       referencePath: "D:/project/ref.fasta",
-      outputPath: "D:/project/mame_result.xlsx",
+      outputPath: "D:/project",
       inputMode: "raw_run",
       rawRunParams: {
         ...makeStore().rawRunParams,
@@ -128,7 +128,7 @@ describe("mame inputSlice", () => {
         edit_dist_ratio: 0.25,
         chimera_split: true,
       }),
-      600_000,
+      1_800_000,
     );
     expect(mockSendRequest).toHaveBeenNthCalledWith(
       2,
@@ -137,7 +137,7 @@ describe("mame inputSlice", () => {
         input_dir: demuxOutputDir,
         ingest_mode: "barcode",
       }),
-      300_000,
+      1_200_000,
     );
     expect(store.isAnalyzing).toBe(false);
     expect(store.analyzeMessage).toBe("Analysis complete");
@@ -148,7 +148,7 @@ describe("mame inputSlice", () => {
       inputDir: "D:/runs/20260212_2227_X4_FBF10847_e7145f8e",
       expectedPath: "D:/project/KURO_expected.xlsx",
       referencePath: "D:/project/ref.fasta",
-      outputPath: "D:/project/mame_result.xlsx",
+      outputPath: "D:/project",
       inputMode: "raw_run",
       cdsEnd: 900,
     });

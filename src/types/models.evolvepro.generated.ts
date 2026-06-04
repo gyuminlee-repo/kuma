@@ -151,7 +151,7 @@ export interface EvolveProRunProgress {
   message?: string;
   result?: EvolveProRunResult | null;
   run_id: string;
-  stage: "detect" | "loading" | "scoring" | "selecting" | "done" | "error";
+  stage: "detect" | "loading" | "embedding" | "scoring" | "selecting" | "done" | "error";
   total: number;
   [k: string]: unknown;
 }

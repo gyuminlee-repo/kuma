@@ -337,12 +337,12 @@ def _stream_stdout(
             batch_cur = int(m.group(1))
             batch_total = int(m.group(2))
             last_stage = "embedding"
-            parts: list[str] = []
+            parts: list[str] = [f"batch {batch_cur}/{batch_total} done"]
             if last_throughput is not None:
                 parts.append(f"{last_throughput:.1f} tok/s")
             if last_eta is not None:
                 parts.append(f"ETA {last_eta:.0f}s")
-            msg = " | ".join(parts) if parts else line[:120]
+            msg = " | ".join(parts)
             progress_cb(handle.run_id, "embedding", batch_cur, batch_total, msg)
         elif _RE_DONE.search(line):
             last_stage = "done"
@@ -383,6 +383,14 @@ def _stream_stdout(
             n_rounds_expected,
             "EVOLVEpro run finished",
             result,
+        )
+    elif handle.cancelled:
+        progress_cb(
+            handle.run_id,
+            "error",
+            current_round,
+            n_rounds_expected,
+            "EVOLVEpro run cancelled",
         )
     else:
         detail = next(
@@ -473,6 +481,7 @@ def run(
         else:
             cmd.extend(["--wt-sequence", wt_sequence])
     popen_kwargs: dict = dict(
+        stdin=subprocess.DEVNULL,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         bufsize=1,
@@ -503,11 +512,17 @@ def cancel(handle: RunHandle) -> bool:
     handle.cancelled = True
     try:
         if sys.platform == "win32":
-            handle.process.send_signal(signal.CTRL_BREAK_EVENT)  # type: ignore[attr-defined]
-        else:
-            os.killpg(os.getpgid(handle.process.pid), signal.SIGTERM)
+            result = subprocess.run(  # noqa: S603
+                ["taskkill", "/PID", str(handle.process.pid), "/T", "/F"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=10,
+                shell=False,
+            )
+            return result.returncode == 0
+        os.killpg(os.getpgid(handle.process.pid), signal.SIGTERM)
         return True
-    except (OSError, ProcessLookupError):
+    except (OSError, ProcessLookupError, subprocess.TimeoutExpired):
         return False
 
 

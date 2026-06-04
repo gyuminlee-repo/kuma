@@ -101,7 +101,15 @@ class EvolveProRunProgress(BaseModel):
     """Progress notification payload streamed during evolvepro_run."""
 
     run_id: str
-    stage: Literal["detect", "loading", "scoring", "selecting", "done", "error"]
+    stage: Literal[
+        "detect",
+        "loading",
+        "embedding",
+        "scoring",
+        "selecting",
+        "done",
+        "error",
+    ]
     current: int = Field(ge=0)
     total: int = Field(ge=0)
     message: str = ""

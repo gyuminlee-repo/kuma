@@ -505,3 +505,140 @@ class TestDispatcherRegistration:
 
         handler = _METHODS["mame.run_combinatorial_demux"]
         assert callable(handler)
+
+
+# ---------------------------------------------------------------------------
+# Heartbeat thread tests
+# ---------------------------------------------------------------------------
+
+
+class TestHeartbeat:
+    """Verify heartbeat keep-alive emits during run_combinatorial_demux.
+
+    Strategy: monkeypatch _HEARTBEAT_INTERVAL_S to 0.05 s and make the
+    core sleep for 0.2 s.  The heartbeat thread must fire at least once
+    during that window, emitting a progress notification with stage="demux"
+    and value=50 (initial holder state, alignment phase).
+    """
+
+    def test_heartbeat_emits_during_alignment(
+        self,
+        run_dir: "Path",
+        barcodes_xlsx: "Path",
+        reference_fasta: "Path",
+        output_dir: "Path",
+        monkeypatch: "pytest.MonkeyPatch",
+    ) -> None:
+        import time
+        from unittest.mock import MagicMock, call, patch
+
+        import sidecar_mame.handlers.combinatorial_demux as hb_mod
+
+        # Speed up heartbeat interval so test completes in < 1 s.
+        monkeypatch.setattr(hb_mod, "_HEARTBEAT_INTERVAL_S", 0.05)
+
+        mock_result = _MockDemuxResult()
+
+        def _slow_demux(**kwargs):
+            """Simulate a long-running alignment with no progress callbacks."""
+            time.sleep(0.25)
+            return mock_result
+
+        emitted: list[dict] = []
+
+        def _capture_send(obj: dict) -> None:
+            emitted.append(obj)
+
+        with (
+            patch(
+                "kuma_core.mame.ingest.combinatorial_demux.run_combinatorial_demux",
+                side_effect=_slow_demux,
+            ),
+            patch("sidecar_mame.handlers.combinatorial_demux._send", side_effect=_capture_send),
+        ):
+            from sidecar_mame.handlers.combinatorial_demux import (
+                handle_run_combinatorial_demux,
+            )
+
+            handle_run_combinatorial_demux(
+                {
+                    "minknow_run_dir": str(run_dir),
+                    "custom_barcodes_xlsx": str(barcodes_xlsx),
+                    "reference_fasta": str(reference_fasta),
+                    "output_dir": str(output_dir),
+                }
+            )
+
+        # Filter progress notifications (method == "progress")
+        progress_events = [
+            obj for obj in emitted
+            if obj.get("method") == "progress"
+        ]
+        # At least the initial emit (value=50) + 1 heartbeat re-emit must exist.
+        # With 0.05 s interval and 0.25 s sleep we expect ~4-5 heartbeats.
+        heartbeat_events = [
+            e for e in progress_events
+            if e.get("params", {}).get("value") == 50
+            and e.get("params", {}).get("stage") == "demux"
+        ]
+        assert len(heartbeat_events) >= 2, (
+            f"Expected >= 2 demux/50 progress events (initial + heartbeat), "
+            f"got {len(heartbeat_events)}. All events: {progress_events}"
+        )
+
+    def test_heartbeat_stops_after_completion(
+        self,
+        run_dir: "Path",
+        barcodes_xlsx: "Path",
+        reference_fasta: "Path",
+        output_dir: "Path",
+        monkeypatch: "pytest.MonkeyPatch",
+    ) -> None:
+        """Heartbeat thread must stop after run_combinatorial_demux returns."""
+        import time
+        from unittest.mock import patch
+
+        import sidecar_mame.handlers.combinatorial_demux as hb_mod
+        import threading
+
+        monkeypatch.setattr(hb_mod, "_HEARTBEAT_INTERVAL_S", 0.05)
+
+        mock_result = _MockDemuxResult()
+        thread_ref: list = []
+
+        original_thread_cls = threading.Thread
+
+        def _capturing_thread(target=None, daemon=None, name=None):
+            t = original_thread_cls(target=target, daemon=daemon, name=name)
+            if name == "demux-heartbeat":
+                thread_ref.append(t)
+            return t
+
+        with (
+            patch(
+                "kuma_core.mame.ingest.combinatorial_demux.run_combinatorial_demux",
+                return_value=mock_result,
+            ),
+            patch("sidecar_mame.handlers.combinatorial_demux._send"),
+            patch("sidecar_mame.handlers.combinatorial_demux.threading.Thread",
+                  side_effect=_capturing_thread),
+        ):
+            from sidecar_mame.handlers.combinatorial_demux import (
+                handle_run_combinatorial_demux,
+            )
+
+            handle_run_combinatorial_demux(
+                {
+                    "minknow_run_dir": str(run_dir),
+                    "custom_barcodes_xlsx": str(barcodes_xlsx),
+                    "reference_fasta": str(reference_fasta),
+                    "output_dir": str(output_dir),
+                }
+            )
+
+        # Thread must be captured and must have stopped.
+        assert len(thread_ref) == 1, "Expected exactly one demux-heartbeat thread"
+        hb = thread_ref[0]
+        # Allow a short grace period for join.
+        hb.join(timeout=0.5)
+        assert not hb.is_alive(), "Heartbeat thread still alive after handler returned"

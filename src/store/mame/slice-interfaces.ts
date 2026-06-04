@@ -52,6 +52,11 @@ export interface InputSlice {
   isDemuxing: boolean;
   analyzeProgress: number;
   analyzeMessage: string;
+  analyzeCurrent: number | null;
+  analyzeTotal: number | null;
+  analyzeStage: string | null;
+  analyzeStartedAt: number | null;
+  analyzePhase: "demux" | "analyze" | null;
   demuxProgress: number;
   demuxMessage: string;
   demuxResult: DemuxAndFilterResult | null;

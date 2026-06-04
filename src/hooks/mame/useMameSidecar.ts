@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { spawnSidecar, setProgressHandler } from "@/lib/ipc-mame";
+import { composeAnalysisProgress } from "@/lib/mame/composeAnalysisProgress";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { useAppStore } from "@/store/appStore";
 import type { SidecarStatus } from "@/types/mame/models";
@@ -13,11 +14,20 @@ export function useMameSidecar() {
 
   useEffect(() => {
     setProgressHandler((progress) => {
-      useMameAppStore.setState((state) => ({
-        analyzeProgress: progress.value,
-        analyzeMessage: progress.message,
-        isAnalyzing: state.isAnalyzing || progress.value < 100,
-      }));
+      useMameAppStore.setState((state) => {
+        const phase = state.analyzePhase ?? "analyze";
+        const isRawRun = state.inputMode === "raw_run";
+        const scaledProgress = composeAnalysisProgress(progress.value, phase, isRawRun);
+        return {
+          analyzeProgress: scaledProgress,
+          analyzeMessage: progress.message,
+          isAnalyzing: state.isAnalyzing || progress.value < 100,
+          ...(progress.current !== undefined && progress.total !== undefined
+            ? { analyzeCurrent: progress.current, analyzeTotal: progress.total }
+            : {}),
+          ...(progress.stage !== undefined ? { analyzeStage: progress.stage } : {}),
+        };
+      });
       if (progress.message) {
         const ts = new Date().toLocaleTimeString();
         useAppStore.getState().appendLogLine(`[${ts}] [MAME] ${progress.message}`);

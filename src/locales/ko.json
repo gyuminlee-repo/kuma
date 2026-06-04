@@ -145,6 +145,24 @@
       "redetect": "재감지",
       "redetecting": "감지 중..."
     },
+    "progressModal": {
+      "eta": {
+        "calculating": "계산 중…",
+        "lessThanMinute": "1분 미만",
+        "remaining": "약 {{min}}분 {{sec}}초 남음"
+      }
+    },
+    "analyze": {
+      "phase": {
+        "alignment": "정렬 중",
+        "coverage_filter": "커버리지 필터",
+        "demux": "역다중화 중",
+        "consensus": "컨센서스 생성 중",
+        "analyzing": "분석 중"
+      },
+      "etaLabel": "예상 완료",
+      "progressAria": "통합 분석 진행률 {{percent}}%"
+    },
     "parameters": {
       "title": "파라미터",
       "subtitle": "이 배치의 임계값과 수집 모드입니다.",
@@ -482,7 +500,7 @@
     },
     "appLayout": {
       "deadlockTitle": "응답 없음",
-      "deadlockDescription": "30초 이상 진행 상태가 업데이트되지 않았습니다. 작업이 멈췄습니다.",
+      "deadlockDescription": "{{seconds}}초 이상 진행 상태가 업데이트되지 않았습니다. 작업이 멈췄습니다.",
       "deadlockWait": "계속 대기",
       "deadlockReset": "초기화",
       "analysisWorkspaceAriaLabel": "분석 작업 공간",
@@ -1308,7 +1326,7 @@
     "missingMutations": "변이 정보 (변이 패널에 최소 1개의 변이를 입력하세요)",
     "missingTargetGene": "대상 유전자 (시퀀스 패널에서 유전자를 선택하세요)",
     "deadlockTitle": "응답 없음",
-    "deadlockDesc": "30초 이상 진행 상태가 업데이트되지 않았습니다. 작업이 멈췄습니다.",
+    "deadlockDesc": "{{seconds}}초 이상 진행 상태가 업데이트되지 않았습니다. 작업이 멈췄습니다.",
     "deadlockWait": "계속 대기",
     "deadlockReset": "초기화",
     "plateCount": "{{count}} 플레이트",

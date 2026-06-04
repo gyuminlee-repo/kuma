@@ -20,6 +20,7 @@ results/
 # Local build venv (PyInstaller + Python deps for sidecar bundling)
 .venv-build/
 .venv/
+.venv-win/
 
 # Generated/large files
 docs/tutorial.webm

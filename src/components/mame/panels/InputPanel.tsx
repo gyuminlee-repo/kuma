@@ -84,18 +84,6 @@ export function InputPanel() {
     setParams({ rawRunParams: partial });
   }
 
-  function joinPath(dir: string, filename: string): string {
-    const separator = dir.includes("\\") ? "\\" : "/";
-    return `${dir.replace(/[\\/]+$/, "")}${separator}${filename}`;
-  }
-
-  function currentOutputFilename(): string {
-    const current = getPathPreview(outputPath);
-    return current.toLowerCase().endsWith(".xlsx")
-      ? current
-      : defaultMameExportFilename({ referencePath, inputDir, verdictCount });
-  }
-
   async function browseDirectory() {
     if (isAutoFilling) return;
     const selected = toSinglePath(await open({ directory: true }));
@@ -160,7 +148,7 @@ export function InputPanel() {
 
   async function browseOutput() {
     const selected = toSinglePath(await open({ directory: true, title: "Select export folder" }));
-    if (selected) setOutputPath(joinPath(selected, currentOutputFilename()));
+    if (selected) setOutputPath(selected);
   }
 
   async function browseCustomBarcodes() {
