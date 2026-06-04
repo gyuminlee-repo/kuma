@@ -14,14 +14,30 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useAppStore } from "@/store/appStore";
+import { getIncludedDesignResults } from "@/store/slices/designSlice.helpers";
 
 export function OrderSummary() {
   const { t } = useTranslation();
   const totalCount = useAppStore((s) => s.totalCount);
   const successCount = useAppStore((s) => s.successCount);
   const mutationText = useAppStore((s) => s.mutationText);
+  const mutationInputMode = useAppStore((s) => s.mutationInputMode);
+  const designResults = useAppStore((s) => s.designResults);
+  const excludedDesignMutations = useAppStore((s) => s.excludedDesignMutations);
 
-  const plateEstimate = totalCount > 0 ? Math.ceil(totalCount / 96) : null;
+  const includedSuccessCount =
+    mutationInputMode === "evolvepro"
+      ? getIncludedDesignResults(designResults, excludedDesignMutations).length
+      : successCount;
+
+  const plateEstimate =
+    mutationInputMode === "evolvepro"
+      ? includedSuccessCount > 0
+        ? Math.ceil(includedSuccessCount / 96)
+        : null
+      : totalCount > 0
+        ? Math.ceil(totalCount / 96)
+        : null;
 
   const mutationCount = useMemo(() => {
     if (!mutationText.trim()) return 0;
@@ -38,7 +54,7 @@ export function OrderSummary() {
     },
     {
       labelKey: "phaseC.export.summary.primerCount",
-      value: totalCount > 0 ? `${successCount} / ${totalCount}` : "—",
+      value: totalCount > 0 ? `${includedSuccessCount} / ${totalCount}` : "—",
     },
     {
       labelKey: "phaseC.export.summary.mutationCount",

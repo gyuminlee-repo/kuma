@@ -19,6 +19,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
 import { useAppStore } from "@/store/appStore";
+import { getIncludedDesignResults } from "@/store/slices/designSlice.helpers";
 import { ResultTable } from "@/components/widgets/ResultTable";
 import { PlateMap } from "@/components/widgets/PlateMap";
 import { SidebarToggleButton } from "@/components/widgets/SidebarToggleButton";
@@ -58,16 +59,20 @@ export function OutputStepView() {
   const goToNextStep = useAppStore((s) => s.goToNextStep);
   const goToPrevStep = useAppStore((s) => s.goToPrevStep);
 
-  const { designResults, plateMappings, failedMutations, rescueStats } = useAppStore(
+  const { designResults, excludedDesignMutations, plateMappings, failedMutations, rescueStats } = useAppStore(
     useShallow((s) => ({
       designResults: s.designResults,
+      excludedDesignMutations: s.excludedDesignMutations,
       plateMappings: s.plateMappings,
       failedMutations: s.failedMutations,
       rescueStats: s.rescueStats,
     })),
   );
 
-  const primerCount = designResults.length;
+  const primerCount = getIncludedDesignResults(
+    designResults,
+    excludedDesignMutations,
+  ).length;
   const plateCount =
     Math.ceil(plateMappings.filter((m) => m.primer_type === "forward").length / 96) || 0;
   const failedCount = failedMutations.length;

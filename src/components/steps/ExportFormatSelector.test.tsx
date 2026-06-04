@@ -173,4 +173,38 @@ describe("ExportFormatSelector — Export All form", () => {
     expect(btn).toBeDisabled();
     expect(screen.getAllByRole("alert").length).toBeGreaterThan(0);
   });
+
+  const mkResult = (mutation: string) => ({
+    mutation,
+    aa_position: 1,
+    codon_pos: 1,
+    forward_seq: "ATCG",
+    reverse_seq: "CGAT",
+    fwd_len: 4,
+    rev_len: 4,
+    overlap_len: 20,
+    tm_no_fwd: 60,
+    tm_no_rev: 60,
+    tm_overlap: 60,
+    tm_condition_met: true,
+    tolerance_used: 0,
+    has_offtarget: false,
+    penalty: 0,
+    gc_fwd: 50,
+    gc_rev: 50,
+    wt_codon: "ATG",
+    mt_codon: "GTG",
+    overlap_seq: "ATCG",
+    warnings: [] as string[],
+  });
+
+  it("excluded rows do not count toward the 96-well overflow gate", () => {
+    const results = Array.from({ length: 97 }, (_, i) => mkResult(`M${i}A`));
+    useAppStore.setState({ designResults: results, excludedDesignMutations: ["M0A", "M1A"] });
+    render(<ExportFormatSelector />);
+    const btn = screen.getByRole("button");
+    expect(btn).not.toBeDisabled();               // 95 included <= 96
+    expect(screen.queryByText(/exceed one 96-well plate/i)).toBeNull();
+    expect(screen.getByText("95 wells")).toBeInTheDocument();
+  });
 });
