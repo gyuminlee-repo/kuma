@@ -266,11 +266,14 @@ def _write_reads_fasta(
     return index_map
 
 
-# Default thread count for minimap2: KUMA_MINIMAP2_THREADS env var takes
-# priority; otherwise use min(8, cpu_count) to avoid oversubscription.
+# Default thread count for the main minimap2 alignment.  KUMA_MINIMAP2_THREADS
+# env var takes priority; otherwise auto-detect from the host CPU, reserving one
+# core for the UI / sidecar.  (Previously capped at min(8, cpu), which under-used
+# machines with more than 8 cores.)  Per-well consensus alignment passes an
+# explicit threads=1 instead, so concurrent wells do not oversubscribe.
 _MINIMAP2_THREADS: int = int(
     os.environ.get("KUMA_MINIMAP2_THREADS", "")
-    or str(min(8, os.cpu_count() or 4))
+    or str(max(1, (os.cpu_count() or 4) - 1))
 )
 
 
@@ -280,6 +283,7 @@ def _run_minimap2(
     preset: str,
     sam_out_path: Path,
     best_n: int | None = None,
+    threads: int | None = None,
 ) -> None:
     """Run minimap2 -a, streaming stdout to *sam_out_path*.
 
@@ -290,7 +294,8 @@ def _run_minimap2(
     Raises RuntimeError on a non-zero exit.
     """
     binary = _resolve_minimap2()
-    cmd = [binary, "-a", "-x", preset, "-t", str(_MINIMAP2_THREADS)]
+    n_threads = threads if threads is not None else _MINIMAP2_THREADS
+    cmd = [binary, "-a", "-x", preset, "-t", str(n_threads)]
     if best_n is not None:
         # -N caps secondary alignments reported per read.
         cmd += ["-N", str(best_n)]
@@ -344,6 +349,7 @@ def align_reads(
     preset: str = "map-ont",
     min_mapq: int = 25,
     require_full_span: bool = True,
+    threads: int | None = None,
 ) -> list[Alignment]:
     """Align reads to a reference using the minimap2 CLI.
 
@@ -389,7 +395,7 @@ def align_reads(
         if not index_map:
             return []
 
-        _run_minimap2(reference_fasta, reads_fasta, preset, sam_path)
+        _run_minimap2(reference_fasta, reads_fasta, preset, sam_path, threads=threads)
 
         # Collect the single primary alignment per read index.
         # Parsing happens inside the tmpdir context so the SAM file is still present.

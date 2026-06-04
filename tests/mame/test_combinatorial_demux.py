@@ -735,5 +735,9 @@ class TestMinimap2ThreadsConstant:
         importlib.reload(align_mod)
 
     def test_default_within_bounds(self) -> None:
+        import os
+
         from kuma_core.mame.ingest.align import _MINIMAP2_THREADS
-        assert 1 <= _MINIMAP2_THREADS <= 8
+
+        # Auto-detected default: all host cores minus one reserved for the UI.
+        assert _MINIMAP2_THREADS == max(1, (os.cpu_count() or 4) - 1)
