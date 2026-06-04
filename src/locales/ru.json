@@ -145,6 +145,20 @@
       "redetect": "Перепроверить",
       "redetecting": "Определение..."
     },
+    "nativeBarcodeDialog": {
+      "title": "Подтвердить native barcodes",
+      "description": "Из объёмов FASTQ обнаружено несколько native barcodes. Выберите, какие демультиплексировать (каждый выполняется параллельно в свою папку sort_barcode).",
+      "detected": "Обнаружено native barcodes: {{count}}",
+      "colBarcode": "Barcode",
+      "colOutput": "Папка вывода",
+      "colVolume": "Объём FASTQ",
+      "colShare": "Доля",
+      "colUse": "Обработать",
+      "inUse": "используется",
+      "run": "Запустить demux",
+      "cancel": "Отмена",
+      "noneSelected": "Выберите хотя бы один barcode"
+    },
     "parameters": {
       "title": "Параметры",
       "subtitle": "Пороги и режим ingest для этого batch.",
@@ -563,6 +577,15 @@
         "exporting": "Экспорт…",
         "exportErrorPathRequired": "Требуется путь вывода."
       }
+    },
+    "nativeBarcodeDialog": {
+      "title": "Обнаружено несколько native barcode",
+      "description": "Этот запуск содержит более одного native barcode MinKNOW. Выберите barcode для demultiplex; каждый выбранный barcode обрабатывается в отдельную папку вывода.",
+      "shareHeader": "Доля",
+      "selectAriaLabel": "Выбрать native barcode {{name}}",
+      "selectedCount": "Выбрано barcode: {{count}}",
+      "confirm": "Запустить выбранные",
+      "confirming": "Выполнение…"
     },
     "inputPanel": {
       "title": "Входные файлы",

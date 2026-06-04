@@ -11,6 +11,7 @@ import type {
 } from "@/types/mame/models";
 import type { CdsCandidate } from "@/lib/sequence/autoDetectCds";
 import type { CombinatorialDemuxResult } from "@/types/mame/combinatorial_demux";
+import type { DetectNativeBarcodesResult } from "@/types/mame/detect_native_barcodes";
 import type { InputSlice, RawRunParams } from "../slice-interfaces";
 import type { AppState } from "../types";
 const MAME_DEMUX_RPC_TIMEOUT_MS = 1_800_000; // 30 min — demux of large runs (78 FASTQ incident)
@@ -108,6 +109,8 @@ const mameInputInitialState = {
   demuxResult: null,
   distributionStats: null,
   ampliconLengthEstimate: null,
+  detectedNativeBarcodes: null as DetectNativeBarcodesResult["native_barcodes"] | null,
+  isDetectingBarcodes: false,
   cdsCandidates: [],
   selectedCdsIndex: 0,
   analyzeCdsCandidates: [] as CdsCandidate[],
@@ -276,6 +279,88 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       });
     }
   },
+  // Shared raw_run demux + analyze body. nativeBarcodes is threaded into the
+  // run_combinatorial_demux params: null/[] -> single-pool, non-empty array ->
+  // per-NB demux (one sort_barcode{NN}/ subdir per selected MinKNOW dir name).
+  // Happy path only; callers (runAnalysis / confirmNativeBarcodeSelection) own
+  // the try/catch that resets isAnalyzing and surfaces validationErrors.
+  _demuxAndAnalyze: async (nativeBarcodes: string[] | null) => {
+    const state = get();
+    const { rawRunParams } = state;
+
+    const combinatorialOutputDir = deriveDemuxOutputDir(state.outputPath);
+    set({
+      analyzeProgress: 0,
+      analyzePhase: "demux",
+      analyzeMessage: "Running combinatorial demux from raw MinKNOW run",
+    });
+    const demuxResult = await sendRequest<CombinatorialDemuxResult>(
+      "mame.run_combinatorial_demux",
+      {
+        minknow_run_dir: state.inputDir,
+        custom_barcodes_xlsx: rawRunParams.customBarcodesPath,
+        reference_fasta: state.referencePath,
+        output_dir: combinatorialOutputDir,
+        sample_map_xlsx: state.sampleMapPath || null,
+        kuro_xlsx: null,
+        mapq_threshold: 25,
+        coverage_fraction: rawRunParams.coverageFraction,
+        edit_dist_ratio: rawRunParams.editDistRatio,
+        chimera_split: rawRunParams.chimeraSplit,
+        trim_flank_bp: 30,
+        native_barcodes: nativeBarcodes,
+      },
+      MAME_DEMUX_RPC_TIMEOUT_MS,
+    );
+    const analysisInputDir = demuxResult.output_dir;
+    set({
+      analyzeProgress: 50,
+      analyzePhase: "analyze",
+      analyzeMessage: `Combinatorial demux complete: ${demuxResult.assigned_reads.toLocaleString()} reads assigned`,
+    });
+
+    const result = await sendRequest<AnalyzeResult>(
+      "analyze",
+      {
+        input_dir: analysisInputDir,
+        reference: state.referencePath,
+        expected: state.expectedPath,
+        output: joinPathSlice(state.outputPath, defaultMameExportFilename({ referencePath: state.referencePath, inputDir: state.inputDir, verdictCount: 0 })),
+        mode: state.mode,
+        ingest_mode: "barcode",
+        cds_start: state.cdsStart,
+        cds_end: state.cdsEnd,
+        min_file_size_kb: state.minFileSizeKb,
+        many_cutoff: state.manyCutoff,
+      },
+      MAME_ANALYZE_RPC_TIMEOUT_MS,
+    );
+
+    get().setVerdicts(result.verdicts);
+    get().setReplicates(result.replicates);
+    get().setSummary(result.summary);
+    // Store the folder only (outputPath is now a folder); lastExportPath tracks the full path.
+    const outDir = (() => {
+      const p = result.output_path.replace(/\\/g, "/");
+      const i = p.lastIndexOf("/");
+      return i >= 0 ? result.output_path.slice(0, i) : result.output_path;
+    })();
+    get().setOutputPath(outDir);
+    get().setDistributionStats(result.distribution_stats ?? null);
+    await get().loadPlateData();
+    // A8: auto-load run health after analysis completes (non-blocking on failure)
+    void get().loadRunHealth();
+    set({
+      isAnalyzing: false,
+      analyzeProgress: 100,
+      analyzeMessage: "Analysis complete",
+      analyzeCurrent: null,
+      analyzeTotal: null,
+      analyzeStage: null,
+      analyzeStartedAt: null,
+      analyzePhase: null,
+    });
+  },
   runAnalysis: async () => {
     set({
       isAnalyzing: true,
@@ -290,57 +375,47 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     });
     try {
       const state = get();
-      let analysisInputDir = state.inputDir;
-      let analysisIngestMode = state.ingestMode;
 
       if (state.inputMode === "raw_run") {
-        const { rawRunParams } = state;
         const inputErrors = getDemuxInputErrors(state);
         if (inputErrors.length > 0) {
           throw new Error(inputErrors.join("\n"));
         }
 
-        const combinatorialOutputDir = deriveDemuxOutputDir(state.outputPath);
-        set({
-          analyzeProgress: 0,
-          analyzePhase: "demux",
-          analyzeMessage: "Running combinatorial demux from raw MinKNOW run",
-        });
-        const demuxResult = await sendRequest<CombinatorialDemuxResult>(
-          "mame.run_combinatorial_demux",
-          {
-            minknow_run_dir: state.inputDir,
-            custom_barcodes_xlsx: rawRunParams.customBarcodesPath,
-            reference_fasta: state.referencePath,
-            output_dir: combinatorialOutputDir,
-            sample_map_xlsx: state.sampleMapPath || null,
-            kuro_xlsx: null,
-            mapq_threshold: 25,
-            coverage_fraction: rawRunParams.coverageFraction,
-            edit_dist_ratio: rawRunParams.editDistRatio,
-            chimera_split: rawRunParams.chimeraSplit,
-            trim_flank_bp: 30,
-          },
-          MAME_DEMUX_RPC_TIMEOUT_MS,
+        // Detect native barcodes FIRST (after the input-error guard, before
+        // demux). total_count > 1 pauses for per-NB selection via the dialog.
+        set({ isDetectingBarcodes: true });
+        const detect = await sendRequest<DetectNativeBarcodesResult>(
+          "mame.detect_native_barcodes",
+          { minknow_run_dir: state.inputDir },
         );
-        analysisInputDir = demuxResult.output_dir;
-        analysisIngestMode = "barcode";
-        set({
-          analyzeProgress: 50,
-          analyzePhase: "analyze",
-          analyzeMessage: `Combinatorial demux complete: ${demuxResult.assigned_reads.toLocaleString()} reads assigned`,
-        });
+
+        if (detect.total_count > 1) {
+          // Pause and surface the confirm dialog. Leave isAnalyzing true so the
+          // UI knows an analysis is pending; the dialog drives the next step.
+          set({
+            detectedNativeBarcodes: detect.native_barcodes,
+            isDetectingBarcodes: false,
+          });
+          return;
+        }
+
+        // Single pool (0 or 1 native barcode): proceed exactly as before.
+        set({ isDetectingBarcodes: false });
+        await get()._demuxAndAnalyze(null);
+        return;
       }
 
+      // Non-raw_run modes: analyze the inputDir directly (current behaviour).
       const result = await sendRequest<AnalyzeResult>(
         "analyze",
         {
-          input_dir: analysisInputDir,
+          input_dir: state.inputDir,
           reference: state.referencePath,
           expected: state.expectedPath,
           output: joinPathSlice(state.outputPath, defaultMameExportFilename({ referencePath: state.referencePath, inputDir: state.inputDir, verdictCount: 0 })),
           mode: state.mode,
-          ingest_mode: analysisIngestMode,
+          ingest_mode: state.ingestMode,
           cds_start: state.cdsStart,
           cds_end: state.cdsEnd,
           min_file_size_kb: state.minFileSizeKb,
@@ -352,7 +427,6 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       get().setVerdicts(result.verdicts);
       get().setReplicates(result.replicates);
       get().setSummary(result.summary);
-      // Store the folder only (outputPath is now a folder); lastExportPath tracks the full path.
       const outDir = (() => {
         const p = result.output_path.replace(/\\/g, "/");
         const i = p.lastIndexOf("/");
@@ -361,7 +435,6 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       get().setOutputPath(outDir);
       get().setDistributionStats(result.distribution_stats ?? null);
       await get().loadPlateData();
-      // A8: auto-load run health after analysis completes (non-blocking on failure)
       void get().loadRunHealth();
       set({
         isAnalyzing: false,
@@ -376,12 +449,38 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     } catch (error) {
       set({
         isAnalyzing: false,
+        isDetectingBarcodes: false,
         analyzeMessage: "Analysis failed",
         analyzeStartedAt: null,
         analyzePhase: null,
         validationErrors: [formatError(error)],
       });
     }
+  },
+  confirmNativeBarcodeSelection: async (selected: string[]) => {
+    // Close the dialog and resume per-NB demux+analyze with the selection.
+    set({ detectedNativeBarcodes: null, isDetectingBarcodes: false });
+    try {
+      await get()._demuxAndAnalyze(selected);
+    } catch (error) {
+      set({
+        isAnalyzing: false,
+        analyzeMessage: "Analysis failed",
+        analyzeStartedAt: null,
+        analyzePhase: null,
+        validationErrors: [formatError(error)],
+      });
+    }
+  },
+  cancelNativeBarcodeSelection: () => {
+    set({
+      detectedNativeBarcodes: null,
+      isAnalyzing: false,
+      isDetectingBarcodes: false,
+      analyzeMessage: "",
+      analyzeStartedAt: null,
+      analyzePhase: null,
+    });
   },
   cancelAnalysis: async () => {
     if (!get().isAnalyzing) return;

@@ -87,7 +87,25 @@ describe("mame inputSlice", () => {
     });
 
     const demuxOutputDir = "D:/project/demux_filtered";
+    // Detect runs FIRST now (call #1). total_count: 1 keeps the single-pool
+    // linear path: detect -> demux -> analyze.
     mockSendRequest
+      .mockResolvedValueOnce({
+        fastq_pass: "D:/runs/20260212_2227_X4_FBF10847_e7145f8e/fastq_pass",
+        min_share: 0.05,
+        native_barcodes: [
+          {
+            name: "barcode06",
+            sort_barcode_name: "sort_barcode06",
+            fastq_bytes: 1_000_000,
+            fastq_mb: 1.0,
+            share: 1.0,
+            is_used: true,
+          },
+        ],
+        used_count: 1,
+        total_count: 1,
+      })
       .mockResolvedValueOnce({
         output_dir: demuxOutputDir,
         stats: {
@@ -118,6 +136,13 @@ describe("mame inputSlice", () => {
 
     expect(mockSendRequest).toHaveBeenNthCalledWith(
       1,
+      "mame.detect_native_barcodes",
+      expect.objectContaining({
+        minknow_run_dir: "D:/runs/20260212_2227_X4_FBF10847_e7145f8e",
+      }),
+    );
+    expect(mockSendRequest).toHaveBeenNthCalledWith(
+      2,
       "mame.run_combinatorial_demux",
       expect.objectContaining({
         minknow_run_dir: "D:/runs/20260212_2227_X4_FBF10847_e7145f8e",
@@ -127,11 +152,12 @@ describe("mame inputSlice", () => {
         coverage_fraction: 0.98,
         edit_dist_ratio: 0.25,
         chimera_split: true,
+        native_barcodes: null,
       }),
       1_800_000,
     );
     expect(mockSendRequest).toHaveBeenNthCalledWith(
-      2,
+      3,
       "analyze",
       expect.objectContaining({
         input_dir: demuxOutputDir,
@@ -160,5 +186,117 @@ describe("mame inputSlice", () => {
     expect(store.validationErrors).toEqual([
       "Custom Barcodes (.xlsx or .csv) file is required.",
     ]);
+  });
+
+  it("pauses for per-NB selection when detect finds multiple native barcodes", async () => {
+    const store = makeStore({
+      inputDir: "D:/runs/20260212_2227_X4_FBF10847_e7145f8e",
+      expectedPath: "D:/project/KURO_expected.xlsx",
+      referencePath: "D:/project/ref.fasta",
+      outputPath: "D:/project",
+      inputMode: "raw_run",
+      rawRunParams: {
+        ...makeStore().rawRunParams,
+        customBarcodesPath: "D:/project/barcodes sequence.xlsx",
+      },
+      cdsEnd: 900,
+    });
+
+    const nativeBarcodes = [
+      {
+        name: "barcode06",
+        sort_barcode_name: "sort_barcode06",
+        fastq_bytes: 6_000_000,
+        fastq_mb: 6.0,
+        share: 0.6,
+        is_used: true,
+      },
+      {
+        name: "barcode20",
+        sort_barcode_name: "sort_barcode20",
+        fastq_bytes: 4_000_000,
+        fastq_mb: 4.0,
+        share: 0.4,
+        is_used: true,
+      },
+    ];
+
+    // Detect returns total_count: 2 -> dialog opens, no demux/analyze yet.
+    mockSendRequest.mockResolvedValueOnce({
+      fastq_pass: "D:/runs/20260212_2227_X4_FBF10847_e7145f8e/fastq_pass",
+      min_share: 0.05,
+      native_barcodes: nativeBarcodes,
+      used_count: 2,
+      total_count: 2,
+    });
+
+    await store.runAnalysis();
+
+    // Only detect fired; demux/analyze deferred to the confirm action.
+    expect(mockSendRequest).toHaveBeenCalledTimes(1);
+    expect(mockSendRequest).toHaveBeenNthCalledWith(
+      1,
+      "mame.detect_native_barcodes",
+      expect.objectContaining({
+        minknow_run_dir: "D:/runs/20260212_2227_X4_FBF10847_e7145f8e",
+      }),
+    );
+    expect(store.detectedNativeBarcodes).toHaveLength(2);
+    expect(store.isDetectingBarcodes).toBe(false);
+    expect(store.isAnalyzing).toBe(true);
+
+    // Confirm with the user-selected native barcodes -> demux (native_barcodes
+    // threaded) then analyze.
+    mockSendRequest
+      .mockResolvedValueOnce({
+        output_dir: "D:/project/demux_filtered",
+        stats: {
+          total_reads: 10,
+          passed_mapq: 10,
+          passed_coverage: 9,
+          assigned_reads: 8,
+          ambiguous_dropped: 1,
+          chimera_splits: 0,
+          wells_with_reads: 2,
+          wells_with_min_reads: 2,
+        },
+        wells_with_reads: 2,
+        assigned_reads: 8,
+        chimera_splits: 0,
+        per_well_consensus: {},
+        per_well_read_counts: { "1_1": 5, "1_2": 3 },
+      })
+      .mockResolvedValueOnce({
+        verdicts: [],
+        replicates: [],
+        output_path: "D:/project/mame_result.xlsx",
+        summary: { total: 0, pass_count: 0, ambiguous_count: 0, fail_count: 0 },
+        distribution_stats: distributionStats,
+      });
+
+    await store.confirmNativeBarcodeSelection(["barcode06", "barcode20"]);
+
+    expect(store.detectedNativeBarcodes).toBeNull();
+    // Calls now: 1 detect (above) + 2 demux + 3 analyze.
+    expect(mockSendRequest).toHaveBeenNthCalledWith(
+      2,
+      "mame.run_combinatorial_demux",
+      expect.objectContaining({
+        native_barcodes: ["barcode06", "barcode20"],
+        output_dir: "D:/project/demux_filtered",
+      }),
+      1_800_000,
+    );
+    expect(mockSendRequest).toHaveBeenNthCalledWith(
+      3,
+      "analyze",
+      expect.objectContaining({
+        input_dir: "D:/project/demux_filtered",
+        ingest_mode: "barcode",
+      }),
+      1_200_000,
+    );
+    expect(store.isAnalyzing).toBe(false);
+    expect(store.analyzeMessage).toBe("Analysis complete");
   });
 });

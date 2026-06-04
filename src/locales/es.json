@@ -145,6 +145,20 @@
       "redetect": "Volver a detectar",
       "redetecting": "Detectando..."
     },
+    "nativeBarcodeDialog": {
+      "title": "Confirmar native barcodes",
+      "description": "Se detectaron varios native barcodes a partir de los volúmenes FASTQ. Seleccione cuáles demultiplexar (cada uno se ejecuta en paralelo en su propia carpeta sort_barcode).",
+      "detected": "{{count}} native barcodes detectados",
+      "colBarcode": "Barcode",
+      "colOutput": "Carpeta de salida",
+      "colVolume": "Volumen FASTQ",
+      "colShare": "Proporción",
+      "colUse": "Procesar",
+      "inUse": "en uso",
+      "run": "Ejecutar demux",
+      "cancel": "Cancelar",
+      "noneSelected": "Seleccione al menos un barcode"
+    },
     "parameters": {
       "title": "Parámetros",
       "subtitle": "Umbrales y modo de ingest para este lote.",
@@ -563,6 +577,15 @@
         "exporting": "Exportando…",
         "exportErrorPathRequired": "La ruta de salida es requerida."
       }
+    },
+    "nativeBarcodeDialog": {
+      "title": "Se detectaron varios native barcodes",
+      "description": "Esta corrida contiene más de un native barcode de MinKNOW. Seleccione los barcodes que desea demultiplexar; cada barcode seleccionado se procesa en su propia carpeta de salida.",
+      "shareHeader": "Proporción",
+      "selectAriaLabel": "Seleccionar native barcode {{name}}",
+      "selectedCount": "{{count}} barcode(s) seleccionado(s)",
+      "confirm": "Ejecutar selección",
+      "confirming": "Ejecutando…"
     },
     "inputPanel": {
       "title": "Archivos de entrada",

@@ -15,6 +15,7 @@ import { ReRunManifestDialog } from "@/components/dialogs/ReRunManifestDialog";
 import { ManifestDiffDialog } from "@/components/dialogs/ManifestDiffDialog";
 import { ClearConfirmDialog } from "@/components/dialogs/ClearConfirmDialog";
 import { ExportDialog } from "../dialogs/ExportDialog";
+import { NativeBarcodeConfirmDialog } from "../dialogs/NativeBarcodeConfirmDialog";
 import {
   Dialog,
   DialogContent,
@@ -411,6 +412,7 @@ export function MameAppLayout() {
         </Dialog>
 
         <ExportDialog />
+        <NativeBarcodeConfirmDialog />
         <ClearConfirmDialog
           open={clearConfirmOpen}
           onOpenChange={setClearConfirmOpen}

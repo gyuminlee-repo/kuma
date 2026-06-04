@@ -11,6 +11,7 @@ import type {
   WellEntry,
 } from "@/types/mame/models";
 import type { CdsCandidate } from "@/lib/sequence/autoDetectCds";
+import type { NativeBarcodeUsage } from "@/types/mame/detect_native_barcodes";
 
 export type InputMode = "consensus" | "sorted_barcode" | "raw_run";
 
@@ -62,6 +63,10 @@ export interface InputSlice {
   demuxResult: DemuxAndFilterResult | null;
   distributionStats: DistributionStats | null;
   ampliconLengthEstimate: AmpliconLengthEstimate | null;
+  // Native barcode detect -> confirm -> per-NB demux flow (raw_run mode).
+  // null = no dialog open; non-null = show the confirm dialog with these rows.
+  detectedNativeBarcodes: NativeBarcodeUsage[] | null;
+  isDetectingBarcodes: boolean;
   setInputDir: (path: string) => void;
   setExpectedPath: (path: string) => void;
   setReferencePath: (path: string) => void;
@@ -118,6 +123,16 @@ export interface InputSlice {
   runDemuxAndFilter: () => Promise<void>;
   runAnalysis: () => Promise<void>;
   cancelAnalysis: () => Promise<void>;
+  // Internal shared raw_run helper: run_combinatorial_demux (threading
+  // native_barcodes: null -> single pool, non-empty -> per-NB) then analyze +
+  // result handling. Not part of the public detect->confirm contract; called by
+  // runAnalysis and confirmNativeBarcodeSelection.
+  _demuxAndAnalyze: (nativeBarcodes: string[] | null) => Promise<void>;
+  // Resume per-NB demux+analyze with the user-selected MinKNOW barcode dir
+  // names (e.g. "barcode06"); closes the confirm dialog first.
+  confirmNativeBarcodeSelection: (selected: string[]) => Promise<void>;
+  // Close the confirm dialog and abort the pending analysis.
+  cancelNativeBarcodeSelection: () => void;
   resetInput: () => void;
 }
 
