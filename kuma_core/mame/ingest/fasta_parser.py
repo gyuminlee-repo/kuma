@@ -25,6 +25,18 @@ import re
 from pathlib import Path
 from typing import Iterator
 
+from kuma_core.mame.ingest.consensus_metadata import (
+    ALIGNED_READS,
+    CONSENSUS_N_FRACTION,
+    DEPTH,
+    INPUT_READS,
+    LOW_DEPTH_POSITIONS,
+    LOW_QUALITY_BASES,
+    MAPQ_FAILED,
+    MAX_MINOR_ALLELE_FRACTION,
+    MIXED_POSITIONS,
+    SPAN_FAILED,
+)
 from kuma_core.mame.models import BarcodeRecord
 
 _METADATA_RE = re.compile(r"(?:^|\s)([A-Za-z_][A-Za-z0-9_]*)=([^\s]+)")
@@ -129,21 +141,21 @@ def parse_fasta_file(path: Path, native_barcode: str) -> BarcodeRecord:
     custom_barcode = header.split()[0] if header else path.stem
     size_bytes = path.stat().st_size
     file_size_kb = size_bytes / 1024.0
-    depth = _read_int_metadata(metadata, "depth")
+    depth = _read_int_metadata(metadata, DEPTH)
     read_count: int | None = depth if depth is not None else record_count
-    n_mixed_positions = _read_int_metadata(metadata, "mixed_positions") or 0
+    n_mixed_positions = _read_int_metadata(metadata, MIXED_POSITIONS) or 0
     max_minor_allele_fraction = (
-        _read_float_metadata(metadata, "max_minor_allele_fraction") or 0.0
+        _read_float_metadata(metadata, MAX_MINOR_ALLELE_FRACTION) or 0.0
     )
-    n_low_depth_positions = _read_int_metadata(metadata, "low_depth_positions") or 0
-    consensus_n_fraction = _read_float_metadata(metadata, "consensus_n_fraction")
+    n_low_depth_positions = _read_int_metadata(metadata, LOW_DEPTH_POSITIONS) or 0
+    consensus_n_fraction = _read_float_metadata(metadata, CONSENSUS_N_FRACTION)
     if consensus_n_fraction is None:
         consensus_n_fraction = _consensus_n_fraction(consensus_seq)
-    n_low_quality_bases = _read_int_metadata(metadata, "low_quality_bases") or 0
-    n_input_reads = _read_int_metadata(metadata, "input_reads")
-    n_aligned_reads = _read_int_metadata(metadata, "aligned_reads")
-    n_mapq_failed = _read_int_metadata(metadata, "mapq_failed") or 0
-    n_span_failed = _read_int_metadata(metadata, "span_failed") or 0
+    n_low_quality_bases = _read_int_metadata(metadata, LOW_QUALITY_BASES) or 0
+    n_input_reads = _read_int_metadata(metadata, INPUT_READS)
+    n_aligned_reads = _read_int_metadata(metadata, ALIGNED_READS)
+    n_mapq_failed = _read_int_metadata(metadata, MAPQ_FAILED) or 0
+    n_span_failed = _read_int_metadata(metadata, SPAN_FAILED) or 0
 
     return BarcodeRecord(
         native_barcode=native_barcode,

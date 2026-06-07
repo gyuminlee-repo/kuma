@@ -56,6 +56,10 @@ from kuma_core.mame.ingest.align import (
     Alignment,
 )
 from kuma_core.mame.ingest.consensus import call_consensus_with_metrics
+from kuma_core.mame.ingest.consensus_metadata import (
+    ConsensusMetadata,
+    format_consensus_fasta_record,
+)
 from kuma_core.mame.ingest.well_consensus import _read_reference_seq
 
 log = logging.getLogger(__name__)
@@ -824,13 +828,22 @@ def run_combinatorial_demux(
             per_well_consensus[wn] = seq
             with (consensus_dir / f"{wn}.fasta").open("w") as fh:
                 fh.write(
-                    f">{wn} depth={depth} input_reads={input_reads} "
-                    f"aligned_reads={aligned_reads} mapq_failed={mapq_failed} "
-                    f"span_failed={span_failed} mixed_positions={mixed_positions} "
-                    f"max_minor_allele_fraction={max_minor_fraction:.3f} "
-                    f"low_depth_positions={low_depth_positions} "
-                    f"consensus_n_fraction={n_fraction:.3f} "
-                    f"low_quality_bases={low_quality_bases}\n{seq}\n"
+                    format_consensus_fasta_record(
+                        wn,
+                        seq,
+                        ConsensusMetadata(
+                            depth=depth,
+                            input_reads=input_reads,
+                            aligned_reads=aligned_reads,
+                            mapq_failed=mapq_failed,
+                            span_failed=span_failed,
+                            mixed_positions=mixed_positions,
+                            max_minor_allele_fraction=max_minor_fraction,
+                            low_depth_positions=low_depth_positions,
+                            consensus_n_fraction=n_fraction,
+                            low_quality_bases=low_quality_bases,
+                        ),
+                    )
                 )
             _consensus_done += 1
             if progress_callback is not None:

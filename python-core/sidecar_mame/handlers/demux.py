@@ -86,6 +86,11 @@ from sidecar_mame.core import (
     _progress,
     _validate_dirpath,
 )
+from kuma_core.mame.ingest.consensus_metadata import (
+    ConsensusMetadata,
+    format_consensus_fasta_record,
+)
+from kuma_core.mame.ingest.well_consensus import compute_well_consensuses
 
 _logger = logging.getLogger(__name__)
 
@@ -198,7 +203,6 @@ def _run_consensus_on_dir(
     Replaces each well's raw-read FASTA with a single-record consensus FASTA.
     Returns per-well statistics as JSON-serialisable dicts.
     """
-    from kuma_core.mame.ingest.well_consensus import compute_well_consensuses
 
     per_well_reads = _collect_reads_from_fasta_dir(
         fasta_dir,
@@ -232,17 +236,22 @@ def _run_consensus_on_dir(
         # Write single-record consensus FASTA with depth metadata so downstream
         # analysis can use true consensus read depth instead of file size.
         fasta_path.write_text(
-            f">{well_name} depth={result.n_passed_filter} "
-            f"input_reads={result.n_input_reads} "
-            f"aligned_reads={result.n_aligned} "
-            f"mapq_failed={result.n_mapq_failed} "
-            f"span_failed={result.n_span_failed} "
-            f"mixed_positions={result.n_mixed_positions} "
-            f"max_minor_allele_fraction={result.max_minor_allele_fraction:.3f} "
-            f"low_depth_positions={result.n_low_depth_positions} "
-            f"consensus_n_fraction={result.consensus_n_fraction:.3f} "
-            f"low_quality_bases={result.n_low_quality_bases}\n"
-            f"{result.consensus_seq}\n",
+            format_consensus_fasta_record(
+                well_name,
+                result.consensus_seq,
+                ConsensusMetadata(
+                    depth=result.n_passed_filter,
+                    input_reads=result.n_input_reads,
+                    aligned_reads=result.n_aligned,
+                    mapq_failed=result.n_mapq_failed,
+                    span_failed=result.n_span_failed,
+                    mixed_positions=result.n_mixed_positions,
+                    max_minor_allele_fraction=result.max_minor_allele_fraction,
+                    low_depth_positions=result.n_low_depth_positions,
+                    consensus_n_fraction=result.consensus_n_fraction,
+                    low_quality_bases=result.n_low_quality_bases,
+                ),
+            ),
             encoding="utf-8",
         )
 
