@@ -90,6 +90,9 @@ class Alignment:
     read_seq:
         Full read sequence (as provided; not reverse-complemented).
         Callers should respect ``strand`` when iterating bases.
+    read_qual:
+        Optional FASTQ quality string matching ``read_seq``.  ``None`` when
+        reads came from FASTA or a legacy path that has already dropped quality.
     mapq:
         Mapping quality (0-60).
     cigar:
@@ -119,6 +122,19 @@ class Alignment:
     q_en: int
     strand: int
     reference_length: int
+    read_qual: str | None = None
+
+
+@dataclass(frozen=True)
+class AlignmentStats:
+    """Read-level alignment pass/fail counters for consensus diagnostics."""
+
+    n_input_reads: int
+    n_primary_alignments: int
+    n_unaligned: int
+    n_failed_mapq: int
+    n_failed_span: int
+    n_passed_filter: int
 
 
 def _resolve_minimap2() -> str:
@@ -247,21 +263,29 @@ def _strip_clips(cigar: list[list[int]]) -> list[list[int]]:
     return [[length, op] for length, op in cigar if op not in (_CIGAR_S, _CIGAR_H)]
 
 
+def _normalise_read_tuple(read: tuple[str, ...]) -> tuple[str, str, str | None]:
+    if len(read) >= 3:
+        return str(read[0]), str(read[1]), str(read[2])
+    return str(read[0]), str(read[1]), None
+
+
 def _write_reads_fasta(
-    reads: Iterable[tuple[str, str]], fasta_path: Path
-) -> list[tuple[str, str]]:
+    reads: Iterable[tuple[str, ...]], fasta_path: Path
+) -> list[tuple[str, str, str | None]]:
     """Write reads to a FASTA with synthetic integer QNAMEs.
 
-    Returns an index map: ``index_map[i] == (original_read_id, original_seq)``.
+    Returns an index map:
+    ``index_map[i] == (original_read_id, original_seq, original_qual_or_none)``.
     Empty reads are skipped (not written, not indexed).
     """
-    index_map: list[tuple[str, str]] = []
+    index_map: list[tuple[str, str, str | None]] = []
     with fasta_path.open("w", encoding="utf-8") as fh:
-        for read_id, seq in reads:
+        for raw_read in reads:
+            read_id, seq, qual = _normalise_read_tuple(raw_read)
             if not seq:
                 continue
             idx = len(index_map)
-            index_map.append((read_id, seq))
+            index_map.append((read_id, seq, qual))
             fh.write(f">{idx}\n{seq}\n")
     return index_map
 
@@ -344,7 +368,7 @@ def _iter_sam_records(
 
 
 def align_reads(
-    reads: Iterable[tuple[str, str]],
+    reads: Iterable[tuple[str, ...]],
     reference_fasta: Path,
     preset: str = "map-ont",
     min_mapq: int = 25,
@@ -356,7 +380,8 @@ def align_reads(
     Parameters
     ----------
     reads:
-        Iterable of ``(read_id, sequence)`` pairs.
+        Iterable of ``(read_id, sequence)`` pairs or
+        ``(read_id, sequence, quality)`` triples.
     reference_fasta:
         Path to reference FASTA file (must have exactly one record).
     preset:
@@ -408,10 +433,11 @@ def align_reads(
             cigar = _parse_cigar(cigar_str)
             r_st, r_en, q_st, q_en = _coords_from_cigar(cigar, pos, bool(flag & _FLAG_REVERSE))
             strand = -1 if (flag & _FLAG_REVERSE) else 1
-            read_id, read_seq = index_map[read_index]
+            read_id, read_seq, read_qual = index_map[read_index]
             primary[read_index] = Alignment(
                 read_id=read_id,
                 read_seq=read_seq,
+                read_qual=read_qual,
                 mapq=mapq,
                 cigar=_strip_clips(cigar),
                 r_st=r_st,
@@ -437,8 +463,91 @@ def align_reads(
     return results
 
 
+def align_reads_with_stats(
+    reads: Iterable[tuple[str, ...]],
+    reference_fasta: Path,
+    preset: str = "map-ont",
+    min_mapq: int = 25,
+    require_full_span: bool = True,
+    threads: int | None = None,
+) -> tuple[list[Alignment], AlignmentStats]:
+    """Align reads and return passing alignments plus drop-reason counters."""
+    if not reference_fasta.exists():
+        raise FileNotFoundError(f"Reference FASTA not found: {reference_fasta}")
+
+    ref_len = _get_reference_length(reference_fasta)
+
+    with tempfile.TemporaryDirectory(prefix="kuro_align_") as tmpdir:
+        reads_fasta = Path(tmpdir) / "reads.fasta"
+        sam_path = Path(tmpdir) / "out.sam"
+        index_map = _write_reads_fasta(reads, reads_fasta)
+        if not index_map:
+            stats = AlignmentStats(
+                n_input_reads=0,
+                n_primary_alignments=0,
+                n_unaligned=0,
+                n_failed_mapq=0,
+                n_failed_span=0,
+                n_passed_filter=0,
+            )
+            return [], stats
+
+        _run_minimap2(reference_fasta, reads_fasta, preset, sam_path, threads=threads)
+
+        primary: dict[int, Alignment] = {}
+        for read_index, flag, pos, mapq, cigar_str in _iter_sam_records(sam_path):
+            if flag & (_FLAG_SECONDARY | _FLAG_SUPPLEMENTARY):
+                continue
+            if read_index in primary:
+                continue
+            cigar = _parse_cigar(cigar_str)
+            r_st, r_en, q_st, q_en = _coords_from_cigar(cigar, pos, bool(flag & _FLAG_REVERSE))
+            strand = -1 if (flag & _FLAG_REVERSE) else 1
+            read_id, read_seq, read_qual = index_map[read_index]
+            primary[read_index] = Alignment(
+                read_id=read_id,
+                read_seq=read_seq,
+                read_qual=read_qual,
+                mapq=mapq,
+                cigar=_strip_clips(cigar),
+                r_st=r_st,
+                r_en=r_en,
+                q_st=q_st,
+                q_en=q_en,
+                strand=strand,
+                reference_length=ref_len,
+            )
+
+    results: list[Alignment] = []
+    n_unaligned = 0
+    n_failed_mapq = 0
+    n_failed_span = 0
+    for idx in range(len(index_map)):
+        aln = primary.get(idx)
+        if aln is None:
+            n_unaligned += 1
+            continue
+        if aln.mapq < min_mapq:
+            n_failed_mapq += 1
+            continue
+        if require_full_span and not (aln.r_st == 0 and aln.r_en == ref_len):
+            n_failed_span += 1
+            continue
+        results.append(aln)
+
+    stats = AlignmentStats(
+        n_input_reads=len(index_map),
+        n_primary_alignments=len(primary),
+        n_unaligned=n_unaligned,
+        n_failed_mapq=n_failed_mapq,
+        n_failed_span=n_failed_span,
+        n_passed_filter=len(results),
+    )
+    return results, stats
+
+
 def align_reads_multi(
-    reads: Iterable[tuple[str, str]],
+    reads: Iterable[tuple[str, ...]],
     reference_fasta: Path,
     preset: str = "map-ont",
     min_mapq: int = 25,
@@ -515,11 +624,12 @@ def align_reads_multi(
             if ref_len > 0 and ref_span / ref_len < coverage_fraction:
                 continue
             strand = -1 if (flag & _FLAG_REVERSE) else 1
-            read_id, read_seq = index_map[read_index]
+            read_id, read_seq, read_qual = index_map[read_index]
             hits_by_index.setdefault(read_index, []).append(
                 Alignment(
                     read_id=read_id,
                     read_seq=read_seq,
+                    read_qual=read_qual,
                     mapq=mapq,
                     cigar=_strip_clips(cigar),
                     r_st=r_st,
@@ -535,7 +645,7 @@ def align_reads_multi(
     for idx in range(len(index_map)):
         passing = hits_by_index.get(idx)
         if passing:
-            read_id, read_seq = index_map[idx]
+            read_id, read_seq, _read_qual = index_map[idx]
             results.append((read_id, read_seq, passing))
 
     return results
@@ -560,4 +670,11 @@ def _get_reference_length(reference_fasta: Path) -> int:
     return length
 
 
-__all__ = ["Alignment", "align_reads", "align_reads_multi", "_get_reference_length"]
+__all__ = [
+    "Alignment",
+    "AlignmentStats",
+    "align_reads",
+    "align_reads_multi",
+    "align_reads_with_stats",
+    "_get_reference_length",
+]

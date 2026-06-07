@@ -13,6 +13,11 @@ from pathlib import Path
 from kuma_core.mame.ingest.fasta_parser import load_barcode_directory, parse_fasta_file
 from kuma_core.mame.models import BarcodeRecord
 
+_AMPLICON_CONSENSUS_PATTERNS = (
+    "*-consensus.fasta",
+    "*-consensus.fa",
+)
+
 
 class IngestMode(StrEnum):
     AMPLICON = "amplicon"
@@ -30,9 +35,14 @@ def _load_amplicon(input_dir: Path) -> list[BarcodeRecord]:
     """
 
     records: list[BarcodeRecord] = []
-    for fasta in sorted(input_dir.rglob("*-consensus.fasta")):
-        native = fasta.stem.replace("-consensus", "") or "AMPLICON"
-        records.append(parse_fasta_file(fasta, native_barcode=native))
+    seen: set[Path] = set()
+    for pattern in _AMPLICON_CONSENSUS_PATTERNS:
+        for consensus_file in sorted(input_dir.rglob(pattern)):
+            if consensus_file in seen:
+                continue
+            seen.add(consensus_file)
+            native = consensus_file.stem.replace("-consensus", "") or "AMPLICON"
+            records.append(parse_fasta_file(consensus_file, native_barcode=native))
     return records
 
 

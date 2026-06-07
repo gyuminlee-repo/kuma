@@ -36,9 +36,9 @@ Header normalisation
 When ``normalize_headers=True``, every FASTA record in the output file for
 well ``{well}`` receives the header ``>{well}`` (replacing the original
 ONT UUID). This matches the sort_barcode convention observed in external
-pipeline output. All records in a per-well file share the same header —
-``fasta_parser.parse_fasta_file`` counts ``>`` lines as ``read_count``, so
-this is downstream-compatible.
+pipeline output. When the optional consensus step rewrites each well to a
+single-record FASTA, it stamps ``depth=N`` so downstream analysis can populate
+``BarcodeRecord.read_count`` from true consensus read depth.
 
 Output
 ------

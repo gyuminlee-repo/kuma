@@ -2,9 +2,11 @@
 
 G6/A6 read_count policy
 ------------------------
-``BarcodeRecord.read_count`` is populated by the FASTA parser (``>`` header
-count).  The "NGS 결과" sheet columns are named ``NB0X_reads`` and carry
-read_count when non-None, falling back to file_size_kb as a volume proxy.
+``BarcodeRecord.read_count`` is populated by the consensus parser from
+``depth=N`` header metadata when available, falling back to single-record
+counts for legacy consensus files.  The "NGS 결과" sheet columns are named
+``NB0X_reads`` and carry read_count when non-None, falling back to file_size_kb
+as a volume proxy.
 The per-plate ``NB0X`` sheets retain ``file_size_kb`` in their header (Sheet1
 format) for backward compatibility; only the unified "NGS 결과" sheet uses
 the ``reads`` naming.
@@ -54,6 +56,16 @@ SELECTED_PLATE_YELLOW = "FFFF00"  # Final sheet chosen plate highlight
 _SHEET1_HEADER = [
     "well_id",
     "file_size_kb",
+    "read_count",
+    "input_reads",
+    "aligned_reads",
+    "mapq_failed",
+    "span_failed",
+    "low_depth_positions",
+    "consensus_n_fraction",
+    "low_quality_bases",
+    "mixed_positions",
+    "max_minor_allele_fraction",
     "custom_barcode",
     "observed_mutations",
     "observed_aa",
@@ -81,10 +93,13 @@ _NGS_RESULT_HEADER = [
     "custom_barcode",
     "NB01_detected",
     "NB01_reads",
+    "NB01_quality",
     "NB02_detected",
     "NB02_reads",
+    "NB02_quality",
     "NB03_detected",
     "NB03_reads",
+    "NB03_quality",
 ]
 
 _FINAL_MATRIX_HEADER = [
@@ -137,6 +152,16 @@ def _write_sheet1(wb: Workbook, native_barcode: str, records: Iterable[VerdictRe
         row = [
             well_id,
             round(br.file_size_kb, 3),
+            br.read_count,
+            br.n_input_reads,
+            br.n_aligned_reads,
+            br.n_mapq_failed,
+            br.n_span_failed,
+            br.n_low_depth_positions,
+            round(br.consensus_n_fraction, 4),
+            br.n_low_quality_bases,
+            br.n_mixed_positions,
+            round(br.max_minor_allele_fraction, 4),
             br.custom_barcode,
             ", ".join(vr.translated.observed_nt_changes),
             ", ".join(vr.translated.observed_aa_changes),
@@ -306,11 +331,22 @@ def _build_unified_ngs_data(
                 reads_val: int | float | None = (
                     bc.read_count if bc.read_count is not None else bc.file_size_kb
                 )
+                quality = (
+                    f"N={bc.consensus_n_fraction:.3f}; "
+                    f"low_depth={bc.n_low_depth_positions}; "
+                    f"low_q={bc.n_low_quality_bases}; "
+                    f"mix={bc.n_mixed_positions}/"
+                    f"{bc.max_minor_allele_fraction:.3f}; "
+                    f"drop_mapq={bc.n_mapq_failed}; "
+                    f"drop_span={bc.n_span_failed}"
+                )
             else:
                 detected = ""
                 reads_val = None
+                quality = ""
             row[f"{plate}_detected"] = detected
             row[f"{plate}_reads"] = reads_val
+            row[f"{plate}_quality"] = quality
 
         rows.append(row)
 
@@ -337,10 +373,13 @@ def _write_unified_ngs_sheet(
                 row["custom_barcode"],
                 row["NB01_detected"],
                 row["NB01_reads"],
+                row["NB01_quality"],
                 row["NB02_detected"],
                 row["NB02_reads"],
+                row["NB02_quality"],
                 row["NB03_detected"],
                 row["NB03_reads"],
+                row["NB03_quality"],
             ]
         )
 

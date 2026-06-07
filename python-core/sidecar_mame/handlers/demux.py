@@ -114,20 +114,38 @@ def _coerce_barcodes(raw: Any) -> dict[str, str]:
 # ---------------------------------------------------------------------------
 
 
-def _collect_reads_from_fasta_dir(fasta_dir: Path) -> dict[str, list[tuple[str, str]]]:
+def _collect_fastq_quality_by_read_id(fastq_dir: Path) -> dict[str, str]:
+    """Return ``{read_id: quality_string}`` for FASTQ records under *fastq_dir*."""
+    from kuma_core.mame.ingest.quality_filter import _iter_fastq_records
+
+    quality_by_read_id: dict[str, str] = {}
+    fastq_files = sorted(
+        [p for p in fastq_dir.rglob("*.fastq")]
+        + [p for p in fastq_dir.rglob("*.fastq.gz")]
+    )
+    for fastq_path in fastq_files:
+        for read_id, _seq, qual in _iter_fastq_records(fastq_path):
+            quality_by_read_id.setdefault(read_id, qual)
+    return quality_by_read_id
+
+
+def _collect_reads_from_fasta_dir(
+    fasta_dir: Path,
+    quality_by_read_id: dict[str, str] | None = None,
+) -> dict[str, list[tuple[str, ...]]]:
     """Read all per-well FASTA files under fasta_dir and return per-well reads.
 
     Returns a dict mapping well name (FASTA stem) to a list of
     (read_id, sequence) pairs.  Multi-header FASTA files (raw read bundles) are
     handled correctly here — the caller passes them to the alignment step.
     """
-    per_well: dict[str, list[tuple[str, str]]] = {}
+    per_well: dict[str, list[tuple[str, ...]]] = {}
 
     for fasta_path in sorted(fasta_dir.glob("*.fasta")):
         if fasta_path.name.startswith("_"):
             continue  # skip _unassigned.fasta
         well_name = fasta_path.stem
-        reads: list[tuple[str, str]] = []
+        reads: list[tuple[str, ...]] = []
         current_id: str | None = None
         seq_parts: list[str] = []
 
@@ -136,14 +154,30 @@ def _collect_reads_from_fasta_dir(fasta_dir: Path) -> dict[str, list[tuple[str, 
                 line = line.rstrip("\r\n")
                 if line.startswith(">"):
                     if current_id is not None and seq_parts:
-                        reads.append((current_id, "".join(seq_parts).upper()))
+                        seq = "".join(seq_parts).upper()
+                        qual = (
+                            quality_by_read_id.get(current_id)
+                            if quality_by_read_id is not None
+                            else None
+                        )
+                        reads.append(
+                            (current_id, seq, qual) if qual is not None else (current_id, seq)
+                        )
                     current_id = line[1:].strip().split()[0] or well_name
                     seq_parts = []
                 elif line:
                     seq_parts.append(line.strip())
 
         if current_id is not None and seq_parts:
-            reads.append((current_id, "".join(seq_parts).upper()))
+            seq = "".join(seq_parts).upper()
+            qual = (
+                quality_by_read_id.get(current_id)
+                if quality_by_read_id is not None
+                else None
+            )
+            reads.append(
+                (current_id, seq, qual) if qual is not None else (current_id, seq)
+            )
 
         if reads:
             per_well[well_name] = reads
@@ -157,6 +191,7 @@ def _run_consensus_on_dir(
     min_mapq: int = 25,
     min_depth: int = 1,
     save_intermediate: bool = False,
+    quality_by_read_id: dict[str, str] | None = None,
 ) -> dict[str, dict]:
     """Run alignment + consensus on all per-well FASTA files in fasta_dir.
 
@@ -165,7 +200,10 @@ def _run_consensus_on_dir(
     """
     from kuma_core.mame.ingest.well_consensus import compute_well_consensuses
 
-    per_well_reads = _collect_reads_from_fasta_dir(fasta_dir)
+    per_well_reads = _collect_reads_from_fasta_dir(
+        fasta_dir,
+        quality_by_read_id=quality_by_read_id,
+    )
 
     if not per_well_reads:
         return {}
@@ -191,9 +229,20 @@ def _run_consensus_on_dir(
             except OSError as exc:
                 _logger.warning("Could not rename raw FASTA %s: %s", fasta_path, exc)
 
-        # Write single-record consensus FASTA.
+        # Write single-record consensus FASTA with depth metadata so downstream
+        # analysis can use true consensus read depth instead of file size.
         fasta_path.write_text(
-            f">{well_name}\n{result.consensus_seq}\n",
+            f">{well_name} depth={result.n_passed_filter} "
+            f"input_reads={result.n_input_reads} "
+            f"aligned_reads={result.n_aligned} "
+            f"mapq_failed={result.n_mapq_failed} "
+            f"span_failed={result.n_span_failed} "
+            f"mixed_positions={result.n_mixed_positions} "
+            f"max_minor_allele_fraction={result.max_minor_allele_fraction:.3f} "
+            f"low_depth_positions={result.n_low_depth_positions} "
+            f"consensus_n_fraction={result.consensus_n_fraction:.3f} "
+            f"low_quality_bases={result.n_low_quality_bases}\n"
+            f"{result.consensus_seq}\n",
             encoding="utf-8",
         )
 
@@ -202,7 +251,15 @@ def _run_consensus_on_dir(
             "n_input_reads": result.n_input_reads,
             "n_aligned": result.n_aligned,
             "n_passed_filter": result.n_passed_filter,
+            "n_unaligned": result.n_unaligned,
+            "n_mapq_failed": result.n_mapq_failed,
+            "n_span_failed": result.n_span_failed,
             "mean_depth": round(result.mean_depth, 2),
+            "n_mixed_positions": result.n_mixed_positions,
+            "max_minor_allele_fraction": round(result.max_minor_allele_fraction, 3),
+            "n_low_depth_positions": result.n_low_depth_positions,
+            "consensus_n_fraction": round(result.consensus_n_fraction, 3),
+            "n_low_quality_bases": result.n_low_quality_bases,
         }
 
     # Remove wells that had zero passing reads (empty consensus).
@@ -302,6 +359,10 @@ def handle_demux_and_filter(params: dict) -> dict:
     linked_trim = bool(params.get("linked_trim", False))
     rev_primer_universal: str | None = params.get("rev_primer_universal") or None
     normalize_headers = bool(params.get("normalize_headers", True))
+    # Consensus calling needs original read IDs so FASTQ quality strings can be
+    # joined back into the pileup.  Final consensus FASTA headers are still
+    # normalized to the well name by _run_consensus_on_dir.
+    demux_normalize_headers = normalize_headers and reference_fasta is None
 
     # ── Optional quality filter params ───────────────────────────────────
     seq_summary_raw = params.get("sequencing_summary")
@@ -394,7 +455,7 @@ def handle_demux_and_filter(params: dict) -> dict:
                 use_cutadapt=use_cutadapt,
                 linked_trim=linked_trim,
                 rev_primer_universal=rev_primer_universal,
-                normalize_headers=normalize_headers,
+                normalize_headers=demux_normalize_headers,
             )
             merged_input += partial.n_input_reads
             merged_assigned += partial.n_assigned
@@ -424,7 +485,7 @@ def handle_demux_and_filter(params: dict) -> dict:
             use_cutadapt=use_cutadapt,
             linked_trim=linked_trim,
             rev_primer_universal=rev_primer_universal,
-            normalize_headers=normalize_headers,
+            normalize_headers=demux_normalize_headers,
         )
         # Return parent output_dir (not single_nb_out) so analyze receives the
         # correct root that load_barcode_directory expects.
@@ -582,6 +643,7 @@ def handle_demux_and_filter(params: dict) -> dict:
                     min_mapq=min_mapq,
                     min_depth=min_consensus_depth,
                     save_intermediate=save_intermediate,
+                    quality_by_read_id=_collect_fastq_quality_by_read_id(nb_dir),
                 )
                 # Namespace stats by NB dir.
                 for well, stat in nb_stats.items():
@@ -597,6 +659,7 @@ def handle_demux_and_filter(params: dict) -> dict:
                     min_mapq=min_mapq,
                     min_depth=min_consensus_depth,
                     save_intermediate=save_intermediate,
+                    quality_by_read_id=_collect_fastq_quality_by_read_id(fastq_dir),
                 )
 
         consensus_stats_dict = all_consensus_stats if all_consensus_stats else {}

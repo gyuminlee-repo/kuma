@@ -66,11 +66,12 @@ Both tabs share a project workspace; a hidden `__kuma_meta__` sheet in every Kur
 
 What Mame does:
 
-- Drop Nanopore consensus FASTAs and a reference (`expected_mutations.xlsx` if available) into the Mame tab.
+- Drop a raw MinKNOW run folder, or MAME-generated consensus FASTAs and a reference (`expected_mutations.xlsx` if available), into the Mame tab.
 - Set the CDS end, ingest mode, and depth/identity cutoffs.
 - **Run** produces a verdict table (PASS / WRONG_AA / FRAMESHIFT / AMBIGUOUS / LOWDEPTH / NOT_FOUND) and a 96-well plate map.
 - **Export** writes a final xlsx with per-well verdicts.
 - Dropping a Kuro-exported xlsx into Mame matches the file back to its source project via `__kuma_meta__ → project_id`.
+- Raw FASTQ input keeps read IDs and Phred quality strings through MAME's own demux→consensus path; low-quality bases, low-depth sites, consensus N fraction, and mixed-read evidence are shown in the verdict table and Excel export.
 
 Sample inputs are available via **Help → Load Sample Data** in the Mame menubar.
 

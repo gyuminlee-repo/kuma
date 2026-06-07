@@ -25,8 +25,10 @@ class BarcodeRecord:
     `native_barcode` uses canonical NB01/NB02/NB03 labels.
     `custom_barcode` follows `{R}_{F}` barcode-mode naming (e.g. "1_1").
 
-    `read_count` is None in Phase 1 (file-size proxy is used instead).
-    Will be populated with actual FASTA record count in G6/A6 round.
+    `read_count` is populated from consensus header metadata such as
+    `depth=N` when available, with single-record legacy consensus files
+    falling back to record count. File size remains available as a legacy
+    volume proxy.
     """
 
     native_barcode: str
@@ -35,6 +37,15 @@ class BarcodeRecord:
     file_size_kb: float
     source_path: Path
     read_count: int | None = None
+    n_mixed_positions: int = 0
+    max_minor_allele_fraction: float = 0.0
+    n_low_depth_positions: int = 0
+    consensus_n_fraction: float = 0.0
+    n_low_quality_bases: int = 0
+    n_input_reads: int | None = None
+    n_aligned_reads: int | None = None
+    n_mapq_failed: int = 0
+    n_span_failed: int = 0
 
 
 @dataclass
@@ -68,6 +79,8 @@ class CompareParams:
     """Tunable thresholds for the 6-class verdict classifier."""
 
     min_file_size_kb: float = 50.0
+    min_read_count: int | None = None
+    max_consensus_n_fraction: float | None = 0.0
     many_mutation_cutoff: int = 5
     indel_window_codon: int = 5
     frameshift_window_bp: int = 10

@@ -18,8 +18,8 @@ import statistics
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from kuma_core.mame.ingest.align import Alignment, align_reads
-from kuma_core.mame.ingest.consensus import call_consensus, per_position_depth
+from kuma_core.mame.ingest.align import Alignment, align_reads_with_stats
+from kuma_core.mame.ingest.consensus import call_consensus_with_metrics, per_position_depth
 
 
 @dataclass
@@ -40,6 +40,18 @@ class ConsensusResult:
     mean_depth:
         Mean per-position read depth across the reference, computed from
         passing alignments.  0.0 when n_passed_filter == 0.
+    n_mixed_positions:
+        Number of positions with a second A/C/G/T base above the configured
+        minor-allele fraction threshold.
+    max_minor_allele_fraction:
+        Largest second-base fraction observed across positions.
+    n_low_depth_positions:
+        Number of reference positions whose pileup depth is below ``min_depth``.
+    consensus_n_fraction:
+        Fraction of consensus positions emitted as ``N``.
+    n_low_quality_bases:
+        Number of FASTQ bases excluded from pileup voting by the base-quality
+        gate. Zero for legacy FASTA-only inputs.
     """
 
     consensus_seq: str
@@ -47,6 +59,14 @@ class ConsensusResult:
     n_aligned: int
     n_passed_filter: int
     mean_depth: float
+    n_unaligned: int = 0
+    n_mapq_failed: int = 0
+    n_span_failed: int = 0
+    n_mixed_positions: int = 0
+    max_minor_allele_fraction: float = 0.0
+    n_low_depth_positions: int = 0
+    consensus_n_fraction: float = 0.0
+    n_low_quality_bases: int = 0
     alignments: list[Alignment] = field(default_factory=list, repr=False)
 
 
@@ -99,16 +119,12 @@ def compute_well_consensuses(
                 n_aligned=0,
                 n_passed_filter=0,
                 mean_depth=0.0,
+                n_low_depth_positions=ref_len,
+                consensus_n_fraction=1.0 if ref_len > 0 else 0.0,
             )
             continue
 
-        # align_reads returns only passing alignments (MAPQ + span filtered).
-        # To compute n_aligned separately we would need a two-pass approach.
-        # As a pragmatic approximation: n_aligned is not tracked here because
-        # mappy only returns hits that pass its internal filter; the distinction
-        # between "no hit" and "low-MAPQ hit" is opaque from the mappy API.
-        # n_aligned is set equal to n_passed_filter (conservative lower bound).
-        alignments = align_reads(
+        alignments, aln_stats = align_reads_with_stats(
             reads=reads,
             reference_fasta=reference_fasta,
             preset="map-ont",
@@ -122,9 +138,14 @@ def compute_well_consensuses(
             results[well] = ConsensusResult(
                 consensus_seq="N" * ref_len,
                 n_input_reads=n_input,
-                n_aligned=0,
+                n_aligned=aln_stats.n_primary_alignments,
                 n_passed_filter=0,
                 mean_depth=0.0,
+                n_unaligned=aln_stats.n_unaligned,
+                n_mapq_failed=aln_stats.n_failed_mapq,
+                n_span_failed=aln_stats.n_failed_span,
+                n_low_depth_positions=ref_len,
+                consensus_n_fraction=1.0 if ref_len > 0 else 0.0,
                 alignments=[],
             )
             continue
@@ -133,14 +154,26 @@ def compute_well_consensuses(
         depths = per_position_depth(alignments, ref_len)
         mean_d = statistics.mean(depths) if depths else 0.0
 
-        consensus_seq = call_consensus(alignments, ref_seq, min_depth=min_depth)
+        consensus_call = call_consensus_with_metrics(
+            alignments,
+            ref_seq,
+            min_depth=min_depth,
+        )
 
         results[well] = ConsensusResult(
-            consensus_seq=consensus_seq,
+            consensus_seq=consensus_call.consensus_seq,
             n_input_reads=n_input,
-            n_aligned=n_passed,       # conservative: mappy doesn't expose pre-filter counts
+            n_aligned=aln_stats.n_primary_alignments,
             n_passed_filter=n_passed,
             mean_depth=mean_d,
+            n_unaligned=aln_stats.n_unaligned,
+            n_mapq_failed=aln_stats.n_failed_mapq,
+            n_span_failed=aln_stats.n_failed_span,
+            n_mixed_positions=consensus_call.n_mixed_positions,
+            max_minor_allele_fraction=consensus_call.max_minor_allele_fraction,
+            n_low_depth_positions=consensus_call.n_low_depth_positions,
+            consensus_n_fraction=consensus_call.consensus_n_fraction,
+            n_low_quality_bases=consensus_call.n_low_quality_bases,
             alignments=alignments,
         )
 

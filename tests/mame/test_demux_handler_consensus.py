@@ -174,6 +174,14 @@ def test_handle_demux_consensus_output_load_barcode_directory(
     assert len(records) == len(_BARCODES), (
         f"Expected {len(_BARCODES)} BarcodeRecords, got {len(records)}"
     )
+    assert {record.read_count for record in records} == {3}
+    assert {record.n_input_reads for record in records} == {3}
+    assert {record.n_aligned_reads for record in records} == {3}
+    assert {record.n_mapq_failed for record in records} == {0}
+    assert {record.n_span_failed for record in records} == {0}
+    assert {record.n_low_depth_positions for record in records} == {0}
+    assert {record.consensus_n_fraction for record in records} == {0.0}
+    assert {record.n_low_quality_bases for record in records} == {0}
 
 
 def test_handle_demux_per_well_counts_reflect_raw_reads(
@@ -231,6 +239,11 @@ def test_handle_demux_consensus_stats_populated(
             f"{well_key}: consensus length {stat['consensus_seq_length']} != ref length"
         )
         assert stat["mean_depth"] > 0.0, f"{well_key}: mean_depth == 0"
+        assert stat["n_mapq_failed"] == 0
+        assert stat["n_span_failed"] == 0
+        assert stat["n_low_depth_positions"] == 0
+        assert stat["consensus_n_fraction"] == 0.0
+        assert stat["n_low_quality_bases"] == 0
 
 
 def test_handle_demux_legacy_no_consensus(

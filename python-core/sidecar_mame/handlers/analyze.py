@@ -88,7 +88,16 @@ def _serialize_verdict(vr: Any) -> dict:
         "native_barcode": b.native_barcode,
         "custom_barcode": b.custom_barcode,
         "file_size_kb": b.file_size_kb,
-        "read_count": b.read_count,  # None in Phase 1 / file-size proxy builds
+        "read_count": b.read_count,
+        "n_mixed_positions": b.n_mixed_positions,
+        "max_minor_allele_fraction": b.max_minor_allele_fraction,
+        "n_low_depth_positions": b.n_low_depth_positions,
+        "consensus_n_fraction": b.consensus_n_fraction,
+        "n_low_quality_bases": b.n_low_quality_bases,
+        "n_input_reads": b.n_input_reads,
+        "n_aligned_reads": b.n_aligned_reads,
+        "n_mapq_failed": b.n_mapq_failed,
+        "n_span_failed": b.n_span_failed,
         "source_path": str(b.source_path),
         "aa_sequence": t.aa_sequence,
         "observed_nt_changes": list(t.observed_nt_changes),
@@ -215,6 +224,16 @@ def handle_analyze(params: dict) -> dict:
     cds_start = int(params.get("cds_start", 0))
     cds_end = _resolve_cds_end(params.get("cds_end"), reference)
     min_file_size_kb = float(params.get("min_file_size_kb", 50.0))
+    min_read_count_raw = params.get("min_read_count")
+    min_read_count = (
+        None if min_read_count_raw in (None, "") else int(min_read_count_raw)
+    )
+    max_consensus_n_fraction_raw = params.get("max_consensus_n_fraction", 0.0)
+    max_consensus_n_fraction = (
+        None
+        if max_consensus_n_fraction_raw in (None, "")
+        else float(max_consensus_n_fraction_raw)
+    )
     many_cutoff = int(params.get("many_cutoff", 5))
 
     _progress(10, "Ingesting FASTA files...")
@@ -242,6 +261,8 @@ def handle_analyze(params: dict) -> dict:
             cds_end=cds_end,
             mode=mode,
             min_file_size_kb=min_file_size_kb,
+            min_read_count=min_read_count,
+            max_consensus_n_fraction=max_consensus_n_fraction,
             many_cutoff=many_cutoff,
             ingest_mode=ingest_mode_enum,
         )

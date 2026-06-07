@@ -1,5 +1,23 @@
 # Changelog
 
+## MAME native consensus QC update (2026-06-07)
+
+2026-06-07 MAME는 외부 TFP-SEQ/seq_cons 호환층을 추가하지 않고, 자체 raw FASTQ → demux → consensus → verdict 경로를 강화했습니다.
+
+### MAME
+
+- raw FASTQ demux 경로에서 read ID와 Phred quality string을 보존하여, 저품질 base call이 consensus 투표를 이기지 못하게 했습니다.
+- MAME가 생성하는 consensus FASTA header에 `depth=N`, `low_depth_positions`, `consensus_n_fraction`, `low_quality_bases`, `mixed_positions`, `max_minor_allele_fraction` 등의 QC metadata를 기록합니다.
+- verdict의 `read_count`는 파일 크기 대리지표가 아니라 consensus header의 실제 depth를 우선 사용합니다.
+- consensus N signal은 기본적으로 `LOWDEPTH`, within-well mixed-read evidence는 `AMBIGUOUS`로 분류되어 51:49 다수결 well이 조용히 PASS하지 않도록 했습니다.
+- verdict table, JSON payload, 96-well Excel export에 read depth, N fraction, low-depth 위치, low-quality base 제외 수, MAPQ/span drop counter를 노출합니다.
+
+### 전략 메모
+
+- 사용자 요구에 따라 TFP-SEQ 산출물을 받아 공존하는 interop 방향은 폐기했습니다. MAME는 KURO-linked directed-evolution decision layer를 유지하면서, 겹치는 sequencing consensus 층의 정확성 구멍을 자체 보강하는 방향으로 업데이트되었습니다.
+
+---
+
 ## 주간 업데이트 (2026-05-22)
 
 2026-05-20 부터 2026-05-22 까지 출시된 KUMA v0.10.0.08 ~ v0.10.0.19 주요 변경 사항입니다.

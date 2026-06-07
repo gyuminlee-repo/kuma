@@ -39,6 +39,8 @@ def _build_parser() -> argparse.ArgumentParser:
     analyze.add_argument("--output", type=Path, default=Path("./output.xlsx"))
     analyze.add_argument("--mode", choices=["amplicon", "plasmid"], default="amplicon")
     analyze.add_argument("--min-file-size", type=float, default=None)
+    analyze.add_argument("--min-read-count", type=int, default=None)
+    analyze.add_argument("--max-consensus-n-fraction", type=float, default=0.0)
     analyze.add_argument("--many-cutoff", type=int, default=5)
     analyze.add_argument("--cds-start", type=int, default=0)
     analyze.add_argument("--cds-end", type=int, required=True)
@@ -81,6 +83,8 @@ def _cmd_analyze(args: argparse.Namespace) -> int:
         cds_end=args.cds_end,
         mode=args.mode,
         min_file_size_kb=min_kb,
+        min_read_count=args.min_read_count,
+        max_consensus_n_fraction=args.max_consensus_n_fraction,
         many_cutoff=args.many_cutoff,
         ingest_mode=IngestMode(args.ingest_mode),
     )
@@ -149,6 +153,22 @@ def _dump_verdicts(
                 "native_barcode": vr.translated.barcode.native_barcode,
                 "custom_barcode": vr.translated.barcode.custom_barcode,
                 "file_size_kb": vr.translated.barcode.file_size_kb,
+                "read_count": vr.translated.barcode.read_count,
+                "n_mixed_positions": vr.translated.barcode.n_mixed_positions,
+                "max_minor_allele_fraction": (
+                    vr.translated.barcode.max_minor_allele_fraction
+                ),
+                "n_low_depth_positions": (
+                    vr.translated.barcode.n_low_depth_positions
+                ),
+                "consensus_n_fraction": vr.translated.barcode.consensus_n_fraction,
+                "n_low_quality_bases": (
+                    vr.translated.barcode.n_low_quality_bases
+                ),
+                "n_input_reads": vr.translated.barcode.n_input_reads,
+                "n_aligned_reads": vr.translated.barcode.n_aligned_reads,
+                "n_mapq_failed": vr.translated.barcode.n_mapq_failed,
+                "n_span_failed": vr.translated.barcode.n_span_failed,
                 "source_path": str(vr.translated.barcode.source_path),
                 "consensus_seq": vr.translated.barcode.consensus_seq,
                 "aa_sequence": vr.translated.aa_sequence,
@@ -186,6 +206,18 @@ def _load_verdicts(path: Path) -> tuple[list[VerdictRecord], list[ReplicateResul
             consensus_seq=item["consensus_seq"],
             file_size_kb=item["file_size_kb"],
             source_path=Path(item["source_path"]),
+            read_count=item.get("read_count"),
+            n_mixed_positions=int(item.get("n_mixed_positions", 0)),
+            max_minor_allele_fraction=float(
+                item.get("max_minor_allele_fraction", 0.0)
+            ),
+            n_low_depth_positions=int(item.get("n_low_depth_positions", 0)),
+            consensus_n_fraction=float(item.get("consensus_n_fraction", 0.0)),
+            n_low_quality_bases=int(item.get("n_low_quality_bases", 0)),
+            n_input_reads=item.get("n_input_reads"),
+            n_aligned_reads=item.get("n_aligned_reads"),
+            n_mapq_failed=int(item.get("n_mapq_failed", 0)),
+            n_span_failed=int(item.get("n_span_failed", 0)),
         )
         translated = TranslatedRecord(
             barcode=barcode,

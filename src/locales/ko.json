@@ -164,18 +164,13 @@
       "progressAria": "통합 분석 진행률 {{percent}}%"
     },
     "nativeBarcodeDialog": {
-      "title": "Native barcode 확인",
-      "description": "FASTQ 용량에서 여러 native barcode가 감지되었습니다. demultiplex할 barcode를 선택하세요 (각각 자체 sort_barcode 폴더로 병렬 실행됩니다).",
-      "detected": "native barcode {{count}}개 감지됨",
-      "colBarcode": "Barcode",
-      "colOutput": "출력 폴더",
-      "colVolume": "FASTQ 용량",
-      "colShare": "비율",
-      "colUse": "처리",
-      "inUse": "사용 중",
-      "run": "demux 실행",
-      "cancel": "취소",
-      "noneSelected": "barcode를 하나 이상 선택하세요"
+      "title": "여러 native barcode가 감지되었습니다",
+      "description": "이 run에는 MinKNOW native barcode가 둘 이상 포함되어 있습니다. demultiplex할 barcode를 선택하세요. 선택한 barcode는 각각 별도의 출력 폴더로 처리됩니다.",
+      "shareHeader": "비율",
+      "selectAriaLabel": "native barcode {{name}} 선택",
+      "selectedCount": "barcode {{count}}개 선택됨",
+      "confirm": "선택 항목 실행",
+      "confirming": "실행 중…"
     },
     "parameters": {
       "title": "파라미터",
@@ -460,6 +455,7 @@
       "colVerdict": "판정",
       "colAaChanges": "AA 변이",
       "colDepth": "깊이 (리드)",
+      "colQuality": "품질",
       "colNotes": "비고",
       "fileSizeAriaLabel": "파일 크기: {{kb}} KB",
       "fallbackAriaLabel": "대체 반복",
@@ -596,15 +592,6 @@
         "exporting": "내보내는 중…",
         "exportErrorPathRequired": "출력 경로를 입력하세요."
       }
-    },
-    "nativeBarcodeDialog": {
-      "title": "여러 native barcode가 감지되었습니다",
-      "description": "이 run에는 MinKNOW native barcode가 둘 이상 포함되어 있습니다. demultiplex할 barcode를 선택하세요. 선택한 barcode는 각각 별도의 출력 폴더로 처리됩니다.",
-      "shareHeader": "비율",
-      "selectAriaLabel": "native barcode {{name}} 선택",
-      "selectedCount": "barcode {{count}}개 선택됨",
-      "confirm": "선택 항목 실행",
-      "confirming": "실행 중…"
     },
     "inputPanel": {
       "title": "입력 파일",

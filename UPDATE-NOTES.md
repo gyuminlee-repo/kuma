@@ -4,6 +4,19 @@
 
 ---
 
+## Unreleased (2026-06-07)
+
+### MAME
+
+- MAME's own consensus FASTA headers now carry `depth=N`, and analyze populates `read_count` from that true consensus read depth instead of relying only on file size.
+- The analyzer accepts optional `min_read_count` LOWDEPTH gating while preserving the legacy file-size cutoff by default.
+- Consensus headers now also carry `low_depth_positions` and `consensus_n_fraction`; any consensus N signal is classified as `LOWDEPTH` by default, with an analyzer threshold available for relaxed runs.
+- Consensus calling now writes within-well mixture metrics, and exact-majority wells with mixed-read evidence are classified as `AMBIGUOUS` instead of passing silently.
+- Raw FASTQ demux→consensus now preserves read IDs and quality strings internally; low-Phred base calls are excluded from consensus voting, while legacy FASTA-only input keeps the unweighted path.
+- Verdict payloads, the MAME verdict table, and Excel exports now expose low-quality base exclusions plus MAPQ/span drop counters so failed wells are explainable instead of only labeled.
+
+---
+
 ## v0.10.0 (2026-05-19)
 
 EGFP-centric synthetic plasmid sample replaces the standalone `egfp.fa`. MAME sample fixtures and locale strings migrate from IspS to EGFP. `sample_plasmid.gb` is now the single bundled template for both Kuro and MAME sample workflows.

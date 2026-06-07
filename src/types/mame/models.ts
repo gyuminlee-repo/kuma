@@ -15,6 +15,15 @@ export interface VerdictRecord {
   custom_barcode: string;
   file_size_kb: number;
   read_count: number | null;
+  n_mixed_positions: number;
+  max_minor_allele_fraction: number;
+  n_low_depth_positions: number;
+  consensus_n_fraction: number;
+  n_low_quality_bases: number;
+  n_input_reads: number | null;
+  n_aligned_reads: number | null;
+  n_mapq_failed: number;
+  n_span_failed: number;
   source_path: string;
   aa_sequence: string;
   observed_nt_changes: string[];
@@ -91,6 +100,8 @@ export interface AnalysisParams {
   cds_start: number;
   cds_end: number;
   min_file_size_kb: number;
+  min_read_count?: number | null;
+  max_consensus_n_fraction?: number | null;
   many_cutoff: number;
 }
 

@@ -51,6 +51,69 @@ def test_parse_fasta_file_single_header_ok(tmp_path: Path) -> None:
     assert record.read_count == 1
 
 
+def test_parse_fasta_file_depth_header_populates_read_count(tmp_path: Path) -> None:
+    """Consensus FASTA depth=N metadata should become BarcodeRecord.read_count."""
+    fasta = tmp_path / "1_1.fasta"
+    fasta.write_text(
+        ">1_1 depth=37 mixed_positions=2 max_minor_allele_fraction=0.490\n"
+        "ATGCATGCATGC\n",
+        encoding="utf-8",
+    )
+    record = parse_fasta_file(fasta, native_barcode="NB01")
+    assert record.custom_barcode == "1_1"
+    assert record.consensus_seq == "ATGCATGCATGC"
+    assert record.read_count == 37
+    assert record.n_mixed_positions == 2
+    assert record.max_minor_allele_fraction == 0.49
+    assert record.n_low_depth_positions == 0
+    assert record.consensus_n_fraction == 0.0
+
+
+def test_parse_fasta_file_quality_header_populates_low_depth_metrics(
+    tmp_path: Path,
+) -> None:
+    """MAME consensus metadata should carry per-base low-depth/N evidence."""
+    fasta = tmp_path / "1_1.fasta"
+    fasta.write_text(
+        ">1_1 depth=37 input_reads=40 aligned_reads=38 mapq_failed=1 "
+        "span_failed=1 low_depth_positions=3 consensus_n_fraction=0.250 "
+        "low_quality_bases=7\n"
+        "ATGNNNGCATGC\n",
+        encoding="utf-8",
+    )
+    record = parse_fasta_file(fasta, native_barcode="NB01")
+    assert record.read_count == 37
+    assert record.n_input_reads == 40
+    assert record.n_aligned_reads == 38
+    assert record.n_mapq_failed == 1
+    assert record.n_span_failed == 1
+    assert record.n_low_depth_positions == 3
+    assert record.consensus_n_fraction == 0.25
+    assert record.n_low_quality_bases == 7
+
+
+def test_parse_fasta_file_computes_n_fraction_without_header(tmp_path: Path) -> None:
+    """Legacy single-record consensus files still expose N fraction to compare()."""
+    fasta = tmp_path / "1_1.fasta"
+    fasta.write_text(">1_1\nATGN\n", encoding="utf-8")
+    record = parse_fasta_file(fasta, native_barcode="NB01")
+    assert record.n_low_depth_positions == 0
+    assert record.consensus_n_fraction == 0.25
+
+
+def test_load_barcode_directory_ignores_fastq_consensus_files(tmp_path: Path) -> None:
+    """MAME consumes its own consensus FASTA tree, not third-party FASTQ output."""
+    nb = tmp_path / "sort_barcode06"
+    nb.mkdir()
+    (nb / "consensus.fastq").write_text(
+        "@1_7 depth=42\nATGCATGC\n+\nIIIIIIII\n",
+        encoding="utf-8",
+    )
+
+    records = load_barcode_directory(tmp_path)
+    assert records == []
+
+
 def test_parse_fasta_file_multi_header_raises(tmp_path: Path) -> None:
     """Multi-record FASTA (raw-read bundle) must raise ValueError with
     informative message — anti-fallback discipline."""

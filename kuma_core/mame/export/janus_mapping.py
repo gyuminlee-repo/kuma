@@ -16,10 +16,11 @@ recommended placement order.
 
 read_count policy (G6/A6)
 --------------------------
-``BarcodeRecord.read_count`` is populated by the FASTA parser (header count).
-``priority_score`` uses read_count when non-None; falls back to file_size_kb.
-Column name ``priority_score`` is kept for downstream consumers regardless of
-which underlying metric is used.
+``BarcodeRecord.read_count`` is populated by the consensus parser from
+``depth=N`` header metadata when available, falling back to single-record
+counts for legacy consensus files. ``priority_score`` uses read_count when
+non-None; falls back to file_size_kb. Column name ``priority_score`` is kept
+for downstream consumers regardless of which underlying metric is used.
 
 G3 run-meta embedding
 ---------------------

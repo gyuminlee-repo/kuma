@@ -146,18 +146,13 @@
       "redetecting": "Detectando..."
     },
     "nativeBarcodeDialog": {
-      "title": "Confirmar native barcodes",
-      "description": "Vários native barcodes foram detectados a partir dos volumes FASTQ. Selecione quais demultiplexar (cada um roda em paralelo na sua própria pasta sort_barcode).",
-      "detected": "{{count}} native barcodes detectados",
-      "colBarcode": "Barcode",
-      "colOutput": "Pasta de saída",
-      "colVolume": "Volume FASTQ",
-      "colShare": "Proporção",
-      "colUse": "Processar",
-      "inUse": "em uso",
-      "run": "Executar demux",
-      "cancel": "Cancelar",
-      "noneSelected": "Selecione pelo menos um barcode"
+      "title": "Vários native barcodes detectados",
+      "description": "Esta execução contém mais de um native barcode do MinKNOW. Selecione os barcodes a demultiplexar; cada barcode selecionado é processado em sua própria pasta de saída.",
+      "shareHeader": "Proporção",
+      "selectAriaLabel": "Selecionar native barcode {{name}}",
+      "selectedCount": "{{count}} barcode(s) selecionado(s)",
+      "confirm": "Executar seleção",
+      "confirming": "Executando…"
     },
     "parameters": {
       "title": "Parâmetros",
@@ -442,6 +437,7 @@
       "colVerdict": "Verdict",
       "colAaChanges": "Mudanças AA",
       "colDepth": "Depth (read)",
+      "colQuality": "Quality",
       "colNotes": "Notas",
       "fileSizeAriaLabel": "Tamanho do arquivo: {{kb}} KB",
       "fallbackAriaLabel": "Replicate de fallback",
@@ -577,15 +573,6 @@
         "exporting": "Exportando…",
         "exportErrorPathRequired": "O caminho de saída é obrigatório."
       }
-    },
-    "nativeBarcodeDialog": {
-      "title": "Vários native barcodes detectados",
-      "description": "Esta execução contém mais de um native barcode do MinKNOW. Selecione os barcodes a demultiplexar; cada barcode selecionado é processado em sua própria pasta de saída.",
-      "shareHeader": "Proporção",
-      "selectAriaLabel": "Selecionar native barcode {{name}}",
-      "selectedCount": "{{count}} barcode(s) selecionado(s)",
-      "confirm": "Executar seleção",
-      "confirming": "Executando…"
     },
     "inputPanel": {
       "title": "Arquivos de entrada",

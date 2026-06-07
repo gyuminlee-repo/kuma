@@ -55,10 +55,13 @@ Given a mutation list (plain text / EVOLVEpro CSV) and a template sequence (GenB
 
 ### Mame — NGS screening verdict
 
-Given a Kuro-exported `expected_mutations.xlsx`, a reference FASTA, and Oxford Nanopore barcode-mode consensus FASTA files, Mame produces per-barcode mutation verdicts and a 96-well Final Excel export.
+Given a Kuro-exported `expected_mutations.xlsx`, a reference FASTA, and MAME-generated barcode-mode consensus FASTA files, Mame produces per-barcode mutation verdicts and a 96-well Final Excel export.
 
-- **Consensus FASTA ingest**: Barcode-mode output from Nanopore basecaller. Mock fixtures included at `tests/mame/fixtures/`.
+- **MAME consensus FASTA ingest**: Barcode-mode consensus output from MAME's own demux→consensus pipeline. Consensus headers with `depth=N`, per-base low-depth positions, N fraction, and mixed-allele metrics drive read-count `LOWDEPTH` and mixed-well `AMBIGUOUS` gating.
+- **Phred-aware consensus**: When MAME starts from raw FASTQ, read IDs and quality strings are preserved through the internal demux step so low-quality base calls do not win the consensus vote.
 - **6-class verdict**: Each barcode classified into one of six outcomes (exact match, partial, off-target, WT retained, no coverage, ambiguous).
+- **Mixed-well guard**: Consensus headers can carry minor-allele metrics; wells with substantial within-well mixture are surfaced as `AMBIGUOUS` instead of silently passing on the majority allele.
+- **Explainable QC evidence**: Verdict tables and Excel exports carry read depth, N fraction, low-depth positions, low-quality base exclusions, and MAPQ/span drop counters.
 - **3-replicate best pick**: Among triplicate barcodes, the best-scoring clone is selected.
 - **96-well Final Excel export**: Column-major 96-well layout with verdict per well. Synchronized with Kuro's plate map ordering.
 - **Single-view workbench**: Input files panel, parameter panel (mode, CDS end, cutoffs), verdict table with NB01/NB02/NB03/ALL filter, 96-well map with colorblind-safe toggle.
@@ -91,7 +94,7 @@ On first launch kuma asks for a **projects root** folder (default `~/Documents/k
     │   ├── workspace.kuro.json    # Kuro workspace (same format as legacy .kuro.json)
     │   └── expected_mutations.xlsx # carries hidden __kuma_meta__ sheet
     └── analysis/
-        ├── consensus/             # drop Nanopore consensus FASTAs here
+        ├── consensus/             # MAME-generated consensus FASTAs
         └── verdict.xlsx           # Mame output
 ```
 
@@ -146,7 +149,7 @@ Subsequent launches require no further action.
 
 **Mame tab** (after wet lab + sequencing)
 1. **Help → Load Sample Data** to load examples, or:
-2. Drop Nanopore consensus FASTAs into the input panel
+2. Drop MAME-generated consensus FASTAs into the input panel
 3. Reference FASTA + `expected_mutations.xlsx` (auto-suggested if the active project has them)
 4. Set CDS end / mode / cutoffs
 5. **Run** → verdict table + 96-well plate map

@@ -95,6 +95,8 @@ def run_analyze(
     cds_end: int,
     mode: str = "amplicon",
     min_file_size_kb: float = 50.0,
+    min_read_count: int | None = None,
+    max_consensus_n_fraction: float | None = 0.0,
     many_cutoff: int = 5,
     ingest_mode: IngestMode = IngestMode.BARCODE,
 ) -> tuple[list[VerdictRecord], list[ReplicateResult]]:
@@ -107,6 +109,8 @@ def run_analyze(
     records = route_ingest(input_dir, ingest_mode)
     params = CompareParams(
         min_file_size_kb=min_file_size_kb,
+        min_read_count=min_read_count,
+        max_consensus_n_fraction=max_consensus_n_fraction,
         many_mutation_cutoff=many_cutoff,
     )
 

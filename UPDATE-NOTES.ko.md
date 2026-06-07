@@ -4,6 +4,20 @@
 
 ---
 
+## Unreleased (2026-06-07)
+
+### MAME
+
+- MAME 자체 consensus FASTA header가 `depth=N`를 기록하고, analyze는 파일 크기 대리지표보다 실제 consensus read depth를 우선해 `read_count`를 채웁니다.
+- Analyzer는 optional `min_read_count` 기반 `LOWDEPTH` gating을 지원하되, 기존 file-size cutoff 기본값은 유지합니다.
+- Consensus header에 `low_depth_positions`, `consensus_n_fraction`이 추가되었습니다. 기본 설정에서는 consensus N signal이 있으면 `LOWDEPTH`로 분류하고, relaxed run을 위한 threshold도 제공합니다.
+- Consensus caller가 within-well mixture metric을 기록합니다. 혼합 read 근거가 있는 exact-majority well은 조용히 PASS하지 않고 `AMBIGUOUS`로 분류됩니다.
+- raw FASTQ demux→consensus 경로가 read ID와 quality string을 내부적으로 보존합니다. 저 Phred base call은 consensus vote에서 제외되고, legacy FASTA-only input은 기존 unweighted 경로를 유지합니다.
+- Verdict payload, MAME verdict table, Excel export에 low-quality base 제외 수와 MAPQ/span drop counter를 노출해 실패 well의 이유를 설명 가능하게 했습니다.
+- 외부 TFP-SEQ/seq_cons 산출물을 받아 공존하는 interop 방향은 폐기했습니다. 이번 업데이트는 MAME 자체 분석 경로를 강화하는 변경입니다.
+
+---
+
 ## v0.10.0 (2026-05-19)
 
 EGFP 중심 합성 plasmid 샘플이 단독 `egfp.fa` 를 대체합니다. MAME 샘플 fixture 와 로케일 문자열도 IspS 에서 EGFP 로 이전되었습니다. `sample_plasmid.gb` 가 Kuro/MAME 샘플 워크플로의 단일 번들 템플릿입니다.

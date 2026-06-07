@@ -52,10 +52,13 @@ Kuro 탭에서 프라이머를 설계하고 실험·시퀀싱 후 Mame 탭으로
 
 ### Mame — NGS 스크리닝 판정
 
-Kuro가 만든 `expected_mutations.xlsx`, 참조 FASTA, Oxford Nanopore 바코드 모드 consensus FASTA들을 입력받아 바코드별 돌연변이 판정과 96-well Final Excel을 만든다.
+Kuro가 만든 `expected_mutations.xlsx`, 참조 FASTA, MAME가 생성한 barcode-mode consensus FASTA들을 입력받아 바코드별 돌연변이 판정과 96-well Final Excel을 만든다.
 
-- **Consensus FASTA ingest**: Nanopore basecaller 바코드 모드 출력. 모의 fixture가 `tests/mame/fixtures/`에 포함됨
+- **MAME consensus FASTA ingest**: MAME 자체 demux→consensus pipeline의 barcode-mode 출력. Consensus header의 `depth=N`, low-depth 위치, N fraction, mixed-allele metric이 `LOWDEPTH`/`AMBIGUOUS` 판정 근거가 된다.
+- **Phred-aware consensus**: raw FASTQ에서 시작하면 read ID와 quality string을 내부 demux 단계에서 보존해 저품질 base call이 consensus vote를 이기지 못하게 한다.
 - **6-class 판정**: 각 바코드를 6가지 결과로 분류 (exact match, partial, off-target, WT retained, no coverage, ambiguous)
+- **Mixed-well guard**: minor-allele metric이 있는 consensus는 within-well mixture 근거가 충분할 때 다수결 PASS 대신 `AMBIGUOUS`로 표시한다.
+- **Explainable QC evidence**: 판정 테이블과 Excel export에 read depth, N fraction, low-depth 위치, low-quality base 제외 수, MAPQ/span drop counter를 표시한다.
 - **3-replicate best pick**: 삼중 바코드 중 최고 점수 클론 선택
 - **96-well Final Excel**: column-major 96-well 레이아웃에 웰별 판정. Kuro의 plate map 순서와 동기화
 - **Single-view 워크벤치**: 입력 파일 패널, 파라미터 패널(mode / CDS end / cutoffs), NB01/NB02/NB03/ALL 필터가 있는 판정 테이블, 색맹 친화 토글이 있는 96-well 맵
@@ -88,7 +91,7 @@ EVOLVEpro CSV 로드 시 어떤 mutation을 프라이머 설계 대상으로 선
     │   ├── workspace.kuro.json    # Kuro workspace (기존 .kuro.json 포맷 그대로)
     │   └── expected_mutations.xlsx # 숨김 __kuma_meta__ 시트 포함
     └── analysis/
-        ├── consensus/             # Nanopore consensus FASTA 드롭
+        ├── consensus/             # MAME-generated consensus FASTAs
         └── verdict.xlsx           # Mame 출력
 ```
 
@@ -143,7 +146,7 @@ xattr -cr /Applications/kuma.app
 
 **Mame 탭** (실험·시퀀싱 후)
 1. **Help → Load Sample Data** 메뉴로 예제 자동 로드. 또는:
-2. Nanopore consensus FASTA를 입력 패널에 드롭
+2. MAME-generated consensus FASTA를 입력 패널에 드롭
 3. 참조 FASTA + `expected_mutations.xlsx` (활성 프로젝트가 가지고 있으면 자동 제안)
 4. CDS end / mode / cutoffs 설정
 5. **Run** → 판정 테이블 + 96-well plate map

@@ -66,11 +66,12 @@
 
 Mame가 하는 일:
 
-- Mame 탭에 Nanopore consensus FASTA와 참조 파일(있으면 `expected_mutations.xlsx`)을 드롭한다.
+- Mame 탭에 raw MinKNOW run 폴더, 또는 MAME가 생성한 consensus FASTA와 참조 파일(있으면 `expected_mutations.xlsx`)을 드롭한다.
 - CDS end, ingest mode, depth/identity cutoff을 설정한다.
 - **Run** → 판정 테이블(PASS / WRONG_AA / FRAMESHIFT / AMBIGUOUS / LOWDEPTH / NOT_FOUND)과 96-well 플레이트 맵 생성.
 - **Export** → well별 판정이 담긴 최종 xlsx 출력.
 - Kuro에서 export한 xlsx를 Mame에 드롭하면 `__kuma_meta__ → project_id`로 원래 프로젝트에 자동 매칭된다.
+- raw FASTQ 입력은 MAME 자체 demux→consensus 경로에서 read ID와 Phred quality string을 유지한다. 저품질 base 제외, low-depth 위치, consensus N fraction, 혼합 read 근거가 판정 테이블과 Excel export에 표시된다.
 
 샘플 입력은 Mame 메뉴바의 **Help → Load Sample Data**로 불러올 수 있다.
 

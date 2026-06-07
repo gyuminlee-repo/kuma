@@ -10,7 +10,7 @@ KUMA의 모든 데이터는 `projects root` 폴더 아래에 프로젝트 단위
     │   ├── workspace.kuro.json      # KURO workspace (legacy .kuro.json 호환)
     │   └── expected_mutations.xlsx  # __kuma_meta__ 숨김 시트 포함
     └── analysis/
-        ├── consensus/               # Nanopore consensus FASTA 드롭 위치
+        ├── consensus/               # MAME-generated consensus FASTA/output
         └── verdict.xlsx             # MAME 출력
 ```
 

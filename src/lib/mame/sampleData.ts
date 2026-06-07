@@ -6,7 +6,22 @@ import type {
 } from "@/types/mame/models";
 
 export function sampleVerdicts(): VerdictRecord[] {
-  const base: Omit<VerdictRecord, "source_path" | "file_size_kb" | "read_count" | "observed_nt_changes">[] = [
+  const base: Omit<
+    VerdictRecord,
+    | "source_path"
+    | "file_size_kb"
+    | "read_count"
+    | "n_mixed_positions"
+    | "max_minor_allele_fraction"
+    | "n_low_depth_positions"
+    | "consensus_n_fraction"
+    | "n_low_quality_bases"
+    | "n_input_reads"
+    | "n_aligned_reads"
+    | "n_mapq_failed"
+    | "n_span_failed"
+    | "observed_nt_changes"
+  >[] = [
     { native_barcode: "barcode1", custom_barcode: "1_1", verdict: "PASS", verdict_notes: "", aa_sequence: "MSTTS", observed_aa_changes: ["V5F"], expected_mutations: ["V5F"] },
     { native_barcode: "barcode2", custom_barcode: "1_2", verdict: "PASS", verdict_notes: "", aa_sequence: "MSTTS", observed_aa_changes: ["K53N"], expected_mutations: ["K53N"] },
     { native_barcode: "barcode3", custom_barcode: "1_3", verdict: "WRONG_AA", verdict_notes: "observed V5S, expected V5F", aa_sequence: "MSTSS", observed_aa_changes: ["V5S"], expected_mutations: ["V5F"] },
@@ -21,6 +36,15 @@ export function sampleVerdicts(): VerdictRecord[] {
     source_path: `/mock/NB0${Math.floor(i / 3) + 1}/${v.custom_barcode}.fasta`,
     file_size_kb: 120 + i * 4,
     read_count: null,
+    n_mixed_positions: v.verdict === "AMBIGUOUS" ? 1 : 0,
+    max_minor_allele_fraction: v.verdict === "AMBIGUOUS" ? 0.49 : 0,
+    n_low_depth_positions: v.verdict === "LOWDEPTH" ? 12 : 0,
+    consensus_n_fraction: v.verdict === "LOWDEPTH" ? 0.08 : 0,
+    n_low_quality_bases: v.verdict === "LOWDEPTH" ? 24 : 0,
+    n_input_reads: 160 + i * 8,
+    n_aligned_reads: 155 + i * 7,
+    n_mapq_failed: i % 3,
+    n_span_failed: i % 2,
     observed_nt_changes: [],
   }));
 }

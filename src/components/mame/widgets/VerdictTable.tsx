@@ -282,6 +282,28 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
         },
       },
       {
+        id: "quality",
+        header: t("mame.verdictTable.colQuality"),
+        accessorFn: (row) => row.consensus_n_fraction,
+        cell: ({ row }) => {
+          const nPct = row.original.consensus_n_fraction * 100;
+          const mixPct = row.original.max_minor_allele_fraction * 100;
+          return (
+            <span className="flex flex-col gap-0.5 font-mono text-caption text-muted-foreground">
+              <span title="Consensus N fraction">
+                N {nPct.toFixed(1)}% / low-depth {row.original.n_low_depth_positions}
+              </span>
+              <span title="Within-well minor allele signal">
+                mix {row.original.n_mixed_positions} / {mixPct.toFixed(1)}%
+              </span>
+              <span title="Alignment drop counters">
+                drop Q{row.original.n_mapq_failed} S{row.original.n_span_failed} BQ{row.original.n_low_quality_bases}
+              </span>
+            </span>
+          );
+        },
+      },
+      {
         accessorKey: "verdict_notes",
         header: t("mame.verdictTable.colNotes"),
         cell: ({ row }) => {

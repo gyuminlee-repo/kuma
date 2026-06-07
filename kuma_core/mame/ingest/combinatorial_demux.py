@@ -55,7 +55,7 @@ from kuma_core.mame.ingest.align import (
     _get_reference_length,
     Alignment,
 )
-from kuma_core.mame.ingest.consensus import call_consensus
+from kuma_core.mame.ingest.consensus import call_consensus_with_metrics
 from kuma_core.mame.ingest.well_consensus import _read_reference_seq
 
 log = logging.getLogger(__name__)
@@ -764,12 +764,40 @@ def run_combinatorial_demux(
 
     _consensus_total = len(per_well_reads)
 
-    def _run_well(well_name: str, reads: list[tuple[str, str]]) -> tuple[str, str, int]:
-        """Worker: returns (well_name, consensus_seq, depth)."""
-        seq, depth = _compute_well_consensus(
+    def _run_well(
+        well_name: str,
+        reads: list[tuple[str, str]],
+    ) -> tuple[str, str, int, int, float, int, float, int, int, int, int, int]:
+        """Worker: returns consensus sequence, depth, and mix metrics."""
+        (
+            seq,
+            depth,
+            mixed_positions,
+            max_minor_fraction,
+            low_depth_positions,
+            n_fraction,
+            low_quality_bases,
+            input_reads,
+            aligned_reads,
+            mapq_failed,
+            span_failed,
+        ) = _compute_well_consensus(
             well_name, reads, reference_fasta, ref_seq, ref_len, min_depth
         )
-        return well_name, seq, depth
+        return (
+            well_name,
+            seq,
+            depth,
+            mixed_positions,
+            max_minor_fraction,
+            low_depth_positions,
+            n_fraction,
+            low_quality_bases,
+            input_reads,
+            aligned_reads,
+            mapq_failed,
+            span_failed,
+        )
 
     _consensus_done = 0
     n_workers = consensus_workers if consensus_workers is not None else _CONSENSUS_WORKERS
@@ -779,10 +807,31 @@ def run_combinatorial_demux(
             for wn, rds in per_well_reads.items()
         }
         for fut in as_completed(futures):
-            wn, seq, depth = fut.result()
+            (
+                wn,
+                seq,
+                depth,
+                mixed_positions,
+                max_minor_fraction,
+                low_depth_positions,
+                n_fraction,
+                low_quality_bases,
+                input_reads,
+                aligned_reads,
+                mapq_failed,
+                span_failed,
+            ) = fut.result()
             per_well_consensus[wn] = seq
             with (consensus_dir / f"{wn}.fasta").open("w") as fh:
-                fh.write(f">{wn} depth={depth}\n{seq}\n")
+                fh.write(
+                    f">{wn} depth={depth} input_reads={input_reads} "
+                    f"aligned_reads={aligned_reads} mapq_failed={mapq_failed} "
+                    f"span_failed={span_failed} mixed_positions={mixed_positions} "
+                    f"max_minor_allele_fraction={max_minor_fraction:.3f} "
+                    f"low_depth_positions={low_depth_positions} "
+                    f"consensus_n_fraction={n_fraction:.3f} "
+                    f"low_quality_bases={low_quality_bases}\n{seq}\n"
+                )
             _consensus_done += 1
             if progress_callback is not None:
                 progress_callback(_consensus_done, _consensus_total, "consensus")
@@ -823,10 +872,22 @@ def _compute_well_consensus(
     ref_seq: str,
     ref_len: int,
     min_depth: int,
-) -> tuple[str, int]:
-    """Align trimmed reads and call majority-vote consensus. Returns (seq, depth)."""
+) -> tuple[str, int, int, float, int, float, int, int, int, int, int]:
+    """Align reads and return consensus sequence, depth, and mix metrics."""
     if not reads:
-        return "N" * ref_len, 0
+        return (
+            "N" * ref_len,
+            0,
+            0,
+            0.0,
+            ref_len,
+            1.0 if ref_len > 0 else 0.0,
+            0,
+            0,
+            0,
+            0,
+            0,
+        )
 
     well_alignments = align_reads(
         reads=reads,
@@ -844,10 +905,38 @@ def _compute_well_consensus(
         log.debug(
             "Well %s: 0 alignments from %d trimmed reads", well_name, len(reads)
         )
-        return "N" * ref_len, 0
+        return (
+            "N" * ref_len,
+            0,
+            0,
+            0.0,
+            ref_len,
+            1.0 if ref_len > 0 else 0.0,
+            0,
+            len(reads),
+            0,
+            0,
+            0,
+        )
 
-    consensus_seq = call_consensus(well_alignments, ref_seq, min_depth=min_depth)
-    return consensus_seq, len(well_alignments)
+    consensus_call = call_consensus_with_metrics(
+        well_alignments,
+        ref_seq,
+        min_depth=min_depth,
+    )
+    return (
+        consensus_call.consensus_seq,
+        len(well_alignments),
+        consensus_call.n_mixed_positions,
+        consensus_call.max_minor_allele_fraction,
+        consensus_call.n_low_depth_positions,
+        consensus_call.consensus_n_fraction,
+        consensus_call.n_low_quality_bases,
+        len(reads),
+        len(well_alignments),
+        0,
+        0,
+    )
 
 
 # ---------------------------------------------------------------------------

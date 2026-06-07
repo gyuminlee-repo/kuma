@@ -21,7 +21,11 @@ from kuma_core.mame.ingest.align import (
     _CIGAR_M,
     _CIGAR_S,
 )
-from kuma_core.mame.ingest.consensus import call_consensus, per_position_depth
+from kuma_core.mame.ingest.consensus import (
+    call_consensus,
+    call_consensus_with_metrics,
+    per_position_depth,
+)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -112,6 +116,17 @@ class TestCallConsensus:
         result = call_consensus([aln], ref, min_depth=2)
         # All positions have depth 1 < min_depth=2 → all 'N'.
         assert result == "N" * len(ref)
+
+    def test_low_depth_metrics_report_per_base_n_signal(self) -> None:
+        """Per-position depth gating is surfaced alongside the consensus."""
+        ref = "ATGCATGC"
+        aln = _make_aln(ref, len(ref))
+
+        result = call_consensus_with_metrics([aln], ref, min_depth=2)
+
+        assert result.consensus_seq == "N" * len(ref)
+        assert result.n_low_depth_positions == len(ref)
+        assert result.consensus_n_fraction == 1.0
 
     def test_deletion_majority_yields_n(self) -> None:
         """Majority deletion at a position → 'N' (gap-free output)."""
@@ -212,6 +227,45 @@ class TestCallConsensus:
         # Surrounding positions should match ref.
         assert result[3] == "C"
         assert result[5] == "T"
+
+    def test_mixed_minor_allele_metrics_detect_51_49_signal(self) -> None:
+        """A clean majority base still records substantial within-well mixture."""
+        ref = "ATGCATGC"
+        mut = ref[:2] + "T" + ref[3:]
+        reads_major = [_make_aln(ref, len(ref)) for _ in range(51)]
+        reads_minor = [_make_aln(mut, len(ref)) for _ in range(49)]
+
+        result = call_consensus_with_metrics(
+            reads_major + reads_minor,
+            ref,
+            mix_min_depth=10,
+            mix_minor_fraction_threshold=0.20,
+        )
+
+        assert result.consensus_seq[2] == "G"
+        assert result.n_mixed_positions == 1
+        assert result.max_minor_allele_fraction == 0.49
+        assert result.n_low_depth_positions == 0
+        assert result.consensus_n_fraction == 0.0
+
+    def test_fastq_low_quality_base_votes_are_excluded(self) -> None:
+        """FASTQ qualities prevent low-confidence bases from winning consensus."""
+        ref = "ATGCATGC"
+        mut = ref[:2] + "T" + ref[3:]
+        high_ref = _make_aln(ref, len(ref))
+        high_ref.read_qual = "I" * len(ref)  # Q40
+        low_mut_reads = [_make_aln(mut, len(ref)) for _ in range(3)]
+        for aln in low_mut_reads:
+            aln.read_qual = "!" * len(ref)  # Q0, excluded
+
+        result = call_consensus_with_metrics(
+            [high_ref, *low_mut_reads],
+            ref,
+            min_base_quality=10,
+        )
+
+        assert result.consensus_seq[2] == "G"
+        assert result.n_low_quality_bases == 3 * len(ref)
 
 
 class TestPerPositionDepth:

@@ -164,18 +164,13 @@
       "progressAria": "Overall analysis progress {{percent}}%"
     },
     "nativeBarcodeDialog": {
-      "title": "Confirm native barcodes",
-      "description": "Multiple native barcodes were detected from FASTQ volumes. Select which to demultiplex (each runs in parallel into its own sort_barcode folder).",
-      "detected": "{{count}} native barcodes detected",
-      "colBarcode": "Barcode",
-      "colOutput": "Output folder",
-      "colVolume": "FASTQ volume",
-      "colShare": "Share",
-      "colUse": "Process",
-      "inUse": "in use",
-      "run": "Run demux",
-      "cancel": "Cancel",
-      "noneSelected": "Select at least one barcode"
+      "title": "Multiple native barcodes detected",
+      "description": "This run contains more than one MinKNOW native barcode. Select which barcodes to demultiplex; each selected barcode is processed into its own output folder.",
+      "shareHeader": "Share",
+      "selectAriaLabel": "Select native barcode {{name}}",
+      "selectedCount": "{{count}} barcode(s) selected",
+      "confirm": "Run selected",
+      "confirming": "Running…"
     },
     "parameters": {
       "title": "Parameters",
@@ -460,6 +455,7 @@
       "colVerdict": "Verdict",
       "colAaChanges": "AA Changes",
       "colDepth": "Depth (reads)",
+      "colQuality": "Quality",
       "colNotes": "Notes",
       "fileSizeAriaLabel": "File size: {{kb}} KB",
       "fallbackAriaLabel": "Fallback replicate",
@@ -596,15 +592,6 @@
         "exporting": "Exporting…",
         "exportErrorPathRequired": "Output path is required."
       }
-    },
-    "nativeBarcodeDialog": {
-      "title": "Multiple native barcodes detected",
-      "description": "This run contains more than one MinKNOW native barcode. Select which barcodes to demultiplex; each selected barcode is processed into its own output folder.",
-      "shareHeader": "Share",
-      "selectAriaLabel": "Select native barcode {{name}}",
-      "selectedCount": "{{count}} barcode(s) selected",
-      "confirm": "Run selected",
-      "confirming": "Running…"
     },
     "inputPanel": {
       "title": "Input files",

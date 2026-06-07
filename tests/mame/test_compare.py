@@ -17,6 +17,12 @@ def _tr(
     observed_aa: list[str],
     observed_nt: list[str] | None = None,
     file_size_kb: float = 60.0,
+    read_count: int | None = None,
+    n_mixed_positions: int = 0,
+    max_minor_allele_fraction: float = 0.0,
+    n_low_depth_positions: int = 0,
+    consensus_n_fraction: float = 0.0,
+    n_low_quality_bases: int = 0,
 ) -> TranslatedRecord:
     barcode = BarcodeRecord(
         native_barcode="NB01",
@@ -24,6 +30,12 @@ def _tr(
         consensus_seq="",
         file_size_kb=file_size_kb,
         source_path=Path("/tmp/mock.fasta"),
+        read_count=read_count,
+        n_mixed_positions=n_mixed_positions,
+        max_minor_allele_fraction=max_minor_allele_fraction,
+        n_low_depth_positions=n_low_depth_positions,
+        consensus_n_fraction=consensus_n_fraction,
+        n_low_quality_bases=n_low_quality_bases,
     )
     return TranslatedRecord(
         barcode=barcode,
@@ -95,3 +107,62 @@ def test_min_file_size_parameterization() -> None:
         classify_verdict(tr, ["V5F"], _params(min_file_size_kb=200.0)).verdict
         is VerdictClass.LOWDEPTH
     )
+
+
+def test_min_read_count_parameterization_when_available() -> None:
+    """Optional LOWDEPTH read-count gate uses real consensus depth metadata."""
+
+    tr = _tr(["V5F"], file_size_kb=75.0, read_count=2)
+    result = classify_verdict(
+        tr,
+        ["V5F"],
+        _params(min_file_size_kb=50.0, min_read_count=3),
+    )
+    assert result.verdict is VerdictClass.LOWDEPTH
+    assert "read_count=2" in result.verdict_notes
+
+
+def test_min_read_count_default_preserves_legacy_file_size_gate() -> None:
+    """A low read_count does not change verdicts unless min_read_count is set."""
+
+    tr = _tr(["V5F"], file_size_kb=75.0, read_count=1)
+    result = classify_verdict(tr, ["V5F"], _params(min_file_size_kb=50.0))
+    assert result.verdict is VerdictClass.PASS
+
+
+def test_mixed_consensus_signal_blocks_clean_pass() -> None:
+    """51/49-style mixed wells become AMBIGUOUS even if majority matches expected."""
+
+    tr = _tr(["V5F"], n_mixed_positions=1, max_minor_allele_fraction=0.49)
+    result = classify_verdict(tr, ["V5F"], _params())
+    assert result.verdict is VerdictClass.AMBIGUOUS
+    assert "mixed consensus signal" in result.verdict_notes
+    assert "0.490" in result.verdict_notes
+
+
+def test_consensus_n_fraction_blocks_clean_pass_by_default() -> None:
+    """Consensus N calls are MAME-native per-base low-depth evidence."""
+
+    tr = _tr(
+        ["V5F"],
+        n_low_depth_positions=2,
+        consensus_n_fraction=0.02,
+        n_low_quality_bases=4,
+    )
+    result = classify_verdict(tr, ["V5F"], _params())
+    assert result.verdict is VerdictClass.LOWDEPTH
+    assert "consensus_n_fraction=0.020" in result.verdict_notes
+    assert "low_depth_positions=2" in result.verdict_notes
+    assert "low_quality_bases=4" in result.verdict_notes
+
+
+def test_consensus_n_fraction_gate_can_be_relaxed() -> None:
+    """Operators can permit a small N fraction without disabling other gates."""
+
+    tr = _tr(["V5F"], n_low_depth_positions=1, consensus_n_fraction=0.01)
+    result = classify_verdict(
+        tr,
+        ["V5F"],
+        _params(max_consensus_n_fraction=0.02),
+    )
+    assert result.verdict is VerdictClass.PASS

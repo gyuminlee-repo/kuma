@@ -146,18 +146,13 @@
       "redetecting": "Détection..."
     },
     "nativeBarcodeDialog": {
-      "title": "Confirmer les native barcodes",
-      "description": "Plusieurs native barcodes ont été détectés à partir des volumes FASTQ. Sélectionnez ceux à démultiplexer (chacun s'exécute en parallèle dans son propre dossier sort_barcode).",
-      "detected": "{{count}} native barcodes détectés",
-      "colBarcode": "Barcode",
-      "colOutput": "Dossier de sortie",
-      "colVolume": "Volume FASTQ",
-      "colShare": "Proportion",
-      "colUse": "Traiter",
-      "inUse": "utilisé",
-      "run": "Lancer le démux",
-      "cancel": "Annuler",
-      "noneSelected": "Sélectionnez au moins un barcode"
+      "title": "Plusieurs native barcodes détectés",
+      "description": "Ce run contient plusieurs native barcodes MinKNOW. Sélectionnez les barcodes à démultiplexer ; chaque barcode sélectionné est traité dans son propre dossier de sortie.",
+      "shareHeader": "Proportion",
+      "selectAriaLabel": "Sélectionner le native barcode {{name}}",
+      "selectedCount": "{{count}} barcode(s) sélectionné(s)",
+      "confirm": "Exécuter la sélection",
+      "confirming": "Exécution…"
     },
     "parameters": {
       "title": "Paramètres",
@@ -442,6 +437,7 @@
       "colVerdict": "Verdict",
       "colAaChanges": "Changements AA",
       "colDepth": "Depth (reads)",
+      "colQuality": "Quality",
       "colNotes": "Notes",
       "fileSizeAriaLabel": "Taille de fichier : {{kb}} KB",
       "fallbackAriaLabel": "Replicate fallback",
@@ -577,15 +573,6 @@
         "exporting": "Export en cours…",
         "exportErrorPathRequired": "Le chemin de sortie est requis."
       }
-    },
-    "nativeBarcodeDialog": {
-      "title": "Plusieurs native barcodes détectés",
-      "description": "Ce run contient plusieurs native barcodes MinKNOW. Sélectionnez les barcodes à démultiplexer ; chaque barcode sélectionné est traité dans son propre dossier de sortie.",
-      "shareHeader": "Proportion",
-      "selectAriaLabel": "Sélectionner le native barcode {{name}}",
-      "selectedCount": "{{count}} barcode(s) sélectionné(s)",
-      "confirm": "Exécuter la sélection",
-      "confirming": "Exécution…"
     },
     "inputPanel": {
       "title": "Fichiers d'entrée",

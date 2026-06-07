@@ -68,7 +68,50 @@ def classify_verdict(
 
     notes: list[str] = []
 
-    # 1) LOWDEPTH — file size is the available proxy for depth.
+    # 1) LOWDEPTH — use real read depth when callers opt into a read-count
+    # threshold and the consensus header carries depth=N metadata; otherwise
+    # preserve the legacy file-size proxy behavior.
+    if (
+        params.min_read_count is not None
+        and translated.barcode.read_count is not None
+        and translated.barcode.read_count < params.min_read_count
+    ):
+        notes.append(
+            f"read_count={translated.barcode.read_count} < "
+            f"min_read_count={params.min_read_count}"
+        )
+        return VerdictRecord(
+            translated=translated,
+            expected_mutations=list(expected_mutations),
+            verdict=VerdictClass.LOWDEPTH,
+            verdict_notes="; ".join(notes),
+        )
+
+    if (
+        params.max_consensus_n_fraction is not None
+        and translated.barcode.consensus_n_fraction
+        > params.max_consensus_n_fraction
+    ):
+        notes.append(
+            "consensus_n_fraction="
+            f"{translated.barcode.consensus_n_fraction:.3f} > "
+            f"max_consensus_n_fraction={params.max_consensus_n_fraction:.3f}"
+        )
+        if translated.barcode.n_low_depth_positions > 0:
+            notes.append(
+                f"low_depth_positions={translated.barcode.n_low_depth_positions}"
+            )
+        if translated.barcode.n_low_quality_bases > 0:
+            notes.append(
+                f"low_quality_bases={translated.barcode.n_low_quality_bases}"
+            )
+        return VerdictRecord(
+            translated=translated,
+            expected_mutations=list(expected_mutations),
+            verdict=VerdictClass.LOWDEPTH,
+            verdict_notes="; ".join(notes),
+        )
+
     if translated.barcode.file_size_kb < params.min_file_size_kb:
         notes.append(
             f"file_size_kb={translated.barcode.file_size_kb:.2f} < "
@@ -178,6 +221,22 @@ def classify_verdict(
             expected_mutations=list(expected_mutations),
             verdict=VerdictClass.WRONG_AA,
             verdict_notes=f"unexpected extra mutations: {', '.join(tags)}",
+        )
+
+    # Majority consensus can otherwise look exact even when the well contains
+    # a substantial second allele (for example 51/49).  Surface that as
+    # AMBIGUOUS instead of allowing a clean PASS.
+    if translated.barcode.n_mixed_positions > 0:
+        return VerdictRecord(
+            translated=translated,
+            expected_mutations=list(expected_mutations),
+            verdict=VerdictClass.AMBIGUOUS,
+            verdict_notes=(
+                "mixed consensus signal: "
+                f"{translated.barcode.n_mixed_positions} positions, "
+                "max_minor_allele_fraction="
+                f"{translated.barcode.max_minor_allele_fraction:.3f}"
+            ),
         )
 
     # 6) PASS — observed exactly matches expected.
