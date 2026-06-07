@@ -988,6 +988,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#mame-consensus-header-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MAME consensus header contract
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1645,7 +1656,7 @@
 </tr>
 <tr>
 <td>Consensus directory</td>
-<td>Nanopore basecaller barcode-mode output 폴더</td>
+<td>MAME-generated consensus FASTA 폴더 또는 raw_run 출력 대상</td>
 <td>필수</td>
 </tr>
 <tr>
@@ -1667,8 +1678,19 @@
 </table>
 <h3 id="run-mode">Run mode<a class="headerlink" href="#run-mode" title="Permanent link">&para;</a></h3>
 <ul>
-<li><strong><code>raw_run</code></strong> — basecaller 직출력 (barcoded). MAME 가 minimap2 (CLI) 로 정렬 + Python consensus calling 수행.</li>
-<li><strong><code>sorted_barcode</code></strong> — 이미 barcode 별로 consensus FASTA 가 떨어져 있는 경우.</li>
+<li><strong><code>raw_run</code></strong> — MinKNOW <code>fastq_pass/&lt;barcode*|NB*&gt;/*.fastq(.gz)</code>에서 시작한다. MAME가 minimap2 (CLI) 정렬, barcode demux, Phred-aware consensus calling, verdict를 자체 수행한다. FASTQ quality가 보존되는 권장 경로다.</li>
+<li><strong><code>sorted_barcode</code></strong> — MAME가 생성한 barcode별 single-record consensus FASTA를 재분석하는 경로다. Legacy FASTA-only input은 quality string이 없으므로 unweighted majority 결과를 사용하며, header의 <code>depth</code>, <code>consensus_n_fraction</code>, <code>mixed_positions</code> 등 metadata가 판정 근거가 된다.</li>
+</ul>
+<h3 id="mame-consensus-header-contract">MAME consensus header contract<a class="headerlink" href="#mame-consensus-header-contract" title="Permanent link">&para;</a></h3>
+<p>MAME가 생성한 consensus FASTA header는 다음 metadata를 가질 수 있다.</p>
+<div class="highlight"><pre><span></span><code>&gt;{well_name} depth={passed_reads} input_reads={raw_well_reads} aligned_reads={aligned_reads} mapq_failed={n} span_failed={n} mixed_positions={n} max_minor_allele_fraction={f} low_depth_positions={n} consensus_n_fraction={f} low_quality_bases={n}
+</code></pre></div>
+<ul>
+<li><code>depth</code>: 실제 consensus에 기여한 read 수. optional <code>min_read_count</code> LOWDEPTH gate에 사용.</li>
+<li><code>consensus_n_fraction</code>, <code>low_depth_positions</code>: per-base depth 부족 또는 ambiguous base call 근거.</li>
+<li><code>low_quality_bases</code>: FASTQ Phred gate로 vote에서 제외된 base 수.</li>
+<li><code>mixed_positions</code>, <code>max_minor_allele_fraction</code>: 51/49 같은 within-well mixture가 clean PASS로 숨지 않도록 AMBIGUOUS 판정에 사용.</li>
+<li><code>mapq_failed</code>, <code>span_failed</code>: 정렬 품질/coverage filter에서 탈락한 read 수. Verdict table과 Excel QC 컬럼에 표시된다.</li>
 </ul>
 <h2 id="12-expected-mutations">1.2 Expected Mutations<a class="headerlink" href="#12-expected-mutations" title="Permanent link">&para;</a></h2>
 <table>
