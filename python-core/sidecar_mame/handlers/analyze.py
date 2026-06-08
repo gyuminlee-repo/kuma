@@ -236,6 +236,11 @@ def handle_analyze(params: dict) -> dict:
     )
     many_cutoff = int(params.get("many_cutoff", 5))
 
+    sample_map_raw = params.get("sample_map_xlsx")
+    sample_map_path = None
+    if sample_map_raw:
+        sample_map_path = _validate_filepath(sample_map_raw, allowed_extensions=_ALLOWED_EXCEL_EXTENSIONS)
+
     _progress(10, "Ingesting FASTA files...")
 
     # ── Distribution analysis (A4) ───────────────────────────────────────
@@ -265,6 +270,7 @@ def handle_analyze(params: dict) -> dict:
             max_consensus_n_fraction=max_consensus_n_fraction,
             many_cutoff=many_cutoff,
             ingest_mode=ingest_mode_enum,
+            sample_map_path=sample_map_path,
         )
 
     _progress(85, "Selecting best replicates...")

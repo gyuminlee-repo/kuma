@@ -7,7 +7,10 @@ from pathlib import Path
 
 from kuma_core.mame.compare import classify_verdict, parse_mutation_label
 from kuma_core.mame.export import WellMapper, write_excel
+from kuma_core.mame.export.excel_writer import _custom_barcode_to_seq
+from kuma_core.mame.export.well_mapper import seq_to_well
 from kuma_core.mame.ingest import IngestMode, route_ingest
+from kuma_core.mame.ingest.sort_barcode import parse_sample_map
 from kuma_core.mame.io.kuro_reader import expected_to_labels, read_expected_mutations
 from kuma_core.mame.models import (
     CompareParams,
@@ -18,6 +21,14 @@ from kuma_core.mame.models import (
 )
 from kuma_core.mame.select import pick_best_replicate
 from kuma_core.mame.translate import translate_and_diff
+
+
+def _norm_well(w: str) -> str:
+    """Normalise a well label to zero-padded form (e.g. 'A2' -> 'A02', 'A02' -> 'A02')."""
+    w = str(w).strip().upper()
+    if len(w) >= 2 and w[1:].isdigit():
+        return f"{w[0]}{int(w[1:]):02d}"
+    return w
 
 
 def _read_reference_fasta(path: Path) -> str:
@@ -99,12 +110,39 @@ def run_analyze(
     max_consensus_n_fraction: float | None = 0.0,
     many_cutoff: int = 5,
     ingest_mode: IngestMode = IngestMode.BARCODE,
+    sample_map_path: Path | None = None,
 ) -> tuple[list[VerdictRecord], list[ReplicateResult]]:
     """Run the full pipeline and write the Excel output. Returns in-memory results."""
 
     reference_seq = _read_reference_fasta(reference_path)
     expected_mutations = read_expected_mutations(expected_path)
     expected_labels = expected_to_labels(expected_mutations)
+
+    # Build per-mutant label lists for verdict scoping.
+    # Keys are mutant_id strings (e.g. "V5F", "K53N"); values are lists of
+    # human-readable AA labels (e.g. ["V5F"]).  Only non-empty entries are kept.
+    mutant_to_labels: dict[str, list[str]] = defaultdict(list)
+    for m in expected_mutations:
+        mutant_to_labels[m.mutant_id].append(f"{m.wt_aa}{m.position}{m.mt_aa}")
+
+    # Build well_id -> scoped label list when sample_map_path is provided.
+    # - If sample_map_path is None (amplicon / non-combinatorial modes): well_to_labels
+    #   stays None and every well is compared against the full expected_labels list,
+    #   preserving byte-identical backward-compatible behaviour.
+    # - If a well's custom_barcode cannot be resolved to a well coordinate (non-R_F
+    #   barcode format), _custom_barcode_to_seq returns None -> fallback to full list.
+    # - If a well_id appears in the sample_map but the sample name is not a known
+    #   mutant_id, scoped is None -> fallback to full list (defensive "unknown well"
+    #   path; the well will receive WRONG_AA, which is the correct result when we
+    #   genuinely cannot identify its intended mutation).
+    well_to_labels: dict[str, list[str]] | None = None
+    if sample_map_path is not None:
+        well_to_sample = parse_sample_map(sample_map_path)   # {"A01": "V5F", ...}
+        well_to_labels = {}
+        for well_id, sample in well_to_sample.items():
+            labels = mutant_to_labels.get(str(sample).strip())
+            if labels:
+                well_to_labels[_norm_well(well_id)] = labels
 
     records = route_ingest(input_dir, ingest_mode)
     params = CompareParams(
@@ -122,7 +160,18 @@ def run_analyze(
             cds_start=cds_start,
             cds_end=cds_end,
         )
-        verdict = classify_verdict(translated, expected_labels, params)
+        # Scope verdict to this well's own expected label(s) when a sample_map is
+        # available.  Falls back to the full expected_labels list for wells whose
+        # custom_barcode cannot be parsed or whose sample name is not a known mutant.
+        scoped_labels = expected_labels
+        if well_to_labels is not None:
+            seq = _custom_barcode_to_seq(rec.custom_barcode)
+            if seq is not None:
+                wid = _norm_well(seq_to_well(seq))
+                scoped = well_to_labels.get(wid)
+                if scoped is not None:
+                    scoped_labels = scoped
+        verdict = classify_verdict(translated, scoped_labels, params)
         verdicts.append(verdict)
 
     grouped = _assign_mutant_ids(verdicts, expected_mutations)
