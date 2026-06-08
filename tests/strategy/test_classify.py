@@ -173,7 +173,7 @@ class TestDecideCore:
         p = self._s(T2=True)
         label, reason = _decide_core(s, p)
         assert label == "switch_combinatorial"
-        assert reason == "saturated_with_combinatorial_value"
+        assert reason == "saturated_with_throughput"
 
     def test_stop_core(self):
         """Saturation + no combinatorial value -> stop."""
@@ -181,7 +181,7 @@ class TestDecideCore:
         p = self._s(T2=True)
         label, reason = _decide_core(s, p)
         assert label == "stop"
-        assert reason == "saturated_no_combinatorial_value"
+        assert reason == "saturated_no_throughput"
 
     def test_t3_triggers_saturation(self):
         s = self._s(T1=True, T3=True, T_unused=True)
@@ -189,19 +189,47 @@ class TestDecideCore:
         label, reason = _decide_core(s, p)
         assert label == "switch_combinatorial"
 
-    def test_t_active_triggers_combinatorial_value(self):
-        """T_active=True gives combinatorial value even when T_unused=False."""
-        s = self._s(T1=True, T2=True, T_active=True, T_unused=False)
+    def test_t1_alone_triggers_switch_without_t_active_t_unused(self):
+        """Backtest revision: T_active/T_unused demoted; T1=True alone -> switch.
+
+        Discriminating case: T1=True, T_active=None, T_unused=False (old behavior
+        was stop because T_unused=False and T_active=None gave combinatorial_value=False).
+        New behavior: has_throughput = T1 = True -> switch_combinatorial.
+        """
+        s = self._s(T1=True, T2=True, T_active=None, T_unused=False)
         p = self._s(T2=True)
         label, reason = _decide_core(s, p)
         assert label == "switch_combinatorial"
+        assert reason == "saturated_with_throughput"
 
-    def test_t1_false_kills_combinatorial_value(self):
-        """T_unused=True but T1=False -> no combinatorial value -> stop path."""
+    def test_t1_false_kills_throughput(self):
+        """T1=False -> has_throughput=False -> stop path (T_unused irrelevant after backtest)."""
         s = self._s(T1=False, T2=True, T_unused=True)
         p = self._s(T2=True)
         label, reason = _decide_core(s, p)
         assert label == "stop"
+        assert reason == "saturated_no_throughput"
+
+    def test_t4_only_saturation_now_deferred(self):
+        """T4=True sole saturation signal, T2/T3/T_model all None -> deferred(insufficient_data).
+
+        Backtest revision: T4 removed from saturation; all_na(T2, T3, T_model)=True.
+        """
+        s = self._s(T4=True, T2=None, T3=None, T_model=None)
+        label, reason = _decide_core(s, None)
+        assert label == "deferred"
+        assert reason == "insufficient_data"
+
+    def test_t4_true_does_not_prevent_no_saturation_signal(self):
+        """T4=True but T2/T3/T_model False -> sat_now=False -> no_saturation_signal.
+
+        Previously T4=True gave sat_now=True. Now T4 is informational.
+        """
+        s = self._s(T4=True, T2=False, T3=False, T_model=None, T1=False)
+        p = self._s(T2=True)
+        label, reason = _decide_core(s, p)
+        assert label == "continue_walking"
+        assert reason == "no_saturation_signal"
 
     def test_na_not_coerced_to_false_in_sat(self):
         """T2=None, T3=True -> sat_now=True (None skipped, T3 counts)."""
@@ -429,7 +457,7 @@ class TestClassifySwitch:
         rs, reg = _make_switch_state(delta_borderline=False)
         d = classify(rs, reg)
         assert d.label == "switch_combinatorial"
-        assert d.reason == "saturated_with_combinatorial_value"
+        assert d.reason == "saturated_with_throughput"
         assert d.confidence is not None
         assert d.confidence >= 0.7
         assert d.bootstrap_distribution is not None
@@ -473,7 +501,7 @@ class TestClassifyStopGate:
         rs, reg = _make_stop_state(delta_borderline=False)
         d = classify(rs, reg)
         assert d.label == "stop"
-        assert d.reason == "saturated_no_combinatorial_value"
+        assert d.reason == "saturated_no_throughput"
         assert d.confidence is not None
         assert d.confidence >= 0.7
 

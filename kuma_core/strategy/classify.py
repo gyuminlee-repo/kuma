@@ -13,6 +13,13 @@ Bootstrap simplifications (documented per §12-A.2b):
 - best_{n-1} baseline is held fixed; only best_n* varies from resampling
   current_round_activities, so delta* = delta_best_ema + (best_n* - max(current_round_activities)).
 - sat_prev is frozen (previous_signals not resampled).
+
+Backtest revision (report_final.md, 2026-06-08):
+- 전환 동력은 단일소진(T2/T3/T_model) + throughput(T1).
+- T4/T_active/T_unused는 informational 신호로 유지되며 결정에서 demote.
+- additive-headroom(B)는 약한 필요조건 필터로 권장되나 per-position
+  single-effect 데이터 plumbing 필요(현재 RoundState에 없음).
+  데이터 확보 시 switch의 weak filter로 추가 예정.
 """
 
 from __future__ import annotations
@@ -214,33 +221,40 @@ def compute_signals(round_state: RoundState, registered: dict) -> Signals:
 def _decide_core(
     s: Signals, p: Optional[Signals]
 ) -> tuple[DecisionLabel, str]:
-    """Apply the §12-A.2 decision tree without bootstrap confidence gating.
+    """Apply the backtest-revised decision tree without bootstrap confidence gating.
 
     Returns (label, reason).
 
     Callers: _decide_core is pure; classify() wraps the confidence gate for
     switch_combinatorial and stop branches.
+
+    Backtest revision (report_final.md): saturation is determined by T2/T3/T_model
+    only (T4 demoted to informational). has_throughput = T1 alone (T_active/T_unused
+    demoted to informational). Hysteresis (sat_now AND sat_prev) is unchanged.
+    T4/T_active/T_unused continue to be computed and stored in Signals for display.
     """
     # 1. All saturation signals NA -> cannot decide
-    if all_na(s.T2, s.T3, s.T4, s.T_model):
+    # T4 excluded: informational only (backtest shows it is not a decision driver)
+    if all_na(s.T2, s.T3, s.T_model):
         return ("deferred", "insufficient_data")
 
-    sat_now = any_true(s.T2, s.T3, s.T4, s.T_model)
+    sat_now = any_true(s.T2, s.T3, s.T_model)
 
     # sat_prev from previous round; None when no prior round
     if p is not None:
-        sat_prev = any_true(p.T2, p.T3, p.T4, p.T_model)
+        sat_prev = any_true(p.T2, p.T3, p.T_model)
     else:
         sat_prev = False
 
     saturation = sat_now and sat_prev
-    combinatorial_value = bool(s.T1) and any_true(s.T_unused, s.T_active)
+    # has_throughput: T1 alone (T_unused/T_active demoted per backtest; label: "throughput")
+    has_throughput = bool(s.T1)
 
-    if saturation and combinatorial_value:
-        return ("switch_combinatorial", "saturated_with_combinatorial_value")
+    if saturation and has_throughput:
+        return ("switch_combinatorial", "saturated_with_throughput")
 
-    if saturation and not combinatorial_value:
-        return ("stop", "saturated_no_combinatorial_value")
+    if saturation and not has_throughput:
+        return ("stop", "saturated_no_throughput")
 
     if not sat_now:
         return ("continue_walking", "no_saturation_signal")
@@ -415,7 +429,7 @@ def classify(round_state: RoundState, registered: dict) -> Decision:
                 )
             return Decision(
                 label="switch_combinatorial",
-                reason="saturated_with_combinatorial_value",
+                reason="saturated_with_throughput",
                 confidence=conf,
                 bootstrap_distribution=dist,
             )
@@ -429,7 +443,7 @@ def classify(round_state: RoundState, registered: dict) -> Decision:
                 )
             return Decision(
                 label="stop",
-                reason="saturated_no_combinatorial_value",
+                reason="saturated_no_throughput",
                 confidence=conf,
                 bootstrap_distribution=dist,
             )
