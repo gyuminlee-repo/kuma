@@ -54,9 +54,11 @@ describe("ExportFormatSelector — Export All form", () => {
     expect(screen.getByText(/0\.5.*10.*μL/)).toBeInTheDocument();
   });
 
-  it("renders vendor selection without standalone Macrogen order button", () => {
+  it("renders fixed Macrogen vendor without standalone order button", () => {
     render(<ExportFormatSelector />);
-    expect(screen.getByLabelText(/order vendor/i)).toHaveValue("macrogen");
+    // Vendor is fixed to Macrogen, shown as static text in the "Order Vendor"
+    // group (not a selectable control); the standalone order button is gone.
+    expect(screen.getByText(/Macrogen Plate Oligo/i)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /order primers/i })).not.toBeInTheDocument();
   });
 
