@@ -612,6 +612,24 @@ def load_evolvepro_csv(
     domain_selected = len(selected) if (domain_diversity and domain_info) else None
     pareto_exchanges = pareto_replaced if pareto_diversity else None
 
+    # Build ranked_candidates: all selected variants are always included (invariant:
+    # selected ⊆ ranked_candidates), plus up to EVOLVEPRO_RANKED_BUFFER additional
+    # high-scoring non-selected candidates for table context.
+    # Invariant guarantee: selected comes from rows, rows ⊆ ranked_full, so every
+    # selected variant is present in ordered.
+    selected_set: set[str] = {v for v, _ in selected}
+    ordered: list[str] = [v for v, _ in ranked_full]
+    buffer = [v for v in ordered if v not in selected_set][:EVOLVEPRO_RANKED_BUFFER]
+    keep: set[str] = selected_set | set(buffer)
+    ranked_candidates = [
+        {
+            "variant": v,
+            "y_pred": round(raw_map.get(v, 0.0) if math.isfinite(raw_map.get(v, 0.0)) else 0.0, 4),
+            "aa_position": _extract_aa_position(v),
+        }
+        for v in ordered if v in keep
+    ]
+
     return {
         "variants": [v for v, _ in selected],
         "y_preds": [round(raw_map.get(v, 0.0) if math.isfinite(raw_map.get(v, 0.0)) else 0.0, 4) for v in (v for v, _ in selected)],
@@ -632,14 +650,7 @@ def load_evolvepro_csv(
             "start_codon_removed": start_codon_removed,
             "start_codon_removed_variants": start_codon_removed_variants,
         },
-        "ranked_candidates": [
-            {
-                "variant": v,
-                "y_pred": round(raw_map.get(v, 0.0) if math.isfinite(raw_map.get(v, 0.0)) else 0.0, 4),
-                "aa_position": _extract_aa_position(v),
-            }
-            for v, _ in ranked_full[: len(selected) + EVOLVEPRO_RANKED_BUFFER]
-        ],
+        "ranked_candidates": ranked_candidates,
     }
 
 

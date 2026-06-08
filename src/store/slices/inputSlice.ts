@@ -225,11 +225,10 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         evolveproStepStats: update.evolveproStepStats,
         statusMessage: update.statusMessage,
         evolveproRankedCandidates: result.ranked_candidates ?? [],
-        // Initialize selection to the pipeline-selected set (result.variants), in ranked order.
-        // ranked_candidates starts with selected variants (same order), so filter for consistency.
-        evolveproSelectedVariants: (result.ranked_candidates ?? [])
-          .filter((c) => result.variants.includes(c.variant))
-          .map((c) => c.variant),
+        // Initialize selection directly from result.variants (pipeline source-of-truth).
+        // ranked_candidates is guaranteed to contain all selected variants (backend invariant:
+        // selected ⊆ ranked_candidates), but we seed from result.variants for authority clarity.
+        evolveproSelectedVariants: result.variants ?? [],
         ...(isOthersMode && {
           othersUsedVariantColumn: result.used_variant_column ?? null,
           othersUsedScoreColumn: result.used_score_column ?? null,

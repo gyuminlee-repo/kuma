@@ -511,3 +511,40 @@ class TestRankedCandidates:
             "A10G filtered from selection but must appear in ranked_candidates "
             "(ranked_candidates uses pre-filter pool)"
         )
+
+    def test_selected_always_subset_of_ranked_candidates_after_position_filter(self, tmp_path):
+        """Regression: selected variants must always appear in ranked_candidates.
+
+        Reproduces the buffer-overflow bug: when high-scoring variants cluster at
+        a few positions and max_per_position=1, the lowest-ranked selected variants
+        can have global scores that fall beyond selected_count + BUFFER from the top.
+        Under the old ranked_full[:len(selected)+BUFFER] slice they were silently
+        dropped from ranked_candidates, causing the frontend to lose them on load.
+
+        Scenario: 60 variants at 2 positions (scores 1.00-0.41 step 0.01),
+        max_per_position=1, top_n=20. Only 2 variants can be selected (one per
+        position). But up to 58 unselected variants outrank those 2 selections in
+        the global ordering — under the old logic the lower-scoring selected
+        variant fell outside ranked_full[:2+50] and was dropped.
+        """
+        # Build 60 variants: 30 at position 10 (scores 1.00-0.71), 30 at position 20 (scores 0.70-0.41)
+        lines = ["variant,y_pred"]
+        for i in range(30):
+            lines.append(f"A10{chr(ord('A') + i % 20)},{1.00 - i * 0.01:.2f}")
+        for i in range(30):
+            lines.append(f"B20{chr(ord('A') + i % 20)},{0.70 - i * 0.01:.2f}")
+        csv_file = tmp_path / "pos_cluster.csv"
+        csv_file.write_text("\n".join(lines))
+
+        result = load_evolvepro_csv(csv_file, top_n=20, max_per_position=1)
+
+        # max_per_position=1 means at most 1 selected per position.
+        # selected_count will be ≤ 2 (one per position).
+        selected_set = set(result["variants"])
+        rc_variants = {item["variant"] for item in result["ranked_candidates"]}
+
+        missing = selected_set - rc_variants
+        assert not missing, (
+            f"Selected variants missing from ranked_candidates: {missing}. "
+            f"selected={sorted(selected_set)}, rc_sample={sorted(rc_variants)[:5]}"
+        )
