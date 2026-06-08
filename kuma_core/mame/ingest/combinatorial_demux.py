@@ -47,6 +47,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
 import os
+import re
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from typing import Callable, Iterator
 
@@ -70,6 +71,11 @@ _R_TAIL = "tgcgttgcgctctag"
 
 _F_FALLBACK_LEN = 11  # prefix length if F tail absent
 _R_FALLBACK_LEN = 10  # prefix length if R tail absent
+
+# Gene-agnostic barcode row-name patterns (mirror sort_barcode.py).
+# Match any "<prefix>_f_<int>" / "<prefix>_r_<int>" — not limited to "isps".
+_FWD_ROW_RE = re.compile(r"^(?P<prefix>.+?)_f_(?P<n>\d+)$")
+_REV_ROW_RE = re.compile(r"^(?P<prefix>.+?)_r_(?P<n>\d+)$")
 
 _COMP = str.maketrans("ACGTacgtNn", "TGCAtgcaNn")
 
@@ -174,21 +180,15 @@ def load_barcode_prefixes(
         if not seq_val:
             continue
 
-        if name.startswith("isps_f_"):
-            try:
-                idx = int(name.split("_")[-1])
-            except ValueError:
-                log.warning("Skipping F barcode row with non-integer index: %s", name)
-                continue
+        m_f = _FWD_ROW_RE.match(name)
+        m_r = _REV_ROW_RE.match(name)
+        if m_f is not None:
+            idx = int(m_f.group("n"))
             prefix = _extract_f_prefix(seq_val)
             f_entries.append((idx, name, prefix.upper()))
 
-        elif name.startswith("isps_r_"):
-            try:
-                idx = int(name.split("_")[-1])
-            except ValueError:
-                log.warning("Skipping R barcode row with non-integer index: %s", name)
-                continue
+        elif m_r is not None:
+            idx = int(m_r.group("n"))
             prefix = _extract_r_prefix(seq_val)
             r_entries.append((idx, name, prefix.upper()))
 
@@ -257,20 +257,14 @@ def load_barcodes(barcodes_xlsx: Path) -> tuple[list[str], list[str]]:
         if not seq_val:
             continue
 
-        if name.startswith("isps_f_"):
-            try:
-                idx = int(name.split("_")[-1])
-            except ValueError:
-                log.warning("Skipping F barcode row with non-integer index: %s", name)
-                continue
+        m_f = _FWD_ROW_RE.match(name)
+        m_r = _REV_ROW_RE.match(name)
+        if m_f is not None:
+            idx = int(m_f.group("n"))
             f_entries.append((idx, seq_val.upper()))
 
-        elif name.startswith("isps_r_"):
-            try:
-                idx = int(name.split("_")[-1])
-            except ValueError:
-                log.warning("Skipping R barcode row with non-integer index: %s", name)
-                continue
+        elif m_r is not None:
+            idx = int(m_r.group("n"))
             r_entries.append((idx, seq_val.upper()))
 
     wb.close()
