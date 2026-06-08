@@ -108,6 +108,16 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       console.warn(`[analysisSlice] resolveResource failed for ${relPaths[i]}:`, r.reason);
       return null;
     });
+
+    // Surface the actual rejection reason (not a hardcoded assumption) for the
+    // critical-file abort messages below.
+    const reasonAt = (i: number): string => {
+      const r = settled[i];
+      if (r.status === "rejected") {
+        return r.reason instanceof Error ? r.reason.message : String(r.reason);
+      }
+      return "resource missing";
+    };
     const [
       refPath,
       expectedPath,
@@ -122,15 +132,13 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
     // specific error naming the failing file (explicit user-facing message).
     if (!refPath) {
       set({
-        analyzeMessage:
-          "Sample load failed: samples/mame/reference.fasta not found in bundle resources",
+        analyzeMessage: `Sample load failed: samples/mame/reference.fasta (${reasonAt(0)})`,
       });
       return;
     }
     if (!activityCsvPath) {
       set({
-        analyzeMessage:
-          "Sample load failed: samples/mame/07_mame_activity_long.csv not found in bundle resources",
+        analyzeMessage: `Sample load failed: samples/mame/07_mame_activity_long.csv (${reasonAt(5)})`,
       });
       return;
     }
