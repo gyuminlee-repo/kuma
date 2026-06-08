@@ -1,7 +1,7 @@
 import type { StateCreator } from "zustand";
 import { cancelAndRespawn, sendRequest } from "@/lib/ipc-mame";
 import { formatError } from "@/lib/utils";
-import { defaultMameExportFilename } from "@/lib/filename";
+import { defaultMameExportFilename } from "@/lib/mameFilename";
 import type {
   AmpliconLengthEstimate,
   AnalyzeResult,
