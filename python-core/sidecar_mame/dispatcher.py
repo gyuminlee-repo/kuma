@@ -39,6 +39,7 @@ from sidecar_mame.handlers.activity import (
     handle_merge_for_evolvepro,
 )
 from sidecar_mame.handlers.barcode_package import handle_generate_mame_package
+from sidecar_mame.handlers.build_well_layout import handle_build_well_layout
 from sidecar_mame.handlers.ingest import handle_parse_reference
 from sidecar_mame.handlers.combinatorial_demux import handle_run_combinatorial_demux
 from sidecar_mame.handlers.detect_native_barcodes import handle_detect_native_barcodes
@@ -93,6 +94,8 @@ _METHODS = {
     "mame.run_combinatorial_demux": handle_run_combinatorial_demux,
     # Native-barcode usage detection (stat-only, synchronous)
     "mame.detect_native_barcodes": handle_detect_native_barcodes,
+    # Draft 96-well layout from KURO expected_mutations (stat-only, synchronous)
+    "mame.build_well_layout": handle_build_well_layout,
     # §22 graceful shutdown — ack immediately; main() breaks on this method
     "shutdown": lambda _: {"ok": True, "message": "shutdown_acked"},
 }

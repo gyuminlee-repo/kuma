@@ -161,3 +161,53 @@ def test_well_layout_wt_well_with_variant_fails_and_not_mis_grouped(tmp_path: Pa
         f"contaminated WT well mis-grouped into G2A; groups={mutant_ids}"
     )
     assert "WT" in mutant_ids, f"WT well not attributed to WT group; groups={mutant_ids}"
+
+
+# ---------------------------------------------------------------------------
+# IPC: mame.build_well_layout RPC handler + dispatcher registration
+# ---------------------------------------------------------------------------
+
+def test_build_well_layout_handler_returns_ordered_draft(tmp_path: Path) -> None:
+    """Handler reads the KURO xlsx and returns an ordered draft + count."""
+    from sidecar_mame.handlers.build_well_layout import handle_build_well_layout
+
+    kuro = tmp_path / "kuro.xlsx"
+    _make_kuro_xlsx(kuro)  # G2A (seq1->A1), F3W (seq2->B1); WT at seq3 -> C1
+
+    result = handle_build_well_layout({"expected_mutations_xlsx": str(kuro)})
+
+    assert result["count"] == 3
+    draft = result["draft"]
+    assert draft == [
+        {"well": "A1", "sample": "G2A"},
+        {"well": "B1", "sample": "F3W"},
+        {"well": "C1", "sample": "WT"},
+    ], draft
+
+
+def test_build_well_layout_params_rejects_missing_file(tmp_path: Path) -> None:
+    """A non-existent xlsx path fails validation (fail-fast, no silent fallback)."""
+    from sidecar_mame.models import BuildWellLayoutParams
+
+    with pytest.raises(ValueError):
+        BuildWellLayoutParams.model_validate(
+            {"expected_mutations_xlsx": str(tmp_path / "missing.xlsx")}
+        )
+
+
+def test_build_well_layout_params_rejects_path_traversal() -> None:
+    """Path-traversal segments are rejected."""
+    from sidecar_mame.models import BuildWellLayoutParams
+
+    with pytest.raises(ValueError):
+        BuildWellLayoutParams.model_validate(
+            {"expected_mutations_xlsx": "../../etc/passwd.xlsx"}
+        )
+
+
+def test_build_well_layout_registered_synchronous() -> None:
+    """build_well_layout is in _METHODS and is NOT an async method (stat-only)."""
+    from sidecar_mame.dispatcher import _ASYNC_METHODS, _METHODS
+
+    assert "mame.build_well_layout" in _METHODS
+    assert "mame.build_well_layout" not in _ASYNC_METHODS

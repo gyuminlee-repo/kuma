@@ -175,6 +175,31 @@ class CombinatorialDemuxParams(BaseModel):
         return v
 
 
+class BuildWellLayoutParams(BaseModel):
+    """Parameters for the ``mame.build_well_layout`` RPC method.
+
+    Required fields
+    ---------------
+    expected_mutations_xlsx
+        Path to a KURO results xlsx containing an ``expected_mutations`` sheet.
+        Read via ``read_expected_mutations`` and turned into a draft 96-well
+        plate layout by ``build_draft_layout`` (one mutant per well in
+        column-major order, followed by a single WT control well).
+    """
+
+    expected_mutations_xlsx: str
+
+    @field_validator("expected_mutations_xlsx", mode="after")
+    @classmethod
+    def _check_expected_mutations_xlsx(cls, v: str) -> str:
+        p = Path(v)
+        if ".." in p.parts:
+            raise ValueError(f"Path traversal not allowed: {v}")
+        if not p.exists():
+            raise ValueError(f"expected_mutations_xlsx not found: {v}")
+        return v
+
+
 class DetectNativeBarcodesParams(BaseModel):
     """Parameters for the ``mame.detect_native_barcodes`` RPC method.
 
@@ -207,4 +232,4 @@ class DetectNativeBarcodesParams(BaseModel):
         return v
 
 
-__all__ = ["CombinatorialDemuxParams", "DetectNativeBarcodesParams"]
+__all__ = ["BuildWellLayoutParams", "CombinatorialDemuxParams", "DetectNativeBarcodesParams"]

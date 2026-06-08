@@ -241,6 +241,19 @@ def handle_analyze(params: dict) -> dict:
     if sample_map_raw:
         sample_map_path = _validate_filepath(sample_map_raw, allowed_extensions=_ALLOWED_EXCEL_EXTENSIONS)
 
+    # well_layout: optional well_id -> sample_name override (highest-priority
+    # well->sample source; takes precedence over sample_map_path in run_analyze).
+    # Fail-fast on a malformed payload rather than silently ignoring it.
+    well_layout_raw = params.get("well_layout")
+    well_layout: dict[str, str] | None = None
+    if well_layout_raw is not None:
+        if not isinstance(well_layout_raw, dict) or not all(
+            isinstance(k, str) and isinstance(v, str)
+            for k, v in well_layout_raw.items()
+        ):
+            raise ValueError("well_layout must be a mapping of well_id (str) to sample_name (str)")
+        well_layout = well_layout_raw
+
     _progress(10, "Ingesting FASTA files...")
 
     # ── Distribution analysis (A4) ───────────────────────────────────────
@@ -271,6 +284,7 @@ def handle_analyze(params: dict) -> dict:
             many_cutoff=many_cutoff,
             ingest_mode=ingest_mode_enum,
             sample_map_path=sample_map_path,
+            well_layout=well_layout,
         )
 
     _progress(85, "Selecting best replicates...")
