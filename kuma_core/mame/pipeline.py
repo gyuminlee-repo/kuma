@@ -46,13 +46,22 @@ def _read_reference_fasta(path: Path) -> str:
 def _assign_mutant_ids(
     verdicts: list[VerdictRecord],
     expected: list[ExpectedMutation],
+    well_to_mutant: dict[str, str] | None = None,
 ) -> dict[str, list[VerdictRecord]]:
     """Group verdict records by the best-matching mutant_id.
 
-    Strategy: iterate expected mutations and attach any verdict whose observed AA
-    set contains the expected substitution label, or whose verdict class is
-    WRONG_AA at the expected position, or whose verdict is LOWDEPTH/FRAMESHIFT/
-    MANY (unknown target — still attempt assignment based on file naming).
+    When *well_to_mutant* is provided (keyed by normalised well_id, e.g. "A02"),
+    a well is attributed to the mutant physically placed there according to the
+    sample_map (ground truth), overriding observation-based heuristics.  This
+    makes Final/matrix grouping coherent with the per-well verdict scoping that
+    uses the same sample_map.  Falls through to the existing 4-step heuristics
+    for wells with a non-R_F custom_barcode or no sample_map entry.
+
+    Strategy (observation-based fallback): iterate expected mutations and attach
+    any verdict whose observed AA set contains the expected substitution label,
+    or whose verdict class is WRONG_AA at the expected position, or whose verdict
+    is LOWDEPTH/FRAMESHIFT/MANY (unknown target — still attempt assignment based
+    on file naming).
     """
 
     grouped: dict[str, list[VerdictRecord]] = defaultdict(list)
@@ -61,6 +70,14 @@ def _assign_mutant_ids(
     assigned: set[int] = set()
 
     for idx, vr in enumerate(verdicts):
+        if well_to_mutant is not None:
+            _seq = _custom_barcode_to_seq(vr.translated.barcode.custom_barcode)
+            if _seq is not None:
+                _placed = well_to_mutant.get(_norm_well(seq_to_well(_seq)))
+                if _placed is not None:
+                    grouped[_placed].append(vr)
+                    assigned.add(idx)
+                    continue
         matched_id: str | None = None
         # 1) Direct label match.
         for exp in expected:
@@ -136,13 +153,18 @@ def run_analyze(
     #   path; the well will receive WRONG_AA, which is the correct result when we
     #   genuinely cannot identify its intended mutation).
     well_to_labels: dict[str, list[str]] | None = None
+    well_to_mutant: dict[str, str] | None = None
     if sample_map_path is not None:
         well_to_sample = parse_sample_map(sample_map_path)   # {"A01": "V5F", ...}
         well_to_labels = {}
+        well_to_mutant = {}
         for well_id, sample in well_to_sample.items():
-            labels = mutant_to_labels.get(str(sample).strip())
+            mutant_id = str(sample).strip()
+            labels = mutant_to_labels.get(mutant_id)
             if labels:
-                well_to_labels[_norm_well(well_id)] = labels
+                nw = _norm_well(well_id)
+                well_to_labels[nw] = labels
+                well_to_mutant[nw] = mutant_id
 
     records = route_ingest(input_dir, ingest_mode)
     params = CompareParams(
@@ -174,7 +196,7 @@ def run_analyze(
         verdict = classify_verdict(translated, scoped_labels, params)
         verdicts.append(verdict)
 
-    grouped = _assign_mutant_ids(verdicts, expected_mutations)
+    grouped = _assign_mutant_ids(verdicts, expected_mutations, well_to_mutant=well_to_mutant)
 
     replicate_results: list[ReplicateResult] = []
     for mutant_id, vr_list in grouped.items():
