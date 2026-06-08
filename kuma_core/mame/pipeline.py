@@ -125,16 +125,19 @@ def run_analyze(
     for m in expected_mutations:
         mutant_to_labels[m.mutant_id].append(f"{m.wt_aa}{m.position}{m.mt_aa}")
 
-    # Build well_id -> scoped label list when sample_map_path is provided.
-    # - If sample_map_path is None (amplicon / non-combinatorial modes): well_to_labels
-    #   stays None and every well is compared against the full expected_labels list,
-    #   preserving byte-identical backward-compatible behaviour.
+    # Build well_id -> scoped label list.
+    # - If sample_map_path is provided: use the explicit well -> sample assignment.
+    # - If sample_map_path is None: derive well_to_labels from the expected_mutations
+    #   row order. KURO assigns forward-primer wells in column-major order over the
+    #   same results list that populates the expected_mutations sheet, so row i maps
+    #   to seq_to_well(i + 1) (kuro/plate_mapper.py). A provided sample_map overrides
+    #   this automatic derivation.
     # - If a well's custom_barcode cannot be resolved to a well coordinate (non-R_F
     #   barcode format), _custom_barcode_to_seq returns None -> fallback to full list.
-    # - If a well_id appears in the sample_map but the sample name is not a known
-    #   mutant_id, scoped is None -> fallback to full list (defensive "unknown well"
-    #   path; the well will receive WRONG_AA, which is the correct result when we
-    #   genuinely cannot identify its intended mutation).
+    # - If a well coordinate has no entry in well_to_labels (e.g. a well beyond the
+    #   96-well plate, or a sample name that is not a known mutant_id), scoped is
+    #   None -> fallback to the full expected_labels list. The well then receives
+    #   WRONG_AA, the correct result when its intended mutation cannot be identified.
     well_to_labels: dict[str, list[str]] | None = None
     if sample_map_path is not None:
         well_to_sample = parse_sample_map(sample_map_path)   # {"A01": "V5F", ...}
@@ -143,6 +146,20 @@ def run_analyze(
             labels = mutant_to_labels.get(str(sample).strip())
             if labels:
                 well_to_labels[_norm_well(well_id)] = labels
+    else:
+        # No explicit sample_map: derive well -> scoped labels from the
+        # expected_mutations row order. KURO assigns forward-primer wells in
+        # column-major order over the same results list that populates the
+        # expected_mutations sheet (kuro/plate_mapper.py), so row i maps to
+        # seq_to_well(i + 1). Wells beyond the 96-well plate fall back to
+        # full-scope comparison. A provided sample_map overrides this.
+        well_to_labels = {}
+        for idx, m in enumerate(expected_mutations):
+            if idx >= 96:
+                break
+            labels = mutant_to_labels.get(m.mutant_id)
+            if labels:
+                well_to_labels[_norm_well(seq_to_well(idx + 1))] = labels
 
     records = route_ingest(input_dir, ingest_mode)
     params = CompareParams(

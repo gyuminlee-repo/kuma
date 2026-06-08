@@ -107,14 +107,16 @@ def _make_reference_fasta(tmp_path: Path) -> Path:
 # ---------------------------------------------------------------------------
 
 def test_per_well_scoping_pass_vs_wrong_aa(tmp_path: pytest.FixtureDef) -> None:
-    """Core discriminating test: PASS with sample_map, WRONG_AA without.
+    """Discriminating test for the sample_map override path.
 
+    Fixture wells are off-diagonal relative to the expected_mutations row order:
     - Well A02 (custom_barcode "1_2") observes G2A only.
     - Well B01 (custom_barcode "2_1") observes F3W only.
-    - Full expected list = ["G2A", "F3W"]; each well misses one -> WRONG_AA.
-    - Scoped list (via sample_map): each well scoped to its own mutant -> PASS.
-    The wells are off-diagonal (A02 != B01) so a row/col transposition would
-    scope the wrong mutant and flip PASS -> WRONG_AA, catching the bug.
+    Auto-derivation (no sample_map) maps row 0 (G2A) -> A01 and row 1 (F3W) -> B01.
+    - A02 has no auto-derived entry -> full list ["G2A", "F3W"] -> WRONG_AA.
+    - B01 auto-derives to ["F3W"], and observes F3W -> PASS.
+    With an explicit sample_map (A2->G2A, B1->F3W) both wells are scoped to their
+    own mutant -> PASS. The explicit map overrides auto-derivation.
     """
     ingest_dir = _make_input_dir(tmp_path)
     reference = _make_reference_fasta(tmp_path)
@@ -142,12 +144,13 @@ def test_per_well_scoping_pass_vs_wrong_aa(tmp_path: pytest.FixtureDef) -> None:
     )
     by_custom = {v.translated.barcode.custom_barcode: v for v in verdicts_no_map}
     assert by_custom["1_2"].verdict is VerdictClass.WRONG_AA, (
-        "Without sample_map, A02 (G2A-only) vs full list [G2A, F3W] must be WRONG_AA "
-        f"(missing F3W); got {by_custom['1_2'].verdict}"
+        "Without sample_map, A02 has no auto-derived scope (row order maps G2A->A01), "
+        "so it falls back to full list [G2A, F3W] and is WRONG_AA (missing F3W); "
+        f"got {by_custom['1_2'].verdict}"
     )
-    assert by_custom["2_1"].verdict is VerdictClass.WRONG_AA, (
-        "Without sample_map, B01 (F3W-only) vs full list [G2A, F3W] must be WRONG_AA "
-        f"(missing G2A); got {by_custom['2_1'].verdict}"
+    assert by_custom["2_1"].verdict is VerdictClass.PASS, (
+        "Without sample_map, B01 auto-derives to [F3W] (row 1 -> B01) and observes "
+        f"F3W -> PASS; got {by_custom['2_1'].verdict}: {by_custom['2_1'].verdict_notes}"
     )
 
     # ── With sample_map: scoped -> both wells PASS ─────────────────────────
@@ -267,3 +270,84 @@ def test_norm_well_lookup_matches_parse_sample_map_keys(tmp_path: Path) -> None:
     # Confirm these normalised keys exist in the sample_map
     assert well_to_sample[_norm_well(seq_to_well(9))] == "G2A"
     assert well_to_sample[_norm_well(seq_to_well(2))] == "F3W"
+
+
+# ---------------------------------------------------------------------------
+# Auto-derived well scope (no sample_map) — diagonal alignment
+# ---------------------------------------------------------------------------
+
+def test_auto_derived_well_scope_no_sample_map(tmp_path: pytest.FixtureDef) -> None:
+    """Without a sample_map, well scope is derived from expected_mutations row order.
+
+    expected_mutations row order: row 0 = G2A, row 1 = F3W. KURO assigns wells in
+    column-major order, so row i maps to seq_to_well(i + 1):
+    - row 0 (G2A) -> seq_to_well(1) = A01
+    - row 1 (F3W) -> seq_to_well(2) = B01
+    The input wells are aligned to this diagonal:
+    - custom_barcode "1_1" -> seq 1 -> A01, observes G2A only.
+    - custom_barcode "2_1" -> seq 2 -> B01, observes F3W only.
+    Each well is auto-scoped to its own row mutant -> both PASS, with NO sample_map.
+    A transposition of the auto-derivation would scope the wrong mutant and flip a
+    well to WRONG_AA, catching the bug.
+    """
+    reference = _make_reference_fasta(tmp_path)
+    kuro_xlsx = tmp_path / "kuro.xlsx"
+    output = tmp_path / "out_auto.xlsx"
+    _make_kuro_xlsx(kuro_xlsx)
+
+    # Diagonal-aligned input: A01 (1_1) observes G2A; B01 (2_1) observes F3W.
+    ingest_dir = tmp_path / "consensus_auto"
+    _write_fasta(ingest_dir / "NB01" / "1_1.fasta", header="1_1", body=_G2A_NT)
+    _write_fasta(ingest_dir / "NB01" / "2_1.fasta", header="2_1", body=_F3W_NT)
+
+    from kuma_core.mame.ingest import IngestMode
+
+    verdicts, _ = run_analyze(
+        input_dir=ingest_dir,
+        reference_path=reference,
+        expected_path=kuro_xlsx,
+        output_path=output,
+        cds_start=0,
+        cds_end=9,
+        min_file_size_kb=0.0,
+        ingest_mode=IngestMode.BARCODE,
+        sample_map_path=None,
+    )
+    by_custom = {v.translated.barcode.custom_barcode: v for v in verdicts}
+    assert by_custom["1_1"].verdict is VerdictClass.PASS, (
+        "A01 (row 0 -> G2A) observes G2A; auto-derived scope must PASS; "
+        f"got {by_custom['1_1'].verdict}: {by_custom['1_1'].verdict_notes}"
+    )
+    assert by_custom["2_1"].verdict is VerdictClass.PASS, (
+        "B01 (row 1 -> F3W) observes F3W; auto-derived scope must PASS; "
+        f"got {by_custom['2_1'].verdict}: {by_custom['2_1'].verdict_notes}"
+    )
+
+
+def test_auto_derived_scope_matches_expected_mutation_row_order() -> None:
+    """Pure mapping unit test: expected_mutations row i -> seq_to_well(i + 1).
+
+    Reproduces the derivation logic from run_analyze without running the full
+    pipeline (no external binaries). Verifies row order -> well coordinate mapping
+    and the 96-well clamp.
+    """
+    from kuma_core.mame.export.well_mapper import seq_to_well
+
+    # Simulate two expected mutants in row order.
+    mutant_ids = ["G2A", "F3W"]
+    derived = {}
+    for idx, mid in enumerate(mutant_ids):
+        if idx >= 96:
+            break
+        derived[_norm_well(seq_to_well(idx + 1))] = [mid]
+
+    assert derived == {"A01": ["G2A"], "B01": ["F3W"]}
+
+    # 96-well clamp: a 97th row must not be assigned.
+    many = [f"M{i}" for i in range(97)]
+    clamped = {}
+    for idx, mid in enumerate(many):
+        if idx >= 96:
+            break
+        clamped[_norm_well(seq_to_well(idx + 1))] = [mid]
+    assert len(clamped) == 96
