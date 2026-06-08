@@ -653,6 +653,12 @@
         "stateLabel": "저장 위치",
         "helperText": "분석 보고서는 KURO 방식의 규칙 기반 .xlsx 파일명을 사용합니다",
         "helpText": "분석 결과 Excel이 저장될 폴더입니다. 파일명은 날짜, 참조/입력 토큰, MAME 대상, 결과 수 토큰을 조합한 KURO 방식으로 자동 생성됩니다."
+      },
+      "buildWellLayout": {
+        "button": "Well 레이아웃 생성",
+        "building": "생성 중…",
+        "confirmed": "well {{count}}개 확정",
+        "ariaLabel": "expected_mutations xlsx에서 well 레이아웃 자동 생성"
       }
     },
     "setup": {
@@ -770,6 +776,16 @@
         "waste": "폐기물"
       },
       "title": "JANUS 덱 레이아웃"
+    },
+    "wellLayoutDialog": {
+      "title": "Well–sample 레이아웃 확인",
+      "description": "KURO expected_mutations xlsx에서 자동 생성된 well–sample 매핑을 검토하세요. 확정 전에 sample 이름을 수정할 수 있습니다.",
+      "hint": "well→sample 매핑을 확인하세요. WT 대조군은 마지막 well입니다.",
+      "tableAriaLabel": "Well 레이아웃 확인 표",
+      "sampleAriaLabel": "well {{well}}의 sample 이름",
+      "empty": "생성된 well이 없습니다. expected_mutations xlsx가 선택됐는지 확인하세요.",
+      "rowCount": "레이아웃에 well {{count}}개",
+      "confirm": "레이아웃 확정"
     }
   },
   "home": {
