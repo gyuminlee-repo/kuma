@@ -2288,5 +2288,16 @@
         "unknown": "Unknown error"
       }
     }
+  },
+  "advisoryDecision": {
+    "heading": "Clasificación consultiva",
+    "readOnlyBadge": "solo lectura",
+    "readOnlyAriaLabel": "Asesoramiento de solo lectura: sin confirmación ni persistencia",
+    "loading": "Calculando asesoramiento...",
+    "error": "Error de asesoramiento: {{message}}",
+    "labelAriaLabel": "Etiqueta de decisión: {{label}}",
+    "confidence": "confianza {{value}}%",
+    "unavailableBody": "Asesoramiento no disponible: tuberías de datos requeridas aún no conectadas.",
+    "missingFields": "Campos faltantes: {{fields}}"
   }
 }

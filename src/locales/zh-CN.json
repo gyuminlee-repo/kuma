@@ -2288,5 +2288,16 @@
         "unknown": "Unknown error"
       }
     }
+  },
+  "advisoryDecision": {
+    "heading": "顾问分类",
+    "readOnlyBadge": "只读",
+    "readOnlyAriaLabel": "只读顾问：无确认或持久化",
+    "loading": "正在计算顾问意见...",
+    "error": "顾问错误：{{message}}",
+    "labelAriaLabel": "决策标签：{{label}}",
+    "confidence": "置信度 {{value}}%",
+    "unavailableBody": "顾问不可用：所需数据管道尚未连接。",
+    "missingFields": "缺失字段：{{fields}}"
   }
 }

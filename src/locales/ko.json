@@ -2428,5 +2428,16 @@
         "unknown": "알 수 없는 오류"
       }
     }
+  },
+  "advisoryDecision": {
+    "heading": "자문 분류",
+    "readOnlyBadge": "읽기 전용",
+    "readOnlyAriaLabel": "읽기 전용 자문: 확인 또는 저장 없음",
+    "loading": "자문 계산 중...",
+    "error": "자문 오류: {{message}}",
+    "labelAriaLabel": "결정 레이블: {{label}}",
+    "confidence": "신뢰도 {{value}}%",
+    "unavailableBody": "자문 불가: 필요한 데이터 플럼빙이 아직 연결되지 않았습니다.",
+    "missingFields": "누락 필드: {{fields}}"
   }
 }

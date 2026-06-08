@@ -2288,5 +2288,16 @@
         "unknown": "Unknown error"
       }
     }
+  },
+  "advisoryDecision": {
+    "heading": "顧問分類",
+    "readOnlyBadge": "唯讀",
+    "readOnlyAriaLabel": "唯讀顧問：無確認或持久化",
+    "loading": "正在計算顧問意見...",
+    "error": "顧問錯誤：{{message}}",
+    "labelAriaLabel": "決策標籤：{{label}}",
+    "confidence": "信心度 {{value}}%",
+    "unavailableBody": "顧問不可用：所需數據管道尚未連接。",
+    "missingFields": "缺失欄位：{{fields}}"
   }
 }
