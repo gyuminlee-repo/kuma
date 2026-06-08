@@ -108,6 +108,28 @@ const INITIAL_STATE = {
   lastAttemptedStage: null as CondaWizardStage | null,
 };
 
+const REQUIRED_EVOLVEPRO_PACKAGES = [
+  "evolvepro",
+  "esm",
+  "Bio",
+  "numpy",
+  "pandas",
+  "openpyxl",
+  "sklearn",
+  "sklearn_extra",
+  "scipy",
+  "xgboost",
+  "matplotlib",
+  "seaborn",
+  "torch",
+] as const;
+
+function hasCompleteEvolveProProbe(envStatus: EnvStatus): boolean {
+  return REQUIRED_EVOLVEPRO_PACKAGES.every(
+    (name) => envStatus.packages[name] != null,
+  );
+}
+
 export const useCondaSetupStore = create<CondaSetupState>()((set, get) => ({
   ...INITIAL_STATE,
 
@@ -129,6 +151,11 @@ export const useCondaSetupStore = create<CondaSetupState>()((set, get) => ({
 
       if (!envStatus.exists) {
         set({ stage: "needs_env" });
+        return;
+      }
+
+      if (hasCompleteEvolveProProbe(envStatus)) {
+        set({ stage: "done" });
         return;
       }
 
@@ -266,6 +293,11 @@ export const useCondaSetupStore = create<CondaSetupState>()((set, get) => ({
 
       if (missing.length > 0) {
         set({ stage: "needs_repair" });
+        return;
+      }
+
+      if (hasCompleteEvolveProProbe(envStatus)) {
+        set({ stage: "done" });
         return;
       }
 
