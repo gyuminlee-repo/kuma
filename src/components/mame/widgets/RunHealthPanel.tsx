@@ -32,8 +32,8 @@ import type {
 // ── Colour palette — CSS variable references only ────────────────────────────
 
 const C = {
-  pass: "hsl(var(--success))",
-  ambiguous: "hsl(var(--warning))",
+  pass: "var(--color-success)",
+  ambiguous: "var(--color-warning)",
   fail: "hsl(var(--destructive))",
   fallback: "hsl(var(--muted-foreground))",
   primary: "hsl(var(--primary))",
