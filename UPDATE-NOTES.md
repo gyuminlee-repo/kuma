@@ -15,7 +15,7 @@
 - Raw FASTQ demux→consensus now preserves read IDs and quality strings internally; low-Phred base calls are excluded from consensus voting, while legacy FASTA-only input keeps the unweighted path.
 - Verdict payloads, the MAME verdict table, and Excel exports now expose low-quality base exclusions plus MAPQ/span drop counters so failed wells are explainable instead of only labeled.
 - A round-advisory classifier now recommends, per ALE round, whether to keep single-walking, switch to combinatorial, or stop. The decision tree uses single-exhaustion (T2/T3/T_model) plus combinatorial throughput (T1); a GB1 landscape and synthetic epistasis-sweep backtest show it is safe (never worse than a greedy walk) with a modest edge, and explicitly not an epistasis predictor.
-- The advisory surfaces read-only in the round summary. Until the required round-summary fields are plumbed into the sidecar store it returns `unavailable` listing the missing fields, with no fabricated inputs.
+- The advisory now reads user-imported per-round xlsx files (filename-agnostic, validated by `Variant` and `activity` fold-change columns) and surfaces read-only in the round summary as a per-round file picker. A confident `switch_combinatorial` call needs an assay noise floor from at least 4 WT-control replicates per round; current campaigns measure 3, so the advisory holds at `continue_walking` or `deferred` rather than fabricating a switch from too few replicates. Bad input is reported as an explicit error, and the earlier `unavailable` path is retired.
 
 ---
 
