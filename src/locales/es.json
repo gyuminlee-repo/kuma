@@ -634,6 +634,12 @@
         "stateLabel": "Guardar en",
         "helperText": "El informe del análisis usará un nombre de archivo .xlsx basado en reglas estilo KURO",
         "helpText": "Carpeta donde se guardará el Excel con el resultado del análisis. El nombre del archivo se genera automáticamente usando reglas estilo KURO que combinan fecha, tokens de referencia/entrada, target MAME y tokens de conteo de resultados."
+      },
+      "buildWellLayout": {
+        "button": "Build well layout",
+        "building": "Building…",
+        "confirmed": "{{count}} well(s) confirmed",
+        "ariaLabel": "Auto-generate well layout from expected_mutations xlsx"
       }
     },
     "janusDeck": {
@@ -741,6 +747,16 @@
     "inspector": {
       "kvEmpty": "—",
       "noDataPlaceholder": "No data available"
+    },
+    "wellLayoutDialog": {
+      "title": "Confirm well–sample layout",
+      "description": "Review the auto-generated well–sample mapping from the KURO expected_mutations xlsx. Edit any sample name before confirming.",
+      "hint": "Confirm the well→sample mapping; WT control is the last well.",
+      "tableAriaLabel": "Well-layout confirmation table",
+      "sampleAriaLabel": "Sample name for well {{well}}",
+      "empty": "No wells generated. Check that the expected_mutations xlsx is selected.",
+      "rowCount": "{{count}} well(s) in layout",
+      "confirm": "Confirm layout"
     }
   },
   "home": {

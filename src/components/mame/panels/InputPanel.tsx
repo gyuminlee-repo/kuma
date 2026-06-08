@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
-import { FolderOpen, RefreshCw } from "lucide-react";
+import { FolderOpen, LayoutGrid, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
@@ -59,10 +59,13 @@ export function InputPanel() {
   const setOutputPath = useMameAppStore((s) => s.setOutputPath);
   const setSampleMapPath = useMameAppStore((s) => s.setSampleMapPath);
   const setParams = useMameAppStore((s) => s.setParams);
+  const wellLayout = useMameAppStore((s) => s.wellLayout);
+  const buildWellLayout = useMameAppStore((s) => s.buildWellLayout);
 
   const project = useKumaProject();
   const [isDetecting, setIsDetecting] = useState(false);
   const [isAutoFilling, setIsAutoFilling] = useState(false);
+  const [isBuildingLayout, setIsBuildingLayout] = useState(false);
 
   async function handleRedetect() {
     if (!project?.path) return;
@@ -121,6 +124,16 @@ export function InputPanel() {
       }
     } finally {
       setIsAutoFilling(false);
+    }
+  }
+
+  async function handleBuildWellLayout() {
+    if (isBuildingLayout) return;
+    setIsBuildingLayout(true);
+    try {
+      await buildWellLayout();
+    } finally {
+      setIsBuildingLayout(false);
     }
   }
 
@@ -270,6 +283,31 @@ export function InputPanel() {
         readyLabel={readyLabel}
         browseAriaLabel={t("mame.inputPanel.browseFolderAriaLabel", { label: t("mame.inputPanel.kuroXlsx.label") })}
       />
+      {expectedPath && (
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => void handleBuildWellLayout()}
+            disabled={isBuildingLayout}
+            aria-label={t("mame.inputPanel.buildWellLayout.ariaLabel")}
+            className="h-8 gap-1.5 px-3 text-xs"
+          >
+            <LayoutGrid size={12} aria-hidden="true" />
+            {isBuildingLayout
+              ? t("mame.inputPanel.buildWellLayout.building")
+              : t("mame.inputPanel.buildWellLayout.button")}
+          </Button>
+          {wellLayout !== null && (
+            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-caption font-medium text-primary">
+              {t("mame.inputPanel.buildWellLayout.confirmed", {
+                count: Object.keys(wellLayout).length,
+              })}
+            </span>
+          )}
+        </div>
+      )}
       <FileField
         label={t("mame.inputPanel.referenceFasta.label")}
         value={referencePath}

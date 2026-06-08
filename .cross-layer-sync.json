@@ -350,6 +350,35 @@
       "severity": "blocking"
     },
     {
+      "id": "mame-build-well-layout",
+      "files": [
+        "kuma_core/mame/layout.py",
+        "python-core/sidecar_mame/handlers/build_well_layout.py",
+        "python-core/sidecar_mame/models.py",
+        "src/types/mame/well_layout.ts"
+      ],
+      "symbols": [
+        "build_draft_layout",
+        "BuildWellLayoutParams",
+        "handle_build_well_layout",
+        "BuildWellLayoutResult"
+      ],
+      "note": "mame.build_well_layout: core func <-> Pydantic model <-> handler dict <-> TS interfaces",
+      "severity": "blocking"
+    },
+    {
+      "id": "mame-dispatcher-build-well-layout",
+      "files": [
+        "python-core/sidecar_mame/dispatcher.py"
+      ],
+      "symbols": [
+        "_METHODS",
+        "mame.build_well_layout"
+      ],
+      "note": "mame.build_well_layout RPC 등록 (synchronous: _ASYNC_METHODS 미포함)",
+      "severity": "blocking"
+    },
+    {
       "id": "shared-sidecar",
       "files": [
         "kuma_core/shared/sidecar.py",

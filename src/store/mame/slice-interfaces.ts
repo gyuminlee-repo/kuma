@@ -12,6 +12,7 @@ import type {
 } from "@/types/mame/models";
 import type { CdsCandidate } from "@/lib/sequence/autoDetectCds";
 import type { NativeBarcodeUsage } from "@/types/mame/detect_native_barcodes";
+import type { WellLayout, WellLayoutRow } from "@/types/mame/well_layout";
 
 export type InputMode = "consensus" | "sorted_barcode" | "raw_run";
 
@@ -67,6 +68,10 @@ export interface InputSlice {
   // null = no dialog open; non-null = show the confirm dialog with these rows.
   detectedNativeBarcodes: NativeBarcodeUsage[] | null;
   isDetectingBarcodes: boolean;
+  // Well-layout confirm flow: null = not started; non-null = show confirm dialog.
+  wellLayoutDraft: WellLayoutRow[] | null;
+  // Confirmed well->sample mapping; passed to analyze as highest-priority source.
+  wellLayout: WellLayout | null;
   setInputDir: (path: string) => void;
   setExpectedPath: (path: string) => void;
   setReferencePath: (path: string) => void;
@@ -133,6 +138,9 @@ export interface InputSlice {
   confirmNativeBarcodeSelection: (selected: string[]) => Promise<void>;
   // Close the confirm dialog and abort the pending analysis.
   cancelNativeBarcodeSelection: () => void;
+  buildWellLayout: () => Promise<void>;
+  confirmWellLayout: (rows: WellLayoutRow[]) => void;
+  cancelWellLayout: () => void;
   resetInput: () => void;
 }
 

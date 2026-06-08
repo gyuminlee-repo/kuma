@@ -11,6 +11,7 @@ import type {
 } from "@/types/mame/models";
 import type { CdsCandidate } from "@/lib/sequence/autoDetectCds";
 import type { CombinatorialDemuxResult } from "@/types/mame/combinatorial_demux";
+import type { BuildWellLayoutResult, WellLayout, WellLayoutRow } from "@/types/mame/well_layout";
 import type { DetectNativeBarcodesResult } from "@/types/mame/detect_native_barcodes";
 import type { InputSlice, RawRunParams } from "../slice-interfaces";
 import type { AppState } from "../types";
@@ -118,6 +119,8 @@ const mameInputInitialState = {
   sharedFastaPath: null as string | null,
   sharedEvolveproCsvPath: null as string | null,
   resetEpoch: 0,
+  wellLayoutDraft: null as WellLayoutRow[] | null,
+  wellLayout: null as WellLayout | null,
 };
 
 export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set, get) => ({
@@ -333,6 +336,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         min_file_size_kb: state.minFileSizeKb,
         many_cutoff: state.manyCutoff,
         sample_map_xlsx: state.sampleMapPath || null,
+        well_layout: state.wellLayout ?? null,
       },
       MAME_ANALYZE_RPC_TIMEOUT_MS,
     );
@@ -499,6 +503,33 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       analyzeStartedAt: null,
       analyzePhase: null,
     });
+  },
+  buildWellLayout: async () => {
+    const expectedPath = get().expectedPath;
+    if (!expectedPath) {
+      set({ validationErrors: ["Expected mutations xlsx is required to build well layout."] });
+      return;
+    }
+    try {
+      const result = await sendRequest<BuildWellLayoutResult>(
+        "mame.build_well_layout",
+        { expected_mutations_xlsx: expectedPath },
+        30_000,
+      );
+      set({ wellLayoutDraft: result.draft, validationErrors: [] });
+    } catch (error) {
+      set({ validationErrors: [formatError(error)] });
+    }
+  },
+  confirmWellLayout: (rows: WellLayoutRow[]) => {
+    const layout: WellLayout = {};
+    for (const r of rows) {
+      layout[r.well] = r.sample;
+    }
+    set({ wellLayout: layout, wellLayoutDraft: null });
+  },
+  cancelWellLayout: () => {
+    set({ wellLayoutDraft: null });
   },
   resetInput: () => set({ ...mameInputInitialState }),
 });

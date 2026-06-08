@@ -128,6 +128,7 @@ def run_analyze(
     many_cutoff: int = 5,
     ingest_mode: IngestMode = IngestMode.BARCODE,
     sample_map_path: Path | None = None,
+    well_layout: dict[str, str] | None = None,
 ) -> tuple[list[VerdictRecord], list[ReplicateResult]]:
     """Run the full pipeline and write the Excel output. Returns in-memory results."""
 
@@ -142,29 +143,48 @@ def run_analyze(
     for m in expected_mutations:
         mutant_to_labels[m.mutant_id].append(f"{m.wt_aa}{m.position}{m.mt_aa}")
 
-    # Build well_id -> scoped label list when sample_map_path is provided.
-    # - If sample_map_path is None (amplicon / non-combinatorial modes): well_to_labels
-    #   stays None and every well is compared against the full expected_labels list,
-    #   preserving byte-identical backward-compatible behaviour.
+    # Build well_id -> scoped label list from a well->sample source.
+    # - If neither well_layout nor sample_map_path is given (amplicon / non-
+    #   combinatorial modes): well_to_labels stays None and every well is compared
+    #   against the full expected_labels list, preserving byte-identical legacy
+    #   behaviour.
     # - If a well's custom_barcode cannot be resolved to a well coordinate (non-R_F
     #   barcode format), _custom_barcode_to_seq returns None -> fallback to full list.
-    # - If a well_id appears in the sample_map but the sample name is not a known
-    #   mutant_id, scoped is None -> fallback to full list (defensive "unknown well"
-    #   path; the well will receive WRONG_AA, which is the correct result when we
-    #   genuinely cannot identify its intended mutation).
+    # - If a well_id appears in the source but the sample name is not a known
+    #   mutant_id (and not "WT"), it is omitted -> verdict-time lookup returns None
+    #   -> fallback to full list (defensive "unknown well" path; the well will
+    #   receive WRONG_AA, the correct result when the intended mutation is unknown).
+    # well->sample source priority: (a) well_layout override, (b) sample_map_path,
+    # (c) None (full-scope comparison, byte-identical legacy behaviour).
+    well_to_sample: dict[str, str] | None = None
+    if well_layout is not None:
+        well_to_sample = well_layout
+    elif sample_map_path is not None:
+        well_to_sample = parse_sample_map(sample_map_path)   # {"A01": "V5F", ...}
+
     well_to_labels: dict[str, list[str]] | None = None
     well_to_mutant: dict[str, str] | None = None
-    if sample_map_path is not None:
-        well_to_sample = parse_sample_map(sample_map_path)   # {"A01": "V5F", ...}
+    if well_to_sample is not None:
         well_to_labels = {}
         well_to_mutant = {}
+        # Single loop builds both maps. A "WT" sample (case-insensitive) maps to an
+        # EMPTY expected scope ([]): a clean consensus PASSes, any observed variant
+        # fails. The empty list is intentionally distinct from None (full-scope):
+        # the verdict-time lookup uses `is not None`, so [] survives. The WT well is
+        # also pinned to "WT" in well_to_mutant so _assign_mutant_ids attributes it
+        # by ground truth (not by the position-based heuristic, which would pull a
+        # contaminated WT well into a real mutant's group).
         for well_id, sample in well_to_sample.items():
-            mutant_id = str(sample).strip()
-            labels = mutant_to_labels.get(mutant_id)
+            nw = _norm_well(well_id)
+            sample_str = str(sample).strip()
+            if sample_str.upper() == "WT":
+                well_to_labels[nw] = []
+                well_to_mutant[nw] = "WT"
+                continue
+            labels = mutant_to_labels.get(sample_str)
             if labels:
-                nw = _norm_well(well_id)
                 well_to_labels[nw] = labels
-                well_to_mutant[nw] = mutant_id
+                well_to_mutant[nw] = sample_str
 
     records = route_ingest(input_dir, ingest_mode)
     params = CompareParams(
