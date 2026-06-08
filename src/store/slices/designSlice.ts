@@ -150,6 +150,8 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       mutationInputMode,
       selectedGene: selectedGene ?? "",
       poolVariants: state.poolVariants,
+      evolveproSelectedVariants: state.evolveproSelectedVariants,
+      evolveproRankedCandidates: state.evolveproRankedCandidates,
     });
     const { sendCount, isEvolveMode } = initialPrep;
 
@@ -175,6 +177,8 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       mutationInputMode,
       selectedGene: selectedGene ?? "",
       poolVariants: get().poolVariants,
+      evolveproSelectedVariants: get().evolveproSelectedVariants,
+      evolveproRankedCandidates: get().evolveproRankedCandidates,
     });
     if (!prepared.limitedText.trim()) {
       set({ statusMessage: "No valid EVOLVEpro variants loaded" });

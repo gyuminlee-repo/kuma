@@ -8,6 +8,7 @@ import { Button } from "../../ui/button";
 import { InlineHelp } from "../../ui/InlineHelp";
 import { ArtifactBadge } from "../../widgets/ArtifactBadge";
 import { EvolveproOthersPanel } from "./EvolveproOthersPanel";
+import { EvolveproSelectTable } from "../../widgets/EvolveproSelectTable";
 
 export function MutationInput() {
   const { t } = useTranslation();
@@ -41,6 +42,10 @@ export function MutationInput() {
   const evolveproMode = useAppStore((s) => s.evolveproMode);
   const setEvolveproMode = useAppStore((s) => s.setEvolveproMode);
   const evolveproTotalCount = useAppStore((s) => s.evolveproTotalCount);
+  const evolveproRankedCandidates = useAppStore((s) => s.evolveproRankedCandidates);
+  const evolveproSelectedVariants = useAppStore((s) => s.evolveproSelectedVariants);
+  const evolveproExtraExposed = useAppStore((s) => s.evolveproExtraExposed);
+  const setEvolveproVariantSelected = useAppStore((s) => s.setEvolveproVariantSelected);
   const activeTablePath = evolveproMode === "others" ? othersSourcePath : evolveproCsvPath;
 
   // Debounced mutation validation
@@ -205,15 +210,45 @@ export function MutationInput() {
             </div>
           )}
 
-          {/* Editable variant textarea (topN / pipeline only) */}
-          {evolveproMode !== "others" && mutationText && (
-            <textarea
-              className="h-32 w-full resize-none rounded-2xl border border-border bg-muted p-3 font-mono text-xs"
-              value={mutationText}
-              onChange={(e) => setMutationText(e.target.value)}
-              title={t("mutationInput.topNVariantsTitle")}
-            />
-          )}
+          {/* EVOLVEpro candidate picker (topN / pipeline only) */}
+          {evolveproMode !== "others" && evolveproRankedCandidates.length > 0 && (() => {
+            const selectedSet = new Set(evolveproSelectedVariants);
+            const unselectedBuffer = evolveproRankedCandidates
+              .filter((c) => !selectedSet.has(c.variant))
+              .slice(0, evolveproExtraExposed);
+            const pickerRows = [
+              ...evolveproRankedCandidates
+                .filter((c) => selectedSet.has(c.variant))
+                .map((c) => ({
+                  variant: c.variant,
+                  yPred: c.y_pred,
+                  aaPosition: c.aa_position ?? null,
+                  selected: true,
+                })),
+              ...unselectedBuffer.map((c) => ({
+                variant: c.variant,
+                yPred: c.y_pred,
+                aaPosition: c.aa_position ?? null,
+                selected: false,
+              })),
+            ];
+            const bufferCap = evolveproRankedCandidates.length - evolveproSelectedVariants.filter(
+              (v) => evolveproRankedCandidates.some((c) => c.variant === v)
+            ).length;
+            return (
+              <div className="space-y-1">
+                <EvolveproSelectTable
+                  rows={pickerRows}
+                  onToggle={(variant, checked) => setEvolveproVariantSelected(variant, checked)}
+                />
+                {evolveproExtraExposed >= bufferCap && bufferCap > 0 && (
+                  <p className="text-caption text-muted-foreground">
+                    {t("mutationInput.bufferCapReached", { count: bufferCap })}
+                  </p>
+                )}
+              </div>
+            );
+          })()}
         </div>
       )}
 

@@ -49,6 +49,7 @@ export interface SidecarKuroModels {
   PlateMappingItem?: PlateMappingItem;
   PolymeraseProfileModel?: PolymeraseProfileModel;
   PreviewEvolveproSourceParams?: PreviewEvolveproSourceParams;
+  RankedCandidateItem?: RankedCandidateItem;
   RescueStatsModel?: RescueStatsModel;
   RescuedMutationModel?: RescuedMutationModel;
   RetryFailedParams?: RetryFailedParams;
@@ -646,6 +647,21 @@ export interface PreviewEvolveproSourceParams {
   filepath: string;
   max_rows?: number;
   sheet_name?: string | null;
+  [k: string]: unknown;
+}
+/**
+ * Single entry in the ranked_candidates list returned by load_evolvepro_csv.
+ *
+ * variant     : normalized variant string (e.g. ``A42V``).
+ * y_pred      : raw EVOLVEpro score, rounded to 4 decimal places.
+ * aa_position : 1-based amino acid position extracted from variant string;
+ *               None when the variant string contains no parseable position
+ *               (e.g. multi-substitution strings where extraction fails).
+ */
+export interface RankedCandidateItem {
+  aa_position?: number | null;
+  variant: string;
+  y_pred: number;
   [k: string]: unknown;
 }
 export interface RetryFailedParams {

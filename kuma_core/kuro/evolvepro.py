@@ -265,6 +265,11 @@ def _position_entropy(pool: list[tuple[str, float]]) -> dict[int, float]:
 VARIANT_COLUMNS = ["variant", "variants", "mutation", "mutations", "mutant", "mutation_list"]
 SCORE_COLUMNS = ["y_pred", "property_value", "predicted_fitness", "fitness", "score", "DMS_score"]
 
+# Maximum number of buffer candidates beyond selected_count to include in
+# ranked_candidates. Provides pre-selection table context without sending
+# the full dataset to the frontend.
+EVOLVEPRO_RANKED_BUFFER = 50
+
 
 _SHORT_VARIANT_RE = re.compile(r"^(\d+)([A-Z])$")
 
@@ -432,6 +437,18 @@ def _variant_has_position_one(variant: str) -> bool:
     return False
 
 
+def _extract_aa_position(variant: str) -> int | None:
+    """Extract the first 1-based amino acid position from a variant string.
+
+    Uses _POS_RE (same regex as domain binning and pareto selection) to locate
+    the position digit group. For multi-variant strings the first match is
+    returned. Returns None when no parseable position is found; never returns
+    a default of 0 to avoid misleading callers.
+    """
+    m = _POS_RE.search(variant)
+    return int(m.group(1)) if m else None
+
+
 def load_evolvepro_csv(
     filepath: str | Path,
     top_n: int = 96,
@@ -516,6 +533,10 @@ def load_evolvepro_csv(
     rows = score_rows
     if has_score:
         rows.sort(key=lambda r: r[1], reverse=True)
+    # Snapshot of the full sorted list (before position/pareto/domain filtering).
+    # Used to build ranked_candidates, which must reflect the global score order
+    # regardless of which selection mode is active.
+    ranked_full: list[tuple[str, float]] = list(rows)
 
     # top_n <= 0 means "all variants" (no limit)
     if top_n <= 0:
@@ -611,6 +632,14 @@ def load_evolvepro_csv(
             "start_codon_removed": start_codon_removed,
             "start_codon_removed_variants": start_codon_removed_variants,
         },
+        "ranked_candidates": [
+            {
+                "variant": v,
+                "y_pred": round(raw_map.get(v, 0.0) if math.isfinite(raw_map.get(v, 0.0)) else 0.0, 4),
+                "aa_position": _extract_aa_position(v),
+            }
+            for v, _ in ranked_full[: len(selected) + EVOLVEPRO_RANKED_BUFFER]
+        ],
     }
 
 

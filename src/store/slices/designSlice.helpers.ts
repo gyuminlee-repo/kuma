@@ -7,6 +7,7 @@ import type {
   RescuedMutation,
   SdmPrimerResult,
 } from "../../types/models";
+import type { RankedCandidateItem } from "../../types/models.generated";
 
 export const EMPTY_RESCUE_STATS: RescueStats = {
   pool_cascade: 0,
@@ -56,6 +57,9 @@ interface ProcessedDesignResult {
   statusMessage: string;
 }
 
+/** Default number of extra (buffer) candidates exposed in the picker. */
+export const DEFAULT_EVOLVEPRO_EXTRA_EXPOSED = 10;
+
 export function prepareDesignInput(params: {
   mutationText: string;
   maxPrimers: number;
@@ -63,6 +67,10 @@ export function prepareDesignInput(params: {
   mutationInputMode: "text" | "evolvepro";
   selectedGene: string;
   poolVariants: string[];
+  /** EVOLVEpro: user-selected variant list (controls design input when in evolvepro mode). */
+  evolveproSelectedVariants?: string[];
+  /** EVOLVEpro: ranked candidates for ordering the selection set. */
+  evolveproRankedCandidates?: RankedCandidateItem[];
 }): PreparedDesignInput {
   const {
     mutationText,
@@ -71,16 +79,40 @@ export function prepareDesignInput(params: {
     mutationInputMode,
     selectedGene,
     poolVariants,
+    evolveproSelectedVariants,
+    evolveproRankedCandidates,
   } = params;
 
   const sendCount = fillOnFailure
     ? Math.max(Math.ceil(maxPrimers * 1.5), maxPrimers + 20)
     : maxPrimers;
   const isEvolveMode = mutationInputMode === "evolvepro";
-  const allLines = mutationText
-    .trim()
-    .split("\n")
-    .filter((l) => l.trim() && !l.trim().startsWith("#"));
+
+  // In evolvepro mode with an explicit selection set, derive allLines from the
+  // selection set ordered by y_pred (ranked_candidates order). This preserves
+  // the existing limitedText/rescuePool structure while switching the source.
+  let allLines: string[];
+  if (isEvolveMode && evolveproSelectedVariants && evolveproSelectedVariants.length > 0) {
+    const selectedSet = new Set(evolveproSelectedVariants);
+    if (evolveproRankedCandidates && evolveproRankedCandidates.length > 0) {
+      // Order by ranked_candidates (already y_pred desc from backend).
+      const ranked = evolveproRankedCandidates
+        .filter((c) => selectedSet.has(c.variant))
+        .map((c) => c.variant);
+      // Any selected variants not in ranked_candidates come last.
+      const rankedSet = new Set(ranked);
+      const unranked = evolveproSelectedVariants.filter((v) => !rankedSet.has(v));
+      allLines = [...ranked, ...unranked];
+    } else {
+      allLines = [...evolveproSelectedVariants];
+    }
+  } else {
+    allLines = mutationText
+      .trim()
+      .split("\n")
+      .filter((l) => l.trim() && !l.trim().startsWith("#"));
+  }
+
   const intendedMuts = new Set(allLines.slice(0, maxPrimers).map((l) => l.trim()));
   const limitedText = allLines.slice(0, sendCount).join("\n");
   const targetStart = selectedGene ? parseInt(selectedGene, 10) : 0;

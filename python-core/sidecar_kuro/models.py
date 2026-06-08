@@ -213,6 +213,20 @@ class EvolveproStepStatsModel(WorkspaceModel):
     pareto_exchanges: Optional[int] = None
 
 
+class RankedCandidateItem(WorkspaceModel):
+    """Single entry in the ranked_candidates list returned by load_evolvepro_csv.
+
+    variant     : normalized variant string (e.g. ``A42V``).
+    y_pred      : raw EVOLVEpro score, rounded to 4 decimal places.
+    aa_position : 1-based amino acid position extracted from variant string;
+                  None when the variant string contains no parseable position
+                  (e.g. multi-substitution strings where extraction fails).
+    """
+    variant: str
+    y_pred: float
+    aa_position: Optional[int] = None
+
+
 class BenchmarkResultModel(WorkspaceModel):
     n_selected: int
     hit_rate: float

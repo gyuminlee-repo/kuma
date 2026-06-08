@@ -70,6 +70,9 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   othersPreview: null,
   othersUsedVariantColumn: null,
   othersUsedScoreColumn: null,
+  evolveproRankedCandidates: [],
+  evolveproSelectedVariants: [],
+  evolveproExtraExposed: 10,
 
   setMutationInputMode: (mode) => set({
     mutationInputMode: mode,
@@ -86,6 +89,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       yPredMap: {},
       domainStats: {},
       poolVariants: [],
+      evolveproRankedCandidates: [],
+      evolveproSelectedVariants: [],
     }),
   }),
   setMutationText: (text) => set({ mutationText: text }),
@@ -219,6 +224,12 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         evolveproParetoExchanges: update.evolveproParetoExchanges,
         evolveproStepStats: update.evolveproStepStats,
         statusMessage: update.statusMessage,
+        evolveproRankedCandidates: result.ranked_candidates ?? [],
+        // Initialize selection to the pipeline-selected set (result.variants), in ranked order.
+        // ranked_candidates starts with selected variants (same order), so filter for consistency.
+        evolveproSelectedVariants: (result.ranked_candidates ?? [])
+          .filter((c) => result.variants.includes(c.variant))
+          .map((c) => c.variant),
         ...(isOthersMode && {
           othersUsedVariantColumn: result.used_variant_column ?? null,
           othersUsedScoreColumn: result.used_score_column ?? null,
@@ -243,6 +254,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
           yPredMap: {},
           domainStats: {},
           poolVariants: [],
+          evolveproRankedCandidates: [],
+          evolveproSelectedVariants: [],
           statusMessage: `${modeLabel} file load failed: ${formatError(err)}`,
         });
       }
@@ -273,6 +286,19 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   setOthersScoreOrder: (order) => set({ othersScoreOrder: order }),
   setOthersSheetName: (name) => set({ othersSheetName: name }),
   setOthersPreview: (preview) => set({ othersPreview: preview }),
+
+  setEvolveproVariantSelected: (variant, selected) => {
+    const current = get().evolveproSelectedVariants;
+    if (selected) {
+      if (!current.includes(variant)) {
+        set({ evolveproSelectedVariants: [...current, variant] });
+      }
+    } else {
+      set({ evolveproSelectedVariants: current.filter((v) => v !== variant) });
+    }
+  },
+
+  setEvolveproExtraExposed: (count) => set({ evolveproExtraExposed: Math.max(0, count) }),
 
   parseMutations: async () => {
     const { mutationText } = get();
@@ -350,6 +376,12 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     // Note: mutationText = variants.join("\n") for design pipeline compatibility.
     // Spec §4.5 step 5 literal (mutationText="") would break KURO design which
     // reads mutationText as primary variant input. Deviation documented in PR.
+    // Build ranked_candidates from round data (no CSV, so use log2_fc as y_pred proxy).
+    const roundRankedCandidates = variants.map((v) => ({
+      variant: v,
+      y_pred: yPredMap[v] ?? 0,
+      aa_position: null as number | null,
+    })).sort((a, b) => b.y_pred - a.y_pred);
     set({
       // Step 3: force evolvepro mode
       mutationInputMode: "evolvepro",
@@ -364,6 +396,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       evolveproStepStats: null,
       domainStats: {},
       poolVariants: [],
+      evolveproRankedCandidates: roundRankedCandidates,
+      evolveproSelectedVariants: [...variants],
       statusMessage: `Round ${prevRound.n} activity loaded: ${filtered.length} variants (EVOLVEpro mode)`,
     });
 
