@@ -43,6 +43,7 @@ from sidecar_mame.handlers.build_well_layout import handle_build_well_layout
 from sidecar_mame.handlers.ingest import handle_parse_reference
 from sidecar_mame.handlers.combinatorial_demux import handle_run_combinatorial_demux
 from sidecar_mame.handlers.detect_native_barcodes import handle_detect_native_barcodes
+from sidecar_mame.handlers.classify_round import handle_classify_round
 
 def _handle_health_info(_params: dict) -> dict:
     """Return PID, RSS, and Python version for the status bar tooltip."""
@@ -96,6 +97,8 @@ _METHODS = {
     "mame.detect_native_barcodes": handle_detect_native_barcodes,
     # Draft 96-well layout from KURO expected_mutations (stat-only, synchronous)
     "mame.build_well_layout": handle_build_well_layout,
+    # v0.3 advisory: read-only classify() call (partial slice, plumbing pending)
+    "strategy.classify_round": handle_classify_round,
     # §22 graceful shutdown — ack immediately; main() breaks on this method
     "shutdown": lambda _: {"ok": True, "message": "shutdown_acked"},
 }

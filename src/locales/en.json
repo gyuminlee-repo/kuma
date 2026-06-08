@@ -2444,5 +2444,16 @@
         "unknown": "Unknown error"
       }
     }
+  },
+  "advisoryDecision": {
+    "heading": "Advisory Classification",
+    "readOnlyBadge": "read-only",
+    "readOnlyAriaLabel": "Read-only advisory: no confirmation or persistence",
+    "loading": "Computing advisory...",
+    "error": "Advisory error: {{message}}",
+    "labelAriaLabel": "Decision label: {{label}}",
+    "confidence": "confidence {{value}}%",
+    "unavailableBody": "Advisory unavailable: required data plumbing not yet wired.",
+    "missingFields": "Missing fields: {{fields}}"
   }
 }

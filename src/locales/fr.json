@@ -2304,5 +2304,16 @@
         "unknown": "Unknown error"
       }
     }
+  },
+  "advisoryDecision": {
+    "heading": "Classification consultative",
+    "readOnlyBadge": "lecture seule",
+    "readOnlyAriaLabel": "Conseil en lecture seule : sans confirmation ni persistance",
+    "loading": "Calcul du conseil...",
+    "error": "Erreur de conseil : {{message}}",
+    "labelAriaLabel": "Libellé de décision : {{label}}",
+    "confidence": "confiance {{value}}%",
+    "unavailableBody": "Conseil indisponible : la tuyauterie de données requise n'est pas encore câblée.",
+    "missingFields": "Champs manquants : {{fields}}"
   }
 }

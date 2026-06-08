@@ -14,6 +14,8 @@
 - Consensus calling now writes within-well mixture metrics, and exact-majority wells with mixed-read evidence are classified as `AMBIGUOUS` instead of passing silently.
 - Raw FASTQ demux→consensus now preserves read IDs and quality strings internally; low-Phred base calls are excluded from consensus voting, while legacy FASTA-only input keeps the unweighted path.
 - Verdict payloads, the MAME verdict table, and Excel exports now expose low-quality base exclusions plus MAPQ/span drop counters so failed wells are explainable instead of only labeled.
+- A round-advisory classifier now recommends, per ALE round, whether to keep single-walking, switch to combinatorial, or stop. The decision tree uses single-exhaustion (T2/T3/T_model) plus combinatorial throughput (T1); a GB1 landscape and synthetic epistasis-sweep backtest show it is safe (never worse than a greedy walk) with a modest edge, and explicitly not an epistasis predictor.
+- The advisory surfaces read-only in the round summary. Until the required round-summary fields are plumbed into the sidecar store it returns `unavailable` listing the missing fields, with no fabricated inputs.
 
 ---
 
