@@ -1,19 +1,13 @@
 import { useAppStore } from "../store/appStore";
 import type { KumaProject } from "../state/projectContext";
+import {
+  UNINFORMATIVE,
+  sanitize,
+  datePrefix,
+  defaultMameExportFilename,
+} from "./mameFilename";
 
-const UNINFORMATIVE = new Set(["", "orf1", "unknown", "none", "cds", "gene"]);
-
-export function sanitize(token: string): string {
-  return token.replace(/[^\w.-]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 40);
-}
-
-function datePrefix(): string {
-  const d = new Date();
-  const yy = String(d.getFullYear()).slice(2);
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${yy}${mm}${dd}`;
-}
+export { sanitize, defaultMameExportFilename };
 
 function extractFromHeader(header: string): string {
   if (!header) return "";
@@ -92,29 +86,4 @@ export function defaultExportFilename(opts: FilenameOpts): string {
     tokens.push(`p${opts.plate.index}of${opts.plate.total}`);
   }
   return `${tokens.join("_")}.${opts.ext}`;
-}
-
-function stemFromFilename(path: string): string {
-  const base = path.split(/[\\/]/).pop() ?? "";
-  return base.replace(/\.[^.]+$/, "");
-}
-
-function informativePathToken(path: string): string {
-  const stem = stemFromFilename(path);
-  if (!stem || UNINFORMATIVE.has(stem.toLowerCase())) return "";
-  return sanitize(stem);
-}
-
-export function defaultMameExportFilename(opts: {
-  referencePath?: string;
-  inputDir?: string;
-  verdictCount?: number;
-}): string {
-  const sourceToken =
-    informativePathToken(opts.referencePath ?? "") ||
-    informativePathToken(opts.inputDir ?? "") ||
-    "seq";
-  const tokens = [datePrefix(), sourceToken, "MAME"];
-  if ((opts.verdictCount ?? 0) > 0) tokens.push(`${opts.verdictCount}verdicts`);
-  return `${tokens.join("_")}.xlsx`;
 }
