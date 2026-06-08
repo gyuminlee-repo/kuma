@@ -2453,7 +2453,16 @@
     "error": "자문 오류: {{message}}",
     "labelAriaLabel": "결정 레이블: {{label}}",
     "confidence": "신뢰도 {{value}}%",
-    "unavailableBody": "자문 불가: 필요한 데이터 플럼빙이 아직 연결되지 않았습니다.",
-    "missingFields": "누락 필드: {{fields}}"
+    "filePickerTitle": "라운드 결과 xlsx 파일 선택",
+    "addFiles": "xlsx 파일 추가",
+    "addFilesAriaLabel": "라운드 결과 xlsx 파일 추가 (Variant 및 activity fold-change 컬럼 필수)",
+    "classify": "분류 실행",
+    "classifyAriaLabel": "선택한 라운드 파일로 자문 분류 실행",
+    "fileListAriaLabel": "선택된 라운드 xlsx 파일 목록",
+    "continueWalkingRecommendation": "계속 single-mutant walking 권장.",
+    "deferredBootstrapInputsMissing": "switch 판정 보류: 자신있는 double 전환 판정에는 라운드당 WT 대조군 replicate 측정 데이터가 최소 4회 필요합니다 (현재 미제공).",
+    "deferredCalibrationPeriod": "라운드 3개 미만: 보정 기간으로 분류가 보류됩니다.",
+    "deferredInsufficientData": "라운드 간 데이터가 충분하지 않아 신뢰도 있는 분류가 어렵습니다.",
+    "deferredMixedSignals": "라운드 간 mixed signals 감지: 분류가 보류됩니다."
   }
 }
