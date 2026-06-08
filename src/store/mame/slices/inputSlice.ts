@@ -332,6 +332,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         cds_end: state.cdsEnd,
         min_file_size_kb: state.minFileSizeKb,
         many_cutoff: state.manyCutoff,
+        sample_map_xlsx: state.sampleMapPath || null,
       },
       MAME_ANALYZE_RPC_TIMEOUT_MS,
     );
