@@ -42,6 +42,7 @@ from __future__ import annotations
 
 import gzip
 import logging
+import multiprocessing
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -1051,7 +1052,7 @@ def run_combinatorial_demux_per_nb(
 
     summaries: list[dict] = []
     if P > 1:
-        with ProcessPoolExecutor(max_workers=P) as ex:
+        with ProcessPoolExecutor(max_workers=P, mp_context=multiprocessing.get_context("spawn")) as ex:
             futs = {ex.submit(_demux_one_nb, pl): pl["nb_name"] for pl in payloads}
             done = 0
             for fut in as_completed(futs):
