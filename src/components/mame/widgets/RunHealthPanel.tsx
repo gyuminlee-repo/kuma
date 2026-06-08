@@ -39,7 +39,7 @@ const C = {
   primary: "hsl(var(--primary))",
   muted: "hsl(var(--muted-foreground))",
   border: "hsl(var(--border))",
-  cutoff: "hsl(var(--warning))",
+  cutoff: "var(--color-warning)",
   line: "hsl(var(--primary))",
   area: "hsl(var(--primary) / 0.12)",
 } as const;
