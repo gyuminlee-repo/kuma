@@ -634,6 +634,12 @@
         "stateLabel": "保存先",
         "helperText": "解析レポートには KURO スタイルのルールベース .xlsx ファイル名を使用",
         "helpText": "解析結果 Excel を保存するフォルダ。日付、reference/input トークン、MAME ターゲット、結果カウントトークンを組み合わせた KURO スタイルのルールでファイル名が自動生成されます。"
+      },
+      "buildWellLayout": {
+        "button": "Build well layout",
+        "building": "Building…",
+        "confirmed": "{{count}} well(s) confirmed",
+        "ariaLabel": "Auto-generate well layout from expected_mutations xlsx"
       }
     },
     "janusDeck": {
@@ -741,6 +747,16 @@
     "inspector": {
       "kvEmpty": "—",
       "noDataPlaceholder": "No data available"
+    },
+    "wellLayoutDialog": {
+      "title": "Confirm well–sample layout",
+      "description": "Review the auto-generated well–sample mapping from the KURO expected_mutations xlsx. Edit any sample name before confirming.",
+      "hint": "Confirm the well→sample mapping; WT control is the last well.",
+      "tableAriaLabel": "Well-layout confirmation table",
+      "sampleAriaLabel": "Sample name for well {{well}}",
+      "empty": "No wells generated. Check that the expected_mutations xlsx is selected.",
+      "rowCount": "{{count}} well(s) in layout",
+      "confirm": "Confirm layout"
     }
   },
   "home": {
