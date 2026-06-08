@@ -42,6 +42,7 @@ from sidecar_mame.handlers.barcode_package import handle_generate_mame_package
 from sidecar_mame.handlers.ingest import handle_parse_reference
 from sidecar_mame.handlers.combinatorial_demux import handle_run_combinatorial_demux
 from sidecar_mame.handlers.detect_native_barcodes import handle_detect_native_barcodes
+from sidecar_mame.handlers.classify_round import handle_classify_round
 
 def _handle_health_info(_params: dict) -> dict:
     """Return PID, RSS, and Python version for the status bar tooltip."""
@@ -93,6 +94,8 @@ _METHODS = {
     "mame.run_combinatorial_demux": handle_run_combinatorial_demux,
     # Native-barcode usage detection (stat-only, synchronous)
     "mame.detect_native_barcodes": handle_detect_native_barcodes,
+    # v0.3 advisory: read-only classify() call (partial slice, plumbing pending)
+    "strategy.classify_round": handle_classify_round,
     # §22 graceful shutdown — ack immediately; main() breaks on this method
     "shutdown": lambda _: {"ok": True, "message": "shutdown_acked"},
 }

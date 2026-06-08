@@ -94,3 +94,18 @@ export async function activityExportEvolveproXlsx(
 ): Promise<{ path: string }> {
   return rpc("mame", "activity.export_evolvepro_xlsx", { round_id, path });
 }
+
+
+// ─── MAME strategy advisory RPC (v0.3 read-only slice) ───────────────────────
+
+/**
+ * Advisory classify() call for one round.
+ * Returns a ClassifyRoundResult: either a Decision or an unavailable notice.
+ * Read-only — no confirmation button, no PI decision persistence.
+ * MAME sidecar strategy.classify_round 호출.
+ */
+export async function classifyRound(
+  round_id: string,
+): Promise<import("@/types/mame/strategy").ClassifyRoundResult> {
+  return rpc("mame", "strategy.classify_round", { round_id });
+}

@@ -2288,5 +2288,16 @@
         "unknown": "Unknown error"
       }
     }
+  },
+  "advisoryDecision": {
+    "heading": "アドバイザリー分類",
+    "readOnlyBadge": "読み取り専用",
+    "readOnlyAriaLabel": "読み取り専用アドバイザリー: 確認や永続化なし",
+    "loading": "アドバイザリーを計算中...",
+    "error": "アドバイザリーエラー: {{message}}",
+    "labelAriaLabel": "決定ラベル: {{label}}",
+    "confidence": "信頼度 {{value}}%",
+    "unavailableBody": "アドバイザリー利用不可: 必要なデータ配管がまだ接続されていません。",
+    "missingFields": "不足フィールド: {{fields}}"
   }
 }

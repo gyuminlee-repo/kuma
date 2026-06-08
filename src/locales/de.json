@@ -2288,5 +2288,16 @@
         "unknown": "Unknown error"
       }
     }
+  },
+  "advisoryDecision": {
+    "heading": "Beratende Klassifizierung",
+    "readOnlyBadge": "schreibgeschützt",
+    "readOnlyAriaLabel": "Nur-Lese-Beratung: keine Bestätigung oder Persistenz",
+    "loading": "Beratung wird berechnet...",
+    "error": "Beratungsfehler: {{message}}",
+    "labelAriaLabel": "Entscheidungslabel: {{label}}",
+    "confidence": "Konfidenz {{value}}%",
+    "unavailableBody": "Beratung nicht verfügbar: Erforderliche Datenleitungen noch nicht verbunden.",
+    "missingFields": "Fehlende Felder: {{fields}}"
   }
 }

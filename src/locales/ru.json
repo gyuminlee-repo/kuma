@@ -2288,5 +2288,16 @@
         "unknown": "Unknown error"
       }
     }
+  },
+  "advisoryDecision": {
+    "heading": "Консультативная классификация",
+    "readOnlyBadge": "только чтение",
+    "readOnlyAriaLabel": "Консультация только для чтения: без подтверждения или сохранения",
+    "loading": "Вычисление консультации...",
+    "error": "Ошибка консультации: {{message}}",
+    "labelAriaLabel": "Метка решения: {{label}}",
+    "confidence": "уверенность {{value}}%",
+    "unavailableBody": "Консультация недоступна: необходимые каналы данных ещё не подключены.",
+    "missingFields": "Отсутствующие поля: {{fields}}"
   }
 }
