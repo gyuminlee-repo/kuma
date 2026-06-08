@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kuma"
-version = "0.12.6"
+version = "0.12.7"
 description = "kuma - integrated primer design (KURO) + NGS verification (mame) tool"
 requires-python = ">=3.11"
 dependencies = [
@@ -54,3 +54,7 @@ exclude = [
 ]
 reportMissingImports = "warning"
 reportUnusedParameter = "none"
+
+[tool.ruff]
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101"]

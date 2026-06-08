@@ -56,17 +56,13 @@ function t2ThresholdDisplay(sigma_assay: number | null, r: number, t: (key: stri
   return t("roundSummarySignals.t2Threshold", { value: threshold.toFixed(4) });
 }
 
-/** Computes hit rate slope label from array of rates. */
+/** Computes hit rate slope label from the most recent 2 rounds (spec L617 window=2). */
 function hitRateSlopeDisplay(hit_rates: number[], t: (key: string, opts?: Record<string, string | number>) => string): string {
   if (hit_rates.length < 2) return t("roundSummarySignals.slopeUnavailable");
-  const n = hit_rates.length;
-  const x = Array.from({ length: n }, (_, i) => i);
-  const xMean = x.reduce((a, b) => a + b, 0) / n;
-  const yMean = hit_rates.reduce((a, b) => a + b, 0) / n;
-  const num = x.reduce((sum, xi, i) => sum + (xi - xMean) * (hit_rates[i] - yMean), 0);
-  const den = x.reduce((sum, xi) => sum + (xi - xMean) ** 2, 0);
-  const slope = den === 0 ? 0 : num / den;
-  return t("roundSummarySignals.slopeValue", { slope: slope.toFixed(4), rates: hit_rates.map((v) => (v * 100).toFixed(1) + "%").join(", ") });
+  // Use only the last 2 data points per spec L617 "recent 2 rounds window"
+  const window = hit_rates.slice(-2);
+  const slope = window[1] - window[0];
+  return t("roundSummarySignals.slopeValue", { slope: slope.toFixed(4), rates: window.map((v) => (v * 100).toFixed(1) + "%").join(", ") });
 }
 
 // ---------------------------------------------------------------------------
@@ -76,7 +72,8 @@ function hitRateSlopeDisplay(hit_rates: number[], t: (key: string, opts?: Record
 interface SignalRowData {
   id: string;
   label: string;
-  met: boolean;
+  /** null = NA (insufficient data): renders as neutral "NA" badge, distinct from false */
+  met: boolean | null;
   inputValue: string;
   /**
    * Short rationale shown in tooltip.
@@ -107,7 +104,7 @@ function buildSignalRows(m: RoundMetrics, t: (key: string, opts?: Record<string,
           ? t("roundSummarySignals.t2DeltaBest", { value: fmt(m.delta_best_ema, 4), threshold: t2ThresholdDisplay(m.sigma_assay, m.r, t) })
           : t2ThresholdDisplay(null, m.r, t),
       rationale:
-        "Statistical 95% MDE. If Δ_best_EMA < 1.96·σ·√(2/r), no statistically meaningful improvement detected. Reasoning-based signal (not directly formalised in MLDE literature).",
+        "Statistical 95% MDE. If Δ_best_EMA < 1.96·σ·√(2/r), no statistically meaningful improvement detected. Reasoning-based signal (not directly formalised in MLDE literature). Note: best-of-N order-statistic null is the formal criterion; displayed value is legacy 1.96·σ·√(2/r).",
       literatureAnchor: false,
     },
     {
@@ -137,7 +134,7 @@ function buildSignalRows(m: RoundMetrics, t: (key: string, opts?: Record<string,
           ? t("roundSummarySignals.tActiveInSite", { count: String(m.top_k_positions.filter((p) => m.active_residues.includes(p)).length), total: String(m.top_k_positions.length) })
           : t("roundSummarySignals.tActiveEmpty"),
       rationale:
-        "Fraction of top-K positions in active site ≥ 0.4. Direct literature anchor: Lind 2024 PNAS sign epistasis; Wu 2019 PNAS epistatic sites.",
+        "active-site spatial proximity = pairwise interaction information value (sign is unpredictable from single data, justifying all-pairwise measurement). Structure prior: Lind 2024 PNAS; Wu 2019 PNAS. Not a prediction of additive stacking success.",
       literatureAnchor: true,
     },
     {
@@ -147,6 +144,17 @@ function buildSignalRows(m: RoundMetrics, t: (key: string, opts?: Record<string,
       inputValue: t("roundSummarySignals.tUnusedCount", { count: String(m.unused_beneficial_count) }),
       rationale:
         "Baseline-walking uses only the single best variant as next baseline, leaving other beneficial epistatic interactions unexplored. T_unused signals this opportunity. Reasoning-based signal (baseline-walking specific).",
+      literatureAnchor: false,
+    },
+    {
+      id: "T_model",
+      label: t("roundSummarySignals.labelTModel"),
+      met: m.T_model,
+      inputValue: Object.keys(m.signal_magnitudes).length > 0
+        ? Object.entries(m.signal_magnitudes).map(([k, v]) => `${k}=${v.toFixed(3)}`).join(", ")
+        : "surrogate prediction",
+      rationale:
+        "Surrogate predicts best-single gain within noise of measured best = single-mutant space exhausted. EVOLVEpro Jiang 2024: 10.1126/science.adr6006",
       literatureAnchor: false,
     },
   ];
@@ -303,8 +311,19 @@ function CalibrationBanner() {
   );
 }
 
-function SignalBadge({ met }: { met: boolean }) {
+function SignalBadge({ met }: { met: boolean | null }) {
   const { t } = useTranslation();
+  if (met === null) {
+    return (
+      <Badge
+        variant="outline"
+        className="min-w-[2rem] justify-center font-mono text-xs text-slate-400 dark:text-slate-500"
+        aria-label={t("roundSummarySignals.signalNAAriaLabel")}
+      >
+        {t("roundSummarySignals.signalNA")}
+      </Badge>
+    );
+  }
   return (
     <Badge
       variant={met ? "default" : "outline"}

@@ -96,11 +96,13 @@ function buildDemoMetrics(stats: MergeStats, roundId: string): RoundMetrics {
     active_residues: [],
     unused_beneficial_count: Math.max(0, cumulativeBeneficial - 1),
     T1: cumulativeBeneficial >= kThroughput,
-    T2: false,
-    T3: false,
-    T4: false,
-    T_active: false,
+    T2: null,       // single hit_rates entry → window < 2, NA
+    T3: null,       // single hit_rates entry → slope unavailable, NA
+    T4: null,       // no prior round positions → Jaccard unavailable, NA
+    T_active: null, // empty active_residues in demo → NA
     T_unused: cumulativeBeneficial > 1,
+    T_model: null,        // surrogate not run in demo
+    signal_magnitudes: {},
   };
 }
 

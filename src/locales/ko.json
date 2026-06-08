@@ -1886,7 +1886,10 @@
     "rationaleAnchorInfer": "추론 기반 신호 (MLDE 문헌에 직접 정의되지 않음).",
     "rationaleAriaLabel": "근거: {{text}}",
     "rationaleTagLit": "lit",
-    "rationaleTagInfer": "infer"
+    "rationaleTagInfer": "infer",
+    "labelTModel": "T_model: Surrogate",
+    "signalNA": "NA",
+    "signalNAAriaLabel": "신호 NA: 데이터 부족"
   },
   "uniprotSearchExtra": {
     "placeholder": "UniProt ID",

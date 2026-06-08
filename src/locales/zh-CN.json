@@ -1798,7 +1798,10 @@
     "rationaleAnchorInfer": "基于推理的信号 (未在 MLDE 文献中直接形式化)。",
     "rationaleAriaLabel": "依据: {{text}}",
     "rationaleTagLit": "lit",
-    "rationaleTagInfer": "infer"
+    "rationaleTagInfer": "infer",
+    "labelTModel": "T_model: Surrogate",
+    "signalNA": "NA",
+    "signalNAAriaLabel": "信号 NA：数据不足"
   },
   "uniprotSearchExtra": {
     "placeholder": "UniProt ID",

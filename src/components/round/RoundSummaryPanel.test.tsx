@@ -42,6 +42,8 @@ const metricsAllMet: RoundMetrics = {
   T4: true,
   T_active: true,
   T_unused: true,
+  T_model: true,
+  signal_magnitudes: { jaccard: 0.75, active_fraction: 0.5, t3_slope: -0.1 },
 };
 
 /** Partially-met metrics fixture (T2, T3, T4 unmet). */
@@ -90,9 +92,9 @@ describe("RoundSummaryPanel", () => {
       expect(table).toBeTruthy();
     });
 
-    it("renders all 6 signal rows", () => {
+    it("renders all 7 signal rows", () => {
       render(<RoundSummaryPanel metrics={metricsAllMet} />);
-      const signalIds = ["T1", "T2", "T3", "T4", "T_active", "T_unused"];
+      const signalIds = ["T1", "T2", "T3", "T4", "T_active", "T_unused", "T_model"];
       for (const id of signalIds) {
         expect(screen.getByText(new RegExp(id))).toBeTruthy();
       }
@@ -101,7 +103,7 @@ describe("RoundSummaryPanel", () => {
     it("shows ✓ for met signals", () => {
       render(<RoundSummaryPanel metrics={metricsAllMet} />);
       const metBadges = screen.getAllByLabelText("Signal met");
-      expect(metBadges.length).toBe(6);
+      expect(metBadges.length).toBe(7);
     });
 
     it("shows — for unmet signals", () => {
@@ -185,10 +187,24 @@ describe("RoundSummaryPanel", () => {
       expect(litBadges.length).toBe(2);
     });
 
-    it("shows 'infer' badge for T2, T3, T4, T_unused (reasoning-based)", () => {
+    it("shows 'infer' badge for T2, T3, T4, T_unused, T_model (reasoning-based)", () => {
       render(<RoundSummaryPanel metrics={metricsAllMet} />);
       const inferBadges = screen.getAllByText("infer");
-      expect(inferBadges.length).toBe(4);
+      expect(inferBadges.length).toBe(5);
+    });
+  });
+
+  describe("NA tri-state rendering (spec §12-A.1, §12-A.2)", () => {
+    it("renders NA badge for null signal (not PASS or FAIL)", () => {
+      const metricsWithNA: RoundMetrics = {
+        ...metricsAllMet,
+        T2: null,
+        T3: null,
+        T_model: null,
+      };
+      render(<RoundSummaryPanel metrics={metricsWithNA} />);
+      const naBadges = screen.getAllByLabelText("Signal NA: insufficient data");
+      expect(naBadges.length).toBe(3);
     });
   });
 

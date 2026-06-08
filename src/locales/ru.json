@@ -1798,7 +1798,10 @@
     "rationaleAnchorInfer": "Сигнал на основе reasoning (прямо не формализован в MLDE литературе).",
     "rationaleAriaLabel": "Обоснование: {{text}}",
     "rationaleTagLit": "lit",
-    "rationaleTagInfer": "infer"
+    "rationaleTagInfer": "infer",
+    "labelTModel": "T_model: Surrogate",
+    "signalNA": "NA",
+    "signalNAAriaLabel": "Сигнал NA: недостаточно данных"
   },
   "uniprotSearchExtra": {
     "placeholder": "UniProt ID",

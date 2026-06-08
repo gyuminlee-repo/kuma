@@ -1798,7 +1798,10 @@
     "rationaleAnchorInfer": "Reasoning-based signal (nicht directly formalised in MLDE literature).",
     "rationaleAriaLabel": "Begründung: {{text}}",
     "rationaleTagLit": "lit",
-    "rationaleTagInfer": "infer"
+    "rationaleTagInfer": "infer",
+    "labelTModel": "T_model: Surrogate",
+    "signalNA": "NA",
+    "signalNAAriaLabel": "Signal NA: unzureichende Daten"
   },
   "uniprotSearchExtra": {
     "placeholder": "UniProt ID",
