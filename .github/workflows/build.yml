@@ -135,6 +135,10 @@ jobs:
           test -f "$KURO"
           test -f "$MAME"
 
+      - name: MAME frozen sidecar smoke (spawn / per-NB parallel demux)
+        shell: bash
+        run: python python-core/scripts/frozen_mame_smoke.py "src-tauri/binaries/mame-sidecar-${{ matrix.target }}${{ matrix.sidecar-ext }}"
+
       # --- Node.js ---
       - uses: pnpm/action-setup@v4
 
