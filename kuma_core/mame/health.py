@@ -25,6 +25,7 @@ from __future__ import annotations
 import csv
 import io
 import statistics
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -424,9 +425,16 @@ def build_run_health(
     if run_meta is not None and run_meta.raw_run_dir is not None:
         run_dir = Path(run_meta.raw_run_dir)
         if run_dir.is_dir():
-            pore_yield_pct = _parse_pore_activity(run_dir)
-            throughput_timeline = _parse_throughput(run_dir)
-            barcode_distribution = _parse_barcode_alignment(run_dir)
+            # These MinKNOW sidecar CSV/TSV summaries are independent files.
+            # Parse them concurrently so large raw-run metadata does not delay
+            # the health panel behind three serial file scans.
+            with ThreadPoolExecutor(max_workers=3) as pool:
+                pore_future = pool.submit(_parse_pore_activity, run_dir)
+                throughput_future = pool.submit(_parse_throughput, run_dir)
+                barcode_future = pool.submit(_parse_barcode_alignment, run_dir)
+                pore_yield_pct = pore_future.result()
+                throughput_timeline = throughput_future.result()
+                barcode_distribution = barcode_future.result()
 
     # ── Cross-talk detection (A9) ─────────────────────────────────────────
     cross_talk_candidates = detect_cross_talk(barcode_distribution)
