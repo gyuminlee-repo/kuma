@@ -115,9 +115,78 @@ def _serialize_replicate(rr: Any) -> dict:
         "selection_reason": rr.selection_reason,
         "failed": bool(rr.failed),
         "plate_keys": list(rr.plate_verdicts.keys()),
+        # Full nested verdict per plate so that load_analyze_result can rebuild
+        # a lossless ReplicateResult (get_plate_data / export_excel read
+        # plate_verdicts[selected_plate].translated.barcode.custom_barcode).
+        "plate_verdicts": {
+            plate: _serialize_verdict(vr)
+            for plate, vr in rr.plate_verdicts.items()
+        },
         "is_fallback": bool(getattr(rr, "is_fallback", False)),
         "fallback_reason": getattr(rr, "fallback_reason", None),
     }
+
+
+def _deserialize_verdict(d: dict) -> Any:
+    """Inverse of ``_serialize_verdict``: rebuild a ``VerdictRecord`` dataclass.
+
+    Kept adjacent to ``_serialize_verdict`` so the two stay in lockstep.
+    """
+    from kuma_core.mame.models import (
+        BarcodeRecord,
+        TranslatedRecord,
+        VerdictClass,
+        VerdictRecord,
+    )
+
+    barcode = BarcodeRecord(
+        native_barcode=d["native_barcode"],
+        custom_barcode=d["custom_barcode"],
+        consensus_seq="",  # not serialized; not read by downstream consumers
+        file_size_kb=float(d.get("file_size_kb", 0.0)),
+        source_path=Path(d.get("source_path", "")),
+        read_count=d.get("read_count"),
+        n_mixed_positions=int(d.get("n_mixed_positions", 0)),
+        max_minor_allele_fraction=float(d.get("max_minor_allele_fraction", 0.0)),
+        n_low_depth_positions=int(d.get("n_low_depth_positions", 0)),
+        consensus_n_fraction=float(d.get("consensus_n_fraction", 0.0)),
+        n_low_quality_bases=int(d.get("n_low_quality_bases", 0)),
+        n_input_reads=d.get("n_input_reads"),
+        n_aligned_reads=d.get("n_aligned_reads"),
+        n_mapq_failed=int(d.get("n_mapq_failed", 0)),
+        n_span_failed=int(d.get("n_span_failed", 0)),
+    )
+    translated = TranslatedRecord(
+        barcode=barcode,
+        aa_sequence=d.get("aa_sequence", ""),
+        observed_nt_changes=list(d.get("observed_nt_changes", [])),
+        observed_aa_changes=list(d.get("observed_aa_changes", [])),
+    )
+    return VerdictRecord(
+        translated=translated,
+        expected_mutations=list(d.get("expected_mutations", [])),
+        verdict=VerdictClass(d["verdict"]),
+        verdict_notes=d.get("verdict_notes", ""),
+    )
+
+
+def _deserialize_replicate(d: dict) -> Any:
+    """Inverse of ``_serialize_replicate``: rebuild a ``ReplicateResult``."""
+    from kuma_core.mame.models import ReplicateResult
+
+    plate_verdicts = {
+        plate: _deserialize_verdict(vr)
+        for plate, vr in (d.get("plate_verdicts") or {}).items()
+    }
+    return ReplicateResult(
+        mutant_id=d["mutant_id"],
+        plate_verdicts=plate_verdicts,
+        selected_plate=d.get("selected_plate"),
+        selection_reason=d.get("selection_reason", ""),
+        failed=bool(d.get("failed", False)),
+        is_fallback=bool(d.get("is_fallback", False)),
+        fallback_reason=d.get("fallback_reason"),
+    )
 
 
 def _summarize(verdicts: list) -> dict:
@@ -320,4 +389,6 @@ __all__ = [
     "handle_validate_inputs",
     "_serialize_verdict",
     "_serialize_replicate",
+    "_deserialize_verdict",
+    "_deserialize_replicate",
 ]

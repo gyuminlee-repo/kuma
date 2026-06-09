@@ -20,6 +20,7 @@ from sidecar_mame.handlers.analyze import (
     handle_analyze,
     handle_validate_inputs,
 )
+from sidecar_mame.handlers.load import handle_load_analyze_result
 from sidecar_mame.handlers.export import (
     handle_export_excel,
     handle_export_janus_mapping,
@@ -69,6 +70,9 @@ _METHODS = {
     "health_info": _handle_health_info,
     "analyze": handle_analyze,
     "validate_inputs": handle_validate_inputs,
+    # Phase 1: re-inject a serialized analyze payload so get_plate_data /
+    # export_excel work after an app restart drops the in-memory SidecarState.
+    "load_analyze_result": handle_load_analyze_result,
     "export_excel": handle_export_excel,
     "get_plate_data": handle_get_plate_data,
     "export_janus_mapping": handle_export_janus_mapping,
