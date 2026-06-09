@@ -201,6 +201,8 @@
       },
       "manyCutoff": "웰당 허용 가능한 비예상 AA 변화 최대치",
       "manyCutoffHelp": "이 임계값보다 많은 아미노산 변화가 있는 웰은 MANY로 분류됩니다 (신뢰도 낮음, 픽 불가).",
+      "maxConsensusNFraction": "Max Consensus N Fraction",
+      "maxConsensusNFractionHelp": "Maximum fraction of ambiguous N bases tolerated in a well consensus before it is rejected (0.0 to 1.0). Default 0.0 rejects any consensus containing an N; higher values allow more ambiguity.",
       "inputSourceConsensus": "Consensus FASTA",
       "inputSourceSortedBarcode": "정렬된 바코드 파일",
       "inputSourceRawRun": "MinKNOW 원시 실행 폴더",

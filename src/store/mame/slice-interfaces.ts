@@ -52,6 +52,7 @@ export interface InputSlice {
   minFileSizeKb: number;
   minFilteredDepth: number;
   manyCutoff: number;
+  maxConsensusNFraction: number;
   validationErrors: string[];
   isValidating: boolean;
   isAnalyzing: boolean;
@@ -93,6 +94,7 @@ export interface InputSlice {
       minFileSizeKb: number;
       minFilteredDepth: number;
       manyCutoff: number;
+      maxConsensusNFraction: number;
     }>,
   ) => void;
   setValidationErrors: (errors: string[]) => void;
