@@ -4,11 +4,10 @@ Builds sidecar_main_<target>.py into standalone binaries and copies them to
 src-tauri/binaries/ with the correct Tauri target-triple suffix.
 
 Usage:
-    python build_sidecar.py                       # kuro, mame, evolvepro (default)
+    python build_sidecar.py                       # kuro, mame (default)
     python build_sidecar.py --target kuro         # only kuro
     python build_sidecar.py --target mame         # only mame
-    python build_sidecar.py --target evolvepro    # only evolvepro
-    python build_sidecar.py --target all          # kuro, mame, evolvepro (explicit)
+    python build_sidecar.py --target all          # kuro, mame (explicit)
     python build_sidecar.py --onedir              # multi-file mode (applies to all targets)
 """
 
@@ -47,12 +46,7 @@ TARGETS = {
             "setuptools._vendor.jaraco.functools",
         ],
         "collect_all": ["pydantic", "primer3", "sidecar_kuro", "kuma_core", "setuptools"],
-        # collect_all('kuma_core') sweeps every submodule, including the new
-        # kuma_core.evolvepro.adapter (numpy/torch/Bio/esm top-level imports).
-        # That adapter runs in the user's conda env, not this binary, so exclude
-        # the submodule to stop Analysis following its heavy imports. runner.py
-        # (stdlib-only) stays resolvable for kuma_core.shared.conda_setup.
-        "excludes": ["kuma_core.evolvepro.adapter"],
+        "excludes": [],
     },
     "mame": {
         "entry": "sidecar_main_mame.py",
@@ -88,49 +82,6 @@ TARGETS = {
             "torch",
             "transformers",
             "triton",
-            # collect_all('kuma_core') would otherwise sweep the new evolvepro
-            # adapter and follow its numpy/pandas/Bio/esm imports into mame.
-            "kuma_core.evolvepro.adapter",
-        ],
-    },
-    "evolvepro": {
-        "entry": "sidecar_main_evolvepro.py",
-        "sidecar_name": "evolvepro-sidecar",
-        "resources": None,
-        "hidden_imports": [
-            "pydantic",
-            "sidecar_evolvepro",
-            "sidecar_evolvepro.dispatcher",
-            "sidecar_evolvepro.core",
-            "sidecar_evolvepro.models",
-            "sidecar_evolvepro.handlers.evolvepro",
-            "sidecar_evolvepro.handlers.esm2",
-            "sidecar_evolvepro.handlers.conda",
-            "kuma_core.evolvepro",
-            "kuma_core.evolvepro.runner",
-            "kuma_core.shared.conda_setup",
-            "kuma_core.shared.system_info",
-        ],
-        # NOTE: deliberately NOT collect_all('kuma_core'/'sidecar_evolvepro').
-        # adapter.py imports numpy/torch/Bio and runs in the USER's conda env,
-        # never this binary. It ships as a loose data file (add_data below).
-        "collect_all": ["pydantic"],
-        "excludes": [
-            "numpy",
-            "pandas",
-            "Bio",
-            "torch",
-            "esm",
-            "sklearn",
-            "scipy",
-            "xgboost",
-            "matplotlib",
-            "seaborn",
-            "openpyxl",
-        ],
-        "add_data": [
-            ("kuma_core/evolvepro/adapter.py", "kuma_core/evolvepro"),
-            ("kuma_core/evolvepro/embedding_cache.py", "kuma_core/evolvepro"),
         ],
     },
 }
@@ -275,7 +226,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--target",
-        choices=["kuro", "mame", "evolvepro", "all"],
+        choices=["kuro", "mame", "all"],
         default="all",
         help="Which sidecar to build",
     )
@@ -286,7 +237,7 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    targets = ["kuro", "mame", "evolvepro"] if args.target == "all" else [args.target]
+    targets = ["kuro", "mame"] if args.target == "all" else [args.target]
     onefile = not args.onedir
 
     print(f"Platform: {platform.system()} {platform.machine()}")

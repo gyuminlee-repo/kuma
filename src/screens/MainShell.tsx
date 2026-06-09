@@ -13,7 +13,6 @@ import { useAutosaveHydration, type HydrationStatusMessage } from "@/hooks/useAu
 import { Spinner } from "@/components/ui/Spinner";
 import { KuroTab } from "./KuroTab";
 import { MameTab } from "./MameTab";
-import { EvolveProTab } from "./EvolveProTab";
 import { useAppStore } from "@/store/appStore";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { getActivityStore } from "@/store/mame/activitySlice";
@@ -89,8 +88,8 @@ export function MainShell() {
     ? `${project.name}${project.scratch ? ` (${t("mainShell.scratch")})` : ""}`
     : t("mainShell.workspace");
 
-  // ── 활성 탭 (controlled). EVOLVEpro is the default (first) tab.
-  const [activeTab, setActiveTab] = useState<AppTab>("evolvepro");
+  // ── 활성 탭 (controlled). KURO is the default (first) tab.
+  const [activeTab, setActiveTab] = useState<AppTab>("kuro");
   // ── Settings 다이얼로그 (GlobalAppBar 에서 lift)
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -226,7 +225,6 @@ export function MainShell() {
           await Promise.allSettled([
             killSidecar("kuro"),
             killSidecar("mame"),
-            killSidecar("evolvepro"),
           ]);
         },
         1_500,
@@ -311,8 +309,7 @@ export function MainShell() {
 
   // ── 탭 전환 직전 flush
   // prevTab is read from the controlled state; flush whichever kuro/mame tab is
-  // being left (EVOLVEpro has no autosave target). Then lazily spawn the
-  // destination sidecar.
+  // being left. Then lazily spawn the destination sidecar.
   async function handleTabChange(nextKind: string): Promise<void> {
     const prevTab = activeTab;
     const target: AutosaveTarget = {
@@ -326,7 +323,7 @@ export function MainShell() {
     }
 
     // Lazily start the destination sidecar for autosave-backed tabs.
-    if (nextKind === "kuro" || nextKind === "mame" || nextKind === "evolvepro") {
+    if (nextKind === "kuro" || nextKind === "mame") {
       void rpc(nextKind as SidecarKind, "ping", {}).catch(() => {
         // Ignore lazy sidecar startup failures in the shell.
       });
@@ -470,9 +467,6 @@ export function MainShell() {
         </header>
 
         <div className="flex-1 overflow-hidden">
-          <TabsContent value="evolvepro" className="mt-0 h-full overflow-hidden">
-            <EvolveProTab />
-          </TabsContent>
           <TabsContent value="kuro" className="mt-0 h-full overflow-hidden">
             <KuroTab />
           </TabsContent>

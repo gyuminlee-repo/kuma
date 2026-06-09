@@ -13,21 +13,20 @@ implemented in Python, and the layers communicate through JSON-RPC.
 
 ```
 Frontend (React 19 + Zustand + TailwindCSS)
-  └── src/lib/ipc.ts + src/lib/ipc-{mame,evolvepro}/
+  └── src/lib/ipc.ts + src/lib/ipc-mame/
         ↕  (Tauri commands route JSON-RPC requests to sidecar processes)
 Rust Shell (src-tauri/)
   └── Desktop host: window, project config, progress cache, sidecar lifecycle
 Python Sidecars (PyInstaller binaries)
   ├── python-core/sidecar_kuro/      → kuma_core/kuro/
-  ├── python-core/sidecar_mame/      → kuma_core/mame/
-  └── python-core/sidecar_evolvepro/ → kuma_core/evolvepro/
+  └── python-core/sidecar_mame/      → kuma_core/mame/
 ```
 
 ### Key layers
 
-- **`kuma_core/`** — Installable Python domain package. `kuro/` handles primer design, `mame/` handles NGS verification, `evolvepro/` handles conda-backed execution, and `shared/` contains common helpers.
-- **`python-core/`** — JSON-RPC adapters and PyInstaller packaging. `sidecar_{kuro,mame,evolvepro}/dispatcher.py` route methods to handlers; Pydantic models validate requests. `build_sidecar.py` builds all three binaries.
-- **`src/`** — React 19 frontend. KURO, MAME, and EVOLVEpro each have dedicated state and UI areas. IPC clients live under `src/lib/ipc.ts`, `ipc-mame/`, and `ipc-evolvepro/`.
+- **`kuma_core/`** — Installable Python domain package. `kuro/` handles primer design, `mame/` handles NGS verification, and `shared/` contains common helpers.
+- **`python-core/`** — JSON-RPC adapters and PyInstaller packaging. `sidecar_{kuro,mame}/dispatcher.py` route methods to handlers; Pydantic models validate requests. `build_sidecar.py` builds the sidecar binaries.
+- **`src/`** — React 19 frontend. KURO and MAME each have dedicated state and UI areas. IPC clients live under `src/lib/ipc.ts` and `ipc-mame/`.
 - **`src-tauri/`** — Rust desktop host: Tauri commands, windowing, project config, progress cache, integrity verification, and sidecar lifecycle. Scientific logic does not belong here.
 - **`tests/`** — Python and cross-layer tests. Frontend Vitest files are colocated under `src/`; Rust host tests live under `src-tauri/tests/`.
 
@@ -41,7 +40,7 @@ exportSlice → all slices (read-only for workspace save/load)
 ```
 
 ### Frontend ↔ Sidecar communication
-- `src/lib/ipc.ts`, `src/lib/ipc-mame/`, and `src/lib/ipc-evolvepro/` call Tauri commands for their respective channels.
+- `src/lib/ipc.ts` and `src/lib/ipc-mame/` call Tauri commands for their respective channels.
 - Rust manages the packaged sidecar processes and routes JSON-RPC requests over stdin/stdout.
 - Sidecars write JSON-RPC responses plus `progress` notifications to stdout.
 - TypeScript types in `src/types/models.ts` must match Pydantic models in `python-core/sidecar_kuro/models.py`.
