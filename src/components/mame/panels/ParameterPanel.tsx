@@ -430,6 +430,7 @@ export function ParameterPanel() {
   const minFileSizeKb = useMameAppStore((s) => s.minFileSizeKb);
   const minFilteredDepth = useMameAppStore((s) => s.minFilteredDepth);
   const manyCutoff = useMameAppStore((s) => s.manyCutoff);
+  const maxConsensusNFraction = useMameAppStore((s) => s.maxConsensusNFraction);
   const distributionStats = useMameAppStore((s) => s.distributionStats);
   const setParams = useMameAppStore((s) => s.setParams);
   const [showLegacyOptions, setShowLegacyOptions] = useState(false);
@@ -705,6 +706,33 @@ export function ParameterPanel() {
           onChange={(value) => setParams({ manyCutoff: value })}
           helpText={t("mame.parameters.manyCutoffHelp")}
         />
+
+        {/* Max Consensus N Fraction */}
+        <div className="space-y-1">
+          <Label
+            htmlFor="max-consensus-n-fraction"
+            className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
+          >
+            <span className="inline-flex items-center gap-1.5">
+              {t("mame.parameters.maxConsensusNFraction")}
+              <InlineHelp text={t("mame.parameters.maxConsensusNFractionHelp")} />
+            </span>
+          </Label>
+          <Input
+            id="max-consensus-n-fraction"
+            type="number"
+            min={0}
+            max={1}
+            step={0.01}
+            value={maxConsensusNFraction}
+            onChange={(e) => {
+              const n = Number(e.target.value);
+              if (Number.isFinite(n)) setParams({ maxConsensusNFraction: Math.max(0, Math.min(1, n)) });
+            }}
+            className="h-8 text-xs"
+            aria-label={t("mame.parameters.maxConsensusNFraction")}
+          />
+        </div>
       </div>
 
       {/* Conditional raw-run sub-panel */}

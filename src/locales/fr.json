@@ -183,6 +183,8 @@
       },
       "manyCutoff": "Max. de changements AA inattendus par puits",
       "manyCutoffHelp": "Les puits présentant plus de changements d'acides aminés que ce seuil sont marqués MANY (faible confiance, non sélectionnables).",
+      "maxConsensusNFraction": "Max Consensus N Fraction",
+      "maxConsensusNFractionHelp": "Maximum fraction of ambiguous N bases tolerated in a well consensus before it is rejected (0.0 to 1.0). Default 0.0 rejects any consensus containing an N; higher values allow more ambiguity.",
       "inputSourceConsensus": "Consensus FASTA",
       "inputSourceSortedBarcode": "Fichiers de barcodes triés",
       "inputSourceRawRun": "Dossier de raw run MinKNOW",

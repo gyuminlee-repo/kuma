@@ -183,6 +183,8 @@
       },
       "manyCutoff": "每孔最大意外 AA 變化數",
       "manyCutoffHelp": "氨基酸變化數超過此閾值的孔會被標記為 MANY(低可信度,不可挑取)。",
+      "maxConsensusNFraction": "Max Consensus N Fraction",
+      "maxConsensusNFractionHelp": "Maximum fraction of ambiguous N bases tolerated in a well consensus before it is rejected (0.0 to 1.0). Default 0.0 rejects any consensus containing an N; higher values allow more ambiguity.",
       "inputSourceConsensus": "Consensus FASTA",
       "inputSourceSortedBarcode": "已分揀的 barcode 檔案",
       "inputSourceRawRun": "MinKNOW raw run 資料夾",
