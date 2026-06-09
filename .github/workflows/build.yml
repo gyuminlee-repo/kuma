@@ -115,12 +115,55 @@ jobs:
             echo "WARNING: expected 2.30, got: $VERSION"
           }
 
-      # Linux / macOS: vendor-minimap2.py downloads prebuilt binaries.
-      # The script auto-detects the current platform and fills the matching vendor/<plat>/ dir.
-      - name: Vendor minimap2 binary (Linux / macOS)
-        if: matrix.platform != 'windows-latest'
+      # Linux: vendor-minimap2.py downloads the official v2.30 prebuilt binary
+      # (linux-x64 is the only platform with an official release asset).
+      - name: Vendor minimap2 binary (Linux)
+        if: matrix.platform == 'ubuntu-22.04'
         shell: bash
         run: python python-core/scripts/vendor-minimap2.py
+
+      # macOS: build minimap2 from source (no official v2.30 macOS binary).
+      # Apple Silicon runners are arm64, so compile with NEON (arm_neon=on
+      # aarch64=on). Unlike the Windows MinGW step there is NO static-link
+      # toggle: macOS ships no static libc/libSystem and minimap2's only real
+      # dependency (libz) lives in /usr/lib, so a plain dynamic build is
+      # already self-contained. otool -L is the macOS analog of the Windows
+      # ldd DLL check (fails the build on any non-system dependency, e.g. an
+      # accidental Homebrew libz link).
+      - name: Build minimap2 from source (macOS / arm64)
+        if: matrix.platform == 'macos-latest'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch v2.30 https://github.com/lh3/minimap2.git /tmp/minimap2-src
+          cd /tmp/minimap2-src
+          # aarch64=on implies arm_neon=1; pass both for clarity. macOS has no
+          # `nproc`, so use sysctl for the parallel job count.
+          make arm_neon=on aarch64=on -j"$(sysctl -n hw.ncpu)"
+          echo "=== minimap2 shared library dependencies ==="
+          otool -L minimap2
+          if otool -L minimap2 | tail -n +2 | grep -vE '^\s+(/usr/lib/|/System/)'; then
+            echo "ERROR: minimap2 links a non-system library (not self-contained)"
+            exit 1
+          fi
+          echo "minimap2 links only system libraries (/usr/lib, /System)"
+          VENDOR_DIR="${GITHUB_WORKSPACE}/python-core/vendor/minimap2/macos-arm64"
+          mkdir -p "$VENDOR_DIR"
+          cp minimap2 "$VENDOR_DIR/minimap2"
+          chmod +x "$VENDOR_DIR/minimap2"
+          echo "minimap2 copied to $VENDOR_DIR"
+
+      - name: Verify minimap2 version (macOS)
+        if: matrix.platform == 'macos-latest'
+        shell: bash
+        run: |
+          BIN="python-core/vendor/minimap2/macos-arm64/minimap2"
+          test -f "$BIN" || { echo "ERROR: minimap2 not found at $BIN"; exit 1; }
+          VERSION=$("$BIN" --version 2>&1 | head -1)
+          echo "minimap2 version: $VERSION"
+          echo "$VERSION" | grep -E "^2\.30" || {
+            echo "WARNING: expected 2.30, got: $VERSION"
+          }
 
       - name: Build sidecar
         run: python build_sidecar.py
