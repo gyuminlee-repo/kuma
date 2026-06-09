@@ -96,16 +96,27 @@ export async function activityExportEvolveproXlsx(
 }
 
 
-// ─── MAME strategy advisory RPC (v0.3 read-only slice) ───────────────────────
+// === MAME strategy advisory RPC (Fork D) =====================================
 
 /**
- * Advisory classify() call for one round.
- * Returns a ClassifyRoundResult: either a Decision or an unavailable notice.
- * Read-only — no confirmation button, no PI decision persistence.
+ * Advisory classify() call with per-round xlsx file references.
+ *
+ * @param roundFiles - Ordered list of {n, path} xlsx file entries.
+ *   n is 1-based round number; handler sorts by n internally.
+ * @param cNext - Optional capacity of the next combinatorial plate (wells).
+ *   Used to derive K_throughput = floor((1+sqrt(1+8*cNext))/2). Defaults to 96.
+ * @returns ClassifyDecisionResult on success.
+ *   Throws a JSON-RPC error (-32602 / -32002) on bad input or missing/malformed files.
+ *
+ * Read-only, no confirmation button, no PI decision persistence.
  * MAME sidecar strategy.classify_round 호출.
  */
 export async function classifyRound(
-  round_id: string,
+  roundFiles: import("@/types/mame/strategy").RoundFileEntry[],
+  cNext?: number,
 ): Promise<import("@/types/mame/strategy").ClassifyRoundResult> {
-  return rpc("mame", "strategy.classify_round", { round_id });
+  return rpc("mame", "strategy.classify_round", {
+    round_files: roundFiles,
+    ...(cNext !== undefined && { c_next: cNext }),
+  });
 }

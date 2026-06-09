@@ -2457,7 +2457,16 @@
     "error": "Advisory error: {{message}}",
     "labelAriaLabel": "Decision label: {{label}}",
     "confidence": "confidence {{value}}%",
-    "unavailableBody": "Advisory unavailable: required data plumbing not yet wired.",
-    "missingFields": "Missing fields: {{fields}}"
+    "filePickerTitle": "Select round result xlsx files",
+    "addFiles": "Add xlsx files",
+    "addFilesAriaLabel": "Add round result xlsx files (Variant + activity fold-change columns required)",
+    "classify": "Run classification",
+    "classifyAriaLabel": "Run advisory classification using the selected round files",
+    "fileListAriaLabel": "Selected round xlsx files",
+    "continueWalkingRecommendation": "Continue single-mutant walking recommended.",
+    "deferredBootstrapInputsMissing": "Switch decision deferred: confident double-transition classification requires WT replicate measurements from at least 4 replicates per round (not yet provided).",
+    "deferredCalibrationPeriod": "Fewer than 3 rounds available: calibration period, classification deferred.",
+    "deferredInsufficientData": "Insufficient data across rounds to classify with confidence.",
+    "deferredMixedSignals": "Mixed signals detected across rounds: classification deferred."
   }
 }

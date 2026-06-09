@@ -446,12 +446,6 @@ export interface RoundSummaryPanelProps {
    * 기존 호출 회귀 방지를 위해 optional.
    */
   replicateStats?: MergeReplicatesStats | null;
-  /**
-   * v0.3 advisory: round_id to pass to AdvisoryDecisionCard.
-   * When provided, renders the read-only classify() advisory below CalibrationBanner.
-   * Optional for backward compatibility with existing callers.
-   */
-  advisoryRoundId?: string;
   className?: string;
 }
 
@@ -470,7 +464,6 @@ export function RoundSummaryPanel({
   demoMode = false,
   mergeStats,
   replicateStats,
-  advisoryRoundId,
   className,
 }: RoundSummaryPanelProps) {
   const { t } = useTranslation();
@@ -516,7 +509,7 @@ export function RoundSummaryPanel({
 
       <CalibrationBanner />
 
-      <AdvisoryDecisionCard roundId={advisoryRoundId} />
+      <AdvisoryDecisionCard />
 
       {warnings.length > 0 && (
         <SwapWarningBanner warnings={warnings} />
