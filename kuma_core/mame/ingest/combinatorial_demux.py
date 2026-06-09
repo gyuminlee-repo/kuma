@@ -65,6 +65,7 @@ from kuma_core.mame.ingest.consensus_metadata import (
     format_consensus_fasta_record,
 )
 from kuma_core.mame.ingest.well_consensus import _read_reference_seq
+from kuma_core.shared.atomic_write import atomic_write_text
 
 log = logging.getLogger(__name__)
 
@@ -966,9 +967,10 @@ def run_combinatorial_demux(
         well_name = f"{r_idx}_{f_idx}"
         per_well_reads[well_name] = reads
         fasta_path = reads_dir / f"{well_name}.fasta"
-        with fasta_path.open("w") as fh:
-            for read_id, trimmed in reads:
-                fh.write(f">{read_id}\n{trimmed}\n")
+        atomic_write_text(
+            fasta_path,
+            "".join(f">{read_id}\n{trimmed}\n" for read_id, trimmed in reads),
+        )
 
     stats.wells_with_reads = sum(1 for v in per_well.values() if len(v) >= 1)
     stats.wells_with_min_reads = sum(
@@ -1066,25 +1068,25 @@ def run_combinatorial_demux(
                 span_failed,
             ) = fut.result()
             per_well_consensus[wn] = seq
-            with (consensus_dir / f"{wn}.fasta").open("w") as fh:
-                fh.write(
-                    format_consensus_fasta_record(
-                        wn,
-                        seq,
-                        ConsensusMetadata(
-                            depth=depth,
-                            input_reads=input_reads,
-                            aligned_reads=aligned_reads,
-                            mapq_failed=mapq_failed,
-                            span_failed=span_failed,
-                            mixed_positions=mixed_positions,
-                            max_minor_allele_fraction=max_minor_fraction,
-                            low_depth_positions=low_depth_positions,
-                            consensus_n_fraction=n_fraction,
-                            low_quality_bases=low_quality_bases,
-                        ),
-                    )
-                )
+            atomic_write_text(
+                consensus_dir / f"{wn}.fasta",
+                format_consensus_fasta_record(
+                    wn,
+                    seq,
+                    ConsensusMetadata(
+                        depth=depth,
+                        input_reads=input_reads,
+                        aligned_reads=aligned_reads,
+                        mapq_failed=mapq_failed,
+                        span_failed=span_failed,
+                        mixed_positions=mixed_positions,
+                        max_minor_allele_fraction=max_minor_fraction,
+                        low_depth_positions=low_depth_positions,
+                        consensus_n_fraction=n_fraction,
+                        low_quality_bases=low_quality_bases,
+                    ),
+                ),
+            )
             _consensus_done += 1
             if progress_callback is not None:
                 progress_callback(_consensus_done, _consensus_total, "consensus")
@@ -1095,12 +1097,14 @@ def run_combinatorial_demux(
     # Combined single-file consensus FASTA (all wells, sorted by R then F),
     # mirroring the Aporva pipeline's final/<...>_consensus_dna.fasta output.
     # The per-well consensus/ files above are still written.
-    with combined_path.open("w") as fh:
-        for wn in sorted(
-            per_well_consensus,
-            key=lambda w: tuple(int(part) for part in w.split("_")),
-        ):
-            fh.write(f">{wn}\n{per_well_consensus[wn]}\n")
+    _combined_order = sorted(
+        per_well_consensus,
+        key=lambda w: tuple(int(part) for part in w.split("_")),
+    )
+    atomic_write_text(
+        combined_path,
+        "".join(f">{wn}\n{per_well_consensus[wn]}\n" for wn in _combined_order),
+    )
 
     return DemuxResult(
         stats=stats,

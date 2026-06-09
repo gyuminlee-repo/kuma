@@ -90,7 +90,13 @@ from kuma_core.mame.ingest.consensus_metadata import (
     ConsensusMetadata,
     format_consensus_fasta_record,
 )
+from kuma_core.mame.ingest.stage_marker import (
+    is_unit_complete,
+    read_stage_marker,
+    write_stage_marker,
+)
 from kuma_core.mame.ingest.well_consensus import compute_well_consensuses
+from kuma_core.shared.atomic_write import atomic_write_text
 
 _logger = logging.getLogger(__name__)
 
@@ -235,7 +241,10 @@ def _run_consensus_on_dir(
 
         # Write single-record consensus FASTA with depth metadata so downstream
         # analysis can use true consensus read depth instead of file size.
-        fasta_path.write_text(
+        # Atomic (temp + os.replace) so an interrupted write never leaves a
+        # truncated consensus file that a consumer would treat as valid.
+        atomic_write_text(
+            fasta_path,
             format_consensus_fasta_record(
                 well_name,
                 result.consensus_seq,
@@ -252,7 +261,6 @@ def _run_consensus_on_dir(
                     low_quality_bases=result.n_low_quality_bases,
                 ),
             ),
-            encoding="utf-8",
         )
 
         stats[well_name] = {
@@ -437,6 +445,28 @@ def handle_demux_and_filter(params: dict) -> dict:
     # ── Backend detection ────────────────────────────────────────────────
     backend = "cutadapt" if (use_cutadapt and shutil.which("cutadapt")) else "python"
 
+    # ── Resume: which NB units are already complete? ─────────────────────
+    # A unit (one nb_out dir) is "done" ONLY when it carries a valid completion
+    # marker whose recorded inventory matches the files on disk.  Directory
+    # existence alone never counts as done.  This single set gates all three
+    # downstream passes (demux, quality-filter rglob, consensus) so a completed
+    # unit is never re-read; on a rerun after interruption only the last
+    # incomplete unit is reprocessed.
+    completed_nbs: set[str] = set()
+    completed_marker_counts: dict[str, dict[str, int]] = {}
+    if nb_dirs_raw:
+        for nb_dir_str in nb_dirs_raw:
+            nb_name = Path(nb_dir_str).resolve().name
+            nb_out_chk = output_dir / nb_name
+            if is_unit_complete(nb_out_chk):
+                marker = read_stage_marker(nb_out_chk)
+                if marker is not None:
+                    completed_nbs.add(nb_name)
+                    completed_marker_counts[nb_name] = {
+                        str(k): int(v)
+                        for k, v in marker.get("per_well_counts", {}).items()
+                    }
+
     _progress(5, "Starting demux...")
 
     # ── Demux ─────────────────────────────────────────────────────────────
@@ -447,12 +477,25 @@ def handle_demux_and_filter(params: dict) -> dict:
         merged_unassigned = 0
         merged_per_well: dict[str, int] = {}
 
+        # Seed merged counts from already-complete units so the aggregated
+        # response is not undercounted on a resumed run.
+        for nb_name in completed_nbs:
+            for well, cnt in completed_marker_counts.get(nb_name, {}).items():
+                merged_per_well[well] = merged_per_well.get(well, 0) + cnt
+                merged_assigned += cnt
+
         total_nb = len(nb_dirs_raw)
         for idx, nb_dir_str in enumerate(nb_dirs_raw):
             nb_dir = Path(nb_dir_str).resolve()
             if not nb_dir.is_dir():
                 raise FileNotFoundError(f"nb_dir does not exist: {nb_dir}")
             nb_out = output_dir / nb_dir.name
+            if nb_dir.name in completed_nbs:
+                _progress(
+                    5 + int(60 * idx / len(nb_dirs_raw)),
+                    f"Skipping {nb_dir.name} (already complete)",
+                )
+                continue
             nb_out.mkdir(parents=True, exist_ok=True)
             pct = 5 + int(60 * idx / total_nb)
             _progress(pct, f"Demuxing {nb_dir.name}...")
@@ -572,6 +615,8 @@ def handle_demux_and_filter(params: dict) -> dict:
         for fasta_file in sorted(output_dir.rglob("*.fasta")):
             if fasta_file.name.startswith("_"):
                 continue  # skip _unassigned.fasta
+            if fasta_file.parent.name in completed_nbs:
+                continue  # already-complete unit: do not re-filter
             lines = fasta_file.read_text(encoding="utf-8").splitlines(keepends=True)
             filtered_lines: list[str] = []
             skip_next = False
@@ -587,7 +632,9 @@ def handle_demux_and_filter(params: dict) -> dict:
                 else:
                     if not skip_next:
                         filtered_lines.append(line)
-            fasta_file.write_text("".join(filtered_lines), encoding="utf-8")
+            # In-place rewrite of an already-good per-well FASTA: atomic so an
+            # interruption cannot truncate the existing file.
+            atomic_write_text(fasta_file, "".join(filtered_lines))
 
         n_qf_passed = n_qf_input - len(fail_read_ids)
         filter_stats_dict = {
@@ -599,10 +646,17 @@ def handle_demux_and_filter(params: dict) -> dict:
         }
 
         # Recompute per_well_counts after filtering; remove ghost empty files.
+        # Seed from already-complete units (their files were not re-filtered) so
+        # the rebuilt counts do not drop them.
         updated_per_well: dict[str, int] = {}
+        for nb_name in completed_nbs:
+            for well, cnt in completed_marker_counts.get(nb_name, {}).items():
+                updated_per_well[well] = updated_per_well.get(well, 0) + cnt
         for fasta_file in sorted(output_dir.rglob("*.fasta")):
             if fasta_file.name.startswith("_"):
                 continue
+            if fasta_file.parent.name in completed_nbs:
+                continue  # already-complete unit: counts seeded from marker
             count = sum(
                 1 for ln in fasta_file.read_text(encoding="utf-8").splitlines()
                 if ln.startswith(">")
@@ -642,6 +696,8 @@ def handle_demux_and_filter(params: dict) -> dict:
             for idx, nb_dir_str in enumerate(nb_dirs_raw):
                 nb_dir = Path(nb_dir_str).resolve()
                 nb_out = output_dir / nb_dir.name
+                if nb_dir.name in completed_nbs:
+                    continue  # already-complete unit: skip consensus
                 if not nb_out.is_dir():
                     continue
                 pct = 75 + int(15 * idx / total_nb)
@@ -657,6 +713,17 @@ def handle_demux_and_filter(params: dict) -> dict:
                 # Namespace stats by NB dir.
                 for well, stat in nb_stats.items():
                     all_consensus_stats[f"{nb_dir.name}/{well}"] = stat
+                # Commit point: this NB's consensus FASTA are all on disk now.
+                # Write the completion marker LAST and atomically so a crash on
+                # the *next* NB still lets this one resume-skip.
+                write_stage_marker(
+                    nb_out,
+                    per_well_counts={
+                        well: int(stat["n_input_reads"])
+                        for well, stat in nb_stats.items()
+                    },
+                    consensus=True,
+                )
         else:
             # Single-NB: run consensus in the single NB subdir.
             single_nb_out = output_dir / fastq_dir.name
@@ -670,6 +737,15 @@ def handle_demux_and_filter(params: dict) -> dict:
                     save_intermediate=save_intermediate,
                     quality_by_read_id=_collect_fastq_quality_by_read_id(fastq_dir),
                 )
+                # Commit point for the single unit.
+                write_stage_marker(
+                    single_nb_out,
+                    per_well_counts={
+                        well: int(stat["n_input_reads"])
+                        for well, stat in all_consensus_stats.items()
+                    },
+                    consensus=True,
+                )
 
         consensus_stats_dict = all_consensus_stats if all_consensus_stats else {}
         consensus_pipeline = True
@@ -679,6 +755,13 @@ def handle_demux_and_filter(params: dict) -> dict:
         # Use n_input_reads from consensus_stats to preserve the original demux
         # read count (the raw-read count before alignment filtering).
         post_consensus_per_well: dict[str, int] = {}
+        # Seed from already-complete units (skipped above, so not in
+        # all_consensus_stats) so resumed-run totals are not undercounted.
+        for nb_name in completed_nbs:
+            for well, cnt in completed_marker_counts.get(nb_name, {}).items():
+                post_consensus_per_well[well] = (
+                    post_consensus_per_well.get(well, 0) + cnt
+                )
         for well_key, stat in all_consensus_stats.items():
             # well_key is either "<well>" (single-NB) or "<NB>/<well>" (multi-NB).
             # Use the stem (last path component) as the dict key for per_well_counts,
@@ -695,6 +778,39 @@ def handle_demux_and_filter(params: dict) -> dict:
                 n_unassigned=demux_result.n_unassigned,
                 per_well_counts=post_consensus_per_well,
             )
+    else:
+        # No reference_fasta: no consensus stage runs, so the unit is complete
+        # after demux + quality-filter.  Write per-unit completion markers
+        # (consensus=False) for every not-already-complete unit, atomically and
+        # as the last write so the legacy raw-read output is still resumable.
+        final_per_well = demux_result.per_well_counts
+        if nb_dirs_raw:
+            for nb_dir_str in nb_dirs_raw:
+                nb_name = Path(nb_dir_str).resolve().name
+                if nb_name in completed_nbs:
+                    continue
+                nb_out = output_dir / nb_name
+                if not nb_out.is_dir():
+                    continue
+                nb_wells = {
+                    p.stem: int(final_per_well.get(p.stem, 0))
+                    for p in nb_out.glob("*.fasta")
+                    if not p.name.startswith("_")
+                }
+                write_stage_marker(
+                    nb_out, per_well_counts=nb_wells, consensus=False
+                )
+        else:
+            single_nb_out = output_dir / fastq_dir.name
+            if single_nb_out.is_dir():
+                nb_wells = {
+                    p.stem: int(final_per_well.get(p.stem, 0))
+                    for p in single_nb_out.glob("*.fasta")
+                    if not p.name.startswith("_")
+                }
+                write_stage_marker(
+                    single_nb_out, per_well_counts=nb_wells, consensus=False
+                )
 
     _progress(95, "Finalising...")
 
