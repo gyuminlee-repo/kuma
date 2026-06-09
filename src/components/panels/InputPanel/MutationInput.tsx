@@ -43,6 +43,7 @@ export function MutationInput() {
   const evolveproRankedCandidates = useAppStore((s) => s.evolveproRankedCandidates);
   const evolveproSelectedVariants = useAppStore((s) => s.evolveproSelectedVariants);
   const evolveproExtraExposed = useAppStore((s) => s.evolveproExtraExposed);
+  const setEvolveproExtraExposed = useAppStore((s) => s.setEvolveproExtraExposed);
   const setEvolveproVariantSelected = useAppStore((s) => s.setEvolveproVariantSelected);
   const activeTablePath = evolveproMode === "others" ? othersSourcePath : evolveproCsvPath;
 
@@ -53,6 +54,12 @@ export function MutationInput() {
         .filter((l) => l.trim() && !l.trim().startsWith("#")).length,
     [mutationText],
   );
+
+  const [extraExposedStr, setExtraExposedStr] = useState(String(evolveproExtraExposed));
+  const commitExtraExposed = () => {
+    const n = parseInt(extraExposedStr, 10);
+    if (isFinite(n) && n >= 0) setEvolveproExtraExposed(n);
+  };
 
   const { pickerRows, bufferCap } = useMemo(() => {
     const selectedSet = new Set(evolveproSelectedVariants);
@@ -209,6 +216,15 @@ export function MutationInput() {
           {evolveproMode !== "others" && evolveproRankedCandidates.length > 0 && (() => {
             return (
               <div className="space-y-1">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <label htmlFor="extra-exposed-input" className="shrink-0">{t("mutationInput.extraExposedLabel")}</label>
+                  <input id="extra-exposed-input" type="number" min={0} max={evolveproRankedCandidates.length}
+                    value={extraExposedStr} onChange={(e) => setExtraExposedStr(e.target.value)}
+                    onBlur={commitExtraExposed} onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+                    className="w-16 rounded border border-border bg-card px-1.5 py-0.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                    aria-label={t("mutationInput.extraExposedAriaLabel")} />
+                  <span className="text-caption">{t("mutationInput.extraExposedHint")}</span>
+                </div>
                 <EvolveproSelectTable
                   rows={pickerRows}
                   onToggle={(variant, checked) => setEvolveproVariantSelected(variant, checked)}

@@ -1,5 +1,4 @@
 import { useMemo, useState, type KeyboardEvent } from "react";
-import { useTranslation } from "react-i18next";
 import { useAppStore } from "../../../store/appStore";
 import {
   AdvancedSettingsSection,
@@ -70,17 +69,12 @@ export function DiversityOptions() {
   const saveCache = useAppStore((s) => s.saveCache);
   const setSaveCache = useAppStore((s) => s.setSaveCache);
   const mutationText = useAppStore((s) => s.mutationText);
-  const evolveproExtraExposed = useAppStore((s) => s.evolveproExtraExposed);
-  const setEvolveproExtraExposed = useAppStore((s) => s.setEvolveproExtraExposed);
-  const evolveproRankedCandidates = useAppStore((s) => s.evolveproRankedCandidates);
-  const mutationInputMode = useAppStore((s) => s.mutationInputMode);
 
   const selectedCount = useMemo(
     () => mutationText.split("\n").filter((l) => l.trim() && !l.trim().startsWith("#")).length,
     [mutationText],
   );
 
-  const { t } = useTranslation();
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [addingDomain, setAddingDomain] = useState(false);
   const [newDomainName, setNewDomainName] = useState("");
@@ -89,8 +83,6 @@ export function DiversityOptions() {
   const [maxPerPosStr, setMaxPerPosStr] = useState(String(maxPerPosition));
   const [roundStr, setRoundStr] = useState(String(evolveproRound));
   const [roundSizeStr, setRoundSizeStr] = useState(String(roundSize));
-  const [extraExposedStr, setExtraExposedStr] = useState(String(evolveproExtraExposed));
-
   const commitMaxPerPos = () => {
     const n = parseInt(maxPerPosStr, 10);
     if (isFinite(n) && n >= 1) setMaxPerPosition(n);
@@ -104,11 +96,6 @@ export function DiversityOptions() {
   const commitRoundSize = () => {
     const n = parseInt(roundSizeStr, 10);
     if (isFinite(n) && n >= 1) setRoundSize(n);
-  };
-
-  const commitExtraExposed = () => {
-    const n = parseInt(extraExposedStr, 10);
-    if (isFinite(n) && n >= 0) setEvolveproExtraExposed(n);
   };
 
   const onEnterBlur = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -221,28 +208,6 @@ export function DiversityOptions() {
         setEntropyWeight={setEntropyWeight}
       />
 
-      {mutationInputMode === "evolvepro" && evolveproRankedCandidates.length > 0 && (
-        <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-          <label htmlFor="extra-exposed-input" className="shrink-0">
-            {t("mutationInput.extraExposedLabel")}
-          </label>
-          <input
-            id="extra-exposed-input"
-            type="number"
-            min={0}
-            max={evolveproRankedCandidates.length}
-            value={extraExposedStr}
-            onChange={(e) => setExtraExposedStr(e.target.value)}
-            onBlur={commitExtraExposed}
-            onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
-            className="w-16 rounded border border-border bg-card px-1.5 py-0.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-            aria-label={t("mutationInput.extraExposedAriaLabel")}
-          />
-          <span className="text-caption">
-            {t("mutationInput.extraExposedHint")}
-          </span>
-        </div>
-      )}
       <div className="ml-2 mt-2 border-l-2 border-transparent pl-3 text-xs font-medium text-foreground">
         <span className="mr-1.5 inline-block h-1.5 w-1.5 -translate-y-px rounded-full bg-emerald-500" />
         {selectedCount} variants selected
