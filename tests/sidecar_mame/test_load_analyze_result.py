@@ -146,6 +146,24 @@ def test_load_then_get_plate_data_matches_post_analyze() -> None:
     assert st2.last_run_meta.basecalling_enabled is True
 
 
+def test_load_accepts_and_ignores_summary_and_distribution() -> None:
+    """Phase 2 may replay the full analyze response (incl. summary /
+    distribution_stats); those fields are accepted but not stored."""
+    verdicts, replicates = _sample_state()
+    payload = {
+        "verdicts": [_serialize_verdict(v) for v in verdicts],
+        "replicates": [_serialize_replicate(r) for r in replicates],
+        "output_path": "/tmp/out3.xlsx",
+        "summary": {"total": 3, "pass_count": 1},
+        "distribution_stats": {"n_files": 3, "suggested_cutoff_kb": 50.0},
+    }
+    ack = handle_load_analyze_result(payload)
+    assert ack["restored"] is True
+    assert ack["verdict_count"] == len(verdicts)
+    # get_plate_data still works (summary is not part of plate data).
+    assert "wells" in handle_get_plate_data({})
+
+
 def test_load_accepts_omitted_run_meta() -> None:
     verdicts, replicates = _sample_state()
     payload = {

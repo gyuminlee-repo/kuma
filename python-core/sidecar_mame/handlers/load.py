@@ -11,7 +11,9 @@ multi-minute pipeline.
 The accepted payload mirrors the ``analyze`` response shape exactly
 (``_serialize_verdict`` / ``_serialize_replicate``) and is reconstructed via
 their inverses (``_deserialize_verdict`` / ``_deserialize_replicate``), so the
-round-trip is lossless for every field the downstream consumers read.
+round-trip is lossless for every field carried by the analyze response (and
+thus every field the downstream consumers read; ``consensus_seq`` is neither
+serialized by analyze nor consumed by any export module).
 """
 
 from __future__ import annotations
@@ -46,6 +48,12 @@ class LoadAnalyzeResultParams(BaseModel):
     replicates: list[dict[str, Any]]
     output_path: str
     run_meta: dict[str, Any] | None = None
+    # Accepted so Phase 2 can persist + replay the analyze response verbatim,
+    # but NOT stored: SidecarState holds no summary/distribution_stats and
+    # get_plate_data does not read them. ``extra="ignore"`` would drop unknown
+    # keys anyway; these are declared for an explicit, self-documenting contract.
+    summary: dict[str, Any] | None = None
+    distribution_stats: dict[str, Any] | None = None
 
 
 def _rebuild_run_meta(run_meta: dict[str, Any] | None) -> Any | None:
