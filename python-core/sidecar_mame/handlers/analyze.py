@@ -8,6 +8,7 @@ multi-minute analyze is kicked off.
 from __future__ import annotations
 
 import tempfile
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -16,11 +17,53 @@ from sidecar_mame.core import (
     _ALLOWED_FASTA_EXTENSIONS,
     _ALLOWED_SEQUENCE_EXTENSIONS,
     _progress,
+    _send,
     _validate_dirpath,
     _validate_filepath,
     _validate_output_path,
     set_last_analyze,
 )
+
+# Keep-alive heartbeat interval for the analyze stage. Re-emits the latest
+# progress state during otherwise-silent stretches (FASTA ingest, the
+# per-record loop between updates, and the Excel write) so the frontend idle
+# watchdog does not fire. Must stay well under the frontend
+# DEADLOCK_THRESHOLD_MS (300 s). Mirrors combinatorial_demux.py.
+_HEARTBEAT_INTERVAL_S: float = 30.0
+
+# Serialises concurrent stdout writes from the heartbeat thread + main thread
+# when building the multi-field progress params dict.
+_emit_lock = threading.Lock()
+
+
+def _send_progress(
+    value: int,
+    message: str,
+    current: int | None = None,
+    total: int | None = None,
+) -> None:
+    """Emit a JSON-RPC progress notification carrying optional current/total.
+
+    The shared ``_progress`` helper only carries ``value``/``message``; this
+    local variant adds ``current``/``total`` so the dormant "X / Y" UI activates
+    (matching the ProgressNotification shape consumed by the frontend). The
+    notification has no ``id`` field, consistent with the existing analyze
+    milestones, and the frontend resets its idle watchdog on any mame progress
+    event regardless of ``id``.
+    """
+    params: dict = {"value": value, "message": message}
+    if current is not None:
+        params["current"] = current
+    if total is not None:
+        params["total"] = total
+    with _emit_lock:
+        _send(
+            {
+                "jsonrpc": "2.0",
+                "method": "progress",
+                "params": params,
+            }
+        )
 
 
 def _read_fasta_sequence(path: Path) -> str:
@@ -332,36 +375,93 @@ def handle_analyze(params: dict) -> dict:
 
     _progress(10, "Ingesting FASTA files...")
 
-    # ── Distribution analysis (A4) ───────────────────────────────────────
-    # Compute before the main pipeline so the frontend gets stats even if
-    # the pipeline raises later.
-    ingest_mode_enum = IngestMode(ingest_mode_raw)
-    raw_records = route_ingest(input_dir, ingest_mode_enum)
-    dist_stats = compute_distribution_stats(
-        [rec.file_size_kb for rec in raw_records]
+    # Latest progress state, re-emitted by the heartbeat thread during silent
+    # stretches. Initialised at the current phase (ingest, value 10) and synced
+    # to each milestone below so the heartbeat always re-emits the phase that is
+    # actually in flight, never a value ahead of reality (which would make the
+    # bar step backward when the next milestone fires).
+    _holder: dict[str, Any] = {
+        "value": 10,
+        "message": "Ingesting FASTA files...",
+        "current": None,
+        "total": None,
+    }
+    _stop = threading.Event()
+
+    def _heartbeat() -> None:
+        # References the module-global interval so tests can shrink it.
+        while not _stop.wait(_HEARTBEAT_INTERVAL_S):
+            _send_progress(
+                _holder["value"],
+                _holder["message"],
+                current=_holder["current"],
+                total=_holder["total"],
+            )
+
+    def _band_callback(i: int, total: int) -> None:
+        # Map per-record progress into the 60..85 band so the frontend ETA
+        # advances instead of freezing at 60 %. Throttle to ~1 % steps (or
+        # every record when there are few) to avoid a stdout flood.
+        value = 60 + int(25 * i / total) if total else 60
+        step = max(1, total // 25) if total else 1
+        _holder["value"] = value
+        _holder["message"] = f"Classifying verdicts... ({i}/{total})"
+        _holder["current"] = i
+        _holder["total"] = total
+        if i == total or i % step == 0:
+            _send_progress(
+                value,
+                f"Classifying verdicts... ({i}/{total})",
+                current=i,
+                total=total,
+            )
+
+    _hb_thread = threading.Thread(
+        target=_heartbeat, daemon=True, name="analyze-heartbeat"
     )
-
-    _progress(30, "Translating sequences...")
-    _progress(60, "Classifying verdicts...")
-
-    with tempfile.TemporaryDirectory(prefix="mame-reference-") as tmpdir:
-        reference_for_pipeline = _write_reference_fasta(reference, Path(tmpdir))
-        verdicts, replicates = run_analyze(
-            input_dir=input_dir,
-            reference_path=reference_for_pipeline,
-            expected_path=expected,
-            output_path=output,
-            cds_start=cds_start,
-            cds_end=cds_end,
-            mode=mode,
-            min_file_size_kb=min_file_size_kb,
-            min_read_count=min_read_count,
-            max_consensus_n_fraction=max_consensus_n_fraction,
-            many_cutoff=many_cutoff,
-            ingest_mode=ingest_mode_enum,
-            sample_map_path=sample_map_path,
-            well_layout=well_layout,
+    _hb_thread.start()
+    try:
+        # ── Distribution analysis (A4) ───────────────────────────────────
+        # Compute before the main pipeline so the frontend gets stats even if
+        # the pipeline raises later. This ingest is silent I/O; the heartbeat
+        # (already running) covers it.
+        ingest_mode_enum = IngestMode(ingest_mode_raw)
+        raw_records = route_ingest(input_dir, ingest_mode_enum)
+        dist_stats = compute_distribution_stats(
+            [rec.file_size_kb for rec in raw_records]
         )
+
+        _progress(30, "Translating sequences...")
+        _holder["value"] = 30
+        _holder["message"] = "Translating sequences..."
+        _progress(60, "Classifying verdicts...")
+        _holder["value"] = 60
+        _holder["message"] = "Classifying verdicts..."
+
+        with tempfile.TemporaryDirectory(prefix="mame-reference-") as tmpdir:
+            reference_for_pipeline = _write_reference_fasta(reference, Path(tmpdir))
+            verdicts, replicates = run_analyze(
+                input_dir=input_dir,
+                reference_path=reference_for_pipeline,
+                expected_path=expected,
+                output_path=output,
+                cds_start=cds_start,
+                cds_end=cds_end,
+                mode=mode,
+                min_file_size_kb=min_file_size_kb,
+                min_read_count=min_read_count,
+                max_consensus_n_fraction=max_consensus_n_fraction,
+                many_cutoff=many_cutoff,
+                ingest_mode=ingest_mode_enum,
+                sample_map_path=sample_map_path,
+                well_layout=well_layout,
+                progress_callback=_band_callback,
+            )
+    finally:
+        # Stop and join the heartbeat BEFORE the terminal milestones so a stale
+        # holder emit cannot race the 85/100 updates.
+        _stop.set()
+        _hb_thread.join(timeout=_HEARTBEAT_INTERVAL_S + 1.0)
 
     _progress(85, "Selecting best replicates...")
     _progress(100, "Writing Excel output...")
