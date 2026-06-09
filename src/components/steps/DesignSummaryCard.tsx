@@ -8,9 +8,9 @@
  *
  * 표시 항목 (4 + sequence):
  *   1. Sequence            seqInfo.header / seq_length          (Not loaded)
- *   2. Mutation source     mutationInputMode                    (single | evolvepro)
- *   3. Selection mode      pipelineMode ? Pipeline (failover) : Top-N only
- *   4. Variant count       evolveproTotalCount (mutationInputMode=single → parsedMutations.length)
+ *   2. Mutation source     mutationInputMode                    (evolvepro)
+ *   3. Selection mode      evolveproMode != topN ? Pipeline (failover) : Top-N only
+ *   4. Variant count       evolveproTotalCount (always)
  *   5. Polymerase / codon  selectedPolymerase · codonStrategy · tmFwdTarget · maxPrimers
  *
  * Memoization: zustand 개별 selector 호출 (참조 안정). 별도 useMemo 불필요.
@@ -26,7 +26,6 @@ export function DesignSummaryCard() {
   const mutationInputMode = useAppStore((s) => s.mutationInputMode);
   const evolveproMode = useAppStore((s) => s.evolveproMode);
   const evolveproTotalCount = useAppStore((s) => s.evolveproTotalCount);
-  const parsedMutationCount = useAppStore((s) => s.parsedMutations.length);
   const selectedPolymerase = useAppStore((s) => s.selectedPolymerase);
   const codonStrategy = useAppStore((s) => s.codonStrategy);
   const tmFwdTarget = useAppStore((s) => s.tmFwdTarget);
@@ -40,8 +39,7 @@ export function DesignSummaryCard() {
     ? t("phaseE.summary.selectionMode.pipeline")
     : t("phaseE.summary.selectionMode.topN");
 
-  const variantCount =
-    mutationInputMode === "text" ? parsedMutationCount : evolveproTotalCount;
+  const variantCount = evolveproTotalCount;
 
   const rows: Array<[string, string]> = [
     [t("phaseE.summary.sequence.label"), sequenceText],

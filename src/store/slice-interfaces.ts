@@ -36,7 +36,7 @@ import type {
   WorkspaceData,
   WorkspaceV3,
 } from "../types/models";
-import type { SettingsBundle } from "../types/models.generated";
+import type { RankedCandidateItem, SettingsBundle } from "../types/models.generated";
 
 export type EvolveproMode = "topN" | "pipeline" | "others";
 
@@ -155,12 +155,18 @@ export interface InputSlice {
   othersPreview: EvolveproPreview | null;
   othersUsedVariantColumn: string | null;
   othersUsedScoreColumn: string | null;
+  /** Ranked candidate buffer from load_evolvepro_csv response (y_pred desc). */
+  evolveproRankedCandidates: RankedCandidateItem[];
+  /** Explicit user selection: variant strings that are currently included. */
+  evolveproSelectedVariants: string[];
+  /** Number of extra (unselected) candidates to expose in the picker UI. */
+  evolveproExtraExposed: number;
 
   // Actions
   setMutationInputMode: (mode: MutationInputMode) => void;
   setMutationText: (text: string) => void;
   parseMutations: () => Promise<void>;
-  loadEvolveproCsv: (filepath: string, topNOverride?: number) => Promise<void>;
+  loadEvolveproCsv: (filepath: string, topNOverride?: number, preserveSelection?: boolean) => Promise<void>;
   loadSampleData: () => Promise<void>;
   setEvolveproMode: (mode: EvolveproMode) => void;
   setEvolveproVariantColumn: (col: string | null) => void;
@@ -181,6 +187,10 @@ export interface InputSlice {
    * roundSlice.handoffNextRound에서만 호출할 것 (spec §4.5).
    */
   loadRoundActivity: (prevRound: Round) => { ok: boolean; warnings: string[] };
+  /** Toggle individual candidate inclusion in EVOLVEpro picker. */
+  setEvolveproVariantSelected: (variant: string, selected: boolean) => void;
+  /** Set number of extra (unselected) candidates shown in picker. */
+  setEvolveproExtraExposed: (count: number) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -191,7 +201,6 @@ export interface DesignSlice {
   isDesigning: boolean;
   backendDesignStateSynced: boolean;
   designResults: SdmPrimerResult[];
-  excludedDesignMutations: string[];
   successCount: number;
   totalCount: number;
   failedMutations: FailedMutation[];
@@ -235,9 +244,6 @@ export interface DesignSlice {
   applyCustomPrimer: (mutation: string, result: SdmPrimerResult) => void;
   addCustomCandidate: (mutation: string, result: SdmPrimerResult) => void;
   removeCustomCandidate: (mutation: string, index: number) => void;
-  setDesignMutationIncluded: (mutation: string, included: boolean) => void;
-  toggleDesignMutationIncluded: (mutation: string) => void;
-  resetDesignMutationSelection: () => void;
   evaluateCustomPrimer: (mutation: string, fwdSeq: string, revSeq: string, overlapLen?: number) => Promise<SdmPrimerResult>;
   retryFailedMutation: (mutation: string, params: Record<string, number | string>) => Promise<SdmPrimerResult[]>;
   /**

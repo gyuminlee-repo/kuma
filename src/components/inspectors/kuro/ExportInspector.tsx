@@ -18,15 +18,12 @@ import { InspectorPanel } from "@/components/widgets/InspectorPanel";
 import { KvList } from "@/components/inspectors/kuro/shared/KvList";
 import { InspectorCallout } from "@/components/inspectors/kuro/shared/InspectorCallout";
 import { InspectorEmptyState } from "@/components/inspectors/kuro/shared/InspectorEmptyState";
-import { getIncludedDesignResults } from "@/store/slices/designSlice.helpers";
-
 export function ExportInspector() {
   const { t } = useTranslation();
 
-  const { designResults, excludedDesignMutations, plateMappings, evolveproCsvPath } = useAppStore(
+  const { designResults, plateMappings, evolveproCsvPath } = useAppStore(
     useShallow((s) => ({
       designResults: s.designResults,
-      excludedDesignMutations: s.excludedDesignMutations,
       plateMappings: s.plateMappings,
       evolveproCsvPath: s.evolveproCsvPath,
     })),
@@ -43,10 +40,7 @@ export function ExportInspector() {
     );
   }
 
-  const variantCount = getIncludedDesignResults(
-    designResults,
-    excludedDesignMutations,
-  ).length;
+  const variantCount = designResults.length;
   const plateCount =
     plateMappings.length > 0 ? Math.ceil(plateMappings.length / 96) : 1;
   const staleValue = evolveproCsvPath ? t("kuro.inspector.stalenessLinked") : "--";

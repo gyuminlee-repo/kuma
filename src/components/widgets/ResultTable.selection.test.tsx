@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { useAppStore } from "@/store/appStore";
 import type { SdmPrimerResult } from "@/types/models";
@@ -33,12 +33,11 @@ function primer(mutation: string, aaPosition: number): SdmPrimerResult {
   };
 }
 
-describe("ResultTable include/exclude selection", () => {
+describe("ResultTable include column removal (T4)", () => {
   beforeEach(() => {
     useAppStore.setState({
       mutationInputMode: "evolvepro",
       designResults: [primer("M1A", 1), primer("M2A", 2)],
-      excludedDesignMutations: [],
       failedMutations: [],
       successCount: 2,
       totalCount: 2,
@@ -53,29 +52,26 @@ describe("ResultTable include/exclude selection", () => {
     });
   });
 
-  it("lets users uncheck a row while keeping it visible and re-checkable", () => {
+  it("renders no include checkboxes in evolvepro mode", () => {
     render(<ResultTable />);
-
-    const checkbox = screen.getByRole("checkbox", {
-      name: /include M1A in downstream outputs/i,
-    });
-    expect(checkbox).toBeChecked();
-
-    fireEvent.click(checkbox);
-
-    expect(useAppStore.getState().excludedDesignMutations).toEqual(["M1A"]);
-    expect(checkbox).not.toBeChecked();
-    expect(screen.getByText("M1A")).toBeInTheDocument();
     expect(
-      screen.getByRole("row", { name: /M1A is excluded from downstream outputs/i }),
-    ).toHaveClass("opacity-55");
+      screen.queryByRole("checkbox"),
+    ).toBeNull();
+  });
 
-    const unchecked = screen.getByRole("checkbox", {
-      name: /include M1A in downstream outputs/i,
-    });
-    fireEvent.click(unchecked);
+  it("shows all rows visible without excluded styling", () => {
+    render(<ResultTable />);
+    expect(screen.getByText("M1A")).toBeInTheDocument();
+    expect(screen.getByText("M2A")).toBeInTheDocument();
+    // No row should carry opacity-55 class (excluded styling removed)
+    const rows = screen.getAllByRole("row");
+    for (const row of rows) {
+      expect(row.className).not.toContain("opacity-55");
+    }
+  });
 
-    expect(useAppStore.getState().excludedDesignMutations).toEqual([]);
-    expect(unchecked).toBeChecked();
+  it("all mutations are visible without exclusion (feature removed)", () => {
+    // excludedDesignMutations state removed — all design results are always included
+    expect(useAppStore.getState().designResults).toHaveLength(2);
   });
 });

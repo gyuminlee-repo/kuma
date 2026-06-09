@@ -53,7 +53,6 @@ function makeStore() {
     codonStrategy: "closest",
     maxPrimers: 95,
     designResults: [],
-    excludedDesignMutations: [],
     successCount: 0,
     totalCount: 0,
     failedMutations: [],
@@ -114,7 +113,6 @@ function makeStore() {
     resetAll: () => {
       Object.assign(state, {
         designResults: [],
-        excludedDesignMutations: [],
         plateMappings: [],
         dedupInfo: {},
       })
@@ -202,15 +200,7 @@ describe("exportSlice — schema_version 0.3", () => {
     expect(snap.results.rescuedMutationDetails).toEqual(store.state.rescuedMutationDetails)
   })
 
-  it("getWorkspaceSnapshot persists excluded design mutations", () => {
-    store.state.excludedDesignMutations = ["M2A"]
-
-    const snap = store.slice.getWorkspaceSnapshot() as WorkspaceV3
-
-    expect(snap.results.excludedDesignMutations).toEqual(["M2A"])
-  })
-
-  it("restoreWorkspace preserves selection and rebuilds plate state from included rows", async () => {
+  it("restoreWorkspace rebuilds plate state from all design results", async () => {
     const designResults = [
       primer("M1A", 1, "SHARED"),
       primer("M2A", 2, "SHARED"),
@@ -257,15 +247,18 @@ describe("exportSlice — schema_version 0.3", () => {
 
     await store.slice.restoreWorkspace(workspace)
 
-    expect(store.state.excludedDesignMutations).toEqual(["M2A"])
+    // excludedDesignMutations from legacy workspace is ignored (feature removed)
+    // All design results are included; plate state rebuilt from all 3 results
+    // M1A and M2A share reverse seq "SHARED" — M1A is the representative reverse mutation
     expect((store.state.plateMappings as PlateMapping[]).map((mapping) => mapping.mutation)).toEqual([
       "M1A",
+      "M2A",
       "M3A",
       "M1A",
       "M3A",
     ])
     expect(store.state.dedupInfo).toEqual({
-      SHARED: ["M1A"],
+      SHARED: ["M1A", "M2A"],
       GCAT3: ["M3A"],
     })
   })

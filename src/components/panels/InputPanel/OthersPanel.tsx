@@ -23,7 +23,7 @@ import {
 
 const PREVIEW_MAX_ROWS = 5;
 
-export function EvolveproOthersPanel() {
+export function OthersPanel() {
   const { t } = useTranslation();
 
   const othersSourcePath = useAppStore((s) => s.othersSourcePath);

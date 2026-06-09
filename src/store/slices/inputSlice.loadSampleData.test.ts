@@ -94,7 +94,7 @@ describe("inputSlice.loadSampleData", () => {
     vi.clearAllMocks()
   })
 
-  it("loads EGFP FASTA, forces text mode, and populates demo mutationText", async () => {
+  it("loads EGFP plasmid and calls loadEvolveproCsv with sample CSV path", async () => {
     const loadSequence = vi.fn(async () => {
       // simulate successful sequence load
       ;(store.state as { seqInfo: unknown }).seqInfo = {
@@ -112,15 +112,12 @@ describe("inputSlice.loadSampleData", () => {
 
     expect(resolveResource).toHaveBeenCalledWith("samples/sample_plasmid.gb")
     expect(loadSequence).toHaveBeenCalledWith("/resolved/samples/sample_plasmid.gb")
-    // Item 1: CSV loader is intentionally skipped (CSV is invalid for EGFP).
-    expect(loadEvolveproCsv).not.toHaveBeenCalled()
-    expect(store.state.mutationInputMode).toBe("text")
-    // 120-variant EGFP sample set (see inputSlice.ts EGFP_SAMPLE_MUTATIONS_120):
-    // verify count + first/last entries instead of pasting the full list.
-    const lines = (store.state.mutationText as string).split("\n")
-    expect(lines.length).toBe(120)
-    expect(lines[0]).toBe("Q205E")
-    expect(lines[lines.length - 1]).toBe("D134S")
+    // loadSampleData now always loads the EVOLVEpro CSV after sequence
+    expect(resolveResource).toHaveBeenCalledWith("samples/sample_evolvepro.csv")
+    expect(loadEvolveproCsv).toHaveBeenCalledWith("/resolved/samples/sample_evolvepro.csv")
+    // setMutationText is never called by loadSampleData (evolvepro CSV path only)
+    // mutationInputMode is not forced to "text"
+    expect(store.state.mutationInputMode).not.toBe("text")
   })
 
   it("aborts before CSV load if loadSequence silently failed (seqInfo stays null)", async () => {

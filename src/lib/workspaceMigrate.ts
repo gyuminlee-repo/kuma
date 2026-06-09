@@ -30,7 +30,7 @@ export const MIGRATIONS: Record<string, MigrationFn> = {
       active_round_id: null,
       inputs: {
         fastaPath: ws.fastaPath ?? "",
-        mutationInputMode: ws.mutationInputMode ?? "text",
+        mutationInputMode: ws.mutationInputMode === "text" ? "evolvepro" : (ws.mutationInputMode ?? "evolvepro"),
         mutationText: ws.mutationText ?? "",
         evolveproCsvPath: ws.evolveproCsvPath ?? "",
         selectedGene: ws.selectedGene ?? "",
@@ -82,7 +82,6 @@ export const MIGRATIONS: Record<string, MigrationFn> = {
         successCount: ws.successCount ?? 0,
         totalCount: ws.totalCount ?? 0,
         failedMutations: ws.failedMutations ?? [],
-        excludedDesignMutations: [],
         plateMappings: ws.plateMappings ?? [],
         dedupInfo: ws.dedupInfo ?? {},
         manuallySwapped: ws.manuallySwapped ?? {},
