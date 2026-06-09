@@ -566,7 +566,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       wellName,
     });
     set({
-      mutationInputMode: inputs.mutationInputMode ?? "text",
+      mutationInputMode: inputs.mutationInputMode === "text" ? "evolvepro" : (inputs.mutationInputMode ?? "evolvepro"),
       mutationText: inputs.mutationText ?? "",
       evolveproCsvPath: inputs.evolveproCsvPath ?? "",
       othersSourcePath: inputs.othersSourcePath ?? "",
@@ -671,7 +671,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
     set({
       fastaPath: "",
       seqInfo: null,
-      mutationInputMode: "text",
+      mutationInputMode: "evolvepro",
       mutationText: "",
       evolveproCsvPath: "",
       othersSourcePath: "",

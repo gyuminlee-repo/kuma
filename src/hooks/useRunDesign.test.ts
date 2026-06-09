@@ -162,38 +162,6 @@ describe("useRunDesign — run() guard", () => {
     expect(designPrimersSpy).toHaveBeenCalledTimes(1);
   });
 
-  it("8. run() calls parseMutations before designPrimers in text mode (debounce flush)", async () => {
-    useAppStore.setState({
-      seqInfo: singleGeneSeqInfo,
-      mutationText: "M1A",
-      selectedGene: "",
-      isDesigning: false,
-      mutationInputMode: "text",
-    });
-    const callOrder: string[] = [];
-    const parseMutationsSpy = vi.fn(() => {
-      callOrder.push("parseMutations");
-      return Promise.resolve();
-    });
-    const designPrimersSpy = vi.fn(() => {
-      callOrder.push("designPrimers");
-      return Promise.resolve();
-    });
-    useAppStore.setState({
-      parseMutations: parseMutationsSpy,
-      designPrimers: designPrimersSpy,
-    } as unknown as Parameters<typeof useAppStore.setState>[0]);
-
-    const { result } = renderHook(() => useRunDesign());
-    await act(async () => { result.current.run(); });
-    // Drain the promise chain: preflight + flush + parseMutations + designPrimers
-    await act(async () => { await new Promise<void>((r) => setTimeout(r, 0)); });
-
-    expect(parseMutationsSpy).toHaveBeenCalledTimes(1);
-    expect(designPrimersSpy).toHaveBeenCalledTimes(1);
-    expect(callOrder).toEqual(["parseMutations", "designPrimers"]);
-  });
-
   it("9. run() skips parseMutations and calls designPrimers directly in evolvepro mode", async () => {
     useAppStore.setState({
       seqInfo: singleGeneSeqInfo,

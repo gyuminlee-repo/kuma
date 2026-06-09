@@ -71,20 +71,6 @@ describe("DesignSummaryCard (Phase B6)", () => {
     expect(getByText("Top-N only")).toBeTruthy();
   });
 
-  it("(d) variant count uses parsedMutations.length in 'single' mode", () => {
-    useAppStore.setState({
-      mutationInputMode: "text",
-      parsedMutations: [
-        { raw: "A1V", wt_aa: "A", position: 1, mt_aa: "V" },
-        { raw: "L2P", wt_aa: "L", position: 2, mt_aa: "P" },
-        { raw: "K3R", wt_aa: "K", position: 3, mt_aa: "R" },
-      ],
-      evolveproTotalCount: 999,
-    } as never);
-    const { getByTestId } = render(<DesignSummaryCard />);
-    expect(getByTestId("design-summary-variants").textContent).toBe("3");
-  });
-
   it("(d) variant count uses evolveproTotalCount in non-single modes", () => {
     useAppStore.setState({
       mutationInputMode: "evolvepro",

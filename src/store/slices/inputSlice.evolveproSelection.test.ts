@@ -136,9 +136,11 @@ describe("inputSlice evolvepro selection state", () => {
     expect(store.state.evolveproExtraExposed).toBe(0)
   })
 
-  it("setMutationInputMode('text') clears selection and ranked candidates", () => {
-    store.slice.setMutationInputMode("text")
-    expect(store.state.evolveproSelectedVariants).toEqual([])
-    expect(store.state.evolveproRankedCandidates).toEqual([])
+  it("setMutationInputMode sets mode without clearing evolvepro state", () => {
+    store.slice.setMutationInputMode("evolvepro")
+    // Mode is updated but selection and ranked candidates are preserved
+    expect(store.state.mutationInputMode).toBe("evolvepro")
+    expect(store.state.evolveproSelectedVariants).toEqual(["F89W", "L70V", "M1A"])
+    expect(store.state.evolveproRankedCandidates).toHaveLength(3)
   })
 })

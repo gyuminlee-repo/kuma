@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAppStore } from "../../../store/appStore";
 import { basename } from "../../../lib/utils";
@@ -7,7 +7,7 @@ import { useArtifact } from "../../../lib/workspace";
 import { Button } from "../../ui/button";
 import { InlineHelp } from "../../ui/InlineHelp";
 import { ArtifactBadge } from "../../widgets/ArtifactBadge";
-import { EvolveproOthersPanel } from "./EvolveproOthersPanel";
+import { OthersPanel } from "./OthersPanel";
 import { EvolveproSelectTable } from "../../widgets/EvolveproSelectTable";
 
 export function MutationInput() {
@@ -17,8 +17,6 @@ export function MutationInput() {
   const parsedMutations = useAppStore((s) => s.parsedMutations);
   const parseErrors = useAppStore((s) => s.parseErrors);
   const setMutationInputMode = useAppStore((s) => s.setMutationInputMode);
-  const setMutationText = useAppStore((s) => s.setMutationText);
-  const parseMutations = useAppStore((s) => s.parseMutations);
   const evolveproCsvPath = useAppStore((s) => s.evolveproCsvPath);
   const othersSourcePath = useAppStore((s) => s.othersSourcePath);
   const loadEvolveproCsv = useAppStore((s) => s.loadEvolveproCsv);
@@ -47,19 +45,6 @@ export function MutationInput() {
   const evolveproExtraExposed = useAppStore((s) => s.evolveproExtraExposed);
   const setEvolveproVariantSelected = useAppStore((s) => s.setEvolveproVariantSelected);
   const activeTablePath = evolveproMode === "others" ? othersSourcePath : evolveproCsvPath;
-
-  // Debounced mutation validation
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => {
-    if (mutationInputMode !== "text" || !mutationText.trim()) return;
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      parseMutations();
-    }, 500);
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [mutationText, mutationInputMode, parseMutations]);
 
   const mutationCount = useMemo(
     () =>
@@ -109,16 +94,6 @@ export function MutationInput() {
           <input
             type="radio"
             name="mutInput"
-            checked={mutationInputMode === "text"}
-            onChange={() => setMutationInputMode("text")}
-            className="w-3 h-3"
-          />
-          Text
-        </label>
-        <label className="flex items-center gap-1 rounded-full border border-border bg-card px-2 py-1 text-muted-foreground">
-          <input
-            type="radio"
-            name="mutInput"
             checked={mutationInputMode === "evolvepro" && evolveproMode !== "others"}
             onChange={() => {
               setMutationInputMode("evolvepro");
@@ -142,15 +117,6 @@ export function MutationInput() {
           {t("mutationInput.others")}
         </label>
       </div>
-
-      {mutationInputMode === "text" && (
-        <textarea
-          className="h-32 w-full resize-none rounded-2xl border border-border bg-card p-3 font-mono text-xs focus:outline-none focus:ring-1 focus:ring-ring"
-          placeholder={"Q232A\nY233A\nE335A\nA40P/E61Y\n..."}
-          value={mutationText}
-          onChange={(e) => setMutationText(e.target.value)}
-        />
-      )}
 
       {mutationInputMode === "evolvepro" && (
         <div className="space-y-2">
@@ -201,7 +167,7 @@ export function MutationInput() {
           )}
 
           {/* Others mode: column mapping panel */}
-          {evolveproMode === "others" && <EvolveproOthersPanel />}
+          {evolveproMode === "others" && <OthersPanel />}
 
           {/* topN / pipeline mode: selection mode radiogroup */}
           {evolveproMode !== "others" && (

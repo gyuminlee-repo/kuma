@@ -30,7 +30,7 @@ export const MIGRATIONS: Record<string, MigrationFn> = {
       active_round_id: null,
       inputs: {
         fastaPath: ws.fastaPath ?? "",
-        mutationInputMode: ws.mutationInputMode ?? "text",
+        mutationInputMode: ws.mutationInputMode === "text" ? "evolvepro" : (ws.mutationInputMode ?? "evolvepro"),
         mutationText: ws.mutationText ?? "",
         evolveproCsvPath: ws.evolveproCsvPath ?? "",
         selectedGene: ws.selectedGene ?? "",
