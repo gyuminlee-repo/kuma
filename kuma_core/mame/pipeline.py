@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Callable
 from pathlib import Path
 
 from kuma_core.mame.compare import classify_verdict, parse_mutation_label
@@ -129,8 +130,16 @@ def run_analyze(
     ingest_mode: IngestMode = IngestMode.BARCODE,
     sample_map_path: Path | None = None,
     well_layout: dict[str, str] | None = None,
+    progress_callback: Callable[[int, int], None] | None = None,
 ) -> tuple[list[VerdictRecord], list[ReplicateResult]]:
-    """Run the full pipeline and write the Excel output. Returns in-memory results."""
+    """Run the full pipeline and write the Excel output. Returns in-memory results.
+
+    ``progress_callback`` is an optional ``(index, total)`` sink invoked once per
+    processed record during the per-record verdict loop (``index`` is 1-based and
+    the final call has ``index == total``). It defaults to ``None`` so existing
+    callers and tests are unaffected. The handler layer uses it to surface live
+    sub-progress; the domain layer stays I/O-agnostic and never throttles.
+    """
 
     reference_seq = _read_reference_fasta(reference_path)
     expected_mutations = read_expected_mutations(expected_path)
@@ -195,7 +204,8 @@ def run_analyze(
     )
 
     verdicts: list[VerdictRecord] = []
-    for rec in records:
+    total_records = len(records)
+    for i, rec in enumerate(records, 1):
         translated = translate_and_diff(
             record=rec,
             reference_seq=reference_seq,
@@ -215,6 +225,10 @@ def run_analyze(
                     scoped_labels = scoped
         verdict = classify_verdict(translated, scoped_labels, params)
         verdicts.append(verdict)
+        # Live per-record sub-progress. Unthrottled and I/O-free here; the
+        # handler layer throttles emissions to avoid a stdout flood.
+        if progress_callback is not None:
+            progress_callback(i, total_records)
 
     grouped = _assign_mutant_ids(verdicts, expected_mutations, well_to_mutant=well_to_mutant)
 
