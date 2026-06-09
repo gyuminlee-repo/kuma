@@ -14,7 +14,7 @@ Cutadapt details
 ----------------
 - Adapters written to a temporary FASTA to avoid huge command lines.
 - ``-e <error_tolerance>`` passed as a single float.
-- ``--discard-untrimmed`` routes unmatched reads to a separate sink.
+- ``--untrimmed-output`` routes unmatched reads to a separate sink.
 - Invoked with ``shell=False`` and ``list`` args (security: code-security §SQL).
 - When ``linked_trim=True`` and ``rev_primer_universal`` is provided, cutadapt
   receives both ``-g file:<fwd_adapters>`` and ``-a <rc(rev)>`` in one pass,
@@ -583,7 +583,7 @@ def _demux_cutadapt(
     Calls cutadapt with:
     - ``-g file:<adapters.fasta>`` for all 96 barcodes in one shot.
     - ``-e <error_tolerance>`` as per-adapter error rate.
-    - ``--discard-untrimmed`` to route unmatched reads to ``_unassigned.fasta``.
+    - ``--untrimmed-output`` to route unmatched reads to ``_unassigned.fasta``.
     - FASTQ → FASTA conversion via ``--fasta``.
     - When ``linked_trim=True`` and ``rev_primer_universal`` is provided,
       ``-a <rc(rev)>`` is added to trim the 3′ end of every matched read.
@@ -607,7 +607,7 @@ def _demux_cutadapt(
             "cutadapt",
             "-g", f"file:{adapters_fasta}",
             "-e", str(error_tolerance),
-            "--discard-untrimmed",
+            "-j", "0",
             "--fasta",
             "-o", str(output_dir / "{name}.fasta"),
             "--untrimmed-output", str(output_dir / "_unassigned.fasta"),
