@@ -261,6 +261,7 @@
       "toastSuccessDesc": "Archivos guardados en design/",
       "toastSuccessDescWithLength": "Longitud del amplicón: {{length}} bp. Archivos guardados en design/",
       "toastError": "Generación fallida",
+      "overwriteConfirmDir": "La carpeta design/ ya existe y se sobrescribirá (primer CSV, barcode XLSX, amplicon FASTA). ¿Desea continuar?",
       "geneEndError": "gene_end debe ser mayor que gene_start.",
       "noProjectWarning": "Debe haber un proyecto abierto para generar un paquete. Seleccionar Abrir proyecto desde el menú Archivo.",
       "barcodeSeedsXlsxHelper": "Archivo xlsx que contiene secuencias seed fwd_1..12 y rev_1..8.",

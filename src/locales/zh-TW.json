@@ -261,6 +261,7 @@
       "toastSuccessDesc": "檔案已儲存到 design/",
       "toastSuccessDescWithLength": "Amplicon 長度: {{length}} bp。檔案已儲存到 design/",
       "toastError": "生成失敗",
+      "overwriteConfirmDir": "design/ 資料夾已存在並將被覆蓋 (primer CSV, barcode XLSX, amplicon FASTA)。是否繼續?",
       "geneEndError": "gene_end 必須大於 gene_start。",
       "noProjectWarning": "必須開啟專案才能生成包。在檔案選單中選擇開啟專案。",
       "barcodeSeedsXlsxHelper": "包含 fwd_1..12 與 rev_1..8 seed 序列的 xlsx 檔案。",
