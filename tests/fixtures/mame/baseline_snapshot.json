@@ -1,0 +1,74 @@
+{
+  "native": {
+    "stats": {
+      "total_reads": 13,
+      "wells_with_min_reads": 3,
+      "wells_with_reads": 3
+    },
+    "wells": {
+      "F1": {
+        "consensus": null,
+        "read_ids": [
+          "w11_0",
+          "w11_1",
+          "w11_2",
+          "w11_3",
+          "w11_4"
+        ]
+      },
+      "F3": {
+        "consensus": null,
+        "read_ids": [
+          "w23_0",
+          "w23_1",
+          "w23_2",
+          "w23_3"
+        ]
+      },
+      "F5": {
+        "consensus": null,
+        "read_ids": [
+          "w45_a0",
+          "w45_a1",
+          "w45_c0",
+          "w45_c1"
+        ]
+      }
+    }
+  },
+  "stats": {
+    "total_reads": 13,
+    "wells_with_min_reads": 3,
+    "wells_with_reads": 3
+  },
+  "wells": {
+    "1_1": {
+      "consensus": "ATGGCTTGCTCTGTATCCACTGAGAACGTATCTTTCACTGAGACTGAAACTGAGACCCGTATGGCTTGCTCTGTATCCACTGAGAACGTATCTTTCACTGAGACTGAAACTGAGACCCGTATGGCTTGCTCTGTATCCACTGAGAACGTATCTTTCACTGAGACTGAAACTGAGACCCGTATGGCTTGCTCTGTATCCACTGAGAACGTATCTTTCACTGAGACTGAAACTGAGACCCGTATGGCTTGCTCTGTATCCACTGAGAACGTATCTTTCACTGAGACTGAAACTGAGACCCGT",
+      "read_ids": [
+        "w11_0",
+        "w11_1",
+        "w11_2",
+        "w11_3",
+        "w11_4"
+      ]
+    },
+    "2_3": {
+      "consensus": "ATGGCTTGCTCTGTATCCACTGAGAACGTATCTTTCACTGAGACTGAAACTGAGACCCGTATGGCTTGCTCTGTATCCACTGAGAACGTATCTTTCACTGAGACTGAAACTGAGACCCGTATGGCTTGCTCTGTATCCACTGAGAACGTATCTTTCACTGAGACTGAAACTGAGACCCGTATGGCTTGCTCTGTATCCACTGAGAACGTATCTTTCACTGAGACTGAAACTGAGACCCGTATGGCTTGCTCTGTATCCACTGAGAACGTATCTTTCACTGAGACTGAAACTGAGACCCGT",
+      "read_ids": [
+        "w23_0",
+        "w23_1",
+        "w23_2",
+        "w23_3"
+      ]
+    },
+    "4_5": {
+      "consensus": "ATGGCTTGCTCTGTATCCACTGAGAACGTATCTTTCACTGAGACTGAAACTGAGACCCGTATGGCTTGCTCTGTATCCACTGAGAACGTATCTTTCACTGAGACTGAAACTGAGACCCGTATGGCTTGCTCTGTATCCACTGAGAACGTATCTTTCACTGAGACTGAAACTGAGACCCGTATGGCTTGCTCTGTATCCACTGAGAACGTATCTTTCACTGAGACTGAAACTGAGACCCGTATGGCTTGCTCTGTATCCACTGAGAACGTATCTTTCACTGAGACTGAAACTGAGACCCGT",
+      "read_ids": [
+        "w45_a0",
+        "w45_a1",
+        "w45_c0",
+        "w45_c1"
+      ]
+    }
+  }
+}

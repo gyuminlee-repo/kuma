@@ -43,6 +43,7 @@ from __future__ import annotations
 import gzip
 import logging
 import multiprocessing
+import tempfile
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -54,6 +55,7 @@ from typing import Callable, Iterator
 from kuma_core.mame.ingest.align import (
     align_reads,
     align_reads_multi,
+    build_minimap2_index,
     _get_reference_length,
     Alignment,
 )
@@ -504,6 +506,128 @@ def _demux_read(
 
 
 # ---------------------------------------------------------------------------
+# Per-read chimera-path matching (extracted for optional ProcessPool fan-out)
+# ---------------------------------------------------------------------------
+
+# Default read-count threshold above which the chimera-path per-read matching
+# loop is fanned out to a ProcessPool (only when this run owns the cores, i.e.
+# n_nb == 1). Read at call time via os.environ so tests can lower it; a
+# module-level constant bound at import could not be overridden by monkeypatch.
+_PERREAD_THRESHOLD_DEFAULT = 10000
+
+# Default read-chunk size for the alignment stage. Reads are loaded and aligned
+# in chunks of this size instead of materialising the whole FASTQ in memory, so
+# the per-chunk minimap2 input/SAM and the per-chunk Alignment lists are dropped
+# between chunks (lowers alignment-stage peak RAM only; per_well accumulates to
+# consensus as before). Read at call time via os.environ (KUMA_MAME_READ_CHUNK)
+# so tests can lower it; a module-level constant bound at import could not be
+# overridden by monkeypatch. Identity is preserved because minimap2 maps each
+# query independently (per-read MAPQ, no cross-read normalisation), so a chunk's
+# per-read hits equal the whole-load's, and chunks are processed in input order
+# with per-chunk read_index re-sort -> global per_well append order is unchanged.
+_READ_CHUNK_DEFAULT = 50000
+
+
+def _iter_chunks(
+    it: Iterator[tuple[str, str]], size: int
+) -> Iterator[list[tuple[str, str]]]:
+    """Yield successive ``size``-length lists from *it* (last may be shorter)."""
+    chunk: list[tuple[str, str]] = []
+    for item in it:
+        chunk.append(item)
+        if len(chunk) >= size:
+            yield chunk
+            chunk = []
+    if chunk:
+        yield chunk
+
+
+def _match_reads_chunk(
+    chunk: list[tuple[int, str, str, list[Alignment]]],
+    r_barcodes: list[tuple[str, str]],
+    f_barcodes: list[tuple[str, str]],
+    window_bp: int,
+    edit_dist_ratio: float,
+    trim_flank_bp: int,
+) -> list[tuple[int, list[tuple[int, int, str]], int, int, int]]:
+    """Pure per-read barcode matching for the chimera (multi-hit) path.
+
+    Module-level (no closure) so it is picklable for a ``spawn`` ProcessPool.
+    Mirrors the serial loop body in :func:`run_combinatorial_demux` exactly
+    (slice extraction, per-hit ``_demux_read_anchored``, read-local dedup,
+    first-hit vs chimera-split classification). The matching logic itself is
+    unchanged; only the accumulation is returned to the caller instead of
+    mutating shared ``per_well``/``stats``.
+
+    Parameters
+    ----------
+    chunk:
+        ``(read_index, read_id, read_seq, hits)`` tuples. ``read_index`` is the
+        position in the original ``multi_results`` list, used by the caller to
+        re-sort results into input order before appending.
+
+    Returns
+    -------
+    One tuple per input read: ``(read_index, appends, assigned_delta,
+    chimera_delta, ambiguous_delta)`` where ``appends`` is the ordered list of
+    ``(r_idx, f_idx, slice_seq)`` to push onto ``per_well[(r_idx, f_idx)]`` and
+    the three deltas are this read's contribution to the matching stats.
+    """
+    out: list[tuple[int, list[tuple[int, int, str]], int, int, int]] = []
+    for read_index, _read_id, read_seq, hits in chunk:
+        assigned_wells_this_read: set[tuple[int, int]] = set()
+        is_first_hit = True
+        appends: list[tuple[int, int, str]] = []
+        assigned_delta = 0
+        chimera_delta = 0
+        ambiguous_delta = 0
+
+        for hit in hits:
+            slice_start = max(0, hit.q_st - trim_flank_bp)
+            slice_end = min(len(read_seq), hit.q_en + trim_flank_bp)
+            slice_seq = read_seq[slice_start:slice_end]
+
+            q_st_in_slice = hit.q_st - slice_start
+            q_en_in_slice = hit.q_en - slice_start
+
+            result = _demux_read_anchored(
+                read_seq=slice_seq,
+                q_st=q_st_in_slice,
+                q_en=q_en_in_slice,
+                strand=hit.strand,
+                r_barcodes=r_barcodes,
+                f_barcodes=f_barcodes,
+                window_bp=window_bp,
+                edit_dist_ratio=edit_dist_ratio,
+            )
+            if result is None:
+                ambiguous_delta += 1
+                is_first_hit = False
+                continue
+
+            r_idx, f_idx = result
+            well = (r_idx, f_idx)
+
+            if well in assigned_wells_this_read:
+                is_first_hit = False
+                continue
+
+            assigned_wells_this_read.add(well)
+            appends.append((r_idx, f_idx, slice_seq))
+
+            if is_first_hit:
+                assigned_delta += 1
+            else:
+                chimera_delta += 1
+            is_first_hit = False
+
+        out.append(
+            (read_index, appends, assigned_delta, chimera_delta, ambiguous_delta)
+        )
+    return out
+
+
+# ---------------------------------------------------------------------------
 # Core pipeline
 # ---------------------------------------------------------------------------
 
@@ -523,6 +647,7 @@ def run_combinatorial_demux(
     well_consensus_at_root: bool = False,
     minimap2_threads: int | None = None,
     consensus_workers: int | None = None,
+    per_read_parallel: bool = False,
     progress_callback: Callable[[int, int, str], None] | None = None,
 ) -> DemuxResult:
     """MAPQ-filtered alignment-anchored fuzzy per-well demux with chimera splitting.
@@ -611,60 +736,210 @@ def run_combinatorial_demux(
     ref_len = _get_reference_length(reference_fasta)
     log.info("Reference length: %d bp", ref_len)
 
-    all_reads: list[tuple[str, str]] = list(_iter_fastq(raw_fastq_paths))
-    stats.total_reads = len(all_reads)
-    log.info("Total reads: %d", stats.total_reads)
-
     per_well: dict[tuple[int, int], list[tuple[str, str]]] = defaultdict(list)
 
-    if chimera_split:
-        # --- multi-hit path: chimera / concatemer splitting ----------------
-        multi_results = align_reads_multi(
-            reads=all_reads,
-            reference_fasta=reference_fasta,
-            preset="map-ont",
-            min_mapq=mapq_threshold,
-            coverage_fraction=coverage_fraction,
-            threads=minimap2_threads,
-        )
+    # Chunk-stream read loading: load + align in N-read chunks instead of
+    # materialising the whole FASTQ. Each chunk's minimap2 input/SAM and its
+    # Alignment lists are dropped between iterations, lowering alignment-stage
+    # peak RAM only (per_well still accumulates across chunks to consensus).
+    # Identity is preserved because minimap2 maps each query independently
+    # (per-read MAPQ, no cross-read normalisation), so a chunk's per-read hits
+    # equal the whole-load's; chunks run in input order and the per-read pool
+    # re-sorts each chunk by read_index, so the global per_well append order
+    # (and thus consensus tie-break) is unchanged. stats are accumulated across
+    # chunks (total_reads/passed_*/per-read deltas all use +=).
+    _chunk_size = int(
+        os.environ.get("KUMA_MAME_READ_CHUNK", str(_READ_CHUNK_DEFAULT))
+    )
+    _chunk_size = max(1, _chunk_size)
+    _read_chunks = _iter_chunks(_iter_fastq(raw_fastq_paths), _chunk_size)
 
-        reads_with_hits = len(multi_results)
-        total_hit_count = sum(len(hits) for _, _, hits in multi_results)
-        stats.passed_coverage = reads_with_hits
-        stats.passed_mapq = reads_with_hits
-        log.info(
-            "Passed MAPQ+coverage filter: %d reads / %d total hits",
-            reads_with_hits,
-            total_hit_count,
-        )
+    for chunk_reads in _read_chunks:
+        stats.total_reads += len(chunk_reads)
 
-        _demux_total = len(multi_results)
-        _demux_step = max(1, _demux_total // 100)  # ~1% interval throttle
-        for _demux_i, (read_id, read_seq, hits) in enumerate(multi_results):
-            if progress_callback is not None and _demux_i % _demux_step == 0:
-                progress_callback(_demux_i, _demux_total, "demux")
-            # Track which wells this read has already been assigned to
-            # to prevent double-counting the same read in the same well.
-            assigned_wells_this_read: set[tuple[int, int]] = set()
-            is_first_hit = True
+        if chimera_split:
+            # --- multi-hit path: chimera / concatemer splitting ------------
+            multi_results = align_reads_multi(
+                reads=chunk_reads,
+                reference_fasta=reference_fasta,
+                preset="map-ont",
+                min_mapq=mapq_threshold,
+                coverage_fraction=coverage_fraction,
+                threads=minimap2_threads,
+            )
 
-            for hit in hits:
-                # Extract aligned slice + flanks from the raw read.
-                # Coordinates are in read (query) space; no strand flip here.
-                slice_start = max(0, hit.q_st - trim_flank_bp)
-                slice_end = min(len(read_seq), hit.q_en + trim_flank_bp)
-                slice_seq = read_seq[slice_start:slice_end]
+            reads_with_hits = len(multi_results)
+            total_hit_count = sum(len(hits) for _, _, hits in multi_results)
+            stats.passed_coverage += reads_with_hits
+            stats.passed_mapq += reads_with_hits
+            log.info(
+                "Passed MAPQ+coverage filter (chunk): %d reads / %d total hits",
+                reads_with_hits,
+                total_hit_count,
+            )
 
-                # Alignment anchors within the slice coordinate space.
-                # q_st/q_en are absolute positions in read_seq.
-                q_st_in_slice = hit.q_st - slice_start
-                q_en_in_slice = hit.q_en - slice_start
+            _demux_total = len(multi_results)
+            _threshold = int(
+                os.environ.get(
+                    "KUMA_MAME_PERREAD_THRESHOLD", str(_PERREAD_THRESHOLD_DEFAULT)
+                )
+            )
+            # Per-read ProcessPool fan-out is only safe/beneficial when this run
+            # owns the cores (n_nb == 1, signalled by per_read_parallel) and the
+            # dataset clears the spawn/pickle overhead break-even threshold. Below
+            # the threshold, or when n_nb > 1 (the per-NB pool already saturates
+            # cores), stay on the serial path. Both paths produce byte-identical
+            # per_well/stats: parallel results are re-sorted to input (read_index)
+            # order before append, and the matching logic is shared verbatim via
+            # _match_reads_chunk.
+            _use_perread_pool = (
+                per_read_parallel and _demux_total >= _threshold and _demux_total > 0
+            )
 
+            if _use_perread_pool:
+                # oversubscription guard: the per-NB pool is 1 here (n_nb == 1)
+                # and the consensus ThreadPool runs after this loop, so the
+                # per-read pool may use all cores.
+                cpu = os.cpu_count() or 4
+                _env_w = os.environ.get("KUMA_MAME_PERREAD_WORKERS", "").strip()
+                if _env_w.isdigit() and int(_env_w) > 0:
+                    pool_workers = min(int(_env_w), cpu)
+                else:
+                    pool_workers = cpu
+                pool_workers = max(1, min(pool_workers, _demux_total))
+
+                indexed = [
+                    (i, rid, rseq, hits)
+                    for i, (rid, rseq, hits) in enumerate(multi_results)
+                ]
+                chunk_size = max(1, (_demux_total + pool_workers - 1) // pool_workers)
+                chunks = [
+                    indexed[i : i + chunk_size]
+                    for i in range(0, _demux_total, chunk_size)
+                ]
+
+                collected: list[
+                    tuple[int, list[tuple[int, int, str]], int, int, int]
+                ] = []
+                ctx = multiprocessing.get_context("spawn")
+                with ProcessPoolExecutor(
+                    max_workers=pool_workers, mp_context=ctx
+                ) as ex:
+                    futs = [
+                        ex.submit(
+                            _match_reads_chunk,
+                            chunk,
+                            r_barcodes,
+                            f_barcodes,
+                            window_bp,
+                            edit_dist_ratio,
+                            trim_flank_bp,
+                        )
+                        for chunk in chunks
+                    ]
+                    _done = 0
+                    for fut in as_completed(futs):
+                        collected.extend(fut.result())
+                        _done += 1
+                        if progress_callback is not None:
+                            progress_callback(_done, len(futs), "demux")
+
+                # Re-sort to input order so per_well append order (and thus
+                # consensus tie-break) matches the serial path exactly.
+                collected.sort(key=lambda r: r[0])
+                id_by_index = {i: rid for i, rid, _, _ in indexed}
+                for (
+                    read_index,
+                    appends,
+                    assigned_d,
+                    chimera_d,
+                    ambiguous_d,
+                ) in collected:
+                    read_id = id_by_index[read_index]
+                    for r_idx, f_idx, slice_seq in appends:
+                        per_well[(r_idx, f_idx)].append((read_id, slice_seq))
+                    stats.assigned_reads += assigned_d
+                    stats.chimera_splits += chimera_d
+                    stats.ambiguous_dropped += ambiguous_d
+            else:
+                _demux_step = max(1, _demux_total // 100)  # ~1% interval throttle
+                for _demux_i, (read_id, read_seq, hits) in enumerate(multi_results):
+                    if progress_callback is not None and _demux_i % _demux_step == 0:
+                        progress_callback(_demux_i, _demux_total, "demux")
+                    # Track which wells this read has already been assigned to
+                    # to prevent double-counting the same read in the same well.
+                    assigned_wells_this_read: set[tuple[int, int]] = set()
+                    is_first_hit = True
+
+                    for hit in hits:
+                        # Extract aligned slice + flanks from the raw read.
+                        # Coordinates are in read (query) space; no strand flip.
+                        slice_start = max(0, hit.q_st - trim_flank_bp)
+                        slice_end = min(len(read_seq), hit.q_en + trim_flank_bp)
+                        slice_seq = read_seq[slice_start:slice_end]
+
+                        # Alignment anchors within the slice coordinate space.
+                        # q_st/q_en are absolute positions in read_seq.
+                        q_st_in_slice = hit.q_st - slice_start
+                        q_en_in_slice = hit.q_en - slice_start
+
+                        result = _demux_read_anchored(
+                            read_seq=slice_seq,
+                            q_st=q_st_in_slice,
+                            q_en=q_en_in_slice,
+                            strand=hit.strand,
+                            r_barcodes=r_barcodes,
+                            f_barcodes=f_barcodes,
+                            window_bp=window_bp,
+                            edit_dist_ratio=edit_dist_ratio,
+                        )
+                        if result is None:
+                            stats.ambiguous_dropped += 1
+                            is_first_hit = False
+                            continue
+
+                        r_idx, f_idx = result
+                        well = (r_idx, f_idx)
+
+                        if well in assigned_wells_this_read:
+                            # Already assigned to this well from an earlier hit.
+                            is_first_hit = False
+                            continue
+
+                        assigned_wells_this_read.add(well)
+                        per_well[well].append((read_id, slice_seq))
+
+                        if is_first_hit:
+                            stats.assigned_reads += 1
+                        else:
+                            stats.chimera_splits += 1
+                        is_first_hit = False
+
+        else:
+            # --- legacy single-hit path ------------------------------------
+            alignments = align_reads(
+                reads=chunk_reads,
+                reference_fasta=reference_fasta,
+                preset="map-ont",
+                min_mapq=mapq_threshold,
+                require_full_span=(coverage_fraction >= 1.0),
+                threads=minimap2_threads,
+            )
+            stats.passed_coverage += len(alignments)
+            stats.passed_mapq += len(alignments)
+            log.info(
+                "Passed MAPQ+coverage filter (chunk): %d / %d",
+                len(alignments),
+                len(chunk_reads),
+            )
+
+            for aln in alignments:
+                trimmed = _trim_read(aln, aln.read_seq, trim_flank_bp)
                 result = _demux_read_anchored(
-                    read_seq=slice_seq,
-                    q_st=q_st_in_slice,
-                    q_en=q_en_in_slice,
-                    strand=hit.strand,
+                    read_seq=aln.read_seq,
+                    q_st=aln.q_st,
+                    q_en=aln.q_en,
+                    strand=aln.strand,
                     r_barcodes=r_barcodes,
                     f_barcodes=f_barcodes,
                     window_bp=window_bp,
@@ -672,63 +947,12 @@ def run_combinatorial_demux(
                 )
                 if result is None:
                     stats.ambiguous_dropped += 1
-                    is_first_hit = False
                     continue
-
                 r_idx, f_idx = result
-                well = (r_idx, f_idx)
+                per_well[(r_idx, f_idx)].append((aln.read_id, trimmed))
+                stats.assigned_reads += 1
 
-                if well in assigned_wells_this_read:
-                    # Already assigned to this well from an earlier hit: skip.
-                    is_first_hit = False
-                    continue
-
-                assigned_wells_this_read.add(well)
-                per_well[well].append((read_id, slice_seq))
-
-                if is_first_hit:
-                    stats.assigned_reads += 1
-                else:
-                    stats.chimera_splits += 1
-                is_first_hit = False
-
-    else:
-        # --- legacy single-hit path ----------------------------------------
-        alignments = align_reads(
-            reads=all_reads,
-            reference_fasta=reference_fasta,
-            preset="map-ont",
-            min_mapq=mapq_threshold,
-            require_full_span=(coverage_fraction >= 1.0),
-            threads=minimap2_threads,
-        )
-        stats.passed_coverage = len(alignments)
-        stats.passed_mapq = len(alignments)
-        log.info(
-            "Passed MAPQ+coverage filter: %d / %d",
-            stats.passed_coverage,
-            stats.total_reads,
-        )
-
-        for aln in alignments:
-            trimmed = _trim_read(aln, aln.read_seq, trim_flank_bp)
-            result = _demux_read_anchored(
-                read_seq=aln.read_seq,
-                q_st=aln.q_st,
-                q_en=aln.q_en,
-                strand=aln.strand,
-                r_barcodes=r_barcodes,
-                f_barcodes=f_barcodes,
-                window_bp=window_bp,
-                edit_dist_ratio=edit_dist_ratio,
-            )
-            if result is None:
-                stats.ambiguous_dropped += 1
-                continue
-            r_idx, f_idx = result
-            per_well[(r_idx, f_idx)].append((aln.read_id, trimmed))
-            stats.assigned_reads += 1
-
+    log.info("Total reads: %d", stats.total_reads)
     log.info(
         "Barcode-assigned reads: %d  chimera splits: %d  (ambiguous/no-match dropped: %d)",
         stats.assigned_reads,
@@ -763,6 +987,26 @@ def run_combinatorial_demux(
 
     _consensus_total = len(per_well_reads)
 
+    # Build the reference minimap2 index once (map-ont preset, identical to the
+    # per-well alignment preset) so every well reuses it instead of rebuilding
+    # the index on each of the (up to 96) align_reads calls. The .mmi lives in a
+    # tempdir that spans the whole consensus loop below.
+    _index_tmp = tempfile.TemporaryDirectory(prefix="kuma_mame_idx_")
+    well_index: Path | None
+    try:
+        well_index = build_minimap2_index(
+            reference_fasta, Path(_index_tmp.name) / "reference.mmi"
+        )
+    except Exception as exc:  # noqa: BLE001
+        # Index prebuild is a pure performance optimisation. On any failure,
+        # fall back to per-well on-the-fly indexing (reference_index=None) so
+        # alignment output stays identical.
+        log.warning(
+            "minimap2 index prebuild failed (%s); per-well alignment will "
+            "index the reference FASTA on the fly", exc
+        )
+        well_index = None
+
     def _run_well(
         well_name: str,
         reads: list[tuple[str, str]],
@@ -781,7 +1025,8 @@ def run_combinatorial_demux(
             mapq_failed,
             span_failed,
         ) = _compute_well_consensus(
-            well_name, reads, reference_fasta, ref_seq, ref_len, min_depth
+            well_name, reads, reference_fasta, ref_seq, ref_len, min_depth,
+            reference_index=well_index,
         )
         return (
             well_name,
@@ -844,6 +1089,9 @@ def run_combinatorial_demux(
             if progress_callback is not None:
                 progress_callback(_consensus_done, _consensus_total, "consensus")
 
+    # All wells finished aligning against the prebuilt index; drop the tempdir.
+    _index_tmp.cleanup()
+
     # Combined single-file consensus FASTA (all wells, sorted by R then F),
     # mirroring the Aporva pipeline's final/<...>_consensus_dna.fasta output.
     # The per-well consensus/ files above are still written.
@@ -880,6 +1128,7 @@ def _compute_well_consensus(
     ref_seq: str,
     ref_len: int,
     min_depth: int,
+    reference_index: Path | None = None,
 ) -> tuple[str, int, int, float, int, float, int, int, int, int, int]:
     """Align reads and return consensus sequence, depth, and mix metrics."""
     if not reads:
@@ -907,6 +1156,10 @@ def _compute_well_consensus(
         # ThreadPoolExecutor across wells, so per-well minimap2 must stay
         # single-threaded to avoid workers x threads oversubscription.
         threads=1,
+        # Reuse the reference .mmi prebuilt once for the whole consensus loop
+        # (map-ont preset), skipping a fresh per-well index build. None falls
+        # back to indexing reference_fasta on the fly.
+        reference_index=reference_index,
     )
 
     if not well_alignments:
@@ -962,6 +1215,7 @@ def _demux_one_nb(payload: dict) -> dict:
         trim_flank_bp=payload["trim_flank_bp"], edit_dist_ratio=payload["edit_dist_ratio"],
         chimera_split=payload["chimera_split"], well_consensus_at_root=True,
         minimap2_threads=payload["minimap2_threads"], consensus_workers=payload["consensus_workers"],
+        per_read_parallel=payload.get("per_read_parallel", False),
         progress_callback=None)
     s = result.stats
     _keys = ("total_reads", "passed_mapq", "passed_coverage", "assigned_reads",
@@ -1016,6 +1270,11 @@ def run_combinatorial_demux_per_nb(
     else:
         P = 1
     threads_per = max(1, cpu // P)
+    # n_nb == 1: this single NB runs in the main process (no per-NB pool), so
+    # the per-read matching loop may fan out to its own ProcessPool. With n>1
+    # the per-NB pool already owns the cores, so per-read stays serial (and
+    # nesting a pool inside a worker is illegal anyway).
+    per_read_parallel = n == 1
 
     payloads: list[dict] = []
     for nb_name, paths in nb_to_fastq.items():
@@ -1034,6 +1293,7 @@ def run_combinatorial_demux_per_nb(
             "chimera_split": chimera_split,
             "minimap2_threads": threads_per,
             "consensus_workers": threads_per,
+            "per_read_parallel": per_read_parallel,
         })
 
     # Fail fast if two entries map to the same sort_barcode output dir
