@@ -45,10 +45,14 @@ function CopySeqAction({ seq }: { seq: string }) {
   return <CopySeqButton seq={seq} copied={copied} onCopy={handleCopy} />;
 }
 
-export function buildGroupColorMap(results: SdmPrimerResult[]): Map<number, string> {
+/**
+ * Builds a position→color map for duplicate aa positions.
+ * Only positions that appear ≥2 times in the input array receive a color.
+ * Colors are assigned in first-appearance order.
+ */
+export function buildPositionColorMap(positions: (number | null)[]): Map<number, string> {
   const posCount = new Map<number, number>();
-  for (const r of results) {
-    const pos = r.aa_position;
+  for (const pos of positions) {
     if (pos != null) posCount.set(pos, (posCount.get(pos) ?? 0) + 1);
   }
 
@@ -63,6 +67,10 @@ export function buildGroupColorMap(results: SdmPrimerResult[]): Map<number, stri
   return colorMap;
 }
 
+export function buildGroupColorMap(results: SdmPrimerResult[]): Map<number, string> {
+  return buildPositionColorMap(results.map((r) => r.aa_position));
+}
+
 export function makeResultTableColumns(opts: {
   groupColorMap: Map<number, string>;
   codonStrategy: "closest" | "optimal";
@@ -72,9 +80,6 @@ export function makeResultTableColumns(opts: {
   rescuedMutations: Set<string>;
   rescueDetailMap: Map<string, RescuedMutation>;
   removeDesignResult: (mutation: string, reason: string) => void;
-  excludedDesignMutations: Set<string>;
-  setDesignMutationIncluded: (mutation: string, included: boolean) => void;
-  selectionEnabled: boolean;
   yPredMap: Record<string, number>;
   /**
    * Canonical row-order index map produced by sortPrimersCanonical().
@@ -97,9 +102,6 @@ export function makeResultTableColumns(opts: {
     rescuedMutations,
     rescueDetailMap,
     removeDesignResult,
-    excludedDesignMutations,
-    setDesignMutationIncluded,
-    selectionEnabled,
     yPredMap,
     canonicalOrder,
     colorblindMode = false,
@@ -107,33 +109,6 @@ export function makeResultTableColumns(opts: {
   } = opts;
 
   return [
-    ...(selectionEnabled
-      ? [
-          col.display({
-            id: "include",
-            header: t("resultTable.includeHeader"),
-            size: 54,
-            enableSorting: false,
-            cell: (info) => {
-              const row = info.row.original;
-              const included = !excludedDesignMutations.has(row.mutation);
-              return (
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 rounded-control accent-primary"
-                  checked={included}
-                  aria-label={t("resultTable.includeAriaLabel", { mutation: row.mutation })}
-                  title={included ? t("resultTable.excludeTitle") : t("resultTable.includeTitle")}
-                  onClick={(event) => event.stopPropagation()}
-                  onChange={(event) => {
-                    setDesignMutationIncluded(row.mutation, event.currentTarget.checked);
-                  }}
-                />
-              );
-            },
-          }),
-        ]
-      : []),
     col.display({
       id: "rank",
       header: "#",

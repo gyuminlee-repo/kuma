@@ -1488,7 +1488,11 @@
     "othersPreviewError": "Preview failed: {{message}}",
     "othersApplyBtn": "Apply selected columns",
     "othersApplyError": "Column load failed: {{message}}",
-    "othersUsedColumn": "Applied column: {{column}}"
+    "othersUsedColumn": "Applied column: {{column}}",
+    "extraExposedLabel": "Extra candidates shown:",
+    "extraExposedAriaLabel": "Number of extra unselected candidates to display",
+    "extraExposedHint": "(0 = selected only)",
+    "bufferCapReached": "All {{count}} additional candidates shown"
   },
   "uniprotSearch": {
     "topCandidates": "Top candidates {{shown}}{{total}}",

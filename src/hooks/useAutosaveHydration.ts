@@ -87,7 +87,8 @@ async function applyKuroSnapshot(snapshot: AutosaveSnapshot): Promise<void> {
 
   // input
   if (isMutationInputMode(input?.mutation_input_mode)) {
-    patch.mutationInputMode = input.mutation_input_mode;
+    // Coerce legacy "text" mode to "evolvepro" (Text input removed from UI)
+    patch.mutationInputMode = input.mutation_input_mode === "text" ? "evolvepro" : input.mutation_input_mode;
   }
   if (typeof input?.mutation_text === "string") {
     patch.mutationText = input.mutation_text;

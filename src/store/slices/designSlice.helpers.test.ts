@@ -4,7 +4,7 @@ import {
   addDesignResultState,
   buildIncludedPlateState,
   getIncludedDesignResults,
-  pruneExcludedDesignMutations,
+  prepareDesignInput,
   processDesignResult,
 } from "./designSlice.helpers";
 
@@ -88,31 +88,13 @@ describe("designSlice helpers rescue capping", () => {
 });
 
 describe("designSlice helpers included result view", () => {
-  it("includes every designed result by default", () => {
+  it("returns all design results (always all-included after exclusion removal)", () => {
     const results = [primer("M1A", 1), primer("M2A", 2)];
 
-    expect(getIncludedDesignResults(results, [])).toEqual(results);
+    expect(getIncludedDesignResults(results)).toEqual(results);
   });
 
-  it("excludes matching mutation ids without mutating raw design results", () => {
-    const results = [primer("M1A", 1), primer("M2A", 2), primer("M3A", 3)];
-
-    const included = getIncludedDesignResults(results, ["M2A"]);
-
-    expect(included.map((result) => result.mutation)).toEqual(["M1A", "M3A"]);
-    expect(results.map((result) => result.mutation)).toEqual(["M1A", "M2A", "M3A"]);
-  });
-
-  it("prunes stale and duplicate exclusions against the current design results", () => {
-    const results = [primer("M1A", 1), primer("M2A", 2)];
-
-    expect(pruneExcludedDesignMutations(results, ["M2A", "STALE", "M2A", "M1A"])).toEqual([
-      "M2A",
-      "M1A",
-    ]);
-  });
-
-  it("builds plate state from the included view only", () => {
+  it("builds plate state from all design results", () => {
     const sharedReverse = primer("M2A", 2);
     const results = [
       primer("M1A", 1),
@@ -122,30 +104,100 @@ describe("designSlice helpers included result view", () => {
 
     const plateState = buildIncludedPlateState({
       designResults: results,
-      excludedDesignMutations: ["M2A"],
       wellName,
     });
 
+    // M2A and M3A share the same reverse_seq "GCAT2", so only M2A appears as reverse representative
     expect(plateState.plateMappings.map((mapping) => mapping.mutation)).toEqual([
       "M1A",
+      "M2A",
       "M3A",
       "M1A",
-      "M3A",
+      "M2A",
     ]);
-    expect(plateState.dedupInfo).toEqual({
-      GCAT1: ["M1A"],
-      GCAT2: ["M3A"],
-    });
   });
 
-  it("returns empty downstream artifacts when every result is excluded", () => {
+  it("returns empty artifacts for empty design results", () => {
     const plateState = buildIncludedPlateState({
-      designResults: [primer("M1A", 1), primer("M2A", 2)],
-      excludedDesignMutations: ["M1A", "M2A"],
+      designResults: [],
       wellName,
     });
 
     expect(plateState.plateMappings).toEqual([]);
     expect(plateState.dedupInfo).toEqual({});
+  });
+});
+
+
+describe("prepareDesignInput selection set wiring", () => {
+  const baseParams = {
+    mutationText: "F89W\nL70V\nM1A",
+    maxPrimers: 3,
+    fillOnFailure: false,
+    mutationInputMode: "evolvepro" as const,
+    selectedGene: "",
+    poolVariants: ["EXTRA1", "EXTRA2"],
+  };
+
+  it("text mode uses mutationText regardless of evolveproSelectedVariants", () => {
+    const result = prepareDesignInput({
+      ...baseParams,
+      mutationInputMode: "text" as const,
+      evolveproSelectedVariants: ["SHOULD_NOT_APPEAR"],
+    });
+    expect(result.limitedText).toBe("F89W\nL70V\nM1A");
+  });
+
+  it("evolvepro mode with selection set derives limitedText from selection", () => {
+    const result = prepareDesignInput({
+      ...baseParams,
+      evolveproSelectedVariants: ["F89W", "L70V"],
+      evolveproRankedCandidates: [
+        { variant: "F89W", y_pred: 0.9, aa_position: 89 },
+        { variant: "L70V", y_pred: 0.5, aa_position: 70 },
+        { variant: "M1A", y_pred: 0.3, aa_position: 1 },
+      ],
+    });
+    expect(result.limitedText).toBe("F89W\nL70V");
+    expect(result.intendedMuts.has("F89W")).toBe(true);
+    expect(result.intendedMuts.has("M1A")).toBe(false);
+  });
+
+  it("evolvepro selection respects ranked_candidates y_pred order", () => {
+    const result = prepareDesignInput({
+      ...baseParams,
+      evolveproSelectedVariants: ["M1A", "F89W", "L70V"],  // out of rank order
+      evolveproRankedCandidates: [
+        { variant: "F89W", y_pred: 0.9, aa_position: 89 },
+        { variant: "L70V", y_pred: 0.5, aa_position: 70 },
+        { variant: "M1A", y_pred: 0.3, aa_position: 1 },
+      ],
+    });
+    expect(result.limitedText).toBe("F89W\nL70V\nM1A");
+  });
+
+  it("evolvepro mode with empty selection produces empty limitedText", () => {
+    const result = prepareDesignInput({
+      ...baseParams,
+      evolveproSelectedVariants: [],
+      evolveproRankedCandidates: [
+        { variant: "F89W", y_pred: 0.9, aa_position: 89 },
+      ],
+    });
+    // Falls back to mutationText when selection is empty
+    expect(result.limitedText).toBe("F89W\nL70V\nM1A");
+  });
+
+  it("evolvepro rescue pool excludes intended mutations from selection set", () => {
+    const result = prepareDesignInput({
+      ...baseParams,
+      evolveproSelectedVariants: ["F89W"],
+      evolveproRankedCandidates: [
+        { variant: "F89W", y_pred: 0.9, aa_position: 89 },
+      ],
+      poolVariants: ["EXTRA1", "EXTRA2", "F89W"],
+    });
+    expect(result.rescuePool).not.toContain("F89W");
+    expect(result.rescuePool).toContain("EXTRA1");
   });
 });

@@ -1439,7 +1439,11 @@
     "othersPreviewError": "미리보기 실패: {{message}}",
     "othersApplyBtn": "선택한 column 적용",
     "othersApplyError": "Column 불러오기 실패: {{message}}",
-    "othersUsedColumn": "적용된 column: {{column}}"
+    "othersUsedColumn": "적용된 column: {{column}}",
+    "extraExposedLabel": "추가 후보 표시 수:",
+    "extraExposedAriaLabel": "표시할 추가 미선택 후보 수",
+    "extraExposedHint": "(0 = 선택된 항목만)",
+    "bufferCapReached": "추가 후보 {{count}}개 전체 표시됨"
   },
   "offTargetDetail": {
     "closeAriaLabel": "닫기",

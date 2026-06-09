@@ -193,6 +193,8 @@ export interface EvolveproLoadResult {
   used_variant_column?: string | null;
   used_score_column?: string | null;
   step_stats?: EvolveproStepStats;
+  /** Ranked candidates beyond the selected set: selected + up to BUFFER_CAP extras, y_pred desc. */
+  ranked_candidates?: import("./models.generated").RankedCandidateItem[];
 }
 
 export interface EvolveproPreview {

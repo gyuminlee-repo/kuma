@@ -398,3 +398,178 @@ class TestStartCodonFilter:
 
         assert result["start_codon_removed_variants"] == []
         assert len(result["start_codon_removed_variants"]) == result["start_codon_removed"]
+
+
+class TestRankedCandidates:
+    """Validate the ranked_candidates field of load_evolvepro_csv."""
+
+    def test_sorted_descending_by_y_pred(self, tmp_path):
+        """ranked_candidates must be ordered by y_pred descending (global sort order)."""
+        csv_file = tmp_path / "ranked.csv"
+        csv_file.write_text(
+            "variant,y_pred\n"
+            "A10V,0.50\n"
+            "A20V,0.90\n"
+            "A30V,0.70\n"
+        )
+
+        result = load_evolvepro_csv(csv_file, top_n=2)
+
+        rc = result["ranked_candidates"]
+        assert len(rc) >= 2, "at least selected_count items expected"
+        scores = [item["y_pred"] for item in rc]
+        assert scores == sorted(scores, reverse=True), (
+            f"ranked_candidates not sorted descending: {scores}"
+        )
+
+    def test_length_capped_at_selected_plus_buffer(self, tmp_path):
+        """ranked_candidates length <= selected_count + EVOLVEPRO_RANKED_BUFFER."""
+        from kuma_core.kuro.evolvepro import EVOLVEPRO_RANKED_BUFFER
+
+        rows = "\n".join(f"A{i}V,{0.99 - i * 0.01}" for i in range(2, 202))
+        csv_file = tmp_path / "big.csv"
+        csv_file.write_text("variant,y_pred\n" + rows)
+
+        result = load_evolvepro_csv(csv_file, top_n=10)
+
+        expected_max = result["selected_count"] + EVOLVEPRO_RANKED_BUFFER
+        assert len(result["ranked_candidates"]) <= expected_max, (
+            f"ranked_candidates has {len(result['ranked_candidates'])} items, "
+            f"expected <= {expected_max}"
+        )
+
+    def test_y_pred_rounded_to_4_places(self, tmp_path):
+        """y_pred in each item is rounded to 4 decimal places."""
+        csv_file = tmp_path / "precise.csv"
+        csv_file.write_text(
+            "variant,y_pred\n"
+            "A10V,0.123456789\n"
+        )
+
+        result = load_evolvepro_csv(csv_file, top_n=5)
+
+        for item in result["ranked_candidates"]:
+            assert item["y_pred"] == round(item["y_pred"], 4), (
+                f"y_pred not rounded to 4 places: {item['y_pred']}"
+            )
+
+    def test_aa_position_extracted_correctly(self, tmp_path):
+        """aa_position must match the numeric part of a standard variant string."""
+        csv_file = tmp_path / "positions.csv"
+        csv_file.write_text(
+            "variant,y_pred\n"
+            "A42V,0.90\n"
+            "Q100K,0.80\n"
+        )
+
+        result = load_evolvepro_csv(csv_file, top_n=5)
+
+        pos_map = {item["variant"]: item["aa_position"] for item in result["ranked_candidates"]}
+        assert pos_map["A42V"] == 42, f"Expected aa_position=42, got {pos_map.get('A42V')}"
+        assert pos_map["Q100K"] == 100, f"Expected aa_position=100, got {pos_map.get('Q100K')}"
+
+    def test_aa_position_none_for_unparseable_variant(self, tmp_path):
+        """aa_position is None (not 0) for variant strings without a position digit."""
+        csv_file = tmp_path / "no_pos.csv"
+        csv_file.write_text(
+            "variant,y_pred\n"
+            "WT,0.50\n"
+        )
+
+        result = load_evolvepro_csv(csv_file, top_n=5)
+
+        wt_items = [i for i in result["ranked_candidates"] if i["variant"] == "WT"]
+        assert wt_items, "WT variant should appear in ranked_candidates"
+        assert wt_items[0]["aa_position"] is None, (
+            f"Expected None for WT aa_position, got {wt_items[0]['aa_position']}"
+        )
+
+    def test_position_filter_does_not_affect_buffer_pool(self, tmp_path):
+        """ranked_candidates uses the full sorted list, not the position-filtered one.
+
+        When max_per_position=1, some variants are removed from selection, but
+        ranked_candidates must still include them if they fall within
+        selected_count + BUFFER from the top of the global score ranking.
+        """
+        from kuma_core.kuro.evolvepro import EVOLVEPRO_RANKED_BUFFER
+
+        # Two variants at position 10 — only one passes max_per_position=1
+        csv_file = tmp_path / "pos_filter.csv"
+        csv_file.write_text(
+            "variant,y_pred\n"
+            "A10V,0.99\n"
+            "A10G,0.98\n"  # same position, will be filtered from selection
+            "A20V,0.50\n"
+        )
+
+        result = load_evolvepro_csv(csv_file, top_n=3, max_per_position=1)
+
+        # A10G may be excluded from selected variants but must still appear in
+        # ranked_candidates since it is the 2nd-highest overall score
+        rc_variants = {item["variant"] for item in result["ranked_candidates"]}
+        assert "A10G" in rc_variants, (
+            "A10G filtered from selection but must appear in ranked_candidates "
+            "(ranked_candidates uses pre-filter pool)"
+        )
+
+    def test_selected_always_subset_of_ranked_candidates_after_position_filter(self, tmp_path):
+        """Regression: selected variants must always appear in ranked_candidates.
+
+        Reproduces the buffer-overflow bug: when high-scoring variants cluster at
+        a few positions and max_per_position=1, the lowest-ranked selected variants
+        can have global scores that fall beyond selected_count + BUFFER from the top.
+        Under the old ranked_full[:len(selected)+BUFFER] slice they were silently
+        dropped from ranked_candidates, causing the frontend to lose them on load.
+
+        Scenario: 60 variants at 2 positions (scores 1.00-0.41 step 0.01),
+        max_per_position=1, top_n=20. Only 2 variants can be selected (one per
+        position). But up to 58 unselected variants outrank those 2 selections in
+        the global ordering — under the old logic the lower-scoring selected
+        variant fell outside ranked_full[:2+50] and was dropped.
+        """
+        # Build 60 variants: 30 at position 10 (scores 1.00-0.71), 30 at position 20 (scores 0.70-0.41)
+        lines = ["variant,y_pred"]
+        for i in range(30):
+            lines.append(f"A10{chr(ord('A') + i % 20)},{1.00 - i * 0.01:.2f}")
+        for i in range(30):
+            lines.append(f"B20{chr(ord('A') + i % 20)},{0.70 - i * 0.01:.2f}")
+        csv_file = tmp_path / "pos_cluster.csv"
+        csv_file.write_text("\n".join(lines))
+
+        result = load_evolvepro_csv(csv_file, top_n=20, max_per_position=1)
+
+        # max_per_position=1 means at most 1 selected per position.
+        # selected_count will be ≤ 2 (one per position).
+        selected_set = set(result["variants"])
+        rc_variants = {item["variant"] for item in result["ranked_candidates"]}
+
+        missing = selected_set - rc_variants
+        assert not missing, (
+            f"Selected variants missing from ranked_candidates: {missing}. "
+            f"selected={sorted(selected_set)}, rc_sample={sorted(rc_variants)[:5]}"
+        )
+
+    def test_aa_position_multi_substitution_first_token(self, tmp_path):
+        """aa_position returns the first token position for multi-substitution variants.
+
+        Tokens separated by space, comma, or slash — only the first token's
+        position is extracted.  This keeps ranked_candidates consistent with
+        the design table's per-position representation.
+        """
+        from kuma_core.kuro.evolvepro import _extract_aa_position
+
+        assert _extract_aa_position("A42V A56T") == 42, "space-separated: first token position"
+        assert _extract_aa_position("A42V,A56T") == 42, "comma-separated: first token position"
+        assert _extract_aa_position("A42V/A56T") == 42, "slash-separated: first token position"
+
+    def test_aa_position_none_when_first_token_has_no_position(self, tmp_path):
+        """aa_position is None when the first token carries no parseable position.
+
+        A leading non-positional token (e.g. WT) must not cause a later token
+        to be extracted as the position.
+        """
+        from kuma_core.kuro.evolvepro import _extract_aa_position
+
+        assert _extract_aa_position("WT") is None, "standalone WT must return None"
+        assert _extract_aa_position("del42") is None, "deletion notation without trailing AA must return None"
+
