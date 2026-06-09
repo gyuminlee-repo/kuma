@@ -122,12 +122,24 @@ def test_min_read_count_parameterization_when_available() -> None:
     assert "read_count=2" in result.verdict_notes
 
 
-def test_min_read_count_default_preserves_legacy_file_size_gate() -> None:
-    """A low read_count does not change verdicts unless min_read_count is set."""
+def test_min_read_count_default_uses_real_depth() -> None:
+    """The default read-depth gate (min_read_count=30) drives LOWDEPTH.
+
+    A well whose consensus carries a real depth below the recommended 30 is
+    LOWDEPTH via the read_count gate, even when its FASTA file clears the
+    file-size proxy. This is the documented default behavior after the gate
+    moved from file size to read depth.
+    """
 
     tr = _tr(["V5F"], file_size_kb=75.0, read_count=1)
-    result = classify_verdict(tr, ["V5F"], _params(min_file_size_kb=50.0))
-    assert result.verdict is VerdictClass.PASS
+    result = classify_verdict(tr, ["V5F"], _params())
+    assert result.verdict is VerdictClass.LOWDEPTH
+    assert "read_count=1" in result.verdict_notes
+
+    # Disabling the gate (min_read_count=None) restores legacy PASS for the same
+    # record once it clears the file-size proxy.
+    relaxed = classify_verdict(tr, ["V5F"], _params(min_read_count=None))
+    assert relaxed.verdict is VerdictClass.PASS
 
 
 def test_mixed_consensus_signal_blocks_clean_pass() -> None:
@@ -189,3 +201,75 @@ def test_consensus_n_fraction_gate_can_be_relaxed() -> None:
         _params(max_consensus_n_fraction=0.02),
     )
     assert result.verdict is VerdictClass.PASS
+
+
+# Depth-gate regression (v0.13.0.1).
+# Every well used to falsely fail LOWDEPTH because the file_size_kb gate
+# compared a fixed ~1.8 KB per-well consensus FASTA against min_file_size_kb=50,
+# which a consensus FASTA can never reach. The real depth signal (depth=N
+# header, parsed into read_count) was present but the read_count gate was
+# disabled. These tests pin the corrected behavior: depth drives LOWDEPTH; the
+# file_size proxy is a fallback that fires only when depth=N is genuinely
+# absent.
+
+
+def test_depth_present_and_clean_consensus_is_not_lowdepth() -> None:
+    """The exact regression: a depth-sufficient, clean well with a tiny FASTA.
+
+    read_count=142 (>= default 30), N fraction 0, file_size ~1.8 KB (< 50 KB).
+    The well must NOT be LOWDEPTH: the small consensus FASTA must no longer
+    drag a depth-sufficient well into LOWDEPTH.
+    """
+
+    tr = _tr(["V5F"], file_size_kb=1.84, read_count=142, consensus_n_fraction=0.0)
+    result = classify_verdict(tr, ["V5F"], _params())
+    assert result.verdict is VerdictClass.PASS, result.verdict_notes
+
+
+def test_depth_below_threshold_is_lowdepth() -> None:
+    """A well whose real read depth is below min_read_count is LOWDEPTH."""
+
+    tr = _tr(["V5F"], file_size_kb=1.84, read_count=12)
+    result = classify_verdict(tr, ["V5F"], _params())
+    assert result.verdict is VerdictClass.LOWDEPTH
+    assert "read_count=12" in result.verdict_notes
+    assert "min_read_count=30" in result.verdict_notes
+
+
+def test_high_consensus_n_fraction_is_lowdepth_even_with_good_depth() -> None:
+    """The consensus_n_fraction gate still fires for a depth-sufficient well.
+
+    read_count=200 clears the read_count gate, so a LOWDEPTH verdict here can
+    only come from the N-fraction gate, proving it is not preempted.
+    """
+
+    tr = _tr(
+        ["V5F"],
+        file_size_kb=1.84,
+        read_count=200,
+        consensus_n_fraction=0.5,
+        n_low_depth_positions=4,
+    )
+    result = classify_verdict(tr, ["V5F"], _params())
+    assert result.verdict is VerdictClass.LOWDEPTH
+    assert "consensus_n_fraction=0.500" in result.verdict_notes
+
+
+def test_no_depth_header_falls_back_to_file_size_gate() -> None:
+    """When depth=N is absent (read_count is None) the file_size proxy fires.
+
+    A directly-constructed record with read_count=None and a sub-threshold
+    file size must still be LOWDEPTH via the preserved fallback path; raising
+    the file above the threshold restores PASS.
+    """
+
+    small = _tr(["V5F"], file_size_kb=30.0, read_count=None)
+    fallback = classify_verdict(small, ["V5F"], _params(min_file_size_kb=50.0))
+    assert fallback.verdict is VerdictClass.LOWDEPTH
+    assert "file_size_kb=30.00" in fallback.verdict_notes
+
+    large = _tr(["V5F"], file_size_kb=75.0, read_count=None)
+    assert (
+        classify_verdict(large, ["V5F"], _params(min_file_size_kb=50.0)).verdict
+        is VerdictClass.PASS
+    )

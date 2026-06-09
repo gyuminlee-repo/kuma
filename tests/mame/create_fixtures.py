@@ -68,11 +68,14 @@ _FASTA_MAP: dict[tuple[str, str], str] = {
     ("NB03", "1_4"): _NB03_1_4,
 }
 
-# NB02/1_1 must land below min_file_size_kb=50. With the default body ~180 bytes
-# and header ">1_1\n", the raw file is <1 KB which satisfies <50 KB trivially.
-# For all other files we pad with FASTA comment/data lines so they exceed 50 KB
-# while keeping their parsed sequence identical.
+# NB02/1_1 is the designated LOWDEPTH fixture. LOWDEPTH is now driven by the
+# real read-depth gate (the consensus `depth=N` header) rather than the
+# file-size proxy: this well carries `depth=5` (< the recommended
+# min_read_count=30) so it stays LOWDEPTH regardless of file size. Every other
+# well carries `depth=100` so the read-depth gate clears them.
 _LOWDEPTH_KEY = ("NB02", "1_1")
+_LOWDEPTH_DEPTH = 5
+_PASSING_DEPTH = 100
 
 
 def reference_sequence() -> str:
@@ -172,8 +175,16 @@ def ensure_fixtures() -> None:
         out = FIXTURE_ROOT / "mock_consensus_output" / nb / f"{custom}.fasta"
         if out.exists():
             continue
-        pad = None if (nb, custom) == _LOWDEPTH_KEY else _PAD_BYTES_ABOVE
-        _write_fasta(out, header=custom, body=body, pad_to_bytes=pad)
+        is_lowdepth = (nb, custom) == _LOWDEPTH_KEY
+        # Real read depth lives in the consensus `depth=N` header. The LOWDEPTH
+        # fixture carries depth below min_read_count; all others clear it. The
+        # custom_barcode is header.split()[0], so the trailing ` depth=N` is
+        # parsed as metadata without disturbing the barcode token.
+        depth = _LOWDEPTH_DEPTH if is_lowdepth else _PASSING_DEPTH
+        pad = None if is_lowdepth else _PAD_BYTES_ABOVE
+        _write_fasta(
+            out, header=f"{custom} depth={depth}", body=body, pad_to_bytes=pad
+        )
 
 
 if __name__ == "__main__":

@@ -42,7 +42,11 @@ _PAD = "\n" * (52 * 1024 // 1)  # ~52 KB of newlines
 
 def _write_fasta(path: Path, header: str, body: str, pad: bool = True) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    text = f">{header}\n{body}\n"
+    # Carry a depth=N header well above the recommended min_read_count=30 so the
+    # real read-depth gate clears these wells; these tests exercise scoping, not
+    # the LOWDEPTH gate. custom_barcode is header.split()[0], so the trailing
+    # metadata is parsed without disturbing the barcode token.
+    text = f">{header} depth=100\n{body}\n"
     if pad:
         text += _PAD
     path.write_text(text, encoding="utf-8")
