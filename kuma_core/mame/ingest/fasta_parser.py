@@ -23,8 +23,8 @@ from __future__ import annotations
 
 import logging
 import re
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Iterator
 
 from kuma_core.mame.ingest.consensus_metadata import (
     ALIGNED_READS,
@@ -38,17 +38,16 @@ from kuma_core.mame.ingest.consensus_metadata import (
     MIXED_POSITIONS,
     SPAN_FAILED,
 )
-from kuma_core.mame.ingest.stage_marker import read_stage_marker, validate_marker
+from kuma_core.mame.ingest.stage_marker import (
+    CONSENSUS_FILE_PATTERNS,
+    read_stage_marker,
+    validate_marker,
+)
 from kuma_core.mame.models import BarcodeRecord
 
 _logger = logging.getLogger(__name__)
 
 _METADATA_RE = re.compile(r"(?:^|\s)([A-Za-z_][A-Za-z0-9_]*)=([^\s]+)")
-_CONSENSUS_FILE_PATTERNS = (
-    "*.fasta",
-    "*.fa",
-    "*.fas",
-)
 
 
 def _open_text(path: Path):
@@ -87,7 +86,7 @@ def _consensus_n_fraction(consensus_seq: str) -> float:
 
 def _iter_consensus_files(directory: Path) -> Iterator[Path]:
     seen: set[Path] = set()
-    for pattern in _CONSENSUS_FILE_PATTERNS:
+    for pattern in CONSENSUS_FILE_PATTERNS:
         for path in sorted(directory.glob(pattern)):
             if path in seen:
                 continue

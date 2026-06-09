@@ -135,6 +135,53 @@ def test_marker_with_mismatched_inventory_is_not_complete(tmp_path: Path) -> Non
     assert "missing" in reason
 
 
+def test_marker_with_stray_fa_orphan_is_not_complete(tmp_path: Path) -> None:
+    """A stray ``.fa`` / ``.fas`` orphan must be detected as an extra file.
+
+    The consumer (``fasta_parser._iter_consensus_files``) reads ``*.fasta``,
+    ``*.fa`` and ``*.fas``.  The orphan-guard inventory must glob the SAME
+    extension set; otherwise a stray ``.fa`` slips past ``validate_marker``
+    (which only saw ``*.fasta``) yet is still consumed downstream.
+    """
+    nb = tmp_path / "NB06"
+    nb.mkdir()
+    _write_consensus(nb, "1_1")  # valid recorded well (.fasta)
+    # A stale orphan from a prior/aborted run, NOT in the marker inventory.
+    (nb / "1_2.fa").write_text(
+        _CONSENSUS_FASTA.format(well="1_2"), encoding="utf-8"
+    )
+    write_stage_marker(nb, per_well_counts={"1_1": 12}, consensus=True)
+
+    assert is_unit_complete(nb) is False
+    marker = read_stage_marker(nb)
+    assert marker is not None
+    ok, reason = validate_marker(marker, nb)
+    assert ok is False
+    # The .fa orphan is reported as an extra file not in the inventory.
+    assert "not in the marker" in reason
+    assert "1_2" in reason
+
+
+def test_consumer_guard_stray_fa_orphan_fails_fast(tmp_path: Path) -> None:
+    """``load_barcode_directory`` fail-fasts on a stray ``.fa`` orphan.
+
+    Without the symmetric glob, the orphan bypasses the guard and is silently
+    parsed as a well; with the fix the inventory mismatch raises before any
+    file is consumed.
+    """
+    root = tmp_path / "out"
+    nb = root / "NB01"
+    nb.mkdir(parents=True)
+    _write_consensus(nb, "1_1")
+    (nb / "1_2.fa").write_text(
+        _CONSENSUS_FASTA.format(well="1_2"), encoding="utf-8"
+    )
+    write_stage_marker(nb, per_well_counts={"1_1": 12}, consensus=True)
+
+    with pytest.raises(ValueError, match="incomplete or corrupt"):
+        load_barcode_directory(root)
+
+
 def test_truncated_empty_file_with_marker_is_not_complete(tmp_path: Path) -> None:
     nb = tmp_path / "NB04"
     nb.mkdir()

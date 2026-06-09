@@ -41,6 +41,13 @@ MARKER_FILENAME = ".demux_consensus_complete.json"
 MARKER_SCHEMA_VERSION = 1
 STAGE_NAME = "demux_consensus"
 
+# Single source of truth for the per-well consensus FASTA extension set.  The
+# downstream consumer (``fasta_parser._iter_consensus_files``) imports this so
+# the orphan/extra-file guard globs the SAME extensions the consumer will read;
+# a stray ``.fa`` / ``.fas`` orphan is therefore caught, not silently consumed.
+# Defined here (the leaf module) to avoid a circular import with fasta_parser.
+CONSENSUS_FILE_PATTERNS: tuple[str, ...] = ("*.fasta", "*.fa", "*.fas")
+
 
 def marker_path(unit_dir: Path) -> Path:
     """Return the marker path for *unit_dir* (does not check existence)."""
@@ -102,14 +109,20 @@ def read_stage_marker(unit_dir: Path) -> dict[str, Any] | None:
 def _list_well_fasta(unit_dir: Path) -> set[str]:
     """Return the set of per-well FASTA stems present in *unit_dir*.
 
-    Mirrors the consumer/quality-filter convention: ``*.fasta`` files whose
-    name does not start with ``_`` (so ``_unassigned.fasta`` is excluded).
+    Mirrors the consumer (``fasta_parser._iter_consensus_files``): every file
+    matching ``CONSENSUS_FILE_PATTERNS`` (``*.fasta`` / ``*.fa`` / ``*.fas``)
+    whose name does not start with ``_`` (so ``_unassigned.fasta`` is
+    excluded).  Globbing the SAME extension set the consumer reads is what lets
+    a stray ``.fa`` / ``.fas`` orphan be flagged as an extra file instead of
+    silently bypassing the guard.
     """
-    return {
-        p.stem
-        for p in Path(unit_dir).glob("*.fasta")
-        if not p.name.startswith("_")
-    }
+    unit_dir = Path(unit_dir)
+    stems: set[str] = set()
+    for pattern in CONSENSUS_FILE_PATTERNS:
+        for p in unit_dir.glob(pattern):
+            if not p.name.startswith("_"):
+                stems.add(p.stem)
+    return stems
 
 
 def validate_marker(marker: dict[str, Any], unit_dir: Path) -> tuple[bool, str]:
