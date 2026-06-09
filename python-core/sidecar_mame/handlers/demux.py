@@ -91,6 +91,7 @@ from kuma_core.mame.ingest.consensus_metadata import (
     format_consensus_fasta_record,
 )
 from kuma_core.mame.ingest.well_consensus import compute_well_consensuses
+from kuma_core.shared.atomic_write import atomic_write_text
 
 _logger = logging.getLogger(__name__)
 
@@ -235,7 +236,10 @@ def _run_consensus_on_dir(
 
         # Write single-record consensus FASTA with depth metadata so downstream
         # analysis can use true consensus read depth instead of file size.
-        fasta_path.write_text(
+        # Atomic (temp + os.replace) so an interrupted write never leaves a
+        # truncated consensus file that a consumer would treat as valid.
+        atomic_write_text(
+            fasta_path,
             format_consensus_fasta_record(
                 well_name,
                 result.consensus_seq,
@@ -252,7 +256,6 @@ def _run_consensus_on_dir(
                     low_quality_bases=result.n_low_quality_bases,
                 ),
             ),
-            encoding="utf-8",
         )
 
         stats[well_name] = {
@@ -587,7 +590,9 @@ def handle_demux_and_filter(params: dict) -> dict:
                 else:
                     if not skip_next:
                         filtered_lines.append(line)
-            fasta_file.write_text("".join(filtered_lines), encoding="utf-8")
+            # In-place rewrite of an already-good per-well FASTA: atomic so an
+            # interruption cannot truncate the existing file.
+            atomic_write_text(fasta_file, "".join(filtered_lines))
 
         n_qf_passed = n_qf_input - len(fail_read_ids)
         filter_stats_dict = {

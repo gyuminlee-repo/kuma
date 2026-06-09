@@ -49,7 +49,9 @@ Unassigned reads are discarded (counted only).
 from __future__ import annotations
 
 import gzip
+import logging
 import math
+import os
 import re
 import shutil
 import subprocess
@@ -57,6 +59,10 @@ import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterator
+
+from kuma_core.shared.atomic_write import atomic_write_text
+
+_logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Data models
@@ -457,13 +463,19 @@ def _demux_python(
         rev_max_mm = math.ceil(len(rev_rc) * error_tolerance)
 
     per_well_counts: dict[str, int] = {}
+    # Stream each well's records to a sibling ``<well>.fasta.tmp`` handle, then
+    # os.replace() every tmp onto its final path only after the whole demux
+    # completes.  An interruption leaves the (ignored) .tmp files behind rather
+    # than a truncated final FASTA that a consumer would treat as complete.
     writers: dict[str, object] = {}
+    tmp_paths: dict[str, Path] = {}
     output_dir.mkdir(parents=True, exist_ok=True)
 
     n_input = 0
     n_assigned = 0
     n_unassigned = 0
 
+    completed = False
     try:
         for fastq_path in fastq_files:
             for read_id, seq in _iter_fastq_records(fastq_path):
@@ -500,11 +512,12 @@ def _demux_python(
                 if rev_rc is not None:
                     trimmed_seq = _trim_rev_primer(trimmed_seq, rev_rc, rev_max_mm)
 
-                # Write FASTA record.
+                # Write FASTA record to the well's temp file.
                 if best_name not in writers:
-                    fasta_path = output_dir / f"{best_name}.fasta"
+                    tmp_path = output_dir / f"{best_name}.fasta.tmp"
+                    tmp_paths[best_name] = tmp_path
                     writers[best_name] = open(  # noqa: WPS515
-                        fasta_path, "w", encoding="utf-8"
+                        tmp_path, "w", encoding="utf-8"
                     )
                 fh = writers[best_name]
                 header = best_name if normalize_headers else read_id
@@ -512,9 +525,25 @@ def _demux_python(
 
                 per_well_counts[best_name] = per_well_counts.get(best_name, 0) + 1
                 n_assigned += 1
+        completed = True
     finally:
         for fh in writers.values():
             fh.close()  # type: ignore[union-attr]
+        if completed:
+            # Atomically swap each fully-written temp file onto its final path.
+            for well_name, tmp_path in tmp_paths.items():
+                os.replace(tmp_path, output_dir / f"{well_name}.fasta")
+        else:
+            # Demux aborted: drop temp files so no partial output survives.
+            for tmp_path in tmp_paths.values():
+                try:
+                    tmp_path.unlink()
+                except OSError as cleanup_exc:
+                    _logger.warning(
+                        "Could not remove temp FASTA %s after aborted demux: %s",
+                        tmp_path,
+                        cleanup_exc,
+                    )
 
     return DemuxResult(
         output_dir=output_dir,
@@ -591,9 +620,7 @@ def _demux_cutadapt(
     When ``normalize_headers=True``, a post-processing pass rewrites every FASTA
     header in the per-well output files to ``>{well_name}``.
     """
-    import logging
-
-    logger = logging.getLogger(__name__)
+    logger = _logger
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -656,7 +683,9 @@ def _demux_cutadapt(
                     normalized.append(f">{well_name}\n")
                 else:
                     normalized.append(ln)
-            fp.write_text("".join(normalized), encoding="utf-8")
+            # In-place header rewrite over an already-good file: atomic so an
+            # interruption cannot truncate it.
+            atomic_write_text(fp, "".join(normalized))
 
     n_input = n_assigned + n_unassigned
 
