@@ -123,7 +123,7 @@ def run_analyze(
     cds_end: int,
     mode: str = "amplicon",
     min_file_size_kb: float = 50.0,
-    min_read_count: int | None = None,
+    min_read_count: int | None = 30,
     max_consensus_n_fraction: float | None = 0.0,
     many_cutoff: int = 5,
     ingest_mode: IngestMode = IngestMode.BARCODE,

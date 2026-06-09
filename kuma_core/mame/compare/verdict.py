@@ -112,7 +112,18 @@ def classify_verdict(
             verdict_notes="; ".join(notes),
         )
 
-    if translated.barcode.file_size_kb < params.min_file_size_kb:
+    # Fallback-only file-size gate. Real depth lives in the consensus
+    # `depth=N` header (read_count). A per-well consensus FASTA is gene-length
+    # bound (~1.8 KB for the same amplicon across every well), so comparing it
+    # against a multi-KB volume threshold falsely flagged depth-sufficient wells
+    # as LOWDEPTH. Wells that carry a real read_count are judged by the
+    # read_count gate above; this proxy fires only when depth=N is genuinely
+    # absent (read_count is None), e.g. directly-constructed records or legacy
+    # consensus files lacking the depth header.
+    if (
+        translated.barcode.read_count is None
+        and translated.barcode.file_size_kb < params.min_file_size_kb
+    ):
         notes.append(
             f"file_size_kb={translated.barcode.file_size_kb:.2f} < "
             f"min_file_size_kb={params.min_file_size_kb}"

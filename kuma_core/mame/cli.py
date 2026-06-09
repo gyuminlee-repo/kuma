@@ -39,7 +39,7 @@ def _build_parser() -> argparse.ArgumentParser:
     analyze.add_argument("--output", type=Path, default=Path("./output.xlsx"))
     analyze.add_argument("--mode", choices=["amplicon", "plasmid"], default="amplicon")
     analyze.add_argument("--min-file-size", type=float, default=None)
-    analyze.add_argument("--min-read-count", type=int, default=None)
+    analyze.add_argument("--min-read-count", type=int, default=30)
     analyze.add_argument("--max-consensus-n-fraction", type=float, default=0.0)
     analyze.add_argument("--many-cutoff", type=int, default=5)
     analyze.add_argument("--cds-start", type=int, default=0)
