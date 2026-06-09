@@ -4,7 +4,7 @@
  * Phase G #18: analyze.health 폐지 — RunHealthPanel이 verdict/plate에 분산 흡수됨.
  */
 
-import { render } from "@testing-library/react";
+import { act, render, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@/lib/ipc", () => ({
@@ -33,6 +33,12 @@ vi.mock("@/components/mame/widgets/PlateView", () => ({
 vi.mock("@/components/mame/widgets/RunHealthPanel", () => ({
   RunHealthPanel: () => <div data-testid="run-health-panel" />,
 }));
+vi.mock("@/components/mame/panels/InputPanel", () => ({
+  InputPanel: () => <div data-testid="input-panel" />,
+}));
+vi.mock("@/components/mame/panels/ParameterPanel", () => ({
+  ParameterPanel: () => <div data-testid="parameter-panel" />,
+}));
 
 // react-resizable-panels: PanelGroup/Panel/PanelResizeHandle are passthrough wrappers
 vi.mock("react-resizable-panels", () => ({
@@ -43,7 +49,7 @@ vi.mock("react-resizable-panels", () => ({
 
 import { AnalyzeStepView } from "./AnalyzeStepView";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
-import type { RunHealthData } from "@/types/mame/models";
+import type { RunHealthData, VerdictRecord } from "@/types/mame/models";
 
 const fakeHealth: RunHealthData = {
   per_plate_summary: {},
@@ -55,6 +61,29 @@ const fakeHealth: RunHealthData = {
   throughput_timeline: null,
   barcode_distribution: null,
   cross_talk_candidates: [],
+};
+
+const fakeVerdict: VerdictRecord = {
+  native_barcode: "barcode01",
+  custom_barcode: "A01",
+  file_size_kb: 100,
+  read_count: 1500,
+  n_mixed_positions: 0,
+  max_minor_allele_fraction: 0,
+  n_low_depth_positions: 0,
+  consensus_n_fraction: 0,
+  n_low_quality_bases: 0,
+  n_input_reads: 1500,
+  n_aligned_reads: 1490,
+  n_mapq_failed: 2,
+  n_span_failed: 8,
+  source_path: "/data/NB01/barcode01.fastq",
+  aa_sequence: "MKLVF89W",
+  observed_nt_changes: ["T265G"],
+  observed_aa_changes: ["F89W"],
+  expected_mutations: ["F89W"],
+  verdict: "PASS",
+  verdict_notes: "",
 };
 
 describe("AnalyzeStepView (Task #12 — analyze.review)", () => {
@@ -77,5 +106,27 @@ describe("AnalyzeStepView (Task #12 — analyze.review)", () => {
   it("analyze.review without runHealth does not mount RunHealthPanel", () => {
     const { queryByTestId } = render(<AnalyzeStepView />);
     expect(queryByTestId("run-health-panel")).toBeNull();
+  });
+
+  it("moves from analyze.inputs to analyze.review after analysis succeeds", async () => {
+    useMameAppStore.setState({
+      currentMameSubStep: "analyze.inputs",
+      isAnalyzing: true,
+      validationErrors: [],
+      verdicts: [],
+    });
+    render(<AnalyzeStepView />);
+
+    act(() => {
+      useMameAppStore.setState({
+        isAnalyzing: false,
+        validationErrors: [],
+        verdicts: [fakeVerdict],
+      });
+    });
+
+    await waitFor(() => {
+      expect(useMameAppStore.getState().currentMameSubStep).toBe("analyze.review");
+    });
   });
 });
