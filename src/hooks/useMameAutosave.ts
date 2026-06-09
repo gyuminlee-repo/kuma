@@ -64,6 +64,15 @@ export function useMameAutosave(): { flushMameAutosave: () => Promise<void> } {
     scratch: project?.scratch ?? true,
   };
 
+  // Bridge the project root (from context) into the mame store so the analyze
+  // slice can persist the result file (resultSnapshot.ts) without context
+  // access. Scratch projects stash null -> no result file written.
+  useEffect(() => {
+    useMameAppStore.getState().setProjectPath(
+      project && !project.scratch ? (project.path ?? null) : null,
+    );
+  }, [project?.path, project?.scratch]);
+
   useEffect(() => {
     if (!project || project.scratch || !project.path) return;
 

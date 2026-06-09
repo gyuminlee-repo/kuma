@@ -39,6 +39,10 @@ export interface InputSlice {
   referencePath: string;
   outputPath: string;
   sampleMapPath: string;
+  // Project root, bridged from useKumaProject() context via useMameAutosave so
+  // analyze-result persistence (resultSnapshot.ts) can write from the slice,
+  // which has no React context access. null/scratch -> no result file written.
+  projectPath: string | null;
   mode: "amplicon" | "plasmid";
   ingestMode: "barcode" | "amplicon";
   inputMode: InputMode;
@@ -77,6 +81,7 @@ export interface InputSlice {
   setReferencePath: (path: string) => void;
   setOutputPath: (path: string) => void;
   setSampleMapPath: (path: string) => void;
+  setProjectPath: (path: string | null) => void;
   setParams: (
     params: Partial<{
       mode: "amplicon" | "plasmid";

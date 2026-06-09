@@ -2,6 +2,7 @@ import type { StateCreator } from "zustand";
 import { cancelAndRespawn, sendRequest } from "@/lib/ipc-mame";
 import { formatError } from "@/lib/utils";
 import { defaultMameExportFilename } from "@/lib/mameFilename";
+import { writeMameResultSnapshot } from "@/lib/mame/resultSnapshot";
 import type {
   AmpliconLengthEstimate,
   AnalyzeResult,
@@ -85,6 +86,7 @@ const mameInputInitialState = {
   referencePath: "",
   outputPath: "",
   sampleMapPath: "",
+  projectPath: null as string | null,
   mode: "amplicon" as const,
   ingestMode: "barcode" as const,
   inputMode: "raw_run" as const,
@@ -180,6 +182,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   },
   setOutputPath: (outputPath) => set({ outputPath, validationErrors: [] }),
   setSampleMapPath: (sampleMapPath) => set({ sampleMapPath }),
+  setProjectPath: (projectPath) => set({ projectPath }),
   setParams: (params) =>
     set((state) => ({
       mode: params.mode ?? state.mode,
@@ -352,6 +355,15 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     })();
     get().setOutputPath(outDir);
     get().setDistributionStats(result.distribution_stats ?? null);
+    // Persist the FULL analyze response AS-IS (sibling result file) once on
+    // success, so restart can replay it into the sidecar + restore the 2.2
+    // review view. Awaited so an immediate app-close does not lose it. Failure
+    // must not break the in-memory flow (best-effort).
+    try {
+      await writeMameResultSnapshot(get().projectPath, result);
+    } catch (err) {
+      console.warn("[inputSlice] persist analyze result failed:", err);
+    }
     await get().loadPlateData();
     // A8: auto-load run health after analysis completes (non-blocking on failure)
     void get().loadRunHealth();
@@ -439,6 +451,11 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       })();
       get().setOutputPath(outDir);
       get().setDistributionStats(result.distribution_stats ?? null);
+      try {
+        await writeMameResultSnapshot(get().projectPath, result);
+      } catch (err) {
+        console.warn("[inputSlice] persist analyze result failed:", err);
+      }
       await get().loadPlateData();
       void get().loadRunHealth();
       set({
