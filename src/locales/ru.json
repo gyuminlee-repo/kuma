@@ -261,6 +261,7 @@
       "toastSuccessDesc": "Файлы сохранены в design/",
       "toastSuccessDescWithLength": "Длина amplicon: {{length}} bp. Файлы сохранены в design/",
       "toastError": "Создание не удалось",
+      "overwriteConfirmDir": "Папка design/ уже существует и будет перезаписана (primer CSV, barcode XLSX, amplicon FASTA). Продолжить?",
       "geneEndError": "gene_end должен быть больше gene_start.",
       "noProjectWarning": "Для создания package необходимо открыть проект. Выберите Открыть проект в меню Файл.",
       "barcodeSeedsXlsxHelper": "xlsx файл с seed-последовательностями fwd_1..12 и rev_1..8.",

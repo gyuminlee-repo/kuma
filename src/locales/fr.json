@@ -261,6 +261,7 @@
       "toastSuccessDesc": "Fichiers enregistrés dans design/",
       "toastSuccessDescWithLength": "Longueur d'amplicon : {{length}} bp. Fichiers enregistrés dans design/",
       "toastError": "Échec de la génération",
+      "overwriteConfirmDir": "Le dossier design/ existe déjà et sera écrasé (primer CSV, barcode XLSX, amplicon FASTA). Voulez-vous continuer ?",
       "geneEndError": "gene_end doit être supérieur à gene_start.",
       "noProjectWarning": "Un projet doit être ouvert pour générer un paquet. Sélectionnez Ouvrir un projet dans le menu Fichier.",
       "barcodeSeedsXlsxHelper": "Fichier xlsx contenant les séquences seed fwd_1..12 et rev_1..8.",

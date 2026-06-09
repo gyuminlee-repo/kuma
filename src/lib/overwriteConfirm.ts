@@ -49,6 +49,7 @@ type ResolveCallback = (decision: OverwriteDecision) => void;
 
 let _pendingResolve: ResolveCallback | null = null;
 let _pendingPath: string | null = null;
+let _pendingMessage: string | null = null;
 let _listener: (() => void) | null = null;
 
 /** OverwriteConfirmDialog 컴포넌트가 상태 변화를 감지하기 위해 등록하는 리스너 */
@@ -65,14 +66,30 @@ export function getPendingOverwritePath(): string | null {
 }
 
 /**
+ * 현재 대기 중인 confirm 의 커스텀 메시지 (없으면 null).
+ *
+ * 디렉터리 단위 confirm 처럼 파일명+기본 문구로 표현할 수 없는 경우,
+ * 호출자가 이미 번역한 전체 문장을 전달한다. null 이면 다이얼로그는
+ * 기존 파일명 + 기본 description 렌더링을 사용한다.
+ */
+export function getPendingOverwriteMessage(): string | null {
+  return _pendingMessage;
+}
+
+/**
  * 덮어쓰기 여부를 사용자에게 확인한다.
  *
- * @param filepath - 덮어쓸 대상 파일의 절대 경로
+ * @param filepath - 덮어쓸 대상 파일(또는 디렉터리)의 절대 경로
+ * @param message - (선택) 이미 번역된 커스텀 메시지. 전달 시 파일명+기본 문구 대신 표시.
  * @returns "overwrite" | "cancel"
  */
-export function requestOverwriteConfirm(filepath: string): Promise<OverwriteDecision> {
+export function requestOverwriteConfirm(
+  filepath: string,
+  message?: string,
+): Promise<OverwriteDecision> {
   return new Promise<OverwriteDecision>((resolve) => {
     _pendingPath = filepath;
+    _pendingMessage = message ?? null;
     _pendingResolve = resolve;
     _listener?.();
   });
@@ -82,6 +99,7 @@ export function requestOverwriteConfirm(filepath: string): Promise<OverwriteDeci
 export function resolveOverwriteConfirm(decision: OverwriteDecision): void {
   const resolve = _pendingResolve;
   _pendingPath = null;
+  _pendingMessage = null;
   _pendingResolve = null;
   resolve?.(decision);
   _listener?.();

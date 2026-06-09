@@ -19,6 +19,7 @@ import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { rpc } from "@/lib/ipc";
 import { describeRpcError, extractMissingMethod } from "@/lib/errors";
 import { revealInOSFolder } from "@/lib/openFolder";
+import { fileExists, requestOverwriteConfirm } from "@/lib/overwriteConfirm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -297,6 +298,16 @@ export function BarcodeSetupPanel({ group }: BarcodeSetupPanelProps = {}) {
     if (!project?.path) return;
 
     const destDir = `${project.path}/design`;
+    // §5 directory-level overwrite confirm. generate_mame_package writes multiple
+    // files (primer CSV, barcode XLSX, amplicon FASTA) into design/, so there is no
+    // single output path. Confirm before regenerating into an existing design/ dir.
+    if (await fileExists(destDir)) {
+      const decision = await requestOverwriteConfirm(
+        destDir,
+        t("mame.barcodeSetup.overwriteConfirmDir"),
+      );
+      if (decision === "cancel") return;
+    }
     setIsGenerating(true);
     setResult(null);
 

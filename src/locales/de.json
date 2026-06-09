@@ -261,6 +261,7 @@
       "toastSuccessDesc": "Dateien saved zu design/",
       "toastSuccessDescWithLength": "Amplicon Länge: {{Länge}} bp. Dateien saved zu design/",
       "toastError": "Generation fehlgeschlagen",
+      "overwriteConfirmDir": "Der Ordner design/ existiert bereits und wird überschrieben (primer CSV, barcode XLSX, amplicon FASTA). Möchten Sie fortfahren?",
       "geneEndError": "gene_end muss größer als gene_start sein.",
       "noProjectWarning": "A Projekt must be öffnen zu generate ein package. Auswählen Projekt öffnen von die Datei menu.",
       "barcodeSeedsXlsxHelper": "xlsx Datei containing fwd_1..12 und rev_1..8 Seed sequences.",

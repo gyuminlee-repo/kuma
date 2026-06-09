@@ -10,6 +10,7 @@ import { useTranslation } from "react-i18next";
 import {
   subscribeOverwriteConfirm,
   getPendingOverwritePath,
+  getPendingOverwriteMessage,
   resolveOverwriteConfirm,
 } from "@/lib/overwriteConfirm";
 import {
@@ -30,6 +31,8 @@ export function OverwriteConfirmDialog() {
   const { t } = useTranslation();
   const pendingPath = useSyncExternalStore(subscribeOverwriteConfirm, getSnapshot);
   const open = pendingPath !== null;
+  // 커스텀 메시지는 path 와 함께 lockstep 으로 갱신되므로 plain getter 로 읽어도 안전하다.
+  const customMessage = getPendingOverwriteMessage();
 
   // ESC 또는 backdrop 클릭 → cancel
   function handleOpenChange(next: boolean) {
@@ -57,8 +60,14 @@ export function OverwriteConfirmDialog() {
         <DialogHeader>
           <DialogTitle>{t("overwriteConfirm.title")}</DialogTitle>
           <DialogDescription>
-            <span className="font-mono text-foreground break-all">{filename}</span>
-            {" "}{t("overwriteConfirm.description")}
+            {customMessage ? (
+              <span className="break-all">{customMessage}</span>
+            ) : (
+              <>
+                <span className="font-mono text-foreground break-all">{filename}</span>
+                {" "}{t("overwriteConfirm.description")}
+              </>
+            )}
           </DialogDescription>
         </DialogHeader>
 

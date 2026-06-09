@@ -29,6 +29,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { buildRunReportDefaultPath, handleExportRunReport } from "@/lib/mame/runReport";
+import { fileExists, requestOverwriteConfirm } from "@/lib/overwriteConfirm";
 import type { RunReportFormat, RunReportResult } from "@/types/mame/models";
 
 interface RunReportDialogProps {
@@ -74,6 +75,11 @@ export function RunReportDialog({ open, onOpenChange }: RunReportDialogProps) {
     if (!target) {
       setExportError(t("mame.dialogs.runReport.exportErrorPathRequired"));
       return;
+    }
+    // §5 overwrite confirm (auto-derived 경로로 조용히 덮어쓰는 것을 막는다)
+    if (await fileExists(target)) {
+      const decision = await requestOverwriteConfirm(target);
+      if (decision === "cancel") return;
     }
     setIsExporting(true);
     setExportError(null);

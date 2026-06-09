@@ -29,6 +29,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { JanusDeckPreview } from "@/components/mame/widgets/JanusDeckPreview";
 import { buildJanusDefaultPath, handleExportMameJanusMapping } from "@/lib/mame/janus";
+import { fileExists, requestOverwriteConfirm } from "@/lib/overwriteConfirm";
 import type { JanusExportFormat } from "@/types/mame/models";
 
 interface JanusMappingDialogProps {
@@ -74,6 +75,11 @@ export function JanusMappingDialog({ open, onOpenChange }: JanusMappingDialogPro
     if (!target) {
       setExportError(t("mame.dialogs.janusMapping.exportErrorPathRequired"));
       return;
+    }
+    // §5 overwrite confirm (auto-derived 경로로 조용히 덮어쓰는 것을 막는다)
+    if (await fileExists(target)) {
+      const decision = await requestOverwriteConfirm(target);
+      if (decision === "cancel") return;
     }
     setIsExporting(true);
     setExportError(null);
