@@ -98,6 +98,7 @@ export function PlateView({ wellColorOf, wells: externalWells }: PlateViewProps 
               [
                 "PASS",
                 "AMBIGUOUS",
+                "MIXED",
                 "WRONG_AA",
                 "FRAMESHIFT",
                 "MANY",

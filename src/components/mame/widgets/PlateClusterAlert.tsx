@@ -16,7 +16,7 @@ import type { WellEntry } from "@/types/mame/models";
 
 type VerdictClass = WellEntry["verdict"];
 
-const FAIL_VERDICTS: Set<VerdictClass> = new Set(["LOWDEPTH", "FRAMESHIFT", "MANY", "WRONG_AA"]);
+const FAIL_VERDICTS: Set<VerdictClass> = new Set(["LOWDEPTH", "FRAMESHIFT", "MANY", "WRONG_AA", "MIXED"]);
 
 type ClusterGroup = {
   wells: string[];

@@ -80,6 +80,22 @@ def test_t03b_all_unpickable_verdicts_trigger_fallback() -> None:
     assert result.is_fallback is True
 
 
+def test_t03c_mixed_is_unpickable_but_fallback_eligible() -> None:
+    """MIXED (within-well contamination) is not auto-picked, but recoverable via G1.
+
+    A mixed well carries mutant identity, so it must not hard-fail; it falls
+    back like WRONG_AA/MANY/FRAMESHIFT instead of being silently dropped.
+    """
+    verdicts = {
+        "NB01": _vr("NB01", VerdictClass.MIXED, file_size_kb=120.0),
+        "NB02": _vr("NB02", VerdictClass.MIXED, file_size_kb=450.0),
+    }
+    result = pick_best_replicate("N63F", verdicts)
+    assert result.selected_plate == "NB02", "highest-volume mixed plate as fallback"
+    assert result.failed is False
+    assert result.is_fallback is True
+
+
 def test_t04_lowdepth_picked_when_no_better_class() -> None:
     verdicts = {
         "NB01": _vr("NB01", VerdictClass.LOWDEPTH),

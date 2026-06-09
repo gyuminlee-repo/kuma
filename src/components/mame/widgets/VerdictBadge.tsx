@@ -29,6 +29,11 @@ const verdictMeta: Record<VerdictClass, VerdictMeta> = {
     colorClass: "border-warning/40 text-warning",
     shape: "■",
   },
+  MIXED: {
+    label: "Mixed well",
+    colorClass: "border-destructive/40 text-destructive",
+    shape: "▲",
+  },
   WRONG_AA: {
     label: "AA mismatch",
     colorClass: "border-destructive/40 text-destructive",

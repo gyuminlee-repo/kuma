@@ -12,7 +12,7 @@ import { AlertTriangle, Search, SlidersHorizontal } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
-import { useRoundStore } from "@/store/round/roundSlice";
+import { useRoundStore, type RoundSlice } from "@/store/round/roundSlice";
 import type { VerdictRecord } from "@/types/mame/models";
 import type { MergedRow } from "@/types/mame/activity";
 import { VerdictBadge } from "./VerdictBadge";
@@ -90,6 +90,12 @@ const ACTIVITY_COLUMN_LABELS: Record<(typeof ACTIVITY_COLUMN_IDS)[number], strin
 };
 
 const VIRTUAL_THRESHOLD = 1000;
+const EMPTY_MERGED_TABLE: MergedRow[] = [];
+
+export function selectActiveMergedTable(state: RoundSlice): MergedRow[] {
+  const round = state.rounds.find((r) => r.id === state.active_round_id);
+  return round?.merged_table ?? EMPTY_MERGED_TABLE;
+}
 
 function extractNbGroup(record: VerdictRecord): "NB01" | "NB02" | "NB03" | "UNKNOWN" {
   const match = (record.source_path ?? "").match(/NB0(\d)/i);
@@ -141,11 +147,7 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
 
   // Activity data from the active round merged_table
   // Join key: well_id == custom_barcode (MAME barcode label = well position)
-  const activeRoundId = useRoundStore((s) => s.active_round_id);
-  const mergedTable = useRoundStore((s) => {
-    const round = s.rounds.find((r) => r.id === activeRoundId);
-    return round?.merged_table ?? [];
-  });
+  const mergedTable = useRoundStore(selectActiveMergedTable);
 
   // Build a lookup map for O(1) activity join
   const mergedByWell = useMemo<Map<string, MergedRow>>(() => {

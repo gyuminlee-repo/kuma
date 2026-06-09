@@ -21,6 +21,7 @@
 
 import { AlertCircle, Download, ShieldCheck, Trash2 } from "lucide-react";
 import { computeEtaFromElapsed } from "@/lib/eta";
+import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
@@ -87,6 +88,21 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
   const goToNextStep = useMameAppStore((s) => s.goToNextStep);
   const goToPrevStep = useMameAppStore((s) => s.goToPrevStep);
   const setMameSubStep = useMameAppStore((s) => s.setMameSubStep);
+  const wasAnalyzingRef = useRef(isAnalyzing);
+
+  useEffect(() => {
+    const wasAnalyzing = wasAnalyzingRef.current;
+    wasAnalyzingRef.current = isAnalyzing;
+    if (
+      subStep === "analyze.inputs" &&
+      wasAnalyzing &&
+      !isAnalyzing &&
+      hasResults &&
+      validationErrors.length === 0
+    ) {
+      setMameSubStep("analyze.review");
+    }
+  }, [hasResults, isAnalyzing, setMameSubStep, subStep, validationErrors.length]);
 
   // Legacy ids fall through StepRedirectFallback → analyze.inputs.
   if (

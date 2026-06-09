@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 export type VerdictClass =
   | "PASS"
   | "AMBIGUOUS"
+  | "MIXED"
   | "FRAMESHIFT"
   | "MANY"
   | "LOWDEPTH"
@@ -67,6 +68,7 @@ export interface AnalyzeSummary {
   total: number;
   pass_count: number;
   ambiguous_count: number;
+  mixed_count?: number;
   fail_count: number;
 }
 

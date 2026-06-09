@@ -12,7 +12,7 @@ vi.mock("@/store/round/roundSlice");
 
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { useRoundStore } from "@/store/round/roundSlice";
-import { VerdictTable } from "./VerdictTable";
+import { VerdictTable, selectActiveMergedTable } from "./VerdictTable";
 
 const mockVerdict: VerdictRecord = {
   native_barcode: "barcode01",
@@ -146,6 +146,11 @@ describe("VerdictTable", () => {
     const dashes = screen.getAllByText("—");
     // Multiple dashes expected (one per activity column per row)
     expect(dashes.length).toBeGreaterThan(0);
+  });
+
+  it("returns a stable empty merged table snapshot when no active round exists", () => {
+    const state = makeRoundStore([], null).getState();
+    expect(selectActiveMergedTable(state)).toBe(selectActiveMergedTable(state));
   });
 
   it("column toggle button is rendered", () => {

@@ -8,6 +8,7 @@ const COLS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as const;
 const verdictFill: Record<VerdictClass, { bg: string; text: string; border: string }> = {
   PASS: { bg: "#2E7D32", text: "#FFFFFF", border: "#1B5E20" },
   AMBIGUOUS: { bg: "#F9A825", text: "#1A1200", border: "#F57F17" },
+  MIXED: { bg: "#FB8C00", text: "#FFFFFF", border: "#E65100" },
   WRONG_AA: { bg: "#C62828", text: "#FFFFFF", border: "#B71C1C" },
   FRAMESHIFT: { bg: "#AD1457", text: "#FFFFFF", border: "#880E4F" },
   MANY: { bg: "#E65100", text: "#FFFFFF", border: "#BF360C" },

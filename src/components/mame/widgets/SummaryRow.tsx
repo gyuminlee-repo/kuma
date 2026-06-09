@@ -57,7 +57,7 @@ export function SummaryRow() {
   const readiness = Math.round((readyCount / requiredInputs.length) * 100);
 
   const stats = useMemo(() => {
-    const FAIL: readonly VerdictClass[] = ["WRONG_AA", "FRAMESHIFT", "MANY"];
+    const FAIL: readonly VerdictClass[] = ["WRONG_AA", "FRAMESHIFT", "MANY", "MIXED"];
     let pass = 0;
     let fail = 0;
     for (const v of verdicts) {
