@@ -79,7 +79,11 @@ def test_build_draft_layout_clamps_mutants_above_96() -> None:
 
 def _write_fasta(path: Path, header: str, body: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(f">{header}\n{body}\n{_PAD}", encoding="utf-8")
+    # Carry a depth=N header well above the recommended min_read_count=30 so the
+    # real read-depth gate clears these wells; these tests exercise well-layout
+    # scoping, not the LOWDEPTH gate. custom_barcode is header.split()[0], so the
+    # trailing metadata does not disturb the barcode token.
+    path.write_text(f">{header} depth=100\n{body}\n{_PAD}", encoding="utf-8")
 
 
 def _make_kuro_xlsx(dest: Path) -> None:

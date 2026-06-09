@@ -338,10 +338,15 @@ def handle_analyze(params: dict) -> dict:
     cds_start = int(params.get("cds_start", 0))
     cds_end = _resolve_cds_end(params.get("cds_end"), reference)
     min_file_size_kb = float(params.get("min_file_size_kb", 50.0))
-    min_read_count_raw = params.get("min_read_count")
-    min_read_count = (
-        None if min_read_count_raw in (None, "") else int(min_read_count_raw)
-    )
+    # Default to 30 when the caller omits the field entirely; an explicit None
+    # or "" disables the read-depth gate (legacy file-size fallback).
+    if "min_read_count" not in params:
+        min_read_count: int | None = 30
+    else:
+        min_read_count_raw = params.get("min_read_count")
+        min_read_count = (
+            None if min_read_count_raw in (None, "") else int(min_read_count_raw)
+        )
     max_consensus_n_fraction_raw = params.get("max_consensus_n_fraction", 0.0)
     max_consensus_n_fraction = (
         None
