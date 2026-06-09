@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kuma"
-version = "0.12.11"
+version = "0.12.12"
 description = "kuma - integrated primer design (KURO) + NGS verification (mame) tool"
 requires-python = ">=3.11"
 dependencies = [
@@ -26,6 +26,14 @@ dependencies = [
 [project.optional-dependencies]
 build = [
     "pyinstaller==6.16.0",
+]
+# test: optional tools needed for the full MAME demux regression harness.
+# cutadapt is an optional runtime dependency (PATH-based, with a Python
+# fallback), so it is not a hard package dep; the test extra pins it so CI
+# and other machines can reproduce the native-barcode identity gate.
+test = [
+    "cutadapt>=5.0",
+    "pytest",
 ]
 
 [project.scripts]

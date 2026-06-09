@@ -301,21 +301,53 @@ _MINIMAP2_THREADS: int = int(
 )
 
 
+def build_minimap2_index(reference_fasta: Path, mmi_path: Path) -> Path:
+    """Pre-build a minimap2 ``.mmi`` index with the ``map-ont`` preset.
+
+    Equivalent to ``minimap2 -x map-ont -d mmi_path reference_fasta``.  The
+    preset MUST match the on-the-fly alignment preset (``map-ont``) so that an
+    alignment run against the prebuilt index reproduces byte-identical output:
+    minimap2 stores k/w/H in the index and ignores runtime ``-k``/``-w`` when a
+    prebuilt index is supplied, but re-applies all alignment-time parameters at
+    align time.  Using the same preset both places keeps results identical.
+
+    Returns ``mmi_path`` on success; raises RuntimeError on a non-zero exit.
+    """
+    binary = _resolve_minimap2()
+    cmd = [binary, "-x", "map-ont", "-d", str(mmi_path), str(reference_fasta)]
+    proc = subprocess.run(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        shell=False,
+        check=False,
+    )
+    if proc.returncode != 0:
+        raise RuntimeError(
+            f"minimap2 index build failed (exit {proc.returncode}): "
+            f"{(proc.stderr or '').strip()[:500]}"
+        )
+    return mmi_path
+
+
 def _run_minimap2(
-    reference_fasta: Path,
+    reference: Path,
     reads_fasta: Path,
     preset: str,
-    sam_out_path: Path,
     best_n: int | None = None,
     threads: int | None = None,
-) -> None:
-    """Run minimap2 -a, streaming stdout to *sam_out_path*.
+) -> list[tuple[int, int, int, int, str]]:
+    """Run minimap2 -a, parsing SAM records straight off stdout.
 
-    SAM output is written directly to the given file path instead of being
-    buffered in a Python string.  This keeps memory usage proportional to the
-    number of concurrent output lines rather than the total alignment size.
+    ``reference`` is the positional reference argument: either a FASTA path or a
+    prebuilt ``.mmi`` index.  minimap2 accepts both in the same slot.
 
-    Raises RuntimeError on a non-zero exit.
+    stdout is consumed from a pipe instead of being written to a SAM file, so
+    the full alignment output is never materialised on disk.  stderr is captured
+    in memory only (never written to a file path).
+
+    Returns the parsed records; raises RuntimeError on a non-zero exit.
     """
     binary = _resolve_minimap2()
     n_threads = threads if threads is not None else _MINIMAP2_THREADS
@@ -323,48 +355,50 @@ def _run_minimap2(
     if best_n is not None:
         # -N caps secondary alignments reported per read.
         cmd += ["-N", str(best_n)]
-    cmd += [str(reference_fasta), str(reads_fasta)]
-    with open(sam_out_path, "w", encoding="utf-8") as out:
-        proc = subprocess.run(
-            cmd,
-            stdout=out,
-            stderr=subprocess.PIPE,
-            text=True,
-            shell=False,
-        )
+    cmd += [str(reference), str(reads_fasta)]
+    proc = subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        shell=False,
+    )
+    if proc.stdout is None:
+        raise RuntimeError("minimap2 stdout pipe unavailable")
+    records = list(_iter_sam_records_stream(proc.stdout))
+    _, err = proc.communicate()
     if proc.returncode != 0:
         raise RuntimeError(
             f"minimap2 failed (exit {proc.returncode}): "
-            f"{proc.stderr.strip()[:500]}"
+            f"{(err or '').strip()[:500]}"
         )
+    return records
 
 
-def _iter_sam_records(
-    sam_path: Path,
+def _iter_sam_records_stream(
+    fh: Iterable[str],
 ) -> Iterable[tuple[int, int, int, int, str]]:
-    """Yield (read_index, flag, pos_1based, mapq, cigar_str) per SAM record.
+    """Yield (read_index, flag, pos_1based, mapq, cigar_str) per SAM line.
 
-    Reads the SAM file line-by-line from *sam_path* so that the full alignment
-    output is never loaded into RAM at once.  Header lines (starting with
-    '@') and unmapped records (FLAG & 0x4) are skipped.  ``read_index`` is
-    parsed from the synthetic integer QNAME.
+    Parses an iterable of SAM text lines (a file or a subprocess stdout pipe).
+    Header lines (starting with '@') and unmapped records (FLAG & 0x4) are
+    skipped.  ``read_index`` is parsed from the synthetic integer QNAME.
     """
-    with open(sam_path, encoding="utf-8") as fh:
-        for line in fh:
-            line = line.rstrip("\n")
-            if not line or line.startswith("@"):
-                continue
-            fields = line.split("\t")
-            if len(fields) < 6:
-                continue
-            flag = int(fields[1])
-            if flag & _FLAG_UNMAPPED:
-                continue
-            read_index = int(fields[0])
-            pos = int(fields[3])
-            mapq = int(fields[4])
-            cigar_str = fields[5]
-            yield read_index, flag, pos, mapq, cigar_str
+    for line in fh:
+        line = line.rstrip("\n")
+        if not line or line.startswith("@"):
+            continue
+        fields = line.split("\t")
+        if len(fields) < 6:
+            continue
+        flag = int(fields[1])
+        if flag & _FLAG_UNMAPPED:
+            continue
+        read_index = int(fields[0])
+        pos = int(fields[3])
+        mapq = int(fields[4])
+        cigar_str = fields[5]
+        yield read_index, flag, pos, mapq, cigar_str
 
 
 def align_reads(
@@ -374,6 +408,7 @@ def align_reads(
     min_mapq: int = 25,
     require_full_span: bool = True,
     threads: int | None = None,
+    reference_index: Path | None = None,
 ) -> list[Alignment]:
     """Align reads to a reference using the minimap2 CLI.
 
@@ -383,7 +418,16 @@ def align_reads(
         Iterable of ``(read_id, sequence)`` pairs or
         ``(read_id, sequence, quality)`` triples.
     reference_fasta:
-        Path to reference FASTA file (must have exactly one record).
+        Path to reference FASTA file (must have exactly one record).  Always
+        used to read the reference length; also passed to minimap2 as the
+        positional reference unless ``reference_index`` is given.
+    reference_index:
+        Optional prebuilt minimap2 ``.mmi`` index (see
+        :func:`build_minimap2_index`).  When set, it replaces
+        ``reference_fasta`` as the positional reference argument to minimap2,
+        skipping per-call index construction.  ``reference_fasta`` is still
+        read for its length.  The index MUST be built with the same preset as
+        ``preset`` (``map-ont``) to keep alignment output byte-identical.
     preset:
         minimap2 preset; ``"map-ont"`` for Oxford Nanopore reads.
     min_mapq:
@@ -415,17 +459,16 @@ def align_reads(
 
     with tempfile.TemporaryDirectory(prefix="kuro_align_") as tmpdir:
         reads_fasta = Path(tmpdir) / "reads.fasta"
-        sam_path = Path(tmpdir) / "out.sam"
         index_map = _write_reads_fasta(reads, reads_fasta)
         if not index_map:
             return []
 
-        _run_minimap2(reference_fasta, reads_fasta, preset, sam_path, threads=threads)
+        positional_ref = reference_index if reference_index is not None else reference_fasta
+        records = _run_minimap2(positional_ref, reads_fasta, preset, threads=threads)
 
         # Collect the single primary alignment per read index.
-        # Parsing happens inside the tmpdir context so the SAM file is still present.
         primary: dict[int, Alignment] = {}
-        for read_index, flag, pos, mapq, cigar_str in _iter_sam_records(sam_path):
+        for read_index, flag, pos, mapq, cigar_str in records:
             if flag & (_FLAG_SECONDARY | _FLAG_SUPPLEMENTARY):
                 continue
             if read_index in primary:
@@ -479,7 +522,6 @@ def align_reads_with_stats(
 
     with tempfile.TemporaryDirectory(prefix="kuro_align_") as tmpdir:
         reads_fasta = Path(tmpdir) / "reads.fasta"
-        sam_path = Path(tmpdir) / "out.sam"
         index_map = _write_reads_fasta(reads, reads_fasta)
         if not index_map:
             stats = AlignmentStats(
@@ -492,10 +534,10 @@ def align_reads_with_stats(
             )
             return [], stats
 
-        _run_minimap2(reference_fasta, reads_fasta, preset, sam_path, threads=threads)
+        records = _run_minimap2(reference_fasta, reads_fasta, preset, threads=threads)
 
         primary: dict[int, Alignment] = {}
-        for read_index, flag, pos, mapq, cigar_str in _iter_sam_records(sam_path):
+        for read_index, flag, pos, mapq, cigar_str in records:
             if flag & (_FLAG_SECONDARY | _FLAG_SUPPLEMENTARY):
                 continue
             if read_index in primary:
@@ -600,20 +642,18 @@ def align_reads_multi(
 
     with tempfile.TemporaryDirectory(prefix="kuro_align_") as tmpdir:
         reads_fasta = Path(tmpdir) / "reads.fasta"
-        sam_path = Path(tmpdir) / "out.sam"
         index_map = _write_reads_fasta(reads, reads_fasta)
         if not index_map:
             return []
 
-        _run_minimap2(
-            reference_fasta, reads_fasta, preset, sam_path, best_n=best_n,
+        records = _run_minimap2(
+            reference_fasta, reads_fasta, preset, best_n=best_n,
             threads=threads,
         )
 
         # Collect passing hits per read index (primary + supplementary).
-        # Parsing happens inside the tmpdir context so the SAM file is still present.
         hits_by_index: dict[int, list[Alignment]] = {}
-        for read_index, flag, pos, mapq, cigar_str in _iter_sam_records(sam_path):
+        for read_index, flag, pos, mapq, cigar_str in records:
             if flag & _FLAG_SECONDARY:
                 continue
             if mapq < min_mapq:
