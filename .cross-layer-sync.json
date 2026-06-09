@@ -39,10 +39,7 @@
       "exclude": [
         "ping",
         "shutdown",
-        "health_info",
-        "evolvepro.detect",
-        "evolvepro.run",
-        "evolvepro.cancel"
+        "health_info"
       ]
     },
     {
@@ -57,11 +54,6 @@
       "module": "sidecar_kuro.models",
       "pythonPath": "python-core",
       "output": "src/types/models.generated.ts"
-    },
-    {
-      "module": "sidecar_evolvepro.models",
-      "pythonPath": "python-core",
-      "output": "src/types/models.evolvepro.generated.ts"
     }
   ],
   "groups": [

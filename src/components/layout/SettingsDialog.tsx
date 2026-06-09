@@ -41,7 +41,7 @@ interface SettingsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** 단축키 표시 범위. 기본 "kuro" */
-  scope?: "kuro" | "mame" | "evolvepro";
+  scope?: "kuro" | "mame";
 }
 
 export function SettingsDialog({ open, onOpenChange, scope = "kuro" }: SettingsDialogProps) {

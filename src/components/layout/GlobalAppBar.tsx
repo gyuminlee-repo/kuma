@@ -14,10 +14,9 @@ import { Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LocaleToggle } from "@/components/ui/LocaleToggle";
 
-export type AppTab = "evolvepro" | "kuro" | "mame";
+export type AppTab = "kuro" | "mame";
 
 const TABS: { value: AppTab; label: string }[] = [
-  { value: "evolvepro", label: "EVOLVEpro" },
   { value: "kuro", label: "Kuro" },
   { value: "mame", label: "Mame" },
 ];
