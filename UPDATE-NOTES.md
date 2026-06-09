@@ -9,7 +9,7 @@
 ### MAME
 
 - MAME's own consensus FASTA headers now carry `depth=N`, and analyze populates `read_count` from that true consensus read depth instead of relying only on file size.
-- The analyzer accepts optional `min_read_count` LOWDEPTH gating while preserving the legacy file-size cutoff by default.
+- The analyzer gates LOWDEPTH on real read depth (`min_read_count`, default 30) read from the consensus `depth=N` header; the file-size cutoff is now only a fallback for inputs that have no depth header. This fixes a case where every same-amplicon well was wrongly flagged LOWDEPTH because the gene-length consensus FASTA never reached the raw-read file-size floor.
 - Consensus headers now also carry `low_depth_positions` and `consensus_n_fraction`; any consensus N signal is classified as `LOWDEPTH` by default, with an analyzer threshold available for relaxed runs.
 - Consensus calling now writes within-well mixture metrics, and exact-majority wells with mixed-read evidence are classified as `AMBIGUOUS` instead of passing silently.
 - Raw FASTQ demux→consensus now preserves read IDs and quality strings internally; low-Phred base calls are excluded from consensus voting, while legacy FASTA-only input keeps the unweighted path.
@@ -17,6 +17,11 @@
 - A round-advisory classifier now recommends, per ALE round, whether to keep single-walking, switch to combinatorial, or stop. The decision tree uses single-exhaustion (T2/T3/T_model) plus combinatorial throughput (T1); a GB1 landscape and synthetic epistasis-sweep backtest show it is safe (never worse than a greedy walk) with a modest edge, and explicitly not an epistasis predictor.
 - The advisory now reads user-imported per-round xlsx files (filename-agnostic, validated by `Variant` and `activity` fold-change columns) and surfaces read-only in the round summary as a per-round file picker. A confident `switch_combinatorial` call needs an assay noise floor from at least 4 WT-control replicates per round; current campaigns measure 3, so the advisory holds at `continue_walking` or `deferred` rather than fabricating a switch from too few replicates. Bad input is reported as an explicit error, and the earlier `unavailable` path is retired.
 - Completed MAME analyze runs now persist to a sibling `.autosave/mame-result.json` snapshot. On app restart, autosave hydration replays the saved response into both the sidecar and the store and reopens the review sub-step, so the verdict table, plate view, and efficiency chart restore without re-running the analysis.
+- MAME analyze now shows per-record progress and a keep-alive signal, so the progress bar and ETA no longer stall near 60% and the "no response" dialog no longer appears during long but healthy analyze runs.
+- Interrupting a raw-run demux no longer leaves corrupt partial files: per-well writes are atomic and each barcode group records a completion marker, so a rerun resumes by skipping finished groups and refuses a partially-written group instead of treating its mere presence as complete.
+- The Janus mapping, Run report, and Barcode package exports ask before overwriting existing output.
+- The consensus N-fraction tolerance (`max_consensus_n_fraction`) is adjustable from the MAME analyze parameter panel (default 0.0).
+- The macOS build compiles and bundles minimap2 from source, so the macOS app can run raw-run alignment.
 
 ---
 
