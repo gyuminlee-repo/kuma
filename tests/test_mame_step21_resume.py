@@ -475,3 +475,292 @@ def test_fully_resumed_run_reports_same_input_and_unassigned_as_fresh(
     assert resumed["n_input_reads"] == fresh["n_input_reads"]
     assert resumed["n_unassigned"] == fresh["n_unassigned"]
     assert resumed["n_unassigned"] >= 0
+
+
+# ---------------------------------------------------------------------------
+# run_combinatorial_demux_per_nb skip-resume (raw_run path used by the UI via
+# mame.run_combinatorial_demux). The per-NB worker (_demux_one_nb) is
+# monkeypatched so no minimap2 / cutadapt / edlib is needed.
+# ---------------------------------------------------------------------------
+
+# 8 DemuxStats counters mirrored by every per-NB summary; reused by the fakes.
+_NB_STAT_KEYS = (
+    "total_reads", "passed_mapq", "passed_coverage", "assigned_reads",
+    "ambiguous_dropped", "chimera_splits", "wells_with_reads",
+    "wells_with_min_reads",
+)
+
+
+def _fake_nb_stats(total: int, assigned: int, wells: int) -> dict[str, int]:
+    """Build a full 8-key DemuxStats counter dict for a fake per-NB summary."""
+    return {
+        "total_reads": total,
+        "passed_mapq": assigned,
+        "passed_coverage": assigned,
+        "assigned_reads": assigned,
+        "ambiguous_dropped": total - assigned,
+        "chimera_splits": 0,
+        "wells_with_reads": wells,
+        "wells_with_min_reads": wells,
+    }
+
+
+def _stage_complete_nb(out_dir: Path, sort_name: str, per_well: dict[str, int],
+                       stats: dict[str, int]) -> Path:
+    """Pre-stage a per-NB unit as COMPLETE: root-level consensus FASTA + marker.
+
+    The per-NB path runs with well_consensus_at_root=True, so consensus
+    ``{well}.fasta`` files sit at the root of ``output_dir/sort_barcode{NN}/``.
+    """
+    nb_out = out_dir / sort_name
+    nb_out.mkdir(parents=True)
+    for well in per_well:
+        _write_consensus(nb_out, well)
+    write_stage_marker(
+        nb_out, per_well_counts=per_well, consensus=True, stats=stats
+    )
+    return nb_out
+
+
+def test_combinatorial_per_nb_skips_completed_and_reprocesses_incomplete(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A rerun reprocesses ONLY the incomplete NB.
+
+    sort_barcode01 is pre-staged COMPLETE (consensus files + valid marker).
+    NB02 has no output dir (never run). The worker (_demux_one_nb) must NOT be
+    called for the completed NB, yet its recorded totals must still be merged.
+    """
+    import kuma_core.mame.ingest.combinatorial_demux as cd
+
+    # Serial path so the in-process worker monkeypatch is exercised (P=1).
+    monkeypatch.setenv("KUMA_MAME_NB_PARALLEL", "0")
+
+    out_dir = tmp_path / "out"
+    out_dir.mkdir()
+
+    # NB01 -> sort_barcode01, pre-staged complete: 1 well, 3 reads.
+    _stage_complete_nb(
+        out_dir, "sort_barcode01",
+        per_well={"1_1": 3},
+        stats=_fake_nb_stats(total=4, assigned=3, wells=1),
+    )
+
+    worker_calls: list[str] = []
+
+    def _fake_worker(payload: dict) -> dict:
+        worker_calls.append(payload["nb_name"])
+        nb_out = Path(payload["output_dir"])
+        nb_out.mkdir(parents=True, exist_ok=True)
+        _write_consensus(nb_out, "2_1")  # root-level consensus FASTA
+        return {
+            "nb_name": payload["nb_name"],
+            "sort_barcode_name": payload["sort_barcode_name"],
+            "output_dir": str(nb_out.resolve()),
+            "stats": _fake_nb_stats(total=6, assigned=5, wells=1),
+            "per_well_read_counts": {"2_1": 5},
+        }
+
+    monkeypatch.setattr(cd, "_demux_one_nb", _fake_worker)
+
+    nb_to_fastq = {
+        "NB01": [tmp_path / "NB01" / "a.fastq.gz"],
+        "NB02": [tmp_path / "NB02" / "b.fastq.gz"],
+    }
+    res = cd.run_combinatorial_demux_per_nb(
+        nb_to_fastq,
+        reference_fasta=tmp_path / "ref.fasta",
+        barcodes_xlsx=tmp_path / "bc.xlsx",
+        output_dir=out_dir,
+    )
+
+    # Completed NB01 was SKIPPED (worker not called); NB02 was processed.
+    assert "NB01" not in worker_calls
+    assert worker_calls == ["NB02"]
+
+    # NB02 now carries its own completion marker (commit point reached).
+    assert is_unit_complete(out_dir / "sort_barcode02") is True
+
+    # Merged stats include the skipped unit's seeded counters (3+5 assigned).
+    assert res["merged_stats"]["assigned_reads"] == 8
+    assert res["merged_stats"]["total_reads"] == 10
+    # per_nb keeps input order with both units present.
+    assert [s["nb_name"] for s in res["per_nb"]] == ["NB01", "NB02"]
+    counts = {s["nb_name"]: s["per_well_read_counts"] for s in res["per_nb"]}
+    assert counts["NB01"] == {"1_1": 3}
+    assert counts["NB02"] == {"2_1": 5}
+
+
+def test_combinatorial_per_nb_missing_marker_is_reprocessed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An output dir with consensus files but NO marker is NOT complete.
+
+    Directory existence alone never means done.  The NB is reprocessed and a
+    fresh marker is written.
+    """
+    import kuma_core.mame.ingest.combinatorial_demux as cd
+
+    monkeypatch.setenv("KUMA_MAME_NB_PARALLEL", "0")
+
+    out_dir = tmp_path / "out"
+    out_dir.mkdir()
+
+    # Pre-stage sort_barcode01 WITHOUT a marker (interrupted before commit).
+    nb_out = out_dir / "sort_barcode01"
+    nb_out.mkdir(parents=True)
+    _write_consensus(nb_out, "1_1")
+    assert read_stage_marker(nb_out) is None  # no marker -> not complete
+
+    worker_calls: list[str] = []
+
+    def _fake_worker(payload: dict) -> dict:
+        worker_calls.append(payload["nb_name"])
+        p = Path(payload["output_dir"])
+        p.mkdir(parents=True, exist_ok=True)
+        _write_consensus(p, "1_1")
+        return {
+            "nb_name": payload["nb_name"],
+            "sort_barcode_name": payload["sort_barcode_name"],
+            "output_dir": str(p.resolve()),
+            "stats": _fake_nb_stats(total=4, assigned=3, wells=1),
+            "per_well_read_counts": {"1_1": 3},
+        }
+
+    monkeypatch.setattr(cd, "_demux_one_nb", _fake_worker)
+
+    res = cd.run_combinatorial_demux_per_nb(
+        {"NB01": [tmp_path / "NB01" / "a.fastq.gz"]},
+        reference_fasta=tmp_path / "ref.fasta",
+        barcodes_xlsx=tmp_path / "bc.xlsx",
+        output_dir=out_dir,
+    )
+
+    # No marker -> reprocessed, and a fresh valid marker now exists.
+    assert worker_calls == ["NB01"]
+    assert is_unit_complete(nb_out) is True
+    marker = read_stage_marker(nb_out)
+    assert marker is not None
+    assert marker.get("stats", {}).get("assigned_reads") == 3
+    assert res["merged_stats"]["assigned_reads"] == 3
+
+
+def test_combinatorial_per_nb_mismatched_marker_is_reprocessed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A marker whose recorded inventory mismatches disk is NOT complete.
+
+    The marker lists two wells but only one consensus FASTA is on disk
+    (interrupted mid consensus loop) -> the NB is reprocessed.
+    """
+    import kuma_core.mame.ingest.combinatorial_demux as cd
+
+    monkeypatch.setenv("KUMA_MAME_NB_PARALLEL", "0")
+
+    out_dir = tmp_path / "out"
+    out_dir.mkdir()
+
+    nb_out = out_dir / "sort_barcode01"
+    nb_out.mkdir(parents=True)
+    _write_consensus(nb_out, "1_1")
+    # Marker claims a second well not on disk -> inventory mismatch.
+    write_stage_marker(
+        nb_out, per_well_counts={"1_1": 3, "1_2": 2}, consensus=True,
+        stats=_fake_nb_stats(total=6, assigned=5, wells=2),
+    )
+    assert is_unit_complete(nb_out) is False
+
+    worker_calls: list[str] = []
+
+    def _fake_worker(payload: dict) -> dict:
+        worker_calls.append(payload["nb_name"])
+        p = Path(payload["output_dir"])
+        p.mkdir(parents=True, exist_ok=True)
+        _write_consensus(p, "1_1")
+        return {
+            "nb_name": payload["nb_name"],
+            "sort_barcode_name": payload["sort_barcode_name"],
+            "output_dir": str(p.resolve()),
+            "stats": _fake_nb_stats(total=4, assigned=3, wells=1),
+            "per_well_read_counts": {"1_1": 3},
+        }
+
+    monkeypatch.setattr(cd, "_demux_one_nb", _fake_worker)
+
+    cd.run_combinatorial_demux_per_nb(
+        {"NB01": [tmp_path / "NB01" / "a.fastq.gz"]},
+        reference_fasta=tmp_path / "ref.fasta",
+        barcodes_xlsx=tmp_path / "bc.xlsx",
+        output_dir=out_dir,
+    )
+
+    # Mismatched marker -> reprocessed; fresh marker now matches disk.
+    assert worker_calls == ["NB01"]
+    assert is_unit_complete(nb_out) is True
+
+
+def test_combinatorial_per_nb_fully_resumed_equals_fresh(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A fully-resumed run reports the SAME merged_stats / per_nb as the fresh run.
+
+    Run 1 (fresh) processes both NBs and writes markers.  Run 2 (same args)
+    finds both units complete, calls NO worker, and reseeds merged_stats + per_nb
+    from the markers so the aggregate is byte-identical to the fresh run.
+    """
+    import kuma_core.mame.ingest.combinatorial_demux as cd
+
+    monkeypatch.setenv("KUMA_MAME_NB_PARALLEL", "0")
+
+    out_dir = tmp_path / "out"
+    out_dir.mkdir()
+
+    worker_calls: list[str] = []
+
+    def _fake_worker(payload: dict) -> dict:
+        name = payload["nb_name"]
+        worker_calls.append(name)
+        p = Path(payload["output_dir"])
+        p.mkdir(parents=True, exist_ok=True)
+        well = f"{name}_1"
+        _write_consensus(p, well)
+        return {
+            "nb_name": name,
+            "sort_barcode_name": payload["sort_barcode_name"],
+            "output_dir": str(p.resolve()),
+            "stats": _fake_nb_stats(total=6, assigned=4, wells=1),
+            "per_well_read_counts": {well: 4},
+        }
+
+    monkeypatch.setattr(cd, "_demux_one_nb", _fake_worker)
+
+    nb_to_fastq = {
+        "NB01": [tmp_path / "NB01" / "a.fastq.gz"],
+        "NB02": [tmp_path / "NB02" / "b.fastq.gz"],
+    }
+    kwargs = dict(
+        reference_fasta=tmp_path / "ref.fasta",
+        barcodes_xlsx=tmp_path / "bc.xlsx",
+        output_dir=out_dir,
+    )
+
+    # ── Run 1: fresh ────────────────────────────────────────────────────────
+    fresh = cd.run_combinatorial_demux_per_nb(dict(nb_to_fastq), **kwargs)
+    assert sorted(worker_calls) == ["NB01", "NB02"]
+    assert is_unit_complete(out_dir / "sort_barcode01") is True
+    assert is_unit_complete(out_dir / "sort_barcode02") is True
+    # 2 NB × 6 total = 12; 2 NB × 4 assigned = 8.
+    assert fresh["merged_stats"]["total_reads"] == 12
+    assert fresh["merged_stats"]["assigned_reads"] == 8
+
+    # ── Run 2: fully resumed (both units already complete) ────────────────────
+    worker_calls.clear()
+    resumed = cd.run_combinatorial_demux_per_nb(dict(nb_to_fastq), **kwargs)
+    assert worker_calls == []  # nothing reprocessed
+    # Every merged stat key equals the fresh run (reseeded from markers).
+    assert resumed["merged_stats"] == fresh["merged_stats"]
+    # per_nb is identical (order + counts) to the fresh run.
+    assert [s["nb_name"] for s in resumed["per_nb"]] == \
+        [s["nb_name"] for s in fresh["per_nb"]]
+    assert {s["nb_name"]: s["per_well_read_counts"] for s in resumed["per_nb"]} == \
+        {s["nb_name"]: s["per_well_read_counts"] for s in fresh["per_nb"]}
