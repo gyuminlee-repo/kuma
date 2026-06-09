@@ -51,12 +51,12 @@ export function sampleVerdicts(): VerdictRecord[] {
 
 export function sampleReplicates(): ReplicateResult[] {
   return [
-    { mutant_id: "V5F", selected_plate: "barcode1", selection_reason: "only_pass", failed: false, plate_keys: ["barcode1"], is_fallback: false, fallback_reason: null },
-    { mutant_id: "K53N", selected_plate: "barcode2", selection_reason: "best_pass", failed: false, plate_keys: ["barcode2"], is_fallback: false, fallback_reason: null },
-    { mutant_id: "Q80R", selected_plate: "barcode6", selection_reason: "only_pass", failed: false, plate_keys: ["barcode6"], is_fallback: false, fallback_reason: null },
-    { mutant_id: "T10A", selected_plate: null, selection_reason: "all_failed", failed: true, plate_keys: ["barcode4"], is_fallback: false, fallback_reason: null },
-    { mutant_id: "L12I", selected_plate: null, selection_reason: "all_failed", failed: true, plate_keys: ["barcode5"], is_fallback: false, fallback_reason: null },
-    { mutant_id: "R100K", selected_plate: null, selection_reason: "all_lowdepth", failed: true, plate_keys: ["barcode8"], is_fallback: false, fallback_reason: null },
+    { mutant_id: "V5F", selected_plate: "barcode1", selection_reason: "only_pass", failed: false, plate_keys: ["barcode1"], plate_verdicts: {}, is_fallback: false, fallback_reason: null },
+    { mutant_id: "K53N", selected_plate: "barcode2", selection_reason: "best_pass", failed: false, plate_keys: ["barcode2"], plate_verdicts: {}, is_fallback: false, fallback_reason: null },
+    { mutant_id: "Q80R", selected_plate: "barcode6", selection_reason: "only_pass", failed: false, plate_keys: ["barcode6"], plate_verdicts: {}, is_fallback: false, fallback_reason: null },
+    { mutant_id: "T10A", selected_plate: null, selection_reason: "all_failed", failed: true, plate_keys: ["barcode4"], plate_verdicts: {}, is_fallback: false, fallback_reason: null },
+    { mutant_id: "L12I", selected_plate: null, selection_reason: "all_failed", failed: true, plate_keys: ["barcode5"], plate_verdicts: {}, is_fallback: false, fallback_reason: null },
+    { mutant_id: "R100K", selected_plate: null, selection_reason: "all_lowdepth", failed: true, plate_keys: ["barcode8"], plate_verdicts: {}, is_fallback: false, fallback_reason: null },
   ];
 }
 

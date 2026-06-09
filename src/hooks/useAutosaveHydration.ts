@@ -10,6 +10,9 @@ import { useEffect, useRef } from "react";
 import i18next from "i18next";
 import { useKumaProject } from "@/state/projectContext";
 import { readAutosave } from "@/lib/autosave";
+import { readMameResultSnapshot } from "@/lib/mame/resultSnapshot";
+import { sendRequest as sendMameRequest } from "@/lib/ipc-mame";
+import type { LoadAnalyzeResultResponse } from "@/types/mame/models";
 import { KURO_SCHEMA } from "@/lib/kuroSnapshot";
 import { MAME_SCHEMA } from "@/lib/mame/autosaveSnapshot";
 import { detectProjectFiles, detectFromInputDir } from "@/lib/mame/detectProjectFiles";
@@ -379,6 +382,50 @@ function applyMameSnapshot(snapshot: MameAutosaveSnapshot): void {
   });
 }
 
+// ─── Mame analyze-result 복원 ──────────────────────
+
+/**
+ * Restore a persisted analyze result (sibling result file) into BOTH the
+ * sidecar and the store, then land on the 2.2 review view.
+ *
+ * Runs AFTER the input-snapshot restore. Independent of input-snapshot status:
+ * the result file alone is sufficient to repopulate verdicts/replicates and the
+ * plate view. Missing result file -> silent skip (returns false).
+ *
+ * Sequence (locked):
+ *  1. load_analyze_result RPC (re-injects sidecar SidecarState; otherwise
+ *     get_plate_data throws -32002 and Plate View breaks)
+ *  2. store verdicts / replicates / summary / distribution_stats
+ *  3. loadPlateData() (reads get_plate_data from the restored sidecar state)
+ *  4. setMameSubStep("analyze.review")
+ *
+ * The persisted `result.replicates[].plate_verdicts` is replayed AS-IS; it is
+ * the only lossless source for per-plate accent restoration.
+ */
+async function restoreMameResult(projectPath: string): Promise<boolean> {
+  const read = await readMameResultSnapshot(projectPath);
+  if (read.status !== "ok") return false;
+
+  const { result } = read.snapshot;
+  const store = useMameAppStore.getState();
+
+  await sendMameRequest<LoadAnalyzeResultResponse>("load_analyze_result", {
+    verdicts: result.verdicts,
+    replicates: result.replicates,
+    output_path: result.output_path,
+    summary: result.summary ?? null,
+    distribution_stats: result.distribution_stats ?? null,
+  });
+
+  store.setVerdicts(result.verdicts);
+  store.setReplicates(result.replicates);
+  store.setSummary(result.summary);
+  store.setDistributionStats(result.distribution_stats ?? null);
+  await store.loadPlateData();
+  store.setMameSubStep("analyze.review");
+  return true;
+}
+
 // ─── 훅 ──────────────────────────────────────────────────────────────────
 
 /**
@@ -462,6 +509,22 @@ export function useAutosaveHydration(
         });
       }
       // missing → 침묵
+
+      // ── mame analyze-result 복원: 입력 스냅샷 복원 후, 결과 파일이 있으면
+      //    사이드카 + store 재구성 후 2.2 review 뷰로 진입. RPC 실패가 입력
+      //    스냅샷 "apply snapshot failed" 메시지를 오염시키지 않도록 별도 try/catch.
+      try {
+        const restored = await restoreMameResult(path);
+        if (restored) {
+          onMessage({
+            kind: "mame",
+            variant: "restored",
+            message: i18next.t("autosaveHydration.workspaceRestored"),
+          });
+        }
+      } catch (err) {
+        console.warn("[autosave] mame: analyze-result restore failed", err);
+      }
 
       // ── auto-detect: autosave 복원 후 여전히 비어있는 필드를 프로젝트 디렉토리에서 채운다
       await applyMameAutoDetect(path, (filled) => {

@@ -379,6 +379,21 @@
       "severity": "blocking"
     },
     {
+      "id": "mame-dispatcher-load-analyze-result",
+      "files": [
+        "python-core/sidecar_mame/dispatcher.py",
+        "python-core/sidecar_mame/handlers/load.py"
+      ],
+      "symbols": [
+        "_METHODS",
+        "load_analyze_result",
+        "LoadAnalyzeResultParams",
+        "handle_load_analyze_result"
+      ],
+      "note": "load_analyze_result RPC: dispatcher 등록 <-> Pydantic params <-> handler. Frontend resultSnapshot.ts persists analyze response AS-IS (replicates[].plate_verdicts) and replays it here on restart; LoadAnalyzeResultParams mirrors analyze.py serializers, co-evolution risk if deserializers drift.",
+      "severity": "blocking"
+    },
+    {
       "id": "shared-sidecar",
       "files": [
         "kuma_core/shared/sidecar.py",

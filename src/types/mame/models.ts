@@ -40,6 +40,12 @@ export interface ReplicateResult {
   selection_reason: string;
   failed: boolean;
   plate_keys: string[];
+  // Full verdict dict per native_barcode, serialized by the sidecar
+  // (_serialize_replicate). This is the ONLY lossless source for per-plate
+  // accent (selected / is_fallback) restoration. The frontend persists +
+  // replays the analyze response AS-IS including this field; reconstructing
+  // from plate_keys alone silently corrupts well flags.
+  plate_verdicts: Record<string, VerdictRecord>;
   is_fallback: boolean;
   fallback_reason: string | null;
 }
@@ -78,6 +84,29 @@ export interface AnalyzeResult {
   output_path: string;
   summary: AnalyzeSummary;
   distribution_stats: DistributionStats;
+}
+
+/**
+ * Parameters for the `load_analyze_result` RPC (Phase 1 contract). Mirrors the
+ * `analyze` response shape so the persisted result can be replayed verbatim to
+ * re-inject the sidecar SidecarState on restart. `replicates[].plate_verdicts`
+ * MUST be carried through for lossless plate-accent restoration.
+ */
+export interface LoadAnalyzeResultRequest {
+  verdicts: VerdictRecord[];
+  replicates: ReplicateResult[];
+  output_path: string;
+  run_meta?: Record<string, unknown> | null;
+  summary?: AnalyzeSummary | null;
+  distribution_stats?: DistributionStats | null;
+}
+
+/** Ack returned by `load_analyze_result`. Counts only; store data comes from
+ *  the persisted file, not this response. */
+export interface LoadAnalyzeResultResponse {
+  restored: true;
+  verdict_count: number;
+  replicate_count: number;
 }
 
 export interface WellEntry {
