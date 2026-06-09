@@ -25,8 +25,15 @@ Schema (version 1)::
       "unit": "<nb dir name>",
       "consensus": <bool>,            # True if A4/A5 consensus ran
       "per_well_counts": {"<well>": <int>, ...},
-      "wells": ["<well>", ...]        # sorted expected inventory (well stems)
+      "wells": ["<well>", ...],       # sorted expected inventory (well stems)
+      "n_input_reads": <int|null>,    # optional: this unit's demux input reads
+      "n_unassigned": <int|null>      # optional: this unit's unassigned reads
     }
+
+The ``n_input_reads`` / ``n_unassigned`` keys are optional.  They let a
+fully-resumed run reconstruct the aggregate input/unassigned totals from the
+markers of already-complete units; older markers that predate these keys simply
+omit them (treated as "not seedable" by the consumer, never a crash).
 """
 
 from __future__ import annotations
@@ -41,6 +48,13 @@ MARKER_FILENAME = ".demux_consensus_complete.json"
 MARKER_SCHEMA_VERSION = 1
 STAGE_NAME = "demux_consensus"
 
+# Single source of truth for the per-well consensus FASTA extension set.  The
+# downstream consumer (``fasta_parser._iter_consensus_files``) imports this so
+# the orphan/extra-file guard globs the SAME extensions the consumer will read;
+# a stray ``.fa`` / ``.fas`` orphan is therefore caught, not silently consumed.
+# Defined here (the leaf module) to avoid a circular import with fasta_parser.
+CONSENSUS_FILE_PATTERNS: tuple[str, ...] = ("*.fasta", "*.fa", "*.fas")
+
 
 def marker_path(unit_dir: Path) -> Path:
     """Return the marker path for *unit_dir* (does not check existence)."""
@@ -52,6 +66,8 @@ def write_stage_marker(
     *,
     per_well_counts: dict[str, int],
     consensus: bool,
+    n_input_reads: int | None = None,
+    n_unassigned: int | None = None,
 ) -> Path:
     """Atomically write the completion marker into *unit_dir*.
 
@@ -62,6 +78,11 @@ def write_stage_marker(
         unit_dir: The per-NB output directory (``nb_out``).
         per_well_counts: ``{well_name: read_count}`` for the wells produced.
         consensus: Whether the A4/A5 consensus pipeline ran for this unit.
+        n_input_reads: Optional demux input-read count for this unit.  Recorded
+            so a fully-resumed run can reseed the aggregate input total instead
+            of reporting 0.  Omitted from the payload when ``None``.
+        n_unassigned: Optional unassigned-read count for this unit.  Recorded
+            for the same reseed reason; omitted when ``None``.
 
     Returns:
         The resolved path of the written marker.
@@ -75,6 +96,10 @@ def write_stage_marker(
         "per_well_counts": {str(k): int(v) for k, v in per_well_counts.items()},
         "wells": sorted(str(k) for k in per_well_counts),
     }
+    if n_input_reads is not None:
+        payload["n_input_reads"] = int(n_input_reads)
+    if n_unassigned is not None:
+        payload["n_unassigned"] = int(n_unassigned)
     content = json.dumps(payload, ensure_ascii=False, indent=2)
     return atomic_write_text(marker_path(unit_dir), content)
 
@@ -102,14 +127,20 @@ def read_stage_marker(unit_dir: Path) -> dict[str, Any] | None:
 def _list_well_fasta(unit_dir: Path) -> set[str]:
     """Return the set of per-well FASTA stems present in *unit_dir*.
 
-    Mirrors the consumer/quality-filter convention: ``*.fasta`` files whose
-    name does not start with ``_`` (so ``_unassigned.fasta`` is excluded).
+    Mirrors the consumer (``fasta_parser._iter_consensus_files``): every file
+    matching ``CONSENSUS_FILE_PATTERNS`` (``*.fasta`` / ``*.fa`` / ``*.fas``)
+    whose name does not start with ``_`` (so ``_unassigned.fasta`` is
+    excluded).  Globbing the SAME extension set the consumer reads is what lets
+    a stray ``.fa`` / ``.fas`` orphan be flagged as an extra file instead of
+    silently bypassing the guard.
     """
-    return {
-        p.stem
-        for p in Path(unit_dir).glob("*.fasta")
-        if not p.name.startswith("_")
-    }
+    unit_dir = Path(unit_dir)
+    stems: set[str] = set()
+    for pattern in CONSENSUS_FILE_PATTERNS:
+        for p in unit_dir.glob(pattern):
+            if not p.name.startswith("_"):
+                stems.add(p.stem)
+    return stems
 
 
 def validate_marker(marker: dict[str, Any], unit_dir: Path) -> tuple[bool, str]:

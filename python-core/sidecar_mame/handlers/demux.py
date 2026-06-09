@@ -454,6 +454,11 @@ def handle_demux_and_filter(params: dict) -> dict:
     # incomplete unit is reprocessed.
     completed_nbs: set[str] = set()
     completed_marker_counts: dict[str, dict[str, int]] = {}
+    # Per-NB input/unassigned recorded in the marker, used to reseed the
+    # aggregate input/unassigned totals on a resumed run.  Missing keys (older
+    # markers) leave the NB absent here and are simply not seeded (no crash).
+    completed_input_reads: dict[str, int] = {}
+    completed_unassigned: dict[str, int] = {}
     if nb_dirs_raw:
         for nb_dir_str in nb_dirs_raw:
             nb_name = Path(nb_dir_str).resolve().name
@@ -466,6 +471,12 @@ def handle_demux_and_filter(params: dict) -> dict:
                         str(k): int(v)
                         for k, v in marker.get("per_well_counts", {}).items()
                     }
+                    m_input = marker.get("n_input_reads")
+                    if m_input is not None:
+                        completed_input_reads[nb_name] = int(m_input)
+                    m_unassigned = marker.get("n_unassigned")
+                    if m_unassigned is not None:
+                        completed_unassigned[nb_name] = int(m_unassigned)
 
     _progress(5, "Starting demux...")
 
@@ -477,12 +488,24 @@ def handle_demux_and_filter(params: dict) -> dict:
         merged_unassigned = 0
         merged_per_well: dict[str, int] = {}
 
+        # Per-NB input/unassigned for the units processed THIS run, recorded in
+        # each unit's completion marker so a later full resume can reseed them.
+        per_nb_input: dict[str, int] = {}
+        per_nb_unassigned: dict[str, int] = {}
+
         # Seed merged counts from already-complete units so the aggregated
-        # response is not undercounted on a resumed run.
+        # response is not undercounted on a resumed run.  per_well/assigned were
+        # always seeded; input/unassigned are now seeded too (when the marker
+        # recorded them) so a fully-resumed run does not report 0 input reads or
+        # a negative unassigned count.
         for nb_name in completed_nbs:
             for well, cnt in completed_marker_counts.get(nb_name, {}).items():
                 merged_per_well[well] = merged_per_well.get(well, 0) + cnt
                 merged_assigned += cnt
+            if nb_name in completed_input_reads:
+                merged_input += completed_input_reads[nb_name]
+            if nb_name in completed_unassigned:
+                merged_unassigned += completed_unassigned[nb_name]
 
         total_nb = len(nb_dirs_raw)
         for idx, nb_dir_str in enumerate(nb_dirs_raw):
@@ -512,6 +535,8 @@ def handle_demux_and_filter(params: dict) -> dict:
             merged_input += partial.n_input_reads
             merged_assigned += partial.n_assigned
             merged_unassigned += partial.n_unassigned
+            per_nb_input[nb_dir.name] = partial.n_input_reads
+            per_nb_unassigned[nb_dir.name] = partial.n_unassigned
             for well, cnt in partial.per_well_counts.items():
                 merged_per_well[well] = merged_per_well.get(well, 0) + cnt
 
@@ -715,7 +740,9 @@ def handle_demux_and_filter(params: dict) -> dict:
                     all_consensus_stats[f"{nb_dir.name}/{well}"] = stat
                 # Commit point: this NB's consensus FASTA are all on disk now.
                 # Write the completion marker LAST and atomically so a crash on
-                # the *next* NB still lets this one resume-skip.
+                # the *next* NB still lets this one resume-skip.  Record this
+                # unit's demux input/unassigned counts so a later full resume
+                # can reseed the aggregate input/unassigned totals.
                 write_stage_marker(
                     nb_out,
                     per_well_counts={
@@ -723,6 +750,8 @@ def handle_demux_and_filter(params: dict) -> dict:
                         for well, stat in nb_stats.items()
                     },
                     consensus=True,
+                    n_input_reads=per_nb_input.get(nb_dir.name),
+                    n_unassigned=per_nb_unassigned.get(nb_dir.name),
                 )
         else:
             # Single-NB: run consensus in the single NB subdir.
@@ -798,7 +827,11 @@ def handle_demux_and_filter(params: dict) -> dict:
                     if not p.name.startswith("_")
                 }
                 write_stage_marker(
-                    nb_out, per_well_counts=nb_wells, consensus=False
+                    nb_out,
+                    per_well_counts=nb_wells,
+                    consensus=False,
+                    n_input_reads=per_nb_input.get(nb_name),
+                    n_unassigned=per_nb_unassigned.get(nb_name),
                 )
         else:
             single_nb_out = output_dir / fastq_dir.name
