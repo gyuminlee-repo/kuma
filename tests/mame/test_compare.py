@@ -131,13 +131,36 @@ def test_min_read_count_default_preserves_legacy_file_size_gate() -> None:
 
 
 def test_mixed_consensus_signal_blocks_clean_pass() -> None:
-    """51/49-style mixed wells become AMBIGUOUS even if majority matches expected."""
+    """51/49-style mixed wells become MIXED even if majority matches expected."""
 
     tr = _tr(["V5F"], n_mixed_positions=1, max_minor_allele_fraction=0.49)
     result = classify_verdict(tr, ["V5F"], _params())
-    assert result.verdict is VerdictClass.AMBIGUOUS
+    assert result.verdict is VerdictClass.MIXED
     assert "mixed consensus signal" in result.verdict_notes
     assert "0.490" in result.verdict_notes
+
+
+def test_mixed_takes_priority_over_wrong_aa() -> None:
+    """A mixed well that also carries an unexpected AA change is MIXED, not WRONG_AA.
+
+    Priority MIXED -> WRONG_AA ensures within-well contamination is reported as
+    its own class rather than being masked by an AA-mismatch verdict.
+    """
+
+    # Observed N63S where N63F was expected (would be WRONG_AA on its own),
+    # but the well is also mixed (n_mixed_positions > 0).
+    tr = _tr(
+        ["N63S"],
+        n_mixed_positions=1,
+        max_minor_allele_fraction=0.45,
+    )
+    # Sanity: same input without the mixed signal is WRONG_AA.
+    clean = classify_verdict(_tr(["N63S"]), ["N63F"], _params())
+    assert clean.verdict is VerdictClass.WRONG_AA
+    # With the mixed signal, MIXED wins (higher priority).
+    result = classify_verdict(tr, ["N63F"], _params())
+    assert result.verdict is VerdictClass.MIXED
+    assert "mixed consensus signal" in result.verdict_notes
 
 
 def test_consensus_n_fraction_blocks_clean_pass_by_default() -> None:

@@ -43,6 +43,7 @@ if TYPE_CHECKING:
 VERDICT_FILL: dict[VerdictClass, str] = {
     VerdictClass.PASS: "00B050",
     VerdictClass.AMBIGUOUS: "FFFF00",
+    VerdictClass.MIXED: "FFC000",
     VerdictClass.FRAMESHIFT: "FF0000",
     VerdictClass.MANY: "FF0000",
     VerdictClass.WRONG_AA: "FF0000",

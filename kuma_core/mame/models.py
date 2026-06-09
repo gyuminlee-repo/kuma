@@ -8,10 +8,11 @@ from pathlib import Path
 
 
 class VerdictClass(StrEnum):
-    """6-class verdict enum. Order reflects comparison priority (fail-first checks)."""
+    """7-class verdict enum. Order reflects comparison priority (fail-first checks)."""
 
     PASS = "PASS"
     AMBIGUOUS = "AMBIGUOUS"
+    MIXED = "MIXED"
     FRAMESHIFT = "FRAMESHIFT"
     MANY = "MANY"
     LOWDEPTH = "LOWDEPTH"

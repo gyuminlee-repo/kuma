@@ -407,6 +407,8 @@ def build_run_health(
             pb["pass"] += 1
         elif verdict_val == "AMBIGUOUS":
             pb["ambiguous"] += 1
+        elif verdict_val == "MIXED":
+            pb["fail"] += 1
         else:
             pb["fail"] += 1
 

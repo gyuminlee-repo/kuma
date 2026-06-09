@@ -124,11 +124,13 @@ def _summarize(verdicts: list) -> dict:
     total = len(verdicts)
     pass_count = sum(1 for v in verdicts if v.verdict.value == "PASS")
     amb = sum(1 for v in verdicts if v.verdict.value == "AMBIGUOUS")
+    mixed = sum(1 for v in verdicts if v.verdict.value == "MIXED")
     fail = total - pass_count - amb
     return {
         "total": total,
         "pass_count": pass_count,
         "ambiguous_count": amb,
+        "mixed_count": mixed,
         "fail_count": fail,
     }
 

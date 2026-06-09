@@ -1,6 +1,6 @@
 """6-class verdict classifier.
 
-Priority (fail-first): LOWDEPTH -> FRAMESHIFT -> MANY -> WRONG_AA -> AMBIGUOUS -> PASS.
+Priority (fail-first): LOWDEPTH -> FRAMESHIFT -> MANY -> MIXED -> WRONG_AA -> AMBIGUOUS -> PASS.
 """
 
 from __future__ import annotations
@@ -158,6 +158,23 @@ def classify_verdict(
             wt, pos, mt = parsed
             observed_parsed[pos] = (wt, mt)
 
+    # MIXED — within-well contamination. A substantial second allele (for
+    # example 51/49) means majority consensus can look exact while the well is
+    # actually mixed. Detected before WRONG_AA so contamination is reported as
+    # its own class rather than being masked by an AA-mismatch verdict.
+    if translated.barcode.n_mixed_positions > 0:
+        return VerdictRecord(
+            translated=translated,
+            expected_mutations=list(expected_mutations),
+            verdict=VerdictClass.MIXED,
+            verdict_notes=(
+                "mixed consensus signal: "
+                f"{translated.barcode.n_mixed_positions} positions, "
+                "max_minor_allele_fraction="
+                f"{translated.barcode.max_minor_allele_fraction:.3f}"
+            ),
+        )
+
     # 4) WRONG_AA — expected position hit but MT mismatches.
     for pos, (exp_wt, exp_mt) in expected_parsed.items():
         if pos in observed_parsed:
@@ -221,22 +238,6 @@ def classify_verdict(
             expected_mutations=list(expected_mutations),
             verdict=VerdictClass.WRONG_AA,
             verdict_notes=f"unexpected extra mutations: {', '.join(tags)}",
-        )
-
-    # Majority consensus can otherwise look exact even when the well contains
-    # a substantial second allele (for example 51/49).  Surface that as
-    # AMBIGUOUS instead of allowing a clean PASS.
-    if translated.barcode.n_mixed_positions > 0:
-        return VerdictRecord(
-            translated=translated,
-            expected_mutations=list(expected_mutations),
-            verdict=VerdictClass.AMBIGUOUS,
-            verdict_notes=(
-                "mixed consensus signal: "
-                f"{translated.barcode.n_mixed_positions} positions, "
-                "max_minor_allele_fraction="
-                f"{translated.barcode.max_minor_allele_fraction:.3f}"
-            ),
         )
 
     # 6) PASS — observed exactly matches expected.
