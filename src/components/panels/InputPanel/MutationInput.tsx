@@ -69,6 +69,35 @@ export function MutationInput() {
     [mutationText],
   );
 
+  const { pickerRows, bufferCap } = useMemo(() => {
+    const selectedSet = new Set(evolveproSelectedVariants);
+    const unselectedBuffer = evolveproRankedCandidates
+      .filter((c) => !selectedSet.has(c.variant))
+      .slice(0, evolveproExtraExposed);
+    const rows = [
+      ...evolveproRankedCandidates
+        .filter((c) => selectedSet.has(c.variant))
+        .map((c) => ({
+          variant: c.variant,
+          yPred: c.y_pred,
+          aaPosition: c.aa_position ?? null,
+          selected: true,
+        })),
+      ...unselectedBuffer.map((c) => ({
+        variant: c.variant,
+        yPred: c.y_pred,
+        aaPosition: c.aa_position ?? null,
+        selected: false,
+      })),
+    ];
+    const cap =
+      evolveproRankedCandidates.length -
+      evolveproSelectedVariants.filter((v) =>
+        evolveproRankedCandidates.some((c) => c.variant === v),
+      ).length;
+    return { pickerRows: rows, bufferCap: cap };
+  }, [evolveproSelectedVariants, evolveproRankedCandidates, evolveproExtraExposed]);
+
   return (
     <div className="space-y-1">
       <label className="text-xs font-medium text-foreground inline-flex items-center gap-1.5">
@@ -212,29 +241,6 @@ export function MutationInput() {
 
           {/* EVOLVEpro candidate picker (topN / pipeline only) */}
           {evolveproMode !== "others" && evolveproRankedCandidates.length > 0 && (() => {
-            const selectedSet = new Set(evolveproSelectedVariants);
-            const unselectedBuffer = evolveproRankedCandidates
-              .filter((c) => !selectedSet.has(c.variant))
-              .slice(0, evolveproExtraExposed);
-            const pickerRows = [
-              ...evolveproRankedCandidates
-                .filter((c) => selectedSet.has(c.variant))
-                .map((c) => ({
-                  variant: c.variant,
-                  yPred: c.y_pred,
-                  aaPosition: c.aa_position ?? null,
-                  selected: true,
-                })),
-              ...unselectedBuffer.map((c) => ({
-                variant: c.variant,
-                yPred: c.y_pred,
-                aaPosition: c.aa_position ?? null,
-                selected: false,
-              })),
-            ];
-            const bufferCap = evolveproRankedCandidates.length - evolveproSelectedVariants.filter(
-              (v) => evolveproRankedCandidates.some((c) => c.variant === v)
-            ).length;
             return (
               <div className="space-y-1">
                 <EvolveproSelectTable

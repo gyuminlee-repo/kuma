@@ -201,7 +201,6 @@ export interface DesignSlice {
   isDesigning: boolean;
   backendDesignStateSynced: boolean;
   designResults: SdmPrimerResult[];
-  excludedDesignMutations: string[];
   successCount: number;
   totalCount: number;
   failedMutations: FailedMutation[];
@@ -245,9 +244,6 @@ export interface DesignSlice {
   applyCustomPrimer: (mutation: string, result: SdmPrimerResult) => void;
   addCustomCandidate: (mutation: string, result: SdmPrimerResult) => void;
   removeCustomCandidate: (mutation: string, index: number) => void;
-  setDesignMutationIncluded: (mutation: string, included: boolean) => void;
-  toggleDesignMutationIncluded: (mutation: string) => void;
-  resetDesignMutationSelection: () => void;
   evaluateCustomPrimer: (mutation: string, fwdSeq: string, revSeq: string, overlapLen?: number) => Promise<SdmPrimerResult>;
   retryFailedMutation: (mutation: string, params: Record<string, number | string>) => Promise<SdmPrimerResult[]>;
   /**

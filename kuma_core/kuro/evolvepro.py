@@ -18,6 +18,7 @@ from kuma_core.kuro.alphafold import pairwise_ca_distance, ca_max_dist
 
 _POS_RE = re.compile(r"[A-Z](\d+)[A-Z]")
 _SINGLE_POS_RE = re.compile(r"^[A-Z](\d+)[A-Z]$")
+_TOKEN_SPLIT_RE = re.compile(r"[\s/,]+")
 
 # ---------------------------------------------------------------------------
 # Grantham distance lookup table (Grantham 1974, Science 185:862-864)
@@ -438,14 +439,16 @@ def _variant_has_position_one(variant: str) -> bool:
 
 
 def _extract_aa_position(variant: str) -> int | None:
-    """Extract the first 1-based amino acid position from a variant string.
+    """Extract the 1-based amino acid position from the first token of a variant string.
 
-    Uses _POS_RE (same regex as domain binning and pareto selection) to locate
-    the position digit group. For multi-variant strings the first match is
-    returned. Returns None when no parseable position is found; never returns
-    a default of 0 to avoid misleading callers.
+    Tokens are split on whitespace, slash, or comma (matching the EVOLVEpro
+    multi-substitution conventions in _variant_has_position_one).  _POS_RE is
+    applied only to the first token so that later tokens cannot override the
+    result — a leading non-positional token (e.g. WT) correctly returns None.
+    Returns None when no parseable position is found; never returns 0.
     """
-    m = _POS_RE.search(variant)
+    first_token = _TOKEN_SPLIT_RE.split(variant.strip(), maxsplit=1)[0]
+    m = _POS_RE.search(first_token)
     return int(m.group(1)) if m else None
 
 

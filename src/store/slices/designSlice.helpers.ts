@@ -312,41 +312,28 @@ export function rebuildPlateStateFromResults(params: {
   };
 }
 
+/** Returns all design results (exclusion feature removed; always all-included). */
 export function getIncludedDesignResults(
   designResults: SdmPrimerResult[],
-  excludedDesignMutations: string[],
 ): SdmPrimerResult[] {
-  if (excludedDesignMutations.length === 0) return designResults;
-  const excluded = new Set(excludedDesignMutations);
-  return designResults.filter((result) => !excluded.has(result.mutation));
+  return designResults;
 }
 
+/** @deprecated Exclusion feature removed. Always returns []. Kept for workspace migration compat. */
 export function pruneExcludedDesignMutations(
-  designResults: SdmPrimerResult[],
-  excludedDesignMutations: string[],
+  _designResults: SdmPrimerResult[],
+  _excludedDesignMutations: string[],
 ): string[] {
-  if (excludedDesignMutations.length === 0 || designResults.length === 0) return [];
-  const validMutations = new Set(designResults.map((result) => result.mutation));
-  const pruned: string[] = [];
-  const seen = new Set<string>();
-
-  for (const mutation of excludedDesignMutations) {
-    if (!validMutations.has(mutation) || seen.has(mutation)) continue;
-    seen.add(mutation);
-    pruned.push(mutation);
-  }
-
-  return pruned;
+  return [];
 }
 
 export function buildIncludedPlateState(params: {
   designResults: SdmPrimerResult[];
-  excludedDesignMutations: string[];
   wellName: (idx: number) => string;
 }) {
-  const { designResults, excludedDesignMutations, wellName } = params;
+  const { designResults, wellName } = params;
   return rebuildPlateStateFromResults({
-    designResults: getIncludedDesignResults(designResults, excludedDesignMutations),
+    designResults,
     wellName,
   });
 }
@@ -360,7 +347,6 @@ export function addDesignResultState(params: {
   wellName: (idx: number) => string;
   maxPrimers?: number;
   preferredMutations?: Set<string>;
-  excludedDesignMutations?: string[];
 }) {
   const {
     mutation,
@@ -371,7 +357,6 @@ export function addDesignResultState(params: {
     wellName,
     maxPrimers,
     preferredMutations,
-    excludedDesignMutations = [],
   } = params;
 
   let aaPos = result.aa_position;
@@ -410,13 +395,8 @@ export function addDesignResultState(params: {
           preferredMutations,
         })
       : nextDesignResultsUncapped;
-  const nextExcludedDesignMutations = pruneExcludedDesignMutations(
-    nextDesignResults,
-    excludedDesignMutations,
-  );
   const plateState = buildIncludedPlateState({
     designResults: nextDesignResults,
-    excludedDesignMutations: nextExcludedDesignMutations,
     wellName,
   });
 
@@ -425,7 +405,6 @@ export function addDesignResultState(params: {
     designResults: nextDesignResults,
     failedMutations: failedMutations.filter((f) => f.mutation !== mutation),
     successCount: nextDesignResults.length,
-    excludedDesignMutations: nextExcludedDesignMutations,
     plateMappings: plateState.plateMappings,
     dedupInfo: plateState.dedupInfo,
     rescuedMutations: rescuedMutations.includes(mutation)
@@ -471,7 +450,6 @@ export function removeDesignResultState(params: {
   successCount: number;
   rescuedMutations: string[];
   wellName: (idx: number) => string;
-  excludedDesignMutations?: string[];
 }) {
   const {
     mutation,
@@ -481,7 +459,6 @@ export function removeDesignResultState(params: {
     successCount,
     rescuedMutations,
     wellName,
-    excludedDesignMutations = [],
   } = params;
 
   const removed = designResults.find((r) => r.mutation === mutation);
@@ -492,13 +469,8 @@ export function removeDesignResultState(params: {
   const restoredRank = failedMutations.length > 0
     ? Math.max(...failedMutations.map((f) => f.rank)) + 1
     : newDesignResults.length + 1;
-  const nextExcludedDesignMutations = pruneExcludedDesignMutations(
-    newDesignResults,
-    excludedDesignMutations,
-  );
   const plateState = buildIncludedPlateState({
     designResults: newDesignResults,
-    excludedDesignMutations: nextExcludedDesignMutations,
     wellName,
   });
 
@@ -510,7 +482,6 @@ export function removeDesignResultState(params: {
       { mutation, rank: restoredRank, reason },
     ],
     successCount: Math.max(0, successCount - 1),
-    excludedDesignMutations: nextExcludedDesignMutations,
     plateMappings: plateState.plateMappings,
     dedupInfo: plateState.dedupInfo,
     rescuedMutations: rescuedMutations.filter((m) => m !== mutation),

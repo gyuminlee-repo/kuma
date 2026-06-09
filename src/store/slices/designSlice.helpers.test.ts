@@ -5,7 +5,6 @@ import {
   buildIncludedPlateState,
   getIncludedDesignResults,
   prepareDesignInput,
-  pruneExcludedDesignMutations,
   processDesignResult,
 } from "./designSlice.helpers";
 
@@ -89,31 +88,13 @@ describe("designSlice helpers rescue capping", () => {
 });
 
 describe("designSlice helpers included result view", () => {
-  it("includes every designed result by default", () => {
+  it("returns all design results (always all-included after exclusion removal)", () => {
     const results = [primer("M1A", 1), primer("M2A", 2)];
 
-    expect(getIncludedDesignResults(results, [])).toEqual(results);
+    expect(getIncludedDesignResults(results)).toEqual(results);
   });
 
-  it("excludes matching mutation ids without mutating raw design results", () => {
-    const results = [primer("M1A", 1), primer("M2A", 2), primer("M3A", 3)];
-
-    const included = getIncludedDesignResults(results, ["M2A"]);
-
-    expect(included.map((result) => result.mutation)).toEqual(["M1A", "M3A"]);
-    expect(results.map((result) => result.mutation)).toEqual(["M1A", "M2A", "M3A"]);
-  });
-
-  it("prunes stale and duplicate exclusions against the current design results", () => {
-    const results = [primer("M1A", 1), primer("M2A", 2)];
-
-    expect(pruneExcludedDesignMutations(results, ["M2A", "STALE", "M2A", "M1A"])).toEqual([
-      "M2A",
-      "M1A",
-    ]);
-  });
-
-  it("builds plate state from the included view only", () => {
+  it("builds plate state from all design results", () => {
     const sharedReverse = primer("M2A", 2);
     const results = [
       primer("M1A", 1),
@@ -123,26 +104,22 @@ describe("designSlice helpers included result view", () => {
 
     const plateState = buildIncludedPlateState({
       designResults: results,
-      excludedDesignMutations: ["M2A"],
       wellName,
     });
 
+    // M2A and M3A share the same reverse_seq "GCAT2", so only M2A appears as reverse representative
     expect(plateState.plateMappings.map((mapping) => mapping.mutation)).toEqual([
       "M1A",
+      "M2A",
       "M3A",
       "M1A",
-      "M3A",
+      "M2A",
     ]);
-    expect(plateState.dedupInfo).toEqual({
-      GCAT1: ["M1A"],
-      GCAT2: ["M3A"],
-    });
   });
 
-  it("returns empty downstream artifacts when every result is excluded", () => {
+  it("returns empty artifacts for empty design results", () => {
     const plateState = buildIncludedPlateState({
-      designResults: [primer("M1A", 1), primer("M2A", 2)],
-      excludedDesignMutations: ["M1A", "M2A"],
+      designResults: [],
       wellName,
     });
 

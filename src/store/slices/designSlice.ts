@@ -20,7 +20,6 @@ import {
   EMPTY_RESCUE_STATS,
   prepareDesignInput,
   processDesignResult,
-  pruneExcludedDesignMutations,
   rebuildPlateStateFromResults,
   removeDesignResultState,
 } from "./designSlice.helpers";
@@ -32,7 +31,6 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
   isDesigning: false,
   backendDesignStateSynced: false,
   designResults: [],
-  excludedDesignMutations: [],
   successCount: 0,
   totalCount: 0,
   failedMutations: [],
@@ -191,7 +189,6 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       progress: 0,
       statusMessage: "Designing primers...",
       designResults: [],
-      excludedDesignMutations: [],
       plateMappings: [],
       customCandidates: {},
       alternativesCache: {},
@@ -246,7 +243,6 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       set({
         backendDesignStateSynced: true,
         designResults: processed.capped,
-        excludedDesignMutations: [],
         successCount: processed.capped.length,
         totalCount: prepared.intendedMuts.size,
         failedMutations: processed.intendedFailed,
@@ -361,7 +357,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       "swap_primer",
       { mutation, candidate_idx: candidateIdx, swap_type: swapType },
     );
-    const { designResults, excludedDesignMutations, manuallySwapped } = get();
+    const { designResults, manuallySwapped } = get();
     const targetPos = updated.aa_position;
     const revChanged = swapType === "rev" || swapType === "both";
 
@@ -393,20 +389,14 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       }
       return r;
     });
-    const nextExcludedDesignMutations = pruneExcludedDesignMutations(
-      nextDesignResults,
-      excludedDesignMutations,
-    );
     const plateState = buildIncludedPlateState({
       designResults: nextDesignResults,
-      excludedDesignMutations: nextExcludedDesignMutations,
       wellName,
     });
 
     set({
       backendDesignStateSynced: true,
       designResults: nextDesignResults,
-      excludedDesignMutations: nextExcludedDesignMutations,
       plateMappings: plateState.plateMappings,
       dedupInfo: plateState.dedupInfo,
       manuallySwapped: newSwapped,
@@ -414,22 +404,16 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
   },
 
   applyCustomPrimer: (mutation: string, result: SdmPrimerResult) => {
-    const { designResults, excludedDesignMutations, manuallySwapped } = get();
+    const { designResults, manuallySwapped } = get();
     const nextDesignResults = applyCustomPrimerToResults({ mutation, result, designResults });
-    const nextExcludedDesignMutations = pruneExcludedDesignMutations(
-      nextDesignResults,
-      excludedDesignMutations,
-    );
     const plateState = buildIncludedPlateState({
       designResults: nextDesignResults,
-      excludedDesignMutations: nextExcludedDesignMutations,
       wellName,
     });
 
     set({
       backendDesignStateSynced: false,
       designResults: nextDesignResults,
-      excludedDesignMutations: nextExcludedDesignMutations,
       plateMappings: plateState.plateMappings,
       dedupInfo: plateState.dedupInfo,
       manuallySwapped: { ...manuallySwapped, [mutation]: "both" },
@@ -455,49 +439,6 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
     });
   },
 
-  setDesignMutationIncluded: (mutation: string, included: boolean) => {
-    const { designResults, excludedDesignMutations, mutationInputMode } = get();
-    if (mutationInputMode !== "evolvepro") return;
-    if (!designResults.some((result) => result.mutation === mutation)) return;
-
-    const excluded = new Set(excludedDesignMutations);
-    if (included) {
-      excluded.delete(mutation);
-    } else {
-      excluded.add(mutation);
-    }
-
-    const nextExcludedDesignMutations = pruneExcludedDesignMutations(
-      designResults,
-      [...excluded],
-    );
-    const plateState = buildIncludedPlateState({
-      designResults,
-      excludedDesignMutations: nextExcludedDesignMutations,
-      wellName,
-    });
-
-    set({
-      excludedDesignMutations: nextExcludedDesignMutations,
-      plateMappings: plateState.plateMappings,
-      dedupInfo: plateState.dedupInfo,
-    });
-  },
-
-  toggleDesignMutationIncluded: (mutation: string) => {
-    const included = !get().excludedDesignMutations.includes(mutation);
-    get().setDesignMutationIncluded(mutation, !included);
-  },
-
-  resetDesignMutationSelection: () => {
-    const { designResults } = get();
-    const plateState = rebuildPlateStateFromResults({ designResults, wellName });
-    set({
-      excludedDesignMutations: [],
-      plateMappings: plateState.plateMappings,
-      dedupInfo: plateState.dedupInfo,
-    });
-  },
 
   setCodonStrategy: (strategy) => set({ codonStrategy: strategy }),
   setMaxPrimers: (n) => {
@@ -834,7 +775,6 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       rescuedMutations,
       mutationText,
       maxPrimers,
-      excludedDesignMutations,
     } = get();
     const preferredMutations = new Set(
       mutationText
@@ -853,7 +793,6 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       wellName,
       maxPrimers,
       preferredMutations,
-      excludedDesignMutations,
     }));
   },
 
@@ -876,7 +815,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
   },
 
   removeDesignResult: (mutation: string, reason: string) => {
-    const { designResults, excludedDesignMutations, failedMutations, successCount, rescuedMutations } = get();
+    const { designResults, failedMutations, successCount, rescuedMutations } = get();
     const nextState = removeDesignResultState({
       mutation,
       reason,
@@ -885,7 +824,6 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       successCount,
       rescuedMutations,
       wellName,
-      excludedDesignMutations,
     });
     if (!nextState) return;
     set(nextState);

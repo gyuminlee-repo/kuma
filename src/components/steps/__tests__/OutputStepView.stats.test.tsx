@@ -76,22 +76,5 @@ describe("OutputStepView primerCount reflects excluded mutations", () => {
     expect(dds[0]!.textContent).toBe("5");
   });
 
-  it("primers stat drops by 1 after one mutation is excluded", () => {
-    const N = 5;
-    const results = Array.from({ length: N }, (_, i) => mkPrimer(`M${i}A`));
-    useAppStore.setState({
-      mutationInputMode: "evolvepro",
-      designResults: results,
-      plateMappings: [],
-      failedMutations: [],
-      rescueStats: null,
-      excludedDesignMutations: [],
-    } as never);
-    const { rerender } = render(<OutputStepView />);
-    expect(document.querySelectorAll("dl dd")[0]!.textContent).toBe("5");
 
-    useAppStore.setState({ excludedDesignMutations: ["M0A"] });
-    rerender(<OutputStepView />);
-    expect(document.querySelectorAll("dl dd")[0]!.textContent).toBe("4");
-  });
 });

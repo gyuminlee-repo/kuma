@@ -82,7 +82,6 @@ export const MIGRATIONS: Record<string, MigrationFn> = {
         successCount: ws.successCount ?? 0,
         totalCount: ws.totalCount ?? 0,
         failedMutations: ws.failedMutations ?? [],
-        excludedDesignMutations: [],
         plateMappings: ws.plateMappings ?? [],
         dedupInfo: ws.dedupInfo ?? {},
         manuallySwapped: ws.manuallySwapped ?? {},

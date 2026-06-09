@@ -63,14 +63,13 @@ describe("ExportInspector", () => {
     expect(screen.getByText(/MAME handoff/i)).toBeTruthy();
   });
 
-  it("excluded mutations are not counted in variant count", () => {
+  it("variant count shows all design results", () => {
     useAppStore.setState({
       designResults: [primer("M1A"), primer("R2K"), primer("L3M")],
       plateMappings: [],
       evolveproCsvPath: "",
-      excludedDesignMutations: ["R2K"],
     });
     render(<ExportInspector />);
-    expect(screen.getByText("2")).toBeTruthy();
+    expect(screen.getByText("3")).toBeTruthy();
   });
 });

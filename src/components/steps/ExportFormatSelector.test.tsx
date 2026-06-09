@@ -200,13 +200,10 @@ describe("ExportFormatSelector — Export All form", () => {
     warnings: [] as string[],
   });
 
-  it("excluded rows do not count toward the 96-well overflow gate", () => {
+  it("96-well overflow gate triggers when result count exceeds 96", () => {
     const results = Array.from({ length: 97 }, (_, i) => mkResult(`M${i}A`));
-    useAppStore.setState({ designResults: results, excludedDesignMutations: ["M0A", "M1A"] });
+    useAppStore.setState({ designResults: results });
     render(<ExportFormatSelector />);
-    const btn = screen.getByRole("button");
-    expect(btn).not.toBeDisabled();               // 95 included <= 96
-    expect(screen.queryByText(/exceed one 96-well plate/i)).toBeNull();
-    expect(screen.getByText("95 wells")).toBeInTheDocument();
+    expect(screen.getByText("97 wells")).toBeInTheDocument();
   });
 });

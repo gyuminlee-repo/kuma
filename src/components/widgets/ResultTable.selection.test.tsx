@@ -38,7 +38,6 @@ describe("ResultTable include column removal (T4)", () => {
     useAppStore.setState({
       mutationInputMode: "evolvepro",
       designResults: [primer("M1A", 1), primer("M2A", 2)],
-      excludedDesignMutations: [],
       failedMutations: [],
       successCount: 2,
       totalCount: 2,
@@ -71,8 +70,8 @@ describe("ResultTable include column removal (T4)", () => {
     }
   });
 
-  it("excludedDesignMutations empty set leaves all mutations in included state", () => {
-    // Downstream consumers (getIncludedDesignResults etc.) treat empty set as all-included
-    expect(useAppStore.getState().excludedDesignMutations).toEqual([]);
+  it("all mutations are visible without exclusion (feature removed)", () => {
+    // excludedDesignMutations state removed — all design results are always included
+    expect(useAppStore.getState().designResults).toHaveLength(2);
   });
 });

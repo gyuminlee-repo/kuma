@@ -19,7 +19,6 @@ import { useRoundStore } from "../round/roundSlice";
 import {
   buildIncludedPlateState,
   getIncludedDesignResults,
-  pruneExcludedDesignMutations,
 } from "./designSlice.helpers";
 
 import type { ExportSlice } from "../slice-interfaces";
@@ -91,7 +90,6 @@ function normalizeWorkspace(ws: WorkspaceV1 | WorkspaceV2 | WorkspaceV3): Worksp
       dedupInfo: legacy.dedupInfo,
       manuallySwapped: legacy.manuallySwapped,
       customCandidates: legacy.customCandidates,
-      excludedDesignMutations: [],
       rescuedMutationDetails: [],
     },
     ui: {
@@ -132,7 +130,6 @@ function formatDomainAllocation(
 function buildReportData(state: AppState) {
   const includedDesignResults = getIncludedDesignResults(
     state.designResults,
-    state.excludedDesignMutations,
   );
   const successCount = includedDesignResults.length;
   const failCount = state.failedMutations.length;
@@ -482,7 +479,6 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       },
       results: {
         designResults: s.designResults,
-        excludedDesignMutations: s.excludedDesignMutations,
         successCount: s.successCount,
         totalCount: s.totalCount,
         failedMutations: s.failedMutations,
@@ -565,13 +561,8 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
     const store = get();
     store.resetAll();
     const restoredDesignResults = results.designResults ?? [];
-    const restoredExcludedDesignMutations = pruneExcludedDesignMutations(
-      restoredDesignResults,
-      results.excludedDesignMutations ?? [],
-    );
     const restoredPlateState = buildIncludedPlateState({
       designResults: restoredDesignResults,
-      excludedDesignMutations: restoredExcludedDesignMutations,
       wellName,
     });
     set({
@@ -586,7 +577,6 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       codonStrategy: settings.codonStrategy ?? "closest",
       maxPrimers: settings.maxPrimers ?? 95,
       designResults: restoredDesignResults,
-      excludedDesignMutations: restoredExcludedDesignMutations,
       successCount: results.successCount ?? 0,
       totalCount: results.totalCount ?? 0,
       failedMutations: results.failedMutations ?? [],
@@ -666,17 +656,11 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
     if ((settings.autoRedesignOnLoad ?? true) && inputs.mutationText && inputs.fastaPath && !evolveproReloadError) {
       await get().designPrimers();
       const redesignedResults = get().designResults;
-      const redesignedExcludedDesignMutations = pruneExcludedDesignMutations(
-        redesignedResults,
-        restoredExcludedDesignMutations,
-      );
       const redesignedPlateState = buildIncludedPlateState({
         designResults: redesignedResults,
-        excludedDesignMutations: redesignedExcludedDesignMutations,
         wellName,
       });
       set({
-        excludedDesignMutations: redesignedExcludedDesignMutations,
         plateMappings: redesignedPlateState.plateMappings,
         dedupInfo: redesignedPlateState.dedupInfo,
       });
@@ -737,7 +721,6 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       isDesigning: false,
       backendDesignStateSynced: false,
       designResults: [],
-      excludedDesignMutations: [],
       successCount: 0,
       totalCount: 0,
       failedMutations: [],

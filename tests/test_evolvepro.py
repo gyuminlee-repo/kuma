@@ -548,3 +548,28 @@ class TestRankedCandidates:
             f"Selected variants missing from ranked_candidates: {missing}. "
             f"selected={sorted(selected_set)}, rc_sample={sorted(rc_variants)[:5]}"
         )
+
+    def test_aa_position_multi_substitution_first_token(self, tmp_path):
+        """aa_position returns the first token position for multi-substitution variants.
+
+        Tokens separated by space, comma, or slash — only the first token's
+        position is extracted.  This keeps ranked_candidates consistent with
+        the design table's per-position representation.
+        """
+        from kuma_core.kuro.evolvepro import _extract_aa_position
+
+        assert _extract_aa_position("A42V A56T") == 42, "space-separated: first token position"
+        assert _extract_aa_position("A42V,A56T") == 42, "comma-separated: first token position"
+        assert _extract_aa_position("A42V/A56T") == 42, "slash-separated: first token position"
+
+    def test_aa_position_none_when_first_token_has_no_position(self, tmp_path):
+        """aa_position is None when the first token carries no parseable position.
+
+        A leading non-positional token (e.g. WT) must not cause a later token
+        to be extracted as the position.
+        """
+        from kuma_core.kuro.evolvepro import _extract_aa_position
+
+        assert _extract_aa_position("WT") is None, "standalone WT must return None"
+        assert _extract_aa_position("del42") is None, "deletion notation without trailing AA must return None"
+
