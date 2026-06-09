@@ -80,7 +80,10 @@ class CompareParams:
     """Tunable thresholds for the 6-class verdict classifier."""
 
     min_file_size_kb: float = 50.0
-    min_read_count: int | None = None
+    # Real read-depth gate, driven by the consensus `depth=N` header. 30 is the
+    # recommended minimum. None disables the gate (legacy behavior) and falls
+    # back to the file-size proxy only when depth=N is genuinely absent.
+    min_read_count: int | None = 30
     max_consensus_n_fraction: float | None = 0.0
     many_mutation_cutoff: int = 5
     indel_window_codon: int = 5
