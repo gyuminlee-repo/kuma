@@ -31,6 +31,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from kuma_core.shared.atomic_write import atomic_write_text
 from kuma_core.shared.version import KUMA_VERSION, KURO_MODULE_VERSION
 
 SCHEMA_VERSION = "1.0"
@@ -166,8 +167,12 @@ def write_run_manifest(output_path: Path, manifest: dict[str, Any]) -> Path:
         raise FileNotFoundError(
             f"Parent directory does not exist: {output_path.parent}"
         )
-    with open(output_path, "w", encoding="utf-8") as fh:
-        json.dump(manifest, fh, ensure_ascii=False, indent=2)
+    # Atomic (temp + os.replace) so an interrupted write never leaves a
+    # truncated manifest behind the final path.
+    atomic_write_text(
+        output_path,
+        json.dumps(manifest, ensure_ascii=False, indent=2),
+    )
     return output_path
 
 

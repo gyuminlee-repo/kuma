@@ -21,6 +21,7 @@ LOWDEPTH fallback for consensus files that do not carry real read depth.
 
 from __future__ import annotations
 
+import logging
 import re
 from pathlib import Path
 from typing import Iterator
@@ -37,7 +38,10 @@ from kuma_core.mame.ingest.consensus_metadata import (
     MIXED_POSITIONS,
     SPAN_FAILED,
 )
+from kuma_core.mame.ingest.stage_marker import read_stage_marker, validate_marker
 from kuma_core.mame.models import BarcodeRecord
+
+_logger = logging.getLogger(__name__)
 
 _METADATA_RE = re.compile(r"(?:^|\s)([A-Za-z_][A-Za-z0-9_]*)=([^\s]+)")
 _CONSENSUS_FILE_PATTERNS = (
@@ -177,7 +181,19 @@ def parse_fasta_file(path: Path, native_barcode: str) -> BarcodeRecord:
 
 
 def load_barcode_directory(input_dir: Path) -> list[BarcodeRecord]:
-    """Load all NBxx consensus FASTA files under ``input_dir``."""
+    """Load all NBxx consensus FASTA files under ``input_dir``.
+
+    Asymmetric completion-marker guard (per NB subdir):
+
+    - marker PRESENT and valid (recorded inventory matches files on disk):
+      proceed.
+    - marker PRESENT but invalid (count mismatch / interrupted write): raise
+      ``ValueError`` (fail-fast), converting a silent partial-directory read
+      into an explicit error.
+    - marker ABSENT: proceed (warn once for the dir).  Legacy output dirs and
+      externally-sorted barcode directories carry no marker and must still
+      work; a marker is never required.
+    """
 
     if not input_dir.exists() or not input_dir.is_dir():
         raise FileNotFoundError(f"Consensus FASTA input directory not found: {input_dir}")
@@ -185,6 +201,24 @@ def load_barcode_directory(input_dir: Path) -> list[BarcodeRecord]:
     records: list[BarcodeRecord] = []
     for nb_dir in sorted(p for p in input_dir.iterdir() if p.is_dir()):
         native_barcode = nb_dir.name
+
+        marker = read_stage_marker(nb_dir)
+        if marker is None:
+            _logger.warning(
+                "No demux/consensus completion marker in %s; proceeding "
+                "(legacy or externally-sorted directory).",
+                nb_dir,
+            )
+        else:
+            ok, reason = validate_marker(marker, nb_dir)
+            if not ok:
+                raise ValueError(
+                    f"Demux/consensus output for '{native_barcode}' is "
+                    f"incomplete or corrupt (completion marker present but "
+                    f"inventory does not match): {reason}. "
+                    "Re-run the demux+consensus stage for this unit."
+                )
+
         for consensus_file in _iter_consensus_files(nb_dir):
             records.append(parse_fasta_file(consensus_file, native_barcode=native_barcode))
     return records
