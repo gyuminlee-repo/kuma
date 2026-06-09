@@ -17,6 +17,7 @@
 - 외부 TFP-SEQ/seq_cons 산출물을 받아 공존하는 interop 방향은 폐기했습니다. 이번 업데이트는 MAME 자체 분석 경로를 강화하는 변경입니다.
 - 라운드 자문 분류기가 추가되어, ALE 라운드마다 single-walking 지속 / combinatorial 전환 / 중단 중 무엇을 할지 권고합니다. 결정 트리는 단일 소진(T2/T3/T_model)과 combinatorial throughput(T1)을 사용하며, GB1 landscape와 합성 epistasis-sweep backtest에서 greedy 대비 안전(절대 더 나쁘지 않음)하고 modest한 우위를 보였습니다. epistasis 예측기는 아닙니다.
 - 자문은 이제 사용자가 import한 라운드별 xlsx 파일(파일명 무관, `Variant`과 `activity` fold-change 컬럼으로 검증)을 읽어 라운드 요약에 읽기 전용 파일 선택기로 표시됩니다. 자신있는 `switch_combinatorial` 판정에는 라운드당 WT 대조군 4회 이상 반복에서 얻는 측정 노이즈 기준선이 필요한데, 현재 캠페인은 3회뿐이라 switch를 임의로 만들지 않고 `continue_walking` 또는 `deferred`에 머뭅니다. 잘못된 입력은 명시적 에러로 보고하며, 기존 `unavailable` 경로는 폐기되었습니다.
+- 완료된 MAME analyze 실행 결과가 `.autosave/mame-result.json` sibling 스냅샷으로 저장됩니다. 앱 재시작 시 autosave hydration이 저장된 응답을 sidecar와 store 양쪽에 재생하고 review 하위 단계로 복귀시켜, verdict table·plate view·efficiency chart를 분석 재실행 없이 복원합니다.
 
 ---
 
