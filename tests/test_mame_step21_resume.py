@@ -370,3 +370,108 @@ def test_handler_skips_completed_nb_and_reprocesses_incomplete(
 
     # NB02 now carries its own completion marker (commit point reached).
     assert is_unit_complete(out_dir / "NB02") is True
+
+
+def test_fully_resumed_run_reports_same_input_and_unassigned_as_fresh(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A fully-resumed run must report the SAME n_input_reads / n_unassigned as
+    the fresh run.
+
+    Before the fix, completion markers recorded only per_well/assigned counts,
+    so the seed loop left merged_input=0 and merged_unassigned=0; a 100%-resumed
+    run reported n_input_reads=0 and a possibly NEGATIVE n_unassigned
+    (n_input - n_assigned).  The fix records n_input_reads/n_unassigned per NB in
+    the marker and reseeds them, so resumed totals equal the fresh totals.
+    """
+    from sidecar_mame.handlers import demux as handler
+
+    out_dir = tmp_path / "out"
+    out_dir.mkdir()
+
+    nb1_in = tmp_path / "fastq_pass" / "NB01"
+    nb2_in = tmp_path / "fastq_pass" / "NB02"
+    nb1_in.mkdir(parents=True)
+    nb2_in.mkdir(parents=True)
+
+    demux_calls: list[str] = []
+
+    def _fake_demux(*, fastq_dir, output_dir, **_kwargs):  # noqa: ANN001, ANN003
+        name = Path(fastq_dir).name
+        demux_calls.append(name)
+        # Per NB: 5 input reads, 3 assigned to one well, 2 unassigned.
+        well = f"{name}_1"
+        _write_consensus(Path(output_dir), well)
+        from kuma_core.mame.ingest.demux import DemuxResult
+
+        return DemuxResult(
+            output_dir=Path(output_dir),
+            n_input_reads=5,
+            n_assigned=3,
+            n_unassigned=2,
+            per_well_counts={well: 3},
+        )
+
+    def _fake_consensus(*, fasta_dir, **_kwargs):  # noqa: ANN001, ANN003
+        # One consensus stat per pre-staged demux FASTA in the dir.
+        stats: dict[str, dict] = {}
+        for fa in Path(fasta_dir).glob("*.fasta"):
+            if fa.name.startswith("_"):
+                continue
+            stats[fa.stem] = {
+                "consensus_seq_length": 20,
+                "n_input_reads": 3,
+                "n_aligned": 3,
+                "n_passed_filter": 3,
+                "n_unaligned": 0,
+                "n_mapq_failed": 0,
+                "n_span_failed": 0,
+                "mean_depth": 3.0,
+                "n_mixed_positions": 0,
+                "max_minor_allele_fraction": 0.0,
+                "n_low_depth_positions": 0,
+                "consensus_n_fraction": 0.0,
+                "n_low_quality_bases": 0,
+            }
+        return stats
+
+    monkeypatch.setattr(handler, "demux_native_barcode", _fake_demux, raising=False)
+    monkeypatch.setattr(
+        "kuma_core.mame.ingest.demux.demux_native_barcode",
+        _fake_demux,
+        raising=False,
+    )
+    monkeypatch.setattr(handler, "_run_consensus_on_dir", _fake_consensus)
+
+    ref = tmp_path / "ref.fasta"
+    ref.write_text(">ref\nACGTACGTACGTACGTACGT\n", encoding="utf-8")
+
+    params = {
+        "fastq_dir": str(tmp_path / "fastq_pass"),
+        "output_dir": str(out_dir),
+        "custom_barcodes": {"NB01_1": "ACGTACGT", "NB02_1": "ACGTACGT"},
+        "reference_fasta": str(ref),
+        "nb_dirs": [str(nb1_in), str(nb2_in)],
+        "auto_detect_length": False,
+        "use_cutadapt": False,
+    }
+
+    # ── Run 1: fresh ────────────────────────────────────────────────────────
+    fresh = handler.handle_demux_and_filter(dict(params))
+    # Both NBs were demuxed on the fresh run.
+    assert sorted(demux_calls) == ["NB01", "NB02"]
+    # 2 NB × 5 input = 10; 2 NB × 2 unassigned = 4.
+    assert fresh["n_input_reads"] == 10
+    assert fresh["n_unassigned"] == 4
+    assert is_unit_complete(out_dir / "NB01") is True
+    assert is_unit_complete(out_dir / "NB02") is True
+
+    # ── Run 2: fully resumed (same args, both units already complete) ─────────
+    demux_calls.clear()
+    resumed = handler.handle_demux_and_filter(dict(params))
+    # No demux ran: a 100%-complete run is fully skipped.
+    assert demux_calls == []
+    # Reseeded from markers → identical to the fresh totals (not 0 / negative).
+    assert resumed["n_input_reads"] == fresh["n_input_reads"]
+    assert resumed["n_unassigned"] == fresh["n_unassigned"]
+    assert resumed["n_unassigned"] >= 0

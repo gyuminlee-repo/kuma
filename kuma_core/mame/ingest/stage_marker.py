@@ -25,8 +25,15 @@ Schema (version 1)::
       "unit": "<nb dir name>",
       "consensus": <bool>,            # True if A4/A5 consensus ran
       "per_well_counts": {"<well>": <int>, ...},
-      "wells": ["<well>", ...]        # sorted expected inventory (well stems)
+      "wells": ["<well>", ...],       # sorted expected inventory (well stems)
+      "n_input_reads": <int|null>,    # optional: this unit's demux input reads
+      "n_unassigned": <int|null>      # optional: this unit's unassigned reads
     }
+
+The ``n_input_reads`` / ``n_unassigned`` keys are optional.  They let a
+fully-resumed run reconstruct the aggregate input/unassigned totals from the
+markers of already-complete units; older markers that predate these keys simply
+omit them (treated as "not seedable" by the consumer, never a crash).
 """
 
 from __future__ import annotations
@@ -59,6 +66,8 @@ def write_stage_marker(
     *,
     per_well_counts: dict[str, int],
     consensus: bool,
+    n_input_reads: int | None = None,
+    n_unassigned: int | None = None,
 ) -> Path:
     """Atomically write the completion marker into *unit_dir*.
 
@@ -69,6 +78,11 @@ def write_stage_marker(
         unit_dir: The per-NB output directory (``nb_out``).
         per_well_counts: ``{well_name: read_count}`` for the wells produced.
         consensus: Whether the A4/A5 consensus pipeline ran for this unit.
+        n_input_reads: Optional demux input-read count for this unit.  Recorded
+            so a fully-resumed run can reseed the aggregate input total instead
+            of reporting 0.  Omitted from the payload when ``None``.
+        n_unassigned: Optional unassigned-read count for this unit.  Recorded
+            for the same reseed reason; omitted when ``None``.
 
     Returns:
         The resolved path of the written marker.
@@ -82,6 +96,10 @@ def write_stage_marker(
         "per_well_counts": {str(k): int(v) for k, v in per_well_counts.items()},
         "wells": sorted(str(k) for k in per_well_counts),
     }
+    if n_input_reads is not None:
+        payload["n_input_reads"] = int(n_input_reads)
+    if n_unassigned is not None:
+        payload["n_unassigned"] = int(n_unassigned)
     content = json.dumps(payload, ensure_ascii=False, indent=2)
     return atomic_write_text(marker_path(unit_dir), content)
 
