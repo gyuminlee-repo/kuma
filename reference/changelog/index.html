@@ -1539,6 +1539,34 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#mame-v013-update-2026-06-10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MAME v0.13 update (2026-06-10)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="MAME v0.13 update (2026-06-10)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mame" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MAME
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#mame-native-consensus-qc-update-2026-06-07" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1551,7 +1579,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#mame" class="md-nav__link">
+  <a href="#mame_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         MAME
@@ -1858,9 +1886,21 @@
 
 
 <h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<h2 id="mame-v013-update-2026-06-10">MAME v0.13 update (2026-06-10)<a class="headerlink" href="#mame-v013-update-2026-06-10" title="Permanent link">&para;</a></h2>
+<p>2026-06-10 MAME v0.13.0.1 ~ v0.13.3.0 변경 사항입니다.</p>
+<h3 id="mame">MAME<a class="headerlink" href="#mame" title="Permanent link">&para;</a></h3>
+<ul>
+<li>verdict depth gate가 consensus header의 실제 read depth(<code>depth=N</code>, <code>min_read_count</code> 기본 30)로 LOWDEPTH를 판정합니다. file-size 검사는 depth header가 없을 때만 동작하는 fallback으로 강등되어, 동일 앰플리콘 well의 유전자 길이 consensus FASTA가 raw-read file-size 기준을 못 넘겨 모든 well이 LOWDEPTH로 잘못 분류되던 문제를 수정했습니다. (v0.13.0.1)</li>
+<li>analyze가 record 단위 sub-progress와 30초 keep-alive 신호를 보내, ETA가 60% 부근에서 멈추거나 정상적인 장시간 analyze에서 300초 "응답 없음" 창이 뜨던 문제를 수정했습니다. (v0.13.1.0)</li>
+<li>raw-run demux step 2.1 쓰기가 atomic이고 barcode group마다 완료 마커를 기록합니다. 재실행은 완료된 group을 건너뛰고, 존재하지만 무효한 마커는 fail-fast로 거부하되 마커가 없는 legacy·외부 정렬 디렉토리는 그대로 로드합니다. 중단 시 orphan 가드가 <code>.fa</code>/<code>.fas</code>도 감지하고, 재개 실행은 완료 마커에서 입력·미할당 read 수를 복원합니다. (v0.13.2.1, v0.13.2.4) 재실행 시 건너뛰기는 raw_run 경로(<code>run_combinatorial_demux</code>)에도 적용되어, 완료 마커가 있는 폴더를 다시 돌리면 끝난 native barcode를 건너뜁니다. (v0.13.2.6)</li>
+<li>Janus mapping, Run report, Barcode package export가 기존 출력을 덮어쓰기 전에 확인합니다(Barcode package는 <code>design/</code> 디렉토리 단위 확인). (v0.13.2.2)</li>
+<li>consensus N-fraction 허용치(<code>max_consensus_n_fraction</code>)를 MAME analyze 파라미터 패널에서 조절할 수 있습니다(기본 0.0, 엄격). (v0.13.3.0)</li>
+<li>macOS minimap2를 CI에서 소스로 컴파일해 macOS sidecar에 번들하므로(Windows MinGW 단계 대응) macOS 앱에서 raw-run 정렬이 동작합니다. (v0.13.2.5)</li>
+</ul>
+<hr />
 <h2 id="mame-native-consensus-qc-update-2026-06-07">MAME native consensus QC update (2026-06-07)<a class="headerlink" href="#mame-native-consensus-qc-update-2026-06-07" title="Permanent link">&para;</a></h2>
 <p>2026-06-07 MAME는 외부 TFP-SEQ/seq_cons 호환층을 추가하지 않고, 자체 raw FASTQ → demux → consensus → verdict 경로를 강화했습니다.</p>
-<h3 id="mame">MAME<a class="headerlink" href="#mame" title="Permanent link">&para;</a></h3>
+<h3 id="mame_1">MAME<a class="headerlink" href="#mame_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li>raw FASTQ demux 경로에서 read ID와 Phred quality string을 보존하여, 저품질 base call이 consensus 투표를 이기지 못하게 했습니다.</li>
 <li>MAME가 생성하는 consensus FASTA header에 <code>depth=N</code>, <code>low_depth_positions</code>, <code>consensus_n_fraction</code>, <code>low_quality_bases</code>, <code>mixed_positions</code>, <code>max_minor_allele_fraction</code> 등의 QC metadata를 기록합니다.</li>
