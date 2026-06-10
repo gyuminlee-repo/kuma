@@ -143,6 +143,45 @@ def _build_run_dir(workdir: Path) -> Path:
     return run_dir
 
 
+def _build_expected_mutations_xlsx(workdir: Path) -> Path:
+    """Write a minimal KURO results xlsx with an ``expected_mutations`` sheet.
+
+    The sheet carries the exact 10-column header that
+    ``kuma_core.mame.io.kuro_reader.read_expected_mutations`` requires and no
+    designed data rows. A header-only sheet parses cleanly into an empty
+    expected-mutation list (WT-only), so ``analyze`` runs end-to-end without
+    requiring any specific mutants to be present in the synthetic reads.
+    """
+    try:
+        import openpyxl
+    except ImportError as exc:
+        print(f"FAIL: openpyxl not available — install it with: pip install openpyxl")
+        print(f"  ImportError: {exc}")
+        sys.exit(1)
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    assert ws is not None
+    ws.title = "expected_mutations"
+    # Header must match kuro_reader._EXPECTED_HEADER exactly (order + names).
+    ws.append([
+        "mutant_id",
+        "position",
+        "wt_aa",
+        "mt_aa",
+        "wt_codon",
+        "mt_codon",
+        "group_id",
+        "primer_set_ref",
+        "notation_type",
+        "status",
+    ])
+
+    path = workdir / "expected_mutations.xlsx"
+    wb.save(path)
+    return path
+
+
 # ---------------------------------------------------------------------------
 # JSON-RPC request builder — json.dumps() ensures backslash paths are safe
 # ---------------------------------------------------------------------------
@@ -258,13 +297,14 @@ def run_smoke(binary: Path) -> None:
         ref_fasta = _build_reference_fasta(workdir)
         xlsx = _build_barcodes_xlsx(workdir)
         run_dir = _build_run_dir(workdir)
+        expected_xlsx = _build_expected_mutations_xlsx(workdir)
         out_dir = workdir / "output"
         out_dir.mkdir()
 
         sio = SidecarIO(binary, stderr_path)
 
         # --- ping ---
-        print("[1/4] ping ...")
+        print("[1/5] ping ...")
         sio.send(_rpc(1, "ping", {}))
         try:
             ping_resp = sio.recv(1, timeout=30.0)
@@ -276,7 +316,7 @@ def run_smoke(binary: Path) -> None:
             failures.append(f"ping timed out or process died: {exc}")
 
         # --- detect ---
-        print("[2/4] mame.detect_native_barcodes ...")
+        print("[2/5] mame.detect_native_barcodes ...")
         sio.send(_rpc(2, "mame.detect_native_barcodes", {
             "minknow_run_dir": str(run_dir),
         }))
@@ -296,7 +336,7 @@ def run_smoke(binary: Path) -> None:
             failures.append(f"detect timed out or process died: {exc}")
 
         # --- per-NB parallel demux ---
-        print("[3/4] mame.run_combinatorial_demux (per-NB parallel) ...")
+        print("[3/5] mame.run_combinatorial_demux (per-NB parallel) ...")
         sio.send(_rpc(3, "mame.run_combinatorial_demux", {
             "minknow_run_dir": str(run_dir),
             "custom_barcodes_xlsx": str(xlsx),
@@ -324,11 +364,50 @@ def run_smoke(binary: Path) -> None:
         except (TimeoutError, RuntimeError) as exc:
             failures.append(f"demux timed out or process died: {exc}")
 
-        # --- shutdown ---
-        print("[4/4] shutdown ...")
-        sio.send(_rpc(4, "shutdown", {}))
+        # --- analyze (raw MinKNOW run folder: folds demux + analyze) ---
+        analyze_out = workdir / "analyze_out.xlsx"
+        print("[4/5] mame.analyze (raw MinKNOW run folder) ...")
+        sio.send(_rpc(4, "analyze", {
+            "input_dir": str(run_dir),
+            "reference": str(ref_fasta),
+            "expected": str(expected_xlsx),
+            "output": str(analyze_out),
+            "custom_barcodes_xlsx": str(xlsx),
+            "native_barcodes": ["barcode06", "barcode20"],
+        }))
         try:
-            sio.recv(4, timeout=15.0)
+            analyze_resp = sio.recv(4, timeout=240.0)
+            if "error" in analyze_resp:
+                failures.append(f"analyze RPC error: {analyze_resp['error']}")
+            else:
+                analyze_result = analyze_resp.get("result", {})
+                verdicts = analyze_result.get("verdicts")
+                if not isinstance(verdicts, list):
+                    failures.append(
+                        f"analyze: verdicts is not a list — got {type(verdicts).__name__!r}"
+                    )
+                elif "assigned_reads" not in analyze_result:
+                    failures.append(
+                        "analyze: raw-run extra 'assigned_reads' missing from result"
+                    )
+                elif "wells_with_reads" not in analyze_result:
+                    failures.append(
+                        "analyze: raw-run extra 'wells_with_reads' missing from result"
+                    )
+                else:
+                    print(
+                        f"      analyze OK — verdicts={len(verdicts)}, "
+                        f"assigned_reads={analyze_result.get('assigned_reads')}, "
+                        f"wells_with_reads={analyze_result.get('wells_with_reads')}"
+                    )
+        except (TimeoutError, RuntimeError) as exc:
+            failures.append(f"analyze timed out or process died: {exc}")
+
+        # --- shutdown ---
+        print("[5/5] shutdown ...")
+        sio.send(_rpc(5, "shutdown", {}))
+        try:
+            sio.recv(5, timeout=15.0)
             print("      shutdown ack received")
         except (TimeoutError, RuntimeError) as exc:
             # Shutdown ack may not arrive before EOF; process exit is the criterion

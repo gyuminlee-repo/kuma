@@ -26,6 +26,23 @@ const ALLOWLIST = {
   "src/components/mame/layout/MenuBar.tsx": new Set([72]),
 };
 
+function isAllowlistedLine(rel, n, line) {
+  if ((ALLOWLIST[rel] || new Set()).has(n)) return true;
+  if (
+    /ko:\s*"한국어"/.test(line) &&
+    (rel === "src/components/ui/LocaleToggle.tsx" || rel.endsWith("/MenuBar.tsx"))
+  ) {
+    return true;
+  }
+  if (
+    rel === "src/components/steps/ExportFormatSelector.tsx" &&
+    line.includes("PROJECT_NAME_RE")
+  ) {
+    return true;
+  }
+  return false;
+}
+
 function walk(dir, out = []) {
   for (const name of readdirSync(dir)) {
     const p = join(dir, name);
@@ -43,15 +60,24 @@ function walk(dir, out = []) {
 const offenders = [];
 for (const file of walk(SRC)) {
   const rel = relative(ROOT, file).replace(/\\/g, "/");
-  const allowed = ALLOWLIST[rel] || new Set();
   const lines = readFileSync(file, "utf8").split("\n");
+  let inBlockComment = false;
   lines.forEach((ln, i) => {
     const n = i + 1;
-    if (allowed.has(n)) return;
     const trimmed = ln.trim();
     if (!trimmed) return;
+
+    if (inBlockComment) {
+      if (trimmed.includes("*/")) inBlockComment = false;
+      return;
+    }
+    if (trimmed.startsWith("/*") || trimmed.startsWith("{/*")) {
+      if (!trimmed.includes("*/")) inBlockComment = true;
+      return;
+    }
     if (LINE_COMMENT.test(trimmed)) return;
     if (JSX_COMMENT.test(trimmed)) return;
+    if (isAllowlistedLine(rel, n, ln)) return;
     if (KOREAN.test(ln)) {
       offenders.push(`${rel}:${n}: ${trimmed.slice(0, 140)}`);
     }

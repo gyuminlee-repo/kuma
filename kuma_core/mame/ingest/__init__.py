@@ -11,8 +11,11 @@ from kuma_core.mame.ingest.quality_filter import (
 from kuma_core.mame.ingest.align import Alignment, align_reads
 from kuma_core.mame.ingest.consensus import call_consensus, per_position_depth
 from kuma_core.mame.ingest.well_consensus import ConsensusResult, compute_well_consensuses
+from kuma_core.mame.ingest.run_pipeline import ingest_run_folder, is_minknow_run_dir
 
 __all__ = [
+    "ingest_run_folder",
+    "is_minknow_run_dir",
     "load_barcode_directory",
     "parse_fasta_file",
     "IngestMode",

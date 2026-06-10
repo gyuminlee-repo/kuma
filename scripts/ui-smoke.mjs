@@ -1,9 +1,19 @@
 import { spawn } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 
 const HOST = "127.0.0.1";
 const PORT = 4173;
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = resolve(__dirname, "..");
+const VITE_BIN = resolve(
+  REPO_ROOT,
+  "node_modules",
+  ".bin",
+  process.platform === "win32" ? "vite.cmd" : "vite",
+);
 const URL = `http://${HOST}:${PORT}`;
 
 async function waitForServer(url, timeoutMs = 30000) {
@@ -21,8 +31,8 @@ async function waitForServer(url, timeoutMs = 30000) {
 }
 
 const server = spawn(
-  "pnpm",
-  ["vite", "preview", "--host", HOST, "--port", String(PORT), "--strictPort"],
+  VITE_BIN,
+  ["preview", "--host", HOST, "--port", String(PORT), "--strictPort"],
   {
     stdio: "inherit",
     shell: process.platform === "win32",

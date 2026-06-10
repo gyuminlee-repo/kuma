@@ -22,7 +22,6 @@ import { useTranslation } from "react-i18next";
 import { readTextFile } from "@tauri-apps/plugin-fs";
 import { resolveResource } from "@tauri-apps/api/path";
 import { invoke } from "@tauri-apps/api/core";
-import type { Update } from "@tauri-apps/plugin-updater";
 import { Button } from "../ui/button";
 import {
   Dialog,
@@ -32,7 +31,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../ui/dialog";
-import { checkForUpdates, downloadAndInstall, type UpdateCheckResult } from "../../lib/updater";
 import { generateDiagnosticsBundle } from "../../lib/diagnostics";
 import { revealInOSFolder } from "../../lib/openFolder";
 import { getCrashLog } from "../../lib/crashLog";
@@ -84,9 +82,7 @@ export function SharedAboutDialog({
   const [noticeOpen, setNoticeOpen] = useState(false);
   const [noticeLoading, setNoticeLoading] = useState(false);
 
-  const [updateChecking, setUpdateChecking] = useState(false);
-  const [updateResult, setUpdateResult] = useState<UpdateCheckResult | null>(null);
-  const [updateInstalling, setUpdateInstalling] = useState(false);
+
 
   const [codesignStatus, setCodesignStatus] = useState<string | null>(null);
   const [sidecarPath, setSidecarPath] = useState<string | null>(null);
@@ -147,7 +143,6 @@ export function SharedAboutDialog({
     if (!nextOpen) {
       setBibtexCopied(false);
       setCrashCopied(false);
-      setUpdateResult(null);
       setDiagnosticsError(null);
       setCodesignStatus(null);
       setDataFolder(null);
@@ -161,30 +156,7 @@ export function SharedAboutDialog({
     setTimeout(() => setBibtexCopied(false), 2000);
   }
 
-  async function handleCheckForUpdates() {
-    setUpdateChecking(true);
-    setUpdateResult(null);
-    try {
-      const result = await checkForUpdates();
-      setUpdateResult(result);
-    } finally {
-      setUpdateChecking(false);
-    }
-  }
 
-  async function handleDownloadAndInstall(update: Update) {
-    setUpdateInstalling(true);
-    try {
-      await downloadAndInstall(update);
-    } catch (err: unknown) {
-      setUpdateResult({
-        status: "error",
-        message: err instanceof Error ? err.message : String(err),
-      });
-    } finally {
-      setUpdateInstalling(false);
-    }
-  }
 
   async function handleGenerateDiagnostics() {
     setDiagnosticsGenerating(true);
@@ -339,59 +311,6 @@ export function SharedAboutDialog({
   function renderBody() {
     return (
       <>
-        {/* §9 Updates */}
-        <div className="flex flex-col gap-1.5">
-          <p className="text-sm font-semibold text-foreground">{t("about.updates")}</p>
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={updateChecking || updateInstalling}
-            onClick={() => void handleCheckForUpdates()}
-          >
-            {updateChecking ? t("about.checking") : t("about.checkForUpdates")}
-          </Button>
-          {updateResult && (
-            <div className="rounded-md border border-border px-3 py-2 text-xs">
-              {updateResult.status === "up-to-date" && (
-                <p className="text-success">
-                  {t("about.upToDate", { version: updateResult.currentVersion })}
-                </p>
-              )}
-              {updateResult.status === "available" && (
-                <div className="flex flex-col gap-1.5">
-                  <p className="text-foreground">
-                    {t("about.updateAvailable", {
-                      current: __APP_VERSION__,
-                      next: updateResult.newVersion,
-                    })}
-                  </p>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      disabled={updateInstalling}
-                      onClick={() => void handleDownloadAndInstall(updateResult.update)}
-                    >
-                      {updateInstalling
-                        ? t("about.installing")
-                        : t("about.downloadAndInstall")}
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => setUpdateResult(null)}>
-                      {t("about.later")}
-                    </Button>
-                  </div>
-                </div>
-              )}
-              {updateResult.status === "not-configured" && (
-                <p className="text-warning">{updateResult.message}</p>
-              )}
-              {updateResult.status === "error" && (
-                <p className="text-destructive">
-                  {t("about.updateCheckFailed", { message: updateResult.message })}
-                </p>
-              )}
-            </div>
-          )}
-        </div>
 
         {/* How to cite */}
         <div className="flex flex-col gap-1.5">

@@ -72,7 +72,7 @@ describe("mame inputSlice", () => {
     expect(store.inputMode).toBe("raw_run");
   });
 
-  it("runs combinatorial demux from a raw MinKNOW run before calling analyze", async () => {
+  it("folds demux into a single analyze call from a raw MinKNOW run", async () => {
     const store = makeStore({
       inputDir: "D:/runs/20260212_2227_X4_FBF10847_e7145f8e",
       expectedPath: "D:/project/KURO_expected.xlsx",
@@ -87,8 +87,9 @@ describe("mame inputSlice", () => {
     });
 
     const demuxOutputDir = "D:/project/demux_filtered";
-    // Detect runs FIRST now (call #1). total_count: 1 keeps the single-pool
-    // linear path: detect -> demux -> analyze.
+    // Detect runs FIRST (call #1). total_count: 1 keeps the single-pool linear
+    // path: detect -> ONE folded analyze (no separate run_combinatorial_demux).
+    let phaseAtAnalyze: string | null | undefined = "unset";
     mockSendRequest
       .mockResolvedValueOnce({
         fastq_pass: "D:/runs/20260212_2227_X4_FBF10847_e7145f8e/fastq_pass",
@@ -106,34 +107,22 @@ describe("mame inputSlice", () => {
         used_count: 1,
         total_count: 1,
       })
-      .mockResolvedValueOnce({
-        output_dir: demuxOutputDir,
-        stats: {
-          total_reads: 10,
-          passed_mapq: 10,
-          passed_coverage: 9,
-          assigned_reads: 8,
-          ambiguous_dropped: 1,
-          chimera_splits: 0,
-          wells_with_reads: 2,
-          wells_with_min_reads: 2,
-        },
-        wells_with_reads: 2,
-        assigned_reads: 8,
-        chimera_splits: 0,
-        per_well_consensus: {},
-        per_well_read_counts: { "1_1": 5, "1_2": 3 },
-      })
-      .mockResolvedValueOnce({
-        verdicts: [],
-        replicates: [],
-        output_path: "D:/project/mame_result.xlsx",
-        summary: { total: 0, pass_count: 0, ambiguous_count: 0, fail_count: 0 },
-        distribution_stats: distributionStats,
+      .mockImplementationOnce(async () => {
+        // The slice sets analyzePhase='demux' before the folded analyze call;
+        // the demux->analyze transition is driven later by progress.stage.
+        phaseAtAnalyze = store.analyzePhase;
+        return {
+          verdicts: [],
+          replicates: [],
+          output_path: "D:/project/mame_result.xlsx",
+          summary: { total: 0, pass_count: 0, ambiguous_count: 0, fail_count: 0 },
+          distribution_stats: distributionStats,
+        };
       });
 
     await store.runAnalysis();
 
+    expect(mockSendRequest).toHaveBeenCalledTimes(2);
     expect(mockSendRequest).toHaveBeenNthCalledWith(
       1,
       "mame.detect_native_barcodes",
@@ -141,30 +130,33 @@ describe("mame inputSlice", () => {
         minknow_run_dir: "D:/runs/20260212_2227_X4_FBF10847_e7145f8e",
       }),
     );
+    // No mame.run_combinatorial_demux round-trip anymore.
+    expect(mockSendRequest).not.toHaveBeenCalledWith(
+      "mame.run_combinatorial_demux",
+      expect.anything(),
+      expect.anything(),
+    );
+    // Single folded analyze over the RAW run dir, carrying the demux knobs and
+    // the 50-min raw-run timeout.
     expect(mockSendRequest).toHaveBeenNthCalledWith(
       2,
-      "mame.run_combinatorial_demux",
+      "analyze",
       expect.objectContaining({
-        minknow_run_dir: "D:/runs/20260212_2227_X4_FBF10847_e7145f8e",
+        input_dir: "D:/runs/20260212_2227_X4_FBF10847_e7145f8e",
+        reference: "D:/project/ref.fasta",
+        ingest_mode: "barcode",
         custom_barcodes_xlsx: "D:/project/barcodes sequence.xlsx",
-        reference_fasta: "D:/project/ref.fasta",
-        output_dir: demuxOutputDir,
+        native_barcodes: null,
         coverage_fraction: 0.98,
         edit_dist_ratio: 0.25,
         chimera_split: true,
-        native_barcodes: null,
+        demux_output_dir: demuxOutputDir,
+        mapq_threshold: 25,
+        trim_flank_bp: 30,
       }),
-      1_800_000,
+      3_000_000,
     );
-    expect(mockSendRequest).toHaveBeenNthCalledWith(
-      3,
-      "analyze",
-      expect.objectContaining({
-        input_dir: demuxOutputDir,
-        ingest_mode: "barcode",
-      }),
-      1_200_000,
-    );
+    expect(phaseAtAnalyze).toBe("demux");
     expect(store.isAnalyzing).toBe(false);
     expect(store.analyzeMessage).toBe("Analysis complete");
   });
@@ -245,56 +237,37 @@ describe("mame inputSlice", () => {
     expect(store.isDetectingBarcodes).toBe(false);
     expect(store.isAnalyzing).toBe(true);
 
-    // Confirm with the user-selected native barcodes -> demux (native_barcodes
-    // threaded) then analyze.
-    mockSendRequest
-      .mockResolvedValueOnce({
-        output_dir: "D:/project/demux_filtered",
-        stats: {
-          total_reads: 10,
-          passed_mapq: 10,
-          passed_coverage: 9,
-          assigned_reads: 8,
-          ambiguous_dropped: 1,
-          chimera_splits: 0,
-          wells_with_reads: 2,
-          wells_with_min_reads: 2,
-        },
-        wells_with_reads: 2,
-        assigned_reads: 8,
-        chimera_splits: 0,
-        per_well_consensus: {},
-        per_well_read_counts: { "1_1": 5, "1_2": 3 },
-      })
-      .mockResolvedValueOnce({
-        verdicts: [],
-        replicates: [],
-        output_path: "D:/project/mame_result.xlsx",
-        summary: { total: 0, pass_count: 0, ambiguous_count: 0, fail_count: 0 },
-        distribution_stats: distributionStats,
-      });
+    // Confirm with the user-selected native barcodes -> ONE folded analyze with
+    // native_barcodes threaded (no separate run_combinatorial_demux round-trip).
+    mockSendRequest.mockResolvedValueOnce({
+      verdicts: [],
+      replicates: [],
+      output_path: "D:/project/mame_result.xlsx",
+      summary: { total: 0, pass_count: 0, ambiguous_count: 0, fail_count: 0 },
+      distribution_stats: distributionStats,
+    });
 
     await store.confirmNativeBarcodeSelection(["barcode06", "barcode20"]);
 
     expect(store.detectedNativeBarcodes).toBeNull();
-    // Calls now: 1 detect (above) + 2 demux + 3 analyze.
-    expect(mockSendRequest).toHaveBeenNthCalledWith(
-      2,
+    // Calls now: 1 detect (above) + 2 folded analyze.
+    expect(mockSendRequest).toHaveBeenCalledTimes(2);
+    expect(mockSendRequest).not.toHaveBeenCalledWith(
       "mame.run_combinatorial_demux",
-      expect.objectContaining({
-        native_barcodes: ["barcode06", "barcode20"],
-        output_dir: "D:/project/demux_filtered",
-      }),
-      1_800_000,
+      expect.anything(),
+      expect.anything(),
     );
     expect(mockSendRequest).toHaveBeenNthCalledWith(
-      3,
+      2,
       "analyze",
       expect.objectContaining({
-        input_dir: "D:/project/demux_filtered",
+        input_dir: "D:/runs/20260212_2227_X4_FBF10847_e7145f8e",
         ingest_mode: "barcode",
+        native_barcodes: ["barcode06", "barcode20"],
+        custom_barcodes_xlsx: "D:/project/barcodes sequence.xlsx",
+        demux_output_dir: "D:/project/demux_filtered",
       }),
-      1_200_000,
+      3_000_000,
     );
     expect(store.isAnalyzing).toBe(false);
     expect(store.analyzeMessage).toBe("Analysis complete");

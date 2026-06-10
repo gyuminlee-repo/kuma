@@ -71,6 +71,7 @@ async fn pending_rpc_resolves_before_timeout() {
     protocol
         .drain_stdout_chunk(r#"{"jsonrpc":"2.0","id":7,"result":"ok"}"#, |_| {})
         .await;
+    protocol.flush_stdout(|_| {}).await;
 
     let result = tokio::time::timeout(std::time::Duration::from_millis(500), rx).await;
     let value = result.expect("should not time out").unwrap().unwrap();

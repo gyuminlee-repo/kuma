@@ -395,7 +395,13 @@ export function MenuBar({ onClearRequest, onRunRequest, onJanusOpen }: MenuBarPr
           <DropdownMenuItem onClick={() => setCrashLogOpen(true)}>
             {t("help.viewCrashLog")}
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setAboutOpen(true)}>
+          <DropdownMenuItem
+            onClick={() => {
+              void import("@tauri-apps/plugin-shell").then((m) =>
+                m.open("https://github.com/gyuminlee-repo/KURO/releases"),
+              );
+            }}
+          >
             {t("about.checkForUpdates")}
           </DropdownMenuItem>
           <DropdownMenuItem

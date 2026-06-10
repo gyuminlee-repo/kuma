@@ -134,6 +134,18 @@ export interface AnalysisParams {
   min_read_count?: number | null;
   max_consensus_n_fraction?: number | null;
   many_cutoff: number;
+  // Raw-run folded analyze: when input_dir is a MinKNOW run folder (contains
+  // fastq_pass/), the backend demuxes internally before analyzing. These names
+  // are byte-identical to the Pydantic raw-run fields. `reference` above is
+  // reused as reference_fasta.
+  custom_barcodes_xlsx?: string;
+  native_barcodes?: string[] | null;
+  coverage_fraction?: number;
+  edit_dist_ratio?: number;
+  chimera_split?: boolean;
+  demux_output_dir?: string;
+  mapq_threshold?: number;
+  trim_flank_bp?: number;
 }
 
 export interface JsonRpcError {

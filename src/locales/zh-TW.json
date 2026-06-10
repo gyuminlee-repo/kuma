@@ -527,7 +527,8 @@
       },
       "barcodeSetupTabTitle": "Run Setup — part of NGS Validation (step ② of PI workflow)",
       "analyzeTabTitle": "Sequencing QC — part of NGS Validation (step ② of PI workflow)",
-      "activityTabTitle": "Activity Data — EVOLVEpro input conversion (step ④ of PI workflow)"
+      "activityTabTitle": "Activity Data — EVOLVEpro input conversion (step ④ of PI workflow)",
+      "efficiencyChartTitle": "Per-plate verdict breakdown"
     },
     "dialogs": {
       "export": {
@@ -637,6 +638,12 @@
         "stateLabel": "儲存到",
         "helperText": "分析報告將使用 KURO 風格的規則生成 .xlsx 檔名",
         "helpText": "儲存分析結果 Excel 的資料夾。檔名透過 KURO 風格規則自動生成,結合日期、reference/input token、MAME 目標和結果計數 token。"
+      },
+      "buildWellLayout": {
+        "button": "Build well layout",
+        "building": "Building…",
+        "confirmed": "{{count}} well(s) confirmed",
+        "ariaLabel": "Auto-generate well layout from expected_mutations xlsx"
       }
     },
     "janusDeck": {
@@ -739,11 +746,49 @@
         "clusterAlertTitle": "Cluster failure detected",
         "clusterAlertDesc": "{{wells}} — adjacent wells failed simultaneously. This may indicate a pipetting issue.",
         "clusterAlertAriaLabel": "Plate cluster failure alert"
+      },
+      "review": {
+        "contextTitle": "Sequencing QC — Review",
+        "contextSubtitle": "Verdict table, plate plan, and per-plate verdict distribution in one view.",
+        "drawerLeft": "Summary",
+        "drawerCenter": "Review log",
+        "drawerRight": "Next",
+        "drawerRightDesc": "Proceed to activity",
+        "inspectorTitle": "Review Inspector",
+        "inspectorSubtitle": "Shows well details when a well is selected, otherwise verdict summary"
       }
     },
     "inspector": {
       "kvEmpty": "—",
       "noDataPlaceholder": "No data available"
+    },
+    "progressModal": {
+      "eta": {
+        "calculating": "Calculating…",
+        "lessThanMinute": "< 1 min",
+        "remaining": "~{{min}}m {{sec}}s left"
+      }
+    },
+    "analyze": {
+      "phase": {
+        "alignment": "Aligning",
+        "coverage_filter": "Coverage filter",
+        "demux": "Demultiplexing",
+        "consensus": "Building consensus",
+        "analyzing": "Analyzing"
+      },
+      "etaLabel": "ETA",
+      "progressAria": "Overall analysis progress {{percent}}%"
+    },
+    "wellLayoutDialog": {
+      "title": "Confirm well–sample layout",
+      "description": "Review the auto-generated well–sample mapping from the KURO expected_mutations xlsx. Edit any sample name before confirming.",
+      "hint": "Confirm the well→sample mapping; WT control is the last well.",
+      "tableAriaLabel": "Well-layout confirmation table",
+      "sampleAriaLabel": "Sample name for well {{well}}",
+      "empty": "No wells generated. Check that the expected_mutations xlsx is selected.",
+      "rowCount": "{{count}} well(s) in layout",
+      "confirm": "Confirm layout"
     }
   },
   "home": {
@@ -762,7 +807,11 @@
     "newProjectDesc": "請輸入專案名稱。",
     "projectNameAriaLabel": "專案名稱",
     "createBtn": "建立",
-    "enterProjectName": "請輸入專案名稱。"
+    "enterProjectName": "請輸入專案名稱。",
+    "deleteButton": "Delete project",
+    "deleteConfirmTitle": "Remove project from list?",
+    "deleteConfirmDesc": "The project files on disk will not be deleted. Only the entry in the recent list is removed.",
+    "delete": "Remove"
   },
   "mameTab": {
     "matchingProjectTitle": "找到匹配的專案",
@@ -1404,7 +1453,30 @@
     "mutationsValidated": "(已驗證 {{count}})",
     "mutationsFailed": "(失敗 {{count}})",
     "topNZeroHint": "將 top-N 設為 0 可載入 CSV 中的所有變體",
-    "mutationsHelp": "Mutations in HGVS or plain format (e.g. A123V, L45*). One per line or comma-separated."
+    "mutationsHelp": "Mutations in HGVS or plain format (e.g. A123V, L45*). One per line or comma-separated.",
+    "others": "Others",
+    "othersDesc": "(custom column mapping)",
+    "othersColumnMapping": "Column mapping",
+    "othersVariantColumn": "Mutation column",
+    "othersVariantColumnPlaceholder": "Auto-detect",
+    "othersScoreColumn": "Ranking column",
+    "othersScoreColumnPlaceholder": "Auto-detect",
+    "othersScoreOrder": "Direction",
+    "othersScoreOrderDesc": "Higher is better",
+    "othersScoreOrderAsc": "Lower is better",
+    "othersSheetName": "Sheet",
+    "othersSheetNamePlaceholder": "First sheet",
+    "othersPreviewBtn": "Preview",
+    "othersPreviewLoading": "Loading preview...",
+    "othersPreviewEmpty": "No preview available. Load a file first.",
+    "othersPreviewError": "Preview failed: {{message}}",
+    "othersApplyBtn": "Apply selected columns",
+    "othersApplyError": "Column load failed: {{message}}",
+    "othersUsedColumn": "Applied column: {{column}}",
+    "extraExposedLabel": "Extra candidates shown:",
+    "extraExposedAriaLabel": "Number of extra unselected candidates to display",
+    "extraExposedHint": "(0 = selected only)",
+    "bufferCapReached": "All {{count}} additional candidates shown"
   },
   "uniprotSearch": {
     "topCandidates": "Top 候選 {{shown}}{{total}}",
@@ -1735,7 +1807,12 @@
     "noResultsDesc": "載入序列,定義 mutation,然後執行設計。",
     "pipelineFillHint": "Pipeline + Fill on failure 已替換這些 position;重試已禁用。",
     "pipelineFillNote": "Pipeline + Fill on failure 已替換這些 position;無需重試。",
-    "removeCustomRescueTitle": "移除自定義 rescue: 還原為 Failed"
+    "removeCustomRescueTitle": "移除自定義 rescue: 還原為 Failed",
+    "includeHeader": "Include",
+    "includeAriaLabel": "Include {{mutation}} in downstream outputs",
+    "includeTitle": "Include this row in plate map and exports",
+    "excludeTitle": "Exclude this row from plate map and exports",
+    "excludedRowAriaLabel": "{{mutation}} is excluded from downstream outputs"
   },
   "mameSidebar": {
     "runStateLabel": "Run 狀態",
@@ -1907,6 +1984,33 @@
       "mappingExport": {
         "heading": "Plate Mapping 匯出",
         "runExport": "匯出 Mapping"
+      },
+      "all": {
+        "heading": "Export Package",
+        "runExport": "Export all",
+        "orderVendor": "Order vendor",
+        "orderVendorHint": "Included in Export all as a timestamp-prefixed Macrogen .xls file.",
+        "amountLabel": "Amount",
+        "purificationLabel": "Purification",
+        "purificationTooltip": "MOPC (Macrogen Oligo Purification Cartridge): Macrogen's standard purification method, not changeable.",
+        "projectName": "Export name",
+        "projectNamePlaceholder": "e.g. Q232A_K287R",
+        "projectNameHint": "Used as the export folder and file prefix. Leave empty to auto-name kuro_YYMMDD_HHMM.",
+        "error": {
+          "projectNameRegex": "Use up to 40 letters, numbers, Korean characters, underscores, or hyphens."
+        }
+      },
+      "macrogen": {
+        "title": "Order Primers (Macrogen)",
+        "fwdPlateName": "Forward plate name",
+        "revPlateName": "Reverse plate name",
+        "amount": "Synthesis amount",
+        "purificationFixed": "Purification",
+        "orderButton": "Order primers (Macrogen)",
+        "success": "Macrogen order exported: {{path}}",
+        "error": {
+          "plateNameRegex": "Use 1-20 letters, numbers, underscores, or hyphens."
+        }
       }
     },
     "run": {
@@ -1923,13 +2027,17 @@
         "inputs": "輸入",
         "verdict": "Verdicts",
         "plate": "Plate 佈局",
-        "health": "Run Health"
+        "health": "Run Health",
+        "review": "Review (Verdict + Plate)"
       },
       "activity": {
         "ingest": "Ingest 資料",
         "mergeExport": "Merge & Export",
         "export": "Export",
         "merge": "Merge"
+      },
+      "fallback": {
+        "redirecting": "Redirecting…"
       }
     }
   },
@@ -1963,11 +2071,34 @@
       "analyze": {
         "inputs": "設定輸入目錄與分析引數,然後執行。",
         "verdict": "審閱每個 well 的 pass/fail verdict 與摘要統計。",
-        "plate": "檢視帶 barcode 與 variant 分配的 plate 佈局。"
+        "plate": "檢視帶 barcode 與 variant 分配的 plate 佈局。",
+        "review": "Review the verdict table, plate layout, and per-plate verdict distribution in one view."
       },
       "activity": {
         "ingest": "上傳 activity CSV 或 Excel 檔案並標註野生型。",
         "mergeExport": "Merge activity data with genotype calls, then export the merged table for EVOLVEpro input."
+      }
+    },
+    "summary": {
+      "heading": "Design summary",
+      "sequence": {
+        "label": "Sequence",
+        "empty": "Not loaded",
+        "unnamed": "(unnamed)"
+      },
+      "mutation": {
+        "label": "Mutation source"
+      },
+      "selectionMode": {
+        "label": "Selection mode",
+        "pipeline": "Pipeline (failover)",
+        "topN": "Top-N only"
+      },
+      "variants": {
+        "label": "Variants"
+      },
+      "polymerase": {
+        "label": "Polymerase"
       }
     }
   },
@@ -2082,7 +2213,10 @@
       "exportTargets": "MAME handoff",
       "plateMap": "板圖",
       "nPlates": "{{count}} 塊板",
-      "bridgeBadge": "bridge"
+      "bridgeBadge": "bridge",
+      "report": {
+        "empty": "Run Design first — the report will appear here"
+      }
     }
   },
   "wtWellGrid": {
@@ -2092,7 +2226,7 @@
     "noActiveRound": "Activate a round to designate WT wells.",
     "selectedSingle": "Selected: {{count}} well",
     "selectedPlural": "Selected: {{count}} wells",
-    "idleStatus": "",
+    "idleStatus": "idle",
     "savingStatus": "saving...",
     "savedStatus": "saved",
     "errorStatus": "error: {{reason}}"
@@ -2113,11 +2247,18 @@
     "legendDestPartial": "Only F or R arrived",
     "mappingRange": "Mapping range",
     "rowStart": "Start row",
-    "rowEnd": "End row"
+    "rowEnd": "End row",
+    "subtitle": "Echo and Janus mapping files are independent Excel/CSV outputs."
   },
   "errors": {
     "sequence": {
       "fastaNotSupported": "需要CDS註釋。請使用GenBank(.gb/.gbk)或SnapGene(.dna)檔案。"
+    },
+    "sidecar": {
+      "methodNotFound": {
+        "kuro": "KURO sidecar is outdated (missing method: {{method}}). Run `pnpm run sidecar:build` and retry.",
+        "mame": "MAME sidecar is outdated (missing method: {{method}}). Run `pnpm run sidecar:build` and retry."
+      }
     }
   },
   "advisoryDecision": {
@@ -2128,7 +2269,35 @@
     "error": "顧問錯誤：{{message}}",
     "labelAriaLabel": "決策標籤：{{label}}",
     "confidence": "信心度 {{value}}%",
-    "unavailableBody": "顧問不可用：所需數據管道尚未連接。",
-    "missingFields": "缺失欄位：{{fields}}"
+    "filePickerTitle": "Select round result xlsx files",
+    "addFiles": "Add xlsx files",
+    "addFilesAriaLabel": "Add round result xlsx files (Variant + activity fold-change columns required)",
+    "classify": "Run classification",
+    "classifyAriaLabel": "Run advisory classification using the selected round files",
+    "fileListAriaLabel": "Selected round xlsx files",
+    "continueWalkingRecommendation": "Continue single-mutant walking recommended.",
+    "deferredBootstrapInputsMissing": "Switch decision deferred: confident double-transition classification requires WT replicate measurements from at least 4 replicates per round (not yet provided).",
+    "deferredCalibrationPeriod": "Fewer than 3 rounds available: calibration period, classification deferred.",
+    "deferredInsufficientData": "Insufficient data across rounds to classify with confidence.",
+    "deferredMixedSignals": "Mixed signals detected across rounds: classification deferred."
+  },
+  "validation": {
+    "missing": {
+      "sequence": "Sequence file is required",
+      "mutation": "Mutation input is required",
+      "fwdPlateName": "Forward primer plate name is required",
+      "fwdPlateNameInvalid": "Forward primer plate name: use 1-20 letters, numbers, underscores, or hyphens",
+      "rvsPlateName": "Reverse primer plate name is required",
+      "rvsPlateNameInvalid": "Reverse primer plate name: use 1-20 letters, numbers, underscores, or hyphens",
+      "designResults": "No designed primers to export",
+      "cdsFasta": "CDS FASTA file is required",
+      "barcodeSeeds": "Barcode seeds xlsx is required",
+      "geneCoordinates": "Gene start and end coordinates are required",
+      "geneRangeInvalid": "Gene end must be greater than gene start",
+      "projectPath": "Open or create a project first",
+      "activeRound": "Select a round first",
+      "activityData": "Upload activity data first"
+    },
+    "actionBlockedTitle": "Cannot proceed — missing required input"
   }
 }

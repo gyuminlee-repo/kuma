@@ -57,9 +57,11 @@ export function ReRunManifestDialog({
   const isExportOnly = EXPORT_ONLY.has(manifest.method);
   const inputKeys = Object.keys(manifest.inputs);
   const paramKeys = Object.keys(manifest.params);
-  const hasMismatch =
+  const mismatchResult =
     verifyResult !== null &&
-    (verifyResult.mismatched.length > 0 || verifyResult.missing.length > 0);
+    (verifyResult.mismatched.length > 0 || verifyResult.missing.length > 0)
+      ? verifyResult
+      : null;
 
   async function handleReRun() {
     if (!manifest) return;
@@ -139,7 +141,7 @@ export function ReRunManifestDialog({
         </div>
 
         {/* SHA-256 불일치 경고 */}
-        {hasMismatch && (
+        {mismatchResult !== null && (
           <div
             role="alert"
             className="rounded-md border border-warning/40 bg-warning/8 px-3 py-2 text-sm text-warning"
@@ -148,14 +150,14 @@ export function ReRunManifestDialog({
             <p className="mt-0.5 text-warning/80">
               {t("reRunManifest.warningBody")}
             </p>
-            {verifyResult!.missing.length > 0 && (
+            {mismatchResult.missing.length > 0 && (
               <p className="mt-0.5">
-                {t("reRunManifest.warningMissingPaths", { paths: verifyResult!.missing.join(", ") })}
+                {t("reRunManifest.warningMissingPaths", { paths: mismatchResult.missing.join(", ") })}
               </p>
             )}
-            {verifyResult!.mismatched.length > 0 && (
+            {mismatchResult.mismatched.length > 0 && (
               <p className="mt-0.5">
-                {t("reRunManifest.warningHashMismatch", { paths: verifyResult!.mismatched.join(", ") })}
+                {t("reRunManifest.warningHashMismatch", { paths: mismatchResult.mismatched.join(", ") })}
               </p>
             )}
           </div>

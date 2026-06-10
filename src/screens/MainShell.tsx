@@ -1,26 +1,48 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { listen } from "@tauri-apps/api/event";
 import { killSidecar, rpc, type SidecarKind } from "@/lib/ipc";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { GlobalAppBar, type AppTab } from "@/components/layout/GlobalAppBar";
-import { SettingsDialog } from "@/components/layout/SettingsDialog";
 import { useKumaProject } from "@/state/projectContext";
 import { flushAutosave, onAutosaveEvent, type AutosaveTarget, type AutosaveEvent } from "@/lib/autosave";
 import { useKuroAutosave } from "@/hooks/useKuroAutosave";
 import { useAutosaveHydration, type HydrationStatusMessage } from "@/hooks/useAutosaveHydration";
 import { Spinner } from "@/components/ui/Spinner";
-import { KuroTab } from "./KuroTab";
-import { MameTab } from "./MameTab";
 import { useAppStore } from "@/store/appStore";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { getActivityStore } from "@/store/mame/activitySlice";
-import { CloseConfirmDialog, type BusyReason } from "@/components/dialogs/CloseConfirmDialog";
-import { JobQueuePanel } from "@/components/widgets/JobQueuePanel";
-import { LogPanel } from "@/components/widgets/LogPanel";
+import type { BusyReason } from "@/components/dialogs/CloseConfirmDialog";
 import { registerShutdownHook, runShutdownHooks } from "@/lib/shutdownHook";
 import { toast } from "sonner";
+
+const LazySettingsDialog = lazy(async () =>
+  import("@/components/layout/SettingsDialog").then((m) => ({ default: m.SettingsDialog })),
+);
+const LazyKuroTab = lazy(async () =>
+  import("./KuroTab").then((m) => ({ default: m.KuroTab })),
+);
+const LazyMameTab = lazy(async () =>
+  import("./MameTab").then((m) => ({ default: m.MameTab })),
+);
+const LazyCloseConfirmDialog = lazy(async () =>
+  import("@/components/dialogs/CloseConfirmDialog").then((m) => ({ default: m.CloseConfirmDialog })),
+);
+const LazyJobQueuePanel = lazy(async () =>
+  import("@/components/widgets/JobQueuePanel").then((m) => ({ default: m.JobQueuePanel })),
+);
+const LazyLogPanel = lazy(async () =>
+  import("@/components/widgets/LogPanel").then((m) => ({ default: m.LogPanel })),
+);
+
+function ShellPaneFallback() {
+  return (
+    <div className="flex h-full items-center justify-center">
+      <Spinner size="sm" />
+    </div>
+  );
+}
 
 // ─── 상대 시간 포맷 헬퍼 ──────────────────────────────────────────────────
 
@@ -419,7 +441,9 @@ export function MainShell() {
         onOpenSettings={() => setSettingsOpen(true)}
       />
 
-      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} scope={activeTab} />
+      <Suspense fallback={null}>
+        <LazySettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} scope={activeTab} />
+      </Suspense>
 
       <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as AppTab); void handleTabChange(v); }} className="flex min-h-0 flex-1 flex-col">
         <header className="h-header flex shrink-0 items-center border-b bg-background px-4">
@@ -468,32 +492,40 @@ export function MainShell() {
 
         <div className="flex-1 overflow-hidden">
           <TabsContent value="kuro" className="mt-0 h-full overflow-hidden">
-            <KuroTab />
+            <Suspense fallback={<ShellPaneFallback />}>
+              <LazyKuroTab />
+            </Suspense>
           </TabsContent>
           <TabsContent value="mame" className="mt-0 h-full overflow-hidden">
-            <MameTab />
+            <Suspense fallback={<ShellPaneFallback />}>
+              <LazyMameTab />
+            </Suspense>
           </TabsContent>
         </div>
       </Tabs>
 
       {/* §13 Background Job Queue floating panel */}
-      {jobsPanelVisible && (
-        <JobQueuePanel onClose={() => setJobsPanelVisible(false)} />
-      )}
+      <Suspense fallback={null}>
+        {jobsPanelVisible && (
+          <LazyJobQueuePanel onClose={() => setJobsPanelVisible(false)} />
+        )}
 
-      {/* §2 Observability: sidecar log panel */}
-      {logPanelVisible && (
-        <LogPanel onClose={() => setLogPanelVisible(false)} />
-      )}
+        {/* §2 Observability: sidecar log panel */}
+        {logPanelVisible && (
+          <LazyLogPanel onClose={() => setLogPanelVisible(false)} />
+        )}
+      </Suspense>
 
       {/* §22 Graceful Shutdown: busy 상태 close 확인 */}
-      <CloseConfirmDialog
-        open={closeDialogOpen}
-        reason={closeBusyReason}
-        isBusy={closeDialogIsBusy}
-        onWait={handleCloseWait}
-        onForceClose={handleForceClose}
-      />
+      <Suspense fallback={null}>
+        <LazyCloseConfirmDialog
+          open={closeDialogOpen}
+          reason={closeBusyReason}
+          isBusy={closeDialogIsBusy}
+          onWait={handleCloseWait}
+          onForceClose={handleForceClose}
+        />
+      </Suspense>
     </div>
   );
 }

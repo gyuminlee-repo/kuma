@@ -1768,7 +1768,7 @@
     "noActiveRound": "Round를 활성화하면 WT well을 지정할 수 있습니다.",
     "selectedSingle": "선택: {{count}}개",
     "selectedPlural": "선택: {{count}}개",
-    "idleStatus": "",
+    "idleStatus": "대기",
     "savingStatus": "저장 중...",
     "savedStatus": "저장됨",
     "errorStatus": "오류: {{reason}}"

@@ -35,6 +35,7 @@ Execution (combinatorial needs minimap2, native needs cutadapt)::
 from __future__ import annotations
 
 import json
+import os
 import shutil
 from collections import defaultdict
 from pathlib import Path
@@ -276,7 +277,7 @@ def test_iter_sam_records_accepts_stream() -> None:
 
 @requires_minimap2
 def test_snapshot_generation(tmp_path: Path) -> None:
-    """Generate baseline_snapshot.json from the current (unchanged) code."""
+    """Generate a candidate snapshot without mutating the committed baseline."""
     snapshot = _run_demux_combinatorial(tmp_path / "comb")
     if shutil.which("cutadapt") is not None:
         try:
@@ -289,7 +290,8 @@ def test_snapshot_generation(tmp_path: Path) -> None:
             # (Task 2) must resolve this before it can run.
             print(f"native demux capture skipped: {exc}")  # noqa: T201
 
-    SNAPSHOT_PATH.write_text(json.dumps(snapshot, indent=2, sort_keys=True) + "\n")
+    if os.environ.get("KUMA_UPDATE_DEMUX_BASELINE") == "1":
+        SNAPSHOT_PATH.write_text(json.dumps(snapshot, indent=2, sort_keys=True) + "\n")
 
     assert "wells" in snapshot
     assert "stats" in snapshot
@@ -301,7 +303,8 @@ def test_snapshot_generation(tmp_path: Path) -> None:
 def test_identity_vs_baseline(tmp_path: Path) -> None:
     """Current code must reproduce the committed baseline snapshot (0 diffs)."""
     assert SNAPSHOT_PATH.exists(), (
-        "baseline_snapshot.json missing; run test_snapshot_generation first"
+        "baseline_snapshot.json missing; regenerate intentionally with "
+        "KUMA_UPDATE_DEMUX_BASELINE=1"
     )
     baseline = json.loads(SNAPSHOT_PATH.read_text())
     candidate = _run_demux_combinatorial(tmp_path / "comb")
@@ -317,7 +320,8 @@ def test_identity_vs_baseline(tmp_path: Path) -> None:
 def test_identity_native_barcode(tmp_path: Path) -> None:
     """Native barcode path read-sets must reproduce the baseline (0 diffs)."""
     assert SNAPSHOT_PATH.exists(), (
-        "baseline_snapshot.json missing; run test_snapshot_generation first"
+        "baseline_snapshot.json missing; regenerate intentionally with "
+        "KUMA_UPDATE_DEMUX_BASELINE=1"
     )
     baseline = json.loads(SNAPSHOT_PATH.read_text())
     if "native" not in baseline:

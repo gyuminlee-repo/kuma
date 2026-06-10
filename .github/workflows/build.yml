@@ -13,7 +13,50 @@ permissions:
   contents: write
 
 jobs:
+  quality-gates:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: pip install -e ".[test]"
+
+      - name: Provide minimap2
+        run: |
+          python python-core/scripts/vendor-minimap2.py
+          echo "$GITHUB_WORKSPACE/python-core/vendor/minimap2/linux-x64" >> "$GITHUB_PATH"
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: pnpm
+
+      - name: Install Node dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Python tests
+        run: python -m pytest tests/ -v
+
+      - name: TypeScript typecheck
+        run: npx tsc --noEmit
+
+      - name: Cross-layer sync
+        run: pnpm run sync:check
+
+      - name: i18n checks
+        run: pnpm run i18n:check
+
   build:
+    needs: quality-gates
     strategy:
       fail-fast: false
       matrix:
@@ -224,7 +267,7 @@ jobs:
         run: |
           pip install pip-licenses
           pip-licenses --format=markdown --output-file NOTICE-python.md \
-            --packages primer3-py biopython openpyxl pydantic pandas python-calamine edlib pyinstaller
+            --packages primer3-py biopython openpyxl xlwt xlrd pydantic pandas python-calamine psutil edlib pyinstaller
         shell: bash
 
       - name: Build NOTICE.md and copy to Tauri resources

@@ -7,15 +7,9 @@ v0.3 Phase B-3 addition:
 """
 
 import math
-import re
 from typing import Optional
 
-
-# Module-level constant for WT sample name matching.
-# Covers both 'WT_1' and 'WT1' variants found in real data (spec §11-B).
-# NOTE: evolvepro_xlsx.py (Phase A) will declare the same constant.
-# TODO(phase-A): consolidate into a shared constants.py or models.py.
-WT_PATTERN = re.compile(r"^WT_?\d+$")
+from .constants import WT_PATTERN
 
 
 def compute_relative_activity(

@@ -6,8 +6,7 @@ import { initI18n, resolveActiveLocale } from "./lib/i18n";
 import { restorePersistedWorkspace } from "./lib/workspace";
 import "./index.css";
 
-// i18n 초기화 (앱 마운트 전)
-initI18n(resolveActiveLocale());
+// i18n 초기화는 렌더 직전 bootstrap()에서 await 한다 (활성 로케일 청크 로드 후 마운트).
 
 // Restore artifact registry from last session (no-op if absent or path gone).
 void restorePersistedWorkspace().catch(() => {
@@ -71,13 +70,19 @@ if (import.meta.hot?.data.root) {
   if (import.meta.hot) import.meta.hot.data.root = root;
 }
 
-root.render(
-  <React.StrictMode>
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>
-  </React.StrictMode>,
-);
+async function bootstrap(): Promise<void> {
+  // 활성 로케일 리소스가 준비된 뒤 마운트해 영어 깜빡임을 방지한다.
+  await initI18n(resolveActiveLocale());
+  root.render(
+    <React.StrictMode>
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
+    </React.StrictMode>,
+  );
+}
+
+void bootstrap();
 
 if (import.meta.env.DEV) {
   import("./store/appStore").then(({ useAppStore }) => {

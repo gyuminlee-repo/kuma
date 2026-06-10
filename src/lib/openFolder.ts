@@ -22,10 +22,13 @@
  * @param filepath - 절대 경로 (Windows 경로도 지원)
  * @throws plugin-opener 미설치 또는 OS 거부 시 에러를 throw한다. 호출자가 처리할 것.
  */
+interface OpenerModule {
+  revealItemInDir: (path: string) => Promise<void>;
+}
+
 export async function revealInOSFolder(filepath: string): Promise<void> {
   // Dynamic import: @tauri-apps/plugin-opener 패키지 설치 전에도 빌드가 통과하도록 한다.
   // 런타임에서 모듈을 찾지 못하면 에러를 throw해 호출자(toast action)에서 처리한다.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const opener = await import("@tauri-apps/plugin-opener" as string) as any;
-  await (opener.revealItemInDir as (path: string) => Promise<void>)(filepath);
+  const opener = await import("@tauri-apps/plugin-opener" as string) as OpenerModule;
+  await opener.revealItemInDir(filepath);
 }

@@ -20,7 +20,6 @@
     "fs:allow-rename",
     "fs:allow-stat",
     "opener:allow-reveal-item-in-dir",
-    "updater:default",
     "notification:default",
     {
       "identifier": "fs:scope",

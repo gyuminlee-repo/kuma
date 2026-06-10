@@ -36,36 +36,6 @@ _HEARTBEAT_INTERVAL_S: float = 30.0
 _emit_lock = threading.Lock()
 
 
-def _send_progress(
-    value: int,
-    message: str,
-    current: int | None = None,
-    total: int | None = None,
-) -> None:
-    """Emit a JSON-RPC progress notification carrying optional current/total.
-
-    The shared ``_progress`` helper only carries ``value``/``message``; this
-    local variant adds ``current``/``total`` so the dormant "X / Y" UI activates
-    (matching the ProgressNotification shape consumed by the frontend). The
-    notification has no ``id`` field, consistent with the existing analyze
-    milestones, and the frontend resets its idle watchdog on any mame progress
-    event regardless of ``id``.
-    """
-    params: dict = {"value": value, "message": message}
-    if current is not None:
-        params["current"] = current
-    if total is not None:
-        params["total"] = total
-    with _emit_lock:
-        _send(
-            {
-                "jsonrpc": "2.0",
-                "method": "progress",
-                "params": params,
-            }
-        )
-
-
 def _read_fasta_sequence(path: Path) -> str:
     """Return concatenated sequence content from a FASTA file."""
     seq_parts: list[str] = []
@@ -266,9 +236,33 @@ def handle_validate_inputs(params: dict) -> dict:
         errors.append("input_dir is required")
     else:
         try:
-            _validate_dirpath(input_dir)
+            input_path = _validate_dirpath(input_dir)
         except (FileNotFoundError, ValueError) as exc:
             errors.append(f"input_dir: {exc}")
+        else:
+            # Raw-run guardrails: catch the two most common misselections before
+            # a multi-minute demux is kicked off.
+            from kuma_core.mame.ingest import is_minknow_run_dir
+
+            custom_barcodes_xlsx = params.get("custom_barcodes_xlsx")
+            if input_path.name == "fastq_pass":
+                errors.append(
+                    "Select the MinKNOW run folder (the parent of fastq_pass/), "
+                    "not fastq_pass/ itself."
+                )
+            elif is_minknow_run_dir(input_path) and not custom_barcodes_xlsx:
+                errors.append(
+                    "custom_barcodes_xlsx is required when input_dir is a raw "
+                    "MinKNOW run folder"
+                )
+            if custom_barcodes_xlsx:
+                try:
+                    _validate_filepath(
+                        custom_barcodes_xlsx,
+                        allowed_extensions=_ALLOWED_EXCEL_EXTENSIONS,
+                    )
+                except (FileNotFoundError, ValueError) as exc:
+                    errors.append(f"custom_barcodes_xlsx: {exc}")
 
     if not reference:
         errors.append("reference is required")
@@ -317,12 +311,19 @@ def handle_analyze(params: dict) -> dict:
     # Lazy import: keeps the sidecar cold-start < 200 ms and lets the module
     # import during unit tests that stub mame.
     from kuma_core.mame.distribution import compute_distribution_stats
-    from kuma_core.mame.ingest import IngestMode, route_ingest
+    from kuma_core.mame.ingest import (
+        IngestMode,
+        ingest_run_folder,
+        is_minknow_run_dir,
+        route_ingest,
+    )
     from kuma_core.mame.pipeline import run_analyze
 
-    _progress(5, "Validating inputs...")
-
     input_dir = _validate_dirpath(params["input_dir"])
+    # Preserve the caller-supplied directory: in raw-run mode ``input_dir`` is
+    # rebound to the demux output dir for the analyze body, but run-metadata
+    # discovery must still see the original MinKNOW run folder.
+    original_run_dir = input_dir
     reference = _validate_filepath(
         params["reference"], allowed_extensions=_ALLOWED_SEQUENCE_EXTENSIONS
     )
@@ -332,6 +333,127 @@ def handle_analyze(params: dict) -> dict:
     output = _validate_output_path(
         params["output"], allowed_extensions=_ALLOWED_EXCEL_EXTENSIONS
     )
+
+    # Raw-run gate: a MinKNOW run folder (has ``fastq_pass/``) needs demux first;
+    # a pre-demuxed consensus dir takes the legacy path untouched.
+    is_raw = is_minknow_run_dir(input_dir)
+
+    def _emit(
+        value: int,
+        message: str,
+        current: int | None = None,
+        total: int | None = None,
+        stage: str | None = None,
+    ) -> None:
+        """Single progress emitter for the whole analyze flow.
+
+        Consensus-dir (non-raw) mode emits the legacy ``{value, message,
+        current?, total?}`` shape with NO ``stage`` key — byte-identical to the
+        pre-raw-run handler. Raw-run mode reserves 0..50 for demux and rescales
+        these analyze-phase values into 50..100 and stamps a ``stage`` key.
+        """
+        if is_raw:
+            value = min(100, 50 + value // 2)
+        emit_params: dict = {"value": value, "message": message}
+        if current is not None:
+            emit_params["current"] = current
+        if total is not None:
+            emit_params["total"] = total
+        if is_raw:
+            emit_params["stage"] = stage or "analyze"
+        with _emit_lock:
+            _send(
+                {"jsonrpc": "2.0", "method": "progress", "params": emit_params}
+            )
+
+    def _emit_demux(done: int, total: int, stage_str: str) -> None:
+        """Pre-analyze (demux + consensus) emitter, mapped into the 0..50 band.
+
+        The core demux runs two restarting sub-phases — read demux (``done`` of
+        the demux total) then per-well consensus (``done`` of the well total) —
+        each starting back at 0. Mapping both flat into 0..50 would step the bar
+        backward at the handoff, so the demux sub-phase fills 0..40 and the
+        consensus sub-phase fills 40..50, keeping the whole pre-analyze phase
+        monotonic. Per-native-barcode mode reports a single completion count and
+        spans the full 0..50. Always stamped ``stage='demux'`` (the frontend
+        treats the entire pre-analyze stretch as one phase). Bypasses ``_emit``'s
+        analyze rescale. Only invoked in raw-run mode.
+        """
+        if stage_str == "consensus":
+            value = 40 + int(10 * done / max(1, total))
+            message = f"Building consensus ({done}/{total})"
+        elif stage_str == "demux":
+            value = int(40 * done / max(1, total))
+            message = f"Demuxing reads ({done}/{total})"
+        else:
+            value = int(50 * done / max(1, total))
+            message = f"Demuxing {stage_str} ({done}/{total})"
+        emit_params = {
+            "value": min(50, value),
+            "message": message,
+            "current": done,
+            "total": total,
+            "stage": "demux",
+        }
+        with _emit_lock:
+            _send(
+                {"jsonrpc": "2.0", "method": "progress", "params": emit_params}
+            )
+
+    if is_raw:
+        # Validate the raw-run demux subset (raises a clear ValidationError when
+        # custom_barcodes_xlsx is missing) and run demux into a STABLE dir so a
+        # re-run can resume rather than re-demuxing into a throwaway tmp dir.
+        from sidecar_mame.models import AnalyzeRawRunParams
+
+        raw_mapq_threshold = int(params.get("mapq_threshold", 25))
+        raw_coverage_fraction = float(params.get("coverage_fraction", 0.98))
+        raw_edit_dist_ratio = float(params.get("edit_dist_ratio", 0.25))
+        raw_chimera_split = bool(params.get("chimera_split", True))
+        raw_trim_flank_bp = int(params.get("trim_flank_bp", 30))
+        raw_custom_barcodes_xlsx = params.get("custom_barcodes_xlsx")
+        raw_native_barcodes = params.get("native_barcodes")
+
+        AnalyzeRawRunParams.model_validate(
+            {
+                "minknow_run_dir": str(input_dir),
+                "custom_barcodes_xlsx": raw_custom_barcodes_xlsx,
+                "reference_fasta": str(reference),
+                "demux_output_dir": params.get("demux_output_dir"),
+                "native_barcodes": raw_native_barcodes,
+                "mapq_threshold": raw_mapq_threshold,
+                "coverage_fraction": raw_coverage_fraction,
+                "edit_dist_ratio": raw_edit_dist_ratio,
+                "chimera_split": raw_chimera_split,
+                "trim_flank_bp": raw_trim_flank_bp,
+            }
+        )
+
+        demux_output_dir = (
+            Path(params["demux_output_dir"])
+            if params.get("demux_output_dir")
+            else output.parent / "demux_filtered"
+        )
+        ingest_run_folder(
+            run_dir=original_run_dir,
+            custom_barcodes_xlsx=Path(raw_custom_barcodes_xlsx),
+            reference_fasta=reference,
+            demux_output_dir=demux_output_dir,
+            native_barcodes=raw_native_barcodes,
+            mapq_threshold=raw_mapq_threshold,
+            coverage_fraction=raw_coverage_fraction,
+            trim_flank_bp=raw_trim_flank_bp,
+            edit_dist_ratio=raw_edit_dist_ratio,
+            chimera_split=raw_chimera_split,
+            progress_callback=lambda done, total, stage_str: _emit_demux(
+                done, total, stage_str
+            ),
+        )
+        # The demux output is a barcode-mode consensus tree; the analyze body
+        # ingests it exactly like a pre-demuxed consensus dir.
+        input_dir = demux_output_dir
+
+    _emit(5, "Validating inputs...")
 
     mode = str(params.get("mode", "amplicon"))
     ingest_mode_raw = str(params.get("ingest_mode", "barcode"))
@@ -373,7 +495,7 @@ def handle_analyze(params: dict) -> dict:
             raise ValueError("well_layout must be a mapping of well_id (str) to sample_name (str)")
         well_layout = well_layout_raw
 
-    _progress(10, "Ingesting FASTA files...")
+    _emit(10, "Ingesting FASTA files...")
 
     # Latest progress state, re-emitted by the heartbeat thread during silent
     # stretches. Initialised at the current phase (ingest, value 10) and synced
@@ -391,7 +513,7 @@ def handle_analyze(params: dict) -> dict:
     def _heartbeat() -> None:
         # References the module-global interval so tests can shrink it.
         while not _stop.wait(_HEARTBEAT_INTERVAL_S):
-            _send_progress(
+            _emit(
                 _holder["value"],
                 _holder["message"],
                 current=_holder["current"],
@@ -409,7 +531,7 @@ def handle_analyze(params: dict) -> dict:
         _holder["current"] = i
         _holder["total"] = total
         if i == total or i % step == 0:
-            _send_progress(
+            _emit(
                 value,
                 f"Classifying verdicts... ({i}/{total})",
                 current=i,
@@ -431,10 +553,10 @@ def handle_analyze(params: dict) -> dict:
             [rec.file_size_kb for rec in raw_records]
         )
 
-        _progress(30, "Translating sequences...")
+        _emit(30, "Translating sequences...")
         _holder["value"] = 30
         _holder["message"] = "Translating sequences..."
-        _progress(60, "Classifying verdicts...")
+        _emit(60, "Classifying verdicts...")
         _holder["value"] = 60
         _holder["message"] = "Classifying verdicts..."
 
@@ -463,14 +585,14 @@ def handle_analyze(params: dict) -> dict:
         _stop.set()
         _hb_thread.join(timeout=_HEARTBEAT_INTERVAL_S + 1.0)
 
-    _progress(85, "Selecting best replicates...")
-    _progress(100, "Writing Excel output...")
+    _emit(85, "Selecting best replicates...")
+    _emit(100, "Writing Excel output...")
 
     # A11: discover MinKNOW run metadata once at analyze time and cache it.
     # Imported lazily to avoid cold-start overhead.
     from kuma_core.mame.ingest.run_meta import discover_run_meta
 
-    run_meta = discover_run_meta(input_dir)
+    run_meta = discover_run_meta(original_run_dir if is_raw else input_dir)
 
     set_last_analyze(verdicts, replicates, str(output), run_meta=run_meta)
 
@@ -486,6 +608,19 @@ def handle_analyze(params: dict) -> dict:
             "suggested_method": dist_stats.suggested_method,
             "bimodal": dist_stats.bimodal,
         },
+        # Raw-run only: surface demux yield derived from the consensus records
+        # ingested out of the demux output dir (``raw_records`` above). Absent
+        # in consensus-dir mode so that response shape stays byte-identical.
+        **(
+            {
+                "assigned_reads": int(
+                    sum(int(getattr(r, "read_count", 0) or 0) for r in raw_records)
+                ),
+                "wells_with_reads": len(raw_records),
+            }
+            if is_raw
+            else {}
+        ),
     }
 
 

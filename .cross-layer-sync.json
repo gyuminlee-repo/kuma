@@ -696,6 +696,25 @@
       ],
       "severity": "warning",
       "note": "EvolveproMode literal values (topN/pipeline/others) and i18n keys must align across store and locale files"
+    },
+    {
+      "id": "mame-analyze-run-folder",
+      "files": [
+        "kuma_core/mame/ingest/run_pipeline.py",
+        "python-core/sidecar_mame/models.py",
+        "python-core/sidecar_mame/handlers/analyze.py",
+        "src/types/mame/models.ts",
+        "src/store/mame/slices/inputSlice.ts"
+      ],
+      "symbols": [
+        "ingest_run_folder",
+        "is_minknow_run_dir",
+        "DemuxParamsBase",
+        "AnalyzeRawRunParams",
+        "AnalysisParams"
+      ],
+      "note": "Native MinKNOW run-folder ingestion: kuma_core ingest_run_folder/is_minknow_run_dir orchestrator <-> AnalyzeRawRunParams (composed from shared DemuxParamsBase) <-> analyze handler raw-run path <-> TS AnalysisParams raw-run fields <-> inputSlice single analyze call. Demux param names must stay identical across DemuxParamsBase, AnalyzeRawRunParams, and AnalysisParams.",
+      "severity": "blocking"
     }
   ]
 }
