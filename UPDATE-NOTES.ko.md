@@ -9,7 +9,7 @@
 ### MAME
 
 - MAME 자체 consensus FASTA header가 `depth=N`를 기록하고, analyze는 파일 크기 대리지표보다 실제 consensus read depth를 우선해 `read_count`를 채웁니다.
-- Analyzer는 optional `min_read_count` 기반 `LOWDEPTH` gating을 지원하되, 기존 file-size cutoff 기본값은 유지합니다.
+- Analyzer가 consensus `depth=N` header의 실제 read depth(`min_read_count`, 기본 30)로 LOWDEPTH를 판정합니다. file-size cutoff는 depth header가 없는 입력에 대한 fallback으로만 동작합니다. 동일 앰플리콘 well의 consensus FASTA가 유전자 길이로 고정돼 raw-read file-size 기준을 못 넘겨 모든 well이 LOWDEPTH로 잘못 분류되던 문제를 수정했습니다.
 - Consensus header에 `low_depth_positions`, `consensus_n_fraction`이 추가되었습니다. 기본 설정에서는 consensus N signal이 있으면 `LOWDEPTH`로 분류하고, relaxed run을 위한 threshold도 제공합니다.
 - Consensus caller가 within-well mixture metric을 기록합니다. 혼합 read 근거가 있는 exact-majority well은 조용히 PASS하지 않고 `AMBIGUOUS`로 분류됩니다.
 - raw FASTQ demux→consensus 경로가 read ID와 quality string을 내부적으로 보존합니다. 저 Phred base call은 consensus vote에서 제외되고, legacy FASTA-only input은 기존 unweighted 경로를 유지합니다.
@@ -18,6 +18,11 @@
 - 라운드 자문 분류기가 추가되어, ALE 라운드마다 single-walking 지속 / combinatorial 전환 / 중단 중 무엇을 할지 권고합니다. 결정 트리는 단일 소진(T2/T3/T_model)과 combinatorial throughput(T1)을 사용하며, GB1 landscape와 합성 epistasis-sweep backtest에서 greedy 대비 안전(절대 더 나쁘지 않음)하고 modest한 우위를 보였습니다. epistasis 예측기는 아닙니다.
 - 자문은 이제 사용자가 import한 라운드별 xlsx 파일(파일명 무관, `Variant`과 `activity` fold-change 컬럼으로 검증)을 읽어 라운드 요약에 읽기 전용 파일 선택기로 표시됩니다. 자신있는 `switch_combinatorial` 판정에는 라운드당 WT 대조군 4회 이상 반복에서 얻는 측정 노이즈 기준선이 필요한데, 현재 캠페인은 3회뿐이라 switch를 임의로 만들지 않고 `continue_walking` 또는 `deferred`에 머뭅니다. 잘못된 입력은 명시적 에러로 보고하며, 기존 `unavailable` 경로는 폐기되었습니다.
 - 완료된 MAME analyze 실행 결과가 `.autosave/mame-result.json` sibling 스냅샷으로 저장됩니다. 앱 재시작 시 autosave hydration이 저장된 응답을 sidecar와 store 양쪽에 재생하고 review 하위 단계로 복귀시켜, verdict table·plate view·efficiency chart를 분석 재실행 없이 복원합니다.
+- MAME analyze가 record 단위 진행률과 keep-alive 신호를 보내, 진행 바와 ETA가 60% 부근에서 멈추지 않고 정상적인 장시간 analyze에서 "응답 없음" 창이 뜨지 않습니다.
+- raw-run demux 중단 시 손상된 부분 파일이 남지 않습니다. per-well 쓰기가 atomic이고 barcode group마다 완료 마커를 기록하므로, 재실행은 완료된 group을 건너뛰고 부분 기록된 group은 존재만으로 완료로 보지 않고 다시 처리합니다.
+- Janus mapping, Run report, Barcode package export가 기존 출력을 덮어쓰기 전에 확인합니다.
+- consensus N-fraction 허용치(`max_consensus_n_fraction`)를 MAME analyze 파라미터 패널에서 조절할 수 있습니다(기본 0.0).
+- macOS 빌드가 minimap2를 소스에서 컴파일해 번들하므로 macOS 앱에서 raw-run 정렬이 동작합니다.
 
 ---
 

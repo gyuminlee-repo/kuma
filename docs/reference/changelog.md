@@ -1,5 +1,20 @@
 # Changelog
 
+## MAME v0.13 update (2026-06-10)
+
+2026-06-10 MAME v0.13.0.1 ~ v0.13.3.0 변경 사항입니다.
+
+### MAME
+
+- verdict depth gate가 consensus header의 실제 read depth(`depth=N`, `min_read_count` 기본 30)로 LOWDEPTH를 판정합니다. file-size 검사는 depth header가 없을 때만 동작하는 fallback으로 강등되어, 동일 앰플리콘 well의 유전자 길이 consensus FASTA가 raw-read file-size 기준을 못 넘겨 모든 well이 LOWDEPTH로 잘못 분류되던 문제를 수정했습니다. (v0.13.0.1)
+- analyze가 record 단위 sub-progress와 30초 keep-alive 신호를 보내, ETA가 60% 부근에서 멈추거나 정상적인 장시간 analyze에서 300초 "응답 없음" 창이 뜨던 문제를 수정했습니다. (v0.13.1.0)
+- raw-run demux step 2.1 쓰기가 atomic이고 barcode group마다 완료 마커를 기록합니다. 재실행은 완료된 group을 건너뛰고, 존재하지만 무효한 마커는 fail-fast로 거부하되 마커가 없는 legacy·외부 정렬 디렉토리는 그대로 로드합니다. 중단 시 orphan 가드가 `.fa`/`.fas`도 감지하고, 재개 실행은 완료 마커에서 입력·미할당 read 수를 복원합니다. (v0.13.2.1, v0.13.2.4) 재실행 시 건너뛰기는 raw_run 경로(`run_combinatorial_demux`)에도 적용되어, 완료 마커가 있는 폴더를 다시 돌리면 끝난 native barcode를 건너뜁니다. (v0.13.2.6)
+- Janus mapping, Run report, Barcode package export가 기존 출력을 덮어쓰기 전에 확인합니다(Barcode package는 `design/` 디렉토리 단위 확인). (v0.13.2.2)
+- consensus N-fraction 허용치(`max_consensus_n_fraction`)를 MAME analyze 파라미터 패널에서 조절할 수 있습니다(기본 0.0, 엄격). (v0.13.3.0)
+- macOS minimap2를 CI에서 소스로 컴파일해 macOS sidecar에 번들하므로(Windows MinGW 단계 대응) macOS 앱에서 raw-run 정렬이 동작합니다. (v0.13.2.5)
+
+---
+
 ## MAME native consensus QC update (2026-06-07)
 
 2026-06-07 MAME는 외부 TFP-SEQ/seq_cons 호환층을 추가하지 않고, 자체 raw FASTQ → demux → consensus → verdict 경로를 강화했습니다.
