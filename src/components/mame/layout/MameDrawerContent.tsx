@@ -63,8 +63,8 @@ export function useMameDrawerProps(): SlotProps {
         title: t("mame.setup.files.drawerLeft"),
         children: (
           <div className="space-y-0.5">
-            <StatLine label="Folder" value={runFolderName} />
-            <StatLine label="Status" value={inputDir ? "Ready" : "Not set"} />
+            <StatLine label={t("mame.drawer.stat.folder")} value={runFolderName} />
+            <StatLine label={t("mame.drawer.stat.status")} value={inputDir ? t("mame.drawer.value.ready") : t("mame.drawer.value.notSet")} />
           </div>
         ),
       },
@@ -94,8 +94,8 @@ export function useMameDrawerProps(): SlotProps {
         title: t("mame.setup.design.drawerLeft"),
         children: (
           <div className="space-y-0.5">
-            <StatLine label="File" value={kuroFileName} />
-            <StatLine label="Status" value={expectedPath ? "Loaded" : "Not set"} />
+            <StatLine label={t("mame.drawer.stat.file")} value={kuroFileName} />
+            <StatLine label={t("mame.drawer.stat.status")} value={expectedPath ? t("mame.drawer.value.loaded") : t("mame.drawer.value.notSet")} />
           </div>
         ),
       },
@@ -126,10 +126,10 @@ export function useMameDrawerProps(): SlotProps {
         children: (
           <div className="space-y-0.5">
             <StatLine
-              label="Queued"
+              label={t("mame.drawer.stat.queued")}
               value={verdicts.length > 0 ? verdicts.length : "—"}
             />
-            <StatLine label="Status" value={isAnalyzing ? "Running" : "Idle"} />
+            <StatLine label={t("mame.drawer.stat.status")} value={isAnalyzing ? t("mame.drawer.value.running") : t("mame.drawer.value.idle")} />
           </div>
         ),
       },
@@ -158,9 +158,9 @@ export function useMameDrawerProps(): SlotProps {
         title: t("mame.qc.review.drawerLeft"),
         children: (
           <div className="space-y-0.5">
-            <StatLine label="Total" value={summary?.total ?? verdicts.length} />
-            <StatLine label="PASS" value={summary?.pass_count ?? 0} />
-            <StatLine label="Selected" value={selectedCount} />
+            <StatLine label={t("mame.drawer.stat.total")} value={summary?.total ?? verdicts.length} />
+            <StatLine label={t("mame.drawer.stat.pass")} value={summary?.pass_count ?? 0} />
+            <StatLine label={t("mame.drawer.stat.selected")} value={selectedCount} />
           </div>
         ),
       },
@@ -203,8 +203,8 @@ export function useMameDrawerProps(): SlotProps {
         title: t("mame.qc.plate.drawerLeft"),
         children: (
           <div className="space-y-0.5">
-            <StatLine label="Selected" value={selectedCount} />
-            <StatLine label="Total wells" value={wells.length} />
+            <StatLine label={t("mame.drawer.stat.selected")} value={selectedCount} />
+            <StatLine label={t("mame.drawer.stat.totalWells")} value={wells.length} />
           </div>
         ),
       },
@@ -235,10 +235,10 @@ export function useMameDrawerProps(): SlotProps {
         children: (
           <div className="space-y-0.5">
             <StatLine
-              label="Wells"
+              label={t("mame.drawer.stat.wells")}
               value={verdicts.length > 0 ? verdicts.length : "—"}
             />
-            <StatLine label="Loaded" value={verdicts.length > 0 ? "Yes" : "No"} />
+            <StatLine label={t("mame.drawer.stat.loaded")} value={verdicts.length > 0 ? t("mame.drawer.value.yes") : t("mame.drawer.value.no")} />
           </div>
         ),
       },
@@ -262,8 +262,8 @@ export function useMameDrawerProps(): SlotProps {
         title: t("mame.activity.mergeExport.drawerLeft"),
         children: (
           <div className="space-y-0.5">
-            <StatLine label="PASS rows" value={passCount} />
-            <StatLine label="EVOLVEpro xlsx" value={passCount > 0 ? "Ready" : "—"} />
+            <StatLine label={t("mame.drawer.stat.passRows")} value={passCount} />
+            <StatLine label={t("mame.drawer.stat.evolveproXlsx")} value={passCount > 0 ? t("mame.drawer.value.ready") : "—"} />
           </div>
         ),
       },

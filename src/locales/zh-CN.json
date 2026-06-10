@@ -437,7 +437,37 @@
       "detailMutant": "Mutant",
       "detailNotes": "备注"
     },
+    "drawer": {
+      "stat": {
+        "folder": "文件夹",
+        "status": "状态",
+        "file": "文件",
+        "queued": "排队",
+        "total": "总计",
+        "pass": "PASS",
+        "selected": "已选择",
+        "totalWells": "孔位总数",
+        "wells": "孔位",
+        "loaded": "已加载",
+        "passRows": "PASS 行",
+        "evolveproXlsx": "EVOLVEpro xlsx"
+      },
+      "value": {
+        "ready": "就绪",
+        "notSet": "未设置",
+        "loaded": "已加载",
+        "running": "运行中",
+        "idle": "空闲",
+        "yes": "是",
+        "no": "否"
+      }
+    },
     "verdictTable": {
+      "tooltip": {
+        "consensusN": "共识 N 比例",
+        "minorAllele": "孔内次要等位基因信号",
+        "alignmentDrops": "比对丢弃计数"
+      },
       "emptyTitle": "暂无结果",
       "emptyDesc": "运行分析以填充 verdict 表。",
       "noMatchTitle": "无匹配",
@@ -1849,6 +1879,7 @@
     "analysisProgressAria": "分析进度 {{percent}}%"
   },
   "wellPlate": {
+    "pick": "挑选",
     "gridAriaLabel": "96-Well Plate",
     "columnAriaLabel": "列 {{col}}",
     "rowAriaLabel": "行 {{row}}",

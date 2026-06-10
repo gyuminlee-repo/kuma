@@ -437,7 +437,37 @@
       "detailMutant": "Mutant",
       "detailNotes": "Notes"
     },
+    "drawer": {
+      "stat": {
+        "folder": "フォルダ",
+        "status": "ステータス",
+        "file": "ファイル",
+        "queued": "キュー",
+        "total": "合計",
+        "pass": "PASS",
+        "selected": "選択中",
+        "totalWells": "Well 総数",
+        "wells": "Well",
+        "loaded": "読み込み済み",
+        "passRows": "PASS 行",
+        "evolveproXlsx": "EVOLVEpro xlsx"
+      },
+      "value": {
+        "ready": "準備完了",
+        "notSet": "未設定",
+        "loaded": "読み込み済み",
+        "running": "実行中",
+        "idle": "待機中",
+        "yes": "はい",
+        "no": "いいえ"
+      }
+    },
     "verdictTable": {
+      "tooltip": {
+        "consensusN": "コンセンサス N 比率",
+        "minorAllele": "Well 内マイナーアレルシグナル",
+        "alignmentDrops": "アライメント除外カウンタ"
+      },
       "emptyTitle": "結果がまだありません",
       "emptyDesc": "解析を実行して verdict テーブルを表示します。",
       "noMatchTitle": "一致なし",
@@ -1849,6 +1879,7 @@
     "analysisProgressAria": "解析進捗 {{percent}}%"
   },
   "wellPlate": {
+    "pick": "選択",
     "gridAriaLabel": "96-Well Plate",
     "columnAriaLabel": "Column {{col}}",
     "rowAriaLabel": "Row {{row}}",

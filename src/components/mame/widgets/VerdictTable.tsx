@@ -339,15 +339,15 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
           const mixPct = row.original.max_minor_allele_fraction * 100;
           return (
             <span className="font-mono text-caption text-muted-foreground whitespace-nowrap">
-              <span title="Consensus N fraction">
+              <span title={t("mame.verdictTable.tooltip.consensusN")}>
                 N {nPct.toFixed(1)}% ld{row.original.n_low_depth_positions}
               </span>
               {" · "}
-              <span title="Within-well minor allele signal">
+              <span title={t("mame.verdictTable.tooltip.minorAllele")}>
                 mix {row.original.n_mixed_positions}/{mixPct.toFixed(1)}%
               </span>
               {" · "}
-              <span title="Alignment drop counters">
+              <span title={t("mame.verdictTable.tooltip.alignmentDrops")}>
                 drop Q{row.original.n_mapq_failed} S{row.original.n_span_failed} BQ{row.original.n_low_quality_bases}
               </span>
             </span>

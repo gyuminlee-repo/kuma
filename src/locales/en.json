@@ -455,7 +455,37 @@
       "detailMutant": "Mutant",
       "detailNotes": "Notes"
     },
+    "drawer": {
+      "stat": {
+        "folder": "Folder",
+        "status": "Status",
+        "file": "File",
+        "queued": "Queued",
+        "total": "Total",
+        "pass": "PASS",
+        "selected": "Selected",
+        "totalWells": "Total wells",
+        "wells": "Wells",
+        "loaded": "Loaded",
+        "passRows": "PASS rows",
+        "evolveproXlsx": "EVOLVEpro xlsx"
+      },
+      "value": {
+        "ready": "Ready",
+        "notSet": "Not set",
+        "loaded": "Loaded",
+        "running": "Running",
+        "idle": "Idle",
+        "yes": "Yes",
+        "no": "No"
+      }
+    },
     "verdictTable": {
+      "tooltip": {
+        "consensusN": "Consensus N fraction",
+        "minorAllele": "Within-well minor allele signal",
+        "alignmentDrops": "Alignment drop counters"
+      },
       "emptyTitle": "No results yet",
       "emptyDesc": "Run analysis to populate the verdict table.",
       "noMatchTitle": "No matches",
@@ -1880,6 +1910,7 @@
     "analysisProgressAria": "Analysis progress {{percent}}%"
   },
   "wellPlate": {
+    "pick": "Pick",
     "gridAriaLabel": "96-Well Plate",
     "columnAriaLabel": "Column {{col}}",
     "rowAriaLabel": "Row {{row}}",
