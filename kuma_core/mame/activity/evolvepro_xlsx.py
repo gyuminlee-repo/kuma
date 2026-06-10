@@ -125,14 +125,93 @@ def _sample_name_is_calibration(name: str) -> bool:
     """Return True if sample_name is purely numeric (calibration row).
 
     This is intentional non-error use of float() as a type probe:
-    float('0') succeeds → calibration; float('WT_1') fails → not calibration.
+    float('0') succeeds (calibration); float('WT_1') fails (not calibration).
     """
     try:
         float(name)
         return True
     except ValueError:
-        # Non-numeric: not a calibration row — this is the success path.
+        # Non-numeric: not a calibration row. This is the success path.
         return False
+
+
+# Replicate-suffix pattern for FID1B block sample names in rep-batch files.
+# Matches a numeric base ID optionally followed by a '-<rep>' suffix:
+#   '12' (base=12, rep=None), '12-2' (base=12, rep=2), '12-3' (base=12, rep=3).
+_BLOCK_REP_ID_RE = re.compile(r"^(\d+)(?:-(\d+))?$")
+
+
+def _iter_fid1b_blocks(rows: list[list]):
+    """Yield ``(sample_name, area_raw)`` for every data row in FID1B blocks.
+
+    A FID1B block is::
+
+        Signal: ... FID1B          (signal marker row)
+        ... Area ... Sample Name   (header row, column order varies)
+        <one or more data rows>
+        Sum ...                    (terminator row, first cell == 'Sum')
+
+    Column positions are resolved by header *name* (not index) so that the
+    two observed layouts (``[Area, Sample Name]`` and
+    ``['', Area, '', Sample Name]``) both parse.
+
+    Yields:
+        Tuples of ``(sample_name, area_raw)`` as stripped strings. Empty
+        rows and rows whose sample name is blank are skipped. The caller
+        decides how to interpret each name (calibration, WT, numeric ID).
+
+    Raises:
+        ValueError: A signal row is not followed by a header row containing
+            both 'Sample Name' and 'Area'.
+    """
+    i = 0
+    n = len(rows)
+    while i < n:
+        row_texts = [_str(c).lower() for c in rows[i]]
+        is_signal = any("signal:" in t for t in row_texts) and any(
+            "fid1b" in t for t in row_texts
+        )
+        if not is_signal:
+            i += 1
+            continue
+
+        i += 1
+        if i >= n:
+            raise ValueError(
+                "FID1B signal row has no subsequent header row "
+                f"(signal at row {i})"
+            )
+        header_row = [_str(c).lower() for c in rows[i]]
+        sn_col: int | None = None
+        area_col: int | None = None
+        for col_idx, hdr in enumerate(header_row):
+            if hdr == "sample name":
+                sn_col = col_idx
+            elif hdr == "area":
+                area_col = col_idx
+        if sn_col is None or area_col is None:
+            raise ValueError(
+                "FID1B block header missing 'Sample Name' / 'Area': "
+                f"{[_str(c) for c in rows[i]]!r}"
+            )
+
+        i += 1
+        while i < n:
+            data_row = rows[i]
+            if not data_row:
+                i += 1
+                continue
+            if _str(data_row[0]).lower() == "sum":
+                i += 1
+                break
+            extended = list(data_row)
+            while len(extended) <= max(sn_col, area_col):
+                extended.append("")
+            sample_name = _str(extended[sn_col])
+            area_raw = _str(extended[area_col])
+            if sample_name:
+                yield sample_name, area_raw
+            i += 1
 
 
 # ---------------------------------------------------------------------------
@@ -147,12 +226,22 @@ def detect_format(
 ) -> XlsxFormat:
     """Auto-detect xlsx format from sheet content.
 
-    Priority (spec §2-2):
-        1. 'Signal:' + 'FID1B' text in any cell → AGILENT_STANDARD
-        2. Columns ['Variant', 'activity'] → EVOLVEPRO
-        3. ['Sample Name', 'Area'] + ≥rep_batch_numeric_ratio of data
-           rows have a numeric-id sample name → AGILENT_REP_BATCH
-        4. ['Sample Name', 'Area'] → RELATIVE_ONLY
+    Priority (spec §2-2, revised for FID1B rep-batch files):
+        1. FID1B block layout: inspect block data sample names.
+           If >= rep_batch_numeric_ratio of them are numeric base/rep IDs
+           (e.g. '12', '12-2'), classify as AGILENT_REP_BATCH. Otherwise
+           (well names like 'A1' plus at most a few calibration rows),
+           classify as AGILENT_STANDARD.
+        2. Columns ['Variant', 'activity'] (flat) -> EVOLVEPRO
+        3. ['Sample Name', 'Area'] (flat) + >= rep_batch_numeric_ratio of
+           data rows have a numeric-id sample name -> AGILENT_REP_BATCH
+        4. ['Sample Name', 'Area'] (flat) -> RELATIVE_ONLY
+
+    Rationale: both 251001 (STANDARD) and 260327 (REP_BATCH) are FID1B block
+    layouts, so the FID1B marker alone cannot discriminate. The numeric-name
+    majority of the block data rows does: 251001 has well names plus one '0'
+    calibration row (numeric ratio ~0.01), while 260327 uses numeric base IDs
+    '1'..'34' with '-2'/'-3' replicate suffixes (numeric ratio ~0.97).
 
     Args:
         path:                   Path to xlsx file.
@@ -177,6 +266,19 @@ def detect_format(
             if "fid1b" in text:
                 has_fid1b = True
     if has_signal and has_fid1b:
+        # Walk the blocks and inspect data sample names. A numeric-name
+        # majority means rep-batch (260327); otherwise standard (251001).
+        block_names = [name for name, _ in _iter_fid1b_blocks(rows)]
+        if not block_names:
+            # No data rows resolved; fall back to standard (preserves the
+            # original behaviour for degenerate / empty block files).
+            return XlsxFormat.AGILENT_STANDARD
+        numeric_block = sum(
+            1 for name in block_names if _BLOCK_REP_ID_RE.match(name)
+        )
+        ratio = numeric_block / len(block_names)
+        if ratio >= rep_batch_numeric_ratio:
+            return XlsxFormat.AGILENT_REP_BATCH
         return XlsxFormat.AGILENT_STANDARD
 
     if not rows:
@@ -458,6 +560,125 @@ def parse_agilent_rep_batch(
 
 
 # ---------------------------------------------------------------------------
+# Parser 2b: FID1B block layout with numeric base/rep IDs (260327 shape)
+# ---------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class BlockRepBatchResult:
+    """Grouped result from parse_agilent_block_rep_batch.
+
+    reps: base integer ID -> list of replicate areas, ordered by the
+        replicate number embedded in the sample name (no suffix is treated
+        as replicate 1, '-2' as replicate 2, '-3' as replicate 3, and so
+        on for any numeric suffix). The list holds every area found for a
+        base ID, so no replicate is silently dropped.
+    wt_areas: All WT block areas (one per WT block such as 'WT1', 'WT2').
+    n_blocks: Number of FID1B data rows consumed (diagnostics only).
+    """
+
+    reps: dict[int, list[float]]
+    wt_areas: list[float]
+    n_blocks: int
+
+
+def _block_rep_index(rep_token: str | None) -> int:
+    """Map an optional replicate suffix token to a 1-based replicate number.
+
+    None (no suffix) -> 1, '2' -> 2, '3' -> 3, and so on. Caller passes the
+    second capture group of _BLOCK_REP_ID_RE.
+    """
+    if rep_token is None:
+        return 1
+    return int(rep_token)
+
+
+def parse_agilent_block_rep_batch(
+    path: str | Path,
+    *,
+    sheet_index: int = 0,
+) -> BlockRepBatchResult:
+    """Parse a FID1B block-layout Agilent report with numeric base/rep IDs.
+
+    This handles the 260327 shape that the two existing parsers cannot:
+    parse_agilent_standard skips pure-numeric names as calibration (losing
+    every replicate-1 row), and parse_agilent_rep_batch assumes a single
+    flat header (raising on the per-block layout). This parser walks the
+    blocks and groups numeric base IDs across their replicate suffixes.
+
+    Sample-name grammar inside each FID1B block:
+        '<base>'          replicate 1 (e.g. '12')
+        '<base>-<rep>'    replicate <rep> (e.g. '12-2', '12-3')
+        'WT<n>' / 'WT_<n>' wild-type block area
+
+    Non-numeric, non-WT names are ignored with a debug log (defensive; the
+    real 260327 file contains only numeric base/rep IDs plus WT blocks).
+
+    Args:
+        path:        Path to the xlsx file.
+        sheet_index: Zero-based sheet index.
+
+    Returns:
+        BlockRepBatchResult with grouped replicate areas and WT areas.
+
+    Raises:
+        ValueError: A block area cell is non-numeric, or a signal row lacks
+            a following header row (raised by _iter_fid1b_blocks).
+    """
+    resolved = Path(path)
+    rows = _extract_rows(resolved, sheet_index)
+
+    reps: dict[int, list[float]] = {}
+    rep_index_seen: dict[int, set[int]] = {}
+    wt_areas: list[float] = []
+    n_blocks = 0
+
+    for sample_name, area_raw in _iter_fid1b_blocks(rows):
+        n_blocks += 1
+        area = _float_or_raise(
+            area_raw,
+            f"Sample Name={sample_name!r} in {resolved}",
+        )
+
+        if WT_PATTERN.match(sample_name) or sample_name.upper() == "WT":
+            wt_areas.append(area)
+            continue
+
+        m = _BLOCK_REP_ID_RE.match(sample_name)
+        if not m:
+            logger.debug(
+                "parse_agilent_block_rep_batch: ignoring non-numeric, "
+                "non-WT sample name %r in %s",
+                sample_name,
+                resolved.name,
+            )
+            continue
+
+        base_id = int(m.group(1))
+        rep_idx = _block_rep_index(m.group(2))
+        seen = rep_index_seen.setdefault(base_id, set())
+        if rep_idx in seen:
+            logger.warning(
+                "parse_agilent_block_rep_batch: duplicate replicate %d for "
+                "base ID %d in %s; keeping all areas",
+                rep_idx,
+                base_id,
+                resolved.name,
+            )
+        seen.add(rep_idx)
+        reps.setdefault(base_id, []).append(area)
+
+    logger.debug(
+        "parse_agilent_block_rep_batch: %d base IDs, %d WT areas, "
+        "%d blocks from %s",
+        len(reps),
+        len(wt_areas),
+        n_blocks,
+        resolved.name,
+    )
+    return BlockRepBatchResult(reps=reps, wt_areas=wt_areas, n_blocks=n_blocks)
+
+
+# ---------------------------------------------------------------------------
 # Parser 3: RELATIVE_ONLY
 # ---------------------------------------------------------------------------
 
@@ -586,6 +807,70 @@ def read_evolvepro_xlsx(path: str | Path) -> dict[str, float]:
         result[variant] = activity
 
     return result
+
+
+def read_evolvepro_rows(path: str | Path) -> list[tuple[str, float]]:
+    """Read an EVOLVEpro xlsx as an *ordered* list of (variant, activity).
+
+    Unlike read_evolvepro_xlsx (which returns a dict and therefore collapses
+    duplicate Variant keys and loses physical row order), this preserves the
+    exact row sequence. The rank-based ID->variant mapping depends on row
+    order, so duplicate-key collapse would silently shift every rank below
+    the first duplicate. Callers that need rank must use this reader.
+
+    Args:
+        path: Path to an EVOLVEpro xlsx with 'Variant' and 'activity' columns.
+
+    Returns:
+        List of (variant, activity) tuples in file row order, including any
+        WT row and any duplicate variants (callers filter as needed).
+
+    Raises:
+        ValueError: 'Variant' or 'activity' column not found, empty file, or
+            a non-numeric activity cell.
+    """
+    resolved = Path(path)
+    rows = _extract_rows(resolved, 0)
+
+    if not rows:
+        raise ValueError(f"read_evolvepro_rows: empty file {resolved}")
+
+    header_lower = [_str(c).lower() for c in rows[0]]
+    variant_col: int | None = None
+    activity_col: int | None = None
+    for idx, h in enumerate(header_lower):
+        if h == "variant":
+            variant_col = idx
+        elif h == "activity":
+            activity_col = idx
+
+    if variant_col is None:
+        raise ValueError(
+            f"read_evolvepro_rows: 'Variant' column not found. "
+            f"Header: {[_str(c) for c in rows[0]]!r} in {resolved}"
+        )
+    if activity_col is None:
+        raise ValueError(
+            f"read_evolvepro_rows: 'activity' column not found. "
+            f"Header: {[_str(c) for c in rows[0]]!r} in {resolved}"
+        )
+
+    ordered: list[tuple[str, float]] = []
+    for row_idx, row in enumerate(rows[1:], start=2):
+        extended = list(row)
+        while len(extended) <= max(variant_col, activity_col):
+            extended.append("")
+        variant = _str(extended[variant_col])
+        activity_raw = _str(extended[activity_col])
+        if not variant and not activity_raw:
+            continue
+        activity = _float_or_raise(
+            activity_raw,
+            f"Variant={variant!r} row {row_idx} in {resolved}",
+        )
+        ordered.append((variant, activity))
+
+    return ordered
 
 
 def write_evolvepro_xlsx(

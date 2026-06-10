@@ -37,6 +37,7 @@ from sidecar_mame.handlers.activity import (
     handle_activity_merge,
     handle_activity_set_plate_meta,
     handle_activity_upload,
+    handle_build_evolvepro_input,
     handle_merge_for_evolvepro,
 )
 from sidecar_mame.handlers.barcode_package import handle_generate_mame_package
@@ -91,6 +92,8 @@ _METHODS = {
     "activity.export_evolvepro_xlsx": handle_activity_export_evolvepro_xlsx,
     # Phase B: replicate merge + label-swap guard
     "mame.activity.merge_for_evolvepro": handle_merge_for_evolvepro,
+    # A-pipeline: 4-file EVOLVEpro input build (layout + GC + rep-batch + prev EP)
+    "mame.activity.build_evolvepro_input": handle_build_evolvepro_input,
     # Feature B: MAME Barcode Setup
     "generate_mame_package": handle_generate_mame_package,
     # Analyze-phase CDS picker: parse reference (FASTA / GenBank / SnapGene)

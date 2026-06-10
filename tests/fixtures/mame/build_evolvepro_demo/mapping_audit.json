@@ -1,0 +1,184 @@
+{
+  "columns": [
+    "id",
+    "variant",
+    "well"
+  ],
+  "prev_descending": false,
+  "n_prev_variants": 95,
+  "mapping": [
+    {
+      "id": 1,
+      "variant": "547I",
+      "well": "C11"
+    },
+    {
+      "id": 2,
+      "variant": "189D",
+      "well": "D04"
+    },
+    {
+      "id": 3,
+      "variant": "477A",
+      "well": "C10"
+    },
+    {
+      "id": 4,
+      "variant": "308V",
+      "well": "E07"
+    },
+    {
+      "id": 5,
+      "variant": "87M",
+      "well": "H02"
+    },
+    {
+      "id": 6,
+      "variant": "552F",
+      "well": "G11"
+    },
+    {
+      "id": 7,
+      "variant": "477H",
+      "well": "B10"
+    },
+    {
+      "id": 8,
+      "variant": "183W",
+      "well": "C04"
+    },
+    {
+      "id": 9,
+      "variant": "53N",
+      "well": "C02"
+    },
+    {
+      "id": 10,
+      "variant": "220F",
+      "well": "B05"
+    },
+    {
+      "id": 11,
+      "variant": "100F",
+      "well": "C03"
+    },
+    {
+      "id": 12,
+      "variant": "225K",
+      "well": "D05"
+    },
+    {
+      "id": 13,
+      "variant": "551L",
+      "well": "F11"
+    },
+    {
+      "id": 14,
+      "variant": "560A",
+      "well": "E12"
+    },
+    {
+      "id": 15,
+      "variant": "448F",
+      "well": "H09"
+    },
+    {
+      "id": 16,
+      "variant": "508D",
+      "well": "H10"
+    },
+    {
+      "id": 17,
+      "variant": "108L",
+      "well": "F03"
+    },
+    {
+      "id": 18,
+      "variant": "53S",
+      "well": "B02"
+    },
+    {
+      "id": 19,
+      "variant": "477Q",
+      "well": "A10"
+    },
+    {
+      "id": 20,
+      "variant": "448V",
+      "well": "G09"
+    },
+    {
+      "id": 21,
+      "variant": "10L",
+      "well": "B01"
+    },
+    {
+      "id": 22,
+      "variant": "428V",
+      "well": "B09"
+    },
+    {
+      "id": 23,
+      "variant": "63F",
+      "well": "F02"
+    },
+    {
+      "id": 24,
+      "variant": "11E",
+      "well": "C01"
+    },
+    {
+      "id": 25,
+      "variant": "108I",
+      "well": "E03"
+    },
+    {
+      "id": 26,
+      "variant": "5F",
+      "well": "A01"
+    },
+    {
+      "id": 27,
+      "variant": "448M",
+      "well": "E09"
+    },
+    {
+      "id": 28,
+      "variant": "44V",
+      "well": "F01"
+    },
+    {
+      "id": 29,
+      "variant": "63S",
+      "well": "E02"
+    },
+    {
+      "id": 30,
+      "variant": "132M",
+      "well": "A04"
+    },
+    {
+      "id": 31,
+      "variant": "448I",
+      "well": "F09"
+    },
+    {
+      "id": 32,
+      "variant": "93A",
+      "well": "B03"
+    },
+    {
+      "id": 33,
+      "variant": "560P",
+      "well": "G12"
+    },
+    {
+      "id": 34,
+      "variant": "53R",
+      "well": "A02"
+    }
+  ],
+  "warnings": [
+    "Previous EVOLVEpro file is not strictly descending by activity; rank-based ID mapping uses physical row order regardless. Review the mapping audit before trusting it."
+  ]
+}

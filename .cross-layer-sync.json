@@ -715,6 +715,19 @@
       ],
       "note": "Native MinKNOW run-folder ingestion: kuma_core ingest_run_folder/is_minknow_run_dir orchestrator <-> AnalyzeRawRunParams (composed from shared DemuxParamsBase) <-> analyze handler raw-run path <-> TS AnalysisParams raw-run fields <-> inputSlice single analyze call. Demux param names must stay identical across DemuxParamsBase, AnalyzeRawRunParams, and AnalysisParams.",
       "severity": "blocking"
+    },
+    {
+      "id": "mame-build-evolvepro-input",
+      "files": [
+        "kuma_core/mame/activity/build_evolvepro_input.py",
+        "python-core/sidecar_mame/models.py",
+        "python-core/sidecar_mame/dispatcher.py",
+        "python-core/sidecar_mame/handlers/activity.py",
+        "src/types/mame/build_evolvepro_input.ts",
+        "src/lib/ipc-mame/index.ts"
+      ],
+      "note": "build_evolvepro_input RPC 4-layer 계약: 조립함수(BuildEvolveproResult 필드) <-> BuildEvolveproInputParams Pydantic <-> dispatcher 등록 <-> handler 응답 dict <-> TS BuildEvolveproInputResult/MismatchedVariant <-> ipc-mame client. 응답 키(mismatched 등) <-> TS 필드명 byte-for-byte 일치 유지",
+      "severity": "warning"
     }
   ]
 }

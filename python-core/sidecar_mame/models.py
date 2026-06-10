@@ -129,7 +129,7 @@ class CombinatorialDemuxParams(DemuxParamsBase):
     Optional fields
     ---------------
     sample_map_xlsx
-        When provided, a per-well sample-name mapping xlsx (col A: sample_name,
+        When provided, a per-well sample-name mapping xlsx (col A: name,
         col B: well position e.g. "A1").  Loaded into metadata; the core
         pipeline uses it to annotate output filenames with mutant names.
     kuro_xlsx
@@ -293,6 +293,94 @@ class BuildWellLayoutParams(BaseModel):
         return v
 
 
+class BuildEvolveproInputParams(BaseModel):
+    """Parameters for the ``mame.activity.build_evolvepro_input`` RPC method.
+
+    Assembles an EVOLVEpro input xlsx from the four xlsx files of one MAME
+    activity round: a plate layout (mutant to well), a pre-normalised GC data
+    sheet, an Agilent FID1B rep-batch report, and the previous-round EVOLVEpro
+    file (used as the rank source for the numeric-ID to variant mapping).
+
+    Required fields
+    ---------------
+    layout_xlsx
+        Plate layout xlsx with 'Mutant' and 'Well Pos.' columns.
+    gc_data_xlsx
+        Pre-normalised GC data xlsx with 'Sample Name' (well) and 'Area'
+        (relative activity) columns.
+    rep_batch_xlsx
+        Agilent FID1B rep-batch xlsx with numeric base IDs and '-2'/'-3'
+        replicate suffixes plus WT blocks.
+    prev_evolvepro_xlsx
+        Previous-round EVOLVEpro xlsx with 'Variant' and 'activity' columns,
+        ordered by descending activity (the rank source).
+    output_xlsx
+        Destination xlsx. Parent directory must exist; the file may not.
+
+    Optional fields
+    ---------------
+    mismatch_threshold
+        Absolute mean-difference threshold above which a variant present in
+        both sources is flagged as mismatched. Range (0.0, inclusive].
+        Default 0.1.
+    mapping_audit_path
+        Where to write the ID-to-variant JSON audit artifact. Defaults to
+        '<output>.mapping.json' next to ``output_xlsx`` when omitted.
+    """
+
+    layout_xlsx: str
+    gc_data_xlsx: str
+    rep_batch_xlsx: str
+    prev_evolvepro_xlsx: str
+    output_xlsx: str
+    mismatch_threshold: float = Field(default=0.1, gt=0.0)
+    mapping_audit_path: str | None = None
+
+    @field_validator(
+        "layout_xlsx",
+        "gc_data_xlsx",
+        "rep_batch_xlsx",
+        "prev_evolvepro_xlsx",
+        mode="after",
+    )
+    @classmethod
+    def _check_input_xlsx(cls, v: str) -> str:
+        p = Path(v)
+        if ".." in p.parts:
+            raise ValueError(f"Path traversal not allowed: {v}")
+        if p.suffix.lower() != ".xlsx":
+            raise ValueError(f"Input must be an .xlsx file: {v}")
+        if not p.exists():
+            raise ValueError(f"Input xlsx not found: {v}")
+        return v
+
+    @field_validator("output_xlsx", mode="after")
+    @classmethod
+    def _check_output_xlsx(cls, v: str) -> str:
+        p = Path(v)
+        if ".." in p.parts:
+            raise ValueError(f"Path traversal not allowed: {v}")
+        if p.suffix.lower() != ".xlsx":
+            raise ValueError(f"output_xlsx must be an .xlsx file: {v}")
+        if not p.parent.exists():
+            raise ValueError(f"Parent of output_xlsx does not exist: {p.parent}")
+        return v
+
+    @field_validator("mapping_audit_path", mode="after")
+    @classmethod
+    def _check_mapping_audit_path(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        p = Path(v)
+        if ".." in p.parts:
+            raise ValueError(f"Path traversal not allowed: {v}")
+        if not p.parent.exists():
+            raise ValueError(
+                f"Parent of mapping_audit_path does not exist: {p.parent}"
+            )
+        return v
+
+
 class DetectNativeBarcodesParams(BaseModel):
     """Parameters for the ``mame.detect_native_barcodes`` RPC method.
 
@@ -327,6 +415,7 @@ class DetectNativeBarcodesParams(BaseModel):
 
 __all__ = [
     "AnalyzeRawRunParams",
+    "BuildEvolveproInputParams",
     "BuildWellLayoutParams",
     "CombinatorialDemuxParams",
     "DemuxParamsBase",

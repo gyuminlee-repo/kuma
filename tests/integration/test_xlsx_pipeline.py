@@ -132,30 +132,37 @@ def test_scenario_d_evolvepro_read():
 # ---------------------------------------------------------------------------
 
 def test_scenario_e_agilent_rep_batch_format():
-    """Scenario E: 260327_Ep_R1_positive.xlsx is AGILENT_STANDARD format.
+    """Scenario E: 260327_Ep_R1_positive.xlsx is AGILENT_REP_BATCH format.
 
-    Note: spec originally expected AGILENT_REP_BATCH with 105 records.
-    Empirical check shows FID1B block format with numeric IDs treated as
-    calibration (skipped). Actual parsed records = 71 (34 calibration skipped).
+    The file is a FID1B block layout whose data sample names are numeric base
+    IDs ('1'..'34') with '-2'/'-3' replicate suffixes plus WT blocks. The
+    block rep-batch parser groups all three replicates per base ID, so no
+    replicate is lost.
     """
     from kuma_core.mame.activity.evolvepro_xlsx import (
         detect_format,
-        parse_agilent_standard,
+        parse_agilent_block_rep_batch,
         XlsxFormat,
     )
 
     fmt = detect_format(_data("260327_Ep_R1_positive.xlsx"))
-    assert fmt == XlsxFormat.AGILENT_STANDARD, (
-        f"Expected AGILENT_STANDARD format, got {fmt}"
+    assert fmt == XlsxFormat.AGILENT_REP_BATCH, (
+        f"Expected AGILENT_REP_BATCH format, got {fmt}"
     )
 
-    records = parse_agilent_standard(_data("260327_Ep_R1_positive.xlsx"))
-    # Confirmed 71 records (34 numeric calibration rows skipped).
-    assert len(records) >= 60, (
-        f"Expected ≥60 records after calibration skip, got {len(records)}"
+    result = parse_agilent_block_rep_batch(_data("260327_Ep_R1_positive.xlsx"))
+    # 34 base IDs, each with all three replicates preserved (no rep1 loss).
+    assert len(result.reps) >= 34, (
+        f"Expected >=34 base IDs, got {len(result.reps)}"
     )
-    wt_records = [r for r in records if r.is_wt]
-    assert len(wt_records) >= 3, f"Expected ≥3 WT records, got {len(wt_records)}"
+    rep_lengths = {len(v) for v in result.reps.values()}
+    assert rep_lengths == {3}, (
+        f"Every base ID must keep exactly 3 replicates, got lengths {rep_lengths}"
+    )
+    # WT blocks supply the normalisation baseline.
+    assert len(result.wt_areas) >= 3, (
+        f"Expected >=3 WT block areas, got {len(result.wt_areas)}"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -263,3 +270,54 @@ def test_scenario_h_write_evolvepro_xlsx():
         assert header == ["Variant", "activity"], (
             f"Expected ['Variant', 'activity'], got {header}"
         )
+
+
+# ---------------------------------------------------------------------------
+# Scenario I: full 4-file EVOLVEpro input build (end-to-end)
+# ---------------------------------------------------------------------------
+
+def test_scenario_i_build_evolvepro_input_end_to_end():
+    """Scenario I: layout + GC + rep-batch + prev EP -> EVOLVEpro input xlsx.
+
+    Exercises the full assembly against the real round files: the rank-based
+    ID->variant mapping (ID i -> non-WT row i-1 of the previous file), the
+    area / mean(WT areas) normalisation, and the merged EVOLVEpro output.
+    """
+    import json
+
+    from kuma_core.mame.activity.build_evolvepro_input import build_evolvepro_input
+    from kuma_core.mame.activity.evolvepro_xlsx import read_evolvepro_rows
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        out_path = Path(tmpdir) / "evolvepro_input.xlsx"
+        result = build_evolvepro_input(
+            _data("mutants-well position.xlsx"),
+            _data("GC data.xlsx"),
+            _data("260327_Ep_R1_positive.xlsx"),
+            _data("IspS_round1_Ep.xlsx"),
+            out_path,
+        )
+
+        assert out_path.exists()
+        # 34 authoritative variants from the rep-batch report.
+        assert result.n_authoritative == 34
+        assert result.n_variants >= result.n_authoritative
+        assert result.mapping_audit_path.exists()
+
+        # Rank mapping: every base ID i maps to the (i-1)-th non-WT prev row.
+        prev_rows = read_evolvepro_rows(_data("IspS_round1_Ep.xlsx"))
+        non_wt = [v for v, _ in prev_rows if v.upper() != "WT"]
+        audit = json.loads(result.mapping_audit_path.read_text())
+        for row in audit["mapping"]:
+            assert row["variant"] == non_wt[row["id"] - 1], (
+                f"rank mismatch for ID {row['id']}"
+            )
+        assert "prev_descending" in audit
+
+        # Output header is fixed.
+        import python_calamine
+        wb = python_calamine.CalamineWorkbook.from_path(str(out_path))
+        rows = list(wb.get_sheet_by_index(0).to_python())
+        header = [str(c).strip() for c in rows[0]]
+        assert header == ["Variant", "activity"]
+        assert len(rows) - 1 == result.n_variants

@@ -18,6 +18,7 @@ import { useRoundStore } from "@/store/round/roundSlice";
 import { IngestSection, MergeSection, ExportSection } from "@/components/mame/panels/ActivityPanel";
 import { WizardContainer } from "@/components/steps/WizardContainer";
 import { StepRedirectFallback } from "./StepRedirectFallback";
+import { BuildEvolveproInputPanel } from "@/components/mame/panels/BuildEvolveproInputPanel";
 
 const ACTIVITY_TOTAL = 2;
 const STEP_CONFIG = {
@@ -85,6 +86,7 @@ export function ActivityStepView() {
           <>
             <MergeSection />
             <ExportSection />
+            <BuildEvolveproInputPanel />
           </>
         )}
       </div>

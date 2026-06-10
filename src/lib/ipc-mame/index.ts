@@ -1,6 +1,10 @@
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { killSidecar as killSidecarRpc, rpc } from "../ipc";
 import type { ProgressNotification } from "./types";
+import type {
+  BuildEvolveproInputParams,
+  BuildEvolveproInputResult,
+} from "@/types/mame/build_evolvepro_input";
 
 type ProgressEventPayload = {
   kind: "kuro" | "mame";
@@ -78,6 +82,24 @@ export async function sendRequest<T>(
   const result = await Promise.race([request, timeout]);
   running = true;
   return result;
+}
+
+/**
+ * Build an EVOLVEpro input xlsx from the four MAME round files (plate layout,
+ * GC data, Agilent rep-batch report, previous EVOLVEpro file).
+ *
+ * Mirrors the ``mame.activity.build_evolvepro_input`` RPC handler. Uses a
+ * longer timeout than the default because it reads four xlsx files and writes
+ * two output artifacts (xlsx + JSON audit).
+ */
+export async function buildEvolveproInput(
+  params: BuildEvolveproInputParams,
+): Promise<BuildEvolveproInputResult> {
+  return sendRequest<BuildEvolveproInputResult>(
+    "mame.activity.build_evolvepro_input",
+    params as unknown as Record<string, unknown>,
+    120_000,
+  );
 }
 
 export async function killSidecar(): Promise<void> {
