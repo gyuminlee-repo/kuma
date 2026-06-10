@@ -264,6 +264,10 @@ export interface RunHealthData {
   throughput_timeline: RunHealthThroughputPoint[] | null;
   barcode_distribution: Record<string, number> | null;
   cross_talk_candidates: CrossTalkCandidate[];
+
+  recovered_mutants: number | null;
+  total_mutants: number | null;
+  recovery_rate: number | null;
 }
 
 // ── A1/A3: Demux and quality-filter types (R6.5) ────────────────────────────

@@ -150,6 +150,27 @@ describe("VerdictTable", () => {
     expect(dashes.length).toBeGreaterThan(0);
   });
 
+  it("sorts the barcode column numerically (1_2 before 1_10)", () => {
+    const mk = (cb: string): VerdictRecord => ({
+      ...mockVerdict,
+      custom_barcode: cb,
+      mutant_id: `v_${cb}`,
+    });
+    const scrambled = ["1_10", "1_2", "1_1", "1_12", "1_11"].map(mk);
+    vi.mocked(useMameAppStore).mockImplementation(
+      (sel: (s: MameAppStore) => unknown) =>
+        sel(makeMameStore({ verdicts: scrambled }).getState()),
+    );
+    vi.mocked(useRoundStore).mockImplementation(
+      (sel: (s: RoundSlice) => unknown) => sel(makeRoundStore([], null).getState()),
+    );
+    render(<VerdictTable />);
+    const labels = screen
+      .getAllByText(/^1_\d+$/)
+      .map((el) => el.textContent);
+    expect(labels).toEqual(["1_1", "1_2", "1_10", "1_11", "1_12"]);
+  });
+
   it("returns a stable empty merged table snapshot when no active round exists", () => {
     const state = makeRoundStore([], null).getState();
     expect(selectActiveMergedTable(state)).toBe(selectActiveMergedTable(state));

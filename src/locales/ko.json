@@ -460,7 +460,14 @@
       "colNeighborAvg": "인접 평균",
       "colZScore": "Z-score",
       "colSeverity": "심각도",
-      "severityAriaLabel": "심각도: {{severity}}"
+      "severityAriaLabel": "심각도: {{severity}}",
+      "recovery": "재현율",
+      "recoveryValue": "{{recovered}}/{{total}} ({{pct}}%)",
+      "recoveryNa": "해당 없음",
+      "detectedShort": "검출",
+      "classCountTableCaption": "전체 플레이트의 Verdict 클래스 수",
+      "classCountColClass": "클래스",
+      "classCountColCount": "개수"
     },
     "plateView": {
       "plate": "플레이트",

@@ -415,7 +415,14 @@
       "colNeighborAvg": "近傍平均",
       "colZScore": "Z-score",
       "colSeverity": "重大度",
-      "severityAriaLabel": "重大度: {{severity}}"
+      "severityAriaLabel": "重大度: {{severity}}",
+      "recovery": "回収率",
+      "recoveryValue": "{{recovered}}/{{total}} ({{pct}}%)",
+      "recoveryNa": "該当なし",
+      "detectedShort": "検出",
+      "classCountTableCaption": "全プレートの Verdict クラス数",
+      "classCountColClass": "クラス",
+      "classCountColCount": "件数"
     },
     "plateView": {
       "plate": "Plate",

@@ -48,6 +48,9 @@ class LoadAnalyzeResultParams(BaseModel):
     replicates: list[dict[str, Any]]
     output_path: str
     run_meta: dict[str, Any] | None = None
+    # Distinct designed mutant_ids (sorted list in the analyze response). Absent
+    # in pre-recovery workspaces → None → recovery renders "n/a", not "0%".
+    designed_mutant_ids: list[str] | None = None
     # Accepted so Phase 2 can persist + replay the analyze response verbatim,
     # but NOT stored: SidecarState holds no summary/distribution_stats and
     # get_plate_data does not read them. ``extra="ignore"`` would drop unknown
@@ -86,8 +89,19 @@ def handle_load_analyze_result(params: dict) -> dict:
     verdicts = [_deserialize_verdict(v) for v in p.verdicts]
     replicates = [_deserialize_replicate(r) for r in p.replicates]
     run_meta = _rebuild_run_meta(p.run_meta)
+    designed = (
+        frozenset(p.designed_mutant_ids)
+        if p.designed_mutant_ids is not None
+        else None
+    )
 
-    set_last_analyze(verdicts, replicates, p.output_path, run_meta=run_meta)
+    set_last_analyze(
+        verdicts,
+        replicates,
+        p.output_path,
+        run_meta=run_meta,
+        designed_mutant_ids=designed,
+    )
 
     return {
         "restored": True,

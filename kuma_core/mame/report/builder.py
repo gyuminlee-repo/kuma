@@ -11,6 +11,7 @@ from __future__ import annotations
 import datetime
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
+from kuma_core.mame.detected import compute_recovery
 
 if TYPE_CHECKING:
     from kuma_core.mame.ingest.run_meta import NgsRunMeta
@@ -64,6 +65,9 @@ class RunReportData:
 
     # ── Tool provenance ───────────────────────────────────────────────────
     kuma_version: str = ""
+    recovered_mutants: int | None = None
+    total_mutants: int | None = None
+    recovery_rate: float | None = None
 
 
 def build_run_report_data(
@@ -72,6 +76,7 @@ def build_run_report_data(
     run_meta: "NgsRunMeta | None" = None,
     project_name: str | None = None,
     kuma_version: str = "",
+    designed_mutant_ids: frozenset[str] | None = None,
 ) -> RunReportData:
     """Derive RunReportData from raw pipeline artefacts.
 
@@ -134,6 +139,8 @@ def build_run_report_data(
     ambiguous_count = sum(1 for v in verdicts if v.verdict.value == "AMBIGUOUS")
     fail_count = total_wells - pass_count - ambiguous_count
 
+    _recovery = compute_recovery(replicates, designed_mutant_ids)
+
     return RunReportData(
         project_name=project_name,
         analyzed_at=analyzed_at,
@@ -150,6 +157,9 @@ def build_run_report_data(
         bimodal=dist.bimodal,
         suggested_method=dist.suggested_method,
         kuma_version=kuma_version,
+        recovered_mutants=_recovery.recovered_mutants if _recovery else None,
+        total_mutants=_recovery.total_mutants if _recovery else None,
+        recovery_rate=_recovery.recovery_rate if _recovery else None,
     )
 
 

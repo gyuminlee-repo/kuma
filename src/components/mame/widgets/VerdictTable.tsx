@@ -102,6 +102,13 @@ function nbOrderKey(nb: string): number {
   return m ? parseInt(m[1], 10) : Number.MAX_SAFE_INTEGER;
 }
 
+/** Numeric sort key for a "{R}_{F}" barcode label: "1_10" → [1, 10]. Keeps the
+ *  well order natural (1_2 before 1_10) instead of lexicographic string order. */
+function barcodeOrderKey(cb: string): [number, number] {
+  const [r, f] = cb.split("_");
+  return [parseInt(r, 10) || 0, parseInt(f, 10) || 0];
+}
+
 /** Friendly plate-tab label: "sort_barcode06" → "NB06"; "consensus" stays as-is. */
 function nbTabLabel(nb: string): string {
   const m = nb.match(/(\d+)/);
@@ -117,7 +124,7 @@ const COLUMN_WIDTHS: Record<string, number> = {
   verdict: 132,
   observed_aa_changes: 220,
   reads: 108,
-  quality: 236,
+  quality: 280,
   verdict_notes: 240,
   activity_log2fc: 84,
   fold_change: 96,
@@ -246,7 +253,15 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
           ngs_success: merged?.ngs_success ?? null,
           mutation: merged?.mutation ?? null,
         };
-      });
+      })
+      .sort(
+        (a, b) =>
+          nbOrderKey(a.native_barcode) - nbOrderKey(b.native_barcode) ||
+          barcodeOrderKey(a.custom_barcode)[0] -
+            barcodeOrderKey(b.custom_barcode)[0] ||
+          barcodeOrderKey(a.custom_barcode)[1] -
+            barcodeOrderKey(b.custom_barcode)[1],
+      );
   }, [activeFilter, replicates, verdicts, mergedByWell]);
 
   const filteredRows = useMemo(() => {
@@ -264,6 +279,11 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
     () => [
       {
         accessorKey: "custom_barcode",
+        sortingFn: (a, b) =>
+          barcodeOrderKey(a.original.custom_barcode)[0] -
+            barcodeOrderKey(b.original.custom_barcode)[0] ||
+          barcodeOrderKey(a.original.custom_barcode)[1] -
+            barcodeOrderKey(b.original.custom_barcode)[1],
         header: t("mame.verdictTable.colBarcode"),
         cell: ({ getValue }) => (
           <span className="font-mono text-xs text-foreground">{getValue<string>()}</span>
@@ -346,7 +366,7 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
           const nPct = row.original.consensus_n_fraction * 100;
           const mixPct = row.original.max_minor_allele_fraction * 100;
           return (
-            <span className="font-mono text-caption text-muted-foreground whitespace-nowrap">
+            <span className="block truncate font-mono text-caption text-muted-foreground">
               <span title={t("mame.verdictTable.tooltip.consensusN")}>
                 N {nPct.toFixed(1)}% ld{row.original.n_low_depth_positions}
               </span>
@@ -665,7 +685,7 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
                           aria-rowindex={vRow.index + 1}
                         >
                           {row.getVisibleCells().map((cell) => (
-                            <TableCell key={cell.id} className="px-3 py-1.5">
+                            <TableCell key={cell.id} className="px-3 py-1.5 overflow-hidden">
                               {flexRender(cell.column.columnDef.cell, cell.getContext())}
                             </TableCell>
                           ))}
@@ -686,7 +706,7 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
                     )}
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="px-3 py-1.5">
+                      <TableCell key={cell.id} className="px-3 py-1.5 overflow-hidden">
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </TableCell>
                     ))}

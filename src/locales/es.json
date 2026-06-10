@@ -415,7 +415,14 @@
       "colNeighborAvg": "Promedio de vecinos",
       "colZScore": "Z-score",
       "colSeverity": "Severidad",
-      "severityAriaLabel": "Severidad: {{severity}}"
+      "severityAriaLabel": "Severidad: {{severity}}",
+      "recovery": "Recuperación",
+      "recoveryValue": "{{recovered}}/{{total}} ({{pct}} %)",
+      "recoveryNa": "n/d",
+      "detectedShort": "Detectado",
+      "classCountTableCaption": "Recuento de clases de veredicto en todas las placas",
+      "classCountColClass": "Clase",
+      "classCountColCount": "Recuento"
     },
     "plateView": {
       "plate": "Placa",

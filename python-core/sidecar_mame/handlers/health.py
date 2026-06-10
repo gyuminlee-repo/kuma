@@ -20,11 +20,14 @@ def handle_get_run_health(_params: dict) -> dict:
         verdicts = state.last_verdicts
         replicates = state.last_replicates
         run_meta = cast("NgsRunMeta | None", state.last_run_meta)
+        designed_mutant_ids = state.last_designed_mutant_ids
 
     if verdicts is None or replicates is None:
         raise RuntimeError("No analysis results available. Run 'analyze' first.")
 
-    health = build_run_health(verdicts, replicates, run_meta)
+    health = build_run_health(
+        verdicts, replicates, run_meta, designed_mutant_ids=designed_mutant_ids
+    )
 
     # Serialise cross_talk_candidates (A9 — always a list, may be empty)
     cross_talk_payload = [
@@ -50,6 +53,9 @@ def handle_get_run_health(_params: dict) -> dict:
         "throughput_timeline": health.throughput_timeline,
         "barcode_distribution": health.barcode_distribution,
         "cross_talk_candidates": cross_talk_payload,
+        "recovered_mutants": health.recovered_mutants,
+        "total_mutants": health.total_mutants,
+        "recovery_rate": health.recovery_rate,
     }
 
 

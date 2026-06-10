@@ -415,7 +415,14 @@
       "colNeighborAvg": "Média de vizinhos",
       "colZScore": "Z-score",
       "colSeverity": "Severidade",
-      "severityAriaLabel": "Severidade: {{severity}}"
+      "severityAriaLabel": "Severidade: {{severity}}",
+      "recovery": "Recuperação",
+      "recoveryValue": "{{recovered}}/{{total}} ({{pct}}%)",
+      "recoveryNa": "n/d",
+      "detectedShort": "Detectado",
+      "classCountTableCaption": "Contagem de classes de veredito em todas as placas",
+      "classCountColClass": "Classe",
+      "classCountColCount": "Contagem"
     },
     "plateView": {
       "plate": "Placa",

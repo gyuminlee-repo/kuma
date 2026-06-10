@@ -415,7 +415,14 @@
       "colNeighborAvg": "邻居均值",
       "colZScore": "Z-score",
       "colSeverity": "严重程度",
-      "severityAriaLabel": "严重程度: {{severity}}"
+      "severityAriaLabel": "严重程度: {{severity}}",
+      "recovery": "回收率",
+      "recoveryValue": "{{recovered}}/{{total}} ({{pct}}%)",
+      "recoveryNa": "不适用",
+      "detectedShort": "检出",
+      "classCountTableCaption": "所有板的 Verdict 类别计数",
+      "classCountColClass": "类别",
+      "classCountColCount": "数量"
     },
     "plateView": {
       "plate": "Plate",

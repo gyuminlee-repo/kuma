@@ -645,12 +645,27 @@ def handle_analyze(params: dict) -> dict:
 
     run_meta = discover_run_meta(original_run_dir if is_raw else input_dir)
 
-    set_last_analyze(verdicts, replicates, str(output), run_meta=run_meta)
+    # Recovery (재현율) denominator: distinct designed mutant_ids from the same
+    # expected-mutations xlsx the pipeline validated/consumed. Read once here so
+    # downstream recovery survives both analyze and workspace-reload.
+    from kuma_core.mame.detected import designed_mutant_ids as _designed_ids
+    from kuma_core.mame.io.kuro_reader import read_expected_mutations
+
+    dids = _designed_ids(read_expected_mutations(expected))
+
+    set_last_analyze(
+        verdicts,
+        replicates,
+        str(output),
+        run_meta=run_meta,
+        designed_mutant_ids=dids,
+    )
 
     return {
         "verdicts": [_serialize_verdict(v) for v in verdicts],
         "replicates": [_serialize_replicate(r) for r in replicates],
         "output_path": str(output),
+        "designed_mutant_ids": sorted(dids),
         "summary": _summarize(verdicts),
         "distribution_stats": {
             "n_files": dist_stats.n_files,

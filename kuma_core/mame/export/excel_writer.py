@@ -35,6 +35,7 @@ from openpyxl.workbook import Workbook
 
 from kuma_core.mame.export.well_mapper import WellMapper, seq_to_well
 from kuma_core.mame.models import ReplicateResult, VerdictClass, VerdictRecord
+from kuma_core.mame.detected import compute_recovery, replicate_is_recovered
 
 if TYPE_CHECKING:
     from kuma_core.mame.ingest.run_meta import NgsRunMeta
@@ -102,6 +103,7 @@ _NGS_RESULT_HEADER = [
     "NB03_detected",
     "NB03_reads",
     "NB03_quality",
+    "recovered",
 ]
 
 _FINAL_MATRIX_HEADER = [
@@ -350,6 +352,8 @@ def _build_unified_ngs_data(
             row[f"{plate}_reads"] = reads_val
             row[f"{plate}_quality"] = quality
 
+        # 재현(recovered): OR across this mutant's plate verdicts (PASS/AMBIGUOUS).
+        row["recovered"] = "Y" if replicate_is_recovered(rr) else "N"
         rows.append(row)
 
     return rows
@@ -358,6 +362,7 @@ def _build_unified_ngs_data(
 def _write_unified_ngs_sheet(
     wb: Workbook,
     replicate_results: list[ReplicateResult],
+    designed_mutant_ids: frozenset[str] | None = None,
 ) -> None:
     """Write the reference-format "NGS Results" sheet (G7 spec)."""
     ws = wb.create_sheet("NGS Results")
@@ -382,8 +387,22 @@ def _write_unified_ngs_sheet(
                 row["NB03_detected"],
                 row["NB03_reads"],
                 row["NB03_quality"],
+                row["recovered"],
             ]
         )
+
+    # Recovery (재현율) summary area below the per-mutant rows.
+    recovery = compute_recovery(replicate_results, designed_mutant_ids)
+    ws.append([])
+    if recovery is None:
+        ws.append(["Recovery (재현율)", "n/a"])
+    else:
+        ws.append([
+            "Recovery (재현율)",
+            f"{recovery.recovery_rate * 100:.1f}%",
+        ])
+        ws.append(["recovered_mutants", recovery.recovered_mutants])
+        ws.append(["total_mutants", recovery.total_mutants])
 
     # Freeze top header row for readability.
     ws.freeze_panes = "A2"
@@ -502,6 +521,7 @@ def write_excel(
     mode: Literal["amplicon", "plasmid"] = "amplicon",  # reserved for Phase 2
     ngs_run_meta: "NgsRunMeta | None" = None,
     kuma_version: str = "",
+    designed_mutant_ids: frozenset[str] | None = None,
 ) -> Path:
     """Write the combined Excel report to ``output_path``. Returns the path.
 
@@ -513,6 +533,10 @@ def write_excel(
         placeholder row so the sheet always exists (A11).
     kuma_version:
         Software version string injected into the ``__kuma_meta__`` sheet.
+    designed_mutant_ids:
+        Distinct designed ``mutant_id`` set used to compute the recovery
+        (재현율) summary in the "NGS Results" sheet.  ``None`` → recovery is
+        rendered as ``n/a`` (designed set unavailable).
     """
 
     del mode  # Phase 1: mode does not alter Excel layout.
@@ -534,7 +558,7 @@ def write_excel(
 
     # Reference-format sheets (G7 + G2): appended after legacy sheets so that
     # existing consumers of NB01/NB02/NB03 and "Final" are not disturbed.
-    _write_unified_ngs_sheet(wb, replicate_results)
+    _write_unified_ngs_sheet(wb, replicate_results, designed_mutant_ids)
     _write_final_matrix_sheet(wb, replicate_results)
 
     # A11 / G3: MinKNOW run metadata sheet — always present, content optional.

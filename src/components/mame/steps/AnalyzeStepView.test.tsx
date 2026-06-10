@@ -61,6 +61,9 @@ const fakeHealth: RunHealthData = {
   throughput_timeline: null,
   barcode_distribution: null,
   cross_talk_candidates: [],
+  recovered_mutants: null,
+  total_mutants: null,
+  recovery_rate: null,
 };
 
 const fakeVerdict: VerdictRecord = {

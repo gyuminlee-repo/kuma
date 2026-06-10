@@ -74,6 +74,7 @@ def handle_export_run_report(params: dict) -> dict:
         run_meta=cast(NgsRunMeta | None, state.last_run_meta),
         project_name=project_name,
         kuma_version=KUMA_VERSION,
+        designed_mutant_ids=state.last_designed_mutant_ids,
     )
     # Attach raw verdicts for the plate map renderer
     report_data._raw_verdicts = state.last_verdicts  # type: ignore[attr-defined]

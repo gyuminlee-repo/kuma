@@ -16,6 +16,7 @@ from kuma_core.mame.models import (
     VerdictClass,
     VerdictRecord,
 )
+from kuma_core.mame.detected import compute_recovery
 from sidecar_mame.core import SidecarState, get_state, set_last_analyze
 from sidecar_mame.handlers.analyze import (
     _deserialize_replicate,
@@ -174,3 +175,44 @@ def test_load_accepts_omitted_run_meta() -> None:
     ack = handle_load_analyze_result(payload)
     assert ack["restored"] is True
     assert get_state().last_run_meta is None
+
+    assert get_state().last_designed_mutant_ids is None
+
+
+def test_load_preserves_designed_mutant_ids_so_recovery_is_non_none() -> None:
+    """AC16: analyze → serialize → load round-trips the designed set, so
+    recovery (재현율) is computable (non-None) after a workspace reload."""
+    verdicts, replicates = _sample_state()
+    designed = sorted({rr.mutant_id for rr in replicates})  # mirrors analyze payload
+
+    payload = {
+        "verdicts": [_serialize_verdict(v) for v in verdicts],
+        "replicates": [_serialize_replicate(r) for r in replicates],
+        "output_path": "/tmp/out_recovery.xlsx",
+        "designed_mutant_ids": designed,
+    }
+    ack = handle_load_analyze_result(payload)
+    assert ack["restored"] is True
+
+    st = get_state()
+    assert st.last_designed_mutant_ids == frozenset(designed)
+    # Recovery is non-None because the designed set survived the round-trip.
+    assert compute_recovery(st.last_replicates, st.last_designed_mutant_ids) is not None
+
+
+def test_load_without_designed_mutant_ids_leaves_recovery_unavailable() -> None:
+    """Pre-recovery workspaces omit ``designed_mutant_ids``; state stays None so
+    recovery renders ``n/a`` rather than a misleading ``0%``."""
+    verdicts, replicates = _sample_state()
+    payload = {
+        "verdicts": [_serialize_verdict(v) for v in verdicts],
+        "replicates": [_serialize_replicate(r) for r in replicates],
+        "output_path": "/tmp/out_no_recovery.xlsx",
+    }
+    ack = handle_load_analyze_result(payload)
+    assert ack["restored"] is True
+
+    st = get_state()
+    assert st.last_designed_mutant_ids is None
+    # Designed set unavailable → recovery is None (callers render "n/a").
+    assert compute_recovery(st.last_replicates, st.last_designed_mutant_ids) is None
