@@ -527,7 +527,8 @@
       },
       "barcodeSetupTabTitle": "Run Setup — part of NGS Validation (step ② of PI workflow)",
       "analyzeTabTitle": "Sequencing QC — part of NGS Validation (step ② of PI workflow)",
-      "activityTabTitle": "Activity Data — EVOLVEpro input conversion (step ④ of PI workflow)"
+      "activityTabTitle": "Activity Data — EVOLVEpro input conversion (step ④ of PI workflow)",
+      "efficiencyChartTitle": "Per-plate verdict breakdown"
     },
     "dialogs": {
       "export": {
@@ -745,6 +746,16 @@
         "clusterAlertTitle": "Cluster failure detected",
         "clusterAlertDesc": "{{wells}} — adjacent wells failed simultaneously. This may indicate a pipetting issue.",
         "clusterAlertAriaLabel": "Plate cluster failure alert"
+      },
+      "review": {
+        "contextTitle": "Sequencing QC — Review",
+        "contextSubtitle": "Verdict table, plate plan, and per-plate verdict distribution in one view.",
+        "drawerLeft": "Summary",
+        "drawerCenter": "Review log",
+        "drawerRight": "Next",
+        "drawerRightDesc": "Proceed to activity",
+        "inspectorTitle": "Review Inspector",
+        "inspectorSubtitle": "Shows well details when a well is selected, otherwise verdict summary"
       }
     },
     "inspector": {
@@ -760,6 +771,24 @@
       "empty": "No wells generated. Check that the expected_mutations xlsx is selected.",
       "rowCount": "{{count}} well(s) in layout",
       "confirm": "Confirm layout"
+    },
+    "progressModal": {
+      "eta": {
+        "calculating": "Calculating…",
+        "lessThanMinute": "< 1 min",
+        "remaining": "~{{min}}m {{sec}}s left"
+      }
+    },
+    "analyze": {
+      "phase": {
+        "alignment": "Aligning",
+        "coverage_filter": "Coverage filter",
+        "demux": "Demultiplexing",
+        "consensus": "Building consensus",
+        "analyzing": "Analyzing"
+      },
+      "etaLabel": "ETA",
+      "progressAria": "Overall analysis progress {{percent}}%"
     }
   },
   "home": {
@@ -778,7 +807,11 @@
     "newProjectDesc": "Einen Projektnamen eingeben.",
     "projectNameAriaLabel": "Projektname",
     "createBtn": "Erstellen",
-    "enterProjectName": "Einen Projektnamen eingeben."
+    "enterProjectName": "Einen Projektnamen eingeben.",
+    "deleteButton": "Delete project",
+    "deleteConfirmTitle": "Remove project from list?",
+    "deleteConfirmDesc": "The project files on disk will not be deleted. Only the entry in the recent list is removed.",
+    "delete": "Remove"
   },
   "mameTab": {
     "matchingProjectTitle": "Übereinstimmendes Projekt gefunden",
@@ -1420,7 +1453,30 @@
     "mutationsValidated": "({{count}} validiert)",
     "mutationsFailed": "({{count}} fehlgeschlagen)",
     "topNZeroHint": "Top-N auf 0 setzen, um alle Varianten aus der CSV zu laden",
-    "mutationsHelp": "Mutations in HGVS or plain format (e.g. A123V, L45*). One per line or comma-separated."
+    "mutationsHelp": "Mutations in HGVS or plain format (e.g. A123V, L45*). One per line or comma-separated.",
+    "others": "Others",
+    "othersDesc": "(custom column mapping)",
+    "othersColumnMapping": "Column mapping",
+    "othersVariantColumn": "Mutation column",
+    "othersVariantColumnPlaceholder": "Auto-detect",
+    "othersScoreColumn": "Ranking column",
+    "othersScoreColumnPlaceholder": "Auto-detect",
+    "othersScoreOrder": "Direction",
+    "othersScoreOrderDesc": "Higher is better",
+    "othersScoreOrderAsc": "Lower is better",
+    "othersSheetName": "Sheet",
+    "othersSheetNamePlaceholder": "First sheet",
+    "othersPreviewBtn": "Preview",
+    "othersPreviewLoading": "Loading preview...",
+    "othersPreviewEmpty": "No preview available. Load a file first.",
+    "othersPreviewError": "Preview failed: {{message}}",
+    "othersApplyBtn": "Apply selected columns",
+    "othersApplyError": "Column load failed: {{message}}",
+    "othersUsedColumn": "Applied column: {{column}}",
+    "extraExposedLabel": "Extra candidates shown:",
+    "extraExposedAriaLabel": "Number of extra unselected candidates to display",
+    "extraExposedHint": "(0 = selected only)",
+    "bufferCapReached": "All {{count}} additional candidates shown"
   },
   "uniprotSearch": {
     "topCandidates": "Top-Kandidaten {{shown}}{{total}}",
@@ -1751,7 +1807,12 @@
     "noResultsDesc": "Load ein sequence, define Mutationen, dann ausführen design.",
     "pipelineFillHint": "Pipeline + Fill auf failure already substituted these positions; Wiederholen ist deaktiviert.",
     "pipelineFillNote": "Pipeline + Fill auf failure substituted these positions; Wiederholen ist unnecessary.",
-    "removeCustomRescueTitle": "Entfernen benutzerdefiniert rescue: restore zu Fehlgeschlagen"
+    "removeCustomRescueTitle": "Entfernen benutzerdefiniert rescue: restore zu Fehlgeschlagen",
+    "includeHeader": "Include",
+    "includeAriaLabel": "Include {{mutation}} in downstream outputs",
+    "includeTitle": "Include this row in plate map and exports",
+    "excludeTitle": "Exclude this row from plate map and exports",
+    "excludedRowAriaLabel": "{{mutation}} is excluded from downstream outputs"
   },
   "mameSidebar": {
     "runStateLabel": "Ausführen state",
@@ -1923,6 +1984,33 @@
       "mappingExport": {
         "heading": "Platte Mapping Export",
         "runExport": "Mapping exportieren"
+      },
+      "all": {
+        "heading": "Export Package",
+        "runExport": "Export all",
+        "orderVendor": "Order vendor",
+        "orderVendorHint": "Included in Export all as a timestamp-prefixed Macrogen .xls file.",
+        "amountLabel": "Amount",
+        "purificationLabel": "Purification",
+        "purificationTooltip": "MOPC (Macrogen Oligo Purification Cartridge): Macrogen's standard purification method, not changeable.",
+        "projectName": "Export name",
+        "projectNamePlaceholder": "e.g. Q232A_K287R",
+        "projectNameHint": "Used as the export folder and file prefix. Leave empty to auto-name kuro_YYMMDD_HHMM.",
+        "error": {
+          "projectNameRegex": "Use up to 40 letters, numbers, Korean characters, underscores, or hyphens."
+        }
+      },
+      "macrogen": {
+        "title": "Order Primers (Macrogen)",
+        "fwdPlateName": "Forward plate name",
+        "revPlateName": "Reverse plate name",
+        "amount": "Synthesis amount",
+        "purificationFixed": "Purification",
+        "orderButton": "Order primers (Macrogen)",
+        "success": "Macrogen order exported: {{path}}",
+        "error": {
+          "plateNameRegex": "Use 1-20 letters, numbers, underscores, or hyphens."
+        }
       }
     },
     "run": {
@@ -1939,13 +2027,17 @@
         "inputs": "Eingaben",
         "verdict": "Verdicts",
         "plate": "Platten-Plan",
-        "health": "Run Health"
+        "health": "Run Health",
+        "review": "Review (Verdict + Plate)"
       },
       "activity": {
         "ingest": "Daten ingestieren",
         "mergeExport": "Merge & Export",
         "export": "Export",
         "merge": "Merge"
+      },
+      "fallback": {
+        "redirecting": "Redirecting…"
       }
     }
   },
@@ -1979,11 +2071,34 @@
       "analyze": {
         "inputs": "Set die Eingabe directory und analysis parameters, dann ausführen.",
         "verdict": "Review per-well pass/fail verdicts, summary statistics, und sequencing throughput metrics.",
-        "plate": "Inspect die Platte layout mit barcode und Variante assignments, und per-Platte health indicators."
+        "plate": "Inspect die Platte layout mit barcode und Variante assignments, und per-Platte health indicators.",
+        "review": "Review the verdict table, plate layout, and per-plate verdict distribution in one view."
       },
       "activity": {
         "ingest": "Upload Activity CSV oder Excel Dateien und annotate die wild-type.",
         "mergeExport": "Merge activity data with genotype calls, then export the merged table for EVOLVEpro input."
+      }
+    },
+    "summary": {
+      "heading": "Design summary",
+      "sequence": {
+        "label": "Sequence",
+        "empty": "Not loaded",
+        "unnamed": "(unnamed)"
+      },
+      "mutation": {
+        "label": "Mutation source"
+      },
+      "selectionMode": {
+        "label": "Selection mode",
+        "pipeline": "Pipeline (failover)",
+        "topN": "Top-N only"
+      },
+      "variants": {
+        "label": "Variants"
+      },
+      "polymerase": {
+        "label": "Polymerase"
       }
     }
   },
@@ -2098,7 +2213,10 @@
       "exportTargets": "MAME handoff",
       "plateMap": "Plattenübersicht",
       "nPlates": "{{count}} Platte(n)",
-      "bridgeBadge": "bridge"
+      "bridgeBadge": "bridge",
+      "report": {
+        "empty": "Run Design first — the report will appear here"
+      }
     }
   },
   "wtWellGrid": {
@@ -2108,7 +2226,7 @@
     "noActiveRound": "Activate a round to designate WT wells.",
     "selectedSingle": "Selected: {{count}} well",
     "selectedPlural": "Selected: {{count}} wells",
-    "idleStatus": "",
+    "idleStatus": "idle",
     "savingStatus": "saving...",
     "savedStatus": "saved",
     "errorStatus": "error: {{reason}}"
@@ -2129,11 +2247,18 @@
     "legendDestPartial": "Only F or R arrived",
     "mappingRange": "Mapping range",
     "rowStart": "Start row",
-    "rowEnd": "End row"
+    "rowEnd": "End row",
+    "subtitle": "Echo and Janus mapping files are independent Excel/CSV outputs."
   },
   "errors": {
     "sequence": {
       "fastaNotSupported": "CDS-Annotation erforderlich. Verwenden Sie eine GenBank (.gb/.gbk) oder SnapGene (.dna) Datei."
+    },
+    "sidecar": {
+      "methodNotFound": {
+        "kuro": "KURO sidecar is outdated (missing method: {{method}}). Run `pnpm run sidecar:build` and retry.",
+        "mame": "MAME sidecar is outdated (missing method: {{method}}). Run `pnpm run sidecar:build` and retry."
+      }
     }
   },
   "advisoryDecision": {
@@ -2144,7 +2269,35 @@
     "error": "Beratungsfehler: {{message}}",
     "labelAriaLabel": "Entscheidungslabel: {{label}}",
     "confidence": "Konfidenz {{value}}%",
-    "unavailableBody": "Beratung nicht verfügbar: Erforderliche Datenleitungen noch nicht verbunden.",
-    "missingFields": "Fehlende Felder: {{fields}}"
+    "filePickerTitle": "Select round result xlsx files",
+    "addFiles": "Add xlsx files",
+    "addFilesAriaLabel": "Add round result xlsx files (Variant + activity fold-change columns required)",
+    "classify": "Run classification",
+    "classifyAriaLabel": "Run advisory classification using the selected round files",
+    "fileListAriaLabel": "Selected round xlsx files",
+    "continueWalkingRecommendation": "Continue single-mutant walking recommended.",
+    "deferredBootstrapInputsMissing": "Switch decision deferred: confident double-transition classification requires WT replicate measurements from at least 4 replicates per round (not yet provided).",
+    "deferredCalibrationPeriod": "Fewer than 3 rounds available: calibration period, classification deferred.",
+    "deferredInsufficientData": "Insufficient data across rounds to classify with confidence.",
+    "deferredMixedSignals": "Mixed signals detected across rounds: classification deferred."
+  },
+  "validation": {
+    "missing": {
+      "sequence": "Sequence file is required",
+      "mutation": "Mutation input is required",
+      "fwdPlateName": "Forward primer plate name is required",
+      "fwdPlateNameInvalid": "Forward primer plate name: use 1-20 letters, numbers, underscores, or hyphens",
+      "rvsPlateName": "Reverse primer plate name is required",
+      "rvsPlateNameInvalid": "Reverse primer plate name: use 1-20 letters, numbers, underscores, or hyphens",
+      "designResults": "No designed primers to export",
+      "cdsFasta": "CDS FASTA file is required",
+      "barcodeSeeds": "Barcode seeds xlsx is required",
+      "geneCoordinates": "Gene start and end coordinates are required",
+      "geneRangeInvalid": "Gene end must be greater than gene start",
+      "projectPath": "Open or create a project first",
+      "activeRound": "Select a round first",
+      "activityData": "Upload activity data first"
+    },
+    "actionBlockedTitle": "Cannot proceed — missing required input"
   }
 }

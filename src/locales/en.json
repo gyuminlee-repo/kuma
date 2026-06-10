@@ -1768,7 +1768,7 @@
     "noActiveRound": "Activate a round to designate WT wells.",
     "selectedSingle": "Selected: {{count}} well",
     "selectedPlural": "Selected: {{count}} wells",
-    "idleStatus": "",
+    "idleStatus": "idle",
     "savingStatus": "saving...",
     "savedStatus": "saved",
     "errorStatus": "error: {{reason}}"

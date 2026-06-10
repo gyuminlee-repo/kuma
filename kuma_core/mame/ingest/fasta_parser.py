@@ -8,15 +8,22 @@ Expected layout::
     |   +-- 1_2.fasta
     ...
 
-Header format is ``>{R}_{F}``, optionally followed by MAME demux→consensus
-metadata such as ``depth=N``, ``low_depth_positions=N``, and
+Header format is ``>{R}_{F}`` (R = reverse-barcode index / plate row 1–8,
+F = forward-barcode index / plate column 1–12), optionally followed by MAME
+demux→consensus metadata such as ``depth=N``, ``low_depth_positions=N``, and
 ``consensus_n_fraction=0.000``. Alignment drop counters
 (``input_reads``, ``aligned_reads``, ``mapq_failed``, ``span_failed``) and
 ``low_quality_bases`` are preserved when present. File size is kept as a legacy
 LOWDEPTH fallback for consensus files that do not carry real read depth.
 
-# TODO Phase 2: replace with native run-folder ingestion (now uses consumed directory)
-# TODO Phase 2: F_R <-> R_F remapping (barcode xlsx uses F{n}_R{m}; FASTA uses {R}_{F})
+This parser consumes the post-demux consensus directory produced by the
+combinatorial-demux stage (``combinatorial_demux`` writes ``{R}_{F}.fasta``).
+The ``{R}_{F}`` token is the single canonical well-naming convention shared
+verbatim with every downstream consumer (``_custom_barcode_to_seq`` →
+``seq_to_well``, F→column / R→row); the producer↔consumer orientation is locked
+by ``tests/mame/test_well_naming_contract.py``. Direct native MinKNOW
+run-folder ingestion (skipping the explicit demux output directory) is a
+separate future pipeline entry point, not a concern of this consensus parser.
 """
 
 from __future__ import annotations

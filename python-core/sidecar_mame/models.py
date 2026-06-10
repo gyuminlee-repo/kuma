@@ -20,7 +20,96 @@ from pathlib import Path
 from pydantic import BaseModel, Field, field_validator
 
 
-class CombinatorialDemuxParams(BaseModel):
+class DemuxParamsBase(BaseModel):
+    """Shared demux contract: the subset of parameters that every demux-capable
+    RPC method needs, with a single source of truth for their validators.
+
+    Both ``CombinatorialDemuxParams`` (full raw-run combinatorial demux) and
+    ``AnalyzeRawRunParams`` (raw-run subset for the analyze handler) subclass
+    this base so the demux validators are defined exactly once.
+
+    Fields
+    ------
+    custom_barcodes_xlsx
+        Path to the barcodes xlsx with ``isps_f_1..12`` and ``isps_r_1..8``
+        rows.
+    reference_fasta
+        Single-record DNA FASTA used as alignment reference.
+    mapq_threshold
+        Minimum MAPQ for alignment hits.  Range [0, 60].  Default 25.
+    coverage_fraction
+        Minimum fraction of reference covered by each alignment hit.
+        Range (0.0, 1.0].  Default 0.98.
+    edit_dist_ratio
+        Maximum allowed edit distance as a fraction of barcode prefix length.
+        Range (0.0, 1.0).  Default 0.25.
+    chimera_split
+        When True (default), evaluate all alignment hits per read (chimera /
+        concatemer splitting).  When False, only the first passing hit is used.
+    trim_flank_bp
+        Bases flanking each alignment hit to include in the per-well FASTA
+        slice.  Range [0, 200].  Default 30.
+    native_barcodes
+        When set, run per-native-barcode demux.  Omit/None for single-pool
+        mode.  Must be a non-empty list of bare names (no path separators).
+    """
+
+    # Required demux inputs
+    custom_barcodes_xlsx: str
+    reference_fasta: str
+
+    # Algorithm params
+    mapq_threshold: int = Field(default=25, ge=0, le=60)
+    coverage_fraction: float = Field(default=0.98, gt=0.0, le=1.0)
+    edit_dist_ratio: float = Field(default=0.25, gt=0.0, lt=1.0)
+    chimera_split: bool = True
+    trim_flank_bp: int = Field(default=30, ge=0, le=200)
+
+    # Optional - per-native-barcode mode
+    native_barcodes: list[str] | None = None
+
+    # Shared demux validators (single source of truth)
+
+    @field_validator("custom_barcodes_xlsx", mode="after")
+    @classmethod
+    def _check_barcodes_xlsx(cls, v: str) -> str:
+        p = Path(v)
+        if ".." in p.parts:
+            raise ValueError(f"Path traversal not allowed: {v}")
+        if not p.exists():
+            raise ValueError(f"custom_barcodes_xlsx not found: {v}")
+        return v
+
+    @field_validator("reference_fasta", mode="after")
+    @classmethod
+    def _check_reference_fasta(cls, v: str) -> str:
+        p = Path(v)
+        if ".." in p.parts:
+            raise ValueError(f"Path traversal not allowed: {v}")
+        if not p.exists():
+            raise ValueError(f"reference_fasta not found: {v}")
+        return v
+
+    @field_validator("native_barcodes", mode="after")
+    @classmethod
+    def _check_native_barcodes(cls, v: list[str] | None) -> list[str] | None:
+        if v is None:
+            return None
+        if not v:
+            raise ValueError("native_barcodes must be a non-empty list when provided")
+        for entry in v:
+            if not isinstance(entry, str) or not entry.strip():
+                raise ValueError(
+                    f"native_barcodes entry must be a non-empty string: {entry!r}"
+                )
+            if "/" in entry or "\\" in entry or ".." in entry:
+                raise ValueError(
+                    f"native_barcodes entry contains path separators: {entry!r}"
+                )
+        return v
+
+
+class CombinatorialDemuxParams(DemuxParamsBase):
     """Parameters for the ``mame.run_combinatorial_demux`` RPC method.
 
     Required fields
@@ -65,26 +154,11 @@ class CombinatorialDemuxParams(BaseModel):
 
     # Required fields
     minknow_run_dir: str
-    custom_barcodes_xlsx: str
-    reference_fasta: str
     output_dir: str
 
     # Optional - sample mapping and KURO metadata
     sample_map_xlsx: str | None = None
     kuro_xlsx: str | None = None
-
-    # Optional - algorithm params
-    mapq_threshold: int = Field(default=25, ge=0, le=60)
-    coverage_fraction: float = Field(default=0.98, gt=0.0, le=1.0)
-    edit_dist_ratio: float = Field(default=0.25, gt=0.0, lt=1.0)
-    chimera_split: bool = True
-    trim_flank_bp: int = Field(default=30, ge=0, le=200)
-
-    # Optional - per-native-barcode mode
-    # When set, run per-native-barcode demux into output_dir/sort_barcode{NN}/
-    # subdirs (one per selected MinKNOW barcode dir name like "barcode06"),
-    # processed in parallel across barcodes.  Omit/None for single-pool mode.
-    native_barcodes: list[str] | None = None
 
     # Path existence validators
 
@@ -98,26 +172,6 @@ class CombinatorialDemuxParams(BaseModel):
             raise ValueError(f"minknow_run_dir does not exist: {v}")
         if not p.is_dir():
             raise ValueError(f"minknow_run_dir is not a directory: {v}")
-        return v
-
-    @field_validator("custom_barcodes_xlsx", mode="after")
-    @classmethod
-    def _check_barcodes_xlsx(cls, v: str) -> str:
-        p = Path(v)
-        if ".." in p.parts:
-            raise ValueError(f"Path traversal not allowed: {v}")
-        if not p.exists():
-            raise ValueError(f"custom_barcodes_xlsx not found: {v}")
-        return v
-
-    @field_validator("reference_fasta", mode="after")
-    @classmethod
-    def _check_reference_fasta(cls, v: str) -> str:
-        p = Path(v)
-        if ".." in p.parts:
-            raise ValueError(f"Path traversal not allowed: {v}")
-        if not p.exists():
-            raise ValueError(f"reference_fasta not found: {v}")
         return v
 
     @field_validator("output_dir", mode="after")
@@ -156,22 +210,61 @@ class CombinatorialDemuxParams(BaseModel):
             raise ValueError(f"kuro_xlsx not found: {v}")
         return v
 
-    @field_validator("native_barcodes", mode="after")
+
+class AnalyzeRawRunParams(DemuxParamsBase):
+    """Parameters for validating the raw-run subset of the analyze handler.
+
+    The analyze handler instantiates this model only in raw-run mode, so the
+    inherited ``custom_barcodes_xlsx`` and ``reference_fasta`` requirements
+    enforce "required iff raw-run".  ``reference_fasta`` is supplied by the
+    handler from the existing analyze ``reference`` field.
+
+    Required fields
+    ---------------
+    minknow_run_dir
+        Root directory of a MinKNOW run.  Must exist and be a directory.
+    custom_barcodes_xlsx
+        Inherited from :class:`DemuxParamsBase`.
+    reference_fasta
+        Inherited from :class:`DemuxParamsBase`.
+
+    Optional fields
+    ---------------
+    demux_output_dir
+        When provided, the destination directory for demux outputs.  Parent
+        must exist.
+    """
+
+    # Required fields
+    minknow_run_dir: str
+
+    # Optional
+    demux_output_dir: str | None = None
+
+    @field_validator("minknow_run_dir", mode="after")
     @classmethod
-    def _check_native_barcodes(cls, v: list[str] | None) -> list[str] | None:
+    def _check_minknow_run_dir(cls, v: str) -> str:
+        p = Path(v)
+        if ".." in p.parts:
+            raise ValueError(f"Path traversal not allowed: {v}")
+        if not p.exists():
+            raise ValueError(f"minknow_run_dir does not exist: {v}")
+        if not p.is_dir():
+            raise ValueError(f"minknow_run_dir is not a directory: {v}")
+        return v
+
+    @field_validator("demux_output_dir", mode="after")
+    @classmethod
+    def _check_demux_output_dir(cls, v: str | None) -> str | None:
         if v is None:
             return None
-        if not v:
-            raise ValueError("native_barcodes must be a non-empty list when provided")
-        for entry in v:
-            if not isinstance(entry, str) or not entry.strip():
-                raise ValueError(
-                    f"native_barcodes entry must be a non-empty string: {entry!r}"
-                )
-            if "/" in entry or "\\" in entry or ".." in entry:
-                raise ValueError(
-                    f"native_barcodes entry contains path separators: {entry!r}"
-                )
+        p = Path(v)
+        if ".." in p.parts:
+            raise ValueError(f"Path traversal not allowed: {v}")
+        if not p.parent.exists():
+            raise ValueError(
+                f"Parent of demux_output_dir does not exist: {p.parent}"
+            )
         return v
 
 
@@ -232,4 +325,10 @@ class DetectNativeBarcodesParams(BaseModel):
         return v
 
 
-__all__ = ["BuildWellLayoutParams", "CombinatorialDemuxParams", "DetectNativeBarcodesParams"]
+__all__ = [
+    "AnalyzeRawRunParams",
+    "BuildWellLayoutParams",
+    "CombinatorialDemuxParams",
+    "DemuxParamsBase",
+    "DetectNativeBarcodesParams",
+]

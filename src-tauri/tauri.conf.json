@@ -1,13 +1,13 @@
 {
   "$schema": "https://raw.githubusercontent.com/nicedoc/schemas/main/tauri-v2.json",
   "productName": "kuma",
-  "version": "0.13.3",
+  "version": "0.13.4",
   "identifier": "com.gyuminlee.kuma",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:1421",
-    "beforeDevCommand": "pnpm run dev",
-    "beforeBuildCommand": "pnpm run build"
+    "beforeDevCommand": "node node_modules/vite/bin/vite.js",
+    "beforeBuildCommand": "node node_modules/typescript/bin/tsc && node node_modules/vite/bin/vite.js build"
   },
   "app": {
     "windows": [
@@ -65,13 +65,5 @@
       "binaries/kuro-sidecar",
       "binaries/mame-sidecar"
     ]
-  },
-  "plugins": {
-    "updater": {
-      "pubkey": "",
-      "endpoints": [
-        "https://github.com/gyuminlee-repo/KURO/releases/latest/download/latest.json"
-      ]
-    }
   }
 }

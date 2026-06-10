@@ -17,6 +17,14 @@ vi.mock("@/lib/ipc", async (importOriginal) => {
     rpc: vi.fn().mockResolvedValue({}),
   };
 });
+vi.mock("@/lib/autosave", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/autosave")>();
+  return {
+    ...actual,
+    flushAutosave: vi.fn().mockResolvedValue(undefined),
+  };
+});
+
 
 import { killSidecar, rpc } from "@/lib/ipc";
 
@@ -60,10 +68,7 @@ describe("MainShell", () => {
     expect(__getWindowMockState().preventDefaultCount).toBe(1);
   });
 
-  // TODO: tab change ping handler does not fire under jsdom + react-resizable-panels.
-  // Production works; only the test-environment interaction is broken. Re-enable once
-  // a stable reproduction or a userEvent / RTL workaround lands.
-  it.skip("pings sidecars when tabs change", async () => {
+  it("pings sidecars when tabs change", async () => {
     const user = userEvent.setup();
     render(
       <ProjectProvider value={{ path: "/tmp/x", name: "Demo", scratch: false }}>

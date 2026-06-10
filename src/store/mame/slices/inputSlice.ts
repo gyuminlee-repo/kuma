@@ -11,13 +11,14 @@ import type {
   ValidationResult,
 } from "@/types/mame/models";
 import type { CdsCandidate } from "@/lib/sequence/autoDetectCds";
-import type { CombinatorialDemuxResult } from "@/types/mame/combinatorial_demux";
+
 import type { BuildWellLayoutResult, WellLayout, WellLayoutRow } from "@/types/mame/well_layout";
 import type { DetectNativeBarcodesResult } from "@/types/mame/detect_native_barcodes";
 import type { InputSlice, RawRunParams } from "../slice-interfaces";
 import type { AppState } from "../types";
 const MAME_DEMUX_RPC_TIMEOUT_MS = 1_800_000; // 30 min — demux of large runs (78 FASTQ incident)
 const MAME_ANALYZE_RPC_TIMEOUT_MS = 1_200_000; // 20 min — full analysis pipeline
+const MAME_RAWRUN_RPC_TIMEOUT_MS = 3_000_000; // 50 min >= demux(30m)+analyze(20m) for folded raw-run analyze
 
 
 interface ParseReferenceResult {
@@ -287,50 +288,30 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       });
     }
   },
-  // Shared raw_run demux + analyze body. nativeBarcodes is threaded into the
-  // run_combinatorial_demux params: null/[] -> single-pool, non-empty array ->
-  // per-NB demux (one sort_barcode{NN}/ subdir per selected MinKNOW dir name).
-  // Happy path only; callers (runAnalysis / confirmNativeBarcodeSelection) own
-  // the try/catch that resets isAnalyzing and surfaces validationErrors.
+  // Shared raw_run analyze body. The backend `analyze` handler accepts a raw
+  // MinKNOW run folder directly (input_dir contains fastq_pass/): it internally
+  // demuxes (progress stage='demux', mapped to 0..50) then analyzes
+  // (stage='analyze', 50..100) in ONE round-trip and returns the normal analyze
+  // response plus assigned_reads/wells_with_reads. nativeBarcodes threads the
+  // per-NB selection: null/[] -> single pool, non-empty -> per-NB demux.
+  // analyzePhase starts 'demux' here; the progress subscription flips it to
+  // 'analyze' off the stage field. Happy path only; callers (runAnalysis /
+  // confirmNativeBarcodeSelection) own the try/catch that resets isAnalyzing
+  // and surfaces validationErrors.
   _demuxAndAnalyze: async (nativeBarcodes: string[] | null) => {
     const state = get();
     const { rawRunParams } = state;
 
-    const combinatorialOutputDir = deriveDemuxOutputDir(state.outputPath);
     set({
       analyzeProgress: 0,
       analyzePhase: "demux",
-      analyzeMessage: "Running combinatorial demux from raw MinKNOW run",
-    });
-    const demuxResult = await sendRequest<CombinatorialDemuxResult>(
-      "mame.run_combinatorial_demux",
-      {
-        minknow_run_dir: state.inputDir,
-        custom_barcodes_xlsx: rawRunParams.customBarcodesPath,
-        reference_fasta: state.referencePath,
-        output_dir: combinatorialOutputDir,
-        sample_map_xlsx: state.sampleMapPath || null,
-        kuro_xlsx: null,
-        mapq_threshold: 25,
-        coverage_fraction: rawRunParams.coverageFraction,
-        edit_dist_ratio: rawRunParams.editDistRatio,
-        chimera_split: rawRunParams.chimeraSplit,
-        trim_flank_bp: 30,
-        native_barcodes: nativeBarcodes,
-      },
-      MAME_DEMUX_RPC_TIMEOUT_MS,
-    );
-    const analysisInputDir = demuxResult.output_dir;
-    set({
-      analyzeProgress: 50,
-      analyzePhase: "analyze",
-      analyzeMessage: `Combinatorial demux complete: ${demuxResult.assigned_reads.toLocaleString()} reads assigned`,
+      analyzeMessage: "Demuxing raw MinKNOW run",
     });
 
     const result = await sendRequest<AnalyzeResult>(
       "analyze",
       {
-        input_dir: analysisInputDir,
+        input_dir: state.inputDir,
         reference: state.referencePath,
         expected: state.expectedPath,
         output: joinPathSlice(state.outputPath, defaultMameExportFilename({ referencePath: state.referencePath, inputDir: state.inputDir, verdictCount: 0 })),
@@ -343,8 +324,18 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         max_consensus_n_fraction: state.maxConsensusNFraction,
         sample_map_xlsx: state.sampleMapPath || null,
         well_layout: state.wellLayout ?? null,
+        // Raw-run demux knobs folded into analyze. `reference` above is reused
+        // server-side as reference_fasta.
+        custom_barcodes_xlsx: rawRunParams.customBarcodesPath,
+        native_barcodes: nativeBarcodes,
+        coverage_fraction: rawRunParams.coverageFraction,
+        edit_dist_ratio: rawRunParams.editDistRatio,
+        chimera_split: rawRunParams.chimeraSplit,
+        demux_output_dir: deriveDemuxOutputDir(state.outputPath),
+        mapq_threshold: 25,
+        trim_flank_bp: 30,
       },
-      MAME_ANALYZE_RPC_TIMEOUT_MS,
+      MAME_RAWRUN_RPC_TIMEOUT_MS,
     );
 
     get().setVerdicts(result.verdicts);

@@ -11,6 +11,9 @@ const env = {
   CARGO_INCREMENTAL: process.env.CARGO_INCREMENTAL ?? "0",
 };
 
+if (env.CI === "1") {
+  env.CI = "true";
+}
 delete env.RUSTC_WRAPPER;
 delete env.CARGO_BUILD_RUSTC_WRAPPER;
 delete env.SCCACHE_ERROR_LOG;

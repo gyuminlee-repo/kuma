@@ -227,7 +227,7 @@ export function ExportFormatSelector() {
               className="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-muted-foreground"
               title={tx(
                 "phaseC.export.all.purificationTooltip",
-                "MOPC (Macrogen Oligo Purification Cartridge): Macrogen 표준 정제 방식, 변경 불가.",
+                "MOPC (Macrogen Oligo Purification Cartridge): Macrogen's standard purification method, not changeable.",
               )}
             >
               MOPC

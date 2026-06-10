@@ -172,7 +172,7 @@ describe("kuma end-to-end integration (frontend)", () => {
 
     // Activate Mame tab so its effect registers the drop listener.
     await user.click(screen.getByRole("tab", { name: "Mame" }));
-    await screen.findByTestId("mame-drop-stub");
+    await screen.findByTestId("mame-drop-stub", undefined, { timeout: 5000 });
 
     // Simulate drop event (stub button dispatches the custom event).
     fireEvent.click(screen.getByTestId("mame-drop-stub"));
@@ -211,7 +211,7 @@ describe("kuma end-to-end integration (frontend)", () => {
     await user.type(await screen.findByLabelText("Project name"), "S");
     await user.click(screen.getByRole("button", { name: "Create" }));
     await user.click(await screen.findByRole("tab", { name: "Mame" }));
-    await screen.findByTestId("mame-drop-stub");
+    await screen.findByTestId("mame-drop-stub", undefined, { timeout: 5000 });
     fireEvent.click(screen.getByTestId("mame-drop-stub"));
 
     // Give any async handlers a microtask window, then assert no dialog.

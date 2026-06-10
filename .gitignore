@@ -33,6 +33,7 @@ benchmark/data/
 
 # Dev tooling & internal notes
 .claude/
+.gjc/
 .worktrees/
 notes/
 .codex-review-passed

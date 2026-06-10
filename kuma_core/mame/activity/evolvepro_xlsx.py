@@ -9,7 +9,7 @@ Supported formats:
   RELATIVE_ONLY     — GC data.xlsx  ([Sample Name, Area] already normalised)
   EVOLVEPRO         — IspS_round1_Ep.xlsx  ([Variant, activity])
 
-WT_PATTERN is imported from normalize.py — single source of truth.
+WT_PATTERN is imported from activity.constants as the single source of truth.
 Uses python-calamine for reading. openpyxl is used for writing only.
 """
 
@@ -23,7 +23,7 @@ from pathlib import Path
 
 import python_calamine
 
-from .normalize import WT_PATTERN
+from .constants import WT_PATTERN
 from .variant_notation import to_evolvepro  # noqa: F401 (re-exported for callers)
 
 logger = logging.getLogger(__name__)

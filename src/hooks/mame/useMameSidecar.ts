@@ -15,9 +15,19 @@ export function useMameSidecar() {
   useEffect(() => {
     setProgressHandler((progress) => {
       useMameAppStore.setState((state) => {
-        const phase = state.analyzePhase ?? "analyze";
-        const isRawRun = state.inputMode === "raw_run";
-        const scaledProgress = composeAnalysisProgress(progress.value, phase, isRawRun);
+        const hasStage = progress.stage !== undefined;
+        // Folded raw-run analyze (single `analyze` call over a MinKNOW run
+        // folder): the backend already emits a unified 0..100 value (demux
+        // 0..50, analyze 50..100) and stamps a `stage` key. Pass it through
+        // as-is — composeAnalysisProgress here would double-rescale. The
+        // legacy/consensus path (no stage) keeps phase-based scaling.
+        const scaledProgress = hasStage
+          ? Math.round(Math.max(0, Math.min(100, progress.value)))
+          : composeAnalysisProgress(
+              progress.value,
+              state.analyzePhase ?? "analyze",
+              state.inputMode === "raw_run",
+            );
         return {
           analyzeProgress: scaledProgress,
           analyzeMessage: progress.message,
@@ -25,7 +35,12 @@ export function useMameSidecar() {
           ...(progress.current !== undefined && progress.total !== undefined
             ? { analyzeCurrent: progress.current, analyzeTotal: progress.total }
             : {}),
-          ...(progress.stage !== undefined ? { analyzeStage: progress.stage } : {}),
+          ...(hasStage ? { analyzeStage: progress.stage } : {}),
+          // Drive the demux->analyze phase transition off the backend stage so
+          // the single-call raw-run path advances the UI without a manual flip.
+          ...(progress.stage === "demux" || progress.stage === "analyze"
+            ? { analyzePhase: progress.stage }
+            : {}),
         };
       });
       if (progress.message) {
