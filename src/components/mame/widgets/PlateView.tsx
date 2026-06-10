@@ -118,10 +118,12 @@ export function PlateView({ wellColorOf, wells: externalWells }: PlateViewProps 
               ] as VerdictClass[]
             ).map((verdict) => {
               const active = activeClass === verdict;
+              const hasData = wells.some((w) => w.verdict === verdict);
               return (
                 <button
                   key={verdict}
                   type="button"
+                  disabled={!hasData}
                   onClick={() =>
                     setActiveClass((prev) => (prev === verdict ? null : verdict))
                   }
@@ -131,7 +133,8 @@ export function PlateView({ wellColorOf, wells: externalWells }: PlateViewProps 
                     "rounded-control border px-0.5 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
                     active
                       ? "border-primary bg-primary/10"
-                      : "border-transparent hover:bg-muted/60",
+                      : "border-transparent",
+                    hasData ? "hover:bg-muted/60" : "cursor-not-allowed opacity-40",
                   )}
                 >
                   <VerdictBadge verdict={verdict} className="text-caption" />
