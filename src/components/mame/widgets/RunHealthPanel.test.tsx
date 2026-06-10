@@ -65,13 +65,14 @@ describe("RunHealthPanel — recovery / detected / class table", () => {
     expect(header).not.toHaveTextContent("0%");
   });
 
-  // AC9: per-plate D/T line, including a WT-PASS plate (all pass).
-  it("renders per-plate detected D/T lines", () => {
+  // Per-plate "Detected D/T" line removed; bars now carry actual per-segment counts.
+  it("shows per-segment counts on bars and drops the per-plate detected line", () => {
     render(<RunHealthPanel health={makeHealth()} sections={["verdict-breakdown"]} />);
-    // WT-PASS plate: 2 passes, total 2.
-    expect(screen.getByText("Detected 2/2")).toBeInTheDocument();
-    // Mixed plate: 1 pass + 1 ambiguous = 2, total 3.
-    expect(screen.getByText("Detected 2/3")).toBeInTheDocument();
+    expect(screen.queryByText(/Detected \d+\/\d+/)).toBeNull();
+    const counts = screen.getAllByTestId("seg-count").map((e) => e.textContent);
+    // sort_barcode01 pass=2 → "2"; sort_barcode02 pass/amb/mixed = 1/1/1 → three "1".
+    expect(counts).toContain("2");
+    expect(counts.filter((c) => c === "1").length).toBe(3);
   });
 
   // AC10: class-count table equals the run-level sums across perPlate.

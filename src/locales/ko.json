@@ -534,6 +534,7 @@
       "colBarcode": "바코드",
       "colMutantId": "변이체 ID",
       "colVerdict": "판정",
+      "colRecovered": "재현",
       "colAaChanges": "AA 변이",
       "colDepth": "깊이 (리드)",
       "colQuality": "품질",

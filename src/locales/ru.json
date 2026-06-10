@@ -475,6 +475,7 @@
       "colBarcode": "Barcode",
       "colMutantId": "Mutant ID",
       "colVerdict": "Verdict",
+      "colRecovered": "Воспроизв.",
       "colAaChanges": "AA Changes",
       "colDepth": "Depth (reads)",
       "colQuality": "Quality",

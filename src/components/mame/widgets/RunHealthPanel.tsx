@@ -131,7 +131,7 @@ function VerdictBreakdown({
   const barW = 44;
   const gap = 24;
   const chartH = 120;
-  const labelH = 42;
+  const labelH = 30;
   const svgW = plates.length * (barW + gap) + gap;
   const svgH = chartH + labelH;
 
@@ -151,8 +151,6 @@ function VerdictBreakdown({
           {plates.map(([plate, b], i) => {
             const x = gap + i * (barW + gap);
             const total = b.total || 0;
-            // AC9: display-only "detected" sum (pass + ambiguous, WT included).
-            const detected = (b.pass ?? 0) + (b.ambiguous ?? 0);
             let yOffset = chartH;
             return (
               <g key={plate}>
@@ -165,10 +163,33 @@ function VerdictBreakdown({
                     const h = (value / total) * chartH;
                     yOffset -= h;
                     const pct = Math.round((value / total) * 100);
+                    const segTop = yOffset;
                     return (
-                      <rect key={key} x={x} y={yOffset} width={barW} height={h} style={{ fill }}>
-                        <title>{`${plateLabel(plate)} · ${label}: ${value} (${pct}%)`}</title>
-                      </rect>
+                      <g key={key}>
+                        <rect x={x} y={segTop} width={barW} height={h} style={{ fill }}>
+                          <title>{`${plateLabel(plate)} · ${label}: ${value} (${pct}%)`}</title>
+                        </rect>
+                        {h >= 11 && (
+                          <text
+                            x={x + barW / 2}
+                            y={segTop + h / 2}
+                            textAnchor="middle"
+                            dominantBaseline="central"
+                            data-testid="seg-count"
+                            style={{
+                              fill: "#fff",
+                              fontSize: 9,
+                              fontWeight: 600,
+                              stroke: "rgba(0,0,0,0.45)",
+                              strokeWidth: 2,
+                              paintOrder: "stroke",
+                              pointerEvents: "none",
+                            }}
+                          >
+                            {value}
+                          </text>
+                        )}
+                      </g>
                     );
                   })
                 )}
@@ -187,14 +208,6 @@ function VerdictBreakdown({
                   style={{ fill: C.muted, fontSize: 8 }}
                 >
                   {`n=${total}${b.fallback ? ` · fb ${b.fallback}` : ""}`}
-                </text>
-                <text
-                  x={x + barW / 2}
-                  y={chartH + 37}
-                  textAnchor="middle"
-                  style={{ fill: C.muted, fontSize: 8 }}
-                >
-                  {`${t("mame.runHealth.detectedShort")} ${detected}/${total}`}
                 </text>
               </g>
             );

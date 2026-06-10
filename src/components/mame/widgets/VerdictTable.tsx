@@ -122,6 +122,7 @@ const COLUMN_WIDTHS: Record<string, number> = {
   custom_barcode: 96,
   mutant_id: 120,
   verdict: 132,
+  recovered: 84,
   observed_aa_changes: 220,
   reads: 108,
   quality: 280,
@@ -275,6 +276,23 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
     );
   }, [rows, searchQuery]);
 
+  // Per-mutant FINAL recovered status: a variant is recovered if ANY of its
+  // replicate wells (across ALL native barcodes, tab-independent) is detected
+  // (verdict PASS or AMBIGUOUS) — the "1-of-N replicates" success rule.
+  const recoveredByMutant = useMemo(() => {
+    const legacy = new Map<string, string>();
+    for (const r of replicates) {
+      if (r.selected_plate) legacy.set(r.selected_plate, r.mutant_id);
+    }
+    const m = new Map<string, boolean>();
+    for (const v of verdicts) {
+      const id = v.mutant_id || legacy.get(v.native_barcode) || "—";
+      const detected = v.verdict === "PASS" || v.verdict === "AMBIGUOUS";
+      m.set(id, (m.get(id) ?? false) || detected);
+    }
+    return m;
+  }, [verdicts, replicates]);
+
   const columns = useMemo<ColumnDef<VerdictRow>[]>(
     () => [
       {
@@ -312,6 +330,31 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
         accessorKey: "verdict",
         header: t("mame.verdictTable.colVerdict"),
         cell: ({ row }) => <VerdictBadge verdict={row.original.verdict} />,
+      },
+      {
+        id: "recovered",
+        header: t("mame.verdictTable.colRecovered"),
+        accessorFn: (row) => (recoveredByMutant.get(row.mutant_id) ? 1 : 0),
+        cell: ({ row }) => {
+          const rec = recoveredByMutant.get(row.original.mutant_id) ?? false;
+          return rec ? (
+            <Badge
+              variant="outline"
+              data-testid="recovered-cell"
+              className="border-green-500 text-green-600 dark:text-green-400 text-[10px] px-1 py-0"
+            >
+              ✓
+            </Badge>
+          ) : (
+            <Badge
+              variant="outline"
+              data-testid="recovered-cell"
+              className="border-destructive text-destructive text-[10px] px-1 py-0"
+            >
+              ✗
+            </Badge>
+          );
+        },
       },
       {
         id: "observed_aa_changes",
@@ -517,7 +560,7 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
         },
       },
     ],
-    [t],
+    [t, recoveredByMutant],
   );
 
   const table = useReactTable({
