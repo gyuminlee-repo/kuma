@@ -226,9 +226,10 @@ def classify_verdict(
                 obs_wt, obs_mt = observed_parsed[pos]
                 tag = f"{obs_wt}{pos}{obs_mt}"
                 window_hits.append(
-                    f"{tag} within window(\u00b15 codon of {list(expected_parsed.keys())[0]})"
+                    f"{tag} within window(\u00b1{params.indel_window_codon} codon "
+                    f"of {list(expected_parsed.keys())[0]})"
                     if len(expected_parsed) == 1
-                    else f"{tag} within \u00b15 codon of {exp_pos}"
+                    else f"{tag} within \u00b1{params.indel_window_codon} codon of {exp_pos}"
                 )
                 break
     if window_hits:
