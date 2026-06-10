@@ -4,11 +4,11 @@ G6/A6 read_count policy
 ------------------------
 ``BarcodeRecord.read_count`` is populated by the consensus parser from
 ``depth=N`` header metadata when available, falling back to single-record
-counts for legacy consensus files.  The "NGS 결과" sheet columns are named
+counts for legacy consensus files.  The "NGS Results" sheet columns are named
 ``NB0X_reads`` and carry read_count when non-None, falling back to file_size_kb
 as a volume proxy.
 The per-plate ``NB0X`` sheets retain ``file_size_kb`` in their header (Sheet1
-format) for backward compatibility; only the unified "NGS 결과" sheet uses
+format) for backward compatibility; only the unified "NGS Results" sheet uses
 the ``reads`` naming.
 
 A11 / G3 __kuma_meta__ sheet
@@ -83,7 +83,7 @@ _FINAL_HEADER = [
     "verdict",
 ]
 
-# Reference-format "NGS 결과" sheet (3 plates side-by-side, 96 mutant rows).
+# Reference-format "NGS Results" sheet (3 plates side-by-side, 96 mutant rows).
 # Phase 1: reads columns carry file_size_kb as a proxy — header makes this explicit.
 # G6/A6 round: replace file_size_kb values with actual read_count from BarcodeRecord.
 _KNOWN_PLATES = ("NB01", "NB02", "NB03")
@@ -287,7 +287,7 @@ def _highlight_well_cell(ws, row_idx: int) -> None:
 def _build_unified_ngs_data(
     replicate_results: list[ReplicateResult],
 ) -> list[dict]:
-    """Build per-mutant rows for the "NGS 결과" sheet.
+    """Build per-mutant rows for the "NGS Results" sheet.
 
     Each row holds a mutant_id key and per-plate detected/file_size_kb values.
     Mutant ordering follows the ``replicate_results`` list (which preserves
@@ -359,8 +359,8 @@ def _write_unified_ngs_sheet(
     wb: Workbook,
     replicate_results: list[ReplicateResult],
 ) -> None:
-    """Write the reference-format "NGS 결과" sheet (G7 spec)."""
-    ws = wb.create_sheet("NGS 결과")
+    """Write the reference-format "NGS Results" sheet (G7 spec)."""
+    ws = wb.create_sheet("NGS Results")
     ws.append(_NGS_RESULT_HEADER)
     for cell in ws[1]:
         cell.font = Font(bold=True)

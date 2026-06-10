@@ -275,7 +275,7 @@ def test_excel_kuma_meta_sheet_none_meta(tmp_path: Path) -> None:
 
 
 def test_excel_legacy_sheets_preserved(tmp_path: Path) -> None:
-    """Existing legacy sheets (NB01, Final, NGS 결과, Final (matrix)) are unaffected."""
+    """Existing legacy sheets (NB01, Final, NGS Results, Final (matrix)) are unaffected."""
     vr = _make_verdict("NB01", "1_1", VerdictClass.PASS)
     rr = _make_replicate("V5F", "NB01", "1_1")
     out = tmp_path / "legacy.xlsx"
@@ -286,7 +286,7 @@ def test_excel_legacy_sheets_preserved(tmp_path: Path) -> None:
         ngs_run_meta=None,
     )
     wb = openpyxl.load_workbook(out)
-    for name in ("NB01", "Final", "NGS 결과", "Final (matrix)", "__kuma_meta__"):
+    for name in ("NB01", "Final", "NGS Results", "Final (matrix)", "__kuma_meta__"):
         assert name in wb.sheetnames, f"Sheet '{name}' missing"
 
 

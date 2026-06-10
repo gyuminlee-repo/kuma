@@ -160,7 +160,7 @@ def _make_replicate(
 
 
 def test_reference_sheets_present(tmp_path: Path) -> None:
-    """write_excel must include 'NGS 결과' and 'Final (matrix)' sheets."""
+    """write_excel must include 'NGS Results' and 'Final (matrix)' sheets."""
     vr = _make_verdict("NB01", "1_1", VerdictClass.PASS)
     rr = _make_replicate("V5F", "NB01", "1_1")
     out = tmp_path / "ref.xlsx"
@@ -170,7 +170,7 @@ def test_reference_sheets_present(tmp_path: Path) -> None:
         output_path=out,
     )
     wb = openpyxl.load_workbook(out)
-    assert "NGS 결과" in wb.sheetnames, "NGS 결과 sheet missing"
+    assert "NGS Results" in wb.sheetnames, "NGS Results sheet missing"
     assert "Final (matrix)" in wb.sheetnames, "Final (matrix) sheet missing"
     # Legacy sheets preserved.
     assert "NB01" in wb.sheetnames
@@ -178,7 +178,7 @@ def test_reference_sheets_present(tmp_path: Path) -> None:
 
 
 def test_ngs_result_sheet_header(tmp_path: Path) -> None:
-    """NGS 결과 sheet row-1 must match _NGS_RESULT_HEADER exactly."""
+    """NGS Results sheet row-1 must match _NGS_RESULT_HEADER exactly."""
     from kuma_core.mame.export.excel_writer import _NGS_RESULT_HEADER
 
     vr = _make_verdict("NB01", "1_1", VerdictClass.PASS)
@@ -186,7 +186,7 @@ def test_ngs_result_sheet_header(tmp_path: Path) -> None:
     out = tmp_path / "ngs.xlsx"
     write_excel(verdict_records=[vr], replicate_results=[rr], output_path=out)
     wb = openpyxl.load_workbook(out)
-    ws = wb["NGS 결과"]
+    ws = wb["NGS Results"]
     actual_header = [c.value for c in ws[1]]
     assert actual_header == _NGS_RESULT_HEADER
 
