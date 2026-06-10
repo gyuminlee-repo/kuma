@@ -13,15 +13,17 @@ export type DrawerStripProps = {
 };
 
 /**
- * DrawerStrip — 92px bottom drawer with 3 fixed-width slots.
- * Grid: 260px / 1fr / 250px. Matches mockup CSS line 180-185.
+ * DrawerStrip: bottom drawer with 3 fixed-width slots.
+ * Min height 92px (mockup CSS line 180-185); auto-grows when a slot needs
+ * more than 92px (e.g. MAME review summary with 3 stat lines) so the last
+ * line is never clipped. Grid: 260px / 1fr / 250px.
  */
 export function DrawerStrip({ left, center, right }: DrawerStripProps) {
   return (
     <div
       className="shrink-0 border-t border-border bg-card"
       style={{
-        height: "92px",
+        minHeight: "92px",
         display: "grid",
         gridTemplateColumns: "minmax(180px, 260px) minmax(0, 1fr) minmax(180px, 250px)",
       }}
