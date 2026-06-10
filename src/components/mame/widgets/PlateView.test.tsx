@@ -89,4 +89,17 @@ describe("PlateView legend filter", () => {
     expect(wellButton("A1")).toHaveStyle({ opacity: "0.3" }); // PASS — dimmed
     expect(wellButton("A3")).toHaveStyle({ opacity: "0.3" }); // WRONG_AA — dimmed
   });
+
+  it("disables (and dims) a legend class with no matching wells", () => {
+    setup(WELLS); // PASS, MIXED, WRONG_AA present — LOWDEPTH/MANY/etc. absent
+    const empty = filterBtn("LOWDEPTH");
+    expect(empty).toBeDisabled();
+    // Clicking a disabled class does nothing — no wells get dimmed.
+    fireEvent.click(empty);
+    expect(empty).toHaveAttribute("aria-pressed", "false");
+    expect(wellButton("A1")).not.toHaveStyle({ opacity: "0.3" });
+    expect(wellButton("A2")).not.toHaveStyle({ opacity: "0.3" });
+    // A present class stays enabled.
+    expect(filterBtn("PASS")).toBeEnabled();
+  });
 });
