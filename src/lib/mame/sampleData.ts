@@ -21,6 +21,7 @@ export function sampleVerdicts(): VerdictRecord[] {
     | "n_mapq_failed"
     | "n_span_failed"
     | "observed_nt_changes"
+    | "n_no_call_aa"
   >[] = [
     { native_barcode: "barcode1", custom_barcode: "1_1", verdict: "PASS", verdict_notes: "", aa_sequence: "MSTTS", observed_aa_changes: ["V5F"], expected_mutations: ["V5F"] },
     { native_barcode: "barcode2", custom_barcode: "1_2", verdict: "PASS", verdict_notes: "", aa_sequence: "MSTTS", observed_aa_changes: ["K53N"], expected_mutations: ["K53N"] },
@@ -46,6 +47,7 @@ export function sampleVerdicts(): VerdictRecord[] {
     n_mapq_failed: i % 3,
     n_span_failed: i % 2,
     observed_nt_changes: [],
+    n_no_call_aa: 0,
   }));
 }
 

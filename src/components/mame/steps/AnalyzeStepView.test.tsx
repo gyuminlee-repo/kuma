@@ -76,6 +76,7 @@ const fakeVerdict: VerdictRecord = {
   n_input_reads: 1500,
   n_aligned_reads: 1490,
   n_mapq_failed: 2,
+  n_no_call_aa: 0,
   n_span_failed: 8,
   source_path: "/data/NB01/barcode01.fastq",
   aa_sequence: "MKLVF89W",

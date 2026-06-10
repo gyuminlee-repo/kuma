@@ -13,6 +13,7 @@ const verdictFill: Record<VerdictClass, { bg: string; text: string; border: stri
   FRAMESHIFT: { bg: "#AD1457", text: "#FFFFFF", border: "#880E4F" },
   MANY: { bg: "#E65100", text: "#FFFFFF", border: "#BF360C" },
   LOWDEPTH: { bg: "#9E9E9E", text: "#FFFFFF", border: "#757575" },
+  NO_CALL: { bg: "#616161", text: "#FFFFFF", border: "#424242" },
 };
 
 const emptyFill = { bg: "#F1F3F5", text: "#C1C8D0", border: "#DDE1E7" };

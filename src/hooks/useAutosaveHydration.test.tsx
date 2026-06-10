@@ -51,6 +51,7 @@ const VERDICT: VerdictRecord = {
   source_path: "/mock/NB01/1_1.fasta",
   aa_sequence: "MSTTS",
   observed_nt_changes: [],
+  n_no_call_aa: 0,
   observed_aa_changes: ["V5F"],
   expected_mutations: ["V5F"],
   verdict: "PASS",

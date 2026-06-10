@@ -32,6 +32,7 @@ const mockVerdict: VerdictRecord = {
   aa_sequence: "MKLVF89W",
   observed_nt_changes: ["T265G"],
   observed_aa_changes: ["F89W"],
+  n_no_call_aa: 0,
   expected_mutations: ["F89W"],
   verdict: "PASS",
   verdict_notes: "",
@@ -167,4 +168,22 @@ describe("VerdictTable", () => {
     // Dropdown may render in portal — check the button is present and clickable
     expect(btn).toBeTruthy();
   });
+  it("derives NB tabs from the native barcodes present, not a fixed NB01/02/03 set", () => {
+    const v6 = { ...mockVerdict, native_barcode: "sort_barcode06", custom_barcode: "1_1" };
+    const v20 = { ...mockVerdict, native_barcode: "sort_barcode20", custom_barcode: "1_2" };
+    vi.mocked(useMameAppStore).mockImplementation((sel: (s: MameAppStore) => unknown) =>
+      sel(makeMameStore({ verdicts: [v6, v20] }).getState()),
+    );
+    vi.mocked(useRoundStore).mockImplementation((sel: (s: RoundSlice) => unknown) =>
+      sel(makeRoundStore([], null).getState()),
+    );
+    render(<VerdictTable />);
+    expect(screen.getByRole("tab", { name: "ALL" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "NB06" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "NB20" })).toBeTruthy();
+    // The old hardcoded NB02/NB03 tabs must NOT appear when those barcodes are absent.
+    expect(screen.queryByRole("tab", { name: "NB02" })).toBeNull();
+    expect(screen.queryByRole("tab", { name: "NB03" })).toBeNull();
+  });
+
 });
