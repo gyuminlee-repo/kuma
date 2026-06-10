@@ -861,6 +861,7 @@ def domain_aware_select(
                 name = max(
                     reducible,
                     key=lambda n: (
+                        0 if domain_bins.get(n) else 1,  # empty-bin domains reduced first
                         quotas[n] - raw_lookup.get(n, 0.0),
                         quotas[n],
                         -raw_lookup.get(n, 0.0),

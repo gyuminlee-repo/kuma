@@ -395,6 +395,7 @@ def test_cutadapt_cmd_has_threads_and_no_discard(
         return _FakeProc()
 
     monkeypatch.setattr(demux_mod.subprocess, "run", _fake_run)
+    monkeypatch.setattr(demux_mod.shutil, "which", lambda _: "/usr/bin/cutadapt")
 
     fastq_dir = _stage_fixture_fastq(tmp_path)
     custom_barcodes = {f"F{i + 1}": bc for i, bc in enumerate(fx._F_BARCODES)}

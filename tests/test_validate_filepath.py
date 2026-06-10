@@ -19,7 +19,7 @@ def test_csv_still_allowed():
         pytest.fail(".csv not found in _ALLOWED_TABLE_EXTENSIONS")
 
 
-def test_tsv_not_in_table_extensions():
-    """tsv is not part of the EVOLVEpro-specific table extensions."""
-    if ".tsv" in _ALLOWED_TABLE_EXTENSIONS:
-        pytest.fail(".tsv should not be in _ALLOWED_TABLE_EXTENSIONS")
+def test_tsv_allowed():
+    """tsv is supported for EVOLVEpro table input (tab-delimited files)."""
+    if ".tsv" not in _ALLOWED_TABLE_EXTENSIONS:
+        pytest.fail(".tsv not found in _ALLOWED_TABLE_EXTENSIONS")

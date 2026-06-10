@@ -102,7 +102,7 @@ class TestMissingFileRaises:
 
     def test_nonexistent_path_raises_file_not_found(self, tmp_path):
         missing = tmp_path / "does_not_exist.fa"
-        with pytest.raises(FileNotFoundError, match="IspS CDS FASTA not found"):
+        with pytest.raises(FileNotFoundError, match="EGFP CDS FASTA not found"):
             get_egfp_wt_aa_seq(cds_path=missing)
 
     def test_empty_fasta_raises_value_error(self, tmp_path):
