@@ -388,25 +388,32 @@ def handle_analyze(params: dict) -> dict:
         if stage_str == "consensus":
             value = 40 + int(10 * done / max(1, total))
             message = f"Building consensus ({done}/{total})"
+            cur, tot = done, total
         elif stage_str == "demux":
             value = int(40 * done / max(1, total))
             message = f"Demuxing reads ({done}/{total})"
+            cur, tot = done, total
         else:
+            # Combinatorial demux reports aggregate progress as a per-mille
+            # fraction (done out of 1000) purely to drive a smooth bar — it is
+            # NOT a read count. Surface it as a percentage (current=pct,
+            # total=None) so the UI shows "73%" instead of a meaningless
+            # "730 / 1,000". The barcode tally stays in the message.
             value = int(50 * done / max(1, total))
-            pct = int(100 * done / max(1, total))
-            message = f"Sorting reads — {stage_str} ({pct}%)"
-        emit_params = {
+            cur, tot = int(100 * done / max(1, total)), None
+            message = f"Sorting reads — {stage_str}"
+        emit_params: dict = {
             "value": min(50, value),
             "message": message,
-            "current": done,
-            "total": total,
+            "current": cur,
+            "total": tot,
             "stage": "demux",
         }
         _demux_state.update(
             value=emit_params["value"],
             message=message,
-            current=done,
-            total=total,
+            current=cur,
+            total=tot,
         )
         with _emit_lock:
             _send(
