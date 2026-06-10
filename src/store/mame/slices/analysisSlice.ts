@@ -101,6 +101,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       "samples/mame/06_mame_plate_layout.xlsx",
       "samples/mame/07_mame_activity_long.csv",
       "samples/mame/02_mame_barcode_seeds.xlsx",
+      "samples/mame/egfp_with_flanks.fa",
     ];
     const settled = await Promise.allSettled(relPaths.map((p) => resolveResource(p)));
     const resolved: (string | null)[] = settled.map((r, i) => {
@@ -126,6 +127,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       ,
       activityCsvPath,
       barcodeSeedsPath,
+      designFastaPath,
     ] = resolved;
 
     // Critical inputs: reference.fasta and activity CSV. Abort with a
@@ -149,6 +151,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
     if (!barcodesPath) optionalFailures.push("04_mame_custom_barcodes.xlsx");
     if (!sampleMapPath) optionalFailures.push("05_mame_sample_map.xlsx");
     if (!barcodeSeedsPath) optionalFailures.push("02_mame_barcode_seeds.xlsx");
+    if (!designFastaPath) optionalFailures.push("egfp_with_flanks.fa");
 
     // Populate input store via cross-slice setters (skip ones that failed).
     const state = get();
@@ -161,9 +164,17 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
     // Publish Phase 1 setup prefill for BarcodeSetupPanel (fasta + seeds).
     // The panel's existing fastaPath useEffect autoDetects geneStart/geneEnd
     // via autoDetectCdsCandidates, so we only need to seed these two paths.
+    //
+    // IMPORTANT: Step 1.2 (barcode-package design) needs a CDS that has
+    // flanking sequence on BOTH sides of the gene (>= flank_max, default
+    // 400 nt) so primer binding sites can be placed outside the gene. The
+    // analyze reference (reference.fasta) is the amplicon itself with zero
+    // flank, so it fails primer design ("sequence is too short upstream of
+    // the gene"). Prefill the dedicated flank-bearing demo FASTA instead,
+    // falling back to refPath only if the flanked file failed to resolve.
     set({
       mameSamplePrefill: {
-        fastaPath: refPath,
+        fastaPath: designFastaPath ?? refPath,
         barcodeSeedsPath: barcodeSeedsPath ?? "",
       },
     });
