@@ -5,6 +5,7 @@ import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { VerdictBadge } from "./VerdictBadge";
 import { WellPlate } from "./WellPlate";
 import type { WellColorOverride } from "./WellPlate";
+import { cn } from "@/lib/utils";
 import type { VerdictClass, WellEntry } from "@/types/mame/models";
 
 function getSelectedPlateLabel(barcode: string | null): string {
@@ -44,6 +45,12 @@ export function PlateView({ wellColorOf, wells: externalWells }: PlateViewProps 
   const wells = externalWells ?? storeWells;
 
   const [colorblindMode, setColorblindMode] = useState(false);
+  // Legend-class filter: clicking a verdict class dims non-matching wells.
+  // Single-select toggle; resets when the underlying wells change.
+  const [activeClass, setActiveClass] = useState<VerdictClass | null>(null);
+  useEffect(() => {
+    setActiveClass(null);
+  }, [wells]);
   const selectedCount = wells.filter((well) => well.selected).length;
   const filledCount = wells.length;
 
@@ -92,8 +99,13 @@ export function PlateView({ wellColorOf, wells: externalWells }: PlateViewProps 
             onWellClick={(well) => setSelectedWell(well)}
             colorblindMode={colorblindMode}
             wellColorOf={wellColorOf}
+            dimmedOf={(w) => activeClass !== null && w.verdict !== activeClass}
           />
-          <div className="mt-2 flex flex-wrap gap-1" aria-label={t("mame.plateView.verdictLegendAriaLabel")}>
+          <div
+            className="mt-2 flex flex-wrap gap-1"
+            role="group"
+            aria-label={t("mame.plateView.verdictLegendAriaLabel")}
+          >
             {(
               [
                 "PASS",
@@ -104,9 +116,31 @@ export function PlateView({ wellColorOf, wells: externalWells }: PlateViewProps 
                 "MANY",
                 "LOWDEPTH",
               ] as VerdictClass[]
-            ).map((verdict) => (
-              <VerdictBadge key={verdict} verdict={verdict} className="text-caption" />
-            ))}
+            ).map((verdict) => {
+              const active = activeClass === verdict;
+              const hasData = wells.some((w) => w.verdict === verdict);
+              return (
+                <button
+                  key={verdict}
+                  type="button"
+                  disabled={!hasData}
+                  onClick={() =>
+                    setActiveClass((prev) => (prev === verdict ? null : verdict))
+                  }
+                  aria-pressed={active}
+                  aria-label={t("mame.plateView.verdictFilterAriaLabel", { verdict })}
+                  className={cn(
+                    "rounded-control border px-0.5 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
+                    active
+                      ? "border-primary bg-primary/10"
+                      : "border-transparent",
+                    hasData ? "hover:bg-muted/60" : "cursor-not-allowed opacity-40",
+                  )}
+                >
+                  <VerdictBadge verdict={verdict} className="text-caption" />
+                </button>
+              );
+            })}
           </div>
         </div>
 

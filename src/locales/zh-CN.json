@@ -418,6 +418,7 @@
       "colorAssistAriaLabel": "启用色盲支持图案",
       "selectedWellAriaLabel": "所选 well 详情",
       "verdictLegendAriaLabel": "Verdict 颜色图例",
+      "verdictFilterAriaLabel": "仅高亮 {{verdict}} 类（切换）",
       "selectedWellLabel": "所选 Well",
       "selectedReplicate": "所选 replicate",
       "fallbackTitle": "Fallback replicate",

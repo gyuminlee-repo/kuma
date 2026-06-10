@@ -418,6 +418,7 @@
       "colorAssistAriaLabel": "Включить узор поддержки для дальтоников",
       "selectedWellAriaLabel": "Детали выбранного well",
       "verdictLegendAriaLabel": "Цветовая легенда verdict",
+      "verdictFilterAriaLabel": "Фильтр лунок по {{verdict}} (переключатель)",
       "selectedWellLabel": "Выбранный well",
       "selectedReplicate": "Выбранный replicate",
       "fallbackTitle": "Fallback replicate",

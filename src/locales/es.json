@@ -418,6 +418,7 @@
       "colorAssistAriaLabel": "Habilitar patrón de soporte para daltonismo",
       "selectedWellAriaLabel": "Detalles del well seleccionado",
       "verdictLegendAriaLabel": "Leyenda de color de verdict",
+      "verdictFilterAriaLabel": "Filtrar pozos por {{verdict}} (alternar)",
       "selectedWellLabel": "Well seleccionado",
       "selectedReplicate": "Replicate seleccionado",
       "fallbackTitle": "Replicate de fallback",

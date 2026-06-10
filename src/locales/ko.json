@@ -477,6 +477,7 @@
       "colorAssistAriaLabel": "색맹 보조 패턴 활성화",
       "selectedWellAriaLabel": "선택한 well 상세 정보",
       "verdictLegendAriaLabel": "Verdict 색상 범례",
+      "verdictFilterAriaLabel": "{{verdict}} 클래스만 강조 (토글)",
       "selectedWellLabel": "선택한 Well",
       "selectedReplicate": "선택한 replicate",
       "fallbackTitle": "대체 반복",

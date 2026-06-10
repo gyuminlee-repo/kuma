@@ -1,20 +1,15 @@
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
+import { VERDICT_FILL } from "@/lib/mame/verdictColors";
 import type { WellEntry, VerdictClass } from "@/types/mame/models";
 
 const ROWS = ["A", "B", "C", "D", "E", "F", "G", "H"] as const;
 const COLS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as const;
 
-const verdictFill: Record<VerdictClass, { bg: string; text: string; border: string }> = {
-  PASS: { bg: "#2E7D32", text: "#FFFFFF", border: "#1B5E20" },
-  AMBIGUOUS: { bg: "#F9A825", text: "#1A1200", border: "#F57F17" },
-  MIXED: { bg: "#FB8C00", text: "#FFFFFF", border: "#E65100" },
-  WRONG_AA: { bg: "#C62828", text: "#FFFFFF", border: "#B71C1C" },
-  FRAMESHIFT: { bg: "#AD1457", text: "#FFFFFF", border: "#880E4F" },
-  MANY: { bg: "#E65100", text: "#FFFFFF", border: "#BF360C" },
-  LOWDEPTH: { bg: "#9E9E9E", text: "#FFFFFF", border: "#757575" },
-  NO_CALL: { bg: "#616161", text: "#FFFFFF", border: "#424242" },
-};
+// Shared single source of truth so the grid and the verdict-breakdown chart
+// render each verdict in the same colour. See src/lib/mame/verdictColors.ts.
+const verdictFill: Record<VerdictClass, { bg: string; text: string; border: string }> =
+  VERDICT_FILL;
 
 const emptyFill = { bg: "#F1F3F5", text: "#C1C8D0", border: "#DDE1E7" };
 
@@ -45,6 +40,9 @@ interface WellPlateProps {
   colorblindMode?: boolean;
   /** Optional callback to override per-well fill colors. Default = verdict-mode. */
   wellColorOf?: (well: WellEntry) => WellColorOverride | null;
+  /** When true for a well, render it dimmed (lower opacity) while keeping its
+   *  verdict color — used for legend-class filtering highlight. */
+  dimmedOf?: (well: WellEntry) => boolean;
 }
 
 export function WellPlate({
@@ -53,6 +51,7 @@ export function WellPlate({
   selectedWellId,
   colorblindMode = false,
   wellColorOf,
+  dimmedOf,
 }: WellPlateProps) {
   const { t } = useTranslation();
   const wellMap = new Map(wells.map((w) => [w.well, w]));
@@ -103,6 +102,7 @@ export function WellPlate({
                 : emptyFill;
               const pattern = colorblindMode && well ? cbPatterns[well.verdict] : undefined;
               const isFallback = well?.is_fallback ?? false;
+              const isDimmed = well ? (dimmedOf?.(well) ?? false) : false;
 
               return (
                 <div
@@ -129,6 +129,7 @@ export function WellPlate({
                       borderColor: isFocused ? "hsl(var(--ring))" : fill.border,
                       borderWidth: isFocused ? "2px" : "1px",
                       backgroundImage: pattern,
+                      opacity: isDimmed ? 0.3 : undefined,
                     }}
                   >
                     {/* Well ID label (plate token 10px) */}

@@ -418,6 +418,7 @@
       "colorAssistAriaLabel": "色覚補助パターンを有効化",
       "selectedWellAriaLabel": "選択した well の詳細",
       "verdictLegendAriaLabel": "Verdict カラー凡例",
+      "verdictFilterAriaLabel": "{{verdict}} クラスのみ強調（トグル）",
       "selectedWellLabel": "選択 well",
       "selectedReplicate": "選択 replicate",
       "fallbackTitle": "Fallback replicate",
