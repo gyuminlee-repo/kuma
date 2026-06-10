@@ -168,3 +168,59 @@ def test_non_rf_barcode_falls_through_to_heuristics() -> None:
     assert vr in grouped["G2A"], (
         "Non-decodable barcode must fall through to heuristics (step-1 label match)."
     )
+
+# ---------------------------------------------------------------------------
+# Per-record mutant_id is well-scoped, not native-barcode-collapsed
+# ---------------------------------------------------------------------------
+
+def test_per_record_mutant_id_is_well_scoped_across_native_barcodes() -> None:
+    """Regression (combinatorial-sort variant-id duplication).
+
+    A sorting run puts the SAME well in many native barcodes (sort bins). Each
+    verdict record's ``.mutant_id`` must reflect the well's placed sample
+    (sample_map ground truth) and be identical across native barcodes — never
+    collapsed onto a single mutant per native_barcode (the old verdict-table
+    bug, where every well in a sort bin showed one duplicated variant id).
+    """
+    from kuma_core.mame.export.excel_writer import _custom_barcode_to_seq
+    from kuma_core.mame.export.well_mapper import seq_to_well
+
+    def well_of(custom: str) -> str:
+        seq = _custom_barcode_to_seq(custom)
+        assert seq is not None
+        return _norm_well(seq_to_well(seq))
+
+    nbs = ["sort_barcode06", "sort_barcode20"]
+    placed = {"1_1": "V5F", "1_10": "R477Q"}
+    records = [
+        _make_verdict(custom_barcode=cb, observed_aa=[mut], native_barcode=nb)
+        for nb in nbs
+        for cb, mut in placed.items()
+    ]
+
+    expected = [
+        _make_expected("V5F", 5, "V", "F"),
+        _make_expected("R477Q", 477, "R", "Q"),
+    ]
+    well_to_mutant = {well_of(cb): mut for cb, mut in placed.items()}
+
+    _assign_mutant_ids(records, expected, well_to_mutant=well_to_mutant)
+
+    # 1) Every record carries its own well's placed sample, regardless of bin.
+    for vr in records:
+        cb = vr.translated.barcode.custom_barcode
+        assert vr.mutant_id == placed[cb], (
+            f"well {cb} in {vr.translated.barcode.native_barcode}: "
+            f"mutant_id={vr.mutant_id!r}, expected {placed[cb]!r}"
+        )
+
+    # 2) The user's invariant: within each native barcode, the number of distinct
+    #    variant ids equals the number of distinct wells — no duplication.
+    for nb in nbs:
+        nb_recs = [r for r in records if r.translated.barcode.native_barcode == nb]
+        distinct_wells = {r.translated.barcode.custom_barcode for r in nb_recs}
+        distinct_variants = {r.mutant_id for r in nb_recs}
+        assert len(distinct_variants) == len(distinct_wells) == 2, (
+            f"{nb}: {len(distinct_variants)} variant ids for "
+            f"{len(distinct_wells)} wells (expected equal — no duplication)"
+        )

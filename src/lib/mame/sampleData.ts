@@ -23,14 +23,14 @@ export function sampleVerdicts(): VerdictRecord[] {
     | "observed_nt_changes"
     | "n_no_call_aa"
   >[] = [
-    { native_barcode: "barcode1", custom_barcode: "1_1", verdict: "PASS", verdict_notes: "", aa_sequence: "MSTTS", observed_aa_changes: ["V5F"], expected_mutations: ["V5F"] },
-    { native_barcode: "barcode2", custom_barcode: "1_2", verdict: "PASS", verdict_notes: "", aa_sequence: "MSTTS", observed_aa_changes: ["K53N"], expected_mutations: ["K53N"] },
-    { native_barcode: "barcode3", custom_barcode: "1_3", verdict: "WRONG_AA", verdict_notes: "observed V5S, expected V5F", aa_sequence: "MSTSS", observed_aa_changes: ["V5S"], expected_mutations: ["V5F"] },
-    { native_barcode: "barcode4", custom_barcode: "1_4", verdict: "AMBIGUOUS", verdict_notes: "mixed trace", aa_sequence: "MSTTS", observed_aa_changes: [], expected_mutations: ["T10A"] },
-    { native_barcode: "barcode5", custom_barcode: "2_1", verdict: "FRAMESHIFT", verdict_notes: "insertion at pos 15", aa_sequence: "MSTT", observed_aa_changes: [], expected_mutations: ["L12I"] },
-    { native_barcode: "barcode6", custom_barcode: "2_2", verdict: "PASS", verdict_notes: "", aa_sequence: "MSTTS", observed_aa_changes: ["Q80R"], expected_mutations: ["Q80R"] },
-    { native_barcode: "barcode7", custom_barcode: "2_3", verdict: "MANY", verdict_notes: "6 unexpected changes", aa_sequence: "MSTTS", observed_aa_changes: ["A1G", "B2C", "D3E"], expected_mutations: ["V5F"] },
-    { native_barcode: "barcode8", custom_barcode: "3_1", verdict: "LOWDEPTH", verdict_notes: "coverage 12x", aa_sequence: "", observed_aa_changes: [], expected_mutations: ["R100K"] },
+    { native_barcode: "barcode1", custom_barcode: "1_1", verdict: "PASS", verdict_notes: "", aa_sequence: "MSTTS", observed_aa_changes: ["V5F"], expected_mutations: ["V5F"], mutant_id: "V5F" },
+    { native_barcode: "barcode2", custom_barcode: "1_2", verdict: "PASS", verdict_notes: "", aa_sequence: "MSTTS", observed_aa_changes: ["K53N"], expected_mutations: ["K53N"], mutant_id: "K53N" },
+    { native_barcode: "barcode3", custom_barcode: "1_3", verdict: "WRONG_AA", verdict_notes: "observed V5S, expected V5F", aa_sequence: "MSTSS", observed_aa_changes: ["V5S"], expected_mutations: ["V5F"], mutant_id: "V5F" },
+    { native_barcode: "barcode4", custom_barcode: "1_4", verdict: "AMBIGUOUS", verdict_notes: "mixed trace", aa_sequence: "MSTTS", observed_aa_changes: [], expected_mutations: ["T10A"], mutant_id: "T10A" },
+    { native_barcode: "barcode5", custom_barcode: "2_1", verdict: "FRAMESHIFT", verdict_notes: "insertion at pos 15", aa_sequence: "MSTT", observed_aa_changes: [], expected_mutations: ["L12I"], mutant_id: "L12I" },
+    { native_barcode: "barcode6", custom_barcode: "2_2", verdict: "PASS", verdict_notes: "", aa_sequence: "MSTTS", observed_aa_changes: ["Q80R"], expected_mutations: ["Q80R"], mutant_id: "Q80R" },
+    { native_barcode: "barcode7", custom_barcode: "2_3", verdict: "MANY", verdict_notes: "6 unexpected changes", aa_sequence: "MSTTS", observed_aa_changes: ["A1G", "B2C", "D3E"], expected_mutations: ["V5F"], mutant_id: "V5F" },
+    { native_barcode: "barcode8", custom_barcode: "3_1", verdict: "LOWDEPTH", verdict_notes: "coverage 12x", aa_sequence: "", observed_aa_changes: [], expected_mutations: ["R100K"], mutant_id: "R100K" },
   ];
   return base.map((v, i) => ({
     ...v,

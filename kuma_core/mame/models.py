@@ -104,6 +104,13 @@ class VerdictRecord:
     expected_mutations: list[str]
     verdict: VerdictClass
     verdict_notes: str = ""
+    # Per-well mutant identity (the variant intended for this well, by sample_map
+    # ground truth when available, else the observation/heuristic grouping result).
+    # Distinct from ReplicateResult.mutant_id, which collapses to one mutant per
+    # native_barcode and is therefore wrong for combinatorial-sort runs where a
+    # single native_barcode (sort bin) carries many wells. Defaults to "" for
+    # directly-constructed records and legacy persisted payloads.
+    mutant_id: str = ""
 
 
 @dataclass

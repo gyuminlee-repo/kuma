@@ -118,6 +118,7 @@ def _serialize_verdict(vr: Any) -> dict:
         "observed_aa_changes": list(t.observed_aa_changes),
         "n_no_call_aa": t.n_no_call_aa,
         "expected_mutations": list(vr.expected_mutations),
+        "mutant_id": getattr(vr, "mutant_id", ""),
         "verdict": vr.verdict.value,
         "verdict_notes": vr.verdict_notes,
     }
@@ -183,6 +184,7 @@ def _deserialize_verdict(d: dict) -> Any:
         expected_mutations=list(d.get("expected_mutations", [])),
         verdict=VerdictClass(d["verdict"]),
         verdict_notes=d.get("verdict_notes", ""),
+        mutant_id=d.get("mutant_id", ""),
     )
 
 

@@ -76,6 +76,7 @@ def _assign_mutant_ids(
             if _seq is not None:
                 _placed = well_to_mutant.get(_norm_well(seq_to_well(_seq)))
                 if _placed is not None:
+                    vr.mutant_id = _placed
                     grouped[_placed].append(vr)
                     assigned.add(idx)
                     continue
@@ -110,6 +111,7 @@ def _assign_mutant_ids(
                     f"UNKNOWN_{vr.translated.barcode.native_barcode}_"
                     f"{vr.translated.barcode.custom_barcode}"
                 )
+        vr.mutant_id = matched_id
         grouped[matched_id].append(vr)
         assigned.add(idx)
     return grouped

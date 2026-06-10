@@ -83,6 +83,7 @@ const fakeVerdict: VerdictRecord = {
   observed_nt_changes: ["T265G"],
   observed_aa_changes: ["F89W"],
   expected_mutations: ["F89W"],
+  mutant_id: "F89W",
   verdict: "PASS",
   verdict_notes: "",
 };
