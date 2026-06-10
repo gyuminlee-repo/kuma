@@ -99,7 +99,7 @@ describe("mame analysisSlice.loadSampleData", () => {
     useRoundStore.setState({ rounds: [], active_round_id: null });
   });
 
-  it("resolves 6 bundled resources, creates round + WT-well plate meta, calls activity RPCs, populates input + results", async () => {
+  it("resolves 8 bundled resources, creates round + WT-well plate meta, calls activity RPCs, populates input + results", async () => {
     // activity.upload returns records + plate_meta; hydrated into round.activity
     mockSendRequest.mockImplementation((method: string) => {
       if (method === "activity.upload") {
@@ -120,7 +120,7 @@ describe("mame analysisSlice.loadSampleData", () => {
 
     await store.loadSampleData();
 
-    // 1. resolveResource 7번 (Phase 1 setup prefill 추가로 seeds xlsx 포함)
+    // 1. resolveResource 8번 (Phase 1 setup prefill: seeds xlsx + flank-bearing design FASTA)
     const expectedPaths = [
       "samples/mame/reference.fasta",
       "samples/mame/03_mame_expected_mutations.xlsx",
@@ -129,8 +129,9 @@ describe("mame analysisSlice.loadSampleData", () => {
       "samples/mame/06_mame_plate_layout.xlsx",
       "samples/mame/07_mame_activity_long.csv",
       "samples/mame/02_mame_barcode_seeds.xlsx",
+      "samples/mame/egfp_with_flanks.fa",
     ];
-    expect(resolveResource).toHaveBeenCalledTimes(7);
+    expect(resolveResource).toHaveBeenCalledTimes(8);
     for (const p of expectedPaths) {
       expect(resolveResource).toHaveBeenCalledWith(p);
     }
