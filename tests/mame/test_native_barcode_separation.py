@@ -197,6 +197,34 @@ def test_orchestration_per_nb_inline_order_and_merge(
     assert result["parallel"] is False
     assert result["workers"] == 1
 
+def test_orchestration_per_nb_progress_is_aggregate_and_monotonic(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Per-NB demux reports a smooth aggregate bar (parts-per-1000), monotonic
+    non-decreasing and reaching 1000 — not just a per-barcode-completion tick."""
+    monkeypatch.setattr(cdx, "_demux_one_nb", _stub_demux_one_nb)
+
+    calls: list[tuple[int, int, str]] = []
+    nb_to_fastq: dict[str, list[Path]] = {
+        "barcode06": [Path("a")],
+        "barcode20": [Path("c")],
+    }
+    run_combinatorial_demux_per_nb(
+        nb_to_fastq,
+        Path("ref.fasta"),
+        Path("barcodes.xlsx"),
+        tmp_path / "out",
+        parallel=False,
+        progress_callback=lambda done, total, stage: calls.append((done, total, stage)),
+    )
+
+    assert calls, "progress_callback must be invoked"
+    assert all(total == 1000 for _, total, _ in calls), "aggregate total is parts-per-1000"
+    values = [done for done, _, _ in calls]
+    assert values == sorted(values), "aggregate progress must be monotonic"
+    assert values[-1] == 1000, "final progress must reach 100%"
+    assert any("barcodes" in stage for _, _, stage in calls)
+
 
 def test_orchestration_per_nb_parallel_smoke(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch

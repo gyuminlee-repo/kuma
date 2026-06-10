@@ -42,6 +42,7 @@ from __future__ import annotations
 
 import gzip
 import logging
+import threading
 import multiprocessing
 import tempfile
 from collections import defaultdict
@@ -1223,9 +1224,49 @@ _DEMUX_NB_STAT_KEYS: tuple[str, ...] = (
 )
 
 
+class _DirectProgressSink:
+    """In-process stand-in for a multiprocessing progress queue (serial demux).
+
+    Mirrors the ``put_nowait((nb_name, fraction))`` contract so the worker uses a
+    single code path; forwards straight to the aggregate callback.
+    """
+
+    __slots__ = ("_cb",)
+
+    def __init__(self, cb: Callable[[str, float], None]) -> None:
+        self._cb = cb
+
+    def put_nowait(self, item: tuple[str, float]) -> None:
+        try:
+            self._cb(item[0], item[1])
+        except Exception:
+            pass
+
+
 def _demux_one_nb(payload: dict) -> dict:
     """ProcessPool worker: run one native barcode, return a picklable summary."""
     fastq = [Path(s) for s in payload["fastq_paths"]]
+    q = payload.get("progress_queue")
+    nb_name = payload["nb_name"]
+    inner_cb = None
+    if q is not None:
+        _last = [0.0]
+
+        def inner_cb(done: int, total: int, stage: str) -> None:
+            if total <= 0:
+                return
+            frac = done / total
+            # Fold the two inner sub-phases into one 0..1 fraction for this NB:
+            # read demux fills 0..0.85, per-well consensus 0.85..1.0.
+            nb_f = 0.85 * frac if stage == "demux" else 0.85 + 0.15 * frac
+            nb_f = max(0.0, min(1.0, nb_f))
+            if nb_f - _last[0] >= 0.01 or nb_f >= 1.0:
+                _last[0] = nb_f
+                try:
+                    q.put_nowait((nb_name, nb_f))
+                except Exception:
+                    pass
+
     result = run_combinatorial_demux(
         raw_fastq_paths=fastq, reference_fasta=Path(payload["reference_fasta"]),
         barcodes_xlsx=Path(payload["barcodes_xlsx"]), output_dir=Path(payload["output_dir"]),
@@ -1234,7 +1275,7 @@ def _demux_one_nb(payload: dict) -> dict:
         chimera_split=payload["chimera_split"], well_consensus_at_root=True,
         minimap2_threads=payload["minimap2_threads"], consensus_workers=payload["consensus_workers"],
         per_read_parallel=payload.get("per_read_parallel", False),
-        progress_callback=None)
+        progress_callback=inner_cb)
     s = result.stats
     return {"nb_name": payload["nb_name"], "sort_barcode_name": payload["sort_barcode_name"],
             "output_dir": str(Path(payload["output_dir"]).resolve()),
@@ -1396,34 +1437,93 @@ def run_combinatorial_demux_per_nb(
 
     summaries: list[dict] = list(completed_summaries.values())
 
-    # Progress bar: keep `total` = full NB count (incl. completed) so the bar
-    # math in the caller's callback is unaffected, and tick once per skipped
-    # unit up front so the bar advances past them instead of stalling.
-    done = 0
-    if progress_callback:
-        for pl in payloads:
-            if pl["nb_name"] in completed_summaries:
-                done += 1
-                progress_callback(done, n, pl["sort_barcode_name"])
+    # ── Smooth aggregate progress across barcodes ─────────────────────────
+    # Each pending NB contributes a 0..1 fraction (streamed from the worker via
+    # progress_q); resume-skipped units count as 1.0. The bar reported to the
+    # caller = (completed + sum(in-flight fractions)) / n as parts-per-1000, so
+    # the demux phase advances continuously instead of only at NB boundaries.
+    nb_frac: dict[str, float] = {pl["nb_name"]: 0.0 for pl in pending}
+    n_seed_done = len(completed_summaries)
+    _agg_lock = threading.Lock()
+    _agg_last = [-1.0]
+
+    def _emit_agg(force: bool = False) -> None:
+        if progress_callback is None:
+            return
+        with _agg_lock:
+            agg = (n_seed_done + sum(nb_frac.values())) / n if n else 1.0
+            agg = max(0.0, min(1.0, agg))
+            if not force and abs(agg - _agg_last[0]) < 0.003:
+                return
+            _agg_last[0] = agg
+            done_ct = n_seed_done + sum(1 for f in nb_frac.values() if f >= 1.0)
+        progress_callback(int(round(agg * 1000)), 1000, f"{done_ct}/{n} barcodes")
+
+    def _note_frac(nb_name: str, frac: float) -> None:
+        with _agg_lock:
+            if nb_name in nb_frac and frac > nb_frac[nb_name]:
+                nb_frac[nb_name] = frac
+        _emit_agg()
+
+    _emit_agg(force=True)  # tick past resume-skipped units immediately
 
     if P > 1 and pending:
-        with ProcessPoolExecutor(max_workers=P, mp_context=multiprocessing.get_context("spawn")) as ex:
-            futs = {ex.submit(_demux_one_nb, pl): pl["nb_name"] for pl in pending}
-            for fut in as_completed(futs):
-                summ = fut.result()  # propagate worker exceptions (fail-fast)
-                _commit_marker(summ)  # commit point: unit files all on disk now
-                done += 1
-                if progress_callback:
-                    progress_callback(done, n, summ["sort_barcode_name"])
-                summaries.append(summ)
+        mp_ctx = multiprocessing.get_context("spawn")
+        manager = None
+        progress_q = None
+        try:
+            manager = mp_ctx.Manager()
+            progress_q = manager.Queue()
+        except Exception:  # Manager unavailable — degrade to per-NB completion only
+            manager = None
+            progress_q = None
+        if progress_q is not None:
+            for pl in pending:
+                pl["progress_queue"] = progress_q
+        _drain_stop = threading.Event()
+
+        def _drainer() -> None:
+            while not _drain_stop.is_set():
+                try:
+                    nb_name, frac = progress_q.get(timeout=0.4)
+                except Exception:
+                    continue
+                _note_frac(nb_name, frac)
+
+        _drain_thread = None
+        if progress_q is not None:
+            _drain_thread = threading.Thread(target=_drainer, daemon=True)
+            _drain_thread.start()
+        try:
+            with ProcessPoolExecutor(max_workers=P, mp_context=mp_ctx) as ex:
+                futs = {ex.submit(_demux_one_nb, pl): pl["nb_name"] for pl in pending}
+                for fut in as_completed(futs):
+                    summ = fut.result()  # propagate worker exceptions (fail-fast)
+                    _commit_marker(summ)  # commit point: unit files all on disk now
+                    with _agg_lock:
+                        nb_frac[summ["nb_name"]] = 1.0
+                    _emit_agg(force=True)
+                    summaries.append(summ)
+        finally:
+            _drain_stop.set()
+            if _drain_thread is not None:
+                _drain_thread.join(timeout=1.5)
+            if manager is not None:
+                try:
+                    manager.shutdown()
+                except Exception:
+                    pass
     else:
         for pl in pending:
+            # Serial path: forward inner progress in-process via a queue-shaped
+            # shim so _demux_one_nb uses one code path.
+            pl["progress_queue"] = _DirectProgressSink(_note_frac)
             summ = _demux_one_nb(pl)
             _commit_marker(summ)  # commit point: unit files all on disk now
             summaries.append(summ)
-            done += 1
-            if progress_callback:
-                progress_callback(done, n, pl["sort_barcode_name"])
+            with _agg_lock:
+                nb_frac[pl["nb_name"]] = 1.0
+            _emit_agg(force=True)
 
     # Order summaries by input nb order.
     by_name = {s["nb_name"]: s for s in summaries}

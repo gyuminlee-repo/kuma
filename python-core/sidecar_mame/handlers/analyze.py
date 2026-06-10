@@ -393,7 +393,8 @@ def handle_analyze(params: dict) -> dict:
             message = f"Demuxing reads ({done}/{total})"
         else:
             value = int(50 * done / max(1, total))
-            message = f"Demuxing {stage_str} ({done}/{total})"
+            pct = int(100 * done / max(1, total))
+            message = f"Sorting reads — {stage_str} ({pct}%)"
         emit_params = {
             "value": min(50, value),
             "message": message,
