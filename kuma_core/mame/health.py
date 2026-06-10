@@ -31,6 +31,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from kuma_core.mame.models import VerdictClass
+from kuma_core.mame.detected import compute_recovery
 
 if TYPE_CHECKING:
     from kuma_core.mame.ingest.run_meta import NgsRunMeta
@@ -103,6 +104,12 @@ class RunHealthData:
     cross_talk_candidates: list[CrossTalkCandidate] = field(default_factory=list)
     """Wells flagged as potential cross-talk sources (A9 milestone).
     Empty list when detection is skipped or no anomalies are found."""
+    recovered_mutants: int | None = None
+    total_mutants: int | None = None
+    recovery_rate: float | None = None
+    """Run-level reproduction (재현율) over the designed-mutant set: recovered /
+    total designed mutants. ``None`` when the designed-mutant set was unavailable
+    (callers render n/a, not 0%)."""
 
 
 # ---------------------------------------------------------------------------
@@ -375,6 +382,7 @@ def build_run_health(
     replicates: list,
     run_meta: "NgsRunMeta | None",
     distribution_stats=None,
+    designed_mutant_ids: frozenset[str] | None = None,
 ) -> RunHealthData:
     """Compute run-health metrics from pipeline artefacts.
 
@@ -447,6 +455,9 @@ def build_run_health(
     # ── Cross-talk detection (A9) ─────────────────────────────────────────
     cross_talk_candidates = detect_cross_talk(barcode_distribution)
 
+    # ── Recovery (재현율) overlay — designed-set dependent ─────────────────
+    _recovery = compute_recovery(replicates, designed_mutant_ids)
+
     return RunHealthData(
         per_plate_summary=plates,
         file_size_distribution=dist.file_size_kb,
@@ -457,6 +468,9 @@ def build_run_health(
         throughput_timeline=throughput_timeline,
         barcode_distribution=barcode_distribution,
         cross_talk_candidates=cross_talk_candidates,
+        recovered_mutants=_recovery.recovered_mutants if _recovery else None,
+        total_mutants=_recovery.total_mutants if _recovery else None,
+        recovery_rate=_recovery.recovery_rate if _recovery else None,
     )
 
 
