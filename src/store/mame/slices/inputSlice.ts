@@ -274,6 +274,9 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         reference: get().referencePath,
         expected: get().expectedPath,
         cds_end: get().cdsEnd,
+        // Raw-run guard in the backend validate_inputs needs the barcodes xlsx
+        // to recognise a configured raw MinKNOW run folder; empty in non-raw mode.
+        custom_barcodes_xlsx: get().rawRunParams.customBarcodesPath,
       });
       set({
         validationErrors: result.errors,

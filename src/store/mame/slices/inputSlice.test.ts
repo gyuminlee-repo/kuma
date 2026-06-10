@@ -161,6 +161,36 @@ describe("mame inputSlice", () => {
     expect(store.analyzeMessage).toBe("Analysis complete");
   });
 
+  it("forwards custom_barcodes_xlsx to validate_inputs so the raw-run guard sees it", async () => {
+    const store = makeStore({
+      inputDir: "D:/runs/20260212_2227_X4_FBF10847_e7145f8e",
+      expectedPath: "D:/project/KURO_expected.xlsx",
+      referencePath: "D:/project/ref.fasta",
+      outputPath: "D:/project",
+      inputMode: "raw_run",
+      rawRunParams: {
+        ...makeStore().rawRunParams,
+        customBarcodesPath: "D:/project/barcodes sequence.xlsx",
+      },
+      cdsEnd: 900,
+    });
+
+    mockSendRequest.mockResolvedValueOnce({ valid: true, errors: [] });
+
+    await store.validateInputs();
+
+    expect(mockSendRequest).toHaveBeenCalledWith(
+      "validate_inputs",
+      expect.objectContaining({
+        input_dir: "D:/runs/20260212_2227_X4_FBF10847_e7145f8e",
+        reference: "D:/project/ref.fasta",
+        expected: "D:/project/KURO_expected.xlsx",
+        custom_barcodes_xlsx: "D:/project/barcodes sequence.xlsx",
+      }),
+    );
+    expect(store.validationErrors).toEqual([]);
+  });
+
   it("does not call analyze when raw mode lacks a custom barcode file", async () => {
     const store = makeStore({
       inputDir: "D:/runs/20260212_2227_X4_FBF10847_e7145f8e",
