@@ -21,7 +21,7 @@ from kuma_core.mame.models import (
     VerdictClass,
     VerdictRecord,
 )
-from kuma_core.mame.select import pick_best_replicate
+from kuma_core.mame.select import pick_best_replicate, prefer_within_plate
 from kuma_core.mame.translate import translate_and_diff
 
 
@@ -241,7 +241,11 @@ def run_analyze(
         plate_verdicts: dict[str, VerdictRecord] = {}
         for vr in vr_list:
             nb = vr.translated.barcode.native_barcode
-            if nb not in plate_verdicts:
+            # When one mutant occupies several wells of the same plate, keep the
+            # best-verdict well (PASS over AMBIGUOUS, etc.) rather than whichever
+            # record happens to come first; ties break on read volume.
+            incumbent = plate_verdicts.get(nb)
+            if incumbent is None or prefer_within_plate(vr, incumbent):
                 plate_verdicts[nb] = vr
         result = pick_best_replicate(mutant_id, plate_verdicts)
         replicate_results.append(result)

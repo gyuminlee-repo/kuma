@@ -55,6 +55,35 @@ def _volume_key(vr: VerdictRecord) -> float:
     return vr.translated.barcode.file_size_kb
 
 
+def _pick_rank(verdict: VerdictClass) -> int:
+    """Within-plate representative rank. Lower = preferred.
+
+    Mirrors PRIORITY_ORDER (PASS > AMBIGUOUS > LOWDEPTH); every other class
+    shares the lowest rank and is ordered by read volume only.
+    """
+    try:
+        return PRIORITY_ORDER.index(verdict)
+    except ValueError:
+        return len(PRIORITY_ORDER)
+
+
+def prefer_within_plate(candidate: VerdictRecord, incumbent: VerdictRecord) -> bool:
+    """True if ``candidate`` should replace ``incumbent`` as the per-plate
+    (native-barcode) representative when one mutant occupies several wells of the
+    same plate.
+
+    Verdict priority decides first: a PASS well beats an AMBIGUOUS well even when
+    the AMBIGUOUS well carries more reads.  Equal-priority ties break on read
+    volume descending so the higher-confidence well wins deterministically; the
+    result is independent of the order wells are encountered.
+    """
+    cand_rank = _pick_rank(candidate.verdict)
+    inc_rank = _pick_rank(incumbent.verdict)
+    if cand_rank != inc_rank:
+        return cand_rank < inc_rank
+    return _volume_key(candidate) > _volume_key(incumbent)
+
+
 def _highest_volume_plate(verdicts: dict[str, VerdictRecord]) -> str | None:
     """Return the plate key with the highest volume among fallback-eligible verdicts.
 
