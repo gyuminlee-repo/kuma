@@ -84,18 +84,20 @@ for (const file of walk(SRC)) {
   });
 }
 
-// ── English-in-UI check (scoped: MAME form panels) ──────────────────────────
+// ── English-in-UI check (scoped: MAME components) ────────────────────────────
 // i18n-lint historically caught only hardcoded *Korean*; user-facing English in
-// MAME form panels slipped through. Flag natural-language English in high-signal
-// attributes (helperText/stateLabel/aria-label/title) so new untranslated copy
-// trips CI. Scope is deliberately narrow — panels only, and technical API labels
+// MAME UI slipped through. Flag natural-language English in high-signal
+// attributes (label/helperText/stateLabel/aria-label/title) so new untranslated
+// copy trips CI. Scope is all MAME components, and technical API labels
 // (snake_case identifiers, unit-bearing labels like "(nt)"/"(°C)") are exempt —
-// to avoid false positives on intentional code identifiers.
-const MAME_PANELS = join(SRC, "components", "mame", "panels");
-const ENGLISH_ATTR = /\b(helperText|stateLabel|aria-label|title)\s*=\s*"([^"]+)"/g;
+// to avoid false positives on intentional code identifiers. The lookbehind
+// keeps "aria-label" from also matching its "label" suffix.
+const MAME_DIR = join(SRC, "components", "mame");
+const ENGLISH_ATTR =
+  /(?<![\w-])(label|helperText|stateLabel|aria-label|title)\s*=\s*"([^"]+)"/g;
 const TECHNICAL = /_|\((?:nt|bp|°C)\)/;
 const englishOffenders = [];
-for (const file of walk(MAME_PANELS)) {
+for (const file of walk(MAME_DIR)) {
   const rel = relative(ROOT, file).replace(/\\/g, "/");
   const lines = readFileSync(file, "utf8").split("\n");
   lines.forEach((ln, i) => {
@@ -115,7 +117,7 @@ for (const file of walk(MAME_PANELS)) {
 
 if (offenders.length === 0 && englishOffenders.length === 0) {
   console.log(
-    "i18n-lint: ok (0 hardcoded Korean lines, 0 hardcoded English in MAME panels)",
+    "i18n-lint: ok (0 hardcoded Korean lines, 0 hardcoded English in MAME components)",
   );
   process.exit(0);
 }
@@ -126,7 +128,7 @@ if (offenders.length > 0) {
 }
 if (englishOffenders.length > 0) {
   console.error(
-    `i18n-lint: ${englishOffenders.length} hardcoded English string(s) in MAME panels:`,
+    `i18n-lint: ${englishOffenders.length} hardcoded English string(s) in MAME components:`,
   );
   for (const o of englishOffenders) console.error("  " + o);
 }

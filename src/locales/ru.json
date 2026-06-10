@@ -437,7 +437,37 @@
       "detailMutant": "Mutant",
       "detailNotes": "Заметки"
     },
+    "drawer": {
+      "stat": {
+        "folder": "Папка",
+        "status": "Статус",
+        "file": "Файл",
+        "queued": "В очереди",
+        "total": "Всего",
+        "pass": "PASS",
+        "selected": "Выбрано",
+        "totalWells": "Всего wells",
+        "wells": "Wells",
+        "loaded": "Загружено",
+        "passRows": "Строки PASS",
+        "evolveproXlsx": "EVOLVEpro xlsx"
+      },
+      "value": {
+        "ready": "Готово",
+        "notSet": "Не задано",
+        "loaded": "Загружено",
+        "running": "Выполняется",
+        "idle": "Простой",
+        "yes": "Да",
+        "no": "Нет"
+      }
+    },
     "verdictTable": {
+      "tooltip": {
+        "consensusN": "Доля N в консенсусе",
+        "minorAllele": "Сигнал минорного аллеля внутри well",
+        "alignmentDrops": "Счётчики отбраковки выравнивания"
+      },
       "emptyTitle": "Результатов пока нет",
       "emptyDesc": "Запустите анализ для заполнения таблицы verdict.",
       "noMatchTitle": "Нет совпадений",
@@ -1849,6 +1879,7 @@
     "analysisProgressAria": "Прогресс анализа {{percent}}%"
   },
   "wellPlate": {
+    "pick": "Выбрать",
     "gridAriaLabel": "96-well plate",
     "columnAriaLabel": "Колонка {{col}}",
     "rowAriaLabel": "Строка {{row}}",

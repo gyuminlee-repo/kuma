@@ -148,8 +148,8 @@ export function WellPlate({
                           {well?.selected && (
                             <span
                               className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-card"
-                              aria-label="Pick"
-                              title="Pick"
+                              aria-label={t("wellPlate.pick")}
+                              title={t("wellPlate.pick")}
                             />
                           )}
                           {isFallback && (

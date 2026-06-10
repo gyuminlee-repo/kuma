@@ -437,7 +437,37 @@
       "detailMutant": "Mutante",
       "detailNotes": "Notas"
     },
+    "drawer": {
+      "stat": {
+        "folder": "Carpeta",
+        "status": "Estado",
+        "file": "Archivo",
+        "queued": "En cola",
+        "total": "Total",
+        "pass": "PASS",
+        "selected": "Seleccionado",
+        "totalWells": "Wells totales",
+        "wells": "Wells",
+        "loaded": "Cargado",
+        "passRows": "Filas PASS",
+        "evolveproXlsx": "EVOLVEpro xlsx"
+      },
+      "value": {
+        "ready": "Listo",
+        "notSet": "Sin definir",
+        "loaded": "Cargado",
+        "running": "En ejecución",
+        "idle": "Inactivo",
+        "yes": "Sí",
+        "no": "No"
+      }
+    },
     "verdictTable": {
+      "tooltip": {
+        "consensusN": "Fracción de N de consenso",
+        "minorAllele": "Señal de alelo minoritario dentro del well",
+        "alignmentDrops": "Contadores de descarte de alineamiento"
+      },
       "emptyTitle": "Aún no hay resultados",
       "emptyDesc": "Ejecutar el análisis para poblar la tabla de verdict.",
       "noMatchTitle": "Sin coincidencias",
@@ -1849,6 +1879,7 @@
     "analysisProgressAria": "Progreso del análisis {{percent}}%"
   },
   "wellPlate": {
+    "pick": "Seleccionar",
     "gridAriaLabel": "Placa de 96 wells",
     "columnAriaLabel": "Columna {{col}}",
     "rowAriaLabel": "Fila {{row}}",

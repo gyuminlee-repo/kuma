@@ -455,7 +455,37 @@
       "detailMutant": "변이체",
       "detailNotes": "비고"
     },
+    "drawer": {
+      "stat": {
+        "folder": "폴더",
+        "status": "상태",
+        "file": "파일",
+        "queued": "대기열",
+        "total": "전체",
+        "pass": "PASS",
+        "selected": "선택됨",
+        "totalWells": "전체 well",
+        "wells": "Well",
+        "loaded": "로드됨",
+        "passRows": "PASS 행",
+        "evolveproXlsx": "EVOLVEpro xlsx"
+      },
+      "value": {
+        "ready": "준비됨",
+        "notSet": "미설정",
+        "loaded": "로드됨",
+        "running": "실행 중",
+        "idle": "대기",
+        "yes": "예",
+        "no": "아니오"
+      }
+    },
     "verdictTable": {
+      "tooltip": {
+        "consensusN": "컨센서스 N 비율",
+        "minorAllele": "Well 내 마이너 대립유전자 신호",
+        "alignmentDrops": "정렬 드롭 카운터"
+      },
       "emptyTitle": "결과 없음",
       "emptyDesc": "분석을 실행하여 verdict 표를 채우세요.",
       "noMatchTitle": "일치 항목 없음",
@@ -1880,6 +1910,7 @@
     "analysisProgressAria": "분석 진행률 {{percent}}%"
   },
   "wellPlate": {
+    "pick": "선택",
     "gridAriaLabel": "96-Well 플레이트",
     "columnAriaLabel": "{{col}}열",
     "rowAriaLabel": "{{row}}행",
