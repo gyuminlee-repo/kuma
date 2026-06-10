@@ -32,6 +32,13 @@ export interface VerdictRecord {
   observed_aa_changes: string[];
   n_no_call_aa: number;
   expected_mutations: string[];
+  /**
+   * Per-well variant identity assigned by the pipeline (sample_map ground truth
+   * in combinatorial-sort runs, else the observation/heuristic grouping result).
+   * Authoritative per-well source for the verdict table's mutant-id column.
+   * Empty string for legacy payloads persisted before this field existed.
+   */
+  mutant_id: string;
   verdict: VerdictClass;
   verdict_notes: string;
 }

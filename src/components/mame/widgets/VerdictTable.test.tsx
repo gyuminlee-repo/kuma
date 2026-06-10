@@ -34,6 +34,7 @@ const mockVerdict: VerdictRecord = {
   observed_aa_changes: ["F89W"],
   n_no_call_aa: 0,
   expected_mutations: ["F89W"],
+  mutant_id: "F89W",
   verdict: "PASS",
   verdict_notes: "",
 };
@@ -184,6 +185,44 @@ describe("VerdictTable", () => {
     // The old hardcoded NB02/NB03 tabs must NOT appear when those barcodes are absent.
     expect(screen.queryByRole("tab", { name: "NB02" })).toBeNull();
     expect(screen.queryByRole("tab", { name: "NB03" })).toBeNull();
+  });
+
+  it("shows each well's own variant id within one native barcode (no NB-collapse)", () => {
+    // Combinatorial-sort reality: one sort bin (native_barcode) carries many
+    // distinct wells. The variant id must come from each record's own mutant_id,
+    // NOT from a replicate map keyed by native_barcode (which collapses every
+    // well in the bin onto a single duplicated variant).
+    const wellV5F = { ...mockVerdict, native_barcode: "sort_barcode06", custom_barcode: "1_1", mutant_id: "V5F" };
+    const wellR477Q = { ...mockVerdict, native_barcode: "sort_barcode06", custom_barcode: "1_10", mutant_id: "R477Q" };
+    vi.mocked(useMameAppStore).mockImplementation((sel: (s: MameAppStore) => unknown) =>
+      sel(
+        makeMameStore({
+          verdicts: [wellV5F, wellR477Q],
+          // A replicate that, under the old NB-keyed lookup, would stamp BOTH
+          // wells with "H448F" — the duplication bug we are guarding against.
+          replicates: [
+            {
+              mutant_id: "H448F",
+              selected_plate: "sort_barcode06",
+              selection_reason: "fallback",
+              failed: false,
+              plate_keys: ["sort_barcode06"],
+              plate_verdicts: {},
+              is_fallback: false,
+              fallback_reason: null,
+            },
+          ],
+        }).getState(),
+      ),
+    );
+    vi.mocked(useRoundStore).mockImplementation((sel: (s: RoundSlice) => unknown) =>
+      sel(makeRoundStore([], null).getState()),
+    );
+    render(<VerdictTable />);
+    expect(screen.getByText("V5F")).toBeTruthy();
+    expect(screen.getByText("R477Q")).toBeTruthy();
+    // The replicate's NB-attributed mutant must NOT leak into the rows.
+    expect(screen.queryByText("H448F")).toBeNull();
   });
 
 });

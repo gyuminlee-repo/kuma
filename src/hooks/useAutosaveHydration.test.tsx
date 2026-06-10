@@ -54,6 +54,7 @@ const VERDICT: VerdictRecord = {
   n_no_call_aa: 0,
   observed_aa_changes: ["V5F"],
   expected_mutations: ["V5F"],
+  mutant_id: "V5F",
   verdict: "PASS",
   verdict_notes: "",
 };

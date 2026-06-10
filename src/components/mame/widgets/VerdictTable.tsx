@@ -207,11 +207,18 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
   );
 
   const rows = useMemo<VerdictRow[]>(() => {
-    const mutantMap = new Map<string, string>();
+    // Replicate selection drives only the fallback accent (keyed by mutant_id),
+    // NOT the per-row variant id. Keying mutant_id by native_barcode collapses
+    // every well in a sort bin onto one variant — wrong for combinatorial-sort
+    // runs where a single native_barcode carries many wells. The per-well
+    // mutant_id comes from the verdict record itself (pipeline-assigned).
     const fallbackMap = new Map<string, { is_fallback: boolean; fallback_reason: string | null }>();
+    // Legacy fallback: old persisted payloads lack record.mutant_id, so reconstruct
+    // the (buggy-but-better-than-nothing) native_barcode → mutant_id map for them.
+    const legacyMutantByPlate = new Map<string, string>();
     for (const replicate of replicates) {
       if (replicate.selected_plate) {
-        mutantMap.set(replicate.selected_plate, replicate.mutant_id);
+        legacyMutantByPlate.set(replicate.selected_plate, replicate.mutant_id);
         fallbackMap.set(replicate.mutant_id, {
           is_fallback: replicate.is_fallback,
           fallback_reason: replicate.fallback_reason,
@@ -221,7 +228,8 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
     return verdicts
       .filter((record) => activeFilter === "ALL" || record.native_barcode === activeFilter)
       .map((record) => {
-        const mid = mutantMap.get(record.native_barcode) ?? "—";
+        const mid =
+          record.mutant_id || legacyMutantByPlate.get(record.native_barcode) || "—";
         const fb = fallbackMap.get(mid);
         // Join activity data by well_id == custom_barcode
         const merged = mergedByWell.get(record.custom_barcode);

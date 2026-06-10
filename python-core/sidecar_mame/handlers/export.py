@@ -114,7 +114,12 @@ def handle_get_plate_data(_params: dict) -> dict:
         fb_info = fallback_by_native.get(b.native_barcode, (False, None))
         is_fallback = fb_info[0] if is_selected else False
         fallback_reason = fb_info[1] if is_selected else None
-        mutant_id = next(iter(vr.expected_mutations), "") if vr.expected_mutations else ""
+        # Per-well variant identity: authoritative pipeline-assigned mutant_id
+        # (sample_map ground truth in combinatorial-sort runs), falling back to
+        # the scoped expected label for legacy payloads that predate the field.
+        mutant_id = getattr(vr, "mutant_id", "") or (
+            next(iter(vr.expected_mutations), "") if vr.expected_mutations else ""
+        )
         wells.append(
             {
                 "well": well,
