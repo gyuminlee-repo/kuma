@@ -108,6 +108,29 @@ function nbTabLabel(nb: string): string {
   return m ? `NB${m[1]}` : nb;
 }
 
+// Fixed per-column widths (px) keyed by column id. With `table-fixed`, these make
+// the layout identical across the ALL / NB tabs — otherwise table-auto resizes
+// columns to whatever subset of data each tab happens to show.
+const COLUMN_WIDTHS: Record<string, number> = {
+  custom_barcode: 96,
+  mutant_id: 120,
+  verdict: 132,
+  observed_aa_changes: 220,
+  reads: 108,
+  quality: 236,
+  verdict_notes: 240,
+  activity_log2fc: 84,
+  fold_change: 96,
+  raw_mean_sd: 128,
+  replicate_n: 96,
+  ngs_success: 72,
+  evolvepro_export: 96,
+};
+
+function colWidth(id: string): number {
+  return COLUMN_WIDTHS[id] ?? 120;
+}
+
 function getVerdictRowTone(verdict: VerdictRow["verdict"]): string {
   switch (verdict) {
     case "PASS":
@@ -481,6 +504,9 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
   });
 
   const tableRows = table.getRowModel().rows;
+  const tableWidth = table
+    .getVisibleLeafColumns()
+    .reduce((sum, col) => sum + colWidth(col.id), 0);
   const isVirtual = tableRows.length >= VIRTUAL_THRESHOLD;
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -567,7 +593,7 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
         </p>
       )}
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-auto">
-        <Table aria-rowcount={tableRows.length}>
+        <Table aria-rowcount={tableRows.length} className="table-fixed min-w-full" style={{ width: tableWidth }}>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow
@@ -577,6 +603,7 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
                 {headerGroup.headers.map((header) => (
                   <TableHead
                     key={header.id}
+                    style={{ width: colWidth(header.column.id) }}
                     onClick={header.column.getToggleSortingHandler()}
                     className={cn(
                       "sticky top-0 z-10 h-control bg-background px-3 text-caption font-semibold text-muted-foreground",

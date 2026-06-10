@@ -422,6 +422,9 @@ async function restoreMameResult(projectPath: string): Promise<boolean> {
   store.setSummary(result.summary);
   store.setDistributionStats(result.distribution_stats ?? null);
   await store.loadPlateData();
+  // A8: the run-health panel ("Plate별 verdict 분포") reads get_run_health from the
+  // restored sidecar state; without this it stays null and shows "설정 미완료".
+  await store.loadRunHealth();
   store.setMameSubStep("analyze.review");
   return true;
 }
