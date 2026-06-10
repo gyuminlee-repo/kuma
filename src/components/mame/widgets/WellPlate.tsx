@@ -45,6 +45,9 @@ interface WellPlateProps {
   colorblindMode?: boolean;
   /** Optional callback to override per-well fill colors. Default = verdict-mode. */
   wellColorOf?: (well: WellEntry) => WellColorOverride | null;
+  /** When true for a well, render it dimmed (lower opacity) while keeping its
+   *  verdict color — used for legend-class filtering highlight. */
+  dimmedOf?: (well: WellEntry) => boolean;
 }
 
 export function WellPlate({
@@ -53,6 +56,7 @@ export function WellPlate({
   selectedWellId,
   colorblindMode = false,
   wellColorOf,
+  dimmedOf,
 }: WellPlateProps) {
   const { t } = useTranslation();
   const wellMap = new Map(wells.map((w) => [w.well, w]));
@@ -103,6 +107,7 @@ export function WellPlate({
                 : emptyFill;
               const pattern = colorblindMode && well ? cbPatterns[well.verdict] : undefined;
               const isFallback = well?.is_fallback ?? false;
+              const isDimmed = well ? (dimmedOf?.(well) ?? false) : false;
 
               return (
                 <div
@@ -129,6 +134,7 @@ export function WellPlate({
                       borderColor: isFocused ? "hsl(var(--ring))" : fill.border,
                       borderWidth: isFocused ? "2px" : "1px",
                       backgroundImage: pattern,
+                      opacity: isDimmed ? 0.3 : undefined,
                     }}
                   >
                     {/* Well ID label (plate token 10px) */}
