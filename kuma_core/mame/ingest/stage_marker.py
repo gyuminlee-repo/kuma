@@ -27,13 +27,24 @@ Schema (version 1)::
       "per_well_counts": {"<well>": <int>, ...},
       "wells": ["<well>", ...],       # sorted expected inventory (well stems)
       "n_input_reads": <int|null>,    # optional: this unit's demux input reads
-      "n_unassigned": <int|null>      # optional: this unit's unassigned reads
+      "n_unassigned": <int|null>,     # optional: this unit's unassigned reads
+      "stats": {"<key>": <int>, ...}  # optional: extra per-unit summary counters
     }
 
 The ``n_input_reads`` / ``n_unassigned`` keys are optional.  They let a
 fully-resumed run reconstruct the aggregate input/unassigned totals from the
 markers of already-complete units; older markers that predate these keys simply
 omit them (treated as "not seedable" by the consumer, never a crash).
+
+The ``stats`` key is optional and holds an extra dict of integer summary
+counters that a producer cannot express through ``per_well_counts`` /
+``n_input_reads`` / ``n_unassigned`` alone (e.g. the combinatorial-demux
+per-native-barcode DemuxStats: total_reads, passed_mapq, passed_coverage,
+assigned_reads, ambiguous_dropped, chimera_splits, wells_with_reads,
+wells_with_min_reads).  Recorded so a fully-resumed run can reseed the merged
+aggregate of those counters from already-complete units.  Producers that do not
+need it (``demux_and_filter``) simply omit it; older markers that predate the
+key omit it too (treated as "not seedable", never a crash).
 """
 
 from __future__ import annotations
@@ -68,6 +79,7 @@ def write_stage_marker(
     consensus: bool,
     n_input_reads: int | None = None,
     n_unassigned: int | None = None,
+    stats: dict[str, int] | None = None,
 ) -> Path:
     """Atomically write the completion marker into *unit_dir*.
 
@@ -83,6 +95,12 @@ def write_stage_marker(
             of reporting 0.  Omitted from the payload when ``None``.
         n_unassigned: Optional unassigned-read count for this unit.  Recorded
             for the same reseed reason; omitted when ``None``.
+        stats: Optional ``{key: int}`` dict of extra per-unit summary counters
+            (e.g. the combinatorial per-NB DemuxStats) that the other recorded
+            fields cannot express.  Recorded so a fully-resumed run can reseed
+            the aggregate of those counters.  Omitted from the payload when
+            ``None`` or empty; older markers that omit it are treated as "not
+            seedable" by the consumer (never a crash).
 
     Returns:
         The resolved path of the written marker.
@@ -100,6 +118,8 @@ def write_stage_marker(
         payload["n_input_reads"] = int(n_input_reads)
     if n_unassigned is not None:
         payload["n_unassigned"] = int(n_unassigned)
+    if stats:
+        payload["stats"] = {str(k): int(v) for k, v in stats.items()}
     content = json.dumps(payload, ensure_ascii=False, indent=2)
     return atomic_write_text(marker_path(unit_dir), content)
 

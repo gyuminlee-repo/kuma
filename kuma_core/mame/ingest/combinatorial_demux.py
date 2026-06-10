@@ -64,6 +64,11 @@ from kuma_core.mame.ingest.consensus_metadata import (
     ConsensusMetadata,
     format_consensus_fasta_record,
 )
+from kuma_core.mame.ingest.stage_marker import (
+    is_unit_complete,
+    read_stage_marker,
+    write_stage_marker,
+)
 from kuma_core.mame.ingest.well_consensus import _read_reference_seq
 from kuma_core.shared.atomic_write import atomic_write_text
 
@@ -1208,6 +1213,15 @@ def _compute_well_consensus(
 # Per-native-barcode parallel orchestration
 # ---------------------------------------------------------------------------
 
+# The 8 DemuxStats counters carried in each per-NB summary and summed into
+# merged_stats. Single source of truth so the worker summary, the resume-seed
+# from a marker, and the merge step all agree on the key set.
+_DEMUX_NB_STAT_KEYS: tuple[str, ...] = (
+    "total_reads", "passed_mapq", "passed_coverage", "assigned_reads",
+    "ambiguous_dropped", "chimera_splits", "wells_with_reads",
+    "wells_with_min_reads",
+)
+
 
 def _demux_one_nb(payload: dict) -> dict:
     """ProcessPool worker: run one native barcode, return a picklable summary."""
@@ -1222,12 +1236,37 @@ def _demux_one_nb(payload: dict) -> dict:
         per_read_parallel=payload.get("per_read_parallel", False),
         progress_callback=None)
     s = result.stats
-    _keys = ("total_reads", "passed_mapq", "passed_coverage", "assigned_reads",
-             "ambiguous_dropped", "chimera_splits", "wells_with_reads", "wells_with_min_reads")
     return {"nb_name": payload["nb_name"], "sort_barcode_name": payload["sort_barcode_name"],
             "output_dir": str(Path(payload["output_dir"]).resolve()),
-            "stats": {k: getattr(s, k) for k in _keys},
+            "stats": {k: getattr(s, k) for k in _DEMUX_NB_STAT_KEYS},
             "per_well_read_counts": {w: len(r) for w, r in result.per_well_reads.items()}}
+
+
+def _summary_from_marker(sort_barcode_name: str, nb_out: Path, marker: dict) -> dict:
+    """Reconstruct a per-NB summary dict from a completed unit's stage marker.
+
+    Mirrors the picklable dict returned by :func:`_demux_one_nb` so a skipped
+    (already-complete) native barcode contributes identically to ``per_nb`` and
+    ``merged_stats`` as a freshly-processed one.  ``per_well_read_counts`` is the
+    marker's recorded ``per_well_counts``; the 8 DemuxStats counters come from
+    the marker's optional ``stats`` block (absent in older/foreign markers, in
+    which case those counters seed 0, never a crash).
+
+    ``nb_name`` is left as the sort_barcode name here; the caller overwrites it
+    with the real input nb_name before ordering so resume ordering matches.
+    """
+    marker_stats = marker.get("stats") or {}
+    stats = {k: int(marker_stats.get(k, 0)) for k in _DEMUX_NB_STAT_KEYS}
+    per_well = {
+        str(w): int(c) for w, c in (marker.get("per_well_counts") or {}).items()
+    }
+    return {
+        "nb_name": sort_barcode_name,
+        "sort_barcode_name": sort_barcode_name,
+        "output_dir": str(nb_out.resolve()),
+        "stats": stats,
+        "per_well_read_counts": per_well,
+    }
 
 
 def run_combinatorial_demux_per_nb(
@@ -1308,33 +1347,92 @@ def run_combinatorial_demux_per_nb(
             f"Native barcodes map to colliding sort_barcode output dirs: {_sort_names}"
         )
 
-    summaries: list[dict] = []
-    if P > 1:
+    # ── Resume: which per-NB units are already complete? ─────────────────
+    # A unit (one output_dir/sort_barcode{NN}/ dir) is "done" ONLY when it
+    # carries a valid completion marker whose recorded inventory matches the
+    # consensus FASTA on disk.  Directory existence alone never counts.  Each
+    # completed unit's summary is reconstructed from its marker (mirroring the
+    # _demux_one_nb dict) so it is NOT re-demuxed/aligned, yet still seeds
+    # merged_stats and per_nb identically to a freshly-processed one.
+    completed_summaries: dict[str, dict] = {}  # nb_name -> summary dict
+    for pl in payloads:
+        nb_out = output_dir / pl["sort_barcode_name"]
+        if is_unit_complete(nb_out):
+            marker = read_stage_marker(nb_out)
+            if marker is not None:
+                summ = _summary_from_marker(pl["sort_barcode_name"], nb_out, marker)
+                summ["nb_name"] = pl["nb_name"]  # real input nb_name for ordering
+                completed_summaries[pl["nb_name"]] = summ
+
+    # Only dispatch payloads for units that are NOT already complete.
+    pending = [pl for pl in payloads if pl["nb_name"] not in completed_summaries]
+
+    def _commit_marker(summ: dict) -> None:
+        """Write the unit's completion marker LAST (atomic commit point).
+
+        Called only after the unit's consensus FASTA are all on disk (worker
+        returned).  Records per_well_counts (= read counts), the 8 DemuxStats
+        counters under ``stats`` so a full resume can reseed merged_stats, and
+        consensus=True since the per-NB path always runs consensus.  A failure
+        to write the marker must not lose the completed work, but here a write
+        failure is unexpected (atomic temp+replace) and should surface, so it is
+        not swallowed.
+        """
+        nb_out = output_dir / summ["sort_barcode_name"]
+        # The worker (run_combinatorial_demux) already created nb_out; mkdir here
+        # is an idempotent guard so the marker write never fails on a missing
+        # parent.  An empty/interrupted unit whose consensus FASTA never landed
+        # stays "not complete" (validate_marker inventory mismatch), so this does
+        # not falsely mark an empty dir done.
+        nb_out.mkdir(parents=True, exist_ok=True)
+        write_stage_marker(
+            nb_out,
+            per_well_counts={
+                str(w): int(c) for w, c in summ["per_well_read_counts"].items()
+            },
+            consensus=True,
+            stats={k: int(summ["stats"][k]) for k in _DEMUX_NB_STAT_KEYS},
+        )
+
+    summaries: list[dict] = list(completed_summaries.values())
+
+    # Progress bar: keep `total` = full NB count (incl. completed) so the bar
+    # math in the caller's callback is unaffected, and tick once per skipped
+    # unit up front so the bar advances past them instead of stalling.
+    done = 0
+    if progress_callback:
+        for pl in payloads:
+            if pl["nb_name"] in completed_summaries:
+                done += 1
+                progress_callback(done, n, pl["sort_barcode_name"])
+
+    if P > 1 and pending:
         with ProcessPoolExecutor(max_workers=P, mp_context=multiprocessing.get_context("spawn")) as ex:
-            futs = {ex.submit(_demux_one_nb, pl): pl["nb_name"] for pl in payloads}
-            done = 0
+            futs = {ex.submit(_demux_one_nb, pl): pl["nb_name"] for pl in pending}
             for fut in as_completed(futs):
                 summ = fut.result()  # propagate worker exceptions (fail-fast)
+                _commit_marker(summ)  # commit point: unit files all on disk now
                 done += 1
                 if progress_callback:
                     progress_callback(done, n, summ["sort_barcode_name"])
                 summaries.append(summ)
     else:
-        for i, pl in enumerate(payloads):
-            summaries.append(_demux_one_nb(pl))
+        for pl in pending:
+            summ = _demux_one_nb(pl)
+            _commit_marker(summ)  # commit point: unit files all on disk now
+            summaries.append(summ)
+            done += 1
             if progress_callback:
-                progress_callback(i + 1, n, pl["sort_barcode_name"])
+                progress_callback(done, n, pl["sort_barcode_name"])
 
     # Order summaries by input nb order.
     by_name = {s["nb_name"]: s for s in summaries}
     ordered_summaries = [by_name[pl["nb_name"]] for pl in payloads]
 
-    # Merge stats: sum each of the 8 stat keys across summaries.
-    _stat_keys = ("total_reads", "passed_mapq", "passed_coverage", "assigned_reads",
-                  "ambiguous_dropped", "chimera_splits", "wells_with_reads",
-                  "wells_with_min_reads")
+    # Merge stats: sum each of the 8 stat keys across summaries (processed +
+    # resume-seeded units alike).
     merged = {
-        k: sum(s["stats"][k] for s in ordered_summaries) for k in _stat_keys
+        k: sum(s["stats"][k] for s in ordered_summaries) for k in _DEMUX_NB_STAT_KEYS
     }
 
     return {"merged_stats": merged, "per_nb": ordered_summaries,
