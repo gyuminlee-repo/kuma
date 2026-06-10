@@ -67,6 +67,7 @@ class SidecarState:
     last_replicates: list | None = None      # list[ReplicateResult]
     last_output_path: str | None = None
     last_run_meta: object | None = None      # NgsRunMeta | None — discovered at analyze time
+    last_designed_mutant_ids: frozenset[str] | None = None  # designed-mutant set for recovery (재현율); None = unavailable
 
 
 _state = SidecarState()
@@ -83,12 +84,14 @@ def set_last_analyze(
     replicates: list,
     output_path: str,
     run_meta: object | None = None,
+    designed_mutant_ids: frozenset[str] | None = None,
 ) -> None:
     with _state_lock:
         _state.last_verdicts = verdicts
         _state.last_replicates = replicates
         _state.last_output_path = output_path
         _state.last_run_meta = run_meta
+        _state.last_designed_mutant_ids = designed_mutant_ids
 
 
 # ---------------------------------------------------------------------------

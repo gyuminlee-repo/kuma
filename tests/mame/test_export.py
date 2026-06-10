@@ -20,6 +20,8 @@ from kuma_core.mame.export.excel_writer import (
     VERDICT_FILL,
 )
 from kuma_core.mame.export.janus_mapping import _JANUS_HEADER
+from kuma_core.mame.report.builder import build_run_report_data
+from kuma_core.mame.report.html_renderer import render_html
 from kuma_core.mame.models import (
     BarcodeRecord,
     ReplicateResult,
@@ -312,3 +314,95 @@ def test_janus_excludes_failed(tmp_path: Path) -> None:
     names = [r["name"] for r in rows]
     assert "BAD" not in names, "failed replicate must be excluded"
     assert "V5F" in names
+
+# ---------------------------------------------------------------------------
+# Detected / recovery (재현율) — AC12-14
+# ---------------------------------------------------------------------------
+
+
+def _ngs_summary_pairs(ws) -> dict:
+    """Collect key/value pairs from the NGS Results summary area (col A/B)."""
+    pairs: dict = {}
+    for row in ws.iter_rows(values_only=True):
+        if row and row[0] is not None and len(row) >= 2:
+            pairs[row[0]] = row[1]
+    return pairs
+
+
+def test_ngs_recovered_column_present(tmp_path: Path) -> None:
+    """AC14: NGS Results header gains a distinct `recovered` column (not NB0X_detected)."""
+    from kuma_core.mame.export.excel_writer import _NGS_RESULT_HEADER
+
+    vr = _make_verdict("NB01", "1_1", VerdictClass.PASS)
+    rr = _make_replicate("V5F", "NB01", "1_1")
+    out = tmp_path / "recovered.xlsx"
+    write_excel(
+        verdict_records=[vr],
+        replicate_results=[rr],
+        output_path=out,
+        designed_mutant_ids=frozenset({"V5F"}),
+    )
+    wb = openpyxl.load_workbook(out)
+    ws = wb["NGS Results"]
+    header = [c.value for c in ws[1]]
+    assert "recovered" in header, "recovered column missing from NGS Results header"
+    # The recovered column is distinct from the observed-AA NB0X_detected columns.
+    assert "recovered" in _NGS_RESULT_HEADER
+    assert _NGS_RESULT_HEADER.count("recovered") == 1
+    # Data row: V5F is PASS on its only plate -> recovered = Y.
+    rec_idx = header.index("recovered")
+    assert ws[2][rec_idx].value == "Y"
+
+
+def test_ngs_recovery_summary(tmp_path: Path) -> None:
+    """AC14: recovery summary reflects compute_recovery over designed_mutant_ids."""
+    vr = _make_verdict("NB01", "1_1", VerdictClass.PASS)
+    rr = _make_replicate("V5F", "NB01", "1_1")
+    out = tmp_path / "recovery_summary.xlsx"
+    write_excel(
+        verdict_records=[vr],
+        replicate_results=[rr],
+        output_path=out,
+        designed_mutant_ids=frozenset({"V5F"}),
+    )
+    ws = openpyxl.load_workbook(out)["NGS Results"]
+    pairs = _ngs_summary_pairs(ws)
+    assert pairs.get("recovered_mutants") == 1
+    assert pairs.get("total_mutants") == 1
+    assert pairs.get("Recovery (재현율)") == "100.0%"
+
+
+def test_ngs_recovery_summary_na_when_unavailable(tmp_path: Path) -> None:
+    """AC14: with no designed_mutant_ids the recovery summary renders n/a (never 0%)."""
+    vr = _make_verdict("NB01", "1_1", VerdictClass.PASS)
+    rr = _make_replicate("V5F", "NB01", "1_1")
+    out = tmp_path / "recovery_na.xlsx"
+    write_excel(verdict_records=[vr], replicate_results=[rr], output_path=out)
+    ws = openpyxl.load_workbook(out)["NGS Results"]
+    pairs = _ngs_summary_pairs(ws)
+    assert pairs.get("Recovery (재현율)") == "n/a"
+    assert "recovered_mutants" not in pairs
+
+
+def test_report_detected_chip_and_plate_dt() -> None:
+    """AC12-13: HTML report shows Detected/재현율 chip and per-plate 검출 D/T."""
+    vr = _make_verdict("NB01", "1_1", VerdictClass.PASS)
+    rr = _make_replicate("V5F", "NB01", "1_1")
+    data = build_run_report_data(
+        [vr], [rr], designed_mutant_ids=frozenset({"V5F"})
+    )
+    html = render_html(data)
+    assert "Detected / 재현율" in html
+    assert "100% (1/1)" in html  # recovery chip value
+    assert "검출 1/1" in html  # per-plate detected D/T
+
+
+def test_report_detected_chip_na_when_unavailable() -> None:
+    """AC12: chip renders n/a (not 0%) when recovery is unavailable."""
+    vr = _make_verdict("NB01", "1_1", VerdictClass.PASS)
+    rr = _make_replicate("V5F", "NB01", "1_1")
+    data = build_run_report_data([vr], [rr])
+    html = render_html(data)
+    assert "Detected / 재현율" in html
+    # chip value cell renders n/a, never a fabricated 0%.
+    assert ">n/a<" in html

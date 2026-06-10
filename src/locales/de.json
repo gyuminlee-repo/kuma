@@ -415,7 +415,14 @@
       "colNeighborAvg": "Nachbar-Durchschnitt",
       "colZScore": "Z-score",
       "colSeverity": "Schweregrad",
-      "severityAriaLabel": "Schweregrad: {{Schweregrad}}"
+      "severityAriaLabel": "Schweregrad: {{Schweregrad}}",
+      "recovery": "Wiederfindung",
+      "recoveryValue": "{{recovered}}/{{total}} ({{pct}} %)",
+      "recoveryNa": "n. v.",
+      "detectedShort": "Erkannt",
+      "classCountTableCaption": "Verdict-Klassenanzahl über alle Platten",
+      "classCountColClass": "Klasse",
+      "classCountColCount": "Anzahl"
     },
     "plateView": {
       "plate": "Platte",

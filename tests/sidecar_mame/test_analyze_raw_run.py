@@ -217,9 +217,12 @@ def test_handle_analyze_consensus_dir_backward_compatible(
     # Legacy milestones are present.
     assert {5, 10, 30, 60, 85, 100}.issubset(set(values)), values
 
-    # Response keeps exactly the legacy key set — no raw-run additions.
+    # Response keeps the legacy keys plus the additive `designed_mutant_ids`
+    # (carries the designed-mutant set into the saved workspace so recovery
+    # survives a load_analyze_result reload). Still no raw-run-only keys.
     assert set(result.keys()) == {
         "verdicts", "replicates", "output_path", "summary", "distribution_stats",
+        "designed_mutant_ids",
     }
     assert "assigned_reads" not in result
     assert "wells_with_reads" not in result

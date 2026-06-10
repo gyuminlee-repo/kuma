@@ -67,6 +67,17 @@ def _render_header(data: RunReportData) -> str:
 
 
 def _render_summary_cards(data: RunReportData) -> str:
+    if (
+        data.recovered_mutants is None
+        or data.total_mutants is None
+        or data.recovery_rate is None
+    ):
+        recovery_value = "n/a"
+    else:
+        recovery_value = (
+            f"{data.recovery_rate * 100:.0f}% "
+            f"({data.recovered_mutants}/{data.total_mutants})"
+        )
     cards = [
         ("Total Wells", data.total_wells, _CLR_TEXT),
         ("PASS", data.pass_count, _CLR_PASS),
@@ -74,6 +85,7 @@ def _render_summary_cards(data: RunReportData) -> str:
         ("FAIL", data.fail_count, _CLR_FAIL),
         ("Fallback", data.fallback_count, _CLR_FALLBACK),
         ("Final 96 Filled", data.final_96_filled, _CLR_ACCENT),
+        ("Detected / 재현율", recovery_value, _CLR_PASS),
     ]
     items = "".join(
         f"""<div class="card" style="border-top:3px solid {c}">
@@ -219,9 +231,15 @@ def _render_plate_breakdown(data: RunReportData) -> str:
             f'<text x="{x + 4}" y="{y + bar_h // 2 + 4}" '
             f'class="well-label">{pb.total}</text>'
         )
+        # 검출 D/T label (detected = pass + ambiguous over total)
+        detected = pb.pass_count + pb.ambiguous_count
+        bars.append(
+            f'<text x="{x + 32}" y="{y + bar_h // 2 + 4}" '
+            f'class="well-label">검출 {detected}/{pb.total}</text>'
+        )
 
     svg_body = "\n".join(bars)
-    svg_w = label_w + chart_w + 40
+    svg_w = label_w + chart_w + 130
     return f"""
 <section class="section">
   <h2 class="section-title">Plate Breakdown</h2>

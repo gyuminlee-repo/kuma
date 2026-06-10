@@ -79,9 +79,17 @@ function safeMax(arr: number[]): number {
 
 interface VerdictBreakdownProps {
   perPlate: Record<string, RunHealthBreakdown>;
+  recoveredMutants: number | null;
+  totalMutants: number | null;
+  recoveryRate: number | null;
 }
 
-function VerdictBreakdown({ perPlate }: VerdictBreakdownProps) {
+function VerdictBreakdown({
+  perPlate,
+  recoveredMutants,
+  totalMutants,
+  recoveryRate,
+}: VerdictBreakdownProps) {
   const { t } = useTranslation();
   const plates = Object.entries(perPlate).sort(([a], [b]) => {
     const na = a.match(/(\d+)/);
@@ -90,72 +98,136 @@ function VerdictBreakdown({ perPlate }: VerdictBreakdownProps) {
     const kb = nb ? parseInt(nb[1], 10) : Number.MAX_SAFE_INTEGER;
     return ka - kb || a.localeCompare(b);
   });
-  if (plates.length === 0) return null;
+
+  // AC8: recovery (재현율) header — non-null shows "R/T (Z%)", null shows n/a.
+  const recoveryAvailable = recoveredMutants !== null && totalMutants !== null;
+  const recoveryPct = recoveryRate !== null ? Math.round(recoveryRate * 100) : 0;
+  const recoveryHeader = (
+    <div className="flex flex-wrap items-baseline gap-x-2 text-sm" data-testid="run-health-recovery">
+      <span className="font-semibold uppercase tracking-widest text-muted-foreground">
+        {t("mame.runHealth.recovery")}
+      </span>
+      <span className="text-base font-semibold tabular-nums text-foreground">
+        {recoveryAvailable
+          ? t("mame.runHealth.recoveryValue", {
+              recovered: recoveredMutants,
+              total: totalMutants,
+              pct: recoveryPct,
+            })
+          : t("mame.runHealth.recoveryNa")}
+      </span>
+    </div>
+  );
+
+  // AC10: run-level per-class counts summed across every plate.
+  const classCounts = VERDICT_SEGMENTS.map(({ key, label }) => ({
+    key,
+    label,
+    count: plates.reduce((acc, [, b]) => acc + (b[key] ?? 0), 0),
+  }));
+
+  if (plates.length === 0) return recoveryHeader;
 
   const barW = 44;
   const gap = 24;
   const chartH = 120;
-  const labelH = 30;
+  const labelH = 42;
   const svgW = plates.length * (barW + gap) + gap;
   const svgH = chartH + labelH;
 
   return (
-    <figure className="w-full overflow-x-auto" aria-label={t("mame.runHealth.verdictBreakdown")}>
-      <svg
-        viewBox={`0 0 ${svgW} ${svgH}`}
-        width="100%"
-        style={{ maxWidth: svgW * 1.6 }}
-        preserveAspectRatio="xMinYMin meet"
-        role="img"
-        aria-label={t("mame.runHealth.verdictBreakdown")}
-      >
-        <title>{t("mame.runHealth.verdictBreakdown")}</title>
-        {plates.map(([plate, b], i) => {
-          const x = gap + i * (barW + gap);
-          const total = b.total || 0;
-          let yOffset = chartH;
-          return (
-            <g key={plate}>
-              {total === 0 ? (
-                <rect x={x} y={0} width={barW} height={chartH} rx={3} style={{ fill: "hsl(var(--muted))" }} />
-              ) : (
-                VERDICT_SEGMENTS.map(({ key, label, fill }) => {
-                  const value = b[key] ?? 0;
-                  if (value === 0) return null;
-                  const h = (value / total) * chartH;
-                  yOffset -= h;
-                  const pct = Math.round((value / total) * 100);
-                  return (
-                    <rect key={key} x={x} y={yOffset} width={barW} height={h} style={{ fill }}>
-                      <title>{`${plateLabel(plate)} · ${label}: ${value} (${pct}%)`}</title>
-                    </rect>
-                  );
-                })
-              )}
-              <text
-                x={x + barW / 2}
-                y={chartH + 13}
-                textAnchor="middle"
-                style={{ fill: C.muted, fontSize: 10 }}
-              >
-                {plateLabel(plate)}
-              </text>
-              <text
-                x={x + barW / 2}
-                y={chartH + 25}
-                textAnchor="middle"
-                style={{ fill: C.muted, fontSize: 8 }}
-              >
-                {`n=${total}${b.fallback ? ` · fb ${b.fallback}` : ""}`}
-              </text>
-            </g>
-          );
-        })}
-      </svg>
-      <figcaption className="sr-only">
-        {t("mame.runHealth.figureVerdictBreakdownCaption")}
-      </figcaption>
-    </figure>
+    <div className="flex flex-col gap-3">
+      {recoveryHeader}
+      <figure className="w-full overflow-x-auto" aria-label={t("mame.runHealth.verdictBreakdown")}>
+        <svg
+          viewBox={`0 0 ${svgW} ${svgH}`}
+          width="100%"
+          style={{ maxWidth: svgW * 1.6 }}
+          preserveAspectRatio="xMinYMin meet"
+          role="img"
+          aria-label={t("mame.runHealth.verdictBreakdown")}
+        >
+          <title>{t("mame.runHealth.verdictBreakdown")}</title>
+          {plates.map(([plate, b], i) => {
+            const x = gap + i * (barW + gap);
+            const total = b.total || 0;
+            // AC9: display-only "detected" sum (pass + ambiguous, WT included).
+            const detected = (b.pass ?? 0) + (b.ambiguous ?? 0);
+            let yOffset = chartH;
+            return (
+              <g key={plate}>
+                {total === 0 ? (
+                  <rect x={x} y={0} width={barW} height={chartH} rx={3} style={{ fill: "hsl(var(--muted))" }} />
+                ) : (
+                  VERDICT_SEGMENTS.map(({ key, label, fill }) => {
+                    const value = b[key] ?? 0;
+                    if (value === 0) return null;
+                    const h = (value / total) * chartH;
+                    yOffset -= h;
+                    const pct = Math.round((value / total) * 100);
+                    return (
+                      <rect key={key} x={x} y={yOffset} width={barW} height={h} style={{ fill }}>
+                        <title>{`${plateLabel(plate)} · ${label}: ${value} (${pct}%)`}</title>
+                      </rect>
+                    );
+                  })
+                )}
+                <text
+                  x={x + barW / 2}
+                  y={chartH + 13}
+                  textAnchor="middle"
+                  style={{ fill: C.muted, fontSize: 10 }}
+                >
+                  {plateLabel(plate)}
+                </text>
+                <text
+                  x={x + barW / 2}
+                  y={chartH + 25}
+                  textAnchor="middle"
+                  style={{ fill: C.muted, fontSize: 8 }}
+                >
+                  {`n=${total}${b.fallback ? ` · fb ${b.fallback}` : ""}`}
+                </text>
+                <text
+                  x={x + barW / 2}
+                  y={chartH + 37}
+                  textAnchor="middle"
+                  style={{ fill: C.muted, fontSize: 8 }}
+                >
+                  {`${t("mame.runHealth.detectedShort")} ${detected}/${total}`}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+        <figcaption className="sr-only">
+          {t("mame.runHealth.figureVerdictBreakdownCaption")}
+        </figcaption>
+      </figure>
+      <table className="w-full text-caption" data-testid="run-health-class-counts">
+        <caption className="sr-only">{t("mame.runHealth.classCountTableCaption")}</caption>
+        <thead>
+          <tr className="text-left text-muted-foreground">
+            <th scope="col" className="py-0.5 pr-2 font-medium">
+              {t("mame.runHealth.classCountColClass")}
+            </th>
+            <th scope="col" className="py-0.5 text-right font-medium">
+              {t("mame.runHealth.classCountColCount")}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {classCounts.map(({ key, label, count }) => (
+            <tr key={key}>
+              <th scope="row" className="py-0.5 pr-2 font-normal text-foreground">
+                {label}
+              </th>
+              <td className="py-0.5 text-right tabular-nums text-foreground">{count}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -618,7 +690,12 @@ export function RunHealthPanel({ health, sections, className }: RunHealthPanelPr
             {t("mame.runHealth.verdictBreakdown")}
           </h3>
           <Legend />
-          <VerdictBreakdown perPlate={health.per_plate_summary} />
+          <VerdictBreakdown
+            perPlate={health.per_plate_summary}
+            recoveredMutants={health.recovered_mutants}
+            totalMutants={health.total_mutants}
+            recoveryRate={health.recovery_rate}
+          />
         </section>
       )}
 

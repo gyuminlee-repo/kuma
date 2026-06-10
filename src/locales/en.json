@@ -460,7 +460,14 @@
       "colNeighborAvg": "Neighbor avg",
       "colZScore": "Z-score",
       "colSeverity": "Severity",
-      "severityAriaLabel": "Severity: {{severity}}"
+      "severityAriaLabel": "Severity: {{severity}}",
+      "recovery": "Recovery",
+      "recoveryValue": "{{recovered}}/{{total}} ({{pct}}%)",
+      "recoveryNa": "n/a",
+      "detectedShort": "Detected",
+      "classCountTableCaption": "Verdict class counts across all plates",
+      "classCountColClass": "Class",
+      "classCountColCount": "Count"
     },
     "plateView": {
       "plate": "Plate",

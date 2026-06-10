@@ -63,6 +63,7 @@ def handle_export_excel(params: dict) -> dict:
         mode=mode_norm,
         ngs_run_meta=state.last_run_meta,  # type: ignore[arg-type]  — NgsRunMeta | None
         kuma_version=KUMA_VERSION,
+        designed_mutant_ids=state.last_designed_mutant_ids,
     )
 
     set_last_analyze(

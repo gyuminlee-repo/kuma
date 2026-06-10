@@ -415,7 +415,14 @@
       "colNeighborAvg": "Среднее соседей",
       "colZScore": "Z-score",
       "colSeverity": "Серьёзность",
-      "severityAriaLabel": "Серьёзность: {{severity}}"
+      "severityAriaLabel": "Серьёзность: {{severity}}",
+      "recovery": "Восстановление",
+      "recoveryValue": "{{recovered}}/{{total}} ({{pct}} %)",
+      "recoveryNa": "н/д",
+      "detectedShort": "Обнаружено",
+      "classCountTableCaption": "Подсчёт классов вердикта по всем планшетам",
+      "classCountColClass": "Класс",
+      "classCountColCount": "Количество"
     },
     "plateView": {
       "plate": "Plate",

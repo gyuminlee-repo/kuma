@@ -7,6 +7,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 from kuma_core.mame.compare import classify_verdict, parse_mutation_label
+from kuma_core.mame.detected import designed_mutant_ids as _designed_mutant_ids_from_expected
 from kuma_core.mame.export import WellMapper, write_excel
 from kuma_core.mame.export.excel_writer import _custom_barcode_to_seq
 from kuma_core.mame.export.well_mapper import seq_to_well
@@ -133,6 +134,7 @@ def run_analyze(
     sample_map_path: Path | None = None,
     well_layout: dict[str, str] | None = None,
     progress_callback: Callable[[int, int], None] | None = None,
+    designed_mutant_ids: frozenset[str] | None = None,
 ) -> tuple[list[VerdictRecord], list[ReplicateResult]]:
     """Run the full pipeline and write the Excel output. Returns in-memory results.
 
@@ -244,11 +246,17 @@ def run_analyze(
         result = pick_best_replicate(mutant_id, plate_verdicts)
         replicate_results.append(result)
 
+    designed = (
+        designed_mutant_ids
+        if designed_mutant_ids is not None
+        else _designed_mutant_ids_from_expected(expected_mutations)
+    )
     write_excel(
         verdict_records=verdicts,
         replicate_results=replicate_results,
         output_path=output_path,
         mapper=WellMapper(),
         mode="amplicon" if mode == "amplicon" else "plasmid",
+        designed_mutant_ids=designed,
     )
     return verdicts, replicate_results

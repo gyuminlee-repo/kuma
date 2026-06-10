@@ -415,7 +415,14 @@
       "colNeighborAvg": "鄰居均值",
       "colZScore": "Z-score",
       "colSeverity": "嚴重程度",
-      "severityAriaLabel": "嚴重程度: {{severity}}"
+      "severityAriaLabel": "嚴重程度: {{severity}}",
+      "recovery": "回收率",
+      "recoveryValue": "{{recovered}}/{{total}} ({{pct}}%)",
+      "recoveryNa": "不適用",
+      "detectedShort": "檢出",
+      "classCountTableCaption": "所有盤的 Verdict 類別計數",
+      "classCountColClass": "類別",
+      "classCountColCount": "數量"
     },
     "plateView": {
       "plate": "Plate",
