@@ -329,6 +329,80 @@ def test_handle_analyze_raw_run_uses_stable_demux_dir(
     )
 
 
+@requires_minimap2
+def test_handle_analyze_raw_run_sorting_progress_is_percentage(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Per-NB demux 'Sorting reads' progress is a percentage, not a per-mille count.
+
+    The combinatorial per-NB aggregate reports progress as a 0..1000 per-mille
+    fraction purely to keep the bar smooth across barcodes. That fraction must
+    NOT leak into the progress detail as a literal '730 / 1,000' read count: the
+    Sorting branch emits ``current`` = percent (0..100) with ``total`` = None and
+    no '%' baked into the message (the UI renders 'NN%' from current+null-total).
+    """
+    from sidecar_mame.handlers import analyze as analyze_mod
+
+    # Two native barcodes force the per-NB orchestrator
+    # (run_combinatorial_demux_per_nb) — the only producer of the aggregate
+    # 'Sorting reads' emit. barcode01 reuses the proven raw-run read mix.
+    run_dir = _make_minknow_run_dir(tmp_path)
+    bdir2 = run_dir / "fastq_pass" / "barcode02"
+    bdir2.mkdir(parents=True)
+    reads = [(f"s_1_1_{i}", _build_read(1, 1, _RAW_REF_SEQ)) for i in range(6)]
+    reads += [(f"s_2_3_{i}", _build_read(2, 3, _RAW_REF_SEQ)) for i in range(4)]
+    with gzip.open(bdir2 / "reads.fastq.gz", "wt") as fh:
+        for rid, seq in reads:
+            fh.write(f"@{rid}\n{seq}\n+\n{'I' * len(seq)}\n")
+
+    reference = _make_reference_fasta(tmp_path, seq=_RAW_REF_SEQ)
+    barcodes_xlsx = tmp_path / "barcodes.xlsx"
+    _make_barcodes_xlsx(barcodes_xlsx)
+    expected_xlsx = tmp_path / "expected.xlsx"
+    _make_kuro_xlsx(expected_xlsx)
+    output = tmp_path / "out.xlsx"
+
+    sent = _capture_progress(monkeypatch)
+
+    analyze_mod.handle_analyze({
+        "input_dir": str(run_dir),
+        "reference": str(reference),
+        "expected": str(expected_xlsx),
+        "output": str(output),
+        "custom_barcodes_xlsx": str(barcodes_xlsx),
+        "native_barcodes": ["barcode01", "barcode02"],
+        "cds_start": 0,
+        "cds_end": 60,
+        "min_file_size_kb": 0.0,
+        "min_read_count": 0,
+        "ingest_mode": "barcode",
+        "mapq_threshold": 0,
+        "coverage_fraction": 0.5,
+        "trim_flank_bp": 30,
+    })
+
+    params = _progress_params(sent)
+    sorting = [
+        p for p in params if str(p.get("message", "")).startswith("Sorting reads")
+    ]
+    assert sorting, (
+        "expected per-NB 'Sorting reads' emits; got "
+        f"{[p.get('message') for p in params]}"
+    )
+
+    for p in sorting:
+        # Percentage contract: current is a 0..100 percent, total is None.
+        assert p["total"] is None, f"Sorting emit must drop per-mille total; got {p}"
+        assert isinstance(p["current"], int) and 0 <= p["current"] <= 100, p
+        # The percent gets its own UI line — it is no longer baked into the text.
+        assert "%" not in p["message"], (
+            f"Sorting message must not carry a percent; got {p['message']!r}"
+        )
+        # Still mapped into the 0..50 demux band and stamped demux.
+        assert p["stage"] == "demux"
+        assert 0 <= p["value"] <= 50, p
+
+
 # ---------------------------------------------------------------------------
 # 3. handle_validate_inputs raw-run guardrails
 # ---------------------------------------------------------------------------

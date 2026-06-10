@@ -161,9 +161,11 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
                 aria-label={t("mameSidebar.analysisProgressAria", { percent: analyzeProgress })}
               />
             )}
-            {isAnalyzing && analyzeCurrent !== null && analyzeTotal !== null && (
+            {isAnalyzing && analyzeCurrent !== null && (
               <p className="mt-1 text-caption text-muted-foreground" aria-live="polite">
-                {analyzeCurrent.toLocaleString()} / {analyzeTotal.toLocaleString()}
+                {analyzeTotal !== null
+                  ? `${analyzeCurrent.toLocaleString()} / ${analyzeTotal.toLocaleString()}`
+                  : `${analyzeCurrent}%`}
               </p>
             )}
             {isAnalyzing && analyzeStage && (
