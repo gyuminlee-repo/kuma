@@ -65,13 +65,13 @@ describe("RunHealthPanel — recovery / detected / class table", () => {
     expect(header).not.toHaveTextContent("0%");
   });
 
-  // AC9: per-plate D/T line, including a WT-PASS plate (all pass).
-  it("renders per-plate detected D/T lines", () => {
+  // Per-plate headline shows strict pass-rate (pass / total), AMBIGUOUS excluded.
+  it("renders per-plate strict pass-rate headlines", () => {
     render(<RunHealthPanel health={makeHealth()} sections={["verdict-breakdown"]} />);
-    // WT-PASS plate: 2 passes, total 2.
-    expect(screen.getByText("Detected 2/2")).toBeInTheDocument();
-    // Mixed plate: 1 pass + 1 ambiguous = 2, total 3.
-    expect(screen.getByText("Detected 2/3")).toBeInTheDocument();
+    // WT-PASS plate: 2 pass / 2 total = 100%.
+    expect(screen.getByText("100%")).toBeInTheDocument();
+    // Mixed plate: 1 pass / 3 total = 33% (ambiguous not counted as pass).
+    expect(screen.getByText("33%")).toBeInTheDocument();
   });
 
   // AC10: class-count table equals the run-level sums across perPlate.

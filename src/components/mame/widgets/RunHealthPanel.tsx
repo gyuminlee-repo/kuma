@@ -22,6 +22,7 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
+import { VERDICT_FILL } from "@/lib/mame/verdictColors";
 import type {
   CrossTalkCandidate,
   RunHealthBreakdown,
@@ -53,14 +54,14 @@ const VERDICT_SEGMENTS: {
   label: string;
   fill: string;
 }[] = [
-  { key: "pass", label: "Pass", fill: "var(--color-success)" },
-  { key: "ambiguous", label: "Ambiguous", fill: "var(--color-warning)" },
-  { key: "mixed", label: "Mixed", fill: "#fb923c" },
-  { key: "wrong_aa", label: "Wrong AA", fill: "hsl(var(--destructive))" },
-  { key: "frameshift", label: "Frameshift", fill: "#b91c1c" },
-  { key: "many", label: "Many", fill: "#a855f7" },
-  { key: "lowdepth", label: "Low depth", fill: "#94a3b8" },
-  { key: "no_call", label: "No call", fill: "#475569" },
+  { key: "pass", label: "Pass", fill: VERDICT_FILL.PASS.bg },
+  { key: "ambiguous", label: "Ambiguous", fill: VERDICT_FILL.AMBIGUOUS.bg },
+  { key: "mixed", label: "Mixed", fill: VERDICT_FILL.MIXED.bg },
+  { key: "wrong_aa", label: "Wrong AA", fill: VERDICT_FILL.WRONG_AA.bg },
+  { key: "frameshift", label: "Frameshift", fill: VERDICT_FILL.FRAMESHIFT.bg },
+  { key: "many", label: "Many", fill: VERDICT_FILL.MANY.bg },
+  { key: "lowdepth", label: "Low depth", fill: VERDICT_FILL.LOWDEPTH.bg },
+  { key: "no_call", label: "No call", fill: VERDICT_FILL.NO_CALL.bg },
 ];
 
 /** Friendly plate label: "sort_barcode06" → "NB06"; non-numeric names stay as-is. */
@@ -120,9 +121,10 @@ function VerdictBreakdown({
   );
 
   // AC10: run-level per-class counts summed across every plate.
-  const classCounts = VERDICT_SEGMENTS.map(({ key, label }) => ({
+  const classCounts = VERDICT_SEGMENTS.map(({ key, label, fill }) => ({
     key,
     label,
+    fill,
     count: plates.reduce((acc, [, b]) => acc + (b[key] ?? 0), 0),
   }));
 
@@ -131,9 +133,12 @@ function VerdictBreakdown({
   const barW = 44;
   const gap = 24;
   const chartH = 120;
-  const labelH = 42;
+  const headerH = 28; // pass-rate % + n= above each bar
+  const labelH = 18; // plate label below each bar
+  const chartTop = headerH;
+  const chartBottom = headerH + chartH;
   const svgW = plates.length * (barW + gap) + gap;
-  const svgH = chartH + labelH;
+  const svgH = headerH + chartH + labelH;
 
   return (
     <div className="flex flex-col gap-3">
@@ -151,13 +156,41 @@ function VerdictBreakdown({
           {plates.map(([plate, b], i) => {
             const x = gap + i * (barW + gap);
             const total = b.total || 0;
-            // AC9: display-only "detected" sum (pass + ambiguous, WT included).
+            // Detected block (pass + ambiguous) marks the boundary line; the
+            // headline pass-rate counts strict PASS only.
             const detected = (b.pass ?? 0) + (b.ambiguous ?? 0);
-            let yOffset = chartH;
+            const passPct = total > 0 ? Math.round(((b.pass ?? 0) / total) * 100) : 0;
+            const boundaryY = total > 0 ? chartBottom - (detected / total) * chartH : chartBottom;
+            const showBoundary = total > 0 && detected > 0 && detected < total;
+            let yOffset = chartBottom;
             return (
               <g key={plate}>
+                {/* Headline: strict pass-rate then sample count. */}
+                <text
+                  x={x + barW / 2}
+                  y={12}
+                  textAnchor="middle"
+                  style={{ fill: "hsl(var(--foreground))", fontSize: 13, fontWeight: 700 }}
+                >
+                  {total > 0 ? `${passPct}%` : "n/a"}
+                </text>
+                <text
+                  x={x + barW / 2}
+                  y={23}
+                  textAnchor="middle"
+                  style={{ fill: C.muted, fontSize: 8 }}
+                >
+                  {`n=${total}${b.fallback ? ` · fb ${b.fallback}` : ""}`}
+                </text>
                 {total === 0 ? (
-                  <rect x={x} y={0} width={barW} height={chartH} rx={3} style={{ fill: "hsl(var(--muted))" }} />
+                  <rect
+                    x={x}
+                    y={chartTop}
+                    width={barW}
+                    height={chartH}
+                    rx={3}
+                    style={{ fill: "hsl(var(--muted))" }}
+                  />
                 ) : (
                   VERDICT_SEGMENTS.map(({ key, label, fill }) => {
                     const value = b[key] ?? 0;
@@ -165,36 +198,54 @@ function VerdictBreakdown({
                     const h = (value / total) * chartH;
                     yOffset -= h;
                     const pct = Math.round((value / total) * 100);
+                    const segTop = yOffset;
                     return (
-                      <rect key={key} x={x} y={yOffset} width={barW} height={h} style={{ fill }}>
-                        <title>{`${plateLabel(plate)} · ${label}: ${value} (${pct}%)`}</title>
-                      </rect>
+                      <g key={key}>
+                        <rect x={x} y={segTop} width={barW} height={h} style={{ fill }}>
+                          <title>{`${plateLabel(plate)} · ${label}: ${value} (${pct}%)`}</title>
+                        </rect>
+                        {h >= 11 && (
+                          <text
+                            x={x + barW / 2}
+                            y={segTop + h / 2}
+                            textAnchor="middle"
+                            dominantBaseline="central"
+                            style={{
+                              fill: "#fff",
+                              stroke: "rgba(0,0,0,0.45)",
+                              strokeWidth: 2,
+                              paintOrder: "stroke",
+                              fontSize: 9,
+                              fontWeight: 600,
+                            }}
+                          >
+                            {value}
+                          </text>
+                        )}
+                      </g>
                     );
                   })
                 )}
+                {showBoundary && (
+                  <line
+                    x1={x}
+                    x2={x + barW}
+                    y1={boundaryY}
+                    y2={boundaryY}
+                    style={{ stroke: "hsl(var(--foreground))", strokeWidth: 1.5 }}
+                  >
+                    <title>
+                      {`${plateLabel(plate)} · ${t("mame.runHealth.detectedShort")} ${detected}/${total}`}
+                    </title>
+                  </line>
+                )}
                 <text
                   x={x + barW / 2}
-                  y={chartH + 13}
+                  y={chartBottom + 13}
                   textAnchor="middle"
                   style={{ fill: C.muted, fontSize: 10 }}
                 >
                   {plateLabel(plate)}
-                </text>
-                <text
-                  x={x + barW / 2}
-                  y={chartH + 25}
-                  textAnchor="middle"
-                  style={{ fill: C.muted, fontSize: 8 }}
-                >
-                  {`n=${total}${b.fallback ? ` · fb ${b.fallback}` : ""}`}
-                </text>
-                <text
-                  x={x + barW / 2}
-                  y={chartH + 37}
-                  textAnchor="middle"
-                  style={{ fill: C.muted, fontSize: 8 }}
-                >
-                  {`${t("mame.runHealth.detectedShort")} ${detected}/${total}`}
                 </text>
               </g>
             );
@@ -217,10 +268,17 @@ function VerdictBreakdown({
           </tr>
         </thead>
         <tbody>
-          {classCounts.map(({ key, label, count }) => (
+          {classCounts.map(({ key, label, fill, count }) => (
             <tr key={key}>
               <th scope="row" className="py-0.5 pr-2 font-normal text-foreground">
-                {label}
+                <span className="flex items-center gap-1.5">
+                  <span
+                    aria-hidden="true"
+                    className="inline-block h-2.5 w-2.5 shrink-0 rounded-[2px]"
+                    style={{ backgroundColor: fill }}
+                  />
+                  {label}
+                </span>
               </th>
               <td className="py-0.5 text-right tabular-nums text-foreground">{count}</td>
             </tr>
