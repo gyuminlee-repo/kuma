@@ -30,7 +30,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Literal
 
 import openpyxl
-from openpyxl.styles import Alignment, Font, PatternFill
+from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.workbook import Workbook
 
 from kuma_core.mame.export.well_mapper import WellMapper, seq_to_well
@@ -42,19 +42,19 @@ if TYPE_CHECKING:
 
 # Confirmed color map (040 AC-09).
 VERDICT_FILL: dict[VerdictClass, str] = {
-    VerdictClass.PASS: "00B050",
-    VerdictClass.AMBIGUOUS: "FFFF00",
-    VerdictClass.MIXED: "FFC000",
-    VerdictClass.FRAMESHIFT: "FF0000",
-    VerdictClass.MANY: "FF0000",
-    VerdictClass.WRONG_AA: "FF0000",
-    VerdictClass.LOWDEPTH: "808080",
-    VerdictClass.NO_CALL: "595959",
+    VerdictClass.PASS: "C6EFCE",       # soft green
+    VerdictClass.AMBIGUOUS: "FFF2CC",  # soft amber
+    VerdictClass.MIXED: "FCE4D6",      # soft peach
+    VerdictClass.FRAMESHIFT: "F8CBCB", # soft red
+    VerdictClass.MANY: "F8CBCB",
+    VerdictClass.WRONG_AA: "F8CBCB",
+    VerdictClass.LOWDEPTH: "ECEEF1",   # light gray
+    VerdictClass.NO_CALL: "DFE3E8",    # gray
 }
 
-FAILED_FILL = "FF0000"
-WELL_HIGHLIGHT_PURPLE = "A02B93"  # Final sheet coord column highlight
-SELECTED_PLATE_YELLOW = "FFFF00"  # Final sheet chosen plate highlight
+FAILED_FILL = "F4B6B6"            # soft red (clear, not garish)
+WELL_HIGHLIGHT_PURPLE = "44506A"  # Final sheet coord column — refined slate
+SELECTED_PLATE_YELLOW = "FFF3B0"  # Final sheet chosen plate — soft highlight
 
 _SHEET1_HEADER = [
     "well_id",
@@ -119,6 +119,59 @@ _FINAL_MATRIX_HEADER = [
 def _fill(color_hex: str) -> PatternFill:
     return PatternFill(start_color=color_hex, end_color=color_hex, fill_type="solid")
 
+# ── Clean, professional sheet styling ───────────────────────────────────────
+_HEADER_FILL = "1F2937"  # slate-800 header band
+_HEADER_FONT = Font(bold=True, color="FFFFFF", size=11)
+_HEADER_ALIGN = Alignment(horizontal="center", vertical="center", wrap_text=True)
+_ZEBRA_FILL = "F5F7FA"   # very light row stripe
+_BORDER_SIDE = Side(style="thin", color="D9DEE6")
+_BORDER = Border(
+    left=_BORDER_SIDE, right=_BORDER_SIDE, top=_BORDER_SIDE, bottom=_BORDER_SIDE
+)
+
+
+def _style_header(ws) -> None:
+    """Apply the slate header band (white bold, centered) to row 1."""
+    for cell in ws[1]:
+        cell.fill = _fill(_HEADER_FILL)
+        cell.font = _HEADER_FONT
+        cell.alignment = _HEADER_ALIGN
+    ws.row_dimensions[1].height = 22
+
+
+def _finalize(
+    ws,
+    *,
+    freeze: str | None = "A2",
+    autofit: bool = True,
+    zebra: bool = False,
+) -> None:
+    """Apply thin borders, optional zebra striping, autofit, and a freeze pane."""
+    from openpyxl.utils import get_column_letter
+
+    max_row = ws.max_row
+    max_col = ws.max_column
+    if zebra:
+        stripe = _fill(_ZEBRA_FILL)
+        for r in range(3, max_row + 1, 2):
+            for c in range(1, max_col + 1):
+                cell = ws.cell(row=r, column=c)
+                if cell.fill is None or cell.fill.fill_type is None:
+                    cell.fill = stripe
+    for r in range(1, max_row + 1):
+        for c in range(1, max_col + 1):
+            ws.cell(row=r, column=c).border = _BORDER
+    if autofit:
+        for c in range(1, max_col + 1):
+            length = 0
+            for r in range(1, max_row + 1):
+                v = ws.cell(row=r, column=c).value
+                if v is not None:
+                    length = max(length, len(str(v)))
+            ws.column_dimensions[get_column_letter(c)].width = min(max(length + 2, 9), 46)
+    if freeze:
+        ws.freeze_panes = freeze
+
 
 def _custom_barcode_to_seq(custom: str) -> int | None:
     """`{R}_{F}` -> 1-based column-major sequence index.
@@ -143,8 +196,7 @@ def _custom_barcode_to_seq(custom: str) -> int | None:
 def _write_sheet1(wb: Workbook, native_barcode: str, records: Iterable[VerdictRecord]) -> None:
     ws = wb.create_sheet(native_barcode)
     ws.append(_SHEET1_HEADER)
-    for cell in ws[1]:
-        cell.font = Font(bold=True)
+    _style_header(ws)
 
     for vr in sorted(
         records,
@@ -176,6 +228,7 @@ def _write_sheet1(wb: Workbook, native_barcode: str, records: Iterable[VerdictRe
         fill = _fill(VERDICT_FILL[vr.verdict])
         for cell in ws[ws.max_row]:
             cell.fill = fill
+    _finalize(ws)
 
 
 def _write_final(
@@ -185,8 +238,7 @@ def _write_final(
 ) -> None:
     ws = wb.create_sheet("Final")
     ws.append(_FINAL_HEADER)
-    for cell in ws[1]:
-        cell.font = Font(bold=True)
+    _style_header(ws)
 
     # Index replicate results by the chosen custom_barcode's well when selectable.
     replicate_by_seq: dict[int, ReplicateResult] = {}
@@ -274,6 +326,7 @@ def _write_final(
                     rr.selection_reason,
                 ]
             )
+    _finalize(ws)
 
 
 def _highlight_well_cell(ws, row_idx: int) -> None:
@@ -367,8 +420,7 @@ def _write_unified_ngs_sheet(
     """Write the reference-format "NGS Results" sheet (G7 spec)."""
     ws = wb.create_sheet("NGS Results")
     ws.append(_NGS_RESULT_HEADER)
-    for cell in ws[1]:
-        cell.font = Font(bold=True)
+    _style_header(ws)
 
     rows = _build_unified_ngs_data(replicate_results)
     for row in rows:
@@ -405,7 +457,7 @@ def _write_unified_ngs_sheet(
         ws.append(["total_mutants", recovery.total_mutants])
 
     # Freeze top header row for readability.
-    ws.freeze_panes = "A2"
+    _finalize(ws, zebra=True)
 
 
 def _write_final_matrix_sheet(
@@ -421,8 +473,7 @@ def _write_final_matrix_sheet(
     """
     ws = wb.create_sheet("Final (matrix)")
     ws.append(_FINAL_MATRIX_HEADER)
-    for cell in ws[1]:
-        cell.font = Font(bold=True)
+    _style_header(ws)
 
     for idx, rr in enumerate(replicate_results, start=1):
         # Determine well from selected plate or any available verdict.
@@ -456,7 +507,7 @@ def _write_final_matrix_sheet(
             # +4: 1-based, 3 leading cols (index, mutant, well) + 1
             ws.cell(row=ws.max_row, column=4 + col_idx).fill = _fill(SELECTED_PLATE_YELLOW)
 
-    ws.freeze_panes = "A2"
+    _finalize(ws, zebra=True)
 
 
 # ---------------------------------------------------------------------------
@@ -481,8 +532,7 @@ def _write_kuma_meta_sheet(
 
     # Header row.
     ws.append(["key", "value"])
-    for cell in ws[1]:
-        cell.font = Font(bold=True)
+    _style_header(ws)
 
     # Always include software version and generation timestamp.
     ws.append(["kuma_version", kuma_version])
@@ -493,6 +543,7 @@ def _write_kuma_meta_sheet(
 
     if meta is None:
         ws.append(["ngs_run_meta", "(not found — no MinKNOW run folder detected)"])
+        _finalize(ws, freeze=None, autofit=False)
         return
 
     # MinKNOW run fields.
@@ -511,6 +562,7 @@ def _write_kuma_meta_sheet(
     ]
     for key, value in fields:
         ws.append([key, "" if value is None else value])
+    _finalize(ws, freeze=None, autofit=False)
 
 
 def write_excel(
