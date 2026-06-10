@@ -580,7 +580,7 @@ def generate_mame_package(
        is derived from the ``gene_name`` parameter via
        :func:`_sanitize_gene_prefix`.
     5. Write ``{gene_name}_amplicon.fa`` containing the gene region subsequence.
-    6. Write ``sample_map_template.xlsx`` (blank: column A "name", column B "well").
+    6. Write ``sample_map_template.xlsx`` (blank: column A "sample_name", column B "well").
     7. Write ``mame_context.json`` at ``project_root`` with schema 1.
 
     Parameters
@@ -820,7 +820,7 @@ def _write_sample_map_template(path: Path) -> None:
     if ws is None:
         ws = wb.create_sheet()
     ws.title = "SampleMap"
-    ws.append(["name", "well"])
+    ws.append(["sample_name", "well"])
     wb.save(str(path))
 
 

@@ -457,10 +457,10 @@ export function BarcodeSetupPanel({ group }: BarcodeSetupPanelProps = {}) {
                   {cdsCandidates.map((c, i) => {
                     const labelPart = c.label ? `[${c.label}] ` : "";
                     const tooltip = [
-                      c.label ? `Label: ${c.label}` : "",
-                      `Range: ${c.start}-${c.end}`,
-                      `Length: ${c.aa_length} aa`,
-                      `Source: ${c.source}`,
+                      c.label ? t("mame.barcodeSetup.cdsTooltipLabel", { label: c.label }) : "",
+                      t("mame.barcodeSetup.cdsTooltipRange", { start: c.start, end: c.end }),
+                      t("mame.barcodeSetup.cdsTooltipLength", { length: c.aa_length }),
+                      t("mame.barcodeSetup.cdsTooltipSource", { source: c.source }),
                     ]
                       .filter(Boolean)
                       .join("\n");
@@ -493,7 +493,7 @@ export function BarcodeSetupPanel({ group }: BarcodeSetupPanelProps = {}) {
                   min={0}
                   step={1}
                   placeholder="0"
-                  helperText="0-based inclusive"
+                  helperText={t("mame.barcodeSetup.geneStartHelper")}
                   hasError={form.geneStart !== "" && (!isStartValid || !isRangeValid)}
                 />
                 <NumberField
@@ -504,7 +504,7 @@ export function BarcodeSetupPanel({ group }: BarcodeSetupPanelProps = {}) {
                   min={1}
                   step={1}
                   placeholder="e.g. 534"
-                  helperText="0-based exclusive"
+                  helperText={t("mame.barcodeSetup.geneEndHelper")}
                   hasError={form.geneEnd !== "" && (!isEndValid || !isRangeValid)}
                 />
               </div>
@@ -667,7 +667,7 @@ export function BarcodeSetupPanel({ group }: BarcodeSetupPanelProps = {}) {
         <Button
           type="button"
           className="w-full"
-          disabled={!canGenerate}
+          disabled={!canGenerate || !project?.path}
           onClick={() => void handleGenerate()}
           aria-busy={isGenerating}
         >
@@ -690,13 +690,13 @@ export function BarcodeSetupPanel({ group }: BarcodeSetupPanelProps = {}) {
             <div className="rounded-md border border-border bg-muted/30 p-3 space-y-2">
               {(
                 [
-                  { label: "Barcodes xlsx", path: result.barcodes_xlsx },
-                  { label: "Amplicon FASTA", path: result.amplicon_fa },
-                  { label: "Sample map template", path: result.sample_map_template },
-                  { label: "Context JSON", path: result.context_json },
+                  { label: t("mame.barcodeSetup.generatedFileLabels.barcodes"), path: result.barcodes_xlsx },
+                  { label: t("mame.barcodeSetup.generatedFileLabels.amplicon"), path: result.amplicon_fa },
+                  { label: t("mame.barcodeSetup.generatedFileLabels.sampleMapTemplate"), path: result.sample_map_template },
+                  { label: t("mame.barcodeSetup.generatedFileLabels.contextJson"), path: result.context_json },
                 ] as const
               ).map(({ label, path }) => (
-                <div key={label} className="flex items-start gap-2">
+                <div key={path} className="flex items-start gap-2">
                   <CheckCircle2
                     size={14}
                     className="mt-0.5 shrink-0 text-green-600 dark:text-green-400"
@@ -739,7 +739,9 @@ export function BarcodeSetupPanel({ group }: BarcodeSetupPanelProps = {}) {
               className="mt-3"
               onClick={() =>
                 void revealInOSFolder(result.barcodes_xlsx).catch((e) =>
-                  toast.error(String(e)),
+                  toast.error(t("mame.barcodeSetup.openFolderError"), {
+                    description: String(e),
+                  }),
                 )
               }
             >
