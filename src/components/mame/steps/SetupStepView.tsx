@@ -64,6 +64,17 @@ export function SetupStepView() {
       descriptionKey={config.descriptionKey}
       onPrev={isFirst ? undefined : goToPrevStep}
       onNext={goToNextStep}
+      validateBeforeNext={
+        subStep === "setup.design"
+          ? () =>
+              useMameAppStore.getState().rawRunParams.customBarcodesPath
+                ? { ok: true }
+                : {
+                    ok: false,
+                    missing: ["mame.barcodeSetup.requireBarcodePackage"],
+                  }
+          : undefined
+      }
     >
       {subStep === "setup.files" && <BarcodeSetupPanel group="files" />}
       {subStep === "setup.design" && <BarcodeSetupPanel group="design" />}

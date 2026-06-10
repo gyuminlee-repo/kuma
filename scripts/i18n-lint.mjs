@@ -84,13 +84,52 @@ for (const file of walk(SRC)) {
   });
 }
 
-if (offenders.length === 0) {
-  console.log("i18n-lint: ok (0 hardcoded Korean lines)");
+// ── English-in-UI check (scoped: MAME form panels) ──────────────────────────
+// i18n-lint historically caught only hardcoded *Korean*; user-facing English in
+// MAME form panels slipped through. Flag natural-language English in high-signal
+// attributes (helperText/stateLabel/aria-label/title) so new untranslated copy
+// trips CI. Scope is deliberately narrow — panels only, and technical API labels
+// (snake_case identifiers, unit-bearing labels like "(nt)"/"(°C)") are exempt —
+// to avoid false positives on intentional code identifiers.
+const MAME_PANELS = join(SRC, "components", "mame", "panels");
+const ENGLISH_ATTR = /\b(helperText|stateLabel|aria-label|title)\s*=\s*"([^"]+)"/g;
+const TECHNICAL = /_|\((?:nt|bp|°C)\)/;
+const englishOffenders = [];
+for (const file of walk(MAME_PANELS)) {
+  const rel = relative(ROOT, file).replace(/\\/g, "/");
+  const lines = readFileSync(file, "utf8").split("\n");
+  lines.forEach((ln, i) => {
+    const trimmed = ln.trim();
+    if (!trimmed || LINE_COMMENT.test(trimmed) || JSX_COMMENT.test(trimmed)) return;
+    let m;
+    ENGLISH_ATTR.lastIndex = 0;
+    while ((m = ENGLISH_ATTR.exec(ln)) !== null) {
+      const val = m[2];
+      // Natural-language English heuristic: contains a space and a lowercase letter.
+      if (!/ /.test(val) || !/[a-z]/.test(val)) continue;
+      if (TECHNICAL.test(val)) continue;
+      englishOffenders.push(`${rel}:${i + 1}: ${m[1]}="${val}"`);
+    }
+  });
+}
+
+if (offenders.length === 0 && englishOffenders.length === 0) {
+  console.log(
+    "i18n-lint: ok (0 hardcoded Korean lines, 0 hardcoded English in MAME panels)",
+  );
   process.exit(0);
 }
 
-console.error(`i18n-lint: ${offenders.length} hardcoded Korean line(s) found:`);
-for (const o of offenders) console.error("  " + o);
+if (offenders.length > 0) {
+  console.error(`i18n-lint: ${offenders.length} hardcoded Korean line(s) found:`);
+  for (const o of offenders) console.error("  " + o);
+}
+if (englishOffenders.length > 0) {
+  console.error(
+    `i18n-lint: ${englishOffenders.length} hardcoded English string(s) in MAME panels:`,
+  );
+  for (const o of englishOffenders) console.error("  " + o);
+}
 console.error("\nFix: extract to src/locales/{en,ko}.json and use t() / i18next.t().");
 console.error("Allowlist intentional Korean in scripts/i18n-lint.mjs ALLOWLIST.");
 process.exit(1);

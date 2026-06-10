@@ -129,7 +129,7 @@ class CombinatorialDemuxParams(DemuxParamsBase):
     Optional fields
     ---------------
     sample_map_xlsx
-        When provided, a per-well sample-name mapping xlsx (col A: name,
+        When provided, a per-well sample-name mapping xlsx (col A: sample_name,
         col B: well position e.g. "A1").  Loaded into metadata; the core
         pipeline uses it to annotate output filenames with mutant names.
     kuro_xlsx
