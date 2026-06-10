@@ -477,6 +477,7 @@
       "colorAssistAriaLabel": "Enable colorblind support pattern",
       "selectedWellAriaLabel": "Selected well details",
       "verdictLegendAriaLabel": "Verdict color legend",
+      "verdictFilterAriaLabel": "Filter wells by {{verdict}} (toggle)",
       "selectedWellLabel": "Selected Well",
       "selectedReplicate": "Selected replicate",
       "fallbackTitle": "Fallback replicate",

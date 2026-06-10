@@ -418,6 +418,7 @@
       "colorAssistAriaLabel": "Activer le motif de support daltonien",
       "selectedWellAriaLabel": "Détails du well sélectionné",
       "verdictLegendAriaLabel": "Légende des couleurs de verdict",
+      "verdictFilterAriaLabel": "Filtrer les puits par {{verdict}} (bascule)",
       "selectedWellLabel": "Well sélectionné",
       "selectedReplicate": "Replicate sélectionné",
       "fallbackTitle": "Replicate fallback",
