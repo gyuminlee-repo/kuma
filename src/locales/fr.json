@@ -408,7 +408,11 @@
       "detectedShort": "Détecté",
       "classCountTableCaption": "Décompte des classes de verdict sur toutes les plaques",
       "classCountColClass": "Classe",
-      "classCountColCount": "Décompte"
+      "classCountColCount": "Décompte",
+      "mutantRecoveryTitle": "Récupération des mutants",
+      "recoveredViaPass": "Récupéré (Pass)",
+      "recoveredViaAmbiguous": "Récupéré (Ambiguous)",
+      "notRecovered": "Non récupéré"
     },
     "plateView": {
       "plate": "Plaque",
@@ -419,7 +423,7 @@
       "selectedWellAriaLabel": "Détails du well sélectionné",
       "verdictLegendAriaLabel": "Légende des couleurs de verdict",
       "verdictFilterAriaLabel": "Filtrer les puits par {{verdict}} (bascule)",
-      "selectedWellLabel": "Well sélectionné",
+      "selectedWellLabel": "Puits inspecté",
       "selectedReplicate": "Replicate sélectionné",
       "fallbackTitle": "Replicate fallback",
       "fallbackDesc": "Le cutoff initial n'a couvert aucune plaque.",
@@ -429,7 +433,8 @@
       "detailBarcode": "Barcode",
       "detailNativeBc": "BC natif",
       "detailMutant": "Mutant",
-      "detailNotes": "Notes"
+      "detailNotes": "Notes",
+      "detailSelectedReplicate": "Réplicat sélectionné"
     },
     "drawer": {
       "stat": {
@@ -490,7 +495,8 @@
         "reasonWt": "Excluded — wild-type sample (not a variant).",
         "reasonNoLog2fc": "Excluded — log₂FC could not be computed.",
         "reasonNoActivity": "Excluded — no activity data available."
-      }
+      },
+      "selectedReplicateBadge": "Sélectionné"
     },
     "summaryRow": {
       "ariaLabel": "Résumé de l'analyse",

@@ -408,7 +408,11 @@
       "detectedShort": "Обнаружено",
       "classCountTableCaption": "Подсчёт классов вердикта по всем планшетам",
       "classCountColClass": "Класс",
-      "classCountColCount": "Количество"
+      "classCountColCount": "Количество",
+      "mutantRecoveryTitle": "Восстановление мутантов",
+      "recoveredViaPass": "Восстановлено (Pass)",
+      "recoveredViaAmbiguous": "Восстановлено (Ambiguous)",
+      "notRecovered": "Не восстановлено"
     },
     "plateView": {
       "plate": "Plate",
@@ -419,7 +423,7 @@
       "selectedWellAriaLabel": "Детали выбранного well",
       "verdictLegendAriaLabel": "Цветовая легенда verdict",
       "verdictFilterAriaLabel": "Фильтр лунок по {{verdict}} (переключатель)",
-      "selectedWellLabel": "Выбранный well",
+      "selectedWellLabel": "Просматриваемая лунка",
       "selectedReplicate": "Выбранный replicate",
       "fallbackTitle": "Fallback replicate",
       "fallbackDesc": "Исходный cutoff не охватил ни одного plate.",
@@ -429,7 +433,8 @@
       "detailBarcode": "Barcode",
       "detailNativeBc": "Native BC",
       "detailMutant": "Mutant",
-      "detailNotes": "Заметки"
+      "detailNotes": "Заметки",
+      "detailSelectedReplicate": "Выбранная реплика"
     },
     "drawer": {
       "stat": {
@@ -490,7 +495,8 @@
         "reasonWt": "Excluded — wild-type sample (not a variant).",
         "reasonNoLog2fc": "Excluded — log₂FC could not be computed.",
         "reasonNoActivity": "Excluded — no activity data available."
-      }
+      },
+      "selectedReplicateBadge": "Выбрано"
     },
     "summaryRow": {
       "ariaLabel": "Сводка анализа",

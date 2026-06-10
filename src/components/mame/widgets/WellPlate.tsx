@@ -132,11 +132,9 @@ export function WellPlate({
                       opacity: isDimmed ? 0.3 : undefined,
                     }}
                   >
-                    {/* Well ID label (plate token 10px) */}
-                    <span className="font-display text-caption font-semibold leading-tight">{id}</span>
                     {well && (
                       <span
-                        className="min-w-0 flex-1 truncate px-0.5 text-plate-tiny leading-tight opacity-85"
+                        className="min-w-0 flex-1 truncate px-0.5 text-plate leading-tight opacity-85"
                         title={well.mutant_id || undefined}
                       >
                         {well.mutant_id || "-"}

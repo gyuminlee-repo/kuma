@@ -22,7 +22,8 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
-import { VERDICT_FILL } from "@/lib/mame/verdictColors";
+import { VERDICT_FILL, VERDICT_LABEL } from "@/lib/mame/verdictColors";
+import { useMameAppStore } from "@/store/mame/mameAppStore";
 import type {
   CrossTalkCandidate,
   RunHealthBreakdown,
@@ -54,14 +55,14 @@ const VERDICT_SEGMENTS: {
   label: string;
   fill: string;
 }[] = [
-  { key: "pass", label: "Pass", fill: VERDICT_FILL.PASS.bg },
-  { key: "ambiguous", label: "Ambiguous", fill: VERDICT_FILL.AMBIGUOUS.bg },
-  { key: "mixed", label: "Mixed", fill: VERDICT_FILL.MIXED.bg },
-  { key: "wrong_aa", label: "Wrong AA", fill: VERDICT_FILL.WRONG_AA.bg },
-  { key: "frameshift", label: "Frameshift", fill: VERDICT_FILL.FRAMESHIFT.bg },
-  { key: "many", label: "Many", fill: VERDICT_FILL.MANY.bg },
-  { key: "lowdepth", label: "Low depth", fill: VERDICT_FILL.LOWDEPTH.bg },
-  { key: "no_call", label: "No call", fill: VERDICT_FILL.NO_CALL.bg },
+  { key: "pass", label: VERDICT_LABEL.PASS, fill: VERDICT_FILL.PASS.bg },
+  { key: "ambiguous", label: VERDICT_LABEL.AMBIGUOUS, fill: VERDICT_FILL.AMBIGUOUS.bg },
+  { key: "mixed", label: VERDICT_LABEL.MIXED, fill: VERDICT_FILL.MIXED.bg },
+  { key: "wrong_aa", label: VERDICT_LABEL.WRONG_AA, fill: VERDICT_FILL.WRONG_AA.bg },
+  { key: "frameshift", label: VERDICT_LABEL.FRAMESHIFT, fill: VERDICT_FILL.FRAMESHIFT.bg },
+  { key: "many", label: VERDICT_LABEL.MANY, fill: VERDICT_FILL.MANY.bg },
+  { key: "lowdepth", label: VERDICT_LABEL.LOWDEPTH, fill: VERDICT_FILL.LOWDEPTH.bg },
+  { key: "no_call", label: VERDICT_LABEL.NO_CALL, fill: VERDICT_FILL.NO_CALL.bg },
 ];
 
 /** Friendly plate label: "sort_barcode06" → "NB06"; non-numeric names stay as-is. */
@@ -92,6 +93,7 @@ function VerdictBreakdown({
   recoveryRate,
 }: VerdictBreakdownProps) {
   const { t } = useTranslation();
+  const replicates = useMameAppStore((state) => state.replicates);
   const plates = Object.entries(perPlate).sort(([a], [b]) => {
     const na = a.match(/(\d+)/);
     const nb = b.match(/(\d+)/);
@@ -120,6 +122,42 @@ function VerdictBreakdown({
     </div>
   );
 
+  // Per-mutant recovery distribution (pass / ambiguous / not recovered)
+  const mutantRecoveryBar = useMemo(() => {
+    const passN = replicates.filter((r) => r.selected_plate !== null && r.plate_verdicts[r.selected_plate]?.verdict === "PASS").length;
+    const ambN = replicates.filter((r) => r.selected_plate !== null && r.plate_verdicts[r.selected_plate]?.verdict === "AMBIGUOUS").length;
+    const total = totalMutants ?? 0;
+    if (total === 0) return null;
+    const notRec = Math.max(0, total - passN - ambN);
+    const denom = passN + ambN + notRec;
+    const pPct = denom > 0 ? (passN / denom) * 100 : 0;
+    const aPct = denom > 0 ? (ambN / denom) * 100 : 0;
+    const nPct = denom > 0 ? (notRec / denom) * 100 : 0;
+    return (
+      <div className="flex flex-col gap-1.5">
+        <span className="text-caption font-semibold uppercase tracking-widest text-muted-foreground">
+          {t("mame.runHealth.mutantRecoveryTitle")}
+        </span>
+        <div className="flex h-3 w-full overflow-hidden rounded-full">
+          {pPct > 0 && (
+            <div style={{ width: `${pPct}%`, backgroundColor: VERDICT_FILL.PASS.bg }} title={`${VERDICT_LABEL.PASS}: ${passN}`} />
+          )}
+          {aPct > 0 && (
+            <div style={{ width: `${aPct}%`, backgroundColor: VERDICT_FILL.AMBIGUOUS.bg }} title={`${VERDICT_LABEL.AMBIGUOUS}: ${ambN}`} />
+          )}
+          {nPct > 0 && (
+            <div style={{ width: `${nPct}%`, backgroundColor: VERDICT_FILL.NO_CALL.bg }} title={`${t("mame.runHealth.notRecovered")}: ${notRec}`} />
+          )}
+        </div>
+        <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-caption text-muted-foreground">
+          <span><span className="inline-block h-2 w-2 rounded-sm mr-1" style={{ backgroundColor: VERDICT_FILL.PASS.bg }} aria-hidden="true" />{t("mame.runHealth.recoveredViaPass")}: {passN}</span>
+          <span><span className="inline-block h-2 w-2 rounded-sm mr-1" style={{ backgroundColor: VERDICT_FILL.AMBIGUOUS.bg }} aria-hidden="true" />{t("mame.runHealth.recoveredViaAmbiguous")}: {ambN}</span>
+          <span><span className="inline-block h-2 w-2 rounded-sm mr-1" style={{ backgroundColor: VERDICT_FILL.NO_CALL.bg }} aria-hidden="true" />{t("mame.runHealth.notRecovered")}: {notRec}</span>
+        </div>
+      </div>
+    );
+  }, [replicates, totalMutants, t]);
+
   // AC10: run-level per-class counts summed across every plate.
   const classCounts = VERDICT_SEGMENTS.map(({ key, label, fill }) => ({
     key,
@@ -143,6 +181,7 @@ function VerdictBreakdown({
   return (
     <div className="flex flex-col gap-3">
       {recoveryHeader}
+      {mutantRecoveryBar}
       <figure className="w-full overflow-x-auto" aria-label={t("mame.runHealth.verdictBreakdown")}>
         <svg
           viewBox={`0 0 ${svgW} ${svgH}`}

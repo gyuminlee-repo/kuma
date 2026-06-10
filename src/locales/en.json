@@ -467,7 +467,11 @@
       "detectedShort": "Detected",
       "classCountTableCaption": "Verdict class counts across all plates",
       "classCountColClass": "Class",
-      "classCountColCount": "Count"
+      "classCountColCount": "Count",
+      "mutantRecoveryTitle": "Mutant recovery",
+      "recoveredViaPass": "Recovered (Pass)",
+      "recoveredViaAmbiguous": "Recovered (Ambiguous)",
+      "notRecovered": "Not recovered"
     },
     "plateView": {
       "plate": "Plate",
@@ -478,7 +482,7 @@
       "selectedWellAriaLabel": "Selected well details",
       "verdictLegendAriaLabel": "Verdict color legend",
       "verdictFilterAriaLabel": "Filter wells by {{verdict}} (toggle)",
-      "selectedWellLabel": "Selected Well",
+      "selectedWellLabel": "Inspected well",
       "selectedReplicate": "Selected replicate",
       "fallbackTitle": "Fallback replicate",
       "fallbackDesc": "Original cutoff missed all plates.",
@@ -488,7 +492,8 @@
       "detailBarcode": "Barcode",
       "detailNativeBc": "Native BC",
       "detailMutant": "Mutant",
-      "detailNotes": "Notes"
+      "detailNotes": "Notes",
+      "detailSelectedReplicate": "Selected replicate"
     },
     "drawer": {
       "stat": {
@@ -549,7 +554,8 @@
         "reasonNoActivity": "Excluded — no activity data available.",
         "reasonNoLog2fc": "Excluded — log₂FC could not be computed.",
         "reasonWt": "Excluded — wild-type sample (not a variant)."
-      }
+      },
+      "selectedReplicateBadge": "Selected"
     },
     "summaryRow": {
       "ariaLabel": "Analysis summary",

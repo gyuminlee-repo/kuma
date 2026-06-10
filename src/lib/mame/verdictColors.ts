@@ -26,3 +26,15 @@ export const VERDICT_FILL: Record<VerdictClass, VerdictColor> = {
 
 /** Verdict classes counted as "detected" (reproduced) by the backend. */
 export const DETECTED_VERDICTS: readonly VerdictClass[] = ["PASS", "AMBIGUOUS"];
+
+/** Canonical display labels for each verdict class. Single source of truth. */
+export const VERDICT_LABEL: Record<VerdictClass, string> = {
+  PASS: "Pass",
+  AMBIGUOUS: "Ambiguous",
+  MIXED: "Mixed",
+  WRONG_AA: "Wrong AA",
+  FRAMESHIFT: "Frameshift",
+  MANY: "Many",
+  LOWDEPTH: "Low depth",
+  NO_CALL: "No call",
+};

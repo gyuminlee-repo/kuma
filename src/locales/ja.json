@@ -408,7 +408,11 @@
       "detectedShort": "検出",
       "classCountTableCaption": "全プレートの Verdict クラス数",
       "classCountColClass": "クラス",
-      "classCountColCount": "件数"
+      "classCountColCount": "件数",
+      "mutantRecoveryTitle": "変異体リカバリー",
+      "recoveredViaPass": "リカバリー (Pass)",
+      "recoveredViaAmbiguous": "リカバリー (Ambiguous)",
+      "notRecovered": "リカバリーなし"
     },
     "plateView": {
       "plate": "Plate",
@@ -419,7 +423,7 @@
       "selectedWellAriaLabel": "選択した well の詳細",
       "verdictLegendAriaLabel": "Verdict カラー凡例",
       "verdictFilterAriaLabel": "{{verdict}} クラスのみ強調（トグル）",
-      "selectedWellLabel": "選択 well",
+      "selectedWellLabel": "選択中のwell",
       "selectedReplicate": "選択 replicate",
       "fallbackTitle": "Fallback replicate",
       "fallbackDesc": "元の cutoff ではすべての plate を取り逃しました。",
@@ -429,7 +433,8 @@
       "detailBarcode": "Barcode",
       "detailNativeBc": "Native BC",
       "detailMutant": "Mutant",
-      "detailNotes": "Notes"
+      "detailNotes": "Notes",
+      "detailSelectedReplicate": "選択されたreplicate"
     },
     "drawer": {
       "stat": {
@@ -490,7 +495,8 @@
         "reasonWt": "Excluded — wild-type sample (not a variant).",
         "reasonNoLog2fc": "Excluded — log₂FC could not be computed.",
         "reasonNoActivity": "Excluded — no activity data available."
-      }
+      },
+      "selectedReplicateBadge": "選択"
     },
     "summaryRow": {
       "ariaLabel": "解析サマリー",
