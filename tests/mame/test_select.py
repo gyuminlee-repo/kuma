@@ -10,7 +10,7 @@ from kuma_core.mame.models import (
     VerdictClass,
     VerdictRecord,
 )
-from kuma_core.mame.select import pick_best_replicate
+from kuma_core.mame.select import pick_best_replicate, prefer_within_plate
 
 
 def _vr(nb: str, verdict: VerdictClass, file_size_kb: float = 60.0) -> VerdictRecord:
@@ -149,3 +149,91 @@ def test_t07_normal_case_regression_no_fallback() -> None:
     assert result.failed is False
     assert result.is_fallback is False
     assert result.fallback_reason is None
+
+
+# Within-plate representative selection (one mutant, several wells, same NB).
+
+
+def _vr_rc(
+    nb: str,
+    verdict: VerdictClass,
+    read_count: int,
+    well: str = "A1",
+) -> VerdictRecord:
+    """VerdictRecord with an explicit read_count for within-plate volume tiebreak."""
+    barcode = BarcodeRecord(
+        native_barcode=nb,
+        custom_barcode=well,
+        consensus_seq="",
+        file_size_kb=60.0,
+        source_path=Path("/tmp/mock.fasta"),
+        read_count=read_count,
+    )
+    translated = TranslatedRecord(
+        barcode=barcode,
+        aa_sequence="",
+        observed_nt_changes=[],
+        observed_aa_changes=[],
+    )
+    return VerdictRecord(
+        translated=translated,
+        expected_mutations=[],
+        verdict=verdict,
+        verdict_notes="",
+    )
+
+
+def _collapse(vr_list: list[VerdictRecord]) -> dict[str, VerdictRecord]:
+    """Mirror the per-plate collapse in pipeline.run_analyze (lines ~241-247)."""
+    plate_verdicts: dict[str, VerdictRecord] = {}
+    for vr in vr_list:
+        nb = vr.translated.barcode.native_barcode
+        incumbent = plate_verdicts.get(nb)
+        if incumbent is None or prefer_within_plate(vr, incumbent):
+            plate_verdicts[nb] = vr
+    return plate_verdicts
+
+
+def test_within_plate_pass_beats_higher_read_ambiguous() -> None:
+    """A PASS well must win over an AMBIGUOUS well even with fewer reads.
+
+    Reproduces the K53N/3_2 report: PASS (5095 reads) vs AMBIGUOUS (7891 reads)
+    on the same native barcode. Verdict priority, not read count, decides.
+    """
+    pass_well = _vr_rc("3_2", VerdictClass.PASS, read_count=5095, well="A3")
+    amb_well = _vr_rc("3_2", VerdictClass.AMBIGUOUS, read_count=7891, well="C2")
+    assert prefer_within_plate(pass_well, amb_well) is True
+    assert prefer_within_plate(amb_well, pass_well) is False
+
+
+def test_within_plate_collapse_is_order_independent() -> None:
+    """Same wells, any encounter order yields the PASS well as representative."""
+    pass_well = _vr_rc("3_2", VerdictClass.PASS, read_count=5095, well="A3")
+    amb_well = _vr_rc("3_2", VerdictClass.AMBIGUOUS, read_count=7891, well="C2")
+    mixed_well = _vr_rc("3_2", VerdictClass.MIXED, read_count=149, well="B1")
+
+    for order in (
+        [amb_well, pass_well, mixed_well],  # bug-reproducing order (AMB first)
+        [pass_well, amb_well, mixed_well],
+        [mixed_well, amb_well, pass_well],
+    ):
+        kept = _collapse(order)["3_2"]
+        assert kept.verdict is VerdictClass.PASS
+        assert kept.translated.barcode.custom_barcode == "A3"
+
+
+def test_within_plate_equal_class_prefers_higher_volume() -> None:
+    """Two PASS wells on one plate: higher read_count wins, order-independent."""
+    lo = _vr_rc("3_2", VerdictClass.PASS, read_count=1000, well="A1")
+    hi = _vr_rc("3_2", VerdictClass.PASS, read_count=9000, well="H12")
+    assert _collapse([lo, hi])["3_2"].translated.barcode.read_count == 9000
+    assert _collapse([hi, lo])["3_2"].translated.barcode.read_count == 9000
+
+
+def test_within_plate_unpickable_keeps_highest_volume_for_fallback() -> None:
+    """All wells unpickable on a plate: highest-volume survives so the G1
+    fallback (highest-volume plate) still selects the right record."""
+    lo = _vr_rc("3_2", VerdictClass.WRONG_AA, read_count=300, well="A1")
+    hi = _vr_rc("3_2", VerdictClass.WRONG_AA, read_count=8000, well="D4")
+    assert _collapse([lo, hi])["3_2"].translated.barcode.read_count == 8000
+    assert _collapse([hi, lo])["3_2"].translated.barcode.read_count == 8000
