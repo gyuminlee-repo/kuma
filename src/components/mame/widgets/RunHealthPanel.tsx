@@ -122,13 +122,24 @@ function VerdictBreakdown({
     </div>
   );
 
-  // Per-mutant recovery distribution (pass / ambiguous / not recovered)
+  // Per-mutant recovery distribution (pass / ambiguous / not recovered).
+  // Denominator and the not-recovered count come from the same backend scalars
+  // as the recovery header (designed mutants only), so the bar can never
+  // contradict the header. The Pass/Ambiguous split is read from the selected
+  // replicate verdicts, excluding the WT control and UNKNOWN_* fallback groups
+  // (backend sentinel mutant ids) which are not designed mutants; designed
+  // recovered mutants always carry a PASS/AMBIGUOUS selected verdict, so
+  // passN + ambN == recoveredMutants.
   const mutantRecoveryBar = useMemo(() => {
-    const passN = replicates.filter((r) => r.selected_plate !== null && r.plate_verdicts[r.selected_plate]?.verdict === "PASS").length;
-    const ambN = replicates.filter((r) => r.selected_plate !== null && r.plate_verdicts[r.selected_plate]?.verdict === "AMBIGUOUS").length;
     const total = totalMutants ?? 0;
+    const recovered = recoveredMutants ?? 0;
     if (total === 0) return null;
-    const notRec = Math.max(0, total - passN - ambN);
+    const isDesigned = (id: string) => id !== "WT" && !id.startsWith("UNKNOWN_");
+    const selVerdict = (r: (typeof replicates)[number]) =>
+      r.selected_plate !== null ? r.plate_verdicts[r.selected_plate]?.verdict : undefined;
+    const passN = replicates.filter((r) => isDesigned(r.mutant_id) && selVerdict(r) === "PASS").length;
+    const ambN = replicates.filter((r) => isDesigned(r.mutant_id) && selVerdict(r) === "AMBIGUOUS").length;
+    const notRec = Math.max(0, total - recovered);
     const denom = passN + ambN + notRec;
     const pPct = denom > 0 ? (passN / denom) * 100 : 0;
     const aPct = denom > 0 ? (ambN / denom) * 100 : 0;
