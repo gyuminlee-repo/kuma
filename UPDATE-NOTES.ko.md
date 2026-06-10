@@ -4,6 +4,32 @@
 
 ---
 
+## v0.13.4.0 (2026-06-10)
+
+MAME의 raw MinKNOW run 폴더 직접 분석, 자동 업데이터 제거, CI 품질 게이트.
+
+### MAME
+
+- MAME analyze가 raw MinKNOW run 폴더를 직접 받습니다. `fastq_pass/`가 들어 있는 디렉터리를 지정하면 demux → consensus → 분석을 한 번에 수행하므로, 미리 demux된 consensus 디렉터리가 더는 필요 없습니다. 기존 pre-demux 경로와 단독 combinatorial-demux 흐름은 그대로이며, well 이름(`{R}_{F}`)도 동일합니다.
+- raw-run 분석은 백엔드 단일 호출로 동작하며 demux→analyze 진행률이 하나의 흐름과 단계 라벨로 표시됩니다. 결합 실행에 맞는 더 긴 타임아웃을 사용하므로 정상적인 장시간 실행에서 "응답 없음" 창이 더는 뜨지 않습니다.
+
+### 앱
+
+- 내장 자동 업데이터를 제거했습니다. 앱이 백그라운드에서 업데이트를 확인하거나 내려받지 않고, 번들에서 업데이터 네트워크 권한도 제거됩니다. 업데이트 확인 메뉴는 릴리스 페이지로 연결됩니다.
+- 시작이 가벼워졌습니다. UI 로케일과 Kuro/MAME 화면을 한꺼번에 불러오지 않고 필요할 때 로드합니다.
+
+### 빌드 / CI
+
+- 릴리스 빌드 전에 quality-gates 작업(Python 테스트, TypeScript 타입 체크, cross-layer sync 체크, i18n parity 체크)을 실행하여, 깨진 계약이나 누락된 번역을 빠르게 실패시킵니다.
+- 10개 언어가 모두 완전한 번역 parity 상태입니다.
+
+### 수정 (v0.13.3.2 – v0.13.3.3)
+
+- EVOLVEpro 수치 overflow와 오래된 테스트 기대값 몇 건을 수정했습니다.
+- verdict window note가 하드코딩된 ±5 대신 실제 window를 반영하고, 중복된 T3 계산을 제거했으며, SDM parse fallback을 로그로 남깁니다.
+
+---
+
 ## Unreleased (2026-06-07)
 
 ### MAME

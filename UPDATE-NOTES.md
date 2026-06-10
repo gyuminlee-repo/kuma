@@ -4,6 +4,32 @@
 
 ---
 
+## v0.13.4.0 (2026-06-10)
+
+Native MinKNOW run-folder ingestion for MAME, auto-updater removal, and CI quality gates.
+
+### MAME
+
+- MAME analyze now accepts a raw MinKNOW run folder directly: point it at a directory that contains `fastq_pass/` and it runs demux → consensus → analysis in one step, so a pre-demuxed consensus directory is no longer required. The existing pre-demuxed path and the standalone combinatorial-demux flow are unchanged, and well naming (`{R}_{F}`) stays identical.
+- The raw-run analysis runs from a single backend call with one demux→analyze progress flow and phase labels, and uses a longer timeout suited to the combined run, so long but healthy runs no longer trigger the "no response" dialog.
+
+### App
+
+- The built-in auto-updater is removed. The app no longer checks for or downloads updates in the background, and the updater network permission is dropped from the bundle; the Check-for-updates menu entry now points to the release page.
+- Startup is lighter: UI locales and the Kuro/MAME screens load on demand instead of all at once.
+
+### Build / CI
+
+- CI runs a quality-gates job (Python tests, TypeScript type-check, cross-layer sync check, and i18n parity check) before building the release, so a broken contract or a missing translation fails fast.
+- All 10 languages are at full translation parity.
+
+### Fixes (v0.13.3.2 – v0.13.3.3)
+
+- Fixed an EVOLVEpro numeric overflow and several stale test expectations.
+- The verdict window note now reflects the real window instead of a hardcoded ±5; duplicate T3 computation removed; the SDM parse fallback is now logged.
+
+---
+
 ## Unreleased (2026-06-07)
 
 ### MAME
