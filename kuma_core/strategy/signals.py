@@ -155,13 +155,9 @@ def compute_T3(hit_rates: list[float], window: int = 2) -> Optional[bool]:
         False if slope > 0,
         None if fewer than 2 data points.
     """
-    if len(hit_rates) < 2:
+    slope = compute_T3_magnitude(hit_rates, window)
+    if slope is None:
         return None
-    recent = hit_rates[-window:]
-    if len(recent) < 2:
-        return None
-    x = list(range(len(recent)))
-    slope, _ = statistics.linear_regression(x, recent)
     return slope <= 0
 
 

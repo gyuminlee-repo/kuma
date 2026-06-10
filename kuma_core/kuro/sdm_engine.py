@@ -1316,8 +1316,10 @@ def design_sdm_primers(
     failed_reasons: dict[str, str] = {}
     try:
         mutations = parse_mutations(mutations_csv, sequence, target_start)
-    except ValueError:
-        # line-by-line fallback when batch parse fails
+    except ValueError as exc:
+        # line-by-line fallback when batch parse fails. Preserve the original
+        # error signature so a genuine parse failure is not silently masked.
+        logger.warning("Batch parse_mutations failed (%s); falling back to per-line CSV parse", exc)
         mutations = []
         import csv as _csv
         with open(mutations_csv, encoding="utf-8") as _f:
