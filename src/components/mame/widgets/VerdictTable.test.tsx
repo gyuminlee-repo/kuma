@@ -171,6 +171,40 @@ describe("VerdictTable", () => {
     expect(labels).toEqual(["1_1", "1_2", "1_10", "1_11", "1_12"]);
   });
 
+  it("marks a variant recovered (✓) if any replicate is detected, ✗ otherwise", () => {
+    const mk = (
+      nb: string,
+      verdict: VerdictRecord["verdict"],
+      mid: string,
+    ): VerdictRecord => ({
+      ...mockVerdict,
+      native_barcode: nb,
+      custom_barcode: "1_1",
+      verdict,
+      mutant_id: mid,
+    });
+    const verdicts = [
+      mk("barcode01", "WRONG_AA", "mA"), // mA replicate 1: fail
+      mk("barcode02", "PASS", "mA"), // mA replicate 2: detected → ✓
+      mk("barcode01", "LOWDEPTH", "mB"), // mB replicate 1: fail
+      mk("barcode02", "WRONG_AA", "mB"), // mB replicate 2: fail → ✗
+    ];
+    vi.mocked(useMameAppStore).mockImplementation(
+      (sel: (s: MameAppStore) => unknown) =>
+        sel(makeMameStore({ verdicts }).getState()),
+    );
+    vi.mocked(useRoundStore).mockImplementation(
+      (sel: (s: RoundSlice) => unknown) => sel(makeRoundStore([], null).getState()),
+    );
+    render(<VerdictTable />);
+    const cells = screen
+      .getAllByTestId("recovered-cell")
+      .map((el) => el.textContent);
+    // mA appears in 2 NB rows (both ✓), mB in 2 rows (both ✗).
+    expect(cells.filter((c) => c === "✓").length).toBe(2);
+    expect(cells.filter((c) => c === "✗").length).toBe(2);
+  });
+
   it("returns a stable empty merged table snapshot when no active round exists", () => {
     const state = makeRoundStore([], null).getState();
     expect(selectActiveMergedTable(state)).toBe(selectActiveMergedTable(state));
