@@ -30,6 +30,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from kuma_core.mame.models import VerdictClass
+
 if TYPE_CHECKING:
     from kuma_core.mame.ingest.run_meta import NgsRunMeta
 
@@ -76,7 +78,10 @@ class RunHealthData:
 
     # ── Per-plate verdict breakdown ───────────────────────────────────────
     per_plate_summary: dict[str, dict[str, int]]
-    """Keys: plate (e.g. "NB01") → {"pass", "ambiguous", "fail", "fallback", "total"}"""
+    """Plate (e.g. "sort_barcode06") → per-verdict-class counts keyed by the
+    lower-cased VerdictClass value (pass, ambiguous, mixed, frameshift, many,
+    lowdepth, no_call, wrong_aa; these sum to "total"), plus the aggregate
+    "fail" (non-PASS/AMBIGUOUS) and the replicate-level "fallback" overlay."""
 
     # ── File-size distribution ────────────────────────────────────────────
     file_size_distribution: dict[str, float]
@@ -396,20 +401,21 @@ def build_run_health(
 
     # ── Per-plate breakdown ───────────────────────────────────────────────
     plates: dict[str, dict[str, int]] = {}
+    # Granular per-verdict-class keys (lower-cased class value: pass, ambiguous,
+    # mixed, frameshift, many, lowdepth, no_call, wrong_aa) sum to "total". The
+    # aggregate "fail" (everything that is not PASS/AMBIGUOUS) is retained for
+    # backward-compatible consumers. "fallback" is a separate replicate-level
+    # overlay and is NOT a verdict class.
+    _granular_keys = [v.value.lower() for v in VerdictClass]
     for vr in verdicts:
         plate = vr.translated.barcode.native_barcode
         if plate not in plates:
-            plates[plate] = {"pass": 0, "ambiguous": 0, "fail": 0, "fallback": 0, "total": 0}
+            plates[plate] = {k: 0 for k in _granular_keys}
+            plates[plate].update(fail=0, fallback=0, total=0)
         pb = plates[plate]
         pb["total"] += 1
-        verdict_val = vr.verdict.value
-        if verdict_val == "PASS":
-            pb["pass"] += 1
-        elif verdict_val == "AMBIGUOUS":
-            pb["ambiguous"] += 1
-        elif verdict_val == "MIXED":
-            pb["fail"] += 1
-        else:
+        pb[vr.verdict.value.lower()] += 1
+        if vr.verdict.value not in ("PASS", "AMBIGUOUS"):
             pb["fail"] += 1
 
     # ── Fallback tracking ─────────────────────────────────────────────────

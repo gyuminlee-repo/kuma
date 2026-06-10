@@ -98,8 +98,8 @@ def _render_plate_map(data: RunReportData) -> str:
     # Build a well -> colour map.
     well_color: dict[str, str] = {}
     # Priority: PASS > AMBIGUOUS > FAIL (lower number = higher priority kept)
-    _PRIORITY = {"PASS": 0, "AMBIGUOUS": 1, "MIXED": 1, "LOWDEPTH": 2, "MANY": 2,
-                 "WRONG_AA": 2, "FRAMESHIFT": 2}
+    _PRIORITY = {"PASS": 0, "AMBIGUOUS": 1, "MIXED": 1, "LOWDEPTH": 2, "NO_CALL": 2,
+                 "MANY": 2, "WRONG_AA": 2, "FRAMESHIFT": 2}
 
     for vr in getattr(data, "_raw_verdicts", []):
         b = vr.translated.barcode

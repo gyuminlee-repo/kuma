@@ -54,6 +54,11 @@ const verdictMeta: Record<VerdictClass, VerdictMeta> = {
     colorClass: "border-border text-muted-foreground",
     shape: "◆",
   },
+  NO_CALL: {
+    label: "No call",
+    colorClass: "border-muted-foreground/30 text-muted-foreground/80",
+    shape: "○",
+  },
 };
 
 interface VerdictBadgeProps {

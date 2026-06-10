@@ -7,6 +7,7 @@ export type VerdictClass =
   | "FRAMESHIFT"
   | "MANY"
   | "LOWDEPTH"
+  | "NO_CALL"
   | "WRONG_AA";
 
 export type SidecarStatus = "disconnected" | "connecting" | "ready" | "error";
@@ -29,6 +30,7 @@ export interface VerdictRecord {
   aa_sequence: string;
   observed_nt_changes: string[];
   observed_aa_changes: string[];
+  n_no_call_aa: number;
   expected_mutations: string[];
   verdict: VerdictClass;
   verdict_notes: string;
@@ -228,6 +230,12 @@ export interface CrossTalkCandidate {
 export interface RunHealthBreakdown {
   pass: number;
   ambiguous: number;
+  mixed: number;
+  frameshift: number;
+  many: number;
+  lowdepth: number;
+  no_call: number;
+  wrong_aa: number;
   fail: number;
   fallback: number;
   total: number;

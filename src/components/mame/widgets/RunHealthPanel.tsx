@@ -44,6 +44,31 @@ const C = {
   area: "hsl(var(--primary) / 0.12)",
 } as const;
 
+// Verdict-class stacked-bar segments (bottom→top). Each plate bar is normalised
+// to 100% height so the verdict MIX is comparable across plates; the absolute
+// count is labelled below. "fallback" is a replicate-level overlay (shown as a
+// caption), not a verdict class, so it is not a stack segment.
+const VERDICT_SEGMENTS: {
+  key: "pass" | "ambiguous" | "mixed" | "wrong_aa" | "frameshift" | "many" | "lowdepth" | "no_call";
+  label: string;
+  fill: string;
+}[] = [
+  { key: "pass", label: "Pass", fill: "var(--color-success)" },
+  { key: "ambiguous", label: "Ambiguous", fill: "var(--color-warning)" },
+  { key: "mixed", label: "Mixed", fill: "#fb923c" },
+  { key: "wrong_aa", label: "Wrong AA", fill: "hsl(var(--destructive))" },
+  { key: "frameshift", label: "Frameshift", fill: "#b91c1c" },
+  { key: "many", label: "Many", fill: "#a855f7" },
+  { key: "lowdepth", label: "Low depth", fill: "#94a3b8" },
+  { key: "no_call", label: "No call", fill: "#475569" },
+];
+
+/** Friendly plate label: "sort_barcode06" → "NB06"; non-numeric names stay as-is. */
+function plateLabel(plate: string): string {
+  const m = plate.match(/(\d+)/);
+  return m ? `NB${m[1]}` : plate;
+}
+
 // ── Tiny helpers ─────────────────────────────────────────────────────────────
 
 function safeMax(arr: number[]): number {
@@ -58,76 +83,70 @@ interface VerdictBreakdownProps {
 
 function VerdictBreakdown({ perPlate }: VerdictBreakdownProps) {
   const { t } = useTranslation();
-  const plates = Object.entries(perPlate);
+  const plates = Object.entries(perPlate).sort(([a], [b]) => {
+    const na = a.match(/(\d+)/);
+    const nb = b.match(/(\d+)/);
+    const ka = na ? parseInt(na[1], 10) : Number.MAX_SAFE_INTEGER;
+    const kb = nb ? parseInt(nb[1], 10) : Number.MAX_SAFE_INTEGER;
+    return ka - kb || a.localeCompare(b);
+  });
   if (plates.length === 0) return null;
 
-  const barW = 48;
-  const gap = 20;
-  const chartH = 100;
-  const labelH = 18;
+  const barW = 44;
+  const gap = 24;
+  const chartH = 120;
+  const labelH = 30;
   const svgW = plates.length * (barW + gap) + gap;
-  const svgH = chartH + labelH + 4;
-
-  const maxTotal = safeMax(plates.map(([, v]) => v.total));
+  const svgH = chartH + labelH;
 
   return (
     <figure className="w-full overflow-x-auto" aria-label={t("mame.runHealth.verdictBreakdown")}>
       <svg
         viewBox={`0 0 ${svgW} ${svgH}`}
         width="100%"
+        style={{ maxWidth: svgW * 1.6 }}
         preserveAspectRatio="xMinYMin meet"
         role="img"
         aria-label={t("mame.runHealth.verdictBreakdown")}
       >
         <title>{t("mame.runHealth.verdictBreakdown")}</title>
-        {plates.map(([plate, breakdown], i) => {
+        {plates.map(([plate, b], i) => {
           const x = gap + i * (barW + gap);
-          const scale = maxTotal > 0 ? chartH / maxTotal : 0;
-
-          const segments = [
-            { key: "pass", value: breakdown.pass, fill: C.pass },
-            { key: "ambiguous", value: breakdown.ambiguous, fill: C.ambiguous },
-            { key: "fail", value: breakdown.fail, fill: C.fail },
-            { key: "fallback", value: breakdown.fallback, fill: C.fallback },
-          ];
-
+          const total = b.total || 0;
           let yOffset = chartH;
           return (
             <g key={plate}>
-              {segments.map(({ key, value, fill }) => {
-                if (value === 0) return null;
-                const h = value * scale;
-                yOffset -= h;
-                const y = yOffset;
-                return (
-                  <rect
-                    key={key}
-                    x={x}
-                    y={y}
-                    width={barW}
-                    height={h}
-                    style={{ fill }}
-                    rx={key === "pass" ? 3 : 0}
-                  >
-                    <title>{`${plate} ${key}: ${value}`}</title>
-                  </rect>
-                );
-              })}
+              {total === 0 ? (
+                <rect x={x} y={0} width={barW} height={chartH} rx={3} style={{ fill: "hsl(var(--muted))" }} />
+              ) : (
+                VERDICT_SEGMENTS.map(({ key, label, fill }) => {
+                  const value = b[key] ?? 0;
+                  if (value === 0) return null;
+                  const h = (value / total) * chartH;
+                  yOffset -= h;
+                  const pct = Math.round((value / total) * 100);
+                  return (
+                    <rect key={key} x={x} y={yOffset} width={barW} height={h} style={{ fill }}>
+                      <title>{`${plateLabel(plate)} · ${label}: ${value} (${pct}%)`}</title>
+                    </rect>
+                  );
+                })
+              )}
               <text
                 x={x + barW / 2}
-                y={chartH + labelH}
+                y={chartH + 13}
                 textAnchor="middle"
-                style={{ fill: C.muted, fontSize: 9 }}
+                style={{ fill: C.muted, fontSize: 10 }}
               >
-                {plate}
+                {plateLabel(plate)}
               </text>
               <text
                 x={x + barW / 2}
-                y={chartH - 4}
+                y={chartH + 25}
                 textAnchor="middle"
-                style={{ fill: "hsl(var(--foreground))", fontSize: 8 }}
+                style={{ fill: C.muted, fontSize: 8 }}
               >
-                {breakdown.total}
+                {`n=${total}${b.fallback ? ` · fb ${b.fallback}` : ""}`}
               </text>
             </g>
           );
@@ -437,19 +456,17 @@ function PoreYield({ pct }: PoreYieldProps) {
 
 function Legend() {
   const { t } = useTranslation();
-  const items = [
-    { label: "PASS", color: C.pass },
-    { label: "Ambiguous", color: C.ambiguous },
-    { label: "Fail", color: C.fail },
-    { label: "Fallback", color: C.fallback },
-  ];
   return (
-    <div className="flex flex-wrap gap-3" aria-label={t("mame.runHealth.legendAriaLabel")} role="list">
-      {items.map(({ label, color }) => (
-        <div key={label} className="flex items-center gap-1.5" role="listitem">
+    <div
+      className="flex flex-wrap gap-x-3 gap-y-1"
+      aria-label={t("mame.runHealth.legendAriaLabel")}
+      role="list"
+    >
+      {VERDICT_SEGMENTS.map(({ key, label, fill }) => (
+        <div key={key} className="flex items-center gap-1.5" role="listitem">
           <span
             className="h-2.5 w-2.5 flex-shrink-0 rounded-sm"
-            style={{ backgroundColor: color }}
+            style={{ backgroundColor: fill }}
             aria-hidden="true"
           />
           <span className="text-caption text-muted-foreground">{label}</span>

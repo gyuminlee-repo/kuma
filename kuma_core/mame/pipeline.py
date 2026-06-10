@@ -61,7 +61,7 @@ def _assign_mutant_ids(
     Strategy (observation-based fallback): iterate expected mutations and attach
     any verdict whose observed AA set contains the expected substitution label,
     or whose verdict class is WRONG_AA at the expected position, or whose verdict
-    is LOWDEPTH/FRAMESHIFT/MANY (unknown target — still attempt assignment based
+    is LOWDEPTH/NO_CALL/FRAMESHIFT/MANY (unknown target — still attempt assignment based
     on file naming).
     """
 
@@ -102,7 +102,7 @@ def _assign_mutant_ids(
             # first unmet expected mutant id round-robin.
             if vr.verdict is VerdictClass.WRONG_AA and expected:
                 matched_id = expected[idx % len(expected)].mutant_id
-            elif vr.verdict is VerdictClass.LOWDEPTH and expected:
+            elif vr.verdict in (VerdictClass.LOWDEPTH, VerdictClass.NO_CALL) and expected:
                 matched_id = expected[idx % len(expected)].mutant_id
             else:
                 # 4) Fall back to `<native>_<custom>` to keep the record addressable.

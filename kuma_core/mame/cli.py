@@ -120,6 +120,7 @@ def _cmd_translate(args: argparse.Namespace) -> int:
             "aa_sequence": t.aa_sequence,
             "observed_nt_changes": t.observed_nt_changes,
             "observed_aa_changes": t.observed_aa_changes,
+            "n_no_call_aa": t.n_no_call_aa,
         }
         for t in translated_list
     ]
@@ -224,6 +225,7 @@ def _load_verdicts(path: Path) -> tuple[list[VerdictRecord], list[ReplicateResul
             aa_sequence=item["aa_sequence"],
             observed_nt_changes=list(item["observed_nt_changes"]),
             observed_aa_changes=list(item["observed_aa_changes"]),
+            n_no_call_aa=int(item.get("n_no_call_aa", 0)),
         )
         vr = VerdictRecord(
             translated=translated,

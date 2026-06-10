@@ -97,10 +97,15 @@ export function selectActiveMergedTable(state: RoundSlice): MergedRow[] {
   return round?.merged_table ?? EMPTY_MERGED_TABLE;
 }
 
-function extractNbGroup(record: VerdictRecord): "NB01" | "NB02" | "NB03" | "UNKNOWN" {
-  const match = (record.source_path ?? "").match(/NB0(\d)/i);
-  if (!match) return "UNKNOWN";
-  return `NB0${match[1]}` as "NB01" | "NB02" | "NB03";
+function nbOrderKey(nb: string): number {
+  const m = nb.match(/(\d+)/);
+  return m ? parseInt(m[1], 10) : Number.MAX_SAFE_INTEGER;
+}
+
+/** Friendly plate-tab label: "sort_barcode06" → "NB06"; "consensus" stays as-is. */
+function nbTabLabel(nb: string): string {
+  const m = nb.match(/(\d+)/);
+  return m ? `NB${m[1]}` : nb;
 }
 
 function getVerdictRowTone(verdict: VerdictRow["verdict"]): string {
@@ -110,6 +115,7 @@ function getVerdictRowTone(verdict: VerdictRow["verdict"]): string {
     case "AMBIGUOUS":
       return "border-l-2 border-l-accent bg-accent/5";
     case "LOWDEPTH":
+    case "NO_CALL":
       return "border-l-2 border-l-border bg-muted/20";
     default:
       return "border-l-2 border-l-destructive bg-destructive/5";
@@ -158,6 +164,20 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
     return map;
   }, [mergedTable]);
 
+  // Plate (native_barcode) tabs are derived from the verdicts actually present
+  // (e.g. the native barcodes the user selected), not a fixed NB01/NB02/NB03 set.
+  const nbGroups = useMemo(() => {
+    const seen = new Set<string>();
+    for (const v of verdicts) seen.add(v.native_barcode);
+    return Array.from(seen).sort(
+      (a, b) => nbOrderKey(a) - nbOrderKey(b) || a.localeCompare(b),
+    );
+  }, [verdicts]);
+  const plateTabs = useMemo(() => ["ALL", ...nbGroups], [nbGroups]);
+  // Guard against a stale persisted filter (an NB no longer present) → fall back to ALL.
+  const activeFilter =
+    plateFilter !== "ALL" && nbGroups.includes(plateFilter) ? plateFilter : "ALL";
+
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(
     () =>
       Object.fromEntries(ACTIVITY_COLUMN_IDS.map((id) => [id, true])) as VisibilityState
@@ -176,7 +196,7 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
       }
     }
     return verdicts
-      .filter((record) => plateFilter === "ALL" || extractNbGroup(record) === plateFilter)
+      .filter((record) => activeFilter === "ALL" || record.native_barcode === activeFilter)
       .map((record) => {
         const mid = mutantMap.get(record.native_barcode) ?? "—";
         const fb = fallbackMap.get(mid);
@@ -196,7 +216,7 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
           mutation: merged?.mutation ?? null,
         };
       });
-  }, [plateFilter, replicates, verdicts, mergedByWell]);
+  }, [activeFilter, replicates, verdicts, mergedByWell]);
 
   const filteredRows = useMemo(() => {
     if (!searchQuery.trim()) return rows;
@@ -246,9 +266,23 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
         id: "observed_aa_changes",
         header: t("mame.verdictTable.colAaChanges"),
         accessorFn: (row) => row.observed_aa_changes.join(", "),
-        cell: ({ getValue }) => (
-          <span className="font-mono text-xs text-muted-foreground">{getValue<string>() || "—"}</span>
-        ),
+        cell: ({ row }) => {
+          const changes = row.original.observed_aa_changes.join(", ");
+          const noCall = row.original.n_no_call_aa;
+          return (
+            <span className="flex items-center gap-1 font-mono text-xs text-muted-foreground">
+              <span className="min-w-0 truncate">{changes || "—"}</span>
+              {noCall > 0 && (
+                <span
+                  className="shrink-0 rounded-sm bg-muted px-1 text-caption text-muted-foreground/80"
+                  title={`${noCall} no-call codon(s): consensus N → ambiguous X, excluded from changes`}
+                >
+                  ✕{noCall}
+                </span>
+              )}
+            </span>
+          );
+        },
       },
       {
         id: "reads",
@@ -470,11 +504,11 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
       <div className="flex flex-col gap-2 border-b border-border px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
         <Tabs
-          value={plateFilter}
-          onValueChange={(value: string) => setPlateFilter(value as "NB01" | "NB02" | "NB03" | "ALL")}
+          value={activeFilter}
+          onValueChange={(value: string) => setPlateFilter(value)}
         >
           <TabsList className="h-control gap-1 bg-muted/60 p-0.5">
-            {(["ALL", "NB01", "NB02", "NB03"] as const).map((tab) => (
+            {plateTabs.map((tab) => (
               <TabsTrigger
                 key={tab}
                 value={tab}
@@ -484,7 +518,7 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
                   "data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground",
                 )}
               >
-                {tab}
+                {tab === "ALL" ? "ALL" : nbTabLabel(tab)}
               </TabsTrigger>
             ))}
           </TabsList>

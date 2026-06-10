@@ -48,6 +48,7 @@ VERDICT_FILL: dict[VerdictClass, str] = {
     VerdictClass.MANY: "FF0000",
     VerdictClass.WRONG_AA: "FF0000",
     VerdictClass.LOWDEPTH: "808080",
+    VerdictClass.NO_CALL: "595959",
 }
 
 FAILED_FILL = "FF0000"

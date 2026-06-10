@@ -9,14 +9,15 @@
  * [source: v5-audit.md §GAP P2 — MAME/Analyze/Plate clustered-failure pattern alert]
  */
 
-import { AlertTriangle } from "lucide-react";
+import { useState } from "react";
+import { AlertTriangle, ChevronDown, ChevronRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import type { WellEntry } from "@/types/mame/models";
 
 type VerdictClass = WellEntry["verdict"];
 
-const FAIL_VERDICTS: Set<VerdictClass> = new Set(["LOWDEPTH", "FRAMESHIFT", "MANY", "WRONG_AA", "MIXED"]);
+const FAIL_VERDICTS: Set<VerdictClass> = new Set(["LOWDEPTH", "NO_CALL", "FRAMESHIFT", "MANY", "WRONG_AA", "MIXED"]);
 
 type ClusterGroup = {
   wells: string[];
@@ -89,6 +90,7 @@ function formatClusterRange(group: ClusterGroup): string {
 export function PlateClusterAlert() {
   const { t } = useTranslation();
   const wells = useMameAppStore((s) => s.wells);
+  const [open, setOpen] = useState(false);
 
   if (wells.length === 0) return null;
 
@@ -99,25 +101,36 @@ export function PlateClusterAlert() {
     <div
       role="alert"
       aria-label={t("mame.qc.plate.clusterAlertAriaLabel")}
-      className="flex items-start gap-2 rounded border border-warning/40 bg-warning/8 px-3 py-2 text-xs"
+      className="rounded border border-warning/40 bg-warning/8 text-xs"
     >
-      <AlertTriangle
-        size={13}
-        className="mt-0.5 shrink-0 text-warning"
-        aria-hidden="true"
-      />
-      <div className="min-w-0 space-y-1">
-        <p className="font-semibold text-warning">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="flex w-full items-center gap-2 px-3 py-1.5 text-left"
+      >
+        <AlertTriangle size={13} className="shrink-0 text-warning" aria-hidden="true" />
+        <span className="flex-1 font-semibold text-warning">
           {t("mame.qc.plate.clusterAlertTitle")}
-        </p>
-        {clusters.map((group) => (
-          <p key={`${group.row}-${group.wells[0]}`} className="text-muted-foreground">
-            {t("mame.qc.plate.clusterAlertDesc", {
-              wells: formatClusterRange(group),
-            })}
-          </p>
-        ))}
-      </div>
+          <span className="ml-1 font-normal text-muted-foreground">({clusters.length})</span>
+        </span>
+        {open ? (
+          <ChevronDown size={13} className="shrink-0 text-muted-foreground" aria-hidden="true" />
+        ) : (
+          <ChevronRight size={13} className="shrink-0 text-muted-foreground" aria-hidden="true" />
+        )}
+      </button>
+      {open && (
+        <div className="space-y-1 px-3 pb-2 pl-8">
+          {clusters.map((group) => (
+            <p key={`${group.row}-${group.wells[0]}`} className="text-muted-foreground">
+              {t("mame.qc.plate.clusterAlertDesc", {
+                wells: formatClusterRange(group),
+              })}
+            </p>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 class VerdictClass(StrEnum):
-    """7-class verdict enum. Order reflects comparison priority (fail-first checks)."""
+    """8-class verdict enum. Order reflects comparison priority (fail-first checks)."""
 
     PASS = "PASS"
     AMBIGUOUS = "AMBIGUOUS"
@@ -16,6 +16,7 @@ class VerdictClass(StrEnum):
     FRAMESHIFT = "FRAMESHIFT"
     MANY = "MANY"
     LOWDEPTH = "LOWDEPTH"
+    NO_CALL = "NO_CALL"
     WRONG_AA = "WRONG_AA"
 
 
@@ -23,7 +24,8 @@ class VerdictClass(StrEnum):
 class BarcodeRecord:
     """Ingest -> Translate transfer object.
 
-    `native_barcode` uses canonical NB01/NB02/NB03 labels.
+    `native_barcode` is the per-plate demux/consensus group key — the consensus
+    subdirectory name (e.g. "sort_barcode06"; "consensus" for a single pool).
     `custom_barcode` follows `{R}_{F}` barcode-mode naming (e.g. "1_1").
 
     `read_count` is populated from consensus header metadata such as
@@ -57,6 +59,10 @@ class TranslatedRecord:
     aa_sequence: str
     observed_nt_changes: list[str]
     observed_aa_changes: list[str]
+    # Count of CDS codons that translated to ambiguous 'X' because the consensus
+    # carried N bases (no-call). Excluded from observed_aa_changes so they do not
+    # flood the verdict table or inflate the MANY count; surfaced separately.
+    n_no_call_aa: int = 0
 
 
 @dataclass

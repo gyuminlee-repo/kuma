@@ -87,6 +87,9 @@ def classify_verdict(
             verdict_notes="; ".join(notes),
         )
 
+    # NO_CALL — consensus carries too many N (ambiguous) positions to trust the
+    # AA calls. Distinct from LOWDEPTH (a genuine read-count shortage, above):
+    # here depth can be ample but the consensus is dominated by no-call bases.
     if (
         params.max_consensus_n_fraction is not None
         and translated.barcode.consensus_n_fraction
@@ -97,6 +100,8 @@ def classify_verdict(
             f"{translated.barcode.consensus_n_fraction:.3f} > "
             f"max_consensus_n_fraction={params.max_consensus_n_fraction:.3f}"
         )
+        if translated.n_no_call_aa > 0:
+            notes.append(f"no_call_aa={translated.n_no_call_aa}")
         if translated.barcode.n_low_depth_positions > 0:
             notes.append(
                 f"low_depth_positions={translated.barcode.n_low_depth_positions}"
@@ -108,7 +113,7 @@ def classify_verdict(
         return VerdictRecord(
             translated=translated,
             expected_mutations=list(expected_mutations),
-            verdict=VerdictClass.LOWDEPTH,
+            verdict=VerdictClass.NO_CALL,
             verdict_notes="; ".join(notes),
         )
 

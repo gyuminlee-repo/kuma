@@ -155,7 +155,7 @@ export interface AnalysisSlice {
   verdicts: VerdictRecord[];
   replicates: ReplicateResult[];
   summary: AnalyzeSummary | null;
-  plateFilter: "NB01" | "NB02" | "NB03" | "ALL";
+  plateFilter: string;
   searchQuery: string;
   sorting: SortingState;
   showExport: boolean;
@@ -165,7 +165,7 @@ export interface AnalysisSlice {
   setVerdicts: (verdicts: VerdictRecord[]) => void;
   setReplicates: (replicates: ReplicateResult[]) => void;
   setSummary: (summary: AnalyzeSummary | null) => void;
-  setPlateFilter: (filter: "NB01" | "NB02" | "NB03" | "ALL") => void;
+  setPlateFilter: (filter: string) => void;
   setSearchQuery: (query: string) => void;
   setSorting: (updater: Updater<SortingState>) => void;
   openExport: () => void;

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import tempfile
 import threading
+import time
 from pathlib import Path
 from typing import Any
 
@@ -115,6 +116,7 @@ def _serialize_verdict(vr: Any) -> dict:
         "aa_sequence": t.aa_sequence,
         "observed_nt_changes": list(t.observed_nt_changes),
         "observed_aa_changes": list(t.observed_aa_changes),
+        "n_no_call_aa": t.n_no_call_aa,
         "expected_mutations": list(vr.expected_mutations),
         "verdict": vr.verdict.value,
         "verdict_notes": vr.verdict_notes,
@@ -174,6 +176,7 @@ def _deserialize_verdict(d: dict) -> Any:
         aa_sequence=d.get("aa_sequence", ""),
         observed_nt_changes=list(d.get("observed_nt_changes", [])),
         observed_aa_changes=list(d.get("observed_aa_changes", [])),
+        n_no_call_aa=int(d.get("n_no_call_aa", 0)),
     )
     return VerdictRecord(
         translated=translated,
@@ -337,6 +340,9 @@ def handle_analyze(params: dict) -> dict:
     # Raw-run gate: a MinKNOW run folder (has ``fastq_pass/``) needs demux first;
     # a pre-demuxed consensus dir takes the legacy path untouched.
     is_raw = is_minknow_run_dir(input_dir)
+    # Latest demux progress, mirrored by _emit_demux so the demux-phase heartbeat
+    # can re-emit a liveness pulse during long, low-event per-NB demux stretches.
+    _demux_state = {"value": 0, "message": "Demuxing raw MinKNOW run", "current": 0, "total": 0}
 
     def _emit(
         value: int,
@@ -395,6 +401,12 @@ def handle_analyze(params: dict) -> dict:
             "total": total,
             "stage": "demux",
         }
+        _demux_state.update(
+            value=emit_params["value"],
+            message=message,
+            current=done,
+            total=total,
+        )
         with _emit_lock:
             _send(
                 {"jsonrpc": "2.0", "method": "progress", "params": emit_params}
@@ -434,21 +446,50 @@ def handle_analyze(params: dict) -> dict:
             if params.get("demux_output_dir")
             else output.parent / "demux_filtered"
         )
-        ingest_run_folder(
-            run_dir=original_run_dir,
-            custom_barcodes_xlsx=Path(raw_custom_barcodes_xlsx),
-            reference_fasta=reference,
-            demux_output_dir=demux_output_dir,
-            native_barcodes=raw_native_barcodes,
-            mapq_threshold=raw_mapq_threshold,
-            coverage_fraction=raw_coverage_fraction,
-            trim_flank_bp=raw_trim_flank_bp,
-            edit_dist_ratio=raw_edit_dist_ratio,
-            chimera_split=raw_chimera_split,
-            progress_callback=lambda done, total, stage_str: _emit_demux(
-                done, total, stage_str
-            ),
-        )
+        _demux_started = time.monotonic()
+        _demux_done_evt = threading.Event()
+
+        def _demux_heartbeat() -> None:
+            # Long per-NB demux reports progress only at each barcode completion;
+            # re-emit the latest demux pulse with elapsed time so the bar stays
+            # visibly alive and the frontend no-response watchdog never trips.
+            while not _demux_done_evt.wait(_HEARTBEAT_INTERVAL_S):
+                elapsed = int(time.monotonic() - _demux_started)
+                mm, ss = divmod(elapsed, 60)
+                with _emit_lock:
+                    _send({
+                        "jsonrpc": "2.0",
+                        "method": "progress",
+                        "params": {
+                            "value": _demux_state["value"],
+                            "message": f"{_demux_state['message']} — {mm}m{ss:02d}s",
+                            "current": _demux_state["current"],
+                            "total": _demux_state["total"],
+                            "stage": "demux",
+                        },
+                    })
+
+        _hb_thread = threading.Thread(target=_demux_heartbeat, daemon=True)
+        _hb_thread.start()
+        try:
+            ingest_run_folder(
+                run_dir=original_run_dir,
+                custom_barcodes_xlsx=Path(raw_custom_barcodes_xlsx),
+                reference_fasta=reference,
+                demux_output_dir=demux_output_dir,
+                native_barcodes=raw_native_barcodes,
+                mapq_threshold=raw_mapq_threshold,
+                coverage_fraction=raw_coverage_fraction,
+                trim_flank_bp=raw_trim_flank_bp,
+                edit_dist_ratio=raw_edit_dist_ratio,
+                chimera_split=raw_chimera_split,
+                progress_callback=lambda done, total, stage_str: _emit_demux(
+                    done, total, stage_str
+                ),
+            )
+        finally:
+            _demux_done_evt.set()
+            _hb_thread.join(timeout=2.0)
         # The demux output is a barcode-mode consensus tree; the analyze body
         # ingests it exactly like a pre-demuxed consensus dir.
         input_dir = demux_output_dir

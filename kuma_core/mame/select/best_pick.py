@@ -1,7 +1,7 @@
 """Best-of-3 replicate picker with NB-ordered tiebreaker.
 
-Priority: PASS > AMBIGUOUS > LOWDEPTH. WRONG_AA / FRAMESHIFT / MANY / MIXED are
-unpickable (fallback-eligible only).
+Priority: PASS > AMBIGUOUS > LOWDEPTH. WRONG_AA / FRAMESHIFT / MANY / MIXED /
+NO_CALL are unpickable (fallback-eligible only).
 Tiebreaker on equal class: native barcode number ascending (NB01 wins).
 N50 is not available from the current consensus FASTA input, so it is not used.
 
@@ -29,6 +29,7 @@ _FALLBACK_ELIGIBLE: frozenset[VerdictClass] = frozenset(
         VerdictClass.PASS,
         VerdictClass.AMBIGUOUS,
         VerdictClass.LOWDEPTH,
+        VerdictClass.NO_CALL,
         VerdictClass.WRONG_AA,
         VerdictClass.MANY,
         VerdictClass.FRAMESHIFT,

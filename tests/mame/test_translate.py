@@ -64,6 +64,27 @@ def test_translate_missense_v2f(reference_seq: str, cds_params: dict[str, int]) 
     assert "V2F" in translated.observed_aa_changes
 
 
+def test_translate_n_codon_is_no_call_not_mutation(
+    reference_seq: str, cds_params: dict[str, int]
+) -> None:
+    """An N-bearing codon translates to ambiguous 'X' (no-call): it is excluded
+    from observed_aa_changes (so it neither floods the table nor inflates the
+    MANY count) and is counted in n_no_call_aa instead."""
+
+    assert reference_seq[3:6] == "GTG"  # codon 2 = Val
+    mutated = reference_seq[:3] + "NNN" + reference_seq[6:]
+    rec = _br(mutated)
+    translated = translate_and_diff(
+        record=rec,
+        reference_seq=reference_seq,
+        cds_start=cds_params["cds_start"],
+        cds_end=cds_params["cds_end"],
+    )
+    assert translated.observed_aa_changes == []
+    assert all(not c.endswith("X") for c in translated.observed_aa_changes)
+    assert translated.n_no_call_aa == 1
+
+
 def test_extract_aa_changes_basic() -> None:
     assert extract_aa_changes("MVFK", "MVFK") == []
     assert extract_aa_changes("MFFK", "MVFK") == ["V2F"]

@@ -24,6 +24,12 @@ WELL_RE_384 = re.compile(r"^[A-P](0[1-9]|1[0-9]|2[0-4])$")
 # 2-digit column (see plate_layout_xlsx._normalise_well).
 WELL_RE_RAW = re.compile(r"^([A-P])(\d{1,2})$")
 
+# Header aliases for raw instrument exports (e.g. GC-FID). Headers are already
+# lower-cased before lookup. Canonical column wins if present; aliases are tried
+# in order. Keep these as the single source of accepted column names.
+WELL_COL_ALIASES = ("sample name", "sample", "well", "well pos.")
+VALUE_COL_ALIASES = ("area", "activity")
+
 
 def _normalise_well(well: str) -> str | None:
     """Normalise raw well coordinate to canonical letter + 2-digit column.
@@ -56,7 +62,8 @@ def ingest_long_csv(
         ActivityTable with validated ActivityRecord list and PlateMeta.
 
     Raises:
-        ValueError: If required columns (plate_id, well_id, value) are missing.
+        ValueError: If the well or value column (incl. aliases) is missing, or if
+            plate_id is absent and cannot be derived from a single plate_meta key.
     """
     if path.suffix.lower() in {".xlsx", ".xls"}:
         df = pd.read_excel(path)
@@ -65,12 +72,38 @@ def ingest_long_csv(
 
     df.columns = [c.strip().lower() for c in df.columns]
 
-    if "plate_id" not in df.columns:
-        raise ValueError("plate_id 컬럼이 필요합니다")
-    if "well_id" not in df.columns:
-        raise ValueError("well_id 컬럼이 필요합니다")
-    if "value" not in df.columns:
+    # Resolve well/value columns first (canonical wins, then aliases) so a
+    # missing value column is not masked by the plate-derivation branch.
+    well_col = "well_id" if "well_id" in df.columns else next(
+        (a for a in WELL_COL_ALIASES if a in df.columns), None
+    )
+    if well_col is None:
+        raise ValueError("well 컬럼이 필요합니다")
+    if well_col != "well_id":
+        df = df.rename(columns={well_col: "well_id"})
+
+    value_col = "value" if "value" in df.columns else next(
+        (a for a in VALUE_COL_ALIASES if a in df.columns), None
+    )
+    if value_col is None:
         raise ValueError("value 컬럼이 필요합니다")
+    if value_col != "value":
+        df = df.rename(columns={value_col: "value"})
+
+    # plate_id may be absent in raw instrument exports (e.g. GC-FID). Derive it
+    # from plate_meta (set via activity.set_plate_meta before upload). No silent
+    # fallback: fail fast unless exactly one plate is known.
+    if "plate_id" not in df.columns:
+        plate_ids = list(plate_meta_wt_wells)
+        if len(plate_ids) == 0:
+            raise ValueError(
+                "plate_id 컬럼이 없고 plate_meta도 비어 있습니다. WT well을 먼저 지정하세요"
+            )
+        if len(plate_ids) > 1:
+            raise ValueError(
+                "plate_id 컬럼이 없는데 plate_meta에 plate가 여러 개라 plate를 특정할 수 없습니다"
+            )
+        df["plate_id"] = plate_ids[0]
 
     if "replicate_idx" not in df.columns:
         df["replicate_idx"] = 1

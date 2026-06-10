@@ -81,7 +81,7 @@ def _aa_ungapped_diffs(
     query_cds: str,
     ref_cds: str,
     table: int,
-) -> tuple[str, list[str]]:
+) -> tuple[str, list[str], int]:
     """Translate query CDS (gap-stripped) and diff vs ref translation.
 
     Gaps at codon boundaries are treated as deletions at the AA position,
@@ -93,6 +93,7 @@ def _aa_ungapped_diffs(
     # index alignment with the reference.
     aa_chars: list[str] = []
     aa_changes: list[str] = []
+    n_no_call = 0
     codon_count = len(ref_cds) // 3
     for codon_i in range(codon_count):
         start = codon_i * 3
@@ -124,8 +125,13 @@ def _aa_ungapped_diffs(
             continue
         aa_chars.append(aa)
         if codon_i < len(ref_aa) and ref_aa[codon_i] != aa:
-            aa_changes.append(f"{ref_aa[codon_i]}{codon_i + 1}{aa}")
-    return "".join(aa_chars), aa_changes
+            if aa == "X":
+                # N-bearing codon → ambiguous 'X' (no-call). Do not emit a
+                # spurious {WT}{pos}X "mutation"; count it for separate display.
+                n_no_call += 1
+            else:
+                aa_changes.append(f"{ref_aa[codon_i]}{codon_i + 1}{aa}")
+    return "".join(aa_chars), aa_changes, n_no_call
 
 
 def translate_and_diff(
@@ -146,7 +152,7 @@ def translate_and_diff(
     # Trim query to reference length for AA diff; extra bases still feed NT diff.
     query_cds_aa = query_cds_full[: cds_end - cds_start]
 
-    aa_sequence, aa_changes = _aa_ungapped_diffs(query_cds_aa, ref_cds, table=table)
+    aa_sequence, aa_changes, n_no_call = _aa_ungapped_diffs(query_cds_aa, ref_cds, table=table)
     nt_changes = extract_nt_changes(
         query_seq=query_cds_full,
         ref_seq=ref_cds,
@@ -158,4 +164,5 @@ def translate_and_diff(
         aa_sequence=aa_sequence,
         observed_nt_changes=nt_changes,
         observed_aa_changes=aa_changes,
+        n_no_call_aa=n_no_call,
     )

@@ -176,7 +176,7 @@ def test_mixed_takes_priority_over_wrong_aa() -> None:
 
 
 def test_consensus_n_fraction_blocks_clean_pass_by_default() -> None:
-    """Consensus N calls are MAME-native per-base low-depth evidence."""
+    """High consensus N fraction is NO_CALL: the consensus is too ambiguous to trust."""
 
     tr = _tr(
         ["V5F"],
@@ -185,7 +185,7 @@ def test_consensus_n_fraction_blocks_clean_pass_by_default() -> None:
         n_low_quality_bases=4,
     )
     result = classify_verdict(tr, ["V5F"], _params())
-    assert result.verdict is VerdictClass.LOWDEPTH
+    assert result.verdict is VerdictClass.NO_CALL
     assert "consensus_n_fraction=0.020" in result.verdict_notes
     assert "low_depth_positions=2" in result.verdict_notes
     assert "low_quality_bases=4" in result.verdict_notes
@@ -236,11 +236,12 @@ def test_depth_below_threshold_is_lowdepth() -> None:
     assert "min_read_count=30" in result.verdict_notes
 
 
-def test_high_consensus_n_fraction_is_lowdepth_even_with_good_depth() -> None:
-    """The consensus_n_fraction gate still fires for a depth-sufficient well.
+def test_high_consensus_n_fraction_is_no_call_even_with_good_depth() -> None:
+    """The consensus_n_fraction gate fires NO_CALL for a depth-sufficient well.
 
-    read_count=200 clears the read_count gate, so a LOWDEPTH verdict here can
-    only come from the N-fraction gate, proving it is not preempted.
+    read_count=200 clears the read_count gate, so a NO_CALL verdict here can
+    only come from the N-fraction gate, proving it is not preempted and is
+    distinct from LOWDEPTH (genuine read-count shortage).
     """
 
     tr = _tr(
@@ -251,7 +252,7 @@ def test_high_consensus_n_fraction_is_lowdepth_even_with_good_depth() -> None:
         n_low_depth_positions=4,
     )
     result = classify_verdict(tr, ["V5F"], _params())
-    assert result.verdict is VerdictClass.LOWDEPTH
+    assert result.verdict is VerdictClass.NO_CALL
     assert "consensus_n_fraction=0.500" in result.verdict_notes
 
 
