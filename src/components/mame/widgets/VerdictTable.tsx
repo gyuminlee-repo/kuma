@@ -292,26 +292,16 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
         cell: ({ row }) => {
           const rc = row.original.read_count;
           const kb = row.original.file_size_kb;
-          if (rc !== null) {
-            return (
-              <span className="flex flex-col gap-0.5">
-                <span className="font-mono text-xs text-foreground">{rc.toLocaleString()}</span>
-                <span
-                  className="font-mono text-caption text-muted-foreground/60"
-                  aria-label={t("mame.verdictTable.fileSizeAriaLabel", { kb: kb.toFixed(1) })}
-                  title={t("mame.verdictTable.fileSizeAriaLabel", { kb: kb.toFixed(1) })}
-                >
-                  {kb.toFixed(1)} KB
-                </span>
-              </span>
-            );
-          }
-          // Legacy: read_count unavailable — show KB as fallback proxy
           return (
-            <span className="flex flex-col gap-0.5">
-              <span className="font-mono text-xs text-muted-foreground">—</span>
-              <span className="font-mono text-caption text-muted-foreground/60">
-                {kb.toFixed(1)} KB
+            <span className="flex items-baseline gap-1.5 font-mono text-xs whitespace-nowrap">
+              <span className={rc !== null ? "text-foreground" : "text-muted-foreground"}>
+                {rc !== null ? rc.toLocaleString() : "—"}
+              </span>
+              <span
+                className="text-caption text-muted-foreground/60"
+                title={t("mame.verdictTable.fileSizeAriaLabel", { kb: kb.toFixed(1) })}
+              >
+                {kb.toFixed(1)}KB
               </span>
             </span>
           );
@@ -325,13 +315,15 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
           const nPct = row.original.consensus_n_fraction * 100;
           const mixPct = row.original.max_minor_allele_fraction * 100;
           return (
-            <span className="flex flex-col gap-0.5 font-mono text-caption text-muted-foreground">
+            <span className="font-mono text-caption text-muted-foreground whitespace-nowrap">
               <span title="Consensus N fraction">
-                N {nPct.toFixed(1)}% / low-depth {row.original.n_low_depth_positions}
+                N {nPct.toFixed(1)}% ld{row.original.n_low_depth_positions}
               </span>
+              {" · "}
               <span title="Within-well minor allele signal">
-                mix {row.original.n_mixed_positions} / {mixPct.toFixed(1)}%
+                mix {row.original.n_mixed_positions}/{mixPct.toFixed(1)}%
               </span>
+              {" · "}
               <span title="Alignment drop counters">
                 drop Q{row.original.n_mapq_failed} S{row.original.n_span_failed} BQ{row.original.n_low_quality_bases}
               </span>
@@ -345,17 +337,16 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
         cell: ({ row }) => {
           const notes = row.original.verdict_notes;
           const fbReason = row.original.is_fallback ? row.original.fallback_reason : null;
+          const text = [notes, fbReason].filter(Boolean).join(" · ") || "—";
           return (
-            <span className="flex flex-col gap-0.5">
-              {notes && (
-                <span className="text-xs text-muted-foreground">{notes}</span>
+            <span
+              className={cn(
+                "block max-w-[28rem] truncate text-xs",
+                fbReason ? "text-warning" : "text-muted-foreground",
               )}
-              {fbReason && (
-                <span className="text-xs text-warning">{fbReason}</span>
-              )}
-              {!notes && !fbReason && (
-                <span className="text-xs text-muted-foreground">—</span>
-              )}
+              title={text}
+            >
+              {text}
             </span>
           );
         },
@@ -496,7 +487,7 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
   const rowVirtualizer = useVirtualizer({
     count: tableRows.length,
     getScrollElement: () => scrollRef.current,
-    estimateSize: () => 36,
+    estimateSize: () => 30,
     overscan: 10,
   });
 
@@ -639,7 +630,7 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
                           aria-rowindex={vRow.index + 1}
                         >
                           {row.getVisibleCells().map((cell) => (
-                            <TableCell key={cell.id} className="px-3 py-2">
+                            <TableCell key={cell.id} className="px-3 py-1.5">
                               {flexRender(cell.column.columnDef.cell, cell.getContext())}
                             </TableCell>
                           ))}
@@ -660,7 +651,7 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
                     )}
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="px-3 py-2">
+                      <TableCell key={cell.id} className="px-3 py-1.5">
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </TableCell>
                     ))}
