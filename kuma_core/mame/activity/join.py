@@ -4,6 +4,7 @@ Spec: notes/specs/2026-05-04-mame-activity-integration.md §2.4, §3.4
 """
 
 from collections import defaultdict
+import re
 
 from kuma_core.mame.activity.aggregate import aggregate_replicates
 from kuma_core.mame.activity.models import (
@@ -13,6 +14,24 @@ from kuma_core.mame.activity.models import (
     PlateMeta,
 )
 from kuma_core.mame.activity.normalize import compute_fold_change, compute_log2_fc
+
+
+_WELL_RE = re.compile(r"^([A-Pa-p])(\d{1,2})$")
+
+
+def _canonical_well(well: str) -> str:
+    """Canonicalize a well coordinate to zero-padded 2-digit column ('A1' → 'A01').
+
+    Non-well strings pass through unchanged. Idempotent ('A01' → 'A01'). Keeps the
+    merge join key format consistent across the design / genotype / activity /
+    WT-well sources — previously only the activity CSV path normalized to 'A01',
+    so an unpadded design or genotype well silently failed to match a padded
+    activity well (and vice versa).
+    """
+    m = _WELL_RE.match(well.strip())
+    if not m:
+        return well
+    return f"{m.group(1).upper()}{int(m.group(2)):02d}"
 
 
 def merge_activity_with_genotype(
@@ -43,8 +62,15 @@ def merge_activity_with_genotype(
         (rows, stats) where rows is a sorted list of MergedRow and stats
         is a MergeStats summary.
     """
+    # Canonicalize well_id on every key source so unpadded ('A1') and padded
+    # ('A01') coordinates join correctly. Previously only the activity CSV path
+    # normalized to 'A01', so an unpadded design/genotype/WT well silently failed
+    # to match a padded activity well (and vice versa) — dropping NGS calls.
+    kuro_design = {(p, _canonical_well(w)): m for (p, w), m in kuro_design.items()}
+    mame_genotype = {(p, _canonical_well(w)): m for (p, w), m in mame_genotype.items()}
     wt_lookup: dict[str, set[str]] = {
-        p.plate_id: set(p.wt_wells) for p in plate_meta.plates
+        p.plate_id: {_canonical_well(w) for w in p.wt_wells}
+        for p in plate_meta.plates
     }
 
     # Group activity records by (plate_id, well_id), deduplicating on replicate_idx
@@ -52,12 +78,13 @@ def merge_activity_with_genotype(
     seen_keys: set[tuple[str, str, int]] = set()
     n_dup = 0
     for r in activity_records:
-        key = (r.plate_id, r.well_id, r.replicate_idx)
+        wid = _canonical_well(r.well_id)
+        key = (r.plate_id, wid, r.replicate_idx)
         if key in seen_keys:
             n_dup += 1
             continue
         seen_keys.add(key)
-        by_well[(r.plate_id, r.well_id)].append(r)
+        by_well[(r.plate_id, wid)].append(r)
 
     # Compute WT mean per plate (used for fold-change normalization)
     wt_means: dict[str, float | None] = {}

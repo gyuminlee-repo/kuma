@@ -80,3 +80,40 @@ def test_stats_counts():
     assert stats.n_total_wells == 3
     assert stats.n_ngs_success == 1
     assert stats.n_wt == 1
+
+
+def test_well_id_padding_mismatch_still_joins():
+    """Unpadded design/genotype/WT ('B3'/'A1') must join padded activity ('B03'/'A01').
+
+    Regression: the merge previously normalized only the activity CSV well_id, so
+    an unpadded design/genotype/WT well silently failed to match a padded activity
+    well — dropping the NGS call + design mutation for that well.
+    """
+    kuro_design = {("P01", "B3"): "F89W"}  # unpadded
+    mame_genotype = {("P01", "B3"): "F89W"}  # unpadded
+    activity = _make_records([("P01", "B03", 2.0, 1)])  # padded
+    plate_meta = PlateMeta(
+        plates=[PlateConfig(plate_id="P01", wt_wells=["A1"])]  # unpadded WT
+    )
+    activity.append(
+        ActivityRecord(
+            plate_id="P01", well_id="A01", value=1.0,  # padded activity
+            replicate_idx=1, is_wt=True, source_file="t.csv",
+        )
+    )
+    rows, _ = merge_activity_with_genotype(
+        kuro_design, mame_genotype, activity, plate_meta
+    )
+    # Exactly one canonical B03 row (no duplicate B3/B03 split), joined to design.
+    b03 = [r for r in rows if r.well_id == "B03"]
+    assert len(b03) == 1
+    rec = b03[0]
+    assert rec.mutation_source == "kuro_design"
+    assert rec.ngs_success is True
+    assert rec.mutation == "F89W"
+    assert rec.activity_raw_mean is not None  # activity actually joined
+    # Unpadded WT ('A1') matched padded activity ('A01') → WT recognized.
+    a01 = next(r for r in rows if r.well_id == "A01")
+    assert a01.mutation == "WT"
+    # No stray unpadded keys leaked into output.
+    assert not any(r.well_id in ("B3", "A1") for r in rows)
