@@ -22,13 +22,23 @@ from kuma_core.mame.activity.plate_layout_xlsx import (
 from kuma_core.mame.activity.evolvepro_xlsx import (
     XlsxFormat,
     AgilentRecord,
+    BlockRepBatchResult,
     RelativeActivityRecord,
     detect_format,
     parse_agilent_standard,
     parse_agilent_rep_batch,
+    parse_agilent_block_rep_batch,
     parse_relative_only,
     read_evolvepro_xlsx,
+    read_evolvepro_rows,
     write_evolvepro_xlsx,
+)
+from kuma_core.mame.activity.build_evolvepro_input import (
+    BuildEvolveproResult,
+    IdVariantMapping,
+    MappingRow,
+    build_evolvepro_input,
+    build_id_variant_mapping,
 )
 
 __all__ = [
@@ -57,11 +67,20 @@ __all__ = [
     # A-2
     "XlsxFormat",
     "AgilentRecord",
+    "BlockRepBatchResult",
     "RelativeActivityRecord",
     "detect_format",
     "parse_agilent_standard",
     "parse_agilent_rep_batch",
+    "parse_agilent_block_rep_batch",
     "parse_relative_only",
     "read_evolvepro_xlsx",
+    "read_evolvepro_rows",
     "write_evolvepro_xlsx",
+    # Build EVOLVEpro input (4-file assembly + rank mapping)
+    "BuildEvolveproResult",
+    "IdVariantMapping",
+    "MappingRow",
+    "build_evolvepro_input",
+    "build_id_variant_mapping",
 ]

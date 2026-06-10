@@ -554,6 +554,82 @@ def handle_merge_for_evolvepro(params: dict) -> dict:
     return result
 
 
+# ---------------------------------------------------------------------------
+# A-pipeline: 4-file EVOLVEpro input build (layout + GC + rep-batch + prev EP)
+# ---------------------------------------------------------------------------
+
+def handle_build_evolvepro_input(params: dict) -> dict:
+    """``mame.activity.build_evolvepro_input`` build one EVOLVEpro input xlsx.
+
+    Wires the four xlsx inputs of one MAME activity round into a single
+    EVOLVEpro input file, merging a GC-derived fallback source with an
+    Agilent rep-batch authoritative source in the short EVOLVEpro variant
+    space (no ref_seq needed). The numeric-ID to variant assignment is a
+    rank-based mapping derived from the previous-round EVOLVEpro file and is
+    emitted as a JSON audit artifact for human veto.
+
+    Params (validated by BuildEvolveproInputParams):
+        layout_xlsx (str)
+        gc_data_xlsx (str)
+        rep_batch_xlsx (str)
+        prev_evolvepro_xlsx (str)
+        output_xlsx (str)
+        mismatch_threshold (float, optional, default 0.1)
+        mapping_audit_path (str, optional)
+
+    Returns:
+        {
+          "output_path": str,
+          "n_variants": int,
+          "n_authoritative": int,
+          "n_fallback_only": int,
+          "mapping_audit": [{"id": int, "variant": str, "well": str | None}],
+          "mapping_audit_path": str,
+          "prev_descending": bool,
+          "warnings": [str],
+          "swap_warnings": [SwapWarning],
+          "mismatched": [{"variant": str, "authoritative": float,
+                          "fallback": float}]
+        }
+
+    Raises:
+        ValueError(-32602): invalid params or empty sources (WT areas missing,
+            empty replicate list, no variants to write).
+        FileNotFoundError(-32602): an input is missing or the output directory
+            does not exist.
+    """
+    from kuma_core.mame.activity.build_evolvepro_input import build_evolvepro_input
+    from sidecar_mame.models import BuildEvolveproInputParams
+
+    p = BuildEvolveproInputParams.model_validate(params)
+
+    result = build_evolvepro_input(
+        p.layout_xlsx,
+        p.gc_data_xlsx,
+        p.rep_batch_xlsx,
+        p.prev_evolvepro_xlsx,
+        p.output_xlsx,
+        mismatch_threshold=p.mismatch_threshold,
+        mapping_audit_path=p.mapping_audit_path,
+    )
+
+    return {
+        "output_path": str(result.output_path),
+        "n_variants": result.n_variants,
+        "n_authoritative": result.n_authoritative,
+        "n_fallback_only": result.n_fallback_only,
+        "mapping_audit": [
+            {"id": r.id, "variant": r.variant, "well": r.well}
+            for r in result.mapping.rows
+        ],
+        "mapping_audit_path": str(result.mapping_audit_path),
+        "prev_descending": result.mapping.prev_descending,
+        "warnings": result.warnings,
+        "swap_warnings": [w.__dict__ for w in result.swap_warnings],
+        "mismatched": result.mismatched,
+    }
+
+
 __all__ = [
     "handle_activity_upload",
     "handle_activity_set_plate_meta",
@@ -561,6 +637,7 @@ __all__ = [
     "handle_activity_export_evolvepro_csv",
     "handle_activity_export_evolvepro_xlsx",
     "handle_merge_for_evolvepro",
+    "handle_build_evolvepro_input",
     "ExportBlockedError",
     "_rounds",
 ]
