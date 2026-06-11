@@ -187,10 +187,13 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
       (a, b) => nbOrderKey(a) - nbOrderKey(b) || a.localeCompare(b),
     );
   }, [verdicts]);
-  const plateTabs = useMemo(() => ["ALL", ...nbGroups], [nbGroups]);
+  const plateTabs = useMemo(() => ["FINAL", "ALL", ...nbGroups], [nbGroups]);
   // Guard against a stale persisted filter (an NB no longer present) → fall back to ALL.
   const activeFilter =
-    plateFilter !== "ALL" && nbGroups.includes(plateFilter) ? plateFilter : "ALL";
+    plateFilter === "FINAL" ||
+    (plateFilter !== "ALL" && nbGroups.includes(plateFilter))
+      ? plateFilter
+      : "ALL";
 
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(
     () =>
@@ -202,6 +205,20 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
     for (const r of replicates) {
       if (r.selected_plate !== null) {
         s.add(`${r.mutant_id}|${r.selected_plate}`);
+      }
+    }
+    return s;
+  }, [replicates]);
+
+  // FINAL tab: the per-mutant selected-replicate wells exactly as the plate map
+  // marks them — keyed by (native_barcode, custom_barcode), mirroring the backend
+  // get_plate_data `selected` rule (sidecar handlers/export.py).
+  const finalSet = useMemo<Set<string>>(() => {
+    const s = new Set<string>();
+    for (const r of replicates) {
+      if (r.selected_plate && !r.failed) {
+        const vr = r.plate_verdicts?.[r.selected_plate];
+        if (vr) s.add(`${r.selected_plate}|${vr.custom_barcode}`);
       }
     }
     return s;
@@ -227,7 +244,13 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
       }
     }
     return verdicts
-      .filter((record) => activeFilter === "ALL" || record.native_barcode === activeFilter)
+      .filter((record) =>
+        activeFilter === "ALL"
+          ? true
+          : activeFilter === "FINAL"
+            ? finalSet.has(`${record.native_barcode}|${record.custom_barcode}`)
+            : record.native_barcode === activeFilter,
+      )
       .map((record) => {
         const mid =
           record.mutant_id || legacyMutantByPlate.get(record.native_barcode) || "—";
@@ -256,7 +279,7 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
           wellSortKey(a.custom_barcode)[1] -
             wellSortKey(b.custom_barcode)[1],
       );
-  }, [activeFilter, replicates, verdicts, mergedByWell]);
+  }, [activeFilter, replicates, verdicts, mergedByWell, finalSet]);
 
   const filteredRows = useMemo(() => {
     if (!searchQuery.trim()) return rows;
@@ -607,7 +630,11 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
                   "data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground",
                 )}
               >
-                {tab === "ALL" ? "ALL" : nbLabel(tab)}
+                {tab === "ALL"
+                  ? "ALL"
+                  : tab === "FINAL"
+                    ? t("mame.verdictTable.tabFinal")
+                    : nbLabel(tab)}
               </TabsTrigger>
             ))}
           </TabsList>
