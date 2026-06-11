@@ -281,7 +281,13 @@ def main(emit_ready: bool = True) -> None:
     if emit_ready:
         _send({"jsonrpc": "2.0", "method": "ready", "params": {}})
 
-    for line in sys.stdin:
+    # NOTE: use readline() in a loop, NOT `for line in sys.stdin` — the latter's
+    # read-ahead buffering can withhold a request until the NEXT one arrives,
+    # which on Windows stalled each RPC until the following request was sent.
+    while True:
+        line = sys.stdin.readline()
+        if not line:  # EOF — stdin closed
+            break
         line = line.strip()
         if not line:
             continue
