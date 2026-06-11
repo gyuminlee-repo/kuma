@@ -260,8 +260,9 @@ jobs:
 
       # --- License collection: Rust (after toolchain setup so cargo is available) ---
       - name: Install cargo-about
-        run: cargo install cargo-about --locked
-        shell: bash
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-about
 
       - name: Collect Rust dependency licenses
         run: cargo about generate -m Cargo.toml about.hbs > ../NOTICE-rust.md
