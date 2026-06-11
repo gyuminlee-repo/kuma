@@ -52,6 +52,7 @@ interface SetupFormState {
   tmMax: string;
   requireGcClamp: boolean;
   barcodeSeedsPath: string;
+  outputDir: string;
 }
 
 const DEFAULT_STATE: SetupFormState = {
@@ -68,6 +69,7 @@ const DEFAULT_STATE: SetupFormState = {
   tmMax: "68.0",
   requireGcClamp: true,
   barcodeSeedsPath: "",
+  outputDir: "",
 };
 
 function loadFromStorage(): SetupFormState {
@@ -104,6 +106,8 @@ function loadFromStorage(): SetupFormState {
         typeof p.barcodeSeedsPath === "string"
           ? p.barcodeSeedsPath
           : DEFAULT_STATE.barcodeSeedsPath,
+      outputDir:
+        typeof p.outputDir === "string" ? p.outputDir : DEFAULT_STATE.outputDir,
     };
   } catch {
     return DEFAULT_STATE;
@@ -263,6 +267,16 @@ export function BarcodeSetupPanel({ group }: BarcodeSetupPanelProps = {}) {
     if (selected) setForm({ barcodeSeedsPath: selected });
   }, []);
 
+  const browseOutputDir = useCallback(async () => {
+    const selected = toSinglePath(
+      await open({
+        directory: true,
+        title: "Select output folder",
+      }),
+    );
+    if (selected) setForm({ outputDir: selected });
+  }, []);
+
   // ─── 검증 ────────────────────────────────────────────────────────────────
 
   const geneStartNum = parseInt(form.geneStart, 10);
@@ -297,14 +311,14 @@ export function BarcodeSetupPanel({ group }: BarcodeSetupPanelProps = {}) {
     }
     if (!project?.path) return;
 
-    const destDir = `${project.path}/design`;
+    const destDir = form.outputDir.trim() || `${project.path}/design`;
     // §5 directory-level overwrite confirm. generate_mame_package writes multiple
     // files (primer CSV, barcode XLSX, amplicon FASTA) into design/, so there is no
     // single output path. Confirm before regenerating into an existing design/ dir.
     if (await fileExists(destDir)) {
       const decision = await requestOverwriteConfirm(
         destDir,
-        t("mame.barcodeSetup.overwriteConfirmDir"),
+        t("mame.barcodeSetup.overwriteConfirmDir", { dir: getFilename(destDir) }),
       );
       if (decision === "cancel") return;
     }
@@ -354,9 +368,10 @@ export function BarcodeSetupPanel({ group }: BarcodeSetupPanelProps = {}) {
             : {}),
         },
       });
+      const destName = getFilename(destDir);
       const lengthDesc = res.amplicon_length != null
-        ? t("mame.barcodeSetup.toastSuccessDescWithLength", { length: res.amplicon_length })
-        : t("mame.barcodeSetup.toastSuccessDesc");
+        ? t("mame.barcodeSetup.toastSuccessDescWithLength", { length: res.amplicon_length, dir: destName })
+        : t("mame.barcodeSetup.toastSuccessDesc", { dir: destName });
       toast.success(t("mame.barcodeSetup.toastSuccess"), {
         description: lengthDesc,
         duration: 4000,
@@ -657,6 +672,23 @@ export function BarcodeSetupPanel({ group }: BarcodeSetupPanelProps = {}) {
 
         {/* 프로젝트 없음 안내 + 생성 버튼 + 출력 섹션 (group: design 또는 undefined) */}
         {(!group || group === "design") && <>
+        {/* 출력 위치 선택 */}
+        <section aria-labelledby="section-output-loc">
+          <h3 id="section-output-loc" className="mb-3 text-sm font-medium text-foreground">
+            {t("mame.barcodeSetup.outputLocation")}
+          </h3>
+          <FilePickerField
+            id="output-dir"
+            label={t("mame.barcodeSetup.outputLocation")}
+            stateLabel={t("mame.inputPanel.sampleMap.stateLabel")}
+            filled={Boolean(form.outputDir)}
+            value={form.outputDir}
+            onChange={(v) => setForm({ outputDir: v })}
+            onBrowse={browseOutputDir}
+            placeholder={t("mame.barcodeSetup.outputLocationPlaceholder")}
+            helperText={t("mame.barcodeSetup.outputLocationHelper")}
+          />
+        </section>
         {!project?.path && (
           <p role="status" className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
             {t("mame.barcodeSetup.noProjectWarning")}
