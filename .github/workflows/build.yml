@@ -252,7 +252,10 @@ jobs:
         shell: bash
 
       # --- Rust ---
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.88.0"
+          components: clippy, rustfmt
 
       - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4  # v2.9.1
         with:
@@ -295,6 +298,8 @@ jobs:
       - name: Inject post-bundle sidecar hash manifest
         run: node scripts/sidecar-hash-postbuild.mjs
         shell: bash
+        env:
+          CARGO_TARGET_DIR: ${{ github.workspace }}/src-tauri/target
 
       # --- macOS ad-hoc signature verification ---
       - name: Verify macOS ad-hoc signature
