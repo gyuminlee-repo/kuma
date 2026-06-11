@@ -284,8 +284,12 @@ jobs:
         shell: bash
 
       # --- Build Tauri ---
+      # macOS builds the .app only; the post-bundle step re-signs the sidecars
+      # and THEN packages the DMG, because tauri's own DMG step deletes the
+      # staging .app that the hash injector must modify. Linux/Windows build all
+      # default bundles.
       - name: Build Tauri app
-        run: npx tauri build
+        run: npx tauri build ${{ matrix.platform == 'macos-latest' && '--bundles app' || '' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
