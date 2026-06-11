@@ -549,7 +549,7 @@
       "analyzeTab": "2. QC de secuenciación",
       "activityTab": "3. Datos de actividad",
       "verdictTableTitle": "Tabla de verdict",
-      "platePlanTitle": "Plan de placa",
+      "platePlanTitle": "Mapa de placa",
       "runHealthTitle": "Salud de la corrida",
       "subSteps": {
         "setup": {
@@ -560,7 +560,7 @@
         "analyze": {
           "inputs": "Entradas",
           "verdict": "Verdicts",
-          "plate": "Plan de placa",
+          "plate": "Mapa de placa",
           "health": "Run Health"
         },
         "activity": {
@@ -765,7 +765,7 @@
         "drawerLeftDesc": "Consensus called",
         "drawerCenter": "Consensus log",
         "drawerRight": "Next",
-        "drawerRightDesc": "Review plate plan",
+        "drawerRightDesc": "Review plate map",
         "inspectorTitle": "Barcode Verdict",
         "inspectorSubtitle": "Selected barcode details",
         "inspectorReads": "Reads",
@@ -775,7 +775,7 @@
         "inspectorNoBarcodeSelected": "Select a row to inspect"
       },
       "plate": {
-        "contextTitle": "Sequencing QC — Plate Plan",
+        "contextTitle": "Sequencing QC — Plate Map",
         "contextSubtitle": "96-well layout with per-well verdict.",
         "drawerLeft": "Selection",
         "drawerLeftDesc": "Wells selected for pick",
@@ -794,7 +794,7 @@
       },
       "review": {
         "contextTitle": "Sequencing QC — Review",
-        "contextSubtitle": "Verdict table, plate plan, and per-plate verdict distribution in one view.",
+        "contextSubtitle": "Verdict table, plate map, and per-plate verdict distribution in one view.",
         "drawerLeft": "Summary",
         "drawerCenter": "Review log",
         "drawerRight": "Next",
@@ -1414,7 +1414,7 @@
     "designOutput": "Salida del diseño",
     "designSuccessCount": "{{successCount}}/{{totalCount}} exitosos",
     "noResultsYet": "Aún no hay resultados",
-    "platePlan": "Plan de placa",
+    "platePlan": "Mapa de placa",
     "awaitingDesign": "Esperando diseño",
     "cannotRunTitle": "Aún no se puede ejecutar el diseño",
     "cannotRunDesc": "Completar lo siguiente antes de ejecutar el diseño:",
@@ -2113,7 +2113,7 @@
       "analyze": {
         "inputs": "Entradas",
         "verdict": "Verdicts",
-        "plate": "Plan de placa",
+        "plate": "Mapa de placa",
         "health": "Run Health",
         "review": "Review (Verdict + Plate)"
       },

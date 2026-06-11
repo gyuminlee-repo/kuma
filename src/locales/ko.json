@@ -608,7 +608,7 @@
       "analyzeTab": "2. 시퀀싱 QC",
       "activityTab": "3. 활성도 데이터",
       "verdictTableTitle": "판정 테이블",
-      "platePlanTitle": "플레이트 계획",
+      "platePlanTitle": "플레이트 맵",
       "efficiencyChartTitle": "플레이트별 판정 분포",
       "runHealthTitle": "실행 상태",
       "subSteps": {
@@ -620,7 +620,7 @@
         "analyze": {
           "inputs": "입력 설정",
           "verdict": "판정",
-          "plate": "플레이트 계획",
+          "plate": "플레이트 맵",
           "health": "실행 상태"
         },
         "activity": {
@@ -807,7 +807,7 @@
         "drawerLeftDesc": "Consensus 호출 완료",
         "drawerCenter": "Consensus 로그",
         "drawerRight": "다음",
-        "drawerRightDesc": "플레이트 계획 검토",
+        "drawerRightDesc": "플레이트 맵 검토",
         "inspectorTitle": "바코드 판정",
         "inspectorSubtitle": "선택한 바코드 세부사항",
         "inspectorReads": "읽기 수",
@@ -817,7 +817,7 @@
         "inspectorNoBarcodeSelected": "행을 선택하여 검사"
       },
       "plate": {
-        "contextTitle": "시퀀싱 QC — 플레이트 계획",
+        "contextTitle": "시퀀싱 QC — 플레이트 맵",
         "contextSubtitle": "well별 판정이 포함된 96-well 레이아웃.",
         "drawerLeft": "선택",
         "drawerLeftDesc": "선택된 well 수",
@@ -836,7 +836,7 @@
       },
       "review": {
         "contextTitle": "시퀀싱 QC — 검토",
-        "contextSubtitle": "판정 테이블, 플레이트 계획, 플레이트별 판정 분포를 한 화면에서 검토합니다.",
+        "contextSubtitle": "판정 테이블, 플레이트 맵, 플레이트별 판정 분포를 한 화면에서 검토합니다.",
         "drawerLeft": "요약",
         "drawerCenter": "검토 로그",
         "drawerRight": "다음",
@@ -1433,7 +1433,7 @@
     "designOutput": "설계 출력",
     "designSuccessCount": "{{successCount}}/{{totalCount}} 성공",
     "noResultsYet": "결과 없음",
-    "platePlan": "플레이트 계획",
+    "platePlan": "플레이트 맵",
     "awaitingDesign": "설계 대기 중",
     "cannotRunTitle": "설계를 실행할 수 없습니다",
     "cannotRunDesc": "설계 실행 전 다음 항목을 입력하세요:",
@@ -2145,7 +2145,7 @@
         "inputs": "입력",
         "review": "검토 (판정 + 플레이트)",
         "verdict": "판정 결과",
-        "plate": "플레이트 계획",
+        "plate": "플레이트 맵",
         "health": "런 품질"
       },
       "activity": {

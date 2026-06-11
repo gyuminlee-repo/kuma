@@ -608,7 +608,7 @@
       "analyzeTab": "2. Sequencing QC",
       "activityTab": "3. Activity Data",
       "verdictTableTitle": "Verdict table",
-      "platePlanTitle": "Plate plan",
+      "platePlanTitle": "Plate map",
       "efficiencyChartTitle": "Per-plate verdict breakdown",
       "runHealthTitle": "Run health",
       "subSteps": {
@@ -620,7 +620,7 @@
         "analyze": {
           "inputs": "Inputs",
           "verdict": "Verdicts",
-          "plate": "Plate Plan",
+          "plate": "Plate map",
           "health": "Run Health"
         },
         "activity": {
@@ -807,7 +807,7 @@
         "drawerLeftDesc": "Consensus called",
         "drawerCenter": "Consensus log",
         "drawerRight": "Next",
-        "drawerRightDesc": "Review plate plan",
+        "drawerRightDesc": "Review plate map",
         "inspectorTitle": "Barcode Verdict",
         "inspectorSubtitle": "Selected barcode details",
         "inspectorReads": "Reads",
@@ -817,7 +817,7 @@
         "inspectorNoBarcodeSelected": "Select a row to inspect"
       },
       "plate": {
-        "contextTitle": "Sequencing QC — Plate Plan",
+        "contextTitle": "Sequencing QC — Plate Map",
         "contextSubtitle": "96-well layout with per-well verdict.",
         "drawerLeft": "Selection",
         "drawerLeftDesc": "Wells selected for pick",
@@ -836,7 +836,7 @@
       },
       "review": {
         "contextTitle": "Sequencing QC — Review",
-        "contextSubtitle": "Verdict table, plate plan, and per-plate verdict distribution in one view.",
+        "contextSubtitle": "Verdict table, plate map, and per-plate verdict distribution in one view.",
         "drawerLeft": "Summary",
         "drawerCenter": "Review log",
         "drawerRight": "Next",
@@ -1433,7 +1433,7 @@
     "designOutput": "Design output",
     "designSuccessCount": "{{successCount}}/{{totalCount}} successful",
     "noResultsYet": "No results yet",
-    "platePlan": "Plate plan",
+    "platePlan": "Plate map",
     "awaitingDesign": "Awaiting design",
     "cannotRunTitle": "Cannot run design yet",
     "cannotRunDesc": "Fill in the following before running design:",
@@ -2145,7 +2145,7 @@
         "inputs": "Inputs",
         "review": "Review (Verdict + Plate)",
         "verdict": "Verdicts",
-        "plate": "Plate Plan",
+        "plate": "Plate map",
         "health": "Run Health"
       },
       "activity": {
