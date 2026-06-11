@@ -423,6 +423,9 @@
       "selectedWellAriaLabel": "Детали выбранного well",
       "verdictLegendAriaLabel": "Цветовая легенда verdict",
       "verdictFilterAriaLabel": "Фильтр лунок по {{verdict}} (переключатель)",
+      "nbPicked": "{{nb}}: выбрано {{count}}",
+      "nbFilterAriaLabel": "Фильтр лунок по {{nb}} (переключатель)",
+      "nbFilterGroupAriaLabel": "Фильтр лунок по native barcode",
       "selectedWellLabel": "Просматриваемая лунка",
       "selectedReplicate": "Выбранный replicate",
       "fallbackTitle": "Fallback replicate",
@@ -434,7 +437,11 @@
       "detailNativeBc": "Native BC",
       "detailMutant": "Mutant",
       "detailNotes": "Заметки",
-      "detailSelectedReplicate": "Выбранная реплика"
+      "detailSelectedReplicate": "Выбранная реплика",
+      "expand": "Развернуть",
+      "collapse": "Свернуть",
+      "expandAriaLabel": "Переключить увеличенный вид планшета",
+      "expandedRegionAriaLabel": "Увеличенный вид планшета"
     },
     "drawer": {
       "stat": {

@@ -56,6 +56,13 @@ export default defineConfig(({ }) => {
     server: {
       port: 1421,
       strictPort: true,
+      // Worktrees live INSIDE the repo root (.claude/worktrees/*, .worktrees/*).
+      // Each is a full checkout, so Vite's recursive watcher would otherwise see
+      // their tsconfig.json / index.html / src changes and force a full reload of
+      // the running app whenever a concurrent worktree session edits files there.
+      watch: {
+        ignored: ["**/.claude/worktrees/**", "**/.worktrees/**"],
+      },
     },
     envPrefix: ["VITE_", "TAURI_"],
     define: {

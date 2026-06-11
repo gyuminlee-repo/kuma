@@ -86,18 +86,23 @@ def handle_get_plate_data(_params: dict) -> dict:
             "No prior analyze result. Run 'analyze' before 'get_plate_data'."
         )
 
-    # Map native_barcode -> selected custom_barcode (Final sheet accent wells).
-    selected_by_plate: dict[str, str | None] = {}
-    # Map native_barcode -> (is_fallback, fallback_reason) for selected plates.
-    fallback_by_native: dict[str, tuple[bool, str | None]] = {}
+    # Set of (native_barcode, custom_barcode) pairs that are the chosen
+    # replicate for some mutant. Keyed by the full pair, NOT by native_barcode
+    # alone: in combinatorial-sort runs one native_barcode (sort bin) carries
+    # many wells, each the selected replicate of a different mutant, so a
+    # native->custom dict collapsed every plate to a single "picked" well (and
+    # a later mutant's pick overwrote an earlier PASS pick on the same plate).
+    selected_pairs: set[tuple[str, str]] = set()
+    # (native_barcode, custom_barcode) -> (is_fallback, fallback_reason) for the
+    # selected replicate of each mutant.
+    fallback_by_pair: dict[tuple[str, str], tuple[bool, str | None]] = {}
     for rr in state.last_replicates or []:
         if rr.selected_plate and not rr.failed:
             vr = rr.plate_verdicts.get(rr.selected_plate)
             if vr is not None:
-                selected_by_plate[rr.selected_plate] = (
-                    vr.translated.barcode.custom_barcode
-                )
-                fallback_by_native[rr.selected_plate] = (
+                key = (rr.selected_plate, vr.translated.barcode.custom_barcode)
+                selected_pairs.add(key)
+                fallback_by_pair[key] = (
                     bool(getattr(rr, "is_fallback", False)),
                     getattr(rr, "fallback_reason", None),
                 )
@@ -108,11 +113,11 @@ def handle_get_plate_data(_params: dict) -> dict:
         seq = _custom_barcode_to_seq(b.custom_barcode)
         well = seq_to_well(seq) if seq else ""
         # A verdict is the "selected" replicate iff its (native, custom) pair
-        # matches the replicate_result mapping built above.
-        is_selected = (
-            selected_by_plate.get(b.native_barcode) == b.custom_barcode
-        )
-        fb_info = fallback_by_native.get(b.native_barcode, (False, None))
+        # matches a chosen-replicate pair built above. Pair-keyed so EVERY
+        # mutant's pick is marked, not just one per native barcode.
+        key = (b.native_barcode, b.custom_barcode)
+        is_selected = key in selected_pairs
+        fb_info = fallback_by_pair.get(key, (False, None))
         is_fallback = fb_info[0] if is_selected else False
         fallback_reason = fb_info[1] if is_selected else None
         # Per-well variant identity: authoritative pipeline-assigned mutant_id

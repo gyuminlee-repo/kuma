@@ -15,6 +15,7 @@ import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { useRoundStore, type RoundSlice } from "@/store/round/roundSlice";
 import type { VerdictRecord } from "@/types/mame/models";
 import type { MergedRow } from "@/types/mame/activity";
+import { nbLabel, nbOrderKey, wellSortKey } from "@/lib/mame/nbLabel";
 import { VerdictBadge } from "./VerdictBadge";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -95,24 +96,6 @@ const EMPTY_MERGED_TABLE: MergedRow[] = [];
 export function selectActiveMergedTable(state: RoundSlice): MergedRow[] {
   const round = state.rounds.find((r) => r.id === state.active_round_id);
   return round?.merged_table ?? EMPTY_MERGED_TABLE;
-}
-
-function nbOrderKey(nb: string): number {
-  const m = nb.match(/(\d+)/);
-  return m ? parseInt(m[1], 10) : Number.MAX_SAFE_INTEGER;
-}
-
-/** Numeric sort key for a "{R}_{F}" barcode label: "1_10" → [1, 10]. Keeps the
- *  well order natural (1_2 before 1_10) instead of lexicographic string order. */
-function barcodeOrderKey(cb: string): [number, number] {
-  const [r, f] = cb.split("_");
-  return [parseInt(r, 10) || 0, parseInt(f, 10) || 0];
-}
-
-/** Friendly plate-tab label: "sort_barcode06" → "NB06"; "consensus" stays as-is. */
-function nbTabLabel(nb: string): string {
-  const m = nb.match(/(\d+)/);
-  return m ? `NB${m[1]}` : nb;
 }
 
 // Fixed per-column widths (px) keyed by column id. With `table-fixed`, these make
@@ -268,10 +251,10 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
       .sort(
         (a, b) =>
           nbOrderKey(a.native_barcode) - nbOrderKey(b.native_barcode) ||
-          barcodeOrderKey(a.custom_barcode)[0] -
-            barcodeOrderKey(b.custom_barcode)[0] ||
-          barcodeOrderKey(a.custom_barcode)[1] -
-            barcodeOrderKey(b.custom_barcode)[1],
+          wellSortKey(a.custom_barcode)[0] -
+            wellSortKey(b.custom_barcode)[0] ||
+          wellSortKey(a.custom_barcode)[1] -
+            wellSortKey(b.custom_barcode)[1],
       );
   }, [activeFilter, replicates, verdicts, mergedByWell]);
 
@@ -308,10 +291,10 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
       {
         accessorKey: "custom_barcode",
         sortingFn: (a, b) =>
-          barcodeOrderKey(a.original.custom_barcode)[0] -
-            barcodeOrderKey(b.original.custom_barcode)[0] ||
-          barcodeOrderKey(a.original.custom_barcode)[1] -
-            barcodeOrderKey(b.original.custom_barcode)[1],
+          wellSortKey(a.original.custom_barcode)[0] -
+            wellSortKey(b.original.custom_barcode)[0] ||
+          wellSortKey(a.original.custom_barcode)[1] -
+            wellSortKey(b.original.custom_barcode)[1],
         header: t("mame.verdictTable.colBarcode"),
         cell: ({ getValue }) => (
           <span className="font-mono text-xs text-foreground">{getValue<string>()}</span>
@@ -624,7 +607,7 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
                   "data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground",
                 )}
               >
-                {tab === "ALL" ? "ALL" : nbTabLabel(tab)}
+                {tab === "ALL" ? "ALL" : nbLabel(tab)}
               </TabsTrigger>
             ))}
           </TabsList>

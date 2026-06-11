@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Maximize2, Minimize2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { VerdictBadge } from "./VerdictBadge";
@@ -8,11 +8,11 @@ import type { WellColorOverride } from "./WellPlate";
 import { cn } from "@/lib/utils";
 import type { VerdictClass, WellEntry } from "@/types/mame/models";
 import { VERDICT_LABEL } from "@/lib/mame/verdictColors";
+import { nbLabel, nbOrderKey } from "@/lib/mame/nbLabel";
+import { collapseWells } from "@/lib/mame/plateWells";
 
-function getSelectedPlateLabel(barcode: string | null): string {
-  if (!barcode) return "None";
-  const match = barcode.match(/^([1-3])_/);
-  return match ? `NB0${match[1]}` : "Unknown";
+function getSelectedPlateLabel(nativeBarcode: string | null): string {
+  return nativeBarcode ? nbLabel(nativeBarcode) : "None";
 }
 
 function DetailRow({ label, value }: { label: string; value: string }) {
@@ -32,9 +32,12 @@ interface PlateViewProps {
    * and loadPlateData is NOT triggered. mame callers omit this prop — default store behavior preserved.
    */
   wells?: WellEntry[];
+  /** When provided, renders an expand/collapse toggle button in the header. */
+  expanded?: boolean;
+  onToggleExpand?: () => void;
 }
 
-export function PlateView({ wellColorOf, wells: externalWells }: PlateViewProps = {}) {
+export function PlateView({ wellColorOf, wells: externalWells, expanded, onToggleExpand }: PlateViewProps = {}) {
   const { t } = useTranslation();
   const verdicts = useMameAppStore((state) => state.verdicts);
   const storeWells = useMameAppStore((state) => state.wells);
@@ -50,11 +53,41 @@ export function PlateView({ wellColorOf, wells: externalWells }: PlateViewProps 
   // Legend-class filter: clicking a verdict class dims non-matching wells.
   // Single-select toggle; resets when the underlying wells change.
   const [activeClass, setActiveClass] = useState<VerdictClass | null>(null);
+  // NB-class filter: clicking an NB chip dims wells from other native barcodes.
+  const [activeNb, setActiveNb] = useState<string | null>(null);
   useEffect(() => {
     setActiveClass(null);
+    setActiveNb(null);
   }, [wells]);
-  const selectedCount = wells.filter((well) => well.selected).length;
-  const filledCount = wells.length;
+  // Collapse to one record per well position (the plate renders one cell per
+  // position; legend/NB counts must match what is drawn). Prefer the selected
+  // winner per position.
+  const displayWells = collapseWells(wells);
+  const selectedCount = displayWells.filter((well) => well.selected).length;
+  const filledCount = displayWells.length;
+  // Verdict counts over the drawn cells, for the legend filter chips.
+  const verdictCounts = new Map<VerdictClass, number>();
+  for (const well of displayWells) {
+    verdictCounts.set(well.verdict, (verdictCounts.get(well.verdict) ?? 0) + 1);
+  }
+  // NB picked counts: native_barcode → number of selected (winning) wells.
+  const nbPickedCounts = new Map<string, number>();
+  for (const well of displayWells) {
+    if (!well.native_barcode) continue;
+    if (!nbPickedCounts.has(well.native_barcode)) {
+      nbPickedCounts.set(well.native_barcode, 0);
+    }
+    if (well.selected) {
+      nbPickedCounts.set(
+        well.native_barcode,
+        (nbPickedCounts.get(well.native_barcode) ?? 0) + 1,
+      );
+    }
+  }
+  const nbList = Array.from(nbPickedCounts.keys()).sort(
+    (a, b) => nbOrderKey(a) - nbOrderKey(b),
+  );
+  const showNbChips = nbList.length > 1 || selectedCount > 0;
 
   useEffect(() => {
     // Only trigger mame store load when external wells are NOT provided
@@ -71,7 +104,7 @@ export function PlateView({ wellColorOf, wells: externalWells }: PlateViewProps 
           <span>
             {t("mame.plateView.plate")}:{" "}
             <span className="font-medium text-foreground">
-              {getSelectedPlateLabel(selectedWell?.barcode ?? null)}
+              {getSelectedPlateLabel(selectedWell?.native_barcode ?? null)}
             </span>
           </span>
           <span className="rounded-full border border-border/70 bg-muted px-2 py-0.5 text-caption font-medium text-muted-foreground">
@@ -81,6 +114,7 @@ export function PlateView({ wellColorOf, wells: externalWells }: PlateViewProps 
             {t("mame.plateView.picked", { count: selectedCount })}
           </span>
         </div>
+        <div className="flex items-center gap-2">
         <label className="flex items-center gap-1 text-caption text-muted-foreground">
           <input
             type="checkbox"
@@ -91,17 +125,37 @@ export function PlateView({ wellColorOf, wells: externalWells }: PlateViewProps 
           />
           {t("mame.plateView.colorAssist")}
         </label>
+        {onToggleExpand && (
+          <button
+            type="button"
+            onClick={onToggleExpand}
+            aria-pressed={!!expanded}
+            aria-label={t(expanded ? "mame.plateView.collapse" : "mame.plateView.expand")}
+            title={t("mame.plateView.expandAriaLabel")}
+            className="flex h-6 w-6 items-center justify-center rounded border border-border/70 text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
+            {expanded ? (
+              <Minimize2 size={12} aria-hidden="true" />
+            ) : (
+              <Maximize2 size={12} aria-hidden="true" />
+            )}
+          </button>
+        )}
+        </div>
       </div>
 
       <div className="grid flex-1 min-h-0 grid-cols-[1fr_164px] gap-2 overflow-hidden p-2">
         <div className="min-h-0 overflow-auto">
           <WellPlate
-            wells={wells}
+            wells={displayWells}
             selectedWellId={selectedWell?.well}
             onWellClick={(well) => setSelectedWell(well)}
             colorblindMode={colorblindMode}
             wellColorOf={wellColorOf}
-            dimmedOf={(w) => activeClass !== null && w.verdict !== activeClass}
+            dimmedOf={(w) =>
+              (activeClass !== null && w.verdict !== activeClass) ||
+              (activeNb !== null && w.native_barcode !== activeNb)
+            }
           />
           <div
             className="mt-2 flex flex-wrap gap-1"
@@ -121,7 +175,8 @@ export function PlateView({ wellColorOf, wells: externalWells }: PlateViewProps 
               ] as VerdictClass[]
             ).map((verdict) => {
               const active = activeClass === verdict;
-              const hasData = wells.some((w) => w.verdict === verdict);
+              const count = verdictCounts.get(verdict) ?? 0;
+              const hasData = count > 0;
               return (
                 <button
                   key={verdict}
@@ -133,7 +188,7 @@ export function PlateView({ wellColorOf, wells: externalWells }: PlateViewProps 
                   aria-pressed={active}
                   aria-label={t("mame.plateView.verdictFilterAriaLabel", { verdict })}
                   className={cn(
-                    "rounded-control border px-0.5 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
+                    "inline-flex items-center gap-1 rounded-control border px-0.5 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
                     active
                       ? "border-primary bg-primary/10"
                       : "border-transparent",
@@ -141,10 +196,47 @@ export function PlateView({ wellColorOf, wells: externalWells }: PlateViewProps 
                   )}
                 >
                   <VerdictBadge verdict={verdict} className="text-caption" />
+                  <span className="text-caption font-medium tabular-nums text-muted-foreground">
+                    {count}
+                  </span>
                 </button>
               );
             })}
           </div>
+          {showNbChips && (
+            <div
+              className="mt-1 flex flex-wrap gap-1"
+              role="group"
+              aria-label={t("mame.plateView.nbFilterGroupAriaLabel")}
+            >
+              {nbList.map((nb) => {
+                const active = activeNb === nb;
+                const count = nbPickedCounts.get(nb) ?? 0;
+                return (
+                  <button
+                    key={nb}
+                    type="button"
+                    onClick={() =>
+                      setActiveNb((prev) => (prev === nb ? null : nb))
+                    }
+                    aria-pressed={active}
+                    aria-label={t("mame.plateView.nbFilterAriaLabel", { nb: nbLabel(nb) })}
+                    className={cn(
+                      "rounded-control border px-1.5 py-0.5 text-caption font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
+                      active
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border/70 bg-muted text-muted-foreground hover:bg-muted/60",
+                    )}
+                  >
+                    {t("mame.plateView.nbPicked", {
+                      nb: nbLabel(nb),
+                      count,
+                    })}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <aside
@@ -168,7 +260,7 @@ export function PlateView({ wellColorOf, wells: externalWells }: PlateViewProps 
                 </div>
                 <div className="mt-2 flex flex-wrap gap-1">
                   <span className="rounded-full border border-border/70 bg-muted px-2 py-0.5 text-caption font-medium text-muted-foreground">
-                    {getSelectedPlateLabel(selectedWell.barcode)}
+                    {getSelectedPlateLabel(selectedWell.native_barcode)}
                   </span>
                   {selectedWell.selected && (
                     <span className="rounded-full border border-primary/15 bg-primary/10 px-2 py-0.5 text-caption font-medium text-primary">

@@ -216,3 +216,55 @@ def test_load_without_designed_mutant_ids_leaves_recovery_unavailable() -> None:
     assert st.last_designed_mutant_ids is None
     # Designed set unavailable → recovery is None (callers render "n/a").
     assert compute_recovery(st.last_replicates, st.last_designed_mutant_ids) is None
+
+
+def test_get_plate_data_marks_every_pick_on_shared_native_barcode() -> None:
+    """Regression: in combinatorial-sort runs one native_barcode (sort bin)
+    is the selected replicate for MANY mutants, each at a different well. The
+    handler used a native_barcode->custom_barcode dict that collapsed every
+    plate to a single picked well (and a later mutant's pick overwrote an
+    earlier PASS pick on the same plate), so the plate map showed only
+    "NBxx: 1 picked". Selection must be keyed by the (native, custom) pair so
+    every mutant's pick — including PASS — is marked.
+    """
+    # Three mutants all select NB06 (PASS wins NB-ascending), at distinct wells.
+    a_pass = _make_verdict("NB06", "1_1", VerdictClass.PASS, size_kb=90.0)
+    a_amb = _make_verdict("NB13", "1_1", VerdictClass.AMBIGUOUS)
+    b_pass = _make_verdict("NB06", "1_2", VerdictClass.PASS, size_kb=90.0)
+    c_amb = _make_verdict("NB06", "1_3", VerdictClass.AMBIGUOUS)
+    rr_a = ReplicateResult(
+        mutant_id="A",
+        plate_verdicts={"NB06": a_pass, "NB13": a_amb},
+        selected_plate="NB06",
+        selection_reason="pass beats ambiguous",
+    )
+    rr_b = ReplicateResult(
+        mutant_id="B",
+        plate_verdicts={"NB06": b_pass},
+        selected_plate="NB06",
+        selection_reason="pass",
+    )
+    rr_c = ReplicateResult(
+        mutant_id="C",
+        plate_verdicts={"NB06": c_amb},
+        selected_plate="NB06",
+        selection_reason="ambiguous only",
+    )
+    verdicts = [a_pass, a_amb, b_pass, c_amb]
+    replicates = [rr_a, rr_b, rr_c]
+
+    set_last_analyze(verdicts, replicates, "/tmp/out_shared_nb.xlsx", run_meta=None)
+    wells = handle_get_plate_data({})["wells"]
+
+    sel = {(w["native_barcode"], w["barcode"]): w["selected"] for w in wells}
+    # All three NB06 picks are selected (not just one) — overwrite bug fixed.
+    assert sel[("NB06", "1_1")] is True  # mutant A PASS pick survives later picks
+    assert sel[("NB06", "1_2")] is True  # mutant B PASS pick
+    assert sel[("NB06", "1_3")] is True  # mutant C AMBIGUOUS pick
+    # The non-selected replicate of mutant A stays unselected.
+    assert sel[("NB13", "1_1")] is False
+
+    picked_on_nb06 = sum(
+        1 for w in wells if w["native_barcode"] == "NB06" and w["selected"]
+    )
+    assert picked_on_nb06 == 3

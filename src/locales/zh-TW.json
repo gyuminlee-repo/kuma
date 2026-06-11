@@ -423,6 +423,9 @@
       "selectedWellAriaLabel": "所選 well 詳情",
       "verdictLegendAriaLabel": "Verdict 顏色圖例",
       "verdictFilterAriaLabel": "僅突顯 {{verdict}} 類（切換）",
+      "nbPicked": "{{nb}}：已選 {{count}}",
+      "nbFilterAriaLabel": "僅突顯 {{nb}}（切換）",
+      "nbFilterGroupAriaLabel": "依 native barcode 篩選孔位",
       "selectedWellLabel": "檢視的孔位",
       "selectedReplicate": "所選 replicate",
       "fallbackTitle": "Fallback replicate",
@@ -434,7 +437,11 @@
       "detailNativeBc": "Native BC",
       "detailMutant": "Mutant",
       "detailNotes": "備註",
-      "detailSelectedReplicate": "選定重複"
+      "detailSelectedReplicate": "選定重複",
+      "expand": "放大",
+      "collapse": "縮小",
+      "expandAriaLabel": "切換孔盤檢視放大",
+      "expandedRegionAriaLabel": "已放大的孔盤檢視"
     },
     "drawer": {
       "stat": {

@@ -482,6 +482,9 @@
       "selectedWellAriaLabel": "선택한 well 상세 정보",
       "verdictLegendAriaLabel": "판정 색상 범례",
       "verdictFilterAriaLabel": "{{verdict}} 클래스만 강조 (토글)",
+      "nbPicked": "{{nb}}: {{count}}개 선택",
+      "nbFilterAriaLabel": "{{nb}}만 강조 (토글)",
+      "nbFilterGroupAriaLabel": "Native barcode로 well 필터",
       "selectedWellLabel": "검사한 well",
       "selectedReplicate": "선택한 replicate",
       "fallbackTitle": "대체 반복",
@@ -493,7 +496,11 @@
       "detailNativeBc": "Native 바코드",
       "detailMutant": "변이체",
       "detailNotes": "비고",
-      "detailSelectedReplicate": "선택된 replicate"
+      "detailSelectedReplicate": "선택된 replicate",
+      "expand": "확대",
+      "collapse": "축소",
+      "expandAriaLabel": "플레이트 보기 확대 전환",
+      "expandedRegionAriaLabel": "확대된 플레이트 보기"
     },
     "drawer": {
       "stat": {

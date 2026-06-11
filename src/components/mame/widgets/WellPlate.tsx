@@ -1,6 +1,8 @@
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
-import { VERDICT_FILL } from "@/lib/mame/verdictColors";
+import { VERDICT_FILL, DETECTED_VERDICTS } from "@/lib/mame/verdictColors";
+import { nbLabel } from "@/lib/mame/nbLabel";
+import { collapseWells } from "@/lib/mame/plateWells";
 import type { WellEntry, VerdictClass } from "@/types/mame/models";
 
 const ROWS = ["A", "B", "C", "D", "E", "F", "G", "H"] as const;
@@ -24,10 +26,10 @@ const cbPatterns: Partial<Record<VerdictClass, string>> = {
 const plateGridTemplate = "24px repeat(12, minmax(34px, 1fr))";
 const plateGridGap = "4px";
 
-function getPlateBadge(barcode: string): "NB01" | "NB02" | "NB03" | null {
-  const match = barcode.match(/^([1-3])_/);
-  if (!match) return null;
-  return `NB0${match[1]}` as "NB01" | "NB02" | "NB03";
+/** Plate badge text from a native barcode: "sort_barcode06" → "NB06".
+ *  Empty barcode → null (no badge). */
+function getPlateBadge(nativeBarcode: string): string | null {
+  return nativeBarcode ? nbLabel(nativeBarcode) : null;
 }
 
 /** Color override: { bg, text, border } hex strings. null/undefined = use verdict default. */
@@ -54,7 +56,10 @@ export function WellPlate({
   dimmedOf,
 }: WellPlateProps) {
   const { t } = useTranslation();
-  const wellMap = new Map(wells.map((w) => [w.well, w]));
+  // Collapse to one record per well position (shared helper): prefer the
+  // selected (winning) replicate, else last-seen. Without this, combinatorial
+  // runs (many replicates per well) showed a single native barcode per cell.
+  const wellMap = new Map(collapseWells(wells).map((w) => [w.well, w] as const));
 
   return (
     <div className="w-full overflow-x-auto rounded-container border border-border/70 bg-card p-2.5" role="grid" aria-label={t("wellPlate.gridAriaLabel")}>
@@ -96,7 +101,13 @@ export function WellPlate({
               const id = `${row}${col}`;
               const well = wellMap.get(id);
               const isFocused = selectedWellId === id;
-              const plate = well ? getPlateBadge(well.barcode) : null;
+              // NB badge only on detected (non-fail) wells: PASS/AMBIGUOUS.
+              // Fail wells (WRONG_AA/MANY/MIXED/FRAMESHIFT/LOWDEPTH/NO_CALL)
+              // have no meaningful "chosen replicate", so the NB is just noise.
+              const plate =
+                well && DETECTED_VERDICTS.includes(well.verdict)
+                  ? getPlateBadge(well.native_barcode)
+                  : null;
               const fill = well
                 ? (wellColorOf?.(well) ?? verdictFill[well.verdict])
                 : emptyFill;
@@ -142,7 +153,7 @@ export function WellPlate({
                     )}
                     {/* Badge row at bottom (flex, no absolute positioning) */}
                     {(well?.selected || isFallback || plate) && (
-                      <div className="flex h-3 w-full items-center justify-between gap-0.5 px-0.5">
+                      <div className="flex h-3.5 w-full items-center justify-between gap-0.5 px-0.5">
                         <div className="flex items-center gap-0.5">
                           {well?.selected && (
                             <span
@@ -177,9 +188,14 @@ export function WellPlate({
                         </div>
                         {plate && (
                           <span
-                            className="shrink-0 rounded-full px-0.5 text-[7px] font-bold leading-none"
+                            className={cn(
+                              "shrink-0 rounded-full px-1 text-[9px] font-bold leading-none",
+                              well?.selected && "font-extrabold ring-1 ring-white/70",
+                            )}
                             style={{
-                              backgroundColor: "rgba(0,0,0,0.25)",
+                              backgroundColor: well?.selected
+                                ? "rgba(0,0,0,0.55)"
+                                : "rgba(0,0,0,0.3)",
                               color: fill.text,
                             }}
                             aria-hidden="true"

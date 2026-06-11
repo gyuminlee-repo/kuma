@@ -4,7 +4,7 @@
  * Phase G #18: analyze.health 폐지 — RunHealthPanel이 verdict/plate에 분산 흡수됨.
  */
 
-import { act, render, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@/lib/ipc", () => ({
@@ -28,7 +28,19 @@ vi.mock("@/components/mame/widgets/VerdictTable", () => ({
   VerdictTable: () => <div data-testid="verdict-table" />,
 }));
 vi.mock("@/components/mame/widgets/PlateView", () => ({
-  PlateView: () => <div data-testid="plate-view" />,
+  PlateView: ({
+    expanded,
+    onToggleExpand,
+  }: {
+    expanded?: boolean;
+    onToggleExpand?: () => void;
+  }) => (
+    <div data-testid="plate-view" data-expanded={String(!!expanded)}>
+      <button type="button" data-testid="plate-toggle" onClick={onToggleExpand}>
+        toggle
+      </button>
+    </div>
+  ),
 }));
 vi.mock("@/components/mame/widgets/RunHealthPanel", () => ({
   RunHealthPanel: () => <div data-testid="run-health-panel" />,
@@ -101,6 +113,24 @@ describe("AnalyzeStepView (Task #12 — analyze.review)", () => {
     expect(getByTestId("summary-row")).toBeTruthy();
     expect(getByTestId("verdict-table")).toBeTruthy();
     expect(getByTestId("plate-view")).toBeTruthy();
+  });
+
+  it("analyze.review toggles plate wrapper to fullscreen overlay (absolute inset-0 z-40) on expand", () => {
+    render(<AnalyzeStepView />);
+    const region = screen.getByRole("region", { name: "Expanded plate view" });
+    // Default collapsed: no overlay classes, just h-full.
+    expect(region.className).toContain("h-full");
+    expect(region.className).not.toContain("absolute");
+    // Click PlateView's toggle (forwarded onToggleExpand lifts plateExpanded).
+    fireEvent.click(screen.getByTestId("plate-toggle"));
+    expect(region.className).toContain("absolute");
+    expect(region.className).toContain("inset-0");
+    expect(region.className).toContain("z-40");
+    expect(screen.getByTestId("plate-view")).toHaveAttribute("data-expanded", "true");
+    // Toggle back collapses.
+    fireEvent.click(screen.getByTestId("plate-toggle"));
+    expect(region.className).toContain("h-full");
+    expect(region.className).not.toContain("absolute");
   });
 
   it("analyze.review with runHealth mounts RunHealthPanel (per-plate verdict chart)", () => {

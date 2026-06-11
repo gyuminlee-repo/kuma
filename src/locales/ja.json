@@ -423,6 +423,9 @@
       "selectedWellAriaLabel": "選択した well の詳細",
       "verdictLegendAriaLabel": "Verdict カラー凡例",
       "verdictFilterAriaLabel": "{{verdict}} クラスのみ強調（トグル）",
+      "nbPicked": "{{nb}}: {{count}}件選択",
+      "nbFilterAriaLabel": "{{nb}} のみ強調（トグル）",
+      "nbFilterGroupAriaLabel": "Native barcode で well をフィルター",
       "selectedWellLabel": "選択中のwell",
       "selectedReplicate": "選択 replicate",
       "fallbackTitle": "Fallback replicate",
@@ -434,7 +437,11 @@
       "detailNativeBc": "Native BC",
       "detailMutant": "Mutant",
       "detailNotes": "Notes",
-      "detailSelectedReplicate": "選択されたreplicate"
+      "detailSelectedReplicate": "選択されたreplicate",
+      "expand": "拡大",
+      "collapse": "縮小",
+      "expandAriaLabel": "プレートビューの拡大を切り替え",
+      "expandedRegionAriaLabel": "拡大したプレートビュー"
     },
     "drawer": {
       "stat": {

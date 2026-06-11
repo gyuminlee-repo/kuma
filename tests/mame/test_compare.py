@@ -81,6 +81,24 @@ def test_f04_many() -> None:
     assert result.verdict is VerdictClass.MANY
 
 
+def test_many_is_an_excess_gate_not_absolute() -> None:
+    """A multi-site design that perfectly matches expected is PASS, never MANY.
+
+    Regression: the MANY gate compared the raw observed count against the cutoff,
+    so a legitimate >5-site (e.g. combinatorial) well whose observed AA changes
+    exactly equalled its expected list was misclassified MANY and surfaced in the
+    plate plan as a fail. MANY must only fire when a well carries MORE changes
+    than its own design calls for.
+    """
+    six = ["M1L", "V3L", "V5F", "K18L", "K48L", "K53L"]  # 6 changes, cutoff 5
+    perfect = classify_verdict(_tr(six), six, _params())
+    assert perfect.verdict is VerdictClass.PASS, perfect.verdict_notes
+
+    # One unexpected change on top of the 6-site design IS excess -> MANY.
+    contaminated = classify_verdict(_tr([*six, "A9P"]), six, _params())
+    assert contaminated.verdict is VerdictClass.MANY
+
+
 def test_f05_lowdepth() -> None:
     tr = _tr(["V5F"], file_size_kb=30.0)
     result = classify_verdict(tr, ["V5F"], _params(min_file_size_kb=50.0))
