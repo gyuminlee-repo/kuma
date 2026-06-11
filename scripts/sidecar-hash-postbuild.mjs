@@ -281,7 +281,10 @@ function regenerateDmg(appPath, dmgDir) {
     run("rm", ["-f", dmgPath]);
   }
 
-  run("hdiutil", [
+  // hdiutil can transiently fail with "Resource busy" right after codesign
+  // (Spotlight/fsevents still hold the freshly-signed .app, or a stale volume
+  // of the same name is mounted). Detach any stale volume and retry.
+  const hdiutilArgs = [
     "create",
     "-volname",
     PRODUCT_NAME,
@@ -291,7 +294,22 @@ function regenerateDmg(appPath, dmgDir) {
     "-format",
     "UDZO",
     dmgPath,
-  ]);
+  ];
+  let dmgStatus = 1;
+  for (let attempt = 1; attempt <= 4; attempt++) {
+    spawnSync("hdiutil", ["detach", `/Volumes/${PRODUCT_NAME}`, "-force"], {
+      stdio: "ignore",
+    });
+    log(`$ hdiutil ${hdiutilArgs.join(" ")} (attempt ${attempt}/4)`);
+    const r = spawnSync("hdiutil", hdiutilArgs, { stdio: "inherit" });
+    dmgStatus = r.status ?? 1;
+    if (dmgStatus === 0) break;
+    log(`hdiutil create failed (status ${dmgStatus}); retrying in 3s…`);
+    spawnSync("sleep", ["3"]);
+  }
+  if (dmgStatus !== 0) {
+    fail(`hdiutil create failed after 4 attempts (status ${dmgStatus})`);
+  }
 
   log(`regenerated DMG → ${dmgPath}`);
 }

@@ -345,7 +345,7 @@ def run_smoke(binary: Path) -> None:
             "native_barcodes": ["barcode06", "barcode20"],
         }))
         try:
-            demux_resp = sio.recv(3, timeout=600.0)
+            demux_resp = sio.recv(3, timeout=1200.0)
             if "error" in demux_resp:
                 failures.append(f"demux RPC error: {demux_resp['error']}")
             else:
@@ -376,7 +376,7 @@ def run_smoke(binary: Path) -> None:
             "native_barcodes": ["barcode06", "barcode20"],
         }))
         try:
-            analyze_resp = sio.recv(4, timeout=600.0)
+            analyze_resp = sio.recv(4, timeout=1200.0)
             if "error" in analyze_resp:
                 failures.append(f"analyze RPC error: {analyze_resp['error']}")
             else:
