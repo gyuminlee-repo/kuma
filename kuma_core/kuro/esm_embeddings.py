@@ -143,10 +143,11 @@ def _local_inference(sequence: str) -> list[list[float]] | None:
 
 def _remote_fetch(accession: str) -> list[list[float]] | None:
     """Try remote ESM embedding APIs as fallback."""
-    import ssl
     import urllib.request
 
-    ctx = ssl.create_default_context()
+    from kuma_core.shared.net import get_ssl_context
+
+    ctx = get_ssl_context()
     endpoints = [
         f"https://api.esmatlas.com/fetchEmbedding/{accession}",
     ]

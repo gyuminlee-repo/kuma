@@ -52,15 +52,9 @@ _ALLOWED_CSV_EXTENSIONS = {".csv", ".tsv", ".txt"}
 _ALLOWED_EXCEL_EXTENSIONS = {".xlsx"}
 _VALID_DNA_BASES = re.compile(r"^[ATGC]+$")
 
-_ssl_ctx = None
-
-
 def _get_ssl_ctx():
-    global _ssl_ctx
-    if _ssl_ctx is None:
-        import ssl
-        _ssl_ctx = ssl.create_default_context()
-    return _ssl_ctx
+    from kuma_core.shared.net import get_ssl_context
+    return get_ssl_context()
 
 
 def _get_config() -> dict[str, object]:

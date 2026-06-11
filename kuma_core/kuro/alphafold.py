@@ -15,6 +15,7 @@ import re
 import urllib.request as _urllib_req
 
 from kuma_core.shared.config_paths import kuma_cache_dir
+from kuma_core.shared.net import get_ssl_context
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +90,7 @@ def fetch_ca_coords(accession: str) -> list[tuple[float, float, float] | None] |
     api_url = _AF_API.format(acc=accession)
     try:
         req = _urllib_req.Request(api_url, headers={"Accept": "application/json"})
-        with _urllib_req.urlopen(req, timeout=15) as resp:
+        with _urllib_req.urlopen(req, context=get_ssl_context(), timeout=15) as resp:
             af_data = json.loads(resp.read().decode("utf-8"))
     except Exception as exc:
         logger.warning("AlphaFold API failed for %s: %s", accession, exc)
@@ -107,7 +108,7 @@ def fetch_ca_coords(accession: str) -> list[tuple[float, float, float] | None] |
     # Download PDB file and parse Cα coordinates
     try:
         pdb_req = _urllib_req.Request(pdb_url)
-        with _urllib_req.urlopen(pdb_req, timeout=30) as resp:
+        with _urllib_req.urlopen(pdb_req, context=get_ssl_context(), timeout=30) as resp:
             pdb_text = resp.read().decode("utf-8")
     except Exception as exc:
         logger.warning("AlphaFold PDB download failed for %s: %s", accession, exc)
@@ -172,7 +173,7 @@ def check_structure_available(accession: str) -> bool:
     api_url = _AF_API.format(acc=accession)
     try:
         req = _urllib_req.Request(api_url, headers={"Accept": "application/json"})
-        with _urllib_req.urlopen(req, timeout=5) as resp:
+        with _urllib_req.urlopen(req, context=get_ssl_context(), timeout=5) as resp:
             data = json.loads(resp.read().decode("utf-8"))
         return bool(data and isinstance(data, list) and data[0].get("pdbUrl"))
     except Exception:
