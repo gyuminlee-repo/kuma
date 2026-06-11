@@ -2,6 +2,7 @@ import type { ChangeEvent, KeyboardEvent } from "react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { InlineHelp } from "../../ui/InlineHelp";
+import { AdvancedSection } from "../../ui/AdvancedSection";
 import { UniprotSearch } from "./UniprotSearch";
 
 const LINKER_HANDLING_OPTIONS: Array<"include" | "separate-bin" | "exclude"> = [
@@ -400,20 +401,13 @@ export function AdvancedSettingsSection(props: {
 
   return (
     <div className="ml-2 mt-2 border-l-2 border-transparent pl-3">
-      <button
-        type="button"
-        aria-expanded={showAdvanced}
-        aria-controls="advanced-settings-panel"
-        className="flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2 py-1 text-xs font-medium text-foreground transition-colors hover:bg-muted hover:text-foreground"
-        onClick={() => setShowAdvanced((p) => !p)}
+      <AdvancedSection
+        title={t("diversitySections.advancedSettings")}
+        open={showAdvanced}
+        onToggle={() => setShowAdvanced((p) => !p)}
+        id="advanced-settings-panel"
       >
-        <span className="text-muted-foreground" aria-hidden="true">
-          {showAdvanced ? "▾" : "▸"}
-        </span>
-        <span>{t("diversitySections.advancedSettings")}</span>
-      </button>
-      {showAdvanced && (
-        <div id="advanced-settings-panel" className="mt-1.5 space-y-2 rounded-container border border-border bg-card p-3 text-caption text-muted-foreground">
+        <div className="space-y-2 text-caption text-muted-foreground">
           <div>
             <div className="mb-0.5 text-plate-tiny uppercase tracking-wide text-muted-foreground/60">{t("diversitySections.step1SectionLabel")}</div>
             <div className="flex items-center gap-1 flex-wrap">
@@ -534,7 +528,7 @@ export function AdvancedSettingsSection(props: {
             </div>
           </div>
         </div>
-      )}
+      </AdvancedSection>
     </div>
   );
 }
