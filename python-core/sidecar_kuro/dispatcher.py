@@ -131,6 +131,12 @@ _ASYNC_METHODS = {
     "run_benchmark",
 }
 
+# Frozen-Windows worker dispatch starves the worker thread while the main loop
+# blocks on stdin, so async responses are not delivered until the client's NEXT
+# request. Run handlers synchronously on the main thread there (same rationale
+# and fix as the MAME dispatcher).
+_SYNC_DISPATCH = sys.platform == "win32" and getattr(sys, "frozen", False)
+
 
 
 def _dispatch_handler(req_id: int | None, method: str, handler, params: dict) -> None:
@@ -161,7 +167,7 @@ def dispatch(request: dict) -> None:
         _error(req_id, -32601, f"Method not found: {method}")
         return
 
-    if method in _ASYNC_METHODS:
+    if method in _ASYNC_METHODS and not _SYNC_DISPATCH:
         t = threading.Thread(
             target=_dispatch_handler, args=(req_id, method, handler, params), daemon=True
         )
