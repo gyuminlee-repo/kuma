@@ -17,4 +17,5 @@ accepted = [
     "Zlib",
     "OpenSSL",
     "CC0-1.0",
+    "MPL-2.0",
 ]
