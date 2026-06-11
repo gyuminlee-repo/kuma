@@ -685,8 +685,8 @@
         "label": "Sequência de referência",
         "placeholder": "Caminho do arquivo .fasta / .fa / .gbk / .dna",
         "stateLabel": "Obrigatório",
-        "helperText": "Sequência de referência usada para variant calling contra o consensus",
-        "helpText": "Sequência de referência usada como baseline para variant calling. Arquivos FASTA, GenBank e SnapGene são suportados. Recomenda-se usar a mesma referência do design KURO."
+        "helperText": "Sequência de referência nucleotídica (CDS) usada para variant calling contra o consensus",
+        "helpText": "Sequência de referência usada como baseline para variant calling. Arquivos FASTA, GenBank e SnapGene são suportados. Recomenda-se usar a mesma referência do design KURO. Deve ser uma sequência nucleotídica (DNA/CDS) usada para o alinhamento de reads, não uma sequência de proteína."
       },
       "customBarcodes": {
         "label": "Custom Barcodes (xlsx ou csv)",

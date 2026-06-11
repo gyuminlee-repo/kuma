@@ -685,8 +685,8 @@
         "label": "Séquence de référence",
         "placeholder": "Chemin du fichier .fasta / .fa / .gbk / .dna",
         "stateLabel": "Requis",
-        "helperText": "Séquence de référence utilisée pour le variant calling contre le consensus",
-        "helpText": "Séquence de référence servant de baseline au variant calling. Les fichiers FASTA, GenBank et SnapGene sont pris en charge. Utiliser la même référence que le design KURO est recommandé."
+        "helperText": "Séquence de référence nucléotidique (CDS) utilisée pour le variant calling contre le consensus",
+        "helpText": "Séquence de référence servant de baseline au variant calling. Les fichiers FASTA, GenBank et SnapGene sont pris en charge. Utiliser la même référence que le design KURO est recommandé. Elle doit être une séquence nucléotidique (DNA/CDS) utilisée pour l'alignement des reads, pas une séquence protéique."
       },
       "customBarcodes": {
         "label": "Custom Barcodes (xlsx ou csv)",

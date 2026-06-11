@@ -685,8 +685,8 @@
         "label": "Reference 配列",
         "placeholder": ".fasta / .fa / .gbk / .dna ファイルパス",
         "stateLabel": "必須",
-        "helperText": "consensus に対する variant calling の基準となる reference 配列",
-        "helpText": "Variant calling の基準となる reference 配列。FASTA、GenBank、SnapGene ファイルに対応しています。KURO 設計と同じ reference の使用を推奨します。"
+        "helperText": "consensus に対する variant calling の基準となる reference 塩基配列(CDS)",
+        "helpText": "Variant calling の基準となる reference 配列。FASTA、GenBank、SnapGene ファイルに対応しています。KURO 設計と同じ reference の使用を推奨します。read alignment に使用する塩基配列(DNA/CDS)であり、protein 配列は使用できません。"
       },
       "customBarcodes": {
         "label": "Custom Barcodes (xlsx または csv)",
