@@ -115,6 +115,14 @@ _METHODS = {
 # ack flushes to stdout before the loop exits.
 _ASYNC_METHODS = {"analyze", "demux_and_filter", "mame.run_combinatorial_demux"}
 
+# Worker-thread dispatch is unsafe on a frozen Windows build: while the main
+# loop blocks reading the next stdin line, a spawned worker thread does not get
+# to run, so async responses (analyze, demux) — and their progress — are only
+# delivered after the client sends its NEXT request. Run those handlers
+# synchronously on the main thread there so each response ships before the next
+# read. Linux/macOS and dev builds keep the worker-thread (cancellable) path.
+_SYNC_DISPATCH = sys.platform == "win32" and getattr(sys, "frozen", False)
+
 
 def _dispatch_handler(
     req_id: int | None, method: str, handler, params: dict
@@ -160,7 +168,7 @@ def dispatch(request: dict) -> None:
         _error(req_id, -32601, f"Method not found: {method}")
         return
 
-    if method in _ASYNC_METHODS:
+    if method in _ASYNC_METHODS and not _SYNC_DISPATCH:
         t = threading.Thread(
             target=_dispatch_handler,
             args=(req_id, method, handler, params),
