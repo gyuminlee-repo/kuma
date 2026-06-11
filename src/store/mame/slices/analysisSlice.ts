@@ -13,12 +13,8 @@ import { seedBuildEvolveproForm } from "@/lib/mame/buildEvolveproFormStorage";
 import { useRoundStore } from "@/store/round/roundSlice";
 import type { ActivityRecord, PlateMeta } from "@/types/mame/activity";
 import type {
-  AnalyzeSummary,
   PlateDataResult,
-  ReplicateResult,
   RunHealthData,
-  VerdictRecord,
-  WellEntry,
 } from "@/types/mame/models";
 import type { AnalysisSlice } from "../slice-interfaces";
 import type { AppState } from "../types";
@@ -251,34 +247,20 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
           : ""),
     });
 
-    // Task B: Load fixture analysis result to populate graphs (verdicts/wells/runHealth/summary).
-    // Append after mock results so fixture overrides them on success; mock remains as graceful fallback.
+    // Task B: Load fixture analysis result to populate the run-health graphs.
+    // Only runHealth is missing — verdicts/wells/summary are already set from
+    // the mock helpers above. Setting runHealth makes the Per-plate verdict
+    // breakdown render instead of showing "Setup incomplete".
     if (analysisResultPath) {
       try {
         const fixtureText = await readTextFile(analysisResultPath);
-        const fixtureData = JSON.parse(fixtureText) as Pick<
-          AppState,
-          "verdicts" | "replicates" | "summary" | "wells" | "runHealth"
-        >;
-        const fixtureWells: WellEntry[] = Array.isArray(fixtureData.wells)
-          ? (fixtureData.wells as WellEntry[])
-          : [];
-        set({
-          verdicts: Array.isArray(fixtureData.verdicts)
-            ? (fixtureData.verdicts as VerdictRecord[])
-            : sampleVerdicts(),
-          replicates: Array.isArray(fixtureData.replicates)
-            ? (fixtureData.replicates as ReplicateResult[])
-            : sampleReplicates(),
-          summary: (fixtureData.summary as AnalyzeSummary | null) ?? sampleSummary(),
-          wells: fixtureWells,
-          selectedWell:
-            fixtureWells.find((w) => w.selected) ?? fixtureWells[0] ?? null,
-          runHealth: (fixtureData.runHealth as RunHealthData | null) ?? null,
-        });
+        const fixtureData = JSON.parse(fixtureText) as { runHealth?: RunHealthData };
+        if (fixtureData.runHealth) {
+          set({ runHealth: fixtureData.runHealth });
+        }
       } catch (fixtureErr) {
         console.warn(
-          "[analysisSlice] sample_analysis_result.json load failed, using mock results:",
+          "[analysisSlice] sample_analysis_result.json load failed:",
           fixtureErr,
         );
       }
