@@ -49,6 +49,11 @@ jobs:
       - name: TypeScript typecheck
         run: npx tsc --noEmit
 
+      - name: Stub generated bundle resource (NOTICE.md) for cross-layer sync
+        run: |
+          mkdir -p src-tauri/resources
+          printf '# Third-party notices\n\n(placeholder; real content generated at build time by scripts/build-notice.mjs)\n' > src-tauri/resources/NOTICE.md
+
       - name: Cross-layer sync
         run: pnpm run sync:check
 
