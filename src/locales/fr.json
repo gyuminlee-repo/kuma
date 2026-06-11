@@ -549,7 +549,7 @@
       "analyzeTab": "2. QC séquençage",
       "activityTab": "3. Données d'activité",
       "verdictTableTitle": "Table de verdicts",
-      "platePlanTitle": "Plan de plaque",
+      "platePlanTitle": "Carte de plaque",
       "runHealthTitle": "Santé du run",
       "subSteps": {
         "setup": {
@@ -560,7 +560,7 @@
         "analyze": {
           "inputs": "Entrées",
           "verdict": "Verdicts",
-          "plate": "Plan de plaque",
+          "plate": "Carte de plaque",
           "health": "Run Health"
         },
         "activity": {
@@ -765,7 +765,7 @@
         "drawerLeftDesc": "Consensus called",
         "drawerCenter": "Consensus log",
         "drawerRight": "Next",
-        "drawerRightDesc": "Review plate plan",
+        "drawerRightDesc": "Review plate map",
         "inspectorTitle": "Barcode Verdict",
         "inspectorSubtitle": "Selected barcode details",
         "inspectorReads": "Reads",
@@ -775,7 +775,7 @@
         "inspectorNoBarcodeSelected": "Select a row to inspect"
       },
       "plate": {
-        "contextTitle": "Sequencing QC — Plate Plan",
+        "contextTitle": "Sequencing QC — Plate Map",
         "contextSubtitle": "96-well layout with per-well verdict.",
         "drawerLeft": "Selection",
         "drawerLeftDesc": "Wells selected for pick",
@@ -794,7 +794,7 @@
       },
       "review": {
         "contextTitle": "Sequencing QC — Review",
-        "contextSubtitle": "Verdict table, plate plan, and per-plate verdict distribution in one view.",
+        "contextSubtitle": "Verdict table, plate map, and per-plate verdict distribution in one view.",
         "drawerLeft": "Summary",
         "drawerCenter": "Review log",
         "drawerRight": "Next",
@@ -1414,7 +1414,7 @@
     "designOutput": "Sortie du design",
     "designSuccessCount": "{{successCount}}/{{totalCount}} réussis",
     "noResultsYet": "Aucun élément pour le moment",
-    "platePlan": "Plan de plaque",
+    "platePlan": "Carte de plaque",
     "awaitingDesign": "En attente du design",
     "cannotRunTitle": "Impossible de lancer le design pour l'instant",
     "cannotRunDesc": "Remplir les éléments suivants avant de lancer le design :",
@@ -2113,7 +2113,7 @@
       "analyze": {
         "inputs": "Entrées",
         "verdict": "Verdicts",
-        "plate": "Plan de plaque",
+        "plate": "Carte de plaque",
         "health": "Run Health",
         "review": "Review (Verdict + Plate)"
       },

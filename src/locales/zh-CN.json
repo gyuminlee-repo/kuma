@@ -549,7 +549,7 @@
       "analyzeTab": "2. Sequencing QC",
       "activityTab": "3. Activity Data",
       "verdictTableTitle": "Verdict 表",
-      "platePlanTitle": "Plate 布局",
+      "platePlanTitle": "板图",
       "runHealthTitle": "Run health",
       "subSteps": {
         "setup": {
@@ -560,7 +560,7 @@
         "analyze": {
           "inputs": "输入",
           "verdict": "Verdicts",
-          "plate": "Plate 布局",
+          "plate": "板图",
           "health": "Run Health"
         },
         "activity": {
@@ -765,7 +765,7 @@
         "drawerLeftDesc": "Consensus called",
         "drawerCenter": "Consensus log",
         "drawerRight": "Next",
-        "drawerRightDesc": "Review plate plan",
+        "drawerRightDesc": "Review plate map",
         "inspectorTitle": "Barcode Verdict",
         "inspectorSubtitle": "Selected barcode details",
         "inspectorReads": "Reads",
@@ -775,7 +775,7 @@
         "inspectorNoBarcodeSelected": "Select a row to inspect"
       },
       "plate": {
-        "contextTitle": "Sequencing QC — Plate Plan",
+        "contextTitle": "Sequencing QC — Plate Map",
         "contextSubtitle": "96-well layout with per-well verdict.",
         "drawerLeft": "Selection",
         "drawerLeftDesc": "Wells selected for pick",
@@ -794,7 +794,7 @@
       },
       "review": {
         "contextTitle": "Sequencing QC — Review",
-        "contextSubtitle": "Verdict table, plate plan, and per-plate verdict distribution in one view.",
+        "contextSubtitle": "Verdict table, plate map, and per-plate verdict distribution in one view.",
         "drawerLeft": "Summary",
         "drawerCenter": "Review log",
         "drawerRight": "Next",
@@ -1414,7 +1414,7 @@
     "designOutput": "设计输出",
     "designSuccessCount": "{{successCount}}/{{totalCount}} 成功",
     "noResultsYet": "暂无结果",
-    "platePlan": "Plate 布局",
+    "platePlan": "板图",
     "awaitingDesign": "等待设计",
     "cannotRunTitle": "无法立即运行设计",
     "cannotRunDesc": "运行设计前请填写以下内容:",
@@ -2113,7 +2113,7 @@
       "analyze": {
         "inputs": "输入",
         "verdict": "Verdicts",
-        "plate": "Plate 布局",
+        "plate": "板图",
         "health": "Run Health",
         "review": "Review (Verdict + Plate)"
       },

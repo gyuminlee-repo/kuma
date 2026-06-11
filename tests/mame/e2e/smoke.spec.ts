@@ -9,7 +9,7 @@ test.describe("smoke", () => {
     await expect(page.getByTestId("sidebar")).toBeVisible();
     await expect(page.getByRole("main")).toBeVisible();
     await expect(page.getByText("Verdict Table")).toBeVisible();
-    await expect(page.getByText("Plate Plan")).toBeVisible();
+    await expect(page.getByText("Plate map")).toBeVisible();
 
     // MenuBar wordmark
     await expect(page.getByRole("banner").getByText("mame")).toBeVisible();

@@ -17,7 +17,7 @@ test.describe("single-view rendering (MOCK_MODE)", () => {
     await expect(page.getByRole("button", { name: /^Run/ })).toBeVisible();
     await expect(page.getByRole("button", { name: /^Validate/ })).toBeVisible();
     await expect(page.getByText("Verdict Table")).toBeVisible();
-    await expect(page.getByText("Plate Plan")).toBeVisible();
+    await expect(page.getByText("Plate map")).toBeVisible();
 
     await page.waitForTimeout(300);
 

@@ -549,7 +549,7 @@
       "analyzeTab": "2. Sequencing QC",
       "activityTab": "3. Activity Data",
       "verdictTableTitle": "Verdict テーブル",
-      "platePlanTitle": "Plate plan",
+      "platePlanTitle": "プレートマップ",
       "runHealthTitle": "Run health",
       "subSteps": {
         "setup": {
@@ -560,7 +560,7 @@
         "analyze": {
           "inputs": "入力",
           "verdict": "Verdicts",
-          "plate": "Plate Plan",
+          "plate": "プレートマップ",
           "health": "Run Health"
         },
         "activity": {
@@ -765,7 +765,7 @@
         "drawerLeftDesc": "Consensus called",
         "drawerCenter": "Consensus log",
         "drawerRight": "Next",
-        "drawerRightDesc": "Review plate plan",
+        "drawerRightDesc": "Review plate map",
         "inspectorTitle": "Barcode Verdict",
         "inspectorSubtitle": "Selected barcode details",
         "inspectorReads": "Reads",
@@ -775,7 +775,7 @@
         "inspectorNoBarcodeSelected": "Select a row to inspect"
       },
       "plate": {
-        "contextTitle": "Sequencing QC — Plate Plan",
+        "contextTitle": "Sequencing QC — Plate Map",
         "contextSubtitle": "96-well layout with per-well verdict.",
         "drawerLeft": "選択",
         "drawerLeftDesc": "Wells selected for pick",
@@ -794,7 +794,7 @@
       },
       "review": {
         "contextTitle": "Sequencing QC — Review",
-        "contextSubtitle": "Verdict table, plate plan, and per-plate verdict distribution in one view.",
+        "contextSubtitle": "Verdict table, plate map, and per-plate verdict distribution in one view.",
         "drawerLeft": "サマリー",
         "drawerCenter": "レビューログ",
         "drawerRight": "次へ",
@@ -1414,7 +1414,7 @@
     "designOutput": "Design 出力",
     "designSuccessCount": "{{successCount}}/{{totalCount}} 成功",
     "noResultsYet": "結果がまだありません",
-    "platePlan": "Plate plan",
+    "platePlan": "プレートマップ",
     "awaitingDesign": "設計待ち",
     "cannotRunTitle": "まだ設計を実行できません",
     "cannotRunDesc": "設計実行前に以下を入力してください:",
@@ -2113,7 +2113,7 @@
       "analyze": {
         "inputs": "入力",
         "verdict": "Verdicts",
-        "plate": "Plate Plan",
+        "plate": "プレートマップ",
         "health": "Run Health",
         "review": "Review (Verdict + Plate)"
       },
