@@ -398,6 +398,7 @@ function FileSizeHistogram({ distribution, cutoffKb, bimodal, method }: FileSize
                 textAnchor="middle"
                 style={{ fill: C.muted, fontSize: 8 }}
               >
+                <title>{t("mame.runHealth.percentileHelp")}</title>
                 {key}
               </text>
               <text
@@ -689,10 +690,10 @@ function CrossTalkAlerts({ candidates }: CrossTalkAlertsProps) {
             <th scope="col" className="py-1 pr-3 font-medium">
               {t("mame.runHealth.colReads")}
             </th>
-            <th scope="col" className="py-1 pr-3 font-medium">
+            <th scope="col" className="py-1 pr-3 font-medium cursor-help" title={t("mame.runHealth.neighborAvgHelp")}>
               {t("mame.runHealth.colNeighborAvg")}
             </th>
-            <th scope="col" className="py-1 pr-3 font-medium">
+            <th scope="col" className="py-1 pr-3 font-medium cursor-help" title={t("mame.runHealth.zScoreHelp")}>
               {t("mame.runHealth.colZScore")}
             </th>
             <th scope="col" className="py-1 font-medium">
@@ -826,7 +827,7 @@ export function RunHealthPanel({ health, sections, className, showSectionHeading
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-muted-foreground">
             <span>
               {t("mame.runHealth.method")}:{" "}
-              <span className="font-medium text-foreground">{health.suggested_method}</span>
+              <span className="font-medium text-foreground cursor-help" title={t("mame.runHealth.methodHelp")}>{health.suggested_method}</span>
             </span>
             {health.bimodal && (
               <span className="rounded-control border border-warning/40 px-1.5 py-0.5 text-warning">

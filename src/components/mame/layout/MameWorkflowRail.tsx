@@ -1,8 +1,8 @@
 /**
  * MameWorkflowRail — MAME 전용 WorkflowRail 래퍼.
  *
- * 7 sub-step을 MAME_SUBSTEP_ORDER 순서로 나열하고, 현재 sub-step 기준으로
- * progress %(14, 28, 42, 56, 70, 84, 100)와 step 상태(done/active/lock)를 계산한다.
+ * 5 sub-step을 MAME_SUBSTEP_ORDER 순서로 나열하고, 현재 sub-step 기준으로
+ * progress %와 step 상태(done/active/lock)를 계산한다.
  *
  * [source: v5-strategy.md §3 Sidebar (WorkflowRail)]
  * [source: v5-audit.md Phase 5 MAME 7화면 contract matrix]
@@ -16,14 +16,13 @@ import type { MamePhase } from "@/store/mame/slices/phaseSlice";
 
 const ALL_SUBSTEPS: MameSubStepId[] = [
   "setup.files",
-  "setup.design",
   "analyze.inputs",
   "analyze.review",
   "activity.ingest",
   "activity.mergeExport",
 ];
 
-const STEP_TOTAL = ALL_SUBSTEPS.length; // 6
+const STEP_TOTAL = ALL_SUBSTEPS.length; // 5
 
 /** Major.Sub 표기 (spec §5.2). KURO는 단일 카운트, MAME는 Major.Sub.
  * Legacy analyze.verdict/plate retained as 2.2 alias for migration/redirect rendering. */
@@ -77,7 +76,7 @@ const STEP_LABEL_KEYS: Record<MameSubStepId, string> = {
 };
 
 function computeProgress(activeIndex: number): number {
-  // index 0 → 14%, index 6 → 100%
+  // index 0 → 20%, index 4 → 100%
   return Math.round(((activeIndex + 1) / STEP_TOTAL) * 100);
 }
 

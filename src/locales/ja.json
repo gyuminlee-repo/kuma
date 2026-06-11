@@ -229,7 +229,7 @@
       },
       "legacyOptionsToggle": "Legacy オプションを表示",
       "legacyOptionsDeprecationWarning": "これらのオプションは非推奨であり、将来のバージョンで削除されます。Min Filtered Depth を推奨します。",
-      "advancedOptions": "Advanced",
+      "advancedOptions": "詳細オプション",
       "advancedSectionAriaLabel": "Toggle advanced combinatorial demux options",
       "coverageFraction": "Coverage Fraction",
       "coverageFractionHelp": "Minimum fraction of the reference sequence that must be covered by each alignment hit (0.5 to 1.0). Higher values require more complete alignments.",
@@ -239,7 +239,8 @@
       "editDistRatioAriaLabel": "Maximum edit distance ratio for barcode matching",
       "chimeraSplit": "Chimera Split",
       "chimeraSplitHelp": "When enabled, all alignment hits per read are evaluated to detect chimeric reads that span multiple wells. Recommended to leave on.",
-      "chimeraSplitAriaLabel": "Enable chimera detection by evaluating all alignment hits per read"
+      "chimeraSplitAriaLabel": "Enable chimera detection by evaluating all alignment hits per read",
+      "ampliconConfidenceHelp": "Confidence of the amplicon length auto-detected from sampled reads: peak read-length bin share at or above 30% is high, at or above 15% is medium, otherwise low."
     },
     "barcodeSetup": {
       "title": "Barcode パッケージセットアップ",
@@ -249,6 +250,7 @@
       "projectMetadata": "プロジェクトメタデータ",
       "flankParameters": "Flank パラメータ",
       "bindingParameters": "Binding パラメータ",
+      "advancedParameters": "詳細オプション",
       "outputLocation": "出力先",
       "outputLocationPlaceholder": "design/ (プロジェクト既定)",
       "outputLocationHelper": "バーコードパッケージのファイルを書き出すフォルダーです。空欄の場合はプロジェクトの design/ フォルダーを使用します。",
@@ -415,7 +417,11 @@
       "mutantRecoveryTitle": "変異体リカバリー",
       "recoveredViaPass": "リカバリー (Pass)",
       "recoveredViaAmbiguous": "リカバリー (Ambiguous)",
-      "notRecovered": "リカバリーなし"
+      "notRecovered": "リカバリーなし",
+      "neighborAvgHelp": "Mean read count of the four orthogonal neighbor wells (up/down/left/right). Informational; not used in the z-score.",
+      "zScoreHelp": "(well reads minus plate mean) / plate SD. Wells above 2.5 are flagged. Severity: above 4 high, above 3 medium, above 2.5 low.",
+      "percentileHelp": "File-size percentiles in KB by linear interpolation: p05 is the 5th percentile through p95 the 95th.",
+      "methodHelp": "How the cutoff was chosen: median minus 2 sigma (broad unimodal), p05 (tight unimodal), kneedle (elbow of a bimodal distribution), or a 50 KB floor when no method clears 50 KB."
     },
     "plateView": {
       "plate": "Plate",
@@ -506,7 +512,15 @@
         "reasonNoLog2fc": "Excluded — log₂FC could not be computed.",
         "reasonNoActivity": "Excluded — no activity data available."
       },
-      "selectedReplicateBadge": "選択"
+      "selectedReplicateBadge": "選択",
+      "activity": {
+        "log2fcHelp": "Log2 of fold-change (well activity mean / plate WT-well average). 0 is WT level; +1 is 2x WT.",
+        "foldChangeHelp": "Activity mean divided by the plate WT-well average (linear fold-change).",
+        "rawMeanHelp": "Mean and SD of the raw activity signal across replicate measurements of this well (SD shown when 2 or more replicates).",
+        "replicatesHelp": "Number of activity measurements (replicate wells) aggregated for this mutant.",
+        "ngsHelp": "Sequencing genotype check: pass when the called mutation equals the expected design, fail otherwise."
+      },
+      "recoveredHelp": "A mutant is recovered when at least one of its replicate wells (across all plates) is PASS or AMBIGUOUS."
     },
     "summaryRow": {
       "ariaLabel": "解析サマリー",
@@ -524,7 +538,8 @@
       "statusReady": "結果準備完了",
       "statusReadyToRun": "実行可能",
       "statusDraft": "下書き状態",
-      "statusInProgress": "進行中"
+      "statusInProgress": "進行中",
+      "successRateHelp": "Share of designed mutants with at least one PASS replicate. WT controls and UNKNOWN_* groups are excluded. AMBIGUOUS does not count here (unlike Recovered)."
     },
     "menuBar": {
       "restartSidecarConfirm": "解析が実行中です。Sidecar を再起動しますか?",
@@ -885,6 +900,18 @@
       "toastSuccessDesc": "{{count}} 件の variant を記録しました。",
       "toastError": "EVOLVEpro 入力の生成に失敗しました",
       "openFolder": "出力フォルダを開く"
+    },
+    "verdictBadge": {
+      "help": {
+        "PASS": "Observed amino-acid changes exactly match the expected design.",
+        "AMBIGUOUS": "All expected mutations matched, plus an extra AA change within the indel window of an expected site. Still counts as detected/recovered.",
+        "MIXED": "Within-well contamination: a substantial second allele in the consensus signal.",
+        "WRONG_AA": "An expected site shows a different amino acid, an expected mutation is missing, or an unexpected extra change sits outside the window.",
+        "FRAMESHIFT": "Two or more nucleotide indels within the frameshift window.",
+        "MANY": "More observed AA changes than both the design and the many-mutation cutoff.",
+        "LOWDEPTH": "Too few reads to call this well reliably.",
+        "NO_CALL": "Consensus has too many ambiguous (N) positions to trust the amino-acid calls."
+      }
     }
   },
   "home": {
@@ -2116,7 +2143,7 @@
     },
     "mameSubSteps": {
       "setup": {
-        "files": "Files & Coordinates",
+        "files": "バーコードパッケージ",
         "design": "Design パラメータ",
         "output": "Generate Package"
       },
@@ -2162,7 +2189,7 @@
     },
     "mameDescriptions": {
       "setup": {
-        "files": "この run の MinKNOW run フォルダと reference 配列を選択。",
+        "files": "CDS 配列とバーコードシードを指定し、プライマー設計パラメーターを設定して、出力フォルダーを選択し、バーコードパッケージを生成します。",
         "design": "Primer design パラメータを設定し、barcode パッケージを生成。"
       },
       "analyze": {
@@ -2173,7 +2200,7 @@
       },
       "activity": {
         "ingest": "活性 CSV または Excel ファイルをアップロードし、wild-type をアノテート。",
-        "mergeExport": "Merge activity data with genotype calls, then export the merged table for EVOLVEpro input."
+        "mergeExport": "活性データを遺伝型コールとマージしてテーブルをエクスポートし、単一反復 (GC) と 3 反復 (WT 相対) の活性を組み合わせて EVOLVEpro 入力を生成します。"
       }
     },
     "summary": {

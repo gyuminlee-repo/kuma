@@ -229,7 +229,7 @@
       },
       "legacyOptionsToggle": "Mostrar opciones legacy",
       "legacyOptionsDeprecationWarning": "Estas opciones están obsoletas y se eliminarán en una versión futura. Prefiera Min Filtered Depth.",
-      "advancedOptions": "Advanced",
+      "advancedOptions": "Opciones avanzadas",
       "advancedSectionAriaLabel": "Toggle advanced combinatorial demux options",
       "coverageFraction": "Coverage Fraction",
       "coverageFractionHelp": "Minimum fraction of the reference sequence that must be covered by each alignment hit (0.5 to 1.0). Higher values require more complete alignments.",
@@ -239,7 +239,8 @@
       "editDistRatioAriaLabel": "Maximum edit distance ratio for barcode matching",
       "chimeraSplit": "Chimera Split",
       "chimeraSplitHelp": "When enabled, all alignment hits per read are evaluated to detect chimeric reads that span multiple wells. Recommended to leave on.",
-      "chimeraSplitAriaLabel": "Enable chimera detection by evaluating all alignment hits per read"
+      "chimeraSplitAriaLabel": "Enable chimera detection by evaluating all alignment hits per read",
+      "ampliconConfidenceHelp": "Confidence of the amplicon length auto-detected from sampled reads: peak read-length bin share at or above 30% is high, at or above 15% is medium, otherwise low."
     },
     "barcodeSetup": {
       "title": "Configuración del paquete de barcodes",
@@ -249,6 +250,7 @@
       "projectMetadata": "Metadatos del proyecto",
       "flankParameters": "Parámetros de flanco",
       "bindingParameters": "Parámetros de binding",
+      "advancedParameters": "Opciones avanzadas",
       "outputLocation": "Ubicación de salida",
       "outputLocationPlaceholder": "design/ (predeterminado del proyecto)",
       "outputLocationHelper": "Carpeta donde se escriben los archivos del paquete de códigos de barras. Déjelo vacío para usar la carpeta design/ del proyecto.",
@@ -415,7 +417,11 @@
       "mutantRecoveryTitle": "Recuperación de mutantes",
       "recoveredViaPass": "Recuperado (Pass)",
       "recoveredViaAmbiguous": "Recuperado (Ambiguous)",
-      "notRecovered": "No recuperado"
+      "notRecovered": "No recuperado",
+      "neighborAvgHelp": "Mean read count of the four orthogonal neighbor wells (up/down/left/right). Informational; not used in the z-score.",
+      "zScoreHelp": "(well reads minus plate mean) / plate SD. Wells above 2.5 are flagged. Severity: above 4 high, above 3 medium, above 2.5 low.",
+      "percentileHelp": "File-size percentiles in KB by linear interpolation: p05 is the 5th percentile through p95 the 95th.",
+      "methodHelp": "How the cutoff was chosen: median minus 2 sigma (broad unimodal), p05 (tight unimodal), kneedle (elbow of a bimodal distribution), or a 50 KB floor when no method clears 50 KB."
     },
     "plateView": {
       "plate": "Placa",
@@ -506,7 +512,15 @@
         "reasonNoLog2fc": "Excluded — log₂FC could not be computed.",
         "reasonNoActivity": "Excluded — no activity data available."
       },
-      "selectedReplicateBadge": "Seleccionado"
+      "selectedReplicateBadge": "Seleccionado",
+      "activity": {
+        "log2fcHelp": "Log2 of fold-change (well activity mean / plate WT-well average). 0 is WT level; +1 is 2x WT.",
+        "foldChangeHelp": "Activity mean divided by the plate WT-well average (linear fold-change).",
+        "rawMeanHelp": "Mean and SD of the raw activity signal across replicate measurements of this well (SD shown when 2 or more replicates).",
+        "replicatesHelp": "Number of activity measurements (replicate wells) aggregated for this mutant.",
+        "ngsHelp": "Sequencing genotype check: pass when the called mutation equals the expected design, fail otherwise."
+      },
+      "recoveredHelp": "A mutant is recovered when at least one of its replicate wells (across all plates) is PASS or AMBIGUOUS."
     },
     "summaryRow": {
       "ariaLabel": "Resumen del análisis",
@@ -524,7 +538,8 @@
       "statusReady": "Resultados listos",
       "statusReadyToRun": "Listo para ejecutar",
       "statusDraft": "Configuración en borrador",
-      "statusInProgress": "En progreso"
+      "statusInProgress": "En progreso",
+      "successRateHelp": "Share of designed mutants with at least one PASS replicate. WT controls and UNKNOWN_* groups are excluded. AMBIGUOUS does not count here (unlike Recovered)."
     },
     "menuBar": {
       "restartSidecarConfirm": "Hay un análisis en ejecución. ¿Reiniciar el sidecar de todas formas?",
@@ -885,6 +900,18 @@
       "toastSuccessDesc": "Se han escrito {{count}} variant.",
       "toastError": "Error al generar la entrada de EVOLVEpro",
       "openFolder": "Abrir carpeta de salida"
+    },
+    "verdictBadge": {
+      "help": {
+        "PASS": "Observed amino-acid changes exactly match the expected design.",
+        "AMBIGUOUS": "All expected mutations matched, plus an extra AA change within the indel window of an expected site. Still counts as detected/recovered.",
+        "MIXED": "Within-well contamination: a substantial second allele in the consensus signal.",
+        "WRONG_AA": "An expected site shows a different amino acid, an expected mutation is missing, or an unexpected extra change sits outside the window.",
+        "FRAMESHIFT": "Two or more nucleotide indels within the frameshift window.",
+        "MANY": "More observed AA changes than both the design and the many-mutation cutoff.",
+        "LOWDEPTH": "Too few reads to call this well reliably.",
+        "NO_CALL": "Consensus has too many ambiguous (N) positions to trust the amino-acid calls."
+      }
     }
   },
   "home": {
@@ -2116,7 +2143,7 @@
     },
     "mameSubSteps": {
       "setup": {
-        "files": "Archivos y coordenadas",
+        "files": "Paquete de códigos de barras",
         "design": "Parámetros de diseño",
         "output": "Generate Package"
       },
@@ -2162,7 +2189,7 @@
     },
     "mameDescriptions": {
       "setup": {
-        "files": "Seleccionar la carpeta de la corrida MinKNOW y la secuencia de referencia para esta corrida.",
+        "files": "Proporcione la secuencia CDS y las semillas de códigos de barras, configure los parámetros de diseño de cebadores, elija una carpeta de salida y genere el paquete de códigos de barras.",
         "design": "Configure los parámetros de diseño de primer y genere el paquete de barcodes."
       },
       "analyze": {
@@ -2173,7 +2200,7 @@
       },
       "activity": {
         "ingest": "Subir archivos CSV o Excel de actividad y anotar el wild-type.",
-        "mergeExport": "Merge activity data with genotype calls, then export the merged table for EVOLVEpro input."
+        "mergeExport": "Combine los datos de actividad con las llamadas de genotipo y exporte la tabla combinada; luego cree la entrada de EVOLVEpro combinando la actividad de réplica única (GC) y de triple réplica (relativa al WT)."
       }
     },
     "summary": {

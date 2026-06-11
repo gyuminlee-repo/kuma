@@ -1,5 +1,6 @@
 /**
- * SetupStepView.test.tsx — 3 sub-step 마운트 어설션 (D2.4)
+ * SetupStepView.test.tsx — single merged "Barcode Package" step (1.1).
+ * setup.files and the legacy setup.design id both render the full panel.
  */
 
 import { render } from "@testing-library/react";
@@ -28,20 +29,14 @@ describe("SetupStepView", () => {
     useMameAppStore.setState({ currentMameSubStep: "setup.files" });
   });
 
-  it("setup.files mounts BarcodeSetupPanel with group=files", () => {
+  it("setup.files mounts the merged BarcodeSetupPanel (no group filter)", () => {
     const { getByTestId } = render(<SetupStepView />);
-    expect(getByTestId("barcode-setup-panel-files")).toBeTruthy();
+    expect(getByTestId("barcode-setup-panel-all")).toBeTruthy();
   });
 
-  it("setup.design mounts BarcodeSetupPanel with group=design", () => {
+  it("legacy setup.design id also renders the merged panel", () => {
     useMameAppStore.setState({ currentMameSubStep: "setup.design" });
     const { getByTestId } = render(<SetupStepView />);
-    expect(getByTestId("barcode-setup-panel-design")).toBeTruthy();
-  });
-
-  it("setup.design includes output sections (group=design absorbs output)", () => {
-    useMameAppStore.setState({ currentMameSubStep: "setup.design" });
-    const { getByTestId } = render(<SetupStepView />);
-    expect(getByTestId("barcode-setup-panel-design")).toBeTruthy();
+    expect(getByTestId("barcode-setup-panel-all")).toBeTruthy();
   });
 });

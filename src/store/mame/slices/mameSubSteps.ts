@@ -8,12 +8,12 @@
 
 export type MameSubStepId =
   | "setup.files"
-  | "setup.design"
   | "analyze.inputs"
   | "analyze.review"
   // Legacy ids retained for redirect/migration. Not in MAME_SUBSTEP_ORDER.
   | "analyze.verdict"
   | "analyze.plate"
+  | "setup.design"
   | "activity.ingest"
   | "activity.mergeExport";
 
@@ -21,7 +21,7 @@ export const MAME_SUBSTEP_ORDER: Record<
   "setup" | "analyze" | "activity",
   MameSubStepId[]
 > = {
-  setup: ["setup.files", "setup.design"],
+  setup: ["setup.files"],
   analyze: ["analyze.inputs", "analyze.review"],
   activity: ["activity.ingest", "activity.mergeExport"],
 };

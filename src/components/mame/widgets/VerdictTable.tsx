@@ -334,7 +334,7 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
       },
       {
         id: "recovered",
-        header: t("mame.verdictTable.colRecovered"),
+        header: () => <span className="cursor-help" title={t("mame.verdictTable.recoveredHelp")}>{t("mame.verdictTable.colRecovered")}</span>,
         accessorFn: (row) => (recoveredByMutant.get(row.mutant_id) ? 1 : 0),
         cell: ({ row }) => {
           const rec = recoveredByMutant.get(row.original.mutant_id) ?? false;
@@ -449,7 +449,7 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
       // ── Activity columns ─────────────────────────────────────────────────
       {
         id: "activity_log2fc",
-        header: "log₂FC",
+        header: () => <span className="cursor-help" title={t("mame.verdictTable.activity.log2fcHelp")}>log₂FC</span>,
         accessorFn: (row) => row.activity_log2fc,
         cell: ({ getValue }) => {
           const v = getValue<number | null>();
@@ -462,7 +462,7 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
       },
       {
         id: "fold_change",
-        header: "Fold Change",
+        header: () => <span className="cursor-help" title={t("mame.verdictTable.activity.foldChangeHelp")}>Fold Change</span>,
         accessorFn: (row) => row.fold_change,
         cell: ({ getValue }) => {
           const v = getValue<number | null>();
@@ -475,7 +475,7 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
       },
       {
         id: "raw_mean_sd",
-        header: "Raw Mean ± SD",
+        header: () => <span className="cursor-help" title={t("mame.verdictTable.activity.rawMeanHelp")}>Raw Mean ± SD</span>,
         accessorFn: (row) => row.activity_raw_mean,
         cell: ({ row }) => {
           const mean = row.original.activity_raw_mean;
@@ -495,7 +495,7 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
       },
       {
         id: "replicate_n",
-        header: "Replicates",
+        header: () => <span className="cursor-help" title={t("mame.verdictTable.activity.replicatesHelp")}>Replicates</span>,
         accessorFn: (row) => row.replicate_n,
         cell: ({ getValue }) => {
           const v = getValue<number | null>();
@@ -508,7 +508,7 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
       },
       {
         id: "ngs_success",
-        header: "NGS",
+        header: () => <span className="cursor-help" title={t("mame.verdictTable.activity.ngsHelp")}>NGS</span>,
         accessorFn: (row) => row.ngs_success,
         cell: ({ getValue }) => {
           const v = getValue<boolean | null>();

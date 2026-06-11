@@ -229,7 +229,7 @@
       },
       "legacyOptionsToggle": "顯示 legacy 選項",
       "legacyOptionsDeprecationWarning": "這些選項已棄用,將在未來版本中移除。建議使用 Min Filtered Depth。",
-      "advancedOptions": "Advanced",
+      "advancedOptions": "進階選項",
       "advancedSectionAriaLabel": "Toggle advanced combinatorial demux options",
       "coverageFraction": "Coverage Fraction",
       "coverageFractionHelp": "Minimum fraction of the reference sequence that must be covered by each alignment hit (0.5 to 1.0). Higher values require more complete alignments.",
@@ -239,7 +239,8 @@
       "editDistRatioAriaLabel": "Maximum edit distance ratio for barcode matching",
       "chimeraSplit": "Chimera Split",
       "chimeraSplitHelp": "When enabled, all alignment hits per read are evaluated to detect chimeric reads that span multiple wells. Recommended to leave on.",
-      "chimeraSplitAriaLabel": "Enable chimera detection by evaluating all alignment hits per read"
+      "chimeraSplitAriaLabel": "Enable chimera detection by evaluating all alignment hits per read",
+      "ampliconConfidenceHelp": "Confidence of the amplicon length auto-detected from sampled reads: peak read-length bin share at or above 30% is high, at or above 15% is medium, otherwise low."
     },
     "barcodeSetup": {
       "title": "Barcode 包設定",
@@ -249,6 +250,7 @@
       "projectMetadata": "專案後設資料",
       "flankParameters": "Flank 引數",
       "bindingParameters": "Binding 引數",
+      "advancedParameters": "進階選項",
       "outputLocation": "輸出位置",
       "outputLocationPlaceholder": "design/（專案預設）",
       "outputLocationHelper": "寫入條碼套件檔案的資料夾。留空則使用專案的 design/ 資料夾。",
@@ -415,7 +417,11 @@
       "mutantRecoveryTitle": "突變體回收",
       "recoveredViaPass": "已回收 (Pass)",
       "recoveredViaAmbiguous": "已回收 (Ambiguous)",
-      "notRecovered": "未回收"
+      "notRecovered": "未回收",
+      "neighborAvgHelp": "Mean read count of the four orthogonal neighbor wells (up/down/left/right). Informational; not used in the z-score.",
+      "zScoreHelp": "(well reads minus plate mean) / plate SD. Wells above 2.5 are flagged. Severity: above 4 high, above 3 medium, above 2.5 low.",
+      "percentileHelp": "File-size percentiles in KB by linear interpolation: p05 is the 5th percentile through p95 the 95th.",
+      "methodHelp": "How the cutoff was chosen: median minus 2 sigma (broad unimodal), p05 (tight unimodal), kneedle (elbow of a bimodal distribution), or a 50 KB floor when no method clears 50 KB."
     },
     "plateView": {
       "plate": "Plate",
@@ -506,7 +512,15 @@
         "reasonNoLog2fc": "Excluded — log₂FC could not be computed.",
         "reasonNoActivity": "Excluded — no activity data available."
       },
-      "selectedReplicateBadge": "已選"
+      "selectedReplicateBadge": "已選",
+      "activity": {
+        "log2fcHelp": "Log2 of fold-change (well activity mean / plate WT-well average). 0 is WT level; +1 is 2x WT.",
+        "foldChangeHelp": "Activity mean divided by the plate WT-well average (linear fold-change).",
+        "rawMeanHelp": "Mean and SD of the raw activity signal across replicate measurements of this well (SD shown when 2 or more replicates).",
+        "replicatesHelp": "Number of activity measurements (replicate wells) aggregated for this mutant.",
+        "ngsHelp": "Sequencing genotype check: pass when the called mutation equals the expected design, fail otherwise."
+      },
+      "recoveredHelp": "A mutant is recovered when at least one of its replicate wells (across all plates) is PASS or AMBIGUOUS."
     },
     "summaryRow": {
       "ariaLabel": "分析摘要",
@@ -524,7 +538,8 @@
       "statusReady": "結果就緒",
       "statusReadyToRun": "可以執行",
       "statusDraft": "草稿設定",
-      "statusInProgress": "進行中"
+      "statusInProgress": "進行中",
+      "successRateHelp": "Share of designed mutants with at least one PASS replicate. WT controls and UNKNOWN_* groups are excluded. AMBIGUOUS does not count here (unlike Recovered)."
     },
     "menuBar": {
       "restartSidecarConfirm": "分析正在執行。仍要重啟 sidecar 嗎?",
@@ -885,6 +900,18 @@
       "toastSuccessDesc": "已寫入 {{count}} 個 variant。",
       "toastError": "EVOLVEpro 輸入建立失敗",
       "openFolder": "開啟輸出資料夾"
+    },
+    "verdictBadge": {
+      "help": {
+        "PASS": "Observed amino-acid changes exactly match the expected design.",
+        "AMBIGUOUS": "All expected mutations matched, plus an extra AA change within the indel window of an expected site. Still counts as detected/recovered.",
+        "MIXED": "Within-well contamination: a substantial second allele in the consensus signal.",
+        "WRONG_AA": "An expected site shows a different amino acid, an expected mutation is missing, or an unexpected extra change sits outside the window.",
+        "FRAMESHIFT": "Two or more nucleotide indels within the frameshift window.",
+        "MANY": "More observed AA changes than both the design and the many-mutation cutoff.",
+        "LOWDEPTH": "Too few reads to call this well reliably.",
+        "NO_CALL": "Consensus has too many ambiguous (N) positions to trust the amino-acid calls."
+      }
     }
   },
   "home": {
@@ -2116,7 +2143,7 @@
     },
     "mameSubSteps": {
       "setup": {
-        "files": "檔案與座標",
+        "files": "條碼套件",
         "design": "Design 引數",
         "output": "Generate Package"
       },
@@ -2162,7 +2189,7 @@
     },
     "mameDescriptions": {
       "setup": {
-        "files": "為本次 run 選擇 MinKNOW run 資料夾與參考序列。",
+        "files": "提供 CDS 序列與條碼種子，設定引子設計參數，選擇輸出資料夾並產生條碼套件。",
         "design": "配置 primer design 引數並生成 barcode 包。"
       },
       "analyze": {
@@ -2173,7 +2200,7 @@
       },
       "activity": {
         "ingest": "上傳 activity CSV 或 Excel 檔案並標註野生型。",
-        "mergeExport": "Merge activity data with genotype calls, then export the merged table for EVOLVEpro input."
+        "mergeExport": "將活性資料與基因型判定合併並匯出表格，然後結合單次重複 (GC) 與三次重複 (相對 WT) 活性來建立 EVOLVEpro 輸入。"
       }
     },
     "summary": {

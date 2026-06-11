@@ -33,6 +33,8 @@ import {
 } from "@/components/ui/select";
 import type { GenerateMamePackageParams, MamePackageResult } from "@/types/mame/barcode_package";
 import { validateGenerateBarcodePackage } from "@/store/validation";
+import { AdvancedSection } from "@/components/ui/AdvancedSection";
+import { FileField } from "./FileField";
 
 // ─── localStorage 영속화 ─────────────────────────────────────────────────────
 
@@ -146,14 +148,17 @@ export type BarcodeSetupGroup = "files" | "design";
 
 interface BarcodeSetupPanelProps {
   group?: BarcodeSetupGroup;
+  /** When true, suppress the panel's own header (wizard supplies the heading). */
+  embedded?: boolean;
 }
 
-export function BarcodeSetupPanel({ group }: BarcodeSetupPanelProps = {}) {
+export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = {}) {
   const { t } = useTranslation();
   const project = useKumaProject();
   const [form, setFormRaw] = useState<SetupFormState>(() => loadFromStorage());
   const [isGenerating, setIsGenerating] = useState(false);
   const [result, setResult] = useState<MamePackageResult | null>(null);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const setParams = useMameAppStore((s) => s.setParams);
   const setReferencePath = useMameAppStore((s) => s.setReferencePath);
   const setSampleMapPath = useMameAppStore((s) => s.setSampleMapPath);
@@ -398,7 +403,7 @@ export function BarcodeSetupPanel({ group }: BarcodeSetupPanelProps = {}) {
       <div className="mx-auto max-w-2xl space-y-6 p-4">
         {/* group prop이 없을 때만 최상단 heading을 표시한다.
             group이 전달되면 WizardContainer가 step 헤딩을 이미 제공하므로 숨긴다. */}
-        {group === undefined && (
+        {group === undefined && !embedded && (
           <header>
             <h2 className="text-base font-semibold text-foreground">{t("mame.barcodeSetup.title")}</h2>
             <p className="mt-1 text-xs text-muted-foreground">
@@ -413,28 +418,34 @@ export function BarcodeSetupPanel({ group }: BarcodeSetupPanelProps = {}) {
             {t("mame.barcodeSetup.inputFiles")}
           </h3>
           <div className="space-y-4">
-            <FilePickerField
-              id="fasta-path"
+            <FileField
               label={t("mame.barcodeSetup.cdsFasta")}
-              stateLabel={t("mame.barcodeSetup.requiredStateLabel")}
-              filled={Boolean(form.fastaPath)}
               value={form.fastaPath}
               onChange={(v) => setForm({ fastaPath: v })}
               onBrowse={browseFasta}
               placeholder={t("mame.barcodeSetup.cdsFastaPlaceholder")}
+              stateLabel={t("mame.barcodeSetup.requiredStateLabel")}
+              filled={Boolean(form.fastaPath)}
               helperText={t("mame.barcodeSetup.cdsFastaHelper")}
+              helpText={t("mame.barcodeSetup.cdsFastaHelper")}
+              noPathLabel={t("mame.inputPanel.noPathSelected")}
+              readyLabel={t("mame.inputPanel.fileReady")}
+              browseAriaLabel={t("mame.inputPanel.browseFolderAriaLabel", { label: t("mame.barcodeSetup.cdsFasta") })}
             />
 
-            <FilePickerField
-              id="barcode-seeds"
+            <FileField
               label={t("mame.barcodeSetup.barcodeSeedsXlsx")}
-              stateLabel={t("mame.barcodeSetup.requiredStateLabel")}
-              filled={Boolean(form.barcodeSeedsPath)}
               value={form.barcodeSeedsPath}
               onChange={(v) => setForm({ barcodeSeedsPath: v })}
               onBrowse={browseBarcodeSeeds}
               placeholder={t("mame.barcodeSetup.barcodeSeedsXlsxPlaceholder")}
+              stateLabel={t("mame.barcodeSetup.requiredStateLabel")}
+              filled={Boolean(form.barcodeSeedsPath)}
               helperText={t("mame.barcodeSetup.barcodeSeedsXlsxHelper")}
+              helpText={t("mame.barcodeSetup.barcodeSeedsXlsxHelper")}
+              noPathLabel={t("mame.inputPanel.noPathSelected")}
+              readyLabel={t("mame.inputPanel.fileReady")}
+              browseAriaLabel={t("mame.inputPanel.browseFolderAriaLabel", { label: t("mame.barcodeSetup.barcodeSeedsXlsx") })}
             />
           </div>
         </section>}
@@ -575,8 +586,17 @@ export function BarcodeSetupPanel({ group }: BarcodeSetupPanelProps = {}) {
           </div>
         </section>}
 
-        {/* 섹션 4: 플랭크 파라미터 (group: design 또는 undefined) */}
-        {(!group || group === "design") && <section aria-labelledby="section-flank">
+        {/* 고급 파라미터 (플랭크 + 바인딩) — group: design 또는 undefined, 접이식 */}
+        {(!group || group === "design") && (
+          <AdvancedSection
+            title={t("mame.barcodeSetup.advancedParameters")}
+            open={showAdvanced}
+            onToggle={() => setShowAdvanced((v) => !v)}
+            id="barcode-setup-advanced"
+          >
+            <div className="space-y-6">
+        {/* 섹션 4: 플랭크 파라미터 */}
+        <section aria-labelledby="section-flank">
           <h3 id="section-flank" className="mb-3 text-sm font-medium text-foreground">
             {t("mame.barcodeSetup.flankParameters")}
           </h3>
@@ -602,10 +622,10 @@ export function BarcodeSetupPanel({ group }: BarcodeSetupPanelProps = {}) {
               placeholder="400"
             />
           </div>
-        </section>}
+        </section>
 
-        {/* 섹션 5: 바인딩 파라미터 (group: design 또는 undefined) */}
-        {(!group || group === "design") && <section aria-labelledby="section-binding">
+        {/* 섹션 5: 바인딩 파라미터 */}
+        <section aria-labelledby="section-binding">
           <h3 id="section-binding" className="mb-3 text-sm font-medium text-foreground">
             {t("mame.barcodeSetup.bindingParameters")}
           </h3>
@@ -668,7 +688,10 @@ export function BarcodeSetupPanel({ group }: BarcodeSetupPanelProps = {}) {
               {t("mame.barcodeSetup.requireGcClamp")}
             </Label>
           </div>
-        </section>}
+        </section>
+            </div>
+          </AdvancedSection>
+        )}
 
         {/* 프로젝트 없음 안내 + 생성 버튼 + 출력 섹션 (group: design 또는 undefined) */}
         {(!group || group === "design") && <>
@@ -677,16 +700,19 @@ export function BarcodeSetupPanel({ group }: BarcodeSetupPanelProps = {}) {
           <h3 id="section-output-loc" className="mb-3 text-sm font-medium text-foreground">
             {t("mame.barcodeSetup.outputLocation")}
           </h3>
-          <FilePickerField
-            id="output-dir"
+          <FileField
             label={t("mame.barcodeSetup.outputLocation")}
-            stateLabel={t("mame.inputPanel.sampleMap.stateLabel")}
-            filled={Boolean(form.outputDir)}
             value={form.outputDir}
             onChange={(v) => setForm({ outputDir: v })}
             onBrowse={browseOutputDir}
             placeholder={t("mame.barcodeSetup.outputLocationPlaceholder")}
+            stateLabel={t("mame.inputPanel.sampleMap.stateLabel")}
+            filled={Boolean(form.outputDir)}
             helperText={t("mame.barcodeSetup.outputLocationHelper")}
+            helpText={t("mame.barcodeSetup.outputLocationHelper")}
+            noPathLabel={t("mame.inputPanel.noPathSelected")}
+            readyLabel={t("mame.inputPanel.fileReady")}
+            browseAriaLabel={t("mame.inputPanel.browseFolderAriaLabel", { label: t("mame.barcodeSetup.outputLocation") })}
           />
         </section>
         {!project?.path && (
@@ -789,74 +815,6 @@ export function BarcodeSetupPanel({ group }: BarcodeSetupPanelProps = {}) {
 }
 
 // ─── 서브 컴포넌트 ────────────────────────────────────────────────────────────
-
-function FilePickerField({
-  id,
-  label,
-  stateLabel,
-  filled,
-  value,
-  onChange,
-  onBrowse,
-  placeholder,
-  helperText,
-}: {
-  id: string;
-  label: string;
-  stateLabel: string;
-  filled: boolean;
-  value: string;
-  onChange: (v: string) => void;
-  onBrowse: () => Promise<void>;
-  placeholder?: string;
-  helperText?: string;
-}) {
-  const { t } = useTranslation();
-  const preview = getFilename(value);
-  return (
-    <div className="space-y-1.5">
-      <div className="flex items-center justify-between gap-3">
-        <Label
-          htmlFor={id}
-          className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
-        >
-          {label}
-        </Label>
-        <span
-          className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-            filled ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
-          }`}
-        >
-          {filled ? t("mame.inputPanel.fileReady") : stateLabel}
-        </span>
-      </div>
-      <div className="flex gap-1.5">
-        <Input
-          id={id}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          className="h-8 flex-1 min-w-0 text-xs font-mono"
-          aria-label={label}
-        />
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => void onBrowse()}
-          className="h-8 gap-1 px-2"
-          aria-label={t("mame.inputPanel.browseFolderAriaLabel", { label })}
-        >
-          <FolderOpen size={12} aria-hidden="true" />
-        </Button>
-      </div>
-      {helperText && <p className="text-xs text-muted-foreground/90">{helperText}</p>}
-      <p className="truncate text-xs text-muted-foreground" title={value || undefined}>
-        {filled ? preview : t("mame.inputPanel.noPathSelected")}
-      </p>
-    </div>
-  );
-}
 
 function NumberField({
   id,

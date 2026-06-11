@@ -10,6 +10,7 @@
 import type { VerdictClass } from "@/types/mame/models";
 import { cn } from "@/lib/utils";
 import { VERDICT_LABEL } from "@/lib/mame/verdictColors";
+import { useTranslation } from "react-i18next";
 
 interface VerdictMeta {
   label: string;
@@ -69,6 +70,7 @@ interface VerdictBadgeProps {
 }
 
 export function VerdictBadge({ verdict, className, showDot = true }: VerdictBadgeProps) {
+  const { t } = useTranslation();
   const meta = verdictMeta[verdict];
   return (
     <span
@@ -78,6 +80,7 @@ export function VerdictBadge({ verdict, className, showDot = true }: VerdictBadg
         className,
       )}
       aria-label={`Verdict: ${meta.label}`}
+      title={t(`mame.verdictBadge.help.${verdict}`)}
     >
       {showDot && (
         <span aria-hidden="true">{meta.shape}</span>
