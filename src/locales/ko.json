@@ -431,7 +431,7 @@
     },
     "runHealth": {
       "panelAriaLabel": "실행 상태 패널",
-      "verdictBreakdown": "Verdict 분포",
+      "verdictBreakdown": "판정 분포",
       "fileSizeDistribution": "파일 크기 분포",
       "poreYield": "Pore 수율",
       "throughputTimeline": "Throughput 타임라인",
@@ -465,7 +465,7 @@
       "recoveryValue": "{{recovered}}/{{total}} ({{pct}}%)",
       "recoveryNa": "해당 없음",
       "detectedShort": "검출",
-      "classCountTableCaption": "전체 플레이트의 Verdict 클래스 수",
+      "classCountTableCaption": "전체 플레이트의 판정 클래스 수",
       "classCountColClass": "클래스",
       "classCountColCount": "개수"
     },
@@ -476,7 +476,7 @@
       "colorAssist": "색상 보조",
       "colorAssistAriaLabel": "색맹 보조 패턴 활성화",
       "selectedWellAriaLabel": "선택한 well 상세 정보",
-      "verdictLegendAriaLabel": "Verdict 색상 범례",
+      "verdictLegendAriaLabel": "판정 색상 범례",
       "verdictFilterAriaLabel": "{{verdict}} 클래스만 강조 (토글)",
       "selectedWellLabel": "선택한 Well",
       "selectedReplicate": "선택한 replicate",
@@ -602,9 +602,9 @@
       "analyzeTab": "2. 시퀀싱 QC",
       "activityTab": "3. 활성도 데이터",
       "verdictTableTitle": "판정 테이블",
-      "platePlanTitle": "Plate 계획",
-      "efficiencyChartTitle": "Plate별 verdict 분포",
-      "runHealthTitle": "Run 상태",
+      "platePlanTitle": "플레이트 계획",
+      "efficiencyChartTitle": "플레이트별 판정 분포",
+      "runHealthTitle": "실행 상태",
       "subSteps": {
         "setup": {
           "files": "입력 파일",
@@ -615,7 +615,7 @@
           "inputs": "입력 설정",
           "verdict": "판정",
           "plate": "플레이트 계획",
-          "health": "런 헬스"
+          "health": "실행 상태"
         },
         "activity": {
           "ingest": "인제스트",
@@ -830,7 +830,7 @@
       },
       "review": {
         "contextTitle": "시퀀싱 QC — 검토",
-        "contextSubtitle": "판정 테이블, 플레이트 계획, plate별 verdict 분포를 한 화면에서 검토합니다.",
+        "contextSubtitle": "판정 테이블, 플레이트 계획, 플레이트별 판정 분포를 한 화면에서 검토합니다.",
         "drawerLeft": "요약",
         "drawerCenter": "검토 로그",
         "drawerRight": "다음",
@@ -1294,7 +1294,7 @@
       "design_sdm_primers": "Kuro - SDM primer 설계",
       "merge_for_evolvepro": "Mame - EVOLVEpro용 병합",
       "export_order": "Export: 주문 시트 (재실행 불가)",
-      "export_mapping": "Export: plate 매핑 (재실행 불가)",
+      "export_mapping": "Export: 플레이트 매핑 (재실행 불가)",
       "export_excel": "Export: Excel (재실행 불가)"
     }
   },
@@ -1556,7 +1556,7 @@
     "noPlateLayoutDesc": "설계를 실행하면 primer가 plate well에 배정됩니다.",
     "plate": "플레이트",
     "platePairDesc": "각 페이지는 정방향 plate 1개와 중복 제거된 역방향 파트너를 함께 표시합니다.",
-    "platePairReview": "Plate 쌍 검토",
+    "platePairReview": "플레이트 쌍 검토",
     "reverse": "역방향",
     "reversePrimer": "역방향 primer",
     "sharedReverse": "공유 역방향"
