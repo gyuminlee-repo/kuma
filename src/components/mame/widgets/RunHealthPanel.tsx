@@ -188,7 +188,7 @@ function VerdictBreakdown({
         <svg
           viewBox={`0 0 ${svgW} ${svgH}`}
           width="100%"
-          style={{ minWidth: svgW * 1.6 }}
+          style={{ maxWidth: svgW * 1.6 }}
           preserveAspectRatio="xMinYMin meet"
           role="img"
           aria-label={t("mame.runHealth.verdictBreakdown")}
