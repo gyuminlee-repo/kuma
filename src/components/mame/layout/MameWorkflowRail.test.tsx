@@ -16,7 +16,7 @@ describe("MameWorkflowRail", () => {
     render(<MameWorkflowRail />);
 
     const steps = screen.getAllByRole("button");
-    await userEvent.setup().click(steps[2]); // analyze.inputs
+    await userEvent.setup().click(steps[1]); // analyze.inputs (setup is a single sub-step)
 
     expect(useMameAppStore.getState().mamePhase).toBe("analyze");
     expect(useMameAppStore.getState().currentMameSubStep).toBe("analyze.inputs");

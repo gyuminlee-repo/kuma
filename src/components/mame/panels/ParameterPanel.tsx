@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { AlertTriangle, Dna } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { InlineHelp } from "@/components/ui/InlineHelp";
+import { AdvancedSection } from "@/components/ui/AdvancedSection";
 import type { AmpliconLengthEstimate, DistributionStats } from "@/types/mame/models";
 import type { InputMode } from "@/store/mame/slice-interfaces";
 
@@ -90,6 +91,7 @@ function AmpliconLengthBadge({
     <span
       className={`inline-flex items-center gap-1 text-caption ${confidenceColor}`}
       aria-label={t("mame.parameters.autoDetectedAriaLabel", { length: estimate.detected_length, confidence: estimate.confidence, reads: estimate.n_sample_reads.toLocaleString() })}
+      title={t("mame.parameters.ampliconConfidenceHelp")}
     >
       <Dna size={11} aria-hidden="true" />
       {t("mame.parameters.autoDetected", { length: estimate.detected_length.toLocaleString() })}
@@ -109,6 +111,7 @@ function RawRunParamPanel() {
   const demuxResult = useMameAppStore((s) => s.demuxResult);
   const ampliconLengthEstimate = useMameAppStore((s) => s.ampliconLengthEstimate);
   const setParams = useMameAppStore((s) => s.setParams);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   function updateRaw(partial: Partial<typeof rawRunParams>) {
     setParams({ rawRunParams: partial });
@@ -224,15 +227,14 @@ function RawRunParamPanel() {
       </div>
 
       {/* Advanced combinatorial demux options */}
-      <details className="group rounded-md border border-border/60">
-        <summary
-          className="flex cursor-pointer select-none items-center gap-1.5 px-3 py-2 text-caption font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
-          aria-label={t("mame.parameters.advancedSectionAriaLabel")}
-        >
-          <span aria-hidden="true" className="transition-transform group-open:rotate-90">▶</span>
-          {t("mame.parameters.advancedOptions")}
-        </summary>
-        <div className="space-y-3 px-3 pb-3">
+      <AdvancedSection
+        title={t("mame.parameters.advancedOptions")}
+        ariaLabel={t("mame.parameters.advancedSectionAriaLabel")}
+        open={showAdvanced}
+        onToggle={() => setShowAdvanced((v) => !v)}
+        id="mame-params-advanced"
+      >
+        <div className="space-y-3">
           {/* Coverage Fraction */}
           <div className="space-y-1">
             <Label
@@ -325,7 +327,7 @@ function RawRunParamPanel() {
             </button>
           </div>
         </div>
-      </details>
+      </AdvancedSection>
 
       {/* Normalize headers toggle */}
       <div className="flex items-center justify-between">

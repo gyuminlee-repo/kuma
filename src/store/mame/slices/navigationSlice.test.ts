@@ -59,10 +59,7 @@ function makeStore(initial: Partial<AppState> = {}) {
 
 describe("MAME_SUBSTEP_ORDER", () => {
   it("각 phase에 정확한 sub-step 배열을 가진다", () => {
-    expect(MAME_SUBSTEP_ORDER.setup).toEqual([
-      "setup.files",
-      "setup.design",
-    ]);
+    expect(MAME_SUBSTEP_ORDER.setup).toEqual(["setup.files"]);
     expect(MAME_SUBSTEP_ORDER.analyze).toEqual([
       "analyze.inputs",
       "analyze.review",

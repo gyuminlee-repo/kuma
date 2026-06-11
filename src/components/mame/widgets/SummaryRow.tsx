@@ -93,6 +93,7 @@ export function SummaryRow() {
     <div className="grid grid-cols-2 gap-3 md:grid-cols-4" aria-label={t("mame.summaryRow.ariaLabel")}>
       <SummaryTile
         className="bg-gradient-to-br from-[hsl(var(--hero-start))] to-[hsl(var(--hero-end))]"
+        title={t("mame.summaryRow.successRateHelp")}
         label={t("mame.summaryRow.successRate")}
         value={stats.successRate !== null ? `${stats.successRate}%` : "—"}
         hint={stats.total > 0 ? t("mame.summaryRow.successRateHint", { pass: stats.pass, total: stats.total }) : t("mame.summaryRow.successRateEmpty")}
@@ -133,12 +134,14 @@ function SummaryTile({
   value,
   valueClassName,
   hint,
+  title,
 }: {
   className?: string;
   label: string;
   value: string | number;
   valueClassName?: string;
   hint?: string;
+  title?: string;
 }) {
   return (
     <div
@@ -148,6 +151,7 @@ function SummaryTile({
       )}
       role="status"
       aria-label={`${label}: ${value}`}
+      title={title}
     >
       <span className="text-caption font-medium uppercase tracking-wide text-muted-foreground">
         {label}

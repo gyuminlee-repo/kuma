@@ -247,7 +247,7 @@
         "tmMin": "Acceptable melting temperature range (degree C) for primer binding region",
         "tmMax": "Acceptable melting temperature range (degree C) for primer binding region"
       },
-      "advancedOptions": "Advanced",
+      "advancedOptions": "Advanced options",
       "advancedSectionAriaLabel": "Toggle advanced combinatorial demux options",
       "coverageFraction": "Coverage Fraction",
       "coverageFractionHelp": "Minimum fraction of the reference sequence that must be covered by each alignment hit (0.5 to 1.0). Higher values require more complete alignments.",
@@ -257,7 +257,8 @@
       "editDistRatioAriaLabel": "Maximum edit distance ratio for barcode matching",
       "chimeraSplit": "Chimera Split",
       "chimeraSplitHelp": "When enabled, all alignment hits per read are evaluated to detect chimeric reads that span multiple wells. Recommended to leave on.",
-      "chimeraSplitAriaLabel": "Enable chimera detection by evaluating all alignment hits per read"
+      "chimeraSplitAriaLabel": "Enable chimera detection by evaluating all alignment hits per read",
+      "ampliconConfidenceHelp": "Confidence of the amplicon length auto-detected from sampled reads: peak read-length bin share at or above 30% is high, at or above 15% is medium, otherwise low."
     },
     "barcodeSetup": {
       "title": "Barcode Package Setup",
@@ -267,6 +268,7 @@
       "projectMetadata": "Project metadata",
       "flankParameters": "Flank parameters",
       "bindingParameters": "Binding parameters",
+      "advancedParameters": "Advanced options",
       "outputLocation": "Output location",
       "outputLocationPlaceholder": "design/ (project default)",
       "outputLocationHelper": "Folder where the barcode package files are written. Leave empty to use the project's design/ folder.",
@@ -474,7 +476,11 @@
       "mutantRecoveryTitle": "Mutant recovery",
       "recoveredViaPass": "Recovered (Pass)",
       "recoveredViaAmbiguous": "Recovered (Ambiguous)",
-      "notRecovered": "Not recovered"
+      "notRecovered": "Not recovered",
+      "neighborAvgHelp": "Mean read count of the four orthogonal neighbor wells (up/down/left/right). Informational; not used in the z-score.",
+      "zScoreHelp": "(well reads minus plate mean) / plate SD. Wells above 2.5 are flagged. Severity: above 4 high, above 3 medium, above 2.5 low.",
+      "percentileHelp": "File-size percentiles in KB by linear interpolation: p05 is the 5th percentile through p95 the 95th.",
+      "methodHelp": "How the cutoff was chosen: median minus 2 sigma (broad unimodal), p05 (tight unimodal), kneedle (elbow of a bimodal distribution), or a 50 KB floor when no method clears 50 KB."
     },
     "plateView": {
       "plate": "Plate",
@@ -565,7 +571,15 @@
         "reasonNoLog2fc": "Excluded — log₂FC could not be computed.",
         "reasonWt": "Excluded — wild-type sample (not a variant)."
       },
-      "selectedReplicateBadge": "Selected"
+      "selectedReplicateBadge": "Selected",
+      "activity": {
+        "log2fcHelp": "Log2 of fold-change (well activity mean / plate WT-well average). 0 is WT level; +1 is 2x WT.",
+        "foldChangeHelp": "Activity mean divided by the plate WT-well average (linear fold-change).",
+        "rawMeanHelp": "Mean and SD of the raw activity signal across replicate measurements of this well (SD shown when 2 or more replicates).",
+        "replicatesHelp": "Number of activity measurements (replicate wells) aggregated for this mutant.",
+        "ngsHelp": "Sequencing genotype check: pass when the called mutation equals the expected design, fail otherwise."
+      },
+      "recoveredHelp": "A mutant is recovered when at least one of its replicate wells (across all plates) is PASS or AMBIGUOUS."
     },
     "summaryRow": {
       "ariaLabel": "Analysis summary",
@@ -583,7 +597,8 @@
       "statusReady": "Results ready",
       "statusReadyToRun": "Ready to run",
       "statusDraft": "Draft setup",
-      "statusInProgress": "In progress"
+      "statusInProgress": "In progress",
+      "successRateHelp": "Share of designed mutants with at least one PASS replicate. WT controls and UNKNOWN_* groups are excluded. AMBIGUOUS does not count here (unlike Recovered)."
     },
     "menuBar": {
       "restartSidecarConfirm": "Analysis is running. Restart sidecar anyway?",
@@ -885,6 +900,18 @@
       "empty": "No wells generated. Check that the expected_mutations xlsx is selected.",
       "rowCount": "{{count}} well(s) in layout",
       "confirm": "Confirm layout"
+    },
+    "verdictBadge": {
+      "help": {
+        "PASS": "Observed amino-acid changes exactly match the expected design.",
+        "AMBIGUOUS": "All expected mutations matched, plus an extra AA change within the indel window of an expected site. Still counts as detected/recovered.",
+        "MIXED": "Within-well contamination: a substantial second allele in the consensus signal.",
+        "WRONG_AA": "An expected site shows a different amino acid, an expected mutation is missing, or an unexpected extra change sits outside the window.",
+        "FRAMESHIFT": "Two or more nucleotide indels within the frameshift window.",
+        "MANY": "More observed AA changes than both the design and the many-mutation cutoff.",
+        "LOWDEPTH": "Too few reads to call this well reliably.",
+        "NO_CALL": "Consensus has too many ambiguous (N) positions to trust the amino-acid calls."
+      }
     }
   },
   "home": {
@@ -2147,7 +2174,7 @@
     },
     "mameSubSteps": {
       "setup": {
-        "files": "Files & Coordinates",
+        "files": "Barcode Package",
         "design": "Design Parameters",
         "output": "Generate Package"
       },
@@ -2216,7 +2243,7 @@
     "mameDescriptions": {
       "activity": {
         "ingest": "Upload activity CSV or Excel files and annotate the wild-type.",
-        "mergeExport": "Merge activity data with genotype calls, then export the merged table for EVOLVEpro input."
+        "mergeExport": "Merge activity data with genotype calls and export the merged table, then build the EVOLVEpro input by combining single-replicate (GC) and triple-replicate (WT-relative) activity."
       },
       "analyze": {
         "inputs": "Set the input directory and analysis parameters, then run.",
@@ -2226,7 +2253,7 @@
       },
       "setup": {
         "design": "Configure primer design parameters and generate the barcode package.",
-        "files": "Select the MinKNOW run folder and reference sequence for this run."
+        "files": "Provide the CDS sequence and barcode seeds, set primer design parameters, choose an output folder, and generate the barcode package."
       }
     }
   },

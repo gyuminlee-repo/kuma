@@ -4,12 +4,14 @@
  * [source: spec §D2.4 — mame StepView 신규]
  * [updated: spec Phase F F6 — WizardContainer 적용]
  * [updated: 3→2 step — setup.output merged into setup.design]
+ * [updated: 2→1 step — setup.files + setup.design merged into a single
+ *   "Barcode Package" step. setup.design retained as a legacy/redirect id.]
  *
  * Sub-step 매핑:
- *   setup.files  → BarcodeSetupPanel(group="files")  — 입력 파일 + 유전자 좌표 + 프로젝트 메타
- *   setup.design → BarcodeSetupPanel(group="design") — 플랭크 + 바인딩 파라미터 + Generate Package
+ *   setup.files  → BarcodeSetupPanel (embedded, 전체 섹션) — 입력 파일 + 유전자 좌표
+ *                  + 프로젝트 메타 + (고급) 플랭크/바인딩 + 출력 위치 + Generate Package
  *
- * WizardContainer: 2 sub-step 순서대로 Next/Prev 탐색.
+ * WizardContainer: setup phase는 단일 sub-step. Generate가 완료돼야 Next 허용.
  */
 
 import { useMameAppStore } from "@/store/mame/mameAppStore";
@@ -17,30 +19,22 @@ import { BarcodeSetupPanel } from "@/components/mame/panels/BarcodeSetupPanel";
 import { WizardContainer } from "@/components/steps/WizardContainer";
 import { StepRedirectFallback } from "./StepRedirectFallback";
 
-const SETUP_TOTAL = 2;
-const STEP_CONFIG = {
-  "setup.files": {
-    index: 1,
-    label: "1.1",
-    progressLabel: `1.1 / ${SETUP_TOTAL}`,
-    titleKey: "phaseC.mameSubSteps.setup.files",
-    descriptionKey: "phaseE.mameDescriptions.setup.files",
-  },
-  "setup.design": {
-    index: 2,
-    label: "1.2",
-    progressLabel: `1.2 / ${SETUP_TOTAL}`,
-    titleKey: "phaseC.mameSubSteps.setup.design",
-    descriptionKey: "phaseE.mameDescriptions.setup.design",
-  },
+const SETUP_TOTAL = 1;
+const SETUP_CONFIG = {
+  index: 1,
+  label: "1.1",
+  progressLabel: `1.1 / ${SETUP_TOTAL}`,
+  titleKey: "phaseC.mameSubSteps.setup.files",
+  descriptionKey: "phaseE.mameDescriptions.setup.files",
 } as const;
 
 export function SetupStepView() {
   const subStep = useMameAppStore((s) => s.currentMameSubStep);
   const setMameSubStep = useMameAppStore((s) => s.setMameSubStep);
   const goToNextStep = useMameAppStore((s) => s.goToNextStep);
-  const goToPrevStep = useMameAppStore((s) => s.goToPrevStep);
 
+  // setup.design is a legacy id (merged into setup.files); render the same
+  // merged panel for it. Any non-setup sub-step redirects to setup.files.
   if (subStep !== "setup.files" && subStep !== "setup.design") {
     return (
       <StepRedirectFallback
@@ -51,33 +45,26 @@ export function SetupStepView() {
     );
   }
 
-  const config = STEP_CONFIG[subStep];
-  const isFirst = subStep === "setup.files";
-
   return (
     <WizardContainer
-      stepIndex={config.index}
+      stepIndex={SETUP_CONFIG.index}
       stepTotal={SETUP_TOTAL}
-      stepLabel={config.label}
-      progressLabel={config.progressLabel}
-      titleKey={config.titleKey}
-      descriptionKey={config.descriptionKey}
-      onPrev={isFirst ? undefined : goToPrevStep}
+      stepLabel={SETUP_CONFIG.label}
+      progressLabel={SETUP_CONFIG.progressLabel}
+      titleKey={SETUP_CONFIG.titleKey}
+      descriptionKey={SETUP_CONFIG.descriptionKey}
+      onPrev={undefined}
       onNext={goToNextStep}
-      validateBeforeNext={
-        subStep === "setup.design"
-          ? () =>
-              useMameAppStore.getState().rawRunParams.customBarcodesPath
-                ? { ok: true }
-                : {
-                    ok: false,
-                    missing: ["mame.barcodeSetup.requireBarcodePackage"],
-                  }
-          : undefined
+      validateBeforeNext={() =>
+        useMameAppStore.getState().rawRunParams.customBarcodesPath
+          ? { ok: true }
+          : {
+              ok: false,
+              missing: ["mame.barcodeSetup.requireBarcodePackage"],
+            }
       }
     >
-      {subStep === "setup.files" && <BarcodeSetupPanel group="files" />}
-      {subStep === "setup.design" && <BarcodeSetupPanel group="design" />}
+      <BarcodeSetupPanel embedded />
     </WizardContainer>
   );
 }
