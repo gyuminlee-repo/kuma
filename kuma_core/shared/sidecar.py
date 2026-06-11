@@ -69,10 +69,22 @@ class JsonRpcWriter:
         self._lock = threading.Lock()
 
     def send(self, obj: dict[str, Any]) -> None:
-        line = json.dumps(obj, ensure_ascii=False)
+        line = json.dumps(obj, ensure_ascii=False) + "\n"
         with self._lock:
-            sys.stdout.write(line + "\n")
-            sys.stdout.flush()
+            if getattr(sys, "frozen", False):
+                # Frozen builds (PyInstaller): bypass the TextIOWrapper buffer and
+                # write straight to the stdout fd. On Windows the buffered writer
+                # withheld messages emitted from worker threads (async analyze/demux
+                # responses + progress) until the main thread next touched stdout,
+                # so the client only saw a response after sending its NEXT request.
+                # A direct os.write delivers each message immediately from any thread.
+                data = line.encode("utf-8")
+                fd = sys.stdout.fileno()
+                while data:
+                    data = data[os.write(fd, data):]
+            else:
+                sys.stdout.write(line)
+                sys.stdout.flush()
 
     def ok(self, req_id: Any, result: Any) -> None:
         self.send({"jsonrpc": "2.0", "id": req_id, "result": result})
