@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
-import type { VerdictClass } from "@/types/mame/models";
+
 import { cn } from "@/lib/utils";
 
 function getReadinessTone(readiness: number): string {
@@ -57,16 +57,24 @@ export function SummaryRow() {
   const readiness = Math.round((readyCount / requiredInputs.length) * 100);
 
   const stats = useMemo(() => {
-    const FAIL: readonly VerdictClass[] = ["WRONG_AA", "FRAMESHIFT", "MANY", "MIXED"];
-    let pass = 0;
-    let fail = 0;
+    // Success = a designed mutant with at least one PASS replicate, over all
+    // designed mutants. A per-record pass/total ratio overcounts because each
+    // well is sequenced across several replicates (e.g. 171/288); the intent is
+    // the share of variants reproduced cleanly at least once. WT controls and
+    // UNKNOWN_* heuristic groups are excluded (not designed mutants).
+    const passByMutant = new Map<string, boolean>();
     for (const v of verdicts) {
-      if (v.verdict === "PASS") pass += 1;
-      else if (FAIL.includes(v.verdict)) fail += 1;
+      const id = v.mutant_id || v.native_barcode || "—";
+      if (id === "WT" || id.startsWith("UNKNOWN_")) continue;
+      passByMutant.set(
+        id,
+        (passByMutant.get(id) ?? false) || v.verdict === "PASS",
+      );
     }
-    const total = verdicts.length;
+    const total = passByMutant.size;
+    const pass = Array.from(passByMutant.values()).filter(Boolean).length;
     const successRate = total > 0 ? Math.round((pass / total) * 100) : null;
-    return { total, pass, fail, successRate };
+    return { total, pass, successRate };
   }, [verdicts]);
 
   const plateEstimate = wells.length > 0 ? Math.ceil(wells.length / 96) : null;

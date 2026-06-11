@@ -423,6 +423,9 @@
       "selectedWellAriaLabel": "Détails du well sélectionné",
       "verdictLegendAriaLabel": "Légende des couleurs de verdict",
       "verdictFilterAriaLabel": "Filtrer les puits par {{verdict}} (bascule)",
+      "nbPicked": "{{nb}} : {{count}} sélectionnés",
+      "nbFilterAriaLabel": "Filtrer les puits par {{nb}} (bascule)",
+      "nbFilterGroupAriaLabel": "Filtrer les puits par native barcode",
       "selectedWellLabel": "Puits inspecté",
       "selectedReplicate": "Replicate sélectionné",
       "fallbackTitle": "Replicate fallback",
@@ -434,7 +437,11 @@
       "detailNativeBc": "BC natif",
       "detailMutant": "Mutant",
       "detailNotes": "Notes",
-      "detailSelectedReplicate": "Réplicat sélectionné"
+      "detailSelectedReplicate": "Réplicat sélectionné",
+      "expand": "Agrandir",
+      "collapse": "Réduire",
+      "expandAriaLabel": "Basculer la vue de plaque agrandie",
+      "expandedRegionAriaLabel": "Vue de plaque agrandie"
     },
     "drawer": {
       "stat": {

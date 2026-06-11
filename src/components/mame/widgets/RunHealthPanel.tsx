@@ -23,6 +23,7 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { VERDICT_FILL, VERDICT_LABEL } from "@/lib/mame/verdictColors";
+import { nbLabel, nbOrderKey } from "@/lib/mame/nbLabel";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import type {
   CrossTalkCandidate,
@@ -65,12 +66,6 @@ const VERDICT_SEGMENTS: {
   { key: "no_call", label: VERDICT_LABEL.NO_CALL, fill: VERDICT_FILL.NO_CALL.bg },
 ];
 
-/** Friendly plate label: "sort_barcode06" → "NB06"; non-numeric names stay as-is. */
-function plateLabel(plate: string): string {
-  const m = plate.match(/(\d+)/);
-  return m ? `NB${m[1]}` : plate;
-}
-
 // ── Tiny helpers ─────────────────────────────────────────────────────────────
 
 function safeMax(arr: number[]): number {
@@ -94,13 +89,9 @@ function VerdictBreakdown({
 }: VerdictBreakdownProps) {
   const { t } = useTranslation();
   const replicates = useMameAppStore((state) => state.replicates);
-  const plates = Object.entries(perPlate).sort(([a], [b]) => {
-    const na = a.match(/(\d+)/);
-    const nb = b.match(/(\d+)/);
-    const ka = na ? parseInt(na[1], 10) : Number.MAX_SAFE_INTEGER;
-    const kb = nb ? parseInt(nb[1], 10) : Number.MAX_SAFE_INTEGER;
-    return ka - kb || a.localeCompare(b);
-  });
+  const plates = Object.entries(perPlate).sort(
+    ([a], [b]) => nbOrderKey(a) - nbOrderKey(b) || a.localeCompare(b),
+  );
 
   // AC8: recovery (재현율) header — non-null shows "R/T (Z%)", null shows n/a.
   const recoveryAvailable = recoveredMutants !== null && totalMutants !== null;
@@ -252,7 +243,7 @@ function VerdictBreakdown({
                     return (
                       <g key={key}>
                         <rect x={x} y={segTop} width={barW} height={h} style={{ fill }}>
-                          <title>{`${plateLabel(plate)} · ${label}: ${value} (${pct}%)`}</title>
+                          <title>{`${nbLabel(plate)} · ${label}: ${value} (${pct}%)`}</title>
                         </rect>
                         {h >= 11 && (
                           <text
@@ -285,7 +276,7 @@ function VerdictBreakdown({
                     style={{ stroke: "hsl(var(--foreground))", strokeWidth: 1.5 }}
                   >
                     <title>
-                      {`${plateLabel(plate)} · ${t("mame.runHealth.detectedShort")} ${detected}/${total}`}
+                      {`${nbLabel(plate)} · ${t("mame.runHealth.detectedShort")} ${detected}/${total}`}
                     </title>
                   </line>
                 )}
@@ -295,7 +286,7 @@ function VerdictBreakdown({
                   textAnchor="middle"
                   style={{ fill: C.muted, fontSize: 10 }}
                 >
-                  {plateLabel(plate)}
+                  {nbLabel(plate)}
                 </text>
               </g>
             );
@@ -793,7 +784,14 @@ export function RunHealthPanel({ health, sections, className, showSectionHeading
 
   return (
     <div
-      className={cn("grid gap-4 p-4 md:grid-cols-2", className)}
+      className={cn(
+        "grid gap-4 p-4",
+        // Two columns only for the full dashboard or a multi-section subset; a
+        // single embedded section (e.g. verdict-breakdown) spans full width so
+        // the chart is not squeezed into half the panel and clipped.
+        (sections === undefined || sections.length > 1) && "md:grid-cols-2",
+        className,
+      )}
       role="region"
       aria-label={t("mame.runHealth.panelAriaLabel")}
     >

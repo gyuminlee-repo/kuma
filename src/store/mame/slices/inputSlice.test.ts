@@ -161,6 +161,48 @@ describe("mame inputSlice", () => {
     expect(store.analyzeMessage).toBe("Analysis complete");
   });
 
+  it("forwards well_layout and sample_map_xlsx in the non-raw analyze path", async () => {
+    // Regression: the consensus/sorted_barcode path used to omit per-well
+    // scoping inputs, so every well was compared against the FULL expected
+    // list and the plate plan rendered PASS wells as WRONG_AA.
+    const wellLayout = { A01: "S65T", A02: "Y66H", H12: "WT" };
+    const store = makeStore({
+      inputDir: "D:/project/consensus",
+      expectedPath: "D:/project/KURO_expected.xlsx",
+      referencePath: "D:/project/ref.fasta",
+      outputPath: "D:/project",
+      inputMode: "consensus",
+      ingestMode: "barcode",
+      sampleMapPath: "D:/project/05_mame_sample_map.xlsx",
+      wellLayout,
+      cdsEnd: 900,
+    });
+
+    mockSendRequest.mockResolvedValueOnce({
+      verdicts: [],
+      replicates: [],
+      output_path: "D:/project/mame_result.xlsx",
+      summary: { total: 0, pass_count: 0, ambiguous_count: 0, fail_count: 0 },
+      distribution_stats: distributionStats,
+    });
+
+    await store.runAnalysis();
+
+    expect(mockSendRequest).toHaveBeenCalledTimes(1);
+    expect(mockSendRequest).toHaveBeenNthCalledWith(
+      1,
+      "analyze",
+      expect.objectContaining({
+        input_dir: "D:/project/consensus",
+        sample_map_xlsx: "D:/project/05_mame_sample_map.xlsx",
+        well_layout: wellLayout,
+      }),
+      expect.anything(),
+    );
+    expect(store.isAnalyzing).toBe(false);
+    expect(store.analyzeMessage).toBe("Analysis complete");
+  });
+
   it("forwards custom_barcodes_xlsx to validate_inputs so the raw-run guard sees it", async () => {
     const store = makeStore({
       inputDir: "D:/runs/20260212_2227_X4_FBF10847_e7145f8e",

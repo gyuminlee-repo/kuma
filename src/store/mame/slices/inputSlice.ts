@@ -435,6 +435,13 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
           min_file_size_kb: state.minFileSizeKb,
           many_cutoff: state.manyCutoff,
           max_consensus_n_fraction: state.maxConsensusNFraction,
+          // Per-well verdict scoping. Without these, every well is compared
+          // against the FULL expected-mutations list and fails as WRONG_AA
+          // ("missing expected" for the variants it does not carry). The
+          // raw-run path (_demuxAndAnalyze) already forwards both; the non-raw
+          // path must too, or the plate plan shows PASS wells as fails.
+          sample_map_xlsx: state.sampleMapPath || null,
+          well_layout: state.wellLayout ?? null,
         },
         MAME_ANALYZE_RPC_TIMEOUT_MS,
       );

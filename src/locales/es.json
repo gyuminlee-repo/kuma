@@ -423,6 +423,9 @@
       "selectedWellAriaLabel": "Detalles del well seleccionado",
       "verdictLegendAriaLabel": "Leyenda de color de verdict",
       "verdictFilterAriaLabel": "Filtrar pozos por {{verdict}} (alternar)",
+      "nbPicked": "{{nb}}: {{count}} seleccionados",
+      "nbFilterAriaLabel": "Filtrar pozos por {{nb}} (alternar)",
+      "nbFilterGroupAriaLabel": "Filtrar pozos por native barcode",
       "selectedWellLabel": "Pocillo inspeccionado",
       "selectedReplicate": "Replicate seleccionado",
       "fallbackTitle": "Replicate de fallback",
@@ -434,7 +437,11 @@
       "detailNativeBc": "BC nativo",
       "detailMutant": "Mutante",
       "detailNotes": "Notas",
-      "detailSelectedReplicate": "Réplica seleccionada"
+      "detailSelectedReplicate": "Réplica seleccionada",
+      "expand": "Ampliar",
+      "collapse": "Reducir",
+      "expandAriaLabel": "Alternar vista de placa ampliada",
+      "expandedRegionAriaLabel": "Vista de placa ampliada"
     },
     "drawer": {
       "stat": {

@@ -482,6 +482,9 @@
       "selectedWellAriaLabel": "Selected well details",
       "verdictLegendAriaLabel": "Verdict color legend",
       "verdictFilterAriaLabel": "Filter wells by {{verdict}} (toggle)",
+      "nbPicked": "{{nb}}: {{count}} picked",
+      "nbFilterAriaLabel": "Filter wells by {{nb}} (toggle)",
+      "nbFilterGroupAriaLabel": "Filter wells by native barcode",
       "selectedWellLabel": "Inspected well",
       "selectedReplicate": "Selected replicate",
       "fallbackTitle": "Fallback replicate",
@@ -493,7 +496,11 @@
       "detailNativeBc": "Native BC",
       "detailMutant": "Mutant",
       "detailNotes": "Notes",
-      "detailSelectedReplicate": "Selected replicate"
+      "detailSelectedReplicate": "Selected replicate",
+      "expand": "Expand",
+      "collapse": "Collapse",
+      "expandAriaLabel": "Toggle expanded plate view",
+      "expandedRegionAriaLabel": "Expanded plate view"
     },
     "drawer": {
       "stat": {

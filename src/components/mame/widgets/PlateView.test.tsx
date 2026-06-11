@@ -23,7 +23,7 @@ function well(w: string, verdict: WellEntry["verdict"]): WellEntry {
   };
 }
 
-function setup(wells: WellEntry[]) {
+function mockStore(wells: WellEntry[]) {
   vi.mocked(useMameAppStore).mockImplementation(
     (sel: (s: MameAppStore) => unknown) =>
       sel(
@@ -39,6 +39,10 @@ function setup(wells: WellEntry[]) {
         ).getState(),
       ),
   );
+}
+
+function setup(wells: WellEntry[]) {
+  mockStore(wells);
   render(<PlateView />);
 }
 
@@ -101,5 +105,35 @@ describe("PlateView legend filter", () => {
     expect(wellButton("A2")).not.toHaveStyle({ opacity: "0.3" });
     // A present class stays enabled.
     expect(filterBtn("PASS")).toBeEnabled();
+  });
+});
+
+describe("PlateView expand toggle", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("renders no expand button when onToggleExpand is absent", () => {
+    setup(WELLS);
+    expect(screen.queryByRole("button", { name: /Expand/i })).toBeNull();
+  });
+
+  it("renders Expand button (Maximize icon, aria-pressed false) and fires onToggleExpand on click", () => {
+    mockStore(WELLS);
+    const onToggle = vi.fn();
+    render(<PlateView expanded={false} onToggleExpand={onToggle} />);
+    const btn = screen.getByRole("button", { name: "Expand" });
+    expect(btn).toHaveAttribute("aria-pressed", "false");
+    fireEvent.click(btn);
+    expect(onToggle).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders Collapse button with aria-pressed true when expanded", () => {
+    mockStore(WELLS);
+    const onToggle = vi.fn();
+    render(<PlateView expanded onToggleExpand={onToggle} />);
+    const btn = screen.getByRole("button", { name: "Collapse" });
+    expect(btn).toHaveAttribute("aria-pressed", "true");
+    expect(screen.queryByRole("button", { name: "Expand" })).toBeNull();
+    fireEvent.click(btn);
+    expect(onToggle).toHaveBeenCalledTimes(1);
   });
 });

@@ -4,10 +4,12 @@ G6/A6 read_count policy
 ------------------------
 ``BarcodeRecord.read_count`` is populated by the consensus parser from
 ``depth=N`` header metadata when available, falling back to single-record
-counts for legacy consensus files.  The "NGS Results" sheet columns are named
-``NB0X_reads`` and carry read_count when non-None, falling back to file_size_kb
-as a volume proxy.
-The per-plate ``NB0X`` sheets retain ``file_size_kb`` in their header (Sheet1
+counts for legacy consensus files.  The "NGS Results" sheet ``<NB>_reads``
+columns (header names built dynamically from ``nb_label``) carry read_count
+verbatim; a missing read_count (``None``) is written as a blank cell — the
+legacy file_size_kb volume proxy has been removed so a blank never masks a
+real depth shortage.
+The per-plate ``NB`` sheets retain ``file_size_kb`` in their header (Sheet1
 format) for backward compatibility; only the unified "NGS Results" sheet uses
 the ``reads`` naming.
 
@@ -36,6 +38,7 @@ from openpyxl.workbook import Workbook
 from kuma_core.mame.export.well_mapper import WellMapper, seq_to_well
 from kuma_core.mame.models import ReplicateResult, VerdictClass, VerdictRecord
 from kuma_core.mame.detected import compute_recovery, replicate_is_recovered
+from kuma_core.mame.export.nb_label import nb_label, nb_order_key, well_sort_key
 
 if TYPE_CHECKING:
     from kuma_core.mame.ingest.run_meta import NgsRunMeta
@@ -74,6 +77,9 @@ _SHEET1_HEADER = [
     "observed_aa",
     "verdict",
     "verdict_notes",
+    "selected",
+    "is_fallback",
+    "fallback_reason",
 ]
 
 _FINAL_HEADER = [
@@ -82,38 +88,44 @@ _FINAL_HEADER = [
     "custom_barcode",
     "mutant_id",
     "verdict",
+    "is_fallback",
+    "fallback_reason",
+    "notes",
 ]
 
-# Reference-format "NGS Results" sheet (3 plates side-by-side, 96 mutant rows).
-# Phase 1: reads columns carry file_size_kb as a proxy — header makes this explicit.
-# G6/A6 round: replace file_size_kb values with actual read_count from BarcodeRecord.
-_KNOWN_PLATES = ("NB01", "NB02", "NB03")
+# Reference-format "NGS Results" / "Final (matrix)" sheets adapt to the actual
+# set of native barcodes present in a run (any count / naming). Reads columns
+# carry BarcodeRecord.read_count verbatim (blank when None); the legacy
+# file_size_kb proxy substitution has been removed.
 
-_NGS_RESULT_HEADER = [
-    "index",
-    "mutant",
-    "well",
-    "custom_barcode",
-    "NB01_detected",
-    "NB01_reads",
-    "NB01_quality",
-    "NB02_detected",
-    "NB02_reads",
-    "NB02_quality",
-    "NB03_detected",
-    "NB03_reads",
-    "NB03_quality",
-    "recovered",
-]
 
-_FINAL_MATRIX_HEADER = [
-    "index",
-    "mutant",
-    "well",
-    "NB01",
-    "NB02",
-    "NB03",
-]
+def _run_native_barcodes(
+    verdict_records: list[VerdictRecord],
+    replicate_results: list[ReplicateResult],
+) -> list[str]:
+    """Distinct native barcodes present in this run, naturally sorted.
+
+    Sources: every verdict record's ``native_barcode`` plus every plate key
+    appearing in a replicate result's ``plate_verdicts``. Replaces the legacy
+    fixed ``_KNOWN_PLATES`` triple so exports adapt to any NB count/naming.
+    """
+    nbs: set[str] = {vr.translated.barcode.native_barcode for vr in verdict_records}
+    for rr in replicate_results:
+        nbs.update(rr.plate_verdicts.keys())
+    return sorted(nbs, key=nb_order_key)
+
+
+def _ngs_header(nbs: list[str]) -> list[str]:
+    header = ["index", "mutant", "well", "selected_NB", "custom_barcode"]
+    for nb in nbs:
+        label = nb_label(nb)
+        header.extend([f"{label}_detected", f"{label}_reads", f"{label}_quality"])
+    header.append("recovered")
+    return header
+
+
+def _matrix_header(nbs: list[str]) -> list[str]:
+    return ["index", "mutant", "well", "selected_NB", *[nb_label(nb) for nb in nbs]]
 
 
 def _fill(color_hex: str) -> PatternFill:
@@ -193,18 +205,45 @@ def _custom_barcode_to_seq(custom: str) -> int | None:
     return (f - 1) * 8 + r
 
 
-def _write_sheet1(wb: Workbook, native_barcode: str, records: Iterable[VerdictRecord]) -> None:
-    ws = wb.create_sheet(native_barcode)
+def _write_sheet1(
+    wb: Workbook,
+    native_barcode: str,
+    records: Iterable[VerdictRecord],
+    replicate_results: Iterable[ReplicateResult] = (),
+) -> None:
+    ws = wb.create_sheet(nb_label(native_barcode))
     ws.append(_SHEET1_HEADER)
     _style_header(ws)
 
+    # Map each final selection (selected plate + chosen well) to its replicate so
+    # the per-NB sheet can flag which well was the final pick and whether that
+    # pick was a non-PASS fallback. Keyed by (native_barcode, custom_barcode).
+    selected_lookup: dict[tuple[str, str], ReplicateResult] = {}
+    for rr in replicate_results:
+        if rr.selected_plate is None or rr.failed:
+            continue
+        sel_vr = rr.plate_verdicts.get(rr.selected_plate)
+        if sel_vr is None:
+            continue
+        selected_lookup[
+            (rr.selected_plate, sel_vr.translated.barcode.custom_barcode)
+        ] = rr
+
     for vr in sorted(
         records,
-        key=lambda r: _custom_barcode_to_seq(r.translated.barcode.custom_barcode) or 0,
+        key=lambda r: well_sort_key(r.translated.barcode.custom_barcode),
     ):
         br = vr.translated.barcode
         seq = _custom_barcode_to_seq(br.custom_barcode)
         well_id = seq_to_well(seq) if seq else ""
+        sel_rr = selected_lookup.get((native_barcode, br.custom_barcode))
+        selected_marker = "Y" if sel_rr is not None else ""
+        is_fallback = "Y" if sel_rr is not None and sel_rr.is_fallback else ""
+        fallback_reason = (
+            sel_rr.fallback_reason or ""
+            if sel_rr is not None and sel_rr.is_fallback
+            else ""
+        )
         row = [
             well_id,
             round(br.file_size_kb, 3),
@@ -223,6 +262,9 @@ def _write_sheet1(wb: Workbook, native_barcode: str, records: Iterable[VerdictRe
             ", ".join(vr.translated.observed_aa_changes),
             vr.verdict.value,
             vr.verdict_notes,
+            selected_marker,
+            is_fallback,
+            fallback_reason,
         ]
         ws.append(row)
         fill = _fill(VERDICT_FILL[vr.verdict])
@@ -272,7 +314,7 @@ def _write_final(
         well = mapper.seq_to_well(seq)
         rr = replicate_by_seq.get(seq)
         if rr is None:
-            ws.append([well, "", "", "", ""])
+            ws.append([well, "", "", "", "", "", "", ""])
             _highlight_well_cell(ws, ws.max_row)
             continue
 
@@ -280,7 +322,7 @@ def _write_final(
             failed_wells.append(well)
             failed_count += 1
             redo_targets.append(rr.mutant_id)
-            ws.append([well, "FAILED", "-", rr.mutant_id, "-"])
+            ws.append([well, "FAILED", "-", rr.mutant_id, "-", "", "", ""])
             for cell in ws[ws.max_row]:
                 cell.fill = _fill(FAILED_FILL)
         else:
@@ -288,10 +330,13 @@ def _write_final(
             ws.append(
                 [
                     well,
-                    rr.selected_plate,
+                    nb_label(rr.selected_plate),
                     vr.translated.barcode.custom_barcode,
                     rr.mutant_id,
                     vr.verdict.value,
+                    "Y" if rr.is_fallback else "",
+                    (rr.fallback_reason or "") if rr.is_fallback else "",
+                    vr.verdict_notes,
                 ]
             )
             row_idx = ws.max_row
@@ -320,10 +365,13 @@ def _write_final(
             ws.append(
                 [
                     "",
-                    rr.selected_plate or "FAILED",
+                    nb_label(rr.selected_plate) if rr.selected_plate else "FAILED",
                     "",
                     rr.mutant_id,
                     rr.selection_reason,
+                    "",
+                    "",
+                    "",
                 ]
             )
     _finalize(ws)
@@ -339,27 +387,56 @@ def _highlight_well_cell(ws, row_idx: int) -> None:
 # ---------------------------------------------------------------------------
 
 
+def _representative_custom_barcode(
+    rr: ReplicateResult,
+    nbs: list[str],
+) -> str:
+    """Custom barcode of the row's representative well.
+
+    Prefers the selected plate's chosen well; otherwise falls back to the first
+    available plate verdict (in natural NB order). Empty when no verdict carries
+    identity. Used to keep "NGS Results" / "Final (matrix)" rows in natural well
+    order (AC-2.1).
+    """
+    ref_vr: VerdictRecord | None = None
+    if rr.selected_plate is not None:
+        ref_vr = rr.plate_verdicts.get(rr.selected_plate)
+    if ref_vr is None:
+        for plate in nbs:
+            ref_vr = rr.plate_verdicts.get(plate)
+            if ref_vr is not None:
+                break
+    return ref_vr.translated.barcode.custom_barcode if ref_vr is not None else ""
+
+
 def _build_unified_ngs_data(
     replicate_results: list[ReplicateResult],
+    nbs: list[str],
 ) -> list[dict]:
     """Build per-mutant rows for the "NGS Results" sheet.
 
-    Each row holds a mutant_id key and per-plate detected/file_size_kb values.
-    Mutant ordering follows the ``replicate_results`` list (which preserves
-    expected_mutations.xlsx row order from the pipeline).
+    Each row holds a mutant_id key, the selected NB label, and per-plate
+    detected/reads/quality values keyed by NB label. Rows are sorted by each
+    mutant's representative well (selected plate's chosen well, else first
+    available plate verdict) in natural well order (AC-2.1); ``index`` is
+    re-assigned 1..N after sorting.
 
-    G6/A6 read_count policy: ``read_count`` is used when non-None; falls back
-    to ``file_size_kb`` as a volume proxy for older or low-depth records.
+    Reads carry ``BarcodeRecord.read_count`` verbatim (blank when ``None``); the
+    legacy ``file_size_kb`` proxy substitution has been removed.
     """
     rows: list[dict] = []
-    for idx, rr in enumerate(replicate_results, start=1):
+    ordered = sorted(
+        replicate_results,
+        key=lambda rr: well_sort_key(_representative_custom_barcode(rr, nbs)),
+    )
+    for idx, rr in enumerate(ordered, start=1):
         # Determine the well from the selected plate if available, otherwise
         # from any available plate verdict.
         ref_vr: VerdictRecord | None = None
         if rr.selected_plate is not None:
             ref_vr = rr.plate_verdicts.get(rr.selected_plate)
         if ref_vr is None:
-            for plate in _KNOWN_PLATES:
+            for plate in nbs:
                 ref_vr = rr.plate_verdicts.get(plate)
                 if ref_vr is not None:
                     break
@@ -372,22 +449,28 @@ def _build_unified_ngs_data(
 
         well_id = seq_to_well(seq) if seq is not None and 1 <= seq <= 96 else ""
 
+        selected_nb = (
+            nb_label(rr.selected_plate)
+            if rr.selected_plate and not rr.failed
+            else ""
+        )
+
         row: dict = {
             "index": idx,
             "mutant": rr.mutant_id,
             "well": well_id,
+            "selected_NB": selected_nb,
             "custom_barcode": cb,
         }
 
-        for plate in _KNOWN_PLATES:
+        for plate in nbs:
+            label = nb_label(plate)
             vr = rr.plate_verdicts.get(plate)
             if vr is not None:
                 detected = ", ".join(vr.translated.observed_aa_changes) or vr.verdict.value
                 bc = vr.translated.barcode
-                # G6/A6: read_count preferred; fall back to file_size_kb proxy.
-                reads_val: int | float | None = (
-                    bc.read_count if bc.read_count is not None else bc.file_size_kb
-                )
+                # read_count verbatim; blank when absent (no file_size_kb proxy).
+                reads_val: int | str = bc.read_count if bc.read_count is not None else ""
                 quality = (
                     f"N={bc.consensus_n_fraction:.3f}; "
                     f"low_depth={bc.n_low_depth_positions}; "
@@ -399,11 +482,11 @@ def _build_unified_ngs_data(
                 )
             else:
                 detected = ""
-                reads_val = None
+                reads_val = ""
                 quality = ""
-            row[f"{plate}_detected"] = detected
-            row[f"{plate}_reads"] = reads_val
-            row[f"{plate}_quality"] = quality
+            row[f"{label}_detected"] = detected
+            row[f"{label}_reads"] = reads_val
+            row[f"{label}_quality"] = quality
 
         # 재현(recovered): OR across this mutant's plate verdicts (PASS/AMBIGUOUS).
         row["recovered"] = "Y" if replicate_is_recovered(rr) else "N"
@@ -415,33 +498,18 @@ def _build_unified_ngs_data(
 def _write_unified_ngs_sheet(
     wb: Workbook,
     replicate_results: list[ReplicateResult],
+    nbs: list[str],
     designed_mutant_ids: frozenset[str] | None = None,
 ) -> None:
     """Write the reference-format "NGS Results" sheet (G7 spec)."""
     ws = wb.create_sheet("NGS Results")
-    ws.append(_NGS_RESULT_HEADER)
+    header = _ngs_header(nbs)
+    ws.append(header)
     _style_header(ws)
 
-    rows = _build_unified_ngs_data(replicate_results)
+    rows = _build_unified_ngs_data(replicate_results, nbs)
     for row in rows:
-        ws.append(
-            [
-                row["index"],
-                row["mutant"],
-                row["well"],
-                row["custom_barcode"],
-                row["NB01_detected"],
-                row["NB01_reads"],
-                row["NB01_quality"],
-                row["NB02_detected"],
-                row["NB02_reads"],
-                row["NB02_quality"],
-                row["NB03_detected"],
-                row["NB03_reads"],
-                row["NB03_quality"],
-                row["recovered"],
-            ]
-        )
+        ws.append([row.get(col, "") for col in header])
 
     # Recovery (재현율) summary area below the per-mutant rows.
     recovery = compute_recovery(replicate_results, designed_mutant_ids)
@@ -463,25 +531,33 @@ def _write_unified_ngs_sheet(
 def _write_final_matrix_sheet(
     wb: Workbook,
     replicate_results: list[ReplicateResult],
+    nbs: list[str],
 ) -> None:
     """Write the reference-format binary selection matrix (G2 spec).
 
     Sheet name is "Final (matrix)" to avoid collision with the legacy "Final"
     sheet (which is preserved for backward compatibility).
 
-    Column values: 1 if that plate was selected for the mutant, blank otherwise.
+    Cell values: "O" if that plate's verdict is PASS for the mutant, blank
+    otherwise. The single final selection (selected plate with a PASS verdict,
+    not failed) is bolded — at most one bold "O" per mutant. A non-PASS
+    fallback selection produces no matrix "O" (surfaced only via selected_NB).
     """
     ws = wb.create_sheet("Final (matrix)")
-    ws.append(_FINAL_MATRIX_HEADER)
+    ws.append(_matrix_header(nbs))
     _style_header(ws)
 
-    for idx, rr in enumerate(replicate_results, start=1):
+    ordered = sorted(
+        replicate_results,
+        key=lambda rr: well_sort_key(_representative_custom_barcode(rr, nbs)),
+    )
+    for idx, rr in enumerate(ordered, start=1):
         # Determine well from selected plate or any available verdict.
         ref_vr: VerdictRecord | None = None
         if rr.selected_plate is not None:
             ref_vr = rr.plate_verdicts.get(rr.selected_plate)
         if ref_vr is None:
-            for plate in _KNOWN_PLATES:
+            for plate in nbs:
                 ref_vr = rr.plate_verdicts.get(plate)
                 if ref_vr is not None:
                     break
@@ -492,20 +568,33 @@ def _write_final_matrix_sheet(
 
         well_id = seq_to_well(seq) if seq is not None and 1 <= seq <= 96 else ""
 
-        plate_cols: list[int | str] = []
-        for plate in _KNOWN_PLATES:
-            if rr.selected_plate == plate and not rr.failed:
-                plate_cols.append(1)
-            else:
-                plate_cols.append("")
+        selected_nb = (
+            nb_label(rr.selected_plate)
+            if rr.selected_plate and not rr.failed
+            else ""
+        )
 
-        ws.append([idx, rr.mutant_id, well_id, *plate_cols])
+        # The single final selection is the bold "O" — PASS verdict only.
+        bold_plate: str | None = None
+        if rr.selected_plate is not None and not rr.failed:
+            sel_vr = rr.plate_verdicts.get(rr.selected_plate)
+            if sel_vr is not None and sel_vr.verdict == VerdictClass.PASS:
+                bold_plate = rr.selected_plate
 
-        # Highlight the selected plate cell with yellow.
-        if rr.selected_plate in _KNOWN_PLATES and not rr.failed:
-            col_idx = list(_KNOWN_PLATES).index(rr.selected_plate)
-            # +4: 1-based, 3 leading cols (index, mutant, well) + 1
-            ws.cell(row=ws.max_row, column=4 + col_idx).fill = _fill(SELECTED_PLATE_YELLOW)
+        cells: list[str] = []
+        for plate in nbs:
+            vr = rr.plate_verdicts.get(plate)
+            cells.append("O" if vr is not None and vr.verdict == VerdictClass.PASS else "")
+
+        ws.append([idx, rr.mutant_id, well_id, selected_nb, *cells])
+
+        # Bold + highlight the single final-selection cell.
+        if bold_plate is not None and bold_plate in nbs:
+            col_idx = nbs.index(bold_plate)
+            # +5: 1-based, 4 leading cols (index, mutant, well, selected_NB) + 1
+            cell = ws.cell(row=ws.max_row, column=5 + col_idx)
+            cell.font = Font(bold=True)
+            cell.fill = _fill(SELECTED_PLATE_YELLOW)
 
     _finalize(ws, zebra=True)
 
@@ -603,15 +692,16 @@ def write_excel(
     for vr in verdict_records:
         by_nb.setdefault(vr.translated.barcode.native_barcode, []).append(vr)
 
-    for nb in sorted(by_nb):
-        _write_sheet1(wb, nb, by_nb[nb])
+    for nb in sorted(by_nb, key=nb_order_key):
+        _write_sheet1(wb, nb, by_nb[nb], replicate_results)
 
     _write_final(wb, replicate_results, mapper)
 
     # Reference-format sheets (G7 + G2): appended after legacy sheets so that
-    # existing consumers of NB01/NB02/NB03 and "Final" are not disturbed.
-    _write_unified_ngs_sheet(wb, replicate_results, designed_mutant_ids)
-    _write_final_matrix_sheet(wb, replicate_results)
+    # existing consumers of the per-NB sheets and "Final" are not disturbed.
+    nbs = _run_native_barcodes(verdict_records, replicate_results)
+    _write_unified_ngs_sheet(wb, replicate_results, nbs, designed_mutant_ids)
+    _write_final_matrix_sheet(wb, replicate_results, nbs)
 
     # A11 / G3: MinKNOW run metadata sheet — always present, content optional.
     _write_kuma_meta_sheet(wb, ngs_run_meta, kuma_version)

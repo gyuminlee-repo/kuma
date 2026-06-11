@@ -423,6 +423,9 @@
       "selectedWellAriaLabel": "Ausgewähltes Well details",
       "verdictLegendAriaLabel": "Verdict-Farblegende",
       "verdictFilterAriaLabel": "Wells nach {{verdict}} filtern (Umschalten)",
+      "nbPicked": "{{nb}}: {{count}} ausgewählt",
+      "nbFilterAriaLabel": "Wells nach {{nb}} filtern (Umschalten)",
+      "nbFilterGroupAriaLabel": "Wells nach Native Barcode filtern",
       "selectedWellLabel": "Untersuchtes Well",
       "selectedReplicate": "Ausgewählter Replicate",
       "fallbackTitle": "Fallback-Replicate",
@@ -434,7 +437,11 @@
       "detailNativeBc": "Native BC",
       "detailMutant": "Mutant",
       "detailNotes": "Notizen",
-      "detailSelectedReplicate": "Ausgewähltes Replikat"
+      "detailSelectedReplicate": "Ausgewähltes Replikat",
+      "expand": "Vergrößern",
+      "collapse": "Verkleinern",
+      "expandAriaLabel": "Vergrößerte Plattenansicht umschalten",
+      "expandedRegionAriaLabel": "Vergrößerte Plattenansicht"
     },
     "drawer": {
       "stat": {

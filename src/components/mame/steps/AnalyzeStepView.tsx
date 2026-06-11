@@ -21,7 +21,7 @@
 
 import { AlertCircle, Download, ShieldCheck, Trash2 } from "lucide-react";
 import { computeEtaFromElapsed } from "@/lib/eta";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
@@ -89,6 +89,16 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
   const goToPrevStep = useMameAppStore((s) => s.goToPrevStep);
   const setMameSubStep = useMameAppStore((s) => s.setMameSubStep);
   const wasAnalyzingRef = useRef(isAnalyzing);
+  const [plateExpanded, setPlateExpanded] = useState(false);
+  const reviewContainerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!plateExpanded) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPlateExpanded(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [plateExpanded]);
 
   useEffect(() => {
     const wasAnalyzing = wasAnalyzingRef.current;
@@ -244,7 +254,7 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
       // Other RunHealth sections (file-size/throughput/pore-yield/barcode/cross-talk) are still reachable from
       // analyze.inputs's RunHealthPanel and the QC inspector; not duplicated here per PI spec slide 6.
       mainContent = (
-        <div className="flex h-full min-h-[720px] flex-col">
+        <div className="flex h-full min-h-[800px] flex-col relative" ref={reviewContainerRef}>
           <PlateClusterAlert />
           <div className="flex-1 min-h-0">
           <PanelGroup direction="horizontal" autoSaveId="mame.analyze.review.split">
@@ -263,16 +273,22 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
               aria-label={t("mame.appLayout.verdictTableTitle")}
             />
             <Panel defaultSize={50} minSize={25}>
-              <PanelGroup direction="vertical" autoSaveId="mame.analyze.review.vsplit">
-                <Panel defaultSize={55} minSize={20}>
+              <PanelGroup direction="vertical" autoSaveId="mame.analyze.review.vsplit.v2">
+                <Panel defaultSize={42} minSize={20}>
                   <DataPanel title={t("mame.appLayout.platePlanTitle")} className="h-full min-h-0 overflow-auto">
-                    <PlateView />
+                    <div
+                      role="region"
+                      aria-label={t("mame.plateView.expandedRegionAriaLabel")}
+                      className={plateExpanded ? "absolute inset-0 z-40 bg-background overflow-auto" : "h-full"}
+                    >
+                      <PlateView expanded={plateExpanded} onToggleExpand={() => setPlateExpanded((v) => !v)} />
+                    </div>
                   </DataPanel>
                 </Panel>
                 <PanelResizeHandle
                   className="h-2 bg-border hover:bg-border/70 transition-colors"
                 />
-                <Panel defaultSize={45} minSize={20}>
+                <Panel defaultSize={58} minSize={20}>
                   <DataPanel title={t("mame.appLayout.efficiencyChartTitle")} className="h-full min-h-0 overflow-auto">
                     {runHealth !== null ? (
                       <RunHealthPanel

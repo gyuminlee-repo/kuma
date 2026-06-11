@@ -3,6 +3,7 @@
 from kuma_core.mame.export.excel_writer import write_excel
 from kuma_core.mame.export.janus_mapping import export_mame_janus_csv, export_mame_janus_xlsx
 from kuma_core.mame.export.well_mapper import WellMapper, seq_to_well
+from kuma_core.mame.export.nb_label import nb_label, nb_order_key, well_sort_key
 
 __all__ = [
     "write_excel",
@@ -10,4 +11,7 @@ __all__ = [
     "export_mame_janus_xlsx",
     "WellMapper",
     "seq_to_well",
+    "nb_label",
+    "nb_order_key",
+    "well_sort_key",
 ]

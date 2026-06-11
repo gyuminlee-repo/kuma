@@ -151,8 +151,19 @@ def classify_verdict(
 
     observed = list(translated.observed_aa_changes)
 
-    # 3) MANY — more observed AA changes than the cutoff.
-    if len(observed) > params.many_mutation_cutoff:
+    # 3) MANY — too many AA changes to be a clean call. The cutoff is an
+    # *excess* gate, not an absolute one: a well can never be MANY when it
+    # carries no more changes than its own design calls for. Comparing the raw
+    # observed count against the cutoff misclassified legitimate multi-site
+    # (e.g. combinatorial) designs as MANY even when observed == expected
+    # exactly. Guarding on len(observed) > len(expected_mutations) keeps the
+    # single-site behaviour (expected 1, observed 6 with cutoff 5 -> MANY)
+    # while letting a perfect N-site well proceed to the expected/observed
+    # comparison.
+    if (
+        len(observed) > params.many_mutation_cutoff
+        and len(observed) > len(expected_mutations)
+    ):
         return VerdictRecord(
             translated=translated,
             expected_mutations=list(expected_mutations),
