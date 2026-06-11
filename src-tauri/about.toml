@@ -2,8 +2,9 @@
 # https://embarkstudios.github.io/cargo-about/
 
 # Accepted SPDX license identifiers. Crates under an accepted license are
-# included in NOTICE-rust.md. Crates under a rejected license will cause the
-# build to fail (silent skip disabled).
+# included in NOTICE-rust.md. A crate whose license is not listed here fails
+# the build (no silent skip). Full license TEXT (not just the SPDX id) is
+# emitted by the about.hbs template via {{text}}, so no extra config is needed.
 accepted = [
     "MIT",
     "Apache-2.0",
@@ -17,14 +18,3 @@ accepted = [
     "OpenSSL",
     "CC0-1.0",
 ]
-
-# Crates to ignore (proc-macro helpers, build tools, or crates whose license
-# text is embedded in the binary but is already covered by another crate).
-ignore = [
-    # Tauri itself packages its own NOTICE separately.
-]
-
-[output]
-# Include the full license text (not just SPDX identifiers) as required for
-# Apache-2.0 and similar licenses.
-include-text = true
