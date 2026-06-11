@@ -81,6 +81,14 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      # --- Windows: exclude the workspace from Defender real-time scanning. The
+      # freshly-built ~44MB frozen sidecar and the per-well minimap2.exe spawns
+      # during the frozen smoke were re-scanned on every launch, pushing the
+      # first (cold) demux past the smoke RPC timeout. Runner is admin.
+      - name: Exclude workspace from Windows Defender (CI perf)
+        if: matrix.platform == 'windows-latest'
+        shell: pwsh
+        run: Add-MpPreference -ExclusionPath "${{ github.workspace }}" -ErrorAction SilentlyContinue
       # --- System dependencies (Linux only) ---
       - name: Install Linux dependencies
         if: matrix.platform == 'ubuntu-22.04'

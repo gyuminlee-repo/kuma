@@ -49,6 +49,7 @@ import {
   createReadStream,
   existsSync,
   readdirSync,
+  mkdirSync,
   readFileSync,
   statSync,
   writeFileSync,
@@ -271,6 +272,9 @@ function regenerateDmg(appPath, dmgDir) {
   const arch = os.arch() === "arm64" ? "aarch64" : "x86_64";
   const dmgName = `${PRODUCT_NAME}_${version}_${arch}.dmg`;
   const dmgPath = join(dmgDir, dmgName);
+
+  // app-only macOS builds skip tauri's DMG step, so bundle/dmg/ may not exist yet.
+  mkdirSync(dmgDir, { recursive: true });
 
   // Remove old dmg if present so hdiutil doesn't fail with "exists".
   if (existsSync(dmgPath)) {
