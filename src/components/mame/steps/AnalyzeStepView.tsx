@@ -254,7 +254,7 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
       // Other RunHealth sections (file-size/throughput/pore-yield/barcode/cross-talk) are still reachable from
       // analyze.inputs's RunHealthPanel and the QC inspector; not duplicated here per PI spec slide 6.
       mainContent = (
-        <div className="flex h-full min-h-[1040px] flex-col relative" ref={reviewContainerRef}>
+        <div className="flex h-full min-h-[1200px] flex-col relative" ref={reviewContainerRef}>
           <PlateClusterAlert />
           <div className="flex-1 min-h-0">
           <PanelGroup direction="horizontal" autoSaveId="mame.analyze.review.split">
