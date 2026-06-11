@@ -112,6 +112,9 @@ src-tauri/.cargo/
 # Bioinformatics data
 *.fastq
 *.fastq.gz
+# Exception: tiny deterministic synthetic fixture for the MAME demux regression
+# harness (251 B). Must be tracked so the tests run in CI and fresh checkouts.
+!tests/fixtures/mame/synth_R1.fastq.gz
 *.fast5
 *.pod5
 *.bam
