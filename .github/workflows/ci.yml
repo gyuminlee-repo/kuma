@@ -77,6 +77,11 @@ jobs:
       - name: Check generated TS models are up-to-date
         run: node scripts/gen-models.mjs --check
 
+      - name: Stub generated bundle resource (NOTICE.md) for cross-layer sync
+        run: |
+          mkdir -p src-tauri/resources
+          printf '# Third-party notices\n\n(placeholder; real content generated at build time by scripts/build-notice.mjs)\n' > src-tauri/resources/NOTICE.md
+
       - name: Cross-layer sync check
         run: node scripts/sync-check.mjs
 
@@ -122,13 +127,15 @@ jobs:
       - name: Build frontend assets
         run: pnpm run build
 
-      - name: Create sidecar stubs for Tauri context
+      - name: Create sidecar + resource stubs for Tauri context
         run: |
           mkdir -p src-tauri/binaries
           printf '#!/usr/bin/env sh\nexit 0\n' > src-tauri/binaries/kuro-sidecar-x86_64-unknown-linux-gnu
           printf '#!/usr/bin/env sh\nexit 0\n' > src-tauri/binaries/mame-sidecar-x86_64-unknown-linux-gnu
           chmod +x src-tauri/binaries/kuro-sidecar-x86_64-unknown-linux-gnu
           chmod +x src-tauri/binaries/mame-sidecar-x86_64-unknown-linux-gnu
+          mkdir -p src-tauri/resources
+          printf '# Third-party notices\n\n(placeholder; real content generated at build time by scripts/build-notice.mjs)\n' > src-tauri/resources/NOTICE.md
 
       - uses: dtolnay/rust-toolchain@stable
 
