@@ -771,9 +771,12 @@ interface RunHealthPanelProps {
   /** Filter which sections to render. Renders all sections when omitted. */
   sections?: readonly RunHealthSection[];
   className?: string;
+  /** Hide per-section visual headings (kept for screen readers via aria) when
+   *  the panel is embedded under a titled container. Default true. */
+  showSectionHeadings?: boolean;
 }
 
-export function RunHealthPanel({ health, sections, className }: RunHealthPanelProps) {
+export function RunHealthPanel({ health, sections, className, showSectionHeadings = true }: RunHealthPanelProps) {
   const { t } = useTranslation();
   const hasMinKnow =
     health.pore_yield_pct !== null ||
@@ -781,6 +784,12 @@ export function RunHealthPanel({ health, sections, className }: RunHealthPanelPr
     health.barcode_distribution !== null;
 
   const show = (s: RunHealthSection) => sections === undefined || sections.includes(s);
+  // When embedded under a DataPanel that already supplies the title, hide the
+  // redundant per-section visual heading but keep it for assistive tech.
+  const headingCls = cn(
+    "text-caption font-semibold uppercase tracking-widest text-muted-foreground",
+    !showSectionHeadings && "sr-only",
+  );
 
   return (
     <div
@@ -793,7 +802,7 @@ export function RunHealthPanel({ health, sections, className }: RunHealthPanelPr
         <section aria-labelledby="vh-verdict-heading" className="flex flex-col gap-2">
           <h3
             id="vh-verdict-heading"
-            className="text-caption font-semibold uppercase tracking-widest text-muted-foreground"
+            className={headingCls}
           >
             {t("mame.runHealth.verdictBreakdown")}
           </h3>
@@ -812,7 +821,7 @@ export function RunHealthPanel({ health, sections, className }: RunHealthPanelPr
         <section aria-labelledby="vh-dist-heading" className="flex flex-col gap-2">
           <h3
             id="vh-dist-heading"
-            className="text-caption font-semibold uppercase tracking-widest text-muted-foreground"
+            className={headingCls}
           >
             {t("mame.runHealth.fileSizeDistribution")}
           </h3>
@@ -848,7 +857,7 @@ export function RunHealthPanel({ health, sections, className }: RunHealthPanelPr
             <section aria-labelledby="vh-pore-heading" className="flex flex-col gap-2">
               <h3
                 id="vh-pore-heading"
-                className="text-caption font-semibold uppercase tracking-widest text-muted-foreground"
+                className={headingCls}
               >
                 {t("mame.runHealth.poreYield")}
               </h3>
@@ -861,7 +870,7 @@ export function RunHealthPanel({ health, sections, className }: RunHealthPanelPr
             <section aria-labelledby="vh-throughput-heading" className="flex flex-col gap-2">
               <h3
                 id="vh-throughput-heading"
-                className="text-caption font-semibold uppercase tracking-widest text-muted-foreground"
+                className={headingCls}
               >
                 {t("mame.runHealth.throughputTimeline")}
               </h3>
@@ -878,7 +887,7 @@ export function RunHealthPanel({ health, sections, className }: RunHealthPanelPr
               >
                 <h3
                   id="vh-barcode-heading"
-                  className="text-caption font-semibold uppercase tracking-widest text-muted-foreground"
+                  className={headingCls}
                 >
                   {t("mame.runHealth.barcodeDistribution")}
                 </h3>
@@ -896,7 +905,7 @@ export function RunHealthPanel({ health, sections, className }: RunHealthPanelPr
         >
           <h3
             id="vh-crosstalk-heading"
-            className="text-caption font-semibold uppercase tracking-widest text-muted-foreground"
+            className={headingCls}
           >
             {t("mame.runHealth.crossTalkCandidates")}
           </h3>
