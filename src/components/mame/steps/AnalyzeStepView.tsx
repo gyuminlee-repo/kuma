@@ -278,6 +278,7 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
                       <RunHealthPanel
                         health={runHealth}
                         sections={["verdict-breakdown"]}
+                        showSectionHeadings={false}
                       />
                     ) : (
                       <div className="p-4 text-caption text-muted-foreground">

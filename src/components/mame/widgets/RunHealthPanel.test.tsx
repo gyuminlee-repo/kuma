@@ -99,4 +99,25 @@ describe("RunHealthPanel — recovery / detected / class table", () => {
     expect(noCallRow).not.toBeNull();
     expect(within(noCallRow as HTMLElement).getByText("0")).toBeInTheDocument();
   });
+
+  // #5: when embedded under a titled DataPanel, the per-section heading is
+  // visually hidden (sr-only) to avoid a duplicated title, but kept for a11y.
+  it("hides the section heading visually (sr-only) when showSectionHeadings=false", () => {
+    const { rerender } = render(
+      <RunHealthPanel health={makeHealth()} sections={["verdict-breakdown"]} />,
+    );
+    expect(
+      screen.getByRole("heading", { name: "Verdict breakdown" }).className,
+    ).not.toContain("sr-only");
+    rerender(
+      <RunHealthPanel
+        health={makeHealth()}
+        sections={["verdict-breakdown"]}
+        showSectionHeadings={false}
+      />,
+    );
+    expect(
+      screen.getByRole("heading", { name: "Verdict breakdown" }).className,
+    ).toContain("sr-only");
+  });
 });
