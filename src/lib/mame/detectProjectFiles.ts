@@ -76,7 +76,17 @@ async function readMameContext(projectPath: string): Promise<MameContext | null>
 }
 
 /**
- * mame_context.json의 상대 경로 필드를 절대 경로로 변환한다.
+ * 경로가 절대경로인지 판정한다 (크로스플랫폼).
+ * Windows 드라이브 (C:\ / C:/), POSIX (/), UNC (\\) 를 모두 인식.
+ */
+function isAbsolutePath(p: string): boolean {
+  return /^([a-zA-Z]:[\\/]|[\\/]|\\\\)/.test(p);
+}
+
+/**
+ * mame_context.json의 경로 필드를 절대 경로로 변환한다.
+ * 값이 이미 절대경로면 join 없이 그대로 사용하고,
+ * 상대경로면 projectPath 기준으로 join한다.
  * join() 실패 시 해당 필드는 undefined로 처리.
  */
 async function resolveContextPaths(
@@ -87,21 +97,27 @@ async function resolveContextPaths(
 
   if (context.custom_barcodes_path) {
     try {
-      resolved.customBarcodesPath = await join(projectPath, context.custom_barcodes_path);
+      resolved.customBarcodesPath = isAbsolutePath(context.custom_barcodes_path)
+        ? context.custom_barcodes_path
+        : await join(projectPath, context.custom_barcodes_path);
     } catch {
       console.warn("[detectProjectFiles] mame_context.json: failed to resolve custom_barcodes_path");
     }
   }
   if (context.reference_path) {
     try {
-      resolved.referencePath = await join(projectPath, context.reference_path);
+      resolved.referencePath = isAbsolutePath(context.reference_path)
+        ? context.reference_path
+        : await join(projectPath, context.reference_path);
     } catch {
       console.warn("[detectProjectFiles] mame_context.json: failed to resolve reference_path");
     }
   }
   if (context.sample_map_template_path) {
     try {
-      resolved.sampleMapPath = await join(projectPath, context.sample_map_template_path);
+      resolved.sampleMapPath = isAbsolutePath(context.sample_map_template_path)
+        ? context.sample_map_template_path
+        : await join(projectPath, context.sample_map_template_path);
     } catch {
       console.warn("[detectProjectFiles] mame_context.json: failed to resolve sample_map_template_path");
     }

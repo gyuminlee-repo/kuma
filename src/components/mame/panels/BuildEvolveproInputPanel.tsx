@@ -27,52 +27,11 @@ import type {
   BuildEvolveproInputParams,
   BuildEvolveproInputResult,
 } from "@/types/mame/build_evolvepro_input";
-
-const STORAGE_KEY = "kuma:mame:buildEvolvepro";
-
-interface FormState {
-  layoutXlsx: string;
-  gcDataXlsx: string;
-  repBatchXlsx: string;
-  prevEvolveproXlsx: string;
-  outputXlsx: string;
-}
-
-const DEFAULT_STATE: FormState = {
-  layoutXlsx: "",
-  gcDataXlsx: "",
-  repBatchXlsx: "",
-  prevEvolveproXlsx: "",
-  outputXlsx: "",
-};
-
-function loadFromStorage(): FormState {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return DEFAULT_STATE;
-    const parsed: unknown = JSON.parse(raw);
-    if (typeof parsed !== "object" || parsed === null) return DEFAULT_STATE;
-    const p = parsed as Record<string, unknown>;
-    return {
-      layoutXlsx: typeof p.layoutXlsx === "string" ? p.layoutXlsx : "",
-      gcDataXlsx: typeof p.gcDataXlsx === "string" ? p.gcDataXlsx : "",
-      repBatchXlsx: typeof p.repBatchXlsx === "string" ? p.repBatchXlsx : "",
-      prevEvolveproXlsx:
-        typeof p.prevEvolveproXlsx === "string" ? p.prevEvolveproXlsx : "",
-      outputXlsx: typeof p.outputXlsx === "string" ? p.outputXlsx : "",
-    };
-  } catch {
-    return DEFAULT_STATE;
-  }
-}
-
-function saveToStorage(state: FormState): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch {
-    // ignore persistence failures
-  }
-}
+import {
+  type BuildEvolveproFormState as FormState,
+  loadBuildEvolveproFromStorage as loadFromStorage,
+  saveBuildEvolveproToStorage as saveToStorage,
+} from "@/lib/mame/buildEvolveproFormStorage";
 
 function getFilename(p: string): string {
   if (!p) return "";

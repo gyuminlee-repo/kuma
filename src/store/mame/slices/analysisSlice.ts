@@ -1,5 +1,6 @@
 import { functionalUpdate } from "@tanstack/react-table";
 import { resolveResource } from "@tauri-apps/api/path";
+import { readTextFile } from "@tauri-apps/plugin-fs";
 import type { StateCreator } from "zustand";
 import { sendRequest } from "@/lib/ipc-mame";
 import {
@@ -8,9 +9,17 @@ import {
   sampleVerdicts,
   sampleWells,
 } from "@/lib/mame/sampleData";
+import { seedBuildEvolveproForm } from "@/lib/mame/buildEvolveproFormStorage";
 import { useRoundStore } from "@/store/round/roundSlice";
 import type { ActivityRecord, PlateMeta } from "@/types/mame/activity";
-import type { PlateDataResult, RunHealthData } from "@/types/mame/models";
+import type {
+  AnalyzeSummary,
+  PlateDataResult,
+  ReplicateResult,
+  RunHealthData,
+  VerdictRecord,
+  WellEntry,
+} from "@/types/mame/models";
 import type { AnalysisSlice } from "../slice-interfaces";
 import type { AppState } from "../types";
 
@@ -102,6 +111,10 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       "samples/mame/07_mame_activity_long.csv",
       "samples/mame/02_mame_barcode_seeds.xlsx",
       "samples/mame/egfp_with_flanks.fa",
+      "samples/mame/08_mame_evolvepro_raw.xlsx",
+      "samples/mame/09_mame_agilent_rep_batch.xlsx",
+      "samples/mame/10_mame_gc_prenormalised.xlsx",
+      "samples/mame/sample_analysis_result.json",
     ];
     const settled = await Promise.allSettled(relPaths.map((p) => resolveResource(p)));
     const resolved: (string | null)[] = settled.map((r, i) => {
@@ -124,10 +137,14 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       expectedPath,
       barcodesPath,
       sampleMapPath,
-      ,
+      layoutXlsxPath,
       activityCsvPath,
       barcodeSeedsPath,
       designFastaPath,
+      prevEvolveproXlsxPath,
+      repBatchXlsxPath,
+      gcDataXlsxPath,
+      analysisResultPath,
     ] = resolved;
 
     // Critical inputs: reference.fasta and activity CSV. Abort with a
@@ -232,6 +249,48 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
         (optionalFailures.length > 0
           ? ` (missing optional files: ${optionalFailures.join(", ")})`
           : ""),
+    });
+
+    // Task B: Load fixture analysis result to populate graphs (verdicts/wells/runHealth/summary).
+    // Append after mock results so fixture overrides them on success; mock remains as graceful fallback.
+    if (analysisResultPath) {
+      try {
+        const fixtureText = await readTextFile(analysisResultPath);
+        const fixtureData = JSON.parse(fixtureText) as Pick<
+          AppState,
+          "verdicts" | "replicates" | "summary" | "wells" | "runHealth"
+        >;
+        const fixtureWells: WellEntry[] = Array.isArray(fixtureData.wells)
+          ? (fixtureData.wells as WellEntry[])
+          : [];
+        set({
+          verdicts: Array.isArray(fixtureData.verdicts)
+            ? (fixtureData.verdicts as VerdictRecord[])
+            : sampleVerdicts(),
+          replicates: Array.isArray(fixtureData.replicates)
+            ? (fixtureData.replicates as ReplicateResult[])
+            : sampleReplicates(),
+          summary: (fixtureData.summary as AnalyzeSummary | null) ?? sampleSummary(),
+          wells: fixtureWells,
+          selectedWell:
+            fixtureWells.find((w) => w.selected) ?? fixtureWells[0] ?? null,
+          runHealth: (fixtureData.runHealth as RunHealthData | null) ?? null,
+        });
+      } catch (fixtureErr) {
+        console.warn(
+          "[analysisSlice] sample_analysis_result.json load failed, using mock results:",
+          fixtureErr,
+        );
+      }
+    }
+
+    // Task C: Seed BuildEvolveproInputPanel form fields via localStorage.
+    // Only fills empty fields; existing user selections are preserved.
+    seedBuildEvolveproForm({
+      layoutXlsx: layoutXlsxPath ?? undefined,
+      gcDataXlsx: gcDataXlsxPath ?? undefined,
+      repBatchXlsx: repBatchXlsxPath ?? undefined,
+      prevEvolveproXlsx: prevEvolveproXlsxPath ?? undefined,
     });
   },
 });

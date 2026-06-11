@@ -631,23 +631,11 @@ def generate_mame_package(
     ValueError
         If FASTA parsing fails, gene range is invalid, barcode seeds fail
         validation, or the flank search window falls outside the CDS.
-    ValueError
-        If ``output_dir`` is not under ``project_root`` (required for relative
-        path computation in ``mame_context.json``).
     """
     # Ensure output_dir exists
     output_dir = Path(output_dir)
     project_root = Path(project_root)
     output_dir.mkdir(parents=True, exist_ok=True)
-
-    # Validate that output_dir is under project_root so relative paths work
-    try:
-        output_dir.resolve().relative_to(project_root.resolve())
-    except ValueError:
-        raise ValueError(
-            f"output_dir ({output_dir}) must be inside project_root ({project_root}) "
-            "for relative path computation in mame_context.json."
-        )
 
     # Resolve polymerase profile
     profile = get_profile(polymerase)
@@ -824,6 +812,15 @@ def _write_sample_map_template(path: Path) -> None:
     wb.save(str(path))
 
 
+def _ctx_path(p: Path, root: Path) -> str:
+    """Return relative posix path if inside root, else absolute posix path."""
+    rp = p.resolve()
+    try:
+        return rp.relative_to(root).as_posix()
+    except ValueError:
+        return rp.as_posix()
+
+
 def _write_mame_context_json(
     path: Path,
     project_root: Path,
@@ -831,14 +828,16 @@ def _write_mame_context_json(
     amplicon_fa: Path,
     sample_map_template: Path,
 ) -> None:
-    """Write mame_context.json with schema 1 and relative paths."""
+    """Write mame_context.json with relative paths for files inside project_root,
+    or absolute paths for files outside it.
+    """
     root = project_root.resolve()
     context = {
         "schema": 1,
         "published_at": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "custom_barcodes_path": barcodes_xlsx.resolve().relative_to(root).as_posix(),
-        "reference_path": amplicon_fa.resolve().relative_to(root).as_posix(),
-        "sample_map_template_path": sample_map_template.resolve().relative_to(root).as_posix(),
+        "custom_barcodes_path": _ctx_path(barcodes_xlsx, root),
+        "reference_path": _ctx_path(amplicon_fa, root),
+        "sample_map_template_path": _ctx_path(sample_map_template, root),
     }
     path.write_text(
         json.dumps(context, indent=2, ensure_ascii=False),

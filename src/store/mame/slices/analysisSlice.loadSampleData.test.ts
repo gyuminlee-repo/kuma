@@ -2,7 +2,7 @@
  * analysisSlice.loadSampleData.test.ts
  *
  * MAME loadSampleData() 동작 검증:
- * - resolveResource 7개 경로 호출 (Phase 1 setup prefill seeds 포함)
+ * - resolveResource 12개 경로 호출 (Phase 1 setup prefill seeds + EVOLVEpro form + fixture 포함)
  * - activity.set_plate_meta + activity.upload RPC 호출 파라미터
  * - 입력 경로 setter + hardcoded sample 결과 populate
  * - activity RPC 실패 시 fallback (결과는 populate, 메시지 변경)
@@ -20,6 +20,16 @@ vi.mock("@/lib/ipc-mame", () => ({
 
 vi.mock("@tauri-apps/api/path", () => ({
   resolveResource: vi.fn((p: string) => Promise.resolve(`/resolved/${p}`)),
+}));
+
+// readTextFile: return empty JSON object by default (fixture load warn-only on parse failure)
+vi.mock("@tauri-apps/plugin-fs", () => ({
+  readTextFile: vi.fn(() => Promise.resolve("{}")),
+}));
+
+// seedBuildEvolveproForm touches localStorage; mock to avoid jsdom side-effects in unit tests
+vi.mock("@/lib/mame/buildEvolveproFormStorage", () => ({
+  seedBuildEvolveproForm: vi.fn(),
 }));
 
 import { resolveResource } from "@tauri-apps/api/path";
@@ -120,7 +130,7 @@ describe("mame analysisSlice.loadSampleData", () => {
 
     await store.loadSampleData();
 
-    // 1. resolveResource 8번 (Phase 1 setup prefill: seeds xlsx + flank-bearing design FASTA)
+    // 1. resolveResource 12번 (Phase 1 setup prefill + EVOLVEpro form seeds + analysis fixture)
     const expectedPaths = [
       "samples/mame/reference.fasta",
       "samples/mame/03_mame_expected_mutations.xlsx",
@@ -130,8 +140,12 @@ describe("mame analysisSlice.loadSampleData", () => {
       "samples/mame/07_mame_activity_long.csv",
       "samples/mame/02_mame_barcode_seeds.xlsx",
       "samples/mame/egfp_with_flanks.fa",
+      "samples/mame/08_mame_evolvepro_raw.xlsx",
+      "samples/mame/09_mame_agilent_rep_batch.xlsx",
+      "samples/mame/10_mame_gc_prenormalised.xlsx",
+      "samples/mame/sample_analysis_result.json",
     ];
-    expect(resolveResource).toHaveBeenCalledTimes(8);
+    expect(resolveResource).toHaveBeenCalledTimes(12);
     for (const p of expectedPaths) {
       expect(resolveResource).toHaveBeenCalledWith(p);
     }
