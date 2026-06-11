@@ -408,7 +408,11 @@
       "detectedShort": "Erkannt",
       "classCountTableCaption": "Verdict-Klassenanzahl über alle Platten",
       "classCountColClass": "Klasse",
-      "classCountColCount": "Anzahl"
+      "classCountColCount": "Anzahl",
+      "mutantRecoveryTitle": "Mutanten-Recovery",
+      "recoveredViaPass": "Recovered (Pass)",
+      "recoveredViaAmbiguous": "Recovered (Ambiguous)",
+      "notRecovered": "Nicht recovered"
     },
     "plateView": {
       "plate": "Platte",
@@ -419,7 +423,7 @@
       "selectedWellAriaLabel": "Ausgewähltes Well details",
       "verdictLegendAriaLabel": "Verdict-Farblegende",
       "verdictFilterAriaLabel": "Wells nach {{verdict}} filtern (Umschalten)",
-      "selectedWellLabel": "Ausgewähltes Well",
+      "selectedWellLabel": "Untersuchtes Well",
       "selectedReplicate": "Ausgewählter Replicate",
       "fallbackTitle": "Fallback-Replicate",
       "fallbackDesc": "Original cutoff missed alle Platten.",
@@ -429,7 +433,8 @@
       "detailBarcode": "Barcode",
       "detailNativeBc": "Native BC",
       "detailMutant": "Mutant",
-      "detailNotes": "Notizen"
+      "detailNotes": "Notizen",
+      "detailSelectedReplicate": "Ausgewähltes Replikat"
     },
     "drawer": {
       "stat": {
@@ -490,7 +495,8 @@
         "reasonWt": "Excluded — wild-type sample (not a variant).",
         "reasonNoLog2fc": "Excluded — log₂FC could not be computed.",
         "reasonNoActivity": "Excluded — no activity data available."
-      }
+      },
+      "selectedReplicateBadge": "Ausgewählt"
     },
     "summaryRow": {
       "ariaLabel": "Analyse-Zusammenfassung",

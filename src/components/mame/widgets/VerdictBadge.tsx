@@ -9,6 +9,7 @@
 
 import type { VerdictClass } from "@/types/mame/models";
 import { cn } from "@/lib/utils";
+import { VERDICT_LABEL } from "@/lib/mame/verdictColors";
 
 interface VerdictMeta {
   label: string;
@@ -20,42 +21,42 @@ interface VerdictMeta {
 
 const verdictMeta: Record<VerdictClass, VerdictMeta> = {
   PASS: {
-    label: "Pass",
+    label: VERDICT_LABEL.PASS,
     colorClass: "border-success/40 text-success",
     shape: "●",
   },
   AMBIGUOUS: {
-    label: "Ambiguous",
+    label: VERDICT_LABEL.AMBIGUOUS,
     colorClass: "border-warning/40 text-warning",
     shape: "■",
   },
   MIXED: {
-    label: "Mixed well",
+    label: VERDICT_LABEL.MIXED,
     colorClass: "border-destructive/40 text-destructive",
     shape: "▲",
   },
   WRONG_AA: {
-    label: "AA mismatch",
+    label: VERDICT_LABEL.WRONG_AA,
     colorClass: "border-destructive/40 text-destructive",
     shape: "▲",
   },
   FRAMESHIFT: {
-    label: "Frameshift",
+    label: VERDICT_LABEL.FRAMESHIFT,
     colorClass: "border-destructive/40 text-destructive",
     shape: "▲",
   },
   MANY: {
-    label: "Too many changes",
+    label: VERDICT_LABEL.MANY,
     colorClass: "border-warning/40 text-warning",
     shape: "■",
   },
   LOWDEPTH: {
-    label: "Low depth",
+    label: VERDICT_LABEL.LOWDEPTH,
     colorClass: "border-border text-muted-foreground",
     shape: "◆",
   },
   NO_CALL: {
-    label: "No call",
+    label: VERDICT_LABEL.NO_CALL,
     colorClass: "border-muted-foreground/30 text-muted-foreground/80",
     shape: "○",
   },

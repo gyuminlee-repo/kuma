@@ -7,6 +7,7 @@ import { WellPlate } from "./WellPlate";
 import type { WellColorOverride } from "./WellPlate";
 import { cn } from "@/lib/utils";
 import type { VerdictClass, WellEntry } from "@/types/mame/models";
+import { VERDICT_LABEL } from "@/lib/mame/verdictColors";
 
 function getSelectedPlateLabel(barcode: string | null): string {
   if (!barcode) return "None";
@@ -40,6 +41,7 @@ export function PlateView({ wellColorOf, wells: externalWells }: PlateViewProps 
   const selectedWell = useMameAppStore((state) => state.selectedWell);
   const setSelectedWell = useMameAppStore((state) => state.setSelectedWell);
   const loadPlateData = useMameAppStore((state) => state.loadPlateData);
+  const replicates = useMameAppStore((state) => state.replicates);
 
   // Use external wells if provided (kuro mode), otherwise fall back to mame store wells
   const wells = externalWells ?? storeWells;
@@ -115,6 +117,7 @@ export function PlateView({ wellColorOf, wells: externalWells }: PlateViewProps 
                 "FRAMESHIFT",
                 "MANY",
                 "LOWDEPTH",
+                "NO_CALL",
               ] as VerdictClass[]
             ).map((verdict) => {
               const active = activeClass === verdict;
@@ -180,6 +183,18 @@ export function PlateView({ wellColorOf, wells: externalWells }: PlateViewProps 
               <DetailRow label={t("mame.plateView.detailBarcode")} value={selectedWell.barcode} />
               <DetailRow label={t("mame.plateView.detailNativeBc")} value={selectedWell.native_barcode} />
               <DetailRow label={t("mame.plateView.detailMutant")} value={selectedWell.mutant_id || "—"} />
+              {(() => {
+                const rep = replicates.find((r) => r.mutant_id === selectedWell.mutant_id);
+                const selPlate = rep?.selected_plate ?? null;
+                const selVerdict = selPlate ? (rep?.plate_verdicts[selPlate]?.verdict ?? null) : null;
+                const label = `${getSelectedPlateLabel(selPlate)}${selVerdict ? ` (${VERDICT_LABEL[selVerdict]})` : ""}`;
+                return (
+                  <DetailRow
+                    label={t("mame.plateView.detailSelectedReplicate")}
+                    value={label}
+                  />
+                );
+              })()}
               <DetailRow label={t("mame.plateView.detailNotes")} value={selectedWell.notes || "—"} />
               </div>
               {selectedWell.is_fallback && (

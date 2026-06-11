@@ -214,6 +214,16 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
       Object.fromEntries(ACTIVITY_COLUMN_IDS.map((id) => [id, true])) as VisibilityState
   );
 
+  const selectedSet = useMemo<Set<string>>(() => {
+    const s = new Set<string>();
+    for (const r of replicates) {
+      if (r.selected_plate !== null) {
+        s.add(`${r.mutant_id}|${r.selected_plate}`);
+      }
+    }
+    return s;
+  }, [replicates]);
+
   const rows = useMemo<VerdictRow[]>(() => {
     // Replicate selection drives only the fallback accent (keyed by mutant_id),
     // NOT the per-row variant id. Keying mutant_id by native_barcode collapses
@@ -323,6 +333,14 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
               </span>
             )}
             <span className="text-xs font-medium">{row.original.mutant_id}</span>
+            {selectedSet.has(`${row.original.mutant_id}|${row.original.native_barcode}`) && (
+              <Badge
+                variant="outline"
+                className="border-primary/40 text-primary text-[10px] px-1 py-0"
+              >
+                {t("mame.verdictTable.selectedReplicateBadge")}
+              </Badge>
+            )}
           </span>
         ),
       },
@@ -560,7 +578,7 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
         },
       },
     ],
-    [t, recoveredByMutant],
+    [t, recoveredByMutant, selectedSet],
   );
 
   const table = useReactTable({

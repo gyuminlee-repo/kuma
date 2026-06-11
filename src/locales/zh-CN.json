@@ -408,7 +408,11 @@
       "detectedShort": "检出",
       "classCountTableCaption": "所有板的 Verdict 类别计数",
       "classCountColClass": "类别",
-      "classCountColCount": "数量"
+      "classCountColCount": "数量",
+      "mutantRecoveryTitle": "突变体回收",
+      "recoveredViaPass": "已回收 (Pass)",
+      "recoveredViaAmbiguous": "已回收 (Ambiguous)",
+      "notRecovered": "未回收"
     },
     "plateView": {
       "plate": "Plate",
@@ -419,7 +423,7 @@
       "selectedWellAriaLabel": "所选 well 详情",
       "verdictLegendAriaLabel": "Verdict 颜色图例",
       "verdictFilterAriaLabel": "仅高亮 {{verdict}} 类（切换）",
-      "selectedWellLabel": "所选 Well",
+      "selectedWellLabel": "查看的孔位",
       "selectedReplicate": "所选 replicate",
       "fallbackTitle": "Fallback replicate",
       "fallbackDesc": "原始 cutoff 漏掉了所有板。",
@@ -429,7 +433,8 @@
       "detailBarcode": "Barcode",
       "detailNativeBc": "Native BC",
       "detailMutant": "Mutant",
-      "detailNotes": "备注"
+      "detailNotes": "备注",
+      "detailSelectedReplicate": "选定重复"
     },
     "drawer": {
       "stat": {
@@ -490,7 +495,8 @@
         "reasonWt": "Excluded — wild-type sample (not a variant).",
         "reasonNoLog2fc": "Excluded — log₂FC could not be computed.",
         "reasonNoActivity": "Excluded — no activity data available."
-      }
+      },
+      "selectedReplicateBadge": "已选"
     },
     "summaryRow": {
       "ariaLabel": "分析摘要",

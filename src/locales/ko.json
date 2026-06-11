@@ -467,7 +467,11 @@
       "detectedShort": "검출",
       "classCountTableCaption": "전체 플레이트의 Verdict 클래스 수",
       "classCountColClass": "클래스",
-      "classCountColCount": "개수"
+      "classCountColCount": "개수",
+      "mutantRecoveryTitle": "변이체 회수",
+      "recoveredViaPass": "회수 (Pass)",
+      "recoveredViaAmbiguous": "회수 (Ambiguous)",
+      "notRecovered": "회수 실패"
     },
     "plateView": {
       "plate": "플레이트",
@@ -478,7 +482,7 @@
       "selectedWellAriaLabel": "선택한 well 상세 정보",
       "verdictLegendAriaLabel": "Verdict 색상 범례",
       "verdictFilterAriaLabel": "{{verdict}} 클래스만 강조 (토글)",
-      "selectedWellLabel": "선택한 Well",
+      "selectedWellLabel": "검사한 well",
       "selectedReplicate": "선택한 replicate",
       "fallbackTitle": "대체 반복",
       "fallbackDesc": "원래 컷오프가 모든 plate를 놓쳤습니다.",
@@ -488,7 +492,8 @@
       "detailBarcode": "바코드",
       "detailNativeBc": "Native 바코드",
       "detailMutant": "변이체",
-      "detailNotes": "비고"
+      "detailNotes": "비고",
+      "detailSelectedReplicate": "선택된 replicate"
     },
     "drawer": {
       "stat": {
@@ -549,7 +554,8 @@
         "reasonNoActivity": "제외됨 — 활성 데이터 없음.",
         "reasonNoLog2fc": "제외됨 — log₂FC를 계산할 수 없음.",
         "reasonWt": "제외됨 — 야생형 샘플 (변이체 아님)."
-      }
+      },
+      "selectedReplicateBadge": "선택됨"
     },
     "summaryRow": {
       "ariaLabel": "분석 요약",
