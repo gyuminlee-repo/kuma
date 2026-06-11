@@ -7,6 +7,7 @@ import { PolymeraseEditor } from "../dialogs/PolymeraseEditor";
 import { Button } from "../ui/button";
 import { HelpTip } from "./InputPanel/DiversitySections";
 import { InlineHelp } from "../ui/InlineHelp";
+import { AdvancedSection } from "../ui/AdvancedSection";
 import { useAppStore } from "../../store/appStore";
 
 /** Local string state synced with a numeric store value. Commits on blur/Enter. */
@@ -238,15 +239,13 @@ export function ParameterPanel() {
       )}
 
       {/* Advanced Options */}
-      <button
-        className="text-caption font-medium text-muted-foreground underline underline-offset-4 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-        onClick={() => setShowAdvanced(!showAdvanced)}
+      <AdvancedSection
+        title={t("parameterPanel.advancedToggleShow")}
+        open={showAdvanced}
+        onToggle={() => setShowAdvanced(!showAdvanced)}
+        id="kuro-params-advanced"
       >
-        {showAdvanced ? t("parameterPanel.advancedToggleHide") : t("parameterPanel.advancedToggleShow")}
-      </button>
-
-      {showAdvanced && (
-        <div className="space-y-1 rounded-container border border-border bg-card/80 p-3">
+        <div className="space-y-1">
           {/* Tm — branches by strategy */}
           <div className="pt-0.5 text-caption uppercase tracking-wider text-muted-foreground" title={t("parameterPanel.tmSectionTitle")}>
             <span className="inline-flex items-center gap-1.5">
@@ -425,7 +424,7 @@ export function ParameterPanel() {
             <InlineHelp text={t("parameterPanel.seedHelp")} />
           </div>
         </div>
-      )}
+      </AdvancedSection>
 
       <PolymeraseEditor
         open={polymeraseEditorOpen}
