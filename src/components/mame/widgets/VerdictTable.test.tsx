@@ -5,7 +5,7 @@ import type { AppState as MameAppStore } from "@/store/mame/mameAppStore";
 import type { RoundSlice } from "@/store/round/roundSlice";
 import type { Round } from "@/types/round";
 import type { MergedRow } from "@/types/mame/activity";
-import type { VerdictRecord } from "@/types/mame/models";
+import type { VerdictRecord, ReplicateResult } from "@/types/mame/models";
 
 vi.mock("@/store/mame/mameAppStore");
 vi.mock("@/store/round/roundSlice");
@@ -280,4 +280,43 @@ describe("VerdictTable", () => {
     expect(screen.queryByText("H448F")).toBeNull();
   });
 
+  it("FINAL tab shows only the plate-map selected-replicate wells", () => {
+    const selected: VerdictRecord = { ...mockVerdict, custom_barcode: "A01", mutant_id: "F89W" };
+    const other: VerdictRecord = {
+      ...mockVerdict,
+      custom_barcode: "B02",
+      mutant_id: "K10R",
+      verdict: "NO_CALL",
+    };
+    const replicates: ReplicateResult[] = [
+      {
+        mutant_id: "F89W",
+        selected_plate: "barcode01",
+        selection_reason: "",
+        failed: false,
+        plate_keys: ["barcode01"],
+        plate_verdicts: { barcode01: selected },
+        is_fallback: false,
+        fallback_reason: null,
+      },
+    ];
+    vi.mocked(useMameAppStore).mockImplementation((sel: (s: MameAppStore) => unknown) =>
+      sel(
+        makeMameStore({
+          verdicts: [selected, other],
+          replicates,
+          plateFilter: "FINAL",
+        }).getState(),
+      ),
+    );
+    vi.mocked(useRoundStore).mockImplementation((sel: (s: RoundSlice) => unknown) =>
+      sel(makeRoundStore([], null).getState()),
+    );
+    render(<VerdictTable />);
+    // Tab present, and only the selected well (A01) is listed — not the
+    // non-selected B02, matching what the plate map marks as picked.
+    expect(screen.getByText("Final")).toBeTruthy();
+    expect(screen.getByText("A01")).toBeTruthy();
+    expect(screen.queryByText("B02")).toBeNull();
+  });
 });

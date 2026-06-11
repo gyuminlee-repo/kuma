@@ -520,7 +520,8 @@
         "replicatesHelp": "Number of activity measurements (replicate wells) aggregated for this mutant.",
         "ngsHelp": "Sequencing genotype check: pass when the called mutation equals the expected design, fail otherwise."
       },
-      "recoveredHelp": "A mutant is recovered when at least one of its replicate wells (across all plates) is PASS or AMBIGUOUS."
+      "recoveredHelp": "A mutant is recovered when at least one of its replicate wells (across all plates) is PASS or AMBIGUOUS.",
+      "tabFinal": "Final"
     },
     "summaryRow": {
       "ariaLabel": "Resumo da análise",
