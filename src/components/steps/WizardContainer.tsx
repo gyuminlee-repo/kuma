@@ -36,6 +36,13 @@ const MAX_WIDTH_CLASS: Record<MaxWidth, string> = {
   "full": "",
 };
 
+const MAX_WIDTH_ALIGN_CLASS: Record<MaxWidth, string> = {
+  "3xl": "mr-auto",
+  "4xl": "mr-auto",
+  "5xl": "mr-auto",
+  "full": "",
+};
+
 export interface WizardContainerProps {
   stepIndex: number;
   stepTotal: number;
@@ -132,7 +139,7 @@ export function WizardContainer({
         </header>
         {/* children: 고정 heading/footer 사이의 scrollable 영역. maxWidth는 body에 적용 */}
         <div
-          className={`flex-1 overflow-auto px-6 py-4 w-full mx-auto ${MAX_WIDTH_CLASS[maxWidth]}`}
+          className={`flex-1 overflow-auto px-6 py-4 w-full ${MAX_WIDTH_ALIGN_CLASS[maxWidth]} ${MAX_WIDTH_CLASS[maxWidth]}`}
           data-testid="wizard-body"
         >
           {children}

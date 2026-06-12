@@ -200,4 +200,35 @@ describe("WizardContainer", () => {
     expect(header.className).toContain("px-6");
     expect(footer.className).toContain("px-6");
   });
+
+  it("aligns constrained wizard body to the header gutter instead of recentering it", () => {
+    render(
+      <WizardContainer stepIndex={1} stepTotal={4} titleKey="phaseC.subSteps.design.load">
+        <div />
+      </WizardContainer>,
+    );
+
+    const body = screen.getByTestId("wizard-body");
+    expect(body.className).toContain("max-w-3xl");
+    expect(body.className).toContain("mr-auto");
+    expect(body.className).not.toContain("mx-auto");
+  });
+
+  it("keeps full-width wizard body unconstrained for dense review pages", () => {
+    render(
+      <WizardContainer
+        stepIndex={2}
+        stepTotal={2}
+        titleKey="phaseC.mameSubSteps.analyze.review"
+        maxWidth="full"
+      >
+        <div />
+      </WizardContainer>,
+    );
+
+    const body = screen.getByTestId("wizard-body");
+    expect(body.className).not.toContain("max-w-");
+    expect(body.className).not.toContain("mr-auto");
+    expect(body.className).not.toContain("mx-auto");
+  });
 });

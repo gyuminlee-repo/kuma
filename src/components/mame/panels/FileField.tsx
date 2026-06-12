@@ -50,6 +50,7 @@ export function FileField({
 }) {
   const inputId = `file-field-${label.replace(/\s+/g, "-").toLowerCase()}`;
   const preview = getPathPreview(value);
+  const displayValue = value ? preview : "";
 
   return (
     <div className="space-y-1.5">
@@ -73,11 +74,13 @@ export function FileField({
       <div className="flex gap-1.5">
         <Input
           id={inputId}
-          value={value}
+          value={displayValue}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           className="h-8 flex-1 min-w-0 text-xs font-mono"
           aria-label={label}
+          title={value || undefined}
+          readOnly
         />
         <Button
           type="button"
