@@ -4,6 +4,26 @@
 
 ---
 
+## v0.13.6 (2026-06-12)
+
+MAME sample-data walkthrough fixes.
+
+### MAME
+
+- The Generate Barcode Package step can now save to any folder. It previously refused output directories outside the project folder; paths inside the project stay portable and paths outside are stored as absolute.
+- Loading sample data now fills the Per-plate verdict breakdown graph, which previously stayed on "Setup incomplete" until a real analysis was run.
+- Loading sample data also pre-fills the Build EVOLVEpro Input form (plate layout, GC data, Agilent rep-batch, previous EVOLVEpro) from the bundled sample files. Fields you already set are left untouched.
+
+---
+
+## v0.13.5 (2026-06-11)
+
+### Kuro
+
+- Fixed a certificate error on macOS that blocked all online lookups (UniProt search, AlphaFold structures, EBI BLAST, ESM embeddings). The packaged macOS app could not verify HTTPS certificates; it now ships a bundled certificate store, so online features work on macOS the same way they already did on Windows and Linux.
+
+---
+
 ## v0.13.4.0 (2026-06-10)
 
 Native MinKNOW run-folder ingestion for MAME, auto-updater removal, and CI quality gates.

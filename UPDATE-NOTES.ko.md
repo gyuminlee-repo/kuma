@@ -4,6 +4,26 @@
 
 ---
 
+## v0.13.6 (2026-06-12)
+
+MAME 샘플 데이터 점검 중 발견된 문제 수정.
+
+### MAME
+
+- Generate Barcode Package 단계가 이제 어떤 폴더에도 저장됩니다. 이전에는 프로젝트 폴더 밖 경로를 거부했는데, 프로젝트 안 경로는 이동 가능하도록 상대 경로로, 밖 경로는 절대 경로로 저장합니다.
+- 샘플 데이터를 불러오면 Per-plate verdict breakdown 그래프가 그려집니다. 이전에는 실제 분석을 돌리기 전까지 "Setup incomplete" 상태였습니다.
+- 샘플 데이터를 불러오면 Build EVOLVEpro Input 폼(plate layout, GC data, Agilent rep-batch, previous EVOLVEpro)도 번들된 샘플 파일로 미리 채워집니다. 사용자가 이미 지정한 값은 그대로 둡니다.
+
+---
+
+## v0.13.5 (2026-06-11)
+
+### Kuro
+
+- macOS에서 모든 온라인 조회(UniProt 검색, AlphaFold 구조, EBI BLAST, ESM)를 막던 인증서 오류를 수정했습니다. 패키징된 macOS 앱이 HTTPS 인증서를 검증하지 못했는데, 이제 인증서 저장소를 번들에 포함하여 Windows, Linux와 동일하게 macOS에서도 온라인 기능이 동작합니다.
+
+---
+
 ## v0.13.4.0 (2026-06-10)
 
 MAME의 raw MinKNOW run 폴더 직접 분석, 자동 업데이터 제거, CI 품질 게이트.
