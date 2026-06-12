@@ -49,6 +49,10 @@ class BarcodeRecord:
     n_aligned_reads: int | None = None
     n_mapq_failed: int = 0
     n_span_failed: int = 0
+    # Indel event evidence surfaced from CIGAR pileup (consensus.py).
+    # See ConsensusCall for calibration details.
+    n_indel_event_positions: int = 0
+    max_indel_event_fraction: float = 0.0
 
 
 @dataclass
@@ -94,6 +98,13 @@ class CompareParams:
     many_mutation_cutoff: int = 5
     indel_window_codon: int = 5
     frameshift_window_bp: int = 10
+    # Indel event gate threshold.  When max_indel_event_fraction
+    # (from ConsensusCall) exceeds this value the verdict is flagged as
+    # AMBIGUOUS with an indel note rather than proceeding to PASS.
+    # Calibrated from bench_v2 depth_50: WT/SNV wells <= 0.21,
+    # true deletion wells >= 0.83 (see ConsensusCall docstring).
+    # None disables the gate for backward compatibility.
+    max_indel_event_fraction: float | None = 0.50
 
 
 @dataclass

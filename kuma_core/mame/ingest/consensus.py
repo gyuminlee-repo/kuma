@@ -60,6 +60,20 @@ class ConsensusCall:
     n_low_depth_positions: int = 0
     consensus_n_fraction: float = 0.0
     n_low_quality_bases: int = 0
+    # Per-well insertion-event evidence. Insertions are discarded from the
+    # reference-length consensus (same as samtools consensus default), so
+    # variant clones with only an in-frame insertion reach a WT-identical
+    # consensus and pass verdict unchallenged. These two counters surface
+    # the buried signal without altering the consensus sequence itself.
+    #
+    # Calibration (bench_v2 depth_50, 177 bp CDS, ~190 reads/well):
+    #   WT / SNV wells (G1-G3): max_indel_event_fraction <= 0.21
+    #   True deletion wells (G4 2bp del, G5 1bp HomoDel): >= 0.83
+    #   Synthetic proof cases (100% INS/DEL reads): 1.00
+    # A threshold of 0.50 provides a wide margin between noise (<=0.21)
+    # and true indel signal (>=0.83).
+    n_indel_event_positions: int = 0
+    max_indel_event_fraction: float = 0.0
 
 
 def _reverse_complement(seq: str) -> str:
@@ -124,12 +138,15 @@ def call_consensus_with_metrics(
 
     # per_position[ref_pos] = {base: count}
     per_position: list[dict[str, int]] = [defaultdict(int) for _ in range(ref_len)]
+    # insertion_events[ref_pos] = number of reads with insertion starting here
+    insertion_events: list[int] = [0] * ref_len
 
     n_low_quality_bases = 0
     for aln in alignments:
         n_low_quality_bases += _accumulate(
             aln,
             per_position,
+            insertion_events,
             min_base_quality=min_base_quality,
         )
 
@@ -170,6 +187,27 @@ def call_consensus_with_metrics(
         consensus_seq.count("N") / ref_len if ref_len > 0 else 0.0
     )
 
+    # Aggregate indel event signal.
+    # Deletion fraction: deletion votes / (base votes + deletion votes) per pos.
+    # Insertion fraction: insertion events / base depth at anchor pos.
+    # max_indel_event_fraction = max across all positions of either fraction.
+    max_indel_event_fraction = 0.0
+    n_indel_event_positions = 0
+    for pos in range(ref_len):
+        counts = per_position[pos]
+        depth_pos = sum(counts.values())
+        del_votes = counts.get("-", 0)
+        base_depth = depth_pos - del_votes  # reads that voted a base
+        ins_ev = insertion_events[pos]
+        ins_frac = ins_ev / base_depth if base_depth > 0 else 0.0
+        del_total = base_depth + del_votes
+        del_frac = del_votes / del_total if del_total > 0 else 0.0
+        pos_max = max(ins_frac, del_frac)
+        if pos_max > max_indel_event_fraction:
+            max_indel_event_fraction = pos_max
+        if pos_max >= 0.05:
+            n_indel_event_positions += 1
+
     return ConsensusCall(
         consensus_seq=consensus_seq,
         n_mixed_positions=n_mixed_positions,
@@ -177,6 +215,8 @@ def call_consensus_with_metrics(
         n_low_depth_positions=n_low_depth_positions,
         consensus_n_fraction=consensus_n_fraction,
         n_low_quality_bases=n_low_quality_bases,
+        n_indel_event_positions=n_indel_event_positions,
+        max_indel_event_fraction=max_indel_event_fraction,
     )
 
 
@@ -189,6 +229,7 @@ def _phred33(qual: str, idx: int) -> int | None:
 def _accumulate(
     aln: Alignment,
     per_position: list[dict[str, int]],
+    insertion_events: list[int],
     min_base_quality: int,
 ) -> int:
     """Walk a single alignment's CIGAR and add base votes to per_position.
@@ -198,6 +239,11 @@ def _accumulate(
     - ``q_pos``: current position on the query (read) sequence (0-based).
 
     The query sequence is reverse-complemented when ``aln.strand == -1``.
+
+    ``insertion_events[ref_pos]`` is incremented for each read that carries an
+    insertion starting at ``ref_pos`` (anchored at the base just before the
+    inserted sequence).  This lets callers track insertion evidence per
+    reference position without altering the consensus length.
     """
     # Prepare query sequence oriented to the forward strand.
     if aln.strand == -1:
@@ -242,6 +288,11 @@ def _accumulate(
         elif op == _CIGAR_I:
             # Insertion: advance query only; insertions are not represented in
             # the reference-length output (same as samtools consensus default).
+            # Track the event count at the ref_pos just before the insertion
+            # so callers can detect insertion-bearing wells.
+            rp = ref_pos - 1
+            if 0 <= rp < ref_len:
+                insertion_events[rp] += 1
             q_pos += length
 
         elif op == _CIGAR_S:
