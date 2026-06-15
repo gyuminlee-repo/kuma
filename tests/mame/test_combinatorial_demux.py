@@ -396,6 +396,66 @@ class TestDemuxReadAnchored:
         )
         assert result is None  # ambiguous F -> drop
 
+    def test_reference_start_does_not_leak_into_f_window(self) -> None:
+        # Regression (F9 column contamination): the reference 5'-start
+        # _REF_SEQ[1:11] == "TGGCTTGCTC" is edit distance 2 from the F9 prefix
+        # "TGCCTTGATC" (_F_BARCODES[8]). A read whose forward barcode is
+        # absent/degraded must NOT be assigned to F9 by matching the gene start.
+        # The F search window must stop at the alignment anchor and exclude the
+        # insert. R is a valid R1, so only the F side decides the result; before
+        # the window fix this returned (1, 9) by matching the insert to F9.
+        read = (
+            "A" * 30                                  # 5' pad: no valid F barcode
+            + _REF_SEQ                                # insert; starts ~ F9
+            + _reverse_complement(_R_TAIL.upper())
+            + _reverse_complement(_R_BARCODES[0])     # valid R1
+        )
+        q_st, q_en = self._make_aln_coords(read, _REF_SEQ)
+        result = _demux_read_anchored(
+            read_seq=read, q_st=q_st, q_en=q_en, strand=1,
+            r_barcodes=_R_BC_TUPLES, f_barcodes=_F_BC_TUPLES,
+        )
+        assert result is None
+
+    def test_real_f9_barcode_still_assigned(self) -> None:
+        # Guard against over-correction: a genuine F9 barcode 5' of the anneal
+        # tail must still be assigned to F9. The fix excludes the insert from the
+        # window, not the barcode region, so real F9 reads are unaffected.
+        read = (
+            _F_BARCODES[8] + _F_TAIL                  # genuine F9 barcode
+            + _REF_SEQ
+            + _reverse_complement(_R_TAIL.upper())
+            + _reverse_complement(_R_BARCODES[1])     # R2
+        )
+        q_st, q_en = self._make_aln_coords(read, _REF_SEQ)
+        result = _demux_read_anchored(
+            read_seq=read, q_st=q_st, q_en=q_en, strand=1,
+            r_barcodes=_R_BC_TUPLES, f_barcodes=_F_BC_TUPLES,
+        )
+        assert result == (2, 9)
+
+    def test_reference_start_does_not_leak_into_f_window_minus_strand(self) -> None:
+        # Same insert-collision guard on the reverse strand: build a +strand read
+        # (no valid F barcode, valid R1), RC it, and report strand=-1 with the
+        # mappy-remapped coords. Exercises the strand==-1 normalisation path so a
+        # regression there cannot reopen the leak.
+        fwd_read = (
+            "A" * 30
+            + _REF_SEQ
+            + _reverse_complement(_R_TAIL.upper())
+            + _reverse_complement(_R_BARCODES[0])     # valid R1
+        )
+        L = len(fwd_read)
+        rc_read = _reverse_complement(fwd_read)
+        fwd_q_st, fwd_q_en = self._make_aln_coords(fwd_read, _REF_SEQ)
+        rc_q_st = L - fwd_q_en
+        rc_q_en = L - fwd_q_st
+        result = _demux_read_anchored(
+            read_seq=rc_read, q_st=rc_q_st, q_en=rc_q_en, strand=-1,
+            r_barcodes=_R_BC_TUPLES, f_barcodes=_F_BC_TUPLES,
+        )
+        assert result is None
+
 
 # ---------------------------------------------------------------------------
 # Unit tests: _demux_read (legacy exact-match)
