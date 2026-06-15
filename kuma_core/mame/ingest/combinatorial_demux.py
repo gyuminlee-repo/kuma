@@ -1050,7 +1050,7 @@ def run_combinatorial_demux(
     def _run_well(
         well_name: str,
         reads: list[tuple[str, str]],
-    ) -> tuple[str, str, int, int, float, int, float, int, int, int, int, int, int, float, int]:
+    ) -> tuple[str, str, int, int, float, int, float, int, int, int, int, int, int, float, int, int]:
         """Worker: returns consensus sequence, depth, and mix metrics."""
         (
             seq,
@@ -1067,6 +1067,7 @@ def run_combinatorial_demux(
             n_indel_event_positions,
             max_indel_event_fraction,
             max_del_run_length,
+            net_indel,
         ) = _compute_well_consensus(
             well_name, reads, reference_fasta, ref_seq, ref_len, min_depth,
             reference_index=well_index,
@@ -1087,6 +1088,7 @@ def run_combinatorial_demux(
             n_indel_event_positions,
             max_indel_event_fraction,
             max_del_run_length,
+            net_indel,
         )
 
     _consensus_done = 0
@@ -1113,6 +1115,7 @@ def run_combinatorial_demux(
                 n_indel_event_positions,
                 max_indel_event_fraction,
                 max_del_run_length,
+                net_indel,
             ) = fut.result()
             per_well_consensus[wn] = seq
             atomic_write_text(
@@ -1134,6 +1137,7 @@ def run_combinatorial_demux(
                         n_indel_event_positions=n_indel_event_positions,
                         max_indel_event_fraction=max_indel_event_fraction,
                         max_del_run_length=max_del_run_length,
+                        net_indel=net_indel,
                         consensus_n_fraction_basis=BASIS_COVERED,
                     ),
                 ),
@@ -1184,7 +1188,7 @@ def _compute_well_consensus(
     ref_len: int,
     min_depth: int,
     reference_index: Path | None = None,
-) -> tuple[str, int, int, float, int, float, int, int, int, int, int, int, float, int]:
+) -> tuple[str, int, int, float, int, float, int, int, int, int, int, int, float, int, int]:
     """Align reads and return consensus sequence, depth, and mix metrics."""
     if not reads:
         return (
@@ -1201,6 +1205,7 @@ def _compute_well_consensus(
             0,
             0,
             0.0,
+            0,
             0,
         )
 
@@ -1239,6 +1244,7 @@ def _compute_well_consensus(
             0,
             0.0,
             0,
+            0,
         )
 
     consensus_call = call_consensus_with_metrics(
@@ -1261,6 +1267,7 @@ def _compute_well_consensus(
         consensus_call.n_indel_event_positions,
         consensus_call.max_indel_event_fraction,
         consensus_call.max_del_run_length,
+        consensus_call.net_indel_bp,
     )
 
 
@@ -1302,11 +1309,11 @@ def _demux_one_nb(payload: dict) -> dict:
     fastq = [Path(s) for s in payload["fastq_paths"]]
     q = payload.get("progress_queue")
     nb_name = payload["nb_name"]
-    inner_cb = None
+    inner_cb: Callable[[int, int, str], None] | None = None
     if q is not None:
         _last = [0.0]
 
-        def inner_cb(done: int, total: int, stage: str) -> None:
+        def _inner_cb(done: int, total: int, stage: str) -> None:
             if total <= 0:
                 return
             frac = done / total
@@ -1320,6 +1327,7 @@ def _demux_one_nb(payload: dict) -> dict:
                     q.put_nowait((nb_name, nb_f))
                 except Exception:
                     pass
+        inner_cb = _inner_cb
 
     result = run_combinatorial_demux(
         raw_fastq_paths=fastq, reference_fasta=Path(payload["reference_fasta"]),
@@ -1536,17 +1544,19 @@ def run_combinatorial_demux_per_nb(
                 pl["progress_queue"] = progress_q
         _drain_stop = threading.Event()
 
-        def _drainer() -> None:
+        def _drainer(progress_queue) -> None:
             while not _drain_stop.is_set():
                 try:
-                    nb_name, frac = progress_q.get(timeout=0.4)
+                    nb_name, frac = progress_queue.get(timeout=0.4)
                 except Exception:
                     continue
                 _note_frac(nb_name, frac)
 
         _drain_thread = None
         if progress_q is not None:
-            _drain_thread = threading.Thread(target=_drainer, daemon=True)
+            _drain_thread = threading.Thread(
+                target=_drainer, args=(progress_q,), daemon=True
+            )
             _drain_thread.start()
         try:
             with ProcessPoolExecutor(max_workers=P, mp_context=mp_ctx) as ex:

@@ -29,6 +29,7 @@ unweighted majority vote behavior.
 
 from __future__ import annotations
 
+import statistics
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import Sequence
@@ -80,6 +81,7 @@ class ConsensusCall:
     # alignment artifact); >=2 = an N-bp contiguous deletion (more likely real).
     # Informational only; does not change the consensus or the verdict gate.
     max_del_run_length: int = 0
+    net_indel_bp: int = 0
 
 
 def _reverse_complement(seq: str) -> str:
@@ -151,13 +153,16 @@ def call_consensus_with_metrics(
     insertion_events: list[int] = [0] * ref_len
 
     n_low_quality_bases = 0
+    per_read_net_indel: list[int] = []
     for aln in alignments:
-        n_low_quality_bases += _accumulate(
+        low_quality_bases, net_indel = _accumulate(
             aln,
             per_position,
             insertion_events,
             min_base_quality=min_base_quality,
         )
+        n_low_quality_bases += low_quality_bases
+        per_read_net_indel.append(net_indel)
 
     # Build consensus string.
     out: list[str] = []
@@ -216,6 +221,11 @@ def call_consensus_with_metrics(
         consensus_n_fraction = n_covered_no_call / n_covered_positions
     else:
         consensus_n_fraction = 1.0 if ref_len > 0 else 0.0
+    net_indel_bp = (
+        round(statistics.median(per_read_net_indel))
+        if per_read_net_indel
+        else 0
+    )
 
     # Aggregate indel event signal.
     # Deletion fraction: deletion votes / (base votes + deletion votes) per pos.
@@ -264,6 +274,7 @@ def call_consensus_with_metrics(
         n_indel_event_positions=n_indel_event_positions,
         max_indel_event_fraction=max_indel_event_fraction,
         max_del_run_length=max_del_run,
+        net_indel_bp=net_indel_bp,
     )
 
 
@@ -278,7 +289,7 @@ def _accumulate(
     per_position: list[dict[str, int]],
     insertion_events: list[int],
     min_base_quality: int,
-) -> int:
+) -> tuple[int, int]:
     """Walk a single alignment's CIGAR and add base votes to per_position.
 
     CIGAR walking uses two cursors:
@@ -304,6 +315,7 @@ def _accumulate(
     q_pos = aln.q_st
     ref_len = len(per_position)
     n_low_quality_bases = 0
+    net_indel = 0
 
     for length, op in aln.cigar:
         if op in (_CIGAR_M, _CIGAR_EQ, _CIGAR_X):
@@ -325,6 +337,7 @@ def _accumulate(
 
         elif op == _CIGAR_D or op == _CIGAR_N:
             # Deletion / skip: advance ref_pos, vote deletion at each position.
+            net_indel -= length
             for i in range(length):
                 rp = ref_pos + i
                 if 0 <= rp < ref_len:
@@ -337,6 +350,7 @@ def _accumulate(
             # the reference-length output (same as samtools consensus default).
             # Track the event count at the ref_pos just before the insertion
             # so callers can detect insertion-bearing wells.
+            net_indel += length
             rp = ref_pos - 1
             if 0 <= rp < ref_len:
                 insertion_events[rp] += 1
@@ -354,7 +368,7 @@ def _accumulate(
             # Unknown op — skip without advancing (defensive).
             pass
 
-    return n_low_quality_bases
+    return n_low_quality_bases, net_indel
 
 
 def per_position_depth(

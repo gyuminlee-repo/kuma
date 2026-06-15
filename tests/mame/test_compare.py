@@ -23,6 +23,7 @@ def _tr(
     n_low_depth_positions: int = 0,
     consensus_n_fraction: float = 0.0,
     n_low_quality_bases: int = 0,
+    net_indel_bp: int | None = None,
 ) -> TranslatedRecord:
     barcode = BarcodeRecord(
         native_barcode="NB01",
@@ -36,6 +37,7 @@ def _tr(
         n_low_depth_positions=n_low_depth_positions,
         consensus_n_fraction=consensus_n_fraction,
         n_low_quality_bases=n_low_quality_bases,
+        net_indel_bp=net_indel_bp,
     )
     return TranslatedRecord(
         barcode=barcode,
@@ -73,6 +75,42 @@ def test_f03_frameshift() -> None:
     )
     result = classify_verdict(tr, ["V5F"], _params())
     assert result.verdict is VerdictClass.FRAMESHIFT
+
+
+def test_net_indel_minus_one_frameshift() -> None:
+    # A 1 bp net deletion (net % 3 != 0) is a frameshift even though the
+    # designed mutation is present and the consensus translates in frame.
+    tr = _tr(["V5F"], net_indel_bp=-1)
+    result = classify_verdict(tr, ["V5F"], _params())
+    assert result.verdict is VerdictClass.FRAMESHIFT
+    assert "net indel -1 bp" in result.verdict_notes
+
+
+def test_net_indel_plus_one_frameshift() -> None:
+    tr = _tr(["V5F"], net_indel_bp=1)
+    result = classify_verdict(tr, ["V5F"], _params())
+    assert result.verdict is VerdictClass.FRAMESHIFT
+
+
+def test_net_indel_plus_two_frameshift() -> None:
+    tr = _tr(["V5F"], net_indel_bp=2)
+    result = classify_verdict(tr, ["V5F"], _params())
+    assert result.verdict is VerdictClass.FRAMESHIFT
+
+
+def test_net_indel_minus_three_in_frame_not_frameshift() -> None:
+    # A designed in-frame 3 bp deletion (net % 3 == 0) must NOT be flagged.
+    tr = _tr(["V5F"], net_indel_bp=-3)
+    result = classify_verdict(tr, ["V5F"], _params())
+    assert result.verdict is not VerdictClass.FRAMESHIFT
+
+
+def test_net_indel_none_legacy_path_unchanged() -> None:
+    # net_indel_bp=None (legacy / pre-aligned FASTA): the new check is skipped
+    # and the record follows the legacy verdict unchanged.
+    tr = _tr(["V5F"], net_indel_bp=None)
+    result = classify_verdict(tr, ["V5F"], _params())
+    assert result.verdict is VerdictClass.PASS
 
 
 def test_f04_many() -> None:

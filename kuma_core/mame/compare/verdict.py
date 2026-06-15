@@ -1,6 +1,6 @@
 """8-class verdict classifier.
 
-Priority (fail-first): LOWDEPTH -> INDEL_EVENT (gate -> AMBIGUOUS) -> NO_CALL -> FRAMESHIFT -> MANY -> MIXED -> WRONG_AA -> AMBIGUOUS -> PASS.
+Priority (fail-first): LOWDEPTH -> FRAMESHIFT -> INDEL_EVENT (gate -> AMBIGUOUS) -> NO_CALL -> MANY -> MIXED -> WRONG_AA -> AMBIGUOUS -> PASS.
 
 Invariant: no verdict counted as reproduced (PASS / AMBIGUOUS, see
 ``kuma_core.mame.detected``) is returned before the designed mutations have been
@@ -179,6 +179,15 @@ def classify_verdict(
             verdict_notes="; ".join(notes),
         )
 
+    net_indel = translated.barcode.net_indel_bp
+    if net_indel is not None and net_indel % 3 != 0:
+        return VerdictRecord(
+            translated=translated,
+            expected_mutations=list(expected_mutations),
+            verdict=VerdictClass.FRAMESHIFT,
+            verdict_notes=f"net indel {net_indel} bp not divisible by 3 (frameshift)",
+        )
+
     # INDEL EVENT gate — surface indel-bearing wells that evade the existing
     # FRAMESHIFT check.  The existing _has_frameshift uses {pos}_INDEL markers
     # in observed_nt_changes, but those markers are produced only when
@@ -309,7 +318,6 @@ def classify_verdict(
             verdict_notes="; ".join(notes),
         )
 
-    # 2) FRAMESHIFT — two or more nucleotide INDEL markers within `frameshift_window_bp`.
     if _has_frameshift(translated, params.frameshift_window_bp):
         return VerdictRecord(
             translated=translated,
