@@ -954,7 +954,13 @@ def run_combinatorial_demux(
                 reference_fasta=reference_fasta,
                 preset="map-ont",
                 min_mapq=mapq_threshold,
-                require_full_span=(coverage_fraction >= 1.0),
+                # Apply the SAME graded coverage filter as the multi-hit path
+                # (align_reads_multi). Collapsing it to require_full_span=
+                # (coverage_fraction >= 1.0) dropped the span filter entirely for
+                # any coverage_fraction < 1.0 (e.g. the 0.98 default), admitting
+                # partial-coverage reads into wells on the chimera_split=False path.
+                require_full_span=False,
+                coverage_fraction=coverage_fraction,
                 threads=minimap2_threads,
             )
             stats.passed_coverage += len(alignments)
