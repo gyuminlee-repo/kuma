@@ -316,9 +316,9 @@ export function ExportFormatSelector() {
           htmlFor="bom-checkbox"
           className="text-sm text-foreground cursor-pointer select-none"
         >
-          {tx("phaseC.export.all.bomLabel", "Include BOM")}
+          {tx("phaseC.export.all.bomLabel", "Add UTF-8 BOM")}
           <span className="ml-1 text-muted-foreground">
-            {tx("phaseC.export.all.bomHint", "(bill of materials)")}
+            {tx("phaseC.export.all.bomHint", "(Excel compatibility)")}
           </span>
         </label>
       </div>

@@ -2138,7 +2138,9 @@
         "projectNameHint": "Used as the export folder and file prefix. Leave empty to auto-name kuro_YYMMDD_HHMM.",
         "error": {
           "projectNameRegex": "Use up to 40 letters, numbers, Korean characters, underscores, or hyphens."
-        }
+        },
+        "bomLabel": "Ajouter un BOM UTF-8",
+        "bomHint": "(compatibilité Excel)"
       },
       "macrogen": {
         "title": "Order Primers (Macrogen)",

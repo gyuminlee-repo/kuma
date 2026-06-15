@@ -2169,7 +2169,9 @@
         "projectNameHint": "내보내기 폴더와 파일 prefix로 사용됩니다. 비워두면 kuro_YYMMDD_HHMM 형식으로 자동 생성됩니다.",
         "error": {
           "projectNameRegex": "영문, 숫자, 한글, 밑줄, 하이픈을 40자 이내로 입력하세요."
-        }
+        },
+        "bomLabel": "UTF-8 BOM 추가",
+        "bomHint": "(Excel 호환)"
       },
       "macrogen": {
         "title": "프라이머 주문 (Macrogen)",
