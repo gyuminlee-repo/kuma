@@ -193,6 +193,29 @@ def test_mixed_takes_priority_over_wrong_aa() -> None:
     assert "mixed consensus signal" in result.verdict_notes
 
 
+def test_mixed_below_confidence_floor_is_lowdepth() -> None:
+    """A mixed signal below min_read_count x factor is inconclusive (too few reads
+    to separate a real minor allele from ONT error) and reported LOWDEPTH rather
+    than a confident MIXED. Recovery is unchanged (both are non-PASS)."""
+
+    # read_count 50 clears the LOWDEPTH gate (>= min_read_count 30) but is below
+    # the MIXED confidence floor 30 * 3 = 90.
+    tr = _tr(["V5F"], read_count=50, n_mixed_positions=4, max_minor_allele_fraction=0.42)
+    result = classify_verdict(tr, ["V5F"], _params(min_read_count=30))
+    assert result.verdict is VerdictClass.LOWDEPTH
+    assert "mixed signal at insufficient depth" in result.verdict_notes
+    assert "read_count=50" in result.verdict_notes
+
+
+def test_mixed_at_adequate_depth_stays_mixed() -> None:
+    """The same mixed signal at adequate depth (>= floor) stays a confident MIXED."""
+
+    tr = _tr(["V5F"], read_count=500, n_mixed_positions=4, max_minor_allele_fraction=0.42)
+    result = classify_verdict(tr, ["V5F"], _params(min_read_count=30))
+    assert result.verdict is VerdictClass.MIXED
+    assert "mixed consensus signal" in result.verdict_notes
+
+
 def test_consensus_n_fraction_blocks_clean_pass_by_default() -> None:
     """High consensus N fraction is NO_CALL: the consensus is too ambiguous to trust."""
 

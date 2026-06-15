@@ -18,6 +18,13 @@ _AA_SUB_RE = re.compile(r"^([A-Z\*])(\d+)([A-Z\*])$")
 _AA_DEL_RE = re.compile(r"^([A-Z\*])(\d+)(del|-)$")
 _NT_INDEL_RE = re.compile(r"^(\d+)_INDEL$")
 
+# A confident MIXED call needs the minor allele to be distinguishable from ONT
+# error, which requires adequate depth. At or above ``min_read_count`` times this
+# factor a mixed signal is reported MIXED; below it the well is reported LOWDEPTH
+# (inconclusive) instead of a confident contamination call. Mirrors the LOWDEPTH
+# read-count gate and applies only when both a read_count and min_read_count exist.
+_MIXED_CONFIDENT_DEPTH_FACTOR = 3
+
 
 def parse_mutation_label(label: str) -> tuple[str, int, str] | None:
     """Parse a human-readable AA label into (wt, position, mt).
@@ -190,6 +197,31 @@ def classify_verdict(
     # actually mixed. Detected before WRONG_AA so contamination is reported as
     # its own class rather than being masked by an AA-mismatch verdict.
     if translated.barcode.n_mixed_positions > 0:
+        # MIXED confidence floor: below min_read_count x factor the minor allele
+        # cannot be distinguished from ONT error, so report LOWDEPTH
+        # (inconclusive) rather than a confident contamination call. Recovery is
+        # unaffected (both verdicts are non-PASS); only the failure reason changes.
+        rc = translated.barcode.read_count
+        mixed_floor = (
+            params.min_read_count * _MIXED_CONFIDENT_DEPTH_FACTOR
+            if params.min_read_count is not None
+            else None
+        )
+        if mixed_floor is not None and rc is not None and rc < mixed_floor:
+            return VerdictRecord(
+                translated=translated,
+                expected_mutations=list(expected_mutations),
+                verdict=VerdictClass.LOWDEPTH,
+                verdict_notes=(
+                    "mixed signal at insufficient depth: "
+                    f"read_count={rc} < {mixed_floor} "
+                    f"(min_read_count={params.min_read_count} x "
+                    f"{_MIXED_CONFIDENT_DEPTH_FACTOR}); n_mixed_positions="
+                    f"{translated.barcode.n_mixed_positions}, "
+                    "max_minor_allele_fraction="
+                    f"{translated.barcode.max_minor_allele_fraction:.3f}"
+                ),
+            )
         return VerdictRecord(
             translated=translated,
             expected_mutations=list(expected_mutations),
