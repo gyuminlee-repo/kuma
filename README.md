@@ -15,6 +15,16 @@ Design primers in the Kuro tab, run wet-lab + sequencing, then switch to the Mam
 
 Project folders keep Kuro design output and Mame verification linked across the weeks-long gap between ordering oligos and reading sequencing output. A hidden `__kuma_meta__` sheet in every Kuro-exported xlsx lets Mame auto-recognise the source project when the file is dropped back in.
 
+## Contents
+
+- [Tabs: Kuro & Mame](#tabs)
+- [Selection Strategies](#selection-strategies-kuro-evolvepro-mode)
+- [Project workflow](#project-workflow)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Activity Data Integration](#activity-data-integration-v027)
+- [Architecture](#architecture)
+
 ---
 
 ## Tabs
@@ -23,28 +33,51 @@ Project folders keep Kuro design output and Mame verification linked across the 
 
 Given a mutation list (plain text / EVOLVEpro CSV) and a template sequence (GenBank / SnapGene), Kuro automatically designs SDM primer pairs. Pick the cloning chemistry per run in the Parameters step: **overlap-extension** (default) or **Golden Gate (Type IIS)**.
 
+**Highlights**
+
+- **Two design methods** — overlap-extension SDM (default) and Golden Gate (Type IIS)
+- **EVOLVEpro-driven selection** — Top-N plus position / domain / Pareto / entropy diversity and a σ-Adaptive candidate pool
+- **Calibrated chemistry** — eight polymerase profiles (+ custom), SantaLucia 1998 Tm, GC / length / tolerance controls
+- **Built-in QC** — primer3 hairpin/homodimer, off-target scan, oligo synthesis-quality score, AlphaFold 3D distance
+- **Mode-aware failure rescue** — multi-stage Position Rescue with one-click per-mutation retry
+- **Plate-ready output** — sortable result table, 96-well plate map, Echo 525 / JANUS liquid-handler export
+
+<details>
+<summary><b>Full Kuro feature list</b></summary>
+
+#### Design methods
+
 - **Two design methods**: *Overlap-extension SDM* (default, output unchanged) and *Golden Gate (Type IIS)*. Golden Gate designs primers that insert the enzyme recognition site plus a ligation-fidelity-scored fusion overhang around each mutated codon, for scarless Type IIS assembly. Golden Gate annealing Tm uses the same SantaLucia 1998 (SnapGene) model as overlap-extension, batch-normalised to within +4°C of the lowest initial Tm (down to a 20 nt floor)
 - **Type IIS enzyme catalog + custom enzymes**: Six built-in enzymes (BsaI, BsmBI, BbsI, SapI, PaqCI, BspMI). BsaI and BsmBI ship with on-target ligation-fidelity tables (Potapov 2018) that drive overhang selection; the rest fall back to a functional unscored overhang. Define your own via the **Custom Type IIS enzyme** editor, persisted at `~/.kuma/kuro/custom_enzymes.json`. Codon usage is organism-aware (Kazusa, deterministic frequency-descending tiebreak) and skips any codon that would create a forbidden Type IIS site inside the design window
 - **Per-run junction overrides**: Override the junction prefix (spacer + recognition site + spacer) and forbidden overhangs (default `AATG`, `AGGT`) for your vector. Cut-site geometry is validated — a prefix that omits the recognition site or mis-positions the cut surfaces a warning on each result
+- **Overlap upstream design**: Overlap region is placed immediately upstream of the mutation codon (EVOLVEpro convention)
+
+#### Mutation input & candidate selection
+
 - **EVOLVEpro CSV input**: Load EVOLVEpro (`variant`, `y_pred`) output CSV. Sorts by score descending, auto-selects the configured number of variants. Optional **position diversity** filter limits mutations per amino acid position (uses Grantham 1974 distance as tie-breaker when scores are within 2%). Optional **domain diversity** distributes selections across protein structural domains (auto-fetched from InterPro/Pfam or manual input). Optional **Pareto diversity** maximizes position spread via MODIFY-style fitness-diversity co-optimization. **σ-Adaptive Pool**: enter EVOLVEpro Round and Round size to automatically calibrate the candidate pool width and entropy weight based on cumulative data (K = 0.50→0.25, entropy = 0.30→0.15 across rounds 1–5+)
 - **Batch mutation parsing**: Mutation list in `Q232A` format → automatic codon position calculation + WT codon validation
+- **AlphaFold 3D distance**: Pareto diversity uses real Cα Euclidean distance from AlphaFold DB predicted structures instead of 1D sequence position distance. Fetched automatically after UniProt accession entry; cached at `~/.kuma/kuro/embeddings/{accession}_ca.json`. Falls back to 1D position distance when the structure is unavailable
+
+> The diversity filters (position / domain / Pareto / entropy) are detailed in [Selection Strategies](#selection-strategies-kuro-evolvepro-mode) below.
+
+#### Codon & thermodynamic parameters
+
 - **Codon strategy selection**: Choose between Min. changes (fewest base changes from WT) or Optimal (E. coli-optimized codon)
-- **Overlap upstream design**: Overlap region is placed immediately upstream of the mutation codon (EVOLVEpro convention)
 - **Polymerase profile selector**: Eight built-in profiles (Benchling, Taq, Phusion, Q5, Q5 SDM, KOD, DreamTaq, TAKARA_GXL), each with Tm method, salt concentration, DNA concentration, and GC range calibrated to the manufacturer manual. Custom profiles can be created via the Custom Polymerase dialog and are persisted at `~/.kuma/kuro/custom_polymerases.json`. Selecting a profile immediately updates Tm targets and GC range in the UI
 - **Tm calculation**: SantaLucia 1998 nearest-neighbor model; salt/DNA/divalent conditions vary per polymerase profile (e.g. Phusion HF 222 mM monovalent, Q5 150 mM monovalent + 2000 nM DNA). Default Tm targets: Fwd 62°C, Rev 58°C, Overlap 42°C — adjustable in Advanced Options
 - **Progressive Tm tolerance**: Starts at ±0.5°C for Fwd/Rev independently, expanding by ±0.5°C per step (up to ±3.0°C)
+- **Tm tolerance setting**: User-configurable Tm tolerance ±°C (range 0.5–10.0, step 0.5, default 3.0) in Advanced Options. Cascade rescue stages add delta on top of this base value. Recommended 2–5°C
 - **GC% range**: Default 40-60% (adjustable in Advanced Options). Primers outside range receive a penalty
 - **Primer length limit**: Optional Fwd/Rev min/max length constraint (adjustable in Advanced Options)
+
+#### Quality & specificity checks
+
 - **Hairpin / Homodimer check**: Secondary structure check via primer3 calc_hairpin/calc_homodimer. Displays Tm and dG (kcal/mol)
-- **AlphaFold 3D distance**: Pareto diversity uses real Cα Euclidean distance from AlphaFold DB predicted structures instead of 1D sequence position distance. Fetched automatically after UniProt accession entry; cached at `~/.kuma/kuro/embeddings/{accession}_ca.json`. Falls back to 1D position distance when the structure is unavailable
-- **Benchmark framework**: Compare Kuro selection (Pareto/Domain) vs Random vs Top-N on fitness landscapes. Metrics: hit rate, mean fitness, position coverage
 - **Synthesis quality score**: Oligo synthesis difficulty assessment (0-100) based on IDT/Twist guidelines. Penalizes homopolymer runs, GC-rich stretches, dinucleotide repeats, and extreme GC content
-- **Sequence Map**: Collapsible SVG linear CDS map with mutation positions, domain regions, and density histogram for cluster detection
-- **Column sorting**: All result columns sortable (including y_pred and synthesis score). Plate map export respects current sort order
-- **Candidate comparison and swap**: Click a primer sequence to open a candidate comparison popover
-- **Custom primer evaluation**: Enter a sequence directly in the candidate popover → Tm, GC%, hairpin, and off-target are calculated immediately
-- **Failed mutation retry**: Click a failed mutation → adjust Tm/GC%/length/tolerance → re-design → select from candidates. The retry popover offers a one-click **Use suggestion** button that pre-fills median Tm, observed GC/length range, and tol ±5°C derived from primers that already succeeded in the same run
-- **Tm tolerance setting**: User-configurable Tm tolerance ±°C (range 0.5–10.0, step 0.5, default 3.0) in Advanced Options. Cascade rescue stages add delta on top of this base value. Recommended 2–5°C
+- **Off-target detection**: Automatic detection of non-specific binding on the template sense/antisense strand
+
+#### Failure rescue
+
 - **Position Rescue**: Mode-aware multi-stage cascade when a primer design fails.
   - **Top-N + Fill-on-failure ON** → 4-stage relaxation only (length → +GC → +mild Tm → strong), position fixed. Badges `🎯¹` length / `🎯²` +GC / `🎯³` +mild Tm / `🎯⁴` strong
   - **Pipeline + Fill-on-failure ON** → 6-stage: ① same-position alternate variant (`↻¹`) → ② different-position substitution (`↻²`) → ③–⑥ same 4-stage relaxation
@@ -52,23 +85,53 @@ Given a mutation list (plain text / EVOLVEpro CSV) and a template sequence (GenB
   - Legacy pool cascade (`↻ cascade`) and auto-relax (`⚡ relaxed`) still applied by the backend before frontend cascade
   - Stage counters displayed in Design Report
 - **Auto-rescue failed mutations**: When enabled (default on), triggers the cascade above according to selection mode. When off, failed mutations remain as-is
-- **Off-target detection**: Automatic detection of non-specific binding on the template sense/antisense strand
+- **Failed mutation retry**: Click a failed mutation → adjust Tm/GC%/length/tolerance → re-design → select from candidates. The retry popover offers a one-click **Use suggestion** button that pre-fills median Tm, observed GC/length range, and tol ±5°C derived from primers that already succeeded in the same run
+
+#### Review, visualization & export
+
+- **Sequence Map**: Collapsible SVG linear CDS map with mutation positions, domain regions, and density histogram for cluster detection
+- **Column sorting**: All result columns sortable (including y_pred and synthesis score). Plate map export respects current sort order
+- **Candidate comparison and swap**: Click a primer sequence to open a candidate comparison popover
+- **Custom primer evaluation**: Enter a sequence directly in the candidate popover → Tm, GC%, hairpin, and off-target are calculated immediately
 - **96-well Plate Map**: Linked Fwd/Rev plate. Multi-plate slide for >96 mutations. Synchronized with table sort order
 - **Echo 525 / JANUS export**: Liquid handler mapping export as XLSX workbook. Echo: 384-well source plate layout + transfer list. JANUS: Fwd/Rev 96-well rack layout + transfer list. CSV also supported
+- **Benchmark framework**: Compare Kuro selection (Pareto/Domain) vs Random vs Top-N on fitness landscapes. Metrics: hit rate, mean fitness, position coverage
+
+</details>
 
 ### Mame — NGS screening verdict
 
 Given a Kuro-exported `expected_mutations.xlsx`, a reference FASTA, and MAME-generated barcode-mode consensus FASTA files, Mame produces per-barcode mutation verdicts and a 96-well Final Excel export.
 
+**Highlights**
+
+- **MAME consensus ingest** — barcode-mode consensus, or raw FASTQ via Phred-aware demux→consensus
+- **6-class verdict** — exact / partial / off-target / WT retained / no coverage / ambiguous, with a mixed-well guard
+- **Explainable QC** — read depth, N fraction, low-depth positions, low-quality exclusions, MAPQ/span drops
+- **96-well output** — column-major Final Excel synced to Kuro's plate-map order, in a single-view workbench
+
+<details>
+<summary><b>Full Mame feature list</b></summary>
+
+#### Input & consensus
+
 - **MAME consensus FASTA ingest**: Barcode-mode consensus output from MAME's own demux→consensus pipeline. Consensus headers with `depth=N`, per-base low-depth positions, N fraction, and mixed-allele metrics drive read-count `LOWDEPTH` and mixed-well `AMBIGUOUS` gating.
 - **Phred-aware consensus**: When MAME starts from raw FASTQ, read IDs and quality strings are preserved through the internal demux step so low-quality base calls do not win the consensus vote.
+
+#### Verdict & QC evidence
+
 - **6-class verdict**: Each barcode classified into one of six outcomes (exact match, partial, off-target, WT retained, no coverage, ambiguous).
 - **Mixed-well guard**: Consensus headers can carry minor-allele metrics; wells with substantial within-well mixture are surfaced as `AMBIGUOUS` instead of silently passing on the majority allele.
 - **Explainable QC evidence**: Verdict tables and Excel exports carry read depth, N fraction, low-depth positions, low-quality base exclusions, and MAPQ/span drop counters.
 - **3-replicate best pick**: Among triplicate barcodes, the best-scoring clone is selected.
+- **Substitution support**: Phase 1 focuses on single-residue substitutions. Deletion / insertion reserved for later.
+
+#### Output & workbench
+
 - **96-well Final Excel export**: Column-major 96-well layout with verdict per well. Synchronized with Kuro's plate map ordering.
 - **Single-view workbench**: Input files panel, parameter panel (mode, CDS end, cutoffs), verdict table with NB01/NB02/NB03/ALL filter, 96-well map with colorblind-safe toggle.
-- **Substitution support**: Phase 1 focuses on single-residue substitutions. Deletion / insertion reserved for later.
+
+</details>
 
 ## Selection Strategies (Kuro, EVOLVEpro mode)
 
@@ -177,6 +240,9 @@ KUMA now connects the complete ALE cycle: Kuro designs primers for Round N, wet 
 8. Repeat        →  Kuro designs Round N+1 from updated scores
 ```
 
+<details>
+<summary><b>Activity input format, Round entity & v0.3 xlsx pipeline</b></summary>
+
 ### Long Format CSV Input
 
 The activity loader expects a **long format** CSV (or Excel) file with one measurement per row:
@@ -217,6 +283,8 @@ xlsx-native readers cover the inputs the wet-lab actually produces: `mutants-wel
 `mame.activity.merge_for_evolvepro` (v0.2.9.0) replaces the legacy merge for EVOLVEpro export: it joins activity to genotype, runs `merge_replicates_priority` (authoritative-prefer with mismatch flag), executes the label-swap guard, and surfaces `replicate_stats` plus `export_blocked` in the response. The 5/12 demo continues to use the legacy `activity.merge` path; the v0.3 button "EVOLVEpro용 병합 (v0.3)" lives next to it in the panel and never replaces it.
 
 The EGFP WT amino acid sequence is auto-loaded from `fixtures/egfp.fa` via BioPython translate when `ref_seq` is omitted (OQ-④ decision, v0.9.9.9). `fixtures/ispS.fa` (Populus alba ispS CDS, AB198180.1) is retained for legacy IspS rounds. No UI plumbing required for the default reference path.
+
+</details>
 
 ---
 
