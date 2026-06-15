@@ -23,38 +23,12 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { WHATS_NEW_ITEMS } from "./whatsNew.generated";
 
 declare const __APP_VERSION__: string;
 
 const STORAGE_KEY = "kuma:lastSeenVersion";
 
-interface WhatsNewItem {
-  label: string;
-  detail: string;
-}
-
-const WHATS_NEW_ITEMS: WhatsNewItem[] = [
-  {
-    label: "Colorblind assist (kuro)",
-    detail:
-      "Shape-prefix toggleable color assist is now available in kuro (previously mame-only). Enable via About → Accessibility.",
-  },
-  {
-    label: "Inline help (?)",
-    detail:
-      "Parameter fields now have inline (?) help tooltips explaining valid ranges and recommended values.",
-  },
-  {
-    label: "Keyboard shortcut table",
-    detail:
-      "All keyboard shortcuts are listed in About → Keyboard Shortcuts for quick reference.",
-  },
-  {
-    label: "What's New modal",
-    detail:
-      "You are looking at it. This modal appears once per version after an update.",
-  },
-];
 
 interface WhatsNewDialogProps {
   /** Called when the user dismisses the modal. */
