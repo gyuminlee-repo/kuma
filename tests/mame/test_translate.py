@@ -64,6 +64,32 @@ def test_translate_missense_v2f(reference_seq: str, cds_params: dict[str, int]) 
     assert "V2F" in translated.observed_aa_changes
 
 
+def test_translate_no_spurious_indel_past_cds_end(
+    reference_seq: str, cds_params: dict[str, int]
+) -> None:
+    """Regression: when the reference is longer than the CDS (e.g. a SnapGene /
+    GenBank plasmid map carrying backbone/UTR), a clean well whose consensus
+    equals the full reference must NOT emit a {pos}_INDEL for every base past
+    cds_end. Those spurious INDELs previously tripped _has_frameshift and
+    mislabeled clean wells FRAMESHIFT."""
+
+    cds_end = cds_params["cds_end"]
+    assert cds_end == len(reference_seq)  # fixture reference IS the bare CDS
+    extended_ref = reference_seq + "ACGT" * 20  # 80 bp of out-of-CDS backbone
+    # Clean consensus == the full extended reference (CDS + backbone intact).
+    rec = _br(extended_ref)
+    translated = translate_and_diff(
+        record=rec,
+        reference_seq=extended_ref,
+        cds_start=cds_params["cds_start"],
+        cds_end=cds_end,  # strictly less than len(extended_ref)
+    )
+    assert translated.observed_aa_changes == []
+    # The NT diff must be bounded to [cds_start, cds_end): no trailing INDELs.
+    assert translated.observed_nt_changes == []
+    assert not any("INDEL" in c for c in translated.observed_nt_changes)
+
+
 def test_translate_n_codon_is_no_call_not_mutation(
     reference_seq: str, cds_params: dict[str, int]
 ) -> None:

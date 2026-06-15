@@ -149,12 +149,17 @@ def translate_and_diff(
 
     ref_cds = reference_seq[cds_start:cds_end]
     query_cds_full = record.consensus_seq[cds_start:]
-    # Trim query to reference length for AA diff; extra bases still feed NT diff.
+    # Bound the query to the CDS window [cds_start, cds_end) for BOTH the AA and the
+    # NT diff. Feeding the unbounded query_cds_full to the NT diff emitted one
+    # spurious {pos}_INDEL per consensus base past cds_end whenever the reference is
+    # longer than the CDS (e.g. a SnapGene/GenBank plasmid map carrying backbone or
+    # UTR), which tripped _has_frameshift and mislabeled clean wells FRAMESHIFT. When
+    # the reference IS the bare CDS (cds_end == len(reference)) the two are identical.
     query_cds_aa = query_cds_full[: cds_end - cds_start]
 
     aa_sequence, aa_changes, n_no_call = _aa_ungapped_diffs(query_cds_aa, ref_cds, table=table)
     nt_changes = extract_nt_changes(
-        query_seq=query_cds_full,
+        query_seq=query_cds_aa,
         ref_seq=ref_cds,
         offset=cds_start,
     )

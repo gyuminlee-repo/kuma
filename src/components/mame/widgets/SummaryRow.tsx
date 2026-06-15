@@ -49,6 +49,7 @@ export function SummaryRow() {
   const isAnalyzing = useMameAppStore((s) => s.isAnalyzing);
   const analyzeProgress = useMameAppStore((s) => s.analyzeProgress);
   const validationErrors = useMameAppStore((s) => s.validationErrors);
+  const runHealth = useMameAppStore((s) => s.runHealth);
 
   const requiredInputs = inputMode === "raw_run"
     ? [inputDir, customBarcodesPath, expectedPath, referencePath, outputPath]
@@ -71,11 +72,17 @@ export function SummaryRow() {
         (passByMutant.get(id) ?? false) || v.verdict === "PASS",
       );
     }
-    const total = passByMutant.size;
     const pass = Array.from(passByMutant.values()).filter(Boolean).length;
+    // Denominator is the designed-mutant count (matches the comment above and the
+    // successRateHint copy). A designed mutant that produced zero consensus across
+    // all of its wells emits no VerdictRecord, so it is absent from `verdicts` and
+    // would otherwise be dropped from the denominator, inflating the headline rate.
+    // Fall back to the observed count when runHealth is unavailable (e.g. the
+    // workspace-reload path before analysis metrics load).
+    const total = runHealth?.total_mutants ?? passByMutant.size;
     const successRate = total > 0 ? Math.round((pass / total) * 100) : null;
     return { total, pass, successRate };
-  }, [verdicts]);
+  }, [verdicts, runHealth]);
 
   const plateEstimate = wells.length > 0 ? Math.ceil(wells.length / 96) : null;
 
