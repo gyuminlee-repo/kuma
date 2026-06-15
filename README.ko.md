@@ -19,8 +19,11 @@ Kuro 탭에서 프라이머를 설계하고 실험·시퀀싱 후 Mame 탭으로
 
 ### Kuro — SDM 프라이머 설계
 
-변이 목록(텍스트 / EVOLVEpro CSV)과 템플릿 시퀀스(GenBank / SnapGene)를 입력하면, overlap extension 방식의 SDM 프라이머 쌍을 자동 설계한다.
+변이 목록(텍스트 / EVOLVEpro CSV)과 템플릿 시퀀스(GenBank / SnapGene)를 입력하면 SDM 프라이머 쌍을 자동 설계한다. Parameters 단계에서 클로닝 방식을 run 단위로 선택한다: **overlap-extension**(기본) 또는 **Golden Gate (Type IIS)**.
 
+- **두 가지 설계 방식**: *Overlap-extension SDM*(기본, 출력 동일) 과 *Golden Gate (Type IIS)*. Golden Gate 는 변이 코돈 주변에 효소 인식 부위와 ligation fidelity 점수가 매겨진 fusion overhang 을 삽입하는 프라이머를 설계한다(scarless Type IIS assembly). Golden Gate annealing Tm 은 overlap-extension 과 동일한 SantaLucia 1998(SnapGene) 모델을 쓰며, 최저 초기 Tm + 4°C 이내로 batch 정규화한다(하한 20 nt)
+- **Type IIS 효소 카탈로그 + 커스텀 효소**: 내장 6종 (BsaI, BsmBI, BbsI, SapI, PaqCI, BspMI). BsaI·BsmBI 는 on-target ligation fidelity 표(Potapov 2018)를 함께 제공해 overhang 선택에 사용하고, 나머지는 functional unscored overhang 으로 대체한다. **Custom Type IIS 효소** 에디터로 사용자 정의 효소를 만들면 `~/.kuma/kuro/custom_enzymes.json` 에 영구 저장된다. 코돈 사용은 organism 별(Kazusa, frequency 내림차순 + 결정적 tiebreak)이며 설계 window 안에 forbidden Type IIS 부위를 만드는 코돈은 건너뛴다
+- **Run 단위 junction 오버라이드**: junction prefix(spacer + 인식 부위 + spacer)와 forbidden overhang(기본 `AATG`, `AGGT`)을 사용 벡터에 맞게 오버라이드한다. cut-site 기하가 검증되며, 인식 부위를 빠뜨리거나 cut 위치가 틀린 prefix 는 각 결과에 경고로 표시된다
 - **EVOLVEpro CSV 입력**: EVOLVEpro(`variant`, `y_pred`) 출력 CSV 로드. 점수 내림차순 정렬 후 설정 개수만큼 자동 선정. **위치 다양성** 필터로 아미노산 위치당 최대 N개 제한 가능 (동일 위치 후보 점수 차이 2% 이내 시 Grantham 1974 거리가 낮은 보수적 치환 우선). **도메인 다양성** 필터로 단백질 구조 도메인 간 분산 선택 (InterPro/Pfam 자동 조회 또는 수동 입력). **Pareto 다양성** 으로 MODIFY 방식의 위치 분산 최대화. **σ-Adaptive Pool**: EVOLVEpro Round와 Round size 입력 시 누적 데이터 기반으로 후보 풀 범위와 entropy 가중치 자동 보정 (K = 0.50→0.25, entropy = 0.30→0.15, Round 1→5+)
 - **배치 변이 파싱**: `Q232A` 형식의 변이 목록 → 코돈 위치 자동 계산 + WT 코돈 검증
 - **코돈 전략 선택**: Min. changes (WT 대비 최소 염기 변이) 또는 Optimal (E. coli 최적 코돈)

@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.13.6.1 (Golden Gate / Type IIS design, What's New automation)
+
+### Added
+- v0.13.6.1: Golden Gate (Type IIS) is now a per-run Kuro design method alongside overlap-extension SDM. It inserts the enzyme recognition site plus a ligation-fidelity-scored fusion overhang around each mutated codon; codon usage is organism-aware (Kazusa, frequency-descending with a deterministic tiebreak) and skips codons that would create a forbidden Type IIS site, while annealing Tm reuses the overlap-extension SantaLucia 1998 (SnapGene) model and batch-normalises to within +4°C of the lowest initial Tm. (`kuma_core/kuro/goldengate.py`, `kuma_core/kuro/sdm_engine.py`, `python-core/sidecar_kuro/handlers/design.py`, `src/components/panels/ParameterPanel.tsx`, `src/store/slices/designSlice.ts`)
+- v0.13.6.1: built-in Type IIS enzyme catalog (BsaI, BsmBI, BbsI, SapI, PaqCI, BspMI) with BsaI/BsmBI on-target ligation-fidelity tables (Potapov 2018) and a Custom Type IIS enzyme editor; the `list_typeiis_enzymes` and `save_custom_enzyme` RPCs persist user enzymes to `~/.kuma/kuro/custom_enzymes.json` with corrupt-file isolation. (`kuma_core/kuro/resources/enzymes/typeIIS.json`, `kuma_core/kuro/resources/overhang_fidelity/`, `src/components/dialogs/EnzymeEditor.tsx`, `python-core/sidecar_kuro/handlers/misc.py`)
+- v0.13.6.1: per-run Golden Gate junction overrides — a `prefix_override` (spacer + recognition site + spacer) and `forbidden_overhangs` (default `AATG`, `AGGT`) — with cut-site geometry warnings surfaced on each result. (`kuma_core/kuro/goldengate.py`, `python-core/sidecar_kuro/models.py`, `src/types/models.ts`)
+- v0.13.6.1: the What's New dialog is auto-generated from `CHANGELOG.md` (`pnpm gen:whatsnew`); `sync:check` now fails the build when the generated module drifts or when the latest CHANGELOG section does not match `package.json`'s version. (`scripts/gen-whatsnew.mjs`, `src/components/dialogs/whatsNew.generated.ts`, `package.json`)
+
+### Fixed
+- v0.13.6.1: corrected the Kuro Export All BOM label to "UTF-8 BOM (Excel compatibility)" across all 10 locales. (`src/components/steps/ExportFormatSelector.tsx`, `src/locales/*.json`)
+- v0.13.6.1: aligned KURO wizard step bodies and MAME file-picker field widths. (`src/components/steps/WizardContainer.tsx`, `src/components/mame/panels/FileField.tsx`)
+
+---
+
 ## v0.13.5 - v0.13.6 (macOS SSL fix, MAME sample-data UX)
 
 ### Fixed

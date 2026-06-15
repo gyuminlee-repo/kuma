@@ -1,6 +1,22 @@
 # Step 3. Parameters
 
-Polymerase profile, codon strategy, Tm/GC 범위를 지정한다.
+설계 방식(design method), polymerase profile, codon strategy, Tm/GC 범위를 지정한다.
+
+## 설계 방식 (Design method)
+
+run 단위로 클로닝 방식을 고른다.
+
+| 값 | 의미 |
+|---|---|
+| Overlap-extension | (기본) overlap extension SDM. 출력은 기존과 byte-identical |
+| Golden Gate (Type IIS) | 변이 코돈 주변에 효소 인식 부위 + fidelity 점수 overhang 을 삽입 |
+
+**Golden Gate 선택 시**
+
+- **효소**: 내장 6종 (BsaI, BsmBI, BbsI, SapI, PaqCI, BspMI). BsaI·BsmBI 는 on-target ligation fidelity 표(Potapov 2018)로 최적 overhang 을 고르고, 나머지는 functional unscored overhang 으로 대체. **Custom enzyme…** 항목으로 사용자 효소 추가 → `~/.kuma/kuro/custom_enzymes.json` 에 영구 저장. ParameterPanel 이 인식 부위·cut 위치·overhang 길이를 표시.
+- **코돈 사용**: 선택 organism 의 Kazusa 빈도 기반(frequency 내림차순 + 결정적 tiebreak). 설계 window(변이 코돈 중심 15 nt) 안에 forbidden Type IIS 부위를 만드는 코돈은 자동 제외.
+- **Junction**: junction prefix(spacer + 인식 부위 + spacer)와 forbidden overhang(기본 `AATG`, `AGGT`)을 run 단위로 오버라이드. 비워두면 효소 카탈로그 기본값 사용. 인식 부위 누락·cut 위치 오류 prefix 는 각 결과에 경고로 표시.
+- **Tm**: SantaLucia 1998(SnapGene) 모델을 overlap-extension 과 공유. annealing 영역을 최저 초기 Tm + 4 °C 이내로 batch 정규화(하한 20 nt). 아래 PCR Tm/GC/길이 파라미터는 Golden Gate 에 적용되지 않는다.
 
 ## Polymerase profile
 

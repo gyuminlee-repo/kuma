@@ -8,8 +8,10 @@ export interface WhatsNewItem {
 export const WHATS_NEW_VERSION = "0.13.6";
 
 export const WHATS_NEW_ITEMS: WhatsNewItem[] = [
-  { label: "Fixed", detail: "outbound HTTPS (Kuro UniProt search, AlphaFold, EBI BLAST, ESM) failed on the packaged macOS app with `CERTIFICATE_VERIFY_FAILED: unable to get local issuer certificate`. macOS OpenSSL does not read the Keychain and the frozen app has no b…" },
-  { label: "Fixed", detail: "MAME step 1.1 \"Generate Barcode Package\" no longer requires the output directory to live inside the project root (it failed with `output_dir must be inside project_root`). `mame_context.json` stores paths relative when the output is inside…" },
-  { label: "Added", detail: "loading sample data populates a precomputed analysis result (`samples/mame/sample_analysis_result.json`, serialized from the real demux/consensus/verdict/health pipeline) so the Per-plate verdict breakdown renders instead of showing \"Setup…" },
-  { label: "Added", detail: "loading sample data seeds the Build EVOLVEpro Input form (layout / GC data / Agilent rep-batch / previous EVOLVEpro) from the bundled `06`/`08`/`09`/`10` sample xlsx files; fields already set by the user are preserved." },
+  { label: "Added", detail: "Golden Gate (Type IIS) is now a per-run Kuro design method alongside overlap-extension SDM. It inserts the enzyme recognition site plus a ligation-fidelity-scored fusion overhang around each mutated codon; codon usage is organism-aware (Ka…" },
+  { label: "Added", detail: "built-in Type IIS enzyme catalog (BsaI, BsmBI, BbsI, SapI, PaqCI, BspMI) with BsaI/BsmBI on-target ligation-fidelity tables (Potapov 2018) and a Custom Type IIS enzyme editor; the `list_typeiis_enzymes` and `save_custom_enzyme` RPCs persis…" },
+  { label: "Added", detail: "per-run Golden Gate junction overrides — a `prefix_override` (spacer + recognition site + spacer) and `forbidden_overhangs` (default `AATG`, `AGGT`) — with cut-site geometry warnings surfaced on each result." },
+  { label: "Added", detail: "the What's New dialog is auto-generated from `CHANGELOG.md` (`pnpm gen:whatsnew`); `sync:check` now fails the build when the generated module drifts or when the latest CHANGELOG section does not match `package.json`'s version." },
+  { label: "Fixed", detail: "corrected the Kuro Export All BOM label to \"UTF-8 BOM (Excel compatibility)\" across all 10 locales." },
+  { label: "Fixed", detail: "aligned KURO wizard step bodies and MAME file-picker field widths." },
 ];
