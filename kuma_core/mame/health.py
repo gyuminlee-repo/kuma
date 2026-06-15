@@ -133,6 +133,11 @@ _READS_PER_SEC_COLS = [
     "Reads per second",
     "reads/s",
 ]
+# MinKNOW MIN114 throughput_*.csv carries a CUMULATIVE read count ("Reads"), not a
+# per-second rate; it is differentiated into a rate in _parse_throughput.
+_CUMULATIVE_READS_COLS = [
+    "Reads",
+]
 _BARCODE_COLS = [
     "barcode_arrangement",
     "barcode_name",
@@ -142,7 +147,15 @@ _COUNT_COLS = [
     "num_reads",
     "read_count",
     "count",
+    "target_unclassified",  # MIN114 barcode_alignment_*.tsv per-barcode read count
 ]
+# MIN114 pore_activity_*.csv is long/tidy (Channel State, time, State Time
+# (samples)) with no percent column. Pore activity % is computed as the fraction
+# of state-time spent in a productive state. "strand" = a molecule is being
+# sequenced; "pore" = an open pore available to sequence.
+_STATE_COLS = ["Channel State", "channel_state", "state"]
+_STATE_TIME_COLS = ["State Time (samples)", "state_time (samples)", "state_time"]
+_ACTIVE_PORE_STATES = {"strand", "pore"}
 
 
 def _first_col(header: list[str], candidates: list[str]) -> str | None:
@@ -167,21 +180,41 @@ def _read_csv_rows(path: Path, delimiter: str = ",") -> tuple[list[str], list[di
 
 
 def _parse_pore_activity(run_dir: Path) -> float | None:
-    """Return the last active-pore % value from pore_activity_*.csv, or None."""
+    """Return the run pore-activity %, or None.
+
+    Two layouts are accepted: a wide layout with an explicit percent-active
+    column, and the MIN114 long/tidy layout (Channel State, time, State Time
+    (samples)) where the percentage is computed as the fraction of state-time
+    spent in a productive state (_ACTIVE_PORE_STATES) over the whole run.
+    """
     try:
         files = sorted(run_dir.glob("pore_activity_*.csv"))
         if not files:
             return None
-        _, rows = _read_csv_rows(files[0])
+        header, rows = _read_csv_rows(files[0])
         if not rows:
             return None
-        last = rows[-1]
-        header_keys = list(last.keys())
-        col = _first_col(header_keys, _ACTIVE_COLS)
-        if col is None:
+        # Wide layout: explicit percent-active column.
+        pct_col = _first_col(header, _ACTIVE_COLS)
+        if pct_col is not None:
+            raw = (rows[-1].get(pct_col) or "").strip()
+            return float(raw) if raw else None
+        # MIN114 long/tidy layout: active state-time / total state-time.
+        state_col = _first_col(header, _STATE_COLS)
+        samples_col = _first_col(header, _STATE_TIME_COLS)
+        if state_col is None or samples_col is None:
             return None
-        raw = last.get(col, "").strip()
-        return float(raw) if raw else None
+        active = 0.0
+        total = 0.0
+        for row in rows:
+            try:
+                samples = float((row.get(samples_col) or "0").strip() or 0)
+            except (ValueError, AttributeError):
+                continue
+            total += samples
+            if (row.get(state_col) or "").strip().lower() in _ACTIVE_PORE_STATES:
+                active += samples
+        return round(100.0 * active / total, 2) if total > 0 else None
     except (ValueError, KeyError, IndexError):
         return None
 
@@ -197,16 +230,38 @@ def _parse_throughput(run_dir: Path) -> list[dict[str, float]] | None:
             return None
         time_col = _first_col(header, _TIME_COLS)
         reads_col = _first_col(header, _READS_PER_SEC_COLS)
-        if time_col is None or reads_col is None:
+        # MIN114 has no per-second column, only a cumulative "Reads" count.
+        cum_col = None if reads_col else _first_col(header, _CUMULATIVE_READS_COLS)
+        if time_col is None or (reads_col is None and cum_col is None):
             return None
         timeline: list[dict[str, float]] = []
+        prev_t: float | None = None
+        prev_cum: float | None = None
         for row in rows:
             try:
                 t_min = float(row.get(time_col, "").strip())
-                rps = float(row.get(reads_col, "").strip())
-                timeline.append({"time_h": round(t_min / 60.0, 4), "reads_per_sec": rps})
             except (ValueError, AttributeError):
                 continue
+            if reads_col is not None:
+                try:
+                    rps = float(row.get(reads_col, "").strip())
+                except (ValueError, AttributeError):
+                    continue
+            else:
+                # Differentiate the cumulative read count into a per-second rate.
+                assert cum_col is not None  # guaranteed: reads_col is None here
+                try:
+                    cum = float(row.get(cum_col, "").strip())
+                except (ValueError, AttributeError):
+                    continue
+                if prev_t is None or prev_cum is None or t_min <= prev_t:
+                    prev_t, prev_cum = t_min, cum
+                    continue
+                rps = (cum - prev_cum) / ((t_min - prev_t) * 60.0)
+                prev_t, prev_cum = t_min, cum
+            timeline.append(
+                {"time_h": round(t_min / 60.0, 4), "reads_per_sec": round(rps, 4)}
+            )
         return timeline if timeline else None
     except (OSError, csv.Error):
         return None
