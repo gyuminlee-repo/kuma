@@ -471,13 +471,23 @@ def _demux_read_anchored(
     max_r_len = max((len(p) for _, p in r_barcodes), default=10)
     max_f_len = max((len(p) for _, p in f_barcodes), default=11)
 
-    # F barcode: 5' of alignment start (F_barcode + F_anneal tail)
+    # F barcode: strictly 5' of alignment start (F_barcode + F_anneal tail).
+    # The inner edge stops at the anchor (norm_q_st) and must NOT extend into the
+    # aligned insert: the reference 5'-start can sit within the edit threshold of
+    # a forward barcode (e.g. ispS starts "TGGCTTGCTC", edit distance 2 from the
+    # F9 prefix "TGCCTTGATC"). If the insert is inside the search window, every
+    # read whose real F barcode is degraded matches that barcode against the gene
+    # start and funnels into a single well, contaminating its whole column. The
+    # barcode + anneal lie wholly 5' of the insert, so excluding the insert loses
+    # no real barcode signal.
     f_win_start = max(0, norm_q_st - window_bp - max_f_len)
-    f_win_end = min(L, norm_q_st + window_bp)
+    f_win_end = min(L, norm_q_st)
     f_window = seq[f_win_start:f_win_end]
 
-    # R barcode: 3' of alignment end, appears as RC(R_barcode) in the read
-    r_win_start = max(0, norm_q_en - window_bp)
+    # R barcode: strictly 3' of alignment end, appears as RC(R_barcode) in the
+    # read. Inner edge stops at the anchor (norm_q_en) for the same reason: the
+    # aligned insert must not enter the barcode search window.
+    r_win_start = max(0, norm_q_en)
     r_win_end = min(L, norm_q_en + window_bp + max_r_len)
     r_window = seq[r_win_start:r_win_end]
 
