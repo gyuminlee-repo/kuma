@@ -765,6 +765,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#design-method" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        설계 방식 (Design method)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#polymerase-profile" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1632,7 +1643,34 @@
 
 
 <h1 id="step-3-parameters">Step 3. Parameters<a class="headerlink" href="#step-3-parameters" title="Permanent link">&para;</a></h1>
-<p>Polymerase profile, codon strategy, Tm/GC 범위를 지정한다.</p>
+<p>설계 방식(design method), polymerase profile, codon strategy, Tm/GC 범위를 지정한다.</p>
+<h2 id="design-method">설계 방식 (Design method)<a class="headerlink" href="#design-method" title="Permanent link">&para;</a></h2>
+<p>run 단위로 클로닝 방식을 고른다.</p>
+<table>
+<thead>
+<tr>
+<th>값</th>
+<th>의미</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Overlap-extension</td>
+<td>(기본) overlap extension SDM. 출력은 기존과 byte-identical</td>
+</tr>
+<tr>
+<td>Golden Gate (Type IIS)</td>
+<td>변이 코돈 주변에 효소 인식 부위 + fidelity 점수 overhang 을 삽입</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Golden Gate 선택 시</strong></p>
+<ul>
+<li><strong>효소</strong>: 내장 6종 (BsaI, BsmBI, BbsI, SapI, PaqCI, BspMI). BsaI·BsmBI 는 on-target ligation fidelity 표(Potapov 2018)로 최적 overhang 을 고르고, 나머지는 functional unscored overhang 으로 대체. <strong>Custom enzyme…</strong> 항목으로 사용자 효소 추가 → <code>~/.kuma/kuro/custom_enzymes.json</code> 에 영구 저장. ParameterPanel 이 인식 부위·cut 위치·overhang 길이를 표시.</li>
+<li><strong>코돈 사용</strong>: 선택 organism 의 Kazusa 빈도 기반(frequency 내림차순 + 결정적 tiebreak). 설계 window(변이 코돈 중심 15 nt) 안에 forbidden Type IIS 부위를 만드는 코돈은 자동 제외.</li>
+<li><strong>Junction</strong>: junction prefix(spacer + 인식 부위 + spacer)와 forbidden overhang(기본 <code>AATG</code>, <code>AGGT</code>)을 run 단위로 오버라이드. 비워두면 효소 카탈로그 기본값 사용. 인식 부위 누락·cut 위치 오류 prefix 는 각 결과에 경고로 표시.</li>
+<li><strong>Tm</strong>: SantaLucia 1998(SnapGene) 모델을 overlap-extension 과 공유. annealing 영역을 최저 초기 Tm + 4 °C 이내로 batch 정규화(하한 20 nt). 아래 PCR Tm/GC/길이 파라미터는 Golden Gate 에 적용되지 않는다.</li>
+</ul>
 <h2 id="polymerase-profile">Polymerase profile<a class="headerlink" href="#polymerase-profile" title="Permanent link">&para;</a></h2>
 <p>8 종 내장 + custom:</p>
 <ul>
