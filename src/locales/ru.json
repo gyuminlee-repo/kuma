@@ -1040,7 +1040,23 @@
     "primerLenRevHelp": "Reverse primer length range (nt). Default 19-27.",
     "autoRescueHelp": "Auto-fill failed mutations with relaxed constraints in a second pass.",
     "seedHelp": "Random seed for reproducible primer ranking. Leave empty for auto (time-based).",
-    "tmSectionHelp": "Melting temperature targets define how the engine balances primer stability and selectivity."
+    "tmSectionHelp": "Melting temperature targets define how the engine balances primer stability and selectivity.",
+    "designMethodLabel": "Design method:",
+    "designMethodHelp": "Cloning method. Overlap-extension covers Gibson and Q5 SDM; Golden Gate (Type IIS) inserts the enzyme site and computes a fidelity-scored overhang.",
+    "methodGroup_overlap": "Overlap-extension",
+    "methodGroup_goldengate": "Golden Gate (Type IIS)",
+    "methodHint_goldengate": "Golden Gate via {{enzyme}}: inserts the enzyme site and a fidelity-scored overhang.",
+    "goldenGateAdvancedNote": "Golden Gate uses SantaLucia 1998 Tm (the SnapGene method) and a fidelity-scored overhang; the PCR Tm, GC, and length parameters below do not apply to this method.",
+    "methodHint_goldengateEnzyme": "Golden Gate via {{enzyme}} ({{recognition}}, cut {{cutTop}}/{{cutBottom}}, {{overhang}} nt overhang): inserts the enzyme site and a fidelity-scored overhang.",
+    "enzymeOptionTitle": "{{recognition}} — cuts {{cutTop}}/{{cutBottom}}, {{overhang}} nt overhang",
+    "customEnzyme": "Custom enzyme…",
+    "junctionSectionLabel": "Junction",
+    "junctionSectionHelp": "Override the junction prefix and forbidden overhangs for this run. Leave blank to use the enzyme catalog defaults.",
+    "prefixOverrideLabel": "Prefix",
+    "prefixOverridePlaceholder": "Catalog prefix",
+    "prefixOverrideHelp": "5' prefix prepended to every Golden Gate primer (spacer + recognition site + spacer). Leave blank to use the enzyme's catalog prefix. A prefix that omits the recognition site or mis-positions the cut is flagged as a warning on each result.",
+    "forbiddenOverhangsLabel": "Forbidden overhangs",
+    "forbiddenOverhangsHelp": "Comma- or space-separated overhangs to exclude (e.g. vector junctions). Leave blank to use the defaults AATG, AGGT."
   },
   "designReport": {
     "title": "Design Report",
@@ -2223,6 +2239,9 @@
       },
       "polymerase": {
         "label": "Polymerase"
+      },
+      "method": {
+        "label": "Method"
       }
     }
   },
@@ -2423,5 +2442,22 @@
       "activityData": "Upload activity data first"
     },
     "actionBlockedTitle": "Cannot proceed — missing required input"
+  },
+  "enzymeEditor": {
+    "title": "Custom Type IIS enzyme",
+    "description": "Define a Type IIS restriction enzyme for Golden Gate design. It is saved to ~/.kuma/kuro/custom_enzymes.json and stays available after restart.",
+    "nameLabel": "Name",
+    "recognitionLabel": "Recognition site",
+    "recognitionInvalid": "Recognition must be a DNA string (A/C/G/T).",
+    "cutTopLabel": "Cut offset (top strand)",
+    "cutBottomLabel": "Cut offset (bottom strand)",
+    "overhangLenLabel": "Overhang length (nt)",
+    "aliasesLabel": "Aliases (optional)",
+    "prefixLabel": "Prefix",
+    "prefixHelp": "5' prefix: spacer + recognition site + spacer, positioning the cut at the overhang (e.g. CTAGGGTCTCA for BsaI).",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving…",
+    "saveError": "Failed to save the custom enzyme."
   }
 }

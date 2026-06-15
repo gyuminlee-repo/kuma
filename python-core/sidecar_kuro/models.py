@@ -80,6 +80,15 @@ class DesignSdmPrimersParams(BaseModel):
     # §12 Reproducibility: optional RNG seed (recorded in run manifest when provided)
     seed: Optional[int] = Field(default=None, ge=0)
 
+    # Golden Gate (Type IIS) method selection. Default keeps overlap-extension
+    # behaviour byte-identical; "goldengate" routes to the BsaI/Type IIS engine.
+    design_method: Literal["overlap", "goldengate"] = "overlap"
+    enzyme: Optional[str] = None
+    # Golden Gate junction overrides (per-run). None → catalog prefix + default
+    # forbidden overhangs (AATG/AGGT). Only consulted for design_method="goldengate".
+    prefix_override: Optional[str] = None
+    forbidden_overhangs: Optional[list[str]] = None
+
 
 class RetryFailedParams(BaseModel):
     mutation: str = ""
@@ -280,6 +289,14 @@ class SdmPrimerResultModel(WorkspaceModel):
     synthesis_score_rev: Optional[float] = None
     warnings: list[str] = Field(default_factory=list)
     overlap_mode: Optional[Literal["partial", "full"]] = None
+    # Golden Gate (Type IIS) fields — populated only for design_method="goldengate";
+    # omitted for overlap rows via WorkspaceModel's exclude_none serialization.
+    overhang: Optional[str] = None
+    overhang_score: Optional[int] = None
+    overhang_position: Optional[str] = None
+    enzyme: Optional[str] = None
+    design_method: Optional[Literal["overlap", "goldengate"]] = None
+    tm_method: Optional[str] = None
 
 
 class PolymeraseProfileModel(WorkspaceModel):
@@ -347,6 +364,42 @@ class ExportMappingResultModel(FileExportResultModel):
 class SaveCustomPolymeraseResultModel(WorkspaceModel):
     success: Literal[True] = True
     name: str
+
+
+class SaveCustomEnzymeResultModel(WorkspaceModel):
+    success: Literal[True] = True
+    name: str
+
+
+class CustomEnzymeParams(BaseModel):
+    """Input model for a user-defined Type IIS enzyme (save_custom_enzyme RPC)."""
+
+    name: str = Field(min_length=1)
+    recognition: str = Field(min_length=1)
+    cut_offset: list[int] = Field(min_length=2, max_length=2)
+    overhang_len: int = Field(ge=1)
+    prefix: str = Field(min_length=1)
+    aliases: list[str] = Field(default_factory=list)
+    fidelity_table: Optional[str] = None
+
+    @field_validator("recognition")
+    @classmethod
+    def _dna_recognition(cls, v: str) -> str:
+        up = v.strip().upper()
+        if not up or any(c not in "ACGT" for c in up):
+            raise ValueError("recognition must be a non-empty A/C/G/T string")
+        return up
+
+    def to_enzyme_dict(self) -> dict:
+        return {
+            "name": self.name.strip(),
+            "recognition": self.recognition,
+            "cut_offset": list(self.cut_offset),
+            "overhang_len": self.overhang_len,
+            "prefix": self.prefix.strip().upper(),
+            "aliases": list(self.aliases),
+            "fidelity_table": self.fidelity_table,
+        }
 
 
 class WorkspaceInputsModel(WorkspaceModel):

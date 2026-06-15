@@ -32,6 +32,7 @@ logger = get_logger("sidecar_kuro")
 
 _KURO_DIR = kuma_home() / "kuro"
 _CUSTOM_POLYMERASE_PATH = _KURO_DIR / "custom_polymerases.json"
+_CUSTOM_ENZYME_PATH = _KURO_DIR / "custom_enzymes.json"
 _CONFIG_PATH = _KURO_DIR / "config.json"
 _poly_registry = PolymeraseRegistry(custom_path=_CUSTOM_POLYMERASE_PATH)
 _codon_registry = CodonTableRegistry()

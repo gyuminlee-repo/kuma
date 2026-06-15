@@ -25,6 +25,10 @@ def cmd_design(args: argparse.Namespace) -> None:
     output_dir = Path(args.output)
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    if getattr(args, "method", "overlap") == "goldengate":
+        _cmd_design_goldengate(args, output_dir)
+        return
+
     results, _, _failures = design_sdm_primers(
         fasta_path=Path(args.fasta),
         target_start=args.target_start,
@@ -69,10 +73,63 @@ def cmd_design(args: argparse.Namespace) -> None:
     total = len(results)
     tm_ok = sum(1 for r in results if r.tm_condition_met)
     print(f"\n{'='*60}")
-    print(f"KURO Design Summary")
+    print("KURO Design Summary")
     print(f"{'='*60}")
     print(f"Mutations designed:    {total}")
     print(f"Tm condition met:      {tm_ok}/{total}")
+    print(f"Output directory:      {output_dir}")
+    print(f"{'='*60}")
+
+
+def _cmd_design_goldengate(args: argparse.Namespace, output_dir: Path) -> None:
+    """Golden Gate (Type IIS) primer design path for the CLI."""
+    import csv
+
+    from .goldengate import (
+        design_goldengate_batch,
+        export_goldengate_tsv,
+        extract_cds,
+        translate_dna,
+    )
+    from .sdm_engine import load_sequence
+
+    _header, sequence, _genes = load_sequence(Path(args.fasta))
+    cds = extract_cds(sequence, args.target_start)
+    protein = translate_dna(cds)
+
+    mutations: list[str] = []
+    with open(args.mutations, encoding="utf-8") as fh:
+        reader = csv.DictReader(fh)
+        col = "mutation" if reader.fieldnames and "mutation" in reader.fieldnames else "variant"
+        for row in reader:
+            value = (row.get(col) or "").strip()
+            if value:
+                mutations.append(value)
+
+    forbidden_overhangs = None
+    if getattr(args, "forbidden_overhangs", None):
+        forbidden_overhangs = [s.strip().upper() for s in args.forbidden_overhangs.replace(",", " ").split() if s.strip()]
+    results, failed = design_goldengate_batch(
+        cds, protein, mutations,
+        enzyme=args.enzyme,
+        organism=getattr(args, "organism", "ecoli"),
+        prefix_override=getattr(args, "prefix_override", None),
+        forbidden_overhangs=forbidden_overhangs,
+    )
+    if not results:
+        logging.error("No Golden Gate primers designed. Failures: %s", failed)
+        sys.exit(1)
+
+    tsv_path = output_dir / "goldengate_primers.tsv"
+    export_goldengate_tsv(results, tsv_path, enzyme=args.enzyme)
+    logging.info("Golden Gate primer results saved to %s", tsv_path)
+
+    print(f"\n{'='*60}")
+    print("KURO Golden Gate Design Summary")
+    print(f"{'='*60}")
+    print(f"Enzyme:                {args.enzyme}")
+    print(f"Mutations designed:    {len(results)}")
+    print(f"Failed:                {len(failed)}")
     print(f"Output directory:      {output_dir}")
     print(f"{'='*60}")
 
@@ -209,6 +266,26 @@ def main() -> None:
     design_parser.add_argument(
         "--rev-len-max", type=int, default=None,
         help="Maximum reverse primer length (default: polymerase profile, slide spec 27)"
+    )
+    design_parser.add_argument(
+        "--method", default="overlap", choices=["overlap", "goldengate"],
+        help="Design method: overlap-extension (default) or goldengate (Type IIS)"
+    )
+    design_parser.add_argument(
+        "--enzyme", default="BsaI",
+        help="Type IIS enzyme for Golden Gate design (default: BsaI)"
+    )
+    design_parser.add_argument(
+        "--organism", default="ecoli",
+        help="Organism codon table for Golden Gate codon selection (default: ecoli)"
+    )
+    design_parser.add_argument(
+        "--prefix-override", default=None,
+        help="Golden Gate: override the junction prefix (default: enzyme catalog prefix)"
+    )
+    design_parser.add_argument(
+        "--forbidden-overhangs", default=None,
+        help="Golden Gate: comma/space-separated overhangs to exclude (default: AATG,AGGT)"
     )
 
     # plate-map subcommand

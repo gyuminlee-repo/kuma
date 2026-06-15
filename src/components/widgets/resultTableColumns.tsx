@@ -92,6 +92,8 @@ export function makeResultTableColumns(opts: {
   colorblindMode?: boolean;
   /** i18next translate function passed from the parent component. */
   t: TFunction;
+  /** When true, append Golden Gate (Type IIS) overhang columns. */
+  showGoldenGate?: boolean;
 }) {
   const {
     groupColorMap,
@@ -106,6 +108,7 @@ export function makeResultTableColumns(opts: {
     canonicalOrder,
     colorblindMode = false,
     t,
+    showGoldenGate = false,
   } = opts;
 
   return [
@@ -410,5 +413,28 @@ export function makeResultTableColumns(opts: {
       },
       cell: (info) => <span className="font-mono">{info.getValue()}</span>,
     }),
+    ...(showGoldenGate
+      ? [
+          col.accessor("overhang", {
+            id: "overhang",
+            header: "Overhang",
+            size: 70,
+            cell: (info) => {
+              const v = info.getValue();
+              return v ? <span className="font-mono">{v}</span> : "—";
+            },
+          }),
+          col.accessor("overhang_score", {
+            id: "overhang_score",
+            header: "Fid",
+            size: 45,
+            meta: { tooltip: "Overhang ligation fidelity (NEB Potapov 2018 on-target score)" },
+            cell: (info) => {
+              const v = info.getValue();
+              return v == null ? "—" : v;
+            },
+          }),
+        ]
+      : []),
   ];
 }

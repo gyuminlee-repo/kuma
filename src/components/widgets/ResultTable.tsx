@@ -87,6 +87,10 @@ export function ResultTable() {
     () => new Set(rescuedMutations),
     [rescuedMutations],
   );
+  const showGoldenGate = useMemo(
+    () => designResults.some((r) => r.design_method === "goldengate"),
+    [designResults],
+  );
   // Canonical order index map: row object → position in sortPrimersCanonical output.
   // Used as the single source of truth for Mutation column ordering so ResultTable
   // matches Plate/Mapping views. Null when no sort is active (react-table uses input order).
@@ -123,6 +127,7 @@ export function ResultTable() {
         canonicalOrder,
         colorblindMode,
         t,
+        showGoldenGate,
       }),
     [
       groupColorMap,
@@ -137,6 +142,7 @@ export function ResultTable() {
       canonicalOrder,
       colorblindMode,
       t,
+      showGoldenGate,
     ],
   );
 

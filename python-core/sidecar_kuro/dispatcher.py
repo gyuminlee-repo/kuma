@@ -46,8 +46,10 @@ from sidecar_kuro.handlers.external import (
 )
 from sidecar_kuro.handlers.misc import (
     handle_list_polymerases,
+    handle_list_typeiis_enzymes,
     handle_get_polymerase_details,
     handle_save_custom_polymerase,
+    handle_save_custom_enzyme,
     handle_list_organisms,
     handle_load_evolvepro_csv,
     handle_preview_evolvepro_source,
@@ -78,8 +80,10 @@ _METHODS = {
     "ping": lambda _: {"ok": True},
     "health_info": _handle_health_info,
     "list_polymerases": handle_list_polymerases,
+    "list_typeiis_enzymes": handle_list_typeiis_enzymes,
     "get_polymerase_details": handle_get_polymerase_details,
     "save_custom_polymerase": handle_save_custom_polymerase,
+    "save_custom_enzyme": handle_save_custom_enzyme,
     "list_organisms": handle_list_organisms,
     "load_fasta": handle_load_fasta,
     "parse_mutations_text": handle_parse_mutations_text,

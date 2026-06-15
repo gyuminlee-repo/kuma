@@ -17,6 +17,7 @@ export interface SidecarKuroModels {
   BenchmarkResultModel?: BenchmarkResultModel;
   CheckStructuresParams?: CheckStructuresParams;
   CommitDesignResultParams?: CommitDesignResultParams;
+  CustomEnzymeParams?: CustomEnzymeParams;
   DesignResultResponseModel?: DesignResultResponseModel;
   DesignSdmPrimersParams?: DesignSdmPrimersParams;
   DomainEntry?: DomainEntry;
@@ -54,6 +55,7 @@ export interface SidecarKuroModels {
   RescuedMutationModel?: RescuedMutationModel;
   RetryFailedParams?: RetryFailedParams;
   RunBenchmarkParams?: RunBenchmarkParams;
+  SaveCustomEnzymeResultModel?: SaveCustomEnzymeResultModel;
   SaveCustomPolymeraseResultModel?: SaveCustomPolymeraseResultModel;
   SaveJsonParams?: SaveJsonParams;
   SaveWorkspaceParams?: SaveWorkspaceParams;
@@ -91,6 +93,8 @@ export interface SdmPrimerResultModel {
   candidate_fwd_count?: number | null;
   candidate_rev_count?: number | null;
   codon_pos: number;
+  design_method?: ("overlap" | "goldengate") | null;
+  enzyme?: string | null;
   forward_seq: string;
   fwd_len: number;
   gc_fwd: number;
@@ -108,6 +112,9 @@ export interface SdmPrimerResultModel {
   mutation: string;
   offtarget_fwd?: OffTargetHitModel[] | null;
   offtarget_rev?: OffTargetHitModel[] | null;
+  overhang?: string | null;
+  overhang_position?: string | null;
+  overhang_score?: number | null;
   overlap_len: number;
   overlap_mode?: ("partial" | "full") | null;
   overlap_seq: string;
@@ -117,6 +124,7 @@ export interface SdmPrimerResultModel {
   synthesis_score_fwd?: number | null;
   synthesis_score_rev?: number | null;
   tm_condition_met: boolean;
+  tm_method?: string | null;
   tm_no_fwd: number;
   tm_no_rev: number;
   tm_overlap: number;
@@ -308,6 +316,23 @@ export interface CommitDesignResultParams {
   mutation?: string;
   [k: string]: unknown;
 }
+/**
+ * Input model for a user-defined Type IIS enzyme (save_custom_enzyme RPC).
+ */
+export interface CustomEnzymeParams {
+  aliases?: string[];
+  /**
+   * @minItems 2
+   * @maxItems 2
+   */
+  cut_offset: [number, number];
+  fidelity_table?: string | null;
+  name: string;
+  overhang_len: number;
+  prefix: string;
+  recognition: string;
+  [k: string]: unknown;
+}
 export interface DesignResultResponseModel {
   cancelled?: boolean | null;
   failed_mutations?: FailedMutationModel[];
@@ -353,7 +378,10 @@ export interface RescuedMutationModel {
 export interface DesignSdmPrimersParams {
   auto_relax?: boolean;
   codon_strategy?: string;
+  design_method?: "overlap" | "goldengate";
+  enzyme?: string | null;
   fasta_path: string;
+  forbidden_overhangs?: string[] | null;
   fwd_len_max?: number | null;
   fwd_len_min?: number | null;
   gc_max?: number;
@@ -363,6 +391,7 @@ export interface DesignSdmPrimersParams {
   overlap_len?: number | null;
   overlap_mode?: "partial" | "full";
   polymerase?: string;
+  prefix_override?: string | null;
   rescue_pool?: string[];
   rev_len_max?: number | null;
   rev_len_min?: number | null;
@@ -703,6 +732,11 @@ export interface RunBenchmarkParams {
   strategies?: string[];
   structure_accession?: string | null;
   top_percentile?: number;
+  [k: string]: unknown;
+}
+export interface SaveCustomEnzymeResultModel {
+  name: string;
+  success?: true;
   [k: string]: unknown;
 }
 export interface SaveCustomPolymeraseResultModel {
