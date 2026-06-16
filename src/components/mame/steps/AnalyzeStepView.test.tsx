@@ -17,8 +17,18 @@ vi.mock("@/lib/ipc-mame", () => ({
 }));
 
 vi.mock("@/components/ui/Panel", () => ({
-  DataPanel: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="data-panel">{children}</div>
+  DataPanel: ({
+    children,
+    className,
+    title,
+  }: {
+    children: React.ReactNode;
+    className?: string;
+    title?: string;
+  }) => (
+    <div data-testid="data-panel" data-class-name={className ?? ""} data-title={title ?? ""}>
+      {children}
+    </div>
   ),
 }));
 vi.mock("@/components/mame/widgets/SummaryRow", () => ({
@@ -55,7 +65,19 @@ vi.mock("@/components/mame/panels/ParameterPanel", () => ({
 // react-resizable-panels: PanelGroup/Panel/PanelResizeHandle are passthrough wrappers
 vi.mock("react-resizable-panels", () => ({
   PanelGroup: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  Panel: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  Panel: ({
+    children,
+    defaultSize,
+    minSize,
+  }: {
+    children: React.ReactNode;
+    defaultSize?: number;
+    minSize?: number;
+  }) => (
+    <div data-testid="resizable-panel" data-default-size={defaultSize ?? ""} data-min-size={minSize ?? ""}>
+      {children}
+    </div>
+  ),
   PanelResizeHandle: () => <div data-testid="resize-handle" />,
 }));
 
@@ -136,6 +158,24 @@ describe("AnalyzeStepView (Task #12 — analyze.review)", () => {
   it("analyze.review with runHealth mounts RunHealthPanel (per-plate verdict chart)", () => {
     const { getByTestId } = render(<AnalyzeStepView runHealth={fakeHealth} />);
     expect(getByTestId("run-health-panel")).toBeTruthy();
+  });
+
+  it("analyze.review gives verdict table and per-plate breakdown enough vertical space", () => {
+    render(<AnalyzeStepView runHealth={fakeHealth} />);
+
+    const panels = screen.getAllByTestId("data-panel");
+    const verdictPanel = panels.find((panel) => panel.dataset.title === "Verdict table");
+    const breakdownPanel = panels.find((panel) => panel.dataset.title === "Per-plate verdict breakdown");
+    const resizablePanels = screen.getAllByTestId("resizable-panel");
+
+    expect(verdictPanel).toHaveAttribute("data-class-name", expect.stringContaining("min-h-[640px]"));
+    expect(breakdownPanel).toHaveAttribute("data-class-name", expect.stringContaining("min-h-[360px]"));
+    expect(resizablePanels).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ dataset: expect.objectContaining({ defaultSize: "34", minSize: "18" }) }),
+        expect.objectContaining({ dataset: expect.objectContaining({ defaultSize: "66", minSize: "30" }) }),
+      ]),
+    );
   });
 
   it("analyze.review without runHealth does not mount RunHealthPanel", () => {

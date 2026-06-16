@@ -254,7 +254,7 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
       // Other RunHealth sections (file-size/throughput/pore-yield/barcode/cross-talk) are still reachable from
       // analyze.inputs's RunHealthPanel and the QC inspector; not duplicated here per PI spec slide 6.
       mainContent = (
-        <div className="flex h-full min-h-[800px] flex-col relative" ref={reviewContainerRef}>
+        <div className="flex h-full min-h-[960px] flex-col relative" ref={reviewContainerRef}>
           <PlateClusterAlert />
           <div className="flex-1 min-h-0">
           <PanelGroup direction="horizontal" autoSaveId="mame.analyze.review.split">
@@ -263,7 +263,7 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
                 <div className="flex-shrink-0">
                   <SummaryRow />
                 </div>
-                <DataPanel title={t("mame.appLayout.verdictTableTitle")} className="flex-1 min-h-0">
+                <DataPanel title={t("mame.appLayout.verdictTableTitle")} className="flex-1 min-h-[640px]">
                   <VerdictTable />
                 </DataPanel>
               </div>
@@ -274,7 +274,7 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
             />
             <Panel defaultSize={50} minSize={25}>
               <PanelGroup direction="vertical" autoSaveId="mame.analyze.review.vsplit.v2">
-                <Panel defaultSize={42} minSize={20}>
+                <Panel defaultSize={34} minSize={18}>
                   <DataPanel title={t("mame.appLayout.platePlanTitle")} className="h-full min-h-0 overflow-auto">
                     <div
                       role="region"
@@ -288,8 +288,8 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
                 <PanelResizeHandle
                   className="h-2 bg-border hover:bg-border/70 transition-colors"
                 />
-                <Panel defaultSize={58} minSize={20}>
-                  <DataPanel title={t("mame.appLayout.efficiencyChartTitle")} className="h-full min-h-0 overflow-auto">
+                <Panel defaultSize={66} minSize={30}>
+                  <DataPanel title={t("mame.appLayout.efficiencyChartTitle")} className="h-full min-h-[360px] overflow-auto">
                     {runHealth !== null ? (
                       <RunHealthPanel
                         health={runHealth}
