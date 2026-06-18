@@ -410,3 +410,18 @@ class TestCommonPrimersAndFragOverhangs:
         text = out.read_text(encoding="utf-8")
         assert "# common_primers" in text
         assert "cds_frag1_forward" in text and "cds_frag2_reverse" in text
+
+    def test_common_pair_dtms_and_export_columns(self, tmp_path) -> None:
+        prot = gg.translate_dna(self._CDS)
+        results, common, _failed = self._design([f"{prot[6]}7A", f"{prot[9]}10A"])
+        f1 = next(c for c in common if c.name == "cds_frag1_forward").tm
+        f2 = next(c for c in common if c.name == "cds_frag2_reverse").tm
+        for r in results:
+            d1, d2 = gg.common_pair_dtms(r.left_tm, r.right_tm, common)
+            # Inspection gaps = actual two-fragment PCR pairs (display only, design unchanged).
+            assert d1 == abs(f1 - r.left_tm)
+            assert d2 == abs(r.right_tm - f2)
+        out = tmp_path / "gg_pair.tsv"
+        gg.export_goldengate_tsv(results, out, enzyme="BsaI", common=common)
+        header = next(ln for ln in out.read_text().splitlines() if ln.startswith("Mutation\t"))
+        assert "Frag1_Pair_dTm" in header and "Frag2_Pair_dTm" in header

@@ -2251,7 +2251,8 @@
       },
       "commonPrimers": {
         "label": "Common primers (Golden Gate)",
-        "hint": "Two fixed primers shared by all variants — they amplify the CDS termini that join the destination vector parts."
+        "hint": "Two fixed primers shared by all variants — they amplify the CDS termini that join the destination vector parts.",
+        "pairCheck": "Actual PCR-pair max ΔTm — frag1: {{frag1}} °C, frag2: {{frag2}} °C"
       }
     }
   },

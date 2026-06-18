@@ -759,6 +759,25 @@ def design_goldengate_batch(
     return results, common, failed
 
 
+def common_pair_dtms(
+    left_tm: Optional[float],
+    right_tm: Optional[float],
+    common: list[CommonPrimer] | None,
+) -> tuple[Optional[float], Optional[float]]:
+    """Inspection-only Tm gaps for the two actual two-fragment PCR reactions.
+
+    frag1 reaction pairs the fixed ``cds_frag1_forward`` with this mutation's left
+    (reverse) primer; frag2 pairs this mutation's right (forward) primer with the
+    fixed ``cds_frag2_reverse``. Returns ``(frag1_dtm, frag2_dtm)`` (abs Tm diff), or
+    ``None`` per side when a Tm is unavailable. Does not affect design (display only).
+    """
+    f1 = next((c.tm for c in (common or []) if c.name == "cds_frag1_forward"), None)
+    f2 = next((c.tm for c in (common or []) if c.name == "cds_frag2_reverse"), None)
+    d1 = abs(f1 - left_tm) if (f1 is not None and left_tm is not None) else None
+    d2 = abs(right_tm - f2) if (f2 is not None and right_tm is not None) else None
+    return d1, d2
+
+
 def export_goldengate_tsv(
     results: list[GoldenGateResult],
     output_path: Path,
@@ -776,6 +795,7 @@ def export_goldengate_tsv(
         "Overhang", "Overhang_Position", "Overhang_Score",
         "Forward_Primer", "Reverse_Primer",
         "Left_Annealing", "Right_Annealing", "Left_Tm", "Right_Tm",
+        "Frag1_Pair_dTm", "Frag2_Pair_dTm",
         "Status", "Warnings",
     ]
     with open(output_path, "w", newline="", encoding="utf-8") as fh:
@@ -801,6 +821,10 @@ def export_goldengate_tsv(
                 "Right_Tm": "" if r.right_tm is None else f"{r.right_tm:.2f}",
                 "Status": r.status,
                 "Warnings": "; ".join(r.warnings) if r.warnings else "",
+                **(lambda d1, d2: {
+                    "Frag1_Pair_dTm": "" if d1 is None else f"{d1:.2f}",
+                    "Frag2_Pair_dTm": "" if d2 is None else f"{d2:.2f}",
+                })(*common_pair_dtms(r.left_tm, r.right_tm, common)),
             })
         if common:
             fh.write("\n# common_primers (shared by all mutations)\n")

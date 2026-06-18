@@ -79,6 +79,22 @@ export function OutputStepView() {
 
   const hasResults = designResults.length > 0;
 
+  // Inspection only: max Tm gap of the actual two-fragment PCR pairs
+  // (frag1 = common_frag1_forward × variant left; frag2 = variant right × common_frag2_reverse).
+  const commonPairDtm = (() => {
+    if (designMethod !== "goldengate" || commonPrimers.length === 0) return null;
+    const f1 = commonPrimers.find((c) => c.name === "cds_frag1_forward")?.tm ?? null;
+    const f2 = commonPrimers.find((c) => c.name === "cds_frag2_reverse")?.tm ?? null;
+    let max1 = 0;
+    let max2 = 0;
+    let any = false;
+    for (const r of designResults) {
+      if (f1 != null && r.tm_no_rev != null) { max1 = Math.max(max1, Math.abs(f1 - r.tm_no_rev)); any = true; }
+      if (f2 != null && r.tm_no_fwd != null) { max2 = Math.max(max2, Math.abs(r.tm_no_fwd - f2)); any = true; }
+    }
+    return any ? { max1, max2 } : null;
+  })();
+
   const [splitPct, setSplitPct] = useState<number>(() => readSplit());
   const [plateCollapsed, setPlateCollapsed] = useState<boolean>(() => readCollapsed());
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -212,6 +228,14 @@ export function OutputStepView() {
                 <p className="mb-2 text-caption text-muted-foreground">
                   {t("phaseE.summary.commonPrimers.hint")}
                 </p>
+                {commonPairDtm && (
+                  <p className="mb-2 text-caption text-muted-foreground tabular-nums">
+                    {t("phaseE.summary.commonPrimers.pairCheck", {
+                      frag1: commonPairDtm.max1.toFixed(1),
+                      frag2: commonPairDtm.max2.toFixed(1),
+                    })}
+                  </p>
+                )}
                 <div className="space-y-1.5">
                   {commonPrimers.map((c) => (
                     <div key={c.name} className="flex flex-col gap-0.5 text-caption">

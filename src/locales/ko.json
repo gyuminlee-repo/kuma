@@ -2251,7 +2251,8 @@
       },
       "commonPrimers": {
         "label": "공통 프라이머 (Golden Gate)",
-        "hint": "모든 변이가 공유하는 고정 프라이머 2개 — 대상 벡터 부품과 연결되는 CDS 양 말단을 증폭합니다."
+        "hint": "모든 변이가 공유하는 고정 프라이머 2개 — 대상 벡터 부품과 연결되는 CDS 양 말단을 증폭합니다.",
+        "pairCheck": "실제 PCR 조합 최대 ΔTm — frag1: {{frag1}} °C, frag2: {{frag2}} °C"
       }
     },
     "descriptions": {
