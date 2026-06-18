@@ -84,8 +84,8 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       set({
         selectedPolymerase: name,
         tmFwdTarget: profile.opt_tm_fwd ?? profile.opt_tm,
-        tmRevTarget: profile.opt_tm_rev ?? profile.opt_tm,
-        tmOverlapTarget: profile.opt_tm_overlap ?? profile.opt_tm,
+        tmRevTarget: profile.opt_tm_rev ?? (profile.opt_tm - 4),
+        tmOverlapTarget: profile.opt_tm_overlap ?? (profile.opt_tm - 20),
         gcMin: profile.min_gc,
         gcMax: profile.max_gc,
         overlapMode: profile.default_overlap_mode ?? "partial",
