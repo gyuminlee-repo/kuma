@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class DemuxParamsBase(BaseModel):
@@ -329,10 +329,12 @@ class BuildEvolveproInputParams(BaseModel):
     """
 
     layout_xlsx: str
-    gc_data_xlsx: str
-    rep_batch_xlsx: str
-    prev_evolvepro_xlsx: str
     output_xlsx: str
+    gc_data_xlsx: str | None = None
+    rep_batch_xlsx: str | None = None
+    prev_evolvepro_xlsx: str | None = None
+    round1_report_xlsx: str | None = None
+    remeasure_report_xlsx: str | None = None
     mismatch_threshold: float = Field(default=0.1, gt=0.0)
     mapping_audit_path: str | None = None
 
@@ -341,10 +343,14 @@ class BuildEvolveproInputParams(BaseModel):
         "gc_data_xlsx",
         "rep_batch_xlsx",
         "prev_evolvepro_xlsx",
+        "round1_report_xlsx",
+        "remeasure_report_xlsx",
         mode="after",
     )
     @classmethod
-    def _check_input_xlsx(cls, v: str) -> str:
+    def _check_input_xlsx(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
         p = Path(v)
         if ".." in p.parts:
             raise ValueError(f"Path traversal not allowed: {v}")
@@ -353,6 +359,20 @@ class BuildEvolveproInputParams(BaseModel):
         if not p.exists():
             raise ValueError(f"Input xlsx not found: {v}")
         return v
+
+    @model_validator(mode="after")
+    def _mode_xor(self) -> "BuildEvolveproInputParams":
+        rank = all(
+            [self.gc_data_xlsx, self.rep_batch_xlsx, self.prev_evolvepro_xlsx]
+        )
+        reports = all([self.round1_report_xlsx, self.remeasure_report_xlsx])
+        if rank == reports:
+            raise ValueError(
+                "provide EITHER rank-mode "
+                "(gc_data_xlsx+rep_batch_xlsx+prev_evolvepro_xlsx) OR reports-mode "
+                "(round1_report_xlsx+remeasure_report_xlsx)"
+            )
+        return self
 
     @field_validator("output_xlsx", mode="after")
     @classmethod

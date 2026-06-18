@@ -568,12 +568,20 @@ def handle_build_evolvepro_input(params: dict) -> dict:
     rank-based mapping derived from the previous-round EVOLVEpro file and is
     emitted as a JSON audit artifact for human veto.
 
+    Two modes (exactly one set of source files, enforced by the params model):
+        rank mode: gc_data_xlsx + rep_batch_xlsx + prev_evolvepro_xlsx (the
+            rank-based 4-file assembly; emits a mapping audit).
+        reports mode: round1_report_xlsx + remeasure_report_xlsx (raw Agilent
+            round-1 report + variant-labeled re-measure report; no rank file).
+
     Params (validated by BuildEvolveproInputParams):
         layout_xlsx (str)
-        gc_data_xlsx (str)
-        rep_batch_xlsx (str)
-        prev_evolvepro_xlsx (str)
         output_xlsx (str)
+        gc_data_xlsx (str, rank mode)
+        rep_batch_xlsx (str, rank mode)
+        prev_evolvepro_xlsx (str, rank mode)
+        round1_report_xlsx (str, reports mode)
+        remeasure_report_xlsx (str, reports mode)
         mismatch_threshold (float, optional, default 0.1)
         mapping_audit_path (str, optional)
 
@@ -603,6 +611,47 @@ def handle_build_evolvepro_input(params: dict) -> dict:
 
     p = BuildEvolveproInputParams.model_validate(params)
 
+    if p.round1_report_xlsx and p.remeasure_report_xlsx:
+        from kuma_core.mame.activity.build_evolvepro_input import (
+            build_evolvepro_input_from_reports,
+        )
+
+        r = build_evolvepro_input_from_reports(
+            p.layout_xlsx,
+            p.round1_report_xlsx,
+            p.remeasure_report_xlsx,
+            p.output_xlsx,
+            mismatch_threshold=p.mismatch_threshold,
+        )
+        audit = [
+            {"id": i + 1, "variant": v, "well": w}
+            for i, (v, w) in enumerate(sorted(r.well_by_variant.items()))
+        ]
+        return {
+            "output_path": str(r.output_path),
+            "n_variants": r.n_variants,
+            "n_authoritative": r.n_authoritative,
+            "n_fallback_only": r.n_fallback_only,
+            "mapping_audit": audit,
+            "mapping_audit_path": "",
+            "prev_descending": True,
+            "warnings": r.warnings,
+            "swap_warnings": [],
+            "mismatched": r.mismatched,
+            "mode": "reports",
+        }
+
+    # _mode_xor guarantees the three rank-mode inputs are present here; narrow
+    # explicitly for the type checker and fail loud otherwise.
+    if (
+        p.gc_data_xlsx is None
+        or p.rep_batch_xlsx is None
+        or p.prev_evolvepro_xlsx is None
+    ):
+        raise ValueError(
+            "rank mode requires gc_data_xlsx, rep_batch_xlsx, prev_evolvepro_xlsx"
+        )
+
     result = build_evolvepro_input(
         p.layout_xlsx,
         p.gc_data_xlsx,
@@ -627,6 +676,7 @@ def handle_build_evolvepro_input(params: dict) -> dict:
         "warnings": result.warnings,
         "swap_warnings": [w.__dict__ for w in result.swap_warnings],
         "mismatched": result.mismatched,
+        "mode": "rank",
     }
 
 
