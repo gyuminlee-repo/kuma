@@ -1,15 +1,15 @@
 /**
  * BuildEvolveproInputPanel: MAME activity to EVOLVEpro input build panel.
  *
- * Lets the user pick the four round files (plate layout, GC data, Agilent
- * replicate report, previous EVOLVEpro file) and an output path, then calls the
+ * Lets the user pick the three round files (plate layout, raw round-1 GC-FID
+ * report, variant-labeled re-measure report) and an output path, then calls the
  * mame.activity.build_evolvepro_input RPC to write a merged EVOLVEpro input
  * xlsx plus an ID-to-variant mapping audit. The pre-run result area renders an
  * empty state, never an error boundary.
  *
  * Follows the Kuro-style Browse button + selected-filename preview pattern. The
  * output control uses a save-file dialog. State is local useState, persisted to
- * localStorage `kuma:mame:buildEvolvepro`.
+ * localStorage `kuma:mame:buildEvolvepro:v2`.
  */
 
 import { useState, useCallback, useEffect } from "react";
@@ -62,9 +62,8 @@ export function BuildEvolveproInputPanel() {
     setResult(null);
   }, [
     form.layoutXlsx,
-    form.gcDataXlsx,
-    form.repBatchXlsx,
-    form.prevEvolveproXlsx,
+    form.round1ReportXlsx,
+    form.remeasureReportXlsx,
     form.outputXlsx,
   ]);
 
@@ -92,9 +91,8 @@ export function BuildEvolveproInputPanel() {
 
   const allInputsReady =
     Boolean(form.layoutXlsx) &&
-    Boolean(form.gcDataXlsx) &&
-    Boolean(form.repBatchXlsx) &&
-    Boolean(form.prevEvolveproXlsx) &&
+    Boolean(form.round1ReportXlsx) &&
+    Boolean(form.remeasureReportXlsx) &&
     Boolean(form.outputXlsx);
 
   const canBuild = allInputsReady && !isBuilding;
@@ -106,9 +104,8 @@ export function BuildEvolveproInputPanel() {
 
     const params: BuildEvolveproInputParams = {
       layout_xlsx: form.layoutXlsx,
-      gc_data_xlsx: form.gcDataXlsx,
-      rep_batch_xlsx: form.repBatchXlsx,
-      prev_evolvepro_xlsx: form.prevEvolveproXlsx,
+      round1_report_xlsx: form.round1ReportXlsx,
+      remeasure_report_xlsx: form.remeasureReportXlsx,
       output_xlsx: form.outputXlsx,
     };
 
@@ -170,37 +167,30 @@ export function BuildEvolveproInputPanel() {
               helperText={t("mame.buildEvolvepro.layoutXlsxHelper")}
             />
             <FilePickerField
-              id="bep-gc"
-              label={t("mame.buildEvolvepro.gcDataXlsx")}
-              filled={Boolean(form.gcDataXlsx)}
-              value={form.gcDataXlsx}
-              onBrowse={() =>
-                browseXlsx("gcDataXlsx", t("mame.buildEvolvepro.gcDataXlsx"))
-              }
-              helperText={t("mame.buildEvolvepro.gcDataXlsxHelper")}
-            />
-            <FilePickerField
-              id="bep-rep"
-              label={t("mame.buildEvolvepro.repBatchXlsx")}
-              filled={Boolean(form.repBatchXlsx)}
-              value={form.repBatchXlsx}
-              onBrowse={() =>
-                browseXlsx("repBatchXlsx", t("mame.buildEvolvepro.repBatchXlsx"))
-              }
-              helperText={t("mame.buildEvolvepro.repBatchXlsxHelper")}
-            />
-            <FilePickerField
-              id="bep-prev"
-              label={t("mame.buildEvolvepro.prevEvolveproXlsx")}
-              filled={Boolean(form.prevEvolveproXlsx)}
-              value={form.prevEvolveproXlsx}
+              id="bep-round1"
+              label={t("mame.buildEvolvepro.round1ReportXlsx")}
+              filled={Boolean(form.round1ReportXlsx)}
+              value={form.round1ReportXlsx}
               onBrowse={() =>
                 browseXlsx(
-                  "prevEvolveproXlsx",
-                  t("mame.buildEvolvepro.prevEvolveproXlsx"),
+                  "round1ReportXlsx",
+                  t("mame.buildEvolvepro.round1ReportXlsx"),
                 )
               }
-              helperText={t("mame.buildEvolvepro.prevEvolveproXlsxHelper")}
+              helperText={t("mame.buildEvolvepro.round1ReportXlsxHelper")}
+            />
+            <FilePickerField
+              id="bep-remeasure"
+              label={t("mame.buildEvolvepro.remeasureReportXlsx")}
+              filled={Boolean(form.remeasureReportXlsx)}
+              value={form.remeasureReportXlsx}
+              onBrowse={() =>
+                browseXlsx(
+                  "remeasureReportXlsx",
+                  t("mame.buildEvolvepro.remeasureReportXlsx"),
+                )
+              }
+              helperText={t("mame.buildEvolvepro.remeasureReportXlsxHelper")}
             />
           </div>
         </section>
@@ -311,7 +301,7 @@ function BuildResult({ result }: { result: BuildEvolveproInputResult }) {
         />
       </div>
 
-      {!result.prev_descending && (
+      {result.mode === "rank" && !result.prev_descending && (
         <div
           role="status"
           className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400"
