@@ -8,9 +8,6 @@ export interface WhatsNewItem {
 export const WHATS_NEW_VERSION = "0.13.6";
 
 export const WHATS_NEW_ITEMS: WhatsNewItem[] = [
-  { label: "Added", detail: "Golden Gate (Type IIS) is now a per-run Kuro design method alongside overlap-extension SDM. It inserts the enzyme recognition site plus a ligation-fidelity-scored fusion overhang around each mutated codon; codon usage is organism-aware (Ka…" },
-  { label: "Added", detail: "built-in Type IIS enzyme catalog (BsaI, BsmBI, BbsI, SapI, PaqCI, BspMI) with BsaI/BsmBI on-target ligation-fidelity tables (Potapov 2018) and a Custom Type IIS enzyme editor; the `list_typeiis_enzymes` and `save_custom_enzyme` RPCs persis…" },
-  { label: "Added", detail: "per-run Golden Gate junction overrides — a `prefix_override` (spacer + recognition site + spacer) and `forbidden_overhangs` (default `AATG`, `AGGT`) — with cut-site geometry warnings surfaced on each result." },
   { label: "Added", detail: "the What's New dialog is auto-generated from `CHANGELOG.md` (`pnpm gen:whatsnew`); `sync:check` now fails the build when the generated module drifts or when the latest CHANGELOG section does not match `package.json`'s version." },
   { label: "Fixed", detail: "corrected the Kuro Export All BOM label to \"UTF-8 BOM (Excel compatibility)\" across all 10 locales." },
   { label: "Fixed", detail: "aligned KURO wizard step bodies and MAME file-picker field widths." },
