@@ -6,31 +6,11 @@ import type { SettingsBundle } from "./models.generated";
 export type MutationInputMode = "text" | "evolvepro";
 export type CodonStrategy = "closest" | "optimal";
 export type OverlapMode = "partial" | "full";
-export type DesignMethod = "overlap" | "goldengate";
 
 export interface PolymeraseInfo {
   name: string;
   manufacturer: string;
   fidelity: string;
-}
-
-export interface TypeIISEnzymeInfo {
-  name: string;
-  aliases: string[];
-  recognition: string;
-  cut_offset: [number, number];
-  overhang_len: number;
-  has_fidelity: boolean;
-}
-
-export interface CustomEnzyme {
-  name: string;
-  recognition: string;
-  cut_offset: [number, number];
-  overhang_len: number;
-  prefix: string;
-  aliases?: string[];
-  fidelity_table?: string | null;
 }
 
 export interface PolymeraseProfile {
@@ -170,13 +150,6 @@ export interface SdmPrimerResult {
   synthesis_score_rev?: number;
   warnings: string[];
   overlap_mode?: "partial" | "full";
-  // Golden Gate (Type IIS) — present only when design_method === "goldengate".
-  overhang?: string;
-  overhang_score?: number;
-  overhang_position?: string;
-  enzyme?: string;
-  design_method?: DesignMethod;
-  tm_method?: string;
 }
 
 export interface DomainInfo {
@@ -295,11 +268,6 @@ export interface ExportResult {
 }
 
 export interface SaveCustomPolymeraseResult {
-  success: boolean;
-  name: string;
-}
-
-export interface SaveCustomEnzymeResult {
   success: boolean;
   name: string;
 }
@@ -432,8 +400,6 @@ export interface WorkspaceSettings {
   evolveproRound?: number;
   roundSize?: number;
   overlapMode?: OverlapMode;
-  designMethod?: DesignMethod;
-  enzyme?: string;
   /** §12 Optional RNG seed for reproducible design runs. */
   randomSeed?: number | null;
 }
@@ -538,14 +504,6 @@ export interface RpcMethodMap {
   save_custom_polymerase: {
     params: PolymeraseProfile;
     result: SaveCustomPolymeraseResult;
-  };
-  list_typeiis_enzymes: {
-    params: Record<string, never>;
-    result: TypeIISEnzymeInfo[];
-  };
-  save_custom_enzyme: {
-    params: CustomEnzyme;
-    result: SaveCustomEnzymeResult;
   };
   list_organisms: {
     params: Record<string, never>;

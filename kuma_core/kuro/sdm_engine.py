@@ -108,10 +108,6 @@ def _calc_sdm_tm(seq: str) -> float:
         salt_corrections_method="santalucia",
     )
 
-# Public alias for cross-module reuse (e.g. Golden Gate). Internal SDM call sites keep
-# using ``_calc_sdm_tm`` so the overlap-extension path stays byte-identical.
-calc_sdm_tm = _calc_sdm_tm
-
 
 _THERMO_PARAMS = dict(
     mv_conc=50.0,

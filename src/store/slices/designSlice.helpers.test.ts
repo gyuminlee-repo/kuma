@@ -2,11 +2,9 @@ import { describe, expect, it } from "vitest";
 import type { SdmPrimerResult } from "../../types/models";
 import {
   addDesignResultState,
-  buildDesignRequestPayload,
   buildIncludedPlateState,
   getIncludedDesignResults,
   prepareDesignInput,
-  parseForbiddenOverhangs,
   processDesignResult,
 } from "./designSlice.helpers";
 
@@ -201,97 +199,5 @@ describe("prepareDesignInput selection set wiring", () => {
     });
     expect(result.rescuePool).not.toContain("F89W");
     expect(result.rescuePool).toContain("EXTRA1");
-  });
-});
-
-
-const basePayloadParams = {
-  fastaPath: "x.gb",
-  targetStart: 0,
-  limitedText: "Q5A",
-  selectedPolymerase: "Q5",
-  codonStrategy: "closest" as const,
-  organism: "ecoli",
-  tmFwdTarget: 62,
-  tmRevTarget: 58,
-  tmOverlapTarget: 42,
-  gcMin: 40,
-  gcMax: 60,
-  primerLenEnabled: false,
-  fwdLenMin: 17,
-  fwdLenMax: 39,
-  revLenMin: 19,
-  revLenMax: 27,
-  overlapMode: "partial" as const,
-  rescuePool: [] as string[],
-  tolMax: 4,
-  randomSeed: null,
-};
-
-describe("buildDesignRequestPayload design method wiring", () => {
-  it("defaults to overlap and omits enzyme", () => {
-    const p = buildDesignRequestPayload({
-      ...basePayloadParams,
-      designMethod: "overlap",
-      enzyme: "BsaI",
-    });
-    expect(p.design_method).toBe("overlap");
-    expect("enzyme" in p).toBe(false);
-    expect(p.overlap_mode).toBe("partial");
-  });
-
-  it("emits design_method and enzyme for goldengate", () => {
-    const p = buildDesignRequestPayload({
-      ...basePayloadParams,
-      designMethod: "goldengate",
-      enzyme: "BsaI",
-    });
-    expect(p.design_method).toBe("goldengate");
-    expect(p.enzyme).toBe("BsaI");
-  });
-});
-
-describe("parseForbiddenOverhangs", () => {
-  it("splits on commas, spaces, and newlines and uppercases", () => {
-    expect(parseForbiddenOverhangs("aatg, aggt\n cgtc")).toEqual(["AATG", "AGGT", "CGTC"]);
-  });
-  it("returns [] for blank input", () => {
-    expect(parseForbiddenOverhangs("   ")).toEqual([]);
-  });
-});
-
-describe("buildDesignRequestPayload Golden Gate junction overrides", () => {
-  it("includes uppercased prefix_override and parsed forbidden_overhangs for goldengate", () => {
-    const p = buildDesignRequestPayload({
-      ...basePayloadParams,
-      designMethod: "goldengate",
-      enzyme: "BsaI",
-      prefixOverride: "ctagggtctca",
-      forbiddenOverhangs: "aatg aggt",
-    });
-    expect(p.prefix_override).toBe("CTAGGGTCTCA");
-    expect(p.forbidden_overhangs).toEqual(["AATG", "AGGT"]);
-  });
-  it("omits junction overrides when blank", () => {
-    const p = buildDesignRequestPayload({
-      ...basePayloadParams,
-      designMethod: "goldengate",
-      enzyme: "BsaI",
-      prefixOverride: "  ",
-      forbiddenOverhangs: "",
-    });
-    expect("prefix_override" in p).toBe(false);
-    expect("forbidden_overhangs" in p).toBe(false);
-  });
-  it("never emits junction overrides for overlap method", () => {
-    const p = buildDesignRequestPayload({
-      ...basePayloadParams,
-      designMethod: "overlap",
-      enzyme: "BsaI",
-      prefixOverride: "CTAGGGTCTCA",
-      forbiddenOverhangs: "AATG",
-    });
-    expect("prefix_override" in p).toBe(false);
-    expect("forbidden_overhangs" in p).toBe(false);
   });
 });

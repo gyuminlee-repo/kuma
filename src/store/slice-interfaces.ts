@@ -23,14 +23,11 @@ import type {
   LinkerHandling,
   MutationInputMode,
   OverlapMode,
-  DesignMethod,
   ParsedMutation,
   ParseError,
   PlateMapping,
   PolymeraseInfo,
   PolymeraseProfile,
-  TypeIISEnzymeInfo,
-  CustomEnzyme,
   RescueStats,
   RescuedMutation,
   SdmPrimerResult,
@@ -224,13 +221,6 @@ export interface DesignSlice {
   fillOnFailure: boolean;
   tmTolerance: number;
   overlapMode: OverlapMode;
-  designMethod: DesignMethod;
-  enzyme: string;
-  /** Type IIS enzyme catalog (built-in + custom) loaded from list_typeiis_enzymes. */
-  typeiisEnzymes: TypeIISEnzymeInfo[];
-  /** Golden Gate junction overrides (per-run; empty = catalog defaults). */
-  prefixOverride: string;
-  forbiddenOverhangs: string;
   /** §12 Optional RNG seed. null = non-deterministic (backend default). */
   randomSeed: number | null;
   manuallySwapped: Record<string, "fwd" | "rev" | "both">;
@@ -284,12 +274,6 @@ export interface DesignSlice {
   setFillOnFailure: (enabled: boolean) => void;
   setTmTolerance: (value: number) => void;
   setOverlapMode: (mode: OverlapMode) => void;
-  setDesignMethod: (method: DesignMethod) => void;
-  setEnzyme: (enzyme: string) => void;
-  loadTypeiisEnzymes: () => Promise<void>;
-  saveCustomEnzyme: (enzyme: CustomEnzyme) => Promise<void>;
-  setPrefixOverride: (value: string) => void;
-  setForbiddenOverhangs: (value: string) => void;
   setRandomSeed: (seed: number | null) => void;
 }
 

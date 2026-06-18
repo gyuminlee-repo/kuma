@@ -58,14 +58,12 @@ export function OutputStepView() {
   const goToNextStep = useAppStore((s) => s.goToNextStep);
   const goToPrevStep = useAppStore((s) => s.goToPrevStep);
 
-  const { designResults, plateMappings, failedMutations, rescueStats, designMethod, enzyme } = useAppStore(
+  const { designResults, plateMappings, failedMutations, rescueStats } = useAppStore(
     useShallow((s) => ({
       designResults: s.designResults,
       plateMappings: s.plateMappings,
       failedMutations: s.failedMutations,
       rescueStats: s.rescueStats,
-      designMethod: s.designMethod,
-      enzyme: s.enzyme,
     })),
   );
 
@@ -193,12 +191,6 @@ export function OutputStepView() {
                   className={`font-semibold tabular-nums ${rescueCount > 0 ? "text-warning" : "text-muted-foreground"}`}
                 >
                   {rescueCount}
-                </dd>
-              </div>
-              <div className="flex gap-1.5">
-                <dt>{t("phaseE.summary.method.label")}:</dt>
-                <dd className="font-semibold text-foreground">
-                  {designMethod === "goldengate" ? `Golden Gate (${enzyme})` : "Overlap-extension"}
                 </dd>
               </div>
             </dl>

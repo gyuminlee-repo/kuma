@@ -11,7 +11,6 @@ import type {
   SdmPrimerResult,
   PolymeraseProfile,
   RescuedMutation,
-  CustomEnzyme,
 } from "../../types/models";
 import {
   addDesignResultState,
@@ -56,11 +55,6 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
   fillOnFailure: true,
   tmTolerance: 4.0,
   overlapMode: "partial",
-  designMethod: "overlap",
-  enzyme: "BsaI",
-  typeiisEnzymes: [],
-  prefixOverride: "",
-  forbiddenOverhangs: "",
   randomSeed: null,
   manuallySwapped: {},
   customCandidates: {},
@@ -113,29 +107,6 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
     }
   },
 
-  loadTypeiisEnzymes: async () => {
-    try {
-      const typeiisEnzymes = await sendRequest("list_typeiis_enzymes", {});
-      const current = get().enzyme;
-      const names = typeiisEnzymes.map((e) => e.name);
-      const next = names.includes(current) ? current : typeiisEnzymes[0]?.name ?? current;
-      set({ typeiisEnzymes, enzyme: next });
-    } catch (err) {
-      set({ statusMessage: `Type IIS enzyme list load failed: ${formatError(err)}` });
-    }
-  },
-
-  saveCustomEnzyme: async (enzyme: CustomEnzyme) => {
-    try {
-      await sendRequest("save_custom_enzyme", { ...enzyme });
-      await get().loadTypeiisEnzymes();
-      set({ enzyme: enzyme.name, statusMessage: `Saved custom enzyme: ${enzyme.name}` });
-    } catch (err) {
-      set({ statusMessage: `Custom enzyme save failed: ${formatError(err)}` });
-      throw err;
-    }
-  },
-
   designPrimers: async () => {
     const state = get();
     const {
@@ -156,10 +127,6 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       revLenMax,
       fillOnFailure,
       overlapMode,
-      designMethod,
-      enzyme,
-      prefixOverride,
-      forbiddenOverhangs,
       mutationInputMode,
       selectedPolymerase,
       randomSeed,
@@ -251,13 +218,9 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         revLenMin,
         revLenMax,
         overlapMode,
-        designMethod,
-        enzyme,
         rescuePool: prepared.rescuePool,
         tolMax: state.tmTolerance,
         randomSeed,
-        prefixOverride,
-        forbiddenOverhangs,
       });
       const result = await sendRequest("design_sdm_primers", payload, 300_000);
       if (result.cancelled) {
@@ -519,10 +482,6 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
   },
 
   setOverlapMode: (mode) => set({ overlapMode: mode }),
-  setDesignMethod: (method) => set({ designMethod: method }),
-  setEnzyme: (enzyme) => set({ enzyme }),
-  setPrefixOverride: (value: string) => set({ prefixOverride: value }),
-  setForbiddenOverhangs: (value: string) => set({ forbiddenOverhangs: value }),
 
   setRandomSeed: (seed: number | null) => set({ randomSeed: seed }),
 

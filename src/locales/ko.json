@@ -1059,23 +1059,7 @@
     "primerLenRevHelp": "reverse primer 길이 범위(nt). 기본 19-27.",
     "autoRescueHelp": "1차 실패 mutation을 완화된 제약으로 2차 시도하여 자동 채움.",
     "seedHelp": "재현 가능한 primer 순위용 random seed. 비우면 자동(시간 기반).",
-    "tmSectionHelp": "Tm 목표값은 engine이 primer 안정성과 선택성을 균형 잡는 기준.",
-    "designMethodLabel": "설계 방식:",
-    "designMethodHelp": "클로닝 방식. Overlap-extension은 Gibson·Q5 SDM을 포함하고, Golden Gate(Type IIS)는 효소 사이트를 삽입하고 fidelity 점수 기반 overhang을 계산합니다.",
-    "methodGroup_overlap": "Overlap-extension",
-    "methodGroup_goldengate": "Golden Gate (Type IIS)",
-    "methodHint_goldengate": "{{enzyme}} 기반 Golden Gate: 효소 사이트 + fidelity 점수 overhang 삽입.",
-    "goldenGateAdvancedNote": "Golden Gate는 SantaLucia 1998 Tm(SnapGene 방식)과 fidelity 점수 기반 overhang을 사용합니다. 아래 PCR Tm·GC·길이 파라미터는 이 방식에 적용되지 않습니다.",
-    "methodHint_goldengateEnzyme": "{{enzyme}} 기반 Golden Gate ({{recognition}}, 절단 {{cutTop}}/{{cutBottom}}, {{overhang}} nt overhang): 효소 사이트 + fidelity 점수 overhang 삽입.",
-    "enzymeOptionTitle": "{{recognition}} — 절단 {{cutTop}}/{{cutBottom}}, {{overhang}} nt overhang",
-    "customEnzyme": "커스텀 효소…",
-    "junctionSectionLabel": "Junction",
-    "junctionSectionHelp": "이번 실행에 한해 junction prefix와 forbidden overhang을 재정의합니다. 비워두면 효소 카탈로그 기본값을 사용합니다.",
-    "prefixOverrideLabel": "Prefix",
-    "prefixOverridePlaceholder": "카탈로그 prefix",
-    "prefixOverrideHelp": "모든 Golden Gate primer 앞에 붙는 5' prefix(spacer + 인식 서열 + spacer)입니다. 비워두면 효소 카탈로그 prefix를 사용합니다. 인식 서열이 없거나 절단 위치가 어긋난 prefix는 각 결과에 경고로 표시됩니다.",
-    "forbiddenOverhangsLabel": "금지 overhang",
-    "forbiddenOverhangsHelp": "제외할 overhang을 쉼표/공백으로 구분해 입력합니다(예: 벡터 junction). 비워두면 기본값 AATG, AGGT를 사용합니다."
+    "tmSectionHelp": "Tm 목표값은 engine이 primer 안정성과 선택성을 균형 잡는 기준."
   },
   "designReport": {
     "title": "디자인 보고서",
@@ -2241,9 +2225,6 @@
       },
       "polymerase": {
         "label": "Polymerase"
-      },
-      "method": {
-        "label": "방식"
       }
     },
     "descriptions": {
@@ -2444,22 +2425,5 @@
     "deferredCalibrationPeriod": "라운드 3개 미만: 보정 기간으로 분류가 보류됩니다.",
     "deferredInsufficientData": "라운드 간 데이터가 충분하지 않아 신뢰도 있는 분류가 어렵습니다.",
     "deferredMixedSignals": "라운드 간 mixed signals 감지: 분류가 보류됩니다."
-  },
-  "enzymeEditor": {
-    "title": "커스텀 Type IIS 효소",
-    "description": "Golden Gate 설계용 Type IIS 제한효소를 정의합니다. ~/.kuma/kuro/custom_enzymes.json에 저장되어 재시작 후에도 유지됩니다.",
-    "nameLabel": "이름",
-    "recognitionLabel": "인식 서열",
-    "recognitionInvalid": "인식 서열은 DNA 문자열(A/C/G/T)이어야 합니다.",
-    "cutTopLabel": "절단 위치(top 가닥)",
-    "cutBottomLabel": "절단 위치(bottom 가닥)",
-    "overhangLenLabel": "Overhang 길이(nt)",
-    "aliasesLabel": "별칭(선택)",
-    "prefixLabel": "Prefix",
-    "prefixHelp": "5' prefix: spacer + 인식 서열 + spacer로, 절단 위치를 overhang에 맞춥니다(예: BsaI는 CTAGGGTCTCA).",
-    "cancel": "취소",
-    "save": "저장",
-    "saving": "저장 중…",
-    "saveError": "커스텀 효소 저장에 실패했습니다."
   }
 }

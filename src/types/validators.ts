@@ -17,8 +17,6 @@ import type {
   RpcMethodResult,
   RunBenchmarkResult,
   SaveCustomPolymeraseResult,
-  SaveCustomEnzymeResult,
-  TypeIISEnzymeInfo,
   SearchUniprotResult,
   SequenceInfo,
   SdmPrimerResult,
@@ -462,28 +460,6 @@ function isSaveCustomPolymeraseResult(value: unknown): value is SaveCustomPolyme
   );
 }
 
-
-function isSaveCustomEnzymeResult(value: unknown): value is SaveCustomEnzymeResult {
-  return (
-    isRecord(value) &&
-    isBoolean(value.success) &&
-    isString(value.name)
-  );
-}
-
-function isTypeIISEnzymeInfo(value: unknown): value is TypeIISEnzymeInfo {
-  return (
-    isRecord(value) &&
-    isString(value.name) &&
-    isStringArray(value.aliases) &&
-    isString(value.recognition) &&
-    isNumberArray(value.cut_offset) &&
-    (value.cut_offset as number[]).length === 2 &&
-    isNumber(value.overhang_len) &&
-    isBoolean(value.has_fidelity)
-  );
-}
-
 function isWorkspaceInputs(value: unknown): boolean {
   return (
     isRecord(value) &&
@@ -730,10 +706,6 @@ const rpcResultValidators = {
     isPolymeraseProfile(value),
   save_custom_polymerase: (value): value is RpcMethodResult<"save_custom_polymerase"> =>
     isSaveCustomPolymeraseResult(value),
-  list_typeiis_enzymes: (value): value is RpcMethodResult<"list_typeiis_enzymes"> =>
-    isArrayOf(value, isTypeIISEnzymeInfo),
-  save_custom_enzyme: (value): value is RpcMethodResult<"save_custom_enzyme"> =>
-    isSaveCustomEnzymeResult(value),
   list_organisms: (value): value is RpcMethodResult<"list_organisms"> =>
     isArrayOf(value, isOrganismSummary),
   load_fasta: (value): value is RpcMethodResult<"load_fasta"> =>

@@ -4,7 +4,6 @@ import { sendRequest } from "../../lib/ipc-kuro";
 import { formatError } from "../../lib/utils";
 import type { CodonStrategy, OverlapMode, PolymeraseProfile } from "../../types/models";
 import { PolymeraseEditor } from "../dialogs/PolymeraseEditor";
-import { EnzymeEditor } from "../dialogs/EnzymeEditor";
 import { Button } from "../ui/button";
 import { HelpTip } from "./InputPanel/DiversitySections";
 import { InlineHelp } from "../ui/InlineHelp";
@@ -64,23 +63,12 @@ export function ParameterPanel() {
   const setFillOnFailure = useAppStore((s) => s.setFillOnFailure);
   const overlapMode = useAppStore((s) => s.overlapMode);
   const setOverlapMode = useAppStore((s) => s.setOverlapMode);
-  const designMethod = useAppStore((s) => s.designMethod);
-  const enzyme = useAppStore((s) => s.enzyme);
-  const setDesignMethod = useAppStore((s) => s.setDesignMethod);
-  const setEnzyme = useAppStore((s) => s.setEnzyme);
-  const typeiisEnzymes = useAppStore((s) => s.typeiisEnzymes);
-  const saveCustomEnzyme = useAppStore((s) => s.saveCustomEnzyme);
-  const prefixOverride = useAppStore((s) => s.prefixOverride);
-  const setPrefixOverride = useAppStore((s) => s.setPrefixOverride);
-  const forbiddenOverhangs = useAppStore((s) => s.forbiddenOverhangs);
-  const setForbiddenOverhangs = useAppStore((s) => s.setForbiddenOverhangs);
   const randomSeed = useAppStore((s) => s.randomSeed);
   const setRandomSeed = useAppStore((s) => s.setRandomSeed);
   const setStatus = useAppStore((s) => s.setStatus);
 
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [polymeraseEditorOpen, setPolymeraseEditorOpen] = useState(false);
-  const [enzymeEditorOpen, setEnzymeEditorOpen] = useState(false);
   const [editingPolymerase, setEditingPolymerase] = useState<PolymeraseProfile | null>(null);
   const [seedStr, setSeedStr] = useState(() =>
     useAppStore.getState().randomSeed !== null
@@ -95,19 +83,6 @@ export function ParameterPanel() {
   }, [randomSeed]);
 
   const isFullOverlap = overlapMode === "full";
-  const selectedEnzyme = typeiisEnzymes.find((ez) => ez.name === enzyme) ?? null;
-  const isGoldenGate = designMethod === "goldengate";
-  const methodSelectValue = isGoldenGate ? `gg:${enzyme}` : `overlap:${overlapMode}`;
-  const onMethodSelectChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    const [prefix, rest] = e.target.value.split(":");
-    if (prefix === "gg") {
-      setDesignMethod("goldengate");
-      setEnzyme(rest);
-    } else if (prefix === "overlap" && isOverlapMode(rest)) {
-      setDesignMethod("overlap");
-      setOverlapMode(rest);
-    }
-  };
 
   const tmFwdInput = useLocalNum(tmFwd, 62, (v) => setTmTargets(v, tmRev, tmOv));
   const tmRevInput = useLocalNum(tmRev, 58, (v) => setTmTargets(tmFwd, v, tmOv));
@@ -156,65 +131,28 @@ export function ParameterPanel() {
           htmlFor="design-strategy-select"
           className="flex items-center gap-2 text-caption"
         >
-          <span className="w-24 text-muted-foreground">{t("parameterPanel.designMethodLabel")}</span>
-          <InlineHelp text={t("parameterPanel.designMethodHelp")} />
+          <span className="w-24 text-muted-foreground">{t("parameterPanel.strategyLabel")}</span>
+          <InlineHelp text={t("parameterPanel.strategyHelp")} />
           <select
             id="design-strategy-select"
             className="h-control min-w-0 flex-1 rounded-control border border-border bg-card px-3 text-caption focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            value={methodSelectValue}
-            onChange={onMethodSelectChange}
+            value={overlapMode}
+            onChange={(e) => {
+              if (isOverlapMode(e.target.value)) {
+                setOverlapMode(e.target.value);
+              }
+            }}
             aria-describedby="design-strategy-hint"
           >
-            <optgroup label={t("parameterPanel.methodGroup_overlap")}>
-              <option value="overlap:partial" title={t("parameterPanel.strategyOption_partial_title")}>{t("parameterPanel.strategyOption_partial")}</option>
-              <option value="overlap:full" title={t("parameterPanel.strategyOption_full_title")}>{t("parameterPanel.strategyOption_full")}</option>
-            </optgroup>
-            <optgroup label={t("parameterPanel.methodGroup_goldengate")}>
-              {typeiisEnzymes.map((ez) => (
-                <option
-                  key={ez.name}
-                  value={`gg:${ez.name}`}
-                  title={t("parameterPanel.enzymeOptionTitle", {
-                    recognition: ez.recognition,
-                    cutTop: ez.cut_offset[0],
-                    cutBottom: ez.cut_offset[1],
-                    overhang: ez.overhang_len,
-                  })}
-                >
-                  {ez.name} — {ez.recognition} ({ez.cut_offset[0]}/{ez.cut_offset[1]}, {ez.overhang_len} nt)
-                </option>
-              ))}
-            </optgroup>
+            <option value="partial" title={t("parameterPanel.strategyOption_partial_title")}>{t("parameterPanel.strategyOption_partial")}</option>
+            <option value="full" title={t("parameterPanel.strategyOption_full_title")}>{t("parameterPanel.strategyOption_full")}</option>
           </select>
         </label>
         <p id="design-strategy-hint" className="pl-26 text-caption text-muted-foreground">
-          {isGoldenGate
-            ? selectedEnzyme
-              ? t("parameterPanel.methodHint_goldengateEnzyme", {
-                  enzyme,
-                  recognition: selectedEnzyme.recognition,
-                  cutTop: selectedEnzyme.cut_offset[0],
-                  cutBottom: selectedEnzyme.cut_offset[1],
-                  overhang: selectedEnzyme.overhang_len,
-                })
-              : t("parameterPanel.methodHint_goldengate", { enzyme })
-            : isFullOverlap
-              ? t("parameterPanel.strategyHint_full")
-              : t("parameterPanel.strategyHint_partial")}
+          {isFullOverlap
+            ? t("parameterPanel.strategyHint_full")
+            : t("parameterPanel.strategyHint_partial")}
         </p>
-        {isGoldenGate && (
-          <div className="flex justify-end">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-control rounded-control"
-              onClick={() => setEnzymeEditorOpen(true)}
-            >
-              {t("parameterPanel.customEnzyme")}
-            </Button>
-          </div>
-        )}
       </div>
 
       <div className="space-y-1">
@@ -309,41 +247,6 @@ export function ParameterPanel() {
       >
         <div className="space-y-1">
           {/* Tm — branches by strategy */}
-          {isGoldenGate && (
-            <>
-              <p className="text-caption text-muted-foreground">{t("parameterPanel.goldenGateAdvancedNote")}</p>
-              <div className="pt-0.5 text-caption uppercase tracking-wider text-muted-foreground">
-                <span className="inline-flex items-center gap-1.5">
-                  {t("parameterPanel.junctionSectionLabel")}
-                  <InlineHelp text={t("parameterPanel.junctionSectionHelp")} />
-                </span>
-              </div>
-              <label className="flex items-center gap-2 text-caption">
-                <span className="w-24 text-muted-foreground shrink-0">{t("parameterPanel.prefixOverrideLabel")}</span>
-                <input
-                  type="text"
-                  className="h-control min-w-0 flex-1 rounded-control border border-border bg-card px-2 text-caption focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  value={prefixOverride}
-                  placeholder={selectedEnzyme?.recognition ? `${selectedEnzyme.name}: catalog prefix` : t("parameterPanel.prefixOverridePlaceholder")}
-                  onChange={(e) => setPrefixOverride(e.target.value)}
-                />
-                <InlineHelp text={t("parameterPanel.prefixOverrideHelp")} />
-              </label>
-              <label className="flex items-center gap-2 text-caption">
-                <span className="w-24 text-muted-foreground shrink-0">{t("parameterPanel.forbiddenOverhangsLabel")}</span>
-                <input
-                  type="text"
-                  className="h-control min-w-0 flex-1 rounded-control border border-border bg-card px-2 text-caption focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  value={forbiddenOverhangs}
-                  placeholder="AATG, AGGT"
-                  onChange={(e) => setForbiddenOverhangs(e.target.value)}
-                />
-                <InlineHelp text={t("parameterPanel.forbiddenOverhangsHelp")} />
-              </label>
-            </>
-          )}
-          {!isGoldenGate && (
-            <>
           <div className="pt-0.5 text-caption uppercase tracking-wider text-muted-foreground" title={t("parameterPanel.tmSectionTitle")}>
             <span className="inline-flex items-center gap-1.5">
               {t("parameterPanel.tmSectionLabel")}
@@ -464,8 +367,6 @@ export function ParameterPanel() {
           {primerLenEnabled && isFullOverlap && fwdLenMin >= fwdLenMax && (
             <div className="text-caption text-error pl-8">{t("parameterPanel.primerLenInvalidError")}</div>
           )}
-            </>
-          )}
 
           {/* Design Behavior */}
           <div className="pt-1.5 text-caption uppercase tracking-wider text-muted-foreground">{t("parameterPanel.designSectionLabel")}</div>
@@ -530,12 +431,6 @@ export function ParameterPanel() {
         profile={editingPolymerase}
         onOpenChange={setPolymeraseEditorOpen}
         onSave={saveCustomPolymerase}
-      />
-
-      <EnzymeEditor
-        open={enzymeEditorOpen}
-        onOpenChange={setEnzymeEditorOpen}
-        onSave={saveCustomEnzyme}
       />
     </section>
   );

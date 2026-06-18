@@ -13,7 +13,6 @@ from sidecar_kuro.core import (
     _poly_registry,
     _codon_registry,
     _CUSTOM_POLYMERASE_PATH,
-    _CUSTOM_ENZYME_PATH,
     _get_cached_ca_coords,
 )
 from sidecar_kuro.models import (
@@ -22,8 +21,6 @@ from sidecar_kuro.models import (
     PreviewEvolveproSourceParams,
     RunBenchmarkParams,
     SaveCustomPolymeraseResultModel,
-    SaveCustomEnzymeResultModel,
-    CustomEnzymeParams,
 )
 
 # EVOLVEpro-specific table extensions: CSV, TSV, and XLSX.
@@ -59,34 +56,6 @@ def handle_list_polymerases(_params: dict) -> list[dict]:
     return result
 
 
-def handle_list_typeiis_enzymes(_params: dict) -> list[dict]:
-    """Return the Type IIS enzyme catalog (built-in + custom) for Golden Gate design.
-
-    Drives the Kuro Parameters "Design method" Golden Gate options: each entry
-    carries the recognition site + cut offset so the UI can display exactly what
-    will be inserted, and ``has_fidelity`` indicates whether a bundled overhang
-    ligation-fidelity table backs scored overhang selection for that enzyme.
-    User-defined enzymes from ``custom_enzymes.json`` are merged in.
-    """
-    from kuma_core.kuro.goldengate import load_enzyme_db, load_overhang_scores
-
-    db = load_enzyme_db(custom_path=_CUSTOM_ENZYME_PATH)
-    result: list[dict] = []
-    for name in sorted(db):
-        enz = db[name]
-        result.append(
-            {
-                "name": enz.name,
-                "aliases": list(enz.aliases),
-                "recognition": enz.recognition,
-                "cut_offset": list(enz.cut_offset),
-                "overhang_len": enz.overhang_len,
-                "has_fidelity": bool(load_overhang_scores(enz)),
-            }
-        )
-    return result
-
-
 def handle_get_polymerase_details(params: dict) -> dict:
     """Return full polymerase profile for the selected name."""
     name = params.get("name", "")
@@ -100,16 +69,6 @@ def handle_save_custom_polymerase(params: dict) -> dict:
     _CUSTOM_POLYMERASE_PATH.parent.mkdir(parents=True, exist_ok=True)
     _poly_registry.save_custom(profile, _CUSTOM_POLYMERASE_PATH)
     return SaveCustomPolymeraseResultModel(name=profile.name).to_rpc_dict()
-
-
-def handle_save_custom_enzyme(params: dict) -> dict:
-    """Validate and persist a custom Type IIS enzyme; keep it available after restart."""
-    from kuma_core.kuro.goldengate import save_custom_enzyme
-
-    enzyme = CustomEnzymeParams.model_validate(params)
-    _CUSTOM_ENZYME_PATH.parent.mkdir(parents=True, exist_ok=True)
-    saved = save_custom_enzyme(enzyme.to_enzyme_dict(), _CUSTOM_ENZYME_PATH)
-    return SaveCustomEnzymeResultModel(name=saved.name).to_rpc_dict()
 
 
 def handle_list_organisms(_params: dict) -> list[dict]:
