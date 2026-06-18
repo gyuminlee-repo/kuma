@@ -31,11 +31,10 @@ Project folders keep Kuro design output and Mame verification linked across the 
 
 ### Kuro — SDM primer design
 
-Given a mutation list (plain text / EVOLVEpro CSV) and a template sequence (GenBank / SnapGene), Kuro automatically designs SDM primer pairs. Pick the cloning chemistry per run in the Parameters step: **overlap-extension** (default) or **Golden Gate (Type IIS)**.
+Given a mutation list (plain text / EVOLVEpro CSV) and a template sequence (GenBank / SnapGene), Kuro automatically designs overlap-extension SDM primer pairs.
 
 **Highlights**
 
-- **Two design methods** — overlap-extension SDM (default) and Golden Gate (Type IIS)
 - **EVOLVEpro-driven selection** — Top-N plus position / domain / Pareto / entropy diversity and a σ-Adaptive candidate pool
 - **Calibrated chemistry** — eight polymerase profiles (+ custom), SantaLucia 1998 Tm, GC / length / tolerance controls
 - **Built-in QC** — primer3 hairpin/homodimer, off-target scan, oligo synthesis-quality score, AlphaFold 3D distance
@@ -47,9 +46,7 @@ Given a mutation list (plain text / EVOLVEpro CSV) and a template sequence (GenB
 
 #### Design methods
 
-- **Two design methods**: *Overlap-extension SDM* (default, output unchanged) and *Golden Gate (Type IIS)*. Golden Gate designs primers that insert the enzyme recognition site plus a ligation-fidelity-scored fusion overhang around each mutated codon, for scarless Type IIS assembly. Golden Gate annealing Tm uses the same SantaLucia 1998 (SnapGene) model as overlap-extension, batch-normalised to within +4°C of the lowest initial Tm (down to a 20 nt floor)
-- **Type IIS enzyme catalog + custom enzymes**: Six built-in enzymes (BsaI, BsmBI, BbsI, SapI, PaqCI, BspMI). BsaI and BsmBI ship with on-target ligation-fidelity tables (Potapov 2018) that drive overhang selection; the rest fall back to a functional unscored overhang. Define your own via the **Custom Type IIS enzyme** editor, persisted at `~/.kuma/kuro/custom_enzymes.json`. Codon usage is organism-aware (Kazusa, deterministic frequency-descending tiebreak) and skips any codon that would create a forbidden Type IIS site inside the design window
-- **Per-run junction overrides**: Override the junction prefix (spacer + recognition site + spacer) and forbidden overhangs (default `AATG`, `AGGT`) for your vector. Cut-site geometry is validated — a prefix that omits the recognition site or mis-positions the cut surfaces a warning on each result
+- **Overlap-extension SDM**: Forward and reverse primers with the overlap placed upstream of the mutation codon. Two overlap modes are available, *Partial overlap (Gibson)* (default; forward and reverse independent) and *Full overlap (Q5 SDM)* (reverse = reverse-complement of forward). Annealing Tm uses the SantaLucia 1998 (SnapGene) model
 - **Overlap upstream design**: Overlap region is placed immediately upstream of the mutation codon (EVOLVEpro convention)
 
 #### Mutation input & candidate selection
