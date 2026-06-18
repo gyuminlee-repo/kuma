@@ -17,6 +17,7 @@ export interface SidecarKuroModels {
   BenchmarkResultModel?: BenchmarkResultModel;
   CheckStructuresParams?: CheckStructuresParams;
   CommitDesignResultParams?: CommitDesignResultParams;
+  CommonPrimerModel?: CommonPrimerModel;
   CustomEnzymeParams?: CustomEnzymeParams;
   DesignResultResponseModel?: DesignResultResponseModel;
   DesignSdmPrimersParams?: DesignSdmPrimersParams;
@@ -317,6 +318,19 @@ export interface CommitDesignResultParams {
   [k: string]: unknown;
 }
 /**
+ * A batch-fixed common primer for two-fragment Golden Gate assembly.
+ */
+export interface CommonPrimerModel {
+  annealing: string;
+  forward: boolean;
+  name: string;
+  overhang: string;
+  sequence: string;
+  tm?: number | null;
+  tm_method?: string | null;
+  [k: string]: unknown;
+}
+/**
  * Input model for a user-defined Type IIS enzyme (save_custom_enzyme RPC).
  */
 export interface CustomEnzymeParams {
@@ -335,6 +349,7 @@ export interface CustomEnzymeParams {
 }
 export interface DesignResultResponseModel {
   cancelled?: boolean | null;
+  common_primers?: CommonPrimerModel[];
   failed_mutations?: FailedMutationModel[];
   rescue_stats?: RescueStatsModel | null;
   rescued_mutations?: RescuedMutationModel[] | null;
@@ -382,6 +397,8 @@ export interface DesignSdmPrimersParams {
   enzyme?: string | null;
   fasta_path: string;
   forbidden_overhangs?: string[] | null;
+  frag1_overhang?: string | null;
+  frag2_overhang?: string | null;
   fwd_len_max?: number | null;
   fwd_len_min?: number | null;
   gc_max?: number;

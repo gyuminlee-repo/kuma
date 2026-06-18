@@ -224,7 +224,7 @@ class TestTmMethodAndExport:
         assert gg.TM_METHOD == "santalucia"
 
     def test_export_header_advertises_santalucia(self, tmp_path) -> None:
-        results, _failed = gg.design_goldengate_batch("ATGAAACGTTAA", "MKR*", ["R3K"], enzyme="BsaI")
+        results, _common, _failed = gg.design_goldengate_batch("ATGAAACGTTAA", "MKR*", ["R3K"], enzyme="BsaI")
         out = tmp_path / "gg.tsv"
         gg.export_goldengate_tsv(results, out, enzyme="BsaI")
         text = out.read_text(encoding="utf-8")
@@ -316,7 +316,7 @@ class TestCdsAndBatch:
 
     def test_batch_collects_successes_and_failures(self) -> None:
         cds = "ATGAAACGTTAA"  # M K R *
-        results, failed = gg.design_goldengate_batch(
+        results, _common, failed = gg.design_goldengate_batch(
             cds, "MKR*", ["R3K", "Z9Q", "M1Q", "K2"], enzyme="BsaI",
         )
         assert all(r.status == "success" for r in results)
@@ -332,6 +332,81 @@ class TestCdsAndBatch:
     def test_batch_extract_cds_integration(self) -> None:
         template = "TT" + "ATGAAACGTTAA" + "GG"
         cds = gg.extract_cds(template, 2)
-        results, failed = gg.design_goldengate_batch(cds, "MKR*", ["R3K"], enzyme="BsaI")
+        results, _common, failed = gg.design_goldengate_batch(cds, "MKR*", ["R3K"], enzyme="BsaI")
         assert len(results) == 1 and not failed
         assert results[0].forward_seq.startswith("CTAGGGTCTCA")  # BsaI prefix inserted
+
+class TestCommonPrimersAndFragOverhangs:
+    """GASM v2: two-fragment assembly common primers + fixed frag junction overhangs."""
+
+    # ATG + 40 codons + stop, valid CDS/protein.
+    _CDS = "ATG" + ("GCTAAACGTGGTCTGGAAGACTTCCACATC" * 4) + "TAA"
+
+    def _design(self, muts, **kw):
+        prot = gg.translate_dna(self._CDS)
+        return gg.design_goldengate_batch(self._CDS, prot, muts, enzyme="BsaI", **kw)
+
+    def test_common_primers_construction_defaults(self) -> None:
+        from kuma_core.kuro.overlap import reverse_complement as rc
+        prot = gg.translate_dna(self._CDS)
+        m = f"{prot[6]}7A"
+        _results, common, _failed = self._design([m])
+        assert {c.name for c in common} == {"cds_frag1_forward", "cds_frag2_reverse"}
+        f1 = next(c for c in common if c.name == "cds_frag1_forward")
+        f2 = next(c for c in common if c.name == "cds_frag2_reverse")
+        # frag1: prefix + AATG + annealing after the start codon (ATG carried by AATG).
+        assert f1.forward is True and f1.overhang == "AATG"
+        assert f1.sequence == "CTAGGGTCTCA" + "AATG" + f1.annealing
+        assert f1.annealing == self._CDS[3:3 + len(f1.annealing)]
+        # frag2: prefix + AGGT + rc(CDS 3' terminus); AGGT is a non-overlapping scar.
+        assert f2.forward is False and f2.overhang == "AGGT"
+        assert f2.sequence == "CTAGGGTCTCA" + "AGGT" + f2.annealing
+        assert f2.annealing == rc(self._CDS[-len(f2.annealing):])
+        # Tm present and computed with the SantaLucia (calc_sdm_tm) method.
+        for c in common:
+            assert c.tm == round(gg.calc_sdm_tm(c.annealing), 2)
+            assert len(c.annealing) >= gg.MIN_ANNEALING_LENGTH
+
+    def test_common_primers_join_destination_overhangs(self) -> None:
+        prot = gg.translate_dna(self._CDS)
+        _r, common, _f = self._design([f"{prot[6]}7A"], frag1_overhang="CATG", frag2_overhang="GCTT")
+        f1 = next(c for c in common if c.name == "cds_frag1_forward")
+        f2 = next(c for c in common if c.name == "cds_frag2_reverse")
+        assert f1.overhang == "CATG" and f1.sequence.startswith("CTAGGGTCTCA" + "CATG")
+        assert f2.overhang == "GCTT" and f2.sequence.startswith("CTAGGGTCTCA" + "GCTT")
+
+    def test_frag_overhangs_excluded_from_variant_candidates(self) -> None:
+        prot = gg.translate_dna(self._CDS)
+        muts = [f"{prot[i]}{i + 1}A" for i in range(5, 30)]
+        results, _common, _failed = self._design(muts)
+        # No successful variant overhang collides with the fixed junctions.
+        assert all(r.overhang not in ("AATG", "AGGT") for r in results if r.status == "success")
+
+    def test_extra_forbidden_overhangs_union_with_frags(self) -> None:
+        prot = gg.translate_dna(self._CDS)
+        muts = [f"{prot[i]}{i + 1}A" for i in range(5, 30)]
+        results, _common, _failed = self._design(muts, forbidden_overhangs=["GCTC"])
+        seen = {r.overhang for r in results if r.status == "success"}
+        # Frag defaults AND the extra entry are all excluded.
+        assert not (seen & {"AATG", "AGGT", "GCTC"})
+
+    def test_common_tm_within_batch_ceiling(self) -> None:
+        prot = gg.translate_dna(self._CDS)
+        muts = [f"{prot[i]}{i + 1}A" for i in range(8, 24)]
+        results, common, _failed = self._design(muts)
+        tms = [v for r in results if r.status == "success"
+               for v in (r.left_tm, r.right_tm) if v is not None]
+        tms += [c.tm for c in common if c.tm is not None]
+        ceiling = min(tms) + gg.GLOBAL_TM_WINDOW
+        # Every primer either sits under the ceiling or is trimmed to the floor length.
+        for c in common:
+            assert c.tm <= ceiling + 0.01 or len(c.annealing) == gg.MIN_ANNEALING_LENGTH
+
+    def test_export_includes_common_section(self, tmp_path) -> None:
+        prot = gg.translate_dna(self._CDS)
+        results, common, _failed = self._design([f"{prot[6]}7A"])
+        out = tmp_path / "gg_common.tsv"
+        gg.export_goldengate_tsv(results, out, enzyme="BsaI", common=common)
+        text = out.read_text(encoding="utf-8")
+        assert "# common_primers" in text
+        assert "cds_frag1_forward" in text and "cds_frag2_reverse" in text

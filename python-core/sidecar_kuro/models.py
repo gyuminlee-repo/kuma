@@ -88,6 +88,10 @@ class DesignSdmPrimersParams(BaseModel):
     # forbidden overhangs (AATG/AGGT). Only consulted for design_method="goldengate".
     prefix_override: Optional[str] = None
     forbidden_overhangs: Optional[list[str]] = None
+    # Two-fragment Golden Gate fixed junction overhangs (CDS 5'/3' ends). None →
+    # AATG / AGGT. Auto-excluded from per-mutation overhang candidates.
+    frag1_overhang: Optional[str] = None
+    frag2_overhang: Optional[str] = None
 
 
 class RetryFailedParams(BaseModel):
@@ -334,6 +338,18 @@ class AlternativesResultModel(WorkspaceModel):
     candidates: list[SdmPrimerResultModel] = Field(default_factory=list)
 
 
+class CommonPrimerModel(WorkspaceModel):
+    """A batch-fixed common primer for two-fragment Golden Gate assembly."""
+
+    name: str
+    forward: bool
+    overhang: str
+    sequence: str
+    annealing: str
+    tm: Optional[float] = None
+    tm_method: Optional[str] = None
+
+
 class DesignResultResponseModel(WorkspaceModel):
     results: list[SdmPrimerResultModel] = Field(default_factory=list)
     success_count: int
@@ -342,6 +358,9 @@ class DesignResultResponseModel(WorkspaceModel):
     rescue_stats: Optional[RescueStatsModel] = None
     rescued_mutations: Optional[list[RescuedMutationModel]] = None
     cancelled: Optional[bool] = None
+    # Golden Gate two-fragment assembly: the two batch-fixed common primers
+    # (cds_frag1_forward / cds_frag2_reverse). Empty for overlap-extension.
+    common_primers: list[CommonPrimerModel] = Field(default_factory=list)
 
 
 class FileExportResultModel(WorkspaceModel):

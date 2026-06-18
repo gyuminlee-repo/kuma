@@ -204,12 +204,14 @@ def _run_goldengate(
     _header, sequence, _genes = load_sequence(resolved_fasta)
     cds = extract_cds(sequence, p.target_start)
     protein = translate_dna(cds)
-    results, failed = design_goldengate_batch(
+    results, common_primers, failed = design_goldengate_batch(
         cds, protein, mutation_strings,
         enzyme=(p.enzyme or "BsaI"),
         organism=p.organism,
         prefix_override=p.prefix_override,
         forbidden_overhangs=p.forbidden_overhangs,
+        frag1_overhang=p.frag1_overhang or "AATG",
+        frag2_overhang=p.frag2_overhang or "AGGT",
     )
     _progress(100, "Design complete")
 
@@ -230,6 +232,14 @@ def _run_goldengate(
         failed_mutations=failed_list,
         rescue_stats={"pool_cascade": 0, "auto_relax": 0, "positions_attempted": 0, "pool_variants_tried": 0},
         rescued_mutations=[],
+        common_primers=[
+            {
+                "name": c.name, "forward": c.forward, "overhang": c.overhang,
+                "sequence": c.sequence, "annealing": c.annealing,
+                "tm": c.tm, "tm_method": c.tm_method,
+            }
+            for c in common_primers
+        ],
     ).to_rpc_dict()
 
 

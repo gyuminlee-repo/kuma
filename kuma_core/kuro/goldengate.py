@@ -57,8 +57,17 @@ TM_METHOD = "santalucia"
 # Default forbidden internal sites: all bundled Type IIS recognition sites. Both the
 # motif and its reverse complement are screened (rc handled in contains_forbidden_site).
 DEFAULT_FORBIDDEN_SITES = ["GGTCTC", "CGTCTC", "GAAGAC"]
-# Overhangs reserved for vector/destination junctions (default catalog convention).
-DEFAULT_FORBIDDEN_OVERHANGS = ["AATG", "AGGT"]
+# Fixed fragment-junction overhangs for two-fragment Golden Gate assembly. ``frag1``
+# is the CDS 5' end (carries the start codon for the default AATG); ``frag2`` is the
+# CDS 3' end. They are always excluded from per-mutation overhang candidates so a
+# variant overhang never collides with a fixed junction.
+DEFAULT_FRAG1_OVERHANG = "AATG"
+DEFAULT_FRAG2_OVERHANG = "AGGT"
+# Initial annealing length for the common primers before batch Tm trimming.
+_COMMON_ANNEAL_INIT = 40
+# Backward-compatible alias: the default forbidden overhangs are exactly the two fixed
+# fragment-junction overhangs.
+DEFAULT_FORBIDDEN_OVERHANGS = [DEFAULT_FRAG1_OVERHANG, DEFAULT_FRAG2_OVERHANG]
 
 _VALID_AA = set("ACDEFGHIKLMNPQRSTVWY*")
 
@@ -114,6 +123,25 @@ class GoldenGateResult:
     design_method: str = "goldengate"
     warnings: list[str] = field(default_factory=list)
     evaluated_codons: list[dict] = field(default_factory=list)
+
+
+@dataclass
+class CommonPrimer:
+    """A batch-fixed common primer for two-fragment Golden Gate assembly.
+
+    ``cds_frag1_forward`` and ``cds_frag2_reverse`` are shared by every mutation in a
+    batch (they amplify the CDS termini that join the destination vector parts). Built
+    as ``prefix + overhang + annealing`` for both, where ``annealing`` is already the
+    directional template-binding sequence (reverse-complemented for the reverse primer).
+    """
+
+    name: str  # "cds_frag1_forward" | "cds_frag2_reverse"
+    forward: bool
+    overhang: str
+    sequence: str = ""
+    annealing: str = ""
+    tm: Optional[float] = None
+    tm_method: str = TM_METHOD
 
 
 # --------------------------------------------------------------------------- #
@@ -438,17 +466,24 @@ def _trim_annealing(sequence: str, tm_max: float) -> tuple[str, Optional[float]]
     return trimmed, round(calc_sdm_tm(trimmed), 2)
 
 
-def apply_global_tm_trim(results: list[GoldenGateResult], prefix: str) -> list[GoldenGateResult]:
-    """Trim every successful annealing region to a shared Tm ceiling.
+def apply_global_tm_trim(
+    results: list[GoldenGateResult],
+    prefix: str,
+    common: list["CommonPrimer"] | None = None,
+) -> list[GoldenGateResult]:
+    """Trim every successful variant (and common) annealing to a shared Tm ceiling.
 
-    Ceiling = min(all initial left/right Tm) + GLOBAL_TM_WINDOW, floored at
-    MIN_ANNEALING_LENGTH. Rebuilds the primers from the trimmed regions.
+    Ceiling = min(all initial variant + common Tm) + GLOBAL_TM_WINDOW, floored at
+    MIN_ANNEALING_LENGTH. Rebuilds the primers from the trimmed regions. Common primers
+    participate in the ceiling so the whole batch amplifies under one Tm window.
     """
     tms = [
         v
         for r in results if r.status == "success"
         for v in (r.left_tm, r.right_tm) if v is not None
     ]
+    if common:
+        tms += [c.tm for c in common if c.tm is not None]
     if not tms:
         return results
     ceiling = round(min(tms) + GLOBAL_TM_WINDOW, 2)
@@ -461,7 +496,67 @@ def apply_global_tm_trim(results: list[GoldenGateResult], prefix: str) -> list[G
         r.left_tm, r.right_tm = left_tm, right_tm
         r.reverse_seq = prefix + reverse_complement(r.overhang) + left_trim
         r.forward_seq = prefix + r.overhang + right_trim
+    for c in (common or []):
+        trimmed, tm = _trim_annealing(c.annealing, ceiling)
+        c.annealing, c.tm = trimmed, tm
+        c.sequence = prefix + c.overhang + trimmed
     return results
+
+
+def _suffix_prefix_overlap(suffix_src: str, prefix_src: str) -> int:
+    """Length of the longest suffix of ``suffix_src`` equal to a prefix of ``prefix_src``."""
+    m = min(len(suffix_src), len(prefix_src))
+    for k in range(m, 0, -1):
+        if suffix_src[-k:] == prefix_src[:k]:
+            return k
+    return 0
+
+
+def build_common_primers(
+    dna: str,
+    prefix: str,
+    frag1_overhang: str = DEFAULT_FRAG1_OVERHANG,
+    frag2_overhang: str = DEFAULT_FRAG2_OVERHANG,
+) -> list[CommonPrimer]:
+    """Build the two batch-fixed common primers for two-fragment Golden Gate assembly.
+
+    - ``cds_frag1_forward`` = ``prefix + frag1_overhang + annealing``. The overhang may
+      carry the CDS 5' start (default ``AATG`` whose ``ATG`` is the start codon), so the
+      annealing begins just past the overlap (detected automatically).
+    - ``cds_frag2_reverse`` = ``prefix + frag2_overhang + rc(CDS 3'-terminal annealing)``.
+      The default ``AGGT`` is a junction scar that does not overlap the CDS.
+
+    Returned untrimmed; ``apply_global_tm_trim`` trims them to the batch ceiling.
+    """
+    f1 = frag1_overhang.upper()
+    f2 = frag2_overhang.upper()
+    off = _suffix_prefix_overlap(f1, dna)
+    f1_anneal = dna[off:off + _COMMON_ANNEAL_INIT]
+    frag1 = CommonPrimer(
+        name="cds_frag1_forward", forward=True, overhang=f1,
+        annealing=f1_anneal, sequence=prefix + f1 + f1_anneal,
+        tm=round(calc_sdm_tm(f1_anneal), 2) if f1_anneal else None,
+    )
+    tail = dna[-_COMMON_ANNEAL_INIT:] if len(dna) >= _COMMON_ANNEAL_INIT else dna
+    f2_anneal = reverse_complement(tail)
+    frag2 = CommonPrimer(
+        name="cds_frag2_reverse", forward=False, overhang=f2,
+        annealing=f2_anneal, sequence=prefix + f2 + f2_anneal,
+        tm=round(calc_sdm_tm(f2_anneal), 2) if f2_anneal else None,
+    )
+    return [frag1, frag2]
+
+
+def _effective_forbidden_overhangs(
+    frag1_overhang: str,
+    frag2_overhang: str,
+    extra: list[str] | None,
+) -> list[str]:
+    """Forbidden overhang set = the two fixed fragment junctions plus any extra list."""
+    out = {frag1_overhang.upper(), frag2_overhang.upper()}
+    if extra:
+        out |= {o.upper() for o in extra}
+    return sorted(out)
 
 
 # --------------------------------------------------------------------------- #
@@ -562,6 +657,8 @@ def design_goldengate(
     enzyme_db: dict[str, Enzyme] | None = None,
     organism: str = "ecoli",
     prefix_override: str | None = None,
+    frag1_overhang: str = DEFAULT_FRAG1_OVERHANG,
+    frag2_overhang: str = DEFAULT_FRAG2_OVERHANG,
 ) -> list[GoldenGateResult]:
     """Design Golden Gate primers for a batch of independent mutations.
 
@@ -572,7 +669,7 @@ def design_goldengate(
     enz = get_enzyme(enzyme, enzyme_db)
     scores = load_overhang_scores(enz)
     sites = list(forbidden_sites) if forbidden_sites is not None else list(DEFAULT_FORBIDDEN_SITES)
-    overhangs = list(forbidden_overhangs) if forbidden_overhangs is not None else list(DEFAULT_FORBIDDEN_OVERHANGS)
+    overhangs = _effective_forbidden_overhangs(frag1_overhang, frag2_overhang, forbidden_overhangs)
     eff_prefix = prefix_override if prefix_override is not None else enz.prefix
     prefix_warnings = _validate_prefix_geometry(eff_prefix, enz) if prefix_override is not None else []
     results = [
@@ -623,19 +720,22 @@ def design_goldengate_batch(
     enzyme_db: dict[str, Enzyme] | None = None,
     organism: str = "ecoli",
     prefix_override: str | None = None,
-) -> tuple[list[GoldenGateResult], dict[str, str]]:
+    frag1_overhang: str = DEFAULT_FRAG1_OVERHANG,
+    frag2_overhang: str = DEFAULT_FRAG2_OVERHANG,
+) -> tuple[list[GoldenGateResult], list[CommonPrimer], dict[str, str]]:
     """Fault-tolerant batch design for the sidecar handler.
 
     Validates the DNA<->protein contract once, then designs each mutation
     independently. Per-mutation problems (bad notation, source mismatch, no valid
     codon/overhang) are collected into ``failed`` instead of aborting the batch.
-    Returns ``(successful_results, failed_reasons)`` with batch Tm trimming applied.
+    Returns ``(successful_results, common_primers, failed_reasons)`` with batch Tm
+    trimming applied across variant and common primers.
     """
     _validate_dna_protein(dna, protein)
     enz = get_enzyme(enzyme, enzyme_db)
     scores = load_overhang_scores(enz)
     sites = list(forbidden_sites) if forbidden_sites is not None else list(DEFAULT_FORBIDDEN_SITES)
-    overhangs = list(forbidden_overhangs) if forbidden_overhangs is not None else list(DEFAULT_FORBIDDEN_OVERHANGS)
+    overhangs = _effective_forbidden_overhangs(frag1_overhang, frag2_overhang, forbidden_overhangs)
     eff_prefix = prefix_override if prefix_override is not None else enz.prefix
     prefix_warnings = _validate_prefix_geometry(eff_prefix, enz) if prefix_override is not None else []
 
@@ -654,14 +754,16 @@ def design_goldengate_batch(
             results.append(r)
         else:
             failed[m] = r.warnings[0] if r.warnings else r.status
-    apply_global_tm_trim(results, eff_prefix)
-    return results, failed
+    common = build_common_primers(dna, eff_prefix, frag1_overhang, frag2_overhang)
+    apply_global_tm_trim(results, eff_prefix, common)
+    return results, common, failed
 
 
 def export_goldengate_tsv(
     results: list[GoldenGateResult],
     output_path: Path,
     enzyme: str = "BsaI",
+    common: list[CommonPrimer] | None = None,
 ) -> None:
     """Export Golden Gate results to TSV with method/Tm provenance header.
 
@@ -700,3 +802,19 @@ def export_goldengate_tsv(
                 "Status": r.status,
                 "Warnings": "; ".join(r.warnings) if r.warnings else "",
             })
+        if common:
+            fh.write("\n# common_primers (shared by all mutations)\n")
+            common_writer = csv.DictWriter(
+                fh,
+                fieldnames=["Name", "Overhang", "Primer", "Annealing", "Tm"],
+                delimiter="\t",
+            )
+            common_writer.writeheader()
+            for c in common:
+                common_writer.writerow({
+                    "Name": c.name,
+                    "Overhang": c.overhang,
+                    "Primer": c.sequence,
+                    "Annealing": c.annealing,
+                    "Tm": "" if c.tm is None else f"{c.tm:.2f}",
+                })

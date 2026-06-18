@@ -109,19 +109,21 @@ def _cmd_design_goldengate(args: argparse.Namespace, output_dir: Path) -> None:
     forbidden_overhangs = None
     if getattr(args, "forbidden_overhangs", None):
         forbidden_overhangs = [s.strip().upper() for s in args.forbidden_overhangs.replace(",", " ").split() if s.strip()]
-    results, failed = design_goldengate_batch(
+    results, common, failed = design_goldengate_batch(
         cds, protein, mutations,
         enzyme=args.enzyme,
         organism=getattr(args, "organism", "ecoli"),
         prefix_override=getattr(args, "prefix_override", None),
         forbidden_overhangs=forbidden_overhangs,
+        frag1_overhang=getattr(args, "frag1_overhang", None) or "AATG",
+        frag2_overhang=getattr(args, "frag2_overhang", None) or "AGGT",
     )
     if not results:
         logging.error("No Golden Gate primers designed. Failures: %s", failed)
         sys.exit(1)
 
     tsv_path = output_dir / "goldengate_primers.tsv"
-    export_goldengate_tsv(results, tsv_path, enzyme=args.enzyme)
+    export_goldengate_tsv(results, tsv_path, enzyme=args.enzyme, common=common)
     logging.info("Golden Gate primer results saved to %s", tsv_path)
 
     print(f"\n{'='*60}")
@@ -286,6 +288,14 @@ def main() -> None:
     design_parser.add_argument(
         "--forbidden-overhangs", default=None,
         help="Golden Gate: comma/space-separated overhangs to exclude (default: AATG,AGGT)"
+    )
+    design_parser.add_argument(
+        "--frag1-overhang", default=None,
+        help="Golden Gate: fixed CDS 5' junction overhang for the common frag1 forward primer (default: AATG)"
+    )
+    design_parser.add_argument(
+        "--frag2-overhang", default=None,
+        help="Golden Gate: fixed CDS 3' junction overhang for the common frag2 reverse primer (default: AGGT)"
     )
 
     # plate-map subcommand
