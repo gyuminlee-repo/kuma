@@ -61,6 +61,9 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
   typeiisEnzymes: [],
   prefixOverride: "",
   forbiddenOverhangs: "",
+  frag1Overhang: "",
+  frag2Overhang: "",
+  commonPrimers: [],
   randomSeed: null,
   manuallySwapped: {},
   customCandidates: {},
@@ -160,6 +163,8 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       enzyme,
       prefixOverride,
       forbiddenOverhangs,
+      frag1Overhang,
+      frag2Overhang,
       mutationInputMode,
       selectedPolymerase,
       randomSeed,
@@ -258,6 +263,8 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         randomSeed,
         prefixOverride,
         forbiddenOverhangs,
+        frag1Overhang,
+        frag2Overhang,
       });
       const result = await sendRequest("design_sdm_primers", payload, 300_000);
       if (result.cancelled) {
@@ -289,6 +296,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         plateMappings: plateState.plateMappings,
         dedupInfo: plateState.dedupInfo,
         statusMessage: processed.statusMessage,
+        commonPrimers: result.common_primers ?? [],
       });
 
       const fillSourcePath = get().evolveproMode === "others"
@@ -523,6 +531,8 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
   setEnzyme: (enzyme) => set({ enzyme }),
   setPrefixOverride: (value: string) => set({ prefixOverride: value }),
   setForbiddenOverhangs: (value: string) => set({ forbiddenOverhangs: value }),
+  setFrag1Overhang: (value: string) => set({ frag1Overhang: value }),
+  setFrag2Overhang: (value: string) => set({ frag2Overhang: value }),
 
   setRandomSeed: (seed: number | null) => set({ randomSeed: seed }),
 

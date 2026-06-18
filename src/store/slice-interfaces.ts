@@ -30,6 +30,7 @@ import type {
   PolymeraseInfo,
   PolymeraseProfile,
   TypeIISEnzymeInfo,
+  CommonPrimer,
   CustomEnzyme,
   RescueStats,
   RescuedMutation,
@@ -231,6 +232,9 @@ export interface DesignSlice {
   /** Golden Gate junction overrides (per-run; empty = catalog defaults). */
   prefixOverride: string;
   forbiddenOverhangs: string;
+  /** Two-fragment Golden Gate fixed junction overhangs (empty = AATG / AGGT). */
+  frag1Overhang: string;
+  frag2Overhang: string;
   /** §12 Optional RNG seed. null = non-deterministic (backend default). */
   randomSeed: number | null;
   manuallySwapped: Record<string, "fwd" | "rev" | "both">;
@@ -239,6 +243,8 @@ export interface DesignSlice {
   rescuedMutations: string[];
   rescueStats: RescueStats;
   rescuedMutationDetails: RescuedMutation[];
+  /** Golden Gate two-fragment assembly: batch-fixed common primers from the last design. */
+  commonPrimers: CommonPrimer[];
   /** @deprecated Phase C (v0.9.2): popup auto-mount removed. Report now renders
    * inline via DesignReportInspector. Slice retained for legacy Dialog wrapper
    * (DesignReport.tsx) in case manual entry is reintroduced. Do not persist. */
@@ -290,6 +296,8 @@ export interface DesignSlice {
   saveCustomEnzyme: (enzyme: CustomEnzyme) => Promise<void>;
   setPrefixOverride: (value: string) => void;
   setForbiddenOverhangs: (value: string) => void;
+  setFrag1Overhang: (value: string) => void;
+  setFrag2Overhang: (value: string) => void;
   setRandomSeed: (seed: number | null) => void;
 }
 

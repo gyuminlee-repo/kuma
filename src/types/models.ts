@@ -262,6 +262,16 @@ export interface RescueStats {
   pool_variants_tried: number;
 }
 
+export interface CommonPrimer {
+  name: string;
+  forward: boolean;
+  overhang: string;
+  sequence: string;
+  annealing: string;
+  tm?: number | null;
+  tm_method?: string | null;
+}
+
 export interface DesignResult {
   results: SdmPrimerResult[];
   success_count: number;
@@ -270,6 +280,8 @@ export interface DesignResult {
   rescue_stats?: RescueStats;
   rescued_mutations?: RescuedMutation[];
   cancelled?: boolean;
+  /** Golden Gate two-fragment assembly: batch-fixed common primers (empty for overlap). */
+  common_primers?: CommonPrimer[];
 }
 
 export interface PlateMapping {

@@ -401,7 +401,20 @@ function isDesignResult(value: unknown): value is DesignResult {
     isArrayOf(value.failed_mutations, isFailedMutation) &&
     isOptional(value.rescue_stats, isRescueStats) &&
     isOptional(value.rescued_mutations, (item) => isArrayOf(item, isRescuedMutation)) &&
-    isOptional(value.cancelled, isBoolean)
+    isOptional(value.cancelled, isBoolean) &&
+    isOptional(value.common_primers, (item) => isArrayOf(item, isCommonPrimer))
+  );
+}
+
+
+function isCommonPrimer(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    isString(value.name) &&
+    isBoolean(value.forward) &&
+    isString(value.overhang) &&
+    isString(value.sequence) &&
+    isString(value.annealing)
   );
 }
 

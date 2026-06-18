@@ -74,6 +74,10 @@ export function ParameterPanel() {
   const setPrefixOverride = useAppStore((s) => s.setPrefixOverride);
   const forbiddenOverhangs = useAppStore((s) => s.forbiddenOverhangs);
   const setForbiddenOverhangs = useAppStore((s) => s.setForbiddenOverhangs);
+  const frag1Overhang = useAppStore((s) => s.frag1Overhang);
+  const setFrag1Overhang = useAppStore((s) => s.setFrag1Overhang);
+  const frag2Overhang = useAppStore((s) => s.frag2Overhang);
+  const setFrag2Overhang = useAppStore((s) => s.setFrag2Overhang);
   const randomSeed = useAppStore((s) => s.randomSeed);
   const setRandomSeed = useAppStore((s) => s.setRandomSeed);
   const setStatus = useAppStore((s) => s.setStatus);
@@ -339,6 +343,28 @@ export function ParameterPanel() {
                   onChange={(e) => setForbiddenOverhangs(e.target.value)}
                 />
                 <InlineHelp text={t("parameterPanel.forbiddenOverhangsHelp")} />
+              </label>
+              <label className="flex items-center gap-2 text-caption">
+                <span className="w-24 text-muted-foreground shrink-0">{t("parameterPanel.frag1OverhangLabel")}</span>
+                <input
+                  type="text"
+                  className="h-control min-w-0 flex-1 rounded-control border border-border bg-card px-2 text-caption focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  value={frag1Overhang}
+                  placeholder="AATG"
+                  onChange={(e) => setFrag1Overhang(e.target.value)}
+                />
+                <InlineHelp text={t("parameterPanel.frag1OverhangHelp")} />
+              </label>
+              <label className="flex items-center gap-2 text-caption">
+                <span className="w-24 text-muted-foreground shrink-0">{t("parameterPanel.frag2OverhangLabel")}</span>
+                <input
+                  type="text"
+                  className="h-control min-w-0 flex-1 rounded-control border border-border bg-card px-2 text-caption focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  value={frag2Overhang}
+                  placeholder="AGGT"
+                  onChange={(e) => setFrag2Overhang(e.target.value)}
+                />
+                <InlineHelp text={t("parameterPanel.frag2OverhangHelp")} />
               </label>
             </>
           )}

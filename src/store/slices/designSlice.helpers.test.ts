@@ -294,4 +294,33 @@ describe("buildDesignRequestPayload Golden Gate junction overrides", () => {
     expect("prefix_override" in p).toBe(false);
     expect("forbidden_overhangs" in p).toBe(false);
   });
+  it("includes uppercased frag1/frag2 overhangs for goldengate, omits when blank", () => {
+    const p = buildDesignRequestPayload({
+      ...basePayloadParams,
+      designMethod: "goldengate",
+      enzyme: "BsaI",
+      frag1Overhang: "catg",
+      frag2Overhang: "gctt",
+    });
+    expect(p.frag1_overhang).toBe("CATG");
+    expect(p.frag2_overhang).toBe("GCTT");
+    const blank = buildDesignRequestPayload({
+      ...basePayloadParams,
+      designMethod: "goldengate",
+      enzyme: "BsaI",
+    });
+    expect("frag1_overhang" in blank).toBe(false);
+    expect("frag2_overhang" in blank).toBe(false);
+  });
+  it("never emits frag overhangs for overlap method", () => {
+    const p = buildDesignRequestPayload({
+      ...basePayloadParams,
+      designMethod: "overlap",
+      enzyme: "BsaI",
+      frag1Overhang: "AATG",
+      frag2Overhang: "AGGT",
+    });
+    expect("frag1_overhang" in p).toBe(false);
+    expect("frag2_overhang" in p).toBe(false);
+  });
 });

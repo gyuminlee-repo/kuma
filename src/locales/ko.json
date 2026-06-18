@@ -1075,7 +1075,11 @@
     "prefixOverridePlaceholder": "카탈로그 prefix",
     "prefixOverrideHelp": "모든 Golden Gate primer 앞에 붙는 5' prefix(spacer + 인식 서열 + spacer)입니다. 비워두면 효소 카탈로그 prefix를 사용합니다. 인식 서열이 없거나 절단 위치가 어긋난 prefix는 각 결과에 경고로 표시됩니다.",
     "forbiddenOverhangsLabel": "금지 overhang",
-    "forbiddenOverhangsHelp": "제외할 overhang을 쉼표/공백으로 구분해 입력합니다(예: 벡터 junction). 비워두면 기본값 AATG, AGGT를 사용합니다."
+    "forbiddenOverhangsHelp": "제외할 overhang을 쉼표/공백으로 구분해 입력합니다(예: 벡터 junction). 비워두면 기본값 AATG, AGGT를 사용합니다.",
+    "frag1OverhangLabel": "Frag1 overhang",
+    "frag1OverhangHelp": "공통 frag1 forward 프라이머의 CDS 5' 고정 junction overhang(프로모터/RBS 부품과 연결). 기본값 AATG, ATG는 개시코돈. 변이별 overhang 후보에서 자동 제외.",
+    "frag2OverhangLabel": "Frag2 overhang",
+    "frag2OverhangHelp": "공통 frag2 reverse 프라이머의 CDS 3' 고정 junction overhang(터미네이터 부품과 연결). 기본값 AGGT. 변이별 overhang 후보에서 자동 제외."
   },
   "designReport": {
     "title": "디자인 보고서",
@@ -2244,6 +2248,10 @@
       },
       "method": {
         "label": "방식"
+      },
+      "commonPrimers": {
+        "label": "공통 프라이머 (Golden Gate)",
+        "hint": "모든 변이가 공유하는 고정 프라이머 2개 — 대상 벡터 부품과 연결되는 CDS 양 말단을 증폭합니다."
       }
     },
     "descriptions": {

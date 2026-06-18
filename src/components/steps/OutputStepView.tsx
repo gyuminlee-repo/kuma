@@ -58,7 +58,7 @@ export function OutputStepView() {
   const goToNextStep = useAppStore((s) => s.goToNextStep);
   const goToPrevStep = useAppStore((s) => s.goToPrevStep);
 
-  const { designResults, plateMappings, failedMutations, rescueStats, designMethod, enzyme } = useAppStore(
+  const { designResults, plateMappings, failedMutations, rescueStats, designMethod, enzyme, commonPrimers } = useAppStore(
     useShallow((s) => ({
       designResults: s.designResults,
       plateMappings: s.plateMappings,
@@ -66,6 +66,7 @@ export function OutputStepView() {
       rescueStats: s.rescueStats,
       designMethod: s.designMethod,
       enzyme: s.enzyme,
+      commonPrimers: s.commonPrimers,
     })),
   );
 
@@ -202,6 +203,33 @@ export function OutputStepView() {
                 </dd>
               </div>
             </dl>
+
+            {designMethod === "goldengate" && commonPrimers.length > 0 && (
+              <div className="rounded-container border border-border bg-card p-3">
+                <div className="mb-1.5 text-caption font-semibold uppercase tracking-wider text-muted-foreground">
+                  {t("phaseE.summary.commonPrimers.label")}
+                </div>
+                <p className="mb-2 text-caption text-muted-foreground">
+                  {t("phaseE.summary.commonPrimers.hint")}
+                </p>
+                <div className="space-y-1.5">
+                  {commonPrimers.map((c) => (
+                    <div key={c.name} className="flex flex-col gap-0.5 text-caption">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-foreground">{c.name}</span>
+                        <span className="text-muted-foreground">{c.overhang}</span>
+                        {c.tm != null && (
+                          <span className="text-muted-foreground tabular-nums">{c.tm.toFixed(1)} °C</span>
+                        )}
+                      </div>
+                      <code className="break-all rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] text-foreground">
+                        {c.sequence}
+                      </code>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="flex-1 min-h-0 overflow-auto">
               <ResultTable />

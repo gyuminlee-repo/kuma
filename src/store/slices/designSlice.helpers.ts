@@ -48,6 +48,8 @@ interface DesignRequestPayload extends Record<string, unknown> {
   /** Golden Gate junction overrides (goldengate only). */
   prefix_override?: string;
   forbidden_overhangs?: string[];
+  frag1_overhang?: string;
+  frag2_overhang?: string;
   rescue_pool?: string[];
   auto_relax: true;
   seed?: number;
@@ -169,6 +171,8 @@ export function buildDesignRequestPayload(params: {
   randomSeed: number | null;
   prefixOverride?: string;
   forbiddenOverhangs?: string;
+  frag1Overhang?: string;
+  frag2Overhang?: string;
 }): DesignRequestPayload {
   const {
     fastaPath,
@@ -195,6 +199,8 @@ export function buildDesignRequestPayload(params: {
     randomSeed,
     prefixOverride = "",
     forbiddenOverhangs = "",
+    frag1Overhang = "",
+    frag2Overhang = "",
   } = params;
 
   return {
@@ -223,6 +229,12 @@ export function buildDesignRequestPayload(params: {
       : {}),
     ...(designMethod === "goldengate" && parseForbiddenOverhangs(forbiddenOverhangs).length > 0
       ? { forbidden_overhangs: parseForbiddenOverhangs(forbiddenOverhangs) }
+      : {}),
+    ...(designMethod === "goldengate" && frag1Overhang.trim()
+      ? { frag1_overhang: frag1Overhang.trim().toUpperCase() }
+      : {}),
+    ...(designMethod === "goldengate" && frag2Overhang.trim()
+      ? { frag2_overhang: frag2Overhang.trim().toUpperCase() }
       : {}),
     ...(rescuePool.length > 0 && { rescue_pool: rescuePool }),
     tol_max: tolMax,

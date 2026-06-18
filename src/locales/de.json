@@ -1056,7 +1056,11 @@
     "prefixOverridePlaceholder": "Catalog prefix",
     "prefixOverrideHelp": "5' prefix prepended to every Golden Gate primer (spacer + recognition site + spacer). Leave blank to use the enzyme's catalog prefix. A prefix that omits the recognition site or mis-positions the cut is flagged as a warning on each result.",
     "forbiddenOverhangsLabel": "Forbidden overhangs",
-    "forbiddenOverhangsHelp": "Comma- or space-separated overhangs to exclude (e.g. vector junctions). Leave blank to use the defaults AATG, AGGT."
+    "forbiddenOverhangsHelp": "Comma- or space-separated overhangs to exclude (e.g. vector junctions). Leave blank to use the defaults AATG, AGGT.",
+    "frag1OverhangLabel": "Frag1 overhang",
+    "frag1OverhangHelp": "Fixed CDS 5' junction overhang for the common frag1 forward primer (joins the promoter/RBS part). Default AATG, whose ATG is the start codon. Auto-excluded from per-mutation overhangs.",
+    "frag2OverhangLabel": "Frag2 overhang",
+    "frag2OverhangHelp": "Fixed CDS 3' junction overhang for the common frag2 reverse primer (joins the terminator part). Default AGGT. Auto-excluded from per-mutation overhangs."
   },
   "designReport": {
     "title": "Design-Bericht",
@@ -2244,6 +2248,10 @@
       },
       "method": {
         "label": "Method"
+      },
+      "commonPrimers": {
+        "label": "Common primers (Golden Gate)",
+        "hint": "Two fixed primers shared by all variants — they amplify the CDS termini that join the destination vector parts."
       }
     }
   },
