@@ -35,7 +35,7 @@ Given a mutation list (plain text / EVOLVEpro CSV) and a template sequence (GenB
 
 **Highlights**
 
-- **EVOLVEpro-driven selection** — Top-N plus position / domain / Pareto / entropy diversity and a σ-Adaptive candidate pool
+- **EVOLVEpro-driven selection** — Top-N plus position / domain / Pareto / entropy / structural diversity and a σ-Adaptive candidate pool
 - **Calibrated chemistry** — eight polymerase profiles (+ custom), SantaLucia 1998 Tm, GC / length / tolerance controls
 - **Built-in QC** — primer3 hairpin/homodimer, off-target scan, oligo synthesis-quality score, AlphaFold 3D distance
 - **Mode-aware failure rescue** — multi-stage Position Rescue with one-click per-mutation retry
@@ -51,11 +51,11 @@ Given a mutation list (plain text / EVOLVEpro CSV) and a template sequence (GenB
 
 #### Mutation input & candidate selection
 
-- **EVOLVEpro CSV input**: Load EVOLVEpro (`variant`, `y_pred`) output CSV. Sorts by score descending, auto-selects the configured number of variants. Optional **position diversity** filter limits mutations per amino acid position (uses Grantham 1974 distance as tie-breaker when scores are within 2%). Optional **domain diversity** distributes selections across protein structural domains (auto-fetched from InterPro/Pfam or manual input). Optional **Pareto diversity** maximizes position spread via MODIFY-style fitness-diversity co-optimization. **σ-Adaptive Pool**: enter EVOLVEpro Round and Round size to automatically calibrate the candidate pool width and entropy weight based on cumulative data (K = 0.50→0.25, entropy = 0.30→0.15 across rounds 1–5+)
+- **EVOLVEpro CSV input**: Load EVOLVEpro (`variant`, `y_pred`) output CSV. Sorts by score descending, auto-selects the configured number of variants. Optional **position diversity** filter limits mutations per amino acid position (uses Grantham 1974 distance as tie-breaker when scores are within 2%). Optional **domain diversity** distributes selections across protein structural domains (auto-fetched from InterPro/Pfam or manual input). Optional **Pareto diversity** maximizes position spread via MODIFY-style fitness-diversity co-optimization. Optional **structural diversity** runs greedy farthest-point selection over the full candidate pool in 3D Cα-centroid space, anchored on variants already tested in prior rounds, with an optional κ blend toward predicted fitness — the only mode benchmarked to beat Top-N on real epistatic combinatorial assays. **σ-Adaptive Pool**: enter EVOLVEpro Round and Round size to automatically calibrate the candidate pool width and entropy weight based on cumulative data (K = 0.50→0.25, entropy = 0.30→0.15 across rounds 1–5+)
 - **Batch mutation parsing**: Mutation list in `Q232A` format → automatic codon position calculation + WT codon validation
-- **AlphaFold 3D distance**: Pareto diversity uses real Cα Euclidean distance from AlphaFold DB predicted structures instead of 1D sequence position distance. Fetched automatically after UniProt accession entry; cached at `~/.kuma/kuro/embeddings/{accession}_ca.json`. Falls back to 1D position distance when the structure is unavailable
+- **AlphaFold 3D distance**: Pareto and structural diversity use real Cα Euclidean distance from AlphaFold DB predicted structures instead of 1D sequence position distance. Fetched automatically after UniProt accession entry; cached at `~/.kuma/kuro/embeddings/{accession}_ca.json`. Falls back to 1D position distance when the structure is unavailable
 
-> The diversity filters (position / domain / Pareto / entropy) are detailed in [Selection Strategies](#selection-strategies-kuro-evolvepro-mode) below.
+> The diversity filters (position / domain / Pareto / entropy / structural) are detailed in [Selection Strategies](#selection-strategies-kuro-evolvepro-mode) below.
 
 #### Codon & thermodynamic parameters
 
@@ -141,6 +141,7 @@ When loading an EVOLVEpro scored CSV, Kuro applies the configured selection stra
 | **Domain diversity** | Allocate mutation quota proportionally (by domain length) or equally across protein structural domains. Domains are auto-fetched from InterPro/Pfam via UniProt accession, or entered manually. | Ensure coverage across all functional regions. |
 | **Pareto diversity** | Greedy maximin position selection: iteratively pick the mutation whose position is farthest from all already-selected positions. Maximizes spatial spread across the protein sequence. | Prevent clustering of mutations in a narrow region. Inspired by the MODIFY approach (Ding et al., *Nature Communications*, 2024). |
 | **Entropy-guided** (β) | Blends per-position Shannon entropy of the y_pred distribution (weight 0.3) into the Pareto score. Positions where many mutations score similarly are prioritised. | Escape local optima. Requires Pareto diversity to be enabled. |
+| **Structural diversity** | Greedy farthest-point (maximin) selection over the **full** candidate pool in 3D Cα-centroid space (AlphaFold), anchored on the cumulative set of variants already tested across prior rounds, with an optional κ blend toward predicted fitness (κ=0 pure diversity → κ=1 pure Top-N). Combination variants use the centroid of all substituted positions; falls back to sequence-position distance when no structure is available. | Multi-round / epistatic combinatorial campaigns where spreading picks away from already-explored 3D regions matters. The only strategy benchmarked to beat Top-N on real epistatic assays (`benchmark/REPORT.md` §6). |
 
 **Reference**
 - Ding D, Shaw AY, Sinai S, et al. Protein design using structure-predicted residue preferences and sequence-predicted fitness. *Nature Communications*, 15:6729 (2024). PMID:39080249 — MODIFY: Pareto fitness-diversity co-optimization
