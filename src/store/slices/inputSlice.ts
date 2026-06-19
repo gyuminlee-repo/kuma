@@ -85,6 +85,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         evolveproRound,
         roundSize,
         maxPrimers,
+        structuralDiversityEnabled,
+        structuralKappa,
       } = get();
       const effectiveTopN = topNOverride ?? maxPrimers;
       const activeDomains = domains.filter((d) => !disabledDomains.includes(`${d.name}-${d.start}`));
@@ -162,6 +164,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
           evolveproRound,
           roundSize,
           refSeq,
+          structuralDiversityEnabled,
+          structuralKappa,
         });
       const result = await sendRequest("load_evolvepro_csv", params);
       if (gen !== csvLoadGeneration) return;

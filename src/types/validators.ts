@@ -512,7 +512,9 @@ function isWorkspaceSettings(value: unknown): boolean {
     isOptional(value.positionDiversityEnabled, isBoolean) &&
     isOptional(value.maxPerPosition, isNumber) &&
     isOptional(value.evolveproRound, isNumber) &&
-    isOptional(value.roundSize, isNumber)
+    isOptional(value.roundSize, isNumber) &&
+    isOptional(value.structuralDiversityEnabled, isBoolean) &&
+    isOptional(value.structuralKappa, isNumber)
   );
 }
 

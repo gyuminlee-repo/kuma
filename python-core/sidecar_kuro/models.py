@@ -722,6 +722,11 @@ class LoadEvolveproParams(BaseModel):
     # in a subset of domains.
     domain_pool_autoexpand: bool = True
     domain_pool_max_multiplier: float = Field(default=10.0, ge=1.0, le=100.0)
+    # Structure-aware diversity selector (validated 'kuro_ca' recipe): full pool +
+    # revealed-anchor + 3D Ca-centroid maximin + kappa fitness blend. Off by default.
+    structural_diversity: bool = False
+    structural_kappa: float = Field(default=0.0, ge=0.0, le=1.0)
+    anchor_variants: list[str] = Field(default_factory=list)
 
 
 class LandscapeEntry(BaseModel):

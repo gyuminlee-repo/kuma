@@ -33,6 +33,8 @@ const baseState: KuroSnapshotState = {
   entropyWeight: 0.4,
   paretoPoolMultiplier: 2,
   distanceMode: "3d",
+  structuralDiversityEnabled: false,
+  structuralKappa: 0.3,
   evolveproRound: 2,
   roundSize: 96,
   autoRedesignOnLoad: false,
@@ -93,6 +95,26 @@ describe("buildKuroSnapshot", () => {
       distance_mode: "3d",
       auto_redesign_on_load: false,
       save_cache: false,
+    });
+  });
+
+  it("serializes structural diversity settings", () => {
+    const snapshot = buildKuroSnapshot(baseState);
+    expect(snapshot.diversity).toMatchObject({
+      structural_diversity_enabled: false,
+      structural_kappa: 0.3,
+    });
+  });
+
+  it("serializes structural diversity enabled=true with custom kappa", () => {
+    const snapshot = buildKuroSnapshot({
+      ...baseState,
+      structuralDiversityEnabled: true,
+      structuralKappa: 0.7,
+    });
+    expect(snapshot.diversity).toMatchObject({
+      structural_diversity_enabled: true,
+      structural_kappa: 0.7,
     });
   });
 });

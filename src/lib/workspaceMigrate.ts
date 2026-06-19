@@ -60,6 +60,8 @@ export const MIGRATIONS: Record<string, MigrationFn> = {
         linkerHandling: "include",
         domainQuotaMin: 1,
         paretoDiversityEnabled: ws.paretoDiversityEnabled,
+        structuralDiversityEnabled: false,
+        structuralKappa: 0.3,
         disabledDomains: ws.disabledDomains,
         rescuedMutations: ws.rescuedMutations,
         entropyWeightEnabled: ws.entropyWeightEnabled,

@@ -8,6 +8,7 @@ import {
   PipelineArrow,
   PipelineStep,
   RoundSettingsSection,
+  StructuralDiversitySection,
   WorkspaceSection,
 } from "./DiversitySections";
 
@@ -41,6 +42,10 @@ export function DiversityOptions() {
   const domainStats = useAppStore((s) => s.domainStats);
   const paretoDiversityEnabled = useAppStore((s) => s.paretoDiversityEnabled);
   const setParetoDiversityEnabled = useAppStore((s) => s.setParetoDiversityEnabled);
+  const structuralDiversityEnabled = useAppStore((s) => s.structuralDiversityEnabled);
+  const setStructuralDiversityEnabled = useAppStore((s) => s.setStructuralDiversityEnabled);
+  const structuralKappa = useAppStore((s) => s.structuralKappa);
+  const setStructuralKappa = useAppStore((s) => s.setStructuralKappa);
   const entropyWeightEnabled = useAppStore((s) => s.entropyWeightEnabled);
   const entropyWeight = useAppStore((s) => s.entropyWeight);
   const setEntropyWeightEnabled = useAppStore((s) => s.setEntropyWeightEnabled);
@@ -167,6 +172,20 @@ export function DiversityOptions() {
             structureLoading={structureLoading}
             structureLoaded={structureLoaded}
             distanceMode={distanceMode}
+          />
+        </PipelineStep>
+
+        <PipelineArrow active={paretoDiversityEnabled} />
+
+        <PipelineStep
+          step={4}
+          label="Structural diversity"
+          enabled={structuralDiversityEnabled}
+          onToggle={setStructuralDiversityEnabled}
+        >
+          <StructuralDiversitySection
+            structuralKappa={structuralKappa}
+            setStructuralKappa={setStructuralKappa}
           />
         </PipelineStep>
       </div>

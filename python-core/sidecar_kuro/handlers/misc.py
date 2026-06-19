@@ -190,6 +190,9 @@ def handle_load_evolvepro_csv(params: dict) -> dict:
         sheet_name=p.sheet_name,
         domain_pool_autoexpand=p.domain_pool_autoexpand,
         domain_pool_max_multiplier=p.domain_pool_max_multiplier,
+        structural_diversity=p.structural_diversity,
+        structural_kappa=p.structural_kappa,
+        anchor_variants=p.anchor_variants,
     )
 
 

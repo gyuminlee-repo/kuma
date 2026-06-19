@@ -94,6 +94,9 @@ export interface DiversitySlice {
   poolVariants: string[];
   uniprotCandidates: UniprotCandidate[];
   uniprotSearching: boolean;
+  structuralDiversityEnabled: boolean;
+  structuralKappa: number;
+
 
   // Actions
   setPositionDiversityEnabled: (enabled: boolean) => void;
@@ -123,6 +126,8 @@ export interface DiversitySlice {
   searchUniprot: (geneName: string, organism: string, translation: string, knownAccession: string) => Promise<void>;
   fetchStructure: (accession: string) => Promise<void>;
   cancelDiversityReload: () => void;
+  setStructuralDiversityEnabled: (enabled: boolean) => void;
+  setStructuralKappa: (v: number) => void;
 }
 
 // ---------------------------------------------------------------------------

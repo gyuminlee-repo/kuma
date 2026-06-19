@@ -54,6 +54,8 @@ function makeStore(overrides: Record<string, unknown> = {}) {
     linkerHandling: "include",
     domainQuotaMin: 1,
     paretoDiversityEnabled: false,
+    structuralDiversityEnabled: false,
+    structuralKappa: 0.3,
     entropyWeightEnabled: false,
     entropyWeight: 0.3,
     paretoPoolMultiplier: 2.0,

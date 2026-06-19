@@ -8,4 +8,5 @@ from kuma_core.kuro.evolvepro import (
     domain_aware_select,
     load_evolvepro_csv,
     pareto_diversity_select,
+    structural_diversity_select,
 )

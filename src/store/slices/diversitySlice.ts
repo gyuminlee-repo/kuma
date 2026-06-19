@@ -111,6 +111,9 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   structureAccession: "",
   uniprotCandidates: [],
   uniprotSearching: false,
+  structuralDiversityEnabled: false,
+  structuralKappa: 0.3,
+
 
   setPositionDiversityEnabled: (enabled: boolean) => {
     set({ positionDiversityEnabled: enabled });
@@ -230,6 +233,17 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
     set({ paretoDiversityEnabled: enabled });
     debouncedReload();
   },
+  setStructuralDiversityEnabled: (enabled: boolean) => {
+    set({ structuralDiversityEnabled: enabled });
+    debouncedReload();
+  },
+
+  setStructuralKappa: (v: number) => {
+    const clamped = Math.max(0, Math.min(1, v));
+    set({ structuralKappa: clamped });
+    debouncedReload();
+  },
+
 
   setEntropyWeightEnabled: (enabled: boolean) => {
     set({ entropyWeightEnabled: enabled });
