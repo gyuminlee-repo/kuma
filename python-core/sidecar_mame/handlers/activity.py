@@ -611,7 +611,7 @@ def handle_build_evolvepro_input(params: dict) -> dict:
 
     p = BuildEvolveproInputParams.model_validate(params)
 
-    if p.round1_report_xlsx and p.remeasure_report_xlsx:
+    if p.remeasure_report_xlsx and (p.round1_report_xlsx or p.round1_evolvepro_xlsx):
         from kuma_core.mame.activity.build_evolvepro_input import (
             build_evolvepro_input_from_reports,
         )
@@ -623,6 +623,7 @@ def handle_build_evolvepro_input(params: dict) -> dict:
             p.output_xlsx,
             mismatch_threshold=p.mismatch_threshold,
             verdict_xlsx=p.verdict_xlsx,
+            prev_evolvepro_xlsx=p.round1_evolvepro_xlsx,
         )
         audit = [
             {"id": i + 1, "variant": v, "well": w}
@@ -644,15 +645,17 @@ def handle_build_evolvepro_input(params: dict) -> dict:
             "mode": "reports",
         }
 
-    # _mode_xor guarantees the three rank-mode inputs are present here; narrow
-    # explicitly for the type checker and fail loud otherwise.
+    # _mode_xor guarantees the rank-mode inputs (incl. layout) are present here;
+    # narrow explicitly for the type checker and fail loud otherwise.
     if (
-        p.gc_data_xlsx is None
+        p.layout_xlsx is None
+        or p.gc_data_xlsx is None
         or p.rep_batch_xlsx is None
         or p.prev_evolvepro_xlsx is None
     ):
         raise ValueError(
-            "rank mode requires gc_data_xlsx, rep_batch_xlsx, prev_evolvepro_xlsx"
+            "rank mode requires layout_xlsx, gc_data_xlsx, rep_batch_xlsx, "
+            "prev_evolvepro_xlsx"
         )
 
     result = build_evolvepro_input(

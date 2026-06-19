@@ -328,12 +328,18 @@ class BuildEvolveproInputParams(BaseModel):
         '<output>.mapping.json' next to ``output_xlsx`` when omitted.
     """
 
-    layout_xlsx: str
+    # Optional: required for rank-mode and raw-reports-mode, but not for
+    # prev-EVOLVEpro reports-mode (round-1 already in EVOLVEpro form).
+    layout_xlsx: str | None = None
     output_xlsx: str
     gc_data_xlsx: str | None = None
     rep_batch_xlsx: str | None = None
     prev_evolvepro_xlsx: str | None = None
     round1_report_xlsx: str | None = None
+    # Reports-mode round-1 baseline as a prior EVOLVEpro file (Variant, activity),
+    # an alternative to round1_report_xlsx when the full round-1 already exists in
+    # EVOLVEpro form rather than as a raw Agilent report.
+    round1_evolvepro_xlsx: str | None = None
     remeasure_report_xlsx: str | None = None
     # Optional NGS verdict input (reports-mode only in practice; not enforced
     # here). When provided, variants whose well has a non-PASS verdict are
@@ -348,6 +354,7 @@ class BuildEvolveproInputParams(BaseModel):
         "rep_batch_xlsx",
         "prev_evolvepro_xlsx",
         "round1_report_xlsx",
+        "round1_evolvepro_xlsx",
         "remeasure_report_xlsx",
         "verdict_xlsx",
         mode="after",
@@ -370,13 +377,31 @@ class BuildEvolveproInputParams(BaseModel):
         rank = all(
             [self.gc_data_xlsx, self.rep_batch_xlsx, self.prev_evolvepro_xlsx]
         )
-        reports = all([self.round1_report_xlsx, self.remeasure_report_xlsx])
+        # reports-mode round-1 source: raw report (needs layout) or a prior
+        # EVOLVEpro file. Exactly one of the two must be provided.
+        n_round1 = sum(
+            1 for s in (self.round1_report_xlsx, self.round1_evolvepro_xlsx) if s
+        )
+        reports = bool(self.remeasure_report_xlsx) and n_round1 >= 1
         if rank == reports:
             raise ValueError(
                 "provide EITHER rank-mode "
                 "(gc_data_xlsx+rep_batch_xlsx+prev_evolvepro_xlsx) OR reports-mode "
-                "(round1_report_xlsx+remeasure_report_xlsx)"
+                "(remeasure_report_xlsx + one of round1_report_xlsx / "
+                "round1_evolvepro_xlsx)"
             )
+        if reports:
+            if n_round1 != 1:
+                raise ValueError(
+                    "reports-mode needs exactly one round-1 source: "
+                    "round1_report_xlsx OR round1_evolvepro_xlsx"
+                )
+            if self.round1_report_xlsx and not self.layout_xlsx:
+                raise ValueError(
+                    "raw round-1 (round1_report_xlsx) requires layout_xlsx"
+                )
+        if rank and not self.layout_xlsx:
+            raise ValueError("rank-mode requires layout_xlsx")
         return self
 
     @field_validator("output_xlsx", mode="after")

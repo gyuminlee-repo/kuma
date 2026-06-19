@@ -53,6 +53,16 @@ def _write_verdict(path, rows):
     wb.save(path)
 
 
+def _write_prev_evolvepro(path, rows):
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    assert ws is not None
+    ws.append(["Variant", "activity"])
+    for variant, activity in rows:
+        ws.append([variant, activity])
+    wb.save(path)
+
+
 # The 13-key response contract mirrored by TS BuildEvolveproInputResult.
 _RESULT_KEYS = {
     "output_path", "n_variants", "n_authoritative", "n_fallback_only",
@@ -125,3 +135,30 @@ def test_handler_reports_mode_with_ngs_gating(tmp_path):
     assert resp["ngs_excluded"] == ["10L"]
     # only 5F (PASS well A01) survives gating; 10L (B01 WRONG_AA) excluded.
     assert resp["n_variants"] == 1
+
+
+def test_handler_reports_mode_prev_evolvepro(tmp_path):
+    # Round-1 baseline as a prior EVOLVEpro file (no layout / round1 report).
+    prev = tmp_path / "prev.xlsx"
+    _write_prev_evolvepro(prev, [("5F", 1.0), ("10L", 0.9), ("99Z", 0.5)])
+    remeasure = tmp_path / "remeasure.xlsx"
+    _write_fid1b(
+        remeasure,
+        [("V5F", 0.60), ("V5F", 0.66), ("V5F", 0.54),
+         ("WT_1", 1.0), ("WT_2", 1.0), ("WT_3", 1.0)],
+    )
+    out = tmp_path / "out.xlsx"
+    resp = handle_build_evolvepro_input(
+        {
+            "round1_evolvepro_xlsx": str(prev),
+            "remeasure_report_xlsx": str(remeasure),
+            "output_xlsx": str(out),
+        }
+    )
+    assert set(resp) == _RESULT_KEYS
+    assert resp["mode"] == "reports"
+    assert resp["n_authoritative"] == 1   # 5F re-measured
+    assert resp["n_fallback_only"] == 2   # 10L, 99Z kept from prev EVOLVEpro
+    assert resp["n_variants"] == 3
+    assert resp["n_ngs_excluded"] == 0
+    assert out.exists()
