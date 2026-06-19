@@ -131,3 +131,37 @@ describe("buildEvolveproLoadParams anchor_variants", () => {
     expect(params.anchor_variants).toEqual(["F89W"]);
   });
 });
+
+describe("buildEvolveproLoadParams structure_accession", () => {
+  it("sends structure_accession for structural diversity (no pareto) so 3D Cα coords are used", () => {
+    const params = buildEvolveproLoadParams(
+      makeConfig({
+        structuralDiversityEnabled: true,
+        paretoDiversityEnabled: false,
+        structureAccession: "P01116",
+      }),
+    );
+    expect(params.structure_accession).toBe("P01116");
+  });
+
+  it("still sends structure_accession for pareto diversity", () => {
+    const params = buildEvolveproLoadParams(
+      makeConfig({ paretoDiversityEnabled: true, structureAccession: "P62993" }),
+    );
+    expect(params.structure_accession).toBe("P62993");
+  });
+
+  it("omits structure_accession when neither structural nor pareto is enabled", () => {
+    const params = buildEvolveproLoadParams(
+      makeConfig({ structureAccession: "P01116" }),
+    );
+    expect(params).not.toHaveProperty("structure_accession");
+  });
+
+  it("omits structure_accession when accession is empty", () => {
+    const params = buildEvolveproLoadParams(
+      makeConfig({ structuralDiversityEnabled: true, structureAccession: "" }),
+    );
+    expect(params).not.toHaveProperty("structure_accession");
+  });
+});

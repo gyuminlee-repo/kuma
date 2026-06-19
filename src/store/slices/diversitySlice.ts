@@ -39,8 +39,13 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   function shouldReloadAfterStructureFetch(state: AppState) {
     return Boolean(
       getActiveEvolveproPath(state)
-      && state.paretoDiversityEnabled
-      && state.distanceMode !== "1d",
+      && (
+        // Structural diversity always consumes 3D Cα coords when available, so
+        // it must reload once the AlphaFold structure is cached, regardless of
+        // distanceMode (which only gates the pareto 1D/3D distance path).
+        state.structuralDiversityEnabled
+        || (state.paretoDiversityEnabled && state.distanceMode !== "1d")
+      ),
     );
   }
 

@@ -123,7 +123,7 @@ export function buildEvolveproLoadParams(config: EvolveproLoadConfig): Record<st
     ...(usePipeline && paretoDiversityEnabled && entropyWeightEnabled && { entropy_weight: entropyWeight }),
     ...(usePipeline && paretoDiversityEnabled && { pool_multiplier: paretoPoolMultiplier }),
     ...(usePipeline && paretoDiversityEnabled && { distance_mode: distanceMode }),
-    ...(usePipeline && paretoDiversityEnabled && structureAccession && {
+    ...(usePipeline && (paretoDiversityEnabled || structuralDiversityEnabled) && structureAccession && {
       structure_accession: structureAccession,
     }),
     ...(usePipeline && paretoDiversityEnabled && evolveproRound > 0 && {
