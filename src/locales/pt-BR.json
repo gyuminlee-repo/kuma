@@ -310,8 +310,8 @@
         "uploadHeading": "Enviar dados de atividade",
         "uploadDesc": "Carregar um arquivo CSV / Excel em formato long (colunas well, replicate, value) no Round atual.",
         "loaded": "✓ {{count}} wells carregados",
-        "contextSubtitle": "Upload wet-lab activity measurements for this round.",
-        "contextTitle": "Activity Data — Ingest",
+        "contextSubtitle": "Importe as medições, mescle os replicates e exporte a entrada do EVOLVEpro deste Round.",
+        "contextTitle": "Activity Data: EVOLVEpro Input",
         "drawerCenter": "Activity log",
         "drawerLeft": "Activity",
         "drawerLeftDesc": "Wells with measurements",
@@ -2165,7 +2165,7 @@
         "review": "Review (Verdict + Plate)"
       },
       "activity": {
-        "ingest": "Ingest de dados",
+        "ingest": "Activity & EVOLVEpro Input",
         "mergeExport": "Merge & Export",
         "export": "Export",
         "merge": "Merge"
@@ -2209,7 +2209,7 @@
         "review": "Review the verdict table, plate layout, and per-plate verdict distribution in one view."
       },
       "activity": {
-        "ingest": "Enviar arquivos CSV ou Excel de atividade e anotar o wild-type.",
+        "ingest": "Importe os dados de Activity, mescle os replicates e gere o arquivo de entrada do EVOLVEpro.",
         "mergeExport": "Combine os dados de atividade com as chamadas de genótipo e exporte a tabela combinada; em seguida, crie a entrada do EVOLVEpro combinando a atividade de réplica única (GC) e de tripla réplica (relativa ao WT)."
       }
     },

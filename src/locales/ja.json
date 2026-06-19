@@ -310,8 +310,8 @@
         "uploadHeading": "活性データをアップロード",
         "uploadDesc": "long format の CSV / Excel ファイル (well, replicate, value カラム) を現在の Round に読み込み。",
         "loaded": "✓ {{count}} wells 読み込み完了",
-        "contextSubtitle": "Upload wet-lab activity measurements for this round.",
-        "contextTitle": "Activity Data — Ingest",
+        "contextSubtitle": "このラウンドの測定値を取り込み、replicate を統合して EVOLVEpro 入力をエクスポートします。",
+        "contextTitle": "Activity Data: EVOLVEpro Input",
         "drawerCenter": "活性ログ",
         "drawerLeft": "活性",
         "drawerLeftDesc": "Wells with measurements",
@@ -2165,7 +2165,7 @@
         "review": "Review (Verdict + Plate)"
       },
       "activity": {
-        "ingest": "データ Ingest",
+        "ingest": "Activity & EVOLVEpro Input",
         "mergeExport": "Merge & Export",
         "export": "Export",
         "merge": "Merge"
@@ -2209,7 +2209,7 @@
         "review": "Review the verdict table, plate layout, and per-plate verdict distribution in one view."
       },
       "activity": {
-        "ingest": "活性 CSV または Excel ファイルをアップロードし、wild-type をアノテート。",
+        "ingest": "Activity データを取り込み、replicate を統合して EVOLVEpro 入力ファイルを生成します。",
         "mergeExport": "活性データを遺伝型コールとマージしてテーブルをエクスポートし、単一反復 (GC) と 3 反復 (WT 相対) の活性を組み合わせて EVOLVEpro 入力を生成します。"
       }
     },

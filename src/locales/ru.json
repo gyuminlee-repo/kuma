@@ -310,8 +310,8 @@
         "uploadHeading": "Загрузить данные активности",
         "uploadDesc": "Загрузите long format CSV / Excel файл (колонки well, replicate, value) в текущий Round.",
         "loaded": "✓ {{count}} wells загружено",
-        "contextSubtitle": "Upload wet-lab activity measurements for this round.",
-        "contextTitle": "Activity Data — Ingest",
+        "contextSubtitle": "Импортируйте измерения, объедините replicates и экспортируйте входные данные EVOLVEpro для этого Round.",
+        "contextTitle": "Activity Data: EVOLVEpro Input",
         "drawerCenter": "Activity log",
         "drawerLeft": "Activity",
         "drawerLeftDesc": "Wells with measurements",
@@ -2165,7 +2165,7 @@
         "review": "Review (Verdict + Plate)"
       },
       "activity": {
-        "ingest": "Ingest данные",
+        "ingest": "Activity & EVOLVEpro Input",
         "mergeExport": "Merge & Export",
         "export": "Export",
         "merge": "Merge"
@@ -2209,7 +2209,7 @@
         "review": "Review the verdict table, plate layout, and per-plate verdict distribution in one view."
       },
       "activity": {
-        "ingest": "Загрузите файлы CSV или Excel с активностью и аннотируйте wild-type.",
+        "ingest": "Импортируйте данные Activity, объедините replicates и создайте входной файл EVOLVEpro.",
         "mergeExport": "Объедините данные активности с вызовами генотипа и экспортируйте таблицу, затем создайте входные данные EVOLVEpro, объединив активность с одной репликой (GC) и тремя репликами (относительно WT)."
       }
     },
