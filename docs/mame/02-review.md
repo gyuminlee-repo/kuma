@@ -11,7 +11,7 @@ per-barcode mutation verdict 와 96-well plate view 를 나란히 본다.
 | `off_target` | 다른 위치에 mutation |
 | `wt` | WT 유지 |
 | `no_coverage` | reads 부족 |
-| `ambiguous` | 동률·낮은 coverage |
+| `ambiguous` | 동률·낮은 coverage, indel 이벤트 검출 |
 
 ## 2.1 Verdict + Plate
 
