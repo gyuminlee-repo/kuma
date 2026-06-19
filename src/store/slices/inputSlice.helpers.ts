@@ -5,6 +5,7 @@ import type {
   EvolveproStepStats,
 } from "../../types/models";
 import type { EvolveproMode } from "../slice-interfaces";
+import type { Round } from "../../types/round";
 
 export interface EvolveproLoadConfig {
   filepath: string;
@@ -46,6 +47,12 @@ export interface EvolveproLoadConfig {
   refSeq: string;
   structuralDiversityEnabled: boolean;
   structuralKappa: number;
+  /**
+   * Cumulative already-explored variant IDs (internal notation, e.g. `F89W`)
+   * for structural-diversity revealed-anchor maximin. Empty = no anchor
+   * (greedy seed is the max-fitness row). Backward compatible.
+   */
+  anchorVariants: string[];
 }
 
 export interface EvolveproLoadStateUpdate {
@@ -90,6 +97,7 @@ export function buildEvolveproLoadParams(config: EvolveproLoadConfig): Record<st
     refSeq,
     structuralDiversityEnabled,
     structuralKappa,
+    anchorVariants,
   } = config;
 
   const params: Record<string, unknown> = {
@@ -125,9 +133,31 @@ export function buildEvolveproLoadParams(config: EvolveproLoadConfig): Record<st
     ...(refSeq && { ref_seq: refSeq }),
     ...(usePipeline && structuralDiversityEnabled && { structural_diversity: true }),
     ...(usePipeline && structuralDiversityEnabled && { structural_kappa: structuralKappa }),
-    ...(usePipeline && { anchor_variants: [] }),
+    ...(usePipeline && { anchor_variants: anchorVariants }),
   };
   return params;
+}
+
+/**
+ * Collect the cumulative set of already-explored variant IDs across every
+ * round's merged table, for use as `anchor_variants` in structural-diversity
+ * selection. Dedupes (first-seen order), drops null and "WT". The structural
+ * selector maximises minimum distance to this set so new picks spread away
+ * from sequence space already committed to a plate.
+ */
+export function collectAnchorVariants(rounds: Round[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const round of rounds) {
+    for (const row of round.merged_table) {
+      const m = row.mutation;
+      if (m && m !== "WT" && !seen.has(m)) {
+        seen.add(m);
+        out.push(m);
+      }
+    }
+  }
+  return out;
 }
 
 export function buildEvolveproLoadStateUpdate(params: {
