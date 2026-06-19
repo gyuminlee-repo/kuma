@@ -9,6 +9,7 @@ import type { Round } from "../../types/round";
 import {
   buildEvolveproLoadParams,
   buildEvolveproLoadStateUpdate,
+  collectAnchorVariants,
 } from "./inputSlice.helpers";
 import {
   validateCsvHeader,
@@ -16,6 +17,7 @@ import {
   EVOLVEPRO_CSV_SCHEMA,
 } from "../../lib/schemaValidator";
 import { useMameAppStore } from "../mame/mameAppStore";
+import { useRoundStore } from "../round/roundSlice";
 
 import type { InputSlice, EvolveproMode } from "../slice-interfaces";
 export type { InputSlice };
@@ -137,6 +139,13 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       }
 
       const usePipeline = evolveproMode !== "topN";
+      // Structural-diversity revealed-anchor maximin: spread new picks away
+      // from variants already committed across prior rounds. Only computed
+      // when structural diversity is on (the sole consumer); empty otherwise.
+      const anchorVariants =
+        usePipeline && structuralDiversityEnabled
+          ? collectAnchorVariants(useRoundStore.getState().rounds)
+          : [];
         const params = buildEvolveproLoadParams({
           filepath,
           topN: effectiveTopN,
@@ -166,6 +175,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
           refSeq,
           structuralDiversityEnabled,
           structuralKappa,
+          anchorVariants,
         });
       const result = await sendRequest("load_evolvepro_csv", params);
       if (gen !== csvLoadGeneration) return;
