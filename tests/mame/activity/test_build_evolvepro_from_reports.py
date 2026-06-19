@@ -21,11 +21,18 @@ from kuma_core.mame.activity.build_evolvepro_input import (
     _agilent_wt_mean,
     _build_authoritative_from_variant_report,
     _build_fallback_from_raw_report,
+    _build_fallback_from_prev_evolvepro,
 )
 from kuma_core.mame.activity.evolvepro_xlsx import (
     parse_agilent_standard,
     read_evolvepro_rows,
+    write_evolvepro_xlsx,
 )
+
+
+def _write_prev_evolvepro(path, rows):
+    """Write a previous-round EVOLVEpro xlsx. rows: [(variant, activity)]."""
+    write_evolvepro_xlsx(rows, path)
 
 
 def _write_fid1b(path, pairs):
@@ -251,3 +258,112 @@ def test_t6_no_wt_raises(tmp_path):
     records = parse_agilent_standard(report)
     with pytest.raises(ValueError):
         _agilent_wt_mean(records)
+
+
+# ---------------------------------------------------------------------------
+# T7: prev-EVOLVEpro round-1 mode (round-1 baseline is a prior EVOLVEpro file)
+# ---------------------------------------------------------------------------
+
+def test_t7_prev_evolvepro_fallback_helper(tmp_path):
+    prev = tmp_path / "prev.xlsx"
+    _write_prev_evolvepro(prev, [("5F", 1.0), ("10L", 0.9), ("WT", 1.0)])
+    fallback, warnings = _build_fallback_from_prev_evolvepro(prev)
+    # WT row skipped; variant rows kept as one replicate each.
+    assert set(fallback) == {"5F", "10L"}
+    assert fallback["5F"] == [1.0]
+    assert warnings == []
+
+
+def test_t8_prev_evolvepro_merge(tmp_path):
+    prev = tmp_path / "prev.xlsx"
+    _write_prev_evolvepro(prev, [("5F", 1.0), ("10L", 0.9), ("99Z", 0.5)])
+    remeasure = tmp_path / "remeasure.xlsx"
+    _write_fid1b(
+        remeasure,
+        [
+            ("V5F", 0.60), ("V5F", 0.66), ("V5F", 0.54),  # mean 0.60 (rel, WT=1.0)
+            ("WT_1", 1.0), ("WT_2", 1.0), ("WT_3", 1.0),
+        ],
+    )
+    out = tmp_path / "out.xlsx"
+    res = build_evolvepro_input_from_reports(
+        None, None, remeasure, out, prev_evolvepro_xlsx=prev
+    )
+    rows = {v: a for v, a in read_evolvepro_rows(out)}
+    assert res.n_authoritative == 1
+    assert res.n_fallback_only == 2
+    assert res.n_variants == 3
+    assert rows["5F"] == pytest.approx(0.60)   # replaced by re-measure mean
+    assert rows["10L"] == pytest.approx(0.9)   # kept from prev EVOLVEpro
+    assert rows["99Z"] == pytest.approx(0.5)   # kept from prev EVOLVEpro
+    assert res.n_ngs_excluded == 0
+
+
+def test_t9_prev_evolvepro_verdict_without_layout_skips_gating(tmp_path):
+    prev = tmp_path / "prev.xlsx"
+    _write_prev_evolvepro(prev, [("5F", 1.0), ("10L", 0.9)])
+    remeasure = tmp_path / "remeasure.xlsx"
+    _write_fid1b(
+        remeasure,
+        [("V5F", 0.6), ("V5F", 0.6), ("WT_1", 1.0), ("WT_2", 1.0)],
+    )
+    verdict = tmp_path / "verdict.xlsx"
+    _write_verdict(verdict, [("A01", "V5F", "WRONG_AA"), ("B01", "V10L", "PASS")])
+    out = tmp_path / "out.xlsx"
+    res = build_evolvepro_input_from_reports(
+        None, None, remeasure, out, prev_evolvepro_xlsx=prev, verdict_xlsx=verdict
+    )
+    # No layout -> no variant->well map -> gating skipped gracefully, all kept.
+    assert res.n_ngs_excluded == 0
+    assert res.n_variants == 2
+    assert any("gating skipped" in w for w in res.warnings)
+
+
+def test_t10_prev_evolvepro_with_layout_gates(tmp_path):
+    prev = tmp_path / "prev.xlsx"
+    _write_prev_evolvepro(prev, [("5F", 1.0), ("10L", 0.9)])
+    layout = tmp_path / "layout.xlsx"
+    _write_layout(layout, [("V5F", "A1"), ("V10L", "B1")])
+    remeasure = tmp_path / "remeasure.xlsx"
+    _write_fid1b(
+        remeasure,
+        [("V5F", 0.6), ("V5F", 0.6), ("V10L", 0.8), ("V10L", 0.8),
+         ("WT_1", 1.0), ("WT_2", 1.0)],
+    )
+    verdict = tmp_path / "verdict.xlsx"
+    _write_verdict(verdict, [("A01", "V5F", "PASS"), ("B01", "V10L", "WRONG_AA")])
+    out = tmp_path / "out.xlsx"
+    res = build_evolvepro_input_from_reports(
+        layout, None, remeasure, out,
+        prev_evolvepro_xlsx=prev, verdict_xlsx=verdict,
+    )
+    # 10L well B01 is WRONG_AA -> excluded; 5F (A01 PASS) survives.
+    assert res.n_ngs_excluded == 1
+    assert res.ngs_excluded == ["10L"]
+    assert res.n_variants == 1
+
+
+def test_t11_raw_mode_missing_inputs_raises(tmp_path):
+    remeasure = tmp_path / "remeasure.xlsx"
+    _write_fid1b(remeasure, [("V5F", 0.6), ("WT_1", 1.0)])
+    out = tmp_path / "out.xlsx"
+    # Neither raw round-1 (layout + round1_report) nor prev_evolvepro_xlsx given.
+    with pytest.raises(ValueError, match="raw round-1 mode requires"):
+        build_evolvepro_input_from_reports(None, None, remeasure, out)
+
+
+def _write_verdict(path, rows):
+    """Write an Analyze verdict xlsx. rows: [(well_id, mutant_id, verdict)]."""
+    import openpyxl
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    assert ws is not None
+    ws.title = "Final"
+    ws.append(
+        ["well_id", "selected_plate", "custom_barcode", "mutant_id",
+         "verdict", "is_fallback", "fallback_reason", "notes"]
+    )
+    for w, m, v in rows:
+        ws.append([w, "P1", "", m, v, "", "", ""])
+    wb.save(path)

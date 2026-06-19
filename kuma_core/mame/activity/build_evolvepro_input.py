@@ -548,6 +548,38 @@ def _build_authoritative_from_variant_report(
     return authoritative, warnings
 
 
+def _build_fallback_from_prev_evolvepro(
+    prev_evolvepro_xlsx,
+) -> tuple[dict[str, list[float]], list[str]]:
+    """Fallback {short_variant: [activity]} from a previous-round EVOLVEpro file.
+
+    The previous EVOLVEpro xlsx is already in short variant space (Variant,
+    activity), so each row is one round-1 activity per variant. WT rows are
+    skipped; non-variant labels are skipped with a warning. Used as the round-1
+    baseline when the full round-1 already lives as an EVOLVEpro file rather than
+    a raw Agilent report.
+    """
+    warnings: list[str] = []
+    fallback: dict[str, list[float]] = {}
+    for variant, activity in read_evolvepro_rows(prev_evolvepro_xlsx):
+        if variant.upper() == _WT_LITERAL:
+            continue
+        short = _normalize_variant_label(variant)
+        if short is None:
+            warnings.append(
+                f"previous EVOLVEpro variant {variant!r} is not a variant label; skipped."
+            )
+            continue
+        fallback.setdefault(short, []).append(float(activity))
+    return fallback, warnings
+
+
+def _well_by_variant_from_layout(layout_xlsx) -> dict[str, str]:
+    """short variant -> well from the plate layout (for optional NGS gating)."""
+    entries = parse_plate_layout_xlsx(layout_xlsx)
+    return {to_evolvepro(e.mutant): e.well_id for e in entries if not e.is_wt}
+
+
 def build_evolvepro_input_from_reports(
     layout_xlsx,
     round1_report_xlsx,
@@ -556,20 +588,37 @@ def build_evolvepro_input_from_reports(
     *,
     mismatch_threshold: float = 0.1,
     verdict_xlsx: str | Path | None = None,
+    prev_evolvepro_xlsx: str | Path | None = None,
 ) -> BuildEvolveproReportsResult:
-    """Assemble an EVOLVEpro input xlsx from raw Agilent reports (no rank, no prev file).
+    """Assemble an EVOLVEpro input xlsx from round-1 + a variant-labeled re-measure.
 
-    Round-1: raw Agilent standard report (well-named) + plate layout -> one
-    relative replicate per mutant (fallback). Re-measure: variant-labeled report
-    -> n relative replicates per variant (authoritative). Authoritative mean
-    replaces fallback where both define a variant; other variants keep round-1.
+    Round-1 baseline (fallback) comes from one of two sources:
+      - raw Agilent standard report (well-named) + plate layout, or
+      - a previous-round EVOLVEpro file (``prev_evolvepro_xlsx``, Variant/activity)
+        when the full round-1 already lives in EVOLVEpro form.
+    Re-measure: variant-labeled report -> n relative replicates per variant
+    (authoritative). Authoritative mean replaces fallback where both define a
+    variant; other variants keep their round-1 value.
     """
     output_path = Path(output_xlsx)
     warnings: list[str] = []
 
-    fallback, well_by_variant, w1 = _build_fallback_from_raw_report(
-        round1_report_xlsx, layout_xlsx
-    )
+    if prev_evolvepro_xlsx is not None:
+        # Round-1 baseline from a previous-round EVOLVEpro file (Variant, activity).
+        fallback, w1 = _build_fallback_from_prev_evolvepro(prev_evolvepro_xlsx)
+        # Layout is optional here; only needed to map variant->well for NGS gating.
+        well_by_variant = (
+            _well_by_variant_from_layout(layout_xlsx) if layout_xlsx is not None else {}
+        )
+    else:
+        if layout_xlsx is None or round1_report_xlsx is None:
+            raise ValueError(
+                "raw round-1 mode requires both layout_xlsx and round1_report_xlsx; "
+                "pass prev_evolvepro_xlsx to use a previous EVOLVEpro file as round-1."
+            )
+        fallback, well_by_variant, w1 = _build_fallback_from_raw_report(
+            round1_report_xlsx, layout_xlsx
+        )
     warnings.extend(w1)
     authoritative, w2 = _build_authoritative_from_variant_report(remeasure_report_xlsx)
     warnings.extend(w2)
@@ -605,25 +654,33 @@ def build_evolvepro_input_from_reports(
     if verdict_xlsx is not None:
         from kuma_core.mame.activity.verdict_ngs import parse_verdict_wells, _PASS
 
-        verdict_by_well = parse_verdict_wells(verdict_xlsx)
-        for variant in list(merged):
-            well = well_by_variant.get(str(variant))
-            if well is None:
-                continue
-            vclass = verdict_by_well.get(well)
-            if vclass is not None and vclass != _PASS:
-                del merged[variant]
-                ngs_excluded.append(str(variant))
-        if ngs_excluded:
+        if not well_by_variant:
+            # prev-EVOLVEpro round-1 mode without a layout: no variant->well map,
+            # so gating cannot run. Keep all variants (graceful, layout-trust).
             warnings.append(
-                f"NGS verdict gating excluded {len(ngs_excluded)} non-PASS "
-                f"variant(s): {', '.join(sorted(ngs_excluded))}"
+                "NGS verdict gating skipped: no layout to map variant->well "
+                "(prev-EVOLVEpro round-1 mode without layout_xlsx)."
             )
-        if not merged:
-            raise ValueError(
-                "All variants excluded by NGS verdict gating (no PASS wells). "
-                "Check the verdict file or omit it to use layout-trust."
-            )
+        else:
+            verdict_by_well = parse_verdict_wells(verdict_xlsx)
+            for variant in list(merged):
+                well = well_by_variant.get(str(variant))
+                if well is None:
+                    continue
+                vclass = verdict_by_well.get(well)
+                if vclass is not None and vclass != _PASS:
+                    del merged[variant]
+                    ngs_excluded.append(str(variant))
+            if ngs_excluded:
+                warnings.append(
+                    f"NGS verdict gating excluded {len(ngs_excluded)} non-PASS "
+                    f"variant(s): {', '.join(sorted(ngs_excluded))}"
+                )
+            if not merged:
+                raise ValueError(
+                    "All variants excluded by NGS verdict gating (no PASS wells). "
+                    "Check the verdict file or omit it to use layout-trust."
+                )
 
     rows = sorted(merged.items(), key=lambda kv: -kv[1])
     n_variants = write_evolvepro_xlsx([(str(v), float(a)) for v, a in rows], output_path)
