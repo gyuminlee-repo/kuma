@@ -20,6 +20,15 @@ _POS_RE = re.compile(r"[A-Z](\d+)[A-Z]")
 _SINGLE_POS_RE = re.compile(r"^[A-Z](\d+)[A-Z]$")
 _TOKEN_SPLIT_RE = re.compile(r"[\s/,]+")
 
+def _combo_positions(variant: str) -> list[int]:
+    """Return ALL substituted positions in a (possibly colon-separated) combo variant.
+
+    For a single-mutation variant like 'A10C', returns [10].
+    For a combo like 'L59M:W60T:K64W', returns [59, 60, 64].
+    Returns an empty list if no position pattern is found.
+    """
+    return [int(m.group(1)) for m in _POS_RE.finditer(variant)]
+
 # ---------------------------------------------------------------------------
 # Grantham distance lookup table (Grantham 1974, Science 185:862-864)
 # Keyed by frozenset of two single-letter amino acid codes.
@@ -477,6 +486,9 @@ def load_evolvepro_csv(
     sheet_name: str | None = None,
     domain_pool_autoexpand: bool = True,
     domain_pool_max_multiplier: float = 10.0,
+    structural_diversity: bool = False,
+    structural_kappa: float = 0.0,
+    anchor_variants: Sequence[str] = (),
 ) -> dict:
     """Load EVOLVEpro df_test.csv and return selected variants.
 
@@ -558,7 +570,9 @@ def load_evolvepro_csv(
         sigma_pool_size = max(top_n, adaptive_count)
 
     # Pool variants: all variants in the effective pool (before position/diversity filters)
-    if sigma_pool_size is not None:
+    if structural_diversity:
+        effective_pool = len(rows)  # validated 'kuro_ca' recipe: diversify over ALL candidates
+    elif sigma_pool_size is not None:
         effective_pool = sigma_pool_size
     elif pareto_diversity:
         effective_pool = min(len(rows), max(top_n, int(top_n * pool_multiplier)))
@@ -575,7 +589,15 @@ def load_evolvepro_csv(
     domain_stats = None
     pareto_replaced = 0
 
-    if domain_diversity and domain_info and pareto_diversity:
+    if structural_diversity:
+        # Structure-aware diversity (full pool + revealed-anchor + 3D Ca-centroid
+        # maximin + kappa fitness blend). The only selector shown to beat Top-N on
+        # real epistatic combinatorial assays (benchmark REPORT.md Sec 6).
+        selected, pareto_replaced = structural_diversity_select(
+            rows, top_n, ca_coords=ca_coords,
+            anchor_variants=anchor_variants, kappa=structural_kappa,
+        )
+    elif domain_diversity and domain_info and pareto_diversity:
         selected, domain_stats = domain_aware_select(
             rows, domain_info, top_n, domain_strategy,
             domain_overlap_policy=domain_overlap_policy,
@@ -674,6 +696,7 @@ def domain_aware_select(
     excluded_ranges: Sequence[Mapping[str, Any]] | None = None,
     domain_pool_autoexpand: bool = True,
     domain_pool_max_multiplier: float = 10.0,
+    position_mode: str = "first",
 ) -> tuple[list[tuple[str, float]], dict]:
     """Domain-based quota Top-N selection.
 
@@ -783,12 +806,20 @@ def domain_aware_select(
     domain_bins["linker"] = []
 
     for variant, y in rows:
-        m = _POS_RE.search(variant)
-        if not m:
-            if linker_handling != "exclude":
-                domain_bins["linker"].append((variant, y))
-            continue
-        pos = int(m.group(1))
+        if position_mode == "centroid":
+            _ps = _combo_positions(variant)
+            if not _ps:
+                if linker_handling != "exclude":
+                    domain_bins["linker"].append((variant, y))
+                continue
+            pos = round(sum(_ps) / len(_ps))
+        else:  # "first" (default) — unchanged
+            m = _POS_RE.search(variant)
+            if not m:
+                if linker_handling != "exclude":
+                    domain_bins["linker"].append((variant, y))
+                continue
+            pos = int(m.group(1))
         # Drop positions in explicitly excluded (disabled) domain ranges
         if _is_excluded(pos):
             continue
@@ -976,6 +1007,7 @@ def pareto_diversity_select(
     ca_coords: list[tuple[float, float, float] | None] | None = None,
     entropy_weight: float = 0.0,
     distance_mode: str = "auto",
+    position_mode: str = "first",
 ) -> tuple[list[tuple[str, float]], int]:
     """MODIFY-style Pareto fitness-diversity selection (greedy maximin).
 
@@ -1022,16 +1054,38 @@ def pareto_diversity_select(
 
     # Extract positions for distance calculation
     positions: list[int] = []
+    # Centroid Cα coordinates (per-variant mean over substituted residues; centroid mode only)
+    _centroid_ca: list[tuple[float, float, float] | None] = []
+    use_3d = distance_mode == "3d" or (distance_mode == "auto" and ca_coords is not None)
     for variant, _ in pool:
-        m = _POS_RE.search(variant)
-        positions.append(int(m.group(1)) if m else -1)
+        if position_mode == "centroid":
+            _ps = _combo_positions(variant)
+            positions.append(round(sum(_ps) / len(_ps)) if _ps else -1)
+            if use_3d and ca_coords:
+                _valid_ca = [
+                    ca_coords[p]
+                    for p in _ps
+                    if 0 < p < len(ca_coords) and ca_coords[p] is not None
+                ]
+                if _valid_ca:
+                    _cx = sum(c[0] for c in _valid_ca) / len(_valid_ca)
+                    _cy = sum(c[1] for c in _valid_ca) / len(_valid_ca)
+                    _cz = sum(c[2] for c in _valid_ca) / len(_valid_ca)
+                    _centroid_ca.append((_cx, _cy, _cz))
+                else:
+                    _centroid_ca.append(None)
+            else:
+                _centroid_ca.append(None)
+        else:  # "first" (default) — unchanged
+            m = _POS_RE.search(variant)
+            positions.append(int(m.group(1)) if m else -1)
+            _centroid_ca.append(None)
 
     # Find max position for normalization (1D fallback)
     valid_pos = [p for p in positions if p >= 0]
     max_pos = max(valid_pos) if valid_pos else 1
 
     # Precompute max Cα distance for normalization (avoids repeated O(N²))
-    use_3d = distance_mode == "3d" or (distance_mode == "auto" and ca_coords is not None)
     _ca_max = ca_max_dist(ca_coords) if use_3d and ca_coords else 1.0
 
     # Per-position entropy (computed once over full pool)
@@ -1051,8 +1105,25 @@ def pareto_diversity_select(
             pos_i = positions[i]
             if pos_i < 0:
                 min_dist = 1.0  # unknown position = treat as maximally distant
+            elif position_mode == "centroid" and use_3d and ca_coords:
+                # Centroid mode: Euclidean distance between per-variant Ca centroids.
+                # Falls back to 1D mean-position distance when either centroid is None.
+                ci = _centroid_ca[i]
+                _dists: list[float] = []
+                for j in selected_indices:
+                    cj = _centroid_ca[j]
+                    if ci is not None and cj is not None:
+                        _d3 = math.sqrt(
+                            (ci[0] - cj[0]) ** 2 + (ci[1] - cj[1]) ** 2 + (ci[2] - cj[2]) ** 2
+                        )
+                        _dists.append(_d3 / _ca_max if _ca_max > 0 else 0.0)
+                    else:
+                        _dists.append(
+                            abs(pos_i - positions[j]) / max_pos if positions[j] >= 0 else 1.0
+                        )
+                min_dist = min(_dists) if _dists else 1.0
             elif use_3d and ca_coords and pos_i >= 1:
-                # AlphaFold 3D Cα distance (real structural space)
+                # AlphaFold 3D Cα distance (real structural space) — first mode
                 min_dist = min(
                     pairwise_ca_distance(ca_coords, pos_i, positions[j], _ca_max)
                     if positions[j] >= 1
@@ -1087,6 +1158,211 @@ def pareto_diversity_select(
 
     # Count how many differ from pure Top-N
     top_n_set = {v for v, _ in pool[:top_n]}
+    replaced = sum(1 for v, _ in selected if v not in top_n_set)
+
+    return selected, replaced
+# ---------------------------------------------------------------------------
+# Structural diversity selection — validated 'kuro_ca' recipe
+# ---------------------------------------------------------------------------
+
+
+def _variant_centroid(
+    variant: str,
+    ca_coords: "list[tuple[float, float, float] | None] | None",
+) -> tuple[float, float, float]:
+    """3D Cα centroid descriptor for a (possibly combo) variant string.
+
+    Primary path (ca_coords provided)
+    ----------------------------------
+    Returns the mean (x, y, z) of Cα coordinates at ALL substituted positions.
+    Positions missing from *ca_coords* (None or out-of-range) are silently
+    excluded.  If all positions are missing, falls through to the positional
+    fallback below.
+
+    Positional fallback (no ca_coords or all coords missing)
+    --------------------------------------------------------
+    Returns ``(min_pos, mean_pos, max_pos)`` of the integer substituted
+    positions as a float triple.  For a single-mutation variant the three
+    values are equal; for combos they span the occupied sequence range.
+
+    Returns ``(0.0, 0.0, 0.0)`` for unparseable variants (no positions found).
+    """
+    positions = _combo_positions(variant)
+    if not positions:
+        return (0.0, 0.0, 0.0)
+
+    if ca_coords is not None:
+        resolved: list[tuple[float, float, float]] = [
+            ca_coords[p]  # type: ignore[index]
+            for p in positions
+            if 0 < p < len(ca_coords) and ca_coords[p] is not None
+        ]
+        if resolved:
+            n = len(resolved)
+            cx = sum(c[0] for c in resolved) / n
+            cy = sum(c[1] for c in resolved) / n
+            cz = sum(c[2] for c in resolved) / n
+            return (cx, cy, cz)
+
+    # Positional fallback: (min, mean, max) of integer position indices.
+    mn = float(min(positions))
+    avg = float(sum(positions)) / len(positions)
+    mx = float(max(positions))
+    return (mn, avg, mx)
+
+
+def structural_diversity_select(
+    rows: "list[tuple[str, float]]",
+    top_n: int,
+    *,
+    ca_coords: "list[tuple[float, float, float] | None] | None" = None,
+    anchor_variants: "tuple[str, ...] | list[str]" = (),
+    kappa: float = 0.0,
+) -> "tuple[list[tuple[str, float]], int]":
+    """Structure-aware diversity selection (validated 'kuro_ca' recipe).
+
+    Greedy farthest-point (maximin) over the FULL candidate set in 3D Ca-centroid
+    space, anchored on the cumulative already-revealed set (anchor_variants), with
+    fitness as tie-break (kappa=0) or additive blend (kappa>0).
+
+    Fixes the three gaps vs pareto/domain selectors:
+    (1) full pool (no fitness gate);
+    (2) anchored on revealed history (anchor_variants);
+    (3) 3D centroid-of-Ca-coords distance over ALL substituted positions of a
+        combo (single-mut -> that one residue; positional fallback when coords
+        unavailable).
+
+    Parameters
+    ----------
+    rows : list[tuple[str, float]]
+        (variant_id, y_pred) pairs.  No pre-sorting required; the full set is
+        used as the candidate pool.
+    top_n : int
+        Number of variants to select.
+    ca_coords : list or None
+        1-based AlphaFold Ca coordinates (None entries = missing residues).
+        When provided, Euclidean distance between 3D centroids is used.
+        When None or when all positions of a variant are missing, falls back
+        to positional (min, mean, max) centroid space.
+    anchor_variants : tuple or list of str
+        Variant IDs already revealed / committed — the selection maximises
+        minimum distance to this cumulative anchor set.  When empty the
+        greedy seed is the max-fitness row (mirrors embdiv behavior when no
+        anchor is provided).
+    kappa : float
+        0.0 (default) — pure maximin; y_pred breaks ties.
+        > 0 — blended score: ``(1-kappa)*norm_min_dist + kappa*norm_fitness``
+        where both components are min-max normalised over the active
+        candidates at each step.  kappa=1.0 collapses to pure Top-N.
+
+    Returns
+    -------
+    tuple[list[tuple[str, float]], int]
+        (selected_rows, replaced_vs_topn) where replaced_vs_topn counts how
+        many selected variants are not in the pure Top-N fitness set.
+    """
+    if top_n <= 0 or not rows:
+        return rows[:top_n], 0
+
+    k = min(top_n, len(rows))
+    num = len(rows)
+
+    # Build Ca centroid descriptors for every candidate.
+    cand_descs: list[tuple[float, float, float]] = [
+        _variant_centroid(v, ca_coords) for v, _ in rows
+    ]
+    # Build descriptors for anchor variants.
+    anc_descs: list[tuple[float, float, float]] = [
+        _variant_centroid(v, ca_coords) for v in anchor_variants
+    ]
+
+    def _dist(
+        a: tuple[float, float, float], b: tuple[float, float, float]
+    ) -> float:
+        return math.sqrt(
+            (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2
+        )
+
+    # Initialise per-candidate min-distance to the anchor set.
+    # If anchor is empty, initialise to +inf (first pick = max-fitness via
+    # tiebreak — mirrors _maximin_with_anchor in al.acquisition).
+    if anc_descs:
+        min_dist: list[float] = [
+            min(_dist(d, a) for a in anc_descs) for d in cand_descs
+        ]
+    else:
+        min_dist = [math.inf] * num
+
+    chosen_indices: list[int] = []
+    chosen_set: set[int] = set()
+
+    for _ in range(k):
+        active = [i for i in range(num) if i not in chosen_set]
+        if not active:
+            break
+
+        best_idx = -1
+
+        if kappa > 0.0:
+            active_dists = [min_dist[i] for i in active]
+            max_d = max(active_dists)
+
+            if not math.isfinite(max_d):
+                # All distances are +inf (empty anchor, first round).
+                # Seed with max-fitness row.
+                best_idx = max(active, key=lambda i: rows[i][1])
+            else:
+                min_d = min(active_dists)
+                active_fits = [rows[i][1] for i in active]
+                min_f, max_f = min(active_fits), max(active_fits)
+                denom_d = (max_d - min_d) if max_d > min_d else 1.0
+                denom_f = (max_f - min_f) if max_f > min_f else 1.0
+
+                best_score = -math.inf
+                best_y = -math.inf
+                for i in active:
+                    nd = (min_dist[i] - min_d) / denom_d
+                    nf = (rows[i][1] - min_f) / denom_f
+                    score = (1.0 - kappa) * nd + kappa * nf
+                    y_i = rows[i][1]
+                    if score > best_score or (
+                        score == best_score and y_i > best_y
+                    ):
+                        best_score = score
+                        best_y = y_i
+                        best_idx = i
+        else:
+            # kappa == 0: pure maximin; y_pred breaks ties.
+            # Correct when min_dist contains +inf: all equal => fitness
+            # tiebreak picks max-fitness seed on the first iteration.
+            best_score = -math.inf
+            best_y = -math.inf
+            for i in active:
+                score = min_dist[i]
+                y_i = rows[i][1]
+                if score > best_score or (score == best_score and y_i > best_y):
+                    best_score = score
+                    best_y = y_i
+                    best_idx = i
+
+        if best_idx < 0:
+            break
+
+        chosen_indices.append(best_idx)
+        chosen_set.add(best_idx)
+
+        # Incrementally update min-distances using the newly chosen centroid.
+        new_desc = cand_descs[best_idx]
+        for i in range(num):
+            if i not in chosen_set:
+                d = _dist(cand_descs[i], new_desc)
+                if d < min_dist[i]:
+                    min_dist[i] = d
+
+    selected = [rows[i] for i in chosen_indices]
+
+    # Count variants not present in the pure Top-N fitness set.
+    top_n_set = {v for v, _ in sorted(rows, key=lambda r: -r[1])[:top_n]}
     replaced = sum(1 for v, _ in selected if v not in top_n_set)
 
     return selected, replaced

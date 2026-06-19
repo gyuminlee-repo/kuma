@@ -219,6 +219,12 @@ async function applyKuroSnapshot(snapshot: AutosaveSnapshot): Promise<void> {
   if (typeof diversity?.pareto_diversity_enabled === "boolean") {
     patch.paretoDiversityEnabled = diversity.pareto_diversity_enabled;
   }
+  if (typeof diversity?.structural_diversity_enabled === "boolean") {
+    patch.structuralDiversityEnabled = diversity.structural_diversity_enabled;
+  }
+  if (typeof diversity?.structural_kappa === "number") {
+    patch.structuralKappa = Math.max(0, Math.min(1, diversity.structural_kappa));
+  }
   if (typeof diversity?.entropy_weight_enabled === "boolean") {
     patch.entropyWeightEnabled = diversity.entropy_weight_enabled;
   }

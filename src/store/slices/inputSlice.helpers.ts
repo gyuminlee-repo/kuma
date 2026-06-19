@@ -44,6 +44,8 @@ export interface EvolveproLoadConfig {
    * pass-through (backward compatible).
    */
   refSeq: string;
+  structuralDiversityEnabled: boolean;
+  structuralKappa: number;
 }
 
 export interface EvolveproLoadStateUpdate {
@@ -86,6 +88,8 @@ export function buildEvolveproLoadParams(config: EvolveproLoadConfig): Record<st
     evolveproRound,
     roundSize,
     refSeq,
+    structuralDiversityEnabled,
+    structuralKappa,
   } = config;
 
   const params: Record<string, unknown> = {
@@ -119,6 +123,9 @@ export function buildEvolveproLoadParams(config: EvolveproLoadConfig): Record<st
       round_size: roundSize,
     }),
     ...(refSeq && { ref_seq: refSeq }),
+    ...(usePipeline && structuralDiversityEnabled && { structural_diversity: true }),
+    ...(usePipeline && structuralDiversityEnabled && { structural_kappa: structuralKappa }),
+    ...(usePipeline && { anchor_variants: [] }),
   };
   return params;
 }

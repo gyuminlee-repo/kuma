@@ -318,6 +318,8 @@ export interface WorkspaceV1 {
   domainDiversityEnabled?: boolean;
   domainStrategy?: "proportional" | "equal";
   paretoDiversityEnabled?: boolean;
+  structuralDiversityEnabled?: boolean;
+  structuralKappa?: number;
   disabledDomains?: string[];
   rescuedMutations?: string[];
   entropyWeightEnabled?: boolean;
@@ -377,6 +379,8 @@ export interface WorkspaceSettings {
   linkerHandling?: LinkerHandling;
   domainQuotaMin?: number;
   paretoDiversityEnabled?: boolean;
+  structuralDiversityEnabled?: boolean;
+  structuralKappa?: number;
   disabledDomains?: string[];
   rescuedMutations?: string[];
   entropyWeightEnabled?: boolean;

@@ -646,3 +646,31 @@ export function BenchmarkSection(props: {
     </div>
   );
 }
+export function StructuralDiversitySection(props: {
+  structuralKappa: number;
+  setStructuralKappa: (v: number) => void;
+}) {
+  const { structuralKappa, setStructuralKappa } = props;
+  return (
+    <div className="space-y-1 text-caption text-muted-foreground">
+      <div className="flex items-center gap-2">
+        <span className="w-40">Exploit/diversity blend (kappa)</span>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.05"
+          value={structuralKappa}
+          onChange={(e) => setStructuralKappa(Number(e.target.value))}
+          className="w-20 accent-primary"
+          title="Structural diversity kappa (0 = exploit, 1 = explore)"
+        />
+        <span className="font-mono text-foreground">{structuralKappa.toFixed(2)}</span>
+      </div>
+      <p className="text-plate-tiny text-muted-foreground/70">
+        Selects variants using 3D C&alpha; centroid distance. kappa=0 favours
+        high-fitness variants; kappa=1 maximises structural spread.
+      </p>
+    </div>
+  );
+}

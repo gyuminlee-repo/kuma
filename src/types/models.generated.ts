@@ -570,6 +570,7 @@ export interface LandscapeEntry {
   [k: string]: unknown;
 }
 export interface LoadEvolveproParams {
+  anchor_variants?: string[];
   distance_mode?: "auto" | "1d" | "3d";
   domain_diversity?: boolean;
   domain_overlap_policy?: "first" | "largest";
@@ -591,6 +592,8 @@ export interface LoadEvolveproParams {
   score_column?: string | null;
   score_order?: "desc" | "asc";
   sheet_name?: string | null;
+  structural_diversity?: boolean;
+  structural_kappa?: number;
   structure_accession?: string | null;
   top_n?: number;
   variant_column?: string | null;

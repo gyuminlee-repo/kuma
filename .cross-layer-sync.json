@@ -655,7 +655,10 @@
         "variant_column",
         "score_column",
         "score_order",
-        "sheet_name"
+        "sheet_name",
+        "structural_diversity",
+        "structural_kappa",
+        "anchor_variants"
       ],
       "severity": "blocking",
       "note": "LoadEvolveproParams override fields must stay in sync across Pydantic model, store helper, and generated TS types"

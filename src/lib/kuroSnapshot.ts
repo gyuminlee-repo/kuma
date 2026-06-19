@@ -24,6 +24,7 @@ export interface KuroSnapshotState
     | "linkerHandling" | "domainQuotaMin"
     | "paretoDiversityEnabled" | "entropyWeightEnabled" | "entropyWeight"
     | "paretoPoolMultiplier" | "distanceMode"
+    | "structuralDiversityEnabled" | "structuralKappa"
     | "evolveproRound" | "roundSize" | "autoRedesignOnLoad" | "saveCache"
     | "selectedPolymerase" | "codonStrategy" | "maxPrimers"
     | "tmFwdTarget" | "tmRevTarget" | "tmOverlapTarget"
@@ -86,6 +87,8 @@ export function buildKuroSnapshot(state: KuroSnapshotState): AutosaveSnapshot {
       linker_handling: state.linkerHandling,
       domain_quota_min: state.domainQuotaMin,
       pareto_diversity_enabled: state.paretoDiversityEnabled,
+      structural_diversity_enabled: state.structuralDiversityEnabled,
+      structural_kappa: state.structuralKappa,
       entropy_weight_enabled: state.entropyWeightEnabled,
       entropy_weight: state.entropyWeight,
       pareto_pool_multiplier: state.paretoPoolMultiplier,
