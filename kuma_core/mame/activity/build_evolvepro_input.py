@@ -575,9 +575,21 @@ def _build_fallback_from_prev_evolvepro(
 
 
 def _well_by_variant_from_layout(layout_xlsx) -> dict[str, str]:
-    """short variant -> well from the plate layout (for optional NGS gating)."""
-    entries = parse_plate_layout_xlsx(layout_xlsx)
-    return {to_evolvepro(e.mutant): e.well_id for e in entries if not e.is_wt}
+    """short variant -> well from the plate layout (for optional NGS gating).
+
+    Non-canonical mutant rows (controls, blanks, WT replicate labels not caught
+    by is_wt, multi-substitution or lowercase labels) are skipped rather than
+    raising, mirroring the raw-report path. For valid single-substitution layouts
+    this is identical to mapping every entry (V5F -> 5F either way).
+    """
+    well_by_variant: dict[str, str] = {}
+    for e in parse_plate_layout_xlsx(layout_xlsx):
+        if e.is_wt:
+            continue
+        short = _normalize_variant_label(e.mutant)
+        if short is not None:
+            well_by_variant[short] = e.well_id
+    return well_by_variant
 
 
 def build_evolvepro_input_from_reports(

@@ -352,6 +352,34 @@ def test_t11_raw_mode_missing_inputs_raises(tmp_path):
         build_evolvepro_input_from_reports(None, None, remeasure, out)
 
 
+def test_t12_prev_evolvepro_layout_with_control_rows_does_not_crash(tmp_path):
+    # prev-mode + verdict + a layout containing non-variant rows (control, WT
+    # replicate label) that to_evolvepro would reject. Build must succeed and
+    # skip those rows rather than crashing in _well_by_variant_from_layout.
+    prev = tmp_path / "prev.xlsx"
+    _write_prev_evolvepro(prev, [("5F", 1.0), ("10L", 0.9)])
+    layout = tmp_path / "layout.xlsx"
+    _write_layout(
+        layout,
+        [("V5F", "A1"), ("V10L", "B1"), ("BLANK", "C1"), ("WT_1", "D1")],
+    )
+    remeasure = tmp_path / "remeasure.xlsx"
+    _write_fid1b(
+        remeasure,
+        [("V5F", 0.6), ("V5F", 0.6), ("WT_1", 1.0), ("WT_2", 1.0)],
+    )
+    verdict = tmp_path / "verdict.xlsx"
+    _write_verdict(verdict, [("A01", "V5F", "PASS"), ("B01", "V10L", "PASS")])
+    out = tmp_path / "out.xlsx"
+    res = build_evolvepro_input_from_reports(
+        layout, None, remeasure, out,
+        prev_evolvepro_xlsx=prev, verdict_xlsx=verdict,
+    )
+    # control/WT rows skipped from the variant->well map; both PASS variants kept.
+    assert res.n_variants == 2
+    assert res.n_ngs_excluded == 0
+
+
 def _write_verdict(path, rows):
     """Write an Analyze verdict xlsx. rows: [(well_id, mutant_id, verdict)]."""
     import openpyxl
