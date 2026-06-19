@@ -199,9 +199,15 @@ def call_consensus_with_metrics(
         del_votes = counts.get("-", 0)
         base_depth = depth_pos - del_votes  # reads that voted a base
         ins_ev = insertion_events[pos]
-        ins_frac = ins_ev / base_depth if base_depth > 0 else 0.0
-        del_total = base_depth + del_votes
-        del_frac = del_votes / del_total if del_total > 0 else 0.0
+        # Spanning depth: reads that covered this position (base votes + del
+        # votes). Inserting reads always vote a base at the anchor M op before
+        # the I op, so they are already counted in base_depth. Using depth_pos
+        # as the denominator guarantees ins_frac <= 1.0 whenever ins_ev <=
+        # depth_pos (true by construction: every inserting read contributed a
+        # base vote at the anchor). del_frac uses the same denominator for
+        # consistency; del_votes is a subset of depth_pos so del_frac <= 1.0.
+        ins_frac = ins_ev / depth_pos if depth_pos > 0 else 0.0
+        del_frac = del_votes / depth_pos if depth_pos > 0 else 0.0
         pos_max = max(ins_frac, del_frac)
         if pos_max > max_indel_event_fraction:
             max_indel_event_fraction = pos_max

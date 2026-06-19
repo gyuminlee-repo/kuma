@@ -1097,6 +1097,8 @@ def run_combinatorial_demux(
                 aligned_reads,
                 mapq_failed,
                 span_failed,
+                n_indel_event_positions,
+                max_indel_event_fraction,
             ) = fut.result()
             per_well_consensus[wn] = seq
             atomic_write_text(
@@ -1115,6 +1117,8 @@ def run_combinatorial_demux(
                         low_depth_positions=low_depth_positions,
                         consensus_n_fraction=n_fraction,
                         low_quality_bases=low_quality_bases,
+                        n_indel_event_positions=n_indel_event_positions,
+                        max_indel_event_fraction=max_indel_event_fraction,
                     ),
                 ),
             )
@@ -1164,7 +1168,7 @@ def _compute_well_consensus(
     ref_len: int,
     min_depth: int,
     reference_index: Path | None = None,
-) -> tuple[str, int, int, float, int, float, int, int, int, int, int]:
+) -> tuple[str, int, int, float, int, float, int, int, int, int, int, int, float]:
     """Align reads and return consensus sequence, depth, and mix metrics."""
     if not reads:
         return (
@@ -1179,6 +1183,8 @@ def _compute_well_consensus(
             0,
             0,
             0,
+            0,
+            0.0,
         )
 
     well_alignments = align_reads(
@@ -1213,6 +1219,8 @@ def _compute_well_consensus(
             0,
             0,
             0,
+            0,
+            0.0,
         )
 
     consensus_call = call_consensus_with_metrics(
@@ -1232,6 +1240,8 @@ def _compute_well_consensus(
         len(well_alignments),
         0,
         0,
+        consensus_call.n_indel_event_positions,
+        consensus_call.max_indel_event_fraction,
     )
 
 
