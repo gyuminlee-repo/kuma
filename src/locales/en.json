@@ -320,8 +320,8 @@
     },
     "activity": {
       "ingest": {
-        "contextTitle": "Activity Data — Ingest",
-        "contextSubtitle": "Upload wet-lab activity measurements for this round.",
+        "contextTitle": "Activity Data: EVOLVEpro Input",
+        "contextSubtitle": "Ingest measurements, merge replicates, and export the EVOLVEpro input for this round.",
         "drawerLeft": "Activity",
         "drawerLeftDesc": "Wells with measurements",
         "drawerCenter": "Activity log",
@@ -2196,7 +2196,7 @@
         "health": "Run Health"
       },
       "activity": {
-        "ingest": "Ingest Data",
+        "ingest": "Activity & EVOLVEpro Input",
         "merge": "Merge",
         "export": "Export",
         "mergeExport": "Merge & Export"
@@ -2252,7 +2252,7 @@
     },
     "mameDescriptions": {
       "activity": {
-        "ingest": "Upload activity CSV or Excel files and annotate the wild-type.",
+        "ingest": "Ingest activity data, merge replicates, and build the EVOLVEpro input file.",
         "mergeExport": "Merge activity data with genotype calls and export the merged table, then build the EVOLVEpro input by combining single-replicate (GC) and triple-replicate (WT-relative) activity."
       },
       "analyze": {
