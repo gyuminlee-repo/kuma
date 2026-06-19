@@ -884,3 +884,85 @@ class TestRetryFailedMutation:
         )
         assert "result" in resp, f"retry_failed_mutation failed: {resp}"
         assert "candidates" in resp["result"]
+
+# ── 15. load_evolvepro_csv — structural diversity 3D Cα coords wiring ─────
+
+
+class TestStructuralDiversity3DCoords:
+    """Regression guard for the app's structural-diversity 3D wiring.
+
+    The structural selector must receive cached AlphaFold Cα coords via
+    ``structure_accession``; the coords change the selection vs the positional
+    fallback, so a matching accession must reproduce the 3D result and a
+    non-matching one must fall back.
+    """
+
+    ACC = "TESTACC1"
+
+    @staticmethod
+    def _write_csv(tmp_path) -> str:
+        # 4 single-mut variants at distinct positions; y_pred descending so the
+        # maximin seed (max fitness) is A10G.
+        csv = tmp_path / "df_test.csv"
+        csv.write_text(
+            "variant,y_pred\n"
+            "A10G,0.9\n"
+            "A20G,0.8\n"
+            "A30G,0.7\n"
+            "A40G,0.6\n"
+        )
+        return str(csv)
+
+    @staticmethod
+    def _coords():
+        # 1-based Cα coords. In sequence space pos40 is farthest from pos10,
+        # but in 3D space pos20 is farthest (pos40 sits right next to pos10),
+        # so 3D vs positional selection diverge on the second pick.
+        coords = [None] * 41
+        coords[10] = (0.0, 0.0, 0.0)
+        coords[20] = (100.0, 0.0, 0.0)
+        coords[30] = (50.0, 0.0, 0.0)
+        coords[40] = (1.0, 0.0, 0.0)
+        return coords
+
+    def test_cached_coords_drive_3d_structural_selection(self, tmp_path):
+        from kuma_core.kuro.evolvepro import load_evolvepro_csv
+
+        path = self._write_csv(tmp_path)
+        coords = self._coords()
+
+        expected_3d = load_evolvepro_csv(
+            path, top_n=2, structural_diversity=True, ca_coords=coords,
+            structural_kappa=0.0,
+        )["variants"]
+        expected_pos = load_evolvepro_csv(
+            path, top_n=2, structural_diversity=True, ca_coords=None,
+            structural_kappa=0.0,
+        )["variants"]
+        # Coords must actually change the outcome, else the test proves nothing.
+        assert expected_3d != expected_pos
+        assert expected_3d == ["A10G", "A20G"]
+        assert expected_pos == ["A10G", "A40G"]
+
+        # RPC with a matching accession + cached coords → 3D path.
+        _sidecar_core._state.ca_coords = coords
+        _sidecar_core._state.ca_coords_accession = self.ACC
+        resp = _rpc("load_evolvepro_csv", {
+            "filepath": path, "top_n": 2,
+            "structural_diversity": True, "structure_accession": self.ACC,
+            "structural_kappa": 0.0, "anchor_variants": [],
+        })
+        assert resp["result"]["variants"] == expected_3d
+
+    def test_missing_accession_falls_back_to_positional(self, tmp_path):
+        path = self._write_csv(tmp_path)
+        coords = self._coords()
+        # Coords cached under a different accession → not resolved → fallback.
+        _sidecar_core._state.ca_coords = coords
+        _sidecar_core._state.ca_coords_accession = "OTHERACC"
+        resp = _rpc("load_evolvepro_csv", {
+            "filepath": path, "top_n": 2,
+            "structural_diversity": True, "structure_accession": self.ACC,
+            "structural_kappa": 0.0, "anchor_variants": [],
+        })
+        assert resp["result"]["variants"] == ["A10G", "A40G"]
