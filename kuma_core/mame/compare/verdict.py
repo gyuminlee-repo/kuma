@@ -1,6 +1,6 @@
 """6-class verdict classifier.
 
-Priority (fail-first): LOWDEPTH -> FRAMESHIFT -> MANY -> MIXED -> WRONG_AA -> AMBIGUOUS -> PASS.
+Priority (fail-first): LOWDEPTH -> INDEL_EVENT (gate) -> FRAMESHIFT -> MANY -> MIXED -> WRONG_AA -> AMBIGUOUS -> PASS.
 """
 
 from __future__ import annotations
@@ -85,6 +85,34 @@ def classify_verdict(
             expected_mutations=list(expected_mutations),
             verdict=VerdictClass.LOWDEPTH,
             verdict_notes="; ".join(notes),
+        )
+
+    # INDEL EVENT gate — surface indel-bearing wells that evade the existing
+    # FRAMESHIFT check.  The existing _has_frameshift uses {pos}_INDEL markers
+    # in observed_nt_changes, but those markers are produced only when
+    # consensus_seq is longer than the reference (which never happens with the
+    # reference-length consensus caller). This gate uses raw pileup evidence
+    # (max_indel_event_fraction) instead.  Priority is between LOWDEPTH and
+    # NO_CALL so that a deletion-dominant well (consensus N fraction elevated)
+    # is flagged AMBIGUOUS+indel note rather than NO_CALL — giving the user
+    # a more actionable signal.
+    if (
+        params.max_indel_event_fraction is not None
+        and translated.barcode.max_indel_event_fraction
+        > params.max_indel_event_fraction
+    ):
+        return VerdictRecord(
+            translated=translated,
+            expected_mutations=list(expected_mutations),
+            verdict=VerdictClass.AMBIGUOUS,
+            verdict_notes=(
+                "indel event signal: "
+                f"max_indel_event_fraction="
+                f"{translated.barcode.max_indel_event_fraction:.3f} > "
+                f"threshold={params.max_indel_event_fraction:.3f}; "
+                f"n_indel_event_positions="
+                f"{translated.barcode.n_indel_event_positions}"
+            ),
         )
 
     # NO_CALL — consensus carries too many N (ambiguous) positions to trust the

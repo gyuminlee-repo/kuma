@@ -65,7 +65,7 @@ MinKNOW run dir (fastq_pass/)
 - consensus header 예:
 
 ```text
->{well_name} depth={passed_reads} input_reads={raw_well_reads} aligned_reads={aligned_reads} mapq_failed={n} span_failed={n} mixed_positions={n} max_minor_allele_fraction={f} low_depth_positions={n} consensus_n_fraction={f} low_quality_bases={n}
+>{well_name} depth={passed_reads} input_reads={raw_well_reads} aligned_reads={aligned_reads} mapq_failed={n} span_failed={n} mixed_positions={n} max_minor_allele_fraction={f} low_depth_positions={n} consensus_n_fraction={f} low_quality_bases={n} indel_event_positions={n} max_indel_event_fraction={f}
 ```
 
 ## 판정에 쓰이는 QC 근거
@@ -80,6 +80,8 @@ MinKNOW run dir (fastq_pass/)
 | `max_minor_allele_fraction` | 관측된 최대 second-base 비율 | AMBIGUOUS note / Excel QC 근거 |
 | `mapq_failed` | MAPQ filter 탈락 read 수 | UI/Excel 실패 원인 |
 | `span_failed` | reference span filter 탈락 read 수 | UI/Excel 실패 원인 |
+| `indel_event_positions` | indel-event 분율이 0.05를 넘은 position 수 | INDEL EVENT gate note |
+| `max_indel_event_fraction` | position별 최대 insertion/deletion 이벤트 분율 | 임계(기본 0.50) 초과 시 AMBIGUOUS (indel event). reference-pinned consensus가 숨기는 in-frame indel을 surface |
 
 MAME verdict table과 Excel export는 위 근거를 노출한다. 따라서 단순히
 `LOWDEPTH`/`AMBIGUOUS` 라벨만 보는 것이 아니라, 어떤 read-depth·base-quality·

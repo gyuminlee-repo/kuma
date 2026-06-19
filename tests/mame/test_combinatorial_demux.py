@@ -752,10 +752,10 @@ class TestConsensusParallelEquivalence:
 
         # Canonical serial consensus answers
         expected = {
-            "1_1": ("AAACCC", 5, 0, 0.0, 0, 0.0, 0, 5, 5, 0, 0),
-            "1_2": ("TTTGGG", 3, 0, 0.0, 0, 0.0, 0, 3, 3, 0, 0),
-            "2_1": ("GGGAAA", 4, 0, 0.0, 0, 0.0, 0, 4, 4, 0, 0),
-            "2_2": ("CCCAAA", 2, 0, 0.0, 0, 0.0, 0, 2, 2, 0, 0),
+            "1_1": ("AAACCC", 5, 0, 0.0, 0, 0.0, 0, 5, 5, 0, 0, 0, 0.0),
+            "1_2": ("TTTGGG", 3, 0, 0.0, 0, 0.0, 0, 3, 3, 0, 0, 0, 0.0),
+            "2_1": ("GGGAAA", 4, 0, 0.0, 0, 0.0, 0, 4, 4, 0, 0, 0, 0.0),
+            "2_2": ("CCCAAA", 2, 0, 0.0, 0, 0.0, 0, 2, 2, 0, 0, 0, 0.0),
         }
 
         call_counts: dict[str, int] = {}
@@ -808,6 +808,8 @@ class TestConsensusParallelEquivalence:
                     aligned_reads,
                     mapq_failed,
                     span_failed,
+                    n_indel_event_positions,
+                    max_indel_event_fraction,
                 ) = cd_mod._compute_well_consensus(
                     wn, rds, ref_fasta, ref_seq, ref_len, 1
                 )
