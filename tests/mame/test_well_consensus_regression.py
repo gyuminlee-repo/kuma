@@ -339,8 +339,9 @@ class TestReferenceGroundTruth:
         from kuma_core.mame.ingest.consensus import _accumulate
 
         per_position: list[dict] = [defaultdict(int) for _ in range(ref_len)]
+        ins_events: list[int] = [0] * ref_len
         for aln in alignments:
-            _accumulate(aln, per_position)
+            _accumulate(aln, per_position, ins_events, min_base_quality=10)
 
         n_covered = 0
         n_consistent = 0
