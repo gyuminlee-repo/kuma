@@ -436,7 +436,11 @@
       "toastSuccess": "EVOLVEpro input built",
       "toastSuccessDesc": "Wrote {{count}} variants.",
       "toastError": "EVOLVEpro input build failed",
-      "openFolder": "Open output folder"
+      "openFolder": "Open output folder",
+      "verdictXlsx": "NGS verdict (optional)",
+      "verdictXlsxHelper": "Optional Analyze Excel report (Final sheet: well_id + verdict). Variants whose well is not PASS are excluded. Omit to skip NGS gating.",
+      "optionalStateLabel": "Optional",
+      "nNgsExcluded": "NGS-excluded"
     },
     "runHealth": {
       "panelAriaLabel": "Run health panel",

@@ -14,6 +14,7 @@ export interface BuildEvolveproFormState {
   layoutXlsx: string;
   round1ReportXlsx: string;
   remeasureReportXlsx: string;
+  verdictXlsx: string;
   outputXlsx: string;
 }
 
@@ -21,6 +22,7 @@ export const BUILD_EVOLVEPRO_DEFAULT_STATE: BuildEvolveproFormState = {
   layoutXlsx: "",
   round1ReportXlsx: "",
   remeasureReportXlsx: "",
+  verdictXlsx: "",
   outputXlsx: "",
 };
 
@@ -39,6 +41,7 @@ export function loadBuildEvolveproFromStorage(): BuildEvolveproFormState {
         typeof p.round1ReportXlsx === "string" ? p.round1ReportXlsx : "",
       remeasureReportXlsx:
         typeof p.remeasureReportXlsx === "string" ? p.remeasureReportXlsx : "",
+      verdictXlsx: typeof p.verdictXlsx === "string" ? p.verdictXlsx : "",
       outputXlsx: typeof p.outputXlsx === "string" ? p.outputXlsx : "",
     };
   } catch {

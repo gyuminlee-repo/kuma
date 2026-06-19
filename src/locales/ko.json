@@ -436,7 +436,11 @@
       "toastSuccess": "EVOLVEpro 입력 생성 완료",
       "toastSuccessDesc": "{{count}}개 variant를 기록했습니다.",
       "toastError": "EVOLVEpro 입력 생성 실패",
-      "openFolder": "출력 폴더 열기"
+      "openFolder": "출력 폴더 열기",
+      "verdictXlsx": "NGS verdict (선택)",
+      "verdictXlsxHelper": "선택: Analyze Excel 리포트(Final 시트: well_id + verdict). well이 PASS가 아닌 변이는 제외. 비우면 NGS 게이팅 생략.",
+      "optionalStateLabel": "선택",
+      "nNgsExcluded": "NGS 제외"
     },
     "runHealth": {
       "panelAriaLabel": "실행 상태 패널",

@@ -904,7 +904,11 @@
       "toastSuccess": "EVOLVEpro 入力の生成が完了しました",
       "toastSuccessDesc": "{{count}} 件の variant を記録しました。",
       "toastError": "EVOLVEpro 入力の生成に失敗しました",
-      "openFolder": "出力フォルダを開く"
+      "openFolder": "出力フォルダを開く",
+      "verdictXlsx": "NGS verdict (optional)",
+      "verdictXlsxHelper": "Optional Analyze Excel report (Final sheet: well_id + verdict). Variants whose well is not PASS are excluded. Omit to skip NGS gating.",
+      "optionalStateLabel": "Optional",
+      "nNgsExcluded": "NGS-excluded"
     },
     "verdictBadge": {
       "help": {

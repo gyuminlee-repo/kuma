@@ -23,6 +23,8 @@ export interface BuildEvolveproInputParams {
   round1_report_xlsx?: string | null
   /** Reports mode: raw variant-labeled Agilent FID1B re-measure report. */
   remeasure_report_xlsx?: string | null
+  /** Reports mode (optional): Analyze verdict xlsx; variants whose well is not PASS are excluded. */
+  verdict_xlsx?: string | null
   /** Mean-difference threshold for the replicate mismatch flag. Default 0.1. */
   mismatch_threshold?: number
   /** Where to write the ID->variant JSON audit. Defaults next to output_xlsx. */
@@ -93,4 +95,8 @@ export interface BuildEvolveproInputResult {
   mismatched: MismatchedVariant[]
   /** Which source contract produced this result: rank inputs or raw reports. */
   mode: "rank" | "reports"
+  /** Count of variants excluded by NGS verdict gating (0 when no verdict_xlsx). */
+  n_ngs_excluded: number
+  /** Short variant labels excluded because their well was not PASS. */
+  ngs_excluded: string[]
 }

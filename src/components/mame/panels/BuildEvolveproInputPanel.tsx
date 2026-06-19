@@ -64,6 +64,7 @@ export function BuildEvolveproInputPanel() {
     form.layoutXlsx,
     form.round1ReportXlsx,
     form.remeasureReportXlsx,
+    form.verdictXlsx,
     form.outputXlsx,
   ]);
 
@@ -106,6 +107,7 @@ export function BuildEvolveproInputPanel() {
       layout_xlsx: form.layoutXlsx,
       round1_report_xlsx: form.round1ReportXlsx,
       remeasure_report_xlsx: form.remeasureReportXlsx,
+      verdict_xlsx: form.verdictXlsx || undefined,
       output_xlsx: form.outputXlsx,
     };
 
@@ -191,6 +193,17 @@ export function BuildEvolveproInputPanel() {
                 )
               }
               helperText={t("mame.buildEvolvepro.remeasureReportXlsxHelper")}
+            />
+            <FilePickerField
+              id="bep-verdict"
+              label={t("mame.buildEvolvepro.verdictXlsx")}
+              filled={Boolean(form.verdictXlsx)}
+              value={form.verdictXlsx}
+              optional
+              onBrowse={() =>
+                browseXlsx("verdictXlsx", t("mame.buildEvolvepro.verdictXlsx"))
+              }
+              helperText={t("mame.buildEvolvepro.verdictXlsxHelper")}
             />
           </div>
         </section>
@@ -300,6 +313,15 @@ function BuildResult({ result }: { result: BuildEvolveproInputResult }) {
           value={result.n_fallback_only}
         />
       </div>
+
+      {result.n_ngs_excluded > 0 && (
+        <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+          <span className="font-semibold">
+            {t("mame.buildEvolvepro.nNgsExcluded")}: {result.n_ngs_excluded}
+          </span>{" "}
+          <span className="font-mono">{result.ngs_excluded.join(", ")}</span>
+        </div>
+      )}
 
       {result.mode === "rank" && !result.prev_descending && (
         <div
@@ -454,6 +476,7 @@ function FilePickerField({
   value,
   onBrowse,
   helperText,
+  optional = false,
 }: {
   id: string;
   label: string;
@@ -461,6 +484,7 @@ function FilePickerField({
   value: string;
   onBrowse: () => Promise<void>;
   helperText?: string;
+  optional?: boolean;
 }) {
   const { t } = useTranslation();
   const preview = getFilename(value);
@@ -480,7 +504,9 @@ function FilePickerField({
         >
           {filled
             ? t("mame.inputPanel.fileReady")
-            : t("mame.buildEvolvepro.requiredStateLabel")}
+            : optional
+              ? t("mame.buildEvolvepro.optionalStateLabel")
+              : t("mame.buildEvolvepro.requiredStateLabel")}
         </span>
       </div>
       <div className="flex gap-1.5">

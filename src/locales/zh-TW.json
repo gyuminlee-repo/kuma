@@ -904,7 +904,11 @@
       "toastSuccess": "EVOLVEpro 輸入已建立",
       "toastSuccessDesc": "已寫入 {{count}} 個 variant。",
       "toastError": "EVOLVEpro 輸入建立失敗",
-      "openFolder": "開啟輸出資料夾"
+      "openFolder": "開啟輸出資料夾",
+      "verdictXlsx": "NGS verdict (optional)",
+      "verdictXlsxHelper": "Optional Analyze Excel report (Final sheet: well_id + verdict). Variants whose well is not PASS are excluded. Omit to skip NGS gating.",
+      "optionalStateLabel": "Optional",
+      "nNgsExcluded": "NGS-excluded"
     },
     "verdictBadge": {
       "help": {

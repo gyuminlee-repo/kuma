@@ -904,7 +904,11 @@
       "toastSuccess": "EVOLVEpro-Eingabe erstellt",
       "toastSuccessDesc": "{{count}} Variant geschrieben.",
       "toastError": "Erstellung der EVOLVEpro-Eingabe fehlgeschlagen",
-      "openFolder": "Ausgabeordner öffnen"
+      "openFolder": "Ausgabeordner öffnen",
+      "verdictXlsx": "NGS verdict (optional)",
+      "verdictXlsxHelper": "Optional Analyze Excel report (Final sheet: well_id + verdict). Variants whose well is not PASS are excluded. Omit to skip NGS gating.",
+      "optionalStateLabel": "Optional",
+      "nNgsExcluded": "NGS-excluded"
     },
     "verdictBadge": {
       "help": {
