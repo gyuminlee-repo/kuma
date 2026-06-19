@@ -1043,7 +1043,7 @@ def run_combinatorial_demux(
     def _run_well(
         well_name: str,
         reads: list[tuple[str, str]],
-    ) -> tuple[str, str, int, int, float, int, float, int, int, int, int, int]:
+    ) -> tuple[str, str, int, int, float, int, float, int, int, int, int, int, int, float]:
         """Worker: returns consensus sequence, depth, and mix metrics."""
         (
             seq,
@@ -1057,6 +1057,8 @@ def run_combinatorial_demux(
             aligned_reads,
             mapq_failed,
             span_failed,
+            n_indel_event_positions,
+            max_indel_event_fraction,
         ) = _compute_well_consensus(
             well_name, reads, reference_fasta, ref_seq, ref_len, min_depth,
             reference_index=well_index,
@@ -1074,6 +1076,8 @@ def run_combinatorial_demux(
             aligned_reads,
             mapq_failed,
             span_failed,
+            n_indel_event_positions,
+            max_indel_event_fraction,
         )
 
     _consensus_done = 0
