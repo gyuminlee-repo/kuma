@@ -16,6 +16,7 @@ from typing import Literal
 import primer3
 
 from .polymerase import PolymeraseProfile, PolymeraseRegistry
+from .neb_tm import neb_product_for, neb_estimated_tm
 
 from .codon_table import best_codon, mt_codons_for_design, CODON_TO_AA
 from .mutation import Mutation, mutate_sequence, parse_mutations
@@ -92,24 +93,12 @@ class SdmPrimerResult:
         self.gc_rev = _gc_percent(self.reverse_seq)
 
 
-def _calc_sdm_tm(seq: str) -> float:
-    """Calculate Tm using SantaLucia 1998 with Benchling default parameters.
-
-    SDM Tm targets (62/58/42°C) are calibrated to these fixed parameters,
-    independent of which polymerase is selected for the actual PCR.
-    """
-    return primer3.calc_tm(
-        seq,
-        mv_conc=50.0,
-        dv_conc=0.0,
-        dntp_conc=0.0,
-        dna_conc=250.0,
-        tm_method="santalucia",
-        salt_corrections_method="santalucia",
-    )
-
-
-_THERMO_PARAMS = dict(
+# Legacy buffer constants (SantaLucia 1998, Benchling-era fixed parameters).
+# Used only as the behavior-preserving fallback when no polymerase profile is
+# supplied (public off-target / custom-primer evaluation entry points).
+_LEGACY_TM_METHOD = "santalucia"
+_LEGACY_SALT_CORRECTION = "santalucia"
+_LEGACY_CONCS = dict(
     mv_conc=50.0,
     dv_conc=0.0,
     dntp_conc=0.0,
@@ -117,11 +106,66 @@ _THERMO_PARAMS = dict(
 )
 
 
-def _check_secondary_structure(result: SdmPrimerResult, warn_tm: float = 40.0) -> None:
-    """Check hairpin and homodimer for both fwd/rev primers using primer3."""
+def _thermo_concs(profile: PolymeraseProfile | None) -> dict:
+    """Return the four salt/dNTP/DNA concentrations for Tm and secondary-structure
+    calculations, taken from the selected polymerase profile.
+
+    profile is None -> legacy fixed constants (preserves prior behavior for
+    callers that do not pass a profile).
+    """
+    if profile is None:
+        return dict(_LEGACY_CONCS)
+    return dict(
+        mv_conc=profile.salt_monovalent,
+        dv_conc=profile.salt_divalent,
+        dntp_conc=profile.dntp_conc,
+        dna_conc=profile.dna_conc,
+    )
+
+
+def _calc_sdm_tm(seq: str, profile: PolymeraseProfile | None) -> float:
+    """Calculate Tm using the selected polymerase profile buffer.
+
+    profile is None -> legacy SantaLucia constants (mv=50, dv=0, dntp=0, dna=250).
+    Otherwise the profile salt/dNTP/DNA concentrations and tm/salt-correction
+    methods drive the calculation, so different polymerases yield different Tm.
+    """
+    if profile is not None:
+        product = neb_product_for(profile.name)
+        if product is not None:
+            # NEB-scale Tm from committed calibration table. The NEB branch uses
+            # the table's fixed ref_config and ignores the editable profile salt
+            # values by design.
+            return neb_estimated_tm(seq, product)
+    if profile is None:
+        tm_method = _LEGACY_TM_METHOD
+        salt_corr = _LEGACY_SALT_CORRECTION
+    else:
+        tm_method = profile.tm_method
+        salt_corr = profile.salt_correction
+    return primer3.calc_tm(
+        seq,
+        **_thermo_concs(profile),
+        tm_method=tm_method,
+        salt_corrections_method=salt_corr,
+    )
+
+
+def _check_secondary_structure(
+    result: SdmPrimerResult,
+    profile: PolymeraseProfile | None,
+    warn_tm: float = 40.0,
+) -> None:
+    """Check hairpin and homodimer for both fwd/rev primers using primer3.
+
+    Concentrations come from the selected polymerase profile (None -> legacy).
+    primer3.calc_hairpin/calc_homodimer accept only the four concentrations,
+    not tm_method/salt_corrections_method.
+    """
+    concs = _thermo_concs(profile)
     for label, seq, is_fwd in [("Fwd", result.forward_seq, True), ("Rev", result.reverse_seq, False)]:
-        hp = primer3.calc_hairpin(seq, **_THERMO_PARAMS)
-        hd = primer3.calc_homodimer(seq, **_THERMO_PARAMS)
+        hp = primer3.calc_hairpin(seq, **concs)
+        hd = primer3.calc_homodimer(seq, **concs)
         hp_tm = round(hp.tm if hp.structure_found else 0.0, 1)
         hd_tm = round(hd.tm if hd.structure_found else 0.0, 1)
         hp_dg = round(hp.dg / 1000.0 if hp.structure_found else 0.0, 2)
@@ -234,6 +278,7 @@ def _design_full_overlap(
     fwd_len_max: int = 39,
     rev_len_min: int = 17,
     rev_len_max: int = 39,
+    profile: PolymeraseProfile | None = None,
 ) -> tuple[str, str, float, float, int] | None:
     """Full overlap primer design.
 
@@ -282,7 +327,7 @@ def _design_full_overlap(
             if primer_len < L_min or primer_len > L_max:
                 continue
 
-            tm = _calc_sdm_tm(fwd)
+            tm = _calc_sdm_tm(fwd, profile)
             if tm_min <= tm <= tm_max:
                 diff = abs(tm - target_tm)
                 if diff < best_diff:
@@ -304,6 +349,7 @@ def _extend_forward(
     downstream_seq: str,
     target_tm: float,
     tolerance: float,
+    profile: PolymeraseProfile | None,
     min_downstream: int = 4,
     fwd_len_min: int = 17,
     fwd_len_max: int = 39,
@@ -330,7 +376,7 @@ def _extend_forward(
         if total_len > fwd_len_max:
             break
 
-        tm = _calc_sdm_tm(candidate)
+        tm = _calc_sdm_tm(candidate, profile)
         if tm_min <= tm <= tm_max:
             diff = abs(tm - target_tm)
             if diff < best_diff:
@@ -350,6 +396,7 @@ def _extend_reverse(
     upstream_seq: str,
     target_tm: float,
     tolerance: float,
+    profile: PolymeraseProfile | None,
     rev_len_min: int = 19,
     rev_len_max: int = 27,
 ) -> tuple[str, str, float] | None:
@@ -378,7 +425,7 @@ def _extend_reverse(
         if total_len > rev_len_max:
             break
 
-        tm = _calc_sdm_tm(candidate)
+        tm = _calc_sdm_tm(candidate, profile)
         if tm_min <= tm <= tm_max:
             diff = abs(tm - target_tm)
             if diff < best_diff:
@@ -401,6 +448,7 @@ def check_offtarget(
     min_match: int = 15,
     tm_threshold: float = 45.0,
     antisense_cache: str | None = None,
+    profile: PolymeraseProfile | None = None,
 ) -> list[OffTargetHit]:
     """Check for off-target binding sites on the template.
 
@@ -456,7 +504,7 @@ def check_offtarget(
                 continue
 
             match_seq = strand_seq[match_start:match_end]
-            tm = _calc_sdm_tm(match_seq)
+            tm = _calc_sdm_tm(match_seq, profile)
 
             if tm >= tm_threshold:
                 hits.append(OffTargetHit(
@@ -493,6 +541,7 @@ def check_offtarget_sliding(
     intended_end: int,
     min_length: int = 15,
     antisense_cache: str | None = None,
+    profile: PolymeraseProfile | None = None,
 ) -> list[OffTargetHit]:
     """Full sliding-window off-target check (PrimerBench / SnapGene-style).
 
@@ -604,7 +653,7 @@ def check_offtarget_sliding(
             else:
                 ttype = "internal"
             match_seq = p_upper[w_start:w_end]
-            tm = _calc_sdm_tm(match_seq)
+            tm = _calc_sdm_tm(match_seq, profile)
             hits.append(OffTargetHit(
                 position=tpl_start,
                 strand=strand,
@@ -622,6 +671,7 @@ def _search_candidates(
     mutated_seq: str,
     mutation: Mutation,
     overlap_len: int,
+    profile: PolymeraseProfile | None,
     tm_target_fwd: float,
     tm_target_rev: float,
     tm_target_overlap: float,
@@ -652,7 +702,7 @@ def _search_candidates(
 
     for window in windows:
         overlap_seq = window.sequence
-        overlap_tm = _calc_sdm_tm(overlap_seq)
+        overlap_tm = _calc_sdm_tm(overlap_seq, profile)
 
         if not (ovl_tm_min <= overlap_tm <= ovl_tm_max):
             continue
@@ -663,7 +713,7 @@ def _search_candidates(
         while fwd_tol <= tolerance + 1e-9:
             fwd_result = _extend_forward(
                 overlap_seq, mutation.mt_codon, downstream_seq,
-                tm_target_fwd, fwd_tol, min_downstream,
+                tm_target_fwd, fwd_tol, profile, min_downstream,
                 fwd_len_min=fwd_len_min, fwd_len_max=fwd_len_max,
             )
             if fwd_result is not None:
@@ -681,7 +731,7 @@ def _search_candidates(
         rev_tol = tol_step
         while rev_tol <= tolerance + 1e-9:
             rev_result = _extend_reverse(
-                overlap_seq, upstream_seq, tm_target_rev, rev_tol,
+                overlap_seq, upstream_seq, tm_target_rev, rev_tol, profile,
                 rev_len_min=rev_len_min, rev_len_max=rev_len_max,
             )
             if rev_result is not None:
@@ -805,9 +855,14 @@ def design_single_sdm(
         )
         mutations_to_try.append(m)
 
-    tm_target_fwd = profile.opt_tm_fwd if profile.opt_tm_fwd is not None else 62.0
-    tm_target_rev = profile.opt_tm_rev if profile.opt_tm_rev is not None else 58.0
-    tm_target_overlap = profile.opt_tm_overlap if profile.opt_tm_overlap is not None else 42.0
+    # Fallbacks derive from each polymerase's own opt_tm (buffer-aware), not
+    # Benchling-fixed 62/58/42, so high-salt polymerases (e.g. Q5) get targets
+    # matching their Tm model. Offsets borrow the Benchling structure
+    # (fwd-rev = 4 C, fwd-overlap = 20 C) and remain subject to validation.
+    # An explicit opt_tm_fwd/rev/overlap (e.g. Benchling 62/58/42) is used as-is.
+    tm_target_fwd = profile.opt_tm_fwd if profile.opt_tm_fwd is not None else profile.opt_tm
+    tm_target_rev = profile.opt_tm_rev if profile.opt_tm_rev is not None else profile.opt_tm - 4.0
+    tm_target_overlap = profile.opt_tm_overlap if profile.opt_tm_overlap is not None else profile.opt_tm - 20.0
     min_downstream = max(profile.min_3prime_dist, 1)
     tol_step = 0.5
 
@@ -827,6 +882,7 @@ def design_single_sdm(
                     mut_variant.mt_codon,
                     target_tm=tm_target_fwd,
                     tolerance=round(tol, 1),
+                    profile=profile,
                     fwd_len_min=fwd_len_min,
                     fwd_len_max=fwd_len_max,
                     rev_len_min=rev_len_min,
@@ -905,17 +961,19 @@ def design_single_sdm(
                         c.forward_seq, seq,
                         c.overlap_window.start, c.overlap_window.end,
                         antisense_cache=rc_template,
+                        profile=profile,
                     )
                     c.offtarget_rev = check_offtarget(
                         c.reverse_seq, seq,
                         c.overlap_window.start, c.overlap_window.end,
                         antisense_cache=rc_template,
+                        profile=profile,
                     )
                     if c.offtarget_fwd or c.offtarget_rev:
                         c.has_offtarget = True
                         ot_count = len(c.offtarget_fwd) + len(c.offtarget_rev)
                         c.penalty = round(c.penalty + ot_count * 5.0, 2)
-                    _check_secondary_structure(c)
+                    _check_secondary_structure(c, profile)
                     _check_synthesis_score(c)
 
                 all_candidates.sort(key=lambda r: r.penalty)
@@ -937,7 +995,7 @@ def design_single_sdm(
             mutated_seq = mutate_sequence(seq, mut_variant)
             for ov_len in overlap_lengths:
                 candidates = _search_candidates(
-                    seq, mutated_seq, mut_variant, ov_len,
+                    seq, mutated_seq, mut_variant, ov_len, profile,
                     tm_target_fwd, tm_target_rev, tm_target_overlap,
                     tolerance=round(tol, 1), min_downstream=min_downstream,
                     gc_min=gc_min, gc_max=gc_max,
@@ -954,19 +1012,21 @@ def design_single_sdm(
                 c.offtarget_fwd = check_offtarget(
                     c.forward_seq, seq, fwd_start, fwd_end,
                     antisense_cache=rc_template,
+                    profile=profile,
                 )
                 rev_start = c.overlap_window.start - len(c.reverse_binding)
                 rev_end = c.overlap_window.end
                 c.offtarget_rev = check_offtarget(
                     c.reverse_seq, seq, rev_start, rev_end,
                     antisense_cache=rc_template,
+                    profile=profile,
                 )
                 if c.offtarget_fwd or c.offtarget_rev:
                     c.has_offtarget = True
                     ot_count = len(c.offtarget_fwd) + len(c.offtarget_rev)
                     c.penalty = round(c.penalty + ot_count * 5.0, 2)
 
-                _check_secondary_structure(c)
+                _check_secondary_structure(c, profile)
                 _check_synthesis_score(c)
 
             all_candidates.sort(key=lambda r: r.penalty)
@@ -1009,6 +1069,7 @@ def evaluate_custom_primer(
     template: str,
     mutation_raw: str = "custom",
     overlap_len: int = 18,
+    profile: PolymeraseProfile | None = None,
 ) -> SdmPrimerResult:
     """Evaluate a user-provided primer pair and return metrics."""
     from .overlap import OverlapWindow, reverse_complement
@@ -1018,12 +1079,12 @@ def evaluate_custom_primer(
     if not fwd_seq or not rev_seq:
         raise ValueError("Both forward and reverse sequences are required")
 
-    tm_fwd = _calc_sdm_tm(fwd_seq)
-    tm_rev = _calc_sdm_tm(rev_seq)
+    tm_fwd = _calc_sdm_tm(fwd_seq, profile)
+    tm_rev = _calc_sdm_tm(rev_seq, profile)
 
     effective_ov_len = overlap_len if overlap_len and overlap_len > 0 else min(18, len(fwd_seq))
     ov_seq = fwd_seq[:effective_ov_len]
-    tm_ov = _calc_sdm_tm(ov_seq) if len(ov_seq) >= 8 else 0.0
+    tm_ov = _calc_sdm_tm(ov_seq, profile) if len(ov_seq) >= 8 else 0.0
 
     from .mutation import Mutation
     dummy_mut = Mutation(
@@ -1075,12 +1136,12 @@ def evaluate_custom_primer(
         else:
             rev_start, rev_end = 0, len(rev_seq)
 
-    result.offtarget_fwd = check_offtarget(fwd_seq, template, fwd_start, fwd_end, antisense_cache=rc_template)
-    result.offtarget_rev = check_offtarget(rev_seq, template, rev_start, rev_end, antisense_cache=rc_template)
+    result.offtarget_fwd = check_offtarget(fwd_seq, template, fwd_start, fwd_end, antisense_cache=rc_template, profile=profile)
+    result.offtarget_rev = check_offtarget(rev_seq, template, rev_start, rev_end, antisense_cache=rc_template, profile=profile)
     if result.offtarget_fwd or result.offtarget_rev:
         result.has_offtarget = True
 
-    _check_secondary_structure(result)
+    _check_secondary_structure(result, profile)
     _check_synthesis_score(result)
 
     return result
