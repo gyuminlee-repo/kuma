@@ -908,7 +908,15 @@
       "verdictXlsx": "NGS verdict (optional)",
       "verdictXlsxHelper": "Optional Analyze Excel report (Final sheet: well_id + verdict). Variants whose well is not PASS are excluded. Omit to skip NGS gating.",
       "optionalStateLabel": "Optional",
-      "nNgsExcluded": "NGS-excluded"
+      "nNgsExcluded": "NGS-excluded",
+      "round1SourceLabel": "Fonte do Round-1",
+      "round1SourcePrev": "EVOLVEpro anterior",
+      "round1SourceRaw": "Relatório GC-FID bruto",
+      "round1SourcePrevHelper": "Usa um arquivo EVOLVEpro anterior (Variant, activity) como base completa do Round-1.",
+      "round1SourceRawHelper": "Usa um relatório GC-FID bruto (nomeado por well); o layout da placa mapeia wells para variants.",
+      "round1EvolveproXlsx": "Arquivo EVOLVEpro do Round-1",
+      "round1EvolveproXlsxHelper": "EVOLVEpro xlsx da rodada anterior (Variant, activity). Os variants remedidos são substituídos pela média.",
+      "layoutXlsxOptionalHelper": "Opcional. Usado apenas para mapear variant para well no gating por NGS verdict."
     },
     "verdictBadge": {
       "help": {

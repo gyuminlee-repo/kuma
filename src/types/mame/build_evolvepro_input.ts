@@ -9,8 +9,12 @@
 
 /** Parameters for the mame.activity.build_evolvepro_input RPC method. */
 export interface BuildEvolveproInputParams {
-  /** Plate layout xlsx with Mutant and Well Pos. columns. */
-  layout_xlsx: string
+  /**
+   * Plate layout xlsx with Mutant and Well Pos. columns. Required for rank mode
+   * and raw round-1 reports mode; optional for prev-EVOLVEpro reports mode (only
+   * used there to map variant -> well for NGS verdict gating).
+   */
+  layout_xlsx?: string | null
   /** Destination xlsx. Parent directory must exist. */
   output_xlsx: string
   /** Rank mode: pre-normalised GC data xlsx with Sample Name (well) and Area columns. */
@@ -21,6 +25,8 @@ export interface BuildEvolveproInputParams {
   prev_evolvepro_xlsx?: string | null
   /** Reports mode: raw round-1 Agilent FID1B report (sample names are well positions). */
   round1_report_xlsx?: string | null
+  /** Reports mode: round-1 baseline as a prior EVOLVEpro xlsx (Variant, activity); alternative to round1_report_xlsx. */
+  round1_evolvepro_xlsx?: string | null
   /** Reports mode: raw variant-labeled Agilent FID1B re-measure report. */
   remeasure_report_xlsx?: string | null
   /** Reports mode (optional): Analyze verdict xlsx; variants whose well is not PASS are excluded. */

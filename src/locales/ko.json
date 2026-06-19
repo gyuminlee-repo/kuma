@@ -440,7 +440,15 @@
       "verdictXlsx": "NGS verdict (선택)",
       "verdictXlsxHelper": "선택: Analyze Excel 리포트(Final 시트: well_id + verdict). well이 PASS가 아닌 변이는 제외. 비우면 NGS 게이팅 생략.",
       "optionalStateLabel": "선택",
-      "nNgsExcluded": "NGS 제외"
+      "nNgsExcluded": "NGS 제외",
+      "round1SourceLabel": "Round-1 소스",
+      "round1SourcePrev": "이전 EVOLVEpro",
+      "round1SourceRaw": "raw GC-FID 리포트",
+      "round1SourcePrevHelper": "이전 EVOLVEpro 파일(Variant, activity)을 round-1 전체 기준값으로 사용합니다.",
+      "round1SourceRawHelper": "raw GC-FID 리포트(well명)를 사용하며, plate layout으로 well을 variant에 매핑합니다.",
+      "round1EvolveproXlsx": "Round-1 EVOLVEpro 파일",
+      "round1EvolveproXlsxHelper": "이전 라운드 EVOLVEpro xlsx(Variant, activity). 재측정한 variant는 평균값으로 대체됩니다.",
+      "layoutXlsxOptionalHelper": "선택. NGS verdict gating에서 variant를 well에 매핑할 때만 사용합니다."
     },
     "runHealth": {
       "panelAriaLabel": "실행 상태 패널",

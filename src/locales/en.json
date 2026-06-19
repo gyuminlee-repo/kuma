@@ -440,7 +440,15 @@
       "verdictXlsx": "NGS verdict (optional)",
       "verdictXlsxHelper": "Optional Analyze Excel report (Final sheet: well_id + verdict). Variants whose well is not PASS are excluded. Omit to skip NGS gating.",
       "optionalStateLabel": "Optional",
-      "nNgsExcluded": "NGS-excluded"
+      "nNgsExcluded": "NGS-excluded",
+      "round1SourceLabel": "Round-1 source",
+      "round1SourcePrev": "Previous EVOLVEpro",
+      "round1SourceRaw": "Raw GC-FID report",
+      "round1SourcePrevHelper": "Use a prior EVOLVEpro file (Variant, activity) as the full round-1 baseline.",
+      "round1SourceRawHelper": "Use a raw GC-FID report (well-named); the plate layout maps wells to variants.",
+      "round1EvolveproXlsx": "Round-1 EVOLVEpro file",
+      "round1EvolveproXlsxHelper": "Previous-round EVOLVEpro xlsx (Variant, activity). Re-measured variants are replaced by their means.",
+      "layoutXlsxOptionalHelper": "Optional. Only used to map variant to well for NGS verdict gating."
     },
     "runHealth": {
       "panelAriaLabel": "Run health panel",

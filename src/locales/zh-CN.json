@@ -908,7 +908,15 @@
       "verdictXlsx": "NGS verdict (optional)",
       "verdictXlsxHelper": "Optional Analyze Excel report (Final sheet: well_id + verdict). Variants whose well is not PASS are excluded. Omit to skip NGS gating.",
       "optionalStateLabel": "Optional",
-      "nNgsExcluded": "NGS-excluded"
+      "nNgsExcluded": "NGS-excluded",
+      "round1SourceLabel": "Round-1 来源",
+      "round1SourcePrev": "先前的 EVOLVEpro",
+      "round1SourceRaw": "原始 GC-FID 报告",
+      "round1SourcePrevHelper": "使用先前的 EVOLVEpro 文件（Variant, activity）作为 round-1 的完整基准。",
+      "round1SourceRawHelper": "使用原始 GC-FID 报告（以 well 命名）；plate layout 将 well 映射到 variant。",
+      "round1EvolveproXlsx": "Round-1 EVOLVEpro 文件",
+      "round1EvolveproXlsxHelper": "上一轮的 EVOLVEpro xlsx（Variant, activity）。重新测量的 variant 用其平均值替换。",
+      "layoutXlsxOptionalHelper": "可选。仅用于在 NGS verdict gating 时将 variant 映射到 well。"
     },
     "verdictBadge": {
       "help": {
