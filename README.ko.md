@@ -33,7 +33,7 @@ Kuro 탭에서 프라이머를 설계하고 실험·시퀀싱 후 Mame 탭으로
 
 **Highlights**
 
-- **EVOLVEpro 기반 선정** — Top-N + 위치 / 도메인 / Pareto / entropy 다양성, σ-Adaptive 후보 풀
+- **EVOLVEpro 기반 선정** — Top-N + 위치 / 도메인 / Pareto / entropy / structural 다양성, σ-Adaptive 후보 풀
 - **보정된 화학 조건** — polymerase 8종(+커스텀), SantaLucia 1998 Tm, GC / 길이 / tolerance 제어
 - **내장 QC** — primer3 hairpin/homodimer, off-target 스캔, 올리고 합성 품질 점수, AlphaFold 3D 거리
 - **모드별 실패 복구** — multi-stage Position Rescue + 원클릭 변이별 재시도
@@ -49,11 +49,11 @@ Kuro 탭에서 프라이머를 설계하고 실험·시퀀싱 후 Mame 탭으로
 
 #### 변이 입력 & 후보 선정
 
-- **EVOLVEpro CSV 입력**: EVOLVEpro(`variant`, `y_pred`) 출력 CSV 로드. 점수 내림차순 정렬 후 설정 개수만큼 자동 선정. **위치 다양성** 필터로 아미노산 위치당 최대 N개 제한 가능 (동일 위치 후보 점수 차이 2% 이내 시 Grantham 1974 거리가 낮은 보수적 치환 우선). **도메인 다양성** 필터로 단백질 구조 도메인 간 분산 선택 (InterPro/Pfam 자동 조회 또는 수동 입력). **Pareto 다양성** 으로 MODIFY 방식의 위치 분산 최대화. **σ-Adaptive Pool**: EVOLVEpro Round와 Round size 입력 시 누적 데이터 기반으로 후보 풀 범위와 entropy 가중치 자동 보정 (K = 0.50→0.25, entropy = 0.30→0.15, Round 1→5+)
+- **EVOLVEpro CSV 입력**: EVOLVEpro(`variant`, `y_pred`) 출력 CSV 로드. 점수 내림차순 정렬 후 설정 개수만큼 자동 선정. **위치 다양성** 필터로 아미노산 위치당 최대 N개 제한 가능 (동일 위치 후보 점수 차이 2% 이내 시 Grantham 1974 거리가 낮은 보수적 치환 우선). **도메인 다양성** 필터로 단백질 구조 도메인 간 분산 선택 (InterPro/Pfam 자동 조회 또는 수동 입력). **Pareto 다양성** 으로 MODIFY 방식의 위치 분산 최대화. **structural 다양성** 으로 전체 후보 풀을 3D Cα-centroid 공간에서 greedy farthest-point 선택 — 이전 라운드에서 이미 테스트한 변이 집합을 anchor로 삼아 멀어지도록 고르며, 예측 적합도 쪽으로 κ 블렌드 가능. 실제 epistatic 조합 assay에서 Top-N을 이긴 유일한 모드. **σ-Adaptive Pool**: EVOLVEpro Round와 Round size 입력 시 누적 데이터 기반으로 후보 풀 범위와 entropy 가중치 자동 보정 (K = 0.50→0.25, entropy = 0.30→0.15, Round 1→5+)
 - **배치 변이 파싱**: `Q232A` 형식의 변이 목록 → 코돈 위치 자동 계산 + WT 코돈 검증
-- **AlphaFold 3D 거리**: Pareto 다양성이 1차원 위치 거리가 아닌 AlphaFold DB 예측 구조의 실제 Cα 유클리드 거리 사용. UniProt accession 입력 후 자동 조회, `~/.kuma/kuro/embeddings/{accession}_ca.json`에 캐싱
+- **AlphaFold 3D 거리**: Pareto·structural 다양성이 1차원 위치 거리가 아닌 AlphaFold DB 예측 구조의 실제 Cα 유클리드 거리 사용. UniProt accession 입력 후 자동 조회, `~/.kuma/kuro/embeddings/{accession}_ca.json`에 캐싱
 
-> 다양성 필터(위치 / 도메인 / Pareto / entropy)의 상세는 아래 [선택 전략](#선택-전략-kuro-evolvepro-모드) 표를 참고.
+> 다양성 필터(위치 / 도메인 / Pareto / entropy / structural)의 상세는 아래 [선택 전략](#선택-전략-kuro-evolvepro-모드) 표를 참고.
 
 #### 코돈 & 열역학 파라미터
 
@@ -138,6 +138,7 @@ EVOLVEpro CSV 로드 시 어떤 mutation을 프라이머 설계 대상으로 선
 | **Domain diversity** | 단백질 구조 도메인별 할당량 배분 (비례 또는 균등). 도메인 정보는 UniProt accession으로 InterPro/Pfam 자동 조회 또는 수동 입력. | 한 도메인이 y_pred 상위를 독점할 때 전 도메인 탐색. |
 | **Pareto diversity** | Greedy maximin 위치 선택. 이미 선택된 mutation과 가장 먼 위치를 반복 선택하여 공간적 분산 극대화. | 좁은 영역에 mutation이 밀집되는 것을 방지. MODIFY 접근법(Ding et al., *Nature Communications*, 2024). |
 | **Entropy-guided** (β) | 위치별 y_pred 분포의 Shannon entropy(가중치 0.3)를 Pareto 점수에 혼합. | 적합도 경관에 여러 봉우리가 있을 때 국소 최적 탈출. Pareto 활성화 필요. |
+| **Structural diversity** | 전체 후보 풀을 3D Cα-centroid 공간(AlphaFold)에서 greedy farthest-point(maximin) 선택. 이전 라운드에서 이미 테스트한 변이 누적 집합을 anchor로 삼고, 예측 적합도 쪽으로 κ 블렌드 가능(κ=0 순수 다양성 → κ=1 순수 Top-N). 조합 변이는 모든 치환 위치의 centroid 사용, 구조 없으면 서열 위치 거리로 폴백. | 다라운드 / epistatic 조합 캠페인에서 이미 탐색한 3D 영역을 피해 분산이 필요할 때. 실제 epistatic assay에서 Top-N을 이긴 유일한 전략(`benchmark/REPORT.md` §6). |
 
 **참고 문헌**
 - Ding D, Shaw AY, Sinai S, et al. Protein design using structure-predicted residue preferences and sequence-predicted fitness. *Nature Communications*, 15:6729 (2024). PMID:39080249 — MODIFY: Pareto fitness-diversity 공동 최적화

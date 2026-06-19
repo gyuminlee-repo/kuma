@@ -248,3 +248,20 @@ and GRB2, losing only on RASK.
   needs the kappa blend to avoid losing on high-signal assays like RASK), not universal.
 - Status: backward-compatible (kuma_core 64 tests pass; al 196 tests pass). A formal claim still
   needs the compute-bound full >=3-assay x >=50-seed sweep.
+
+### 6.6 Production wiring (app)
+
+`structural_diversity_select` is wired end-to-end as an opt-in selector (off by
+default, backward compatible): `kuma_core` → sidecar RPC (`structural_diversity`,
+`structural_kappa`, `anchor_variants`) → frontend "Structural diversity" toggle
++ κ slider. Two follow-up fixes activate the validated recipe in the live app:
+
+- **Revealed anchor.** The app sources the cumulative tested-variant set from
+  round history (`useRoundStore`) and passes it as `anchor_variants`, so the
+  cross-round maximin (not just within-batch spread) is active.
+- **3D Cα coords.** The win is conditional on **real 3D Cα distance**; without
+  coords the selector degrades to the unvalidated positional fallback. The app
+  now sends `structure_accession` and reloads after the AlphaFold structure is
+  cached whenever structural diversity is on (previously gated to the pareto
+  path only). Coords come from the UniProt accession's AlphaFold model — no new
+  input file; falls back to positional distance when unavailable.
