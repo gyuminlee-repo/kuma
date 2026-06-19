@@ -622,6 +622,7 @@ def handle_build_evolvepro_input(params: dict) -> dict:
             p.remeasure_report_xlsx,
             p.output_xlsx,
             mismatch_threshold=p.mismatch_threshold,
+            verdict_xlsx=p.verdict_xlsx,
         )
         audit = [
             {"id": i + 1, "variant": v, "well": w}
@@ -638,6 +639,8 @@ def handle_build_evolvepro_input(params: dict) -> dict:
             "warnings": r.warnings,
             "swap_warnings": [],
             "mismatched": r.mismatched,
+            "n_ngs_excluded": r.n_ngs_excluded,
+            "ngs_excluded": r.ngs_excluded,
             "mode": "reports",
         }
 
@@ -676,6 +679,8 @@ def handle_build_evolvepro_input(params: dict) -> dict:
         "warnings": result.warnings,
         "swap_warnings": [w.__dict__ for w in result.swap_warnings],
         "mismatched": result.mismatched,
+        "n_ngs_excluded": 0,
+        "ngs_excluded": [],
         "mode": "rank",
     }
 

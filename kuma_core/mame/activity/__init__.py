@@ -42,6 +42,7 @@ from kuma_core.mame.activity.build_evolvepro_input import (
     build_evolvepro_input_from_reports,
     build_id_variant_mapping,
 )
+from kuma_core.mame.activity.verdict_ngs import parse_verdict_wells
 
 __all__ = [
     # models
@@ -87,4 +88,6 @@ __all__ = [
     "build_evolvepro_input",
     "build_evolvepro_input_from_reports",
     "build_id_variant_mapping",
+    # NGS verdict gating (PR3)
+    "parse_verdict_wells",
 ]

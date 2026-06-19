@@ -335,6 +335,10 @@ class BuildEvolveproInputParams(BaseModel):
     prev_evolvepro_xlsx: str | None = None
     round1_report_xlsx: str | None = None
     remeasure_report_xlsx: str | None = None
+    # Optional NGS verdict input (reports-mode only in practice; not enforced
+    # here). When provided, variants whose well has a non-PASS verdict are
+    # excluded. Absent leaves the build unchanged (layout-trust).
+    verdict_xlsx: str | None = None
     mismatch_threshold: float = Field(default=0.1, gt=0.0)
     mapping_audit_path: str | None = None
 
@@ -345,6 +349,7 @@ class BuildEvolveproInputParams(BaseModel):
         "prev_evolvepro_xlsx",
         "round1_report_xlsx",
         "remeasure_report_xlsx",
+        "verdict_xlsx",
         mode="after",
     )
     @classmethod

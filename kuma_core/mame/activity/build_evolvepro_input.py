@@ -447,6 +447,10 @@ class BuildEvolveproReportsResult:
     replicate_stats: MergeReplicatesStats
     warnings: list[str]
     mismatched: list[dict] = field(default_factory=list)
+    # NGS verdict gating (optional): short variants dropped because their layout
+    # well carried an explicit non-PASS verdict. Empty when no verdict file given.
+    n_ngs_excluded: int = 0
+    ngs_excluded: list[str] = field(default_factory=list)
 
 
 def _agilent_wt_mean(records: list) -> float:
@@ -551,6 +555,7 @@ def build_evolvepro_input_from_reports(
     output_xlsx,
     *,
     mismatch_threshold: float = 0.1,
+    verdict_xlsx: str | Path | None = None,
 ) -> BuildEvolveproReportsResult:
     """Assemble an EVOLVEpro input xlsx from raw Agilent reports (no rank, no prev file).
 
@@ -592,6 +597,34 @@ def build_evolvepro_input_from_reports(
         for v in replicate_stats.mismatched
     ]
 
+    # Optional NGS verdict gating: drop variants whose layout well carries an
+    # explicit non-PASS verdict (ngs_success == verdict == PASS). A variant with
+    # no layout well, or a well absent from the verdict file, is kept (graceful,
+    # layout-trust). When no verdict file is given, behaviour is unchanged.
+    ngs_excluded: list[str] = []
+    if verdict_xlsx is not None:
+        from kuma_core.mame.activity.verdict_ngs import parse_verdict_wells, _PASS
+
+        verdict_by_well = parse_verdict_wells(verdict_xlsx)
+        for variant in list(merged):
+            well = well_by_variant.get(str(variant))
+            if well is None:
+                continue
+            vclass = verdict_by_well.get(well)
+            if vclass is not None and vclass != _PASS:
+                del merged[variant]
+                ngs_excluded.append(str(variant))
+        if ngs_excluded:
+            warnings.append(
+                f"NGS verdict gating excluded {len(ngs_excluded)} non-PASS "
+                f"variant(s): {', '.join(sorted(ngs_excluded))}"
+            )
+        if not merged:
+            raise ValueError(
+                "All variants excluded by NGS verdict gating (no PASS wells). "
+                "Check the verdict file or omit it to use layout-trust."
+            )
+
     rows = sorted(merged.items(), key=lambda kv: -kv[1])
     n_variants = write_evolvepro_xlsx([(str(v), float(a)) for v, a in rows], output_path)
 
@@ -607,4 +640,6 @@ def build_evolvepro_input_from_reports(
         replicate_stats=replicate_stats,
         warnings=warnings,
         mismatched=mismatched_detail,
+        n_ngs_excluded=len(ngs_excluded),
+        ngs_excluded=sorted(ngs_excluded),
     )
