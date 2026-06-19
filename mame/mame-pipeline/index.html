@@ -1621,7 +1621,7 @@ quality를 보존한 뒤, 자체 demux/consensus/verdict 레이어에서 품질 
 <li>well 이름 형식: <code>{R_index}_{F_index}</code> (예: <code>1_1</code>, <code>8_12</code>)</li>
 <li>consensus header 예:</li>
 </ul>
-<div class="highlight"><pre><span></span><code>&gt;{well_name} depth={passed_reads} input_reads={raw_well_reads} aligned_reads={aligned_reads} mapq_failed={n} span_failed={n} mixed_positions={n} max_minor_allele_fraction={f} low_depth_positions={n} consensus_n_fraction={f} low_quality_bases={n}
+<div class="highlight"><pre><span></span><code>&gt;{well_name} depth={passed_reads} input_reads={raw_well_reads} aligned_reads={aligned_reads} mapq_failed={n} span_failed={n} mixed_positions={n} max_minor_allele_fraction={f} low_depth_positions={n} consensus_n_fraction={f} low_quality_bases={n} indel_event_positions={n} max_indel_event_fraction={f}
 </code></pre></div>
 <h2 id="qc">판정에 쓰이는 QC 근거<a class="headerlink" href="#qc" title="Permanent link">&para;</a></h2>
 <table>
@@ -1672,6 +1672,16 @@ quality를 보존한 뒤, 자체 demux/consensus/verdict 레이어에서 품질 
 <td><code>span_failed</code></td>
 <td>reference span filter 탈락 read 수</td>
 <td>UI/Excel 실패 원인</td>
+</tr>
+<tr>
+<td><code>indel_event_positions</code></td>
+<td>indel-event 분율이 0.05를 넘은 position 수</td>
+<td>INDEL EVENT gate note</td>
+</tr>
+<tr>
+<td><code>max_indel_event_fraction</code></td>
+<td>position별 최대 insertion/deletion 이벤트 분율</td>
+<td>임계(기본 0.50) 초과 시 AMBIGUOUS (indel event). reference-pinned consensus가 숨기는 in-frame indel을 surface</td>
 </tr>
 </tbody>
 </table>
