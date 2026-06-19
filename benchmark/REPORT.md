@@ -244,10 +244,13 @@ and GRB2, losing only on RASK.
 - The validated way to make KURO beat Top-N is `structural_diversity_select` =
   full-pool + revealed-anchor + 3D-Ca-centroid maximin + kappa-fitness blend, in the
   epistatic multi-mutation regime, judged on mean AND tail (CVaR).
-- It is a conditional win (strong on spread-3D epistatic assays like F7YBW8; tail-only on GRB2;
-  needs the kappa blend to avoid losing on high-signal assays like RASK), not universal.
-- Status: backward-compatible (kuma_core 64 tests pass; al 196 tests pass). A formal claim still
-  needs the compute-bound full >=3-assay x >=50-seed sweep.
+- It is a **conditional** win, not universal. A pre-registered 9-assay × 50-seed expansion
+  (§6.7) finds structural wins on the majority (6/9) but genuinely LOSES on others (HIS7), and
+  the κ=0.3 blend is not a free safety net — it additionally loses on A4 (where pure k=0 wins
+  FOR-STRONG). The earlier "κ-blend never loses" was an artifact of the original 3 assays.
+- Status: backward-compatible (kuma_core 64 tests pass; al 196 tests pass) and wired into the
+  app (§6.6). §6.7 supersedes the 3-assay evidence above; a full ProteinGym-wide (217-assay)
+  sweep remains future work.
 
 ### 6.6 Production wiring (app)
 
@@ -265,3 +268,45 @@ default, backward compatible): `kuma_core` → sidecar RPC (`structural_diversit
   cached whenever structural diversity is on (previously gated to the pareto
   path only). Coords come from the UniProt accession's AlphaFold model — no new
   input file; falls back to positional distance when unavailable.
+
+### 6.7 Pre-registered 9-assay expansion (`results/qa/kuro_real/expanded/`)
+
+To check generalization beyond the original 3 assays (the cherry-pick risk), the same bench
+(seeds=50, pool=400, 4 rounds, 9-cell mean+CVaR decision) was run on **6 additional
+combinatorial ProteinGym assays chosen before seeing any result**, spanning diverse families
+(bZIP TF, PDZ domain, GFP, RRM, IGPS, amyloid-β). Accessions resolved full AlphaFold Cα
+structures in every case (`caRes` = resolved residues), so structural ran on real 3D coords
+throughout (no positional-fallback handicap). Driver: `scripts/run_expanded_sweep.sh`;
+aggregator: `scripts/aggregate_sweep.py`.
+
+norm_best@final (mean) and the 9-cell decision vs Top-N. New assays marked †.
+
+| assay | caRes | Top-N | struct k=0 | blend k=0.3 | struct vs Top-N | blend vs Top-N |
+|---|---|---|---|---|---|---|
+| F7YBW8_MESOW_Aakre_2015 | 93 | 0.534 | 0.724 | 0.729 | FOR-STRONG | FOR-STRONG |
+| GRB2_HUMAN_Faure_2021 | 217 | 0.900 | 0.848 | 0.861 | FOR-QUALIFIED | FOR-QUALIFIED |
+| RASK_HUMAN_Weng_2022 | 189 | 0.936 | 0.894 | 0.931 | MIXED | FOR-QUALIFIED |
+| DLG4_HUMAN_Faure_2021 † | 724 | 0.975 | 1.000 | 1.000 | FOR-QUALIFIED | FOR-QUALIFIED |
+| GFP_AEQVI_Sarkisyan_2016 † | 238 | 0.951 | 1.000 | 1.000 | FOR-STRONG | FOR-STRONG |
+| PABP_YEAST_Melamed_2013 † | 577 | 0.872 | 0.852 | 0.832 | FOR-QUALIFIED | FOR-QUALIFIED |
+| A4_HUMAN_Seuma_2022 † | 770 | 0.895 | 1.000 | 0.857 | FOR-STRONG | **AGAINST/REFUTE** |
+| HIS7_YEAST_Pokusaeva_2019 † | 261 | 0.970 | 0.889 | 0.933 | **AGAINST/REFUTE** | **AGAINST/REFUTE** |
+| GCN4_YEAST_Staller_2018 † | 281 | 0.452 | 0.421 | 0.421 | INCONCLUSIVE | INCONCLUSIVE |
+
+Aggregate (9 assays): **struct k=0 → 6 WIN / 2 NEUTRAL / 1 LOSS**; **blend k=0.3 → 6 WIN /
+1 NEUTRAL / 2 LOSS**.
+
+Findings:
+
+- **Generalizes, conditionally.** Structural beats Top-N on the majority (6/9), including 3
+  brand-new assays not in the original set (DLG4, GFP, PABP; A4 at k=0). The earlier result was
+  not a 3-assay fluke.
+- **Not universal — real losses.** HIS7 is a genuine loss for both arms. This refutes any
+  "always wins / never loses" reading.
+- **κ blend is not a free lunch.** It rescues RASK (struct MIXED → blend FOR-QUALIFIED) but
+  *breaks* A4 (struct FOR-STRONG with nb 1.000 → blend AGAINST with nb 0.857 < Top-N 0.895).
+  Pure k=0 actually has fewer losses here (1 vs 2). No single κ dominates; the best κ is
+  assay-dependent, which is why the app exposes it as a user slider rather than hard-coding 0.3.
+- **Scope.** 9 of 217 ProteinGym assays, 50 seeds, ESM-2 35M surrogate. A full 217-assay sweep
+  (the original "decisive sweep") remains future work; this expansion materially reduces the
+  cherry-pick concern and corrects the over-confident 3-assay conclusion.
