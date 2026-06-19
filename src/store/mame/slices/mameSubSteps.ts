@@ -15,6 +15,8 @@ export type MameSubStepId =
   | "analyze.plate"
   | "setup.design"
   | "activity.ingest"
+  // activity.mergeExport merged into the single activity.ingest Step 3 (PR2b).
+  // Retained as a legacy redirect/migration id; not in MAME_SUBSTEP_ORDER.
   | "activity.mergeExport";
 
 export const MAME_SUBSTEP_ORDER: Record<
@@ -23,5 +25,6 @@ export const MAME_SUBSTEP_ORDER: Record<
 > = {
   setup: ["setup.files"],
   analyze: ["analyze.inputs", "analyze.review"],
-  activity: ["activity.ingest", "activity.mergeExport"],
+  // PR2b: activity.ingest/mergeExport merged into a single Step 3.
+  activity: ["activity.ingest"],
 };

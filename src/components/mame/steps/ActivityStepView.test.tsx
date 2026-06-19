@@ -1,7 +1,9 @@
 /**
- * ActivityStepView.test.tsx — activity sub-step 마운트 어설션 (D2.4, Phase G #19)
+ * ActivityStepView.test.tsx, activity 단일 Step 3 마운트 어설션 (D2.4, Phase G #19, PR2b)
  *
- * Phase G #19: activity.export 폐지 — activity.mergeExport로 2-step 통합.
+ * PR2b: activity.ingest/mergeExport를 단일 Step 3로 통합, 한 화면에 ingest →
+ * merge → export → build를 모두 쌓는다. activity.mergeExport는 legacy redirect id로
+ * 같은 화면을 렌더한다.
  */
 
 import { render } from "@testing-library/react";
@@ -32,6 +34,10 @@ vi.mock("@/components/mame/panels/ActivityPanel", () => ({
   ActivityPanel: () => <div data-testid="activity-panel" />,
 }));
 
+vi.mock("@/components/mame/panels/BuildEvolveproInputPanel", () => ({
+  BuildEvolveproInputPanel: () => <div data-testid="build-evolvepro-panel" />,
+}));
+
 import { ActivityStepView } from "./ActivityStepView";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 
@@ -40,15 +46,20 @@ describe("ActivityStepView", () => {
     useMameAppStore.setState({ currentMameSubStep: "activity.ingest" });
   });
 
-  it("activity.ingest mounts IngestSection", () => {
+  it("activity.ingest mounts all activity sections on a single Step 3", () => {
     const { getByTestId } = render(<ActivityStepView />);
     expect(getByTestId("ingest-section")).toBeTruthy();
-  });
-
-  it("activity.mergeExport mounts MergeSection and ExportSection", () => {
-    useMameAppStore.setState({ currentMameSubStep: "activity.mergeExport" });
-    const { getByTestId } = render(<ActivityStepView />);
     expect(getByTestId("merge-section")).toBeTruthy();
     expect(getByTestId("export-section")).toBeTruthy();
+    expect(getByTestId("build-evolvepro-panel")).toBeTruthy();
+  });
+
+  it("activity.mergeExport (legacy id) renders the same single Step 3", () => {
+    useMameAppStore.setState({ currentMameSubStep: "activity.mergeExport" });
+    const { getByTestId } = render(<ActivityStepView />);
+    expect(getByTestId("ingest-section")).toBeTruthy();
+    expect(getByTestId("merge-section")).toBeTruthy();
+    expect(getByTestId("export-section")).toBeTruthy();
+    expect(getByTestId("build-evolvepro-panel")).toBeTruthy();
   });
 });
