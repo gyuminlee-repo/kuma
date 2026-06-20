@@ -37,3 +37,13 @@ The 9-assay aggregate behind panels a-c comes from `results/qa/kuro_real/`
   it as a slider.
 - 9 of 217 ProteinGym assays, 50 seeds, ESM-2 35M surrogate, in-silico DMS
   oracle. A full 217-assay sweep remains future work.
+
+## Full combinatorial sweep (`fig_full_sweep.svg`)
+
+`make_fig_full.py` renders `fig_full_sweep.svg` over EVERY structure-alignable combinatorial
+ProteinGym assay (N=18; domain-construct assays that cannot align to a full-length AlphaFold model
+are skipped). Left: Cliff’s delta forest of structural k=0 vs Top-N (circles) and vs UCB
+(diamonds), coloured by 9-cell decision. Right: win/neutral/loss counts for struct-vs-Top-N (9/8/1),
+blend-vs-Top-N (8/8/2), struct-vs-UCB (10/6/2). Numbers in `data/full_numbers.json`. See
+`benchmark/REPORT.md` §6.8. Regenerate: `PYTHONPATH=$(git rev-parse --show-toplevel)
+.venv-al/bin/python figures/structural_vs_topn/make_fig_full.py` (after `scripts/run_full_combo_sweep.py`).
