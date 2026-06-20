@@ -276,7 +276,7 @@ To check generalization beyond the original 3 assays (the cherry-pick risk), the
 combinatorial ProteinGym assays chosen before seeing any result**, spanning diverse families
 (bZIP TF, PDZ domain, GFP, RRM, IGPS, amyloid-β). Accessions resolved full AlphaFold Cα
 structures in every case (`caRes` = resolved residues), so structural ran on real 3D coords
-throughout (no positional-fallback handicap). Driver: `scripts/run_expanded_sweep.sh`;
+throughout (no positional-fallback handicap). (Correction: HIS7 was first run with a wrong UniProt accession P40545, a different 261-residue protein; it was re-run with the correct P06633 (220 residues, matching the DMS wild-type length) and its loss-vs-Top-N verdict was unchanged.) Driver: `scripts/run_expanded_sweep.sh`;
 aggregator: `scripts/aggregate_sweep.py`.
 
 norm_best@final (mean) and the 9-cell decision vs Top-N. New assays marked †.
@@ -290,7 +290,7 @@ norm_best@final (mean) and the 9-cell decision vs Top-N. New assays marked †.
 | GFP_AEQVI_Sarkisyan_2016 † | 238 | 0.951 | 1.000 | 1.000 | FOR-STRONG | FOR-STRONG |
 | PABP_YEAST_Melamed_2013 † | 577 | 0.872 | 0.852 | 0.832 | FOR-QUALIFIED | FOR-QUALIFIED |
 | A4_HUMAN_Seuma_2022 † | 770 | 0.895 | 1.000 | 0.857 | FOR-STRONG | **AGAINST/REFUTE** |
-| HIS7_YEAST_Pokusaeva_2019 † | 261 | 0.970 | 0.889 | 0.933 | **AGAINST/REFUTE** | **AGAINST/REFUTE** |
+| HIS7_YEAST_Pokusaeva_2019 † | 220 | 0.970 | 0.944 | 0.924 | **AGAINST/REFUTE** | **AGAINST/REFUTE** |
 | GCN4_YEAST_Staller_2018 † | 281 | 0.452 | 0.421 | 0.421 | INCONCLUSIVE | INCONCLUSIVE |
 
 Aggregate (9 assays): **struct k=0 → 6 WIN / 2 NEUTRAL / 1 LOSS**; **blend k=0.3 → 6 WIN /

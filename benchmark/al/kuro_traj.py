@@ -17,7 +17,7 @@ _OUT = _HERE / "figures/structural_vs_topn/data/trajectories.json"
 ASSAYS = [
     {"name": "F7YBW8_MESOW_Aakre_2015", "accession": "F7YBW8", "role": "win"},
     {"name": "A4_HUMAN_Seuma_2022", "accession": "P05067", "role": "kappa-split"},
-    {"name": "HIS7_YEAST_Pokusaeva_2019", "accession": "P40545", "role": "loss"},
+    {"name": "HIS7_YEAST_Pokusaeva_2019", "accession": "P06633", "role": "loss"},
 ]
 ARMS = ("topn", "ucb", "kuro_struct", "kuro_struct_blend")
 def run_one(assay_csv, acc, *, pool=400, n_seed=10, batch=10, rounds=4, seeds=50, model=DEFAULT_MODEL):

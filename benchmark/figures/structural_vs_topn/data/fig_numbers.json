@@ -1,25 +1,25 @@
 {
  "HIS7_YEAST_Pokusaeva_2019": {
   "struct_vs_topn": {
-   "median_delta": -0.09271526063682389,
-   "cliffs_delta": -0.88,
-   "wilcoxon_p": 8.725603058798205e-11,
+   "median_delta": -0.037320030623649525,
+   "cliffs_delta": -0.8,
+   "wilcoxon_p": 4.906302429721831e-06,
    "mean_verdict": "LOSE",
    "tail_outcome": "TAIL-NULL",
    "decision_cell": "AGAINST/REFUTE"
   },
   "struct_vs_ucb": {
-   "median_delta": -0.08470580223784674,
-   "cliffs_delta": -0.52,
-   "wilcoxon_p": 4.7468405816529844e-07,
-   "mean_verdict": "LOSE",
+   "median_delta": -0.02931057222467237,
+   "cliffs_delta": -0.28,
+   "wilcoxon_p": 0.2865836435198468,
+   "mean_verdict": "TIE",
    "tail_outcome": "TAIL-ADV",
-   "decision_cell": "MIXED"
+   "decision_cell": "FOR-QUALIFIED"
   },
   "blend_vs_topn": {
-   "median_delta": -0.04707632461999006,
-   "cliffs_delta": -0.7824,
-   "wilcoxon_p": 2.8583774154383123e-05,
+   "median_delta": -0.037320030623649525,
+   "cliffs_delta": -0.8288,
+   "wilcoxon_p": 3.505254275687836e-08,
    "mean_verdict": "LOSE",
    "tail_outcome": "TAIL-NULL",
    "decision_cell": "AGAINST/REFUTE"
@@ -28,24 +28,24 @@
    "topn": 0.9696871893000292,
    "ucb": 0.9416485098971912,
    "kuro_domain": 0.9696871893000292,
-   "kuro_pareto": 0.9681358961240717,
+   "kuro_pareto": 0.9659249152100731,
    "embdiv": 0.8487624965217074,
-   "kuro_ca": 0.8886727931640107,
+   "kuro_ca": 0.9440680231771852,
    "kuro_domain_centroid": 0.9696871893000292,
-   "kuro_pareto_centroid": 0.9766631372264587,
-   "kuro_struct": 0.8886727931640107,
-   "kuro_struct_blend": 0.9326592814441955
+   "kuro_pareto_centroid": 0.9742642699689487,
+   "kuro_struct": 0.9440680231771852,
+   "kuro_struct_blend": 0.9241257403724422
   },
   "cvar20": {
    "topn": 0.9210225366768915,
    "ucb": 0.8658479070508592,
    "kuro_domain": 0.9210225366768915,
-   "kuro_pareto": 0.9159282112569176,
+   "kuro_pareto": 0.9040723608470274,
    "embdiv": 0.8487624965217074,
-   "kuro_ca": 0.8886727931640106,
+   "kuro_ca": 0.9440680231771849,
    "kuro_domain_centroid": 0.9210225366768915,
-   "kuro_pareto_centroid": 0.9577634709289548,
-   "kuro_struct": 0.8886727931640106,
+   "kuro_pareto_centroid": 0.945769134641405,
+   "kuro_struct": 0.9440680231771849,
    "kuro_struct_blend": 0.8886727931640106
   }
  },
