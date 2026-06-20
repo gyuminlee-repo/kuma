@@ -1,6 +1,6 @@
 {
  "HIS7_YEAST_Pokusaeva_2019": {
-  "struct": {
+  "struct_vs_topn": {
    "median_delta": -0.09271526063682389,
    "cliffs_delta": -0.88,
    "wilcoxon_p": 8.725603058798205e-11,
@@ -8,7 +8,15 @@
    "tail_outcome": "TAIL-NULL",
    "decision_cell": "AGAINST/REFUTE"
   },
-  "blend": {
+  "struct_vs_ucb": {
+   "median_delta": -0.08470580223784674,
+   "cliffs_delta": -0.52,
+   "wilcoxon_p": 4.7468405816529844e-07,
+   "mean_verdict": "LOSE",
+   "tail_outcome": "TAIL-ADV",
+   "decision_cell": "MIXED"
+  },
+  "blend_vs_topn": {
    "median_delta": -0.04707632461999006,
    "cliffs_delta": -0.7824,
    "wilcoxon_p": 2.8583774154383123e-05,
@@ -42,7 +50,7 @@
   }
  },
  "GRB2_HUMAN_Faure_2021": {
-  "struct": {
+  "struct_vs_topn": {
    "median_delta": -0.016957525603274237,
    "cliffs_delta": -0.52,
    "wilcoxon_p": 6.687572782977174e-06,
@@ -50,7 +58,15 @@
    "tail_outcome": "TAIL-ADV",
    "decision_cell": "FOR-QUALIFIED"
   },
-  "blend": {
+  "struct_vs_ucb": {
+   "median_delta": -0.005493266713606837,
+   "cliffs_delta": -0.16,
+   "wilcoxon_p": 0.03321168634201308,
+   "mean_verdict": "TIE",
+   "tail_outcome": "TAIL-ADV",
+   "decision_cell": "FOR-QUALIFIED"
+  },
+  "blend_vs_topn": {
    "median_delta": -0.006574375670461208,
    "cliffs_delta": -0.2416,
    "wilcoxon_p": 0.011873210540669109,
@@ -84,7 +100,7 @@
   }
  },
  "RASK_HUMAN_Weng_2022_abundance": {
-  "struct": {
+  "struct_vs_topn": {
    "median_delta": -0.05720018305232055,
    "cliffs_delta": -0.48,
    "wilcoxon_p": 1.8449632367400012e-07,
@@ -92,7 +108,15 @@
    "tail_outcome": "TAIL-ADV",
    "decision_cell": "MIXED"
   },
-  "blend": {
+  "struct_vs_ucb": {
+   "median_delta": -0.0792248684081246,
+   "cliffs_delta": -0.6,
+   "wilcoxon_p": 3.164541697219362e-08,
+   "mean_verdict": "LOSE",
+   "tail_outcome": "TAIL-NULL",
+   "decision_cell": "AGAINST/REFUTE"
+  },
+  "blend_vs_topn": {
    "median_delta": 0.0,
    "cliffs_delta": -0.0284,
    "wilcoxon_p": 0.5430115955446171,
@@ -126,7 +150,7 @@
   }
  },
  "GCN4_YEAST_Staller_2018": {
-  "struct": {
+  "struct_vs_topn": {
    "median_delta": 0.0,
    "cliffs_delta": -0.08,
    "wilcoxon_p": 0.05878172135535886,
@@ -134,7 +158,15 @@
    "tail_outcome": "TAIL-NULL",
    "decision_cell": "INCONCLUSIVE"
   },
-  "blend": {
+  "struct_vs_ucb": {
+   "median_delta": 0.0,
+   "cliffs_delta": -0.2,
+   "wilcoxon_p": 0.004245585155691297,
+   "mean_verdict": "TIE",
+   "tail_outcome": "TAIL-NULL",
+   "decision_cell": "INCONCLUSIVE"
+  },
+  "blend_vs_topn": {
    "median_delta": 0.0,
    "cliffs_delta": -0.0616,
    "wilcoxon_p": 0.07414989773822228,
@@ -168,7 +200,7 @@
   }
  },
  "PABP_YEAST_Melamed_2013": {
-  "struct": {
+  "struct_vs_topn": {
    "median_delta": 0.03623662053835075,
    "cliffs_delta": 0.28,
    "wilcoxon_p": 0.33886458867193614,
@@ -176,7 +208,15 @@
    "tail_outcome": "TAIL-ADV",
    "decision_cell": "FOR-QUALIFIED"
   },
-  "blend": {
+  "struct_vs_ucb": {
+   "median_delta": 0.03623662053835075,
+   "cliffs_delta": 0.32,
+   "wilcoxon_p": 0.6235983547595513,
+   "mean_verdict": "TIE",
+   "tail_outcome": "TAIL-ADV",
+   "decision_cell": "FOR-QUALIFIED"
+  },
+  "blend_vs_topn": {
    "median_delta": 0.0001530523721362531,
    "cliffs_delta": 0.2536,
    "wilcoxon_p": 0.1815582113938703,
@@ -210,7 +250,7 @@
   }
  },
  "DLG4_HUMAN_Faure_2021": {
-  "struct": {
+  "struct_vs_topn": {
    "median_delta": 0.026435133205246653,
    "cliffs_delta": 0.68,
    "wilcoxon_p": 8.345700333429495e-08,
@@ -218,7 +258,15 @@
    "tail_outcome": "TAIL-ADV",
    "decision_cell": "FOR-QUALIFIED"
   },
-  "blend": {
+  "struct_vs_ucb": {
+   "median_delta": 0.0046712633116016145,
+   "cliffs_delta": 0.68,
+   "wilcoxon_p": 1.4354851599081758e-07,
+   "mean_verdict": "TIE",
+   "tail_outcome": "TAIL-ADV",
+   "decision_cell": "FOR-QUALIFIED"
+  },
+  "blend_vs_topn": {
    "median_delta": 0.026435133205246653,
    "cliffs_delta": 0.68,
    "wilcoxon_p": 8.345700333429495e-08,
@@ -252,7 +300,7 @@
   }
  },
  "F7YBW8_MESOW_Aakre_2015": {
-  "struct": {
+  "struct_vs_topn": {
    "median_delta": 0.1067299705419108,
    "cliffs_delta": 0.7604,
    "wilcoxon_p": 7.720039193250387e-07,
@@ -260,7 +308,15 @@
    "tail_outcome": "TAIL-ADV",
    "decision_cell": "FOR-STRONG"
   },
-  "blend": {
+  "struct_vs_ucb": {
+   "median_delta": 0.02838143913432256,
+   "cliffs_delta": 0.6768,
+   "wilcoxon_p": 2.9162322688953652e-05,
+   "mean_verdict": "TIE",
+   "tail_outcome": "TAIL-ADV",
+   "decision_cell": "FOR-QUALIFIED"
+  },
+  "blend_vs_topn": {
    "median_delta": 0.1067299705419108,
    "cliffs_delta": 0.7584,
    "wilcoxon_p": 1.6052546777604826e-06,
@@ -294,7 +350,7 @@
   }
  },
  "A4_HUMAN_Seuma_2022": {
-  "struct": {
+  "struct_vs_topn": {
    "median_delta": 0.08640780254613989,
    "cliffs_delta": 0.98,
    "wilcoxon_p": 1.7475983779413692e-10,
@@ -302,7 +358,15 @@
    "tail_outcome": "TAIL-ADV",
    "decision_cell": "FOR-STRONG"
   },
-  "blend": {
+  "struct_vs_ucb": {
+   "median_delta": 0.08640780254613989,
+   "cliffs_delta": 0.98,
+   "wilcoxon_p": 4.098215441106703e-12,
+   "mean_verdict": "WIN",
+   "tail_outcome": "TAIL-ADV",
+   "decision_cell": "FOR-STRONG"
+  },
+  "blend_vs_topn": {
    "median_delta": -0.03687929148266933,
    "cliffs_delta": -0.5204,
    "wilcoxon_p": 5.7009737059867894e-05,
@@ -336,7 +400,7 @@
   }
  },
  "GFP_AEQVI_Sarkisyan_2016": {
-  "struct": {
+  "struct_vs_topn": {
    "median_delta": 0.047073289764200665,
    "cliffs_delta": 0.98,
    "wilcoxon_p": 9.72800866690612e-11,
@@ -344,7 +408,15 @@
    "tail_outcome": "TAIL-ADV",
    "decision_cell": "FOR-STRONG"
   },
-  "blend": {
+  "struct_vs_ucb": {
+   "median_delta": 0.047073289764200665,
+   "cliffs_delta": 0.92,
+   "wilcoxon_p": 7.065035845885192e-10,
+   "mean_verdict": "WIN",
+   "tail_outcome": "TAIL-ADV",
+   "decision_cell": "FOR-STRONG"
+  },
+  "blend_vs_topn": {
    "median_delta": 0.047073289764200665,
    "cliffs_delta": 0.98,
    "wilcoxon_p": 9.72800866690612e-11,
