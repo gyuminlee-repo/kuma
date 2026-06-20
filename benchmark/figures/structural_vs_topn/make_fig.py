@@ -36,7 +36,16 @@ def col(c):
     return {"win": C_WIN, "loss": C_LOSS, "neu": C_NEU}[cat(c)]
 
 
+MAIN_ASSAYS = {
+    "F7YBW8_MESOW_Aakre_2015", "RASK_HUMAN_Weng_2022_abundance", "GRB2_HUMAN_Faure_2021",
+    "GCN4_YEAST_Staller_2018", "DLG4_HUMAN_Faure_2021", "GFP_AEQVI_Sarkisyan_2016",
+    "PABP_YEAST_Melamed_2013", "A4_HUMAN_Seuma_2022", "HIS7_YEAST_Pokusaeva_2019",
+}
+
+
 def load():
+    # Detailed per-assay figure = the 9 pre-registered assays (stable; the full
+    # combinatorial sweep populates expanded/ separately for the distribution view).
     d = {}
     if ORIG.exists():
         d.update(json.loads(ORIG.read_text()))
@@ -47,7 +56,7 @@ def load():
             d.update(json.loads(Path(f).read_text()))
         except Exception:
             pass
-    return d
+    return {k: v for k, v in d.items() if k in MAIN_ASSAYS}
 
 
 def holm(pvals):
