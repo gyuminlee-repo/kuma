@@ -1,0 +1,380 @@
+{
+ "HIS7_YEAST_Pokusaeva_2019": {
+  "struct": {
+   "median_delta": -0.09271526063682389,
+   "cliffs_delta": -0.88,
+   "wilcoxon_p": 8.725603058798205e-11,
+   "mean_verdict": "LOSE",
+   "tail_outcome": "TAIL-NULL",
+   "decision_cell": "AGAINST/REFUTE"
+  },
+  "blend": {
+   "median_delta": -0.04707632461999006,
+   "cliffs_delta": -0.7824,
+   "wilcoxon_p": 2.8583774154383123e-05,
+   "mean_verdict": "LOSE",
+   "tail_outcome": "TAIL-NULL",
+   "decision_cell": "AGAINST/REFUTE"
+  },
+  "norm_best": {
+   "topn": 0.9696871893000292,
+   "ucb": 0.9416485098971912,
+   "kuro_domain": 0.9696871893000292,
+   "kuro_pareto": 0.9681358961240717,
+   "embdiv": 0.8487624965217074,
+   "kuro_ca": 0.8886727931640107,
+   "kuro_domain_centroid": 0.9696871893000292,
+   "kuro_pareto_centroid": 0.9766631372264587,
+   "kuro_struct": 0.8886727931640107,
+   "kuro_struct_blend": 0.9326592814441955
+  },
+  "cvar20": {
+   "topn": 0.9210225366768915,
+   "ucb": 0.8658479070508592,
+   "kuro_domain": 0.9210225366768915,
+   "kuro_pareto": 0.9159282112569176,
+   "embdiv": 0.8487624965217074,
+   "kuro_ca": 0.8886727931640106,
+   "kuro_domain_centroid": 0.9210225366768915,
+   "kuro_pareto_centroid": 0.9577634709289548,
+   "kuro_struct": 0.8886727931640106,
+   "kuro_struct_blend": 0.8886727931640106
+  }
+ },
+ "GRB2_HUMAN_Faure_2021": {
+  "struct": {
+   "median_delta": -0.016957525603274237,
+   "cliffs_delta": -0.52,
+   "wilcoxon_p": 6.687572782977174e-06,
+   "mean_verdict": "TIE",
+   "tail_outcome": "TAIL-ADV",
+   "decision_cell": "FOR-QUALIFIED"
+  },
+  "blend": {
+   "median_delta": -0.006574375670461208,
+   "cliffs_delta": -0.2416,
+   "wilcoxon_p": 0.011873210540669109,
+   "mean_verdict": "TIE",
+   "tail_outcome": "TAIL-ADV",
+   "decision_cell": "FOR-QUALIFIED"
+  },
+  "norm_best": {
+   "topn": 0.8998336936319349,
+   "ucb": 0.8549248738579124,
+   "kuro_domain": 0.8330408358635638,
+   "kuro_pareto": 0.9025510964094052,
+   "embdiv": 0.8475363284604924,
+   "kuro_ca": 0.8475363284604924,
+   "kuro_domain_centroid": 0.8330408358635638,
+   "kuro_pareto_centroid": 0.9137329367413645,
+   "kuro_struct": 0.8475363284604924,
+   "kuro_struct_blend": 0.8613472380860021
+  },
+  "cvar20": {
+   "topn": 0.8330408358635639,
+   "ucb": 0.8330408358635639,
+   "kuro_domain": 0.8330408358635639,
+   "kuro_pareto": 0.8330408358635639,
+   "embdiv": 0.8475363284604924,
+   "kuro_ca": 0.8475363284604924,
+   "kuro_domain_centroid": 0.8330408358635639,
+   "kuro_pareto_centroid": 0.8330408358635639,
+   "kuro_struct": 0.8475363284604924,
+   "kuro_struct_blend": 0.8443017976898659
+  }
+ },
+ "RASK_HUMAN_Weng_2022_abundance": {
+  "struct": {
+   "median_delta": -0.05720018305232055,
+   "cliffs_delta": -0.48,
+   "wilcoxon_p": 1.8449632367400012e-07,
+   "mean_verdict": "LOSE",
+   "tail_outcome": "TAIL-ADV",
+   "decision_cell": "MIXED"
+  },
+  "blend": {
+   "median_delta": 0.0,
+   "cliffs_delta": -0.0284,
+   "wilcoxon_p": 0.5430115955446171,
+   "mean_verdict": "TIE",
+   "tail_outcome": "TAIL-ADV",
+   "decision_cell": "FOR-QUALIFIED"
+  },
+  "norm_best": {
+   "topn": 0.9358792738320589,
+   "ucb": 0.9418140991306251,
+   "kuro_domain": 0.9324489502355386,
+   "kuro_pareto": 0.9301389861860768,
+   "embdiv": 0.8558560491042638,
+   "kuro_ca": 0.8935981343490924,
+   "kuro_domain_centroid": 0.9619936979325161,
+   "kuro_pareto_centroid": 0.9417387118328997,
+   "kuro_struct": 0.8935981343490924,
+   "kuro_struct_blend": 0.931127062780576
+  },
+  "cvar20": {
+   "topn": 0.8632318114011331,
+   "ucb": 0.8641537816882419,
+   "kuro_domain": 0.8604659005398073,
+   "kuro_pareto": 0.8623098411140246,
+   "embdiv": 0.8558560491042639,
+   "kuro_ca": 0.8935981343490924,
+   "kuro_domain_centroid": 0.8805290396654882,
+   "kuro_pareto_centroid": 0.8633181387771813,
+   "kuro_struct": 0.8935981343490924,
+   "kuro_struct_blend": 0.8935981343490924
+  }
+ },
+ "GCN4_YEAST_Staller_2018": {
+  "struct": {
+   "median_delta": 0.0,
+   "cliffs_delta": -0.08,
+   "wilcoxon_p": 0.05878172135535886,
+   "mean_verdict": "TIE",
+   "tail_outcome": "TAIL-NULL",
+   "decision_cell": "INCONCLUSIVE"
+  },
+  "blend": {
+   "median_delta": 0.0,
+   "cliffs_delta": -0.0616,
+   "wilcoxon_p": 0.07414989773822228,
+   "mean_verdict": "TIE",
+   "tail_outcome": "TAIL-NULL",
+   "decision_cell": "INCONCLUSIVE"
+  },
+  "norm_best": {
+   "topn": 0.45195635472428847,
+   "ucb": 0.47398456725853483,
+   "kuro_domain": 0.4464663061009264,
+   "kuro_pareto": 0.45286079927758005,
+   "embdiv": 1.0,
+   "kuro_ca": 0.4213118730060544,
+   "kuro_domain_centroid": 0.4213118730060544,
+   "kuro_pareto_centroid": 0.49210524567847763,
+   "kuro_struct": 0.4213118730060544,
+   "kuro_struct_blend": 0.42131602054609035
+  },
+  "cvar20": {
+   "topn": 0.42131187300605444,
+   "ucb": 0.42131187300605444,
+   "kuro_domain": 0.42131187300605444,
+   "kuro_pareto": 0.42131187300605444,
+   "embdiv": 1.0,
+   "kuro_ca": 0.42131187300605444,
+   "kuro_domain_centroid": 0.42131187300605444,
+   "kuro_pareto_centroid": 0.42131187300605444,
+   "kuro_struct": 0.42131187300605444,
+   "kuro_struct_blend": 0.42131187300605444
+  }
+ },
+ "PABP_YEAST_Melamed_2013": {
+  "struct": {
+   "median_delta": 0.03623662053835075,
+   "cliffs_delta": 0.28,
+   "wilcoxon_p": 0.33886458867193614,
+   "mean_verdict": "TIE",
+   "tail_outcome": "TAIL-ADV",
+   "decision_cell": "FOR-QUALIFIED"
+  },
+  "blend": {
+   "median_delta": 0.0001530523721362531,
+   "cliffs_delta": 0.2536,
+   "wilcoxon_p": 0.1815582113938703,
+   "mean_verdict": "TIE",
+   "tail_outcome": "TAIL-ADV",
+   "decision_cell": "FOR-QUALIFIED"
+  },
+  "norm_best": {
+   "topn": 0.871885761435664,
+   "ucb": 0.8624918250392786,
+   "kuro_domain": 0.7111455610296861,
+   "kuro_pareto": 0.8199410890968809,
+   "embdiv": 0.6717043001823562,
+   "kuro_ca": 0.8518974251774065,
+   "kuro_domain_centroid": 0.7111455610296861,
+   "kuro_pareto_centroid": 0.8081870789120345,
+   "kuro_struct": 0.8518974251774065,
+   "kuro_struct_blend": 0.8320332959575937
+  },
+  "cvar20": {
+   "topn": 0.7852787437118497,
+   "ucb": 0.7611825613939089,
+   "kuro_domain": 0.6717043001823563,
+   "kuro_pareto": 0.756669059300392,
+   "embdiv": 0.6717043001823563,
+   "kuro_ca": 0.8518974251774066,
+   "kuro_domain_centroid": 0.6717043001823563,
+   "kuro_pareto_centroid": 0.762925745258486,
+   "kuro_struct": 0.8518974251774066,
+   "kuro_struct_blend": 0.8158138570111921
+  }
+ },
+ "DLG4_HUMAN_Faure_2021": {
+  "struct": {
+   "median_delta": 0.026435133205246653,
+   "cliffs_delta": 0.68,
+   "wilcoxon_p": 8.345700333429495e-08,
+   "mean_verdict": "TIE",
+   "tail_outcome": "TAIL-ADV",
+   "decision_cell": "FOR-QUALIFIED"
+  },
+  "blend": {
+   "median_delta": 0.026435133205246653,
+   "cliffs_delta": 0.68,
+   "wilcoxon_p": 8.345700333429495e-08,
+   "mean_verdict": "TIE",
+   "tail_outcome": "TAIL-ADV",
+   "decision_cell": "FOR-QUALIFIED"
+  },
+  "norm_best": {
+   "topn": 0.9750596710544659,
+   "ucb": 0.9794124450331948,
+   "kuro_domain": 0.9625279302487538,
+   "kuro_pareto": 0.9600096911277486,
+   "embdiv": 0.9518009969011081,
+   "kuro_ca": 1.0,
+   "kuro_domain_centroid": 0.9750596710544659,
+   "kuro_pareto_centroid": 0.9730990565388475,
+   "kuro_struct": 1.0,
+   "kuro_struct_blend": 1.0
+  },
+  "cvar20": {
+   "topn": 0.9518009969011082,
+   "ucb": 0.9518009969011082,
+   "kuro_domain": 0.9518009969011082,
+   "kuro_pareto": 0.9518009969011082,
+   "embdiv": 0.9518009969011082,
+   "kuro_ca": 1.0,
+   "kuro_domain_centroid": 0.9518009969011082,
+   "kuro_pareto_centroid": 0.9518009969011082,
+   "kuro_struct": 1.0,
+   "kuro_struct_blend": 1.0
+  }
+ },
+ "F7YBW8_MESOW_Aakre_2015": {
+  "struct": {
+   "median_delta": 0.1067299705419108,
+   "cliffs_delta": 0.7604,
+   "wilcoxon_p": 7.720039193250387e-07,
+   "mean_verdict": "WIN",
+   "tail_outcome": "TAIL-ADV",
+   "decision_cell": "FOR-STRONG"
+  },
+  "blend": {
+   "median_delta": 0.1067299705419108,
+   "cliffs_delta": 0.7584,
+   "wilcoxon_p": 1.6052546777604826e-06,
+   "mean_verdict": "WIN",
+   "tail_outcome": "TAIL-ADV",
+   "decision_cell": "FOR-STRONG"
+  },
+  "norm_best": {
+   "topn": 0.5336727837213417,
+   "ucb": 0.6539412018355703,
+   "kuro_domain": 0.5336727837213417,
+   "kuro_pareto": 0.6090632509202816,
+   "embdiv": 0.7213773131862395,
+   "kuro_ca": 0.718135144090453,
+   "kuro_domain_centroid": 0.5336727837213417,
+   "kuro_pareto_centroid": 0.6212638564224535,
+   "kuro_struct": 0.7240677944560693,
+   "kuro_struct_blend": 0.7292800515630035
+  },
+  "cvar20": {
+   "topn": 0.08009359411382894,
+   "ucb": 0.49196506788069694,
+   "kuro_domain": 0.08009359411382894,
+   "kuro_pareto": 0.4617985320884378,
+   "embdiv": 0.7213773131862397,
+   "kuro_ca": 0.6773041990259314,
+   "kuro_domain_centroid": 0.08009359411382894,
+   "kuro_pareto_centroid": 0.4055115222433538,
+   "kuro_struct": 0.6791051821726363,
+   "kuro_struct_blend": 0.6773041990259314
+  }
+ },
+ "A4_HUMAN_Seuma_2022": {
+  "struct": {
+   "median_delta": 0.08640780254613989,
+   "cliffs_delta": 0.98,
+   "wilcoxon_p": 1.7475983779413692e-10,
+   "mean_verdict": "WIN",
+   "tail_outcome": "TAIL-ADV",
+   "decision_cell": "FOR-STRONG"
+  },
+  "blend": {
+   "median_delta": -0.03687929148266933,
+   "cliffs_delta": -0.5204,
+   "wilcoxon_p": 5.7009737059867894e-05,
+   "mean_verdict": "LOSE",
+   "tail_outcome": "TAIL-NULL",
+   "decision_cell": "AGAINST/REFUTE"
+  },
+  "norm_best": {
+   "topn": 0.8952222957627447,
+   "ucb": 0.9137182360642804,
+   "kuro_domain": 0.8448842062136399,
+   "kuro_pareto": 0.9076285831975786,
+   "embdiv": 0.8080938330826457,
+   "kuro_ca": 1.0,
+   "kuro_domain_centroid": 0.8948411270196839,
+   "kuro_pareto_centroid": 0.8994720314557162,
+   "kuro_struct": 1.0,
+   "kuro_struct_blend": 0.8571412733252266
+  },
+  "cvar20": {
+   "topn": 0.816666079609595,
+   "ucb": 0.9055816102513482,
+   "kuro_domain": 0.8080938330826457,
+   "kuro_pareto": 0.8579807524801012,
+   "embdiv": 0.8080938330826457,
+   "kuro_ca": 1.0,
+   "kuro_domain_centroid": 0.816666079609595,
+   "kuro_pareto_centroid": 0.8174562390405946,
+   "kuro_struct": 1.0,
+   "kuro_struct_blend": 0.8082334849729291
+  }
+ },
+ "GFP_AEQVI_Sarkisyan_2016": {
+  "struct": {
+   "median_delta": 0.047073289764200665,
+   "cliffs_delta": 0.98,
+   "wilcoxon_p": 9.72800866690612e-11,
+   "mean_verdict": "WIN",
+   "tail_outcome": "TAIL-ADV",
+   "decision_cell": "FOR-STRONG"
+  },
+  "blend": {
+   "median_delta": 0.047073289764200665,
+   "cliffs_delta": 0.98,
+   "wilcoxon_p": 9.72800866690612e-11,
+   "mean_verdict": "WIN",
+   "tail_outcome": "TAIL-ADV",
+   "decision_cell": "FOR-STRONG"
+  },
+  "norm_best": {
+   "topn": 0.9509547995514188,
+   "ucb": 0.9548369585683095,
+   "kuro_domain": 0.9534177800179279,
+   "kuro_pareto": 0.9511925960297992,
+   "embdiv": 0.944429564541026,
+   "kuro_ca": 1.0,
+   "kuro_domain_centroid": 0.9509547995514188,
+   "kuro_pareto_centroid": 0.9542414938844194,
+   "kuro_struct": 1.0,
+   "kuro_struct_blend": 1.0
+  },
+  "cvar20": {
+   "topn": 0.9359369800702524,
+   "ucb": 0.9381448533518076,
+   "kuro_domain": 0.9501901606165765,
+   "kuro_pareto": 0.9339582688120313,
+   "embdiv": 0.9444295645410261,
+   "kuro_ca": 1.0,
+   "kuro_domain_centroid": 0.9359369800702524,
+   "kuro_pareto_centroid": 0.9345171463402595,
+   "kuro_struct": 1.0,
+   "kuro_struct_blend": 1.0
+  }
+ }
+}
