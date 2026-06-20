@@ -1,11 +1,11 @@
-# Per-round learning-curve trajectories for the structural-vs-Top-N figure.
+# Per-round learning-curve trajectories (topn, ucb, struct k=0, blend k=0.3).
 from __future__ import annotations
 import json, time
 from pathlib import Path
 import numpy as np
 from al.embed_cache import DEFAULT_MODEL, embed_variants
 from al.acquisition import select_indices
-from al.real_epistatic import CombinatorialOracle, combo_zero_shot_prior
+from al.real_epistatic import CombinatorialOracle, combo_zero_shot_prior, combo_al_step
 from al.kuro_real_bench import _load_multimut
 from al.proxy_rf import RF_KWARGS
 from kuma_core.kuro.alphafold import fetch_ca_coords
@@ -19,7 +19,7 @@ ASSAYS = [
     {"name": "A4_HUMAN_Seuma_2022", "accession": "P05067", "role": "kappa-split"},
     {"name": "HIS7_YEAST_Pokusaeva_2019", "accession": "P40545", "role": "loss"},
 ]
-ARMS = ("topn", "kuro_struct", "kuro_struct_blend")
+ARMS = ("topn", "ucb", "kuro_struct", "kuro_struct_blend")
 def run_one(assay_csv, acc, *, pool=400, n_seed=10, batch=10, rounds=4, seeds=50, model=DEFAULT_MODEL):
     from sklearn.ensemble import RandomForestRegressor
     raw_all, seqs_all, wt = _load_multimut(assay_csv)
@@ -57,10 +57,13 @@ def run_one(assay_csv, acc, *, pool=400, n_seed=10, batch=10, rounds=4, seeds=50
                 Xun = np.vstack([emb_np[i] for i in unrev])
                 m = RandomForestRegressor(**{**RF_KWARGS, "random_state": 1 + seed})
                 m.fit(Xtr, ytr)
-                mean = m.predict(Xun); std = np.zeros_like(mean)
+                mean, std, sample = combo_al_step(m, Xun, rng)
                 k = min(batch, budget - len(revealed), len(unrev))
                 if arm == "topn":
-                    idx = select_indices("topn", mean=mean, std=std, sample=mean, n=k, rng=rng)
+                    idx = select_indices("topn", mean=mean, std=std, sample=sample, n=k, rng=rng)
+                    picks = [unrev[j] for j in idx]
+                elif arm == "ucb":
+                    idx = select_indices("ucb", mean=mean, std=std, n=k, rng=rng)
                     picks = [unrev[j] for j in idx]
                 else:
                     kappa = 0.0 if arm == "kuro_struct" else 0.3
