@@ -100,13 +100,20 @@ def main():
     ax_a.legend(handles=leg, frameon=False, fontsize=6, ncol=5, loc="upper center", bbox_to_anchor=(0.5, -0.16))
 
     # ---- Panel B: mean vs tail scatter ----
+    LABOFF = {"F7YBW8": (6, 5), "A4": (-30, 9), "GFP": (9, -2), "DLG4": (5, 13),
+              "PABP": (-14, 12), "RASK": (-36, 8), "GRB2": (-36, -12),
+              "GCN4": (4, -15), "HIS7": (6, -13)}
     for n in names:
         m = data[n]["per_arm_norm_best_mean"]; cv = data[n]["per_arm_cvar20"]
         dmean = m["kuro_struct"] - m["topn"]; dcvar = cv["kuro_struct"] - cv["topn"]
         c = col(data[n]["decisions"]["kuro_struct_vs_topn"]["decision_cell"])
         ax_b.scatter([dmean], [dcvar], s=42, color=c, edgecolor="black", lw=0.5, zorder=3)
-        ax_b.annotate(short(n), (dmean, dcvar), fontsize=6, xytext=(4, 3), textcoords="offset points")
+        dx, dy = LABOFF.get(short(n), (6, 5))
+        ax_b.annotate(short(n), (dmean, dcvar), fontsize=6.2, xytext=(dx, dy),
+                      textcoords="offset points", zorder=4,
+                      arrowprops=dict(arrowstyle="-", lw=0.4, color="0.55", shrinkA=0, shrinkB=2))
     ax_b.axhline(0, color="0.7", lw=0.7); ax_b.axvline(0, color="0.7", lw=0.7)
+    ax_b.margins(0.16)
     ax_b.set_xlabel("\u0394 mean norm_best (struct \u2212 Top-N)")
     ax_b.set_ylabel("\u0394 CVaR@20% (tail)")
     ax_b.text(-0.12, 1.04, "b", transform=ax_b.transAxes, fontweight="bold", fontsize=13)
