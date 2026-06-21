@@ -42,6 +42,7 @@ from kuma_core.mame.ingest.consensus_metadata import (
     LOW_DEPTH_POSITIONS,
     LOW_QUALITY_BASES,
     MAPQ_FAILED,
+    MAX_DEL_RUN_LENGTH,
     MAX_INDEL_EVENT_FRACTION,
     MAX_MINOR_ALLELE_FRACTION,
     MIXED_POSITIONS,
@@ -170,6 +171,7 @@ def parse_fasta_file(path: Path, native_barcode: str) -> BarcodeRecord:
     n_span_failed = _read_int_metadata(metadata, SPAN_FAILED) or 0
     n_indel_event_positions = _read_int_metadata(metadata, INDEL_EVENT_POSITIONS) or 0
     max_indel_event_fraction = _read_float_metadata(metadata, MAX_INDEL_EVENT_FRACTION) or 0.0
+    max_del_run_length = _read_int_metadata(metadata, MAX_DEL_RUN_LENGTH) or 0
 
     return BarcodeRecord(
         native_barcode=native_barcode,
@@ -189,6 +191,7 @@ def parse_fasta_file(path: Path, native_barcode: str) -> BarcodeRecord:
         n_span_failed=n_span_failed,
         n_indel_event_positions=n_indel_event_positions,
         max_indel_event_fraction=max_indel_event_fraction,
+        max_del_run_length=max_del_run_length,
     )
 
 

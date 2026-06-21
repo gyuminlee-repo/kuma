@@ -74,6 +74,12 @@ class ConsensusCall:
     # and true indel signal (>=0.83).
     n_indel_event_positions: int = 0
     max_indel_event_fraction: float = 0.0
+    # Longest contiguous run of ref positions whose deletion fraction exceeds
+    # majority (del_frac > 0.5). 0 = indel gate is insertion-driven (no del-
+    # majority run); 1 = isolated single-position deletion (review for an
+    # alignment artifact); >=2 = an N-bp contiguous deletion (more likely real).
+    # Informational only; does not change the consensus or the verdict gate.
+    max_del_run_length: int = 0
 
 
 def _reverse_complement(seq: str) -> str:
@@ -193,6 +199,11 @@ def call_consensus_with_metrics(
     # max_indel_event_fraction = max across all positions of either fraction.
     max_indel_event_fraction = 0.0
     n_indel_event_positions = 0
+    # Track the longest contiguous run of deletion-majority positions
+    # (del_frac > 0.5). pos iterates in ascending order, so a simple counter
+    # captures contiguity. Same 0.5 majority definition used for base calls.
+    max_del_run = 0
+    cur_del_run = 0
     for pos in range(ref_len):
         counts = per_position[pos]
         depth_pos = sum(counts.values())
@@ -213,6 +224,11 @@ def call_consensus_with_metrics(
             max_indel_event_fraction = pos_max
         if pos_max >= 0.05:
             n_indel_event_positions += 1
+        if del_frac > 0.5:
+            cur_del_run += 1
+            max_del_run = max(max_del_run, cur_del_run)
+        else:
+            cur_del_run = 0
 
     return ConsensusCall(
         consensus_seq=consensus_seq,
@@ -223,6 +239,7 @@ def call_consensus_with_metrics(
         n_low_quality_bases=n_low_quality_bases,
         n_indel_event_positions=n_indel_event_positions,
         max_indel_event_fraction=max_indel_event_fraction,
+        max_del_run_length=max_del_run,
     )
 
 

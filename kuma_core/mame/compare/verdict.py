@@ -101,6 +101,20 @@ def classify_verdict(
         and translated.barcode.max_indel_event_fraction
         > params.max_indel_event_fraction
     ):
+        # Informational run-length annotation. The deletion-majority run length
+        # distinguishes an isolated single-position alignment artifact (run=1)
+        # from a multi-position true deletion (run>=2), and flags an
+        # insertion-driven gate (run=0). Does not change the gate decision.
+        del_run = translated.barcode.max_del_run_length
+        if del_run == 0:
+            run_note = " (insertion-driven)"
+        elif del_run == 1:
+            run_note = (
+                " (deletion at single isolated position, run=1, "
+                "review for alignment artifact)"
+            )
+        else:
+            run_note = f" (deletion {del_run}-bp contiguous run)"
         return VerdictRecord(
             translated=translated,
             expected_mutations=list(expected_mutations),
@@ -112,6 +126,7 @@ def classify_verdict(
                 f"threshold={params.max_indel_event_fraction:.3f}; "
                 f"n_indel_event_positions="
                 f"{translated.barcode.n_indel_event_positions}"
+                + run_note
             ),
         )
 
