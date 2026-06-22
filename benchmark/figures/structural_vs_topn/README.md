@@ -56,3 +56,11 @@ win/neutral/loss counts vs Top-N and vs UCB at both sizes. Strong epistatic wins
 DLG4, PABP) hold; marginal/greedy cases (GRB2, GCN4, RASK) erode. Aggregate vs Top-N 6/2/1 ->
 5/2/2; vs UCB 7/1/1 -> 4/3/2. Data: `data/model_size_compare.json`; REPORT §6.9. Driver:
 `scripts/run_sweetspot_150M.py`.
+
+## Data-budget dependence (`fig_budget.svg`)
+
+The 9 assays at budget 50 vs 95 (one plate), ESM-2 35M. Left: struct-minus-Top-N gap at 50 -> 95
+per assay, coloured by the budget-95 decision. Right: win/neutral/loss counts vs Top-N and UCB at
+both budgets. Structural is a low-data advantage: vs Top-N 6/2/1 (budget 50) -> 3/5/1 (budget 95);
+only the strongest epistatic assays (F7YBW8, GFP, DLG4) still win at one plate. Data:
+`data/budget_compare.json`; REPORT §6.10. Driver: `scripts/run_budget95.py`.
