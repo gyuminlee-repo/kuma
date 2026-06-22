@@ -17,7 +17,7 @@ EXP = BENCH / "results/qa/kuro_real/expanded"
 OUT = HERE / "fig_full_sweep.svg"
 NUMS = HERE / "data/full_numbers.json"
 C_WIN, C_NEU, C_LOSS = "#1B7837", "#999999", "#B2182B"
-WIN = {"FOR-STRONG", "FOR-QUALIFIED"}; LOSS = {"AGAINST/REFUTE"}
+WIN = {"FOR-STRONG", "FOR-QUALIFIED"}; LOSS = {"AGAINST", "AGAINST/REFUTE", "AGAINST/REFUTE-STRONG"}
 FONT = ["Myriad Pro", "Arial", "sans-serif"]
 CT, CU, CB = "kuro_struct_vs_topn", "kuro_struct_vs_ucb", "kuro_struct_blend_vs_topn"
 

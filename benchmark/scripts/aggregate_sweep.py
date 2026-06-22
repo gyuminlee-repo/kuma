@@ -22,7 +22,7 @@ EXP_GLOB = os.path.join(ROOT, "results", "qa", "kuro_real", "expanded", "*.json"
 
 ARMS = ["kuro_struct_vs_topn", "kuro_struct_blend_vs_topn"]
 WIN = {"FOR-STRONG", "FOR-QUALIFIED"}
-LOSS = {"AGAINST/REFUTE"}
+LOSS = {"AGAINST", "AGAINST/REFUTE", "AGAINST/REFUTE-STRONG"}
 
 
 def _load_all() -> dict[str, dict]:
