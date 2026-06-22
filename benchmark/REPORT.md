@@ -339,3 +339,36 @@ Aggregate (18 assays, 50 seeds, 9-cell decision):
   favourable risk/reward on the full structure-alignable combinatorial set, not a universal win.
 - **Remaining scope.** ESM-2 35M surrogate; a larger-model re-embed and the non-alignable
   domain-construct assays (which need per-domain structures) are still future work.
+
+
+### 6.9 Model-size robustness (sweet-spot check, ESM-2 150M)
+
+The pre-registered 9 assays were re-run with **ESM-2 150M**, the point where ESM-2 performance
+saturates (per the ESM-2 vs ESM-C study, 150M ~ 650M; the efficient cross-family optimum is
+ESM-C 300M). The embedding feeds the RandomForest surrogate shared by every arm, so a better
+surrogate also strengthens Top-N and UCB -- this tests whether the RELATIVE structural edge
+survives a near-saturated surrogate, not just the weak 35M default. Driver:
+`scripts/run_sweetspot_150M.py`; comparison: `figures/structural_vs_topn/fig_model_size.svg`,
+`data/model_size_compare.json`.
+
+Aggregate (9 assays), 35M -> 150M:
+
+| comparison | 35M (W/N/L) | 150M (W/N/L) |
+|---|---|---|
+| struct k=0 vs Top-N | 6 / 2 / 1 | 5 / 2 / 2 |
+| blend k=0.3 vs Top-N | 6 / 1 / 2 | 4 / 3 / 2 |
+| struct k=0 vs UCB | 7 / 1 / 1 | 4 / 3 / 2 |
+
+Findings:
+
+- **Strong epistatic wins are model-size-robust.** F7YBW8, GFP, A4 (FOR-STRONG) and DLG4, PABP
+  (FOR-QUALIFIED) keep their win vs Top-N at the sweet spot -- the genuinely epistatic /
+  spatially-spread combinatorial landscapes. Not artifacts of a weak surrogate.
+- **Marginal / greedy-favourable cases erode.** A stronger surrogate makes greedy Top-N harder to
+  beat: GRB2 (win -> neutral), GCN4 and RASK (neutral -> loss); HIS7 loss softens to neutral.
+- **Against strong UCB the edge is modest at the sweet spot** (4/9 win, 2 loss).
+- **Bottom line.** 650M is unnecessary (ESM-2 saturates at 150M), so the sweet-spot run settles the
+  model-size question: structural helps where it is mechanistically expected (epistatic, 3D-spread
+  combinatorial assays) and fades on greedy-favourable ones -- a sharper, honest version of the
+  conditional-win conclusion. (PABP needed a re-run after a transient 150M OOM on this CPU box;
+  ESM-C 300M, the cross-family optimum, uses a different backend and was not tested.)
