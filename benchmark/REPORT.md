@@ -395,3 +395,27 @@ struct-minus-Top-N gap +0.022 -> -0.034.
   measurements and most need help. By a full plate the surrogate alone makes greedy competitive.
 - **Scope note.** This qualifies every preceding aggregate in 6.4-6.9, which used budget 50
   (about half a plate); the headline win rates are budget-dependent and shrink at a full plate.
+
+
+### 6.11 Pool-size sensitivity (is the candidate-pool size 400 biasing the result?)
+
+The candidate pool (`--pool`, default 400: a deterministic subsample of each assay's combinatorial
+variants) sets the measured fraction (budget/pool) and could in principle confound the budget
+result. Three representative assays (F7YBW8 = robust win, RASK = greedy-favourable, A4 = the flip)
+were re-run at pool 400 vs 1000 (budget 95, ESM-2 35M). struct-vs-Top-N decision:
+
+| assay | pool 400 | pool 1000 |
+|---|---|---|
+| F7YBW8 | FOR-QUALIFIED | FOR-QUALIFIED |
+| RASK | AGAINST/REFUTE | INCONCLUSIVE |
+| A4 | AGAINST/REFUTE | AGAINST/REFUTE |
+
+- **Decisions are pool-robust (400 -> 1000).** F7YBW8 stays a win, A4 stays a loss; RASK softens
+  from loss to neutral. The budget-95 headline (structural wins only on the strongest epistatic
+  assays) is **not an artifact of the small 400 pool**.
+- **The naive "larger pool revives structural" hypothesis is not supported.** A bigger pool lowers
+  the measured fraction (which would favour structural) BUT also contains more high-fitness variants
+  (which greedy Top-N exploits), and the two effects roughly cancel -- the gap does not grow with
+  pool.
+- **Caveat.** Two pool points (400, 1000); pool=2000 was attempted but OOM-killed on this CPU box
+  (driver: `scripts/run_poolsweep.py`), so the very-low-fraction regime is uncharacterised here.
