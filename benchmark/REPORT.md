@@ -372,3 +372,26 @@ Findings:
   combinatorial assays) and fades on greedy-favourable ones -- a sharper, honest version of the
   conditional-win conclusion. (PABP needed a re-run after a transient 150M OOM on this CPU box;
   ESM-C 300M, the cross-family optimum, uses a different backend and was not tested.)
+
+
+### 6.10 Data-budget dependence (one-plate result)
+
+The pre-registered 9 assays were re-run at **budget = 95** (one 96-well plate; the standard
+reference budget) versus the default budget = 50, same ESM-2 35M surrogate. Budget = variants
+measured = n_seed + batch * rounds. Driver: `scripts/run_budget95.py`; figure:
+`figures/structural_vs_topn/fig_budget.svg`; data: `data/budget_compare.json`.
+
+Aggregate vs Top-N: **6/2/1 (budget 50) -> 3/5/1 (budget 95)**; vs UCB 7/1/1 -> 4/5/0; mean
+struct-minus-Top-N gap +0.022 -> -0.034.
+
+- **Structural is a low-data advantage.** At ~half a plate (50) it wins 6/9; at one full plate (95)
+  only the three strongest epistatic assays (F7YBW8, GFP, DLG4) still win, most collapse to
+  neutral, and A4 reverses (FOR-STRONG -> AGAINST). The mean advantage drops to ~zero.
+- **Same mechanism as model size (6.9).** More measured variants -> better surrogate -> greedy
+  Top-N catches up, exactly like a bigger embedding. Both data and model size are axes that erode
+  the edge; structural helps most when the surrogate is weakest (few labels, small model).
+- **Practical reading.** Deploy structural in the early / sub-plate regime (round 1-2, before a
+  full plate of labels) on epistatic combinatorial campaigns -- which is exactly when you have few
+  measurements and most need help. By a full plate the surrogate alone makes greedy competitive.
+- **Scope note.** This qualifies every preceding aggregate in 6.4-6.9, which used budget 50
+  (about half a plate); the headline win rates are budget-dependent and shrink at a full plate.

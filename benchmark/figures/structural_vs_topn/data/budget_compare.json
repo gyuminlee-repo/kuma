@@ -1,0 +1,91 @@
+{
+ "budget_50": {
+  "n_seed": 10,
+  "batch": 10,
+  "rounds": 4
+ },
+ "budget_95": {
+  "n_seed": 15,
+  "batch": 20,
+  "rounds": 4
+ },
+ "model": "esm2_t12_35M_UR50D",
+ "per_assay": {
+  "F7YBW8": {
+   "b50_cell": "FOR-STRONG",
+   "b95_cell": "FOR-QUALIFIED",
+   "b50_gap": 0.19,
+   "b95_gap": 0.123
+  },
+  "GFP": {
+   "b50_cell": "FOR-STRONG",
+   "b95_cell": "FOR-STRONG",
+   "b50_gap": 0.049,
+   "b95_gap": 0.026
+  },
+  "DLG4": {
+   "b50_cell": "FOR-QUALIFIED",
+   "b95_cell": "FOR-QUALIFIED",
+   "b50_gap": 0.025,
+   "b95_gap": 0.003
+  },
+  "HIS7": {
+   "b50_cell": "AGAINST/REFUTE",
+   "b95_cell": "INCONCLUSIVE",
+   "b50_gap": -0.026,
+   "b95_gap": 0.0
+  },
+  "GRB2": {
+   "b50_cell": "FOR-QUALIFIED",
+   "b95_cell": "INCONCLUSIVE",
+   "b50_gap": -0.052,
+   "b95_gap": -0.014
+  },
+  "PABP": {
+   "b50_cell": "FOR-QUALIFIED",
+   "b95_cell": "MIXED",
+   "b50_gap": -0.02,
+   "b95_gap": -0.076
+  },
+  "RASK": {
+   "b50_cell": "MIXED",
+   "b95_cell": "AGAINST/REFUTE-STRONG",
+   "b50_gap": -0.042,
+   "b95_gap": -0.077
+  },
+  "A4": {
+   "b50_cell": "FOR-STRONG",
+   "b95_cell": "AGAINST/REFUTE-STRONG",
+   "b50_gap": 0.105,
+   "b95_gap": -0.1
+  },
+  "GCN4": {
+   "b50_cell": "INCONCLUSIVE",
+   "b95_cell": "AGAINST/REFUTE",
+   "b50_gap": -0.031,
+   "b95_gap": -0.191
+  }
+ },
+ "aggregate": {
+  "struct_vs_topn_b50": [
+   6,
+   2,
+   1
+  ],
+  "struct_vs_topn_b95": [
+   3,
+   5,
+   1
+  ],
+  "struct_vs_ucb_b50": [
+   7,
+   1,
+   1
+  ],
+  "struct_vs_ucb_b95": [
+   4,
+   5,
+   0
+  ]
+ }
+}
