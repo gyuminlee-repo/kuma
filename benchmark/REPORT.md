@@ -326,17 +326,16 @@ Aggregate (18 assays, 50 seeds, 9-cell decision):
 
 | comparison | win | neutral | loss |
 |---|---|---|---|
-| struct k=0 vs Top-N | 9 | 8 | 1 |
-| blend k=0.3 vs Top-N | 8 | 8 | 2 |
-| struct k=0 vs UCB | 10 | 6 | 2 |
+| struct k=0 vs Top-N | 9 | 5 | 4 |
+| blend k=0.3 vs Top-N | 8 | 4 | 6 |
+| struct k=0 vs UCB | 10 | 3 | 5 |
 
-- **Asymmetric, low-downside profile.** On the unselected set, structural wins outright on half
-  (9/18 vs Top-N), ties on most of the rest, and loses on only 1/18 (HIS7). It beats even the UCB
-  acquisition baseline more often than not (10/18).
-- **Tempered but honest.** The win rate is below the pre-registered 9 (6/9, which were chosen as
-  epistatic combinatorial and skew toward wins), but the very low loss rate holds: structural
-  rarely hurts and frequently helps. This is the strongest anti-cherry-pick evidence here -- a
-  favourable risk/reward on the full structure-alignable combinatorial set, not a universal win.
+- **Net-positive but with real downside.** On the unselected set, structural wins on 9/18 vs
+  Top-N, ties 5, and **loses on 4/18**; the kappa blend is worse (8 win / 4 neutral / 6 loss). It
+  beats UCB on wins (10/18) but also loses to UCB on 5.
+- **Tempered.** The win rate is below the pre-registered 9 (6/9, chosen as epistatic and skewed
+  toward wins). On the full set structural helps more often than it hurts (9 vs 4), but the downside
+  is real -- honest anti-cherry-pick evidence for a conditional, not a low-risk universal, benefit.
 - **Remaining scope.** ESM-2 35M surrogate; a larger-model re-embed and the non-alignable
   domain-construct assays (which need per-domain structures) are still future work.
 
@@ -357,7 +356,7 @@ Aggregate (9 assays), 35M -> 150M:
 |---|---|---|
 | struct k=0 vs Top-N | 6 / 2 / 1 | 5 / 2 / 2 |
 | blend k=0.3 vs Top-N | 6 / 1 / 2 | 4 / 3 / 2 |
-| struct k=0 vs UCB | 7 / 1 / 1 | 4 / 3 / 2 |
+| struct k=0 vs UCB | 7 / 1 / 1 | 4 / 2 / 3 |
 
 Findings:
 
@@ -366,7 +365,7 @@ Findings:
   spatially-spread combinatorial landscapes. Not artifacts of a weak surrogate.
 - **Marginal / greedy-favourable cases erode.** A stronger surrogate makes greedy Top-N harder to
   beat: GRB2 (win -> neutral), GCN4 and RASK (neutral -> loss); HIS7 loss softens to neutral.
-- **Against strong UCB the edge is modest at the sweet spot** (4/9 win, 2 loss).
+- **Against strong UCB the edge is modest at the sweet spot** (4/9 win, 3 loss).
 - **Bottom line.** 650M is unnecessary (ESM-2 saturates at 150M), so the sweet-spot run settles the
   model-size question: structural helps where it is mechanistically expected (epistatic, 3D-spread
   combinatorial assays) and fades on greedy-favourable ones -- a sharper, honest version of the
@@ -381,12 +380,12 @@ reference budget) versus the default budget = 50, same ESM-2 35M surrogate. Budg
 measured = n_seed + batch * rounds. Driver: `scripts/run_budget95.py`; figure:
 `figures/structural_vs_topn/fig_budget.svg`; data: `data/budget_compare.json`.
 
-Aggregate vs Top-N: **6/2/1 (budget 50) -> 3/5/1 (budget 95)**; vs UCB 7/1/1 -> 4/5/0; mean
+Aggregate vs Top-N: **6/2/1 (budget 50) -> 3/3/3 (budget 95)**; vs UCB 7/1/1 -> 4/3/2; mean
 struct-minus-Top-N gap +0.022 -> -0.034.
 
 - **Structural is a low-data advantage.** At ~half a plate (50) it wins 6/9; at one full plate (95)
-  only the three strongest epistatic assays (F7YBW8, GFP, DLG4) still win, most collapse to
-  neutral, and A4 reverses (FOR-STRONG -> AGAINST). The mean advantage drops to ~zero.
+  it wins on only 3 (F7YBW8, GFP, DLG4), is neutral on 3, and **loses on 3** (A4 reverses
+  FOR-STRONG -> AGAINST) -- a genuine win/loss wash, mean advantage ~zero.
 - **Same mechanism as model size (6.9).** More measured variants -> better surrogate -> greedy
   Top-N catches up, exactly like a bigger embedding. Both data and model size are axes that erode
   the edge; structural helps most when the surrogate is weakest (few labels, small model).
@@ -407,7 +406,7 @@ were re-run at pool 400 vs 1000 (budget 95, ESM-2 35M). struct-vs-Top-N decision
 | assay | pool 400 | pool 1000 |
 |---|---|---|
 | F7YBW8 | FOR-QUALIFIED | FOR-QUALIFIED |
-| RASK | AGAINST/REFUTE | INCONCLUSIVE |
+| RASK | AGAINST/REFUTE-STRONG | INCONCLUSIVE |
 | A4 | AGAINST/REFUTE | AGAINST/REFUTE |
 
 - **Decisions are pool-robust (400 -> 1000).** F7YBW8 stays a win, A4 stays a loss; RASK softens
@@ -419,3 +418,26 @@ were re-run at pool 400 vs 1000 (budget 95, ESM-2 35M). struct-vs-Top-N decision
   pool.
 - **Caveat.** Two pool points (400, 1000); pool=2000 was attempted but OOM-killed on this CPU box
   (driver: `scripts/run_poolsweep.py`), so the very-low-fraction regime is uncharacterised here.
+
+
+### 6.12 Erratum (loss-classification fix)
+
+The aggregates in 6.8-6.11 originally used LOSS = {AGAINST/REFUTE} only, omitting the other two
+unfavourable 9-cell outcomes: **AGAINST** (mean tie + worse tail) and **AGAINST/REFUTE-STRONG**
+(worse mean + worse tail). Counting all three as losses -- symmetric with counting FOR-QUALIFIED
+(mean tie + better tail) as a win -- corrects the loss counts:
+
+| aggregate | before (wrong) | corrected |
+|---|---|---|
+| full sweep struct vs Top-N | 9/8/1 | 9/5/4 |
+| full sweep blend vs Top-N | 8/8/2 | 8/4/6 |
+| full sweep struct vs UCB | 10/6/2 | 10/3/5 |
+| 150M struct vs UCB | 4/3/2 | 4/2/3 |
+| budget-95 struct vs Top-N | 3/5/1 | 3/3/3 |
+| budget-95 struct vs UCB | 4/5/0 | 4/3/2 |
+
+The 9-assay budget-50 aggregate (6/2/1, 7/1/1) and the main figure/legend are **unaffected** (none
+of those 9 cells were AGAINST or -STRONG). The correction makes the conclusion *less* favourable to
+structural (more losses), reinforcing the 'Top-N/UCB is the safe default' reading. Tables and
+figures above show the corrected numbers; the loss-set fix is in `aggregate_sweep.py`,
+`make_fig.py`, `make_fig_full.py`.
