@@ -32,6 +32,8 @@ from __future__ import annotations
 import argparse
 import sys
 
+import re
+
 import numpy as np
 import pandas as pd
 from scipy.spatial.distance import cdist
@@ -53,6 +55,30 @@ def read_table(path: str) -> pd.DataFrame:
     return pd.read_csv(path)
 
 
+_FULL = re.compile(r"^[A-Z]\d+[A-Z]$")     # S29I  (wt_aa pos mut_aa)
+_SHORT = re.compile(r"^(\d+)([A-Z])$")      # 29I   (pos mut_aa)  -- EVOLVEpro round-file style
+
+
+def read_wt_fasta(path: str) -> str:
+    return "".join(
+        ln.strip() for ln in open(path).read().splitlines() if not ln.startswith(">")
+    )
+
+
+def to_full(v: str, wt: str | None) -> str:
+    """Convert short '29I' -> full 'S29I' using WT; pass full notation through."""
+    v = v.strip()
+    if _FULL.match(v):
+        return v
+    m = _SHORT.match(v)
+    if m and wt:
+        pos = int(m.group(1))
+        if 1 <= pos <= len(wt):
+            return f"{wt[pos - 1]}{pos}{m.group(2)}"
+    return v
+
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--embeddings", required=True)
@@ -62,6 +88,8 @@ def main(argv=None) -> int:
     ap.add_argument("--batch", type=int, default=95, help="next-round pick count")
     ap.add_argument("--beta", type=float, default=1.0, help="UCB exploration weight kappa")
     ap.add_argument("--out", default="df_test_with_sigma.csv")
+    ap.add_argument("--wt-fasta", default=None,
+                    help="WT FASTA; enables short('29I')->full('S29I') variant matching")
     args = ap.parse_args(argv)
 
     emb = pd.read_csv(args.embeddings, index_col=0)
@@ -70,17 +98,29 @@ def main(argv=None) -> int:
     lab[args.variant_col] = lab[args.variant_col].astype(str)
     lab = lab.dropna(subset=[args.activity_col])
 
-    train_ids = [v for v in lab[args.variant_col] if v in emb.index]
-    missing = sorted(set(lab[args.variant_col]) - set(emb.index))
-    if missing:
-        print(f"[warn] {len(missing)} labelled variants absent from embeddings "
-              f"(id mismatch?), e.g. {missing[:5]}", file=sys.stderr)
+    wt = read_wt_fasta(args.wt_fasta) if args.wt_fasta else None
+    idx = set(emb.index)
+
+    def resolve(v: str):
+        if v in idx:
+            return v
+        full = to_full(v, wt)
+        return full if full in idx else None
+
+    lab["_rid"] = lab[args.variant_col].map(resolve)
+    matched = lab.dropna(subset=["_rid"])
+    unmatched = sorted(set(lab[lab["_rid"].isna()][args.variant_col]))
+    if unmatched:
+        print(f"[warn] {len(unmatched)} labelled variants unmatched to embeddings "
+              f"(after short->full via WT), e.g. {unmatched[:5]}", file=sys.stderr)
+    train_ids = matched["_rid"].tolist()
     if not train_ids:
         print("[error] no labelled variant matches the embedding index. "
-              "Check --variant-col formatting (e.g. '34F' vs 'Y34F').", file=sys.stderr)
+              "Pass --wt-fasta if labels use short notation (e.g. '29I' vs 'S29I').",
+              file=sys.stderr)
         return 2
 
-    y = lab.set_index(args.variant_col)[args.activity_col].astype(float)
+    y = matched.set_index("_rid")[args.activity_col].astype(float)
     X_tr = emb.loc[train_ids].to_numpy(float)
     y_tr = y.loc[train_ids].to_numpy(float)
     test_ids = [v for v in emb.index if v not in set(train_ids)]
