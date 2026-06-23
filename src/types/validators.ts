@@ -656,7 +656,9 @@ function isUniprotCandidate(value: unknown): boolean {
     isString(value.organism) &&
     isNumber(value.length) &&
     isNumber(value.identity) &&
-    isOptional(value.has_structure, isBoolean)
+    isOptional(value.has_structure, isBoolean) &&
+    isOptionalNullable(value.subunit, isString) &&
+    isOptional(value.oligomeric, isString)
   );
 }
 
