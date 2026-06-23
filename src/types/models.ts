@@ -60,6 +60,8 @@ export interface UniprotCandidate {
   length: number;
   identity: number;
   has_structure?: boolean;
+  subunit?: string | null;
+  oligomeric?: "monomer" | "multimer" | "unknown";
 }
 
 export interface SearchUniprotResult {

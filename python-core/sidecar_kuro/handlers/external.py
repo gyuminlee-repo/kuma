@@ -160,6 +160,36 @@ def _candidate_rank_key(query_organism: str, candidate: dict) -> tuple[int, floa
     )
 
 
+def _extract_subunit(data: dict) -> str | None:
+    """First non-microbial SUBUNIT comment text from a UniProtKB JSON entry."""
+    comments = data.get("comments", []) if isinstance(data, dict) else []
+    texts = []
+    for c in comments:
+        if c.get("commentType") == "SUBUNIT":
+            for t in c.get("texts", []):
+                v = (t.get("value") or "").strip()
+                if v:
+                    texts.append(v)
+    if not texts:
+        return None
+    for v in texts:
+        if not v.lower().startswith("(microbial infection)"):
+            return v
+    return texts[0]
+
+
+def _classify_oligomeric(subunit: str | None) -> str:
+    """monomer | multimer | unknown from SUBUNIT free text. Multimer wins ties (cautious flag)."""
+    if not subunit:
+        return "unknown"
+    s = subunit.lower()
+    if "oligomer" in s or re.search(r"\b(?:homo|hetero)?(?:di|tri|tetra|penta|hexa|hepta|octa|multi)mer", s):
+        return "multimer"
+    if re.search(r"\bmonomer", s):
+        return "monomer"
+    return "unknown"
+
+
 def handle_search_uniprot(params: dict) -> dict:
     """Search UniProt via BLAST (primary) and direct accession lookup (secondary)."""
     p = SearchUniprotParams(**params)
@@ -212,12 +242,15 @@ def handle_search_uniprot(params: dict) -> dict:
                 if gn.get("geneName", {}).get("value")
             ]
             acc = data["primaryAccession"]
+            sub = _extract_subunit(data)
             candidates.append({
                 "accession": acc,
                 "name": ", ".join(gene_names) if gene_names else known_accession,
                 "organism": data.get("organism", {}).get("scientificName", ""),
                 "length": seq_data.get("length", 0) if isinstance(seq_data, dict) else 0,
                 "identity": identity,
+                "subunit": sub,
+                "oligomeric": _classify_oligomeric(sub),
             })
             seen_accessions.add(acc)
             # Trusted direct accession match with high sequence identity:
@@ -312,12 +345,15 @@ def handle_search_uniprot(params: dict) -> dict:
                         for gn in entry.get("genes", [])
                         if gn.get("geneName", {}).get("value")
                     ]
+                    sub = _extract_subunit(entry)
                     candidates.append({
                         "accession": acc,
                         "name": ", ".join(gene_names) if gene_names else acc,
                         "organism": entry.get("organism", {}).get("scientificName", ""),
                         "length": seq_data.get("length", 0) if isinstance(seq_data, dict) else 0,
                         "identity": identity,
+                        "subunit": sub,
+                        "oligomeric": _classify_oligomeric(sub),
                     })
         except Exception as exc:
             logger.warning("UniProt text search failed: %s", exc)
@@ -327,6 +363,22 @@ def handle_search_uniprot(params: dict) -> dict:
 
     if candidates and candidates[0]["identity"] >= 95.0:
         auto_selected = candidates[0]["accession"]
+
+    # Enrich the selected candidate with oligomeric state if missing (one light request).
+    sel = auto_selected or (candidates[0]["accession"] if candidates else None)
+    if sel:
+        for c in candidates:
+            if c["accession"] == sel and not c.get("subunit"):
+                try:
+                    sdata, _e = _fetch_json(
+                        f"https://rest.uniprot.org/uniprotkb/{sel}?format=json&fields=cc_subunit"
+                    )
+                    if sdata:
+                        c["subunit"] = _extract_subunit(sdata)
+                        c["oligomeric"] = _classify_oligomeric(c.get("subunit"))
+                except Exception as exc:
+                    logger.warning("SUBUNIT enrich failed for %s: %s", sel, exc)
+                break
 
     return {
         "candidates": candidates,
