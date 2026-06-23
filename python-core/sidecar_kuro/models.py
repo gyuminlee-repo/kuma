@@ -666,6 +666,19 @@ class FetchStructureParams(BaseModel):
     accession: str = ""
 
 
+class FetchInterfaceParams(BaseModel):
+    """Params for `fetch_interface_residues` RPC.
+
+    accession : UniProt accession whose PDB cross-references are scanned for a
+                multi-chain crystal structure.
+    ref_seq   : user reference sequence; the returned interface positions are
+                expressed in this 1-based frame (KURO contract).
+    """
+
+    accession: str = ""
+    ref_seq: str = ""
+
+
 # ---------------------------------------------------------------------------
 # misc.py handlers
 # ---------------------------------------------------------------------------
