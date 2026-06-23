@@ -107,8 +107,8 @@ export function UniprotSearch() {
                 </span>
               )}
               {c.oligomeric === "multimer" && (
-                <span className="flex-shrink-0 inline-flex items-center rounded bg-info/10 px-1 py-0.5 text-plate-tiny font-medium text-info" title={c.subunit ?? "Multimer"}>
-                  ⬡ {c.subunit ? c.subunit.split(/[.;(]/)[0].trim() : "Multimer"} · consider biological unit
+                <span className="flex-shrink-0 inline-flex items-center rounded bg-info/10 px-1 py-0.5 text-plate-tiny font-medium text-info" title={c.subunit ? `${c.subunit} · consider biological unit` : "Multimer · consider biological unit"}>
+                  ⬡ {c.subunit ? c.subunit.split(/[.;(]/)[0].trim() : "Multimer"}
                 </span>
               )}
               <span
