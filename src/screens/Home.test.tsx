@@ -20,6 +20,7 @@ const loadProjectMock = vi.mocked(projectApi.loadProject);
 describe("Home", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
   });
 
   it("renders the primary actions and recent projects heading", async () => {
@@ -74,7 +75,7 @@ describe("Home", () => {
     expect(screen.getByRole("link", { name: "Learn more" })).toBeTruthy();
   });
 
-  it("hides the overview card once a recent project exists", async () => {
+  it("shows the overview even when recent projects exist", async () => {
     listRecentProjectsMock.mockResolvedValueOnce([
       {
         path: "/tmp/sample.json",
@@ -92,8 +93,49 @@ describe("Home", () => {
     );
 
     await screen.findByText("sample");
-    expect(screen.queryByText("Turn sequencing reads into per-variant activity.")).toBeNull();
-    expect(screen.queryByRole("region", { name: "About kuma" })).toBeNull();
+    expect(
+      screen.getByText("kuma — multi-round protein variant engineering, end to end."),
+    ).toBeTruthy();
+    expect(screen.getByRole("region", { name: "About kuma" })).toBeTruthy();
+  });
+
+  it("collapses the overview and persists the preference", async () => {
+    listRecentProjectsMock.mockResolvedValueOnce([]);
+
+    render(
+      <Home
+        onOpenProject={vi.fn()}
+        onOpenScratch={vi.fn()}
+        onOpenSettings={vi.fn()}
+      />,
+    );
+
+    await screen.findByText("kuma — multi-round protein variant engineering, end to end.");
+    fireEvent.click(screen.getByRole("button", { name: "Collapse" }));
+
+    expect(
+      screen.queryByText("kuma — multi-round protein variant engineering, end to end."),
+    ).toBeNull();
+    expect(screen.getByRole("button", { name: "About kuma" })).toBeTruthy();
+    expect(localStorage.getItem("kuma.home.overviewCollapsed")).toBe("1");
+  });
+
+  it("respects a collapsed overview preference on mount", async () => {
+    localStorage.setItem("kuma.home.overviewCollapsed", "1");
+    listRecentProjectsMock.mockResolvedValueOnce([]);
+
+    render(
+      <Home
+        onOpenProject={vi.fn()}
+        onOpenScratch={vi.fn()}
+        onOpenSettings={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByRole("button", { name: "About kuma" })).toBeTruthy();
+    expect(
+      screen.queryByText("kuma — multi-round protein variant engineering, end to end."),
+    ).toBeNull();
   });
 
   it("opens the create dialog and creates a new project", async () => {

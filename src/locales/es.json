@@ -943,7 +943,8 @@
       "kuroTitle": "KURO",
       "kuroDesc": "Clasifica variantes y diseña la siguiente ronda.",
       "learnMore": "Más información",
-      "aria": "Acerca de kuma"
+      "aria": "Acerca de kuma",
+      "collapse": "Contraer"
     }
   },
   "mameTab": {

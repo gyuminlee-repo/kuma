@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { open } from "@tauri-apps/plugin-dialog";
-import { FlaskConical, Target, Trash2 } from "lucide-react";
+import { ChevronRight, ChevronUp, FlaskConical, Target, Trash2 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import {
   Dialog,
@@ -36,6 +36,17 @@ export function Home({ onOpenProject, onOpenScratch, onOpenSettings }: HomeProps
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState("");
   const [pendingDelete, setPendingDelete] = useState<RecentProject | null>(null);
+  const [overviewCollapsed, setOverviewCollapsed] = useState<boolean>(
+    () => localStorage.getItem("kuma.home.overviewCollapsed") === "1",
+  );
+
+  function toggleOverview() {
+    setOverviewCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem("kuma.home.overviewCollapsed", next ? "1" : "0");
+      return next;
+    });
+  }
 
   useEffect(() => {
     let isMounted = true;
@@ -137,53 +148,76 @@ export function Home({ onOpenProject, onOpenScratch, onOpenSettings }: HomeProps
 
         {error ? <p className="mt-4 text-sm text-error">{error}</p> : null}
 
-        {recentProjects.length === 0 ? (
-          <section
-            aria-label={t("home.overview.aria")}
-            className="mt-12 w-full rounded-container border border-border bg-card p-6"
-          >
-            <h2 className="sr-only">{t("home.overview.aria")}</h2>
-            <p className="text-base font-medium text-foreground">
-              {t("home.overview.identity")}
-            </p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <Card className="border-border bg-muted/40 p-4">
-                <div className="flex items-start gap-3">
-                  <FlaskConical className="mt-0.5 h-5 w-5 shrink-0 text-info" aria-hidden="true" />
-                  <div>
-                    <CardTitle className="text-sm font-semibold">
-                      {t("home.overview.mameTitle")}
-                    </CardTitle>
-                    <CardDescription className="mt-1">
-                      {t("home.overview.mameDesc")}
-                    </CardDescription>
-                  </div>
-                </div>
-              </Card>
-              <Card className="border-border bg-muted/40 p-4">
-                <div className="flex items-start gap-3">
-                  <Target className="mt-0.5 h-5 w-5 shrink-0 text-info" aria-hidden="true" />
-                  <div>
-                    <CardTitle className="text-sm font-semibold">
-                      {t("home.overview.kuroTitle")}
-                    </CardTitle>
-                    <CardDescription className="mt-1">
-                      {t("home.overview.kuroDesc")}
-                    </CardDescription>
-                  </div>
-                </div>
-              </Card>
-            </div>
-            <a
-              href="https://github.com/gyuminlee-repo/kuma#readme"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-4 inline-block text-sm text-info underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        <section
+          aria-label={t("home.overview.aria")}
+          className="mt-12 w-full rounded-container border border-border bg-card p-6"
+        >
+          {overviewCollapsed ? (
+            <button
+              type="button"
+              onClick={toggleOverview}
+              aria-expanded={false}
+              className="flex w-full items-center gap-2 text-left text-base font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
-              {t("home.overview.learnMore")}
-            </a>
-          </section>
-        ) : null}
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+              {t("home.overview.aria")}
+            </button>
+          ) : (
+            <>
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-base font-medium text-foreground">
+                  {t("home.overview.identity")}
+                </p>
+                <button
+                  type="button"
+                  onClick={toggleOverview}
+                  aria-label={t("home.overview.collapse")}
+                  aria-expanded={true}
+                  className="shrink-0 rounded p-1 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <ChevronUp className="h-4 w-4" aria-hidden="true" />
+                </button>
+              </div>
+              <h2 className="sr-only">{t("home.overview.aria")}</h2>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <Card className="border-border bg-muted/40 p-4">
+                  <div className="flex items-start gap-3">
+                    <FlaskConical className="mt-0.5 h-5 w-5 shrink-0 text-info" aria-hidden="true" />
+                    <div>
+                      <CardTitle className="text-sm font-semibold">
+                        {t("home.overview.mameTitle")}
+                      </CardTitle>
+                      <CardDescription className="mt-1">
+                        {t("home.overview.mameDesc")}
+                      </CardDescription>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="border-border bg-muted/40 p-4">
+                  <div className="flex items-start gap-3">
+                    <Target className="mt-0.5 h-5 w-5 shrink-0 text-info" aria-hidden="true" />
+                    <div>
+                      <CardTitle className="text-sm font-semibold">
+                        {t("home.overview.kuroTitle")}
+                      </CardTitle>
+                      <CardDescription className="mt-1">
+                        {t("home.overview.kuroDesc")}
+                      </CardDescription>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+              <a
+                href="https://github.com/gyuminlee-repo/kuma#readme"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-4 inline-block text-sm text-info underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                {t("home.overview.learnMore")}
+              </a>
+            </>
+          )}
+        </section>
 
         <section className="mt-12 w-full rounded-container border border-border bg-card p-6">
           <div className="mb-4 flex items-center justify-between">

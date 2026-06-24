@@ -943,7 +943,8 @@
       "kuroTitle": "KURO",
       "kuroDesc": "為變體排序並設計下一輪。",
       "learnMore": "了解更多",
-      "aria": "關於 kuma"
+      "aria": "關於 kuma",
+      "collapse": "收合"
     }
   },
   "mameTab": {

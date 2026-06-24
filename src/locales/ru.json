@@ -943,7 +943,8 @@
       "kuroTitle": "KURO",
       "kuroDesc": "Ранжирует варианты и планирует следующий раунд.",
       "learnMore": "Подробнее",
-      "aria": "О kuma"
+      "aria": "О kuma",
+      "collapse": "Свернуть"
     }
   },
   "mameTab": {

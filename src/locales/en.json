@@ -943,7 +943,8 @@
       "kuroTitle": "KURO",
       "kuroDesc": "Rank variants and design the next round.",
       "learnMore": "Learn more",
-      "aria": "About kuma"
+      "aria": "About kuma",
+      "collapse": "Collapse"
     }
   },
   "mameTab": {

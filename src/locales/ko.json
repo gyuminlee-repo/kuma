@@ -943,7 +943,8 @@
       "kuroTitle": "KURO",
       "kuroDesc": "변이체 순위를 매기고 다음 라운드를 설계합니다.",
       "learnMore": "더 알아보기",
-      "aria": "kuma 소개"
+      "aria": "kuma 소개",
+      "collapse": "접기"
     }
   },
   "mameTab": {

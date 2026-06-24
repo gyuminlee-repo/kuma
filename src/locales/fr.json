@@ -943,7 +943,8 @@
       "kuroTitle": "KURO",
       "kuroDesc": "Classe les variants et conçoit le cycle suivant.",
       "learnMore": "En savoir plus",
-      "aria": "À propos de kuma"
+      "aria": "À propos de kuma",
+      "collapse": "Réduire"
     }
   },
   "mameTab": {
