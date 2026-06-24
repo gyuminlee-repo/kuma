@@ -19,6 +19,7 @@ from sidecar_kuro.models import (
     FetchDomainsParams,
     SearchUniprotParams,
     FetchStructureParams,
+    FetchInterfaceParams,
 )
 
 
@@ -441,3 +442,203 @@ def handle_fetch_structure(params: dict) -> dict:
         "accession": accession,
         "residues": valid,
     }
+
+
+def _select_pdb_id(accession: str) -> str | None:
+    """Pick a candidate PDB id from a UniProt accession's xref_pdb list.
+
+    Returns the first cross-referenced PDB id (the caller verifies multi-chain
+    eligibility via SIFTS). None when the entry has no PDB cross-reference.
+    """
+    try:
+        req = urllib.request.Request(
+            f"https://rest.uniprot.org/uniprotkb/{accession}.json?fields=xref_pdb",
+            headers={"Accept": "application/json"},
+        )
+        with urllib.request.urlopen(req, context=_get_ssl_ctx(), timeout=15) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+    except Exception as exc:
+        raise RuntimeError(f"UniProt xref_pdb fetch failed: {exc}") from exc
+
+    for xref in data.get("uniProtKBCrossReferences", []):
+        if xref.get("database") == "PDB":
+            pdb_id = xref.get("id", "").strip()
+            if pdb_id:
+                return pdb_id
+    return None
+
+
+def _fetch_sifts_chains(pdb_id: str, accession: str) -> tuple[list[str], dict[int, int]]:
+    """Return (chains, author->UniProt map) for *accession* in *pdb_id* via SIFTS.
+
+    Uses the spike-verified offset-0 contract for 3N0G-class IspS structures:
+    PDB author numbering equals UniProt numbering, so the author->UniProt map is
+    identity across the SIFTS-covered ``[unp_start, unp_end]`` range. SIFTS label
+    numbering (``residue_number``) is deliberately NOT used.
+    """
+    req = urllib.request.Request(
+        f"https://www.ebi.ac.uk/pdbe/api/mappings/{pdb_id.lower()}",
+        headers={"Accept": "application/json"},
+    )
+    with urllib.request.urlopen(req, context=_get_ssl_ctx(), timeout=15) as resp:
+        data = json.loads(resp.read().decode("utf-8"))
+
+    unp = data.get(pdb_id.lower(), {}).get("UniProt", {})
+    seg = unp.get(accession)
+    if not seg:
+        return [], {}
+
+    chains: list[str] = []
+    author_to_unp: dict[int, int] = {}
+    for m in seg.get("mappings", []):
+        chain = m.get("chain_id")
+        if chain and chain not in chains:
+            chains.append(chain)
+        unp_start = m.get("unp_start")
+        unp_end = m.get("unp_end")
+        # author == UniProt numbering (offset 0): identity over covered range.
+        if isinstance(unp_start, int) and isinstance(unp_end, int):
+            for pos in range(unp_start, unp_end + 1):
+                author_to_unp[pos] = pos
+    return sorted(chains), author_to_unp
+
+
+def handle_fetch_interface_residues(params: dict) -> dict:
+    """Compute dimer interface residues in the user ref_seq frame.
+
+    Flow: accession -> xref_pdb (pick a PDB) -> SIFTS chains + author/UniProt
+    map -> download coordinates -> crystal-contact interface (union of all
+    chain pairs) -> map_residues into the ref_seq frame.
+
+    Fail-fast: no PDB cross-reference returns an empty positions list with a
+    descriptive note (AF-Multimer fallback is out of scope for v1); network
+    failures surface in the ``error`` field rather than silently degrading.
+    """
+    p = FetchInterfaceParams(**params)
+    accession = p.accession.strip()
+    ref_seq = p.ref_seq.strip()
+    if not accession:
+        raise ValueError("accession is required")
+    if not re.match(r"^[A-Za-z0-9_-]{1,20}$", accession):
+        raise ValueError(f"Invalid UniProt accession format: {accession}")
+
+    from kuma_core.kuro.interface import compute_interface_residues, map_residues
+
+    # 1. accession -> candidate PDB id.
+    try:
+        pdb_id = _select_pdb_id(accession)
+    except RuntimeError as exc:
+        return {"interface_positions": [], "source": "error", "error": str(exc)}
+
+    if not pdb_id:
+        return {
+            "interface_positions": [],
+            "source": "none",
+            "note": "no PDB; AF-Multimer fallback out of scope (v1)",
+        }
+
+    # 2. SIFTS chains + author->UniProt numbering map.
+    try:
+        chains, author_to_unp = _fetch_sifts_chains(pdb_id, accession)
+    except Exception as exc:
+        return {
+            "interface_positions": [],
+            "pdb_id": pdb_id,
+            "source": "error",
+            "error": f"SIFTS mappings fetch failed: {exc}",
+        }
+
+    if len(chains) < 2:
+        return {
+            "interface_positions": [],
+            "pdb_id": pdb_id,
+            "chains": chains,
+            "source": "none",
+            "note": "single-chain SIFTS mapping; no dimer interface to compute",
+        }
+
+    # 3. Download coordinates.
+    try:
+        dl_req = urllib.request.Request(
+            f"https://files.rcsb.org/download/{pdb_id.upper()}.pdb"
+        )
+        with urllib.request.urlopen(dl_req, context=_get_ssl_ctx(), timeout=30) as resp:
+            pdb_text = resp.read().decode("utf-8")
+    except Exception as exc:
+        return {
+            "interface_positions": [],
+            "pdb_id": pdb_id,
+            "chains": chains,
+            "source": "error",
+            "error": f"PDB download failed: {exc}",
+        }
+
+    # 4. Union interface residues over all ordered chain pairs.
+    author_residues: set[int] = set()
+    for i, chain_a in enumerate(chains):
+        for chain_b in chains:
+            if chain_a == chain_b:
+                continue
+            author_residues |= compute_interface_residues(pdb_text, chain_a, chain_b)
+
+    # 5. Map into the ref_seq frame (identity when ref_seq matches accession seq).
+    if ref_seq:
+        accession_seq = _fetch_accession_seq(accession)
+        if not accession_seq:
+            # Fail-fast: the ref_seq transform needs the accession sequence.
+            # Do NOT silently return accession-frame positions mislabelled as
+            # ref_seq-frame.
+            return {
+                "interface_positions": [],
+                "pdb_id": pdb_id,
+                "chains": chains,
+                "source": "error",
+                "error": f"accession FASTA fetch failed for {accession}; cannot map to ref_seq frame",
+            }
+        positions = map_residues(author_residues, author_to_unp, accession_seq, ref_seq)
+    else:
+        # No ref_seq supplied: report accession-frame positions directly.
+        positions = {author_to_unp[r] for r in author_residues if r in author_to_unp}
+
+    # 6. Oligomeric state (assembly API, reference only, never an interface filter).
+    oligomeric_state = _fetch_oligomeric_state(pdb_id)
+
+    return {
+        "interface_positions": sorted(positions),
+        "pdb_id": pdb_id,
+        "chains": chains,
+        "oligomeric_state": oligomeric_state,
+        "source": "crystal_contact",
+        "note": f"heavy-atom <5.0A chain-contact across {len(chains)} chains",
+    }
+
+
+def _fetch_accession_seq(accession: str) -> str:
+    """UniProt canonical sequence for *accession* (empty string on failure)."""
+    try:
+        req = urllib.request.Request(
+            f"https://rest.uniprot.org/uniprotkb/{accession}.fasta"
+        )
+        with urllib.request.urlopen(req, context=_get_ssl_ctx(), timeout=15) as resp:
+            text = resp.read().decode("utf-8")
+        return "".join(
+            line.strip() for line in text.splitlines() if not line.startswith(">")
+        )
+    except Exception as exc:
+        logger.warning("accession FASTA fetch failed for %s: %s", accession, exc)
+        return ""
+
+
+def _fetch_oligomeric_state(pdb_id: str) -> str | None:
+    """Assembly-1 oligomeric state label (reference only, never a filter)."""
+    try:
+        req = urllib.request.Request(
+            f"https://data.rcsb.org/rest/v1/core/assembly/{pdb_id.upper()}/1",
+            headers={"Accept": "application/json"},
+        )
+        with urllib.request.urlopen(req, context=_get_ssl_ctx(), timeout=15) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        return data.get("pdbx_struct_assembly", {}).get("oligomeric_details")
+    except Exception as exc:
+        logger.debug("oligomeric state fetch failed for %s: %s", pdb_id, exc)
+        return None

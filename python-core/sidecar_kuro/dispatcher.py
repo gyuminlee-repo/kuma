@@ -43,6 +43,7 @@ from sidecar_kuro.handlers.external import (
     handle_fetch_domains,
     handle_search_uniprot,
     handle_fetch_structure,
+    handle_fetch_interface_residues,
 )
 from sidecar_kuro.handlers.misc import (
     handle_list_polymerases,
@@ -107,6 +108,7 @@ _METHODS = {
     "search_uniprot": handle_search_uniprot,
     "check_structures_available": handle_check_structures_available,
     "fetch_structure": handle_fetch_structure,
+    "fetch_interface_residues": handle_fetch_interface_residues,
     "run_benchmark": handle_run_benchmark,
     "cancel_design": lambda _: {
         "cancelled": True,
@@ -127,6 +129,7 @@ _ASYNC_METHODS = {
     "search_uniprot",
     "check_structures_available",
     "fetch_structure",
+    "fetch_interface_residues",
     "fetch_domains",
     "run_benchmark",
 }
