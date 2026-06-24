@@ -935,7 +935,16 @@
     "deleteButton": "프로젝트 삭제",
     "deleteConfirmTitle": "프로젝트를 목록에서 제거할까요?",
     "deleteConfirmDesc": "디스크의 프로젝트 파일은 삭제되지 않습니다. 최근 목록 항목만 제거됩니다.",
-    "delete": "제거"
+    "delete": "제거",
+    "overview": {
+      "identity": "kuma — 다라운드 단백질 변이체 엔지니어링, 처음부터 끝까지.",
+      "mameTitle": "MAME",
+      "mameDesc": "시퀀싱 리드를 변이체별 활성으로 변환합니다.",
+      "kuroTitle": "KURO",
+      "kuroDesc": "변이체 순위를 매기고 다음 라운드를 설계합니다.",
+      "learnMore": "더 알아보기",
+      "aria": "kuma 소개"
+    }
   },
   "mameTab": {
     "matchingProjectTitle": "일치하는 프로젝트 발견",

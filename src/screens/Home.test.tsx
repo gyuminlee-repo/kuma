@@ -53,6 +53,49 @@ describe("Home", () => {
     expect(await screen.findByText("No projects yet")).toBeTruthy();
   });
 
+  it("shows the overview card on the empty-recent state", async () => {
+    listRecentProjectsMock.mockResolvedValueOnce([]);
+
+    render(
+      <Home
+        onOpenProject={vi.fn()}
+        onOpenScratch={vi.fn()}
+        onOpenSettings={vi.fn()}
+      />,
+    );
+
+    expect(
+      await screen.findByText("kuma — multi-round protein variant engineering, end to end."),
+    ).toBeTruthy();
+    expect(screen.getByText("MAME")).toBeTruthy();
+    expect(screen.getByText("Turn sequencing reads into per-variant activity.")).toBeTruthy();
+    expect(screen.getByText("KURO")).toBeTruthy();
+    expect(screen.getByText("Rank variants and design the next round.")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Learn more" })).toBeTruthy();
+  });
+
+  it("hides the overview card once a recent project exists", async () => {
+    listRecentProjectsMock.mockResolvedValueOnce([
+      {
+        path: "/tmp/sample.json",
+        name: "sample",
+        last_opened: "2026-04-24T09:00:00Z",
+      },
+    ]);
+
+    render(
+      <Home
+        onOpenProject={vi.fn()}
+        onOpenScratch={vi.fn()}
+        onOpenSettings={vi.fn()}
+      />,
+    );
+
+    await screen.findByText("sample");
+    expect(screen.queryByText("Turn sequencing reads into per-variant activity.")).toBeNull();
+    expect(screen.queryByRole("region", { name: "About kuma" })).toBeNull();
+  });
+
   it("opens the create dialog and creates a new project", async () => {
     const onOpenProject = vi.fn();
 

@@ -935,7 +935,16 @@
     "deleteButton": "Delete project",
     "deleteConfirmTitle": "Remove project from list?",
     "deleteConfirmDesc": "The project files on disk will not be deleted. Only the entry in the recent list is removed.",
-    "delete": "Remove"
+    "delete": "Remove",
+    "overview": {
+      "identity": "kuma — многораундовая инженерия белковых вариантов от начала до конца.",
+      "mameTitle": "MAME",
+      "mameDesc": "Превращает риды секвенирования в активность по вариантам.",
+      "kuroTitle": "KURO",
+      "kuroDesc": "Ранжирует варианты и планирует следующий раунд.",
+      "learnMore": "Подробнее",
+      "aria": "О kuma"
+    }
   },
   "mameTab": {
     "matchingProjectTitle": "Найден соответствующий проект",

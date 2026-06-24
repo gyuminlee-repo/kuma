@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { open } from "@tauri-apps/plugin-dialog";
-import { Trash2 } from "lucide-react";
+import { FlaskConical, Target, Trash2 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import {
   Dialog,
@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from "../components/ui/dialog";
 import { Input } from "../components/ui/input";
+import { Card, CardDescription, CardTitle } from "../components/ui/card";
 import { cn, formatError } from "../lib/utils";
 import {
   createProject,
@@ -135,6 +136,54 @@ export function Home({ onOpenProject, onOpenScratch, onOpenSettings }: HomeProps
         </div>
 
         {error ? <p className="mt-4 text-sm text-error">{error}</p> : null}
+
+        {recentProjects.length === 0 ? (
+          <section
+            aria-label={t("home.overview.aria")}
+            className="mt-12 w-full rounded-container border border-border bg-card p-6"
+          >
+            <h2 className="sr-only">{t("home.overview.aria")}</h2>
+            <p className="text-base font-medium text-foreground">
+              {t("home.overview.identity")}
+            </p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <Card className="border-border bg-muted/40 p-4">
+                <div className="flex items-start gap-3">
+                  <FlaskConical className="mt-0.5 h-5 w-5 shrink-0 text-info" aria-hidden="true" />
+                  <div>
+                    <CardTitle className="text-sm font-semibold">
+                      {t("home.overview.mameTitle")}
+                    </CardTitle>
+                    <CardDescription className="mt-1">
+                      {t("home.overview.mameDesc")}
+                    </CardDescription>
+                  </div>
+                </div>
+              </Card>
+              <Card className="border-border bg-muted/40 p-4">
+                <div className="flex items-start gap-3">
+                  <Target className="mt-0.5 h-5 w-5 shrink-0 text-info" aria-hidden="true" />
+                  <div>
+                    <CardTitle className="text-sm font-semibold">
+                      {t("home.overview.kuroTitle")}
+                    </CardTitle>
+                    <CardDescription className="mt-1">
+                      {t("home.overview.kuroDesc")}
+                    </CardDescription>
+                  </div>
+                </div>
+              </Card>
+            </div>
+            <a
+              href="https://github.com/gyuminlee-repo/kuma#readme"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-4 inline-block text-sm text-info underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
+              {t("home.overview.learnMore")}
+            </a>
+          </section>
+        ) : null}
 
         <section className="mt-12 w-full rounded-container border border-border bg-card p-6">
           <div className="mb-4 flex items-center justify-between">

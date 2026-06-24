@@ -935,7 +935,16 @@
     "deleteButton": "Delete project",
     "deleteConfirmTitle": "Remove project from list?",
     "deleteConfirmDesc": "The project files on disk will not be deleted. Only the entry in the recent list is removed.",
-    "delete": "Remove"
+    "delete": "Remove",
+    "overview": {
+      "identity": "kuma — Protein-Varianten-Engineering über mehrere Runden, von Anfang bis Ende.",
+      "mameTitle": "MAME",
+      "mameDesc": "Sequenzier-Reads in Aktivität pro Variante umwandeln.",
+      "kuroTitle": "KURO",
+      "kuroDesc": "Varianten bewerten und die nächste Runde planen.",
+      "learnMore": "Mehr erfahren",
+      "aria": "Über kuma"
+    }
   },
   "mameTab": {
     "matchingProjectTitle": "Übereinstimmendes Projekt gefunden",

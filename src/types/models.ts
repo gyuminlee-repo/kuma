@@ -469,6 +469,16 @@ export interface StructureResult {
   error?: string;
 }
 
+export interface FetchInterfaceResiduesResult {
+  interface_positions: number[];
+  source: string;
+  pdb_id?: string;
+  chains?: string[];
+  oligomeric_state?: string | null;
+  error?: string;
+  note?: string;
+}
+
 export interface BenchmarkResult {
   n_selected: number;
   hit_rate: number;
@@ -683,6 +693,10 @@ export interface RpcMethodMap {
   fetch_structure: {
     params: { accession: string };
     result: StructureResult;
+  };
+  fetch_interface_residues: {
+    params: { accession: string; ref_seq: string };
+    result: FetchInterfaceResiduesResult;
   };
   run_benchmark: {
     params: RpcParams;
