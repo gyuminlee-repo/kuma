@@ -935,7 +935,16 @@
     "deleteButton": "Delete project",
     "deleteConfirmTitle": "Remove project from list?",
     "deleteConfirmDesc": "The project files on disk will not be deleted. Only the entry in the recent list is removed.",
-    "delete": "Remove"
+    "delete": "Remove",
+    "overview": {
+      "identity": "kuma — マルチラウンドのタンパク質変異エンジニアリングを端から端まで。",
+      "mameTitle": "MAME",
+      "mameDesc": "シーケンシングリードを変異体ごとの活性に変換します。",
+      "kuroTitle": "KURO",
+      "kuroDesc": "変異体をランク付けし、次のラウンドを設計します。",
+      "learnMore": "詳細を見る",
+      "aria": "kuma について"
+    }
   },
   "mameTab": {
     "matchingProjectTitle": "一致するプロジェクトを検出",

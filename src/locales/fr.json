@@ -935,7 +935,16 @@
     "deleteButton": "Delete project",
     "deleteConfirmTitle": "Remove project from list?",
     "deleteConfirmDesc": "The project files on disk will not be deleted. Only the entry in the recent list is removed.",
-    "delete": "Remove"
+    "delete": "Remove",
+    "overview": {
+      "identity": "kuma — ingénierie de variants protéiques sur plusieurs cycles, de bout en bout.",
+      "mameTitle": "MAME",
+      "mameDesc": "Transforme les lectures de séquençage en activité par variant.",
+      "kuroTitle": "KURO",
+      "kuroDesc": "Classe les variants et conçoit le cycle suivant.",
+      "learnMore": "En savoir plus",
+      "aria": "À propos de kuma"
+    }
   },
   "mameTab": {
     "matchingProjectTitle": "Projet correspondant trouvé",

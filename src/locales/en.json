@@ -935,7 +935,16 @@
     "deleteButton": "Delete project",
     "deleteConfirmTitle": "Remove project from list?",
     "deleteConfirmDesc": "The project files on disk will not be deleted. Only the entry in the recent list is removed.",
-    "delete": "Remove"
+    "delete": "Remove",
+    "overview": {
+      "identity": "kuma — multi-round protein variant engineering, end to end.",
+      "mameTitle": "MAME",
+      "mameDesc": "Turn sequencing reads into per-variant activity.",
+      "kuroTitle": "KURO",
+      "kuroDesc": "Rank variants and design the next round.",
+      "learnMore": "Learn more",
+      "aria": "About kuma"
+    }
   },
   "mameTab": {
     "matchingProjectTitle": "Matching project found",

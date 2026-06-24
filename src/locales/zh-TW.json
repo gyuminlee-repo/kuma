@@ -935,7 +935,16 @@
     "deleteButton": "Delete project",
     "deleteConfirmTitle": "Remove project from list?",
     "deleteConfirmDesc": "The project files on disk will not be deleted. Only the entry in the recent list is removed.",
-    "delete": "Remove"
+    "delete": "Remove",
+    "overview": {
+      "identity": "kuma — 端到端的多輪蛋白質變體工程。",
+      "mameTitle": "MAME",
+      "mameDesc": "將定序讀數轉換為各變體的活性。",
+      "kuroTitle": "KURO",
+      "kuroDesc": "為變體排序並設計下一輪。",
+      "learnMore": "了解更多",
+      "aria": "關於 kuma"
+    }
   },
   "mameTab": {
     "matchingProjectTitle": "找到匹配的專案",

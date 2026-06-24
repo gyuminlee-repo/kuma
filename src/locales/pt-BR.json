@@ -935,7 +935,16 @@
     "deleteButton": "Delete project",
     "deleteConfirmTitle": "Remove project from list?",
     "deleteConfirmDesc": "The project files on disk will not be deleted. Only the entry in the recent list is removed.",
-    "delete": "Remove"
+    "delete": "Remove",
+    "overview": {
+      "identity": "kuma — engenharia de variantes de proteínas em múltiplas rodadas, de ponta a ponta.",
+      "mameTitle": "MAME",
+      "mameDesc": "Converte leituras de sequenciamento em atividade por variante.",
+      "kuroTitle": "KURO",
+      "kuroDesc": "Classifica variantes e projeta a próxima rodada.",
+      "learnMore": "Saiba mais",
+      "aria": "Sobre o kuma"
+    }
   },
   "mameTab": {
     "matchingProjectTitle": "Projeto correspondente encontrado",
