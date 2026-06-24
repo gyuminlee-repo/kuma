@@ -943,7 +943,8 @@
       "kuroTitle": "KURO",
       "kuroDesc": "Classifica variantes e projeta a próxima rodada.",
       "learnMore": "Saiba mais",
-      "aria": "Sobre o kuma"
+      "aria": "Sobre o kuma",
+      "collapse": "Recolher"
     }
   },
   "mameTab": {

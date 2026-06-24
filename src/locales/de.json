@@ -943,7 +943,8 @@
       "kuroTitle": "KURO",
       "kuroDesc": "Varianten bewerten und die nächste Runde planen.",
       "learnMore": "Mehr erfahren",
-      "aria": "Über kuma"
+      "aria": "Über kuma",
+      "collapse": "Einklappen"
     }
   },
   "mameTab": {

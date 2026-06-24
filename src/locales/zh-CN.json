@@ -943,7 +943,8 @@
       "kuroTitle": "KURO",
       "kuroDesc": "对变体排序并设计下一轮。",
       "learnMore": "了解更多",
-      "aria": "关于 kuma"
+      "aria": "关于 kuma",
+      "collapse": "收起"
     }
   },
   "mameTab": {

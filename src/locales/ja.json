@@ -943,7 +943,8 @@
       "kuroTitle": "KURO",
       "kuroDesc": "変異体をランク付けし、次のラウンドを設計します。",
       "learnMore": "詳細を見る",
-      "aria": "kuma について"
+      "aria": "kuma について",
+      "collapse": "折りたたむ"
     }
   },
   "mameTab": {
