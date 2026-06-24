@@ -36,6 +36,7 @@ export interface SidecarKuroModels {
   ExportOrderResultModel?: ExportOrderResultModel;
   FailedMutationModel?: FailedMutationModel;
   FetchDomainsParams?: FetchDomainsParams;
+  FetchInterfaceParams?: FetchInterfaceParams;
   FetchStructureParams?: FetchStructureParams;
   FileExportResultModel?: FileExportResultModel;
   GetAlternativesParams?: GetAlternativesParams;
@@ -547,6 +548,19 @@ export interface ExportOrderResultModel {
 }
 export interface FetchDomainsParams {
   accession?: string;
+  [k: string]: unknown;
+}
+/**
+ * Params for `fetch_interface_residues` RPC.
+ *
+ * accession : UniProt accession whose PDB cross-references are scanned for a
+ *             multi-chain crystal structure.
+ * ref_seq   : user reference sequence; the returned interface positions are
+ *             expressed in this 1-based frame (KURO contract).
+ */
+export interface FetchInterfaceParams {
+  accession?: string;
+  ref_seq?: string;
   [k: string]: unknown;
 }
 export interface FetchStructureParams {

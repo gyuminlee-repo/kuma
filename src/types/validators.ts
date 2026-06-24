@@ -7,6 +7,7 @@ import type {
   ExportOrderResult,
   ExportResult,
   FetchDomainsResult,
+  FetchInterfaceResiduesResult,
   JsonRpcError,
   ParseMutationsResult,
   PlateMapResult,
@@ -688,6 +689,17 @@ function isStructureResult(value: unknown): value is StructureResult {
   );
 }
 
+function isFetchInterfaceResiduesResult(value: unknown): value is FetchInterfaceResiduesResult {
+  return (
+    isRecord(value) &&
+    Array.isArray(value.interface_positions) &&
+    isString(value.source) &&
+    isOptional(value.pdb_id, isString) &&
+    isOptional(value.error, isString) &&
+    isOptional(value.note, isString)
+  );
+}
+
 function isRunBenchmarkResult(value: unknown): value is RunBenchmarkResult {
   return (
     isRecord(value) &&
@@ -773,6 +785,8 @@ const rpcResultValidators = {
     isStructureAvailabilityResult(value),
   fetch_structure: (value): value is RpcMethodResult<"fetch_structure"> =>
     isStructureResult(value),
+  fetch_interface_residues: (value): value is RpcMethodResult<"fetch_interface_residues"> =>
+    isFetchInterfaceResiduesResult(value),
   run_benchmark: (value): value is RpcMethodResult<"run_benchmark"> =>
     isRunBenchmarkResult(value),
   cancel_design: (value): value is RpcMethodResult<"cancel_design"> =>
