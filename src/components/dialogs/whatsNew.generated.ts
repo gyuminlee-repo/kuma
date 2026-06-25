@@ -5,10 +5,10 @@ export interface WhatsNewItem {
   detail: string;
 }
 
-export const WHATS_NEW_VERSION = "0.13.6";
+export const WHATS_NEW_VERSION = "0.13.7";
 
 export const WHATS_NEW_ITEMS: WhatsNewItem[] = [
-  { label: "Added", detail: "the What's New dialog is auto-generated from `CHANGELOG.md` (`pnpm gen:whatsnew`); `sync:check` now fails the build when the generated module drifts or when the latest CHANGELOG section does not match `package.json`'s version." },
-  { label: "Fixed", detail: "corrected the Kuro Export All BOM label to \"UTF-8 BOM (Excel compatibility)\" across all 10 locales." },
-  { label: "Fixed", detail: "aligned KURO wizard step bodies and MAME file-picker field widths." },
+  { label: "Added", detail: "the KURO Output step gains a collapsible Current-Selection 3D Analysis panel that embeds a 3Dmol viewer (collapsed by default to avoid eager 3Dmol loading) and reports the spatial dispersion of the selected residue positions." },
+  { label: "Added", detail: "the backend adds a stdlib-only 3D dispersion null-model (`compute_round_dispersion`, mean pairwise C-alpha distance versus random sampling) plus UniProt active/binding-site fetch in the accession frame, wired through the kuro dispatcher." },
+  { label: "Added", detail: "the panel strings are localized across all 10 locales, and `3dmol@^2.5.5` is added as a dependency." },
 ];
