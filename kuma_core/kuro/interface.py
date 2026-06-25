@@ -18,6 +18,7 @@ heavy dependencies out of the hot path.
 from __future__ import annotations
 
 import logging
+from typing import Iterable
 
 logger = logging.getLogger(__name__)
 
@@ -201,3 +202,40 @@ def _build_position_map(accession_seq: str, target_seq: str) -> dict[int, int]:
             target_pos = int(t_start) + offset + 1
             pos_map[acc_pos] = target_pos
     return pos_map
+
+
+def map_ref_to_accession(
+    ref_positions: Iterable[int],
+    accession_seq: str,
+    ref_seq: str,
+) -> dict:
+    """Map ref-frame positions into accession-frame positions via global alignment.
+
+    Correspondence note: ``ref_seq`` is the user reference sequence (KURO
+    contract); ``accession_seq`` is the UniProt canonical sequence.  The
+    alignment is built with ``_build_position_map(ref_seq, accession_seq)``
+    which returns {ref_pos -> acc_pos} — the inverse of the existing
+    ``map_residues`` direction.
+
+    Returns:
+        {
+          "mapped": sorted list of unique accession-frame positions,
+          "dropped": sorted list of unique ref positions that had no alignment hit,
+        }
+    """
+    accession_seq = accession_seq.rstrip("*").strip()
+    ref_seq = ref_seq.rstrip("*").strip()
+
+    positions = list(ref_positions)
+
+    # Identity shortcut
+    if accession_seq == ref_seq:
+        unique_pos = sorted(set(positions))
+        return {"mapped": unique_pos, "dropped": []}
+
+    # Build ref_pos -> acc_pos map
+    m = _build_position_map(ref_seq, accession_seq)
+
+    mapped: list[int] = sorted({m[p] for p in positions if p in m})
+    dropped: list[int] = sorted({p for p in positions if p not in m})
+    return {"mapped": mapped, "dropped": dropped}

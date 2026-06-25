@@ -678,6 +678,69 @@ class FetchInterfaceParams(BaseModel):
     accession: str = ""
     ref_seq: str = ""
 
+# ---------------------------------------------------------------------------
+# G001: 3D Analysis panel RPCs (fetch_pdb_text, fetch_active_site_residues,
+#        compute_dispersion)
+# ---------------------------------------------------------------------------
+
+
+class FetchPdbTextParams(BaseModel):
+    """Params for `fetch_pdb_text` RPC."""
+
+    accession: str = ""
+
+
+class FetchPdbTextResult(BaseModel):
+    """Result for `fetch_pdb_text` RPC."""
+
+    success: bool
+    accession: str
+    pdb_text: Optional[str] = None
+    source: str = ""
+
+
+class FetchActiveSiteParams(BaseModel):
+    """Params for `fetch_active_site_residues` RPC."""
+
+    accession: str = ""
+
+
+class FetchActiveSiteResult(BaseModel):
+    """Result for `fetch_active_site_residues` RPC."""
+
+    accession: str
+    active_site_positions: list[int] = Field(default_factory=list)
+    binding_positions: list[int] = Field(default_factory=list)
+    source: str = ""
+    has_annotation: bool = False
+
+
+class ComputeDispersionParams(BaseModel):
+    """Params for `compute_dispersion` RPC."""
+
+    accession: str = ""
+    ref_seq: str = ""
+    positions: list[int] = Field(default_factory=list)
+    n_trials: int = Field(default=1000, ge=1, le=100000)
+    seed: Optional[int] = None
+
+
+class ComputeDispersionResult(BaseModel):
+    """Result for `compute_dispersion` RPC."""
+
+    accession: str
+    mapped: list[int] = Field(default_factory=list)
+    dropped: list[int] = Field(default_factory=list)
+    n_positions: int = 0
+    mean_pairwise: float = 0.0
+    null_mean: float = 0.0
+    null_p05: float = 0.0
+    null_p95: float = 0.0
+    percentile: float = 0.0
+    klass: str = "na"
+    n_trials: int = 1000
+    seed: Optional[int] = None
+
 
 # ---------------------------------------------------------------------------
 # misc.py handlers
