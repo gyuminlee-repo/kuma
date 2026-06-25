@@ -68,10 +68,12 @@ describe("Home", () => {
     expect(
       await screen.findByText("kuma — multi-round protein variant engineering, end to end."),
     ).toBeTruthy();
-    expect(screen.getByText("MAME")).toBeTruthy();
-    expect(screen.getByText("Turn sequencing reads into per-variant activity.")).toBeTruthy();
     expect(screen.getByText("KURO")).toBeTruthy();
-    expect(screen.getByText("Rank variants and design the next round.")).toBeTruthy();
+    expect(screen.getByText("MAME")).toBeTruthy();
+    expect(screen.getByText("Variant selection & SDM primer design")).toBeTruthy();
+    expect(screen.getByText(/SDM primer results/)).toBeTruthy();
+    expect(screen.getByText("NGS validation & activity")).toBeTruthy();
+    expect(screen.getByText(/Sequencing QC/)).toBeTruthy();
     expect(screen.getByRole("button", { name: "Learn more" })).toBeTruthy();
   });
 

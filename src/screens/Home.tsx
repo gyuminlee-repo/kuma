@@ -178,31 +178,44 @@ export function Home({ onOpenProject, onOpenScratch, onOpenSettings }: HomeProps
                   <ChevronUp className="h-4 w-4" aria-hidden="true" />
                 </button>
               </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                {t("home.overview.loop")}
+              </p>
               <h2 className="sr-only">{t("home.overview.aria")}</h2>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <Card className="border-border bg-muted/40 p-4">
                   <div className="flex items-start gap-3">
                     <Target className="mt-0.5 h-5 w-5 shrink-0 text-info" aria-hidden="true" />
-                    <div>
+                    <div className="min-w-0">
                       <CardTitle className="text-sm font-semibold">
                         {t("home.overview.kuroTitle")}
                       </CardTitle>
-                      <CardDescription className="mt-1">
-                        {t("home.overview.kuroDesc")}
+                      <CardDescription className="mt-0.5 text-xs">
+                        {t("home.overview.kuroSubtitle")}
                       </CardDescription>
+                      <ol className="mt-2 space-y-1 text-xs text-muted-foreground list-decimal list-inside">
+                        <li>{t("home.overview.kuroStep1")}</li>
+                        <li>{t("home.overview.kuroStep2")}</li>
+                        <li>{t("home.overview.kuroStep3")}</li>
+                      </ol>
                     </div>
                   </div>
                 </Card>
                 <Card className="border-border bg-muted/40 p-4">
                   <div className="flex items-start gap-3">
                     <FlaskConical className="mt-0.5 h-5 w-5 shrink-0 text-info" aria-hidden="true" />
-                    <div>
+                    <div className="min-w-0">
                       <CardTitle className="text-sm font-semibold">
                         {t("home.overview.mameTitle")}
                       </CardTitle>
-                      <CardDescription className="mt-1">
-                        {t("home.overview.mameDesc")}
+                      <CardDescription className="mt-0.5 text-xs">
+                        {t("home.overview.mameSubtitle")}
                       </CardDescription>
+                      <ol className="mt-2 space-y-1 text-xs text-muted-foreground list-decimal list-inside">
+                        <li>{t("home.overview.mameStep1")}</li>
+                        <li>{t("home.overview.mameStep2")}</li>
+                        <li>{t("home.overview.mameStep3")}</li>
+                      </ol>
                     </div>
                   </div>
                 </Card>
