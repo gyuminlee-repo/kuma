@@ -182,19 +182,6 @@ export function Home({ onOpenProject, onOpenScratch, onOpenSettings }: HomeProps
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <Card className="border-border bg-muted/40 p-4">
                   <div className="flex items-start gap-3">
-                    <FlaskConical className="mt-0.5 h-5 w-5 shrink-0 text-info" aria-hidden="true" />
-                    <div>
-                      <CardTitle className="text-sm font-semibold">
-                        {t("home.overview.mameTitle")}
-                      </CardTitle>
-                      <CardDescription className="mt-1">
-                        {t("home.overview.mameDesc")}
-                      </CardDescription>
-                    </div>
-                  </div>
-                </Card>
-                <Card className="border-border bg-muted/40 p-4">
-                  <div className="flex items-start gap-3">
                     <Target className="mt-0.5 h-5 w-5 shrink-0 text-info" aria-hidden="true" />
                     <div>
                       <CardTitle className="text-sm font-semibold">
@@ -202,6 +189,19 @@ export function Home({ onOpenProject, onOpenScratch, onOpenSettings }: HomeProps
                       </CardTitle>
                       <CardDescription className="mt-1">
                         {t("home.overview.kuroDesc")}
+                      </CardDescription>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="border-border bg-muted/40 p-4">
+                  <div className="flex items-start gap-3">
+                    <FlaskConical className="mt-0.5 h-5 w-5 shrink-0 text-info" aria-hidden="true" />
+                    <div>
+                      <CardTitle className="text-sm font-semibold">
+                        {t("home.overview.mameTitle")}
+                      </CardTitle>
+                      <CardDescription className="mt-1">
+                        {t("home.overview.mameDesc")}
                       </CardDescription>
                     </div>
                   </div>

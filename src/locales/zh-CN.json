@@ -2483,6 +2483,8 @@
     "uploadLabel": "Upload structure",
     "uploadButton": "Upload PDB/CIF",
     "uploadSourceNote": "pLDDT coloring not available for uploaded structures.",
-    "removePosition": "Remove position {{position}}"
+    "removePosition": "Remove position {{position}}",
+    "noVariants": "No variants to display. Load EVOLVEpro results and pick variants in the Design step to see them on the structure.",
+    "fallbackNote": "No explicit selection — showing the top {{count}} ranked candidates."
   }
 }

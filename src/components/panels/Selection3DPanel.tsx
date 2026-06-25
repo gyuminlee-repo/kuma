@@ -65,6 +65,7 @@ const DOMAIN_COLORS = [
   "#4e7ac7", "#e07b54", "#6dba6d", "#c974c4",
   "#d4a52a", "#7ecfcf", "#f0859b", "#a0a0f0",
 ];
+const FALLBACK_TOPN = 30;
 
 // ─── subcomponents ──────────────────────────────────────────────────────────
 
@@ -481,11 +482,14 @@ export function Selection3DPanel() {
   const disabled = !accession;
 
   // Derived at render time; stable for the current render cycle
-  const rows = deriveSelectedPositions(
-    evolveproSelectedVariants,
-    evolveproRankedCandidates,
-    yPredMap,
-  );
+  const baseVariants: string[] =
+    evolveproSelectedVariants.length > 0
+      ? evolveproSelectedVariants
+      : evolveproRankedCandidates.slice(0, FALLBACK_TOPN).map((c) => c.variant);
+  const usingFallback =
+    evolveproSelectedVariants.length === 0 && evolveproRankedCandidates.length > 0;
+
+  const rows = deriveSelectedPositions(baseVariants, evolveproRankedCandidates, yPredMap);
   const joinResult =
     dispersion !== null
       ? joinMappedYpred(rows, dispersion.dropped, dispersion.mapped)
@@ -525,7 +529,7 @@ export function Selection3DPanel() {
       setUploadFileName(null);
 
       const currentRows = deriveSelectedPositions(
-        evolveproSelectedVariants,
+        baseVariants,
         evolveproRankedCandidates,
         yPredMap,
       );
@@ -907,6 +911,26 @@ export function Selection3DPanel() {
 
             {phase === "ready" && (
               <>
+                {/* Fallback note — shown when no explicit selection but ranked candidates exist */}
+                {usingFallback && (
+                  <div
+                    className="rounded border border-info/40 bg-info/10 px-3 py-2 text-xs text-info"
+                    data-testid="fallback-note"
+                  >
+                    {t("selection3d.fallbackNote", { count: baseVariants.length })}
+                  </div>
+                )}
+
+                {/* No-variants message — shown when no selection AND no ranked candidates */}
+                {evolveproSelectedVariants.length === 0 && evolveproRankedCandidates.length === 0 && (
+                  <div
+                    className="rounded border border-border bg-muted/50 px-3 py-4 text-center text-xs text-muted-foreground"
+                    data-testid="no-variants-message"
+                  >
+                    {t("selection3d.noVariants")}
+                  </div>
+                )}
+
                 {/* Active site control */}
                 <div>
                   <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">

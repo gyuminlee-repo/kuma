@@ -615,3 +615,72 @@ describe("Selection3DPanel — uploadSource resets on fetched-accession reload",
     expect(screen.getByTestId("viewer-toolbar").textContent).toContain("colorPlddt");
   });
 });
+describe("Selection3DPanel — fallback: no variants and no ranked", () => {
+  it("shows no-variants-message and does not call computeDispersion", async () => {
+    const computeDispersion = vi.fn().mockResolvedValue(null);
+    setStore({
+      uniprotAccession: "P12345",
+      evolveproSelectedVariants: [],
+      evolveproRankedCandidates: [],
+      yPredMap: {},
+      seqInfo: makeSeqInfo(),
+      fetchPdbText: vi.fn().mockResolvedValue(SUCCESS_PDB),
+      fetchActiveSite: vi.fn().mockResolvedValue(ACTIVE_SITE_EMPTY),
+      computeDispersion,
+    });
+    render(<Selection3DPanel />);
+    fireEvent.click(screen.getByTestId("panel-toggle"));
+    await waitFor(() =>
+      expect(screen.getByTestId("no-variants-message")).toBeInTheDocument(),
+    );
+    expect(computeDispersion).not.toHaveBeenCalled();
+  });
+});
+
+describe("Selection3DPanel — fallback: ranked candidates used when selection empty", () => {
+  it("shows fallback-note, calls computeDispersion, and does not show no-variants-message", async () => {
+    const computeDispersion = vi.fn().mockResolvedValue(DISPERSION);
+    setStore({
+      uniprotAccession: "P12345",
+      evolveproSelectedVariants: [],
+      evolveproRankedCandidates: [
+        { variant: "A1G", y_pred: 0.9, aa_position: 1 },
+        { variant: "B2C", y_pred: 0.8, aa_position: 2 },
+      ],
+      yPredMap: { A1G: 0.9, B2C: 0.8 },
+      seqInfo: makeSeqInfo(),
+      fetchPdbText: vi.fn().mockResolvedValue(SUCCESS_PDB),
+      fetchActiveSite: vi.fn().mockResolvedValue(ACTIVE_SITE_EMPTY),
+      computeDispersion,
+    });
+    render(<Selection3DPanel />);
+    fireEvent.click(screen.getByTestId("panel-toggle"));
+    await waitFor(() =>
+      expect(screen.getByTestId("fallback-note")).toBeInTheDocument(),
+    );
+    expect(computeDispersion).toHaveBeenCalled();
+    expect(screen.queryByTestId("no-variants-message")).toBeNull();
+  });
+});
+
+describe("Selection3DPanel — explicit selection: no fallback note", () => {
+  it("does not show fallback-note when evolveproSelectedVariants is non-empty", async () => {
+    setStore({
+      uniprotAccession: "P12345",
+      evolveproSelectedVariants: ["A1G"],
+      evolveproRankedCandidates: [{ variant: "A1G", y_pred: 0.85, aa_position: 1 }],
+      yPredMap: { A1G: 0.85 },
+      seqInfo: makeSeqInfo(),
+      fetchPdbText: vi.fn().mockResolvedValue(SUCCESS_PDB),
+      fetchActiveSite: vi.fn().mockResolvedValue(ACTIVE_SITE),
+      computeDispersion: vi.fn().mockResolvedValue(DISPERSION),
+    });
+    render(<Selection3DPanel />);
+    fireEvent.click(screen.getByTestId("panel-toggle"));
+    await waitFor(() =>
+      expect(screen.getByTestId("dispersion-card")).toBeInTheDocument(),
+    );
+    expect(screen.queryByTestId("fallback-note")).toBeNull();
+    expect(screen.queryByTestId("no-variants-message")).toBeNull();
+  });
+});
