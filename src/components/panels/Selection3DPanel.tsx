@@ -136,7 +136,7 @@ function ActiveSiteControl({
               type="button"
               onClick={() => onRemove(p)}
               className="ml-0.5 text-muted-foreground hover:text-foreground"
-              aria-label={`Remove position ${p}`}
+              aria-label={t("selection3d.removePosition", { position: p })}
             >
               ×
             </button>
@@ -440,6 +440,42 @@ export function Selection3DPanel() {
 
   // Track accession loaded so we don't double-fetch on re-open
   const loadedAccessionRef = useRef<string>("");
+  // ─── viewer lifecycle helpers ────────────────────────────────────────────
+  // Clear all 3Dmol scene content and null the ref. Safe to call on a null ref.
+  function cleanupViewer() {
+    const viewer = viewerRef.current;
+    if (viewer) {
+      viewer.clear();
+      try {
+        const rawCanvas = (viewer as unknown as { getCanvas?: () => unknown }).getCanvas?.();
+        if (rawCanvas instanceof HTMLCanvasElement) {
+          const gl = rawCanvas.getContext("webgl2") ?? rawCanvas.getContext("webgl");
+          gl?.getExtension("WEBGL_lose_context")?.loseContext();
+          rawCanvas.remove();
+        }
+      } catch {
+        // Disposal must never throw
+      }
+    }
+    viewerRef.current = null;
+    surfaceHandlerRef.current = null;
+  }
+
+  // Unmount: release any live viewer to avoid WebGL context/listener leaks.
+  useEffect(() => {
+    return cleanupViewer;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Collapse/close: reset load guards so reopen re-initialises into the fresh container.
+  useEffect(() => {
+    if (open) return;
+    cleanupViewer();
+    loadedAccessionRef.current = "";
+    setPhase("idle");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
 
   const accession = structureAccession || uniprotAccession;
   const disabled = !accession;
@@ -485,6 +521,8 @@ export function Selection3DPanel() {
       setActiveSiteResult(null);
       setActiveSitePositions([]);
       surfaceHandlerRef.current = null;
+      setUploadSource(false);
+      setUploadFileName(null);
 
       const currentRows = deriveSelectedPositions(
         evolveproSelectedVariants,
@@ -558,6 +596,8 @@ export function Selection3DPanel() {
       setPhase("error");
       return;
     }
+    // Dispose any existing viewer before creating a fresh one (reopen / upload / accession switch).
+    cleanupViewer();
     const $3Dmol = await import("3dmol");
     if (cancelled) return;
     const bgColor = darkBg ? "#1a1a1a" : "#f0f0f0";
@@ -648,8 +688,8 @@ export function Selection3DPanel() {
           const row = joinResult?.rows.find((r) => r.accPosition === resi);
           const parts: string[] = [`${atom.resn ?? ""}${resi ?? ""}`];
           if (row) parts.push(`${row.variant} y=${row.yPred.toFixed(3)}`);
-          if (resi !== undefined && activeSiteSet.has(resi)) parts.push("active-site");
-          if (resi !== undefined && interfaceSet.has(resi)) parts.push("interface");
+          if (resi !== undefined && activeSiteSet.has(resi)) parts.push(t("selection3d.activeSite"));
+          if (resi !== undefined && interfaceSet.has(resi)) parts.push(t("selection3d.interface"));
           viewer.addLabel(parts.join(" | "), {
             backgroundColor: "rgba(0,0,0,0.7)",
             fontColor: "white",
@@ -739,6 +779,7 @@ export function Selection3DPanel() {
     setPhase("loading");
     bFactorMapRef.current = parseBFactors(text);
     loadedAccessionRef.current = ""; // force re-apply styles
+    surfaceHandlerRef.current = null;
     await initViewer(text, format, false);
   }
 

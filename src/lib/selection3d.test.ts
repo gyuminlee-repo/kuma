@@ -182,4 +182,14 @@ describe("joinMappedYpred", () => {
     expect(joined[1]).toMatchObject({ refPosition: 20, accPosition: 120 });
     expect(joined[2]).toMatchObject({ refPosition: 30, accPosition: 130 });
   });
+  it("two variants sharing a refPosition both receive the same accPosition (no truncation, no mismatch)", () => {
+    // A5V and A5T both at refPosition 5; backend maps unique position [5] -> accPosition [205]
+    const ranked = [mkItem("A5V", 0.8, 5), mkItem("A5T", 0.6, 5)];
+    const rows = deriveSelectedPositions(["A5V", "A5T"], ranked, {});
+    const { rows: joined, lengthMismatch } = joinMappedYpred(rows, [], [205]);
+    expect(lengthMismatch).toBe(false);
+    expect(joined).toHaveLength(2);
+    expect(joined[0]).toMatchObject({ refPosition: 5, accPosition: 205, variant: "A5V" });
+    expect(joined[1]).toMatchObject({ refPosition: 5, accPosition: 205, variant: "A5T" });
+  });
 });

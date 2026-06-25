@@ -2482,6 +2482,7 @@
     "lengthMismatch": "Sequence length mismatch: some positions may be misaligned.",
     "uploadLabel": "Upload structure",
     "uploadButton": "Upload PDB/CIF",
-    "uploadSourceNote": "pLDDT coloring not available for uploaded structures."
+    "uploadSourceNote": "pLDDT coloring not available for uploaded structures.",
+    "removePosition": "Remove position {{position}}"
   }
 }
