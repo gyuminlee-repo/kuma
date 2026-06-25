@@ -478,6 +478,36 @@ export interface FetchInterfaceResiduesResult {
   error?: string;
   note?: string;
 }
+export interface FetchPdbTextResult {
+  success: boolean;
+  accession: string;
+  pdb_text: string | null;
+  source: string;
+}
+
+export interface FetchActiveSiteResult {
+  accession: string;
+  active_site_positions: number[];
+  binding_positions: number[];
+  source: string;
+  has_annotation: boolean;
+}
+
+export interface ComputeDispersionResult {
+  accession: string;
+  mapped: number[];
+  dropped: number[];
+  n_positions: number;
+  mean_pairwise: number;
+  null_mean: number;
+  null_p05: number;
+  null_p95: number;
+  percentile: number;
+  klass: string;
+  n_trials: number;
+  seed: number | null;
+}
+
 
 export interface BenchmarkResult {
   n_selected: number;
@@ -714,6 +744,25 @@ export interface RpcMethodMap {
   settings_save: {
     params: { settings: SettingsBundle };
     result: { ok: boolean; path: string };
+  };
+  // G001: 3D Analysis panel RPCs
+  fetch_pdb_text: {
+    params: { accession: string };
+    result: FetchPdbTextResult;
+  };
+  fetch_active_site_residues: {
+    params: { accession: string };
+    result: FetchActiveSiteResult;
+  };
+  compute_dispersion: {
+    params: {
+      accession: string;
+      ref_seq: string;
+      positions: number[];
+      n_trials?: number;
+      seed?: number | null;
+    };
+    result: ComputeDispersionResult;
   };
 }
 

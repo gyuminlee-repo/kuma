@@ -20,6 +20,9 @@ from sidecar_kuro.models import (
     SearchUniprotParams,
     FetchStructureParams,
     FetchInterfaceParams,
+    FetchPdbTextParams,
+    FetchActiveSiteParams,
+    ComputeDispersionParams,
 )
 
 
@@ -642,3 +645,58 @@ def _fetch_oligomeric_state(pdb_id: str) -> str | None:
     except Exception as exc:
         logger.debug("oligomeric state fetch failed for %s: %s", pdb_id, exc)
         return None
+
+def handle_fetch_pdb_text(params: dict) -> dict:
+    """Fetch full PDB text for the given AlphaFold accession."""
+    p = FetchPdbTextParams(**params)
+    accession = p.accession.strip()
+    if not accession:
+        raise ValueError("accession is required")
+
+    from kuma_core.kuro.alphafold import fetch_pdb_text
+
+    pdb_text = fetch_pdb_text(accession)
+    if pdb_text is None:
+        return {
+            "success": False,
+            "accession": accession,
+            "pdb_text": None,
+            "source": "error",
+        }
+    return {
+        "success": True,
+        "accession": accession,
+        "pdb_text": pdb_text,
+        "source": "alphafold_cache",
+    }
+
+
+def handle_fetch_active_site(params: dict) -> dict:
+    """Fetch UniProt Active site and Binding site positions for an accession."""
+    p = FetchActiveSiteParams(**params)
+    accession = p.accession.strip()
+    if not accession:
+        raise ValueError("accession is required")
+
+    from kuma_core.kuro.uniprot_features import fetch_active_site_features
+
+    return fetch_active_site_features(accession)
+
+
+def handle_compute_dispersion(params: dict) -> dict:
+    """Compute 3-D spatial dispersion for a set of positions."""
+    p = ComputeDispersionParams(**params)
+    if not p.accession.strip():
+        raise ValueError("accession is required")
+    if not p.ref_seq.strip():
+        raise ValueError("ref_seq is required")
+
+    from kuma_core.kuro.dispersion import compute_round_dispersion
+
+    return compute_round_dispersion(
+        accession=p.accession.strip(),
+        ref_seq=p.ref_seq.strip(),
+        positions=p.positions,
+        n_trials=p.n_trials,
+        seed=p.seed,
+    )

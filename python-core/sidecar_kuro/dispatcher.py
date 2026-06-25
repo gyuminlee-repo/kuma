@@ -44,6 +44,9 @@ from sidecar_kuro.handlers.external import (
     handle_search_uniprot,
     handle_fetch_structure,
     handle_fetch_interface_residues,
+    handle_fetch_pdb_text,
+    handle_fetch_active_site,
+    handle_compute_dispersion,
 )
 from sidecar_kuro.handlers.misc import (
     handle_list_polymerases,
@@ -109,6 +112,10 @@ _METHODS = {
     "check_structures_available": handle_check_structures_available,
     "fetch_structure": handle_fetch_structure,
     "fetch_interface_residues": handle_fetch_interface_residues,
+    # G001: 3D Analysis panel RPCs
+    "fetch_pdb_text": handle_fetch_pdb_text,
+    "fetch_active_site_residues": handle_fetch_active_site,
+    "compute_dispersion": handle_compute_dispersion,
     "run_benchmark": handle_run_benchmark,
     "cancel_design": lambda _: {
         "cancelled": True,
@@ -132,6 +139,10 @@ _ASYNC_METHODS = {
     "fetch_interface_residues",
     "fetch_domains",
     "run_benchmark",
+    # G001: 3D Analysis panel RPCs
+    "fetch_pdb_text",
+    "fetch_active_site_residues",
+    "compute_dispersion",
 }
 
 # Frozen-Windows worker dispatch starves the worker thread while the main loop

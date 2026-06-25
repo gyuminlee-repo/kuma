@@ -25,6 +25,8 @@ import { SidebarToggleButton } from "@/components/widgets/SidebarToggleButton";
 import { WizardContainer } from "./WizardContainer";
 import { StateView } from "@/components/ui/StateView";
 import { KURO_STEP_INDEX, TOTAL_KURO_STEPS } from "./constants";
+import { Selection3DPanel } from "@/components/panels/Selection3DPanel";
+
 
 const SPLIT_KEY = "kuro.output.split";
 const COLLAPSED_KEY = "kuro.output.plateCollapsed";
@@ -198,6 +200,7 @@ export function OutputStepView() {
             <div className="flex-1 min-h-0 overflow-auto">
               <ResultTable />
             </div>
+            <Selection3DPanel />
           </section>
 
           {/* drag handle (hidden when collapsed) */}

@@ -1,13 +1,16 @@
 import type {
   AlternativesResult,
   CancelDesignResult,
+  ComputeDispersionResult,
   DesignResult,
   EvolveproLoadResult,
   ExportMappingResult,
   ExportOrderResult,
   ExportResult,
+  FetchActiveSiteResult,
   FetchDomainsResult,
   FetchInterfaceResiduesResult,
+  FetchPdbTextResult,
   JsonRpcError,
   ParseMutationsResult,
   PlateMapResult,
@@ -699,6 +702,45 @@ function isFetchInterfaceResiduesResult(value: unknown): value is FetchInterface
     isOptional(value.note, isString)
   );
 }
+function isFetchPdbTextResult(value: unknown): value is FetchPdbTextResult {
+  return (
+    isRecord(value) &&
+    isBoolean(value.success) &&
+    isString(value.accession) &&
+    (value.pdb_text === null || isString(value.pdb_text)) &&
+    isString(value.source)
+  );
+}
+
+function isFetchActiveSiteResult(value: unknown): value is FetchActiveSiteResult {
+  return (
+    isRecord(value) &&
+    isString(value.accession) &&
+    isNumberArray(value.active_site_positions) &&
+    isNumberArray(value.binding_positions) &&
+    isString(value.source) &&
+    isBoolean(value.has_annotation)
+  );
+}
+
+function isComputeDispersionResult(value: unknown): value is ComputeDispersionResult {
+  return (
+    isRecord(value) &&
+    isString(value.accession) &&
+    isNumberArray(value.mapped) &&
+    isNumberArray(value.dropped) &&
+    isNumber(value.n_positions) &&
+    isNumber(value.mean_pairwise) &&
+    isNumber(value.null_mean) &&
+    isNumber(value.null_p05) &&
+    isNumber(value.null_p95) &&
+    isNumber(value.percentile) &&
+    isString(value.klass) &&
+    isNumber(value.n_trials) &&
+    (value.seed === null || value.seed === undefined || isNumber(value.seed))
+  );
+}
+
 
 function isRunBenchmarkResult(value: unknown): value is RunBenchmarkResult {
   return (
@@ -799,6 +841,13 @@ const rpcResultValidators = {
   preview_evolvepro_source: (value): value is RpcMethodResult<"preview_evolvepro_source"> =>
     typeof value === "object" && value !== null &&
     "sheets" in value && "headers" in value && "rows" in value,
+  // G001: 3D Analysis panel RPCs
+  fetch_pdb_text: (value): value is RpcMethodResult<"fetch_pdb_text"> =>
+    isFetchPdbTextResult(value),
+  fetch_active_site_residues: (value): value is RpcMethodResult<"fetch_active_site_residues"> =>
+    isFetchActiveSiteResult(value),
+  compute_dispersion: (value): value is RpcMethodResult<"compute_dispersion"> =>
+    isComputeDispersionResult(value),
 } satisfies { [K in RpcMethod]: (value: unknown) => value is RpcMethodResult<K> };
 
 export function getRpcResultValidator<K extends RpcMethod>(
