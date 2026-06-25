@@ -23,6 +23,8 @@ const mockViewer = {
   removeAllSurfaces: vi.fn(),
   removeAllLabels: vi.fn(),
   addLabel: vi.fn(),
+  clear: vi.fn(),
+  getCanvas: vi.fn(),
 };
 const mockCreateViewer = vi.fn(() => mockViewer);
 
@@ -452,5 +454,164 @@ describe("Selection3DPanel — position table row click focuses residue", () => 
 
     fireEvent.click(screen.getAllByTestId("position-row")[0]);
     expect(mockViewer.zoomTo).toHaveBeenCalledWith({ resi: 7 }, 500);
+  });
+});
+describe("Selection3DPanel — viewer lifecycle regression", () => {
+  function setupFull() {
+    setStore({
+      uniprotAccession: "P12345",
+      evolveproSelectedVariants: ["A1G"],
+      evolveproRankedCandidates: [{ variant: "A1G", y_pred: 0.85, aa_position: 1 }],
+      yPredMap: { A1G: 0.85 },
+      seqInfo: makeSeqInfo(),
+      fetchPdbText: vi.fn().mockResolvedValue(SUCCESS_PDB),
+      fetchActiveSite: vi.fn().mockResolvedValue(ACTIVE_SITE_EMPTY),
+      computeDispersion: vi.fn().mockResolvedValue(DISPERSION),
+    });
+  }
+
+  it("open → close → reopen re-calls createViewer + addModel and shows viewer-container", async () => {
+    setupFull();
+    render(<Selection3DPanel />);
+
+    // First open
+    fireEvent.click(screen.getByTestId("panel-toggle"));
+    await waitFor(() => expect(mockCreateViewer).toHaveBeenCalledTimes(1));
+    expect(mockViewer.addModel).toHaveBeenCalledTimes(1);
+
+    // Close — viewer should be cleared
+    fireEvent.click(screen.getByTestId("panel-toggle"));
+    await waitFor(() => expect(mockViewer.clear).toHaveBeenCalled());
+
+    // Reopen — must reinitialise into fresh container
+    fireEvent.click(screen.getByTestId("panel-toggle"));
+    await waitFor(() => expect(mockCreateViewer).toHaveBeenCalledTimes(2));
+    expect(mockViewer.addModel).toHaveBeenCalledTimes(2);
+    expect(screen.getByTestId("viewer-container")).toBeInTheDocument();
+  });
+
+  it("uploading PDB over an already-open viewer clears the prior viewer before creating a new one", async () => {
+    setupFull();
+    render(<Selection3DPanel />);
+
+    // Open and load structure
+    fireEvent.click(screen.getByTestId("panel-toggle"));
+    await waitFor(() => expect(mockCreateViewer).toHaveBeenCalledTimes(1));
+
+    // Upload a PDB file
+    const file = Object.assign(new File([STUB_PDB_TEXT], "custom.pdb", { type: "chemical/x-pdb" }), {
+      text: () => Promise.resolve(STUB_PDB_TEXT),
+    });
+    const input = screen.getByTestId("upload-input") as HTMLInputElement;
+    Object.defineProperty(input, "files", { value: [file], writable: false });
+    fireEvent.change(input);
+
+    // Second createViewer call happens; prior viewer was cleared
+    await waitFor(() => expect(mockCreateViewer).toHaveBeenCalledTimes(2));
+    expect(mockViewer.clear).toHaveBeenCalled();
+  });
+});
+describe("Selection3DPanel — cleanupViewer disposes WebGL canvas", () => {
+  function setupFull() {
+    setStore({
+      uniprotAccession: "P12345",
+      evolveproSelectedVariants: ["A1G"],
+      evolveproRankedCandidates: [{ variant: "A1G", y_pred: 0.85, aa_position: 1 }],
+      yPredMap: { A1G: 0.85 },
+      seqInfo: makeSeqInfo(),
+      fetchPdbText: vi.fn().mockResolvedValue(SUCCESS_PDB),
+      fetchActiveSite: vi.fn().mockResolvedValue(ACTIVE_SITE_EMPTY),
+      computeDispersion: vi.fn().mockResolvedValue(DISPERSION),
+    });
+  }
+
+  function makeFakeCanvas() {
+    const loseContext = vi.fn();
+    const getExtension = vi.fn().mockReturnValue({ loseContext });
+    const fakeGl = { getExtension };
+    const canvas = document.createElement("canvas");
+    vi.spyOn(canvas, "getContext").mockReturnValue(fakeGl as unknown as CanvasRenderingContext2D);
+    const removeSpy = vi.spyOn(canvas, "remove");
+    return { canvas, loseContext, getExtension, removeSpy };
+  }
+
+  it("calls canvas.remove() and loseContext() when panel is closed", async () => {
+    setupFull();
+    const { canvas, loseContext, getExtension, removeSpy } = makeFakeCanvas();
+    mockViewer.getCanvas = vi.fn().mockReturnValue(canvas);
+
+    render(<Selection3DPanel />);
+    fireEvent.click(screen.getByTestId("panel-toggle"));
+    await waitFor(() => expect(mockCreateViewer).toHaveBeenCalled());
+
+    // Close → triggers cleanupViewer
+    fireEvent.click(screen.getByTestId("panel-toggle"));
+    await waitFor(() => expect(mockViewer.clear).toHaveBeenCalled());
+
+    expect(mockViewer.getCanvas).toHaveBeenCalled();
+    expect(getExtension).toHaveBeenCalledWith("WEBGL_lose_context");
+    expect(loseContext).toHaveBeenCalled();
+    expect(removeSpy).toHaveBeenCalled();
+  });
+
+  it("calls canvas.remove() and loseContext() on unmount", async () => {
+    setupFull();
+    const { canvas, loseContext, removeSpy } = makeFakeCanvas();
+    mockViewer.getCanvas = vi.fn().mockReturnValue(canvas);
+
+    const { unmount } = render(<Selection3DPanel />);
+    fireEvent.click(screen.getByTestId("panel-toggle"));
+    await waitFor(() => expect(mockCreateViewer).toHaveBeenCalled());
+
+    unmount();
+
+    expect(loseContext).toHaveBeenCalled();
+    expect(removeSpy).toHaveBeenCalled();
+  });
+});
+
+describe("Selection3DPanel — uploadSource resets on fetched-accession reload", () => {
+  function setupFull() {
+    setStore({
+      uniprotAccession: "P12345",
+      evolveproSelectedVariants: ["A1G"],
+      evolveproRankedCandidates: [{ variant: "A1G", y_pred: 0.85, aa_position: 1 }],
+      yPredMap: { A1G: 0.85 },
+      seqInfo: makeSeqInfo(),
+      fetchPdbText: vi.fn().mockResolvedValue(SUCCESS_PDB),
+      fetchActiveSite: vi.fn().mockResolvedValue(ACTIVE_SITE_EMPTY),
+      computeDispersion: vi.fn().mockResolvedValue(DISPERSION),
+    });
+  }
+
+  it("pLDDT button reappears after close+reopen following an upload", async () => {
+    setupFull();
+    render(<Selection3DPanel />);
+
+    // Open and wait for toolbar (fetched accession, pLDDT visible)
+    fireEvent.click(screen.getByTestId("panel-toggle"));
+    await waitFor(() => expect(screen.getByTestId("viewer-toolbar")).toBeInTheDocument());
+    expect(screen.getByTestId("viewer-toolbar").textContent).toContain("colorPlddt");
+
+    // Upload a PDB — sets uploadSource=true, pLDDT disappears
+    const file = Object.assign(new File([STUB_PDB_TEXT], "custom.pdb", { type: "chemical/x-pdb" }), {
+      text: () => Promise.resolve(STUB_PDB_TEXT),
+    });
+    const input = screen.getByTestId("upload-input") as HTMLInputElement;
+    Object.defineProperty(input, "files", { value: [file], writable: false });
+    fireEvent.change(input);
+    await waitFor(() => expect(screen.getByTestId("upload-source-note")).toBeInTheDocument());
+    expect(screen.getByTestId("viewer-toolbar").textContent).not.toContain("colorPlddt");
+
+    // Close panel
+    fireEvent.click(screen.getByTestId("panel-toggle"));
+    await waitFor(() => expect(screen.queryByTestId("viewer-toolbar")).toBeNull());
+
+    // Reopen — load() runs again, resets uploadSource=false
+    fireEvent.click(screen.getByTestId("panel-toggle"));
+    await waitFor(() => expect(screen.getByTestId("viewer-toolbar")).toBeInTheDocument());
+
+    // pLDDT button must be back
+    expect(screen.getByTestId("viewer-toolbar").textContent).toContain("colorPlddt");
   });
 });

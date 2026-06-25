@@ -122,20 +122,29 @@ export function joinMappedYpred(
     .filter((r) => !droppedSet.has(r.refPosition))
     .sort((a, b) => a.refPosition - b.refPosition);
 
+  // Build sorted unique refPositions — 1:1 with mapped[] (computeDispersion receives
+  // unique positions, so mapped.length === unique non-dropped count).
+  const uniqueRefPositions = Array.from(new Set(remaining.map((r) => r.refPosition))).sort(
+    (a, b) => a - b,
+  );
+
   const sortedMapped = [...mapped].sort((a, b) => a - b);
 
-  const len = Math.min(remaining.length, sortedMapped.length);
-  const lengthMismatch = remaining.length !== sortedMapped.length;
+  const lengthMismatch = uniqueRefPositions.length !== sortedMapped.length;
+  const len = Math.min(uniqueRefPositions.length, sortedMapped.length);
 
-  const out: MappedYpredRow[] = [];
+  // Map each unique refPosition to its accession-frame position.
+  const posToAcc = new Map<number, number>();
   for (let i = 0; i < len; i++) {
-    const r = remaining[i];
-    out.push({
-      accPosition: sortedMapped[i],
-      refPosition: r.refPosition,
-      yPred: r.yPred,
-      variant: r.variant,
-    });
+    posToAcc.set(uniqueRefPositions[i], sortedMapped[i]);
+  }
+
+  // Emit one output row per variant (duplicates at same refPosition both get the same accPosition).
+  const out: MappedYpredRow[] = [];
+  for (const r of remaining) {
+    const accPosition = posToAcc.get(r.refPosition);
+    if (accPosition === undefined) continue; // dropped due to truncation on length mismatch
+    out.push({ accPosition, refPosition: r.refPosition, yPred: r.yPred, variant: r.variant });
   }
 
   return { rows: out, lengthMismatch };
