@@ -207,14 +207,17 @@ export function Home({ onOpenProject, onOpenScratch, onOpenSettings }: HomeProps
                   </div>
                 </Card>
               </div>
-              <a
-                href="https://github.com/gyuminlee-repo/kuma#readme"
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                type="button"
+                onClick={() => {
+                  void import("@tauri-apps/plugin-shell").then((m) =>
+                    m.open("https://github.com/gyuminlee-repo/kuma#readme"),
+                  );
+                }}
                 className="mt-4 inline-block text-sm text-info underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
                 {t("home.overview.learnMore")}
-              </a>
+              </button>
             </>
           )}
         </section>

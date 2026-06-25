@@ -72,7 +72,7 @@ describe("Home", () => {
     expect(screen.getByText("Turn sequencing reads into per-variant activity.")).toBeTruthy();
     expect(screen.getByText("KURO")).toBeTruthy();
     expect(screen.getByText("Rank variants and design the next round.")).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Learn more" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Learn more" })).toBeTruthy();
   });
 
   it("shows the overview even when recent projects exist", async () => {
