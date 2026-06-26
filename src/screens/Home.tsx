@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { open } from "@tauri-apps/plugin-dialog";
 import { ChevronRight, ChevronUp, FlaskConical, Target, Trash2 } from "lucide-react";
@@ -29,7 +29,9 @@ type HomeProps = {
 };
 
 export function Home({ onOpenProject, onOpenScratch, onOpenSettings }: HomeProps) {
-  const { t } = useTranslation();
+  const { i18n } = useTranslation();
+  // First screen is always English regardless of the selected app locale.
+  const t = useMemo(() => i18n.getFixedT("en"), [i18n]);
   const [recentProjects, setRecentProjects] = useState<RecentProject[]>([]);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [projectName, setProjectName] = useState("");
@@ -223,8 +225,8 @@ export function Home({ onOpenProject, onOpenScratch, onOpenSettings }: HomeProps
               <button
                 type="button"
                 onClick={() => {
-                  void import("@tauri-apps/plugin-shell").then((m) =>
-                    m.open("https://github.com/gyuminlee-repo/kuma#readme"),
+                  void import("@tauri-apps/plugin-opener").then((m) =>
+                    m.openUrl("https://github.com/gyuminlee-repo/kuma#readme"),
                   );
                 }}
                 className="mt-4 inline-block text-sm text-info underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
