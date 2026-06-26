@@ -2,18 +2,18 @@
  "n_assays": 18,
  "struct_vs_topn": [
   9,
-  8,
-  1
+  5,
+  4
  ],
  "blend_vs_topn": [
   8,
-  8,
-  2
+  4,
+  6
  ],
  "struct_vs_ucb": [
   10,
-  6,
-  2
+  3,
+  5
  ],
  "per_assay": {
   "F7YBW8 Ding": {
