@@ -80,7 +80,7 @@ function DispersionCard({ result }: { result: ComputeDispersionResult }) {
         <dt className="text-muted-foreground text-xs">{t("selection3d.dispersionMeanPairwise")}</dt>
         <dd className="font-semibold tabular-nums text-xs">{result.mean_pairwise.toFixed(2)} Å</dd>
         <dt className="text-muted-foreground text-xs">{t("selection3d.dispersionPercentile")}</dt>
-        <dd className="font-semibold tabular-nums text-xs">{(result.percentile * 100).toFixed(1)}%</dd>
+        <dd className="font-semibold tabular-nums text-xs">{result.percentile.toFixed(1)}%</dd>
         <dt className="text-muted-foreground text-xs">{t("selection3d.dispersionClass")}</dt>
         <dd className="font-semibold text-xs">{result.klass}</dd>
         <dt className="text-muted-foreground text-xs">{t("selection3d.dispersionNullRange")}</dt>

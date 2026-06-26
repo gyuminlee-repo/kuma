@@ -147,7 +147,7 @@ const DISPERSION: ComputeDispersionResult = {
   null_mean: 10.0,
   null_p05: 5.0,
   null_p95: 18.0,
-  percentile: 0.72,
+  percentile: 96.0,
   klass: "spread",
   n_trials: 1000,
   seed: 0,
