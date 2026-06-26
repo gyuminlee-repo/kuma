@@ -102,6 +102,11 @@ class TestComputeRoundDispersion:
         r2 = self._run([10, 20, 30], seq, seq, coords, seed=42, n_trials=200)
         assert r1["percentile"] == r2["percentile"]
         assert r1["klass"] == r2["klass"]
+        # null_hist is present and has 24 bins summing to n_trials
+        nh = r1["null_hist"]
+        assert len(nh["counts"]) == 24
+        assert sum(nh["counts"]) == 200
+        assert nh["min"] <= nh["max"]
 
     def test_clustered_klass(self) -> None:
         """Very tightly grouped positions -> percentile <= 5 -> klass='clustered'."""
@@ -145,6 +150,11 @@ class TestComputeRoundDispersion:
         result = self._run([3], seq, seq, coords, seed=0)
         assert result["klass"] == "na"
         assert result["mean_pairwise"] == 0.0
+        # degenerate na -> null_hist with empty counts
+        nh = result["null_hist"]
+        assert nh["counts"] == []
+        assert nh["min"] == 0.0
+        assert nh["max"] == 0.0
 
     def test_na_on_no_coords(self) -> None:
         """None coords (structure unavailable) -> klass='na', empty mapped."""
@@ -159,6 +169,8 @@ class TestComputeRoundDispersion:
             )
         assert result["klass"] == "na"
         assert result["mapped"] == []
+        # no-coords na -> empty null_hist
+        assert result["null_hist"]["counts"] == []
 
     def test_na_when_accession_seq_fetch_fails(self) -> None:
         """Accession FASTA fetch failure -> fail-loud na, all positions dropped.
@@ -182,6 +194,30 @@ class TestComputeRoundDispersion:
         assert result["klass"] == "na"
         assert result["mapped"] == []
         assert result["dropped"] == [10, 20, 30]
+        # fetch-fail na -> empty null_hist
+        assert result["null_hist"]["counts"] == []
+
+    def test_null_hist_24_bins_sum_to_n_trials(self) -> None:
+        """null_hist has exactly 24 bins summing to n_trials when null is computed."""
+        coords = _make_linear_coords(50)
+        seq = "A" * 50
+        n_trials = 500
+        result = self._run([5, 15, 25], seq, seq, coords, seed=7, n_trials=n_trials)
+        nh = result["null_hist"]
+        assert len(nh["counts"]) == 24, f"Expected 24 bins, got {len(nh['counts'])}"
+        assert sum(nh["counts"]) == n_trials, (
+            f"Expected counts sum={n_trials}, got {sum(nh['counts'])}"
+        )
+        assert nh["min"] <= nh["max"]
+
+    def test_null_hist_min_le_max(self) -> None:
+        """null_hist min<=max and all counts non-negative."""
+        coords = _make_linear_coords(30)
+        seq = "A" * 30
+        result = self._run([3, 10, 20], seq, seq, coords, seed=0, n_trials=100)
+        nh = result["null_hist"]
+        assert nh["min"] <= nh["max"]
+        assert all(c >= 0 for c in nh["counts"])
 
 
 # ---------------------------------------------------------------------------

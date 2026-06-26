@@ -138,6 +138,13 @@ const ACTIVE_SITE_EMPTY: FetchActiveSiteResult = {
   has_annotation: false,
 };
 
+const NULL_HIST_EMPTY = { min: 0, max: 0, counts: [] as number[] };
+const NULL_HIST_FULL = {
+  min: 5.536,
+  max: 26.256,
+  counts: [1, 6, 4, 16, 20, 39, 50, 68, 97, 98, 116, 112, 101, 95, 53, 47, 24, 31, 12, 6, 0, 2, 1, 1],
+};
+
 const DISPERSION: ComputeDispersionResult = {
   accession: "P12345",
   mapped: [1],
@@ -151,6 +158,7 @@ const DISPERSION: ComputeDispersionResult = {
   klass: "spread",
   n_trials: 1000,
   seed: 0,
+  null_hist: NULL_HIST_FULL,
 };
 
 const DISPERSION_DROPPED: ComputeDispersionResult = {
@@ -158,6 +166,7 @@ const DISPERSION_DROPPED: ComputeDispersionResult = {
   mapped: [],
   dropped: [99, 100],
   n_positions: 0,
+  null_hist: NULL_HIST_EMPTY,
 };
 
 function makeSeqInfo() {
@@ -420,6 +429,50 @@ describe("Selection3DPanel — dropped positions warning", () => {
     expect(warning.textContent).toContain("100");
   });
 });
+describe("Selection3DPanel — DispersionCard histogram", () => {
+  function setupDispersion(dispersion: ComputeDispersionResult) {
+    setStore({
+      uniprotAccession: "P12345",
+      evolveproSelectedVariants: ["A10G", "A20G", "A30G"],
+      evolveproRankedCandidates: [
+        { variant: "A10G", y_pred: 0.8, aa_position: 10 },
+        { variant: "A20G", y_pred: 0.7, aa_position: 20 },
+        { variant: "A30G", y_pred: 0.6, aa_position: 30 },
+      ],
+      yPredMap: { A10G: 0.8, A20G: 0.7, A30G: 0.6 },
+      seqInfo: makeSeqInfo(),
+      fetchPdbText: vi.fn().mockResolvedValue(SUCCESS_PDB),
+      fetchActiveSite: vi.fn().mockResolvedValue(ACTIVE_SITE_EMPTY),
+      computeDispersion: vi.fn().mockResolvedValue(dispersion),
+    });
+  }
+
+  it("renders histogram svg when null_hist.counts is non-empty", async () => {
+    setupDispersion(DISPERSION);
+    render(<Selection3DPanel />);
+    fireEvent.click(screen.getByTestId("panel-toggle"));
+    await waitFor(() =>
+      expect(screen.getByTestId("dispersion-hist")).toBeInTheDocument(),
+    );
+    const svg = screen.getByTestId("dispersion-hist");
+    expect(svg.tagName.toLowerCase()).toBe("svg");
+  });
+
+  it("does not render histogram svg when null_hist.counts is empty (na)", async () => {
+    setupDispersion({
+      ...DISPERSION,
+      klass: "na",
+      null_hist: NULL_HIST_EMPTY,
+    });
+    render(<Selection3DPanel />);
+    fireEvent.click(screen.getByTestId("panel-toggle"));
+    await waitFor(() =>
+      expect(screen.getByTestId("dispersion-card")).toBeInTheDocument(),
+    );
+    expect(screen.queryByTestId("dispersion-hist")).toBeNull();
+  });
+});
+
 
 describe("Selection3DPanel — position table row click focuses residue", () => {
   it("calls viewer.zoomTo with accPosition when row is clicked", async () => {
