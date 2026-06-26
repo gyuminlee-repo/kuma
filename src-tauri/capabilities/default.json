@@ -22,7 +22,10 @@
     "opener:allow-reveal-item-in-dir",
     {
       "identifier": "opener:allow-open-url",
-      "allow": [{ "url": "https://github.com/*" }]
+      "allow": [
+        { "url": "https://github.com/*" },
+        { "url": "https://github.com/**" }
+      ]
     },
     "notification:default",
     {
