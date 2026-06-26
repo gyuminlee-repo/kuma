@@ -397,8 +397,8 @@ export function MenuBar({ onClearRequest, onRunRequest, onJanusOpen }: MenuBarPr
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => {
-              void import("@tauri-apps/plugin-shell").then((m) =>
-                m.open("https://github.com/gyuminlee-repo/KURO/releases"),
+              void import("@tauri-apps/plugin-opener").then((m) =>
+                m.openUrl("https://github.com/gyuminlee-repo/KURO/releases"),
               );
             }}
           >
@@ -406,8 +406,8 @@ export function MenuBar({ onClearRequest, onRunRequest, onJanusOpen }: MenuBarPr
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => {
-              void import("@tauri-apps/plugin-shell").then((m) =>
-                m.open("https://github.com/gyuminlee-repo/KURO/issues"),
+              void import("@tauri-apps/plugin-opener").then((m) =>
+                m.openUrl("https://github.com/gyuminlee-repo/KURO/issues"),
               );
             }}
           >
