@@ -20,7 +20,10 @@
     "fs:allow-rename",
     "fs:allow-stat",
     "opener:allow-reveal-item-in-dir",
-    "opener:allow-open-url",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [{ "url": "https://github.com/*" }]
+    },
     "notification:default",
     {
       "identifier": "fs:scope",
