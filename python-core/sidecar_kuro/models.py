@@ -715,6 +715,14 @@ class FetchActiveSiteResult(BaseModel):
     has_annotation: bool = False
 
 
+class NullHistogram(BaseModel):
+    """Histogram of the null (random) mean-pairwise distribution for compute_dispersion."""
+
+    min: float = 0.0
+    max: float = 0.0
+    counts: list[int] = Field(default_factory=list)
+
+
 class ComputeDispersionParams(BaseModel):
     """Params for `compute_dispersion` RPC."""
 
@@ -740,6 +748,7 @@ class ComputeDispersionResult(BaseModel):
     klass: str = "na"
     n_trials: int = 1000
     seed: Optional[int] = None
+    null_hist: NullHistogram = Field(default_factory=NullHistogram)
 
 
 # ---------------------------------------------------------------------------

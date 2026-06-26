@@ -51,6 +51,7 @@ export interface SidecarKuroModels {
   LoadFastaParams?: LoadFastaParams;
   LoadWorkspaceParams?: LoadWorkspaceParams;
   MappingRange?: MappingRange;
+  NullHistogram?: NullHistogram;
   OffTargetHitModel?: OffTargetHitModel;
   ParseMutationsTextParams?: ParseMutationsTextParams;
   PlateMappingItem?: PlateMappingItem;
@@ -337,11 +338,21 @@ export interface ComputeDispersionResult {
   mean_pairwise?: number;
   n_positions?: number;
   n_trials?: number;
+  null_hist?: NullHistogram;
   null_mean?: number;
   null_p05?: number;
   null_p95?: number;
   percentile?: number;
   seed?: number | null;
+  [k: string]: unknown;
+}
+/**
+ * Histogram of the null (random) mean-pairwise distribution for compute_dispersion.
+ */
+export interface NullHistogram {
+  counts?: number[];
+  max?: number;
+  min?: number;
   [k: string]: unknown;
 }
 export interface DesignResultResponseModel {

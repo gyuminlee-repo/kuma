@@ -19,6 +19,32 @@ from kuma_core.kuro.alphafold import fetch_ca_coords
 from kuma_core.kuro.interface import map_ref_to_accession
 
 logger = logging.getLogger(__name__)
+NBINS = 24
+
+
+def _compute_null_hist(null_means: list[float]) -> dict:
+    """Compute a fixed-bin histogram of *null_means* with NBINS bins.
+
+    Returns {"min": float, "max": float, "counts": list[int]}.
+    Degenerate case (empty list) → min=0.0, max=0.0, counts=[].
+    Last bin is inclusive of max.
+    """
+    if not null_means:
+        return {"min": 0.0, "max": 0.0, "counts": []}
+    lo = min(null_means)
+    hi = max(null_means)
+    counts: list[int] = [0] * NBINS
+    if lo == hi:
+        counts[0] = len(null_means)
+    else:
+        width = (hi - lo) / NBINS
+        for v in null_means:
+            idx = int((v - lo) / width)
+            if idx >= NBINS:
+                idx = NBINS - 1
+            counts[idx] += 1
+    return {"min": lo, "max": hi, "counts": counts}
+
 
 
 # ---------------------------------------------------------------------------
@@ -121,6 +147,7 @@ def compute_round_dispersion(
             "klass": "na",
             "n_trials": n_trials,
             "seed": seed,
+            "null_hist": {"min": 0.0, "max": 0.0, "counts": []},
         }
 
     # 2. Get accession sequence for position mapping
@@ -148,6 +175,7 @@ def compute_round_dispersion(
             "klass": "na",
             "n_trials": n_trials,
             "seed": seed,
+            "null_hist": {"min": 0.0, "max": 0.0, "counts": []},
         }
 
     mapping = map_ref_to_accession(positions, accession_seq, ref_seq)
@@ -171,6 +199,7 @@ def compute_round_dispersion(
             "klass": "na",
             "n_trials": n_trials,
             "seed": seed,
+            "null_hist": {"min": 0.0, "max": 0.0, "counts": []},
         }
 
     observed_mean = _raw_mean_pairwise(coords, valid_mapped)
@@ -222,4 +251,5 @@ def compute_round_dispersion(
         "klass": klass,
         "n_trials": n_trials,
         "seed": seed,
+        "null_hist": _compute_null_hist(null_means),
     }

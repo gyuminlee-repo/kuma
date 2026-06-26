@@ -506,6 +506,7 @@ export interface ComputeDispersionResult {
   klass: string;
   n_trials: number;
   seed: number | null;
+  null_hist: { min: number; max: number; counts: number[] };
 }
 
 

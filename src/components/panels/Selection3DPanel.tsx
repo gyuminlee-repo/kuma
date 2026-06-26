@@ -6,6 +6,7 @@
  */
 
 import { type ChangeEvent, useEffect, useRef, useState } from "react";
+import type React from "react";
 import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
 import type { AtomSpec, GLViewer, SelectionRange } from "3dmol";
@@ -71,11 +72,126 @@ const FALLBACK_TOPN = 30;
 
 function DispersionCard({ result }: { result: ComputeDispersionResult }) {
   const { t } = useTranslation();
+  const { null_hist } = result;
+  const hasHist = null_hist.counts.length > 0;
+
+  const KLASS_COLOR: Record<string, string> = {
+    clustered: "#3b82f6",
+    spread: "#ef4444",
+    random: "#6b7280",
+    na: "#6b7280",
+  };
+  const markerColor = KLASS_COLOR[result.klass] ?? "#6b7280";
+
+  let histSvg: React.ReactNode = null;
+  if (hasHist) {
+    const W = 240;
+    const H = 64;
+    const PAD_L = 4;
+    const PAD_R = 4;
+    const TICK_H = 10;
+    const barAreaH = H - TICK_H;
+
+    const dataMin = Math.min(null_hist.min, result.mean_pairwise);
+    const dataMax = Math.max(null_hist.max, result.mean_pairwise);
+    const span = dataMax - dataMin || 1;
+    // small padding so marker is never right at the edge
+    const viewMin = dataMin - span * 0.05;
+    const viewMax = dataMax + span * 0.05;
+    const viewSpan = viewMax - viewMin || 1;
+
+    const toX = (v: number) =>
+      PAD_L + ((v - viewMin) / viewSpan) * (W - PAD_L - PAD_R);
+
+    const maxCount = Math.max(...null_hist.counts, 1);
+    const nbins = null_hist.counts.length;
+    const binWidth = (null_hist.max - null_hist.min) / nbins;
+
+    // p05/p95 band
+    const bandX1 = toX(result.null_p05);
+    const bandX2 = toX(result.null_p95);
+
+    // bars
+    const bars = null_hist.counts.map((cnt, i) => {
+      const bLeft = null_hist.min + i * binWidth;
+      const bRight = bLeft + binWidth;
+      const x1 = toX(bLeft);
+      const x2 = toX(bRight);
+      const barH = (cnt / maxCount) * barAreaH;
+      return (
+        <rect
+          key={i}
+          x={x1}
+          y={barAreaH - barH}
+          width={Math.max(x2 - x1 - 0.5, 0.5)}
+          height={barH}
+          fill="#9ca3af"
+        />
+      );
+    });
+
+    // marker line
+    const mX = toX(result.mean_pairwise);
+    const labelAnchor = mX > W / 2 ? "end" : "start";
+    const labelDx = mX > W / 2 ? -2 : 2;
+
+    histSvg = (
+      <svg
+        width="100%"
+        viewBox={`0 0 ${W} ${H}`}
+        aria-label={t("selection3d.dispersionChartTitle")}
+        data-testid="dispersion-hist"
+        style={{ display: "block", overflow: "visible" }}
+      >
+        <title>{t("selection3d.dispersionChartTitle")}</title>
+        {/* p05–p95 band */}
+        <rect
+          x={bandX1}
+          y={0}
+          width={Math.max(bandX2 - bandX1, 0)}
+          height={barAreaH}
+          fill="#e5e7eb"
+          opacity={0.7}
+        />
+        {bars}
+        {/* marker line */}
+        <line
+          x1={mX}
+          y1={0}
+          x2={mX}
+          y2={barAreaH}
+          stroke={markerColor}
+          strokeWidth={2}
+        />
+        {/* percentile label */}
+        <text
+          x={mX + labelDx}
+          y={8}
+          textAnchor={labelAnchor}
+          fill={markerColor}
+          fontSize={8}
+          fontFamily="monospace"
+        >
+          {result.percentile.toFixed(0)}%ile
+        </text>
+        {/* axis ticks */}
+        <line x1={PAD_L} y1={barAreaH} x2={W - PAD_R} y2={barAreaH} stroke="#d1d5db" strokeWidth={0.5} />
+        <text x={PAD_L} y={H} textAnchor="start" fill="#9ca3af" fontSize={7}>
+          {null_hist.min.toFixed(1)} Å
+        </text>
+        <text x={W - PAD_R} y={H} textAnchor="end" fill="#9ca3af" fontSize={7}>
+          {null_hist.max.toFixed(1)} Å
+        </text>
+      </svg>
+    );
+  }
+
   return (
     <div className="rounded border border-border bg-card p-3 text-sm" data-testid="dispersion-card">
       <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         {t("selection3d.dispersionTitle")}
       </h3>
+      {histSvg && <div className="mb-2">{histSvg}</div>}
       <dl className="grid grid-cols-2 gap-x-4 gap-y-0.5">
         <dt className="text-muted-foreground text-xs">{t("selection3d.dispersionMeanPairwise")}</dt>
         <dd className="font-semibold tabular-nums text-xs">{result.mean_pairwise.toFixed(2)} Å</dd>

@@ -722,6 +722,15 @@ function isFetchActiveSiteResult(value: unknown): value is FetchActiveSiteResult
     isBoolean(value.has_annotation)
   );
 }
+function isNullHistogram(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    isNumber(value.min) &&
+    isNumber(value.max) &&
+    isNumberArray(value.counts)
+  );
+}
+
 
 function isComputeDispersionResult(value: unknown): value is ComputeDispersionResult {
   return (
@@ -737,7 +746,8 @@ function isComputeDispersionResult(value: unknown): value is ComputeDispersionRe
     isNumber(value.percentile) &&
     isString(value.klass) &&
     isNumber(value.n_trials) &&
-    (value.seed === null || value.seed === undefined || isNumber(value.seed))
+    (value.seed === null || value.seed === undefined || isNumber(value.seed)) &&
+    isNullHistogram(value.null_hist)
   );
 }
 
