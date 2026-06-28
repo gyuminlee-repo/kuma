@@ -244,10 +244,13 @@ and GRB2, losing only on RASK.
 - The validated way to make KURO beat Top-N is `structural_diversity_select` =
   full-pool + revealed-anchor + 3D-Ca-centroid maximin + kappa-fitness blend, in the
   epistatic multi-mutation regime, judged on mean AND tail (CVaR).
-- It is a conditional win (strong on spread-3D epistatic assays like F7YBW8; tail-only on GRB2;
-  needs the kappa blend to avoid losing on high-signal assays like RASK), not universal.
-- Status: backward-compatible (kuma_core 64 tests pass; al 196 tests pass). A formal claim still
-  needs the compute-bound full >=3-assay x >=50-seed sweep.
+- It is a **conditional** win, not universal. A pre-registered 9-assay × 50-seed expansion
+  (§6.7) finds structural wins on the majority (6/9) but genuinely LOSES on others (HIS7), and
+  the κ=0.3 blend is not a free safety net — it additionally loses on A4 (where pure k=0 wins
+  FOR-STRONG). The earlier "κ-blend never loses" was an artifact of the original 3 assays.
+- Status: backward-compatible (kuma_core 64 tests pass; al 196 tests pass) and wired into the
+  app (§6.6). §6.7 supersedes the 3-assay evidence above; a full ProteinGym-wide (217-assay)
+  sweep remains future work.
 
 ### 6.6 Production wiring (app)
 
@@ -265,3 +268,176 @@ default, backward compatible): `kuma_core` → sidecar RPC (`structural_diversit
   cached whenever structural diversity is on (previously gated to the pareto
   path only). Coords come from the UniProt accession's AlphaFold model — no new
   input file; falls back to positional distance when unavailable.
+
+### 6.7 Pre-registered 9-assay expansion (`results/qa/kuro_real/expanded/`)
+
+To check generalization beyond the original 3 assays (the cherry-pick risk), the same bench
+(seeds=50, pool=400, 4 rounds, 9-cell mean+CVaR decision) was run on **6 additional
+combinatorial ProteinGym assays chosen before seeing any result**, spanning diverse families
+(bZIP TF, PDZ domain, GFP, RRM, IGPS, amyloid-β). Accessions resolved full AlphaFold Cα
+structures in every case (`caRes` = resolved residues), so structural ran on real 3D coords
+throughout (no positional-fallback handicap). (Correction: HIS7 was first run with a wrong UniProt accession P40545, a different 261-residue protein; it was re-run with the correct P06633 (220 residues, matching the DMS wild-type length) and its loss-vs-Top-N verdict was unchanged.) Driver: `scripts/run_expanded_sweep.sh`;
+aggregator: `scripts/aggregate_sweep.py`.
+
+norm_best@final (mean) and the 9-cell decision vs Top-N. New assays marked †.
+
+| assay | caRes | Top-N | struct k=0 | blend k=0.3 | struct vs Top-N | blend vs Top-N |
+|---|---|---|---|---|---|---|
+| F7YBW8_MESOW_Aakre_2015 | 93 | 0.534 | 0.724 | 0.729 | FOR-STRONG | FOR-STRONG |
+| GRB2_HUMAN_Faure_2021 | 217 | 0.900 | 0.848 | 0.861 | FOR-QUALIFIED | FOR-QUALIFIED |
+| RASK_HUMAN_Weng_2022 | 189 | 0.936 | 0.894 | 0.931 | MIXED | FOR-QUALIFIED |
+| DLG4_HUMAN_Faure_2021 † | 724 | 0.975 | 1.000 | 1.000 | FOR-QUALIFIED | FOR-QUALIFIED |
+| GFP_AEQVI_Sarkisyan_2016 † | 238 | 0.951 | 1.000 | 1.000 | FOR-STRONG | FOR-STRONG |
+| PABP_YEAST_Melamed_2013 † | 577 | 0.872 | 0.852 | 0.832 | FOR-QUALIFIED | FOR-QUALIFIED |
+| A4_HUMAN_Seuma_2022 † | 770 | 0.895 | 1.000 | 0.857 | FOR-STRONG | **AGAINST/REFUTE** |
+| HIS7_YEAST_Pokusaeva_2019 † | 220 | 0.970 | 0.944 | 0.924 | **AGAINST/REFUTE** | **AGAINST/REFUTE** |
+| GCN4_YEAST_Staller_2018 † | 281 | 0.452 | 0.421 | 0.421 | INCONCLUSIVE | INCONCLUSIVE |
+
+Aggregate (9 assays): **struct k=0 → 6 WIN / 2 NEUTRAL / 1 LOSS**; **blend k=0.3 → 6 WIN /
+1 NEUTRAL / 2 LOSS**.
+
+Findings:
+
+- **Generalizes, conditionally.** Structural beats Top-N on the majority (6/9), including 3
+  brand-new assays not in the original set (DLG4, GFP, PABP; A4 at k=0). The earlier result was
+  not a 3-assay fluke.
+- **Not universal — real losses.** HIS7 is a genuine loss for both arms. This refutes any
+  "always wins / never loses" reading.
+- **κ blend is not a free lunch.** It rescues RASK (struct MIXED → blend FOR-QUALIFIED) but
+  *breaks* A4 (struct FOR-STRONG with nb 1.000 → blend AGAINST with nb 0.857 < Top-N 0.895).
+  Pure k=0 actually has fewer losses here (1 vs 2). No single κ dominates; the best κ is
+  assay-dependent, which is why the app exposes it as a user slider rather than hard-coding 0.3.
+- **Scope.** 9 pre-registered assays, 50 seeds, ESM-2 35M surrogate. The cherry-pick concern is
+  addressed in full by §6.8, which runs every structure-alignable combinatorial ProteinGym
+  assay (N=18).
+
+
+### 6.8 Full combinatorial sweep (all structure-alignable assays)
+
+To remove the cherry-pick concern entirely, every ProteinGym combinatorial assay (>=100
+multi-mutant rows) was run, not just a pre-registered subset. Accessions were resolved with a
+UniProt `id:`+reviewed lookup and gated by a wild-type vs AlphaFold length check: assays whose DMS
+positions are a small domain construct that cannot align to the full-length AlphaFold model (the
+Tsuboyama 2023 mega-scale stability set; |len(WT) - len(coords)|/len(WT) > 5%) were skipped, since
+structural diversity requires aligned 3D coords. N = 18 structure-alignable combinatorial assays.
+Driver: `scripts/run_full_combo_sweep.py`; figure: `figures/structural_vs_topn/fig_full_sweep.svg`.
+
+Aggregate (18 assays, 50 seeds, 9-cell decision):
+
+| comparison | win | neutral | loss |
+|---|---|---|---|
+| struct k=0 vs Top-N | 9 | 5 | 4 |
+| blend k=0.3 vs Top-N | 8 | 4 | 6 |
+| struct k=0 vs UCB | 10 | 3 | 5 |
+
+- **Net-positive but with real downside.** On the unselected set, structural wins on 9/18 vs
+  Top-N, ties 5, and **loses on 4/18**; the kappa blend is worse (8 win / 4 neutral / 6 loss). It
+  beats UCB on wins (10/18) but also loses to UCB on 5.
+- **Tempered.** The win rate is below the pre-registered 9 (6/9, chosen as epistatic and skewed
+  toward wins). On the full set structural helps more often than it hurts (9 vs 4), but the downside
+  is real -- honest anti-cherry-pick evidence for a conditional, not a low-risk universal, benefit.
+- **Remaining scope.** ESM-2 35M surrogate; a larger-model re-embed and the non-alignable
+  domain-construct assays (which need per-domain structures) are still future work.
+
+
+### 6.9 Model-size robustness (sweet-spot check, ESM-2 150M)
+
+The pre-registered 9 assays were re-run with **ESM-2 150M**, the point where ESM-2 performance
+saturates (per the ESM-2 vs ESM-C study, 150M ~ 650M; the efficient cross-family optimum is
+ESM-C 300M). The embedding feeds the RandomForest surrogate shared by every arm, so a better
+surrogate also strengthens Top-N and UCB -- this tests whether the RELATIVE structural edge
+survives a near-saturated surrogate, not just the weak 35M default. Driver:
+`scripts/run_sweetspot_150M.py`; comparison: `figures/structural_vs_topn/fig_model_size.svg`,
+`data/model_size_compare.json`.
+
+Aggregate (9 assays), 35M -> 150M:
+
+| comparison | 35M (W/N/L) | 150M (W/N/L) |
+|---|---|---|
+| struct k=0 vs Top-N | 6 / 2 / 1 | 5 / 2 / 2 |
+| blend k=0.3 vs Top-N | 6 / 1 / 2 | 4 / 3 / 2 |
+| struct k=0 vs UCB | 7 / 1 / 1 | 4 / 2 / 3 |
+
+Findings:
+
+- **Strong epistatic wins are model-size-robust.** F7YBW8, GFP, A4 (FOR-STRONG) and DLG4, PABP
+  (FOR-QUALIFIED) keep their win vs Top-N at the sweet spot -- the genuinely epistatic /
+  spatially-spread combinatorial landscapes. Not artifacts of a weak surrogate.
+- **Marginal / greedy-favourable cases erode.** A stronger surrogate makes greedy Top-N harder to
+  beat: GRB2 (win -> neutral), GCN4 and RASK (neutral -> loss); HIS7 loss softens to neutral.
+- **Against strong UCB the edge is modest at the sweet spot** (4/9 win, 3 loss).
+- **Bottom line.** 650M is unnecessary (ESM-2 saturates at 150M), so the sweet-spot run settles the
+  model-size question: structural helps where it is mechanistically expected (epistatic, 3D-spread
+  combinatorial assays) and fades on greedy-favourable ones -- a sharper, honest version of the
+  conditional-win conclusion. (PABP needed a re-run after a transient 150M OOM on this CPU box;
+  ESM-C 300M, the cross-family optimum, uses a different backend and was not tested.)
+
+
+### 6.10 Data-budget dependence (one-plate result)
+
+The pre-registered 9 assays were re-run at **budget = 95** (one 96-well plate; the standard
+reference budget) versus the default budget = 50, same ESM-2 35M surrogate. Budget = variants
+measured = n_seed + batch * rounds. Driver: `scripts/run_budget95.py`; figure:
+`figures/structural_vs_topn/fig_budget.svg`; data: `data/budget_compare.json`.
+
+Aggregate vs Top-N: **6/2/1 (budget 50) -> 3/3/3 (budget 95)**; vs UCB 7/1/1 -> 4/3/2; mean
+struct-minus-Top-N gap +0.022 -> -0.034.
+
+- **Structural is a low-data advantage.** At ~half a plate (50) it wins 6/9; at one full plate (95)
+  it wins on only 3 (F7YBW8, GFP, DLG4), is neutral on 3, and **loses on 3** (A4 reverses
+  FOR-STRONG -> AGAINST) -- a genuine win/loss wash, mean advantage ~zero.
+- **Same mechanism as model size (6.9).** More measured variants -> better surrogate -> greedy
+  Top-N catches up, exactly like a bigger embedding. Both data and model size are axes that erode
+  the edge; structural helps most when the surrogate is weakest (few labels, small model).
+- **Practical reading.** Deploy structural in the early / sub-plate regime (round 1-2, before a
+  full plate of labels) on epistatic combinatorial campaigns -- which is exactly when you have few
+  measurements and most need help. By a full plate the surrogate alone makes greedy competitive.
+- **Scope note.** This qualifies every preceding aggregate in 6.4-6.9, which used budget 50
+  (about half a plate); the headline win rates are budget-dependent and shrink at a full plate.
+
+
+### 6.11 Pool-size sensitivity (is the candidate-pool size 400 biasing the result?)
+
+The candidate pool (`--pool`, default 400: a deterministic subsample of each assay's combinatorial
+variants) sets the measured fraction (budget/pool) and could in principle confound the budget
+result. Three representative assays (F7YBW8 = robust win, RASK = greedy-favourable, A4 = the flip)
+were re-run at pool 400 vs 1000 (budget 95, ESM-2 35M). struct-vs-Top-N decision:
+
+| assay | pool 400 | pool 1000 |
+|---|---|---|
+| F7YBW8 | FOR-QUALIFIED | FOR-QUALIFIED |
+| RASK | AGAINST/REFUTE-STRONG | INCONCLUSIVE |
+| A4 | AGAINST/REFUTE | AGAINST/REFUTE |
+
+- **Decisions are pool-robust (400 -> 1000).** F7YBW8 stays a win, A4 stays a loss; RASK softens
+  from loss to neutral. The budget-95 headline (structural wins only on the strongest epistatic
+  assays) is **not an artifact of the small 400 pool**.
+- **The naive "larger pool revives structural" hypothesis is not supported.** A bigger pool lowers
+  the measured fraction (which would favour structural) BUT also contains more high-fitness variants
+  (which greedy Top-N exploits), and the two effects roughly cancel -- the gap does not grow with
+  pool.
+- **Caveat.** Two pool points (400, 1000); pool=2000 was attempted but OOM-killed on this CPU box
+  (driver: `scripts/run_poolsweep.py`), so the very-low-fraction regime is uncharacterised here.
+
+
+### 6.12 Erratum (loss-classification fix)
+
+The aggregates in 6.8-6.11 originally used LOSS = {AGAINST/REFUTE} only, omitting the other two
+unfavourable 9-cell outcomes: **AGAINST** (mean tie + worse tail) and **AGAINST/REFUTE-STRONG**
+(worse mean + worse tail). Counting all three as losses -- symmetric with counting FOR-QUALIFIED
+(mean tie + better tail) as a win -- corrects the loss counts:
+
+| aggregate | before (wrong) | corrected |
+|---|---|---|
+| full sweep struct vs Top-N | 9/8/1 | 9/5/4 |
+| full sweep blend vs Top-N | 8/8/2 | 8/4/6 |
+| full sweep struct vs UCB | 10/6/2 | 10/3/5 |
+| 150M struct vs UCB | 4/3/2 | 4/2/3 |
+| budget-95 struct vs Top-N | 3/5/1 | 3/3/3 |
+| budget-95 struct vs UCB | 4/5/0 | 4/3/2 |
+
+The 9-assay budget-50 aggregate (6/2/1, 7/1/1) and the main figure/legend are **unaffected** (none
+of those 9 cells were AGAINST or -STRONG). The correction makes the conclusion *less* favourable to
+structural (more losses), reinforcing the 'Top-N/UCB is the safe default' reading. Tables and
+figures above show the corrected numbers; the loss-set fix is in `aggregate_sweep.py`,
+`make_fig.py`, `make_fig_full.py`.

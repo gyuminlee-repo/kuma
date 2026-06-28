@@ -88,7 +88,7 @@ export function UniprotSearch() {
                 setAccessionInput(c.accession);
                 fetchDomains(c.accession);
               }}
-              title={`${c.organism} | ${c.length} aa | ${c.identity}% identity${c.has_structure ? " | AlphaFold structure available" : ""}`}
+              title={`${c.organism} | ${c.length} aa | ${c.identity}% identity${c.has_structure ? " | AlphaFold structure available" : ""}${c.oligomeric === "multimer" && c.subunit ? ` | ${c.subunit}` : ""}`}
             >
               <span
                 className={`w-2 h-2 rounded-full flex-shrink-0 ${
@@ -104,6 +104,11 @@ export function UniprotSearch() {
               {c.has_structure && (
                 <span className="flex-shrink-0 inline-flex items-center rounded bg-info/10 px-1 py-0.5 text-plate-tiny font-medium text-info" title={t("uniprotSearchExtra.afStructureTitle")}>
                   AF
+                </span>
+              )}
+              {c.oligomeric === "multimer" && (
+                <span className="flex-shrink-0 inline-flex items-center rounded bg-info/10 px-1 py-0.5 text-plate-tiny font-medium text-info" title={c.subunit ? `${c.subunit} · consider biological unit` : "Multimer · consider biological unit"}>
+                  ⬡ {c.subunit ? c.subunit.split(/[.;(]/)[0].trim() : "Multimer"}
                 </span>
               )}
               <span

@@ -20,6 +20,7 @@ const loadProjectMock = vi.mocked(projectApi.loadProject);
 describe("Home", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
   });
 
   it("renders the primary actions and recent projects heading", async () => {
@@ -51,6 +52,92 @@ describe("Home", () => {
     );
 
     expect(await screen.findByText("No projects yet")).toBeTruthy();
+  });
+
+  it("shows the overview card on the empty-recent state", async () => {
+    listRecentProjectsMock.mockResolvedValueOnce([]);
+
+    render(
+      <Home
+        onOpenProject={vi.fn()}
+        onOpenScratch={vi.fn()}
+        onOpenSettings={vi.fn()}
+      />,
+    );
+
+    expect(
+      await screen.findByText("kuma — multi-round protein variant engineering, end to end."),
+    ).toBeTruthy();
+    expect(screen.getByText("KURO")).toBeTruthy();
+    expect(screen.getByText("MAME")).toBeTruthy();
+    expect(screen.getByText("Variant selection & SDM primer design")).toBeTruthy();
+    expect(screen.getByText(/SDM primer results/)).toBeTruthy();
+    expect(screen.getByText("NGS validation & activity")).toBeTruthy();
+    expect(screen.getByText(/Sequencing QC/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Learn more" })).toBeTruthy();
+  });
+
+  it("shows the overview even when recent projects exist", async () => {
+    listRecentProjectsMock.mockResolvedValueOnce([
+      {
+        path: "/tmp/sample.json",
+        name: "sample",
+        last_opened: "2026-04-24T09:00:00Z",
+      },
+    ]);
+
+    render(
+      <Home
+        onOpenProject={vi.fn()}
+        onOpenScratch={vi.fn()}
+        onOpenSettings={vi.fn()}
+      />,
+    );
+
+    await screen.findByText("sample");
+    expect(
+      screen.getByText("kuma — multi-round protein variant engineering, end to end."),
+    ).toBeTruthy();
+    expect(screen.getByRole("region", { name: "About kuma" })).toBeTruthy();
+  });
+
+  it("collapses the overview and persists the preference", async () => {
+    listRecentProjectsMock.mockResolvedValueOnce([]);
+
+    render(
+      <Home
+        onOpenProject={vi.fn()}
+        onOpenScratch={vi.fn()}
+        onOpenSettings={vi.fn()}
+      />,
+    );
+
+    await screen.findByText("kuma — multi-round protein variant engineering, end to end.");
+    fireEvent.click(screen.getByRole("button", { name: "Collapse" }));
+
+    expect(
+      screen.queryByText("kuma — multi-round protein variant engineering, end to end."),
+    ).toBeNull();
+    expect(screen.getByRole("button", { name: "About kuma" })).toBeTruthy();
+    expect(localStorage.getItem("kuma.home.overviewCollapsed")).toBe("1");
+  });
+
+  it("respects a collapsed overview preference on mount", async () => {
+    localStorage.setItem("kuma.home.overviewCollapsed", "1");
+    listRecentProjectsMock.mockResolvedValueOnce([]);
+
+    render(
+      <Home
+        onOpenProject={vi.fn()}
+        onOpenScratch={vi.fn()}
+        onOpenSettings={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByRole("button", { name: "About kuma" })).toBeTruthy();
+    expect(
+      screen.queryByText("kuma — multi-round protein variant engineering, end to end."),
+    ).toBeNull();
   });
 
   it("opens the create dialog and creates a new project", async () => {

@@ -13,6 +13,7 @@ import type { SortingState, Updater } from "@tanstack/react-table";
 import type { Round } from "../types/round";
 import type {
   BenchmarkResult,
+  ComputeDispersionResult,
   DistanceMode,
   DomainInfo,
   DomainOverlapPolicy,
@@ -20,6 +21,8 @@ import type {
   EvolveproPreview,
   EvolveproStepStats,
   FailedMutation,
+  FetchActiveSiteResult,
+  FetchPdbTextResult,
   LinkerHandling,
   MutationInputMode,
   OverlapMode,
@@ -128,6 +131,18 @@ export interface DiversitySlice {
   cancelDiversityReload: () => void;
   setStructuralDiversityEnabled: (enabled: boolean) => void;
   setStructuralKappa: (v: number) => void;
+  /** Fetch PDB text for a given UniProt accession. Results are cached per accession. */
+  fetchPdbText: (accession: string) => Promise<FetchPdbTextResult | null>;
+  /** Fetch active-site and binding-site residues for a given UniProt accession. */
+  fetchActiveSite: (accession: string) => Promise<FetchActiveSiteResult | null>;
+  /** Run 3D structural dispersion analysis for a given set of positions. */
+  computeDispersion: (args: {
+    accession: string;
+    refSeq: string;
+    positions: number[];
+    nTrials?: number;
+    seed?: number | null;
+  }) => Promise<ComputeDispersionResult | null>;
 }
 
 // ---------------------------------------------------------------------------

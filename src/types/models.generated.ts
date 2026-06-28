@@ -17,6 +17,8 @@ export interface SidecarKuroModels {
   BenchmarkResultModel?: BenchmarkResultModel;
   CheckStructuresParams?: CheckStructuresParams;
   CommitDesignResultParams?: CommitDesignResultParams;
+  ComputeDispersionParams?: ComputeDispersionParams;
+  ComputeDispersionResult?: ComputeDispersionResult;
   DesignResultResponseModel?: DesignResultResponseModel;
   DesignSdmPrimersParams?: DesignSdmPrimersParams;
   DomainEntry?: DomainEntry;
@@ -35,7 +37,12 @@ export interface SidecarKuroModels {
   ExportOrderParams?: ExportOrderParams;
   ExportOrderResultModel?: ExportOrderResultModel;
   FailedMutationModel?: FailedMutationModel;
+  FetchActiveSiteParams?: FetchActiveSiteParams;
+  FetchActiveSiteResult?: FetchActiveSiteResult;
   FetchDomainsParams?: FetchDomainsParams;
+  FetchInterfaceParams?: FetchInterfaceParams;
+  FetchPdbTextParams?: FetchPdbTextParams;
+  FetchPdbTextResult?: FetchPdbTextResult;
   FetchStructureParams?: FetchStructureParams;
   FileExportResultModel?: FileExportResultModel;
   GetAlternativesParams?: GetAlternativesParams;
@@ -44,6 +51,7 @@ export interface SidecarKuroModels {
   LoadFastaParams?: LoadFastaParams;
   LoadWorkspaceParams?: LoadWorkspaceParams;
   MappingRange?: MappingRange;
+  NullHistogram?: NullHistogram;
   OffTargetHitModel?: OffTargetHitModel;
   ParseMutationsTextParams?: ParseMutationsTextParams;
   PlateMappingItem?: PlateMappingItem;
@@ -308,6 +316,45 @@ export interface CommitDesignResultParams {
   mutation?: string;
   [k: string]: unknown;
 }
+/**
+ * Params for `compute_dispersion` RPC.
+ */
+export interface ComputeDispersionParams {
+  accession?: string;
+  n_trials?: number;
+  positions?: number[];
+  ref_seq?: string;
+  seed?: number | null;
+  [k: string]: unknown;
+}
+/**
+ * Result for `compute_dispersion` RPC.
+ */
+export interface ComputeDispersionResult {
+  accession: string;
+  dropped?: number[];
+  klass?: string;
+  mapped?: number[];
+  mean_pairwise?: number;
+  n_positions?: number;
+  n_trials?: number;
+  null_hist?: NullHistogram;
+  null_mean?: number;
+  null_p05?: number;
+  null_p95?: number;
+  percentile?: number;
+  seed?: number | null;
+  [k: string]: unknown;
+}
+/**
+ * Histogram of the null (random) mean-pairwise distribution for compute_dispersion.
+ */
+export interface NullHistogram {
+  counts?: number[];
+  max?: number;
+  min?: number;
+  [k: string]: unknown;
+}
 export interface DesignResultResponseModel {
   cancelled?: boolean | null;
   failed_mutations?: FailedMutationModel[];
@@ -545,8 +592,56 @@ export interface ExportOrderResultModel {
   success?: true;
   [k: string]: unknown;
 }
+/**
+ * Params for `fetch_active_site_residues` RPC.
+ */
+export interface FetchActiveSiteParams {
+  accession?: string;
+  [k: string]: unknown;
+}
+/**
+ * Result for `fetch_active_site_residues` RPC.
+ */
+export interface FetchActiveSiteResult {
+  accession: string;
+  active_site_positions?: number[];
+  binding_positions?: number[];
+  has_annotation?: boolean;
+  source?: string;
+  [k: string]: unknown;
+}
 export interface FetchDomainsParams {
   accession?: string;
+  [k: string]: unknown;
+}
+/**
+ * Params for `fetch_interface_residues` RPC.
+ *
+ * accession : UniProt accession whose PDB cross-references are scanned for a
+ *             multi-chain crystal structure.
+ * ref_seq   : user reference sequence; the returned interface positions are
+ *             expressed in this 1-based frame (KURO contract).
+ */
+export interface FetchInterfaceParams {
+  accession?: string;
+  ref_seq?: string;
+  [k: string]: unknown;
+}
+/**
+ * Params for `fetch_pdb_text` RPC.
+ */
+export interface FetchPdbTextParams {
+  accession?: string;
+  [k: string]: unknown;
+}
+/**
+ * Result for `fetch_pdb_text` RPC.
+ */
+export interface FetchPdbTextResult {
+  accession: string;
+  pdb_text?: string | null;
+  source?: string;
+  success: boolean;
   [k: string]: unknown;
 }
 export interface FetchStructureParams {

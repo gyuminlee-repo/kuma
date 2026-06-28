@@ -591,8 +591,9 @@ def load_evolvepro_csv(
 
     if structural_diversity:
         # Structure-aware diversity (full pool + revealed-anchor + 3D Ca-centroid
-        # maximin + kappa fitness blend). The only selector shown to beat Top-N on
-        # real epistatic combinatorial assays (benchmark REPORT.md Sec 6).
+        # maximin + kappa fitness blend). Beats Top-N only conditionally -- in the
+        # early/low-data rounds of epistatic combinatorial campaigns; neutral-to-harmful
+        # otherwise (see benchmark REPORT.md Sec 6.7-6.12).
         selected, pareto_replaced = structural_diversity_select(
             rows, top_n, ca_coords=ca_coords,
             anchor_variants=anchor_variants, kappa=structural_kappa,

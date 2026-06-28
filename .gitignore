@@ -98,6 +98,9 @@ HANDOVER-*.md
 src-tauri/WixTools/
 src-tauri/.cargo/
 *.pdb
+# Exception: deterministic crystal-structure fixture for the KURO interface-residue
+# tests (Tier 2). Must be tracked so the tests run in CI and fresh checkouts.
+!tests/fixtures/3N0G.pdb
 *.dll.exp
 *.dll.lib
 

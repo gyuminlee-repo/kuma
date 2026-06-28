@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { open } from "@tauri-apps/plugin-dialog";
-import { Trash2 } from "lucide-react";
+import { ChevronRight, ChevronUp, FlaskConical, Target, Trash2 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import {
   Dialog,
@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from "../components/ui/dialog";
 import { Input } from "../components/ui/input";
+import { Card, CardDescription, CardTitle } from "../components/ui/card";
 import { cn, formatError } from "../lib/utils";
 import {
   createProject,
@@ -28,13 +29,26 @@ type HomeProps = {
 };
 
 export function Home({ onOpenProject, onOpenScratch, onOpenSettings }: HomeProps) {
-  const { t } = useTranslation();
+  const { i18n } = useTranslation();
+  // First screen is always English regardless of the selected app locale.
+  const t = useMemo(() => i18n.getFixedT("en"), [i18n]);
   const [recentProjects, setRecentProjects] = useState<RecentProject[]>([]);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [projectName, setProjectName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState("");
   const [pendingDelete, setPendingDelete] = useState<RecentProject | null>(null);
+  const [overviewCollapsed, setOverviewCollapsed] = useState<boolean>(
+    () => localStorage.getItem("kuma.home.overviewCollapsed") === "1",
+  );
+
+  function toggleOverview() {
+    setOverviewCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem("kuma.home.overviewCollapsed", next ? "1" : "0");
+      return next;
+    });
+  }
 
   useEffect(() => {
     let isMounted = true;
@@ -135,6 +149,93 @@ export function Home({ onOpenProject, onOpenScratch, onOpenSettings }: HomeProps
         </div>
 
         {error ? <p className="mt-4 text-sm text-error">{error}</p> : null}
+
+        <section
+          aria-label={t("home.overview.aria")}
+          className="mt-12 w-full rounded-container border border-border bg-card p-6"
+        >
+          {overviewCollapsed ? (
+            <button
+              type="button"
+              onClick={toggleOverview}
+              aria-expanded={false}
+              className="flex w-full items-center gap-2 text-left text-base font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+              {t("home.overview.aria")}
+            </button>
+          ) : (
+            <>
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-base font-medium text-foreground">
+                  {t("home.overview.identity")}
+                </p>
+                <button
+                  type="button"
+                  onClick={toggleOverview}
+                  aria-label={t("home.overview.collapse")}
+                  aria-expanded={true}
+                  className="shrink-0 rounded p-1 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <ChevronUp className="h-4 w-4" aria-hidden="true" />
+                </button>
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                {t("home.overview.loop")}
+              </p>
+              <h2 className="sr-only">{t("home.overview.aria")}</h2>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <Card className="border-border bg-muted/40 p-4">
+                  <div className="flex items-start gap-3">
+                    <Target className="mt-0.5 h-5 w-5 shrink-0 text-info" aria-hidden="true" />
+                    <div className="min-w-0">
+                      <CardTitle className="text-sm font-semibold">
+                        {t("home.overview.kuroTitle")}
+                      </CardTitle>
+                      <CardDescription className="mt-0.5 text-xs">
+                        {t("home.overview.kuroSubtitle")}
+                      </CardDescription>
+                      <ol className="mt-2 space-y-1 text-xs text-muted-foreground list-decimal list-inside">
+                        <li>{t("home.overview.kuroStep1")}</li>
+                        <li>{t("home.overview.kuroStep2")}</li>
+                        <li>{t("home.overview.kuroStep3")}</li>
+                      </ol>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="border-border bg-muted/40 p-4">
+                  <div className="flex items-start gap-3">
+                    <FlaskConical className="mt-0.5 h-5 w-5 shrink-0 text-info" aria-hidden="true" />
+                    <div className="min-w-0">
+                      <CardTitle className="text-sm font-semibold">
+                        {t("home.overview.mameTitle")}
+                      </CardTitle>
+                      <CardDescription className="mt-0.5 text-xs">
+                        {t("home.overview.mameSubtitle")}
+                      </CardDescription>
+                      <ol className="mt-2 space-y-1 text-xs text-muted-foreground list-decimal list-inside">
+                        <li>{t("home.overview.mameStep1")}</li>
+                        <li>{t("home.overview.mameStep2")}</li>
+                        <li>{t("home.overview.mameStep3")}</li>
+                      </ol>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  void import("@tauri-apps/plugin-opener").then((m) =>
+                    m.openUrl("https://github.com/gyuminlee-repo/kuma#readme"),
+                  );
+                }}
+                className="mt-4 inline-block text-sm text-info underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                {t("home.overview.learnMore")}
+              </button>
+            </>
+          )}
+        </section>
 
         <section className="mt-12 w-full rounded-container border border-border bg-card p-6">
           <div className="mb-4 flex items-center justify-between">

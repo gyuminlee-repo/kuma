@@ -60,6 +60,8 @@ export interface UniprotCandidate {
   length: number;
   identity: number;
   has_structure?: boolean;
+  subunit?: string | null;
+  oligomeric?: "monomer" | "multimer" | "unknown";
 }
 
 export interface SearchUniprotResult {
@@ -467,6 +469,47 @@ export interface StructureResult {
   error?: string;
 }
 
+export interface FetchInterfaceResiduesResult {
+  interface_positions: number[];
+  source: string;
+  pdb_id?: string;
+  chains?: string[];
+  oligomeric_state?: string | null;
+  error?: string;
+  note?: string;
+}
+export interface FetchPdbTextResult {
+  success: boolean;
+  accession: string;
+  pdb_text: string | null;
+  source: string;
+}
+
+export interface FetchActiveSiteResult {
+  accession: string;
+  active_site_positions: number[];
+  binding_positions: number[];
+  source: string;
+  has_annotation: boolean;
+}
+
+export interface ComputeDispersionResult {
+  accession: string;
+  mapped: number[];
+  dropped: number[];
+  n_positions: number;
+  mean_pairwise: number;
+  null_mean: number;
+  null_p05: number;
+  null_p95: number;
+  percentile: number;
+  klass: string;
+  n_trials: number;
+  seed: number | null;
+  null_hist: { min: number; max: number; counts: number[] };
+}
+
+
 export interface BenchmarkResult {
   n_selected: number;
   hit_rate: number;
@@ -682,6 +725,10 @@ export interface RpcMethodMap {
     params: { accession: string };
     result: StructureResult;
   };
+  fetch_interface_residues: {
+    params: { accession: string; ref_seq: string };
+    result: FetchInterfaceResiduesResult;
+  };
   run_benchmark: {
     params: RpcParams;
     result: RunBenchmarkResult;
@@ -698,6 +745,25 @@ export interface RpcMethodMap {
   settings_save: {
     params: { settings: SettingsBundle };
     result: { ok: boolean; path: string };
+  };
+  // G001: 3D Analysis panel RPCs
+  fetch_pdb_text: {
+    params: { accession: string };
+    result: FetchPdbTextResult;
+  };
+  fetch_active_site_residues: {
+    params: { accession: string };
+    result: FetchActiveSiteResult;
+  };
+  compute_dispersion: {
+    params: {
+      accession: string;
+      ref_seq: string;
+      positions: number[];
+      n_trials?: number;
+      seed?: number | null;
+    };
+    result: ComputeDispersionResult;
   };
 }
 

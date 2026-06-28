@@ -4,9 +4,12 @@ import { sendRequest } from "../../lib/ipc-kuro";
 import { formatError } from "../../lib/utils";
 import type { AppState } from "../types";
 import type {
+  ComputeDispersionResult,
   DistanceMode,
   DomainOverlapPolicy,
   DomainInfo,
+  FetchActiveSiteResult,
+  FetchPdbTextResult,
   LinkerHandling,
 } from "../../types/models";
 
@@ -18,6 +21,9 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   let domainFetchGeneration = 0;
   let uniprotSearchGeneration = 0;
   let structureFetchGeneration = 0;
+  /** Per-accession PDB text cache — avoids redundant network fetches within a session. */
+  const pdbTextCache = new Map<string, Promise<FetchPdbTextResult | null>>();
+
 
   function getActiveEvolveproPath(state: AppState): string {
     return state.evolveproMode === "others" ? state.othersSourcePath : state.evolveproCsvPath;
@@ -469,6 +475,94 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
         structureAccession: "",
         statusMessage: `AlphaFold fetch failed: ${formatError(err)}`,
       });
+    }
+  },
+
+  fetchPdbText: async (accession: string): Promise<FetchPdbTextResult | null> => {
+    const key = accession.trim();
+    if (!key) return null;
+    const cached = pdbTextCache.get(key);
+    if (cached !== undefined) return cached;
+    const promise = (async () => {
+      const consentGranted = await get().requireNetworkConsent();
+      if (!consentGranted) {
+        const reason = get().offlineMode
+          ? i18next.t("diversity.offlineReason")
+          : i18next.t("diversity.consentReason");
+        set({ statusMessage: reason });
+        return null;
+      }
+      try {
+        const result = await sendRequest("fetch_pdb_text", { accession: key }, 30_000);
+        return result;
+      } catch (err) {
+        pdbTextCache.delete(key);
+        set({ statusMessage: `PDB text fetch failed: ${formatError(err)}` });
+        return null;
+      }
+    })();
+    pdbTextCache.set(key, promise);
+    return promise;
+  },
+
+  fetchActiveSite: async (accession: string): Promise<FetchActiveSiteResult | null> => {
+    const consentGranted = await get().requireNetworkConsent();
+    if (!consentGranted) {
+      const reason = get().offlineMode
+        ? i18next.t("diversity.offlineReason")
+        : i18next.t("diversity.consentReason");
+      set({ statusMessage: reason });
+      return null;
+    }
+    try {
+      const result = await sendRequest(
+        "fetch_active_site_residues",
+        { accession: accession.trim() },
+        30_000,
+      );
+      return result;
+    } catch (err) {
+      set({ statusMessage: `Active site fetch failed: ${formatError(err)}` });
+      return null;
+    }
+  },
+
+  computeDispersion: async ({
+    accession,
+    refSeq,
+    positions,
+    nTrials,
+    seed,
+  }: {
+    accession: string;
+    refSeq: string;
+    positions: number[];
+    nTrials?: number;
+    seed?: number | null;
+  }): Promise<ComputeDispersionResult | null> => {
+    const consentGranted = await get().requireNetworkConsent();
+    if (!consentGranted) {
+      const reason = get().offlineMode
+        ? i18next.t("diversity.offlineReason")
+        : i18next.t("diversity.consentReason");
+      set({ statusMessage: reason });
+      return null;
+    }
+    try {
+      const params: {
+        accession: string;
+        ref_seq: string;
+        positions: number[];
+        n_trials?: number;
+        seed?: number | null;
+      } = { accession: accession.trim(), ref_seq: refSeq, positions };
+      if (nTrials !== undefined) params.n_trials = nTrials;
+      if (seed !== undefined) params.seed = seed;
+      const result = await sendRequest("compute_dispersion", params, 30_000);
+      return result;
+    } catch (err) {
+      set({ statusMessage: `Dispersion compute failed: ${formatError(err)}` });
+      return null;
     }
   },
 

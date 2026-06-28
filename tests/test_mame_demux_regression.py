@@ -250,8 +250,9 @@ def _pileup_at(well_reads: list[tuple[str, str]], pos: int) -> dict[str, int]:
         threads=1,
     )
     per_pos: list[dict[str, int]] = [defaultdict(int) for _ in range(len(ref_seq))]
+    ins_events: list[int] = [0] * len(ref_seq)
     for aln in alns:
-        _accumulate(aln, per_pos, min_base_quality=10)
+        _accumulate(aln, per_pos, ins_events, min_base_quality=10)
     return dict(per_pos[pos])
 
 
