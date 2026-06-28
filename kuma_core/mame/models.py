@@ -53,6 +53,10 @@ class BarcodeRecord:
     # See ConsensusCall for calibration details.
     n_indel_event_positions: int = 0
     max_indel_event_fraction: float = 0.0
+    # Longest contiguous deletion-majority run (informational; see ConsensusCall).
+    # 0 = insertion-driven, 1 = isolated single position (artifact suspect),
+    # >=2 = N-bp contiguous deletion.
+    max_del_run_length: int = 0
 
 
 @dataclass

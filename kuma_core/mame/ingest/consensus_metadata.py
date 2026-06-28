@@ -24,6 +24,7 @@ CONSENSUS_N_FRACTION = "consensus_n_fraction"
 LOW_QUALITY_BASES = "low_quality_bases"
 INDEL_EVENT_POSITIONS = "indel_event_positions"
 MAX_INDEL_EVENT_FRACTION = "max_indel_event_fraction"
+MAX_DEL_RUN_LENGTH = "max_del_run_length"
 
 
 @dataclass(frozen=True)
@@ -42,6 +43,7 @@ class ConsensusMetadata:
     low_quality_bases: int
     n_indel_event_positions: int = 0
     max_indel_event_fraction: float = 0.0
+    max_del_run_length: int = 0
 
     def header_items(self) -> Iterable[tuple[str, str]]:
         """Yield metadata pairs in the stable FASTA-header order."""
@@ -58,6 +60,7 @@ class ConsensusMetadata:
         yield LOW_QUALITY_BASES, str(self.low_quality_bases)
         yield INDEL_EVENT_POSITIONS, str(self.n_indel_event_positions)
         yield MAX_INDEL_EVENT_FRACTION, f"{self.max_indel_event_fraction:.3f}"
+        yield MAX_DEL_RUN_LENGTH, str(self.max_del_run_length)
 
     def header_suffix(self) -> str:
         """Return ``key=value`` metadata joined for a FASTA header."""
@@ -90,4 +93,5 @@ __all__ = [
     "format_consensus_fasta_record",
     "INDEL_EVENT_POSITIONS",
     "MAX_INDEL_EVENT_FRACTION",
+    "MAX_DEL_RUN_LENGTH",
 ]

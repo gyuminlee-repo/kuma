@@ -22,7 +22,10 @@ from kuma_core.mame.models import (
 )
 
 
-def _tr_indel(max_indel_event_fraction: float) -> TranslatedRecord:
+def _tr_indel(
+    max_indel_event_fraction: float,
+    max_del_run_length: int = 0,
+) -> TranslatedRecord:
     """TranslatedRecord with only max_indel_event_fraction set; WT-equivalent."""
     barcode = BarcodeRecord(
         native_barcode="NB01",
@@ -32,6 +35,7 @@ def _tr_indel(max_indel_event_fraction: float) -> TranslatedRecord:
         source_path=Path("/tmp/mock.fasta"),
         read_count=None,
         max_indel_event_fraction=max_indel_event_fraction,
+        max_del_run_length=max_del_run_length,
     )
     return TranslatedRecord(
         barcode=barcode,
@@ -107,3 +111,30 @@ def test_indel_gate_boundary_zero_fraction() -> None:
         result.verdict is VerdictClass.AMBIGUOUS
         and "indel event" in result.verdict_notes
     ), "Gate must not fire when fraction is 0.0"
+
+
+# ---------------------------------------------------------------------------
+# Run-length informational note (gate decision unchanged, only note text).
+# max_del_run_length: 0 -> insertion-driven, 1 -> isolated artifact suspect,
+# >=2 -> contiguous deletion run.
+# ---------------------------------------------------------------------------
+def test_indel_gate_note_run_zero_insertion_driven() -> None:
+    tr = _tr_indel(max_indel_event_fraction=0.60, max_del_run_length=0)
+    result = classify_verdict(tr, [], _params(max_indel_event_fraction=0.50))
+    assert result.verdict is VerdictClass.AMBIGUOUS
+    assert "insertion-driven" in result.verdict_notes
+
+
+def test_indel_gate_note_run_one_isolated_artifact() -> None:
+    tr = _tr_indel(max_indel_event_fraction=0.60, max_del_run_length=1)
+    result = classify_verdict(tr, [], _params(max_indel_event_fraction=0.50))
+    assert result.verdict is VerdictClass.AMBIGUOUS
+    assert "single isolated position" in result.verdict_notes
+
+
+def test_indel_gate_note_run_multi_contiguous() -> None:
+    tr = _tr_indel(max_indel_event_fraction=0.60, max_del_run_length=3)
+    result = classify_verdict(tr, [], _params(max_indel_event_fraction=0.50))
+    assert result.verdict is VerdictClass.AMBIGUOUS
+    assert "contiguous run" in result.verdict_notes
+    assert "3-bp" in result.verdict_notes
