@@ -213,10 +213,10 @@ beforeEach(() => {
   resetStore();
 });
 
-describe("Selection3DPanel — disabled state (no accession)", () => {
-  it("renders a disabled toggle button", () => {
+describe("Selection3DPanel — no-accession state (upload fallback allowed)", () => {
+  it("keeps the toggle enabled so the upload fallback stays reachable", () => {
     render(<Selection3DPanel />);
-    expect(screen.getByTestId("panel-toggle")).toBeDisabled();
+    expect(screen.getByTestId("panel-toggle")).not.toBeDisabled();
   });
 
   it("shows the noAccession message below the toggle", () => {

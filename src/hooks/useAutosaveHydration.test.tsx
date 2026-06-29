@@ -25,6 +25,7 @@ vi.mock("@/lib/mame/resultSnapshot", () => ({
 
 vi.mock("@/lib/ipc-mame", () => ({
   sendRequest: hooks.sendMameRequest,
+  isSidecarRunning: () => false,
 }));
 
 vi.mock("@/lib/mame/detectProjectFiles", () => ({
@@ -182,7 +183,9 @@ describe("useAutosaveHydration: analyze-result restore", () => {
     expect(
       hooks.sendMameRequest.mock.calls.some((c) => c[0] === "load_analyze_result"),
     ).toBe(false);
-    expect(useMameAppStore.getState().currentMameSubStep).toBe("setup.files");
+    // Project entry resets the MAME phase, so the substep returns to the
+    // default analyze.inputs (never silently advanced to analyze.review).
+    expect(useMameAppStore.getState().currentMameSubStep).toBe("analyze.inputs");
     expect(useMameAppStore.getState().verdicts).toEqual([]);
   });
 });
