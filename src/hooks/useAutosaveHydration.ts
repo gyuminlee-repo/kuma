@@ -16,8 +16,10 @@ import type { LoadAnalyzeResultResponse } from "@/types/mame/models";
 import { KURO_SCHEMA } from "@/lib/kuroSnapshot";
 import { MAME_SCHEMA } from "@/lib/mame/autosaveSnapshot";
 import { detectProjectFiles, detectFromInputDir } from "@/lib/mame/detectProjectFiles";
+import { openWorkspace } from "@/lib/workspace";
 import { useAppStore } from "@/store/appStore";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
+import { resetMameAll } from "@/store/mame/resetAll";
 import type { AppState } from "@/store/appStore";
 import type { AutosaveSnapshot } from "@/lib/autosave";
 import type { MameAutosaveSnapshot } from "@/lib/mame/autosaveSnapshot";
@@ -440,33 +442,50 @@ async function restoreMameResult(projectPath: string): Promise<boolean> {
 /**
  * 프로젝트 진입 시 kuro + mame 자동 저장 파일을 복원한다.
  *
- * - scratch 프로젝트 또는 path가 null이면 즉시 종료.
- * - 같은 projectPath에 대해 한 번만 실행(mountedPaths ref로 가드).
- * - kuro / mame 복원은 병렬 실행. 한쪽 실패가 다른 쪽에 영향 없음.
+ * - path가 null이면 즉시 종료.
+ * - scratch 포함 projectPath 변경마다 이전 프로젝트의 in-memory KURO/MAME 상태를 먼저 비운다.
+ * - scratch 프로젝트는 reset까지만 수행하고 자동 저장 복원은 건너뛴다.
+ * - 같은 projectPath/scratch 조합이 연속 렌더되는 경우만 중복 복원을 막는다.
  */
 export function useAutosaveHydration(
   onMessage: (msg: HydrationStatusMessage) => void,
 ): void {
   const project = useKumaProject();
-  /** 이미 복원을 시도한 projectPath 집합. 중복 실행 방지. */
-  const mountedPaths = useRef<Set<string>>(new Set());
+  /** 마지막으로 복원을 시작한 project key. 같은 경로/모드 연속 렌더만 중복 방지. */
+  const lastHydratedKey = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!project || project.scratch || !project.path) return;
-    const { path } = project;
-    if (mountedPaths.current.has(path)) return;
-    mountedPaths.current.add(path);
+    if (!project || !project.path) return;
+    const { path, scratch } = project;
+    const hydrationKey = `${scratch ? "scratch" : "project"}:${path}`;
+    if (lastHydratedKey.current === hydrationKey) return;
+    lastHydratedKey.current = hydrationKey;
+
+    let cancelled = false;
+    const isCurrent = () => !cancelled && lastHydratedKey.current === hydrationKey;
 
     void (async () => {
+      useAppStore.getState().resetAll({ preserveWorkspaceArtifacts: true });
+      await resetMameAll({ preserveWorkspaceArtifacts: true });
+      if (scratch) return;
+      try {
+        await openWorkspace(path);
+      } catch (err) {
+        console.warn("[autosave] workspace registry open failed", err);
+      }
+      if (!isCurrent()) return;
+
       const [kuroResult, mameResult] = await Promise.all([
         readAutosave(path, "kuro", KURO_SCHEMA),
         readAutosave(path, "mame", MAME_SCHEMA),
       ]);
+      if (!isCurrent()) return;
 
       // ── kuro 결과 처리
       if (kuroResult.status === "ok") {
         try {
           await applyKuroSnapshot(kuroResult.snapshot);
+          if (!isCurrent()) return;
           onMessage({
             kind: "kuro",
             variant: "restored",
@@ -489,12 +508,14 @@ export function useAutosaveHydration(
           message: i18next.t("autosaveHydration.schemaTooNew"),
         });
       }
+      if (!isCurrent()) return;
       // missing → 침묵
 
       // ── mame 결과 처리
       if (mameResult.status === "ok") {
         try {
           applyMameSnapshot(mameResult.snapshot as MameAutosaveSnapshot);
+          if (!isCurrent()) return;
           onMessage({
             kind: "mame",
             variant: "restored",
@@ -517,6 +538,7 @@ export function useAutosaveHydration(
           message: i18next.t("autosaveHydration.schemaTooNew"),
         });
       }
+      if (!isCurrent()) return;
       // missing → 침묵
 
       // ── mame analyze-result 복원: 입력 스냅샷 복원 후, 결과 파일이 있으면
@@ -524,6 +546,7 @@ export function useAutosaveHydration(
       //    스냅샷 "apply snapshot failed" 메시지를 오염시키지 않도록 별도 try/catch.
       try {
         const restored = await restoreMameResult(path);
+        if (!isCurrent()) return;
         if (restored) {
           onMessage({
             kind: "mame",
@@ -534,9 +557,11 @@ export function useAutosaveHydration(
       } catch (err) {
         console.warn("[autosave] mame: analyze-result restore failed", err);
       }
+      if (!isCurrent()) return;
 
       // ── auto-detect: autosave 복원 후 여전히 비어있는 필드를 프로젝트 디렉토리에서 채운다
       await applyMameAutoDetect(path, (filled) => {
+        if (!isCurrent()) return;
         if (filled.length > 0) {
           onMessage({
             kind: "mame",
@@ -546,5 +571,9 @@ export function useAutosaveHydration(
         }
       });
     })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [project?.path, project?.scratch, onMessage]);
 }

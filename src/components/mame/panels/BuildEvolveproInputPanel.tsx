@@ -18,6 +18,7 @@ import { open, save } from "@tauri-apps/plugin-dialog";
 import { FolderOpen, Loader2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { buildEvolveproInput } from "@/lib/ipc-mame";
+import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { describeRpcError, extractMissingMethod } from "@/lib/errors";
 import { revealInOSFolder } from "@/lib/openFolder";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,7 @@ import {
   type BuildEvolveproFormState as FormState,
   loadBuildEvolveproFromStorage as loadFromStorage,
   saveBuildEvolveproToStorage as saveToStorage,
+  BUILD_EVOLVEPRO_DEFAULT_STATE,
 } from "@/lib/mame/buildEvolveproFormStorage";
 
 function getFilename(p: string): string {
@@ -48,6 +50,7 @@ export function BuildEvolveproInputPanel() {
   const [form, setFormRaw] = useState<FormState>(() => loadFromStorage());
   const [isBuilding, setIsBuilding] = useState(false);
   const [result, setResult] = useState<BuildEvolveproInputResult | null>(null);
+  const resetEpoch = useMameAppStore((s) => s.resetEpoch);
 
   function setForm(partial: Partial<FormState>) {
     setFormRaw((prev) => {
@@ -67,6 +70,12 @@ export function BuildEvolveproInputPanel() {
     form.prevEvolveproXlsx,
     form.outputXlsx,
   ]);
+
+  useEffect(() => {
+    if (resetEpoch === 0) return;
+    setFormRaw(BUILD_EVOLVEPRO_DEFAULT_STATE);
+    setResult(null);
+  }, [resetEpoch]);
 
   const browseXlsx = useCallback(
     async (key: keyof FormState, title: string) => {

@@ -2445,7 +2445,7 @@
     "deferredMixedSignals": "라운드 간 mixed signals 감지: 분류가 보류됩니다."
   },
   "selection3d": {
-    "title": "3D Structure View",
+    "title": "Current-selection 3D analysis",
     "noAccession": "Structure requires a UniProt accession",
     "noStructure": "No structure available",
     "noStructureDesc": "Could not load PDB structure for this accession.",
@@ -2494,5 +2494,15 @@
     "noVariants": "No variants to display. Load EVOLVEpro results and pick variants in the Design step to see them on the structure.",
     "fallbackNote": "No explicit selection — showing the top {{count}} ranked candidates.",
     "dispersionChartTitle": "Selection vs random (null distribution)"
+  },
+  "outputSummaryWorkspace": {
+    "workspaceTitle": "Summary workspace",
+    "workspaceDescription": "Keep the result table and 3D analysis side-by-side, or collapse either panel.",
+    "hideResultTable": "Hide result table",
+    "showResultTable": "Show result table",
+    "hide3dAnalysis": "Hide 3D analysis",
+    "show3dAnalysis": "Show 3D analysis",
+    "emptyWorkspace": "Open the result table or 3D analysis from the Summary workspace controls.",
+    "threeDAria": "Current-selection 3D analysis"
   }
 }

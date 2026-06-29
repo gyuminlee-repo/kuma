@@ -94,6 +94,15 @@ def set_last_analyze(
         _state.last_designed_mutant_ids = designed_mutant_ids
 
 
+def reset_state() -> None:
+    """Clear cached analyze/export state for a new project or explicit reset."""
+    with _state_lock:
+        _state.last_verdicts = None
+        _state.last_replicates = None
+        _state.last_output_path = None
+        _state.last_run_meta = None
+        _state.last_designed_mutant_ids = None
+
 # ---------------------------------------------------------------------------
 # stdout JSON-RPC framing. Thread-safe writer.
 # ---------------------------------------------------------------------------

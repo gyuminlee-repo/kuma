@@ -16,6 +16,8 @@ from sidecar_mame.core import (
     _send,
     logger,
 )
+
+from sidecar_mame.core import reset_state as reset_core_state
 from sidecar_mame.handlers.analyze import (
     handle_analyze,
     handle_validate_inputs,
@@ -39,6 +41,7 @@ from sidecar_mame.handlers.activity import (
     handle_activity_upload,
     handle_build_evolvepro_input,
     handle_merge_for_evolvepro,
+    reset_activity_state,
 )
 from sidecar_mame.handlers.barcode_package import handle_generate_mame_package
 from sidecar_mame.handlers.build_well_layout import handle_build_well_layout
@@ -62,6 +65,12 @@ def _handle_health_info(_params: dict) -> dict:
         "py_version": _sys.version.split()[0],
     }
 
+def _handle_reset_state(_params: dict) -> dict:
+    """Clear cached MAME sidecar state when switching projects or clearing all."""
+    reset_core_state()
+    reset_activity_state()
+    return {"ok": True}
+
 
 # Phase A handler registry.
 # ``translate`` is deferred to Phase B per the reconciled scope.
@@ -80,6 +89,7 @@ _METHODS = {
     "read_kuma_meta": handle_read_kuma_meta,
     "export_run_report": handle_export_run_report,
     "cancel_analyze": lambda _: {"cancelled": True},
+    "reset_state": _handle_reset_state,
     # A1/A3: raw-run demux + quality filter (R6)
     "demux_and_filter": handle_demux_and_filter,
     # A8: run health panel

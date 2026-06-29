@@ -348,7 +348,7 @@ export interface ExportSlice {
   setStatus: (msg: string) => void;
   getWorkspaceSnapshot: () => WorkspaceV3;
   restoreWorkspace: (ws: WorkspaceData) => Promise<void>;
-  resetAll: () => void;
+  resetAll: (options?: { preserveWorkspaceArtifacts?: boolean }) => void;
 }
 
 // ---------------------------------------------------------------------------

@@ -505,7 +505,12 @@ function ViewerToolbar({
 
 type ViewerPhase = "idle" | "loading" | "ready" | "error";
 
-export function Selection3DPanel() {
+interface Selection3DPanelProps {
+  defaultOpen?: boolean;
+  embedded?: boolean;
+}
+
+export function Selection3DPanel({ defaultOpen = false, embedded = false }: Selection3DPanelProps = {}) {
   const { t } = useTranslation();
 
   const {
@@ -536,7 +541,7 @@ export function Selection3DPanel() {
     })),
   );
 
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const [phase, setPhase] = useState<ViewerPhase>("idle");
   const [dispersion, setDispersion] = useState<ComputeDispersionResult | null>(null);
   const [activeSiteResult, setActiveSiteResult] = useState<FetchActiveSiteResult | null>(null);
@@ -595,7 +600,7 @@ export function Selection3DPanel() {
 
 
   const accession = structureAccession || uniprotAccession;
-  const disabled = !accession;
+  const noAccession = !accession;
 
   // Derived at render time; stable for the current render cycle
   const baseVariants: string[] =
@@ -905,32 +910,26 @@ export function Selection3DPanel() {
 
   // ─── render ──────────────────────────────────────────────────────────────
   return (
-    <div className="mt-3 rounded border border-border bg-card" data-testid="selection3d-panel">
+    <div className={embedded ? "rounded-none border-0 bg-card" : "mt-3 rounded border border-border bg-card"} data-testid="selection3d-panel">
       {/* Collapsible header */}
       <button
         type="button"
-        onClick={() => {
-          if (!disabled) setOpen((v) => !v);
-        }}
-        className={`flex w-full items-center justify-between px-4 py-2.5 text-sm font-medium ${
-          disabled ? "cursor-not-allowed opacity-50" : "hover:bg-accent/50"
-        }`}
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between px-4 py-2.5 text-sm font-medium hover:bg-accent/50"
         aria-expanded={open}
-        disabled={disabled}
-        title={disabled ? t("selection3d.noAccession") : undefined}
         data-testid="panel-toggle"
       >
         <span>{t("selection3d.title")}</span>
         <span className="text-muted-foreground text-xs">{open ? "▲" : "▼"}</span>
       </button>
 
-      {disabled && (
+      {noAccession && (
         <p className="px-4 pb-2 text-xs italic text-muted-foreground" data-testid="disabled-message">
           {t("selection3d.noAccession")}
         </p>
       )}
 
-      {!disabled && open && (
+      {open && (
         <div className="border-t border-border" data-testid="panel-body">
           {/* Upload fallback */}
           <div className="flex flex-wrap items-center gap-2 px-4 pt-2 text-xs">
@@ -984,7 +983,7 @@ export function Selection3DPanel() {
           )}
 
           {/* Always render viewer container + controls so containerRef stays mounted */}
-          <div className={phase === "loading" || phase === "error" ? "hidden" : "space-y-3 p-4"}>
+          <div className={phase === "loading" || phase === "error" ? "hidden" : "space-y-3 p-3"}>
             {phase === "ready" && (
               <>
                 <ViewerToolbar
@@ -1015,18 +1014,7 @@ export function Selection3DPanel() {
                     {t("selection3d.interface")}
                   </label>
                 </div>
-              </>
-            )}
 
-            {/* 3Dmol viewer container — always mounted so containerRef is valid */}
-            <div
-              ref={containerRef}
-              className="relative h-72 w-full rounded border border-border"
-              data-testid="viewer-container"
-            />
-
-            {phase === "ready" && (
-              <>
                 {/* Fallback note — shown when no explicit selection but ranked candidates exist */}
                 {usingFallback && (
                   <div
@@ -1047,6 +1035,22 @@ export function Selection3DPanel() {
                   </div>
                 )}
 
+                {/* Dispersion card: keep the numeric/graph summary above the large viewer. */}
+                {dispersion !== null && <DispersionCard result={dispersion} />}
+              </>
+            )}
+
+            {/* 3Dmol viewer container — always mounted so containerRef is valid */}
+            <div
+              ref={containerRef}
+              className="relative h-72 w-full rounded border border-border"
+              data-testid="viewer-container"
+            />
+
+            {phase === "ready" && (
+              <>
+
+
                 {/* Active site control */}
                 <div>
                   <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -1066,8 +1070,6 @@ export function Selection3DPanel() {
                   />
                 </div>
 
-                {/* Dispersion card */}
-                {dispersion !== null && <DispersionCard result={dispersion} />}
 
                 {/* Position table */}
                 {tableRows.length > 0 && (

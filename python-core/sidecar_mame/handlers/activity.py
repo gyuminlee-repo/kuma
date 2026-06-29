@@ -77,6 +77,11 @@ def _ensure_round(round_id: str, *, n: int = 1) -> dict:
         _rounds[round_id] = rd
     return rd
 
+def reset_activity_state() -> None:
+    """Clear cached round/activity state for a new project or explicit reset."""
+    with _rounds_lock:
+        _rounds.clear()
+
 
 def _extract_kuro_design(design: dict) -> dict[tuple[str, str], str]:
     """Extract (plate_id, well_id) → mutation from a design snapshot dict.

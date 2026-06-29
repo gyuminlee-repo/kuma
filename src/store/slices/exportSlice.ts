@@ -671,7 +671,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
     }
   },
 
-  resetAll: () => {
+  resetAll: (options) => {
     set({
       fastaPath: "",
       seqInfo: null,
@@ -768,7 +768,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       echoTransferVol: 100,
       janusTransferVol: 2.0,
     });
-    if (getActiveWorkspace()) {
+    if (!options?.preserveWorkspaceArtifacts && getActiveWorkspace()) {
       void import("../../lib/workspace").then(({ clearWorkspace }) =>
         clearWorkspace("kuro").catch(() => {
           // workspace manifest cleanup is best-effort
