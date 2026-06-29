@@ -66,7 +66,7 @@ const DOMAIN_COLORS = [
   "#4e7ac7", "#e07b54", "#6dba6d", "#c974c4",
   "#d4a52a", "#7ecfcf", "#f0859b", "#a0a0f0",
 ];
-const FALLBACK_TOPN = 30;
+
 
 // ─── subcomponents ──────────────────────────────────────────────────────────
 
@@ -606,7 +606,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
   const baseVariants: string[] =
     evolveproSelectedVariants.length > 0
       ? evolveproSelectedVariants
-      : evolveproRankedCandidates.slice(0, FALLBACK_TOPN).map((c) => c.variant);
+      : evolveproRankedCandidates.map((c) => c.variant);
   const usingFallback =
     evolveproSelectedVariants.length === 0 && evolveproRankedCandidates.length > 0;
 

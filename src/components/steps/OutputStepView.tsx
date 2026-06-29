@@ -30,8 +30,7 @@ import { Selection3DPanel } from "@/components/panels/Selection3DPanel";
 
 const SPLIT_KEY = "kuro.output.split";
 const COLLAPSED_KEY = "kuro.output.plateCollapsed";
-const SUMMARY_TABLE_KEY = "kuro.output.summaryTableOpen";
-const SUMMARY_3D_KEY = "kuro.output.summary3dOpen";
+
 const DEFAULT_SPLIT = 50;
 const MIN_SPLIT = 20;
 const MAX_SPLIT = 80;
@@ -57,15 +56,7 @@ function readCollapsed(): boolean {
   }
 }
 
-function readBool(key: string, fallback: boolean): boolean {
-  try {
-    const raw = typeof window !== "undefined" ? window.localStorage.getItem(key) : null;
-    if (raw === null) return fallback;
-    return raw === "1" || raw === "true";
-  } catch {
-    return fallback;
-  }
-}
+
 
 export function OutputStepView() {
   const { t } = useTranslation();
@@ -92,12 +83,7 @@ export function OutputStepView() {
 
   const [splitPct, setSplitPct] = useState<number>(() => readSplit());
   const [plateCollapsed, setPlateCollapsed] = useState<boolean>(() => readCollapsed());
-  const [summaryTableOpen, setSummaryTableOpen] = useState<boolean>(() =>
-    readBool(SUMMARY_TABLE_KEY, true),
-  );
-  const [summary3dOpen, setSummary3dOpen] = useState<boolean>(() =>
-    readBool(SUMMARY_3D_KEY, true),
-  );
+
   const containerRef = useRef<HTMLDivElement | null>(null);
   const draggingRef = useRef(false);
 
@@ -118,21 +104,6 @@ export function OutputStepView() {
     }
   }, [plateCollapsed]);
 
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(SUMMARY_TABLE_KEY, summaryTableOpen ? "1" : "0");
-    } catch {
-      // ignore
-    }
-  }, [summaryTableOpen]);
-
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(SUMMARY_3D_KEY, summary3dOpen ? "1" : "0");
-    } catch {
-      // ignore
-    }
-  }, [summary3dOpen]);
 
   const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (plateCollapsed) return;
@@ -199,7 +170,7 @@ export function OutputStepView() {
           {/* 좌: Summary (ResultTable + 텍스트 통계) */}
           <section
             data-testid="output-primer-panel"
-            className="flex min-w-0 flex-col gap-3"
+            className="flex min-w-0 flex-col gap-3 overflow-y-auto"
             style={leftStyle}
             aria-label={t("phaseC.subSteps.output.summary")}
           >
@@ -231,72 +202,15 @@ export function OutputStepView() {
               </div>
             </dl>
 
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded border border-border bg-card">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-muted/30 px-3 py-2">
-                <div>
-                  <div className="text-sm font-semibold text-foreground">{t("outputSummaryWorkspace.workspaceTitle")}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {t("outputSummaryWorkspace.workspaceDescription")}
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-1">
-                  <button
-                    type="button"
-                    onClick={() => setSummaryTableOpen((v) => !v)}
-                    className={`rounded border px-2 py-1 text-xs ${
-                      summaryTableOpen
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border bg-background hover:bg-accent"
-                    }`}
-                    data-testid="summary-table-toggle"
-                  >
-                    {summaryTableOpen ? t("outputSummaryWorkspace.hideResultTable") : t("outputSummaryWorkspace.showResultTable")}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSummary3dOpen((v) => !v)}
-                    className={`rounded border px-2 py-1 text-xs ${
-                      summary3dOpen
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border bg-background hover:bg-accent"
-                    }`}
-                    data-testid="summary-3d-toggle"
-                  >
-                    {summary3dOpen ? t("outputSummaryWorkspace.hide3dAnalysis") : t("outputSummaryWorkspace.show3dAnalysis")}
-                  </button>
-                </div>
-              </div>
+            {/* Result table — bounded viewport; the whole Summary column scrolls
+                so the 3D analysis below is reachable without splitting the space. */}
+            <div className="h-[55vh] min-h-[320px] shrink-0 overflow-hidden rounded border border-border">
+              <ResultTable />
+            </div>
 
-              <div className="flex min-h-0 flex-1 overflow-hidden">
-                {summaryTableOpen && (
-                  <div
-                    className={`min-w-0 flex-1 overflow-auto ${
-                      summary3dOpen ? "border-r border-border" : ""
-                    }`}
-                    data-testid="summary-table-pane"
-                  >
-                    <ResultTable />
-                  </div>
-                )}
-
-                {summary3dOpen && (
-                  <aside
-                    className={`min-w-[320px] overflow-auto ${
-                      summaryTableOpen ? "w-[420px] max-w-[48%]" : "w-full"
-                    }`}
-                    data-testid="summary-3d-sidebar"
-                    aria-label={t("outputSummaryWorkspace.threeDAria")}
-                  >
-                    <Selection3DPanel defaultOpen embedded />
-                  </aside>
-                )}
-
-                {!summaryTableOpen && !summary3dOpen && (
-                  <div className="flex flex-1 items-center justify-center p-6 text-sm text-muted-foreground">
-                    {t("outputSummaryWorkspace.emptyWorkspace")}
-                  </div>
-                )}
-              </div>
+            {/* Current-candidate 3D analysis — stacked below the table, open by default. */}
+            <div className="shrink-0">
+              <Selection3DPanel defaultOpen />
             </div>
           </section>
 
