@@ -598,6 +598,27 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
+  // Fullscreen: when the viewer container enters/exits native fullscreen, the
+  // 3Dmol canvas must be told to recompute its size; otherwise it stays at the
+  // collapsed h-72 dimensions and fullscreen shows the same small viewport.
+  useEffect(() => {
+    function onFullscreenChange() {
+      const viewer = viewerRef.current;
+      if (!viewer) return;
+      // Defer one frame so the browser has applied the :fullscreen box first.
+      requestAnimationFrame(() => {
+        try {
+          viewer.resize();
+          viewer.render();
+        } catch {
+          // resize must never throw during fullscreen transitions
+        }
+      });
+    }
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
+  }, []);
+
 
   const accession = structureAccession || uniprotAccession;
   const noAccession = !accession;
@@ -875,7 +896,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
   }
 
   function handleFullscreen() {
-    const el = containerRef.current?.parentElement ?? containerRef.current;
+    const el = containerRef.current;
     if (!el) return;
     if (!document.fullscreenElement) {
       void el.requestFullscreen();
@@ -1043,7 +1064,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
             {/* 3Dmol viewer container — always mounted so containerRef is valid */}
             <div
               ref={containerRef}
-              className="relative h-72 w-full rounded border border-border"
+              className="relative h-72 w-full rounded border border-border bg-background [&:fullscreen]:h-screen [&:fullscreen]:w-screen [&:fullscreen]:rounded-none [&:fullscreen]:border-0"
               data-testid="viewer-container"
             />
 
