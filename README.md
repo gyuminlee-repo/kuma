@@ -103,7 +103,7 @@ Given a Kuro-exported `expected_mutations.xlsx`, a reference FASTA, and MAME-gen
 **Highlights**
 
 - **MAME consensus ingest** — barcode-mode consensus, or raw FASTQ via Phred-aware demux→consensus
-- **6-class verdict** — exact / partial / off-target / WT retained / no coverage / ambiguous, with a mixed-well guard
+- **8-class verdict**, PASS / WRONG_AA / AMBIGUOUS / MIXED / FRAMESHIFT / MANY / LOWDEPTH / NO_CALL
 - **Explainable QC** — read depth, N fraction, low-depth positions, low-quality exclusions, MAPQ/span drops
 - **96-well output** — column-major Final Excel synced to Kuro's plate-map order, in a single-view workbench
 
@@ -112,13 +112,13 @@ Given a Kuro-exported `expected_mutations.xlsx`, a reference FASTA, and MAME-gen
 
 #### Input & consensus
 
-- **MAME consensus FASTA ingest**: Barcode-mode consensus output from MAME's own demux→consensus pipeline. Consensus headers with `depth=N`, per-base low-depth positions, N fraction, and mixed-allele metrics drive read-count `LOWDEPTH` and mixed-well `AMBIGUOUS` gating.
+- **MAME consensus FASTA ingest**: Barcode-mode consensus output from MAME's own demux→consensus pipeline. Consensus headers with `depth=N`, per-base low-depth positions, N fraction, and mixed-allele metrics drive read-count `LOWDEPTH` and within-well `MIXED` gating.
 - **Phred-aware consensus**: When MAME starts from raw FASTQ, read IDs and quality strings are preserved through the internal demux step so low-quality base calls do not win the consensus vote.
 
 #### Verdict & QC evidence
 
-- **6-class verdict**: Each barcode classified into one of six outcomes (exact match, partial, off-target, WT retained, no coverage, ambiguous).
-- **Mixed-well guard**: Consensus headers can carry minor-allele metrics; wells with substantial within-well mixture are surfaced as `AMBIGUOUS` instead of silently passing on the majority allele.
+- **8-class verdict**: Each barcode classified into one of eight outcomes, `PASS` (observed AA changes exactly match the design), `WRONG_AA` (expected position mismatched, an expected change missing, or an unexpected extra change), `AMBIGUOUS` (all expected changes matched but a near-window extra change or an indel-event signal), `MIXED` (substantial within-well second allele), `FRAMESHIFT` (consecutive NT indels inside the frame window), `MANY` (more AA changes than both the cutoff and the design), `LOWDEPTH` (read depth below the minimum), `NO_CALL` (consensus dominated by N bases).
+- **Mixed-well guard**: Consensus headers can carry minor-allele metrics; wells with substantial within-well mixture are surfaced as `MIXED` instead of silently passing on the majority allele.
 - **Explainable QC evidence**: Verdict tables and Excel exports carry read depth, N fraction, low-depth positions, low-quality base exclusions, and MAPQ/span drop counters.
 - **3-replicate best pick**: Among triplicate barcodes, the best-scoring clone is selected.
 - **Substitution support**: Phase 1 focuses on single-residue substitutions. Deletion / insertion reserved for later.
@@ -232,7 +232,7 @@ KUMA now connects the complete ALE cycle: Kuro designs primers for Round N, wet 
 ```
 1. KURO Design  →  primer list for Round N mutations
 2. Wet lab       →  site-directed mutagenesis + expression
-3. MAME NGS      →  per-clone genotype verdict (6-class)
+3. MAME NGS      →  per-clone genotype verdict (8-class)
 4. Activity assay→  plate-reader / fluorescence measurement
 5. MAME Activity →  load long-format CSV; compute fold_change / log2_fc
 6. EVOLVEpro export → variant + activity xlsx for next round (`[Variant, activity]` 2-column, `89W` short notation)

@@ -2,16 +2,20 @@
 
 per-barcode mutation verdict 와 96-well plate view 를 나란히 본다.
 
-## 6-class verdict
+## 8-class verdict
+
+코드 `VerdictClass` enum (kuma_core/mame/models.py) 기준. 분류는 fail-first 우선순위로 동작한다 (kuma_core/mame/compare/verdict.py).
 
 | Verdict | 의미 |
 |---|---|
-| `exact` | 의도 변이 정확히 일치 |
-| `partial` | 일부만 일치 (multi-site) |
-| `off_target` | 다른 위치에 mutation |
-| `wt` | WT 유지 |
-| `no_coverage` | reads 부족 |
-| `ambiguous` | 동률·낮은 coverage, indel 이벤트 검출 |
+| `PASS` | 관찰 AA 변이가 설계(기대) 변이와 정확히 일치 |
+| `WRONG_AA` | 기대 위치 변이 불일치, 기대 변이 누락, 또는 window 밖 예상외 변이 |
+| `AMBIGUOUS` | 기대 변이는 모두 일치하나 인접(±codon window) 추가 변이 또는 indel 이벤트 신호 |
+| `MIXED` | well 내 혼합 (유의한 2nd allele) |
+| `FRAMESHIFT` | frameshift window 내 연속 nucleotide indel |
+| `MANY` | cutoff·설계를 모두 초과한 과다 AA 변이 |
+| `LOWDEPTH` | read depth 미달 (또는 depth 헤더 부재 시 file-size fallback) |
+| `NO_CALL` | consensus N(no-call) 과다로 AA call 신뢰 불가 |
 
 ## 2.1 Verdict + Plate
 

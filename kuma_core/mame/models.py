@@ -91,7 +91,7 @@ class ExpectedMutation:
 
 @dataclass
 class CompareParams:
-    """Tunable thresholds for the 6-class verdict classifier."""
+    """Tunable thresholds for the 8-class verdict classifier."""
 
     min_file_size_kb: float = 50.0
     # Real read-depth gate, driven by the consensus `depth=N` header. 30 is the

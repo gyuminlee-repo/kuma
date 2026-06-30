@@ -1,6 +1,6 @@
-"""6-class verdict classifier.
+"""8-class verdict classifier.
 
-Priority (fail-first): LOWDEPTH -> INDEL_EVENT (gate) -> FRAMESHIFT -> MANY -> MIXED -> WRONG_AA -> AMBIGUOUS -> PASS.
+Priority (fail-first): LOWDEPTH -> INDEL_EVENT (gate -> AMBIGUOUS) -> NO_CALL -> FRAMESHIFT -> MANY -> MIXED -> WRONG_AA -> AMBIGUOUS -> PASS.
 """
 
 from __future__ import annotations
