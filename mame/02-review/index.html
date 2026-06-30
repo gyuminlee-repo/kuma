@@ -994,10 +994,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#6-class-verdict" class="md-nav__link">
+  <a href="#8-class-verdict" class="md-nav__link">
     <span class="md-ellipsis">
       
-        6-class verdict
+        8-class verdict
       
     </span>
   </a>
@@ -1622,7 +1622,8 @@
 
 <h1 id="step-2-sequencing-review">Step 2. Sequencing Review<a class="headerlink" href="#step-2-sequencing-review" title="Permanent link">&para;</a></h1>
 <p>per-barcode mutation verdict 와 96-well plate view 를 나란히 본다.</p>
-<h2 id="6-class-verdict">6-class verdict<a class="headerlink" href="#6-class-verdict" title="Permanent link">&para;</a></h2>
+<h2 id="8-class-verdict">8-class verdict<a class="headerlink" href="#8-class-verdict" title="Permanent link">&para;</a></h2>
+<p>코드 <code>VerdictClass</code> enum (kuma_core/mame/models.py) 기준. 분류는 fail-first 우선순위로 동작한다 (kuma_core/mame/compare/verdict.py).</p>
 <table>
 <thead>
 <tr>
@@ -1632,28 +1633,36 @@
 </thead>
 <tbody>
 <tr>
-<td><code>exact</code></td>
-<td>의도 변이 정확히 일치</td>
+<td><code>PASS</code></td>
+<td>관찰 AA 변이가 설계(기대) 변이와 정확히 일치</td>
 </tr>
 <tr>
-<td><code>partial</code></td>
-<td>일부만 일치 (multi-site)</td>
+<td><code>WRONG_AA</code></td>
+<td>기대 위치 변이 불일치, 기대 변이 누락, 또는 window 밖 예상외 변이</td>
 </tr>
 <tr>
-<td><code>off_target</code></td>
-<td>다른 위치에 mutation</td>
+<td><code>AMBIGUOUS</code></td>
+<td>기대 변이는 모두 일치하나 인접(±codon window) 추가 변이 또는 indel 이벤트 신호</td>
 </tr>
 <tr>
-<td><code>wt</code></td>
-<td>WT 유지</td>
+<td><code>MIXED</code></td>
+<td>well 내 혼합 (유의한 2nd allele)</td>
 </tr>
 <tr>
-<td><code>no_coverage</code></td>
-<td>reads 부족</td>
+<td><code>FRAMESHIFT</code></td>
+<td>frameshift window 내 연속 nucleotide indel</td>
 </tr>
 <tr>
-<td><code>ambiguous</code></td>
-<td>동률·낮은 coverage, indel 이벤트 검출</td>
+<td><code>MANY</code></td>
+<td>cutoff·설계를 모두 초과한 과다 AA 변이</td>
+</tr>
+<tr>
+<td><code>LOWDEPTH</code></td>
+<td>read depth 미달 (또는 depth 헤더 부재 시 file-size fallback)</td>
+</tr>
+<tr>
+<td><code>NO_CALL</code></td>
+<td>consensus N(no-call) 과다로 AA call 신뢰 불가</td>
 </tr>
 </tbody>
 </table>
