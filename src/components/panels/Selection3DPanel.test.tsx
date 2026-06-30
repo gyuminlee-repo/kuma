@@ -456,6 +456,26 @@ describe("Selection3DPanel — DispersionCard histogram", () => {
     );
     const svg = screen.getByTestId("dispersion-hist");
     expect(svg.tagName.toLowerCase()).toBe("svg");
+    expect(svg.textContent).toContain("P96");
+    expect(svg.textContent).not.toContain("%ile");
+  });
+
+  it("toggles explanations for the histogram and dispersion metrics", async () => {
+    setupDispersion(DISPERSION);
+    render(<Selection3DPanel />);
+    fireEvent.click(screen.getByTestId("panel-toggle"));
+    await waitFor(() =>
+      expect(screen.getByTestId("dispersion-card")).toBeInTheDocument(),
+    );
+
+    const helpButtons = screen.getAllByLabelText("showHelp");
+    expect(helpButtons).toHaveLength(6);
+
+    fireEvent.click(helpButtons[1]);
+    expect(await screen.findByText("dispersionChartHelp")).toBeInTheDocument();
+
+    fireEvent.click(helpButtons[3]);
+    expect(await screen.findByText("dispersionPercentileHelp")).toBeInTheDocument();
   });
 
   it("does not render histogram svg when null_hist.counts is empty (na)", async () => {

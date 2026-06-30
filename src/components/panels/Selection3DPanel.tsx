@@ -14,6 +14,7 @@ import type { AtomSpec, GLViewer, SelectionRange } from "3dmol";
 
 import { useAppStore } from "@/store/appStore";
 import { StateView } from "@/components/ui/StateView";
+import { InlineHelp } from "@/components/ui/InlineHelp";
 import {
   deriveSelectedPositions,
   selectedRefPositions,
@@ -46,6 +47,10 @@ function yPredColor(t: number): string {
 
 function normalizeT(yPred: number, minY: number, maxY: number): number {
   return maxY === minY ? 0.5 : Math.max(0, Math.min(1, (yPred - minY) / (maxY - minY)));
+}
+
+function formatPercentileLabel(percentile: number): string {
+  return `P${Math.round(percentile)}`;
 }
 
 /** Extract CA b-factors (pLDDT proxy) from PDB text. Returns residue-number → b-factor map. */
@@ -82,6 +87,15 @@ function DispersionCard({ result }: { result: ComputeDispersionResult }) {
     na: "#6b7280",
   };
   const markerColor = KLASS_COLOR[result.klass] ?? "#6b7280";
+
+  function metricLabel(labelKey: string, helpKey: string) {
+    return (
+      <span className="inline-flex items-center gap-1">
+        {t(labelKey)}
+        <InlineHelp text={t(helpKey)} />
+      </span>
+    );
+  }
 
   let histSvg: React.ReactNode = null;
   if (hasHist) {
@@ -172,7 +186,7 @@ function DispersionCard({ result }: { result: ComputeDispersionResult }) {
           fontSize={8}
           fontFamily="monospace"
         >
-          {result.percentile.toFixed(0)}%ile
+          {formatPercentileLabel(result.percentile)}
         </text>
         {/* axis ticks */}
         <line x1={PAD_L} y1={barAreaH} x2={W - PAD_R} y2={barAreaH} stroke="#d1d5db" strokeWidth={0.5} />
@@ -188,18 +202,37 @@ function DispersionCard({ result }: { result: ComputeDispersionResult }) {
 
   return (
     <div className="rounded border border-border bg-card p-3 text-sm" data-testid="dispersion-card">
-      <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        {t("selection3d.dispersionTitle")}
-      </h3>
-      {histSvg && <div className="mb-2">{histSvg}</div>}
+      <div className="mb-2 flex items-center gap-1">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          {t("selection3d.dispersionTitle")}
+        </h3>
+        <InlineHelp text={t("selection3d.dispersionTitleHelp")} />
+      </div>
+      {histSvg && (
+        <div className="mb-2">
+          <div className="mb-1 flex items-center gap-1 text-xs font-medium text-muted-foreground">
+            <span>{t("selection3d.dispersionChartTitle")}</span>
+            <InlineHelp text={t("selection3d.dispersionChartHelp")} />
+          </div>
+          {histSvg}
+        </div>
+      )}
       <dl className="grid grid-cols-2 gap-x-4 gap-y-0.5">
-        <dt className="text-muted-foreground text-xs">{t("selection3d.dispersionMeanPairwise")}</dt>
+        <dt className="text-muted-foreground text-xs">
+          {metricLabel("selection3d.dispersionMeanPairwise", "selection3d.dispersionMeanPairwiseHelp")}
+        </dt>
         <dd className="font-semibold tabular-nums text-xs">{result.mean_pairwise.toFixed(2)} Å</dd>
-        <dt className="text-muted-foreground text-xs">{t("selection3d.dispersionPercentile")}</dt>
+        <dt className="text-muted-foreground text-xs">
+          {metricLabel("selection3d.dispersionPercentile", "selection3d.dispersionPercentileHelp")}
+        </dt>
         <dd className="font-semibold tabular-nums text-xs">{result.percentile.toFixed(1)}%</dd>
-        <dt className="text-muted-foreground text-xs">{t("selection3d.dispersionClass")}</dt>
+        <dt className="text-muted-foreground text-xs">
+          {metricLabel("selection3d.dispersionClass", "selection3d.dispersionClassHelp")}
+        </dt>
         <dd className="font-semibold text-xs">{result.klass}</dd>
-        <dt className="text-muted-foreground text-xs">{t("selection3d.dispersionNullRange")}</dt>
+        <dt className="text-muted-foreground text-xs">
+          {metricLabel("selection3d.dispersionNullRange", "selection3d.dispersionNullRangeHelp")}
+        </dt>
         <dd className="tabular-nums text-muted-foreground text-xs">
           {result.null_p05.toFixed(1)}–{result.null_p95.toFixed(1)} Å
         </dd>
