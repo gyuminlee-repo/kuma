@@ -302,18 +302,22 @@ def test_filter_default_params_are_sensible() -> None:
 
 
 def test_filter_target_length_window_pass(tmp_path: Path) -> None:
-    """Reads within target_length ± tolerance pass; others fail."""
+    """Reads within the proportional target_length window pass; others fail.
+
+    With target 1735 and the default tolerance, the effective window is
+    +/- max(30, round(1735 * 0.10) = 174) = +/-174 bp, i.e. [1561, 1909].
+    """
     fastq = tmp_path / "reads.fastq"
-    seq_in = _make_seq(1735)      # exactly at target
-    seq_hi = _make_seq(1766)      # 31 bp over → fail
-    seq_lo = _make_seq(1704)      # 31 bp under → fail
-    seq_edge = _make_seq(1765)    # exactly at upper edge (1735+30) → pass
+    seq_in = _make_seq(1735)      # at target → pass
+    seq_edge = _make_seq(1909)    # upper edge 1735+174 → pass
+    seq_hi = _make_seq(1910)      # 1 bp over the window → fail
+    seq_lo = _make_seq(1560)      # 1 bp under the window → fail
 
     reads = [
         ("in",    seq_in,   12),
+        ("edge",  seq_edge, 12),
         ("hi",    seq_hi,   12),
         ("lo",    seq_lo,   12),
-        ("edge",  seq_edge, 12),
     ]
     _make_fastq(fastq, reads)
 
@@ -326,6 +330,28 @@ def test_filter_target_length_window_pass(tmp_path: Path) -> None:
 
     assert result.n_passed == 2      # "in" and "edge"
     assert result.n_failed_length == 2  # "hi" and "lo"
+
+
+def test_resolve_length_window_is_proportional_with_floor() -> None:
+    """The length window is +/- max(length_tolerance_bp, round(target * 0.10))."""
+    from kuma_core.mame.ingest.quality_filter import _resolve_length_window
+
+    # Long amplicon: the proportional 10% term dominates the 30 bp floor.
+    assert _resolve_length_window(
+        QualityFilterParams(target_length=1800, length_tolerance_bp=30)
+    ) == (1620, 1980)  # +/- round(1800 * 0.10) = 180
+    # Short amplicon: 10% (20 bp) is below the 30 bp floor -> floor wins.
+    assert _resolve_length_window(
+        QualityFilterParams(target_length=200, length_tolerance_bp=30)
+    ) == (170, 230)  # +/- max(30, 20) = 30
+    # An explicit tolerance larger than the proportional window is honoured.
+    assert _resolve_length_window(
+        QualityFilterParams(target_length=1800, length_tolerance_bp=500)
+    ) == (1300, 2300)  # +/- max(500, 180) = 500
+    # No target_length -> fall back to length_min/length_max.
+    assert _resolve_length_window(
+        QualityFilterParams(target_length=None, length_min=800, length_max=3000)
+    ) == (800, 3000)
 
 
 def test_filter_target_length_overrides_length_min_max(tmp_path: Path) -> None:

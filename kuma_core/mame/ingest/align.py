@@ -409,6 +409,7 @@ def align_reads(
     require_full_span: bool = True,
     threads: int | None = None,
     reference_index: Path | None = None,
+    coverage_fraction: float | None = None,
 ) -> list[Alignment]:
     """Align reads to a reference using the minimap2 CLI.
 
@@ -500,6 +501,12 @@ def align_reads(
         if aln.mapq < min_mapq:
             continue
         if require_full_span and not (aln.r_st == 0 and aln.r_en == ref_len):
+            continue
+        if (
+            coverage_fraction is not None
+            and ref_len > 0
+            and (aln.r_en - aln.r_st) / ref_len < coverage_fraction
+        ):
             continue
         results.append(aln)
 
