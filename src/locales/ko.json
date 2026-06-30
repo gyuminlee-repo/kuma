@@ -320,8 +320,8 @@
     },
     "activity": {
       "ingest": {
-        "contextTitle": "활성 데이터 — 수집",
-        "contextSubtitle": "이번 라운드의 wet-lab 활성 측정값을 업로드합니다.",
+        "contextTitle": "활성 데이터: EVOLVEpro 입력",
+        "contextSubtitle": "이번 라운드의 측정값을 수집·병합하고 EVOLVEpro 입력을 내보냅니다.",
         "drawerLeft": "활성",
         "drawerLeftDesc": "측정값이 있는 well",
         "drawerCenter": "활성 로그",
@@ -395,7 +395,7 @@
     },
     "buildEvolvepro": {
       "title": "EVOLVEpro 입력 생성",
-      "subtitle": "플레이트 레이아웃, GC 데이터, Agilent 반복 리포트, 이전 EVOLVEpro 파일을 하나의 EVOLVEpro 입력 xlsx로 결합합니다.",
+      "subtitle": "플레이트 레이아웃, raw 라운드1 GC-FID 리포트, 변이라벨 재측정 리포트를 하나의 EVOLVEpro 입력 xlsx로 결합합니다.",
       "inputFiles": "입력 파일",
       "layoutXlsx": "플레이트 레이아웃 xlsx",
       "layoutXlsxHelper": "Mutant to well 위치 매핑 (Mutant, Well Pos. 열).",
@@ -405,6 +405,10 @@
       "repBatchXlsxHelper": "숫자 base ID와 replicate 접미사를 가진 FID1B 블록 리포트.",
       "prevEvolveproXlsx": "이전 EVOLVEpro xlsx",
       "prevEvolveproXlsxHelper": "rank source로 사용하는 이전 라운드 EVOLVEpro 파일 (Variant, activity).",
+      "round1ReportXlsx": "라운드1 리포트 (raw GC-FID)",
+      "round1ReportXlsxHelper": "Agilent FID1B raw 리포트. sample명은 well 위치(A1..H12), WT_n 블록 포함.",
+      "remeasureReportXlsx": "재측정 리포트 (변이라벨)",
+      "remeasureReportXlsxHelper": "Agilent FID1B raw 리포트. sample명은 변이명(예 V5F 또는 5F), 같은 변이 반복행은 replicate.",
       "outputXlsx": "출력 EVOLVEpro xlsx",
       "outputXlsxHelper": "병합된 EVOLVEpro 입력의 저장 파일.",
       "requiredStateLabel": "필수",
@@ -413,7 +417,7 @@
       "build": "EVOLVEpro 입력 생성",
       "building": "생성 중...",
       "resultTitle": "생성 결과",
-      "emptyState": "네 개의 입력 파일과 출력 경로를 선택한 뒤 EVOLVEpro 입력을 생성하세요.",
+      "emptyState": "세 개의 입력 파일과 출력 경로를 선택한 뒤 EVOLVEpro 입력을 생성하세요.",
       "nVariants": "기록된 variant",
       "nAuthoritative": "반복 리포트 기준",
       "nFallbackOnly": "GC 데이터 단독",
@@ -432,7 +436,19 @@
       "toastSuccess": "EVOLVEpro 입력 생성 완료",
       "toastSuccessDesc": "{{count}}개 variant를 기록했습니다.",
       "toastError": "EVOLVEpro 입력 생성 실패",
-      "openFolder": "출력 폴더 열기"
+      "openFolder": "출력 폴더 열기",
+      "verdictXlsx": "NGS verdict (선택)",
+      "verdictXlsxHelper": "선택: Analyze Excel 리포트(Final 시트: well_id + verdict). well이 PASS가 아닌 변이는 제외. 비우면 NGS 게이팅 생략.",
+      "optionalStateLabel": "선택",
+      "nNgsExcluded": "NGS 제외",
+      "round1SourceLabel": "Round-1 소스",
+      "round1SourcePrev": "이전 EVOLVEpro",
+      "round1SourceRaw": "raw GC-FID 리포트",
+      "round1SourcePrevHelper": "이전 EVOLVEpro 파일(Variant, activity)을 round-1 전체 기준값으로 사용합니다.",
+      "round1SourceRawHelper": "raw GC-FID 리포트(well명)를 사용하며, plate layout으로 well을 variant에 매핑합니다.",
+      "round1EvolveproXlsx": "Round-1 EVOLVEpro 파일",
+      "round1EvolveproXlsxHelper": "이전 라운드 EVOLVEpro xlsx(Variant, activity). 재측정한 variant는 평균값으로 대체됩니다.",
+      "layoutXlsxOptionalHelper": "선택. NGS verdict gating에서 variant를 well에 매핑할 때만 사용합니다."
     },
     "runHealth": {
       "panelAriaLabel": "실행 상태 패널",
@@ -2206,7 +2222,7 @@
         "health": "런 품질"
       },
       "activity": {
-        "ingest": "데이터 수집",
+        "ingest": "활성 데이터 및 EVOLVEpro 입력",
         "merge": "병합",
         "export": "내보내기",
         "mergeExport": "병합 및 내보내기"
@@ -2262,7 +2278,7 @@
     },
     "mameDescriptions": {
       "activity": {
-        "ingest": "활성 CSV 또는 Excel 파일을 업로드하고 야생형을 주석 처리합니다.",
+        "ingest": "활성 데이터를 수집하고 반복값을 병합해 EVOLVEpro 입력 파일을 생성합니다.",
         "mergeExport": "활성 데이터를 유전형 콜과 병합해 테이블을 내보낸 뒤, 단일 반복(GC)과 3중 반복(WT 상대) 활성을 결합해 EVOLVEpro 입력을 생성합니다."
       },
       "analyze": {

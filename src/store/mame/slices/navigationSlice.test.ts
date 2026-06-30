@@ -64,10 +64,8 @@ describe("MAME_SUBSTEP_ORDER", () => {
       "analyze.inputs",
       "analyze.review",
     ]);
-    expect(MAME_SUBSTEP_ORDER.activity).toEqual([
-      "activity.ingest",
-      "activity.mergeExport",
-    ]);
+    // PR2b: activity.ingest/mergeExport merged into a single Step 3.
+    expect(MAME_SUBSTEP_ORDER.activity).toEqual(["activity.ingest"]);
   });
 });
 

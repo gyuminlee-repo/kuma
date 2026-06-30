@@ -33,6 +33,7 @@ from pathlib import Path
 from .evolvepro_xlsx import (
     BlockRepBatchResult,
     parse_agilent_block_rep_batch,
+    parse_agilent_standard,
     parse_relative_only,
     read_evolvepro_rows,
     write_evolvepro_xlsx,
@@ -41,7 +42,7 @@ from .merge import merge_replicates_priority
 from .models import MergeReplicatesStats, Variant
 from .plate_layout_xlsx import parse_plate_layout_xlsx, _normalise_well
 from .sanity_check import detect_label_swap
-from .variant_notation import to_evolvepro
+from .variant_notation import to_evolvepro, is_canonical_internal, _SHORT_RE
 
 logger = logging.getLogger(__name__)
 
@@ -427,4 +428,287 @@ def build_evolvepro_input(
         warnings=warnings,
         swap_warnings=swap_warnings,
         mismatched=mismatched_detail,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Reports mode (raw Agilent round-1 + variant-labeled re-measure; no rank file)
+# ---------------------------------------------------------------------------
+
+@dataclass
+class BuildEvolveproReportsResult:
+    """Outcome of build_evolvepro_input_from_reports (variant-labeled mode)."""
+
+    output_path: Path
+    n_variants: int
+    n_authoritative: int
+    n_fallback_only: int
+    well_by_variant: dict[str, str]
+    replicate_stats: MergeReplicatesStats
+    warnings: list[str]
+    mismatched: list[dict] = field(default_factory=list)
+    # NGS verdict gating (optional): short variants dropped because their layout
+    # well carried an explicit non-PASS verdict. Empty when no verdict file given.
+    n_ngs_excluded: int = 0
+    ngs_excluded: list[str] = field(default_factory=list)
+
+
+def _agilent_wt_mean(records: list) -> float:
+    """Mean WT block area from parse_agilent_standard records. Raises if none."""
+    wt = [r.area for r in records if r.is_wt]
+    if not wt:
+        raise ValueError(
+            "report has no WT blocks; cannot normalise raw areas to relative activity"
+        )
+    m = sum(wt) / len(wt)
+    if m <= 0:
+        raise ValueError(f"WT mean area must be > 0 (computed {m:.6g})")
+    return m
+
+
+def _normalize_variant_label(label: str) -> str | None:
+    """Re-measure sample label -> short EVOLVEpro notation.
+
+    'V5F' (internal) -> '5F'; '5F' (already short) -> '5F'; non-variant -> None.
+    """
+    s = label.strip()
+    if is_canonical_internal(s):
+        return to_evolvepro(s)
+    if _SHORT_RE.match(s):
+        return s
+    return None
+
+
+def _build_fallback_from_raw_report(
+    round1_report_xlsx,
+    layout_xlsx,
+) -> tuple[dict[str, list[float]], dict[str, str], list[str]]:
+    """Fallback {short_variant: [relative]} from a raw Agilent round-1 report.
+
+    Sample names are well coordinates; raw area / mean(WT block area) = relative.
+    Mapped to short variant via plate layout. Non-well names and wells absent
+    from the layout are skipped with a warning. WT and calibration rows are
+    already excluded by parse_agilent_standard / the is_wt flag.
+    """
+    warnings: list[str] = []
+    records = parse_agilent_standard(round1_report_xlsx)
+    wt_mean = _agilent_wt_mean(records)
+
+    layout_entries = parse_plate_layout_xlsx(layout_xlsx)
+    well_to_variant: dict[str, str] = {
+        e.well_id: e.mutant for e in layout_entries if not e.is_wt
+    }
+
+    fallback: dict[str, list[float]] = {}
+    well_by_variant: dict[str, str] = {}
+    for r in records:
+        if r.is_wt:
+            continue
+        try:
+            well = _normalise_well(r.sample_name)
+        except (ValueError, IndexError):
+            warnings.append(
+                f"round-1 report sample {r.sample_name!r} is not a well position; skipped."
+            )
+            continue
+        variant_internal = well_to_variant.get(well)
+        if variant_internal is None:
+            warnings.append(f"round-1 well {well} has no layout mutant; skipped.")
+            continue
+        short = to_evolvepro(variant_internal)
+        fallback.setdefault(short, []).append(r.area / wt_mean)
+        well_by_variant[short] = well
+    return fallback, well_by_variant, warnings
+
+
+def _build_authoritative_from_variant_report(
+    remeasure_report_xlsx,
+) -> tuple[dict[str, list[float]], list[str]]:
+    """Authoritative {short_variant: [relative reps]} from a variant-labeled report.
+
+    Sample names are variant labels (internal 'V5F' or short '5F'); repeated
+    labels are replicates. Raw area / mean(WT block area) = relative. Non-variant
+    labels skipped with a warning.
+    """
+    warnings: list[str] = []
+    records = parse_agilent_standard(remeasure_report_xlsx)
+    wt_mean = _agilent_wt_mean(records)
+
+    authoritative: dict[str, list[float]] = {}
+    for r in records:
+        if r.is_wt:
+            continue
+        short = _normalize_variant_label(r.sample_name)
+        if short is None:
+            warnings.append(
+                f"re-measure sample {r.sample_name!r} is not a variant label; skipped."
+            )
+            continue
+        authoritative.setdefault(short, []).append(r.area / wt_mean)
+    return authoritative, warnings
+
+
+def _build_fallback_from_prev_evolvepro(
+    prev_evolvepro_xlsx,
+) -> tuple[dict[str, list[float]], list[str]]:
+    """Fallback {short_variant: [activity]} from a previous-round EVOLVEpro file.
+
+    The previous EVOLVEpro xlsx is already in short variant space (Variant,
+    activity), so each row is one round-1 activity per variant. WT rows are
+    skipped; non-variant labels are skipped with a warning. Used as the round-1
+    baseline when the full round-1 already lives as an EVOLVEpro file rather than
+    a raw Agilent report.
+    """
+    warnings: list[str] = []
+    fallback: dict[str, list[float]] = {}
+    for variant, activity in read_evolvepro_rows(prev_evolvepro_xlsx):
+        if variant.upper() == _WT_LITERAL:
+            continue
+        short = _normalize_variant_label(variant)
+        if short is None:
+            warnings.append(
+                f"previous EVOLVEpro variant {variant!r} is not a variant label; skipped."
+            )
+            continue
+        fallback.setdefault(short, []).append(float(activity))
+    return fallback, warnings
+
+
+def _well_by_variant_from_layout(layout_xlsx) -> dict[str, str]:
+    """short variant -> well from the plate layout (for optional NGS gating).
+
+    Non-canonical mutant rows (controls, blanks, WT replicate labels not caught
+    by is_wt, multi-substitution or lowercase labels) are skipped rather than
+    raising, mirroring the raw-report path. For valid single-substitution layouts
+    this is identical to mapping every entry (V5F -> 5F either way).
+    """
+    well_by_variant: dict[str, str] = {}
+    for e in parse_plate_layout_xlsx(layout_xlsx):
+        if e.is_wt:
+            continue
+        short = _normalize_variant_label(e.mutant)
+        if short is not None:
+            well_by_variant[short] = e.well_id
+    return well_by_variant
+
+
+def build_evolvepro_input_from_reports(
+    layout_xlsx,
+    round1_report_xlsx,
+    remeasure_report_xlsx,
+    output_xlsx,
+    *,
+    mismatch_threshold: float = 0.1,
+    verdict_xlsx: str | Path | None = None,
+    prev_evolvepro_xlsx: str | Path | None = None,
+) -> BuildEvolveproReportsResult:
+    """Assemble an EVOLVEpro input xlsx from round-1 + a variant-labeled re-measure.
+
+    Round-1 baseline (fallback) comes from one of two sources:
+      - raw Agilent standard report (well-named) + plate layout, or
+      - a previous-round EVOLVEpro file (``prev_evolvepro_xlsx``, Variant/activity)
+        when the full round-1 already lives in EVOLVEpro form.
+    Re-measure: variant-labeled report -> n relative replicates per variant
+    (authoritative). Authoritative mean replaces fallback where both define a
+    variant; other variants keep their round-1 value.
+    """
+    output_path = Path(output_xlsx)
+    warnings: list[str] = []
+
+    if prev_evolvepro_xlsx is not None:
+        # Round-1 baseline from a previous-round EVOLVEpro file (Variant, activity).
+        fallback, w1 = _build_fallback_from_prev_evolvepro(prev_evolvepro_xlsx)
+        # Layout is optional here; only needed to map variant->well for NGS gating.
+        well_by_variant = (
+            _well_by_variant_from_layout(layout_xlsx) if layout_xlsx is not None else {}
+        )
+    else:
+        if layout_xlsx is None or round1_report_xlsx is None:
+            raise ValueError(
+                "raw round-1 mode requires both layout_xlsx and round1_report_xlsx; "
+                "pass prev_evolvepro_xlsx to use a previous EVOLVEpro file as round-1."
+            )
+        fallback, well_by_variant, w1 = _build_fallback_from_raw_report(
+            round1_report_xlsx, layout_xlsx
+        )
+    warnings.extend(w1)
+    authoritative, w2 = _build_authoritative_from_variant_report(remeasure_report_xlsx)
+    warnings.extend(w2)
+
+    authoritative_v: dict[Variant, list[float]] = {
+        Variant(k): v for k, v in authoritative.items()
+    }
+    fallback_v: dict[Variant, list[float]] = {
+        Variant(k): v for k, v in fallback.items()
+    }
+    merged, replicate_stats = merge_replicates_priority(
+        authoritative_v, fallback_v, mismatch_threshold=mismatch_threshold
+    )
+    if not merged:
+        raise ValueError(
+            "No variants to write: both round-1 and re-measure sources are empty after parsing."
+        )
+
+    mismatched_detail: list[dict] = [
+        {
+            "variant": str(v),
+            "authoritative": merged[v],
+            "fallback": sum(fallback_v[v]) / len(fallback_v[v]),
+        }
+        for v in replicate_stats.mismatched
+    ]
+
+    # Optional NGS verdict gating: drop variants whose layout well carries an
+    # explicit non-PASS verdict (ngs_success == verdict == PASS). A variant with
+    # no layout well, or a well absent from the verdict file, is kept (graceful,
+    # layout-trust). When no verdict file is given, behaviour is unchanged.
+    ngs_excluded: list[str] = []
+    if verdict_xlsx is not None:
+        from kuma_core.mame.activity.verdict_ngs import parse_verdict_wells, _PASS
+
+        if not well_by_variant:
+            # prev-EVOLVEpro round-1 mode without a layout: no variant->well map,
+            # so gating cannot run. Keep all variants (graceful, layout-trust).
+            warnings.append(
+                "NGS verdict gating skipped: no layout to map variant->well "
+                "(prev-EVOLVEpro round-1 mode without layout_xlsx)."
+            )
+        else:
+            verdict_by_well = parse_verdict_wells(verdict_xlsx)
+            for variant in list(merged):
+                well = well_by_variant.get(str(variant))
+                if well is None:
+                    continue
+                vclass = verdict_by_well.get(well)
+                if vclass is not None and vclass != _PASS:
+                    del merged[variant]
+                    ngs_excluded.append(str(variant))
+            if ngs_excluded:
+                warnings.append(
+                    f"NGS verdict gating excluded {len(ngs_excluded)} non-PASS "
+                    f"variant(s): {', '.join(sorted(ngs_excluded))}"
+                )
+            if not merged:
+                raise ValueError(
+                    "All variants excluded by NGS verdict gating (no PASS wells). "
+                    "Check the verdict file or omit it to use layout-trust."
+                )
+
+    rows = sorted(merged.items(), key=lambda kv: -kv[1])
+    n_variants = write_evolvepro_xlsx([(str(v), float(a)) for v, a in rows], output_path)
+
+    n_authoritative = len(authoritative)
+    n_fallback_only = sum(1 for k in fallback if k not in authoritative)
+
+    return BuildEvolveproReportsResult(
+        output_path=output_path,
+        n_variants=n_variants,
+        n_authoritative=n_authoritative,
+        n_fallback_only=n_fallback_only,
+        well_by_variant=well_by_variant,
+        replicate_stats=replicate_stats,
+        warnings=warnings,
+        mismatched=mismatched_detail,
+        n_ngs_excluded=len(ngs_excluded),
+        ngs_excluded=sorted(ngs_excluded),
     )

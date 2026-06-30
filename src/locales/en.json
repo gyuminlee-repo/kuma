@@ -320,8 +320,8 @@
     },
     "activity": {
       "ingest": {
-        "contextTitle": "Activity Data — Ingest",
-        "contextSubtitle": "Upload wet-lab activity measurements for this round.",
+        "contextTitle": "Activity Data: EVOLVEpro Input",
+        "contextSubtitle": "Ingest measurements, merge replicates, and export the EVOLVEpro input for this round.",
         "drawerLeft": "Activity",
         "drawerLeftDesc": "Wells with measurements",
         "drawerCenter": "Activity log",
@@ -395,7 +395,7 @@
     },
     "buildEvolvepro": {
       "title": "Build EVOLVEpro Input",
-      "subtitle": "Combine the plate layout, GC data, Agilent replicate report, and previous EVOLVEpro file into one EVOLVEpro input xlsx.",
+      "subtitle": "Combine the plate layout, the raw round-1 GC-FID report, and the variant-labeled re-measure report into one EVOLVEpro input xlsx.",
       "inputFiles": "Input files",
       "layoutXlsx": "Plate layout xlsx",
       "layoutXlsxHelper": "Mutant to well position mapping (Mutant, Well Pos. columns).",
@@ -405,6 +405,10 @@
       "repBatchXlsxHelper": "FID1B block report with numeric base IDs and replicate suffixes.",
       "prevEvolveproXlsx": "Previous EVOLVEpro xlsx",
       "prevEvolveproXlsxHelper": "Previous-round EVOLVEpro file used as the rank source (Variant, activity).",
+      "round1ReportXlsx": "Round-1 report (raw GC-FID)",
+      "round1ReportXlsxHelper": "Raw Agilent FID1B report; sample names are well positions (A1..H12), with WT_n blocks.",
+      "remeasureReportXlsx": "Re-measure report (variant-labeled)",
+      "remeasureReportXlsxHelper": "Raw Agilent FID1B report; sample names are variant labels (e.g. V5F or 5F), repeated rows are replicates.",
       "outputXlsx": "Output EVOLVEpro xlsx",
       "outputXlsxHelper": "Destination file for the merged EVOLVEpro input.",
       "requiredStateLabel": "Required",
@@ -413,7 +417,7 @@
       "build": "Build EVOLVEpro input",
       "building": "Building...",
       "resultTitle": "Build result",
-      "emptyState": "Select the four input files and an output path, then build the EVOLVEpro input.",
+      "emptyState": "Select the three input files and an output path, then build the EVOLVEpro input.",
       "nVariants": "Variants written",
       "nAuthoritative": "From replicate report",
       "nFallbackOnly": "From GC data only",
@@ -432,7 +436,19 @@
       "toastSuccess": "EVOLVEpro input built",
       "toastSuccessDesc": "Wrote {{count}} variants.",
       "toastError": "EVOLVEpro input build failed",
-      "openFolder": "Open output folder"
+      "openFolder": "Open output folder",
+      "verdictXlsx": "NGS verdict (optional)",
+      "verdictXlsxHelper": "Optional Analyze Excel report (Final sheet: well_id + verdict). Variants whose well is not PASS are excluded. Omit to skip NGS gating.",
+      "optionalStateLabel": "Optional",
+      "nNgsExcluded": "NGS-excluded",
+      "round1SourceLabel": "Round-1 source",
+      "round1SourcePrev": "Previous EVOLVEpro",
+      "round1SourceRaw": "Raw GC-FID report",
+      "round1SourcePrevHelper": "Use a prior EVOLVEpro file (Variant, activity) as the full round-1 baseline.",
+      "round1SourceRawHelper": "Use a raw GC-FID report (well-named); the plate layout maps wells to variants.",
+      "round1EvolveproXlsx": "Round-1 EVOLVEpro file",
+      "round1EvolveproXlsxHelper": "Previous-round EVOLVEpro xlsx (Variant, activity). Re-measured variants are replaced by their means.",
+      "layoutXlsxOptionalHelper": "Optional. Only used to map variant to well for NGS verdict gating."
     },
     "runHealth": {
       "panelAriaLabel": "Run health panel",
@@ -2206,7 +2222,7 @@
         "health": "Run Health"
       },
       "activity": {
-        "ingest": "Ingest Data",
+        "ingest": "Activity & EVOLVEpro Input",
         "merge": "Merge",
         "export": "Export",
         "mergeExport": "Merge & Export"
@@ -2262,7 +2278,7 @@
     },
     "mameDescriptions": {
       "activity": {
-        "ingest": "Upload activity CSV or Excel files and annotate the wild-type.",
+        "ingest": "Ingest activity data, merge replicates, and build the EVOLVEpro input file.",
         "mergeExport": "Merge activity data with genotype calls and export the merged table, then build the EVOLVEpro input by combining single-replicate (GC) and triple-replicate (WT-relative) activity."
       },
       "analyze": {

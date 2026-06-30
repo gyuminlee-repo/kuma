@@ -9,16 +9,28 @@
 
 /** Parameters for the mame.activity.build_evolvepro_input RPC method. */
 export interface BuildEvolveproInputParams {
-  /** Plate layout xlsx with Mutant and Well Pos. columns. */
-  layout_xlsx: string
-  /** Pre-normalised GC data xlsx with Sample Name (well) and Area columns. */
-  gc_data_xlsx: string
-  /** Agilent FID1B rep-batch xlsx (numeric base IDs + replicate suffixes). */
-  rep_batch_xlsx: string
-  /** Previous-round EVOLVEpro xlsx (Variant, activity) used as the rank source. */
-  prev_evolvepro_xlsx: string
+  /**
+   * Plate layout xlsx with Mutant and Well Pos. columns. Required for rank mode
+   * and raw round-1 reports mode; optional for prev-EVOLVEpro reports mode (only
+   * used there to map variant -> well for NGS verdict gating).
+   */
+  layout_xlsx?: string | null
   /** Destination xlsx. Parent directory must exist. */
   output_xlsx: string
+  /** Rank mode: pre-normalised GC data xlsx with Sample Name (well) and Area columns. */
+  gc_data_xlsx?: string | null
+  /** Rank mode: Agilent FID1B rep-batch xlsx (numeric base IDs + replicate suffixes). */
+  rep_batch_xlsx?: string | null
+  /** Rank mode: previous-round EVOLVEpro xlsx (Variant, activity) used as the rank source. */
+  prev_evolvepro_xlsx?: string | null
+  /** Reports mode: raw round-1 Agilent FID1B report (sample names are well positions). */
+  round1_report_xlsx?: string | null
+  /** Reports mode: round-1 baseline as a prior EVOLVEpro xlsx (Variant, activity); alternative to round1_report_xlsx. */
+  round1_evolvepro_xlsx?: string | null
+  /** Reports mode: raw variant-labeled Agilent FID1B re-measure report. */
+  remeasure_report_xlsx?: string | null
+  /** Reports mode (optional): Analyze verdict xlsx; variants whose well is not PASS are excluded. */
+  verdict_xlsx?: string | null
   /** Mean-difference threshold for the replicate mismatch flag. Default 0.1. */
   mismatch_threshold?: number
   /** Where to write the ID->variant JSON audit. Defaults next to output_xlsx. */
@@ -87,4 +99,10 @@ export interface BuildEvolveproInputResult {
    * 1-replicate primary screen mean beyond the merge threshold (QC, not error).
    */
   mismatched: MismatchedVariant[]
+  /** Which source contract produced this result: rank inputs or raw reports. */
+  mode: "rank" | "reports"
+  /** Count of variants excluded by NGS verdict gating (0 when no verdict_xlsx). */
+  n_ngs_excluded: number
+  /** Short variant labels excluded because their well was not PASS. */
+  ngs_excluded: string[]
 }

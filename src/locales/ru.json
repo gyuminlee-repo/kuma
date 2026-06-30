@@ -310,8 +310,8 @@
         "uploadHeading": "Загрузить данные активности",
         "uploadDesc": "Загрузите long format CSV / Excel файл (колонки well, replicate, value) в текущий Round.",
         "loaded": "✓ {{count}} wells загружено",
-        "contextSubtitle": "Upload wet-lab activity measurements for this round.",
-        "contextTitle": "Activity Data — Ingest",
+        "contextSubtitle": "Импортируйте измерения, объедините replicates и экспортируйте входные данные EVOLVEpro для этого Round.",
+        "contextTitle": "Activity Data: EVOLVEpro Input",
         "drawerCenter": "Activity log",
         "drawerLeft": "Activity",
         "drawerLeftDesc": "Wells with measurements",
@@ -863,7 +863,7 @@
     },
     "buildEvolvepro": {
       "title": "Создание входных данных EVOLVEpro",
-      "subtitle": "Объединяет раскладку планшета, данные GC, отчёт о повторах Agilent и предыдущий файл EVOLVEpro в один входной xlsx для EVOLVEpro.",
+      "subtitle": "Объединяет раскладку планшета, исходный отчёт GC-FID первого раунда и отчёт повторного измерения с метками вариантов в один входной xlsx для EVOLVEpro.",
       "inputFiles": "Входные файлы",
       "layoutXlsx": "xlsx раскладки планшета",
       "layoutXlsxHelper": "Сопоставление Mutant с позицией well (колонки Mutant, Well Pos.).",
@@ -873,6 +873,10 @@
       "repBatchXlsxHelper": "Отчёт по блокам FID1B с числовыми base ID и replicate-суффиксами.",
       "prevEvolveproXlsx": "Предыдущий xlsx EVOLVEpro",
       "prevEvolveproXlsxHelper": "Файл EVOLVEpro предыдущего раунда, используемый как rank source (Variant, activity).",
+      "round1ReportXlsx": "Round-1 report (raw GC-FID)",
+      "round1ReportXlsxHelper": "Raw Agilent FID1B report; sample names are well positions (A1..H12), with WT_n blocks.",
+      "remeasureReportXlsx": "Re-measure report (variant-labeled)",
+      "remeasureReportXlsxHelper": "Raw Agilent FID1B report; sample names are variant labels (e.g. V5F or 5F), repeated rows are replicates.",
       "outputXlsx": "Выходной xlsx EVOLVEpro",
       "outputXlsxHelper": "Файл назначения для объединённых входных данных EVOLVEpro.",
       "requiredStateLabel": "Обязательно",
@@ -881,7 +885,7 @@
       "build": "Создать входные данные EVOLVEpro",
       "building": "Создание...",
       "resultTitle": "Результат создания",
-      "emptyState": "Выберите четыре входных файла и путь вывода, затем создайте входные данные EVOLVEpro.",
+      "emptyState": "Выберите три входных файла и путь вывода, затем создайте входные данные EVOLVEpro.",
       "nVariants": "Записано Variant",
       "nAuthoritative": "По отчёту о повторах",
       "nFallbackOnly": "Только по данным GC",
@@ -900,7 +904,19 @@
       "toastSuccess": "Входные данные EVOLVEpro созданы",
       "toastSuccessDesc": "Записано Variant: {{count}}.",
       "toastError": "Не удалось создать входные данные EVOLVEpro",
-      "openFolder": "Открыть папку вывода"
+      "openFolder": "Открыть папку вывода",
+      "verdictXlsx": "NGS verdict (optional)",
+      "verdictXlsxHelper": "Optional Analyze Excel report (Final sheet: well_id + verdict). Variants whose well is not PASS are excluded. Omit to skip NGS gating.",
+      "optionalStateLabel": "Optional",
+      "nNgsExcluded": "NGS-excluded",
+      "round1SourceLabel": "Источник Round-1",
+      "round1SourcePrev": "Предыдущий EVOLVEpro",
+      "round1SourceRaw": "Сырой отчёт GC-FID",
+      "round1SourcePrevHelper": "Использовать предыдущий файл EVOLVEpro (Variant, activity) как полную базу Round-1.",
+      "round1SourceRawHelper": "Использовать сырой отчёт GC-FID (с именами well); plate layout сопоставляет well с variant.",
+      "round1EvolveproXlsx": "Файл EVOLVEpro для Round-1",
+      "round1EvolveproXlsxHelper": "EVOLVEpro xlsx предыдущего раунда (Variant, activity). Повторно измеренные variant заменяются их средним.",
+      "layoutXlsxOptionalHelper": "Необязательно. Используется только для сопоставления variant с well при NGS verdict gating."
     },
     "verdictBadge": {
       "help": {
@@ -2175,7 +2191,7 @@
         "review": "Review (Verdict + Plate)"
       },
       "activity": {
-        "ingest": "Ingest данные",
+        "ingest": "Activity & EVOLVEpro Input",
         "mergeExport": "Merge & Export",
         "export": "Export",
         "merge": "Merge"
@@ -2219,7 +2235,7 @@
         "review": "Review the verdict table, plate layout, and per-plate verdict distribution in one view."
       },
       "activity": {
-        "ingest": "Загрузите файлы CSV или Excel с активностью и аннотируйте wild-type.",
+        "ingest": "Импортируйте данные Activity, объедините replicates и создайте входной файл EVOLVEpro.",
         "mergeExport": "Объедините данные активности с вызовами генотипа и экспортируйте таблицу, затем создайте входные данные EVOLVEpro, объединив активность с одной репликой (GC) и тремя репликами (относительно WT)."
       }
     },

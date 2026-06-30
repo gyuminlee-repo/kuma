@@ -310,8 +310,8 @@
         "uploadHeading": "Upload Activity data",
         "uploadDesc": "Load ein long-Format CSV / Excel Datei (well, Replicate, value columns) into die current Round.",
         "loaded": "✓ {{count}} Wells geladen",
-        "contextSubtitle": "Upload wet-lab activity measurements for this round.",
-        "contextTitle": "Activity Data — Ingest",
+        "contextSubtitle": "Messwerte einlesen, Replicates zusammenführen und die EVOLVEpro-Eingabe für diese Round exportieren.",
+        "contextTitle": "Activity Data: EVOLVEpro Input",
         "drawerCenter": "Activity log",
         "drawerLeft": "Activity",
         "drawerLeftDesc": "Wells with measurements",
@@ -863,7 +863,7 @@
     },
     "buildEvolvepro": {
       "title": "EVOLVEpro-Eingabe erstellen",
-      "subtitle": "Plattenlayout, GC-Daten, Agilent-Replikat-Bericht und vorherige EVOLVEpro-Datei zu einer einzigen EVOLVEpro-Eingabe-xlsx zusammenführen.",
+      "subtitle": "Plattenlayout, den Roh-Runde-1-GC-FID-Bericht und den variantenmarkierten Nachmessbericht zu einer einzigen EVOLVEpro-Eingabe-xlsx zusammenführen.",
       "inputFiles": "Eingabedateien",
       "layoutXlsx": "Plattenlayout-xlsx",
       "layoutXlsxHelper": "Zuordnung von Mutant zur Well-Position (Spalten Mutant, \"Well Pos.\").",
@@ -873,6 +873,10 @@
       "repBatchXlsxHelper": "FID1B-Blockbericht mit numerischen base IDs und replicate-Suffixen.",
       "prevEvolveproXlsx": "Vorherige EVOLVEpro-xlsx",
       "prevEvolveproXlsxHelper": "EVOLVEpro-Datei der vorherigen Runde, die als rank source dient (Variant, activity).",
+      "round1ReportXlsx": "Round-1 report (raw GC-FID)",
+      "round1ReportXlsxHelper": "Raw Agilent FID1B report; sample names are well positions (A1..H12), with WT_n blocks.",
+      "remeasureReportXlsx": "Re-measure report (variant-labeled)",
+      "remeasureReportXlsxHelper": "Raw Agilent FID1B report; sample names are variant labels (e.g. V5F or 5F), repeated rows are replicates.",
       "outputXlsx": "Ausgabe-EVOLVEpro-xlsx",
       "outputXlsxHelper": "Zieldatei für die zusammengeführte EVOLVEpro-Eingabe.",
       "requiredStateLabel": "Erforderlich",
@@ -881,7 +885,7 @@
       "build": "EVOLVEpro-Eingabe erstellen",
       "building": "Wird erstellt...",
       "resultTitle": "Erstellungsergebnis",
-      "emptyState": "Wählen Sie die vier Eingabedateien und einen Ausgabepfad aus und erstellen Sie dann die EVOLVEpro-Eingabe.",
+      "emptyState": "Wählen Sie die drei Eingabedateien und einen Ausgabepfad aus und erstellen Sie dann die EVOLVEpro-Eingabe.",
       "nVariants": "Geschriebene Variant",
       "nAuthoritative": "Aus Replikat-Bericht",
       "nFallbackOnly": "Nur aus GC-Daten",
@@ -900,7 +904,19 @@
       "toastSuccess": "EVOLVEpro-Eingabe erstellt",
       "toastSuccessDesc": "{{count}} Variant geschrieben.",
       "toastError": "Erstellung der EVOLVEpro-Eingabe fehlgeschlagen",
-      "openFolder": "Ausgabeordner öffnen"
+      "openFolder": "Ausgabeordner öffnen",
+      "verdictXlsx": "NGS verdict (optional)",
+      "verdictXlsxHelper": "Optional Analyze Excel report (Final sheet: well_id + verdict). Variants whose well is not PASS are excluded. Omit to skip NGS gating.",
+      "optionalStateLabel": "Optional",
+      "nNgsExcluded": "NGS-excluded",
+      "round1SourceLabel": "Round-1-Quelle",
+      "round1SourcePrev": "Vorheriges EVOLVEpro",
+      "round1SourceRaw": "Roher GC-FID-Bericht",
+      "round1SourcePrevHelper": "Eine vorherige EVOLVEpro-Datei (Variant, activity) als vollständige Round-1-Basis verwenden.",
+      "round1SourceRawHelper": "Einen rohen GC-FID-Bericht (well-benannt) verwenden; das Plate-Layout ordnet wells den Variants zu.",
+      "round1EvolveproXlsx": "Round-1-EVOLVEpro-Datei",
+      "round1EvolveproXlsxHelper": "EVOLVEpro xlsx der vorherigen Runde (Variant, activity). Neu gemessene Variants werden durch ihre Mittelwerte ersetzt.",
+      "layoutXlsxOptionalHelper": "Optional. Nur zum Zuordnen von Variant zu well für das NGS-verdict-Gating verwendet."
     },
     "verdictBadge": {
       "help": {
@@ -2175,7 +2191,7 @@
         "review": "Review (Verdict + Plate)"
       },
       "activity": {
-        "ingest": "Daten ingestieren",
+        "ingest": "Activity & EVOLVEpro Input",
         "mergeExport": "Merge & Export",
         "export": "Export",
         "merge": "Merge"
@@ -2219,7 +2235,7 @@
         "review": "Review the verdict table, plate layout, and per-plate verdict distribution in one view."
       },
       "activity": {
-        "ingest": "Upload Activity CSV oder Excel Dateien und annotate die wild-type.",
+        "ingest": "Activity-Daten einlesen, Replicates zusammenführen und die EVOLVEpro-Eingabedatei erstellen.",
         "mergeExport": "Führen Sie die Aktivitätsdaten mit den Genotyp-Calls zusammen und exportieren Sie die Tabelle; erstellen Sie dann die EVOLVEpro-Eingabe, indem Sie Einzelreplikat- (GC) und Dreifachreplikat-Aktivität (WT-relativ) kombinieren."
       }
     },

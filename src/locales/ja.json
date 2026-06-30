@@ -310,8 +310,8 @@
         "uploadHeading": "活性データをアップロード",
         "uploadDesc": "long format の CSV / Excel ファイル (well, replicate, value カラム) を現在の Round に読み込み。",
         "loaded": "✓ {{count}} wells 読み込み完了",
-        "contextSubtitle": "Upload wet-lab activity measurements for this round.",
-        "contextTitle": "Activity Data — Ingest",
+        "contextSubtitle": "このラウンドの測定値を取り込み、replicate を統合して EVOLVEpro 入力をエクスポートします。",
+        "contextTitle": "Activity Data: EVOLVEpro Input",
         "drawerCenter": "活性ログ",
         "drawerLeft": "活性",
         "drawerLeftDesc": "Wells with measurements",
@@ -863,7 +863,7 @@
     },
     "buildEvolvepro": {
       "title": "EVOLVEpro 入力の生成",
-      "subtitle": "プレートレイアウト、GC データ、Agilent replicate レポート、以前の EVOLVEpro ファイルを 1 つの EVOLVEpro 入力 xlsx に統合します。",
+      "subtitle": "プレートレイアウト、raw ラウンド1 GC-FID レポート、変異ラベル付き再測定レポートを 1 つの EVOLVEpro 入力 xlsx に統合します。",
       "inputFiles": "入力ファイル",
       "layoutXlsx": "プレートレイアウト xlsx",
       "layoutXlsxHelper": "Mutant から well 位置へのマッピング（Mutant、Well Pos. 列）。",
@@ -873,6 +873,10 @@
       "repBatchXlsxHelper": "数値の base ID と replicate サフィックスを持つ FID1B ブロックレポート。",
       "prevEvolveproXlsx": "以前の EVOLVEpro xlsx",
       "prevEvolveproXlsxHelper": "rank source として使用する前ラウンドの EVOLVEpro ファイル（Variant、activity）。",
+      "round1ReportXlsx": "Round-1 report (raw GC-FID)",
+      "round1ReportXlsxHelper": "Raw Agilent FID1B report; sample names are well positions (A1..H12), with WT_n blocks.",
+      "remeasureReportXlsx": "Re-measure report (variant-labeled)",
+      "remeasureReportXlsxHelper": "Raw Agilent FID1B report; sample names are variant labels (e.g. V5F or 5F), repeated rows are replicates.",
       "outputXlsx": "出力 EVOLVEpro xlsx",
       "outputXlsxHelper": "統合した EVOLVEpro 入力の保存先ファイル。",
       "requiredStateLabel": "必須",
@@ -881,7 +885,7 @@
       "build": "EVOLVEpro 入力を生成",
       "building": "生成中…",
       "resultTitle": "生成結果",
-      "emptyState": "4 つの入力ファイルと出力パスを選択してから、EVOLVEpro 入力を生成してください。",
+      "emptyState": "3 つの入力ファイルと出力パスを選択してから、EVOLVEpro 入力を生成してください。",
       "nVariants": "記録された variant",
       "nAuthoritative": "replicate レポート由来",
       "nFallbackOnly": "GC データのみ由来",
@@ -900,7 +904,19 @@
       "toastSuccess": "EVOLVEpro 入力の生成が完了しました",
       "toastSuccessDesc": "{{count}} 件の variant を記録しました。",
       "toastError": "EVOLVEpro 入力の生成に失敗しました",
-      "openFolder": "出力フォルダを開く"
+      "openFolder": "出力フォルダを開く",
+      "verdictXlsx": "NGS verdict (optional)",
+      "verdictXlsxHelper": "Optional Analyze Excel report (Final sheet: well_id + verdict). Variants whose well is not PASS are excluded. Omit to skip NGS gating.",
+      "optionalStateLabel": "Optional",
+      "nNgsExcluded": "NGS-excluded",
+      "round1SourceLabel": "Round-1 ソース",
+      "round1SourcePrev": "以前の EVOLVEpro",
+      "round1SourceRaw": "raw GC-FID レポート",
+      "round1SourcePrevHelper": "以前の EVOLVEpro ファイル（Variant, activity）を round-1 全体の基準値として使用します。",
+      "round1SourceRawHelper": "raw GC-FID レポート（well 名）を使用し、plate layout で well を variant にマッピングします。",
+      "round1EvolveproXlsx": "Round-1 EVOLVEpro ファイル",
+      "round1EvolveproXlsxHelper": "前ラウンドの EVOLVEpro xlsx（Variant, activity）。再測定した variant は平均値で置き換えられます。",
+      "layoutXlsxOptionalHelper": "任意。NGS verdict gating で variant を well にマッピングする場合のみ使用します。"
     },
     "verdictBadge": {
       "help": {
@@ -2175,7 +2191,7 @@
         "review": "Review (Verdict + Plate)"
       },
       "activity": {
-        "ingest": "データ Ingest",
+        "ingest": "Activity & EVOLVEpro Input",
         "mergeExport": "Merge & Export",
         "export": "Export",
         "merge": "Merge"
@@ -2219,7 +2235,7 @@
         "review": "Review the verdict table, plate layout, and per-plate verdict distribution in one view."
       },
       "activity": {
-        "ingest": "活性 CSV または Excel ファイルをアップロードし、wild-type をアノテート。",
+        "ingest": "Activity データを取り込み、replicate を統合して EVOLVEpro 入力ファイルを生成します。",
         "mergeExport": "活性データを遺伝型コールとマージしてテーブルをエクスポートし、単一反復 (GC) と 3 反復 (WT 相対) の活性を組み合わせて EVOLVEpro 入力を生成します。"
       }
     },

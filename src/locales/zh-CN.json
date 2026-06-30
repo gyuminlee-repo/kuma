@@ -310,8 +310,8 @@
         "uploadHeading": "上传 activity 数据",
         "uploadDesc": "将 long-format CSV / Excel 文件 (well, replicate, value 列) 加载到当前 Round。",
         "loaded": "✓ 已加载 {{count}} wells",
-        "contextSubtitle": "Upload wet-lab activity measurements for this round.",
-        "contextTitle": "Activity Data — Ingest",
+        "contextSubtitle": "导入本轮的测量值，合并 replicate，并导出 EVOLVEpro 输入。",
+        "contextTitle": "Activity Data: EVOLVEpro Input",
         "drawerCenter": "Activity log",
         "drawerLeft": "Activity",
         "drawerLeftDesc": "Wells with measurements",
@@ -863,7 +863,7 @@
     },
     "buildEvolvepro": {
       "title": "生成 EVOLVEpro 输入",
-      "subtitle": "将板布局、GC 数据、Agilent 重复报告和上一轮 EVOLVEpro 文件合并为一个 EVOLVEpro 输入 xlsx。",
+      "subtitle": "将板布局、第 1 轮原始 GC-FID 报告和带变体标签的复测报告合并为一个 EVOLVEpro 输入 xlsx。",
       "inputFiles": "输入文件",
       "layoutXlsx": "板布局 xlsx",
       "layoutXlsxHelper": "Mutant to well 位置映射（Mutant、Well Pos. 列）。",
@@ -873,6 +873,10 @@
       "repBatchXlsxHelper": "带有数字 base ID 和 replicate 后缀的 FID1B 块报告。",
       "prevEvolveproXlsx": "上一轮 EVOLVEpro xlsx",
       "prevEvolveproXlsxHelper": "用作 rank source 的上一轮 EVOLVEpro 文件（Variant、activity）。",
+      "round1ReportXlsx": "Round-1 report (raw GC-FID)",
+      "round1ReportXlsxHelper": "Raw Agilent FID1B report; sample names are well positions (A1..H12), with WT_n blocks.",
+      "remeasureReportXlsx": "Re-measure report (variant-labeled)",
+      "remeasureReportXlsxHelper": "Raw Agilent FID1B report; sample names are variant labels (e.g. V5F or 5F), repeated rows are replicates.",
       "outputXlsx": "输出 EVOLVEpro xlsx",
       "outputXlsxHelper": "合并后 EVOLVEpro 输入的保存文件。",
       "requiredStateLabel": "必填",
@@ -881,7 +885,7 @@
       "build": "生成 EVOLVEpro 输入",
       "building": "生成中...",
       "resultTitle": "生成结果",
-      "emptyState": "选择四个输入文件和一个输出路径，然后生成 EVOLVEpro 输入。",
+      "emptyState": "选择三个输入文件和一个输出路径，然后生成 EVOLVEpro 输入。",
       "nVariants": "已写入的 variant",
       "nAuthoritative": "以重复报告为准",
       "nFallbackOnly": "仅来自 GC 数据",
@@ -900,7 +904,19 @@
       "toastSuccess": "EVOLVEpro 输入生成完成",
       "toastSuccessDesc": "已写入 {{count}} 个 variant。",
       "toastError": "EVOLVEpro 输入生成失败",
-      "openFolder": "打开输出文件夹"
+      "openFolder": "打开输出文件夹",
+      "verdictXlsx": "NGS verdict (optional)",
+      "verdictXlsxHelper": "Optional Analyze Excel report (Final sheet: well_id + verdict). Variants whose well is not PASS are excluded. Omit to skip NGS gating.",
+      "optionalStateLabel": "Optional",
+      "nNgsExcluded": "NGS-excluded",
+      "round1SourceLabel": "Round-1 来源",
+      "round1SourcePrev": "先前的 EVOLVEpro",
+      "round1SourceRaw": "原始 GC-FID 报告",
+      "round1SourcePrevHelper": "使用先前的 EVOLVEpro 文件（Variant, activity）作为 round-1 的完整基准。",
+      "round1SourceRawHelper": "使用原始 GC-FID 报告（以 well 命名）；plate layout 将 well 映射到 variant。",
+      "round1EvolveproXlsx": "Round-1 EVOLVEpro 文件",
+      "round1EvolveproXlsxHelper": "上一轮的 EVOLVEpro xlsx（Variant, activity）。重新测量的 variant 用其平均值替换。",
+      "layoutXlsxOptionalHelper": "可选。仅用于在 NGS verdict gating 时将 variant 映射到 well。"
     },
     "verdictBadge": {
       "help": {
@@ -2175,7 +2191,7 @@
         "review": "Review (Verdict + Plate)"
       },
       "activity": {
-        "ingest": "Ingest 数据",
+        "ingest": "Activity & EVOLVEpro Input",
         "mergeExport": "Merge & Export",
         "export": "Export",
         "merge": "Merge"
@@ -2219,7 +2235,7 @@
         "review": "Review the verdict table, plate layout, and per-plate verdict distribution in one view."
       },
       "activity": {
-        "ingest": "上传 activity CSV 或 Excel 文件并标注野生型。",
+        "ingest": "导入 Activity 数据，合并 replicate，并生成 EVOLVEpro 输入文件。",
         "mergeExport": "将活性数据与基因型判定合并并导出表格，然后通过组合单次重复 (GC) 与三次重复 (相对 WT) 活性来构建 EVOLVEpro 输入。"
       }
     },
