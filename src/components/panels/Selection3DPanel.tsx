@@ -241,6 +241,95 @@ function DispersionCard({ result }: { result: ComputeDispersionResult }) {
   );
 }
 
+function ColorSwatch({ color, gradient }: { color?: string; gradient?: string }) {
+  return (
+    <span
+      className="inline-block h-3 w-4 shrink-0 rounded-sm border border-border"
+      style={{ background: gradient ?? color }}
+    />
+  );
+}
+
+function ColorLegend({
+  colorMode,
+  hasVariants,
+  hasActiveSite,
+  hasInterface,
+  hasDomains,
+  showPlddt,
+}: {
+  colorMode: ColorMode;
+  hasVariants: boolean;
+  hasActiveSite: boolean;
+  hasInterface: boolean;
+  hasDomains: boolean;
+  showPlddt: boolean;
+}) {
+  const { t } = useTranslation();
+
+  const rows: { key: string; swatch: React.ReactNode; label: string }[] = [];
+
+  if (colorMode === "domain" && hasDomains) {
+    rows.push({
+      key: "domain",
+      swatch: <ColorSwatch gradient={`linear-gradient(to right, ${DOMAIN_COLORS.join(", ")})`} />,
+      label: t("selection3d.legendDomain"),
+    });
+  } else if (colorMode === "plddt" && showPlddt) {
+    rows.push({
+      key: "plddt",
+      swatch: <ColorSwatch gradient="linear-gradient(to right, #FF7D45, #FFDB13, #65CBF3, #0053D6)" />,
+      label: t("selection3d.legendPlddt"),
+    });
+  } else {
+    rows.push({
+      key: "backbone",
+      swatch: <ColorSwatch color="gray" />,
+      label: t("selection3d.legendBackbone"),
+    });
+  }
+
+  if (hasVariants) {
+    rows.push({
+      key: "variant",
+      swatch: <ColorSwatch gradient="linear-gradient(to right, #0000ff, #ff0000)" />,
+      label: t("selection3d.legendVariant"),
+    });
+  }
+  if (hasActiveSite) {
+    rows.push({
+      key: "active",
+      swatch: <ColorSwatch color="#ff8800" />,
+      label: t("selection3d.legendActiveSite"),
+    });
+  }
+  if (hasInterface) {
+    rows.push({
+      key: "interface",
+      swatch: <ColorSwatch color="#d000d0" />,
+      label: t("selection3d.legendInterface"),
+    });
+  }
+
+  return (
+    <div className="rounded border border-border bg-card px-3 py-2" data-testid="color-legend">
+      <div className="mb-1.5 flex items-center gap-1">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          {t("selection3d.legendTitle")}
+        </h3>
+        <InlineHelp text={t("selection3d.legendHelp")} />
+      </div>
+      <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
+        {rows.map((r) => (
+          <li key={r.key} className="flex items-center gap-1.5">
+            {r.swatch}
+            <span className="text-muted-foreground">{r.label}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 interface ActiveSiteControlProps {
   positions: number[];
   hasAnnotation: boolean;
@@ -1103,6 +1192,16 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
 
             {phase === "ready" && (
               <>
+
+                {/* Color legend — explains what each color in the 3D scene means */}
+                <ColorLegend
+                  colorMode={colorMode}
+                  hasVariants={(joinResult?.rows.length ?? 0) > 0}
+                  hasActiveSite={activeSitePositions.length > 0}
+                  hasInterface={showInterface && (activeSiteResult?.binding_positions?.length ?? 0) > 0}
+                  hasDomains={domains.length > 0}
+                  showPlddt={!uploadSource}
+                />
 
 
                 {/* Active site control */}

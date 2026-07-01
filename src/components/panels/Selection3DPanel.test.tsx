@@ -469,7 +469,7 @@ describe("Selection3DPanel — DispersionCard histogram", () => {
     );
 
     const helpButtons = screen.getAllByLabelText("showHelp");
-    expect(helpButtons).toHaveLength(6);
+    expect(helpButtons).toHaveLength(7);
 
     fireEvent.click(helpButtons[1]);
     expect(await screen.findByText("dispersionChartHelp")).toBeInTheDocument();
@@ -755,5 +755,28 @@ describe("Selection3DPanel — explicit selection: no fallback note", () => {
     );
     expect(screen.queryByTestId("fallback-note")).toBeNull();
     expect(screen.queryByTestId("no-variants-message")).toBeNull();
+  });
+});
+
+describe("Selection3DPanel — color legend", () => {
+  it("renders a legend describing backbone/domain, variant, active-site and interface colors", async () => {
+    setStore({
+      uniprotAccession: "P12345",
+      evolveproSelectedVariants: ["A1G"],
+      evolveproRankedCandidates: [{ variant: "A1G", y_pred: 0.85, aa_position: 1 }],
+      yPredMap: { A1G: 0.85 },
+      domains: [{ name: "Dom", id: "PF1", start: 1, end: 50, db: "Pfam" }],
+      seqInfo: makeSeqInfo(),
+      fetchPdbText: vi.fn().mockResolvedValue(SUCCESS_PDB),
+      fetchActiveSite: vi.fn().mockResolvedValue(ACTIVE_SITE),
+      computeDispersion: vi.fn().mockResolvedValue(DISPERSION),
+    });
+    render(<Selection3DPanel />);
+    fireEvent.click(screen.getByTestId("panel-toggle"));
+    const legend = await screen.findByTestId("color-legend");
+    expect(legend.textContent).toContain("legendDomain");
+    expect(legend.textContent).toContain("legendVariant");
+    expect(legend.textContent).toContain("legendActiveSite");
+    expect(legend.textContent).toContain("legendInterface");
   });
 });

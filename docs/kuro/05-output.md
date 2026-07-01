@@ -30,6 +30,26 @@ per-mutation 설계 결과를 표 + 96-well plate map + 우측 DesignReportInspe
 - Synthesis quality score 분포
 - Off-target 검출 로그
 
+## Candidate 3D structure analysis (v0.13.7)
+
+Output 하단의 접이식 패널 (기본 접힘, 열 때만 3Dmol 로드). structure/UniProt accession 이 있으면 AlphaFold/PDB 구조를 불러오고, 없으면 PDB/CIF 업로드 fallback 으로 진행한다. 대상은 현재 design 후보 집합 (`evolveproSelectedVariants`), 없으면 ranked candidates 전체.
+
+구성:
+- **3Dmol viewer** — cartoon + variant sphere(y_pred 그라데이션) + active-site stick + interface sphere. domain/pLDDT/plain 색칠 모드, surface, spin, fullscreen, PNG export.
+- **Color legend** — viewer 아래에서 각 색의 의미를 현재 색칠 모드/표시 상태에 맞춰 표시.
+- **Structural Dispersion 카드** — 선택 변이 위치들이 3D 공간에서 얼마나 뭉쳤는지/퍼졌는지를 무작위 matched-size 잔기 집합(null)과 비교. mean pairwise Cα 거리, null p05–p95, percentile(`P1`=강한 clustering, `P99`=강한 spread), classification, null 분포 히스토그램.
+- **`?` 도움말 토글** — 카드/히스토그램/각 지표에 인라인 설명(InlineHelp).
+- **Selected Positions / Positions by Domain 표** — accession-frame 로 매핑된 위치, active/interface/pLDDT/domain.
+
+### 해석 원칙 — QC 보조이지 selection filter 가 아님
+
+3D dispersion·pLDDT·active/interface overlay 는 **해석·QC 보조 지표**다. 후보 선정 게이트가 아니다.
+
+- 구조를 못 이루는(저 pLDDT / disordered) 잔기라도 **변이 대상에서 자동 배제하지 않는다.** 후보 선정 권한은 EVOLVEpro `y_pred` 랭킹에 있다.
+- 근거(비대칭 손익): 낭비되는 well 1개(bounded, ~1%) < 놓친 진짜 hot spot(그 라운드에서 회복 불가). ESM/EVOLVEpro 점수가 이미 저제약 위치를 낮게 랭크하므로 구조 필터는 대체로 중복이고, loop/동역학 유래 유익 변이를 잘라낼 위험이 있다.
+- 예외는 “필터”가 아니라 좌표 정합성 문제다: transit peptide / tag / linker 처럼 **성숙 단백질에 없는 구간**은 애초에 변이 대상 좌표에서 제외한다.
+- 저 pLDDT 위치가 top 에 올라오면 자동 배제가 아니라 사람이 이 패널로 보고 판단한다.
+
 ## 다음
 
 → [Step 6. Export](06-export.md)

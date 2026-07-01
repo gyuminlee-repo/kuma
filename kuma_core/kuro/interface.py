@@ -174,16 +174,20 @@ def map_residues(
 def _build_position_map(accession_seq: str, target_seq: str) -> dict[int, int]:
     """1-based accession-position -> 1-based target-position via global alignment.
 
-    Uses biopython's PairwiseAligner with BLOSUM62, affine gaps, and free end
-    gaps so an N-terminal transit-peptide extension on one sequence does not
-    force spurious internal gaps. Only aligned (non-gap on both sides) columns
-    contribute to the map. Lazy-imports biopython to keep the heavy dependency
-    off ``compute_interface_residues``'s critical path.
+    Uses biopython's ``PairwiseAligner`` with explicit match/mismatch scoring,
+    affine gaps, and free end gaps so an N-terminal transit-peptide extension on
+    one sequence does not force spurious internal gaps. The scoring is kept
+    self-contained: packaged sidecars must not depend on Biopython's loose
+    substitution-matrix data files (for example ``BLOSUM62`` under
+    ``Bio/Align/substitution_matrices/data``). Only aligned (non-gap on both
+    sides) columns contribute to the map.
     """
-    from Bio.Align import PairwiseAligner, substitution_matrices
+    from Bio.Align import PairwiseAligner
 
     aligner = PairwiseAligner()
-    aligner.substitution_matrix = substitution_matrices.load("BLOSUM62")
+    aligner.mode = "global"
+    aligner.match_score = 2.0
+    aligner.mismatch_score = -1.0
     aligner.open_gap_score = -11.0
     aligner.extend_gap_score = -1.0
     # Free end gaps: terminal extensions (e.g. transit peptide) cost nothing.

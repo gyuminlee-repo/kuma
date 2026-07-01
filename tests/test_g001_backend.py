@@ -58,6 +58,21 @@ class TestMapRefToAccession:
         assert result["mapped"] == [5]
         assert result["dropped"] == [5]
 
+    def test_mapping_does_not_require_blosum62_data_file(self, monkeypatch) -> None:
+        """Packaged sidecars may omit Biopython's loose BLOSUM62 data file."""
+        from Bio.Align import substitution_matrices
+
+        def fail_if_loaded(name: str):
+            raise FileNotFoundError(name)
+
+        monkeypatch.setattr(substitution_matrices, "load", fail_if_loaded)
+        fn = self._fn()
+
+        ref_seq = "MKTAYIAKQR" + "QISFVKSHFSRQLEERLGLI"
+        accession_seq = "QISFVKSHFSRQLEERLGLI"
+
+        assert fn([15], accession_seq, ref_seq) == {"mapped": [5], "dropped": []}
+
     def test_empty_positions(self) -> None:
         fn = self._fn()
         result = fn([], "MKTAY", "MKTAY")
