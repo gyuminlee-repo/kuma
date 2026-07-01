@@ -254,21 +254,40 @@ function ColorLegend({
   colorMode,
   hasVariants,
   hasActiveSite,
-  hasInterface,
+  hasBindingSite,
   hasDomains,
   showPlddt,
+  showVariants,
+  showActiveSite,
+  showBindingSite,
+  onToggleVariants,
+  onToggleActiveSite,
+  onToggleBindingSite,
 }: {
   colorMode: ColorMode;
   hasVariants: boolean;
   hasActiveSite: boolean;
-  hasInterface: boolean;
+  hasBindingSite: boolean;
   hasDomains: boolean;
   showPlddt: boolean;
+  showVariants: boolean;
+  showActiveSite: boolean;
+  showBindingSite: boolean;
+  onToggleVariants: () => void;
+  onToggleActiveSite: () => void;
+  onToggleBindingSite: () => void;
 }) {
   const { t } = useTranslation();
 
-  const rows: { key: string; swatch: React.ReactNode; label: string }[] = [];
+  type LegendRowSpec = {
+    key: string;
+    swatch: React.ReactNode;
+    label: string;
+    toggle?: { on: boolean; onToggle: () => void };
+  };
+  const rows: LegendRowSpec[] = [];
 
+  // Backbone row is always shown and never toggleable (structure must stay visible).
   if (colorMode === "domain" && hasDomains) {
     rows.push({
       key: "domain",
@@ -294,6 +313,7 @@ function ColorLegend({
       key: "variant",
       swatch: <ColorSwatch gradient="linear-gradient(to right, #0000ff, #ff0000)" />,
       label: t("selection3d.legendVariant"),
+      toggle: { on: showVariants, onToggle: onToggleVariants },
     });
   }
   if (hasActiveSite) {
@@ -301,13 +321,15 @@ function ColorLegend({
       key: "active",
       swatch: <ColorSwatch color="#ff8800" />,
       label: t("selection3d.legendActiveSite"),
+      toggle: { on: showActiveSite, onToggle: onToggleActiveSite },
     });
   }
-  if (hasInterface) {
+  if (hasBindingSite) {
     rows.push({
-      key: "interface",
+      key: "binding",
       swatch: <ColorSwatch color="#d000d0" />,
-      label: t("selection3d.legendInterface"),
+      label: t("selection3d.legendBindingSite"),
+      toggle: { on: showBindingSite, onToggle: onToggleBindingSite },
     });
   }
 
@@ -320,12 +342,32 @@ function ColorLegend({
         <InlineHelp text={t("selection3d.legendHelp")} />
       </div>
       <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
-        {rows.map((r) => (
-          <li key={r.key} className="flex items-center gap-1.5">
-            {r.swatch}
-            <span className="text-muted-foreground">{r.label}</span>
-          </li>
-        ))}
+        {rows.map((r) =>
+          r.toggle ? (
+            <li key={r.key}>
+              <button
+                type="button"
+                onClick={r.toggle.onToggle}
+                aria-pressed={r.toggle.on}
+                title={t("selection3d.legendToggleHint")}
+                data-testid={`legend-toggle-${r.key}`}
+                className={`flex items-center gap-1.5 rounded px-1 py-0.5 hover:bg-accent ${
+                  r.toggle.on ? "" : "opacity-40"
+                }`}
+              >
+                {r.swatch}
+                <span className={r.toggle.on ? "text-muted-foreground" : "text-muted-foreground line-through"}>
+                  {r.label}
+                </span>
+              </button>
+            </li>
+          ) : (
+            <li key={r.key} className="flex items-center gap-1.5 px-1 py-0.5">
+              {r.swatch}
+              <span className="text-muted-foreground">{r.label}</span>
+            </li>
+          ),
+        )}
       </ul>
     </div>
   );
@@ -407,7 +449,7 @@ function ActiveSiteControl({
 
 interface PositionTableRow extends MappedYpredRow {
   isActiveSite: boolean;
-  isInterface: boolean;
+  isBindingSite: boolean;
   plddt: number | null;
   domain: string;
 }
@@ -432,7 +474,7 @@ function PositionTable({
                 "colAccPos",
                 "colYPred",
                 "colActiveSite",
-                "colInterface",
+                "colBindingSite",
                 "colPlddt",
                 "colDomain",
               ] as const
@@ -466,7 +508,7 @@ function PositionTable({
                 )}
               </td>
               <td className="border-b border-border px-2 py-0.5">
-                {row.isInterface ? (
+                {row.isBindingSite ? (
                   <span className="font-semibold text-info">✓</span>
                 ) : (
                   <span className="text-muted-foreground">–</span>
@@ -668,7 +710,9 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
   const [dispersion, setDispersion] = useState<ComputeDispersionResult | null>(null);
   const [activeSiteResult, setActiveSiteResult] = useState<FetchActiveSiteResult | null>(null);
   const [activeSitePositions, setActiveSitePositions] = useState<number[]>([]);
-  const [showInterface, setShowInterface] = useState(true);
+  const [showVariants, setShowVariants] = useState(true);
+  const [showActiveSite, setShowActiveSite] = useState(true);
+  const [showBindingSite, setShowBindingSite] = useState(true);
   const [colorMode, setColorMode] = useState<ColorMode>("domain");
   const [showSurface, setShowSurface] = useState(false);
   const [spin, setSpin] = useState(false);
@@ -760,14 +804,14 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
       : null;
 
   const activeSiteSet = new Set(activeSitePositions);
-  const interfaceSet = new Set(activeSiteResult?.binding_positions ?? []);
+  const bindingSet = new Set(activeSiteResult?.binding_positions ?? []);
 
   const tableRows: PositionTableRow[] = (joinResult?.rows ?? []).map((r) => {
     const dom = domains.find((d) => r.accPosition >= d.start && r.accPosition <= d.end);
     return {
       ...r,
       isActiveSite: activeSiteSet.has(r.accPosition),
-      isInterface: interfaceSet.has(r.accPosition),
+      isBindingSite: bindingSet.has(r.accPosition),
       plddt: bFactorMapRef.current.get(r.accPosition) ?? null,
       domain: dom?.name ?? "",
     };
@@ -908,7 +952,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
     }
 
     // Variant spheres (per-residue yPred gradient)
-    if (joinResult !== null && joinResult.rows.length > 0) {
+    if (showVariants && joinResult !== null && joinResult.rows.length > 0) {
       const yPreds = joinResult.rows.map((r) => r.yPred);
       const minY = Math.min(...yPreds);
       const maxY = Math.max(...yPreds);
@@ -922,7 +966,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
     }
 
     // Active site sticks
-    if (activeSitePositions.length > 0) {
+    if (showActiveSite && activeSitePositions.length > 0) {
       viewer.addStyle(
         { resi: activeSitePositions },
 
@@ -930,9 +974,9 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
       );
     }
 
-    // Interface: magenta spheres
+    // Binding site: magenta spheres (UniProt "Binding site" residues)
     const bindingPositions = activeSiteResult?.binding_positions ?? [];
-    if (showInterface && bindingPositions.length > 0) {
+    if (showBindingSite && bindingPositions.length > 0) {
       viewer.addStyle(
         { resi: bindingPositions },
 
@@ -940,11 +984,11 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
       );
     }
 
-    // Hoverable: scoped to selected/active/interface residues
+    // Hoverable: scoped to shown variant/active/binding residues
     const hoverSet = new Set<number>([
-      ...(joinResult?.rows.map((r) => r.accPosition) ?? []),
-      ...activeSitePositions,
-      ...(showInterface ? bindingPositions : []),
+      ...(showVariants ? joinResult?.rows.map((r) => r.accPosition) ?? [] : []),
+      ...(showActiveSite ? activeSitePositions : []),
+      ...(showBindingSite ? bindingPositions : []),
     ]);
     if (hoverSet.size > 0) {
       const hoverSel = { resi: Array.from(hoverSet) };
@@ -957,7 +1001,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
           const parts: string[] = [`${atom.resn ?? ""}${resi ?? ""}`];
           if (row) parts.push(`${row.variant} y=${row.yPred.toFixed(3)}`);
           if (resi !== undefined && activeSiteSet.has(resi)) parts.push(t("selection3d.activeSite"));
-          if (resi !== undefined && interfaceSet.has(resi)) parts.push(t("selection3d.interface"));
+          if (resi !== undefined && bindingSet.has(resi)) parts.push(t("selection3d.bindingSite"));
           viewer.addLabel(parts.join(" | "), {
             backgroundColor: "rgba(0,0,0,0.7)",
             fontColor: "white",
@@ -977,7 +1021,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
 
     viewer.render();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, colorMode, activeSitePositions, showInterface, joinResult, domains, spin, uploadSource]);
+  }, [phase, colorMode, activeSitePositions, showVariants, showActiveSite, showBindingSite, joinResult, domains, spin, uploadSource]);
 
   // ─── effect: surface (async) ─────────────────────────────────────────────
   useEffect(() => {
@@ -1143,20 +1187,6 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
                   onExportPng={handleExportPng}
                   showPlddt={!uploadSource}
                 />
-                {/* Interface toggle */}
-                <div className="flex flex-wrap gap-3 px-1 text-xs">
-                  <label className="flex cursor-pointer items-center gap-1.5">
-                    <input
-                      type="checkbox"
-                      checked={showInterface}
-                      onChange={(e) => setShowInterface(e.target.checked)}
-                      className="accent-primary"
-                      data-testid="interface-toggle"
-                    />
-                    <span className="inline-block h-2.5 w-2.5 rounded-full bg-purple-500" />
-                    {t("selection3d.interface")}
-                  </label>
-                </div>
 
                 {/* Fallback note — shown when no explicit selection but ranked candidates exist */}
                 {usingFallback && (
@@ -1178,8 +1208,6 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
                   </div>
                 )}
 
-                {/* Dispersion card: keep the numeric/graph summary above the large viewer. */}
-                {dispersion !== null && <DispersionCard result={dispersion} />}
               </>
             )}
 
@@ -1198,10 +1226,19 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
                   colorMode={colorMode}
                   hasVariants={(joinResult?.rows.length ?? 0) > 0}
                   hasActiveSite={activeSitePositions.length > 0}
-                  hasInterface={showInterface && (activeSiteResult?.binding_positions?.length ?? 0) > 0}
+                  hasBindingSite={(activeSiteResult?.binding_positions?.length ?? 0) > 0}
                   hasDomains={domains.length > 0}
                   showPlddt={!uploadSource}
+                  showVariants={showVariants}
+                  showActiveSite={showActiveSite}
+                  showBindingSite={showBindingSite}
+                  onToggleVariants={() => setShowVariants((v) => !v)}
+                  onToggleActiveSite={() => setShowActiveSite((v) => !v)}
+                  onToggleBindingSite={() => setShowBindingSite((v) => !v)}
                 />
+
+                {/* Structural Dispersion: numeric/graph summary directly under the viewer */}
+                {dispersion !== null && <DispersionCard result={dispersion} />}
 
 
                 {/* Active site control */}

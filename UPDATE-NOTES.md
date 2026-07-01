@@ -10,8 +10,9 @@ KURO Candidate 3D structure analysis.
 
 ### Kuro
 
-- The Output step gains a collapsible **Candidate 3D structure analysis** panel: an embedded 3D structure viewer (loaded only when you open it) that maps your candidate positions onto the protein, highlights active-site and interface residues, and reports how spatially clustered or spread the picks are versus random matched-size sets.
-- Every color is explained by a **Color legend** under the viewer. The Structural Dispersion card, its histogram, and each metric now carry inline `?` help, and percentiles read as `P1`/`P96` (P = percentile) instead of `1%ile`.
+- The Output step gains a collapsible **Candidate 3D structure analysis** panel: an embedded 3D structure viewer (loaded only when you open it) that maps your candidate positions onto the protein, highlights active-site and binding-site residues, and reports how spatially clustered or spread the picks are versus random matched-size sets.
+- Every color is explained by a **Color legend** under the viewer, and each legend row is clickable to show/hide that layer in 3D (variant / active-site / binding-site; the backbone stays visible). The Structural Dispersion card, its histogram, and each metric carry inline `?` help, and percentiles read as `P1`/`P96` (P = percentile) instead of `1%ile`.
+- The magenta overlay is **binding-site** residues (UniProt `Binding site`: ligand/cofactor/metal binding), not a protein-protein interface; the earlier "Interface" label was corrected.
 - The 3D view is an interpretation/QC aid, not a selection filter: residues in low-confidence or disordered regions are **not** auto-removed from your mutation set — EVOLVEpro `y_pred` ranking still decides what gets designed.
 - If no structure accession is available, you can upload a PDB/CIF file to use the viewer.
 

@@ -34,12 +34,16 @@ per-mutation 설계 결과를 표 + 96-well plate map + 우측 DesignReportInspe
 
 Output 하단의 접이식 패널 (기본 접힘, 열 때만 3Dmol 로드). structure/UniProt accession 이 있으면 AlphaFold/PDB 구조를 불러오고, 없으면 PDB/CIF 업로드 fallback 으로 진행한다. 대상은 현재 design 후보 집합 (`evolveproSelectedVariants`), 없으면 ranked candidates 전체.
 
+레이아웃 순서(위→아래): **툴바 → 3D viewer → Color legend → Structural Dispersion → Active site → Selected Positions/Positions by Domain**. 토글·색칠 조작 결과를 바로 위 viewer에서 즉시 확인할 수 있도록 뷰어와 컨트롤을 붙여 배치.
+
 구성:
-- **3Dmol viewer** — cartoon + variant sphere(y_pred 그라데이션) + active-site stick + interface sphere. domain/pLDDT/plain 색칠 모드, surface, spin, fullscreen, PNG export.
-- **Color legend** — viewer 아래에서 각 색의 의미를 현재 색칠 모드/표시 상태에 맞춰 표시.
+- **3Dmol viewer** — cartoon + variant sphere(y_pred 그라데이션) + active-site stick(주황) + binding-site sphere(마젠타). domain/pLDDT/plain 색칠 모드, surface, spin, fullscreen, PNG export.
+- **Color legend** — viewer 바로 아래. 각 색의 의미를 현재 색칠 모드/표시 상태에 맞춰 표시하고, **행 클릭으로 3D 레이어 on/off** (variant / active-site / binding-site). backbone은 구조가 항상 보여야 하므로 토글 대상 제외.
 - **Structural Dispersion 카드** — 선택 변이 위치들이 3D 공간에서 얼마나 뭉쳤는지/퍼졌는지를 무작위 matched-size 잔기 집합(null)과 비교. mean pairwise Cα 거리, null p05–p95, percentile(`P1`=강한 clustering, `P99`=강한 spread), classification, null 분포 히스토그램.
-- **`?` 도움말 토글** — 카드/히스토그램/각 지표에 인라인 설명(InlineHelp).
-- **Selected Positions / Positions by Domain 표** — accession-frame 로 매핑된 위치, active/interface/pLDDT/domain.
+- **`?` 도움말 토글** — 카드/히스토그램/각 지표/legend에 인라인 설명(InlineHelp).
+- **Selected Positions / Positions by Domain 표** — accession-frame 로 매핑된 위치, active/binding/pLDDT/domain.
+
+**용어 주의 (binding site)**: 마젠타 sphere로 표시되는 것은 UniProt `Binding site` feature(리간드/기질/보조인자/금속이온 결합 잔기)다. **단백질-단백질 계면(interface)이 아니다.** 이전에 "Interface"로 표기했던 라벨은 `Binding site`로 정정됨(v0.13.7.2). 주황 stick은 UniProt `Active site`(촉매 잔기).
 
 ### 해석 원칙 — QC 보조이지 selection filter 가 아님
 

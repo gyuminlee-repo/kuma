@@ -13,5 +13,7 @@ export const WHATS_NEW_ITEMS: WhatsNewItem[] = [
   { label: "Added", detail: "the panel strings are localized across all 10 locales, and `3dmol@^2.5.5` is added as a dependency." },
   { label: "Improved", detail: "the KURO Candidate 3D structure analysis panel now explains itself inline — the Structural Dispersion card, its null-distribution histogram, and each metric row carry `?` help toggles; the histogram marker uses `P1`/`P96` percentile notati…" },
   { label: "Improved", detail: "documented that the 3D dispersion, pLDDT, and active/interface overlays are interpretation/QC aids, not candidate-selection filters — low-confidence or disordered residues are not auto-excluded from the mutation set, and EVOLVEpro y_pred r…" },
+  { label: "Improved", detail: "the Color legend rows in the KURO 3D panel are now clickable toggles that show/hide each 3D layer (variant spheres, active-site sticks, binding-site spheres); the backbone stays always-on. The standalone Interface checkbox is removed (fold…" },
+  { label: "Improved", detail: "corrected the mislabeled \"Interface\" overlay to \"Binding site\" across the viewer, legend, table column, and hover label — the magenta spheres are UniProt `Binding site` (ligand/cofactor/metal-binding) residues, not a protein-protein interf…" },
   { label: "Fixed", detail: "the KURO 3D dispersion compute no longer fails in the packaged sidecar with `[Errno 2] No such file or directory: '..._MEI.../Bio/Align/substitution_matrices/data/BLOSUM62'`. The reference→accession position mapper now uses `PairwiseAligne…" },
 ];

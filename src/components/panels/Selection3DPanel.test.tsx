@@ -2,7 +2,7 @@
  * Selection3DPanel — vitest/jsdom unit tests.
  * Mocks: 3dmol, @/store/appStore
  */
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import type { ComputeDispersionResult, FetchActiveSiteResult, FetchPdbTextResult } from "@/types/models";
 
@@ -468,8 +468,9 @@ describe("Selection3DPanel — DispersionCard histogram", () => {
       expect(screen.getByTestId("dispersion-card")).toBeInTheDocument(),
     );
 
-    const helpButtons = screen.getAllByLabelText("showHelp");
-    expect(helpButtons).toHaveLength(7);
+    const card = screen.getByTestId("dispersion-card");
+    const helpButtons = within(card).getAllByLabelText("showHelp");
+    expect(helpButtons).toHaveLength(6);
 
     fireEvent.click(helpButtons[1]);
     expect(await screen.findByText("dispersionChartHelp")).toBeInTheDocument();
@@ -759,7 +760,7 @@ describe("Selection3DPanel — explicit selection: no fallback note", () => {
 });
 
 describe("Selection3DPanel — color legend", () => {
-  it("renders a legend describing backbone/domain, variant, active-site and interface colors", async () => {
+  it("renders a legend describing backbone/domain, variant, active-site and binding-site colors", async () => {
     setStore({
       uniprotAccession: "P12345",
       evolveproSelectedVariants: ["A1G"],
@@ -777,6 +778,39 @@ describe("Selection3DPanel — color legend", () => {
     expect(legend.textContent).toContain("legendDomain");
     expect(legend.textContent).toContain("legendVariant");
     expect(legend.textContent).toContain("legendActiveSite");
-    expect(legend.textContent).toContain("legendInterface");
+    expect(legend.textContent).toContain("legendBindingSite");
+  });
+
+  it("legend rows toggle 3D layers; variant addStyle drops when its layer is hidden", async () => {
+    setStore({
+      uniprotAccession: "P12345",
+      evolveproSelectedVariants: ["A1G"],
+      evolveproRankedCandidates: [{ variant: "A1G", y_pred: 0.85, aa_position: 1 }],
+      yPredMap: { A1G: 0.85 },
+      seqInfo: makeSeqInfo(),
+      fetchPdbText: vi.fn().mockResolvedValue(SUCCESS_PDB),
+      fetchActiveSite: vi.fn().mockResolvedValue(ACTIVE_SITE),
+      computeDispersion: vi.fn().mockResolvedValue({ ...DISPERSION, mapped: [5], dropped: [] }),
+    });
+    render(<Selection3DPanel />);
+    fireEvent.click(screen.getByTestId("panel-toggle"));
+
+    const variantToggle = await screen.findByTestId("legend-toggle-variant");
+    await waitFor(() => {
+      const sphereCalls = mockViewer.addStyle.mock.calls.filter(
+        (c) => (c[1] as { sphere?: unknown }).sphere !== undefined,
+      );
+      expect(sphereCalls.length).toBeGreaterThan(0);
+    });
+
+    mockViewer.addStyle.mockClear();
+    fireEvent.click(variantToggle);
+    await waitFor(() => {
+      const sphereCalls = mockViewer.addStyle.mock.calls.filter(
+        (c) => (c[1] as { sphere?: { color?: string } }).sphere !== undefined &&
+          (c[0] as { resi?: number }).resi === 5,
+      );
+      expect(sphereCalls.length).toBe(0);
+    });
   });
 });
