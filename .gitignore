@@ -143,3 +143,4 @@ python-core/vendor/minimap2/macos-x64/minimap2
 python-core/vendor/minimap2/macos-arm64/minimap2
 python-core/vendor/minimap2/windows-x64/minimap2.exe
 .venv-al/
+.notes/
