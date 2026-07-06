@@ -5,9 +5,9 @@ export interface WhatsNewItem {
   detail: string;
 }
 
-export const WHATS_NEW_VERSION = "0.13.9";
+export const WHATS_NEW_VERSION = "0.13.10";
 
 export const WHATS_NEW_ITEMS: WhatsNewItem[] = [
-  { label: "Fixed", detail: "KURO 3D dispersion no longer drops all positions (\"N position(s) could not be mapped to the structure\") when the structure loads but the UniProt FASTA fetch fails. The accession-frame sequence is now derived from the fetched AlphaFold/PDB…" },
-  { label: "Improved", detail: "GitHub releases now attach a `SHA256SUMS.txt` for every installer and append Windows SmartScreen \"Unknown publisher\" guidance (More info → Run anyway), checksum-verification steps, and a macOS Gatekeeper note to the release body; a matchin…" },
+  { label: "Fixed", detail: "the KURO 3D viewer **Surface** toggle now works in the packaged app. 3Dmol computes the molecular surface in a `blob:` Web Worker, which the app CSP blocked (no `worker-src`); the CSP now allows `worker-src 'self' blob:`, and surface gener…" },
+  { label: "Fixed", detail: "the KURO 3D viewer **Export PNG** button now saves a file. The Tauri webview ignores programmatic `<a download>`, so the export now uses the Tauri save dialog and writes the PNG via the fs plugin." },
 ];
