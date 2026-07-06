@@ -10,6 +10,8 @@ import type React from "react";
 import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
 import type { AtomSpec, GLViewer, SelectionRange } from "3dmol";
+import { save } from "@tauri-apps/plugin-dialog";
+import { writeFile } from "@tauri-apps/plugin-fs";
 
 
 import { useAppStore } from "@/store/appStore";
@@ -1029,18 +1031,27 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
     if (!viewer || phase !== "ready") return;
 
     void (async () => {
-      if (surfaceHandlerRef.current !== null) {
-        viewer.removeSurface(surfaceHandlerRef.current);
-        surfaceHandlerRef.current = null;
-      }
-      if (showSurface) {
-        const $3Dmol = await import("3dmol");
-        const handler = await viewer.addSurface($3Dmol.SurfaceType.VDW, {
-          opacity: 0.7,
-          color: "white",
-        });
-        surfaceHandlerRef.current = handler;
-        viewer.render();
+      try {
+        if (surfaceHandlerRef.current !== null) {
+          viewer.removeSurface(surfaceHandlerRef.current);
+          surfaceHandlerRef.current = null;
+        }
+        if (showSurface) {
+          const $3Dmol = await import("3dmol");
+          const handler = await viewer.addSurface($3Dmol.SurfaceType.VDW, {
+            opacity: 0.7,
+            color: "white",
+          });
+          surfaceHandlerRef.current = handler;
+          viewer.render();
+        }
+      } catch (err) {
+        // Surface meshing runs in a blob Worker; if the host webview blocks it
+        // (CSP worker-src), degrade gracefully instead of an unhandled rejection.
+        setDroppedWarning(t("selection3d.surfaceUnavailable"));
+        setShowSurface(false);
+        // eslint-disable-next-line no-console
+        console.warn("Surface generation failed:", err);
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1071,14 +1082,23 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
     }
   }
 
-  function handleExportPng() {
+  async function handleExportPng() {
     const viewer = viewerRef.current;
     if (!viewer) return;
+    // pngURI() returns a data: URL. The Tauri webview does not honor
+    // programmatic <a download>, so save via the Tauri dialog + fs plugin.
     const uri = viewer.pngURI();
-    const a = document.createElement("a");
-    a.href = uri;
-    a.download = `structure_${accession ?? "view"}.png`;
-    a.click();
+    const commaIdx = uri.indexOf(",");
+    const base64 = commaIdx >= 0 ? uri.slice(commaIdx + 1) : uri;
+    const path = await save({
+      filters: [{ name: "PNG", extensions: ["png"] }],
+      defaultPath: `structure_${accession || "view"}.png`,
+    });
+    if (!path) return;
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    await writeFile(path, bytes);
   }
 
   async function handleUpload(e: ChangeEvent<HTMLInputElement>) {

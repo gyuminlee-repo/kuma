@@ -2488,6 +2488,7 @@
     "legendActiveSite": "Active-site residue (orange stick)",
     "legendBindingSite": "Binding-site residue (magenta sphere)",
     "legendToggleHint": "Click to show or hide this layer in the 3D view",
+    "surfaceUnavailable": "3D surface could not be generated in this window.",
     "positionTableTitle": "Selected Positions",
     "colVariant": "Variant",
     "colRefPos": "Ref pos",

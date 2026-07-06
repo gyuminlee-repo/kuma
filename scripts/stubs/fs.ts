@@ -18,5 +18,12 @@ export async function writeTextFile(
 ): Promise<void> {
 }
 
+export async function writeFile(
+  _path: string,
+  _data: Uint8Array,
+  _options?: unknown,
+): Promise<void> {
+}
+
 export async function rename(_oldPath: string, _newPath: string): Promise<void> {
 }
