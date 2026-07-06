@@ -5,12 +5,9 @@ export interface WhatsNewItem {
   detail: string;
 }
 
-export const WHATS_NEW_VERSION = "0.13.8";
+export const WHATS_NEW_VERSION = "0.13.9";
 
 export const WHATS_NEW_ITEMS: WhatsNewItem[] = [
-  { label: "Improved", detail: "the KURO Candidate 3D structure analysis panel now explains itself inline — the Structural Dispersion card, its null-distribution histogram, and each metric row carry `?` help toggles; the histogram marker uses `P1`/`P96` percentile notati…" },
-  { label: "Improved", detail: "the Color legend rows are clickable toggles that show/hide each 3D layer (variant spheres, active-site sticks, binding-site spheres) while the backbone stays always-on; the standalone Interface checkbox is folded into the legend, and the p…" },
-  { label: "Improved", detail: "corrected the mislabeled \"Interface\" overlay to \"Binding site\" across the viewer, legend, table column, and hover label — the magenta spheres are UniProt `Binding site` (ligand/cofactor/metal-binding) residues, not a protein-protein interf…" },
-  { label: "Improved", detail: "documented that the 3D dispersion, pLDDT, and active/binding overlays are interpretation/QC aids, not candidate-selection filters — low-confidence or disordered residues are not auto-excluded from the mutation set, and EVOLVEpro y_pred ran…" },
-  { label: "Fixed", detail: "the KURO 3D dispersion compute no longer fails in the packaged sidecar with `[Errno 2] No such file or directory: '..._MEI.../Bio/Align/substitution_matrices/data/BLOSUM62'`. The reference→accession position mapper now uses `PairwiseAligne…" },
+  { label: "Fixed", detail: "KURO 3D dispersion no longer drops all positions (\"N position(s) could not be mapped to the structure\") when the structure loads but the UniProt FASTA fetch fails. The accession-frame sequence is now derived from the fetched AlphaFold/PDB…" },
+  { label: "Improved", detail: "GitHub releases now attach a `SHA256SUMS.txt` for every installer and append Windows SmartScreen \"Unknown publisher\" guidance (More info → Run anyway), checksum-verification steps, and a macOS Gatekeeper note to the release body; a matchin…" },
 ];
