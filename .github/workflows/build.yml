@@ -359,6 +359,17 @@ jobs:
         with:
           path: artifacts
 
+      # Unsigned installers: publish SHA256 checksums so users can verify integrity.
+      - name: Generate SHA256 checksums
+        shell: bash
+        run: |
+          : > SHA256SUMS.txt
+          while IFS= read -r -d '' f; do
+            sha256sum "$f" | awk -v b="$(basename "$f")" '{print $1"  "b}' >> SHA256SUMS.txt
+          done < <(find artifacts -type f \( -name '*.msi' -o -name '*.exe' -o -name '*.dmg' -o -name '*.deb' -o -name '*.AppImage' \) -print0)
+          sort -k2 SHA256SUMS.txt -o SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         env:
@@ -366,7 +377,11 @@ jobs:
           FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
         with:
           draft: false
+          generate_release_notes: true
+          append_body: true
+          body_path: .github/release-footer.md
           files: |
+            SHA256SUMS.txt
             artifacts/**/*.dmg
             artifacts/**/*.msi
             artifacts/**/*.exe
