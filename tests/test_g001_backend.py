@@ -91,16 +91,39 @@ def _make_linear_coords(n: int) -> list[tuple[float, float, float] | None]:
     return coords
 
 
+def test_parse_pdb_seq_one_letter_1based() -> None:
+    """_parse_pdb_seq maps CA residues to a 1-based one-letter sequence."""
+    from kuma_core.kuro.alphafold import _parse_pdb_seq, fetch_ca_seq
+
+    pdb = "\n".join(
+        [
+            "ATOM      1  CA  MET A   1       0.000   0.000   0.000  1.00 90.00           C",
+            "ATOM      2  CA  ALA A   2       3.800   0.000   0.000  1.00 90.00           C",
+            "ATOM      3  CA  LYS A   4       7.600   0.000   0.000  1.00 90.00           C",
+            "END",
+        ]
+    )
+    # Residue 3 missing -> 'X'; residue 1=M, 2=A, 4=K
+    assert _parse_pdb_seq(pdb) == "MAXK"
+
+    with patch("kuma_core.kuro.alphafold.fetch_pdb_text", return_value=pdb):
+        assert fetch_ca_seq("TESTQ9") == "MAXK"
+    with patch("kuma_core.kuro.alphafold.fetch_pdb_text", return_value=None):
+        assert fetch_ca_seq("TESTQ9") == ""
+
+
 class TestComputeRoundDispersion:
     """Tests for kuma_core.kuro.dispersion.compute_round_dispersion."""
 
     def _run(self, positions, accession_seq, ref_seq, coords, **kwargs):
         from kuma_core.kuro.dispersion import compute_round_dispersion
 
-        # Patch fetch_ca_coords and _fetch_accession_seq
+        # Patch structure/coords fetches: structure-derived seq carries the
+        # accession frame (UniProt FASTA is only a fallback, forced empty here).
         with (
             patch("kuma_core.kuro.dispersion.fetch_ca_coords", return_value=coords),
-            patch("kuma_core.kuro.dispersion._fetch_accession_seq", return_value=accession_seq),
+            patch("kuma_core.kuro.dispersion.fetch_ca_seq", return_value=accession_seq),
+            patch("kuma_core.kuro.dispersion._fetch_accession_seq", return_value=""),
         ):
             return compute_round_dispersion(
                 accession="TESTQ9",
@@ -198,6 +221,7 @@ class TestComputeRoundDispersion:
         coords = _make_linear_coords(50)
         with (
             patch("kuma_core.kuro.dispersion.fetch_ca_coords", return_value=coords),
+            patch("kuma_core.kuro.dispersion.fetch_ca_seq", return_value=""),
             patch("kuma_core.kuro.dispersion._fetch_accession_seq", return_value=""),
         ):
             result = compute_round_dispersion(
@@ -211,6 +235,52 @@ class TestComputeRoundDispersion:
         assert result["dropped"] == [10, 20, 30]
         # fetch-fail na -> empty null_hist
         assert result["null_hist"]["counts"] == []
+
+    def test_structure_seq_maps_when_uniprot_fasta_fails(self) -> None:
+        """Regression: structure carries the accession frame even if UniProt FASTA fails.
+
+        The user-reported case: the AlphaFold structure loads (coords + structure
+        sequence available) but the UniProt FASTA fetch fails; mapping must still
+        succeed from the structure-derived sequence instead of dropping all.
+        """
+        from kuma_core.kuro.dispersion import compute_round_dispersion
+
+        coords = _make_linear_coords(50)
+        seq = "A" * 50
+        with (
+            patch("kuma_core.kuro.dispersion.fetch_ca_coords", return_value=coords),
+            patch("kuma_core.kuro.dispersion.fetch_ca_seq", return_value=seq),
+            patch("kuma_core.kuro.dispersion._fetch_accession_seq", return_value=""),
+        ):
+            result = compute_round_dispersion(
+                accession="TESTQ9",
+                ref_seq=seq,
+                positions=[10, 20, 30],
+                seed=0,
+            )
+        assert result["klass"] != "na"
+        assert result["mapped"] == [10, 20, 30]
+        assert result["dropped"] == []
+
+    def test_uniprot_fasta_fallback_when_structure_seq_empty(self) -> None:
+        """Fallback: when the structure carries no sequence, UniProt FASTA is used."""
+        from kuma_core.kuro.dispersion import compute_round_dispersion
+
+        coords = _make_linear_coords(50)
+        seq = "A" * 50
+        with (
+            patch("kuma_core.kuro.dispersion.fetch_ca_coords", return_value=coords),
+            patch("kuma_core.kuro.dispersion.fetch_ca_seq", return_value=""),
+            patch("kuma_core.kuro.dispersion._fetch_accession_seq", return_value=seq),
+        ):
+            result = compute_round_dispersion(
+                accession="TESTQ9",
+                ref_seq=seq,
+                positions=[10, 20, 30],
+                seed=0,
+            )
+        assert result["mapped"] == [10, 20, 30]
+        assert result["dropped"] == []
 
     def test_null_hist_24_bins_sum_to_n_trials(self) -> None:
         """null_hist has exactly 24 bins summing to n_trials when null is computed."""

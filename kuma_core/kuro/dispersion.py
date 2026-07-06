@@ -15,7 +15,7 @@ import random as _random
 import urllib.request as _urllib_req
 
 
-from kuma_core.kuro.alphafold import fetch_ca_coords
+from kuma_core.kuro.alphafold import fetch_ca_coords, fetch_ca_seq
 from kuma_core.kuro.interface import map_ref_to_accession
 
 logger = logging.getLogger(__name__)
@@ -109,11 +109,14 @@ def compute_round_dispersion(
 
     Steps:
     1. Fetch Cα coordinates (``fetch_ca_coords``).
-    2. Map ref-frame *positions* to accession frame via ``map_ref_to_accession``
-       using the UniProt canonical sequence as accession_seq.  If that fetch
-       fails the accession frame cannot be established, so the function fails
-       loud: it returns klass='na' with all positions dropped (never guesses an
-       identity mapping, which could place dispersion on the wrong residues).
+    2. Map ref-frame *positions* to accession frame via ``map_ref_to_accession``.
+       The accession-frame sequence is taken from the fetched structure itself
+       (AlphaFold DB numbering == UniProt canonical, full length), falling back
+       to the UniProt FASTA only if the structure carries no usable sequence. If
+       neither is available the accession frame cannot be established, so the
+       function fails loud: it returns klass='na' with all positions dropped
+       (never guesses an identity mapping, which could place dispersion on the
+       wrong residues).
     3. Compute raw mean pairwise Cα distance (Å) over the mapped positions
        whose coordinates are non-None.
     4. Build a null distribution by drawing *n_trials* random samples of the
@@ -150,8 +153,11 @@ def compute_round_dispersion(
             "null_hist": {"min": 0.0, "max": 0.0, "counts": []},
         }
 
-    # 2. Get accession sequence for position mapping
-    accession_seq = _fetch_accession_seq(accession_clean)
+    # 2. Establish the accession-frame sequence for position mapping.
+    # Prefer the sequence embedded in the fetched structure so mapping does not
+    # depend on a separate UniProt FASTA fetch; fall back to UniProt only when
+    # the structure carries no usable sequence.
+    accession_seq = fetch_ca_seq(accession_clean) or _fetch_accession_seq(accession_clean)
     if not accession_seq:
         # Fail-loud: without the accession sequence we cannot establish the
         # accession frame. Refuse to guess (silent identity mapping could

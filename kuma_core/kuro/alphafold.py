@@ -122,6 +122,56 @@ def _parse_pdb_ca(pdb_text: str) -> list[tuple[float, float, float] | None]:
     return result
 
 
+_THREE_TO_ONE = {
+    "ALA": "A", "ARG": "R", "ASN": "N", "ASP": "D", "CYS": "C",
+    "GLN": "Q", "GLU": "E", "GLY": "G", "HIS": "H", "ILE": "I",
+    "LEU": "L", "LYS": "K", "MET": "M", "PHE": "F", "PRO": "P",
+    "SER": "S", "THR": "T", "TRP": "W", "TYR": "Y", "VAL": "V",
+    "SEC": "U", "PYL": "O", "MSE": "M",
+}
+
+
+def _parse_pdb_seq(pdb_text: str) -> str:
+    """One-letter sequence from CA ATOM records.
+
+    Returns a string whose 1-based index equals the PDB residue number
+    (``seq[i - 1]`` is residue ``i``); missing residues are filled with ``X``.
+    Unknown three-letter codes also map to ``X``. Empty string when no CA atoms.
+    """
+    res: dict[int, str] = {}
+    for line in pdb_text.splitlines():
+        if not line.startswith("ATOM"):
+            continue
+        if line[12:16].strip() != "CA":
+            continue
+        resn = line[17:20].strip()
+        try:
+            res_seq = int(line[22:26].strip())
+        except ValueError:
+            continue
+        if res_seq >= 1 and res_seq not in res:
+            res[res_seq] = _THREE_TO_ONE.get(resn, "X")
+    if not res:
+        return ""
+    max_res = max(res)
+    return "".join(res.get(i, "X") for i in range(1, max_res + 1))
+
+
+def fetch_ca_seq(accession: str) -> str:
+    """Return the one-letter sequence embedded in *accession*'s structure.
+
+    The sequence is parsed from the same PDB used for coordinates, so its
+    residue numbering matches ``fetch_ca_coords`` (AlphaFold DB numbering ==
+    UniProt canonical). This lets callers establish the accession frame from the
+    structure alone, without a separate UniProt FASTA fetch. Empty string when
+    no structure is available.
+    """
+    text = fetch_pdb_text(accession)
+    if not text:
+        return ""
+    return _parse_pdb_seq(text)
+
+
 def fetch_ca_coords(accession: str) -> list[tuple[float, float, float] | None] | None:
     """Return 1-based Cα coordinates list for *accession*.
 
