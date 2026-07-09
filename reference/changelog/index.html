@@ -1324,6 +1324,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../troubleshooting/windows-smartscreen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Windows SmartScreen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1537,6 +1565,45 @@
       목차
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#kuro-3d-structure-analysis-2026-07-01" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        KURO 3D structure analysis (2026-07-01)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="KURO 3D structure analysis (2026-07-01)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#kuro" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Kuro
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#releases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Releases
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
       
         <li class="md-nav__item">
   <a href="#mame-v013-update-2026-06-10" class="md-nav__link">
@@ -1886,6 +1953,20 @@
 
 
 <h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<h2 id="kuro-3d-structure-analysis-2026-07-01">KURO 3D structure analysis (2026-07-01)<a class="headerlink" href="#kuro-3d-structure-analysis-2026-07-01" title="Permanent link">&para;</a></h2>
+<p>v0.13.7 ~ v0.13.10 KURO 관련 변경 사항입니다.</p>
+<h3 id="kuro">Kuro<a class="headerlink" href="#kuro" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Output 단계에 <strong>Candidate 3D structure analysis</strong> 패널 추가: 3Dmol 뷰어, active/binding-site 강조, 공간 분산(무작위 matched-size null 대비, 백분위 <code>P1</code>/<code>P99</code>), Color legend(항목 클릭으로 3D 레이어 토글), surface, PNG export. dispersion·pLDDT·site 오버레이는 선정 필터가 아니라 해석·QC 보조이고, 무엇을 설계할지는 EVOLVEpro <code>y_pred</code> 랭킹이 결정. (v0.13.7~v0.13.8)</li>
+<li>매핑 서열을 로드된 구조에서 직접 파싱하도록 수정 — UniProt 서열 조회 실패 시 전부 dropped 되던 문제 해결. 패키지 앱의 <code>BLOSUM62</code> 데이터 부재 오류도 수정. (v0.13.8~v0.13.9)</li>
+<li>마젠타 오버레이 라벨을 "Interface" → <strong>"Binding site"</strong>(UniProt Binding site)로 정정, 히스토그램 백분위 <code>P1</code>/<code>P99</code> 표기, 3D 뷰어-우선 레이아웃. (v0.13.8)</li>
+<li>3D <strong>Surface</strong>(CSP blob worker 허용) 및 <strong>Export PNG</strong>(Tauri save 다이얼로그+fs) 동작 수정. (v0.13.10)</li>
+</ul>
+<h3 id="releases">Releases<a class="headerlink" href="#releases" title="Permanent link">&para;</a></h3>
+<ul>
+<li>GitHub 릴리즈에 <code>SHA256SUMS.txt</code> 첨부 + Windows SmartScreen/체크섬/ macOS Gatekeeper 안내. 코드 서명이 없어 SmartScreen 경고 자체는 계속 뜸(무결성은 체크섬으로 검증). (v0.13.9)</li>
+</ul>
+<hr />
 <h2 id="mame-v013-update-2026-06-10">MAME v0.13 update (2026-06-10)<a class="headerlink" href="#mame-v013-update-2026-06-10" title="Permanent link">&para;</a></h2>
 <p>2026-06-10 MAME v0.13.0.1 ~ v0.13.3.0 변경 사항입니다.</p>
 <h3 id="mame">MAME<a class="headerlink" href="#mame" title="Permanent link">&para;</a></h3>
