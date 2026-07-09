@@ -1,5 +1,21 @@
 # Changelog
 
+## KURO 3D structure analysis (2026-07-01)
+
+v0.13.7 ~ v0.13.10 KURO 관련 변경 사항입니다.
+
+### Kuro
+
+- Output 단계에 **Candidate 3D structure analysis** 패널 추가: 3Dmol 뷰어, active/binding-site 강조, 공간 분산(무작위 matched-size null 대비, 백분위 `P1`/`P99`), Color legend(항목 클릭으로 3D 레이어 토글), surface, PNG export. dispersion·pLDDT·site 오버레이는 선정 필터가 아니라 해석·QC 보조이고, 무엇을 설계할지는 EVOLVEpro `y_pred` 랭킹이 결정. (v0.13.7~v0.13.8)
+- 매핑 서열을 로드된 구조에서 직접 파싱하도록 수정 — UniProt 서열 조회 실패 시 전부 dropped 되던 문제 해결. 패키지 앱의 `BLOSUM62` 데이터 부재 오류도 수정. (v0.13.8~v0.13.9)
+- 마젠타 오버레이 라벨을 "Interface" → **"Binding site"**(UniProt Binding site)로 정정, 히스토그램 백분위 `P1`/`P99` 표기, 3D 뷰어-우선 레이아웃. (v0.13.8)
+- 3D **Surface**(CSP blob worker 허용) 및 **Export PNG**(Tauri save 다이얼로그+fs) 동작 수정. (v0.13.10)
+
+### Releases
+
+- GitHub 릴리즈에 `SHA256SUMS.txt` 첨부 + Windows SmartScreen/체크섬/ macOS Gatekeeper 안내. 코드 서명이 없어 SmartScreen 경고 자체는 계속 뜸(무결성은 체크섬으로 검증). (v0.13.9)
+
+---
 ## MAME v0.13 update (2026-06-10)
 
 2026-06-10 MAME v0.13.0.1 ~ v0.13.3.0 변경 사항입니다.

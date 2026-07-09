@@ -36,6 +36,7 @@ Kuro 탭에서 프라이머를 설계하고 실험·시퀀싱 후 Mame 탭으로
 - **EVOLVEpro 기반 선정** — Top-N + 위치 / 도메인 / Pareto / entropy / structural 다양성, σ-Adaptive 후보 풀
 - **보정된 화학 조건** — polymerase 8종(+커스텀), SantaLucia 1998 Tm, GC / 길이 / tolerance 제어
 - **내장 QC** — primer3 hairpin/homodimer, off-target 스캔, 올리고 합성 품질 점수, AlphaFold 3D 거리
+- **후보 3D 구조 분석** — Output 단계 3Dmol 뷰어로 후보를 AlphaFold/PDB 구조 위에 표시. active/binding-site 강조, 무작위 null 대비 공간 분산, 클릭형 color legend, surface, PNG 내보내기(선정 필터가 아니라 해석·QC 보조)
 - **모드별 실패 복구** — multi-stage Position Rescue + 원클릭 변이별 재시도
 - **플레이트 출력** — 정렬 가능한 결과 표, 96-well plate map, Echo 525 / JANUS 내보내기
 
@@ -85,6 +86,7 @@ Kuro 탭에서 프라이머를 설계하고 실험·시퀀싱 후 Mame 탭으로
 #### 검토 · 시각화 · 내보내기
 
 - **Sequence Map**: 접이식 SVG 선형 CDS 맵. 변이 위치, 도메인 영역, 밀도 히스토그램
+- **후보 3D 구조 분석**: Output 단계 접이식 패널에 3Dmol 뷰어 내장(열 때만 로드). 후보 위치를 fetch한 AlphaFold/PDB 구조(또는 업로드한 PDB/CIF) 위에 매핑하고, UniProt active-site·binding-site 잔기를 강조하며, 공간 분산(무작위 동일 개수 null 대비 평균 pairwise Cα 거리, 백분위 `P1`/`P99`)을 보고. Color legend가 각 색 의미를 설명하고 항목 클릭으로 3D 레이어를 토글하며, surface 렌더·PNG 내보내기 지원. dispersion·pLDDT·site 오버레이는 선정 필터가 아니라 해석·QC 보조 — 무엇을 설계할지는 EVOLVEpro `y_pred` 랭킹이 결정
 - **후보 비교 및 교체**: 프라이머 서열 클릭 시 후보 비교 팝오버
 - **커스텀 프라이머 평가**: 후보 팝오버에서 직접 서열 입력 → Tm, GC%, hairpin, off-target 즉시 계산
 - **96-well Plate Map**: Fwd/Rev 쌍 연동 플레이트. 96개 초과 시 multi-plate 슬라이드

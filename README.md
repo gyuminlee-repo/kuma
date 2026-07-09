@@ -38,6 +38,7 @@ Given a mutation list (plain text / EVOLVEpro CSV) and a template sequence (GenB
 - **EVOLVEpro-driven selection** — Top-N plus position / domain / Pareto / entropy / structural diversity and a σ-Adaptive candidate pool
 - **Calibrated chemistry** — eight polymerase profiles (+ custom), SantaLucia 1998 Tm, GC / length / tolerance controls
 - **Built-in QC** — primer3 hairpin/homodimer, off-target scan, oligo synthesis-quality score, AlphaFold 3D distance
+- **Candidate 3D structure analysis** — Output-step 3Dmol viewer placing candidates on the AlphaFold/PDB structure, with active/binding-site highlights, spatial dispersion vs a random null, clickable color legend, surface, and PNG export (interpretation/QC aid, not a selection filter)
 - **Mode-aware failure rescue** — multi-stage Position Rescue with one-click per-mutation retry
 - **Plate-ready output** — sortable result table, 96-well plate map, Echo 525 / JANUS liquid-handler export
 
@@ -87,6 +88,7 @@ Given a mutation list (plain text / EVOLVEpro CSV) and a template sequence (GenB
 #### Review, visualization & export
 
 - **Sequence Map**: Collapsible SVG linear CDS map with mutation positions, domain regions, and density histogram for cluster detection
+- **Candidate 3D structure analysis**: Collapsible Output-step panel embedding a 3Dmol viewer (loaded on demand). Maps candidate positions onto the fetched AlphaFold/PDB structure (or an uploaded PDB/CIF), highlights UniProt active-site and binding-site residues, and reports spatial dispersion — mean pairwise Cα distance versus a random matched-size null, percentile shown as `P1`/`P99`. A color legend explains every color and each row toggles its 3D layer; surface rendering and PNG export are available. The dispersion / pLDDT / site overlays are interpretation/QC aids, not candidate-selection filters — EVOLVEpro `y_pred` ranking decides what gets designed
 - **Column sorting**: All result columns sortable (including y_pred and synthesis score). Plate map export respects current sort order
 - **Candidate comparison and swap**: Click a primer sequence to open a candidate comparison popover
 - **Custom primer evaluation**: Enter a sequence directly in the candidate popover → Tm, GC%, hairpin, and off-target are calculated immediately

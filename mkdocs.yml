@@ -66,6 +66,7 @@ nav:
     - Sidecar Method not found: troubleshooting/sidecar-method-not-found.md
     - 빌드 버전 표기: troubleshooting/build-version.md
     - Sidebar Navigation: troubleshooting/sidebar-navigation.md
+    - Windows SmartScreen: troubleshooting/windows-smartscreen.md
   - 참고:
     - 단축키: reference/keybindings.md
     - 설정: reference/settings.md

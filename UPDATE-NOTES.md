@@ -4,6 +4,44 @@
 
 ---
 
+## v0.13.10 (2026-07-01)
+
+KURO 3D viewer fixes.
+
+### Kuro
+
+- The 3D viewer **Surface** button now works in the packaged app; the molecular-surface Web Worker was blocked by the app's content-security policy.
+- **Export PNG** now opens a save dialog and writes the image file — the previous in-webview download silently did nothing.
+
+---
+
+## v0.13.9 (2026-07-01)
+
+KURO 3D dispersion reliability + release integrity.
+
+### Kuro
+
+- Fixed the Candidate 3D structure analysis reporting "N position(s) could not be mapped to the structure" for every position when the structure loaded but the UniProt sequence lookup failed. The mapping now reads the sequence from the loaded structure itself, so dispersion works whenever the structure is available.
+
+### Releases
+
+- Each GitHub release now attaches a `SHA256SUMS.txt`, and the release notes explain the Windows SmartScreen "Unknown publisher" prompt (More info → Run anyway), how to verify the download hash, and the macOS Gatekeeper step. Note: without code signing the SmartScreen prompt still appears — the checksum lets you verify the download is intact.
+
+---
+
+## v0.13.8 (2026-07-01)
+
+KURO Candidate 3D structure analysis polish + packaged-sidecar fix.
+
+### Kuro
+
+- The Candidate 3D structure analysis panel gained inline `?` help on the Structural Dispersion card, histogram, and each metric; percentiles now read as `P1`/`P96` (P = percentile); and a **Color legend** under the viewer maps every color, with each row clickable to show/hide that 3D layer.
+- The magenta overlay is relabeled **Binding site** (UniProt `Binding site`: ligand/cofactor/metal-binding residues) — the earlier "Interface" label was inaccurate.
+- The panel is reordered so the 3D viewer sits directly above the analysis cards, making toggle/coloring changes visible immediately.
+- Fixed the packaged app's 3D dispersion failing with a missing `BLOSUM62` data-file error; the sequence aligner no longer depends on that external Biopython file.
+
+---
+
 ## v0.13.7 (2026-07-01)
 
 KURO Candidate 3D structure analysis.

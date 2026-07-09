@@ -4,6 +4,44 @@
 
 ---
 
+## v0.13.10 (2026-07-01)
+
+KURO 3D 뷰어 수정.
+
+### Kuro
+
+- 3D 뷰어 **Surface** 버튼이 패키지 앱에서 정상 작동합니다. 분자 표면 계산 Web Worker가 앱 콘텐츠 보안 정책(CSP)에 막혀 있었습니다.
+- **Export PNG** 이 저장 다이얼로그를 열고 이미지 파일을 씁니다 — 이전에는 웹뷰 내 다운로드가 조용히 아무 것도 안 했습니다.
+
+---
+
+## v0.13.9 (2026-07-01)
+
+KURO 3D dispersion 안정성 + 릴리즈 무결성.
+
+### Kuro
+
+- Candidate 3D structure analysis 에서 구조는 로드됐는데 UniProt 서열 조회가 실패하면 모든 위치가 "N position(s) could not be mapped to the structure" 로 빠지던 문제를 수정. 이제 매핑 서열을 로드된 구조 자체에서 읽어, 구조만 있으면 dispersion 이 동작합니다.
+
+### Releases
+
+- 모든 GitHub 릴리즈에 `SHA256SUMS.txt` 를 첨부하고, 릴리즈 노트에 Windows SmartScreen "게시자 알 수 없음" 안내(추가 정보 → 실행), 다운로드 해시 검증법, macOS Gatekeeper 절차를 넣었습니다. 단, 코드 서명이 없어 SmartScreen 경고 자체는 계속 뜹니다 — 체크섬으로 무결성만 검증할 수 있습니다.
+
+---
+
+## v0.13.8 (2026-07-01)
+
+KURO 후보 3D 구조 분석 개선 + 패키지 사이드카 수정.
+
+### Kuro
+
+- Candidate 3D structure analysis 패널에 Structural Dispersion 카드·히스토그램·각 지표 인라인 `?` 도움말 추가, 백분위 `P1`/`P96` (P = percentile) 표기, 뷰어 아래 **Color legend** 로 각 색 의미 표시 + 항목 클릭으로 3D 레이어 on/off.
+- 마젠타 오버레이를 **Binding site** (UniProt `Binding site`: 리간드/보조인자/금속 결합 잔기)로 정정 — 이전 "Interface" 표기는 부정확했습니다.
+- 3D 뷰어를 분석 카드 바로 위로 재배치해 토글/색칠 변경이 즉시 보입니다.
+- 패키지 앱의 3D dispersion 이 `BLOSUM62` 데이터 파일 부재로 실패하던 문제 수정 — 서열 정렬기가 그 외부 Biopython 파일에 더 이상 의존하지 않습니다.
+
+---
+
 ## v0.13.7 (2026-07-01)
 
 KURO 후보 3D 구조 분석.
