@@ -1022,35 +1022,41 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#31-ingest" class="md-nav__link">
+  <a href="#31-activity-data-step" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3.1 Ingest
+        3.1 Activity Data (통합 step)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3.1 Activity Data (통합 step)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ingest" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ingest
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#32-merge-export" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#merge-export" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3.2 Merge &amp; Export
+        Merge &amp; Export
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#v092x" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        v0.9.2.x 변경
-      
-    </span>
-  </a>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1639,7 +1645,9 @@
 
 <h1 id="step-3-activity-data">Step 3. Activity Data<a class="headerlink" href="#step-3-activity-data" title="Permanent link">&para;</a></h1>
 <p>wet-lab activity assay 결과를 verdict 와 병합해 다음 라운드 EVOLVEpro 입력 xlsx 를 생성한다.</p>
-<h2 id="31-ingest">3.1 Ingest<a class="headerlink" href="#31-ingest" title="Permanent link">&para;</a></h2>
+<h2 id="31-activity-data-step">3.1 Activity Data (통합 step)<a class="headerlink" href="#31-activity-data-step" title="Permanent link">&para;</a></h2>
+<p>v0.13.11 에서 기존 <strong>3.1 Ingest</strong> 와 <strong>3.2 Merge &amp; Export</strong> 를 하나의 Activity Data step 으로 통합했다. 업로드 → 병합 → export 가 한 화면에서 순차로 진행된다. (legacy <code>activity.mergeExport</code> id 는 이 step 으로 redirect.)</p>
+<h3 id="ingest">Ingest<a class="headerlink" href="#ingest" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
 <tr>
@@ -1654,7 +1662,7 @@
 </tr>
 </tbody>
 </table>
-<h2 id="32-merge-export">3.2 Merge &amp; Export<a class="headerlink" href="#32-merge-export" title="Permanent link">&para;</a></h2>
+<h3 id="merge-export">Merge &amp; Export<a class="headerlink" href="#merge-export" title="Permanent link">&para;</a></h3>
 <p>verdict + activity merge → EVOLVEpro 2-column xlsx (<code>mutation</code>, <code>activity</code>) 산출.</p>
 <table>
 <thead>
@@ -1674,11 +1682,6 @@
 </tr>
 </tbody>
 </table>
-<h2 id="v092x">v0.9.2.x 변경<a class="headerlink" href="#v092x" title="Permanent link">&para;</a></h2>
-<ul>
-<li>Step header 가 Major.Sub 표기 (<code>Step 3.1: Ingest</code>, <code>Step 3.2: Merge &amp; Export</code>).</li>
-<li>Sidebar 클릭 자유 이동. ingest 미완 상태에서 3.2 진입 시 "Ingest activity data first" empty state.</li>
-</ul>
 
 
 
