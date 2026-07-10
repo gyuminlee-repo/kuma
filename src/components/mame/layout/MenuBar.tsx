@@ -34,6 +34,8 @@ import i18next, { setLocale, SUPPORTED_LOCALES } from "@/lib/i18n";
 import type { RunManifest } from "@/lib/runManifest";
 import { loadManifestFromFile } from "@/lib/runManifest";
 import type { InputVerifyResult } from "@/lib/reRun";
+import { UPDATE_CHECK_EVENT } from "@/lib/updateCheck";
+import { START_GUIDED_TOUR_EVENT } from "@/components/dialogs/ProjectTourCoordinator";
 
 const MOD_KEY = typeof navigator !== "undefined" && navigator.userAgent.includes("Mac") ? "⌘" : "Ctrl+";
 
@@ -387,6 +389,9 @@ export function MenuBar({ onClearRequest, onRunRequest, onJanusOpen }: MenuBarPr
           <DropdownMenuItem onClick={() => window.dispatchEvent(new CustomEvent("kuma:show-onboarding"))}>
             {t("help.showOnboarding")}
           </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => window.dispatchEvent(new CustomEvent(START_GUIDED_TOUR_EVENT))}>
+            {t("guidedTour.show")}
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => setShortcutsOpen(true)}>
             <span className="flex-1">{t("shortcutsDialog.title")}</span>
@@ -396,11 +401,7 @@ export function MenuBar({ onClearRequest, onRunRequest, onJanusOpen }: MenuBarPr
             {t("help.viewCrashLog")}
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={() => {
-              void import("@tauri-apps/plugin-opener").then((m) =>
-                m.openUrl("https://github.com/gyuminlee-repo/KURO/releases"),
-              );
-            }}
+            onClick={() => window.dispatchEvent(new CustomEvent(UPDATE_CHECK_EVENT))}
           >
             {t("about.checkForUpdates")}
           </DropdownMenuItem>

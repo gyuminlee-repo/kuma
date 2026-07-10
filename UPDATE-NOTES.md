@@ -4,6 +4,25 @@
 
 ---
 
+## v0.13.12 (2026-07-01)
+
+### Guided onboarding
+
+- Newly created projects receive a skippable spotlight tour of project navigation and Kuro. Mame guidance appears separately on first entry. Existing projects are not interrupted.
+- **Skip all tours** disables automatic tours for that project; `Esc` closes only the current tour. Replay the current tool from **Help → Show Guided Tour**.
+
+### Updates
+
+- Kuma checks GitHub for a newer published release at startup and shows a recommendation when one exists. **Help → Check for updates** now performs a real version check. Network failures do not block startup.
+- **Export PNG** now has the required binary file-write capability, reports save success/failure, and no longer rejects the Tauri `fs.write_file` command. 3D residue spheres use a consistent opaque style to avoid 3Dmol's ambiguous-opacity warning. Title-only dialogs explicitly opt out of a missing description, and the embedded favicon prevents the default `/favicon.ico` 404.
+
+### Kuro reference-sequence domains
+
+- **Scan sequence** submits the loaded target protein to EMBL-EBI InterProScan after external-service consent and caches successful integrated domain annotations by sequence SHA-256.
+- Domain allocation now prefers separate reference-frame annotations, while legacy UniProt-accession domains remain dedicated to AlphaFold structure coloring. Reference domains and their sequence hash persist independently in the workspace; stale annotations are discarded when the loaded sequence hash changes.
+
+---
+
 ## v0.13.11 (2026-07-01)
 
 MAME single-step Activity + KURO 3D viewer polish.

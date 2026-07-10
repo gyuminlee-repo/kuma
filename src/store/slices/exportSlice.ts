@@ -20,9 +20,17 @@ import {
   buildIncludedPlateState,
   getIncludedDesignResults,
 } from "./designSlice.helpers";
+import { resolveSelectionDomains } from "./inputSlice.helpers";
 
 import type { ExportSlice } from "../slice-interfaces";
 export type { ExportSlice };
+
+async function sha256ProteinSequence(sequence: string): Promise<string> {
+  const normalized = sequence.replace(/\s+/g, "").toUpperCase().replace(/\*+$/, "");
+  const bytes = new TextEncoder().encode(normalized);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
 
 function normalizeWorkspace(ws: WorkspaceV1 | WorkspaceV2 | WorkspaceV3): WorkspaceV2 | WorkspaceV3 {
   if ("schema_version" in ws && ws.schema_version === "0.3") {
@@ -151,6 +159,7 @@ function buildReportData(state: AppState) {
     includedDesignResults.filter((r) => !rescuedSet.has(r.mutation)).map((r) => r.penalty),
   );
 
+  const selectionDomains = resolveSelectionDomains(state.refDomains);
   const sections: Array<{ title: string; items: Array<{ label: string; value: string | number; warn?: boolean }> }> = [];
 
   if (state.evolveproMode !== "topN") {
@@ -167,7 +176,7 @@ function buildReportData(state: AppState) {
           label: "Step 2 domains",
           value: formatDomainAllocation(
             state.domainDiversityEnabled,
-            state.domains,
+            selectionDomains,
             state.domainStats,
             state.domainStrategy,
           ),
@@ -295,10 +304,11 @@ function buildBenchmarkRawData(state: AppState, results: Record<string, Benchmar
   if (!results || Object.keys(state.yPredMap).length === 0) {
     return null;
   }
-  const activeDomains = state.domains.filter(
+  const selectionDomains = resolveSelectionDomains(state.refDomains);
+  const activeDomains = selectionDomains.filter(
     (domain) => !state.disabledDomains.includes(`${domain.name}-${domain.start}`),
   );
-  const excludedDomains = state.domains.filter(
+  const excludedDomains = selectionDomains.filter(
     (domain) => state.disabledDomains.includes(`${domain.name}-${domain.start}`),
   );
   const landscape = Object.entries(state.yPredMap)
@@ -450,6 +460,8 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
         tmTolerance: s.tmTolerance,
         uniprotAccession: s.uniprotAccession || undefined,
         domains: s.domains.length > 0 ? s.domains : undefined,
+        refDomains: s.refDomains?.length ? s.refDomains : undefined,
+        refDomainHash: s.refDomainHash || undefined,
         domainDiversityEnabled: s.domainDiversityEnabled || undefined,
         domainStrategy: s.domainDiversityEnabled ? s.domainStrategy : undefined,
         domainOverlapPolicy: s.domainDiversityEnabled ? s.domainOverlapPolicy : undefined,
@@ -537,6 +549,26 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       }
     }
 
+    let restoredRefDomains = settings.refDomains ?? [];
+    let restoredRefDomainHash = settings.refDomainHash ?? "";
+    if (restoredRefDomains.length > 0 && restoredRefDomainHash !== "manual") {
+      const restoredTarget = loadedSeqInfo?.genes.find(
+        (gene) => String(gene.cds_start) === restoredGene,
+      ) ?? loadedSeqInfo?.genes[0];
+      try {
+        const currentHash = restoredTarget?.translation
+          ? await sha256ProteinSequence(restoredTarget.translation)
+          : "";
+        if (!currentHash || currentHash !== restoredRefDomainHash) {
+          restoredRefDomains = [];
+          restoredRefDomainHash = "";
+        }
+      } catch {
+        restoredRefDomains = [];
+        restoredRefDomainHash = "";
+      }
+    }
+
     let preloadedYPred: Record<string, number> | null = null;
     let preloadedPoolVariants: string[] | null = null;
     let evolveproReloadError: string | null = null;
@@ -610,6 +642,8 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       tmTolerance: settings.tmTolerance ?? 4.0,
       uniprotAccession: settings.uniprotAccession ?? "",
       domains: settings.domains ?? [],
+      refDomains: restoredRefDomains,
+      refDomainHash: restoredRefDomainHash,
       ...(settings.disabledDomains && { disabledDomains: settings.disabledDomains }),
       rescuedMutations: settings.rescuedMutations ?? [],
       domainOverlapPolicy: settings.domainOverlapPolicy ?? "first",
@@ -698,6 +732,9 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       uniprotAccession: "",
       domains: [],
       domainLoading: false,
+      refDomains: [],
+      refDomainsLoading: false,
+      refDomainHash: "",
       disabledDomains: [],
       domainStats: {},
       paretoDiversityEnabled: true,

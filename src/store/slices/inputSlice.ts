@@ -10,6 +10,7 @@ import {
   buildEvolveproLoadParams,
   buildEvolveproLoadStateUpdate,
   collectAnchorVariants,
+  resolveSelectionDomains,
 } from "./inputSlice.helpers";
 import {
   validateCsvHeader,
@@ -73,7 +74,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         positionDiversityEnabled,
         maxPerPosition,
         domainDiversityEnabled,
-        domains,
+        refDomains,
         disabledDomains,
         domainStrategy,
         domainOverlapPolicy,
@@ -91,8 +92,9 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         structuralKappa,
       } = get();
       const effectiveTopN = topNOverride ?? maxPrimers;
-      const activeDomains = domains.filter((d) => !disabledDomains.includes(`${d.name}-${d.start}`));
-      const excludedDomains = domains.filter((d) => disabledDomains.includes(`${d.name}-${d.start}`));
+      const selectionDomains = resolveSelectionDomains(refDomains);
+      const activeDomains = selectionDomains.filter((d) => !disabledDomains.includes(`${d.name}-${d.start}`));
+      const excludedDomains = selectionDomains.filter((d) => disabledDomains.includes(`${d.name}-${d.start}`));
       const isOthersMode = evolveproMode === "others";
       const modeLabel = isOthersMode ? "Others" : "EVOLVEpro";
       const activeVariantColumn = isOthersMode ? othersVariantColumn : evolveproVariantColumn;

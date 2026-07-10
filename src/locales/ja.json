@@ -48,6 +48,8 @@
     "checking": "確認中...",
     "upToDate": "最新バージョンです (v{{version}})。",
     "updateAvailable": "アップデート可能: v{{current}} から v{{next}}",
+    "updateRecommendation": "GitHub に新しい Kuma リリースがあります。お使いのプラットフォーム用インストーラーをダウンロードする前にリリースノートを確認してください。",
+    "viewRelease": "リリースを表示",
     "downloadAndInstall": "ダウンロードしてインストール",
     "installing": "インストール中...",
     "later": "後で",
@@ -1130,6 +1132,7 @@
     "domainNamePlaceholder": "Name",
     "domainStartPlaceholder": "Start",
     "domainEndPlaceholder": "End",
+    "referenceDomainsRequired": "ドメイン割り当てを有効にするには、参照配列を解析するか参照座標のドメインを手動で追加してください。",
     "alphaFoldLoading": "(AlphaFold 読み込み中...)",
     "alphaFoldBadge": "AlphaFold",
     "helpTip3D": "AlphaFold Cα 座標を用いて 3D 空間で離れた variants を選択。",
@@ -1438,6 +1441,27 @@
     "memoryBlockDesc": "Sidecar プロセスのメモリ使用量が {{ratio}}% ({{rss}} MB) に到達しました。現在の作業を停止してアプリを再起動してください。",
     "memoryBlockConfirm": "OK"
   },
+  "guidedTour": {
+    "show": "ガイドツアーを表示",
+    "skip": "すべてのツアーをスキップ",
+    "finish": "完了",
+    "overviewNavigationTitle": "Kuro と Mame を切り替える",
+    "overviewNavigationBody": "Kuro は変異とプレートを設計し、Mame はシーケンスと活性データを次の学習ラウンド用に統合します。",
+    "overviewProjectTitle": "現在のプロジェクトを確認",
+    "overviewProjectBody": "このバーでプロジェクトと自動保存状態を確認し、結果を正しいワークスペースに保持します。",
+    "kuroWorkflowTitle": "Kuro ワークフローを進める",
+    "kuroWorkflowBody": "入力、候補確認、プライマー設計、実行可能なプレート計画の出力を順に進めます。",
+    "kuroWorkspaceTitle": "Kuro のメイン領域",
+    "kuroWorkspaceBody": "選択したステップがここに表示され、配列、候補、設計、表、3D 結果が進行に応じて更新されます。",
+    "kuroInspectorTitle": "Kuro の詳細を確認",
+    "kuroInspectorBody": "インスペクターでステップ別パラメーター、選択変異、警告、出力設定を確認します。",
+    "mameWorkflowTitle": "Mame ワークフローを進める",
+    "mameWorkflowBody": "Setup、Analyze、Activity を通じて実験データを整理された学習テーブルに変換します。",
+    "mameWorkspaceTitle": "Mame のメイン領域",
+    "mameWorkspaceBody": "ランデータを読み込み、遺伝子型判定とプレート結果を確認し、活性測定値を統合して出力します。",
+    "mameInspectorTitle": "Mame の詳細を確認",
+    "mameInspectorBody": "現在の Mame ステップの操作とコンテキストを結果の横で確認します。"
+  },
   "onboarding": {
     "titleChange": "プロジェクトフォルダを変更",
     "titleNew": "始める",
@@ -1623,7 +1647,11 @@
     "topCandidates": "Top 候補 {{shown}}{{total}}",
     "autoSearchTitle": "読み込み済み sequence ファイルの gene 情報で UniProt を検索",
     "fetchBtn": "取得",
-    "autoSearchBtn": "自動検索"
+    "autoSearchBtn": "自動検索",
+    "scanSequenceBtn": "配列を解析",
+    "scanSequenceTitle": "InterProScan で読み込んだタンパク質配列から参照座標系のドメインを直接検出します",
+    "referenceDomainsReady": "参照座標: InterProScan ドメイン {{count}} 件",
+    "accessionDomainsOnly": "Accession ドメインは 3D 表示用です。ドメイン割り当て前に参照配列を解析してください。"
   },
   "statusBar": {
     "ready": "準備完了",
@@ -1801,9 +1829,15 @@
   "diversity": {
     "offlineReason": "オフラインモード",
     "consentReason": "外部サービスへの同意が必要です",
-    "domainFetchCancelled": "Domain 取得をキャンセル: {{reason}}",
+    "domainFetchCancelled": "ドメイン取得をキャンセル: {{reason}}",
     "uniprotSearchCancelled": "UniProt 検索をキャンセル: {{reason}}",
-    "alphafoldFetchCancelled": "AlphaFold 取得をキャンセル: {{reason}}"
+    "alphafoldFetchCancelled": "AlphaFold 取得をキャンセル: {{reason}}",
+    "sequenceDomainScanCancelled": "配列ドメイン解析をキャンセル: {{reason}}",
+    "sequenceDomainScanning": "InterProScan で参照配列を解析中...",
+    "sequenceDomainsFound": "参照配列ドメイン: {{count}} 件{{cache}}",
+    "sequenceDomainsNone": "InterProScan はこの配列の統合ドメイン注釈を検出しませんでした。",
+    "sequenceDomainsCachedSuffix": "（キャッシュ）",
+    "sequenceDomainScanFailed": "配列ドメイン解析に失敗しました: {{error}}"
   },
   "inputThresholds": {
     "estimateSec": "推定約 {{sec}} 秒",
@@ -2462,6 +2496,8 @@
     "darkBg": "Dark",
     "fullscreen": "Fullscreen",
     "exportPng": "Export PNG",
+    "exportPngSaved": "PNG を保存しました: {{path}}",
+    "exportPngFailed": "PNG のエクスポートに失敗しました: {{message}}",
     "activeSite": "Active site",
     "bindingSite": "Binding site",
     "noActiveSiteAnnotation": "No UniProt active-site annotation — add residues",

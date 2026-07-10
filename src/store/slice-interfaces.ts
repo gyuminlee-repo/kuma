@@ -99,6 +99,10 @@ export interface DiversitySlice {
   uniprotSearching: boolean;
   structuralDiversityEnabled: boolean;
   structuralKappa: number;
+  refDomains: DomainInfo[];
+  refDomainsLoading: boolean;
+  refDomainHash: string;
+
 
 
   // Actions
@@ -143,6 +147,8 @@ export interface DiversitySlice {
     nTrials?: number;
     seed?: number | null;
   }) => Promise<ComputeDispersionResult | null>;
+  /** Annotate reference-frame domains by submitting the selected gene translation to InterProScan. */
+  annotateReferenceDomains: () => Promise<void>;
 }
 
 // ---------------------------------------------------------------------------

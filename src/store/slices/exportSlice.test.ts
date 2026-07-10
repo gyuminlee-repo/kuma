@@ -76,6 +76,9 @@ function makeStore() {
     tmTolerance: 3.0,
     uniprotAccession: "",
     domains: [],
+    refDomains: [],
+    refDomainsLoading: false,
+    refDomainHash: "",
     disabledDomains: [],
     domainDiversityEnabled: true,
     domainStrategy: "proportional",
@@ -188,6 +191,18 @@ describe("exportSlice — schema_version 0.3", () => {
     const snap = store.slice.getWorkspaceSnapshot() as WorkspaceV3
     expect(snap.active_round_id).toBe("round_1")
   })
+
+  it("persists reference-frame domains separately from accession domains", () => {
+    store.state.domains = [{ name: "Acc", id: "IPR1", start: 10, end: 20, db: "InterPro" }];
+    store.state.refDomains = [{ name: "Ref", id: "IPR1", start: 15, end: 25, db: "PFAM" }];
+    store.state.refDomainHash = "abc123";
+
+    const snap = store.slice.getWorkspaceSnapshot() as WorkspaceV3;
+
+    expect(snap.settings.domains?.[0]?.start).toBe(10);
+    expect(snap.settings.refDomains?.[0]?.start).toBe(15);
+    expect(snap.settings.refDomainHash).toBe("abc123");
+  });
 
   it("getWorkspaceSnapshot preserves rescue stage details for re-export", () => {
     store.state.rescuedMutationDetails = [

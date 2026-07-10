@@ -108,6 +108,27 @@
       "severity": "blocking"
     },
     {
+      "id": "kuro-sequence-domain-rpc",
+      "files": [
+        "kuma_core/kuro/domains.py",
+        "python-core/sidecar_kuro/handlers/external.py",
+        "python-core/sidecar_kuro/models.py",
+        "python-core/sidecar_kuro/dispatcher.py",
+        "src/types/models.ts",
+        "src/types/validators.ts",
+        "src/store/slices/diversitySlice.ts",
+        "src/components/panels/InputPanel/UniprotSearch.tsx"
+      ],
+      "symbols": [
+        "annotate_domains_by_sequence",
+        "AnnotateDomainsBySequenceParams",
+        "AnnotateDomainsResult",
+        "refDomains"
+      ],
+      "note": "InterProScan sequence-domain RPC, typed guard, reference-frame state, and UI must remain synchronized.",
+      "severity": "blocking"
+    },
+    {
       "id": "tauri-samples",
       "files": [
         "src-tauri/samples",

@@ -48,6 +48,8 @@
     "checking": "Проверка...",
     "upToDate": "Установлена последняя версия (v{{version}}).",
     "updateAvailable": "Доступно обновление: v{{current}} до v{{next}}",
+    "updateRecommendation": "На GitHub доступна новая версия Kuma. Ознакомьтесь с примечаниями к выпуску перед загрузкой установщика для вашей платформы.",
+    "viewRelease": "Открыть выпуск",
     "downloadAndInstall": "Скачать и установить",
     "installing": "Установка...",
     "later": "Позже",
@@ -1130,6 +1132,7 @@
     "domainNamePlaceholder": "Имя",
     "domainStartPlaceholder": "Start",
     "domainEndPlaceholder": "End",
+    "referenceDomainsRequired": "Чтобы включить распределение по доменам, проанализируйте референсную последовательность или добавьте домены в её координатах вручную.",
     "alphaFoldLoading": "(загрузка AlphaFold...)",
     "alphaFoldBadge": "AlphaFold",
     "helpTip3D": "Выбирает variants, разнесённые в 3D пространстве, по Cα координатам AlphaFold.",
@@ -1438,6 +1441,27 @@
     "memoryBlockDesc": "Использование памяти sidecar достигло {{ratio}}% ({{rss}} MB). Остановите текущую работу и перезапустите приложение.",
     "memoryBlockConfirm": "OK"
   },
+  "guidedTour": {
+    "show": "Показать экскурсию",
+    "skip": "Пропустить все экскурсии",
+    "finish": "Готово",
+    "overviewNavigationTitle": "Переключение между Kuro и Mame",
+    "overviewNavigationBody": "Kuro проектирует варианты и планшеты. Mame объединяет данные секвенирования и активности для следующего цикла обучения.",
+    "overviewProjectTitle": "Отслеживание активного проекта",
+    "overviewProjectBody": "Эта панель показывает проект и автосохранение, чтобы результаты оставались в нужной рабочей области.",
+    "kuroWorkflowTitle": "Рабочий процесс Kuro",
+    "kuroWorkflowBody": "Загрузите данные, проверьте кандидатов, спроектируйте праймеры и экспортируйте исполняемый план планшета.",
+    "kuroWorkspaceTitle": "Основная область Kuro",
+    "kuroWorkspaceBody": "Здесь показан выбранный шаг. Последовательность, кандидаты, дизайн, таблицы и 3D-результаты обновляются по мере работы.",
+    "kuroInspectorTitle": "Детали Kuro",
+    "kuroInspectorBody": "Инспектор показывает параметры шага, выбранные варианты, предупреждения и настройки экспорта.",
+    "mameWorkflowTitle": "Рабочий процесс Mame",
+    "mameWorkflowBody": "Пройдите Setup, Analyze и Activity, чтобы преобразовать экспериментальные данные в подготовленную таблицу обучения.",
+    "mameWorkspaceTitle": "Основная область Mame",
+    "mameWorkspaceBody": "Загрузите данные, проверьте генотипы и планшеты, затем объедините измерения активности для экспорта.",
+    "mameInspectorTitle": "Детали Mame",
+    "mameInspectorBody": "Инспектор держит элементы управления и контекст текущего шага рядом с результатами."
+  },
   "onboarding": {
     "titleChange": "Изменить папку проектов",
     "titleNew": "Начать",
@@ -1623,7 +1647,11 @@
     "topCandidates": "Top кандидаты {{shown}}{{total}}",
     "autoSearchTitle": "Поиск в UniProt по информации о гене из загруженного sequence файла",
     "fetchBtn": "Получить",
-    "autoSearchBtn": "Авто-поиск"
+    "autoSearchBtn": "Автопоиск",
+    "scanSequenceBtn": "Анализ последовательности",
+    "scanSequenceTitle": "Определить домены в координатах референса непосредственно по загруженной белковой последовательности с помощью InterProScan",
+    "referenceDomainsReady": "Координаты референса: доменов InterProScan — {{count}}",
+    "accessionDomainsOnly": "Домены accession предназначены для 3D-отображения. Перед распределением по доменам проанализируйте референсную последовательность."
   },
   "statusBar": {
     "ready": "Готово",
@@ -1801,9 +1829,15 @@
   "diversity": {
     "offlineReason": "Offline режим",
     "consentReason": "Требуется согласие на внешние сервисы",
-    "domainFetchCancelled": "Domain fetch отменён: {{reason}}",
+    "domainFetchCancelled": "Получение доменов отменено: {{reason}}",
     "uniprotSearchCancelled": "Поиск UniProt отменён: {{reason}}",
-    "alphafoldFetchCancelled": "AlphaFold fetch отменён: {{reason}}"
+    "alphafoldFetchCancelled": "Получение AlphaFold отменено: {{reason}}",
+    "sequenceDomainScanCancelled": "Анализ доменов отменён: {{reason}}",
+    "sequenceDomainScanning": "Анализ референсной последовательности с помощью InterProScan...",
+    "sequenceDomainsFound": "Домены референсной последовательности: найдено {{count}}{{cache}}",
+    "sequenceDomainsNone": "InterProScan не обнаружил интегрированных аннотаций доменов для этой последовательности.",
+    "sequenceDomainsCachedSuffix": " (из кэша)",
+    "sequenceDomainScanFailed": "Ошибка анализа доменов: {{error}}"
   },
   "inputThresholds": {
     "estimateSec": "~{{sec}}s ориентировочно",
@@ -2462,6 +2496,8 @@
     "darkBg": "Dark",
     "fullscreen": "Fullscreen",
     "exportPng": "Export PNG",
+    "exportPngSaved": "PNG сохранён: {{path}}",
+    "exportPngFailed": "Не удалось экспортировать PNG: {{message}}",
     "activeSite": "Active site",
     "bindingSite": "Binding site",
     "noActiveSiteAnnotation": "No UniProt active-site annotation — add residues",

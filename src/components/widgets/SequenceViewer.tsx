@@ -328,7 +328,7 @@ export function SequenceViewer() {
     seqInfo,
     designResults,
     failedMutations,
-    domains,
+    refDomains,
     domainStats,
     disabledDomains,
     parsedMutations,
@@ -339,7 +339,7 @@ export function SequenceViewer() {
       seqInfo: s.seqInfo,
       designResults: s.designResults,
       failedMutations: s.failedMutations,
-      domains: s.domains,
+      refDomains: s.refDomains,
       domainStats: s.domainStats,
       disabledDomains: s.disabledDomains,
       parsedMutations: s.parsedMutations,
@@ -347,6 +347,10 @@ export function SequenceViewer() {
       overlapMode: s.overlapMode,
     })),
   );
+  // Sequence viewer draws bands on the user reference-sequence axis, so it must
+  // use reference-frame domains when available. Accession-frame `domains` only
+  // align with the AlphaFold structure, never with the loaded sequence.
+  const domains = refDomains;
   const isFullOverlap = overlapMode === "full";
 
   const [collapsed, setCollapsed] = useState(false);

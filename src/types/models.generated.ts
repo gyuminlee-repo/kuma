@@ -13,6 +13,8 @@
 
 export interface SidecarKuroModels {
   AlternativesResultModel?: AlternativesResultModel;
+  AnnotateDomainsBySequenceParams?: AnnotateDomainsBySequenceParams;
+  AnnotateDomainsBySequenceResult?: AnnotateDomainsBySequenceResult;
   BenchmarkResultDict?: BenchmarkResultDict;
   BenchmarkResultModel?: BenchmarkResultModel;
   CheckStructuresParams?: CheckStructuresParams;
@@ -141,6 +143,35 @@ export interface OffTargetHitModel {
   position: number;
   strand: "sense" | "antisense";
   tm: number;
+  [k: string]: unknown;
+}
+/**
+ * Params for `annotate_domains_by_sequence` RPC.
+ */
+export interface AnnotateDomainsBySequenceParams {
+  ref_hash?: string | null;
+  sequence?: string;
+  [k: string]: unknown;
+}
+/**
+ * Typed reference-frame result for `annotate_domains_by_sequence`.
+ */
+export interface AnnotateDomainsBySequenceResult {
+  cache_hit?: boolean;
+  coordinate_frame?: "reference";
+  domains?: DomainInfoModel[];
+  error_msg?: string | null;
+  protein_length?: number;
+  ref_hash?: string;
+  source?: "interproscan" | "error";
+  [k: string]: unknown;
+}
+export interface DomainInfoModel {
+  db: string;
+  end: number;
+  id: string;
+  name: string;
+  start: number;
   [k: string]: unknown;
 }
 /**
@@ -425,14 +456,6 @@ export interface DesignSdmPrimersParams {
  */
 export interface DomainEntry {
   end: number;
-  name: string;
-  start: number;
-  [k: string]: unknown;
-}
-export interface DomainInfoModel {
-  db: string;
-  end: number;
-  id: string;
   name: string;
   start: number;
   [k: string]: unknown;
@@ -976,6 +999,8 @@ export interface WorkspaceSettingsModel {
   pipelineMode?: boolean | null;
   positionDiversityEnabled?: boolean | null;
   primerLenEnabled?: boolean | null;
+  refDomainHash?: string | null;
+  refDomains?: DomainInfoModel[] | null;
   rescuedMutations?: string[] | null;
   revLenMax?: number | null;
   revLenMin?: number | null;

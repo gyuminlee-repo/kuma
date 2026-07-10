@@ -169,6 +169,16 @@ export interface FetchDomainsResult {
   protein_length?: number;
   error_msg?: string;
 }
+export interface AnnotateDomainsResult {
+  domains: DomainInfo[];
+  source: "interproscan" | "error";
+  coordinate_frame: "reference";
+  protein_length: number;
+  ref_hash: string;
+  cache_hit: boolean;
+  error_msg?: string;
+}
+
 
 export interface DomainStat {
   quota: number;
@@ -375,6 +385,8 @@ export interface WorkspaceSettings {
   tmTolerance?: number;
   uniprotAccession?: string;
   domains?: DomainInfo[];
+  refDomains?: DomainInfo[];
+  refDomainHash?: string;
   domainDiversityEnabled?: boolean;
   domainStrategy?: "proportional" | "equal";
   domainOverlapPolicy?: DomainOverlapPolicy;
@@ -712,6 +724,10 @@ export interface RpcMethodMap {
   fetch_domains: {
     params: { accession: string };
     result: FetchDomainsResult;
+  };
+  annotate_domains_by_sequence: {
+    params: { sequence: string; ref_hash?: string };
+    result: AnnotateDomainsResult;
   };
   search_uniprot: {
     params: { gene_name: string; organism: string; translation: string; known_accession: string };

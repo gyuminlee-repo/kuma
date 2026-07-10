@@ -52,7 +52,7 @@ Given a mutation list (plain text / EVOLVEpro CSV) and a template sequence (GenB
 
 #### Mutation input & candidate selection
 
-- **EVOLVEpro CSV input**: Load EVOLVEpro (`variant`, `y_pred`) output CSV. Sorts by score descending, auto-selects the configured number of variants. Optional **position diversity** filter limits mutations per amino acid position (uses Grantham 1974 distance as tie-breaker when scores are within 2%). Optional **domain diversity** distributes selections across protein structural domains (auto-fetched from InterPro/Pfam or manual input). Optional **Pareto diversity** maximizes position spread via MODIFY-style fitness-diversity co-optimization. Optional **structural diversity** runs greedy farthest-point selection over the full candidate pool in 3D Cα-centroid space, anchored on variants already tested in prior rounds, with an optional κ blend toward predicted fitness — it beats Top-N only in the early/low-data rounds of epistatic combinatorial campaigns (conditional; neutral-to-harmful otherwise, see `benchmark/REPORT.md` §6.7–6.12). **σ-Adaptive Pool**: enter EVOLVEpro Round and Round size to automatically calibrate the candidate pool width and entropy weight based on cumulative data (K = 0.50→0.25, entropy = 0.30→0.15 across rounds 1–5+)
+- **EVOLVEpro CSV input**: Load EVOLVEpro (`variant`, `y_pred`) output CSV. Sorts by score descending, auto-selects the configured number of variants. Optional **position diversity** filter limits mutations per amino acid position (uses Grantham 1974 distance as tie-breaker when scores are within 2%). Optional **domain diversity** distributes selections across domains detected directly from the loaded reference protein sequence by InterProScan (or entered manually), so selection coordinates match KURO mutations; UniProt-accession domains remain separate for AlphaFold structure coloring. Optional **Pareto diversity** maximizes position spread via MODIFY-style fitness-diversity co-optimization. Optional **structural diversity** runs greedy farthest-point selection over the full candidate pool in 3D Cα-centroid space, anchored on variants already tested in prior rounds, with an optional κ blend toward predicted fitness — it beats Top-N only in the early/low-data rounds of epistatic combinatorial campaigns (conditional; neutral-to-harmful otherwise, see `benchmark/REPORT.md` §6.7–6.12). **σ-Adaptive Pool**: enter EVOLVEpro Round and Round size to automatically calibrate the candidate pool width and entropy weight based on cumulative data (K = 0.50→0.25, entropy = 0.30→0.15 across rounds 1–5+)
 - **Batch mutation parsing**: Mutation list in `Q232A` format → automatic codon position calculation + WT codon validation
 - **AlphaFold 3D distance**: Pareto and structural diversity use real Cα Euclidean distance from AlphaFold DB predicted structures instead of 1D sequence position distance. Fetched automatically after UniProt accession entry; cached at `~/.kuma/kuro/embeddings/{accession}_ca.json`. Falls back to 1D position distance when the structure is unavailable
 
@@ -140,7 +140,7 @@ When loading an EVOLVEpro scored CSV, Kuro applies the configured selection stra
 |----------|-------------|-------------|
 | **Top-N by score** | Select the top N mutations ranked by predicted fitness score (y_pred / property_value descending). N = max primers setting (default 95). | Default ranking. Use when predicted fitness is the only criterion. |
 | **Position diversity** | Limit the number of mutations per amino acid position (default: 1 per position). When two variants at the same position score within 2%, the more conservative substitution (lower Grantham 1974 distance) is preferred. Applied as a pre-filter before other strategies. | Prevent over-sampling at mutational hot spots. |
-| **Domain diversity** | Allocate mutation quota proportionally (by domain length) or equally across protein structural domains. Domains are auto-fetched from InterPro/Pfam via UniProt accession, or entered manually. | Ensure coverage across all functional regions. |
+| **Domain diversity** | Allocate mutation quota proportionally (by domain length) or equally across domains detected directly from the loaded reference protein sequence with InterProScan, or entered manually in reference coordinates. UniProt-accession domains are retained separately for AlphaFold structure display. | Ensure coverage across functional regions without mixing reference and accession residue numbering. |
 | **Pareto diversity** | Greedy maximin position selection: iteratively pick the mutation whose position is farthest from all already-selected positions. Maximizes spatial spread across the protein sequence. | Prevent clustering of mutations in a narrow region. Inspired by the MODIFY approach (Ding et al., *Nature Communications*, 2024). |
 | **Entropy-guided** (β) | Blends per-position Shannon entropy of the y_pred distribution (weight 0.3) into the Pareto score. Positions where many mutations score similarly are prioritised. | Escape local optima. Requires Pareto diversity to be enabled. |
 | **Structural diversity** | Greedy farthest-point (maximin) selection over the **full** candidate pool in 3D Cα-centroid space (AlphaFold), anchored on the cumulative set of variants already tested across prior rounds, with an optional κ blend toward predicted fitness (κ=0 pure diversity → κ=1 pure Top-N). Combination variants use the centroid of all substituted positions; falls back to sequence-position distance when no structure is available. | Early/low-data rounds of multi-round epistatic combinatorial campaigns. **Conditional**: beats Top-N on genuinely epistatic, spatially-distributed landscapes but is neutral-to-harmful otherwise and washes out once ~a plate of labels accumulates (`benchmark/REPORT.md` §6.7–6.12). |
@@ -176,6 +176,8 @@ Download the latest installer from [Releases](https://github.com/gyuminlee-repo/
 - **macOS**: `kuma_x.x.x_aarch64.dmg`
 - **Linux**: `.deb` + `.AppImage`
 
+Kuma checks the latest published GitHub release at startup and recommends an update only when its version is newer. Use **Help → Check for updates** to check again manually; update-check failures never block startup.
+
 ### Developers — `pnpm setup` instead of `pnpm install` on Windows
 
 On Windows, `pnpm install` may fail with `EACCES` / `EBUSY` on the first run when Defender or an IDE file watcher locks files in `node_modules`. Use the wrapper script:
@@ -204,6 +206,8 @@ Then bypass Gatekeeper one of these ways:
 Subsequent launches require no further action.
 
 ## Usage
+
+A newly created project runs a skippable spotlight tour: a short project overview followed by Kuro guidance, with a separate Mame tour on first entry. Existing projects are not interrupted. Choose **Help → Show Guided Tour** to replay the tour for the current tab.
 
 **Kuro tab**
 1. **Help → Load Sample Data** to load examples, or:

@@ -23,7 +23,7 @@ import {
 } from "../lib/project";
 
 type HomeProps = {
-  onOpenProject: (path: string) => void;
+  onOpenProject: (path: string, options?: { newlyCreated?: boolean }) => void;
   onOpenScratch: (kuroJsonPath: string) => void;
   onOpenSettings: () => void;
 };
@@ -83,7 +83,7 @@ export function Home({ onOpenProject, onOpenScratch, onOpenSettings }: HomeProps
       const path = await createProject(trimmedName);
       setIsCreateOpen(false);
       setProjectName("");
-      onOpenProject(path);
+      onOpenProject(path, { newlyCreated: true });
     } catch (err) {
       setError(formatError(err));
     } finally {

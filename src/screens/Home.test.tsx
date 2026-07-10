@@ -176,7 +176,7 @@ describe("Home", () => {
 
     await waitFor(() => {
       expect(createProjectMock).toHaveBeenCalledWith("alpha");
-      expect(onOpenProject).toHaveBeenCalledWith("/tmp/new-project");
+      expect(onOpenProject).toHaveBeenCalledWith("/tmp/new-project", { newlyCreated: true });
     });
   });
 });

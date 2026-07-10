@@ -160,6 +160,11 @@ export function DomainAllocationSection(props: {
       </div>
 
       <UniprotSearch />
+      {domains.length === 0 && (
+        <p role="status" className="text-plate-tiny text-warning">
+          {t("diversitySections.referenceDomainsRequired")}
+        </p>
+      )}
 
       {domains.length > 0 && (
         <div className="space-y-0.5">

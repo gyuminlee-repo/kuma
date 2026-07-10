@@ -50,7 +50,7 @@ Kuro 탭에서 프라이머를 설계하고 실험·시퀀싱 후 Mame 탭으로
 
 #### 변이 입력 & 후보 선정
 
-- **EVOLVEpro CSV 입력**: EVOLVEpro(`variant`, `y_pred`) 출력 CSV 로드. 점수 내림차순 정렬 후 설정 개수만큼 자동 선정. **위치 다양성** 필터로 아미노산 위치당 최대 N개 제한 가능 (동일 위치 후보 점수 차이 2% 이내 시 Grantham 1974 거리가 낮은 보수적 치환 우선). **도메인 다양성** 필터로 단백질 구조 도메인 간 분산 선택 (InterPro/Pfam 자동 조회 또는 수동 입력). **Pareto 다양성** 으로 MODIFY 방식의 위치 분산 최대화. **structural 다양성** 으로 전체 후보 풀을 3D Cα-centroid 공간에서 greedy farthest-point 선택 — 이전 라운드에서 이미 테스트한 변이 집합을 anchor로 삼아 멀어지도록 고르며, 예측 적합도 쪽으로 κ 블렌드 가능. 초기·저데이터 라운드의 epistatic 조합 타깃에서만 Top-N을 이김(조건부; 그 외엔 무익~해로움, `benchmark/REPORT.md` §6.7–6.12). **σ-Adaptive Pool**: EVOLVEpro Round와 Round size 입력 시 누적 데이터 기반으로 후보 풀 범위와 entropy 가중치 자동 보정 (K = 0.50→0.25, entropy = 0.30→0.15, Round 1→5+)
+- **EVOLVEpro CSV 입력**: EVOLVEpro(`variant`, `y_pred`) 출력 CSV 로드. 점수 내림차순 정렬 후 설정 개수만큼 자동 선정. **위치 다양성** 필터로 아미노산 위치당 최대 N개 제한 가능 (동일 위치 후보 점수 차이 2% 이내 시 Grantham 1974 거리가 낮은 보수적 치환 우선). **도메인 다양성** 필터는 불러온 참조 단백질 서열을 InterProScan으로 직접 분석하거나 수동 입력한 참조 좌표 도메인에 따라 선택을 분산하며, AlphaFold 색칠용 UniProt accession 도메인은 별도로 유지한다. **Pareto 다양성** 으로 MODIFY 방식의 위치 분산 최대화. **structural 다양성** 으로 전체 후보 풀을 3D Cα-centroid 공간에서 greedy farthest-point 선택 — 이전 라운드에서 이미 테스트한 변이 집합을 anchor로 삼아 멀어지도록 고르며, 예측 적합도 쪽으로 κ 블렌드 가능. 초기·저데이터 라운드의 epistatic 조합 타깃에서만 Top-N을 이김(조건부; 그 외엔 무익~해로움, `benchmark/REPORT.md` §6.7–6.12). **σ-Adaptive Pool**: EVOLVEpro Round와 Round size 입력 시 누적 데이터 기반으로 후보 풀 범위와 entropy 가중치 자동 보정 (K = 0.50→0.25, entropy = 0.30→0.15, Round 1→5+)
 - **배치 변이 파싱**: `Q232A` 형식의 변이 목록 → 코돈 위치 자동 계산 + WT 코돈 검증
 - **AlphaFold 3D 거리**: Pareto·structural 다양성이 1차원 위치 거리가 아닌 AlphaFold DB 예측 구조의 실제 Cα 유클리드 거리 사용. UniProt accession 입력 후 자동 조회, `~/.kuma/kuro/embeddings/{accession}_ca.json`에 캐싱
 
@@ -137,7 +137,7 @@ EVOLVEpro CSV 로드 시 어떤 mutation을 프라이머 설계 대상으로 선
 |------|------|-----------|
 | **Top-N by score** | 예측 적합도(y_pred / property_value) 내림차순 상위 N개 선택. N = 최대 프라이머 수 (기본 95). | 기본 랭킹. 예측 적합도만 기준일 때. |
 | **Position diversity** | 아미노산 위치당 최대 mutation 수 제한 (기본 1). 동일 위치 두 후보 점수 차이 2% 이내 시 Grantham 1974 거리가 낮은 보수적 치환 우선. 다른 전략 적용 전 사전 필터. | 특정 위치에 mutation이 과도 집중되는 것을 방지. |
-| **Domain diversity** | 단백질 구조 도메인별 할당량 배분 (비례 또는 균등). 도메인 정보는 UniProt accession으로 InterPro/Pfam 자동 조회 또는 수동 입력. | 한 도메인이 y_pred 상위를 독점할 때 전 도메인 탐색. |
+| **Domain diversity** | 불러온 참조 단백질 서열을 InterProScan으로 직접 분석하거나 참조 좌표로 수동 입력한 도메인에 따라 할당량을 비례 또는 균등 배분. AlphaFold 구조 표시용 UniProt accession 도메인은 별도로 유지. | 참조 좌표와 accession 잔기 번호를 섞지 않고 기능 영역 전반을 탐색. |
 | **Pareto diversity** | Greedy maximin 위치 선택. 이미 선택된 mutation과 가장 먼 위치를 반복 선택하여 공간적 분산 극대화. | 좁은 영역에 mutation이 밀집되는 것을 방지. MODIFY 접근법(Ding et al., *Nature Communications*, 2024). |
 | **Entropy-guided** (β) | 위치별 y_pred 분포의 Shannon entropy(가중치 0.3)를 Pareto 점수에 혼합. | 적합도 경관에 여러 봉우리가 있을 때 국소 최적 탈출. Pareto 활성화 필요. |
 | **Structural diversity** | 전체 후보 풀을 3D Cα-centroid 공간(AlphaFold)에서 greedy farthest-point(maximin) 선택. 이전 라운드에서 이미 테스트한 변이 누적 집합을 anchor로 삼고, 예측 적합도 쪽으로 κ 블렌드 가능(κ=0 순수 다양성 → κ=1 순수 Top-N). 조합 변이는 모든 치환 위치의 centroid 사용, 구조 없으면 서열 위치 거리로 폴백. | 다라운드 epistatic 조합 캠페인의 초기·저데이터 라운드. **조건부**: 진짜 epistatic·분산형 경관에선 Top-N을 이기지만 그 외엔 무익~해로우며 라벨이 ~1 플레이트 쌓이면 사라짐(`benchmark/REPORT.md` §6.7–6.12). |
@@ -173,6 +173,8 @@ EVOLVEpro CSV 로드 시 어떤 mutation을 프라이머 설계 대상으로 선
 - **macOS**: `kuma_x.x.x_aarch64.dmg`
 - **Linux**: `.deb` + `.AppImage`
 
+Kuma는 시작할 때 GitHub의 최신 공개 릴리스를 확인하고, 설치된 버전보다 새 버전일 때만 업데이트를 권장한다. **도움말 → 업데이트 확인**에서 수동으로 다시 확인할 수 있으며, 확인 실패가 앱 시작을 막지는 않는다.
+
 ### 개발자 — Windows에서는 `pnpm install` 대신 `pnpm setup`
 
 Windows에서 `pnpm install`은 Defender나 IDE 파일 워처가 `node_modules`를 잠가 첫 시도에 `EACCES`/`EBUSY`로 실패할 수 있다. 대신 래퍼 스크립트를 쓴다:
@@ -201,6 +203,8 @@ xattr -cr /Applications/kuma.app
 이후 실행부터는 경고 없이 열린다.
 
 ## 사용법
+
+새로 만든 프로젝트에서는 건너뛸 수 있는 spotlight 투어가 실행된다. 짧은 프로젝트 개요와 Kuro 안내가 먼저 나오며, Mame은 처음 진입할 때 별도 투어를 제공한다. 기존 프로젝트에는 자동으로 표시되지 않는다. 현재 탭의 투어는 **도움말 → 가이드 투어 보기**에서 다시 실행할 수 있다.
 
 **Kuro 탭**
 1. **Help → Load Sample Data** 메뉴로 예제 자동 로드. 또는:

@@ -57,6 +57,7 @@ export function GlobalAppBar({ activeTab, onTabChange, onOpenSettings }: GlobalA
 
   return (
     <header
+      data-tour="global-navigation"
       className="h-12 shrink-0 flex items-center border-b bg-background px-4 gap-4"
       aria-label={t("globalAppBar.navAriaLabel")}
     >

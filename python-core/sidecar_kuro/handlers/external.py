@@ -12,9 +12,11 @@ import sidecar_kuro.core as _core
 from sidecar_kuro.core import (
     _get_ssl_ctx,
     _get_contact_email,
+    _progress,
     logger,
 )
 from sidecar_kuro.models import (
+    AnnotateDomainsBySequenceParams,
     CheckStructuresParams,
     FetchDomainsParams,
     SearchUniprotParams,
@@ -700,3 +702,76 @@ def handle_compute_dispersion(params: dict) -> dict:
         n_trials=p.n_trials,
         seed=p.seed,
     )
+
+
+def handle_annotate_domains_by_sequence(params: dict) -> dict:
+    """Submit a protein sequence to InterProScan; return reference-frame DOMAIN annotations.
+
+    Coordinates in ``ref_domains`` are 1-based on the submitted sequence
+    (coordinate_frame="reference").  Results are cached by SHA-256 so repeated
+    calls for the same sequence are served without a network round-trip.
+    Network/protocol failures are surfaced as ``error_msg`` (no traceback leak).
+    """
+    from kuma_core.kuro.domains import _validate_sequence, _seq_sha256, run_interproscan
+
+    p = AnnotateDomainsBySequenceParams(**params)
+    sequence = p.sequence.strip()
+    if not sequence:
+        raise ValueError("sequence is required")
+
+    email = _get_contact_email()
+
+    try:
+        seq_clean = _validate_sequence(sequence)
+    except ValueError as exc:
+        return {
+            "domains": [],
+            "protein_length": 0,
+            "source": "error",
+            "coordinate_frame": "reference",
+            "ref_hash": "",
+            "cache_hit": False,
+            "error_msg": str(exc),
+        }
+
+    protein_length = len(seq_clean)
+    # Allow caller-supplied ref_hash (e.g. already computed by frontend);
+    # fall back to SHA-256 of the cleaned sequence.
+    ref_hash = p.ref_hash or _seq_sha256(seq_clean)
+
+    try:
+        domains, cache_hit, computed_hash = run_interproscan(
+            seq_clean,
+            email,
+            progress=_progress,
+        )
+    except ValueError as exc:
+        return {
+            "domains": [],
+            "protein_length": protein_length,
+            "source": "error",
+            "coordinate_frame": "reference",
+            "ref_hash": ref_hash,
+            "cache_hit": False,
+            "error_msg": str(exc),
+        }
+
+    if not domains:
+        return {
+            "domains": [],
+            "protein_length": protein_length,
+            "source": "interproscan",
+            "coordinate_frame": "reference",
+            "ref_hash": computed_hash,
+            "cache_hit": cache_hit,
+            "error_msg": "No DOMAIN-type InterPro annotations found for this sequence",
+        }
+
+    return {
+        "domains": domains,
+        "protein_length": protein_length,
+        "source": "interproscan",
+        "coordinate_frame": "reference",
+        "ref_hash": computed_hash,
+        "cache_hit": cache_hit,
+    }

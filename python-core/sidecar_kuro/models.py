@@ -377,6 +377,8 @@ class WorkspaceSettingsModel(WorkspaceModel):
     fillOnFailure: Optional[bool] = None
     uniprotAccession: Optional[str] = None
     domains: Optional[list[DomainInfoModel]] = None
+    refDomains: Optional[list[DomainInfoModel]] = None
+    refDomainHash: Optional[str] = None
     domainDiversityEnabled: Optional[bool] = None
     domainStrategy: Optional[Literal["proportional", "equal"]] = None
     domainOverlapPolicy: Optional[Literal["first", "largest"]] = None
@@ -678,6 +680,13 @@ class FetchInterfaceParams(BaseModel):
     accession: str = ""
     ref_seq: str = ""
 
+class AnnotateDomainsBySequenceParams(BaseModel):
+    """Params for `annotate_domains_by_sequence` RPC."""
+
+    sequence: str = ""
+    ref_hash: Optional[str] = None
+
+
 # ---------------------------------------------------------------------------
 # G001: 3D Analysis panel RPCs (fetch_pdb_text, fetch_active_site_residues,
 #        compute_dispersion)
@@ -749,6 +758,23 @@ class ComputeDispersionResult(BaseModel):
     n_trials: int = 1000
     seed: Optional[int] = None
     null_hist: NullHistogram = Field(default_factory=NullHistogram)
+
+
+# ---------------------------------------------------------------------------
+# Sequence-direct InterProScan domain annotation
+# ---------------------------------------------------------------------------
+
+
+class AnnotateDomainsBySequenceResult(WorkspaceModel):
+    """Typed reference-frame result for `annotate_domains_by_sequence`."""
+
+    domains: list[DomainInfoModel] = Field(default_factory=list)
+    protein_length: int = 0
+    source: Literal["interproscan", "error"] = "interproscan"
+    coordinate_frame: Literal["reference"] = "reference"
+    ref_hash: str = ""
+    cache_hit: bool = False
+    error_msg: Optional[str] = None
 
 
 # ---------------------------------------------------------------------------

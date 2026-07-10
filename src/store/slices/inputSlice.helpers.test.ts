@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   buildEvolveproLoadParams,
   collectAnchorVariants,
+  resolveSelectionDomains,
   type EvolveproLoadConfig,
 } from "./inputSlice.helpers";
 import type { Round } from "@/types/round";
@@ -163,5 +164,17 @@ describe("buildEvolveproLoadParams structure_accession", () => {
       makeConfig({ structuralDiversityEnabled: true, structureAccession: "" }),
     );
     expect(params).not.toHaveProperty("structure_accession");
+  });
+});
+
+describe("resolveSelectionDomains", () => {
+  const referenceDomains = [{ name: "Ref", id: "IPR1", start: 15, end: 25, db: "InterProScan" }];
+
+  it("uses direct reference-sequence annotations", () => {
+    expect(resolveSelectionDomains(referenceDomains)).toEqual(referenceDomains);
+  });
+
+  it("does not reinterpret accession-frame domains as selection coordinates", () => {
+    expect(resolveSelectionDomains(undefined)).toEqual([]);
   });
 });

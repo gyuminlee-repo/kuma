@@ -35,7 +35,7 @@ export function DiversityOptions() {
   const setLinkerHandling = useAppStore((s) => s.setLinkerHandling);
   const domainQuotaMin = useAppStore((s) => s.domainQuotaMin);
   const setDomainQuotaMin = useAppStore((s) => s.setDomainQuotaMin);
-  const domains = useAppStore((s) => s.domains);
+  const refDomains = useAppStore((s) => s.refDomains);
   const setDomains = useAppStore((s) => s.setDomains);
   const toggleDomain = useAppStore((s) => s.toggleDomain);
   const disabledDomains = useAppStore((s) => s.disabledDomains);
@@ -75,6 +75,7 @@ export function DiversityOptions() {
   const setSaveCache = useAppStore((s) => s.setSaveCache);
   const mutationText = useAppStore((s) => s.mutationText);
 
+  const selectionDomains = refDomains;
   const selectedCount = useMemo(
     () => mutationText.split("\n").filter((l) => l.trim() && !l.trim().startsWith("#")).length,
     [mutationText],
@@ -143,7 +144,7 @@ export function DiversityOptions() {
           <DomainAllocationSection
             linkerHandling={linkerHandling}
             setLinkerHandling={setLinkerHandling}
-            domains={domains}
+            domains={selectionDomains}
             disabledDomains={disabledDomains}
             domainStats={domainStats}
             toggleDomain={toggleDomain}

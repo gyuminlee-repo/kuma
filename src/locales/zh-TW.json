@@ -48,6 +48,8 @@
     "checking": "檢查中...",
     "upToDate": "當前為最新版本 (v{{version}})。",
     "updateAvailable": "可用更新: v{{current}} 到 v{{next}}",
+    "updateRecommendation": "GitHub 上有較新的 Kuma 版本。下載適用於您平台的安裝程式前，請先查看發行說明。",
+    "viewRelease": "查看版本",
     "downloadAndInstall": "下載並安裝",
     "installing": "安裝中...",
     "later": "稍後",
@@ -1130,6 +1132,7 @@
     "domainNamePlaceholder": "名稱",
     "domainStartPlaceholder": "起點",
     "domainEndPlaceholder": "終點",
+    "referenceDomainsRequired": "請掃描參考序列或手動新增參考座標域，以啟用域分配。",
     "alphaFoldLoading": "(載入 AlphaFold 中...)",
     "alphaFoldBadge": "AlphaFold",
     "helpTip3D": "使用 AlphaFold Cα 座標,選出在 3D 空間中相互分散的 variant。",
@@ -1438,6 +1441,27 @@
     "memoryBlockDesc": "Sidecar 程序記憶體使用已達 {{ratio}}% ({{rss}} MB)。請停止當前工作並重啟應用。",
     "memoryBlockConfirm": "確定"
   },
+  "guidedTour": {
+    "show": "顯示引導教學",
+    "skip": "略過所有教學",
+    "finish": "完成",
+    "overviewNavigationTitle": "在 Kuro 和 Mame 之間切換",
+    "overviewNavigationBody": "Kuro 設計變體與孔板，Mame 整合定序及活性證據供下一輪學習使用。",
+    "overviewProjectTitle": "追蹤目前專案",
+    "overviewProjectBody": "此列顯示專案與自動儲存狀態，確保每項結果保存在正確的工作區。",
+    "kuroWorkflowTitle": "遵循 Kuro 工作流程",
+    "kuroWorkflowBody": "依序載入輸入、檢閱候選、設計引子並匯出可執行的孔板方案。",
+    "kuroWorkspaceTitle": "Kuro 主工作區",
+    "kuroWorkspaceBody": "所選步驟顯示於此。序列、候選、設計、表格與 3D 結果會隨進度更新。",
+    "kuroInspectorTitle": "檢視 Kuro 詳情",
+    "kuroInspectorBody": "在檢查器中查看步驟參數、所選變體、警告與匯出控制項。",
+    "mameWorkflowTitle": "遵循 Mame 工作流程",
+    "mameWorkflowBody": "依序完成 Setup、Analyze 與 Activity，將實驗資料整理成學習表。",
+    "mameWorkspaceTitle": "Mame 主工作區",
+    "mameWorkspaceBody": "載入執行資料，檢查基因型判定與孔板結果，再合併活性測量值進行匯出。",
+    "mameInspectorTitle": "檢視 Mame 詳情",
+    "mameInspectorBody": "檢查器會在結果旁顯示目前 Mame 步驟的控制項與脈絡。"
+  },
   "onboarding": {
     "titleChange": "更改專案資料夾",
     "titleNew": "開始使用",
@@ -1623,7 +1647,11 @@
     "topCandidates": "Top 候選 {{shown}}{{total}}",
     "autoSearchTitle": "使用已載入序列檔案中的基因資訊搜尋 UniProt",
     "fetchBtn": "獲取",
-    "autoSearchBtn": "自動搜尋"
+    "autoSearchBtn": "自動搜尋",
+    "scanSequenceBtn": "掃描序列",
+    "scanSequenceTitle": "使用 InterProScan 直接從已載入的蛋白質序列偵測參考座標域",
+    "referenceDomainsReady": "參考座標: {{count}} 個 InterProScan 域",
+    "accessionDomainsOnly": "Accession 域用於 3D 顯示。進行域分配前請掃描參考序列。"
   },
   "statusBar": {
     "ready": "就緒",
@@ -1801,9 +1829,15 @@
   "diversity": {
     "offlineReason": "離線模式",
     "consentReason": "需要外部服務同意",
-    "domainFetchCancelled": "Domain fetch 已取消: {{reason}}",
+    "domainFetchCancelled": "域獲取已取消: {{reason}}",
     "uniprotSearchCancelled": "UniProt 搜尋已取消: {{reason}}",
-    "alphafoldFetchCancelled": "AlphaFold fetch 已取消: {{reason}}"
+    "alphafoldFetchCancelled": "AlphaFold 獲取已取消: {{reason}}",
+    "sequenceDomainScanCancelled": "序列域掃描已取消: {{reason}}",
+    "sequenceDomainScanning": "正在使用 InterProScan 分析參考序列...",
+    "sequenceDomainsFound": "參考序列域: 找到 {{count}} 個{{cache}}",
+    "sequenceDomainsNone": "InterProScan 未找到此序列的整合域註解。",
+    "sequenceDomainsCachedSuffix": "（快取）",
+    "sequenceDomainScanFailed": "序列域掃描失敗: {{error}}"
   },
   "inputThresholds": {
     "estimateSec": "預計 ~{{sec}}s",
@@ -2462,6 +2496,8 @@
     "darkBg": "Dark",
     "fullscreen": "Fullscreen",
     "exportPng": "Export PNG",
+    "exportPngSaved": "PNG 已儲存：{{path}}",
+    "exportPngFailed": "PNG 匯出失敗：{{message}}",
     "activeSite": "Active site",
     "bindingSite": "Binding site",
     "noActiveSiteAnnotation": "No UniProt active-site annotation — add residues",

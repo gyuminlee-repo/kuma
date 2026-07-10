@@ -38,6 +38,8 @@ import { killSidecar } from "../../lib/ipc";
 import { SettingsDialog } from "./SettingsDialog";
 import { KeyboardShortcutsDialog } from "../dialogs/KeyboardShortcutsDialog";
 import { SharedAboutDialog } from "./SharedAboutDialog";
+import { UPDATE_CHECK_EVENT } from "../../lib/updateCheck";
+import { START_GUIDED_TOUR_EVENT } from "../dialogs/ProjectTourCoordinator";
 
 const MOD_KEY = navigator.userAgent.includes("Mac") ? "⌘" : "Ctrl+";
 
@@ -387,6 +389,9 @@ export function MenuBar({ onClearRequest }: MenuBarProps = {}) {
           <DropdownMenuItem onClick={() => window.dispatchEvent(new CustomEvent("kuma:show-onboarding"))}>
             {t("help.showOnboarding")}
           </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => window.dispatchEvent(new CustomEvent(START_GUIDED_TOUR_EVENT))}>
+            {t("guidedTour.show")}
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => setShortcutsOpen(true)}>
             <span className="flex-1">{t("shortcutsDialog.title")}</span>
@@ -396,11 +401,7 @@ export function MenuBar({ onClearRequest }: MenuBarProps = {}) {
             {t("help.viewCrashLog")}
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={() => {
-              void import("@tauri-apps/plugin-opener").then((m) =>
-                m.openUrl("https://github.com/gyuminlee-repo/KURO/releases"),
-              );
-            }}
+            onClick={() => window.dispatchEvent(new CustomEvent(UPDATE_CHECK_EVENT))}
           >
             {t("about.checkForUpdates")}
           </DropdownMenuItem>

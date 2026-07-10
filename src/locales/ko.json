@@ -48,6 +48,8 @@
     "checking": "확인 중...",
     "upToDate": "최신 버전입니다 (v{{version}}).",
     "updateAvailable": "업데이트 가능: v{{current}} -> v{{next}}",
+    "updateRecommendation": "GitHub에 새 Kuma 릴리스가 있습니다. 플랫폼에 맞는 설치 파일을 다운로드하기 전에 릴리스 노트를 확인하세요.",
+    "viewRelease": "릴리스 보기",
     "downloadAndInstall": "다운로드 및 설치",
     "installing": "설치 중...",
     "later": "나중에",
@@ -1149,6 +1151,7 @@
     "domainNamePlaceholder": "이름",
     "domainStartPlaceholder": "시작",
     "domainEndPlaceholder": "끝",
+    "referenceDomainsRequired": "도메인 할당을 사용하려면 참조 서열을 스캔하거나 참조 좌표 도메인을 수동으로 추가하세요.",
     "alphaFoldLoading": "(AlphaFold 불러오는 중...)",
     "alphaFoldBadge": "AlphaFold",
     "helpTip3D": "AlphaFold Cα 좌표를 사용해 3D 공간에서 멀리 분포한 변이를 선택합니다.",
@@ -1457,6 +1460,27 @@
     "memoryBlockDesc": "Sidecar 프로세스 메모리 사용량이 {{ratio}}% ({{rss}} MB)에 도달했습니다. 진행 중인 작업을 중단하고 앱을 재시작해 주세요.",
     "memoryBlockConfirm": "확인"
   },
+  "guidedTour": {
+    "show": "가이드 투어 보기",
+    "skip": "모든 투어 건너뛰기",
+    "finish": "완료",
+    "overviewNavigationTitle": "Kuro와 Mame 전환",
+    "overviewNavigationBody": "Kuro는 변이와 플레이트를 설계하고, Mame은 시퀀싱 및 활성 데이터를 다음 학습 라운드용 증거로 결합합니다.",
+    "overviewProjectTitle": "활성 프로젝트 확인",
+    "overviewProjectBody": "이 표시줄에서 프로젝트와 자동 저장 상태를 확인하여 모든 결과를 올바른 작업 공간에 연결합니다.",
+    "kuroWorkflowTitle": "Kuro 워크플로 진행",
+    "kuroWorkflowBody": "이 레일을 따라 입력을 불러오고 후보를 검토한 뒤 프라이머를 설계하고 실행 가능한 플레이트 계획을 내보냅니다.",
+    "kuroWorkspaceTitle": "Kuro 주 작업 영역",
+    "kuroWorkspaceBody": "선택한 단계가 여기에 표시됩니다. 진행에 따라 서열, 후보, 설계, 표 및 3D 결과가 갱신됩니다.",
+    "kuroInspectorTitle": "Kuro 세부 정보 검토",
+    "kuroInspectorBody": "인스펙터에서 단계별 매개변수, 선택 변이, 경고 및 내보내기 설정을 확인합니다.",
+    "mameWorkflowTitle": "Mame 워크플로 진행",
+    "mameWorkflowBody": "Setup, Analyze, Activity를 거쳐 실험 증거를 정리된 학습 테이블로 변환합니다.",
+    "mameWorkspaceTitle": "Mame 주 작업 영역",
+    "mameWorkspaceBody": "런 데이터를 불러오고 유전자형 판정과 플레이트 결과를 검토한 뒤 활성 측정값을 병합해 내보냅니다.",
+    "mameInspectorTitle": "Mame 세부 정보 검토",
+    "mameInspectorBody": "현재 Mame 단계에 필요한 제어와 맥락을 결과 옆의 인스펙터에서 확인합니다."
+  },
   "onboarding": {
     "titleChange": "프로젝트 폴더 변경",
     "titleNew": "시작하기",
@@ -1642,7 +1666,11 @@
     "autoSearchBtn": "자동 검색",
     "autoSearchTitle": "불러온 시퀀스 파일의 유전자 정보로 UniProt 검색",
     "fetchBtn": "가져오기",
-    "topCandidates": "상위 후보 {{shown}}{{total}}"
+    "topCandidates": "상위 후보 {{shown}}{{total}}",
+    "scanSequenceBtn": "서열 스캔",
+    "scanSequenceTitle": "InterProScan으로 불러온 단백질 서열에서 참조 좌표계 도메인을 직접 탐지합니다",
+    "referenceDomainsReady": "참조 좌표: InterProScan 도메인 {{count}}개",
+    "accessionDomainsOnly": "Accession 도메인은 3D 표시용입니다. 도메인 할당 전에 참조 서열을 스캔하세요."
   },
   "closeConfirm": {
     "designing": {
@@ -1822,7 +1850,13 @@
     "consentReason": "외부 서비스 사용 동의가 필요합니다",
     "domainFetchCancelled": "Domain fetch 취소: {{reason}}",
     "uniprotSearchCancelled": "UniProt 검색 취소: {{reason}}",
-    "alphafoldFetchCancelled": "AlphaFold fetch 취소: {{reason}}"
+    "alphafoldFetchCancelled": "AlphaFold fetch 취소: {{reason}}",
+    "sequenceDomainScanCancelled": "서열 도메인 스캔 취소: {{reason}}",
+    "sequenceDomainScanning": "InterProScan으로 참조 서열을 분석하는 중입니다...",
+    "sequenceDomainsFound": "참조 서열 도메인 {{count}}개를 찾았습니다{{cache}}",
+    "sequenceDomainsNone": "InterProScan에서 이 서열의 통합 도메인 주석을 찾지 못했습니다.",
+    "sequenceDomainsCachedSuffix": " (캐시됨)",
+    "sequenceDomainScanFailed": "서열 도메인 스캔 실패: {{error}}"
   },
   "inputThresholds": {
     "estimateSec": "약 {{sec}}초 소요 예상",
@@ -2462,6 +2496,8 @@
     "darkBg": "Dark",
     "fullscreen": "Fullscreen",
     "exportPng": "Export PNG",
+    "exportPngSaved": "PNG 저장 완료: {{path}}",
+    "exportPngFailed": "PNG 내보내기 실패: {{message}}",
     "activeSite": "Active site",
     "bindingSite": "Binding site",
     "noActiveSiteAnnotation": "No UniProt active-site annotation — add residues",

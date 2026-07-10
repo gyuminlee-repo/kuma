@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.13.12: reference-sequence domains, guided onboarding, update recommendations
+
+- 새 프로젝트 최초 진입 시 공통 내비게이션과 Kuro의 워크플로·작업 영역·인스펙터를 순서대로 강조하는 spotlight 투어가 표시됩니다. Mame은 처음 진입할 때 별도 투어를 제공합니다.
+- **모든 투어 건너뛰기**는 프로젝트별로 영속되며, `Esc`는 현재 투어만 닫습니다. 기존 프로젝트에는 자동 표시되지 않고, **도움말 → 가이드 투어 보기**에서 현재 도구의 투어를 재실행할 수 있습니다.
+- 앱 시작 시 GitHub 최신 공개 릴리스를 확인하여 설치 버전보다 새로운 경우에만 업데이트를 권장합니다. 네트워크 실패는 시작을 막지 않으며 **도움말 → 업데이트 확인**에서 수동 확인할 수 있습니다.
+- Kuro domain allocation now supports direct reference-sequence InterProScan annotation with sequence-hash caching and keeps reference-frame selection domains separate from UniProt accession-frame 3D domains.
+
+---
+
 ## KURO 3D structure analysis (2026-07-01)
 
 v0.13.7 ~ v0.13.10 KURO 관련 변경 사항입니다.

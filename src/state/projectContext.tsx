@@ -6,6 +6,7 @@ export type KumaProject = {
   scratch: boolean;
   stage?: string;
   project_id?: string;
+  newlyCreated?: boolean;
 } | null;
 
 const ProjectContext = createContext<KumaProject>(null);

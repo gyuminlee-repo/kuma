@@ -67,6 +67,12 @@ export interface EvolveproLoadStateUpdate {
   statusMessage: string;
 }
 
+export function resolveSelectionDomains(
+  refDomains: DomainInfo[] | undefined,
+): DomainInfo[] {
+  return refDomains ?? [];
+}
+
 export function buildEvolveproLoadParams(config: EvolveproLoadConfig): Record<string, unknown> {
   const {
     filepath,

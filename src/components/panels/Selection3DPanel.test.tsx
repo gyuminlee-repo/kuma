@@ -6,6 +6,16 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import type { ComputeDispersionResult, FetchActiveSiteResult, FetchPdbTextResult } from "@/types/models";
 
+const mockSave = vi.hoisted(() =>
+  vi.fn<(options?: unknown) => Promise<string | null>>(),
+);
+const mockWriteFile = vi.hoisted(() =>
+  vi.fn<(path: string, data: Uint8Array) => Promise<void>>(),
+);
+
+vi.mock("@tauri-apps/plugin-dialog", () => ({ save: mockSave }));
+vi.mock("@tauri-apps/plugin-fs", () => ({ writeFile: mockWriteFile }));
+
 // ─── mock 3dmol ─────────────────────────────────────────────────────────────
 // Must be declared before vi.mock since vi.mock hoists factories
 const mockViewer = {
@@ -212,6 +222,10 @@ function setStore(patch: Partial<(typeof storeRef)["current"]>) {
 beforeEach(() => {
   vi.clearAllMocks();
   resetStore();
+  mockSave.mockReset();
+  mockSave.mockResolvedValue(null);
+  mockWriteFile.mockReset();
+  mockWriteFile.mockResolvedValue();
 });
 
 describe("Selection3DPanel — no-accession state (upload fallback allowed)", () => {
@@ -318,6 +332,33 @@ describe("Selection3DPanel — opens and fetches on click", () => {
     render(<Selection3DPanel />);
     fireEvent.click(screen.getByTestId("panel-toggle"));
     await waitFor(() => expect(screen.getByTestId("dispersion-card")).toBeInTheDocument());
+  });
+});
+
+describe("Selection3DPanel — PNG export", () => {
+  it("writes viewer PNG bytes to the path selected by the Tauri save dialog", async () => {
+    setStore({
+      uniprotAccession: "P12345",
+      evolveproSelectedVariants: ["A1G"],
+      evolveproRankedCandidates: [{ variant: "A1G", y_pred: 0.85, aa_position: 1 }],
+      yPredMap: { A1G: 0.85 },
+      seqInfo: makeSeqInfo(),
+      fetchPdbText: vi.fn().mockResolvedValue(SUCCESS_PDB),
+      fetchActiveSite: vi.fn().mockResolvedValue(ACTIVE_SITE),
+      computeDispersion: vi.fn().mockResolvedValue(DISPERSION),
+    });
+    mockSave.mockResolvedValue("/tmp/structure_P12345.png");
+
+    render(<Selection3DPanel />);
+    fireEvent.click(screen.getByTestId("panel-toggle"));
+    const exportButton = await screen.findByTestId("export-png-btn");
+    fireEvent.click(exportButton);
+
+    await waitFor(() => {
+      expect(mockWriteFile).toHaveBeenCalledOnce();
+      expect(mockWriteFile.mock.calls[0]?.[0]).toBe("/tmp/structure_P12345.png");
+      expect(mockWriteFile.mock.calls[0]?.[1]).toBeInstanceOf(Uint8Array);
+    });
   });
 });
 

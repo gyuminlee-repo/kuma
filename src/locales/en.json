@@ -48,6 +48,8 @@
     "checking": "Checking...",
     "upToDate": "You're on the latest version (v{{version}}).",
     "updateAvailable": "Update available: v{{current}} to v{{next}}",
+    "updateRecommendation": "A newer Kuma release is available on GitHub. Review the release notes before downloading the installer for your platform.",
+    "viewRelease": "View release",
     "downloadAndInstall": "Download and Install",
     "installing": "Installing...",
     "later": "Later",
@@ -1149,6 +1151,7 @@
     "domainNamePlaceholder": "Name",
     "domainStartPlaceholder": "Start",
     "domainEndPlaceholder": "End",
+    "referenceDomainsRequired": "Scan the reference sequence or add reference-coordinate domains manually to enable domain allocation.",
     "alphaFoldLoading": "(loading AlphaFold...)",
     "alphaFoldBadge": "AlphaFold",
     "helpTip3D": "Selects variants spread apart in 3D space using AlphaFold Cα coordinates.",
@@ -1457,6 +1460,27 @@
     "memoryBlockDesc": "The sidecar process memory usage has reached {{ratio}}% ({{rss}} MB). Stop current work and restart the app.",
     "memoryBlockConfirm": "OK"
   },
+  "guidedTour": {
+    "show": "Show Guided Tour",
+    "skip": "Skip all tours",
+    "finish": "Finish",
+    "overviewNavigationTitle": "Move between Kuro and Mame",
+    "overviewNavigationBody": "Kuro designs variants and plates. Mame combines sequencing and activity evidence for the next learning round.",
+    "overviewProjectTitle": "Track the active project",
+    "overviewProjectBody": "This bar shows the project and autosave state so every result stays attached to the correct workspace.",
+    "kuroWorkflowTitle": "Follow the Kuro workflow",
+    "kuroWorkflowBody": "Work down this rail to load inputs, review candidates, design primers, and export an executable plate plan.",
+    "kuroWorkspaceTitle": "Work in the main Kuro area",
+    "kuroWorkspaceBody": "The selected step appears here. Sequence, candidate, design, table, and 3D results update as you progress.",
+    "kuroInspectorTitle": "Review Kuro details",
+    "kuroInspectorBody": "Use the inspector for step-specific parameters, selected variants, warnings, and export controls.",
+    "mameWorkflowTitle": "Follow the Mame workflow",
+    "mameWorkflowBody": "Proceed through Setup, Analyze, and Activity to turn wet-lab evidence into a curated learning table.",
+    "mameWorkspaceTitle": "Work in the main Mame area",
+    "mameWorkspaceBody": "Load run data, inspect genotype verdicts and plate results, then merge activity measurements for export.",
+    "mameInspectorTitle": "Review Mame details",
+    "mameInspectorBody": "The inspector keeps controls and context for the current Mame step alongside the results."
+  },
   "onboarding": {
     "titleChange": "Change projects folder",
     "titleNew": "Get started",
@@ -1642,7 +1666,11 @@
     "topCandidates": "Top candidates {{shown}}{{total}}",
     "autoSearchTitle": "Search UniProt using gene info from the loaded sequence file",
     "fetchBtn": "Fetch",
-    "autoSearchBtn": "Auto Search"
+    "autoSearchBtn": "Auto Search",
+    "scanSequenceBtn": "Scan sequence",
+    "scanSequenceTitle": "Detect reference-frame domains directly from the loaded protein sequence with InterProScan",
+    "referenceDomainsReady": "Reference coordinates: {{count}} InterProScan domain(s)",
+    "accessionDomainsOnly": "Accession domains are for 3D display. Scan the reference sequence before domain allocation."
   },
   "statusBar": {
     "ready": "Ready",
@@ -1822,7 +1850,13 @@
     "consentReason": "External service consent required",
     "domainFetchCancelled": "Domain fetch cancelled: {{reason}}",
     "uniprotSearchCancelled": "UniProt search cancelled: {{reason}}",
-    "alphafoldFetchCancelled": "AlphaFold fetch cancelled: {{reason}}"
+    "alphafoldFetchCancelled": "AlphaFold fetch cancelled: {{reason}}",
+    "sequenceDomainScanCancelled": "Sequence domain scan cancelled: {{reason}}",
+    "sequenceDomainScanning": "Scanning the reference sequence with InterProScan...",
+    "sequenceDomainsFound": "Reference-sequence domains: {{count}} found{{cache}}",
+    "sequenceDomainsNone": "InterProScan found no integrated domain annotations for this sequence.",
+    "sequenceDomainsCachedSuffix": " (cached)",
+    "sequenceDomainScanFailed": "Sequence domain scan failed: {{error}}"
   },
   "inputThresholds": {
     "estimateSec": "~{{sec}}s estimated",
@@ -2462,6 +2496,8 @@
     "darkBg": "Dark",
     "fullscreen": "Fullscreen",
     "exportPng": "Export PNG",
+    "exportPngSaved": "PNG saved: {{path}}",
+    "exportPngFailed": "PNG export failed: {{message}}",
     "activeSite": "Active site",
     "bindingSite": "Binding site",
     "noActiveSiteAnnotation": "No UniProt active-site annotation — add residues",

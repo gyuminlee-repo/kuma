@@ -1,5 +1,6 @@
 import type {
   AlternativesResult,
+  AnnotateDomainsResult,
   CancelDesignResult,
   ComputeDispersionResult,
   DesignResult,
@@ -319,6 +320,19 @@ function isFetchDomainsResult(value: unknown): value is FetchDomainsResult {
     isOptional(value.error_msg, isString)
   );
 }
+function isAnnotateDomainsResult(value: unknown): value is AnnotateDomainsResult {
+  return (
+    isRecord(value) &&
+    isArrayOf(value.domains, isDomainInfo) &&
+    (value.source === "interproscan" || value.source === "error") &&
+    value.coordinate_frame === "reference" &&
+    isNumber(value.protein_length) &&
+    isString(value.ref_hash) &&
+    isBoolean(value.cache_hit) &&
+    isOptional(value.error_msg, isString)
+  );
+}
+
 
 function isDomainStat(value: unknown): boolean {
   return (
@@ -494,6 +508,8 @@ function isWorkspaceSettings(value: unknown): boolean {
     isOptional(value.fillOnFailure, isBoolean) &&
     isOptional(value.uniprotAccession, isString) &&
     isOptional(value.domains, (item) => isArrayOf(item, isDomainInfo)) &&
+    isOptional(value.refDomains, (item) => isArrayOf(item, isDomainInfo)) &&
+    isOptional(value.refDomainHash, isString) &&
     isOptional(value.domainDiversityEnabled, isBoolean) &&
     isOptional(value.domainStrategy, isDomainStrategy) &&
     isOptional(value.domainOverlapPolicy, isDomainOverlapPolicy) &&
@@ -831,6 +847,8 @@ const rpcResultValidators = {
     isWorkspaceData(value),
   fetch_domains: (value): value is RpcMethodResult<"fetch_domains"> =>
     isFetchDomainsResult(value),
+  annotate_domains_by_sequence: (value): value is RpcMethodResult<"annotate_domains_by_sequence"> =>
+    isAnnotateDomainsResult(value),
   search_uniprot: (value): value is RpcMethodResult<"search_uniprot"> =>
     isSearchUniprotResult(value),
   check_structures_available: (value): value is RpcMethodResult<"check_structures_available"> =>

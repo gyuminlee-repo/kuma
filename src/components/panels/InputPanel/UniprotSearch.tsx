@@ -12,7 +12,18 @@ export function UniprotSearch() {
   const fetchDomains = useAppStore((s) => s.fetchDomains);
   const domainLoading = useAppStore((s) => s.domainLoading);
   const seqInfo = useAppStore((s) => s.seqInfo);
+  const selectedGene = useAppStore((s) => s.selectedGene);
+  const refDomainsLoading = useAppStore((s) => s.refDomainsLoading);
+  const domains = useAppStore((s) => s.domains);
+  const refDomains = useAppStore((s) => s.refDomains);
+  const annotateReferenceDomains = useAppStore((s) => s.annotateReferenceDomains);
+
   const visibleCandidates = uniprotCandidates.slice(0, 10);
+  const selectedGeneTranslation =
+    seqInfo?.genes.find((g) => String(g.cds_start) === selectedGene)?.translation
+    ?? seqInfo?.genes[0]?.translation;
+  const hasTranslation = Boolean(selectedGeneTranslation);
+
 
   const [accessionInput, setAccessionInput] = useState(uniprotAccession);
   useEffect(() => setAccessionInput(uniprotAccession), [uniprotAccession]);
@@ -26,7 +37,7 @@ export function UniprotSearch() {
 
   return (
     <div className="space-y-1">
-      <div className="flex gap-1 items-center">
+      <div className="flex flex-wrap gap-1 items-center">
         <input
           type="text"
           className="w-24 h-6 text-xs border border-border rounded px-1 focus:outline-none focus:ring-1 focus:ring-ring"
@@ -43,6 +54,8 @@ export function UniprotSearch() {
           className="h-6 text-caption px-2"
           onClick={() => handleManualFetch(true)}
           disabled={domainLoading || uniprotSearching || !accessionInput}
+          aria-busy={domainLoading}
+          aria-label={t("uniprotSearch.fetchBtn")}
         >
           {domainLoading || uniprotSearching ? "..." : t("uniprotSearch.fetchBtn")}
         </Button>
@@ -64,11 +77,34 @@ export function UniprotSearch() {
             );
           }}
           disabled={uniprotSearching || !seqInfo?.genes.length}
+          aria-busy={uniprotSearching}
+          aria-label={t("uniprotSearch.autoSearchBtn")}
           title={t("uniprotSearch.autoSearchTitle")}
         >
           {uniprotSearching ? "..." : t("uniprotSearch.autoSearchBtn")}
         </Button>
+        <Button
+          variant="default"
+          size="sm"
+          className="h-6 text-caption px-2"
+          onClick={() => void annotateReferenceDomains()}
+          disabled={!hasTranslation || refDomainsLoading || uniprotSearching || domainLoading}
+          aria-busy={refDomainsLoading}
+          aria-label={t("uniprotSearch.scanSequenceBtn")}
+          title={t("uniprotSearch.scanSequenceTitle")}
+        >
+          {refDomainsLoading ? "..." : t("uniprotSearch.scanSequenceBtn")}
+        </Button>
       </div>
+      {refDomains.length > 0 ? (
+        <p className="text-plate-tiny text-success">
+          {t("uniprotSearch.referenceDomainsReady", { count: refDomains.length })}
+        </p>
+      ) : domains.length > 0 ? (
+        <p className="text-plate-tiny text-warning">
+          {t("uniprotSearch.accessionDomainsOnly")}
+        </p>
+      ) : null}
       {uniprotCandidates.length > 0 && (
         <div className="space-y-1">
           <div className="px-1 text-[11px] font-medium text-muted-foreground">
@@ -100,7 +136,7 @@ export function UniprotSearch() {
                 }`}
               />
               <span className="font-mono text-info">{c.accession}</span>
-              <span className="text-muted-foreground truncate">{c.name}</span>
+              <span className="min-w-0 flex-1 truncate text-muted-foreground">{c.name}</span>
               {c.has_structure && (
                 <span className="flex-shrink-0 inline-flex items-center rounded bg-info/10 px-1 py-0.5 text-plate-tiny font-medium text-info" title={t("uniprotSearchExtra.afStructureTitle")}>
                   AF

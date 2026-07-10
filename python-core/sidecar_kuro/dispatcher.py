@@ -39,6 +39,7 @@ from sidecar_kuro.handlers.export import (
     handle_load_workspace,
 )
 from sidecar_kuro.handlers.external import (
+    handle_annotate_domains_by_sequence,
     handle_check_structures_available,
     handle_fetch_domains,
     handle_search_uniprot,
@@ -116,6 +117,7 @@ _METHODS = {
     "fetch_pdb_text": handle_fetch_pdb_text,
     "fetch_active_site_residues": handle_fetch_active_site,
     "compute_dispersion": handle_compute_dispersion,
+    "annotate_domains_by_sequence": handle_annotate_domains_by_sequence,
     "run_benchmark": handle_run_benchmark,
     "cancel_design": lambda _: {
         "cancelled": True,
@@ -143,6 +145,7 @@ _ASYNC_METHODS = {
     "fetch_pdb_text",
     "fetch_active_site_residues",
     "compute_dispersion",
+    "annotate_domains_by_sequence",
 }
 
 # Frozen-Windows worker dispatch starves the worker thread while the main loop

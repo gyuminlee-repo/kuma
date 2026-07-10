@@ -48,6 +48,8 @@
     "checking": "检查中...",
     "upToDate": "当前为最新版本 (v{{version}})。",
     "updateAvailable": "可用更新: v{{current}} 到 v{{next}}",
+    "updateRecommendation": "GitHub 上有较新的 Kuma 版本。下载适用于您平台的安装程序前，请先查看发行说明。",
+    "viewRelease": "查看版本",
     "downloadAndInstall": "下载并安装",
     "installing": "安装中...",
     "later": "稍后",
@@ -1130,6 +1132,7 @@
     "domainNamePlaceholder": "名称",
     "domainStartPlaceholder": "起点",
     "domainEndPlaceholder": "终点",
+    "referenceDomainsRequired": "请扫描参考序列或手动添加参考坐标域，以启用域分配。",
     "alphaFoldLoading": "(加载 AlphaFold 中...)",
     "alphaFoldBadge": "AlphaFold",
     "helpTip3D": "使用 AlphaFold Cα 坐标,选出在 3D 空间中相互分散的 variant。",
@@ -1438,6 +1441,27 @@
     "memoryBlockDesc": "Sidecar 进程内存使用已达 {{ratio}}% ({{rss}} MB)。请停止当前工作并重启应用。",
     "memoryBlockConfirm": "确定"
   },
+  "guidedTour": {
+    "show": "显示引导教程",
+    "skip": "跳过所有教程",
+    "finish": "完成",
+    "overviewNavigationTitle": "在 Kuro 和 Mame 之间切换",
+    "overviewNavigationBody": "Kuro 设计变体和孔板，Mame 整合测序与活性证据供下一轮学习使用。",
+    "overviewProjectTitle": "跟踪当前项目",
+    "overviewProjectBody": "此栏显示项目和自动保存状态，确保每项结果保存在正确的工作区。",
+    "kuroWorkflowTitle": "遵循 Kuro 工作流",
+    "kuroWorkflowBody": "依次加载输入、审核候选、设计引物并导出可执行的孔板方案。",
+    "kuroWorkspaceTitle": "Kuro 主工作区",
+    "kuroWorkspaceBody": "所选步骤显示在此。序列、候选、设计、表格和 3D 结果会随进度更新。",
+    "kuroInspectorTitle": "查看 Kuro 详情",
+    "kuroInspectorBody": "在检查器中查看步骤参数、所选变体、警告和导出控件。",
+    "mameWorkflowTitle": "遵循 Mame 工作流",
+    "mameWorkflowBody": "依次完成 Setup、Analyze 和 Activity，将实验数据整理为学习表。",
+    "mameWorkspaceTitle": "Mame 主工作区",
+    "mameWorkspaceBody": "加载运行数据，检查基因型判定和孔板结果，然后合并活性测量值进行导出。",
+    "mameInspectorTitle": "查看 Mame 详情",
+    "mameInspectorBody": "检查器会在结果旁显示当前 Mame 步骤的控件和上下文。"
+  },
   "onboarding": {
     "titleChange": "更改项目文件夹",
     "titleNew": "开始使用",
@@ -1623,7 +1647,11 @@
     "topCandidates": "Top 候选 {{shown}}{{total}}",
     "autoSearchTitle": "使用已加载序列文件中的基因信息搜索 UniProt",
     "fetchBtn": "获取",
-    "autoSearchBtn": "自动搜索"
+    "autoSearchBtn": "自动搜索",
+    "scanSequenceBtn": "扫描序列",
+    "scanSequenceTitle": "使用 InterProScan 直接从已加载的蛋白质序列检测参考坐标域",
+    "referenceDomainsReady": "参考坐标: {{count}} 个 InterProScan 域",
+    "accessionDomainsOnly": "Accession 域用于 3D 显示。进行域分配前请扫描参考序列。"
   },
   "statusBar": {
     "ready": "就绪",
@@ -1801,9 +1829,15 @@
   "diversity": {
     "offlineReason": "离线模式",
     "consentReason": "需要外部服务同意",
-    "domainFetchCancelled": "Domain fetch 已取消: {{reason}}",
+    "domainFetchCancelled": "域获取已取消: {{reason}}",
     "uniprotSearchCancelled": "UniProt 搜索已取消: {{reason}}",
-    "alphafoldFetchCancelled": "AlphaFold fetch 已取消: {{reason}}"
+    "alphafoldFetchCancelled": "AlphaFold 获取已取消: {{reason}}",
+    "sequenceDomainScanCancelled": "序列域扫描已取消: {{reason}}",
+    "sequenceDomainScanning": "正在使用 InterProScan 分析参考序列...",
+    "sequenceDomainsFound": "参考序列域: 找到 {{count}} 个{{cache}}",
+    "sequenceDomainsNone": "InterProScan 未找到此序列的集成域注释。",
+    "sequenceDomainsCachedSuffix": "（缓存）",
+    "sequenceDomainScanFailed": "序列域扫描失败: {{error}}"
   },
   "inputThresholds": {
     "estimateSec": "预计 ~{{sec}}s",
@@ -2462,6 +2496,8 @@
     "darkBg": "Dark",
     "fullscreen": "Fullscreen",
     "exportPng": "Export PNG",
+    "exportPngSaved": "PNG 已保存：{{path}}",
+    "exportPngFailed": "PNG 导出失败：{{message}}",
     "activeSite": "Active site",
     "bindingSite": "Binding site",
     "noActiveSiteAnnotation": "No UniProt active-site annotation — add residues",

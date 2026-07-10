@@ -12,6 +12,7 @@ import { useShallow } from "zustand/react/shallow";
 import type { AtomSpec, GLViewer, SelectionRange } from "3dmol";
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeFile } from "@tauri-apps/plugin-fs";
+import { toast } from "sonner";
 
 
 import { useAppStore } from "@/store/appStore";
@@ -962,7 +963,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
         const color = yPredColor(normalizeT(r.yPred, minY, maxY));
         viewer.addStyle(
           { resi: r.accPosition },
-          { sphere: { color, radius: 1.0, opacity: 0.85 } },
+          { sphere: { color, radius: 1.0 } },
         );
       }
     }
@@ -982,7 +983,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
       viewer.addStyle(
         { resi: bindingPositions },
 
-        { sphere: { color: "#d000d0", radius: 0.8, opacity: 0.7 } },
+        { sphere: { color: "#d000d0", radius: 0.8 } },
       );
     }
 
@@ -1093,20 +1094,27 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
   async function handleExportPng() {
     const viewer = viewerRef.current;
     if (!viewer) return;
-    // pngURI() returns a data: URL. The Tauri webview does not honor
-    // programmatic <a download>, so save via the Tauri dialog + fs plugin.
-    const uri = viewer.pngURI();
-    const commaIdx = uri.indexOf(",");
-    const base64 = commaIdx >= 0 ? uri.slice(commaIdx + 1) : uri;
-    const path = await save({
-      filters: [{ name: "PNG", extensions: ["png"] }],
-      defaultPath: `structure_${accession || "view"}.png`,
-    });
-    if (!path) return;
-    const binary = atob(base64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    await writeFile(path, bytes);
+    try {
+      // pngURI() returns a data: URL. The Tauri webview does not honor
+      // programmatic <a download>, so save via the Tauri dialog + fs plugin.
+      const uri = viewer.pngURI();
+      const commaIdx = uri.indexOf(",");
+      const base64 = commaIdx >= 0 ? uri.slice(commaIdx + 1) : uri;
+      const path = await save({
+        filters: [{ name: "PNG", extensions: ["png"] }],
+        defaultPath: `structure_${accession || "view"}.png`,
+      });
+      if (!path) return;
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      await writeFile(path, bytes);
+      toast.success(t("selection3d.exportPngSaved", { path }));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      toast.error(t("selection3d.exportPngFailed", { message }));
+      console.warn("PNG export failed:", err);
+    }
   }
 
   async function handleUpload(e: ChangeEvent<HTMLInputElement>) {

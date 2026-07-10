@@ -48,6 +48,8 @@
     "checking": "Procurando...",
     "upToDate": "Você está na versão mais recente (v{{version}}).",
     "updateAvailable": "Atualização disponível: v{{current}} para v{{next}}",
+    "updateRecommendation": "Uma versão mais recente do Kuma está disponível no GitHub. Consulte as notas da versão antes de baixar o instalador para sua plataforma.",
+    "viewRelease": "Ver versão",
     "downloadAndInstall": "Baixar e instalar",
     "installing": "Instalando...",
     "later": "Mais tarde",
@@ -1130,6 +1132,7 @@
     "domainNamePlaceholder": "Nome",
     "domainStartPlaceholder": "Início",
     "domainEndPlaceholder": "Fim",
+    "referenceDomainsRequired": "Analise a sequência de referência ou adicione manualmente domínios nas coordenadas de referência para ativar a alocação por domínio.",
     "alphaFoldLoading": "(carregando AlphaFold...)",
     "alphaFoldBadge": "AlphaFold",
     "helpTip3D": "Seleciona variants separados no espaço 3D usando coordenadas Cα do AlphaFold.",
@@ -1438,6 +1441,27 @@
     "memoryBlockDesc": "O uso de memória do processo sidecar atingiu {{ratio}}% ({{rss}} MB). Parar o trabalho atual e reiniciar o aplicativo.",
     "memoryBlockConfirm": "OK"
   },
+  "guidedTour": {
+    "show": "Mostrar tour guiado",
+    "skip": "Pular todos os tours",
+    "finish": "Concluir",
+    "overviewNavigationTitle": "Alternar entre Kuro e Mame",
+    "overviewNavigationBody": "Kuro projeta variantes e placas. Mame combina sequenciamento e atividade para a próxima rodada de aprendizado.",
+    "overviewProjectTitle": "Acompanhar o projeto ativo",
+    "overviewProjectBody": "Esta barra mostra o projeto e o salvamento automático para manter cada resultado no espaço correto.",
+    "kuroWorkflowTitle": "Seguir o fluxo do Kuro",
+    "kuroWorkflowBody": "Carregue entradas, revise candidatos, projete primers e exporte um plano de placa executável.",
+    "kuroWorkspaceTitle": "Trabalhar na área principal do Kuro",
+    "kuroWorkspaceBody": "A etapa escolhida aparece aqui. Sequência, candidatos, projeto, tabelas e resultados 3D são atualizados conforme o avanço.",
+    "kuroInspectorTitle": "Revisar detalhes do Kuro",
+    "kuroInspectorBody": "O inspetor mostra parâmetros, variantes selecionadas, avisos e controles de exportação de cada etapa.",
+    "mameWorkflowTitle": "Seguir o fluxo do Mame",
+    "mameWorkflowBody": "Passe por Setup, Analyze e Activity para transformar evidências experimentais em uma tabela de aprendizado curada.",
+    "mameWorkspaceTitle": "Trabalhar na área principal do Mame",
+    "mameWorkspaceBody": "Carregue dados, revise vereditos e placas e combine medições de atividade para exportação.",
+    "mameInspectorTitle": "Revisar detalhes do Mame",
+    "mameInspectorBody": "O inspetor mantém os controles e o contexto da etapa atual ao lado dos resultados."
+  },
   "onboarding": {
     "titleChange": "Alterar pasta de projetos",
     "titleNew": "Começar",
@@ -1622,8 +1646,12 @@
   "uniprotSearch": {
     "topCandidates": "Candidatos principais {{shown}}{{total}}",
     "autoSearchTitle": "Buscar no UniProt usando informações do gene do arquivo de sequência carregado",
-    "fetchBtn": "Fetch",
-    "autoSearchBtn": "Busca automática"
+    "fetchBtn": "Buscar",
+    "autoSearchBtn": "Busca automática",
+    "scanSequenceBtn": "Analisar sequência",
+    "scanSequenceTitle": "Detectar domínios nas coordenadas de referência diretamente da sequência proteica carregada com InterProScan",
+    "referenceDomainsReady": "Coordenadas de referência: {{count}} domínio(s) do InterProScan",
+    "accessionDomainsOnly": "Os domínios de accession são para a visualização 3D. Analise a sequência de referência antes da alocação por domínio."
   },
   "statusBar": {
     "ready": "Pronto",
@@ -1801,9 +1829,15 @@
   "diversity": {
     "offlineReason": "Modo offline",
     "consentReason": "Consentimento para serviço externo é necessário",
-    "domainFetchCancelled": "Fetch de domínio cancelado: {{reason}}",
+    "domainFetchCancelled": "Busca de domínio cancelada: {{reason}}",
     "uniprotSearchCancelled": "Busca UniProt cancelada: {{reason}}",
-    "alphafoldFetchCancelled": "Fetch do AlphaFold cancelado: {{reason}}"
+    "alphafoldFetchCancelled": "Busca do AlphaFold cancelada: {{reason}}",
+    "sequenceDomainScanCancelled": "Análise de domínios cancelada: {{reason}}",
+    "sequenceDomainScanning": "Analisando a sequência de referência com InterProScan...",
+    "sequenceDomainsFound": "Domínios da sequência de referência: {{count}} encontrados{{cache}}",
+    "sequenceDomainsNone": "O InterProScan não encontrou anotações de domínio integradas para esta sequência.",
+    "sequenceDomainsCachedSuffix": " (em cache)",
+    "sequenceDomainScanFailed": "Falha na análise de domínios: {{error}}"
   },
   "inputThresholds": {
     "estimateSec": "~{{sec}}s estimados",
@@ -2462,6 +2496,8 @@
     "darkBg": "Dark",
     "fullscreen": "Fullscreen",
     "exportPng": "Export PNG",
+    "exportPngSaved": "PNG salvo: {{path}}",
+    "exportPngFailed": "Falha ao exportar PNG: {{message}}",
     "activeSite": "Active site",
     "bindingSite": "Binding site",
     "noActiveSiteAnnotation": "No UniProt active-site annotation — add residues",

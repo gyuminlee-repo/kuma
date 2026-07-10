@@ -14,14 +14,16 @@ EVOLVEpro 모드에서만 사용 가능. 전략들은 누적 적용. 여러 개 
 
 ## Domain diversity
 
-선택된 UniProt accession에서 InterPro/Pfam으로 가져온 도메인별로 픽을 분배.
+불러온 **참조 단백질 서열**의 도메인별로 픽을 분배한다. **서열 스캔**을 누르면 해당 서열을 InterProScan으로 분석하므로 반환되는 1-based 좌표가 KURO 변이 위치와 직접 일치한다. UniProt accession 주석은 AlphaFold 구조 색칠을 위한 accession 좌표 메타데이터로 유지하며 참조 좌표로 간주하지 않는다.
 
+- **권장**: 서열 스캔(InterProScan으로 참조 좌표 도메인 직접 주석)
+- **폴백**: 참조 좌표 기준 도메인 경계 수동 입력
 - **Strategy**: proportional (도메인 크기 비례) / equal (도메인당 동일 quota)
 - **Overlap policy**: first / largest (도메인 겹칠 때)
 - **Linker handling**: include / exclude / separate-bin
 - **Quota min**: 도메인당 최소 픽 수 (0–20)
 
-개별 도메인은 인라인에서 비활성 가능; quota가 재계산됨.
+외부 서비스 사용에 동의한 경우에만 서열을 EMBL-EBI InterProScan으로 전송하며, 성공한 주석은 서열 해시로 캐시한다. 개별 도메인을 비활성화하면 quota가 재계산된다.
 
 ## Pareto diversity
 

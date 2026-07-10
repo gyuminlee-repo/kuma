@@ -16,11 +16,14 @@ import type {
 import type { DiversitySlice } from "../slice-interfaces";
 export type { DiversitySlice };
 
+import { resolveSelectionDomains } from "./inputSlice.helpers";
 export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice> = (set, get) => {
   let reloadTimer: ReturnType<typeof setTimeout> | null = null;
   let domainFetchGeneration = 0;
   let uniprotSearchGeneration = 0;
   let structureFetchGeneration = 0;
+  let refDomainGeneration = 0;
+
   /** Per-accession PDB text cache — avoids redundant network fetches within a session. */
   const pdbTextCache = new Map<string, Promise<FetchPdbTextResult | null>>();
 
@@ -124,6 +127,10 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   uniprotSearching: false,
   structuralDiversityEnabled: false,
   structuralKappa: 0.3,
+  refDomains: [],
+  refDomainsLoading: false,
+  refDomainHash: "",
+
 
 
   setPositionDiversityEnabled: (enabled: boolean) => {
@@ -224,10 +231,10 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   },
 
   setDomains: (domains: DomainInfo[]) => {
-    set({ domains, disabledDomains: [] });
+    set({ refDomains: domains, refDomainHash: "manual", disabledDomains: [] });
     const state = get();
     if (getActiveEvolveproPath(state) && state.domainDiversityEnabled) {
-      void reloadEvolveproCsv("manual domain update");
+      void reloadEvolveproCsv("manual reference-domain update");
     }
   },
 
@@ -312,7 +319,8 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
       return;
     }
 
-    const activeDomains = state.domains
+    const selectionDomains = resolveSelectionDomains(state.refDomains);
+    const activeDomains = selectionDomains
       .filter((d) => !state.disabledDomains.includes(`${d.name}-${d.start}`))
       .map((d) => ({ name: d.name, start: d.start, end: d.end }));
 
@@ -568,6 +576,86 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
 
   cancelDiversityReload: () => {
     if (reloadTimer) { clearTimeout(reloadTimer); reloadTimer = null; }
+  },
+
+  annotateReferenceDomains: async () => {
+    const consentGranted = await get().requireNetworkConsent();
+    if (!consentGranted) {
+      const reason = get().offlineMode
+        ? i18next.t("diversity.offlineReason")
+        : i18next.t("diversity.consentReason");
+      set({ statusMessage: i18next.t("diversity.sequenceDomainScanCancelled", { reason }) });
+      return;
+    }
+    const state = get();
+    const seqInfo = state.seqInfo;
+    if (!seqInfo?.genes.length) return;
+    const gene =
+      seqInfo.genes.find((g) => String(g.cds_start) === state.selectedGene)
+      ?? seqInfo.genes[0];
+    const translation = gene?.translation;
+    if (!translation) return;
+    const generation = ++refDomainGeneration;
+    set({
+      refDomainsLoading: true,
+      statusMessage: i18next.t("diversity.sequenceDomainScanning"),
+    });
+    try {
+      const result = await sendRequest(
+        "annotate_domains_by_sequence",
+        { sequence: translation },
+        660_000,
+      );
+      if (generation !== refDomainGeneration) return;
+      // Stale guard: discard result if selected gene translation changed while request was in flight.
+      const nowState = get();
+      const nowSeqInfo = nowState.seqInfo;
+      if (!nowSeqInfo) {
+        set({ refDomainsLoading: false });
+        return;
+      }
+      const nowGene =
+        nowSeqInfo.genes.find((g) => String(g.cds_start) === nowState.selectedGene)
+        ?? nowSeqInfo.genes[0];
+      if (nowGene?.translation !== translation) {
+        set({ refDomainsLoading: false });
+        return;
+      }
+      if (result.source === "error") {
+        set({
+          refDomainsLoading: false,
+          statusMessage: i18next.t("diversity.sequenceDomainScanFailed", {
+            error: result.error_msg ?? i18next.t("statusBar.networkError"),
+          }),
+        });
+        return;
+      }
+      const cacheSuffix = result.cache_hit ? i18next.t("diversity.sequenceDomainsCachedSuffix") : "";
+      const statusMsg = result.domains.length > 0
+        ? i18next.t("diversity.sequenceDomainsFound", { count: result.domains.length, cache: cacheSuffix })
+        : i18next.t("diversity.sequenceDomainsNone");
+      set({
+        refDomains: result.domains,
+        refDomainHash: result.ref_hash,
+        refDomainsLoading: false,
+        disabledDomains: [],
+        statusMessage: statusMsg,
+      });
+      const refreshedState = get();
+      if (
+        result.domains.length > 0
+        && getActiveEvolveproPath(refreshedState)
+        && refreshedState.domainDiversityEnabled
+      ) {
+        await reloadEvolveproCsv("reference-domain annotation");
+      }
+    } catch (err) {
+      if (generation !== refDomainGeneration) return;
+      set({
+        refDomainsLoading: false,
+        statusMessage: i18next.t("diversity.sequenceDomainScanFailed", { error: formatError(err) }),
+      });
+    }
   },
 });
 };
