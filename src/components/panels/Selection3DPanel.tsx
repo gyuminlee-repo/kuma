@@ -718,7 +718,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
   const [colorMode, setColorMode] = useState<ColorMode>("domain");
   const [showSurface, setShowSurface] = useState(false);
   const [spin, setSpin] = useState(false);
-  const [darkBg, setDarkBg] = useState(true);
+  const [darkBg, setDarkBg] = useState(false);
   const [uploadSource, setUploadSource] = useState(false);
   const [uploadFileName, setUploadFileName] = useState<string | null>(null);
   const [droppedWarning, setDroppedWarning] = useState<string | null>(null);
@@ -914,7 +914,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
     cleanupViewer();
     const $3Dmol = await import("3dmol");
     if (cancelled) return;
-    const bgColor = darkBg ? "#1a1a1a" : "#f0f0f0";
+    const bgColor = darkBg ? "#1a1a1a" : "#ffffff";
     const viewer = $3Dmol.createViewer(el, { backgroundColor: bgColor });
     viewer.addModel(text, format);
     viewerRef.current = viewer;
@@ -1056,6 +1056,14 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, showSurface]);
+
+  // ─── effect: background color (live) ─────────────────────────────────────
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!viewer || phase !== "ready") return;
+    viewer.setBackgroundColor(darkBg ? "#1a1a1a" : "#ffffff", 1);
+    viewer.render();
+  }, [darkBg, phase]);
 
   // ─── interaction handlers ───────────────────────────────────────────────
   function handleRowClick(accPos: number) {

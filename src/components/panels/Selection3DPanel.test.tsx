@@ -16,6 +16,7 @@ const mockViewer = {
   addSurface: vi.fn().mockResolvedValue(1),
   removeSurface: vi.fn(),
   render: vi.fn(),
+  setBackgroundColor: vi.fn(),
   spin: vi.fn(),
   zoomTo: vi.fn(),
   pngURI: vi.fn(() => "data:image/png;base64,abc"),
