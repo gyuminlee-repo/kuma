@@ -1,7 +1,8 @@
 /**
  * ActivityStepView.test.tsx — activity sub-step 마운트 어설션 (D2.4, Phase G #19)
  *
- * Phase G #19: activity.export 폐지 — activity.mergeExport로 2-step 통합.
+ * Phase G #19: activity.export → activity.mergeExport (2-step). Later merged again:
+ * activity.ingest is now the single Activity step; activity.mergeExport is a legacy redirect.
  */
 
 import { render } from "@testing-library/react";
@@ -40,15 +41,17 @@ describe("ActivityStepView", () => {
     useMameAppStore.setState({ currentMameSubStep: "activity.ingest" });
   });
 
-  it("activity.ingest mounts IngestSection", () => {
+  it("activity.ingest mounts the merged Ingest + Merge + Export sections", () => {
     const { getByTestId } = render(<ActivityStepView />);
     expect(getByTestId("ingest-section")).toBeTruthy();
-  });
-
-  it("activity.mergeExport mounts MergeSection and ExportSection", () => {
-    useMameAppStore.setState({ currentMameSubStep: "activity.mergeExport" });
-    const { getByTestId } = render(<ActivityStepView />);
     expect(getByTestId("merge-section")).toBeTruthy();
     expect(getByTestId("export-section")).toBeTruthy();
+  });
+
+  it("legacy activity.mergeExport redirects to the merged activity step", () => {
+    useMameAppStore.setState({ currentMameSubStep: "activity.mergeExport" });
+    const { queryByTestId, getByRole } = render(<ActivityStepView />);
+    expect(getByRole("status")).toBeTruthy();
+    expect(queryByTestId("merge-section")).toBeNull();
   });
 });

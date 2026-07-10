@@ -320,8 +320,8 @@
     },
     "activity": {
       "ingest": {
-        "contextTitle": "활성 데이터 — 수집",
-        "contextSubtitle": "이번 라운드의 wet-lab 활성 측정값을 업로드합니다.",
+        "contextTitle": "활성 데이터",
+        "contextSubtitle": "활성 측정값을 업로드하고 verdict과 병합해 다음 라운드 EVOLVEpro 입력을 내보냅니다.",
         "drawerLeft": "활성",
         "drawerLeftDesc": "측정값이 있는 well",
         "drawerCenter": "활성 로그",
@@ -2206,7 +2206,7 @@
         "health": "런 품질"
       },
       "activity": {
-        "ingest": "데이터 수집",
+        "ingest": "활성 데이터",
         "merge": "병합",
         "export": "내보내기",
         "mergeExport": "병합 및 내보내기"
@@ -2262,7 +2262,7 @@
     },
     "mameDescriptions": {
       "activity": {
-        "ingest": "활성 CSV 또는 Excel 파일을 업로드하고 야생형을 주석 처리합니다.",
+        "ingest": "활성 측정값을 업로드한 뒤 verdict과 병합해 다음 라운드 EVOLVEpro 입력을 내보냅니다 (단일 반복 GC + 3중 반복 WT 상대).",
         "mergeExport": "활성 데이터를 유전형 콜과 병합해 테이블을 내보낸 뒤, 단일 반복(GC)과 3중 반복(WT 상대) 활성을 결합해 EVOLVEpro 입력을 생성합니다."
       },
       "analyze": {

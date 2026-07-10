@@ -262,8 +262,8 @@ export function MameAppLayout() {
   // JANUS dialog 상태 — Layout이 단독 소유. MenuBar와 CTA 버튼이 같은 setter 공유.
   const [janusOpen, setJanusOpen] = useState(false);
 
-  // Merge & Export 화면에서만 JANUS CTA 표시.
-  const showJanusCta = currentSubStep === "activity.mergeExport";
+  // JANUS CTA shows on the merged Activity Data step (ingest + merge + export).
+  const showJanusCta = currentSubStep === "activity.ingest";
 
   return (
     <Tabs

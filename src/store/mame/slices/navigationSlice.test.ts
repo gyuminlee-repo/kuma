@@ -64,10 +64,7 @@ describe("MAME_SUBSTEP_ORDER", () => {
       "analyze.inputs",
       "analyze.review",
     ]);
-    expect(MAME_SUBSTEP_ORDER.activity).toEqual([
-      "activity.ingest",
-      "activity.mergeExport",
-    ]);
+    expect(MAME_SUBSTEP_ORDER.activity).toEqual(["activity.ingest"]);
   });
 });
 

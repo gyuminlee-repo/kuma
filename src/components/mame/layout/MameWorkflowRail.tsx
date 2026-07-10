@@ -19,10 +19,9 @@ const ALL_SUBSTEPS: MameSubStepId[] = [
   "analyze.inputs",
   "analyze.review",
   "activity.ingest",
-  "activity.mergeExport",
 ];
 
-const STEP_TOTAL = ALL_SUBSTEPS.length; // 5
+const STEP_TOTAL = ALL_SUBSTEPS.length; // 4
 
 /** Major.Sub 표기 (spec §5.2). KURO는 단일 카운트, MAME는 Major.Sub.
  * Legacy analyze.verdict/plate retained as 2.2 alias for migration/redirect rendering. */
