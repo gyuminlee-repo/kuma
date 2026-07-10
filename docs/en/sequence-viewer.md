@@ -16,6 +16,6 @@ Canvas view of the template sequence with annotations.
 
 ## Region labels
 
-Domains fetched from InterPro (see [Diversity Strategies](diversity-strategies.md)) render as translucent bands above the sequence.
+Reference-sequence domains from **Scan sequence** (InterProScan; see [Diversity Strategies](diversity-strategies.md)) render as translucent bands above the sequence. Because these coordinates are in the loaded reference frame, the bands align directly with mutation positions. UniProt-accession domains are not drawn here — they belong to the AlphaFold 3D structure only.
 
 *Stub — viewer screenshot coming.*
