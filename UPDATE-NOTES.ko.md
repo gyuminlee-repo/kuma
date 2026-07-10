@@ -4,6 +4,20 @@
 
 ---
 
+## v0.13.11 (2026-07-01)
+
+MAME Activity 단일 step 통합 + KURO 3D 뷰어 개선.
+
+### MAME
+
+- **Activity Data** 가 두 단계에서 한 단계로 통합되었습니다. Ingest, Merge, Export 가 한 화면에 순차로 쌓입니다. 기존 3.1 Ingest / 3.2 Merge & Export 분리는 사라졌습니다.
+
+### Kuro
+
+- 3D 구조 뷰어 배경이 기본 **흰색**으로 바뀌었고, Dark 토글이 새로고침 없이 즉시 적용됩니다.
+
+---
+
 ## v0.13.10 (2026-07-01)
 
 KURO 3D 뷰어 수정.

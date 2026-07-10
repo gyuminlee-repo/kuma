@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.13.11 (MAME single-step Activity, KURO 3D viewer background)
+
+### Changed
+- v0.13.11.0: MAME **Activity Data** is now a single step (3) that stacks Ingest, Merge, and Export in one scrollable view; the former 3.1 Ingest / 3.2 Merge & Export split is removed and the legacy `activity.mergeExport` id redirects to it. (`src/store/mame/slices/mameSubSteps.ts`, `src/components/mame/steps/ActivityStepView.tsx`, `src/components/mame/layout/MameWorkflowRail.tsx`, `src/components/mame/layout/MameAppLayout.tsx`, `src/locales/*.json`, `docs/mame/*`)
+
+### Improved
+- v0.13.11.0: the KURO 3D viewer defaults to a white background, and the Dark toggle now applies live (no reload). (`src/components/panels/Selection3DPanel.tsx`)
+
+---
+
 ## v0.13.10 (KURO 3D surface + PNG export fixes)
 
 ### Fixed

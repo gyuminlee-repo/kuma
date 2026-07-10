@@ -4,6 +4,20 @@
 
 ---
 
+## v0.13.11 (2026-07-01)
+
+MAME single-step Activity + KURO 3D viewer polish.
+
+### MAME
+
+- **Activity Data** is now one step instead of two: Ingest, Merge, and Export are stacked in a single scrollable view. The previous 3.1 Ingest / 3.2 Merge & Export split is gone.
+
+### Kuro
+
+- The 3D structure viewer now defaults to a **white** background, and the Dark toggle applies immediately (no reload).
+
+---
+
 ## v0.13.10 (2026-07-01)
 
 KURO 3D viewer fixes.

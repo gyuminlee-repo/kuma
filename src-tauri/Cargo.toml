@@ -1,6 +1,6 @@
 [package]
 name = "kuma"
-version = "0.13.10"
+version = "0.13.11"
 description = "kuma - KURO + mame integrated primer design & NGS verification app"
 edition = "2021"
 
