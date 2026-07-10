@@ -1837,7 +1837,11 @@
     "sequenceDomainsFound": "Домены референсной последовательности: найдено {{count}}{{cache}}",
     "sequenceDomainsNone": "InterProScan не обнаружил интегрированных аннотаций доменов для этой последовательности.",
     "sequenceDomainsCachedSuffix": " (из кэша)",
-    "sequenceDomainScanFailed": "Ошибка анализа доменов: {{error}}"
+    "sequenceDomainScanFailed": "Ошибка анализа доменов: {{error}}",
+    "esmfoldCancelled": "Предсказание структуры отменено: {{reason}}",
+    "esmfoldPredicting": "Предсказание структуры с помощью ESMFold (до нескольких минут)...",
+    "esmfoldDone": "Структура ESMFold предсказана: остатков {{residues}}, средний pLDDT {{plddt}}",
+    "esmfoldFailed": "Ошибка предсказания ESMFold: {{error}}"
   },
   "inputThresholds": {
     "estimateSec": "~{{sec}}s ориентировочно",
@@ -2542,6 +2546,8 @@
     "uploadLabel": "Upload structure",
     "uploadButton": "Upload PDB/CIF",
     "uploadSourceNote": "pLDDT coloring not available for uploaded structures.",
+    "esmfoldNoAccessionNote": "Это предсказание ESMFold по последовательности (референсный кадр). Наложения активных/связывающих сайтов требуют accession UniProt и скрыты.",
+    "esmfoldTooLong": "Последовательность превышает лимит ESMFold в 400 остатков. Укажите accession UniProt, чтобы загрузить структуру AlphaFold.",
     "removePosition": "Remove position {{position}}",
     "noVariants": "No candidates to display. Load EVOLVEpro results and run a design to see candidates on the structure.",
     "fallbackNote": "Showing all {{count}} ranked candidates.",

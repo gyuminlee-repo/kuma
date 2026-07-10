@@ -4,6 +4,14 @@
 
 ---
 
+## v0.13.13 (2026-07-01)
+
+### Kuro ESMFold structure prediction
+
+- When no UniProt accession is available, the 3D panel can predict a structure directly from the reference sequence via **ESMFold** (EMBL-EBI ESMAtlas) after external-service consent. The prediction is in the reference frame, so dispersion runs without accession mapping and pLDDT/variant/domain overlays stay valid. Active/binding-site overlays require a UniProt accession and are hidden for ESMFold. The public server limit is 400 residues; longer proteins use an AlphaFold accession.
+
+---
+
 ## v0.13.12 (2026-07-01)
 
 ### Guided onboarding

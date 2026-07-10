@@ -12,6 +12,7 @@ import type {
   FetchDomainsResult,
   FetchInterfaceResiduesResult,
   FetchPdbTextResult,
+  PredictStructureEsmfoldResult,
   JsonRpcError,
   ParseMutationsResult,
   PlateMapResult,
@@ -728,6 +729,21 @@ function isFetchPdbTextResult(value: unknown): value is FetchPdbTextResult {
   );
 }
 
+function isPredictStructureEsmfoldResult(value: unknown): value is PredictStructureEsmfoldResult {
+  return (
+    isRecord(value) &&
+    isBoolean(value.success) &&
+    (value.source === "esmfold" || value.source === "esmfold_cache" || value.source === "error") &&
+    (value.pdb_text === null || isString(value.pdb_text)) &&
+    isNumber(value.plddt_mean) &&
+    isNumber(value.residue_count) &&
+    value.coordinate_frame === "reference" &&
+    isString(value.seq_hash) &&
+    isBoolean(value.cache_hit) &&
+    isOptional(value.error_msg, isString)
+  );
+}
+
 function isFetchActiveSiteResult(value: unknown): value is FetchActiveSiteResult {
   return (
     isRecord(value) &&
@@ -876,6 +892,8 @@ const rpcResultValidators = {
     isFetchActiveSiteResult(value),
   compute_dispersion: (value): value is RpcMethodResult<"compute_dispersion"> =>
     isComputeDispersionResult(value),
+  predict_structure_esmfold: (value): value is RpcMethodResult<"predict_structure_esmfold"> =>
+    isPredictStructureEsmfoldResult(value),
 } satisfies { [K in RpcMethod]: (value: unknown) => value is RpcMethodResult<K> };
 
 export function getRpcResultValidator<K extends RpcMethod>(

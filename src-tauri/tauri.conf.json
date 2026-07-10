@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/nicedoc/schemas/main/tauri-v2.json",
   "productName": "kuma",
-  "version": "0.13.12",
+  "version": "0.13.13",
   "identifier": "com.gyuminlee.kuma",
   "build": {
     "frontendDist": "../dist",

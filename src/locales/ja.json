@@ -1837,7 +1837,11 @@
     "sequenceDomainsFound": "参照配列ドメイン: {{count}} 件{{cache}}",
     "sequenceDomainsNone": "InterProScan はこの配列の統合ドメイン注釈を検出しませんでした。",
     "sequenceDomainsCachedSuffix": "（キャッシュ）",
-    "sequenceDomainScanFailed": "配列ドメイン解析に失敗しました: {{error}}"
+    "sequenceDomainScanFailed": "配列ドメイン解析に失敗しました: {{error}}",
+    "esmfoldCancelled": "構造予測をキャンセル: {{reason}}",
+    "esmfoldPredicting": "ESMFold で構造を予測中（最大数分）...",
+    "esmfoldDone": "ESMFold 構造予測完了: 残基 {{residues}} 個、平均 pLDDT {{plddt}}",
+    "esmfoldFailed": "ESMFold 予測に失敗しました: {{error}}"
   },
   "inputThresholds": {
     "estimateSec": "推定約 {{sec}} 秒",
@@ -2542,6 +2546,8 @@
     "uploadLabel": "Upload structure",
     "uploadButton": "Upload PDB/CIF",
     "uploadSourceNote": "pLDDT coloring not available for uploaded structures.",
+    "esmfoldNoAccessionNote": "これは配列から予測した ESMFold 構造です（参照座標系）。Active/Binding site オーバーレイは UniProt accession が必要なため非表示です。",
+    "esmfoldTooLong": "配列が ESMFold の 400 残基上限を超えています。AlphaFold 構造を読み込むには UniProt accession を入力してください。",
     "removePosition": "Remove position {{position}}",
     "noVariants": "No candidates to display. Load EVOLVEpro results and run a design to see candidates on the structure.",
     "fallbackNote": "Showing all {{count}} ranked candidates.",

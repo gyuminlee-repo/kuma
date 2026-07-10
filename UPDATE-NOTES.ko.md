@@ -4,6 +4,14 @@
 
 ---
 
+## v0.13.13 (2026-07-01)
+
+### Kuro ESMFold 구조 예측
+
+- UniProt accession이 없을 때 3D 패널이 외부 서비스 동의 후 **ESMFold**(EMBL-EBI ESMAtlas)로 참조 서열에서 직접 구조를 예측합니다. 예측 구조는 참조 좌표계라서 dispersion이 accession 매핑 없이 동작하고 pLDDT/변이/도메인 오버레이가 그대로 유효합니다. Active/Binding site 오버레이는 UniProt accession이 필요하므로 ESMFold에서는 숨겨집니다. 공개 서버 한도는 400잔기이며 더 긴 단백질은 AlphaFold accession을 사용합니다.
+
+---
+
 ## v0.13.12 (2026-07-01)
 
 ### 가이드 온보딩

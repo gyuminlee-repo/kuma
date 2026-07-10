@@ -740,6 +740,11 @@ class ComputeDispersionParams(BaseModel):
     positions: list[int] = Field(default_factory=list)
     n_trials: int = Field(default=1000, ge=1, le=100000)
     seed: Optional[int] = None
+    # Reference-frame structures (e.g. ESMFold predictions) supply their PDB
+    # text directly; the accession pipeline is skipped when coordinate_frame is
+    # "reference". Both fields default to the backward-compatible accession path.
+    pdb_text: Optional[str] = None
+    coordinate_frame: Literal["accession", "reference"] = "accession"
 
 
 class ComputeDispersionResult(BaseModel):
@@ -759,6 +764,25 @@ class ComputeDispersionResult(BaseModel):
     seed: Optional[int] = None
     null_hist: NullHistogram = Field(default_factory=NullHistogram)
 
+
+class PredictStructureEsmfoldParams(BaseModel):
+    """Params for `predict_structure_esmfold` RPC."""
+
+    sequence: str = ""
+
+
+class PredictStructureEsmfoldResult(BaseModel):
+    """Reference-frame de-novo structure predicted by ESMFold."""
+
+    success: bool = False
+    source: Literal["esmfold", "esmfold_cache", "error"] = "esmfold"
+    pdb_text: Optional[str] = None
+    plddt_mean: float = 0.0
+    residue_count: int = 0
+    coordinate_frame: Literal["reference"] = "reference"
+    seq_hash: str = ""
+    cache_hit: bool = False
+    error_msg: Optional[str] = None
 
 # ---------------------------------------------------------------------------
 # Sequence-direct InterProScan domain annotation

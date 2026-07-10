@@ -497,6 +497,18 @@ export interface FetchPdbTextResult {
   source: string;
 }
 
+export interface PredictStructureEsmfoldResult {
+  success: boolean;
+  source: "esmfold" | "esmfold_cache" | "error";
+  pdb_text: string | null;
+  plddt_mean: number;
+  residue_count: number;
+  coordinate_frame: "reference";
+  seq_hash: string;
+  cache_hit: boolean;
+  error_msg?: string;
+}
+
 export interface FetchActiveSiteResult {
   accession: string;
   active_site_positions: number[];
@@ -778,8 +790,14 @@ export interface RpcMethodMap {
       positions: number[];
       n_trials?: number;
       seed?: number | null;
+      pdb_text?: string | null;
+      coordinate_frame?: "accession" | "reference";
     };
     result: ComputeDispersionResult;
+  };
+  predict_structure_esmfold: {
+    params: { sequence: string };
+    result: PredictStructureEsmfoldResult;
   };
 }
 

@@ -1837,7 +1837,11 @@
     "sequenceDomainsFound": "Referenzsequenz-Domänen: {{count}} gefunden{{cache}}",
     "sequenceDomainsNone": "InterProScan fand keine integrierten Domänenannotationen für diese Sequenz.",
     "sequenceDomainsCachedSuffix": " (zwischengespeichert)",
-    "sequenceDomainScanFailed": "Sequenz-Domänenscan fehlgeschlagen: {{error}}"
+    "sequenceDomainScanFailed": "Sequenz-Domänenscan fehlgeschlagen: {{error}}",
+    "esmfoldCancelled": "Strukturvorhersage abgebrochen: {{reason}}",
+    "esmfoldPredicting": "Struktur wird mit ESMFold vorhergesagt (bis zu einige Minuten)...",
+    "esmfoldDone": "ESMFold-Struktur vorhergesagt: {{residues}} Reste, mittlerer pLDDT {{plddt}}",
+    "esmfoldFailed": "ESMFold-Vorhersage fehlgeschlagen: {{error}}"
   },
   "inputThresholds": {
     "estimateSec": "~{{sec}}s geschätzt",
@@ -2542,6 +2546,8 @@
     "uploadLabel": "Upload structure",
     "uploadButton": "Upload PDB/CIF",
     "uploadSourceNote": "pLDDT coloring not available for uploaded structures.",
+    "esmfoldNoAccessionNote": "Dies ist eine ESMFold-Vorhersage aus der Sequenz (Referenzrahmen). Aktive/Bindungsstellen-Overlays erfordern eine UniProt-Accession und sind ausgeblendet.",
+    "esmfoldTooLong": "Die Sequenz überschreitet das ESMFold-Limit von 400 Resten. Geben Sie eine UniProt-Accession an, um eine AlphaFold-Struktur zu laden.",
     "removePosition": "Remove position {{position}}",
     "noVariants": "No candidates to display. Load EVOLVEpro results and run a design to see candidates on the structure.",
     "fallbackNote": "Showing all {{count}} ranked candidates.",

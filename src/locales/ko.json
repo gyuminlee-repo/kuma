@@ -1856,7 +1856,11 @@
     "sequenceDomainsFound": "참조 서열 도메인 {{count}}개를 찾았습니다{{cache}}",
     "sequenceDomainsNone": "InterProScan에서 이 서열의 통합 도메인 주석을 찾지 못했습니다.",
     "sequenceDomainsCachedSuffix": " (캐시됨)",
-    "sequenceDomainScanFailed": "서열 도메인 스캔 실패: {{error}}"
+    "sequenceDomainScanFailed": "서열 도메인 스캔 실패: {{error}}",
+    "esmfoldCancelled": "구조 예측 취소: {{reason}}",
+    "esmfoldPredicting": "ESMFold로 구조를 예측하는 중입니다(최대 수 분 소요)...",
+    "esmfoldDone": "ESMFold 구조 예측 완료: 잔기 {{residues}}개, 평균 pLDDT {{plddt}}",
+    "esmfoldFailed": "ESMFold 예측 실패: {{error}}"
   },
   "inputThresholds": {
     "estimateSec": "약 {{sec}}초 소요 예상",
@@ -2542,6 +2546,8 @@
     "uploadLabel": "Upload structure",
     "uploadButton": "Upload PDB/CIF",
     "uploadSourceNote": "pLDDT coloring not available for uploaded structures.",
+    "esmfoldNoAccessionNote": "서열에서 예측한 ESMFold 구조입니다(참조 좌표계). Active/Binding site 오버레이는 UniProt accession이 필요하므로 숨겨집니다.",
+    "esmfoldTooLong": "서열이 ESMFold의 400잔기 한도를 초과합니다. AlphaFold 구조를 불러오려면 UniProt accession을 입력하세요.",
     "removePosition": "Remove position {{position}}",
     "noVariants": "No candidates to display. Load EVOLVEpro results and run a design to see candidates on the structure.",
     "fallbackNote": "Showing all {{count}} ranked candidates.",

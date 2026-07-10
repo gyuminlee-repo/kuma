@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.13.13 (KURO ESMFold de-novo structure prediction)
+
+### Added
+- v0.13.13.0: The KURO 3D panel can predict a structure directly from the reference sequence via ESMFold (EMBL-EBI ESMAtlas) when no UniProt accession is available, enabling the 3D viewer, reference-frame dispersion, and pLDDT/variant/domain overlays for novel or synthetic constructs (≤400 residues). AlphaFold-by-accession remains the primary source; active/binding-site overlays require an accession and are hidden for ESMFold. (`kuma_core/kuro/esmfold.py`, `kuma_core/kuro/dispersion.py`, `python-core/sidecar_kuro/handlers/external.py`, `src/components/panels/Selection3DPanel.tsx`)
+---
 ## v0.13.12 (KURO reference-sequence domains, guided tours, update checks, runtime fixes)
 
 ### Added

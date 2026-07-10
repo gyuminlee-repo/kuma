@@ -58,6 +58,8 @@ export interface SidecarKuroModels {
   ParseMutationsTextParams?: ParseMutationsTextParams;
   PlateMappingItem?: PlateMappingItem;
   PolymeraseProfileModel?: PolymeraseProfileModel;
+  PredictStructureEsmfoldParams?: PredictStructureEsmfoldParams;
+  PredictStructureEsmfoldResult?: PredictStructureEsmfoldResult;
   PreviewEvolveproSourceParams?: PreviewEvolveproSourceParams;
   RankedCandidateItem?: RankedCandidateItem;
   RescueStatsModel?: RescueStatsModel;
@@ -352,7 +354,9 @@ export interface CommitDesignResultParams {
  */
 export interface ComputeDispersionParams {
   accession?: string;
+  coordinate_frame?: "accession" | "reference";
   n_trials?: number;
+  pdb_text?: string | null;
   positions?: number[];
   ref_seq?: string;
   seed?: number | null;
@@ -756,6 +760,28 @@ export interface PolymeraseProfileModel {
   salt_divalent: number;
   salt_monovalent: number;
   tm_method: string;
+  [k: string]: unknown;
+}
+/**
+ * Params for `predict_structure_esmfold` RPC.
+ */
+export interface PredictStructureEsmfoldParams {
+  sequence?: string;
+  [k: string]: unknown;
+}
+/**
+ * Reference-frame de-novo structure predicted by ESMFold.
+ */
+export interface PredictStructureEsmfoldResult {
+  cache_hit?: boolean;
+  coordinate_frame?: "reference";
+  error_msg?: string | null;
+  pdb_text?: string | null;
+  plddt_mean?: number;
+  residue_count?: number;
+  seq_hash?: string;
+  source?: "esmfold" | "esmfold_cache" | "error";
+  success?: boolean;
   [k: string]: unknown;
 }
 /**

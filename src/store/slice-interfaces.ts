@@ -23,6 +23,7 @@ import type {
   FailedMutation,
   FetchActiveSiteResult,
   FetchPdbTextResult,
+  PredictStructureEsmfoldResult,
   LinkerHandling,
   MutationInputMode,
   OverlapMode,
@@ -146,7 +147,11 @@ export interface DiversitySlice {
     positions: number[];
     nTrials?: number;
     seed?: number | null;
+    pdbText?: string | null;
+    coordinateFrame?: "accession" | "reference";
   }) => Promise<ComputeDispersionResult | null>;
+  /** Predict a reference-frame structure from sequence alone via ESMFold (<=400 aa). */
+  predictStructureEsmfold: (sequence: string) => Promise<PredictStructureEsmfoldResult | null>;
   /** Annotate reference-frame domains by submitting the selected gene translation to InterProScan. */
   annotateReferenceDomains: () => Promise<void>;
 }

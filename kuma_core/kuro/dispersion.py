@@ -15,7 +15,7 @@ import random as _random
 import urllib.request as _urllib_req
 
 
-from kuma_core.kuro.alphafold import fetch_ca_coords, fetch_ca_seq
+from kuma_core.kuro.alphafold import fetch_ca_coords, fetch_ca_seq, _parse_pdb_ca
 from kuma_core.kuro.interface import map_ref_to_accession
 
 logger = logging.getLogger(__name__)
@@ -104,6 +104,8 @@ def compute_round_dispersion(
     positions: list[int],
     n_trials: int = 1000,
     seed: int | None = None,
+    pdb_text: str | None = None,
+    coordinate_frame: str = "accession",
 ) -> dict:
     """Compute 3-D spatial dispersion of *positions* for *accession*.
 
@@ -133,7 +135,29 @@ def compute_round_dispersion(
 
     accession_clean = accession.strip().upper()
 
-    # 1. Fetch Cα coords
+    # Reference-frame structures (e.g. ESMFold predictions submitted with the
+    # user sequence) are already 1-based on ref_seq, so there is no accession
+    # mapping to perform. The caller supplies the PDB text directly; parse coords
+    # from it and treat positions verbatim.
+    if coordinate_frame == "reference":
+        if not pdb_text:
+            raise ValueError(
+                "coordinate_frame='reference' requires pdb_text (no accession to fetch)"
+            )
+        coords = _parse_pdb_ca(pdb_text)
+        pos_list = list(positions)
+        valid = [p for p in pos_list if 0 < p < len(coords) and coords[p] is not None]
+        out_of_range = [p for p in pos_list if p not in set(valid)]
+        return _dispersion_from_coords(
+            accession_clean,
+            coords,
+            valid,
+            out_of_range,
+            n_trials,
+            seed,
+        )
+
+    # 1. Fetch Cα coords (accession frame)
     coords = fetch_ca_coords(accession_clean)
     if coords is None:
         logger.warning("dispersion: no Cα coords for %s", accession_clean)
@@ -188,7 +212,26 @@ def compute_round_dispersion(
     mapped: list[int] = mapping["mapped"]
     dropped: list[int] = mapping["dropped"]
 
-    # 3. Filter to positions with valid coords
+    return _dispersion_from_coords(
+        accession_clean, coords, mapped, dropped, n_trials, seed,
+    )
+
+
+def _dispersion_from_coords(
+    accession_clean: str,
+    coords: list[tuple[float, float, float] | None],
+    mapped: list[int],
+    dropped: list[int],
+    n_trials: int,
+    seed: int | None,
+) -> dict:
+    """Shared observed-vs-null computation over pre-mapped positions.
+
+    ``mapped`` positions are already in the same frame as ``coords`` (accession
+    frame for AlphaFold, reference frame for ESMFold); this routine only filters
+    to valid Cα, builds the null distribution, and derives the class label.
+    """
+    # Filter to positions with valid coords
     valid_mapped = [p for p in mapped if 0 < p < len(coords) and coords[p] is not None]
 
     if len(valid_mapped) < 2:
@@ -214,7 +257,7 @@ def compute_round_dispersion(
     all_valid = [i for i in range(1, len(coords)) if coords[i] is not None]
     sample_size = len(valid_mapped)
 
-    # 4. Null distribution
+    # Null distribution
     rng = _random.Random(seed)
     null_means: list[float] = []
     if len(all_valid) >= sample_size:

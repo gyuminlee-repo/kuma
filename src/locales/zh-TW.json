@@ -1837,7 +1837,11 @@
     "sequenceDomainsFound": "參考序列域: 找到 {{count}} 個{{cache}}",
     "sequenceDomainsNone": "InterProScan 未找到此序列的整合域註解。",
     "sequenceDomainsCachedSuffix": "（快取）",
-    "sequenceDomainScanFailed": "序列域掃描失敗: {{error}}"
+    "sequenceDomainScanFailed": "序列域掃描失敗: {{error}}",
+    "esmfoldCancelled": "結構預測已取消: {{reason}}",
+    "esmfoldPredicting": "正在使用 ESMFold 預測結構（最多幾分鐘）...",
+    "esmfoldDone": "ESMFold 結構預測完成: {{residues}} 個殘基, 平均 pLDDT {{plddt}}",
+    "esmfoldFailed": "ESMFold 預測失敗: {{error}}"
   },
   "inputThresholds": {
     "estimateSec": "預計 ~{{sec}}s",
@@ -2542,6 +2546,8 @@
     "uploadLabel": "Upload structure",
     "uploadButton": "Upload PDB/CIF",
     "uploadSourceNote": "pLDDT coloring not available for uploaded structures.",
+    "esmfoldNoAccessionNote": "這是基於序列的 ESMFold 預測（參考座標系）。活性/結合位點疊加需要 UniProt accession，已隱藏。",
+    "esmfoldTooLong": "序列超過 ESMFold 的 400 殘基上限。請提供 UniProt accession 以載入 AlphaFold 結構。",
     "removePosition": "Remove position {{position}}",
     "noVariants": "No candidates to display. Load EVOLVEpro results and run a design to see candidates on the structure.",
     "fallbackNote": "Showing all {{count}} ranked candidates.",

@@ -1856,7 +1856,11 @@
     "sequenceDomainsFound": "Reference-sequence domains: {{count}} found{{cache}}",
     "sequenceDomainsNone": "InterProScan found no integrated domain annotations for this sequence.",
     "sequenceDomainsCachedSuffix": " (cached)",
-    "sequenceDomainScanFailed": "Sequence domain scan failed: {{error}}"
+    "sequenceDomainScanFailed": "Sequence domain scan failed: {{error}}",
+    "esmfoldCancelled": "Structure prediction cancelled: {{reason}}",
+    "esmfoldPredicting": "Predicting structure with ESMFold (up to a few minutes)...",
+    "esmfoldDone": "ESMFold structure predicted: {{residues}} residues, mean pLDDT {{plddt}}",
+    "esmfoldFailed": "ESMFold prediction failed: {{error}}"
   },
   "inputThresholds": {
     "estimateSec": "~{{sec}}s estimated",
@@ -2542,6 +2546,8 @@
     "uploadLabel": "Upload structure",
     "uploadButton": "Upload PDB/CIF",
     "uploadSourceNote": "pLDDT coloring not available for uploaded structures.",
+    "esmfoldNoAccessionNote": "This is an ESMFold prediction from sequence (reference frame). Active/binding-site overlays require a UniProt accession and are hidden.",
+    "esmfoldTooLong": "Sequence exceeds the 400-residue ESMFold limit. Provide a UniProt accession to load an AlphaFold structure.",
     "removePosition": "Remove position {{position}}",
     "noVariants": "No candidates to display. Load EVOLVEpro results and run a design to see candidates on the structure.",
     "fallbackNote": "Showing all {{count}} ranked candidates.",

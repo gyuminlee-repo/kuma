@@ -28,6 +28,8 @@ import type {
   ComputeDispersionResult,
   DomainInfo,
   FetchActiveSiteResult,
+  PredictStructureEsmfoldResult,
+
   SequenceInfo,
 } from "@/types/models";
 
@@ -692,6 +694,8 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
     fetchPdbText,
     fetchActiveSite,
     computeDispersion,
+    predictStructureEsmfold,
+
   } = useAppStore(
     useShallow((s) => ({
       structureAccession: s.structureAccession,
@@ -705,6 +709,8 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
       fetchPdbText: s.fetchPdbText,
       fetchActiveSite: s.fetchActiveSite,
       computeDispersion: s.computeDispersion,
+      predictStructureEsmfold: s.predictStructureEsmfold,
+
     })),
   );
 
@@ -791,6 +797,17 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
 
   const accession = structureAccession || uniprotAccession;
   const noAccession = !accession;
+  const refSeq = resolveRefSeq(seqInfo, selectedGene);
+  // Match the backend cleaning bounds: strip a trailing stop codon, then require
+  // 10..400 residues (esmfold._validate_sequence). Gating on the raw length would
+  // desync the disabled state from what the backend actually accepts.
+  const esmfoldLen = refSeq.replace(/\*+$/, "").length;
+  const structureSource: "alphafold" | "esmfold" | "none" = accession
+    ? "alphafold"
+    : esmfoldLen >= 10 && esmfoldLen <= 400
+      ? "esmfold"
+      : "none";
+
 
   // Derived at render time; stable for the current render cycle
   const baseVariants: string[] =
@@ -822,12 +839,21 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
 
   // ─── load structure ─────────────────────────────────────────────────────
   useEffect(() => {
-    if (!open || !accession) return;
-    // Skip reload if same accession already loaded
-    if (loadedAccessionRef.current === accession && phase !== "idle") return;
+    if (!open) return;
+    if (structureSource === "none") return;
+
+    if (structureSource === "alphafold") {
+      if (!accession) return;
+      if (loadedAccessionRef.current === accession && phase !== "idle") return;
+    } else {
+      // esmfold — skip if same sequence already loaded
+      const esmKey = `esmfold:${refSeq}`;
+      if (loadedAccessionRef.current === esmKey && phase !== "idle") return;
+    }
 
     let cancelled = false;
     const thisAccession = accession;
+    const thisRefSeq = refSeq;
 
     async function load() {
       setPhase("loading");
@@ -845,57 +871,112 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
         yPredMap,
       );
       const positions = selectedRefPositions(currentRows);
-      const refSeq = resolveRefSeq(seqInfo, selectedGene);
 
-      const [pdbResult, activeSiteRes, dispersionRes] = await Promise.all([
-        fetchPdbText(thisAccession),
-        fetchActiveSite(thisAccession),
-        positions.length > 0 && refSeq.length > 0
-          ? computeDispersion({
-              accession: thisAccession,
-              refSeq,
-              positions,
-              seed: 0,
-            })
-          : Promise.resolve(null),
-      ]);
+      if (structureSource === "alphafold") {
+        // ── AlphaFold-by-accession (unchanged) ──────────────────────────
+        const [pdbResult, activeSiteRes, dispersionRes] = await Promise.all([
+          fetchPdbText(thisAccession),
+          fetchActiveSite(thisAccession),
+          positions.length > 0 && thisRefSeq.length > 0
+            ? computeDispersion({
+                accession: thisAccession,
+                refSeq: thisRefSeq,
+                positions,
+                seed: 0,
+              })
+            : Promise.resolve(null),
+        ]);
 
-      if (cancelled) return;
+        if (cancelled) return;
 
-      // Active site
-      if (activeSiteRes !== null) {
-        setActiveSiteResult(activeSiteRes);
-        setActiveSitePositions(activeSiteRes.active_site_positions);
-      }
-
-      // Dispersion
-      if (dispersionRes !== null) {
-        setDispersion(dispersionRes);
-        const joined = joinMappedYpred(currentRows, dispersionRes.dropped, dispersionRes.mapped);
-        const warnings: string[] = [];
-        if (dispersionRes.dropped.length > 0) {
-          warnings.push(
-            t("selection3d.droppedWarning", {
-              count: dispersionRes.dropped.length,
-              positions: dispersionRes.dropped.join(", "),
-            }),
-          );
+        // Active site
+        if (activeSiteRes !== null) {
+          setActiveSiteResult(activeSiteRes);
+          setActiveSitePositions(activeSiteRes.active_site_positions);
         }
-        if (joined.lengthMismatch) {
-          warnings.push(t("selection3d.lengthMismatch"));
+
+        // Dispersion
+        if (dispersionRes !== null) {
+          setDispersion(dispersionRes);
+          const joined = joinMappedYpred(currentRows, dispersionRes.dropped, dispersionRes.mapped);
+          const warnings: string[] = [];
+          if (dispersionRes.dropped.length > 0) {
+            warnings.push(
+              t("selection3d.droppedWarning", {
+                count: dispersionRes.dropped.length,
+                positions: dispersionRes.dropped.join(", "),
+              }),
+            );
+          }
+          if (joined.lengthMismatch) {
+            warnings.push(t("selection3d.lengthMismatch"));
+          }
+          setDroppedWarning(warnings.length > 0 ? warnings.join(" ") : null);
         }
-        setDroppedWarning(warnings.length > 0 ? warnings.join(" ") : null);
-      }
 
-      // PDB
-      if (!pdbResult || !pdbResult.success || !pdbResult.pdb_text) {
-        setPhase("error");
-        return;
-      }
+        // PDB
+        if (!pdbResult || !pdbResult.success || !pdbResult.pdb_text) {
+          setPhase("error");
+          return;
+        }
 
-      bFactorMapRef.current = parseBFactors(pdbResult.pdb_text);
-      loadedAccessionRef.current = thisAccession;
-      await initViewer(pdbResult.pdb_text, "pdb", cancelled);
+        bFactorMapRef.current = parseBFactors(pdbResult.pdb_text);
+        loadedAccessionRef.current = thisAccession;
+        await initViewer(pdbResult.pdb_text, "pdb", cancelled);
+      } else {
+        // ── ESMFold-by-sequence fallback ─────────────────────────────────
+        const esmResult: PredictStructureEsmfoldResult | null =
+          await predictStructureEsmfold(thisRefSeq);
+
+        if (cancelled) return;
+
+        if (!esmResult || !esmResult.success || !esmResult.pdb_text) {
+          setPhase("error");
+          return;
+        }
+
+        const esmPdbText = esmResult.pdb_text;
+
+        // Dispersion in reference frame (no active site — no accession)
+        if (positions.length > 0) {
+          const dispersionRes = await computeDispersion({
+            accession: "",
+            refSeq: thisRefSeq,
+            positions,
+            seed: 0,
+            pdbText: esmPdbText,
+            coordinateFrame: "reference",
+          });
+
+          if (cancelled) return;
+
+          if (dispersionRes !== null) {
+            setDispersion(dispersionRes);
+            const joined = joinMappedYpred(
+              currentRows,
+              dispersionRes.dropped,
+              dispersionRes.mapped,
+            );
+            const warnings: string[] = [];
+            if (dispersionRes.dropped.length > 0) {
+              warnings.push(
+                t("selection3d.droppedWarning", {
+                  count: dispersionRes.dropped.length,
+                  positions: dispersionRes.dropped.join(", "),
+                }),
+              );
+            }
+            if (joined.lengthMismatch) {
+              warnings.push(t("selection3d.lengthMismatch"));
+            }
+            setDroppedWarning(warnings.length > 0 ? warnings.join(" ") : null);
+          }
+        }
+
+        bFactorMapRef.current = parseBFactors(esmPdbText);
+        loadedAccessionRef.current = `esmfold:${thisRefSeq}`;
+        await initViewer(esmPdbText, "pdb", cancelled);
+      }
     }
 
     void load();
@@ -903,7 +984,8 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, accession]);
+  }, [open, accession, structureSource, refSeq]);
+
 
   async function initViewer(text: string, format: string, cancelled: boolean) {
     const el = containerRef.current;
@@ -1146,11 +1228,17 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
         <span className="text-muted-foreground text-xs">{open ? "▲" : "▼"}</span>
       </button>
 
-      {noAccession && (
+      {noAccession && refSeq.length === 0 && (
         <p className="px-4 pb-2 text-xs italic text-muted-foreground" data-testid="disabled-message">
           {t("selection3d.noAccession")}
         </p>
       )}
+      {noAccession && esmfoldLen > 400 && (
+        <p className="px-4 pb-2 text-xs italic text-muted-foreground" data-testid="esmfold-too-long">
+          {t("selection3d.esmfoldTooLong")}
+        </p>
+      )}
+
 
       {open && (
         <div className="border-t border-border" data-testid="panel-body">
@@ -1261,13 +1349,17 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
                 <ColorLegend
                   colorMode={colorMode}
                   hasVariants={(joinResult?.rows.length ?? 0) > 0}
-                  hasActiveSite={activeSitePositions.length > 0}
-                  hasBindingSite={(activeSiteResult?.binding_positions?.length ?? 0) > 0}
+                  hasActiveSite={structureSource !== "esmfold" && activeSitePositions.length > 0}
+                  hasBindingSite={
+                    structureSource !== "esmfold" &&
+                    (activeSiteResult?.binding_positions?.length ?? 0) > 0
+                  }
                   hasDomains={domains.length > 0}
                   showPlddt={!uploadSource}
                   showVariants={showVariants}
-                  showActiveSite={showActiveSite}
-                  showBindingSite={showBindingSite}
+                  showActiveSite={structureSource !== "esmfold" && showActiveSite}
+                  showBindingSite={structureSource !== "esmfold" && showBindingSite}
+
                   onToggleVariants={() => setShowVariants((v) => !v)}
                   onToggleActiveSite={() => setShowActiveSite((v) => !v)}
                   onToggleBindingSite={() => setShowBindingSite((v) => !v)}
@@ -1276,25 +1368,34 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
                 {/* Structural Dispersion: numeric/graph summary directly under the viewer */}
                 {dispersion !== null && <DispersionCard result={dispersion} />}
 
+                {structureSource === "esmfold" && (
+                  <div
+                    className="rounded border border-info/40 bg-info/10 px-3 py-2 text-xs text-info"
+                    data-testid="esmfold-no-accession-note"
+                  >
+                    {t("selection3d.esmfoldNoAccessionNote")}
+                  </div>
+                )}
 
-                {/* Active site control */}
-                <div>
-                  <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    {t("selection3d.activeSite")}
-                  </h3>
-                  <ActiveSiteControl
-                    positions={activeSitePositions}
-                    hasAnnotation={activeSiteResult?.has_annotation ?? false}
-                    onAdd={(p) =>
-                      setActiveSitePositions((prev) =>
-                        [...prev, p].sort((a, b) => a - b),
-                      )
-                    }
-                    onRemove={(p) =>
-                      setActiveSitePositions((prev) => prev.filter((x) => x !== p))
-                    }
-                  />
-                </div>
+                {structureSource !== "esmfold" && (
+                  <div>
+                    <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      {t("selection3d.activeSite")}
+                    </h3>
+                    <ActiveSiteControl
+                      positions={activeSitePositions}
+                      hasAnnotation={activeSiteResult?.has_annotation ?? false}
+                      onAdd={(p) =>
+                        setActiveSitePositions((prev) =>
+                          [...prev, p].sort((a, b) => a - b),
+                        )
+                      }
+                      onRemove={(p) =>
+                        setActiveSitePositions((prev) => prev.filter((x) => x !== p))
+                      }
+                    />
+                  </div>
+                )}
 
 
                 {/* Position table */}

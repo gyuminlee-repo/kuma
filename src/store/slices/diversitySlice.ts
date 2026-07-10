@@ -10,6 +10,7 @@ import type {
   DomainInfo,
   FetchActiveSiteResult,
   FetchPdbTextResult,
+  PredictStructureEsmfoldResult,
   LinkerHandling,
 } from "../../types/models";
 
@@ -26,6 +27,8 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
 
   /** Per-accession PDB text cache — avoids redundant network fetches within a session. */
   const pdbTextCache = new Map<string, Promise<FetchPdbTextResult | null>>();
+  /** Per-sequence ESMFold prediction cache — avoids redundant folds within a session. */
+  const esmfoldCache = new Map<string, Promise<PredictStructureEsmfoldResult | null>>();
 
 
   function getActiveEvolveproPath(state: AppState): string {
@@ -498,6 +501,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
           ? i18next.t("diversity.offlineReason")
           : i18next.t("diversity.consentReason");
         set({ statusMessage: reason });
+        pdbTextCache.delete(key);
         return null;
       }
       try {
@@ -510,6 +514,50 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
       }
     })();
     pdbTextCache.set(key, promise);
+    return promise;
+  },
+
+  predictStructureEsmfold: async (sequence: string): Promise<PredictStructureEsmfoldResult | null> => {
+    const clean = sequence.trim();
+    if (!clean) return null;
+    const cached = esmfoldCache.get(clean);
+    if (cached !== undefined) return cached;
+    const promise = (async () => {
+      const consentGranted = await get().requireNetworkConsent();
+      if (!consentGranted) {
+        const reason = get().offlineMode
+          ? i18next.t("diversity.offlineReason")
+          : i18next.t("diversity.consentReason");
+        set({ statusMessage: i18next.t("diversity.esmfoldCancelled", { reason }) });
+        esmfoldCache.delete(clean);
+        return null;
+      }
+      set({ statusMessage: i18next.t("diversity.esmfoldPredicting") });
+      try {
+        const result = await sendRequest("predict_structure_esmfold", { sequence: clean }, 180_000);
+        if (result.source === "error") {
+          esmfoldCache.delete(clean);
+          set({
+            statusMessage: i18next.t("diversity.esmfoldFailed", {
+              error: result.error_msg ?? i18next.t("statusBar.networkError"),
+            }),
+          });
+          return result;
+        }
+        set({
+          statusMessage: i18next.t("diversity.esmfoldDone", {
+            residues: result.residue_count,
+            plddt: result.plddt_mean.toFixed(1),
+          }),
+        });
+        return result;
+      } catch (err) {
+        esmfoldCache.delete(clean);
+        set({ statusMessage: i18next.t("diversity.esmfoldFailed", { error: formatError(err) }) });
+        return null;
+      }
+    })();
+    esmfoldCache.set(clean, promise);
     return promise;
   },
 
@@ -541,12 +589,16 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
     positions,
     nTrials,
     seed,
+    pdbText,
+    coordinateFrame,
   }: {
     accession: string;
     refSeq: string;
     positions: number[];
     nTrials?: number;
     seed?: number | null;
+    pdbText?: string | null;
+    coordinateFrame?: "accession" | "reference";
   }): Promise<ComputeDispersionResult | null> => {
     const consentGranted = await get().requireNetworkConsent();
     if (!consentGranted) {
@@ -563,9 +615,13 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
         positions: number[];
         n_trials?: number;
         seed?: number | null;
+        pdb_text?: string | null;
+        coordinate_frame?: "accession" | "reference";
       } = { accession: accession.trim(), ref_seq: refSeq, positions };
       if (nTrials !== undefined) params.n_trials = nTrials;
       if (seed !== undefined) params.seed = seed;
+      if (pdbText !== undefined) params.pdb_text = pdbText;
+      if (coordinateFrame !== undefined) params.coordinate_frame = coordinateFrame;
       const result = await sendRequest("compute_dispersion", params, 30_000);
       return result;
     } catch (err) {

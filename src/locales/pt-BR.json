@@ -1837,7 +1837,11 @@
     "sequenceDomainsFound": "Domínios da sequência de referência: {{count}} encontrados{{cache}}",
     "sequenceDomainsNone": "O InterProScan não encontrou anotações de domínio integradas para esta sequência.",
     "sequenceDomainsCachedSuffix": " (em cache)",
-    "sequenceDomainScanFailed": "Falha na análise de domínios: {{error}}"
+    "sequenceDomainScanFailed": "Falha na análise de domínios: {{error}}",
+    "esmfoldCancelled": "Predição de estrutura cancelada: {{reason}}",
+    "esmfoldPredicting": "Prevendo a estrutura com ESMFold (até alguns minutos)...",
+    "esmfoldDone": "Estrutura ESMFold prevista: {{residues}} resíduos, pLDDT médio {{plddt}}",
+    "esmfoldFailed": "Falha na predição do ESMFold: {{error}}"
   },
   "inputThresholds": {
     "estimateSec": "~{{sec}}s estimados",
@@ -2542,6 +2546,8 @@
     "uploadLabel": "Upload structure",
     "uploadButton": "Upload PDB/CIF",
     "uploadSourceNote": "pLDDT coloring not available for uploaded structures.",
+    "esmfoldNoAccessionNote": "Esta é uma predição do ESMFold a partir da sequência (referencial de referência). As sobreposições de sítios ativos/de ligação exigem um accession do UniProt e estão ocultas.",
+    "esmfoldTooLong": "A sequência excede o limite de 400 resíduos do ESMFold. Forneça um accession do UniProt para carregar uma estrutura do AlphaFold.",
     "removePosition": "Remove position {{position}}",
     "noVariants": "No candidates to display. Load EVOLVEpro results and run a design to see candidates on the structure.",
     "fallbackNote": "Showing all {{count}} ranked candidates.",

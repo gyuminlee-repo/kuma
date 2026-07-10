@@ -25,6 +25,7 @@ from sidecar_kuro.models import (
     FetchPdbTextParams,
     FetchActiveSiteParams,
     ComputeDispersionParams,
+    PredictStructureEsmfoldParams,
 )
 
 
@@ -701,7 +702,53 @@ def handle_compute_dispersion(params: dict) -> dict:
         positions=p.positions,
         n_trials=p.n_trials,
         seed=p.seed,
+        pdb_text=p.pdb_text,
+        coordinate_frame=p.coordinate_frame,
     )
+
+
+def handle_predict_structure_esmfold(params: dict) -> dict:
+    """Predict a reference-frame structure from sequence alone via ESMFold.
+
+    No UniProt accession is required; the returned PDB is 1-based on the
+    submitted sequence (coordinate_frame="reference"). Sequences over the public
+    server's 400-residue limit are rejected before any network call. Failures
+    surface as ``error_msg`` without leaking a traceback.
+    """
+    from kuma_core.kuro.esmfold import predict_structure
+
+    p = PredictStructureEsmfoldParams(**params)
+    sequence = p.sequence.strip()
+    if not sequence:
+        raise ValueError("sequence is required")
+
+    try:
+        pdb_text, plddt_mean, residue_count, cache_hit, seq_hash = predict_structure(
+            sequence, progress=_progress,
+        )
+    except ValueError as exc:
+        return {
+            "success": False,
+            "source": "error",
+            "pdb_text": None,
+            "plddt_mean": 0.0,
+            "residue_count": 0,
+            "coordinate_frame": "reference",
+            "seq_hash": "",
+            "cache_hit": False,
+            "error_msg": str(exc),
+        }
+
+    return {
+        "success": True,
+        "source": "esmfold_cache" if cache_hit else "esmfold",
+        "pdb_text": pdb_text,
+        "plddt_mean": plddt_mean,
+        "residue_count": residue_count,
+        "coordinate_frame": "reference",
+        "seq_hash": seq_hash,
+        "cache_hit": cache_hit,
+    }
 
 
 def handle_annotate_domains_by_sequence(params: dict) -> dict:
