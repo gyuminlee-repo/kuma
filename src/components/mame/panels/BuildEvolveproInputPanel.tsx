@@ -99,11 +99,11 @@ export function BuildEvolveproInputPanel() {
     if (selected) setForm({ outputXlsx: selected });
   }, [t]);
 
+  // Confirmation files (rep-batch + previous EVOLVEpro) are optional: with only
+  // layout + GC the build runs as a provisional first-round primary screen.
   const allInputsReady =
     Boolean(form.layoutXlsx) &&
     Boolean(form.gcDataXlsx) &&
-    Boolean(form.repBatchXlsx) &&
-    Boolean(form.prevEvolveproXlsx) &&
     Boolean(form.outputXlsx);
 
   const canBuild = allInputsReady && !isBuilding;
@@ -116,8 +116,8 @@ export function BuildEvolveproInputPanel() {
     const params: BuildEvolveproInputParams = {
       layout_xlsx: form.layoutXlsx,
       gc_data_xlsx: form.gcDataXlsx,
-      rep_batch_xlsx: form.repBatchXlsx,
-      prev_evolvepro_xlsx: form.prevEvolveproXlsx,
+      rep_batch_xlsx: form.repBatchXlsx || undefined,
+      prev_evolvepro_xlsx: form.prevEvolveproXlsx || undefined,
       output_xlsx: form.outputXlsx,
     };
 
@@ -190,7 +190,7 @@ export function BuildEvolveproInputPanel() {
             />
             <FilePickerField
               id="bep-rep"
-              label={t("mame.buildEvolvepro.repBatchXlsx")}
+              label={`${t("mame.buildEvolvepro.repBatchXlsx")} (${t("mame.buildEvolvepro.optionalLabel")})`}
               filled={Boolean(form.repBatchXlsx)}
               value={form.repBatchXlsx}
               onBrowse={() =>
@@ -200,7 +200,7 @@ export function BuildEvolveproInputPanel() {
             />
             <FilePickerField
               id="bep-prev"
-              label={t("mame.buildEvolvepro.prevEvolveproXlsx")}
+              label={`${t("mame.buildEvolvepro.prevEvolveproXlsx")} (${t("mame.buildEvolvepro.optionalLabel")})`}
               filled={Boolean(form.prevEvolveproXlsx)}
               value={form.prevEvolveproXlsx}
               onBrowse={() =>
@@ -307,6 +307,19 @@ function BuildResult({ result }: { result: BuildEvolveproInputResult }) {
       <h3 id="bep-result" className="text-sm font-medium text-foreground">
         {t("mame.buildEvolvepro.resultTitle")}
       </h3>
+
+      <div
+        role="status"
+        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+          result.confidence === "confirmed"
+            ? "bg-primary/10 text-primary"
+            : "bg-amber-500/15 text-amber-700 dark:text-amber-400"
+        }`}
+      >
+        {result.confidence === "confirmed"
+          ? t("mame.buildEvolvepro.confirmedLabel")
+          : t("mame.buildEvolvepro.provisionalLabel")}
+      </div>
 
       <div className="grid grid-cols-3 gap-2">
         <Stat label={t("mame.buildEvolvepro.nVariants")} value={result.n_variants} />

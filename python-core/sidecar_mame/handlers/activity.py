@@ -611,9 +611,9 @@ def handle_build_evolvepro_input(params: dict) -> dict:
     result = build_evolvepro_input(
         p.layout_xlsx,
         p.gc_data_xlsx,
-        p.rep_batch_xlsx,
-        p.prev_evolvepro_xlsx,
         p.output_xlsx,
+        rep_batch_xlsx=p.rep_batch_xlsx,
+        prev_evolvepro_xlsx=p.prev_evolvepro_xlsx,
         mismatch_threshold=p.mismatch_threshold,
         mapping_audit_path=p.mapping_audit_path,
     )
@@ -631,6 +631,7 @@ def handle_build_evolvepro_input(params: dict) -> dict:
         "prev_descending": result.mapping.prev_descending,
         "warnings": result.warnings,
         "swap_warnings": [w.__dict__ for w in result.swap_warnings],
+        "confidence": result.confidence,
         "mismatched": result.mismatched,
     }
 

@@ -254,7 +254,7 @@ def test_normalisation_is_area_over_wt_mean(tmp_path: Path):
     prev = _make_prev_evolvepro(tmp_path, [("5F", 1.5)])
     out = tmp_path / "out.xlsx"
 
-    result = build_evolvepro_input(layout, gc, rep, prev, out)
+    result = build_evolvepro_input(layout, gc, out, rep_batch_xlsx=rep, prev_evolvepro_xlsx=prev)
 
     wt_mean = sum(wt) / len(wt)
     expected_auth_mean = sum(r / wt_mean for r in raw) / len(raw)
@@ -293,7 +293,7 @@ def test_build_output_header_and_rowcount(tmp_path: Path):
     )
     out = tmp_path / "out.xlsx"
 
-    result = build_evolvepro_input(layout, gc, rep, prev, out)
+    result = build_evolvepro_input(layout, gc, out, rep_batch_xlsx=rep, prev_evolvepro_xlsx=prev)
 
     # 3 fallback variants (5F, 10L, 11E); 2 of them also authoritative.
     assert result.n_variants == 3
@@ -328,7 +328,7 @@ def test_build_warns_on_missing_gc_well(tmp_path: Path):
     prev = _make_prev_evolvepro(tmp_path, [("5F", 1.5)])
     out = tmp_path / "out.xlsx"
 
-    result = build_evolvepro_input(layout, gc, rep, prev, out)
+    result = build_evolvepro_input(layout, gc, out, rep_batch_xlsx=rep, prev_evolvepro_xlsx=prev)
     assert any("V10L" in w for w in result.warnings)
 
 
@@ -355,4 +355,46 @@ def test_build_fails_fast_when_wt_areas_empty(tmp_path: Path):
     out = tmp_path / "out.xlsx"
 
     with pytest.raises(ValueError, match="WT block areas"):
-        build_evolvepro_input(layout, gc, rep, prev, out)
+        build_evolvepro_input(layout, gc, out, rep_batch_xlsx=rep, prev_evolvepro_xlsx=prev)
+
+
+# ---------------------------------------------------------------------------
+# Independent 2-file path (layout + GC only, no confirmation)
+# ---------------------------------------------------------------------------
+
+def test_two_file_provisional_build(tmp_path: Path):
+    """layout + GC alone produce a provisional table (fallback-only).
+
+    The Activity step must run independently of the rep-batch / previous-round
+    confirmation files: a first-round primary screen has only the plate layout
+    and the pre-normalised GC sheet.
+    """
+    from kuma_core.mame.activity.build_evolvepro_input import build_evolvepro_input
+
+    layout = _make_layout(tmp_path, [("V5F", "A1"), ("V10L", "B1"), ("S11E", "C1")])
+    gc = _make_gc_data(tmp_path, [("A1", 1.10), ("B1", 0.90), ("C1", 1.30)])
+    out = tmp_path / "out.xlsx"
+
+    result = build_evolvepro_input(layout, gc, out)
+
+    assert result.confidence == "provisional"
+    assert result.n_variants == 3
+    assert result.n_authoritative == 0
+    assert result.n_fallback_only == 3
+    assert out.exists()
+
+
+def test_partial_confirmation_falls_back_to_provisional(tmp_path: Path):
+    """Supplying only one of rep_batch / prev_evolvepro warns and stays provisional."""
+    from kuma_core.mame.activity.build_evolvepro_input import build_evolvepro_input
+
+    layout = _make_layout(tmp_path, [("V5F", "A1")])
+    gc = _make_gc_data(tmp_path, [("A1", 1.10)])
+    rep = _make_rep_batch(tmp_path, {1: [1.0, 1.0, 1.0]}, [1.0, 1.0, 1.0])
+    out = tmp_path / "out.xlsx"
+
+    result = build_evolvepro_input(layout, gc, out, rep_batch_xlsx=rep)
+
+    assert result.confidence == "provisional"
+    assert result.n_authoritative == 0
+    assert any("confirmation" in w.lower() for w in result.warnings)

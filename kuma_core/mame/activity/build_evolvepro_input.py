@@ -180,6 +180,11 @@ class BuildEvolveproResult:
     replicate_stats: MergeReplicatesStats
     warnings: list[str]
     swap_warnings: list  # list[SwapWarning]
+    # Confidence of the written activity table:
+    #   "provisional" — fallback only (layout + 1-replicate GC; no rep-batch
+    #                   confirmation and no previous-round rank mapping).
+    #   "confirmed"   — rep-batch authoritative reps merged in.
+    confidence: str = "confirmed"
     # QC: variants whose authoritative (3-replicate confirmation) mean diverged
     # from the fallback (1-replicate primary screen) mean beyond the merge
     # threshold. Each entry carries both means so a reviewer can eyeball the gap.
@@ -298,10 +303,10 @@ def _write_mapping_audit(
 def build_evolvepro_input(
     layout_xlsx: str | Path,
     gc_data_xlsx: str | Path,
-    rep_batch_xlsx: str | Path,
-    prev_evolvepro_xlsx: str | Path,
     output_xlsx: str | Path,
     *,
+    rep_batch_xlsx: str | Path | None = None,
+    prev_evolvepro_xlsx: str | Path | None = None,
     mismatch_threshold: float = 0.1,
     mapping_audit_path: str | Path | None = None,
 ) -> BuildEvolveproResult:
@@ -350,14 +355,39 @@ def build_evolvepro_input(
     )
     warnings.extend(fb_warnings)
 
-    # 2. mapping (rank ID->variant) from previous EVOLVEpro file (ordered read).
-    block_result = parse_agilent_block_rep_batch(rep_batch_xlsx)
-    prev_ep_rows = read_evolvepro_rows(prev_evolvepro_xlsx)
-    mapping = build_id_variant_mapping(block_result, prev_ep_rows, well_by_variant)
-    warnings.extend(mapping.warnings)
+    # Confirmation sources are optional so this step runs independently: with
+    # only layout + GC (1st-round primary screen) the result is "provisional".
+    # Providing the rep-batch + previous-round EVOLVEpro files upgrades it to
+    # "confirmed" (3-replicate authoritative reps merged in).
+    has_confirmation = rep_batch_xlsx is not None and prev_evolvepro_xlsx is not None
+    if has_confirmation:
+        # 2. mapping (rank ID->variant) from previous EVOLVEpro file (ordered read).
+        block_result = parse_agilent_block_rep_batch(rep_batch_xlsx)
+        prev_ep_rows = read_evolvepro_rows(prev_evolvepro_xlsx)
+        mapping = build_id_variant_mapping(block_result, prev_ep_rows, well_by_variant)
+        warnings.extend(mapping.warnings)
+    else:
+        block_result = None
+        prev_ep_rows = []
+        mapping = IdVariantMapping(
+            rows=[],
+            prev_descending=True,
+            n_prev_variants=0,
+            warnings=[],
+        )
+        if (rep_batch_xlsx is None) != (prev_evolvepro_xlsx is None):
+            warnings.append(
+                "Only one of rep_batch_xlsx / prev_evolvepro_xlsx was supplied; "
+                "both are required for confirmation. Producing a provisional "
+                "(fallback-only) result."
+            )
 
-    # 3. authoritative (short variant space).
-    authoritative = _build_authoritative(block_result, mapping)
+    # 3. authoritative (short variant space). Empty when no rep-batch source.
+    authoritative = (
+        _build_authoritative(block_result, mapping)
+        if block_result is not None
+        else {}
+    )
 
     # 4. merge in short variant space (Variant NewType is str at runtime).
     authoritative_v: dict[Variant, list[float]] = {
@@ -426,5 +456,6 @@ def build_evolvepro_input(
         replicate_stats=replicate_stats,
         warnings=warnings,
         swap_warnings=swap_warnings,
+        confidence="confirmed" if has_confirmation else "provisional",
         mismatched=mismatched_detail,
     )

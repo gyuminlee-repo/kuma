@@ -330,8 +330,8 @@ class BuildEvolveproInputParams(BaseModel):
 
     layout_xlsx: str
     gc_data_xlsx: str
-    rep_batch_xlsx: str
-    prev_evolvepro_xlsx: str
+    rep_batch_xlsx: str | None = None
+    prev_evolvepro_xlsx: str | None = None
     output_xlsx: str
     mismatch_threshold: float = Field(default=0.1, gt=0.0)
     mapping_audit_path: str | None = None
@@ -344,7 +344,10 @@ class BuildEvolveproInputParams(BaseModel):
         mode="after",
     )
     @classmethod
-    def _check_input_xlsx(cls, v: str) -> str:
+    def _check_input_xlsx(cls, v: str | None) -> str | None:
+        # rep_batch_xlsx / prev_evolvepro_xlsx are optional (confirmation step).
+        if v is None:
+            return v
         p = Path(v)
         if ".." in p.parts:
             raise ValueError(f"Path traversal not allowed: {v}")

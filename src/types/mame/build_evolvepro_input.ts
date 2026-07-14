@@ -13,10 +13,13 @@ export interface BuildEvolveproInputParams {
   layout_xlsx: string
   /** Pre-normalised GC data xlsx with Sample Name (well) and Area columns. */
   gc_data_xlsx: string
-  /** Agilent FID1B rep-batch xlsx (numeric base IDs + replicate suffixes). */
-  rep_batch_xlsx: string
-  /** Previous-round EVOLVEpro xlsx (Variant, activity) used as the rank source. */
-  prev_evolvepro_xlsx: string
+  /** Optional Agilent FID1B rep-batch xlsx (numeric base IDs + replicate
+   *  suffixes). Provided together with prev_evolvepro_xlsx to upgrade the
+   *  result from "provisional" to "confirmed". */
+  rep_batch_xlsx?: string | null
+  /** Optional previous-round EVOLVEpro xlsx (Variant, activity) used as the
+   *  rank source for the numeric-ID → variant mapping (confirmation step). */
+  prev_evolvepro_xlsx?: string | null
   /** Destination xlsx. Parent directory must exist. */
   output_xlsx: string
   /** Mean-difference threshold for the replicate mismatch flag. Default 0.1. */
@@ -82,6 +85,13 @@ export interface BuildEvolveproInputResult {
   warnings: string[]
   /** Label-swap warnings comparing merged activity against the previous file. */
   swap_warnings: SwapWarning[]
+  /**
+   * Confidence of the written table:
+   *   "provisional" — layout + GC only (1st-round primary screen; no rep-batch
+   *                   confirmation and no previous-round rank mapping).
+   *   "confirmed"   — rep-batch authoritative replicates merged in.
+   */
+  confidence: "provisional" | "confirmed"
   /**
    * Variants where the 3-replicate confirmation mean diverged from the
    * 1-replicate primary screen mean beyond the merge threshold (QC, not error).
