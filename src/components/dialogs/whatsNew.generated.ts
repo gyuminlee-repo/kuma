@@ -5,8 +5,8 @@ export interface WhatsNewItem {
   detail: string;
 }
 
-export const WHATS_NEW_VERSION = "0.13.13";
+export const WHATS_NEW_VERSION = "0.13.14";
 
 export const WHATS_NEW_ITEMS: WhatsNewItem[] = [
-  { label: "Added", detail: "The KURO 3D panel can predict a structure directly from the reference sequence via ESMFold (EMBL-EBI ESMAtlas) when no UniProt accession is available, enabling the 3D viewer, reference-frame dispersion, and pLDDT/variant/domain overlays fo…" },
+  { label: "Fixed", detail: "KURO now uses AlphaFold Cα coordinates for structural-diversity and Pareto-3D selection only when the loaded structure exactly covers the reference sequence (identity or a clean substring; terminal tags/truncations are fine, interior subst…" },
 ];

@@ -205,6 +205,10 @@ export interface EvolveproLoadResult {
   used_variant_column?: string | null;
   used_score_column?: string | null;
   step_stats?: EvolveproStepStats;
+  /** True when the loaded structure did not exactly cover the reference frame,
+   *  so 3D Cα coordinates were dropped and structural/pareto selection fell back
+   *  to 1-D sequence distance. */
+  structure_frame_mismatch?: boolean;
   /** Ranked candidates beyond the selected set: selected + up to BUFFER_CAP extras, y_pred desc. */
   ranked_candidates?: import("./models.generated").RankedCandidateItem[];
 }

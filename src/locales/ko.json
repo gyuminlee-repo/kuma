@@ -1881,7 +1881,8 @@
     "legacyWorkspaceUnsupported": "v0.3 이전 워크스페이스는 지원하지 않습니다. 새 워크스페이스로 시작하세요."
   },
   "inputSlice": {
-    "csvFormatError": "{{mode}} CSV 형식 오류: {{detail}}"
+    "csvFormatError": "{{mode}} CSV 형식 오류: {{detail}}",
+    "structureFrameMismatch": "3D 구조가 참조 서열과 일치하지 않아 1D 서열 거리를 사용합니다"
   },
   "benchmarkDialog": {
     "title": "Benchmark",

@@ -243,3 +243,26 @@ def map_ref_to_accession(
     mapped: list[int] = sorted({m[p] for p in positions if p in m})
     dropped: list[int] = sorted({p for p in positions if p not in m})
     return {"mapped": mapped, "dropped": dropped}
+
+def structure_matches_reference(accession_seq: str, ref_seq: str) -> bool:
+    """True only when the structure sequence exactly covers the reference frame.
+
+    KURO uses 3D Cα coordinates (dispersion, structural diversity) by indexing
+    the accession structure at reference-sequence positions. That is only valid
+    when every reference residue maps to an identical residue in the structure —
+    i.e. the reference is identical to, or a contiguous exact substring of, the
+    accession sequence (tag/truncation offsets are fine; interior substitutions
+    are not). A near-but-not-exact structure (e.g. 95% identity) would place
+    coordinates on the wrong residues, so callers must fall back to 1-D distance.
+
+    Returns False on empty input (cannot establish the frame).
+    """
+    a = accession_seq.rstrip("*").strip()
+    r = ref_seq.rstrip("*").strip()
+    if not a or not r:
+        return False
+    if a == r:
+        return True
+    # Contiguous exact substring: reference is the accession minus terminal
+    # extensions (signal peptide, tag). Every ref residue is identical.
+    return r in a

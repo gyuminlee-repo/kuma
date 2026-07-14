@@ -4,6 +4,14 @@
 
 ---
 
+## v0.13.14 (2026-07-01)
+
+### Kuro structure-accuracy guard
+
+- 3D Cα coordinates now drive structural-diversity / Pareto-3D selection only when the loaded structure exactly matches the reference sequence (identity or clean substring). A near-but-not-exact structure would mis-place residues and corrupt selection, so those cases fall back to 1-D sequence distance with a status notice. Domain diversity (sequence-based) is unaffected.
+
+---
+
 ## v0.13.13 (2026-07-01)
 
 ### Kuro ESMFold structure prediction

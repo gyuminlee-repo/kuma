@@ -1862,7 +1862,8 @@
     "legacyWorkspaceUnsupported": "Workspaces anteriores à v0.3 não são suportados. Iniciar um novo workspace."
   },
   "inputSlice": {
-    "csvFormatError": "Erro de formato CSV de {{mode}}: {{detail}}"
+    "csvFormatError": "Erro de formato CSV de {{mode}}: {{detail}}",
+    "structureFrameMismatch": "A estrutura 3D não corresponde à sequência de referência — usando a distância de sequência 1D"
   },
   "benchmarkDialog": {
     "title": "Benchmark",

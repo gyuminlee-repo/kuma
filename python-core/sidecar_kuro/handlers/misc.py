@@ -165,7 +165,22 @@ def handle_load_evolvepro_csv(params: dict) -> dict:
 
     ca_coords = _get_cached_ca_coords(p.structure_accession)
 
-    return load_evolvepro_csv(
+    # Structure-accuracy guard: 3D coordinates are only valid when the loaded
+    # structure exactly covers the reference frame (identity or clean substring).
+    # A near-but-not-exact structure would place Cα coordinates on the wrong
+    # residues, silently corrupting dispersion / structural-diversity selection.
+    # When it does not match, drop to None so those paths fall back to 1-D
+    # distance, and record why for the UI.
+    structure_frame_mismatch = False
+    if ca_coords is not None and p.structure_accession and p.ref_seq.strip():
+        from kuma_core.kuro.alphafold import fetch_ca_seq
+        from kuma_core.kuro.interface import structure_matches_reference
+
+        accession_seq = fetch_ca_seq(p.structure_accession)
+        if accession_seq and not structure_matches_reference(accession_seq, p.ref_seq):
+            ca_coords = None
+            structure_frame_mismatch = True
+    result = load_evolvepro_csv(
         filepath=str(resolved),
         top_n=p.top_n,
         max_per_position=p.max_per_position,
@@ -194,6 +209,8 @@ def handle_load_evolvepro_csv(params: dict) -> dict:
         structural_kappa=p.structural_kappa,
         anchor_variants=p.anchor_variants,
     )
+    result["structure_frame_mismatch"] = structure_frame_mismatch
+    return result
 
 
 def handle_run_benchmark(params: dict) -> dict:

@@ -1862,7 +1862,8 @@
     "legacyWorkspaceUnsupported": "v0.3 より古いワークスペースはサポートされていません。新規ワークスペースを開始してください。"
   },
   "inputSlice": {
-    "csvFormatError": "{{mode}} CSV フォーマットエラー: {{detail}}"
+    "csvFormatError": "{{mode}} CSV フォーマットエラー: {{detail}}",
+    "structureFrameMismatch": "3D 構造が参照配列と一致しないため、1D 配列距離を使用します"
   },
   "benchmarkDialog": {
     "title": "Benchmark",

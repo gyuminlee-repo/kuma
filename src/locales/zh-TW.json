@@ -1862,7 +1862,8 @@
     "legacyWorkspaceUnsupported": "不支援早於 v0.3 的工作區。請新建工作區。"
   },
   "inputSlice": {
-    "csvFormatError": "{{mode}} CSV 格式錯誤: {{detail}}"
+    "csvFormatError": "{{mode}} CSV 格式錯誤: {{detail}}",
+    "structureFrameMismatch": "3D 結構與參考序列不匹配 — 使用 1D 序列距離"
   },
   "benchmarkDialog": {
     "title": "Benchmark",

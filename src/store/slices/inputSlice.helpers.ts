@@ -1,3 +1,4 @@
+import i18next from "i18next";
 import type {
   DomainInfo,
   DomainStat,
@@ -188,6 +189,9 @@ export function buildEvolveproLoadStateUpdate(params: {
   const paretoMsg = result.pareto_replaced != null && result.pareto_replaced > 0
     ? ` | Pareto: ${result.pareto_replaced} diversified`
     : "";
+  const structureMsg = result.structure_frame_mismatch
+    ? ` | ${i18next.t("inputSlice.structureFrameMismatch")}`
+    : "";
   const modeLabel = "EVOLVEpro";
 
   return {
@@ -199,6 +203,6 @@ export function buildEvolveproLoadStateUpdate(params: {
     evolveproFilteredCount: result.filtered_count ?? null,
     evolveproParetoExchanges: result.pareto_replaced ?? null,
     evolveproStepStats: result.step_stats ?? null,
-    statusMessage: `${modeLabel}: ${result.selected_count}/${result.total_count} variants${filteredMsg}${domainMsg}${paretoMsg}`,
+    statusMessage: `${modeLabel}: ${result.selected_count}/${result.total_count} variants${filteredMsg}${domainMsg}${paretoMsg}${structureMsg}`,
   };
 }
