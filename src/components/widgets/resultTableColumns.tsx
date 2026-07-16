@@ -310,7 +310,7 @@ export function makeResultTableColumns(opts: {
         const tip =
           (row.ta_detail ?? "") +
           (row.ta_touchdown ? ` · Touchdown: ${row.ta_touchdown}` : "") +
-          " · 권장 시작값, gradient/touchdown로 최적화";
+          " · Recommended starting Ta; optimize with gradient or touchdown";
         return (
           <span title={tip}>
             {ta.toFixed(1)}

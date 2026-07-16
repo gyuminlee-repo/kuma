@@ -124,10 +124,14 @@ export interface SdmPrimerResultModel {
   overlap_mode?: ("partial" | "full") | null;
   overlap_seq: string;
   penalty: number;
+  recommended_ta?: number | null;
   rev_len: number;
   reverse_seq: string;
   synthesis_score_fwd?: number | null;
   synthesis_score_rev?: number | null;
+  ta_detail?: string | null;
+  ta_mode?: ("3step" | "2step" | "fixed") | null;
+  ta_touchdown?: string | null;
   tm_condition_met: boolean;
   tm_no_fwd: number;
   tm_no_rev: number;
