@@ -1,8 +1,8 @@
 {
   "kuro-sidecar-aarch64-apple-darwin": "8dbdc1486c6dcee2b8c3e99cd43d73279f3c01833050b5257d2cdf9b428b2d85",
-  "kuro-sidecar-x86_64-pc-windows-msvc.exe": "8e75b8717714e0ed60453f732e713259bc394cfb1a1ea2f229c6b6f1c04216b2",
-  "kuro-sidecar-x86_64-unknown-linux-gnu": "666577144b09c9d405d484c03bea113e8e75027aeb08dbb077f2165ae8de9d87",
+  "kuro-sidecar-x86_64-pc-windows-msvc.exe": "37c655db807731dc51cf5a3d57d72db02d4e2d1c106f29bd95c0c61d91bd4aa2",
+  "kuro-sidecar-x86_64-unknown-linux-gnu": "dda8ee91b648acf8a4e65202e3e986f7d0a38e8ff375a9ce176ac92d2b46b0cf",
   "mame-sidecar-aarch64-apple-darwin": "5595ff4402af0352c20d94dae53c056b22061f1bb4bd03f418e79278af9a4961",
-  "mame-sidecar-x86_64-pc-windows-msvc.exe": "5267417d4affdd24b0d690704a3707ae93406bf2d6dcd0dd2f5d2b87eba68750",
+  "mame-sidecar-x86_64-pc-windows-msvc.exe": "dcc0b163ce91af7458226ec1318668af6712257a0a7f754c86c96123bc140d31",
   "mame-sidecar-x86_64-unknown-linux-gnu": "6298dbb5abdcd212467ae35d49bdbdf2bc6ec7845b0aa9511adbe2e385233950"
 }
