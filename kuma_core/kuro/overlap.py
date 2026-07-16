@@ -23,7 +23,10 @@ def generate_overlap_windows(
     """Generate overlap windows UPSTREAM of the mutation codon.
 
     The overlap region ends at the mutation codon start (exclusive).
-    This follows the EVOLVEpro partially-overlapping primer design:
+    This follows the EVOLVEpro partially-overlapping primer design. The
+    overlap geometry and Tm heuristics (Fwd 62 / Rev 58 / overlap 42 C,
+    SantaLucia 1998 via Benchling) follow Landwehr et al. 2025, Nat Commun
+    16, 865 (https://doi.org/10.1038/s41467-024-55399-0):
       Forward = [overlap upstream] + [mutant codon] + [downstream extension]
       Reverse = [upstream extension] + [rc(overlap)]
 
