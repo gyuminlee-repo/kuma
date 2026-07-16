@@ -118,7 +118,7 @@ class PolymeraseRegistry:
                 f"Polymerase profiles not found: {BUILTIN_PATH}. "
                 "Ensure kuma_core/kuro/resources/polymerase_profiles.json exists."
             )
-        with open(BUILTIN_PATH) as f:
+        with open(BUILTIN_PATH, encoding="utf-8") as f:
             data = json.load(f)
         for name, profile_data in data.items():
             self._profiles[name] = _dict_to_profile(profile_data)

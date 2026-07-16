@@ -162,3 +162,43 @@ class TestCustomPolymerasePersistence:
             assert loaded.name == "Custom HiFi"
             assert loaded.opt_tm_overlap == 45.0
             assert loaded.min_3prime_dist == 3
+
+
+def test_builtin_profiles_load_without_locale_default_encoding():
+    """The profiles JSON carries non-ASCII (KOD touchdown arrows), so the loader
+    must pin utf-8. On a cp949 Windows locale a locale-default open() raises
+    UnicodeDecodeError and kills the sidecar at import, before any RPC runs.
+    PYTHONWARNDEFAULTENCODING turns every locale-default open() into an error.
+    """
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    repo_root = Path(__file__).resolve().parent.parent
+    env = {
+        **os.environ,
+        "PYTHONWARNDEFAULTENCODING": "1",
+        "PYTHONPATH": str(repo_root),
+    }
+    code = (
+        "from kuma_core.kuro.polymerase import PolymeraseRegistry; "
+        "assert PolymeraseRegistry().get('KOD').ta_rule"
+    )
+    result = subprocess.run(
+        [sys.executable, "-W", "error::EncodingWarning", "-c", code],
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+
+
+def test_builtin_profiles_json_holds_non_ascii():
+    """Guard for the test above: if the JSON ever goes pure ASCII the encoding
+    regression would stop being observable, so keep the assertion honest.
+    """
+    from kuma_core.kuro.polymerase import BUILTIN_PATH
+
+    raw = BUILTIN_PATH.read_bytes()
+    assert any(b > 0x7F for b in raw)
