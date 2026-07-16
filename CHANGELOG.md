@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.13.18 (Sidecar startup fix on non-UTF-8 Windows locales)
+
+### Fixed
+- v0.13.18.0: The KURO sidecar no longer dies at import on Windows systems whose locale encoding is not UTF-8 (cp949 on Korean Windows, for example). The profile loader opened the bundled polymerase table with the locale default encoding, so the non-ASCII touchdown text introduced in v0.13.17 raised `UnicodeDecodeError` before any RPC could run, which surfaced as "Sidecar process exited" for every command including sequence loading. The loader now pins utf-8, matching the three other readers in that module, and a regression test drives the registry under `PYTHONWARNDEFAULTENCODING` so a locale-default open cannot come back. (`kuma_core/kuro/polymerase.py`, `tests/test_polymerase.py`)
+
+---
 ## v0.13.17 (Per-enzyme annealing temperature)
 
 ### Added
