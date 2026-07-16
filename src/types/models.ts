@@ -150,6 +150,10 @@ export interface SdmPrimerResult {
   homodimer_dg_rev?: number;
   synthesis_score_fwd?: number;
   synthesis_score_rev?: number;
+  recommended_ta?: number | null;
+  ta_mode?: "3step" | "2step" | "fixed";
+  ta_detail?: string;
+  ta_touchdown?: string | null;
   warnings: string[];
   overlap_mode?: "partial" | "full";
 }
