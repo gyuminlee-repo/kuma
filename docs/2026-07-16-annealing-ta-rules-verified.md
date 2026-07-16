@@ -76,9 +76,9 @@ primer sequence.
 - NEB Tm scale and offline calibration: NEB Tm API (https://tmapi.neb.com),
   committed table `kuma_core/kuro/resources/neb_tm_offsets.json` (calibrated
   2026-06-18, primer conc 0.5 uM, len 17-39 nt, GC 40-60%).
-- NEB annealing guidance: NEB application note "Guidelines for PCR
-  Optimization with Q5 High-Fidelity DNA Polymerase" and the Tm Calculator help
-  (Q5 Ta = Tm(low) + 1; 2-step for Tm ≥ 72 C).
+- NEB annealing guidance: NEB application note "Universal Annealing
+  Temperature in PCR" and the Tm Calculator help (Q5 Ta = Tm(low) + 1; 2-step
+  for Tm ≥ 72 C).
 - NEB SDM: NEBaseChanger / Q5 Site-Directed Mutagenesis Kit protocol (E0554)
   FAQ (Ta from the primer Tm; the kit calculator adds a mismatch penalty not
   reproduced offline).
