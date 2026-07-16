@@ -47,7 +47,7 @@ Given a mutation list (plain text / EVOLVEpro CSV) and a template sequence (GenB
 
 #### Design methods
 
-- **Overlap-extension SDM**: Forward and reverse primers with the overlap placed upstream of the mutation codon. Two overlap modes are available, *Partial overlap (Gibson)* (default; forward and reverse independent) and *Full overlap (Q5 SDM)* (reverse = reverse-complement of forward). Annealing Tm uses the SantaLucia 1998 (SnapGene) model
+- **Overlap-extension SDM**: Forward and reverse primers with the overlap placed upstream of the mutation codon. Two overlap modes are available, *Partial overlap (Gibson)* (default; forward and reverse independent) and *Full overlap (Q5 SDM)* (reverse = reverse-complement of forward). Annealing Tm uses the SantaLucia 1998 (Benchling) model. The partially-overlapping design and default Tm heuristics (Fwd 62 / Rev 58 / Overlap 42 °C) follow Landwehr et al. 2025, *Nat Commun* 16, 865 (https://doi.org/10.1038/s41467-024-55399-0)
 - **Overlap upstream design**: Overlap region is placed immediately upstream of the mutation codon (EVOLVEpro convention)
 
 #### Mutation input & candidate selection

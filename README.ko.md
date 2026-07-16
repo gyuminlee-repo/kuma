@@ -45,7 +45,7 @@ Kuro 탭에서 프라이머를 설계하고 실험·시퀀싱 후 Mame 탭으로
 
 #### 설계 방식
 
-- **Overlap-extension SDM**: overlap 을 mutation codon upstream 에 배치하는 forward/reverse 프라이머. overlap 모드 2종, *Partial overlap (Gibson)*(기본, forward·reverse 독립)와 *Full overlap (Q5 SDM)*(reverse = forward 의 reverse-complement). annealing Tm 은 SantaLucia 1998(SnapGene) 모델 사용
+- **Overlap-extension SDM**: overlap 을 mutation codon upstream 에 배치하는 forward/reverse 프라이머. overlap 모드 2종, *Partial overlap (Gibson)*(기본, forward·reverse 독립)와 *Full overlap (Q5 SDM)*(reverse = forward 의 reverse-complement). annealing Tm 은 SantaLucia 1998(Benchling) 모델 사용. partially-overlapping 설계와 기본 Tm 기준값(Fwd 62 / Rev 58 / Overlap 42 °C)은 Landwehr et al. 2025, *Nat Commun* 16, 865 방식을 따름 (https://doi.org/10.1038/s41467-024-55399-0)
 - **Overlap upstream 설계**: overlap 영역이 mutation codon 바로 앞(upstream)에 위치 (EVOLVEpro 방식)
 
 #### 변이 입력 & 후보 선정
