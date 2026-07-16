@@ -16,7 +16,6 @@ from typing import Literal
 import primer3
 
 from .polymerase import PolymeraseProfile, PolymeraseRegistry
-from .neb_tm import neb_product_for, neb_estimated_tm
 
 from .codon_table import best_codon, mt_codons_for_design, CODON_TO_AA
 from .mutation import Mutation, mutate_sequence, parse_mutations
@@ -93,76 +92,63 @@ class SdmPrimerResult:
         self.gc_rev = _gc_percent(self.reverse_seq)
 
 
-# Legacy buffer constants (SantaLucia 1998, Benchling-era fixed parameters).
-# Used only as the behavior-preserving fallback when no polymerase profile is
-# supplied (public off-target / custom-primer evaluation entry points).
-_LEGACY_TM_METHOD = "santalucia"
-_LEGACY_SALT_CORRECTION = "santalucia"
-_LEGACY_CONCS = dict(
+# Design-time Tm scale. Fixed for every polymerase, by design.
+#
+# SDM design follows the paper method (Landwehr et al. 2025, Nat Commun 16, 865),
+# which pairs the 62/58/42 targets with the Benchling SantaLucia 1998 scale. The
+# targets are method constants, so the scale they are measured on must be constant
+# too: a per-profile Tm scale makes the same numeric target mean a different
+# physical primer per enzyme, which is the opposite of enzyme-independent.
+#
+# Enzyme identity (buffer, salt correction, NEB calibration) belongs to the
+# annealing temperature only (kuro/annealing.py). A profile tm_method /
+# salt_correction / salt_* / dna_conc therefore feeds Ta, never design.
+_DESIGN_TM_METHOD = "santalucia"
+_DESIGN_SALT_CORRECTION = "santalucia"
+_DESIGN_CONCS = dict(
     mv_conc=50.0,
-    dv_conc=0.0,
-    dntp_conc=0.0,
+    dv_conc=1.5,
+    dntp_conc=0.8,
     dna_conc=250.0,
 )
 
 
-def _thermo_concs(profile: PolymeraseProfile | None) -> dict:
-    """Return the four salt/dNTP/DNA concentrations for Tm and secondary-structure
-    calculations, taken from the selected polymerase profile.
+def _thermo_concs() -> dict:
+    """Return the four salt/dNTP/DNA concentrations of the design Tm scale.
 
-    profile is None -> legacy fixed constants (preserves prior behavior for
-    callers that do not pass a profile).
+    Fixed for every polymerase, so design stays enzyme-independent (_DESIGN_CONCS).
     """
-    if profile is None:
-        return dict(_LEGACY_CONCS)
-    return dict(
-        mv_conc=profile.salt_monovalent,
-        dv_conc=profile.salt_divalent,
-        dntp_conc=profile.dntp_conc,
-        dna_conc=profile.dna_conc,
-    )
+    return dict(_DESIGN_CONCS)
 
 
-def _calc_sdm_tm(seq: str, profile: PolymeraseProfile | None) -> float:
-    """Calculate Tm using the selected polymerase profile buffer.
+def _calc_sdm_tm(seq: str) -> float:
+    """Calculate the design-time Tm on the fixed Benchling SantaLucia 1998 scale.
 
-    profile is None -> legacy SantaLucia constants (mv=50, dv=0, dntp=0, dna=250).
-    Otherwise the profile salt/dNTP/DNA concentrations and tm/salt-correction
-    methods drive the calculation, so different polymerases yield different Tm.
+    Deliberately takes no polymerase profile. Design is enzyme-independent, so
+    neither the profile buffer nor the NEB calibration table participates here.
+    NEB calibration is Ta-only and lives in kuro/annealing.py.
     """
-    if profile is not None:
-        product = neb_product_for(profile.name)
-        if product is not None:
-            # NEB-scale Tm from committed calibration table. The NEB branch uses
-            # the table's fixed ref_config and ignores the editable profile salt
-            # values by design.
-            return neb_estimated_tm(seq, product)
-    if profile is None:
-        tm_method = _LEGACY_TM_METHOD
-        salt_corr = _LEGACY_SALT_CORRECTION
-    else:
-        tm_method = profile.tm_method
-        salt_corr = profile.salt_correction
     return primer3.calc_tm(
         seq,
-        **_thermo_concs(profile),
-        tm_method=tm_method,
-        salt_corrections_method=salt_corr,
+        **_thermo_concs(),
+        tm_method=_DESIGN_TM_METHOD,
+        salt_corrections_method=_DESIGN_SALT_CORRECTION,
     )
 
 
 def _check_secondary_structure(
     result: SdmPrimerResult,
-    profile: PolymeraseProfile | None,
     warn_tm: float = 40.0,
 ) -> None:
     """Check hairpin and homodimer for both fwd/rev primers using primer3.
 
-    Concentrations come from the selected polymerase profile (None -> legacy).
+    Concentrations are the fixed design scale, not the profile buffer: this
+    routine adds to result.penalty, and candidates are ranked by penalty, so a
+    per-profile buffer here would change which primer is selected per enzyme.
     primer3.calc_hairpin/calc_homodimer accept only the four concentrations,
     not tm_method/salt_corrections_method.
     """
-    concs = _thermo_concs(profile)
+    concs = _thermo_concs()
     for label, seq, is_fwd in [("Fwd", result.forward_seq, True), ("Rev", result.reverse_seq, False)]:
         hp = primer3.calc_hairpin(seq, **concs)
         hd = primer3.calc_homodimer(seq, **concs)
@@ -327,7 +313,7 @@ def _design_full_overlap(
             if primer_len < L_min or primer_len > L_max:
                 continue
 
-            tm = _calc_sdm_tm(fwd, profile)
+            tm = _calc_sdm_tm(fwd)
             if tm_min <= tm <= tm_max:
                 diff = abs(tm - target_tm)
                 if diff < best_diff:
@@ -376,7 +362,7 @@ def _extend_forward(
         if total_len > fwd_len_max:
             break
 
-        tm = _calc_sdm_tm(candidate, profile)
+        tm = _calc_sdm_tm(candidate)
         if tm_min <= tm <= tm_max:
             diff = abs(tm - target_tm)
             if diff < best_diff:
@@ -425,7 +411,7 @@ def _extend_reverse(
         if total_len > rev_len_max:
             break
 
-        tm = _calc_sdm_tm(candidate, profile)
+        tm = _calc_sdm_tm(candidate)
         if tm_min <= tm <= tm_max:
             diff = abs(tm - target_tm)
             if diff < best_diff:
@@ -504,7 +490,7 @@ def check_offtarget(
                 continue
 
             match_seq = strand_seq[match_start:match_end]
-            tm = _calc_sdm_tm(match_seq, profile)
+            tm = _calc_sdm_tm(match_seq)
 
             if tm >= tm_threshold:
                 hits.append(OffTargetHit(
@@ -653,7 +639,7 @@ def check_offtarget_sliding(
             else:
                 ttype = "internal"
             match_seq = p_upper[w_start:w_end]
-            tm = _calc_sdm_tm(match_seq, profile)
+            tm = _calc_sdm_tm(match_seq)
             hits.append(OffTargetHit(
                 position=tpl_start,
                 strand=strand,
@@ -702,7 +688,7 @@ def _search_candidates(
 
     for window in windows:
         overlap_seq = window.sequence
-        overlap_tm = _calc_sdm_tm(overlap_seq, profile)
+        overlap_tm = _calc_sdm_tm(overlap_seq)
 
         if not (ovl_tm_min <= overlap_tm <= ovl_tm_max):
             continue
@@ -974,7 +960,7 @@ def design_single_sdm(
                         c.has_offtarget = True
                         ot_count = len(c.offtarget_fwd) + len(c.offtarget_rev)
                         c.penalty = round(c.penalty + ot_count * 5.0, 2)
-                    _check_secondary_structure(c, profile)
+                    _check_secondary_structure(c)
                     _check_synthesis_score(c)
 
                 all_candidates.sort(key=lambda r: r.penalty)
@@ -1027,7 +1013,7 @@ def design_single_sdm(
                     ot_count = len(c.offtarget_fwd) + len(c.offtarget_rev)
                     c.penalty = round(c.penalty + ot_count * 5.0, 2)
 
-                _check_secondary_structure(c, profile)
+                _check_secondary_structure(c)
                 _check_synthesis_score(c)
 
             all_candidates.sort(key=lambda r: r.penalty)
@@ -1080,12 +1066,12 @@ def evaluate_custom_primer(
     if not fwd_seq or not rev_seq:
         raise ValueError("Both forward and reverse sequences are required")
 
-    tm_fwd = _calc_sdm_tm(fwd_seq, profile)
-    tm_rev = _calc_sdm_tm(rev_seq, profile)
+    tm_fwd = _calc_sdm_tm(fwd_seq)
+    tm_rev = _calc_sdm_tm(rev_seq)
 
     effective_ov_len = overlap_len if overlap_len and overlap_len > 0 else min(18, len(fwd_seq))
     ov_seq = fwd_seq[:effective_ov_len]
-    tm_ov = _calc_sdm_tm(ov_seq, profile) if len(ov_seq) >= 8 else 0.0
+    tm_ov = _calc_sdm_tm(ov_seq) if len(ov_seq) >= 8 else 0.0
 
     from .mutation import Mutation
     dummy_mut = Mutation(
@@ -1142,7 +1128,7 @@ def evaluate_custom_primer(
     if result.offtarget_fwd or result.offtarget_rev:
         result.has_offtarget = True
 
-    _check_secondary_structure(result, profile)
+    _check_secondary_structure(result)
     _check_synthesis_score(result)
 
     return result

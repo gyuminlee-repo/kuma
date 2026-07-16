@@ -177,12 +177,11 @@ class TestDesignSdmPrimers:
         return results
 
     def test_majority_success(self, sdm_results):
-        """Most mutations must produce valid primers (>=10/12)."""
-        # NEB-scale polymerase-aware Tm (Q5 calibrated to NEB Tm Calculator, see
-        # notes/2026-06-18-polymerase-tm-method-research.md). Yield reflects NEB-scale
-        # targets; threshold updated from old primer3-scale behavior. Pending PI experimental validation.
-        # Actual NEB-scale yield: 7/12 (still a majority of the fixture set).
-        assert len(sdm_results) >= 7
+        """Most mutations must produce valid primers."""
+        # Design now follows the paper targets (62/58/42) + min_3prime_dist 4 on the
+        # fixed Benchling Tm scale, so the yield changed. Enzyme identity moved to Ta
+        # only, so every profile designs alike: 5/12 == the Benchling reference.
+        assert len(sdm_results) >= 5
 
     def test_primer_lengths(self, sdm_results):
         """Primers must match KURO spec: fwd 17-39 bp, rev 19-27 bp."""
@@ -248,11 +247,10 @@ class TestExportTsv:
 
         assert tsv_path.exists()
         lines = tsv_path.read_text().strip().split("\n")
-        # NEB-scale polymerase-aware Tm (Q5 calibrated to NEB Tm Calculator, see
-        # notes/2026-06-18-polymerase-tm-method-research.md). Yield reflects NEB-scale
-        # targets; threshold updated from old primer3-scale behavior. Pending PI experimental validation.
-        # Actual NEB-scale yield: 7 successes -> metadata(1)+header(1)+7 = 9 lines.
-        assert len(lines) >= 9  # metadata + header + successful mutations (>=7)
+        # Design now follows the paper targets (62/58/42) + min_3prime_dist 4 on the
+        # fixed Benchling Tm scale, so the yield changed: 5 successes ->
+        # metadata(1)+header(1)+5 = 7 lines.
+        assert len(lines) >= 7  # metadata + header + successful mutations (>=5)
         assert lines[0].startswith("# overlap_mode=")
         assert "Mutation" in lines[1]
         assert "Tm_Overlap" in lines[1]  # partial mode keeps original column name
@@ -335,11 +333,9 @@ class TestCancelCheck:
             mutations_csv=mutations_csv,
             cancel_check=lambda: False,
         )
-        # NEB-scale polymerase-aware Tm (Q5 calibrated to NEB Tm Calculator, see
-        # notes/2026-06-18-polymerase-tm-method-research.md). Yield reflects NEB-scale
-        # targets; threshold updated from old primer3-scale behavior. Pending PI experimental validation.
-        # Actual NEB-scale yield: 7/12.
-        assert len(results) >= 7
+        # Design now follows the paper targets (62/58/42) + min_3prime_dist 4 on the
+        # fixed Benchling Tm scale, so the yield changed: 5/12.
+        assert len(results) >= 5
 
     def test_partial_cancel(self, genbank_path, mutations_csv):
         counter = {"n": 0}
@@ -537,12 +533,10 @@ class TestDesignFullOverlap:
         return results
 
     def test_partial_regression(self, partial_results):
-        """Existing partial overlap results are unaffected (regression guard)."""
-        # NEB-scale polymerase-aware Tm (Q5 calibrated to NEB Tm Calculator, see
-        # notes/2026-06-18-polymerase-tm-method-research.md). Yield reflects NEB-scale
-        # targets; threshold updated from old primer3-scale behavior. Pending PI experimental validation.
-        # Actual NEB-scale yield: 7/12.
-        assert len(partial_results) >= 7, "Partial mode must still succeed on fixture dataset"
+        """Partial overlap still succeeds on the fixture dataset (regression guard)."""
+        # Design now follows the paper targets (62/58/42) + min_3prime_dist 4 on the
+        # fixed Benchling Tm scale, so the yield changed: 5/12.
+        assert len(partial_results) >= 5, "Partial mode must still succeed on fixture dataset"
         for r in partial_results:
             assert r.fwd_len >= 17, f"{r.mutation.raw} fwd_len {r.fwd_len} < 17"
             assert r.rev_len >= 19, f"{r.mutation.raw} rev_len {r.rev_len} < 19 (partial spec)"
@@ -613,3 +607,67 @@ class TestSdmTmTargetsAreMethodLevel:
         r = results[0]
         assert abs(r.tm_fwd - 62.0) <= 4.0, f"custom: tm_fwd {r.tm_fwd} derived from opt_tm"
         assert abs(r.tm_rev - 58.0) <= 4.0, f"custom: tm_rev {r.tm_rev} derived from opt_tm"
+
+
+class TestDesignIsEnzymeIndependent:
+    """Contract: the polymerase choice must not change the designed primers.
+
+    Design runs on one fixed Tm scale (the paper Benchling SantaLucia 1998 scale)
+    with method-level targets, so every profile sharing a length spec yields
+    byte-identical primers. Enzyme identity surfaces only in the annealing
+    temperature. This fails if a per-profile buffer, or the NEB calibration table,
+    ever re-enters the design path (via _calc_sdm_tm or _check_secondary_structure,
+    whose penalty feeds candidate ranking).
+    """
+
+    # Q5 SDM is excluded deliberately: it is a full-overlap kit profile with its own
+    # length spec (fwd/rev 25-45, overlap_len None, default mode "full"), so it
+    # designs differently for reasons of geometry, not Tm scale.
+    SHARED_LEN_SPEC = ["Benchling", "Taq", "Phusion", "Q5", "KOD", "DreamTaq", "TAKARA_GXL"]
+
+    def _design(self, genbank_path, mutations_csv, name: str):
+        results, _cand, _fail = design_sdm_primers(
+            fasta_path=genbank_path,
+            target_start=TARGET_START,
+            mutations_csv=mutations_csv,
+            polymerase=name,
+            overlap_len=18,
+        )
+        return [(r.mutation.raw, r.forward_seq, r.reverse_seq) for r in results]
+
+    def test_all_profiles_design_byte_identical_primers(self, genbank_path, mutations_csv):
+        designs = {n: self._design(genbank_path, mutations_csv, n) for n in self.SHARED_LEN_SPEC}
+        reference = designs["Benchling"]
+        assert reference, "Benchling reference design is empty"
+        for name, got in designs.items():
+            assert got == reference, (
+                f"{name} designed different primers than Benchling: design must be "
+                f"enzyme-independent (got {len(got)} vs {len(reference)} results)"
+            )
+
+    def test_annealing_temperature_still_varies_by_profile(self, genbank_path, mutations_csv):
+        """The flip side: Ta is where enzyme identity is allowed to show up."""
+        from kuma_core.kuro import neb_tm
+        from kuma_core.kuro.annealing import compute_annealing
+        from kuma_core.kuro.polymerase import PolymeraseRegistry
+
+        offsets = neb_tm.load_offsets()
+        registry = PolymeraseRegistry()
+        results, _cand, _fail = design_sdm_primers(
+            fasta_path=genbank_path,
+            target_start=TARGET_START,
+            mutations_csv=mutations_csv,
+            polymerase="Benchling",
+            overlap_len=18,
+        )
+        assert results, "no design to compute Ta from"
+        r = results[0]
+        tas = {
+            n: compute_annealing(r.forward_seq, r.reverse_seq, registry.get(n), offsets)[
+                "recommended_ta"
+            ]
+            for n in self.SHARED_LEN_SPEC
+        }
+        assert len({v for v in tas.values() if v is not None}) > 1, (
+            f"Ta must differ by polymerase, got {tas}"
+        )
