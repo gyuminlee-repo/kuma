@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import { checkForLatestRelease, compareVersions } from "./updateCheck";
+import {
+  checkForLatestRelease,
+  compareVersions,
+  downloadAndInstallUpdate,
+  isTauriRuntime,
+} from "./updateCheck";
 
 describe("compareVersions", () => {
   it("compares stable and four-part release versions", () => {
@@ -55,5 +60,20 @@ describe("checkForLatestRelease", () => {
     await expect(checkForLatestRelease("0.13.11", fetchMock)).rejects.toThrow(
       "GitHub returned HTTP 403",
     );
+  });
+});
+
+describe("auto-update runtime gating", () => {
+  it("reports non-Tauri runtime in the test/browser environment", () => {
+    // jsdom has no __TAURI_INTERNALS__, so the packaged-app updater path is off.
+    expect(isTauriRuntime()).toBe(false);
+  });
+
+  it("returns false (no install) outside the Tauri runtime, without throwing", async () => {
+    // Callers rely on `false` to fall back to the release page; it must never
+    // throw or attempt a plugin import in the browser/dev context.
+    const progress = vi.fn();
+    await expect(downloadAndInstallUpdate(progress)).resolves.toBe(false);
+    expect(progress).not.toHaveBeenCalled();
   });
 });

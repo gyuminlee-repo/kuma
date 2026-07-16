@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/nicedoc/schemas/main/tauri-v2.json",
   "productName": "kuma",
-  "version": "0.13.15",
+  "version": "0.13.16",
   "identifier": "com.gyuminlee.kuma",
   "build": {
     "frontendDist": "../dist",
@@ -23,6 +23,19 @@
     ],
     "security": {
       "csp": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api.github.com https://github.com https://*.githubusercontent.com"
+    }
+  },
+  "plugins": {
+    "updater": {
+      "active": true,
+      "dialog": false,
+      "endpoints": [
+        "https://github.com/gyuminlee-repo/kuma/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEJCNTI1MEQyRUE5NzQ0MDYKUldRR1JKZnEwbEJTdTlZZmJPTTJXUkQwSGx3MUhEamNMY3FEQWtuWndOOFJqc2RVMVBjYmk5Y3UK",
+      "windows": {
+        "installMode": "passive"
+      }
     }
   },
   "bundle": {

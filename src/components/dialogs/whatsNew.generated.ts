@@ -5,8 +5,8 @@ export interface WhatsNewItem {
   detail: string;
 }
 
-export const WHATS_NEW_VERSION = "0.13.15";
+export const WHATS_NEW_VERSION = "0.13.16";
 
 export const WHATS_NEW_ITEMS: WhatsNewItem[] = [
-  { label: "Changed", detail: "MAME **Build EVOLVEpro input** no longer forces all four files. Layout + GC alone now produce a valid activity table for a first-round primary screen, marked **Provisional**; supplying the Agilent rep-batch (3-replicate re-measurement of p…" },
+  { label: "Added", detail: "Kuma can now **update itself in place**. When a newer signed release is detected, the update dialog offers **Update now**, which downloads the platform artifact, verifies its Ed25519 signature against the key embedded in the app, installs…" },
 ];

@@ -13,8 +13,11 @@ import {
 } from "@/components/ui/dialog";
 import {
   checkForLatestRelease,
+  downloadAndInstallUpdate,
+  isTauriRuntime,
   UPDATE_CHECK_EVENT,
   type UpdateCheckResult,
+  type UpdateInstallProgress,
 } from "@/lib/updateCheck";
 
 let startupCheck: Promise<UpdateCheckResult> | null = null;
@@ -30,6 +33,8 @@ export function UpdateAvailableDialog() {
   const { t } = useTranslation();
   const [update, setUpdate] = useState<UpdateCheckResult | null>(null);
   const [open, setOpen] = useState(false);
+  const [installing, setInstalling] = useState(false);
+  const [progress, setProgress] = useState<UpdateInstallProgress | null>(null);
   const mountedRef = useRef(true);
 
   const runCheck = useCallback(
@@ -85,6 +90,52 @@ export function UpdateAvailableDialog() {
     }
   }
 
+  async function handleInstall() {
+    if (!update || installing) return;
+    setInstalling(true);
+    setProgress(null);
+    try {
+      const applied = await downloadAndInstallUpdate((p) => {
+        if (mountedRef.current) setProgress(p);
+      });
+      if (!applied) {
+        // No updater artifact for this target (e.g. .deb): fall back to the
+        // release page instead of leaving the user stuck.
+        await handleOpenRelease();
+      }
+      // On success the app relaunches; no further UI update needed.
+    } catch (error) {
+      if (mountedRef.current) {
+        toast.error(
+          t("about.updateInstallFailed", {
+            message: error instanceof Error ? error.message : String(error),
+          }),
+        );
+      }
+    } finally {
+      if (mountedRef.current) {
+        setInstalling(false);
+        setProgress(null);
+      }
+    }
+  }
+
+  function progressLabel(): string {
+    if (!progress) return t("about.updateInstalling");
+    if (progress.phase === "downloading") {
+      if (progress.contentLength && progress.downloaded !== undefined) {
+        const pct = Math.min(
+          100,
+          Math.round((progress.downloaded / progress.contentLength) * 100),
+        );
+        return t("about.updateDownloadingPct", { pct });
+      }
+      return t("about.updateDownloading");
+    }
+    if (progress.phase === "relaunching") return t("about.updateRelaunching");
+    return t("about.updateInstalling");
+  }
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="max-w-sm">
@@ -100,12 +151,32 @@ export function UpdateAvailableDialog() {
           <DialogDescription>{t("about.updateRecommendation")}</DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button size="sm" variant="outline" onClick={() => setOpen(false)}>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setOpen(false)}
+            disabled={installing}
+          >
             {t("about.later")}
           </Button>
-          <Button size="sm" onClick={() => void handleOpenRelease()}>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => void handleOpenRelease()}
+            disabled={installing}
+          >
             {t("about.viewRelease")}
           </Button>
+          {isTauriRuntime() && (
+            <Button
+              size="sm"
+              onClick={() => void handleInstall()}
+              disabled={installing}
+              aria-busy={installing}
+            >
+              {installing ? progressLabel() : t("about.updateNow")}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

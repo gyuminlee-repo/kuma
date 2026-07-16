@@ -108,3 +108,81 @@ export async function checkForLatestRelease(
     updateAvailable,
   };
 }
+
+// ---------------------------------------------------------------------------
+// In-app auto-update (Tauri updater plugin)
+//
+// Uses the signed `latest.json` manifest published on each GitHub release and
+// the Ed25519 public key embedded in tauri.conf.json. The plugin verifies the
+// signature before applying, downloads the platform artifact, and relaunches.
+//
+// Not every target is updater-capable: Debian `.deb` has no updater artifact,
+// so `check()` returns null there and callers must fall back to the release
+// page. We never fabricate a "success" for unsupported platforms.
+// ---------------------------------------------------------------------------
+
+export type UpdateInstallPhase = "downloading" | "installing" | "relaunching";
+
+export interface UpdateInstallProgress {
+  phase: UpdateInstallPhase;
+  /** Bytes downloaded so far (downloading phase only). */
+  downloaded?: number;
+  /** Total bytes to download, when the server reports Content-Length. */
+  contentLength?: number;
+}
+
+/**
+ * Returns true only in the packaged Tauri runtime. In the browser/dev/vitest
+ * context the updater plugin is unavailable and callers should keep the
+ * "open release page" behaviour.
+ */
+export function isTauriRuntime(): boolean {
+  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+}
+
+/**
+ * Check for an updater-capable release and, if available, download + install it
+ * with signature verification, then relaunch the app.
+ *
+ * @returns `true` when an update was applied (the app is about to relaunch),
+ *          `false` when no updater artifact is available for this build/target
+ *          (caller should fall back to the release page).
+ * @throws  when a genuine error occurs (network, signature, disk). Callers
+ *          surface the message and offer the manual download path.
+ */
+export async function downloadAndInstallUpdate(
+  onProgress?: (progress: UpdateInstallProgress) => void,
+): Promise<boolean> {
+  if (!isTauriRuntime()) return false;
+
+  const { check } = await import("@tauri-apps/plugin-updater");
+  const update = await check();
+  if (!update) {
+    // No updater manifest/artifact for this target (e.g. .deb) or already
+    // current per the signed manifest.
+    return false;
+  }
+
+  let downloaded = 0;
+  let contentLength: number | undefined;
+  await update.downloadAndInstall((event) => {
+    switch (event.event) {
+      case "Started":
+        contentLength = event.data.contentLength;
+        onProgress?.({ phase: "downloading", downloaded: 0, contentLength });
+        break;
+      case "Progress":
+        downloaded += event.data.chunkLength;
+        onProgress?.({ phase: "downloading", downloaded, contentLength });
+        break;
+      case "Finished":
+        onProgress?.({ phase: "installing", downloaded, contentLength });
+        break;
+    }
+  });
+
+  onProgress?.({ phase: "relaunching" });
+  const { relaunch } = await import("@tauri-apps/plugin-process");
+  await relaunch();
+  return true;
+}
