@@ -19,6 +19,8 @@ from kuma_core.kuro.mutation import Mutation, parse_mutation_notation
 from kuma_core.kuro.codon_table import CODON_TO_AA, best_codon
 from kuma_core.kuro.evolvepro import _POS_RE
 from kuma_core.kuro.polymerase import PolymeraseProfile
+from kuma_core.kuro.annealing import compute_annealing
+from kuma_core.kuro import neb_tm
 
 import sidecar_kuro.core as _core
 from sidecar_kuro.core import (
@@ -60,7 +62,26 @@ def _rebuild_plate_state(results: list[SdmPrimerResult]) -> None:
 
 
 
-def _serialize_result(r: SdmPrimerResult, candidate_count: int | None = None) -> SdmPrimerResultModel:
+def _resolve_state_profile() -> PolymeraseProfile | None:
+    """Restore the last-designed polymerase profile from session state.
+
+    Returns None when no design has run yet or the stored name is unknown
+    (Ta fields then serialize as null rather than raising).
+    """
+    name = _core._state.polymerase
+    if not name:
+        return None
+    try:
+        return _poly_registry.get(name)
+    except KeyError:
+        return None
+
+
+def _serialize_result(
+    r: SdmPrimerResult,
+    candidate_count: int | None = None,
+    profile: PolymeraseProfile | None = None,
+) -> SdmPrimerResultModel:
     """Serialize a single SdmPrimerResult for JSON-RPC."""
     warnings = list(r.warnings)
 
@@ -123,6 +144,13 @@ def _serialize_result(r: SdmPrimerResult, candidate_count: int | None = None) ->
         "warnings": warnings,
         "overlap_mode": r.overlap_mode,
     }
+    ta = compute_annealing(
+        r.forward_seq, r.reverse_seq, profile, neb_tm.load_offsets()
+    ) if profile is not None else {
+        "recommended_ta": None, "ta_mode": None,
+        "ta_detail": None, "ta_touchdown": None,
+    }
+    result.update(ta)
     if candidate_count is not None:
         result["candidate_count"] = candidate_count
     return SdmPrimerResultModel.model_validate(result)
@@ -139,7 +167,7 @@ def _serialize_result_with_counts(r: SdmPrimerResult) -> SdmPrimerResultModel:
     """Serialize result with fwd/rev candidate counts."""
     with _core._state_lock:
         cands = _core._state.candidates.get(r.mutation.raw, [])
-    result = _serialize_result(r, len(cands))
+    result = _serialize_result(r, len(cands), profile=_resolve_state_profile())
     fwd_count, rev_count = _count_unique_fwd_rev(cands) if cands else (0, 0)
     result.candidate_fwd_count = fwd_count
     result.candidate_rev_count = rev_count
@@ -267,6 +295,7 @@ def handle_design_sdm_primers(params: dict) -> dict:
             _core._state.candidates = {}
             _core._state.plate_mappings = []
             _core._state.dedup_info = {}
+            _core._state.polymerase = p.polymerase  # for Ta serialization
 
         def _on_progress(i: int, total: int, mutation_raw: str) -> None:
             pct = 10 + int(70 * i / max(total, 1))
@@ -464,6 +493,7 @@ def handle_retry_failed(params: dict) -> dict:
 
     with _core._state_lock:
         _core._state.candidates[mutation_raw] = candidates
+        _core._state.polymerase = p.polymerase  # for Ta serialization
 
     return AlternativesResultModel(
         candidates=[_serialize_result_with_counts(c) for c in candidates],
@@ -599,7 +629,8 @@ def handle_get_alternatives(params: dict) -> dict:
         raise ValueError("mutation is required")
     with _core._state_lock:
         candidates = _core._state.candidates.get(p.mutation, [])
+    profile = _resolve_state_profile()
     return AlternativesResultModel(
         mutation=p.mutation,
-        candidates=[_serialize_result(c) for c in candidates],
+        candidates=[_serialize_result(c, profile=profile) for c in candidates],
     ).to_rpc_dict()

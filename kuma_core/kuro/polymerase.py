@@ -47,6 +47,10 @@ class PolymeraseProfile:
     rev_len_min: int | None = None       # Reverse primer total length min
     rev_len_max: int | None = None       # Reverse primer total length max
     default_overlap_mode: Literal["partial", "full"] | None = None  # Preset overlap mode hint
+    # Annealing temperature (Ta) recommendation rule (optional; None for custom
+    # profiles without a rule). Data-driven; consumed by kuro.annealing only.
+    # Never affects design-time Tm scale or primer selection.
+    ta_rule: dict | None = None
 
 
 def _resource_path(relative_path: str) -> Path:
@@ -91,6 +95,7 @@ def _dict_to_profile(data: dict) -> PolymeraseProfile:
         rev_len_min=int(data["rev_len_min"]) if data.get("rev_len_min") is not None else None,
         rev_len_max=int(data["rev_len_max"]) if data.get("rev_len_max") is not None else None,
         default_overlap_mode=data.get("default_overlap_mode"),
+        ta_rule=data.get("ta_rule"),
     )
 
 

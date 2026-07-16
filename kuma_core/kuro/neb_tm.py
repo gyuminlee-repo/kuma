@@ -31,11 +31,22 @@ _NEB_API_TIMEOUT = 10  # seconds
 def _load_offsets() -> dict[str, Any]:
     """Load and cache the committed NEB Tm offset table."""
     global _OFFSETS
-    if _OFFSETS is None:
+    offsets = _OFFSETS
+    if offsets is None:
         path = _resource_path("resources/neb_tm_offsets.json")
         with open(path, encoding="utf-8") as f:
-            _OFFSETS = json.load(f)
-    return _OFFSETS
+            offsets = json.load(f)
+        _OFFSETS = offsets
+    return offsets
+
+
+def load_offsets() -> dict[str, Any]:
+    """Public accessor for the committed NEB Tm offset table (cached).
+
+    Exposes the product map and calibration coefficients to callers such as
+    kuro.annealing without reaching into a private helper.
+    """
+    return _load_offsets()
 
 
 def _gc_percent(seq: str) -> float:

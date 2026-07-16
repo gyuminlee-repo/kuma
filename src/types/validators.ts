@@ -287,6 +287,10 @@ function isSdmPrimerResult(value: unknown): value is SdmPrimerResult {
     isOptional(value.homodimer_dg_rev, isNumber) &&
     isOptional(value.synthesis_score_fwd, isNumber) &&
     isOptional(value.synthesis_score_rev, isNumber) &&
+    isOptionalNullable(value.recommended_ta, isNumber) &&
+    isOptional(value.ta_mode, isString) &&
+    isOptional(value.ta_detail, isString) &&
+    isOptionalNullable(value.ta_touchdown, isString) &&
     isStringArray(value.warnings)
   );
 }
