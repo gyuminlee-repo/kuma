@@ -855,14 +855,15 @@ def design_single_sdm(
         )
         mutations_to_try.append(m)
 
-    # Fallbacks derive from each polymerase's own opt_tm (buffer-aware), not
-    # Benchling-fixed 62/58/42, so high-salt polymerases (e.g. Q5) get targets
-    # matching their Tm model. Offsets borrow the Benchling structure
-    # (fwd-rev = 4 C, fwd-overlap = 20 C) and remain subject to validation.
-    # An explicit opt_tm_fwd/rev/overlap (e.g. Benchling 62/58/42) is used as-is.
-    tm_target_fwd = profile.opt_tm_fwd if profile.opt_tm_fwd is not None else profile.opt_tm
-    tm_target_rev = profile.opt_tm_rev if profile.opt_tm_rev is not None else profile.opt_tm - 4.0
-    tm_target_overlap = profile.opt_tm_overlap if profile.opt_tm_overlap is not None else profile.opt_tm - 20.0
+    # SDM Tm targets are method-level constants of the overlap-extension design,
+    # not enzyme chemistry: Landwehr et al. 2025 (Nat Commun 16, 865) SI Fig. S4
+    # fixes Fwd 62 / Rev 58 / Overlap 42 C independently of the polymerase. The
+    # eight built-in profiles declare these explicitly; the fallback here only
+    # covers user-supplied custom profiles. Never derive from opt_tm: opt_tm is a
+    # general-PCR primer target (enzyme-specific), a different quantity.
+    tm_target_fwd = profile.opt_tm_fwd if profile.opt_tm_fwd is not None else 62.0
+    tm_target_rev = profile.opt_tm_rev if profile.opt_tm_rev is not None else 58.0
+    tm_target_overlap = profile.opt_tm_overlap if profile.opt_tm_overlap is not None else 42.0
     min_downstream = max(profile.min_3prime_dist, 1)
     tol_step = 0.5
 

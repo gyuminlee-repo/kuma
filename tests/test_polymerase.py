@@ -76,15 +76,28 @@ class TestPolymeraseProfileFields:
         p = registry.get("Benchling")
         assert p.min_3prime_dist == 4
 
-    def test_q5_has_no_asymmetric_tm(self, registry: PolymeraseRegistry):
-        p = registry.get("Q5")
-        assert p.opt_tm_fwd is None
-        assert p.opt_tm_rev is None
-        assert p.opt_tm_overlap is None
+    # SDM Tm targets are method-level constants (Landwehr et al. 2025 SI Fig. S4),
+    # not enzyme chemistry, so every built-in profile declares the same targets.
+    # Previously only Benchling declared them and the rest were silently derived
+    # from their own opt_tm (Q5/KOD -> 68/64/48), which is a different quantity.
+    @pytest.mark.parametrize(
+        "name",
+        ["Benchling", "Taq", "Phusion", "Q5", "Q5 SDM", "KOD", "DreamTaq", "TAKARA_GXL"],
+    )
+    def test_sdm_targets_are_method_level_for_every_profile(
+        self, registry: PolymeraseRegistry, name: str
+    ):
+        p = registry.get(name)
+        assert (p.opt_tm_fwd, p.opt_tm_rev, p.opt_tm_overlap) == (62.0, 58.0, 42.0)
+        assert p.min_3prime_dist == 4
 
-    def test_q5_default_min_3prime_dist(self, registry: PolymeraseRegistry):
-        p = registry.get("Q5")
-        assert p.min_3prime_dist == 0
+    def test_every_builtin_profile_declares_sdm_targets(self, registry: PolymeraseRegistry):
+        # Guards a newly added profile from silently falling back to the defaults.
+        for name in registry.list_names():
+            p = registry.get(name)
+            assert p.opt_tm_fwd is not None, f"{name}: opt_tm_fwd not declared"
+            assert p.opt_tm_rev is not None, f"{name}: opt_tm_rev not declared"
+            assert p.opt_tm_overlap is not None, f"{name}: opt_tm_overlap not declared"
 
     def test_tm_method_values(self, registry: PolymeraseRegistry):
         valid_methods = {"breslauer", "santalucia"}

@@ -546,3 +546,70 @@ class TestDesignFullOverlap:
         for r in partial_results:
             assert r.fwd_len >= 17, f"{r.mutation.raw} fwd_len {r.fwd_len} < 17"
             assert r.rev_len >= 19, f"{r.mutation.raw} rev_len {r.rev_len} < 19 (partial spec)"
+
+
+class TestSdmTmTargetsAreMethodLevel:
+    """SDM Tm targets are method constants, identical for every polymerase.
+
+    Landwehr et al. 2025 (Nat Commun 16, 865) SI Fig. S4 fixes Fwd 62 / Rev 58 /
+    Overlap 42 C for the overlap-extension geometry, independent of the enzyme.
+    These tests fail if the targets are ever re-derived from each profile own
+    opt_tm (which produced Q5/KOD 68/64/48 and Taq 64/60/44).
+    """
+
+    @pytest.fixture()
+    def mutation(self) -> Mutation:
+        return Mutation(
+            raw="A597V",
+            wt_aa="A",
+            position=597,
+            mt_aa="V",
+            codon_start=TARGET_START + (597 - 1) * 3,
+            wt_codon="GCG",
+            mt_codon="GTG",
+        )
+
+    @pytest.mark.parametrize("name", ["Q5", "KOD", "Taq", "DreamTaq", "Benchling"])
+    def test_designed_tm_tracks_method_targets_not_opt_tm(
+        self, template_sequence, mutation: Mutation, name: str
+    ):
+        from kuma_core.kuro.polymerase import PolymeraseRegistry
+
+        profile = PolymeraseRegistry().get(name)
+        tol = 4.0
+        results = design_single_sdm(
+            template_sequence, mutation, profile, overlap_mode="partial", tol_max=tol
+        )
+        assert results, f"{name}: design produced no results"
+        r = results[0]
+        # opt_tm-derived targets (e.g. Q5 68) would land >tol away from 62.
+        assert abs(r.tm_fwd - 62.0) <= tol, f"{name}: tm_fwd {r.tm_fwd} not tracking 62"
+        assert abs(r.tm_rev - 58.0) <= tol, f"{name}: tm_rev {r.tm_rev} not tracking 58"
+        assert abs(r.tm_overlap - 42.0) <= tol, (
+            f"{name}: tm_overlap {r.tm_overlap} not tracking 42"
+        )
+
+    def test_custom_profile_without_targets_falls_back_to_method_constants(
+        self, template_sequence, mutation: Mutation
+    ):
+        """A user custom profile carrying only opt_tm must not derive targets from it."""
+        from dataclasses import replace
+
+        from kuma_core.kuro.polymerase import PolymeraseRegistry
+
+        # opt_tm 68 with no explicit targets: the old code derived 68/64/48.
+        custom = replace(
+            PolymeraseRegistry().get("KOD"),
+            name="CustomPoly",
+            opt_tm=68.0,
+            opt_tm_fwd=None,
+            opt_tm_rev=None,
+            opt_tm_overlap=None,
+        )
+        results = design_single_sdm(
+            template_sequence, mutation, custom, overlap_mode="partial", tol_max=4.0
+        )
+        assert results, "custom profile: design produced no results"
+        r = results[0]
+        assert abs(r.tm_fwd - 62.0) <= 4.0, f"custom: tm_fwd {r.tm_fwd} derived from opt_tm"
+        assert abs(r.tm_rev - 58.0) <= 4.0, f"custom: tm_rev {r.tm_rev} derived from opt_tm"
