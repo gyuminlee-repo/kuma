@@ -94,6 +94,7 @@ class SidecarState:
     plate_mappings: list[PlateMapping] = field(default_factory=list)
     dedup_info: dict[str, list[str]] = field(default_factory=dict)
     template: tuple[str, str] = ("", "")  # (fasta_path, sequence)
+    polymerase: str = ""  # last-designed polymerase name, for Ta serialization
     ca_coords: list[tuple[float, float, float] | None] | None = None  # AlphaFold Cα coordinates
     ca_coords_accession: str | None = None
     active_design_cancel: threading.Event | None = None

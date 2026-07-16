@@ -38,6 +38,15 @@ def _load_offsets() -> dict[str, Any]:
     return _OFFSETS
 
 
+def load_offsets() -> dict[str, Any]:
+    """Public accessor for the committed NEB Tm offset table (cached).
+
+    Exposes the product map and calibration coefficients to callers such as
+    kuro.annealing without reaching into a private helper.
+    """
+    return _load_offsets()
+
+
 def _gc_percent(seq: str) -> float:
     """GC percentage (0-100). Matches the convention the table was fit with."""
     if not seq:

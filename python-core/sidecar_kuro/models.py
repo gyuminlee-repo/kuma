@@ -280,6 +280,11 @@ class SdmPrimerResultModel(WorkspaceModel):
     synthesis_score_rev: Optional[float] = None
     warnings: list[str] = Field(default_factory=list)
     overlap_mode: Optional[Literal["partial", "full"]] = None
+    # Per-enzyme annealing temperature (added by kuro.annealing; design-invariant).
+    recommended_ta: Optional[float] = None
+    ta_mode: Optional[Literal["3step", "2step", "fixed"]] = None
+    ta_detail: Optional[str] = None
+    ta_touchdown: Optional[str] = None
 
 
 class PolymeraseProfileModel(WorkspaceModel):
