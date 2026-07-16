@@ -21,6 +21,7 @@ from kuma_core.kuro.annealing import (
     _apply_rule,
     _binding_tm,
     compute_annealing,
+    raw_wallace_tm,
     wallace_tm,
 )
 from kuma_core.kuro.polymerase import PolymeraseProfile, PolymeraseRegistry
@@ -157,7 +158,10 @@ def test_dreamtaq_wallace_below_25nt(registry, offsets):
     seq24 = "ATGCATGCATGCATGCATGCATGC"  # 24 nt -> Wallace
     assert len(seq24) == 24
     got = _binding_tm(seq24, profile, profile.ta_rule, offsets)
-    assert got == wallace_tm(seq24)
+    # DreamTaq uses the raw Thermo Wallace (2AT+4GC, no -5), NOT the GXL
+    # wallace_tm which subtracts 5. The -5 is applied once, via the rule delta.
+    assert got == raw_wallace_tm(seq24)
+    assert got == wallace_tm(seq24) + 5
 
 
 def test_dreamtaq_nn_at_25nt(registry, offsets):
@@ -235,6 +239,38 @@ def test_end_to_end_physical_ta(registry, offsets, name):
     assert 40.0 <= out["recommended_ta"] <= 80.0
     assert out["ta_mode"] in ("3step", "2step", "fixed")
     assert out["ta_detail"]
+
+
+# --------------------------------------------------------------------------
+# DreamTaq end-to-end Ta on explicit pairs (Thermo Wallace, no double -5)
+# --------------------------------------------------------------------------
+
+# Thermo DreamTaq manual: Tm = 4(G+C) + 2(A+T) (no -5); "annealing temperature
+# should be 5C lower than Tm" -> Ta = (2AT+4GC) - 5, on the lower-Tm primer.
+# Regression guard for the fixed double -5: DreamTaq must use raw_wallace_tm,
+# not the GXL wallace_tm.
+_DREAMTAQ_PAIRS = [
+    # (fwd, rev, expected_ta)
+    ("GTAAAACGACGGCCAGT", "CAGGAAACAGCTATGACCATG", 47.0),   # Pair1: min Tm 52 -> 47
+    ("ACGACTCACTATAGGGCGAATTGG", "GACCATGATTACGCCAAGCTTG", 61.0),  # Pair2: min Tm 66 -> 61
+]
+
+
+@pytest.mark.parametrize("fwd,rev,expected_ta", _DREAMTAQ_PAIRS)
+def test_dreamtaq_pair_ta_no_double_minus5(registry, offsets, fwd, rev, expected_ta):
+    profile = registry.get("DreamTaq")
+    out = compute_annealing(fwd, rev, profile, offsets)
+    assert out["ta_mode"] == "3step"
+    assert out["recommended_ta"] == expected_ta
+
+
+def test_dreamtaq_pair_equals_thermo_wallace_minus5(registry, offsets):
+    # Ta == min(raw_wallace(fwd), raw_wallace(rev)) - 5, exactly once.
+    profile = registry.get("DreamTaq")
+    fwd, rev, expected = _DREAMTAQ_PAIRS[0]
+    tm_low = min(raw_wallace_tm(fwd), raw_wallace_tm(rev))
+    out = compute_annealing(fwd, rev, profile, offsets)
+    assert out["recommended_ta"] == round(tm_low - 5) == expected
 
 
 def test_gxl_end_to_end_is_discrete(registry, offsets):

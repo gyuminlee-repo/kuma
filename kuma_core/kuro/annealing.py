@@ -36,12 +36,26 @@ def wallace_tm(seq: str) -> float:
     """Wallace-rule Tm as used by the Takara PrimeSTAR GXL manual.
 
     2*(A+T) + 4*(G+C) - 5. The -5 term is the manufacturer offset from the
-    classic 2AT+4GC estimate (see the verified-rules doc).
+    classic 2AT+4GC estimate (see the verified-rules doc). GXL only.
     """
     s = seq.upper()
     at = s.count("A") + s.count("T")
     gc = s.count("G") + s.count("C")
     return float(2 * at + 4 * gc - 5)
+
+
+def raw_wallace_tm(seq: str) -> float:
+    """Classic Wallace Tm, 2*(A+T) + 4*(G+C), no offset.
+
+    This is the Thermo DreamTaq manual formula (Tm = 4(G+C) + 2(A+T), no -5).
+    Kept distinct from ``wallace_tm`` (Takara GXL, which subtracts 5) so the two
+    manufacturers' Wallace variants are never conflated. DreamTaq's Ta then
+    applies its own -5 annealing offset via the rule ``delta`` (Ta = Tm - 5).
+    """
+    s = seq.upper()
+    at = s.count("A") + s.count("T")
+    gc = s.count("G") + s.count("C")
+    return float(2 * at + 4 * gc)
 
 
 def _primer3_profile_tm(seq: str, profile: PolymeraseProfile) -> float:
@@ -82,10 +96,14 @@ _WALLACE_NN_LEN_CUTOFF = 25
 
 
 def _wallace_nn_tm(seq: str, profile: PolymeraseProfile) -> float:
-    """Wallace for < cutoff nt, nearest-neighbour for >= cutoff nt."""
+    """DreamTaq Tm: raw Wallace (Thermo, no -5) for < cutoff nt, NN for >=.
+
+    Uses ``raw_wallace_tm`` (2AT+4GC), not the GXL ``wallace_tm`` (which bakes
+    in -5). The -5 annealing offset for DreamTaq comes from the rule ``delta``.
+    """
     if len(seq) >= _WALLACE_NN_LEN_CUTOFF:
         return _primer3_profile_tm(seq, profile)
-    return wallace_tm(seq)
+    return raw_wallace_tm(seq)
 
 
 def _binding_tm(seq: str, profile: PolymeraseProfile, rule: dict, neb_offsets: dict) -> float:
@@ -142,7 +160,7 @@ def _apply_rule(tm_low: float, rule: dict) -> dict[str, Any]:
     # 3-step default, with optional 2-step promotion for high-Tm primers.
     threshold = rule.get("two_step_threshold")
     two_temp = rule.get("two_step_temp")
-    if threshold is not None and tm_low >= threshold:
+    if threshold is not None and two_temp is not None and tm_low >= threshold:
         return {
             "recommended_ta": float(two_temp),
             "ta_mode": "2step",
