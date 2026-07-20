@@ -234,6 +234,10 @@ jobs:
           test -f "$KURO"
           test -f "$MAME"
 
+      - name: KURO frozen sidecar smoke (import crash / ping / load_fasta)
+        shell: bash
+        run: python python-core/scripts/frozen_kuro_smoke.py "src-tauri/binaries/kuro-sidecar-${{ matrix.target }}${{ matrix.sidecar-ext }}"
+
       - name: MAME frozen sidecar smoke (spawn / per-NB parallel demux)
         shell: bash
         run: python python-core/scripts/frozen_mame_smoke.py "src-tauri/binaries/mame-sidecar-${{ matrix.target }}${{ matrix.sidecar-ext }}"
