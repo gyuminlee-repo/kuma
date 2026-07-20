@@ -17,7 +17,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
@@ -25,7 +25,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -1559,6 +1559,13 @@ added.</p>
 built-in profiles produce identical <code>tm_no_fwd</code>, <code>tm_no_rev</code>, and <code>tm_overlap</code>
 on the <code>fixtures/pSHCE-dmpR.gb</code> fixture (verified by re-running the same design
 and diffing). Reading a primer sequence to compute Ta is read-only.</p>
+<h2 id="where-enzyme-identity-lives-updated">Where enzyme identity lives (updated)<a class="headerlink" href="#where-enzyme-identity-lives-updated" title="Permanent link">&para;</a></h2>
+<p>Design runs on one fixed Tm scale for every polymerase: SantaLucia 1998 with
+santalucia salt correction at mv 50 / dv 1.5 / dntp 0.8 / dna 250, the Benchling
+scale the paper targets (62/58/42) are defined on. A profile <code>tm_method</code>,
+<code>salt_correction</code>, <code>salt_*</code>, and <code>dna_conc</code> therefore feed Ta only, never design,
+and the NEB calibration table is Ta-only as well. Selecting a polymerase changes
+the reported Ta, not the primers.</p>
 <h2 id="tm-source-for-ta">Tm source for Ta<a class="headerlink" href="#tm-source-for-ta" title="Permanent link">&para;</a></h2>
 <p>Ta uses the lower of the two whole-primer template-annealing Tm values (the
 pair anneals no hotter than its weaker primer). The forward-vs-reverse overlap
@@ -1727,13 +1734,38 @@ primers. All physical, none near the pre-fix 81.5 artefact.</p>
 </tr>
 <tr>
 <td>Q5 SDM</td>
-<td>E335A</td>
-<td>71.2</td>
-<td>74</td>
+<td>E167A</td>
+<td>67.1</td>
+<td>70</td>
 <td>3-step</td>
 </tr>
 </tbody>
 </table>
+<h2 id="q5-sdm-full-overlap-yield-changed-with-the-unification">Q5 SDM full-overlap yield changed with the unification<a class="headerlink" href="#q5-sdm-full-overlap-yield-changed-with-the-unification" title="Permanent link">&para;</a></h2>
+<p>Pinning design to the paper targets lowered the Q5 SDM full-overlap first-pass
+yield on <code>fixtures/mutation_list_insilico_test.csv</code> from 6/12 to 4/12. The two
+mutations lost are D227A and E335A. Partial mode is 0/12 before and after, so it
+is unaffected.</p>
+<p>Cause: full-overlap design optimises a single primer against <code>opt_tm_fwd</code>,
+because reverse is the reverse complement of forward and SantaLucia
+nearest-neighbour is strand-symmetric. Before the change the Q5 SDM profile
+carried no <code>opt_tm_fwd</code>, so the target fell back to <code>opt_tm</code> 68 C on the NEB
+calibration scale. It is now the declared 62 C on the fixed Benchling scale. The
+Q5 SDM kit also floors primer length at 25 bp, and a 25 bp full-overlap primer
+is already hotter than 62 C for most sites on this fixture, so the shortest legal
+primer overshoots the 62 ± 4 window and no legal primer exists.</p>
+<p>Evidence on the fixed Benchling scale, minimum reachable Tm at the 25 bp floor:
+the four that still design sit at 62.3 to 65.2 C, and all eight that fail sit at
+66.7 C or above, just outside the 66 C ceiling. Re-running the same enumeration
+with the target at 68 C instead of 62 C reaches 11/12, which isolates the target
+value, not the Tm scale, as the operative change. D227A (66.9 C) and E335A
+(66.7 C) miss by under 1 C.</p>
+<p>This is a consequence of the paper method, not a defect. The 62/58/42 targets are
+defined for the partial-overlap geometry, where forward runs 17 to 39 bp and the
+overlap is a separate shorter window. Full overlap is a different geometry with a
+25 bp floor, so the same numeric target lands differently. Reconciling the two
+would need a per-mode design target, which is a separate decision and is not
+taken here. Full mode stays as-is.</p>
 <h2 id="output-contract-4-fields-per-primer-pair">Output contract (4 fields per primer pair)<a class="headerlink" href="#output-contract-4-fields-per-primer-pair" title="Permanent link">&para;</a></h2>
 <ul>
 <li><code>recommended_ta</code>: number | null (3-step Ta, 2-step temperature, or fixed step)</li>
@@ -1813,7 +1845,7 @@ primer sequence.</p>
       <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "toc.integrate", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
       
     
   </body>
