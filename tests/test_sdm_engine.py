@@ -176,11 +176,20 @@ class TestDesignSdmPrimers:
         )
         return results
 
-    def test_majority_success(self, sdm_results):
-        """Most mutations must produce valid primers."""
-        # Design now follows the paper targets (62/58/42) + min_3prime_dist 4 on the
-        # fixed Benchling Tm scale, so the yield changed. Enzyme identity moved to Ta
-        # only, so every profile designs alike: 5/12 == the Benchling reference.
+    def test_paper_target_baseline_yield(self, sdm_results):
+        """First-pass yield is a minority of this fixture, and that is correct.
+
+        Pinning the design targets to the paper values 62/58/42 with
+        min_3prime_dist 4 on the fixed Benchling Tm scale gives a first-pass
+        yield of 5/12 on this 12-mutation fixture. The other 7 are legitimate
+        failures under the paper constraints (physically impossible placement,
+        3' distance, or rev length 19 bp floor and rev Tm 58 unsatisfiable at
+        the same time), not a regression. In real use the rescue cascade
+        recovers further mutations on top of this baseline.
+
+        Enzyme identity moved to Ta only, so every profile designs alike and
+        5/12 equals the Benchling reference.
+        """
         assert len(sdm_results) >= 5
 
     def test_primer_lengths(self, sdm_results):
