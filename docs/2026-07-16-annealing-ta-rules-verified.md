@@ -68,7 +68,37 @@ primers. All physical, none near the pre-fix 81.5 artefact.
 | KOD | Q232A | 63.6 | 59 | 3-step (touchdown 74→72→70→68 C) |
 | DreamTaq | Q232A | 55.0 | 50 | 3-step |
 | TAKARA_GXL | Q232A | 53.0 | 55 | fixed |
-| Q5 SDM | E335A | 71.2 | 74 | 3-step |
+| Q5 SDM | E167A | 67.1 | 70 | 3-step |
+
+## Q5 SDM full-overlap yield changed with the unification
+
+Pinning design to the paper targets lowered the Q5 SDM full-overlap first-pass
+yield on `fixtures/mutation_list_insilico_test.csv` from 6/12 to 4/12. The two
+mutations lost are D227A and E335A. Partial mode is 0/12 before and after, so it
+is unaffected.
+
+Cause: full-overlap design optimises a single primer against `opt_tm_fwd`,
+because reverse is the reverse complement of forward and SantaLucia
+nearest-neighbour is strand-symmetric. Before the change the Q5 SDM profile
+carried no `opt_tm_fwd`, so the target fell back to `opt_tm` 68 C on the NEB
+calibration scale. It is now the declared 62 C on the fixed Benchling scale. The
+Q5 SDM kit also floors primer length at 25 bp, and a 25 bp full-overlap primer
+is already hotter than 62 C for most sites on this fixture, so the shortest legal
+primer overshoots the 62 ± 4 window and no legal primer exists.
+
+Evidence on the fixed Benchling scale, minimum reachable Tm at the 25 bp floor:
+the four that still design sit at 62.3 to 65.2 C, and all eight that fail sit at
+66.7 C or above, just outside the 66 C ceiling. Re-running the same enumeration
+with the target at 68 C instead of 62 C reaches 11/12, which isolates the target
+value, not the Tm scale, as the operative change. D227A (66.9 C) and E335A
+(66.7 C) miss by under 1 C.
+
+This is a consequence of the paper method, not a defect. The 62/58/42 targets are
+defined for the partial-overlap geometry, where forward runs 17 to 39 bp and the
+overlap is a separate shorter window. Full overlap is a different geometry with a
+25 bp floor, so the same numeric target lands differently. Reconciling the two
+would need a per-mode design target, which is a separate decision and is not
+taken here. Full mode stays as-is.
 
 ## Output contract (4 fields per primer pair)
 
