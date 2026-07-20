@@ -83,9 +83,11 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       const profile = await sendRequest("get_polymerase_details", { name });
       set({
         selectedPolymerase: name,
-        tmFwdTarget: profile.opt_tm_fwd ?? profile.opt_tm,
-        tmRevTarget: profile.opt_tm_rev ?? (profile.opt_tm - 4),
-        tmOverlapTarget: profile.opt_tm_overlap ?? (profile.opt_tm - 20),
+        // Method-level SDM targets (Landwehr et al. 2025 SI Fig. S4), mirroring
+        // the engine fallback in sdm_engine.py. Never derive from opt_tm.
+        tmFwdTarget: profile.opt_tm_fwd ?? 62,
+        tmRevTarget: profile.opt_tm_rev ?? 58,
+        tmOverlapTarget: profile.opt_tm_overlap ?? 42,
         gcMin: profile.min_gc,
         gcMax: profile.max_gc,
         overlapMode: profile.default_overlap_mode ?? "partial",

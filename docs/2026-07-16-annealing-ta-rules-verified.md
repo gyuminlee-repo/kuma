@@ -13,6 +13,15 @@ built-in profiles produce identical `tm_no_fwd`, `tm_no_rev`, and `tm_overlap`
 on the `fixtures/pSHCE-dmpR.gb` fixture (verified by re-running the same design
 and diffing). Reading a primer sequence to compute Ta is read-only.
 
+## Where enzyme identity lives (updated)
+
+Design runs on one fixed Tm scale for every polymerase: SantaLucia 1998 with
+santalucia salt correction at mv 50 / dv 1.5 / dntp 0.8 / dna 250, the Benchling
+scale the paper targets (62/58/42) are defined on. A profile `tm_method`,
+`salt_correction`, `salt_*`, and `dna_conc` therefore feed Ta only, never design,
+and the NEB calibration table is Ta-only as well. Selecting a polymerase changes
+the reported Ta, not the primers.
+
 ## Tm source for Ta
 
 Ta uses the lower of the two whole-primer template-annealing Tm values (the
