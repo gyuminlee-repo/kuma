@@ -280,6 +280,54 @@ describe("exportSlice — schema_version 0.3", () => {
     })
   })
 
+  it("restoreWorkspace remaps a retired Benchling selection to KOD and keeps its GC range", async () => {
+    // "Benchling" (GC 30-70) was removed as a profile in v0.13.20. Re-applying
+    // the replacement profile defaults here would silently rewrite an old run
+    // to KOD 40-60, so the saved GC window must survive the remap.
+    const workspace: WorkspaceV3 = {
+      schema_version: "0.3",
+      rounds: [],
+      active_round_id: null,
+      inputs: {
+        fastaPath: "",
+        mutationInputMode: "evolvepro",
+        mutationText: "",
+        evolveproCsvPath: "",
+        selectedGene: "",
+      },
+      settings: {
+        selectedPolymerase: "Benchling",
+        codonStrategy: "closest",
+        maxPrimers: 95,
+        tmFwdTarget: 62,
+        tmRevTarget: 58,
+        tmOverlapTarget: 42,
+        gcMin: 30,
+        gcMax: 70,
+        autoRedesignOnLoad: false,
+      },
+      results: {
+        designResults: [],
+        successCount: 0,
+        totalCount: 0,
+        failedMutations: [],
+        plateMappings: [],
+        dedupInfo: {},
+        manuallySwapped: {},
+        customCandidates: {},
+      },
+      ui: { tableSorting: [] },
+    }
+
+    await store.slice.restoreWorkspace(workspace)
+
+    expect(store.state.selectedPolymerase).toBe("KOD")
+    expect(store.state.gcMin).toBe(30)
+    expect(store.state.gcMax).toBe(70)
+    expect(store.state.statusMessage).toContain("Benchling")
+    expect(store.state.statusMessage).toContain("30-70%")
+  })
+
   it("restoreWorkspace rejects schema_version < 0.3 (v2)", async () => {
     const oldWorkspace = {
       version: 2 as const,
