@@ -188,6 +188,9 @@ export function PolymeraseEditor({
               {t("polymeraseEditor.nebTmNote")}
             </div>
           )}
+          <div className="col-span-2 rounded-2xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+            {t("polymeraseEditor.fieldScopeNote")}
+          </div>
           <div className="rounded-2xl border border-border bg-card p-4">
             <label className="text-xs text-muted-foreground">{t("polymeraseEditor.optTmLabel")}</label>
             <Input type="number" step="0.1" {...num("opt_tm")} />

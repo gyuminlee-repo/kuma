@@ -65,8 +65,8 @@ def test_wallace_is_case_insensitive():
 # _apply_rule: pure decision logic at exact thresholds
 # --------------------------------------------------------------------------
 
-def test_benchling_3step_minus5(registry):
-    out = _apply_rule(60.0, _rule(registry, "Benchling"))
+def test_taq_3step_minus5(registry):
+    out = _apply_rule(60.0, _rule(registry, "Taq"))
     assert out["ta_mode"] == "3step"
     assert out["recommended_ta"] == 55.0  # 60 - 5
     assert out["ta_touchdown"] is None
@@ -205,7 +205,7 @@ def test_none_on_empty_sequence(registry, offsets):
 
 def test_uses_lower_of_pair(registry, offsets):
     # A weak reverse primer must pull Ta down (min of the pair, not fwd only).
-    profile = registry.get("Benchling")
+    profile = registry.get("Taq")
     strong = "GCGCGCGCGCGCGCGCGCGCGC"
     weak = "ATATATATATATATATAT"
     out_pair = compute_annealing(strong, weak, profile, offsets)
@@ -218,7 +218,7 @@ def test_uses_lower_of_pair(registry, offsets):
 # --------------------------------------------------------------------------
 
 _ALL_PROFILES = [
-    "Benchling", "Taq", "Phusion", "Q5", "KOD", "DreamTaq", "TAKARA_GXL", "Q5 SDM",
+    "Taq", "Phusion", "Q5", "KOD", "DreamTaq", "TAKARA_GXL", "Q5 SDM",
 ]
 
 

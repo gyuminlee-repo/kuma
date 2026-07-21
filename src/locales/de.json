@@ -285,10 +285,10 @@
       "warningsAriaLabel": "Warnungen",
       "requiredStateLabel": "Erforderlich",
       "requireGcClampAriaLabel": "Require GC clamp auf 3-prime end",
-      "polymeraseQ5Title": "NEB Q5 High-Fidelity. Tm Preset ~72 °C, low Mg²⁺. Standard choice für high-fidelity amplification.",
-      "polymeraseTaqTitle": "Standard Taq Polymerase. Tm Preset ~60 °C, higher Mg²⁺. Verwenden für routine PCR oder wenn 3'A overhangs sind desired.",
-      "polymerasePhusionTitle": "Thermo Phusion High-Fidelity. Tm Preset ~72 °C, blunt-end, fast extension.",
-      "polymeraseKODTitle": "Toyobo KOD One / KOD Hot Starten. Tm Preset ~68 °C mit Mg²⁺/dNTP correction. High-fidelity, fast.",
+      "polymeraseQ5Title": "NEB Q5 High-Fidelity. Ta ~72 °C, low Mg²⁺. Standard choice für high-fidelity amplification.",
+      "polymeraseTaqTitle": "Standard Taq Polymerase. Ta ~60 °C, higher Mg²⁺. Verwenden für routine PCR oder wenn 3'A overhangs sind desired.",
+      "polymerasePhusionTitle": "Thermo Phusion High-Fidelity. Ta ~72 °C, blunt-end, fast extension.",
+      "polymeraseKODTitle": "Toyobo KOD One / KOD Hot Starten. Ta ~68 °C. High-fidelity, fast.",
       "cdsCandidate": "CDS / ORF-Kandidat:",
       "cdsCandidateNoneDetected": "Kein CDS erkannt. Koordinaten manuell eingeben.",
       "autoDetect": {
@@ -300,7 +300,7 @@
       },
       "cdsCandidateHelp": "CDS candidate auto-detected from the FASTA. Coordinates apply on selection.",
       "geneNameHelp": "Short gene identifier used in output filenames and labels (e.g. egfp).",
-      "polymeraseHelp": "Polymerase profile used to set default Tm/binding constraints. Q5 recommended for high-fidelity PCR.",
+      "polymeraseHelp": "Polymerase, die für das Barcode-PCR-Protokoll erfasst wird. Nur Metadaten, ohne Einfluss auf Tm- oder Primer-Berechnungen.",
       "geneStartHelp": "CDS start coordinate (0-based, inclusive).",
       "geneEndHelp": "CDS end coordinate (0-based, exclusive).",
       "flankMinHelp": "Minimum flank length (nt) around CDS for barcode primer search. Default 100.",
@@ -1013,7 +1013,7 @@
     "strategyOption_full": "Full overlap (Q5 SDM)",
     "strategyOption_full_title": "NEB Q5 SDM kit style. Reverse Primer = reverse-complement von forward; ein single back-zu-back Primer pair covers die mutation site.",
     "polymeraseLabel": "Polymerase:",
-    "polymeraseHelp": "Selects Tm calculation Preset (extension Tm target + Toleranz defaults).\nWählen die Polymerase used in your SDM reaction.\nVerwenden 'Benutzerdefiniert Polymerase' zu define your own extension Tm.",
+    "polymeraseHelp": "Wählt das Polymerase-Preset: die Regel für die empfohlene Annealing-Temperatur (Ta), den GC-Bereich und den overlap-Modus.\nDie Tm-Formel zum Designzeitpunkt ist fest (SantaLucia 1998, Benchling-Skala) und folgt der Polymerase nicht.\nEin Wechsel der Polymerase überschreibt den GC-Bereich, prüfen Sie ihn daher erneut, wenn Sie ihn manuell gesetzt haben.\nMit 'Custom Polymerase' definieren Sie eigene Tm-Ziele.",
     "polymeraseManufacturer": "Hersteller: {{manufacturer}}",
     "polymeraseFidelity": "Fidelity: {{fidelity}}",
     "customPolymerase": "Custom Polymerase",
@@ -1388,7 +1388,8 @@
     "cancel": "Abbrechen",
     "save": "Speichern",
     "saving": "Speichere...",
-    "nebTmNote": "Tm for this NEB polymerase uses NEB Tm Calculator calibration; salt and Tm-method values below do not affect the computed Tm."
+    "nebTmNote": "Bei NEB-Polymerasen gilt die NEB Tm Calculator-Kalibrierung nur für die empfohlene Annealing-Temperatur (Ta). Die Tm zum Designzeitpunkt läuft auf der festen SantaLucia 1998 (Benchling) Skala, daher ändern die Salz- und Tm-Methodenwerte unten sie nicht.",
+    "fieldScopeNote": "Von der Design-Engine gelesen: Fwd/Rev/Overlap Tm-Ziele, GC-Bereich, Primer-Längenbereich, overlap-Modus. Gespeichert, aber ungenutzt: Opt Tm, Min/Max Tm, Opt/Min/Max size, Max Tm diff. Salz- und Tm-Methodenwerte fließen nur in Ta ein, und ein Custom-Profil hat keine Ta-Regel, daher wird dafür kein Ta angezeigt."
   },
   "mainShell": {
     "alreadyRunning": "Already läuft.",

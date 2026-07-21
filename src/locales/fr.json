@@ -285,10 +285,10 @@
       "warningsAriaLabel": "Avertissements",
       "requiredStateLabel": "Requis",
       "requireGcClampAriaLabel": "Exiger un GC clamp en extrémité 3-prime",
-      "polymeraseQ5Title": "NEB Q5 High-Fidelity. Tm préréglée ~72 °C, faible Mg²⁺. Choix par défaut pour l'amplification haute fidélité.",
-      "polymeraseTaqTitle": "Taq polymerase standard. Tm préréglée ~60 °C, Mg²⁺ plus élevé. À utiliser pour PCR de routine ou lorsque des overhangs 3'A sont souhaités.",
-      "polymerasePhusionTitle": "Thermo Phusion High-Fidelity. Tm préréglée ~72 °C, blunt-end, extension rapide.",
-      "polymeraseKODTitle": "Toyobo KOD One / KOD Hot Start. Tm préréglée ~68 °C avec correction Mg²⁺/dNTP. Haute fidélité, rapide.",
+      "polymeraseQ5Title": "NEB Q5 High-Fidelity. Ta ~72 °C, faible Mg²⁺. Choix par défaut pour l'amplification haute fidélité.",
+      "polymeraseTaqTitle": "Taq polymerase standard. Ta ~60 °C, Mg²⁺ plus élevé. À utiliser pour PCR de routine ou lorsque des overhangs 3'A sont souhaités.",
+      "polymerasePhusionTitle": "Thermo Phusion High-Fidelity. Ta ~72 °C, blunt-end, extension rapide.",
+      "polymeraseKODTitle": "Toyobo KOD One / KOD Hot Start. Ta ~68 °C. Haute fidélité, rapide.",
       "cdsCandidate": "Candidat CDS / ORF :",
       "cdsCandidateNoneDetected": "Aucun CDS détecté. Entrez les coordonnées manuellement.",
       "autoDetect": {
@@ -300,7 +300,7 @@
       },
       "cdsCandidateHelp": "CDS candidate auto-detected from the FASTA. Coordinates apply on selection.",
       "geneNameHelp": "Short gene identifier used in output filenames and labels (e.g. egfp).",
-      "polymeraseHelp": "Polymerase profile used to set default Tm/binding constraints. Q5 recommended for high-fidelity PCR.",
+      "polymeraseHelp": "Polymérase enregistrée pour le protocole de PCR de codes-barres. Métadonnée uniquement, sans effet sur les calculs de Tm ou de primers.",
       "geneStartHelp": "CDS start coordinate (0-based, inclusive).",
       "geneEndHelp": "CDS end coordinate (0-based, exclusive).",
       "flankMinHelp": "Minimum flank length (nt) around CDS for barcode primer search. Default 100.",
@@ -1013,7 +1013,7 @@
     "strategyOption_full": "Overlap complet (Q5 SDM)",
     "strategyOption_full_title": "Style kit NEB Q5 SDM. Le primer reverse = reverse-complement du forward ; une seule paire de primers back-to-back couvre le site de mutation.",
     "polymeraseLabel": "Polymerase :",
-    "polymeraseHelp": "Sélectionne le preset de calcul de Tm (extension Tm cible + tolérances par défaut).\nChoisir la polymerase utilisée dans la réaction SDM.\nUtiliser « Custom Polymerase » pour définir votre propre extension Tm.",
+    "polymeraseHelp": "Sélectionne le preset de polymérase : la règle de température d'hybridation recommandée (Ta), la plage de GC et le mode overlap.\nLa formule de Tm au moment du design est fixe (SantaLucia 1998, échelle Benchling) et ne suit pas la polymérase.\nChanger de polymérase écrase la plage de GC, vérifiez-la de nouveau si vous l'aviez réglée à la main.\nUtilisez « Custom Polymerase » pour définir vos propres cibles de Tm.",
     "polymeraseManufacturer": "Fabricant : {{manufacturer}}",
     "polymeraseFidelity": "Fidélité : {{fidelity}}",
     "customPolymerase": "Custom Polymerase",
@@ -1388,7 +1388,8 @@
     "cancel": "Annuler",
     "save": "Enregistrer",
     "saving": "Enregistrement...",
-    "nebTmNote": "Tm for this NEB polymerase uses NEB Tm Calculator calibration; salt and Tm-method values below do not affect the computed Tm."
+    "nebTmNote": "Pour les polymérases NEB, la calibration NEB Tm Calculator s'applique uniquement à la température d'hybridation recommandée (Ta). La Tm au moment du design utilise l'échelle fixe SantaLucia 1998 (Benchling), donc les valeurs de sel et de méthode Tm ci-dessous ne la modifient pas.",
+    "fieldScopeNote": "Lu par le moteur de design : cibles Tm Fwd/Rev/Overlap, plage de GC, plage de longueur des primers, mode overlap. Stocké mais inutilisé : Opt Tm, Min/Max Tm, Opt/Min/Max size, Max Tm diff. Les valeurs de sel et de méthode Tm alimentent seulement Ta, et un profil custom ne porte aucune règle Ta, donc aucun Ta n'est affiché."
   },
   "mainShell": {
     "alreadyRunning": "Déjà en cours d'exécution.",

@@ -285,10 +285,10 @@
       "warningsAriaLabel": "警告",
       "requiredStateLabel": "必填",
       "requireGcClampAriaLabel": "要求 3' 端 GC clamp",
-      "polymeraseQ5Title": "NEB Q5 High-Fidelity。Tm preset ~72 °C, 低 Mg²⁺。高保真擴增的預設選擇。",
-      "polymeraseTaqTitle": "標準 Taq 聚合酶。Tm preset ~60 °C, 較高 Mg²⁺。用於常規 PCR 或需要 3'A 突出端時。",
-      "polymerasePhusionTitle": "Thermo Phusion High-Fidelity。Tm preset ~72 °C, 平末端, 快速延伸。",
-      "polymeraseKODTitle": "Toyobo KOD One / KOD Hot Start。Tm preset ~68 °C, 含 Mg²⁺/dNTP 校正。高保真, 速度快。",
+      "polymeraseQ5Title": "NEB Q5 High-Fidelity。Ta ~72 °C, 低 Mg²⁺。高保真擴增的預設選擇。",
+      "polymeraseTaqTitle": "標準 Taq 聚合酶。Ta ~60 °C, 較高 Mg²⁺。用於常規 PCR 或需要 3'A 突出端時。",
+      "polymerasePhusionTitle": "Thermo Phusion High-Fidelity。Ta ~72 °C, 平末端, 快速延伸。",
+      "polymeraseKODTitle": "Toyobo KOD One / KOD Hot Start。Ta ~68 °C。高保真, 速度快。",
       "cdsCandidate": "CDS / ORF 候選:",
       "cdsCandidateNoneDetected": "未偵測到 CDS。請手動輸入座標。",
       "autoDetect": {
@@ -300,7 +300,7 @@
       },
       "cdsCandidateHelp": "CDS candidate auto-detected from the FASTA. Coordinates apply on selection.",
       "geneNameHelp": "Short gene identifier used in output filenames and labels (e.g. egfp).",
-      "polymeraseHelp": "Polymerase profile used to set default Tm/binding constraints. Q5 recommended for high-fidelity PCR.",
+      "polymeraseHelp": "記錄至條碼 PCR 流程的聚合酶。僅為中繼資料，不參與任何 Tm 或引物計算。",
       "geneStartHelp": "CDS start coordinate (0-based, inclusive).",
       "geneEndHelp": "CDS end coordinate (0-based, exclusive).",
       "flankMinHelp": "Minimum flank length (nt) around CDS for barcode primer search. Default 100.",
@@ -1013,7 +1013,7 @@
     "strategyOption_full": "Full overlap (Q5 SDM)",
     "strategyOption_full_title": "NEB Q5 SDM kit 風格。Reverse primer = forward 的反向互補;單一 back-to-back primer 對覆蓋突變位點。",
     "polymeraseLabel": "聚合酶:",
-    "polymeraseHelp": "選擇 Tm 計算預設 (extension Tm 目標 + 容差預設值)。\n選擇 SDM 反應中使用的聚合酶。\n使用 'Custom Polymerase' 自定義 extension Tm。",
+    "polymeraseHelp": "選擇 polymerase 預設：推薦退火溫度 (Ta) 規則、GC 範圍與 overlap 模式會一併設定。\n設計時的 Tm 計算公式固定為 SantaLucia 1998 (Benchling)，更換 polymerase 不會改變它。\n更換 polymerase 會覆寫 GC 範圍，若曾手動設定請重新確認。\n使用 'Custom Polymerase' 可自訂 Tm 目標。",
     "polymeraseManufacturer": "廠商: {{manufacturer}}",
     "polymeraseFidelity": "保真度: {{fidelity}}",
     "customPolymerase": "Custom Polymerase",
@@ -1388,7 +1388,8 @@
     "cancel": "取消",
     "save": "儲存",
     "saving": "儲存中...",
-    "nebTmNote": "Tm for this NEB polymerase uses NEB Tm Calculator calibration; salt and Tm-method values below do not affect the computed Tm."
+    "nebTmNote": "NEB polymerase 的 NEB Tm Calculator 校正僅用於推薦退火溫度 (Ta)。設計時的 Tm 採用固定的 SantaLucia 1998 (Benchling) 標度，因此下方的 salt 與 Tm method 數值不會改變它。",
+    "fieldScopeNote": "設計引擎讀取的值：Fwd/Rev/Overlap Tm 目標、GC 範圍、引物長度範圍、overlap 模式。儲存但未使用：Opt Tm, Min/Max Tm, Opt/Min/Max size, Max Tm diff。salt 與 Tm method 數值僅用於 Ta 計算，而 custom 設定檔沒有 Ta 規則，因此不會顯示 Ta。"
   },
   "mainShell": {
     "alreadyRunning": "已在執行。",

@@ -21,6 +21,11 @@ import {
   getIncludedDesignResults,
 } from "./designSlice.helpers";
 import { resolveSelectionDomains } from "./inputSlice.helpers";
+import {
+  DEFAULT_POLYMERASE,
+  resolvePolymeraseName,
+  retiredPolymeraseNotice,
+} from "../../lib/polymeraseAliases";
 
 import type { ExportSlice } from "../slice-interfaces";
 export type { ExportSlice };
@@ -599,6 +604,19 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       designResults: restoredDesignResults,
       wellName,
     });
+    // Retired profiles are remapped in place. The saved GC range and overlap
+    // mode below are kept as-is, so an old run keeps the conditions it was
+    // designed under instead of inheriting the replacement profile defaults.
+    const restoredPolymerase = ((): { name: string; notice: string | null } => {
+      const saved = settings.selectedPolymerase;
+      if (typeof saved !== "string" || !saved) return { name: DEFAULT_POLYMERASE, notice: null };
+      const { name, retiredFrom } = resolvePolymeraseName(saved);
+      if (!retiredFrom) return { name, notice: null };
+      return {
+        name,
+        notice: retiredPolymeraseNotice(retiredFrom, name, settings.gcMin ?? 40, settings.gcMax ?? 60),
+      };
+    })();
     set({
       mutationInputMode: inputs.mutationInputMode === "text" ? "evolvepro" : (inputs.mutationInputMode ?? "evolvepro"),
       mutationText: inputs.mutationText ?? "",
@@ -627,7 +645,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       })(),
       customCandidates: results.customCandidates ?? {},
       rescuedMutationDetails: results.rescuedMutationDetails ?? [],
-      selectedPolymerase: settings.selectedPolymerase ?? "Benchling",
+      selectedPolymerase: restoredPolymerase.name,
       tmFwdTarget: settings.tmFwdTarget ?? 62,
       tmRevTarget: settings.tmRevTarget ?? 58,
       tmOverlapTarget: settings.tmOverlapTarget ?? 42,
@@ -683,13 +701,18 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       structuralKappa: settings.structuralKappa ?? 0.3,
       yPredMap: preloadedYPred ?? {},
       poolVariants: preloadedPoolVariants ?? [],
-      statusMessage: evolveproReloadError
-        ? `Workspace loaded. EVOLVEpro CSV reload failed: ${evolveproReloadError}`
-        : (settings.autoRedesignOnLoad ?? true)
-          ? "Workspace loaded. Re-designing to sync backend..."
-          : ((results.designResults?.length ?? 0) > 0
-              ? "Workspace loaded. Re-design to enable alternatives and primer swapping."
-              : "Workspace loaded."),
+      statusMessage: [
+        evolveproReloadError
+          ? `Workspace loaded. EVOLVEpro CSV reload failed: ${evolveproReloadError}`
+          : (settings.autoRedesignOnLoad ?? true)
+            ? "Workspace loaded. Re-designing to sync backend..."
+            : ((results.designResults?.length ?? 0) > 0
+                ? "Workspace loaded. Re-design to enable alternatives and primer swapping."
+                : "Workspace loaded."),
+        restoredPolymerase.notice,
+      ]
+        .filter(Boolean)
+        .join(" "),
     });
     if ((settings.autoRedesignOnLoad ?? true) && inputs.mutationText && inputs.fastaPath && !evolveproReloadError) {
       await get().designPrimers();
@@ -767,7 +790,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       successCount: 0,
       totalCount: 0,
       failedMutations: [],
-      selectedPolymerase: "Benchling",
+      selectedPolymerase: DEFAULT_POLYMERASE,
       codonStrategy: "closest",
       maxPrimers: 95,
       tmFwdTarget: 62,

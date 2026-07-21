@@ -285,10 +285,10 @@
       "warningsAriaLabel": "Предупреждения",
       "requiredStateLabel": "Обязательно",
       "requireGcClampAriaLabel": "Требовать GC clamp на 3-prime конце",
-      "polymeraseQ5Title": "NEB Q5 High-Fidelity. Tm preset ~72 °C, низкий Mg²⁺. Выбор по умолчанию для high-fidelity амплификации.",
-      "polymeraseTaqTitle": "Стандартная Taq polymerase. Tm preset ~60 °C, выше Mg²⁺. Используйте для рутинного PCR или когда нужны 3'A overhang.",
-      "polymerasePhusionTitle": "Thermo Phusion High-Fidelity. Tm preset ~72 °C, blunt-end, быстрое extension.",
-      "polymeraseKODTitle": "Toyobo KOD One / KOD Hot Start. Tm preset ~68 °C с Mg²⁺/dNTP коррекцией. High-fidelity, быстрая.",
+      "polymeraseQ5Title": "NEB Q5 High-Fidelity. Ta ~72 °C, низкий Mg²⁺. Выбор по умолчанию для high-fidelity амплификации.",
+      "polymeraseTaqTitle": "Стандартная Taq polymerase. Ta ~60 °C, выше Mg²⁺. Используйте для рутинного PCR или когда нужны 3'A overhang.",
+      "polymerasePhusionTitle": "Thermo Phusion High-Fidelity. Ta ~72 °C, blunt-end, быстрое extension.",
+      "polymeraseKODTitle": "Toyobo KOD One / KOD Hot Start. Ta ~68 °C. High-fidelity, быстрая.",
       "cdsCandidate": "Кандидат CDS / ORF:",
       "cdsCandidateNoneDetected": "CDS не обнаружен. Введите координаты вручную.",
       "autoDetect": {
@@ -300,7 +300,7 @@
       },
       "cdsCandidateHelp": "CDS candidate auto-detected from the FASTA. Coordinates apply on selection.",
       "geneNameHelp": "Short gene identifier used in output filenames and labels (e.g. egfp).",
-      "polymeraseHelp": "Polymerase profile used to set default Tm/binding constraints. Q5 recommended for high-fidelity PCR.",
+      "polymeraseHelp": "Polymerase, записываемая в протокол barcode PCR. Только метаданные, не влияет на расчёт Tm или праймеров.",
       "geneStartHelp": "CDS start coordinate (0-based, inclusive).",
       "geneEndHelp": "CDS end coordinate (0-based, exclusive).",
       "flankMinHelp": "Minimum flank length (nt) around CDS for barcode primer search. Default 100.",
@@ -1013,7 +1013,7 @@
     "strategyOption_full": "Full overlap (Q5 SDM)",
     "strategyOption_full_title": "Стиль NEB Q5 SDM kit. Reverse primer = reverse-complement от forward; одна back-to-back пара primer покрывает сайт мутации.",
     "polymeraseLabel": "Полимераза:",
-    "polymeraseHelp": "Selects Tm calculation preset (extension Tm target + tolerance defaults).\nChoose the polymerase used in your SDM reaction.\nUse 'Custom Polymerase' to define your own extension Tm.",
+    "polymeraseHelp": "Выбирает пресет polymerase: правило рекомендуемой температуры отжига (Ta), диапазон GC и режим overlap.\nФормула Tm на этапе дизайна фиксирована (SantaLucia 1998, шкала Benchling) и не зависит от polymerase.\nСмена polymerase перезаписывает диапазон GC, поэтому проверьте его снова, если задавали вручную.\nИспользуйте 'Custom Polymerase', чтобы задать собственные цели Tm.",
     "polymeraseManufacturer": "Производитель: {{manufacturer}}",
     "polymeraseFidelity": "Fidelity: {{fidelity}}",
     "customPolymerase": "Custom Polymerase",
@@ -1388,7 +1388,8 @@
     "cancel": "Отмена",
     "save": "Сохранить",
     "saving": "Сохранение...",
-    "nebTmNote": "Tm for this NEB polymerase uses NEB Tm Calculator calibration; salt and Tm-method values below do not affect the computed Tm."
+    "nebTmNote": "Для NEB polymerase калибровка NEB Tm Calculator применяется только к рекомендуемой температуре отжига (Ta). Tm на этапе дизайна считается по фиксированной шкале SantaLucia 1998 (Benchling), поэтому значения соли и метода Tm ниже её не меняют.",
+    "fieldScopeNote": "Читается движком дизайна: цели Tm Fwd/Rev/Overlap, диапазон GC, диапазон длины праймера, режим overlap. Сохраняется, но не используется: Opt Tm, Min/Max Tm, Opt/Min/Max size, Max Tm diff. Значения соли и метода Tm влияют только на Ta, а у custom-профиля нет правила Ta, поэтому Ta не отображается."
   },
   "mainShell": {
     "alreadyRunning": "Уже запущено.",
