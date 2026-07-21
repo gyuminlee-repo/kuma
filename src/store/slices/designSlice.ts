@@ -81,8 +81,19 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
   setSelectedPolymerase: async (name: string) => {
     try {
       const profile = await sendRequest("get_polymerase_details", { name });
+      const prev = get();
+      const isSwitch = prev.selectedPolymerase !== name;
+      const nextOverlapMode = profile.default_overlap_mode ?? "partial";
+      const gcChanged = prev.gcMin !== profile.min_gc || prev.gcMax !== profile.max_gc;
+      const overlapChanged = prev.overlapMode !== nextOverlapMode;
+      const changes: string[] = [];
+      if (gcChanged) changes.push(`GC range set to ${profile.min_gc}-${profile.max_gc}%`);
+      if (overlapChanged) changes.push(`overlap mode set to ${nextOverlapMode}`);
+      const notice =
+        isSwitch && changes.length > 0 ? `Polymerase changed: ${changes.join(", ")}` : null;
       set({
         selectedPolymerase: name,
+        ...(notice ? { statusMessage: notice } : {}),
         // Method-level SDM targets (Landwehr et al. 2025 SI Fig. S4), mirroring
         // the engine fallback in sdm_engine.py. Never derive from opt_tm.
         tmFwdTarget: profile.opt_tm_fwd ?? 62,
@@ -90,7 +101,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         tmOverlapTarget: profile.opt_tm_overlap ?? 42,
         gcMin: profile.min_gc,
         gcMax: profile.max_gc,
-        overlapMode: profile.default_overlap_mode ?? "partial",
+        overlapMode: nextOverlapMode,
       });
     } catch (err) {
       set({ statusMessage: `Polymerase load failed: ${formatError(err)}` });

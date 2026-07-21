@@ -285,10 +285,10 @@
       "warningsAriaLabel": "警告",
       "requiredStateLabel": "必須",
       "requireGcClampAriaLabel": "3' 末端に GC clamp を必須",
-      "polymeraseQ5Title": "NEB Q5 High-Fidelity。Tm プリセット約 72 °C、低 Mg²⁺。高忠実度増幅のデフォルト選択。",
-      "polymeraseTaqTitle": "標準 Taq polymerase。Tm プリセット約 60 °C、高 Mg²⁺。汎用 PCR や 3'A 突出が必要なときに使用。",
-      "polymerasePhusionTitle": "Thermo Phusion High-Fidelity。Tm プリセット約 72 °C、blunt-end、高速伸長。",
-      "polymeraseKODTitle": "Toyobo KOD One / KOD Hot Start。Tm プリセット約 68 °C、Mg²⁺/dNTP 補正あり。高忠実度・高速。",
+      "polymeraseQ5Title": "NEB Q5 High-Fidelity。Ta 約 72 °C、低 Mg²⁺。高忠実度増幅のデフォルト選択。",
+      "polymeraseTaqTitle": "標準 Taq polymerase。Ta 約 60 °C、高 Mg²⁺。汎用 PCR や 3'A 突出が必要なときに使用。",
+      "polymerasePhusionTitle": "Thermo Phusion High-Fidelity。Ta 約 72 °C、blunt-end、高速伸長。",
+      "polymeraseKODTitle": "Toyobo KOD One / KOD Hot Start。Ta 約 68 °C。高忠実度・高速。",
       "cdsCandidate": "CDS / ORF 候補:",
       "cdsCandidateNoneDetected": "CDS が検出されませんでした。座標を手動で入力してください。",
       "autoDetect": {
@@ -300,7 +300,7 @@
       },
       "cdsCandidateHelp": "CDS candidate auto-detected from the FASTA. Coordinates apply on selection.",
       "geneNameHelp": "Short gene identifier used in output filenames and labels (e.g. egfp).",
-      "polymeraseHelp": "Polymerase profile used to set default Tm/binding constraints. Q5 recommended for high-fidelity PCR.",
+      "polymeraseHelp": "バーコード PCR プロトコルに記録する polymerase です。メタデータのみで、Tm や primer の計算には関与しません。",
       "geneStartHelp": "CDS start coordinate (0-based, inclusive).",
       "geneEndHelp": "CDS end coordinate (0-based, exclusive).",
       "flankMinHelp": "Minimum flank length (nt) around CDS for barcode primer search. Default 100.",
@@ -1013,7 +1013,7 @@
     "strategyOption_full": "Full overlap (Q5 SDM)",
     "strategyOption_full_title": "NEB Q5 SDM キットスタイル。Reverse primer = forward の reverse-complement、単一 back-to-back primer ペアが mutation サイトをカバー。",
     "polymeraseLabel": "Polymerase:",
-    "polymeraseHelp": "Tm 計算プリセット (extension Tm 目標 + 許容デフォルト) を選択。\nSDM 反応で使用する polymerase を選んでください。\n独自の extension Tm を定義する場合は 'Custom Polymerase' を使用。",
+    "polymeraseHelp": "polymerase プリセットを選択します。推奨アニーリング温度 (Ta) のルール、GC 範囲、overlap モードが一緒に設定されます。\n設計時の Tm 計算式は SantaLucia 1998 (Benchling) 固定で、polymerase を変えても変わりません。\npolymerase を変更すると GC 範囲が上書きされるため、手動で設定した値があれば再確認してください。\n'Custom Polymerase' で独自の Tm 目標を定義できます。",
     "polymeraseManufacturer": "メーカー: {{manufacturer}}",
     "polymeraseFidelity": "忠実度: {{fidelity}}",
     "customPolymerase": "Custom Polymerase",
@@ -1388,7 +1388,8 @@
     "cancel": "キャンセル",
     "save": "保存",
     "saving": "保存中...",
-    "nebTmNote": "Tm for this NEB polymerase uses NEB Tm Calculator calibration; salt and Tm-method values below do not affect the computed Tm."
+    "nebTmNote": "NEB polymerase では NEB Tm Calculator の補正は推奨アニーリング温度 (Ta) のみに適用されます。設計時の Tm は SantaLucia 1998 (Benchling) 固定スケールのため、下の salt および Tm method の値では変わりません。",
+    "fieldScopeNote": "設計エンジンが読む値: Fwd/Rev/Overlap Tm 目標、GC 範囲、primer 長範囲、overlap モード。保存されるが未使用: Opt Tm, Min/Max Tm, Opt/Min/Max size, Max Tm diff。salt と Tm method の値は Ta の計算のみに使われ、custom プロファイルは Ta ルールを持たないため Ta は表示されません。"
   },
   "mainShell": {
     "alreadyRunning": "すでに実行中です。",

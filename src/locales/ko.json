@@ -303,10 +303,10 @@
       "warningsAriaLabel": "경고",
       "requiredStateLabel": "필수",
       "requireGcClampAriaLabel": "3' 말단 GC 클램프 필요",
-      "polymeraseQ5Title": "NEB Q5 고충실도 중합효소. Tm 기준 ~72 °C, 낮은 Mg²⁺. 고충실도 증폭 기본 선택입니다.",
-      "polymeraseTaqTitle": "표준 Taq 중합효소. Tm 기준 ~60 °C, Mg²⁺ 농도 높음. 일반 PCR 또는 3'A 오버행이 필요할 때 사용합니다.",
-      "polymerasePhusionTitle": "Thermo Phusion 고충실도 중합효소. Tm 기준 ~72 °C, blunt-end 산물, 빠른 신장 반응.",
-      "polymeraseKODTitle": "Toyobo KOD One / KOD Hot Start. Tm 기준 ~68 °C (Mg²⁺/dNTP 보정 적용). 고충실도, 빠른 반응 속도.",
+      "polymeraseQ5Title": "NEB Q5 고충실도 중합효소. 권장 어닐링 ~72 °C, 낮은 Mg²⁺. 고충실도 증폭 기본 선택입니다.",
+      "polymeraseTaqTitle": "표준 Taq 중합효소. 권장 어닐링 ~60 °C, Mg²⁺ 농도 높음. 일반 PCR 또는 3'A 오버행이 필요할 때 사용합니다.",
+      "polymerasePhusionTitle": "Thermo Phusion 고충실도 중합효소. 권장 어닐링 ~72 °C, blunt-end 산물, 빠른 신장 반응.",
+      "polymeraseKODTitle": "Toyobo KOD One / KOD Hot Start. 권장 어닐링 ~68 °C. 고충실도, 빠른 반응 속도.",
       "autoDetect": {
         "button": "CDS로부터 자동 인식",
         "success": "{{source}}에서 자동 인식했습니다",
@@ -318,7 +318,7 @@
       "cdsCandidateNoneDetected": "CDS를 감지하지 못했습니다. 좌표를 수동으로 입력하세요.",
       "cdsCandidateHelp": "FASTA에서 자동 감지된 CDS 후보. 선택 시 좌표가 자동 입력됨.",
       "geneNameHelp": "출력 파일명/라벨에 사용되는 짧은 gene 식별자(예: egfp).",
-      "polymeraseHelp": "기본 Tm/binding 제약을 정하는 polymerase profile. 고정밀 PCR은 Q5 권장.",
+      "polymeraseHelp": "바코드 PCR 프로토콜에 기록할 중합효소입니다. 메타데이터일 뿐이며 Tm이나 프라이머 계산에 관여하지 않습니다.",
       "geneStartHelp": "CDS 시작 좌표 (0-based, inclusive).",
       "geneEndHelp": "CDS 종료 좌표 (0-based, exclusive).",
       "flankMinHelp": "barcode primer 탐색용 CDS 양옆 flank 최소 길이(nt). 기본 100.",
@@ -1032,7 +1032,7 @@
     "strategyOption_full": "전체 오버랩 (Q5 SDM)",
     "strategyOption_full_title": "NEB Q5 SDM kit 방식. Reverse primer = forward의 reverse-complement. 단일 back-to-back primer 쌍이 돌연변이 위치를 커버합니다.",
     "polymeraseLabel": "중합효소:",
-    "polymeraseHelp": "Tm 계산 프리셋(연장 Tm 목표 및 허용 오차 기본값)을 선택합니다.\nSDM 반응에 사용하는 중합효소를 선택하세요.\n'Custom Polymerase'로 직접 연장 Tm을 정의할 수 있습니다.",
+    "polymeraseHelp": "폴리머라제 프리셋을 선택합니다. 권장 어닐링 온도(Ta) 규칙, GC 허용 범위, overlap 모드가 함께 설정됩니다.\n설계 시점 Tm 계산식은 SantaLucia 1998 (Benchling) 고정이라 폴리머라제를 바꿔도 달라지지 않습니다.\n폴리머라제를 바꾸면 GC 범위가 덮어써지므로, 직접 설정한 값이 있으면 다시 확인하세요.\n'Custom Polymerase'로 Tm 목표를 직접 정의할 수 있습니다.",
     "polymeraseManufacturer": "제조사: {{manufacturer}}",
     "polymeraseFidelity": "정확도: {{fidelity}}",
     "customPolymerase": "사용자 폴리머라제",
@@ -1407,7 +1407,8 @@
     "cancel": "취소",
     "save": "저장",
     "saving": "저장 중...",
-    "nebTmNote": "이 NEB 폴리머라제의 Tm은 NEB Tm Calculator 보정으로 계산되며, 아래 salt 및 Tm 방법 값은 계산 Tm에 영향을 주지 않습니다."
+    "nebTmNote": "NEB 폴리머라제는 NEB Tm Calculator 보정을 권장 어닐링 온도(Ta) 계산에만 적용합니다. 설계 시점 Tm은 SantaLucia 1998 (Benchling) 고정 스케일이라 아래 salt 및 Tm method 값은 설계 Tm을 바꾸지 않습니다.",
+    "fieldScopeNote": "설계 엔진이 읽는 값: Fwd/Rev/Overlap Tm 목표, GC 범위, 프라이머 길이 범위, overlap 모드. 저장되지만 사용하지 않는 값: Opt Tm, Min/Max Tm, Opt/Min/Max size, Max Tm diff. salt 및 Tm method 값은 Ta 계산에만 쓰이며, 커스텀 프로파일은 Ta 규칙이 없어 Ta가 표시되지 않습니다."
   },
   "mainShell": {
     "alreadyRunning": "이미 실행 중입니다.",

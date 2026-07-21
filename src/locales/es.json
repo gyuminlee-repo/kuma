@@ -285,10 +285,10 @@
       "warningsAriaLabel": "Advertencias",
       "requiredStateLabel": "Requerido",
       "requireGcClampAriaLabel": "Requerir GC clamp en el extremo 3-prime",
-      "polymeraseQ5Title": "NEB Q5 High-Fidelity. Tm preset ~72 °C, Mg²⁺ bajo. Opción por defecto para amplificación de alta fidelidad.",
-      "polymeraseTaqTitle": "Polimerasa Taq estándar. Tm preset ~60 °C, Mg²⁺ más alto. Usar para PCR rutinaria o cuando se deseen overhangs 3'A.",
-      "polymerasePhusionTitle": "Thermo Phusion High-Fidelity. Tm preset ~72 °C, extremo romo, extensión rápida.",
-      "polymeraseKODTitle": "Toyobo KOD One / KOD Hot Start. Tm preset ~68 °C con corrección Mg²⁺/dNTP. Alta fidelidad, rápida.",
+      "polymeraseQ5Title": "NEB Q5 High-Fidelity. Ta ~72 °C, Mg²⁺ bajo. Opción por defecto para amplificación de alta fidelidad.",
+      "polymeraseTaqTitle": "Polimerasa Taq estándar. Ta ~60 °C, Mg²⁺ más alto. Usar para PCR rutinaria o cuando se deseen overhangs 3'A.",
+      "polymerasePhusionTitle": "Thermo Phusion High-Fidelity. Ta ~72 °C, extremo romo, extensión rápida.",
+      "polymeraseKODTitle": "Toyobo KOD One / KOD Hot Start. Ta ~68 °C. Alta fidelidad, rápida.",
       "cdsCandidate": "Candidato CDS / ORF:",
       "cdsCandidateNoneDetected": "No se detectó ningún CDS. Ingrese las coordenadas manualmente.",
       "autoDetect": {
@@ -300,7 +300,7 @@
       },
       "cdsCandidateHelp": "CDS candidate auto-detected from the FASTA. Coordinates apply on selection.",
       "geneNameHelp": "Short gene identifier used in output filenames and labels (e.g. egfp).",
-      "polymeraseHelp": "Polymerase profile used to set default Tm/binding constraints. Q5 recommended for high-fidelity PCR.",
+      "polymeraseHelp": "Polimerasa registrada para el protocolo de PCR de códigos de barras. Es solo metadato y no interviene en ningún cálculo de Tm o de primers.",
       "geneStartHelp": "CDS start coordinate (0-based, inclusive).",
       "geneEndHelp": "CDS end coordinate (0-based, exclusive).",
       "flankMinHelp": "Minimum flank length (nt) around CDS for barcode primer search. Default 100.",
@@ -1013,7 +1013,7 @@
     "strategyOption_full": "Full overlap (Q5 SDM)",
     "strategyOption_full_title": "Estilo kit NEB Q5 SDM. Primer reverse = reverse-complement del forward; un único par back-to-back cubre el sitio de mutación.",
     "polymeraseLabel": "Polimerasa:",
-    "polymeraseHelp": "Selecciona el preset de cálculo de Tm (Tm objetivo de extensión + tolerancias por defecto).\nElegir la polimerasa usada en la reacción SDM.\nUsar 'Custom Polymerase' para definir un Tm de extensión propio.",
+    "polymeraseHelp": "Selecciona el preset de polimerasa: la regla de temperatura de annealing recomendada (Ta), el rango de GC y el modo overlap.\nLa fórmula de Tm en el diseño es fija (SantaLucia 1998, escala Benchling) y no sigue a la polimerasa.\nCambiar la polimerasa sobrescribe el rango de GC, así que revísalo de nuevo si lo fijaste a mano.\nUsa 'Custom Polymerase' para definir tus propios objetivos de Tm.",
     "polymeraseManufacturer": "Fabricante: {{manufacturer}}",
     "polymeraseFidelity": "Fidelidad: {{fidelity}}",
     "customPolymerase": "Custom Polymerase",
@@ -1388,7 +1388,8 @@
     "cancel": "Cancelar",
     "save": "Guardar",
     "saving": "Guardando...",
-    "nebTmNote": "Tm for this NEB polymerase uses NEB Tm Calculator calibration; salt and Tm-method values below do not affect the computed Tm."
+    "nebTmNote": "En las polimerasas NEB la calibración del NEB Tm Calculator se aplica solo a la temperatura de annealing recomendada (Ta). La Tm de diseño usa la escala fija SantaLucia 1998 (Benchling), por lo que los valores de sal y de método de Tm de abajo no la modifican.",
+    "fieldScopeNote": "Lo que lee el motor de diseño: objetivos de Tm Fwd/Rev/Overlap, rango de GC, rango de longitud de primer, modo overlap. Guardado pero sin uso: Opt Tm, Min/Max Tm, Opt/Min/Max size, Max Tm diff. Los valores de sal y de método de Tm alimentan solo Ta, y un perfil custom no lleva regla de Ta, por lo que no se muestra Ta."
   },
   "mainShell": {
     "alreadyRunning": "Ya está en ejecución.",
