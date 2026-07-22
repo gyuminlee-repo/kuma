@@ -26,6 +26,7 @@ import { readMameResultSnapshot } from "@/lib/mame/resultSnapshot";
 import { sendRequest as sendMameRequest } from "@/lib/ipc-mame";
 import type { LoadAnalyzeResultResponse } from "@/types/mame/models";
 import { KURO_SCHEMA, buildKuroSnapshot } from "@/lib/kuroSnapshot";
+import { buildKuroResultResetPatch } from "@/lib/kuroResultReset";
 import { MAME_SCHEMA } from "@/lib/mame/autosaveSnapshot";
 import { detectProjectFiles, detectFromInputDir } from "@/lib/mame/detectProjectFiles";
 import { openWorkspace } from "@/lib/workspace";
@@ -149,19 +150,9 @@ function discardResultsIfVariantsDiverged(): boolean {
   if (!diverged) return false;
 
   // 결과물 블록을 한 번에 비운다. 스냅샷 results 블록이 채우는 필드와 1:1로
-  // 맞춰야 표와 카운터가 어긋나지 않는다.
-  useAppStore.setState({
-    designResults: [],
-    successCount: 0,
-    totalCount: 0,
-    failedMutations: [],
-    plateMappings: [],
-    dedupInfo: {},
-    manuallySwapped: {},
-    customCandidates: {},
-    rescuedMutationDetails: [],
-    backendDesignStateSynced: false,
-  });
+  // 맞춰야 표와 카운터가 어긋나지 않는다. 필드 목록은 sequenceSlice의 템플릿 변경
+  // 무효화와 공유한다(lib/kuroResultReset.ts).
+  useAppStore.setState(buildKuroResultResetPatch());
   return true;
 }
 

@@ -1894,6 +1894,9 @@
     "legacyWorkspaceUnsupported": "v0.3 이전 워크스페이스는 지원하지 않습니다. 새 워크스페이스로 시작하세요.",
     "templateLoadFailed": "템플릿 파일을 불러오지 못했습니다. 템플릿 경로를 다시 지정한 뒤 워크스페이스를 다시 여세요. 원인: {{error}}"
   },
+  "sequenceSlice": {
+    "resultsClearedOnTemplateChange": "template 이 바뀌어 이전 설계 결과를 비웠습니다. 설계를 다시 실행하세요."
+  },
   "inputSlice": {
     "csvFormatError": "{{mode}} CSV 형식 오류: {{detail}}",
     "structureFrameMismatch": "3D 구조가 참조 서열과 일치하지 않아 1D 서열 거리를 사용합니다"

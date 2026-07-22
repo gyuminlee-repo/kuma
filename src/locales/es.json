@@ -1875,6 +1875,9 @@
     "legacyWorkspaceUnsupported": "Los workspaces anteriores a v0.3 no están soportados. Iniciar un nuevo workspace.",
     "templateLoadFailed": "No se pudo cargar el archivo de plantilla. Seleccionar de nuevo la ruta de la plantilla y volver a abrir el workspace. Causa: {{error}}"
   },
+  "sequenceSlice": {
+    "resultsClearedOnTemplateChange": "Los resultados de diseño anteriores se borraron porque el template cambió. Ejecutar el diseño de nuevo."
+  },
   "inputSlice": {
     "csvFormatError": "Error de formato CSV de {{mode}}: {{detail}}",
     "structureFrameMismatch": "La estructura 3D no coincide con la secuencia de referencia — se usa la distancia de secuencia 1D"

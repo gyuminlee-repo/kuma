@@ -1875,6 +1875,9 @@
     "legacyWorkspaceUnsupported": "Workspaces старше v0.3 не поддерживаются. Создайте новый workspace.",
     "templateLoadFailed": "Не удалось загрузить файл шаблона. Выберите путь к шаблону заново и снова откройте workspace. Причина: {{error}}"
   },
+  "sequenceSlice": {
+    "resultsClearedOnTemplateChange": "Предыдущие результаты дизайна очищены, поскольку template изменился. Запустите дизайн заново."
+  },
   "inputSlice": {
     "csvFormatError": "{{mode}} ошибка формата CSV: {{detail}}",
     "structureFrameMismatch": "3D-структура не соответствует референсной последовательности — используется 1D-расстояние"

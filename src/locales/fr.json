@@ -1875,6 +1875,9 @@
     "legacyWorkspaceUnsupported": "Les espaces de travail antérieurs à v0.3 ne sont pas supportés. Démarrer un nouvel espace de travail.",
     "templateLoadFailed": "Impossible de charger le fichier modèle. Sélectionner à nouveau le chemin du modèle puis rouvrir l'espace de travail. Cause : {{error}}"
   },
+  "sequenceSlice": {
+    "resultsClearedOnTemplateChange": "Les résultats de conception précédents ont été effacés car le template a changé. Relancer la conception."
+  },
   "inputSlice": {
     "csvFormatError": "Erreur de format CSV {{mode}} : {{detail}}",
     "structureFrameMismatch": "La structure 3D ne correspond pas à la séquence de référence — utilisation de la distance de séquence 1D"

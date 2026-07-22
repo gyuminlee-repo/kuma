@@ -1875,6 +1875,9 @@
     "legacyWorkspaceUnsupported": "Workspaces older than v0.3 sind nicht supported. Starten ein neu Workspace.",
     "templateLoadFailed": "Die Vorlagendatei konnte nicht geladen werden. Den Vorlagenpfad erneut auswählen und den Workspace neu öffnen. Ursache: {{error}}"
   },
+  "sequenceSlice": {
+    "resultsClearedOnTemplateChange": "Die vorherigen Design-Ergebnisse wurden geleert, weil sich das template geändert hat. Das Design bitte erneut ausführen."
+  },
   "inputSlice": {
     "csvFormatError": "{{Modus}} CSV Format Fehler: {{detail}}",
     "structureFrameMismatch": "3D-Struktur stimmt nicht mit der Referenzsequenz überein — 1D-Sequenzabstand wird verwendet"

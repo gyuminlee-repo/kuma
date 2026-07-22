@@ -1875,6 +1875,9 @@
     "legacyWorkspaceUnsupported": "不支援早於 v0.3 的工作區。請新建工作區。",
     "templateLoadFailed": "無法載入範本檔案。請重新選擇範本路徑後再開啟工作區。原因: {{error}}"
   },
+  "sequenceSlice": {
+    "resultsClearedOnTemplateChange": "template 已變更，因此已清空先前的設計結果。請重新執行設計。"
+  },
   "inputSlice": {
     "csvFormatError": "{{mode}} CSV 格式錯誤: {{detail}}",
     "structureFrameMismatch": "3D 結構與參考序列不匹配 — 使用 1D 序列距離"

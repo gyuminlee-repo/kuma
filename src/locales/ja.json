@@ -1875,6 +1875,9 @@
     "legacyWorkspaceUnsupported": "v0.3 より古いワークスペースはサポートされていません。新規ワークスペースを開始してください。",
     "templateLoadFailed": "テンプレートファイルを読み込めませんでした。テンプレートのパスを選び直してからワークスペースを開き直してください。原因: {{error}}"
   },
+  "sequenceSlice": {
+    "resultsClearedOnTemplateChange": "template が変更されたため、以前の設計結果を消去しました。設計を再実行してください。"
+  },
   "inputSlice": {
     "csvFormatError": "{{mode}} CSV フォーマットエラー: {{detail}}",
     "structureFrameMismatch": "3D 構造が参照配列と一致しないため、1D 配列距離を使用します"

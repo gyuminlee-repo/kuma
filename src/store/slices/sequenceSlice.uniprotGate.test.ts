@@ -20,6 +20,8 @@ function makeStore(overrides: Partial<AppState> = {}) {
     },
     organism: "e_coli",
     selectedGene: "1",
+    // setSelectedGene은 CDS 변경 시 파생 결과물을 비울지 판정하려고 이 값을 읽는다.
+    designResults: [],
     domainDiversityEnabled: false,
     paretoDiversityEnabled: false,
     structuralDiversityEnabled: false,

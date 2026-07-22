@@ -1894,6 +1894,9 @@
     "legacyWorkspaceUnsupported": "Workspaces older than v0.3 are not supported. Start a new workspace.",
     "templateLoadFailed": "Could not load the template file. Reopen the workspace after selecting the template path again. Cause: {{error}}"
   },
+  "sequenceSlice": {
+    "resultsClearedOnTemplateChange": "Previous design results were cleared because the template changed. Run the design again."
+  },
   "inputSlice": {
     "csvFormatError": "{{mode}} CSV format error: {{detail}}",
     "structureFrameMismatch": "3D structure does not match the reference sequence — using 1D sequence distance"
