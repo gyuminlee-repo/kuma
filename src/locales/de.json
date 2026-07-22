@@ -721,10 +721,15 @@
         "helpText": "Ordner where die analysis result Excel will be saved. The filename ist auto-generated using KURO-style rules combining Datum, Referenz/Eingabe tokens, MAME target, und result count tokens."
       },
       "buildWellLayout": {
-        "button": "Build well layout",
-        "building": "Building…",
-        "confirmed": "{{count}} well(s) confirmed",
-        "ariaLabel": "Auto-generate well layout from expected_mutations xlsx"
+        "button": "Well-Layout erstellen",
+        "building": "Erstellen…",
+        "confirmed": "{{count}} Well(s) bestätigt",
+        "ariaLabel": "Well-Layout automatisch aus expected_mutations xlsx erstellen",
+        "clear": "Layout löschen",
+        "clearAriaLabel": "Bestätigtes Well-Layout löschen",
+        "disabledBySampleMap": "Deaktiviert, da eine Sample Map ausgewählt ist. Die Sample Map ist die maßgebliche Well-zu-Sample-Zuordnung.",
+        "fallbackHint": "Fallback für Runs ohne Sample Map. Weist die KURO-Sheet-Zeilenreihenfolge den Wells ab A1 zu (column-major) und geht von keinen WT-Kontroll-Wells aus.",
+        "overrideWarning": "Dieses Layout überschreibt die Sample Map. Löschen, um stattdessen die Sample Map zu verwenden."
       }
     },
     "janusDeck": {

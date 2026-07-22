@@ -786,7 +786,12 @@
         "button": "Well 레이아웃 생성",
         "building": "생성 중…",
         "confirmed": "well {{count}}개 확정",
-        "ariaLabel": "expected_mutations xlsx에서 well 레이아웃 자동 생성"
+        "ariaLabel": "expected_mutations xlsx에서 well 레이아웃 자동 생성",
+        "clear": "레이아웃 해제",
+        "clearAriaLabel": "확정된 well 레이아웃 해제",
+        "disabledBySampleMap": "Sample Map이 선택되어 있어 비활성화됨. Sample Map이 well-to-sample 매핑의 기준 자료임.",
+        "fallbackHint": "Sample Map이 없는 run을 위한 대체 수단. KURO 시트 행 순서를 A1부터 well에 순서대로(column-major) 배정하며 WT 대조군 well은 없다고 가정함.",
+        "overrideWarning": "이 레이아웃이 Sample Map을 덮어씀. Sample Map을 사용하려면 레이아웃을 해제할 것."
       }
     },
     "setup": {

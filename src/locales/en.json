@@ -786,7 +786,12 @@
         "button": "Build well layout",
         "building": "Building…",
         "confirmed": "{{count}} well(s) confirmed",
-        "ariaLabel": "Auto-generate well layout from expected_mutations xlsx"
+        "ariaLabel": "Auto-generate well layout from expected_mutations xlsx",
+        "clear": "Clear layout",
+        "clearAriaLabel": "Clear the confirmed well layout",
+        "disabledBySampleMap": "Disabled because a Sample Map is selected. The Sample Map is the authoritative well-to-sample mapping.",
+        "fallbackHint": "Fallback for runs without a Sample Map. Assigns KURO sheet row order to wells A1 onward (column-major) and assumes no WT control wells.",
+        "overrideWarning": "This layout overrides the Sample Map. Clear it to use the Sample Map instead."
       }
     },
     "setup": {

@@ -721,10 +721,15 @@
         "helpText": "保存分析结果 Excel 的文件夹。文件名通过 KURO 风格规则自动生成,结合日期、reference/input token、MAME 目标和结果计数 token。"
       },
       "buildWellLayout": {
-        "button": "Build well layout",
-        "building": "Building…",
-        "confirmed": "{{count}} well(s) confirmed",
-        "ariaLabel": "Auto-generate well layout from expected_mutations xlsx"
+        "button": "生成 well 布局",
+        "building": "生成中…",
+        "confirmed": "已确认 {{count}} 个 well",
+        "ariaLabel": "从 expected_mutations xlsx 自动生成 well 布局",
+        "clear": "清除布局",
+        "clearAriaLabel": "清除已确认的 well 布局",
+        "disabledBySampleMap": "已选择 Sample Map,因此禁用。Sample Map 是权威的 well-to-sample 映射。",
+        "fallbackHint": "在没有 Sample Map 的 run 中作为后备方案。按 KURO 表格行顺序从 A1 开始依次分配 well(column-major),并假定不存在 WT 对照 well。",
+        "overrideWarning": "此布局会覆盖 Sample Map。清除它以改用 Sample Map。"
       }
     },
     "janusDeck": {

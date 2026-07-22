@@ -53,6 +53,7 @@ export function InputPanel() {
   const setParams = useMameAppStore((s) => s.setParams);
   const wellLayout = useMameAppStore((s) => s.wellLayout);
   const buildWellLayout = useMameAppStore((s) => s.buildWellLayout);
+  const clearWellLayout = useMameAppStore((s) => s.clearWellLayout);
 
   const project = useKumaProject();
   const [isDetecting, setIsDetecting] = useState(false);
@@ -276,27 +277,51 @@ export function InputPanel() {
         browseAriaLabel={t("mame.inputPanel.browseFolderAriaLabel", { label: t("mame.inputPanel.kuroXlsx.label") })}
       />
       {expectedPath && (
-        <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => void handleBuildWellLayout()}
-            disabled={isBuildingLayout}
-            aria-label={t("mame.inputPanel.buildWellLayout.ariaLabel")}
-            className="h-8 gap-1.5 px-3 text-xs"
-          >
-            <LayoutGrid size={12} aria-hidden="true" />
-            {isBuildingLayout
-              ? t("mame.inputPanel.buildWellLayout.building")
-              : t("mame.inputPanel.buildWellLayout.button")}
-          </Button>
-          {wellLayout !== null && (
-            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-caption font-medium text-primary">
-              {t("mame.inputPanel.buildWellLayout.confirmed", {
-                count: Object.keys(wellLayout).length,
-              })}
-            </span>
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => void handleBuildWellLayout()}
+              disabled={isBuildingLayout || Boolean(sampleMapPath)}
+              aria-label={t("mame.inputPanel.buildWellLayout.ariaLabel")}
+              className="h-8 gap-1.5 px-3 text-xs"
+            >
+              <LayoutGrid size={12} aria-hidden="true" />
+              {isBuildingLayout
+                ? t("mame.inputPanel.buildWellLayout.building")
+                : t("mame.inputPanel.buildWellLayout.button")}
+            </Button>
+            {wellLayout !== null && (
+              <>
+                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-caption font-medium text-primary">
+                  {t("mame.inputPanel.buildWellLayout.confirmed", {
+                    count: Object.keys(wellLayout).length,
+                  })}
+                </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => clearWellLayout()}
+                  aria-label={t("mame.inputPanel.buildWellLayout.clearAriaLabel")}
+                  className="h-8 px-2 text-xs"
+                >
+                  {t("mame.inputPanel.buildWellLayout.clear")}
+                </Button>
+              </>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {sampleMapPath
+              ? t("mame.inputPanel.buildWellLayout.disabledBySampleMap")
+              : t("mame.inputPanel.buildWellLayout.fallbackHint")}
+          </p>
+          {wellLayout !== null && sampleMapPath && (
+            <p className="text-xs text-amber-600 dark:text-amber-500">
+              {t("mame.inputPanel.buildWellLayout.overrideWarning")}
+            </p>
           )}
         </div>
       )}

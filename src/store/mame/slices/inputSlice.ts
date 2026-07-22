@@ -553,5 +553,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   cancelWellLayout: () => {
     set({ wellLayoutDraft: null });
   },
+  clearWellLayout: () => {
+    set({ wellLayout: null, wellLayoutDraft: null });
+  },
   resetInput: () => set({ ...mameInputInitialState }),
 });
