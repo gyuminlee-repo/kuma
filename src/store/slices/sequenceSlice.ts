@@ -7,6 +7,18 @@ import { useMameAppStore } from "../mame/mameAppStore";
 import type { SequenceSlice } from "../slice-interfaces";
 export type { SequenceSlice };
 
+// Only domain/pareto/structural diversity actually consume uniprotAccession
+// (reference-domain fetch, pareto 3D distance, structural diversity, 3D view).
+// Top-N-only workflows never touch it, so BLAST-backed auto-search (slow, no
+// known accession) is gated on at least one of these being enabled.
+function diversityConsumersEnabled(state: AppState): boolean {
+  return state.domainDiversityEnabled || state.paretoDiversityEnabled || state.structuralDiversityEnabled;
+}
+
+const UNIPROT_AUTO_SEARCH_SKIPPED_MESSAGE =
+  "UniProt auto-search skipped (domain/pareto/structural diversity disabled), "
+  + "use the Step 1 search button if you need it later.";
+
 export const createSequenceSlice: StateCreator<AppState, [], [], SequenceSlice> = (set, get) => ({
   fastaPath: "",
   seqInfo: null,
@@ -58,13 +70,22 @@ export const createSequenceSlice: StateCreator<AppState, [], [], SequenceSlice> 
         // Defensive: never let the cross-store hand-off break sequence load.
       }
 
-      // Auto-trigger UniProt search if gene has db_xref or translation
+      // Auto-trigger UniProt search if gene has db_xref or translation.
+      // Known-accession lookups are cheap (backend skips BLAST at >=95%
+      // identity), so those always run. BLAST-only lookups (no known
+      // accession) are gated on an actual accession consumer being enabled.
       if (bestGene) {
         const knownAcc = bestGene.uniprot_accession ?? "";
         const translation = bestGene.translation ?? "";
         const organism = bestGene.organism ?? "";
-        if (knownAcc || translation) {
+        if (knownAcc) {
           get().searchUniprot(bestGene.gene, organism, translation, knownAcc);
+        } else if (translation) {
+          if (diversityConsumersEnabled(get())) {
+            get().searchUniprot(bestGene.gene, organism, translation, knownAcc);
+          } else {
+            set({ statusMessage: UNIPROT_AUTO_SEARCH_SKIPPED_MESSAGE });
+          }
         }
       }
     } catch (err) {
@@ -94,8 +115,18 @@ export const createSequenceSlice: StateCreator<AppState, [], [], SequenceSlice> 
     });
     const { seqInfo, organism } = get();
     const g = seqInfo?.genes.find((g) => String(g.cds_start) === gene);
-    if (g && (g.uniprot_accession || g.translation)) {
-      get().searchUniprot(g.gene, g.organism ?? organism, g.translation ?? "", g.uniprot_accession ?? "");
+    if (g) {
+      const knownAcc = g.uniprot_accession ?? "";
+      const translation = g.translation ?? "";
+      if (knownAcc) {
+        get().searchUniprot(g.gene, g.organism ?? organism, translation, knownAcc);
+      } else if (translation) {
+        if (diversityConsumersEnabled(get())) {
+          get().searchUniprot(g.gene, g.organism ?? organism, translation, knownAcc);
+        } else {
+          set({ statusMessage: UNIPROT_AUTO_SEARCH_SKIPPED_MESSAGE });
+        }
+      }
     }
   },
 

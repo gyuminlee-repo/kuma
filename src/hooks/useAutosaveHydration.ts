@@ -52,7 +52,8 @@ function isMutationInputMode(value: unknown): value is AppState["mutationInputMo
   return value === "text" || value === "evolvepro";
 }
 
-function isEvolveproMode(value: unknown): value is AppState["evolveproMode"] {
+/** Accepts the legacy "others" literal too, callers coerce it to "pipeline". */
+function isEvolveproModeRaw(value: unknown): value is "topN" | "pipeline" | "others" {
   return value === "topN" || value === "pipeline" || value === "others";
 }
 
@@ -84,7 +85,8 @@ function isDistanceMode(value: unknown): value is AppState["distanceMode"] {
   return value === "auto" || value === "1d" || value === "3d";
 }
 
-async function applyKuroSnapshot(snapshot: AutosaveSnapshot): Promise<void> {
+/** Exported for unit testing (legacy "others" -> "pipeline" migration path). */
+export async function applyKuroSnapshot(snapshot: AutosaveSnapshot): Promise<void> {
   const input = snapshot.input as Record<string, unknown> | undefined;
   const params = snapshot.parameters as Record<string, unknown> | undefined;
   const diversity = snapshot.diversity as Record<string, unknown> | undefined;
@@ -106,40 +108,52 @@ async function applyKuroSnapshot(snapshot: AutosaveSnapshot): Promise<void> {
   if (typeof input?.organism === "string") {
     patch.organism = input.organism;
   }
-  if (isEvolveproMode(input?.evolvepro_mode)) {
-    patch.evolveproMode = input.evolvepro_mode;
+  if (isEvolveproModeRaw(input?.evolvepro_mode)) {
+    // Legacy "others" (pre-merge autosaves) coerces to "pipeline", the
+    // "Others" source file is now loaded through evolveproCsvPath with
+    // column-mapping overrides, not a separate mode.
+    patch.evolveproMode = input.evolvepro_mode === "others" ? "pipeline" : input.evolvepro_mode;
   } else if (typeof diversity?.pipeline_mode === "boolean") {
     patch.evolveproMode = diversity.pipeline_mode ? "pipeline" : "topN";
   }
-  if (typeof input?.evolvepro_csv_path === "string" || input?.evolvepro_csv_path === null) {
-    patch.evolveproCsvPath = input.evolvepro_csv_path ?? "";
-  }
-  if (typeof input?.others_source_path === "string" || input?.others_source_path === null) {
-    patch.othersSourcePath = input.others_source_path ?? "";
-  }
-  if (typeof input?.evolvepro_variant_column === "string" || input?.evolvepro_variant_column === null) {
-    patch.evolveproVariantColumn = input.evolvepro_variant_column;
-  }
-  if (typeof input?.evolvepro_score_column === "string" || input?.evolvepro_score_column === null) {
-    patch.evolveproScoreColumn = input.evolvepro_score_column;
-  }
-  if (isScoreOrder(input?.evolvepro_score_order)) {
-    patch.evolveproScoreOrder = input.evolvepro_score_order;
-  }
-  if (typeof input?.evolvepro_sheet_name === "string" || input?.evolvepro_sheet_name === null) {
-    patch.evolveproSheetName = input.evolvepro_sheet_name;
-  }
-  if (typeof input?.others_variant_column === "string" || input?.others_variant_column === null) {
-    patch.othersVariantColumn = input.others_variant_column;
-  }
-  if (typeof input?.others_score_column === "string" || input?.others_score_column === null) {
-    patch.othersScoreColumn = input.others_score_column;
-  }
-  if (isScoreOrder(input?.others_score_order)) {
-    patch.othersScoreOrder = input.others_score_order;
-  }
-  if (typeof input?.others_sheet_name === "string" || input?.others_sheet_name === null) {
-    patch.othersSheetName = input.others_sheet_name;
+  // Legacy fallback: pre-merge autosaves wrote both evolvepro_* (real value
+  // only when mode !== "others") and others_* (real value only when mode
+  // === "others") unconditionally. Pick the channel that was actually
+  // authoritative for the saved mode so an untouched default on the inactive
+  // channel never clobbers the real override.
+  const wasOthersMode = input?.evolvepro_mode === "others";
+  if (wasOthersMode) {
+    if (typeof input?.others_source_path === "string" || input?.others_source_path === null) {
+      patch.evolveproCsvPath = input.others_source_path ?? "";
+    }
+    if (typeof input?.others_variant_column === "string" || input?.others_variant_column === null) {
+      patch.evolveproVariantColumn = input.others_variant_column;
+    }
+    if (typeof input?.others_score_column === "string" || input?.others_score_column === null) {
+      patch.evolveproScoreColumn = input.others_score_column;
+    }
+    if (isScoreOrder(input?.others_score_order)) {
+      patch.evolveproScoreOrder = input.others_score_order;
+    }
+    if (typeof input?.others_sheet_name === "string" || input?.others_sheet_name === null) {
+      patch.evolveproSheetName = input.others_sheet_name;
+    }
+  } else {
+    if (typeof input?.evolvepro_csv_path === "string" || input?.evolvepro_csv_path === null) {
+      patch.evolveproCsvPath = input.evolvepro_csv_path ?? "";
+    }
+    if (typeof input?.evolvepro_variant_column === "string" || input?.evolvepro_variant_column === null) {
+      patch.evolveproVariantColumn = input.evolvepro_variant_column;
+    }
+    if (typeof input?.evolvepro_score_column === "string" || input?.evolvepro_score_column === null) {
+      patch.evolveproScoreColumn = input.evolvepro_score_column;
+    }
+    if (isScoreOrder(input?.evolvepro_score_order)) {
+      patch.evolveproScoreOrder = input.evolvepro_score_order;
+    }
+    if (typeof input?.evolvepro_sheet_name === "string" || input?.evolvepro_sheet_name === null) {
+      patch.evolveproSheetName = input.evolvepro_sheet_name;
+    }
   }
 
   // parameters
@@ -271,10 +285,7 @@ async function applyKuroSnapshot(snapshot: AutosaveSnapshot): Promise<void> {
 
   useAppStore.setState(patch);
 
-  const restoredMode = patch.evolveproMode ?? useAppStore.getState().evolveproMode;
-  const activeSourcePath = restoredMode === "others"
-    ? (typeof input?.others_source_path === "string" ? input.others_source_path : "")
-    : (typeof input?.evolvepro_csv_path === "string" ? input.evolvepro_csv_path : "");
+  const activeSourcePath = patch.evolveproCsvPath ?? useAppStore.getState().evolveproCsvPath;
   if (activeSourcePath) {
     try {
       await useAppStore.getState().loadEvolveproCsv(activeSourcePath);

@@ -7,7 +7,7 @@ import { useArtifact } from "../../../lib/workspace";
 import { Button } from "../../ui/button";
 import { InlineHelp } from "../../ui/InlineHelp";
 import { ArtifactBadge } from "../../widgets/ArtifactBadge";
-import { OthersPanel } from "./OthersPanel";
+import { SourceColumnPanel } from "./SourceColumnPanel";
 import { EvolveproSelectTable } from "../../widgets/EvolveproSelectTable";
 
 export function MutationInput() {
@@ -16,14 +16,11 @@ export function MutationInput() {
   const mutationText = useAppStore((s) => s.mutationText);
   const parsedMutations = useAppStore((s) => s.parsedMutations);
   const parseErrors = useAppStore((s) => s.parseErrors);
-  const setMutationInputMode = useAppStore((s) => s.setMutationInputMode);
   const evolveproCsvPath = useAppStore((s) => s.evolveproCsvPath);
-  const othersSourcePath = useAppStore((s) => s.othersSourcePath);
   const loadEvolveproCsv = useAppStore((s) => s.loadEvolveproCsv);
-  const setOthersSourcePath = useAppStore((s) => s.setOthersSourcePath);
-  const setOthersPreview = useAppStore((s) => s.setOthersPreview);
-  const setOthersVariantColumn = useAppStore((s) => s.setOthersVariantColumn);
-  const setOthersScoreColumn = useAppStore((s) => s.setOthersScoreColumn);
+  const setEvolveproPreview = useAppStore((s) => s.setEvolveproPreview);
+  const setEvolveproVariantColumn = useAppStore((s) => s.setEvolveproVariantColumn);
+  const setEvolveproScoreColumn = useAppStore((s) => s.setEvolveproScoreColumn);
   const artifact = useArtifact("evolvepro_csv");
   const [userOverridden, setUserOverridden] = useState(false);
 
@@ -45,7 +42,7 @@ export function MutationInput() {
   const evolveproExtraExposed = useAppStore((s) => s.evolveproExtraExposed);
   const setEvolveproExtraExposed = useAppStore((s) => s.setEvolveproExtraExposed);
   const setEvolveproVariantSelected = useAppStore((s) => s.setEvolveproVariantSelected);
-  const activeTablePath = evolveproMode === "others" ? othersSourcePath : evolveproCsvPath;
+  const activeTablePath = evolveproCsvPath;
 
   const mutationCount = useMemo(
     () =>
@@ -96,38 +93,10 @@ export function MutationInput() {
         {t("mutationInput.mutations")}
         <InlineHelp text={t("mutationInput.mutationsHelp")} />
       </label>
-      <div className="flex flex-wrap gap-2 text-xs" role="radiogroup" aria-label={t("mutationInput.mutationInputAriaLabel")}>
-        <label className="flex items-center gap-1 rounded-full border border-border bg-card px-2 py-1 text-muted-foreground">
-          <input
-            type="radio"
-            name="mutInput"
-            checked={mutationInputMode === "evolvepro" && evolveproMode !== "others"}
-            onChange={() => {
-              setMutationInputMode("evolvepro");
-              setEvolveproMode("topN");
-            }}
-            className="w-3 h-3"
-          />
-          EVOLVEpro
-        </label>
-        <label className="flex items-center gap-1 rounded-full border border-border bg-card px-2 py-1 text-muted-foreground">
-          <input
-            type="radio"
-            name="mutInput"
-            checked={mutationInputMode === "evolvepro" && evolveproMode === "others"}
-            onChange={() => {
-              setMutationInputMode("evolvepro");
-              setEvolveproMode("others");
-            }}
-            className="w-3 h-3"
-          />
-          {t("mutationInput.others")}
-        </label>
-      </div>
-
       {mutationInputMode === "evolvepro" && (
         <div className="space-y-2">
-          {/* CSV / XLSX file loader (shared by evolvepro and others modes) */}
+          {/* CSV / XLSX file loader, source kind is auto-detected by the backend,
+              not user-declared. Column mapping below is the manual override path. */}
           <div className="flex gap-1">
             <Button
               variant="outline"
@@ -142,13 +111,9 @@ export function MutationInput() {
                   ],
                   (path) => {
                     setUserOverridden(true);
-                    if (evolveproMode === "others") {
-                      setOthersSourcePath(path);
-                      setOthersPreview(null);
-                      setOthersVariantColumn(null);
-                      setOthersScoreColumn(null);
-                      return;
-                    }
+                    setEvolveproPreview(null);
+                    setEvolveproVariantColumn(null);
+                    setEvolveproScoreColumn(null);
                     loadEvolveproCsv(path);
                   },
                 )
@@ -173,47 +138,45 @@ export function MutationInput() {
             </div>
           )}
 
-          {/* Others mode: column mapping panel */}
-          {evolveproMode === "others" && <OthersPanel />}
+          {/* Column mapping panel, always available (auto-detect by default). */}
+          <SourceColumnPanel />
 
-          {/* topN / pipeline mode: selection mode radiogroup */}
-          {evolveproMode !== "others" && (
-            <div className="space-y-1">
-              <div className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">
-                {t("mutationInput.selectionMode")}
-              </div>
-              <div className="space-y-0.5">
-                <label className="flex items-center gap-1.5 cursor-pointer text-xs">
-                  <input
-                    type="radio"
-                    name="selectionMode"
-                    className="w-3 h-3"
-                    checked={evolveproMode === "topN"}
-                    onChange={() => setEvolveproMode("topN")}
-                  />
-                  <span className="text-foreground">{t("mutationInput.topNOnly")}</span>
-                  <span className="text-caption text-muted-foreground">{t("mutationInput.topNDesc")}</span>
-                </label>
-                <div className="ml-5 text-caption text-muted-foreground/70">
-                  {t("mutationInput.topNZeroHint")}
-                </div>
-                <label className="flex items-center gap-1.5 cursor-pointer text-xs">
-                  <input
-                    type="radio"
-                    name="selectionMode"
-                    className="w-3 h-3"
-                    checked={evolveproMode === "pipeline"}
-                    onChange={() => setEvolveproMode("pipeline")}
-                  />
-                  <span className="text-foreground">{t("mutationInput.pipeline")}</span>
-                  <span className="text-caption text-muted-foreground">{t("mutationInput.pipelineDesc")}</span>
-                </label>
-              </div>
+          {/* Selection mode radiogroup */}
+          <div className="space-y-1">
+            <div className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">
+              {t("mutationInput.selectionMode")}
             </div>
-          )}
+            <div className="space-y-0.5">
+              <label className="flex items-center gap-1.5 cursor-pointer text-xs">
+                <input
+                  type="radio"
+                  name="selectionMode"
+                  className="w-3 h-3"
+                  checked={evolveproMode === "topN"}
+                  onChange={() => setEvolveproMode("topN")}
+                />
+                <span className="text-foreground">{t("mutationInput.topNOnly")}</span>
+                <span className="text-caption text-muted-foreground">{t("mutationInput.topNDesc")}</span>
+              </label>
+              <div className="ml-5 text-caption text-muted-foreground/70">
+                {t("mutationInput.topNZeroHint")}
+              </div>
+              <label className="flex items-center gap-1.5 cursor-pointer text-xs">
+                <input
+                  type="radio"
+                  name="selectionMode"
+                  className="w-3 h-3"
+                  checked={evolveproMode === "pipeline"}
+                  onChange={() => setEvolveproMode("pipeline")}
+                />
+                <span className="text-foreground">{t("mutationInput.pipeline")}</span>
+                <span className="text-caption text-muted-foreground">{t("mutationInput.pipelineDesc")}</span>
+              </label>
+            </div>
+          </div>
 
-          {/* EVOLVEpro candidate picker (topN / pipeline only) */}
-          {evolveproMode !== "others" && evolveproRankedCandidates.length > 0 && (() => {
+          {/* EVOLVEpro candidate picker */}
+          {evolveproRankedCandidates.length > 0 && (() => {
             return (
               <div className="space-y-1">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">

@@ -440,7 +440,6 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
         mutationText: s.mutationText,
         evolveproCsvPath: s.evolveproCsvPath,
         selectedGene: s.selectedGene,
-        othersSourcePath: s.othersSourcePath,
       },
       settings: {
         selectedPolymerase: s.selectedPolymerase,
@@ -602,8 +601,9 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
     set({
       mutationInputMode: inputs.mutationInputMode === "text" ? "evolvepro" : (inputs.mutationInputMode ?? "evolvepro"),
       mutationText: inputs.mutationText ?? "",
-      evolveproCsvPath: inputs.evolveproCsvPath ?? "",
-      othersSourcePath: inputs.othersSourcePath ?? "",
+      // Legacy fallback: pre-merge workspaces stored the "Others" source file
+      // path separately. Newer evolveproCsvPath takes priority when present.
+      evolveproCsvPath: inputs.evolveproCsvPath || inputs.othersSourcePath || "",
       fastaPath: inputs.fastaPath ?? "",
       seqInfo: loadedSeqInfo,
       selectedGene: restoredGene,
@@ -659,12 +659,16 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       autoRedesignOnLoad: settings.autoRedesignOnLoad ?? true,
       saveCache: settings.saveCache ?? true,
       ...(settings.organism && { organism: settings.organism }),
-      // Prefer the tri-state evolveproMode when present (saved by newer
-       // workspaces). Fall back to the legacy boolean pipelineMode for
-       // workspaces that pre-date the "others" mode.
+      // Prefer the saved evolveproMode when present. Legacy "others" value
+      // (pre-merge workspaces) coerces to "pipeline", the "Others" source
+      // file is now loaded through the single evolveproCsvPath field with
+      // column-mapping overrides, not a separate mode. Falls back to the
+      // legacy boolean pipelineMode for workspaces that pre-date evolveproMode.
       evolveproMode:
-        settings.evolveproMode ??
-        (settings.pipelineMode === false ? "topN" : "pipeline"),
+        settings.evolveproMode === "others"
+          ? "pipeline"
+          : settings.evolveproMode ??
+            (settings.pipelineMode === false ? "topN" : "pipeline"),
       positionDiversityEnabled: settings.positionDiversityEnabled ?? true,
       maxPerPosition: settings.maxPerPosition ?? 1,
       evolveproRound: settings.evolveproRound ?? 1,
@@ -712,14 +716,16 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       mutationInputMode: "evolvepro",
       mutationText: "",
       evolveproCsvPath: "",
-      othersSourcePath: "",
-      othersVariantColumn: null,
-      othersScoreColumn: null,
-      othersScoreOrder: "desc",
-      othersSheetName: null,
-      othersPreview: null,
-      othersUsedVariantColumn: null,
-      othersUsedScoreColumn: null,
+      evolveproVariantColumn: null,
+      evolveproScoreColumn: null,
+      evolveproScoreOrder: "desc",
+      evolveproSheetName: null,
+      evolveproPreview: null,
+      evolveproUsedVariantColumn: null,
+      evolveproUsedScoreColumn: null,
+      evolveproRankedCandidates: [],
+      evolveproSelectedVariants: [],
+      evolveproExtraExposed: 10,
       yPredMap: {},
       evolveproMode: "pipeline" as const,
       positionDiversityEnabled: true,
