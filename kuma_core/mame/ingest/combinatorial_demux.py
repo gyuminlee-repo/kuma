@@ -63,6 +63,7 @@ from kuma_core.mame.ingest.align import (
 )
 from kuma_core.mame.ingest.consensus import call_consensus_with_metrics
 from kuma_core.mame.ingest.consensus_metadata import (
+    BASIS_COVERED,
     ConsensusMetadata,
     format_consensus_fasta_record,
 )
@@ -1127,6 +1128,7 @@ def run_combinatorial_demux(
                         n_indel_event_positions=n_indel_event_positions,
                         max_indel_event_fraction=max_indel_event_fraction,
                         max_del_run_length=max_del_run_length,
+                        consensus_n_fraction_basis=BASIS_COVERED,
                     ),
                 ),
             )
