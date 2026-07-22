@@ -1619,6 +1619,8 @@
     "othersApplyBtn": "선택한 column 적용",
     "othersApplyError": "Column 불러오기 실패: {{message}}",
     "othersUsedColumn": "적용된 column: {{column}}",
+    "othersUnnamedColumn": "이름 없는 column {{index}}",
+    "othersPanelCrashed": "Column 매핑 패널을 표시하지 못했습니다.",
     "extraExposedLabel": "추가 후보 표시 수:",
     "extraExposedAriaLabel": "표시할 추가 미선택 후보 수",
     "extraExposedHint": "(0 = 선택된 항목만)",
@@ -1890,7 +1892,7 @@
   },
   "exportSlice": {
     "legacyWorkspaceUnsupported": "v0.3 이전 워크스페이스는 지원하지 않습니다. 새 워크스페이스로 시작하세요.",
-    "templateLoadFailed": "템플릿 파일을 불러오지 못했습니다. 템플릿 경로를 다시 지정하세요. 원인: {{error}}"
+    "templateLoadFailed": "템플릿 파일을 불러오지 못했습니다. 템플릿 경로를 다시 지정한 뒤 워크스페이스를 다시 여세요. 원인: {{error}}"
   },
   "inputSlice": {
     "csvFormatError": "{{mode}} CSV 형식 오류: {{detail}}",

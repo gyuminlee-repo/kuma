@@ -5,6 +5,7 @@ import type {
   ComputeDispersionResult,
   DesignResult,
   EvolveproLoadResult,
+  EvolveproPreview,
   ExportMappingResult,
   ExportOrderResult,
   ExportResult,
@@ -803,6 +804,15 @@ function isCancelDesignResult(value: unknown): value is CancelDesignResult {
   );
 }
 
+function isPreviewEvolveproSourceResult(value: unknown): value is EvolveproPreview {
+  return (
+    isRecord(value) &&
+    isArrayOf(value.sheets, isString) &&
+    isArrayOf(value.headers, isString) &&
+    isArrayOf(value.rows, (row): row is string[] => isArrayOf(row, isString))
+  );
+}
+
 const rpcResultValidators = {
   list_polymerases: (value): value is RpcMethodResult<"list_polymerases"> =>
     isArrayOf(value, isPolymeraseInfo),
@@ -887,8 +897,7 @@ const rpcResultValidators = {
   settings_save: (value): value is RpcMethodResult<"settings_save"> =>
     typeof value === "object" && value !== null && "ok" in value && "path" in value,
   preview_evolvepro_source: (value): value is RpcMethodResult<"preview_evolvepro_source"> =>
-    typeof value === "object" && value !== null &&
-    "sheets" in value && "headers" in value && "rows" in value,
+    isPreviewEvolveproSourceResult(value),
   // G001: 3D Analysis panel RPCs
   fetch_pdb_text: (value): value is RpcMethodResult<"fetch_pdb_text"> =>
     isFetchPdbTextResult(value),

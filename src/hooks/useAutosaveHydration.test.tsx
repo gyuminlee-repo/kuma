@@ -10,15 +10,33 @@ import { useAutosaveHydration } from "./useAutosaveHydration";
 const hooks = vi.hoisted(() => ({
   readAutosave: vi.fn(),
   readScratchAutosave: vi.fn(),
+  deleteScratchAutosave: vi.fn(),
+  blockAutosaveWrites: vi.fn(),
+  clearAutosaveBlock: vi.fn(),
+  beginHydration: vi.fn(),
+  endHydration: vi.fn(),
+  ensureAutosaveDir: vi.fn(),
+  autosavePath: vi.fn(),
+  atomicWriteJson: vi.fn(),
   readMameResultSnapshot: vi.fn(),
   sendMameRequest: vi.fn(),
   detectProjectFiles: vi.fn(),
   detectFromInputDir: vi.fn(),
 }));
 
+// 훅이 쓰는 autosave export를 전부 채운다. 하나라도 빠지면 vitest가
+// "No <name> export is defined on the mock"으로 즉시 실패한다.
 vi.mock("@/lib/autosave", () => ({
   readAutosave: hooks.readAutosave,
   readScratchAutosave: hooks.readScratchAutosave,
+  deleteScratchAutosave: hooks.deleteScratchAutosave,
+  blockAutosaveWrites: hooks.blockAutosaveWrites,
+  clearAutosaveBlock: hooks.clearAutosaveBlock,
+  beginHydration: hooks.beginHydration,
+  endHydration: hooks.endHydration,
+  ensureAutosaveDir: hooks.ensureAutosaveDir,
+  autosavePath: hooks.autosavePath,
+  atomicWriteJson: hooks.atomicWriteJson,
 }));
 
 vi.mock("@/lib/mame/resultSnapshot", () => ({

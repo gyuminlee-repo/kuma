@@ -26,9 +26,20 @@ const RPC_TIMEOUT: Duration = Duration::from_secs(60);
 
 type PendingSender = oneshot::Sender<Result<Value, String>>;
 
-/// Truncate `sidecar.log` once it grows past this size. No rolled backups are
-/// kept: the goal is a bounded, recent diagnostic tail, not full history.
+/// Rotate `sidecar.log` once it grows past this size. One rolled backup
+/// (`sidecar.log.1`) is kept, so total on-disk usage stays under 2x this value.
+///
+/// Plain truncation was wrong here: the log crosses this threshold precisely
+/// when stderr is flooding (a Python traceback loop, a crash spew), which is
+/// exactly the tail worth keeping. Rotation keeps a bounded, recent diagnostic
+/// tail instead of dropping it at the moment it matters.
 const SIDECAR_LOG_MAX_BYTES: u64 = 2 * 1024 * 1024;
+
+/// Serializes the size check + rotation + append across sidecar kinds. Without
+/// it, kuro and mame can both observe an oversized log and rotate in turn, so
+/// the second rotation overwrites `sidecar.log.1` with a freshly emptied file
+/// and the retained tail is lost.
+static SIDECAR_LOG_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
 /// Append one sidecar stderr line to `<app_log_dir>/sidecar.log`.
 ///
@@ -45,15 +56,23 @@ fn append_sidecar_log(app_handle: &AppHandle<Wry>, kind: &str, line: &str) {
         return;
     }
     let path = dir.join("sidecar.log");
+
+    // Poison-safe: a panic in another thread must not turn best-effort logging
+    // into a panic here.
+    let _guard = SIDECAR_LOG_LOCK
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+
     let oversized = std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0) > SIDECAR_LOG_MAX_BYTES;
+    if oversized {
+        // Roll the full log aside instead of erasing it, then start a fresh
+        // file. `rename` replaces any previous backup.
+        let rolled = dir.join("sidecar.log.1");
+        let _ = std::fs::rename(&path, &rolled);
+    }
 
     let mut options = std::fs::OpenOptions::new();
-    options.write(true).create(true);
-    if oversized {
-        options.truncate(true);
-    } else {
-        options.append(true);
-    }
+    options.write(true).create(true).append(true);
 
     if let Ok(mut file) = options.open(&path) {
         use std::io::Write;

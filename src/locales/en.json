@@ -1668,6 +1668,8 @@
     "othersApplyBtn": "Apply selected columns",
     "othersApplyError": "Column load failed: {{message}}",
     "othersUsedColumn": "Applied column: {{column}}",
+    "othersUnnamedColumn": "Unnamed column {{index}}",
+    "othersPanelCrashed": "Column mapping panel failed to render.",
     "extraExposedLabel": "Extra candidates shown:",
     "extraExposedAriaLabel": "Number of extra unselected candidates to display",
     "extraExposedHint": "(0 = selected only)",

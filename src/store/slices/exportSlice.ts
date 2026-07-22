@@ -696,10 +696,19 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       structuralKappa: settings.structuralKappa ?? 0.3,
       yPredMap: preloadedYPred ?? {},
       poolVariants: preloadedPoolVariants ?? [],
-      statusMessage: templateLoadError
-        ? i18next.t("exportSlice.templateLoadFailed", { error: templateLoadError })
-        : evolveproReloadError
-        ? `Workspace loaded. EVOLVEpro CSV reload failed: ${evolveproReloadError}`
+      // 두 실패는 독립이다. 분기로 두면 템플릿 실패가 EVOLVEpro 실패를 가려,
+      // 사용자가 템플릿을 고친 뒤에야 두 번째 실패를 처음 보게 된다.
+      statusMessage: templateLoadError || evolveproReloadError
+        ? [
+            templateLoadError
+              ? i18next.t("exportSlice.templateLoadFailed", { error: templateLoadError })
+              : null,
+            evolveproReloadError
+              ? `Workspace loaded. EVOLVEpro CSV reload failed: ${evolveproReloadError}`
+              : null,
+          ]
+            .filter((m): m is string => m !== null)
+            .join(" ")
         : (settings.autoRedesignOnLoad ?? true)
           ? "Workspace loaded. Re-designing to sync backend..."
           : ((results.designResults?.length ?? 0) > 0

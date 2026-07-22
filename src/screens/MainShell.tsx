@@ -166,7 +166,12 @@ export function MainShell() {
     } else if (msg.variant === "restored" && msg.kind === "mame") {
       // auto-detect 결과: savedAt 없이 오는 복원 메시지 (e.g. "Auto-detected: run folder, custom barcodes")
       showStatusMessage(msg.message);
-    } else if (msg.variant === "corrupted" || msg.variant === "schema_too_new") {
+    } else if (
+      msg.variant === "corrupted" ||
+      msg.variant === "schema_too_new" ||
+      // 읽기/쓰기 실패는 침묵하면 안 된다. 이 시점부터 자동 저장이 봉인된다.
+      msg.variant === "io_failed"
+    ) {
       showStatusMessage(msg.message);
     }
   }, [showStatusMessage, t]);
