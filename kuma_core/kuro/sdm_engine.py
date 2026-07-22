@@ -103,12 +103,20 @@ class SdmPrimerResult:
 # Enzyme identity (buffer, salt correction, NEB calibration) belongs to the
 # annealing temperature only (kuro/annealing.py). A profile tm_method /
 # salt_correction / salt_* / dna_conc therefore feeds Ta, never design.
+#
+# The Benchling calculator models monovalent salt and oligo concentration only:
+# no Mg2+, no dNTP term. Carrying a polymerase buffer (dv 1.5 / dntp 0.8) into
+# this scale raised every design Tm by ~5.4 C while the targets stayed at the
+# paper values, so GC-rich sites fell out of the 62/58/42 windows and failed.
+# Verified against a bench-designed pair on pTSN-PtIspS-idi F385Y: Benchling
+# reports 61.6 / 59.5 C, dv 0 / dntp 0 reproduces 61.2 / 59.5 C, dv 1.5 /
+# dntp 0.8 reported 66.7 / 64.8 C.
 _DESIGN_TM_METHOD = "santalucia"
 _DESIGN_SALT_CORRECTION = "santalucia"
 _DESIGN_CONCS = dict(
     mv_conc=50.0,
-    dv_conc=1.5,
-    dntp_conc=0.8,
+    dv_conc=0.0,
+    dntp_conc=0.0,
     dna_conc=250.0,
 )
 
