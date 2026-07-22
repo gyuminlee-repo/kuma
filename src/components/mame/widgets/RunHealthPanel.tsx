@@ -652,6 +652,8 @@ function Legend() {
 
 interface CrossTalkAlertsProps {
   candidates: CrossTalkCandidate[];
+  /** Undefined (payload written before the field existed) is treated as "ok". */
+  status?: RunHealthData["cross_talk_status"];
 }
 
 const SEVERITY_CLASS: Record<CrossTalkCandidate["severity"], string> = {
@@ -666,10 +668,23 @@ const SEVERITY_BORDER: Record<CrossTalkCandidate["severity"], string> = {
   low: "border-info/40",
 };
 
-function CrossTalkAlerts({ candidates }: CrossTalkAlertsProps) {
+function CrossTalkAlerts({ candidates, status }: CrossTalkAlertsProps) {
   const { t } = useTranslation();
   // Sort by z_score descending (defensive: backend already sorts, but guard here too)
   const sorted = [...candidates].sort((a, b) => b.z_score - a.z_score);
+
+  // The check itself could not run: never report that as "no anomalies".
+  if (status === "not_run" || status === "insufficient_data") {
+    return (
+      <p className="text-caption text-muted-foreground" role="status">
+        {t(
+          status === "not_run"
+            ? "mame.runHealth.crossTalkNotRun"
+            : "mame.runHealth.crossTalkInsufficientData",
+        )}
+      </p>
+    );
+  }
 
   if (sorted.length === 0) {
     return (
@@ -893,23 +908,29 @@ export function RunHealthPanel({ health, sections, className, showSectionHeading
                 <BarcodeDistribution distribution={health.barcode_distribution} />
               </section>
             )}
-        </>
-      )}
 
-      {/* Section 6: Cross-talk detection (A9) */}
-      {show("cross-talk") && (
-        <section
-          aria-labelledby="vh-crosstalk-heading"
-          className="col-span-full flex flex-col gap-2"
-        >
-          <h3
-            id="vh-crosstalk-heading"
-            className={headingCls}
-          >
-            {t("mame.runHealth.crossTalkCandidates")}
-          </h3>
-          <CrossTalkAlerts candidates={health.cross_talk_candidates} />
-        </section>
+          {/* Section 6: Cross-talk detection (A9). Inside the MinKNOW block: the
+              check is driven by barcode_alignment*.tsv, so with no raw run data
+              the panel shows the single noMinKnow message instead of a second
+              "check not run" line. */}
+          {show("cross-talk") && (
+            <section
+              aria-labelledby="vh-crosstalk-heading"
+              className="col-span-full flex flex-col gap-2"
+            >
+              <h3
+                id="vh-crosstalk-heading"
+                className={headingCls}
+              >
+                {t("mame.runHealth.crossTalkCandidates")}
+              </h3>
+              <CrossTalkAlerts
+                candidates={health.cross_talk_candidates}
+                status={health.cross_talk_status}
+              />
+            </section>
+          )}
+        </>
       )}
 
       {!hasMinKnow && sections === undefined && (

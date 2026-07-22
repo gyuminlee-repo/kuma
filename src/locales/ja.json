@@ -395,6 +395,8 @@
       "bimodalBadge": "Bimodal",
       "noDistributionData": "分布データなし。",
       "noCrossTalk": "Cross-talk 候補は検出されませんでした。",
+      "crossTalkNotRun": "Cross-talk 検査は未実行です: MinKNOW barcode_alignment データがありません。",
+      "crossTalkInsufficientData": "Cross-talk 判定不能: barcode 数が少なく z-score を計算できません。",
       "noMinKnow": "MinKNOW raw run ディレクトリが検出されません。Pore yield、throughput、barcode チャートは利用できません。",
       "finalActivePoreYield": "最終 active pore yield",
       "figureVerdictBreakdownCaption": "プレートごとの PASS / Ambiguous / Fail / Fallback 件数を示す積み上げ棒グラフ。",

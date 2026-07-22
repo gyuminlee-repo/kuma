@@ -870,12 +870,13 @@ def design_single_sdm(
         # Known and accepted: tm_target_fwd is the paper value 62 C, which is
         # defined for the partial-overlap geometry (fwd 17-39 bp, separate
         # overlap window). Full overlap floors primer length at 25 bp for the
-        # Q5 SDM kit, and a 25 bp primer is usually already hotter than 62 C on
-        # the fixed Benchling scale, so the shortest legal primer can overshoot
-        # the tolerance window and the site yields nothing. This lowered the
-        # Q5 SDM full-mode fixture yield from 6/12 to 4/12 (lost: D227A, E335A).
-        # Kept as-is: it follows the paper method. Splitting the target per
-        # overlap mode is a separate decision. See
+        # Q5 SDM kit, and a 25 bp primer can already be hotter than 62 C on the
+        # fixed Benchling scale, so the shortest legal primer can overshoot the
+        # tolerance window and the site yields nothing. Kept as-is: it follows
+        # the paper method. Splitting the target per overlap mode is a separate
+        # decision. The fixture yield is pinned by
+        # tests/test_annealing_ta_ceiling.py rather than transcribed here, so
+        # it cannot go stale. See
         # docs/2026-07-16-annealing-ta-rules-verified.md.
         tol = tol_step
         while tol <= tol_max + 1e-9:
@@ -1585,6 +1586,7 @@ def design_sdm_primers(
     on_progress: "Callable[[int, int, str], None] | None" = None,
     cancel_check: "Callable[[], bool] | None" = None,
     organism: str = "ecoli",
+    tol_max: float = 4.0,
     overlap_mode: OverlapMode = "partial",
 ) -> tuple[list[SdmPrimerResult], dict[str, list[SdmPrimerResult]], dict[str, str]]:
     """Design SDM primers for a batch of mutations.
@@ -1662,14 +1664,14 @@ def design_sdm_primers(
         if on_progress:
             on_progress(i, total_muts, mut.raw)
         logger.info("Designing primers for %s ...", mut.raw)
-        candidates = design_single_sdm(sequence, mut, profile, overlap_len, codon_strategy=codon_strategy, gc_min=gc_min, gc_max=gc_max, fwd_len_min=fwd_len_min, fwd_len_max=fwd_len_max, rev_len_min=rev_len_min, rev_len_max=rev_len_max, organism=organism, overlap_mode=overlap_mode)
+        candidates = design_single_sdm(sequence, mut, profile, overlap_len, codon_strategy=codon_strategy, gc_min=gc_min, gc_max=gc_max, fwd_len_min=fwd_len_min, fwd_len_max=fwd_len_max, rev_len_min=rev_len_min, rev_len_max=rev_len_max, organism=organism, tol_max=tol_max, overlap_mode=overlap_mode)
         if not candidates:
             failed_reasons[mut.raw] = diagnose_sdm_failure(
                 sequence, mut, profile, overlap_len,
                 codon_strategy=codon_strategy,
                 fwd_len_min=fwd_len_min, fwd_len_max=fwd_len_max,
                 rev_len_min=rev_len_min, rev_len_max=rev_len_max,
-                organism=organism, overlap_mode=overlap_mode,
+                organism=organism, tol_max=tol_max, overlap_mode=overlap_mode,
             )
             logger.warning("FAILED: %s - no valid primer pair found", mut.raw)
             continue

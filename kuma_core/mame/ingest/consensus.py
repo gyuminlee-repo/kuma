@@ -136,9 +136,12 @@ def call_consensus_with_metrics(
     consensus sequence or introducing a new frontend verdict enum.
 
     ``n_low_depth_positions`` counts positions whose total pileup depth is below
-    ``min_depth``. ``consensus_n_fraction`` captures all consensus ``N`` calls,
-    including low depth, deletion majority, ambiguous ties, and raw N votes.
-    ``n_low_quality_bases`` counts FASTQ bases excluded by ``min_base_quality``.
+    ``min_depth``. ``consensus_n_fraction`` is the no-call rate **within the
+    covered amplicon**: numerator and denominator both range over positions whose
+    pileup depth reaches ``min_depth``, so it captures deletion majority,
+    ambiguous ties, and raw N votes while ignoring reference positions the reads
+    never interrogate. ``n_low_quality_bases`` counts FASTQ bases excluded by
+    ``min_base_quality``.
     """
     ref_len = len(reference_seq)
 
@@ -161,6 +164,10 @@ def call_consensus_with_metrics(
     n_mixed_positions = 0
     max_minor_allele_fraction = 0.0
     n_low_depth_positions = 0
+    # Positions the amplicon actually interrogates at usable depth. Used as the
+    # consensus_n_fraction denominator (see below).
+    n_covered_positions = 0
+    n_covered_no_call = 0
     for pos in range(ref_len):
         counts = per_position[pos]
         total = sum(counts.values())
@@ -168,6 +175,7 @@ def call_consensus_with_metrics(
             n_low_depth_positions += 1
             out.append("N")
             continue
+        n_covered_positions += 1
 
         base_counts = {
             base: count for base, count in counts.items() if base.upper() in "ACGT"
@@ -185,13 +193,29 @@ def call_consensus_with_metrics(
         if best_base == "-" or best_count / total < 0.5:
             # Deletion majority or no clear winner → N (gap-free output).
             out.append("N")
+            n_covered_no_call += 1
         else:
-            out.append(best_base.upper() if best_base.upper() in "ACGT" else "N")
+            called = best_base.upper() if best_base.upper() in "ACGT" else "N"
+            out.append(called)
+            if called == "N":
+                n_covered_no_call += 1
 
     consensus_seq = "".join(out)
-    consensus_n_fraction = (
-        consensus_seq.count("N") / ref_len if ref_len > 0 else 0.0
-    )
+    # Amplicon-scoped no-call rate. The denominator is the set of positions the
+    # reads actually interrogate at usable depth, NOT the full reference length.
+    # A reference longer than the amplicon (a plasmid map carrying backbone/UTR,
+    # which translate/aa_translator.py explicitly supports) is all-N outside the
+    # amplicon by construction; dividing by ref_len made that structural gap look
+    # like a quality failure and drove every well to NO_CALL. Ragged read ends are
+    # excluded on the same grounds: they are a coverage shortfall, already reported
+    # via n_low_depth_positions, not a consensus-ambiguity signal.
+    # No position reached usable depth: nothing was callable, so the well is
+    # fully no-call (1.0), not vacuously clean (0.0). Matches the zero-read
+    # ConsensusResult in ingest/well_consensus.py.
+    if n_covered_positions > 0:
+        consensus_n_fraction = n_covered_no_call / n_covered_positions
+    else:
+        consensus_n_fraction = 1.0 if ref_len > 0 else 0.0
 
     # Aggregate indel event signal.
     # Deletion fraction: deletion votes / (base votes + deletion votes) per pos.

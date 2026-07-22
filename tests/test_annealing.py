@@ -91,9 +91,13 @@ def test_phusion_2step_at_exactly_72(registry):
     assert "2-step" in out["ta_detail"]
 
 
-def test_phusion_3step_just_below_72(registry):
-    out = _apply_rule(71.9, _rule(registry, "Phusion"))
-    assert out["ta_mode"] == "3step"
+def test_phusion_3step_just_below_the_ta_boundary(registry):
+    # NEB E0553 section 10 states the promotion on the ANNEALING temperature
+    # ("primers with annealing temperatures >= 72 C"), and Phusion Ta is
+    # Tm(low) + 3 reported in whole degrees, so the Tm boundary sits near 68.5,
+    # not 72.
+    assert _apply_rule(68.4, _rule(registry, "Phusion"))["ta_mode"] == "3step"
+    assert _apply_rule(68.6, _rule(registry, "Phusion"))["ta_mode"] == "2step"
 
 
 def test_q5_3step_plus1(registry):
@@ -108,11 +112,13 @@ def test_q5_2step_at_exactly_72(registry):
     assert out["recommended_ta"] == 72.0
 
 
-def test_q5_sdm_no_2step_even_above_72(registry):
-    # Q5 SDM has no two_step_threshold: stays 3-step at high Tm.
+def test_q5_sdm_2step_above_72(registry):
+    # Q5 SDM shares the Q5 buffer and the Q5 promotion: an offline Tm+3 of 78
+    # would put annealing above the 72 C extension step, which is not a
+    # runnable program, so it collapses to combined anneal/extend at 72 C.
     out = _apply_rule(75.0, _rule(registry, "Q5 SDM"))
-    assert out["ta_mode"] == "3step"
-    assert out["recommended_ta"] == 78.0  # 75 + 3
+    assert out["ta_mode"] == "2step"
+    assert out["recommended_ta"] == 72.0
 
 
 def test_kod_3step_minus5_with_touchdown(registry):

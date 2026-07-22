@@ -117,20 +117,11 @@ function QcVerdictInspector() {
 
   return (
     <div>
-      <KVRow label={t("mame.qc.verdict.inspectorReads")} value={selected.read_count ?? "—"} />
-      <KVRow
-        label={t("mame.qc.verdict.inspectorIdentity")}
-        value={
-          selected.observed_aa_changes.length === 0
-            ? "100%"
-            : `${Math.max(0, 100 - selected.observed_aa_changes.length * 5)}%`
-        }
-      />
+      <KVRow label={t("mame.qc.verdict.inspectorReads")} value={selected.read_count} />
       <KVRow label={t("mame.qc.verdict.inspectorCall")} value={selected.verdict} />
-      <KVRow
-        label={t("mame.qc.verdict.inspectorExport")}
-        value={selected.verdict === "PASS" ? "Included" : "Excluded"}
-      />
+      {/* verdict_notes: backend-authored diagnostic string (VerdictRecord.verdict_notes).
+          Replaces a fabricated "Identity %" that no backend field backed. */}
+      <KVRow label={t("mame.verdictTable.colNotes")} value={selected.verdict_notes} />
     </div>
   );
 }

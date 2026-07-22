@@ -1,6 +1,11 @@
 """8-class verdict classifier.
 
 Priority (fail-first): LOWDEPTH -> INDEL_EVENT (gate -> AMBIGUOUS) -> NO_CALL -> FRAMESHIFT -> MANY -> MIXED -> WRONG_AA -> AMBIGUOUS -> PASS.
+
+Invariant: no verdict counted as reproduced (PASS / AMBIGUOUS, see
+``kuma_core.mame.detected``) is returned before the designed mutations have been
+matched against the observed ones. The INDEL_EVENT gate therefore only awards
+AMBIGUOUS to a well whose designed mutations are already confirmed.
 """
 
 from __future__ import annotations
@@ -19,6 +24,19 @@ _AA_DEL_RE = re.compile(r"^([A-Z\*])(\d+)(del|-)$")
 _NT_INDEL_RE = re.compile(r"^(\d+)_INDEL$")
 
 
+class ExpectedCoordinateMismatchError(ValueError):
+    """Expected-mutation labels do not share a coordinate origin with the reference.
+
+    Observed AA labels are emitted as ``{ref_aa}{pos}{query_aa}``, so the WT
+    character of an observed label at a position IS the reference residue there.
+    When an expected label claims a different WT residue at the same position,
+    the KURO sheet numbering and the CDS numbering disagree (a tag, leader
+    peptide, or plasmid offset). Every well on the plate would then be scored
+    against the wrong residue while still producing clean PASS verdicts, so this
+    is raised to abort the run rather than degraded per well.
+    """
+
+
 def parse_mutation_label(label: str) -> tuple[str, int, str] | None:
     """Parse a human-readable AA label into (wt, position, mt).
 
@@ -33,6 +51,52 @@ def parse_mutation_label(label: str) -> tuple[str, int, str] | None:
     if m is not None:
         return m.group(1), int(m.group(2)), "-"
     return None
+
+
+def _join(notes: list[str], note: str) -> str:
+    """Join accumulated notes with a verdict-specific note, dropping blanks."""
+    return "; ".join([n for n in (*notes, note) if n])
+
+
+def _assert_expected_origin(
+    expected_parsed: dict[int, tuple[str, str]],
+    observed_parsed: dict[int, tuple[str, str]],
+) -> None:
+    """Raise when an expected label disagrees with the reference WT residue.
+
+    Observed labels carry the reference residue as their WT character, so an
+    observed position is direct evidence of ``ref_aa[pos - 1]``. Silence here was
+    the failure mode: a KURO sheet numbered against a tagged or plasmid construct
+    scored the whole plate one offset away from the CDS and still reported PASS.
+    """
+    for pos, (exp_wt, _exp_mt) in expected_parsed.items():
+        if pos not in observed_parsed:
+            continue
+        ref_wt = observed_parsed[pos][0]
+        if ref_wt == exp_wt:
+            continue
+        offsets = sorted(
+            obs_pos - pos
+            for obs_pos, (obs_wt, _mt) in observed_parsed.items()
+            if obs_wt == exp_wt
+        )
+        hint = (
+            f" A position carrying {exp_wt} sits at offset {offsets[0]:+d}"
+            if len(offsets) == 1
+            else (
+                f" Candidate offsets carrying {exp_wt}: "
+                f"{', '.join(f'{o:+d}' for o in offsets)}"
+                if offsets
+                else " No observed position carries the expected WT residue."
+            )
+        )
+        raise ExpectedCoordinateMismatchError(
+            f"expected mutation WT residue disagrees with the reference: "
+            f"reference residue at position {pos} is {ref_wt}, expected label "
+            f"claims {exp_wt}. Expected-mutation numbering and CDS numbering do "
+            f"not share an origin (tag, leader peptide, or plasmid offset)."
+            + hint
+        )
 
 
 def _positions(labels: list[str]) -> set[int]:
@@ -68,6 +132,27 @@ def classify_verdict(
 
     notes: list[str] = []
 
+    observed = list(translated.observed_aa_changes)
+
+    expected_parsed: dict[int, tuple[str, str]] = {}
+    for label in expected_mutations:
+        parsed = parse_mutation_label(label)
+        if parsed is not None:
+            wt, pos, mt = parsed
+            expected_parsed[pos] = (wt, mt)
+
+    observed_parsed: dict[int, tuple[str, str]] = {}
+    for label in observed:
+        parsed = parse_mutation_label(label)
+        if parsed is not None:
+            wt, pos, mt = parsed
+            observed_parsed[pos] = (wt, mt)
+
+    # Coordinate-origin guard. Runs before every verdict gate so a numbering
+    # mismatch aborts the run on the first well that carries evidence, instead of
+    # scoring the whole plate against the wrong residue and reporting clean PASS.
+    _assert_expected_origin(expected_parsed, observed_parsed)
+
     # 1) LOWDEPTH — use real read depth when callers opt into a read-count
     # threshold and the consensus header carries depth=N metadata; otherwise
     # preserve the legacy file-size proxy behavior.
@@ -96,11 +181,28 @@ def classify_verdict(
     # NO_CALL so that a deletion-dominant well (consensus N fraction elevated)
     # is flagged AMBIGUOUS+indel note rather than NO_CALL — giving the user
     # a more actionable signal.
+    #
+    # The gate only awards AMBIGUOUS when this well has already reproduced every
+    # designed mutation with the correct MT. AMBIGUOUS counts as `detected` in
+    # detected.py and ranks first in select/best_pick.py, both of which rest on
+    # the contract "every expected mutation was matched". A gate that returned
+    # AMBIGUOUS before looking at the designed mutations broke that contract and
+    # inflated recovery_rate with wells whose designed variant was absent. When
+    # the designed mutations are NOT confirmed the gate no longer returns; the
+    # indel signal is carried forward as a note and the remaining checks
+    # (NO_CALL / FRAMESHIFT / MANY / MIXED / WRONG_AA) decide the verdict.
+    # An empty expected list is vacuously confirmed, preserving the gate for
+    # wells analyzed without a design (e.g. WT controls).
     if (
         params.max_indel_event_fraction is not None
         and translated.barcode.max_indel_event_fraction
         > params.max_indel_event_fraction
     ):
+        unconfirmed = [
+            f"{wt}{pos}{mt}"
+            for pos, (wt, mt) in expected_parsed.items()
+            if pos not in observed_parsed or observed_parsed[pos][1] != mt
+        ]
         # Informational run-length annotation. The deletion-majority run length
         # distinguishes an isolated single-position alignment artifact (run=1)
         # from a multi-position true deletion (run>=2), and flags an
@@ -115,25 +217,42 @@ def classify_verdict(
             )
         else:
             run_note = f" (deletion {del_run}-bp contiguous run)"
-        return VerdictRecord(
-            translated=translated,
-            expected_mutations=list(expected_mutations),
-            verdict=VerdictClass.AMBIGUOUS,
-            verdict_notes=(
-                "indel event signal: "
-                f"max_indel_event_fraction="
-                f"{translated.barcode.max_indel_event_fraction:.3f} > "
-                f"threshold={params.max_indel_event_fraction:.3f}; "
-                f"n_indel_event_positions="
-                f"{translated.barcode.n_indel_event_positions}"
-                + run_note
-            ),
+        indel_note = (
+            "indel event signal: "
+            f"max_indel_event_fraction="
+            f"{translated.barcode.max_indel_event_fraction:.3f} > "
+            f"threshold={params.max_indel_event_fraction:.3f}; "
+            f"n_indel_event_positions="
+            f"{translated.barcode.n_indel_event_positions}"
+            + run_note
         )
+        if not unconfirmed:
+            return VerdictRecord(
+                translated=translated,
+                expected_mutations=list(expected_mutations),
+                verdict=VerdictClass.AMBIGUOUS,
+                verdict_notes=indel_note,
+            )
+        notes.append(indel_note)
 
     # NO_CALL — consensus carries too many N (ambiguous) positions to trust the
     # AA calls. Distinct from LOWDEPTH (a genuine read-count shortage, above):
     # here depth can be ample but the consensus is dominated by no-call bases.
+    #
+    # A well whose consensus_n_fraction is not evaluable skips this gate in both
+    # directions: it is neither failed on a number that means something else nor
+    # quietly passed as if it were clean. The reason travels with the well in
+    # verdict_notes so the operator can act on it.
     if (
+        params.max_consensus_n_fraction is not None
+        and not translated.barcode.consensus_n_fraction_evaluable
+    ):
+        notes.append(
+            "consensus_n_fraction not evaluable (legacy consensus file without "
+            "a covered-scoped N fraction); N-fraction gate skipped, re-run "
+            "consensus to restore it"
+        )
+    elif (
         params.max_consensus_n_fraction is not None
         and translated.barcode.consensus_n_fraction
         > params.max_consensus_n_fraction
@@ -189,10 +308,10 @@ def classify_verdict(
             translated=translated,
             expected_mutations=list(expected_mutations),
             verdict=VerdictClass.FRAMESHIFT,
-            verdict_notes="consecutive NT indels within frameshift window",
+            verdict_notes=_join(
+                notes, "consecutive NT indels within frameshift window"
+            ),
         )
-
-    observed = list(translated.observed_aa_changes)
 
     # 3) MANY — too many AA changes to be a clean call. The cutoff is an
     # *excess* gate, not an absolute one: a well can never be MANY when it
@@ -211,22 +330,12 @@ def classify_verdict(
             translated=translated,
             expected_mutations=list(expected_mutations),
             verdict=VerdictClass.MANY,
-            verdict_notes=f"observed {len(observed)} AA changes > cutoff {params.many_mutation_cutoff}",
+            verdict_notes=_join(
+                notes,
+                f"observed {len(observed)} AA changes > cutoff "
+                f"{params.many_mutation_cutoff}",
+            ),
         )
-
-    expected_parsed: dict[int, tuple[str, str]] = {}
-    for label in expected_mutations:
-        parsed = parse_mutation_label(label)
-        if parsed is not None:
-            wt, pos, mt = parsed
-            expected_parsed[pos] = (wt, mt)
-
-    observed_parsed: dict[int, tuple[str, str]] = {}
-    for label in observed:
-        parsed = parse_mutation_label(label)
-        if parsed is not None:
-            wt, pos, mt = parsed
-            observed_parsed[pos] = (wt, mt)
 
     # MIXED — within-well contamination. A substantial second allele (for
     # example 51/49) means majority consensus can look exact while the well is
@@ -237,11 +346,12 @@ def classify_verdict(
             translated=translated,
             expected_mutations=list(expected_mutations),
             verdict=VerdictClass.MIXED,
-            verdict_notes=(
+            verdict_notes=_join(
+                notes,
                 "mixed consensus signal: "
                 f"{translated.barcode.n_mixed_positions} positions, "
                 "max_minor_allele_fraction="
-                f"{translated.barcode.max_minor_allele_fraction:.3f}"
+                f"{translated.barcode.max_minor_allele_fraction:.3f}",
             ),
         )
 
@@ -254,8 +364,10 @@ def classify_verdict(
                     translated=translated,
                     expected_mutations=list(expected_mutations),
                     verdict=VerdictClass.WRONG_AA,
-                    verdict_notes=(
-                        f"expected {exp_wt}{pos}{exp_mt}, observed {obs_wt}{pos}{obs_mt}"
+                    verdict_notes=_join(
+                        notes,
+                        f"expected {exp_wt}{pos}{exp_mt}, "
+                        f"observed {obs_wt}{pos}{obs_mt}",
                     ),
                 )
 
@@ -272,7 +384,9 @@ def classify_verdict(
             translated=translated,
             expected_mutations=list(expected_mutations),
             verdict=VerdictClass.WRONG_AA,
-            verdict_notes=f"missing expected: {', '.join(missing_expected)}",
+            verdict_notes=_join(
+                notes, f"missing expected: {', '.join(missing_expected)}"
+            ),
         )
 
     # 5) AMBIGUOUS — expected positions are all matched, but extra AA changes
@@ -296,7 +410,7 @@ def classify_verdict(
             translated=translated,
             expected_mutations=list(expected_mutations),
             verdict=VerdictClass.AMBIGUOUS,
-            verdict_notes="; ".join(window_hits),
+            verdict_notes=_join(notes, "; ".join(window_hits)),
         )
 
     # Any remaining extras outside the window disqualify a clean PASS.
@@ -308,7 +422,9 @@ def classify_verdict(
             translated=translated,
             expected_mutations=list(expected_mutations),
             verdict=VerdictClass.WRONG_AA,
-            verdict_notes=f"unexpected extra mutations: {', '.join(tags)}",
+            verdict_notes=_join(
+                notes, f"unexpected extra mutations: {', '.join(tags)}"
+            ),
         )
 
     # 6) PASS — observed exactly matches expected.
@@ -316,5 +432,7 @@ def classify_verdict(
         translated=translated,
         expected_mutations=list(expected_mutations),
         verdict=VerdictClass.PASS,
-        verdict_notes="",
+        # Accumulated notes must survive a PASS: a skipped-gate advisory is only
+        # actionable if it reaches the well it applies to.
+        verdict_notes="; ".join(notes),
     )

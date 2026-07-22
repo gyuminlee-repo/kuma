@@ -182,7 +182,8 @@ def _serialize_result_with_counts(r: SdmPrimerResult) -> SdmPrimerResultModel:
 # GC margin of ±5 pp keeps primers within the broadly accepted 20-80% range
 # while relaxing the user-specified optimum window.
 _DEFAULT_TOL_MAX = 4.0   # must match design_single_sdm() default
-_RELAX_TOL_DELTA = 2.0   # °C added to default tol_max (4.0 + 2.0 = 6.0)
+_RELAX_TOL_DELTA = 2.0   # °C added to the requested tol_max (4.0 + 2.0 = 6.0)
+_MAX_TOL_MAX = 10.0      # must match models.py tol_max Field(le=...)
 _RELAX_GC_DELTA = 5      # percentage points widened on each side
 _GC_FLOOR = 20           # absolute minimum GC% (Integrated DNA Technologies guideline)
 _GC_CEIL = 80            # absolute maximum GC% (Integrated DNA Technologies guideline)
@@ -323,6 +324,7 @@ def handle_design_sdm_primers(params: dict) -> dict:
             on_progress=_on_progress,
             cancel_check=cancel_event.is_set,
             organism=p.organism,
+            tol_max=p.tol_max,
             overlap_mode=p.overlap_mode,
         )
         if cancel_event.is_set():
@@ -334,7 +336,7 @@ def handle_design_sdm_primers(params: dict) -> dict:
         }
         rescued_info: list[dict] = []
 
-        if p.rescue_pool and engine_failures:
+        if engine_failures and (p.rescue_pool or p.auto_relax):
             _progress(82, f"Rescuing {len(engine_failures)} failed position(s)...")
             _header_r, sequence_r, _genes_r = load_sequence(resolved_fasta)
             profile = _build_profile(p)
@@ -357,50 +359,53 @@ def handle_design_sdm_primers(params: dict) -> dict:
             still_failed: dict[str, str] = {}
             designed_muts = {r.mutation.raw for r in results}
 
-            for failed_mut, reason in engine_failures.items():
-                if cancel_event.is_set():
-                    return _cancelled_result()
-                m = _POS_RE.search(failed_mut)
-                if not m:
-                    still_failed[failed_mut] = reason
-                    continue
-                pos = int(m.group(1))
-                rescue_stats["positions_attempted"] += 1
-                rescued = False
-                for backup in rescue_by_pos.get(pos, []):
+            if p.rescue_pool:
+                for failed_mut, reason in engine_failures.items():
                     if cancel_event.is_set():
                         return _cancelled_result()
-                    if backup == failed_mut or backup in designed_muts:
+                    m = _POS_RE.search(failed_mut)
+                    if not m:
+                        still_failed[failed_mut] = reason
                         continue
-                    rescue_stats["pool_variants_tried"] += 1
-                    try:
-                        mut_obj = _build_mutation(backup, sequence_r, p.target_start, p.organism)
-                        cands = design_single_sdm(
-                            sequence_r, mut_obj, profile, p.overlap_len, **design_kw,
-                        )
-                        if cands:
-                            best = cands[0]
-                            results.append(best)
-                            all_cands[backup] = cands
-                            designed_muts.add(backup)
-                            rescue_stats["pool_cascade"] += 1
-                            rescued_info.append({
-                                "original": failed_mut, "rescued_by": backup,
-                                "type": "pool_cascade",
-                                "penalty": round(best.penalty, 2),
-                                "tolerance_used": best.tolerance_used,
-                            })
-                            rescued = True
-                            break
-                    except (ValueError, IndexError):
-                        continue
-                if not rescued:
-                    still_failed[failed_mut] = reason
+                    pos = int(m.group(1))
+                    rescue_stats["positions_attempted"] += 1
+                    rescued = False
+                    for backup in rescue_by_pos.get(pos, []):
+                        if cancel_event.is_set():
+                            return _cancelled_result()
+                        if backup == failed_mut or backup in designed_muts:
+                            continue
+                        rescue_stats["pool_variants_tried"] += 1
+                        try:
+                            mut_obj = _build_mutation(backup, sequence_r, p.target_start, p.organism)
+                            cands = design_single_sdm(
+                                sequence_r, mut_obj, profile, p.overlap_len, **design_kw,
+                            )
+                            if cands:
+                                best = cands[0]
+                                results.append(best)
+                                all_cands[backup] = cands
+                                designed_muts.add(backup)
+                                rescue_stats["pool_cascade"] += 1
+                                rescued_info.append({
+                                    "original": failed_mut, "rescued_by": backup,
+                                    "type": "pool_cascade",
+                                    "penalty": round(best.penalty, 2),
+                                    "tolerance_used": best.tolerance_used,
+                                })
+                                rescued = True
+                                break
+                        except (ValueError, IndexError):
+                            continue
+                    if not rescued:
+                        still_failed[failed_mut] = reason
+            else:
+                still_failed = dict(engine_failures)
 
             if p.auto_relax:
                 relax_kw = {
                     **design_kw,
-                    "tol_max": _DEFAULT_TOL_MAX + _RELAX_TOL_DELTA,
+                    "tol_max": min(p.tol_max + _RELAX_TOL_DELTA, _MAX_TOL_MAX),
                     "gc_min": max(_GC_FLOOR, p.gc_min - _RELAX_GC_DELTA),
                     "gc_max": min(_GC_CEIL, p.gc_max + _RELAX_GC_DELTA),
                 }

@@ -395,6 +395,8 @@
       "bimodalBadge": "Бимодальное",
       "noDistributionData": "Нет данных распределения.",
       "noCrossTalk": "Кандидаты cross-talk не обнаружены.",
+      "crossTalkNotRun": "Проверка cross-talk не выполнена: нет данных MinKNOW barcode_alignment.",
+      "crossTalkInsufficientData": "Проверка cross-talk неопределённа: слишком мало barcode для z-score.",
       "noMinKnow": "Папка raw run MinKNOW не обнаружена. Графики pore yield, throughput и barcode недоступны.",
       "finalActivePoreYield": "Финальный active pore yield",
       "figureVerdictBreakdownCaption": "Stacked bar с количествами PASS, Ambiguous, Fail и Fallback на plate.",

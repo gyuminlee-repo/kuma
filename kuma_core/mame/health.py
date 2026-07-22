@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import csv
 import io
+import re
 import statistics
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
@@ -44,7 +45,12 @@ if TYPE_CHECKING:
 
 @dataclass
 class CrossTalkCandidate:
-    """A well suspected of barcode cross-talk based on spatial neighbor analysis."""
+    """A well suspected of barcode cross-talk based on read-count outlier statistics.
+
+    The flag comes from a plate-wide z-score. ``neighbor_avg`` is informational
+    context only, and stays 0.0 unless the distribution keys are A1..H12 well
+    labels (MinKNOW ``barcodeNN`` labels have no grid position).
+    """
 
     well: str
     """Well label, e.g. "A1", "B6"."""
@@ -103,7 +109,19 @@ class RunHealthData:
 
     cross_talk_candidates: list[CrossTalkCandidate] = field(default_factory=list)
     """Wells flagged as potential cross-talk sources (A9 milestone).
-    Empty list when detection is skipped or no anomalies are found."""
+    Empty list when detection is skipped or no anomalies are found. Read together
+    with ``cross_talk_status``: an empty list only means "no anomalies" when the
+    status is ``"ok"``."""
+
+    cross_talk_status: str = "not_run"
+    """Outcome of the cross-talk check itself, independent of the candidate list.
+
+    - ``"not_run"``: no barcode distribution was available (no MinKNOW
+      ``barcode_alignment*.tsv``, unreadable file, or no usable rows).
+    - ``"insufficient_data"``: fewer than 5 barcodes, or a degenerate spread
+      (zero standard deviation) that makes a z-score undefined.
+    - ``"ok"``: the check ran; ``cross_talk_candidates`` is authoritative.
+    """
     recovered_mutants: int | None = None
     total_mutants: int | None = None
     recovery_rate: float | None = None
@@ -143,6 +161,9 @@ _COUNT_COLS = [
     "read_count",
     "count",
 ]
+
+# barcode00 / NB00 placeholder lanes (see ingest.demux.detect_native_barcode_dirs)
+_ZERO_BARCODE_PATTERN = re.compile(r"^(?:barcode|nb)0*$")
 
 
 def _first_col(header: list[str], candidates: list[str]) -> str | None:
@@ -212,8 +233,25 @@ def _parse_throughput(run_dir: Path) -> list[dict[str, float]] | None:
         return None
 
 
+def _is_excluded_barcode_label(label: str) -> bool:
+    """Return True for labels that are not real sample barcodes.
+
+    Mirrors ``ingest.demux.detect_native_barcode_dirs``: ``unclassified`` and the
+    ``barcode00`` / ``NB00`` placeholders are not sample lanes, so they must stay
+    out of any per-barcode statistic.
+    """
+    norm = label.strip().lower()
+    if norm in {"unclassified", "unassigned", "none"}:
+        return True
+    return bool(_ZERO_BARCODE_PATTERN.match(norm))
+
+
 def _parse_barcode_alignment(run_dir: Path) -> dict[str, int] | None:
-    """Parse barcode_alignment*.tsv into {barcode: read_count}, or return None."""
+    """Parse barcode_alignment*.tsv into {barcode: read_count}, or return None.
+
+    ``unclassified`` / ``barcode00`` rows are dropped so downstream statistics
+    (cross-talk z-scores) run over sample lanes only.
+    """
     try:
         # Prefer the *_passed variant when available
         files = sorted(run_dir.glob("barcode_alignment_passed*.tsv"))
@@ -233,7 +271,7 @@ def _parse_barcode_alignment(run_dir: Path) -> dict[str, int] | None:
             try:
                 bc = row.get(bc_col, "").strip()
                 cnt_raw = row.get(cnt_col, "").strip()
-                if bc and cnt_raw:
+                if bc and cnt_raw and not _is_excluded_barcode_label(bc):
                     dist[bc] = int(float(cnt_raw))
             except (ValueError, AttributeError):
                 continue
@@ -282,16 +320,17 @@ def _well_neighbors(well: str) -> list[str]:
     return neighbors
 
 
-def detect_cross_talk(
+def detect_cross_talk_with_status(
     barcode_distribution: dict[str, int] | None,
     z_threshold: float = 2.5,
-) -> list[CrossTalkCandidate]:
-    """Detect wells with abnormally high read counts compared with their plate neighbors.
+) -> tuple[list[CrossTalkCandidate], str]:
+    """Detect read-count outliers and report whether the check could run at all.
 
     The algorithm has two metrics per well:
 
     1. **neighbor_avg**: mean read count of orthogonal neighbors (up/down/left/right).
-       Provides spatial context but is *not* used in the z-score formula.
+       Informational only; it is *not* used in the z-score formula, and stays 0.0
+       for keys that are not A1..H12 well labels (MinKNOW ``barcodeNN`` labels).
     2. **z_score**: (well_count − population_mean) / population_std, where the
        population is the entire ``barcode_distribution``.  A well whose z_score
        exceeds ``z_threshold`` (default 2.5) is flagged as a candidate.
@@ -313,21 +352,26 @@ def detect_cross_talk(
 
     Returns
     -------
-    list[CrossTalkCandidate]
-        Candidates sorted by z_score descending.  Empty list when
-        ``barcode_distribution`` is ``None`` or has fewer than 5 entries.
+    tuple[list[CrossTalkCandidate], str]
+        Candidates sorted by z_score descending, plus a status string:
+        ``"not_run"`` (no distribution at all), ``"insufficient_data"``
+        (fewer than 5 barcodes, or an undefined/zero standard deviation), or
+        ``"ok"``.  An empty candidate list means "no anomalies" only when the
+        status is ``"ok"``.
     """
-    if barcode_distribution is None or len(barcode_distribution) < 5:
-        return []
+    if barcode_distribution is None:
+        return [], "not_run"
+    if len(barcode_distribution) < 5:
+        return [], "insufficient_data"
 
     counts = list(barcode_distribution.values())
     mean = statistics.mean(counts)
     try:
         std = statistics.stdev(counts)
     except statistics.StatisticsError:
-        return []
+        return [], "insufficient_data"
     if std == 0:
-        return []
+        return [], "insufficient_data"
 
     candidates: list[CrossTalkCandidate] = []
 
@@ -369,6 +413,19 @@ def detect_cross_talk(
         )
 
     candidates.sort(key=lambda c: c.z_score, reverse=True)
+    return candidates, "ok"
+
+
+def detect_cross_talk(
+    barcode_distribution: dict[str, int] | None,
+    z_threshold: float = 2.5,
+) -> list[CrossTalkCandidate]:
+    """Candidate-only view of :func:`detect_cross_talk_with_status`.
+
+    Callers that need to tell "check did not run" from "check found nothing"
+    must use :func:`detect_cross_talk_with_status` instead.
+    """
+    candidates, _status = detect_cross_talk_with_status(barcode_distribution, z_threshold)
     return candidates
 
 
@@ -453,7 +510,7 @@ def build_run_health(
                 barcode_distribution = barcode_future.result()
 
     # ── Cross-talk detection (A9) ─────────────────────────────────────────
-    cross_talk_candidates = detect_cross_talk(barcode_distribution)
+    cross_talk_candidates, cross_talk_status = detect_cross_talk_with_status(barcode_distribution)
 
     # ── Recovery (재현율) overlay — designed-set dependent ─────────────────
     _recovery = compute_recovery(replicates, designed_mutant_ids)
@@ -468,6 +525,7 @@ def build_run_health(
         throughput_timeline=throughput_timeline,
         barcode_distribution=barcode_distribution,
         cross_talk_candidates=cross_talk_candidates,
+        cross_talk_status=cross_talk_status,
         recovered_mutants=_recovery.recovered_mutants if _recovery else None,
         total_mutants=_recovery.total_mutants if _recovery else None,
         recovery_rate=_recovery.recovery_rate if _recovery else None,
@@ -479,5 +537,6 @@ __all__ = [
     "RunHealthData",
     "build_run_health",
     "detect_cross_talk",
+    "detect_cross_talk_with_status",
     "_well_neighbors",
 ]

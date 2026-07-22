@@ -395,6 +395,8 @@
       "bimodalBadge": "双峰",
       "noDistributionData": "无分布数据。",
       "noCrossTalk": "未检测到 cross-talk 候选。",
+      "crossTalkNotRun": "未执行 cross-talk 检查：缺少 MinKNOW barcode_alignment 数据。",
+      "crossTalkInsufficientData": "cross-talk 检查无法判定：barcode 数量不足，无法计算 z-score。",
       "noMinKnow": "未检测到 MinKNOW raw run 目录。Pore yield, throughput, barcode 图表不可用。",
       "finalActivePoreYield": "最终活跃 pore yield",
       "figureVerdictBreakdownCaption": "堆叠条形图显示每板的 PASS, Ambiguous, Fail, Fallback 计数。",
