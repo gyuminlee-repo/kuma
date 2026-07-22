@@ -336,7 +336,7 @@ def handle_design_sdm_primers(params: dict) -> dict:
         }
         rescued_info: list[dict] = []
 
-        if p.rescue_pool and engine_failures:
+        if engine_failures and (p.rescue_pool or p.auto_relax):
             _progress(82, f"Rescuing {len(engine_failures)} failed position(s)...")
             _header_r, sequence_r, _genes_r = load_sequence(resolved_fasta)
             profile = _build_profile(p)
@@ -359,45 +359,48 @@ def handle_design_sdm_primers(params: dict) -> dict:
             still_failed: dict[str, str] = {}
             designed_muts = {r.mutation.raw for r in results}
 
-            for failed_mut, reason in engine_failures.items():
-                if cancel_event.is_set():
-                    return _cancelled_result()
-                m = _POS_RE.search(failed_mut)
-                if not m:
-                    still_failed[failed_mut] = reason
-                    continue
-                pos = int(m.group(1))
-                rescue_stats["positions_attempted"] += 1
-                rescued = False
-                for backup in rescue_by_pos.get(pos, []):
+            if p.rescue_pool:
+                for failed_mut, reason in engine_failures.items():
                     if cancel_event.is_set():
                         return _cancelled_result()
-                    if backup == failed_mut or backup in designed_muts:
+                    m = _POS_RE.search(failed_mut)
+                    if not m:
+                        still_failed[failed_mut] = reason
                         continue
-                    rescue_stats["pool_variants_tried"] += 1
-                    try:
-                        mut_obj = _build_mutation(backup, sequence_r, p.target_start, p.organism)
-                        cands = design_single_sdm(
-                            sequence_r, mut_obj, profile, p.overlap_len, **design_kw,
-                        )
-                        if cands:
-                            best = cands[0]
-                            results.append(best)
-                            all_cands[backup] = cands
-                            designed_muts.add(backup)
-                            rescue_stats["pool_cascade"] += 1
-                            rescued_info.append({
-                                "original": failed_mut, "rescued_by": backup,
-                                "type": "pool_cascade",
-                                "penalty": round(best.penalty, 2),
-                                "tolerance_used": best.tolerance_used,
-                            })
-                            rescued = True
-                            break
-                    except (ValueError, IndexError):
-                        continue
-                if not rescued:
-                    still_failed[failed_mut] = reason
+                    pos = int(m.group(1))
+                    rescue_stats["positions_attempted"] += 1
+                    rescued = False
+                    for backup in rescue_by_pos.get(pos, []):
+                        if cancel_event.is_set():
+                            return _cancelled_result()
+                        if backup == failed_mut or backup in designed_muts:
+                            continue
+                        rescue_stats["pool_variants_tried"] += 1
+                        try:
+                            mut_obj = _build_mutation(backup, sequence_r, p.target_start, p.organism)
+                            cands = design_single_sdm(
+                                sequence_r, mut_obj, profile, p.overlap_len, **design_kw,
+                            )
+                            if cands:
+                                best = cands[0]
+                                results.append(best)
+                                all_cands[backup] = cands
+                                designed_muts.add(backup)
+                                rescue_stats["pool_cascade"] += 1
+                                rescued_info.append({
+                                    "original": failed_mut, "rescued_by": backup,
+                                    "type": "pool_cascade",
+                                    "penalty": round(best.penalty, 2),
+                                    "tolerance_used": best.tolerance_used,
+                                })
+                                rescued = True
+                                break
+                        except (ValueError, IndexError):
+                            continue
+                    if not rescued:
+                        still_failed[failed_mut] = reason
+            else:
+                still_failed = dict(engine_failures)
 
             if p.auto_relax:
                 relax_kw = {
