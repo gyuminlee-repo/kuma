@@ -69,6 +69,21 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
     }, 300);
   }
 
+  // If a Top-N-only session skipped the initial BLAST-backed UniProt
+  // auto-search (see sequenceSlice.ts diversityConsumersEnabled gate),
+  // uniprotAccession stays empty. Backfill it once the user later enables an
+  // accession consumer (domain/pareto/structural diversity), so domain fetch
+  // and the 3D view aren't silently empty.
+  function maybeBackfillUniprotSearch() {
+    const state = get();
+    if (state.uniprotAccession || state.uniprotSearching) return;
+    const seqInfo = state.seqInfo;
+    const gene = seqInfo?.genes.find((g) => String(g.cds_start) === state.selectedGene) ?? seqInfo?.genes[0];
+    const translation = gene?.translation ?? "";
+    if (!gene || !translation) return;
+    void state.searchUniprot(gene.gene, gene.organism ?? state.organism, translation, gene.uniprot_accession ?? "");
+  }
+
   // NOTE: 호출자(searchUniprot)가 requireNetworkConsent 통과를 보장함.
   // 이 함수를 다른 곳에서 직접 호출할 경우 consent 가드를 별도로 추가할 것.
   async function enrichUniprotStructureFlags(searchGeneration: number, accessions: string[]) {
@@ -149,6 +164,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   setDomainDiversityEnabled: (enabled: boolean) => {
     set({ domainDiversityEnabled: enabled });
     debouncedReload();
+    if (enabled) maybeBackfillUniprotSearch();
   },
 
   setDomainStrategy: (strategy: "proportional" | "equal") => {
@@ -253,10 +269,12 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   setParetoDiversityEnabled: (enabled: boolean) => {
     set({ paretoDiversityEnabled: enabled });
     debouncedReload();
+    if (enabled) maybeBackfillUniprotSearch();
   },
   setStructuralDiversityEnabled: (enabled: boolean) => {
     set({ structuralDiversityEnabled: enabled });
     debouncedReload();
+    if (enabled) maybeBackfillUniprotSearch();
   },
 
   setStructuralKappa: (v: number) => {
