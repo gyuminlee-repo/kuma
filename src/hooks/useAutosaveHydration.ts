@@ -40,10 +40,23 @@ import type { MameAutosaveSnapshot } from "@/lib/mame/autosaveSnapshot";
 
 export interface HydrationStatusMessage {
   kind: "kuro" | "mame";
-  variant: "restored" | "corrupted" | "schema_too_new" | "missing" | "io_failed";
+  variant:
+    | "restored"
+    | "corrupted"
+    | "schema_too_new"
+    | "missing"
+    | "io_failed"
+    /** 복원된 결과물이 재선택된 variant 목록과 어긋나 폐기됐다. */
+    | "results_discarded";
   message: string;
   /** ISO 문자열. "5분 전" 표시용 */
   savedAt?: string;
+}
+
+/** applyKuroSnapshot 결과. 호출부가 사용자 알림을 결정하는 데 쓴다. */
+export interface KuroSnapshotApplyOutcome {
+  /** 재선택된 variant 목록과 어긋나 복원된 결과물을 폐기했으면 true. */
+  resultsDiscarded: boolean;
 }
 
 // ─── 상대 시간 포맷 헬퍼 ─────────────────────────────────────────────────
@@ -97,8 +110,65 @@ function isDistanceMode(value: unknown): value is AppState["distanceMode"] {
   return value === "auto" || value === "1d" || value === "3d";
 }
 
+/**
+ * 재선택된 variant 목록과 복원된 결과물이 어긋나면 결과물을 비운다.
+ *
+ * loadEvolveproCsv는 source 파일을 다시 읽어 mutationText를 새 variant 목록으로
+ * 덮어쓴다(inputSlice.helpers.ts buildEvolveproLoadStateUpdate). CSV가 편집됐거나
+ * round/quota 설정이 달라졌으면 그 목록이 스냅샷 저장 시점과 달라지고, 표에는 옛
+ * 프라이머가 목록에는 새 변이가 남는 조용한 불일치가 생긴다. 조용히 유지하는 대신
+ * 결과물을 비우고 호출부가 사용자에게 알리게 한다.
+ *
+ * 비교 방향: designResults의 mutation 라벨(SdmPrimerResult.mutation)이 전부
+ * (재선택 목록 ∪ poolVariants)에 들어 있는지 본다. rescue로 설계된 프라이머는
+ * mutationText에 없고 poolVariants에만 있으므로 pool까지 허용해야 오발화하지
+ * 않는다. 반대 방향(재선택 목록 ⊆ 결과물)은 설계 실패 변이(failedMutations)
+ * 때문에 정상 상태에서도 늘 어긋나므로 쓰지 않는다.
+ *
+ * 한계(false negative): CSV가 바뀌어도 옛 mutation이 새 pool에 그대로 남아 있으면
+ * 감지하지 못한다. 조용히 틀린 표를 남기지 않는 쪽만 보장한다.
+ *
+ * 재설계까지 돌리지는 않는다. restoreWorkspace(autoRedesignOnLoad)는 사용자가
+ * 명시적으로 연 워크스페이스라 재설계가 정당하지만, 자동 저장 복원은 앱 진입
+ * 경로여서 사이드카 설계 작업을 자동으로 띄우는 건 과하다.
+ */
+function discardResultsIfVariantsDiverged(): boolean {
+  const state = useAppStore.getState();
+  if (state.designResults.length === 0) return false;
+
+  // prepareDesignInput(designSlice.helpers.ts)의 토큰화와 동일하게 맞춘다.
+  const allowed = new Set(
+    state.mutationText
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line && !line.startsWith("#")),
+  );
+  for (const variant of state.poolVariants) allowed.add(variant);
+
+  const diverged = state.designResults.some((r) => !allowed.has(r.mutation));
+  if (!diverged) return false;
+
+  // 결과물 블록을 한 번에 비운다. 스냅샷 results 블록이 채우는 필드와 1:1로
+  // 맞춰야 표와 카운터가 어긋나지 않는다.
+  useAppStore.setState({
+    designResults: [],
+    successCount: 0,
+    totalCount: 0,
+    failedMutations: [],
+    plateMappings: [],
+    dedupInfo: {},
+    manuallySwapped: {},
+    customCandidates: {},
+    rescuedMutationDetails: [],
+    backendDesignStateSynced: false,
+  });
+  return true;
+}
+
 /** Exported for unit testing (legacy "others" -> "pipeline" migration path). */
-export async function applyKuroSnapshot(snapshot: AutosaveSnapshot): Promise<void> {
+export async function applyKuroSnapshot(
+  snapshot: AutosaveSnapshot,
+): Promise<KuroSnapshotApplyOutcome> {
   const input = snapshot.input as Record<string, unknown> | undefined;
   const params = snapshot.parameters as Record<string, unknown> | undefined;
   const diversity = snapshot.diversity as Record<string, unknown> | undefined;
@@ -337,28 +407,57 @@ export async function applyKuroSnapshot(snapshot: AutosaveSnapshot): Promise<voi
 
   useAppStore.setState(patch);
 
+  let resultsDiscarded = false;
   const activeSourcePath = patch.evolveproCsvPath ?? useAppStore.getState().evolveproCsvPath;
   if (activeSourcePath) {
     try {
       await useAppStore.getState().loadEvolveproCsv(activeSourcePath);
+      // 재선택이 성공한 경우에만 비교한다. 로드가 실패하면 mutationText가
+      // 갱신되지 않아 비교 자체가 무의미하다.
+      resultsDiscarded = discardResultsIfVariantsDiverged();
     } catch {
       console.warn("[autosave] kuro: EVOLVEpro source load failed, continuing restore");
     }
   }
+
+  return { resultsDiscarded };
+}
+
+function basename(filePath: string): string {
+  return filePath.split(/[/\\]/).pop() ?? filePath;
 }
 
 /**
  * 읽기 실패를 사용자에게 보여줄 문구.
  *
- * 전용 i18n 키(`autosaveHydration.readFailed`)가 아직 없고 이번 변경에서 키를
- * 추가할 수 없어, 의미가 가장 가까운 `mainShell.autosaveFailed`("Save failed")를
- * 재사용한다. 읽기 실패 시점부터 해당 kind의 자동 저장 쓰기가 실제로 봉인되므로
- * 사용자 관점에서 "저장 실패"는 참인 서술이다. 원인 추적을 위해 파일명과 원본
- * 에러 메시지를 덧붙인다.
+ * 읽기 실패 시점부터 해당 kind의 자동 저장 쓰기가 봉인되므로, 문구가 "중단됐다"는
+ * 사실까지 전달해야 한다. 원인 추적을 위해 파일명과 원본 에러 메시지를 넘긴다.
  */
 function readFailedMessage(filePath: string, error: Error): string {
-  const filename = filePath.split(/[/\\]/).pop() ?? filePath;
-  return `${i18next.t("mainShell.autosaveFailed")}: ${filename} (${error.message})`;
+  return i18next.t("autosaveHydration.readFailed", {
+    filename: basename(filePath),
+    cause: error.message,
+  });
+}
+
+/**
+ * 쓰기 실패 문구. scratch 승격(promoteScratchToProject)처럼 읽기가 아니라 쓰기가
+ * 실패한 경로 전용이다. readFailedMessage를 재사용하면 "읽지 못했다"는 잘못된
+ * 서술이 된다.
+ */
+function writeFailedMessage(filePath: string, error: Error): string {
+  return i18next.t("autosaveHydration.writeFailed", {
+    filename: basename(filePath),
+    cause: error.message,
+  });
+}
+
+/**
+ * schema_too_new 봉인 사유. blockAutosaveWrites는 Error를 요구하는데 이 경로에는
+ * 원본 예외가 없으므로 진단용 Error를 합성한다.
+ */
+function schemaTooNewReason(foundSchema: number, currentSchema: number): Error {
+  return new Error(`autosave schema ${foundSchema} > supported ${currentSchema}`);
 }
 
 /**
@@ -378,8 +477,9 @@ async function applyScratchKuroSnapshot(
   source: "scratch" | "promotion" = "scratch",
 ): Promise<boolean> {
   if (result.status === "ok") {
+    let outcome: KuroSnapshotApplyOutcome;
     try {
-      await applyKuroSnapshot(result.snapshot);
+      outcome = await applyKuroSnapshot(result.snapshot);
     } catch (err) {
       console.warn("[autosave] kuro scratch: apply snapshot failed", err);
       onMessage({
@@ -395,11 +495,9 @@ async function applyScratchKuroSnapshot(
     // 후속 부작용이 지나간 대상에 적용되면 안 된다.
     if (!isCurrent()) return false;
     const relative = formatRelativeTime(result.snapshot.saved_at);
-    // 전용 키(`autosaveHydration.carriedFromScratch`)가 없어 기존 restored 문구에
-    // 기존 "Scratch" 라벨을 덧붙여 출처를 구분한다.
     const message =
       source === "promotion"
-        ? `${i18next.t("autosaveHydration.restored", { relative })} (${i18next.t("mainShell.scratchSuffix")})`
+        ? i18next.t("autosaveHydration.carriedFromScratch", { relative })
         : i18next.t("autosaveHydration.restored", { relative });
     onMessage({
       kind: "kuro",
@@ -407,6 +505,13 @@ async function applyScratchKuroSnapshot(
       message,
       savedAt: result.snapshot.saved_at,
     });
+    if (outcome.resultsDiscarded) {
+      onMessage({
+        kind: "kuro",
+        variant: "results_discarded",
+        message: i18next.t("autosaveHydration.resultsDiscarded"),
+      });
+    }
     return true;
   }
   if (result.status === "read_failed") {
@@ -430,6 +535,9 @@ async function applyScratchKuroSnapshot(
     return false;
   }
   if (result.status === "schema_too_new") {
+    // 복원은 못 해도 쓰기는 계속 돌기 때문에, 봉인하지 않으면 미래 버전이 만든
+    // 파일을 구 schema가 덮어써 일방향 손실이 난다. read_failed와 동일 처리.
+    blockAutosaveWrites("kuro", schemaTooNewReason(result.foundSchema, KURO_SCHEMA));
     onMessage({
       kind: "kuro",
       variant: "schema_too_new",
@@ -656,7 +764,11 @@ export function useAutosaveHydration(
       if (scratch) {
         const scratchResult = await readScratchAutosave(KURO_SCHEMA);
         if (!isCurrent()) return;
-        if (scratchResult.status !== "read_failed") clearAutosaveBlock("kuro");
+        // 읽기에 성공한 경우에만 봉인을 해제한다. read_failed/schema_too_new는
+        // 아래에서 다시 봉인하므로 여기서 풀면 안 된다.
+        if (scratchResult.status !== "read_failed" && scratchResult.status !== "schema_too_new") {
+          clearAutosaveBlock("kuro");
+        }
         await applyScratchKuroSnapshot(scratchResult, onMessage, isCurrent);
         return;
       }
@@ -674,14 +786,19 @@ export function useAutosaveHydration(
       ]);
       if (!isCurrent()) return;
 
-      // 읽기에 성공한 kind만 봉인을 해제한다. read_failed면 아래에서 다시 건다.
-      if (kuroResult.status !== "read_failed") clearAutosaveBlock("kuro");
-      if (mameResult.status !== "read_failed") clearAutosaveBlock("mame");
+      // 읽기에 성공한 kind만 봉인을 해제한다. read_failed/schema_too_new는
+      // 아래에서 다시 건다.
+      if (kuroResult.status !== "read_failed" && kuroResult.status !== "schema_too_new") {
+        clearAutosaveBlock("kuro");
+      }
+      if (mameResult.status !== "read_failed" && mameResult.status !== "schema_too_new") {
+        clearAutosaveBlock("mame");
+      }
 
       // ── kuro 결과 처리
       if (kuroResult.status === "ok") {
         try {
-          await applyKuroSnapshot(kuroResult.snapshot);
+          const outcome = await applyKuroSnapshot(kuroResult.snapshot);
           if (!isCurrent()) return;
           onMessage({
             kind: "kuro",
@@ -689,6 +806,13 @@ export function useAutosaveHydration(
             message: i18next.t("autosaveHydration.restored", { relative: formatRelativeTime(kuroResult.snapshot.saved_at) }),
             savedAt: kuroResult.snapshot.saved_at,
           });
+          if (outcome.resultsDiscarded) {
+            onMessage({
+              kind: "kuro",
+              variant: "results_discarded",
+              message: i18next.t("autosaveHydration.resultsDiscarded"),
+            });
+          }
         } catch (err) {
           console.warn("[autosave] kuro: apply snapshot failed", err);
         }
@@ -708,6 +832,9 @@ export function useAutosaveHydration(
           message: readFailedMessage(kuroResult.filePath, kuroResult.error),
         });
       } else if (kuroResult.status === "schema_too_new") {
+        // 복원만 건너뛰고 쓰기를 계속 두면 미래 버전 스냅샷을 구 schema가
+        // 덮어써 일방향 손실이 난다. read_failed와 동일하게 봉인한다.
+        blockAutosaveWrites("kuro", schemaTooNewReason(kuroResult.foundSchema, KURO_SCHEMA));
         onMessage({
           kind: "kuro",
           variant: "schema_too_new",
@@ -736,7 +863,8 @@ export function useAutosaveHydration(
               onMessage({
                 kind: "kuro",
                 variant: "io_failed",
-                message: readFailedMessage(autosavePath(path, "kuro"), error),
+                // 이 경로는 읽기가 아니라 프로젝트 파일 쓰기가 실패한 경우다.
+                message: writeFailedMessage(autosavePath(path, "kuro"), error),
               });
             }
           }
@@ -782,6 +910,8 @@ export function useAutosaveHydration(
           message: i18next.t("autosaveHydration.corrupted", { filename: mameResult.backupPath.split("/").pop() ?? "mame.json.bad-…" }),
         });
       } else if (mameResult.status === "schema_too_new") {
+        // kuro와 동일 이유로 봉인한다.
+        blockAutosaveWrites("mame", schemaTooNewReason(mameResult.foundSchema, MAME_SCHEMA));
         onMessage({
           kind: "mame",
           variant: "schema_too_new",

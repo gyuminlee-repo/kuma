@@ -1649,6 +1649,8 @@
     "othersApplyBtn": "Apply selected columns",
     "othersApplyError": "Column load failed: {{message}}",
     "othersUsedColumn": "Applied column: {{column}}",
+    "othersUnnamedColumn": "Unbenannte column {{index}}",
+    "othersPanelCrashed": "Das Panel für die Column-Zuordnung konnte nicht angezeigt werden.",
     "extraExposedLabel": "Extra candidates shown:",
     "extraExposedAriaLabel": "Number of extra unselected candidates to display",
     "extraExposedHint": "(0 = selected only)",
@@ -1871,7 +1873,7 @@
   },
   "exportSlice": {
     "legacyWorkspaceUnsupported": "Workspaces older than v0.3 sind nicht supported. Starten ein neu Workspace.",
-    "templateLoadFailed": "Could not load the template file. Reopen the workspace after selecting the template path again. Cause: {{error}}"
+    "templateLoadFailed": "Die Vorlagendatei konnte nicht geladen werden. Den Vorlagenpfad erneut auswählen und den Workspace neu öffnen. Ursache: {{error}}"
   },
   "inputSlice": {
     "csvFormatError": "{{Modus}} CSV Format Fehler: {{detail}}",
@@ -2101,7 +2103,11 @@
     "relativeDayAgo_other": "vor {{count}} Tagen",
     "restored": "Restored von autosave ({{relative}})",
     "corrupted": "Autosave Datei was corrupted. A backup was kept as {{filename}}",
-    "schemaTooNew": "Autosave ist von ein newer kuma version. Skipping restore.",
+    "schemaTooNew": "Autosave stammt aus einer neueren kuma-Version. Wiederherstellung übersprungen, und Autosave wurde gestoppt, damit die neuere Datei nicht überschrieben wird.",
+    "readFailed": "Autosave-Datei konnte nicht gelesen werden ({{filename}}). Autosave wurde gestoppt, damit die vorhandene Datei nicht überschrieben wird. Ursache: {{cause}}",
+    "writeFailed": "Autosave-Datei konnte nicht geschrieben werden ({{filename}}). Ursache: {{cause}}",
+    "carriedFromScratch": "Aus einer nicht gespeicherten früheren Sitzung übernommen ({{relative}})",
+    "resultsDiscarded": "Die variant-Liste wurde aus der Quelldatei neu ausgewählt und passt nicht mehr zur wiederhergestellten primer-Tabelle. Die Tabelle wurde geleert. Das Design bitte erneut ausführen.",
     "workspaceRestored": "Workspace wiederhergestellt",
     "autoDetected": "Automatisch erkannt: {{fields}}",
     "fieldRunFolder": "ausführen Ordner",

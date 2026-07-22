@@ -1649,6 +1649,8 @@
     "othersApplyBtn": "Apply selected columns",
     "othersApplyError": "Column load failed: {{message}}",
     "othersUsedColumn": "Applied column: {{column}}",
+    "othersUnnamedColumn": "Column sem nome {{index}}",
+    "othersPanelCrashed": "Não foi possível exibir o painel de mapeamento de columns.",
     "extraExposedLabel": "Extra candidates shown:",
     "extraExposedAriaLabel": "Number of extra unselected candidates to display",
     "extraExposedHint": "(0 = selected only)",
@@ -1871,7 +1873,7 @@
   },
   "exportSlice": {
     "legacyWorkspaceUnsupported": "Workspaces anteriores à v0.3 não são suportados. Iniciar um novo workspace.",
-    "templateLoadFailed": "Could not load the template file. Reopen the workspace after selecting the template path again. Cause: {{error}}"
+    "templateLoadFailed": "Não foi possível carregar o arquivo de modelo. Selecione novamente o caminho do modelo e reabra o workspace. Causa: {{error}}"
   },
   "inputSlice": {
     "csvFormatError": "Erro de formato CSV de {{mode}}: {{detail}}",
@@ -2101,7 +2103,11 @@
     "relativeDayAgo_other": "há {{count}} dias",
     "restored": "Restaurado do salvamento automático ({{relative}})",
     "corrupted": "O arquivo de salvamento automático estava corrompido. Um backup foi mantido como {{filename}}",
-    "schemaTooNew": "O salvamento automático é de uma versão mais nova do kuma. Restauração ignorada.",
+    "schemaTooNew": "O salvamento automático é de uma versão mais nova do kuma. Restauração ignorada e salvamento automático interrompido para não sobrescrever o arquivo mais novo.",
+    "readFailed": "Não foi possível ler o arquivo de salvamento automático ({{filename}}). O salvamento automático foi interrompido para não sobrescrever o arquivo existente. Causa: {{cause}}",
+    "writeFailed": "Não foi possível gravar o arquivo de salvamento automático ({{filename}}). Causa: {{cause}}",
+    "carriedFromScratch": "Continuado de uma sessão anterior não salva ({{relative}})",
+    "resultsDiscarded": "A lista de variants foi selecionada novamente a partir do arquivo de origem e não corresponde mais à tabela de primers restaurada, portanto a tabela foi limpa. Execute o design novamente.",
     "workspaceRestored": "Workspace restaurado",
     "autoDetected": "Auto-detectado: {{fields}}",
     "fieldRunFolder": "pasta da execução",

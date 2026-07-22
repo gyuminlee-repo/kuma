@@ -1649,6 +1649,8 @@
     "othersApplyBtn": "Apply selected columns",
     "othersApplyError": "Column load failed: {{message}}",
     "othersUsedColumn": "Applied column: {{column}}",
+    "othersUnnamedColumn": "名前のない column {{index}}",
+    "othersPanelCrashed": "Column マッピングパネルを表示できませんでした。",
     "extraExposedLabel": "Extra candidates shown:",
     "extraExposedAriaLabel": "Number of extra unselected candidates to display",
     "extraExposedHint": "(0 = selected only)",
@@ -1871,7 +1873,7 @@
   },
   "exportSlice": {
     "legacyWorkspaceUnsupported": "v0.3 より古いワークスペースはサポートされていません。新規ワークスペースを開始してください。",
-    "templateLoadFailed": "Could not load the template file. Reopen the workspace after selecting the template path again. Cause: {{error}}"
+    "templateLoadFailed": "テンプレートファイルを読み込めませんでした。テンプレートのパスを選び直してからワークスペースを開き直してください。原因: {{error}}"
   },
   "inputSlice": {
     "csvFormatError": "{{mode}} CSV フォーマットエラー: {{detail}}",
@@ -2101,7 +2103,11 @@
     "relativeDayAgo_other": "{{count}} 日前",
     "restored": "Autosave から復元 ({{relative}})",
     "corrupted": "Autosave ファイルが破損していました。バックアップを {{filename}} として保持しました",
-    "schemaTooNew": "Autosave は新しい kuma バージョンのものです。復元をスキップします。",
+    "schemaTooNew": "Autosave は新しい kuma バージョンのものです。復元をスキップし、そのファイルを上書きしないよう Autosave を停止しました。",
+    "readFailed": "Autosave ファイルを読み込めませんでした ({{filename}})。既存ファイルを上書きしないよう Autosave を停止しました。原因: {{cause}}",
+    "writeFailed": "Autosave ファイルを書き込めませんでした ({{filename}})。原因: {{cause}}",
+    "carriedFromScratch": "保存されていない前回のセッションから引き継ぎました ({{relative}})",
+    "resultsDiscarded": "ソースファイルから variant リストを選び直した結果、復元された primer テーブルと一致しないためテーブルを消去しました。設計を再実行してください。",
     "workspaceRestored": "ワークスペースを復元しました",
     "autoDetected": "自動検出: {{fields}}",
     "fieldRunFolder": "run フォルダ",

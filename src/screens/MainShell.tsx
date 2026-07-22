@@ -170,7 +170,9 @@ export function MainShell() {
       msg.variant === "corrupted" ||
       msg.variant === "schema_too_new" ||
       // 읽기/쓰기 실패는 침묵하면 안 된다. 이 시점부터 자동 저장이 봉인된다.
-      msg.variant === "io_failed"
+      msg.variant === "io_failed" ||
+      // 결과물 폐기도 침묵하면 안 된다. 표가 비워진 이유를 알려야 한다.
+      msg.variant === "results_discarded"
     ) {
       showStatusMessage(msg.message);
     }

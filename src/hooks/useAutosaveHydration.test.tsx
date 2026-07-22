@@ -1,9 +1,12 @@
 import { cleanup, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ProjectProvider } from "@/state/projectContext";
+import { useAppStore } from "@/store/appStore";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
+import type { AutosaveSnapshot } from "@/lib/autosave";
+import type { SdmPrimerResult } from "@/types/models";
 import type { AnalyzeResult, ReplicateResult, VerdictRecord } from "@/types/mame/models";
-import { useAutosaveHydration } from "./useAutosaveHydration";
+import { applyKuroSnapshot, useAutosaveHydration } from "./useAutosaveHydration";
 
 // ── Mocks ────────────────────────────────────────────────────────────────
 
@@ -22,6 +25,13 @@ const hooks = vi.hoisted(() => ({
   sendMameRequest: vi.fn(),
   detectProjectFiles: vi.fn(),
   detectFromInputDir: vi.fn(),
+  sendKuroRequest: vi.fn(),
+}));
+
+// KURO 사이드카 RPC. applyKuroSnapshot이 loadEvolveproCsv를 통해 호출한다.
+vi.mock("@/lib/ipc-kuro", () => ({
+  sendRequest: hooks.sendKuroRequest,
+  setProgressHandler: vi.fn(),
 }));
 
 // 훅이 쓰는 autosave export를 전부 채운다. 하나라도 빠지면 vitest가
@@ -208,5 +218,100 @@ describe("useAutosaveHydration: analyze-result restore", () => {
     // default analyze.inputs (never silently advanced to analyze.review).
     expect(useMameAppStore.getState().currentMameSubStep).toBe("analyze.inputs");
     expect(useMameAppStore.getState().verdicts).toEqual([]);
+  });
+});
+
+// ── 복원된 결과물 vs 재선택된 variant 목록 ────────────────────────────────
+
+/** designResults 항목 중 비교에 쓰이는 필드(mutation)만 실제 값으로 채운다. */
+function designResultFor(mutation: string): SdmPrimerResult {
+  return { mutation, aa_position: 1, codon_pos: 1 } as unknown as SdmPrimerResult;
+}
+
+function snapshotWithResults(mutation: string): AutosaveSnapshot {
+  return {
+    schema: 2,
+    saved_at: new Date().toISOString(),
+    kuma_version: "0.0.0-test",
+    input: {
+      sequence_path: null,
+      selected_cds: null,
+      mutation_text: mutation,
+      mutation_input_mode: "evolvepro",
+      evolvepro_mode: "pipeline",
+      evolvepro_csv_path: "/proj/evolvepro.csv",
+    },
+    parameters: {},
+    diversity: {},
+    results: {
+      designResults: [designResultFor(mutation)],
+      successCount: 1,
+      totalCount: 1,
+      failedMutations: [{ mutation: "Z9Z", reason: "no candidate" }],
+      plateMappings: [{ well: "A1", mutation, primer_name: "p", sequence: "ACGT", primer_type: "forward" }],
+      dedupInfo: { [mutation]: ["A1"] },
+      manuallySwapped: { [mutation]: "fwd" },
+      customCandidates: { [mutation]: {} },
+      rescuedMutationDetails: [{ mutation: "Z9Z" }],
+    },
+  } as unknown as AutosaveSnapshot;
+}
+
+/** loadEvolveproCsv가 돌려줄 재선택 결과. */
+function mockReselection(variants: string[]): void {
+  hooks.sendKuroRequest.mockImplementation((method: string) => {
+    if (method === "load_evolvepro_csv") {
+      return Promise.resolve({
+        variants,
+        y_preds: variants.map(() => 0.5),
+        total_count: variants.length,
+        selected_count: variants.length,
+        pool_variants: variants,
+        ranked_candidates: [],
+        filtered_count: 0,
+        domain_stats: null,
+        pareto_replaced: 0,
+        step_stats: null,
+      });
+    }
+    return Promise.reject(new Error(`unexpected RPC: ${method}`));
+  });
+}
+
+describe("applyKuroSnapshot: 복원 결과물 vs 재선택 variant", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useAppStore.getState().resetAll();
+  });
+
+  it("재선택 목록에 없는 mutation이 있으면 결과물과 파생 상태를 전부 비운다", async () => {
+    mockReselection(["A1B"]);
+
+    const outcome = await applyKuroSnapshot(snapshotWithResults("X9Y"));
+
+    expect(outcome.resultsDiscarded).toBe(true);
+    const st = useAppStore.getState();
+    expect(st.mutationText).toBe("A1B");
+    expect(st.designResults).toEqual([]);
+    expect(st.successCount).toBe(0);
+    expect(st.totalCount).toBe(0);
+    expect(st.failedMutations).toEqual([]);
+    expect(st.plateMappings).toEqual([]);
+    expect(st.dedupInfo).toEqual({});
+    expect(st.manuallySwapped).toEqual({});
+    expect(st.customCandidates).toEqual({});
+    expect(st.rescuedMutationDetails).toEqual([]);
+  });
+
+  it("재선택 목록이 결과물을 전부 포함하면 결과물을 유지한다", async () => {
+    mockReselection(["X9Y"]);
+
+    const outcome = await applyKuroSnapshot(snapshotWithResults("X9Y"));
+
+    expect(outcome.resultsDiscarded).toBe(false);
+    const st = useAppStore.getState();
+    expect(st.designResults).toHaveLength(1);
+    expect(st.successCount).toBe(1);
+    expect(st.plateMappings).toHaveLength(1);
   });
 });

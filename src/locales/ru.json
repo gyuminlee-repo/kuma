@@ -1649,6 +1649,8 @@
     "othersApplyBtn": "Apply selected columns",
     "othersApplyError": "Column load failed: {{message}}",
     "othersUsedColumn": "Applied column: {{column}}",
+    "othersUnnamedColumn": "Column без имени {{index}}",
+    "othersPanelCrashed": "Не удалось отобразить панель сопоставления columns.",
     "extraExposedLabel": "Extra candidates shown:",
     "extraExposedAriaLabel": "Number of extra unselected candidates to display",
     "extraExposedHint": "(0 = selected only)",
@@ -1871,7 +1873,7 @@
   },
   "exportSlice": {
     "legacyWorkspaceUnsupported": "Workspaces старше v0.3 не поддерживаются. Создайте новый workspace.",
-    "templateLoadFailed": "Could not load the template file. Reopen the workspace after selecting the template path again. Cause: {{error}}"
+    "templateLoadFailed": "Не удалось загрузить файл шаблона. Выберите путь к шаблону заново и снова откройте workspace. Причина: {{error}}"
   },
   "inputSlice": {
     "csvFormatError": "{{mode}} ошибка формата CSV: {{detail}}",
@@ -2101,7 +2103,11 @@
     "relativeDayAgo_other": "{{count}} дней назад",
     "restored": "Восстановлено из autosave ({{relative}})",
     "corrupted": "Файл autosave повреждён. Резервная копия сохранена как {{filename}}",
-    "schemaTooNew": "Autosave создан более новой версией kuma. Пропуск restore.",
+    "schemaTooNew": "Autosave создан более новой версией kuma. Восстановление пропущено, autosave остановлен, чтобы не перезаписать более новый файл.",
+    "readFailed": "Не удалось прочитать файл autosave ({{filename}}). Autosave остановлен, чтобы не перезаписать существующий файл. Причина: {{cause}}",
+    "writeFailed": "Не удалось записать файл autosave ({{filename}}). Причина: {{cause}}",
+    "carriedFromScratch": "Продолжено из несохранённой предыдущей сессии ({{relative}})",
+    "resultsDiscarded": "Список variants заново выбран из исходного файла и больше не соответствует восстановленной таблице primer, поэтому таблица очищена. Запустите дизайн заново.",
     "workspaceRestored": "Workspace восстановлен",
     "autoDetected": "Авто-определено: {{fields}}",
     "fieldRunFolder": "папка run",

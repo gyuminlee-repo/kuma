@@ -1649,6 +1649,8 @@
     "othersApplyBtn": "Apply selected columns",
     "othersApplyError": "Column load failed: {{message}}",
     "othersUsedColumn": "Applied column: {{column}}",
+    "othersUnnamedColumn": "Column sans nom {{index}}",
+    "othersPanelCrashed": "Le panneau de mappage des columns n'a pas pu s'afficher.",
     "extraExposedLabel": "Extra candidates shown:",
     "extraExposedAriaLabel": "Number of extra unselected candidates to display",
     "extraExposedHint": "(0 = selected only)",
@@ -1871,7 +1873,7 @@
   },
   "exportSlice": {
     "legacyWorkspaceUnsupported": "Les espaces de travail antérieurs à v0.3 ne sont pas supportés. Démarrer un nouvel espace de travail.",
-    "templateLoadFailed": "Could not load the template file. Reopen the workspace after selecting the template path again. Cause: {{error}}"
+    "templateLoadFailed": "Impossible de charger le fichier modèle. Sélectionner à nouveau le chemin du modèle puis rouvrir l'espace de travail. Cause : {{error}}"
   },
   "inputSlice": {
     "csvFormatError": "Erreur de format CSV {{mode}} : {{detail}}",
@@ -2101,7 +2103,11 @@
     "relativeDayAgo_other": "il y a {{count}} jours",
     "restored": "Restauré depuis autosave ({{relative}})",
     "corrupted": "Le fichier autosave était corrompu. Une sauvegarde a été conservée sous {{filename}}",
-    "schemaTooNew": "L'autosave provient d'une version kuma plus récente. Restauration ignorée.",
+    "schemaTooNew": "L'autosave provient d'une version kuma plus récente. Restauration ignorée et autosave arrêté afin de ne pas écraser le fichier plus récent.",
+    "readFailed": "Impossible de lire le fichier autosave ({{filename}}). Autosave a été arrêté afin de ne pas écraser le fichier existant. Cause : {{cause}}",
+    "writeFailed": "Impossible d'écrire le fichier autosave ({{filename}}). Cause : {{cause}}",
+    "carriedFromScratch": "Repris d'une session précédente non enregistrée ({{relative}})",
+    "resultsDiscarded": "La liste des variants a été re-sélectionnée depuis le fichier source et ne correspond plus au tableau de primers restauré. Le tableau a été vidé. Relancer la conception.",
     "workspaceRestored": "Espace de travail restauré",
     "autoDetected": "Auto-détecté : {{fields}}",
     "fieldRunFolder": "dossier de run",

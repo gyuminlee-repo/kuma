@@ -1649,6 +1649,8 @@
     "othersApplyBtn": "Apply selected columns",
     "othersApplyError": "Column load failed: {{message}}",
     "othersUsedColumn": "Applied column: {{column}}",
+    "othersUnnamedColumn": "Column sin nombre {{index}}",
+    "othersPanelCrashed": "No se pudo mostrar el panel de asignación de columns.",
     "extraExposedLabel": "Extra candidates shown:",
     "extraExposedAriaLabel": "Number of extra unselected candidates to display",
     "extraExposedHint": "(0 = selected only)",
@@ -1871,7 +1873,7 @@
   },
   "exportSlice": {
     "legacyWorkspaceUnsupported": "Los workspaces anteriores a v0.3 no están soportados. Iniciar un nuevo workspace.",
-    "templateLoadFailed": "Could not load the template file. Reopen the workspace after selecting the template path again. Cause: {{error}}"
+    "templateLoadFailed": "No se pudo cargar el archivo de plantilla. Seleccionar de nuevo la ruta de la plantilla y volver a abrir el workspace. Causa: {{error}}"
   },
   "inputSlice": {
     "csvFormatError": "Error de formato CSV de {{mode}}: {{detail}}",
@@ -2101,7 +2103,11 @@
     "relativeDayAgo_other": "hace {{count}} días",
     "restored": "Restaurado desde autoguardado ({{relative}})",
     "corrupted": "El archivo de autoguardado estaba corrupto. Se conservó un backup como {{filename}}",
-    "schemaTooNew": "El autoguardado es de una versión más nueva de kuma. Restauración omitida.",
+    "schemaTooNew": "El autoguardado es de una versión más nueva de kuma. Restauración omitida y autoguardado detenido para no sobrescribir el archivo más nuevo.",
+    "readFailed": "No se pudo leer el archivo de autoguardado ({{filename}}). Se detuvo el autoguardado para no sobrescribir el archivo existente. Causa: {{cause}}",
+    "writeFailed": "No se pudo escribir el archivo de autoguardado ({{filename}}). Causa: {{cause}}",
+    "carriedFromScratch": "Continuado desde una sesión anterior sin guardar ({{relative}})",
+    "resultsDiscarded": "La lista de variants se volvió a seleccionar desde el archivo de origen y ya no coincide con la tabla de primers restaurada, por lo que la tabla se vació. Ejecutar el diseño de nuevo.",
     "workspaceRestored": "Workspace restaurado",
     "autoDetected": "Auto-detectado: {{fields}}",
     "fieldRunFolder": "carpeta de la corrida",

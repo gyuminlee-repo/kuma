@@ -1649,6 +1649,8 @@
     "othersApplyBtn": "Apply selected columns",
     "othersApplyError": "Column load failed: {{message}}",
     "othersUsedColumn": "Applied column: {{column}}",
+    "othersUnnamedColumn": "未命名 column {{index}}",
+    "othersPanelCrashed": "无法显示 column 映射面板。",
     "extraExposedLabel": "Extra candidates shown:",
     "extraExposedAriaLabel": "Number of extra unselected candidates to display",
     "extraExposedHint": "(0 = selected only)",
@@ -1871,7 +1873,7 @@
   },
   "exportSlice": {
     "legacyWorkspaceUnsupported": "不支持早于 v0.3 的工作区。请新建工作区。",
-    "templateLoadFailed": "Could not load the template file. Reopen the workspace after selecting the template path again. Cause: {{error}}"
+    "templateLoadFailed": "无法加载模板文件。请重新选择模板路径后再打开工作区。原因: {{error}}"
   },
   "inputSlice": {
     "csvFormatError": "{{mode}} CSV 格式错误: {{detail}}",
@@ -2101,7 +2103,11 @@
     "relativeDayAgo_other": "{{count}} 天前",
     "restored": "已从自动保存恢复 ({{relative}})",
     "corrupted": "自动保存文件已损坏。已保留备份: {{filename}}",
-    "schemaTooNew": "自动保存来自更新的 kuma 版本。跳过恢复。",
+    "schemaTooNew": "自动保存来自更新的 kuma 版本。已跳过恢复，并停止自动保存以避免覆盖该文件。",
+    "readFailed": "无法读取自动保存文件 ({{filename}})。为避免覆盖现有文件，已停止自动保存。原因: {{cause}}",
+    "writeFailed": "无法写入自动保存文件 ({{filename}})。原因: {{cause}}",
+    "carriedFromScratch": "已从未保存的上一次会话继续 ({{relative}})",
+    "resultsDiscarded": "已从源文件重新选择 variant 列表，与恢复的 primer 表不一致，因此已清空该表。请重新运行设计。",
     "workspaceRestored": "工作区已恢复",
     "autoDetected": "自动检测: {{fields}}",
     "fieldRunFolder": "run 文件夹",
