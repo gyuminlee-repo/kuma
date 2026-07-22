@@ -457,6 +457,8 @@
       "bimodalBadge": "Bimodal",
       "noDistributionData": "No distribution data.",
       "noCrossTalk": "No cross-talk candidates detected.",
+      "crossTalkNotRun": "Cross-talk check not run: no MinKNOW barcode_alignment data.",
+      "crossTalkInsufficientData": "Cross-talk check inconclusive: too few barcodes for a z-score.",
       "noMinKnow": "MinKNOW raw run directory not detected. Pore yield, throughput, and barcode charts are unavailable.",
       "finalActivePoreYield": "Final active pore yield",
       "figureVerdictBreakdownCaption": "Stacked bar showing PASS, Ambiguous, Fail, and Fallback counts per plate.",

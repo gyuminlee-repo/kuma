@@ -457,6 +457,8 @@
       "bimodalBadge": "이봉 분포",
       "noDistributionData": "분포 데이터 없음.",
       "noCrossTalk": "Cross-talk 후보가 감지되지 않았습니다.",
+      "crossTalkNotRun": "Cross-talk 검사 미실행: MinKNOW barcode_alignment 데이터가 없습니다.",
+      "crossTalkInsufficientData": "Cross-talk 판정 불가: barcode 수가 적어 z-score를 낼 수 없습니다.",
       "noMinKnow": "MinKNOW 원시 실행 디렉터리가 감지되지 않았습니다. Pore 수율, throughput, barcode 차트를 사용할 수 없습니다.",
       "finalActivePoreYield": "최종 활성 pore 수율",
       "figureVerdictBreakdownCaption": "플레이트별 PASS, Ambiguous, Fail, Fallback 수를 나타낸 누적 막대 차트.",
