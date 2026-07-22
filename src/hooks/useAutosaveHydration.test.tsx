@@ -9,6 +9,7 @@ import { useAutosaveHydration } from "./useAutosaveHydration";
 
 const hooks = vi.hoisted(() => ({
   readAutosave: vi.fn(),
+  readScratchAutosave: vi.fn(),
   readMameResultSnapshot: vi.fn(),
   sendMameRequest: vi.fn(),
   detectProjectFiles: vi.fn(),
@@ -17,6 +18,7 @@ const hooks = vi.hoisted(() => ({
 
 vi.mock("@/lib/autosave", () => ({
   readAutosave: hooks.readAutosave,
+  readScratchAutosave: hooks.readScratchAutosave,
 }));
 
 vi.mock("@/lib/mame/resultSnapshot", () => ({
@@ -108,6 +110,7 @@ describe("useAutosaveHydration: analyze-result restore", () => {
 
     // kuro: nothing to restore. mame input snapshot: nothing either.
     hooks.readAutosave.mockResolvedValue({ status: "missing" });
+    hooks.readScratchAutosave.mockResolvedValue({ status: "missing" });
     // detection finds nothing (avoid touching the store further).
     hooks.detectProjectFiles.mockResolvedValue({});
     hooks.detectFromInputDir.mockResolvedValue({});

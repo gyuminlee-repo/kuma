@@ -1870,7 +1870,8 @@
     "completedWithDuration": "Concluído ({{duration}})"
   },
   "exportSlice": {
-    "legacyWorkspaceUnsupported": "Workspaces anteriores à v0.3 não são suportados. Iniciar um novo workspace."
+    "legacyWorkspaceUnsupported": "Workspaces anteriores à v0.3 não são suportados. Iniciar um novo workspace.",
+    "templateLoadFailed": "Could not load the template file. Reopen the workspace after selecting the template path again. Cause: {{error}}"
   },
   "inputSlice": {
     "csvFormatError": "Erro de formato CSV de {{mode}}: {{detail}}",

@@ -1870,7 +1870,8 @@
     "completedWithDuration": "已完成 ({{duration}})"
   },
   "exportSlice": {
-    "legacyWorkspaceUnsupported": "不支持早于 v0.3 的工作区。请新建工作区。"
+    "legacyWorkspaceUnsupported": "不支持早于 v0.3 的工作区。请新建工作区。",
+    "templateLoadFailed": "Could not load the template file. Reopen the workspace after selecting the template path again. Cause: {{error}}"
   },
   "inputSlice": {
     "csvFormatError": "{{mode}} CSV 格式错误: {{detail}}",

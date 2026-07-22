@@ -3,13 +3,14 @@
  *
  * 프로젝트가 처음 활성화될 때 한 번만 실행된다.
  * kuro와 mame 두 스냅샷을 병렬로 읽고 각 store에 복원한다.
- * 결과물 필드(designResults, verdictRows, plateMap 등)는 복원하지 않는다.
+ * KURO는 schema 2부터 결과물 필드(designResults 등)까지 함께 복원한다.
+ * MAME 결과물은 별도 result 스냅샷 경로(restoreMameResult)로 복원한다.
  */
 
 import { useEffect, useRef } from "react";
 import i18next from "i18next";
 import { useKumaProject } from "@/state/projectContext";
-import { readAutosave } from "@/lib/autosave";
+import { readAutosave, readScratchAutosave } from "@/lib/autosave";
 import { readMameResultSnapshot } from "@/lib/mame/resultSnapshot";
 import { sendRequest as sendMameRequest } from "@/lib/ipc-mame";
 import type { LoadAnalyzeResultResponse } from "@/types/mame/models";
@@ -21,7 +22,7 @@ import { useAppStore } from "@/store/appStore";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { resetMameAll } from "@/store/mame/resetAll";
 import type { AppState } from "@/store/appStore";
-import type { AutosaveSnapshot } from "@/lib/autosave";
+import type { AutosaveSnapshot, ReadAutosaveResult } from "@/lib/autosave";
 import type { MameAutosaveSnapshot } from "@/lib/mame/autosaveSnapshot";
 
 // ─── 공개 타입 ────────────────────────────────────────────────────────────
@@ -283,6 +284,46 @@ export async function applyKuroSnapshot(snapshot: AutosaveSnapshot): Promise<voi
     }
   }
 
+  // results (schema 2+). schema 1 스냅샷에는 results가 없으므로 결과물만 비어 있게 된다.
+  const results = snapshot.results as Record<string, unknown> | undefined;
+  if (results !== undefined) {
+    if (Array.isArray(results.designResults)) {
+      patch.designResults = results.designResults as AppState["designResults"];
+      // 디스크에서 복원한 결과물은 사이드카 설계 상태와 무관하다.
+      // 이 플래그가 true로 남으면 primer swap/alternatives가 없는 백엔드
+      // 상태를 가정하고 동작한다.
+      patch.backendDesignStateSynced = false;
+    }
+    if (typeof results.successCount === "number") {
+      patch.successCount = results.successCount;
+    }
+    if (typeof results.totalCount === "number") {
+      patch.totalCount = results.totalCount;
+    }
+    if (Array.isArray(results.failedMutations)) {
+      patch.failedMutations = results.failedMutations as AppState["failedMutations"];
+    }
+    if (Array.isArray(results.plateMappings)) {
+      patch.plateMappings = results.plateMappings as AppState["plateMappings"];
+    }
+    if (typeof results.dedupInfo === "object" && results.dedupInfo !== null) {
+      patch.dedupInfo = results.dedupInfo as AppState["dedupInfo"];
+    }
+    if (typeof results.manuallySwapped === "object" && results.manuallySwapped !== null) {
+      const safe: Record<string, "fwd" | "rev" | "both"> = {};
+      for (const [k, v] of Object.entries(results.manuallySwapped)) {
+        if (v === "fwd" || v === "rev" || v === "both") safe[k] = v;
+      }
+      patch.manuallySwapped = safe;
+    }
+    if (typeof results.customCandidates === "object" && results.customCandidates !== null) {
+      patch.customCandidates = results.customCandidates as AppState["customCandidates"];
+    }
+    if (Array.isArray(results.rescuedMutationDetails)) {
+      patch.rescuedMutationDetails = results.rescuedMutationDetails as AppState["rescuedMutationDetails"];
+    }
+  }
+
   useAppStore.setState(patch);
 
   const activeSourcePath = patch.evolveproCsvPath ?? useAppStore.getState().evolveproCsvPath;
@@ -293,6 +334,60 @@ export async function applyKuroSnapshot(snapshot: AutosaveSnapshot): Promise<voi
       console.warn("[autosave] kuro: EVOLVEpro source load failed, continuing restore");
     }
   }
+}
+
+/**
+ * scratch 자동 저장 읽기 결과를 KURO store에 반영하고 상태 메시지를 보낸다.
+ * 프로젝트 스냅샷 처리와 동일한 variant 규칙(missing은 침묵)을 따른다.
+ */
+async function applyScratchKuroSnapshot(
+  result: ReadAutosaveResult,
+  onMessage: (msg: HydrationStatusMessage) => void,
+  isCurrent: () => boolean,
+): Promise<void> {
+  if (result.status === "ok") {
+    try {
+      await applyKuroSnapshot(result.snapshot);
+    } catch (err) {
+      console.warn("[autosave] kuro scratch: apply snapshot failed", err);
+      onMessage({
+        kind: "kuro",
+        variant: "corrupted",
+        message: i18next.t("autosaveHydration.corrupted", {
+          filename: "kuro-scratch-autosave.json",
+        }),
+      });
+      return;
+    }
+    if (!isCurrent()) return;
+    onMessage({
+      kind: "kuro",
+      variant: "restored",
+      message: i18next.t("autosaveHydration.restored", {
+        relative: formatRelativeTime(result.snapshot.saved_at),
+      }),
+      savedAt: result.snapshot.saved_at,
+    });
+    return;
+  }
+  if (result.status === "corrupted") {
+    onMessage({
+      kind: "kuro",
+      variant: "corrupted",
+      message: i18next.t("autosaveHydration.corrupted", {
+        filename: result.backupPath.split("/").pop() ?? "kuro-scratch-autosave.json",
+      }),
+    });
+    return;
+  }
+  if (result.status === "schema_too_new") {
+    onMessage({
+      kind: "kuro",
+      variant: "schema_too_new",
+      message: i18next.t("autosaveHydration.schemaTooNew"),
+    });
+  }
+  // missing → 침묵
 }
 
 // ─── Mame 자동 탐지 ──────────────────────────────────────────────────────
@@ -455,7 +550,8 @@ async function restoreMameResult(projectPath: string): Promise<boolean> {
  *
  * - path가 null이면 즉시 종료.
  * - scratch 포함 projectPath 변경마다 이전 프로젝트의 in-memory KURO/MAME 상태를 먼저 비운다.
- * - scratch 프로젝트는 reset까지만 수행하고 자동 저장 복원은 건너뛴다.
+ * - scratch 프로젝트는 앱 데이터 디렉토리의 KURO scratch 스냅샷만 복원한다.
+ * - 프로젝트 KURO 스냅샷이 없으면 scratch 스냅샷으로 폴백한다.
  * - 같은 projectPath/scratch 조합이 연속 렌더되는 경우만 중복 복원을 막는다.
  */
 export function useAutosaveHydration(
@@ -478,7 +574,16 @@ export function useAutosaveHydration(
     void (async () => {
       useAppStore.getState().resetAll({ preserveWorkspaceArtifacts: true });
       await resetMameAll({ preserveWorkspaceArtifacts: true });
-      if (scratch) return;
+
+      // scratch(프로젝트 없음): 앱 데이터 디렉토리 스냅샷만 KURO에 복원한다.
+      // 워크스페이스 레지스트리·MAME 복원·자동 탐지는 프로젝트 전용이라 건너뛴다.
+      if (scratch) {
+        const scratchResult = await readScratchAutosave(KURO_SCHEMA);
+        if (!isCurrent()) return;
+        await applyScratchKuroSnapshot(scratchResult, onMessage, isCurrent);
+        return;
+      }
+
       try {
         await openWorkspace(path);
       } catch (err) {
@@ -518,9 +623,15 @@ export function useAutosaveHydration(
           variant: "schema_too_new",
           message: i18next.t("autosaveHydration.schemaTooNew"),
         });
+      } else if (kuroResult.status === "missing") {
+        // 프로젝트 스냅샷이 없으면 scratch 스냅샷으로 이어서 작업하게 한다.
+        const scratchResult = await readScratchAutosave(KURO_SCHEMA);
+        if (!isCurrent()) return;
+        if (scratchResult.status === "ok") {
+          await applyScratchKuroSnapshot(scratchResult, onMessage, isCurrent);
+        }
       }
       if (!isCurrent()) return;
-      // missing → 침묵
 
       // ── mame 결과 처리
       if (mameResult.status === "ok") {

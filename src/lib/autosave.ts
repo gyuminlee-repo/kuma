@@ -13,12 +13,15 @@ import {
   readTextFile,
   exists,
 } from "@tauri-apps/plugin-fs";
+import { appDataDir } from "@tauri-apps/api/path";
 
 // ─── 상수 ─────────────────────────────────────────────────────────────────
 
 export const DEBOUNCE_MS = 1500;
 export const MAX_SKEW_MS = 30_000;
 const AUTOSAVE_DIR_NAME = ".autosave";
+/** 프로젝트 없이(scratch) 작업할 때 쓰는 앱 데이터 디렉토리 파일명. */
+const SCRATCH_FILE_NAME = "kuro-scratch-autosave.json";
 
 // ─── 타입 ─────────────────────────────────────────────────────────────────
 
@@ -33,9 +36,14 @@ export type AutosaveEvent =
 type AutosaveListener = (event: AutosaveEvent) => void;
 
 export interface AutosaveTarget {
-  /** 프로젝트 루트 절대 경로. null 또는 scratch면 모든 호출이 silent skip. */
+  /** 프로젝트 루트 절대 경로. */
   projectPath: string | null;
   scratch: boolean;
+  /**
+   * true면 프로젝트가 없거나 scratch일 때 앱 데이터 디렉토리의 고정 파일에
+   * 저장한다 (kind === "kuro" 한정). 미지정이면 기존 동작대로 silent skip.
+   */
+  scratchFallback?: boolean;
 }
 
 export interface AutosaveSnapshot {
@@ -120,6 +128,44 @@ export async function ensureAutosaveDir(projectPath: string): Promise<string> {
   return dirPath;
 }
 
+/**
+ * scratch 자동 저장 파일 경로 (앱 데이터 디렉토리 / kuro-scratch-autosave.json).
+ * 디렉토리는 첫 실행에 없을 수 있으므로 recursive mkdir로 보장한다.
+ */
+export async function scratchAutosavePath(): Promise<string> {
+  const baseDir = await appDataDir();
+  const alreadyExists = await exists(baseDir);
+  if (!alreadyExists) {
+    await mkdir(baseDir, { recursive: true });
+  }
+  return joinPath(baseDir, SCRATCH_FILE_NAME);
+}
+
+/**
+ * target + kind 조합에서 실제 저장 파일 경로를 정한다.
+ * 우선순위: 실제 프로젝트 > scratch fallback > skip(null).
+ * scratch fallback은 kuro 전용 (mame 자동 저장 동작은 그대로 유지).
+ */
+async function resolveTargetPath(
+  target: AutosaveTarget,
+  kind: AutosaveKind,
+): Promise<string | null> {
+  if (target.projectPath !== null && !target.scratch) {
+    await ensureAutosaveDir(target.projectPath);
+    return autosavePath(target.projectPath, kind);
+  }
+  if (target.scratchFallback === true && kind === "kuro") {
+    return await scratchAutosavePath();
+  }
+  return null;
+}
+
+/** 저장 대상이 존재하는지(= silent skip 대상이 아닌지) 판정. */
+function hasWritableTarget(target: AutosaveTarget, kind: AutosaveKind): boolean {
+  if (target.projectPath !== null && !target.scratch) return true;
+  return target.scratchFallback === true && kind === "kuro";
+}
+
 // ─── Atomic write ────────────────────────────────────────────────────────
 
 /**
@@ -159,7 +205,30 @@ export async function readAutosave(
   kind: AutosaveKind,
   currentSchema: number,
 ): Promise<ReadAutosaveResult> {
-  const filePath = autosavePath(projectPath, kind);
+  return await readAutosaveFile(autosavePath(projectPath, kind), currentSchema);
+}
+
+/**
+ * scratch(프로젝트 없음) 자동 저장 파일 읽기. 규칙은 readAutosave와 동일.
+ * 앱 데이터 디렉토리 접근 자체가 실패하면 missing으로 처리한다.
+ */
+export async function readScratchAutosave(
+  currentSchema: number,
+): Promise<ReadAutosaveResult> {
+  let filePath: string;
+  try {
+    filePath = await scratchAutosavePath();
+  } catch (err) {
+    console.warn("[autosave] scratch path resolution failed:", err);
+    return { status: "missing" };
+  }
+  return await readAutosaveFile(filePath, currentSchema);
+}
+
+async function readAutosaveFile(
+  filePath: string,
+  currentSchema: number,
+): Promise<ReadAutosaveResult> {
   const fileExists = await exists(filePath);
   if (!fileExists) return { status: "missing" };
 
@@ -228,16 +297,16 @@ function drainQueue(kind: AutosaveKind): void {
 
 /**
  * 1.5초 디바운스 + 30초 강제 flush + 직렬 큐.
- * scratch / projectPath null이면 silent skip.
+ * 저장 대상이 없으면(프로젝트 없음 + scratchFallback 미지정) silent skip.
  */
 export function scheduleAutosave(
   target: AutosaveTarget,
   kind: AutosaveKind,
   buildSnapshot: () => AutosaveSnapshot,
 ): void {
-  if (target.scratch || target.projectPath === null) return;
+  if (!hasWritableTarget(target, kind)) return;
 
-  const projectPath = target.projectPath;
+  const resolvedTarget: AutosaveTarget = { ...target };
   const state = kindState[kind];
   const now = Date.now();
 
@@ -249,8 +318,8 @@ export function scheduleAutosave(
 
   const snapshot = buildSnapshot();
   const task = async (): Promise<void> => {
-    await ensureAutosaveDir(projectPath);
-    const filePath = autosavePath(projectPath, kind);
+    const filePath = await resolveTargetPath(resolvedTarget, kind);
+    if (filePath === null) return;
     await atomicWriteJson(filePath, snapshot);
   };
 
@@ -286,9 +355,9 @@ export async function flushAutosave(
   target: AutosaveTarget,
   kind?: AutosaveKind,
 ): Promise<void> {
-  if (target.scratch || target.projectPath === null) return;
-
-  const kinds: AutosaveKind[] = kind !== undefined ? [kind] : ["kuro", "mame"];
+  const requested: AutosaveKind[] = kind !== undefined ? [kind] : ["kuro", "mame"];
+  const kinds = requested.filter((k) => hasWritableTarget(target, k));
+  if (kinds.length === 0) return;
 
   await Promise.all(
     kinds.map(async (k) => {

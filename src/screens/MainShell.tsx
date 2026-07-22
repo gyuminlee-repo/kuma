@@ -280,6 +280,8 @@ export function MainShell() {
     const target: AutosaveTarget = {
       projectPath: project?.path ?? null,
       scratch: project?.scratch ?? true,
+      // 프로젝트가 없어도 KURO 상태는 앱 데이터 디렉토리에 남긴다.
+      scratchFallback: true,
     };
 
     let unlisten: (() => void) | undefined;
@@ -338,6 +340,8 @@ export function MainShell() {
     const target: AutosaveTarget = {
       projectPath: project?.path ?? null,
       scratch: project?.scratch ?? true,
+      // 프로젝트가 없어도 KURO 상태는 앱 데이터 디렉토리에 남긴다.
+      scratchFallback: true,
     };
 
     // Flush the tab being left when it is a kuro/mame autosave target.

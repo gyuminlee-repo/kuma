@@ -1889,7 +1889,8 @@
     "completedWithDuration": "완료 ({{duration}})"
   },
   "exportSlice": {
-    "legacyWorkspaceUnsupported": "v0.3 이전 워크스페이스는 지원하지 않습니다. 새 워크스페이스로 시작하세요."
+    "legacyWorkspaceUnsupported": "v0.3 이전 워크스페이스는 지원하지 않습니다. 새 워크스페이스로 시작하세요.",
+    "templateLoadFailed": "템플릿 파일을 불러오지 못했습니다. 템플릿 경로를 다시 지정하세요. 원인: {{error}}"
   },
   "inputSlice": {
     "csvFormatError": "{{mode}} CSV 형식 오류: {{detail}}",
