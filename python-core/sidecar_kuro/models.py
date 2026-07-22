@@ -59,6 +59,8 @@ class DesignSdmPrimersParams(BaseModel):
     tm_fwd_target: Optional[float] = Field(default=None, ge=20.0, le=80.0)
     tm_rev_target: Optional[float] = Field(default=None, ge=20.0, le=80.0)
     tm_overlap_target: Optional[float] = Field(default=None, ge=20.0, le=80.0)
+    # Tm tolerance (±°C). Must stay identical to RetryFailedParams.tol_max.
+    tol_max: float = Field(default=4.0, ge=0.5, le=10.0)
 
     # GC% constraints
     gc_min: float = Field(default=40.0, ge=0.0, le=100.0)

@@ -182,7 +182,8 @@ def _serialize_result_with_counts(r: SdmPrimerResult) -> SdmPrimerResultModel:
 # GC margin of ±5 pp keeps primers within the broadly accepted 20-80% range
 # while relaxing the user-specified optimum window.
 _DEFAULT_TOL_MAX = 4.0   # must match design_single_sdm() default
-_RELAX_TOL_DELTA = 2.0   # °C added to default tol_max (4.0 + 2.0 = 6.0)
+_RELAX_TOL_DELTA = 2.0   # °C added to the requested tol_max (4.0 + 2.0 = 6.0)
+_MAX_TOL_MAX = 10.0      # must match models.py tol_max Field(le=...)
 _RELAX_GC_DELTA = 5      # percentage points widened on each side
 _GC_FLOOR = 20           # absolute minimum GC% (Integrated DNA Technologies guideline)
 _GC_CEIL = 80            # absolute maximum GC% (Integrated DNA Technologies guideline)
@@ -323,6 +324,7 @@ def handle_design_sdm_primers(params: dict) -> dict:
             on_progress=_on_progress,
             cancel_check=cancel_event.is_set,
             organism=p.organism,
+            tol_max=p.tol_max,
             overlap_mode=p.overlap_mode,
         )
         if cancel_event.is_set():
@@ -400,7 +402,7 @@ def handle_design_sdm_primers(params: dict) -> dict:
             if p.auto_relax:
                 relax_kw = {
                     **design_kw,
-                    "tol_max": _DEFAULT_TOL_MAX + _RELAX_TOL_DELTA,
+                    "tol_max": min(p.tol_max + _RELAX_TOL_DELTA, _MAX_TOL_MAX),
                     "gc_min": max(_GC_FLOOR, p.gc_min - _RELAX_GC_DELTA),
                     "gc_max": min(_GC_CEIL, p.gc_max + _RELAX_GC_DELTA),
                 }
