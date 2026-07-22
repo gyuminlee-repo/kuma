@@ -1615,8 +1615,8 @@ the two arguments in <code>design.py::_serialize_result</code>.</p>
 <td>Phusion (NEB)</td>
 <td>NEB Tm (neb_tm_offsets)</td>
 <td>3-step</td>
-<td>min(NEB Tm) + 3 (approx)</td>
-<td>Tm(low) ≥ 72 → 72 C 2-step</td>
+<td>min(NEB Tm) + 3, or min(NEB Tm) itself when the lower-Tm primer is &lt; 20 nt (approx)</td>
+<td>Ta ≥ 72 → 72 C 2-step</td>
 <td>optional (off)</td>
 <td>approx; exact value from NEB Tm Calculator</td>
 </tr>
@@ -1625,7 +1625,7 @@ the two arguments in <code>design.py::_serialize_result</code>.</p>
 <td>NEB Tm (neb_tm_offsets)</td>
 <td>3-step</td>
 <td>min(NEB Tm) + 1</td>
-<td>Tm(low) ≥ 72 → 72 C 2-step</td>
+<td>Ta ≥ 72 → 72 C 2-step</td>
 <td>optional (off)</td>
 <td>Q5 and Q5 Hot Start share one profile</td>
 </tr>
@@ -1634,7 +1634,7 @@ the two arguments in <code>design.py::_serialize_result</code>.</p>
 <td>NEB Tm (neb_tm_offsets)</td>
 <td>3-step</td>
 <td>min(NEB Tm) + 3 (fallback)</td>
-<td>none</td>
+<td>Ta ≥ 72 → 72 C 2-step</td>
 <td>optional (off)</td>
 <td>exact value from NEBaseChanger (mismatch-aware); offline approximation</td>
 </tr>
@@ -1667,99 +1667,133 @@ the two arguments in <code>design.py::_serialize_result</code>.</p>
 </tr>
 </tbody>
 </table>
-<p>2-step promotion compares the raw lower Tm against the threshold (<code>&gt;=</code>).
-<code>recommended_ta</code> is reported in whole degrees.</p>
+<p><code>recommended_ta</code> is reported in whole degrees.</p>
+<p>The 2-step promotion is compared (<code>&gt;=</code>) against whichever quantity the
+manufacturer states the threshold on, declared per profile as
+<code>two_step_basis</code>:</p>
+<ul>
+<li><code>"ta"</code> for the NEB enzymes. NEB E0553 section 10 words the condition as
+  "primers with <strong>annealing temperatures</strong> ≥ 72 C", so the probe is the
+  computed Ta, not the raw Tm. Because Phusion adds +3 and Q5 adds +1, a
+  raw-Tm probe let pairs slip through and emit an annealing step hotter than
+  the 72 C extension step, which is not a runnable program.</li>
+<li><code>"tm"</code> for KOD One, whose Toyobo threshold is stated on the primer Tm. This
+  is also the default when a profile omits the field, so profiles without a
+  promotion are unaffected.</li>
+</ul>
+<p>Consequence: for every profile carrying a positive <code>delta</code>, the promotion is
+what bounds Ta, and no separate clamp constant exists in the code. A clamp
+would be unreachable, since the 3-step branch hands off before Ta can pass the
+profile ceiling.</p>
+<p>Phusion also carries a length branch (<code>short_primer_len</code> 20,
+<code>short_primer_delta</code> 0) from NEB E0553 section 7 / M0530 section 8, which
+directs primers shorter than 20 nt to anneal at the Tm of the lower primer
+itself rather than at Tm + 3. The length consulted is that of the lower-Tm
+primer, matching the manual wording. Both the threshold and the short-primer
+offset live on the profile.</p>
 <h2 id="worked-ta-values-on-the-fixture">Worked Ta values on the fixture<a class="headerlink" href="#worked-ta-values-on-the-fixture" title="Permanent link">&para;</a></h2>
-<p>Computed on <code>fixtures/pSHCE-dmpR.gb</code> (first designed pair per profile), whole
-primers. All physical, none near the pre-fix 81.5 artefact.</p>
+<p>Measured on <code>fixtures/pSHCE-dmpR.gb</code> (target_start 1790,
+<code>fixtures/mutation_list_insilico_test.csv</code>), whole primers, over every designed
+pair per profile. Q5 SDM runs in its default full-overlap mode. No pair anneals
+above the 72 C extension step.</p>
 <table>
 <thead>
 <tr>
 <th>Profile</th>
-<th>Mut</th>
-<th>Tm(low)</th>
-<th>Ta</th>
+<th>pairs</th>
+<th>Tm(low) range</th>
+<th>Ta range</th>
 <th>mode</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>Benchling</td>
-<td>Q232A</td>
-<td>60.4</td>
-<td>55</td>
+<td>10</td>
+<td>62.9 to 65.2</td>
+<td>58 to 60</td>
 <td>3-step</td>
 </tr>
 <tr>
 <td>Taq</td>
-<td>Q232A</td>
-<td>60.5</td>
-<td>56</td>
+<td>10</td>
+<td>60.2 to 65.1</td>
+<td>55 to 60</td>
 <td>3-step</td>
 </tr>
 <tr>
 <td>Phusion</td>
-<td>Q232A</td>
-<td>63.5</td>
-<td>66</td>
-<td>3-step</td>
+<td>10</td>
+<td>62.7 to 65.1</td>
+<td>63 to 67</td>
+<td>3-step (3 pairs take the &lt; 20 nt branch)</td>
 </tr>
 <tr>
 <td>Q5</td>
-<td>Q232A</td>
-<td>66.0</td>
-<td>67</td>
-<td>3-step</td>
+<td>10</td>
+<td>67.6 to 71.7</td>
+<td>69 to 72</td>
+<td>3-step, 1 pair promoted to 2-step</td>
 </tr>
 <tr>
 <td>KOD</td>
-<td>Q232A</td>
-<td>63.6</td>
-<td>59</td>
+<td>10</td>
+<td>62.9 to 65.2</td>
+<td>58 to 60</td>
 <td>3-step (touchdown 74→72→70→68 C)</td>
 </tr>
 <tr>
 <td>DreamTaq</td>
-<td>Q232A</td>
-<td>55.0</td>
-<td>50</td>
+<td>10</td>
+<td>62.0 to 70.0</td>
+<td>57 to 65</td>
 <td>3-step</td>
 </tr>
 <tr>
 <td>TAKARA_GXL</td>
-<td>Q232A</td>
-<td>53.0</td>
-<td>55</td>
+<td>10</td>
+<td>57.0 to 65.0</td>
+<td>60</td>
 <td>fixed</td>
 </tr>
 <tr>
 <td>Q5 SDM</td>
-<td>E167A</td>
-<td>67.1</td>
-<td>70</td>
-<td>3-step</td>
+<td>11</td>
+<td>71.4 to 75.7</td>
+<td>72</td>
+<td>2-step (offline Tm+3 runs hot, capped at 72)</td>
 </tr>
 </tbody>
 </table>
-<h2 id="q5-sdm-full-overlap-yield-changed-with-the-unification">Q5 SDM full-overlap yield changed with the unification<a class="headerlink" href="#q5-sdm-full-overlap-yield-changed-with-the-unification" title="Permanent link">&para;</a></h2>
-<p>Pinning design to the paper targets lowered the Q5 SDM full-overlap first-pass
-yield on <code>fixtures/mutation_list_insilico_test.csv</code> from 6/12 to 4/12. The two
-mutations lost are D227A and E335A. Partial mode is 0/12 before and after, so it
-is unaffected.</p>
-<p>Cause: full-overlap design optimises a single primer against <code>opt_tm_fwd</code>,
+<p>The Q5 SDM row is the honest rendering of an offline approximation that has no
+NEBaseChanger mismatch penalty: the raw Tm+3 lands at 74 to 79 C, above the
+E0554 annealing range of 50 to 72 C, so every pair collapses to combined
+anneal/extend at 72 C. Read the reported Ta as a ceiling, and take the exact
+value from NEBaseChanger when it matters.</p>
+<p>The ceiling and the length branch are pinned by
+<code>tests/test_annealing_ta_ceiling.py</code>, so these values cannot silently go stale.</p>
+<h2 id="q5-sdm-overlap-mode-yield-on-the-fixture">Q5 SDM overlap-mode yield on the fixture<a class="headerlink" href="#q5-sdm-overlap-mode-yield-on-the-fixture" title="Permanent link">&para;</a></h2>
+<p>Measured on <code>fixtures/mutation_list_insilico_test.csv</code> (12 sites): full-overlap
+mode, the kit default, designs 11 of 12 (only Y155A fails), and partial-overlap
+mode designs 5 of 12. An earlier revision of this document claimed 4/12 full
+with D227A and E335A lost, and 0/12 partial. Both claims are false against the
+fixture; the corrected figures come from re-running the design and are pinned
+by <code>tests/test_annealing_ta_ceiling.py</code>. The yield is Ta-independent, since Ta
+never feeds back into design, so it is unchanged by the Ta rules.</p>
+<p>Cause of the remaining tension: full-overlap design optimises a single primer
+against <code>opt_tm_fwd</code>,
 because reverse is the reverse complement of forward and SantaLucia
 nearest-neighbour is strand-symmetric. Before the change the Q5 SDM profile
 carried no <code>opt_tm_fwd</code>, so the target fell back to <code>opt_tm</code> 68 C on the NEB
 calibration scale. It is now the declared 62 C on the fixed Benchling scale. The
-Q5 SDM kit also floors primer length at 25 bp, and a 25 bp full-overlap primer
-is already hotter than 62 C for most sites on this fixture, so the shortest legal
-primer overshoots the 62 ± 4 window and no legal primer exists.</p>
-<p>Evidence on the fixed Benchling scale, minimum reachable Tm at the 25 bp floor:
-the four that still design sit at 62.3 to 65.2 C, and all eight that fail sit at
-66.7 C or above, just outside the 66 C ceiling. Re-running the same enumeration
-with the target at 68 C instead of 62 C reaches 11/12, which isolates the target
-value, not the Tm scale, as the operative change. D227A (66.9 C) and E335A
-(66.7 C) miss by under 1 C.</p>
+Q5 SDM kit also floors primer length at 25 bp, so a site whose shortest legal
+25 bp primer is already hotter than the tolerance window around 62 C yields
+nothing.</p>
+<p>Evidence on the fixed Benchling scale: the 11 sites that design land at
+<code>tm_fwd</code> 61.7 to 64.8 C, inside the window, and Y155A is the single site whose
+shortest legal primer stays outside it. Partial mode, whose geometry the
+62/58/42 targets were defined for, designs a different and smaller subset
+(5 of 12) at <code>tm_fwd</code> 62.0 to 65.8 C.</p>
 <p>This is a consequence of the paper method, not a defect. The 62/58/42 targets are
 defined for the partial-overlap geometry, where forward runs 17 to 39 bp and the
 overlap is a separate shorter window. Full overlap is a different geometry with a
@@ -1781,8 +1815,13 @@ primer sequence.</p>
   committed table <code>kuma_core/kuro/resources/neb_tm_offsets.json</code> (calibrated
   2026-06-18, primer conc 0.5 uM, len 17-39 nt, GC 40-60%).</li>
 <li>NEB annealing guidance: NEB application note "Universal Annealing
-  Temperature in PCR" and the Tm Calculator help (Q5 Ta = Tm(low) + 1; 2-step
-  for Tm ≥ 72 C).</li>
+  Temperature in PCR", the Tm Calculator help (Q5 Ta = Tm(low) + 1), and
+  Phusion E0553 section 10 / M0530, which state the 2-step condition on the
+  annealing temperature ("primers with annealing temperatures ≥ 72 C"), the
+  basis the code follows.</li>
+<li>NEB Phusion primer length branch: E0553 section 7 / M0530 section 8
+  (primers over 20 nt anneal at Tm(low) + 3; primers under 20 nt anneal at the
+  Tm of the lower primer).</li>
 <li>NEB SDM: NEBaseChanger / Q5 Site-Directed Mutagenesis Kit protocol (E0554)
   FAQ (Ta from the primer Tm; the kit calculator adds a mismatch penalty not
   reproduced offline).</li>
