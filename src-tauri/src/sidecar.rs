@@ -9,7 +9,7 @@ use std::{
     },
     time::{Duration, Instant},
 };
-use tauri::{AppHandle, Emitter, Wry};
+use tauri::{AppHandle, Emitter, Manager, Wry};
 use tauri_plugin_shell::{
     process::{CommandChild, CommandEvent},
     ShellExt,
@@ -25,6 +25,42 @@ const READY_TIMEOUT: Duration = Duration::from_secs(30);
 const RPC_TIMEOUT: Duration = Duration::from_secs(60);
 
 type PendingSender = oneshot::Sender<Result<Value, String>>;
+
+/// Truncate `sidecar.log` once it grows past this size. No rolled backups are
+/// kept: the goal is a bounded, recent diagnostic tail, not full history.
+const SIDECAR_LOG_MAX_BYTES: u64 = 2 * 1024 * 1024;
+
+/// Append one sidecar stderr line to `<app_log_dir>/sidecar.log`.
+///
+/// Every failure path here is swallowed on purpose: this is a best-effort
+/// diagnostic sink, and a read-only or missing log directory must never break
+/// sidecar communication. That is why the usual "never silence an error" rule
+/// is relaxed for this function only. `eprintln!` at the call site keeps the
+/// line visible whenever a console is attached.
+fn append_sidecar_log(app_handle: &AppHandle<Wry>, kind: &str, line: &str) {
+    let Ok(dir) = app_handle.path().app_log_dir() else {
+        return;
+    };
+    if std::fs::create_dir_all(&dir).is_err() {
+        return;
+    }
+    let path = dir.join("sidecar.log");
+    let oversized = std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0) > SIDECAR_LOG_MAX_BYTES;
+
+    let mut options = std::fs::OpenOptions::new();
+    options.write(true).create(true);
+    if oversized {
+        options.truncate(true);
+    } else {
+        options.append(true);
+    }
+
+    if let Ok(mut file) = options.open(&path) {
+        use std::io::Write;
+        let stamp = chrono::Utc::now().to_rfc3339();
+        let _ = writeln!(file, "[{stamp}] [sidecar:{kind}] {}", line.trim_end());
+    }
+}
 
 #[derive(Serialize, Clone)]
 struct SidecarProgressPayload {
@@ -469,11 +505,13 @@ impl SidecarManager {
                         let line = String::from_utf8_lossy(&bytes);
                         if !line.trim().is_empty() {
                             eprintln!("[sidecar:{kind_owned}] {line}");
+                            append_sidecar_log(&app_handle, &kind_owned, &line);
                         }
                     }
                     CommandEvent::Error(error) => {
                         if !error.trim().is_empty() {
                             eprintln!("[sidecar:{kind_owned}] {error}");
+                            append_sidecar_log(&app_handle, &kind_owned, &error);
                         }
                     }
                     CommandEvent::Terminated(_) => {

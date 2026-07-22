@@ -163,6 +163,22 @@ export async function downloadAndInstallUpdate(
     return false;
   }
 
+  // Stop any running sidecar before the installer replaces app files: on
+  // Windows a live sidecar exe holds a file lock, so the installer silently
+  // skips it and the new binary ends up out of sync with sidecar-hashes.json.
+  // Dynamic import keeps updateCheck.ts out of the ipc.ts module cycle.
+  const { killSidecar } = await import("./ipc");
+  try {
+    await killSidecar("kuro");
+  } catch {
+    // Already stopped or never spawned: not a reason to block the update.
+  }
+  try {
+    await killSidecar("mame");
+  } catch {
+    // Already stopped or never spawned: not a reason to block the update.
+  }
+
   let downloaded = 0;
   let contentLength: number | undefined;
   await update.downloadAndInstall((event) => {
