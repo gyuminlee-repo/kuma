@@ -7,6 +7,9 @@ producer's ordering.
 
 from __future__ import annotations
 
+import json
+import zipfile
+
 import pytest
 
 from kuma_core.kuro.structure_file import (
@@ -72,33 +75,33 @@ def _write(tmp_path, name: str, text: str) -> str:
 
 
 def test_cif_afdb_column_order(tmp_path):
-    ca, seq = load_structure_file(_write(tmp_path, "model.cif", CIF_AFDB))
-    assert seq == "MKT"
+    loaded = load_structure_file(_write(tmp_path, "model.cif", CIF_AFDB))
+    assert loaded.sequence == "MKT"
     # Index 0 is unused so positions line up with 1-based residue numbering.
-    assert ca[0] is None
-    assert ca[1] == (1.5, 2.5, 3.5)
-    assert ca[3] == (7.5, 8.5, 9.5)
+    assert loaded.ca_coords[0] is None
+    assert loaded.ca_coords[1] == (1.5, 2.5, 3.5)
+    assert loaded.ca_coords[3] == (7.5, 8.5, 9.5)
 
 
 def test_cif_column_order_is_read_by_name(tmp_path):
     """A different producer ordering must yield identical coordinates."""
-    ca, seq = load_structure_file(_write(tmp_path, "model.cif", CIF_REORDERED))
-    assert seq == "MKT"
-    assert ca[1] == (1.5, 2.5, 3.5)
-    assert ca[3] == (7.5, 8.5, 9.5)
+    loaded = load_structure_file(_write(tmp_path, "model.cif", CIF_REORDERED))
+    assert loaded.sequence == "MKT"
+    assert loaded.ca_coords[1] == (1.5, 2.5, 3.5)
+    assert loaded.ca_coords[3] == (7.5, 8.5, 9.5)
 
 
 def test_cif_keeps_first_chain_and_model_only(tmp_path):
     """Extra chains and models must not overwrite residue 1."""
-    ca, _seq = load_structure_file(_write(tmp_path, "model.cif", CIF_REORDERED))
-    assert ca[1] == (1.5, 2.5, 3.5)
-    assert len(ca) == 4
+    loaded = load_structure_file(_write(tmp_path, "model.cif", CIF_REORDERED))
+    assert loaded.ca_coords[1] == (1.5, 2.5, 3.5)
+    assert len(loaded.ca_coords) == 4
 
 
 def test_pdb_is_supported(tmp_path):
-    ca, seq = load_structure_file(_write(tmp_path, "model.pdb", PDB_TEXT))
-    assert seq == "MKT"
-    assert ca[2] == (4.5, 5.5, 6.5)
+    loaded = load_structure_file(_write(tmp_path, "model.pdb", PDB_TEXT))
+    assert loaded.sequence == "MKT"
+    assert loaded.ca_coords[2] == (4.5, 5.5, 6.5)
 
 
 def test_unsupported_suffix_is_rejected(tmp_path):
@@ -121,7 +124,89 @@ def test_parsed_sequence_feeds_the_frame_guard(tmp_path):
     """The parser output is what structure_matches_reference judges."""
     from kuma_core.kuro.interface import structure_matches_reference
 
-    _ca, seq = load_structure_file(_write(tmp_path, "model.cif", CIF_AFDB))
-    assert structure_matches_reference(seq, "MKT") is True
+    loaded = load_structure_file(_write(tmp_path, "model.cif", CIF_AFDB))
+    assert structure_matches_reference(loaded.sequence, "MKT") is True
     # One substitution is enough to disqualify position indexing.
-    assert structure_matches_reference(seq, "MRT") is False
+    assert structure_matches_reference(loaded.sequence, "MRT") is False
+
+
+# ── AlphaFold Server archive selection ───────────────────────────────────────
+
+
+def _cif_with_plddt(b_factor: float, x: float) -> str:
+    """One-residue model carrying a pLDDT value in B_iso_or_equiv."""
+    return (
+        "data_test\nloop_\n"
+        "_atom_site.group_PDB\n_atom_site.id\n_atom_site.label_atom_id\n"
+        "_atom_site.label_comp_id\n_atom_site.label_asym_id\n_atom_site.label_seq_id\n"
+        "_atom_site.Cartn_x\n_atom_site.Cartn_y\n_atom_site.Cartn_z\n"
+        "_atom_site.B_iso_or_equiv\n_atom_site.pdbx_PDB_model_num\n"
+        f"ATOM 1 CA MET A 1 {x:.3f} 2.000 3.000 {b_factor:.2f} 1\n#\n"
+    )
+
+
+def _make_zip(tmp_path, name: str, members: dict[str, str]):
+    path = tmp_path / name
+    with zipfile.ZipFile(path, "w") as archive:
+        for member, text in members.items():
+            archive.writestr(member, text)
+    return str(path)
+
+
+def test_zip_picks_highest_ranking_score_not_model_zero(tmp_path):
+    """AlphaFold Server ranks by ranking_score, so filename order must not decide."""
+    members = {
+        "fold_job_model_0.cif": _cif_with_plddt(95.0, 1.0),
+        "fold_job_model_1.cif": _cif_with_plddt(50.0, 2.0),
+        "fold_job_model_2.cif": _cif_with_plddt(60.0, 3.0),
+        "fold_job_summary_confidences_0.json": json.dumps({"ranking_score": 0.42}),
+        "fold_job_summary_confidences_1.json": json.dumps({"ranking_score": 0.91}),
+        "fold_job_summary_confidences_2.json": json.dumps({"ranking_score": 0.55}),
+    }
+    loaded = load_structure_file(_make_zip(tmp_path, "af3.zip", members))
+    assert loaded.source_name == "fold_job_model_1.cif"
+    assert loaded.selection_metric == "ranking_score"
+    # Coordinates come from the chosen model, not from the first member read.
+    assert loaded.ca_coords[1] == (2.0, 2.0, 3.0)
+    # The whole ranking is reported so the choice can be shown, best first.
+    assert [c.name for c in loaded.candidates][0] == "fold_job_model_1.cif"
+    assert loaded.candidates[0].ranking_score == 0.91
+
+
+def test_zip_falls_back_to_mean_plddt_without_summaries(tmp_path):
+    members = {
+        "fold_job_model_0.cif": _cif_with_plddt(70.0, 1.0),
+        "fold_job_model_1.cif": _cif_with_plddt(88.0, 2.0),
+    }
+    loaded = load_structure_file(_make_zip(tmp_path, "af3.zip", members))
+    assert loaded.source_name == "fold_job_model_1.cif"
+    assert loaded.selection_metric == "mean_plddt"
+    assert loaded.mean_plddt == 88.0
+
+
+def test_zip_reports_when_no_metric_is_available(tmp_path):
+    """Without ranking_score or pLDDT any pick is arbitrary and must say so."""
+    members = {
+        "a_model_0.cif": CIF_AFDB,
+        "b_model_1.cif": CIF_AFDB,
+    }
+    loaded = load_structure_file(_make_zip(tmp_path, "plain.zip", members))
+    assert loaded.selection_metric == "none"
+    assert len(loaded.candidates) == 2
+
+
+def test_zip_without_cif_is_rejected(tmp_path):
+    path = _make_zip(tmp_path, "empty.zip", {"terms_of_use.md": "text"})
+    with pytest.raises(StructureFileError, match="no .cif model"):
+        load_structure_file(path)
+
+
+def test_non_zip_with_zip_suffix_is_rejected(tmp_path):
+    with pytest.raises(StructureFileError, match="not a zip archive"):
+        load_structure_file(_write(tmp_path, "fake.zip", "not a zip"))
+
+
+def test_single_file_reports_no_candidates(tmp_path):
+    loaded = load_structure_file(_write(tmp_path, "model.cif", CIF_AFDB))
+    assert loaded.candidates == []
+    assert loaded.selection_metric == "single_file"
