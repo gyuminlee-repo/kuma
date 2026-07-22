@@ -131,6 +131,17 @@ export const createSequenceSlice: StateCreator<AppState, [], [], SequenceSlice> 
             set({ statusMessage: withClearedNotice(UNIPROT_AUTO_SEARCH_SKIPPED_MESSAGE, invalidateResults) });
           }
         }
+
+        // Domain allocation reads refDomains only (inputSlice.helpers
+        // resolveSelectionDomains returns refDomains ?? []), and refDomains come
+        // from the InterProScan scan, not from the UniProt accession. Auto-running
+        // only the accession search left the one input allocation needs empty, so
+        // the scan runs too whenever domain allocation is on. Concurrent consent
+        // requests share one modal (networkConsentSlice requireNetworkConsent),
+        // so this cannot double-prompt.
+        if (translation && get().domainDiversityEnabled) {
+          void get().annotateReferenceDomains();
+        }
       }
     } catch (err) {
       set({ statusMessage: `Sequence file load failed: ${formatError(err)}` });
@@ -182,6 +193,12 @@ export const createSequenceSlice: StateCreator<AppState, [], [], SequenceSlice> 
         } else {
           set({ statusMessage: withClearedNotice(UNIPROT_AUTO_SEARCH_SKIPPED_MESSAGE, invalidateResults) });
         }
+      }
+      // The set() above cleared refDomains because the CDS changed. Domain
+      // allocation reads refDomains only, so rescan for the same reason
+      // loadSequence does.
+      if (translation && get().domainDiversityEnabled) {
+        void get().annotateReferenceDomains();
       }
     }
   },
