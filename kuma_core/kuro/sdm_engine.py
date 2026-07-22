@@ -870,12 +870,13 @@ def design_single_sdm(
         # Known and accepted: tm_target_fwd is the paper value 62 C, which is
         # defined for the partial-overlap geometry (fwd 17-39 bp, separate
         # overlap window). Full overlap floors primer length at 25 bp for the
-        # Q5 SDM kit, and a 25 bp primer is usually already hotter than 62 C on
-        # the fixed Benchling scale, so the shortest legal primer can overshoot
-        # the tolerance window and the site yields nothing. This lowered the
-        # Q5 SDM full-mode fixture yield from 6/12 to 4/12 (lost: D227A, E335A).
-        # Kept as-is: it follows the paper method. Splitting the target per
-        # overlap mode is a separate decision. See
+        # Q5 SDM kit, and a 25 bp primer can already be hotter than 62 C on the
+        # fixed Benchling scale, so the shortest legal primer can overshoot the
+        # tolerance window and the site yields nothing. Kept as-is: it follows
+        # the paper method. Splitting the target per overlap mode is a separate
+        # decision. The fixture yield is pinned by
+        # tests/test_annealing_ta_ceiling.py rather than transcribed here, so
+        # it cannot go stale. See
         # docs/2026-07-16-annealing-ta-rules-verified.md.
         tol = tol_step
         while tol <= tol_max + 1e-9:
