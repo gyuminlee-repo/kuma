@@ -103,12 +103,20 @@ class SdmPrimerResult:
 # Enzyme identity (buffer, salt correction, NEB calibration) belongs to the
 # annealing temperature only (kuro/annealing.py). A profile tm_method /
 # salt_correction / salt_* / dna_conc therefore feeds Ta, never design.
+#
+# The Benchling calculator models monovalent salt and oligo concentration only:
+# no Mg2+, no dNTP term. Carrying a polymerase buffer (dv 1.5 / dntp 0.8) into
+# this scale raised every design Tm by ~5.4 C while the targets stayed at the
+# paper values, so GC-rich sites fell out of the 62/58/42 windows and failed.
+# Verified against a bench-designed pair on pTSN-PtIspS-idi F385Y: Benchling
+# reports 61.6 / 59.5 C, dv 0 / dntp 0 reproduces 61.2 / 59.5 C, dv 1.5 /
+# dntp 0.8 reported 66.7 / 64.8 C.
 _DESIGN_TM_METHOD = "santalucia"
 _DESIGN_SALT_CORRECTION = "santalucia"
 _DESIGN_CONCS = dict(
     mv_conc=50.0,
-    dv_conc=1.5,
-    dntp_conc=0.8,
+    dv_conc=0.0,
+    dntp_conc=0.0,
     dna_conc=250.0,
 )
 
@@ -1035,6 +1043,245 @@ def design_single_sdm(
     return []
 
 
+# Tolerance used only by the failure diagnostic. Wide enough that the search
+# primitives never reject a candidate on Tm, so they return the length-valid
+# candidate closest to the target instead of None.
+_DIAG_WIDE_TOL = 1000.0
+
+
+def diagnose_sdm_failure(
+    seq: str,
+    mutation: Mutation,
+    profile: PolymeraseProfile,
+    overlap_len: int | None = None,
+    codon_strategy: str = "closest",
+    fwd_len_min: int | None = None,
+    fwd_len_max: int | None = None,
+    rev_len_min: int | None = None,
+    rev_len_max: int | None = None,
+    organism: str = "ecoli",
+    tol_max: float = 4.0,
+    overlap_mode: OverlapMode = "partial",
+) -> str:
+    """Explain why design_single_sdm returned no candidate for this mutation.
+
+    Runs only after a failure is confirmed, so the search path pays nothing.
+    Observation is done by calling the same primitives the search uses
+    (generate_overlap_windows, _extend_forward, _extend_reverse,
+    _design_full_overlap, _calc_sdm_tm) with a wide tolerance, so the reported
+    Tm is the closest one those primitives can reach under the length limits.
+    """
+    # Parameter resolution mirrors design_single_sdm.
+    if overlap_len is None:
+        overlap_len = profile.overlap_len if profile.overlap_len is not None else 18
+    if fwd_len_min is None:
+        fwd_len_min = profile.fwd_len_min if profile.fwd_len_min is not None else 17
+    if fwd_len_max is None:
+        fwd_len_max = profile.fwd_len_max if profile.fwd_len_max is not None else 39
+    if rev_len_min is None:
+        rev_len_min = profile.rev_len_min if profile.rev_len_min is not None else 19
+    if rev_len_max is None:
+        rev_len_max = profile.rev_len_max if profile.rev_len_max is not None else 27
+
+    tm_target_fwd = profile.opt_tm_fwd if profile.opt_tm_fwd is not None else 62.0
+    tm_target_rev = profile.opt_tm_rev if profile.opt_tm_rev is not None else 58.0
+    tm_target_overlap = profile.opt_tm_overlap if profile.opt_tm_overlap is not None else 42.0
+    min_downstream = max(profile.min_3prime_dist, 1)
+
+    alt_codons = mt_codons_for_design(
+        mutation.wt_codon, mutation.mt_aa, codon_strategy, organism=organism
+    )
+    variants: list[Mutation] = [
+        Mutation(
+            raw=mutation.raw,
+            wt_aa=mutation.wt_aa,
+            position=mutation.position,
+            mt_aa=mutation.mt_aa,
+            codon_start=mutation.codon_start,
+            wt_codon=mutation.wt_codon,
+            mt_codon=mt_codon,
+        )
+        for mt_codon in alt_codons
+    ]
+
+    prefix = "No valid primer pair - "
+
+    if overlap_mode == "full":
+        # _design_full_overlap is the single gate in full mode.
+        l_min = max(fwd_len_min, rev_len_min)
+        l_max = min(fwd_len_max, rev_len_max)
+        best: tuple[float, int] | None = None
+        for variant in variants:
+            mutated_seq = mutate_sequence(seq, variant)
+            probe = _design_full_overlap(
+                mutated_seq,
+                variant.codon_start,
+                variant.mt_codon,
+                target_tm=tm_target_fwd,
+                tolerance=_DIAG_WIDE_TOL,
+                profile=profile,
+                fwd_len_min=fwd_len_min,
+                fwd_len_max=fwd_len_max,
+                rev_len_min=rev_len_min,
+                rev_len_max=rev_len_max,
+            )
+            if probe is None:
+                continue
+            _fwd, _rev, tm_fwd, _tm_rev, _left = probe
+            cand = (tm_fwd, len(_fwd))
+            if best is None or abs(cand[0] - tm_target_fwd) < abs(best[0] - tm_target_fwd):
+                best = cand
+        if best is None:
+            return prefix + f"full overlap: no candidate satisfies length {l_min}-{l_max} bp"
+        return prefix + (
+            f"full overlap: closest Tm {best[0]:.1f}C at {best[1]} bp, "
+            f"outside {tm_target_fwd:.0f}+-{tol_max:.1f}C (length {l_min}-{l_max} bp)"
+        )
+
+    # Partial mode: same overlap length ladder as design_single_sdm.
+    min_overlap = 8 if tm_target_overlap < 50.0 else 15
+    overlap_lengths = list(range(overlap_len, min_overlap - 1, -1))
+
+    best_overlap: tuple[float, int] | None = None
+    best_fwd: tuple[float, int] | None = None
+    best_rev: tuple[float, int] | None = None
+    overlap_passed = False
+    fwd_passed = False
+    rev_passed = False
+    # Closest single window when each side passes somewhere but never together:
+    # (excess sum, fwd passed, fwd closest, rev passed, rev closest).
+    best_pair: tuple[
+        float, bool, tuple[float, int] | None, bool, tuple[float, int] | None
+    ] | None = None
+
+    def _excess(info: tuple[float, int] | None, target: float) -> float:
+        if info is None:
+            return float("inf")
+        return max(0.0, abs(info[0] - target) - tol_max)
+
+    for variant in variants:
+        mutated_seq = mutate_sequence(seq, variant)
+        codon_start = variant.codon_start
+        codon_end = codon_start + 3
+        # Slicing copied from _search_candidates (no primitive covers it).
+        downstream_seq = mutated_seq[codon_end:codon_end + 40]
+
+        for ov_len in overlap_lengths:
+            for window in generate_overlap_windows(mutated_seq, codon_start, ov_len):
+                overlap_seq = window.sequence
+                overlap_tm = _calc_sdm_tm(overlap_seq)
+                if best_overlap is None or abs(overlap_tm - tm_target_overlap) < abs(
+                    best_overlap[0] - tm_target_overlap
+                ):
+                    best_overlap = (overlap_tm, len(overlap_seq))
+                if abs(overlap_tm - tm_target_overlap) > tol_max:
+                    continue
+                overlap_passed = True
+
+                fwd_probe = _extend_forward(
+                    overlap_seq, variant.mt_codon, downstream_seq,
+                    tm_target_fwd, _DIAG_WIDE_TOL, profile, min_downstream,
+                    fwd_len_min=fwd_len_min, fwd_len_max=fwd_len_max,
+                )
+                fwd_info = None if fwd_probe is None else (fwd_probe[2], len(fwd_probe[0]))
+                if fwd_info is not None and (
+                    best_fwd is None
+                    or abs(fwd_info[0] - tm_target_fwd) < abs(best_fwd[0] - tm_target_fwd)
+                ):
+                    best_fwd = fwd_info
+                # Pass/fail is decided by the primitive at tol_max, not by the
+                # rounded probe Tm, so the verdict matches the search exactly.
+                fwd_ok = _extend_forward(
+                    overlap_seq, variant.mt_codon, downstream_seq,
+                    tm_target_fwd, tol_max, profile, min_downstream,
+                    fwd_len_min=fwd_len_min, fwd_len_max=fwd_len_max,
+                ) is not None
+                if fwd_ok:
+                    fwd_passed = True
+
+                overlap_start = codon_start - len(overlap_seq)
+                upstream_seq = mutated_seq[max(0, overlap_start - rev_len_max):overlap_start]
+                rev_probe = _extend_reverse(
+                    overlap_seq, upstream_seq, tm_target_rev, _DIAG_WIDE_TOL, profile,
+                    rev_len_min=rev_len_min, rev_len_max=rev_len_max,
+                )
+                rev_info = None if rev_probe is None else (rev_probe[2], len(rev_probe[0]))
+                if rev_info is not None and (
+                    best_rev is None
+                    or abs(rev_info[0] - tm_target_rev) < abs(best_rev[0] - tm_target_rev)
+                ):
+                    best_rev = rev_info
+                rev_ok = _extend_reverse(
+                    overlap_seq, upstream_seq, tm_target_rev, tol_max, profile,
+                    rev_len_min=rev_len_min, rev_len_max=rev_len_max,
+                ) is not None
+                if rev_ok:
+                    rev_passed = True
+
+                pair_excess = (0.0 if fwd_ok else _excess(fwd_info, tm_target_fwd)) + (
+                    0.0 if rev_ok else _excess(rev_info, tm_target_rev)
+                )
+                if best_pair is None or pair_excess < best_pair[0]:
+                    best_pair = (pair_excess, fwd_ok, fwd_info, rev_ok, rev_info)
+
+    if not overlap_passed:
+        if best_overlap is None:
+            return prefix + (
+                f"overlap: no window available (tried {min_overlap}-{overlap_len} bp)"
+            )
+        return prefix + (
+            f"overlap: closest Tm {best_overlap[0]:.1f}C at {best_overlap[1]} bp, "
+            f"outside {tm_target_overlap:.0f}+-{tol_max:.1f}C "
+            f"(tried {min_overlap}-{overlap_len} bp)"
+        )
+
+    def _side_clause(
+        side: str,
+        info: tuple[float, int] | None,
+        target: float,
+        len_min: int,
+        len_max: int,
+    ) -> str:
+        if info is None:
+            return f"{side}: no candidate satisfies length {len_min}-{len_max} bp"
+        return (
+            f"{side}: closest Tm {info[0]:.1f}C at {info[1]} bp, "
+            f"outside {target:.0f}+-{tol_max:.1f}C (length {len_min}-{len_max} bp)"
+        )
+
+    clauses: list[str] = []
+    if not fwd_passed:
+        clauses.append(
+            _side_clause("forward", best_fwd, tm_target_fwd, fwd_len_min, fwd_len_max)
+        )
+    if not rev_passed:
+        clauses.append(
+            _side_clause("reverse", best_rev, tm_target_rev, rev_len_min, rev_len_max)
+        )
+
+    if not clauses and best_pair is not None:
+        # Each side passes in some window, but never in the same one. Report the
+        # single window closest to satisfying both.
+        _pair_excess, pair_fwd_ok, pair_fwd, pair_rev_ok, pair_rev = best_pair
+        if not pair_fwd_ok:
+            clauses.append(
+                _side_clause("forward", pair_fwd, tm_target_fwd, fwd_len_min, fwd_len_max)
+            )
+        if not pair_rev_ok:
+            clauses.append(
+                _side_clause("reverse", pair_rev, tm_target_rev, rev_len_min, rev_len_max)
+            )
+        if clauses:
+            return prefix + (
+                "no single overlap window satisfies both sides - "
+                + "; ".join(clauses)
+            )
+
+    if not clauses:
+        return prefix + "cause not isolated to overlap, forward, or reverse"
+    return prefix + "; ".join(clauses)
+
+
 def _translate_dna(dna: str) -> str:
     """Translate DNA to protein. Stops at TAA/TAG/TGA or end. Unknown codons → X."""
     _stop = {"TAA", "TAG", "TGA"}
@@ -1417,7 +1664,13 @@ def design_sdm_primers(
         logger.info("Designing primers for %s ...", mut.raw)
         candidates = design_single_sdm(sequence, mut, profile, overlap_len, codon_strategy=codon_strategy, gc_min=gc_min, gc_max=gc_max, fwd_len_min=fwd_len_min, fwd_len_max=fwd_len_max, rev_len_min=rev_len_min, rev_len_max=rev_len_max, organism=organism, overlap_mode=overlap_mode)
         if not candidates:
-            failed_reasons[mut.raw] = "No valid primer pair found within Tm tolerance ±4.0°C"
+            failed_reasons[mut.raw] = diagnose_sdm_failure(
+                sequence, mut, profile, overlap_len,
+                codon_strategy=codon_strategy,
+                fwd_len_min=fwd_len_min, fwd_len_max=fwd_len_max,
+                rev_len_min=rev_len_min, rev_len_max=rev_len_max,
+                organism=organism, overlap_mode=overlap_mode,
+            )
             logger.warning("FAILED: %s - no valid primer pair found", mut.raw)
             continue
         best = candidates[0]
