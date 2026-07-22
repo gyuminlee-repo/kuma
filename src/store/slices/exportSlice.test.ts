@@ -115,6 +115,9 @@ function makeStore() {
     rescuedMutationDetails: [],
     yPredMap: {},
     poolVariants: [],
+    evolveproRankedCandidates: [],
+    evolveproSelectedVariants: [],
+    evolveproExtraExposed: 10,
     resetAll: () => {
       Object.assign(state, {
         designResults: [],
@@ -317,6 +320,20 @@ describe("exportSlice — schema_version 0.3", () => {
       gcMax: 60,
     }
     await expect(store.slice.restoreWorkspace(oldWorkspace)).rejects.toThrow(/older than v0\.3/i)
+  })
+
+  it("resetAll clears EVOLVEpro ranked candidates, selected variants, and extra-exposed count", () => {
+    store.state.evolveproRankedCandidates = [
+      { variant: "F89W", y_pred: 0.9, aa_position: 89 },
+    ]
+    store.state.evolveproSelectedVariants = ["F89W"]
+    store.state.evolveproExtraExposed = 25
+
+    store.slice.resetAll({ preserveWorkspaceArtifacts: true })
+
+    expect(store.state.evolveproRankedCandidates).toEqual([])
+    expect(store.state.evolveproSelectedVariants).toEqual([])
+    expect(store.state.evolveproExtraExposed).toBe(10)
   })
 
   it("getWorkspaceSnapshot still includes kuro inputs (backward compat)", () => {
