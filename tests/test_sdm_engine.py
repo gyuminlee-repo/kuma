@@ -680,3 +680,24 @@ class TestDesignIsEnzymeIndependent:
         assert len({v for v in tas.values() if v is not None}) > 1, (
             f"Ta must differ by polymerase, got {tas}"
         )
+
+
+class TestFailureReasonNamesStage:
+    """A failed design must say which stage blocked it, not just that it failed."""
+
+    def test_failure_reason_names_a_design_stage(self, genbank_path):
+        _res, _cand, failed = design_sdm_primers(
+            fasta_path=genbank_path,
+            target_start=TARGET_START,
+            mutations_csv=FIXTURES_DIR / "dmpR_evolvepro.csv",
+            polymerase="KOD",
+        )
+        assert failed, "fixture expected to yield at least one design failure"
+        for raw, reason in failed.items():
+            assert reason.startswith("No valid primer pair - "), (
+                f"{raw}: unexpected prefix: {reason}"
+            )
+            assert any(stage in reason for stage in ("overlap:", "forward:", "reverse:")), (
+                f"{raw}: reason names no design stage: {reason}"
+            )
+            assert reason.isascii(), f"{raw}: non-ASCII reason: {reason}"
