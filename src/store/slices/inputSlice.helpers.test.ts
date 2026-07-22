@@ -48,7 +48,6 @@ function makeConfig(overrides: Partial<EvolveproLoadConfig> = {}): EvolveproLoad
     filepath: "/tmp/df_test.csv",
     topN: 10,
     usePipeline: true,
-    evolveproMode: "pipeline",
     evolveproVariantColumn: null,
     evolveproScoreColumn: null,
     evolveproScoreOrder: "desc",
@@ -114,7 +113,7 @@ describe("buildEvolveproLoadParams anchor_variants", () => {
 
   it("omits anchor_variants in topN (non-pipeline) mode", () => {
     const params = buildEvolveproLoadParams(
-      makeConfig({ usePipeline: false, evolveproMode: "topN", anchorVariants: ["F89W"] }),
+      makeConfig({ usePipeline: false, anchorVariants: ["F89W"] }),
     );
     expect(params).not.toHaveProperty("anchor_variants");
   });
@@ -164,6 +163,38 @@ describe("buildEvolveproLoadParams structure_accession", () => {
       makeConfig({ structuralDiversityEnabled: true, structureAccession: "" }),
     );
     expect(params).not.toHaveProperty("structure_accession");
+  });
+});
+
+describe("buildEvolveproLoadParams column overrides", () => {
+  it("omits variant_column/score_column/sheet_name when all are null (auto-detect)", () => {
+    const params = buildEvolveproLoadParams(makeConfig());
+    expect(params).not.toHaveProperty("variant_column");
+    expect(params).not.toHaveProperty("score_column");
+    expect(params).not.toHaveProperty("sheet_name");
+  });
+
+  it("sends variant_column/score_column/sheet_name only when explicitly overridden", () => {
+    const params = buildEvolveproLoadParams(
+      makeConfig({
+        evolveproVariantColumn: "mutation",
+        evolveproScoreColumn: "fitness",
+        evolveproSheetName: "Round 2",
+      }),
+    );
+    expect(params.variant_column).toBe("mutation");
+    expect(params.score_column).toBe("fitness");
+    expect(params.sheet_name).toBe("Round 2");
+  });
+
+  it("always sends score_order regardless of override state", () => {
+    const autoParams = buildEvolveproLoadParams(makeConfig());
+    expect(autoParams.score_order).toBe("desc");
+
+    const overriddenParams = buildEvolveproLoadParams(
+      makeConfig({ evolveproScoreOrder: "asc" }),
+    );
+    expect(overriddenParams.score_order).toBe("asc");
   });
 });
 

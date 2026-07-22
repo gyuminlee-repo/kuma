@@ -42,7 +42,7 @@ import type {
 } from "../types/models";
 import type { RankedCandidateItem, SettingsBundle } from "../types/models.generated";
 
-export type EvolveproMode = "topN" | "pipeline" | "others";
+export type EvolveproMode = "topN" | "pipeline";
 
 // ---------------------------------------------------------------------------
 // SequenceSlice
@@ -171,21 +171,16 @@ export interface InputSlice {
   evolveproParetoExchanges: number | null;
   evolveproStepStats: EvolveproStepStats | null;
   yPredMap: Record<string, number>;
-  /** EVOLVEpro selection mode: "topN" | "pipeline" | "others" */
+  /** EVOLVEpro selection mode: "topN" | "pipeline" */
   evolveproMode: EvolveproMode;
   evolveproVariantColumn: string | null;
   evolveproScoreColumn: string | null;
   evolveproScoreOrder: "desc" | "asc";
   evolveproSheetName: string | null;
   evolveproPreview: EvolveproPreview | null;
-  othersSourcePath: string;
-  othersVariantColumn: string | null;
-  othersScoreColumn: string | null;
-  othersScoreOrder: "desc" | "asc";
-  othersSheetName: string | null;
-  othersPreview: EvolveproPreview | null;
-  othersUsedVariantColumn: string | null;
-  othersUsedScoreColumn: string | null;
+  /** Column name the backend actually used (auto-detected or explicit override), from the last load response. */
+  evolveproUsedVariantColumn: string | null;
+  evolveproUsedScoreColumn: string | null;
   /** Ranked candidate buffer from load_evolvepro_csv response (y_pred desc). */
   evolveproRankedCandidates: RankedCandidateItem[];
   /** Explicit user selection: variant strings that are currently included. */
@@ -205,12 +200,6 @@ export interface InputSlice {
   setEvolveproScoreOrder: (order: "desc" | "asc") => void;
   setEvolveproSheetName: (name: string | null) => void;
   setEvolveproPreview: (preview: EvolveproPreview | null) => void;
-  setOthersSourcePath: (path: string) => void;
-  setOthersVariantColumn: (col: string | null) => void;
-  setOthersScoreColumn: (col: string | null) => void;
-  setOthersScoreOrder: (order: "desc" | "asc") => void;
-  setOthersSheetName: (name: string | null) => void;
-  setOthersPreview: (preview: EvolveproPreview | null) => void;
   /**
    * Round handoff hydration.
    * prevRound.merged_table를 필터링하여 EVOLVEpro 형식으로 inputSlice를 hydrate.

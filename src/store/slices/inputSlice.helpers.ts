@@ -5,22 +5,19 @@ import type {
   EvolveproLoadResult,
   EvolveproStepStats,
 } from "../../types/models";
-import type { EvolveproMode } from "../slice-interfaces";
 import type { Round } from "../../types/round";
 
 export interface EvolveproLoadConfig {
   filepath: string;
   topN: number;
   usePipeline: boolean;
-  /** Full mode enum, drives 3-way branching in buildEvolveproLoadParams */
-  evolveproMode: EvolveproMode;
-  /** "others" mode: mutation column name (null = auto-detect) */
+  /** Mutation/variant column name override (null = backend auto-detect via VARIANT_COLUMNS alias). */
   evolveproVariantColumn: string | null;
-  /** "others" mode: ranking/score column name (null = auto-detect) */
+  /** Ranking/score column name override (null = backend auto-detect via SCORE_COLUMNS alias). */
   evolveproScoreColumn: string | null;
-  /** "others" mode: score ordering direction */
+  /** Score ordering direction; always sent. */
   evolveproScoreOrder: "asc" | "desc";
-  /** "others" mode: sheet name for XLSX files (null = first sheet) */
+  /** Sheet name for XLSX files (null = first sheet). */
   evolveproSheetName: string | null;
   positionDiversityEnabled: boolean;
   maxPerPosition: number;
@@ -79,7 +76,6 @@ export function buildEvolveproLoadParams(config: EvolveproLoadConfig): Record<st
     filepath,
     topN,
     usePipeline,
-    evolveproMode,
     evolveproVariantColumn,
     evolveproScoreColumn,
     evolveproScoreOrder,
@@ -110,10 +106,10 @@ export function buildEvolveproLoadParams(config: EvolveproLoadConfig): Record<st
   const params: Record<string, unknown> = {
     filepath,
     top_n: topN,
-    ...(evolveproMode === "others" && evolveproVariantColumn && { variant_column: evolveproVariantColumn }),
-    ...(evolveproMode === "others" && evolveproScoreColumn && { score_column: evolveproScoreColumn }),
-    ...(evolveproMode === "others" && { score_order: evolveproScoreOrder }),
-    ...(evolveproMode === "others" && evolveproSheetName && { sheet_name: evolveproSheetName }),
+    ...(evolveproVariantColumn && { variant_column: evolveproVariantColumn }),
+    ...(evolveproScoreColumn && { score_column: evolveproScoreColumn }),
+    score_order: evolveproScoreOrder,
+    ...(evolveproSheetName && { sheet_name: evolveproSheetName }),
     ...(usePipeline && positionDiversityEnabled && { max_per_position: maxPerPosition }),
     ...(usePipeline && excludedDomains.length > 0 && {
       excluded_ranges: excludedDomains.map((d) => ({ start: d.start, end: d.end })),

@@ -32,7 +32,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
 
 
   function getActiveEvolveproPath(state: AppState): string {
-    return state.evolveproMode === "others" ? state.othersSourcePath : state.evolveproCsvPath;
+    return state.evolveproCsvPath;
   }
 
   async function reloadEvolveproCsv(reason: string) {

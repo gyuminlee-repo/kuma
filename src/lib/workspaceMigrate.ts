@@ -34,7 +34,6 @@ export const MIGRATIONS: Record<string, MigrationFn> = {
         mutationText: ws.mutationText ?? "",
         evolveproCsvPath: ws.evolveproCsvPath ?? "",
         selectedGene: ws.selectedGene ?? "",
-        othersSourcePath: "",
       },
       settings: {
         selectedPolymerase: undefined,
