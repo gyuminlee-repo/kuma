@@ -141,6 +141,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   structureLoaded: false,
   structureLoading: false,
   structureAccession: "",
+  structure3dState: "off",
   uniprotCandidates: [],
   uniprotSearching: false,
   structuralDiversityEnabled: false,
@@ -345,6 +346,14 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
       .filter((d) => !state.disabledDomains.includes(`${d.name}-${d.start}`))
       .map((d) => ({ name: d.name, start: d.start, end: d.end }));
 
+    // Reference sequence for the backend frame guard, same source as
+    // load_evolvepro: the selected gene's translation. Without it the guard
+    // cannot verify a loaded structure covers the CDS frame.
+    const benchGene =
+      state.seqInfo?.genes.find((g) => String(g.cds_start) === state.selectedGene)
+      ?? state.seqInfo?.genes[0];
+    const benchRefSeq = benchGene?.translation ?? "";
+
     set({ benchmarkRunning: true, statusMessage: "Running benchmark..." });
     try {
       const result = await sendRequest("run_benchmark", {
@@ -359,14 +368,22 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
         entropy_weight: state.entropyWeightEnabled ? state.entropyWeight : 0,
         pool_multiplier: state.paretoPoolMultiplier,
         distance_mode: state.distanceMode,
-        structure_accession: state.uniprotAccession || undefined,
+        // A user-loaded structure file lives in structureAccession, not
+        // uniprotAccession, so it must win here too (matches load_evolvepro).
+        structure_accession: state.structureAccession || state.uniprotAccession || undefined,
+        ref_seq: benchRefSeq,
         random_seed: state.benchmarkRandomSeed,
       }, 120_000);
+      // Surface the same 3D-to-1D fallback notice load_evolvepro shows, so a
+      // frame mismatch is not silent in the benchmark path either.
+      const benchMismatch = result.structure_frame_mismatch
+        ? ` | ${i18next.t("inputSlice.structureFrameMismatch")}`
+        : "";
       set({
         benchmarkRunning: false,
         benchmarkResults: result.results,
         showBenchmark: true,
-        statusMessage: "Benchmark complete",
+        statusMessage: `Benchmark complete${benchMismatch}`,
       });
     } catch (err) {
       set({
@@ -503,6 +520,64 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
         structureLoading: false,
         structureAccession: "",
         statusMessage: `AlphaFold fetch failed: ${formatError(err)}`,
+      });
+    }
+  },
+
+  loadStructureFile: async (filepath: string) => {
+    const path = filepath.trim();
+    if (!path) return;
+    // A local file needs no network consent and has no accession to match, so
+    // the fetchStructure guards do not apply. A generation counter still
+    // discards a stale load if another begins first.
+    const fetchGeneration = ++structureFetchGeneration;
+    set({
+      structureLoading: true,
+      structureLoaded: false,
+      statusMessage: i18next.t("diversity.structureFileLoading"),
+    });
+    try {
+      const result = await sendRequest("load_structure_file", { filepath: path }, 60_000);
+      if (fetchGeneration !== structureFetchGeneration) return;
+      if (result.success && result.accession) {
+        const picked =
+          result.selection_metric === "ranking_score" || result.selection_metric === "mean_plddt"
+            ? i18next.t("diversity.structureFileChosen", {
+                source: result.source_name ?? "",
+                count: result.candidates?.length ?? 0,
+                metric: result.selection_metric,
+              })
+            : "";
+        set({
+          structureLoaded: true,
+          structureLoading: false,
+          structureAccession: result.accession,
+          statusMessage: i18next.t("diversity.structureFileLoaded", {
+            residues: result.residues ?? 0,
+            picked,
+          }),
+        });
+        const state = get();
+        if (shouldReloadAfterStructureFetch(state)) {
+          await state.loadEvolveproCsv(getActiveEvolveproPath(state));
+        }
+      } else {
+        set({
+          structureLoaded: false,
+          structureLoading: false,
+          structureAccession: "",
+          statusMessage: i18next.t("diversity.structureFileFailed", {
+            error: result.error ?? "unreadable",
+          }),
+        });
+      }
+    } catch (err) {
+      if (fetchGeneration !== structureFetchGeneration) return;
+      set({
+        structureLoaded: false,
+        structureLoading: false,
+        structureAccession: "",
+        statusMessage: i18next.t("diversity.structureFileFailed", { error: formatError(err) }),
       });
     }
   },

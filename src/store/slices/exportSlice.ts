@@ -532,19 +532,28 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
     const { inputs, settings, results, ui, cache } = normalized;
     let loadedSeqInfo: SequenceInfo | null = null;
     let restoredGene = "";
+    let templateLoadError: string | null = null;
 
     if (inputs.fastaPath) {
-      const info = await sendRequest("load_fasta", {
-        filepath: inputs.fastaPath,
-      });
-      loadedSeqInfo = info;
-      if (inputs.selectedGene) {
-        const geneExists = info.genes.some(
-          (g) => String(g.cds_start) === String(inputs.selectedGene),
-        );
-        if (geneExists) {
-          restoredGene = inputs.selectedGene;
+      try {
+        const info = await sendRequest("load_fasta", {
+          filepath: inputs.fastaPath,
+        });
+        loadedSeqInfo = info;
+        if (inputs.selectedGene) {
+          const geneExists = info.genes.some(
+            (g) => String(g.cds_start) === String(inputs.selectedGene),
+          );
+          if (geneExists) {
+            restoredGene = inputs.selectedGene;
+          }
         }
+      } catch (err) {
+        // 템플릿 파일 경로가 깨져도 나머지 복원(설정·결과물·UI)은 계속한다.
+        // 사용자에게는 statusMessage로 원인과 다음 행동을 드러낸다.
+        templateLoadError = formatError(err);
+        loadedSeqInfo = null;
+        restoredGene = "";
       }
     }
 
@@ -687,15 +696,27 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       structuralKappa: settings.structuralKappa ?? 0.3,
       yPredMap: preloadedYPred ?? {},
       poolVariants: preloadedPoolVariants ?? [],
-      statusMessage: evolveproReloadError
-        ? `Workspace loaded. EVOLVEpro CSV reload failed: ${evolveproReloadError}`
+      // 두 실패는 독립이다. 분기로 두면 템플릿 실패가 EVOLVEpro 실패를 가려,
+      // 사용자가 템플릿을 고친 뒤에야 두 번째 실패를 처음 보게 된다.
+      statusMessage: templateLoadError || evolveproReloadError
+        ? [
+            templateLoadError
+              ? i18next.t("exportSlice.templateLoadFailed", { error: templateLoadError })
+              : null,
+            evolveproReloadError
+              ? `Workspace loaded. EVOLVEpro CSV reload failed: ${evolveproReloadError}`
+              : null,
+          ]
+            .filter((m): m is string => m !== null)
+            .join(" ")
         : (settings.autoRedesignOnLoad ?? true)
           ? "Workspace loaded. Re-designing to sync backend..."
           : ((results.designResults?.length ?? 0) > 0
               ? "Workspace loaded. Re-design to enable alternatives and primer swapping."
               : "Workspace loaded."),
     });
-    if ((settings.autoRedesignOnLoad ?? true) && inputs.mutationText && inputs.fastaPath && !evolveproReloadError) {
+    // 템플릿 로딩이 실패했으면 seqInfo가 없으므로 자동 재설계를 시도하지 않는다.
+    if ((settings.autoRedesignOnLoad ?? true) && inputs.mutationText && inputs.fastaPath && !evolveproReloadError && !templateLoadError) {
       await get().designPrimers();
       const redesignedResults = get().designResults;
       const redesignedPlateState = buildIncludedPlateState({

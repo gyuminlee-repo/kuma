@@ -163,9 +163,16 @@ export async function downloadAndInstallUpdate(
     return false;
   }
 
+  // Download and install are split on purpose. Killing the sidecars before a
+  // multi-minute download leaves a long window in which anything that pings a
+  // sidecar (tab switch in MainShell) respawns it, so the exe holds a file lock
+  // again by the time the installer runs, the installer silently skips it, and
+  // the new binary ends up out of sync with sidecar-hashes.json. Killing right
+  // before install() shrinks that window to the install call itself.
+  // Dynamic import keeps updateCheck.ts out of the ipc.ts module cycle.
   let downloaded = 0;
   let contentLength: number | undefined;
-  await update.downloadAndInstall((event) => {
+  await update.download((event) => {
     switch (event.event) {
       case "Started":
         contentLength = event.data.contentLength;
@@ -180,6 +187,22 @@ export async function downloadAndInstallUpdate(
         break;
     }
   });
+
+  const { killSidecar } = await import("./ipc");
+  // Both kills in one Promise.all: a sequential await between them is another
+  // opening for a respawn ping to land on the already-killed sidecar.
+  await Promise.all(
+    (["kuro", "mame"] as const).map((kind) =>
+      killSidecar(kind).catch((err: unknown) => {
+        // Already stopped or never spawned: not a reason to block the update.
+        // Logged rather than swallowed so a genuine kill failure is visible
+        // when the installer later reports a skipped sidecar.
+        console.warn(`[update] killSidecar(${kind}) failed before install:`, err);
+      }),
+    ),
+  );
+
+  await update.install();
 
   onProgress?.({ phase: "relaunching" });
   const { relaunch } = await import("@tauri-apps/plugin-process");

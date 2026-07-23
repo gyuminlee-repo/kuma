@@ -81,6 +81,9 @@ function schemaToTs(schemaJson) {
     input: schemaJson,
     encoding: "utf-8",
     maxBuffer: 64 * 1024 * 1024,
+    // The .bin shim has no extension, so on Windows it must run through the
+    // shell to resolve json2ts.CMD. Without this spawnSync returns status null.
+    shell: process.platform === "win32",
   });
   if (res.status !== 0) {
     process.stderr.write(res.stderr || "");

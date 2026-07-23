@@ -20,8 +20,42 @@ import {
   TableHeader,
   TableRow,
 } from "../../ui/table";
+import { SourceColumnErrorBoundary } from "./SourceColumnErrorBoundary";
 
 const PREVIEW_MAX_ROWS = 5;
+
+const AUTO_SENTINEL = "__auto__";
+const COLUMN_SENTINEL_PREFIX = "__col_";
+const COLUMN_SENTINEL_SUFFIX = "__";
+
+/**
+ * Radix Select throws at render time on `value=""`, and a pandas
+ * `df.to_csv(path)` / `df.to_excel(path)` leaves the index column header
+ * empty, so raw header strings can never be used as SelectItem values.
+ * Columns are addressed by index instead and mapped back to the real header
+ * (empty string included) on selection.
+ */
+function sentinelForIndex(index: number): string {
+  return `${COLUMN_SENTINEL_PREFIX}${index}${COLUMN_SENTINEL_SUFFIX}`;
+}
+
+function columnToSentinel(column: string | null, headers: string[]): string {
+  if (column === null) return AUTO_SENTINEL;
+  const index = headers.indexOf(column);
+  if (index < 0) return AUTO_SENTINEL;
+  return sentinelForIndex(index);
+}
+
+function sentinelToColumn(value: string, headers: string[]): string | null {
+  if (!value.startsWith(COLUMN_SENTINEL_PREFIX)) return null;
+  const raw = value.slice(
+    COLUMN_SENTINEL_PREFIX.length,
+    value.length - COLUMN_SENTINEL_SUFFIX.length,
+  );
+  const index = Number(raw);
+  if (!Number.isInteger(index) || index < 0 || index >= headers.length) return null;
+  return headers[index];
+}
 
 /**
  * Column mapping panel for the single EVOLVEpro/Others file loader.
@@ -30,7 +64,7 @@ const PREVIEW_MAX_ROWS = 5;
  * backend's VARIANT_COLUMNS/SCORE_COLUMNS alias matching
  * (kuma_core/kuro/evolvepro.py:_load_evolvepro_rows).
  */
-export function SourceColumnPanel() {
+function SourceColumnPanelInner() {
   const { t } = useTranslation();
 
   const evolveproCsvPath = useAppStore((s) => s.evolveproCsvPath);
@@ -68,6 +102,16 @@ export function SourceColumnPanel() {
 
   const headers = evolveproPreview?.headers ?? [];
   const hasHeaders = headers.length > 0;
+  // Empty headers stay listed and selectable: the UI must not reshape the
+  // column structure the sidecar reported, even though the blank column is
+  // usually just a pandas index and never a real variant/score column.
+  const columnLabel = useCallback(
+    (header: string, index: number) =>
+      header.trim() === ""
+        ? t("mutationInput.othersUnnamedColumn", { index: index + 1 })
+        : header,
+    [t],
+  );
   const canApply = Boolean(evolveproCsvPath);
   const noFileLoaded = !evolveproCsvPath;
 
@@ -191,9 +235,9 @@ export function SourceColumnPanel() {
             {t("mutationInput.othersVariantColumn")}
           </Label>
           <Select
-            value={evolveproVariantColumn ?? "__auto__"}
+            value={columnToSentinel(evolveproVariantColumn, headers)}
             onValueChange={(v) =>
-              setEvolveproVariantColumn(v === "__auto__" ? null : v)
+              setEvolveproVariantColumn(sentinelToColumn(v, headers))
             }
             disabled={!hasHeaders}
           >
@@ -203,12 +247,16 @@ export function SourceColumnPanel() {
               />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="__auto__" className="text-xs text-muted-foreground">
+              <SelectItem value={AUTO_SENTINEL} className="text-xs text-muted-foreground">
                 {t("mutationInput.othersVariantColumnPlaceholder")}
               </SelectItem>
-              {headers.map((h) => (
-                <SelectItem key={h} value={h} className="text-xs font-mono">
-                  {h}
+              {headers.map((h, i) => (
+                <SelectItem
+                  key={`variant-${i}`}
+                  value={sentinelForIndex(i)}
+                  className="text-xs font-mono"
+                >
+                  {columnLabel(h, i)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -225,9 +273,9 @@ export function SourceColumnPanel() {
             {t("mutationInput.othersScoreColumn")}
           </Label>
           <Select
-            value={evolveproScoreColumn ?? "__auto__"}
+            value={columnToSentinel(evolveproScoreColumn, headers)}
             onValueChange={(v) =>
-              setEvolveproScoreColumn(v === "__auto__" ? null : v)
+              setEvolveproScoreColumn(sentinelToColumn(v, headers))
             }
             disabled={!hasHeaders}
           >
@@ -237,12 +285,16 @@ export function SourceColumnPanel() {
               />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="__auto__" className="text-xs text-muted-foreground">
+              <SelectItem value={AUTO_SENTINEL} className="text-xs text-muted-foreground">
                 {t("mutationInput.othersScoreColumnPlaceholder")}
               </SelectItem>
-              {headers.map((h) => (
-                <SelectItem key={h} value={h} className="text-xs font-mono">
-                  {h}
+              {headers.map((h, i) => (
+                <SelectItem
+                  key={`score-${i}`}
+                  value={sentinelForIndex(i)}
+                  className="text-xs font-mono"
+                >
+                  {columnLabel(h, i)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -307,13 +359,13 @@ export function SourceColumnPanel() {
             </caption>
             <TableHeader>
               <TableRow>
-                {evolveproPreview.headers.map((h) => (
+                {evolveproPreview.headers.map((h, hi) => (
                   <TableHead
-                    key={h}
+                    key={`col-${hi}`}
                     scope="col"
                     className="text-xs font-mono py-1 px-2 h-auto"
                   >
-                    {h}
+                    {columnLabel(h, hi)}
                   </TableHead>
                 ))}
               </TableRow>
@@ -336,5 +388,23 @@ export function SourceColumnPanel() {
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Public entry point. The inner panel renders sidecar-supplied header strings
+ * into Radix Select items, so a malformed payload can throw during render;
+ * the boundary keeps that failure local to this panel instead of unmounting
+ * the whole KURO screen.
+ */
+export function SourceColumnPanel() {
+  const { t } = useTranslation();
+  return (
+    <SourceColumnErrorBoundary
+      componentName="SourceColumnPanel"
+      title={t("mutationInput.othersPanelCrashed")}
+    >
+      <SourceColumnPanelInner />
+    </SourceColumnErrorBoundary>
   );
 }

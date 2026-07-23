@@ -1654,6 +1654,8 @@
     "othersApplyBtn": "Apply selected columns",
     "othersApplyError": "Column load failed: {{message}}",
     "othersUsedColumn": "Applied column: {{column}}",
+    "othersUnnamedColumn": "未命名 column {{index}}",
+    "othersPanelCrashed": "無法顯示 column 對應面板。",
     "extraExposedLabel": "Extra candidates shown:",
     "extraExposedAriaLabel": "Number of extra unselected candidates to display",
     "extraExposedHint": "(0 = selected only)",
@@ -1667,7 +1669,12 @@
     "scanSequenceBtn": "掃描序列",
     "scanSequenceTitle": "使用 InterProScan 直接從已載入的蛋白質序列偵測參考座標域",
     "referenceDomainsReady": "參考座標: {{count}} 個 InterProScan 域",
-    "accessionDomainsOnly": "Accession 域用於 3D 顯示。進行域分配前請掃描參考序列。"
+    "accessionDomainsOnly": "Accession 域用於 3D 顯示。進行域分配前請掃描參考序列。",
+    "loadStructureBtn": "載入結構",
+    "loadStructureTitle": "載入你為此序列預測的 PDB、mmCIF 或 AlphaFold Server zip。zip 中會自動選擇最佳模型。",
+    "threeDActive": "多樣性選擇正在使用3D結構。",
+    "threeDNoStructure": "未載入結構：使用位置距離而非3D。載入結構以啟用3D感知選擇。",
+    "threeDFrameMismatch": "結構與此序列框架不符：使用位置距離而非3D。"
   },
   "statusBar": {
     "ready": "就緒",
@@ -1857,7 +1864,11 @@
     "esmfoldCancelled": "結構預測已取消: {{reason}}",
     "esmfoldPredicting": "正在使用 ESMFold 預測結構（最多幾分鐘）...",
     "esmfoldDone": "ESMFold 結構預測完成: {{residues}} 個殘基, 平均 pLDDT {{plddt}}",
-    "esmfoldFailed": "ESMFold 預測失敗: {{error}}"
+    "esmfoldFailed": "ESMFold 預測失敗: {{error}}",
+    "structureFileLoading": "正在載入結構檔案...",
+    "structureFileLoaded": "已載入結構：{{residues}} 個 Cα 殘基。{{picked}}",
+    "structureFileChosen": " 已依 {{metric}} 從 {{count}} 個模型中選擇 {{source}}。",
+    "structureFileFailed": "無法使用此結構檔案（改用位置距離）：{{error}}"
   },
   "inputThresholds": {
     "estimateSec": "預計 ~{{sec}}s",
@@ -1875,7 +1886,11 @@
     "completedWithDuration": "已完成 ({{duration}})"
   },
   "exportSlice": {
-    "legacyWorkspaceUnsupported": "不支援早於 v0.3 的工作區。請新建工作區。"
+    "legacyWorkspaceUnsupported": "不支援早於 v0.3 的工作區。請新建工作區。",
+    "templateLoadFailed": "無法載入範本檔案。請重新選擇範本路徑後再開啟工作區。原因: {{error}}"
+  },
+  "sequenceSlice": {
+    "resultsClearedOnTemplateChange": "template 已變更，因此已清空先前的設計結果。請重新執行設計。"
   },
   "inputSlice": {
     "csvFormatError": "{{mode}} CSV 格式錯誤: {{detail}}",
@@ -2105,7 +2120,11 @@
     "relativeDayAgo_other": "{{count}} 天前",
     "restored": "已從自動儲存恢復 ({{relative}})",
     "corrupted": "自動儲存檔案已損壞。已保留備份: {{filename}}",
-    "schemaTooNew": "自動儲存來自更新的 kuma 版本。跳過恢復。",
+    "schemaTooNew": "自動儲存來自更新的 kuma 版本。已跳過恢復，並停止自動儲存以避免覆蓋該檔案。",
+    "readFailed": "無法讀取自動儲存檔案 ({{filename}})。為避免覆蓋現有檔案，已停止自動儲存。原因: {{cause}}",
+    "writeFailed": "無法寫入自動儲存檔案 ({{filename}})。原因: {{cause}}",
+    "carriedFromScratch": "已從未儲存的上一次工作階段繼續 ({{relative}})",
+    "resultsDiscarded": "已從來源檔案重新選擇 variant 清單，與恢復的 primer 表不一致，因此已清空該表。請重新執行設計。",
     "workspaceRestored": "工作區已恢復",
     "autoDetected": "自動檢測: {{fields}}",
     "fieldRunFolder": "run 資料夾",

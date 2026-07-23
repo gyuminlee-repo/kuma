@@ -14,6 +14,7 @@ const mockRename = vi.fn<(oldPath: string, newPath: string) => Promise<void>>();
 const mockMkdir = vi.fn<(path: string, opts?: { recursive?: boolean }) => Promise<void>>();
 const mockExists = vi.fn<(path: string) => Promise<boolean>>();
 const mockReadTextFile = vi.fn<(path: string) => Promise<string>>();
+const mockRemove = vi.fn<(path: string) => Promise<void>>();
 
 vi.mock("@tauri-apps/plugin-fs", () => ({
   writeTextFile: (...args: Parameters<typeof mockWriteTextFile>) => mockWriteTextFile(...args),
@@ -21,6 +22,7 @@ vi.mock("@tauri-apps/plugin-fs", () => ({
   mkdir: (...args: Parameters<typeof mockMkdir>) => mockMkdir(...args),
   exists: (...args: Parameters<typeof mockExists>) => mockExists(...args),
   readTextFile: (...args: Parameters<typeof mockReadTextFile>) => mockReadTextFile(...args),
+  remove: (...args: Parameters<typeof mockRemove>) => mockRemove(...args),
 }));
 
 // ─── 모듈 import (mock 등록 후) ──────────────────────────────────────────
@@ -32,6 +34,10 @@ import {
   autosavePath,
   readAutosave,
   onAutosaveEvent,
+  blockAutosaveWrites,
+  clearAutosaveBlock,
+  beginHydration,
+  endHydration,
   _resetStateForTest,
   DEBOUNCE_MS,
   type AutosaveTarget,
@@ -68,6 +74,7 @@ beforeEach(() => {
   mockRename.mockResolvedValue(undefined);
   mockMkdir.mockResolvedValue(undefined);
   mockExists.mockResolvedValue(true); // .autosave 디렉토리가 이미 있다고 가정
+  mockRemove.mockResolvedValue(undefined);
 });
 
 afterEach(() => {
@@ -145,6 +152,86 @@ describe("scheduleAutosave", () => {
 
     expect(mockWriteTextFile).not.toHaveBeenCalled();
     expect(mockRename).not.toHaveBeenCalled();
+  });
+});
+
+describe("쓰기 게이트", () => {
+  it("TC3b: 읽기 실패로 봉인된 kind는 스케줄이 걸리지 않는다", async () => {
+    const target = makeTarget();
+    blockAutosaveWrites("kuro", new Error("locked by another process"));
+
+    scheduleAutosave(target, "kuro", () => makeSnapshot("must-not-land"));
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MS * 2);
+    await Promise.resolve();
+
+    expect(mockWriteTextFile).not.toHaveBeenCalled();
+
+    // 봉인 해제 후에는 다시 저장된다.
+    clearAutosaveBlock("kuro");
+    scheduleAutosave(target, "kuro", () => makeSnapshot("lands"));
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(mockWriteTextFile).toHaveBeenCalledTimes(1);
+  });
+
+  it("TC3c: 복원 중에는 스케줄이 걸리지 않고, 끝난 뒤 다시 걸린다", async () => {
+    const target = makeTarget();
+    beginHydration();
+
+    scheduleAutosave(target, "kuro", () => makeSnapshot("empty-during-hydration"));
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MS * 2);
+    await Promise.resolve();
+
+    expect(mockWriteTextFile).not.toHaveBeenCalled();
+
+    endHydration();
+    scheduleAutosave(target, "kuro", () => makeSnapshot("after-hydration"));
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(mockWriteTextFile).toHaveBeenCalledTimes(1);
+    const written = JSON.parse(mockWriteTextFile.mock.calls[0][1] as string) as AutosaveSnapshot;
+    expect(written.label).toBe("after-hydration");
+  });
+
+  it("TC3d: 중첩 복원에서 안쪽 end가 바깥 게이트를 풀지 않는다", async () => {
+    const target = makeTarget();
+    beginHydration();
+    beginHydration();
+    endHydration();
+
+    scheduleAutosave(target, "kuro", () => makeSnapshot());
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MS * 2);
+    await Promise.resolve();
+
+    expect(mockWriteTextFile).not.toHaveBeenCalled();
+    endHydration();
+  });
+});
+
+describe("readAutosave 읽기 실패", () => {
+  it("TC3e: readTextFile 실패는 missing이 아니라 read_failed다", async () => {
+    mockExists.mockResolvedValue(true);
+    mockReadTextFile.mockRejectedValue(new Error("EBUSY"));
+
+    const result = await readAutosave(PROJECT_PATH, "kuro", 2);
+
+    expect(result.status).toBe("read_failed");
+    if (result.status === "read_failed") {
+      expect(result.error.message).toBe("EBUSY");
+      expect(result.filePath).toBe(autosavePath(PROJECT_PATH, "kuro"));
+    }
+  });
+
+  it("TC3f: 파일이 없으면 그대로 missing이다", async () => {
+    mockExists.mockResolvedValue(false);
+
+    const result = await readAutosave(PROJECT_PATH, "kuro", 2);
+
+    expect(result.status).toBe("missing");
   });
 });
 

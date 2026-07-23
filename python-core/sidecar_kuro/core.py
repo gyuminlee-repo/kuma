@@ -97,6 +97,11 @@ class SidecarState:
     polymerase: str = ""  # last-designed polymerase name, for Ta serialization
     ca_coords: list[tuple[float, float, float] | None] | None = None  # AlphaFold Cα coordinates
     ca_coords_accession: str | None = None
+    # Sequence the cached coordinates belong to. For an accession this is fetched
+    # over the network on demand; for a user-supplied structure file it is parsed
+    # from the file, since there is no accession to look up. When present, the
+    # frame guard uses it instead of a network call.
+    ca_coords_seq: str | None = None
     active_design_cancel: threading.Event | None = None
 
 
@@ -133,6 +138,19 @@ def _get_cached_ca_coords(structure_accession: str | None) -> list | None:
     with _state_lock:
         if structure_accession and _state.ca_coords_accession == structure_accession:
             return _state.ca_coords
+        return None
+
+
+def _get_cached_ca_seq(structure_accession: str | None) -> str | None:
+    """Return the sequence the cached coordinates belong to, if it matches.
+
+    Populated for user-supplied structure files, where there is no accession to
+    fetch a sequence from. None for accession-fetched coordinates, so the caller
+    falls back to a network lookup for those.
+    """
+    with _state_lock:
+        if structure_accession and _state.ca_coords_accession == structure_accession:
+            return _state.ca_coords_seq
         return None
 
 

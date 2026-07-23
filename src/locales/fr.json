@@ -1654,6 +1654,8 @@
     "othersApplyBtn": "Apply selected columns",
     "othersApplyError": "Column load failed: {{message}}",
     "othersUsedColumn": "Applied column: {{column}}",
+    "othersUnnamedColumn": "Column sans nom {{index}}",
+    "othersPanelCrashed": "Le panneau de mappage des columns n'a pas pu s'afficher.",
     "extraExposedLabel": "Extra candidates shown:",
     "extraExposedAriaLabel": "Number of extra unselected candidates to display",
     "extraExposedHint": "(0 = selected only)",
@@ -1667,7 +1669,12 @@
     "scanSequenceBtn": "Analyser la séquence",
     "scanSequenceTitle": "Détecter les domaines dans le repère de référence directement depuis la séquence protéique chargée avec InterProScan",
     "referenceDomainsReady": "Coordonnées de référence : {{count}} domaine(s) InterProScan",
-    "accessionDomainsOnly": "Les domaines d’accession servent à l’affichage 3D. Analysez la séquence de référence avant l’allocation par domaine."
+    "accessionDomainsOnly": "Les domaines d’accession servent à l’affichage 3D. Analysez la séquence de référence avant l’allocation par domaine.",
+    "loadStructureBtn": "Charger une structure",
+    "loadStructureTitle": "Charger un PDB, mmCIF ou zip AlphaFold Server prédit pour cette séquence exacte. Le meilleur modèle d'une zip est choisi automatiquement.",
+    "threeDActive": "Structure 3D active pour la sélection de diversité.",
+    "threeDNoStructure": "Aucune structure chargée : distance de position au lieu de la 3D. Chargez une structure pour une sélection 3D.",
+    "threeDFrameMismatch": "La structure ne correspond pas au cadre de cette séquence : distance de position au lieu de la 3D."
   },
   "statusBar": {
     "ready": "Prêt",
@@ -1857,7 +1864,11 @@
     "esmfoldCancelled": "Prédiction de structure annulée : {{reason}}",
     "esmfoldPredicting": "Prédiction de la structure avec ESMFold (jusqu’à quelques minutes)...",
     "esmfoldDone": "Structure ESMFold prédite : {{residues}} résidus, pLDDT moyen {{plddt}}",
-    "esmfoldFailed": "Échec de la prédiction ESMFold : {{error}}"
+    "esmfoldFailed": "Échec de la prédiction ESMFold : {{error}}",
+    "structureFileLoading": "Chargement du fichier de structure...",
+    "structureFileLoaded": "Structure chargée : {{residues}} résidus Cα.{{picked}}",
+    "structureFileChosen": " {{source}} choisi parmi {{count}} modèles selon {{metric}}.",
+    "structureFileFailed": "Fichier de structure inutilisable (distance de position utilisée) : {{error}}"
   },
   "inputThresholds": {
     "estimateSec": "~{{sec}}s estimées",
@@ -1875,7 +1886,11 @@
     "completedWithDuration": "Terminé ({{duration}})"
   },
   "exportSlice": {
-    "legacyWorkspaceUnsupported": "Les espaces de travail antérieurs à v0.3 ne sont pas supportés. Démarrer un nouvel espace de travail."
+    "legacyWorkspaceUnsupported": "Les espaces de travail antérieurs à v0.3 ne sont pas supportés. Démarrer un nouvel espace de travail.",
+    "templateLoadFailed": "Impossible de charger le fichier modèle. Sélectionner à nouveau le chemin du modèle puis rouvrir l'espace de travail. Cause : {{error}}"
+  },
+  "sequenceSlice": {
+    "resultsClearedOnTemplateChange": "Les résultats de conception précédents ont été effacés car le template a changé. Relancer la conception."
   },
   "inputSlice": {
     "csvFormatError": "Erreur de format CSV {{mode}} : {{detail}}",
@@ -2105,7 +2120,11 @@
     "relativeDayAgo_other": "il y a {{count}} jours",
     "restored": "Restauré depuis autosave ({{relative}})",
     "corrupted": "Le fichier autosave était corrompu. Une sauvegarde a été conservée sous {{filename}}",
-    "schemaTooNew": "L'autosave provient d'une version kuma plus récente. Restauration ignorée.",
+    "schemaTooNew": "L'autosave provient d'une version kuma plus récente. Restauration ignorée et autosave arrêté afin de ne pas écraser le fichier plus récent.",
+    "readFailed": "Impossible de lire le fichier autosave ({{filename}}). Autosave a été arrêté afin de ne pas écraser le fichier existant. Cause : {{cause}}",
+    "writeFailed": "Impossible d'écrire le fichier autosave ({{filename}}). Cause : {{cause}}",
+    "carriedFromScratch": "Repris d'une session précédente non enregistrée ({{relative}})",
+    "resultsDiscarded": "La liste des variants a été re-sélectionnée depuis le fichier source et ne correspond plus au tableau de primers restauré. Le tableau a été vidé. Relancer la conception.",
     "workspaceRestored": "Espace de travail restauré",
     "autoDetected": "Auto-détecté : {{fields}}",
     "fieldRunFolder": "dossier de run",

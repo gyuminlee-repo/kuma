@@ -489,6 +489,24 @@ export interface StructureResult {
   error?: string;
 }
 
+export interface StructureModelCandidate {
+  name: string;
+  ranking_score?: number | null;
+  mean_plddt?: number | null;
+  residue_count: number;
+}
+
+export interface LoadStructureFileResult {
+  success: boolean;
+  accession?: string;
+  residues?: number;
+  mean_plddt?: number | null;
+  source_name?: string;
+  selection_metric?: string;
+  candidates?: StructureModelCandidate[];
+  error?: string;
+}
+
 export interface FetchInterfaceResiduesResult {
   interface_positions: number[];
   source: string;
@@ -557,6 +575,9 @@ export interface BenchmarkResult {
 
 export interface RunBenchmarkResult {
   results: Record<string, BenchmarkResult>;
+  // True when a loaded structure did not cover the reference frame, so the
+  // benchmark ran on 1D distance instead of 3D. Same guard as load_evolvepro.
+  structure_frame_mismatch?: boolean;
 }
 
 export interface JsonRpcError {
@@ -760,6 +781,10 @@ export interface RpcMethodMap {
   fetch_structure: {
     params: { accession: string };
     result: StructureResult;
+  };
+  load_structure_file: {
+    params: { filepath: string };
+    result: LoadStructureFileResult;
   };
   fetch_interface_residues: {
     params: { accession: string; ref_seq: string };

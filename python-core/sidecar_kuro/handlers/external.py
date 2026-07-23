@@ -21,6 +21,7 @@ from sidecar_kuro.models import (
     FetchDomainsParams,
     SearchUniprotParams,
     FetchStructureParams,
+    LoadStructureFileParams,
     FetchInterfaceParams,
     FetchPdbTextParams,
     FetchActiveSiteParams,
@@ -442,11 +443,67 @@ def handle_fetch_structure(params: dict) -> dict:
     with _core._state_lock:
         _core._state.ca_coords = coords
         _core._state.ca_coords_accession = accession
+        # An accession has no locally-known sequence; the frame guard fetches it.
+        _core._state.ca_coords_seq = None
     valid = sum(1 for c in coords if c is not None)
     return {
         "success": True,
         "accession": accession,
         "residues": valid,
+    }
+
+
+def handle_load_structure_file(params: dict) -> dict:
+    """Parse a user-supplied PDB / mmCIF / AlphaFold Server zip and cache it.
+
+    The construct in use often matches no AlphaFold DB entry exactly and is too
+    long for ESMFold, so a structure the user predicted themselves is the only
+    exact-frame source. The parsed sequence is cached alongside the coordinates
+    so the frame guard can verify the file describes the loaded CDS without a
+    network call.
+    """
+    from kuma_core.kuro.structure_file import StructureFileError, load_structure_file
+
+    p = LoadStructureFileParams(**params)
+    raw = p.filepath.strip()
+    if not raw:
+        raise ValueError("filepath is required")
+    resolved = _core._validate_filepath(raw)
+
+    try:
+        loaded = load_structure_file(resolved)
+    except StructureFileError as err:
+        with _core._state_lock:
+            _core._state.ca_coords = None
+            _core._state.ca_coords_accession = None
+            _core._state.ca_coords_seq = None
+        return {"success": False, "error": str(err)}
+
+    # A synthetic key so later design and benchmark calls resolve these
+    # coordinates through the same structure_accession path an accession uses.
+    accession = f"file:{resolved.name}"
+    with _core._state_lock:
+        _core._state.ca_coords = loaded.ca_coords
+        _core._state.ca_coords_accession = accession
+        _core._state.ca_coords_seq = loaded.sequence
+
+    valid = sum(1 for c in loaded.ca_coords[1:] if c is not None)
+    return {
+        "success": True,
+        "accession": accession,
+        "residues": valid,
+        "mean_plddt": loaded.mean_plddt,
+        "source_name": loaded.source_name,
+        "selection_metric": loaded.selection_metric,
+        "candidates": [
+            {
+                "name": c.name,
+                "ranking_score": c.ranking_score,
+                "mean_plddt": c.mean_plddt,
+                "residue_count": c.residue_count,
+            }
+            for c in loaded.candidates
+        ],
     }
 
 

@@ -9,16 +9,20 @@
 import {
   mkdir,
   rename,
+  remove,
   writeTextFile,
   readTextFile,
   exists,
 } from "@tauri-apps/plugin-fs";
+import { appDataDir } from "@tauri-apps/api/path";
 
 // ─── 상수 ─────────────────────────────────────────────────────────────────
 
 export const DEBOUNCE_MS = 1500;
 export const MAX_SKEW_MS = 30_000;
 const AUTOSAVE_DIR_NAME = ".autosave";
+/** 프로젝트 없이(scratch) 작업할 때 쓰는 앱 데이터 디렉토리 파일명. */
+const SCRATCH_FILE_NAME = "kuro-scratch-autosave.json";
 
 // ─── 타입 ─────────────────────────────────────────────────────────────────
 
@@ -33,9 +37,14 @@ export type AutosaveEvent =
 type AutosaveListener = (event: AutosaveEvent) => void;
 
 export interface AutosaveTarget {
-  /** 프로젝트 루트 절대 경로. null 또는 scratch면 모든 호출이 silent skip. */
+  /** 프로젝트 루트 절대 경로. */
   projectPath: string | null;
   scratch: boolean;
+  /**
+   * true면 프로젝트가 없거나 scratch일 때 앱 데이터 디렉토리의 고정 파일에
+   * 저장한다 (kind === "kuro" 한정). 미지정이면 기존 동작대로 silent skip.
+   */
+  scratchFallback?: boolean;
 }
 
 export interface AutosaveSnapshot {
@@ -68,6 +77,61 @@ const kindState: Record<AutosaveKind, KindState> = {
 
 /** ensureAutosaveDir 결과 캐시 (projectPath → dirPath) */
 const dirCache = new Map<string, string>();
+
+// ─── 쓰기 차단 게이트 ─────────────────────────────────────────────────────
+//
+// 두 게이트는 서로 다른 사고를 막으므로 분리해서 유지한다.
+//
+// 1) writeBlock (kind별, 지속): 자동 저장 파일을 "읽지 못했다"고 확인된 상태.
+//    파일이 디스크에 있는데 일시적 잠금(AV 스캔 등)으로 못 읽었을 수 있고,
+//    그 위에 빈 store 상태를 덮어쓰면 결과물까지 영구 소실된다. 성공적인
+//    재읽기나 사용자 명시 행동(clearAutosaveBlock)이 있기 전까지 쓰기를 막는다.
+// 2) hydrationDepth (전역, 일시): 복원이 진행 중인 구간. resetAll이 새 리터럴을
+//    넣어 구독자가 즉시 스케줄을 걸지만, 그 시점 스냅샷은 복원 전 빈 상태다.
+//    복원이 끝나기 전 디바운스가 만료되면 빈 스냅샷이 디스크에 착지한다.
+//
+// hydration 게이트만으로는 (1)을 못 막는다. 복원 실패 후 hydration이 끝나면
+// 게이트가 풀리고, 첫 키 입력이 빈 상태를 그대로 덮어쓴다.
+
+/** 읽기 실패로 쓰기가 봉인된 kind. 값은 진단용 원인. */
+const writeBlock: Record<AutosaveKind, Error | null> = { kuro: null, mame: null };
+
+/**
+ * 복원 중첩 깊이. boolean이 아니라 카운터인 이유: 프로젝트 전환 시 새 effect가
+ * begin을 부른 뒤 이전 effect의 async 본문이 뒤늦게 end를 부를 수 있고,
+ * boolean이면 진행 중인 새 복원의 게이트가 그 시점에 풀린다.
+ */
+let hydrationDepth = 0;
+
+/** 읽기 실패 등으로 해당 kind의 자동 저장 쓰기를 봉인한다. */
+export function blockAutosaveWrites(kind: AutosaveKind, reason: Error): void {
+  writeBlock[kind] = reason;
+}
+
+/** 봉인 해제. 성공적인 읽기 또는 사용자 명시 행동에서만 호출한다. */
+export function clearAutosaveBlock(kind: AutosaveKind): void {
+  writeBlock[kind] = null;
+}
+
+/** 현재 봉인 원인(없으면 null). */
+export function autosaveBlockReason(kind: AutosaveKind): Error | null {
+  return writeBlock[kind];
+}
+
+/** 복원 시작. 반드시 finally에서 endHydration과 짝을 이룬다. */
+export function beginHydration(): void {
+  hydrationDepth += 1;
+}
+
+/** 복원 종료. */
+export function endHydration(): void {
+  if (hydrationDepth > 0) hydrationDepth -= 1;
+}
+
+/** @internal 테스트·진단용. */
+export function isHydrating(): boolean {
+  return hydrationDepth > 0;
+}
 
 // ─── 옵저버 ──────────────────────────────────────────────────────────────
 
@@ -120,6 +184,44 @@ export async function ensureAutosaveDir(projectPath: string): Promise<string> {
   return dirPath;
 }
 
+/**
+ * scratch 자동 저장 파일 경로 (앱 데이터 디렉토리 / kuro-scratch-autosave.json).
+ * 디렉토리는 첫 실행에 없을 수 있으므로 recursive mkdir로 보장한다.
+ */
+export async function scratchAutosavePath(): Promise<string> {
+  const baseDir = await appDataDir();
+  const alreadyExists = await exists(baseDir);
+  if (!alreadyExists) {
+    await mkdir(baseDir, { recursive: true });
+  }
+  return joinPath(baseDir, SCRATCH_FILE_NAME);
+}
+
+/**
+ * target + kind 조합에서 실제 저장 파일 경로를 정한다.
+ * 우선순위: 실제 프로젝트 > scratch fallback > skip(null).
+ * scratch fallback은 kuro 전용 (mame 자동 저장 동작은 그대로 유지).
+ */
+async function resolveTargetPath(
+  target: AutosaveTarget,
+  kind: AutosaveKind,
+): Promise<string | null> {
+  if (target.projectPath !== null && !target.scratch) {
+    await ensureAutosaveDir(target.projectPath);
+    return autosavePath(target.projectPath, kind);
+  }
+  if (target.scratchFallback === true && kind === "kuro") {
+    return await scratchAutosavePath();
+  }
+  return null;
+}
+
+/** 저장 대상이 존재하는지(= silent skip 대상이 아닌지) 판정. */
+function hasWritableTarget(target: AutosaveTarget, kind: AutosaveKind): boolean {
+  if (target.projectPath !== null && !target.scratch) return true;
+  return target.scratchFallback === true && kind === "kuro";
+}
+
 // ─── Atomic write ────────────────────────────────────────────────────────
 
 /**
@@ -137,19 +239,24 @@ export async function atomicWriteJson(filePath: string, data: unknown): Promise<
 /**
  * readAutosave 반환 타입.
  * - ok: 정상 파싱 (schema <= currentSchema)
- * - missing: 파일 없음
+ * - missing: 파일이 존재하지 않음 (침묵 처리 가능)
+ * - read_failed: 파일 유무를 확인 못 했거나 열지 못함. missing과 반드시 구분해야
+ *   한다. 디스크에는 멀쩡한 스냅샷이 있는데 일시적 잠금으로 못 읽은 경우가
+ *   여기 들어오며, missing으로 뭉개면 그 위에 빈 상태가 덮어써진다.
  * - corrupted: JSON 파싱 실패. 파일을 .bad-<ts>로 rename 후 backupPath 반환
  * - schema_too_new: snapshot.schema > currentSchema
  */
 export type ReadAutosaveResult =
   | { status: "ok"; snapshot: AutosaveSnapshot }
   | { status: "missing" }
+  | { status: "read_failed"; error: Error; filePath: string }
   | { status: "corrupted"; backupPath: string }
   | { status: "schema_too_new"; foundSchema: number };
 
 /**
  * 자동 저장 파일 읽기.
  * - 파일 없음 → missing
+ * - 존재 확인·열기 실패 → read_failed
  * - JSON 파싱 실패 → .bad-<ts> rename 후 corrupted
  * - snapshot.schema > currentSchema → schema_too_new
  * - 그 외 → ok (schema < currentSchema 마이그레이션은 호출자 책임)
@@ -159,15 +266,59 @@ export async function readAutosave(
   kind: AutosaveKind,
   currentSchema: number,
 ): Promise<ReadAutosaveResult> {
-  const filePath = autosavePath(projectPath, kind);
-  const fileExists = await exists(filePath);
+  return await readAutosaveFile(autosavePath(projectPath, kind), currentSchema);
+}
+
+/**
+ * scratch(프로젝트 없음) 자동 저장 파일 읽기. 규칙은 readAutosave와 동일.
+ * 앱 데이터 디렉토리 접근 자체가 실패하면 read_failed다. 경로를 못 구했다는
+ * 것은 "파일이 없다"는 증거가 아니므로 missing으로 강등하지 않는다.
+ */
+export async function readScratchAutosave(
+  currentSchema: number,
+): Promise<ReadAutosaveResult> {
+  let filePath: string;
+  try {
+    filePath = await scratchAutosavePath();
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error(String(err));
+    console.warn("[autosave] scratch path resolution failed:", error);
+    return { status: "read_failed", error, filePath: SCRATCH_FILE_NAME };
+  }
+  return await readAutosaveFile(filePath, currentSchema);
+}
+
+/**
+ * scratch 스냅샷 파일 삭제. 프로젝트로 승격한 뒤 같은 스냅샷이 다음 신규
+ * 프로젝트로 다시 새어 나가지 않게 한다. 파일이 없으면 no-op.
+ */
+export async function deleteScratchAutosave(): Promise<void> {
+  const filePath = await scratchAutosavePath();
+  if (!(await exists(filePath))) return;
+  await remove(filePath);
+}
+
+async function readAutosaveFile(
+  filePath: string,
+  currentSchema: number,
+): Promise<ReadAutosaveResult> {
+  let fileExists: boolean;
+  try {
+    fileExists = await exists(filePath);
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error(String(err));
+    console.warn(`[autosave] existence check failed: ${filePath}`, error);
+    return { status: "read_failed", error, filePath };
+  }
   if (!fileExists) return { status: "missing" };
 
   let text: string;
   try {
     text = await readTextFile(filePath);
-  } catch {
-    return { status: "missing" };
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error(String(err));
+    console.warn(`[autosave] read failed: ${filePath}`, error);
+    return { status: "read_failed", error, filePath };
   }
 
   let parsed: AutosaveSnapshot;
@@ -228,16 +379,21 @@ function drainQueue(kind: AutosaveKind): void {
 
 /**
  * 1.5초 디바운스 + 30초 강제 flush + 직렬 큐.
- * scratch / projectPath null이면 silent skip.
+ * 저장 대상이 없으면(프로젝트 없음 + scratchFallback 미지정) silent skip.
  */
 export function scheduleAutosave(
   target: AutosaveTarget,
   kind: AutosaveKind,
   buildSnapshot: () => AutosaveSnapshot,
 ): void {
-  if (target.scratch || target.projectPath === null) return;
+  if (!hasWritableTarget(target, kind)) return;
+  // 읽지 못한 스냅샷 위에 덮어쓰지 않는다.
+  if (writeBlock[kind] !== null) return;
+  // 복원 중에는 스냅샷이 아직 빈 상태다. 여기서 스케줄이 걸리면 복원이 끝나기
+  // 전에 디바운스가 만료돼 빈 스냅샷이 디스크에 착지한다.
+  if (hydrationDepth > 0) return;
 
-  const projectPath = target.projectPath;
+  const resolvedTarget: AutosaveTarget = { ...target };
   const state = kindState[kind];
   const now = Date.now();
 
@@ -249,8 +405,8 @@ export function scheduleAutosave(
 
   const snapshot = buildSnapshot();
   const task = async (): Promise<void> => {
-    await ensureAutosaveDir(projectPath);
-    const filePath = autosavePath(projectPath, kind);
+    const filePath = await resolveTargetPath(resolvedTarget, kind);
+    if (filePath === null) return;
     await atomicWriteJson(filePath, snapshot);
   };
 
@@ -281,14 +437,19 @@ export function scheduleAutosave(
 /**
  * 디바운스 큐를 즉시 flush. close 직전, 탭 전환 직전 등에서 사용.
  * 반환 Promise는 in-flight 쓰기까지 모두 끝나야 resolve.
+ *
+ * writeBlock/hydrationDepth 게이트는 여기서 적용하지 않는다. 이미 큐에 들어간
+ * task는 게이트가 걸리기 전 상태(= 유효한 스냅샷)를 들고 있고, 대상 경로도
+ * 그 시점 target으로 고정돼 있다. 그것까지 버리면 직전 편집분이 사라진다.
+ * 두 게이트는 "새 스케줄"만 막는다.
  */
 export async function flushAutosave(
   target: AutosaveTarget,
   kind?: AutosaveKind,
 ): Promise<void> {
-  if (target.scratch || target.projectPath === null) return;
-
-  const kinds: AutosaveKind[] = kind !== undefined ? [kind] : ["kuro", "mame"];
+  const requested: AutosaveKind[] = kind !== undefined ? [kind] : ["kuro", "mame"];
+  const kinds = requested.filter((k) => hasWritableTarget(target, k));
+  if (kinds.length === 0) return;
 
   await Promise.all(
     kinds.map(async (k) => {
@@ -345,6 +506,9 @@ export function _resetStateForTest(): void {
     state.pending = null;
     state.timerTask = null;
   }
+  writeBlock.kuro = null;
+  writeBlock.mame = null;
+  hydrationDepth = 0;
   dirCache.clear();
   listeners.clear();
 }

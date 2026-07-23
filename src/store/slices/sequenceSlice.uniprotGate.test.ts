@@ -20,11 +20,16 @@ function makeStore(overrides: Partial<AppState> = {}) {
     },
     organism: "e_coli",
     selectedGene: "1",
+    // setSelectedGene은 CDS 변경 시 파생 결과물을 비울지 판정하려고 이 값을 읽는다.
+    designResults: [],
     domainDiversityEnabled: false,
     paretoDiversityEnabled: false,
     structuralDiversityEnabled: false,
     statusMessage: "",
     searchUniprot: vi.fn().mockResolvedValue(undefined),
+    // Domain allocation consumes refDomains, which only the InterProScan scan
+    // produces, so the CDS change has to rescan as well as re-search.
+    annotateReferenceDomains: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
   const state: Record<string, unknown> = { ...fixture };
@@ -78,5 +83,44 @@ describe("setSelectedGene uniprot auto-search gate", () => {
     slice.setSelectedGene("1");
     expect(state.searchUniprot).toHaveBeenCalledTimes(1);
     expect(state.searchUniprot).toHaveBeenCalledWith("ispS", "e_coli", "MKT", "P0CJ90");
+  });
+});
+
+describe("setSelectedGene reference-domain rescan", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("rescans the sequence when domain allocation is on", () => {
+    const { state, slice } = makeStore({ domainDiversityEnabled: true } as Partial<AppState>);
+    slice.setSelectedGene("1");
+    expect(state.annotateReferenceDomains).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not rescan when domain allocation is off", () => {
+    const { state, slice } = makeStore();
+    slice.setSelectedGene("1");
+    expect(state.annotateReferenceDomains).not.toHaveBeenCalled();
+  });
+
+  it("rescans even when a known accession already answered the uniprot search", () => {
+    const { state, slice } = makeStore({
+      domainDiversityEnabled: true,
+      seqInfo: {
+        genes: [
+          {
+            gene: "ispS",
+            cds_start: 1,
+            aa_length: 10,
+            organism: "e_coli",
+            translation: "MKT",
+            uniprot_accession: "P0CJ90",
+          },
+        ],
+      },
+    } as Partial<AppState>);
+    slice.setSelectedGene("1");
+    // The accession search fills domains, which are display only. Allocation
+    // still has nothing until the scan runs.
+    expect(state.searchUniprot).toHaveBeenCalledTimes(1);
+    expect(state.annotateReferenceDomains).toHaveBeenCalledTimes(1);
   });
 });

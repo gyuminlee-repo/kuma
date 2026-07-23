@@ -102,3 +102,54 @@ class TestHandlerGuard:
 
         assert captured["ca_coords"] is fake_coords
         assert result["structure_frame_mismatch"] is False
+
+
+class TestBenchmarkFrameGuard:
+    """run_benchmark shares the load_evolvepro frame guard: a structure that
+    does not cover the reference frame must not feed 3D coordinates into the
+    benchmark simulation."""
+
+    def _base_params(self) -> dict:
+        return {
+            "landscape": [{"variant": "A2G", "fitness": 0.9}],
+            "ground_truth": {"A2G": 0.9},
+            "structure_accession": "file:model.cif",
+            "ref_seq": _REF,
+        }
+
+    def test_ca_coords_dropped_on_mismatch(self) -> None:
+        from sidecar_kuro.handlers import misc as _misc
+
+        fake_coords = [None] + [(float(i), 0.0, 0.0) for i in range(1, 60)]
+        captured: dict = {}
+
+        def fake_bench(*_args, **kwargs):
+            captured["ca_coords"] = kwargs.get("ca_coords")
+            return {}
+
+        # A file structure caches its own sequence; here it does not match.
+        with patch.object(_misc, "_get_cached_ca_coords", return_value=fake_coords), \
+             patch.object(_misc, "_get_cached_ca_seq", return_value="MABCDEF" * 10), \
+             patch("kuma_core.kuro.benchmark.run_benchmark", side_effect=fake_bench):
+            result = _misc.handle_run_benchmark(self._base_params())
+
+        assert captured["ca_coords"] is None
+        assert result["structure_frame_mismatch"] is True
+
+    def test_ca_coords_kept_on_exact_match(self) -> None:
+        from sidecar_kuro.handlers import misc as _misc
+
+        fake_coords = [None] + [(float(i), 0.0, 0.0) for i in range(1, 60)]
+        captured: dict = {}
+
+        def fake_bench(*_args, **kwargs):
+            captured["ca_coords"] = kwargs.get("ca_coords")
+            return {}
+
+        with patch.object(_misc, "_get_cached_ca_coords", return_value=fake_coords), \
+             patch.object(_misc, "_get_cached_ca_seq", return_value=_REF), \
+             patch("kuma_core.kuro.benchmark.run_benchmark", side_effect=fake_bench):
+            result = _misc.handle_run_benchmark(self._base_params())
+
+        assert captured["ca_coords"] is fake_coords
+        assert result["structure_frame_mismatch"] is False

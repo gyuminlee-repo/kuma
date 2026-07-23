@@ -1654,6 +1654,8 @@
     "othersApplyBtn": "Apply selected columns",
     "othersApplyError": "Column load failed: {{message}}",
     "othersUsedColumn": "Applied column: {{column}}",
+    "othersUnnamedColumn": "Unbenannte column {{index}}",
+    "othersPanelCrashed": "Das Panel für die Column-Zuordnung konnte nicht angezeigt werden.",
     "extraExposedLabel": "Extra candidates shown:",
     "extraExposedAriaLabel": "Number of extra unselected candidates to display",
     "extraExposedHint": "(0 = selected only)",
@@ -1667,7 +1669,12 @@
     "scanSequenceBtn": "Sequenz scannen",
     "scanSequenceTitle": "Referenzkoordinaten-Domänen mit InterProScan direkt aus der geladenen Proteinsequenz erkennen",
     "referenceDomainsReady": "Referenzkoordinaten: {{count}} InterProScan-Domäne(n)",
-    "accessionDomainsOnly": "Accession-Domänen dienen der 3D-Anzeige. Scannen Sie vor der Domänenzuweisung die Referenzsequenz."
+    "accessionDomainsOnly": "Accession-Domänen dienen der 3D-Anzeige. Scannen Sie vor der Domänenzuweisung die Referenzsequenz.",
+    "loadStructureBtn": "Struktur laden",
+    "loadStructureTitle": "Eine PDB-, mmCIF- oder AlphaFold-Server-Zip laden, die für genau diese Sequenz vorhergesagt wurde. In einer Zip wird das beste Modell automatisch gewählt.",
+    "threeDActive": "3D-Struktur für die Diversitätsauswahl aktiv.",
+    "threeDNoStructure": "Keine Struktur geladen: Positionsdistanz statt 3D. Struktur laden für 3D-gestützte Auswahl.",
+    "threeDFrameMismatch": "Struktur passt nicht zum Sequenzrahmen: Positionsdistanz statt 3D."
   },
   "statusBar": {
     "ready": "Bereit",
@@ -1857,7 +1864,11 @@
     "esmfoldCancelled": "Strukturvorhersage abgebrochen: {{reason}}",
     "esmfoldPredicting": "Struktur wird mit ESMFold vorhergesagt (bis zu einige Minuten)...",
     "esmfoldDone": "ESMFold-Struktur vorhergesagt: {{residues}} Reste, mittlerer pLDDT {{plddt}}",
-    "esmfoldFailed": "ESMFold-Vorhersage fehlgeschlagen: {{error}}"
+    "esmfoldFailed": "ESMFold-Vorhersage fehlgeschlagen: {{error}}",
+    "structureFileLoading": "Strukturdatei wird geladen...",
+    "structureFileLoaded": "Struktur geladen: {{residues}} Cα-Reste.{{picked}}",
+    "structureFileChosen": " {{source}} von {{count}} Modellen nach {{metric}} gewählt.",
+    "structureFileFailed": "Strukturdatei nicht verwendbar (Positionsdistanz wird genutzt): {{error}}"
   },
   "inputThresholds": {
     "estimateSec": "~{{sec}}s geschätzt",
@@ -1875,7 +1886,11 @@
     "completedWithDuration": "Abgeschlossen ({{duration}})"
   },
   "exportSlice": {
-    "legacyWorkspaceUnsupported": "Workspaces older than v0.3 sind nicht supported. Starten ein neu Workspace."
+    "legacyWorkspaceUnsupported": "Workspaces older than v0.3 sind nicht supported. Starten ein neu Workspace.",
+    "templateLoadFailed": "Die Vorlagendatei konnte nicht geladen werden. Den Vorlagenpfad erneut auswählen und den Workspace neu öffnen. Ursache: {{error}}"
+  },
+  "sequenceSlice": {
+    "resultsClearedOnTemplateChange": "Die vorherigen Design-Ergebnisse wurden geleert, weil sich das template geändert hat. Das Design bitte erneut ausführen."
   },
   "inputSlice": {
     "csvFormatError": "{{Modus}} CSV Format Fehler: {{detail}}",
@@ -2105,7 +2120,11 @@
     "relativeDayAgo_other": "vor {{count}} Tagen",
     "restored": "Restored von autosave ({{relative}})",
     "corrupted": "Autosave Datei was corrupted. A backup was kept as {{filename}}",
-    "schemaTooNew": "Autosave ist von ein newer kuma version. Skipping restore.",
+    "schemaTooNew": "Autosave stammt aus einer neueren kuma-Version. Wiederherstellung übersprungen, und Autosave wurde gestoppt, damit die neuere Datei nicht überschrieben wird.",
+    "readFailed": "Autosave-Datei konnte nicht gelesen werden ({{filename}}). Autosave wurde gestoppt, damit die vorhandene Datei nicht überschrieben wird. Ursache: {{cause}}",
+    "writeFailed": "Autosave-Datei konnte nicht geschrieben werden ({{filename}}). Ursache: {{cause}}",
+    "carriedFromScratch": "Aus einer nicht gespeicherten früheren Sitzung übernommen ({{relative}})",
+    "resultsDiscarded": "Die variant-Liste wurde aus der Quelldatei neu ausgewählt und passt nicht mehr zur wiederhergestellten primer-Tabelle. Die Tabelle wurde geleert. Das Design bitte erneut ausführen.",
     "workspaceRestored": "Workspace wiederhergestellt",
     "autoDetected": "Automatisch erkannt: {{fields}}",
     "fieldRunFolder": "ausführen Ordner",

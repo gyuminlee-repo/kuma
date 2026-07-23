@@ -166,7 +166,14 @@ export function MainShell() {
     } else if (msg.variant === "restored" && msg.kind === "mame") {
       // auto-detect 결과: savedAt 없이 오는 복원 메시지 (e.g. "Auto-detected: run folder, custom barcodes")
       showStatusMessage(msg.message);
-    } else if (msg.variant === "corrupted" || msg.variant === "schema_too_new") {
+    } else if (
+      msg.variant === "corrupted" ||
+      msg.variant === "schema_too_new" ||
+      // 읽기/쓰기 실패는 침묵하면 안 된다. 이 시점부터 자동 저장이 봉인된다.
+      msg.variant === "io_failed" ||
+      // 결과물 폐기도 침묵하면 안 된다. 표가 비워진 이유를 알려야 한다.
+      msg.variant === "results_discarded"
+    ) {
       showStatusMessage(msg.message);
     }
   }, [showStatusMessage, t]);
@@ -280,6 +287,8 @@ export function MainShell() {
     const target: AutosaveTarget = {
       projectPath: project?.path ?? null,
       scratch: project?.scratch ?? true,
+      // 프로젝트가 없어도 KURO 상태는 앱 데이터 디렉토리에 남긴다.
+      scratchFallback: true,
     };
 
     let unlisten: (() => void) | undefined;
@@ -338,6 +347,8 @@ export function MainShell() {
     const target: AutosaveTarget = {
       projectPath: project?.path ?? null,
       scratch: project?.scratch ?? true,
+      // 프로젝트가 없어도 KURO 상태는 앱 데이터 디렉토리에 남긴다.
+      scratchFallback: true,
     };
 
     // Flush the tab being left when it is a kuro/mame autosave target.

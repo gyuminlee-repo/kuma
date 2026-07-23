@@ -5,6 +5,7 @@ import type {
   ComputeDispersionResult,
   DesignResult,
   EvolveproLoadResult,
+  EvolveproPreview,
   ExportMappingResult,
   ExportOrderResult,
   ExportResult,
@@ -28,6 +29,8 @@ import type {
   SdmPrimerResult,
   StructureAvailabilityResult,
   StructureResult,
+  StructureModelCandidate,
+  LoadStructureFileResult,
   WorkspaceData,
 } from "./models";
 
@@ -713,6 +716,32 @@ function isStructureResult(value: unknown): value is StructureResult {
   );
 }
 
+function isStructureModelCandidate(value: unknown): value is StructureModelCandidate {
+  return (
+    isRecord(value) &&
+    isString(value.name) &&
+    isNumber(value.residue_count) &&
+    (value.ranking_score === null || isOptional(value.ranking_score, isNumber)) &&
+    (value.mean_plddt === null || isOptional(value.mean_plddt, isNumber))
+  );
+}
+
+function isLoadStructureFileResult(value: unknown): value is LoadStructureFileResult {
+  return (
+    isRecord(value) &&
+    isBoolean(value.success) &&
+    isOptional(value.accession, isString) &&
+    isOptional(value.residues, isNumber) &&
+    (value.mean_plddt === null || isOptional(value.mean_plddt, isNumber)) &&
+    isOptional(value.source_name, isString) &&
+    isOptional(value.selection_metric, isString) &&
+    isOptional(value.candidates, (c): c is StructureModelCandidate[] =>
+      isArrayOf(c, isStructureModelCandidate),
+    ) &&
+    isOptional(value.error, isString)
+  );
+}
+
 function isFetchInterfaceResiduesResult(value: unknown): value is FetchInterfaceResiduesResult {
   return (
     isRecord(value) &&
@@ -791,7 +820,8 @@ function isComputeDispersionResult(value: unknown): value is ComputeDispersionRe
 function isRunBenchmarkResult(value: unknown): value is RunBenchmarkResult {
   return (
     isRecord(value) &&
-    isRecordOf(value.results, isBenchmarkResult)
+    isRecordOf(value.results, isBenchmarkResult) &&
+    isOptional(value.structure_frame_mismatch, isBoolean)
   );
 }
 
@@ -800,6 +830,15 @@ function isCancelDesignResult(value: unknown): value is CancelDesignResult {
     isRecord(value) &&
     isBoolean(value.cancelled) &&
     isOptional(value.active_design, isBoolean)
+  );
+}
+
+function isPreviewEvolveproSourceResult(value: unknown): value is EvolveproPreview {
+  return (
+    isRecord(value) &&
+    isArrayOf(value.sheets, isString) &&
+    isArrayOf(value.headers, isString) &&
+    isArrayOf(value.rows, (row): row is string[] => isArrayOf(row, isString))
   );
 }
 
@@ -875,6 +914,8 @@ const rpcResultValidators = {
     isStructureAvailabilityResult(value),
   fetch_structure: (value): value is RpcMethodResult<"fetch_structure"> =>
     isStructureResult(value),
+  load_structure_file: (value): value is RpcMethodResult<"load_structure_file"> =>
+    isLoadStructureFileResult(value),
   fetch_interface_residues: (value): value is RpcMethodResult<"fetch_interface_residues"> =>
     isFetchInterfaceResiduesResult(value),
   run_benchmark: (value): value is RpcMethodResult<"run_benchmark"> =>
@@ -887,8 +928,7 @@ const rpcResultValidators = {
   settings_save: (value): value is RpcMethodResult<"settings_save"> =>
     typeof value === "object" && value !== null && "ok" in value && "path" in value,
   preview_evolvepro_source: (value): value is RpcMethodResult<"preview_evolvepro_source"> =>
-    typeof value === "object" && value !== null &&
-    "sheets" in value && "headers" in value && "rows" in value,
+    isPreviewEvolveproSourceResult(value),
   // G001: 3D Analysis panel RPCs
   fetch_pdb_text: (value): value is RpcMethodResult<"fetch_pdb_text"> =>
     isFetchPdbTextResult(value),

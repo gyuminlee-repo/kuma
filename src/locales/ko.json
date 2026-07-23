@@ -1624,6 +1624,8 @@
     "othersApplyBtn": "선택한 column 적용",
     "othersApplyError": "Column 불러오기 실패: {{message}}",
     "othersUsedColumn": "적용된 column: {{column}}",
+    "othersUnnamedColumn": "이름 없는 column {{index}}",
+    "othersPanelCrashed": "Column 매핑 패널을 표시하지 못했습니다.",
     "extraExposedLabel": "추가 후보 표시 수:",
     "extraExposedAriaLabel": "표시할 추가 미선택 후보 수",
     "extraExposedHint": "(0 = 선택된 항목만)",
@@ -1686,7 +1688,12 @@
     "scanSequenceBtn": "서열 스캔",
     "scanSequenceTitle": "InterProScan으로 불러온 단백질 서열에서 참조 좌표계 도메인을 직접 탐지합니다",
     "referenceDomainsReady": "참조 좌표: InterProScan 도메인 {{count}}개",
-    "accessionDomainsOnly": "Accession 도메인은 3D 표시용입니다. 도메인 할당 전에 참조 서열을 스캔하세요."
+    "accessionDomainsOnly": "Accession 도메인은 3D 표시용입니다. 도메인 할당 전에 참조 서열을 스캔하세요.",
+    "loadStructureBtn": "구조 불러오기",
+    "loadStructureTitle": "이 서열에 대해 직접 예측한 PDB, mmCIF 또는 AlphaFold Server zip을 불러옵니다. zip 안에서는 최적 모델이 자동 선택됩니다.",
+    "threeDActive": "다양성 선택에 3D 구조가 적용 중입니다.",
+    "threeDNoStructure": "구조 미로드: 3D가 아닌 위치 거리를 사용합니다. 3D 기반 선택을 원하면 구조를 불러오세요.",
+    "threeDFrameMismatch": "구조가 이 서열 프레임과 맞지 않습니다: 3D가 아닌 위치 거리를 사용합니다."
   },
   "closeConfirm": {
     "designing": {
@@ -1876,7 +1883,11 @@
     "esmfoldCancelled": "구조 예측 취소: {{reason}}",
     "esmfoldPredicting": "ESMFold로 구조를 예측하는 중입니다(최대 수 분 소요)...",
     "esmfoldDone": "ESMFold 구조 예측 완료: 잔기 {{residues}}개, 평균 pLDDT {{plddt}}",
-    "esmfoldFailed": "ESMFold 예측 실패: {{error}}"
+    "esmfoldFailed": "ESMFold 예측 실패: {{error}}",
+    "structureFileLoading": "구조 파일 불러오는 중...",
+    "structureFileLoaded": "구조 불러옴: Cα 잔기 {{residues}}개.{{picked}}",
+    "structureFileChosen": " {{count}}개 모델 중 {{source}}을(를) {{metric}} 기준으로 선택했습니다.",
+    "structureFileFailed": "구조 파일을 사용할 수 없습니다(위치 거리 사용): {{error}}"
   },
   "inputThresholds": {
     "estimateSec": "약 {{sec}}초 소요 예상",
@@ -1894,7 +1905,11 @@
     "completedWithDuration": "완료 ({{duration}})"
   },
   "exportSlice": {
-    "legacyWorkspaceUnsupported": "v0.3 이전 워크스페이스는 지원하지 않습니다. 새 워크스페이스로 시작하세요."
+    "legacyWorkspaceUnsupported": "v0.3 이전 워크스페이스는 지원하지 않습니다. 새 워크스페이스로 시작하세요.",
+    "templateLoadFailed": "템플릿 파일을 불러오지 못했습니다. 템플릿 경로를 다시 지정한 뒤 워크스페이스를 다시 여세요. 원인: {{error}}"
+  },
+  "sequenceSlice": {
+    "resultsClearedOnTemplateChange": "template 이 바뀌어 이전 설계 결과를 비웠습니다. 설계를 다시 실행하세요."
   },
   "inputSlice": {
     "csvFormatError": "{{mode}} CSV 형식 오류: {{detail}}",
@@ -2136,7 +2151,11 @@
     "relativeDayAgo_other": "{{count}}일 전",
     "restored": "자동 저장에서 복원됨 ({{relative}})",
     "corrupted": "자동 저장 파일이 손상되었습니다. 백업이 {{filename}} 으로 보존됩니다",
-    "schemaTooNew": "자동 저장 파일이 최신 kuma 버전에서 생성되었습니다. 복원을 건너뜁니다.",
+    "schemaTooNew": "자동 저장 파일이 최신 kuma 버전에서 생성되었습니다. 복원을 건너뛰고, 해당 파일을 덮어쓰지 않도록 자동 저장을 중단했습니다.",
+    "readFailed": "자동 저장 파일을 읽지 못했습니다 ({{filename}}). 기존 파일을 덮어쓰지 않도록 자동 저장을 중단했습니다. 원인: {{cause}}",
+    "writeFailed": "자동 저장 파일을 쓰지 못했습니다 ({{filename}}). 원인: {{cause}}",
+    "carriedFromScratch": "저장하지 않은 이전 세션에서 이어왔습니다 ({{relative}})",
+    "resultsDiscarded": "소스 파일에서 variant 목록을 다시 선택했고 복원된 primer 표와 맞지 않아 표를 비웠습니다. 설계를 다시 실행하세요.",
     "workspaceRestored": "Workspace 복원됨",
     "autoDetected": "자동 감지: {{fields}}",
     "fieldRunFolder": "실행 폴더",

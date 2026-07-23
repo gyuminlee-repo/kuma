@@ -1654,6 +1654,8 @@
     "othersApplyBtn": "Apply selected columns",
     "othersApplyError": "Column load failed: {{message}}",
     "othersUsedColumn": "Applied column: {{column}}",
+    "othersUnnamedColumn": "名前のない column {{index}}",
+    "othersPanelCrashed": "Column マッピングパネルを表示できませんでした。",
     "extraExposedLabel": "Extra candidates shown:",
     "extraExposedAriaLabel": "Number of extra unselected candidates to display",
     "extraExposedHint": "(0 = selected only)",
@@ -1667,7 +1669,12 @@
     "scanSequenceBtn": "配列を解析",
     "scanSequenceTitle": "InterProScan で読み込んだタンパク質配列から参照座標系のドメインを直接検出します",
     "referenceDomainsReady": "参照座標: InterProScan ドメイン {{count}} 件",
-    "accessionDomainsOnly": "Accession ドメインは 3D 表示用です。ドメイン割り当て前に参照配列を解析してください。"
+    "accessionDomainsOnly": "Accession ドメインは 3D 表示用です。ドメイン割り当て前に参照配列を解析してください。",
+    "loadStructureBtn": "構造を読み込む",
+    "loadStructureTitle": "この配列について予測した PDB, mmCIF, または AlphaFold Server の zip を読み込みます。zip 内では最適なモデルが自動選択されます。",
+    "threeDActive": "多様性選択に3D構造を使用中です。",
+    "threeDNoStructure": "構造未読み込み: 3Dではなく位置距離を使用します。3D対応の選択には構造を読み込んでください。",
+    "threeDFrameMismatch": "構造がこの配列フレームと一致しません: 3Dではなく位置距離を使用します。"
   },
   "statusBar": {
     "ready": "準備完了",
@@ -1857,7 +1864,11 @@
     "esmfoldCancelled": "構造予測をキャンセル: {{reason}}",
     "esmfoldPredicting": "ESMFold で構造を予測中（最大数分）...",
     "esmfoldDone": "ESMFold 構造予測完了: 残基 {{residues}} 個、平均 pLDDT {{plddt}}",
-    "esmfoldFailed": "ESMFold 予測に失敗しました: {{error}}"
+    "esmfoldFailed": "ESMFold 予測に失敗しました: {{error}}",
+    "structureFileLoading": "構造ファイルを読み込み中...",
+    "structureFileLoaded": "構造を読み込みました: Cα残基 {{residues}} 個。{{picked}}",
+    "structureFileChosen": " {{count}} モデルのうち {{source}} を {{metric}} で選択しました。",
+    "structureFileFailed": "構造ファイルを使用できません（位置距離を使用）: {{error}}"
   },
   "inputThresholds": {
     "estimateSec": "推定約 {{sec}} 秒",
@@ -1875,7 +1886,11 @@
     "completedWithDuration": "完了 ({{duration}})"
   },
   "exportSlice": {
-    "legacyWorkspaceUnsupported": "v0.3 より古いワークスペースはサポートされていません。新規ワークスペースを開始してください。"
+    "legacyWorkspaceUnsupported": "v0.3 より古いワークスペースはサポートされていません。新規ワークスペースを開始してください。",
+    "templateLoadFailed": "テンプレートファイルを読み込めませんでした。テンプレートのパスを選び直してからワークスペースを開き直してください。原因: {{error}}"
+  },
+  "sequenceSlice": {
+    "resultsClearedOnTemplateChange": "template が変更されたため、以前の設計結果を消去しました。設計を再実行してください。"
   },
   "inputSlice": {
     "csvFormatError": "{{mode}} CSV フォーマットエラー: {{detail}}",
@@ -2105,7 +2120,11 @@
     "relativeDayAgo_other": "{{count}} 日前",
     "restored": "Autosave から復元 ({{relative}})",
     "corrupted": "Autosave ファイルが破損していました。バックアップを {{filename}} として保持しました",
-    "schemaTooNew": "Autosave は新しい kuma バージョンのものです。復元をスキップします。",
+    "schemaTooNew": "Autosave は新しい kuma バージョンのものです。復元をスキップし、そのファイルを上書きしないよう Autosave を停止しました。",
+    "readFailed": "Autosave ファイルを読み込めませんでした ({{filename}})。既存ファイルを上書きしないよう Autosave を停止しました。原因: {{cause}}",
+    "writeFailed": "Autosave ファイルを書き込めませんでした ({{filename}})。原因: {{cause}}",
+    "carriedFromScratch": "保存されていない前回のセッションから引き継ぎました ({{relative}})",
+    "resultsDiscarded": "ソースファイルから variant リストを選び直した結果、復元された primer テーブルと一致しないためテーブルを消去しました。設計を再実行してください。",
     "workspaceRestored": "ワークスペースを復元しました",
     "autoDetected": "自動検出: {{fields}}",
     "fieldRunFolder": "run フォルダ",

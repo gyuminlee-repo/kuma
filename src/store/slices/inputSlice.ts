@@ -130,7 +130,11 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
           entropyWeight,
           paretoPoolMultiplier,
           distanceMode,
-          structureAccession: get().uniprotAccession,
+          // A user-loaded structure file sets structureAccession (file:...) but
+          // not uniprotAccession, so the file key must win. Same order as
+          // Selection3DPanel. Sending uniprotAccession alone here silently
+          // dropped file coordinates and left 3D selection on 1-D distance.
+          structureAccession: get().structureAccession || get().uniprotAccession,
           evolveproRound,
           roundSize,
           refSeq,
@@ -144,6 +148,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         result,
         currentMode: get().mutationInputMode,
         maxPerPosition,
+        threeDConsumerOn: get().paretoDiversityEnabled || get().structuralDiversityEnabled,
+        structureLoaded: get().structureLoaded,
       });
       if (result.total_count > 0 && maxPrimers > result.total_count) {
         get().setMaxPrimers(result.total_count);
@@ -158,6 +164,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         evolveproFilteredCount: update.evolveproFilteredCount,
         evolveproParetoExchanges: update.evolveproParetoExchanges,
         evolveproStepStats: update.evolveproStepStats,
+        structure3dState: update.structure3dState,
         statusMessage: update.statusMessage,
         evolveproRankedCandidates: result.ranked_candidates ?? [],
         // Initialize selection directly from result.variants (pipeline source-of-truth).
