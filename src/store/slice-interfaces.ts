@@ -95,6 +95,14 @@ export interface DiversitySlice {
   structureLoaded: boolean;
   structureLoading: boolean;
   structureAccession: string;
+  // Whether the last EVOLVEpro load actually used 3D distance, and if not, why.
+  // "off": no 3D consumer enabled, so the distinction does not apply.
+  // "active": a structure was used for structural/pareto selection.
+  // "no_structure": a 3D consumer is on but no structure was loaded.
+  // "frame_mismatch": a structure was loaded but does not match the CDS frame.
+  // Persisted from the load result so the fallback is visible, not just a
+  // transient status line.
+  structure3dState: "off" | "active" | "no_structure" | "frame_mismatch";
   poolVariants: string[];
   uniprotCandidates: UniprotCandidate[];
   uniprotSearching: boolean;

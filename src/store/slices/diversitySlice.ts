@@ -141,6 +141,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   structureLoaded: false,
   structureLoading: false,
   structureAccession: "",
+  structure3dState: "off",
   uniprotCandidates: [],
   uniprotSearching: false,
   structuralDiversityEnabled: false,

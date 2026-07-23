@@ -20,6 +20,7 @@ export function UniprotSearch() {
   const annotateReferenceDomains = useAppStore((s) => s.annotateReferenceDomains);
   const structureLoading = useAppStore((s) => s.structureLoading);
   const loadStructureFile = useAppStore((s) => s.loadStructureFile);
+  const structure3dState = useAppStore((s) => s.structure3dState);
 
   const visibleCandidates = uniprotCandidates.slice(0, 10);
   const selectedGeneTranslation =
@@ -126,6 +127,13 @@ export function UniprotSearch() {
         <p className="text-plate-tiny text-warning">
           {t("uniprotSearch.accessionDomainsOnly")}
         </p>
+      ) : null}
+      {structure3dState === "active" ? (
+        <p className="text-plate-tiny text-success">{t("uniprotSearch.threeDActive")}</p>
+      ) : structure3dState === "no_structure" ? (
+        <p className="text-plate-tiny text-warning">{t("uniprotSearch.threeDNoStructure")}</p>
+      ) : structure3dState === "frame_mismatch" ? (
+        <p className="text-plate-tiny text-warning">{t("uniprotSearch.threeDFrameMismatch")}</p>
       ) : null}
       {uniprotCandidates.length > 0 && (
         <div className="space-y-1">

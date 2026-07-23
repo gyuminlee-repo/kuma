@@ -1666,7 +1666,10 @@
     "referenceDomainsReady": "参照座標: InterProScan ドメイン {{count}} 件",
     "accessionDomainsOnly": "Accession ドメインは 3D 表示用です。ドメイン割り当て前に参照配列を解析してください。",
     "loadStructureBtn": "構造を読み込む",
-    "loadStructureTitle": "この配列について予測した PDB, mmCIF, または AlphaFold Server の zip を読み込みます。zip 内では最適なモデルが自動選択されます。"
+    "loadStructureTitle": "この配列について予測した PDB, mmCIF, または AlphaFold Server の zip を読み込みます。zip 内では最適なモデルが自動選択されます。",
+    "threeDActive": "多様性選択に3D構造を使用中です。",
+    "threeDNoStructure": "構造未読み込み: 3Dではなく位置距離を使用します。3D対応の選択には構造を読み込んでください。",
+    "threeDFrameMismatch": "構造がこの配列フレームと一致しません: 3Dではなく位置距離を使用します。"
   },
   "statusBar": {
     "ready": "準備完了",

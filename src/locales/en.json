@@ -1685,7 +1685,10 @@
     "referenceDomainsReady": "Reference coordinates: {{count}} InterProScan domain(s)",
     "accessionDomainsOnly": "Accession domains are for 3D display. Scan the reference sequence before domain allocation.",
     "loadStructureBtn": "Load structure",
-    "loadStructureTitle": "Load a PDB, mmCIF, or AlphaFold Server zip you predicted for this exact sequence. The best model in a zip is chosen automatically."
+    "loadStructureTitle": "Load a PDB, mmCIF, or AlphaFold Server zip you predicted for this exact sequence. The best model in a zip is chosen automatically.",
+    "threeDActive": "3D structure active for diversity selection.",
+    "threeDNoStructure": "No structure loaded: using position distance, not 3D. Load a structure for 3D-aware selection.",
+    "threeDFrameMismatch": "Structure does not match this sequence frame: using position distance, not 3D."
   },
   "statusBar": {
     "ready": "Ready",

@@ -144,6 +144,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         result,
         currentMode: get().mutationInputMode,
         maxPerPosition,
+        threeDConsumerOn: get().paretoDiversityEnabled || get().structuralDiversityEnabled,
+        structureLoaded: get().structureLoaded,
       });
       if (result.total_count > 0 && maxPrimers > result.total_count) {
         get().setMaxPrimers(result.total_count);
@@ -158,6 +160,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         evolveproFilteredCount: update.evolveproFilteredCount,
         evolveproParetoExchanges: update.evolveproParetoExchanges,
         evolveproStepStats: update.evolveproStepStats,
+        structure3dState: update.structure3dState,
         statusMessage: update.statusMessage,
         evolveproRankedCandidates: result.ranked_candidates ?? [],
         // Initialize selection directly from result.variants (pipeline source-of-truth).

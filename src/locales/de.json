@@ -1666,7 +1666,10 @@
     "referenceDomainsReady": "Referenzkoordinaten: {{count}} InterProScan-Domäne(n)",
     "accessionDomainsOnly": "Accession-Domänen dienen der 3D-Anzeige. Scannen Sie vor der Domänenzuweisung die Referenzsequenz.",
     "loadStructureBtn": "Struktur laden",
-    "loadStructureTitle": "Eine PDB-, mmCIF- oder AlphaFold-Server-Zip laden, die für genau diese Sequenz vorhergesagt wurde. In einer Zip wird das beste Modell automatisch gewählt."
+    "loadStructureTitle": "Eine PDB-, mmCIF- oder AlphaFold-Server-Zip laden, die für genau diese Sequenz vorhergesagt wurde. In einer Zip wird das beste Modell automatisch gewählt.",
+    "threeDActive": "3D-Struktur für die Diversitätsauswahl aktiv.",
+    "threeDNoStructure": "Keine Struktur geladen: Positionsdistanz statt 3D. Struktur laden für 3D-gestützte Auswahl.",
+    "threeDFrameMismatch": "Struktur passt nicht zum Sequenzrahmen: Positionsdistanz statt 3D."
   },
   "statusBar": {
     "ready": "Bereit",

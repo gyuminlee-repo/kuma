@@ -1685,7 +1685,10 @@
     "referenceDomainsReady": "참조 좌표: InterProScan 도메인 {{count}}개",
     "accessionDomainsOnly": "Accession 도메인은 3D 표시용입니다. 도메인 할당 전에 참조 서열을 스캔하세요.",
     "loadStructureBtn": "구조 불러오기",
-    "loadStructureTitle": "이 서열에 대해 직접 예측한 PDB, mmCIF 또는 AlphaFold Server zip을 불러옵니다. zip 안에서는 최적 모델이 자동 선택됩니다."
+    "loadStructureTitle": "이 서열에 대해 직접 예측한 PDB, mmCIF 또는 AlphaFold Server zip을 불러옵니다. zip 안에서는 최적 모델이 자동 선택됩니다.",
+    "threeDActive": "다양성 선택에 3D 구조가 적용 중입니다.",
+    "threeDNoStructure": "구조 미로드: 3D가 아닌 위치 거리를 사용합니다. 3D 기반 선택을 원하면 구조를 불러오세요.",
+    "threeDFrameMismatch": "구조가 이 서열 프레임과 맞지 않습니다: 3D가 아닌 위치 거리를 사용합니다."
   },
   "closeConfirm": {
     "designing": {

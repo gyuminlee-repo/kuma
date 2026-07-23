@@ -1666,7 +1666,10 @@
     "referenceDomainsReady": "參考座標: {{count}} 個 InterProScan 域",
     "accessionDomainsOnly": "Accession 域用於 3D 顯示。進行域分配前請掃描參考序列。",
     "loadStructureBtn": "載入結構",
-    "loadStructureTitle": "載入你為此序列預測的 PDB、mmCIF 或 AlphaFold Server zip。zip 中會自動選擇最佳模型。"
+    "loadStructureTitle": "載入你為此序列預測的 PDB、mmCIF 或 AlphaFold Server zip。zip 中會自動選擇最佳模型。",
+    "threeDActive": "多樣性選擇正在使用3D結構。",
+    "threeDNoStructure": "未載入結構：使用位置距離而非3D。載入結構以啟用3D感知選擇。",
+    "threeDFrameMismatch": "結構與此序列框架不符：使用位置距離而非3D。"
   },
   "statusBar": {
     "ready": "就緒",

@@ -1666,7 +1666,10 @@
     "referenceDomainsReady": "Coordenadas de referência: {{count}} domínio(s) do InterProScan",
     "accessionDomainsOnly": "Os domínios de accession são para a visualização 3D. Analise a sequência de referência antes da alocação por domínio.",
     "loadStructureBtn": "Carregar estrutura",
-    "loadStructureTitle": "Carregar um PDB, mmCIF ou zip do AlphaFold Server previsto para esta sequência exata. Em um zip, o melhor modelo é escolhido automaticamente."
+    "loadStructureTitle": "Carregar um PDB, mmCIF ou zip do AlphaFold Server previsto para esta sequência exata. Em um zip, o melhor modelo é escolhido automaticamente.",
+    "threeDActive": "Estrutura 3D ativa para a seleção de diversidade.",
+    "threeDNoStructure": "Nenhuma estrutura carregada: usando distância de posição, não 3D. Carregue uma estrutura para seleção com 3D.",
+    "threeDFrameMismatch": "A estrutura não corresponde ao quadro desta sequência: usando distância de posição, não 3D."
   },
   "statusBar": {
     "ready": "Pronto",
