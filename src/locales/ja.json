@@ -721,10 +721,15 @@
         "helpText": "解析結果 Excel を保存するフォルダ。日付、reference/input トークン、MAME ターゲット、結果カウントトークンを組み合わせた KURO スタイルのルールでファイル名が自動生成されます。"
       },
       "buildWellLayout": {
-        "button": "Build well layout",
-        "building": "Building…",
-        "confirmed": "{{count}} well(s) confirmed",
-        "ariaLabel": "Auto-generate well layout from expected_mutations xlsx"
+        "button": "Well レイアウトを作成",
+        "building": "作成中…",
+        "confirmed": "well {{count}}件確定",
+        "ariaLabel": "expected_mutations xlsx から well レイアウトを自動生成",
+        "clear": "レイアウトを解除",
+        "clearAriaLabel": "確定した well レイアウトを解除",
+        "disabledBySampleMap": "Sample Map が選択されているため無効。Sample Map は well と sample の正式なマッピングです。",
+        "fallbackHint": "Sample Map がない run 向けのフォールバック。KURO シートの行順を A1 から well に順番に(column-major)割り当て、WT コントロール well は無いものと想定します。",
+        "overrideWarning": "このレイアウトは Sample Map を上書きします。代わりに Sample Map を使うにはレイアウトを解除してください。"
       }
     },
     "janusDeck": {

@@ -721,10 +721,15 @@
         "helpText": "Папка, куда сохраняется Excel с результатом анализа. Имя файла генерируется автоматически по правилам KURO-style, объединяя дату, токены reference/input, MAME target и токены количества результатов."
       },
       "buildWellLayout": {
-        "button": "Build well layout",
-        "building": "Building…",
-        "confirmed": "{{count}} well(s) confirmed",
-        "ariaLabel": "Auto-generate well layout from expected_mutations xlsx"
+        "button": "Построить well layout",
+        "building": "Построение…",
+        "confirmed": "подтверждено well: {{count}}",
+        "ariaLabel": "Автоматически создать well layout из expected_mutations xlsx",
+        "clear": "Очистить layout",
+        "clearAriaLabel": "Очистить подтверждённый well layout",
+        "disabledBySampleMap": "Отключено, так как выбран Sample Map. Sample Map является основным источником соответствия well-to-sample.",
+        "fallbackHint": "Резервный вариант для run без Sample Map. Назначает порядок строк листа KURO для well начиная с A1 (column-major) и предполагает отсутствие контрольных well WT.",
+        "overrideWarning": "Этот layout переопределяет Sample Map. Очистите его, чтобы использовать Sample Map вместо него."
       }
     },
     "janusDeck": {

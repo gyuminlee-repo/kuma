@@ -77,6 +77,7 @@ export interface InputSlice {
   wellLayoutDraft: WellLayoutRow[] | null;
   // Confirmed well->sample mapping; passed to analyze as highest-priority source.
   wellLayout: WellLayout | null;
+  clearWellLayout: () => void;
   setInputDir: (path: string) => void;
   setExpectedPath: (path: string) => void;
   setReferencePath: (path: string) => void;
