@@ -130,7 +130,11 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
           entropyWeight,
           paretoPoolMultiplier,
           distanceMode,
-          structureAccession: get().uniprotAccession,
+          // A user-loaded structure file sets structureAccession (file:...) but
+          // not uniprotAccession, so the file key must win. Same order as
+          // Selection3DPanel. Sending uniprotAccession alone here silently
+          // dropped file coordinates and left 3D selection on 1-D distance.
+          structureAccession: get().structureAccession || get().uniprotAccession,
           evolveproRound,
           roundSize,
           refSeq,

@@ -360,7 +360,9 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
         entropy_weight: state.entropyWeightEnabled ? state.entropyWeight : 0,
         pool_multiplier: state.paretoPoolMultiplier,
         distance_mode: state.distanceMode,
-        structure_accession: state.uniprotAccession || undefined,
+        // A user-loaded structure file lives in structureAccession, not
+        // uniprotAccession, so it must win here too (matches load_evolvepro).
+        structure_accession: state.structureAccession || state.uniprotAccession || undefined,
         random_seed: state.benchmarkRandomSeed,
       }, 120_000);
       set({
