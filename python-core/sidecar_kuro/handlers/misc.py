@@ -157,6 +157,38 @@ def handle_preview_evolvepro_source(params: dict) -> dict:
     return _preview_csv(str(resolved), p.max_rows)
 
 
+def _frame_checked_ca_coords(
+    ca_coords: list | None,
+    structure_accession: str | None,
+    ref_seq: str,
+) -> tuple[list | None, bool]:
+    """Drop cached coordinates that do not cover the reference frame.
+
+    3D coordinates are indexed by reference-sequence position, so a structure
+    that is not identical to (or a clean substring of) the reference would place
+    Cα coordinates on the wrong residues, silently corrupting any 3D-aware
+    selection. When it does not match, return None so callers fall back to 1-D
+    distance, plus a flag the UI can surface. Both load_evolvepro_csv and
+    run_benchmark share this so their handling cannot diverge.
+
+    A user-supplied structure caches its own sequence, so use that and skip the
+    network. Only fall back to fetching when the coordinates came from an
+    accession, which has no cached sequence.
+    """
+    if ca_coords is None or not structure_accession or not ref_seq.strip():
+        return ca_coords, False
+    from kuma_core.kuro.interface import structure_matches_reference
+
+    structure_seq = _get_cached_ca_seq(structure_accession)
+    if structure_seq is None:
+        from kuma_core.kuro.alphafold import fetch_ca_seq
+
+        structure_seq = fetch_ca_seq(structure_accession)
+    if structure_seq and not structure_matches_reference(structure_seq, ref_seq):
+        return None, True
+    return ca_coords, False
+
+
 def handle_load_evolvepro_csv(params: dict) -> dict:
     """Load EVOLVEpro df_test.csv, sort by y_pred descending, return top-N variants."""
     p = LoadEvolveproParams(**params)
@@ -172,21 +204,9 @@ def handle_load_evolvepro_csv(params: dict) -> dict:
     # residues, silently corrupting dispersion / structural-diversity selection.
     # When it does not match, drop to None so those paths fall back to 1-D
     # distance, and record why for the UI.
-    structure_frame_mismatch = False
-    if ca_coords is not None and p.structure_accession and p.ref_seq.strip():
-        from kuma_core.kuro.interface import structure_matches_reference
-
-        # A user-supplied structure caches its own sequence, so use that and
-        # skip the network. Only fall back to fetching when the coordinates came
-        # from an accession, which has no cached sequence.
-        structure_seq = _get_cached_ca_seq(p.structure_accession)
-        if structure_seq is None:
-            from kuma_core.kuro.alphafold import fetch_ca_seq
-
-            structure_seq = fetch_ca_seq(p.structure_accession)
-        if structure_seq and not structure_matches_reference(structure_seq, p.ref_seq):
-            ca_coords = None
-            structure_frame_mismatch = True
+    ca_coords, structure_frame_mismatch = _frame_checked_ca_coords(
+        ca_coords, p.structure_accession, p.ref_seq
+    )
     result = load_evolvepro_csv(
         filepath=str(resolved),
         top_n=p.top_n,
@@ -232,6 +252,11 @@ def handle_run_benchmark(params: dict) -> dict:
     landscape = [(v.variant, v.fitness) for v in p.landscape]
 
     ca_coords = _get_cached_ca_coords(p.structure_accession)
+    # Same frame guard load_evolvepro_csv uses: a structure that does not cover
+    # the reference frame must not feed 3D coordinates into the benchmark.
+    ca_coords, structure_frame_mismatch = _frame_checked_ca_coords(
+        ca_coords, p.structure_accession, p.ref_seq
+    )
 
     bench_results = run_benchmark(
         landscape,
@@ -249,4 +274,4 @@ def handle_run_benchmark(params: dict) -> dict:
         random_seed=p.random_seed,
         ca_coords=ca_coords,
     )
-    return {"results": bench_results}
+    return {"results": bench_results, "structure_frame_mismatch": structure_frame_mismatch}

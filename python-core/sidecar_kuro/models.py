@@ -920,6 +920,9 @@ class RunBenchmarkParams(BaseModel):
     pool_multiplier: float = Field(default=2.0, ge=1.0, le=10.0)
     distance_mode: Literal["auto", "1d", "3d"] = "auto"
     structure_accession: Optional[str] = None
+    # Reference protein sequence for the frame guard: coordinates are only used
+    # when the loaded structure covers this frame, matching load_evolvepro_csv.
+    ref_seq: str = ""
     random_seed: Optional[int] = None
 
 

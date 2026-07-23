@@ -346,6 +346,14 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
       .filter((d) => !state.disabledDomains.includes(`${d.name}-${d.start}`))
       .map((d) => ({ name: d.name, start: d.start, end: d.end }));
 
+    // Reference sequence for the backend frame guard, same source as
+    // load_evolvepro: the selected gene's translation. Without it the guard
+    // cannot verify a loaded structure covers the CDS frame.
+    const benchGene =
+      state.seqInfo?.genes.find((g) => String(g.cds_start) === state.selectedGene)
+      ?? state.seqInfo?.genes[0];
+    const benchRefSeq = benchGene?.translation ?? "";
+
     set({ benchmarkRunning: true, statusMessage: "Running benchmark..." });
     try {
       const result = await sendRequest("run_benchmark", {
@@ -363,6 +371,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
         // A user-loaded structure file lives in structureAccession, not
         // uniprotAccession, so it must win here too (matches load_evolvepro).
         structure_accession: state.structureAccession || state.uniprotAccession || undefined,
+        ref_seq: benchRefSeq,
         random_seed: state.benchmarkRandomSeed,
       }, 120_000);
       set({

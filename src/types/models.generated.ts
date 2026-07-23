@@ -886,6 +886,7 @@ export interface RunBenchmarkParams {
   n_select?: number;
   pool_multiplier?: number;
   random_seed?: number | null;
+  ref_seq?: string;
   strategies?: string[];
   structure_accession?: string | null;
   top_percentile?: number;
