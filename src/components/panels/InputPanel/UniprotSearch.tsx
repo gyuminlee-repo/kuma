@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useAppStore } from "../../../store/appStore";
+import { browseFile } from "../../../lib/file-utils";
 import { Button } from "../../ui/button";
 
 export function UniprotSearch() {
@@ -17,6 +18,8 @@ export function UniprotSearch() {
   const domains = useAppStore((s) => s.domains);
   const refDomains = useAppStore((s) => s.refDomains);
   const annotateReferenceDomains = useAppStore((s) => s.annotateReferenceDomains);
+  const structureLoading = useAppStore((s) => s.structureLoading);
+  const loadStructureFile = useAppStore((s) => s.loadStructureFile);
 
   const visibleCandidates = uniprotCandidates.slice(0, 10);
   const selectedGeneTranslation =
@@ -94,6 +97,25 @@ export function UniprotSearch() {
           title={t("uniprotSearch.scanSequenceTitle")}
         >
           {refDomainsLoading ? "..." : t("uniprotSearch.scanSequenceBtn")}
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-6 text-caption px-2"
+          onClick={() =>
+            void browseFile(
+              [
+                { name: "Structure", extensions: ["cif", "mmcif", "pdb", "ent", "zip"] },
+              ],
+              (path) => loadStructureFile(path),
+            )
+          }
+          disabled={structureLoading || uniprotSearching || domainLoading}
+          aria-busy={structureLoading}
+          aria-label={t("uniprotSearch.loadStructureBtn")}
+          title={t("uniprotSearch.loadStructureTitle")}
+        >
+          {structureLoading ? "..." : t("uniprotSearch.loadStructureBtn")}
         </Button>
       </div>
       {refDomains.length > 0 ? (

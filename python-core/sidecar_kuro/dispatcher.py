@@ -45,6 +45,7 @@ from sidecar_kuro.handlers.external import (
     handle_fetch_domains,
     handle_search_uniprot,
     handle_fetch_structure,
+    handle_load_structure_file,
     handle_fetch_interface_residues,
     handle_fetch_pdb_text,
     handle_fetch_active_site,
@@ -113,6 +114,7 @@ _METHODS = {
     "search_uniprot": handle_search_uniprot,
     "check_structures_available": handle_check_structures_available,
     "fetch_structure": handle_fetch_structure,
+    "load_structure_file": handle_load_structure_file,
     "fetch_interface_residues": handle_fetch_interface_residues,
     # G001: 3D Analysis panel RPCs
     "fetch_pdb_text": handle_fetch_pdb_text,
@@ -140,6 +142,7 @@ _ASYNC_METHODS = {
     "search_uniprot",
     "check_structures_available",
     "fetch_structure",
+    "load_structure_file",
     "fetch_interface_residues",
     "fetch_domains",
     "run_benchmark",

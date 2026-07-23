@@ -507,6 +507,64 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
     }
   },
 
+  loadStructureFile: async (filepath: string) => {
+    const path = filepath.trim();
+    if (!path) return;
+    // A local file needs no network consent and has no accession to match, so
+    // the fetchStructure guards do not apply. A generation counter still
+    // discards a stale load if another begins first.
+    const fetchGeneration = ++structureFetchGeneration;
+    set({
+      structureLoading: true,
+      structureLoaded: false,
+      statusMessage: i18next.t("diversity.structureFileLoading"),
+    });
+    try {
+      const result = await sendRequest("load_structure_file", { filepath: path }, 60_000);
+      if (fetchGeneration !== structureFetchGeneration) return;
+      if (result.success && result.accession) {
+        const picked =
+          result.selection_metric === "ranking_score" || result.selection_metric === "mean_plddt"
+            ? i18next.t("diversity.structureFileChosen", {
+                source: result.source_name ?? "",
+                count: result.candidates?.length ?? 0,
+                metric: result.selection_metric,
+              })
+            : "";
+        set({
+          structureLoaded: true,
+          structureLoading: false,
+          structureAccession: result.accession,
+          statusMessage: i18next.t("diversity.structureFileLoaded", {
+            residues: result.residues ?? 0,
+            picked,
+          }),
+        });
+        const state = get();
+        if (shouldReloadAfterStructureFetch(state)) {
+          await state.loadEvolveproCsv(getActiveEvolveproPath(state));
+        }
+      } else {
+        set({
+          structureLoaded: false,
+          structureLoading: false,
+          structureAccession: "",
+          statusMessage: i18next.t("diversity.structureFileFailed", {
+            error: result.error ?? "unreadable",
+          }),
+        });
+      }
+    } catch (err) {
+      if (fetchGeneration !== structureFetchGeneration) return;
+      set({
+        structureLoaded: false,
+        structureLoading: false,
+        structureAccession: "",
+        statusMessage: i18next.t("diversity.structureFileFailed", { error: formatError(err) }),
+      });
+    }
+  },
+
   fetchPdbText: async (accession: string): Promise<FetchPdbTextResult | null> => {
     const key = accession.trim();
     if (!key) return null;

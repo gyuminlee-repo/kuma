@@ -14,6 +14,7 @@ from sidecar_kuro.core import (
     _codon_registry,
     _CUSTOM_POLYMERASE_PATH,
     _get_cached_ca_coords,
+    _get_cached_ca_seq,
 )
 from sidecar_kuro.models import (
     LoadEvolveproParams,
@@ -173,11 +174,17 @@ def handle_load_evolvepro_csv(params: dict) -> dict:
     # distance, and record why for the UI.
     structure_frame_mismatch = False
     if ca_coords is not None and p.structure_accession and p.ref_seq.strip():
-        from kuma_core.kuro.alphafold import fetch_ca_seq
         from kuma_core.kuro.interface import structure_matches_reference
 
-        accession_seq = fetch_ca_seq(p.structure_accession)
-        if accession_seq and not structure_matches_reference(accession_seq, p.ref_seq):
+        # A user-supplied structure caches its own sequence, so use that and
+        # skip the network. Only fall back to fetching when the coordinates came
+        # from an accession, which has no cached sequence.
+        structure_seq = _get_cached_ca_seq(p.structure_accession)
+        if structure_seq is None:
+            from kuma_core.kuro.alphafold import fetch_ca_seq
+
+            structure_seq = fetch_ca_seq(p.structure_accession)
+        if structure_seq and not structure_matches_reference(structure_seq, p.ref_seq):
             ca_coords = None
             structure_frame_mismatch = True
     result = load_evolvepro_csv(

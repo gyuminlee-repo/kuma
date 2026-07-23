@@ -1664,7 +1664,9 @@
     "scanSequenceBtn": "Анализ последовательности",
     "scanSequenceTitle": "Определить домены в координатах референса непосредственно по загруженной белковой последовательности с помощью InterProScan",
     "referenceDomainsReady": "Координаты референса: доменов InterProScan — {{count}}",
-    "accessionDomainsOnly": "Домены accession предназначены для 3D-отображения. Перед распределением по доменам проанализируйте референсную последовательность."
+    "accessionDomainsOnly": "Домены accession предназначены для 3D-отображения. Перед распределением по доменам проанализируйте референсную последовательность.",
+    "loadStructureBtn": "Загрузить структуру",
+    "loadStructureTitle": "Загрузить PDB, mmCIF или zip AlphaFold Server, предсказанный для этой последовательности. В zip лучшая модель выбирается автоматически."
   },
   "statusBar": {
     "ready": "Готово",
@@ -1854,7 +1856,11 @@
     "esmfoldCancelled": "Предсказание структуры отменено: {{reason}}",
     "esmfoldPredicting": "Предсказание структуры с помощью ESMFold (до нескольких минут)...",
     "esmfoldDone": "Структура ESMFold предсказана: остатков {{residues}}, средний pLDDT {{plddt}}",
-    "esmfoldFailed": "Ошибка предсказания ESMFold: {{error}}"
+    "esmfoldFailed": "Ошибка предсказания ESMFold: {{error}}",
+    "structureFileLoading": "Загрузка файла структуры...",
+    "structureFileLoaded": "Структура загружена: {{residues}} остатков Cα.{{picked}}",
+    "structureFileChosen": " Выбрана {{source}} из {{count}} моделей по {{metric}}.",
+    "structureFileFailed": "Не удалось использовать файл структуры (используется позиционное расстояние): {{error}}"
   },
   "inputThresholds": {
     "estimateSec": "~{{sec}}s ориентировочно",

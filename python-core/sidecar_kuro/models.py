@@ -675,6 +675,36 @@ class FetchStructureParams(BaseModel):
     accession: str = ""
 
 
+class LoadStructureFileParams(BaseModel):
+    """Params for `load_structure_file` RPC (user-supplied PDB / mmCIF / zip)."""
+
+    filepath: str = ""
+
+
+class StructureModelCandidate(BaseModel):
+    """One model found inside an archive, with the metrics used to rank it."""
+
+    name: str
+    ranking_score: Optional[float] = None
+    mean_plddt: Optional[float] = None
+    residue_count: int = 0
+
+
+class LoadStructureFileResult(BaseModel):
+    """Result for `load_structure_file` RPC."""
+
+    success: bool
+    # Synthetic cache key the frontend stores as structureAccession, so later
+    # design and benchmark calls resolve these coordinates. Empty on failure.
+    accession: str = ""
+    residues: int = 0
+    mean_plddt: Optional[float] = None
+    source_name: str = ""
+    selection_metric: str = ""
+    candidates: list[StructureModelCandidate] = Field(default_factory=list)
+    error: Optional[str] = None
+
+
 class FetchInterfaceParams(BaseModel):
     """Params for `fetch_interface_residues` RPC.
 

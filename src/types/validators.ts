@@ -29,6 +29,8 @@ import type {
   SdmPrimerResult,
   StructureAvailabilityResult,
   StructureResult,
+  StructureModelCandidate,
+  LoadStructureFileResult,
   WorkspaceData,
 } from "./models";
 
@@ -714,6 +716,32 @@ function isStructureResult(value: unknown): value is StructureResult {
   );
 }
 
+function isStructureModelCandidate(value: unknown): value is StructureModelCandidate {
+  return (
+    isRecord(value) &&
+    isString(value.name) &&
+    isNumber(value.residue_count) &&
+    (value.ranking_score === null || isOptional(value.ranking_score, isNumber)) &&
+    (value.mean_plddt === null || isOptional(value.mean_plddt, isNumber))
+  );
+}
+
+function isLoadStructureFileResult(value: unknown): value is LoadStructureFileResult {
+  return (
+    isRecord(value) &&
+    isBoolean(value.success) &&
+    isOptional(value.accession, isString) &&
+    isOptional(value.residues, isNumber) &&
+    (value.mean_plddt === null || isOptional(value.mean_plddt, isNumber)) &&
+    isOptional(value.source_name, isString) &&
+    isOptional(value.selection_metric, isString) &&
+    isOptional(value.candidates, (c): c is StructureModelCandidate[] =>
+      isArrayOf(c, isStructureModelCandidate),
+    ) &&
+    isOptional(value.error, isString)
+  );
+}
+
 function isFetchInterfaceResiduesResult(value: unknown): value is FetchInterfaceResiduesResult {
   return (
     isRecord(value) &&
@@ -885,6 +913,8 @@ const rpcResultValidators = {
     isStructureAvailabilityResult(value),
   fetch_structure: (value): value is RpcMethodResult<"fetch_structure"> =>
     isStructureResult(value),
+  load_structure_file: (value): value is RpcMethodResult<"load_structure_file"> =>
+    isLoadStructureFileResult(value),
   fetch_interface_residues: (value): value is RpcMethodResult<"fetch_interface_residues"> =>
     isFetchInterfaceResiduesResult(value),
   run_benchmark: (value): value is RpcMethodResult<"run_benchmark"> =>

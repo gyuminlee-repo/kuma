@@ -1683,7 +1683,9 @@
     "scanSequenceBtn": "서열 스캔",
     "scanSequenceTitle": "InterProScan으로 불러온 단백질 서열에서 참조 좌표계 도메인을 직접 탐지합니다",
     "referenceDomainsReady": "참조 좌표: InterProScan 도메인 {{count}}개",
-    "accessionDomainsOnly": "Accession 도메인은 3D 표시용입니다. 도메인 할당 전에 참조 서열을 스캔하세요."
+    "accessionDomainsOnly": "Accession 도메인은 3D 표시용입니다. 도메인 할당 전에 참조 서열을 스캔하세요.",
+    "loadStructureBtn": "구조 불러오기",
+    "loadStructureTitle": "이 서열에 대해 직접 예측한 PDB, mmCIF 또는 AlphaFold Server zip을 불러옵니다. zip 안에서는 최적 모델이 자동 선택됩니다."
   },
   "closeConfirm": {
     "designing": {
@@ -1873,7 +1875,11 @@
     "esmfoldCancelled": "구조 예측 취소: {{reason}}",
     "esmfoldPredicting": "ESMFold로 구조를 예측하는 중입니다(최대 수 분 소요)...",
     "esmfoldDone": "ESMFold 구조 예측 완료: 잔기 {{residues}}개, 평균 pLDDT {{plddt}}",
-    "esmfoldFailed": "ESMFold 예측 실패: {{error}}"
+    "esmfoldFailed": "ESMFold 예측 실패: {{error}}",
+    "structureFileLoading": "구조 파일 불러오는 중...",
+    "structureFileLoaded": "구조 불러옴: Cα 잔기 {{residues}}개.{{picked}}",
+    "structureFileChosen": " {{count}}개 모델 중 {{source}}을(를) {{metric}} 기준으로 선택했습니다.",
+    "structureFileFailed": "구조 파일을 사용할 수 없습니다(위치 거리 사용): {{error}}"
   },
   "inputThresholds": {
     "estimateSec": "약 {{sec}}초 소요 예상",

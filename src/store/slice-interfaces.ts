@@ -133,6 +133,7 @@ export interface DiversitySlice {
   setSaveCache: (enabled: boolean) => void;
   searchUniprot: (geneName: string, organism: string, translation: string, knownAccession: string) => Promise<void>;
   fetchStructure: (accession: string) => Promise<void>;
+  loadStructureFile: (filepath: string) => Promise<void>;
   cancelDiversityReload: () => void;
   setStructuralDiversityEnabled: (enabled: boolean) => void;
   setStructuralKappa: (v: number) => void;

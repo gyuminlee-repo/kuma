@@ -1664,7 +1664,9 @@
     "scanSequenceBtn": "扫描序列",
     "scanSequenceTitle": "使用 InterProScan 直接从已加载的蛋白质序列检测参考坐标域",
     "referenceDomainsReady": "参考坐标: {{count}} 个 InterProScan 域",
-    "accessionDomainsOnly": "Accession 域用于 3D 显示。进行域分配前请扫描参考序列。"
+    "accessionDomainsOnly": "Accession 域用于 3D 显示。进行域分配前请扫描参考序列。",
+    "loadStructureBtn": "载入结构",
+    "loadStructureTitle": "载入你为该序列预测的 PDB、mmCIF 或 AlphaFold Server zip。zip 中会自动选择最佳模型。"
   },
   "statusBar": {
     "ready": "就绪",
@@ -1854,7 +1856,11 @@
     "esmfoldCancelled": "结构预测已取消: {{reason}}",
     "esmfoldPredicting": "正在使用 ESMFold 预测结构（最多几分钟）...",
     "esmfoldDone": "ESMFold 结构预测完成: {{residues}} 个残基, 平均 pLDDT {{plddt}}",
-    "esmfoldFailed": "ESMFold 预测失败: {{error}}"
+    "esmfoldFailed": "ESMFold 预测失败: {{error}}",
+    "structureFileLoading": "正在加载结构文件...",
+    "structureFileLoaded": "已加载结构：{{residues}} 个 Cα 残基。{{picked}}",
+    "structureFileChosen": " 已按 {{metric}} 从 {{count}} 个模型中选择 {{source}}。",
+    "structureFileFailed": "无法使用该结构文件（改用位置距离）：{{error}}"
   },
   "inputThresholds": {
     "estimateSec": "预计 ~{{sec}}s",

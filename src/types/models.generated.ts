@@ -51,6 +51,8 @@ export interface SidecarKuroModels {
   LandscapeEntry?: LandscapeEntry;
   LoadEvolveproParams?: LoadEvolveproParams;
   LoadFastaParams?: LoadFastaParams;
+  LoadStructureFileParams?: LoadStructureFileParams;
+  LoadStructureFileResult?: LoadStructureFileResult;
   LoadWorkspaceParams?: LoadWorkspaceParams;
   MappingRange?: MappingRange;
   NullHistogram?: NullHistogram;
@@ -80,6 +82,7 @@ export interface SidecarKuroModels {
   SettingsSidecar?: SettingsSidecar;
   SettingsTelemetry?: SettingsTelemetry;
   SortingEntry?: SortingEntry;
+  StructureModelCandidate?: StructureModelCandidate;
   SwapPrimerParams?: SwapPrimerParams;
   WorkspaceCacheModel?: WorkspaceCacheModel;
   WorkspaceInputsModel?: WorkspaceInputsModel;
@@ -728,6 +731,37 @@ export interface LoadEvolveproParams {
 }
 export interface LoadFastaParams {
   filepath: string;
+  [k: string]: unknown;
+}
+/**
+ * Params for `load_structure_file` RPC (user-supplied PDB / mmCIF / zip).
+ */
+export interface LoadStructureFileParams {
+  filepath?: string;
+  [k: string]: unknown;
+}
+/**
+ * Result for `load_structure_file` RPC.
+ */
+export interface LoadStructureFileResult {
+  accession?: string;
+  candidates?: StructureModelCandidate[];
+  error?: string | null;
+  mean_plddt?: number | null;
+  residues?: number;
+  selection_metric?: string;
+  source_name?: string;
+  success: boolean;
+  [k: string]: unknown;
+}
+/**
+ * One model found inside an archive, with the metrics used to rank it.
+ */
+export interface StructureModelCandidate {
+  mean_plddt?: number | null;
+  name: string;
+  ranking_score?: number | null;
+  residue_count?: number;
   [k: string]: unknown;
 }
 export interface LoadWorkspaceParams {

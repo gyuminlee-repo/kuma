@@ -1664,7 +1664,9 @@
     "scanSequenceBtn": "配列を解析",
     "scanSequenceTitle": "InterProScan で読み込んだタンパク質配列から参照座標系のドメインを直接検出します",
     "referenceDomainsReady": "参照座標: InterProScan ドメイン {{count}} 件",
-    "accessionDomainsOnly": "Accession ドメインは 3D 表示用です。ドメイン割り当て前に参照配列を解析してください。"
+    "accessionDomainsOnly": "Accession ドメインは 3D 表示用です。ドメイン割り当て前に参照配列を解析してください。",
+    "loadStructureBtn": "構造を読み込む",
+    "loadStructureTitle": "この配列について予測した PDB, mmCIF, または AlphaFold Server の zip を読み込みます。zip 内では最適なモデルが自動選択されます。"
   },
   "statusBar": {
     "ready": "準備完了",
@@ -1854,7 +1856,11 @@
     "esmfoldCancelled": "構造予測をキャンセル: {{reason}}",
     "esmfoldPredicting": "ESMFold で構造を予測中（最大数分）...",
     "esmfoldDone": "ESMFold 構造予測完了: 残基 {{residues}} 個、平均 pLDDT {{plddt}}",
-    "esmfoldFailed": "ESMFold 予測に失敗しました: {{error}}"
+    "esmfoldFailed": "ESMFold 予測に失敗しました: {{error}}",
+    "structureFileLoading": "構造ファイルを読み込み中...",
+    "structureFileLoaded": "構造を読み込みました: Cα残基 {{residues}} 個。{{picked}}",
+    "structureFileChosen": " {{count}} モデルのうち {{source}} を {{metric}} で選択しました。",
+    "structureFileFailed": "構造ファイルを使用できません（位置距離を使用）: {{error}}"
   },
   "inputThresholds": {
     "estimateSec": "推定約 {{sec}} 秒",

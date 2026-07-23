@@ -1664,7 +1664,9 @@
     "scanSequenceBtn": "Analisar sequência",
     "scanSequenceTitle": "Detectar domínios nas coordenadas de referência diretamente da sequência proteica carregada com InterProScan",
     "referenceDomainsReady": "Coordenadas de referência: {{count}} domínio(s) do InterProScan",
-    "accessionDomainsOnly": "Os domínios de accession são para a visualização 3D. Analise a sequência de referência antes da alocação por domínio."
+    "accessionDomainsOnly": "Os domínios de accession são para a visualização 3D. Analise a sequência de referência antes da alocação por domínio.",
+    "loadStructureBtn": "Carregar estrutura",
+    "loadStructureTitle": "Carregar um PDB, mmCIF ou zip do AlphaFold Server previsto para esta sequência exata. Em um zip, o melhor modelo é escolhido automaticamente."
   },
   "statusBar": {
     "ready": "Pronto",
@@ -1854,7 +1856,11 @@
     "esmfoldCancelled": "Predição de estrutura cancelada: {{reason}}",
     "esmfoldPredicting": "Prevendo a estrutura com ESMFold (até alguns minutos)...",
     "esmfoldDone": "Estrutura ESMFold prevista: {{residues}} resíduos, pLDDT médio {{plddt}}",
-    "esmfoldFailed": "Falha na predição do ESMFold: {{error}}"
+    "esmfoldFailed": "Falha na predição do ESMFold: {{error}}",
+    "structureFileLoading": "Carregando arquivo de estrutura...",
+    "structureFileLoaded": "Estrutura carregada: {{residues}} resíduos Cα.{{picked}}",
+    "structureFileChosen": " {{source}} escolhido entre {{count}} modelos por {{metric}}.",
+    "structureFileFailed": "Não foi possível usar o arquivo de estrutura (usando distância de posição): {{error}}"
   },
   "inputThresholds": {
     "estimateSec": "~{{sec}}s estimados",

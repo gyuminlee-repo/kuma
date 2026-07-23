@@ -1683,7 +1683,9 @@
     "scanSequenceBtn": "Scan sequence",
     "scanSequenceTitle": "Detect reference-frame domains directly from the loaded protein sequence with InterProScan",
     "referenceDomainsReady": "Reference coordinates: {{count}} InterProScan domain(s)",
-    "accessionDomainsOnly": "Accession domains are for 3D display. Scan the reference sequence before domain allocation."
+    "accessionDomainsOnly": "Accession domains are for 3D display. Scan the reference sequence before domain allocation.",
+    "loadStructureBtn": "Load structure",
+    "loadStructureTitle": "Load a PDB, mmCIF, or AlphaFold Server zip you predicted for this exact sequence. The best model in a zip is chosen automatically."
   },
   "statusBar": {
     "ready": "Ready",
@@ -1873,7 +1875,11 @@
     "esmfoldCancelled": "Structure prediction cancelled: {{reason}}",
     "esmfoldPredicting": "Predicting structure with ESMFold (up to a few minutes)...",
     "esmfoldDone": "ESMFold structure predicted: {{residues}} residues, mean pLDDT {{plddt}}",
-    "esmfoldFailed": "ESMFold prediction failed: {{error}}"
+    "esmfoldFailed": "ESMFold prediction failed: {{error}}",
+    "structureFileLoading": "Loading structure file...",
+    "structureFileLoaded": "Structure loaded: {{residues}} Cα residues.{{picked}}",
+    "structureFileChosen": " Chose {{source}} of {{count}} models by {{metric}}.",
+    "structureFileFailed": "Structure file could not be used (using position distance): {{error}}"
   },
   "inputThresholds": {
     "estimateSec": "~{{sec}}s estimated",

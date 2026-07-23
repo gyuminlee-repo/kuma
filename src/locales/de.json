@@ -1664,7 +1664,9 @@
     "scanSequenceBtn": "Sequenz scannen",
     "scanSequenceTitle": "Referenzkoordinaten-Domänen mit InterProScan direkt aus der geladenen Proteinsequenz erkennen",
     "referenceDomainsReady": "Referenzkoordinaten: {{count}} InterProScan-Domäne(n)",
-    "accessionDomainsOnly": "Accession-Domänen dienen der 3D-Anzeige. Scannen Sie vor der Domänenzuweisung die Referenzsequenz."
+    "accessionDomainsOnly": "Accession-Domänen dienen der 3D-Anzeige. Scannen Sie vor der Domänenzuweisung die Referenzsequenz.",
+    "loadStructureBtn": "Struktur laden",
+    "loadStructureTitle": "Eine PDB-, mmCIF- oder AlphaFold-Server-Zip laden, die für genau diese Sequenz vorhergesagt wurde. In einer Zip wird das beste Modell automatisch gewählt."
   },
   "statusBar": {
     "ready": "Bereit",
@@ -1854,7 +1856,11 @@
     "esmfoldCancelled": "Strukturvorhersage abgebrochen: {{reason}}",
     "esmfoldPredicting": "Struktur wird mit ESMFold vorhergesagt (bis zu einige Minuten)...",
     "esmfoldDone": "ESMFold-Struktur vorhergesagt: {{residues}} Reste, mittlerer pLDDT {{plddt}}",
-    "esmfoldFailed": "ESMFold-Vorhersage fehlgeschlagen: {{error}}"
+    "esmfoldFailed": "ESMFold-Vorhersage fehlgeschlagen: {{error}}",
+    "structureFileLoading": "Strukturdatei wird geladen...",
+    "structureFileLoaded": "Struktur geladen: {{residues}} Cα-Reste.{{picked}}",
+    "structureFileChosen": " {{source}} von {{count}} Modellen nach {{metric}} gewählt.",
+    "structureFileFailed": "Strukturdatei nicht verwendbar (Positionsdistanz wird genutzt): {{error}}"
   },
   "inputThresholds": {
     "estimateSec": "~{{sec}}s geschätzt",

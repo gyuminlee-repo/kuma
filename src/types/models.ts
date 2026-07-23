@@ -489,6 +489,24 @@ export interface StructureResult {
   error?: string;
 }
 
+export interface StructureModelCandidate {
+  name: string;
+  ranking_score?: number | null;
+  mean_plddt?: number | null;
+  residue_count: number;
+}
+
+export interface LoadStructureFileResult {
+  success: boolean;
+  accession?: string;
+  residues?: number;
+  mean_plddt?: number | null;
+  source_name?: string;
+  selection_metric?: string;
+  candidates?: StructureModelCandidate[];
+  error?: string;
+}
+
 export interface FetchInterfaceResiduesResult {
   interface_positions: number[];
   source: string;
@@ -760,6 +778,10 @@ export interface RpcMethodMap {
   fetch_structure: {
     params: { accession: string };
     result: StructureResult;
+  };
+  load_structure_file: {
+    params: { filepath: string };
+    result: LoadStructureFileResult;
   };
   fetch_interface_residues: {
     params: { accession: string; ref_seq: string };
