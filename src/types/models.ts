@@ -575,6 +575,9 @@ export interface BenchmarkResult {
 
 export interface RunBenchmarkResult {
   results: Record<string, BenchmarkResult>;
+  // True when a loaded structure did not cover the reference frame, so the
+  // benchmark ran on 1D distance instead of 3D. Same guard as load_evolvepro.
+  structure_frame_mismatch?: boolean;
 }
 
 export interface JsonRpcError {

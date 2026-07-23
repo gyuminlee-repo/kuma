@@ -820,7 +820,8 @@ function isComputeDispersionResult(value: unknown): value is ComputeDispersionRe
 function isRunBenchmarkResult(value: unknown): value is RunBenchmarkResult {
   return (
     isRecord(value) &&
-    isRecordOf(value.results, isBenchmarkResult)
+    isRecordOf(value.results, isBenchmarkResult) &&
+    isOptional(value.structure_frame_mismatch, isBoolean)
   );
 }
 

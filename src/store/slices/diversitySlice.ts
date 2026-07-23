@@ -374,11 +374,16 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
         ref_seq: benchRefSeq,
         random_seed: state.benchmarkRandomSeed,
       }, 120_000);
+      // Surface the same 3D-to-1D fallback notice load_evolvepro shows, so a
+      // frame mismatch is not silent in the benchmark path either.
+      const benchMismatch = result.structure_frame_mismatch
+        ? ` | ${i18next.t("inputSlice.structureFrameMismatch")}`
+        : "";
       set({
         benchmarkRunning: false,
         benchmarkResults: result.results,
         showBenchmark: true,
-        statusMessage: "Benchmark complete",
+        statusMessage: `Benchmark complete${benchMismatch}`,
       });
     } catch (err) {
       set({
