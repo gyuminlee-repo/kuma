@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# sync-version.sh — Extract version from latest commit message (vX.Y.Z:) and update all version files.
+# sync-version.sh, Extract version from latest commit message (vX.Y.Z:) and update all version files.
 # Called as a post-commit hook or manually.
 set -euo pipefail
 
@@ -15,6 +15,8 @@ PKG="$REPO_ROOT/package.json"
 TAURI="$REPO_ROOT/src-tauri/tauri.conf.json"
 CARGO="$REPO_ROOT/src-tauri/Cargo.toml"
 PYPROJECT="$REPO_ROOT/pyproject.toml"
+GENERATED="$REPO_ROOT/src/components/dialogs/whatsNew.generated.ts"
+GEN_SCRIPT="$REPO_ROOT/scripts/gen-whatsnew.mjs"
 
 CURRENT=$(python3 - <<'PY' "$PKG"
 import json, sys
@@ -49,6 +51,36 @@ for toml_path in (cargo_path, pyproject_path):
     path.write_text(updated, encoding="utf-8")
 PY
 
+# package.json's new version is a generation input for whatsNew.generated.ts
+# (scripts/gen-whatsnew.mjs). Regenerate it here so the amended commit below
+# does not amend package.json's version without also amending the derived
+# file, which is exactly the drift that made v0.13.24 and v0.13.25 fail
+# `pnpm run sync:check` in quality-gates.
+#
+# gen-whatsnew.mjs exits 2 specifically when CHANGELOG.md's latest section
+# does not yet mention the new version (a plain code commit whose message
+# happens to carry a `vX.Y.Z:` label but adds no CHANGELOG section). That is
+# not this hook's problem to fix: warn and leave the generated file
+# untouched (it never got written, since the guard fires before the write),
+# then continue amending the four version manifests. Any other nonzero exit
+# is a real generator failure: do not swallow it, do not amend, fail loudly.
+set +e
+GEN_OUTPUT=$(node "$GEN_SCRIPT" 2>&1)
+GEN_STATUS=$?
+set -e
+
+ADD_PATHS=("$PKG" "$TAURI" "$CARGO" "$PYPROJECT")
+if [ "$GEN_STATUS" -eq 0 ]; then
+  ADD_PATHS+=("$GENERATED")
+elif [ "$GEN_STATUS" -eq 2 ]; then
+  echo "[sync-version] warning: scripts/gen-whatsnew.mjs left whatsNew.generated.ts untouched (CHANGELOG.md has no section for v$VERSION yet):" >&2
+  echo "$GEN_OUTPUT" >&2
+else
+  echo "[sync-version] error: scripts/gen-whatsnew.mjs failed (exit $GEN_STATUS):" >&2
+  echo "$GEN_OUTPUT" >&2
+  exit 1
+fi
+
 # Amend the commit to include version changes
-git add "$PKG" "$TAURI" "$CARGO" "$PYPROJECT"
+git add "${ADD_PATHS[@]}"
 git commit --amend --no-edit --no-verify
