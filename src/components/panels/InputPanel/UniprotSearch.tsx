@@ -97,11 +97,11 @@ export function UniprotSearch() {
         </Button>
       </div>
       {refDomains.length > 0 ? (
-        <p className="text-plate-tiny text-success">
+        <p className="text-caption text-success">
           {t("uniprotSearch.referenceDomainsReady", { count: refDomains.length })}
         </p>
       ) : domains.length > 0 ? (
-        <p className="text-plate-tiny text-warning">
+        <p className="text-caption text-warning">
           {t("uniprotSearch.accessionDomainsOnly")}
         </p>
       ) : null}

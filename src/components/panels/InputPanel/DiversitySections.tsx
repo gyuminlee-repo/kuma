@@ -161,7 +161,7 @@ export function DomainAllocationSection(props: {
 
       <UniprotSearch />
       {domains.length === 0 && (
-        <p role="status" className="text-plate-tiny text-warning">
+        <p role="status" className="text-caption text-warning">
           {t("diversitySections.referenceDomainsRequired")}
         </p>
       )}
@@ -414,7 +414,7 @@ export function AdvancedSettingsSection(props: {
       >
         <div className="space-y-2 text-caption text-muted-foreground">
           <div>
-            <div className="mb-0.5 text-plate-tiny uppercase tracking-wide text-muted-foreground/60">{t("diversitySections.step1SectionLabel")}</div>
+            <div className="mb-0.5 text-caption uppercase tracking-wide text-muted-foreground/60">{t("diversitySections.step1SectionLabel")}</div>
             <div className="flex items-center gap-1 flex-wrap">
               <span>{t("diversitySections.positionCap")}</span>
               <InlineHelp text={t("diversitySections.positionCapLabelHelp")} />
@@ -434,7 +434,7 @@ export function AdvancedSettingsSection(props: {
           </div>
 
           <div>
-            <div className="mb-0.5 text-plate-tiny uppercase tracking-wide text-muted-foreground/60">{t("diversitySections.step2SectionLabel")}</div>
+            <div className="mb-0.5 text-caption uppercase tracking-wide text-muted-foreground/60">{t("diversitySections.step2SectionLabel")}</div>
             <div className="space-y-1">
               <div className="flex items-center gap-2 flex-wrap" role="radiogroup" aria-label={t("diversitySections.domainStrategyAriaLabel")}>
                 <span>{t("diversitySections.strategyLabel")}</span>
@@ -472,7 +472,7 @@ export function AdvancedSettingsSection(props: {
           </div>
 
           <div>
-            <div className="mb-0.5 text-plate-tiny uppercase tracking-wide text-muted-foreground/60">{t("diversitySections.step3SectionLabel")}</div>
+            <div className="mb-0.5 text-caption uppercase tracking-wide text-muted-foreground/60">{t("diversitySections.step3SectionLabel")}</div>
             <div className="space-y-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <span>{t("diversitySections.distanceLabel")}</span>
@@ -672,7 +672,7 @@ export function StructuralDiversitySection(props: {
         />
         <span className="font-mono text-foreground">{structuralKappa.toFixed(2)}</span>
       </div>
-      <p className="text-plate-tiny text-muted-foreground/70">
+      <p className="text-caption text-muted-foreground/70">
         Selects variants using 3D C&alpha; centroid distance. kappa=0 favours
         high-fitness variants; kappa=1 maximises structural spread.
       </p>
