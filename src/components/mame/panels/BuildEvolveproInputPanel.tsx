@@ -149,154 +149,155 @@ export function BuildEvolveproInputPanel() {
   }
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="mx-auto max-w-2xl space-y-6 p-4">
-        <header>
-          <h2 className="text-base font-semibold text-foreground">
-            {t("mame.buildEvolvepro.title")}
-          </h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {t("mame.buildEvolvepro.subtitle")}
-          </p>
-        </header>
+    <section className="space-y-6">
+      <header>
+        <h3 className="text-base font-semibold text-foreground">
+          {t("mame.buildEvolvepro.title")}
+        </h3>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {t("mame.buildEvolvepro.subtitle")}
+        </p>
+        <p className="mt-2 rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+          {t("mame.buildEvolvepro.routeNote")}
+        </p>
+      </header>
 
-        <section aria-labelledby="bep-input-files">
-          <h3
-            id="bep-input-files"
-            className="mb-3 text-sm font-medium text-foreground"
-          >
-            {t("mame.buildEvolvepro.inputFiles")}
-          </h3>
-          <div className="space-y-4">
-            <FilePickerField
-              id="bep-layout"
-              label={t("mame.buildEvolvepro.layoutXlsx")}
-              filled={Boolean(form.layoutXlsx)}
-              value={form.layoutXlsx}
-              onBrowse={() =>
-                browseXlsx("layoutXlsx", t("mame.buildEvolvepro.layoutXlsx"))
-              }
-              helperText={t("mame.buildEvolvepro.layoutXlsxHelper")}
-            />
-            <FilePickerField
-              id="bep-gc"
-              label={t("mame.buildEvolvepro.gcDataXlsx")}
-              filled={Boolean(form.gcDataXlsx)}
-              value={form.gcDataXlsx}
-              onBrowse={() =>
-                browseXlsx("gcDataXlsx", t("mame.buildEvolvepro.gcDataXlsx"))
-              }
-              helperText={t("mame.buildEvolvepro.gcDataXlsxHelper")}
-            />
-            <FilePickerField
-              id="bep-rep"
-              label={`${t("mame.buildEvolvepro.repBatchXlsx")} (${t("mame.buildEvolvepro.optionalLabel")})`}
-              filled={Boolean(form.repBatchXlsx)}
-              value={form.repBatchXlsx}
-              onBrowse={() =>
-                browseXlsx("repBatchXlsx", t("mame.buildEvolvepro.repBatchXlsx"))
-              }
-              helperText={t("mame.buildEvolvepro.repBatchXlsxHelper")}
-            />
-            <FilePickerField
-              id="bep-prev"
-              label={`${t("mame.buildEvolvepro.prevEvolveproXlsx")} (${t("mame.buildEvolvepro.optionalLabel")})`}
-              filled={Boolean(form.prevEvolveproXlsx)}
-              value={form.prevEvolveproXlsx}
-              onBrowse={() =>
-                browseXlsx(
-                  "prevEvolveproXlsx",
-                  t("mame.buildEvolvepro.prevEvolveproXlsx"),
-                )
-              }
-              helperText={t("mame.buildEvolvepro.prevEvolveproXlsxHelper")}
-            />
-          </div>
-        </section>
-
-        <section aria-labelledby="bep-output">
-          <h3
-            id="bep-output"
-            className="mb-3 text-sm font-medium text-foreground"
-          >
-            {t("mame.buildEvolvepro.outputXlsx")}
-          </h3>
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between gap-3">
-              <Label
-                htmlFor="bep-output-path"
-                className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
-              >
-                {t("mame.buildEvolvepro.outputXlsx")}
-              </Label>
-              <span
-                className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                  form.outputXlsx
-                    ? "bg-primary/10 text-primary"
-                    : "bg-muted text-muted-foreground"
-                }`}
-              >
-                {form.outputXlsx
-                  ? t("mame.inputPanel.fileReady")
-                  : t("mame.buildEvolvepro.requiredStateLabel")}
-              </span>
-            </div>
-            <div className="flex gap-1.5">
-              <Input
-                id="bep-output-path"
-                value={getFilename(form.outputXlsx)}
-                readOnly
-                placeholder={t("mame.buildEvolvepro.noOutputSelected")}
-                className="h-8 flex-1 min-w-0 text-xs font-mono"
-                aria-label={t("mame.buildEvolvepro.outputXlsx")}
-                title={form.outputXlsx || undefined}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => void browseOutput()}
-                className="h-8 gap-1 px-2"
-              >
-                <FolderOpen size={12} aria-hidden="true" />
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground/90">
-              {t("mame.buildEvolvepro.outputXlsxHelper")}
-            </p>
-          </div>
-        </section>
-
-        <Button
-          type="button"
-          className="w-full"
-          disabled={!canBuild}
-          onClick={() => void handleBuild()}
-          aria-busy={isBuilding}
+      <section aria-labelledby="bep-input-files">
+        <h3
+          id="bep-input-files"
+          className="mb-3 text-sm font-medium text-foreground"
         >
-          {isBuilding ? (
-            <>
-              <Loader2 size={14} className="mr-2 animate-spin" aria-hidden="true" />
-              {t("mame.buildEvolvepro.building")}
-            </>
-          ) : (
-            t("mame.buildEvolvepro.build")
-          )}
-        </Button>
+          {t("mame.buildEvolvepro.inputFiles")}
+        </h3>
+        <div className="space-y-4">
+          <FilePickerField
+            id="bep-layout"
+            label={t("mame.buildEvolvepro.layoutXlsx")}
+            filled={Boolean(form.layoutXlsx)}
+            value={form.layoutXlsx}
+            onBrowse={() =>
+              browseXlsx("layoutXlsx", t("mame.buildEvolvepro.layoutXlsx"))
+            }
+            helperText={t("mame.buildEvolvepro.layoutXlsxHelper")}
+          />
+          <FilePickerField
+            id="bep-gc"
+            label={t("mame.buildEvolvepro.gcDataXlsx")}
+            filled={Boolean(form.gcDataXlsx)}
+            value={form.gcDataXlsx}
+            onBrowse={() =>
+              browseXlsx("gcDataXlsx", t("mame.buildEvolvepro.gcDataXlsx"))
+            }
+            helperText={t("mame.buildEvolvepro.gcDataXlsxHelper")}
+          />
+          <FilePickerField
+            id="bep-rep"
+            label={`${t("mame.buildEvolvepro.repBatchXlsx")} (${t("mame.buildEvolvepro.optionalLabel")})`}
+            filled={Boolean(form.repBatchXlsx)}
+            value={form.repBatchXlsx}
+            onBrowse={() =>
+              browseXlsx("repBatchXlsx", t("mame.buildEvolvepro.repBatchXlsx"))
+            }
+            helperText={t("mame.buildEvolvepro.repBatchXlsxHelper")}
+          />
+          <FilePickerField
+            id="bep-prev"
+            label={`${t("mame.buildEvolvepro.prevEvolveproXlsx")} (${t("mame.buildEvolvepro.optionalLabel")})`}
+            filled={Boolean(form.prevEvolveproXlsx)}
+            value={form.prevEvolveproXlsx}
+            onBrowse={() =>
+              browseXlsx(
+                "prevEvolveproXlsx",
+                t("mame.buildEvolvepro.prevEvolveproXlsx"),
+              )
+            }
+            helperText={t("mame.buildEvolvepro.prevEvolveproXlsxHelper")}
+          />
+        </div>
+      </section>
 
-        {/* Pre-run empty state, NOT an error boundary. */}
-        {result === null ? (
-          <p
-            role="status"
-            className="rounded-md border border-dashed border-border bg-muted/20 px-3 py-6 text-center text-xs text-muted-foreground"
-          >
-            {t("mame.buildEvolvepro.emptyState")}
+      <section aria-labelledby="bep-output">
+        <h3
+          id="bep-output"
+          className="mb-3 text-sm font-medium text-foreground"
+        >
+          {t("mame.buildEvolvepro.outputXlsx")}
+        </h3>
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between gap-3">
+            <Label
+              htmlFor="bep-output-path"
+              className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+            >
+              {t("mame.buildEvolvepro.outputXlsx")}
+            </Label>
+            <span
+              className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                form.outputXlsx
+                  ? "bg-primary/10 text-primary"
+                  : "bg-muted text-muted-foreground"
+              }`}
+            >
+              {form.outputXlsx
+                ? t("mame.inputPanel.fileReady")
+                : t("mame.buildEvolvepro.requiredStateLabel")}
+            </span>
+          </div>
+          <div className="flex gap-1.5">
+            <Input
+              id="bep-output-path"
+              value={getFilename(form.outputXlsx)}
+              readOnly
+              placeholder={t("mame.buildEvolvepro.noOutputSelected")}
+              className="h-8 flex-1 min-w-0 text-xs font-mono"
+              aria-label={t("mame.buildEvolvepro.outputXlsx")}
+              title={form.outputXlsx || undefined}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => void browseOutput()}
+              className="h-8 gap-1 px-2"
+            >
+              <FolderOpen size={12} aria-hidden="true" />
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground/90">
+            {t("mame.buildEvolvepro.outputXlsxHelper")}
           </p>
+        </div>
+      </section>
+
+      <Button
+        type="button"
+        className="w-full"
+        disabled={!canBuild}
+        onClick={() => void handleBuild()}
+        aria-busy={isBuilding}
+      >
+        {isBuilding ? (
+          <>
+            <Loader2 size={14} className="mr-2 animate-spin" aria-hidden="true" />
+            {t("mame.buildEvolvepro.building")}
+          </>
         ) : (
-          <BuildResult result={result} />
+          t("mame.buildEvolvepro.build")
         )}
-      </div>
-    </div>
+      </Button>
+
+      {/* Pre-run empty state, NOT an error boundary. */}
+      {result === null ? (
+        <p
+          role="status"
+          className="rounded-md border border-dashed border-border bg-muted/20 px-3 py-6 text-center text-xs text-muted-foreground"
+        >
+          {t("mame.buildEvolvepro.emptyState")}
+        </p>
+      ) : (
+        <BuildResult result={result} />
+      )}
+    </section>
   );
 }
 

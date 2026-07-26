@@ -1,15 +1,18 @@
 /**
- * ActivityPanel — Top-level "3. Activity" phase
+ * ActivityPanel, sections rendered inside sub-step 3.1 (activity.ingest) of
+ * the genotype-linked EVOLVEpro-input route.
  *
- * Splits the previous ActivityDataSection (used inside Analyze phase sidebar)
- * into 3 sub-tabs that mirror the actual workflow timing:
+ * Provides 3 sections that mirror the actual workflow timing:
  *   - Ingest:  long CSV/Excel upload + WT well annotation
  *   - Merge:   join activity ↔ genotype, replicate priority merge, WT normalisation
- *   - Export:  EVOLVEpro CSV save + round handoff
+ *   - Export:  EVOLVEpro CSV save
  *
  * Rationale: ingest → merge → export are temporally separated (days–weeks).
- * Sub-tabs let the user see exactly which step is pending without scrolling
- * through a single stacked section.
+ * Separate sections let the user see exactly which step is pending without
+ * losing context in a single stacked section.
+ *
+ * Cross-round classification (AdvisoryDecisionCard) and round handoff live in
+ * sub-step 3.2 (activity.signals), not here. See ActivityStepView.tsx.
  */
 
 import { useEffect, useState } from "react";
@@ -19,16 +22,8 @@ import { toast } from "sonner";
 import { useStore } from "zustand";
 import { validateMergeActivity } from "@/store/validation";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
-import { ChevronDown } from "lucide-react";
 import { ActivityUploadPanel } from "./ActivityUploadPanel";
 import { WtWellGrid } from "@/components/mame/panels/WtWellGrid";
-import { RoundHandoffButton } from "@/components/round/RoundHandoffButton";
 import { RoundSummaryPanel } from "@/components/round/RoundSummaryPanel";
 import { useActivityStore, type ActivitySlice } from "@/store/mame/activitySlice";
 import { useRoundStore } from "@/store/round/roundSlice";
@@ -116,7 +111,7 @@ export function IngestSection() {
     (s) => s.rounds.find((r) => r.id === activeRoundId)?.activity?.records?.length ?? 0,
   );
   return (
-    <section className="space-y-4" aria-label={t("mame.activity.tabIngest")}>
+    <section className="space-y-4" aria-label={t("mame.activity.sectionIngest")}>
       <div className="space-y-2">
         <h3 className="text-sm font-semibold text-foreground">{t("mame.activity.ingest.uploadHeading")}</h3>
         <p className="text-xs text-muted-foreground">{t("mame.activity.ingest.uploadDesc")}</p>
@@ -184,14 +179,38 @@ export function MergeSection() {
   }
 
   return (
-    <section className="space-y-3 border-t border-border pt-4" aria-label={t("mame.activity.tabMerge")}>
+    <section className="space-y-3 border-t border-border pt-4" aria-label={t("mame.activity.sectionMerge")}>
       <header>
         <h3 className="text-sm font-semibold text-foreground">{t("mame.activity.merge.heading")}</h3>
         <p className="text-xs text-muted-foreground">{t("mame.activity.merge.desc")}</p>
       </header>
 
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="flex-1 space-y-1">
+          <Button
+            type="button"
+            size="sm"
+            variant="default"
+            className="w-full text-xs"
+            disabled={isMerging}
+            aria-busy={isMerging}
+            aria-label={t("mame.activity.merge.btnEvolveproAria")}
+            onClick={() =>
+              guardedMerge(
+                () => activeRoundId && void mergeForEvolvepro(activeRoundId),
+                true,
+              )
+            }
+          >
+            {isMerging
+              ? t("mame.activity.merge.btnEvolveproBusy")
+              : t("mame.activity.merge.menuEvolvepro")}
+          </Button>
+          <p className="text-[11px] text-muted-foreground">
+            {t("mame.activity.merge.evolveproDesc")}
+          </p>
+        </div>
+        <div className="flex-1 space-y-1">
           <Button
             type="button"
             size="sm"
@@ -199,45 +218,23 @@ export function MergeSection() {
             className="w-full text-xs"
             disabled={isMerging}
             aria-busy={isMerging}
-            aria-label={t("mame.activity.merge.btnCombined")}
-          >
-            <span className="flex w-full items-center justify-between gap-2">
-              <span>
-                {isMerging
-                  ? t("mame.activity.merge.btnCombinedBusy")
-                  : t("mame.activity.merge.btnCombined")}
-              </span>
-              <ChevronDown size={12} aria-hidden="true" />
-            </span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-[var(--radix-dropdown-menu-trigger-width)]">
-          <DropdownMenuItem
+            aria-label={t("mame.activity.merge.btnLegacy")}
             onClick={() =>
               guardedMerge(
                 () => activeRoundId && void mergeActivity(activeRoundId),
                 false,
               )
             }
-            disabled={isMerging}
-            aria-label={t("mame.activity.merge.btnLegacy")}
           >
-            {t("mame.activity.merge.menuLegacy")}
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() =>
-              guardedMerge(
-                () => activeRoundId && void mergeForEvolvepro(activeRoundId),
-                true,
-              )
-            }
-            disabled={isMerging}
-            aria-label={t("mame.activity.merge.btnEvolveproAria")}
-          >
-            {t("mame.activity.merge.menuEvolvepro")}
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+            {isMerging
+              ? t("mame.activity.merge.btnLegacyBusy")
+              : t("mame.activity.merge.menuLegacy")}
+          </Button>
+          <p className="text-[11px] text-muted-foreground">
+            {t("mame.activity.merge.legacyDesc")}
+          </p>
+        </div>
+      </div>
 
       {mergeError && (
         isExportBlockedError(mergeError) ? (
@@ -325,7 +322,7 @@ export function ExportSection() {
   }
 
   return (
-    <section className="space-y-3 border-t border-border pt-4" aria-label={t("mame.activity.tabExport")}>
+    <section className="space-y-3 border-t border-border pt-4" aria-label={t("mame.activity.sectionExport")}>
       <header>
         <h3 className="text-sm font-semibold text-foreground">{t("mame.activity.export.heading")}</h3>
         <p className="text-xs text-muted-foreground">{t("mame.activity.export.desc")}</p>
@@ -353,8 +350,6 @@ export function ExportSection() {
           </div>
         )
       )}
-
-      {activeRoundId && <RoundHandoffButton round_id={activeRoundId} />}
     </section>
   );
 }

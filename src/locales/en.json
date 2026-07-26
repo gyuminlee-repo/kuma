@@ -401,13 +401,15 @@
         "menuLegacy": "Legacy output (CSV)",
         "menuEvolvepro": "EVOLVEpro v0.3 format (with WT normalization)",
         "desc": "Join uploaded activity with the round genotype and normalise by WT.",
-        "heading": "Merge activity with genotype"
+        "heading": "Merge activity with genotype",
+        "evolveproDesc": "Recommended: normalises replicates against WT and applies the label-swap guard.",
+        "legacyDesc": "Legacy CSV output without WT normalization or label-swap checks."
       },
-      "tabExport": "3. Export",
-      "tabIngest": "1. Ingest",
-      "tabMerge": "2. Merge",
       "subtitle": "Enter this phase once wet-lab activity measurements are ready (typically days to weeks after Phase 1 Barcode Setup and Phase 2 Analyze). Load measurements, merge with genotype, then export the EVOLVEpro training input.",
-      "title": "Activity data"
+      "title": "Activity data",
+      "sectionIngest": "Upload activity",
+      "sectionMerge": "Merge with genotype",
+      "sectionExport": "Export EVOLVEpro input"
     },
     "buildEvolvepro": {
       "title": "Build EVOLVEpro Input",
@@ -451,7 +453,8 @@
       "toastSuccess": "EVOLVEpro input built",
       "toastSuccessDesc": "Wrote {{count}} variants.",
       "toastError": "EVOLVEpro input build failed",
-      "openFolder": "Open output folder"
+      "openFolder": "Open output folder",
+      "routeNote": "This route reads the four xlsx files directly and does not use the activity upload from the genotype-linked route."
     },
     "runHealth": {
       "panelAriaLabel": "Run health panel",
