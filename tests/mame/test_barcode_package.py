@@ -285,6 +285,129 @@ class TestDesignFlankingPrimers:
 
 
 # ---------------------------------------------------------------------------
+# Circular topology: origin-wrapping search windows
+# ---------------------------------------------------------------------------
+
+_CDS_CIRCULAR_6494 = (_UNIT * 130)[:6494]  # matches the real reproduction plasmid length
+_CDS_100 = (_UNIT * 2)[:100]  # 100 bp (must be >= 100 for a real 100 bp fixture)
+
+
+class TestCircularSliceHelper:
+    """Unit tests for the private modular-slice helper used by circular wrap."""
+
+    def test_wraps_negative_start(self) -> None:
+        from kuma_core.mame.ingest.barcode_package import _circular_slice
+
+        seq = "ABCDEFGHIJ"  # len 10
+        assert _circular_slice(seq, -3, 5, 10) == "HIJAB"
+
+    def test_wraps_past_end(self) -> None:
+        from kuma_core.mame.ingest.barcode_package import _circular_slice
+
+        seq = "ABCDEFGHIJ"  # len 10
+        assert _circular_slice(seq, 8, 4, 10) == "IJAB"
+
+    def test_no_wrap_matches_plain_slice(self) -> None:
+        from kuma_core.mame.ingest.barcode_package import _circular_slice
+
+        seq = "ABCDEFGHIJ"
+        assert _circular_slice(seq, 2, 4, 10) == seq[2:6]
+
+
+class TestCircularTopology:
+    """design_flanking_primers(topology="circular") allows origin-wrapping windows."""
+
+    _PROFILE = get_profile("Q5")
+
+    def test_forward_window_wraps_origin(self) -> None:
+        """Reproduction case: gene_start=267 with flank_max=400 on a 6494 bp
+        circular plasmid puts the forward window at [-133, 167), which must
+        wrap instead of raising."""
+        fwd, rev, warns = design_flanking_primers(
+            _CDS_CIRCULAR_6494,
+            gene_start=267,
+            gene_end=1950,
+            profile=self._PROFILE,
+            topology="circular",
+        )
+        assert fwd and fwd == fwd.lower()
+        assert rev and rev == rev.lower()
+        assert 18 <= len(fwd) <= 35
+        assert 18 <= len(rev) <= 35
+
+    def test_reverse_window_wraps_origin(self) -> None:
+        """gene_end=1100 with flank_max=400 on a 1200 bp circular sequence puts
+        the reverse window end at 1500 (> seq_len=1200), which must wrap."""
+        fwd, rev, warns = design_flanking_primers(
+            _CDS_1200,
+            gene_start=800,
+            gene_end=1100,
+            profile=self._PROFILE,
+            topology="circular",
+        )
+        assert fwd and fwd == fwd.lower()
+        assert rev and rev == rev.lower()
+        assert 18 <= len(fwd) <= 35
+        assert 18 <= len(rev) <= 35
+
+    def test_linear_topology_still_raises_for_same_coordinates(self) -> None:
+        """The same coordinates that succeed under circular topology must still
+        raise the original error under (default) linear topology."""
+        with pytest.raises(ValueError, match="too short upstream"):
+            design_flanking_primers(
+                _CDS_CIRCULAR_6494,
+                gene_start=267,
+                gene_end=1950,
+                profile=self._PROFILE,
+            )
+        with pytest.raises(ValueError, match="too short downstream"):
+            design_flanking_primers(
+                _CDS_1200,
+                gene_start=800,
+                gene_end=1100,
+                profile=self._PROFILE,
+                topology="linear",
+            )
+
+    def test_degenerate_window_wider_than_sequence_raises(self) -> None:
+        """flank_max - flank_min > seq_len must raise a clear error naming
+        seq_len rather than emit a primer that reads bases twice."""
+        with pytest.raises(ValueError, match=r"seq_len=100"):
+            design_flanking_primers(
+                _CDS_100,
+                gene_start=10,
+                gene_end=20,
+                profile=self._PROFILE,
+                flank_min=0,
+                flank_max=150,
+                topology="circular",
+            )
+
+    def test_degenerate_binding_length_longer_than_sequence_raises(self) -> None:
+        """binding_max_len > seq_len must raise the same guard."""
+        with pytest.raises(ValueError, match=r"seq_len=100"):
+            design_flanking_primers(
+                _CDS_100,
+                gene_start=10,
+                gene_end=20,
+                profile=self._PROFILE,
+                binding_min_len=18,
+                binding_max_len=150,
+                topology="circular",
+            )
+
+    def test_invalid_topology_literal_raises(self) -> None:
+        with pytest.raises(ValueError, match="topology must be"):
+            design_flanking_primers(
+                _CDS_1200,
+                gene_start=500,
+                gene_end=800,
+                profile=self._PROFILE,
+                topology="mobius",
+            )
+
+
+# ---------------------------------------------------------------------------
 # generate_mame_package (integration)
 # ---------------------------------------------------------------------------
 

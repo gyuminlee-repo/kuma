@@ -25,6 +25,8 @@ Optional
   tm_min               (float, default 55.0)
   tm_max               (float, default 68.0)
   require_gc_clamp     (bool,  default true)
+  topology              (str,  default None -- auto-detect from fasta_path;
+                         explicit "linear" or "circular" overrides detection)
 
 Response schema
 ---------------
@@ -105,6 +107,16 @@ def handle_generate_mame_package(params: dict) -> dict:
     else:
         require_gc_clamp = bool(require_gc_clamp_raw)
 
+    # topology: None means "auto-detect from fasta_path" (handled inside
+    # generate_mame_package). An explicit override must be one of the two
+    # recognised literal values; anything else is a client error.
+    topology_raw = params.get("topology")
+    if topology_raw is not None and topology_raw not in ("linear", "circular"):
+        raise ValueError(
+            f'topology must be "linear", "circular", or omitted; got {topology_raw!r}.'
+        )
+    topology: str | None = topology_raw
+
     # Validate input file paths (existence + extension check)
     # _validate_filepath already enforces existence by default.
     fasta_path = _validate_filepath(
@@ -151,6 +163,7 @@ def handle_generate_mame_package(params: dict) -> dict:
         tm_min=tm_min,
         tm_max=tm_max,
         require_gc_clamp=require_gc_clamp,
+        topology=topology,
     )
 
     return {
