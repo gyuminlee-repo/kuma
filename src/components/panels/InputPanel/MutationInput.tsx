@@ -64,17 +64,38 @@ export function MutationInput() {
     if (isFinite(n) && n >= 0) setEvolveproExtraExposed(n);
   };
 
-  const [campaignRoundStr, setCampaignRoundStr] = useState(String(evolveproRound));
+  // evolveproRound===0 renders as an empty field (unset), not the literal "0".
+  const [campaignRoundStr, setCampaignRoundStr] = useState(
+    evolveproRound === 0 ? "" : String(evolveproRound),
+  );
   const commitCampaignRound = () => {
     const n = Number.parseInt(campaignRoundStr, 10);
     if (!Number.isNaN(n)) setEvolveproRound(n);
   };
+
+  // Resync from the store when it changes externally (round-prompt dialog,
+  // project hydration). Guarded so mid-edit typing is not clobbered: only
+  // resync when the committed store value differs from the parsed local value.
+  useEffect(() => {
+    const parsed = Number.parseInt(campaignRoundStr, 10);
+    const committedLocal = campaignRoundStr === "" ? 0 : parsed;
+    if (Number.isNaN(committedLocal) || committedLocal === evolveproRound) return;
+    setCampaignRoundStr(evolveproRound === 0 ? "" : String(evolveproRound));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [evolveproRound]);
 
   const [campaignRoundSizeStr, setCampaignRoundSizeStr] = useState(String(roundSize));
   const commitCampaignRoundSize = () => {
     const n = Number.parseInt(campaignRoundSizeStr, 10);
     if (!Number.isNaN(n)) setRoundSize(n);
   };
+
+  useEffect(() => {
+    const parsed = Number.parseInt(campaignRoundSizeStr, 10);
+    if (Number.isNaN(parsed) || parsed === roundSize) return;
+    setCampaignRoundSizeStr(String(roundSize));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roundSize]);
 
   const { pickerRows, bufferCap } = useMemo(() => {
     const selectedSet = new Set(evolveproSelectedVariants);

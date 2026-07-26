@@ -29,6 +29,8 @@ import { SequenceViewer } from "@/components/widgets/SequenceViewer";
 import { StatusBar } from "./StatusBar";
 import { WhatsNewDialog } from "../dialogs/WhatsNewDialog";
 import { NetworkConsentDialog } from "../dialogs/NetworkConsentDialog";
+import { RoundPromptDialog } from "../dialogs/RoundPromptDialog";
+import { useRoundStore } from "@/store/round/roundSlice";
 import { OverwriteConfirmDialog } from "../dialogs/OverwriteConfirmDialog";
 import { handleOpenSequence } from "./export-handlers";
 import { startDeadlockWatch, DEADLOCK_THRESHOLD_MS } from "@/lib/deadlockDetector";
@@ -80,8 +82,20 @@ export function AppLayout() {
   const [diffManifestB, setDiffManifestB] = useState<RunManifest | null>(null);
   const [diffOpen, setDiffOpen] = useState(false);
 
-  // Clear All 확인 모달 — Edit 메뉴 + Cmd/Ctrl+Shift+R 단축키 공통 진입점
+  // Clear All 확인 모달, Edit 메뉴 + Cmd/Ctrl+Shift+R 단축키 공통 진입점
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
+
+  // Round unset 프롬프트: EVOLVEpro campaign 로드 + evolveproRound===0일 때 세션당 1회만 표시.
+  const evolveproTotalCount = useAppStore((s) => s.evolveproTotalCount);
+  const evolveproRound = useAppStore((s) => s.evolveproRound);
+  const setEvolveproRound = useAppStore((s) => s.setEvolveproRound);
+  const roundHistoryCount = useRoundStore((s) => s.rounds.length);
+  const [roundPromptDismissed, setRoundPromptDismissed] = useState(false);
+  const roundPromptOpen =
+    evolveproTotalCount > 0
+    && evolveproRound === 0
+    && !roundPromptDismissed;
+  const suggestedRound = roundHistoryCount > 0 ? roundHistoryCount + 1 : null;
 
   // Shared Run Design logic (validation / preflight / flush / design)
   // Dialog state (sizeWarning, preflightResult) is owned by RunDesignAction, not here.
@@ -302,6 +316,17 @@ export function AppLayout() {
     >
       <WhatsNewDialog />
       <NetworkConsentDialog />
+      <RoundPromptDialog
+        open={roundPromptOpen}
+        suggestedRound={suggestedRound}
+        onConfirm={(round) => {
+          setEvolveproRound(round);
+          setRoundPromptDismissed(true);
+        }}
+        onDismiss={() => {
+          setRoundPromptDismissed(true);
+        }}
+      />
 
       {/* §1 Recovery: Dead-lock 감지 모달 */}
       <Dialog open={deadlockOpen} onOpenChange={setDeadlockOpen}>

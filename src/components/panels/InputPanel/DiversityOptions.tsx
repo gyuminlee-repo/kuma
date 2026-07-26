@@ -180,6 +180,7 @@ export function DiversityOptions() {
       <RoundSettingsSection
         autoK={autoParams.k}
         autoEntropy={autoParams.ew}
+        roundUnset={evolveproRound === 0}
       />
 
       <AdvancedSettingsSection

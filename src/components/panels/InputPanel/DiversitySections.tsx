@@ -285,8 +285,9 @@ export function OptimizationSummarySection(props: {
 export function RoundSettingsSection(props: {
   autoK: number;
   autoEntropy: number;
+  roundUnset: boolean;
 }) {
-  const { autoK, autoEntropy } = props;
+  const { autoK, autoEntropy, roundUnset } = props;
 
   const { t } = useTranslation();
 
@@ -301,14 +302,20 @@ export function RoundSettingsSection(props: {
       <p className="text-caption text-muted-foreground">
         {t("diversitySections.roundMovedHint")}
       </p>
-      <div className="flex items-center gap-2 font-mono text-caption text-info">
-        <span className="inline-flex items-center rounded-full border border-info/20 bg-info/10 px-2 py-0.5 text-plate-tiny font-medium text-info">
-          {t("diversitySections.autoLabel")}
-        </span>
-        <span>{t("diversitySections.autoKValue", { k: autoK.toFixed(2) })}</span>
-        <span className="text-muted-foreground">/</span>
-        <span>{t("diversitySections.autoEntropyValue", { entropy: autoEntropy.toFixed(2) })}</span>
-      </div>
+      {roundUnset ? (
+        <p className="text-caption text-warning">
+          {t("diversitySections.roundUnsetHint")}
+        </p>
+      ) : (
+        <div className="flex items-center gap-2 font-mono text-caption text-info">
+          <span className="inline-flex items-center rounded-full border border-info/20 bg-info/10 px-2 py-0.5 text-plate-tiny font-medium text-info">
+            {t("diversitySections.autoLabel")}
+          </span>
+          <span>{t("diversitySections.autoKValue", { k: autoK.toFixed(2) })}</span>
+          <span className="text-muted-foreground">/</span>
+          <span>{t("diversitySections.autoEntropyValue", { entropy: autoEntropy.toFixed(2) })}</span>
+        </div>
+      )}
     </div>
   );
 }

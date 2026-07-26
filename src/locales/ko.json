@@ -1224,7 +1224,8 @@
     "linkerLabelHelp": "primer 탐색 중 알려진 linker 영역 처리 방식.",
     "positionCapLabelHelp": "잔기 위치당 최대 primer 수(1-20). 과대 대표 방지.",
     "roundSectionHelp": "EVOLVEpro round는 적응형 선택을 통한 반복적 primer 배치 제어.",
-    "benchmarkSectionHelp": "benchmark는 설계된 primer와 random baseline을 비교하여 품질 향상도 추정."
+    "benchmarkSectionHelp": "benchmark는 설계된 primer와 random baseline을 비교하여 품질 향상도 추정.",
+    "roundUnsetHint": "Step 1(Load Variants)에서 round를 설정하면 sigma-adaptive 기본값이 활성화됩니다."
   },
   "candidatePopover": {
     "reviewHeading": "후보 검토",
@@ -1733,6 +1734,15 @@
     "continueLabel": "계속",
     "continueLabelBlock": "그래도 계속",
     "cancelLabel": "취소"
+  },
+  "roundPrompt": {
+    "title": "EVOLVEpro round 설정",
+    "description": "EVOLVEpro campaign round는 Step 4의 sigma-adaptive pool sizing과 entropy weighting을 결정합니다. 설정하지 않으면 해당 기능이 꺼진 상태로 유지됩니다.",
+    "roundLabel": "Round 번호",
+    "roundAriaLabel": "EVOLVEpro campaign round 번호",
+    "suggestedHint": "Round 이력 기준 제안값: {{suggested}}",
+    "confirmLabel": "Round 설정",
+    "dismissLabel": "나중에"
   },
   "statusBar": {
     "ready": "준비",
