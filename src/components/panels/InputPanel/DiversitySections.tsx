@@ -283,27 +283,10 @@ export function OptimizationSummarySection(props: {
 }
 
 export function RoundSettingsSection(props: {
-  roundStr: string;
-  setRoundStr: (v: string) => void;
-  roundSizeStr: string;
-  setRoundSizeStr: (v: string) => void;
-  commitRound: () => void;
-  commitRoundSize: () => void;
-  onEnterBlur: (e: KeyboardEvent<HTMLInputElement>) => void;
   autoK: number;
   autoEntropy: number;
 }) {
-  const {
-    roundStr,
-    setRoundStr,
-    roundSizeStr,
-    setRoundSizeStr,
-    commitRound,
-    commitRoundSize,
-    onEnterBlur,
-    autoK,
-    autoEntropy,
-  } = props;
+  const { autoK, autoEntropy } = props;
 
   const { t } = useTranslation();
 
@@ -315,32 +298,9 @@ export function RoundSettingsSection(props: {
           <HelpTip>{t("diversitySections.roundSectionHelp")}</HelpTip>
         </span>
       </div>
-      <div className="flex items-center gap-2 flex-wrap">
-        <span>{t("diversitySections.evolveproRoundLabel")}</span>
-        <InlineHelp text={t("diversitySections.evolveproRoundHelp")} />
-        <input
-          type="number"
-          min={1}
-          className="h-6 w-10 rounded-control border border-border bg-background px-1 text-center text-caption"
-          value={roundStr}
-          onChange={(e: ChangeEvent<HTMLInputElement>) => setRoundStr(e.target.value)}
-          onBlur={commitRound}
-          onKeyDown={onEnterBlur}
-        />
-        <span className="text-muted-foreground">{t("diversitySections.roundSizeLabel")}</span>
-        <InlineHelp text={t("diversitySections.roundSizeHelp")} />
-        <input
-          type="number"
-          min={1}
-          max={960}
-          className="h-6 w-12 rounded-control border border-border bg-background px-1 text-center text-caption"
-          value={roundSizeStr}
-          onChange={(e: ChangeEvent<HTMLInputElement>) => setRoundSizeStr(e.target.value)}
-          onBlur={commitRoundSize}
-          onKeyDown={onEnterBlur}
-        />
-        <HelpTip>{t("diversitySections.roundHelp")}</HelpTip>
-      </div>
+      <p className="text-caption text-muted-foreground">
+        {t("diversitySections.roundMovedHint")}
+      </p>
       <div className="flex items-center gap-2 font-mono text-caption text-info">
         <span className="inline-flex items-center rounded-full border border-info/20 bg-info/10 px-2 py-0.5 text-plate-tiny font-medium text-info">
           {t("diversitySections.autoLabel")}

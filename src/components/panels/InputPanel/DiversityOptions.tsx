@@ -55,9 +55,7 @@ export function DiversityOptions() {
   const distanceMode = useAppStore((s) => s.distanceMode);
   const setDistanceMode = useAppStore((s) => s.setDistanceMode);
   const evolveproRound = useAppStore((s) => s.evolveproRound);
-  const setEvolveproRound = useAppStore((s) => s.setEvolveproRound);
   const roundSize = useAppStore((s) => s.roundSize);
-  const setRoundSize = useAppStore((s) => s.setRoundSize);
   const benchmarkTopPercentile = useAppStore((s) => s.benchmarkTopPercentile);
   const setBenchmarkTopPercentile = useAppStore((s) => s.setBenchmarkTopPercentile);
   const benchmarkRandomTrials = useAppStore((s) => s.benchmarkRandomTrials);
@@ -87,21 +85,9 @@ export function DiversityOptions() {
   const [newDomainStart, setNewDomainStart] = useState("");
   const [newDomainEnd, setNewDomainEnd] = useState("");
   const [maxPerPosStr, setMaxPerPosStr] = useState(String(maxPerPosition));
-  const [roundStr, setRoundStr] = useState(String(evolveproRound));
-  const [roundSizeStr, setRoundSizeStr] = useState(String(roundSize));
   const commitMaxPerPos = () => {
     const n = parseInt(maxPerPosStr, 10);
     if (isFinite(n) && n >= 1) setMaxPerPosition(n);
-  };
-
-  const commitRound = () => {
-    const n = parseInt(roundStr, 10);
-    if (isFinite(n) && n >= 1) setEvolveproRound(n);
-  };
-
-  const commitRoundSize = () => {
-    const n = parseInt(roundSizeStr, 10);
-    if (isFinite(n) && n >= 1) setRoundSize(n);
   };
 
   const onEnterBlur = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -192,13 +178,6 @@ export function DiversityOptions() {
       </div>
 
       <RoundSettingsSection
-        roundStr={roundStr}
-        setRoundStr={setRoundStr}
-        roundSizeStr={roundSizeStr}
-        setRoundSizeStr={setRoundSizeStr}
-        commitRound={commitRound}
-        commitRoundSize={commitRoundSize}
-        onEnterBlur={onEnterBlur}
         autoK={autoParams.k}
         autoEntropy={autoParams.ew}
       />

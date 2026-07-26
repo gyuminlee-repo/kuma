@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAppStore } from "../../../store/appStore";
+import { useRoundStore } from "@/store/round/roundSlice";
 import { basename } from "../../../lib/utils";
 import { browseFile } from "../../../lib/file-utils";
 import { useArtifact } from "../../../lib/workspace";
@@ -43,6 +44,11 @@ export function MutationInput() {
   const setEvolveproExtraExposed = useAppStore((s) => s.setEvolveproExtraExposed);
   const setEvolveproVariantSelected = useAppStore((s) => s.setEvolveproVariantSelected);
   const activeTablePath = evolveproCsvPath;
+  const evolveproRound = useAppStore((s) => s.evolveproRound);
+  const setEvolveproRound = useAppStore((s) => s.setEvolveproRound);
+  const roundSize = useAppStore((s) => s.roundSize);
+  const setRoundSize = useAppStore((s) => s.setRoundSize);
+  const roundHistoryCount = useRoundStore((s) => s.rounds.length);
 
   const mutationCount = useMemo(
     () =>
@@ -56,6 +62,18 @@ export function MutationInput() {
   const commitExtraExposed = () => {
     const n = parseInt(extraExposedStr, 10);
     if (isFinite(n) && n >= 0) setEvolveproExtraExposed(n);
+  };
+
+  const [campaignRoundStr, setCampaignRoundStr] = useState(String(evolveproRound));
+  const commitCampaignRound = () => {
+    const n = Number.parseInt(campaignRoundStr, 10);
+    if (!Number.isNaN(n)) setEvolveproRound(n);
+  };
+
+  const [campaignRoundSizeStr, setCampaignRoundSizeStr] = useState(String(roundSize));
+  const commitCampaignRoundSize = () => {
+    const n = Number.parseInt(campaignRoundSizeStr, 10);
+    if (!Number.isNaN(n)) setRoundSize(n);
   };
 
   const { pickerRows, bufferCap } = useMemo(() => {
@@ -137,6 +155,56 @@ export function MutationInput() {
               {t("mutationInput.variantsLoaded", { count: evolveproTotalCount })}
             </div>
           )}
+
+          {/* Campaign round context, set here at load time so downstream sigma-adaptive
+              defaults (Step 4) can derive from it immediately. */}
+          <div className="rounded-xl border border-border bg-muted px-3 py-2 space-y-1">
+            <div className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">
+              {t("mutationInput.campaignRoundLabel")}
+            </div>
+            <div className="flex items-center gap-2 flex-wrap text-xs">
+              <label htmlFor="campaign-round-input" className="shrink-0 text-muted-foreground">
+                {t("mutationInput.roundNumberLabel")}
+              </label>
+              <input
+                id="campaign-round-input"
+                type="number"
+                min={1}
+                value={campaignRoundStr}
+                onChange={(e) => setCampaignRoundStr(e.target.value)}
+                onBlur={commitCampaignRound}
+                onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+                className="w-16 rounded border border-border bg-card px-1.5 py-0.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                aria-label={t("mutationInput.roundNumberAriaLabel")}
+              />
+              <label htmlFor="campaign-round-size-input" className="shrink-0 text-muted-foreground">
+                {t("mutationInput.roundSizeLabel")}
+              </label>
+              <input
+                id="campaign-round-size-input"
+                type="number"
+                min={1}
+                max={960}
+                value={campaignRoundSizeStr}
+                onChange={(e) => setCampaignRoundSizeStr(e.target.value)}
+                onBlur={commitCampaignRoundSize}
+                onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+                className="w-16 rounded border border-border bg-card px-1.5 py-0.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                aria-label={t("mutationInput.roundSizeAriaLabel")}
+              />
+            </div>
+            <p className="text-caption text-muted-foreground">
+              {t("mutationInput.campaignRoundHint")}
+            </p>
+            {roundHistoryCount > 0 && roundHistoryCount + 1 !== evolveproRound && (
+              <p className="text-caption text-warning">
+                {t("mutationInput.roundHistoryMismatch", {
+                  suggested: roundHistoryCount + 1,
+                  current: evolveproRound,
+                })}
+              </p>
+            )}
+          </div>
 
           {/* Column mapping panel, always available (auto-detect by default). */}
           <SourceColumnPanel />

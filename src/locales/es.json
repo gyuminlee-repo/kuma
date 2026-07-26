@@ -1154,6 +1154,7 @@
     "helpTip3D": "Selecciona variantes separadas en el espacio 3D usando coordenadas Cα de AlphaFold.",
     "helpTip1D": "Selección Pareto greedy que maximiza la distancia mínima de secuencia entre las posiciones elegidas.",
     "roundSectionLabel": "Round",
+    "roundMovedHint": "Round number and size are now set in Step 1 (Load Variants).",
     "evolveproRoundLabel": "EVOLVEpro Round",
     "roundSizeLabel": "Tamaño",
     "roundHelp": "Round × tamaño = puntos de datos acumulados usados para estimar la calidad del modelo (ρ).\nρ más bajo → pool más amplio y mayor peso de entropía para exploración.",
@@ -1657,7 +1658,14 @@
     "extraExposedLabel": "Extra candidates shown:",
     "extraExposedAriaLabel": "Number of extra unselected candidates to display",
     "extraExposedHint": "(0 = selected only)",
-    "bufferCapReached": "All {{count}} additional candidates shown"
+    "bufferCapReached": "All {{count}} additional candidates shown",
+    "campaignRoundLabel": "Campaign round",
+    "roundNumberLabel": "Round",
+    "roundNumberAriaLabel": "EVOLVEpro campaign round number",
+    "roundSizeLabel": "Size",
+    "roundSizeAriaLabel": "Number of primers per round (1-960)",
+    "campaignRoundHint": "Sets the EVOLVEpro round context used for sigma-adaptive defaults in later steps.",
+    "roundHistoryMismatch": "Round history suggests round {{suggested}}, but this is set to {{current}}."
   },
   "uniprotSearch": {
     "topCandidates": "Candidatos principales {{shown}}{{total}}",

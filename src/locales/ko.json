@@ -1173,6 +1173,7 @@
     "helpTip3D": "AlphaFold Cα 좌표를 사용해 3D 공간에서 멀리 분포한 변이를 선택합니다.",
     "helpTip1D": "선택된 위치 간 최소 서열 거리를 최대화하는 greedy Pareto 선택입니다.",
     "roundSectionLabel": "라운드",
+    "roundMovedHint": "라운드 번호와 크기는 이제 Step 1(Load Variants)에서 설정합니다.",
     "evolveproRoundLabel": "EVOLVEpro 라운드",
     "roundSizeLabel": "크기",
     "roundHelp": "Round × size = 모델 품질(ρ) 추정에 사용되는 누적 데이터 수입니다.\nρ가 낮을수록 풀이 넓어지고 탐색을 위한 entropy 가중치가 높아집니다.",
@@ -1627,7 +1628,14 @@
     "extraExposedLabel": "추가 후보 표시 수:",
     "extraExposedAriaLabel": "표시할 추가 미선택 후보 수",
     "extraExposedHint": "(0 = 선택된 항목만)",
-    "bufferCapReached": "추가 후보 {{count}}개 전체 표시됨"
+    "bufferCapReached": "추가 후보 {{count}}개 전체 표시됨",
+    "campaignRoundLabel": "캠페인 라운드",
+    "roundNumberLabel": "라운드",
+    "roundNumberAriaLabel": "EVOLVEpro 캠페인 라운드 번호",
+    "roundSizeLabel": "크기",
+    "roundSizeAriaLabel": "라운드당 primer 개수(1-960)",
+    "campaignRoundHint": "이후 단계의 sigma-adaptive 기본값 계산에 사용되는 EVOLVEpro 라운드 컨텍스트를 설정합니다.",
+    "roundHistoryMismatch": "라운드 이력상 라운드 {{suggested}}이(가) 제안되지만, 현재 {{current}}로 설정되어 있습니다."
   },
   "offTargetDetail": {
     "closeAriaLabel": "닫기",
