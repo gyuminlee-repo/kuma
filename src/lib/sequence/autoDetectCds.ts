@@ -134,11 +134,34 @@ function parseGenbankCds(content: string): CdsCandidate[] {
 
 // ─── FASTA ORF parser ────────────────────────────────────────────────────────
 
+// Characters plausible in a text nucleotide/FASTA file: IUPAC nucleotide codes
+// (upper/lower), FASTA header markers, and common line punctuation/whitespace.
+const PLAUSIBLE_TEXT_RE = /^[ACGTUNRYKMSWBDHVacgtunrykmswbdhv\s>;|+\-.0-9]*$/;
+
+/**
+ * Reject content that is not plausibly a text nucleotide file before scanning.
+ * Binary formats such as SnapGene .dna, when accidentally read as text (e.g.
+ * via a text-mode file read), decode to garbage bytes that still contain
+ * enough ATG..stop runs to produce dozens of meaningless "ORF" candidates.
+ * A high proportion of non-nucleotide characters signals binary content, so
+ * bail out with an empty candidate list instead of scanning it.
+ */
+function looksLikeBinary(content: string): boolean {
+  if (!content) return false;
+  // Strip FASTA header lines before checking character plausibility, since
+  // header text (arbitrary description) is expected to contain other chars.
+  const body = content.replace(/^>.*$/gm, "");
+  if (!body.trim()) return false;
+  return !PLAUSIBLE_TEXT_RE.test(body);
+}
+
 /**
  * Find all ORFs (ATG → stop) in 3 forward reading frames that meet MIN_AA_LENGTH threshold.
  * Stop codon is excluded from aa_length count.
  */
 function parseFastaOrfs(content: string): CdsCandidate[] {
+  if (looksLikeBinary(content)) return [];
+
   // Strip all FASTA headers and whitespace
   const seq = content
     .replace(/^>.*$/gm, "")
