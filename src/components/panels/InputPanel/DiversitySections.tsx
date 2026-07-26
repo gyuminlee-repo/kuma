@@ -646,3 +646,26 @@ export function StructuralDiversitySection(props: {
     </div>
   );
 }
+
+export function StructuralDiversitySuggestion(props: {
+  onEnable: () => void;
+}) {
+  const { onEnable } = props;
+  const { t } = useTranslation();
+  return (
+    <div className="mb-2 space-y-1 rounded border border-info/30 bg-info/10 p-2 text-caption text-info">
+      <p className="font-semibold">{t("diversitySections.structuralSuggestTitle")}</p>
+      <p className="text-muted-foreground">{t("diversitySections.structuralSuggestBody")}</p>
+      <p className="text-caption text-muted-foreground/80">
+        {t("diversitySections.structuralSuggestCaveat")}
+      </p>
+      <button
+        type="button"
+        onClick={onEnable}
+        className="mt-1 inline-flex items-center rounded-full border border-info/30 bg-background px-3 py-1 text-caption font-medium text-info hover:bg-accent"
+      >
+        {t("diversitySections.structuralSuggestEnable")}
+      </button>
+    </div>
+  );
+}

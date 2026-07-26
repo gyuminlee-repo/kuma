@@ -1,5 +1,6 @@
 import { useMemo, useState, type KeyboardEvent } from "react";
 import { useAppStore } from "../../../store/appStore";
+import { combinatorialFraction } from "../../../store/slices/diversitySlice.helpers";
 import {
   AdvancedSettingsSection,
   BenchmarkSection,
@@ -9,8 +10,16 @@ import {
   PipelineStep,
   RoundSettingsSection,
   StructuralDiversitySection,
+  StructuralDiversitySuggestion,
   WorkspaceSection,
 } from "./DiversitySections";
+
+// Heuristic threshold used to decide whether a candidate pool "looks"
+// combinatorial enough to suggest structural diversity. This is NOT a
+// benchmark-derived number; it is chosen only to separate a pool that is
+// mostly single-substitution variants from one that contains a meaningful
+// share of multi-substitution combos.
+const COMBINATORIAL_SUGGEST_THRESHOLD = 0.1;
 
 function computeSigmaParams(round: number, size: number): { k: number; ew: number } {
   const cum = round * size;
@@ -72,6 +81,7 @@ export function DiversityOptions() {
   const saveCache = useAppStore((s) => s.saveCache);
   const setSaveCache = useAppStore((s) => s.setSaveCache);
   const mutationText = useAppStore((s) => s.mutationText);
+  const poolVariants = useAppStore((s) => s.poolVariants);
 
   const selectionDomains = refDomains;
   const selectedCount = useMemo(
@@ -95,6 +105,14 @@ export function DiversityOptions() {
   };
 
   const autoParams = computeSigmaParams(evolveproRound, roundSize);
+
+  const comboFraction = useMemo(() => combinatorialFraction(poolVariants), [poolVariants]);
+  const showStructuralSuggestion =
+    !structuralDiversityEnabled &&
+    poolVariants.length > 0 &&
+    comboFraction >= COMBINATORIAL_SUGGEST_THRESHOLD &&
+    (evolveproRound === 1 || evolveproRound === 2) &&
+    structureLoaded === true;
 
   const distanceBadge =
     distanceMode === "1d"
@@ -163,6 +181,15 @@ export function DiversityOptions() {
         </PipelineStep>
 
         <PipelineArrow active={paretoDiversityEnabled} />
+
+        {/* Rendered outside PipelineStep on purpose: PipelineStep only renders
+            its children while enabled, and this suggestion exists precisely for
+            the disabled case. */}
+        {showStructuralSuggestion ? (
+          <StructuralDiversitySuggestion
+            onEnable={() => setStructuralDiversityEnabled(true)}
+          />
+        ) : null}
 
         <PipelineStep
           step={4}

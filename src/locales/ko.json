@@ -1225,7 +1225,11 @@
     "positionCapLabelHelp": "잔기 위치당 최대 primer 수(1-20). 과대 대표 방지.",
     "roundSectionHelp": "EVOLVEpro round는 적응형 선택을 통한 반복적 primer 배치 제어.",
     "benchmarkSectionHelp": "benchmark는 설계된 primer와 random baseline을 비교하여 품질 향상도 추정.",
-    "roundUnsetHint": "Step 1(Load Variants)에서 round를 설정하면 sigma-adaptive 기본값이 활성화됩니다."
+    "roundUnsetHint": "Step 1(Load Variants)에서 round를 설정하면 sigma-adaptive 기본값이 활성화됩니다.",
+    "structuralSuggestTitle": "제안: Structural diversity",
+    "structuralSuggestBody": "현재 pool이 combinatorial하고, round가 이른 단계이며, 3D 구조가 로드되어 있습니다. 벤치마크에서 Top-N 대비 이득을 보이는 조건입니다.",
+    "structuralSuggestCaveat": "이 이득은 조건부입니다. epistatic이 아닌 타겟에서는 오히려 손해를 볼 수 있습니다.",
+    "structuralSuggestEnable": "Structural diversity 활성화"
   },
   "candidatePopover": {
     "reviewHeading": "후보 검토",
