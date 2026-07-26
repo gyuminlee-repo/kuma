@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.13.25 (Legacy .xls sources load in a packaged build, round hints name a step that exists)
+
+Two defects that only a shipped build exposes. Both were found by reading the v0.13.24 release back rather than by a failing test, and neither had a test that could have caught it.
+
+### Fixed
+- v0.13.25: Legacy `.xls` EVOLVEpro sources load in a packaged build. `xlrd` is declared in `pyproject.toml` but was absent from the kuro `hidden_imports` list, and it is imported lazily in two places PyInstaller cannot see statically: the preview path (`sidecar_kuro/handlers/misc.py:125`) and the table load path (`kuma_core/kuro/evolvepro.py:339`). Any `.xls` source therefore raised `ModuleNotFoundError` in an installed build while a development run succeeded, because the wheel is present there. This affected loading, not only previewing. `openpyxl` was already listed, so `.xlsx` was never affected, and nothing on the MAME side imports `xlrd`. (`python-core/build_sidecar.py`)
+- v0.13.25: The round hints name a step that exists. The v0.13.24 hints sent the user to "Step 1 (Load Variants)", but the inputs were added to `MutationInput`, which `DesignStepView` maps to `design.mutation`, the Mutations step. `SequenceInput` is Load Variants. The numbering was ambiguous besides, since `DiversitySections` labels the diversity pipeline stages Step 1 to Step 4 in its own separate scheme, so "Step 1" inside that panel meant something else. Both hints now name the step rather than numbering it, in all ten locales. (`src/locales/*.json`)
+
+### Known issues
+- A trivial sidecar call shares the same 60 s timeout budget as a heavy one. `get_polymerase_details` is an in-memory registry lookup, yet it can exhaust the budget and surface as `RPC timeout` when sidecar cold start is slow, which on Windows includes onefile extraction plus antivirus scanning a bundle of roughly 90 MB. The call itself is not slow; the startup ahead of it is.
+
 ## v0.13.24 (Plasmid input that works, campaign round asked for instead of assumed)
 
 Two rounds of work on inputs the app accepted but could not actually use. MAME refused every circular plasmid and silently scanned SnapGene binaries as text; KURO collected the campaign round in a step the user reaches after the value has already been consumed, and treated "never entered" as round 1.
