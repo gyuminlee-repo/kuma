@@ -15,7 +15,7 @@
  * sub-step 3.2 (activity.signals), not here. See ActivityStepView.tsx.
  */
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { save } from "@tauri-apps/plugin-dialog";
 import { toast } from "sonner";
@@ -351,38 +351,5 @@ export function ExportSection() {
         )
       )}
     </section>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// ActivityPanel — top-level phase wrapper (single linear flow)
-// ---------------------------------------------------------------------------
-export function ActivityPanel() {
-  const { t } = useTranslation();
-
-  // Auto-create a round when entering the Activity phase if none exists.
-  // Without this, uploadActivityFile is permanently disabled because
-  // active_round_id stays null until something calls addRound.
-  const activeRoundId = useRoundStore((s) => s.active_round_id);
-  const addRound = useRoundStore((s) => s.addRound);
-  useEffect(() => {
-    if (activeRoundId === null) {
-      addRound({ plate_meta: { plates: [] } });
-    }
-  }, [activeRoundId, addRound]);
-
-  return (
-    <div className="h-full overflow-y-auto">
-      <div className="mx-auto max-w-2xl space-y-6 p-4">
-        <header>
-          <h2 className="text-base font-semibold text-foreground">{t("mame.activity.title")}</h2>
-          <p className="mt-1 text-xs text-muted-foreground">{t("mame.activity.subtitle")}</p>
-        </header>
-
-        <IngestSection />
-        <MergeSection />
-        <ExportSection />
-      </div>
-    </div>
   );
 }

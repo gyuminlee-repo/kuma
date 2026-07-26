@@ -14,7 +14,8 @@
  *   activity.signals   → AdvisoryDecisionCard + RoundHandoffButton
  *   activity.mergeExport → legacy id, redirects to activity.ingest
  *
- * ActivityPanel은 wrapper로 유지되므로 테스트 호환성 유지.
+ * ActivityPanel.tsx는 세 섹션(Ingest/Merge/Export)만 export한다. 도달 불가였던
+ * ActivityPanel 래퍼는 제거됐다.
  */
 
 import { useEffect, useState } from "react";

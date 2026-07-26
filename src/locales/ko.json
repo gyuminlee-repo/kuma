@@ -405,8 +405,6 @@
         "evolveproDesc": "권장: WT 대비 replicate 정규화 + 레이블 교체(label-swap) 가드를 적용합니다.",
         "legacyDesc": "WT 정규화나 레이블 교체 검사가 없는 legacy CSV 출력입니다."
       },
-      "subtitle": "Phase 1 바코드 설정 및 Phase 2 분석 이후 (보통 며칠~수 주 후) 습식 실험 활성 측정이 완료되면 이 단계에 진입합니다. 측정값을 로드하고 유전자형과 병합한 후 EVOLVEpro 훈련 입력을 내보냅니다.",
-      "title": "활성 데이터",
       "sectionIngest": "활성 데이터 업로드",
       "sectionMerge": "유전자형과 병합",
       "sectionExport": "EVOLVEpro 입력 내보내기"

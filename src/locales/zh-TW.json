@@ -309,8 +309,6 @@
       "bindingMaxLenHelp": "Maximum primer binding length (nt). Above 35 increases secondary structure risk."
     },
     "activity": {
-      "title": "Activity 資料",
-      "subtitle": "Wet-lab activity 測量就緒後(通常在 Phase 1 Barcode Setup 與 Phase 2 Analyze 之後幾天到數週)進入此階段。載入測量值,與 genotype 合併,然後匯出 EVOLVEpro 訓練輸入。",
       "sectionIngest": "上傳 activity 資料",
       "sectionMerge": "與 genotype 合併",
       "sectionExport": "匯出 EVOLVEpro 輸入",

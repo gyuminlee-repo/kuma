@@ -309,8 +309,6 @@
       "bindingMaxLenHelp": "Maximum primer binding length (nt). Above 35 increases secondary structure risk."
     },
     "activity": {
-      "title": "活性データ",
-      "subtitle": "Phase 1 (Barcode Setup) と Phase 2 (Analyze) の後、wet-lab 活性測定が揃った段階 (通常は数日から数週間後) で進めるフェーズ。測定値を読み込み、genotype とマージ後、EVOLVEpro 学習用 xlsx をエクスポート。",
       "sectionIngest": "活性データのアップロード",
       "sectionMerge": "Genotype とマージ",
       "sectionExport": "EVOLVEpro 入力をエクスポート",

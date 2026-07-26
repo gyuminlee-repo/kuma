@@ -309,8 +309,6 @@
       "bindingMaxLenHelp": "Maximum primer binding length (nt). Above 35 increases secondary structure risk."
     },
     "activity": {
-      "title": "Datos de actividad",
-      "subtitle": "Entrar en esta fase cuando las mediciones de actividad de wet-lab estén listas (típicamente días a semanas tras la Fase 1 Barcode Setup y la Fase 2 Analyze). Cargar mediciones, combinar con genotype, luego exportar la entrada de entrenamiento para EVOLVEpro.",
       "sectionIngest": "Subir activity",
       "sectionMerge": "Combinar con genotype",
       "sectionExport": "Exportar entrada EVOLVEpro",

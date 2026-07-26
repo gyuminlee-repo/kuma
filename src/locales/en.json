@@ -405,8 +405,6 @@
         "evolveproDesc": "Recommended: normalises replicates against WT and applies the label-swap guard.",
         "legacyDesc": "Legacy CSV output without WT normalization or label-swap checks."
       },
-      "subtitle": "Enter this phase once wet-lab activity measurements are ready (typically days to weeks after Phase 1 Barcode Setup and Phase 2 Analyze). Load measurements, merge with genotype, then export the EVOLVEpro training input.",
-      "title": "Activity data",
       "sectionIngest": "Upload activity",
       "sectionMerge": "Merge with genotype",
       "sectionExport": "Export EVOLVEpro input"
