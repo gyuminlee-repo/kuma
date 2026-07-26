@@ -352,6 +352,14 @@
         "suggestButton": "Control wells에서 가져오기",
         "alreadySetTooltip": "WT wells가 이미 설정됨"
       },
+      "route": {
+        "heading": "EVOLVEpro 입력 경로",
+        "ariaLabel": "EVOLVEpro 입력 생성 방식을 선택하세요",
+        "genotypeLabel": "Activity + NGS genotype",
+        "genotypeDesc": "long-format well activity를 업로드해 이번 라운드 NGS verdict과 병합한 뒤 내보냅니다.",
+        "plateLayoutLabel": "Plate layout + GC data",
+        "plateLayoutDesc": "plate layout과 GC data xlsx 파일로 곧바로 생성합니다. NGS genotype이 필요 없습니다."
+      },
       "mergeExport": {
         "contextTitle": "활성 데이터 — 병합 및 내보내기",
         "contextSubtitle": "유전형과 활성을 병합하고 EVOLVEpro 입력을 내보냅니다.",
@@ -2262,6 +2270,7 @@
       },
       "activity": {
         "ingest": "활성 데이터",
+        "signals": "신호 및 핸드오프",
         "merge": "병합",
         "export": "내보내기",
         "mergeExport": "병합 및 내보내기"
@@ -2318,6 +2327,7 @@
     "mameDescriptions": {
       "activity": {
         "ingest": "활성 측정값을 업로드한 뒤 verdict과 병합해 다음 라운드 EVOLVEpro 입력을 내보냅니다 (단일 반복 GC + 3중 반복 WT 상대).",
+        "signals": "라운드 간 분류 신호를 검토하고, EVOLVEpro 입력이 준비되면 다음 라운드로 핸드오프합니다.",
         "mergeExport": "활성 데이터를 유전형 콜과 병합해 테이블을 내보낸 뒤, 단일 반복(GC)과 3중 반복(WT 상대) 활성을 결합해 EVOLVEpro 입력을 생성합니다."
       },
       "analyze": {

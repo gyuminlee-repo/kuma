@@ -287,6 +287,39 @@ export function useMameDrawerProps(): SlotProps {
         children: <LogLine text={t("mame.activity.mergeExport.drawerRightDesc")} />,
       },
     },
+
+    // 3.2 signals & handoff step reuses the legacy mergeExport drawer copy
+    // (merge/export progress + handoff bridge context still applies here).
+    "activity.signals": {
+      left: {
+        title: t("mame.activity.mergeExport.drawerLeft"),
+        children: (
+          <div className="space-y-0.5">
+            <StatLine label={t("mame.drawer.stat.passRows")} value={passCount} />
+            <StatLine label={t("mame.drawer.stat.evolveproXlsx")} value={passCount > 0 ? t("mame.drawer.value.ready") : "-"} />
+          </div>
+        ),
+      },
+      center: {
+        title: t("mame.activity.mergeExport.drawerCenter"),
+        children: (
+          <div className="space-y-0.5">
+            <LogLine
+              text={
+                passCount > 0
+                  ? `[DONE] ${passCount} rows merged`
+                  : "[WAIT] Merge not performed yet"
+              }
+            />
+            <LogLine text="[INFO] Bidirectional bridge to KURO" />
+          </div>
+        ),
+      },
+      right: {
+        title: t("mame.activity.mergeExport.drawerRight"),
+        children: <LogLine text={t("mame.activity.mergeExport.drawerRightDesc")} />,
+      },
+    },
   };
 
   return MAP[currentSubStep] ?? {};

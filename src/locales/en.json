@@ -352,6 +352,14 @@
         "suggestButton": "Suggest from control wells",
         "alreadySetTooltip": "WT wells already set"
       },
+      "route": {
+        "heading": "EVOLVEpro input route",
+        "ariaLabel": "Choose how to generate the EVOLVEpro input",
+        "genotypeLabel": "Activity + NGS genotype",
+        "genotypeDesc": "Upload long-format well activity, merge with this round's NGS verdicts, then export.",
+        "plateLayoutLabel": "Plate layout + GC data",
+        "plateLayoutDesc": "Build directly from plate layout and GC data xlsx files. No NGS genotype required."
+      },
       "mergeExport": {
         "contextTitle": "Activity Data — Merge and Export",
         "contextSubtitle": "Merge genotype with activity and export EVOLVEpro input.",
@@ -2262,6 +2270,7 @@
       },
       "activity": {
         "ingest": "Activity Data",
+        "signals": "Signals & Handoff",
         "merge": "Merge",
         "export": "Export",
         "mergeExport": "Merge & Export"
@@ -2318,6 +2327,7 @@
     "mameDescriptions": {
       "activity": {
         "ingest": "Upload assay activity, then merge with verdicts and export the next-round EVOLVEpro input (single-replicate GC + triple-replicate WT-relative).",
+        "signals": "Review cross-round classification signals and hand off to the next round once the EVOLVEpro input is ready.",
         "mergeExport": "Merge activity data with genotype calls and export the merged table, then build the EVOLVEpro input by combining single-replicate (GC) and triple-replicate (WT-relative) activity."
       },
       "analyze": {
