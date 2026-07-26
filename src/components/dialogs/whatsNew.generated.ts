@@ -5,15 +5,15 @@ export interface WhatsNewItem {
   detail: string;
 }
 
-export const WHATS_NEW_VERSION = "0.13.23";
+export const WHATS_NEW_VERSION = "0.13.24";
 
 export const WHATS_NEW_ITEMS: WhatsNewItem[] = [
-  { label: "Fixed", detail: "The Tm tolerance control now reaches the batch design. The frontend sent `tol_max` on every request, `DesignSdmPrimersParams` had no such field, and Pydantic dropped it silently under the default `extra=\"ignore\"`, so the batch always ran a…" },
-  { label: "Fixed", detail: "Auto-relax rescue runs without a rescue pool. The block sat inside a guard that also required `rescue_pool`, and the frontend sends an empty pool outside EVOLVEpro mode, which made auto-relax dead code for manual and CSV input. Measured wi…" },
-  { label: "Fixed", detail: "A well counts as recovered only when its designed mutation is confirmed. The indel-event gate returned AMBIGUOUS before the expected mutation was ever compared, and `detected.py` treats AMBIGUOUS as a guarantee that every expected mutation…" },
-  { label: "Fixed", detail: "`consensus_n_fraction` is scoped to covered positions. Dividing by the whole alignment reference sent every well to NO_CALL when the reference was a plasmid map, which the translator explicitly supports: 150 perfect reads carrying the desi…" },
-  { label: "Fixed", detail: "A coordinate-origin mismatch fails loudly. The expected WT residue was parsed and discarded, so a tag, leader peptide, or plasmid offset shifted a whole plate onto the wrong residues and still reported PASS with empty notes." },
-  { label: "Fixed", detail: "Cross-talk reports whether it ran. Four states, including a missing input file and a parse failure, collapsed into an empty list that the panel rendered as an all-clear, in a section that sat outside the MinKNOW guard. The z-score populati…" },
-  { label: "Fixed", detail: "Wells that cannot be identified stay unidentified. A failing well with no label match and no sample_map entry was attributed to `expected[idx % len(expected)]`, so its position in the ingest list decided which mutant it joined." },
-  { label: "Fixed", detail: "The verdict inspector shows the note instead of an invented identity. The Identity row rendered 100 minus five per observed AA change; no identity field exists anywhere in the backend." },
+  { label: "Fixed", detail: "MAME designs primers on circular plasmids. `design_flanking_primers` placed the forward binding site in `[gene_start - flank_max, gene_start - flank_min)` and errored whenever a bound fell outside the sequence, so a gene near the origin wa…" },
+  { label: "Fixed", detail: "SnapGene `.dna` files are parsed instead of scanned as text. `BarcodeSetupPanel` read every input with `readTextFile`, so a binary `.dna` found no flat-file CDS lines, fell through to the FASTA ORF scanner, and filled the CDS dropdown with…" },
+  { label: "Fixed", detail: "The MAME sequence field says what it needs. The helper read \"Reference CDS sequence\", inviting the one input that can never work, since a CDS-only FASTA has zero flank on either side. It now asks for a plasmid or construct map with flankin…" },
+  { label: "Fixed", detail: "Annotated and ORF-derived CDS candidates report the same protein length. The sidecar counted the stop codon as a residue while the frontend candidate type excludes it, so the same gene read 561 aa from a GenBank map and 560 aa from a FASTA…" },
+  { label: "Fixed", detail: "The KURO campaign round is set where it is used. Both inputs lived in Step 4 Pool Filters while the value is consumed at EVOLVEpro load time to derive the sigma-adaptive pool, so the field was only discovered after the load had run. They n…" },
+  { label: "Fixed", detail: "An unentered round is no longer read as round 1. The frontend initialised `evolveproRound` to 1 while the sidecar default, the Pydantic field, the source inspector display, and the request builder all treat 0 as unset, so an untouched roun…" },
+  { label: "Fixed", detail: "The KURO Tip card shows its text instead of a key name. The side-card key was assembled by splitting the substep id, which does not match the locale keys for three of six substeps (`design.mutation`, `output.summary`, `export.all` against…" },
+  { label: "Fixed", detail: "Prose no longer renders at the 8 px well-plate size. Seven status lines, section labels, and descriptions used the plate-label token; they now use the caption size. The 8 px token stays on plate badges and compact controls." },
 ];
