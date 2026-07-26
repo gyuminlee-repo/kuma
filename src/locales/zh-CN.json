@@ -311,9 +311,9 @@
     "activity": {
       "title": "Activity 数据",
       "subtitle": "Wet-lab activity 测量就绪后(通常在 Phase 1 Barcode Setup 与 Phase 2 Analyze 之后几天到数周)进入此阶段。加载测量值,与 genotype 合并,然后导出 EVOLVEpro 训练输入。",
-      "tabIngest": "1. Ingest",
-      "tabMerge": "2. Merge",
-      "tabExport": "3. Export",
+      "sectionIngest": "上传 activity 数据",
+      "sectionMerge": "与 genotype 合并",
+      "sectionExport": "导出 EVOLVEpro 输入",
       "ingest": {
         "uploadHeading": "上传 activity 数据",
         "uploadDesc": "将 long-format CSV / Excel 文件 (well, replicate, value 列) 加载到当前 Round。",
@@ -335,6 +335,8 @@
       },
       "merge": {
         "heading": "合并 activity 与 genotype",
+        "evolveproDesc": "推荐：按 WT 对 replicate 进行归一化，并应用 label-swap 防护。",
+        "legacyDesc": "不含 WT normalization 或 label-swap 检查的 legacy CSV 输出。",
         "desc": "将已上传的 activity 与 Round genotype 连接,并按 WT 归一化。",
         "btnLegacy": "与 genotype 合并",
         "btnLegacyBusy": "合并中…",
@@ -381,6 +383,14 @@
         "helpText": "此处标记的 wells 作为 activity fold-change normalization 的 wild-type baseline。",
         "suggestButton": "从对照 wells 建议",
         "alreadySetTooltip": "WT wells 已设置"
+      },
+      "route": {
+        "heading": "EVOLVEpro 输入路径",
+        "ariaLabel": "选择生成 EVOLVEpro 输入的方式",
+        "genotypeLabel": "Activity + NGS genotype",
+        "genotypeDesc": "上传 long-format 的 well activity，与本轮 NGS verdict 合并后导出。",
+        "plateLayoutLabel": "Plate layout + GC data",
+        "plateLayoutDesc": "直接从 plate layout 和 GC data xlsx 文件生成，无需 NGS genotype。"
       }
     },
     "runHealth": {
@@ -918,7 +928,8 @@
       "toastSuccess": "EVOLVEpro 输入生成完成",
       "toastSuccessDesc": "已写入 {{count}} 个 variant。",
       "toastError": "EVOLVEpro 输入生成失败",
-      "openFolder": "打开输出文件夹"
+      "openFolder": "打开输出文件夹",
+      "routeNote": "此路径直接读取四个 xlsx 文件，不使用 genotype 关联路径的 activity 上传。"
     },
     "verdictBadge": {
       "help": {
@@ -2231,6 +2242,7 @@
       },
       "activity": {
         "ingest": "Ingest 数据",
+        "signals": "信号与交接",
         "mergeExport": "Merge & Export",
         "export": "Export",
         "merge": "Merge"
@@ -2275,6 +2287,7 @@
       },
       "activity": {
         "ingest": "上传 activity CSV 或 Excel 文件并标注野生型。",
+        "signals": "查看跨轮次分类信号，待 EVOLVEpro 输入准备就绪后交接给下一轮。",
         "mergeExport": "将活性数据与基因型判定合并并导出表格，然后通过组合单次重复 (GC) 与三次重复 (相对 WT) 活性来构建 EVOLVEpro 输入。"
       }
     },
