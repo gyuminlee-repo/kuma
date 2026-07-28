@@ -325,11 +325,9 @@
       "openFolderError": "Не удалось открыть папку."
     },
     "activity": {
-      "title": "Данные активности",
-      "subtitle": "Переходите к этой фазе, когда готовы wet-lab измерения активности (обычно дни-недели после Phase 1 Barcode Setup и Phase 2 Analyze). Загрузите измерения, объедините с genotype, затем экспортируйте training input для EVOLVEpro.",
-      "tabIngest": "1. Ingest",
-      "tabMerge": "2. Merge",
-      "tabExport": "3. Export",
+      "sectionIngest": "Загрузить activity",
+      "sectionMerge": "Объединить с genotype",
+      "sectionExport": "Экспортировать входные данные EVOLVEpro",
       "ingest": {
         "uploadHeading": "Загрузить данные активности",
         "uploadDesc": "Загрузите long format CSV / Excel файл (колонки well, replicate, value) в текущий Round.",
@@ -351,6 +349,8 @@
       },
       "merge": {
         "heading": "Объединить активность с genotype",
+        "evolveproDesc": "Рекомендуется: нормализует replicate относительно WT и применяет защиту label-swap.",
+        "legacyDesc": "Legacy CSV вывод без WT normalization и проверок label-swap.",
         "desc": "Объединить загруженную активность с genotype текущего Round и нормализовать по WT.",
         "btnLegacy": "Объединить с genotype",
         "btnLegacyBusy": "Объединение…",
@@ -397,6 +397,14 @@
         "helpText": "Отмеченные здесь wells служат wild-type baseline для нормализации activity fold-change.",
         "suggestButton": "Предложить из контрольных wells",
         "alreadySetTooltip": "WT wells уже заданы"
+      },
+      "route": {
+        "heading": "Маршрут входных данных EVOLVEpro",
+        "ariaLabel": "Выберите способ создания входных данных EVOLVEpro",
+        "genotypeLabel": "Activity + NGS genotype",
+        "genotypeDesc": "Загрузите long-format well activity, объедините с NGS verdict этого round, затем экспортируйте.",
+        "plateLayoutLabel": "Plate layout + GC data",
+        "plateLayoutDesc": "Создать напрямую из xlsx-файлов plate layout и GC data. NGS genotype не требуется."
       }
     },
     "runHealth": {
@@ -936,7 +944,8 @@
       "toastSuccess": "Входные данные EVOLVEpro созданы",
       "toastSuccessDesc": "Записано Variant: {{count}}.",
       "toastError": "Не удалось создать входные данные EVOLVEpro",
-      "openFolder": "Открыть папку вывода"
+      "openFolder": "Открыть папку вывода",
+      "routeNote": "Этот маршрут читает четыре xlsx-файла напрямую и не использует загрузку activity из маршрута, связанного с genotype."
     },
     "verdictBadge": {
       "help": {
@@ -2272,6 +2281,7 @@
       },
       "activity": {
         "ingest": "Ingest данные",
+        "signals": "Сигналы и передача",
         "mergeExport": "Merge & Export",
         "export": "Export",
         "merge": "Merge"
@@ -2316,6 +2326,7 @@
       },
       "activity": {
         "ingest": "Загрузите файлы CSV или Excel с активностью и аннотируйте wild-type.",
+        "signals": "Просмотрите сигналы классификации между round и передайте следующему round, когда входные данные EVOLVEpro будут готовы.",
         "mergeExport": "Объедините данные активности с вызовами генотипа и экспортируйте таблицу, затем создайте входные данные EVOLVEpro, объединив активность с одной репликой (GC) и тремя репликами (относительно WT)."
       }
     },

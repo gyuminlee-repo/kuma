@@ -325,11 +325,9 @@
       "openFolderError": "Não foi possível abrir a pasta."
     },
     "activity": {
-      "title": "Dados de atividade",
-      "subtitle": "Entrar nesta fase quando as medições de atividade de wet-lab estiverem prontas (tipicamente dias a semanas após a Fase 1 Barcode Setup e a Fase 2 Analyze). Carregar medições, mesclar com genotype, depois exportar a entrada de treinamento do EVOLVEpro.",
-      "tabIngest": "1. Ingest",
-      "tabMerge": "2. Merge",
-      "tabExport": "3. Export",
+      "sectionIngest": "Enviar activity",
+      "sectionMerge": "Mesclar com genotype",
+      "sectionExport": "Exportar entrada EVOLVEpro",
       "ingest": {
         "uploadHeading": "Enviar dados de atividade",
         "uploadDesc": "Carregar um arquivo CSV / Excel em formato long (colunas well, replicate, value) no Round atual.",
@@ -351,6 +349,8 @@
       },
       "merge": {
         "heading": "Mesclar atividade com genotype",
+        "evolveproDesc": "Recomendado: normaliza os replicates em relação ao WT e aplica a proteção label-swap.",
+        "legacyDesc": "Saída CSV legacy sem normalização WT ou verificações de label-swap.",
         "desc": "Juntar a atividade carregada com o genotype do Round e normalizar por WT.",
         "btnLegacy": "Mesclar com genotype",
         "btnLegacyBusy": "Mesclando…",
@@ -397,6 +397,14 @@
         "helpText": "Os wells marcados aqui servem como baseline wild-type para normalização activity fold-change.",
         "suggestButton": "Sugerir a partir dos wells de controle",
         "alreadySetTooltip": "WT wells já definidos"
+      },
+      "route": {
+        "heading": "Rota de entrada do EVOLVEpro",
+        "ariaLabel": "Escolha como gerar a entrada do EVOLVEpro",
+        "genotypeLabel": "Activity + NGS genotype",
+        "genotypeDesc": "Envie a activity de wells em formato long, mescle com os verdicts de NGS deste round e depois exporte.",
+        "plateLayoutLabel": "Plate layout + GC data",
+        "plateLayoutDesc": "Construa diretamente a partir dos arquivos xlsx de plate layout e GC data. Não requer NGS genotype."
       }
     },
     "runHealth": {
@@ -936,7 +944,8 @@
       "toastSuccess": "Entrada EVOLVEpro gerada",
       "toastSuccessDesc": "{{count}} variants gravados.",
       "toastError": "Falha ao gerar a entrada EVOLVEpro",
-      "openFolder": "Abrir pasta de saída"
+      "openFolder": "Abrir pasta de saída",
+      "routeNote": "Esta rota lê diretamente os quatro arquivos xlsx e não usa o upload de activity da rota vinculada ao genotype."
     },
     "verdictBadge": {
       "help": {
@@ -2272,6 +2281,7 @@
       },
       "activity": {
         "ingest": "Ingest de dados",
+        "signals": "Sinais e transferência",
         "mergeExport": "Merge & Export",
         "export": "Export",
         "merge": "Merge"
@@ -2316,6 +2326,7 @@
       },
       "activity": {
         "ingest": "Enviar arquivos CSV ou Excel de atividade e anotar o wild-type.",
+        "signals": "Revise os sinais de classificação entre rounds e transfira para o próximo round assim que a entrada EVOLVEpro estiver pronta.",
         "mergeExport": "Combine os dados de atividade com as chamadas de genótipo e exporte a tabela combinada; em seguida, crie a entrada do EVOLVEpro combinando a atividade de réplica única (GC) e de tripla réplica (relativa ao WT)."
       }
     },

@@ -29,8 +29,6 @@ vi.mock("@/components/mame/panels/ActivityPanel", () => ({
   IngestSection: () => <div data-testid="ingest-section" />,
   MergeSection: () => <div data-testid="merge-section" />,
   ExportSection: () => <div data-testid="export-section" />,
-  MergeExportSection: () => <div data-testid="merge-export-section" />,
-  ActivityPanel: () => <div data-testid="activity-panel" />,
 }));
 
 import { ActivityStepView } from "./ActivityStepView";

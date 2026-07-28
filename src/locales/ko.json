@@ -368,6 +368,14 @@
         "suggestButton": "Control wells에서 가져오기",
         "alreadySetTooltip": "WT wells가 이미 설정됨"
       },
+      "route": {
+        "heading": "EVOLVEpro 입력 경로",
+        "ariaLabel": "EVOLVEpro 입력 생성 방식을 선택하세요",
+        "genotypeLabel": "Activity + NGS genotype",
+        "genotypeDesc": "long-format well activity를 업로드해 이번 라운드 NGS verdict과 병합한 뒤 내보냅니다.",
+        "plateLayoutLabel": "Plate layout + GC data",
+        "plateLayoutDesc": "plate layout과 GC data xlsx 파일로 곧바로 생성합니다. NGS genotype이 필요 없습니다."
+      },
       "mergeExport": {
         "contextTitle": "활성 데이터 — 병합 및 내보내기",
         "contextSubtitle": "유전형과 활성을 병합하고 EVOLVEpro 입력을 내보냅니다.",
@@ -409,13 +417,13 @@
         "menuLegacy": "Legacy 출력 (CSV)",
         "menuEvolvepro": "EVOLVEpro v0.3 format (WT 정규화 포함)",
         "desc": "업로드된 활성 데이터를 라운드 유전자형과 결합하고 야생형으로 정규화합니다.",
-        "heading": "활성 데이터를 유전자형과 병합"
+        "heading": "활성 데이터를 유전자형과 병합",
+        "evolveproDesc": "권장: WT 대비 replicate 정규화 + 레이블 교체(label-swap) 가드를 적용합니다.",
+        "legacyDesc": "WT 정규화나 레이블 교체 검사가 없는 legacy CSV 출력입니다."
       },
-      "tabExport": "3. 내보내기",
-      "tabIngest": "1. 수집",
-      "tabMerge": "2. 병합",
-      "subtitle": "Phase 1 바코드 설정 및 Phase 2 분석 이후 (보통 며칠~수 주 후) 습식 실험 활성 측정이 완료되면 이 단계에 진입합니다. 측정값을 로드하고 유전자형과 병합한 후 EVOLVEpro 훈련 입력을 내보냅니다.",
-      "title": "활성 데이터"
+      "sectionIngest": "활성 데이터 업로드",
+      "sectionMerge": "유전자형과 병합",
+      "sectionExport": "EVOLVEpro 입력 내보내기"
     },
     "buildEvolvepro": {
       "title": "EVOLVEpro 입력 생성",
@@ -459,7 +467,8 @@
       "toastSuccess": "EVOLVEpro 입력 생성 완료",
       "toastSuccessDesc": "{{count}}개 variant를 기록했습니다.",
       "toastError": "EVOLVEpro 입력 생성 실패",
-      "openFolder": "출력 폴더 열기"
+      "openFolder": "출력 폴더 열기",
+      "routeNote": "이 경로는 4개 xlsx 파일을 직접 읽으며, genotype 연동 경로의 activity 업로드를 사용하지 않습니다."
     },
     "runHealth": {
       "panelAriaLabel": "실행 상태 패널",
@@ -2305,6 +2314,7 @@
       },
       "activity": {
         "ingest": "활성 데이터",
+        "signals": "신호 및 핸드오프",
         "merge": "병합",
         "export": "내보내기",
         "mergeExport": "병합 및 내보내기"
@@ -2361,6 +2371,7 @@
     "mameDescriptions": {
       "activity": {
         "ingest": "활성 측정값을 업로드한 뒤 verdict과 병합해 다음 라운드 EVOLVEpro 입력을 내보냅니다 (단일 반복 GC + 3중 반복 WT 상대).",
+        "signals": "라운드 간 분류 신호를 검토하고, EVOLVEpro 입력이 준비되면 다음 라운드로 핸드오프합니다.",
         "mergeExport": "활성 데이터를 유전형 콜과 병합해 테이블을 내보낸 뒤, 단일 반복(GC)과 3중 반복(WT 상대) 활성을 결합해 EVOLVEpro 입력을 생성합니다."
       },
       "analyze": {
