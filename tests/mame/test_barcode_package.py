@@ -614,3 +614,156 @@ class TestGenerateMamePackage:
                 project_root=project_root,
                 gene_name="   ",
             )
+
+
+# ---------------------------------------------------------------------------
+# sample_map_template pre-fill (expected_mutations_path)
+# ---------------------------------------------------------------------------
+
+def _make_expected_mutations_xlsx(path: Path, mutants: list[tuple[str, int, str, str]]) -> None:
+    """Write a minimal KURO results xlsx carrying an `expected_mutations` sheet.
+
+    Header order must match kuma_core.mame.io.kuro_reader._EXPECTED_HEADER.
+    """
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    assert ws is not None
+    ws.title = "expected_mutations"
+    ws.append([
+        "mutant_id", "position", "wt_aa", "mt_aa", "wt_codon",
+        "mt_codon", "group_id", "primer_set_ref", "notation_type", "status",
+    ])
+    for mutant_id, position, wt_aa, mt_aa in mutants:
+        ws.append([
+            mutant_id, position, wt_aa, mt_aa, "", "", "", "", "substitution", "DESIGNED",
+        ])
+    wb.save(str(path))
+
+
+def _read_sample_map(path: Path) -> list[tuple[str, str]]:
+    """Return the template data rows as (sample_name, well) tuples."""
+    wb = openpyxl.load_workbook(str(path), read_only=True)
+    try:
+        ws = wb.worksheets[0]
+        rows = [r for r in ws.iter_rows(values_only=True) if any(c is not None for c in r)]
+    finally:
+        wb.close()
+    assert [str(c) for c in rows[0][:2]] == ["sample_name", "well"]
+    return [(str(r[0]), str(r[1])) for r in rows[1:]]
+
+
+class TestSampleMapTemplatePrefill:
+    def test_omitted_path_keeps_header_only_template(self, tmp_path: Path) -> None:
+        """Default behaviour is unchanged: headers, no data rows."""
+        fasta, seeds, project_root = _make_project(tmp_path)
+        result = generate_mame_package(
+            fasta_path=fasta,
+            gene_start=500,
+            gene_end=800,
+            barcode_seeds_path=seeds,
+            output_dir=project_root / "design",
+            project_root=project_root,
+        )
+        assert result.sample_map_prefilled_rows == 0
+        assert _read_sample_map(result.sample_map_template) == []
+
+    def test_prefill_places_mutants_column_major_with_wt_last(self, tmp_path: Path) -> None:
+        """Rows follow build_draft_layout: column-major wells, WT after the last mutant."""
+        fasta, seeds, project_root = _make_project(tmp_path)
+        expected_xlsx = project_root / "kuro_results.xlsx"
+        _make_expected_mutations_xlsx(
+            expected_xlsx,
+            [("V5F", 5, "V", "F"), ("K53N", 53, "K", "N"), ("A77G", 77, "A", "G")],
+        )
+
+        result = generate_mame_package(
+            fasta_path=fasta,
+            gene_start=500,
+            gene_end=800,
+            barcode_seeds_path=seeds,
+            output_dir=project_root / "design",
+            project_root=project_root,
+            expected_mutations_path=expected_xlsx,
+        )
+
+        rows = _read_sample_map(result.sample_map_template)
+        assert rows == [
+            ("V5F", "A1"),
+            ("K53N", "B1"),
+            ("A77G", "C1"),
+            ("WT", "D1"),
+        ]
+        assert result.sample_map_prefilled_rows == 4
+
+    def test_prefill_emits_verification_warning(self, tmp_path: Path) -> None:
+        """The draft placement is an assumption, so the operator must be told."""
+        fasta, seeds, project_root = _make_project(tmp_path)
+        expected_xlsx = project_root / "kuro_results.xlsx"
+        _make_expected_mutations_xlsx(expected_xlsx, [("V5F", 5, "V", "F")])
+
+        result = generate_mame_package(
+            fasta_path=fasta,
+            gene_start=500,
+            gene_end=800,
+            barcode_seeds_path=seeds,
+            output_dir=project_root / "design",
+            project_root=project_root,
+            expected_mutations_path=expected_xlsx,
+        )
+        assert any("pre-filled" in w and "Verify" in w for w in result.warnings)
+
+    def test_prefill_matches_build_draft_layout(self, tmp_path: Path) -> None:
+        """Template and the mame.build_well_layout RPC must not drift apart."""
+        from kuma_core.mame.io.kuro_reader import read_expected_mutations
+        from kuma_core.mame.layout import build_draft_layout
+
+        fasta, seeds, project_root = _make_project(tmp_path)
+        expected_xlsx = project_root / "kuro_results.xlsx"
+        _make_expected_mutations_xlsx(
+            expected_xlsx, [(f"M{i}", i, "A", "G") for i in range(1, 13)]
+        )
+
+        result = generate_mame_package(
+            fasta_path=fasta,
+            gene_start=500,
+            gene_end=800,
+            barcode_seeds_path=seeds,
+            output_dir=project_root / "design",
+            project_root=project_root,
+            expected_mutations_path=expected_xlsx,
+        )
+
+        layout = build_draft_layout(read_expected_mutations(expected_xlsx))
+        assert _read_sample_map(result.sample_map_template) == [
+            (sample, well) for well, sample in layout.items()
+        ]
+
+    def test_missing_expected_file_raises(self, tmp_path: Path) -> None:
+        """A supplied but unreadable path is an error, not a blank-template fallback."""
+        fasta, seeds, project_root = _make_project(tmp_path)
+        with pytest.raises((FileNotFoundError, ValueError)):
+            generate_mame_package(
+                fasta_path=fasta,
+                gene_start=500,
+                gene_end=800,
+                barcode_seeds_path=seeds,
+                output_dir=project_root / "design",
+                project_root=project_root,
+                expected_mutations_path=project_root / "does_not_exist.xlsx",
+            )
+
+    def test_expected_sheet_without_designed_rows_raises(self, tmp_path: Path) -> None:
+        """An expected_mutations sheet with no DESIGNED rows must fail loudly."""
+        fasta, seeds, project_root = _make_project(tmp_path)
+        expected_xlsx = project_root / "kuro_results.xlsx"
+        _make_expected_mutations_xlsx(expected_xlsx, [])
+        with pytest.raises(ValueError, match="No DESIGNED expected mutations"):
+            generate_mame_package(
+                fasta_path=fasta,
+                gene_start=500,
+                gene_end=800,
+                barcode_seeds_path=seeds,
+                output_dir=project_root / "design",
+                project_root=project_root,
+                expected_mutations_path=expected_xlsx,
+            )

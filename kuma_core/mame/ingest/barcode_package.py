@@ -3,7 +3,9 @@
 This module produces three output files and a context JSON:
 - ``barcodes_sequence.xlsx``    : 20-row combinatorial barcode table (12 fwd + 8 rev)
 - ``{gene_name}_amplicon.fa``   : single-entry FASTA for the target gene region
-- ``sample_map_template.xlsx``  : blank well-map template for the MAME operator
+- ``sample_map_template.xlsx``  : well-map template for the MAME operator (blank
+  headers, or pre-filled with a draft placement when ``expected_mutations_path``
+  is supplied)
 - ``mame_context.json``         : machine-readable pointer file (schema 1)
 
 Typical call site::
@@ -594,6 +596,10 @@ class MamePackageResult:
     context_json: Path
     warnings: list[str] = field(default_factory=list)
     amplicon_length: int | None = None
+    #: Number of pre-filled data rows in ``sample_map_template`` (0 = header
+    #: only, i.e. no ``expected_mutations_path`` was supplied). The UI reports
+    #: this so an operator can tell a drafted template from a blank one.
+    sample_map_prefilled_rows: int = 0
 
 
 # ---------------------------------------------------------------------------
@@ -617,6 +623,7 @@ def generate_mame_package(
     tm_max: float = 68.0,
     require_gc_clamp: bool = True,
     topology: str | None = None,
+    expected_mutations_path: Path | None = None,
 ) -> MamePackageResult:
     """Generate the complete MAME input package for a sequencing run.
 
@@ -631,7 +638,9 @@ def generate_mame_package(
        is derived from the ``gene_name`` parameter via
        :func:`_sanitize_gene_prefix`.
     5. Write ``{gene_name}_amplicon.fa`` containing the gene region subsequence.
-    6. Write ``sample_map_template.xlsx`` (blank: column A "sample_name", column B "well").
+    6. Write ``sample_map_template.xlsx`` (column A "sample_name", column B
+       "well"). Header-only by default; pre-filled with a draft placement when
+       ``expected_mutations_path`` is supplied.
     7. Write ``mame_context.json`` at ``project_root`` with schema 1.
 
     Parameters
@@ -676,6 +685,15 @@ def generate_mame_package(
         unrecognised); plain FASTA has no topology annotation and is always
         treated as "linear". Pass "linear" or "circular" explicitly to
         override auto-detection.
+    expected_mutations_path:
+        Optional path to a KURO results xlsx carrying an ``expected_mutations``
+        sheet. When given, ``sample_map_template.xlsx`` is pre-filled with one
+        row per designed mutant in column-major well order plus a trailing
+        ``WT`` control row, so the operator verifies a draft instead of
+        authoring the map from scratch. The placement is the same draft
+        assumption used by ``mame.build_well_layout`` and still requires
+        reconciliation against the physical plate. Omit for a header-only
+        template.
 
     Returns
     -------
@@ -743,9 +761,18 @@ def generate_mame_package(
         gene_name=gene_name,
     )
 
-    # Step 6: sample map template
+    # Step 6: sample map template. Pre-filled with a draft well placement when
+    # a KURO expected_mutations xlsx is supplied, header-only otherwise.
     template_path = output_dir / "sample_map_template.xlsx"
-    _write_sample_map_template(template_path)
+    sample_map_rows: list[tuple[str, str]] = []
+    if expected_mutations_path is not None:
+        sample_map_rows = _build_sample_map_rows(Path(expected_mutations_path))
+        pkg_warnings.append(
+            f"sample_map_template.xlsx pre-filled with {len(sample_map_rows)} draft "
+            "rows from expected_mutations (column-major placement, WT last). "
+            "Verify against the physical plate before running analyze."
+        )
+    _write_sample_map_template(template_path, rows=sample_map_rows or None)
 
     # Step 7: mame_context.json
     context_json_path = project_root / "mame_context.json"
@@ -770,6 +797,7 @@ def generate_mame_package(
         context_json=context_json_path,
         warnings=pkg_warnings,
         amplicon_length=amplicon_length,
+        sample_map_prefilled_rows=len(sample_map_rows),
     )
 
 
@@ -859,8 +887,22 @@ def _write_amplicon_fasta(
             fh.write(amplicon[i:i + 60] + "\n")
 
 
-def _write_sample_map_template(path: Path) -> None:
-    """Write an empty sample-map xlsx with column headers only."""
+def _write_sample_map_template(
+    path: Path,
+    rows: list[tuple[str, str]] | None = None,
+) -> None:
+    """Write the sample-map xlsx consumed by MAME ``analyze``.
+
+    With ``rows`` omitted the sheet carries the header only, leaving the
+    operator to author every well by hand. With ``rows`` supplied (see
+    :func:`_build_sample_map_rows`) the sheet is pre-filled with one
+    ``(sample_name, well)`` pair per row, turning the operator task into
+    "verify and correct" instead of "author from scratch".
+
+    The pre-filled placement is a *draft*: it assumes KURO row order maps to
+    column-major wells with a single WT control after the last mutant. The
+    operator remains responsible for reconciling it with the physical plate.
+    """
     import openpyxl  # local import
 
     wb = openpyxl.Workbook()
@@ -869,7 +911,43 @@ def _write_sample_map_template(path: Path) -> None:
         ws = wb.create_sheet()
     ws.title = "SampleMap"
     ws.append(["sample_name", "well"])
+    for sample_name, well in rows or []:
+        ws.append([sample_name, well])
     wb.save(str(path))
+
+
+def _build_sample_map_rows(expected_mutations_path: Path) -> list[tuple[str, str]]:
+    """Return draft ``(sample_name, well)`` rows from a KURO results xlsx.
+
+    Delegates placement to :func:`kuma_core.mame.layout.build_draft_layout` so
+    the template and the ``mame.build_well_layout`` RPC cannot drift apart:
+    column-major wells for the designed mutants, then a single ``WT`` control.
+
+    Raises
+    ------
+    FileNotFoundError
+        If ``expected_mutations_path`` does not exist.
+    ValueError
+        If the xlsx carries no ``expected_mutations`` sheet or no DESIGNED rows.
+        Callers pass this path deliberately, so an unreadable file is an error
+        rather than a reason to silently emit a blank template.
+    """
+    # Local imports: keep module import cost off the barcode-only code path.
+    from kuma_core.mame.io.kuro_reader import read_expected_mutations
+    from kuma_core.mame.layout import build_draft_layout
+
+    expected = read_expected_mutations(Path(expected_mutations_path))
+    if not expected:
+        raise ValueError(
+            f"No DESIGNED expected mutations found in {expected_mutations_path}; "
+            "cannot pre-fill the sample map template. Omit "
+            "expected_mutations_path to emit a header-only template."
+        )
+    layout = build_draft_layout(expected)
+    # build_draft_layout returns an insertion-ordered dict[well, sample] in
+    # column-major order (WT last when it fits); the sheet stores the columns
+    # in sample_name/well order, matching parse_sample_map.
+    return [(sample, well) for well, sample in layout.items()]
 
 
 def _ctx_path(p: Path, root: Path) -> str:
