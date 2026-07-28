@@ -767,3 +767,70 @@ class TestSampleMapTemplatePrefill:
                 project_root=project_root,
                 expected_mutations_path=expected_xlsx,
             )
+
+    def test_existing_filled_template_is_preserved(self, tmp_path: Path) -> None:
+        """Operator well assignments must survive a re-run of package generation."""
+        fasta, seeds, project_root = _make_project(tmp_path)
+        output_dir = project_root / "design"
+        expected_xlsx = project_root / "kuro_results.xlsx"
+        _make_expected_mutations_xlsx(expected_xlsx, [("V5F", 5, "V", "F")])
+
+        # First run drafts the template; the operator then corrects a placement.
+        first = generate_mame_package(
+            fasta_path=fasta,
+            gene_start=500,
+            gene_end=800,
+            barcode_seeds_path=seeds,
+            output_dir=output_dir,
+            project_root=project_root,
+            expected_mutations_path=expected_xlsx,
+        )
+        assert first.sample_map_preserved is False
+        wb = openpyxl.load_workbook(str(first.sample_map_template))
+        ws = wb.worksheets[0]
+        ws["B2"] = "H12"  # operator moves V5F to the physical well
+        wb.save(str(first.sample_map_template))
+        wb.close()
+
+        # Re-running (e.g. to adjust the gene range) must not discard that edit.
+        second = generate_mame_package(
+            fasta_path=fasta,
+            gene_start=500,
+            gene_end=790,
+            barcode_seeds_path=seeds,
+            output_dir=output_dir,
+            project_root=project_root,
+            expected_mutations_path=expected_xlsx,
+        )
+        assert second.sample_map_preserved is True
+        assert second.sample_map_prefilled_rows == 0
+        assert _read_sample_map(second.sample_map_template) == [("V5F", "H12"), ("WT", "B1")]
+        assert any("left unchanged" in w for w in second.warnings)
+
+    def test_header_only_template_is_replaced(self, tmp_path: Path) -> None:
+        """A template holding no operator work carries no value worth preserving."""
+        fasta, seeds, project_root = _make_project(tmp_path)
+        output_dir = project_root / "design"
+        expected_xlsx = project_root / "kuro_results.xlsx"
+        _make_expected_mutations_xlsx(expected_xlsx, [("V5F", 5, "V", "F")])
+
+        generate_mame_package(
+            fasta_path=fasta,
+            gene_start=500,
+            gene_end=800,
+            barcode_seeds_path=seeds,
+            output_dir=output_dir,
+            project_root=project_root,
+        )  # header-only template
+
+        result = generate_mame_package(
+            fasta_path=fasta,
+            gene_start=500,
+            gene_end=800,
+            barcode_seeds_path=seeds,
+            output_dir=output_dir,
+            project_root=project_root,
+            expected_mutations_path=expected_xlsx,
+        )
+        assert result.sample_map_preserved is False
+        assert _read_sample_map(result.sample_map_template) == [("V5F", "A1"), ("WT", "B1")]

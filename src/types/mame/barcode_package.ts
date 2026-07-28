@@ -61,6 +61,11 @@ export interface MamePackageResult {
   warnings: string[]
   /** Computed PCR amplicon length (bp) from primer binding positions, or null if unresolved. */
   amplicon_length: number | null
-  /** Pre-filled data rows in sample_map_template (0 = header only). */
+  /** Pre-filled data rows in sample_map_template (0 = header only, or preserved). */
   sample_map_prefilled_rows: number
+  /**
+   * True when an existing sample_map_template.xlsx already held well
+   * assignments and was left untouched rather than regenerated.
+   */
+  sample_map_preserved: boolean
 }

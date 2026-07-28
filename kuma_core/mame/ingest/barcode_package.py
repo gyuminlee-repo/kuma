@@ -600,6 +600,9 @@ class MamePackageResult:
     #: only, i.e. no ``expected_mutations_path`` was supplied). The UI reports
     #: this so an operator can tell a drafted template from a blank one.
     sample_map_prefilled_rows: int = 0
+    #: True when an existing ``sample_map_template.xlsx`` already carried well
+    #: assignments and was therefore left untouched instead of regenerated.
+    sample_map_preserved: bool = False
 
 
 # ---------------------------------------------------------------------------
@@ -640,7 +643,9 @@ def generate_mame_package(
     5. Write ``{gene_name}_amplicon.fa`` containing the gene region subsequence.
     6. Write ``sample_map_template.xlsx`` (column A "sample_name", column B
        "well"). Header-only by default; pre-filled with a draft placement when
-       ``expected_mutations_path`` is supplied.
+       ``expected_mutations_path`` is supplied. An existing template that
+       already holds data rows is left untouched (operator well assignments
+       cannot be regenerated) and reported via ``sample_map_preserved``.
     7. Write ``mame_context.json`` at ``project_root`` with schema 1.
 
     Parameters
@@ -763,16 +768,31 @@ def generate_mame_package(
 
     # Step 6: sample map template. Pre-filled with a draft well placement when
     # a KURO expected_mutations xlsx is supplied, header-only otherwise.
+    #
+    # An existing template that already carries data rows is left untouched: it
+    # holds hand-entered well assignments, and regeneration is routinely re-run
+    # to adjust the gene range or polymerase. The caller confirms overwriting
+    # output_dir as a whole, which is not informed consent for discarding the
+    # one file in it that only the operator can reproduce.
     template_path = output_dir / "sample_map_template.xlsx"
     sample_map_rows: list[tuple[str, str]] = []
-    if expected_mutations_path is not None:
+    sample_map_preserved = _sample_map_has_data(template_path)
+    if expected_mutations_path is not None and not sample_map_preserved:
         sample_map_rows = _build_sample_map_rows(Path(expected_mutations_path))
+    if sample_map_preserved:
         pkg_warnings.append(
-            f"sample_map_template.xlsx pre-filled with {len(sample_map_rows)} draft "
-            "rows from expected_mutations (column-major placement, WT last). "
-            "Verify against the physical plate before running analyze."
+            f"sample_map_template.xlsx already contains well assignments and was "
+            f"left unchanged ({template_path}). Delete or rename it to regenerate "
+            "a draft template."
         )
-    _write_sample_map_template(template_path, rows=sample_map_rows or None)
+    else:
+        if sample_map_rows:
+            pkg_warnings.append(
+                f"sample_map_template.xlsx pre-filled with {len(sample_map_rows)} draft "
+                "rows from expected_mutations (column-major placement, WT last). "
+                "Verify against the physical plate before running analyze."
+            )
+        _write_sample_map_template(template_path, rows=sample_map_rows or None)
 
     # Step 7: mame_context.json
     context_json_path = project_root / "mame_context.json"
@@ -798,6 +818,7 @@ def generate_mame_package(
         warnings=pkg_warnings,
         amplicon_length=amplicon_length,
         sample_map_prefilled_rows=len(sample_map_rows),
+        sample_map_preserved=sample_map_preserved,
     )
 
 
@@ -914,6 +935,36 @@ def _write_sample_map_template(
     for sample_name, well in rows or []:
         ws.append([sample_name, well])
     wb.save(str(path))
+
+
+def _sample_map_has_data(path: Path) -> bool:
+    """Return True if ``path`` is an xlsx carrying at least one data row.
+
+    Used to decide whether re-running package generation may overwrite an
+    existing ``sample_map_template.xlsx``. A header-only sheet holds no operator
+    work and is safe to replace; a sheet with data rows holds hand-entered well
+    assignments and must survive. An unreadable or corrupt file is treated as
+    "no data" so a broken template never blocks regeneration.
+    """
+    if not path.exists():
+        return False
+
+    import openpyxl  # local import
+
+    try:
+        wb = openpyxl.load_workbook(str(path), read_only=True, data_only=True)
+    except Exception:  # noqa: BLE001 - unreadable file: fall through to rewrite
+        return False
+    try:
+        ws = wb.worksheets[0]
+        for i, row in enumerate(ws.iter_rows(values_only=True)):
+            if i == 0:  # header
+                continue
+            if any(c is not None and str(c).strip() != "" for c in row):
+                return True
+        return False
+    finally:
+        wb.close()
 
 
 def _build_sample_map_rows(expected_mutations_path: Path) -> list[tuple[str, str]]:

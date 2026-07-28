@@ -41,7 +41,9 @@ Response schema
   context_json          (str) -- absolute path
   warnings              (list[str]) -- non-critical messages from primer design
   sample_map_prefilled_rows (int) -- pre-filled data rows in the template
-                         (0 = header only)
+                         (0 = header only, or template left untouched)
+  sample_map_preserved  (bool) -- true when an existing template already held
+                         well assignments and was therefore not rewritten
 """
 
 from __future__ import annotations
@@ -193,6 +195,7 @@ def handle_generate_mame_package(params: dict) -> dict:
         "warnings": result.warnings,
         "amplicon_length": result.amplicon_length,
         "sample_map_prefilled_rows": result.sample_map_prefilled_rows,
+        "sample_map_preserved": result.sample_map_preserved,
     }
 
 
