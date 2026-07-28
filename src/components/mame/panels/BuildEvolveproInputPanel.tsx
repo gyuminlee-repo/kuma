@@ -30,6 +30,7 @@ import { describeRpcError, extractMissingMethod } from "@/lib/errors";
 import { revealInOSFolder } from "@/lib/openFolder";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { InlineHelp } from "@/components/ui/InlineHelp";
 import { Label } from "@/components/ui/label";
 import type {
   BuildEvolveproInputParams,
@@ -321,6 +322,11 @@ export function BuildEvolveproInputPanel() {
                 ? t("mame.buildEvolvepro.sourceModeRankHelper")
                 : t("mame.buildEvolvepro.sourceModeReportsHelper")
             }
+            helpText={
+              form.sourceMode === "rank"
+                ? t("mame.buildEvolvepro.sourceModeRankHelper")
+                : t("mame.buildEvolvepro.sourceModeReportsHelper")
+            }
             options={[
               { value: "rank", label: t("mame.buildEvolvepro.sourceModeRank") },
               {
@@ -345,6 +351,7 @@ export function BuildEvolveproInputPanel() {
                   browseXlsx("layoutXlsx", t("mame.buildEvolvepro.layoutXlsx"))
                 }
                 helperText={t("mame.buildEvolvepro.layoutXlsxHelper")}
+                helpText={t("mame.buildEvolvepro.layoutXlsxHelper")}
               />
               <FilePickerField
                 id="bep-gc"
@@ -355,6 +362,7 @@ export function BuildEvolveproInputPanel() {
                   browseXlsx("gcDataXlsx", t("mame.buildEvolvepro.gcDataXlsx"))
                 }
                 helperText={t("mame.buildEvolvepro.gcDataXlsxHelper")}
+                helpText={t("mame.buildEvolvepro.gcDataXlsxHelper")}
               />
               <FilePickerField
                 id="bep-rep"
@@ -369,6 +377,7 @@ export function BuildEvolveproInputPanel() {
                   )
                 }
                 helperText={t("mame.buildEvolvepro.repBatchXlsxHelper")}
+                helpText={t("mame.buildEvolvepro.repBatchXlsxHelper")}
               />
               <FilePickerField
                 id="bep-prev"
@@ -383,6 +392,7 @@ export function BuildEvolveproInputPanel() {
                   )
                 }
                 helperText={t("mame.buildEvolvepro.prevEvolveproXlsxHelper")}
+                helpText={t("mame.buildEvolvepro.prevEvolveproXlsxHelper")}
               />
             </>
           ) : (
@@ -391,6 +401,11 @@ export function BuildEvolveproInputPanel() {
               <ChoiceToggle
                 label={t("mame.buildEvolvepro.round1SourceLabel")}
                 helperText={
+                  form.round1Source === "prev"
+                    ? t("mame.buildEvolvepro.round1SourcePrevHelper")
+                    : t("mame.buildEvolvepro.round1SourceRawHelper")
+                }
+                helpText={
                   form.round1Source === "prev"
                     ? t("mame.buildEvolvepro.round1SourcePrevHelper")
                     : t("mame.buildEvolvepro.round1SourceRawHelper")
@@ -427,6 +442,9 @@ export function BuildEvolveproInputPanel() {
                     helperText={t(
                       "mame.buildEvolvepro.round1EvolveproXlsxHelper",
                     )}
+                    helpText={t(
+                      "mame.buildEvolvepro.round1EvolveproXlsxHelper",
+                    )}
                   />
                   <FilePickerField
                     id="bep-layout-optional"
@@ -441,6 +459,9 @@ export function BuildEvolveproInputPanel() {
                       )
                     }
                     helperText={t(
+                      "mame.buildEvolvepro.layoutXlsxOptionalHelper",
+                    )}
+                    helpText={t(
                       "mame.buildEvolvepro.layoutXlsxOptionalHelper",
                     )}
                   />
@@ -459,6 +480,7 @@ export function BuildEvolveproInputPanel() {
                       )
                     }
                     helperText={t("mame.buildEvolvepro.layoutXlsxHelper")}
+                    helpText={t("mame.buildEvolvepro.layoutXlsxHelper")}
                   />
                   <FilePickerField
                     id="bep-round1"
@@ -472,6 +494,7 @@ export function BuildEvolveproInputPanel() {
                       )
                     }
                     helperText={t("mame.buildEvolvepro.round1ReportXlsxHelper")}
+                    helpText={t("mame.buildEvolvepro.round1ReportXlsxHelper")}
                   />
                 </>
               )}
@@ -488,6 +511,7 @@ export function BuildEvolveproInputPanel() {
                   )
                 }
                 helperText={t("mame.buildEvolvepro.remeasureReportXlsxHelper")}
+                helpText={t("mame.buildEvolvepro.remeasureReportXlsxHelper")}
               />
               <FilePickerField
                 id="bep-verdict"
@@ -499,6 +523,7 @@ export function BuildEvolveproInputPanel() {
                   browseXlsx("verdictXlsx", t("mame.buildEvolvepro.verdictXlsx"))
                 }
                 helperText={t("mame.buildEvolvepro.verdictXlsxHelper")}
+                helpText={t("mame.buildEvolvepro.verdictXlsxHelper")}
               />
             </>
           )}
@@ -514,12 +539,15 @@ export function BuildEvolveproInputPanel() {
         </h3>
         <div className="space-y-1.5">
           <div className="flex items-center justify-between gap-3">
-            <Label
-              htmlFor="bep-output-path"
-              className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
-            >
-              {t("mame.buildEvolvepro.outputXlsx")}
-            </Label>
+            <span className="inline-flex items-center gap-1.5">
+              <Label
+                htmlFor="bep-output-path"
+                className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+              >
+                {t("mame.buildEvolvepro.outputXlsx")}
+              </Label>
+              <InlineHelp text={t("mame.buildEvolvepro.outputXlsxHelper")} />
+            </span>
             <span
               className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                 form.outputXlsx
@@ -819,18 +847,23 @@ function ChoiceToggle({
   selected,
   onSelect,
   helperText,
+  helpText,
 }: {
   label: string;
   options: { value: string; label: string }[];
   selected: string;
   onSelect: (value: string) => void;
   helperText?: string;
+  helpText?: string;
 }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        {label}
-      </Label>
+      <span className="inline-flex items-center gap-1.5">
+        <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          {label}
+        </Label>
+        {helpText && <InlineHelp text={helpText} />}
+      </span>
       <div className="flex gap-1.5" role="radiogroup" aria-label={label}>
         {options.map((o) => (
           <Button
@@ -861,6 +894,7 @@ function FilePickerField({
   value,
   onBrowse,
   helperText,
+  helpText,
   optional = false,
 }: {
   id: string;
@@ -869,6 +903,7 @@ function FilePickerField({
   value: string;
   onBrowse: () => Promise<void>;
   helperText?: string;
+  helpText?: string;
   optional?: boolean;
 }) {
   const { t } = useTranslation();
@@ -876,12 +911,15 @@ function FilePickerField({
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between gap-3">
-        <Label
-          htmlFor={id}
-          className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
-        >
-          {label}
-        </Label>
+        <span className="inline-flex items-center gap-1.5">
+          <Label
+            htmlFor={id}
+            className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+          >
+            {label}
+          </Label>
+          {helpText && <InlineHelp text={helpText} />}
+        </span>
         <span
           className={`rounded-full px-2 py-0.5 text-xs font-medium ${
             filled ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"

@@ -7,7 +7,7 @@
  * letting the backend _mode_xor validator reject it.
  */
 
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockSetBuildEvolveproCompletion = vi.hoisted(() => vi.fn());
@@ -75,6 +75,15 @@ const RESULT = {
 
 const BUILD_LABEL = "Build EVOLVEpro input";
 
+function helpButtonFor(labelText: string): HTMLElement {
+  const label = screen.getByText(labelText, { selector: "label" });
+  const wrapper = label.parentElement;
+  if (!wrapper) {
+    throw new Error(`Expected ${labelText} label to have a help wrapper`);
+  }
+  return within(wrapper).getByRole("button");
+}
+
 function deferredBuild() {
   let resolve!: (value: typeof RESULT) => void;
   const promise = new Promise<typeof RESULT>((res) => {
@@ -98,6 +107,49 @@ describe("BuildEvolveproInputPanel source-mode toggle", () => {
     expect(missing.textContent).toContain("Plate layout xlsx");
     expect(missing.textContent).toContain("GC data xlsx");
     expect(missing.textContent).toContain("Output EVOLVEpro xlsx");
+  });
+
+  it("offers inline help toggles for EVOLVEpro source and file inputs", () => {
+    render(<BuildEvolveproInputPanel />);
+
+    expect(screen.getAllByRole("button", { name: "Show help" })).toHaveLength(
+      6,
+    );
+
+    const activitySourceHelp = helpButtonFor("Activity source");
+    fireEvent.click(activitySourceHelp);
+
+    expect(screen.getByRole("tooltip")).toHaveTextContent(
+      "Pre-normalised GC data per well",
+    );
+
+    fireEvent.click(activitySourceHelp);
+    fireEvent.click(helpButtonFor("GC data xlsx"));
+
+    expect(screen.getByRole("tooltip")).toHaveTextContent(
+      "Pre-normalised relative activity per well",
+    );
+
+    fireEvent.click(screen.getByRole("radio", { name: "Raw Agilent reports" }));
+
+    expect(screen.getAllByRole("button", { name: "Show help" })).toHaveLength(
+      7,
+    );
+
+    const round1SourceHelp = helpButtonFor("Round-1 source");
+    fireEvent.click(round1SourceHelp);
+
+    expect(screen.getByRole("tooltip")).toHaveTextContent(
+      "Use a prior EVOLVEpro file",
+    );
+
+    fireEvent.click(round1SourceHelp);
+    fireEvent.click(screen.getByRole("radio", { name: "Raw GC-FID report" }));
+    fireEvent.click(helpButtonFor("Round-1 source"));
+
+    expect(screen.getByRole("tooltip")).toHaveTextContent(
+      "Use a raw GC-FID report with well names",
+    );
   });
 
   it("focuses the matching field when a missing input is clicked", () => {
