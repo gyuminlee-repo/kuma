@@ -19,7 +19,7 @@
  * localStorage `kuma:mame:buildEvolvepro`.
  */
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { FolderOpen, Loader2, AlertTriangle } from "lucide-react";
@@ -37,6 +37,7 @@ import type {
 } from "@/types/mame/build_evolvepro_input";
 import {
   type BuildEvolveproFormState as FormState,
+  buildEvolveproFormSignature,
   loadBuildEvolveproFromStorage as loadFromStorage,
   saveBuildEvolveproToStorage as saveToStorage,
   BUILD_EVOLVEPRO_DEFAULT_STATE,
@@ -66,11 +67,18 @@ export function BuildEvolveproInputPanel() {
   const setBuildEvolveproCompletion = useMameAppStore(
     (s) => s.setBuildEvolveproCompletion,
   );
+  const formRef = useRef(form);
+  const formGenerationRef = useRef(0);
+
+  useEffect(() => {
+    formRef.current = form;
+  }, [form]);
 
   function setForm(partial: Partial<FormState>) {
     setFormRaw((prev) => {
       const next = { ...prev, ...partial };
       saveToStorage(next);
+      formGenerationRef.current += 1;
       setBuildEvolveproCompletion(null);
       return next;
     });
@@ -96,6 +104,7 @@ export function BuildEvolveproInputPanel() {
   useEffect(() => {
     if (resetEpoch === 0) return;
     setFormRaw(BUILD_EVOLVEPRO_DEFAULT_STATE);
+    formGenerationRef.current += 1;
     setShowRestoredNotice(false);
     setBuildEvolveproCompletion(null);
     setResult(null);
@@ -208,9 +217,17 @@ export function BuildEvolveproInputPanel() {
     setResult(null);
 
     const params = buildParams();
+    const buildGeneration = formGenerationRef.current;
+    const buildSignature = buildEvolveproFormSignature(form);
 
     try {
       const res = await buildEvolveproInput(params);
+      if (
+        formGenerationRef.current !== buildGeneration ||
+        buildEvolveproFormSignature(formRef.current) !== buildSignature
+      ) {
+        return;
+      }
       setResult(res);
       setBuildEvolveproCompletion(
         createBuildEvolveproCompletion(form, res.output_path),
@@ -251,6 +268,7 @@ export function BuildEvolveproInputPanel() {
   function handleClearRestored() {
     setFormRaw(BUILD_EVOLVEPRO_DEFAULT_STATE);
     saveToStorage(BUILD_EVOLVEPRO_DEFAULT_STATE);
+    formGenerationRef.current += 1;
     setShowRestoredNotice(false);
     setBuildEvolveproCompletion(null);
     setResult(null);

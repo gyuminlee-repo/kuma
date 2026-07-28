@@ -75,6 +75,14 @@ const RESULT = {
 
 const BUILD_LABEL = "Build EVOLVEpro input";
 
+function deferredBuild() {
+  let resolve!: (value: typeof RESULT) => void;
+  const promise = new Promise<typeof RESULT>((res) => {
+    resolve = res;
+  });
+  return { promise, resolve };
+}
+
 beforeEach(() => {
   localStorage.clear();
   vi.clearAllMocks();
@@ -145,6 +153,32 @@ describe("BuildEvolveproInputPanel source-mode toggle", () => {
         "/out/ep.xlsx",
       ),
     );
+  });
+
+  it("ignores a successful build that resolves after the form changed", async () => {
+    const pending = deferredBuild();
+    mockBuild.mockReturnValueOnce(pending.promise);
+    seed({
+      layoutXlsx: "/in/layout.xlsx",
+      gcDataXlsx: "/in/gc.xlsx",
+      outputXlsx: "/out/ep.xlsx",
+    });
+    render(<BuildEvolveproInputPanel />);
+
+    fireEvent.click(screen.getByRole("button", { name: BUILD_LABEL }));
+    await waitFor(() => expect(mockBuild).toHaveBeenCalledTimes(1));
+
+    fireEvent.click(screen.getByRole("button", { name: "Clear restored EVOLVEpro inputs" }));
+    pending.resolve(RESULT);
+
+    await waitFor(() =>
+      expect(mockSetBuildEvolveproCompletion).toHaveBeenLastCalledWith(null),
+    );
+    expect(
+      mockSetBuildEvolveproCompletion.mock.calls.some(
+        ([completion]) => completion !== null,
+      ),
+    ).toBe(false);
   });
 
   it("swaps the visible file pickers when reports mode is selected", () => {

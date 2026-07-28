@@ -109,7 +109,9 @@ export interface BuildEvolveproCompletionRecord {
   signature: string;
 }
 
-function buildCompletionSignature(state: BuildEvolveproFormState): string {
+export function buildEvolveproFormSignature(
+  state: BuildEvolveproFormState,
+): string {
   return JSON.stringify({
     sourceMode: state.sourceMode,
     round1Source: state.round1Source,
@@ -131,7 +133,7 @@ export function createBuildEvolveproCompletion(
 ): BuildEvolveproCompletionRecord {
   return {
     outputPath,
-    signature: buildCompletionSignature(state),
+    signature: buildEvolveproFormSignature(state),
   };
 }
 
@@ -142,7 +144,7 @@ export function hasCompletedBuildEvolveproOutput(
   if (!isBuildEvolveproFormReady(state)) return false;
   return (
     completion?.outputPath === state.outputXlsx &&
-    completion.signature === buildCompletionSignature(state)
+    completion.signature === buildEvolveproFormSignature(state)
   );
 }
 
