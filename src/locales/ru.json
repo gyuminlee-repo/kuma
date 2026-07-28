@@ -309,7 +309,20 @@
       "bindingMinLenHelp": "Minimum primer binding length (nt). Typical 18-22 for stable PCR priming.",
       "bindingMaxLenHelp": "Maximum primer binding length (nt). Above 35 increases secondary structure risk.",
       "flankWarningUpstream": "Primer design may fail on a linear template: needs at least {{needed}} bp upstream of gene_start, but only {{available}} bp is available (short by {{shortfall}} bp).",
-      "flankWarningDownstream": "Primer design may fail on a linear template: needs at least {{needed}} bp downstream of gene_end, but only {{available}} bp is available (short by {{shortfall}} bp)."
+      "flankWarningDownstream": "Primer design may fail on a linear template: needs at least {{needed}} bp downstream of gene_end, but only {{available}} bp is available (short by {{shortfall}} bp).",
+      "cdsTooltipLabel": "Метка: {{label}}",
+      "cdsTooltipRange": "Диапазон: {{start}}-{{end}}",
+      "cdsTooltipLength": "Длина: {{length}} aa",
+      "cdsTooltipSource": "Источник: {{source}}",
+      "geneStartHelper": "Начало gene в референсе. 0-based, включительно.",
+      "geneEndHelper": "Конец gene в референсе. 0-based, не включая.",
+      "generatedFileLabels": {
+        "barcodes": "Таблица barcode (xlsx)",
+        "amplicon": "Референс amplicon (FASTA)",
+        "sampleMapTemplate": "Шаблон sample map (xlsx)",
+        "contextJson": "Run context (JSON)"
+      },
+      "openFolderError": "Не удалось открыть папку."
     },
     "activity": {
       "title": "Данные активности",
@@ -1504,7 +1517,8 @@
     "descStart": "Выберите папку по умолчанию для проектов. kuma хранит каждый Kuro design и Mame verdict run в собственной папке проекта, чтобы работа сохранялась между неделями ожидания sequencing.",
     "chooseFolderBtn": "Выбрать папку",
     "doneBtn": "Готово",
-    "insideEachProject": "Внутри каждого проекта"
+    "insideEachProject": "Внутри каждого проекта",
+    "maximizeHint": "Разверните окно для лучшего отображения. kuma рассчитан на широкую рабочую область."
   },
   "appLayout": {
     "status": "Статус",
@@ -2472,7 +2486,9 @@
     "mappingRange": "Mapping range",
     "rowStart": "Start row",
     "rowEnd": "End row",
-    "subtitle": "Echo and Janus mapping files are independent Excel/CSV outputs."
+    "subtitle": "Echo and Janus mapping files are independent Excel/CSV outputs.",
+    "destWell": "Целевая well",
+    "missing": "нет"
   },
   "errors": {
     "sequence": {
@@ -2594,5 +2610,14 @@
     "noVariants": "No candidates to display. Load EVOLVEpro results and run a design to see candidates on the structure.",
     "fallbackNote": "Showing all {{count}} ranked candidates.",
     "dispersionChartTitle": "Selection vs random (null distribution)"
+  },
+  "appShell": {
+    "sidebarResize": "Изменить ширину боковой панели"
+  },
+  "artifact": {
+    "badge": {
+      "staleHint": "Старее входных данных, из которых получен. Запустите шаг заново, чтобы обновить.",
+      "detected": "Обнаружен вывод шага {{step}}"
+    }
   }
 }

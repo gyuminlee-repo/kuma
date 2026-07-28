@@ -309,7 +309,20 @@
       "bindingMinLenHelp": "Minimum primer binding length (nt). Typical 18-22 for stable PCR priming.",
       "bindingMaxLenHelp": "Maximum primer binding length (nt). Above 35 increases secondary structure risk.",
       "flankWarningUpstream": "Primer design may fail on a linear template: needs at least {{needed}} bp upstream of gene_start, but only {{available}} bp is available (short by {{shortfall}} bp).",
-      "flankWarningDownstream": "Primer design may fail on a linear template: needs at least {{needed}} bp downstream of gene_end, but only {{available}} bp is available (short by {{shortfall}} bp)."
+      "flankWarningDownstream": "Primer design may fail on a linear template: needs at least {{needed}} bp downstream of gene_end, but only {{available}} bp is available (short by {{shortfall}} bp).",
+      "cdsTooltipLabel": "Etiqueta: {{label}}",
+      "cdsTooltipRange": "Rango: {{start}}-{{end}}",
+      "cdsTooltipLength": "Longitud: {{length}} aa",
+      "cdsTooltipSource": "Origen: {{source}}",
+      "geneStartHelper": "Inicio del gene en la referencia. 0-based, inclusivo.",
+      "geneEndHelper": "Fin del gene en la referencia. 0-based, exclusivo.",
+      "generatedFileLabels": {
+        "barcodes": "Tabla de barcodes (xlsx)",
+        "amplicon": "Referencia de amplicon (FASTA)",
+        "sampleMapTemplate": "Plantilla de sample map (xlsx)",
+        "contextJson": "Run context (JSON)"
+      },
+      "openFolderError": "No se pudo abrir la carpeta."
     },
     "activity": {
       "title": "Datos de actividad",
@@ -1504,7 +1517,8 @@
     "descStart": "Elegir una carpeta por defecto para los proyectos. kuma mantiene cada diseño de Kuro y cada corrida de verdict de Mame dentro de su propia carpeta de proyecto, de modo que el trabajo sobrevive a los tiempos de respuesta de secuenciación de semanas.",
     "chooseFolderBtn": "Elegir carpeta",
     "doneBtn": "Hecho",
-    "insideEachProject": "Dentro de cada proyecto"
+    "insideEachProject": "Dentro de cada proyecto",
+    "maximizeHint": "Maximiza la ventana para un mejor ajuste. kuma está diseñado para un área de trabajo amplia."
   },
   "appLayout": {
     "status": "Estado",
@@ -2472,7 +2486,9 @@
     "mappingRange": "Mapping range",
     "rowStart": "Start row",
     "rowEnd": "End row",
-    "subtitle": "Echo and Janus mapping files are independent Excel/CSV outputs."
+    "subtitle": "Echo and Janus mapping files are independent Excel/CSV outputs.",
+    "destWell": "Well destino",
+    "missing": "falta"
   },
   "errors": {
     "sequence": {
@@ -2594,5 +2610,14 @@
     "noVariants": "No candidates to display. Load EVOLVEpro results and run a design to see candidates on the structure.",
     "fallbackNote": "Showing all {{count}} ranked candidates.",
     "dispersionChartTitle": "Selection vs random (null distribution)"
+  },
+  "appShell": {
+    "sidebarResize": "Redimensionar barra lateral"
+  },
+  "artifact": {
+    "badge": {
+      "staleHint": "Más antiguo que las entradas de las que proviene. Vuelve a ejecutar el paso para actualizarlo.",
+      "detected": "Salida de {{step}} detectada"
+    }
   }
 }

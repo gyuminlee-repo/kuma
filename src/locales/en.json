@@ -327,7 +327,20 @@
       "bindingMinLenHelp": "Minimum primer binding length (nt). Typical 18-22 for stable PCR priming.",
       "bindingMaxLenHelp": "Maximum primer binding length (nt). Above 35 increases secondary structure risk.",
       "flankWarningUpstream": "Primer design may fail on a linear template: needs at least {{needed}} bp upstream of gene_start, but only {{available}} bp is available (short by {{shortfall}} bp).",
-      "flankWarningDownstream": "Primer design may fail on a linear template: needs at least {{needed}} bp downstream of gene_end, but only {{available}} bp is available (short by {{shortfall}} bp)."
+      "flankWarningDownstream": "Primer design may fail on a linear template: needs at least {{needed}} bp downstream of gene_end, but only {{available}} bp is available (short by {{shortfall}} bp).",
+      "cdsTooltipLabel": "Label: {{label}}",
+      "cdsTooltipRange": "Range: {{start}}-{{end}}",
+      "cdsTooltipLength": "Length: {{length}} aa",
+      "cdsTooltipSource": "Source: {{source}}",
+      "geneStartHelper": "Gene start in the reference. 0-based, inclusive.",
+      "geneEndHelper": "Gene end in the reference. 0-based, exclusive.",
+      "generatedFileLabels": {
+        "barcodes": "Barcode table (xlsx)",
+        "amplicon": "Amplicon reference (FASTA)",
+        "sampleMapTemplate": "Sample map template (xlsx)",
+        "contextJson": "Run context (JSON)"
+      },
+      "openFolderError": "Could not open the folder."
     },
     "activity": {
       "ingest": {
@@ -1010,7 +1023,9 @@
     "legendDestPartial": "Only F or R arrived",
     "mappingRange": "Mapping range",
     "rowStart": "Start row",
-    "rowEnd": "End row"
+    "rowEnd": "End row",
+    "destWell": "Dest well",
+    "missing": "missing"
   },
   "globalAppBar": {
     "navAriaLabel": "Application navigation",
@@ -1523,7 +1538,8 @@
     "descStart": "Choose a default folder for projects. kuma keeps every Kuro design and Mame verdict run inside its own project folder so the work survives across weeks-long sequencing turnaround.",
     "chooseFolderBtn": "Choose folder",
     "doneBtn": "Done",
-    "insideEachProject": "Inside each project"
+    "insideEachProject": "Inside each project",
+    "maximizeHint": "Maximize the window for the best fit. kuma is laid out for a wide workspace."
   },
   "appLayout": {
     "status": "Status",
@@ -2594,5 +2610,14 @@
     "noVariants": "No candidates to display. Load EVOLVEpro results and run a design to see candidates on the structure.",
     "fallbackNote": "Showing all {{count}} ranked candidates.",
     "dispersionChartTitle": "Selection vs random (null distribution)"
+  },
+  "appShell": {
+    "sidebarResize": "Resize sidebar"
+  },
+  "artifact": {
+    "badge": {
+      "staleHint": "Older than the inputs it came from. Re-run the step to refresh it.",
+      "detected": "{{step}} output detected"
+    }
   }
 }
