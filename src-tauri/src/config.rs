@@ -40,6 +40,22 @@ fn prod_config_root() -> PathBuf {
         .join(".kuma")
 }
 
+fn expand_home(path: &Path) -> PathBuf {
+    let Some(raw) = path.to_str() else {
+        return path.to_path_buf();
+    };
+    let Some(home) = dirs::home_dir() else {
+        return path.to_path_buf();
+    };
+    if raw == "~" {
+        return home;
+    }
+    if let Some(rest) = raw.strip_prefix("~/").or_else(|| raw.strip_prefix("~\\")) {
+        return home.join(rest);
+    }
+    path.to_path_buf()
+}
+
 fn read_config_file(config_root: &Path) -> Result<Config, String> {
     let text = fs::read_to_string(config_file(config_root)).map_err(|e| e.to_string())?;
     serde_json::from_str(&text).map_err(|e| e.to_string())
@@ -72,13 +88,14 @@ pub fn load_or_init_config(config_root: &Path) -> Result<Config, String> {
 }
 
 pub fn set_projects_root(config_root: &Path, new_root: &Path) -> Result<Config, String> {
-    fs::create_dir_all(new_root).map_err(|e| e.to_string())?;
+    let expanded_root = expand_home(new_root);
+    fs::create_dir_all(&expanded_root).map_err(|e| e.to_string())?;
     let mut cfg = match load_or_init_config(config_root) {
         Ok(c) => c,
         Err(e) if e == "NeedsReconfigure" => read_config_file(config_root)?,
         Err(e) => return Err(e),
     };
-    cfg.projects_root = new_root.to_path_buf();
+    cfg.projects_root = expanded_root;
     save_config(config_root, &cfg)?;
     Ok(cfg)
 }

@@ -37,6 +37,12 @@ vi.mock("@/components/mame/panels/BuildEvolveproInputPanel", () => ({
 import { ActivityStepView } from "./ActivityStepView";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { ACTIVITY_ROUTE_STORAGE_KEY } from "@/lib/mame/activityRouteStorage";
+import {
+  BUILD_EVOLVEPRO_STORAGE_KEY,
+  BUILD_EVOLVEPRO_DEFAULT_STATE,
+  markBuildEvolveproComplete,
+  type BuildEvolveproFormState,
+} from "@/lib/mame/buildEvolveproFormStorage";
 
 describe("ActivityStepView", () => {
   beforeEach(() => {
@@ -60,6 +66,15 @@ describe("ActivityStepView", () => {
 
   it("blocks Activity next until the selected route has produced EVOLVEpro inputs", async () => {
     localStorage.setItem(ACTIVITY_ROUTE_STORAGE_KEY, JSON.stringify("plateLayout"));
+    localStorage.setItem(
+      BUILD_EVOLVEPRO_STORAGE_KEY,
+      JSON.stringify({
+        ...BUILD_EVOLVEPRO_DEFAULT_STATE,
+        layoutXlsx: "/in/layout.xlsx",
+        gcDataXlsx: "/in/gc.xlsx",
+        outputXlsx: "/out/ep.xlsx",
+      }),
+    );
 
     render(<ActivityStepView />);
 
@@ -67,6 +82,53 @@ describe("ActivityStepView", () => {
 
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
     expect(screen.getByText("Complete the selected Activity route")).toBeInTheDocument();
+    expect(useMameAppStore.getState().currentMameSubStep).toBe("activity.ingest");
+  });
+
+  it("allows Activity next after the selected plate-layout route has a completed build", () => {
+    localStorage.setItem(ACTIVITY_ROUTE_STORAGE_KEY, JSON.stringify("plateLayout"));
+    const completedForm: BuildEvolveproFormState = {
+      ...BUILD_EVOLVEPRO_DEFAULT_STATE,
+      layoutXlsx: "/in/layout.xlsx",
+      gcDataXlsx: "/in/gc.xlsx",
+      outputXlsx: "/out/ep.xlsx",
+    };
+    localStorage.setItem(
+      BUILD_EVOLVEPRO_STORAGE_KEY,
+      JSON.stringify(completedForm),
+    );
+    markBuildEvolveproComplete(completedForm, "/out/ep.xlsx");
+
+    render(<ActivityStepView />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(useMameAppStore.getState().currentMameSubStep).toBe("activity.signals");
+  });
+
+  it("blocks Activity next when the completed build belongs to stale restored inputs", async () => {
+    localStorage.setItem(ACTIVITY_ROUTE_STORAGE_KEY, JSON.stringify("plateLayout"));
+    const completedForm: BuildEvolveproFormState = {
+      ...BUILD_EVOLVEPRO_DEFAULT_STATE,
+      layoutXlsx: "/in/layout.xlsx",
+      gcDataXlsx: "/in/gc.xlsx",
+      outputXlsx: "/out/ep.xlsx",
+    };
+    markBuildEvolveproComplete(completedForm, "/out/ep.xlsx");
+    localStorage.setItem(
+      BUILD_EVOLVEPRO_STORAGE_KEY,
+      JSON.stringify({
+        ...completedForm,
+        gcDataXlsx: "/other/gc.xlsx",
+      }),
+    );
+
+    render(<ActivityStepView />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
     expect(useMameAppStore.getState().currentMameSubStep).toBe("activity.ingest");
   });
 });

@@ -32,6 +32,8 @@ import { buildEvolveproInput } from "@/lib/ipc-mame";
 import {
   BUILD_EVOLVEPRO_STORAGE_KEY,
   BUILD_EVOLVEPRO_DEFAULT_STATE,
+  hasCompletedBuildEvolveproOutput,
+  loadBuildEvolveproFromStorage,
   type BuildEvolveproFormState,
 } from "@/lib/mame/buildEvolveproFormStorage";
 import { BuildEvolveproInputPanel } from "./BuildEvolveproInputPanel";
@@ -123,6 +125,9 @@ describe("BuildEvolveproInputPanel source-mode toggle", () => {
       prev_evolvepro_xlsx: undefined,
       output_xlsx: "/out/ep.xlsx",
     });
+    expect(
+      hasCompletedBuildEvolveproOutput(loadBuildEvolveproFromStorage()),
+    ).toBe(true);
   });
 
   it("swaps the visible file pickers when reports mode is selected", () => {

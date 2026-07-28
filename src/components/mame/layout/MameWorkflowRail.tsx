@@ -13,6 +13,7 @@ import { WorkflowRail, type WorkflowStep } from "@/components/widgets/WorkflowRa
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import type { MameSubStepId } from "@/store/mame/slices/mameSubSteps";
 import type { MamePhase } from "@/store/mame/slices/phaseSlice";
+import { isMameSubStepDone } from "@/lib/mame/mameStepCompletion";
 
 const ALL_SUBSTEPS: MameSubStepId[] = [
   "setup.files",
@@ -94,6 +95,12 @@ export function MameWorkflowRail() {
   const currentSubStep = useMameAppStore((s) => s.currentMameSubStep);
   const setMamePhase = useMameAppStore((s) => s.setMamePhase);
   const setMameSubStep = useMameAppStore((s) => s.setMameSubStep);
+  const inputDir = useMameAppStore((s) => s.inputDir);
+  const expectedPath = useMameAppStore((s) => s.expectedPath);
+  const referencePath = useMameAppStore((s) => s.referencePath);
+  const outputPath = useMameAppStore((s) => s.outputPath);
+  const verdicts = useMameAppStore((s) => s.verdicts);
+  const summary = useMameAppStore((s) => s.summary);
 
   const activeIndex = ALL_SUBSTEPS.indexOf(currentSubStep);
   const progressPercent = computeProgress(Math.max(0, activeIndex));
@@ -115,8 +122,16 @@ export function MameWorkflowRail() {
     const subs = ALL_SUBSTEPS.filter((id) => SUBSTEP_MAJOR[id] === major.id);
     for (const id of subs) {
       const idx = ALL_SUBSTEPS.indexOf(id);
+      const done = isMameSubStepDone(id, {
+        inputDir,
+        expectedPath,
+        referencePath,
+        outputPath,
+        verdicts,
+        summary,
+      });
       let state: WorkflowStep["state"];
-      if (idx < activeIndex) state = "done";
+      if (done) state = "done";
       else if (idx === activeIndex) state = "active";
       else state = "default";
 

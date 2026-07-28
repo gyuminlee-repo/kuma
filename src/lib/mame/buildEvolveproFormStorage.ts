@@ -7,6 +7,7 @@
  */
 
 export const BUILD_EVOLVEPRO_STORAGE_KEY = "kuma:mame:buildEvolvepro";
+export const BUILD_EVOLVEPRO_COMPLETION_KEY = "kuma:mame:buildEvolvepro:complete";
 
 /** Which backend input mode the panel builds params for. */
 export type BuildEvolveproSourceMode = "rank" | "reports";
@@ -102,6 +103,67 @@ export function isBuildEvolveproFormReady(
       state.round1ReportXlsx &&
       state.remeasureReportXlsx,
   );
+}
+
+interface BuildEvolveproCompletionRecord {
+  outputPath: string;
+  signature: string;
+}
+
+function buildCompletionSignature(state: BuildEvolveproFormState): string {
+  return JSON.stringify({
+    sourceMode: state.sourceMode,
+    round1Source: state.round1Source,
+    layoutXlsx: state.layoutXlsx,
+    gcDataXlsx: state.gcDataXlsx,
+    repBatchXlsx: state.repBatchXlsx,
+    prevEvolveproXlsx: state.prevEvolveproXlsx,
+    round1ReportXlsx: state.round1ReportXlsx,
+    round1EvolveproXlsx: state.round1EvolveproXlsx,
+    remeasureReportXlsx: state.remeasureReportXlsx,
+    verdictXlsx: state.verdictXlsx,
+    outputXlsx: state.outputXlsx,
+  });
+}
+
+export function markBuildEvolveproComplete(
+  state: BuildEvolveproFormState,
+  outputPath: string,
+): void {
+  const record: BuildEvolveproCompletionRecord = {
+    outputPath,
+    signature: buildCompletionSignature(state),
+  };
+  try {
+    localStorage.setItem(BUILD_EVOLVEPRO_COMPLETION_KEY, JSON.stringify(record));
+  } catch {
+  }
+}
+
+export function clearBuildEvolveproCompletion(): void {
+  try {
+    localStorage.removeItem(BUILD_EVOLVEPRO_COMPLETION_KEY);
+  } catch {
+  }
+}
+
+export function hasCompletedBuildEvolveproOutput(
+  state: BuildEvolveproFormState,
+): boolean {
+  if (!isBuildEvolveproFormReady(state)) return false;
+  try {
+    const raw = localStorage.getItem(BUILD_EVOLVEPRO_COMPLETION_KEY);
+    if (!raw) return false;
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed !== "object" || parsed === null) return false;
+    const record = parsed as Partial<BuildEvolveproCompletionRecord>;
+    return (
+      record.outputPath === state.outputXlsx &&
+      record.signature === buildCompletionSignature(state)
+    );
+  } catch {
+    return false;
+  }
 }
 
 export function hasBuildEvolveproFormValues(

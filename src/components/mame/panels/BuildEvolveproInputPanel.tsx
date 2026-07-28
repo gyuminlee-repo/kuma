@@ -40,7 +40,9 @@ import {
   loadBuildEvolveproFromStorage as loadFromStorage,
   saveBuildEvolveproToStorage as saveToStorage,
   BUILD_EVOLVEPRO_DEFAULT_STATE,
+  clearBuildEvolveproCompletion,
   hasBuildEvolveproFormValues,
+  markBuildEvolveproComplete,
 } from "@/lib/mame/buildEvolveproFormStorage";
 
 function getFilename(p: string): string {
@@ -65,6 +67,7 @@ export function BuildEvolveproInputPanel() {
     setFormRaw((prev) => {
       const next = { ...prev, ...partial };
       saveToStorage(next);
+      clearBuildEvolveproCompletion();
       return next;
     });
   }
@@ -89,6 +92,7 @@ export function BuildEvolveproInputPanel() {
   useEffect(() => {
     if (resetEpoch === 0) return;
     setFormRaw(BUILD_EVOLVEPRO_DEFAULT_STATE);
+    clearBuildEvolveproCompletion();
     setResult(null);
   }, [resetEpoch]);
 
@@ -203,6 +207,7 @@ export function BuildEvolveproInputPanel() {
     try {
       const res = await buildEvolveproInput(params);
       setResult(res);
+      markBuildEvolveproComplete(form, res.output_path);
       toast.success(t("mame.buildEvolvepro.toastSuccess"), {
         description: t("mame.buildEvolvepro.toastSuccessDesc", {
           count: res.n_variants,
@@ -239,6 +244,7 @@ export function BuildEvolveproInputPanel() {
   function handleClearRestored() {
     setFormRaw(BUILD_EVOLVEPRO_DEFAULT_STATE);
     saveToStorage(BUILD_EVOLVEPRO_DEFAULT_STATE);
+    clearBuildEvolveproCompletion();
     setResult(null);
   }
 

@@ -45,6 +45,18 @@ fn set_projects_root_updates_config() {
 }
 
 #[test]
+fn set_projects_root_expands_home_prefix() {
+    let cfg_root = tempdir().unwrap();
+    let cfg = set_projects_root(cfg_root.path(), std::path::Path::new("~/kuma-test")).unwrap();
+    let expected = dirs::home_dir().unwrap().join("kuma-test");
+
+    assert_eq!(cfg.projects_root, expected);
+    assert!(expected.exists());
+
+    let _ = std::fs::remove_dir_all(expected);
+}
+
+#[test]
 fn set_projects_root_recovers_from_needs_reconfigure() {
     let cfg_root = tempdir().unwrap();
     let stale = tempdir().unwrap();

@@ -22,6 +22,7 @@ import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { StepBadge } from "./StepBadge";
 import type { MajorStepId, SubStepId } from "@/store/slices/navigationSlice";
 import type { MameSubStepId } from "@/store/mame/slices/mameSubSteps";
+import { isMameSubStepDone } from "@/lib/mame/mameStepCompletion";
 
 export interface SubNavItem {
   id: SubStepId | MameSubStepId;
@@ -113,16 +114,6 @@ function MameSubStepNav({ subSteps }: { subSteps: SubNavItem[] }) {
   const summary = useMameAppStore((s) => s.summary);
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
-  function isStepDone(id: MameSubStepId): boolean {
-    if (id === "setup.files") {
-      return Boolean(inputDir && expectedPath && referencePath && outputPath);
-    }
-    if (id === "analyze.inputs" || id === "analyze.review") {
-      return verdicts.length > 0 || summary !== null;
-    }
-    return false;
-  }
-
   function handleKeyDown(e: KeyboardEvent<HTMLButtonElement>, idx: number) {
     const total = subSteps.length;
     let nextIdx = idx;
@@ -140,7 +131,14 @@ function MameSubStepNav({ subSteps }: { subSteps: SubNavItem[] }) {
     <nav className="flex flex-col gap-1 p-2" role="navigation" aria-label="sub steps">
       {subSteps.map((step, idx) => {
         const isCurrent = step.id === currentSubStep;
-        const isDone = isStepDone(step.id as MameSubStepId);
+        const isDone = isMameSubStepDone(step.id as MameSubStepId, {
+          inputDir,
+          expectedPath,
+          referencePath,
+          outputPath,
+          verdicts,
+          summary,
+        });
         const badgeStatus: "done" | "active" | "pending" = isDone
           ? "done"
           : isCurrent

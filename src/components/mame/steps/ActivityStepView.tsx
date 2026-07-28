@@ -35,7 +35,7 @@ import {
   type ActivityRoute,
 } from "@/lib/mame/activityRouteStorage";
 import {
-  isBuildEvolveproFormReady,
+  hasCompletedBuildEvolveproOutput,
   loadBuildEvolveproFromStorage,
 } from "@/lib/mame/buildEvolveproFormStorage";
 
@@ -139,7 +139,7 @@ export function ActivityStepView() {
 
   function selectedActivityRouteIsComplete(): boolean {
     if (route === "plateLayout") {
-      return isBuildEvolveproFormReady(loadBuildEvolveproFromStorage());
+      return hasCompletedBuildEvolveproOutput(loadBuildEvolveproFromStorage());
     }
     const activeRound = rounds.find((round) => round.id === activeRoundId);
     return Boolean(

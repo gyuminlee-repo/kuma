@@ -9,6 +9,12 @@ describe("MameWorkflowRail", () => {
     useMameAppStore.setState({
       mamePhase: "setup",
       currentMameSubStep: "setup.files",
+      inputDir: "",
+      expectedPath: "",
+      referencePath: "",
+      outputPath: "",
+      verdicts: [],
+      summary: null,
     });
   });
 
@@ -20,5 +26,33 @@ describe("MameWorkflowRail", () => {
 
     expect(useMameAppStore.getState().mamePhase).toBe("analyze");
     expect(useMameAppStore.getState().currentMameSubStep).toBe("analyze.inputs");
+  });
+
+  it("marks setup done from completion state instead of active index alone", () => {
+    useMameAppStore.setState({
+      currentMameSubStep: "analyze.inputs",
+      inputDir: "/runs/minion",
+      expectedPath: "/runs/expected.xlsx",
+      referencePath: "/runs/reference.fasta",
+      outputPath: "/runs/out",
+    });
+
+    render(<MameWorkflowRail />);
+
+    expect(
+      screen.getByRole("button", { name: "Barcode Package done" }),
+    ).toBeInTheDocument();
+  });
+
+  it("does not mark setup done just because the user navigated forward", () => {
+    useMameAppStore.setState({
+      currentMameSubStep: "analyze.inputs",
+    });
+
+    render(<MameWorkflowRail />);
+
+    expect(
+      screen.queryByRole("button", { name: "Barcode Package done" }),
+    ).not.toBeInTheDocument();
   });
 });

@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { open } from "@tauri-apps/plugin-dialog";
+import { documentDir, join } from "@tauri-apps/api/path";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { setProjectsRoot, type Config } from "../lib/project";
@@ -15,11 +16,36 @@ const DEFAULT_PROJECTS_ROOT = "~/Documents/kuma/";
 
 export function Onboarding({ initialPath, onDone }: OnboardingProps) {
   const { t } = useTranslation();
-  const [path, setPath] = useState(initialPath ?? DEFAULT_PROJECTS_ROOT);
+  const [path, setPath] = useState(initialPath ?? "");
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isResolvingDefault, setIsResolvingDefault] = useState(!initialPath);
 
   const isReentry = Boolean(initialPath);
+
+  useEffect(() => {
+    if (initialPath) return;
+    let cancelled = false;
+
+    async function resolveDefaultPath() {
+      setIsResolvingDefault(true);
+      try {
+        const documents = await documentDir();
+        const defaultPath = await join(documents, "kuma");
+        if (!cancelled) setPath(defaultPath);
+      } catch {
+        if (!cancelled) setPath(DEFAULT_PROJECTS_ROOT);
+      } finally {
+        if (!cancelled) setIsResolvingDefault(false);
+      }
+    }
+
+    void resolveDefaultPath();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [initialPath]);
 
   async function handlePickFolder() {
     setError("");
@@ -77,7 +103,11 @@ export function Onboarding({ initialPath, onDone }: OnboardingProps) {
           <Button type="button" variant="outline" onClick={() => void handlePickFolder()}>
             {t("onboarding.chooseFolder")}
           </Button>
-          <Button type="button" onClick={() => void handleSubmit()} disabled={!path.trim() || isSaving}>
+          <Button
+            type="button"
+            onClick={() => void handleSubmit()}
+            disabled={!path.trim() || isSaving || isResolvingDefault}
+          >
             {t("onboarding.done")}
           </Button>
         </div>
