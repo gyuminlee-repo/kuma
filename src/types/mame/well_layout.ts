@@ -32,6 +32,18 @@ export interface BuildWellLayoutResult {
   draft: WellLayoutRow[]
   /** Number of draft rows (mutant wells + optional WT well). */
   count: number
+  /**
+   * mutant_id values past the 96th well. The combinatorial barcode space is
+   * 12 fwd x 8 rev, so a 97th well cannot be told apart in the reads; larger
+   * campaigns are split across plates (separated by native barcode) with one
+   * layout per plate. Non-empty means the draft does not cover the full set.
+   */
+  dropped_mutant_ids: string[]
+  /**
+   * True when the plate is exactly full and no well was left for the WT
+   * control, which costs the clean-control check.
+   */
+  wt_omitted: boolean
 }
 
 /**

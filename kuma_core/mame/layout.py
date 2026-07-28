@@ -9,9 +9,18 @@ The draft layout maps ``well_id -> sample_name`` and is consumed by the pipeline
 as a ``well_layout`` override (highest-priority well->sample source). "WT" wells
 carry an empty expected-mutation scope (a clean consensus PASSes; any observed
 variant fails).
+
+96 is the hard ceiling, not a tunable: the combinatorial custom barcode is
+``{R}_{F}`` with ``R`` in 1..8 and ``F`` in 1..12 (12 fwd + 8 rev seeds), so a
+97th well has no distinguishing sequence in the reads. Campaigns larger than 96
+mutants are split across plates, which MAME separates by *native* barcode, and
+one layout describes one plate. Anything this generator has to drop is reported
+rather than clamped away in silence.
 """
 
 from __future__ import annotations
+
+from dataclasses import dataclass, field
 
 from kuma_core.mame.export.well_mapper import seq_to_well
 from kuma_core.mame.models import ExpectedMutation
@@ -19,28 +28,55 @@ from kuma_core.mame.models import ExpectedMutation
 _PLATE_CAPACITY = 96
 
 
-def build_draft_layout(expected_mutations: list[ExpectedMutation]) -> dict[str, str]:
+@dataclass(frozen=True)
+class DraftLayout:
+    """A draft placement plus whatever the 96-well ceiling forced out of it."""
+
+    #: Insertion-ordered ``{well_id: sample_name}`` in column-major order, WT last
+    #: when it fits. Well labels are not zero-padded; the pipeline normalises them.
+    layout: dict[str, str]
+    #: ``mutant_id`` values past the 96th well, in sheet order. Non-empty means the
+    #: draft does not describe the full mutation set and cannot be used as-is.
+    dropped_mutant_ids: list[str] = field(default_factory=list)
+    #: True when the plate is exactly full and the WT control well had to be
+    #: omitted. Consequential on its own: without a declared WT well the control
+    #: is attributed as ``UNKNOWN_*`` and the clean-control check is lost.
+    wt_omitted: bool = False
+
+    @property
+    def is_complete(self) -> bool:
+        """True when the draft covers every mutant and carries a WT control."""
+        return not self.dropped_mutant_ids and not self.wt_omitted
+
+
+def build_draft_layout(expected_mutations: list[ExpectedMutation]) -> DraftLayout:
     """Build a column-major draft layout: well i -> mutant_id, well N+1 -> "WT".
 
     well ``i`` (1-based, column-major via ``seq_to_well``) is assigned
     ``expected_mutations[i-1].mutant_id`` for ``i = 1..N`` where ``N`` is the
     number of expected mutations. A single WT control occupies well ``N+1``.
 
-    Clamping:
-    - ``N + 1 > 96`` (i.e. ``N >= 96``): the WT well is omitted.
-    - ``N > 96``: mutants beyond the 96th are omitted (plate capacity).
+    Clamping (reported via the returned :class:`DraftLayout`, never silent):
+    - ``N + 1 > 96`` (i.e. ``N >= 96``): the WT well is omitted -> ``wt_omitted``.
+    - ``N > 96``: mutants beyond the 96th are omitted -> ``dropped_mutant_ids``.
 
-    Returns a ``dict[well_id, sample_name]`` keyed by ``seq_to_well`` labels
-    (not zero-padded; the pipeline normalises on lookup).
+    Callers must decide what a clamped draft means for them. A truncated draft
+    looks like a correct full plate to anyone reading only the rows, so treating
+    ``dropped_mutant_ids`` as cosmetic mis-scores every well past the cut.
     """
     layout: dict[str, str] = {}
     n_mutants = min(len(expected_mutations), _PLATE_CAPACITY)
     for i in range(1, n_mutants + 1):
         layout[seq_to_well(i)] = expected_mutations[i - 1].mutant_id
     wt_seq = len(expected_mutations) + 1
-    if wt_seq <= _PLATE_CAPACITY:
+    wt_omitted = wt_seq > _PLATE_CAPACITY
+    if not wt_omitted:
         layout[seq_to_well(wt_seq)] = "WT"
-    return layout
+    return DraftLayout(
+        layout=layout,
+        dropped_mutant_ids=[m.mutant_id for m in expected_mutations[_PLATE_CAPACITY:]],
+        wt_omitted=wt_omitted,
+    )
 
 
-__all__ = ["build_draft_layout"]
+__all__ = ["DraftLayout", "build_draft_layout"]

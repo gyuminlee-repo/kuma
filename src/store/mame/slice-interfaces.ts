@@ -75,6 +75,9 @@ export interface InputSlice {
   isDetectingBarcodes: boolean;
   // Well-layout confirm flow: null = not started; non-null = show confirm dialog.
   wellLayoutDraft: WellLayoutRow[] | null;
+  // What the 96-well ceiling forced out of the current draft. A truncated draft
+  // renders as a correct full plate, so the confirm dialog has to surface this.
+  wellLayoutOverflow: { droppedMutantIds: string[]; wtOmitted: boolean } | null;
   // Confirmed well->sample mapping; passed to analyze as highest-priority source.
   wellLayout: WellLayout | null;
   clearWellLayout: () => void;

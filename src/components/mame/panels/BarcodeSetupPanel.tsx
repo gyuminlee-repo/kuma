@@ -175,6 +175,10 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
   const setParams = useMameAppStore((s) => s.setParams);
   const setReferencePath = useMameAppStore((s) => s.setReferencePath);
   const setSampleMapPath = useMameAppStore((s) => s.setSampleMapPath);
+  // KURO expected_mutations xlsx. When already selected, the generated sample-map
+  // template is pre-filled with a draft well placement instead of headers only,
+  // so the operator verifies a draft rather than authoring the map from scratch.
+  const expectedPath = useMameAppStore((s) => s.expectedPath);
   const currentTargetLength = useMameAppStore((s) => s.rawRunParams.targetLength);
   const cdsCandidates = useMameAppStore((s) => s.cdsCandidates);
   const selectedCdsIndex = useMameAppStore((s) => s.selectedCdsIndex);
@@ -449,6 +453,7 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
       tm_min: optFloat(form.tmMin),
       tm_max: optFloat(form.tmMax),
       require_gc_clamp: form.requireGcClamp,
+      expected_mutations_path: expectedPath.trim() || undefined,
     };
 
     try {
