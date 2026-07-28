@@ -4,6 +4,21 @@
 
 ---
 
+## v0.13.28 (2026-07-28)
+
+### Files and columns you already have
+
+- Step 2 no longer rejects a mutation file because a header is capitalised differently, carries a stray space, or begins with an Excel byte-order mark.
+- Step 2 column pickers are usable as soon as a file is chosen. If auto-detect misses, pick the mutation and ranking columns from the dropdowns and apply.
+- MAME step 3.1 accepts the sample map produced in step 1, so the plate layout workbook no longer has to be built by hand.
+
+### Shared reverse primers
+
+- Echo and JANUS exports could omit the reverse transfer rows of every mutation except one per shared group when a workspace carried no dedup map, which left those reactions without a primer. The map is now rebuilt from the design results, and the export stops with the affected mutation names if it cannot be rebuilt.
+- The layout sheets now list, per source well, how many reactions it feeds and the total volume drawn. Add the labware dead volume to that figure when filling the plate.
+
+---
+
 ## v0.13.27 (2026-07-28)
 
 ### MAME step 3 reads raw instrument reports
