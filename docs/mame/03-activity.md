@@ -40,7 +40,7 @@ well 컬럼 값은 well 좌표(`A1` 또는 `A01`) 이거나 WT 반복 라벨(`WT
 
 | 입력 | 필수 | 필수 컬럼 |
 |---|---|---|
-| `layout_xlsx` | 필수 | `Mutant` + `Well Pos.` (plate layout 형식) 또는 `sample_name` + `well` (step 1 에서 생성되는 sample map 형식). 두 쌍이 한 시트에 다 있으면 plate layout 쌍이 우선 |
+| `layout_xlsx` | 필수 | `Mutant` + `Well Pos.` (plate layout 형식) 또는 `sample_name` + `well` (step 1 에서 생성되는 sample map 형식). 두 쌍이 한 시트에 다 있으면 plate layout 쌍이 우선. 샘플 이름 끝의 반복 접미사 `_r<n>` (r 대소문자 무시) 은 떼어내고 앞부분을 샘플 이름으로 쓴다 (`Q232A_r1`/`_r2`/`_r3` → 같은 변이 `Q232A` 의 세 well, `WT_r1` → WT 대조군, `A40P_E61Y_r1` → `A40P_E61Y` 로 이름 안 언더스코어 보존). 샘플 이름이 `blank` (대소문자 무시) 인 행은 빈 well 이라 결과에서 제외 |
 | `gc_data_xlsx` | 필수 | `Sample Name`, `Area` (값이 이미 WT 대비 상대값) |
 | `rep_batch_xlsx` | 선택 | Agilent FID1B rep-batch 블록 |
 | `prev_evolvepro_xlsx` | 선택 | `Variant`, `activity` |

@@ -398,3 +398,49 @@ def test_partial_confirmation_falls_back_to_provisional(tmp_path: Path):
     assert result.confidence == "provisional"
     assert result.n_authoritative == 0
     assert any("confirmation" in w.lower() for w in result.warnings)
+
+
+# ---------------------------------------------------------------------------
+# Experimenter replicate notation end-to-end
+# ---------------------------------------------------------------------------
+
+def test_replicate_suffix_layout_collapses_replicates(tmp_path: Path):
+    """'_r<n>' rows of one mutant merge into a single variant with 3 values."""
+    from kuma_core.mame.activity.build_evolvepro_input import (
+        _build_fallback,
+        build_evolvepro_input,
+    )
+
+    layout = _make_layout(
+        tmp_path,
+        [
+            ("V5F_r1", "A1"),
+            ("V5F_r2", "A2"),
+            ("V5F_r3", "A3"),
+            ("V10L_r1", "B1"),
+            ("V10L_r2", "B2"),
+            ("V10L_r3", "B3"),
+            ("blank", "H11"),
+        ],
+    )
+    gc = _make_gc_data(
+        tmp_path,
+        [
+            ("A1", 1.10), ("A2", 1.20), ("A3", 1.30),
+            ("B1", 0.90), ("B2", 0.95), ("B3", 1.00),
+        ],
+    )
+
+    fallback, well_by_variant, warnings = _build_fallback(layout, gc)
+
+    assert set(fallback) == {"5F", "10L"}
+    assert fallback["5F"] == pytest.approx([1.10, 1.20, 1.30])
+    assert fallback["10L"] == pytest.approx([0.90, 0.95, 1.00])
+    # 'blank' never reaches the fallback, so it raises no missing-value warning.
+    assert not any("blank" in w.lower() for w in warnings)
+    # The audit well keeps the last replicate well of each variant.
+    assert well_by_variant == {"5F": "A03", "10L": "B03"}
+
+    out = tmp_path / "out.xlsx"
+    result = build_evolvepro_input(layout, gc, out)
+    assert result.n_variants == 2
