@@ -430,7 +430,7 @@
       "subtitle": "한 라운드의 activity 측정값을 하나의 EVOLVEpro 입력 xlsx로 결합합니다.",
       "inputFiles": "입력 파일",
       "layoutXlsx": "플레이트 레이아웃 xlsx",
-      "layoutXlsxHelper": "Mutant to well 위치 매핑 (Mutant, Well Pos. 열).",
+      "layoutXlsxHelper": "Mutant to well 위치 매핑. plate layout 형식 (Mutant, Well Pos. 열) 또는 step 1에서 만든 sample map (sample_name, well 열) 둘 다 받습니다.",
       "gcDataXlsx": "GC 데이터 xlsx",
       "gcDataXlsxHelper": "well별 사전 정규화된 relative activity (Sample Name, Area 열).",
       "repBatchXlsx": "Agilent 반복 리포트 xlsx",

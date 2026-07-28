@@ -318,8 +318,9 @@ class BuildEvolveproInputParams(BaseModel):
     Mode fields (all optional at the field level)
     --------------------------------------------
     layout_xlsx
-        Plate layout xlsx with 'Mutant' and 'Well Pos.' columns. Required for
-        rank-mode and for raw-report reports-mode.
+        Plate layout xlsx with 'Mutant' and 'Well Pos.' columns, or the sample
+        map xlsx with 'sample_name' and 'well' columns. Required for rank-mode
+        and for raw-report reports-mode.
     gc_data_xlsx
         Pre-normalised GC data xlsx with 'Sample Name' (well) and 'Area'
         (relative activity) columns. Selects rank-mode.

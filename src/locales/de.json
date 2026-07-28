@@ -907,7 +907,7 @@
       "subtitle": "Die Activity-Messungen einer Runde zu einer einzigen EVOLVEpro-Eingabe-xlsx zusammenführen.",
       "inputFiles": "Eingabedateien",
       "layoutXlsx": "Plattenlayout-xlsx",
-      "layoutXlsxHelper": "Zuordnung von Mutant zur Well-Position (Spalten Mutant, \"Well Pos.\").",
+      "layoutXlsxHelper": "Zuordnung von Mutant zur Well-Position. Akzeptiert das Plate-Layout-Format (Spalten Mutant, \"Well Pos.\") oder die sample map aus Schritt 1 (Spalten sample_name, well).",
       "gcDataXlsx": "GC-Daten-xlsx",
       "gcDataXlsxHelper": "Vorab normalisierte relative activity pro Well (Spalten \"Sample Name\", Area).",
       "repBatchXlsx": "Agilent-Replikat-Bericht-xlsx",

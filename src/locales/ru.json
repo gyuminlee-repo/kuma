@@ -907,7 +907,7 @@
       "subtitle": "Объединяет измерения activity одного раунда в один входной xlsx для EVOLVEpro.",
       "inputFiles": "Входные файлы",
       "layoutXlsx": "xlsx раскладки планшета",
-      "layoutXlsxHelper": "Сопоставление Mutant с позицией well (колонки Mutant, Well Pos.).",
+      "layoutXlsxHelper": "Сопоставление Mutant с позицией well. Принимает формат plate layout (колонки Mutant, Well Pos.) или sample map из шага 1 (колонки sample_name, well).",
       "gcDataXlsx": "xlsx с данными GC",
       "gcDataXlsxHelper": "Предварительно нормализованная relative activity по каждому well (колонки Sample Name, Area).",
       "repBatchXlsx": "xlsx отчёта о повторах Agilent",

@@ -430,7 +430,7 @@
       "subtitle": "Combine one round of activity measurements into a single EVOLVEpro input xlsx.",
       "inputFiles": "Input files",
       "layoutXlsx": "Plate layout xlsx",
-      "layoutXlsxHelper": "Mutant to well position mapping (Mutant, Well Pos. columns).",
+      "layoutXlsxHelper": "Mutant to well position mapping. Accepts the plate layout format (Mutant, Well Pos. columns) or the sample map from step 1 (sample_name, well columns).",
       "gcDataXlsx": "GC data xlsx",
       "gcDataXlsxHelper": "Pre-normalised relative activity per well (Sample Name, Area columns).",
       "repBatchXlsx": "Agilent replicate report xlsx",

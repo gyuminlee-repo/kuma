@@ -40,7 +40,7 @@ well 컬럼 값은 well 좌표(`A1` 또는 `A01`) 이거나 WT 반복 라벨(`WT
 
 | 입력 | 필수 | 필수 컬럼 |
 |---|---|---|
-| `layout_xlsx` | 필수 | `Mutant`, `Well Pos.` |
+| `layout_xlsx` | 필수 | `Mutant` + `Well Pos.` (plate layout 형식) 또는 `sample_name` + `well` (step 1 에서 생성되는 sample map 형식). 두 쌍이 한 시트에 다 있으면 plate layout 쌍이 우선 |
 | `gc_data_xlsx` | 필수 | `Sample Name`, `Area` (값이 이미 WT 대비 상대값) |
 | `rep_batch_xlsx` | 선택 | Agilent FID1B rep-batch 블록 |
 | `prev_evolvepro_xlsx` | 선택 | `Variant`, `activity` |

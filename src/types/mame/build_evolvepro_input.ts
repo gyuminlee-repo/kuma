@@ -18,7 +18,8 @@
  *                  round1_evolvepro_xlsx (no layout needed).
  */
 export interface BuildEvolveproInputParams {
-  /** Plate layout xlsx with Mutant and Well Pos. columns. Required for rank
+  /** Plate layout xlsx with Mutant and Well Pos. columns, or the sample map
+   *  xlsx with sample_name and well columns. Required for rank
    *  mode and for raw-report reports mode; optional for prev-EVOLVEpro reports
    *  mode, where it only maps variant → well for NGS verdict gating. */
   layout_xlsx?: string | null

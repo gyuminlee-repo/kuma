@@ -907,7 +907,7 @@
       "subtitle": "將一輪的 activity 量測結果合併為一個 EVOLVEpro 輸入 xlsx。",
       "inputFiles": "輸入檔案",
       "layoutXlsx": "盤面配置 xlsx",
-      "layoutXlsxHelper": "Mutant 對應 well 位置 (Mutant、Well Pos. 欄)。",
+      "layoutXlsxHelper": "Mutant 對應 well 位置。支援 plate layout 格式 (Mutant、Well Pos. 欄) 或步驟 1 產生的 sample map (sample_name、well 欄)。",
       "gcDataXlsx": "GC 資料 xlsx",
       "gcDataXlsxHelper": "每個 well 預先正規化的 relative activity (Sample Name、Area 欄)。",
       "repBatchXlsx": "Agilent 重複報告 xlsx",

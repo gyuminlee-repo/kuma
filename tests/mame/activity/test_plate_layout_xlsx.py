@@ -110,6 +110,97 @@ def test_blank_rows_skipped(tmp_path: Path):
 # Error cases
 # ---------------------------------------------------------------------------
 
+def test_parse_sample_map_format(tmp_path: Path):
+    """The sample map sheet generated for step 1/2 parses without edits."""
+    path = _make_xlsx(
+        [
+            ["sample_name", "well"],
+            ["F89W", "A1"],
+            ["WT", "H12"],
+        ],
+        tmp_path,
+    )
+    entries = parse_plate_layout_xlsx(path)
+    assert len(entries) == 2
+    assert entries[0].mutant == "F89W"
+    assert entries[0].well_id == "A01"
+    assert entries[0].is_wt is False
+    assert entries[1].mutant == "WT"
+    assert entries[1].well_id == "H12"
+    assert entries[1].is_wt is True
+
+
+def test_sample_map_extra_columns_ignored(tmp_path: Path):
+    """Barcode and other sample map columns do not disturb parsing."""
+    path = _make_xlsx(
+        [
+            ["sample_name", "well", "barcode"],
+            ["F89W", "B2", "isps_f_1"],
+        ],
+        tmp_path,
+    )
+    entries = parse_plate_layout_xlsx(path)
+    assert len(entries) == 1
+    assert entries[0].mutant == "F89W"
+    assert entries[0].well_id == "B02"
+
+
+def test_sample_map_header_case_insensitive(tmp_path: Path):
+    path = _make_xlsx(
+        [
+            ["Sample_Name", "Well"],
+            ["G10A", "C3"],
+        ],
+        tmp_path,
+    )
+    entries = parse_plate_layout_xlsx(path)
+    assert entries[0].well_id == "C03"
+
+
+def test_sample_map_wt_case_insensitive(tmp_path: Path):
+    path = _make_xlsx(
+        [
+            ["sample_name", "well"],
+            ["wt", "H12"],
+        ],
+        tmp_path,
+    )
+    entries = parse_plate_layout_xlsx(path)
+    assert entries[0].is_wt is True
+
+
+def test_both_pairs_prefers_plate_layout(tmp_path: Path):
+    path = _make_xlsx(
+        [
+            ["Mutant", "Well Pos.", "sample_name", "well"],
+            ["F89W", "A1", "G10A", "B2"],
+        ],
+        tmp_path,
+    )
+    entries = parse_plate_layout_xlsx(path)
+    assert len(entries) == 1
+    assert entries[0].mutant == "F89W"
+    assert entries[0].well_id == "A01"
+
+
+def test_template_sample_map_parses():
+    """templates/05_mame_sample_map.xlsx is accepted by the parser."""
+    path = Path(__file__).resolve().parents[3] / "templates" / "05_mame_sample_map.xlsx"
+    entries = parse_plate_layout_xlsx(path)
+    assert len(entries) > 0
+    assert all(len(e.well_id) == 3 for e in entries)
+
+
+def test_template_plate_layout_parses():
+    """templates/06_mame_plate_layout.xlsx keeps working unchanged."""
+    path = (
+        Path(__file__).resolve().parents[3] / "templates" / "06_mame_plate_layout.xlsx"
+    )
+    entries = parse_plate_layout_xlsx(path)
+    assert len(entries) > 0
+    assert any(e.is_wt for e in entries)
+
+
 def test_missing_mutant_column_raises(tmp_path: Path):
     path = _make_xlsx(
         [
@@ -132,6 +223,23 @@ def test_missing_well_column_raises(tmp_path: Path):
     )
     with pytest.raises(ValueError, match="Well Pos"):
         parse_plate_layout_xlsx(path)
+
+
+def test_no_supported_pair_lists_both_formats(tmp_path: Path):
+    path = _make_xlsx(
+        [
+            ["Variant", "Position"],
+            ["F89W", "A1"],
+        ],
+        tmp_path,
+    )
+    with pytest.raises(ValueError) as exc:
+        parse_plate_layout_xlsx(path)
+    message = str(exc.value)
+    assert "Mutant" in message
+    assert "Well Pos." in message
+    assert "sample_name" in message
+    assert "well" in message
 
 
 def test_invalid_well_pos_raises(tmp_path: Path):

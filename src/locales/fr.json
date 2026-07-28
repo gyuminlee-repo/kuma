@@ -907,7 +907,7 @@
       "subtitle": "Combine les mesures d'activity d'un tour en un seul xlsx d'entrée EVOLVEpro.",
       "inputFiles": "Fichiers d'entrée",
       "layoutXlsx": "xlsx de disposition de plaque",
-      "layoutXlsxHelper": "Mappage de Mutant vers la position du well (colonnes Mutant, Well Pos.).",
+      "layoutXlsxHelper": "Mappage de Mutant vers la position du well. Accepte le format plate layout (colonnes Mutant, Well Pos.) ou le sample map de l'étape 1 (colonnes sample_name, well).",
       "gcDataXlsx": "xlsx de données GC",
       "gcDataXlsxHelper": "relative activity pré-normalisée par well (colonnes Sample Name, Area).",
       "repBatchXlsx": "xlsx du rapport de réplicats Agilent",

@@ -907,7 +907,7 @@
       "subtitle": "1 ラウンドの activity 測定値を 1 つの EVOLVEpro 入力 xlsx にまとめます。",
       "inputFiles": "入力ファイル",
       "layoutXlsx": "プレートレイアウト xlsx",
-      "layoutXlsxHelper": "Mutant から well 位置へのマッピング（Mutant、Well Pos. 列）。",
+      "layoutXlsxHelper": "Mutant から well 位置へのマッピング。plate layout 形式 (Mutant、Well Pos. 列) と step 1 で作成した sample map (sample_name、well 列) の両方に対応します。",
       "gcDataXlsx": "GC データ xlsx",
       "gcDataXlsxHelper": "well ごとに事前正規化された relative activity（Sample Name、Area 列）。",
       "repBatchXlsx": "Agilent replicate レポート xlsx",
