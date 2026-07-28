@@ -169,9 +169,12 @@ def handle_activity_upload(params: dict) -> dict:
 
         table = ingest_long_csv(resolved, wt_lookup)
 
-        # Persist raw records into round state for downstream merge
+        # Persist raw records into round state for downstream merge.
+        # wt_records holds dedicated 'WT_1'-style replicate rows and must survive
+        # to merge time; they define the WT denominator when present.
         rd["activity"] = {
             "raw_records": [r.model_dump() for r in table.records],
+            "wt_records": [r.model_dump() for r in table.wt_records],
         }
 
     serialised = [r.model_dump() for r in table.records]
@@ -211,7 +214,11 @@ def handle_activity_merge(params: dict) -> dict:
         RuntimeError: round_id not found.
     """
     from kuma_core.mame.activity.join import merge_activity_with_genotype
-    from kuma_core.mame.activity.models import ActivityRecord, PlateMeta
+    from kuma_core.mame.activity.models import (
+        ActivityRecord,
+        PlateMeta,
+        WtReplicateRecord,
+    )
 
     round_id: str = params["round_id"]
 
@@ -229,8 +236,12 @@ def handle_activity_merge(params: dict) -> dict:
             ActivityRecord(**r) for r in raw_dicts
         ]
 
+        wt_records: list[WtReplicateRecord] = [
+            WtReplicateRecord(**r) for r in activity_data.get("wt_records", [])
+        ]
+
         rows, stats = merge_activity_with_genotype(
-            kuro_design, mame_genotype, activity_records, plate_meta
+            kuro_design, mame_genotype, activity_records, plate_meta, wt_records
         )
 
         merged_dicts = [r.model_dump() for r in rows]
@@ -412,6 +423,7 @@ def handle_merge_for_evolvepro(params: dict) -> dict:
         MergeStats,
         PlateMeta,
         Variant,
+        WtReplicateRecord,
     )
     from kuma_core.mame.activity.sanity_check import detect_label_swap
     from kuma_core.mame.activity.variant_notation import from_evolvepro
@@ -469,8 +481,12 @@ def handle_merge_for_evolvepro(params: dict) -> dict:
             ActivityRecord(**r) for r in raw_dicts
         ]
 
+        wt_records: list[WtReplicateRecord] = [
+            WtReplicateRecord(**r) for r in activity_data.get("wt_records", [])
+        ]
+
         rows, stats = merge_activity_with_genotype(
-            kuro_design, mame_genotype, activity_records, plate_meta
+            kuro_design, mame_genotype, activity_records, plate_meta, wt_records
         )
 
         # Phase B replicate merge (skipped when no replicate data provided).
@@ -573,12 +589,20 @@ def handle_build_evolvepro_input(params: dict) -> dict:
     rank-based mapping derived from the previous-round EVOLVEpro file and is
     emitted as a JSON audit artifact for human veto.
 
+    Two modes (exactly one set of source files, enforced by the params model):
+        rank mode: gc_data_xlsx + rep_batch_xlsx + prev_evolvepro_xlsx (the
+            rank-based 4-file assembly; emits a mapping audit).
+        reports mode: round1_report_xlsx + remeasure_report_xlsx (raw Agilent
+            round-1 report + variant-labeled re-measure report; no rank file).
+
     Params (validated by BuildEvolveproInputParams):
         layout_xlsx (str)
-        gc_data_xlsx (str)
-        rep_batch_xlsx (str)
-        prev_evolvepro_xlsx (str)
         output_xlsx (str)
+        gc_data_xlsx (str, rank mode)
+        rep_batch_xlsx (str, rank mode)
+        prev_evolvepro_xlsx (str, rank mode)
+        round1_report_xlsx (str, reports mode)
+        remeasure_report_xlsx (str, reports mode)
         mismatch_threshold (float, optional, default 0.1)
         mapping_audit_path (str, optional)
 
@@ -608,6 +632,46 @@ def handle_build_evolvepro_input(params: dict) -> dict:
 
     p = BuildEvolveproInputParams.model_validate(params)
 
+    if p.remeasure_report_xlsx and (p.round1_report_xlsx or p.round1_evolvepro_xlsx):
+        from kuma_core.mame.activity.build_evolvepro_input import (
+            build_evolvepro_input_from_reports,
+        )
+
+        r = build_evolvepro_input_from_reports(
+            p.layout_xlsx,
+            p.round1_report_xlsx,
+            p.remeasure_report_xlsx,
+            p.output_xlsx,
+            mismatch_threshold=p.mismatch_threshold,
+            verdict_xlsx=p.verdict_xlsx,
+            prev_evolvepro_xlsx=p.round1_evolvepro_xlsx,
+        )
+        audit = [
+            {"id": i + 1, "variant": v, "well": w}
+            for i, (v, w) in enumerate(sorted(r.well_by_variant.items()))
+        ]
+        return {
+            "output_path": str(r.output_path),
+            "n_variants": r.n_variants,
+            "n_authoritative": r.n_authoritative,
+            "n_fallback_only": r.n_fallback_only,
+            "mapping_audit": audit,
+            "mapping_audit_path": "",
+            "prev_descending": True,
+            "warnings": r.warnings,
+            "swap_warnings": [],
+            "mismatched": r.mismatched,
+            "n_ngs_excluded": r.n_ngs_excluded,
+            "ngs_excluded": r.ngs_excluded,
+            "mode": "reports",
+        }
+
+    # _mode_xor guarantees layout + GC data are present here (rep_batch_xlsx and
+    # prev_evolvepro_xlsx stay optional: layout + GC alone yields a provisional
+    # build). Narrow explicitly for the type checker and fail loud otherwise.
+    if p.layout_xlsx is None or p.gc_data_xlsx is None:
+        raise ValueError("rank mode requires layout_xlsx and gc_data_xlsx")
+
     result = build_evolvepro_input(
         p.layout_xlsx,
         p.gc_data_xlsx,
@@ -633,6 +697,9 @@ def handle_build_evolvepro_input(params: dict) -> dict:
         "swap_warnings": [w.__dict__ for w in result.swap_warnings],
         "confidence": result.confidence,
         "mismatched": result.mismatched,
+        "n_ngs_excluded": 0,
+        "ngs_excluded": [],
+        "mode": "rank",
     }
 
 

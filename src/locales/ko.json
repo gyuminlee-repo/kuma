@@ -368,6 +368,14 @@
         "suggestButton": "Control wells에서 가져오기",
         "alreadySetTooltip": "WT wells가 이미 설정됨"
       },
+      "route": {
+        "heading": "EVOLVEpro 입력 경로",
+        "ariaLabel": "EVOLVEpro 입력 생성 방식을 선택하세요",
+        "genotypeLabel": "Activity + NGS genotype",
+        "genotypeDesc": "long-format well activity를 업로드해 이번 라운드 NGS verdict과 병합한 뒤 내보냅니다.",
+        "plateLayoutLabel": "Plate layout + GC data",
+        "plateLayoutDesc": "plate layout과 GC data xlsx 파일로 곧바로 생성합니다. NGS genotype이 필요 없습니다."
+      },
       "mergeExport": {
         "contextTitle": "활성 데이터 — 병합 및 내보내기",
         "contextSubtitle": "유전형과 활성을 병합하고 EVOLVEpro 입력을 내보냅니다.",
@@ -409,17 +417,17 @@
         "menuLegacy": "Legacy 출력 (CSV)",
         "menuEvolvepro": "EVOLVEpro v0.3 format (WT 정규화 포함)",
         "desc": "업로드된 활성 데이터를 라운드 유전자형과 결합하고 야생형으로 정규화합니다.",
-        "heading": "활성 데이터를 유전자형과 병합"
+        "heading": "활성 데이터를 유전자형과 병합",
+        "evolveproDesc": "권장: WT 대비 replicate 정규화 + 레이블 교체(label-swap) 가드를 적용합니다.",
+        "legacyDesc": "WT 정규화나 레이블 교체 검사가 없는 legacy CSV 출력입니다."
       },
-      "tabExport": "3. 내보내기",
-      "tabIngest": "1. 수집",
-      "tabMerge": "2. 병합",
-      "subtitle": "Phase 1 바코드 설정 및 Phase 2 분석 이후 (보통 며칠~수 주 후) 습식 실험 활성 측정이 완료되면 이 단계에 진입합니다. 측정값을 로드하고 유전자형과 병합한 후 EVOLVEpro 훈련 입력을 내보냅니다.",
-      "title": "활성 데이터"
+      "sectionIngest": "활성 데이터 업로드",
+      "sectionMerge": "유전자형과 병합",
+      "sectionExport": "EVOLVEpro 입력 내보내기"
     },
     "buildEvolvepro": {
       "title": "EVOLVEpro 입력 생성",
-      "subtitle": "플레이트 레이아웃, GC 데이터, Agilent 반복 리포트, 이전 EVOLVEpro 파일을 하나의 EVOLVEpro 입력 xlsx로 결합합니다.",
+      "subtitle": "한 라운드의 activity 측정값을 하나의 EVOLVEpro 입력 xlsx로 결합합니다.",
       "inputFiles": "입력 파일",
       "layoutXlsx": "플레이트 레이아웃 xlsx",
       "layoutXlsxHelper": "Mutant to well 위치 매핑 (Mutant, Well Pos. 열).",
@@ -440,7 +448,7 @@
       "build": "EVOLVEpro 입력 생성",
       "building": "생성 중...",
       "resultTitle": "생성 결과",
-      "emptyState": "네 개의 입력 파일과 출력 경로를 선택한 뒤 EVOLVEpro 입력을 생성하세요.",
+      "emptyState": "선택한 소스에 필요한 입력 파일과 출력 경로를 지정한 뒤 EVOLVEpro 입력을 생성하세요.",
       "nVariants": "기록된 variant",
       "nAuthoritative": "반복 리포트 기준",
       "nFallbackOnly": "GC 데이터 단독",
@@ -459,7 +467,30 @@
       "toastSuccess": "EVOLVEpro 입력 생성 완료",
       "toastSuccessDesc": "{{count}}개 variant를 기록했습니다.",
       "toastError": "EVOLVEpro 입력 생성 실패",
-      "openFolder": "출력 폴더 열기"
+      "openFolder": "출력 폴더 열기",
+      "routeNote": "이 경로는 xlsx 파일을 직접 읽으며, genotype 연동 경로의 activity 업로드를 사용하지 않습니다.",
+      "sourceModeLabel": "Activity 소스",
+      "sourceModeRank": "GC data 시트",
+      "sourceModeReports": "Agilent raw 리포트",
+      "sourceModeRankHelper": "well별로 사전 정규화된 GC data를 플레이트 레이아웃으로 variant에 매핑합니다.",
+      "sourceModeReportsHelper": "Agilent FID1B raw 리포트에서 각 리포트의 WT 블록 대비 fold-change를 직접 계산합니다.",
+      "round1SourceLabel": "Round-1 소스",
+      "round1SourcePrev": "이전 EVOLVEpro",
+      "round1SourceRaw": "GC-FID raw 리포트",
+      "round1SourcePrevHelper": "이전 EVOLVEpro 파일(Variant, activity)을 round-1 baseline 전체로 사용합니다.",
+      "round1SourceRawHelper": "well 이름이 붙은 GC-FID raw 리포트를 사용하며, 플레이트 레이아웃이 well을 variant로 매핑합니다.",
+      "round1EvolveproXlsx": "Round-1 EVOLVEpro xlsx",
+      "round1EvolveproXlsxHelper": "이전 라운드 EVOLVEpro xlsx (Variant, activity). 재측정된 variant는 그 평균으로 대체됩니다.",
+      "round1ReportXlsx": "Round-1 리포트 xlsx (GC-FID raw)",
+      "round1ReportXlsxHelper": "Agilent FID1B raw 리포트. sample name이 well 위치(A1..H12)이며 WT 블록을 포함합니다.",
+      "remeasureReportXlsx": "재측정 리포트 xlsx (variant 라벨)",
+      "remeasureReportXlsxHelper": "Agilent FID1B raw 리포트. sample name이 variant 라벨(예: V5F 또는 5F)이며 반복 행이 replicate입니다.",
+      "verdictXlsx": "NGS verdict xlsx",
+      "verdictXlsxHelper": "Analyze Excel 리포트(Final 시트: well_id + verdict). well이 PASS가 아닌 variant는 제외됩니다. 생략하면 NGS 게이팅을 건너뜁니다.",
+      "layoutXlsxOptionalHelper": "NGS verdict 게이팅에서 variant를 well에 매핑할 때만 사용합니다.",
+      "optionalStateLabel": "선택",
+      "nNgsExcluded": "NGS 제외",
+      "missingInputs": "아직 필요한 파일"
     },
     "runHealth": {
       "panelAriaLabel": "실행 상태 패널",
@@ -2305,6 +2336,7 @@
       },
       "activity": {
         "ingest": "활성 데이터",
+        "signals": "신호 및 핸드오프",
         "merge": "병합",
         "export": "내보내기",
         "mergeExport": "병합 및 내보내기"
@@ -2361,6 +2393,7 @@
     "mameDescriptions": {
       "activity": {
         "ingest": "활성 측정값을 업로드한 뒤 verdict과 병합해 다음 라운드 EVOLVEpro 입력을 내보냅니다 (단일 반복 GC + 3중 반복 WT 상대).",
+        "signals": "라운드 간 분류 신호를 검토하고, EVOLVEpro 입력이 준비되면 다음 라운드로 핸드오프합니다.",
         "mergeExport": "활성 데이터를 유전형 콜과 병합해 테이블을 내보낸 뒤, 단일 반복(GC)과 3중 반복(WT 상대) 활성을 결합해 EVOLVEpro 입력을 생성합니다."
       },
       "analyze": {

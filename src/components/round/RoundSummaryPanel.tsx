@@ -28,7 +28,6 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { RoundMetrics } from "@/types/round-metrics";
 import type { MergeStats, MergeReplicatesStats, SwapWarning } from "@/types/mame/activity";
-import { AdvisoryDecisionCard } from "@/components/round/AdvisoryDecisionCard";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -508,8 +507,6 @@ export function RoundSummaryPanel({
       </div>
 
       <CalibrationBanner />
-
-      <AdvisoryDecisionCard />
 
       {warnings.length > 0 && (
         <SwapWarningBanner warnings={warnings} />

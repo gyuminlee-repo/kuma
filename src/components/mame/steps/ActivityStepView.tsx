@@ -1,34 +1,100 @@
 /**
- * ActivityStepView — "activity" mame phase sub-step 디스패처.
+ * ActivityStepView, "activity" mame phase sub-step 디스패처.
  *
- * [source: spec §D2.4 — mame StepView 신규]
- * [updated: spec Phase F F6 — WizardContainer 적용]
- * [updated: spec Phase G #19 — activity.export 폐지, activity.mergeExport로 통합 (2-step)]
- * [updated: Activity 단일 step 통합 — ingest + merge + export 를 한 화면에서 처리 (1-step)]
+ * [source: spec §D2.4, mame StepView 신규]
+ * [updated: spec Phase F F6, WizardContainer 적용]
+ * [updated: spec Phase G #19, activity.export 폐지, activity.mergeExport로 통합 (2-step)]
+ * [updated: Activity 단일 step 통합, ingest + merge + export 를 한 화면에서 처리 (1-step)]
+ * [updated: Step 3 UX 재설계, 2-step으로 분리:
+ *    3.1 (activity.ingest)  = mutually-exclusive EVOLVEpro-input route (genotype vs plate layout)
+ *    3.2 (activity.signals) = cross-round classification (AdvisoryDecisionCard) + round handoff]
  *
  * Sub-step:
- *   activity.ingest → IngestSection + MergeSection + ExportSection + BuildEvolveproInputPanel
- *   activity.mergeExport → legacy id, activity.ingest 로 redirect
+ *   activity.ingest    → ActivityRouteSelector + (IngestSection/MergeSection/ExportSection | BuildEvolveproInputPanel)
+ *   activity.signals   → AdvisoryDecisionCard + RoundHandoffButton
+ *   activity.mergeExport → legacy id, redirects to activity.ingest
  *
- * ActivityPanel은 wrapper로 유지되므로 테스트 호환성 유지.
+ * ActivityPanel.tsx는 세 섹션(Ingest/Merge/Export)만 export한다. 도달 불가였던
+ * ActivityPanel 래퍼는 제거됐다.
  */
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { useRoundStore } from "@/store/round/roundSlice";
+import type { MameSubStepId } from "@/store/mame/slices/mameSubSteps";
 import { IngestSection, MergeSection, ExportSection } from "@/components/mame/panels/ActivityPanel";
 import { WizardContainer } from "@/components/steps/WizardContainer";
 import { StepRedirectFallback } from "./StepRedirectFallback";
 import { BuildEvolveproInputPanel } from "@/components/mame/panels/BuildEvolveproInputPanel";
+import { ActivityRouteSelector } from "@/components/mame/panels/ActivityRouteSelector";
+import { AdvisoryDecisionCard } from "@/components/round/AdvisoryDecisionCard";
+import { RoundHandoffButton } from "@/components/round/RoundHandoffButton";
+import {
+  loadActivityRouteFromStorage,
+  saveActivityRouteToStorage,
+  type ActivityRoute,
+} from "@/lib/mame/activityRouteStorage";
 
-const ACTIVITY_TOTAL = 1;
-const STEP_CONFIG = {
-  index: 1,
-  label: "3.1",
-  progressLabel: `3.1 / ${ACTIVITY_TOTAL}`,
-  titleKey: "phaseC.mameSubSteps.activity.ingest",
-  descriptionKey: "phaseE.mameDescriptions.activity.ingest",
-} as const;
+const ACTIVITY_TOTAL = 2;
+
+const STEP_CONFIG: Record<
+  "activity.ingest" | "activity.signals",
+  {
+    index: number;
+    label: string;
+    progressLabel: string;
+    titleKey: string;
+    descriptionKey: string;
+  }
+> = {
+  "activity.ingest": {
+    index: 1,
+    label: "3.1",
+    progressLabel: `3.1 / ${ACTIVITY_TOTAL}`,
+    titleKey: "phaseC.mameSubSteps.activity.ingest",
+    descriptionKey: "phaseE.mameDescriptions.activity.ingest",
+  },
+  "activity.signals": {
+    index: 2,
+    label: "3.2",
+    progressLabel: `3.2 / ${ACTIVITY_TOTAL}`,
+    titleKey: "phaseC.mameSubSteps.activity.signals",
+    descriptionKey: "phaseE.mameDescriptions.activity.signals",
+  },
+};
+
+function ActivityIngestStep() {
+  const [route, setRoute] = useState<ActivityRoute>(() => loadActivityRouteFromStorage());
+
+  function handleRouteChange(next: ActivityRoute) {
+    setRoute(next);
+    saveActivityRouteToStorage(next);
+  }
+
+  return (
+    <div className="space-y-6">
+      <ActivityRouteSelector value={route} onChange={handleRouteChange} />
+      {route === "genotype" ? (
+        <>
+          <IngestSection />
+          <MergeSection />
+          <ExportSection />
+        </>
+      ) : (
+        <BuildEvolveproInputPanel />
+      )}
+    </div>
+  );
+}
+
+function ActivitySignalsStep({ activeRoundId }: { activeRoundId: string | null }) {
+  return (
+    <div className="space-y-6">
+      <AdvisoryDecisionCard />
+      {activeRoundId && <RoundHandoffButton round_id={activeRoundId} />}
+    </div>
+  );
+}
 
 export function ActivityStepView() {
   const subStep = useMameAppStore((s) => s.currentMameSubStep);
@@ -44,9 +110,8 @@ export function ActivityStepView() {
     }
   }, [activeRoundId, addRound]);
 
-  // Activity is a single merged step (ingest + merge + export). Any other id —
-  // including the legacy activity.mergeExport — redirects here.
-  if (subStep !== "activity.ingest") {
+  // Legacy activity.mergeExport id redirects to the first valid sub-step.
+  if (subStep !== "activity.ingest" && subStep !== "activity.signals") {
     return (
       <StepRedirectFallback
         currentSub={subStep}
@@ -56,23 +121,28 @@ export function ActivityStepView() {
     );
   }
 
+  const config = STEP_CONFIG[subStep];
+
+  function goToSubStep(id: MameSubStepId) {
+    setMameSubStep(id);
+  }
+
   return (
     <WizardContainer
-      stepIndex={STEP_CONFIG.index}
+      stepIndex={config.index}
       stepTotal={ACTIVITY_TOTAL}
-      stepLabel={STEP_CONFIG.label}
-      progressLabel={STEP_CONFIG.progressLabel}
-      titleKey={STEP_CONFIG.titleKey}
-      descriptionKey={STEP_CONFIG.descriptionKey}
-      onPrev={goToPrevStep}
-      onNext={undefined}
+      stepLabel={config.label}
+      progressLabel={config.progressLabel}
+      titleKey={config.titleKey}
+      descriptionKey={config.descriptionKey}
+      onPrev={subStep === "activity.signals" ? () => goToSubStep("activity.ingest") : goToPrevStep}
+      onNext={subStep === "activity.ingest" ? () => goToSubStep("activity.signals") : undefined}
     >
-      <div className="space-y-6">
-        <IngestSection />
-        <MergeSection />
-        <ExportSection />
-        <BuildEvolveproInputPanel />
-      </div>
+      {subStep === "activity.ingest" ? (
+        <ActivityIngestStep />
+      ) : (
+        <ActivitySignalsStep activeRoundId={activeRoundId} />
+      )}
     </WizardContainer>
   );
 }

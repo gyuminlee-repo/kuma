@@ -325,11 +325,9 @@
       "openFolderError": "フォルダーを開けませんでした。"
     },
     "activity": {
-      "title": "活性データ",
-      "subtitle": "Phase 1 (Barcode Setup) と Phase 2 (Analyze) の後、wet-lab 活性測定が揃った段階 (通常は数日から数週間後) で進めるフェーズ。測定値を読み込み、genotype とマージ後、EVOLVEpro 学習用 xlsx をエクスポート。",
-      "tabIngest": "1. Ingest",
-      "tabMerge": "2. Merge",
-      "tabExport": "3. Export",
+      "sectionIngest": "活性データのアップロード",
+      "sectionMerge": "Genotype とマージ",
+      "sectionExport": "EVOLVEpro 入力をエクスポート",
       "ingest": {
         "uploadHeading": "活性データをアップロード",
         "uploadDesc": "long format の CSV / Excel ファイル (well, replicate, value カラム) を現在の Round に読み込み。",
@@ -351,6 +349,8 @@
       },
       "merge": {
         "heading": "活性データを genotype とマージ",
+        "evolveproDesc": "推奨: replicate を WT に対して正規化し、label-swap ガードを適用します。",
+        "legacyDesc": "WT normalization や label-swap チェックを行わない legacy CSV 出力です。",
         "desc": "アップロード済み活性と Round の genotype を結合し、WT で正規化。",
         "btnLegacy": "Genotype とマージ",
         "btnLegacyBusy": "マージ中…",
@@ -397,6 +397,14 @@
         "helpText": "ここで指定した wells は activity fold-change normalization の wild-type baseline として使用されます。",
         "suggestButton": "Control wells から提案",
         "alreadySetTooltip": "WT wells は既に設定済み"
+      },
+      "route": {
+        "heading": "EVOLVEpro 入力経路",
+        "ariaLabel": "EVOLVEpro 入力の生成方法を選択してください",
+        "genotypeLabel": "Activity + NGS genotype",
+        "genotypeDesc": "long-format の well activity をアップロードし、今回の round の NGS verdict とマージしてからエクスポートします。",
+        "plateLayoutLabel": "Plate layout + GC data",
+        "plateLayoutDesc": "plate layout と GC data の xlsx ファイルから直接生成します。NGS genotype は不要です。"
       }
     },
     "runHealth": {
@@ -896,7 +904,7 @@
     },
     "buildEvolvepro": {
       "title": "EVOLVEpro 入力の生成",
-      "subtitle": "プレートレイアウト、GC データ、Agilent replicate レポート、以前の EVOLVEpro ファイルを 1 つの EVOLVEpro 入力 xlsx に統合します。",
+      "subtitle": "1 ラウンドの activity 測定値を 1 つの EVOLVEpro 入力 xlsx にまとめます。",
       "inputFiles": "入力ファイル",
       "layoutXlsx": "プレートレイアウト xlsx",
       "layoutXlsxHelper": "Mutant から well 位置へのマッピング（Mutant、Well Pos. 列）。",
@@ -917,7 +925,7 @@
       "build": "EVOLVEpro 入力を生成",
       "building": "生成中…",
       "resultTitle": "生成結果",
-      "emptyState": "4 つの入力ファイルと出力パスを選択してから、EVOLVEpro 入力を生成してください。",
+      "emptyState": "選択したソースに必要な入力ファイルと出力パスを指定してから、EVOLVEpro 入力を生成してください。",
       "nVariants": "記録された variant",
       "nAuthoritative": "replicate レポート由来",
       "nFallbackOnly": "GC データのみ由来",
@@ -936,7 +944,30 @@
       "toastSuccess": "EVOLVEpro 入力の生成が完了しました",
       "toastSuccessDesc": "{{count}} 件の variant を記録しました。",
       "toastError": "EVOLVEpro 入力の生成に失敗しました",
-      "openFolder": "出力フォルダを開く"
+      "openFolder": "出力フォルダを開く",
+      "routeNote": "この経路は xlsx ファイルを直接読み込み、genotype 連携経路の activity アップロードは使用しません。",
+      "sourceModeLabel": "Activity ソース",
+      "sourceModeRank": "GC data シート",
+      "sourceModeReports": "Agilent raw レポート",
+      "sourceModeRankHelper": "well ごとに事前正規化された GC data を、プレートレイアウトで variant に対応付けます。",
+      "sourceModeReportsHelper": "Agilent FID1B raw レポートから、各レポートの WT ブロックに対する fold-change を直接計算します。",
+      "round1SourceLabel": "Round-1 ソース",
+      "round1SourcePrev": "以前の EVOLVEpro",
+      "round1SourceRaw": "GC-FID raw レポート",
+      "round1SourcePrevHelper": "以前の EVOLVEpro ファイル（Variant、activity）を round-1 baseline 全体として使用します。",
+      "round1SourceRawHelper": "well 名の GC-FID raw レポートを使用し、プレートレイアウトが well を variant に対応付けます。",
+      "round1EvolveproXlsx": "Round-1 EVOLVEpro xlsx",
+      "round1EvolveproXlsxHelper": "前ラウンドの EVOLVEpro xlsx（Variant、activity）。再測定された variant はその平均値に置き換えられます。",
+      "round1ReportXlsx": "Round-1 レポート xlsx（GC-FID raw）",
+      "round1ReportXlsxHelper": "Agilent FID1B raw レポート。sample name は well 位置（A1..H12）で、WT ブロックを含みます。",
+      "remeasureReportXlsx": "再測定レポート xlsx（variant ラベル）",
+      "remeasureReportXlsxHelper": "Agilent FID1B raw レポート。sample name は variant ラベル（例: V5F または 5F）で、繰り返し行が replicate です。",
+      "verdictXlsx": "NGS verdict xlsx",
+      "verdictXlsxHelper": "Analyze Excel レポート（Final シート: well_id + verdict）。well が PASS でない variant は除外されます。省略すると NGS ゲーティングをスキップします。",
+      "layoutXlsxOptionalHelper": "NGS verdict ゲーティングで variant を well に対応付ける場合にのみ使用します。",
+      "optionalStateLabel": "任意",
+      "nNgsExcluded": "NGS 除外",
+      "missingInputs": "不足しているファイル"
     },
     "verdictBadge": {
       "help": {
@@ -2272,6 +2303,7 @@
       },
       "activity": {
         "ingest": "データ Ingest",
+        "signals": "シグナルと引き継ぎ",
         "mergeExport": "Merge & Export",
         "export": "Export",
         "merge": "Merge"
@@ -2316,6 +2348,7 @@
       },
       "activity": {
         "ingest": "活性 CSV または Excel ファイルをアップロードし、wild-type をアノテート。",
+        "signals": "ラウンド間の分類シグナルを確認し、EVOLVEpro 入力の準備ができたら次のラウンドへ引き継ぎます。",
         "mergeExport": "活性データを遺伝型コールとマージしてテーブルをエクスポートし、単一反復 (GC) と 3 反復 (WT 相対) の活性を組み合わせて EVOLVEpro 入力を生成します。"
       }
     },

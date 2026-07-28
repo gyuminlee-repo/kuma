@@ -325,11 +325,9 @@
       "openFolderError": "Não foi possível abrir a pasta."
     },
     "activity": {
-      "title": "Dados de atividade",
-      "subtitle": "Entrar nesta fase quando as medições de atividade de wet-lab estiverem prontas (tipicamente dias a semanas após a Fase 1 Barcode Setup e a Fase 2 Analyze). Carregar medições, mesclar com genotype, depois exportar a entrada de treinamento do EVOLVEpro.",
-      "tabIngest": "1. Ingest",
-      "tabMerge": "2. Merge",
-      "tabExport": "3. Export",
+      "sectionIngest": "Enviar activity",
+      "sectionMerge": "Mesclar com genotype",
+      "sectionExport": "Exportar entrada EVOLVEpro",
       "ingest": {
         "uploadHeading": "Enviar dados de atividade",
         "uploadDesc": "Carregar um arquivo CSV / Excel em formato long (colunas well, replicate, value) no Round atual.",
@@ -351,6 +349,8 @@
       },
       "merge": {
         "heading": "Mesclar atividade com genotype",
+        "evolveproDesc": "Recomendado: normaliza os replicates em relação ao WT e aplica a proteção label-swap.",
+        "legacyDesc": "Saída CSV legacy sem normalização WT ou verificações de label-swap.",
         "desc": "Juntar a atividade carregada com o genotype do Round e normalizar por WT.",
         "btnLegacy": "Mesclar com genotype",
         "btnLegacyBusy": "Mesclando…",
@@ -397,6 +397,14 @@
         "helpText": "Os wells marcados aqui servem como baseline wild-type para normalização activity fold-change.",
         "suggestButton": "Sugerir a partir dos wells de controle",
         "alreadySetTooltip": "WT wells já definidos"
+      },
+      "route": {
+        "heading": "Rota de entrada do EVOLVEpro",
+        "ariaLabel": "Escolha como gerar a entrada do EVOLVEpro",
+        "genotypeLabel": "Activity + NGS genotype",
+        "genotypeDesc": "Envie a activity de wells em formato long, mescle com os verdicts de NGS deste round e depois exporte.",
+        "plateLayoutLabel": "Plate layout + GC data",
+        "plateLayoutDesc": "Construa diretamente a partir dos arquivos xlsx de plate layout e GC data. Não requer NGS genotype."
       }
     },
     "runHealth": {
@@ -896,7 +904,7 @@
     },
     "buildEvolvepro": {
       "title": "Gerar Entrada EVOLVEpro",
-      "subtitle": "Combina o layout da placa, os dados GC, o relatório de réplicas Agilent e o arquivo EVOLVEpro anterior em um único xlsx de entrada EVOLVEpro.",
+      "subtitle": "Combina as medições de activity de uma rodada em um único xlsx de entrada do EVOLVEpro.",
       "inputFiles": "Arquivos de entrada",
       "layoutXlsx": "xlsx de layout da placa",
       "layoutXlsxHelper": "Mapeamento de Mutant para well position (colunas Mutant, Well Pos.).",
@@ -917,7 +925,7 @@
       "build": "Gerar entrada EVOLVEpro",
       "building": "Gerando...",
       "resultTitle": "Resultado da geração",
-      "emptyState": "Selecione os quatro arquivos de entrada e um caminho de saída, depois gere a entrada EVOLVEpro.",
+      "emptyState": "Selecione os arquivos de entrada da fonte escolhida e um caminho de saída e então gere a entrada do EVOLVEpro.",
       "nVariants": "Variants gravados",
       "nAuthoritative": "Do relatório de replicates",
       "nFallbackOnly": "Somente dos dados GC",
@@ -936,7 +944,30 @@
       "toastSuccess": "Entrada EVOLVEpro gerada",
       "toastSuccessDesc": "{{count}} variants gravados.",
       "toastError": "Falha ao gerar a entrada EVOLVEpro",
-      "openFolder": "Abrir pasta de saída"
+      "openFolder": "Abrir pasta de saída",
+      "routeNote": "Esta rota lê os arquivos xlsx diretamente e não usa o upload de activity da rota vinculada ao genotype.",
+      "sourceModeLabel": "Fonte de activity",
+      "sourceModeRank": "Planilha de GC data",
+      "sourceModeReports": "Relatórios Agilent brutos",
+      "sourceModeRankHelper": "GC data pré-normalizada por well, associada às variantes pelo layout de placa.",
+      "sourceModeReportsHelper": "Relatórios Agilent FID1B brutos; o fold-change é calculado em relação aos blocos WT de cada relatório.",
+      "round1SourceLabel": "Fonte do round-1",
+      "round1SourcePrev": "EVOLVEpro anterior",
+      "round1SourceRaw": "Relatório GC-FID bruto",
+      "round1SourcePrevHelper": "Usar um arquivo EVOLVEpro anterior (Variant, activity) como baseline completa do round-1.",
+      "round1SourceRawHelper": "Usar um relatório GC-FID bruto nomeado por well; o layout de placa associa wells a variantes.",
+      "round1EvolveproXlsx": "xlsx EVOLVEpro do round-1",
+      "round1EvolveproXlsxHelper": "xlsx EVOLVEpro da rodada anterior (Variant, activity). Variantes remedidas são substituídas pelas suas médias.",
+      "round1ReportXlsx": "xlsx do relatório do round-1 (GC-FID bruto)",
+      "round1ReportXlsxHelper": "Relatório Agilent FID1B bruto; os Sample Name são posições de well (A1..H12), com blocos WT.",
+      "remeasureReportXlsx": "xlsx do relatório de remedição (rotulado por variante)",
+      "remeasureReportXlsxHelper": "Relatório Agilent FID1B bruto; os Sample Name são rótulos de variante (por exemplo V5F ou 5F) e linhas repetidas são réplicas.",
+      "verdictXlsx": "xlsx de verdict NGS",
+      "verdictXlsxHelper": "Relatório Excel do Analyze (planilha Final: well_id + verdict). Variantes cujo well não é PASS são excluídas. Omita para pular o filtro NGS.",
+      "layoutXlsxOptionalHelper": "Usado apenas para associar cada variante ao seu well no filtro por verdict NGS.",
+      "optionalStateLabel": "Opcional",
+      "nNgsExcluded": "Excluídas por NGS",
+      "missingInputs": "Ainda falta"
     },
     "verdictBadge": {
       "help": {
@@ -2272,6 +2303,7 @@
       },
       "activity": {
         "ingest": "Ingest de dados",
+        "signals": "Sinais e transferência",
         "mergeExport": "Merge & Export",
         "export": "Export",
         "merge": "Merge"
@@ -2316,6 +2348,7 @@
       },
       "activity": {
         "ingest": "Enviar arquivos CSV ou Excel de atividade e anotar o wild-type.",
+        "signals": "Revise os sinais de classificação entre rounds e transfira para o próximo round assim que a entrada EVOLVEpro estiver pronta.",
         "mergeExport": "Combine os dados de atividade com as chamadas de genótipo e exporte a tabela combinada; em seguida, crie a entrada do EVOLVEpro combinando a atividade de réplica única (GC) e de tripla réplica (relativa ao WT)."
       }
     },

@@ -1,11 +1,18 @@
 /**
  * BuildEvolveproInputPanel: MAME activity to EVOLVEpro input build panel.
  *
- * Lets the user pick the four round files (plate layout, GC data, Agilent
- * replicate report, previous EVOLVEpro file) and an output path, then calls the
- * mame.activity.build_evolvepro_input RPC to write a merged EVOLVEpro input
- * xlsx plus an ID-to-variant mapping audit. The pre-run result area renders an
- * empty state, never an error boundary.
+ * Two backend input modes are exposed through a source-mode toggle:
+ *   rank   , plate layout + GC data (+ optional Agilent rep-batch and previous
+ *             EVOLVEpro confirmation pair).
+ *   reports, variant-labeled Agilent re-measure report plus exactly one
+ *             round-1 source (previous EVOLVEpro file, or a raw Agilent
+ *             round-1 report which also needs the plate layout), with an
+ *             optional NGS verdict file for gating.
+ *
+ * The chosen files plus an output path go to the
+ * mame.activity.build_evolvepro_input RPC, which writes a merged EVOLVEpro
+ * input xlsx (plus an ID-to-variant mapping audit in rank mode). The pre-run
+ * result area renders an empty state, never an error boundary.
  *
  * Follows the Kuro-style Browse button + selected-filename preview pattern. The
  * output control uses a save-file dialog. State is local useState, persisted to
@@ -64,10 +71,16 @@ export function BuildEvolveproInputPanel() {
   useEffect(() => {
     setResult(null);
   }, [
+    form.sourceMode,
+    form.round1Source,
     form.layoutXlsx,
     form.gcDataXlsx,
     form.repBatchXlsx,
     form.prevEvolveproXlsx,
+    form.round1ReportXlsx,
+    form.round1EvolveproXlsx,
+    form.remeasureReportXlsx,
+    form.verdictXlsx,
     form.outputXlsx,
   ]);
 
@@ -99,27 +112,66 @@ export function BuildEvolveproInputPanel() {
     if (selected) setForm({ outputXlsx: selected });
   }, [t]);
 
-  // Confirmation files (rep-batch + previous EVOLVEpro) are optional: with only
-  // layout + GC the build runs as a provisional first-round primary screen.
-  const allInputsReady =
-    Boolean(form.layoutXlsx) &&
-    Boolean(form.gcDataXlsx) &&
-    Boolean(form.outputXlsx);
+  // Client-side gate mirroring the backend _mode_xor validator, so a build is
+  // never dispatched only to come back as a ValueError. Each entry is a label
+  // of a still-missing required file for the currently selected mode.
+  const missing: string[] = [];
+  if (form.sourceMode === "rank") {
+    // Confirmation files (rep-batch + previous EVOLVEpro) stay optional: layout
+    // + GC alone yields a provisional first-round primary screen.
+    if (!form.layoutXlsx) missing.push(t("mame.buildEvolvepro.layoutXlsx"));
+    if (!form.gcDataXlsx) missing.push(t("mame.buildEvolvepro.gcDataXlsx"));
+  } else if (form.round1Source === "prev") {
+    if (!form.round1EvolveproXlsx)
+      missing.push(t("mame.buildEvolvepro.round1EvolveproXlsx"));
+  } else {
+    if (!form.layoutXlsx) missing.push(t("mame.buildEvolvepro.layoutXlsx"));
+    if (!form.round1ReportXlsx)
+      missing.push(t("mame.buildEvolvepro.round1ReportXlsx"));
+  }
+  if (form.sourceMode === "reports" && !form.remeasureReportXlsx)
+    missing.push(t("mame.buildEvolvepro.remeasureReportXlsx"));
+  if (!form.outputXlsx) missing.push(t("mame.buildEvolvepro.outputXlsx"));
 
-  const canBuild = allInputsReady && !isBuilding;
+  const canBuild = missing.length === 0 && !isBuilding;
+
+  function buildParams(): BuildEvolveproInputParams {
+    if (form.sourceMode === "rank") {
+      return {
+        layout_xlsx: form.layoutXlsx,
+        gc_data_xlsx: form.gcDataXlsx,
+        rep_batch_xlsx: form.repBatchXlsx || undefined,
+        prev_evolvepro_xlsx: form.prevEvolveproXlsx || undefined,
+        output_xlsx: form.outputXlsx,
+      };
+    }
+    // Reports mode sends exactly one round-1 source. With a previous EVOLVEpro
+    // baseline the layout is optional and only maps variant to well for NGS
+    // verdict gating; with a raw round-1 report the layout is required.
+    if (form.round1Source === "prev") {
+      return {
+        round1_evolvepro_xlsx: form.round1EvolveproXlsx,
+        layout_xlsx: form.layoutXlsx || undefined,
+        remeasure_report_xlsx: form.remeasureReportXlsx,
+        verdict_xlsx: form.verdictXlsx || undefined,
+        output_xlsx: form.outputXlsx,
+      };
+    }
+    return {
+      layout_xlsx: form.layoutXlsx,
+      round1_report_xlsx: form.round1ReportXlsx,
+      remeasure_report_xlsx: form.remeasureReportXlsx,
+      verdict_xlsx: form.verdictXlsx || undefined,
+      output_xlsx: form.outputXlsx,
+    };
+  }
 
   async function handleBuild() {
     if (!canBuild) return;
     setIsBuilding(true);
     setResult(null);
 
-    const params: BuildEvolveproInputParams = {
-      layout_xlsx: form.layoutXlsx,
-      gc_data_xlsx: form.gcDataXlsx,
-      rep_batch_xlsx: form.repBatchXlsx || undefined,
-      prev_evolvepro_xlsx: form.prevEvolveproXlsx || undefined,
-      output_xlsx: form.outputXlsx,
-    };
+    const params = buildParams();
 
     try {
       const res = await buildEvolveproInput(params);
@@ -149,154 +201,311 @@ export function BuildEvolveproInputPanel() {
   }
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="mx-auto max-w-2xl space-y-6 p-4">
-        <header>
-          <h2 className="text-base font-semibold text-foreground">
-            {t("mame.buildEvolvepro.title")}
-          </h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {t("mame.buildEvolvepro.subtitle")}
-          </p>
-        </header>
+    <section className="space-y-6">
+      <header>
+        <h3 className="text-base font-semibold text-foreground">
+          {t("mame.buildEvolvepro.title")}
+        </h3>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {t("mame.buildEvolvepro.subtitle")}
+        </p>
+        <p className="mt-2 rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+          {t("mame.buildEvolvepro.routeNote")}
+        </p>
+      </header>
 
-        <section aria-labelledby="bep-input-files">
-          <h3
-            id="bep-input-files"
-            className="mb-3 text-sm font-medium text-foreground"
-          >
-            {t("mame.buildEvolvepro.inputFiles")}
-          </h3>
-          <div className="space-y-4">
-            <FilePickerField
-              id="bep-layout"
-              label={t("mame.buildEvolvepro.layoutXlsx")}
-              filled={Boolean(form.layoutXlsx)}
-              value={form.layoutXlsx}
-              onBrowse={() =>
-                browseXlsx("layoutXlsx", t("mame.buildEvolvepro.layoutXlsx"))
-              }
-              helperText={t("mame.buildEvolvepro.layoutXlsxHelper")}
-            />
-            <FilePickerField
-              id="bep-gc"
-              label={t("mame.buildEvolvepro.gcDataXlsx")}
-              filled={Boolean(form.gcDataXlsx)}
-              value={form.gcDataXlsx}
-              onBrowse={() =>
-                browseXlsx("gcDataXlsx", t("mame.buildEvolvepro.gcDataXlsx"))
-              }
-              helperText={t("mame.buildEvolvepro.gcDataXlsxHelper")}
-            />
-            <FilePickerField
-              id="bep-rep"
-              label={`${t("mame.buildEvolvepro.repBatchXlsx")} (${t("mame.buildEvolvepro.optionalLabel")})`}
-              filled={Boolean(form.repBatchXlsx)}
-              value={form.repBatchXlsx}
-              onBrowse={() =>
-                browseXlsx("repBatchXlsx", t("mame.buildEvolvepro.repBatchXlsx"))
-              }
-              helperText={t("mame.buildEvolvepro.repBatchXlsxHelper")}
-            />
-            <FilePickerField
-              id="bep-prev"
-              label={`${t("mame.buildEvolvepro.prevEvolveproXlsx")} (${t("mame.buildEvolvepro.optionalLabel")})`}
-              filled={Boolean(form.prevEvolveproXlsx)}
-              value={form.prevEvolveproXlsx}
-              onBrowse={() =>
-                browseXlsx(
-                  "prevEvolveproXlsx",
-                  t("mame.buildEvolvepro.prevEvolveproXlsx"),
-                )
-              }
-              helperText={t("mame.buildEvolvepro.prevEvolveproXlsxHelper")}
-            />
-          </div>
-        </section>
-
-        <section aria-labelledby="bep-output">
-          <h3
-            id="bep-output"
-            className="mb-3 text-sm font-medium text-foreground"
-          >
-            {t("mame.buildEvolvepro.outputXlsx")}
-          </h3>
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between gap-3">
-              <Label
-                htmlFor="bep-output-path"
-                className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
-              >
-                {t("mame.buildEvolvepro.outputXlsx")}
-              </Label>
-              <span
-                className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                  form.outputXlsx
-                    ? "bg-primary/10 text-primary"
-                    : "bg-muted text-muted-foreground"
-                }`}
-              >
-                {form.outputXlsx
-                  ? t("mame.inputPanel.fileReady")
-                  : t("mame.buildEvolvepro.requiredStateLabel")}
-              </span>
-            </div>
-            <div className="flex gap-1.5">
-              <Input
-                id="bep-output-path"
-                value={getFilename(form.outputXlsx)}
-                readOnly
-                placeholder={t("mame.buildEvolvepro.noOutputSelected")}
-                className="h-8 flex-1 min-w-0 text-xs font-mono"
-                aria-label={t("mame.buildEvolvepro.outputXlsx")}
-                title={form.outputXlsx || undefined}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => void browseOutput()}
-                className="h-8 gap-1 px-2"
-              >
-                <FolderOpen size={12} aria-hidden="true" />
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground/90">
-              {t("mame.buildEvolvepro.outputXlsxHelper")}
-            </p>
-          </div>
-        </section>
-
-        <Button
-          type="button"
-          className="w-full"
-          disabled={!canBuild}
-          onClick={() => void handleBuild()}
-          aria-busy={isBuilding}
+      <section aria-labelledby="bep-input-files">
+        <h3
+          id="bep-input-files"
+          className="mb-3 text-sm font-medium text-foreground"
         >
-          {isBuilding ? (
+          {t("mame.buildEvolvepro.inputFiles")}
+        </h3>
+        <div className="space-y-4">
+          {/* Source-mode toggle: pre-normalised GC data (rank) vs raw Agilent
+              reports. The two modes are mutually exclusive backend-side. */}
+          <ChoiceToggle
+            label={t("mame.buildEvolvepro.sourceModeLabel")}
+            helperText={
+              form.sourceMode === "rank"
+                ? t("mame.buildEvolvepro.sourceModeRankHelper")
+                : t("mame.buildEvolvepro.sourceModeReportsHelper")
+            }
+            options={[
+              { value: "rank", label: t("mame.buildEvolvepro.sourceModeRank") },
+              {
+                value: "reports",
+                label: t("mame.buildEvolvepro.sourceModeReports"),
+              },
+            ]}
+            selected={form.sourceMode}
+            onSelect={(v) =>
+              setForm({ sourceMode: v as FormState["sourceMode"] })
+            }
+          />
+
+          {form.sourceMode === "rank" ? (
             <>
-              <Loader2 size={14} className="mr-2 animate-spin" aria-hidden="true" />
-              {t("mame.buildEvolvepro.building")}
+              <FilePickerField
+                id="bep-layout"
+                label={t("mame.buildEvolvepro.layoutXlsx")}
+                filled={Boolean(form.layoutXlsx)}
+                value={form.layoutXlsx}
+                onBrowse={() =>
+                  browseXlsx("layoutXlsx", t("mame.buildEvolvepro.layoutXlsx"))
+                }
+                helperText={t("mame.buildEvolvepro.layoutXlsxHelper")}
+              />
+              <FilePickerField
+                id="bep-gc"
+                label={t("mame.buildEvolvepro.gcDataXlsx")}
+                filled={Boolean(form.gcDataXlsx)}
+                value={form.gcDataXlsx}
+                onBrowse={() =>
+                  browseXlsx("gcDataXlsx", t("mame.buildEvolvepro.gcDataXlsx"))
+                }
+                helperText={t("mame.buildEvolvepro.gcDataXlsxHelper")}
+              />
+              <FilePickerField
+                id="bep-rep"
+                label={`${t("mame.buildEvolvepro.repBatchXlsx")} (${t("mame.buildEvolvepro.optionalLabel")})`}
+                filled={Boolean(form.repBatchXlsx)}
+                value={form.repBatchXlsx}
+                optional
+                onBrowse={() =>
+                  browseXlsx(
+                    "repBatchXlsx",
+                    t("mame.buildEvolvepro.repBatchXlsx"),
+                  )
+                }
+                helperText={t("mame.buildEvolvepro.repBatchXlsxHelper")}
+              />
+              <FilePickerField
+                id="bep-prev"
+                label={`${t("mame.buildEvolvepro.prevEvolveproXlsx")} (${t("mame.buildEvolvepro.optionalLabel")})`}
+                filled={Boolean(form.prevEvolveproXlsx)}
+                value={form.prevEvolveproXlsx}
+                optional
+                onBrowse={() =>
+                  browseXlsx(
+                    "prevEvolveproXlsx",
+                    t("mame.buildEvolvepro.prevEvolveproXlsx"),
+                  )
+                }
+                helperText={t("mame.buildEvolvepro.prevEvolveproXlsxHelper")}
+              />
             </>
           ) : (
-            t("mame.buildEvolvepro.build")
-          )}
-        </Button>
+            <>
+              {/* Round-1 baseline source: prior EVOLVEpro file vs raw report. */}
+              <ChoiceToggle
+                label={t("mame.buildEvolvepro.round1SourceLabel")}
+                helperText={
+                  form.round1Source === "prev"
+                    ? t("mame.buildEvolvepro.round1SourcePrevHelper")
+                    : t("mame.buildEvolvepro.round1SourceRawHelper")
+                }
+                options={[
+                  {
+                    value: "prev",
+                    label: t("mame.buildEvolvepro.round1SourcePrev"),
+                  },
+                  {
+                    value: "raw",
+                    label: t("mame.buildEvolvepro.round1SourceRaw"),
+                  },
+                ]}
+                selected={form.round1Source}
+                onSelect={(v) =>
+                  setForm({ round1Source: v as FormState["round1Source"] })
+                }
+              />
 
-        {/* Pre-run empty state, NOT an error boundary. */}
-        {result === null ? (
-          <p
-            role="status"
-            className="rounded-md border border-dashed border-border bg-muted/20 px-3 py-6 text-center text-xs text-muted-foreground"
-          >
-            {t("mame.buildEvolvepro.emptyState")}
+              {form.round1Source === "prev" ? (
+                <>
+                  <FilePickerField
+                    id="bep-round1-evolvepro"
+                    label={t("mame.buildEvolvepro.round1EvolveproXlsx")}
+                    filled={Boolean(form.round1EvolveproXlsx)}
+                    value={form.round1EvolveproXlsx}
+                    onBrowse={() =>
+                      browseXlsx(
+                        "round1EvolveproXlsx",
+                        t("mame.buildEvolvepro.round1EvolveproXlsx"),
+                      )
+                    }
+                    helperText={t(
+                      "mame.buildEvolvepro.round1EvolveproXlsxHelper",
+                    )}
+                  />
+                  <FilePickerField
+                    id="bep-layout-optional"
+                    label={`${t("mame.buildEvolvepro.layoutXlsx")} (${t("mame.buildEvolvepro.optionalLabel")})`}
+                    filled={Boolean(form.layoutXlsx)}
+                    value={form.layoutXlsx}
+                    optional
+                    onBrowse={() =>
+                      browseXlsx(
+                        "layoutXlsx",
+                        t("mame.buildEvolvepro.layoutXlsx"),
+                      )
+                    }
+                    helperText={t(
+                      "mame.buildEvolvepro.layoutXlsxOptionalHelper",
+                    )}
+                  />
+                </>
+              ) : (
+                <>
+                  <FilePickerField
+                    id="bep-layout"
+                    label={t("mame.buildEvolvepro.layoutXlsx")}
+                    filled={Boolean(form.layoutXlsx)}
+                    value={form.layoutXlsx}
+                    onBrowse={() =>
+                      browseXlsx(
+                        "layoutXlsx",
+                        t("mame.buildEvolvepro.layoutXlsx"),
+                      )
+                    }
+                    helperText={t("mame.buildEvolvepro.layoutXlsxHelper")}
+                  />
+                  <FilePickerField
+                    id="bep-round1"
+                    label={t("mame.buildEvolvepro.round1ReportXlsx")}
+                    filled={Boolean(form.round1ReportXlsx)}
+                    value={form.round1ReportXlsx}
+                    onBrowse={() =>
+                      browseXlsx(
+                        "round1ReportXlsx",
+                        t("mame.buildEvolvepro.round1ReportXlsx"),
+                      )
+                    }
+                    helperText={t("mame.buildEvolvepro.round1ReportXlsxHelper")}
+                  />
+                </>
+              )}
+
+              <FilePickerField
+                id="bep-remeasure"
+                label={t("mame.buildEvolvepro.remeasureReportXlsx")}
+                filled={Boolean(form.remeasureReportXlsx)}
+                value={form.remeasureReportXlsx}
+                onBrowse={() =>
+                  browseXlsx(
+                    "remeasureReportXlsx",
+                    t("mame.buildEvolvepro.remeasureReportXlsx"),
+                  )
+                }
+                helperText={t("mame.buildEvolvepro.remeasureReportXlsxHelper")}
+              />
+              <FilePickerField
+                id="bep-verdict"
+                label={`${t("mame.buildEvolvepro.verdictXlsx")} (${t("mame.buildEvolvepro.optionalLabel")})`}
+                filled={Boolean(form.verdictXlsx)}
+                value={form.verdictXlsx}
+                optional
+                onBrowse={() =>
+                  browseXlsx("verdictXlsx", t("mame.buildEvolvepro.verdictXlsx"))
+                }
+                helperText={t("mame.buildEvolvepro.verdictXlsxHelper")}
+              />
+            </>
+          )}
+        </div>
+      </section>
+
+      <section aria-labelledby="bep-output">
+        <h3
+          id="bep-output"
+          className="mb-3 text-sm font-medium text-foreground"
+        >
+          {t("mame.buildEvolvepro.outputXlsx")}
+        </h3>
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between gap-3">
+            <Label
+              htmlFor="bep-output-path"
+              className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+            >
+              {t("mame.buildEvolvepro.outputXlsx")}
+            </Label>
+            <span
+              className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                form.outputXlsx
+                  ? "bg-primary/10 text-primary"
+                  : "bg-muted text-muted-foreground"
+              }`}
+            >
+              {form.outputXlsx
+                ? t("mame.inputPanel.fileReady")
+                : t("mame.buildEvolvepro.requiredStateLabel")}
+            </span>
+          </div>
+          <div className="flex gap-1.5">
+            <Input
+              id="bep-output-path"
+              value={getFilename(form.outputXlsx)}
+              readOnly
+              placeholder={t("mame.buildEvolvepro.noOutputSelected")}
+              className="h-8 flex-1 min-w-0 text-xs font-mono"
+              aria-label={t("mame.buildEvolvepro.outputXlsx")}
+              title={form.outputXlsx || undefined}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => void browseOutput()}
+              className="h-8 gap-1 px-2"
+            >
+              <FolderOpen size={12} aria-hidden="true" />
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground/90">
+            {t("mame.buildEvolvepro.outputXlsxHelper")}
           </p>
+        </div>
+      </section>
+
+      {missing.length > 0 && (
+        <p
+          role="status"
+          className="rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground"
+        >
+          {t("mame.buildEvolvepro.missingInputs")}: {missing.join(", ")}
+        </p>
+      )}
+
+      <Button
+        type="button"
+        className="w-full"
+        disabled={!canBuild}
+        onClick={() => void handleBuild()}
+        aria-busy={isBuilding}
+      >
+        {isBuilding ? (
+          <>
+            <Loader2 size={14} className="mr-2 animate-spin" aria-hidden="true" />
+            {t("mame.buildEvolvepro.building")}
+          </>
         ) : (
-          <BuildResult result={result} />
+          t("mame.buildEvolvepro.build")
         )}
-      </div>
-    </div>
+      </Button>
+
+      {/* Pre-run empty state, NOT an error boundary. */}
+      {result === null ? (
+        <p
+          role="status"
+          className="rounded-md border border-dashed border-border bg-muted/20 px-3 py-6 text-center text-xs text-muted-foreground"
+        >
+          {t("mame.buildEvolvepro.emptyState")}
+        </p>
+      ) : (
+        <BuildResult result={result} />
+      )}
+    </section>
   );
 }
 
@@ -308,18 +517,22 @@ function BuildResult({ result }: { result: BuildEvolveproInputResult }) {
         {t("mame.buildEvolvepro.resultTitle")}
       </h3>
 
-      <div
-        role="status"
-        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${
-          result.confidence === "confirmed"
-            ? "bg-primary/10 text-primary"
-            : "bg-amber-500/15 text-amber-700 dark:text-amber-400"
-        }`}
-      >
-        {result.confidence === "confirmed"
-          ? t("mame.buildEvolvepro.confirmedLabel")
-          : t("mame.buildEvolvepro.provisionalLabel")}
-      </div>
+      {/* Confidence is a rank-mode concept; the backend omits it in reports
+          mode, where a "provisional" badge would be a false statement. */}
+      {result.confidence && (
+        <div
+          role="status"
+          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+            result.confidence === "confirmed"
+              ? "bg-primary/10 text-primary"
+              : "bg-amber-500/15 text-amber-700 dark:text-amber-400"
+          }`}
+        >
+          {result.confidence === "confirmed"
+            ? t("mame.buildEvolvepro.confirmedLabel")
+            : t("mame.buildEvolvepro.provisionalLabel")}
+        </div>
+      )}
 
       <div className="grid grid-cols-3 gap-2">
         <Stat label={t("mame.buildEvolvepro.nVariants")} value={result.n_variants} />
@@ -333,7 +546,17 @@ function BuildResult({ result }: { result: BuildEvolveproInputResult }) {
         />
       </div>
 
-      {!result.prev_descending && (
+      {result.n_ngs_excluded > 0 && (
+        <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+          <span className="font-semibold">
+            {t("mame.buildEvolvepro.nNgsExcluded")}: {result.n_ngs_excluded}
+          </span>{" "}
+          <span className="font-mono">{result.ngs_excluded.join(", ")}</span>
+        </div>
+      )}
+
+      {/* The rank assumption veto signal only exists in rank mode. */}
+      {result.mode === "rank" && !result.prev_descending && (
         <div
           role="status"
           className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400"
@@ -444,13 +667,16 @@ function BuildResult({ result }: { result: BuildEvolveproInputResult }) {
             </tbody>
           </table>
         </div>
-        <p
-          className="mt-1 truncate text-xs text-muted-foreground"
-          title={result.mapping_audit_path}
-        >
-          {t("mame.buildEvolvepro.mappingAuditPath")}:{" "}
-          {getFilename(result.mapping_audit_path)}
-        </p>
+        {/* Reports mode writes no JSON audit artifact and returns an empty path. */}
+        {result.mapping_audit_path && (
+          <p
+            className="mt-1 truncate text-xs text-muted-foreground"
+            title={result.mapping_audit_path}
+          >
+            {t("mame.buildEvolvepro.mappingAuditPath")}:{" "}
+            {getFilename(result.mapping_audit_path)}
+          </p>
+        )}
       </div>
 
       <Button
@@ -479,6 +705,48 @@ function Stat({ label, value }: { label: string; value: number }) {
   );
 }
 
+/** Exclusive choice rendered as a radiogroup of two-plus buttons. */
+function ChoiceToggle({
+  label,
+  options,
+  selected,
+  onSelect,
+  helperText,
+}: {
+  label: string;
+  options: { value: string; label: string }[];
+  selected: string;
+  onSelect: (value: string) => void;
+  helperText?: string;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </Label>
+      <div className="flex gap-1.5" role="radiogroup" aria-label={label}>
+        {options.map((o) => (
+          <Button
+            key={o.value}
+            type="button"
+            size="sm"
+            variant={selected === o.value ? "default" : "outline"}
+            className="flex-1 min-w-0 text-xs"
+            role="radio"
+            aria-checked={selected === o.value}
+            onClick={() => onSelect(o.value)}
+          >
+            {o.label}
+          </Button>
+        ))}
+      </div>
+      {helperText && (
+        <p className="text-xs text-muted-foreground/90">{helperText}</p>
+      )}
+    </div>
+  );
+}
+
 function FilePickerField({
   id,
   label,
@@ -486,6 +754,7 @@ function FilePickerField({
   value,
   onBrowse,
   helperText,
+  optional = false,
 }: {
   id: string;
   label: string;
@@ -493,6 +762,7 @@ function FilePickerField({
   value: string;
   onBrowse: () => Promise<void>;
   helperText?: string;
+  optional?: boolean;
 }) {
   const { t } = useTranslation();
   const preview = getFilename(value);
@@ -512,7 +782,9 @@ function FilePickerField({
         >
           {filled
             ? t("mame.inputPanel.fileReady")
-            : t("mame.buildEvolvepro.requiredStateLabel")}
+            : optional
+              ? t("mame.buildEvolvepro.optionalStateLabel")
+              : t("mame.buildEvolvepro.requiredStateLabel")}
         </span>
       </div>
       <div className="flex gap-1.5">

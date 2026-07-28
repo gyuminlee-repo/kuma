@@ -214,6 +214,7 @@ const INSPECTOR_MAP: Record<MameSubStepId, React.ComponentType> = {
   "analyze.verdict": QcVerdictInspector,
   "analyze.plate": QcPlateInspector,
   "activity.ingest": ActivityIngestInspector,
+  "activity.signals": ActivityMergeExportInspector,
   "activity.mergeExport": ActivityMergeExportInspector,
 };
 
@@ -258,6 +259,10 @@ export function useMameInspectorMeta(): { title: string; subtitle: string } {
     "activity.ingest": {
       titleKey: "mame.activity.ingest.inspectorTitle",
       subtitleKey: "mame.activity.ingest.inspectorSubtitle",
+    },
+    "activity.signals": {
+      titleKey: "mame.activity.mergeExport.inspectorTitle",
+      subtitleKey: "mame.activity.mergeExport.inspectorSubtitle",
     },
     "activity.mergeExport": {
       titleKey: "mame.activity.mergeExport.inspectorTitle",

@@ -10,6 +10,7 @@ from kuma_core.mame.activity.models import (
     PlateMeta,
     SwapWarning,
     Variant,
+    WtReplicateRecord,
 )
 from kuma_core.mame.activity.sanity_check import detect_label_swap
 from kuma_core.mame.activity.merge import merge_replicates_priority
@@ -35,11 +36,14 @@ from kuma_core.mame.activity.evolvepro_xlsx import (
 )
 from kuma_core.mame.activity.build_evolvepro_input import (
     BuildEvolveproResult,
+    BuildEvolveproReportsResult,
     IdVariantMapping,
     MappingRow,
     build_evolvepro_input,
+    build_evolvepro_input_from_reports,
     build_id_variant_mapping,
 )
+from kuma_core.mame.activity.verdict_ngs import parse_verdict_wells
 
 __all__ = [
     # models
@@ -52,6 +56,7 @@ __all__ = [
     "PlateMeta",
     "SwapWarning",
     "Variant",
+    "WtReplicateRecord",
     # B-1
     "merge_replicates_priority",
     # B-2
@@ -79,8 +84,12 @@ __all__ = [
     "write_evolvepro_xlsx",
     # Build EVOLVEpro input (4-file assembly + rank mapping)
     "BuildEvolveproResult",
+    "BuildEvolveproReportsResult",
     "IdVariantMapping",
     "MappingRow",
     "build_evolvepro_input",
+    "build_evolvepro_input_from_reports",
     "build_id_variant_mapping",
+    # NGS verdict gating (PR3)
+    "parse_verdict_wells",
 ]
