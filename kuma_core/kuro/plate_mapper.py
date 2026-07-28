@@ -819,6 +819,29 @@ def _build_rev_lookups(
     else:
         for m in rev_mappings:
             mut_to_rev_seq[m.mutation] = m.sequence
+        # ``rev_mappings`` is already deduplicated, so it only carries the
+        # representative mutation of each shared group. Mutations that are not
+        # representatives have no entry, and every downstream writer would drop
+        # their reverse transfer row without a trace (a reaction with no reverse
+        # primer). Reconstruction is impossible here: forward mappings carry the
+        # forward sequence only, so nothing links a non-representative mutation
+        # to its reverse primer. Fail loudly instead of exporting a silently
+        # incomplete instrument file.
+        missing = [
+            m.mutation for m in fwd_mappings
+            if m.mutation not in mut_to_rev_seq
+            or mut_to_rev_seq[m.mutation] not in rev_by_seq
+        ]
+        if missing:
+            preview = ", ".join(missing[:10])
+            if len(missing) > 10:
+                preview += f", ... (+{len(missing) - 10} more)"
+            raise ValueError(
+                "Reverse primer grouping information (dedup_info) is missing, "
+                f"so {len(missing)} mutation(s) cannot be matched to a reverse "
+                f"primer: {preview}. Re-run the primer design so the reverse "
+                "deduplication map is regenerated, then export again."
+            )
     return fwd_by_mut, rev_by_seq, mut_to_rev_seq
 
 
@@ -863,6 +886,82 @@ def _write_96well_grid(
                 ws.cell(row=r, column=c + 2, value=name).alignment = center
         r += 1
 
+    return r
+
+
+def _rev_usage_counts(
+    fwd_mappings: list[PlateMapping],
+    rev_by_seq: dict[str, PlateMapping],
+    mut_to_rev_seq: dict[str, str],
+) -> dict[str, int]:
+    """Count how many destination reactions each reverse sequence feeds.
+
+    Counted from ``fwd_mappings`` (one destination per forward mutation) so the
+    number always matches the transfer rows actually written.
+    """
+    counts: dict[str, int] = {seq: 0 for seq in rev_by_seq}
+    for fwd_m in fwd_mappings:
+        rev_seq = mut_to_rev_seq.get(fwd_m.mutation)
+        if rev_seq is None or rev_seq not in counts:
+            continue
+        counts[rev_seq] += 1
+    return counts
+
+
+def _write_rev_usage_table(
+    ws,
+    start_row: int,
+    fwd_mappings: list[PlateMapping],
+    rev_mappings: list[PlateMapping],
+    rev_by_seq: dict[str, PlateMapping],
+    mut_to_rev_seq: dict[str, str],
+    transfer_vol: float,
+    unit: str,
+) -> int:
+    """Write the reverse source well usage table and return the next free row.
+
+    Shared reverse primers occupy a single source well that the instrument
+    aspirates once per destination reaction, so the volume leaving that well is
+    ``shared_count x transfer_vol``. Dead volume is a labware property that KUMA
+    does not know, so it is called out in a note instead of being added.
+    """
+    from openpyxl.styles import Font
+
+    bold = Font(bold=True)
+    counts = _rev_usage_counts(fwd_mappings, rev_by_seq, mut_to_rev_seq)
+
+    r = start_row
+    ws.cell(row=r, column=1, value="Reverse primer usage").font = bold
+    r += 1
+
+    headers = [
+        "Source Well",
+        "Primer Name",
+        "Shared By (reactions)",
+        f"Volume Per Reaction ({unit})",
+        f"Total Transfer Volume ({unit})",
+    ]
+    for ci, h in enumerate(headers, 1):
+        ws.cell(row=r, column=ci, value=h).font = bold
+    r += 1
+
+    for m in rev_mappings:
+        count = counts.get(m.sequence, 0)
+        for ci, val in enumerate([
+            m.well, m.primer_name, count, transfer_vol, count * transfer_vol,
+        ], 1):
+            ws.cell(row=r, column=ci, value=val)
+        r += 1
+
+    ws.cell(
+        row=r, column=1,
+        value=(
+            "Total Transfer Volume excludes instrument dead volume. "
+            "Fill each source well with this total plus the dead volume of the "
+            "labware in use."
+        ),
+    )
+    r += 1
     return r
 
 
@@ -931,9 +1030,15 @@ def export_echo_mapping_xlsx(
     # Destination section (96-well PCR plate)
     dest_start = 5 + len(_ROWS_384) + 1  # after 384-well grid + blank row
     ws.cell(row=dest_start, column=1, value="Destination").font = bold
-    _write_96well_grid(
+    next_row = _write_96well_grid(
         ws, dest_start + 1, fwd_mappings, "PCR mixture",
         labware="96 PCR plate", value_attr="mutation",
+    )
+
+    # Reverse source well usage (shared count + total transfer volume)
+    _write_rev_usage_table(
+        ws, next_row + 1, fwd_mappings, rev_mappings,
+        rev_by_seq, mut_to_rev_seq, transfer_vol, "nL",
     )
 
     # Auto-width
@@ -1037,9 +1142,15 @@ def export_janus_mapping_xlsx(
 
     # Blank rows + Destination plate
     r += 2
-    _write_96well_grid(
+    next_row = _write_96well_grid(
         ws, r, fwd_mappings, "PCR mixture plate",
         labware="96 PCR plate", value_attr="mutation",
+    )
+
+    # Reverse source well usage (shared count + total transfer volume)
+    _write_rev_usage_table(
+        ws, next_row + 1, fwd_mappings, rev_mappings,
+        rev_by_seq, mut_to_rev_seq, transfer_vol, "µL",
     )
 
     # Auto-width

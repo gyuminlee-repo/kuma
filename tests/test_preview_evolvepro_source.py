@@ -150,6 +150,29 @@ def test_preview_tsv_tab_delimited():
         pytest.fail(f"Expected tab-split row, got {result['rows']}")
 
 
+def test_preview_bom_csv_matches_loader_headers():
+    """BOM CSV preview headers equal what the loader resolves, so manual mapping works."""
+    from kuma_core.kuro.evolvepro import _read_table_rows, _resolve_evolvepro_columns
+    from sidecar_kuro.handlers.misc import handle_preview_evolvepro_source
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        p = Path(tmp_dir) / "bom_preview.csv"
+        p.write_text("variant,y_pred\nQ10A,0.9\n", encoding="utf-8-sig")
+
+        result = handle_preview_evolvepro_source({"filepath": str(p)})
+        _, loader_columns = _read_table_rows(p, None, ".csv")
+        v_col, s_col = _resolve_evolvepro_columns(loader_columns)
+
+    if result["headers"] != ["variant", "y_pred"]:
+        pytest.fail(f"BOM leaked into preview headers: {result['headers']}")
+    if result["headers"] != loader_columns:
+        pytest.fail(
+            f"Preview headers {result['headers']} differ from loader columns {loader_columns}"
+        )
+    if (v_col, s_col) != ("variant", "y_pred"):
+        pytest.fail(f"Loader resolved unexpected columns: {(v_col, s_col)}")
+
+
 def test_preview_xlsx_invalid_sheet_name():
     """Requesting a non-existent sheet raises ValueError."""
     from sidecar_kuro.handlers.misc import handle_preview_evolvepro_source

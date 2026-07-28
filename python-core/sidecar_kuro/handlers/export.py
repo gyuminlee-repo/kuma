@@ -11,6 +11,7 @@ import openpyxl
 
 from kuma_core.kuro.plate_mapper import (
     PlateMapping,
+    deduplicate_reverse,
     export_idt_csv,
     export_echo_mapping_csv,
     export_echo_mapping_xlsx,
@@ -29,6 +30,7 @@ from kuma_core.shared.output_hash import write_output_checksum
 
 import sidecar_kuro.core as _core
 from sidecar_kuro.core import (
+    logger,
     _validate_filepath,
     _validate_output_path,
     _ALLOWED_EXCEL_EXTENSIONS,
@@ -52,6 +54,52 @@ from sidecar_kuro.models import (
 _ALLOWED_MAPPING_EXTENSIONS = {".xlsx", ".csv"}
 
 _PLATE_MAPPING_KEYS = {f.name for f in dc_fields(PlateMapping)}
+
+
+def _resolve_rev_groups(
+    param_dedup: dict | None,
+    state_dedup: dict | None,
+    results,
+    *,
+    context: str,
+) -> dict:
+    """Resolve the reverse deduplication map used by every mapping exporter.
+
+    Fallback ladder:
+      1. ``dedup_info`` shipped by the frontend,
+      2. ``dedup_info`` held in sidecar state,
+      3. recomputation from the design ``results``,
+      4. empty dict, which lets ``plate_mapper`` raise its explicit error.
+
+    Step 3 covers workspaces saved before ``dedupInfo`` was persisted: the
+    frontend migration fills the field with ``{}``, which would otherwise
+    block the export outright. Recomputation is logged, never silent.
+
+    This helper must not touch ``_core._state_lock``: callers already read
+    state under that non-reentrant lock and pass the values in.
+
+    Args:
+        param_dedup: dedup map supplied with the request, if any.
+        state_dedup: dedup map currently held in sidecar state, if any.
+        results: design results (needs ``mutation.raw`` and ``reverse_seq``).
+        context: handler name used in the recomputation log line.
+    """
+    if param_dedup:
+        return dict(param_dedup)
+    if state_dedup:
+        return dict(state_dedup)
+    if not results:
+        return {}
+    recomputed = deduplicate_reverse(results)
+    if not recomputed:
+        return {}
+    logger.warning(
+        "%s: dedup_info missing, reverse grouping recomputed from %d design "
+        "result(s) into %d group(s). This happens with workspaces saved "
+        "before dedup_info was persisted.",
+        context, len(results), len(recomputed),
+    )
+    return recomputed
 
 
 def _write_report_sheet(wb: openpyxl.Workbook, report_data: dict) -> None:
@@ -200,20 +248,24 @@ def handle_export_excel(params: dict) -> dict:
         p.filepath, allowed_extensions=_ALLOWED_EXCEL_EXTENSIONS
     )
 
-    dedup_data = p.dedup_info
-
     if p.mappings:
         mappings = _pydantic_to_plate_mappings(p.mappings)
-        rev_groups = dedup_data or {}
         with _core._state_lock:
+            state_dedup = _core._state.dedup_info
             results_for_export = list(_core._state.results)
+        rev_groups = _resolve_rev_groups(
+            p.dedup_info, state_dedup, results_for_export, context="export_excel",
+        )
     else:
         with _core._state_lock:
             if not _core._state.results:
                 raise ValueError("No design available")
             mappings = _core._state.plate_mappings
-            rev_groups = _core._state.dedup_info
             results_for_export = list(_core._state.results)
+            rev_groups = _resolve_rev_groups(
+                None, _core._state.dedup_info, results_for_export,
+                context="export_excel",
+            )
 
     # Derive overlap_mode from the first result (all results in a run share the same mode).
     run_overlap_mode = results_for_export[0].overlap_mode if results_for_export else "partial"
@@ -346,13 +398,20 @@ def handle_export_mapping(params: dict) -> dict:
         mappings = _pydantic_to_plate_mappings(p.mappings)
         fwd_mappings = [m for m in mappings if m.primer_type == "forward"]
         rev_mappings = [m for m in mappings if m.primer_type == "reverse"]
-        rev_groups = p.dedup_info or {}
+        with _core._state_lock:
+            state_dedup = _core._state.dedup_info
+            state_results = list(_core._state.results)
+        rev_groups = _resolve_rev_groups(
+            p.dedup_info, state_dedup, state_results, context="export_mapping",
+        )
     else:
         with _core._state_lock:
             if not _core._state.results:
                 raise ValueError("No design available. Run design_sdm_primers first.")
             results = _core._state.results
-            rev_groups = _core._state.dedup_info or {}
+            rev_groups = _resolve_rev_groups(
+                None, _core._state.dedup_info, results, context="export_mapping",
+            )
 
         fwd_mappings, rev_mappings = generate_plate_map(
             results,
@@ -763,15 +822,24 @@ def handle_export_echo_mapping_dry_run(params: dict) -> dict:
     )
     if p.mappings is not None:
         mappings = _pydantic_to_plate_mappings(p.mappings)
-        rev_groups = dict(p.dedup_info or {})
         if not mappings:
             return {"rows": [], "total": 0, "transfer_vol": int(vol)}
+        with _core._state_lock:
+            state_dedup = _core._state.dedup_info
+            state_results = list(_core._state.results)
+        rev_groups = _resolve_rev_groups(
+            p.dedup_info, state_dedup, state_results,
+            context="export_echo_mapping_dry_run",
+        )
     else:
         with _core._state_lock:
             if not _core._state.results:
                 return {"rows": [], "total": 0, "transfer_vol": int(vol)}
             mappings = list(_core._state.plate_mappings)
-            rev_groups = dict(_core._state.dedup_info or {})
+            rev_groups = _resolve_rev_groups(
+                None, _core._state.dedup_info, _core._state.results,
+                context="export_echo_mapping_dry_run",
+            )
     fwd, rev = _split_fwd_rev(mappings)
     rows = _build_echo_preview_rows(
         fwd, rev, int(vol), rev_groups, mapping_range=mapping_range,
@@ -799,15 +867,24 @@ def handle_export_janus_mapping_dry_run(params: dict) -> dict:
     )
     if p.mappings is not None:
         mappings = _pydantic_to_plate_mappings(p.mappings)
-        rev_groups = dict(p.dedup_info or {})
         if not mappings:
             return {"rows": [], "total": 0, "transfer_vol": float(vol)}
+        with _core._state_lock:
+            state_dedup = _core._state.dedup_info
+            state_results = list(_core._state.results)
+        rev_groups = _resolve_rev_groups(
+            p.dedup_info, state_dedup, state_results,
+            context="export_janus_mapping_dry_run",
+        )
     else:
         with _core._state_lock:
             if not _core._state.results:
                 return {"rows": [], "total": 0, "transfer_vol": float(vol)}
             mappings = list(_core._state.plate_mappings)
-            rev_groups = dict(_core._state.dedup_info or {})
+            rev_groups = _resolve_rev_groups(
+                None, _core._state.dedup_info, _core._state.results,
+                context="export_janus_mapping_dry_run",
+            )
     fwd, rev = _split_fwd_rev(mappings)
     rows = _build_janus_preview_rows(
         fwd, rev, float(vol), rev_groups, mapping_range=mapping_range,
@@ -831,17 +908,22 @@ def handle_export_all(params: dict) -> dict:
 
     if p.mappings:
         mappings = _pydantic_to_plate_mappings(p.mappings)
-        rev_groups = dict(p.dedup_info or {})
         # Filter backend results to only those present in frontend mappings
         # so capped designs (e.g. maxPrimers=95) export the capped set.
         mut_keys = {m.mutation for m in mappings}
         with _core._state_lock:
+            state_dedup = _core._state.dedup_info
             results = [r for r in _core._state.results if r.mutation.raw in mut_keys]
+        rev_groups = _resolve_rev_groups(
+            p.dedup_info, state_dedup, results, context="export_all",
+        )
     else:
         with _core._state_lock:
             mappings = list(_core._state.plate_mappings)
             results = list(_core._state.results)
-            rev_groups = dict(_core._state.dedup_info or {})
+            rev_groups = _resolve_rev_groups(
+                None, _core._state.dedup_info, results, context="export_all",
+            )
 
     fwd, rev = _split_fwd_rev(mappings)
 

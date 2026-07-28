@@ -19,7 +19,6 @@ export function MutationInput() {
   const parseErrors = useAppStore((s) => s.parseErrors);
   const evolveproCsvPath = useAppStore((s) => s.evolveproCsvPath);
   const loadEvolveproCsv = useAppStore((s) => s.loadEvolveproCsv);
-  const setEvolveproPreview = useAppStore((s) => s.setEvolveproPreview);
   const setEvolveproVariantColumn = useAppStore((s) => s.setEvolveproVariantColumn);
   const setEvolveproScoreColumn = useAppStore((s) => s.setEvolveproScoreColumn);
   const artifact = useArtifact("evolvepro_csv");
@@ -150,7 +149,9 @@ export function MutationInput() {
                   ],
                   (path) => {
                     setUserOverridden(true);
-                    setEvolveproPreview(null);
+                    // Column overrides belong to the previous file; drop them.
+                    // The preview itself is refreshed by SourceColumnPanel as
+                    // soon as the path changes, so it is not cleared here.
                     setEvolveproVariantColumn(null);
                     setEvolveproScoreColumn(null);
                     loadEvolveproCsv(path);
