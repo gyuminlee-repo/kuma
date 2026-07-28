@@ -979,9 +979,10 @@ def _build_sample_map_rows(expected_mutations_path: Path) -> list[tuple[str, str
     FileNotFoundError
         If ``expected_mutations_path`` does not exist.
     ValueError
-        If the xlsx carries no ``expected_mutations`` sheet or no DESIGNED rows.
-        Callers pass this path deliberately, so an unreadable file is an error
-        rather than a reason to silently emit a blank template.
+        If the xlsx carries no ``expected_mutations`` sheet or no DESIGNED rows,
+        or if the mutation set does not fit one 96-well plate. Callers pass this
+        path deliberately, so an unusable file is an error rather than a reason
+        to emit a misleading template.
     """
     # Local imports: keep module import cost off the barcode-only code path.
     from kuma_core.mame.io.kuro_reader import read_expected_mutations
@@ -994,11 +995,31 @@ def _build_sample_map_rows(expected_mutations_path: Path) -> list[tuple[str, str
             "cannot pre-fill the sample map template. Omit "
             "expected_mutations_path to emit a header-only template."
         )
-    layout = build_draft_layout(expected)
+    draft = build_draft_layout(expected)
+    # A clamped draft is refused rather than written. The template is a file the
+    # operator edits with no confirmation step in between, and a truncated sheet
+    # reads as a correct full plate, so writing one would hide the truncation
+    # until wells past the cut are mis-scored.
+    if not draft.is_complete:
+        detail = (
+            f"{len(draft.dropped_mutant_ids)} mutants past well 96 "
+            f"({', '.join(draft.dropped_mutant_ids[:5])}"
+            f"{', ...' if len(draft.dropped_mutant_ids) > 5 else ''})"
+            if draft.dropped_mutant_ids
+            else "no well left for the WT control"
+        )
+        raise ValueError(
+            f"{len(expected)} designed mutations do not fit one 96-well plate: "
+            f"{detail}. The combinatorial barcode space is 12 fwd x 8 rev, so "
+            "wells past the 96th cannot be told apart in the reads. Split the "
+            "campaign across plates (MAME separates plates by native barcode) "
+            "and supply one sample map per plate, or omit "
+            "expected_mutations_path for a header-only template."
+        )
     # build_draft_layout returns an insertion-ordered dict[well, sample] in
     # column-major order (WT last when it fits); the sheet stores the columns
     # in sample_name/well order, matching parse_sample_map.
-    return [(sample, well) for well, sample in layout.items()]
+    return [(sample, well) for well, sample in draft.layout.items()]
 
 
 def _ctx_path(p: Path, root: Path) -> str:

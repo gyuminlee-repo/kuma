@@ -733,9 +733,9 @@ class TestSampleMapTemplatePrefill:
             expected_mutations_path=expected_xlsx,
         )
 
-        layout = build_draft_layout(read_expected_mutations(expected_xlsx))
+        draft = build_draft_layout(read_expected_mutations(expected_xlsx))
         assert _read_sample_map(result.sample_map_template) == [
-            (sample, well) for well, sample in layout.items()
+            (sample, well) for well, sample in draft.layout.items()
         ]
 
     def test_missing_expected_file_raises(self, tmp_path: Path) -> None:
@@ -834,3 +834,44 @@ class TestSampleMapTemplatePrefill:
         )
         assert result.sample_map_preserved is False
         assert _read_sample_map(result.sample_map_template) == [("V5F", "A1"), ("WT", "B1")]
+
+    def test_mutation_set_larger_than_one_plate_raises(self, tmp_path: Path) -> None:
+        """A draft that cannot cover the plate is refused, not written truncated.
+
+        The template is a file the operator edits with no confirmation step, and a
+        96-row sheet looks like a correct full plate, so silently dropping the
+        remainder would surface only as mis-scored wells much later.
+        """
+        fasta, seeds, project_root = _make_project(tmp_path)
+        expected_xlsx = project_root / "kuro_results.xlsx"
+        _make_expected_mutations_xlsx(
+            expected_xlsx, [(f"M{i}", i, "A", "G") for i in range(1, 110)]
+        )
+        with pytest.raises(ValueError, match="do not fit one 96-well plate"):
+            generate_mame_package(
+                fasta_path=fasta,
+                gene_start=500,
+                gene_end=800,
+                barcode_seeds_path=seeds,
+                output_dir=project_root / "design",
+                project_root=project_root,
+                expected_mutations_path=expected_xlsx,
+            )
+
+    def test_exactly_full_plate_raises_for_missing_wt(self, tmp_path: Path) -> None:
+        """N == 96 leaves no WT well, which costs the clean-control check."""
+        fasta, seeds, project_root = _make_project(tmp_path)
+        expected_xlsx = project_root / "kuro_results.xlsx"
+        _make_expected_mutations_xlsx(
+            expected_xlsx, [(f"M{i}", i, "A", "G") for i in range(1, 97)]
+        )
+        with pytest.raises(ValueError, match="no well left for the WT control"):
+            generate_mame_package(
+                fasta_path=fasta,
+                gene_start=500,
+                gene_end=800,
+                barcode_seeds_path=seeds,
+                output_dir=project_root / "design",
+                project_root=project_root,
+                expected_mutations_path=expected_xlsx,
+            )

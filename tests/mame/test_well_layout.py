@@ -47,30 +47,43 @@ def _em(mutant_id: str, position: int, wt_aa: str, mt_aa: str) -> ExpectedMutati
 def test_build_draft_layout_column_major_order_and_wt_position() -> None:
     """well 1..N column-major -> mutant_id; well N+1 -> WT."""
     expected = [_em("M1", 1, "A", "B"), _em("M2", 2, "C", "D"), _em("M3", 3, "E", "F")]
-    layout = build_draft_layout(expected)
+    draft = build_draft_layout(expected)
     # seq 1->A1, 2->B1, 3->C1 (column-major), WT at seq 4 -> D1
-    assert layout["A1"] == "M1"
-    assert layout["B1"] == "M2"
-    assert layout["C1"] == "M3"
-    assert layout["D1"] == "WT"
-    assert len(layout) == 4
+    assert draft.layout["A1"] == "M1"
+    assert draft.layout["B1"] == "M2"
+    assert draft.layout["C1"] == "M3"
+    assert draft.layout["D1"] == "WT"
+    assert len(draft.layout) == 4
+    assert draft.is_complete
+    assert draft.dropped_mutant_ids == []
+    assert draft.wt_omitted is False
 
 
 def test_build_draft_layout_wt_omitted_at_full_plate() -> None:
-    """N == 96: every well is a mutant, WT well (97) is omitted."""
+    """N == 96: every well is a mutant, WT well (97) is omitted and reported."""
     expected = [_em(f"M{i}", i, "A", "B") for i in range(1, 97)]
-    layout = build_draft_layout(expected)
-    assert len(layout) == 96
-    assert "WT" not in layout.values()
+    draft = build_draft_layout(expected)
+    assert len(draft.layout) == 96
+    assert "WT" not in draft.layout.values()
+    # Losing the WT well is consequential, so it must not be silent: without a
+    # declared WT the control is attributed UNKNOWN_* and the clean check is lost.
+    assert draft.wt_omitted is True
+    assert draft.dropped_mutant_ids == []
+    assert not draft.is_complete
 
 
 def test_build_draft_layout_clamps_mutants_above_96() -> None:
-    """N > 96: only the first 96 mutants are placed, WT omitted."""
+    """N > 96: only the first 96 mutants are placed, and the rest are named."""
     expected = [_em(f"M{i}", i, "A", "B") for i in range(1, 110)]
-    layout = build_draft_layout(expected)
-    assert len(layout) == 96
-    assert "WT" not in layout.values()
-    assert layout["A1"] == "M1"
+    draft = build_draft_layout(expected)
+    assert len(draft.layout) == 96
+    assert "WT" not in draft.layout.values()
+    assert draft.layout["A1"] == "M1"
+    # A truncated draft reads as a correct full plate, so the dropped mutants are
+    # reported by id rather than only by a count that a caller may ignore.
+    assert draft.dropped_mutant_ids == [f"M{i}" for i in range(97, 110)]
+    assert draft.wt_omitted is True
+    assert not draft.is_complete
 
 
 # ---------------------------------------------------------------------------

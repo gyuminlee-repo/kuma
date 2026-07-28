@@ -921,6 +921,8 @@
       "sampleAriaLabel": "well {{well}}의 sample 이름",
       "empty": "생성된 well이 없습니다. expected_mutations xlsx가 선택됐는지 확인하세요.",
       "rowCount": "레이아웃에 well {{count}}개",
+      "droppedMutants": "mutant {{count}}개가 96-well plate에 들어가지 않아 draft에서 빠졌습니다: {{mutants}}. 바코드 조합이 12 fwd x 8 rev라 96개가 상한입니다. plate를 나누고 plate별로 레이아웃을 따로 만드세요.",
+      "wtOmitted": "plate가 가득 차 WT 대조군 well이 빠졌습니다. WT well이 없으면 대조군 청정 검증을 할 수 없습니다.",
       "confirm": "레이아웃 확정"
     },
     "verdictBadge": {
