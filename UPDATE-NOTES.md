@@ -4,6 +4,17 @@
 
 ---
 
+## v0.13.27 (2026-07-28)
+
+### MAME step 3 reads raw instrument reports
+
+- A raw Agilent FID1B report can now drive step 3 directly. Pick **Raw Agilent reports** in the plate-layout route and supply the re-measure report plus a round-1 baseline, either another raw report or a prior EVOLVEpro file. Each replicate is normalised as `area / mean(WT block areas)`, so no hand-normalised GC sheet is needed. A missing WT block stops the build instead of guessing.
+- The WT denominator now comes from the `WT_1`/`WT_2`/`WT_3` rows the instrument already ships. Those rows used to be discarded during import, which forced the denominator to be inferred from WT wells clicked on the plate. Plates without such rows keep the old behaviour, and the merge result reports which source applied.
+- Optional NGS verdict gating excludes variants whose well did not pass.
+- Step 3 is split into an exclusive input route and cross-round signals.
+
+---
+
 ## v0.13.14 (2026-07-01)
 
 ### Kuro structure-accuracy guard

@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.13.27 (Step 3 learns to read the instrument, and stops asking a human to normalise first)
+
+MAME step 3 could parse a raw Agilent FID1B report but never use one. The parser had zero production callers, so the only way in was a GC sheet somebody had already divided by WT. The capability lived in an open PR that had gone stale for five weeks against a UI another open PR had since rewritten. Both are landed here.
+
+### Added
+- v0.13.27: A raw Agilent report can be the round source. `build_evolvepro_input_from_reports` normalises each replicate as `area / mean(WT block areas)` and is reachable from the plate-layout route through a source toggle, with a second toggle choosing the round-1 baseline between a raw report and a prior EVOLVEpro file. WT blocks are matched on `^WT_?\d+$`; pure-numeric sample names are treated as calibration and skipped. A missing WT block fails loudly rather than falling back. Optional NGS verdict gating drops variants whose well did not pass. (#173, supersedes #120)
+- v0.13.27: Step 3 splits into an exclusive input route and cross-round signals, so the genotype path and the plate-layout path no longer share one crowded screen. (#173, supersedes #163)
+
+### Changed
+- v0.13.27: The WT denominator comes from the WT replicate rows the instrument ships. Long-format ingest dropped every row whose sample name failed to parse as a well coordinate, which silently discarded the `WT_1`/`WT_2`/`WT_3` blocks present in Agilent exports and forced the genotype route to back out a denominator from plate-designated WT wells instead. Those rows now land in a separate `wt_records` collection, keeping them out of the variant well space, and the join prefers their mean per plate. Plates with no dedicated rows keep the previous behaviour, and `n_wt_replicate_rows` plus `n_plates_wt_from_replicates` report which source applied. This aligns the genotype route with the definition reports mode already used.
+- v0.13.27: `MergedRow.relative_activity` is gone. It was declared and read but never assigned, so the export ternary always resolved to `fold_change`, which is the same quantity by construction (`activity_mean / wt_mean`). The dead branch made the code read as if it honoured a separate relative-activity definition that was never wired.
+- v0.13.27: The step 3 document is rewritten against the actual parsers and columns. It had claimed a 96-well grid input that no parser implements and named the output columns `mutation`, `activity` when the writer emits `Variant`, `activity`.
+
+### Fixed
+- v0.13.27: The two-file provisional build works again after the merge. The mode validator arriving from #120 judged rank mode by `all([gc_data_xlsx, rep_batch_xlsx, prev_evolvepro_xlsx])`, which rejected the layout-plus-GC path main had opened by making the last two optional; a copy of the same guard sat in the handler. Both now key off `gc_data_xlsx`. The regression survived the merge because the existing validator test supplies all three files, so three tests now pin the two-file path.
+- v0.13.27: The reports branch no longer shows a false "Provisional" badge. It returns no `confidence` key, but the panel rendered the badge unconditionally. The types also missed the `mode` field the handler returns, and marked `layout_xlsx` and `gc_data_xlsx` required when the backend treats both as optional.
+
+### Known issues
+- `251001_report.xlsx` is a correct format exemplar but is not the round-1 measurement for the IspS campaign. Its normalised values match the expected round-2 input in 0 of 94 rows where `GC data.xlsx` matches 58, and per-well correlation between the two is -0.18. Feeding it as the round-1 source gives right answers for the 34 re-measured variants and wrong ones for the other 61. No raw round-1 report exists for that campaign, which is why rank mode stays.
+- The `export_evolvepro_csv` output is log2 while both xlsx writers are linear. The CSV exists for the in-repo KURO round trip and is not an EVOLVEpro input, but the shared name invites confusion.
+
 ## v0.13.26 (Panels that announce themselves on a laptop screen, a sample map that arrives pre-filled)
 
 A user on a MacBook reported that the KURO Step 5 plate view was missing, while the same build looked fine on Windows. The cause turned out to be two independent things that only combine on a short screen: a panel that shrinks instead of overflowing, and an OS that hides its scroll bars. Measurement drove the fix; the numbers below come from Playwright renders rather than from reading the code.
