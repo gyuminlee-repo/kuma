@@ -24,9 +24,11 @@ long-format 만 받는다. 96-well grid 시트는 지원하지 않는다.
 | `plate_id` | 조건부 | plate 가 정확히 1개면 생략 가능, 아니면 필수 |
 | `replicate_idx` | 선택 | 기본 1 |
 
+well 컬럼 값은 well 좌표(`A1` 또는 `A01`) 이거나 WT 반복 라벨(`WT_1`, `WT1` 형태의 `^WT_?\d+$`) 이다. WT 라벨 행은 well 이 아니라 전용 WT 반복으로 따로 모이며, 라벨의 숫자 접미사가 replicate 번호가 된다 (`WT_3` 은 3번째 반복). 둘 중 어느 쪽도 아닌 값을 가진 행은 건너뛴다.
+
 확장자가 `.xlsx`/`.xls` 면 excel 로, 그 외는 csv 로 읽는다. 음수와 NaN 행은 건너뛴다.
 
-WT well 은 사용자가 `WtWellGrid` 에서 좌표로 지정한다. plate 단위로 지정된 모든 WT well 의 모든 replicate 를 한데 평균해 분모로 쓴다.
+분모는 plate 단위로 두 소스 중 우선순위가 높은 쪽을 쓴다. 활성 파일에 `WT_1`/`WT_2` 같은 전용 WT 반복 행이 실려 있으면 그 값들의 평균이 그 plate 의 분모다 (reports-mode 와 같은 정의). 전용 WT 행이 없는 plate 만 사용자가 `WtWellGrid` 에서 좌표로 지정한 WT well 로 역산하며, 이때는 그 plate 의 모든 WT well 의 모든 replicate 를 한데 평균한다. 어느 소스가 쓰였는지는 merge 결과의 `n_wt_replicate_rows`, `n_plates_wt_from_replicates` 로 확인한다. 전용 WT 행은 well 좌표가 아니라 라벨이라 변이 well 로 합류하지 않고 EVOLVEpro 산출에도 들어가지 않는다.
 
 ## 3.2 plateLayout route: 두 모드
 

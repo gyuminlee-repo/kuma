@@ -10,6 +10,7 @@ from kuma_core.mame.activity.models import (
     PlateMeta,
     SwapWarning,
     Variant,
+    WtReplicateRecord,
 )
 from kuma_core.mame.activity.sanity_check import detect_label_swap
 from kuma_core.mame.activity.merge import merge_replicates_priority
@@ -55,6 +56,7 @@ __all__ = [
     "PlateMeta",
     "SwapWarning",
     "Variant",
+    "WtReplicateRecord",
     # B-1
     "merge_replicates_priority",
     # B-2

@@ -26,9 +26,24 @@ export interface ActivityRecord {
   source_file: string
 }
 
+/**
+ * Dedicated WT replicate row ('WT_1', 'WT2', ...) carried by an activity file.
+ * Held apart from ActivityRecord because it has a label, not a well coordinate,
+ * so it never joins as a mutant well.
+ */
+export interface WtReplicateRecord {
+  plate_id: string
+  sample_name: string
+  value: number
+  replicate_idx: number
+  source_file: string
+}
+
 export interface ActivityTable {
   records: ActivityRecord[]
   plate_meta: PlateMeta
+  /** Dedicated WT replicate rows. Empty/undefined = the file carried none. */
+  wt_records?: WtReplicateRecord[]
 }
 
 export interface MergedRow {
@@ -77,6 +92,10 @@ export interface MergeStats {
   n_excluded_from_export: number
   /** B-4 addition: label-swap warnings. Empty array = no warnings. Optional for backward compat. */
   warnings?: SwapWarning[]
+  /** WT denominator provenance: dedicated 'WT_1'-style rows consumed. 0 = plate WT wells used. */
+  n_wt_replicate_rows?: number
+  /** Plates whose WT denominator came from dedicated WT replicate rows. */
+  n_plates_wt_from_replicates?: number
 }
 
 // Phase A adapter result mirrors

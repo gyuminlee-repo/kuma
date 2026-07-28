@@ -12,6 +12,7 @@ from kuma_core.mame.activity.models import (
     MergedRow,
     MergeStats,
     PlateMeta,
+    WtReplicateRecord,
 )
 from kuma_core.mame.activity.normalize import compute_fold_change, compute_log2_fc
 
@@ -39,6 +40,7 @@ def merge_activity_with_genotype(
     mame_genotype: dict[tuple[str, str], str],
     activity_records: list[ActivityRecord],
     plate_meta: PlateMeta,
+    wt_records: list[WtReplicateRecord] | None = None,
 ) -> tuple[list[MergedRow], MergeStats]:
     """Merge KURO design, MAME genotype, and activity data by (plate_id, well_id).
 
@@ -57,6 +59,10 @@ def merge_activity_with_genotype(
         mame_genotype: (plate_id, well_id) → called mutation string.
         activity_records: Raw ActivityRecord list (may contain replicates).
         plate_meta: PlateMeta specifying WT well coordinates per plate.
+        wt_records: Dedicated WT replicate rows from the activity file. When a
+            plate has them they define that plate WT denominator; plates without
+            them fall back to the plate-designated WT wells. stats reports which
+            source ran via n_wt_replicate_rows / n_plates_wt_from_replicates.
 
     Returns:
         (rows, stats) where rows is a sorted list of MergedRow and stats
@@ -86,12 +92,33 @@ def merge_activity_with_genotype(
         seen_keys.add(key)
         by_well[(r.plate_id, wid)].append(r)
 
-    # Compute WT mean per plate (used for fold-change normalization)
-    # Known definition choice (unchanged on purpose): all replicates of all WT
-    # wells on the plate are flat-pooled into one mean. With multiple WT wells
+    # Compute WT mean per plate (used for fold-change normalization).
+    # Priority per plate:
+    #   (a) dedicated WT replicate rows shipped in the activity file ('WT_1'...),
+    #       which is the same denominator definition reports-mode uses
+    #       (build_evolvepro_input._agilent_wt_mean).
+    #   (b) fallback: back-compute from the WT wells the user marked on the plate.
+    # Known definition choice for (b) (unchanged on purpose): all replicates of all
+    # WT wells on the plate are flat-pooled into one mean. With multiple WT wells
     # holding unequal replicate counts this differs from a mean-of-well-means.
+    dedicated_wt: dict[str, list[float]] = defaultdict(list)
+    for wr in wt_records or []:
+        dedicated_wt[wr.plate_id].append(wr.value)
+
     wt_means: dict[str, float | None] = {}
-    for plate_id, wt_wells in wt_lookup.items():
+    n_wt_replicate_rows = 0
+    n_plates_wt_from_replicates = 0
+    for plate_id in set(wt_lookup) | set(dedicated_wt):
+        dedicated = dedicated_wt.get(plate_id, [])
+        if dedicated:
+            m = sum(dedicated) / len(dedicated)
+            # Non-positive denominator is physically invalid; keep the existing
+            # "no usable WT" contract (None) rather than emit a bogus ratio.
+            wt_means[plate_id] = m if m > 0 else None
+            n_wt_replicate_rows += len(dedicated)
+            n_plates_wt_from_replicates += 1
+            continue
+        wt_wells = wt_lookup.get(plate_id, set())
         wt_values = [
             r.value
             for (p, w), recs in by_well.items()
@@ -183,5 +210,7 @@ def merge_activity_with_genotype(
         n_wt=n_wt,
         n_duplicate_warnings=n_dup,
         n_excluded_from_export=n_excluded,
+        n_wt_replicate_rows=n_wt_replicate_rows,
+        n_plates_wt_from_replicates=n_plates_wt_from_replicates,
     )
     return rows, stats

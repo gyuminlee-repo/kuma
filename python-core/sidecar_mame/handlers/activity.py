@@ -169,9 +169,12 @@ def handle_activity_upload(params: dict) -> dict:
 
         table = ingest_long_csv(resolved, wt_lookup)
 
-        # Persist raw records into round state for downstream merge
+        # Persist raw records into round state for downstream merge.
+        # wt_records holds dedicated 'WT_1'-style replicate rows and must survive
+        # to merge time; they define the WT denominator when present.
         rd["activity"] = {
             "raw_records": [r.model_dump() for r in table.records],
+            "wt_records": [r.model_dump() for r in table.wt_records],
         }
 
     serialised = [r.model_dump() for r in table.records]
@@ -211,7 +214,11 @@ def handle_activity_merge(params: dict) -> dict:
         RuntimeError: round_id not found.
     """
     from kuma_core.mame.activity.join import merge_activity_with_genotype
-    from kuma_core.mame.activity.models import ActivityRecord, PlateMeta
+    from kuma_core.mame.activity.models import (
+        ActivityRecord,
+        PlateMeta,
+        WtReplicateRecord,
+    )
 
     round_id: str = params["round_id"]
 
@@ -229,8 +236,12 @@ def handle_activity_merge(params: dict) -> dict:
             ActivityRecord(**r) for r in raw_dicts
         ]
 
+        wt_records: list[WtReplicateRecord] = [
+            WtReplicateRecord(**r) for r in activity_data.get("wt_records", [])
+        ]
+
         rows, stats = merge_activity_with_genotype(
-            kuro_design, mame_genotype, activity_records, plate_meta
+            kuro_design, mame_genotype, activity_records, plate_meta, wt_records
         )
 
         merged_dicts = [r.model_dump() for r in rows]
@@ -412,6 +423,7 @@ def handle_merge_for_evolvepro(params: dict) -> dict:
         MergeStats,
         PlateMeta,
         Variant,
+        WtReplicateRecord,
     )
     from kuma_core.mame.activity.sanity_check import detect_label_swap
     from kuma_core.mame.activity.variant_notation import from_evolvepro
@@ -469,8 +481,12 @@ def handle_merge_for_evolvepro(params: dict) -> dict:
             ActivityRecord(**r) for r in raw_dicts
         ]
 
+        wt_records: list[WtReplicateRecord] = [
+            WtReplicateRecord(**r) for r in activity_data.get("wt_records", [])
+        ]
+
         rows, stats = merge_activity_with_genotype(
-            kuro_design, mame_genotype, activity_records, plate_meta
+            kuro_design, mame_genotype, activity_records, plate_meta, wt_records
         )
 
         # Phase B replicate merge (skipped when no replicate data provided).
