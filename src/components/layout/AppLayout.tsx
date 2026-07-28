@@ -37,6 +37,7 @@ import { startDeadlockWatch, DEADLOCK_THRESHOLD_MS } from "@/lib/deadlockDetecto
 import { getLastProgressAt } from "@/lib/ipc-kuro";
 import { MAJOR_ORDER } from "@/store/slices/navigationSlice";
 import { useMainZoom } from "@/hooks/useMainZoom";
+import { useViewportTier } from "@/hooks/useViewportTier";
 import {
   KuroWorkflowRail,
   KuroDrawerStrip,
@@ -106,6 +107,7 @@ export function AppLayout() {
 
   // F3: main content zoom (Ctrl+wheel + Ctrl+=/−/0, persisted to localStorage)
   const zoom = useMainZoom();
+  const viewportTier = useViewportTier();
 
   // Build MAJORS and SUBSTEPS arrays from navigationSlice constants
   const MAJORS: MajorNavItem[] = MAJOR_ORDER.map((id) => ({
@@ -293,7 +295,7 @@ export function AppLayout() {
           aria-label={t(`phaseC.majors.${currentMajor}`, currentMajor)}
         >
           <div className="flex-shrink-0 max-h-[180px] overflow-y-auto border-b border-border">
-            <SequenceViewer />
+            <SequenceViewer defaultCollapsed={viewportTier === "tight"} />
           </div>
           <div className="flex-1 min-h-0 overflow-hidden">
             <MajorStepView />
