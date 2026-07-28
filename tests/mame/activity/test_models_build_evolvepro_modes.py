@@ -96,3 +96,32 @@ def test_m3b_neither_mode_rejected(files):
                 "output_xlsx": files["out"],
             }
         )
+
+
+# M4: rank mode with layout + GC data only (no rep_batch / prev_evolvepro)
+# validates. This is the provisional-build path; it must stay accepted.
+def test_m4_rank_mode_two_files_validates(files):
+    p = BuildEvolveproInputParams.model_validate(
+        {
+            "layout_xlsx": files["layout"],
+            "gc_data_xlsx": files["gc"],
+            "output_xlsx": files["out"],
+        }
+    )
+    assert p.layout_xlsx == files["layout"]
+    assert p.gc_data_xlsx == files["gc"]
+    assert p.rep_batch_xlsx is None
+    assert p.prev_evolvepro_xlsx is None
+    assert p.round1_report_xlsx is None
+    assert p.remeasure_report_xlsx is None
+
+
+# M5: rank mode without layout_xlsx -> rejected.
+def test_m5_rank_mode_without_layout_rejected(files):
+    with pytest.raises(ValidationError, match="rank-mode requires layout_xlsx"):
+        BuildEvolveproInputParams.model_validate(
+            {
+                "gc_data_xlsx": files["gc"],
+                "output_xlsx": files["out"],
+            }
+        )
