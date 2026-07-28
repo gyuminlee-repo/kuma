@@ -1,4 +1,5 @@
 import type { SortingState, Updater } from "@tanstack/react-table";
+import type { BuildEvolveproCompletionRecord } from "@/lib/mame/buildEvolveproFormStorage";
 export type { MamePhase, PhaseSlice } from "./slices/phaseSlice";
 import type {
   AmpliconLengthEstimate,
@@ -166,6 +167,7 @@ export interface AnalysisSlice {
   wells: WellEntry[];
   selectedWell: WellEntry | null;
   runHealth: RunHealthData | null;
+  buildEvolveproCompletion: BuildEvolveproCompletionRecord | null;
   setVerdicts: (verdicts: VerdictRecord[]) => void;
   setReplicates: (replicates: ReplicateResult[]) => void;
   setSummary: (summary: AnalyzeSummary | null) => void;
@@ -176,6 +178,9 @@ export interface AnalysisSlice {
   closeExport: () => void;
   setWells: (wells: WellEntry[]) => void;
   setSelectedWell: (well: WellEntry | null) => void;
+  setBuildEvolveproCompletion: (
+    completion: BuildEvolveproCompletionRecord | null,
+  ) => void;
   loadPlateData: () => Promise<void>;
   loadRunHealth: () => Promise<void>;
   clearResults: () => void;

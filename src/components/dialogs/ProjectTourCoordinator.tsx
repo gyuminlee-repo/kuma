@@ -51,6 +51,11 @@ const MAME_STEPS: GuidedTourStep[] = [
     bodyKey: "guidedTour.mameWorkflowBody",
   },
   {
+    target: '[data-tour="mame-workflow"]',
+    titleKey: "guidedTour.mameRouteTitle",
+    bodyKey: "guidedTour.mameRouteBody",
+  },
+  {
     target: '[data-tour="mame-workspace"]',
     titleKey: "guidedTour.mameWorkspaceTitle",
     bodyKey: "guidedTour.mameWorkspaceBody",

@@ -404,7 +404,8 @@
         "genotypeLabel": "Activity + NGS genotype",
         "genotypeDesc": "long-format の well activity をアップロードし、今回の round の NGS verdict とマージしてからエクスポートします。",
         "plateLayoutLabel": "Plate layout + GC data",
-        "plateLayoutDesc": "plate layout と GC data の xlsx ファイルから直接生成します。NGS genotype は不要です。"
+        "plateLayoutDesc": "plate layout と GC data の xlsx ファイルから直接生成します。NGS genotype は不要です。",
+        "completeCurrentRoute": "選択した Activity ルートを完了してください"
       }
     },
     "runHealth": {
@@ -967,7 +968,9 @@
       "layoutXlsxOptionalHelper": "NGS verdict ゲーティングで variant を well に対応付ける場合にのみ使用します。",
       "optionalStateLabel": "任意",
       "nNgsExcluded": "NGS 除外",
-      "missingInputs": "不足しているファイル"
+      "missingInputs": "不足しているファイル",
+      "restoredNotice": "このデバイスに保存されていたパスを復元しました。別プロジェクトのファイルならクリアしてください。",
+      "clearRestored": "復元された EVOLVEpro 入力をクリア"
     },
     "verdictBadge": {
       "help": {
@@ -1531,7 +1534,9 @@
     "mameWorkspaceTitle": "Mame のメイン領域",
     "mameWorkspaceBody": "ランデータを読み込み、遺伝子型判定とプレート結果を確認し、活性測定値を統合して出力します。",
     "mameInspectorTitle": "Mame の詳細を確認",
-    "mameInspectorBody": "現在の Mame ステップの操作とコンテキストを結果の横で確認します。"
+    "mameInspectorBody": "現在の Mame ステップの操作とコンテキストを結果の横で確認します。",
+    "mameRouteTitle": "Mame 入力ルートを選択",
+    "mameRouteBody": "activity データをアップロードした後は genotype 連携ルートを、GC data xlsx ファイルが既にある場合は plate-layout ルートを使用します。"
   },
   "onboarding": {
     "titleChange": "プロジェクトフォルダを変更",

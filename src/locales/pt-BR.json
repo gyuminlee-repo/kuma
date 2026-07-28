@@ -404,7 +404,8 @@
         "genotypeLabel": "Activity + NGS genotype",
         "genotypeDesc": "Envie a activity de wells em formato long, mescle com os verdicts de NGS deste round e depois exporte.",
         "plateLayoutLabel": "Plate layout + GC data",
-        "plateLayoutDesc": "Construa diretamente a partir dos arquivos xlsx de plate layout e GC data. Não requer NGS genotype."
+        "plateLayoutDesc": "Construa diretamente a partir dos arquivos xlsx de plate layout e GC data. Não requer NGS genotype.",
+        "completeCurrentRoute": "Conclua a rota Activity selecionada"
       }
     },
     "runHealth": {
@@ -967,7 +968,9 @@
       "layoutXlsxOptionalHelper": "Usado apenas para associar cada variante ao seu well no filtro por verdict NGS.",
       "optionalStateLabel": "Opcional",
       "nNgsExcluded": "Excluídas por NGS",
-      "missingInputs": "Ainda falta"
+      "missingInputs": "Ainda falta",
+      "restoredNotice": "Caminhos foram restaurados neste dispositivo. Limpe-os se pertencerem a outro projeto.",
+      "clearRestored": "Limpar entradas EVOLVEpro restauradas"
     },
     "verdictBadge": {
       "help": {
@@ -1531,7 +1534,9 @@
     "mameWorkspaceTitle": "Trabalhar na área principal do Mame",
     "mameWorkspaceBody": "Carregue dados, revise vereditos e placas e combine medições de atividade para exportação.",
     "mameInspectorTitle": "Revisar detalhes do Mame",
-    "mameInspectorBody": "O inspetor mantém os controles e o contexto da etapa atual ao lado dos resultados."
+    "mameInspectorBody": "O inspetor mantém os controles e o contexto da etapa atual ao lado dos resultados.",
+    "mameRouteTitle": "Escolher uma rota de entrada do Mame",
+    "mameRouteBody": "Use a rota vinculada a genotype após carregar dados de activity, ou a rota plate-layout quando já tiver arquivos xlsx de GC data."
   },
   "onboarding": {
     "titleChange": "Alterar pasta de projetos",

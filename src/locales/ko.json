@@ -374,7 +374,8 @@
         "genotypeLabel": "Activity + NGS genotype",
         "genotypeDesc": "long-format well activity를 업로드해 이번 라운드 NGS verdict과 병합한 뒤 내보냅니다.",
         "plateLayoutLabel": "Plate layout + GC data",
-        "plateLayoutDesc": "plate layout과 GC data xlsx 파일로 곧바로 생성합니다. NGS genotype이 필요 없습니다."
+        "plateLayoutDesc": "plate layout과 GC data xlsx 파일로 곧바로 생성합니다. NGS genotype이 필요 없습니다.",
+        "completeCurrentRoute": "선택한 Activity 경로를 완료하세요"
       },
       "mergeExport": {
         "contextTitle": "활성 데이터 — 병합 및 내보내기",
@@ -490,7 +491,9 @@
       "layoutXlsxOptionalHelper": "NGS verdict 게이팅에서 variant를 well에 매핑할 때만 사용합니다.",
       "optionalStateLabel": "선택",
       "nNgsExcluded": "NGS 제외",
-      "missingInputs": "아직 필요한 파일"
+      "missingInputs": "아직 필요한 파일",
+      "restoredNotice": "이 장치에 저장된 경로를 복구했습니다. 다른 프로젝트의 파일이면 초기화하세요.",
+      "clearRestored": "복구된 EVOLVEpro 입력 초기화"
     },
     "runHealth": {
       "panelAriaLabel": "실행 상태 패널",
@@ -1552,7 +1555,9 @@
     "mameWorkspaceTitle": "Mame 주 작업 영역",
     "mameWorkspaceBody": "런 데이터를 불러오고 유전자형 판정과 플레이트 결과를 검토한 뒤 활성 측정값을 병합해 내보냅니다.",
     "mameInspectorTitle": "Mame 세부 정보 검토",
-    "mameInspectorBody": "현재 Mame 단계에 필요한 제어와 맥락을 결과 옆의 인스펙터에서 확인합니다."
+    "mameInspectorBody": "현재 Mame 단계에 필요한 제어와 맥락을 결과 옆의 인스펙터에서 확인합니다.",
+    "mameRouteTitle": "Mame 입력 경로 선택",
+    "mameRouteBody": "activity 데이터를 업로드한 뒤에는 genotype 연동 경로를, GC data xlsx 파일이 이미 있으면 plate-layout 경로를 사용하세요."
   },
   "onboarding": {
     "titleChange": "프로젝트 폴더 변경",

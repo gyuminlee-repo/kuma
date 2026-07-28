@@ -404,7 +404,8 @@
         "genotypeLabel": "Activity + NGS genotype",
         "genotypeDesc": "Laden Sie long-format Well-Activity hoch, mergen Sie mit den NGS-Verdicts dieser Round, dann exportieren.",
         "plateLayoutLabel": "Plate layout + GC data",
-        "plateLayoutDesc": "Direkt aus plate layout und GC-data-xlsx-Dateien erzeugen. Kein NGS genotype erforderlich."
+        "plateLayoutDesc": "Direkt aus plate layout und GC-data-xlsx-Dateien erzeugen. Kein NGS genotype erforderlich.",
+        "completeCurrentRoute": "Schließen Sie die ausgewählte Activity-Route ab"
       }
     },
     "runHealth": {
@@ -967,7 +968,9 @@
       "layoutXlsxOptionalHelper": "Wird nur verwendet, um Varianten für das NGS-verdict-Gating Wells zuzuordnen.",
       "optionalStateLabel": "Optional",
       "nNgsExcluded": "NGS-ausgeschlossen",
-      "missingInputs": "Noch erforderlich"
+      "missingInputs": "Noch erforderlich",
+      "restoredNotice": "Pfade wurden auf diesem Gerät wiederhergestellt. Löschen Sie sie, wenn sie zu einem anderen Projekt gehören.",
+      "clearRestored": "Wiederhergestellte EVOLVEpro-Eingaben löschen"
     },
     "verdictBadge": {
       "help": {
@@ -1531,7 +1534,9 @@
     "mameWorkspaceTitle": "Im Mame-Hauptbereich arbeiten",
     "mameWorkspaceBody": "Laden Sie Laufdaten, prüfen Sie Genotypen und Platten und verbinden Sie Aktivitätsmessungen für den Export.",
     "mameInspectorTitle": "Mame-Details prüfen",
-    "mameInspectorBody": "Der Inspektor hält Steuerungen und Kontext des aktuellen Mame-Schritts neben den Ergebnissen bereit."
+    "mameInspectorBody": "Der Inspektor hält Steuerungen und Kontext des aktuellen Mame-Schritts neben den Ergebnissen bereit.",
+    "mameRouteTitle": "Mame-Eingaberoute wählen",
+    "mameRouteBody": "Verwenden Sie nach dem Hochladen von Activity-Daten die genotype-verknüpfte Route oder die Plate-layout-Route, wenn GC-data-xlsx-Dateien bereits vorliegen."
   },
   "onboarding": {
     "titleChange": "Ändern projects Ordner",

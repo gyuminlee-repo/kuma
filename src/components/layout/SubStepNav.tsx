@@ -22,6 +22,11 @@ import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { StepBadge } from "./StepBadge";
 import type { MajorStepId, SubStepId } from "@/store/slices/navigationSlice";
 import type { MameSubStepId } from "@/store/mame/slices/mameSubSteps";
+import { isMameSubStepDone } from "@/lib/mame/mameStepCompletion";
+import {
+  BUILD_EVOLVEPRO_DEFAULT_STATE,
+  loadBuildEvolveproFromStorage,
+} from "@/lib/mame/buildEvolveproFormStorage";
 
 export interface SubNavItem {
   id: SubStepId | MameSubStepId;
@@ -105,6 +110,15 @@ function MameSubStepNav({ subSteps }: { subSteps: SubNavItem[] }) {
   const { t } = useTranslation();
   const currentSubStep = useMameAppStore((s) => s.currentMameSubStep);
   const setSubStep = useMameAppStore((s) => s.setMameSubStep);
+  const inputDir = useMameAppStore((s) => s.inputDir);
+  const expectedPath = useMameAppStore((s) => s.expectedPath);
+  const referencePath = useMameAppStore((s) => s.referencePath);
+  const outputPath = useMameAppStore((s) => s.outputPath);
+  const verdicts = useMameAppStore((s) => s.verdicts);
+  const summary = useMameAppStore((s) => s.summary);
+  const buildEvolveproCompletion = useMameAppStore(
+    (s) => s.buildEvolveproCompletion,
+  );
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   function handleKeyDown(e: KeyboardEvent<HTMLButtonElement>, idx: number) {
@@ -124,8 +138,25 @@ function MameSubStepNav({ subSteps }: { subSteps: SubNavItem[] }) {
     <nav className="flex flex-col gap-1 p-2" role="navigation" aria-label="sub steps">
       {subSteps.map((step, idx) => {
         const isCurrent = step.id === currentSubStep;
-        // mame stepStatus는 미구현(D4 예정) — done 항상 false
-        const badgeStatus: "done" | "active" | "pending" = isCurrent ? "active" : "pending";
+        const isDone = isMameSubStepDone(step.id as MameSubStepId, {
+          inputDir,
+          expectedPath,
+          referencePath,
+          outputPath,
+          verdicts,
+          summary,
+          activityComplete: false,
+          buildEvolveproForm:
+            typeof window === "undefined"
+              ? BUILD_EVOLVEPRO_DEFAULT_STATE
+              : loadBuildEvolveproFromStorage(),
+          buildEvolveproCompletion,
+        });
+        const badgeStatus: "done" | "active" | "pending" = isDone
+          ? "done"
+          : isCurrent
+            ? "active"
+            : "pending";
         const index = idx + 1;
         return (
           <button

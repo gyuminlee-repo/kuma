@@ -15,6 +15,7 @@ vi.mock("@/lib/ipc-kuro", () => ({
 
 import { SubStepNav } from "./SubStepNav";
 import { useAppStore } from "@/store/appStore";
+import { useMameAppStore } from "@/store/mame/mameAppStore";
 import type { SubNavItem } from "./SubStepNav";
 import type { SubStepId, StepStatus } from "@/store/slices/navigationSlice";
 
@@ -29,6 +30,12 @@ const ALL_SUB_STEPS: SubStepId[] = [
   "design.load", "design.mutation", "design.params", "design.submit",
   "output.summary",
   "export.all",
+];
+
+const MAME_SUBSTEPS: SubNavItem[] = [
+  { id: "setup.files", labelKey: "phaseC.mameSubSteps.setup.files" },
+  { id: "analyze.inputs", labelKey: "phaseC.mameSubSteps.analyze.inputs" },
+  { id: "analyze.review", labelKey: "phaseC.mameSubSteps.analyze.review" },
 ];
 
 function makeStepStatus(overrides?: Partial<Record<SubStepId, StepStatus>>): Record<SubStepId, StepStatus> {
@@ -163,5 +170,25 @@ describe("SubStepNav keyboard navigation", () => {
     const tabs = screen.getAllByRole("tab");
     fireEvent.click(tabs[2]); // design.params
     expect(useAppStore.getState().currentSubStep).toBe("design.params");
+  });
+});
+
+describe("SubStepNav Mame completion status", () => {
+  beforeEach(() => {
+    useMameAppStore.setState({
+      currentMameSubStep: "analyze.inputs",
+      inputDir: "/runs/minion",
+      expectedPath: "/runs/expected.xlsx",
+      referencePath: "/runs/reference.fasta",
+      outputPath: "/runs/out",
+      verdicts: [],
+      summary: null,
+    });
+  });
+
+  it("marks setup.files done once the required Mame setup paths are ready", () => {
+    render(<SubStepNav major="mame" subSteps={MAME_SUBSTEPS} store="mame" />);
+
+    expect(screen.getByText("DONE")).toBeInTheDocument();
   });
 });

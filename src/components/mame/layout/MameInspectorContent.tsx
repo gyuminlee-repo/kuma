@@ -54,8 +54,6 @@ function SetupFilesInspector() {
 
   return (
     <div>
-      <KVRow label={t("mame.setup.files.inspectorDevice")} value="Oxford Nanopore" />
-      <KVRow label={t("mame.setup.files.inspectorKit")} value="SQK-NBD114-24" />
       <KVRow label={t("mame.setup.files.inspectorBarcodes")} value={folderName} />
     </div>
   );
@@ -74,9 +72,7 @@ function SetupDesignInspector() {
 
   return (
     <div>
-      <KVRow label={t("mame.setup.design.inspectorVariant")} value="BC01" />
       <KVRow label={t("mame.setup.design.inspectorDesignSource")} value={fileName} />
-      <KVRow label={t("mame.setup.design.inspectorExpectedReads")} value="~500" />
     </div>
   );
 }
@@ -185,10 +181,7 @@ function ActivityMergeExportInspector() {
 
   return (
     <div>
-      <KVRow label={t("mame.activity.mergeExport.inspectorVariant")} value="R585A" />
-      <KVRow label={t("mame.activity.mergeExport.inspectorActivity")} value="—" />
       <KVRow label={t("mame.activity.mergeExport.inspectorMergedRows")} value={passVerdicts.length} />
-      <KVRow label={t("mame.activity.mergeExport.inspectorStatus")} value="Ready" />
       <Callout
         title={t("mame.activity.mergeExport.inspectorBridgeCallout")}
         body={t("mame.activity.mergeExport.inspectorBridgeDesc")}
