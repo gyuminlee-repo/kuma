@@ -42,6 +42,7 @@ import { buildEvolveproInput } from "@/lib/ipc-mame";
 import {
   BUILD_EVOLVEPRO_STORAGE_KEY,
   BUILD_EVOLVEPRO_DEFAULT_STATE,
+  createBuildEvolveproCompletion,
   type BuildEvolveproFormState,
 } from "@/lib/mame/buildEvolveproFormStorage";
 import { BuildEvolveproInputPanel } from "./BuildEvolveproInputPanel";
@@ -133,11 +134,17 @@ describe("BuildEvolveproInputPanel source-mode toggle", () => {
       prev_evolvepro_xlsx: undefined,
       output_xlsx: "/out/ep.xlsx",
     });
-    expect(mockSetBuildEvolveproCompletion).toHaveBeenLastCalledWith({
-      outputPath: "/out/ep.xlsx",
-      signature:
-        "{\"sourceMode\":\"rank\",\"round1Source\":\"prev\",\"layoutXlsx\":\"/in/layout.xlsx\",\"gcDataXlsx\":\"/in/gc.xlsx\",\"repBatchXlsx\":\"\",\"prevEvolveproXlsx\":\"\",\"round1ReportXlsx\":\"\",\"round1EvolveproXlsx\":\"\",\"remeasureReportXlsx\":\"\",\"verdictXlsx\":\"\",\"outputXlsx\":\"/out/ep.xlsx\"}",
-    });
+    expect(mockSetBuildEvolveproCompletion).toHaveBeenLastCalledWith(
+      createBuildEvolveproCompletion(
+        {
+          ...BUILD_EVOLVEPRO_DEFAULT_STATE,
+          layoutXlsx: "/in/layout.xlsx",
+          gcDataXlsx: "/in/gc.xlsx",
+          outputXlsx: "/out/ep.xlsx",
+        },
+        "/out/ep.xlsx",
+      ),
+    );
   });
 
   it("swaps the visible file pickers when reports mode is selected", () => {
