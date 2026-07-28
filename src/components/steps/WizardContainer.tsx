@@ -17,6 +17,7 @@
 import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import { useViewportTier } from "@/hooks/useViewportTier";
 import {
   Dialog,
   DialogContent,
@@ -103,6 +104,9 @@ export function WizardContainer({
   children,
 }: WizardContainerProps) {
   const { t } = useTranslation();
+  // Short windows trade wizard chrome for step body height. Nothing is hidden,
+  // the heading and description stay on screen at a smaller scale.
+  const tight = useViewportTier() === "tight";
   const [validationOpen, setValidationOpen] = useState(false);
   const [missingItems, setMissingItems] = useState<string[]>([]);
 
@@ -125,10 +129,14 @@ export function WizardContainer({
       <div className="flex flex-col h-full" data-testid="wizard-container">
         {/* heading: flex-shrink-0으로 scroll 영역 밖 고정 — 모든 사용처에서 동일 Y좌표 보장 */}
         <header
-          className="flex-shrink-0 border-b border-border bg-background px-6 py-3 space-y-0.5"
+          className={`flex-shrink-0 border-b border-border bg-background px-6 space-y-0.5 ${
+            tight ? "py-1.5" : "py-3"
+          }`}
           data-testid="wizard-header"
         >
-          <h2 className="text-xl font-semibold text-foreground">
+          <h2
+            className={`font-semibold text-foreground ${tight ? "text-base" : "text-xl"}`}
+          >
             {t("phaseE.wizard.stepLabel", { n: stepLabel ?? stepIndex })}: {t(titleKey)}
           </h2>
           {descriptionKey && (
@@ -139,7 +147,7 @@ export function WizardContainer({
         </header>
         {/* children: 고정 heading/footer 사이의 scrollable 영역. maxWidth는 body에 적용 */}
         <div
-          className={`flex-1 overflow-auto px-6 py-4 w-full ${MAX_WIDTH_ALIGN_CLASS[maxWidth]} ${MAX_WIDTH_CLASS[maxWidth]}`}
+          className={`flex-1 overflow-auto px-6 w-full ${tight ? "py-2" : "py-4"} ${MAX_WIDTH_ALIGN_CLASS[maxWidth]} ${MAX_WIDTH_CLASS[maxWidth]}`}
           data-testid="wizard-body"
         >
           {children}

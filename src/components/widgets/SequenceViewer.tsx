@@ -322,16 +322,7 @@ const TickLayer = memo(function TickLayer({
 
 // --- Component ---
 
-interface SequenceViewerProps {
-  /**
-   * Initial collapsed state. The shell passes `true` on short windows so the
-   * 180px slot does not starve the step body. A change here re-applies, but
-   * within one tier the user toggle wins.
-   */
-  defaultCollapsed?: boolean;
-}
-
-export function SequenceViewer({ defaultCollapsed = false }: SequenceViewerProps = {}) {
+export function SequenceViewer() {
   const { t } = useTranslation();
   const {
     seqInfo,
@@ -362,12 +353,7 @@ export function SequenceViewer({ defaultCollapsed = false }: SequenceViewerProps
   const domains = refDomains;
   const isFullOverlap = overlapMode === "full";
 
-  const [collapsed, setCollapsed] = useState(defaultCollapsed);
-  // Re-apply when the shell switches height tier. Within one tier the user
-  // toggle stands, because this only runs on a defaultCollapsed change.
-  useEffect(() => {
-    setCollapsed(defaultCollapsed);
-  }, [defaultCollapsed]);
+  const [collapsed, setCollapsed] = useState(false);
   const [selectedMutation, setSelectedMutation] = useState<string | null>(null);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
   const [densityTooltip, setDensityTooltip] = useState<DensityTooltipState | null>(null);

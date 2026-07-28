@@ -294,8 +294,15 @@ export function AppLayout() {
           style={{ zoom }}
           aria-label={t(`phaseC.majors.${currentMajor}`, currentMajor)}
         >
-          <div className="flex-shrink-0 max-h-[180px] overflow-y-auto border-b border-border">
-            <SequenceViewer defaultCollapsed={viewportTier === "tight"} />
+          {/* Short windows shrink this slot instead of collapsing it. A
+              collapsed panel hides that the sequence map exists at all, which
+              is the failure this whole change set is meant to remove. */}
+          <div
+            className={`flex-shrink-0 overflow-y-auto border-b border-border ${
+              viewportTier === "tight" ? "max-h-[120px]" : "max-h-[180px]"
+            }`}
+          >
+            <SequenceViewer />
           </div>
           <div className="flex-1 min-h-0 overflow-hidden">
             <MajorStepView />
