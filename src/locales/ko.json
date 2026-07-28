@@ -327,7 +327,20 @@
       "bindingMinLenHelp": "primer binding 최소 길이(nt). 안정적 PCR은 18-22 권장.",
       "bindingMaxLenHelp": "primer binding 최대 길이(nt). 35 초과 시 secondary structure 위험 증가.",
       "flankWarningUpstream": "선형 template에서는 프라이머 설계가 실패할 수 있습니다: gene_start 앞쪽에 최소 {{needed}} bp가 필요하지만 {{available}} bp만 확보되어 있습니다 ({{shortfall}} bp 부족).",
-      "flankWarningDownstream": "선형 template에서는 프라이머 설계가 실패할 수 있습니다: gene_end 뒤쪽에 최소 {{needed}} bp가 필요하지만 {{available}} bp만 확보되어 있습니다 ({{shortfall}} bp 부족)."
+      "flankWarningDownstream": "선형 template에서는 프라이머 설계가 실패할 수 있습니다: gene_end 뒤쪽에 최소 {{needed}} bp가 필요하지만 {{available}} bp만 확보되어 있습니다 ({{shortfall}} bp 부족).",
+      "cdsTooltipLabel": "라벨: {{label}}",
+      "cdsTooltipRange": "범위: {{start}}-{{end}}",
+      "cdsTooltipLength": "길이: {{length}} aa",
+      "cdsTooltipSource": "출처: {{source}}",
+      "geneStartHelper": "레퍼런스 기준 gene 시작 위치. 0-based, 시작 포함.",
+      "geneEndHelper": "레퍼런스 기준 gene 끝 위치. 0-based, 끝 제외.",
+      "generatedFileLabels": {
+        "barcodes": "바코드 표 (xlsx)",
+        "amplicon": "Amplicon 레퍼런스 (FASTA)",
+        "sampleMapTemplate": "Sample map 템플릿 (xlsx)",
+        "contextJson": "Run context (JSON)"
+      },
+      "openFolderError": "폴더를 열지 못했습니다."
     },
     "activity": {
       "ingest": {
@@ -1012,7 +1025,9 @@
     "legendDestPartial": "F 또는 R 한쪽만 도착",
     "mappingRange": "매핑 범위",
     "rowStart": "Row 시작",
-    "rowEnd": "Row 끝"
+    "rowEnd": "Row 끝",
+    "destWell": "대상 well",
+    "missing": "없음"
   },
   "globalAppBar": {
     "navAriaLabel": "앱 내비게이션",
@@ -1525,7 +1540,8 @@
     "descStart": "프로젝트 기본 폴더를 선택하세요. kuma는 Kuro 설계와 Mame 판정 실행 결과를 각 프로젝트 폴더에 저장하여 장기 시퀀싱 작업 전반에 걸쳐 데이터를 보존합니다.",
     "chooseFolderBtn": "폴더 선택",
     "doneBtn": "완료",
-    "insideEachProject": "각 프로젝트 안에는"
+    "insideEachProject": "각 프로젝트 안에는",
+    "maximizeHint": "창을 최대화하면 화면이 가장 잘 맞습니다. kuma는 넓은 작업 영역을 기준으로 배치됩니다."
   },
   "appLayout": {
     "status": "상태",
@@ -2596,5 +2612,14 @@
     "noVariants": "No candidates to display. Load EVOLVEpro results and run a design to see candidates on the structure.",
     "fallbackNote": "Showing all {{count}} ranked candidates.",
     "dispersionChartTitle": "Selection vs random (null distribution)"
+  },
+  "appShell": {
+    "sidebarResize": "사이드바 크기 조절"
+  },
+  "artifact": {
+    "badge": {
+      "staleHint": "생성 당시 입력보다 오래됐습니다. 해당 단계를 다시 실행하면 갱신됩니다.",
+      "detected": "{{step}} 산출물 감지됨"
+    }
   }
 }

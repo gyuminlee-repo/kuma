@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
 import { useAppStore } from "../../store/appStore";
@@ -178,6 +178,123 @@ function PlateGrid({
   );
 }
 
+interface ScrollMetrics {
+  x: number;
+  y: number;
+  xRatio: number;
+  yRatio: number;
+  overflowX: boolean;
+  overflowY: boolean;
+}
+
+const EMPTY_METRICS: ScrollMetrics = {
+  x: 0,
+  y: 0,
+  xRatio: 1,
+  yRatio: 1,
+  overflowX: false,
+  overflowY: false,
+};
+
+function readMetrics(el: HTMLElement): ScrollMetrics {
+  const overflowX = el.scrollWidth > el.clientWidth + 1;
+  const overflowY = el.scrollHeight > el.clientHeight + 1;
+  return {
+    x: el.scrollWidth > el.clientWidth ? el.scrollLeft / (el.scrollWidth - el.clientWidth) : 0,
+    y: el.scrollHeight > el.clientHeight ? el.scrollTop / (el.scrollHeight - el.clientHeight) : 0,
+    xRatio: overflowX ? el.clientWidth / el.scrollWidth : 1,
+    yRatio: overflowY ? el.clientHeight / el.scrollHeight : 1,
+    overflowX,
+    overflowY,
+  };
+}
+
+/**
+ * Always-drawn scroll bar for the plate grid.
+ *
+ * macOS hides native overlay scroll bars until a scroll is already underway,
+ * so a clipped 96-well grid reads as "there is nothing more here". This bar
+ * lives in the DOM, so both platforms show the same affordance and a render
+ * test can assert it.
+ */
+function PlateScrollBar({
+  axis,
+  metrics,
+  onSeek,
+}: {
+  axis: "x" | "y";
+  metrics: ScrollMetrics;
+  onSeek: (axis: "x" | "y", fraction: number) => void;
+}) {
+  const trackRef = useRef<HTMLDivElement | null>(null);
+  const draggingRef = useRef(false);
+  const horizontal = axis === "x";
+  const ratio = horizontal ? metrics.xRatio : metrics.yRatio;
+  const pos = horizontal ? metrics.x : metrics.y;
+
+  const seekFromEvent = useCallback(
+    (clientX: number, clientY: number) => {
+      const track = trackRef.current;
+      if (!track) return;
+      const rect = track.getBoundingClientRect();
+      const span = horizontal ? rect.width : rect.height;
+      if (span <= 0) return;
+      const offset = horizontal ? clientX - rect.left : clientY - rect.top;
+      const thumbSpan = span * ratio;
+      const travel = span - thumbSpan;
+      if (travel <= 0) return;
+      const fraction = Math.min(1, Math.max(0, (offset - thumbSpan / 2) / travel));
+      onSeek(axis, fraction);
+    },
+    [axis, horizontal, onSeek, ratio],
+  );
+
+  const thumbPercent = Math.max(ratio * 100, 12);
+  const offsetPercent = pos * (100 - thumbPercent);
+
+  return (
+    <div
+      ref={trackRef}
+      role="scrollbar"
+      aria-orientation={horizontal ? "horizontal" : "vertical"}
+      aria-controls="plate-grid-scroll"
+      aria-valuenow={Math.round(pos * 100)}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      tabIndex={-1}
+      data-testid={`plate-scrollbar-${axis}`}
+      className={`shrink-0 rounded-full bg-muted ${horizontal ? "h-2 w-full" : "w-2 h-full"}`}
+      onPointerDown={(e) => {
+        draggingRef.current = true;
+        e.currentTarget.setPointerCapture(e.pointerId);
+        seekFromEvent(e.clientX, e.clientY);
+      }}
+      onPointerMove={(e) => {
+        if (!draggingRef.current) return;
+        seekFromEvent(e.clientX, e.clientY);
+      }}
+      onPointerUp={(e) => {
+        draggingRef.current = false;
+        try {
+          e.currentTarget.releasePointerCapture(e.pointerId);
+        } catch {
+          // pointer already released
+        }
+      }}
+    >
+      <div
+        data-testid={`plate-scrollthumb-${axis}`}
+        className="rounded-full bg-muted-foreground/50 hover:bg-muted-foreground/70"
+        style={
+          horizontal
+            ? { width: `${thumbPercent}%`, marginLeft: `${offsetPercent}%`, height: "100%" }
+            : { height: `${thumbPercent}%`, marginTop: `${offsetPercent}%`, width: "100%" }
+        }
+      />
+    </div>
+  );
+}
+
 function useSortedMutations(): string[] | null {
   const { designResults, tableSorting, yPredMap, customCandidates } = useAppStore(
     useShallow((s) => ({
@@ -211,6 +328,35 @@ export function PlateMap() {
 
   // Reset page when mappings change
   useEffect(() => setPage(0), [plateMappings]);
+
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const [metrics, setMetrics] = useState<ScrollMetrics>(EMPTY_METRICS);
+
+  const syncMetrics = useCallback(() => {
+    const el = scrollRef.current;
+    if (el) setMetrics(readMetrics(el));
+  }, []);
+
+  // Overflow depends on the panel width and on which tab is active, so re-read
+  // whenever the rendered grid or the split width can have changed.
+  useEffect(() => {
+    syncMetrics();
+    const el = scrollRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(syncMetrics);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [syncMetrics, activeTab, safeIdx, plateMappings]);
+
+  const seek = useCallback((axis: "x" | "y", fraction: number) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    if (axis === "x") {
+      el.scrollLeft = fraction * (el.scrollWidth - el.clientWidth);
+    } else {
+      el.scrollTop = fraction * (el.scrollHeight - el.clientHeight);
+    }
+  }, []);
 
   if (plateMappings.length === 0 || !pair) {
     return (
@@ -284,15 +430,30 @@ export function PlateMap() {
         )}
       </div>
 
-      <div className="min-h-0 flex-1 overflow-auto">
-        <div className="inline-block rounded-container border border-border bg-card p-3">
-          {activeTab === "fwd" ? (
-            <PlateGrid grid={pair.fwd} color="green" />
-          ) : (
-            <PlateGrid grid={pair.rev} color="orange" />
-          )}
+      <div className="flex min-h-0 flex-1 gap-1">
+        <div
+          id="plate-grid-scroll"
+          ref={scrollRef}
+          onScroll={syncMetrics}
+          className="min-h-0 min-w-0 flex-1 overflow-auto"
+        >
+          <div className="inline-block rounded-container border border-border bg-card p-3">
+            {activeTab === "fwd" ? (
+              <PlateGrid grid={pair.fwd} color="green" />
+            ) : (
+              <PlateGrid grid={pair.rev} color="orange" />
+            )}
+          </div>
         </div>
+        {metrics.overflowY && (
+          <PlateScrollBar axis="y" metrics={metrics} onSeek={seek} />
+        )}
       </div>
+      {metrics.overflowX && (
+        <div className="mt-1">
+          <PlateScrollBar axis="x" metrics={metrics} onSeek={seek} />
+        </div>
+      )}
 
       <div className="mt-2 flex flex-wrap items-center justify-between gap-3 text-caption text-muted-foreground">
         <div className="flex flex-wrap items-center gap-2">

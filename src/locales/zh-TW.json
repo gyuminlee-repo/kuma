@@ -309,7 +309,20 @@
       "bindingMinLenHelp": "Minimum primer binding length (nt). Typical 18-22 for stable PCR priming.",
       "bindingMaxLenHelp": "Maximum primer binding length (nt). Above 35 increases secondary structure risk.",
       "flankWarningUpstream": "Primer design may fail on a linear template: needs at least {{needed}} bp upstream of gene_start, but only {{available}} bp is available (short by {{shortfall}} bp).",
-      "flankWarningDownstream": "Primer design may fail on a linear template: needs at least {{needed}} bp downstream of gene_end, but only {{available}} bp is available (short by {{shortfall}} bp)."
+      "flankWarningDownstream": "Primer design may fail on a linear template: needs at least {{needed}} bp downstream of gene_end, but only {{available}} bp is available (short by {{shortfall}} bp).",
+      "cdsTooltipLabel": "標籤: {{label}}",
+      "cdsTooltipRange": "範圍: {{start}}-{{end}}",
+      "cdsTooltipLength": "長度: {{length}} aa",
+      "cdsTooltipSource": "來源: {{source}}",
+      "geneStartHelper": "參考序列上的 gene 起始位置。0-based，包含起點。",
+      "geneEndHelper": "參考序列上的 gene 結束位置。0-based，不含終點。",
+      "generatedFileLabels": {
+        "barcodes": "條碼表 (xlsx)",
+        "amplicon": "Amplicon 參考序列 (FASTA)",
+        "sampleMapTemplate": "Sample map 範本 (xlsx)",
+        "contextJson": "Run context (JSON)"
+      },
+      "openFolderError": "無法開啟資料夾。"
     },
     "activity": {
       "title": "Activity 資料",
@@ -1506,7 +1519,8 @@
     "descStart": "為專案選擇預設資料夾。kuma 將每個 Kuro design 和 Mame verdict run 儲存在各自的專案資料夾中,使工作在數週的測序週轉期間得以保留。",
     "chooseFolderBtn": "選擇資料夾",
     "doneBtn": "完成",
-    "insideEachProject": "每個專案內部"
+    "insideEachProject": "每個專案內部",
+    "maximizeHint": "將視窗最大化可獲得最佳顯示效果。kuma 依寬工作區配置設計。"
   },
   "appLayout": {
     "status": "狀態",
@@ -2474,7 +2488,9 @@
     "mappingRange": "Mapping range",
     "rowStart": "Start row",
     "rowEnd": "End row",
-    "subtitle": "Echo and Janus mapping files are independent Excel/CSV outputs."
+    "subtitle": "Echo and Janus mapping files are independent Excel/CSV outputs.",
+    "destWell": "目標 well",
+    "missing": "缺少"
   },
   "errors": {
     "sequence": {
@@ -2596,5 +2612,14 @@
     "noVariants": "No candidates to display. Load EVOLVEpro results and run a design to see candidates on the structure.",
     "fallbackNote": "Showing all {{count}} ranked candidates.",
     "dispersionChartTitle": "Selection vs random (null distribution)"
+  },
+  "appShell": {
+    "sidebarResize": "調整側邊欄寬度"
+  },
+  "artifact": {
+    "badge": {
+      "staleHint": "比其來源輸入更舊。重新執行該步驟即可更新。",
+      "detected": "偵測到 {{step}} 輸出"
+    }
   }
 }

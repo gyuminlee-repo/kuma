@@ -309,7 +309,20 @@
       "bindingMinLenHelp": "Minimum primer binding length (nt). Typical 18-22 for stable PCR priming.",
       "bindingMaxLenHelp": "Maximum primer binding length (nt). Above 35 increases secondary structure risk.",
       "flankWarningUpstream": "Primer design may fail on a linear template: needs at least {{needed}} bp upstream of gene_start, but only {{available}} bp is available (short by {{shortfall}} bp).",
-      "flankWarningDownstream": "Primer design may fail on a linear template: needs at least {{needed}} bp downstream of gene_end, but only {{available}} bp is available (short by {{shortfall}} bp)."
+      "flankWarningDownstream": "Primer design may fail on a linear template: needs at least {{needed}} bp downstream of gene_end, but only {{available}} bp is available (short by {{shortfall}} bp).",
+      "cdsTooltipLabel": "Libellé : {{label}}",
+      "cdsTooltipRange": "Plage : {{start}}-{{end}}",
+      "cdsTooltipLength": "Longueur : {{length}} aa",
+      "cdsTooltipSource": "Source : {{source}}",
+      "geneStartHelper": "Début du gene dans la référence. 0-based, inclus.",
+      "geneEndHelper": "Fin du gene dans la référence. 0-based, exclue.",
+      "generatedFileLabels": {
+        "barcodes": "Table de barcodes (xlsx)",
+        "amplicon": "Référence amplicon (FASTA)",
+        "sampleMapTemplate": "Modèle de sample map (xlsx)",
+        "contextJson": "Run context (JSON)"
+      },
+      "openFolderError": "Impossible d'ouvrir le dossier."
     },
     "activity": {
       "title": "Données d'activité",
@@ -1506,7 +1519,8 @@
     "descStart": "Choisir un dossier par défaut pour les projets. kuma garde chaque design Kuro et chaque run de verdict Mame dans son propre dossier projet, afin que le travail survive aux délais de séquençage de plusieurs semaines.",
     "chooseFolderBtn": "Choisir un dossier",
     "doneBtn": "Terminé",
-    "insideEachProject": "Dans chaque projet"
+    "insideEachProject": "Dans chaque projet",
+    "maximizeHint": "Agrandissez la fenêtre pour un meilleur affichage. kuma est conçu pour un espace de travail large."
   },
   "appLayout": {
     "status": "Statut",
@@ -2474,7 +2488,9 @@
     "mappingRange": "Mapping range",
     "rowStart": "Start row",
     "rowEnd": "End row",
-    "subtitle": "Echo and Janus mapping files are independent Excel/CSV outputs."
+    "subtitle": "Echo and Janus mapping files are independent Excel/CSV outputs.",
+    "destWell": "Well de destination",
+    "missing": "manquant"
   },
   "errors": {
     "sequence": {
@@ -2596,5 +2612,14 @@
     "noVariants": "No candidates to display. Load EVOLVEpro results and run a design to see candidates on the structure.",
     "fallbackNote": "Showing all {{count}} ranked candidates.",
     "dispersionChartTitle": "Selection vs random (null distribution)"
+  },
+  "appShell": {
+    "sidebarResize": "Redimensionner la barre latérale"
+  },
+  "artifact": {
+    "badge": {
+      "staleHint": "Plus ancien que les entrées dont il provient. Relancez l'étape pour le mettre à jour.",
+      "detected": "Sortie de {{step}} détectée"
+    }
   }
 }

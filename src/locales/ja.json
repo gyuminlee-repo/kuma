@@ -309,7 +309,20 @@
       "bindingMinLenHelp": "Minimum primer binding length (nt). Typical 18-22 for stable PCR priming.",
       "bindingMaxLenHelp": "Maximum primer binding length (nt). Above 35 increases secondary structure risk.",
       "flankWarningUpstream": "Primer design may fail on a linear template: needs at least {{needed}} bp upstream of gene_start, but only {{available}} bp is available (short by {{shortfall}} bp).",
-      "flankWarningDownstream": "Primer design may fail on a linear template: needs at least {{needed}} bp downstream of gene_end, but only {{available}} bp is available (short by {{shortfall}} bp)."
+      "flankWarningDownstream": "Primer design may fail on a linear template: needs at least {{needed}} bp downstream of gene_end, but only {{available}} bp is available (short by {{shortfall}} bp).",
+      "cdsTooltipLabel": "ラベル: {{label}}",
+      "cdsTooltipRange": "範囲: {{start}}-{{end}}",
+      "cdsTooltipLength": "長さ: {{length}} aa",
+      "cdsTooltipSource": "出典: {{source}}",
+      "geneStartHelper": "リファレンス上の gene 開始位置。0-based、開始を含む。",
+      "geneEndHelper": "リファレンス上の gene 終了位置。0-based、終了を含まない。",
+      "generatedFileLabels": {
+        "barcodes": "バーコード表 (xlsx)",
+        "amplicon": "Amplicon リファレンス (FASTA)",
+        "sampleMapTemplate": "Sample map テンプレート (xlsx)",
+        "contextJson": "Run context (JSON)"
+      },
+      "openFolderError": "フォルダーを開けませんでした。"
     },
     "activity": {
       "title": "活性データ",
@@ -1506,7 +1519,8 @@
     "descStart": "プロジェクト用のデフォルトフォルダを選択してください。kuma はすべての Kuro 設計と Mame verdict run を個別のプロジェクトフォルダに保管し、数週間に及ぶ sequencing turnaround をまたいで作業を保持します。",
     "chooseFolderBtn": "フォルダを選択",
     "doneBtn": "完了",
-    "insideEachProject": "各プロジェクト内"
+    "insideEachProject": "各プロジェクト内",
+    "maximizeHint": "ウィンドウを最大化すると表示が最適になります。kuma は広い作業領域を前提に配置されています。"
   },
   "appLayout": {
     "status": "ステータス",
@@ -2474,7 +2488,9 @@
     "mappingRange": "Mapping range",
     "rowStart": "Start row",
     "rowEnd": "End row",
-    "subtitle": "Echo and Janus mapping files are independent Excel/CSV outputs."
+    "subtitle": "Echo and Janus mapping files are independent Excel/CSV outputs.",
+    "destWell": "出力先 well",
+    "missing": "なし"
   },
   "errors": {
     "sequence": {
@@ -2596,5 +2612,14 @@
     "noVariants": "No candidates to display. Load EVOLVEpro results and run a design to see candidates on the structure.",
     "fallbackNote": "Showing all {{count}} ranked candidates.",
     "dispersionChartTitle": "Selection vs random (null distribution)"
+  },
+  "appShell": {
+    "sidebarResize": "サイドバーの幅を変更"
+  },
+  "artifact": {
+    "badge": {
+      "staleHint": "生成元の入力より古い状態です。ステップを再実行すると更新されます。",
+      "detected": "{{step}} の出力を検出"
+    }
   }
 }
