@@ -40,9 +40,8 @@ import {
   loadBuildEvolveproFromStorage as loadFromStorage,
   saveBuildEvolveproToStorage as saveToStorage,
   BUILD_EVOLVEPRO_DEFAULT_STATE,
-  clearBuildEvolveproCompletion,
+  createBuildEvolveproCompletion,
   hasBuildEvolveproFormValues,
-  markBuildEvolveproComplete,
 } from "@/lib/mame/buildEvolveproFormStorage";
 
 function getFilename(p: string): string {
@@ -58,16 +57,21 @@ function toSinglePath(result: string | string[] | null): string | null {
 export function BuildEvolveproInputPanel() {
   const { t } = useTranslation();
   const [form, setFormRaw] = useState<FormState>(() => loadFromStorage());
+  const [showRestoredNotice, setShowRestoredNotice] = useState(() =>
+    hasBuildEvolveproFormValues(loadFromStorage()),
+  );
   const [isBuilding, setIsBuilding] = useState(false);
   const [result, setResult] = useState<BuildEvolveproInputResult | null>(null);
   const resetEpoch = useMameAppStore((s) => s.resetEpoch);
-  const hasRestoredValues = hasBuildEvolveproFormValues(form);
+  const setBuildEvolveproCompletion = useMameAppStore(
+    (s) => s.setBuildEvolveproCompletion,
+  );
 
   function setForm(partial: Partial<FormState>) {
     setFormRaw((prev) => {
       const next = { ...prev, ...partial };
       saveToStorage(next);
-      clearBuildEvolveproCompletion();
+      setBuildEvolveproCompletion(null);
       return next;
     });
   }
@@ -92,9 +96,10 @@ export function BuildEvolveproInputPanel() {
   useEffect(() => {
     if (resetEpoch === 0) return;
     setFormRaw(BUILD_EVOLVEPRO_DEFAULT_STATE);
-    clearBuildEvolveproCompletion();
+    setShowRestoredNotice(false);
+    setBuildEvolveproCompletion(null);
     setResult(null);
-  }, [resetEpoch]);
+  }, [resetEpoch, setBuildEvolveproCompletion]);
 
   const browseXlsx = useCallback(
     async (key: keyof FormState, title: string) => {
@@ -207,7 +212,9 @@ export function BuildEvolveproInputPanel() {
     try {
       const res = await buildEvolveproInput(params);
       setResult(res);
-      markBuildEvolveproComplete(form, res.output_path);
+      setBuildEvolveproCompletion(
+        createBuildEvolveproCompletion(form, res.output_path),
+      );
       toast.success(t("mame.buildEvolvepro.toastSuccess"), {
         description: t("mame.buildEvolvepro.toastSuccessDesc", {
           count: res.n_variants,
@@ -244,7 +251,8 @@ export function BuildEvolveproInputPanel() {
   function handleClearRestored() {
     setFormRaw(BUILD_EVOLVEPRO_DEFAULT_STATE);
     saveToStorage(BUILD_EVOLVEPRO_DEFAULT_STATE);
-    clearBuildEvolveproCompletion();
+    setShowRestoredNotice(false);
+    setBuildEvolveproCompletion(null);
     setResult(null);
   }
 
@@ -260,7 +268,7 @@ export function BuildEvolveproInputPanel() {
         <p className="mt-2 rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
           {t("mame.buildEvolvepro.routeNote")}
         </p>
-        {hasRestoredValues && (
+        {showRestoredNotice && (
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-muted/20 px-3 py-2">
             <p className="min-w-0 flex-1 text-xs text-muted-foreground">
               {t("mame.buildEvolvepro.restoredNotice")}

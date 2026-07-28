@@ -23,6 +23,10 @@ import { StepBadge } from "./StepBadge";
 import type { MajorStepId, SubStepId } from "@/store/slices/navigationSlice";
 import type { MameSubStepId } from "@/store/mame/slices/mameSubSteps";
 import { isMameSubStepDone } from "@/lib/mame/mameStepCompletion";
+import {
+  BUILD_EVOLVEPRO_DEFAULT_STATE,
+  loadBuildEvolveproFromStorage,
+} from "@/lib/mame/buildEvolveproFormStorage";
 
 export interface SubNavItem {
   id: SubStepId | MameSubStepId;
@@ -112,6 +116,9 @@ function MameSubStepNav({ subSteps }: { subSteps: SubNavItem[] }) {
   const outputPath = useMameAppStore((s) => s.outputPath);
   const verdicts = useMameAppStore((s) => s.verdicts);
   const summary = useMameAppStore((s) => s.summary);
+  const buildEvolveproCompletion = useMameAppStore(
+    (s) => s.buildEvolveproCompletion,
+  );
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   function handleKeyDown(e: KeyboardEvent<HTMLButtonElement>, idx: number) {
@@ -138,6 +145,12 @@ function MameSubStepNav({ subSteps }: { subSteps: SubNavItem[] }) {
           outputPath,
           verdicts,
           summary,
+          activityComplete: false,
+          buildEvolveproForm:
+            typeof window === "undefined"
+              ? BUILD_EVOLVEPRO_DEFAULT_STATE
+              : loadBuildEvolveproFromStorage(),
+          buildEvolveproCompletion,
         });
         const badgeStatus: "done" | "active" | "pending" = isDone
           ? "done"

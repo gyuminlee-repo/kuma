@@ -7,7 +7,6 @@
  */
 
 export const BUILD_EVOLVEPRO_STORAGE_KEY = "kuma:mame:buildEvolvepro";
-export const BUILD_EVOLVEPRO_COMPLETION_KEY = "kuma:mame:buildEvolvepro:complete";
 
 /** Which backend input mode the panel builds params for. */
 export type BuildEvolveproSourceMode = "rank" | "reports";
@@ -105,7 +104,7 @@ export function isBuildEvolveproFormReady(
   );
 }
 
-interface BuildEvolveproCompletionRecord {
+export interface BuildEvolveproCompletionRecord {
   outputPath: string;
   signature: string;
 }
@@ -126,44 +125,25 @@ function buildCompletionSignature(state: BuildEvolveproFormState): string {
   });
 }
 
-export function markBuildEvolveproComplete(
+export function createBuildEvolveproCompletion(
   state: BuildEvolveproFormState,
   outputPath: string,
-): void {
-  const record: BuildEvolveproCompletionRecord = {
+): BuildEvolveproCompletionRecord {
+  return {
     outputPath,
     signature: buildCompletionSignature(state),
   };
-  try {
-    localStorage.setItem(BUILD_EVOLVEPRO_COMPLETION_KEY, JSON.stringify(record));
-  } catch {
-  }
-}
-
-export function clearBuildEvolveproCompletion(): void {
-  try {
-    localStorage.removeItem(BUILD_EVOLVEPRO_COMPLETION_KEY);
-  } catch {
-  }
 }
 
 export function hasCompletedBuildEvolveproOutput(
   state: BuildEvolveproFormState,
+  completion: BuildEvolveproCompletionRecord | null,
 ): boolean {
   if (!isBuildEvolveproFormReady(state)) return false;
-  try {
-    const raw = localStorage.getItem(BUILD_EVOLVEPRO_COMPLETION_KEY);
-    if (!raw) return false;
-    const parsed: unknown = JSON.parse(raw);
-    if (typeof parsed !== "object" || parsed === null) return false;
-    const record = parsed as Partial<BuildEvolveproCompletionRecord>;
-    return (
-      record.outputPath === state.outputXlsx &&
-      record.signature === buildCompletionSignature(state)
-    );
-  } catch {
-    return false;
-  }
+  return (
+    completion?.outputPath === state.outputXlsx &&
+    completion.signature === buildCompletionSignature(state)
+  );
 }
 
 export function hasBuildEvolveproFormValues(

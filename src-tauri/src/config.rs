@@ -40,11 +40,11 @@ fn prod_config_root() -> PathBuf {
         .join(".kuma")
 }
 
-fn expand_home(path: &Path) -> PathBuf {
+fn expand_home_with(path: &Path, home: Option<PathBuf>) -> PathBuf {
     let Some(raw) = path.to_str() else {
         return path.to_path_buf();
     };
-    let Some(home) = dirs::home_dir() else {
+    let Some(home) = home else {
         return path.to_path_buf();
     };
     if raw == "~" {
@@ -54,6 +54,10 @@ fn expand_home(path: &Path) -> PathBuf {
         return home.join(rest);
     }
     path.to_path_buf()
+}
+
+fn expand_home(path: &Path) -> PathBuf {
+    expand_home_with(path, dirs::home_dir())
 }
 
 fn read_config_file(config_root: &Path) -> Result<Config, String> {
@@ -150,7 +154,10 @@ pub fn load_project_cmd(path: String) -> Result<Project, String> {
 }
 
 pub(crate) fn prune_missing(projects: Vec<RecentProject>) -> Vec<RecentProject> {
-    projects.into_iter().filter(|r| Path::new(&r.path).exists()).collect()
+    projects
+        .into_iter()
+        .filter(|r| Path::new(&r.path).exists())
+        .collect()
 }
 
 #[tauri::command]
@@ -232,5 +239,23 @@ mod tests {
         ];
         let pruned = prune_missing(projects);
         assert!(pruned.is_empty());
+    }
+
+    #[test]
+    fn expand_home_with_expands_home_prefix() {
+        let home = PathBuf::from("/tmp/kuma-home");
+
+        assert_eq!(
+            expand_home_with(Path::new("~/kuma-test"), Some(home.clone())),
+            home.join("kuma-test")
+        );
+        assert_eq!(expand_home_with(Path::new("~"), Some(home.clone())), home);
+        assert_eq!(
+            expand_home_with(
+                Path::new("/tmp/kuma-test"),
+                Some(PathBuf::from("/home/user"))
+            ),
+            PathBuf::from("/tmp/kuma-test")
+        );
     }
 }

@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { MameWorkflowRail } from "./MameWorkflowRail";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
+import { useRoundStore } from "@/store/round/roundSlice";
 
 describe("MameWorkflowRail", () => {
   beforeEach(() => {
@@ -15,7 +16,9 @@ describe("MameWorkflowRail", () => {
       outputPath: "",
       verdicts: [],
       summary: null,
+      buildEvolveproCompletion: null,
     });
+    useRoundStore.setState({ rounds: [], active_round_id: null });
   });
 
   it("clicking a cross-phase step updates both phase and sub-step", async () => {
@@ -54,5 +57,22 @@ describe("MameWorkflowRail", () => {
     expect(
       screen.queryByRole("button", { name: "Barcode Package done" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("marks Activity Data done when the active round has activity evidence", () => {
+    useMameAppStore.setState({
+      currentMameSubStep: "activity.signals",
+    });
+    const roundId = useRoundStore.getState().addRound({ plate_meta: { plates: [] } });
+    useRoundStore.getState().updateRoundField(roundId, "activity", {
+      records: [],
+      plate_meta: { plates: [] },
+    });
+
+    render(<MameWorkflowRail />);
+
+    expect(
+      screen.getByRole("button", { name: "Activity Data done" }),
+    ).toBeInTheDocument();
   });
 });

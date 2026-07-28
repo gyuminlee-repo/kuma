@@ -40,14 +40,17 @@ import { ACTIVITY_ROUTE_STORAGE_KEY } from "@/lib/mame/activityRouteStorage";
 import {
   BUILD_EVOLVEPRO_STORAGE_KEY,
   BUILD_EVOLVEPRO_DEFAULT_STATE,
-  markBuildEvolveproComplete,
+  createBuildEvolveproCompletion,
   type BuildEvolveproFormState,
 } from "@/lib/mame/buildEvolveproFormStorage";
 
 describe("ActivityStepView", () => {
   beforeEach(() => {
     localStorage.clear();
-    useMameAppStore.setState({ currentMameSubStep: "activity.ingest" });
+    useMameAppStore.setState({
+      currentMameSubStep: "activity.ingest",
+      buildEvolveproCompletion: null,
+    });
   });
 
   it("activity.ingest mounts the merged Ingest + Merge + Export sections", () => {
@@ -97,7 +100,12 @@ describe("ActivityStepView", () => {
       BUILD_EVOLVEPRO_STORAGE_KEY,
       JSON.stringify(completedForm),
     );
-    markBuildEvolveproComplete(completedForm, "/out/ep.xlsx");
+    useMameAppStore.setState({
+      buildEvolveproCompletion: createBuildEvolveproCompletion(
+        completedForm,
+        "/out/ep.xlsx",
+      ),
+    });
 
     render(<ActivityStepView />);
 
@@ -115,7 +123,12 @@ describe("ActivityStepView", () => {
       gcDataXlsx: "/in/gc.xlsx",
       outputXlsx: "/out/ep.xlsx",
     };
-    markBuildEvolveproComplete(completedForm, "/out/ep.xlsx");
+    useMameAppStore.setState({
+      buildEvolveproCompletion: createBuildEvolveproCompletion(
+        completedForm,
+        "/out/ep.xlsx",
+      ),
+    });
     localStorage.setItem(
       BUILD_EVOLVEPRO_STORAGE_KEY,
       JSON.stringify({

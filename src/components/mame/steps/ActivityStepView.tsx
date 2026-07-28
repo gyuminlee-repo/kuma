@@ -103,6 +103,9 @@ export function ActivityStepView() {
   const subStep = useMameAppStore((s) => s.currentMameSubStep);
   const setMameSubStep = useMameAppStore((s) => s.setMameSubStep);
   const goToPrevStep = useMameAppStore((s) => s.goToPrevStep);
+  const buildEvolveproCompletion = useMameAppStore(
+    (s) => s.buildEvolveproCompletion,
+  );
   const [route, setRoute] = useState<ActivityRoute>(() => loadActivityRouteFromStorage());
 
   // Auto-create a round if none exists (mirrors ActivityPanel behavior)
@@ -139,7 +142,10 @@ export function ActivityStepView() {
 
   function selectedActivityRouteIsComplete(): boolean {
     if (route === "plateLayout") {
-      return hasCompletedBuildEvolveproOutput(loadBuildEvolveproFromStorage());
+      return hasCompletedBuildEvolveproOutput(
+        loadBuildEvolveproFromStorage(),
+        buildEvolveproCompletion,
+      );
     }
     const activeRound = rounds.find((round) => round.id === activeRoundId);
     return Boolean(

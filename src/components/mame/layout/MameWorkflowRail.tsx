@@ -11,9 +11,11 @@
 import { useTranslation } from "react-i18next";
 import { WorkflowRail, type WorkflowStep } from "@/components/widgets/WorkflowRail";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
+import { useRoundStore } from "@/store/round/roundSlice";
 import type { MameSubStepId } from "@/store/mame/slices/mameSubSteps";
 import type { MamePhase } from "@/store/mame/slices/phaseSlice";
 import { isMameSubStepDone } from "@/lib/mame/mameStepCompletion";
+import { loadBuildEvolveproFromStorage } from "@/lib/mame/buildEvolveproFormStorage";
 
 const ALL_SUBSTEPS: MameSubStepId[] = [
   "setup.files",
@@ -101,6 +103,16 @@ export function MameWorkflowRail() {
   const outputPath = useMameAppStore((s) => s.outputPath);
   const verdicts = useMameAppStore((s) => s.verdicts);
   const summary = useMameAppStore((s) => s.summary);
+  const buildEvolveproCompletion = useMameAppStore(
+    (s) => s.buildEvolveproCompletion,
+  );
+  const activeRoundId = useRoundStore((s) => s.active_round_id);
+  const rounds = useRoundStore((s) => s.rounds);
+  const activeRound = rounds.find((round) => round.id === activeRoundId);
+  const activityComplete = Boolean(
+    activeRound?.activity ||
+      (activeRound?.merged_table && activeRound.merged_table.length > 0),
+  );
 
   const activeIndex = ALL_SUBSTEPS.indexOf(currentSubStep);
   const progressPercent = computeProgress(Math.max(0, activeIndex));
@@ -129,6 +141,9 @@ export function MameWorkflowRail() {
         outputPath,
         verdicts,
         summary,
+        activityComplete,
+        buildEvolveproForm: loadBuildEvolveproFromStorage(),
+        buildEvolveproCompletion,
       });
       let state: WorkflowStep["state"];
       if (done) state = "done";
