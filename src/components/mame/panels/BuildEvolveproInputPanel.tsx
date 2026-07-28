@@ -82,6 +82,7 @@ export function BuildEvolveproInputPanel() {
     form.remeasureReportXlsx,
     form.verdictXlsx,
     form.outputXlsx,
+    form.gcExportXlsx,
   ]);
 
   useEffect(() => {
@@ -110,6 +111,16 @@ export function BuildEvolveproInputPanel() {
       title: t("mame.buildEvolvepro.chooseOutput"),
     });
     if (selected) setForm({ outputXlsx: selected });
+  }, [t]);
+
+  // Optional review artifact, so it uses a save-file dialog like the output
+  // control (never an open dialog: the file does not exist yet).
+  const browseGcExport = useCallback(async () => {
+    const selected = await save({
+      filters: [{ name: "Excel", extensions: ["xlsx"] }],
+      title: t("mame.buildEvolvepro.gcExportXlsx"),
+    });
+    if (selected) setForm({ gcExportXlsx: selected });
   }, [t]);
 
   // Client-side gate mirroring the backend _mode_xor validator, so a build is
@@ -163,6 +174,7 @@ export function BuildEvolveproInputPanel() {
       remeasure_report_xlsx: form.remeasureReportXlsx,
       verdict_xlsx: form.verdictXlsx || undefined,
       output_xlsx: form.outputXlsx,
+      gc_export_xlsx: form.gcExportXlsx || undefined,
     };
   }
 
@@ -382,6 +394,15 @@ export function BuildEvolveproInputPanel() {
                       )
                     }
                     helperText={t("mame.buildEvolvepro.round1ReportXlsxHelper")}
+                  />
+                  <FilePickerField
+                    id="bep-gc-export"
+                    label={`${t("mame.buildEvolvepro.gcExportXlsx")} (${t("mame.buildEvolvepro.optionalLabel")})`}
+                    filled={Boolean(form.gcExportXlsx)}
+                    value={form.gcExportXlsx}
+                    optional
+                    onBrowse={() => browseGcExport()}
+                    helperText={t("mame.buildEvolvepro.gcExportXlsxHelper")}
                   />
                 </>
               )}

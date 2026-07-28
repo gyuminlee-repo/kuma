@@ -960,6 +960,8 @@
       "round1EvolveproXlsxHelper": "前ラウンドの EVOLVEpro xlsx（Variant、activity）。再測定された variant はその平均値に置き換えられます。",
       "round1ReportXlsx": "Round-1 レポート xlsx（GC-FID raw）",
       "round1ReportXlsxHelper": "Agilent FID1B raw レポート。sample name は well 位置（A1..H12）で、WT ブロックを含みます。",
+      "gcExportXlsx": "相対活性 export xlsx（GC data 形式）",
+      "gcExportXlsxHelper": "任意のレビュー用成果物。round-1 の well ごとの相対活性（area / WT 平均 area）を Sample Name と Area 列で保存し、GC data シートと同じ形式になります。",
       "remeasureReportXlsx": "再測定レポート xlsx（variant ラベル）",
       "remeasureReportXlsxHelper": "Agilent FID1B raw レポート。sample name は variant ラベル（例: V5F または 5F）で、繰り返し行が replicate です。",
       "verdictXlsx": "NGS verdict xlsx",

@@ -483,6 +483,8 @@
       "round1EvolveproXlsxHelper": "이전 라운드 EVOLVEpro xlsx (Variant, activity). 재측정된 variant는 그 평균으로 대체됩니다.",
       "round1ReportXlsx": "Round-1 리포트 xlsx (GC-FID raw)",
       "round1ReportXlsxHelper": "Agilent FID1B raw 리포트. sample name이 well 위치(A1..H12)이며 WT 블록을 포함합니다.",
+      "gcExportXlsx": "상대활성 export xlsx (GC data 형태)",
+      "gcExportXlsxHelper": "선택 검토용 산출물. round-1 well별 상대활성(area / WT 평균 area)을 Sample Name, Area 열로 저장하며 GC data 시트와 같은 형태입니다.",
       "remeasureReportXlsx": "재측정 리포트 xlsx (variant 라벨)",
       "remeasureReportXlsxHelper": "Agilent FID1B raw 리포트. sample name이 variant 라벨(예: V5F 또는 5F)이며 반복 행이 replicate입니다.",
       "verdictXlsx": "NGS verdict xlsx",

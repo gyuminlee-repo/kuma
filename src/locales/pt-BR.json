@@ -960,6 +960,8 @@
       "round1EvolveproXlsxHelper": "xlsx EVOLVEpro da rodada anterior (Variant, activity). Variantes remedidas são substituídas pelas suas médias.",
       "round1ReportXlsx": "xlsx do relatório do round-1 (GC-FID bruto)",
       "round1ReportXlsxHelper": "Relatório Agilent FID1B bruto; os Sample Name são posições de well (A1..H12), com blocos WT.",
+      "gcExportXlsx": "xlsx de exportação da atividade relativa (formato GC data)",
+      "gcExportXlsxHelper": "Artefato de revisão opcional. Grava a atividade relativa por well do round-1 (Area / Area WT média) nas colunas Sample Name e Area, no formato da planilha GC data.",
       "remeasureReportXlsx": "xlsx do relatório de remedição (rotulado por variante)",
       "remeasureReportXlsxHelper": "Relatório Agilent FID1B bruto; os Sample Name são rótulos de variante (por exemplo V5F ou 5F) e linhas repetidas são réplicas.",
       "verdictXlsx": "xlsx de verdict NGS",

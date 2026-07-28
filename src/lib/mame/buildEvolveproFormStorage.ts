@@ -26,6 +26,9 @@ export interface BuildEvolveproFormState {
   remeasureReportXlsx: string;
   verdictXlsx: string;
   outputXlsx: string;
+  /** Optional reports-mode raw round-1 export path (well-level relative
+   *  activity, Sample Name / Area). Empty means no export. */
+  gcExportXlsx: string;
 }
 
 export const BUILD_EVOLVEPRO_DEFAULT_STATE: BuildEvolveproFormState = {
@@ -40,6 +43,7 @@ export const BUILD_EVOLVEPRO_DEFAULT_STATE: BuildEvolveproFormState = {
   remeasureReportXlsx: "",
   verdictXlsx: "",
   outputXlsx: "",
+  gcExportXlsx: "",
 };
 
 export function loadBuildEvolveproFromStorage(): BuildEvolveproFormState {
@@ -68,6 +72,7 @@ export function loadBuildEvolveproFromStorage(): BuildEvolveproFormState {
         typeof p.remeasureReportXlsx === "string" ? p.remeasureReportXlsx : "",
       verdictXlsx: typeof p.verdictXlsx === "string" ? p.verdictXlsx : "",
       outputXlsx: typeof p.outputXlsx === "string" ? p.outputXlsx : "",
+      gcExportXlsx: typeof p.gcExportXlsx === "string" ? p.gcExportXlsx : "",
     };
   } catch {
     return BUILD_EVOLVEPRO_DEFAULT_STATE;

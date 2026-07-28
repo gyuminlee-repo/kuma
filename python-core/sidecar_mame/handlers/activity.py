@@ -605,6 +605,7 @@ def handle_build_evolvepro_input(params: dict) -> dict:
         remeasure_report_xlsx (str, reports mode)
         mismatch_threshold (float, optional, default 0.1)
         mapping_audit_path (str, optional)
+        gc_export_xlsx (str, optional, reports mode raw round-1)
 
     Returns:
         {
@@ -614,6 +615,7 @@ def handle_build_evolvepro_input(params: dict) -> dict:
           "n_fallback_only": int,
           "mapping_audit": [{"id": int, "variant": str, "well": str | None}],
           "mapping_audit_path": str,
+          "gc_export_path": str,
           "prev_descending": bool,
           "warnings": [str],
           "swap_warnings": [SwapWarning],
@@ -645,6 +647,7 @@ def handle_build_evolvepro_input(params: dict) -> dict:
             mismatch_threshold=p.mismatch_threshold,
             verdict_xlsx=p.verdict_xlsx,
             prev_evolvepro_xlsx=p.round1_evolvepro_xlsx,
+            gc_export_xlsx=p.gc_export_xlsx,
         )
         audit = [
             {"id": i + 1, "variant": v, "well": w}
@@ -663,6 +666,7 @@ def handle_build_evolvepro_input(params: dict) -> dict:
             "mismatched": r.mismatched,
             "n_ngs_excluded": r.n_ngs_excluded,
             "ngs_excluded": r.ngs_excluded,
+            "gc_export_path": str(r.gc_export_path) if r.gc_export_path else "",
             "mode": "reports",
         }
 
@@ -699,6 +703,7 @@ def handle_build_evolvepro_input(params: dict) -> dict:
         "mismatched": result.mismatched,
         "n_ngs_excluded": 0,
         "ngs_excluded": [],
+        "gc_export_path": "",
         "mode": "rank",
     }
 

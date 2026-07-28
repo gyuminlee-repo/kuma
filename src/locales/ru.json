@@ -960,6 +960,8 @@
       "round1EvolveproXlsxHelper": "xlsx EVOLVEpro предыдущего раунда (Variant, activity). Повторно измеренные варианты заменяются своими средними.",
       "round1ReportXlsx": "xlsx отчёта round-1 (исходный GC-FID)",
       "round1ReportXlsxHelper": "Исходный отчёт Agilent FID1B; Sample Name это позиции well (A1..H12), с блоками WT.",
+      "gcExportXlsx": "xlsx экспорта относительной активности (формат GC data)",
+      "gcExportXlsxHelper": "Необязательный артефакт для проверки. Записывает относительную активность round-1 по well (Area / средняя Area WT) в столбцы Sample Name и Area, как в листе GC data.",
       "remeasureReportXlsx": "xlsx отчёта повторного измерения (с метками вариантов)",
       "remeasureReportXlsxHelper": "Исходный отчёт Agilent FID1B; Sample Name это метки вариантов (например V5F или 5F), повторяющиеся строки это реплики.",
       "verdictXlsx": "xlsx verdict NGS",

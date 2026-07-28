@@ -960,6 +960,8 @@
       "round1EvolveproXlsxHelper": "EVOLVEpro-xlsx der vorherigen Runde (Variant, activity). Neu gemessene Varianten werden durch ihre Mittelwerte ersetzt.",
       "round1ReportXlsx": "Round-1-Bericht-xlsx (GC-FID roh)",
       "round1ReportXlsxHelper": "Agilent-FID1B-Rohbericht; die Sample Names sind Well-Positionen (A1..H12), mit WT-Blöcken.",
+      "gcExportXlsx": "xlsx-Export der relativen Aktivität (GC-data-Form)",
+      "gcExportXlsxHelper": "Optionales Prüfartefakt. Schreibt die well-bezogene relative Aktivität von Round-1 (Area / mittlere WT-Area) als Spalten Sample Name und Area, passend zum GC-data-Blatt.",
       "remeasureReportXlsx": "Nachmessungs-Bericht-xlsx (Variant-beschriftet)",
       "remeasureReportXlsxHelper": "Agilent-FID1B-Rohbericht; die Sample Names sind Variant-Bezeichnungen (z. B. V5F oder 5F), wiederholte Zeilen sind Replikate.",
       "verdictXlsx": "NGS-verdict-xlsx",

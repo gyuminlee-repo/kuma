@@ -483,6 +483,8 @@
       "round1EvolveproXlsxHelper": "Previous-round EVOLVEpro xlsx (Variant, activity). Re-measured variants are replaced by their means.",
       "round1ReportXlsx": "Round-1 report xlsx (raw GC-FID)",
       "round1ReportXlsxHelper": "Raw Agilent FID1B report; sample names are well positions (A1..H12), with WT blocks.",
+      "gcExportXlsx": "Relative activity export xlsx (GC data shape)",
+      "gcExportXlsxHelper": "Optional review artifact. Writes the round-1 well-level relative activity (area / mean WT area) as Sample Name and Area columns, matching the GC data sheet.",
       "remeasureReportXlsx": "Re-measure report xlsx (variant-labeled)",
       "remeasureReportXlsxHelper": "Raw Agilent FID1B report; sample names are variant labels (e.g. V5F or 5F), repeated rows are replicates.",
       "verdictXlsx": "NGS verdict xlsx",
