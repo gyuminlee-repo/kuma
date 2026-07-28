@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#_1" class="md-skip">
+        <a href="#keyboard-shortcuts" class="md-skip">
           콘텐츠로 이동
         </a>
       
@@ -1567,49 +1567,61 @@
   
 
 
-<h1 id="_1">단축키<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h1>
-<p>KUMA 가 노출하는 keyboard shortcut 목록. 자세한 등록은 <code>src/components/dialogs/KeyboardShortcutsDialog.tsx</code> 참조.</p>
+<h1 id="keyboard-shortcuts">Keyboard Shortcuts<a class="headerlink" href="#keyboard-shortcuts" title="Permanent link">&para;</a></h1>
+<p>KUMA exposes the shortcuts registered in <code>src/lib/shortcuts.ts</code>. The shortcut dialog, About dialog, and user guide pages use that registry as the source of truth.</p>
+<p>On macOS, replace <code>Ctrl</code> with <code>Cmd</code>.</p>
 <table>
 <thead>
 <tr>
-<th>단축키</th>
-<th>동작</th>
+<th>Shortcut</th>
+<th>Action</th>
+<th>Scope</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>Ctrl+O</code> / <code>Cmd+O</code></td>
-<td>Open Workspace</td>
+<td><code>Ctrl+O</code></td>
+<td>Open Sequence</td>
+<td>Kuro</td>
 </tr>
 <tr>
-<td><code>Ctrl+S</code> / <code>Cmd+S</code></td>
-<td>Save Workspace</td>
+<td><code>Ctrl+,</code></td>
+<td>Preferences</td>
+<td>Kuro and Mame</td>
 </tr>
 <tr>
-<td><code>Ctrl+,</code> / <code>Cmd+,</code></td>
-<td>Settings Dialog</td>
+<td><code>Ctrl+L</code></td>
+<td>Toggle Logs panel</td>
+<td>Kuro and Mame</td>
 </tr>
 <tr>
-<td><code>Ctrl+/</code> / <code>Cmd+/</code></td>
-<td>Keyboard Shortcuts Dialog</td>
+<td><code>Ctrl+J</code></td>
+<td>Toggle Jobs panel</td>
+<td>Kuro and Mame</td>
 </tr>
 <tr>
-<td><code>F11</code></td>
-<td>Fullscreen toggle</td>
+<td><code>Ctrl+D</code></td>
+<td>Run / Analyze</td>
+<td>Kuro and Mame</td>
 </tr>
 <tr>
-<td><code>Ctrl+Q</code> / <code>Cmd+Q</code></td>
-<td>Quit (window 파괴)</td>
+<td><code>Ctrl+Enter</code></td>
+<td>Run / Analyze (alias)</td>
+<td>Kuro and Mame</td>
 </tr>
 <tr>
-<td><code>Esc</code></td>
-<td>Dialog 닫기</td>
+<td><code>Ctrl+Shift+R</code></td>
+<td>Reset All</td>
+<td>Kuro and Mame</td>
+</tr>
+<tr>
+<td><code>Ctrl+/</code></td>
+<td>Keyboard shortcuts</td>
+<td>Kuro and Mame</td>
 </tr>
 </tbody>
 </table>
-<blockquote>
-<p>Edit/Run 메뉴의 항목은 v0.6.0.79 에서 추가되었다. 변경 가능 단축키는 Settings → Keyboard 에서 재정의.</p>
-</blockquote>
+<p>Menu-only or platform window commands such as fullscreen, close window, and quit may still appear in native menus, but they are not part of the shared Kuro/Mame shortcut registry.</p>
 
 
 
