@@ -187,4 +187,34 @@
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
+
+  /* Persistent scrollbars.
+     macOS defaults to overlay scrollbars that stay hidden until a scroll is
+     already in progress, so a clipped panel reads as "there is nothing more
+     here". Windows draws them permanently, which is why the same build looks
+     complete there and truncated on a Mac. Declaring a width opts WebKit out
+     of the overlay style, so every scrollable region advertises itself. */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background-color: hsl(var(--muted) / 0.4);
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--muted-foreground) / 0.45);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--muted-foreground) / 0.7);
+  }
+  ::-webkit-scrollbar-corner {
+    background-color: transparent;
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.45) hsl(var(--muted) / 0.4);
+  }
 }
