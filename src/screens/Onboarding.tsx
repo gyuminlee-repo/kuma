@@ -11,9 +11,11 @@ type OnboardingProps = {
   onDone: (cfg: Config) => void;
 };
 
+const DEFAULT_PROJECTS_ROOT = "~/Documents/kuma/";
+
 export function Onboarding({ initialPath, onDone }: OnboardingProps) {
   const { t } = useTranslation();
-  const [path, setPath] = useState(initialPath ?? "");
+  const [path, setPath] = useState(initialPath ?? DEFAULT_PROJECTS_ROOT);
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 

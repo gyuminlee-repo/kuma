@@ -5,7 +5,7 @@
  * activity.ingest is now the single Activity step; activity.mergeExport is a legacy redirect.
  */
 
-import { render } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@/lib/ipc", () => ({
@@ -30,12 +30,17 @@ vi.mock("@/components/mame/panels/ActivityPanel", () => ({
   MergeSection: () => <div data-testid="merge-section" />,
   ExportSection: () => <div data-testid="export-section" />,
 }));
+vi.mock("@/components/mame/panels/BuildEvolveproInputPanel", () => ({
+  BuildEvolveproInputPanel: () => <div data-testid="build-evolvepro-panel" />,
+}));
 
 import { ActivityStepView } from "./ActivityStepView";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
+import { ACTIVITY_ROUTE_STORAGE_KEY } from "@/lib/mame/activityRouteStorage";
 
 describe("ActivityStepView", () => {
   beforeEach(() => {
+    localStorage.clear();
     useMameAppStore.setState({ currentMameSubStep: "activity.ingest" });
   });
 
@@ -51,5 +56,17 @@ describe("ActivityStepView", () => {
     const { queryByTestId, getByRole } = render(<ActivityStepView />);
     expect(getByRole("status")).toBeTruthy();
     expect(queryByTestId("merge-section")).toBeNull();
+  });
+
+  it("blocks Activity next until the selected route has produced EVOLVEpro inputs", async () => {
+    localStorage.setItem(ACTIVITY_ROUTE_STORAGE_KEY, JSON.stringify("plateLayout"));
+
+    render(<ActivityStepView />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByText("Complete the selected Activity route")).toBeInTheDocument();
+    expect(useMameAppStore.getState().currentMameSubStep).toBe("activity.ingest");
   });
 });

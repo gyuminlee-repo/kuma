@@ -404,7 +404,8 @@
         "genotypeLabel": "Activity + NGS genotype",
         "genotypeDesc": "上傳 long-format 的 well activity，與本輪 NGS verdict 合併後匯出。",
         "plateLayoutLabel": "Plate layout + GC data",
-        "plateLayoutDesc": "直接從 plate layout 與 GC data xlsx 檔案產生，無需 NGS genotype。"
+        "plateLayoutDesc": "直接從 plate layout 與 GC data xlsx 檔案產生，無需 NGS genotype。",
+        "completeCurrentRoute": "Complete the selected Activity route"
       }
     },
     "runHealth": {
@@ -967,7 +968,9 @@
       "layoutXlsxOptionalHelper": "僅用於在 NGS verdict 篩除時將變體對應到 well。",
       "optionalStateLabel": "選填",
       "nNgsExcluded": "NGS 排除",
-      "missingInputs": "尚需提供"
+      "missingInputs": "尚需提供",
+      "restoredNotice": "Paths were restored on this device. Clear them if they belong to another project.",
+      "clearRestored": "Clear restored EVOLVEpro inputs"
     },
     "verdictBadge": {
       "help": {
@@ -1531,7 +1534,9 @@
     "mameWorkspaceTitle": "Mame 主工作區",
     "mameWorkspaceBody": "載入執行資料，檢查基因型判定與孔板結果，再合併活性測量值進行匯出。",
     "mameInspectorTitle": "檢視 Mame 詳情",
-    "mameInspectorBody": "檢查器會在結果旁顯示目前 Mame 步驟的控制項與脈絡。"
+    "mameInspectorBody": "檢查器會在結果旁顯示目前 Mame 步驟的控制項與脈絡。",
+    "mameRouteTitle": "Choose a Mame input route",
+    "mameRouteBody": "Use the genotype-linked route after uploading activity data, or the plate-layout route when you already have GC data xlsx files."
   },
   "onboarding": {
     "titleChange": "更改專案資料夾",

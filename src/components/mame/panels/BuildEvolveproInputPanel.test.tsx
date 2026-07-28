@@ -81,6 +81,30 @@ describe("BuildEvolveproInputPanel source-mode toggle", () => {
     expect(missing.textContent).toContain("Output EVOLVEpro xlsx");
   });
 
+  it("focuses the matching field when a missing input is clicked", () => {
+    render(<BuildEvolveproInputPanel />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Plate layout xlsx" }));
+
+    expect(screen.getByLabelText("Plate layout xlsx")).toHaveFocus();
+  });
+
+  it("can clear restored EVOLVEpro input paths without clearing the whole Mame project", () => {
+    seed({
+      layoutXlsx: "/in/layout.xlsx",
+      gcDataXlsx: "/in/gc.xlsx",
+      outputXlsx: "/out/ep.xlsx",
+    });
+
+    render(<BuildEvolveproInputPanel />);
+
+    expect(screen.getByText("layout.xlsx")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Clear restored EVOLVEpro inputs" }));
+
+    expect(screen.queryByText("layout.xlsx")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: BUILD_LABEL })).toBeDisabled();
+  });
+
   it("sends rank-mode params with no reports-mode fields", async () => {
     seed({
       layoutXlsx: "/in/layout.xlsx",

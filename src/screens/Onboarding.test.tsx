@@ -37,8 +37,30 @@ describe("Onboarding", () => {
     });
   });
 
-  it("disables submit when the path is empty", () => {
+  it("uses the default projects folder as an actionable first-run value", async () => {
+    const onDone = vi.fn();
+    const cfg = {
+      projects_root: "~/Documents/kuma/",
+      recent_projects: [],
+    };
+
+    setProjectsRootMock.mockResolvedValueOnce(cfg);
+
+    render(<Onboarding onDone={onDone} />);
+
+    expect(screen.getByLabelText("Projects folder")).toHaveValue("~/Documents/kuma/");
+    fireEvent.click(screen.getByRole("button", { name: "Done" }));
+
+    await waitFor(() => {
+      expect(setProjectsRootMock).toHaveBeenCalledWith("~/Documents/kuma/");
+      expect(onDone).toHaveBeenCalledWith(cfg);
+    });
+  });
+
+  it("disables submit when the path is cleared", () => {
     render(<Onboarding onDone={vi.fn()} />);
+
+    fireEvent.change(screen.getByLabelText("Projects folder"), { target: { value: "" } });
 
     expect(screen.getByRole("button", { name: "Done" }).hasAttribute("disabled")).toBe(true);
   });

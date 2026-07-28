@@ -40,6 +40,7 @@ import {
   loadBuildEvolveproFromStorage as loadFromStorage,
   saveBuildEvolveproToStorage as saveToStorage,
   BUILD_EVOLVEPRO_DEFAULT_STATE,
+  hasBuildEvolveproFormValues,
 } from "@/lib/mame/buildEvolveproFormStorage";
 
 function getFilename(p: string): string {
@@ -58,6 +59,7 @@ export function BuildEvolveproInputPanel() {
   const [isBuilding, setIsBuilding] = useState(false);
   const [result, setResult] = useState<BuildEvolveproInputResult | null>(null);
   const resetEpoch = useMameAppStore((s) => s.resetEpoch);
+  const hasRestoredValues = hasBuildEvolveproFormValues(form);
 
   function setForm(partial: Partial<FormState>) {
     setFormRaw((prev) => {
@@ -115,23 +117,48 @@ export function BuildEvolveproInputPanel() {
   // Client-side gate mirroring the backend _mode_xor validator, so a build is
   // never dispatched only to come back as a ValueError. Each entry is a label
   // of a still-missing required file for the currently selected mode.
-  const missing: string[] = [];
+  const missing: { label: string; fieldId: string }[] = [];
   if (form.sourceMode === "rank") {
     // Confirmation files (rep-batch + previous EVOLVEpro) stay optional: layout
     // + GC alone yields a provisional first-round primary screen.
-    if (!form.layoutXlsx) missing.push(t("mame.buildEvolvepro.layoutXlsx"));
-    if (!form.gcDataXlsx) missing.push(t("mame.buildEvolvepro.gcDataXlsx"));
+    if (!form.layoutXlsx)
+      missing.push({
+        label: t("mame.buildEvolvepro.layoutXlsx"),
+        fieldId: "bep-layout",
+      });
+    if (!form.gcDataXlsx)
+      missing.push({
+        label: t("mame.buildEvolvepro.gcDataXlsx"),
+        fieldId: "bep-gc",
+      });
   } else if (form.round1Source === "prev") {
     if (!form.round1EvolveproXlsx)
-      missing.push(t("mame.buildEvolvepro.round1EvolveproXlsx"));
+      missing.push({
+        label: t("mame.buildEvolvepro.round1EvolveproXlsx"),
+        fieldId: "bep-round1-evolvepro",
+      });
   } else {
-    if (!form.layoutXlsx) missing.push(t("mame.buildEvolvepro.layoutXlsx"));
+    if (!form.layoutXlsx)
+      missing.push({
+        label: t("mame.buildEvolvepro.layoutXlsx"),
+        fieldId: "bep-layout",
+      });
     if (!form.round1ReportXlsx)
-      missing.push(t("mame.buildEvolvepro.round1ReportXlsx"));
+      missing.push({
+        label: t("mame.buildEvolvepro.round1ReportXlsx"),
+        fieldId: "bep-round1",
+      });
   }
   if (form.sourceMode === "reports" && !form.remeasureReportXlsx)
-    missing.push(t("mame.buildEvolvepro.remeasureReportXlsx"));
-  if (!form.outputXlsx) missing.push(t("mame.buildEvolvepro.outputXlsx"));
+    missing.push({
+      label: t("mame.buildEvolvepro.remeasureReportXlsx"),
+      fieldId: "bep-remeasure",
+    });
+  if (!form.outputXlsx)
+    missing.push({
+      label: t("mame.buildEvolvepro.outputXlsx"),
+      fieldId: "bep-output-path",
+    });
 
   const canBuild = missing.length === 0 && !isBuilding;
 
@@ -200,6 +227,21 @@ export function BuildEvolveproInputPanel() {
     }
   }
 
+  function handleMissingClick(fieldId: string) {
+    const field = document.getElementById(fieldId);
+    if (!field) return;
+    if (typeof field.scrollIntoView === "function") {
+      field.scrollIntoView({ block: "center", behavior: "smooth" });
+    }
+    field.focus();
+  }
+
+  function handleClearRestored() {
+    setFormRaw(BUILD_EVOLVEPRO_DEFAULT_STATE);
+    saveToStorage(BUILD_EVOLVEPRO_DEFAULT_STATE);
+    setResult(null);
+  }
+
   return (
     <section className="space-y-6">
       <header>
@@ -212,6 +254,22 @@ export function BuildEvolveproInputPanel() {
         <p className="mt-2 rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
           {t("mame.buildEvolvepro.routeNote")}
         </p>
+        {hasRestoredValues && (
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-muted/20 px-3 py-2">
+            <p className="min-w-0 flex-1 text-xs text-muted-foreground">
+              {t("mame.buildEvolvepro.restoredNotice")}
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleClearRestored}
+              className="h-7 text-xs"
+            >
+              {t("mame.buildEvolvepro.clearRestored")}
+            </Button>
+          </div>
+        )}
       </header>
 
       <section aria-labelledby="bep-input-files">
@@ -469,12 +527,29 @@ export function BuildEvolveproInputPanel() {
       </section>
 
       {missing.length > 0 && (
-        <p
+        <div
           role="status"
           className="rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground"
         >
-          {t("mame.buildEvolvepro.missingInputs")}: {missing.join(", ")}
-        </p>
+          <span>
+            {t("mame.buildEvolvepro.missingInputs")}:{" "}
+            {missing.map((item) => item.label).join(", ")}
+          </span>
+          <span className="mt-2 flex flex-wrap gap-1">
+            {missing.map((item) => (
+              <Button
+                key={item.fieldId}
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => handleMissingClick(item.fieldId)}
+                className="h-6 px-2 text-xs"
+              >
+                {item.label}
+              </Button>
+            ))}
+          </span>
+        </div>
       )}
 
       <Button

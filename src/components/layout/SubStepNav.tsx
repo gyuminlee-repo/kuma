@@ -105,7 +105,23 @@ function MameSubStepNav({ subSteps }: { subSteps: SubNavItem[] }) {
   const { t } = useTranslation();
   const currentSubStep = useMameAppStore((s) => s.currentMameSubStep);
   const setSubStep = useMameAppStore((s) => s.setMameSubStep);
+  const inputDir = useMameAppStore((s) => s.inputDir);
+  const expectedPath = useMameAppStore((s) => s.expectedPath);
+  const referencePath = useMameAppStore((s) => s.referencePath);
+  const outputPath = useMameAppStore((s) => s.outputPath);
+  const verdicts = useMameAppStore((s) => s.verdicts);
+  const summary = useMameAppStore((s) => s.summary);
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  function isStepDone(id: MameSubStepId): boolean {
+    if (id === "setup.files") {
+      return Boolean(inputDir && expectedPath && referencePath && outputPath);
+    }
+    if (id === "analyze.inputs" || id === "analyze.review") {
+      return verdicts.length > 0 || summary !== null;
+    }
+    return false;
+  }
 
   function handleKeyDown(e: KeyboardEvent<HTMLButtonElement>, idx: number) {
     const total = subSteps.length;
@@ -124,8 +140,12 @@ function MameSubStepNav({ subSteps }: { subSteps: SubNavItem[] }) {
     <nav className="flex flex-col gap-1 p-2" role="navigation" aria-label="sub steps">
       {subSteps.map((step, idx) => {
         const isCurrent = step.id === currentSubStep;
-        // mame stepStatus는 미구현(D4 예정) — done 항상 false
-        const badgeStatus: "done" | "active" | "pending" = isCurrent ? "active" : "pending";
+        const isDone = isStepDone(step.id as MameSubStepId);
+        const badgeStatus: "done" | "active" | "pending" = isDone
+          ? "done"
+          : isCurrent
+            ? "active"
+            : "pending";
         const index = idx + 1;
         return (
           <button

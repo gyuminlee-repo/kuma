@@ -404,7 +404,8 @@
         "genotypeLabel": "Activity + NGS genotype",
         "genotypeDesc": "Загрузите long-format well activity, объедините с NGS verdict этого round, затем экспортируйте.",
         "plateLayoutLabel": "Plate layout + GC data",
-        "plateLayoutDesc": "Создать напрямую из xlsx-файлов plate layout и GC data. NGS genotype не требуется."
+        "plateLayoutDesc": "Создать напрямую из xlsx-файлов plate layout и GC data. NGS genotype не требуется.",
+        "completeCurrentRoute": "Complete the selected Activity route"
       }
     },
     "runHealth": {
@@ -967,7 +968,9 @@
       "layoutXlsxOptionalHelper": "Используется только для сопоставления варианта с well при фильтрации по verdict NGS.",
       "optionalStateLabel": "Необязательно",
       "nNgsExcluded": "Исключено по NGS",
-      "missingInputs": "Ещё требуется"
+      "missingInputs": "Ещё требуется",
+      "restoredNotice": "Paths were restored on this device. Clear them if they belong to another project.",
+      "clearRestored": "Clear restored EVOLVEpro inputs"
     },
     "verdictBadge": {
       "help": {
@@ -1531,7 +1534,9 @@
     "mameWorkspaceTitle": "Основная область Mame",
     "mameWorkspaceBody": "Загрузите данные, проверьте генотипы и планшеты, затем объедините измерения активности для экспорта.",
     "mameInspectorTitle": "Детали Mame",
-    "mameInspectorBody": "Инспектор держит элементы управления и контекст текущего шага рядом с результатами."
+    "mameInspectorBody": "Инспектор держит элементы управления и контекст текущего шага рядом с результатами.",
+    "mameRouteTitle": "Choose a Mame input route",
+    "mameRouteBody": "Use the genotype-linked route after uploading activity data, or the plate-layout route when you already have GC data xlsx files."
   },
   "onboarding": {
     "titleChange": "Изменить папку проектов",

@@ -87,6 +87,43 @@ export function saveBuildEvolveproToStorage(
   }
 }
 
+export function isBuildEvolveproFormReady(
+  state: BuildEvolveproFormState,
+): boolean {
+  if (!state.outputXlsx) return false;
+  if (state.sourceMode === "rank") {
+    return Boolean(state.layoutXlsx && state.gcDataXlsx);
+  }
+  if (state.round1Source === "prev") {
+    return Boolean(state.round1EvolveproXlsx && state.remeasureReportXlsx);
+  }
+  return Boolean(
+    state.layoutXlsx &&
+      state.round1ReportXlsx &&
+      state.remeasureReportXlsx,
+  );
+}
+
+export function hasBuildEvolveproFormValues(
+  state: BuildEvolveproFormState,
+): boolean {
+  return (
+    state.sourceMode !== BUILD_EVOLVEPRO_DEFAULT_STATE.sourceMode ||
+    state.round1Source !== BUILD_EVOLVEPRO_DEFAULT_STATE.round1Source ||
+    Boolean(
+      state.layoutXlsx ||
+        state.gcDataXlsx ||
+        state.repBatchXlsx ||
+        state.prevEvolveproXlsx ||
+        state.round1ReportXlsx ||
+        state.round1EvolveproXlsx ||
+        state.remeasureReportXlsx ||
+        state.verdictXlsx ||
+        state.outputXlsx,
+    )
+  );
+}
+
 /**
  * Seeds sample paths into the localStorage form state.
  * Fields that are already filled are NOT overwritten (preserves user selections).
