@@ -99,7 +99,7 @@ def test_export_evolvepro_xlsx_spec_2col(tmp_path: Path) -> None:
     import openpyxl
 
     rows = [
-        _row(relative_activity=1.78),
+        _row(fold_change=1.78),
         _row(
             well_id="B01",
             mutation="WT",
@@ -122,11 +122,11 @@ def test_export_evolvepro_xlsx_spec_2col(tmp_path: Path) -> None:
     assert abs(float(data[1][1]) - 1.78) < 1e-6
 
 
-def test_export_evolvepro_xlsx_falls_back_to_fold_change(tmp_path: Path) -> None:
-    """When relative_activity is None, fold_change is used as activity value."""
+def test_export_evolvepro_xlsx_uses_fold_change_as_activity(tmp_path: Path) -> None:
+    """fold_change is written verbatim as the activity value (relative to WT)."""
     import openpyxl
 
-    rows = [_row(relative_activity=None, fold_change=2.5)]
+    rows = [_row(fold_change=2.5)]
     out = tmp_path / "evolvepro_fb.xlsx"
     n_written, excluded = export_evolvepro_xlsx(rows, out)
     assert n_written == 1

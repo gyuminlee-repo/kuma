@@ -45,8 +45,6 @@ export interface MergedRow {
   replicate_n: number
   fold_change: number | null
   log2_fc: number | null
-  /** Phase A adapter output from compute_relative_activity. undefined = not yet computed. */
-  relative_activity?: number | null
   /** Phase B: merge_replicates_priority result. undefined/null = replicate merge not performed. */
   activity_merged_mean?: number | null
 }

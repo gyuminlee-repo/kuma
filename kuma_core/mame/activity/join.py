@@ -87,6 +87,9 @@ def merge_activity_with_genotype(
         by_well[(r.plate_id, wid)].append(r)
 
     # Compute WT mean per plate (used for fold-change normalization)
+    # Known definition choice (unchanged on purpose): all replicates of all WT
+    # wells on the plate are flat-pooled into one mean. With multiple WT wells
+    # holding unequal replicate counts this differs from a mean-of-well-means.
     wt_means: dict[str, float | None] = {}
     for plate_id, wt_wells in wt_lookup.items():
         wt_values = [
