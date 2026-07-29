@@ -1481,8 +1481,6 @@
   },
   "mainShell": {
     "alreadyRunning": "이미 실행 중입니다.",
-    "scratchSuffix": "스크래치",
-    "workspaceFallback": "워크스페이스",
     "autosave": {
       "on": "자동 저장 켜짐",
       "saving": "저장 중…",

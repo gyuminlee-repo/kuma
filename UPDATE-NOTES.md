@@ -796,6 +796,8 @@ When `ngs_success=false`, fold_change and log2_fc display as `—`.
 
 ### EVOLVEpro CSV export (`v0.2.7.09` – `v0.2.7.10`)
 
+> Superseded. The RPC and the store action described here were removed once the v0.3 xlsx pipeline took over; no UI had called them for some time. `export_evolvepro_csv` itself stays in `kuma_core/mame/activity/export_evolvepro.py` because `tests/integration/test_kuma_round_trip.py` uses it to pin the column agreement between the MAME writer and the KURO reader. Current behaviour lives in `docs/mame/03-activity.md`.
+
 - `export_evolvepro_csv(rows, out_path, round_n)`: exports only MergedRows with `ngs_success=True`, non-WT mutation, and a non-null `log2_fc`. Output columns: `variant`, `y_pred`, `round_n`.
 - `.excluded.csv`: rows that do not meet the export filter are saved to a companion file — no data is silently discarded.
 - Exported CSV round-trips through `_load_evolvepro_rows` for use as the next-round EVOLVEpro input in Kuro.

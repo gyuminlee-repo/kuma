@@ -1460,8 +1460,6 @@
   },
   "mainShell": {
     "alreadyRunning": "已在运行。",
-    "scratchSuffix": "Scratch",
-    "workspaceFallback": "工作区",
     "autosave": {
       "on": "自动保存已启用",
       "saving": "保存中…",

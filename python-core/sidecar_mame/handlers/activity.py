@@ -30,7 +30,6 @@ _rounds: dict[str, dict[str, Any]] = {}
 _rounds_lock = threading.Lock()
 
 _ALLOWED_ACTIVITY_EXTENSIONS = {".csv", ".xlsx", ".xls"}
-_ALLOWED_EXPORT_EXTENSIONS = {".csv"}
 _ALLOWED_EXPORT_XLSX_EXTENSIONS = {".xlsx"}
 
 
@@ -251,67 +250,6 @@ def handle_activity_merge(params: dict) -> dict:
     return {
         "merged": merged_dicts,
         "stats": stats.model_dump(),
-    }
-
-
-def handle_activity_export_evolvepro_csv(params: dict) -> dict:
-    """``activity.export_evolvepro_csv`` — write EVOLVEpro-compatible CSV.
-
-    Params: ``{round_id, path}``
-
-    Returns: ``{written_rows: int, columns: str[], manifest_path: str}``
-
-    Raises:
-        RuntimeError: round_id not found.
-        FileNotFoundError: parent directory of path does not exist.
-        ValueError: unsupported output extension.
-    """
-    from kuma_core.mame.activity.export_evolvepro import (
-        COLUMNS,
-        export_evolvepro_csv,
-    )
-    from kuma_core.mame.activity.models import MergedRow
-    from kuma_core.shared.run_manifest import build_run_manifest, write_run_manifest
-    from kuma_core.shared.output_hash import write_output_checksum
-
-    started_at = datetime.now(timezone.utc)
-
-    round_id: str = params["round_id"]
-
-    with _rounds_lock:
-        rd = _get_round(round_id)
-        merged_dicts: list[dict] = rd.get("merged_table") or []
-        round_n: int = rd.get("n", 1)
-
-    # Path validation happens outside the lock (I/O)
-    out_path = _validate_output_path(
-        params.get("path"),
-        allowed_extensions=_ALLOWED_EXPORT_EXTENSIONS,
-    )
-
-    bom: bool = bool(params.get("bom", False))
-    encoding = "utf-8-sig" if bom else "utf-8"
-    rows: list[MergedRow] = [MergedRow(**r) for r in merged_dicts]
-    written = export_evolvepro_csv(rows, out_path, round_n=round_n, encoding=encoding)
-
-    finished_at = datetime.now(timezone.utc)
-
-    manifest = build_run_manifest(
-        method="activity.export_evolvepro_csv",
-        inputs={},
-        params={"round_id": round_id, "path": params.get("path")},
-        started_at=started_at,
-        finished_at=finished_at,
-    )
-    mpath = out_path.parent / (out_path.stem + ".run.json")
-    write_run_manifest(mpath, manifest)
-    cpath = write_output_checksum(out_path)
-
-    return {
-        "written_rows": written,
-        "columns": list(COLUMNS),
-        "manifest_path": str(mpath),
-        "checksum_path": str(cpath),
     }
 
 
@@ -712,7 +650,6 @@ __all__ = [
     "handle_activity_upload",
     "handle_activity_set_plate_meta",
     "handle_activity_merge",
-    "handle_activity_export_evolvepro_csv",
     "handle_activity_export_evolvepro_xlsx",
     "handle_merge_for_evolvepro",
     "handle_build_evolvepro_input",

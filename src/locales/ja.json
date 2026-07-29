@@ -1460,8 +1460,6 @@
   },
   "mainShell": {
     "alreadyRunning": "すでに実行中です。",
-    "scratchSuffix": "Scratch",
-    "workspaceFallback": "ワークスペース",
     "autosave": {
       "on": "Autosave 有効",
       "saving": "保存中…",

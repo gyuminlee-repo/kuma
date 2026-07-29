@@ -791,6 +791,8 @@ VerdictTable에 5개 활성 관련 컬럼이 추가됐다. 각 컬럼은 개별 
 
 ### EVOLVEpro CSV export (`v0.2.7.09` – `v0.2.7.10`)
 
+> 대체됨. 여기 적힌 RPC와 store 액션은 v0.3 xlsx 파이프라인이 자리를 넘겨받은 뒤 제거했다. 그 시점에 이미 호출하는 UI 가 없었다. `export_evolvepro_csv` 함수 자체는 `kuma_core/mame/activity/export_evolvepro.py` 에 남아 있다. `tests/integration/test_kuma_round_trip.py` 가 MAME writer 와 KURO 리더의 컬럼 합의를 고정하는 데 쓰기 때문이다. 현재 동작은 `docs/mame/03-activity.md` 를 본다.
+
 - `export_evolvepro_csv(rows, out_path, round_n)`: `ngs_success=True`, 비-WT, `log2_fc` 값이 있는 MergedRow만 내보낸다. `variant`, `y_pred`, `round_n` 컬럼 포함.
 - `.excluded.csv`: 조건 미충족 행을 별도 파일로 함께 저장 — 데이터 손실 없이 감사(audit) 가능.
 - 내보낸 CSV는 Kuro의 `_load_evolvepro_rows`로 그대로 다시 로드해 다음 라운드 디자인에 사용 가능.

@@ -236,7 +236,7 @@
         "python-core/sidecar_mame/handlers/activity.py",
         "kuma_core/mame/activity/models.py"
       ],
-      "note": "MAME activity RPC params ↔ activity module API (ingest_long_csv, merge_activity_with_genotype, export_evolvepro_csv)",
+      "note": "MAME activity RPC params ↔ activity module API (ingest_long_csv, merge_activity_with_genotype)",
       "severity": "blocking"
     },
     {

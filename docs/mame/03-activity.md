@@ -78,12 +78,11 @@ reports-mode 는 replicate 마다 각각 나눈다. WT 블록이 없으면 `Valu
 |---|---|---|---|
 | `build_evolvepro_input` xlsx | `EVOLVEpro` / `Variant`, `activity` | 선형 상대활성 | **다음 라운드 EVOLVEpro 입력 (정본)** |
 | `export_evolvepro_xlsx` | 같음 | 선형 | genotype route 의 같은 용도 산출 |
-| `export_evolvepro_csv` | `variant`, `y_pred`, `round_n`, `plate_id`, `well_id`, `activity_raw_mean`, `activity_raw_sd` | **log2** | KURO in-repo 왕복용. EVOLVEpro 입력 아님 |
 | `verdict.xlsx` | 96-well Final Excel (column-major) | 해당 없음 | NGS 판정 확인 |
 
 `Variant` 는 앞 아미노산을 뗀 축약 표기다 (`V547I` → `547I`). EVOLVEpro 가 받는 실제 형식이 이것이다.
 
-CSV 만 log2 인 점에 주의한다. 컬럼명이 소문자 `variant`/`y_pred` 인 것도 KURO 로더(`kuma_core/kuro/evolvepro.py`)와 맞추기 위한 것이며, 외부 EVOLVEpro 에 넣는 파일이 아니다.
+CSV 산출은 UI 에서 낼 수 없다. `export_evolvepro_csv` 는 `kuma_core/mame/activity/export_evolvepro.py` 에 남아 있지만 RPC 로 노출되지 않으며, `tests/integration/test_kuma_round_trip.py` 가 MAME writer 와 KURO 리더(`kuma_core/kuro/evolvepro.py`)의 컬럼 합의를 검증하는 데만 쓴다. 값이 log2 이고 컬럼명이 소문자 `variant`/`y_pred` 인 것도 그 리더에 맞춘 것이며, 외부 EVOLVEpro 에 넣는 파일이 아니다.
 
 `build_evolvepro_input` 은 xlsx 옆에 `<output>.mapping.json` audit 파일을 함께 쓴다. ID 에서 변이로 간 매핑과 경고 목록이 들어간다.
 
