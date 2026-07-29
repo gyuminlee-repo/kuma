@@ -10,12 +10,16 @@
 /**
  * Parameters for the mame.activity.build_evolvepro_input RPC method.
  *
- * Two mutually exclusive input modes, enforced backend-side by _mode_xor:
- *   rank mode   , keyed on gc_data_xlsx (requires layout_xlsx). rep_batch_xlsx
- *                  and prev_evolvepro_xlsx are the optional confirmation pair.
- *   reports mode, keyed on remeasure_report_xlsx plus exactly one round-1
- *                  source: round1_report_xlsx (needs layout_xlsx) or
- *                  round1_evolvepro_xlsx (no layout needed).
+ * Two independent input axes, enforced backend-side by _axis_sources:
+ *   axis A, the 1-replicate primary screen. Exactly one of round1_report_xlsx
+ *           (raw report, well labels, needs layout_xlsx), gc_data_xlsx
+ *           (pre-normalised GC sheet, well labels, needs layout_xlsx) or
+ *           round1_evolvepro_xlsx (previous EVOLVEpro file, variant labels).
+ *   axis B, the n-replicate confirmation. At most one of remeasure_report_xlsx
+ *           (variant labels) or rep_batch_xlsx (numeric index, which requires
+ *           prev_evolvepro_xlsx as its rank source). Omitting axis B yields a
+ *           provisional build.
+ * The axes do not constrain each other, so every A/B pair is accepted.
  */
 export interface BuildEvolveproInputParams {
   /** Plate layout xlsx with Mutant and Well Pos. columns, or the sample map
@@ -23,24 +27,23 @@ export interface BuildEvolveproInputParams {
    *  mode and for raw-report reports mode; optional for prev-EVOLVEpro reports
    *  mode, where it only maps variant → well for NGS verdict gating. */
   layout_xlsx?: string | null
-  /** Rank mode: pre-normalised GC data xlsx with Sample Name (well) and Area
-   *  columns. Its presence selects rank mode. */
+  /** Axis A: pre-normalised GC data xlsx with Sample Name (well) and Area
+   *  columns. Requires layout_xlsx. */
   gc_data_xlsx?: string | null
-  /** Rank mode: optional Agilent FID1B rep-batch xlsx (numeric base IDs +
-   *  replicate suffixes). Provided together with prev_evolvepro_xlsx to upgrade
-   *  the result from "provisional" to "confirmed". */
+  /** Axis B: Agilent FID1B rep-batch xlsx (numeric base IDs + replicate
+   *  suffixes). Requires prev_evolvepro_xlsx as its rank source. */
   rep_batch_xlsx?: string | null
-  /** Rank mode: optional previous-round EVOLVEpro xlsx (Variant, activity) used
-   *  as the rank source for the numeric-ID → variant mapping. */
+  /** Axis B: previous-round EVOLVEpro xlsx (Variant, activity) used as the rank
+   *  source for the numeric-ID to variant mapping. Only valid with
+   *  rep_batch_xlsx; for a previous-round baseline use round1_evolvepro_xlsx. */
   prev_evolvepro_xlsx?: string | null
-  /** Reports mode: raw Agilent FID1B round-1 report (sample names are well
-   *  positions). One of the two round-1 sources; requires layout_xlsx. */
+  /** Axis A: raw Agilent FID1B primary screen report (sample names are well
+   *  positions). Requires layout_xlsx. */
   round1_report_xlsx?: string | null
-  /** Reports mode: round-1 baseline already in EVOLVEpro form (Variant,
-   *  activity). The other round-1 source; no layout needed. */
+  /** Axis A: primary screen baseline already in EVOLVEpro form (Variant,
+   *  activity). No layout needed. */
   round1_evolvepro_xlsx?: string | null
-  /** Reports mode: variant-labeled Agilent FID1B re-measure report. Its
-   *  presence selects reports mode. */
+  /** Axis B: variant-labeled Agilent FID1B confirmation report. */
   remeasure_report_xlsx?: string | null
   /** Optional NGS verdict xlsx. Variants whose well carries a non-PASS verdict
    *  are excluded. Omit to skip NGS gating. */
@@ -51,10 +54,28 @@ export interface BuildEvolveproInputParams {
   mismatch_threshold?: number
   /** Where to write the ID->variant JSON audit. Defaults next to output_xlsx. */
   mapping_audit_path?: string | null
-  /** Reports mode, raw round-1 only: where to write the intermediate well-level
+  /** Raw primary screen report only: where to write the intermediate well-level
    *  relative activity (Sample Name, Area). Omit to skip the export. */
   gc_export_xlsx?: string | null
 }
+
+/**
+ * Axis A identifier reported back by the backend (the PRIMARY_* constants in
+ * kuma_core/mame/activity/build_evolvepro_input.py).
+ */
+export type BuildEvolveproPrimarySourceId =
+  | "raw_report"
+  | "gc_sheet"
+  | "prev_evolvepro"
+
+/**
+ * Axis B identifier reported back by the backend (the CONFIRM_* constants).
+ * "none" means no confirmation input, so the table is provisional.
+ */
+export type BuildEvolveproConfirmationSourceId =
+  | "variant_labels"
+  | "numeric_index"
+  | "none"
 
 /** One ID->variant assignment plus its layout well, for the audit table. */
 export interface MappingAuditRow {
@@ -94,8 +115,13 @@ export interface MismatchedVariant {
 export interface BuildEvolveproInputResult {
   /** Resolved path to the written EVOLVEpro input xlsx. */
   output_path: string
-  /** Which input mode the backend actually ran. */
+  /** Which input mode the backend actually ran. Legacy two-way label; prefer
+   *  primary_source / confirmation_source, which name the axis pair exactly. */
   mode: "rank" | "reports"
+  /** Axis A source that supplied the 1-replicate primary screen baseline. */
+  primary_source: BuildEvolveproPrimarySourceId
+  /** Axis B source whose n-replicate means overrode the baseline, or "none". */
+  confirmation_source: BuildEvolveproConfirmationSourceId
   /** Total variants written to the output file. */
   n_variants: number
   /** Variants sourced from the authoritative rep-batch report. */
@@ -125,11 +151,9 @@ export interface BuildEvolveproInputResult {
   /** Label-swap warnings comparing merged activity against the previous file. */
   swap_warnings: SwapWarning[]
   /**
-   * Confidence of the written table:
-   *   "provisional" — layout + GC only (1st-round primary screen; no rep-batch
-   *                   confirmation and no previous-round rank mapping).
-   *   "confirmed"  , rep-batch authoritative replicates merged in.
-   * Rank mode only; the backend omits this field in reports mode.
+   * Confidence of the written table, rank mode only (the backend omits it on
+   * the other axis pairs). Derive the badge from confirmation_source instead:
+   * "none" is provisional on every primary source.
    */
   confidence?: "provisional" | "confirmed"
   /**

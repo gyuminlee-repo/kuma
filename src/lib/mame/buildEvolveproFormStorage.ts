@@ -8,15 +8,40 @@
 
 export const BUILD_EVOLVEPRO_STORAGE_KEY = "kuma:mame:buildEvolvepro";
 
-/** Which backend input mode the panel builds params for. */
-export type BuildEvolveproSourceMode = "rank" | "reports";
+/**
+ * Axis A, what carries the 1-replicate primary screen. Exactly one is sent to
+ * the backend (round1_report_xlsx / gc_data_xlsx / round1_evolvepro_xlsx).
+ */
+export type BuildEvolveproPrimarySource =
+  | "rawReport"
+  | "gcSheet"
+  | "prevEvolvepro";
 
-/** Reports mode round-1 baseline source (exactly one is sent to the backend). */
-export type BuildEvolveproRound1Source = "prev" | "raw";
+/**
+ * Axis B, how the n-replicate confirmation labels its samples. At most one is
+ * sent (remeasure_report_xlsx / rep_batch_xlsx). "none" yields a provisional
+ * build in which every variant keeps its primary screen value.
+ */
+export type BuildEvolveproConfirmationSource =
+  | "none"
+  | "variantLabels"
+  | "numericIndex";
+
+const PRIMARY_SOURCES: readonly BuildEvolveproPrimarySource[] = [
+  "rawReport",
+  "gcSheet",
+  "prevEvolvepro",
+];
+
+const CONFIRMATION_SOURCES: readonly BuildEvolveproConfirmationSource[] = [
+  "none",
+  "variantLabels",
+  "numericIndex",
+];
 
 export interface BuildEvolveproFormState {
-  sourceMode: BuildEvolveproSourceMode;
-  round1Source: BuildEvolveproRound1Source;
+  primarySource: BuildEvolveproPrimarySource;
+  confirmationSource: BuildEvolveproConfirmationSource;
   layoutXlsx: string;
   gcDataXlsx: string;
   repBatchXlsx: string;
@@ -32,8 +57,8 @@ export interface BuildEvolveproFormState {
 }
 
 export const BUILD_EVOLVEPRO_DEFAULT_STATE: BuildEvolveproFormState = {
-  sourceMode: "rank",
-  round1Source: "prev",
+  primarySource: "gcSheet",
+  confirmationSource: "none",
   layoutXlsx: "",
   gcDataXlsx: "",
   repBatchXlsx: "",
@@ -54,11 +79,11 @@ export function loadBuildEvolveproFromStorage(): BuildEvolveproFormState {
     if (typeof parsed !== "object" || parsed === null)
       return BUILD_EVOLVEPRO_DEFAULT_STATE;
     const p = parsed as Record<string, unknown>;
-    // Payloads written before the reports mode landed carry only the rank-mode
-    // keys; the new fields fall back to their defaults so saved paths survive.
+    // Payloads written before the two axes landed carry the single-toggle keys
+    // (sourceMode / round1Source); migrateAxes maps them onto the axis pair so
+    // saved paths and the selected combination both survive.
     return {
-      sourceMode: p.sourceMode === "reports" ? "reports" : "rank",
-      round1Source: p.round1Source === "raw" ? "raw" : "prev",
+      ...migrateAxes(p),
       layoutXlsx: typeof p.layoutXlsx === "string" ? p.layoutXlsx : "",
       gcDataXlsx: typeof p.gcDataXlsx === "string" ? p.gcDataXlsx : "",
       repBatchXlsx: typeof p.repBatchXlsx === "string" ? p.repBatchXlsx : "",
@@ -79,6 +104,55 @@ export function loadBuildEvolveproFromStorage(): BuildEvolveproFormState {
   }
 }
 
+/**
+ * Reads the axis pair out of a stored payload, falling back to the legacy
+ * single "Activity source" toggle when the axis keys are absent.
+ *
+ * Legacy mapping:
+ *   rank                    -> gcSheet primary; numericIndex confirmation when
+ *                              both rank-mode confirmation files were chosen,
+ *                              otherwise none.
+ *   reports + round1 "raw"  -> rawReport primary, variantLabels confirmation.
+ *   reports + round1 "prev" -> prevEvolvepro primary, variantLabels confirmation.
+ */
+function migrateAxes(p: Record<string, unknown>): {
+  primarySource: BuildEvolveproPrimarySource;
+  confirmationSource: BuildEvolveproConfirmationSource;
+} {
+  const storedPrimary = PRIMARY_SOURCES.find((v) => v === p.primarySource);
+  const storedConfirmation = CONFIRMATION_SOURCES.find(
+    (v) => v === p.confirmationSource,
+  );
+  if (storedPrimary && storedConfirmation) {
+    return {
+      primarySource: storedPrimary,
+      confirmationSource: storedConfirmation,
+    };
+  }
+
+  const legacyReports = p.sourceMode === "reports";
+  const primarySource: BuildEvolveproPrimarySource = legacyReports
+    ? p.round1Source === "raw"
+      ? "rawReport"
+      : "prevEvolvepro"
+    : "gcSheet";
+  const hadRankConfirmation =
+    typeof p.repBatchXlsx === "string" &&
+    p.repBatchXlsx !== "" &&
+    typeof p.prevEvolveproXlsx === "string" &&
+    p.prevEvolveproXlsx !== "";
+  const confirmationSource: BuildEvolveproConfirmationSource = legacyReports
+    ? "variantLabels"
+    : hadRankConfirmation
+      ? "numericIndex"
+      : "none";
+
+  return {
+    primarySource: storedPrimary ?? primarySource,
+    confirmationSource: storedConfirmation ?? confirmationSource,
+  };
+}
+
 export function saveBuildEvolveproToStorage(
   state: BuildEvolveproFormState,
 ): void {
@@ -92,20 +166,41 @@ export function saveBuildEvolveproToStorage(
   }
 }
 
+/** Whether axis A has every file its selected source needs. */
+export function hasBuildEvolveproPrimaryInputs(
+  state: BuildEvolveproFormState,
+): boolean {
+  switch (state.primarySource) {
+    case "rawReport":
+      return Boolean(state.layoutXlsx && state.round1ReportXlsx);
+    case "gcSheet":
+      return Boolean(state.layoutXlsx && state.gcDataXlsx);
+    case "prevEvolvepro":
+      return Boolean(state.round1EvolveproXlsx);
+  }
+}
+
+/** Whether axis B has every file its selected source needs ("none" needs none). */
+export function hasBuildEvolveproConfirmationInputs(
+  state: BuildEvolveproFormState,
+): boolean {
+  switch (state.confirmationSource) {
+    case "none":
+      return true;
+    case "variantLabels":
+      return Boolean(state.remeasureReportXlsx);
+    case "numericIndex":
+      return Boolean(state.repBatchXlsx && state.prevEvolveproXlsx);
+  }
+}
+
 export function isBuildEvolveproFormReady(
   state: BuildEvolveproFormState,
 ): boolean {
   if (!state.outputXlsx) return false;
-  if (state.sourceMode === "rank") {
-    return Boolean(state.layoutXlsx && state.gcDataXlsx);
-  }
-  if (state.round1Source === "prev") {
-    return Boolean(state.round1EvolveproXlsx && state.remeasureReportXlsx);
-  }
-  return Boolean(
-    state.layoutXlsx &&
-      state.round1ReportXlsx &&
-      state.remeasureReportXlsx,
+  return (
+    hasBuildEvolveproPrimaryInputs(state) &&
+    hasBuildEvolveproConfirmationInputs(state)
   );
 }
 
@@ -118,8 +213,8 @@ export function buildEvolveproFormSignature(
   state: BuildEvolveproFormState,
 ): string {
   return JSON.stringify({
-    sourceMode: state.sourceMode,
-    round1Source: state.round1Source,
+    primarySource: state.primarySource,
+    confirmationSource: state.confirmationSource,
     layoutXlsx: state.layoutXlsx,
     gcDataXlsx: state.gcDataXlsx,
     repBatchXlsx: state.repBatchXlsx,
@@ -157,8 +252,9 @@ export function hasBuildEvolveproFormValues(
   state: BuildEvolveproFormState,
 ): boolean {
   return (
-    state.sourceMode !== BUILD_EVOLVEPRO_DEFAULT_STATE.sourceMode ||
-    state.round1Source !== BUILD_EVOLVEPRO_DEFAULT_STATE.round1Source ||
+    state.primarySource !== BUILD_EVOLVEPRO_DEFAULT_STATE.primarySource ||
+    state.confirmationSource !==
+      BUILD_EVOLVEPRO_DEFAULT_STATE.confirmationSource ||
     Boolean(
       state.layoutXlsx ||
         state.gcDataXlsx ||
@@ -193,5 +289,15 @@ export function seedBuildEvolveproForm(paths: {
     prevEvolveproXlsx: current.prevEvolveproXlsx || paths.prevEvolveproXlsx || "",
     outputXlsx: current.outputXlsx,
   };
+  // The sample set is a GC data sheet plus a numeric-index confirmation pair.
+  // Select that axis B so the seeded rank files are visible rather than parked
+  // behind a hidden branch, but never override a choice the user already made.
+  if (
+    next.confirmationSource === "none" &&
+    next.repBatchXlsx &&
+    next.prevEvolveproXlsx
+  ) {
+    next.confirmationSource = "numericIndex";
+  }
   saveBuildEvolveproToStorage(next);
 }

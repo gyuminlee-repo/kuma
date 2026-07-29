@@ -520,30 +520,36 @@ def handle_merge_for_evolvepro(params: dict) -> dict:
 def handle_build_evolvepro_input(params: dict) -> dict:
     """``mame.activity.build_evolvepro_input`` build one EVOLVEpro input xlsx.
 
-    Wires the four xlsx inputs of one MAME activity round into a single
-    EVOLVEpro input file, merging a GC-derived fallback source with an
-    Agilent rep-batch authoritative source in the short EVOLVEpro variant
-    space (no ref_seq needed). The numeric-ID to variant assignment is a
-    rank-based mapping derived from the previous-round EVOLVEpro file and is
-    emitted as a JSON audit artifact for human veto.
+    Wires one MAME activity round into a single EVOLVEpro input file by
+    combining two independent input axes in the short EVOLVEpro variant space
+    (no ref_seq needed).
 
-    Two modes (exactly one set of source files, enforced by the params model):
-        rank mode: gc_data_xlsx + rep_batch_xlsx + prev_evolvepro_xlsx (the
-            rank-based 4-file assembly; emits a mapping audit).
-        reports mode: round1_report_xlsx + remeasure_report_xlsx (raw Agilent
-            round-1 report + variant-labeled re-measure report; no rank file).
+    Axis A, the 1-replicate primary screen (exactly one, enforced by the params
+    model):
+        round1_report_xlsx     raw Agilent report (well labels) + layout_xlsx
+        gc_data_xlsx           pre-normalised GC sheet (well labels) + layout_xlsx
+        round1_evolvepro_xlsx  previous EVOLVEpro file (variant labels)
+
+    Axis B, the n-replicate confirmation that overrides the baseline (at most
+    one):
+        remeasure_report_xlsx  variant-labeled Agilent report
+        rep_batch_xlsx         numeric base IDs, needs prev_evolvepro_xlsx as
+                               the rank source (emits the mapping audit)
+        (neither)              provisional build, baseline only
 
     Params (validated by BuildEvolveproInputParams):
-        layout_xlsx (str)
+        layout_xlsx (str, axis A raw-report / GC-sheet only)
         output_xlsx (str)
-        gc_data_xlsx (str, rank mode)
-        rep_batch_xlsx (str, rank mode)
-        prev_evolvepro_xlsx (str, rank mode)
-        round1_report_xlsx (str, reports mode)
-        remeasure_report_xlsx (str, reports mode)
+        gc_data_xlsx (str, axis A)
+        round1_report_xlsx (str, axis A)
+        round1_evolvepro_xlsx (str, axis A)
+        remeasure_report_xlsx (str, axis B)
+        rep_batch_xlsx (str, axis B)
+        prev_evolvepro_xlsx (str, axis B rank source)
+        verdict_xlsx (str, optional NGS verdict gating)
         mismatch_threshold (float, optional, default 0.1)
         mapping_audit_path (str, optional)
-        gc_export_xlsx (str, optional, reports mode raw round-1)
+        gc_export_xlsx (str, optional, raw round-1 report only)
 
     Returns:
         {
@@ -557,8 +563,14 @@ def handle_build_evolvepro_input(params: dict) -> dict:
           "prev_descending": bool,
           "warnings": [str],
           "swap_warnings": [SwapWarning],
+          "confidence": str (rank mode only),
           "mismatched": [{"variant": str, "authoritative": float,
-                          "fallback": float}]
+                          "fallback": float}],
+          "n_ngs_excluded": int,
+          "ngs_excluded": [str],
+          "mode": str,
+          "primary_source": str (PRIMARY_* axis A constant),
+          "confirmation_source": str (CONFIRM_* axis B constant)
         }
 
     Raises:
@@ -567,83 +579,78 @@ def handle_build_evolvepro_input(params: dict) -> dict:
         FileNotFoundError(-32602): an input is missing or the output directory
             does not exist.
     """
-    from kuma_core.mame.activity.build_evolvepro_input import build_evolvepro_input
+    from pathlib import Path
+
+    from kuma_core.mame.activity.build_evolvepro_input import (
+        build_evolvepro_input_axes,
+    )
     from sidecar_mame.models import BuildEvolveproInputParams
 
     p = BuildEvolveproInputParams.model_validate(params)
 
-    if p.remeasure_report_xlsx and (p.round1_report_xlsx or p.round1_evolvepro_xlsx):
-        from kuma_core.mame.activity.build_evolvepro_input import (
-            build_evolvepro_input_from_reports,
-        )
+    # Legacy "mode" label kept for the frontend: the well-labeled GC primary
+    # screen and the numeric-index confirmation are the rank-mode inputs; any
+    # other axis combination reports as reports-mode. The axis pair is exposed
+    # separately via primary_source / confirmation_source.
+    is_rank = bool(p.gc_data_xlsx) or bool(p.rep_batch_xlsx)
+    audit_path = p.mapping_audit_path
+    if is_rank and audit_path is None:
+        audit_path = str(Path(p.output_xlsx).with_suffix(".mapping.json"))
 
-        r = build_evolvepro_input_from_reports(
-            p.layout_xlsx,
-            p.round1_report_xlsx,
-            p.remeasure_report_xlsx,
-            p.output_xlsx,
-            mismatch_threshold=p.mismatch_threshold,
-            verdict_xlsx=p.verdict_xlsx,
-            prev_evolvepro_xlsx=p.round1_evolvepro_xlsx,
-            gc_export_xlsx=p.gc_export_xlsx,
-        )
-        audit = [
+    r = build_evolvepro_input_axes(
+        p.output_xlsx,
+        round1_report_xlsx=p.round1_report_xlsx,
+        gc_data_xlsx=p.gc_data_xlsx,
+        round1_evolvepro_xlsx=p.round1_evolvepro_xlsx,
+        layout_xlsx=p.layout_xlsx,
+        remeasure_report_xlsx=p.remeasure_report_xlsx,
+        rep_batch_xlsx=p.rep_batch_xlsx,
+        rank_evolvepro_xlsx=p.prev_evolvepro_xlsx,
+        mismatch_threshold=p.mismatch_threshold,
+        verdict_xlsx=p.verdict_xlsx,
+        mapping_audit_path=audit_path,
+        gc_export_xlsx=p.gc_export_xlsx,
+    )
+
+    if is_rank:
+        mapping_audit = [
+            {"id": m.id, "variant": m.variant, "well": m.well}
+            for m in r.mapping.rows
+        ]
+    else:
+        mapping_audit = [
             {"id": i + 1, "variant": v, "well": w}
             for i, (v, w) in enumerate(sorted(r.well_by_variant.items()))
         ]
-        return {
-            "output_path": str(r.output_path),
-            "n_variants": r.n_variants,
-            "n_authoritative": r.n_authoritative,
-            "n_fallback_only": r.n_fallback_only,
-            "mapping_audit": audit,
-            "mapping_audit_path": "",
-            "prev_descending": True,
-            "warnings": r.warnings,
-            "swap_warnings": [],
-            "mismatched": r.mismatched,
-            "n_ngs_excluded": r.n_ngs_excluded,
-            "ngs_excluded": r.ngs_excluded,
-            "gc_export_path": str(r.gc_export_path) if r.gc_export_path else "",
-            "mode": "reports",
-        }
 
-    # _mode_xor guarantees layout + GC data are present here (rep_batch_xlsx and
-    # prev_evolvepro_xlsx stay optional: layout + GC alone yields a provisional
-    # build). Narrow explicitly for the type checker and fail loud otherwise.
-    if p.layout_xlsx is None or p.gc_data_xlsx is None:
-        raise ValueError("rank mode requires layout_xlsx and gc_data_xlsx")
-
-    result = build_evolvepro_input(
-        p.layout_xlsx,
-        p.gc_data_xlsx,
-        p.output_xlsx,
-        rep_batch_xlsx=p.rep_batch_xlsx,
-        prev_evolvepro_xlsx=p.prev_evolvepro_xlsx,
-        mismatch_threshold=p.mismatch_threshold,
-        mapping_audit_path=p.mapping_audit_path,
-    )
-
-    return {
-        "output_path": str(result.output_path),
-        "n_variants": result.n_variants,
-        "n_authoritative": result.n_authoritative,
-        "n_fallback_only": result.n_fallback_only,
-        "mapping_audit": [
-            {"id": r.id, "variant": r.variant, "well": r.well}
-            for r in result.mapping.rows
-        ],
-        "mapping_audit_path": str(result.mapping_audit_path),
-        "prev_descending": result.mapping.prev_descending,
-        "warnings": result.warnings,
-        "swap_warnings": [w.__dict__ for w in result.swap_warnings],
-        "confidence": result.confidence,
-        "mismatched": result.mismatched,
-        "n_ngs_excluded": 0,
-        "ngs_excluded": [],
-        "gc_export_path": "",
-        "mode": "rank",
+    response: dict = {
+        "output_path": str(r.output_path),
+        "n_variants": r.n_variants,
+        "n_authoritative": r.n_authoritative,
+        "n_fallback_only": r.n_fallback_only,
+        "mapping_audit": mapping_audit,
+        "mapping_audit_path": (
+            str(r.mapping_audit_path) if r.mapping_audit_path else ""
+        ),
+        "prev_descending": r.mapping.prev_descending,
+        "warnings": r.warnings,
+        "swap_warnings": [w.__dict__ for w in r.swap_warnings],
+        "mismatched": r.mismatched,
+        "n_ngs_excluded": r.n_ngs_excluded,
+        "ngs_excluded": r.ngs_excluded,
+        "gc_export_path": str(r.gc_export_path) if r.gc_export_path else "",
+        "mode": "rank" if is_rank else "reports",
+        # The axis pair that actually built this table. Unlike "mode" (a legacy
+        # two-way label) these name the selected axis A and axis B builders, so
+        # a caller can report the combination and can tell a provisional build
+        # apart on every primary source, not only the rank-mode ones.
+        "primary_source": r.primary_source,
+        "confirmation_source": r.confirmation_source,
     }
+    if is_rank:
+        # Rank-mode only, matching the field set the frontend already reads.
+        response["confidence"] = r.confidence
+    return response
 
 
 __all__ = [

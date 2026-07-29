@@ -2,7 +2,7 @@
 
 Exercises handle_build_evolvepro_input end-to-end (model validation + dispatch +
 response shape), which the core unit tests bypass by calling
-build_evolvepro_input_from_reports directly. Pins the 13-key response contract
+build_evolvepro_input_from_reports directly. Pins the 16-key response contract
 that the TS BuildEvolveproInputResult mirrors, including the reports-mode
 hardcoded values (mapping_audit_path="", swap_warnings=[], prev_descending=True)
 and the PR3 NGS gating fields.
@@ -68,7 +68,7 @@ _RESULT_KEYS = {
     "output_path", "n_variants", "n_authoritative", "n_fallback_only",
     "mapping_audit", "mapping_audit_path", "prev_descending", "warnings",
     "swap_warnings", "mismatched", "mode", "n_ngs_excluded", "ngs_excluded",
-    "gc_export_path",
+    "gc_export_path", "primary_source", "confirmation_source",
 }
 
 
