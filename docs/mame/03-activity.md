@@ -94,6 +94,7 @@ xlsx 산출에서 다음 행은 빠진다.
 - `ngs_success` 가 아닌 행 (genotype route)
 - `WT`
 - canonical `[A-Z]\d+[A-Z]` 형태가 아닌 변이
+- EVOLVEpro 축약 표기로 변환 불가한 다중 치환 변이 (`A40P_E61Y` 처럼 위치가 둘 이상). 축약 표기는 위치를 하나만 담아 표현할 자리가 없다. 해당 변이만 빠지고 나머지는 정상 산출되며, 변이 이름과 well 목록이 경고로 남는다
 - 값이 없는 행
 
 CSV 는 제외된 행을 `<path>.excluded.csv` 로 사유와 함께 따로 남긴다.

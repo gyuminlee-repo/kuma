@@ -444,3 +444,63 @@ def test_replicate_suffix_layout_collapses_replicates(tmp_path: Path):
     out = tmp_path / "out.xlsx"
     result = build_evolvepro_input(layout, gc, out)
     assert result.n_variants == 2
+
+
+# ---------------------------------------------------------------------------
+# Multi-substitution (combo) mutants: excluded with a warning, never fatal
+# ---------------------------------------------------------------------------
+
+def test_combo_mutant_excluded_with_warning(tmp_path: Path):
+    """'A40P_E61Y' has no short-notation form, so it drops out with a warning."""
+    from kuma_core.mame.activity.build_evolvepro_input import (
+        _build_fallback,
+        build_evolvepro_input,
+    )
+
+    layout = _make_layout(
+        tmp_path,
+        [("Q232A", "A1"), ("A40P_E61Y", "D1"), ("A40P_E61Y", "D2")],
+    )
+    # The combo wells DO carry GC values, so the guard (not the missing-value
+    # branch) is what excludes them.
+    gc = _make_gc_data(tmp_path, [("A1", 1.10), ("D1", 0.70), ("D2", 0.72)])
+
+    fallback, well_by_variant, warnings = _build_fallback(layout, gc)
+
+    assert set(fallback) == {"232A"}
+    assert well_by_variant == {"232A": "A01"}
+    combo_warnings = [w for w in warnings if "A40P_E61Y" in w]
+    assert len(combo_warnings) == 1, combo_warnings
+    assert "multiple substitutions" in combo_warnings[0]
+    assert "D01" in combo_warnings[0] and "D02" in combo_warnings[0]
+
+    out = tmp_path / "combo_out.xlsx"
+    result = build_evolvepro_input(layout, gc, out)
+    assert result.n_variants == 1
+    assert any("A40P_E61Y" in w for w in result.warnings)
+
+
+def test_template_sample_map_end_to_end(tmp_path: Path):
+    """The shipped sample-map template builds with its combo row excluded."""
+    from kuma_core.mame.activity.build_evolvepro_input import build_evolvepro_input
+    from kuma_core.mame.activity.plate_layout_xlsx import parse_plate_layout_xlsx
+
+    layout = (
+        Path(__file__).resolve().parents[3] / "templates" / "05_mame_sample_map.xlsx"
+    )
+    entries = parse_plate_layout_xlsx(layout)
+    # Synthetic GC values for every non-WT well of the template, combo included.
+    gc = _make_gc_data(
+        tmp_path,
+        [(e.well_id, 1.0 + i * 0.01) for i, e in enumerate(entries) if not e.is_wt],
+    )
+
+    out = tmp_path / "template_out.xlsx"
+    result = build_evolvepro_input(layout, gc, out)
+
+    assert result.n_variants == 5
+    assert any("A40P_E61Y" in w for w in result.warnings)
+
+    wb = openpyxl.load_workbook(str(out))
+    variants = {row[0] for row in wb["EVOLVEpro"].values if row[0] != "Variant"}
+    assert variants == {"232A", "233A", "40P", "61Y", "150V"}

@@ -395,3 +395,36 @@ def _write_verdict(path, rows):
     for w, m, v in rows:
         ws.append([w, "P1", "", m, v, "", "", ""])
     wb.save(path)
+
+
+# ---------------------------------------------------------------------------
+# Multi-substitution (combo) mutants on the raw round-1 report route
+# ---------------------------------------------------------------------------
+
+def test_combo_mutant_excluded_from_raw_report_fallback(tmp_path):
+    """A combo layout label drops out of the raw-report fallback with a warning."""
+    layout = tmp_path / "layout.xlsx"
+    _write_layout(layout, [("V5F", "A1"), ("A40P_E61Y", "D1"), ("A40P_E61Y", "D2")])
+
+    round1 = tmp_path / "round1.xlsx"
+    _write_fid1b(
+        round1,
+        [
+            ("A1", 0.80),
+            ("D1", 0.60),
+            ("D2", 0.62),
+            ("WT_1", 1.00),
+            ("WT_2", 1.00),
+        ],
+    )
+
+    fallback, well_by_variant, warnings = _build_fallback_from_raw_report(
+        round1, layout
+    )
+
+    assert set(fallback) == {"5F"}
+    assert well_by_variant == {"5F": "A01"}
+    combo_warnings = [w for w in warnings if "A40P_E61Y" in w]
+    assert len(combo_warnings) == 1, combo_warnings
+    assert "multiple substitutions" in combo_warnings[0]
+    assert "D01" in combo_warnings[0] and "D02" in combo_warnings[0]
