@@ -22,8 +22,10 @@
 import { render, screen, fireEvent, within } from "@testing-library/react";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
+const mocks = vi.hoisted(() => ({ sendRequest: vi.fn() }));
+
 vi.mock("@/lib/ipc-kuro", () => ({
-  sendRequest: vi.fn(),
+  sendRequest: mocks.sendRequest,
   setProgressHandler: vi.fn(),
   cancelAndRespawn: vi.fn(),
 }));
@@ -46,6 +48,11 @@ const PREVIEW_ALL_NAMED: EvolveproPreview = {
 };
 
 function seedStore(preview: EvolveproPreview | null): void {
+  // The panel auto-previews on mount whenever a file path is set, and that
+  // response overwrites the seeded store value. Resolve the mock to the same
+  // payload so the auto-fetch is a no-op instead of clobbering it with
+  // undefined.
+  mocks.sendRequest.mockResolvedValue(preview);
   useAppStore.setState({
     evolveproCsvPath: "/tmp/evolvepro.csv",
     evolveproPreview: preview,
@@ -76,10 +83,13 @@ describe("SourceColumnPanel, empty header column", () => {
     expect(screen.getAllByRole("combobox")).toHaveLength(2);
   });
 
-  it("keeps the empty column listed and labels it as unnamed", () => {
+  it("keeps the empty column listed and labels it as unnamed", async () => {
     seedStore(PREVIEW_WITH_EMPTY_HEADER);
     render(<SourceColumnPanel />);
 
+    // The panel clears the store preview on mount and refetches, so the table
+    // appears only once the auto-preview promise settles.
+    await screen.findByRole("table");
     const headerCells = screen.getAllByRole("columnheader");
     expect(headerCells.map((c) => c.textContent)).toEqual([
       "Unnamed column 1",
@@ -88,9 +98,10 @@ describe("SourceColumnPanel, empty header column", () => {
     ]);
   });
 
-  it("stores the real header string, not the __col_N__ sentinel", () => {
+  it("stores the real header string, not the __col_N__ sentinel", async () => {
     seedStore(PREVIEW_WITH_EMPTY_HEADER);
     render(<SourceColumnPanel />);
+    await screen.findByRole("table");
 
     // Radix typeahead resolves a printable keydown on the closed trigger and
     // fires onValueChange with the item value (the sentinel). "v" uniquely
@@ -101,12 +112,12 @@ describe("SourceColumnPanel, empty header column", () => {
     expect(useAppStore.getState().evolveproVariantColumn).toBe("variant");
   });
 
-  it("renders a preview whose headers are all named", () => {
+  it("renders a preview whose headers are all named", async () => {
     seedStore(PREVIEW_ALL_NAMED);
     render(<SourceColumnPanel />);
 
+    const table = await screen.findByRole("table");
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    const table = screen.getByRole("table");
     expect(
       within(table)
         .getAllByRole("columnheader")
