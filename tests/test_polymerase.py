@@ -17,10 +17,16 @@ class TestPolymeraseRegistryGet:
         assert isinstance(profile, PolymeraseProfile)
         assert profile.name == "Q5"
 
-    def test_get_benchling(self):
+    def test_benchling_profile_removed(self):
+        """"Benchling" names the fixed design-time Tm scale, not an enzyme.
+
+        It was dropped from the profile list in v0.13.20; saved states that
+        selected it are remapped to KOD by the frontend alias map.
+        """
         registry = PolymeraseRegistry()
-        profile = registry.get("Benchling")
-        assert profile.name == "Benchling"
+        assert "Benchling" not in registry.list_names()
+        with pytest.raises(KeyError):
+            registry.get("Benchling")
 
     def test_get_taq(self):
         registry = PolymeraseRegistry()
@@ -52,7 +58,7 @@ class TestPolymeraseRegistryListNames:
     def test_list_names_contains_known_profiles(self):
         registry = PolymeraseRegistry()
         names = registry.list_names()
-        for expected in ["Q5", "Phusion", "Taq", "Benchling", "KOD", "DreamTaq"]:
+        for expected in ["Q5", "Phusion", "Taq", "KOD", "DreamTaq"]:
             assert expected in names
 
     def test_list_names_count(self):
@@ -66,14 +72,14 @@ class TestPolymeraseProfileFields:
     def registry(self) -> PolymeraseRegistry:
         return PolymeraseRegistry()
 
-    def test_benchling_asymmetric_tm(self, registry: PolymeraseRegistry):
-        p = registry.get("Benchling")
+    def test_default_profile_asymmetric_tm(self, registry: PolymeraseRegistry):
+        p = registry.get("KOD")
         assert p.opt_tm_fwd == 62.0
         assert p.opt_tm_rev == 58.0
         assert p.opt_tm_overlap == 42.0
 
-    def test_benchling_min_3prime_dist(self, registry: PolymeraseRegistry):
-        p = registry.get("Benchling")
+    def test_default_profile_min_3prime_dist(self, registry: PolymeraseRegistry):
+        p = registry.get("KOD")
         assert p.min_3prime_dist == 4
 
     # SDM Tm targets are method-level constants (Landwehr et al. 2025 SI Fig. S4),
@@ -82,7 +88,7 @@ class TestPolymeraseProfileFields:
     # from their own opt_tm (Q5/KOD -> 68/64/48), which is a different quantity.
     @pytest.mark.parametrize(
         "name",
-        ["Benchling", "Taq", "Phusion", "Q5", "Q5 SDM", "KOD", "DreamTaq", "TAKARA_GXL"],
+        ["Taq", "Phusion", "Q5", "Q5 SDM", "KOD", "DreamTaq", "TAKARA_GXL"],
     )
     def test_sdm_targets_are_method_level_for_every_profile(
         self, registry: PolymeraseRegistry, name: str

@@ -59,7 +59,7 @@ Kuro 탭에서 프라이머를 설계하고 실험·시퀀싱 후 Mame 탭으로
 #### 코돈 & 열역학 파라미터
 
 - **코돈 전략 선택**: Min. changes (WT 대비 최소 염기 변이) 또는 Optimal (E. coli 최적 코돈)
-- **Polymerase 프로파일**: 8종 내장 (Benchling, Taq, Phusion, Q5, Q5 SDM, KOD, DreamTaq, TAKARA_GXL). 각 프로파일은 제조사 매뉴얼 기준 Tm 방법·염 농도·DNA 농도·GC 범위 보정. Custom Polymerase 다이얼로그로 사용자 정의 프로파일을 만들면 `~/.kuma/kuro/custom_polymerases.json`에 영구 저장됨
+- **Polymerase 프로파일**: 7종 내장 (Taq, Phusion, Q5, Q5 SDM, KOD, DreamTaq, TAKARA_GXL). 각 프로파일은 제조사 매뉴얼 기준 Tm 방법·염 농도·DNA 농도·GC 범위 보정. 프로파일 선택은 권장 어닐링 온도(Ta) 규칙·GC 범위·overlap 모드를 정하며, 설계 시점 Tm 스케일은 고정이라 프로파일을 따르지 않음. Custom Polymerase 다이얼로그로 사용자 정의 프로파일을 만들면 `~/.kuma/kuro/custom_polymerases.json`에 영구 저장됨
 - **Tm 계산**: SantaLucia 1998 nearest-neighbor 모델. 염/DNA/divalent 농도는 선택한 polymerase 프로파일에 따라 달라짐. 기본 Tm 타겟 Fwd 62°C, Rev 58°C, Overlap 42°C
 - **점진적 Tm tolerance**: Fwd/Rev 각각 ±0.5°C부터 시작, ±0.5씩 독립 확장 (최대 ±3.0°C)
 - **Tm tolerance 사용자 설정**: Advanced Options 에서 ±°C 직접 지정 (범위 0.5–10.0, step 0.5, 기본 3.0). Cascade rescue 단계는 이 base 값에 delta 추가. 권장 2–5°C
