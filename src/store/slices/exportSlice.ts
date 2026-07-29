@@ -21,6 +21,11 @@ import {
   getIncludedDesignResults,
 } from "./designSlice.helpers";
 import { resolveSelectionDomains } from "./inputSlice.helpers";
+import {
+  DEFAULT_POLYMERASE,
+  resolvePolymeraseName,
+  retiredPolymeraseNotice,
+} from "../../lib/polymeraseAliases";
 
 import type { ExportSlice } from "../slice-interfaces";
 export type { ExportSlice };
@@ -607,6 +612,19 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       designResults: restoredDesignResults,
       wellName,
     });
+    // Retired profiles are remapped in place. The saved GC range and overlap
+    // mode below are kept as-is, so an old run keeps the conditions it was
+    // designed under instead of inheriting the replacement profile defaults.
+    const restoredPolymerase = ((): { name: string; notice: string | null } => {
+      const saved = settings.selectedPolymerase;
+      if (typeof saved !== "string" || !saved) return { name: DEFAULT_POLYMERASE, notice: null };
+      const { name, retiredFrom } = resolvePolymeraseName(saved);
+      if (!retiredFrom) return { name, notice: null };
+      return {
+        name,
+        notice: retiredPolymeraseNotice(retiredFrom, name, settings.gcMin ?? 40, settings.gcMax ?? 60),
+      };
+    })();
     set({
       mutationInputMode: inputs.mutationInputMode === "text" ? "evolvepro" : (inputs.mutationInputMode ?? "evolvepro"),
       mutationText: inputs.mutationText ?? "",
@@ -636,7 +654,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       })(),
       customCandidates: results.customCandidates ?? {},
       rescuedMutationDetails: results.rescuedMutationDetails ?? [],
-      selectedPolymerase: settings.selectedPolymerase ?? "Benchling",
+      selectedPolymerase: restoredPolymerase.name,
       tmFwdTarget: settings.tmFwdTarget ?? 62,
       tmRevTarget: settings.tmRevTarget ?? 58,
       tmOverlapTarget: settings.tmOverlapTarget ?? 42,
@@ -698,22 +716,25 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       poolVariants: preloadedPoolVariants ?? [],
       // 두 실패는 독립이다. 분기로 두면 템플릿 실패가 EVOLVEpro 실패를 가려,
       // 사용자가 템플릿을 고친 뒤에야 두 번째 실패를 처음 보게 된다.
-      statusMessage: templateLoadError || evolveproReloadError
-        ? [
-            templateLoadError
-              ? i18next.t("exportSlice.templateLoadFailed", { error: templateLoadError })
-              : null,
-            evolveproReloadError
-              ? `Workspace loaded. EVOLVEpro CSV reload failed: ${evolveproReloadError}`
-              : null,
-          ]
-            .filter((m): m is string => m !== null)
-            .join(" ")
-        : (settings.autoRedesignOnLoad ?? true)
-          ? "Workspace loaded. Re-designing to sync backend..."
-          : ((results.designResults?.length ?? 0) > 0
-              ? "Workspace loaded. Re-design to enable alternatives and primer swapping."
-              : "Workspace loaded."),
+      // 폴리머라제 마이그레이션 안내는 실패 여부와 무관하게 항상 덧붙인다.
+      statusMessage: [
+        templateLoadError
+          ? i18next.t("exportSlice.templateLoadFailed", { error: templateLoadError })
+          : null,
+        evolveproReloadError
+          ? `Workspace loaded. EVOLVEpro CSV reload failed: ${evolveproReloadError}`
+          : null,
+        templateLoadError || evolveproReloadError
+          ? null
+          : (settings.autoRedesignOnLoad ?? true)
+            ? "Workspace loaded. Re-designing to sync backend..."
+            : ((results.designResults?.length ?? 0) > 0
+                ? "Workspace loaded. Re-design to enable alternatives and primer swapping."
+                : "Workspace loaded."),
+        restoredPolymerase.notice,
+      ]
+        .filter(Boolean)
+        .join(" "),
     });
     // 템플릿 로딩이 실패했으면 seqInfo가 없으므로 자동 재설계를 시도하지 않는다.
     if ((settings.autoRedesignOnLoad ?? true) && inputs.mutationText && inputs.fastaPath && !evolveproReloadError && !templateLoadError) {
@@ -794,7 +815,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       successCount: 0,
       totalCount: 0,
       failedMutations: [],
-      selectedPolymerase: "Benchling",
+      selectedPolymerase: DEFAULT_POLYMERASE,
       codonStrategy: "closest",
       maxPrimers: 95,
       tmFwdTarget: 62,

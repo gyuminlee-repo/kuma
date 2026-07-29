@@ -1,4 +1,4 @@
-import { useCallback, useId, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAppStore } from "../../../store/appStore";
 import { sendRequest } from "../../../lib/ipc-kuro";
@@ -115,33 +115,61 @@ function SourceColumnPanelInner() {
   const canApply = Boolean(evolveproCsvPath);
   const noFileLoaded = !evolveproCsvPath;
 
+  // Guards against out-of-order preview responses when the user switches files
+  // quickly: only the response matching the latest requested key is applied.
+  const previewKeyRef = useRef<string | null>(null);
+
+  const fetchPreview = useCallback(
+    async (filepath: string, sheetName: string | null) => {
+      if (!filepath) return;
+      const key = `${filepath}::${sheetName ?? ""}`;
+      previewKeyRef.current = key;
+      setPreviewLoading(true);
+      setPreviewError(null);
+      try {
+        const params: PreviewEvolveproSourceParams = {
+          filepath,
+          max_rows: PREVIEW_MAX_ROWS,
+          sheet_name: sheetName,
+        };
+        const preview = await sendRequest("preview_evolvepro_source", params);
+        if (previewKeyRef.current !== key) return;
+        setEvolveproPreview(preview);
+      } catch (err) {
+        if (previewKeyRef.current !== key) return;
+        setPreviewError(err instanceof Error ? err.message : String(err));
+        setEvolveproPreview(null);
+      } finally {
+        if (previewKeyRef.current === key) setPreviewLoading(false);
+      }
+    },
+    [setEvolveproPreview],
+  );
+
   const handlePreview = useCallback(async () => {
     if (!evolveproCsvPath) return;
-    setPreviewLoading(true);
-    setPreviewError(null);
-    try {
-      const params: PreviewEvolveproSourceParams = {
-        filepath: evolveproCsvPath,
-        max_rows: PREVIEW_MAX_ROWS,
-        sheet_name: evolveproSheetName ?? null,
-      };
-      const preview = await sendRequest("preview_evolvepro_source", params);
-      setEvolveproPreview(preview);
-      setEvolveproVariantColumn(null);
-      setEvolveproScoreColumn(null);
-    } catch (err) {
-      setPreviewError(err instanceof Error ? err.message : String(err));
-      setEvolveproPreview(null);
-    } finally {
-      setPreviewLoading(false);
-    }
+    setEvolveproVariantColumn(null);
+    setEvolveproScoreColumn(null);
+    await fetchPreview(evolveproCsvPath, evolveproSheetName ?? null);
   }, [
     evolveproCsvPath,
     evolveproSheetName,
-    setEvolveproPreview,
+    fetchPreview,
     setEvolveproVariantColumn,
     setEvolveproScoreColumn,
   ]);
+
+  // Auto-preview whenever the selected file (or sheet) changes, so the column
+  // dropdowns below are usable immediately after Browse - independently of
+  // whether the backend auto-detect succeeded. Column overrides are NOT reset
+  // here: hydrated projects restore them (useAutosaveHydration), and the
+  // Browse callback already resets them for a genuinely new file.
+  useEffect(() => {
+    if (!evolveproCsvPath) return;
+    setEvolveproPreview(null);
+    void fetchPreview(evolveproCsvPath, evolveproSheetName ?? null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [evolveproCsvPath, evolveproSheetName]);
 
   const handleSheetChange = useCallback(
     (value: string) => {
@@ -191,7 +219,7 @@ function SourceColumnPanelInner() {
               {t("mutationInput.othersPreviewError", { message: previewError })}
             </span>
           )}
-          {!previewLoading && !previewError && evolveproPreview === null && !noFileLoaded && (
+          {!previewLoading && !previewError && !hasHeaders && !noFileLoaded && (
             <span>{t("mutationInput.othersPreviewEmpty")}</span>
           )}
         </span>

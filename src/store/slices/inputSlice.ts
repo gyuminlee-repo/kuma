@@ -1,4 +1,5 @@
 import type { StateCreator } from "zustand";
+import i18next from "i18next";
 import { resolveResource } from "@tauri-apps/api/path";
 import { sendRequest } from "../../lib/ipc-kuro";
 import { formatError } from "../../lib/utils";
@@ -183,7 +184,6 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       }
     } catch (err) {
       if (gen === csvLoadGeneration) {
-        const modeLabel = "EVOLVEpro";
         set({
           mutationText: "",
           evolveproTotalCount: 0,
@@ -195,7 +195,9 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
           poolVariants: [],
           evolveproRankedCandidates: [],
           evolveproSelectedVariants: [],
-          statusMessage: `${modeLabel} file load failed: ${formatError(err)}`,
+          statusMessage: i18next.t("mutationInput.othersLoadFailed", {
+            message: formatError(err),
+          }),
         });
       }
       throw err;

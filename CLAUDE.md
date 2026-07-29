@@ -65,7 +65,17 @@ DMG bundle 단계 실패 시 `pnpm run sidecar:hash:postbuild` 단독 실행으�
 ```bash
 npx tsc --noEmit                    # TypeScript typecheck
 cd src-tauri && cargo check         # Rust compile check
+pnpm sync:check                     # cross-layer + groups + What's New drift
 ```
+
+`sync:check` 는 세 스크립트를 이어 돌린다: `sync-check.mjs`, `sync-check-groups.mjs`, `gen-whatsnew.mjs --check`. **첫 번째만 돌리고 통과로 판단하지 말 것.** 세 번째가 `whatsNew.generated.ts` 의 CHANGELOG 대비 drift 를 잡으며, 이걸 빠뜨려 v0.13.30 첫 태그 빌드가 quality-gates 에서 실패했다 (그 결과 `build` 와 `release` 가 skip). WSL 에서는 `pnpm` 대신 세 스크립트를 `node` 로 직접 실행한다. CHANGELOG 를 고쳤으면 `node scripts/gen-whatsnew.mjs` 로 재생성해 함께 커밋한다.
+
+로컬에서 `sync-check.mjs` 의 `tauri-resources`(`resources/NOTICE.md` 부재)와 `generated-models`(Node 버전) 2건은 dev 환경 false-positive 이며 CI 에서는 통과한다.
+
+태그를 찍기 직전 두 가지를 더 확인한다.
+
+- 매니페스트 3종(`package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`)의 버전이 새 태그와 일치하는가. `pnpm sync:check` 의 `version-sync` 가 정본이다.
+- `git tag --sort=-creatordate | head -1` 이 직전 릴리스인가. 뒤처져 있으면 그 사이 버전들이 한 태그에 묶여 나가므로 태그 메시지에 그 구간을 적는다.
 
 ### Python Sidecar Environment
 PyInstaller + biopython wheel 빌드 호환을 위해 `.venv` (Python 3.11) 사용. 시스템 Python 3.14는 PEP 668 + 일부 wheel 부재로 sidecar 빌드 실패. 새 머신·새 세션에서 `python3.11 -m venv .venv && .venv/bin/pip install -e ".[build]"` 선행. MAME raw_run 정렬은 사이드카에 번들된 minimap2 CLI 가 수행(mappy 제거, Windows wheel 부재). 빌드 전 vendor 채우기: python-core/scripts/vendor-minimap2.py(Linux/macOS) 또는 Windows MSYS2/MinGW 정적 빌드(build.yml). 로컬 테스트는 KURO_MINIMAP2 로 바이너리 지정, mame 테스트는 바이너리 부재 시 skip.

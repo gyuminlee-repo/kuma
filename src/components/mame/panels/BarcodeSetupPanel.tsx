@@ -14,6 +14,8 @@ import { readTextFile } from "@tauri-apps/plugin-fs";
 import { CheckCircle2, FolderOpen, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { autoDetectCdsCandidates } from "@/lib/sequence/autoDetectCds";
+import type { CdsCandidate } from "@/lib/sequence/autoDetectCds";
+import type { SequenceInfo } from "@/types/models";
 import { useKumaProject } from "@/state/projectContext";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { rpc } from "@/lib/ipc";
@@ -136,6 +138,15 @@ function toSinglePath(result: string | string[] | null): string | null {
   return typeof result === "string" ? result : null;
 }
 
+// Extensions Biopython/SnapGene-annotated: routed to the kuro load_fasta RPC,
+// which returns real gene annotations instead of a naive text ORF scan.
+const ANNOTATED_EXTENSIONS = new Set(["dna", "gb", "gbk", "gbff"]);
+
+function getExtension(p: string): string {
+  const m = /\.([A-Za-z0-9]+)$/.exec(p);
+  return m ? m[1].toLowerCase() : "";
+}
+
 // ─── 메인 컴포넌트 ────────────────────────────────────────────────────────────
 
 /**
@@ -159,9 +170,15 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
   const [isGenerating, setIsGenerating] = useState(false);
   const [result, setResult] = useState<MamePackageResult | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [fastaLoadError, setFastaLoadError] = useState<string | null>(null);
+  const [seqLength, setSeqLength] = useState<number | null>(null);
   const setParams = useMameAppStore((s) => s.setParams);
   const setReferencePath = useMameAppStore((s) => s.setReferencePath);
   const setSampleMapPath = useMameAppStore((s) => s.setSampleMapPath);
+  // KURO expected_mutations xlsx. When already selected, the generated sample-map
+  // template is pre-filled with a draft well placement instead of headers only,
+  // so the operator verifies a draft rather than authoring the map from scratch.
+  const expectedPath = useMameAppStore((s) => s.expectedPath);
   const currentTargetLength = useMameAppStore((s) => s.rawRunParams.targetLength);
   const cdsCandidates = useMameAppStore((s) => s.cdsCandidates);
   const selectedCdsIndex = useMameAppStore((s) => s.selectedCdsIndex);
@@ -185,25 +202,72 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
   useEffect(() => {
     if (!form.fastaPath) {
       setCdsCandidates([]);
+      setFastaLoadError(null);
+      setSeqLength(null);
       return;
     }
     let cancelled = false;
-    readTextFile(form.fastaPath)
-      .then((content) => {
-        if (cancelled) return;
-        const candidates = autoDetectCdsCandidates(content);
-        setCdsCandidates(candidates);
-        if (candidates.length > 0) {
-          let best = candidates[0];
-          for (const c of candidates) {
-            if (c.aa_length > best.aa_length) best = c;
-          }
-          setForm({ geneStart: String(best.start), geneEnd: String(best.end) });
+    setFastaLoadError(null);
+
+    function applyBest(candidates: CdsCandidate[]) {
+      setCdsCandidates(candidates);
+      if (candidates.length > 0) {
+        let best = candidates[0];
+        for (const c of candidates) {
+          if (c.aa_length > best.aa_length) best = c;
         }
-      })
-      .catch(() => {
-        if (!cancelled) setCdsCandidates([]);
-      });
+        setForm({ geneStart: String(best.start), geneEnd: String(best.end) });
+      }
+    }
+
+    const ext = getExtension(form.fastaPath);
+    if (ANNOTATED_EXTENSIONS.has(ext)) {
+      // Binary/annotated formats (SnapGene .dna, GenBank .gb/.gbk/.gbff): route
+      // through the kuro sidecar's load_fasta RPC (Biopython-backed), which
+      // returns real gene annotations. Text-parsing binary content here is
+      // exactly what produced junk ORF candidates before this fix.
+      rpc<SequenceInfo>("kuro", "load_fasta", { filepath: form.fastaPath })
+        .then((info) => {
+          if (cancelled) return;
+          const candidates: CdsCandidate[] = info.genes.map((g) => ({
+            start: g.cds_start,
+            end: g.cds_end,
+            source: "genbank-cds",
+            label: g.gene || g.product || undefined,
+            // The sidecar counts the stop codon as a residue ((end-start)/3),
+            // while CdsCandidate excludes it, matching parseGenbankCds and
+            // parseFastaOrfs in autoDetectCds.ts. Recompute so annotated and
+            // ORF-derived candidates report the same protein length.
+            aa_length: Math.floor((g.cds_end - g.cds_start - 3) / 3),
+          }));
+          applyBest(candidates);
+          setSeqLength(info.seq_length);
+        })
+        .catch((err) => {
+          if (cancelled) return;
+          setCdsCandidates([]);
+          setSeqLength(null);
+          const descRaw = describeRpcError(err, "kuro");
+          const description = descRaw.startsWith("errors.")
+            ? t(descRaw, { method: extractMissingMethod(err) || "load_fasta" })
+            : descRaw;
+          setFastaLoadError(description);
+        });
+    } else {
+      readTextFile(form.fastaPath)
+        .then((content) => {
+          if (cancelled) return;
+          applyBest(autoDetectCdsCandidates(content));
+          const plainLength = content.replace(/^>.*$/gm, "").replace(/\s/g, "").length;
+          setSeqLength(plainLength > 0 ? plainLength : null);
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setCdsCandidates([]);
+            setSeqLength(null);
+          }
+        });
+    }
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.fastaPath]);
@@ -297,6 +361,40 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
   void isEndValid;
   const canGenerate = !isGenerating;
 
+  // ─── 플랭크 preflight 경고 ────────────────────────────────────────────────
+  // 경고일 뿐 차단하지 않는다. circular-plasmid wraparound 지원이 백엔드에
+  // 추가되면 일부 케이스는 실제로 성공할 수 있으므로 "실패할 수 있음"으로 표현.
+  const flankMaxNum = parseInt(form.flankMax, 10);
+  const flankWarnings: string[] = [];
+  if (
+    isRangeValid &&
+    seqLength !== null &&
+    Number.isFinite(flankMaxNum)
+  ) {
+    const upstreamAvailable = geneStartNum;
+    const downstreamAvailable = seqLength - geneEndNum;
+    const upstreamShortfall = flankMaxNum - upstreamAvailable;
+    const downstreamShortfall = flankMaxNum - downstreamAvailable;
+    if (upstreamShortfall > 0) {
+      flankWarnings.push(
+        t("mame.barcodeSetup.flankWarningUpstream", {
+          needed: flankMaxNum,
+          available: Math.max(upstreamAvailable, 0),
+          shortfall: upstreamShortfall,
+        }),
+      );
+    }
+    if (downstreamShortfall > 0) {
+      flankWarnings.push(
+        t("mame.barcodeSetup.flankWarningDownstream", {
+          needed: flankMaxNum,
+          available: Math.max(downstreamAvailable, 0),
+          shortfall: downstreamShortfall,
+        }),
+      );
+    }
+  }
+
   // ─── RPC 호출 ─────────────────────────────────────────────────────────────
 
   async function handleGenerate() {
@@ -355,6 +453,7 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
       tm_min: optFloat(form.tmMin),
       tm_max: optFloat(form.tmMax),
       require_gc_clamp: form.requireGcClamp,
+      expected_mutations_path: expectedPath.trim() || undefined,
     };
 
     try {
@@ -432,6 +531,11 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
               readyLabel={t("mame.inputPanel.fileReady")}
               browseAriaLabel={t("mame.inputPanel.browseFolderAriaLabel", { label: t("mame.barcodeSetup.cdsFasta") })}
             />
+            {fastaLoadError && (
+              <p role="alert" className="text-xs text-destructive">
+                {t("mame.barcodeSetup.cdsFastaLoadError", { error: fastaLoadError })}
+              </p>
+            )}
 
             <FileField
               label={t("mame.barcodeSetup.barcodeSeedsXlsx")}
@@ -541,6 +645,16 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
             <p role="alert" className="mt-1 text-xs text-destructive">
               {t("mame.barcodeSetup.geneEndError")}
             </p>
+          )}
+
+          {flankWarnings.length > 0 && (
+            <div role="status" className="mt-2 space-y-1">
+              {flankWarnings.map((w, i) => (
+                <p key={i} className="text-xs text-amber-700 dark:text-amber-400">
+                  {w}
+                </p>
+              ))}
+            </div>
           )}
         </section>}
 

@@ -1,15 +1,18 @@
-# 단축키
+# Keyboard Shortcuts
 
-KUMA 가 노출하는 keyboard shortcut 목록. 자세한 등록은 `src/components/dialogs/KeyboardShortcutsDialog.tsx` 참조.
+KUMA exposes the shortcuts registered in `src/lib/shortcuts.ts`. The shortcut dialog, About dialog, and user guide pages use that registry as the source of truth.
 
-| 단축키 | 동작 |
-|---|---|
-| `Ctrl+O` / `Cmd+O` | Open Workspace |
-| `Ctrl+S` / `Cmd+S` | Save Workspace |
-| `Ctrl+,` / `Cmd+,` | Settings Dialog |
-| `Ctrl+/` / `Cmd+/` | Keyboard Shortcuts Dialog |
-| `F11` | Fullscreen toggle |
-| `Ctrl+Q` / `Cmd+Q` | Quit (window 파괴) |
-| `Esc` | Dialog 닫기 |
+On macOS, replace `Ctrl` with `Cmd`.
 
-> Edit/Run 메뉴의 항목은 v0.6.0.79 에서 추가되었다. 변경 가능 단축키는 Settings → Keyboard 에서 재정의.
+| Shortcut | Action | Scope |
+|---|---|---|
+| `Ctrl+O` | Open Sequence | Kuro |
+| `Ctrl+,` | Preferences | Kuro and Mame |
+| `Ctrl+L` | Toggle Logs panel | Kuro and Mame |
+| `Ctrl+J` | Toggle Jobs panel | Kuro and Mame |
+| `Ctrl+D` | Run / Analyze | Kuro and Mame |
+| `Ctrl+Enter` | Run / Analyze (alias) | Kuro and Mame |
+| `Ctrl+Shift+R` | Reset All | Kuro and Mame |
+| `Ctrl+/` | Keyboard shortcuts | Kuro and Mame |
+
+Menu-only or platform window commands such as fullscreen, close window, and quit may still appear in native menus, but they are not part of the shared Kuro/Mame shortcut registry.

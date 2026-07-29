@@ -33,6 +33,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
   wells: [],
   selectedWell: null,
   runHealth: null,
+  buildEvolveproCompletion: null,
   mameSamplePrefill: null,
   consumeMameSamplePrefill: () => set({ mameSamplePrefill: null }),
   setVerdicts: (verdicts) => set({ verdicts }),
@@ -48,6 +49,8 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
   closeExport: () => set({ showExport: false }),
   setWells: (wells) => set({ wells }),
   setSelectedWell: (selectedWell) => set({ selectedWell }),
+  setBuildEvolveproCompletion: (buildEvolveproCompletion) =>
+    set({ buildEvolveproCompletion }),
   clearResults: () =>
     set({
       verdicts: [],
@@ -57,6 +60,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       selectedWell: null,
       searchQuery: "",
       runHealth: null,
+      buildEvolveproCompletion: null,
     }),
   resetAnalysis: () =>
     set({
@@ -70,6 +74,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       wells: [],
       selectedWell: null,
       runHealth: null,
+      buildEvolveproCompletion: null,
     }),
   loadPlateData: async () => {
     try {

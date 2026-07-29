@@ -80,7 +80,7 @@ def handle_list_organisms(_params: dict) -> list[dict]:
 def _preview_csv(filepath: str, max_rows: int) -> dict:
     """Read headers and first max_rows data rows from a CSV or TSV file."""
     delimiter = "\t" if Path(filepath).suffix.lower() == ".tsv" else ","
-    with open(filepath, encoding="utf-8", newline="") as f:
+    with open(filepath, encoding="utf-8-sig", newline="") as f:
         reader = csv.reader(f, delimiter=delimiter)
         headers = next(reader, [])
         rows = []

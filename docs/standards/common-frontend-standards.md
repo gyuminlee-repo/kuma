@@ -146,7 +146,7 @@ tags: [kuma, frontend, standards, charter, kuro, mame, primerbench]
 **Rationale**: 접근성·단축키 통일 부재는 마우스 미사용 사용자, 색약 사용자, 다른 OS 환경의 진입장벽을 키운다.
 
 **Requirements**
-- [필수] **Run / Save / Reset 단축키** (Ctrl/Cmd+R, Ctrl/Cmd+S, Ctrl/Cmd+Shift+R) 통일
+- [필수] **Run / Reset 단축키** 통일: active KUMA registry 기준 Run = Ctrl/Cmd+D 및 Ctrl/Cmd+Enter, Reset = Ctrl/Cmd+Shift+R. Save 단축키는 project-aware workspace save command가 재도입될 때 registry와 문서에 함께 추가한다.
 - [필수] **Focus ring 보존** (shadcn/ui 기본 유지)
 - [권장] **다크모드** 셋 다 동일 디자인 토큰 사용
 - [필수] **Toast 위치 통일**: top-right

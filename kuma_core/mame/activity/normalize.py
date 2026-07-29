@@ -18,6 +18,10 @@ def compute_relative_activity(
 ) -> float:
     """Compute relative activity as area / mean(wt_areas).
 
+    Scope: reports-mode callers only (build_evolvepro_input.py family). The
+    ``MergedRow`` join/export path does not call this; it uses
+    :func:`compute_fold_change`, which yields the same quantity.
+
     Implements slide 10 specification:
       relative_activity = mutant_area / mean(WT_replicate_areas)
 

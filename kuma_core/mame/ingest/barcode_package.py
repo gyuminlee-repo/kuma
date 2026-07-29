@@ -3,7 +3,9 @@
 This module produces three output files and a context JSON:
 - ``barcodes_sequence.xlsx``    : 20-row combinatorial barcode table (12 fwd + 8 rev)
 - ``{gene_name}_amplicon.fa``   : single-entry FASTA for the target gene region
-- ``sample_map_template.xlsx``  : blank well-map template for the MAME operator
+- ``sample_map_template.xlsx``  : well-map template for the MAME operator (blank
+  headers, or pre-filled with a draft placement when ``expected_mutations_path``
+  is supplied)
 - ``mame_context.json``         : machine-readable pointer file (schema 1)
 
 Typical call site::
@@ -123,11 +125,15 @@ _SNAPGENE_SUFFIXES = {".dna"}
 _FASTA_SUFFIXES = {".fa", ".fasta", ".fna"}
 
 
-def _parse_first_cds_sequence(seq_path: Path) -> str:
-    """Return the first record sequence from a FASTA, GenBank, or SnapGene file.
+def _parse_first_cds_sequence(seq_path: Path) -> tuple[str, str]:
+    """Return (sequence, topology) for the first record in a FASTA, GenBank, or
+    SnapGene file.
 
-    GenBank/SnapGene are routed to Biopython via kuro's ``load_sequence``.
-    FASTA uses a lightweight inline parser to keep the dependency surface small.
+    GenBank/SnapGene are routed to Biopython via kuro's ``load_sequence`` for the
+    sequence, and via kuro's ``detect_topology`` for the topology annotation
+    ("circular" or "linear"). FASTA uses a lightweight inline parser to keep
+    the dependency surface small and has no topology annotation, so it is
+    always reported as "linear".
 
     Raises
     ------
@@ -142,12 +148,13 @@ def _parse_first_cds_sequence(seq_path: Path) -> str:
     suffix = seq_path.suffix.lower()
 
     if suffix in _GENBANK_SUFFIXES or suffix in _SNAPGENE_SUFFIXES:
-        from kuma_core.kuro.sdm_engine import load_sequence
+        from kuma_core.kuro.sdm_engine import detect_topology, load_sequence
 
         _header, sequence, _genes = load_sequence(seq_path)
         if not sequence:
             raise ValueError(f"Empty sequence in: {seq_path}")
-        return sequence.upper()
+        topology = detect_topology(seq_path)
+        return sequence.upper(), topology
 
     if suffix not in _FASTA_SUFFIXES:
         raise ValueError(
@@ -155,7 +162,7 @@ def _parse_first_cds_sequence(seq_path: Path) -> str:
             "use .fa/.fasta/.fna, .gb/.gbk/.gbff, or .dna."
         )
 
-    return _parse_first_fasta_sequence(seq_path)
+    return _parse_first_fasta_sequence(seq_path), "linear"
 
 
 def _parse_first_fasta_sequence(fasta_path: Path) -> str:
@@ -322,6 +329,18 @@ def _validate_seed_sequence(key: str, seq: str) -> None:
         )
 
 
+def _circular_slice(seq: str, start: int, length: int, seq_len: int) -> str:
+    """Return a length-character substring of seq starting at start, wrapping
+    around the origin (position 0) if start is negative or start + length
+    exceeds seq_len.
+
+    Intended only for circular topology, where a primer binding site may
+    physically span the origin of the template. start may be any integer
+    (negative offsets count backwards from the end via Python's modulo).
+    """
+    return "".join(seq[(start + i) % seq_len] for i in range(length))
+
+
 def design_flanking_primers(
     cds_sequence: str,
     gene_start: int,
@@ -334,6 +353,7 @@ def design_flanking_primers(
     tm_min: float = 55.0,
     tm_max: float = 68.0,
     require_gc_clamp: bool = True,
+    topology: str = "linear",
 ) -> tuple[str, str, list[str]]:
     """Design Tm-guided flanking primers flanking a gene region.
 
@@ -380,6 +400,13 @@ def design_flanking_primers(
         Upper bound of the acceptable Tm window (deg C).
     require_gc_clamp:
         If True, the 3' terminal base of every candidate must be G or C.
+    topology:
+        Either "linear" (default) or "circular". When "linear", a search
+        window that falls outside ``cds_sequence`` boundaries raises
+        ValueError (unchanged behaviour). When "circular", the forward and
+        reverse search windows are allowed to wrap around the sequence
+        origin, since the corresponding template region physically exists on
+        a circular molecule.
 
     Returns
     -------
@@ -389,10 +416,18 @@ def design_flanking_primers(
     Raises
     ------
     ValueError
-        If the flank search window falls outside ``cds_sequence`` boundaries,
-        or if ``gene_start >= gene_end``, or if parameter ranges are invalid.
+        If topology is not "linear" or "circular", if the flank search window
+        falls outside ``cds_sequence`` boundaries under linear topology, if
+        wrapping under circular topology would require reading past a full
+        revolution of the sequence, or if ``gene_start >= gene_end``, or if
+        parameter ranges are invalid.
     """
     seq_len = len(cds_sequence)
+
+    if topology not in ("linear", "circular"):
+        raise ValueError(
+            f"topology must be \"linear\" or \"circular\", got {topology!r}."
+        )
 
     if gene_start < 0:
         raise ValueError(f"gene_start must be >= 0, got {gene_start}.")
@@ -414,6 +449,17 @@ def design_flanking_primers(
             f"<= binding_max_len ({binding_max_len})."
         )
 
+    if topology == "circular" and (
+        (flank_max - flank_min) > seq_len or binding_max_len > seq_len
+    ):
+        raise ValueError(
+            f"Circular wrap search window (flank_max - flank_min = "
+            f"{flank_max - flank_min}) or binding_max_len ({binding_max_len}) "
+            f"exceeds the sequence length (seq_len={seq_len}); wrapping would "
+            "read the same base more than once. Reduce flank_max/binding_max_len "
+            "or use a longer template."
+        )
+
     # Forward primer search window: positions [fwd_window_start, fwd_window_end)
     # The primer starts at `pos` and extends binding_len bases to the right.
     # The primer must end no later than gene_start - flank_min,
@@ -422,7 +468,7 @@ def design_flanking_primers(
     fwd_region_start = gene_start - flank_max
     fwd_region_end = gene_start - flank_min  # exclusive upper bound for pos
 
-    if fwd_region_start < 0:
+    if topology == "linear" and fwd_region_start < 0:
         raise ValueError(
             f"Forward primer search window starts at {fwd_region_start} "
             f"(gene_start={gene_start}, flank_max={flank_max}); "
@@ -439,7 +485,7 @@ def design_flanking_primers(
     rev_region_start = gene_end + flank_min  # inclusive lower bound for `end`
     rev_region_end = gene_end + flank_max    # inclusive upper bound for `end`
 
-    if rev_region_end > seq_len:
+    if topology == "linear" and rev_region_end > seq_len:
         raise ValueError(
             f"Reverse primer search window ends at {rev_region_end} "
             f"(gene_end={gene_end}, flank_max={flank_max}); "
@@ -460,9 +506,12 @@ def design_flanking_primers(
 
     for pos in range(fwd_region_start, fwd_region_end):
         for length in range(binding_min_len, binding_max_len + 1):
-            candidate = cds_sequence[pos: pos + length]
-            if len(candidate) < length:
-                break  # hit end of sequence
+            if topology == "circular":
+                candidate = _circular_slice(cds_sequence, pos, length, seq_len)
+            else:
+                candidate = cds_sequence[pos: pos + length]
+                if len(candidate) < length:
+                    break  # hit end of sequence
             tm = _calc_tm(candidate, profile)
             gc_ok = (not require_gc_clamp) or (candidate[-1].upper() in "GC")
             fwd_candidates.append((abs(tm - tm_target), candidate))
@@ -496,11 +545,14 @@ def design_flanking_primers(
     for end in range(rev_region_start, rev_region_end + 1):
         for length in range(binding_min_len, binding_max_len + 1):
             start = end - length
-            if start < 0:
-                break
-            candidate_raw = cds_sequence[start:end]
-            if len(candidate_raw) < length:
-                break
+            if topology == "circular":
+                candidate_raw = _circular_slice(cds_sequence, start, length, seq_len)
+            else:
+                if start < 0:
+                    break
+                candidate_raw = cds_sequence[start:end]
+                if len(candidate_raw) < length:
+                    break
             candidate = _reverse_complement(candidate_raw)
             tm = _calc_tm(candidate, profile)
             gc_ok = (not require_gc_clamp) or (candidate[-1].upper() in "GC")
@@ -544,6 +596,13 @@ class MamePackageResult:
     context_json: Path
     warnings: list[str] = field(default_factory=list)
     amplicon_length: int | None = None
+    #: Number of pre-filled data rows in ``sample_map_template`` (0 = header
+    #: only, i.e. no ``expected_mutations_path`` was supplied). The UI reports
+    #: this so an operator can tell a drafted template from a blank one.
+    sample_map_prefilled_rows: int = 0
+    #: True when an existing ``sample_map_template.xlsx`` already carried well
+    #: assignments and was therefore left untouched instead of regenerated.
+    sample_map_preserved: bool = False
 
 
 # ---------------------------------------------------------------------------
@@ -566,6 +625,8 @@ def generate_mame_package(
     tm_min: float = 55.0,
     tm_max: float = 68.0,
     require_gc_clamp: bool = True,
+    topology: str | None = None,
+    expected_mutations_path: Path | None = None,
 ) -> MamePackageResult:
     """Generate the complete MAME input package for a sequencing run.
 
@@ -580,7 +641,11 @@ def generate_mame_package(
        is derived from the ``gene_name`` parameter via
        :func:`_sanitize_gene_prefix`.
     5. Write ``{gene_name}_amplicon.fa`` containing the gene region subsequence.
-    6. Write ``sample_map_template.xlsx`` (blank: column A "sample_name", column B "well").
+    6. Write ``sample_map_template.xlsx`` (column A "sample_name", column B
+       "well"). Header-only by default; pre-filled with a draft placement when
+       ``expected_mutations_path`` is supplied. An existing template that
+       already holds data rows is left untouched (operator well assignments
+       cannot be regenerated) and reported via ``sample_map_preserved``.
     7. Write ``mame_context.json`` at ``project_root`` with schema 1.
 
     Parameters
@@ -618,6 +683,22 @@ def generate_mame_package(
         Upper bound of the acceptable Tm window (deg C).
     require_gc_clamp:
         If True, the 3' terminal base of every primer must be G or C.
+    topology:
+        Either "linear", "circular", or None (default). None means
+        auto-detect from the sequence file: GenBank/SnapGene records carry an
+        explicit topology annotation (falls back to "linear" if absent or
+        unrecognised); plain FASTA has no topology annotation and is always
+        treated as "linear". Pass "linear" or "circular" explicitly to
+        override auto-detection.
+    expected_mutations_path:
+        Optional path to a KURO results xlsx carrying an ``expected_mutations``
+        sheet. When given, ``sample_map_template.xlsx`` is pre-filled with one
+        row per designed mutant in column-major well order plus a trailing
+        ``WT`` control row, so the operator verifies a draft instead of
+        authoring the map from scratch. The placement is the same draft
+        assumption used by ``mame.build_well_layout`` and still requires
+        reconciliation against the physical plate. Omit for a header-only
+        template.
 
     Returns
     -------
@@ -641,7 +722,8 @@ def generate_mame_package(
     profile = get_profile(polymerase)
 
     # Step 1: parse CDS
-    cds_seq = _parse_first_cds_sequence(Path(fasta_path))
+    cds_seq, detected_topology = _parse_first_cds_sequence(Path(fasta_path))
+    effective_topology = topology if topology is not None else detected_topology
 
     # Step 2: flanking primers (Tm-guided)
     fwd_flanking, rev_flanking, pkg_warnings = design_flanking_primers(
@@ -656,6 +738,7 @@ def generate_mame_package(
         tm_min=tm_min,
         tm_max=tm_max,
         require_gc_clamp=require_gc_clamp,
+        topology=effective_topology,
     )
 
     # Step 3: barcode seeds
@@ -683,9 +766,33 @@ def generate_mame_package(
         gene_name=gene_name,
     )
 
-    # Step 6: sample map template
+    # Step 6: sample map template. Pre-filled with a draft well placement when
+    # a KURO expected_mutations xlsx is supplied, header-only otherwise.
+    #
+    # An existing template that already carries data rows is left untouched: it
+    # holds hand-entered well assignments, and regeneration is routinely re-run
+    # to adjust the gene range or polymerase. The caller confirms overwriting
+    # output_dir as a whole, which is not informed consent for discarding the
+    # one file in it that only the operator can reproduce.
     template_path = output_dir / "sample_map_template.xlsx"
-    _write_sample_map_template(template_path)
+    sample_map_rows: list[tuple[str, str]] = []
+    sample_map_preserved = _sample_map_has_data(template_path)
+    if expected_mutations_path is not None and not sample_map_preserved:
+        sample_map_rows = _build_sample_map_rows(Path(expected_mutations_path))
+    if sample_map_preserved:
+        pkg_warnings.append(
+            f"sample_map_template.xlsx already contains well assignments and was "
+            f"left unchanged ({template_path}). Delete or rename it to regenerate "
+            "a draft template."
+        )
+    else:
+        if sample_map_rows:
+            pkg_warnings.append(
+                f"sample_map_template.xlsx pre-filled with {len(sample_map_rows)} draft "
+                "rows from expected_mutations (column-major placement, WT last). "
+                "Verify against the physical plate before running analyze."
+            )
+        _write_sample_map_template(template_path, rows=sample_map_rows or None)
 
     # Step 7: mame_context.json
     context_json_path = project_root / "mame_context.json"
@@ -710,6 +817,8 @@ def generate_mame_package(
         context_json=context_json_path,
         warnings=pkg_warnings,
         amplicon_length=amplicon_length,
+        sample_map_prefilled_rows=len(sample_map_rows),
+        sample_map_preserved=sample_map_preserved,
     )
 
 
@@ -799,8 +908,22 @@ def _write_amplicon_fasta(
             fh.write(amplicon[i:i + 60] + "\n")
 
 
-def _write_sample_map_template(path: Path) -> None:
-    """Write an empty sample-map xlsx with column headers only."""
+def _write_sample_map_template(
+    path: Path,
+    rows: list[tuple[str, str]] | None = None,
+) -> None:
+    """Write the sample-map xlsx consumed by MAME ``analyze``.
+
+    With ``rows`` omitted the sheet carries the header only, leaving the
+    operator to author every well by hand. With ``rows`` supplied (see
+    :func:`_build_sample_map_rows`) the sheet is pre-filled with one
+    ``(sample_name, well)`` pair per row, turning the operator task into
+    "verify and correct" instead of "author from scratch".
+
+    The pre-filled placement is a *draft*: it assumes KURO row order maps to
+    column-major wells with a single WT control after the last mutant. The
+    operator remains responsible for reconciling it with the physical plate.
+    """
     import openpyxl  # local import
 
     wb = openpyxl.Workbook()
@@ -809,7 +932,94 @@ def _write_sample_map_template(path: Path) -> None:
         ws = wb.create_sheet()
     ws.title = "SampleMap"
     ws.append(["sample_name", "well"])
+    for sample_name, well in rows or []:
+        ws.append([sample_name, well])
     wb.save(str(path))
+
+
+def _sample_map_has_data(path: Path) -> bool:
+    """Return True if ``path`` is an xlsx carrying at least one data row.
+
+    Used to decide whether re-running package generation may overwrite an
+    existing ``sample_map_template.xlsx``. A header-only sheet holds no operator
+    work and is safe to replace; a sheet with data rows holds hand-entered well
+    assignments and must survive. An unreadable or corrupt file is treated as
+    "no data" so a broken template never blocks regeneration.
+    """
+    if not path.exists():
+        return False
+
+    import openpyxl  # local import
+
+    try:
+        wb = openpyxl.load_workbook(str(path), read_only=True, data_only=True)
+    except Exception:  # noqa: BLE001 - unreadable file: fall through to rewrite
+        return False
+    try:
+        ws = wb.worksheets[0]
+        for i, row in enumerate(ws.iter_rows(values_only=True)):
+            if i == 0:  # header
+                continue
+            if any(c is not None and str(c).strip() != "" for c in row):
+                return True
+        return False
+    finally:
+        wb.close()
+
+
+def _build_sample_map_rows(expected_mutations_path: Path) -> list[tuple[str, str]]:
+    """Return draft ``(sample_name, well)`` rows from a KURO results xlsx.
+
+    Delegates placement to :func:`kuma_core.mame.layout.build_draft_layout` so
+    the template and the ``mame.build_well_layout`` RPC cannot drift apart:
+    column-major wells for the designed mutants, then a single ``WT`` control.
+
+    Raises
+    ------
+    FileNotFoundError
+        If ``expected_mutations_path`` does not exist.
+    ValueError
+        If the xlsx carries no ``expected_mutations`` sheet or no DESIGNED rows,
+        or if the mutation set does not fit one 96-well plate. Callers pass this
+        path deliberately, so an unusable file is an error rather than a reason
+        to emit a misleading template.
+    """
+    # Local imports: keep module import cost off the barcode-only code path.
+    from kuma_core.mame.io.kuro_reader import read_expected_mutations
+    from kuma_core.mame.layout import build_draft_layout
+
+    expected = read_expected_mutations(Path(expected_mutations_path))
+    if not expected:
+        raise ValueError(
+            f"No DESIGNED expected mutations found in {expected_mutations_path}; "
+            "cannot pre-fill the sample map template. Omit "
+            "expected_mutations_path to emit a header-only template."
+        )
+    draft = build_draft_layout(expected)
+    # A clamped draft is refused rather than written. The template is a file the
+    # operator edits with no confirmation step in between, and a truncated sheet
+    # reads as a correct full plate, so writing one would hide the truncation
+    # until wells past the cut are mis-scored.
+    if not draft.is_complete:
+        detail = (
+            f"{len(draft.dropped_mutant_ids)} mutants past well 96 "
+            f"({', '.join(draft.dropped_mutant_ids[:5])}"
+            f"{', ...' if len(draft.dropped_mutant_ids) > 5 else ''})"
+            if draft.dropped_mutant_ids
+            else "no well left for the WT control"
+        )
+        raise ValueError(
+            f"{len(expected)} designed mutations do not fit one 96-well plate: "
+            f"{detail}. The combinatorial barcode space is 12 fwd x 8 rev, so "
+            "wells past the 96th cannot be told apart in the reads. Split the "
+            "campaign across plates (MAME separates plates by native barcode) "
+            "and supply one sample map per plate, or omit "
+            "expected_mutations_path for a header-only template."
+        )
+    # build_draft_layout returns an insertion-ordered dict[well, sample] in
+    # column-major order (WT last when it fits); the sheet stores the columns
+    # in sample_name/well order, matching parse_sample_map.
+    return [(sample, well) for well, sample in draft.layout.items()]
 
 
 def _ctx_path(p: Path, root: Path) -> str:

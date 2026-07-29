@@ -4,6 +4,41 @@
 
 ---
 
+## v0.13.30 (2026-07-29)
+
+### The sample map template works as filled in
+
+- The layout parser understands `<sample>_r<n>`. Replicates of one variant collapse onto that variant, `WT_r1` counts as WT, and rows named `blank` are skipped. Names without the suffix are unaffected.
+- A variant that has no EVOLVEpro short-notation form, such as a double substitution, no longer aborts the build. It is dropped on its own and a warning names it with its wells, so the remaining variants still produce an input file.
+
+---
+
+## v0.13.28 (2026-07-28)
+
+### Files and columns you already have
+
+- Step 2 no longer rejects a mutation file because a header is capitalised differently, carries a stray space, or begins with an Excel byte-order mark.
+- Step 2 column pickers are usable as soon as a file is chosen. If auto-detect misses, pick the mutation and ranking columns from the dropdowns and apply.
+- MAME step 3.1 accepts the sample map produced in step 1, so the plate layout workbook no longer has to be built by hand.
+
+### Shared reverse primers
+
+- Echo and JANUS exports could omit the reverse transfer rows of every mutation except one per shared group when a workspace carried no dedup map, which left those reactions without a primer. The map is now rebuilt from the design results, and the export stops with the affected mutation names if it cannot be rebuilt.
+- The layout sheets now list, per source well, how many reactions it feeds and the total volume drawn. Add the labware dead volume to that figure when filling the plate.
+
+---
+
+## v0.13.27 (2026-07-28)
+
+### MAME step 3 reads raw instrument reports
+
+- A raw Agilent FID1B report can now drive step 3 directly. Pick **Raw Agilent reports** in the plate-layout route and supply the re-measure report plus a round-1 baseline, either another raw report or a prior EVOLVEpro file. Each replicate is normalised as `area / mean(WT block areas)`, so no hand-normalised GC sheet is needed. A missing WT block stops the build instead of guessing.
+- The WT denominator now comes from the `WT_1`/`WT_2`/`WT_3` rows the instrument already ships. Those rows used to be discarded during import, which forced the denominator to be inferred from WT wells clicked on the plate. Plates without such rows keep the old behaviour, and the merge result reports which source applied.
+- Optional NGS verdict gating excludes variants whose well did not pass.
+- Step 3 is split into an exclusive input route and cross-round signals.
+
+---
+
 ## v0.13.14 (2026-07-01)
 
 ### Kuro structure-accuracy guard

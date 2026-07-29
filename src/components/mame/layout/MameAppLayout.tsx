@@ -68,6 +68,7 @@ const CONTEXT_TITLE_KEYS: Record<MameSubStepId, { title: string; subtitle: strin
   "analyze.verdict":    { title: "mame.qc.review.contextTitle",           subtitle: "mame.qc.review.contextSubtitle" },
   "analyze.plate":      { title: "mame.qc.review.contextTitle",           subtitle: "mame.qc.review.contextSubtitle" },
   "activity.ingest":    { title: "mame.activity.ingest.contextTitle",     subtitle: "mame.activity.ingest.contextSubtitle" },
+  "activity.signals":   { title: "mame.activity.mergeExport.contextTitle", subtitle: "mame.activity.mergeExport.contextSubtitle" },
   "activity.mergeExport": { title: "mame.activity.mergeExport.contextTitle", subtitle: "mame.activity.mergeExport.contextSubtitle" },
 };
 

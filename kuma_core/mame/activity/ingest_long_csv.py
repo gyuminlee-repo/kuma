@@ -9,11 +9,13 @@ from pathlib import Path
 
 import pandas as pd
 
+from kuma_core.mame.activity.constants import WT_PATTERN
 from kuma_core.mame.activity.models import (
     ActivityRecord,
     ActivityTable,
     PlateConfig,
     PlateMeta,
+    WtReplicateRecord,
 )
 
 WELL_RE_96 = re.compile(r"^[A-H](0[1-9]|1[0-2])$")
@@ -23,6 +25,10 @@ WELL_RE_384 = re.compile(r"^[A-P](0[1-9]|1[0-9]|2[0-4])$")
 # normalisation. Canonical well_id format across kuma_core is zero-padded
 # 2-digit column (see plate_layout_xlsx._normalise_well).
 WELL_RE_RAW = re.compile(r"^([A-P])(\d{1,2})$")
+
+# Strips the 'WT'/'WT_' prefix off a label already matched by WT_PATTERN, leaving
+# the replicate number. Not a detection pattern; WT_PATTERN remains the only one.
+_WT_SUFFIX_RE = re.compile(r"^WT_?")
 
 # Header aliases for raw instrument exports (e.g. GC-FID). Headers are already
 # lower-cased before lookup. Canonical column wins if present; aliases are tried
@@ -59,7 +65,9 @@ def ingest_long_csv(
         plate_meta_wt_wells: Mapping of plate_id → list of WT well coordinates.
 
     Returns:
-        ActivityTable with validated ActivityRecord list and PlateMeta.
+        ActivityTable with validated ActivityRecord list, PlateMeta, and any
+        dedicated WT replicate rows ('WT_1', 'WT2', ...) kept apart in
+        ``wt_records`` so they never join as mutant wells.
 
     Raises:
         ValueError: If the well or value column (incl. aliases) is missing, or if
@@ -120,16 +128,10 @@ def ingest_long_csv(
         normalised_wt_lookup[pid] = norm
 
     records: list[ActivityRecord] = []
+    wt_records: list[WtReplicateRecord] = []
     for _, row in df.iterrows():
         plate_id = str(row["plate_id"]).strip()
         well_raw = str(row["well_id"]).strip().upper()
-
-        # Normalise to canonical zero-padded form (A1 → A01) so single-digit
-        # column inputs match the validator and downstream WT-well lookup.
-        normalised = _normalise_well(well_raw)
-        if normalised is None or not _is_valid_well(normalised):
-            continue
-        well_id = normalised
 
         try:
             value = float(row["value"])
@@ -138,6 +140,34 @@ def ingest_long_csv(
 
         if math.isnan(value) or value < 0:
             continue
+
+        # Dedicated WT replicate rows ('WT_1', 'WT2', ...) carry a label instead
+        # of a well coordinate. They used to be dropped by the well parser below,
+        # which forced the WT denominator to be back-computed from plate-designated
+        # WT wells. Keep them in a separate collection so downstream never treats
+        # them as mutant wells. well_raw is already upper-cased, so the
+        # case-sensitive WT_PATTERN suffices.
+        wt_match = WT_PATTERN.match(well_raw)
+        if wt_match:
+            wt_records.append(
+                WtReplicateRecord(
+                    plate_id=plate_id,
+                    sample_name=well_raw,
+                    value=value,
+                    # Numeric suffix is the replicate index, matching the
+                    # reports-mode convention (evolvepro_xlsx._replicate_n_from_wt).
+                    replicate_idx=int(_WT_SUFFIX_RE.sub("", well_raw)),
+                    source_file=path.name,
+                )
+            )
+            continue
+
+        # Normalise to canonical zero-padded form (A1 → A01) so single-digit
+        # column inputs match the validator and downstream WT-well lookup.
+        normalised = _normalise_well(well_raw)
+        if normalised is None or not _is_valid_well(normalised):
+            continue
+        well_id = normalised
 
         is_wt = well_id in normalised_wt_lookup.get(plate_id, [])
         records.append(
@@ -157,4 +187,6 @@ def ingest_long_csv(
             for pid, wts in plate_meta_wt_wells.items()
         ]
     )
-    return ActivityTable(records=records, plate_meta=plate_meta)
+    return ActivityTable(
+        records=records, plate_meta=plate_meta, wt_records=wt_records
+    )

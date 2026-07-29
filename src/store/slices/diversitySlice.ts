@@ -127,7 +127,9 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   entropyWeight: 0.3,
   paretoPoolMultiplier: 2.0,
   distanceMode: "auto",
-  evolveproRound: 1,
+  // 0 = unset (matches backend default: kuma_core/kuro/evolvepro.py evolvepro_round=0,
+  // python-core/sidecar_kuro/models.py Field(default=0)). SourceInspector renders "--" for 0.
+  evolveproRound: 0,
   roundSize: 96,
   benchmarkTopPercentile: 10,
   benchmarkRandomTrials: 100,

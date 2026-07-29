@@ -1,117 +1,152 @@
 /**
- * SourceColumnPanel.test.tsx, regression guard for the empty-header crash.
+ * SourceColumnPanel.test.tsx, Step 2 manual column mapping.
  *
- * Root cause: `preview_evolvepro_source` can report an empty header string,
- * because a pandas `df.to_csv(path)` / `df.to_excel(path)` writes an unnamed
- * index column first (observed payload: `headers = ["", "variant", "score"]`).
- * Feeding that straight into a Radix `<SelectItem value="">` throws during
- * render, and Radix renders SelectContent children even while the dropdown is
- * closed (into a detached DocumentFragment, for collection measurement), so
- * the panel crashed without anyone opening the dropdown.
- *
- * The fix maps every column to an index sentinel (`__col_N__`) and converts it
- * back to the real header before it reaches the store. These tests fail if
- * that mapping is reverted.
- *
- * Note: closed Radix items live in a detached fragment, so they are not
- * reachable through `screen`. The preview table is used as the in-document
- * observation window for the label, and typeahead (a closed-trigger keydown,
- * no pointer APIs needed) exercises the write path.
+ * Locks the behaviour that a file selection alone (no "Preview" click) makes the
+ * column dropdowns usable, that auto-detect failure keeps them usable, that the
+ * options come only from the preview headers, and that a failing preview RPC is
+ * surfaced to the user.
  */
 
-import { render, screen, fireEvent, within } from "@testing-library/react";
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+
+const mocks = vi.hoisted(() => ({
+  sendRequest: vi.fn(),
+}));
 
 vi.mock("@/lib/ipc-kuro", () => ({
-  sendRequest: vi.fn(),
+  sendRequest: mocks.sendRequest,
   setProgressHandler: vi.fn(),
   cancelAndRespawn: vi.fn(),
 }));
 
 import { SourceColumnPanel } from "./SourceColumnPanel";
 import { useAppStore } from "@/store/appStore";
-import type { EvolveproPreview } from "@/types/models";
 
-/** Payload shape observed from the installed sidecar on a pandas-written csv. */
-const PREVIEW_WITH_EMPTY_HEADER: EvolveproPreview = {
+const PREVIEW = {
+  headers: ["Variant", "fitness", "notes"],
+  rows: [["A1V", "1.2", "x"]],
   sheets: ["Sheet1"],
-  headers: ["", "variant", "score"],
-  rows: [["0", "F89W", "0.91"]],
 };
 
-const PREVIEW_ALL_NAMED: EvolveproPreview = {
-  sheets: ["Sheet1"],
-  headers: ["variant", "score"],
-  rows: [["F89W", "0.91"]],
-};
+// Radix Select relies on pointer-capture / scrollIntoView APIs jsdom lacks.
+// Patched here (not in test-setup) so the shared baseline is untouched.
+const proto = Element.prototype as unknown as Record<string, unknown>;
+const saved: Record<string, unknown> = {};
+function installSelectShims() {
+  for (const name of ["hasPointerCapture", "setPointerCapture", "releasePointerCapture", "scrollIntoView"]) {
+    saved[name] = proto[name];
+    proto[name] = function () {};
+  }
+}
+function removeSelectShims() {
+  for (const [name, value] of Object.entries(saved)) {
+    if (value === undefined) delete proto[name];
+    else proto[name] = value;
+  }
+}
 
-function seedStore(preview: EvolveproPreview | null): void {
+function resetStore(path: string) {
   useAppStore.setState({
-    evolveproCsvPath: "/tmp/evolvepro.csv",
-    evolveproPreview: preview,
+    evolveproCsvPath: path,
+    evolveproPreview: null,
     evolveproVariantColumn: null,
     evolveproScoreColumn: null,
-    evolveproScoreOrder: "desc",
     evolveproSheetName: null,
     evolveproUsedVariantColumn: null,
     evolveproUsedScoreColumn: null,
   });
 }
 
-describe("SourceColumnPanel, empty header column", () => {
+describe("SourceColumnPanel, manual column mapping", () => {
   beforeEach(() => {
-    seedStore(null);
+    installSelectShims();
+    mocks.sendRequest.mockReset();
   });
 
-  it("renders without crashing when a header is an empty string", () => {
-    seedStore(PREVIEW_WITH_EMPTY_HEADER);
-
-    expect(() => render(<SourceColumnPanel />)).not.toThrow();
-
-    // The panel has its own error boundary, so a render-time throw would be
-    // swallowed into a role="alert" fallback instead of propagating. Assert
-    // the real panel body rendered, not the fallback.
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    expect(screen.getByText("Column mapping")).toBeInTheDocument();
-    expect(screen.getAllByRole("combobox")).toHaveLength(2);
+  afterEach(() => {
+    removeSelectShims();
   });
 
-  it("keeps the empty column listed and labels it as unnamed", () => {
-    seedStore(PREVIEW_WITH_EMPTY_HEADER);
+  it("auto-previews on file selection so the column dropdowns become enabled", async () => {
+    mocks.sendRequest.mockResolvedValue(PREVIEW);
+    resetStore("/tmp/variants.csv");
+
     render(<SourceColumnPanel />);
 
-    const headerCells = screen.getAllByRole("columnheader");
-    expect(headerCells.map((c) => c.textContent)).toEqual([
-      "Unnamed column 1",
-      "variant",
-      "score",
-    ]);
+    await waitFor(() => {
+      expect(mocks.sendRequest).toHaveBeenCalledWith(
+        "preview_evolvepro_source",
+        expect.objectContaining({ filepath: "/tmp/variants.csv" }),
+      );
+    });
+
+    const variantTrigger = await screen.findByLabelText("Mutation column");
+    const scoreTrigger = screen.getByLabelText("Ranking column");
+    await waitFor(() => {
+      expect(variantTrigger).not.toBeDisabled();
+      expect(scoreTrigger).not.toBeDisabled();
+    });
   });
 
-  it("stores the real header string, not the __col_N__ sentinel", () => {
-    seedStore(PREVIEW_WITH_EMPTY_HEADER);
+  it("keeps the dropdowns usable after auto-detect failed, and Apply sends the picked column", async () => {
+    mocks.sendRequest.mockResolvedValue(PREVIEW);
+    const loadEvolveproCsv = vi.fn().mockResolvedValue(undefined);
+    resetStore("/tmp/variants.csv");
+    // Auto-detect failure state: the load reset the counters and left a message.
+    useAppStore.setState({
+      loadEvolveproCsv,
+      evolveproTotalCount: 0,
+      statusMessage: "EVOLVEpro file load failed: no variant column",
+    });
+
     render(<SourceColumnPanel />);
 
-    // Radix typeahead resolves a printable keydown on the closed trigger and
-    // fires onValueChange with the item value (the sentinel). "v" uniquely
-    // matches "variant" among "Auto-detect" / "Unnamed column 1" / "score".
-    const variantTrigger = screen.getAllByRole("combobox")[0];
-    fireEvent.keyDown(variantTrigger, { key: "v" });
+    const variantTrigger = await screen.findByLabelText("Mutation column");
+    await waitFor(() => expect(variantTrigger).not.toBeDisabled());
 
-    expect(useAppStore.getState().evolveproVariantColumn).toBe("variant");
+    const user = userEvent.setup();
+    await user.click(variantTrigger);
+    await user.click(await screen.findByRole("option", { name: "Variant" }));
+
+    expect(useAppStore.getState().evolveproVariantColumn).toBe("Variant");
+
+    await user.click(screen.getByRole("button", { name: "Apply selected columns" }));
+    await waitFor(() => expect(loadEvolveproCsv).toHaveBeenCalledWith("/tmp/variants.csv"));
   });
 
-  it("renders a preview whose headers are all named", () => {
-    seedStore(PREVIEW_ALL_NAMED);
+  it("offers only the preview headers as column options", async () => {
+    mocks.sendRequest.mockResolvedValue(PREVIEW);
+    resetStore("/tmp/variants.csv");
+
     render(<SourceColumnPanel />);
 
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    const table = screen.getByRole("table");
+    const variantTrigger = await screen.findByLabelText("Mutation column");
+    await waitFor(() => expect(variantTrigger).not.toBeDisabled());
+
+    const user = userEvent.setup();
+    await user.click(variantTrigger);
+
+    const listbox = await screen.findByRole("listbox");
+    const labels = within(listbox)
+      .getAllByRole("option")
+      .map((o) => o.textContent);
+    // "Auto-detect" is the explicit delegate-to-backend entry; everything else
+    // must come from the preview headers, so no free-form column name is possible.
+    expect(labels).toEqual(["Auto-detect", "Variant", "fitness", "notes"]);
+    expect(screen.queryByRole("textbox")).toBeNull();
+  });
+
+  it("reports a failing preview RPC to the user", async () => {
+    mocks.sendRequest.mockRejectedValue(new Error("sidecar unavailable"));
+    resetStore("/tmp/variants.csv");
+
+    render(<SourceColumnPanel />);
+
     expect(
-      within(table)
-        .getAllByRole("columnheader")
-        .map((c) => c.textContent),
-    ).toEqual(["variant", "score"]);
-    expect(screen.queryByText(/Unnamed column/)).not.toBeInTheDocument();
+      await screen.findByText("Preview failed: sidecar unavailable"),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Mutation column")).toBeDisabled();
   });
 });

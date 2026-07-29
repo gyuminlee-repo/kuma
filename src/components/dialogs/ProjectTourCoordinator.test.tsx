@@ -110,4 +110,23 @@ describe("ProjectTourCoordinator", () => {
 
     expect(await screen.findByText("Follow the Mame workflow")).toBeInTheDocument();
   });
+
+  it("adds task-specific stops to the replayed Mame tour", async () => {
+    localStorage.setItem(storageKey("overview"), "1");
+    localStorage.setItem(storageKey("kuro"), "1");
+    localStorage.setItem(storageKey("mame"), "1");
+    render(
+      <ProjectTourCoordinator
+        project={project}
+        activeTab="mame"
+        onTabChange={vi.fn()}
+      />,
+    );
+
+    window.dispatchEvent(new CustomEvent(START_GUIDED_TOUR_EVENT));
+
+    expect(await screen.findByText("Follow the Mame workflow")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    expect(screen.getByText("Choose a Mame input route")).toBeInTheDocument();
+  });
 });

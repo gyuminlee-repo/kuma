@@ -11,17 +11,21 @@
 import { useTranslation } from "react-i18next";
 import { WorkflowRail, type WorkflowStep } from "@/components/widgets/WorkflowRail";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
+import { useRoundStore } from "@/store/round/roundSlice";
 import type { MameSubStepId } from "@/store/mame/slices/mameSubSteps";
 import type { MamePhase } from "@/store/mame/slices/phaseSlice";
+import { isMameSubStepDone } from "@/lib/mame/mameStepCompletion";
+import { loadBuildEvolveproFromStorage } from "@/lib/mame/buildEvolveproFormStorage";
 
 const ALL_SUBSTEPS: MameSubStepId[] = [
   "setup.files",
   "analyze.inputs",
   "analyze.review",
   "activity.ingest",
+  "activity.signals",
 ];
 
-const STEP_TOTAL = ALL_SUBSTEPS.length; // 4
+const STEP_TOTAL = ALL_SUBSTEPS.length; // 5
 
 /** Major.Sub 표기 (spec §5.2). KURO는 단일 카운트, MAME는 Major.Sub.
  * Legacy analyze.verdict/plate retained as 2.2 alias for migration/redirect rendering. */
@@ -33,6 +37,7 @@ const SUBSTEP_DISPLAY: Record<MameSubStepId, string> = {
   "analyze.verdict": "2.2",
   "analyze.plate": "2.2",
   "activity.ingest": "3.1",
+  "activity.signals": "3.2",
   "activity.mergeExport": "3.2",
 };
 
@@ -45,6 +50,7 @@ const SUBSTEP_MAJOR: Record<MameSubStepId, "setup" | "analyze" | "activity"> = {
   "analyze.verdict": "analyze",
   "analyze.plate": "analyze",
   "activity.ingest": "activity",
+  "activity.signals": "activity",
   "activity.mergeExport": "activity",
 };
 
@@ -71,6 +77,7 @@ const STEP_LABEL_KEYS: Record<MameSubStepId, string> = {
   "analyze.verdict": "phaseC.mameSubSteps.analyze.review",
   "analyze.plate": "phaseC.mameSubSteps.analyze.review",
   "activity.ingest": "phaseC.mameSubSteps.activity.ingest",
+  "activity.signals": "phaseC.mameSubSteps.activity.signals",
   "activity.mergeExport": "phaseC.mameSubSteps.activity.mergeExport",
 };
 
@@ -90,6 +97,22 @@ export function MameWorkflowRail() {
   const currentSubStep = useMameAppStore((s) => s.currentMameSubStep);
   const setMamePhase = useMameAppStore((s) => s.setMamePhase);
   const setMameSubStep = useMameAppStore((s) => s.setMameSubStep);
+  const inputDir = useMameAppStore((s) => s.inputDir);
+  const expectedPath = useMameAppStore((s) => s.expectedPath);
+  const referencePath = useMameAppStore((s) => s.referencePath);
+  const outputPath = useMameAppStore((s) => s.outputPath);
+  const verdicts = useMameAppStore((s) => s.verdicts);
+  const summary = useMameAppStore((s) => s.summary);
+  const buildEvolveproCompletion = useMameAppStore(
+    (s) => s.buildEvolveproCompletion,
+  );
+  const activeRoundId = useRoundStore((s) => s.active_round_id);
+  const rounds = useRoundStore((s) => s.rounds);
+  const activeRound = rounds.find((round) => round.id === activeRoundId);
+  const activityComplete = Boolean(
+    activeRound?.activity ||
+      (activeRound?.merged_table && activeRound.merged_table.length > 0),
+  );
 
   const activeIndex = ALL_SUBSTEPS.indexOf(currentSubStep);
   const progressPercent = computeProgress(Math.max(0, activeIndex));
@@ -111,8 +134,19 @@ export function MameWorkflowRail() {
     const subs = ALL_SUBSTEPS.filter((id) => SUBSTEP_MAJOR[id] === major.id);
     for (const id of subs) {
       const idx = ALL_SUBSTEPS.indexOf(id);
+      const done = isMameSubStepDone(id, {
+        inputDir,
+        expectedPath,
+        referencePath,
+        outputPath,
+        verdicts,
+        summary,
+        activityComplete,
+        buildEvolveproForm: loadBuildEvolveproFromStorage(),
+        buildEvolveproCompletion,
+      });
       let state: WorkflowStep["state"];
-      if (idx < activeIndex) state = "done";
+      if (done) state = "done";
       else if (idx === activeIndex) state = "active";
       else state = "default";
 

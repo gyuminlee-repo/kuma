@@ -177,6 +177,22 @@ class TestPoreActivityParsing:
         data = build_run_health(_sample_verdicts(), _sample_replicates(), meta)
         assert data.pore_yield_pct is None
 
+    def test_pore_yield_min114_tidy_layout(self, tmp_path: Path) -> None:
+        # MIN114 long/tidy layout (no percent column): % active = active
+        # state-time / total. strand 60 + pore 20 = 80 of total 100 -> 80.0%.
+        csv_content = (
+            "Channel State,Experiment Time (minutes),State Time (samples)\n"
+            "strand,0,60\n"
+            "pore,0,20\n"
+            "adapter,0,15\n"
+            "unavailable,0,5\n"
+        )
+        csv_file = tmp_path / "pore_activity_FBF10847.csv"
+        csv_file.write_text(csv_content, encoding="utf-8")
+        meta = _make_run_meta(raw_run_dir=str(tmp_path))
+        data = build_run_health(_sample_verdicts(), _sample_replicates(), meta)
+        assert data.pore_yield_pct == pytest.approx(80.0)
+
 
 class TestThroughputParsing:
     def test_throughput_timeline_parsed(self, tmp_path: Path) -> None:
@@ -209,11 +225,40 @@ class TestThroughputParsing:
         assert data.throughput_timeline is not None
         assert len(data.throughput_timeline) == 2
 
+    def test_throughput_min114_cumulative_reads(self, tmp_path: Path) -> None:
+        # MIN114 throughput carries a cumulative "Reads" count, not a per-second
+        # rate; it is differentiated. 0->1200 over 60 s = 20/s; 1200->4800 over
+        # 120 s = 30/s. The first row seeds the differentiation (no point).
+        csv_content = "Experiment Time (minutes),Reads\n0,0\n1,1200\n3,4800\n"
+        csv_file = tmp_path / "throughput_FBF10847.csv"
+        csv_file.write_text(csv_content, encoding="utf-8")
+        meta = _make_run_meta(raw_run_dir=str(tmp_path))
+        data = build_run_health(_sample_verdicts(), _sample_replicates(), meta)
+        assert data.throughput_timeline is not None
+        rates = [p["reads_per_sec"] for p in data.throughput_timeline]
+        assert rates == pytest.approx([20.0, 30.0])
+
 
 class TestBarcodeAlignmentParsing:
     def test_barcode_distribution_parsed(self, tmp_path: Path) -> None:
         tsv_content = "barcode_arrangement\tnum_reads\nbarcode01\t12400\nbarcode02\t9850\nunclassified\t1234\n"
         tsv_file = tmp_path / "barcode_alignment_passed.tsv"
+        tsv_file.write_text(tsv_content, encoding="utf-8")
+        meta = _make_run_meta(raw_run_dir=str(tmp_path))
+        data = build_run_health(_sample_verdicts(), _sample_replicates(), meta)
+        assert data.barcode_distribution is not None
+        assert data.barcode_distribution["barcode01"] == 12400
+        assert data.barcode_distribution["barcode02"] == 9850
+
+    def test_barcode_distribution_min114_target_unclassified(self, tmp_path: Path) -> None:
+        # MIN114 barcode_alignment_*.tsv: per-barcode read count is in the
+        # "target_unclassified" column, keyed by "barcode".
+        tsv_content = (
+            "barcode\talias\ttype\ttarget_unclassified\n"
+            "barcode01\tbarcode01\ttest_sample\t12400\n"
+            "barcode02\tbarcode02\ttest_sample\t9850\n"
+        )
+        tsv_file = tmp_path / "barcode_alignment_FBF10847.tsv"
         tsv_file.write_text(tsv_content, encoding="utf-8")
         meta = _make_run_meta(raw_run_dir=str(tmp_path))
         data = build_run_health(_sample_verdicts(), _sample_replicates(), meta)

@@ -283,7 +283,8 @@
       "generatedFiles": "생성된 파일",
       "cdsFasta": "CDS 서열",
       "cdsFastaPlaceholder": ".fa / .fasta / .gb / .gbk / .dna 파일 경로",
-      "cdsFastaHelper": "기준 CDS 서열 파일 (FASTA, GenBank, SnapGene .dna 지원). gene_start / gene_end는 이 서열 내 0-based 인덱스입니다.",
+      "cdsFastaHelper": "유전자 양쪽에 flanking 서열이 포함된 plasmid 또는 construct map(GenBank 또는 SnapGene .dna)이어야 합니다. MAME 프라이머는 유전자 바깥쪽에서 결합하므로 각 방향에 최소 flank_max(기본값 400 bp)만큼의 template이 필요합니다. CDS만 있는 FASTA는 작동하지 않습니다. gene_start / gene_end는 이 서열 내 0-based 인덱스입니다.",
+      "cdsFastaLoadError": "이 파일에서 유전자 주석을 읽지 못했습니다: {{error}}",
       "barcodeSeedsXlsx": "바코드 시드 xlsx",
       "geneName": "유전자 이름",
       "polymerase": "중합효소",
@@ -303,10 +304,10 @@
       "warningsAriaLabel": "경고",
       "requiredStateLabel": "필수",
       "requireGcClampAriaLabel": "3' 말단 GC 클램프 필요",
-      "polymeraseQ5Title": "NEB Q5 고충실도 중합효소. Tm 기준 ~72 °C, 낮은 Mg²⁺. 고충실도 증폭 기본 선택입니다.",
-      "polymeraseTaqTitle": "표준 Taq 중합효소. Tm 기준 ~60 °C, Mg²⁺ 농도 높음. 일반 PCR 또는 3'A 오버행이 필요할 때 사용합니다.",
-      "polymerasePhusionTitle": "Thermo Phusion 고충실도 중합효소. Tm 기준 ~72 °C, blunt-end 산물, 빠른 신장 반응.",
-      "polymeraseKODTitle": "Toyobo KOD One / KOD Hot Start. Tm 기준 ~68 °C (Mg²⁺/dNTP 보정 적용). 고충실도, 빠른 반응 속도.",
+      "polymeraseQ5Title": "NEB Q5 고충실도 중합효소. 권장 어닐링 ~72 °C, 낮은 Mg²⁺. 고충실도 증폭 기본 선택입니다.",
+      "polymeraseTaqTitle": "표준 Taq 중합효소. 권장 어닐링 ~60 °C, Mg²⁺ 농도 높음. 일반 PCR 또는 3'A 오버행이 필요할 때 사용합니다.",
+      "polymerasePhusionTitle": "Thermo Phusion 고충실도 중합효소. 권장 어닐링 ~72 °C, blunt-end 산물, 빠른 신장 반응.",
+      "polymeraseKODTitle": "Toyobo KOD One / KOD Hot Start. 권장 어닐링 ~68 °C. 고충실도, 빠른 반응 속도.",
       "autoDetect": {
         "button": "CDS로부터 자동 인식",
         "success": "{{source}}에서 자동 인식했습니다",
@@ -318,13 +319,28 @@
       "cdsCandidateNoneDetected": "CDS를 감지하지 못했습니다. 좌표를 수동으로 입력하세요.",
       "cdsCandidateHelp": "FASTA에서 자동 감지된 CDS 후보. 선택 시 좌표가 자동 입력됨.",
       "geneNameHelp": "출력 파일명/라벨에 사용되는 짧은 gene 식별자(예: egfp).",
-      "polymeraseHelp": "기본 Tm/binding 제약을 정하는 polymerase profile. 고정밀 PCR은 Q5 권장.",
+      "polymeraseHelp": "바코드 PCR 프로토콜에 기록할 중합효소입니다. 메타데이터일 뿐이며 Tm이나 프라이머 계산에 관여하지 않습니다.",
       "geneStartHelp": "CDS 시작 좌표 (0-based, inclusive).",
       "geneEndHelp": "CDS 종료 좌표 (0-based, exclusive).",
       "flankMinHelp": "barcode primer 탐색용 CDS 양옆 flank 최소 길이(nt). 기본 100.",
       "flankMaxHelp": "flank 최대 길이(nt). 클수록 후보는 많아지나 탐색이 느려짐.",
       "bindingMinLenHelp": "primer binding 최소 길이(nt). 안정적 PCR은 18-22 권장.",
-      "bindingMaxLenHelp": "primer binding 최대 길이(nt). 35 초과 시 secondary structure 위험 증가."
+      "bindingMaxLenHelp": "primer binding 최대 길이(nt). 35 초과 시 secondary structure 위험 증가.",
+      "flankWarningUpstream": "선형 template에서는 프라이머 설계가 실패할 수 있습니다: gene_start 앞쪽에 최소 {{needed}} bp가 필요하지만 {{available}} bp만 확보되어 있습니다 ({{shortfall}} bp 부족).",
+      "flankWarningDownstream": "선형 template에서는 프라이머 설계가 실패할 수 있습니다: gene_end 뒤쪽에 최소 {{needed}} bp가 필요하지만 {{available}} bp만 확보되어 있습니다 ({{shortfall}} bp 부족).",
+      "cdsTooltipLabel": "라벨: {{label}}",
+      "cdsTooltipRange": "범위: {{start}}-{{end}}",
+      "cdsTooltipLength": "길이: {{length}} aa",
+      "cdsTooltipSource": "출처: {{source}}",
+      "geneStartHelper": "레퍼런스 기준 gene 시작 위치. 0-based, 시작 포함.",
+      "geneEndHelper": "레퍼런스 기준 gene 끝 위치. 0-based, 끝 제외.",
+      "generatedFileLabels": {
+        "barcodes": "바코드 표 (xlsx)",
+        "amplicon": "Amplicon 레퍼런스 (FASTA)",
+        "sampleMapTemplate": "Sample map 템플릿 (xlsx)",
+        "contextJson": "Run context (JSON)"
+      },
+      "openFolderError": "폴더를 열지 못했습니다."
     },
     "activity": {
       "ingest": {
@@ -351,6 +367,15 @@
         "helpText": "여기 표시된 well은 activity fold-change normalization의 wild-type baseline으로 사용됩니다.",
         "suggestButton": "Control wells에서 가져오기",
         "alreadySetTooltip": "WT wells가 이미 설정됨"
+      },
+      "route": {
+        "heading": "EVOLVEpro 입력 경로",
+        "ariaLabel": "EVOLVEpro 입력 생성 방식을 선택하세요",
+        "genotypeLabel": "Activity + NGS genotype",
+        "genotypeDesc": "long-format well activity를 업로드해 이번 라운드 NGS verdict과 병합한 뒤 내보냅니다.",
+        "plateLayoutLabel": "Plate layout + GC data",
+        "plateLayoutDesc": "plate layout과 GC data xlsx 파일로 곧바로 생성합니다. NGS genotype이 필요 없습니다.",
+        "completeCurrentRoute": "선택한 Activity 경로를 완료하세요"
       },
       "mergeExport": {
         "contextTitle": "활성 데이터 — 병합 및 내보내기",
@@ -393,20 +418,20 @@
         "menuLegacy": "Legacy 출력 (CSV)",
         "menuEvolvepro": "EVOLVEpro v0.3 format (WT 정규화 포함)",
         "desc": "업로드된 활성 데이터를 라운드 유전자형과 결합하고 야생형으로 정규화합니다.",
-        "heading": "활성 데이터를 유전자형과 병합"
+        "heading": "활성 데이터를 유전자형과 병합",
+        "evolveproDesc": "권장: WT 대비 replicate 정규화 + 레이블 교체(label-swap) 가드를 적용합니다.",
+        "legacyDesc": "WT 정규화나 레이블 교체 검사가 없는 legacy CSV 출력입니다."
       },
-      "tabExport": "3. 내보내기",
-      "tabIngest": "1. 수집",
-      "tabMerge": "2. 병합",
-      "subtitle": "Phase 1 바코드 설정 및 Phase 2 분석 이후 (보통 며칠~수 주 후) 습식 실험 활성 측정이 완료되면 이 단계에 진입합니다. 측정값을 로드하고 유전자형과 병합한 후 EVOLVEpro 훈련 입력을 내보냅니다.",
-      "title": "활성 데이터"
+      "sectionIngest": "활성 데이터 업로드",
+      "sectionMerge": "유전자형과 병합",
+      "sectionExport": "EVOLVEpro 입력 내보내기"
     },
     "buildEvolvepro": {
       "title": "EVOLVEpro 입력 생성",
-      "subtitle": "플레이트 레이아웃, GC 데이터, Agilent 반복 리포트, 이전 EVOLVEpro 파일을 하나의 EVOLVEpro 입력 xlsx로 결합합니다.",
+      "subtitle": "한 라운드의 activity 측정값을 하나의 EVOLVEpro 입력 xlsx로 결합합니다.",
       "inputFiles": "입력 파일",
       "layoutXlsx": "플레이트 레이아웃 xlsx",
-      "layoutXlsxHelper": "Mutant to well 위치 매핑 (Mutant, Well Pos. 열).",
+      "layoutXlsxHelper": "Mutant to well 위치 매핑. plate layout 형식 (Mutant, Well Pos. 열) 또는 step 1에서 만든 sample map (sample_name, well 열) 둘 다 받습니다.",
       "gcDataXlsx": "GC 데이터 xlsx",
       "gcDataXlsxHelper": "well별 사전 정규화된 relative activity (Sample Name, Area 열).",
       "repBatchXlsx": "Agilent 반복 리포트 xlsx",
@@ -424,7 +449,7 @@
       "build": "EVOLVEpro 입력 생성",
       "building": "생성 중...",
       "resultTitle": "생성 결과",
-      "emptyState": "네 개의 입력 파일과 출력 경로를 선택한 뒤 EVOLVEpro 입력을 생성하세요.",
+      "emptyState": "선택한 소스에 필요한 입력 파일과 출력 경로를 지정한 뒤 EVOLVEpro 입력을 생성하세요.",
       "nVariants": "기록된 variant",
       "nAuthoritative": "반복 리포트 기준",
       "nFallbackOnly": "GC 데이터 단독",
@@ -443,7 +468,34 @@
       "toastSuccess": "EVOLVEpro 입력 생성 완료",
       "toastSuccessDesc": "{{count}}개 variant를 기록했습니다.",
       "toastError": "EVOLVEpro 입력 생성 실패",
-      "openFolder": "출력 폴더 열기"
+      "openFolder": "출력 폴더 열기",
+      "routeNote": "이 경로는 xlsx 파일을 직접 읽으며, genotype 연동 경로의 activity 업로드를 사용하지 않습니다.",
+      "sourceModeLabel": "Activity 소스",
+      "sourceModeRank": "GC data 시트",
+      "sourceModeReports": "Agilent raw 리포트",
+      "sourceModeRankHelper": "well별로 사전 정규화된 GC data를 플레이트 레이아웃으로 variant에 매핑합니다.",
+      "sourceModeReportsHelper": "Agilent FID1B raw 리포트에서 각 리포트의 WT 블록 대비 fold-change를 직접 계산합니다.",
+      "round1SourceLabel": "Round-1 소스",
+      "round1SourcePrev": "이전 EVOLVEpro",
+      "round1SourceRaw": "GC-FID raw 리포트",
+      "round1SourcePrevHelper": "이전 EVOLVEpro 파일(Variant, activity)을 round-1 baseline 전체로 사용합니다.",
+      "round1SourceRawHelper": "well 이름이 붙은 GC-FID raw 리포트를 사용하며, 플레이트 레이아웃이 well을 variant로 매핑합니다.",
+      "round1EvolveproXlsx": "Round-1 EVOLVEpro xlsx",
+      "round1EvolveproXlsxHelper": "이전 라운드 EVOLVEpro xlsx (Variant, activity). 재측정된 variant는 그 평균으로 대체됩니다.",
+      "round1ReportXlsx": "Round-1 리포트 xlsx (GC-FID raw)",
+      "round1ReportXlsxHelper": "Agilent FID1B raw 리포트. sample name이 well 위치(A1..H12)이며 WT 블록을 포함합니다.",
+      "gcExportXlsx": "상대활성 export xlsx (GC data 형태)",
+      "gcExportXlsxHelper": "선택 검토용 산출물. round-1 well별 상대활성(area / WT 평균 area)을 Sample Name, Area 열로 저장하며 GC data 시트와 같은 형태입니다.",
+      "remeasureReportXlsx": "재측정 리포트 xlsx (variant 라벨)",
+      "remeasureReportXlsxHelper": "Agilent FID1B raw 리포트. sample name이 variant 라벨(예: V5F 또는 5F)이며 반복 행이 replicate입니다.",
+      "verdictXlsx": "NGS verdict xlsx",
+      "verdictXlsxHelper": "Analyze Excel 리포트(Final 시트: well_id + verdict). well이 PASS가 아닌 variant는 제외됩니다. 생략하면 NGS 게이팅을 건너뜁니다.",
+      "layoutXlsxOptionalHelper": "NGS verdict 게이팅에서 variant를 well에 매핑할 때만 사용합니다.",
+      "optionalStateLabel": "선택",
+      "nNgsExcluded": "NGS 제외",
+      "missingInputs": "아직 필요한 파일",
+      "restoredNotice": "이 장치에 저장된 경로를 복구했습니다. 다른 프로젝트의 파일이면 초기화하세요.",
+      "clearRestored": "복구된 EVOLVEpro 입력 초기화"
     },
     "runHealth": {
       "panelAriaLabel": "실행 상태 패널",
@@ -786,7 +838,12 @@
         "button": "Well 레이아웃 생성",
         "building": "생성 중…",
         "confirmed": "well {{count}}개 확정",
-        "ariaLabel": "expected_mutations xlsx에서 well 레이아웃 자동 생성"
+        "ariaLabel": "expected_mutations xlsx에서 well 레이아웃 자동 생성",
+        "clear": "레이아웃 해제",
+        "clearAriaLabel": "확정된 well 레이아웃 해제",
+        "disabledBySampleMap": "Sample Map이 선택되어 있어 비활성화됨. Sample Map이 well-to-sample 매핑의 기준 자료임.",
+        "fallbackHint": "Sample Map이 없는 run을 위한 대체 수단. KURO 시트 행 순서를 A1부터 well에 순서대로(column-major) 배정하며 WT 대조군 well은 없다고 가정함.",
+        "overrideWarning": "이 레이아웃이 Sample Map을 덮어씀. Sample Map을 사용하려면 레이아웃을 해제할 것."
       }
     },
     "setup": {
@@ -913,6 +970,8 @@
       "sampleAriaLabel": "well {{well}}의 sample 이름",
       "empty": "생성된 well이 없습니다. expected_mutations xlsx가 선택됐는지 확인하세요.",
       "rowCount": "레이아웃에 well {{count}}개",
+      "droppedMutants": "mutant {{count}}개가 96-well plate에 들어가지 않아 draft에서 빠졌습니다: {{mutants}}. 바코드 조합이 12 fwd x 8 rev라 96개가 상한입니다. plate를 나누고 plate별로 레이아웃을 따로 만드세요.",
+      "wtOmitted": "plate가 가득 차 WT 대조군 well이 빠졌습니다. WT well이 없으면 대조군 청정 검증을 할 수 없습니다.",
       "confirm": "레이아웃 확정"
     },
     "verdictBadge": {
@@ -1002,7 +1061,9 @@
     "legendDestPartial": "F 또는 R 한쪽만 도착",
     "mappingRange": "매핑 범위",
     "rowStart": "Row 시작",
-    "rowEnd": "Row 끝"
+    "rowEnd": "Row 끝",
+    "destWell": "대상 well",
+    "missing": "없음"
   },
   "globalAppBar": {
     "navAriaLabel": "앱 내비게이션",
@@ -1034,7 +1095,7 @@
     "strategyOption_full": "전체 오버랩 (Q5 SDM)",
     "strategyOption_full_title": "NEB Q5 SDM kit 방식. Reverse primer = forward의 reverse-complement. 단일 back-to-back primer 쌍이 돌연변이 위치를 커버합니다.",
     "polymeraseLabel": "중합효소:",
-    "polymeraseHelp": "Tm 계산 프리셋(연장 Tm 목표 및 허용 오차 기본값)을 선택합니다.\nSDM 반응에 사용하는 중합효소를 선택하세요.\n'Custom Polymerase'로 직접 연장 Tm을 정의할 수 있습니다.",
+    "polymeraseHelp": "폴리머라제 프리셋을 선택합니다. 권장 어닐링 온도(Ta) 규칙, GC 허용 범위, overlap 모드가 함께 설정됩니다.\n설계 시점 Tm 계산식은 SantaLucia 1998 (Benchling) 고정이라 폴리머라제를 바꿔도 달라지지 않습니다.\n폴리머라제를 바꾸면 GC 범위가 덮어써지므로, 직접 설정한 값이 있으면 다시 확인하세요.\n'Custom Polymerase'로 Tm 목표를 직접 정의할 수 있습니다.",
     "polymeraseManufacturer": "제조사: {{manufacturer}}",
     "polymeraseFidelity": "정확도: {{fidelity}}",
     "customPolymerase": "사용자 폴리머라제",
@@ -1168,6 +1229,7 @@
     "helpTip3D": "AlphaFold Cα 좌표를 사용해 3D 공간에서 멀리 분포한 변이를 선택합니다.",
     "helpTip1D": "선택된 위치 간 최소 서열 거리를 최대화하는 greedy Pareto 선택입니다.",
     "roundSectionLabel": "라운드",
+    "roundMovedHint": "라운드 번호와 크기는 이제 Mutations 단계에서 variant 파일 옆에 설정합니다.",
     "evolveproRoundLabel": "EVOLVEpro 라운드",
     "roundSizeLabel": "크기",
     "roundHelp": "Round × size = 모델 품질(ρ) 추정에 사용되는 누적 데이터 수입니다.\nρ가 낮을수록 풀이 넓어지고 탐색을 위한 entropy 가중치가 높아집니다.",
@@ -1218,7 +1280,12 @@
     "linkerLabelHelp": "primer 탐색 중 알려진 linker 영역 처리 방식.",
     "positionCapLabelHelp": "잔기 위치당 최대 primer 수(1-20). 과대 대표 방지.",
     "roundSectionHelp": "EVOLVEpro round는 적응형 선택을 통한 반복적 primer 배치 제어.",
-    "benchmarkSectionHelp": "benchmark는 설계된 primer와 random baseline을 비교하여 품질 향상도 추정."
+    "benchmarkSectionHelp": "benchmark는 설계된 primer와 random baseline을 비교하여 품질 향상도 추정.",
+    "roundUnsetHint": "sigma-adaptive 기본값을 쓰려면 Mutations 단계에서 라운드를 설정하세요.",
+    "structuralSuggestTitle": "제안: Structural diversity",
+    "structuralSuggestBody": "현재 pool이 combinatorial하고, round가 이른 단계이며, 3D 구조가 로드되어 있습니다. 벤치마크에서 Top-N 대비 이득을 보이는 조건입니다.",
+    "structuralSuggestCaveat": "이 이득은 조건부입니다. epistatic이 아닌 타겟에서는 오히려 손해를 볼 수 있습니다.",
+    "structuralSuggestEnable": "Structural diversity 활성화"
   },
   "candidatePopover": {
     "reviewHeading": "후보 검토",
@@ -1409,7 +1476,8 @@
     "cancel": "취소",
     "save": "저장",
     "saving": "저장 중...",
-    "nebTmNote": "이 NEB 폴리머라제의 Tm은 NEB Tm Calculator 보정으로 계산되며, 아래 salt 및 Tm 방법 값은 계산 Tm에 영향을 주지 않습니다."
+    "nebTmNote": "NEB 폴리머라제는 NEB Tm Calculator 보정을 권장 어닐링 온도(Ta) 계산에만 적용합니다. 설계 시점 Tm은 SantaLucia 1998 (Benchling) 고정 스케일이라 아래 salt 및 Tm method 값은 설계 Tm을 바꾸지 않습니다.",
+    "fieldScopeNote": "설계 엔진이 읽는 값: Fwd/Rev/Overlap Tm 목표, GC 범위, 프라이머 길이 범위, overlap 모드. 저장되지만 사용하지 않는 값: Opt Tm, Min/Max Tm, Opt/Min/Max size, Max Tm diff. salt 및 Tm method 값은 Ta 계산에만 쓰이며, 커스텀 프로파일은 Ta 규칙이 없어 Ta가 표시되지 않습니다."
   },
   "mainShell": {
     "alreadyRunning": "이미 실행 중입니다.",
@@ -1490,7 +1558,9 @@
     "mameWorkspaceTitle": "Mame 주 작업 영역",
     "mameWorkspaceBody": "런 데이터를 불러오고 유전자형 판정과 플레이트 결과를 검토한 뒤 활성 측정값을 병합해 내보냅니다.",
     "mameInspectorTitle": "Mame 세부 정보 검토",
-    "mameInspectorBody": "현재 Mame 단계에 필요한 제어와 맥락을 결과 옆의 인스펙터에서 확인합니다."
+    "mameInspectorBody": "현재 Mame 단계에 필요한 제어와 맥락을 결과 옆의 인스펙터에서 확인합니다.",
+    "mameRouteTitle": "Mame 입력 경로 선택",
+    "mameRouteBody": "activity 데이터를 업로드한 뒤에는 genotype 연동 경로를, GC data xlsx 파일이 이미 있으면 plate-layout 경로를 사용하세요."
   },
   "onboarding": {
     "titleChange": "프로젝트 폴더 변경",
@@ -1509,7 +1579,8 @@
     "descStart": "프로젝트 기본 폴더를 선택하세요. kuma는 Kuro 설계와 Mame 판정 실행 결과를 각 프로젝트 폴더에 저장하여 장기 시퀀싱 작업 전반에 걸쳐 데이터를 보존합니다.",
     "chooseFolderBtn": "폴더 선택",
     "doneBtn": "완료",
-    "insideEachProject": "각 프로젝트 안에는"
+    "insideEachProject": "각 프로젝트 안에는",
+    "maximizeHint": "창을 최대화하면 화면이 가장 잘 맞습니다. kuma는 넓은 작업 영역을 기준으로 배치됩니다."
   },
   "appLayout": {
     "status": "상태",
@@ -1600,8 +1671,6 @@
     "variantsLoaded": "{{count}}개 변이 불러옴",
     "topNZeroHint": "top-N을 0으로 두면 CSV의 모든 변이를 불러옵니다",
     "mutationsHelp": "HGVS 또는 단순 형식 mutation(예: A123V, L45*). 줄 단위 또는 콤마 구분.",
-    "others": "Others",
-    "othersDesc": "(사용자 정의 column 매핑)",
     "othersColumnMapping": "Column 매핑",
     "othersVariantColumn": "Mutation column",
     "othersVariantColumnPlaceholder": "자동 감지",
@@ -1614,7 +1683,8 @@
     "othersSheetNamePlaceholder": "첫 번째 sheet",
     "othersPreviewBtn": "미리보기",
     "othersPreviewLoading": "미리보기 불러오는 중...",
-    "othersPreviewEmpty": "미리보기 없음. 먼저 파일을 불러오세요.",
+    "othersPreviewEmpty": "이 파일에서 column을 찾지 못했습니다. 파일을 확인하거나 다른 sheet를 선택하세요.",
+    "othersLoadFailed": "EVOLVEpro 파일 불러오기 실패: {{message}}. 아래에서 mutation column과 ranking column을 직접 선택한 뒤 적용하세요.",
     "othersPreviewError": "미리보기 실패: {{message}}",
     "othersApplyBtn": "선택한 column 적용",
     "othersApplyError": "Column 불러오기 실패: {{message}}",
@@ -1624,7 +1694,14 @@
     "extraExposedLabel": "추가 후보 표시 수:",
     "extraExposedAriaLabel": "표시할 추가 미선택 후보 수",
     "extraExposedHint": "(0 = 선택된 항목만)",
-    "bufferCapReached": "추가 후보 {{count}}개 전체 표시됨"
+    "bufferCapReached": "추가 후보 {{count}}개 전체 표시됨",
+    "campaignRoundLabel": "캠페인 라운드",
+    "roundNumberLabel": "라운드",
+    "roundNumberAriaLabel": "EVOLVEpro 캠페인 라운드 번호",
+    "roundSizeLabel": "크기",
+    "roundSizeAriaLabel": "라운드당 primer 개수(1-960)",
+    "campaignRoundHint": "이후 단계의 sigma-adaptive 기본값 계산에 사용되는 EVOLVEpro 라운드 컨텍스트를 설정합니다.",
+    "roundHistoryMismatch": "라운드 이력상 라운드 {{suggested}}이(가) 제안되지만, 현재 {{current}}로 설정되어 있습니다."
   },
   "offTargetDetail": {
     "closeAriaLabel": "닫기",
@@ -1727,6 +1804,15 @@
     "continueLabel": "계속",
     "continueLabelBlock": "그래도 계속",
     "cancelLabel": "취소"
+  },
+  "roundPrompt": {
+    "title": "EVOLVEpro round 설정",
+    "description": "EVOLVEpro campaign round는 Step 4의 sigma-adaptive pool sizing과 entropy weighting을 결정합니다. 설정하지 않으면 해당 기능이 꺼진 상태로 유지됩니다.",
+    "roundLabel": "Round 번호",
+    "roundAriaLabel": "EVOLVEpro campaign round 번호",
+    "suggestedHint": "Round 이력 기준 제안값: {{suggested}}",
+    "confirmLabel": "Round 설정",
+    "dismissLabel": "나중에"
   },
   "statusBar": {
     "ready": "준비",
@@ -2276,6 +2362,7 @@
       },
       "activity": {
         "ingest": "활성 데이터",
+        "signals": "신호 및 핸드오프",
         "merge": "병합",
         "export": "내보내기",
         "mergeExport": "병합 및 내보내기"
@@ -2332,6 +2419,7 @@
     "mameDescriptions": {
       "activity": {
         "ingest": "활성 측정값을 업로드한 뒤 verdict과 병합해 다음 라운드 EVOLVEpro 입력을 내보냅니다 (단일 반복 GC + 3중 반복 WT 상대).",
+        "signals": "라운드 간 분류 신호를 검토하고, EVOLVEpro 입력이 준비되면 다음 라운드로 핸드오프합니다.",
         "mergeExport": "활성 데이터를 유전형 콜과 병합해 테이블을 내보낸 뒤, 단일 반복(GC)과 3중 반복(WT 상대) 활성을 결합해 EVOLVEpro 입력을 생성합니다."
       },
       "analyze": {
@@ -2583,5 +2671,14 @@
     "noVariants": "No candidates to display. Load EVOLVEpro results and run a design to see candidates on the structure.",
     "fallbackNote": "Showing all {{count}} ranked candidates.",
     "dispersionChartTitle": "Selection vs random (null distribution)"
+  },
+  "appShell": {
+    "sidebarResize": "사이드바 크기 조절"
+  },
+  "artifact": {
+    "badge": {
+      "staleHint": "생성 당시 입력보다 오래됐습니다. 해당 단계를 다시 실행하면 갱신됩니다.",
+      "detected": "{{step}} 산출물 감지됨"
+    }
   }
 }

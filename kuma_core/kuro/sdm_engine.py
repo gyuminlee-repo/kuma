@@ -1439,6 +1439,41 @@ def load_sequence(filepath: Path) -> tuple[str, str, list[GeneInfo]]:
     raise ValueError("CDS annotation required. Use GenBank (.gb/.gbk) or SnapGene (.dna).")
 
 
+def detect_topology(filepath: Path) -> str:
+    """Return "circular" or "linear" for a sequence file, defaulting to "linear".
+
+    GenBank and SnapGene records carry an explicit topology annotation via
+    Biopython (``record.annotations["topology"]``). Plain FASTA carries no
+    topology information at all, so it always reports "linear".
+
+    This is intentionally independent of :func:`load_sequence` (which does not
+    expose topology) so existing callers of ``load_sequence`` are unaffected.
+    """
+    suffix = filepath.suffix.lower()
+
+    if suffix in {".gb", ".gbff", ".gbk"}:
+        from Bio import SeqIO
+
+        with open(filepath, encoding="utf-8", errors="replace") as fh:
+            records = list(SeqIO.parse(fh, "genbank"))
+        if not records:
+            raise ValueError(f"No records found in GenBank file: {filepath.name}")
+        topology = str(records[0].annotations.get("topology", "linear")).lower()
+        return topology if topology == "circular" else "linear"
+
+    if suffix == ".dna":
+        from Bio import SeqIO
+
+        try:
+            record = SeqIO.read(filepath, "snapgene")
+        except ValueError:
+            return "linear"
+        topology = str(record.annotations.get("topology", "linear")).lower()
+        return topology if topology == "circular" else "linear"
+
+    return "linear"
+
+
 def _load_genbank(gb_path: Path) -> tuple[str, str, list[GeneInfo]]:
     """Load a GenBank file and extract CDS features across all records."""
     from Bio import SeqIO
