@@ -64,8 +64,8 @@ Round 2 EVOLVEpro pred        ── 다음 라운드 (이 폴더 범위 밖)
 | 1 | `01_kuro_evolvepro_pred.csv` | KURO | Stage 2 | `variant`, `y_pred` | — |
 | 3 | `03_mame_expected_mutations.xlsx` | MAME | Stage 3 | `mutant_id`, `position`, `wt_aa`, `mt_aa`, `wt_codon`, `mt_codon`, `group_id`, `primer_set_ref`, `notation_type`, `status` | `expected_mutations` |
 | 4 | `04_mame_custom_barcodes.xlsx` | MAME | Stage 4 | A=`isps_f_1..12`/`isps_r_1..8`, B=서열 | `barcodes` |
-| 5 | `05_mame_sample_map.xlsx` | MAME | Stage 4 (선택) | A=sample 이름, B=well | `sample_map` |
-| 6 | `06_mame_plate_layout.xlsx` | MAME activity | Stage A | `Mutant`, `Well Pos.` | `Plate Layout` |
+| 5 | `05_mame_sample_map.xlsx` | MAME | Stage 4 (선택) | A=sample 이름, B=well. 반복은 `<이름>_r<n>` (`WT_r1`, `Q232A_r2`), 빈 well 은 `blank` 로 적고 activity 파싱에서 제외 | `sample_map` |
+| 6 | `06_mame_plate_layout.xlsx` | MAME activity | Stage A | `Mutant`, `Well Pos.` (5번 sample map 의 `sample_name`+`well` 도 대신 쓸 수 있음). `_r<n>` 반복 접미사와 `blank` 행 처리는 5번과 동일 | `Plate Layout` |
 | 7a | `07_mame_activity_long.csv` | MAME activity | Stage B (주) | `plate_id`, `well_id`, `value`, opt `replicate_idx` | — |
 | 7b | `07_mame_activity_long.xlsx` | MAME activity | Stage B (xlsx 변형) | 동일 | `activity_long` |
 | 8 | `08_mame_evolvepro_raw.xlsx` | MAME activity | Stage B 대안 | `Variant`, `activity` | `EVOLVEpro` |
@@ -85,7 +85,7 @@ Round 2 EVOLVEpro pred        ── 다음 라운드 (이 폴더 범위 밖)
 - 코드 위치:
   - `python-core/sidecar_mame/handlers/activity.py:32` — `_ALLOWED_ACTIVITY_EXTENSIONS`
   - `kuma_core/mame/activity/ingest_long_csv.py:27-57` — long CSV 컬럼
-  - `kuma_core/mame/activity/plate_layout_xlsx.py:49-117` — `Mutant` + `Well Pos.`
+  - `kuma_core/mame/activity/plate_layout_xlsx.py:49-117`, `Mutant` + `Well Pos.` 또는 `sample_name` + `well`
   - `kuma_core/mame/activity/evolvepro_xlsx.py:185, 392, 469, 537` — EVOLVEpro/Agilent/GC 파서
   - `kuma_core/mame/io/kuro_reader.py:11-22` — expected_mutations 컬럼
   - `kuma_core/mame/ingest/sort_barcode.py:74-75, 135, 207-220` — barcode/sample map

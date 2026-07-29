@@ -285,6 +285,129 @@ class TestDesignFlankingPrimers:
 
 
 # ---------------------------------------------------------------------------
+# Circular topology: origin-wrapping search windows
+# ---------------------------------------------------------------------------
+
+_CDS_CIRCULAR_6494 = (_UNIT * 130)[:6494]  # matches the real reproduction plasmid length
+_CDS_100 = (_UNIT * 2)[:100]  # 100 bp (must be >= 100 for a real 100 bp fixture)
+
+
+class TestCircularSliceHelper:
+    """Unit tests for the private modular-slice helper used by circular wrap."""
+
+    def test_wraps_negative_start(self) -> None:
+        from kuma_core.mame.ingest.barcode_package import _circular_slice
+
+        seq = "ABCDEFGHIJ"  # len 10
+        assert _circular_slice(seq, -3, 5, 10) == "HIJAB"
+
+    def test_wraps_past_end(self) -> None:
+        from kuma_core.mame.ingest.barcode_package import _circular_slice
+
+        seq = "ABCDEFGHIJ"  # len 10
+        assert _circular_slice(seq, 8, 4, 10) == "IJAB"
+
+    def test_no_wrap_matches_plain_slice(self) -> None:
+        from kuma_core.mame.ingest.barcode_package import _circular_slice
+
+        seq = "ABCDEFGHIJ"
+        assert _circular_slice(seq, 2, 4, 10) == seq[2:6]
+
+
+class TestCircularTopology:
+    """design_flanking_primers(topology="circular") allows origin-wrapping windows."""
+
+    _PROFILE = get_profile("Q5")
+
+    def test_forward_window_wraps_origin(self) -> None:
+        """Reproduction case: gene_start=267 with flank_max=400 on a 6494 bp
+        circular plasmid puts the forward window at [-133, 167), which must
+        wrap instead of raising."""
+        fwd, rev, warns = design_flanking_primers(
+            _CDS_CIRCULAR_6494,
+            gene_start=267,
+            gene_end=1950,
+            profile=self._PROFILE,
+            topology="circular",
+        )
+        assert fwd and fwd == fwd.lower()
+        assert rev and rev == rev.lower()
+        assert 18 <= len(fwd) <= 35
+        assert 18 <= len(rev) <= 35
+
+    def test_reverse_window_wraps_origin(self) -> None:
+        """gene_end=1100 with flank_max=400 on a 1200 bp circular sequence puts
+        the reverse window end at 1500 (> seq_len=1200), which must wrap."""
+        fwd, rev, warns = design_flanking_primers(
+            _CDS_1200,
+            gene_start=800,
+            gene_end=1100,
+            profile=self._PROFILE,
+            topology="circular",
+        )
+        assert fwd and fwd == fwd.lower()
+        assert rev and rev == rev.lower()
+        assert 18 <= len(fwd) <= 35
+        assert 18 <= len(rev) <= 35
+
+    def test_linear_topology_still_raises_for_same_coordinates(self) -> None:
+        """The same coordinates that succeed under circular topology must still
+        raise the original error under (default) linear topology."""
+        with pytest.raises(ValueError, match="too short upstream"):
+            design_flanking_primers(
+                _CDS_CIRCULAR_6494,
+                gene_start=267,
+                gene_end=1950,
+                profile=self._PROFILE,
+            )
+        with pytest.raises(ValueError, match="too short downstream"):
+            design_flanking_primers(
+                _CDS_1200,
+                gene_start=800,
+                gene_end=1100,
+                profile=self._PROFILE,
+                topology="linear",
+            )
+
+    def test_degenerate_window_wider_than_sequence_raises(self) -> None:
+        """flank_max - flank_min > seq_len must raise a clear error naming
+        seq_len rather than emit a primer that reads bases twice."""
+        with pytest.raises(ValueError, match=r"seq_len=100"):
+            design_flanking_primers(
+                _CDS_100,
+                gene_start=10,
+                gene_end=20,
+                profile=self._PROFILE,
+                flank_min=0,
+                flank_max=150,
+                topology="circular",
+            )
+
+    def test_degenerate_binding_length_longer_than_sequence_raises(self) -> None:
+        """binding_max_len > seq_len must raise the same guard."""
+        with pytest.raises(ValueError, match=r"seq_len=100"):
+            design_flanking_primers(
+                _CDS_100,
+                gene_start=10,
+                gene_end=20,
+                profile=self._PROFILE,
+                binding_min_len=18,
+                binding_max_len=150,
+                topology="circular",
+            )
+
+    def test_invalid_topology_literal_raises(self) -> None:
+        with pytest.raises(ValueError, match="topology must be"):
+            design_flanking_primers(
+                _CDS_1200,
+                gene_start=500,
+                gene_end=800,
+                profile=self._PROFILE,
+                topology="mobius",
+            )
+
+
+# ---------------------------------------------------------------------------
 # generate_mame_package (integration)
 # ---------------------------------------------------------------------------
 
@@ -490,4 +613,265 @@ class TestGenerateMamePackage:
                 output_dir=project_root / "design",
                 project_root=project_root,
                 gene_name="   ",
+            )
+
+
+# ---------------------------------------------------------------------------
+# sample_map_template pre-fill (expected_mutations_path)
+# ---------------------------------------------------------------------------
+
+def _make_expected_mutations_xlsx(path: Path, mutants: list[tuple[str, int, str, str]]) -> None:
+    """Write a minimal KURO results xlsx carrying an `expected_mutations` sheet.
+
+    Header order must match kuma_core.mame.io.kuro_reader._EXPECTED_HEADER.
+    """
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    assert ws is not None
+    ws.title = "expected_mutations"
+    ws.append([
+        "mutant_id", "position", "wt_aa", "mt_aa", "wt_codon",
+        "mt_codon", "group_id", "primer_set_ref", "notation_type", "status",
+    ])
+    for mutant_id, position, wt_aa, mt_aa in mutants:
+        ws.append([
+            mutant_id, position, wt_aa, mt_aa, "", "", "", "", "substitution", "DESIGNED",
+        ])
+    wb.save(str(path))
+
+
+def _read_sample_map(path: Path) -> list[tuple[str, str]]:
+    """Return the template data rows as (sample_name, well) tuples."""
+    wb = openpyxl.load_workbook(str(path), read_only=True)
+    try:
+        ws = wb.worksheets[0]
+        rows = [r for r in ws.iter_rows(values_only=True) if any(c is not None for c in r)]
+    finally:
+        wb.close()
+    assert [str(c) for c in rows[0][:2]] == ["sample_name", "well"]
+    return [(str(r[0]), str(r[1])) for r in rows[1:]]
+
+
+class TestSampleMapTemplatePrefill:
+    def test_omitted_path_keeps_header_only_template(self, tmp_path: Path) -> None:
+        """Default behaviour is unchanged: headers, no data rows."""
+        fasta, seeds, project_root = _make_project(tmp_path)
+        result = generate_mame_package(
+            fasta_path=fasta,
+            gene_start=500,
+            gene_end=800,
+            barcode_seeds_path=seeds,
+            output_dir=project_root / "design",
+            project_root=project_root,
+        )
+        assert result.sample_map_prefilled_rows == 0
+        assert _read_sample_map(result.sample_map_template) == []
+
+    def test_prefill_places_mutants_column_major_with_wt_last(self, tmp_path: Path) -> None:
+        """Rows follow build_draft_layout: column-major wells, WT after the last mutant."""
+        fasta, seeds, project_root = _make_project(tmp_path)
+        expected_xlsx = project_root / "kuro_results.xlsx"
+        _make_expected_mutations_xlsx(
+            expected_xlsx,
+            [("V5F", 5, "V", "F"), ("K53N", 53, "K", "N"), ("A77G", 77, "A", "G")],
+        )
+
+        result = generate_mame_package(
+            fasta_path=fasta,
+            gene_start=500,
+            gene_end=800,
+            barcode_seeds_path=seeds,
+            output_dir=project_root / "design",
+            project_root=project_root,
+            expected_mutations_path=expected_xlsx,
+        )
+
+        rows = _read_sample_map(result.sample_map_template)
+        assert rows == [
+            ("V5F", "A1"),
+            ("K53N", "B1"),
+            ("A77G", "C1"),
+            ("WT", "D1"),
+        ]
+        assert result.sample_map_prefilled_rows == 4
+
+    def test_prefill_emits_verification_warning(self, tmp_path: Path) -> None:
+        """The draft placement is an assumption, so the operator must be told."""
+        fasta, seeds, project_root = _make_project(tmp_path)
+        expected_xlsx = project_root / "kuro_results.xlsx"
+        _make_expected_mutations_xlsx(expected_xlsx, [("V5F", 5, "V", "F")])
+
+        result = generate_mame_package(
+            fasta_path=fasta,
+            gene_start=500,
+            gene_end=800,
+            barcode_seeds_path=seeds,
+            output_dir=project_root / "design",
+            project_root=project_root,
+            expected_mutations_path=expected_xlsx,
+        )
+        assert any("pre-filled" in w and "Verify" in w for w in result.warnings)
+
+    def test_prefill_matches_build_draft_layout(self, tmp_path: Path) -> None:
+        """Template and the mame.build_well_layout RPC must not drift apart."""
+        from kuma_core.mame.io.kuro_reader import read_expected_mutations
+        from kuma_core.mame.layout import build_draft_layout
+
+        fasta, seeds, project_root = _make_project(tmp_path)
+        expected_xlsx = project_root / "kuro_results.xlsx"
+        _make_expected_mutations_xlsx(
+            expected_xlsx, [(f"M{i}", i, "A", "G") for i in range(1, 13)]
+        )
+
+        result = generate_mame_package(
+            fasta_path=fasta,
+            gene_start=500,
+            gene_end=800,
+            barcode_seeds_path=seeds,
+            output_dir=project_root / "design",
+            project_root=project_root,
+            expected_mutations_path=expected_xlsx,
+        )
+
+        draft = build_draft_layout(read_expected_mutations(expected_xlsx))
+        assert _read_sample_map(result.sample_map_template) == [
+            (sample, well) for well, sample in draft.layout.items()
+        ]
+
+    def test_missing_expected_file_raises(self, tmp_path: Path) -> None:
+        """A supplied but unreadable path is an error, not a blank-template fallback."""
+        fasta, seeds, project_root = _make_project(tmp_path)
+        with pytest.raises((FileNotFoundError, ValueError)):
+            generate_mame_package(
+                fasta_path=fasta,
+                gene_start=500,
+                gene_end=800,
+                barcode_seeds_path=seeds,
+                output_dir=project_root / "design",
+                project_root=project_root,
+                expected_mutations_path=project_root / "does_not_exist.xlsx",
+            )
+
+    def test_expected_sheet_without_designed_rows_raises(self, tmp_path: Path) -> None:
+        """An expected_mutations sheet with no DESIGNED rows must fail loudly."""
+        fasta, seeds, project_root = _make_project(tmp_path)
+        expected_xlsx = project_root / "kuro_results.xlsx"
+        _make_expected_mutations_xlsx(expected_xlsx, [])
+        with pytest.raises(ValueError, match="No DESIGNED expected mutations"):
+            generate_mame_package(
+                fasta_path=fasta,
+                gene_start=500,
+                gene_end=800,
+                barcode_seeds_path=seeds,
+                output_dir=project_root / "design",
+                project_root=project_root,
+                expected_mutations_path=expected_xlsx,
+            )
+
+    def test_existing_filled_template_is_preserved(self, tmp_path: Path) -> None:
+        """Operator well assignments must survive a re-run of package generation."""
+        fasta, seeds, project_root = _make_project(tmp_path)
+        output_dir = project_root / "design"
+        expected_xlsx = project_root / "kuro_results.xlsx"
+        _make_expected_mutations_xlsx(expected_xlsx, [("V5F", 5, "V", "F")])
+
+        # First run drafts the template; the operator then corrects a placement.
+        first = generate_mame_package(
+            fasta_path=fasta,
+            gene_start=500,
+            gene_end=800,
+            barcode_seeds_path=seeds,
+            output_dir=output_dir,
+            project_root=project_root,
+            expected_mutations_path=expected_xlsx,
+        )
+        assert first.sample_map_preserved is False
+        wb = openpyxl.load_workbook(str(first.sample_map_template))
+        ws = wb.worksheets[0]
+        ws["B2"] = "H12"  # operator moves V5F to the physical well
+        wb.save(str(first.sample_map_template))
+        wb.close()
+
+        # Re-running (e.g. to adjust the gene range) must not discard that edit.
+        second = generate_mame_package(
+            fasta_path=fasta,
+            gene_start=500,
+            gene_end=790,
+            barcode_seeds_path=seeds,
+            output_dir=output_dir,
+            project_root=project_root,
+            expected_mutations_path=expected_xlsx,
+        )
+        assert second.sample_map_preserved is True
+        assert second.sample_map_prefilled_rows == 0
+        assert _read_sample_map(second.sample_map_template) == [("V5F", "H12"), ("WT", "B1")]
+        assert any("left unchanged" in w for w in second.warnings)
+
+    def test_header_only_template_is_replaced(self, tmp_path: Path) -> None:
+        """A template holding no operator work carries no value worth preserving."""
+        fasta, seeds, project_root = _make_project(tmp_path)
+        output_dir = project_root / "design"
+        expected_xlsx = project_root / "kuro_results.xlsx"
+        _make_expected_mutations_xlsx(expected_xlsx, [("V5F", 5, "V", "F")])
+
+        generate_mame_package(
+            fasta_path=fasta,
+            gene_start=500,
+            gene_end=800,
+            barcode_seeds_path=seeds,
+            output_dir=output_dir,
+            project_root=project_root,
+        )  # header-only template
+
+        result = generate_mame_package(
+            fasta_path=fasta,
+            gene_start=500,
+            gene_end=800,
+            barcode_seeds_path=seeds,
+            output_dir=output_dir,
+            project_root=project_root,
+            expected_mutations_path=expected_xlsx,
+        )
+        assert result.sample_map_preserved is False
+        assert _read_sample_map(result.sample_map_template) == [("V5F", "A1"), ("WT", "B1")]
+
+    def test_mutation_set_larger_than_one_plate_raises(self, tmp_path: Path) -> None:
+        """A draft that cannot cover the plate is refused, not written truncated.
+
+        The template is a file the operator edits with no confirmation step, and a
+        96-row sheet looks like a correct full plate, so silently dropping the
+        remainder would surface only as mis-scored wells much later.
+        """
+        fasta, seeds, project_root = _make_project(tmp_path)
+        expected_xlsx = project_root / "kuro_results.xlsx"
+        _make_expected_mutations_xlsx(
+            expected_xlsx, [(f"M{i}", i, "A", "G") for i in range(1, 110)]
+        )
+        with pytest.raises(ValueError, match="do not fit one 96-well plate"):
+            generate_mame_package(
+                fasta_path=fasta,
+                gene_start=500,
+                gene_end=800,
+                barcode_seeds_path=seeds,
+                output_dir=project_root / "design",
+                project_root=project_root,
+                expected_mutations_path=expected_xlsx,
+            )
+
+    def test_exactly_full_plate_raises_for_missing_wt(self, tmp_path: Path) -> None:
+        """N == 96 leaves no WT well, which costs the clean-control check."""
+        fasta, seeds, project_root = _make_project(tmp_path)
+        expected_xlsx = project_root / "kuro_results.xlsx"
+        _make_expected_mutations_xlsx(
+            expected_xlsx, [(f"M{i}", i, "A", "G") for i in range(1, 97)]
+        )
+        with pytest.raises(ValueError, match="no well left for the WT control"):
+            generate_mame_package(
+                fasta_path=fasta,
+                gene_start=500,
+                gene_end=800,
+                barcode_seeds_path=seeds,
+                output_dir=project_root / "design",
+                project_root=project_root,
+                expected_mutations_path=expected_xlsx,
             )

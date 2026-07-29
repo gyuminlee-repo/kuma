@@ -35,12 +35,17 @@ from pathlib import Path
 
 from kuma_core.mame.ingest.consensus_metadata import (
     ALIGNED_READS,
+    BASIS_COVERED,
     CONSENSUS_N_FRACTION,
+    CONSENSUS_N_FRACTION_BASIS,
     DEPTH,
+    INDEL_EVENT_POSITIONS,
     INPUT_READS,
     LOW_DEPTH_POSITIONS,
     LOW_QUALITY_BASES,
     MAPQ_FAILED,
+    MAX_DEL_RUN_LENGTH,
+    MAX_INDEL_EVENT_FRACTION,
     MAX_MINOR_ALLELE_FRACTION,
     MIXED_POSITIONS,
     SPAN_FAILED,
@@ -85,10 +90,38 @@ def _read_float_metadata(metadata: dict[str, str], key: str) -> float | None:
         return None
 
 
-def _consensus_n_fraction(consensus_seq: str) -> float:
-    if not consensus_seq:
-        return 0.0
-    return consensus_seq.count("N") / len(consensus_seq)
+def _recover_covered_n_fraction(
+    consensus_seq: str,
+    n_low_depth_positions: int | None,
+) -> float | None:
+    """Recover the covered-scoped no-call rate from a legacy consensus header.
+
+    Legacy headers store ``consensus_n_fraction`` against the whole reference
+    length, which is not comparable to the covered-scoped threshold the verdict
+    gate applies. The covered-scoped value is recoverable because the consensus
+    caller emits 'N' at every position below ``min_depth`` and counts exactly
+    those positions in ``low_depth_positions`` (kuma_core/mame/ingest/
+    consensus.py). Both the numerator and denominator therefore follow by
+    subtraction.
+
+    Returns ``None`` when recovery is not possible: no ``low_depth_positions``
+    key, an empty sequence, or counts that contradict the invariant. Callers must
+    treat ``None`` as "not evaluable" rather than substituting a value.
+    """
+
+    if not consensus_seq or n_low_depth_positions is None:
+        return None
+    if n_low_depth_positions < 0:
+        return None
+    n_covered = len(consensus_seq) - n_low_depth_positions
+    n_covered_no_call = consensus_seq.count("N") - n_low_depth_positions
+    if n_covered < 0 or n_covered_no_call < 0:
+        return None
+    if n_covered == 0:
+        # Nothing reached usable depth: fully no-call, matching the zero-coverage
+        # branch of call_consensus_with_metrics.
+        return 1.0
+    return n_covered_no_call / n_covered
 
 
 def _iter_consensus_files(directory: Path) -> Iterator[Path]:
@@ -157,15 +190,40 @@ def parse_fasta_file(path: Path, native_barcode: str) -> BarcodeRecord:
     max_minor_allele_fraction = (
         _read_float_metadata(metadata, MAX_MINOR_ALLELE_FRACTION) or 0.0
     )
-    n_low_depth_positions = _read_int_metadata(metadata, LOW_DEPTH_POSITIONS) or 0
-    consensus_n_fraction = _read_float_metadata(metadata, CONSENSUS_N_FRACTION)
-    if consensus_n_fraction is None:
-        consensus_n_fraction = _consensus_n_fraction(consensus_seq)
+    low_depth_raw = _read_int_metadata(metadata, LOW_DEPTH_POSITIONS)
+    n_low_depth_positions = low_depth_raw or 0
+    # The stored consensus_n_fraction is only comparable to the verdict threshold
+    # when the header declares the covered-scoped denominator. Without that
+    # marker the file predates the definition change and its number means
+    # something else, so it is recovered or declared not evaluable, never reused.
+    basis = metadata.get(CONSENSUS_N_FRACTION_BASIS.lower())
+    stored_n_fraction = _read_float_metadata(metadata, CONSENSUS_N_FRACTION)
+    if basis == BASIS_COVERED and stored_n_fraction is not None:
+        consensus_n_fraction = stored_n_fraction
+        consensus_n_fraction_evaluable = True
+    else:
+        recovered = _recover_covered_n_fraction(consensus_seq, low_depth_raw)
+        if recovered is None:
+            _logger.warning(
+                "Consensus file %s carries no %s marker and the covered-scoped "
+                "N fraction cannot be recovered; the N-fraction gate is skipped "
+                "for this well.",
+                path,
+                CONSENSUS_N_FRACTION_BASIS,
+            )
+            consensus_n_fraction = 0.0
+            consensus_n_fraction_evaluable = False
+        else:
+            consensus_n_fraction = recovered
+            consensus_n_fraction_evaluable = True
     n_low_quality_bases = _read_int_metadata(metadata, LOW_QUALITY_BASES) or 0
     n_input_reads = _read_int_metadata(metadata, INPUT_READS)
     n_aligned_reads = _read_int_metadata(metadata, ALIGNED_READS)
     n_mapq_failed = _read_int_metadata(metadata, MAPQ_FAILED) or 0
     n_span_failed = _read_int_metadata(metadata, SPAN_FAILED) or 0
+    n_indel_event_positions = _read_int_metadata(metadata, INDEL_EVENT_POSITIONS) or 0
+    max_indel_event_fraction = _read_float_metadata(metadata, MAX_INDEL_EVENT_FRACTION) or 0.0
+    max_del_run_length = _read_int_metadata(metadata, MAX_DEL_RUN_LENGTH) or 0
 
     return BarcodeRecord(
         native_barcode=native_barcode,
@@ -178,11 +236,15 @@ def parse_fasta_file(path: Path, native_barcode: str) -> BarcodeRecord:
         max_minor_allele_fraction=max_minor_allele_fraction,
         n_low_depth_positions=n_low_depth_positions,
         consensus_n_fraction=consensus_n_fraction,
+        consensus_n_fraction_evaluable=consensus_n_fraction_evaluable,
         n_low_quality_bases=n_low_quality_bases,
         n_input_reads=n_input_reads,
         n_aligned_reads=n_aligned_reads,
         n_mapq_failed=n_mapq_failed,
         n_span_failed=n_span_failed,
+        n_indel_event_positions=n_indel_event_positions,
+        max_indel_event_fraction=max_indel_event_fraction,
+        max_del_run_length=max_del_run_length,
     )
 
 

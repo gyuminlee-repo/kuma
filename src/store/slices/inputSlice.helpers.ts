@@ -1,24 +1,23 @@
+import i18next from "i18next";
 import type {
   DomainInfo,
   DomainStat,
   EvolveproLoadResult,
   EvolveproStepStats,
 } from "../../types/models";
-import type { EvolveproMode } from "../slice-interfaces";
+import type { Round } from "../../types/round";
 
 export interface EvolveproLoadConfig {
   filepath: string;
   topN: number;
   usePipeline: boolean;
-  /** Full mode enum, drives 3-way branching in buildEvolveproLoadParams */
-  evolveproMode: EvolveproMode;
-  /** "others" mode: mutation column name (null = auto-detect) */
+  /** Mutation/variant column name override (null = backend auto-detect via VARIANT_COLUMNS alias). */
   evolveproVariantColumn: string | null;
-  /** "others" mode: ranking/score column name (null = auto-detect) */
+  /** Ranking/score column name override (null = backend auto-detect via SCORE_COLUMNS alias). */
   evolveproScoreColumn: string | null;
-  /** "others" mode: score ordering direction */
+  /** Score ordering direction; always sent. */
   evolveproScoreOrder: "asc" | "desc";
-  /** "others" mode: sheet name for XLSX files (null = first sheet) */
+  /** Sheet name for XLSX files (null = first sheet). */
   evolveproSheetName: string | null;
   positionDiversityEnabled: boolean;
   maxPerPosition: number;
@@ -44,6 +43,14 @@ export interface EvolveproLoadConfig {
    * pass-through (backward compatible).
    */
   refSeq: string;
+  structuralDiversityEnabled: boolean;
+  structuralKappa: number;
+  /**
+   * Cumulative already-explored variant IDs (internal notation, e.g. `F89W`)
+   * for structural-diversity revealed-anchor maximin. Empty = no anchor
+   * (greedy seed is the max-fitness row). Backward compatible.
+   */
+  anchorVariants: string[];
 }
 
 export interface EvolveproLoadStateUpdate {
@@ -58,12 +65,17 @@ export interface EvolveproLoadStateUpdate {
   statusMessage: string;
 }
 
+export function resolveSelectionDomains(
+  refDomains: DomainInfo[] | undefined,
+): DomainInfo[] {
+  return refDomains ?? [];
+}
+
 export function buildEvolveproLoadParams(config: EvolveproLoadConfig): Record<string, unknown> {
   const {
     filepath,
     topN,
     usePipeline,
-    evolveproMode,
     evolveproVariantColumn,
     evolveproScoreColumn,
     evolveproScoreOrder,
@@ -86,15 +98,18 @@ export function buildEvolveproLoadParams(config: EvolveproLoadConfig): Record<st
     evolveproRound,
     roundSize,
     refSeq,
+    structuralDiversityEnabled,
+    structuralKappa,
+    anchorVariants,
   } = config;
 
   const params: Record<string, unknown> = {
     filepath,
     top_n: topN,
-    ...(evolveproMode === "others" && evolveproVariantColumn && { variant_column: evolveproVariantColumn }),
-    ...(evolveproMode === "others" && evolveproScoreColumn && { score_column: evolveproScoreColumn }),
-    ...(evolveproMode === "others" && { score_order: evolveproScoreOrder }),
-    ...(evolveproMode === "others" && evolveproSheetName && { sheet_name: evolveproSheetName }),
+    ...(evolveproVariantColumn && { variant_column: evolveproVariantColumn }),
+    ...(evolveproScoreColumn && { score_column: evolveproScoreColumn }),
+    score_order: evolveproScoreOrder,
+    ...(evolveproSheetName && { sheet_name: evolveproSheetName }),
     ...(usePipeline && positionDiversityEnabled && { max_per_position: maxPerPosition }),
     ...(usePipeline && excludedDomains.length > 0 && {
       excluded_ranges: excludedDomains.map((d) => ({ start: d.start, end: d.end })),
@@ -111,7 +126,7 @@ export function buildEvolveproLoadParams(config: EvolveproLoadConfig): Record<st
     ...(usePipeline && paretoDiversityEnabled && entropyWeightEnabled && { entropy_weight: entropyWeight }),
     ...(usePipeline && paretoDiversityEnabled && { pool_multiplier: paretoPoolMultiplier }),
     ...(usePipeline && paretoDiversityEnabled && { distance_mode: distanceMode }),
-    ...(usePipeline && paretoDiversityEnabled && structureAccession && {
+    ...(usePipeline && (paretoDiversityEnabled || structuralDiversityEnabled) && structureAccession && {
       structure_accession: structureAccession,
     }),
     ...(usePipeline && paretoDiversityEnabled && evolveproRound > 0 && {
@@ -119,8 +134,33 @@ export function buildEvolveproLoadParams(config: EvolveproLoadConfig): Record<st
       round_size: roundSize,
     }),
     ...(refSeq && { ref_seq: refSeq }),
+    ...(usePipeline && structuralDiversityEnabled && { structural_diversity: true }),
+    ...(usePipeline && structuralDiversityEnabled && { structural_kappa: structuralKappa }),
+    ...(usePipeline && { anchor_variants: anchorVariants }),
   };
   return params;
+}
+
+/**
+ * Collect the cumulative set of already-explored variant IDs across every
+ * round's merged table, for use as `anchor_variants` in structural-diversity
+ * selection. Dedupes (first-seen order), drops null and "WT". The structural
+ * selector maximises minimum distance to this set so new picks spread away
+ * from sequence space already committed to a plate.
+ */
+export function collectAnchorVariants(rounds: Round[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const round of rounds) {
+    for (const row of round.merged_table) {
+      const m = row.mutation;
+      if (m && m !== "WT" && !seen.has(m)) {
+        seen.add(m);
+        out.push(m);
+      }
+    }
+  }
+  return out;
 }
 
 export function buildEvolveproLoadStateUpdate(params: {
@@ -145,6 +185,9 @@ export function buildEvolveproLoadStateUpdate(params: {
   const paretoMsg = result.pareto_replaced != null && result.pareto_replaced > 0
     ? ` | Pareto: ${result.pareto_replaced} diversified`
     : "";
+  const structureMsg = result.structure_frame_mismatch
+    ? ` | ${i18next.t("inputSlice.structureFrameMismatch")}`
+    : "";
   const modeLabel = "EVOLVEpro";
 
   return {
@@ -156,6 +199,6 @@ export function buildEvolveproLoadStateUpdate(params: {
     evolveproFilteredCount: result.filtered_count ?? null,
     evolveproParetoExchanges: result.pareto_replaced ?? null,
     evolveproStepStats: result.step_stats ?? null,
-    statusMessage: `${modeLabel}: ${result.selected_count}/${result.total_count} variants${filteredMsg}${domainMsg}${paretoMsg}`,
+    statusMessage: `${modeLabel}: ${result.selected_count}/${result.total_count} variants${filteredMsg}${domainMsg}${paretoMsg}${structureMsg}`,
   };
 }

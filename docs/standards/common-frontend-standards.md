@@ -146,7 +146,7 @@ tags: [kuma, frontend, standards, charter, kuro, mame, primerbench]
 **Rationale**: 접근성·단축키 통일 부재는 마우스 미사용 사용자, 색약 사용자, 다른 OS 환경의 진입장벽을 키운다.
 
 **Requirements**
-- [필수] **Run / Save / Reset 단축키** (Ctrl/Cmd+R, Ctrl/Cmd+S, Ctrl/Cmd+Shift+R) 통일
+- [필수] **Run / Reset 단축키** 통일: active KUMA registry 기준 Run = Ctrl/Cmd+D 및 Ctrl/Cmd+Enter, Reset = Ctrl/Cmd+Shift+R. Save 단축키는 project-aware workspace save command가 재도입될 때 registry와 문서에 함께 추가한다.
 - [필수] **Focus ring 보존** (shadcn/ui 기본 유지)
 - [권장] **다크모드** 셋 다 동일 디자인 토큰 사용
 - [필수] **Toast 위치 통일**: top-right
@@ -267,11 +267,12 @@ tags: [kuma, frontend, standards, charter, kuro, mame, primerbench]
 - [권장] **Inline help (?) 아이콘**: 모든 입력 필드 옆, 호버 시 1-2줄 설명 + 외부 docs 링크
 - [필수] **Empty state 가이드**: 빈 화면일 때 "Sample → Run → Export" 3-step 안내
 - [권장] **What's New 모달**: 업데이트 직후 변경점 요약
-- [권장] **튜토리얼 모드**: 첫 실행 시 가상 데이터로 walkthrough
+- [권장] **튜토리얼 모드**: 새 프로젝트 최초 진입 시 주요 영역 spotlight walkthrough. 기존 프로젝트 자동 표시 금지, 전체 스킵과 Help 메뉴 재실행 경로 제공
 
 **Acceptance**
 - 신규 사용자가 docs 없이 sample → export 까지 5분 이내 완주
 - What's New 는 마이너 버전 업데이트마다 1회만 노출
+- 새 프로젝트 투어는 프로젝트별 1회만 자동 표시되며, `Esc`는 현재 투어만 닫고 **모든 투어 건너뛰기**만 영구 opt-out 처리
 
 ---
 
@@ -481,7 +482,7 @@ mame, primerbench 도 동일 형식 placeholder.
 | 12 | Reproducibility | ✅ | ✅ | 🟡 | mame seed N/A 분류 확정 (Phase 12-A). kuro 기존 seed UI ✅ |
 | 13 | Long-running Jobs | ✅ | ✅ | 🟡 | PB OS notification + sleep inhibit (Phase D). PB ❌→🟡 |
 | 14 | Data Integrity | ✅ | ✅ | 🟡 | PB output checksum (Phase B). PB ❌→🟡 |
-| 15 | Onboarding | ✅ | ✅ | ✅ | 전 앱 🟡→✅ (Phase 11-B/11-D InlineHelp + WhatsNewDialog) |
+| 15 | Onboarding | ✅ | ✅ | ✅ | kuro/mame: 새 프로젝트 spotlight 투어 + 프로젝트별 persistence + 전체 스킵/Help 재실행; InlineHelp + WhatsNewDialog |
 | 16 | Local Diagnostics | ✅ | ✅ | 🟡 | mame 🟡→✅ (Phase 11-C Generate Diagnostics 진입점) |
 | 17 | Cross-platform | ✅ | ✅ | 🟡 | kuro/mame 🟡→✅ (Phase 10-B UTF-8 BOM CSV 옵션). PB OS shortcut (Phase E3) |
 | 18 | Partial Success | ✅ | ✅ | ✅ | PB 🟡→✅ (Phase 12-B SangerMatrix summary 통계 + StatusBadge panel 통합) |

@@ -1,6 +1,7 @@
 import React from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { App } from "./App";
+import { UpdateAvailableDialog } from "./components/dialogs/UpdateAvailableDialog";
 import { appendCrashLog } from "./lib/crashLog";
 import { initI18n, resolveActiveLocale } from "./lib/i18n";
 import { restorePersistedWorkspace } from "./lib/workspace";
@@ -76,7 +77,10 @@ async function bootstrap(): Promise<void> {
   root.render(
     <React.StrictMode>
       <ErrorBoundary>
-        <App />
+        <>
+          <App />
+          <UpdateAvailableDialog />
+        </>
       </ErrorBoundary>
     </React.StrictMode>,
   );

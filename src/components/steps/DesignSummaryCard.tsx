@@ -28,9 +28,6 @@ export function DesignSummaryCard() {
   const evolveproTotalCount = useAppStore((s) => s.evolveproTotalCount);
   const selectedPolymerase = useAppStore((s) => s.selectedPolymerase);
   const codonStrategy = useAppStore((s) => s.codonStrategy);
-  const designMethod = useAppStore((s) => s.designMethod);
-  const enzyme = useAppStore((s) => s.enzyme);
-  const overlapMode = useAppStore((s) => s.overlapMode);
   const tmFwdTarget = useAppStore((s) => s.tmFwdTarget);
   const maxPrimers = useAppStore((s) => s.maxPrimers);
 
@@ -44,10 +41,6 @@ export function DesignSummaryCard() {
 
   const variantCount = evolveproTotalCount;
 
-  const methodText = designMethod === "goldengate"
-    ? `Golden Gate (${enzyme})`
-    : `Overlap-extension (${overlapMode === "full" ? "Q5 SDM" : "Gibson"})`;
-
   const rows: Array<[string, string]> = [
     [t("phaseE.summary.sequence.label"), sequenceText],
     [t("phaseE.summary.mutation.label"), mutationInputMode],
@@ -57,7 +50,6 @@ export function DesignSummaryCard() {
       t("phaseE.summary.polymerase.label"),
       `${selectedPolymerase || "—"} · ${codonStrategy} · Tm ${tmFwdTarget}°C · max ${maxPrimers}`,
     ],
-    [t("phaseE.summary.method.label"), methodText],
   ];
 
   return (

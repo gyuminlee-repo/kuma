@@ -1,4 +1,4 @@
-"""6-class verdict classification."""
+"""8-class verdict classification."""
 
 from kuma_core.mame.compare.verdict import classify_verdict, parse_mutation_label
 

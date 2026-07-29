@@ -16,6 +16,6 @@
 
 ## 영역 라벨
 
-InterPro에서 가져온 도메인([다양성 전략](diversity-strategies.md))은 서열 위 반투명 밴드로 렌더.
+**서열 스캔**(InterProScan; [다양성 전략](diversity-strategies.md) 참고)으로 얻은 참조 서열 도메인이 서열 위 반투명 밴드로 렌더된다. 이 좌표는 불러온 참조 좌표계라서 밴드가 변이 위치와 직접 정렬된다. UniProt accession 도메인은 여기 그리지 않으며 AlphaFold 3D 구조 전용이다.
 
 *스텁 — 뷰어 스크린샷 추가 예정.*

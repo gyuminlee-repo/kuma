@@ -31,6 +31,13 @@ TARGETS = {
             "numpy",
             "primer3",
             "openpyxl",
+            # xlrd is imported lazily for legacy .xls tables, in both the
+            # preview path (sidecar_kuro/handlers/misc.py:125) and the actual
+            # load path (kuma_core/kuro/evolvepro.py:339), so PyInstaller's
+            # static analysis cannot see it. Without this entry the packaged
+            # sidecar raises ModuleNotFoundError on any .xls source, while a
+            # development run succeeds because the wheel is installed.
+            "xlrd",
             "sidecar_kuro",
             "sidecar_kuro.dispatcher",
             "kuma_core.kuro",

@@ -1,6 +1,7 @@
 """JSON-RPC dispatcher: method registry, main loop, parent watchdog."""
 
 import json
+import logging
 import os
 import sys
 import threading
@@ -39,17 +40,21 @@ from sidecar_kuro.handlers.export import (
     handle_load_workspace,
 )
 from sidecar_kuro.handlers.external import (
+    handle_annotate_domains_by_sequence,
+    handle_predict_structure_esmfold,
     handle_check_structures_available,
     handle_fetch_domains,
     handle_search_uniprot,
     handle_fetch_structure,
+    handle_fetch_interface_residues,
+    handle_fetch_pdb_text,
+    handle_fetch_active_site,
+    handle_compute_dispersion,
 )
 from sidecar_kuro.handlers.misc import (
     handle_list_polymerases,
-    handle_list_typeiis_enzymes,
     handle_get_polymerase_details,
     handle_save_custom_polymerase,
-    handle_save_custom_enzyme,
     handle_list_organisms,
     handle_load_evolvepro_csv,
     handle_preview_evolvepro_source,
@@ -80,10 +85,8 @@ _METHODS = {
     "ping": lambda _: {"ok": True},
     "health_info": _handle_health_info,
     "list_polymerases": handle_list_polymerases,
-    "list_typeiis_enzymes": handle_list_typeiis_enzymes,
     "get_polymerase_details": handle_get_polymerase_details,
     "save_custom_polymerase": handle_save_custom_polymerase,
-    "save_custom_enzyme": handle_save_custom_enzyme,
     "list_organisms": handle_list_organisms,
     "load_fasta": handle_load_fasta,
     "parse_mutations_text": handle_parse_mutations_text,
@@ -111,6 +114,13 @@ _METHODS = {
     "search_uniprot": handle_search_uniprot,
     "check_structures_available": handle_check_structures_available,
     "fetch_structure": handle_fetch_structure,
+    "fetch_interface_residues": handle_fetch_interface_residues,
+    # G001: 3D Analysis panel RPCs
+    "fetch_pdb_text": handle_fetch_pdb_text,
+    "fetch_active_site_residues": handle_fetch_active_site,
+    "compute_dispersion": handle_compute_dispersion,
+    "annotate_domains_by_sequence": handle_annotate_domains_by_sequence,
+    "predict_structure_esmfold": handle_predict_structure_esmfold,
     "run_benchmark": handle_run_benchmark,
     "cancel_design": lambda _: {
         "cancelled": True,
@@ -119,7 +129,7 @@ _METHODS = {
     # Phase 3: Settings
     "settings_load": handle_settings_load,
     "settings_save": handle_settings_save,
-    # §22 graceful shutdown — ack immediately; main() breaks on this method
+    # §22 graceful shutdown — ack immediately; main() exits on this method
     "shutdown": lambda _: {"ok": True, "message": "shutdown_acked"},
 }
 
@@ -131,8 +141,15 @@ _ASYNC_METHODS = {
     "search_uniprot",
     "check_structures_available",
     "fetch_structure",
+    "fetch_interface_residues",
     "fetch_domains",
     "run_benchmark",
+    # G001: 3D Analysis panel RPCs
+    "fetch_pdb_text",
+    "fetch_active_site_residues",
+    "compute_dispersion",
+    "annotate_domains_by_sequence",
+    "predict_structure_esmfold",
 }
 
 # Frozen-Windows worker dispatch starves the worker thread while the main loop
@@ -154,10 +171,16 @@ def _dispatch_handler(req_id: int | None, method: str, handler, params: dict) ->
     except (KeyError, ValueError) as exc:
         _append_crash_log(method, str(params)[:200], traceback.format_exc())
         _error(req_id, -32602, str(exc))
-    except Exception:
+    except Exception as exc:
         logger.exception("Unhandled error in %s", method)
         _append_crash_log(method, str(params)[:200], traceback.format_exc())
-        _error(req_id, -32603, "Internal error")
+        # Surface the exception type + message instead of an opaque
+        # "Internal error". The full traceback stays in crash.log only; the
+        # short form (e.g. "ImportError: primer3 is required ...") lets the UI
+        # show an actionable cause. The -32603 code is preserved so the
+        # frontend errorClassifier still buckets this as a sidecar error.
+        # Mirrors sidecar_mame/dispatcher.py.
+        _error(req_id, -32603, f"{type(exc).__name__}: {exc}")
 
 
 def dispatch(request: dict) -> None:
@@ -181,6 +204,17 @@ def dispatch(request: dict) -> None:
     _dispatch_handler(req_id, method, handler, params)
 
 
+def _exit_after_shutdown() -> None:
+    logging.shutdown()
+    try:
+        sys.stdout.flush()
+    except BrokenPipeError:
+        pass
+    try:
+        sys.stderr.flush()
+    except BrokenPipeError:
+        pass
+    os._exit(0)
 
 
 def _start_parent_watchdog() -> None:
@@ -315,7 +349,7 @@ def main(emit_ready: bool = True) -> None:
         if request.get("method") == "shutdown":
             dispatch(request)
             logger.info("KURO sidecar shutdown requested, exiting cleanly")
-            break
+            _exit_after_shutdown()
 
         dispatch(request)
 

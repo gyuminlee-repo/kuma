@@ -16,8 +16,10 @@ import type { LoadAnalyzeResultResponse } from "@/types/mame/models";
 import { KURO_SCHEMA } from "@/lib/kuroSnapshot";
 import { MAME_SCHEMA } from "@/lib/mame/autosaveSnapshot";
 import { detectProjectFiles, detectFromInputDir } from "@/lib/mame/detectProjectFiles";
+import { openWorkspace } from "@/lib/workspace";
 import { useAppStore } from "@/store/appStore";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
+import { resetMameAll } from "@/store/mame/resetAll";
 import type { AppState } from "@/store/appStore";
 import type { AutosaveSnapshot } from "@/lib/autosave";
 import type { MameAutosaveSnapshot } from "@/lib/mame/autosaveSnapshot";
@@ -50,7 +52,8 @@ function isMutationInputMode(value: unknown): value is AppState["mutationInputMo
   return value === "text" || value === "evolvepro";
 }
 
-function isEvolveproMode(value: unknown): value is AppState["evolveproMode"] {
+/** Accepts the legacy "others" literal too, callers coerce it to "pipeline". */
+function isEvolveproModeRaw(value: unknown): value is "topN" | "pipeline" | "others" {
   return value === "topN" || value === "pipeline" || value === "others";
 }
 
@@ -82,7 +85,8 @@ function isDistanceMode(value: unknown): value is AppState["distanceMode"] {
   return value === "auto" || value === "1d" || value === "3d";
 }
 
-async function applyKuroSnapshot(snapshot: AutosaveSnapshot): Promise<void> {
+/** Exported for unit testing (legacy "others" -> "pipeline" migration path). */
+export async function applyKuroSnapshot(snapshot: AutosaveSnapshot): Promise<void> {
   const input = snapshot.input as Record<string, unknown> | undefined;
   const params = snapshot.parameters as Record<string, unknown> | undefined;
   const diversity = snapshot.diversity as Record<string, unknown> | undefined;
@@ -104,40 +108,52 @@ async function applyKuroSnapshot(snapshot: AutosaveSnapshot): Promise<void> {
   if (typeof input?.organism === "string") {
     patch.organism = input.organism;
   }
-  if (isEvolveproMode(input?.evolvepro_mode)) {
-    patch.evolveproMode = input.evolvepro_mode;
+  if (isEvolveproModeRaw(input?.evolvepro_mode)) {
+    // Legacy "others" (pre-merge autosaves) coerces to "pipeline", the
+    // "Others" source file is now loaded through evolveproCsvPath with
+    // column-mapping overrides, not a separate mode.
+    patch.evolveproMode = input.evolvepro_mode === "others" ? "pipeline" : input.evolvepro_mode;
   } else if (typeof diversity?.pipeline_mode === "boolean") {
     patch.evolveproMode = diversity.pipeline_mode ? "pipeline" : "topN";
   }
-  if (typeof input?.evolvepro_csv_path === "string" || input?.evolvepro_csv_path === null) {
-    patch.evolveproCsvPath = input.evolvepro_csv_path ?? "";
-  }
-  if (typeof input?.others_source_path === "string" || input?.others_source_path === null) {
-    patch.othersSourcePath = input.others_source_path ?? "";
-  }
-  if (typeof input?.evolvepro_variant_column === "string" || input?.evolvepro_variant_column === null) {
-    patch.evolveproVariantColumn = input.evolvepro_variant_column;
-  }
-  if (typeof input?.evolvepro_score_column === "string" || input?.evolvepro_score_column === null) {
-    patch.evolveproScoreColumn = input.evolvepro_score_column;
-  }
-  if (isScoreOrder(input?.evolvepro_score_order)) {
-    patch.evolveproScoreOrder = input.evolvepro_score_order;
-  }
-  if (typeof input?.evolvepro_sheet_name === "string" || input?.evolvepro_sheet_name === null) {
-    patch.evolveproSheetName = input.evolvepro_sheet_name;
-  }
-  if (typeof input?.others_variant_column === "string" || input?.others_variant_column === null) {
-    patch.othersVariantColumn = input.others_variant_column;
-  }
-  if (typeof input?.others_score_column === "string" || input?.others_score_column === null) {
-    patch.othersScoreColumn = input.others_score_column;
-  }
-  if (isScoreOrder(input?.others_score_order)) {
-    patch.othersScoreOrder = input.others_score_order;
-  }
-  if (typeof input?.others_sheet_name === "string" || input?.others_sheet_name === null) {
-    patch.othersSheetName = input.others_sheet_name;
+  // Legacy fallback: pre-merge autosaves wrote both evolvepro_* (real value
+  // only when mode !== "others") and others_* (real value only when mode
+  // === "others") unconditionally. Pick the channel that was actually
+  // authoritative for the saved mode so an untouched default on the inactive
+  // channel never clobbers the real override.
+  const wasOthersMode = input?.evolvepro_mode === "others";
+  if (wasOthersMode) {
+    if (typeof input?.others_source_path === "string" || input?.others_source_path === null) {
+      patch.evolveproCsvPath = input.others_source_path ?? "";
+    }
+    if (typeof input?.others_variant_column === "string" || input?.others_variant_column === null) {
+      patch.evolveproVariantColumn = input.others_variant_column;
+    }
+    if (typeof input?.others_score_column === "string" || input?.others_score_column === null) {
+      patch.evolveproScoreColumn = input.others_score_column;
+    }
+    if (isScoreOrder(input?.others_score_order)) {
+      patch.evolveproScoreOrder = input.others_score_order;
+    }
+    if (typeof input?.others_sheet_name === "string" || input?.others_sheet_name === null) {
+      patch.evolveproSheetName = input.others_sheet_name;
+    }
+  } else {
+    if (typeof input?.evolvepro_csv_path === "string" || input?.evolvepro_csv_path === null) {
+      patch.evolveproCsvPath = input.evolvepro_csv_path ?? "";
+    }
+    if (typeof input?.evolvepro_variant_column === "string" || input?.evolvepro_variant_column === null) {
+      patch.evolveproVariantColumn = input.evolvepro_variant_column;
+    }
+    if (typeof input?.evolvepro_score_column === "string" || input?.evolvepro_score_column === null) {
+      patch.evolveproScoreColumn = input.evolvepro_score_column;
+    }
+    if (isScoreOrder(input?.evolvepro_score_order)) {
+      patch.evolveproScoreOrder = input.evolvepro_score_order;
+    }
+    if (typeof input?.evolvepro_sheet_name === "string" || input?.evolvepro_sheet_name === null) {
+      patch.evolveproSheetName = input.evolvepro_sheet_name;
+    }
   }
 
   // parameters
@@ -219,6 +235,12 @@ async function applyKuroSnapshot(snapshot: AutosaveSnapshot): Promise<void> {
   if (typeof diversity?.pareto_diversity_enabled === "boolean") {
     patch.paretoDiversityEnabled = diversity.pareto_diversity_enabled;
   }
+  if (typeof diversity?.structural_diversity_enabled === "boolean") {
+    patch.structuralDiversityEnabled = diversity.structural_diversity_enabled;
+  }
+  if (typeof diversity?.structural_kappa === "number") {
+    patch.structuralKappa = Math.max(0, Math.min(1, diversity.structural_kappa));
+  }
   if (typeof diversity?.entropy_weight_enabled === "boolean") {
     patch.entropyWeightEnabled = diversity.entropy_weight_enabled;
   }
@@ -263,10 +285,7 @@ async function applyKuroSnapshot(snapshot: AutosaveSnapshot): Promise<void> {
 
   useAppStore.setState(patch);
 
-  const restoredMode = patch.evolveproMode ?? useAppStore.getState().evolveproMode;
-  const activeSourcePath = restoredMode === "others"
-    ? (typeof input?.others_source_path === "string" ? input.others_source_path : "")
-    : (typeof input?.evolvepro_csv_path === "string" ? input.evolvepro_csv_path : "");
+  const activeSourcePath = patch.evolveproCsvPath ?? useAppStore.getState().evolveproCsvPath;
   if (activeSourcePath) {
     try {
       await useAppStore.getState().loadEvolveproCsv(activeSourcePath);
@@ -434,33 +453,50 @@ async function restoreMameResult(projectPath: string): Promise<boolean> {
 /**
  * 프로젝트 진입 시 kuro + mame 자동 저장 파일을 복원한다.
  *
- * - scratch 프로젝트 또는 path가 null이면 즉시 종료.
- * - 같은 projectPath에 대해 한 번만 실행(mountedPaths ref로 가드).
- * - kuro / mame 복원은 병렬 실행. 한쪽 실패가 다른 쪽에 영향 없음.
+ * - path가 null이면 즉시 종료.
+ * - scratch 포함 projectPath 변경마다 이전 프로젝트의 in-memory KURO/MAME 상태를 먼저 비운다.
+ * - scratch 프로젝트는 reset까지만 수행하고 자동 저장 복원은 건너뛴다.
+ * - 같은 projectPath/scratch 조합이 연속 렌더되는 경우만 중복 복원을 막는다.
  */
 export function useAutosaveHydration(
   onMessage: (msg: HydrationStatusMessage) => void,
 ): void {
   const project = useKumaProject();
-  /** 이미 복원을 시도한 projectPath 집합. 중복 실행 방지. */
-  const mountedPaths = useRef<Set<string>>(new Set());
+  /** 마지막으로 복원을 시작한 project key. 같은 경로/모드 연속 렌더만 중복 방지. */
+  const lastHydratedKey = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!project || project.scratch || !project.path) return;
-    const { path } = project;
-    if (mountedPaths.current.has(path)) return;
-    mountedPaths.current.add(path);
+    if (!project || !project.path) return;
+    const { path, scratch } = project;
+    const hydrationKey = `${scratch ? "scratch" : "project"}:${path}`;
+    if (lastHydratedKey.current === hydrationKey) return;
+    lastHydratedKey.current = hydrationKey;
+
+    let cancelled = false;
+    const isCurrent = () => !cancelled && lastHydratedKey.current === hydrationKey;
 
     void (async () => {
+      useAppStore.getState().resetAll({ preserveWorkspaceArtifacts: true });
+      await resetMameAll({ preserveWorkspaceArtifacts: true });
+      if (scratch) return;
+      try {
+        await openWorkspace(path);
+      } catch (err) {
+        console.warn("[autosave] workspace registry open failed", err);
+      }
+      if (!isCurrent()) return;
+
       const [kuroResult, mameResult] = await Promise.all([
         readAutosave(path, "kuro", KURO_SCHEMA),
         readAutosave(path, "mame", MAME_SCHEMA),
       ]);
+      if (!isCurrent()) return;
 
       // ── kuro 결과 처리
       if (kuroResult.status === "ok") {
         try {
           await applyKuroSnapshot(kuroResult.snapshot);
+          if (!isCurrent()) return;
           onMessage({
             kind: "kuro",
             variant: "restored",
@@ -483,12 +519,14 @@ export function useAutosaveHydration(
           message: i18next.t("autosaveHydration.schemaTooNew"),
         });
       }
+      if (!isCurrent()) return;
       // missing → 침묵
 
       // ── mame 결과 처리
       if (mameResult.status === "ok") {
         try {
           applyMameSnapshot(mameResult.snapshot as MameAutosaveSnapshot);
+          if (!isCurrent()) return;
           onMessage({
             kind: "mame",
             variant: "restored",
@@ -511,6 +549,7 @@ export function useAutosaveHydration(
           message: i18next.t("autosaveHydration.schemaTooNew"),
         });
       }
+      if (!isCurrent()) return;
       // missing → 침묵
 
       // ── mame analyze-result 복원: 입력 스냅샷 복원 후, 결과 파일이 있으면
@@ -518,6 +557,7 @@ export function useAutosaveHydration(
       //    스냅샷 "apply snapshot failed" 메시지를 오염시키지 않도록 별도 try/catch.
       try {
         const restored = await restoreMameResult(path);
+        if (!isCurrent()) return;
         if (restored) {
           onMessage({
             kind: "mame",
@@ -528,9 +568,11 @@ export function useAutosaveHydration(
       } catch (err) {
         console.warn("[autosave] mame: analyze-result restore failed", err);
       }
+      if (!isCurrent()) return;
 
       // ── auto-detect: autosave 복원 후 여전히 비어있는 필드를 프로젝트 디렉토리에서 채운다
       await applyMameAutoDetect(path, (filled) => {
+        if (!isCurrent()) return;
         if (filled.length > 0) {
           onMessage({
             kind: "mame",
@@ -540,5 +582,9 @@ export function useAutosaveHydration(
         }
       });
     })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [project?.path, project?.scratch, onMessage]);
 }

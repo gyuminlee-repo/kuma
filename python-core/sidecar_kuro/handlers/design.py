@@ -19,7 +19,8 @@ from kuma_core.kuro.mutation import Mutation, parse_mutation_notation
 from kuma_core.kuro.codon_table import CODON_TO_AA, best_codon
 from kuma_core.kuro.evolvepro import _POS_RE
 from kuma_core.kuro.polymerase import PolymeraseProfile
-from kuma_core.kuro.goldengate import GoldenGateResult, design_goldengate_batch, extract_cds, translate_dna
+from kuma_core.kuro.annealing import compute_annealing
+from kuma_core.kuro import neb_tm
 
 import sidecar_kuro.core as _core
 from sidecar_kuro.core import (
@@ -61,7 +62,26 @@ def _rebuild_plate_state(results: list[SdmPrimerResult]) -> None:
 
 
 
-def _serialize_result(r: SdmPrimerResult, candidate_count: int | None = None) -> SdmPrimerResultModel:
+def _resolve_state_profile() -> PolymeraseProfile | None:
+    """Restore the last-designed polymerase profile from session state.
+
+    Returns None when no design has run yet or the stored name is unknown
+    (Ta fields then serialize as null rather than raising).
+    """
+    name = _core._state.polymerase
+    if not name:
+        return None
+    try:
+        return _poly_registry.get(name)
+    except KeyError:
+        return None
+
+
+def _serialize_result(
+    r: SdmPrimerResult,
+    candidate_count: int | None = None,
+    profile: PolymeraseProfile | None = None,
+) -> SdmPrimerResultModel:
     """Serialize a single SdmPrimerResult for JSON-RPC."""
     warnings = list(r.warnings)
 
@@ -124,113 +144,16 @@ def _serialize_result(r: SdmPrimerResult, candidate_count: int | None = None) ->
         "warnings": warnings,
         "overlap_mode": r.overlap_mode,
     }
+    ta = compute_annealing(
+        r.forward_seq, r.reverse_seq, profile, neb_tm.load_offsets()
+    ) if profile is not None else {
+        "recommended_ta": None, "ta_mode": None,
+        "ta_detail": None, "ta_touchdown": None,
+    }
+    result.update(ta)
     if candidate_count is not None:
         result["candidate_count"] = candidate_count
     return SdmPrimerResultModel.model_validate(result)
-
-
-def _serialize_goldengate(r: GoldenGateResult) -> SdmPrimerResultModel:
-    """Map a GoldenGateResult into the shared wire model.
-
-    C2: the overlap-extension ``SdmPrimerResult`` dataclass and ``_serialize_result``
-    are left untouched. Golden Gate has no overlap window, so the annealing Tms map to
-    ``tm_no_fwd``/``tm_no_rev``, ``overlap_seq`` carries the fusion overhang, and the
-    Golden-Gate-specific fields are populated for the UI/export to surface.
-    """
-    def _gc(seq: str) -> float:
-        return round((seq.count("G") + seq.count("C")) / len(seq) * 100, 1) if seq else 0.0
-
-    return SdmPrimerResultModel.model_validate({
-        "mutation": r.mutation,
-        "aa_position": r.aa_position,
-        "codon_pos": r.codon_pos,
-        "forward_seq": r.forward_seq,
-        "reverse_seq": r.reverse_seq,
-        "fwd_len": len(r.forward_seq),
-        "rev_len": len(r.reverse_seq),
-        "overlap_len": len(r.overhang),
-        "tm_no_fwd": round(r.right_tm, 1) if r.right_tm is not None else 0.0,
-        "tm_no_rev": round(r.left_tm, 1) if r.left_tm is not None else 0.0,
-        "tm_overlap": 0.0,
-        "tm_condition_met": r.status == "success",
-        "tolerance_used": 0.0,
-        "has_offtarget": False,
-        "penalty": 0.0,
-        "gc_fwd": _gc(r.forward_seq),
-        "gc_rev": _gc(r.reverse_seq),
-        "wt_codon": r.wt_codon,
-        "mt_codon": r.mt_codon,
-        "overlap_seq": r.overhang,
-        "warnings": list(r.warnings),
-        # Golden Gate (Type IIS) fields
-        "overhang": r.overhang or None,
-        "overhang_score": r.overhang_score,
-        "overhang_position": r.overhang_position or None,
-        "enzyme": r.enzyme or None,
-        "design_method": "goldengate",
-        "tm_method": r.tm_method,
-    })
-
-
-def _run_goldengate(
-    p: DesignSdmPrimersParams,
-    resolved_fasta: Path,
-    lines: list[str],
-    mutations_csv_path: Path,
-) -> dict:
-    """Golden Gate (Type IIS) design path.
-
-    Reuses KURO's sequence loader, extracts the CDS at ``target_start`` (the engine
-    works on a pure CDS, matching the reference tool), then runs the fault-tolerant
-    Golden Gate batch. Single-row swap/commit/retry are unsupported for Golden Gate
-    rows (C5: batch Tm trimming is not per-row reproducible), so the SdmPrimerResult
-    design-mutation state is left empty for this path.
-    """
-    if lines:
-        mutation_strings = list(lines)
-    else:
-        mutation_strings = []
-        with open(mutations_csv_path, encoding="utf-8") as fh:
-            reader = csv.DictReader(fh)
-            col = "mutation" if reader.fieldnames and "mutation" in reader.fieldnames else "variant"
-            for row in reader:
-                value = (row.get(col) or "").strip()
-                if value:
-                    mutation_strings.append(value)
-    if not mutation_strings:
-        raise ValueError("No mutations provided")
-
-    _progress(10, f"Designing Golden Gate primers ({len(mutation_strings)} mutations)...")
-    _header, sequence, _genes = load_sequence(resolved_fasta)
-    cds = extract_cds(sequence, p.target_start)
-    protein = translate_dna(cds)
-    results, failed = design_goldengate_batch(
-        cds, protein, mutation_strings,
-        enzyme=(p.enzyme or "BsaI"),
-        organism=p.organism,
-        prefix_override=p.prefix_override,
-        forbidden_overhangs=p.forbidden_overhangs,
-    )
-    _progress(100, "Design complete")
-
-    with _core._state_lock:
-        _core._state.results = []
-        _core._state.candidates = {}
-        _core._state.plate_mappings = []
-        _core._state.dedup_info = {}
-
-    failed_list = [
-        {"mutation": m, "rank": i + 1, "reason": reason}
-        for i, (m, reason) in enumerate(failed.items())
-    ]
-    return DesignResultResponseModel(
-        results=[_serialize_goldengate(r) for r in results],
-        success_count=len(results),
-        total_count=len(results) + len(failed),
-        failed_mutations=failed_list,
-        rescue_stats={"pool_cascade": 0, "auto_relax": 0, "positions_attempted": 0, "pool_variants_tried": 0},
-        rescued_mutations=[],
-    ).to_rpc_dict()
 
 
 def _count_unique_fwd_rev(candidates: list[SdmPrimerResult]) -> tuple[int, int]:
@@ -244,7 +167,7 @@ def _serialize_result_with_counts(r: SdmPrimerResult) -> SdmPrimerResultModel:
     """Serialize result with fwd/rev candidate counts."""
     with _core._state_lock:
         cands = _core._state.candidates.get(r.mutation.raw, [])
-    result = _serialize_result(r, len(cands))
+    result = _serialize_result(r, len(cands), profile=_resolve_state_profile())
     fwd_count, rev_count = _count_unique_fwd_rev(cands) if cands else (0, 0)
     result.candidate_fwd_count = fwd_count
     result.candidate_rev_count = rev_count
@@ -259,7 +182,8 @@ def _serialize_result_with_counts(r: SdmPrimerResult) -> SdmPrimerResultModel:
 # GC margin of ±5 pp keeps primers within the broadly accepted 20-80% range
 # while relaxing the user-specified optimum window.
 _DEFAULT_TOL_MAX = 4.0   # must match design_single_sdm() default
-_RELAX_TOL_DELTA = 2.0   # °C added to default tol_max (4.0 + 2.0 = 6.0)
+_RELAX_TOL_DELTA = 2.0   # °C added to the requested tol_max (4.0 + 2.0 = 6.0)
+_MAX_TOL_MAX = 10.0      # must match models.py tol_max Field(le=...)
 _RELAX_GC_DELTA = 5      # percentage points widened on each side
 _GC_FLOOR = 20           # absolute minimum GC% (Integrated DNA Technologies guideline)
 _GC_CEIL = 80            # absolute maximum GC% (Integrated DNA Technologies guideline)
@@ -372,9 +296,8 @@ def handle_design_sdm_primers(params: dict) -> dict:
             _core._state.candidates = {}
             _core._state.plate_mappings = []
             _core._state.dedup_info = {}
+            _core._state.polymerase = p.polymerase  # for Ta serialization
 
-        if p.design_method == "goldengate":
-            return _run_goldengate(p, resolved_fasta, lines, mutations_csv_path)
         def _on_progress(i: int, total: int, mutation_raw: str) -> None:
             pct = 10 + int(70 * i / max(total, 1))
             _progress(pct)
@@ -401,6 +324,7 @@ def handle_design_sdm_primers(params: dict) -> dict:
             on_progress=_on_progress,
             cancel_check=cancel_event.is_set,
             organism=p.organism,
+            tol_max=p.tol_max,
             overlap_mode=p.overlap_mode,
         )
         if cancel_event.is_set():
@@ -412,7 +336,7 @@ def handle_design_sdm_primers(params: dict) -> dict:
         }
         rescued_info: list[dict] = []
 
-        if p.rescue_pool and engine_failures:
+        if engine_failures and (p.rescue_pool or p.auto_relax):
             _progress(82, f"Rescuing {len(engine_failures)} failed position(s)...")
             _header_r, sequence_r, _genes_r = load_sequence(resolved_fasta)
             profile = _build_profile(p)
@@ -435,50 +359,53 @@ def handle_design_sdm_primers(params: dict) -> dict:
             still_failed: dict[str, str] = {}
             designed_muts = {r.mutation.raw for r in results}
 
-            for failed_mut, reason in engine_failures.items():
-                if cancel_event.is_set():
-                    return _cancelled_result()
-                m = _POS_RE.search(failed_mut)
-                if not m:
-                    still_failed[failed_mut] = reason
-                    continue
-                pos = int(m.group(1))
-                rescue_stats["positions_attempted"] += 1
-                rescued = False
-                for backup in rescue_by_pos.get(pos, []):
+            if p.rescue_pool:
+                for failed_mut, reason in engine_failures.items():
                     if cancel_event.is_set():
                         return _cancelled_result()
-                    if backup == failed_mut or backup in designed_muts:
+                    m = _POS_RE.search(failed_mut)
+                    if not m:
+                        still_failed[failed_mut] = reason
                         continue
-                    rescue_stats["pool_variants_tried"] += 1
-                    try:
-                        mut_obj = _build_mutation(backup, sequence_r, p.target_start, p.organism)
-                        cands = design_single_sdm(
-                            sequence_r, mut_obj, profile, p.overlap_len, **design_kw,
-                        )
-                        if cands:
-                            best = cands[0]
-                            results.append(best)
-                            all_cands[backup] = cands
-                            designed_muts.add(backup)
-                            rescue_stats["pool_cascade"] += 1
-                            rescued_info.append({
-                                "original": failed_mut, "rescued_by": backup,
-                                "type": "pool_cascade",
-                                "penalty": round(best.penalty, 2),
-                                "tolerance_used": best.tolerance_used,
-                            })
-                            rescued = True
-                            break
-                    except (ValueError, IndexError):
-                        continue
-                if not rescued:
-                    still_failed[failed_mut] = reason
+                    pos = int(m.group(1))
+                    rescue_stats["positions_attempted"] += 1
+                    rescued = False
+                    for backup in rescue_by_pos.get(pos, []):
+                        if cancel_event.is_set():
+                            return _cancelled_result()
+                        if backup == failed_mut or backup in designed_muts:
+                            continue
+                        rescue_stats["pool_variants_tried"] += 1
+                        try:
+                            mut_obj = _build_mutation(backup, sequence_r, p.target_start, p.organism)
+                            cands = design_single_sdm(
+                                sequence_r, mut_obj, profile, p.overlap_len, **design_kw,
+                            )
+                            if cands:
+                                best = cands[0]
+                                results.append(best)
+                                all_cands[backup] = cands
+                                designed_muts.add(backup)
+                                rescue_stats["pool_cascade"] += 1
+                                rescued_info.append({
+                                    "original": failed_mut, "rescued_by": backup,
+                                    "type": "pool_cascade",
+                                    "penalty": round(best.penalty, 2),
+                                    "tolerance_used": best.tolerance_used,
+                                })
+                                rescued = True
+                                break
+                        except (ValueError, IndexError):
+                            continue
+                    if not rescued:
+                        still_failed[failed_mut] = reason
+            else:
+                still_failed = dict(engine_failures)
 
             if p.auto_relax:
                 relax_kw = {
                     **design_kw,
-                    "tol_max": _DEFAULT_TOL_MAX + _RELAX_TOL_DELTA,
+                    "tol_max": min(p.tol_max + _RELAX_TOL_DELTA, _MAX_TOL_MAX),
                     "gc_min": max(_GC_FLOOR, p.gc_min - _RELAX_GC_DELTA),
                     "gc_max": min(_GC_CEIL, p.gc_max + _RELAX_GC_DELTA),
                 }
@@ -571,6 +498,7 @@ def handle_retry_failed(params: dict) -> dict:
 
     with _core._state_lock:
         _core._state.candidates[mutation_raw] = candidates
+        _core._state.polymerase = p.polymerase  # for Ta serialization
 
     return AlternativesResultModel(
         candidates=[_serialize_result_with_counts(c) for c in candidates],
@@ -706,7 +634,8 @@ def handle_get_alternatives(params: dict) -> dict:
         raise ValueError("mutation is required")
     with _core._state_lock:
         candidates = _core._state.candidates.get(p.mutation, [])
+    profile = _resolve_state_profile()
     return AlternativesResultModel(
         mutation=p.mutation,
-        candidates=[_serialize_result(c) for c in candidates],
+        candidates=[_serialize_result(c, profile=profile) for c in candidates],
     ).to_rpc_dict()

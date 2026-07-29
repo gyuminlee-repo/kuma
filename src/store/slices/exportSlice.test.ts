@@ -76,6 +76,9 @@ function makeStore() {
     tmTolerance: 3.0,
     uniprotAccession: "",
     domains: [],
+    refDomains: [],
+    refDomainsLoading: false,
+    refDomainHash: "",
     disabledDomains: [],
     domainDiversityEnabled: true,
     domainStrategy: "proportional",
@@ -83,6 +86,8 @@ function makeStore() {
     linkerHandling: "include",
     domainQuotaMin: 1,
     paretoDiversityEnabled: true,
+    structuralDiversityEnabled: false,
+    structuralKappa: 0.3,
     entropyWeightEnabled: true,
     entropyWeight: 0.3,
     paretoPoolMultiplier: 2.0,
@@ -110,6 +115,9 @@ function makeStore() {
     rescuedMutationDetails: [],
     yPredMap: {},
     poolVariants: [],
+    evolveproRankedCandidates: [],
+    evolveproSelectedVariants: [],
+    evolveproExtraExposed: 10,
     resetAll: () => {
       Object.assign(state, {
         designResults: [],
@@ -186,6 +194,18 @@ describe("exportSlice — schema_version 0.3", () => {
     const snap = store.slice.getWorkspaceSnapshot() as WorkspaceV3
     expect(snap.active_round_id).toBe("round_1")
   })
+
+  it("persists reference-frame domains separately from accession domains", () => {
+    store.state.domains = [{ name: "Acc", id: "IPR1", start: 10, end: 20, db: "InterPro" }];
+    store.state.refDomains = [{ name: "Ref", id: "IPR1", start: 15, end: 25, db: "PFAM" }];
+    store.state.refDomainHash = "abc123";
+
+    const snap = store.slice.getWorkspaceSnapshot() as WorkspaceV3;
+
+    expect(snap.settings.domains?.[0]?.start).toBe(10);
+    expect(snap.settings.refDomains?.[0]?.start).toBe(15);
+    expect(snap.settings.refDomainHash).toBe("abc123");
+  });
 
   it("getWorkspaceSnapshot preserves rescue stage details for re-export", () => {
     store.state.rescuedMutationDetails = [
@@ -300,6 +320,20 @@ describe("exportSlice — schema_version 0.3", () => {
       gcMax: 60,
     }
     await expect(store.slice.restoreWorkspace(oldWorkspace)).rejects.toThrow(/older than v0\.3/i)
+  })
+
+  it("resetAll clears EVOLVEpro ranked candidates, selected variants, and extra-exposed count", () => {
+    store.state.evolveproRankedCandidates = [
+      { variant: "F89W", y_pred: 0.9, aa_position: 89 },
+    ]
+    store.state.evolveproSelectedVariants = ["F89W"]
+    store.state.evolveproExtraExposed = 25
+
+    store.slice.resetAll({ preserveWorkspaceArtifacts: true })
+
+    expect(store.state.evolveproRankedCandidates).toEqual([])
+    expect(store.state.evolveproSelectedVariants).toEqual([])
+    expect(store.state.evolveproExtraExposed).toBe(10)
   })
 
   it("getWorkspaceSnapshot still includes kuro inputs (backward compat)", () => {

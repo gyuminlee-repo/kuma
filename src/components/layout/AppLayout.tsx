@@ -29,12 +29,15 @@ import { SequenceViewer } from "@/components/widgets/SequenceViewer";
 import { StatusBar } from "./StatusBar";
 import { WhatsNewDialog } from "../dialogs/WhatsNewDialog";
 import { NetworkConsentDialog } from "../dialogs/NetworkConsentDialog";
+import { RoundPromptDialog } from "../dialogs/RoundPromptDialog";
+import { useRoundStore } from "@/store/round/roundSlice";
 import { OverwriteConfirmDialog } from "../dialogs/OverwriteConfirmDialog";
 import { handleOpenSequence } from "./export-handlers";
 import { startDeadlockWatch, DEADLOCK_THRESHOLD_MS } from "@/lib/deadlockDetector";
 import { getLastProgressAt } from "@/lib/ipc-kuro";
 import { MAJOR_ORDER } from "@/store/slices/navigationSlice";
 import { useMainZoom } from "@/hooks/useMainZoom";
+import { useViewportTier } from "@/hooks/useViewportTier";
 import {
   KuroWorkflowRail,
   KuroDrawerStrip,
@@ -63,7 +66,6 @@ export function AppLayout() {
     return classifyError(statusMessage).kind;
   }, [statusMessage]);
   const loadPolymerases = useAppStore((s) => s.loadPolymerases);
-  const loadTypeiisEnzymes = useAppStore((s) => s.loadTypeiisEnzymes);
   const showBenchmark = useAppStore((s) => s.showBenchmark);
   const loadNetworkConsentSettings = useAppStore((s) => s.loadNetworkConsentSettings);
   const loadSettings = useAppStore((s) => s.loadSettings);
@@ -81,8 +83,20 @@ export function AppLayout() {
   const [diffManifestB, setDiffManifestB] = useState<RunManifest | null>(null);
   const [diffOpen, setDiffOpen] = useState(false);
 
-  // Clear All 확인 모달 — Edit 메뉴 + Cmd/Ctrl+Shift+R 단축키 공통 진입점
+  // Clear All 확인 모달, Edit 메뉴 + Cmd/Ctrl+Shift+R 단축키 공통 진입점
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
+
+  // Round unset 프롬프트: EVOLVEpro campaign 로드 + evolveproRound===0일 때 세션당 1회만 표시.
+  const evolveproTotalCount = useAppStore((s) => s.evolveproTotalCount);
+  const evolveproRound = useAppStore((s) => s.evolveproRound);
+  const setEvolveproRound = useAppStore((s) => s.setEvolveproRound);
+  const roundHistoryCount = useRoundStore((s) => s.rounds.length);
+  const [roundPromptDismissed, setRoundPromptDismissed] = useState(false);
+  const roundPromptOpen =
+    evolveproTotalCount > 0
+    && evolveproRound === 0
+    && !roundPromptDismissed;
+  const suggestedRound = roundHistoryCount > 0 ? roundHistoryCount + 1 : null;
 
   // Shared Run Design logic (validation / preflight / flush / design)
   // Dialog state (sizeWarning, preflightResult) is owned by RunDesignAction, not here.
@@ -93,6 +107,7 @@ export function AppLayout() {
 
   // F3: main content zoom (Ctrl+wheel + Ctrl+=/−/0, persisted to localStorage)
   const zoom = useMainZoom();
+  const viewportTier = useViewportTier();
 
   // Build MAJORS and SUBSTEPS arrays from navigationSlice constants
   const MAJORS: MajorNavItem[] = MAJOR_ORDER.map((id) => ({
@@ -113,11 +128,8 @@ export function AppLayout() {
       void loadPolymerases().catch((err) => {
         console.warn("[AppLayout] loadPolymerases failed:", err);
       });
-      void loadTypeiisEnzymes().catch((err) => {
-        console.warn("[AppLayout] loadTypeiisEnzymes failed:", err);
-      });
     }
-  }, [loadPolymerases, loadTypeiisEnzymes, sidecarStatus]);
+  }, [loadPolymerases, sidecarStatus]);
 
   // §1 Dead-lock 감지: design 진행 중 DEADLOCK_THRESHOLD_MS 초과 시 모달 표시
   useEffect(() => {
@@ -282,7 +294,14 @@ export function AppLayout() {
           style={{ zoom }}
           aria-label={t(`phaseC.majors.${currentMajor}`, currentMajor)}
         >
-          <div className="flex-shrink-0 max-h-[180px] overflow-y-auto border-b border-border">
+          {/* Short windows shrink this slot instead of collapsing it. A
+              collapsed panel hides that the sequence map exists at all, which
+              is the failure this whole change set is meant to remove. */}
+          <div
+            className={`flex-shrink-0 overflow-y-auto border-b border-border ${
+              viewportTier === "tight" ? "max-h-[120px]" : "max-h-[180px]"
+            }`}
+          >
             <SequenceViewer />
           </div>
           <div className="flex-1 min-h-0 overflow-hidden">
@@ -306,6 +325,17 @@ export function AppLayout() {
     >
       <WhatsNewDialog />
       <NetworkConsentDialog />
+      <RoundPromptDialog
+        open={roundPromptOpen}
+        suggestedRound={suggestedRound}
+        onConfirm={(round) => {
+          setEvolveproRound(round);
+          setRoundPromptDismissed(true);
+        }}
+        onDismiss={() => {
+          setRoundPromptDismissed(true);
+        }}
+      />
 
       {/* §1 Recovery: Dead-lock 감지 모달 */}
       <Dialog open={deadlockOpen} onOpenChange={setDeadlockOpen}>

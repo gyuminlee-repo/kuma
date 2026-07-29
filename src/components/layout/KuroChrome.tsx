@@ -130,6 +130,17 @@ const PROGRESS_MAP: Record<SubStepId, number> = {
   "export.all": 100,
 };
 
+// Locale keys under kuro.* keep the v5 terminology (nominate/output/export),
+// so substep IDs cannot be split into key segments. Map them explicitly.
+const SIDE_CARD_KEY_MAP: Record<SubStepId, string> = {
+  "design.load": "load",
+  "design.mutation": "nominate",
+  "design.params": "params",
+  "design.submit": "submit",
+  "output.summary": "output",
+  "export.all": "export",
+};
+
 // ---------------------------------------------------------------------------
 // Public exports
 // ---------------------------------------------------------------------------
@@ -146,8 +157,8 @@ export function KuroWorkflowRail() {
   const steps = buildKuroSteps(t, currentSubStep);
   const progressPercent = PROGRESS_MAP[currentSubStep] ?? 0;
 
-  // Side-card body from namespaced i18n keys
-  const sideCardBodyKey = `kuro.${currentSubStep.split(".")[1]}.sideCardBody`;
+  // Side-card body from namespaced i18n keys (see SIDE_CARD_KEY_MAP)
+  const sideCardBodyKey = `kuro.${SIDE_CARD_KEY_MAP[currentSubStep]}.sideCardBody`;
 
   return (
     <WorkflowRail

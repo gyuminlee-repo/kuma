@@ -16,14 +16,13 @@ export interface KuroSnapshotState
     | "mutationText" | "mutationInputMode" | "evolveproCsvPath"
     | "evolveproMode" | "evolveproVariantColumn" | "evolveproScoreColumn"
     | "evolveproScoreOrder" | "evolveproSheetName"
-    | "othersSourcePath" | "othersVariantColumn" | "othersScoreColumn"
-    | "othersScoreOrder" | "othersSheetName"
     | "uniprotAccession" | "domains" | "disabledDomains"
     | "positionDiversityEnabled" | "maxPerPosition"
     | "domainDiversityEnabled" | "domainStrategy" | "domainOverlapPolicy"
     | "linkerHandling" | "domainQuotaMin"
     | "paretoDiversityEnabled" | "entropyWeightEnabled" | "entropyWeight"
     | "paretoPoolMultiplier" | "distanceMode"
+    | "structuralDiversityEnabled" | "structuralKappa"
     | "evolveproRound" | "roundSize" | "autoRedesignOnLoad" | "saveCache"
     | "selectedPolymerase" | "codonStrategy" | "maxPrimers"
     | "tmFwdTarget" | "tmRevTarget" | "tmOverlapTarget"
@@ -49,11 +48,6 @@ export function buildKuroSnapshot(state: KuroSnapshotState): AutosaveSnapshot {
       evolvepro_score_column: state.evolveproScoreColumn,
       evolvepro_score_order: state.evolveproScoreOrder,
       evolvepro_sheet_name: state.evolveproSheetName,
-      others_source_path: state.othersSourcePath || null,
-      others_variant_column: state.othersVariantColumn,
-      others_score_column: state.othersScoreColumn,
-      others_score_order: state.othersScoreOrder,
-      others_sheet_name: state.othersSheetName,
       uniprot_accession: state.uniprotAccession || null,
       organism: state.organism,
     },
@@ -86,6 +80,8 @@ export function buildKuroSnapshot(state: KuroSnapshotState): AutosaveSnapshot {
       linker_handling: state.linkerHandling,
       domain_quota_min: state.domainQuotaMin,
       pareto_diversity_enabled: state.paretoDiversityEnabled,
+      structural_diversity_enabled: state.structuralDiversityEnabled,
+      structural_kappa: state.structuralKappa,
       entropy_weight_enabled: state.entropyWeightEnabled,
       entropy_weight: state.entropyWeight,
       pareto_pool_multiplier: state.paretoPoolMultiplier,

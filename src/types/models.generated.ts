@@ -13,11 +13,14 @@
 
 export interface SidecarKuroModels {
   AlternativesResultModel?: AlternativesResultModel;
+  AnnotateDomainsBySequenceParams?: AnnotateDomainsBySequenceParams;
+  AnnotateDomainsBySequenceResult?: AnnotateDomainsBySequenceResult;
   BenchmarkResultDict?: BenchmarkResultDict;
   BenchmarkResultModel?: BenchmarkResultModel;
   CheckStructuresParams?: CheckStructuresParams;
   CommitDesignResultParams?: CommitDesignResultParams;
-  CustomEnzymeParams?: CustomEnzymeParams;
+  ComputeDispersionParams?: ComputeDispersionParams;
+  ComputeDispersionResult?: ComputeDispersionResult;
   DesignResultResponseModel?: DesignResultResponseModel;
   DesignSdmPrimersParams?: DesignSdmPrimersParams;
   DomainEntry?: DomainEntry;
@@ -36,7 +39,12 @@ export interface SidecarKuroModels {
   ExportOrderParams?: ExportOrderParams;
   ExportOrderResultModel?: ExportOrderResultModel;
   FailedMutationModel?: FailedMutationModel;
+  FetchActiveSiteParams?: FetchActiveSiteParams;
+  FetchActiveSiteResult?: FetchActiveSiteResult;
   FetchDomainsParams?: FetchDomainsParams;
+  FetchInterfaceParams?: FetchInterfaceParams;
+  FetchPdbTextParams?: FetchPdbTextParams;
+  FetchPdbTextResult?: FetchPdbTextResult;
   FetchStructureParams?: FetchStructureParams;
   FileExportResultModel?: FileExportResultModel;
   GetAlternativesParams?: GetAlternativesParams;
@@ -45,17 +53,19 @@ export interface SidecarKuroModels {
   LoadFastaParams?: LoadFastaParams;
   LoadWorkspaceParams?: LoadWorkspaceParams;
   MappingRange?: MappingRange;
+  NullHistogram?: NullHistogram;
   OffTargetHitModel?: OffTargetHitModel;
   ParseMutationsTextParams?: ParseMutationsTextParams;
   PlateMappingItem?: PlateMappingItem;
   PolymeraseProfileModel?: PolymeraseProfileModel;
+  PredictStructureEsmfoldParams?: PredictStructureEsmfoldParams;
+  PredictStructureEsmfoldResult?: PredictStructureEsmfoldResult;
   PreviewEvolveproSourceParams?: PreviewEvolveproSourceParams;
   RankedCandidateItem?: RankedCandidateItem;
   RescueStatsModel?: RescueStatsModel;
   RescuedMutationModel?: RescuedMutationModel;
   RetryFailedParams?: RetryFailedParams;
   RunBenchmarkParams?: RunBenchmarkParams;
-  SaveCustomEnzymeResultModel?: SaveCustomEnzymeResultModel;
   SaveCustomPolymeraseResultModel?: SaveCustomPolymeraseResultModel;
   SaveJsonParams?: SaveJsonParams;
   SaveWorkspaceParams?: SaveWorkspaceParams;
@@ -93,8 +103,6 @@ export interface SdmPrimerResultModel {
   candidate_fwd_count?: number | null;
   candidate_rev_count?: number | null;
   codon_pos: number;
-  design_method?: ("overlap" | "goldengate") | null;
-  enzyme?: string | null;
   forward_seq: string;
   fwd_len: number;
   gc_fwd: number;
@@ -112,19 +120,19 @@ export interface SdmPrimerResultModel {
   mutation: string;
   offtarget_fwd?: OffTargetHitModel[] | null;
   offtarget_rev?: OffTargetHitModel[] | null;
-  overhang?: string | null;
-  overhang_position?: string | null;
-  overhang_score?: number | null;
   overlap_len: number;
   overlap_mode?: ("partial" | "full") | null;
   overlap_seq: string;
   penalty: number;
+  recommended_ta?: number | null;
   rev_len: number;
   reverse_seq: string;
   synthesis_score_fwd?: number | null;
   synthesis_score_rev?: number | null;
+  ta_detail?: string | null;
+  ta_mode?: ("3step" | "2step" | "fixed") | null;
+  ta_touchdown?: string | null;
   tm_condition_met: boolean;
-  tm_method?: string | null;
   tm_no_fwd: number;
   tm_no_rev: number;
   tm_overlap: number;
@@ -141,6 +149,35 @@ export interface OffTargetHitModel {
   position: number;
   strand: "sense" | "antisense";
   tm: number;
+  [k: string]: unknown;
+}
+/**
+ * Params for `annotate_domains_by_sequence` RPC.
+ */
+export interface AnnotateDomainsBySequenceParams {
+  ref_hash?: string | null;
+  sequence?: string;
+  [k: string]: unknown;
+}
+/**
+ * Typed reference-frame result for `annotate_domains_by_sequence`.
+ */
+export interface AnnotateDomainsBySequenceResult {
+  cache_hit?: boolean;
+  coordinate_frame?: "reference";
+  domains?: DomainInfoModel[];
+  error_msg?: string | null;
+  protein_length?: number;
+  ref_hash?: string;
+  source?: "interproscan" | "error";
+  [k: string]: unknown;
+}
+export interface DomainInfoModel {
+  db: string;
+  end: number;
+  id: string;
+  name: string;
+  start: number;
   [k: string]: unknown;
 }
 /**
@@ -317,20 +354,44 @@ export interface CommitDesignResultParams {
   [k: string]: unknown;
 }
 /**
- * Input model for a user-defined Type IIS enzyme (save_custom_enzyme RPC).
+ * Params for `compute_dispersion` RPC.
  */
-export interface CustomEnzymeParams {
-  aliases?: string[];
-  /**
-   * @minItems 2
-   * @maxItems 2
-   */
-  cut_offset: [number, number];
-  fidelity_table?: string | null;
-  name: string;
-  overhang_len: number;
-  prefix: string;
-  recognition: string;
+export interface ComputeDispersionParams {
+  accession?: string;
+  coordinate_frame?: "accession" | "reference";
+  n_trials?: number;
+  pdb_text?: string | null;
+  positions?: number[];
+  ref_seq?: string;
+  seed?: number | null;
+  [k: string]: unknown;
+}
+/**
+ * Result for `compute_dispersion` RPC.
+ */
+export interface ComputeDispersionResult {
+  accession: string;
+  dropped?: number[];
+  klass?: string;
+  mapped?: number[];
+  mean_pairwise?: number;
+  n_positions?: number;
+  n_trials?: number;
+  null_hist?: NullHistogram;
+  null_mean?: number;
+  null_p05?: number;
+  null_p95?: number;
+  percentile?: number;
+  seed?: number | null;
+  [k: string]: unknown;
+}
+/**
+ * Histogram of the null (random) mean-pairwise distribution for compute_dispersion.
+ */
+export interface NullHistogram {
+  counts?: number[];
+  max?: number;
+  min?: number;
   [k: string]: unknown;
 }
 export interface DesignResultResponseModel {
@@ -378,10 +439,7 @@ export interface RescuedMutationModel {
 export interface DesignSdmPrimersParams {
   auto_relax?: boolean;
   codon_strategy?: string;
-  design_method?: "overlap" | "goldengate";
-  enzyme?: string | null;
   fasta_path: string;
-  forbidden_overhangs?: string[] | null;
   fwd_len_max?: number | null;
   fwd_len_min?: number | null;
   gc_max?: number;
@@ -391,7 +449,6 @@ export interface DesignSdmPrimersParams {
   overlap_len?: number | null;
   overlap_mode?: "partial" | "full";
   polymerase?: string;
-  prefix_override?: string | null;
   rescue_pool?: string[];
   rev_len_max?: number | null;
   rev_len_min?: number | null;
@@ -400,6 +457,7 @@ export interface DesignSdmPrimersParams {
   tm_fwd_target?: number | null;
   tm_overlap_target?: number | null;
   tm_rev_target?: number | null;
+  tol_max?: number;
   [k: string]: unknown;
 }
 /**
@@ -407,14 +465,6 @@ export interface DesignSdmPrimersParams {
  */
 export interface DomainEntry {
   end: number;
-  name: string;
-  start: number;
-  [k: string]: unknown;
-}
-export interface DomainInfoModel {
-  db: string;
-  end: number;
-  id: string;
   name: string;
   start: number;
   [k: string]: unknown;
@@ -574,8 +624,56 @@ export interface ExportOrderResultModel {
   success?: true;
   [k: string]: unknown;
 }
+/**
+ * Params for `fetch_active_site_residues` RPC.
+ */
+export interface FetchActiveSiteParams {
+  accession?: string;
+  [k: string]: unknown;
+}
+/**
+ * Result for `fetch_active_site_residues` RPC.
+ */
+export interface FetchActiveSiteResult {
+  accession: string;
+  active_site_positions?: number[];
+  binding_positions?: number[];
+  has_annotation?: boolean;
+  source?: string;
+  [k: string]: unknown;
+}
 export interface FetchDomainsParams {
   accession?: string;
+  [k: string]: unknown;
+}
+/**
+ * Params for `fetch_interface_residues` RPC.
+ *
+ * accession : UniProt accession whose PDB cross-references are scanned for a
+ *             multi-chain crystal structure.
+ * ref_seq   : user reference sequence; the returned interface positions are
+ *             expressed in this 1-based frame (KURO contract).
+ */
+export interface FetchInterfaceParams {
+  accession?: string;
+  ref_seq?: string;
+  [k: string]: unknown;
+}
+/**
+ * Params for `fetch_pdb_text` RPC.
+ */
+export interface FetchPdbTextParams {
+  accession?: string;
+  [k: string]: unknown;
+}
+/**
+ * Result for `fetch_pdb_text` RPC.
+ */
+export interface FetchPdbTextResult {
+  accession: string;
+  pdb_text?: string | null;
+  source?: string;
+  success: boolean;
   [k: string]: unknown;
 }
 export interface FetchStructureParams {
@@ -599,6 +697,7 @@ export interface LandscapeEntry {
   [k: string]: unknown;
 }
 export interface LoadEvolveproParams {
+  anchor_variants?: string[];
   distance_mode?: "auto" | "1d" | "3d";
   domain_diversity?: boolean;
   domain_overlap_policy?: "first" | "largest";
@@ -620,6 +719,8 @@ export interface LoadEvolveproParams {
   score_column?: string | null;
   score_order?: "desc" | "asc";
   sheet_name?: string | null;
+  structural_diversity?: boolean;
+  structural_kappa?: number;
   structure_accession?: string | null;
   top_n?: number;
   variant_column?: string | null;
@@ -664,6 +765,28 @@ export interface PolymeraseProfileModel {
   salt_divalent: number;
   salt_monovalent: number;
   tm_method: string;
+  [k: string]: unknown;
+}
+/**
+ * Params for `predict_structure_esmfold` RPC.
+ */
+export interface PredictStructureEsmfoldParams {
+  sequence?: string;
+  [k: string]: unknown;
+}
+/**
+ * Reference-frame de-novo structure predicted by ESMFold.
+ */
+export interface PredictStructureEsmfoldResult {
+  cache_hit?: boolean;
+  coordinate_frame?: "reference";
+  error_msg?: string | null;
+  pdb_text?: string | null;
+  plddt_mean?: number;
+  residue_count?: number;
+  seq_hash?: string;
+  source?: "esmfold" | "esmfold_cache" | "error";
+  success?: boolean;
   [k: string]: unknown;
 }
 /**
@@ -732,11 +855,6 @@ export interface RunBenchmarkParams {
   strategies?: string[];
   structure_accession?: string | null;
   top_percentile?: number;
-  [k: string]: unknown;
-}
-export interface SaveCustomEnzymeResultModel {
-  name: string;
-  success?: true;
   [k: string]: unknown;
 }
 export interface SaveCustomPolymeraseResultModel {
@@ -912,6 +1030,8 @@ export interface WorkspaceSettingsModel {
   pipelineMode?: boolean | null;
   positionDiversityEnabled?: boolean | null;
   primerLenEnabled?: boolean | null;
+  refDomainHash?: string | null;
+  refDomains?: DomainInfoModel[] | null;
   rescuedMutations?: string[] | null;
   revLenMax?: number | null;
   revLenMin?: number | null;

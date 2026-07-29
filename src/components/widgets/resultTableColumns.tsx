@@ -22,6 +22,7 @@ export const HEADER_TOOLTIPS: Record<string, string> = {
   tm_no_fwd: "Forward whole-primer Tm (SantaLucia 1998)",
   tm_no_rev: "Reverse whole-primer Tm (SantaLucia 1998)",
   tm_overlap: "Overlap region Tm - should be lower than Fwd/Rev Tm",
+  recommended_ta: "Recommended annealing temperature (Ta). Hover a cell for the formula and touchdown schedule",
   tolerance_used: "Tm tolerance Fwd/Rev (each starts at +/-0.5, widens by 0.5 up to +/-3.0)",
   penalty: "Penalty score: Tm deviation + GC% + codon distance + hairpin/homodimer + synthesis difficulty (lower = better)",
   candidate_count: "Unique forward / reverse candidates (click to compare if >1)",
@@ -92,8 +93,6 @@ export function makeResultTableColumns(opts: {
   colorblindMode?: boolean;
   /** i18next translate function passed from the parent component. */
   t: TFunction;
-  /** When true, append Golden Gate (Type IIS) overhang columns. */
-  showGoldenGate?: boolean;
 }) {
   const {
     groupColorMap,
@@ -108,7 +107,6 @@ export function makeResultTableColumns(opts: {
     canonicalOrder,
     colorblindMode = false,
     t,
-    showGoldenGate = false,
   } = opts;
 
   return [
@@ -302,6 +300,27 @@ export function makeResultTableColumns(opts: {
     ...(overlapMode !== "full"
       ? [col.accessor("tm_overlap", { header: "Tm Ov", size: 55, cell: (info) => info.getValue().toFixed(1) })]
       : []),
+    col.accessor("recommended_ta", {
+      header: "Ta (°C)",
+      size: 70,
+      cell: (info) => {
+        const row = info.row.original;
+        const ta = info.getValue();
+        if (ta == null) return "-";
+        const tip =
+          (row.ta_detail ?? "") +
+          (row.ta_touchdown ? ` · Touchdown: ${row.ta_touchdown}` : "") +
+          " · Recommended starting Ta; optimize with gradient or touchdown";
+        return (
+          <span title={tip}>
+            {ta.toFixed(1)}
+            {row.ta_mode ? (
+              <span className="ml-1 text-plate-tiny text-muted-foreground">{row.ta_mode}</span>
+            ) : null}
+          </span>
+        );
+      },
+    }),
     col.accessor("tolerance_used", {
       header: "Tol",
       size: 65,
@@ -413,28 +432,5 @@ export function makeResultTableColumns(opts: {
       },
       cell: (info) => <span className="font-mono">{info.getValue()}</span>,
     }),
-    ...(showGoldenGate
-      ? [
-          col.accessor("overhang", {
-            id: "overhang",
-            header: "Overhang",
-            size: 70,
-            cell: (info) => {
-              const v = info.getValue();
-              return v ? <span className="font-mono">{v}</span> : "—";
-            },
-          }),
-          col.accessor("overhang_score", {
-            id: "overhang_score",
-            header: "Fid",
-            size: 45,
-            meta: { tooltip: "Overhang ligation fidelity (NEB Potapov 2018 on-target score)" },
-            cell: (info) => {
-              const v = info.getValue();
-              return v == null ? "—" : v;
-            },
-          }),
-        ]
-      : []),
   ];
 }

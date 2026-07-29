@@ -264,6 +264,10 @@ export interface RunHealthData {
   throughput_timeline: RunHealthThroughputPoint[] | null;
   barcode_distribution: Record<string, number> | null;
   cross_talk_candidates: CrossTalkCandidate[];
+  /** Outcome of the cross-talk check itself. An empty candidate list means "no
+   *  anomalies" only when this is "ok". Optional for payloads written before the
+   *  field existed (treated as "ok"). */
+  cross_talk_status?: "not_run" | "insufficient_data" | "ok";
 
   recovered_mutants: number | null;
   total_mutants: number | null;

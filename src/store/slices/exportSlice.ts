@@ -20,9 +20,17 @@ import {
   buildIncludedPlateState,
   getIncludedDesignResults,
 } from "./designSlice.helpers";
+import { resolveSelectionDomains } from "./inputSlice.helpers";
 
 import type { ExportSlice } from "../slice-interfaces";
 export type { ExportSlice };
+
+async function sha256ProteinSequence(sequence: string): Promise<string> {
+  const normalized = sequence.replace(/\s+/g, "").toUpperCase().replace(/\*+$/, "");
+  const bytes = new TextEncoder().encode(normalized);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
 
 function normalizeWorkspace(ws: WorkspaceV1 | WorkspaceV2 | WorkspaceV3): WorkspaceV2 | WorkspaceV3 {
   if ("schema_version" in ws && ws.schema_version === "0.3") {
@@ -151,6 +159,7 @@ function buildReportData(state: AppState) {
     includedDesignResults.filter((r) => !rescuedSet.has(r.mutation)).map((r) => r.penalty),
   );
 
+  const selectionDomains = resolveSelectionDomains(state.refDomains);
   const sections: Array<{ title: string; items: Array<{ label: string; value: string | number; warn?: boolean }> }> = [];
 
   if (state.evolveproMode !== "topN") {
@@ -167,7 +176,7 @@ function buildReportData(state: AppState) {
           label: "Step 2 domains",
           value: formatDomainAllocation(
             state.domainDiversityEnabled,
-            state.domains,
+            selectionDomains,
             state.domainStats,
             state.domainStrategy,
           ),
@@ -295,10 +304,11 @@ function buildBenchmarkRawData(state: AppState, results: Record<string, Benchmar
   if (!results || Object.keys(state.yPredMap).length === 0) {
     return null;
   }
-  const activeDomains = state.domains.filter(
+  const selectionDomains = resolveSelectionDomains(state.refDomains);
+  const activeDomains = selectionDomains.filter(
     (domain) => !state.disabledDomains.includes(`${domain.name}-${domain.start}`),
   );
-  const excludedDomains = state.domains.filter(
+  const excludedDomains = selectionDomains.filter(
     (domain) => state.disabledDomains.includes(`${domain.name}-${domain.start}`),
   );
   const landscape = Object.entries(state.yPredMap)
@@ -430,7 +440,6 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
         mutationText: s.mutationText,
         evolveproCsvPath: s.evolveproCsvPath,
         selectedGene: s.selectedGene,
-        othersSourcePath: s.othersSourcePath,
       },
       settings: {
         selectedPolymerase: s.selectedPolymerase,
@@ -450,12 +459,16 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
         tmTolerance: s.tmTolerance,
         uniprotAccession: s.uniprotAccession || undefined,
         domains: s.domains.length > 0 ? s.domains : undefined,
+        refDomains: s.refDomains?.length ? s.refDomains : undefined,
+        refDomainHash: s.refDomainHash || undefined,
         domainDiversityEnabled: s.domainDiversityEnabled || undefined,
         domainStrategy: s.domainDiversityEnabled ? s.domainStrategy : undefined,
         domainOverlapPolicy: s.domainDiversityEnabled ? s.domainOverlapPolicy : undefined,
         linkerHandling: s.domainDiversityEnabled ? s.linkerHandling : undefined,
         domainQuotaMin: s.domainDiversityEnabled ? s.domainQuotaMin : undefined,
         paretoDiversityEnabled: s.paretoDiversityEnabled || undefined,
+        structuralDiversityEnabled: s.structuralDiversityEnabled || undefined,
+        structuralKappa: s.structuralKappa,
         disabledDomains: s.disabledDomains,
         rescuedMutations: s.rescuedMutations,
         entropyWeightEnabled: s.entropyWeightEnabled,
@@ -535,6 +548,26 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       }
     }
 
+    let restoredRefDomains = settings.refDomains ?? [];
+    let restoredRefDomainHash = settings.refDomainHash ?? "";
+    if (restoredRefDomains.length > 0 && restoredRefDomainHash !== "manual") {
+      const restoredTarget = loadedSeqInfo?.genes.find(
+        (gene) => String(gene.cds_start) === restoredGene,
+      ) ?? loadedSeqInfo?.genes[0];
+      try {
+        const currentHash = restoredTarget?.translation
+          ? await sha256ProteinSequence(restoredTarget.translation)
+          : "";
+        if (!currentHash || currentHash !== restoredRefDomainHash) {
+          restoredRefDomains = [];
+          restoredRefDomainHash = "";
+        }
+      } catch {
+        restoredRefDomains = [];
+        restoredRefDomainHash = "";
+      }
+    }
+
     let preloadedYPred: Record<string, number> | null = null;
     let preloadedPoolVariants: string[] | null = null;
     let evolveproReloadError: string | null = null;
@@ -568,8 +601,9 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
     set({
       mutationInputMode: inputs.mutationInputMode === "text" ? "evolvepro" : (inputs.mutationInputMode ?? "evolvepro"),
       mutationText: inputs.mutationText ?? "",
-      evolveproCsvPath: inputs.evolveproCsvPath ?? "",
-      othersSourcePath: inputs.othersSourcePath ?? "",
+      // Legacy fallback: pre-merge workspaces stored the "Others" source file
+      // path separately. Newer evolveproCsvPath takes priority when present.
+      evolveproCsvPath: inputs.evolveproCsvPath || inputs.othersSourcePath || "",
       fastaPath: inputs.fastaPath ?? "",
       seqInfo: loadedSeqInfo,
       selectedGene: restoredGene,
@@ -608,6 +642,8 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       tmTolerance: settings.tmTolerance ?? 4.0,
       uniprotAccession: settings.uniprotAccession ?? "",
       domains: settings.domains ?? [],
+      refDomains: restoredRefDomains,
+      refDomainHash: restoredRefDomainHash,
       ...(settings.disabledDomains && { disabledDomains: settings.disabledDomains }),
       rescuedMutations: settings.rescuedMutations ?? [],
       domainOverlapPolicy: settings.domainOverlapPolicy ?? "first",
@@ -623,12 +659,16 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       autoRedesignOnLoad: settings.autoRedesignOnLoad ?? true,
       saveCache: settings.saveCache ?? true,
       ...(settings.organism && { organism: settings.organism }),
-      // Prefer the tri-state evolveproMode when present (saved by newer
-       // workspaces). Fall back to the legacy boolean pipelineMode for
-       // workspaces that pre-date the "others" mode.
+      // Prefer the saved evolveproMode when present. Legacy "others" value
+      // (pre-merge workspaces) coerces to "pipeline", the "Others" source
+      // file is now loaded through the single evolveproCsvPath field with
+      // column-mapping overrides, not a separate mode. Falls back to the
+      // legacy boolean pipelineMode for workspaces that pre-date evolveproMode.
       evolveproMode:
-        settings.evolveproMode ??
-        (settings.pipelineMode === false ? "topN" : "pipeline"),
+        settings.evolveproMode === "others"
+          ? "pipeline"
+          : settings.evolveproMode ??
+            (settings.pipelineMode === false ? "topN" : "pipeline"),
       positionDiversityEnabled: settings.positionDiversityEnabled ?? true,
       maxPerPosition: settings.maxPerPosition ?? 1,
       evolveproRound: settings.evolveproRound ?? 1,
@@ -643,6 +683,8 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       domainDiversityEnabled: settings.domainDiversityEnabled ?? true,
       domainStrategy: settings.domainStrategy ?? "proportional",
       paretoDiversityEnabled: settings.paretoDiversityEnabled ?? true,
+      structuralDiversityEnabled: settings.structuralDiversityEnabled ?? false,
+      structuralKappa: settings.structuralKappa ?? 0.3,
       yPredMap: preloadedYPred ?? {},
       poolVariants: preloadedPoolVariants ?? [],
       statusMessage: evolveproReloadError
@@ -667,21 +709,23 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
     }
   },
 
-  resetAll: () => {
+  resetAll: (options) => {
     set({
       fastaPath: "",
       seqInfo: null,
       mutationInputMode: "evolvepro",
       mutationText: "",
       evolveproCsvPath: "",
-      othersSourcePath: "",
-      othersVariantColumn: null,
-      othersScoreColumn: null,
-      othersScoreOrder: "desc",
-      othersSheetName: null,
-      othersPreview: null,
-      othersUsedVariantColumn: null,
-      othersUsedScoreColumn: null,
+      evolveproVariantColumn: null,
+      evolveproScoreColumn: null,
+      evolveproScoreOrder: "desc",
+      evolveproSheetName: null,
+      evolveproPreview: null,
+      evolveproUsedVariantColumn: null,
+      evolveproUsedScoreColumn: null,
+      evolveproRankedCandidates: [],
+      evolveproSelectedVariants: [],
+      evolveproExtraExposed: 10,
       yPredMap: {},
       evolveproMode: "pipeline" as const,
       positionDiversityEnabled: true,
@@ -694,9 +738,14 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       uniprotAccession: "",
       domains: [],
       domainLoading: false,
+      refDomains: [],
+      refDomainsLoading: false,
+      refDomainHash: "",
       disabledDomains: [],
       domainStats: {},
       paretoDiversityEnabled: true,
+      structuralDiversityEnabled: false,
+      structuralKappa: 0.3,
       entropyWeightEnabled: true,
       entropyWeight: 0.3,
       paretoPoolMultiplier: 2.0,
@@ -762,7 +811,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       echoTransferVol: 100,
       janusTransferVol: 2.0,
     });
-    if (getActiveWorkspace()) {
+    if (!options?.preserveWorkspaceArtifacts && getActiveWorkspace()) {
       void import("../../lib/workspace").then(({ clearWorkspace }) =>
         clearWorkspace("kuro").catch(() => {
           // workspace manifest cleanup is best-effort

@@ -13,7 +13,7 @@ export function DesignReport() {
 
   return (
     <Dialog open={showReport} onOpenChange={setShowReport}>
-      <DialogContent className="max-h-[80vh] max-w-2xl overflow-y-auto">
+      <DialogContent className="max-h-[80vh] max-w-2xl overflow-y-auto" aria-describedby={undefined}>
         <DialogTitle className="sr-only">{t("designReport.title")}</DialogTitle>
         <DesignReportContent onClose={() => setShowReport(false)} />
       </DialogContent>

@@ -48,6 +48,14 @@
     "checking": "检查中...",
     "upToDate": "当前为最新版本 (v{{version}})。",
     "updateAvailable": "可用更新: v{{current}} 到 v{{next}}",
+    "updateRecommendation": "GitHub 上有较新的 Kuma 版本。下载适用于您平台的安装程序前，请先查看发行说明。",
+    "viewRelease": "查看版本",
+    "updateNow": "立即更新",
+    "updateDownloading": "下载中…",
+    "updateDownloadingPct": "下载中… {{pct}}%",
+    "updateInstalling": "安装中…",
+    "updateRelaunching": "正在重启…",
+    "updateInstallFailed": "更新失败：{{message}}",
     "downloadAndInstall": "下载并安装",
     "installing": "安装中...",
     "later": "稍后",
@@ -257,7 +265,8 @@
       "generatedFiles": "已生成文件",
       "cdsFasta": "CDS 序列",
       "cdsFastaPlaceholder": ".fa / .fasta / .gb / .gbk / .dna 文件路径",
-      "cdsFastaHelper": "参考 CDS 序列 (FASTA, GenBank 或 SnapGene .dna)。gene_start / gene_end 为该序列的 0-based 索引。",
+      "cdsFastaHelper": "Plasmid or construct map (GenBank or SnapGene .dna) containing the gene plus flanking template on both sides. MAME primers bind outside the gene, so at least flank_max (default 400 bp) of template is needed on each side. A CDS-only FASTA will not work. gene_start / gene_end are 0-based indices into this sequence.",
+      "cdsFastaLoadError": "Could not read gene annotations from this file: {{error}}",
       "barcodeSeedsXlsx": "Barcode Seeds xlsx",
       "geneName": "基因名",
       "polymerase": "聚合酶",
@@ -298,14 +307,27 @@
       "flankMinHelp": "Minimum flank length (nt) around CDS for barcode primer search. Default 100.",
       "flankMaxHelp": "Maximum flank length (nt). Larger windows give more primer candidates but slow search.",
       "bindingMinLenHelp": "Minimum primer binding length (nt). Typical 18-22 for stable PCR priming.",
-      "bindingMaxLenHelp": "Maximum primer binding length (nt). Above 35 increases secondary structure risk."
+      "bindingMaxLenHelp": "Maximum primer binding length (nt). Above 35 increases secondary structure risk.",
+      "flankWarningUpstream": "Primer design may fail on a linear template: needs at least {{needed}} bp upstream of gene_start, but only {{available}} bp is available (short by {{shortfall}} bp).",
+      "flankWarningDownstream": "Primer design may fail on a linear template: needs at least {{needed}} bp downstream of gene_end, but only {{available}} bp is available (short by {{shortfall}} bp).",
+      "cdsTooltipLabel": "标签: {{label}}",
+      "cdsTooltipRange": "范围: {{start}}-{{end}}",
+      "cdsTooltipLength": "长度: {{length}} aa",
+      "cdsTooltipSource": "来源: {{source}}",
+      "geneStartHelper": "参考序列上的 gene 起始位置。0-based，包含起点。",
+      "geneEndHelper": "参考序列上的 gene 结束位置。0-based，不含终点。",
+      "generatedFileLabels": {
+        "barcodes": "条形码表 (xlsx)",
+        "amplicon": "Amplicon 参考序列 (FASTA)",
+        "sampleMapTemplate": "Sample map 模板 (xlsx)",
+        "contextJson": "Run context (JSON)"
+      },
+      "openFolderError": "无法打开文件夹。"
     },
     "activity": {
-      "title": "Activity 数据",
-      "subtitle": "Wet-lab activity 测量就绪后(通常在 Phase 1 Barcode Setup 与 Phase 2 Analyze 之后几天到数周)进入此阶段。加载测量值,与 genotype 合并,然后导出 EVOLVEpro 训练输入。",
-      "tabIngest": "1. Ingest",
-      "tabMerge": "2. Merge",
-      "tabExport": "3. Export",
+      "sectionIngest": "上传 activity 数据",
+      "sectionMerge": "与 genotype 合并",
+      "sectionExport": "导出 EVOLVEpro 输入",
       "ingest": {
         "uploadHeading": "上传 activity 数据",
         "uploadDesc": "将 long-format CSV / Excel 文件 (well, replicate, value 列) 加载到当前 Round。",
@@ -327,6 +349,8 @@
       },
       "merge": {
         "heading": "合并 activity 与 genotype",
+        "evolveproDesc": "推荐：按 WT 对 replicate 进行归一化，并应用 label-swap 防护。",
+        "legacyDesc": "不含 WT normalization 或 label-swap 检查的 legacy CSV 输出。",
         "desc": "将已上传的 activity 与 Round genotype 连接,并按 WT 归一化。",
         "btnLegacy": "与 genotype 合并",
         "btnLegacyBusy": "合并中…",
@@ -373,6 +397,15 @@
         "helpText": "此处标记的 wells 作为 activity fold-change normalization 的 wild-type baseline。",
         "suggestButton": "从对照 wells 建议",
         "alreadySetTooltip": "WT wells 已设置"
+      },
+      "route": {
+        "heading": "EVOLVEpro 输入路径",
+        "ariaLabel": "选择生成 EVOLVEpro 输入的方式",
+        "genotypeLabel": "Activity + NGS genotype",
+        "genotypeDesc": "上传 long-format 的 well activity，与本轮 NGS verdict 合并后导出。",
+        "plateLayoutLabel": "Plate layout + GC data",
+        "plateLayoutDesc": "直接从 plate layout 和 GC data xlsx 文件生成，无需 NGS genotype。",
+        "completeCurrentRoute": "完成所选 Activity 路径"
       }
     },
     "runHealth": {
@@ -387,6 +420,8 @@
       "bimodalBadge": "双峰",
       "noDistributionData": "无分布数据。",
       "noCrossTalk": "未检测到 cross-talk 候选。",
+      "crossTalkNotRun": "未执行 cross-talk 检查：缺少 MinKNOW barcode_alignment 数据。",
+      "crossTalkInsufficientData": "cross-talk 检查无法判定：barcode 数量不足，无法计算 z-score。",
       "noMinKnow": "未检测到 MinKNOW raw run 目录。Pore yield, throughput, barcode 图表不可用。",
       "finalActivePoreYield": "最终活跃 pore yield",
       "figureVerdictBreakdownCaption": "堆叠条形图显示每板的 PASS, Ambiguous, Fail, Fallback 计数。",
@@ -711,10 +746,15 @@
         "helpText": "保存分析结果 Excel 的文件夹。文件名通过 KURO 风格规则自动生成,结合日期、reference/input token、MAME 目标和结果计数 token。"
       },
       "buildWellLayout": {
-        "button": "Build well layout",
-        "building": "Building…",
-        "confirmed": "{{count}} well(s) confirmed",
-        "ariaLabel": "Auto-generate well layout from expected_mutations xlsx"
+        "button": "生成 well 布局",
+        "building": "生成中…",
+        "confirmed": "已确认 {{count}} 个 well",
+        "ariaLabel": "从 expected_mutations xlsx 自动生成 well 布局",
+        "clear": "清除布局",
+        "clearAriaLabel": "清除已确认的 well 布局",
+        "disabledBySampleMap": "已选择 Sample Map,因此禁用。Sample Map 是权威的 well-to-sample 映射。",
+        "fallbackHint": "在没有 Sample Map 的 run 中作为后备方案。按 KURO 表格行顺序从 A1 开始依次分配 well(column-major),并假定不存在 WT 对照 well。",
+        "overrideWarning": "此布局会覆盖 Sample Map。清除它以改用 Sample Map。"
       }
     },
     "janusDeck": {
@@ -859,14 +899,16 @@
       "sampleAriaLabel": "Sample name for well {{well}}",
       "empty": "No wells generated. Check that the expected_mutations xlsx is selected.",
       "rowCount": "{{count}} well(s) in layout",
+      "droppedMutants": "{{count}} mutant(s) do not fit this 96-well plate and are missing from the draft: {{mutants}}. The barcode space is 12 fwd x 8 rev, so split the campaign across plates and build one layout per plate.",
+      "wtOmitted": "The plate is full, so no well was left for the WT control. Without a declared WT well the clean-control check is lost.",
       "confirm": "Confirm layout"
     },
     "buildEvolvepro": {
       "title": "生成 EVOLVEpro 输入",
-      "subtitle": "将板布局、GC 数据、Agilent 重复报告和上一轮 EVOLVEpro 文件合并为一个 EVOLVEpro 输入 xlsx。",
+      "subtitle": "将一轮的 activity 测量结果合并为一个 EVOLVEpro 输入 xlsx。",
       "inputFiles": "输入文件",
       "layoutXlsx": "板布局 xlsx",
-      "layoutXlsxHelper": "Mutant to well 位置映射（Mutant、Well Pos. 列）。",
+      "layoutXlsxHelper": "Mutant to well 位置映射。支持 plate layout 格式（Mutant、Well Pos. 列）或步骤 1 生成的 sample map（sample_name、well 列）。",
       "gcDataXlsx": "GC 数据 xlsx",
       "gcDataXlsxHelper": "每个 well 预先归一化的 relative activity（Sample Name、Area 列）。",
       "repBatchXlsx": "Agilent 重复报告 xlsx",
@@ -876,12 +918,15 @@
       "outputXlsx": "输出 EVOLVEpro xlsx",
       "outputXlsxHelper": "合并后 EVOLVEpro 输入的保存文件。",
       "requiredStateLabel": "必填",
+      "optionalLabel": "可选",
+      "provisionalLabel": "暂定（仅布局 + GC；未确证）",
+      "confirmedLabel": "已确证（合并 rep-batch 重复）",
       "chooseOutput": "选择输出文件",
       "noOutputSelected": "未选择输出文件",
       "build": "生成 EVOLVEpro 输入",
       "building": "生成中...",
       "resultTitle": "生成结果",
-      "emptyState": "选择四个输入文件和一个输出路径，然后生成 EVOLVEpro 输入。",
+      "emptyState": "选择所选来源需要的输入文件和输出路径，然后生成 EVOLVEpro 输入。",
       "nVariants": "已写入的 variant",
       "nAuthoritative": "以重复报告为准",
       "nFallbackOnly": "仅来自 GC 数据",
@@ -900,7 +945,34 @@
       "toastSuccess": "EVOLVEpro 输入生成完成",
       "toastSuccessDesc": "已写入 {{count}} 个 variant。",
       "toastError": "EVOLVEpro 输入生成失败",
-      "openFolder": "打开输出文件夹"
+      "openFolder": "打开输出文件夹",
+      "routeNote": "此路径直接读取 xlsx 文件，不使用 genotype 关联路径的 activity 上传。",
+      "sourceModeLabel": "Activity 来源",
+      "sourceModeRank": "GC data 工作表",
+      "sourceModeReports": "Agilent 原始报告",
+      "sourceModeRankHelper": "按 well 预先归一化的 GC data，通过板布局映射到变体。",
+      "sourceModeReportsHelper": "Agilent FID1B 原始报告；fold-change 以各报告中的 WT 块为基准计算。",
+      "round1SourceLabel": "Round-1 来源",
+      "round1SourcePrev": "上一轮 EVOLVEpro",
+      "round1SourceRaw": "GC-FID 原始报告",
+      "round1SourcePrevHelper": "使用既有的 EVOLVEpro 文件（Variant、activity）作为完整的 round-1 基线。",
+      "round1SourceRawHelper": "使用以 well 命名的 GC-FID 原始报告；板布局将 well 映射到变体。",
+      "round1EvolveproXlsx": "Round-1 EVOLVEpro xlsx",
+      "round1EvolveproXlsxHelper": "上一轮的 EVOLVEpro xlsx（Variant、activity）。重测的变体将替换为其均值。",
+      "round1ReportXlsx": "Round-1 报告 xlsx（GC-FID 原始）",
+      "round1ReportXlsxHelper": "Agilent FID1B 原始报告；Sample Name 为 well 位置（A1..H12），包含 WT 块。",
+      "gcExportXlsx": "相对活性导出 xlsx（GC data 形式）",
+      "gcExportXlsxHelper": "可选的审阅产物。将 round-1 各 well 的相对活性（area / WT 平均 area）以 Sample Name 与 Area 两列写出，与 GC data 工作表形式一致。",
+      "remeasureReportXlsx": "重测报告 xlsx（按变体标注）",
+      "remeasureReportXlsxHelper": "Agilent FID1B 原始报告；Sample Name 为变体标签（如 V5F 或 5F），重复行即 replicate。",
+      "verdictXlsx": "NGS verdict xlsx",
+      "verdictXlsxHelper": "Analyze Excel 报告（Final 工作表：well_id + verdict）。well 非 PASS 的变体将被排除。留空则跳过 NGS 筛除。",
+      "layoutXlsxOptionalHelper": "仅用于在 NGS verdict 筛除时将变体映射到 well。",
+      "optionalStateLabel": "可选",
+      "nNgsExcluded": "NGS 排除",
+      "missingInputs": "仍需提供",
+      "restoredNotice": "已恢复此设备上的路径。如果它们属于其他项目，请清除。",
+      "clearRestored": "清除已恢复的 EVOLVEpro 输入"
     },
     "verdictBadge": {
       "help": {
@@ -935,7 +1007,24 @@
     "deleteButton": "Delete project",
     "deleteConfirmTitle": "Remove project from list?",
     "deleteConfirmDesc": "The project files on disk will not be deleted. Only the entry in the recent list is removed.",
-    "delete": "Remove"
+    "delete": "Remove",
+    "overview": {
+      "identity": "kuma — 端到端的多轮蛋白质变体工程。",
+      "loop": "Each round (DBTL): pick & design variants → build & sequence → measure activity → rank → next round.",
+      "kuroTitle": "KURO",
+      "kuroSubtitle": "Variant selection & SDM primer design",
+      "kuroStep1": "Design — load variants, EVOLVEpro rank, choose mutations",
+      "kuroStep2": "Output — SDM primer results & plate layout",
+      "kuroStep3": "Export — order files (Macrogen / IDT / Twist / Echo)",
+      "mameTitle": "MAME",
+      "mameSubtitle": "NGS validation & activity",
+      "mameStep1": "Custom barcode primer design",
+      "mameStep2": "Sequencing QC (Nanopore verdicts)",
+      "mameStep3": "Activity data → EVOLVEpro input",
+      "learnMore": "了解更多",
+      "aria": "关于 kuma",
+      "collapse": "收起"
+    }
   },
   "mameTab": {
     "matchingProjectTitle": "找到匹配的项目",
@@ -1040,23 +1129,7 @@
     "primerLenRevHelp": "Reverse primer length range (nt). Default 19-27.",
     "autoRescueHelp": "Auto-fill failed mutations with relaxed constraints in a second pass.",
     "seedHelp": "Random seed for reproducible primer ranking. Leave empty for auto (time-based).",
-    "tmSectionHelp": "Melting temperature targets define how the engine balances primer stability and selectivity.",
-    "designMethodLabel": "Design method:",
-    "designMethodHelp": "Cloning method. Overlap-extension covers Gibson and Q5 SDM; Golden Gate (Type IIS) inserts the enzyme site and computes a fidelity-scored overhang.",
-    "methodGroup_overlap": "Overlap-extension",
-    "methodGroup_goldengate": "Golden Gate (Type IIS)",
-    "methodHint_goldengate": "Golden Gate via {{enzyme}}: inserts the enzyme site and a fidelity-scored overhang.",
-    "goldenGateAdvancedNote": "Golden Gate uses SantaLucia 1998 Tm (the SnapGene method) and a fidelity-scored overhang; the PCR Tm, GC, and length parameters below do not apply to this method.",
-    "methodHint_goldengateEnzyme": "Golden Gate via {{enzyme}} ({{recognition}}, cut {{cutTop}}/{{cutBottom}}, {{overhang}} nt overhang): inserts the enzyme site and a fidelity-scored overhang.",
-    "enzymeOptionTitle": "{{recognition}} — cuts {{cutTop}}/{{cutBottom}}, {{overhang}} nt overhang",
-    "customEnzyme": "Custom enzyme…",
-    "junctionSectionLabel": "Junction",
-    "junctionSectionHelp": "Override the junction prefix and forbidden overhangs for this run. Leave blank to use the enzyme catalog defaults.",
-    "prefixOverrideLabel": "Prefix",
-    "prefixOverridePlaceholder": "Catalog prefix",
-    "prefixOverrideHelp": "5' prefix prepended to every Golden Gate primer (spacer + recognition site + spacer). Leave blank to use the enzyme's catalog prefix. A prefix that omits the recognition site or mis-positions the cut is flagged as a warning on each result.",
-    "forbiddenOverhangsLabel": "Forbidden overhangs",
-    "forbiddenOverhangsHelp": "Comma- or space-separated overhangs to exclude (e.g. vector junctions). Leave blank to use the defaults AATG, AGGT."
+    "tmSectionHelp": "Melting temperature targets define how the engine balances primer stability and selectivity."
   },
   "designReport": {
     "title": "Design Report",
@@ -1129,11 +1202,13 @@
     "domainNamePlaceholder": "名称",
     "domainStartPlaceholder": "起点",
     "domainEndPlaceholder": "终点",
+    "referenceDomainsRequired": "请扫描参考序列或手动添加参考坐标域，以启用域分配。",
     "alphaFoldLoading": "(加载 AlphaFold 中...)",
     "alphaFoldBadge": "AlphaFold",
     "helpTip3D": "使用 AlphaFold Cα 坐标,选出在 3D 空间中相互分散的 variant。",
     "helpTip1D": "贪心 Pareto 选择,最大化所选 position 之间的最小序列距离。",
     "roundSectionLabel": "Round",
+    "roundMovedHint": "Round number and size are now set in the Mutations step, next to the variant file.",
     "evolveproRoundLabel": "EVOLVEpro Round",
     "roundSizeLabel": "大小",
     "roundHelp": "Round × size = 估计模型质量 (ρ) 所用的累积数据点。\n较低的 ρ → 更宽的 pool 和更高的 entropy weight 以增加探索。",
@@ -1184,7 +1259,12 @@
     "linkerLabelHelp": "How to treat known linker regions during primer search.",
     "positionCapLabelHelp": "Maximum primers per residue position (1-20). Caps over-representation.",
     "roundSectionHelp": "EVOLVEpro round controls iterative primer batches with adaptive selection.",
-    "benchmarkSectionHelp": "Benchmark compares designed primers against random baselines to estimate quality lift."
+    "benchmarkSectionHelp": "Benchmark compares designed primers against random baselines to estimate quality lift.",
+    "roundUnsetHint": "Set the round in the Mutations step to enable sigma-adaptive defaults.",
+    "structuralSuggestTitle": "Suggested: Structural diversity",
+    "structuralSuggestBody": "This pool is combinatorial, the round is early, and a 3D structure is loaded. This is the regime where the benchmark shows a gain over Top-N.",
+    "structuralSuggestCaveat": "The gain is conditional. It can lose on non-epistatic targets.",
+    "structuralSuggestEnable": "Enable structural diversity"
   },
   "candidatePopover": {
     "reviewHeading": "Candidate Review",
@@ -1343,16 +1423,16 @@
     "description": "KURO 的 primer 设计默认值与非对称 Tm 目标。",
     "nameLabel": "名称",
     "tmMethodLabel": "Tm 方法",
-    "tmMethodOption_santalucia": "SantaLucia",
+    "tmMethodOption_santalucia": "SantaLucia 1998 (NEB, IDT)",
     "tmMethodOption_santalucia_title": "SantaLucia 1998 nearest-neighbour 参数。现代默认值;对多数 PCR primer (DNA/DNA, 25-mer, 生理盐浓度) 准确。",
-    "tmMethodOption_breslauer": "Breslauer",
+    "tmMethodOption_breslauer": "Breslauer 1986 (Benchling legacy)",
     "tmMethodOption_breslauer_title": "Breslauer 1986 nearest-neighbour 参数。Legacy 表;相比 SantaLucia 通常高估 Tm 1-3 °C。",
     "saltCorrectionLabel": "Salt correction",
-    "saltOption_owczarzy": "Owczarzy",
+    "saltOption_owczarzy": "Owczarzy 2004 (IDT)",
     "saltOption_owczarzy_title": "Owczarzy 2004/2008 monovalent + Mg²⁺ 校正。当 Mg²⁺ 或 dNTP 浓度非标准时推荐。",
-    "saltOption_santalucia": "SantaLucia",
+    "saltOption_santalucia": "SantaLucia 1998 (Benchling)",
     "saltOption_santalucia_title": "SantaLucia 1996 仅 monovalent 校正。适用于无 Mg²⁺ 调整的标准缓冲液。",
-    "saltOption_schildkraut": "Schildkraut",
+    "saltOption_schildkraut": "Schildkraut-Lifson 1965 (NEB Phusion)",
     "saltOption_schildkraut_title": "Schildkraut-Lifson 1965 经验性 Na⁺ 校正。Legacy;比 Owczarzy 或 SantaLucia 粗略。",
     "optTmLabel": "Opt Tm",
     "maxTmDiffLabel": "Max Tm diff",
@@ -1374,7 +1454,8 @@
     "saveError": "保存 polymerase 失败",
     "cancel": "取消",
     "save": "保存",
-    "saving": "保存中..."
+    "saving": "保存中...",
+    "nebTmNote": "Tm for this NEB polymerase uses NEB Tm Calculator calibration; salt and Tm-method values below do not affect the computed Tm."
   },
   "mainShell": {
     "alreadyRunning": "已在运行。",
@@ -1436,6 +1517,29 @@
     "memoryBlockDesc": "Sidecar 进程内存使用已达 {{ratio}}% ({{rss}} MB)。请停止当前工作并重启应用。",
     "memoryBlockConfirm": "确定"
   },
+  "guidedTour": {
+    "show": "显示引导教程",
+    "skip": "跳过所有教程",
+    "finish": "完成",
+    "overviewNavigationTitle": "在 Kuro 和 Mame 之间切换",
+    "overviewNavigationBody": "Kuro 设计变体和孔板，Mame 整合测序与活性证据供下一轮学习使用。",
+    "overviewProjectTitle": "跟踪当前项目",
+    "overviewProjectBody": "此栏显示项目和自动保存状态，确保每项结果保存在正确的工作区。",
+    "kuroWorkflowTitle": "遵循 Kuro 工作流",
+    "kuroWorkflowBody": "依次加载输入、审核候选、设计引物并导出可执行的孔板方案。",
+    "kuroWorkspaceTitle": "Kuro 主工作区",
+    "kuroWorkspaceBody": "所选步骤显示在此。序列、候选、设计、表格和 3D 结果会随进度更新。",
+    "kuroInspectorTitle": "查看 Kuro 详情",
+    "kuroInspectorBody": "在检查器中查看步骤参数、所选变体、警告和导出控件。",
+    "mameWorkflowTitle": "遵循 Mame 工作流",
+    "mameWorkflowBody": "依次完成 Setup、Analyze 和 Activity，将实验数据整理为学习表。",
+    "mameWorkspaceTitle": "Mame 主工作区",
+    "mameWorkspaceBody": "加载运行数据，检查基因型判定和孔板结果，然后合并活性测量值进行导出。",
+    "mameInspectorTitle": "查看 Mame 详情",
+    "mameInspectorBody": "检查器会在结果旁显示当前 Mame 步骤的控件和上下文。",
+    "mameRouteTitle": "选择 Mame 输入路径",
+    "mameRouteBody": "上传 activity 数据后使用 genotype 关联路径；如果已有 GC data xlsx 文件，则使用 plate-layout 路径。"
+  },
   "onboarding": {
     "titleChange": "更改项目文件夹",
     "titleNew": "开始使用",
@@ -1453,7 +1557,8 @@
     "descStart": "为项目选择默认文件夹。kuma 将每个 Kuro design 和 Mame verdict run 保存在各自的项目文件夹中,使工作在数周的测序周转期间得以保留。",
     "chooseFolderBtn": "选择文件夹",
     "doneBtn": "完成",
-    "insideEachProject": "每个项目内部"
+    "insideEachProject": "每个项目内部",
+    "maximizeHint": "将窗口最大化可获得最佳显示效果。kuma 按宽工作区布局设计。"
   },
   "appLayout": {
     "status": "状态",
@@ -1593,8 +1698,6 @@
     "mutationsFailed": "(失败 {{count}})",
     "topNZeroHint": "将 top-N 设为 0 可加载 CSV 中的所有变体",
     "mutationsHelp": "Mutations in HGVS or plain format (e.g. A123V, L45*). One per line or comma-separated.",
-    "others": "Others",
-    "othersDesc": "(custom column mapping)",
     "othersColumnMapping": "Column mapping",
     "othersVariantColumn": "Mutation column",
     "othersVariantColumnPlaceholder": "Auto-detect",
@@ -1607,7 +1710,8 @@
     "othersSheetNamePlaceholder": "First sheet",
     "othersPreviewBtn": "Preview",
     "othersPreviewLoading": "Loading preview...",
-    "othersPreviewEmpty": "No preview available. Load a file first.",
+    "othersPreviewEmpty": "未在该文件中检测到任何列。请检查文件或选择其他工作表。",
+    "othersLoadFailed": "EVOLVEpro 文件加载失败：{{message}}。请在下方手动选择 mutation 列和 ranking 列并应用。",
     "othersPreviewError": "Preview failed: {{message}}",
     "othersApplyBtn": "Apply selected columns",
     "othersApplyError": "Column load failed: {{message}}",
@@ -1615,13 +1719,24 @@
     "extraExposedLabel": "Extra candidates shown:",
     "extraExposedAriaLabel": "Number of extra unselected candidates to display",
     "extraExposedHint": "(0 = selected only)",
-    "bufferCapReached": "All {{count}} additional candidates shown"
+    "bufferCapReached": "All {{count}} additional candidates shown",
+    "campaignRoundLabel": "Campaign round",
+    "roundNumberLabel": "Round",
+    "roundNumberAriaLabel": "EVOLVEpro campaign round number",
+    "roundSizeLabel": "Size",
+    "roundSizeAriaLabel": "Number of primers per round (1-960)",
+    "campaignRoundHint": "Sets the EVOLVEpro round context used for sigma-adaptive defaults in later steps.",
+    "roundHistoryMismatch": "Round history suggests round {{suggested}}, but this is set to {{current}}."
   },
   "uniprotSearch": {
     "topCandidates": "Top 候选 {{shown}}{{total}}",
     "autoSearchTitle": "使用已加载序列文件中的基因信息搜索 UniProt",
     "fetchBtn": "获取",
-    "autoSearchBtn": "自动搜索"
+    "autoSearchBtn": "自动搜索",
+    "scanSequenceBtn": "扫描序列",
+    "scanSequenceTitle": "使用 InterProScan 直接从已加载的蛋白质序列检测参考坐标域",
+    "referenceDomainsReady": "参考坐标: {{count}} 个 InterProScan 域",
+    "accessionDomainsOnly": "Accession 域用于 3D 显示。进行域分配前请扫描参考序列。"
   },
   "statusBar": {
     "ready": "就绪",
@@ -1666,6 +1781,15 @@
     "continueLabel": "继续",
     "continueLabelBlock": "仍然继续",
     "cancelLabel": "取消"
+  },
+  "roundPrompt": {
+    "title": "Set EVOLVEpro round",
+    "description": "The EVOLVEpro campaign round drives sigma-adaptive pool sizing and entropy weighting in Step 4. Leaving it unset keeps those features off.",
+    "roundLabel": "Round number",
+    "roundAriaLabel": "EVOLVEpro campaign round number",
+    "suggestedHint": "Suggested from round history: {{suggested}}",
+    "confirmLabel": "Set round",
+    "dismissLabel": "Not now"
   },
   "localeToggle": {
     "currentLanguageAria": "当前语言: {{label}}。更改语言"
@@ -1799,9 +1923,19 @@
   "diversity": {
     "offlineReason": "离线模式",
     "consentReason": "需要外部服务同意",
-    "domainFetchCancelled": "Domain fetch 已取消: {{reason}}",
+    "domainFetchCancelled": "域获取已取消: {{reason}}",
     "uniprotSearchCancelled": "UniProt 搜索已取消: {{reason}}",
-    "alphafoldFetchCancelled": "AlphaFold fetch 已取消: {{reason}}"
+    "alphafoldFetchCancelled": "AlphaFold 获取已取消: {{reason}}",
+    "sequenceDomainScanCancelled": "序列域扫描已取消: {{reason}}",
+    "sequenceDomainScanning": "正在使用 InterProScan 分析参考序列...",
+    "sequenceDomainsFound": "参考序列域: 找到 {{count}} 个{{cache}}",
+    "sequenceDomainsNone": "InterProScan 未找到此序列的集成域注释。",
+    "sequenceDomainsCachedSuffix": "（缓存）",
+    "sequenceDomainScanFailed": "序列域扫描失败: {{error}}",
+    "esmfoldCancelled": "结构预测已取消: {{reason}}",
+    "esmfoldPredicting": "正在使用 ESMFold 预测结构（最多几分钟）...",
+    "esmfoldDone": "ESMFold 结构预测完成: {{residues}} 个残基, 平均 pLDDT {{plddt}}",
+    "esmfoldFailed": "ESMFold 预测失败: {{error}}"
   },
   "inputThresholds": {
     "estimateSec": "预计 ~{{sec}}s",
@@ -1822,7 +1956,8 @@
     "legacyWorkspaceUnsupported": "不支持早于 v0.3 的工作区。请新建工作区。"
   },
   "inputSlice": {
-    "csvFormatError": "{{mode}} CSV 格式错误: {{detail}}"
+    "csvFormatError": "{{mode}} CSV 格式错误: {{detail}}",
+    "structureFrameMismatch": "3D 结构与参考序列不匹配 — 使用 1D 序列距离"
   },
   "benchmarkDialog": {
     "title": "Benchmark",
@@ -2174,6 +2309,7 @@
       },
       "activity": {
         "ingest": "Ingest 数据",
+        "signals": "信号与交接",
         "mergeExport": "Merge & Export",
         "export": "Export",
         "merge": "Merge"
@@ -2218,6 +2354,7 @@
       },
       "activity": {
         "ingest": "上传 activity CSV 或 Excel 文件并标注野生型。",
+        "signals": "查看跨轮次分类信号，待 EVOLVEpro 输入准备就绪后交接给下一轮。",
         "mergeExport": "将活性数据与基因型判定合并并导出表格，然后通过组合单次重复 (GC) 与三次重复 (相对 WT) 活性来构建 EVOLVEpro 输入。"
       }
     },
@@ -2241,9 +2378,6 @@
       },
       "polymerase": {
         "label": "Polymerase"
-      },
-      "method": {
-        "label": "Method"
       }
     }
   },
@@ -2393,7 +2527,9 @@
     "mappingRange": "Mapping range",
     "rowStart": "Start row",
     "rowEnd": "End row",
-    "subtitle": "Echo and Janus mapping files are independent Excel/CSV outputs."
+    "subtitle": "Echo and Janus mapping files are independent Excel/CSV outputs.",
+    "destWell": "目标 well",
+    "missing": "缺失"
   },
   "errors": {
     "sequence": {
@@ -2445,21 +2581,84 @@
     },
     "actionBlockedTitle": "Cannot proceed — missing required input"
   },
-  "enzymeEditor": {
-    "title": "Custom Type IIS enzyme",
-    "description": "Define a Type IIS restriction enzyme for Golden Gate design. It is saved to ~/.kuma/kuro/custom_enzymes.json and stays available after restart.",
-    "nameLabel": "Name",
-    "recognitionLabel": "Recognition site",
-    "recognitionInvalid": "Recognition must be a DNA string (A/C/G/T).",
-    "cutTopLabel": "Cut offset (top strand)",
-    "cutBottomLabel": "Cut offset (bottom strand)",
-    "overhangLenLabel": "Overhang length (nt)",
-    "aliasesLabel": "Aliases (optional)",
-    "prefixLabel": "Prefix",
-    "prefixHelp": "5' prefix: spacer + recognition site + spacer, positioning the cut at the overhang (e.g. CTAGGGTCTCA for BsaI).",
-    "cancel": "Cancel",
-    "save": "Save",
-    "saving": "Saving…",
-    "saveError": "Failed to save the custom enzyme."
+  "selection3d": {
+    "title": "Candidate 3D structure analysis",
+    "noAccession": "Structure requires a UniProt accession",
+    "noStructure": "No structure available",
+    "noStructureDesc": "Could not load PDB structure for this accession.",
+    "noSelection": "No variants selected",
+    "noSelectionDesc": "Select variants in the EVOLVEpro table to view them in 3D.",
+    "loading": "Loading structure...",
+    "colorMode": "Color",
+    "colorDomain": "Domain",
+    "colorPlddt": "pLDDT",
+    "colorPlain": "Plain",
+    "repSurface": "Surface",
+    "spin": "Spin",
+    "resetView": "Reset",
+    "darkBg": "Dark",
+    "fullscreen": "Fullscreen",
+    "exportPng": "Export PNG",
+    "exportPngSaved": "PNG 已保存：{{path}}",
+    "exportPngFailed": "PNG 导出失败：{{message}}",
+    "activeSite": "Active site",
+    "bindingSite": "Binding site",
+    "noActiveSiteAnnotation": "No UniProt active-site annotation — add residues",
+    "activeSiteAdd": "Add position",
+    "activeSiteAddPlaceholder": "e.g. 42",
+    "activeSiteAddButton": "Add",
+    "dispersionTitle": "Structural Dispersion",
+    "dispersionMeanPairwise": "Mean pairwise distance",
+    "dispersionPercentile": "Observed percentile vs random",
+    "dispersionClass": "Classification",
+    "dispersionNullRange": "Null p05–p95",
+    "dispersionTitleHelp": "Structural dispersion compares the 3D spread of the displayed variant positions against random matched-size residue sets. It is an interpretation aid, not a prediction score.",
+    "dispersionChartHelp": "Gray bars are random matched-size residue sets. The shaded band is the null p05–p95 range; the colored vertical line is this selection, labeled P for percentile. P1 means unusually clustered; P99 means unusually spread.",
+    "dispersionMeanPairwiseHelp": "Average Cα–Cα distance among the displayed variant positions after mapping them onto the structure. Smaller values mean spatially clustered; larger values mean spread out.",
+    "dispersionPercentileHelp": "P means percentile: where the observed mean pairwise distance falls within the random matched-size null distribution. Low P = clustered; high P = spread.",
+    "dispersionClassHelp": "Compact label from the percentile: low percentile = clustered, middle = random-like, high = spread.",
+    "dispersionNullRangeHelp": "The 5th–95th percentile range of the random matched-size sets. Observed values inside this range are roughly random-like.",
+    "legendTitle": "Color legend",
+    "legendHelp": "What each color in the 3D scene means. The list adapts to the current coloring mode and which residues are shown. Click a variant / active-site / binding-site row to show or hide it in the 3D view.",
+    "legendBackbone": "Backbone (cartoon)",
+    "legendDomain": "Backbone colored by domain",
+    "legendPlddt": "Backbone colored by pLDDT confidence (low → high)",
+    "legendVariant": "Variant position (sphere) — color scales with y_pred (low → high)",
+    "legendActiveSite": "Active-site residue (orange stick)",
+    "legendBindingSite": "Binding-site residue (magenta sphere)",
+    "legendToggleHint": "Click to show or hide this layer in the 3D view",
+    "surfaceUnavailable": "3D surface could not be generated in this window.",
+    "positionTableTitle": "Selected Positions",
+    "colVariant": "Variant",
+    "colRefPos": "Ref pos",
+    "colAccPos": "Acc pos",
+    "colYPred": "y_pred",
+    "colActiveSite": "Active",
+    "colBindingSite": "Binding",
+    "colPlddt": "pLDDT",
+    "colDomain": "Domain",
+    "domainTableTitle": "Positions by Domain",
+    "domainTableColDomain": "Domain",
+    "domainTableColCount": "Positions",
+    "droppedWarning": "{{count}} position(s) could not be mapped to the structure: {{positions}}",
+    "lengthMismatch": "Sequence length mismatch: some positions may be misaligned.",
+    "uploadLabel": "Upload structure",
+    "uploadButton": "Upload PDB/CIF",
+    "uploadSourceNote": "pLDDT coloring not available for uploaded structures.",
+    "esmfoldNoAccessionNote": "这是基于序列的 ESMFold 预测（参考坐标系）。活性/结合位点叠加需要 UniProt accession，已隐藏。",
+    "esmfoldTooLong": "序列超过 ESMFold 的 400 残基上限。请提供 UniProt accession 以加载 AlphaFold 结构。",
+    "removePosition": "Remove position {{position}}",
+    "noVariants": "No candidates to display. Load EVOLVEpro results and run a design to see candidates on the structure.",
+    "fallbackNote": "Showing all {{count}} ranked candidates.",
+    "dispersionChartTitle": "Selection vs random (null distribution)"
+  },
+  "appShell": {
+    "sidebarResize": "调整侧边栏宽度"
+  },
+  "artifact": {
+    "badge": {
+      "staleHint": "比其来源输入更旧。重新运行该步骤即可刷新。",
+      "detected": "检测到 {{step}} 输出"
+    }
   }
 }

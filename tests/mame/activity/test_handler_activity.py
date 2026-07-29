@@ -472,3 +472,59 @@ class TestHandleMergeForEvolvepro:
             "prev_round_evolvepro": {},
         })
         assert len(_rounds["round_1"]["merged_table"]) == 2
+
+
+class TestWtReplicateRowsEndToEnd:
+    """upload -> merge wiring for dedicated WT replicate rows.
+
+    The unit tests call merge_activity_with_genotype directly, so they cannot see
+    whether the handler persists and restores wt_records. This covers that path.
+    """
+
+    def _upload(self, tmp_path: Path, round_id: str = "round_1") -> None:
+        _seed_round(round_id)
+        csv_path = tmp_path / "act.csv"
+        # Plate WT well A01 = 1.0 while dedicated WT rows = 2.0, so the two
+        # denominator definitions give different fold-change for B03.
+        csv_path.write_text(
+            "Sample Name,Area\n"
+            "WT_1,2.0\nWT_2,2.0\nWT_3,2.0\n"
+            "A01,1.0\nB03,2.0\n"
+        )
+        _rounds[round_id]["design"] = {
+            "plateMap": [{"plate_id": "P01", "well_id": "B03", "mutation": "F89W"}]
+        }
+        _rounds[round_id]["genotype"] = {
+            "verdict": [
+                {"plate_id": "P01", "well_id": "B03", "called_mutation": "F89W"}
+            ]
+        }
+        handle_activity_upload({"round_id": round_id, "file_path": str(csv_path)})
+
+    def test_upload_persists_wt_records(self, tmp_path: Path):
+        self._upload(tmp_path)
+        stored = _rounds["round_1"]["activity"]["wt_records"]
+        assert [r["sample_name"] for r in stored] == ["WT_1", "WT_2", "WT_3"]
+        # WT labels stay out of the well-level records.
+        assert all(
+            r["well_id"] in ("A01", "B03")
+            for r in _rounds["round_1"]["activity"]["raw_records"]
+        )
+
+    def test_merge_uses_dedicated_wt_denominator(self, tmp_path: Path):
+        self._upload(tmp_path)
+        res = handle_activity_merge({"round_id": "round_1"})
+        b03 = next(r for r in res["merged"] if r["well_id"] == "B03")
+        assert b03["fold_change"] == pytest.approx(1.0)  # 2.0 / mean(WT rows)
+        assert res["stats"]["n_wt_replicate_rows"] == 3
+        assert res["stats"]["n_plates_wt_from_replicates"] == 1
+
+    def test_merge_for_evolvepro_uses_same_denominator(self, tmp_path: Path):
+        self._upload(tmp_path)
+        res = handle_merge_for_evolvepro(
+            {"round_id": "round_1", "prev_round_evolvepro": {}}
+        )
+        b03 = next(r for r in res["merged"] if r["well_id"] == "B03")
+        assert b03["fold_change"] == pytest.approx(1.0)
+        # Provenance counters survive the stats rebuild that attaches warnings.
+        assert res["stats"]["n_wt_replicate_rows"] == 3

@@ -22,6 +22,16 @@ MAX_MINOR_ALLELE_FRACTION = "max_minor_allele_fraction"
 LOW_DEPTH_POSITIONS = "low_depth_positions"
 CONSENSUS_N_FRACTION = "consensus_n_fraction"
 LOW_QUALITY_BASES = "low_quality_bases"
+INDEL_EVENT_POSITIONS = "indel_event_positions"
+MAX_INDEL_EVENT_FRACTION = "max_indel_event_fraction"
+MAX_DEL_RUN_LENGTH = "max_del_run_length"
+# Identifies which denominator produced ``consensus_n_fraction``. Files written
+# before this key existed carry the legacy whole-reference denominator, so the
+# stored number is NOT comparable to a covered-scoped threshold. The parser uses
+# the presence of this key to tell the two meanings apart instead of guessing.
+CONSENSUS_N_FRACTION_BASIS = "consensus_n_fraction_basis"
+# Denominator = positions whose pileup depth reached ``min_depth``.
+BASIS_COVERED = "covered"
 
 
 @dataclass(frozen=True)
@@ -38,6 +48,12 @@ class ConsensusMetadata:
     low_depth_positions: int
     consensus_n_fraction: float
     low_quality_bases: int
+    n_indel_event_positions: int = 0
+    max_indel_event_fraction: float = 0.0
+    max_del_run_length: int = 0
+    # Denominator that produced ``consensus_n_fraction``. Always written so any
+    # file produced from here on is self-describing.
+    consensus_n_fraction_basis: str = BASIS_COVERED
 
     def header_items(self) -> Iterable[tuple[str, str]]:
         """Yield metadata pairs in the stable FASTA-header order."""
@@ -52,6 +68,10 @@ class ConsensusMetadata:
         yield LOW_DEPTH_POSITIONS, str(self.low_depth_positions)
         yield CONSENSUS_N_FRACTION, f"{self.consensus_n_fraction:.3f}"
         yield LOW_QUALITY_BASES, str(self.low_quality_bases)
+        yield INDEL_EVENT_POSITIONS, str(self.n_indel_event_positions)
+        yield MAX_INDEL_EVENT_FRACTION, f"{self.max_indel_event_fraction:.3f}"
+        yield MAX_DEL_RUN_LENGTH, str(self.max_del_run_length)
+        yield CONSENSUS_N_FRACTION_BASIS, self.consensus_n_fraction_basis
 
     def header_suffix(self) -> str:
         """Return ``key=value`` metadata joined for a FASTA header."""
@@ -71,7 +91,9 @@ def format_consensus_fasta_record(
 
 __all__ = [
     "ALIGNED_READS",
+    "BASIS_COVERED",
     "CONSENSUS_N_FRACTION",
+    "CONSENSUS_N_FRACTION_BASIS",
     "DEPTH",
     "INPUT_READS",
     "LOW_DEPTH_POSITIONS",
@@ -82,4 +104,7 @@ __all__ = [
     "SPAN_FAILED",
     "ConsensusMetadata",
     "format_consensus_fasta_record",
+    "INDEL_EVENT_POSITIONS",
+    "MAX_INDEL_EVENT_FRACTION",
+    "MAX_DEL_RUN_LENGTH",
 ]

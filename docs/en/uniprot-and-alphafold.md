@@ -22,4 +22,10 @@ If BLAST fails, a UniProt gene-name search is tried — expect low-identity matc
 
 Each candidate shows **AF** if a predicted structure exists. Selecting the candidate triggers Cα-coordinate download for 3D Pareto diversity — see [Diversity Strategies](diversity-strategies.md).
 
+## ESMFold de-novo prediction (no accession)
+
+When no UniProt accession is available — a novel or synthetic construct, or a low-identity BLAST result — the 3D panel can predict a structure directly from the reference sequence via **ESMFold** (EMBL-EBI ESMAtlas), after external-service consent. The prediction is in the reference frame (1-based on your sequence), so dispersion runs without accession mapping and pLDDT/variant/domain overlays stay valid. Active- and binding-site overlays require a UniProt accession and are hidden for ESMFold structures.
+
+- **Limit**: the public ESMFold server accepts sequences up to 400 residues. Longer proteins (e.g. IspS) must use an AlphaFold accession.
+- **Precedence**: uploaded PDB → AlphaFold-by-accession → ESMFold-by-sequence.
 *Stub — candidate panel screenshot coming.*

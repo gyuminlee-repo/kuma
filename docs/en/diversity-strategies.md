@@ -14,14 +14,16 @@ Caps how many mutations share the same residue position. Prevents over-sampling 
 
 ## Domain diversity
 
-Allocates picks across protein domains fetched from InterPro/Pfam via the selected UniProt accession.
+Allocates picks across domains in the loaded **reference protein sequence**. Use **Scan sequence** to submit that sequence to InterProScan; returned 1-based coordinates therefore match KURO mutation positions directly. UniProt-accession annotations remain accession-frame metadata for AlphaFold structure coloring and are not silently reinterpreted as reference coordinates.
 
+- **Recommended**: Scan sequence (direct InterProScan annotation in reference coordinates)
+- **Fallback**: manually enter reference-coordinate domain boundaries
 - **Strategy**: proportional (by domain size) / equal (same quota each)
 - **Overlap policy**: first / largest (when domains overlap)
 - **Linker handling**: include / exclude / separate-bin
 - **Quota min**: minimum picks per domain (0–20)
 
-Disable specific domains inline; quotas recompute.
+The sequence is sent to the EMBL-EBI InterProScan service only after external-service consent. Successful annotations are cached by sequence hash. Disable specific domains inline; quotas recompute.
 
 ## Pareto diversity
 

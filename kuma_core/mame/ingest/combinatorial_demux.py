@@ -63,6 +63,7 @@ from kuma_core.mame.ingest.align import (
 )
 from kuma_core.mame.ingest.consensus import call_consensus_with_metrics
 from kuma_core.mame.ingest.consensus_metadata import (
+    BASIS_COVERED,
     ConsensusMetadata,
     format_consensus_fasta_record,
 )
@@ -1049,7 +1050,7 @@ def run_combinatorial_demux(
     def _run_well(
         well_name: str,
         reads: list[tuple[str, str]],
-    ) -> tuple[str, str, int, int, float, int, float, int, int, int, int, int]:
+    ) -> tuple[str, str, int, int, float, int, float, int, int, int, int, int, int, float, int]:
         """Worker: returns consensus sequence, depth, and mix metrics."""
         (
             seq,
@@ -1063,6 +1064,9 @@ def run_combinatorial_demux(
             aligned_reads,
             mapq_failed,
             span_failed,
+            n_indel_event_positions,
+            max_indel_event_fraction,
+            max_del_run_length,
         ) = _compute_well_consensus(
             well_name, reads, reference_fasta, ref_seq, ref_len, min_depth,
             reference_index=well_index,
@@ -1080,6 +1084,9 @@ def run_combinatorial_demux(
             aligned_reads,
             mapq_failed,
             span_failed,
+            n_indel_event_positions,
+            max_indel_event_fraction,
+            max_del_run_length,
         )
 
     _consensus_done = 0
@@ -1103,6 +1110,9 @@ def run_combinatorial_demux(
                 aligned_reads,
                 mapq_failed,
                 span_failed,
+                n_indel_event_positions,
+                max_indel_event_fraction,
+                max_del_run_length,
             ) = fut.result()
             per_well_consensus[wn] = seq
             atomic_write_text(
@@ -1121,6 +1131,10 @@ def run_combinatorial_demux(
                         low_depth_positions=low_depth_positions,
                         consensus_n_fraction=n_fraction,
                         low_quality_bases=low_quality_bases,
+                        n_indel_event_positions=n_indel_event_positions,
+                        max_indel_event_fraction=max_indel_event_fraction,
+                        max_del_run_length=max_del_run_length,
+                        consensus_n_fraction_basis=BASIS_COVERED,
                     ),
                 ),
             )
@@ -1170,7 +1184,7 @@ def _compute_well_consensus(
     ref_len: int,
     min_depth: int,
     reference_index: Path | None = None,
-) -> tuple[str, int, int, float, int, float, int, int, int, int, int]:
+) -> tuple[str, int, int, float, int, float, int, int, int, int, int, int, float, int]:
     """Align reads and return consensus sequence, depth, and mix metrics."""
     if not reads:
         return (
@@ -1184,6 +1198,9 @@ def _compute_well_consensus(
             0,
             0,
             0,
+            0,
+            0,
+            0.0,
             0,
         )
 
@@ -1219,6 +1236,9 @@ def _compute_well_consensus(
             0,
             0,
             0,
+            0,
+            0.0,
+            0,
         )
 
     consensus_call = call_consensus_with_metrics(
@@ -1238,6 +1258,9 @@ def _compute_well_consensus(
         len(well_alignments),
         0,
         0,
+        consensus_call.n_indel_event_positions,
+        consensus_call.max_indel_event_fraction,
+        consensus_call.max_del_run_length,
     )
 
 

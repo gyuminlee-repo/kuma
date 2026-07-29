@@ -12,7 +12,7 @@
  * Echo and JANUS transfer volumes are independent fields.
  */
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Info } from "lucide-react";
@@ -24,6 +24,7 @@ import { useKumaProject } from "@/state/projectContext";
 import { useAppStore } from "@/store/appStore";
 import type { AppState } from "@/store/appStore";
 import { validateExportAll } from "@/store/validation";
+import { localeIsKorean } from "@/lib/localeUtils";
 const PLATE_NAME_RE = /^[A-Za-z0-9_-]{1,20}$/;
 const PROJECT_NAME_RE = /^[A-Za-z0-9가-힣_\-]{0,40}$/;
 const ECHO_RANGE = { min: 25, max: 500, step: 1, unit: "nL" } as const;
@@ -31,7 +32,7 @@ const JANUS_RANGE = { min: 0.5, max: 10, step: 0.1, unit: "μL" } as const;
 const WELL_LIMIT = 96;
 
 export function ExportFormatSelector() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const tx = (key: string, fallback: string, vars?: Record<string, unknown>) =>
     t(key, { defaultValue: fallback, ...vars });
   const project = useKumaProject();
@@ -47,7 +48,7 @@ export function ExportFormatSelector() {
   const [fwdPlate, setFwdPlate] = useState("");
   const [rvsPlate, setRvsPlate] = useState("");
   const [amount, setAmount] = useState<"0.05" | "0.2">("0.05");
-  const [bom, setBom] = useState(false);
+  const bom = useMemo(() => localeIsKorean(), [i18n.language]);
   const [running, setRunning] = useState(false);
 
   // PI 2026-05-15 (Item 2): plate name 빈칸 시각 표시는 유지하되 버튼은
@@ -301,26 +302,6 @@ export function ExportFormatSelector() {
         <p className="text-caption text-muted-foreground">
           Range: {JANUS_RANGE.min}&ndash;{JANUS_RANGE.max} {JANUS_RANGE.unit}
         </p>
-      </div>
-
-      {/* BOM checkbox */}
-      <div className="flex items-center gap-2 rounded-container border border-border bg-card px-4 py-3">
-        <input
-          id="bom-checkbox"
-          type="checkbox"
-          checked={bom}
-          onChange={(e) => setBom(e.target.checked)}
-          className="h-4 w-4 rounded border-border accent-primary cursor-pointer"
-        />
-        <label
-          htmlFor="bom-checkbox"
-          className="text-sm text-foreground cursor-pointer select-none"
-        >
-          {tx("phaseC.export.all.bomLabel", "Add UTF-8 BOM")}
-          <span className="ml-1 text-muted-foreground">
-            {tx("phaseC.export.all.bomHint", "(Excel compatibility)")}
-          </span>
-        </label>
       </div>
 
       <p className="text-caption text-muted-foreground">

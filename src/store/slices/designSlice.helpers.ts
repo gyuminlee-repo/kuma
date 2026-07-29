@@ -2,7 +2,6 @@ import type {
   DesignResult,
   FailedMutation,
   OverlapMode,
-  DesignMethod,
   PlateMapping,
   RescueStats,
   RescuedMutation,
@@ -43,11 +42,6 @@ interface DesignRequestPayload extends Record<string, unknown> {
   rev_len_min?: number;
   rev_len_max?: number;
   overlap_mode: OverlapMode;
-  design_method: DesignMethod;
-  enzyme?: string;
-  /** Golden Gate junction overrides (goldengate only). */
-  prefix_override?: string;
-  forbidden_overhangs?: string[];
   rescue_pool?: string[];
   auto_relax: true;
   seed?: number;
@@ -136,14 +130,6 @@ export function prepareDesignInput(params: {
   };
 }
 
-/** Parse a free-text forbidden-overhang list (comma/space/newline separated) to uppercase tokens. */
-export function parseForbiddenOverhangs(raw: string): string[] {
-  return raw
-    .split(/[\s,]+/)
-    .map((s) => s.trim().toUpperCase())
-    .filter(Boolean);
-}
-
 export function buildDesignRequestPayload(params: {
   fastaPath: string;
   targetStart: number;
@@ -162,13 +148,9 @@ export function buildDesignRequestPayload(params: {
   revLenMin: number;
   revLenMax: number;
   overlapMode: OverlapMode;
-  designMethod: DesignMethod;
-  enzyme: string;
   rescuePool: string[];
   tolMax: number;
   randomSeed: number | null;
-  prefixOverride?: string;
-  forbiddenOverhangs?: string;
 }): DesignRequestPayload {
   const {
     fastaPath,
@@ -188,13 +170,9 @@ export function buildDesignRequestPayload(params: {
     revLenMin,
     revLenMax,
     overlapMode,
-    designMethod,
-    enzyme,
     rescuePool,
     tolMax,
     randomSeed,
-    prefixOverride = "",
-    forbiddenOverhangs = "",
   } = params;
 
   return {
@@ -216,14 +194,6 @@ export function buildDesignRequestPayload(params: {
       rev_len_max: revLenMax,
     }),
     overlap_mode: overlapMode,
-    design_method: designMethod,
-    ...(designMethod === "goldengate" && enzyme ? { enzyme } : {}),
-    ...(designMethod === "goldengate" && prefixOverride.trim()
-      ? { prefix_override: prefixOverride.trim().toUpperCase() }
-      : {}),
-    ...(designMethod === "goldengate" && parseForbiddenOverhangs(forbiddenOverhangs).length > 0
-      ? { forbidden_overhangs: parseForbiddenOverhangs(forbiddenOverhangs) }
-      : {}),
     ...(rescuePool.length > 0 && { rescue_pool: rescuePool }),
     tol_max: tolMax,
     auto_relax: true,

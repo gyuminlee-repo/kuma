@@ -53,6 +53,9 @@ def handle_get_run_health(_params: dict) -> dict:
         "throughput_timeline": health.throughput_timeline,
         "barcode_distribution": health.barcode_distribution,
         "cross_talk_candidates": cross_talk_payload,
+        # "not_run" | "insufficient_data" | "ok", an empty candidate list means
+        # "no anomalies" only when this is "ok".
+        "cross_talk_status": health.cross_talk_status,
         "recovered_mutants": health.recovered_mutants,
         "total_mutants": health.total_mutants,
         "recovery_rate": health.recovery_rate,

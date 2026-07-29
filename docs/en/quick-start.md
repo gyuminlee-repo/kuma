@@ -8,6 +8,8 @@ Design your first primers in 5 steps.
 
 Status bar shows **Ready** when the sidecar is up.
 
+When you create a project, the spotlight tour introduces the shared project bar and then highlights Kuro's workflow rail, workspace, and inspector. Use **Next** to continue, **Skip all tours** to disable all project tours, or `Esc` to close only the current tour. Replay it later from **Help → Show Guided Tour**. Existing projects do not start it automatically.
+
 ### Step 1 — Load a sequence
 
 ![File loaded](../screenshots/02-file-loaded.png)

@@ -4,23 +4,35 @@ import { sendRequest } from "../../lib/ipc-kuro";
 import { formatError } from "../../lib/utils";
 import type { AppState } from "../types";
 import type {
+  ComputeDispersionResult,
   DistanceMode,
   DomainOverlapPolicy,
   DomainInfo,
+  FetchActiveSiteResult,
+  FetchPdbTextResult,
+  PredictStructureEsmfoldResult,
   LinkerHandling,
 } from "../../types/models";
 
 import type { DiversitySlice } from "../slice-interfaces";
 export type { DiversitySlice };
 
+import { resolveSelectionDomains } from "./inputSlice.helpers";
 export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice> = (set, get) => {
   let reloadTimer: ReturnType<typeof setTimeout> | null = null;
   let domainFetchGeneration = 0;
   let uniprotSearchGeneration = 0;
   let structureFetchGeneration = 0;
+  let refDomainGeneration = 0;
+
+  /** Per-accession PDB text cache — avoids redundant network fetches within a session. */
+  const pdbTextCache = new Map<string, Promise<FetchPdbTextResult | null>>();
+  /** Per-sequence ESMFold prediction cache — avoids redundant folds within a session. */
+  const esmfoldCache = new Map<string, Promise<PredictStructureEsmfoldResult | null>>();
+
 
   function getActiveEvolveproPath(state: AppState): string {
-    return state.evolveproMode === "others" ? state.othersSourcePath : state.evolveproCsvPath;
+    return state.evolveproCsvPath;
   }
 
   async function reloadEvolveproCsv(reason: string) {
@@ -39,8 +51,13 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   function shouldReloadAfterStructureFetch(state: AppState) {
     return Boolean(
       getActiveEvolveproPath(state)
-      && state.paretoDiversityEnabled
-      && state.distanceMode !== "1d",
+      && (
+        // Structural diversity always consumes 3D Cα coords when available, so
+        // it must reload once the AlphaFold structure is cached, regardless of
+        // distanceMode (which only gates the pareto 1D/3D distance path).
+        state.structuralDiversityEnabled
+        || (state.paretoDiversityEnabled && state.distanceMode !== "1d")
+      ),
     );
   }
 
@@ -50,6 +67,21 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
       reloadTimer = null;
       void reloadEvolveproCsv("diversity settings change");
     }, 300);
+  }
+
+  // If a Top-N-only session skipped the initial BLAST-backed UniProt
+  // auto-search (see sequenceSlice.ts diversityConsumersEnabled gate),
+  // uniprotAccession stays empty. Backfill it once the user later enables an
+  // accession consumer (domain/pareto/structural diversity), so domain fetch
+  // and the 3D view aren't silently empty.
+  function maybeBackfillUniprotSearch() {
+    const state = get();
+    if (state.uniprotAccession || state.uniprotSearching) return;
+    const seqInfo = state.seqInfo;
+    const gene = seqInfo?.genes.find((g) => String(g.cds_start) === state.selectedGene) ?? seqInfo?.genes[0];
+    const translation = gene?.translation ?? "";
+    if (!gene || !translation) return;
+    void state.searchUniprot(gene.gene, gene.organism ?? state.organism, translation, gene.uniprot_accession ?? "");
   }
 
   // NOTE: 호출자(searchUniprot)가 requireNetworkConsent 통과를 보장함.
@@ -95,7 +127,9 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   entropyWeight: 0.3,
   paretoPoolMultiplier: 2.0,
   distanceMode: "auto",
-  evolveproRound: 1,
+  // 0 = unset (matches backend default: kuma_core/kuro/evolvepro.py evolvepro_round=0,
+  // python-core/sidecar_kuro/models.py Field(default=0)). SourceInspector renders "--" for 0.
+  evolveproRound: 0,
   roundSize: 96,
   benchmarkTopPercentile: 10,
   benchmarkRandomTrials: 100,
@@ -111,6 +145,13 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   structureAccession: "",
   uniprotCandidates: [],
   uniprotSearching: false,
+  structuralDiversityEnabled: false,
+  structuralKappa: 0.3,
+  refDomains: [],
+  refDomainsLoading: false,
+  refDomainHash: "",
+
+
 
   setPositionDiversityEnabled: (enabled: boolean) => {
     set({ positionDiversityEnabled: enabled });
@@ -125,6 +166,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   setDomainDiversityEnabled: (enabled: boolean) => {
     set({ domainDiversityEnabled: enabled });
     debouncedReload();
+    if (enabled) maybeBackfillUniprotSearch();
   },
 
   setDomainStrategy: (strategy: "proportional" | "equal") => {
@@ -210,10 +252,10 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   },
 
   setDomains: (domains: DomainInfo[]) => {
-    set({ domains, disabledDomains: [] });
+    set({ refDomains: domains, refDomainHash: "manual", disabledDomains: [] });
     const state = get();
     if (getActiveEvolveproPath(state) && state.domainDiversityEnabled) {
-      void reloadEvolveproCsv("manual domain update");
+      void reloadEvolveproCsv("manual reference-domain update");
     }
   },
 
@@ -229,7 +271,20 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   setParetoDiversityEnabled: (enabled: boolean) => {
     set({ paretoDiversityEnabled: enabled });
     debouncedReload();
+    if (enabled) maybeBackfillUniprotSearch();
   },
+  setStructuralDiversityEnabled: (enabled: boolean) => {
+    set({ structuralDiversityEnabled: enabled });
+    debouncedReload();
+    if (enabled) maybeBackfillUniprotSearch();
+  },
+
+  setStructuralKappa: (v: number) => {
+    const clamped = Math.max(0, Math.min(1, v));
+    set({ structuralKappa: clamped });
+    debouncedReload();
+  },
+
 
   setEntropyWeightEnabled: (enabled: boolean) => {
     set({ entropyWeightEnabled: enabled });
@@ -287,7 +342,8 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
       return;
     }
 
-    const activeDomains = state.domains
+    const selectionDomains = resolveSelectionDomains(state.refDomains);
+    const activeDomains = selectionDomains
       .filter((d) => !state.disabledDomains.includes(`${d.name}-${d.start}`))
       .map((d) => ({ name: d.name, start: d.start, end: d.end }));
 
@@ -453,8 +509,229 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
     }
   },
 
+  fetchPdbText: async (accession: string): Promise<FetchPdbTextResult | null> => {
+    const key = accession.trim();
+    if (!key) return null;
+    const cached = pdbTextCache.get(key);
+    if (cached !== undefined) return cached;
+    const promise = (async () => {
+      const consentGranted = await get().requireNetworkConsent();
+      if (!consentGranted) {
+        const reason = get().offlineMode
+          ? i18next.t("diversity.offlineReason")
+          : i18next.t("diversity.consentReason");
+        set({ statusMessage: reason });
+        pdbTextCache.delete(key);
+        return null;
+      }
+      try {
+        const result = await sendRequest("fetch_pdb_text", { accession: key }, 30_000);
+        return result;
+      } catch (err) {
+        pdbTextCache.delete(key);
+        set({ statusMessage: `PDB text fetch failed: ${formatError(err)}` });
+        return null;
+      }
+    })();
+    pdbTextCache.set(key, promise);
+    return promise;
+  },
+
+  predictStructureEsmfold: async (sequence: string): Promise<PredictStructureEsmfoldResult | null> => {
+    const clean = sequence.trim();
+    if (!clean) return null;
+    const cached = esmfoldCache.get(clean);
+    if (cached !== undefined) return cached;
+    const promise = (async () => {
+      const consentGranted = await get().requireNetworkConsent();
+      if (!consentGranted) {
+        const reason = get().offlineMode
+          ? i18next.t("diversity.offlineReason")
+          : i18next.t("diversity.consentReason");
+        set({ statusMessage: i18next.t("diversity.esmfoldCancelled", { reason }) });
+        esmfoldCache.delete(clean);
+        return null;
+      }
+      set({ statusMessage: i18next.t("diversity.esmfoldPredicting") });
+      try {
+        const result = await sendRequest("predict_structure_esmfold", { sequence: clean }, 180_000);
+        if (result.source === "error") {
+          esmfoldCache.delete(clean);
+          set({
+            statusMessage: i18next.t("diversity.esmfoldFailed", {
+              error: result.error_msg ?? i18next.t("statusBar.networkError"),
+            }),
+          });
+          return result;
+        }
+        set({
+          statusMessage: i18next.t("diversity.esmfoldDone", {
+            residues: result.residue_count,
+            plddt: result.plddt_mean.toFixed(1),
+          }),
+        });
+        return result;
+      } catch (err) {
+        esmfoldCache.delete(clean);
+        set({ statusMessage: i18next.t("diversity.esmfoldFailed", { error: formatError(err) }) });
+        return null;
+      }
+    })();
+    esmfoldCache.set(clean, promise);
+    return promise;
+  },
+
+  fetchActiveSite: async (accession: string): Promise<FetchActiveSiteResult | null> => {
+    const consentGranted = await get().requireNetworkConsent();
+    if (!consentGranted) {
+      const reason = get().offlineMode
+        ? i18next.t("diversity.offlineReason")
+        : i18next.t("diversity.consentReason");
+      set({ statusMessage: reason });
+      return null;
+    }
+    try {
+      const result = await sendRequest(
+        "fetch_active_site_residues",
+        { accession: accession.trim() },
+        30_000,
+      );
+      return result;
+    } catch (err) {
+      set({ statusMessage: `Active site fetch failed: ${formatError(err)}` });
+      return null;
+    }
+  },
+
+  computeDispersion: async ({
+    accession,
+    refSeq,
+    positions,
+    nTrials,
+    seed,
+    pdbText,
+    coordinateFrame,
+  }: {
+    accession: string;
+    refSeq: string;
+    positions: number[];
+    nTrials?: number;
+    seed?: number | null;
+    pdbText?: string | null;
+    coordinateFrame?: "accession" | "reference";
+  }): Promise<ComputeDispersionResult | null> => {
+    const consentGranted = await get().requireNetworkConsent();
+    if (!consentGranted) {
+      const reason = get().offlineMode
+        ? i18next.t("diversity.offlineReason")
+        : i18next.t("diversity.consentReason");
+      set({ statusMessage: reason });
+      return null;
+    }
+    try {
+      const params: {
+        accession: string;
+        ref_seq: string;
+        positions: number[];
+        n_trials?: number;
+        seed?: number | null;
+        pdb_text?: string | null;
+        coordinate_frame?: "accession" | "reference";
+      } = { accession: accession.trim(), ref_seq: refSeq, positions };
+      if (nTrials !== undefined) params.n_trials = nTrials;
+      if (seed !== undefined) params.seed = seed;
+      if (pdbText !== undefined) params.pdb_text = pdbText;
+      if (coordinateFrame !== undefined) params.coordinate_frame = coordinateFrame;
+      const result = await sendRequest("compute_dispersion", params, 30_000);
+      return result;
+    } catch (err) {
+      set({ statusMessage: `Dispersion compute failed: ${formatError(err)}` });
+      return null;
+    }
+  },
+
   cancelDiversityReload: () => {
     if (reloadTimer) { clearTimeout(reloadTimer); reloadTimer = null; }
+  },
+
+  annotateReferenceDomains: async () => {
+    const consentGranted = await get().requireNetworkConsent();
+    if (!consentGranted) {
+      const reason = get().offlineMode
+        ? i18next.t("diversity.offlineReason")
+        : i18next.t("diversity.consentReason");
+      set({ statusMessage: i18next.t("diversity.sequenceDomainScanCancelled", { reason }) });
+      return;
+    }
+    const state = get();
+    const seqInfo = state.seqInfo;
+    if (!seqInfo?.genes.length) return;
+    const gene =
+      seqInfo.genes.find((g) => String(g.cds_start) === state.selectedGene)
+      ?? seqInfo.genes[0];
+    const translation = gene?.translation;
+    if (!translation) return;
+    const generation = ++refDomainGeneration;
+    set({
+      refDomainsLoading: true,
+      statusMessage: i18next.t("diversity.sequenceDomainScanning"),
+    });
+    try {
+      const result = await sendRequest(
+        "annotate_domains_by_sequence",
+        { sequence: translation },
+        660_000,
+      );
+      if (generation !== refDomainGeneration) return;
+      // Stale guard: discard result if selected gene translation changed while request was in flight.
+      const nowState = get();
+      const nowSeqInfo = nowState.seqInfo;
+      if (!nowSeqInfo) {
+        set({ refDomainsLoading: false });
+        return;
+      }
+      const nowGene =
+        nowSeqInfo.genes.find((g) => String(g.cds_start) === nowState.selectedGene)
+        ?? nowSeqInfo.genes[0];
+      if (nowGene?.translation !== translation) {
+        set({ refDomainsLoading: false });
+        return;
+      }
+      if (result.source === "error") {
+        set({
+          refDomainsLoading: false,
+          statusMessage: i18next.t("diversity.sequenceDomainScanFailed", {
+            error: result.error_msg ?? i18next.t("statusBar.networkError"),
+          }),
+        });
+        return;
+      }
+      const cacheSuffix = result.cache_hit ? i18next.t("diversity.sequenceDomainsCachedSuffix") : "";
+      const statusMsg = result.domains.length > 0
+        ? i18next.t("diversity.sequenceDomainsFound", { count: result.domains.length, cache: cacheSuffix })
+        : i18next.t("diversity.sequenceDomainsNone");
+      set({
+        refDomains: result.domains,
+        refDomainHash: result.ref_hash,
+        refDomainsLoading: false,
+        disabledDomains: [],
+        statusMessage: statusMsg,
+      });
+      const refreshedState = get();
+      if (
+        result.domains.length > 0
+        && getActiveEvolveproPath(refreshedState)
+        && refreshedState.domainDiversityEnabled
+      ) {
+        await reloadEvolveproCsv("reference-domain annotation");
+      }
+    } catch (err) {
+      if (generation !== refDomainGeneration) return;
+      set({
+        refDomainsLoading: false,
+        statusMessage: i18next.t("diversity.sequenceDomainScanFailed", { error: formatError(err) }),
+      });
+    }
   },
 });
 };

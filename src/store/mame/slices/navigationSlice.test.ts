@@ -66,7 +66,7 @@ describe("MAME_SUBSTEP_ORDER", () => {
     ]);
     expect(MAME_SUBSTEP_ORDER.activity).toEqual([
       "activity.ingest",
-      "activity.mergeExport",
+      "activity.signals",
     ]);
   });
 });

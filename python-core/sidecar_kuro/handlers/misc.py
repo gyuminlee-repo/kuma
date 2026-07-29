@@ -13,7 +13,6 @@ from sidecar_kuro.core import (
     _poly_registry,
     _codon_registry,
     _CUSTOM_POLYMERASE_PATH,
-    _CUSTOM_ENZYME_PATH,
     _get_cached_ca_coords,
 )
 from sidecar_kuro.models import (
@@ -22,8 +21,6 @@ from sidecar_kuro.models import (
     PreviewEvolveproSourceParams,
     RunBenchmarkParams,
     SaveCustomPolymeraseResultModel,
-    SaveCustomEnzymeResultModel,
-    CustomEnzymeParams,
 )
 
 # EVOLVEpro-specific table extensions: CSV, TSV, and XLSX.
@@ -59,34 +56,6 @@ def handle_list_polymerases(_params: dict) -> list[dict]:
     return result
 
 
-def handle_list_typeiis_enzymes(_params: dict) -> list[dict]:
-    """Return the Type IIS enzyme catalog (built-in + custom) for Golden Gate design.
-
-    Drives the Kuro Parameters "Design method" Golden Gate options: each entry
-    carries the recognition site + cut offset so the UI can display exactly what
-    will be inserted, and ``has_fidelity`` indicates whether a bundled overhang
-    ligation-fidelity table backs scored overhang selection for that enzyme.
-    User-defined enzymes from ``custom_enzymes.json`` are merged in.
-    """
-    from kuma_core.kuro.goldengate import load_enzyme_db, load_overhang_scores
-
-    db = load_enzyme_db(custom_path=_CUSTOM_ENZYME_PATH)
-    result: list[dict] = []
-    for name in sorted(db):
-        enz = db[name]
-        result.append(
-            {
-                "name": enz.name,
-                "aliases": list(enz.aliases),
-                "recognition": enz.recognition,
-                "cut_offset": list(enz.cut_offset),
-                "overhang_len": enz.overhang_len,
-                "has_fidelity": bool(load_overhang_scores(enz)),
-            }
-        )
-    return result
-
-
 def handle_get_polymerase_details(params: dict) -> dict:
     """Return full polymerase profile for the selected name."""
     name = params.get("name", "")
@@ -102,16 +71,6 @@ def handle_save_custom_polymerase(params: dict) -> dict:
     return SaveCustomPolymeraseResultModel(name=profile.name).to_rpc_dict()
 
 
-def handle_save_custom_enzyme(params: dict) -> dict:
-    """Validate and persist a custom Type IIS enzyme; keep it available after restart."""
-    from kuma_core.kuro.goldengate import save_custom_enzyme
-
-    enzyme = CustomEnzymeParams.model_validate(params)
-    _CUSTOM_ENZYME_PATH.parent.mkdir(parents=True, exist_ok=True)
-    saved = save_custom_enzyme(enzyme.to_enzyme_dict(), _CUSTOM_ENZYME_PATH)
-    return SaveCustomEnzymeResultModel(name=saved.name).to_rpc_dict()
-
-
 def handle_list_organisms(_params: dict) -> list[dict]:
     """Return available organism codon tables for the UI dropdown."""
     return _codon_registry.list_organisms_detailed()
@@ -120,7 +79,7 @@ def handle_list_organisms(_params: dict) -> list[dict]:
 def _preview_csv(filepath: str, max_rows: int) -> dict:
     """Read headers and first max_rows data rows from a CSV or TSV file."""
     delimiter = "\t" if Path(filepath).suffix.lower() == ".tsv" else ","
-    with open(filepath, encoding="utf-8", newline="") as f:
+    with open(filepath, encoding="utf-8-sig", newline="") as f:
         reader = csv.reader(f, delimiter=delimiter)
         headers = next(reader, [])
         rows = []
@@ -206,7 +165,22 @@ def handle_load_evolvepro_csv(params: dict) -> dict:
 
     ca_coords = _get_cached_ca_coords(p.structure_accession)
 
-    return load_evolvepro_csv(
+    # Structure-accuracy guard: 3D coordinates are only valid when the loaded
+    # structure exactly covers the reference frame (identity or clean substring).
+    # A near-but-not-exact structure would place Cα coordinates on the wrong
+    # residues, silently corrupting dispersion / structural-diversity selection.
+    # When it does not match, drop to None so those paths fall back to 1-D
+    # distance, and record why for the UI.
+    structure_frame_mismatch = False
+    if ca_coords is not None and p.structure_accession and p.ref_seq.strip():
+        from kuma_core.kuro.alphafold import fetch_ca_seq
+        from kuma_core.kuro.interface import structure_matches_reference
+
+        accession_seq = fetch_ca_seq(p.structure_accession)
+        if accession_seq and not structure_matches_reference(accession_seq, p.ref_seq):
+            ca_coords = None
+            structure_frame_mismatch = True
+    result = load_evolvepro_csv(
         filepath=str(resolved),
         top_n=p.top_n,
         max_per_position=p.max_per_position,
@@ -231,7 +205,12 @@ def handle_load_evolvepro_csv(params: dict) -> dict:
         sheet_name=p.sheet_name,
         domain_pool_autoexpand=p.domain_pool_autoexpand,
         domain_pool_max_multiplier=p.domain_pool_max_multiplier,
+        structural_diversity=p.structural_diversity,
+        structural_kappa=p.structural_kappa,
+        anchor_variants=p.anchor_variants,
     )
+    result["structure_frame_mismatch"] = structure_frame_mismatch
+    return result
 
 
 def handle_run_benchmark(params: dict) -> dict:

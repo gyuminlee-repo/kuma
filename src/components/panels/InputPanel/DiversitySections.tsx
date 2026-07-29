@@ -160,6 +160,11 @@ export function DomainAllocationSection(props: {
       </div>
 
       <UniprotSearch />
+      {domains.length === 0 && (
+        <p role="status" className="text-caption text-warning">
+          {t("diversitySections.referenceDomainsRequired")}
+        </p>
+      )}
 
       {domains.length > 0 && (
         <div className="space-y-0.5">
@@ -278,27 +283,11 @@ export function OptimizationSummarySection(props: {
 }
 
 export function RoundSettingsSection(props: {
-  roundStr: string;
-  setRoundStr: (v: string) => void;
-  roundSizeStr: string;
-  setRoundSizeStr: (v: string) => void;
-  commitRound: () => void;
-  commitRoundSize: () => void;
-  onEnterBlur: (e: KeyboardEvent<HTMLInputElement>) => void;
   autoK: number;
   autoEntropy: number;
+  roundUnset: boolean;
 }) {
-  const {
-    roundStr,
-    setRoundStr,
-    roundSizeStr,
-    setRoundSizeStr,
-    commitRound,
-    commitRoundSize,
-    onEnterBlur,
-    autoK,
-    autoEntropy,
-  } = props;
+  const { autoK, autoEntropy, roundUnset } = props;
 
   const { t } = useTranslation();
 
@@ -310,40 +299,23 @@ export function RoundSettingsSection(props: {
           <HelpTip>{t("diversitySections.roundSectionHelp")}</HelpTip>
         </span>
       </div>
-      <div className="flex items-center gap-2 flex-wrap">
-        <span>{t("diversitySections.evolveproRoundLabel")}</span>
-        <InlineHelp text={t("diversitySections.evolveproRoundHelp")} />
-        <input
-          type="number"
-          min={1}
-          className="h-6 w-10 rounded-control border border-border bg-background px-1 text-center text-caption"
-          value={roundStr}
-          onChange={(e: ChangeEvent<HTMLInputElement>) => setRoundStr(e.target.value)}
-          onBlur={commitRound}
-          onKeyDown={onEnterBlur}
-        />
-        <span className="text-muted-foreground">{t("diversitySections.roundSizeLabel")}</span>
-        <InlineHelp text={t("diversitySections.roundSizeHelp")} />
-        <input
-          type="number"
-          min={1}
-          max={960}
-          className="h-6 w-12 rounded-control border border-border bg-background px-1 text-center text-caption"
-          value={roundSizeStr}
-          onChange={(e: ChangeEvent<HTMLInputElement>) => setRoundSizeStr(e.target.value)}
-          onBlur={commitRoundSize}
-          onKeyDown={onEnterBlur}
-        />
-        <HelpTip>{t("diversitySections.roundHelp")}</HelpTip>
-      </div>
-      <div className="flex items-center gap-2 font-mono text-caption text-info">
-        <span className="inline-flex items-center rounded-full border border-info/20 bg-info/10 px-2 py-0.5 text-plate-tiny font-medium text-info">
-          {t("diversitySections.autoLabel")}
-        </span>
-        <span>{t("diversitySections.autoKValue", { k: autoK.toFixed(2) })}</span>
-        <span className="text-muted-foreground">/</span>
-        <span>{t("diversitySections.autoEntropyValue", { entropy: autoEntropy.toFixed(2) })}</span>
-      </div>
+      <p className="text-caption text-muted-foreground">
+        {t("diversitySections.roundMovedHint")}
+      </p>
+      {roundUnset ? (
+        <p className="text-caption text-warning">
+          {t("diversitySections.roundUnsetHint")}
+        </p>
+      ) : (
+        <div className="flex items-center gap-2 font-mono text-caption text-info">
+          <span className="inline-flex items-center rounded-full border border-info/20 bg-info/10 px-2 py-0.5 text-plate-tiny font-medium text-info">
+            {t("diversitySections.autoLabel")}
+          </span>
+          <span>{t("diversitySections.autoKValue", { k: autoK.toFixed(2) })}</span>
+          <span className="text-muted-foreground">/</span>
+          <span>{t("diversitySections.autoEntropyValue", { entropy: autoEntropy.toFixed(2) })}</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -409,7 +381,7 @@ export function AdvancedSettingsSection(props: {
       >
         <div className="space-y-2 text-caption text-muted-foreground">
           <div>
-            <div className="mb-0.5 text-plate-tiny uppercase tracking-wide text-muted-foreground/60">{t("diversitySections.step1SectionLabel")}</div>
+            <div className="mb-0.5 text-caption uppercase tracking-wide text-muted-foreground/60">{t("diversitySections.step1SectionLabel")}</div>
             <div className="flex items-center gap-1 flex-wrap">
               <span>{t("diversitySections.positionCap")}</span>
               <InlineHelp text={t("diversitySections.positionCapLabelHelp")} />
@@ -429,7 +401,7 @@ export function AdvancedSettingsSection(props: {
           </div>
 
           <div>
-            <div className="mb-0.5 text-plate-tiny uppercase tracking-wide text-muted-foreground/60">{t("diversitySections.step2SectionLabel")}</div>
+            <div className="mb-0.5 text-caption uppercase tracking-wide text-muted-foreground/60">{t("diversitySections.step2SectionLabel")}</div>
             <div className="space-y-1">
               <div className="flex items-center gap-2 flex-wrap" role="radiogroup" aria-label={t("diversitySections.domainStrategyAriaLabel")}>
                 <span>{t("diversitySections.strategyLabel")}</span>
@@ -467,7 +439,7 @@ export function AdvancedSettingsSection(props: {
           </div>
 
           <div>
-            <div className="mb-0.5 text-plate-tiny uppercase tracking-wide text-muted-foreground/60">{t("diversitySections.step3SectionLabel")}</div>
+            <div className="mb-0.5 text-caption uppercase tracking-wide text-muted-foreground/60">{t("diversitySections.step3SectionLabel")}</div>
             <div className="space-y-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <span>{t("diversitySections.distanceLabel")}</span>
@@ -642,6 +614,57 @@ export function BenchmarkSection(props: {
         disabled={benchmarkRunning || !hasBenchmarkData}
       >
         {benchmarkRunning ? t("diversitySections.runBenchmarkBusy") : t("diversitySections.runBenchmark")}
+      </button>
+    </div>
+  );
+}
+export function StructuralDiversitySection(props: {
+  structuralKappa: number;
+  setStructuralKappa: (v: number) => void;
+}) {
+  const { structuralKappa, setStructuralKappa } = props;
+  return (
+    <div className="space-y-1 text-caption text-muted-foreground">
+      <div className="flex items-center gap-2">
+        <span className="w-40">Exploit/diversity blend (kappa)</span>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.05"
+          value={structuralKappa}
+          onChange={(e) => setStructuralKappa(Number(e.target.value))}
+          className="w-20 accent-primary"
+          title="Structural diversity kappa (0 = exploit, 1 = explore)"
+        />
+        <span className="font-mono text-foreground">{structuralKappa.toFixed(2)}</span>
+      </div>
+      <p className="text-caption text-muted-foreground/70">
+        Selects variants using 3D C&alpha; centroid distance. kappa=0 favours
+        high-fitness variants; kappa=1 maximises structural spread.
+      </p>
+    </div>
+  );
+}
+
+export function StructuralDiversitySuggestion(props: {
+  onEnable: () => void;
+}) {
+  const { onEnable } = props;
+  const { t } = useTranslation();
+  return (
+    <div className="mb-2 space-y-1 rounded border border-info/30 bg-info/10 p-2 text-caption text-info">
+      <p className="font-semibold">{t("diversitySections.structuralSuggestTitle")}</p>
+      <p className="text-muted-foreground">{t("diversitySections.structuralSuggestBody")}</p>
+      <p className="text-caption text-muted-foreground/80">
+        {t("diversitySections.structuralSuggestCaveat")}
+      </p>
+      <button
+        type="button"
+        onClick={onEnable}
+        className="mt-1 inline-flex items-center rounded-full border border-info/30 bg-background px-3 py-1 text-caption font-medium text-info hover:bg-accent"
+      >
+        {t("diversitySections.structuralSuggestEnable")}
       </button>
     </div>
   );

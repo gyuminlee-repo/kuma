@@ -1,11 +1,250 @@
 # Changelog
 
-## v0.13.6.1 (Golden Gate / Type IIS design, What's New automation)
+## v0.13.30 (The sample map the lab fills in now works end to end)
+
+`05_mame_sample_map.xlsx` names every well `<sample>_r<n>` and marks empty wells `blank`. The layout parser read those literally, so a filled-in template produced no usable variants at all. Two independent reasons, fixed together.
+
+### Fixed
+- v0.13.30: The layout parser reads the replicate suffix the lab writes. A trailing `_r<n>` is stripped and the remaining text is the sample name, so `WT_r1` is WT and `Q232A_r1`, `Q232A_r2`, `Q232A_r3` collapse onto one mutant whose three wells accumulate as replicates. Only the trailing suffix goes, which keeps `A40P_E61Y_r1` intact as `A40P_E61Y`. Rows named `blank` are dropped. Names without a suffix behave exactly as before. (`kuma_core/mame/activity/plate_layout_xlsx.py`)
+- v0.13.30: A variant that cannot become EVOLVEpro short notation no longer kills the build. Short notation is one position plus one residue, so a double substitution has no token, and `to_evolvepro` raised on it. Both fallback builders called that unguarded, so a single combo variant in a layout aborted everything and the singles beside it produced nothing. The conversion failure is now caught per mutant, that mutant alone is dropped, and one warning names it with its wells. (`kuma_core/mame/activity/build_evolvepro_input.py`)
+
+### Known issues
+- Combo measurements stay out of the EVOLVEpro input. The activity is read and the wells parse, but the value never reaches the next round, which matters as combinatorial variants grow in number. Giving them a short-notation form needs confirming what the external EVOLVEpro accepts, so it is deliberately left open.
+- `to_evolvepro` and the multi-mutation parser in `kuma_core/kuro/mutation.py` disagree on the separator. The parser handles `A40P/E61Y` while the templates write `A40P_E61Y`.
+
+## v0.13.28 (Files the lab already has, and a shared primer that reaches every well)
+
+Three complaints, one shape: KUMA asked for a file or a column name the user did not have, and called the mismatch a bad file. A fourth item is worse than a complaint, since it produced a plausible looking export with primers missing from it.
+
+### Fixed
+- v0.13.28: Step 2 accepts mutation files whose headers merely differ in case, spacing, or a byte-order mark. Header comparison strips the BOM, trims, and casefolds, while the resolved name stays the original string so row lookup still works. Both the loader and the preview now read CSV as `utf-8-sig`, so the dropdown offers exactly what the loader will find; before, an Excel-exported CSV showed the preview a header the loader could not resolve. (`kuma_core/kuro/evolvepro.py`, `python-core/sidecar_kuro/handlers/misc.py`)
+- v0.13.28: Step 2 column pickers work without hunting for the Preview button. The manual mapping panel was always rendered but its two selects were gated on a preview only that button fetched, so a failed auto-detect left two disabled dropdowns under a message reading "Load a file first" for a file already loaded. Choosing a file fetches the preview on its own, the selects survive a failed auto-detect, and the failure message says the columns can be picked below. A stale-response guard keeps a quick file switch from pairing one file headers with another file rows. (`src/components/panels/InputPanel/`)
+- v0.13.28: MAME step 3.1 takes the sample map step 1 already produced. It demanded a plate layout workbook with `Mutant` and `Well Pos.` columns that nothing in the codebase writes, while the identical mapping existed as `sample_name` and `well` from `generate_mame_package`. The parser accepts either pair, prefers the plate layout pair when both appear, and says so. (`kuma_core/mame/activity/plate_layout_xlsx.py`)
+- v0.13.28: Echo and JANUS exports no longer drop the reverse rows of shared primers. Mutations sharing a reverse primer are keyed through a dedup map; when a workspace carried none, `_build_rev_lookups` rebuilt that map from the already deduplicated list, which holds only each group representative. Every other mutation then failed the lookup and lost its reverse transfer row, meaning a reaction with no primer in it, from an export that otherwise looked complete. Old workspaces reach this through `dedupInfo: ws.dedupInfo ?? {}`. The export handlers now rebuild the map from the design results, and the mapper raises with the affected mutation names rather than dropping rows when rebuilding is impossible. (`kuma_core/kuro/plate_mapper.py`, `python-core/sidecar_kuro/handlers/export.py`)
 
 ### Added
-- v0.13.6.1: Golden Gate (Type IIS) is now a per-run Kuro design method alongside overlap-extension SDM. It inserts the enzyme recognition site plus a ligation-fidelity-scored fusion overhang around each mutated codon; codon usage is organism-aware (Kazusa, frequency-descending with a deterministic tiebreak) and skips codons that would create a forbidden Type IIS site, while annealing Tm reuses the overlap-extension SantaLucia 1998 (SnapGene) model and batch-normalises to within +4°C of the lowest initial Tm. (`kuma_core/kuro/goldengate.py`, `kuma_core/kuro/sdm_engine.py`, `python-core/sidecar_kuro/handlers/design.py`, `src/components/panels/ParameterPanel.tsx`, `src/store/slices/designSlice.ts`)
-- v0.13.6.1: built-in Type IIS enzyme catalog (BsaI, BsmBI, BbsI, SapI, PaqCI, BspMI) with BsaI/BsmBI on-target ligation-fidelity tables (Potapov 2018) and a Custom Type IIS enzyme editor; the `list_typeiis_enzymes` and `save_custom_enzyme` RPCs persist user enzymes to `~/.kuma/kuro/custom_enzymes.json` with corrupt-file isolation. (`kuma_core/kuro/resources/enzymes/typeIIS.json`, `kuma_core/kuro/resources/overhang_fidelity/`, `src/components/dialogs/EnzymeEditor.tsx`, `python-core/sidecar_kuro/handlers/misc.py`)
-- v0.13.6.1: per-run Golden Gate junction overrides — a `prefix_override` (spacer + recognition site + spacer) and `forbidden_overhangs` (default `AATG`, `AGGT`) — with cut-site geometry warnings surfaced on each result. (`kuma_core/kuro/goldengate.py`, `python-core/sidecar_kuro/models.py`, `src/types/models.ts`)
+- v0.13.28: Echo and JANUS layout sheets report how many reactions each source well feeds and the volume that draws. A shared reverse primer is aspirated once per destination, so a well feeding ten reactions gives up ten times the per-transfer volume, and nothing in the previous exports said so. The machine-readable transfer files are untouched, since their schemas are fixed and the total belongs where a human fills the plate. Dead volume stays out of the arithmetic: neither the Echo picklist nor the JANUS worklist has a field for it, vendor working ranges vary by fluid class, and the sheet says to add the labware figure.
+
+### Known issues
+- The required fill volume still needs the labware dead volume added by hand. Both instruments detect a shortfall only at run time, Echo through a survey exception report and JANUS through a liquid level error, which is after the plate is loaded.
+- A mutation column named explicitly but absent from the file yields an empty result rather than an error. The dropdown only offers headers the preview returned, so the path is unreachable through the UI.
+
+## v0.13.27 (Step 3 learns to read the instrument, and stops asking a human to normalise first)
+
+MAME step 3 could parse a raw Agilent FID1B report but never use one. The parser had zero production callers, so the only way in was a GC sheet somebody had already divided by WT. The capability lived in an open PR that had gone stale for five weeks against a UI another open PR had since rewritten. Both are landed here.
+
+### Added
+- v0.13.27: A raw Agilent report can be the round source. `build_evolvepro_input_from_reports` normalises each replicate as `area / mean(WT block areas)` and is reachable from the plate-layout route through a source toggle, with a second toggle choosing the round-1 baseline between a raw report and a prior EVOLVEpro file. WT blocks are matched on `^WT_?\d+$`; pure-numeric sample names are treated as calibration and skipped. A missing WT block fails loudly rather than falling back. Optional NGS verdict gating drops variants whose well did not pass. (#173, supersedes #120)
+- v0.13.27: Step 3 splits into an exclusive input route and cross-round signals, so the genotype path and the plate-layout path no longer share one crowded screen. (#173, supersedes #163)
+
+### Changed
+- v0.13.27: The WT denominator comes from the WT replicate rows the instrument ships. Long-format ingest dropped every row whose sample name failed to parse as a well coordinate, which silently discarded the `WT_1`/`WT_2`/`WT_3` blocks present in Agilent exports and forced the genotype route to back out a denominator from plate-designated WT wells instead. Those rows now land in a separate `wt_records` collection, keeping them out of the variant well space, and the join prefers their mean per plate. Plates with no dedicated rows keep the previous behaviour, and `n_wt_replicate_rows` plus `n_plates_wt_from_replicates` report which source applied. This aligns the genotype route with the definition reports mode already used.
+- v0.13.27: `MergedRow.relative_activity` is gone. It was declared and read but never assigned, so the export ternary always resolved to `fold_change`, which is the same quantity by construction (`activity_mean / wt_mean`). The dead branch made the code read as if it honoured a separate relative-activity definition that was never wired.
+- v0.13.27: The step 3 document is rewritten against the actual parsers and columns. It had claimed a 96-well grid input that no parser implements and named the output columns `mutation`, `activity` when the writer emits `Variant`, `activity`.
+
+### Fixed
+- v0.13.27: The two-file provisional build works again after the merge. The mode validator arriving from #120 judged rank mode by `all([gc_data_xlsx, rep_batch_xlsx, prev_evolvepro_xlsx])`, which rejected the layout-plus-GC path main had opened by making the last two optional; a copy of the same guard sat in the handler. Both now key off `gc_data_xlsx`. The regression survived the merge because the existing validator test supplies all three files, so three tests now pin the two-file path.
+- v0.13.27: The reports branch no longer shows a false "Provisional" badge. It returns no `confidence` key, but the panel rendered the badge unconditionally. The types also missed the `mode` field the handler returns, and marked `layout_xlsx` and `gc_data_xlsx` required when the backend treats both as optional.
+
+### Known issues
+- `251001_report.xlsx` is a correct format exemplar but is not the round-1 measurement for the IspS campaign. Its normalised values match the expected round-2 input in 0 of 94 rows where `GC data.xlsx` matches 58, and per-well correlation between the two is -0.18. Feeding it as the round-1 source gives right answers for the 34 re-measured variants and wrong ones for the other 61. No raw round-1 report exists for that campaign, which is why rank mode stays.
+- The `export_evolvepro_csv` output is log2 while both xlsx writers are linear. The CSV exists for the in-repo KURO round trip and is not an EVOLVEpro input, but the shared name invites confusion.
+
+## v0.13.26 (Panels that announce themselves on a laptop screen, a sample map that arrives pre-filled)
+
+A user on a MacBook reported that the KURO Step 5 plate view was missing, while the same build looked fine on Windows. The cause turned out to be two independent things that only combine on a short screen: a panel that shrinks instead of overflowing, and an OS that hides its scroll bars. Measurement drove the fix; the numbers below come from Playwright renders rather than from reading the code.
+
+### Fixed
+- v0.13.26: The KURO Step 5 plate grid no longer collapses out of sight. The Output split container was `h-full min-h-0`, so it could never exceed the wizard body and produced no overflow to scroll. At a 1280x800 viewport, the MacBook 13-inch default scaled resolution, the wizard body holds 143 px while the 96-well grid needs 316 px, so the grid was squeezed into a 75 px box with only its own hairline scroll bar. The container now carries a height floor, which lets the grid render at full size and hands the surplus to the wizard body scroll. Measured across 720 px to 1100 px of viewport height, the grid box tracks `viewport - 741` before the change and stays at 424 px after it. (`src/components/steps/OutputStepView.tsx`)
+- v0.13.26: MAME Analyze fits on a laptop. The review container declared `min-h-[960px]`, so on any window shorter than roughly 1700 px the whole step sat inside a scroll trap; the verdict table and the efficiency chart added 640 px and 360 px floors of their own. All three now sit at or below 240 px and scroll inside themselves. This was never reported, and it bites harder than the plate view because it moves the entire step rather than one panel. (`src/components/mame/steps/AnalyzeStepView.tsx`)
+- v0.13.26: The plate grid draws its own scroll bar. Nothing in the codebase styled a scroll bar, so every scrollable region inherited the platform default, and macOS keeps overlay scroll bars hidden until a scroll is already in progress. A clipped grid therefore read as "there is nothing more here" on a Mac and as "clipped, more below" on Windows, from one identical build. The plate view now renders a scroll bar as a real element, present on both platforms and assertable in a test, and a global rule opts WebKit out of the overlay style for every other panel. The thumb tracks the true ratio: at 1280x800 the horizontal thumb spans 42 % of the track against a 323/771 px viewport-to-content ratio. (`src/components/widgets/PlateMap.tsx`, `src/index.css`)
+- v0.13.26: Seventeen interface strings stop rendering as raw key names. i18next echoes the key when it cannot resolve one, so `onboarding.maximizeHint` appeared verbatim in the first-run toast, and twelve MAME barcode-setup strings, two artifact badge strings and the sidebar resize label did the same. `i18n-parity` compares locale files against each other, so a key absent from all ten passed it. All seventeen are now defined in every locale. (`src/locales/*.json`)
+- v0.13.26: The `--text-title` token is larger than `--text-body`. At 13 px against a 14 px body, every panel header rendered smaller than the text inside it. Now 15 px. (`src/index.css`)
+- v0.13.26: The MAME sample map template arrives pre-filled. `generate_mame_package` accepts the KURO expected-mutations workbook and writes one row per designed mutant in column-major well order plus a trailing `WT` row, delegating placement to `build_draft_layout` so the file on disk and the in-app draft cannot diverge. Regeneration no longer discards a template that already carries operator rows. `build_draft_layout` previously truncated past well 96 and dropped the WT control at exactly 96 with no signal, which rendered as a correct full plate; it now reports `dropped_mutant_ids` and `wt_omitted`. (#171)
+
+### Added
+- v0.13.26: `i18n-lint` resolves every literal `t()` key against all ten locales and fails on any that no locale defines. The call span is sliced by paren balance rather than a fixed window, so a neighbouring call carrying a `defaultValue` cannot excuse the one beside it. Calls with their own fallback text are exempt, and plural keys are matched through their CLDR suffixes. (`scripts/i18n-lint.mjs`)
+
+### Known issues
+- At a 900x600 window, the floor allowed by `minHeight`, the Step 5 body holds 16 px and the plate is reachable only by scrolling. This is a hand-shrunk window rather than a display size, and it appears in no screen-resolution statistic, so it is out of scope for now.
+- The plate grid is 745 px wide against a panel of 359 px at 1280x800, so horizontal scrolling remains necessary. The new scroll bar makes that state legible; narrowing the cells or promoting the grid to a full-width view is still open.
+- A trivial sidecar call shares the same 60 s timeout budget as a heavy one. `get_polymerase_details` is an in-memory registry lookup, yet it can exhaust the budget and surface as `RPC timeout` when sidecar cold start is slow.
+
+## v0.13.25 (Legacy .xls sources load in a packaged build, round hints name a step that exists)
+
+Two defects that only a shipped build exposes. Both were found by reading the v0.13.24 release back rather than by a failing test, and neither had a test that could have caught it.
+
+### Fixed
+- v0.13.25: Legacy `.xls` EVOLVEpro sources load in a packaged build. `xlrd` is declared in `pyproject.toml` but was absent from the kuro `hidden_imports` list, and it is imported lazily in two places PyInstaller cannot see statically: the preview path (`sidecar_kuro/handlers/misc.py:125`) and the table load path (`kuma_core/kuro/evolvepro.py:339`). Any `.xls` source therefore raised `ModuleNotFoundError` in an installed build while a development run succeeded, because the wheel is present there. This affected loading, not only previewing. `openpyxl` was already listed, so `.xlsx` was never affected, and nothing on the MAME side imports `xlrd`. (`python-core/build_sidecar.py`)
+- v0.13.25: The round hints name a step that exists. The v0.13.24 hints sent the user to "Step 1 (Load Variants)", but the inputs were added to `MutationInput`, which `DesignStepView` maps to `design.mutation`, the Mutations step. `SequenceInput` is Load Variants. The numbering was ambiguous besides, since `DiversitySections` labels the diversity pipeline stages Step 1 to Step 4 in its own separate scheme, so "Step 1" inside that panel meant something else. Both hints now name the step rather than numbering it, in all ten locales. (`src/locales/*.json`)
+
+### Known issues
+- A trivial sidecar call shares the same 60 s timeout budget as a heavy one. `get_polymerase_details` is an in-memory registry lookup, yet it can exhaust the budget and surface as `RPC timeout` when sidecar cold start is slow, which on Windows includes onefile extraction plus antivirus scanning a bundle of roughly 90 MB. The call itself is not slow; the startup ahead of it is.
+
+## v0.13.24 (Plasmid input that works, campaign round asked for instead of assumed)
+
+Two rounds of work on inputs the app accepted but could not actually use. MAME refused every circular plasmid and silently scanned SnapGene binaries as text; KURO collected the campaign round in a step the user reaches after the value has already been consumed, and treated "never entered" as round 1.
+
+### Fixed
+- v0.13.24: MAME designs primers on circular plasmids. `design_flanking_primers` placed the forward binding site in `[gene_start - flank_max, gene_start - flank_min)` and errored whenever a bound fell outside the sequence, so a gene near the origin was rejected even though the template exists on the other side of it. On `pTSN-PtIspS-idi(KanR)_corrected.gb` (6494 bp, LOCUS declares circular) ispS at `gene_start=267` produced a window of `[-133, 167)` and aborted with "sequence is too short upstream of the gene", where offset -133 is position 6361. Circular topology now indexes modulo the sequence length in both windows, detected from the Biopython record; linear templates keep the previous behaviour and error message byte for byte. Measured on that file, the forward primer lands at 6361 and the reverse ends at 2050. (`kuma_core/mame/ingest/barcode_package.py`, `kuma_core/kuro/sdm_engine.py`, `python-core/sidecar_mame/handlers/barcode_package.py`)
+- v0.13.24: SnapGene `.dna` files are parsed instead of scanned as text. `BarcodeSetupPanel` read every input with `readTextFile`, so a binary `.dna` found no flat-file CDS lines, fell through to the FASTA ORF scanner, and filled the CDS dropdown with dozens of ORFs found in 3.16 MB of binary, then auto-wrote those coordinates into the form. Annotated formats now route through the existing Biopython-backed `load_fasta` RPC, which returns the same four genes at the same coordinates as the GenBank text path. Plain FASTA keeps the ORF scan, the scanner rejects content that is not plausibly text, and an RPC failure surfaces the error rather than falling back to the path that produced the junk. (`src/components/mame/panels/BarcodeSetupPanel.tsx`, `src/lib/sequence/autoDetectCds.ts`)
+- v0.13.24: The MAME sequence field says what it needs. The helper read "Reference CDS sequence", inviting the one input that can never work, since a CDS-only FASTA has zero flank on either side. It now asks for a plasmid or construct map with flanking template, and an inline warning reports the shortfall in bp per side. The warning does not block, because circular templates legitimately succeed in those cases. (`src/locales/*.json`, `src/components/mame/panels/BarcodeSetupPanel.tsx`)
+- v0.13.24: Annotated and ORF-derived CDS candidates report the same protein length. The sidecar counted the stop codon as a residue while the frontend candidate type excludes it, so the same gene read 561 aa from a GenBank map and 560 aa from a FASTA ORF. (`src/components/mame/panels/BarcodeSetupPanel.tsx`)
+- v0.13.24: The KURO campaign round is set where it is used. Both inputs lived in Step 4 Pool Filters while the value is consumed at EVOLVEpro load time to derive the sigma-adaptive pool, so the field was only discovered after the load had run. They now sit in the Mutations step next to the variant file, bound to the same store fields, and an informational hint appears when recorded round history disagrees with the entered value. (`src/components/panels/InputPanel/MutationInput.tsx`, `DiversitySections.tsx`, `DiversityOptions.tsx`)
+- v0.13.24: An unentered round is no longer read as round 1. The frontend initialised `evolveproRound` to 1 while the sidecar default, the Pydantic field, the source inspector display, and the request builder all treat 0 as unset, so an untouched round silently selected the round-1 pool parameters. Zero is now the initial value and a dismissible dialog asks for the round once an EVOLVEpro table is loaded, mounted app-level so it does not depend on which step the user opened first. With the round unset, Pool Filters points at the Mutations step rather than displaying the k and entropy values that `computeSigmaParams(0, size)` happens to return. (`src/store/slices/diversitySlice.ts`, `src/components/dialogs/RoundPromptDialog.tsx`, `src/components/layout/AppLayout.tsx`)
+- v0.13.24: The KURO Tip card shows its text instead of a key name. The side-card key was assembled by splitting the substep id, which does not match the locale keys for three of six substeps (`design.mutation`, `output.summary`, `export.all` against `nominate`, `output`, `export`), so those steps rendered the raw key string in all ten locales. (`src/components/layout/KuroChrome.tsx`)
+- v0.13.24: Prose no longer renders at the 8 px well-plate size. Seven status lines, section labels, and descriptions used the plate-label token; they now use the caption size. The 8 px token stays on plate badges and compact controls. (`src/components/panels/InputPanel/DiversitySections.tsx`, `UniprotSearch.tsx`)
+
+### Added
+- v0.13.24: Structural diversity is suggested in the regime where it is validated. The selector stays off by default, since the benchmark records a conditional win that loses on some assays, but the app now offers one-click enable when the candidate pool is combinatorial, the round is 1 or 2, and a real 3D structure is loaded, which are the three conditions the benchmark requires together. (`src/components/panels/InputPanel/DiversityOptions.tsx`, `src/store/slices/diversitySlice.helpers.ts`)
+
+### Known issues
+- The campaign round reaches the sidecar only when the Pareto optimisation step is enabled. `evolvepro_round` is attached to the request under `usePipeline && paretoDiversityEnabled`, so the round is stored, displayed, and persisted as campaign metadata while its only functional effect is on the sigma-adaptive pool inside that one path.
+
+## v0.13.23 (Rescue levers that run, verdicts that stop overclaiming, annealing below extension)
+
+A defect audit run straight after v0.13.22, aimed at one pattern: a declared contract that the code quietly contradicts, with nothing checking the two against each other. That is what the v0.13.22 Tm scale bug was, and five sweeps (constant provenance, hard bounds, hidden diagnostics, cross-layer drift, MAME thresholds) found more of it.
+
+### Fixed
+- v0.13.23: The Tm tolerance control now reaches the batch design. The frontend sent `tol_max` on every request, `DesignSdmPrimersParams` had no such field, and Pydantic dropped it silently under the default `extra="ignore"`, so the batch always ran at 4.0 while only the retry path honoured the value. Moving the control from 4 to 10 changed nothing. On a 95-mutation IspS input the yield now moves 91/95 at tolerance 4, 94/95 at 6, and 95/95 at 8. Auto-relax widens from the requested value rather than a constant, so asking for 8.0 no longer produces a 6.0 rescue narrower than the first attempt. (`python-core/sidecar_kuro/models.py`, `kuma_core/kuro/sdm_engine.py`, `python-core/sidecar_kuro/handlers/design.py`, `src/components/panels/ParameterPanel.tsx`)
+- v0.13.23: Auto-relax rescue runs without a rescue pool. The block sat inside a guard that also required `rescue_pool`, and the frontend sends an empty pool outside EVOLVEpro mode, which made auto-relax dead code for manual and CSV input. Measured with an empty pool, the same input moves from 91/95 to 94/95. (`python-core/sidecar_kuro/handlers/design.py`)
+- v0.13.23: A well counts as recovered only when its designed mutation is confirmed. The indel-event gate returned AMBIGUOUS before the expected mutation was ever compared, and `detected.py` treats AMBIGUOUS as a guarantee that every expected mutation matched, so a deletion-bearing well whose consensus lacked the designed mutation reported a recovery rate of 1.0 and won replicate selection. (`kuma_core/mame/compare/verdict.py`)
+- v0.13.23: `consensus_n_fraction` is scoped to covered positions. Dividing by the whole alignment reference sent every well to NO_CALL when the reference was a plasmid map, which the translator explicitly supports: 150 perfect reads carrying the designed mutation measured 0.97. A file written before this change is recovered exactly from `low_depth_positions`, and when that is unavailable the value is marked unevaluable and the gate is skipped with a note, rather than reusing a differently defined number. (`kuma_core/mame/ingest/consensus.py`, `fasta_parser.py`, `consensus_metadata.py`)
+- v0.13.23: A coordinate-origin mismatch fails loudly. The expected WT residue was parsed and discarded, so a tag, leader peptide, or plasmid offset shifted a whole plate onto the wrong residues and still reported PASS with empty notes. (`kuma_core/mame/compare/verdict.py`)
+- v0.13.23: Cross-talk reports whether it ran. Four states, including a missing input file and a parse failure, collapsed into an empty list that the panel rendered as an all-clear, in a section that sat outside the MinKNOW guard. The z-score population also included the `unclassified` bin, which demux excludes by name, so a large unclassified count hid the real candidate. (`kuma_core/mame/health.py`, `src/components/mame/widgets/RunHealthPanel.tsx`)
+- v0.13.23: Wells that cannot be identified stay unidentified. A failing well with no label match and no sample_map entry was attributed to `expected[idx % len(expected)]`, so its position in the ingest list decided which mutant it joined. (`kuma_core/mame/pipeline.py`)
+- v0.13.23: The verdict inspector shows the note instead of an invented identity. The Identity row rendered 100 minus five per observed AA change; no identity field exists anywhere in the backend. (`src/components/mame/layout/MameInspectorContent.tsx`)
+- v0.13.23: Recommended annealing never exceeds the extension temperature. Q5 SDM carried no two-step threshold, so all eleven pairs the fixture designs were recommended 74 to 79 C against a 72 C extension step. The demotion also tested the raw Tm rather than the annealing temperature NEB specifies, and Phusion lacked the documented sub-20-nucleotide branch. Across all eight profiles, pairs above 72 C fall from 12 to 0. (`kuma_core/kuro/annealing.py`, `kuma_core/kuro/resources/polymerase_profiles.json`)
+- v0.13.23: The KURO sidecar surfaces the exception type and message instead of a bare "Internal error", matching the MAME sidecar under the same -32603 code. (`python-core/sidecar_kuro/dispatcher.py`)
+
+### Known issues
+- Reported MAME numbers can move. Scoping the N fraction to covered positions and requiring the designed mutation before AMBIGUOUS both change verdicts on existing data, and a coordinate-origin mismatch that used to pass now aborts the run. On an 8-well panel the distribution moves NO_CALL -5, PASS +3, WRONG_AA +2, with no well flipping into a false PASS.
+- A well whose N fraction is unevaluable serializes as 0.000, so Excel, CLI, and the frontend read it as clean. The reason is carried in `verdict_notes` on the same row.
+- The pool-cascade branch still designs at the default tolerance.
+
+---
+## v0.13.22 (SDM design Tm scale correction, failure reasons that name the blocking stage)
+
+### Fixed
+- v0.13.22.1: The design-time Tm no longer carries the Mg and dNTP terms the Benchling scale does not model. v0.13.19.0 pinned one fixed scale for every polymerase but populated it with a polymerase buffer (Mg 1.5 mM, dNTP 0.8 mM), while the Benchling SantaLucia 1998 calculator models monovalent salt and oligo concentration only. Every design Tm therefore ran about 5.4 C hot against unchanged 62/58/42 targets, and GC-rich sites lost their reverse primer: the shortest legal 19 bp reverse already exceeded 58+-4, so the site failed. Verified against a pair designed at the bench on pTSN-PtIspS-idi(KanR) F385Y, where Benchling reports 61.6 / 59.5 C and the corrected scale reproduces 61.2 / 59.5 C; the engine now regenerates that reverse primer byte for byte. Yield on a 95-mutation IspS input moves from 74/95 to 91/95 before rescue and 94/95 with auto-relax, and the 50-mutation dmpR fixture from 21/50 to 36/50. Targets, primer lengths, and the enzyme-specific annealing temperature path are untouched. (`kuma_core/kuro/sdm_engine.py`)
+- v0.13.22.1: A failed mutation now reports which stage blocked it instead of one generic tolerance line. The reason names the overlap window, the forward primer, the reverse primer, or the full-overlap gate, and carries the closest reachable Tm, the target window, and the length limits, for example `reverse: closest Tm 64.4C at 19 bp, outside 58+-4.0C (length 19-27 bp)`. Diagnosis runs only after a failure is confirmed, so the success path is unchanged, and it observes through the same search primitives rather than reimplementing the ladder, so the message cannot drift from the search. (`kuma_core/kuro/sdm_engine.py`, `tests/test_sdm_engine.py`)
+
+### Changed
+- v0.13.22.0: KURO step 2 loads EVOLVEpro and Others through one loader with optional column mapping, `resetAll` no longer leaks candidates, export BOM is selected by locale, and UniProt BLAST auto-search is gated. (`src/store/slices/inputSlice.ts`, `src/store/slices/sequenceSlice.ts`, `src/store/slices/exportSlice.ts`)
+
+### Known issues
+- One IspS mutation (L265F) still fails, with the reverse primer at 64.4 C against 58+-6 even after auto-relax. The cause is the 19 bp reverse length floor, which is kept at the value the paper method specifies.
+
+---
+## v0.13.19 (Paper-standard SDM design for every polymerase)
+
+### Changed
+- v0.13.19.0: SDM design targets are now **method-level constants** (Fwd 62 / Rev 58 / Overlap 42 C, mutation site at least 4 bp from the 3' end) for **every** polymerase profile, and the design-time Tm runs on one fixed scale. Previously only the Benchling profile carried the paper values; the others derived targets from `opt_tm` (`opt_tm`, `-4`, `-20`), so selecting KOD or Q5 silently designed to 68/64/48, and the design Tm itself was computed on a per-enzyme scale (NEB-calibrated for Q5/Phusion/Taq). Every profile that shares the length spec now designs byte-identical primers matching the paper reference, and enzyme identity affects only the recommended annealing temperature. Targets and lengths follow Landwehr et al. 2025 (Nat Commun 16, 865), whose SI Fig. S4 defines 62/58 as whole-primer melting temperatures. (`kuma_core/kuro/sdm_engine.py`, `kuma_core/kuro/resources/polymerase_profiles.json`, `src/store/slices/designSlice.ts`)
+
+### Fixed
+- v0.13.19.0: CI now smoke-tests the frozen KURO sidecar (spawn, `ping`, `load_fasta`, import-stage marker) so an import crash cannot reach a release. The v0.13.17 startup failure shipped because the pipeline only checked that the binary existed. (`python-core/scripts/frozen_kuro_smoke.py`, `.github/workflows/build.yml`)
+
+---
+## v0.13.18 (Sidecar startup fix on non-UTF-8 Windows locales)
+
+### Fixed
+- v0.13.18.0: The KURO sidecar no longer dies at import on Windows systems whose locale encoding is not UTF-8 (cp949 on Korean Windows, for example). The profile loader opened the bundled polymerase table with the locale default encoding, so the non-ASCII touchdown text introduced in v0.13.17 raised `UnicodeDecodeError` before any RPC could run, which surfaced as "Sidecar process exited" for every command including sequence loading. The loader now pins utf-8, matching the three other readers in that module, and a regression test drives the registry under `PYTHONWARNDEFAULTENCODING` so a locale-default open cannot come back. (`kuma_core/kuro/polymerase.py`, `tests/test_polymerase.py`)
+
+---
+## v0.13.17 (Per-enzyme annealing temperature)
+
+### Added
+- v0.13.17.0: KURO now outputs a **recommended annealing temperature (Ta)** per SDM primer pair, calibrated to the selected polymerase with verified manufacturer rules: NEB Q5 (Tm+1), Phusion (Tm+3), Taq (Tm-5) via the existing NEB Tm offsets; KOD One (nearest-neighbor Tm-5, 3-step, step-down 74/72/70/68); Takara PrimeSTAR GXL (discrete 55/60); Thermo DreamTaq (Wallace, Tm-5), with 2-step promotion for high-Tm pairs. The design-time Tm scale (Fwd 62 / Rev 58 / Overlap 42) stays unchanged; Ta is an additive output in the result table with a mode and touchdown tooltip. Rules verified against primary sources (NEB Tm API, Toyobo/Takara/Thermo manuals). (`kuma_core/kuro/annealing.py`, `kuma_core/kuro/polymerase.py`, `kuma_core/kuro/resources/polymerase_profiles.json`, `python-core/sidecar_kuro/handlers/design.py`, `python-core/sidecar_kuro/models.py`, `src/components/widgets/resultTableColumns.tsx`, `docs/2026-07-16-annealing-ta-rules-verified.md`)
+
+---
+## v0.13.16 (In-app automatic updates)
+
+### Added
+- v0.13.16.0: Kuma can now **update itself in place**. When a newer signed release is detected, the update dialog offers **Update now**, which downloads the platform artifact, verifies its Ed25519 signature against the key embedded in the app, installs it, and relaunches — no manual installer step. Windows (NSIS), macOS, and Linux AppImage are fully automatic; Debian `.deb` has no updater artifact and falls back to opening the release page. Signing uses a self-generated Tauri updater key (not a paid code-signing certificate), so the free/unsigned distribution policy is unchanged and the SmartScreen guidance still applies. (`src-tauri/tauri.conf.json`, `src-tauri/src/lib.rs`, `src-tauri/capabilities/default.json`, `src/lib/updateCheck.ts`, `src/components/dialogs/UpdateAvailableDialog.tsx`, `.github/workflows/build.yml`, `scripts/gen-latest-json.mjs`)
+
+---
+## v0.13.15 (MAME Activity runs independently on layout + GC)
+
+### Changed
+- v0.13.15.0: MAME **Build EVOLVEpro input** no longer forces all four files. Layout + GC alone now produce a valid activity table for a first-round primary screen, marked **Provisional**; supplying the Agilent rep-batch (3-replicate re-measurement of positives) and the previous-round EVOLVEpro rank file upgrades the result to **Confirmed** (authoritative replicates merged over the primary screen, with per-variant mismatch QC preserved). Each pipeline step stays independently runnable and the result badge states the confidence level. The existing four-file confirmation workflow is unchanged. (`kuma_core/mame/activity/build_evolvepro_input.py`, `python-core/sidecar_mame/models.py`, `python-core/sidecar_mame/handlers/activity.py`, `src/types/mame/build_evolvepro_input.ts`, `src/components/mame/panels/BuildEvolveproInputPanel.tsx`, `src/locales/*.json`)
+
+---
+## v0.13.14 (KURO structure-accuracy guard for 3D selection)
+
+### Fixed
+- v0.13.14.0: KURO now uses AlphaFold Cα coordinates for structural-diversity and Pareto-3D selection only when the loaded structure exactly covers the reference sequence (identity or a clean substring; terminal tags/truncations are fine, interior substitutions are not). A near-but-not-exact structure would place coordinates on the wrong residues and silently corrupt selection; such cases now fall back to 1-D sequence distance with a status notice. Domain diversity is unaffected (sequence-based) and the benchmark comparison deliberately keeps both 1-D and 3-D arms. (`kuma_core/kuro/interface.py`, `python-core/sidecar_kuro/handlers/misc.py`, `src/store/slices/inputSlice.helpers.ts`)
+
+---
+## v0.13.13 (KURO ESMFold de-novo structure prediction)
+
+### Added
+- v0.13.13.0: The KURO 3D panel can predict a structure directly from the reference sequence via ESMFold (EMBL-EBI ESMAtlas) when no UniProt accession is available, enabling the 3D viewer, reference-frame dispersion, and pLDDT/variant/domain overlays for novel or synthetic constructs (≤400 residues). AlphaFold-by-accession remains the primary source; active/binding-site overlays require an accession and are hidden for ESMFold. (`kuma_core/kuro/esmfold.py`, `kuma_core/kuro/dispersion.py`, `python-core/sidecar_kuro/handlers/external.py`, `src/components/panels/Selection3DPanel.tsx`)
+---
+## v0.13.12 (KURO reference-sequence domains, guided tours, update checks, runtime fixes)
+
+### Added
+- v0.13.12.0: KURO **Scan sequence** annotates protein domains directly from the loaded reference sequence via EMBL-EBI InterProScan (after external-service consent), so domain coordinates match KURO mutation positions instead of UniProt accession numbering. Results cache by sequence SHA-256; reference-frame `refDomains` drive selection/benchmark while accession-frame `domains` stay dedicated to AlphaFold 3D coloring. (`kuma_core/kuro/domains.py`, `python-core/sidecar_kuro/handlers/external.py`, `src/store/slices/diversitySlice.ts`, `src/components/panels/InputPanel/UniprotSearch.tsx`)
+- v0.13.12.0: New projects show a skippable spotlight tour of navigation and Kuro; Mame guidance appears separately on first entry. **Skip all tours** persists per project; `Esc` closes only the current tour; **Help → Show Guided Tour** replays it. Existing projects are never interrupted. (`src/components/dialogs/GuidedTour.tsx`, `src/components/dialogs/ProjectTourCoordinator.tsx`)
+- v0.13.12.0: Kuma checks GitHub for a newer published release at startup and recommends it only when strictly newer; **Help → Check for updates** performs a real version check. Network failures never block startup. (`src/lib/updateCheck.ts`, `src/components/dialogs/UpdateAvailableDialog.tsx`)
+
+### Fixed
+- v0.13.12.0: **Export PNG** now has the binary file-write capability (`fs:allow-write-file`), reports save success/failure via toast, and no longer rejects the Tauri `fs.write_file` command. (`src-tauri/capabilities/default.json`, `src/components/panels/Selection3DPanel.tsx`)
+- v0.13.12.0: The sequence viewer now draws domain bands from reference-frame domains so bands align with the loaded sequence; 3D residue spheres use a consistent opaque style to remove the 3Dmol ambiguous-opacity warning; title-only dialogs opt out of a missing description; an embedded favicon prevents the default `/favicon.ico` 404. (`src/components/widgets/SequenceViewer.tsx`, `src/components/panels/Selection3DPanel.tsx`, `index.html`)
+
+---
+## v0.13.11 (MAME single-step Activity, KURO 3D viewer background)
+
+### Changed
+- v0.13.11.0: MAME **Activity Data** is now a single step (3) that stacks Ingest, Merge, and Export in one scrollable view; the former 3.1 Ingest / 3.2 Merge & Export split is removed and the legacy `activity.mergeExport` id redirects to it. (`src/store/mame/slices/mameSubSteps.ts`, `src/components/mame/steps/ActivityStepView.tsx`, `src/components/mame/layout/MameWorkflowRail.tsx`, `src/components/mame/layout/MameAppLayout.tsx`, `src/locales/*.json`, `docs/mame/*`)
+
+### Improved
+- v0.13.11.0: the KURO 3D viewer defaults to a white background, and the Dark toggle now applies live (no reload). (`src/components/panels/Selection3DPanel.tsx`)
+
+---
+
+## v0.13.10 (KURO 3D surface + PNG export fixes)
+
+### Fixed
+- v0.13.10.0: the KURO 3D viewer **Surface** toggle now works in the packaged app. 3Dmol computes the molecular surface in a `blob:` Web Worker, which the app CSP blocked (no `worker-src`); the CSP now allows `worker-src 'self' blob:`, and surface generation degrades gracefully with a notice if a host webview still blocks workers. (`src-tauri/tauri.conf.json`, `src/components/panels/Selection3DPanel.tsx`, `src/locales/*.json`)
+- v0.13.10.0: the KURO 3D viewer **Export PNG** button now saves a file. The Tauri webview ignores programmatic `<a download>`, so the export now uses the Tauri save dialog and writes the PNG via the fs plugin. (`src/components/panels/Selection3DPanel.tsx`)
+
+---
+
+## v0.13.9 (KURO dispersion structure-frame fix, release checksums)
+
+### Fixed
+- v0.13.9.0: KURO 3D dispersion no longer drops all positions ("N position(s) could not be mapped to the structure") when the structure loads but the UniProt FASTA fetch fails. The accession-frame sequence is now derived from the fetched AlphaFold/PDB structure itself (falling back to the UniProt FASTA only when the structure carries no sequence), so dispersion works whenever the structure is available. (`kuma_core/kuro/alphafold.py`, `kuma_core/kuro/dispersion.py`, `tests/test_g001_backend.py`)
+
+### Improved
+- v0.13.9.0: GitHub releases now attach a `SHA256SUMS.txt` for every installer and append Windows SmartScreen "Unknown publisher" guidance (More info → Run anyway), checksum-verification steps, and a macOS Gatekeeper note to the release body; a matching troubleshooting page is added. (`.github/workflows/build.yml`, `.github/release-footer.md`, `docs/troubleshooting/windows-smartscreen.md`, `docs/troubleshooting/index.md`)
+
+---
+
+## v0.13.8 (KURO 3D panel polish + packaged-sidecar dispersion fix)
+
+### Improved
+- v0.13.8.0: the KURO Candidate 3D structure analysis panel now explains itself inline — the Structural Dispersion card, its null-distribution histogram, and each metric row carry `?` help toggles; the histogram marker uses `P1`/`P96` percentile notation instead of `1%ile`; the metric is relabeled "Observed percentile vs random"; and a Color legend under the viewer maps every color (domain / pLDDT backbone, y_pred variant spheres, active-site sticks, binding-site spheres) to its meaning, adapting to the current coloring mode. (`src/components/panels/Selection3DPanel.tsx`, `src/locales/*.json`)
+- v0.13.8.0: the Color legend rows are clickable toggles that show/hide each 3D layer (variant spheres, active-site sticks, binding-site spheres) while the backbone stays always-on; the standalone Interface checkbox is folded into the legend, and the panel is reordered to toolbar → 3D viewer → legend → Structural Dispersion → tables so toggle/coloring changes are visible in the viewer immediately. (`src/components/panels/Selection3DPanel.tsx`, `src/locales/*.json`)
+- v0.13.8.0: corrected the mislabeled "Interface" overlay to "Binding site" across the viewer, legend, table column, and hover label — the magenta spheres are UniProt `Binding site` (ligand/cofactor/metal-binding) residues, not a protein-protein interface. (`src/components/panels/Selection3DPanel.tsx`, `src/locales/*.json`, `docs/kuro/05-output.md`)
+- v0.13.8.0: documented that the 3D dispersion, pLDDT, and active/binding overlays are interpretation/QC aids, not candidate-selection filters — low-confidence or disordered residues are not auto-excluded from the mutation set, and EVOLVEpro y_pred ranking remains the sole selection authority. (`docs/kuro/05-output.md`)
+
+### Fixed
+- v0.13.8.0: the KURO 3D dispersion compute no longer fails in the packaged sidecar with `[Errno 2] No such file or directory: '..._MEI.../Bio/Align/substitution_matrices/data/BLOSUM62'`. The reference→accession position mapper now uses `PairwiseAligner` with explicit match/mismatch scoring instead of loading Biopython's loose `BLOSUM62` data file, which PyInstaller does not bundle into the temp extraction dir. (`kuma_core/kuro/interface.py`, `tests/test_g001_backend.py`)
+
+---
+
+## v0.13.7 (KURO Current-Selection 3D Analysis)
+
+### Added
+- v0.13.7.0: the KURO Output step gains a collapsible Current-Selection 3D Analysis panel that embeds a 3Dmol viewer (collapsed by default to avoid eager 3Dmol loading) and reports the spatial dispersion of the selected residue positions. (`src/components/panels/Selection3DPanel.tsx`, `src/lib/selection3d.ts`, `src/components/steps/OutputStepView.tsx`, `src/store/slices/diversitySlice.ts`)
+- v0.13.7.0: the backend adds a stdlib-only 3D dispersion null-model (`compute_round_dispersion`, mean pairwise C-alpha distance versus random sampling) plus UniProt active/binding-site fetch in the accession frame, wired through the kuro dispatcher. (`kuma_core/kuro/dispersion.py`, `kuma_core/kuro/uniprot_features.py`, `python-core/sidecar_kuro/dispatcher.py`, `python-core/sidecar_kuro/handlers/external.py`, `python-core/sidecar_kuro/models.py`)
+- v0.13.7.0: the panel strings are localized across all 10 locales, and `3dmol@^2.5.5` is added as a dependency. (`src/locales/*.json`, `package.json`)
+
+---
+
+## v0.13.6.1 (What's New automation)
+
+### Added
 - v0.13.6.1: the What's New dialog is auto-generated from `CHANGELOG.md` (`pnpm gen:whatsnew`); `sync:check` now fails the build when the generated module drifts or when the latest CHANGELOG section does not match `package.json`'s version. (`scripts/gen-whatsnew.mjs`, `src/components/dialogs/whatsNew.generated.ts`, `package.json`)
 
 ### Fixed

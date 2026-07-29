@@ -1,7 +1,6 @@
-import i18next from "i18next";
 import type { StateCreator } from "zustand";
+import i18next from "i18next";
 import { resolveResource } from "@tauri-apps/api/path";
-import { readTextFile } from "@tauri-apps/plugin-fs";
 import { sendRequest } from "../../lib/ipc-kuro";
 import { formatError } from "../../lib/utils";
 import type { AppState } from "../types";
@@ -9,13 +8,11 @@ import type { Round } from "../../types/round";
 import {
   buildEvolveproLoadParams,
   buildEvolveproLoadStateUpdate,
+  collectAnchorVariants,
+  resolveSelectionDomains,
 } from "./inputSlice.helpers";
-import {
-  validateCsvHeader,
-  extractCsvHeader,
-  EVOLVEPRO_CSV_SCHEMA,
-} from "../../lib/schemaValidator";
 import { useMameAppStore } from "../mame/mameAppStore";
+import { useRoundStore } from "../round/roundSlice";
 
 import type { InputSlice, EvolveproMode } from "../slice-interfaces";
 export type { InputSlice };
@@ -40,14 +37,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   evolveproScoreOrder: "desc" as const,
   evolveproSheetName: null,
   evolveproPreview: null,
-  othersSourcePath: "",
-  othersVariantColumn: null,
-  othersScoreColumn: null,
-  othersScoreOrder: "desc" as const,
-  othersSheetName: null,
-  othersPreview: null,
-  othersUsedVariantColumn: null,
-  othersUsedScoreColumn: null,
+  evolveproUsedVariantColumn: null,
+  evolveproUsedScoreColumn: null,
   evolveproRankedCandidates: [],
   evolveproSelectedVariants: [],
   evolveproExtraExposed: 10,
@@ -64,14 +55,10 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         evolveproScoreColumn,
         evolveproScoreOrder,
         evolveproSheetName,
-        othersVariantColumn,
-        othersScoreColumn,
-        othersScoreOrder,
-        othersSheetName,
         positionDiversityEnabled,
         maxPerPosition,
         domainDiversityEnabled,
-        domains,
+        refDomains,
         disabledDomains,
         domainStrategy,
         domainOverlapPolicy,
@@ -85,16 +72,14 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         evolveproRound,
         roundSize,
         maxPrimers,
+        structuralDiversityEnabled,
+        structuralKappa,
       } = get();
       const effectiveTopN = topNOverride ?? maxPrimers;
-      const activeDomains = domains.filter((d) => !disabledDomains.includes(`${d.name}-${d.start}`));
-      const excludedDomains = domains.filter((d) => disabledDomains.includes(`${d.name}-${d.start}`));
-      const isOthersMode = evolveproMode === "others";
-      const modeLabel = isOthersMode ? "Others" : "EVOLVEpro";
-      const activeVariantColumn = isOthersMode ? othersVariantColumn : evolveproVariantColumn;
-      const activeScoreColumn = isOthersMode ? othersScoreColumn : evolveproScoreColumn;
-      const activeScoreOrder = isOthersMode ? othersScoreOrder : evolveproScoreOrder;
-      const activeSheetName = isOthersMode ? othersSheetName : evolveproSheetName;
+      const selectionDomains = resolveSelectionDomains(refDomains);
+      const activeDomains = selectionDomains.filter((d) => !disabledDomains.includes(`${d.name}-${d.start}`));
+      const excludedDomains = selectionDomains.filter((d) => disabledDomains.includes(`${d.name}-${d.start}`));
+      const modeLabel = "EVOLVEpro";
 
       // v0.3 §4: pass protein ref_seq so sidecar can convert EVOLVEpro
       // short-form variants (89W) back to internal notation (F89W).
@@ -109,41 +94,29 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       })();
       set({
         statusMessage: `Loading ${modeLabel} file...`,
-        ...(isOthersMode ? { othersSourcePath: filepath } : { evolveproCsvPath: filepath }),
+        evolveproCsvPath: filepath,
       });
 
-      // §3 Input Guards: sidecar 호출 전 헤더 컬럼 검증
-      // xlsx/xls 는 바이너리이므로 클라이언트 사전 검증 스킵 (sidecar 에서 검증)
-      const ext = filepath.toLowerCase().split(".").pop() ?? "";
-      if (!isOthersMode && (ext === "csv" || ext === "tsv")) {
-        try {
-          const csvText = await readTextFile(filepath);
-          const header = extractCsvHeader(csvText, ext);
-          const spec = EVOLVEPRO_CSV_SCHEMA;
-          const validation = validateCsvHeader(header, spec);
-          if (!validation.valid) {
-            const detail = validation.errors.join("; ");
-            set({
-              statusMessage: i18next.t("inputSlice.csvFormatError", { mode: modeLabel, detail }),
-              evolveproCsvPath: "",
-            });
-            return;
-          }
-        } catch {
-          // 파일 읽기 실패 시 sidecar 에 위임 (경로 오류는 sidecar가 처리)
-        }
-      }
+      // §3 Input Guards: column header validation now delegated entirely to
+      // the sidecar's auto-detect (VARIANT_COLUMNS/SCORE_COLUMNS alias) -
+      // custom column names are a supported input, not a format error.
 
       const usePipeline = evolveproMode !== "topN";
+      // Structural-diversity revealed-anchor maximin: spread new picks away
+      // from variants already committed across prior rounds. Only computed
+      // when structural diversity is on (the sole consumer); empty otherwise.
+      const anchorVariants =
+        usePipeline && structuralDiversityEnabled
+          ? collectAnchorVariants(useRoundStore.getState().rounds)
+          : [];
         const params = buildEvolveproLoadParams({
           filepath,
           topN: effectiveTopN,
           usePipeline,
-          evolveproMode,
-          evolveproVariantColumn: activeVariantColumn,
-          evolveproScoreColumn: activeScoreColumn,
-          evolveproScoreOrder: activeScoreOrder,
-          evolveproSheetName: activeSheetName,
+          evolveproVariantColumn,
+          evolveproScoreColumn,
+          evolveproScoreOrder,
+          evolveproSheetName,
         positionDiversityEnabled,
         maxPerPosition,
         activeDomains,
@@ -162,6 +135,9 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
           evolveproRound,
           roundSize,
           refSeq,
+          structuralDiversityEnabled,
+          structuralKappa,
+          anchorVariants,
         });
       const result = await sendRequest("load_evolvepro_csv", params);
       if (gen !== csvLoadGeneration) return;
@@ -189,10 +165,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         // ranked_candidates is guaranteed to contain all selected variants (backend invariant:
         // selected ⊆ ranked_candidates), but we seed from result.variants for authority clarity.
         evolveproSelectedVariants: result.variants ?? [],
-        ...(isOthersMode && {
-          othersUsedVariantColumn: result.used_variant_column ?? null,
-          othersUsedScoreColumn: result.used_score_column ?? null,
-        }),
+        evolveproUsedVariantColumn: result.used_variant_column ?? null,
+        evolveproUsedScoreColumn: result.used_score_column ?? null,
       });
 
       // Dual-write to MAME shared store so other panels can auto-fill.
@@ -203,7 +177,6 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       }
     } catch (err) {
       if (gen === csvLoadGeneration) {
-        const modeLabel = get().evolveproMode === "others" ? "Others" : "EVOLVEpro";
         set({
           mutationText: "",
           evolveproTotalCount: 0,
@@ -215,7 +188,9 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
           poolVariants: [],
           evolveproRankedCandidates: [],
           evolveproSelectedVariants: [],
-          statusMessage: `${modeLabel} file load failed: ${formatError(err)}`,
+          statusMessage: i18next.t("mutationInput.othersLoadFailed", {
+            message: formatError(err),
+          }),
         });
       }
       throw err;
@@ -224,27 +199,18 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
 
   setEvolveproMode: (mode: EvolveproMode) => {
     set({ evolveproMode: mode });
-    // Switching modes changes which params are sent; reload CSV if loaded.
-    const path = mode === "others" ? "" : get().evolveproCsvPath;
+    // Switching between topN / pipeline changes which params are sent; reload
+    // the already-loaded file so the backend re-applies the correct pipeline.
+    const path = get().evolveproCsvPath;
     if (path) {
       void get().loadEvolveproCsv(path);
     }
   },
-  setEvolveproVariantColumn: (col) => set({ evolveproVariantColumn: col }),
-  setEvolveproScoreColumn: (col) => set({ evolveproScoreColumn: col }),
+  setEvolveproVariantColumn: (col) => set({ evolveproVariantColumn: col, evolveproUsedVariantColumn: null }),
+  setEvolveproScoreColumn: (col) => set({ evolveproScoreColumn: col, evolveproUsedScoreColumn: null }),
   setEvolveproScoreOrder: (order) => set({ evolveproScoreOrder: order }),
   setEvolveproSheetName: (name) => set({ evolveproSheetName: name }),
   setEvolveproPreview: (preview) => set({ evolveproPreview: preview }),
-  setOthersSourcePath: (path) => set({
-    othersSourcePath: path,
-    othersUsedVariantColumn: null,
-    othersUsedScoreColumn: null,
-  }),
-  setOthersVariantColumn: (col) => set({ othersVariantColumn: col, othersUsedVariantColumn: null }),
-  setOthersScoreColumn: (col) => set({ othersScoreColumn: col, othersUsedScoreColumn: null }),
-  setOthersScoreOrder: (order) => set({ othersScoreOrder: order }),
-  setOthersSheetName: (name) => set({ othersSheetName: name }),
-  setOthersPreview: (preview) => set({ othersPreview: preview }),
 
   setEvolveproVariantSelected: (variant, selected) => {
     const current = get().evolveproSelectedVariants;

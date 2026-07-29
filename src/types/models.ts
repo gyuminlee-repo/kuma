@@ -6,31 +6,11 @@ import type { SettingsBundle } from "./models.generated";
 export type MutationInputMode = "text" | "evolvepro";
 export type CodonStrategy = "closest" | "optimal";
 export type OverlapMode = "partial" | "full";
-export type DesignMethod = "overlap" | "goldengate";
 
 export interface PolymeraseInfo {
   name: string;
   manufacturer: string;
   fidelity: string;
-}
-
-export interface TypeIISEnzymeInfo {
-  name: string;
-  aliases: string[];
-  recognition: string;
-  cut_offset: [number, number];
-  overhang_len: number;
-  has_fidelity: boolean;
-}
-
-export interface CustomEnzyme {
-  name: string;
-  recognition: string;
-  cut_offset: [number, number];
-  overhang_len: number;
-  prefix: string;
-  aliases?: string[];
-  fidelity_table?: string | null;
 }
 
 export interface PolymeraseProfile {
@@ -80,6 +60,8 @@ export interface UniprotCandidate {
   length: number;
   identity: number;
   has_structure?: boolean;
+  subunit?: string | null;
+  oligomeric?: "monomer" | "multimer" | "unknown";
 }
 
 export interface SearchUniprotResult {
@@ -168,15 +150,12 @@ export interface SdmPrimerResult {
   homodimer_dg_rev?: number;
   synthesis_score_fwd?: number;
   synthesis_score_rev?: number;
+  recommended_ta?: number | null;
+  ta_mode?: "3step" | "2step" | "fixed";
+  ta_detail?: string;
+  ta_touchdown?: string | null;
   warnings: string[];
   overlap_mode?: "partial" | "full";
-  // Golden Gate (Type IIS) — present only when design_method === "goldengate".
-  overhang?: string;
-  overhang_score?: number;
-  overhang_position?: string;
-  enzyme?: string;
-  design_method?: DesignMethod;
-  tm_method?: string;
 }
 
 export interface DomainInfo {
@@ -194,6 +173,16 @@ export interface FetchDomainsResult {
   protein_length?: number;
   error_msg?: string;
 }
+export interface AnnotateDomainsResult {
+  domains: DomainInfo[];
+  source: "interproscan" | "error";
+  coordinate_frame: "reference";
+  protein_length: number;
+  ref_hash: string;
+  cache_hit: boolean;
+  error_msg?: string;
+}
+
 
 export interface DomainStat {
   quota: number;
@@ -220,6 +209,10 @@ export interface EvolveproLoadResult {
   used_variant_column?: string | null;
   used_score_column?: string | null;
   step_stats?: EvolveproStepStats;
+  /** True when the loaded structure did not exactly cover the reference frame,
+   *  so 3D Cα coordinates were dropped and structural/pareto selection fell back
+   *  to 1-D sequence distance. */
+  structure_frame_mismatch?: boolean;
   /** Ranked candidates beyond the selected set: selected + up to BUFFER_CAP extras, y_pred desc. */
   ranked_candidates?: import("./models.generated").RankedCandidateItem[];
 }
@@ -299,11 +292,6 @@ export interface SaveCustomPolymeraseResult {
   name: string;
 }
 
-export interface SaveCustomEnzymeResult {
-  success: boolean;
-  name: string;
-}
-
 export interface ExportOrderResult extends ExportResult {
   format: "idt" | "twist";
   primer_count: number;
@@ -350,6 +338,8 @@ export interface WorkspaceV1 {
   domainDiversityEnabled?: boolean;
   domainStrategy?: "proportional" | "equal";
   paretoDiversityEnabled?: boolean;
+  structuralDiversityEnabled?: boolean;
+  structuralKappa?: number;
   disabledDomains?: string[];
   rescuedMutations?: string[];
   entropyWeightEnabled?: boolean;
@@ -403,12 +393,16 @@ export interface WorkspaceSettings {
   tmTolerance?: number;
   uniprotAccession?: string;
   domains?: DomainInfo[];
+  refDomains?: DomainInfo[];
+  refDomainHash?: string;
   domainDiversityEnabled?: boolean;
   domainStrategy?: "proportional" | "equal";
   domainOverlapPolicy?: DomainOverlapPolicy;
   linkerHandling?: LinkerHandling;
   domainQuotaMin?: number;
   paretoDiversityEnabled?: boolean;
+  structuralDiversityEnabled?: boolean;
+  structuralKappa?: number;
   disabledDomains?: string[];
   rescuedMutations?: string[];
   entropyWeightEnabled?: boolean;
@@ -432,8 +426,6 @@ export interface WorkspaceSettings {
   evolveproRound?: number;
   roundSize?: number;
   overlapMode?: OverlapMode;
-  designMethod?: DesignMethod;
-  enzyme?: string;
   /** §12 Optional RNG seed for reproducible design runs. */
   randomSeed?: number | null;
 }
@@ -497,6 +489,59 @@ export interface StructureResult {
   error?: string;
 }
 
+export interface FetchInterfaceResiduesResult {
+  interface_positions: number[];
+  source: string;
+  pdb_id?: string;
+  chains?: string[];
+  oligomeric_state?: string | null;
+  error?: string;
+  note?: string;
+}
+export interface FetchPdbTextResult {
+  success: boolean;
+  accession: string;
+  pdb_text: string | null;
+  source: string;
+}
+
+export interface PredictStructureEsmfoldResult {
+  success: boolean;
+  source: "esmfold" | "esmfold_cache" | "error";
+  pdb_text: string | null;
+  plddt_mean: number;
+  residue_count: number;
+  coordinate_frame: "reference";
+  seq_hash: string;
+  cache_hit: boolean;
+  error_msg?: string;
+}
+
+export interface FetchActiveSiteResult {
+  accession: string;
+  active_site_positions: number[];
+  binding_positions: number[];
+  source: string;
+  has_annotation: boolean;
+}
+
+export interface ComputeDispersionResult {
+  accession: string;
+  mapped: number[];
+  dropped: number[];
+  n_positions: number;
+  mean_pairwise: number;
+  null_mean: number;
+  null_p05: number;
+  null_p95: number;
+  percentile: number;
+  klass: string;
+  n_trials: number;
+  seed: number | null;
+  null_hist: { min: number; max: number; counts: number[] };
+}
+
+
 export interface BenchmarkResult {
   n_selected: number;
   hit_rate: number;
@@ -538,14 +583,6 @@ export interface RpcMethodMap {
   save_custom_polymerase: {
     params: PolymeraseProfile;
     result: SaveCustomPolymeraseResult;
-  };
-  list_typeiis_enzymes: {
-    params: Record<string, never>;
-    result: TypeIISEnzymeInfo[];
-  };
-  save_custom_enzyme: {
-    params: CustomEnzyme;
-    result: SaveCustomEnzymeResult;
   };
   list_organisms: {
     params: Record<string, never>;
@@ -708,6 +745,10 @@ export interface RpcMethodMap {
     params: { accession: string };
     result: FetchDomainsResult;
   };
+  annotate_domains_by_sequence: {
+    params: { sequence: string; ref_hash?: string };
+    result: AnnotateDomainsResult;
+  };
   search_uniprot: {
     params: { gene_name: string; organism: string; translation: string; known_accession: string };
     result: SearchUniprotResult;
@@ -719,6 +760,10 @@ export interface RpcMethodMap {
   fetch_structure: {
     params: { accession: string };
     result: StructureResult;
+  };
+  fetch_interface_residues: {
+    params: { accession: string; ref_seq: string };
+    result: FetchInterfaceResiduesResult;
   };
   run_benchmark: {
     params: RpcParams;
@@ -736,6 +781,31 @@ export interface RpcMethodMap {
   settings_save: {
     params: { settings: SettingsBundle };
     result: { ok: boolean; path: string };
+  };
+  // G001: 3D Analysis panel RPCs
+  fetch_pdb_text: {
+    params: { accession: string };
+    result: FetchPdbTextResult;
+  };
+  fetch_active_site_residues: {
+    params: { accession: string };
+    result: FetchActiveSiteResult;
+  };
+  compute_dispersion: {
+    params: {
+      accession: string;
+      ref_seq: string;
+      positions: number[];
+      n_trials?: number;
+      seed?: number | null;
+      pdb_text?: string | null;
+      coordinate_frame?: "accession" | "reference";
+    };
+    result: ComputeDispersionResult;
+  };
+  predict_structure_esmfold: {
+    params: { sequence: string };
+    result: PredictStructureEsmfoldResult;
   };
 }
 

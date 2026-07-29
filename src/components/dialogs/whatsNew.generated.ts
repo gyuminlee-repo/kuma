@@ -5,13 +5,11 @@ export interface WhatsNewItem {
   detail: string;
 }
 
-export const WHATS_NEW_VERSION = "0.13.6";
+export const WHATS_NEW_VERSION = "0.13.30";
 
 export const WHATS_NEW_ITEMS: WhatsNewItem[] = [
-  { label: "Added", detail: "Golden Gate (Type IIS) is now a per-run Kuro design method alongside overlap-extension SDM. It inserts the enzyme recognition site plus a ligation-fidelity-scored fusion overhang around each mutated codon; codon usage is organism-aware (Ka…" },
-  { label: "Added", detail: "built-in Type IIS enzyme catalog (BsaI, BsmBI, BbsI, SapI, PaqCI, BspMI) with BsaI/BsmBI on-target ligation-fidelity tables (Potapov 2018) and a Custom Type IIS enzyme editor; the `list_typeiis_enzymes` and `save_custom_enzyme` RPCs persis…" },
-  { label: "Added", detail: "per-run Golden Gate junction overrides — a `prefix_override` (spacer + recognition site + spacer) and `forbidden_overhangs` (default `AATG`, `AGGT`) — with cut-site geometry warnings surfaced on each result." },
-  { label: "Added", detail: "the What's New dialog is auto-generated from `CHANGELOG.md` (`pnpm gen:whatsnew`); `sync:check` now fails the build when the generated module drifts or when the latest CHANGELOG section does not match `package.json`'s version." },
-  { label: "Fixed", detail: "corrected the Kuro Export All BOM label to \"UTF-8 BOM (Excel compatibility)\" across all 10 locales." },
-  { label: "Fixed", detail: "aligned KURO wizard step bodies and MAME file-picker field widths." },
+  { label: "Fixed", detail: "The layout parser reads the replicate suffix the lab writes. A trailing `_r<n>` is stripped and the remaining text is the sample name, so `WT_r1` is WT and `Q232A_r1`, `Q232A_r2`, `Q232A_r3` collapse onto one mutant whose three wells accum…" },
+  { label: "Fixed", detail: "A variant that cannot become EVOLVEpro short notation no longer kills the build. Short notation is one position plus one residue, so a double substitution has no token, and `to_evolvepro` raised on it. Both fallback builders called that un…" },
+  { label: "Known issues", detail: "Combo measurements stay out of the EVOLVEpro input. The activity is read and the wells parse, but the value never reaches the next round, which matters as combinatorial variants grow in number. Giving them a short-notation form needs confi…" },
+  { label: "Known issues", detail: "`to_evolvepro` and the multi-mutation parser in `kuma_core/kuro/mutation.py` disagree on the separator. The parser handles `A40P/E61Y` while the templates write `A40P_E61Y`." },
 ];

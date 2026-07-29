@@ -32,11 +32,6 @@ function kuroAutosaveSelector(s: AppState): readonly unknown[] {
     s.evolveproScoreColumn,
     s.evolveproScoreOrder,
     s.evolveproSheetName,
-    s.othersSourcePath,
-    s.othersVariantColumn,
-    s.othersScoreColumn,
-    s.othersScoreOrder,
-    s.othersSheetName,
     // diversity
     s.uniprotAccession,
     s.evolveproMode,

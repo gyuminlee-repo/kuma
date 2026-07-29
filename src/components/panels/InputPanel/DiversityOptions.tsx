@@ -1,5 +1,6 @@
 import { useMemo, useState, type KeyboardEvent } from "react";
 import { useAppStore } from "../../../store/appStore";
+import { combinatorialFraction } from "../../../store/slices/diversitySlice.helpers";
 import {
   AdvancedSettingsSection,
   BenchmarkSection,
@@ -8,8 +9,17 @@ import {
   PipelineArrow,
   PipelineStep,
   RoundSettingsSection,
+  StructuralDiversitySection,
+  StructuralDiversitySuggestion,
   WorkspaceSection,
 } from "./DiversitySections";
+
+// Heuristic threshold used to decide whether a candidate pool "looks"
+// combinatorial enough to suggest structural diversity. This is NOT a
+// benchmark-derived number; it is chosen only to separate a pool that is
+// mostly single-substitution variants from one that contains a meaningful
+// share of multi-substitution combos.
+const COMBINATORIAL_SUGGEST_THRESHOLD = 0.1;
 
 function computeSigmaParams(round: number, size: number): { k: number; ew: number } {
   const cum = round * size;
@@ -34,13 +44,17 @@ export function DiversityOptions() {
   const setLinkerHandling = useAppStore((s) => s.setLinkerHandling);
   const domainQuotaMin = useAppStore((s) => s.domainQuotaMin);
   const setDomainQuotaMin = useAppStore((s) => s.setDomainQuotaMin);
-  const domains = useAppStore((s) => s.domains);
+  const refDomains = useAppStore((s) => s.refDomains);
   const setDomains = useAppStore((s) => s.setDomains);
   const toggleDomain = useAppStore((s) => s.toggleDomain);
   const disabledDomains = useAppStore((s) => s.disabledDomains);
   const domainStats = useAppStore((s) => s.domainStats);
   const paretoDiversityEnabled = useAppStore((s) => s.paretoDiversityEnabled);
   const setParetoDiversityEnabled = useAppStore((s) => s.setParetoDiversityEnabled);
+  const structuralDiversityEnabled = useAppStore((s) => s.structuralDiversityEnabled);
+  const setStructuralDiversityEnabled = useAppStore((s) => s.setStructuralDiversityEnabled);
+  const structuralKappa = useAppStore((s) => s.structuralKappa);
+  const setStructuralKappa = useAppStore((s) => s.setStructuralKappa);
   const entropyWeightEnabled = useAppStore((s) => s.entropyWeightEnabled);
   const entropyWeight = useAppStore((s) => s.entropyWeight);
   const setEntropyWeightEnabled = useAppStore((s) => s.setEntropyWeightEnabled);
@@ -50,9 +64,7 @@ export function DiversityOptions() {
   const distanceMode = useAppStore((s) => s.distanceMode);
   const setDistanceMode = useAppStore((s) => s.setDistanceMode);
   const evolveproRound = useAppStore((s) => s.evolveproRound);
-  const setEvolveproRound = useAppStore((s) => s.setEvolveproRound);
   const roundSize = useAppStore((s) => s.roundSize);
-  const setRoundSize = useAppStore((s) => s.setRoundSize);
   const benchmarkTopPercentile = useAppStore((s) => s.benchmarkTopPercentile);
   const setBenchmarkTopPercentile = useAppStore((s) => s.setBenchmarkTopPercentile);
   const benchmarkRandomTrials = useAppStore((s) => s.benchmarkRandomTrials);
@@ -69,7 +81,9 @@ export function DiversityOptions() {
   const saveCache = useAppStore((s) => s.saveCache);
   const setSaveCache = useAppStore((s) => s.setSaveCache);
   const mutationText = useAppStore((s) => s.mutationText);
+  const poolVariants = useAppStore((s) => s.poolVariants);
 
+  const selectionDomains = refDomains;
   const selectedCount = useMemo(
     () => mutationText.split("\n").filter((l) => l.trim() && !l.trim().startsWith("#")).length,
     [mutationText],
@@ -81,21 +95,9 @@ export function DiversityOptions() {
   const [newDomainStart, setNewDomainStart] = useState("");
   const [newDomainEnd, setNewDomainEnd] = useState("");
   const [maxPerPosStr, setMaxPerPosStr] = useState(String(maxPerPosition));
-  const [roundStr, setRoundStr] = useState(String(evolveproRound));
-  const [roundSizeStr, setRoundSizeStr] = useState(String(roundSize));
   const commitMaxPerPos = () => {
     const n = parseInt(maxPerPosStr, 10);
     if (isFinite(n) && n >= 1) setMaxPerPosition(n);
-  };
-
-  const commitRound = () => {
-    const n = parseInt(roundStr, 10);
-    if (isFinite(n) && n >= 1) setEvolveproRound(n);
-  };
-
-  const commitRoundSize = () => {
-    const n = parseInt(roundSizeStr, 10);
-    if (isFinite(n) && n >= 1) setRoundSize(n);
   };
 
   const onEnterBlur = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -103,6 +105,14 @@ export function DiversityOptions() {
   };
 
   const autoParams = computeSigmaParams(evolveproRound, roundSize);
+
+  const comboFraction = useMemo(() => combinatorialFraction(poolVariants), [poolVariants]);
+  const showStructuralSuggestion =
+    !structuralDiversityEnabled &&
+    poolVariants.length > 0 &&
+    comboFraction >= COMBINATORIAL_SUGGEST_THRESHOLD &&
+    (evolveproRound === 1 || evolveproRound === 2) &&
+    structureLoaded === true;
 
   const distanceBadge =
     distanceMode === "1d"
@@ -138,7 +148,7 @@ export function DiversityOptions() {
           <DomainAllocationSection
             linkerHandling={linkerHandling}
             setLinkerHandling={setLinkerHandling}
-            domains={domains}
+            domains={selectionDomains}
             disabledDomains={disabledDomains}
             domainStats={domainStats}
             toggleDomain={toggleDomain}
@@ -169,18 +179,35 @@ export function DiversityOptions() {
             distanceMode={distanceMode}
           />
         </PipelineStep>
+
+        <PipelineArrow active={paretoDiversityEnabled} />
+
+        {/* Rendered outside PipelineStep on purpose: PipelineStep only renders
+            its children while enabled, and this suggestion exists precisely for
+            the disabled case. */}
+        {showStructuralSuggestion ? (
+          <StructuralDiversitySuggestion
+            onEnable={() => setStructuralDiversityEnabled(true)}
+          />
+        ) : null}
+
+        <PipelineStep
+          step={4}
+          label="Structural diversity"
+          enabled={structuralDiversityEnabled}
+          onToggle={setStructuralDiversityEnabled}
+        >
+          <StructuralDiversitySection
+            structuralKappa={structuralKappa}
+            setStructuralKappa={setStructuralKappa}
+          />
+        </PipelineStep>
       </div>
 
       <RoundSettingsSection
-        roundStr={roundStr}
-        setRoundStr={setRoundStr}
-        roundSizeStr={roundSizeStr}
-        setRoundSizeStr={setRoundSizeStr}
-        commitRound={commitRound}
-        commitRoundSize={commitRoundSize}
-        onEnterBlur={onEnterBlur}
         autoK={autoParams.k}
         autoEntropy={autoParams.ew}
+        roundUnset={evolveproRound === 0}
       />
 
       <AdvancedSettingsSection

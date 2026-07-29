@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { useAppStore } from "../../../store/appStore";
@@ -22,35 +22,41 @@ export function SequenceInput() {
   const loadSequence = useAppStore((s) => s.loadSequence);
   const uniprotSearching = useAppStore((s) => s.uniprotSearching);
 
-  const handleBrowseSelect = async (path: string) => {
+  const handleBrowseSelect = useCallback(async (path: string) => {
     const ext = path.slice(path.lastIndexOf(".")).toLowerCase();
     if (FASTA_EXTENSIONS.has(ext)) {
       useAppStore.setState({ statusMessage: t("errors.sequence.fastaNotSupported") });
       return;
     }
     await loadSequence(path);
-  };
+  }, [loadSequence, t]);
 
   // Item 3: Drag-and-drop visual feedback via Tauri webview event
   useEffect(() => {
     let unlisten: (() => void) | undefined;
     getCurrentWebview()
       .onDragDropEvent((event) => {
+        const paths = "paths" in event.payload ? event.payload.paths : [];
+        const firstSeqPath = paths.find((p) => {
+          const ext = p.slice(p.lastIndexOf(".")).toLowerCase();
+          return SEQUENCE_DROP_EXTENSIONS.has(ext);
+        });
+
         if (event.payload.type === "enter" || event.payload.type === "over") {
-          const paths = "paths" in event.payload ? event.payload.paths : [];
-          const hasSeqFile = paths.some((p) => {
-            const ext = p.slice(p.lastIndexOf(".")).toLowerCase();
-            return SEQUENCE_DROP_EXTENSIONS.has(ext);
-          });
-          if (hasSeqFile) setIsDragOver(true);
-        } else if (event.payload.type === "leave" || event.payload.type === "drop") {
+          if (firstSeqPath) setIsDragOver(true);
+        } else if (event.payload.type === "drop") {
+          setIsDragOver(false);
+          if (firstSeqPath) {
+            void handleBrowseSelect(firstSeqPath);
+          }
+        } else if (event.payload.type === "leave") {
           setIsDragOver(false);
         }
       })
       .then((fn) => { unlisten = fn; })
       .catch(() => { /* webview API not available in test env */ });
     return () => { unlisten?.(); };
-  }, []);
+  }, [handleBrowseSelect]);
 
   return (
     <>

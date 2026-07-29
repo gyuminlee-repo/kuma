@@ -13,6 +13,8 @@
 
 Well ordering: column-major A1 → H1 → A2 → … Shared reverse primers are deduplicated per plate (placed once, referenced by multiple forward pairs).
 
+A shared well is aspirated once per reaction, so it needs more than a single transfer worth of primer. The **Reverse primer usage** table at the bottom of the `layout` sheet in the liquid handler `.xlsx` lists the share count and the total transfer volume (share count × volume per transfer) for every reverse source well. That total excludes instrument dead volume, so the amount actually loaded is the total plus the dead volume of the labware in use.
+
 ## Multi-plate navigation
 
 ![Multi-plate navigation (2 plates)](../screenshots/12-plate-multi.png)

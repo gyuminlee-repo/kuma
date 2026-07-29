@@ -25,9 +25,12 @@ import { SidebarToggleButton } from "@/components/widgets/SidebarToggleButton";
 import { WizardContainer } from "./WizardContainer";
 import { StateView } from "@/components/ui/StateView";
 import { KURO_STEP_INDEX, TOTAL_KURO_STEPS } from "./constants";
+import { Selection3DPanel } from "@/components/panels/Selection3DPanel";
+
 
 const SPLIT_KEY = "kuro.output.split";
 const COLLAPSED_KEY = "kuro.output.plateCollapsed";
+
 const DEFAULT_SPLIT = 50;
 const MIN_SPLIT = 20;
 const MAX_SPLIT = 80;
@@ -53,19 +56,19 @@ function readCollapsed(): boolean {
   }
 }
 
+
+
 export function OutputStepView() {
   const { t } = useTranslation();
   const goToNextStep = useAppStore((s) => s.goToNextStep);
   const goToPrevStep = useAppStore((s) => s.goToPrevStep);
 
-  const { designResults, plateMappings, failedMutations, rescueStats, designMethod, enzyme } = useAppStore(
+  const { designResults, plateMappings, failedMutations, rescueStats } = useAppStore(
     useShallow((s) => ({
       designResults: s.designResults,
       plateMappings: s.plateMappings,
       failedMutations: s.failedMutations,
       rescueStats: s.rescueStats,
-      designMethod: s.designMethod,
-      enzyme: s.enzyme,
     })),
   );
 
@@ -80,6 +83,7 @@ export function OutputStepView() {
 
   const [splitPct, setSplitPct] = useState<number>(() => readSplit());
   const [plateCollapsed, setPlateCollapsed] = useState<boolean>(() => readCollapsed());
+
   const containerRef = useRef<HTMLDivElement | null>(null);
   const draggingRef = useRef(false);
 
@@ -99,6 +103,7 @@ export function OutputStepView() {
       // ignore
     }
   }, [plateCollapsed]);
+
 
   const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (plateCollapsed) return;
@@ -159,13 +164,13 @@ export function OutputStepView() {
       ) : (
         <div
           ref={containerRef}
-          className="flex h-full min-h-0"
+          className="flex h-full min-h-[460px]"
           data-testid="output-split-container"
         >
           {/* 좌: Summary (ResultTable + 텍스트 통계) */}
           <section
             data-testid="output-primer-panel"
-            className="flex min-w-0 flex-col gap-3"
+            className="flex min-w-0 flex-col gap-3 overflow-y-auto"
             style={leftStyle}
             aria-label={t("phaseC.subSteps.output.summary")}
           >
@@ -195,16 +200,17 @@ export function OutputStepView() {
                   {rescueCount}
                 </dd>
               </div>
-              <div className="flex gap-1.5">
-                <dt>{t("phaseE.summary.method.label")}:</dt>
-                <dd className="font-semibold text-foreground">
-                  {designMethod === "goldengate" ? `Golden Gate (${enzyme})` : "Overlap-extension"}
-                </dd>
-              </div>
             </dl>
 
-            <div className="flex-1 min-h-0 overflow-auto">
+            {/* Result table — bounded viewport; the whole Summary column scrolls
+                so the 3D analysis below is reachable without splitting the space. */}
+            <div className="h-[55vh] min-h-[320px] shrink-0 overflow-hidden rounded border border-border">
               <ResultTable />
+            </div>
+
+            {/* Current-candidate 3D analysis — stacked below the table, open by default. */}
+            <div className="shrink-0">
+              <Selection3DPanel defaultOpen />
             </div>
           </section>
 

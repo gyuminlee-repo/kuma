@@ -29,14 +29,14 @@ Kuro 탭에서 프라이머를 설계하고 실험·시퀀싱 후 Mame 탭으로
 
 ### Kuro — SDM 프라이머 설계
 
-변이 목록(텍스트 / EVOLVEpro CSV)과 템플릿 시퀀스(GenBank / SnapGene)를 입력하면 SDM 프라이머 쌍을 자동 설계한다. Parameters 단계에서 클로닝 방식을 run 단위로 선택한다: **overlap-extension**(기본) 또는 **Golden Gate (Type IIS)**.
+변이 목록(텍스트 / EVOLVEpro CSV)과 템플릿 시퀀스(GenBank / SnapGene)를 입력하면 overlap-extension 방식의 SDM 프라이머 쌍을 자동 설계한다.
 
 **Highlights**
 
-- **두 가지 설계 방식** — overlap-extension SDM(기본) / Golden Gate (Type IIS)
-- **EVOLVEpro 기반 선정** — Top-N + 위치 / 도메인 / Pareto / entropy 다양성, σ-Adaptive 후보 풀
+- **EVOLVEpro 기반 선정** — Top-N + 위치 / 도메인 / Pareto / entropy / structural 다양성, σ-Adaptive 후보 풀
 - **보정된 화학 조건** — polymerase 8종(+커스텀), SantaLucia 1998 Tm, GC / 길이 / tolerance 제어
 - **내장 QC** — primer3 hairpin/homodimer, off-target 스캔, 올리고 합성 품질 점수, AlphaFold 3D 거리
+- **후보 3D 구조 분석** — Output 단계 3Dmol 뷰어로 후보를 AlphaFold/PDB 구조 위에 표시. active/binding-site 강조, 무작위 null 대비 공간 분산, 클릭형 color legend, surface, PNG 내보내기(선정 필터가 아니라 해석·QC 보조)
 - **모드별 실패 복구** — multi-stage Position Rescue + 원클릭 변이별 재시도
 - **플레이트 출력** — 정렬 가능한 결과 표, 96-well plate map, Echo 525 / JANUS 내보내기
 
@@ -45,18 +45,16 @@ Kuro 탭에서 프라이머를 설계하고 실험·시퀀싱 후 Mame 탭으로
 
 #### 설계 방식
 
-- **두 가지 설계 방식**: *Overlap-extension SDM*(기본, 출력 동일) 과 *Golden Gate (Type IIS)*. Golden Gate 는 변이 코돈 주변에 효소 인식 부위와 ligation fidelity 점수가 매겨진 fusion overhang 을 삽입하는 프라이머를 설계한다(scarless Type IIS assembly). Golden Gate annealing Tm 은 overlap-extension 과 동일한 SantaLucia 1998(SnapGene) 모델을 쓰며, 최저 초기 Tm + 4°C 이내로 batch 정규화한다(하한 20 nt)
-- **Type IIS 효소 카탈로그 + 커스텀 효소**: 내장 6종 (BsaI, BsmBI, BbsI, SapI, PaqCI, BspMI). BsaI·BsmBI 는 on-target ligation fidelity 표(Potapov 2018)를 함께 제공해 overhang 선택에 사용하고, 나머지는 functional unscored overhang 으로 대체한다. **Custom Type IIS 효소** 에디터로 사용자 정의 효소를 만들면 `~/.kuma/kuro/custom_enzymes.json` 에 영구 저장된다. 코돈 사용은 organism 별(Kazusa, frequency 내림차순 + 결정적 tiebreak)이며 설계 window 안에 forbidden Type IIS 부위를 만드는 코돈은 건너뛴다
-- **Run 단위 junction 오버라이드**: junction prefix(spacer + 인식 부위 + spacer)와 forbidden overhang(기본 `AATG`, `AGGT`)을 사용 벡터에 맞게 오버라이드한다. cut-site 기하가 검증되며, 인식 부위를 빠뜨리거나 cut 위치가 틀린 prefix 는 각 결과에 경고로 표시된다
+- **Overlap-extension SDM**: overlap 을 mutation codon upstream 에 배치하는 forward/reverse 프라이머. overlap 모드 2종, *Partial overlap (Gibson)*(기본, forward·reverse 독립)와 *Full overlap (Q5 SDM)*(reverse = forward 의 reverse-complement). annealing Tm 은 SantaLucia 1998(Benchling) 모델 사용. partially-overlapping 설계와 기본 Tm 기준값(Fwd 62 / Rev 58 / Overlap 42 °C)은 Landwehr et al. 2025, *Nat Commun* 16, 865 방식을 따름 (https://doi.org/10.1038/s41467-024-55399-0)
 - **Overlap upstream 설계**: overlap 영역이 mutation codon 바로 앞(upstream)에 위치 (EVOLVEpro 방식)
 
 #### 변이 입력 & 후보 선정
 
-- **EVOLVEpro CSV 입력**: EVOLVEpro(`variant`, `y_pred`) 출력 CSV 로드. 점수 내림차순 정렬 후 설정 개수만큼 자동 선정. **위치 다양성** 필터로 아미노산 위치당 최대 N개 제한 가능 (동일 위치 후보 점수 차이 2% 이내 시 Grantham 1974 거리가 낮은 보수적 치환 우선). **도메인 다양성** 필터로 단백질 구조 도메인 간 분산 선택 (InterPro/Pfam 자동 조회 또는 수동 입력). **Pareto 다양성** 으로 MODIFY 방식의 위치 분산 최대화. **σ-Adaptive Pool**: EVOLVEpro Round와 Round size 입력 시 누적 데이터 기반으로 후보 풀 범위와 entropy 가중치 자동 보정 (K = 0.50→0.25, entropy = 0.30→0.15, Round 1→5+)
+- **EVOLVEpro CSV 입력**: EVOLVEpro(`variant`, `y_pred`) 출력 CSV 로드. 점수 내림차순 정렬 후 설정 개수만큼 자동 선정. **위치 다양성** 필터로 아미노산 위치당 최대 N개 제한 가능 (동일 위치 후보 점수 차이 2% 이내 시 Grantham 1974 거리가 낮은 보수적 치환 우선). **도메인 다양성** 필터는 불러온 참조 단백질 서열을 InterProScan으로 직접 분석하거나 수동 입력한 참조 좌표 도메인에 따라 선택을 분산하며, AlphaFold 색칠용 UniProt accession 도메인은 별도로 유지한다. **Pareto 다양성** 으로 MODIFY 방식의 위치 분산 최대화. **structural 다양성** 으로 전체 후보 풀을 3D Cα-centroid 공간에서 greedy farthest-point 선택 — 이전 라운드에서 이미 테스트한 변이 집합을 anchor로 삼아 멀어지도록 고르며, 예측 적합도 쪽으로 κ 블렌드 가능. 초기·저데이터 라운드의 epistatic 조합 타깃에서만 Top-N을 이김(조건부; 그 외엔 무익~해로움, `benchmark/REPORT.md` §6.7–6.12). **σ-Adaptive Pool**: EVOLVEpro Round와 Round size 입력 시 누적 데이터 기반으로 후보 풀 범위와 entropy 가중치 자동 보정 (K = 0.50→0.25, entropy = 0.30→0.15, Round 1→5+)
 - **배치 변이 파싱**: `Q232A` 형식의 변이 목록 → 코돈 위치 자동 계산 + WT 코돈 검증
-- **AlphaFold 3D 거리**: Pareto 다양성이 1차원 위치 거리가 아닌 AlphaFold DB 예측 구조의 실제 Cα 유클리드 거리 사용. UniProt accession 입력 후 자동 조회, `~/.kuma/kuro/embeddings/{accession}_ca.json`에 캐싱
+- **AlphaFold 3D 거리**: Pareto·structural 다양성이 1차원 위치 거리가 아닌 AlphaFold DB 예측 구조의 실제 Cα 유클리드 거리 사용. UniProt accession 입력 후 자동 조회, `~/.kuma/kuro/embeddings/{accession}_ca.json`에 캐싱
 
-> 다양성 필터(위치 / 도메인 / Pareto / entropy)의 상세는 아래 [선택 전략](#선택-전략-kuro-evolvepro-모드) 표를 참고.
+> 다양성 필터(위치 / 도메인 / Pareto / entropy / structural)의 상세는 아래 [선택 전략](#선택-전략-kuro-evolvepro-모드) 표를 참고.
 
 #### 코돈 & 열역학 파라미터
 
@@ -88,6 +86,7 @@ Kuro 탭에서 프라이머를 설계하고 실험·시퀀싱 후 Mame 탭으로
 #### 검토 · 시각화 · 내보내기
 
 - **Sequence Map**: 접이식 SVG 선형 CDS 맵. 변이 위치, 도메인 영역, 밀도 히스토그램
+- **후보 3D 구조 분석**: Output 단계 접이식 패널에 3Dmol 뷰어 내장(열 때만 로드). 후보 위치를 fetch한 AlphaFold/PDB 구조(또는 업로드한 PDB/CIF) 위에 매핑하고, UniProt active-site·binding-site 잔기를 강조하며, 공간 분산(무작위 동일 개수 null 대비 평균 pairwise Cα 거리, 백분위 `P1`/`P99`)을 보고. Color legend가 각 색 의미를 설명하고 항목 클릭으로 3D 레이어를 토글하며, surface 렌더·PNG 내보내기 지원. dispersion·pLDDT·site 오버레이는 선정 필터가 아니라 해석·QC 보조 — 무엇을 설계할지는 EVOLVEpro `y_pred` 랭킹이 결정
 - **후보 비교 및 교체**: 프라이머 서열 클릭 시 후보 비교 팝오버
 - **커스텀 프라이머 평가**: 후보 팝오버에서 직접 서열 입력 → Tm, GC%, hairpin, off-target 즉시 계산
 - **96-well Plate Map**: Fwd/Rev 쌍 연동 플레이트. 96개 초과 시 multi-plate 슬라이드
@@ -103,7 +102,7 @@ Kuro가 만든 `expected_mutations.xlsx`, 참조 FASTA, MAME가 생성한 barcod
 **Highlights**
 
 - **MAME consensus 입력** — barcode-mode consensus 또는 raw FASTQ(Phred-aware demux→consensus)
-- **6-class 판정** — exact / partial / off-target / WT / no-coverage / ambiguous, mixed-well guard 포함
+- **8-class 판정**, PASS / WRONG_AA / AMBIGUOUS / MIXED / FRAMESHIFT / MANY / LOWDEPTH / NO_CALL
 - **설명가능 QC** — read depth, N fraction, low-depth 위치, low-quality 제외, MAPQ/span drop
 - **96-well 출력** — Kuro plate map 순서와 동기화된 column-major Final Excel, single-view 워크벤치
 
@@ -112,13 +111,13 @@ Kuro가 만든 `expected_mutations.xlsx`, 참조 FASTA, MAME가 생성한 barcod
 
 #### 입력 & consensus
 
-- **MAME consensus FASTA ingest**: MAME 자체 demux→consensus pipeline의 barcode-mode 출력. Consensus header의 `depth=N`, low-depth 위치, N fraction, mixed-allele metric이 `LOWDEPTH`/`AMBIGUOUS` 판정 근거가 된다.
+- **MAME consensus FASTA ingest**: MAME 자체 demux→consensus pipeline의 barcode-mode 출력. Consensus header의 `depth=N`, low-depth 위치, N fraction, mixed-allele metric이 `LOWDEPTH`/`MIXED` 판정 근거가 된다.
 - **Phred-aware consensus**: raw FASTQ에서 시작하면 read ID와 quality string을 내부 demux 단계에서 보존해 저품질 base call이 consensus vote를 이기지 못하게 한다.
 
 #### 판정 & QC 근거
 
-- **6-class 판정**: 각 바코드를 6가지 결과로 분류 (exact match, partial, off-target, WT retained, no coverage, ambiguous)
-- **Mixed-well guard**: minor-allele metric이 있는 consensus는 within-well mixture 근거가 충분할 때 다수결 PASS 대신 `AMBIGUOUS`로 표시한다.
+- **8-class 판정**: 각 바코드를 8가지로 분류, `PASS`(관찰 변이가 설계와 정확 일치), `WRONG_AA`(기대 위치 불일치·기대 변이 누락·예상밖 추가 변이), `AMBIGUOUS`(기대 변이는 모두 일치하나 인접 window 추가 변이 또는 indel 이벤트 신호), `MIXED`(well 내 유의한 2nd allele 혼합), `FRAMESHIFT`(frame window 내 연속 nucleotide indel), `MANY`(cutoff·설계를 모두 초과한 과다 변이), `LOWDEPTH`(read depth 미달), `NO_CALL`(consensus N 과다)
+- **Mixed-well guard**: minor-allele metric이 있는 consensus는 within-well mixture 근거가 충분할 때 다수결 PASS 대신 `MIXED`로 표시한다.
 - **Explainable QC evidence**: 판정 테이블과 Excel export에 read depth, N fraction, low-depth 위치, low-quality base 제외 수, MAPQ/span drop counter를 표시한다.
 - **3-replicate best pick**: 삼중 바코드 중 최고 점수 클론 선택
 - **치환(Substitution) 지원**: Phase 1은 단일 잔기 치환 중심. 결실/삽입은 이후 단계
@@ -138,12 +137,15 @@ EVOLVEpro CSV 로드 시 어떤 mutation을 프라이머 설계 대상으로 선
 |------|------|-----------|
 | **Top-N by score** | 예측 적합도(y_pred / property_value) 내림차순 상위 N개 선택. N = 최대 프라이머 수 (기본 95). | 기본 랭킹. 예측 적합도만 기준일 때. |
 | **Position diversity** | 아미노산 위치당 최대 mutation 수 제한 (기본 1). 동일 위치 두 후보 점수 차이 2% 이내 시 Grantham 1974 거리가 낮은 보수적 치환 우선. 다른 전략 적용 전 사전 필터. | 특정 위치에 mutation이 과도 집중되는 것을 방지. |
-| **Domain diversity** | 단백질 구조 도메인별 할당량 배분 (비례 또는 균등). 도메인 정보는 UniProt accession으로 InterPro/Pfam 자동 조회 또는 수동 입력. | 한 도메인이 y_pred 상위를 독점할 때 전 도메인 탐색. |
+| **Domain diversity** | 불러온 참조 단백질 서열을 InterProScan으로 직접 분석하거나 참조 좌표로 수동 입력한 도메인에 따라 할당량을 비례 또는 균등 배분. AlphaFold 구조 표시용 UniProt accession 도메인은 별도로 유지. | 참조 좌표와 accession 잔기 번호를 섞지 않고 기능 영역 전반을 탐색. |
 | **Pareto diversity** | Greedy maximin 위치 선택. 이미 선택된 mutation과 가장 먼 위치를 반복 선택하여 공간적 분산 극대화. | 좁은 영역에 mutation이 밀집되는 것을 방지. MODIFY 접근법(Ding et al., *Nature Communications*, 2024). |
 | **Entropy-guided** (β) | 위치별 y_pred 분포의 Shannon entropy(가중치 0.3)를 Pareto 점수에 혼합. | 적합도 경관에 여러 봉우리가 있을 때 국소 최적 탈출. Pareto 활성화 필요. |
+| **Structural diversity** | 전체 후보 풀을 3D Cα-centroid 공간(AlphaFold)에서 greedy farthest-point(maximin) 선택. 이전 라운드에서 이미 테스트한 변이 누적 집합을 anchor로 삼고, 예측 적합도 쪽으로 κ 블렌드 가능(κ=0 순수 다양성 → κ=1 순수 Top-N). 조합 변이는 모든 치환 위치의 centroid 사용, 구조 없으면 서열 위치 거리로 폴백. | 다라운드 epistatic 조합 캠페인의 초기·저데이터 라운드. **조건부**: 진짜 epistatic·분산형 경관에선 Top-N을 이기지만 그 외엔 무익~해로우며 라벨이 ~1 플레이트 쌓이면 사라짐(`benchmark/REPORT.md` §6.7–6.12). |
 
 **참고 문헌**
-- Ding D, Shaw AY, Sinai S, et al. Protein design using structure-predicted residue preferences and sequence-predicted fitness. *Nature Communications*, 15:6729 (2024). PMID:39080249 — MODIFY: Pareto fitness-diversity 공동 최적화
+- Ding K, Chin M, Zhao Y, Huang W, Mai BK, Wang H, Liu P, Yang Y, Luo Y. Machine learning-guided co-optimization of fitness and diversity facilitates combinatorial library design in enzyme engineering. *Nature Communications*, 15:6392 (2024). https://doi.org/10.1038/s41467-024-50698-y (PMID:39080249). MODIFY: Pareto fitness-diversity 공동 최적화. 명칭 주의: MODIFY는 expected fitness와 sequence diversity에 대한 Pareto frontier를 실제로 계산하지만, 이 표의 "Pareto 다양성" 필터는 fitness를 시드로 둔 greedy maximin 선택기이며 non-dominated front를 계산하지 않는다.
+
+> **벤치마크 caveat (`benchmark/REPORT.md` §6).** in-silico active-learning 벤치에서 **structural 다양성**만 Top-N을 이겼고, 그것도 조건부(초기·저데이터, 진짜 epistatic)였다. **도메인**·**Pareto** 다양성은 Top-N을 못 이겼고, 도메인 다양성은 단일-활성부위 단백질엔 해로울 수 있다(기능 영역 밖으로 픽 낭비). 모든 다양성 필터는 Top-N의 범용 개선이 아니라 초기-라운드 헤지로 취급하라.
 
 ## 프로젝트 워크플로
 
@@ -170,6 +172,8 @@ EVOLVEpro CSV 로드 시 어떤 mutation을 프라이머 설계 대상으로 선
 - **Windows**: `kuma_x.x.x_x64-setup.exe` (NSIS)
 - **macOS**: `kuma_x.x.x_aarch64.dmg`
 - **Linux**: `.deb` + `.AppImage`
+
+Kuma는 시작할 때 GitHub의 최신 공개 릴리스를 확인하고, 설치된 버전보다 새 버전일 때만 업데이트를 권장한다. **도움말 → 업데이트 확인**에서 수동으로 다시 확인할 수 있으며, 확인 실패가 앱 시작을 막지는 않는다.
 
 ### 개발자 — Windows에서는 `pnpm install` 대신 `pnpm setup`
 
@@ -200,6 +204,8 @@ xattr -cr /Applications/kuma.app
 
 ## 사용법
 
+새로 만든 프로젝트에서는 건너뛸 수 있는 spotlight 투어가 실행된다. 짧은 프로젝트 개요와 Kuro 안내가 먼저 나오며, Mame은 처음 진입할 때 별도 투어를 제공한다. 기존 프로젝트에는 자동으로 표시되지 않는다. 현재 탭의 투어는 **도움말 → 가이드 투어 보기**에서 다시 실행할 수 있다.
+
 **Kuro 탭**
 1. **Help → Load Sample Data** 메뉴로 예제 자동 로드. 또는:
 2. 시퀀스 파일 로드 (GenBank `.gb` / SnapGene `.dna`)
@@ -229,7 +235,7 @@ KUMA가 ALE 전체 사이클을 연결한다: Kuro가 라운드 N 변이의 프�
 ```
 1. KURO 설계      →  라운드 N 변이 프라이머 목록
 2. 실험실          →  SDM + 발현
-3. MAME NGS       →  클론별 지노타입 판정 (6-class)
+3. MAME NGS       →  클론별 지노타입 판정 (8-class)
 4. 활성 측정       →  플레이트 리더 / 형광 측정
 5. MAME 활성      →  long format CSV 로드; fold_change / log2_fc 계산
 6. EVOLVEpro export →  variant + y_pred CSV (다음 라운드 입력)

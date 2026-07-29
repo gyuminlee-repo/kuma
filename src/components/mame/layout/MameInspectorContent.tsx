@@ -54,8 +54,6 @@ function SetupFilesInspector() {
 
   return (
     <div>
-      <KVRow label={t("mame.setup.files.inspectorDevice")} value="Oxford Nanopore" />
-      <KVRow label={t("mame.setup.files.inspectorKit")} value="SQK-NBD114-24" />
       <KVRow label={t("mame.setup.files.inspectorBarcodes")} value={folderName} />
     </div>
   );
@@ -74,9 +72,7 @@ function SetupDesignInspector() {
 
   return (
     <div>
-      <KVRow label={t("mame.setup.design.inspectorVariant")} value="BC01" />
       <KVRow label={t("mame.setup.design.inspectorDesignSource")} value={fileName} />
-      <KVRow label={t("mame.setup.design.inspectorExpectedReads")} value="~500" />
     </div>
   );
 }
@@ -117,20 +113,11 @@ function QcVerdictInspector() {
 
   return (
     <div>
-      <KVRow label={t("mame.qc.verdict.inspectorReads")} value={selected.read_count ?? "—"} />
-      <KVRow
-        label={t("mame.qc.verdict.inspectorIdentity")}
-        value={
-          selected.observed_aa_changes.length === 0
-            ? "100%"
-            : `${Math.max(0, 100 - selected.observed_aa_changes.length * 5)}%`
-        }
-      />
+      <KVRow label={t("mame.qc.verdict.inspectorReads")} value={selected.read_count} />
       <KVRow label={t("mame.qc.verdict.inspectorCall")} value={selected.verdict} />
-      <KVRow
-        label={t("mame.qc.verdict.inspectorExport")}
-        value={selected.verdict === "PASS" ? "Included" : "Excluded"}
-      />
+      {/* verdict_notes: backend-authored diagnostic string (VerdictRecord.verdict_notes).
+          Replaces a fabricated "Identity %" that no backend field backed. */}
+      <KVRow label={t("mame.verdictTable.colNotes")} value={selected.verdict_notes} />
     </div>
   );
 }
@@ -194,10 +181,7 @@ function ActivityMergeExportInspector() {
 
   return (
     <div>
-      <KVRow label={t("mame.activity.mergeExport.inspectorVariant")} value="R585A" />
-      <KVRow label={t("mame.activity.mergeExport.inspectorActivity")} value="—" />
       <KVRow label={t("mame.activity.mergeExport.inspectorMergedRows")} value={passVerdicts.length} />
-      <KVRow label={t("mame.activity.mergeExport.inspectorStatus")} value="Ready" />
       <Callout
         title={t("mame.activity.mergeExport.inspectorBridgeCallout")}
         body={t("mame.activity.mergeExport.inspectorBridgeDesc")}
@@ -223,6 +207,7 @@ const INSPECTOR_MAP: Record<MameSubStepId, React.ComponentType> = {
   "analyze.verdict": QcVerdictInspector,
   "analyze.plate": QcPlateInspector,
   "activity.ingest": ActivityIngestInspector,
+  "activity.signals": ActivityMergeExportInspector,
   "activity.mergeExport": ActivityMergeExportInspector,
 };
 
@@ -267,6 +252,10 @@ export function useMameInspectorMeta(): { title: string; subtitle: string } {
     "activity.ingest": {
       titleKey: "mame.activity.ingest.inspectorTitle",
       subtitleKey: "mame.activity.ingest.inspectorSubtitle",
+    },
+    "activity.signals": {
+      titleKey: "mame.activity.mergeExport.inspectorTitle",
+      subtitleKey: "mame.activity.mergeExport.inspectorSubtitle",
     },
     "activity.mergeExport": {
       titleKey: "mame.activity.mergeExport.inspectorTitle",

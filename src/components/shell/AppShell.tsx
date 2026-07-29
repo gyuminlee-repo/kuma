@@ -108,6 +108,7 @@ export function AppShell({
         {sidebar != null && (
           <aside
             data-testid="sidebar"
+            data-tour={`${tool}-workflow`}
             style={{ width: sidebarWidth }}
             className="relative flex shrink-0 flex-col overflow-x-hidden border-r border-border bg-card"
           >
@@ -124,6 +125,7 @@ export function AppShell({
         )}
         <main
           data-testid="main-content"
+          data-tour={`${tool}-workspace`}
           className="relative flex flex-1 min-w-0 min-h-0 flex-col overflow-hidden"
         >
           {main}
@@ -141,6 +143,7 @@ export function AppShell({
         {showInspector && (
           <aside
             data-testid="inspector"
+            data-tour={`${tool}-inspector`}
             style={{ width: inspectorWidth }}
             className="flex shrink-0 flex-col overflow-x-hidden border-l border-border bg-card"
           >

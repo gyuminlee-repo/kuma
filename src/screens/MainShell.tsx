@@ -16,6 +16,7 @@ import { getActivityStore } from "@/store/mame/activitySlice";
 import type { BusyReason } from "@/components/dialogs/CloseConfirmDialog";
 import { registerShutdownHook, runShutdownHooks } from "@/lib/shutdownHook";
 import { toast } from "sonner";
+import { ProjectTourCoordinator } from "@/components/dialogs/ProjectTourCoordinator";
 
 const LazySettingsDialog = lazy(async () =>
   import("@/components/layout/SettingsDialog").then((m) => ({ default: m.SettingsDialog })),
@@ -446,7 +447,10 @@ export function MainShell() {
       </Suspense>
 
       <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as AppTab); void handleTabChange(v); }} className="flex min-h-0 flex-1 flex-col">
-        <header className="h-header flex shrink-0 items-center border-b bg-background px-4">
+        <header
+          data-tour="project-status"
+          className="h-header flex shrink-0 items-center border-b bg-background px-4"
+        >
           <div className="flex w-full min-w-0 items-center gap-4">
             <div className="min-w-0 flex-1 text-caption text-muted-foreground">
               <div className="flex min-w-0 items-center gap-2">
@@ -503,6 +507,18 @@ export function MainShell() {
           </TabsContent>
         </div>
       </Tabs>
+
+      {project && !project.scratch && (
+        <ProjectTourCoordinator
+          key={project.project_id ?? project.path}
+          project={project}
+          activeTab={activeTab}
+          onTabChange={(tab) => {
+            setActiveTab(tab);
+            void handleTabChange(tab);
+          }}
+        />
+      )}
 
       {/* §13 Background Job Queue floating panel */}
       <Suspense fallback={null}>

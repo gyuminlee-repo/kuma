@@ -31,14 +31,14 @@ Project folders keep Kuro design output and Mame verification linked across the 
 
 ### Kuro — SDM primer design
 
-Given a mutation list (plain text / EVOLVEpro CSV) and a template sequence (GenBank / SnapGene), Kuro automatically designs SDM primer pairs. Pick the cloning chemistry per run in the Parameters step: **overlap-extension** (default) or **Golden Gate (Type IIS)**.
+Given a mutation list (plain text / EVOLVEpro CSV) and a template sequence (GenBank / SnapGene), Kuro automatically designs overlap-extension SDM primer pairs.
 
 **Highlights**
 
-- **Two design methods** — overlap-extension SDM (default) and Golden Gate (Type IIS)
-- **EVOLVEpro-driven selection** — Top-N plus position / domain / Pareto / entropy diversity and a σ-Adaptive candidate pool
+- **EVOLVEpro-driven selection** — Top-N plus position / domain / Pareto / entropy / structural diversity and a σ-Adaptive candidate pool
 - **Calibrated chemistry** — eight polymerase profiles (+ custom), SantaLucia 1998 Tm, GC / length / tolerance controls
 - **Built-in QC** — primer3 hairpin/homodimer, off-target scan, oligo synthesis-quality score, AlphaFold 3D distance
+- **Candidate 3D structure analysis** — Output-step 3Dmol viewer placing candidates on the AlphaFold/PDB structure, with active/binding-site highlights, spatial dispersion vs a random null, clickable color legend, surface, and PNG export (interpretation/QC aid, not a selection filter)
 - **Mode-aware failure rescue** — multi-stage Position Rescue with one-click per-mutation retry
 - **Plate-ready output** — sortable result table, 96-well plate map, Echo 525 / JANUS liquid-handler export
 
@@ -47,18 +47,16 @@ Given a mutation list (plain text / EVOLVEpro CSV) and a template sequence (GenB
 
 #### Design methods
 
-- **Two design methods**: *Overlap-extension SDM* (default, output unchanged) and *Golden Gate (Type IIS)*. Golden Gate designs primers that insert the enzyme recognition site plus a ligation-fidelity-scored fusion overhang around each mutated codon, for scarless Type IIS assembly. Golden Gate annealing Tm uses the same SantaLucia 1998 (SnapGene) model as overlap-extension, batch-normalised to within +4°C of the lowest initial Tm (down to a 20 nt floor)
-- **Type IIS enzyme catalog + custom enzymes**: Six built-in enzymes (BsaI, BsmBI, BbsI, SapI, PaqCI, BspMI). BsaI and BsmBI ship with on-target ligation-fidelity tables (Potapov 2018) that drive overhang selection; the rest fall back to a functional unscored overhang. Define your own via the **Custom Type IIS enzyme** editor, persisted at `~/.kuma/kuro/custom_enzymes.json`. Codon usage is organism-aware (Kazusa, deterministic frequency-descending tiebreak) and skips any codon that would create a forbidden Type IIS site inside the design window
-- **Per-run junction overrides**: Override the junction prefix (spacer + recognition site + spacer) and forbidden overhangs (default `AATG`, `AGGT`) for your vector. Cut-site geometry is validated — a prefix that omits the recognition site or mis-positions the cut surfaces a warning on each result
+- **Overlap-extension SDM**: Forward and reverse primers with the overlap placed upstream of the mutation codon. Two overlap modes are available, *Partial overlap (Gibson)* (default; forward and reverse independent) and *Full overlap (Q5 SDM)* (reverse = reverse-complement of forward). Annealing Tm uses the SantaLucia 1998 (Benchling) model. The partially-overlapping design and default Tm heuristics (Fwd 62 / Rev 58 / Overlap 42 °C) follow Landwehr et al. 2025, *Nat Commun* 16, 865 (https://doi.org/10.1038/s41467-024-55399-0)
 - **Overlap upstream design**: Overlap region is placed immediately upstream of the mutation codon (EVOLVEpro convention)
 
 #### Mutation input & candidate selection
 
-- **EVOLVEpro CSV input**: Load EVOLVEpro (`variant`, `y_pred`) output CSV. Sorts by score descending, auto-selects the configured number of variants. Optional **position diversity** filter limits mutations per amino acid position (uses Grantham 1974 distance as tie-breaker when scores are within 2%). Optional **domain diversity** distributes selections across protein structural domains (auto-fetched from InterPro/Pfam or manual input). Optional **Pareto diversity** maximizes position spread via MODIFY-style fitness-diversity co-optimization. **σ-Adaptive Pool**: enter EVOLVEpro Round and Round size to automatically calibrate the candidate pool width and entropy weight based on cumulative data (K = 0.50→0.25, entropy = 0.30→0.15 across rounds 1–5+)
+- **EVOLVEpro CSV input**: Load EVOLVEpro (`variant`, `y_pred`) output CSV. Sorts by score descending, auto-selects the configured number of variants. Optional **position diversity** filter limits mutations per amino acid position (uses Grantham 1974 distance as tie-breaker when scores are within 2%). Optional **domain diversity** distributes selections across domains detected directly from the loaded reference protein sequence by InterProScan (or entered manually), so selection coordinates match KURO mutations; UniProt-accession domains remain separate for AlphaFold structure coloring. Optional **Pareto diversity** maximizes position spread via MODIFY-style fitness-diversity co-optimization. Optional **structural diversity** runs greedy farthest-point selection over the full candidate pool in 3D Cα-centroid space, anchored on variants already tested in prior rounds, with an optional κ blend toward predicted fitness — it beats Top-N only in the early/low-data rounds of epistatic combinatorial campaigns (conditional; neutral-to-harmful otherwise, see `benchmark/REPORT.md` §6.7–6.12). **σ-Adaptive Pool**: enter EVOLVEpro Round and Round size to automatically calibrate the candidate pool width and entropy weight based on cumulative data (K = 0.50→0.25, entropy = 0.30→0.15 across rounds 1–5+)
 - **Batch mutation parsing**: Mutation list in `Q232A` format → automatic codon position calculation + WT codon validation
-- **AlphaFold 3D distance**: Pareto diversity uses real Cα Euclidean distance from AlphaFold DB predicted structures instead of 1D sequence position distance. Fetched automatically after UniProt accession entry; cached at `~/.kuma/kuro/embeddings/{accession}_ca.json`. Falls back to 1D position distance when the structure is unavailable
+- **AlphaFold 3D distance**: Pareto and structural diversity use real Cα Euclidean distance from AlphaFold DB predicted structures instead of 1D sequence position distance. Fetched automatically after UniProt accession entry; cached at `~/.kuma/kuro/embeddings/{accession}_ca.json`. Falls back to 1D position distance when the structure is unavailable
 
-> The diversity filters (position / domain / Pareto / entropy) are detailed in [Selection Strategies](#selection-strategies-kuro-evolvepro-mode) below.
+> The diversity filters (position / domain / Pareto / entropy / structural) are detailed in [Selection Strategies](#selection-strategies-kuro-evolvepro-mode) below.
 
 #### Codon & thermodynamic parameters
 
@@ -90,6 +88,7 @@ Given a mutation list (plain text / EVOLVEpro CSV) and a template sequence (GenB
 #### Review, visualization & export
 
 - **Sequence Map**: Collapsible SVG linear CDS map with mutation positions, domain regions, and density histogram for cluster detection
+- **Candidate 3D structure analysis**: Collapsible Output-step panel embedding a 3Dmol viewer (loaded on demand). Maps candidate positions onto the fetched AlphaFold/PDB structure (or an uploaded PDB/CIF), highlights UniProt active-site and binding-site residues, and reports spatial dispersion — mean pairwise Cα distance versus a random matched-size null, percentile shown as `P1`/`P99`. A color legend explains every color and each row toggles its 3D layer; surface rendering and PNG export are available. The dispersion / pLDDT / site overlays are interpretation/QC aids, not candidate-selection filters — EVOLVEpro `y_pred` ranking decides what gets designed
 - **Column sorting**: All result columns sortable (including y_pred and synthesis score). Plate map export respects current sort order
 - **Candidate comparison and swap**: Click a primer sequence to open a candidate comparison popover
 - **Custom primer evaluation**: Enter a sequence directly in the candidate popover → Tm, GC%, hairpin, and off-target are calculated immediately
@@ -106,7 +105,7 @@ Given a Kuro-exported `expected_mutations.xlsx`, a reference FASTA, and MAME-gen
 **Highlights**
 
 - **MAME consensus ingest** — barcode-mode consensus, or raw FASTQ via Phred-aware demux→consensus
-- **6-class verdict** — exact / partial / off-target / WT retained / no coverage / ambiguous, with a mixed-well guard
+- **8-class verdict**, PASS / WRONG_AA / AMBIGUOUS / MIXED / FRAMESHIFT / MANY / LOWDEPTH / NO_CALL
 - **Explainable QC** — read depth, N fraction, low-depth positions, low-quality exclusions, MAPQ/span drops
 - **96-well output** — column-major Final Excel synced to Kuro's plate-map order, in a single-view workbench
 
@@ -115,13 +114,13 @@ Given a Kuro-exported `expected_mutations.xlsx`, a reference FASTA, and MAME-gen
 
 #### Input & consensus
 
-- **MAME consensus FASTA ingest**: Barcode-mode consensus output from MAME's own demux→consensus pipeline. Consensus headers with `depth=N`, per-base low-depth positions, N fraction, and mixed-allele metrics drive read-count `LOWDEPTH` and mixed-well `AMBIGUOUS` gating.
+- **MAME consensus FASTA ingest**: Barcode-mode consensus output from MAME's own demux→consensus pipeline. Consensus headers with `depth=N`, per-base low-depth positions, N fraction, and mixed-allele metrics drive read-count `LOWDEPTH` and within-well `MIXED` gating.
 - **Phred-aware consensus**: When MAME starts from raw FASTQ, read IDs and quality strings are preserved through the internal demux step so low-quality base calls do not win the consensus vote.
 
 #### Verdict & QC evidence
 
-- **6-class verdict**: Each barcode classified into one of six outcomes (exact match, partial, off-target, WT retained, no coverage, ambiguous).
-- **Mixed-well guard**: Consensus headers can carry minor-allele metrics; wells with substantial within-well mixture are surfaced as `AMBIGUOUS` instead of silently passing on the majority allele.
+- **8-class verdict**: Each barcode classified into one of eight outcomes, `PASS` (observed AA changes exactly match the design), `WRONG_AA` (expected position mismatched, an expected change missing, or an unexpected extra change), `AMBIGUOUS` (all expected changes matched but a near-window extra change or an indel-event signal), `MIXED` (substantial within-well second allele), `FRAMESHIFT` (consecutive NT indels inside the frame window), `MANY` (more AA changes than both the cutoff and the design), `LOWDEPTH` (read depth below the minimum), `NO_CALL` (consensus dominated by N bases).
+- **Mixed-well guard**: Consensus headers can carry minor-allele metrics; wells with substantial within-well mixture are surfaced as `MIXED` instead of silently passing on the majority allele.
 - **Explainable QC evidence**: Verdict tables and Excel exports carry read depth, N fraction, low-depth positions, low-quality base exclusions, and MAPQ/span drop counters.
 - **3-replicate best pick**: Among triplicate barcodes, the best-scoring clone is selected.
 - **Substitution support**: Phase 1 focuses on single-residue substitutions. Deletion / insertion reserved for later.
@@ -141,12 +140,15 @@ When loading an EVOLVEpro scored CSV, Kuro applies the configured selection stra
 |----------|-------------|-------------|
 | **Top-N by score** | Select the top N mutations ranked by predicted fitness score (y_pred / property_value descending). N = max primers setting (default 95). | Default ranking. Use when predicted fitness is the only criterion. |
 | **Position diversity** | Limit the number of mutations per amino acid position (default: 1 per position). When two variants at the same position score within 2%, the more conservative substitution (lower Grantham 1974 distance) is preferred. Applied as a pre-filter before other strategies. | Prevent over-sampling at mutational hot spots. |
-| **Domain diversity** | Allocate mutation quota proportionally (by domain length) or equally across protein structural domains. Domains are auto-fetched from InterPro/Pfam via UniProt accession, or entered manually. | Ensure coverage across all functional regions. |
+| **Domain diversity** | Allocate mutation quota proportionally (by domain length) or equally across domains detected directly from the loaded reference protein sequence with InterProScan, or entered manually in reference coordinates. UniProt-accession domains are retained separately for AlphaFold structure display. | Ensure coverage across functional regions without mixing reference and accession residue numbering. |
 | **Pareto diversity** | Greedy maximin position selection: iteratively pick the mutation whose position is farthest from all already-selected positions. Maximizes spatial spread across the protein sequence. | Prevent clustering of mutations in a narrow region. Inspired by the MODIFY approach (Ding et al., *Nature Communications*, 2024). |
 | **Entropy-guided** (β) | Blends per-position Shannon entropy of the y_pred distribution (weight 0.3) into the Pareto score. Positions where many mutations score similarly are prioritised. | Escape local optima. Requires Pareto diversity to be enabled. |
+| **Structural diversity** | Greedy farthest-point (maximin) selection over the **full** candidate pool in 3D Cα-centroid space (AlphaFold), anchored on the cumulative set of variants already tested across prior rounds, with an optional κ blend toward predicted fitness (κ=0 pure diversity → κ=1 pure Top-N). Combination variants use the centroid of all substituted positions; falls back to sequence-position distance when no structure is available. | Early/low-data rounds of multi-round epistatic combinatorial campaigns. **Conditional**: beats Top-N on genuinely epistatic, spatially-distributed landscapes but is neutral-to-harmful otherwise and washes out once ~a plate of labels accumulates (`benchmark/REPORT.md` §6.7–6.12). |
 
 **Reference**
-- Ding D, Shaw AY, Sinai S, et al. Protein design using structure-predicted residue preferences and sequence-predicted fitness. *Nature Communications*, 15:6729 (2024). PMID:39080249 — MODIFY: Pareto fitness-diversity co-optimization
+- Ding K, Chin M, Zhao Y, Huang W, Mai BK, Wang H, Liu P, Yang Y, Luo Y. Machine learning-guided co-optimization of fitness and diversity facilitates combinatorial library design in enzyme engineering. *Nature Communications*, 15:6392 (2024). https://doi.org/10.1038/s41467-024-50698-y (PMID:39080249). MODIFY: Pareto fitness-diversity co-optimization. Note on naming: MODIFY computes an explicit Pareto frontier over expected fitness and sequence diversity, whereas the filter named "Pareto diversity" in this table is a fitness-seeded greedy maximin selector that computes no non-dominated front.
+
+> **Benchmark caveat (`benchmark/REPORT.md` §6).** In the in-silico active-learning benchmark, only **structural diversity** beat Top-N, and only conditionally (early/low-data rounds, genuinely epistatic targets). **Domain** and **Pareto** diversity did **not** beat Top-N, and domain diversity can *hurt* on single-active-site proteins (it scatters picks off the functional region). Treat every diversity filter as an early-round hedge, not a general improvement over Top-N.
 
 ## Project workflow
 
@@ -173,6 +175,8 @@ Download the latest installer from [Releases](https://github.com/gyuminlee-repo/
 - **Windows**: `kuma_x.x.x_x64-setup.exe` (NSIS)
 - **macOS**: `kuma_x.x.x_aarch64.dmg`
 - **Linux**: `.deb` + `.AppImage`
+
+Kuma checks the latest published GitHub release at startup and recommends an update only when its version is newer. Use **Help → Check for updates** to check again manually; update-check failures never block startup.
 
 ### Developers — `pnpm setup` instead of `pnpm install` on Windows
 
@@ -203,6 +207,8 @@ Subsequent launches require no further action.
 
 ## Usage
 
+A newly created project runs a skippable spotlight tour: a short project overview followed by Kuro guidance, with a separate Mame tour on first entry. Existing projects are not interrupted. Choose **Help → Show Guided Tour** to replay the tour for the current tab.
+
 **Kuro tab**
 1. **Help → Load Sample Data** to load examples, or:
 2. Load a sequence file (GenBank `.gb` / SnapGene `.dna`)
@@ -232,7 +238,7 @@ KUMA now connects the complete ALE cycle: Kuro designs primers for Round N, wet 
 ```
 1. KURO Design  →  primer list for Round N mutations
 2. Wet lab       →  site-directed mutagenesis + expression
-3. MAME NGS      →  per-clone genotype verdict (6-class)
+3. MAME NGS      →  per-clone genotype verdict (8-class)
 4. Activity assay→  plate-reader / fluorescence measurement
 5. MAME Activity →  load long-format CSV; compute fold_change / log2_fc
 6. EVOLVEpro export → variant + activity xlsx for next round (`[Variant, activity]` 2-column, `89W` short notation)
@@ -250,11 +256,13 @@ The activity loader expects a **long format** CSV (or Excel) file with one measu
 | Column | Type | Description |
 |---|---|---|
 | `plate_id` | string | Plate identifier, e.g. `P01` |
-| `well_id` | string | Well address in A01–H12 format |
+| `well_id` | string | Well address in A01–H12 format, or a WT replicate label matching `^WT_?\d+$` |
 | `value` | float | Raw measurement value |
 | `replicate_idx` | int | Replicate index (1-based); same well × same replicate_idx = one measurement |
 
-WT wells are declared in `plate_meta.json`:
+The denominator comes from whichever WT source the plate has. Instrument exports ship their own WT replicate blocks, so rows labelled `WT_1`, `WT_2`, `WT_3` are collected as dedicated WT replicates and their mean is the plate denominator. The numeric suffix is the replicate index. These rows never join the variant well space and never reach the EVOLVEpro output.
+
+Plates carrying no such rows fall back to WT wells declared in `plate_meta.json`:
 
 ```json
 {
@@ -264,7 +272,7 @@ WT wells are declared in `plate_meta.json`:
 }
 ```
 
-Fold change and log2_fc are computed relative to the mean WT value on each plate. The log2_fc value maps directly to EVOLVEpro `y_pred`.
+The merge stats report which source was used per plate through `n_wt_replicate_rows` and `n_plates_wt_from_replicates`. Fold change and log2_fc are computed against that denominator, and log2_fc maps directly to EVOLVEpro `y_pred`.
 
 ### Round Entity
 

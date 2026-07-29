@@ -1,0 +1,75 @@
+{
+  "_meta": {
+    "description": "NEB Tm Calculator offset calibration for primer3. neb_tm = primer3(ref_config, seq) + (c0 + c1*len + c2*gc_percent). Applies only to NEB polymerases; others use raw primer3 with their profile.",
+    "source": "NEB Tm API https://tmapi.neb.com  (GET /tm/{product}/0.5/{seq}/{seq}/?fmt=long, field data.p1[0].tm)",
+    "calibrated": "2026-06-18",
+    "primer_conc_uM": 0.5,
+    "n_samples": 72,
+    "sample_source": "fixtures/pSHCE-dmpR.fa substrings, len 17-39, GC 40-60%",
+    "model": "linear: offset_degC = c0 + c1*len + c2*gc_percent",
+    "note": "NEBaseChanger (Q5 SDM kit) additionally applies a mismatch penalty not modeled here; treated as a documented secondary effect. ref_config is fixed and decoupled from the editable polymerase profile salt values.",
+    "regen": "python-core/scripts/regen_neb_offsets.py"
+  },
+  "product_map": {
+    "Q5": "q5",
+    "Q5 SDM": "q5",
+    "Phusion": "phusion",
+    "Taq": "taq"
+  },
+  "products": {
+    "q5": {
+      "ref_config": {
+        "mv_conc": 50,
+        "dv_conc": 2.0,
+        "dntp_conc": 0.8,
+        "dna_conc": 500,
+        "tm_method": "santalucia",
+        "salt_corrections_method": "owczarzy"
+      },
+      "coef": [
+        2.2176,
+        -0.0508,
+        0.0357
+      ],
+      "residual_max_degC": 0.216,
+      "residual_std_degC": 0.047,
+      "const_offset_degC": 2.457
+    },
+    "phusion": {
+      "ref_config": {
+        "mv_conc": 50,
+        "dv_conc": 1.5,
+        "dntp_conc": 0.8,
+        "dna_conc": 500,
+        "tm_method": "santalucia",
+        "salt_corrections_method": "schildkraut"
+      },
+      "coef": [
+        2.8067,
+        -0.0,
+        0.0
+      ],
+      "residual_max_degC": 0.001,
+      "residual_std_degC": 0.0,
+      "const_offset_degC": 2.807
+    },
+    "taq": {
+      "ref_config": {
+        "mv_conc": 50,
+        "dv_conc": 1.5,
+        "dntp_conc": 0.8,
+        "dna_conc": 500,
+        "tm_method": "santalucia",
+        "salt_corrections_method": "owczarzy"
+      },
+      "coef": [
+        -5.012,
+        -0.0827,
+        0.0515
+      ],
+      "residual_max_degC": 0.302,
+      "residual_std_degC": 0.065,
+      "const_offset_degC": -4.949
+    }
+  }
+}

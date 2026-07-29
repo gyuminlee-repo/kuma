@@ -4,6 +4,141 @@
 
 ---
 
+## v0.13.30 (2026-07-29)
+
+### sample map 템플릿을 채운 그대로 쓸 수 있습니다
+
+- layout 파서가 `<샘플>_r<n>` 표기를 이해합니다. 한 변이의 반복이 그 변이로 합쳐지고, `WT_r1` 도 WT 로 인식하며, `blank` 행은 건너뜁니다. 접미사가 없는 이름은 종전 그대로입니다.
+- EVOLVEpro 축약 표기로 바꿀 수 없는 변이(이중 치환 등)가 빌드를 통째로 중단시키지 않습니다. 그 변이만 빠지고 어느 well 이었는지 경고로 알려주므로 나머지 변이는 정상 산출됩니다.
+
+---
+
+## v0.13.28 (2026-07-28)
+
+### 이미 갖고 있는 파일과 컬럼
+
+- 스텝 2 가 헤더의 대소문자 차이, 앞뒤 공백, Excel 이 붙이는 byte-order mark 때문에 변이 파일을 거부하지 않습니다.
+- 스텝 2 컬럼 선택이 파일을 고르는 즉시 가능합니다. auto-detect 가 못 잡으면 드롭다운에서 mutation 과 ranking 컬럼을 직접 고르고 적용하면 됩니다.
+- MAME 스텝 3.1 이 스텝 1 에서 만들어진 sample map 을 그대로 받습니다. plate layout 파일을 손으로 만들 필요가 없습니다.
+
+### 공유 reverse 프라이머
+
+- workspace 에 dedup 맵이 없으면 Echo·JANUS export 에서 공유 그룹의 대표를 뺀 나머지 변이의 reverse transfer 행이 빠져, 그 반응에 프라이머가 안 들어갔습니다. 이제 설계 결과에서 맵을 재구성하고, 재구성이 불가능하면 해당 변이명과 함께 중단합니다.
+- layout 시트에 소스 웰별로 몇 개 반응에 쓰이는지와 총 소요량이 표시됩니다. 플레이트를 채울 때 여기에 labware dead volume 을 더하십시오.
+
+---
+
+## v0.13.27 (2026-07-28)
+
+### MAME 스텝 3 이 계기 원본 리포트를 직접 읽습니다
+
+- Agilent FID1B raw report 로 스텝 3 을 바로 돌릴 수 있습니다. plate layout route 에서 **Raw Agilent reports** 를 고르고 재측정 report 와 라운드-1 기준값(다른 raw report 또는 이전 EVOLVEpro 파일)을 넣으면 됩니다. 각 반복을 `area / mean(WT block areas)` 로 정규화하므로 사람이 미리 나눠둔 GC 시트가 필요 없습니다. WT 블록이 없으면 추측하지 않고 즉시 중단합니다.
+- WT 분모를 계기가 이미 실어 보내는 `WT_1`/`WT_2`/`WT_3` 행에서 가져옵니다. 이 행들은 그동안 불러오기 단계에서 버려졌고, 그래서 분모를 plate 에서 클릭한 WT well 로부터 역산해야 했습니다. 해당 행이 없는 plate 는 기존 동작을 유지하며, 병합 결과에 어느 소스를 썼는지 표시됩니다.
+- NGS verdict 를 함께 주면 통과하지 못한 well 의 변이를 제외합니다.
+- 스텝 3 이 입력 route 와 라운드 간 신호로 분리됐습니다.
+
+---
+
+## v0.13.14 (2026-07-01)
+
+### Kuro 구조 정확성 가드
+
+- 3D Cα 좌표는 불러온 구조가 참조 서열과 정확히 일치할 때(동일하거나 깨끗한 substring)만 structural diversity / Pareto-3D 선택에 사용됩니다. 근사이지만 정확하지 않은 구조는 잔기를 잘못 배치해 선택을 오염시키므로, 이런 경우 1D 서열 거리로 폴백하고 상태 표시를 남깁니다. 도메인 다양성(서열 기반)은 영향을 받지 않습니다.
+
+---
+
+## v0.13.13 (2026-07-01)
+
+### Kuro ESMFold 구조 예측
+
+- UniProt accession이 없을 때 3D 패널이 외부 서비스 동의 후 **ESMFold**(EMBL-EBI ESMAtlas)로 참조 서열에서 직접 구조를 예측합니다. 예측 구조는 참조 좌표계라서 dispersion이 accession 매핑 없이 동작하고 pLDDT/변이/도메인 오버레이가 그대로 유효합니다. Active/Binding site 오버레이는 UniProt accession이 필요하므로 ESMFold에서는 숨겨집니다. 공개 서버 한도는 400잔기이며 더 긴 단백질은 AlphaFold accession을 사용합니다.
+
+---
+
+## v0.13.12 (2026-07-01)
+
+### 가이드 온보딩
+
+- 새로 만든 프로젝트에는 프로젝트 내비게이션과 Kuro 영역을 설명하는 건너뛸 수 있는 spotlight 투어가 표시됩니다. Mame 안내는 처음 진입할 때 별도로 표시되며 기존 프로젝트를 방해하지 않습니다.
+- **모든 투어 건너뛰기**는 해당 프로젝트의 자동 투어를 비활성화합니다. `Esc`는 현재 투어만 닫습니다. **도움말 → 가이드 투어 보기**에서 현재 도구의 투어를 다시 실행할 수 있습니다.
+
+### 업데이트
+
+- 시작할 때 GitHub의 최신 공개 릴리스를 확인하여 새 버전이 있을 때만 권장 창을 표시합니다. **도움말 → 업데이트 확인**에서도 실제 버전을 확인하며 네트워크 실패가 앱 시작을 막지 않습니다.
+- **Export PNG**에 바이너리 파일 쓰기 권한을 추가하여 Tauri `fs.write_file` 거부를 해결하고 저장 성공·실패를 안내합니다. 3D 잔기 sphere는 일관된 불투명 스타일을 사용하여 3Dmol의 opacity 경고를 제거했습니다. 설명이 없는 제목 전용 다이얼로그는 해당 접근성 속성을 명시하고, 내장 favicon으로 기본 `/favicon.ico` 404를 방지합니다.
+
+### Kuro 참조 서열 도메인
+
+- **서열 스캔**은 외부 서비스 사용 동의 후 불러온 표적 단백질을 EMBL-EBI InterProScan으로 분석하고, 성공한 통합 도메인 주석을 서열 SHA-256 기준으로 캐시합니다.
+- 도메인 할당은 별도의 참조 좌표 주석을 우선 사용하고, 기존 UniProt accession 도메인은 AlphaFold 구조 색칠용으로 유지합니다. 참조 도메인과 서열 해시는 워크스페이스에 별도로 저장되며, 불러온 서열 해시가 달라지면 오래된 주석을 폐기합니다.
+
+---
+
+## v0.13.11 (2026-07-01)
+
+MAME Activity 단일 step 통합 + KURO 3D 뷰어 개선.
+
+### MAME
+
+- **Activity Data** 가 두 단계에서 한 단계로 통합되었습니다. Ingest, Merge, Export 가 한 화면에 순차로 쌓입니다. 기존 3.1 Ingest / 3.2 Merge & Export 분리는 사라졌습니다.
+
+### Kuro
+
+- 3D 구조 뷰어 배경이 기본 **흰색**으로 바뀌었고, Dark 토글이 새로고침 없이 즉시 적용됩니다.
+
+---
+
+## v0.13.10 (2026-07-01)
+
+KURO 3D 뷰어 수정.
+
+### Kuro
+
+- 3D 뷰어 **Surface** 버튼이 패키지 앱에서 정상 작동합니다. 분자 표면 계산 Web Worker가 앱 콘텐츠 보안 정책(CSP)에 막혀 있었습니다.
+- **Export PNG** 이 저장 다이얼로그를 열고 이미지 파일을 씁니다 — 이전에는 웹뷰 내 다운로드가 조용히 아무 것도 안 했습니다.
+
+---
+
+## v0.13.9 (2026-07-01)
+
+KURO 3D dispersion 안정성 + 릴리즈 무결성.
+
+### Kuro
+
+- Candidate 3D structure analysis 에서 구조는 로드됐는데 UniProt 서열 조회가 실패하면 모든 위치가 "N position(s) could not be mapped to the structure" 로 빠지던 문제를 수정. 이제 매핑 서열을 로드된 구조 자체에서 읽어, 구조만 있으면 dispersion 이 동작합니다.
+
+### Releases
+
+- 모든 GitHub 릴리즈에 `SHA256SUMS.txt` 를 첨부하고, 릴리즈 노트에 Windows SmartScreen "게시자 알 수 없음" 안내(추가 정보 → 실행), 다운로드 해시 검증법, macOS Gatekeeper 절차를 넣었습니다. 단, 코드 서명이 없어 SmartScreen 경고 자체는 계속 뜹니다 — 체크섬으로 무결성만 검증할 수 있습니다.
+
+---
+
+## v0.13.8 (2026-07-01)
+
+KURO 후보 3D 구조 분석 개선 + 패키지 사이드카 수정.
+
+### Kuro
+
+- Candidate 3D structure analysis 패널에 Structural Dispersion 카드·히스토그램·각 지표 인라인 `?` 도움말 추가, 백분위 `P1`/`P96` (P = percentile) 표기, 뷰어 아래 **Color legend** 로 각 색 의미 표시 + 항목 클릭으로 3D 레이어 on/off.
+- 마젠타 오버레이를 **Binding site** (UniProt `Binding site`: 리간드/보조인자/금속 결합 잔기)로 정정 — 이전 "Interface" 표기는 부정확했습니다.
+- 3D 뷰어를 분석 카드 바로 위로 재배치해 토글/색칠 변경이 즉시 보입니다.
+- 패키지 앱의 3D dispersion 이 `BLOSUM62` 데이터 파일 부재로 실패하던 문제 수정 — 서열 정렬기가 그 외부 Biopython 파일에 더 이상 의존하지 않습니다.
+
+---
+
+## v0.13.7 (2026-07-01)
+
+KURO 후보 3D 구조 분석.
+
+### Kuro
+
+- Output 단계에 접이식 **Candidate 3D structure analysis** 패널이 추가되었습니다. 열 때만 로드되는 3D 구조 뷰어로, 후보 위치를 단백질 구조 위에 표시하고 active-site·binding-site 잔기를 강조하며, 선택한 위치들이 무작위 동일 개수 집합 대비 얼마나 뭉쳤는지/퍼졌는지 보여줍니다.
+- 뷰어 아래 **Color legend** 에서 각 색의 의미를 설명하고, **각 항목을 클릭해 3D 레이어를 켜고 끌 수 있습니다** (variant / active-site / binding-site; backbone은 항상 표시). Structural Dispersion 카드·히스토그램·각 지표에 인라인 `?` 도움말이 붙었고, 백분위는 `1%ile` 대신 `P1`/`P96` (P = percentile) 로 표기됩니다.
+- 마젠타 오버레이는 UniProt `Binding site`(리간드/보조인자/금속 결합) 잔기이며 단백질-단백질 계면(interface)이 아닙니다. 이전 "Interface" 표기는 정정되었습니다.
+- 3D 뷰는 해석·QC 보조 지표이지 선정 필터가 아닙니다. 저신뢰(pLDDT 낮음)·disordered 영역 잔기라도 변이 대상에서 **자동 제외하지 않으며**, 무엇을 설계할지는 EVOLVEpro `y_pred` 랭킹이 결정합니다.
+- 구조 accession 이 없으면 PDB/CIF 파일을 업로드해 뷰어를 쓸 수 있습니다.
+
+---
 ## v0.13.6 (2026-06-12)
 
 MAME 샘플 데이터 점검 중 발견된 문제 수정.

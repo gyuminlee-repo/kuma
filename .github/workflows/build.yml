@@ -234,6 +234,10 @@ jobs:
           test -f "$KURO"
           test -f "$MAME"
 
+      - name: KURO frozen sidecar smoke (import crash / ping / load_fasta)
+        shell: bash
+        run: python python-core/scripts/frozen_kuro_smoke.py "src-tauri/binaries/kuro-sidecar-${{ matrix.target }}${{ matrix.sidecar-ext }}"
+
       - name: MAME frozen sidecar smoke (spawn / per-NB parallel demux)
         shell: bash
         run: python python-core/scripts/frozen_mame_smoke.py "src-tauri/binaries/mame-sidecar-${{ matrix.target }}${{ matrix.sidecar-ext }}"
@@ -300,6 +304,8 @@ jobs:
         run: npx tauri build ${{ matrix.platform == 'macos-latest' && '--bundles app' || '' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
       # --- Post-bundle sidecar hash injection (Shape A) ---
       # `sidecar:hash` (run earlier) records unsigned hashes. `tauri build`
@@ -322,6 +328,30 @@ jobs:
           test -n "$APP" || { echo "kuma.app not found"; exit 1; }
           codesign --verify --deep --strict --verbose=2 "$APP" || exit 1
           codesign --display --verbose=4 "$APP" 2>&1 | head -20
+
+      # --- macOS updater artifact ---
+      # macOS builds only the .app (DMG is regenerated in the post-bundle step),
+      # so tauri never emits the updater .app.tar.gz. Build and sign it here from
+      # the re-signed .app so the updater manifest has a darwin-aarch64 target.
+      - name: Build & sign macOS updater artifact (.app.tar.gz)
+        if: matrix.platform == 'macos-latest' && startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          APP=$(find src-tauri/target -maxdepth 6 -name "kuma.app" | head -1)
+          test -n "$APP" || { echo "kuma.app not found"; exit 1; }
+          OUT_DIR=$(dirname "$APP")
+          TARBALL="$OUT_DIR/kuma.app.tar.gz"
+          tar -C "$OUT_DIR" -czf "$TARBALL" "$(basename "$APP")"
+          echo "Created $TARBALL"
+          # Sign with the same minisign key the updater verifies against; writes
+          # <tarball>.sig next to it (base64 minisign signature).
+          npx tauri signer sign --private-key "$TAURI_SIGNING_PRIVATE_KEY" "$TARBALL"
+          test -f "$TARBALL.sig" || { echo "ERROR: .sig not produced"; exit 1; }
+          echo "Signed: $TARBALL.sig"
 
       # --- Rename artifacts to match 4-part GitHub tag ---
       # Tauri/Cargo enforce semver MAJOR.MINOR.PATCH, but the project tags
@@ -359,6 +389,21 @@ jobs:
         with:
           path: artifacts
 
+      # Unsigned installers: publish SHA256 checksums so users can verify integrity.
+      - name: Generate SHA256 checksums
+        shell: bash
+        run: |
+          : > SHA256SUMS.txt
+          while IFS= read -r -d '' f; do
+            sha256sum "$f" | awk -v b="$(basename "$f")" '{print $1"  "b}' >> SHA256SUMS.txt
+          done < <(find artifacts -type f \( -name '*.msi' -o -name '*.exe' -o -name '*.dmg' -o -name '*.deb' -o -name '*.AppImage' \) -print0)
+          sort -k2 SHA256SUMS.txt -o SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Generate updater manifest (latest.json)
+        shell: bash
+        run: node scripts/gen-latest-json.mjs "${GITHUB_REF_NAME}" artifacts latest.json
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         env:
@@ -366,9 +411,15 @@ jobs:
           FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
         with:
           draft: false
+          generate_release_notes: true
+          append_body: true
+          body_path: .github/release-footer.md
           files: |
+            SHA256SUMS.txt
+            latest.json
             artifacts/**/*.dmg
             artifacts/**/*.msi
             artifacts/**/*.exe
             artifacts/**/*.deb
             artifacts/**/*.AppImage
+            artifacts/**/*.app.tar.gz

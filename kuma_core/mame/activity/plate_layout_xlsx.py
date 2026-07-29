@@ -22,6 +22,25 @@ _WELL_RE = re.compile(r"^[A-H][0-9]{1,2}$")
 
 _WT_LITERAL = "WT"
 
+# Experimenter replicate suffix: '<sample name>_r<n>' (case-insensitive 'r').
+# The greedy name group keeps inner underscores intact, so only the trailing
+# suffix is removed ('A40P_E61Y_r1' -> 'A40P_E61Y').
+_REPLICATE_SUFFIX_RE = re.compile(r"^(?P<name>.+)_[rR](?P<rep>\d+)$")
+
+# Sample name reserved for empty wells; excluded from the parsed entries.
+_BLANK_LITERAL = "blank"
+
+
+def _strip_replicate_suffix(label: str) -> str:
+    """Remove a trailing '_r<n>' replicate suffix from *label*.
+
+    Labels without the suffix are returned unchanged.
+    """
+    match = _REPLICATE_SUFFIX_RE.match(label)
+    if match is None:
+        return label
+    return match.group("name")
+
 
 @dataclass(frozen=True)
 class PlateLayoutEntry:
@@ -51,18 +70,37 @@ def parse_plate_layout_xlsx(
     *,
     sheet_index: int = 0,
 ) -> list[PlateLayoutEntry]:
-    """Parse mutants-well position.xlsx into a list of PlateLayoutEntry.
+    """Parse a plate layout xlsx into a list of PlateLayoutEntry.
 
     Header detection:
-        Scans the first row for columns named 'Mutant' and 'Well Pos.'
-        (case-insensitive). Raises if either is missing.
+        Two column pairs are accepted, and each pair is atomic:
+          - 'Mutant' + 'Well Pos.'      (plate layout format, legacy)
+          - 'sample_name' + 'well'      (sample map format, the sheet the
+            MAME barcode package already generates for step 1/2)
+        Matching is case-insensitive. When a sheet carries both pairs the
+        plate layout pair wins and a warning is logged. Raises when neither
+        pair is complete.
+
+    Replicate suffix:
+        A trailing '_r<n>' on the label (the experimenter notation, 'r'
+        case-insensitive) marks a replicate of the same sample and is stripped
+        before every other rule applies: 'Q232A_r1' and 'Q232A_r2' both become
+        mutant 'Q232A' on their own wells. Only the trailing suffix is removed,
+        so multi-substitution labels keep their inner underscores
+        ('A40P_E61Y_r1' -> 'A40P_E61Y'). Labels without the suffix pass through
+        unchanged.
+
+    Blank rows:
+        Rows whose sample name (after suffix stripping) is 'blank'
+        (case-insensitive) mark empty wells and are omitted from the result.
 
     WT row detection:
-        Rows where the Mutant cell is 'WT' (case-insensitive) produce
-        PlateLayoutEntry with is_wt=True.
+        Rows whose label cell is 'WT' (case-insensitive, after suffix
+        stripping) produce PlateLayoutEntry with is_wt=True. Identical for
+        both formats.
 
     Well position validation:
-        Each Well Pos. value must match [A-H][0-9]{1,2}. Non-matching
+        Each well value must match [A-H][0-9]{1,2}. Non-matching
         values raise ValueError with the offending row information.
 
     Args:
@@ -73,8 +111,8 @@ def parse_plate_layout_xlsx(
         List of PlateLayoutEntry, one per data row.
 
     Raises:
-        ValueError: 'Mutant' or 'Well Pos.' column not found in header row.
-        ValueError: A Well Pos. cell does not match the expected pattern.
+        ValueError: Neither accepted column pair found in the header row.
+        ValueError: A well cell does not match the expected pattern.
         FileNotFoundError: *path* does not exist (raised by calamine).
     """
     resolved = Path(path)
@@ -99,21 +137,36 @@ def parse_plate_layout_xlsx(
     header_lower = [h.lower() for h in header]
 
     mutant_col: int | None = None
+    well_pos_col: int | None = None
+    sample_name_col: int | None = None
     well_col: int | None = None
     for idx, name in enumerate(header_lower):
         if name == "mutant":
             mutant_col = idx
         elif name in ("well pos.", "well pos", "well_pos", "wellpos"):
+            well_pos_col = idx
+        elif name in ("sample_name", "sample name", "samplename"):
+            sample_name_col = idx
+        elif name == "well":
             well_col = idx
 
-    if mutant_col is None:
+    # Column pairs are atomic: a 'Mutant' + 'well' mix does not form a layout.
+    if mutant_col is not None and well_pos_col is not None:
+        if sample_name_col is not None and well_col is not None:
+            logger.warning(
+                "parse_plate_layout_xlsx: header carries both the plate "
+                "layout pair ('Mutant', 'Well Pos.') and the sample map pair "
+                "('sample_name', 'well') in %s. Using the plate layout pair.",
+                resolved,
+            )
+        label_col, position_col = mutant_col, well_pos_col
+    elif sample_name_col is not None and well_col is not None:
+        label_col, position_col = sample_name_col, well_col
+    else:
         raise ValueError(
-            f"parse_plate_layout_xlsx: 'Mutant' column not found in header. "
-            f"Found columns: {header!r} in {resolved}"
-        )
-    if well_col is None:
-        raise ValueError(
-            f"parse_plate_layout_xlsx: 'Well Pos.' column not found in header. "
+            "parse_plate_layout_xlsx: no supported column pair found in "
+            "header. Expected either 'Mutant' + 'Well Pos.' (plate layout) "
+            "or 'sample_name' + 'well' (sample map). "
             f"Found columns: {header!r} in {resolved}"
         )
 
@@ -121,11 +174,11 @@ def parse_plate_layout_xlsx(
     entries: list[PlateLayoutEntry] = []
     for row_idx, row in enumerate(rows[1:], start=2):  # 1-based for error msg
         # Extend row if shorter than expected (calamine may omit trailing empty).
-        while len(row) <= max(mutant_col, well_col):
+        while len(row) <= max(label_col, position_col):
             row = list(row) + [""]
 
-        raw_mutant = str(row[mutant_col]).strip()
-        raw_well = str(row[well_col]).strip()
+        raw_mutant = str(row[label_col]).strip()
+        raw_well = str(row[position_col]).strip()
 
         if not raw_mutant and not raw_well:
             # Fully blank row — skip silently.
@@ -140,11 +193,17 @@ def parse_plate_layout_xlsx(
             )
 
         well_id = _normalise_well(raw_well)
-        is_wt = raw_mutant.upper() == _WT_LITERAL
+        sample_name = _strip_replicate_suffix(raw_mutant)
+
+        if sample_name.lower() == _BLANK_LITERAL:
+            # Empty well marker; carries no mutant.
+            continue
+
+        is_wt = sample_name.upper() == _WT_LITERAL
 
         entries.append(
             PlateLayoutEntry(
-                mutant=raw_mutant,
+                mutant=sample_name,
                 well_id=well_id,
                 is_wt=is_wt,
             )

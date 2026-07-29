@@ -1,12 +1,18 @@
 import type {
   AlternativesResult,
+  AnnotateDomainsResult,
   CancelDesignResult,
+  ComputeDispersionResult,
   DesignResult,
   EvolveproLoadResult,
   ExportMappingResult,
   ExportOrderResult,
   ExportResult,
+  FetchActiveSiteResult,
   FetchDomainsResult,
+  FetchInterfaceResiduesResult,
+  FetchPdbTextResult,
+  PredictStructureEsmfoldResult,
   JsonRpcError,
   ParseMutationsResult,
   PlateMapResult,
@@ -17,8 +23,6 @@ import type {
   RpcMethodResult,
   RunBenchmarkResult,
   SaveCustomPolymeraseResult,
-  SaveCustomEnzymeResult,
-  TypeIISEnzymeInfo,
   SearchUniprotResult,
   SequenceInfo,
   SdmPrimerResult,
@@ -283,6 +287,10 @@ function isSdmPrimerResult(value: unknown): value is SdmPrimerResult {
     isOptional(value.homodimer_dg_rev, isNumber) &&
     isOptional(value.synthesis_score_fwd, isNumber) &&
     isOptional(value.synthesis_score_rev, isNumber) &&
+    isOptionalNullable(value.recommended_ta, isNumber) &&
+    isOptional(value.ta_mode, isString) &&
+    isOptional(value.ta_detail, isString) &&
+    isOptionalNullable(value.ta_touchdown, isString) &&
     isStringArray(value.warnings)
   );
 }
@@ -317,6 +325,19 @@ function isFetchDomainsResult(value: unknown): value is FetchDomainsResult {
     isOptional(value.error_msg, isString)
   );
 }
+function isAnnotateDomainsResult(value: unknown): value is AnnotateDomainsResult {
+  return (
+    isRecord(value) &&
+    isArrayOf(value.domains, isDomainInfo) &&
+    (value.source === "interproscan" || value.source === "error") &&
+    value.coordinate_frame === "reference" &&
+    isNumber(value.protein_length) &&
+    isString(value.ref_hash) &&
+    isBoolean(value.cache_hit) &&
+    isOptional(value.error_msg, isString)
+  );
+}
+
 
 function isDomainStat(value: unknown): boolean {
   return (
@@ -462,28 +483,6 @@ function isSaveCustomPolymeraseResult(value: unknown): value is SaveCustomPolyme
   );
 }
 
-
-function isSaveCustomEnzymeResult(value: unknown): value is SaveCustomEnzymeResult {
-  return (
-    isRecord(value) &&
-    isBoolean(value.success) &&
-    isString(value.name)
-  );
-}
-
-function isTypeIISEnzymeInfo(value: unknown): value is TypeIISEnzymeInfo {
-  return (
-    isRecord(value) &&
-    isString(value.name) &&
-    isStringArray(value.aliases) &&
-    isString(value.recognition) &&
-    isNumberArray(value.cut_offset) &&
-    (value.cut_offset as number[]).length === 2 &&
-    isNumber(value.overhang_len) &&
-    isBoolean(value.has_fidelity)
-  );
-}
-
 function isWorkspaceInputs(value: unknown): boolean {
   return (
     isRecord(value) &&
@@ -514,6 +513,8 @@ function isWorkspaceSettings(value: unknown): boolean {
     isOptional(value.fillOnFailure, isBoolean) &&
     isOptional(value.uniprotAccession, isString) &&
     isOptional(value.domains, (item) => isArrayOf(item, isDomainInfo)) &&
+    isOptional(value.refDomains, (item) => isArrayOf(item, isDomainInfo)) &&
+    isOptional(value.refDomainHash, isString) &&
     isOptional(value.domainDiversityEnabled, isBoolean) &&
     isOptional(value.domainStrategy, isDomainStrategy) &&
     isOptional(value.domainOverlapPolicy, isDomainOverlapPolicy) &&
@@ -536,7 +537,9 @@ function isWorkspaceSettings(value: unknown): boolean {
     isOptional(value.positionDiversityEnabled, isBoolean) &&
     isOptional(value.maxPerPosition, isNumber) &&
     isOptional(value.evolveproRound, isNumber) &&
-    isOptional(value.roundSize, isNumber)
+    isOptional(value.roundSize, isNumber) &&
+    isOptional(value.structuralDiversityEnabled, isBoolean) &&
+    isOptional(value.structuralKappa, isNumber)
   );
 }
 
@@ -678,7 +681,9 @@ function isUniprotCandidate(value: unknown): boolean {
     isString(value.organism) &&
     isNumber(value.length) &&
     isNumber(value.identity) &&
-    isOptional(value.has_structure, isBoolean)
+    isOptional(value.has_structure, isBoolean) &&
+    isOptionalNullable(value.subunit, isString) &&
+    isOptional(value.oligomeric, isString)
   );
 }
 
@@ -708,6 +713,81 @@ function isStructureResult(value: unknown): value is StructureResult {
   );
 }
 
+function isFetchInterfaceResiduesResult(value: unknown): value is FetchInterfaceResiduesResult {
+  return (
+    isRecord(value) &&
+    Array.isArray(value.interface_positions) &&
+    isString(value.source) &&
+    isOptional(value.pdb_id, isString) &&
+    isOptional(value.error, isString) &&
+    isOptional(value.note, isString)
+  );
+}
+function isFetchPdbTextResult(value: unknown): value is FetchPdbTextResult {
+  return (
+    isRecord(value) &&
+    isBoolean(value.success) &&
+    isString(value.accession) &&
+    (value.pdb_text === null || isString(value.pdb_text)) &&
+    isString(value.source)
+  );
+}
+
+function isPredictStructureEsmfoldResult(value: unknown): value is PredictStructureEsmfoldResult {
+  return (
+    isRecord(value) &&
+    isBoolean(value.success) &&
+    (value.source === "esmfold" || value.source === "esmfold_cache" || value.source === "error") &&
+    (value.pdb_text === null || isString(value.pdb_text)) &&
+    isNumber(value.plddt_mean) &&
+    isNumber(value.residue_count) &&
+    value.coordinate_frame === "reference" &&
+    isString(value.seq_hash) &&
+    isBoolean(value.cache_hit) &&
+    isOptional(value.error_msg, isString)
+  );
+}
+
+function isFetchActiveSiteResult(value: unknown): value is FetchActiveSiteResult {
+  return (
+    isRecord(value) &&
+    isString(value.accession) &&
+    isNumberArray(value.active_site_positions) &&
+    isNumberArray(value.binding_positions) &&
+    isString(value.source) &&
+    isBoolean(value.has_annotation)
+  );
+}
+function isNullHistogram(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    isNumber(value.min) &&
+    isNumber(value.max) &&
+    isNumberArray(value.counts)
+  );
+}
+
+
+function isComputeDispersionResult(value: unknown): value is ComputeDispersionResult {
+  return (
+    isRecord(value) &&
+    isString(value.accession) &&
+    isNumberArray(value.mapped) &&
+    isNumberArray(value.dropped) &&
+    isNumber(value.n_positions) &&
+    isNumber(value.mean_pairwise) &&
+    isNumber(value.null_mean) &&
+    isNumber(value.null_p05) &&
+    isNumber(value.null_p95) &&
+    isNumber(value.percentile) &&
+    isString(value.klass) &&
+    isNumber(value.n_trials) &&
+    (value.seed === null || value.seed === undefined || isNumber(value.seed)) &&
+    isNullHistogram(value.null_hist)
+  );
+}
+
+
 function isRunBenchmarkResult(value: unknown): value is RunBenchmarkResult {
   return (
     isRecord(value) &&
@@ -730,10 +810,6 @@ const rpcResultValidators = {
     isPolymeraseProfile(value),
   save_custom_polymerase: (value): value is RpcMethodResult<"save_custom_polymerase"> =>
     isSaveCustomPolymeraseResult(value),
-  list_typeiis_enzymes: (value): value is RpcMethodResult<"list_typeiis_enzymes"> =>
-    isArrayOf(value, isTypeIISEnzymeInfo),
-  save_custom_enzyme: (value): value is RpcMethodResult<"save_custom_enzyme"> =>
-    isSaveCustomEnzymeResult(value),
   list_organisms: (value): value is RpcMethodResult<"list_organisms"> =>
     isArrayOf(value, isOrganismSummary),
   load_fasta: (value): value is RpcMethodResult<"load_fasta"> =>
@@ -791,12 +867,16 @@ const rpcResultValidators = {
     isWorkspaceData(value),
   fetch_domains: (value): value is RpcMethodResult<"fetch_domains"> =>
     isFetchDomainsResult(value),
+  annotate_domains_by_sequence: (value): value is RpcMethodResult<"annotate_domains_by_sequence"> =>
+    isAnnotateDomainsResult(value),
   search_uniprot: (value): value is RpcMethodResult<"search_uniprot"> =>
     isSearchUniprotResult(value),
   check_structures_available: (value): value is RpcMethodResult<"check_structures_available"> =>
     isStructureAvailabilityResult(value),
   fetch_structure: (value): value is RpcMethodResult<"fetch_structure"> =>
     isStructureResult(value),
+  fetch_interface_residues: (value): value is RpcMethodResult<"fetch_interface_residues"> =>
+    isFetchInterfaceResiduesResult(value),
   run_benchmark: (value): value is RpcMethodResult<"run_benchmark"> =>
     isRunBenchmarkResult(value),
   cancel_design: (value): value is RpcMethodResult<"cancel_design"> =>
@@ -809,6 +889,15 @@ const rpcResultValidators = {
   preview_evolvepro_source: (value): value is RpcMethodResult<"preview_evolvepro_source"> =>
     typeof value === "object" && value !== null &&
     "sheets" in value && "headers" in value && "rows" in value,
+  // G001: 3D Analysis panel RPCs
+  fetch_pdb_text: (value): value is RpcMethodResult<"fetch_pdb_text"> =>
+    isFetchPdbTextResult(value),
+  fetch_active_site_residues: (value): value is RpcMethodResult<"fetch_active_site_residues"> =>
+    isFetchActiveSiteResult(value),
+  compute_dispersion: (value): value is RpcMethodResult<"compute_dispersion"> =>
+    isComputeDispersionResult(value),
+  predict_structure_esmfold: (value): value is RpcMethodResult<"predict_structure_esmfold"> =>
+    isPredictStructureEsmfoldResult(value),
 } satisfies { [K in RpcMethod]: (value: unknown) => value is RpcMethodResult<K> };
 
 export function getRpcResultValidator<K extends RpcMethod>(

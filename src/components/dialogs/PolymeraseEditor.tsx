@@ -36,6 +36,8 @@ const DEFAULT_PROFILE: PolymeraseProfile = {
   min_3prime_dist: 0,
 };
 
+const NEB_TM_PROFILES = ["Q5", "Q5 SDM", "Phusion", "Taq"];
+
 interface PolymeraseEditorProps {
   open: boolean;
   profile?: PolymeraseProfile | null;
@@ -107,6 +109,7 @@ export function PolymeraseEditor({
   const [form, setForm] = useState<PolymeraseProfile>(profile ?? DEFAULT_PROFILE);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const isNebTmProfile = NEB_TM_PROFILES.includes(form.name);
 
   useEffect(() => {
     setForm(profile ?? DEFAULT_PROFILE);
@@ -180,6 +183,11 @@ export function PolymeraseEditor({
               <option value="schildkraut" title={t("polymeraseEditor.saltOption_schildkraut_title")}>{t("polymeraseEditor.saltOption_schildkraut")}</option>
             </select>
           </div>
+          {isNebTmProfile && (
+            <div className="col-span-2 rounded-2xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+              {t("polymeraseEditor.nebTmNote")}
+            </div>
+          )}
           <div className="rounded-2xl border border-border bg-card p-4">
             <label className="text-xs text-muted-foreground">{t("polymeraseEditor.optTmLabel")}</label>
             <Input type="number" step="0.1" {...num("opt_tm")} />

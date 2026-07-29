@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import sys
 import threading
@@ -16,6 +17,8 @@ from sidecar_mame.core import (
     _send,
     logger,
 )
+
+from sidecar_mame.core import reset_state as reset_core_state
 from sidecar_mame.handlers.analyze import (
     handle_analyze,
     handle_validate_inputs,
@@ -39,6 +42,7 @@ from sidecar_mame.handlers.activity import (
     handle_activity_upload,
     handle_build_evolvepro_input,
     handle_merge_for_evolvepro,
+    reset_activity_state,
 )
 from sidecar_mame.handlers.barcode_package import handle_generate_mame_package
 from sidecar_mame.handlers.build_well_layout import handle_build_well_layout
@@ -62,6 +66,12 @@ def _handle_health_info(_params: dict) -> dict:
         "py_version": _sys.version.split()[0],
     }
 
+def _handle_reset_state(_params: dict) -> dict:
+    """Clear cached MAME sidecar state when switching projects or clearing all."""
+    reset_core_state()
+    reset_activity_state()
+    return {"ok": True}
+
 
 # Phase A handler registry.
 # ``translate`` is deferred to Phase B per the reconciled scope.
@@ -80,6 +90,7 @@ _METHODS = {
     "read_kuma_meta": handle_read_kuma_meta,
     "export_run_report": handle_export_run_report,
     "cancel_analyze": lambda _: {"cancelled": True},
+    "reset_state": _handle_reset_state,
     # A1/A3: raw-run demux + quality filter (R6)
     "demux_and_filter": handle_demux_and_filter,
     # A8: run health panel
@@ -106,7 +117,7 @@ _METHODS = {
     "mame.build_well_layout": handle_build_well_layout,
     # v0.3 advisory: read-only classify() call (partial slice, plumbing pending)
     "strategy.classify_round": handle_classify_round,
-    # §22 graceful shutdown — ack immediately; main() breaks on this method
+    # §22 graceful shutdown — ack immediately; main() exits on this method
     "shutdown": lambda _: {"ok": True, "message": "shutdown_acked"},
 }
 
@@ -178,6 +189,19 @@ def dispatch(request: dict) -> None:
         return
 
     _dispatch_handler(req_id, method, handler, params)
+
+
+def _exit_after_shutdown() -> None:
+    logging.shutdown()
+    try:
+        sys.stdout.flush()
+    except BrokenPipeError:
+        pass
+    try:
+        sys.stderr.flush()
+    except BrokenPipeError:
+        pass
+    os._exit(0)
 
 
 def _start_parent_watchdog() -> None:
@@ -309,7 +333,7 @@ def main(emit_ready: bool = True) -> None:
         if request.get("method") == "shutdown":
             dispatch(request)
             logger.info("MAME sidecar shutdown requested, exiting cleanly")
-            break
+            _exit_after_shutdown()
 
         dispatch(request)
 

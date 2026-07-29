@@ -87,6 +87,7 @@ from sidecar_mame.core import (
     _validate_dirpath,
 )
 from kuma_core.mame.ingest.consensus_metadata import (
+    BASIS_COVERED,
     ConsensusMetadata,
     format_consensus_fasta_record,
 )
@@ -259,6 +260,7 @@ def _run_consensus_on_dir(
                     low_depth_positions=result.n_low_depth_positions,
                     consensus_n_fraction=result.consensus_n_fraction,
                     low_quality_bases=result.n_low_quality_bases,
+                    consensus_n_fraction_basis=BASIS_COVERED,
                 ),
             ),
         )

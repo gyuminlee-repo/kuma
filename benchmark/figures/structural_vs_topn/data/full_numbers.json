@@ -1,0 +1,110 @@
+{
+ "n_assays": 18,
+ "struct_vs_topn": [
+  9,
+  5,
+  4
+ ],
+ "blend_vs_topn": [
+  8,
+  4,
+  6
+ ],
+ "struct_vs_ucb": [
+  10,
+  3,
+  5
+ ],
+ "per_assay": {
+  "F7YBW8 Ding": {
+   "vs_topn": "AGAINST",
+   "vs_ucb": "AGAINST",
+   "cliffs_topn": -1.0
+  },
+  "YAP1 Araya": {
+   "vs_topn": "AGAINST/REFUTE-STRONG",
+   "vs_ucb": "AGAINST/REFUTE-STRONG",
+   "cliffs_topn": -1.0
+  },
+  "SPG1 Olson": {
+   "vs_topn": "AGAINST/REFUTE-STRONG",
+   "vs_ucb": "AGAINST/REFUTE",
+   "cliffs_topn": -0.96
+  },
+  "HIS7 Pokusa": {
+   "vs_topn": "AGAINST/REFUTE",
+   "vs_ucb": "FOR-QUALIFIED",
+   "cliffs_topn": -0.8
+  },
+  "RASK Weng\u00b7bindin": {
+   "vs_topn": "INCONCLUSIVE",
+   "vs_ucb": "AGAINST/REFUTE-STRONG",
+   "cliffs_topn": -0.8
+  },
+  "GRB2 Faure": {
+   "vs_topn": "FOR-QUALIFIED",
+   "vs_ucb": "FOR-QUALIFIED",
+   "cliffs_topn": -0.52
+  },
+  "RASK Weng\u00b7abunda": {
+   "vs_topn": "MIXED",
+   "vs_ucb": "AGAINST/REFUTE",
+   "cliffs_topn": -0.48
+  },
+  "GCN4 Stalle": {
+   "vs_topn": "INCONCLUSIVE",
+   "vs_ucb": "INCONCLUSIVE",
+   "cliffs_topn": -0.08
+  },
+  "PSAE Tsuboy\u00b71PSE": {
+   "vs_topn": "INCONCLUSIVE",
+   "vs_ucb": "INCONCLUSIVE",
+   "cliffs_topn": 0.0
+  },
+  "SPG1 Wu": {
+   "vs_topn": "INCONCLUSIVE",
+   "vs_ucb": "INCONCLUSIVE",
+   "cliffs_topn": 0.1568
+  },
+  "PABP Melame": {
+   "vs_topn": "FOR-QUALIFIED",
+   "vs_ucb": "FOR-QUALIFIED",
+   "cliffs_topn": 0.28
+  },
+  "D7PM05 Somerm": {
+   "vs_topn": "FOR-QUALIFIED",
+   "vs_ucb": "FOR-STRONG",
+   "cliffs_topn": 0.6
+  },
+  "DLG4 Faure": {
+   "vs_topn": "FOR-QUALIFIED",
+   "vs_ucb": "FOR-QUALIFIED",
+   "cliffs_topn": 0.68
+  },
+  "F7YBW8 Aakre": {
+   "vs_topn": "FOR-STRONG",
+   "vs_ucb": "FOR-QUALIFIED",
+   "cliffs_topn": 0.7604
+  },
+  "Q8WTC7 Somerm": {
+   "vs_topn": "FOR-STRONG",
+   "vs_ucb": "FOR-STRONG",
+   "cliffs_topn": 0.78
+  },
+  "CAPSD Sinai": {
+   "vs_topn": "FOR-STRONG",
+   "vs_ucb": "FOR-STRONG",
+   "cliffs_topn": 0.88
+  },
+  "A4 Seuma": {
+   "vs_topn": "FOR-STRONG",
+   "vs_ucb": "FOR-STRONG",
+   "cliffs_topn": 0.98
+  },
+  "GFP Sarkis": {
+   "vs_topn": "FOR-STRONG",
+   "vs_ucb": "FOR-STRONG",
+   "cliffs_topn": 0.98
+  }
+ }
+}

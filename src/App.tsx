@@ -107,7 +107,7 @@ export function App() {
     setScreen(prevScreen === "workspace" || prevScreen === "home" ? prevScreen : "home");
   }
 
-  async function handleOpenWorkspace(path: string, scratch: boolean) {
+  async function handleOpenWorkspace(path: string, scratch: boolean, newlyCreated = false) {
     if (scratch) {
       setProject({
         path,
@@ -122,6 +122,7 @@ export function App() {
       path,
       name: stem(path),
       scratch: false,
+      newlyCreated,
     };
 
     try {
@@ -161,7 +162,7 @@ export function App() {
     return (
       <>
         <Home
-          onOpenProject={(path) => void handleOpenWorkspace(path, false)}
+          onOpenProject={(path, options) => void handleOpenWorkspace(path, false, options?.newlyCreated)}
           onOpenScratch={(path) => void handleOpenWorkspace(path, true)}
           onOpenSettings={() => setScreen("onboarding")}
         />

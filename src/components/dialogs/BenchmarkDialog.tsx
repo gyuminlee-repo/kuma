@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
+import { resolveSelectionDomains } from "@/store/slices/inputSlice.helpers";
 import { useAppStore } from "../../store/appStore";
 import type { BenchmarkResult } from "../../types/models";
 import {
@@ -195,7 +196,7 @@ export function BenchmarkDialog() {
       results: s.benchmarkResults,
       yPredMap: s.yPredMap,
       maxPrimers: s.maxPrimers,
-      domains: s.domains,
+      refDomains: s.refDomains,
       disabledDomains: s.disabledDomains,
       topPercentile: s.benchmarkTopPercentile,
       randomTrials: s.benchmarkRandomTrials,
@@ -220,10 +221,11 @@ export function BenchmarkDialog() {
   const results = data.results;
   const extents = metricExtents(results);
   const baselineResult = results[normalizedBaseline] ?? Object.values(results)[0];
-  const activeDomains = data.domains.filter(
+  const selectionDomains = resolveSelectionDomains(data.refDomains);
+  const activeDomains = selectionDomains.filter(
     (domain) => !data.disabledDomains.includes(`${domain.name}-${domain.start}`),
   );
-  const excludedDomains = data.domains.filter(
+  const excludedDomains = selectionDomains.filter(
     (domain) => data.disabledDomains.includes(`${domain.name}-${domain.start}`),
   );
   const landscape = Object.entries(data.yPredMap)

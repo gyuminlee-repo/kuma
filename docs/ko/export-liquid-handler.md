@@ -25,6 +25,10 @@ Echo 525 (acoustic) 또는 JANUS (tip-based) 액체 핸들러용 매핑 파일.
 
 Echo 525는 1회 acoustic transfer당 최대 500 nL. 초과 시 동일 목적지 웰에 여러 행으로 자동 분할 (low-repeat 방식). 1000 nL → 500 nL 2행; 600 nL → 500 + 100.
 
+## 공유 Reverse 프라이머 소요량
+
+같은 서열의 reverse 프라이머를 쓰는 변이들은 소스 플레이트에서 웰 하나를 공유한다. 사용자는 그 웰 하나만 채우면 되고, 로봇이 반응 수만큼 반복 흡입한다. 대신 필요한 양은 1회분이 아니라 `공유 횟수 × 회당 transfer 부피` 이다. `.xlsx` 의 `layout` 시트 하단 **Reverse primer usage** 표에 소스 웰별 공유 횟수와 총 소요량이 나온다. 표의 총량에는 기기 dead volume 이 빠져 있으므로, 실제로 채울 양은 총량에 사용 labware 의 dead volume 을 더한 값이다. `.csv` 는 기기 파서 스키마가 고정이라 이 정보를 담지 않는다.
+
 ## 기본 파일명
 
 `YYMMDD_<gene>_Echo_<Nmut>.xlsx` — 토큰 cascade는 [오더 내보내기](export-orders.md) 참고.

@@ -48,6 +48,14 @@
     "checking": "확인 중...",
     "upToDate": "최신 버전입니다 (v{{version}}).",
     "updateAvailable": "업데이트 가능: v{{current}} -> v{{next}}",
+    "updateRecommendation": "GitHub에 새 Kuma 릴리스가 있습니다. 플랫폼에 맞는 설치 파일을 다운로드하기 전에 릴리스 노트를 확인하세요.",
+    "viewRelease": "릴리스 보기",
+    "updateNow": "지금 업데이트",
+    "updateDownloading": "다운로드 중…",
+    "updateDownloadingPct": "다운로드 중… {{pct}}%",
+    "updateInstalling": "설치 중…",
+    "updateRelaunching": "재시작 중…",
+    "updateInstallFailed": "업데이트 실패: {{message}}",
     "downloadAndInstall": "다운로드 및 설치",
     "installing": "설치 중...",
     "later": "나중에",
@@ -275,7 +283,8 @@
       "generatedFiles": "생성된 파일",
       "cdsFasta": "CDS 서열",
       "cdsFastaPlaceholder": ".fa / .fasta / .gb / .gbk / .dna 파일 경로",
-      "cdsFastaHelper": "기준 CDS 서열 파일 (FASTA, GenBank, SnapGene .dna 지원). gene_start / gene_end는 이 서열 내 0-based 인덱스입니다.",
+      "cdsFastaHelper": "유전자 양쪽에 flanking 서열이 포함된 plasmid 또는 construct map(GenBank 또는 SnapGene .dna)이어야 합니다. MAME 프라이머는 유전자 바깥쪽에서 결합하므로 각 방향에 최소 flank_max(기본값 400 bp)만큼의 template이 필요합니다. CDS만 있는 FASTA는 작동하지 않습니다. gene_start / gene_end는 이 서열 내 0-based 인덱스입니다.",
+      "cdsFastaLoadError": "이 파일에서 유전자 주석을 읽지 못했습니다: {{error}}",
       "barcodeSeedsXlsx": "바코드 시드 xlsx",
       "geneName": "유전자 이름",
       "polymerase": "중합효소",
@@ -316,12 +325,27 @@
       "flankMinHelp": "barcode primer 탐색용 CDS 양옆 flank 최소 길이(nt). 기본 100.",
       "flankMaxHelp": "flank 최대 길이(nt). 클수록 후보는 많아지나 탐색이 느려짐.",
       "bindingMinLenHelp": "primer binding 최소 길이(nt). 안정적 PCR은 18-22 권장.",
-      "bindingMaxLenHelp": "primer binding 최대 길이(nt). 35 초과 시 secondary structure 위험 증가."
+      "bindingMaxLenHelp": "primer binding 최대 길이(nt). 35 초과 시 secondary structure 위험 증가.",
+      "flankWarningUpstream": "선형 template에서는 프라이머 설계가 실패할 수 있습니다: gene_start 앞쪽에 최소 {{needed}} bp가 필요하지만 {{available}} bp만 확보되어 있습니다 ({{shortfall}} bp 부족).",
+      "flankWarningDownstream": "선형 template에서는 프라이머 설계가 실패할 수 있습니다: gene_end 뒤쪽에 최소 {{needed}} bp가 필요하지만 {{available}} bp만 확보되어 있습니다 ({{shortfall}} bp 부족).",
+      "cdsTooltipLabel": "라벨: {{label}}",
+      "cdsTooltipRange": "범위: {{start}}-{{end}}",
+      "cdsTooltipLength": "길이: {{length}} aa",
+      "cdsTooltipSource": "출처: {{source}}",
+      "geneStartHelper": "레퍼런스 기준 gene 시작 위치. 0-based, 시작 포함.",
+      "geneEndHelper": "레퍼런스 기준 gene 끝 위치. 0-based, 끝 제외.",
+      "generatedFileLabels": {
+        "barcodes": "바코드 표 (xlsx)",
+        "amplicon": "Amplicon 레퍼런스 (FASTA)",
+        "sampleMapTemplate": "Sample map 템플릿 (xlsx)",
+        "contextJson": "Run context (JSON)"
+      },
+      "openFolderError": "폴더를 열지 못했습니다."
     },
     "activity": {
       "ingest": {
-        "contextTitle": "활성 데이터 — 수집",
-        "contextSubtitle": "이번 라운드의 wet-lab 활성 측정값을 업로드합니다.",
+        "contextTitle": "활성 데이터",
+        "contextSubtitle": "활성 측정값을 업로드하고 verdict과 병합해 다음 라운드 EVOLVEpro 입력을 내보냅니다.",
         "drawerLeft": "활성",
         "drawerLeftDesc": "측정값이 있는 well",
         "drawerCenter": "활성 로그",
@@ -343,6 +367,15 @@
         "helpText": "여기 표시된 well은 activity fold-change normalization의 wild-type baseline으로 사용됩니다.",
         "suggestButton": "Control wells에서 가져오기",
         "alreadySetTooltip": "WT wells가 이미 설정됨"
+      },
+      "route": {
+        "heading": "EVOLVEpro 입력 경로",
+        "ariaLabel": "EVOLVEpro 입력 생성 방식을 선택하세요",
+        "genotypeLabel": "Activity + NGS genotype",
+        "genotypeDesc": "long-format well activity를 업로드해 이번 라운드 NGS verdict과 병합한 뒤 내보냅니다.",
+        "plateLayoutLabel": "Plate layout + GC data",
+        "plateLayoutDesc": "plate layout과 GC data xlsx 파일로 곧바로 생성합니다. NGS genotype이 필요 없습니다.",
+        "completeCurrentRoute": "선택한 Activity 경로를 완료하세요"
       },
       "mergeExport": {
         "contextTitle": "활성 데이터 — 병합 및 내보내기",
@@ -385,20 +418,20 @@
         "menuLegacy": "Legacy 출력 (CSV)",
         "menuEvolvepro": "EVOLVEpro v0.3 format (WT 정규화 포함)",
         "desc": "업로드된 활성 데이터를 라운드 유전자형과 결합하고 야생형으로 정규화합니다.",
-        "heading": "활성 데이터를 유전자형과 병합"
+        "heading": "활성 데이터를 유전자형과 병합",
+        "evolveproDesc": "권장: WT 대비 replicate 정규화 + 레이블 교체(label-swap) 가드를 적용합니다.",
+        "legacyDesc": "WT 정규화나 레이블 교체 검사가 없는 legacy CSV 출력입니다."
       },
-      "tabExport": "3. 내보내기",
-      "tabIngest": "1. 수집",
-      "tabMerge": "2. 병합",
-      "subtitle": "Phase 1 바코드 설정 및 Phase 2 분석 이후 (보통 며칠~수 주 후) 습식 실험 활성 측정이 완료되면 이 단계에 진입합니다. 측정값을 로드하고 유전자형과 병합한 후 EVOLVEpro 훈련 입력을 내보냅니다.",
-      "title": "활성 데이터"
+      "sectionIngest": "활성 데이터 업로드",
+      "sectionMerge": "유전자형과 병합",
+      "sectionExport": "EVOLVEpro 입력 내보내기"
     },
     "buildEvolvepro": {
       "title": "EVOLVEpro 입력 생성",
-      "subtitle": "플레이트 레이아웃, GC 데이터, Agilent 반복 리포트, 이전 EVOLVEpro 파일을 하나의 EVOLVEpro 입력 xlsx로 결합합니다.",
+      "subtitle": "한 라운드의 activity 측정값을 하나의 EVOLVEpro 입력 xlsx로 결합합니다.",
       "inputFiles": "입력 파일",
       "layoutXlsx": "플레이트 레이아웃 xlsx",
-      "layoutXlsxHelper": "Mutant to well 위치 매핑 (Mutant, Well Pos. 열).",
+      "layoutXlsxHelper": "Mutant to well 위치 매핑. plate layout 형식 (Mutant, Well Pos. 열) 또는 step 1에서 만든 sample map (sample_name, well 열) 둘 다 받습니다.",
       "gcDataXlsx": "GC 데이터 xlsx",
       "gcDataXlsxHelper": "well별 사전 정규화된 relative activity (Sample Name, Area 열).",
       "repBatchXlsx": "Agilent 반복 리포트 xlsx",
@@ -408,12 +441,15 @@
       "outputXlsx": "출력 EVOLVEpro xlsx",
       "outputXlsxHelper": "병합된 EVOLVEpro 입력의 저장 파일.",
       "requiredStateLabel": "필수",
+      "optionalLabel": "선택",
+      "provisionalLabel": "잠정 (레이아웃 + GC만; 확증 없음)",
+      "confirmedLabel": "확증 (rep-batch replicate 병합)",
       "chooseOutput": "출력 파일 선택",
       "noOutputSelected": "출력 파일 미선택",
       "build": "EVOLVEpro 입력 생성",
       "building": "생성 중...",
       "resultTitle": "생성 결과",
-      "emptyState": "네 개의 입력 파일과 출력 경로를 선택한 뒤 EVOLVEpro 입력을 생성하세요.",
+      "emptyState": "선택한 소스에 필요한 입력 파일과 출력 경로를 지정한 뒤 EVOLVEpro 입력을 생성하세요.",
       "nVariants": "기록된 variant",
       "nAuthoritative": "반복 리포트 기준",
       "nFallbackOnly": "GC 데이터 단독",
@@ -432,7 +468,34 @@
       "toastSuccess": "EVOLVEpro 입력 생성 완료",
       "toastSuccessDesc": "{{count}}개 variant를 기록했습니다.",
       "toastError": "EVOLVEpro 입력 생성 실패",
-      "openFolder": "출력 폴더 열기"
+      "openFolder": "출력 폴더 열기",
+      "routeNote": "이 경로는 xlsx 파일을 직접 읽으며, genotype 연동 경로의 activity 업로드를 사용하지 않습니다.",
+      "sourceModeLabel": "Activity 소스",
+      "sourceModeRank": "GC data 시트",
+      "sourceModeReports": "Agilent raw 리포트",
+      "sourceModeRankHelper": "well별로 사전 정규화된 GC data를 플레이트 레이아웃으로 variant에 매핑합니다.",
+      "sourceModeReportsHelper": "Agilent FID1B raw 리포트에서 각 리포트의 WT 블록 대비 fold-change를 직접 계산합니다.",
+      "round1SourceLabel": "Round-1 소스",
+      "round1SourcePrev": "이전 EVOLVEpro",
+      "round1SourceRaw": "GC-FID raw 리포트",
+      "round1SourcePrevHelper": "이전 EVOLVEpro 파일(Variant, activity)을 round-1 baseline 전체로 사용합니다.",
+      "round1SourceRawHelper": "well 이름이 붙은 GC-FID raw 리포트를 사용하며, 플레이트 레이아웃이 well을 variant로 매핑합니다.",
+      "round1EvolveproXlsx": "Round-1 EVOLVEpro xlsx",
+      "round1EvolveproXlsxHelper": "이전 라운드 EVOLVEpro xlsx (Variant, activity). 재측정된 variant는 그 평균으로 대체됩니다.",
+      "round1ReportXlsx": "Round-1 리포트 xlsx (GC-FID raw)",
+      "round1ReportXlsxHelper": "Agilent FID1B raw 리포트. sample name이 well 위치(A1..H12)이며 WT 블록을 포함합니다.",
+      "gcExportXlsx": "상대활성 export xlsx (GC data 형태)",
+      "gcExportXlsxHelper": "선택 검토용 산출물. round-1 well별 상대활성(area / WT 평균 area)을 Sample Name, Area 열로 저장하며 GC data 시트와 같은 형태입니다.",
+      "remeasureReportXlsx": "재측정 리포트 xlsx (variant 라벨)",
+      "remeasureReportXlsxHelper": "Agilent FID1B raw 리포트. sample name이 variant 라벨(예: V5F 또는 5F)이며 반복 행이 replicate입니다.",
+      "verdictXlsx": "NGS verdict xlsx",
+      "verdictXlsxHelper": "Analyze Excel 리포트(Final 시트: well_id + verdict). well이 PASS가 아닌 variant는 제외됩니다. 생략하면 NGS 게이팅을 건너뜁니다.",
+      "layoutXlsxOptionalHelper": "NGS verdict 게이팅에서 variant를 well에 매핑할 때만 사용합니다.",
+      "optionalStateLabel": "선택",
+      "nNgsExcluded": "NGS 제외",
+      "missingInputs": "아직 필요한 파일",
+      "restoredNotice": "이 장치에 저장된 경로를 복구했습니다. 다른 프로젝트의 파일이면 초기화하세요.",
+      "clearRestored": "복구된 EVOLVEpro 입력 초기화"
     },
     "runHealth": {
       "panelAriaLabel": "실행 상태 패널",
@@ -446,6 +509,8 @@
       "bimodalBadge": "이봉 분포",
       "noDistributionData": "분포 데이터 없음.",
       "noCrossTalk": "Cross-talk 후보가 감지되지 않았습니다.",
+      "crossTalkNotRun": "Cross-talk 검사 미실행: MinKNOW barcode_alignment 데이터가 없습니다.",
+      "crossTalkInsufficientData": "Cross-talk 판정 불가: barcode 수가 적어 z-score를 낼 수 없습니다.",
       "noMinKnow": "MinKNOW 원시 실행 디렉터리가 감지되지 않았습니다. Pore 수율, throughput, barcode 차트를 사용할 수 없습니다.",
       "finalActivePoreYield": "최종 활성 pore 수율",
       "figureVerdictBreakdownCaption": "플레이트별 PASS, Ambiguous, Fail, Fallback 수를 나타낸 누적 막대 차트.",
@@ -773,7 +838,12 @@
         "button": "Well 레이아웃 생성",
         "building": "생성 중…",
         "confirmed": "well {{count}}개 확정",
-        "ariaLabel": "expected_mutations xlsx에서 well 레이아웃 자동 생성"
+        "ariaLabel": "expected_mutations xlsx에서 well 레이아웃 자동 생성",
+        "clear": "레이아웃 해제",
+        "clearAriaLabel": "확정된 well 레이아웃 해제",
+        "disabledBySampleMap": "Sample Map이 선택되어 있어 비활성화됨. Sample Map이 well-to-sample 매핑의 기준 자료임.",
+        "fallbackHint": "Sample Map이 없는 run을 위한 대체 수단. KURO 시트 행 순서를 A1부터 well에 순서대로(column-major) 배정하며 WT 대조군 well은 없다고 가정함.",
+        "overrideWarning": "이 레이아웃이 Sample Map을 덮어씀. Sample Map을 사용하려면 레이아웃을 해제할 것."
       }
     },
     "setup": {
@@ -900,6 +970,8 @@
       "sampleAriaLabel": "well {{well}}의 sample 이름",
       "empty": "생성된 well이 없습니다. expected_mutations xlsx가 선택됐는지 확인하세요.",
       "rowCount": "레이아웃에 well {{count}}개",
+      "droppedMutants": "mutant {{count}}개가 96-well plate에 들어가지 않아 draft에서 빠졌습니다: {{mutants}}. 바코드 조합이 12 fwd x 8 rev라 96개가 상한입니다. plate를 나누고 plate별로 레이아웃을 따로 만드세요.",
+      "wtOmitted": "plate가 가득 차 WT 대조군 well이 빠졌습니다. WT well이 없으면 대조군 청정 검증을 할 수 없습니다.",
       "confirm": "레이아웃 확정"
     },
     "verdictBadge": {
@@ -935,7 +1007,24 @@
     "deleteButton": "프로젝트 삭제",
     "deleteConfirmTitle": "프로젝트를 목록에서 제거할까요?",
     "deleteConfirmDesc": "디스크의 프로젝트 파일은 삭제되지 않습니다. 최근 목록 항목만 제거됩니다.",
-    "delete": "제거"
+    "delete": "제거",
+    "overview": {
+      "identity": "kuma — 다라운드 단백질 변이체 엔지니어링, 처음부터 끝까지.",
+      "loop": "Each round (DBTL): pick & design variants → build & sequence → measure activity → rank → next round.",
+      "kuroTitle": "KURO",
+      "kuroSubtitle": "Variant selection & SDM primer design",
+      "kuroStep1": "Design — load variants, EVOLVEpro rank, choose mutations",
+      "kuroStep2": "Output — SDM primer results & plate layout",
+      "kuroStep3": "Export — order files (Macrogen / IDT / Twist / Echo)",
+      "mameTitle": "MAME",
+      "mameSubtitle": "NGS validation & activity",
+      "mameStep1": "Custom barcode primer design",
+      "mameStep2": "Sequencing QC (Nanopore verdicts)",
+      "mameStep3": "Activity data → EVOLVEpro input",
+      "learnMore": "더 알아보기",
+      "aria": "kuma 소개",
+      "collapse": "접기"
+    }
   },
   "mameTab": {
     "matchingProjectTitle": "일치하는 프로젝트 발견",
@@ -972,7 +1061,9 @@
     "legendDestPartial": "F 또는 R 한쪽만 도착",
     "mappingRange": "매핑 범위",
     "rowStart": "Row 시작",
-    "rowEnd": "Row 끝"
+    "rowEnd": "Row 끝",
+    "destWell": "대상 well",
+    "missing": "없음"
   },
   "globalAppBar": {
     "navAriaLabel": "앱 내비게이션",
@@ -1059,23 +1150,7 @@
     "primerLenRevHelp": "reverse primer 길이 범위(nt). 기본 19-27.",
     "autoRescueHelp": "1차 실패 mutation을 완화된 제약으로 2차 시도하여 자동 채움.",
     "seedHelp": "재현 가능한 primer 순위용 random seed. 비우면 자동(시간 기반).",
-    "tmSectionHelp": "Tm 목표값은 engine이 primer 안정성과 선택성을 균형 잡는 기준.",
-    "designMethodLabel": "설계 방식:",
-    "designMethodHelp": "클로닝 방식. Overlap-extension은 Gibson·Q5 SDM을 포함하고, Golden Gate(Type IIS)는 효소 사이트를 삽입하고 fidelity 점수 기반 overhang을 계산합니다.",
-    "methodGroup_overlap": "Overlap-extension",
-    "methodGroup_goldengate": "Golden Gate (Type IIS)",
-    "methodHint_goldengate": "{{enzyme}} 기반 Golden Gate: 효소 사이트 + fidelity 점수 overhang 삽입.",
-    "goldenGateAdvancedNote": "Golden Gate는 SantaLucia 1998 Tm(SnapGene 방식)과 fidelity 점수 기반 overhang을 사용합니다. 아래 PCR Tm·GC·길이 파라미터는 이 방식에 적용되지 않습니다.",
-    "methodHint_goldengateEnzyme": "{{enzyme}} 기반 Golden Gate ({{recognition}}, 절단 {{cutTop}}/{{cutBottom}}, {{overhang}} nt overhang): 효소 사이트 + fidelity 점수 overhang 삽입.",
-    "enzymeOptionTitle": "{{recognition}} — 절단 {{cutTop}}/{{cutBottom}}, {{overhang}} nt overhang",
-    "customEnzyme": "커스텀 효소…",
-    "junctionSectionLabel": "Junction",
-    "junctionSectionHelp": "이번 실행에 한해 junction prefix와 forbidden overhang을 재정의합니다. 비워두면 효소 카탈로그 기본값을 사용합니다.",
-    "prefixOverrideLabel": "Prefix",
-    "prefixOverridePlaceholder": "카탈로그 prefix",
-    "prefixOverrideHelp": "모든 Golden Gate primer 앞에 붙는 5' prefix(spacer + 인식 서열 + spacer)입니다. 비워두면 효소 카탈로그 prefix를 사용합니다. 인식 서열이 없거나 절단 위치가 어긋난 prefix는 각 결과에 경고로 표시됩니다.",
-    "forbiddenOverhangsLabel": "금지 overhang",
-    "forbiddenOverhangsHelp": "제외할 overhang을 쉼표/공백으로 구분해 입력합니다(예: 벡터 junction). 비워두면 기본값 AATG, AGGT를 사용합니다."
+    "tmSectionHelp": "Tm 목표값은 engine이 primer 안정성과 선택성을 균형 잡는 기준."
   },
   "designReport": {
     "title": "디자인 보고서",
@@ -1148,11 +1223,13 @@
     "domainNamePlaceholder": "이름",
     "domainStartPlaceholder": "시작",
     "domainEndPlaceholder": "끝",
+    "referenceDomainsRequired": "도메인 할당을 사용하려면 참조 서열을 스캔하거나 참조 좌표 도메인을 수동으로 추가하세요.",
     "alphaFoldLoading": "(AlphaFold 불러오는 중...)",
     "alphaFoldBadge": "AlphaFold",
     "helpTip3D": "AlphaFold Cα 좌표를 사용해 3D 공간에서 멀리 분포한 변이를 선택합니다.",
     "helpTip1D": "선택된 위치 간 최소 서열 거리를 최대화하는 greedy Pareto 선택입니다.",
     "roundSectionLabel": "라운드",
+    "roundMovedHint": "라운드 번호와 크기는 이제 Mutations 단계에서 variant 파일 옆에 설정합니다.",
     "evolveproRoundLabel": "EVOLVEpro 라운드",
     "roundSizeLabel": "크기",
     "roundHelp": "Round × size = 모델 품질(ρ) 추정에 사용되는 누적 데이터 수입니다.\nρ가 낮을수록 풀이 넓어지고 탐색을 위한 entropy 가중치가 높아집니다.",
@@ -1203,7 +1280,12 @@
     "linkerLabelHelp": "primer 탐색 중 알려진 linker 영역 처리 방식.",
     "positionCapLabelHelp": "잔기 위치당 최대 primer 수(1-20). 과대 대표 방지.",
     "roundSectionHelp": "EVOLVEpro round는 적응형 선택을 통한 반복적 primer 배치 제어.",
-    "benchmarkSectionHelp": "benchmark는 설계된 primer와 random baseline을 비교하여 품질 향상도 추정."
+    "benchmarkSectionHelp": "benchmark는 설계된 primer와 random baseline을 비교하여 품질 향상도 추정.",
+    "roundUnsetHint": "sigma-adaptive 기본값을 쓰려면 Mutations 단계에서 라운드를 설정하세요.",
+    "structuralSuggestTitle": "제안: Structural diversity",
+    "structuralSuggestBody": "현재 pool이 combinatorial하고, round가 이른 단계이며, 3D 구조가 로드되어 있습니다. 벤치마크에서 Top-N 대비 이득을 보이는 조건입니다.",
+    "structuralSuggestCaveat": "이 이득은 조건부입니다. epistatic이 아닌 타겟에서는 오히려 손해를 볼 수 있습니다.",
+    "structuralSuggestEnable": "Structural diversity 활성화"
   },
   "candidatePopover": {
     "reviewHeading": "후보 검토",
@@ -1362,16 +1444,16 @@
     "description": "KURO용 primer 설계 기본값 및 비대칭 Tm 목표값입니다.",
     "nameLabel": "이름",
     "tmMethodLabel": "Tm 방법",
-    "tmMethodOption_santalucia": "SantaLucia",
+    "tmMethodOption_santalucia": "SantaLucia 1998 (NEB, IDT)",
     "tmMethodOption_santalucia_title": "SantaLucia 1998 최근접 이웃 파라미터. 대부분의 PCR primer에 적합한 현대적 기본값 (DNA/DNA, 25-mer, 생리적 염 농도).",
-    "tmMethodOption_breslauer": "Breslauer",
+    "tmMethodOption_breslauer": "Breslauer 1986 (Benchling legacy)",
     "tmMethodOption_breslauer_title": "Breslauer 1986 최근접 이웃 파라미터. 레거시 테이블로 SantaLucia 대비 Tm을 1-3°C 과대 추정하는 경향이 있습니다.",
     "saltCorrectionLabel": "염 보정",
-    "saltOption_owczarzy": "Owczarzy",
+    "saltOption_owczarzy": "Owczarzy 2004 (IDT)",
     "saltOption_owczarzy_title": "Owczarzy 2004/2008 단가 이온 + Mg²⁺ 보정. Mg²⁺ 또는 dNTP 농도가 비표준일 때 권장합니다.",
-    "saltOption_santalucia": "SantaLucia",
+    "saltOption_santalucia": "SantaLucia 1998 (Benchling)",
     "saltOption_santalucia_title": "SantaLucia 1996 단가 이온 전용 보정. Mg²⁺ 조정이 없는 표준 버퍼에 적합합니다.",
-    "saltOption_schildkraut": "Schildkraut",
+    "saltOption_schildkraut": "Schildkraut-Lifson 1965 (NEB Phusion)",
     "saltOption_schildkraut_title": "Schildkraut-Lifson 1965 경험적 Na⁺ 보정. 레거시 방식으로 Owczarzy나 SantaLucia보다 정밀도가 낮습니다.",
     "optTmLabel": "최적 Tm",
     "maxTmDiffLabel": "최대 Tm 차이",
@@ -1393,7 +1475,8 @@
     "saveError": "중합효소 저장에 실패했습니다",
     "cancel": "취소",
     "save": "저장",
-    "saving": "저장 중..."
+    "saving": "저장 중...",
+    "nebTmNote": "이 NEB 폴리머라제의 Tm은 NEB Tm Calculator 보정으로 계산되며, 아래 salt 및 Tm 방법 값은 계산 Tm에 영향을 주지 않습니다."
   },
   "mainShell": {
     "alreadyRunning": "이미 실행 중입니다.",
@@ -1455,6 +1538,29 @@
     "memoryBlockDesc": "Sidecar 프로세스 메모리 사용량이 {{ratio}}% ({{rss}} MB)에 도달했습니다. 진행 중인 작업을 중단하고 앱을 재시작해 주세요.",
     "memoryBlockConfirm": "확인"
   },
+  "guidedTour": {
+    "show": "가이드 투어 보기",
+    "skip": "모든 투어 건너뛰기",
+    "finish": "완료",
+    "overviewNavigationTitle": "Kuro와 Mame 전환",
+    "overviewNavigationBody": "Kuro는 변이와 플레이트를 설계하고, Mame은 시퀀싱 및 활성 데이터를 다음 학습 라운드용 증거로 결합합니다.",
+    "overviewProjectTitle": "활성 프로젝트 확인",
+    "overviewProjectBody": "이 표시줄에서 프로젝트와 자동 저장 상태를 확인하여 모든 결과를 올바른 작업 공간에 연결합니다.",
+    "kuroWorkflowTitle": "Kuro 워크플로 진행",
+    "kuroWorkflowBody": "이 레일을 따라 입력을 불러오고 후보를 검토한 뒤 프라이머를 설계하고 실행 가능한 플레이트 계획을 내보냅니다.",
+    "kuroWorkspaceTitle": "Kuro 주 작업 영역",
+    "kuroWorkspaceBody": "선택한 단계가 여기에 표시됩니다. 진행에 따라 서열, 후보, 설계, 표 및 3D 결과가 갱신됩니다.",
+    "kuroInspectorTitle": "Kuro 세부 정보 검토",
+    "kuroInspectorBody": "인스펙터에서 단계별 매개변수, 선택 변이, 경고 및 내보내기 설정을 확인합니다.",
+    "mameWorkflowTitle": "Mame 워크플로 진행",
+    "mameWorkflowBody": "Setup, Analyze, Activity를 거쳐 실험 증거를 정리된 학습 테이블로 변환합니다.",
+    "mameWorkspaceTitle": "Mame 주 작업 영역",
+    "mameWorkspaceBody": "런 데이터를 불러오고 유전자형 판정과 플레이트 결과를 검토한 뒤 활성 측정값을 병합해 내보냅니다.",
+    "mameInspectorTitle": "Mame 세부 정보 검토",
+    "mameInspectorBody": "현재 Mame 단계에 필요한 제어와 맥락을 결과 옆의 인스펙터에서 확인합니다.",
+    "mameRouteTitle": "Mame 입력 경로 선택",
+    "mameRouteBody": "activity 데이터를 업로드한 뒤에는 genotype 연동 경로를, GC data xlsx 파일이 이미 있으면 plate-layout 경로를 사용하세요."
+  },
   "onboarding": {
     "titleChange": "프로젝트 폴더 변경",
     "titleNew": "시작하기",
@@ -1472,7 +1578,8 @@
     "descStart": "프로젝트 기본 폴더를 선택하세요. kuma는 Kuro 설계와 Mame 판정 실행 결과를 각 프로젝트 폴더에 저장하여 장기 시퀀싱 작업 전반에 걸쳐 데이터를 보존합니다.",
     "chooseFolderBtn": "폴더 선택",
     "doneBtn": "완료",
-    "insideEachProject": "각 프로젝트 안에는"
+    "insideEachProject": "각 프로젝트 안에는",
+    "maximizeHint": "창을 최대화하면 화면이 가장 잘 맞습니다. kuma는 넓은 작업 영역을 기준으로 배치됩니다."
   },
   "appLayout": {
     "status": "상태",
@@ -1563,8 +1670,6 @@
     "variantsLoaded": "{{count}}개 변이 불러옴",
     "topNZeroHint": "top-N을 0으로 두면 CSV의 모든 변이를 불러옵니다",
     "mutationsHelp": "HGVS 또는 단순 형식 mutation(예: A123V, L45*). 줄 단위 또는 콤마 구분.",
-    "others": "Others",
-    "othersDesc": "(사용자 정의 column 매핑)",
     "othersColumnMapping": "Column 매핑",
     "othersVariantColumn": "Mutation column",
     "othersVariantColumnPlaceholder": "자동 감지",
@@ -1577,7 +1682,8 @@
     "othersSheetNamePlaceholder": "첫 번째 sheet",
     "othersPreviewBtn": "미리보기",
     "othersPreviewLoading": "미리보기 불러오는 중...",
-    "othersPreviewEmpty": "미리보기 없음. 먼저 파일을 불러오세요.",
+    "othersPreviewEmpty": "이 파일에서 column을 찾지 못했습니다. 파일을 확인하거나 다른 sheet를 선택하세요.",
+    "othersLoadFailed": "EVOLVEpro 파일 불러오기 실패: {{message}}. 아래에서 mutation column과 ranking column을 직접 선택한 뒤 적용하세요.",
     "othersPreviewError": "미리보기 실패: {{message}}",
     "othersApplyBtn": "선택한 column 적용",
     "othersApplyError": "Column 불러오기 실패: {{message}}",
@@ -1585,7 +1691,14 @@
     "extraExposedLabel": "추가 후보 표시 수:",
     "extraExposedAriaLabel": "표시할 추가 미선택 후보 수",
     "extraExposedHint": "(0 = 선택된 항목만)",
-    "bufferCapReached": "추가 후보 {{count}}개 전체 표시됨"
+    "bufferCapReached": "추가 후보 {{count}}개 전체 표시됨",
+    "campaignRoundLabel": "캠페인 라운드",
+    "roundNumberLabel": "라운드",
+    "roundNumberAriaLabel": "EVOLVEpro 캠페인 라운드 번호",
+    "roundSizeLabel": "크기",
+    "roundSizeAriaLabel": "라운드당 primer 개수(1-960)",
+    "campaignRoundHint": "이후 단계의 sigma-adaptive 기본값 계산에 사용되는 EVOLVEpro 라운드 컨텍스트를 설정합니다.",
+    "roundHistoryMismatch": "라운드 이력상 라운드 {{suggested}}이(가) 제안되지만, 현재 {{current}}로 설정되어 있습니다."
   },
   "offTargetDetail": {
     "closeAriaLabel": "닫기",
@@ -1640,7 +1753,11 @@
     "autoSearchBtn": "자동 검색",
     "autoSearchTitle": "불러온 시퀀스 파일의 유전자 정보로 UniProt 검색",
     "fetchBtn": "가져오기",
-    "topCandidates": "상위 후보 {{shown}}{{total}}"
+    "topCandidates": "상위 후보 {{shown}}{{total}}",
+    "scanSequenceBtn": "서열 스캔",
+    "scanSequenceTitle": "InterProScan으로 불러온 단백질 서열에서 참조 좌표계 도메인을 직접 탐지합니다",
+    "referenceDomainsReady": "참조 좌표: InterProScan 도메인 {{count}}개",
+    "accessionDomainsOnly": "Accession 도메인은 3D 표시용입니다. 도메인 할당 전에 참조 서열을 스캔하세요."
   },
   "closeConfirm": {
     "designing": {
@@ -1679,6 +1796,15 @@
     "continueLabel": "계속",
     "continueLabelBlock": "그래도 계속",
     "cancelLabel": "취소"
+  },
+  "roundPrompt": {
+    "title": "EVOLVEpro round 설정",
+    "description": "EVOLVEpro campaign round는 Step 4의 sigma-adaptive pool sizing과 entropy weighting을 결정합니다. 설정하지 않으면 해당 기능이 꺼진 상태로 유지됩니다.",
+    "roundLabel": "Round 번호",
+    "roundAriaLabel": "EVOLVEpro campaign round 번호",
+    "suggestedHint": "Round 이력 기준 제안값: {{suggested}}",
+    "confirmLabel": "Round 설정",
+    "dismissLabel": "나중에"
   },
   "statusBar": {
     "ready": "준비",
@@ -1820,7 +1946,17 @@
     "consentReason": "외부 서비스 사용 동의가 필요합니다",
     "domainFetchCancelled": "Domain fetch 취소: {{reason}}",
     "uniprotSearchCancelled": "UniProt 검색 취소: {{reason}}",
-    "alphafoldFetchCancelled": "AlphaFold fetch 취소: {{reason}}"
+    "alphafoldFetchCancelled": "AlphaFold fetch 취소: {{reason}}",
+    "sequenceDomainScanCancelled": "서열 도메인 스캔 취소: {{reason}}",
+    "sequenceDomainScanning": "InterProScan으로 참조 서열을 분석하는 중입니다...",
+    "sequenceDomainsFound": "참조 서열 도메인 {{count}}개를 찾았습니다{{cache}}",
+    "sequenceDomainsNone": "InterProScan에서 이 서열의 통합 도메인 주석을 찾지 못했습니다.",
+    "sequenceDomainsCachedSuffix": " (캐시됨)",
+    "sequenceDomainScanFailed": "서열 도메인 스캔 실패: {{error}}",
+    "esmfoldCancelled": "구조 예측 취소: {{reason}}",
+    "esmfoldPredicting": "ESMFold로 구조를 예측하는 중입니다(최대 수 분 소요)...",
+    "esmfoldDone": "ESMFold 구조 예측 완료: 잔기 {{residues}}개, 평균 pLDDT {{plddt}}",
+    "esmfoldFailed": "ESMFold 예측 실패: {{error}}"
   },
   "inputThresholds": {
     "estimateSec": "약 {{sec}}초 소요 예상",
@@ -1841,7 +1977,8 @@
     "legacyWorkspaceUnsupported": "v0.3 이전 워크스페이스는 지원하지 않습니다. 새 워크스페이스로 시작하세요."
   },
   "inputSlice": {
-    "csvFormatError": "{{mode}} CSV 형식 오류: {{detail}}"
+    "csvFormatError": "{{mode}} CSV 형식 오류: {{detail}}",
+    "structureFrameMismatch": "3D 구조가 참조 서열과 일치하지 않아 1D 서열 거리를 사용합니다"
   },
   "benchmarkDialog": {
     "title": "Benchmark",
@@ -2204,7 +2341,8 @@
         "health": "런 품질"
       },
       "activity": {
-        "ingest": "데이터 수집",
+        "ingest": "활성 데이터",
+        "signals": "신호 및 핸드오프",
         "merge": "병합",
         "export": "내보내기",
         "mergeExport": "병합 및 내보내기"
@@ -2241,9 +2379,6 @@
       },
       "polymerase": {
         "label": "Polymerase"
-      },
-      "method": {
-        "label": "방식"
       }
     },
     "descriptions": {
@@ -2263,7 +2398,8 @@
     },
     "mameDescriptions": {
       "activity": {
-        "ingest": "활성 CSV 또는 Excel 파일을 업로드하고 야생형을 주석 처리합니다.",
+        "ingest": "활성 측정값을 업로드한 뒤 verdict과 병합해 다음 라운드 EVOLVEpro 입력을 내보냅니다 (단일 반복 GC + 3중 반복 WT 상대).",
+        "signals": "라운드 간 분류 신호를 검토하고, EVOLVEpro 입력이 준비되면 다음 라운드로 핸드오프합니다.",
         "mergeExport": "활성 데이터를 유전형 콜과 병합해 테이블을 내보낸 뒤, 단일 반복(GC)과 3중 반복(WT 상대) 활성을 결합해 EVOLVEpro 입력을 생성합니다."
       },
       "analyze": {
@@ -2445,21 +2581,84 @@
     "deferredInsufficientData": "라운드 간 데이터가 충분하지 않아 신뢰도 있는 분류가 어렵습니다.",
     "deferredMixedSignals": "라운드 간 mixed signals 감지: 분류가 보류됩니다."
   },
-  "enzymeEditor": {
-    "title": "커스텀 Type IIS 효소",
-    "description": "Golden Gate 설계용 Type IIS 제한효소를 정의합니다. ~/.kuma/kuro/custom_enzymes.json에 저장되어 재시작 후에도 유지됩니다.",
-    "nameLabel": "이름",
-    "recognitionLabel": "인식 서열",
-    "recognitionInvalid": "인식 서열은 DNA 문자열(A/C/G/T)이어야 합니다.",
-    "cutTopLabel": "절단 위치(top 가닥)",
-    "cutBottomLabel": "절단 위치(bottom 가닥)",
-    "overhangLenLabel": "Overhang 길이(nt)",
-    "aliasesLabel": "별칭(선택)",
-    "prefixLabel": "Prefix",
-    "prefixHelp": "5' prefix: spacer + 인식 서열 + spacer로, 절단 위치를 overhang에 맞춥니다(예: BsaI는 CTAGGGTCTCA).",
-    "cancel": "취소",
-    "save": "저장",
-    "saving": "저장 중…",
-    "saveError": "커스텀 효소 저장에 실패했습니다."
+  "selection3d": {
+    "title": "Candidate 3D structure analysis",
+    "noAccession": "Structure requires a UniProt accession",
+    "noStructure": "No structure available",
+    "noStructureDesc": "Could not load PDB structure for this accession.",
+    "noSelection": "No variants selected",
+    "noSelectionDesc": "Select variants in the EVOLVEpro table to view them in 3D.",
+    "loading": "Loading structure...",
+    "colorMode": "Color",
+    "colorDomain": "Domain",
+    "colorPlddt": "pLDDT",
+    "colorPlain": "Plain",
+    "repSurface": "Surface",
+    "spin": "Spin",
+    "resetView": "Reset",
+    "darkBg": "Dark",
+    "fullscreen": "Fullscreen",
+    "exportPng": "Export PNG",
+    "exportPngSaved": "PNG 저장 완료: {{path}}",
+    "exportPngFailed": "PNG 내보내기 실패: {{message}}",
+    "activeSite": "Active site",
+    "bindingSite": "Binding site",
+    "noActiveSiteAnnotation": "No UniProt active-site annotation — add residues",
+    "activeSiteAdd": "Add position",
+    "activeSiteAddPlaceholder": "e.g. 42",
+    "activeSiteAddButton": "Add",
+    "dispersionTitle": "Structural Dispersion",
+    "dispersionMeanPairwise": "Mean pairwise distance",
+    "dispersionPercentile": "Observed percentile vs random",
+    "dispersionClass": "Classification",
+    "dispersionNullRange": "Null p05–p95",
+    "dispersionTitleHelp": "Structural dispersion compares the 3D spread of the displayed variant positions against random matched-size residue sets. It is an interpretation aid, not a prediction score.",
+    "dispersionChartHelp": "Gray bars are random matched-size residue sets. The shaded band is the null p05–p95 range; the colored vertical line is this selection, labeled P for percentile. P1 means unusually clustered; P99 means unusually spread.",
+    "dispersionMeanPairwiseHelp": "Average Cα–Cα distance among the displayed variant positions after mapping them onto the structure. Smaller values mean spatially clustered; larger values mean spread out.",
+    "dispersionPercentileHelp": "P means percentile: where the observed mean pairwise distance falls within the random matched-size null distribution. Low P = clustered; high P = spread.",
+    "dispersionClassHelp": "Compact label from the percentile: low percentile = clustered, middle = random-like, high = spread.",
+    "dispersionNullRangeHelp": "The 5th–95th percentile range of the random matched-size sets. Observed values inside this range are roughly random-like.",
+    "legendTitle": "Color legend",
+    "legendHelp": "What each color in the 3D scene means. The list adapts to the current coloring mode and which residues are shown. Click a variant / active-site / binding-site row to show or hide it in the 3D view.",
+    "legendBackbone": "Backbone (cartoon)",
+    "legendDomain": "Backbone colored by domain",
+    "legendPlddt": "Backbone colored by pLDDT confidence (low → high)",
+    "legendVariant": "Variant position (sphere) — color scales with y_pred (low → high)",
+    "legendActiveSite": "Active-site residue (orange stick)",
+    "legendBindingSite": "Binding-site residue (magenta sphere)",
+    "legendToggleHint": "Click to show or hide this layer in the 3D view",
+    "surfaceUnavailable": "3D surface could not be generated in this window.",
+    "positionTableTitle": "Selected Positions",
+    "colVariant": "Variant",
+    "colRefPos": "Ref pos",
+    "colAccPos": "Acc pos",
+    "colYPred": "y_pred",
+    "colActiveSite": "Active",
+    "colBindingSite": "Binding",
+    "colPlddt": "pLDDT",
+    "colDomain": "Domain",
+    "domainTableTitle": "Positions by Domain",
+    "domainTableColDomain": "Domain",
+    "domainTableColCount": "Positions",
+    "droppedWarning": "{{count}} position(s) could not be mapped to the structure: {{positions}}",
+    "lengthMismatch": "Sequence length mismatch: some positions may be misaligned.",
+    "uploadLabel": "Upload structure",
+    "uploadButton": "Upload PDB/CIF",
+    "uploadSourceNote": "pLDDT coloring not available for uploaded structures.",
+    "esmfoldNoAccessionNote": "서열에서 예측한 ESMFold 구조입니다(참조 좌표계). Active/Binding site 오버레이는 UniProt accession이 필요하므로 숨겨집니다.",
+    "esmfoldTooLong": "서열이 ESMFold의 400잔기 한도를 초과합니다. AlphaFold 구조를 불러오려면 UniProt accession을 입력하세요.",
+    "removePosition": "Remove position {{position}}",
+    "noVariants": "No candidates to display. Load EVOLVEpro results and run a design to see candidates on the structure.",
+    "fallbackNote": "Showing all {{count}} ranked candidates.",
+    "dispersionChartTitle": "Selection vs random (null distribution)"
+  },
+  "appShell": {
+    "sidebarResize": "사이드바 크기 조절"
+  },
+  "artifact": {
+    "badge": {
+      "staleHint": "생성 당시 입력보다 오래됐습니다. 해당 단계를 다시 실행하면 갱신됩니다.",
+      "detected": "{{step}} 산출물 감지됨"
+    }
   }
 }

@@ -13,6 +13,7 @@ import type { SortingState, Updater } from "@tanstack/react-table";
 import type { Round } from "../types/round";
 import type {
   BenchmarkResult,
+  ComputeDispersionResult,
   DistanceMode,
   DomainInfo,
   DomainOverlapPolicy,
@@ -20,17 +21,17 @@ import type {
   EvolveproPreview,
   EvolveproStepStats,
   FailedMutation,
+  FetchActiveSiteResult,
+  FetchPdbTextResult,
+  PredictStructureEsmfoldResult,
   LinkerHandling,
   MutationInputMode,
   OverlapMode,
-  DesignMethod,
   ParsedMutation,
   ParseError,
   PlateMapping,
   PolymeraseInfo,
   PolymeraseProfile,
-  TypeIISEnzymeInfo,
-  CustomEnzyme,
   RescueStats,
   RescuedMutation,
   SdmPrimerResult,
@@ -41,7 +42,7 @@ import type {
 } from "../types/models";
 import type { RankedCandidateItem, SettingsBundle } from "../types/models.generated";
 
-export type EvolveproMode = "topN" | "pipeline" | "others";
+export type EvolveproMode = "topN" | "pipeline";
 
 // ---------------------------------------------------------------------------
 // SequenceSlice
@@ -97,6 +98,13 @@ export interface DiversitySlice {
   poolVariants: string[];
   uniprotCandidates: UniprotCandidate[];
   uniprotSearching: boolean;
+  structuralDiversityEnabled: boolean;
+  structuralKappa: number;
+  refDomains: DomainInfo[];
+  refDomainsLoading: boolean;
+  refDomainHash: string;
+
+
 
   // Actions
   setPositionDiversityEnabled: (enabled: boolean) => void;
@@ -126,6 +134,26 @@ export interface DiversitySlice {
   searchUniprot: (geneName: string, organism: string, translation: string, knownAccession: string) => Promise<void>;
   fetchStructure: (accession: string) => Promise<void>;
   cancelDiversityReload: () => void;
+  setStructuralDiversityEnabled: (enabled: boolean) => void;
+  setStructuralKappa: (v: number) => void;
+  /** Fetch PDB text for a given UniProt accession. Results are cached per accession. */
+  fetchPdbText: (accession: string) => Promise<FetchPdbTextResult | null>;
+  /** Fetch active-site and binding-site residues for a given UniProt accession. */
+  fetchActiveSite: (accession: string) => Promise<FetchActiveSiteResult | null>;
+  /** Run 3D structural dispersion analysis for a given set of positions. */
+  computeDispersion: (args: {
+    accession: string;
+    refSeq: string;
+    positions: number[];
+    nTrials?: number;
+    seed?: number | null;
+    pdbText?: string | null;
+    coordinateFrame?: "accession" | "reference";
+  }) => Promise<ComputeDispersionResult | null>;
+  /** Predict a reference-frame structure from sequence alone via ESMFold (<=400 aa). */
+  predictStructureEsmfold: (sequence: string) => Promise<PredictStructureEsmfoldResult | null>;
+  /** Annotate reference-frame domains by submitting the selected gene translation to InterProScan. */
+  annotateReferenceDomains: () => Promise<void>;
 }
 
 // ---------------------------------------------------------------------------
@@ -143,21 +171,16 @@ export interface InputSlice {
   evolveproParetoExchanges: number | null;
   evolveproStepStats: EvolveproStepStats | null;
   yPredMap: Record<string, number>;
-  /** EVOLVEpro selection mode: "topN" | "pipeline" | "others" */
+  /** EVOLVEpro selection mode: "topN" | "pipeline" */
   evolveproMode: EvolveproMode;
   evolveproVariantColumn: string | null;
   evolveproScoreColumn: string | null;
   evolveproScoreOrder: "desc" | "asc";
   evolveproSheetName: string | null;
   evolveproPreview: EvolveproPreview | null;
-  othersSourcePath: string;
-  othersVariantColumn: string | null;
-  othersScoreColumn: string | null;
-  othersScoreOrder: "desc" | "asc";
-  othersSheetName: string | null;
-  othersPreview: EvolveproPreview | null;
-  othersUsedVariantColumn: string | null;
-  othersUsedScoreColumn: string | null;
+  /** Column name the backend actually used (auto-detected or explicit override), from the last load response. */
+  evolveproUsedVariantColumn: string | null;
+  evolveproUsedScoreColumn: string | null;
   /** Ranked candidate buffer from load_evolvepro_csv response (y_pred desc). */
   evolveproRankedCandidates: RankedCandidateItem[];
   /** Explicit user selection: variant strings that are currently included. */
@@ -177,12 +200,6 @@ export interface InputSlice {
   setEvolveproScoreOrder: (order: "desc" | "asc") => void;
   setEvolveproSheetName: (name: string | null) => void;
   setEvolveproPreview: (preview: EvolveproPreview | null) => void;
-  setOthersSourcePath: (path: string) => void;
-  setOthersVariantColumn: (col: string | null) => void;
-  setOthersScoreColumn: (col: string | null) => void;
-  setOthersScoreOrder: (order: "desc" | "asc") => void;
-  setOthersSheetName: (name: string | null) => void;
-  setOthersPreview: (preview: EvolveproPreview | null) => void;
   /**
    * Round handoff hydration.
    * prevRound.merged_table를 필터링하여 EVOLVEpro 형식으로 inputSlice를 hydrate.
@@ -224,13 +241,6 @@ export interface DesignSlice {
   fillOnFailure: boolean;
   tmTolerance: number;
   overlapMode: OverlapMode;
-  designMethod: DesignMethod;
-  enzyme: string;
-  /** Type IIS enzyme catalog (built-in + custom) loaded from list_typeiis_enzymes. */
-  typeiisEnzymes: TypeIISEnzymeInfo[];
-  /** Golden Gate junction overrides (per-run; empty = catalog defaults). */
-  prefixOverride: string;
-  forbiddenOverhangs: string;
   /** §12 Optional RNG seed. null = non-deterministic (backend default). */
   randomSeed: number | null;
   manuallySwapped: Record<string, "fwd" | "rev" | "both">;
@@ -284,12 +294,6 @@ export interface DesignSlice {
   setFillOnFailure: (enabled: boolean) => void;
   setTmTolerance: (value: number) => void;
   setOverlapMode: (mode: OverlapMode) => void;
-  setDesignMethod: (method: DesignMethod) => void;
-  setEnzyme: (enzyme: string) => void;
-  loadTypeiisEnzymes: () => Promise<void>;
-  saveCustomEnzyme: (enzyme: CustomEnzyme) => Promise<void>;
-  setPrefixOverride: (value: string) => void;
-  setForbiddenOverhangs: (value: string) => void;
   setRandomSeed: (seed: number | null) => void;
 }
 
@@ -344,7 +348,7 @@ export interface ExportSlice {
   setStatus: (msg: string) => void;
   getWorkspaceSnapshot: () => WorkspaceV3;
   restoreWorkspace: (ws: WorkspaceData) => Promise<void>;
-  resetAll: () => void;
+  resetAll: (options?: { preserveWorkspaceArtifacts?: boolean }) => void;
 }
 
 // ---------------------------------------------------------------------------

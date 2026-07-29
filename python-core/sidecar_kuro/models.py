@@ -59,6 +59,8 @@ class DesignSdmPrimersParams(BaseModel):
     tm_fwd_target: Optional[float] = Field(default=None, ge=20.0, le=80.0)
     tm_rev_target: Optional[float] = Field(default=None, ge=20.0, le=80.0)
     tm_overlap_target: Optional[float] = Field(default=None, ge=20.0, le=80.0)
+    # Tm tolerance (±°C). Must stay identical to RetryFailedParams.tol_max.
+    tol_max: float = Field(default=4.0, ge=0.5, le=10.0)
 
     # GC% constraints
     gc_min: float = Field(default=40.0, ge=0.0, le=100.0)
@@ -79,15 +81,6 @@ class DesignSdmPrimersParams(BaseModel):
 
     # §12 Reproducibility: optional RNG seed (recorded in run manifest when provided)
     seed: Optional[int] = Field(default=None, ge=0)
-
-    # Golden Gate (Type IIS) method selection. Default keeps overlap-extension
-    # behaviour byte-identical; "goldengate" routes to the BsaI/Type IIS engine.
-    design_method: Literal["overlap", "goldengate"] = "overlap"
-    enzyme: Optional[str] = None
-    # Golden Gate junction overrides (per-run). None → catalog prefix + default
-    # forbidden overhangs (AATG/AGGT). Only consulted for design_method="goldengate".
-    prefix_override: Optional[str] = None
-    forbidden_overhangs: Optional[list[str]] = None
 
 
 class RetryFailedParams(BaseModel):
@@ -289,14 +282,11 @@ class SdmPrimerResultModel(WorkspaceModel):
     synthesis_score_rev: Optional[float] = None
     warnings: list[str] = Field(default_factory=list)
     overlap_mode: Optional[Literal["partial", "full"]] = None
-    # Golden Gate (Type IIS) fields — populated only for design_method="goldengate";
-    # omitted for overlap rows via WorkspaceModel's exclude_none serialization.
-    overhang: Optional[str] = None
-    overhang_score: Optional[int] = None
-    overhang_position: Optional[str] = None
-    enzyme: Optional[str] = None
-    design_method: Optional[Literal["overlap", "goldengate"]] = None
-    tm_method: Optional[str] = None
+    # Per-enzyme annealing temperature (added by kuro.annealing; design-invariant).
+    recommended_ta: Optional[float] = None
+    ta_mode: Optional[Literal["3step", "2step", "fixed"]] = None
+    ta_detail: Optional[str] = None
+    ta_touchdown: Optional[str] = None
 
 
 class PolymeraseProfileModel(WorkspaceModel):
@@ -366,42 +356,6 @@ class SaveCustomPolymeraseResultModel(WorkspaceModel):
     name: str
 
 
-class SaveCustomEnzymeResultModel(WorkspaceModel):
-    success: Literal[True] = True
-    name: str
-
-
-class CustomEnzymeParams(BaseModel):
-    """Input model for a user-defined Type IIS enzyme (save_custom_enzyme RPC)."""
-
-    name: str = Field(min_length=1)
-    recognition: str = Field(min_length=1)
-    cut_offset: list[int] = Field(min_length=2, max_length=2)
-    overhang_len: int = Field(ge=1)
-    prefix: str = Field(min_length=1)
-    aliases: list[str] = Field(default_factory=list)
-    fidelity_table: Optional[str] = None
-
-    @field_validator("recognition")
-    @classmethod
-    def _dna_recognition(cls, v: str) -> str:
-        up = v.strip().upper()
-        if not up or any(c not in "ACGT" for c in up):
-            raise ValueError("recognition must be a non-empty A/C/G/T string")
-        return up
-
-    def to_enzyme_dict(self) -> dict:
-        return {
-            "name": self.name.strip(),
-            "recognition": self.recognition,
-            "cut_offset": list(self.cut_offset),
-            "overhang_len": self.overhang_len,
-            "prefix": self.prefix.strip().upper(),
-            "aliases": list(self.aliases),
-            "fidelity_table": self.fidelity_table,
-        }
-
-
 class WorkspaceInputsModel(WorkspaceModel):
     fastaPath: str
     mutationInputMode: Literal["text", "evolvepro"]
@@ -430,6 +384,8 @@ class WorkspaceSettingsModel(WorkspaceModel):
     fillOnFailure: Optional[bool] = None
     uniprotAccession: Optional[str] = None
     domains: Optional[list[DomainInfoModel]] = None
+    refDomains: Optional[list[DomainInfoModel]] = None
+    refDomainHash: Optional[str] = None
     domainDiversityEnabled: Optional[bool] = None
     domainStrategy: Optional[Literal["proportional", "equal"]] = None
     domainOverlapPolicy: Optional[Literal["first", "largest"]] = None
@@ -719,6 +675,139 @@ class FetchStructureParams(BaseModel):
     accession: str = ""
 
 
+class FetchInterfaceParams(BaseModel):
+    """Params for `fetch_interface_residues` RPC.
+
+    accession : UniProt accession whose PDB cross-references are scanned for a
+                multi-chain crystal structure.
+    ref_seq   : user reference sequence; the returned interface positions are
+                expressed in this 1-based frame (KURO contract).
+    """
+
+    accession: str = ""
+    ref_seq: str = ""
+
+class AnnotateDomainsBySequenceParams(BaseModel):
+    """Params for `annotate_domains_by_sequence` RPC."""
+
+    sequence: str = ""
+    ref_hash: Optional[str] = None
+
+
+# ---------------------------------------------------------------------------
+# G001: 3D Analysis panel RPCs (fetch_pdb_text, fetch_active_site_residues,
+#        compute_dispersion)
+# ---------------------------------------------------------------------------
+
+
+class FetchPdbTextParams(BaseModel):
+    """Params for `fetch_pdb_text` RPC."""
+
+    accession: str = ""
+
+
+class FetchPdbTextResult(BaseModel):
+    """Result for `fetch_pdb_text` RPC."""
+
+    success: bool
+    accession: str
+    pdb_text: Optional[str] = None
+    source: str = ""
+
+
+class FetchActiveSiteParams(BaseModel):
+    """Params for `fetch_active_site_residues` RPC."""
+
+    accession: str = ""
+
+
+class FetchActiveSiteResult(BaseModel):
+    """Result for `fetch_active_site_residues` RPC."""
+
+    accession: str
+    active_site_positions: list[int] = Field(default_factory=list)
+    binding_positions: list[int] = Field(default_factory=list)
+    source: str = ""
+    has_annotation: bool = False
+
+
+class NullHistogram(BaseModel):
+    """Histogram of the null (random) mean-pairwise distribution for compute_dispersion."""
+
+    min: float = 0.0
+    max: float = 0.0
+    counts: list[int] = Field(default_factory=list)
+
+
+class ComputeDispersionParams(BaseModel):
+    """Params for `compute_dispersion` RPC."""
+
+    accession: str = ""
+    ref_seq: str = ""
+    positions: list[int] = Field(default_factory=list)
+    n_trials: int = Field(default=1000, ge=1, le=100000)
+    seed: Optional[int] = None
+    # Reference-frame structures (e.g. ESMFold predictions) supply their PDB
+    # text directly; the accession pipeline is skipped when coordinate_frame is
+    # "reference". Both fields default to the backward-compatible accession path.
+    pdb_text: Optional[str] = None
+    coordinate_frame: Literal["accession", "reference"] = "accession"
+
+
+class ComputeDispersionResult(BaseModel):
+    """Result for `compute_dispersion` RPC."""
+
+    accession: str
+    mapped: list[int] = Field(default_factory=list)
+    dropped: list[int] = Field(default_factory=list)
+    n_positions: int = 0
+    mean_pairwise: float = 0.0
+    null_mean: float = 0.0
+    null_p05: float = 0.0
+    null_p95: float = 0.0
+    percentile: float = 0.0
+    klass: str = "na"
+    n_trials: int = 1000
+    seed: Optional[int] = None
+    null_hist: NullHistogram = Field(default_factory=NullHistogram)
+
+
+class PredictStructureEsmfoldParams(BaseModel):
+    """Params for `predict_structure_esmfold` RPC."""
+
+    sequence: str = ""
+
+
+class PredictStructureEsmfoldResult(BaseModel):
+    """Reference-frame de-novo structure predicted by ESMFold."""
+
+    success: bool = False
+    source: Literal["esmfold", "esmfold_cache", "error"] = "esmfold"
+    pdb_text: Optional[str] = None
+    plddt_mean: float = 0.0
+    residue_count: int = 0
+    coordinate_frame: Literal["reference"] = "reference"
+    seq_hash: str = ""
+    cache_hit: bool = False
+    error_msg: Optional[str] = None
+
+# ---------------------------------------------------------------------------
+# Sequence-direct InterProScan domain annotation
+# ---------------------------------------------------------------------------
+
+
+class AnnotateDomainsBySequenceResult(WorkspaceModel):
+    """Typed reference-frame result for `annotate_domains_by_sequence`."""
+
+    domains: list[DomainInfoModel] = Field(default_factory=list)
+    protein_length: int = 0
+    source: Literal["interproscan", "error"] = "interproscan"
+    coordinate_frame: Literal["reference"] = "reference"
+    ref_hash: str = ""
+    cache_hit: bool = False
+    error_msg: Optional[str] = None
+
+
 # ---------------------------------------------------------------------------
 # misc.py handlers
 # ---------------------------------------------------------------------------
@@ -775,6 +864,11 @@ class LoadEvolveproParams(BaseModel):
     # in a subset of domains.
     domain_pool_autoexpand: bool = True
     domain_pool_max_multiplier: float = Field(default=10.0, ge=1.0, le=100.0)
+    # Structure-aware diversity selector (validated 'kuro_ca' recipe): full pool +
+    # revealed-anchor + 3D Ca-centroid maximin + kappa fitness blend. Off by default.
+    structural_diversity: bool = False
+    structural_kappa: float = Field(default=0.0, ge=0.0, le=1.0)
+    anchor_variants: list[str] = Field(default_factory=list)
 
 
 class LandscapeEntry(BaseModel):

@@ -1,0 +1,100 @@
+{
+ "model_35M": "esm2_t12_35M_UR50D",
+ "model_150M": "esm2_t30_150M_UR50D",
+ "per_assay": {
+  "HIS7": {
+   "topn_35M": "AGAINST/REFUTE",
+   "topn_150M": "INCONCLUSIVE",
+   "ucb_35M": "FOR-QUALIFIED",
+   "ucb_150M": "INCONCLUSIVE",
+   "cliffs_topn_35M": -0.8,
+   "cliffs_topn_150M": -0.18
+  },
+  "GRB2": {
+   "topn_35M": "FOR-QUALIFIED",
+   "topn_150M": "INCONCLUSIVE",
+   "ucb_35M": "FOR-QUALIFIED",
+   "ucb_150M": "INCONCLUSIVE",
+   "cliffs_topn_35M": -0.52,
+   "cliffs_topn_150M": 0.0
+  },
+  "RASK": {
+   "topn_35M": "MIXED",
+   "topn_150M": "AGAINST/REFUTE",
+   "ucb_35M": "AGAINST/REFUTE",
+   "ucb_150M": "AGAINST/REFUTE",
+   "cliffs_topn_35M": -0.48,
+   "cliffs_topn_150M": -0.72
+  },
+  "GCN4": {
+   "topn_35M": "INCONCLUSIVE",
+   "topn_150M": "AGAINST/REFUTE",
+   "ucb_35M": "INCONCLUSIVE",
+   "ucb_150M": "AGAINST/REFUTE",
+   "cliffs_topn_35M": -0.08,
+   "cliffs_topn_150M": -0.68
+  },
+  "PABP": {
+   "topn_35M": "FOR-QUALIFIED",
+   "topn_150M": "FOR-QUALIFIED",
+   "ucb_35M": "FOR-QUALIFIED",
+   "ucb_150M": "FOR-QUALIFIED",
+   "cliffs_topn_35M": 0.28,
+   "cliffs_topn_150M": -0.04
+  },
+  "DLG4": {
+   "topn_35M": "FOR-QUALIFIED",
+   "topn_150M": "FOR-QUALIFIED",
+   "ucb_35M": "FOR-QUALIFIED",
+   "ucb_150M": "AGAINST/REFUTE-STRONG",
+   "cliffs_topn_35M": 0.68,
+   "cliffs_topn_150M": -0.38
+  },
+  "F7YBW8": {
+   "topn_35M": "FOR-STRONG",
+   "topn_150M": "FOR-STRONG",
+   "ucb_35M": "FOR-QUALIFIED",
+   "ucb_150M": "FOR-STRONG",
+   "cliffs_topn_35M": 0.76,
+   "cliffs_topn_150M": 0.483
+  },
+  "GFP": {
+   "topn_35M": "FOR-STRONG",
+   "topn_150M": "FOR-STRONG",
+   "ucb_35M": "FOR-STRONG",
+   "ucb_150M": "FOR-STRONG",
+   "cliffs_topn_35M": 0.98,
+   "cliffs_topn_150M": 1.0
+  },
+  "A4": {
+   "topn_35M": "FOR-STRONG",
+   "topn_150M": "FOR-STRONG",
+   "ucb_35M": "FOR-STRONG",
+   "ucb_150M": "FOR-STRONG",
+   "cliffs_topn_35M": 0.98,
+   "cliffs_topn_150M": 0.98
+  }
+ },
+ "aggregate": {
+  "struct_vs_topn_35M": [
+   6,
+   2,
+   1
+  ],
+  "struct_vs_topn_150M": [
+   5,
+   2,
+   2
+  ],
+  "struct_vs_ucb_35M": [
+   7,
+   1,
+   1
+  ],
+  "struct_vs_ucb_150M": [
+   4,
+   2,
+   3
+  ]
+ }
+}

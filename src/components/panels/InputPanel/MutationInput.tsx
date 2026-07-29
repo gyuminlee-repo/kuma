@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAppStore } from "../../../store/appStore";
+import { useRoundStore } from "@/store/round/roundSlice";
 import { basename } from "../../../lib/utils";
 import { browseFile } from "../../../lib/file-utils";
 import { useArtifact } from "../../../lib/workspace";
 import { Button } from "../../ui/button";
 import { InlineHelp } from "../../ui/InlineHelp";
 import { ArtifactBadge } from "../../widgets/ArtifactBadge";
-import { OthersPanel } from "./OthersPanel";
+import { SourceColumnPanel } from "./SourceColumnPanel";
 import { EvolveproSelectTable } from "../../widgets/EvolveproSelectTable";
 
 export function MutationInput() {
@@ -16,14 +17,10 @@ export function MutationInput() {
   const mutationText = useAppStore((s) => s.mutationText);
   const parsedMutations = useAppStore((s) => s.parsedMutations);
   const parseErrors = useAppStore((s) => s.parseErrors);
-  const setMutationInputMode = useAppStore((s) => s.setMutationInputMode);
   const evolveproCsvPath = useAppStore((s) => s.evolveproCsvPath);
-  const othersSourcePath = useAppStore((s) => s.othersSourcePath);
   const loadEvolveproCsv = useAppStore((s) => s.loadEvolveproCsv);
-  const setOthersSourcePath = useAppStore((s) => s.setOthersSourcePath);
-  const setOthersPreview = useAppStore((s) => s.setOthersPreview);
-  const setOthersVariantColumn = useAppStore((s) => s.setOthersVariantColumn);
-  const setOthersScoreColumn = useAppStore((s) => s.setOthersScoreColumn);
+  const setEvolveproVariantColumn = useAppStore((s) => s.setEvolveproVariantColumn);
+  const setEvolveproScoreColumn = useAppStore((s) => s.setEvolveproScoreColumn);
   const artifact = useArtifact("evolvepro_csv");
   const [userOverridden, setUserOverridden] = useState(false);
 
@@ -45,7 +42,12 @@ export function MutationInput() {
   const evolveproExtraExposed = useAppStore((s) => s.evolveproExtraExposed);
   const setEvolveproExtraExposed = useAppStore((s) => s.setEvolveproExtraExposed);
   const setEvolveproVariantSelected = useAppStore((s) => s.setEvolveproVariantSelected);
-  const activeTablePath = evolveproMode === "others" ? othersSourcePath : evolveproCsvPath;
+  const activeTablePath = evolveproCsvPath;
+  const evolveproRound = useAppStore((s) => s.evolveproRound);
+  const setEvolveproRound = useAppStore((s) => s.setEvolveproRound);
+  const roundSize = useAppStore((s) => s.roundSize);
+  const setRoundSize = useAppStore((s) => s.setRoundSize);
+  const roundHistoryCount = useRoundStore((s) => s.rounds.length);
 
   const mutationCount = useMemo(
     () =>
@@ -60,6 +62,39 @@ export function MutationInput() {
     const n = parseInt(extraExposedStr, 10);
     if (isFinite(n) && n >= 0) setEvolveproExtraExposed(n);
   };
+
+  // evolveproRound===0 renders as an empty field (unset), not the literal "0".
+  const [campaignRoundStr, setCampaignRoundStr] = useState(
+    evolveproRound === 0 ? "" : String(evolveproRound),
+  );
+  const commitCampaignRound = () => {
+    const n = Number.parseInt(campaignRoundStr, 10);
+    if (!Number.isNaN(n)) setEvolveproRound(n);
+  };
+
+  // Resync from the store when it changes externally (round-prompt dialog,
+  // project hydration). Guarded so mid-edit typing is not clobbered: only
+  // resync when the committed store value differs from the parsed local value.
+  useEffect(() => {
+    const parsed = Number.parseInt(campaignRoundStr, 10);
+    const committedLocal = campaignRoundStr === "" ? 0 : parsed;
+    if (Number.isNaN(committedLocal) || committedLocal === evolveproRound) return;
+    setCampaignRoundStr(evolveproRound === 0 ? "" : String(evolveproRound));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [evolveproRound]);
+
+  const [campaignRoundSizeStr, setCampaignRoundSizeStr] = useState(String(roundSize));
+  const commitCampaignRoundSize = () => {
+    const n = Number.parseInt(campaignRoundSizeStr, 10);
+    if (!Number.isNaN(n)) setRoundSize(n);
+  };
+
+  useEffect(() => {
+    const parsed = Number.parseInt(campaignRoundSizeStr, 10);
+    if (Number.isNaN(parsed) || parsed === roundSize) return;
+    setCampaignRoundSizeStr(String(roundSize));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roundSize]);
 
   const { pickerRows, bufferCap } = useMemo(() => {
     const selectedSet = new Set(evolveproSelectedVariants);
@@ -96,38 +131,10 @@ export function MutationInput() {
         {t("mutationInput.mutations")}
         <InlineHelp text={t("mutationInput.mutationsHelp")} />
       </label>
-      <div className="flex flex-wrap gap-2 text-xs" role="radiogroup" aria-label={t("mutationInput.mutationInputAriaLabel")}>
-        <label className="flex items-center gap-1 rounded-full border border-border bg-card px-2 py-1 text-muted-foreground">
-          <input
-            type="radio"
-            name="mutInput"
-            checked={mutationInputMode === "evolvepro" && evolveproMode !== "others"}
-            onChange={() => {
-              setMutationInputMode("evolvepro");
-              setEvolveproMode("topN");
-            }}
-            className="w-3 h-3"
-          />
-          EVOLVEpro
-        </label>
-        <label className="flex items-center gap-1 rounded-full border border-border bg-card px-2 py-1 text-muted-foreground">
-          <input
-            type="radio"
-            name="mutInput"
-            checked={mutationInputMode === "evolvepro" && evolveproMode === "others"}
-            onChange={() => {
-              setMutationInputMode("evolvepro");
-              setEvolveproMode("others");
-            }}
-            className="w-3 h-3"
-          />
-          {t("mutationInput.others")}
-        </label>
-      </div>
-
       {mutationInputMode === "evolvepro" && (
         <div className="space-y-2">
-          {/* CSV / XLSX file loader (shared by evolvepro and others modes) */}
+          {/* CSV / XLSX file loader, source kind is auto-detected by the backend,
+              not user-declared. Column mapping below is the manual override path. */}
           <div className="flex gap-1">
             <Button
               variant="outline"
@@ -142,13 +149,11 @@ export function MutationInput() {
                   ],
                   (path) => {
                     setUserOverridden(true);
-                    if (evolveproMode === "others") {
-                      setOthersSourcePath(path);
-                      setOthersPreview(null);
-                      setOthersVariantColumn(null);
-                      setOthersScoreColumn(null);
-                      return;
-                    }
+                    // Column overrides belong to the previous file; drop them.
+                    // The preview itself is refreshed by SourceColumnPanel as
+                    // soon as the path changes, so it is not cleared here.
+                    setEvolveproVariantColumn(null);
+                    setEvolveproScoreColumn(null);
                     loadEvolveproCsv(path);
                   },
                 )
@@ -173,47 +178,95 @@ export function MutationInput() {
             </div>
           )}
 
-          {/* Others mode: column mapping panel */}
-          {evolveproMode === "others" && <OthersPanel />}
-
-          {/* topN / pipeline mode: selection mode radiogroup */}
-          {evolveproMode !== "others" && (
-            <div className="space-y-1">
-              <div className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">
-                {t("mutationInput.selectionMode")}
-              </div>
-              <div className="space-y-0.5">
-                <label className="flex items-center gap-1.5 cursor-pointer text-xs">
-                  <input
-                    type="radio"
-                    name="selectionMode"
-                    className="w-3 h-3"
-                    checked={evolveproMode === "topN"}
-                    onChange={() => setEvolveproMode("topN")}
-                  />
-                  <span className="text-foreground">{t("mutationInput.topNOnly")}</span>
-                  <span className="text-caption text-muted-foreground">{t("mutationInput.topNDesc")}</span>
-                </label>
-                <div className="ml-5 text-caption text-muted-foreground/70">
-                  {t("mutationInput.topNZeroHint")}
-                </div>
-                <label className="flex items-center gap-1.5 cursor-pointer text-xs">
-                  <input
-                    type="radio"
-                    name="selectionMode"
-                    className="w-3 h-3"
-                    checked={evolveproMode === "pipeline"}
-                    onChange={() => setEvolveproMode("pipeline")}
-                  />
-                  <span className="text-foreground">{t("mutationInput.pipeline")}</span>
-                  <span className="text-caption text-muted-foreground">{t("mutationInput.pipelineDesc")}</span>
-                </label>
-              </div>
+          {/* Campaign round context, set here at load time so downstream sigma-adaptive
+              defaults (Step 4) can derive from it immediately. */}
+          <div className="rounded-xl border border-border bg-muted px-3 py-2 space-y-1">
+            <div className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">
+              {t("mutationInput.campaignRoundLabel")}
             </div>
-          )}
+            <div className="flex items-center gap-2 flex-wrap text-xs">
+              <label htmlFor="campaign-round-input" className="shrink-0 text-muted-foreground">
+                {t("mutationInput.roundNumberLabel")}
+              </label>
+              <input
+                id="campaign-round-input"
+                type="number"
+                min={1}
+                value={campaignRoundStr}
+                onChange={(e) => setCampaignRoundStr(e.target.value)}
+                onBlur={commitCampaignRound}
+                onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+                className="w-16 rounded border border-border bg-card px-1.5 py-0.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                aria-label={t("mutationInput.roundNumberAriaLabel")}
+              />
+              <label htmlFor="campaign-round-size-input" className="shrink-0 text-muted-foreground">
+                {t("mutationInput.roundSizeLabel")}
+              </label>
+              <input
+                id="campaign-round-size-input"
+                type="number"
+                min={1}
+                max={960}
+                value={campaignRoundSizeStr}
+                onChange={(e) => setCampaignRoundSizeStr(e.target.value)}
+                onBlur={commitCampaignRoundSize}
+                onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+                className="w-16 rounded border border-border bg-card px-1.5 py-0.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                aria-label={t("mutationInput.roundSizeAriaLabel")}
+              />
+            </div>
+            <p className="text-caption text-muted-foreground">
+              {t("mutationInput.campaignRoundHint")}
+            </p>
+            {roundHistoryCount > 0 && roundHistoryCount + 1 !== evolveproRound && (
+              <p className="text-caption text-warning">
+                {t("mutationInput.roundHistoryMismatch", {
+                  suggested: roundHistoryCount + 1,
+                  current: evolveproRound,
+                })}
+              </p>
+            )}
+          </div>
 
-          {/* EVOLVEpro candidate picker (topN / pipeline only) */}
-          {evolveproMode !== "others" && evolveproRankedCandidates.length > 0 && (() => {
+          {/* Column mapping panel, always available (auto-detect by default). */}
+          <SourceColumnPanel />
+
+          {/* Selection mode radiogroup */}
+          <div className="space-y-1">
+            <div className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">
+              {t("mutationInput.selectionMode")}
+            </div>
+            <div className="space-y-0.5">
+              <label className="flex items-center gap-1.5 cursor-pointer text-xs">
+                <input
+                  type="radio"
+                  name="selectionMode"
+                  className="w-3 h-3"
+                  checked={evolveproMode === "topN"}
+                  onChange={() => setEvolveproMode("topN")}
+                />
+                <span className="text-foreground">{t("mutationInput.topNOnly")}</span>
+                <span className="text-caption text-muted-foreground">{t("mutationInput.topNDesc")}</span>
+              </label>
+              <div className="ml-5 text-caption text-muted-foreground/70">
+                {t("mutationInput.topNZeroHint")}
+              </div>
+              <label className="flex items-center gap-1.5 cursor-pointer text-xs">
+                <input
+                  type="radio"
+                  name="selectionMode"
+                  className="w-3 h-3"
+                  checked={evolveproMode === "pipeline"}
+                  onChange={() => setEvolveproMode("pipeline")}
+                />
+                <span className="text-foreground">{t("mutationInput.pipeline")}</span>
+                <span className="text-caption text-muted-foreground">{t("mutationInput.pipelineDesc")}</span>
+              </label>
+            </div>
+          </div>
+
+          {/* EVOLVEpro candidate picker */}
+          {evolveproRankedCandidates.length > 0 && (() => {
             return (
               <div className="space-y-1">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">

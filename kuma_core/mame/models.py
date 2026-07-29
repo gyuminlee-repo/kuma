@@ -44,11 +44,24 @@ class BarcodeRecord:
     max_minor_allele_fraction: float = 0.0
     n_low_depth_positions: int = 0
     consensus_n_fraction: float = 0.0
+    # False when the source consensus FASTA predates the covered-scoped
+    # ``consensus_n_fraction`` definition and the covered-scoped value cannot be
+    # recovered from the header. ``consensus_n_fraction`` is then meaningless and
+    # the verdict N-fraction gate must not act on it.
+    consensus_n_fraction_evaluable: bool = True
     n_low_quality_bases: int = 0
     n_input_reads: int | None = None
     n_aligned_reads: int | None = None
     n_mapq_failed: int = 0
     n_span_failed: int = 0
+    # Indel event evidence surfaced from CIGAR pileup (consensus.py).
+    # See ConsensusCall for calibration details.
+    n_indel_event_positions: int = 0
+    max_indel_event_fraction: float = 0.0
+    # Longest contiguous deletion-majority run (informational; see ConsensusCall).
+    # 0 = insertion-driven, 1 = isolated single position (artifact suspect),
+    # >=2 = N-bp contiguous deletion.
+    max_del_run_length: int = 0
 
 
 @dataclass
@@ -83,7 +96,7 @@ class ExpectedMutation:
 
 @dataclass
 class CompareParams:
-    """Tunable thresholds for the 6-class verdict classifier."""
+    """Tunable thresholds for the 8-class verdict classifier."""
 
     min_file_size_kb: float = 50.0
     # Real read-depth gate, driven by the consensus `depth=N` header. 30 is the
@@ -94,6 +107,13 @@ class CompareParams:
     many_mutation_cutoff: int = 5
     indel_window_codon: int = 5
     frameshift_window_bp: int = 10
+    # Indel event gate threshold.  When max_indel_event_fraction
+    # (from ConsensusCall) exceeds this value the verdict is flagged as
+    # AMBIGUOUS with an indel note rather than proceeding to PASS.
+    # Calibrated from bench_v2 depth_50: WT/SNV wells <= 0.21,
+    # true deletion wells >= 0.83 (see ConsensusCall docstring).
+    # None disables the gate for backward compatibility.
+    max_indel_event_fraction: float | None = 0.50
 
 
 @dataclass

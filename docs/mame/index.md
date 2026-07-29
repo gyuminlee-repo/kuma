@@ -1,6 +1,6 @@
 # MAME — Major.Sub 워크플로우
 
-MAME 는 3개 major step 으로 구성되며, 각 major 는 하위 sub-step 을 가진다. KURO 의 단일 1..6 카운트와 달리 **Major.Sub 계층 표기** (`1.1`, `1.2`, `2.1`, `2.2`, `3.1`, `3.2`) 를 쓴다.
+MAME 는 3개 major step 으로 구성되며, 각 major 는 하위 sub-step 을 가진다. KURO 의 단일 1..6 카운트와 달리 **Major.Sub 계층 표기** (`1.1`, `2.1`, `2.2`, `3.1`) 를 쓴다. Activity 는 v0.13.11 에서 단일 step 으로 통합되었다 (ingest + merge + export).
 
 ```
 1. Run Setup
@@ -10,8 +10,7 @@ MAME 는 3개 major step 으로 구성되며, 각 major 는 하위 sub-step 을 
    2.1 Verdict + Plate
    2.2 Per-plate verdict bar    (NGS 효율 그래프)
 3. Activity Data
-   3.1 Ingest
-   3.2 Merge & Export
+   3.1 Activity Data          (ingest + merge + export, 단일 step)
 ```
 
 <!-- TODO: insert screenshot of MAME rail with Major.Sub labels -->

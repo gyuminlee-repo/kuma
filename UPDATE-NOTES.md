@@ -4,6 +4,141 @@
 
 ---
 
+## v0.13.30 (2026-07-29)
+
+### The sample map template works as filled in
+
+- The layout parser understands `<sample>_r<n>`. Replicates of one variant collapse onto that variant, `WT_r1` counts as WT, and rows named `blank` are skipped. Names without the suffix are unaffected.
+- A variant that has no EVOLVEpro short-notation form, such as a double substitution, no longer aborts the build. It is dropped on its own and a warning names it with its wells, so the remaining variants still produce an input file.
+
+---
+
+## v0.13.28 (2026-07-28)
+
+### Files and columns you already have
+
+- Step 2 no longer rejects a mutation file because a header is capitalised differently, carries a stray space, or begins with an Excel byte-order mark.
+- Step 2 column pickers are usable as soon as a file is chosen. If auto-detect misses, pick the mutation and ranking columns from the dropdowns and apply.
+- MAME step 3.1 accepts the sample map produced in step 1, so the plate layout workbook no longer has to be built by hand.
+
+### Shared reverse primers
+
+- Echo and JANUS exports could omit the reverse transfer rows of every mutation except one per shared group when a workspace carried no dedup map, which left those reactions without a primer. The map is now rebuilt from the design results, and the export stops with the affected mutation names if it cannot be rebuilt.
+- The layout sheets now list, per source well, how many reactions it feeds and the total volume drawn. Add the labware dead volume to that figure when filling the plate.
+
+---
+
+## v0.13.27 (2026-07-28)
+
+### MAME step 3 reads raw instrument reports
+
+- A raw Agilent FID1B report can now drive step 3 directly. Pick **Raw Agilent reports** in the plate-layout route and supply the re-measure report plus a round-1 baseline, either another raw report or a prior EVOLVEpro file. Each replicate is normalised as `area / mean(WT block areas)`, so no hand-normalised GC sheet is needed. A missing WT block stops the build instead of guessing.
+- The WT denominator now comes from the `WT_1`/`WT_2`/`WT_3` rows the instrument already ships. Those rows used to be discarded during import, which forced the denominator to be inferred from WT wells clicked on the plate. Plates without such rows keep the old behaviour, and the merge result reports which source applied.
+- Optional NGS verdict gating excludes variants whose well did not pass.
+- Step 3 is split into an exclusive input route and cross-round signals.
+
+---
+
+## v0.13.14 (2026-07-01)
+
+### Kuro structure-accuracy guard
+
+- 3D Cα coordinates now drive structural-diversity / Pareto-3D selection only when the loaded structure exactly matches the reference sequence (identity or clean substring). A near-but-not-exact structure would mis-place residues and corrupt selection, so those cases fall back to 1-D sequence distance with a status notice. Domain diversity (sequence-based) is unaffected.
+
+---
+
+## v0.13.13 (2026-07-01)
+
+### Kuro ESMFold structure prediction
+
+- When no UniProt accession is available, the 3D panel can predict a structure directly from the reference sequence via **ESMFold** (EMBL-EBI ESMAtlas) after external-service consent. The prediction is in the reference frame, so dispersion runs without accession mapping and pLDDT/variant/domain overlays stay valid. Active/binding-site overlays require a UniProt accession and are hidden for ESMFold. The public server limit is 400 residues; longer proteins use an AlphaFold accession.
+
+---
+
+## v0.13.12 (2026-07-01)
+
+### Guided onboarding
+
+- Newly created projects receive a skippable spotlight tour of project navigation and Kuro. Mame guidance appears separately on first entry. Existing projects are not interrupted.
+- **Skip all tours** disables automatic tours for that project; `Esc` closes only the current tour. Replay the current tool from **Help → Show Guided Tour**.
+
+### Updates
+
+- Kuma checks GitHub for a newer published release at startup and shows a recommendation when one exists. **Help → Check for updates** now performs a real version check. Network failures do not block startup.
+- **Export PNG** now has the required binary file-write capability, reports save success/failure, and no longer rejects the Tauri `fs.write_file` command. 3D residue spheres use a consistent opaque style to avoid 3Dmol's ambiguous-opacity warning. Title-only dialogs explicitly opt out of a missing description, and the embedded favicon prevents the default `/favicon.ico` 404.
+
+### Kuro reference-sequence domains
+
+- **Scan sequence** submits the loaded target protein to EMBL-EBI InterProScan after external-service consent and caches successful integrated domain annotations by sequence SHA-256.
+- Domain allocation now prefers separate reference-frame annotations, while legacy UniProt-accession domains remain dedicated to AlphaFold structure coloring. Reference domains and their sequence hash persist independently in the workspace; stale annotations are discarded when the loaded sequence hash changes.
+
+---
+
+## v0.13.11 (2026-07-01)
+
+MAME single-step Activity + KURO 3D viewer polish.
+
+### MAME
+
+- **Activity Data** is now one step instead of two: Ingest, Merge, and Export are stacked in a single scrollable view. The previous 3.1 Ingest / 3.2 Merge & Export split is gone.
+
+### Kuro
+
+- The 3D structure viewer now defaults to a **white** background, and the Dark toggle applies immediately (no reload).
+
+---
+
+## v0.13.10 (2026-07-01)
+
+KURO 3D viewer fixes.
+
+### Kuro
+
+- The 3D viewer **Surface** button now works in the packaged app; the molecular-surface Web Worker was blocked by the app's content-security policy.
+- **Export PNG** now opens a save dialog and writes the image file — the previous in-webview download silently did nothing.
+
+---
+
+## v0.13.9 (2026-07-01)
+
+KURO 3D dispersion reliability + release integrity.
+
+### Kuro
+
+- Fixed the Candidate 3D structure analysis reporting "N position(s) could not be mapped to the structure" for every position when the structure loaded but the UniProt sequence lookup failed. The mapping now reads the sequence from the loaded structure itself, so dispersion works whenever the structure is available.
+
+### Releases
+
+- Each GitHub release now attaches a `SHA256SUMS.txt`, and the release notes explain the Windows SmartScreen "Unknown publisher" prompt (More info → Run anyway), how to verify the download hash, and the macOS Gatekeeper step. Note: without code signing the SmartScreen prompt still appears — the checksum lets you verify the download is intact.
+
+---
+
+## v0.13.8 (2026-07-01)
+
+KURO Candidate 3D structure analysis polish + packaged-sidecar fix.
+
+### Kuro
+
+- The Candidate 3D structure analysis panel gained inline `?` help on the Structural Dispersion card, histogram, and each metric; percentiles now read as `P1`/`P96` (P = percentile); and a **Color legend** under the viewer maps every color, with each row clickable to show/hide that 3D layer.
+- The magenta overlay is relabeled **Binding site** (UniProt `Binding site`: ligand/cofactor/metal-binding residues) — the earlier "Interface" label was inaccurate.
+- The panel is reordered so the 3D viewer sits directly above the analysis cards, making toggle/coloring changes visible immediately.
+- Fixed the packaged app's 3D dispersion failing with a missing `BLOSUM62` data-file error; the sequence aligner no longer depends on that external Biopython file.
+
+---
+
+## v0.13.7 (2026-07-01)
+
+KURO Candidate 3D structure analysis.
+
+### Kuro
+
+- The Output step gains a collapsible **Candidate 3D structure analysis** panel: an embedded 3D structure viewer (loaded only when you open it) that maps your candidate positions onto the protein, highlights active-site and binding-site residues, and reports how spatially clustered or spread the picks are versus random matched-size sets.
+- Every color is explained by a **Color legend** under the viewer, and each legend row is clickable to show/hide that layer in 3D (variant / active-site / binding-site; the backbone stays visible). The Structural Dispersion card, its histogram, and each metric carry inline `?` help, and percentiles read as `P1`/`P96` (P = percentile) instead of `1%ile`.
+- The magenta overlay is **binding-site** residues (UniProt `Binding site`: ligand/cofactor/metal binding), not a protein-protein interface; the earlier "Interface" label was corrected.
+- The 3D view is an interpretation/QC aid, not a selection filter: residues in low-confidence or disordered regions are **not** auto-removed from your mutation set — EVOLVEpro `y_pred` ranking still decides what gets designed.
+- If no structure accession is available, you can upload a PDB/CIF file to use the viewer.
+
+---
 ## v0.13.6 (2026-06-12)
 
 MAME sample-data walkthrough fixes.

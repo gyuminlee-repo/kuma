@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.13.12: reference-sequence domains, guided onboarding, update recommendations
+
+- 새 프로젝트 최초 진입 시 공통 내비게이션과 Kuro의 워크플로·작업 영역·인스펙터를 순서대로 강조하는 spotlight 투어가 표시됩니다. Mame은 처음 진입할 때 별도 투어를 제공합니다.
+- **모든 투어 건너뛰기**는 프로젝트별로 영속되며, `Esc`는 현재 투어만 닫습니다. 기존 프로젝트에는 자동 표시되지 않고, **도움말 → 가이드 투어 보기**에서 현재 도구의 투어를 재실행할 수 있습니다.
+- 앱 시작 시 GitHub 최신 공개 릴리스를 확인하여 설치 버전보다 새로운 경우에만 업데이트를 권장합니다. 네트워크 실패는 시작을 막지 않으며 **도움말 → 업데이트 확인**에서 수동 확인할 수 있습니다.
+- Kuro domain allocation now supports direct reference-sequence InterProScan annotation with sequence-hash caching and keeps reference-frame selection domains separate from UniProt accession-frame 3D domains.
+
+---
+
+## KURO 3D structure analysis (2026-07-01)
+
+v0.13.7 ~ v0.13.10 KURO 관련 변경 사항입니다.
+
+### Kuro
+
+- Output 단계에 **Candidate 3D structure analysis** 패널 추가: 3Dmol 뷰어, active/binding-site 강조, 공간 분산(무작위 matched-size null 대비, 백분위 `P1`/`P99`), Color legend(항목 클릭으로 3D 레이어 토글), surface, PNG export. dispersion·pLDDT·site 오버레이는 선정 필터가 아니라 해석·QC 보조이고, 무엇을 설계할지는 EVOLVEpro `y_pred` 랭킹이 결정. (v0.13.7~v0.13.8)
+- 매핑 서열을 로드된 구조에서 직접 파싱하도록 수정 — UniProt 서열 조회 실패 시 전부 dropped 되던 문제 해결. 패키지 앱의 `BLOSUM62` 데이터 부재 오류도 수정. (v0.13.8~v0.13.9)
+- 마젠타 오버레이 라벨을 "Interface" → **"Binding site"**(UniProt Binding site)로 정정, 히스토그램 백분위 `P1`/`P99` 표기, 3D 뷰어-우선 레이아웃. (v0.13.8)
+- 3D **Surface**(CSP blob worker 허용) 및 **Export PNG**(Tauri save 다이얼로그+fs) 동작 수정. (v0.13.10)
+
+### Releases
+
+- GitHub 릴리즈에 `SHA256SUMS.txt` 첨부 + Windows SmartScreen/체크섬/ macOS Gatekeeper 안내. 코드 서명이 없어 SmartScreen 경고 자체는 계속 뜸(무결성은 체크섬으로 검증). (v0.13.9)
+
+---
 ## MAME v0.13 update (2026-06-10)
 
 2026-06-10 MAME v0.13.0.1 ~ v0.13.3.0 변경 사항입니다.

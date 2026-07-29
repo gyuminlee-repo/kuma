@@ -60,6 +60,26 @@ class ConsensusCall:
     n_low_depth_positions: int = 0
     consensus_n_fraction: float = 0.0
     n_low_quality_bases: int = 0
+    # Per-well insertion-event evidence. Insertions are discarded from the
+    # reference-length consensus (same as samtools consensus default), so
+    # variant clones with only an in-frame insertion reach a WT-identical
+    # consensus and pass verdict unchallenged. These two counters surface
+    # the buried signal without altering the consensus sequence itself.
+    #
+    # Calibration (bench_v2 depth_50, 177 bp CDS, ~190 reads/well):
+    #   WT / SNV wells (G1-G3): max_indel_event_fraction <= 0.21
+    #   True deletion wells (G4 2bp del, G5 1bp HomoDel): >= 0.83
+    #   Synthetic proof cases (100% INS/DEL reads): 1.00
+    # A threshold of 0.50 provides a wide margin between noise (<=0.21)
+    # and true indel signal (>=0.83).
+    n_indel_event_positions: int = 0
+    max_indel_event_fraction: float = 0.0
+    # Longest contiguous run of ref positions whose deletion fraction exceeds
+    # majority (del_frac > 0.5). 0 = indel gate is insertion-driven (no del-
+    # majority run); 1 = isolated single-position deletion (review for an
+    # alignment artifact); >=2 = an N-bp contiguous deletion (more likely real).
+    # Informational only; does not change the consensus or the verdict gate.
+    max_del_run_length: int = 0
 
 
 def _reverse_complement(seq: str) -> str:
@@ -116,20 +136,26 @@ def call_consensus_with_metrics(
     consensus sequence or introducing a new frontend verdict enum.
 
     ``n_low_depth_positions`` counts positions whose total pileup depth is below
-    ``min_depth``. ``consensus_n_fraction`` captures all consensus ``N`` calls,
-    including low depth, deletion majority, ambiguous ties, and raw N votes.
-    ``n_low_quality_bases`` counts FASTQ bases excluded by ``min_base_quality``.
+    ``min_depth``. ``consensus_n_fraction`` is the no-call rate **within the
+    covered amplicon**: numerator and denominator both range over positions whose
+    pileup depth reaches ``min_depth``, so it captures deletion majority,
+    ambiguous ties, and raw N votes while ignoring reference positions the reads
+    never interrogate. ``n_low_quality_bases`` counts FASTQ bases excluded by
+    ``min_base_quality``.
     """
     ref_len = len(reference_seq)
 
     # per_position[ref_pos] = {base: count}
     per_position: list[dict[str, int]] = [defaultdict(int) for _ in range(ref_len)]
+    # insertion_events[ref_pos] = number of reads with insertion starting here
+    insertion_events: list[int] = [0] * ref_len
 
     n_low_quality_bases = 0
     for aln in alignments:
         n_low_quality_bases += _accumulate(
             aln,
             per_position,
+            insertion_events,
             min_base_quality=min_base_quality,
         )
 
@@ -138,6 +164,10 @@ def call_consensus_with_metrics(
     n_mixed_positions = 0
     max_minor_allele_fraction = 0.0
     n_low_depth_positions = 0
+    # Positions the amplicon actually interrogates at usable depth. Used as the
+    # consensus_n_fraction denominator (see below).
+    n_covered_positions = 0
+    n_covered_no_call = 0
     for pos in range(ref_len):
         counts = per_position[pos]
         total = sum(counts.values())
@@ -145,6 +175,7 @@ def call_consensus_with_metrics(
             n_low_depth_positions += 1
             out.append("N")
             continue
+        n_covered_positions += 1
 
         base_counts = {
             base: count for base, count in counts.items() if base.upper() in "ACGT"
@@ -162,13 +193,66 @@ def call_consensus_with_metrics(
         if best_base == "-" or best_count / total < 0.5:
             # Deletion majority or no clear winner → N (gap-free output).
             out.append("N")
+            n_covered_no_call += 1
         else:
-            out.append(best_base.upper() if best_base.upper() in "ACGT" else "N")
+            called = best_base.upper() if best_base.upper() in "ACGT" else "N"
+            out.append(called)
+            if called == "N":
+                n_covered_no_call += 1
 
     consensus_seq = "".join(out)
-    consensus_n_fraction = (
-        consensus_seq.count("N") / ref_len if ref_len > 0 else 0.0
-    )
+    # Amplicon-scoped no-call rate. The denominator is the set of positions the
+    # reads actually interrogate at usable depth, NOT the full reference length.
+    # A reference longer than the amplicon (a plasmid map carrying backbone/UTR,
+    # which translate/aa_translator.py explicitly supports) is all-N outside the
+    # amplicon by construction; dividing by ref_len made that structural gap look
+    # like a quality failure and drove every well to NO_CALL. Ragged read ends are
+    # excluded on the same grounds: they are a coverage shortfall, already reported
+    # via n_low_depth_positions, not a consensus-ambiguity signal.
+    # No position reached usable depth: nothing was callable, so the well is
+    # fully no-call (1.0), not vacuously clean (0.0). Matches the zero-read
+    # ConsensusResult in ingest/well_consensus.py.
+    if n_covered_positions > 0:
+        consensus_n_fraction = n_covered_no_call / n_covered_positions
+    else:
+        consensus_n_fraction = 1.0 if ref_len > 0 else 0.0
+
+    # Aggregate indel event signal.
+    # Deletion fraction: deletion votes / (base votes + deletion votes) per pos.
+    # Insertion fraction: insertion events / base depth at anchor pos.
+    # max_indel_event_fraction = max across all positions of either fraction.
+    max_indel_event_fraction = 0.0
+    n_indel_event_positions = 0
+    # Track the longest contiguous run of deletion-majority positions
+    # (del_frac > 0.5). pos iterates in ascending order, so a simple counter
+    # captures contiguity. Same 0.5 majority definition used for base calls.
+    max_del_run = 0
+    cur_del_run = 0
+    for pos in range(ref_len):
+        counts = per_position[pos]
+        depth_pos = sum(counts.values())
+        del_votes = counts.get("-", 0)
+        base_depth = depth_pos - del_votes  # reads that voted a base
+        ins_ev = insertion_events[pos]
+        # Spanning depth: reads that covered this position (base votes + del
+        # votes). Inserting reads always vote a base at the anchor M op before
+        # the I op, so they are already counted in base_depth. Using depth_pos
+        # as the denominator guarantees ins_frac <= 1.0 whenever ins_ev <=
+        # depth_pos (true by construction: every inserting read contributed a
+        # base vote at the anchor). del_frac uses the same denominator for
+        # consistency; del_votes is a subset of depth_pos so del_frac <= 1.0.
+        ins_frac = ins_ev / depth_pos if depth_pos > 0 else 0.0
+        del_frac = del_votes / depth_pos if depth_pos > 0 else 0.0
+        pos_max = max(ins_frac, del_frac)
+        if pos_max > max_indel_event_fraction:
+            max_indel_event_fraction = pos_max
+        if pos_max >= 0.05:
+            n_indel_event_positions += 1
+        if del_frac > 0.5:
+            cur_del_run += 1
+            max_del_run = max(max_del_run, cur_del_run)
+        else:
+            cur_del_run = 0
 
     return ConsensusCall(
         consensus_seq=consensus_seq,
@@ -177,6 +261,9 @@ def call_consensus_with_metrics(
         n_low_depth_positions=n_low_depth_positions,
         consensus_n_fraction=consensus_n_fraction,
         n_low_quality_bases=n_low_quality_bases,
+        n_indel_event_positions=n_indel_event_positions,
+        max_indel_event_fraction=max_indel_event_fraction,
+        max_del_run_length=max_del_run,
     )
 
 
@@ -189,6 +276,7 @@ def _phred33(qual: str, idx: int) -> int | None:
 def _accumulate(
     aln: Alignment,
     per_position: list[dict[str, int]],
+    insertion_events: list[int],
     min_base_quality: int,
 ) -> int:
     """Walk a single alignment's CIGAR and add base votes to per_position.
@@ -198,6 +286,11 @@ def _accumulate(
     - ``q_pos``: current position on the query (read) sequence (0-based).
 
     The query sequence is reverse-complemented when ``aln.strand == -1``.
+
+    ``insertion_events[ref_pos]`` is incremented for each read that carries an
+    insertion starting at ``ref_pos`` (anchored at the base just before the
+    inserted sequence).  This lets callers track insertion evidence per
+    reference position without altering the consensus length.
     """
     # Prepare query sequence oriented to the forward strand.
     if aln.strand == -1:
@@ -242,6 +335,11 @@ def _accumulate(
         elif op == _CIGAR_I:
             # Insertion: advance query only; insertions are not represented in
             # the reference-length output (same as samtools consensus default).
+            # Track the event count at the ref_pos just before the insertion
+            # so callers can detect insertion-bearing wells.
+            rp = ref_pos - 1
+            if 0 <= rp < ref_len:
+                insertion_events[rp] += 1
             q_pos += length
 
         elif op == _CIGAR_S:

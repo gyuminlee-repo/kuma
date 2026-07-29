@@ -11,7 +11,6 @@ import type {
   SdmPrimerResult,
   PolymeraseProfile,
   RescuedMutation,
-  CustomEnzyme,
 } from "../../types/models";
 import {
   addDesignResultState,
@@ -56,11 +55,6 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
   fillOnFailure: true,
   tmTolerance: 4.0,
   overlapMode: "partial",
-  designMethod: "overlap",
-  enzyme: "BsaI",
-  typeiisEnzymes: [],
-  prefixOverride: "",
-  forbiddenOverhangs: "",
   randomSeed: null,
   manuallySwapped: {},
   customCandidates: {},
@@ -89,9 +83,11 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       const profile = await sendRequest("get_polymerase_details", { name });
       set({
         selectedPolymerase: name,
-        tmFwdTarget: profile.opt_tm_fwd ?? profile.opt_tm,
-        tmRevTarget: profile.opt_tm_rev ?? profile.opt_tm,
-        tmOverlapTarget: profile.opt_tm_overlap ?? profile.opt_tm,
+        // Method-level SDM targets (Landwehr et al. 2025 SI Fig. S4), mirroring
+        // the engine fallback in sdm_engine.py. Never derive from opt_tm.
+        tmFwdTarget: profile.opt_tm_fwd ?? 62,
+        tmRevTarget: profile.opt_tm_rev ?? 58,
+        tmOverlapTarget: profile.opt_tm_overlap ?? 42,
         gcMin: profile.min_gc,
         gcMax: profile.max_gc,
         overlapMode: profile.default_overlap_mode ?? "partial",
@@ -109,29 +105,6 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       set({ statusMessage: `Saved custom polymerase: ${profile.name}` });
     } catch (err) {
       set({ statusMessage: `Custom polymerase save failed: ${formatError(err)}` });
-      throw err;
-    }
-  },
-
-  loadTypeiisEnzymes: async () => {
-    try {
-      const typeiisEnzymes = await sendRequest("list_typeiis_enzymes", {});
-      const current = get().enzyme;
-      const names = typeiisEnzymes.map((e) => e.name);
-      const next = names.includes(current) ? current : typeiisEnzymes[0]?.name ?? current;
-      set({ typeiisEnzymes, enzyme: next });
-    } catch (err) {
-      set({ statusMessage: `Type IIS enzyme list load failed: ${formatError(err)}` });
-    }
-  },
-
-  saveCustomEnzyme: async (enzyme: CustomEnzyme) => {
-    try {
-      await sendRequest("save_custom_enzyme", { ...enzyme });
-      await get().loadTypeiisEnzymes();
-      set({ enzyme: enzyme.name, statusMessage: `Saved custom enzyme: ${enzyme.name}` });
-    } catch (err) {
-      set({ statusMessage: `Custom enzyme save failed: ${formatError(err)}` });
       throw err;
     }
   },
@@ -156,10 +129,6 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       revLenMax,
       fillOnFailure,
       overlapMode,
-      designMethod,
-      enzyme,
-      prefixOverride,
-      forbiddenOverhangs,
       mutationInputMode,
       selectedPolymerase,
       randomSeed,
@@ -186,9 +155,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
     });
     const { sendCount, isEvolveMode } = initialPrep;
 
-    const activeEvolveproPath = state.evolveproMode === "others"
-      ? state.othersSourcePath
-      : state.evolveproCsvPath;
+    const activeEvolveproPath = state.evolveproCsvPath;
     if (isEvolveMode && activeEvolveproPath) {
       state.cancelDiversityReload();
       try {
@@ -251,13 +218,9 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         revLenMin,
         revLenMax,
         overlapMode,
-        designMethod,
-        enzyme,
         rescuePool: prepared.rescuePool,
         tolMax: state.tmTolerance,
         randomSeed,
-        prefixOverride,
-        forbiddenOverhangs,
       });
       const result = await sendRequest("design_sdm_primers", payload, 300_000);
       if (result.cancelled) {
@@ -291,9 +254,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         statusMessage: processed.statusMessage,
       });
 
-      const fillSourcePath = get().evolveproMode === "others"
-        ? get().othersSourcePath
-        : get().evolveproCsvPath;
+      const fillSourcePath = get().evolveproCsvPath;
       if (fillOnFailure && isEvolveMode && fillSourcePath) {
         await get().loadEvolveproCsv(fillSourcePath);
       }
@@ -486,9 +447,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
     // If an EVOLVEpro CSV failed to load (mutationText cleared but path retained),
     // re-trigger load so user can recover by adjusting the mutation count.
     const isEvolvepro = state.mutationInputMode === "evolvepro";
-    const activeEvolveproPath = state.evolveproMode === "others"
-      ? state.othersSourcePath
-      : state.evolveproCsvPath;
+    const activeEvolveproPath = state.evolveproCsvPath;
     const loadFailed =
       isEvolvepro && !!activeEvolveproPath && state.evolveproTotalCount === 0 &&
       !state.mutationText.trim();
@@ -519,10 +478,6 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
   },
 
   setOverlapMode: (mode) => set({ overlapMode: mode }),
-  setDesignMethod: (method) => set({ designMethod: method }),
-  setEnzyme: (enzyme) => set({ enzyme }),
-  setPrefixOverride: (value: string) => set({ prefixOverride: value }),
-  setForbiddenOverhangs: (value: string) => set({ forbiddenOverhangs: value }),
 
   setRandomSeed: (seed: number | null) => set({ randomSeed: seed }),
 

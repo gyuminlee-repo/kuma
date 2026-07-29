@@ -32,7 +32,6 @@ logger = get_logger("sidecar_kuro")
 
 _KURO_DIR = kuma_home() / "kuro"
 _CUSTOM_POLYMERASE_PATH = _KURO_DIR / "custom_polymerases.json"
-_CUSTOM_ENZYME_PATH = _KURO_DIR / "custom_enzymes.json"
 _CONFIG_PATH = _KURO_DIR / "config.json"
 _poly_registry = PolymeraseRegistry(custom_path=_CUSTOM_POLYMERASE_PATH)
 _codon_registry = CodonTableRegistry()
@@ -95,6 +94,7 @@ class SidecarState:
     plate_mappings: list[PlateMapping] = field(default_factory=list)
     dedup_info: dict[str, list[str]] = field(default_factory=dict)
     template: tuple[str, str] = ("", "")  # (fasta_path, sequence)
+    polymerase: str = ""  # last-designed polymerase name, for Ta serialization
     ca_coords: list[tuple[float, float, float] | None] | None = None  # AlphaFold Cα coordinates
     ca_coords_accession: str | None = None
     active_design_cancel: threading.Event | None = None
