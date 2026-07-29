@@ -35,7 +35,6 @@ from sidecar_mame.handlers.demux import handle_demux_and_filter
 from sidecar_mame.handlers.health import handle_get_run_health
 from sidecar_mame.handlers.activity import (
     ExportBlockedError,
-    handle_activity_export_evolvepro_csv,
     handle_activity_export_evolvepro_xlsx,
     handle_activity_merge,
     handle_activity_set_plate_meta,
@@ -99,7 +98,6 @@ _METHODS = {
     "activity.upload": handle_activity_upload,
     "activity.set_plate_meta": handle_activity_set_plate_meta,
     "activity.merge": handle_activity_merge,
-    "activity.export_evolvepro_csv": handle_activity_export_evolvepro_csv,
     "activity.export_evolvepro_xlsx": handle_activity_export_evolvepro_xlsx,
     # Phase B: replicate merge + label-swap guard
     "mame.activity.merge_for_evolvepro": handle_merge_for_evolvepro,

@@ -9,7 +9,6 @@ Handler functions take `params: dict` and read/write the module-level
 
 from __future__ import annotations
 
-import csv
 import pytest
 from pathlib import Path
 
@@ -17,7 +16,6 @@ from sidecar_mame.handlers.activity import (
     handle_activity_upload,
     handle_activity_set_plate_meta,
     handle_activity_merge,
-    handle_activity_export_evolvepro_csv,
     handle_merge_for_evolvepro,
     ExportBlockedError,
     _rounds,
@@ -271,88 +269,6 @@ class TestHandleActivityMerge:
         res = handle_activity_merge({"round_id": "round_1"})
         assert res["merged"] == []
         assert res["stats"]["n_total_wells"] == 0
-
-
-# ---------------------------------------------------------------------------
-# activity.export_evolvepro_csv
-# ---------------------------------------------------------------------------
-
-class TestHandleActivityExportEvolveproCsv:
-    def _setup_merged_round(self) -> None:
-        _rounds["round_1"] = {
-            "n": 1,
-            "plate_meta": {"plates": []},
-            "design": {},
-            "genotype": {},
-            "activity": None,
-            "merged_table": [
-                {
-                    "plate_id": "P01", "well_id": "B03",
-                    "mutation": "F89W", "mutation_source": "kuro_design",
-                    "expected_mutation": "F89W", "called_mutation": "F89W",
-                    "ngs_success": True,
-                    "activity_raw_mean": 2.0, "activity_raw_sd": 0.1,
-                    "activity_replicates": [2.0], "replicate_n": 1,
-                    "fold_change": 2.0, "log2_fc": 1.0,
-                },
-                {
-                    "plate_id": "P01", "well_id": "A01",
-                    "mutation": "WT", "mutation_source": "kuro_design",
-                    "expected_mutation": None, "called_mutation": None,
-                    "ngs_success": True,
-                    "activity_raw_mean": 1.0, "activity_raw_sd": None,
-                    "activity_replicates": [1.0], "replicate_n": 1,
-                    "fold_change": 1.0, "log2_fc": 0.0,
-                },
-            ],
-            "status": "activity_linked",
-        }
-
-    def test_happy_path_writes_csv(self, tmp_path: Path):
-        self._setup_merged_round()
-        out = tmp_path / "evolvepro.csv"
-
-        res = handle_activity_export_evolvepro_csv({
-            "round_id": "round_1",
-            "path": str(out),
-        })
-
-        assert res["written_rows"] == 1  # WT excluded
-        assert out.exists()
-        assert "columns" in res
-        assert "variant" in res["columns"]
-
-    def test_output_csv_content(self, tmp_path: Path):
-        self._setup_merged_round()
-        out = tmp_path / "out.csv"
-        handle_activity_export_evolvepro_csv({"round_id": "round_1", "path": str(out)})
-
-        with open(out) as f:
-            reader = csv.DictReader(f)
-            rows = list(reader)
-        assert len(rows) == 1
-        assert rows[0]["variant"] == "F89W"
-        assert abs(float(rows[0]["y_pred"]) - 1.0) < 1e-6
-
-    def test_missing_merged_table_raises_runtime_error(self):
-        _rounds["round_1"] = {
-            "n": 1, "plate_meta": {"plates": []},
-            "design": {}, "genotype": {}, "activity": None,
-            "merged_table": [],  # empty — no prior merge
-            "status": "ngs_done",
-        }
-        # Empty merged_table is valid — writes 0 rows, no error
-        # Test that missing round still raises
-        with pytest.raises(RuntimeError, match="Round not found"):
-            handle_activity_export_evolvepro_csv({"round_id": "no_round", "path": "/tmp/x.csv"})
-
-    def test_invalid_output_extension_raises_value_error(self, tmp_path: Path):
-        self._setup_merged_round()
-        with pytest.raises(ValueError, match="Unsupported file extension"):
-            handle_activity_export_evolvepro_csv({
-                "round_id": "round_1",
-                "path": str(tmp_path / "out.xlsx"),
-            })
 
 
 # ---------------------------------------------------------------------------

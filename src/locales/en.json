@@ -1481,8 +1481,6 @@
   },
   "mainShell": {
     "alreadyRunning": "Already running.",
-    "scratchSuffix": "Scratch",
-    "workspaceFallback": "Workspace",
     "autosave": {
       "on": "Autosave on",
       "saving": "Saving…",

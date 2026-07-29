@@ -1460,8 +1460,6 @@
   },
   "mainShell": {
     "alreadyRunning": "Уже запущено.",
-    "scratchSuffix": "Scratch",
-    "workspaceFallback": "Workspace",
     "autosave": {
       "on": "Autosave включён",
       "saving": "Сохранение…",

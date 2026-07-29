@@ -1460,8 +1460,6 @@
   },
   "mainShell": {
     "alreadyRunning": "Ya está en ejecución.",
-    "scratchSuffix": "Scratch",
-    "workspaceFallback": "Workspace",
     "autosave": {
       "on": "Autoguardado activo",
       "saving": "Guardando…",

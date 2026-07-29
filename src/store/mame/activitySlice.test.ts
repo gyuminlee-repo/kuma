@@ -242,22 +242,4 @@ describe("activitySlice", () => {
       expect(store.getState().lastReplicateStats).toBeNull()
     })
   })
-
-  describe("exportEvolveproCsv", () => {
-    it("calls activity.export_evolvepro_csv RPC", async () => {
-      mockSendRequest.mockResolvedValueOnce({ path: "/output.csv" })
-      await store.getState().exportEvolveproCsv("round_1", "/output.csv")
-      expect(mockSendRequest).toHaveBeenCalledWith(
-        "activity.export_evolvepro_csv",
-        { round_id: "round_1", path: "/output.csv" },
-        expect.any(Number)
-      )
-    })
-
-    it("sets isExporting false after success", async () => {
-      mockSendRequest.mockResolvedValueOnce({})
-      await store.getState().exportEvolveproCsv("round_1", "/out.csv")
-      expect(store.getState().isExporting).toBe(false)
-    })
-  })
 })

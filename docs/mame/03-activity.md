@@ -78,7 +78,6 @@ reports-mode 는 replicate 마다 각각 나눈다. WT 블록이 없으면 `Valu
 |---|---|---|---|
 | `build_evolvepro_input` xlsx | `EVOLVEpro` / `Variant`, `activity` | 선형 상대활성 | **다음 라운드 EVOLVEpro 입력 (정본)** |
 | `export_evolvepro_xlsx` | 같음 | 선형 | genotype route 의 같은 용도 산출 |
-| `export_evolvepro_csv` | `variant`, `y_pred`, `round_n`, `plate_id`, `well_id`, `activity_raw_mean`, `activity_raw_sd` | **log2** | KURO in-repo 왕복용. EVOLVEpro 입력 아님 |
 | `verdict.xlsx` | 96-well Final Excel (column-major) | 해당 없음 | NGS 판정 확인 |
 
 `Variant` 는 앞 아미노산을 뗀 축약 표기다 (`V547I` → `547I`). EVOLVEpro 가 받는 실제 형식이 이것이다.

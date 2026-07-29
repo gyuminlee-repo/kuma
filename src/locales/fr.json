@@ -1460,8 +1460,6 @@
   },
   "mainShell": {
     "alreadyRunning": "Déjà en cours d'exécution.",
-    "scratchSuffix": "Scratch",
-    "workspaceFallback": "Espace de travail",
     "autosave": {
       "on": "Autosave activé",
       "saving": "Enregistrement…",

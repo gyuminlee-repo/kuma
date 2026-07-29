@@ -88,11 +88,6 @@ export interface ActivitySliceActions {
    */
   mergeActivity: (round_id: string) => Promise<void>
   /**
-   * EVOLVEpro CSV 내보내기.
-   * activity.export_evolvepro_csv RPC 호출.
-   */
-  exportEvolveproCsv: (round_id: string, path: string) => Promise<void>
-  /**
    * EVOLVEpro xlsx 내보내기 (혜민 spec v0.3 §2.4).
    * activity.export_evolvepro_xlsx RPC 호출.
    */
@@ -213,21 +208,6 @@ export function createActivityStore(roundStore: RoundStoreRef) {
       } finally {
         void stopKeepAwake()
         set({ isMerging: false })
-      }
-    },
-
-    exportEvolveproCsv: async (round_id, path) => {
-      set({ isExporting: true, exportError: null })
-      try {
-        await sendRequest(
-          "activity.export_evolvepro_csv",
-          { round_id, path },
-          RPC_TIMEOUT_MS
-        )
-      } catch (err) {
-        set({ exportError: formatError(err) })
-      } finally {
-        set({ isExporting: false })
       }
     },
 
