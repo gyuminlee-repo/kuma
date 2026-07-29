@@ -11,7 +11,11 @@
 
 import { sendRequest } from "@/lib/ipc-mame";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
-import type { JanusExportFormat, JanusExportResult } from "@/types/mame/models";
+import type {
+  JanusDestLayout,
+  JanusExportFormat,
+  JanusExportResult,
+} from "@/types/mame/models";
 
 /**
  * Build the default Janus output path for a given project directory.
@@ -41,17 +45,21 @@ export function buildJanusDefaultPath(
  *
  * @param outputPath  Absolute path for the output file.
  * @param format      "csv" (default) or "xlsx".
+ * @param destLayout  "source" (default, dest mirrors source well) or
+ *                    "compact" (dest assigned sequentially from A1).
  * @returns           Resolved output path and format from sidecar.
  */
 export async function handleExportMameJanusMapping(
   outputPath: string,
   format: JanusExportFormat = "csv",
+  destLayout: JanusDestLayout = "source",
 ): Promise<JanusExportResult> {
   useMameAppStore.setState({ isExporting: true });
   try {
     return await sendRequest<JanusExportResult>("export_janus_mapping", {
       output: outputPath,
       format,
+      dest_layout: destLayout,
     });
   } finally {
     useMameAppStore.setState({ isExporting: false });

@@ -757,6 +757,16 @@
         "description": "최종 cell-stock Janus 매핑 파일 (K4 spec)을 CSV 또는 XLSX로 내보냅니다.",
         "formatLabel": "형식",
         "formatAriaLabel": "Janus 매핑 내보내기 형식",
+        "destLayoutLabel": "대상 배치",
+        "destLayoutAriaLabel": "Janus 대상 well 배치",
+        "destLayoutOption": {
+          "source": "Source 위치",
+          "compact": "A1부터 순차 배치"
+        },
+        "destLayoutHint": {
+          "source": "dest_well이 source plate 위치를 그대로 따릅니다. 두 pick이 같은 well에 겹치면 내보내기가 실패합니다.",
+          "compact": "dest_well을 priority 순서대로 A1부터 순차 배정하여 빈 well을 남기지 않습니다."
+        },
         "outputPathLabel": "출력 파일 경로",
         "outputPathPlaceholder": "저장할 .{{ext}} 파일 경로",
         "outputPathAriaLabel": "Janus 매핑 출력 파일 경로",

@@ -83,15 +83,82 @@ def _custom_barcode_to_seq(custom: str) -> int | None:
     return (f - 1) * 8 + r
 
 
+def _check_wells_resolved(bad_barcodes: list[tuple[str, str]]) -> None:
+    """Reject rows whose ``custom_barcode`` could not be mapped to a well.
+
+    A blank well silently shipped to JANUS is an unusable instruction, so the
+    export fails instead of emitting it (no silent fallback).
+    """
+    if not bad_barcodes:
+        return
+    detail = ", ".join(f"{mid} (custom_barcode={cb!r})" for mid, cb in bad_barcodes)
+    raise ValueError(
+        "Janus mapping: unparseable custom_barcode, well position unknown for "
+        f"{len(bad_barcodes)} mutant(s): {detail}. "
+        "Expected '<row>_<col>' with row 1-8 and col 1-12."
+    )
+
+
+def _check_plate_capacity(rows: list[dict[str, object]]) -> None:
+    """Reject selections larger than one 96-well destination plate.
+
+    Runs before compact reassignment so the message names the real problem
+    rather than surfacing ``seq_to_well``'s internal range error.
+    """
+    if len(rows) > 96:
+        raise ValueError(
+            f"Janus mapping: {len(rows)} picks exceed the 96-well destination "
+            "plate capacity. Reduce the selection to at most 96 clones."
+        )
+
+
+def _check_dest_unique(rows: list[dict[str, object]]) -> None:
+    """Reject duplicate ``dest_well`` (JANUS would double-dispense one well).
+
+    Duplicates arise in source layout when two plates carry a pick at the same
+    position, which is normal in multi-plate runs, so the message names the
+    compact layout as the way out.
+    """
+    seen: dict[str, list[str]] = {}
+    for row in rows:
+        seen.setdefault(str(row["dest_well"]), []).append(str(row["name"]))
+    dups = {well: names for well, names in seen.items() if len(names) > 1}
+    if dups:
+        detail = "; ".join(
+            f"{well} <- {', '.join(names)}" for well, names in sorted(dups.items())
+        )
+        raise ValueError(
+            "Janus mapping: duplicate dest_well would dispense multiple clones "
+            f"into the same well: {detail}. "
+            "Use dest_layout='compact' to assign destinations sequentially."
+        )
+
+
 def _build_janus_rows(
     replicates: list[ReplicateResult],
+    dest_layout: str = "source",
 ) -> list[dict[str, object]]:
     """Build sorted Janus mapping rows from replicate results.
 
     Only includes mutants that have a confirmed selected plate (not failed).
     Rows are sorted by ``priority_score`` DESC.
+
+    *dest_layout* controls ``dest_well`` assignment:
+
+    - ``"source"`` (default): ``dest_well`` mirrors ``source_well``.
+    - ``"compact"``: destinations are assigned sequentially from A1 in sorted
+      (priority DESC) order, following the column-major ``seq_to_well``
+      convention (A1, B1, ... H1, A2, ...).
+
+    Raises ``ValueError`` on empty wells, >96 rows, or duplicate destinations.
     """
+    if dest_layout not in ("source", "compact"):
+        raise ValueError(
+            f"Invalid dest_layout {dest_layout!r}. Expected 'source' or 'compact'."
+        )
+
     rows: list[dict[str, object]] = []
+    bad_barcodes: list[tuple[str, str]] = []
 
     for rr in replicates:
         if rr.failed or rr.selected_plate is None:
@@ -106,6 +173,7 @@ def _build_janus_rows(
         seq = _custom_barcode_to_seq(custom_barcode)
         if seq is None or not (1 <= seq <= 96):
             well_label = ""
+            bad_barcodes.append((rr.mutant_id, custom_barcode))
         else:
             well_label = seq_to_well(seq)
 
@@ -126,6 +194,18 @@ def _build_janus_rows(
 
     # Sort by priority DESC (high-volume first per §2.5 recommendation).
     rows.sort(key=lambda r: float(r["priority_score"]), reverse=True)  # type: ignore[arg-type]
+
+    # Empty-well and capacity checks run before compact reassignment so the
+    # capacity error names the picks instead of tripping seq_to_well's range.
+    _check_wells_resolved(bad_barcodes)
+    _check_plate_capacity(rows)
+
+    if dest_layout == "compact":
+        for idx, row in enumerate(rows):
+            row["dest_well"] = seq_to_well(idx + 1)
+
+    # Duplicate check runs in both modes (defensive; unreachable in compact).
+    _check_dest_unique(rows)
     return rows
 
 
@@ -201,6 +281,7 @@ def export_mame_janus_csv(
     replicates: list[ReplicateResult],
     output_path: Path,
     ngs_run_meta: "NgsRunMeta | None" = None,
+    dest_layout: str = "source",
 ) -> Path:
     """Export final cell-stock Janus mapping as CSV.
 
@@ -215,8 +296,12 @@ def export_mame_janus_csv(
 
     Phase 1: priority_score = file_size_kb proxy.
     G6/A6 round: replace with BarcodeRecord.read_count when available.
+
+    *dest_layout* is ``"source"`` (dest mirrors source position, default) or
+    ``"compact"`` (destinations assigned sequentially from A1 in sorted order).
+    Raises ``ValueError`` on unresolved wells, >96 picks, or duplicate dests.
     """
-    rows = _build_janus_rows(replicates)
+    rows = _build_janus_rows(replicates, dest_layout=dest_layout)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("w", newline="", encoding="utf-8") as fh:
@@ -234,6 +319,7 @@ def export_mame_janus_xlsx(
     output_path: Path,
     ngs_run_meta: "NgsRunMeta | None" = None,
     kuma_version: str = "",
+    dest_layout: str = "source",
 ) -> Path:
     """Export final cell-stock Janus mapping as XLSX.
 
@@ -244,11 +330,13 @@ def export_mame_janus_xlsx(
     The sheet is always written (placeholder when meta is ``None``).
 
     Phase 1: priority_score = file_size_kb proxy.
+
+    *dest_layout* behaves exactly as in ``export_mame_janus_csv``.
     """
     import openpyxl
     from openpyxl.styles import Font
 
-    rows = _build_janus_rows(replicates)
+    rows = _build_janus_rows(replicates, dest_layout=dest_layout)
 
     wb = openpyxl.Workbook()
     ws = wb.active

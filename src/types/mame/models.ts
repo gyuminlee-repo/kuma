@@ -196,6 +196,18 @@ export interface JanusExportResult {
 
 export type JanusExportFormat = "csv" | "xlsx";
 
+/**
+ * Destination-well assignment strategy for the Janus mapping export.
+ *
+ * - "source": dest_well mirrors the source plate position (default).
+ * - "compact": dest_well is assigned sequentially from A1 in priority order,
+ *   leaving no gaps on the destination plate.
+ *
+ * Mirrors the ``dest_layout`` param of the ``export_janus_mapping`` RPC
+ * (python-core/sidecar_mame/handlers/export.py).
+ */
+export type JanusDestLayout = "source" | "compact";
+
 export type RunReportFormat = "html" | "pdf";
 
 export interface RunReportResult {

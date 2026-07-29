@@ -652,6 +652,16 @@
         "description": "Export die final cell-stock Janus mapping Datei (K4 spec) as CSV oder XLSX.",
         "formatLabel": "Format",
         "formatAriaLabel": "Janus mapping export Format",
+        "destLayoutLabel": "Ziel-Layout",
+        "destLayoutAriaLabel": "Janus Ziel well Layout",
+        "destLayoutOption": {
+          "source": "Source Position",
+          "compact": "Kompakt ab A1"
+        },
+        "destLayoutHint": {
+          "source": "dest_well übernimmt die Position der source plate. Der Export schlägt fehl, wenn zwei picks im selben well landen.",
+          "compact": "dest_well wird in priority Reihenfolge ab A1 fortlaufend vergeben, ohne leere wells."
+        },
         "outputPathLabel": "Ausgabe-Dateipfad",
         "outputPathPlaceholder": "Target .{{ext}} Datei Pfad",
         "outputPathAriaLabel": "Ausgabe Datei Pfad für Janus mapping",

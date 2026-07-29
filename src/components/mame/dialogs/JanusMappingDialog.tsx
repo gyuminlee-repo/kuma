@@ -3,6 +3,7 @@
  *
  * Provides:
  *  - CSV / XLSX format selection (radio group)
+ *  - Destination layout selection (source position vs compact from A1)
  *  - Output path with Browse button
  *  - Export button that calls sidecar `export_janus_mapping` RPC
  *  - Success / error feedback inline
@@ -30,7 +31,7 @@ import { Label } from "@/components/ui/label";
 import { JanusDeckPreview } from "@/components/mame/widgets/JanusDeckPreview";
 import { buildJanusDefaultPath, handleExportMameJanusMapping } from "@/lib/mame/janus";
 import { fileExists, requestOverwriteConfirm } from "@/lib/overwriteConfirm";
-import type { JanusExportFormat } from "@/types/mame/models";
+import type { JanusDestLayout, JanusExportFormat } from "@/types/mame/models";
 
 interface JanusMappingDialogProps {
   open: boolean;
@@ -43,6 +44,7 @@ export function JanusMappingDialog({ open, onOpenChange }: JanusMappingDialogPro
 
   const storeIsExporting = useMameAppStore((s) => s.isExporting);
   const [format, setFormat] = useState<JanusExportFormat>("csv");
+  const [destLayout, setDestLayout] = useState<JanusDestLayout>("source");
   const [outputPath, setOutputPath] = useState<string>("");
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -84,7 +86,7 @@ export function JanusMappingDialog({ open, onOpenChange }: JanusMappingDialogPro
     setIsExporting(true);
     setExportError(null);
     try {
-      const result = await handleExportMameJanusMapping(target, format);
+      const result = await handleExportMameJanusMapping(target, format, destLayout);
       setLastExportPath(result.output_path);
       setOutputPath(result.output_path);
     } catch (err) {
@@ -134,6 +136,40 @@ export function JanusMappingDialog({ open, onOpenChange }: JanusMappingDialogPro
                 </label>
               ))}
             </div>
+          </fieldset>
+
+          <fieldset className="space-y-1.5">
+            <legend className="text-xs font-medium text-muted-foreground">
+              {t("mame.dialogs.janusMapping.destLayoutLabel")}
+            </legend>
+            <div
+              className="flex gap-4"
+              role="radiogroup"
+              aria-label={t("mame.dialogs.janusMapping.destLayoutAriaLabel")}
+            >
+              {(["source", "compact"] as const).map((layout) => (
+                <label
+                  key={layout}
+                  className="flex cursor-pointer items-center gap-2 text-sm"
+                >
+                  <input
+                    type="radio"
+                    name="janus-dest-layout"
+                    value={layout}
+                    checked={destLayout === layout}
+                    onChange={() => setDestLayout(layout)}
+                    className="accent-primary"
+                    aria-label={t(`mame.dialogs.janusMapping.destLayoutOption.${layout}`)}
+                  />
+                  <span className="font-medium">
+                    {t(`mame.dialogs.janusMapping.destLayoutOption.${layout}`)}
+                  </span>
+                </label>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {t(`mame.dialogs.janusMapping.destLayoutHint.${destLayout}`)}
+            </p>
           </fieldset>
 
           {/* Output path */}
