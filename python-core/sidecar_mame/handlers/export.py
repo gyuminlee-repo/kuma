@@ -149,8 +149,13 @@ def handle_export_janus_mapping(params: dict) -> dict:
     Params:
         output (str): destination file path (.csv or .xlsx).
         format (str, optional): "csv" (default) or "xlsx".
+        dest_layout (str, optional): "source" (default, dest_well mirrors the
+            source position) or "compact" (dest_well assigned sequentially from
+            A1 in priority order).
 
     Raises ``RuntimeError`` if no analyze has been run in this session.
+    Raises ``ValueError`` on an invalid argument, or when the core rejects the
+    row set (unresolved well, >96 picks, duplicate dest_well).
 
     Phase 1 note: priority_score column carries file_size_kb as a volume proxy.
     G6/A6 round will replace with actual read_count once fasta_parser exposes
@@ -172,6 +177,13 @@ def handle_export_janus_mapping(params: dict) -> dict:
     if fmt not in ("csv", "xlsx"):
         raise ValueError(f"Invalid format '{fmt}'. Expected 'csv' or 'xlsx'.")
 
+    # `or` (not a get default) so an explicit JSON null also falls back.
+    dest_layout = str(params.get("dest_layout") or "source").lower()
+    if dest_layout not in ("source", "compact"):
+        raise ValueError(
+            f"Invalid dest_layout '{dest_layout}'. Expected 'source' or 'compact'."
+        )
+
     # G3: pass cached run meta to embed in the Janus output.
     run_meta = state.last_run_meta  # NgsRunMeta | None
 
@@ -181,12 +193,14 @@ def handle_export_janus_mapping(params: dict) -> dict:
             output,
             ngs_run_meta=run_meta,  # type: ignore[arg-type]
             kuma_version=KUMA_VERSION,
+            dest_layout=dest_layout,
         )
     else:
         export_mame_janus_csv(
             state.last_replicates,
             output,
             ngs_run_meta=run_meta,  # type: ignore[arg-type]
+            dest_layout=dest_layout,
         )
 
     return {"output_path": str(output), "format": fmt}

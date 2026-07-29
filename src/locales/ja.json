@@ -655,6 +655,16 @@
         "description": "最終 cell-stock Janus マッピングファイル (K4 仕様) を CSV または XLSX でエクスポート。",
         "formatLabel": "形式",
         "formatAriaLabel": "Janus マッピングエクスポート形式",
+        "destLayoutLabel": "配置先レイアウト",
+        "destLayoutAriaLabel": "Janus 配置先 well レイアウト",
+        "destLayoutOption": {
+          "source": "Source 位置",
+          "compact": "A1 から順次配置"
+        },
+        "destLayoutHint": {
+          "source": "dest_well が source plate の位置をそのまま使用します。2 つの pick が同じ well になるとエクスポートは失敗します。",
+          "compact": "dest_well を priority 順に A1 から順次割り当て、空の well を残しません。"
+        },
         "outputPathLabel": "出力ファイルパス",
         "outputPathPlaceholder": "ターゲット .{{ext}} ファイルパス",
         "outputPathAriaLabel": "Janus マッピング出力ファイルパス",

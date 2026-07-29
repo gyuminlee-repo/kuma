@@ -655,6 +655,16 @@
         "description": "將最終的 cell-stock Janus mapping 檔案 (K4 spec) 匯出為 CSV 或 XLSX。",
         "formatLabel": "格式",
         "formatAriaLabel": "Janus mapping 匯出格式",
+        "destLayoutLabel": "目標配置",
+        "destLayoutAriaLabel": "Janus 目標 well 配置",
+        "destLayoutOption": {
+          "source": "Source 位置",
+          "compact": "從 A1 依序排列"
+        },
+        "destLayoutHint": {
+          "source": "dest_well 沿用 source plate 的位置。若兩個 pick 落在同一個 well，匯出將失敗。",
+          "compact": "dest_well 依 priority 順序從 A1 起依序分配，不留空 well。"
+        },
         "outputPathLabel": "輸出檔案路徑",
         "outputPathPlaceholder": "目標 .{{ext}} 檔案路徑",
         "outputPathAriaLabel": "Janus mapping 的輸出檔案路徑",
