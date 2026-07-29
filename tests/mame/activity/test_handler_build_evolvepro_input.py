@@ -123,3 +123,21 @@ def test_method_registered_in_dispatcher():
     assert _METHODS["mame.activity.build_evolvepro_input"] is (
         handle_build_evolvepro_input
     )
+
+
+def test_handler_rank_mode_two_files_is_provisional(tmp_path: Path):
+    """layout + GC data alone must build, flagged provisional (no confirmation)."""
+    out = tmp_path / "out.xlsx"
+    res = handle_build_evolvepro_input({
+        "layout_xlsx": str(_make_layout(tmp_path)),
+        "gc_data_xlsx": str(_make_gc(tmp_path)),
+        "output_xlsx": str(out),
+    })
+
+    assert res["mode"] == "rank"
+    assert res["confidence"] == "provisional"
+    assert res["output_path"] == str(out)
+    assert Path(res["output_path"]).exists()
+    assert res["n_variants"] == 2
+    assert res["n_authoritative"] == 0
+    assert res["n_fallback_only"] == 2

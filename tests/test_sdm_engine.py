@@ -572,7 +572,7 @@ class TestSdmTmTargetsAreMethodLevel:
             mt_codon="GTG",
         )
 
-    @pytest.mark.parametrize("name", ["Q5", "KOD", "Taq", "DreamTaq", "Benchling"])
+    @pytest.mark.parametrize("name", ["Q5", "KOD", "Taq", "DreamTaq", "Phusion"])
     def test_designed_tm_tracks_method_targets_not_opt_tm(
         self, template_sequence, mutation: Mutation, name: str
     ):
@@ -632,7 +632,7 @@ class TestDesignIsEnzymeIndependent:
     # Q5 SDM is excluded deliberately: it is a full-overlap kit profile with its own
     # length spec (fwd/rev 25-45, overlap_len None, default mode "full"), so it
     # designs differently for reasons of geometry, not Tm scale.
-    SHARED_LEN_SPEC = ["Benchling", "Taq", "Phusion", "Q5", "KOD", "DreamTaq", "TAKARA_GXL"]
+    SHARED_LEN_SPEC = ["KOD", "Taq", "Phusion", "Q5", "DreamTaq", "TAKARA_GXL"]
 
     def _design(self, genbank_path, mutations_csv, name: str):
         results, _cand, _fail = design_sdm_primers(
@@ -646,11 +646,12 @@ class TestDesignIsEnzymeIndependent:
 
     def test_all_profiles_design_byte_identical_primers(self, genbank_path, mutations_csv):
         designs = {n: self._design(genbank_path, mutations_csv, n) for n in self.SHARED_LEN_SPEC}
-        reference = designs["Benchling"]
-        assert reference, "Benchling reference design is empty"
+        ref_name = self.SHARED_LEN_SPEC[0]
+        reference = designs[ref_name]
+        assert reference, f"{ref_name} reference design is empty"
         for name, got in designs.items():
             assert got == reference, (
-                f"{name} designed different primers than Benchling: design must be "
+                f"{name} designed different primers than {ref_name}: design must be "
                 f"enzyme-independent (got {len(got)} vs {len(reference)} results)"
             )
 
@@ -666,7 +667,7 @@ class TestDesignIsEnzymeIndependent:
             fasta_path=genbank_path,
             target_start=TARGET_START,
             mutations_csv=mutations_csv,
-            polymerase="Benchling",
+            polymerase="KOD",
             overlap_len=18,
         )
         assert results, "no design to compute Ta from"

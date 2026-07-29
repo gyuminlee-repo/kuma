@@ -40,6 +40,11 @@ the two arguments in `design.py::_serialize_result`.
 
 ## Rules table
 
+**Correction (2026-07-21)**: the Benchling row records the state on 2026-07-16.
+That profile was removed in v0.13.20, since "Benchling" names the fixed
+design-time Tm scale rather than an enzyme. Seven profiles ship now and the
+default is KOD. The rest of this table is unchanged.
+
 | Profile | Ta Tm source | mode | Ta formula | 2-step promotion | touchdown | note |
 |---|---|---|---|---|---|---|
 | Benchling | primer3 (profile buffer) | 3-step | Tm(low) − 5 | none | none | reference profile, not an enzyme; select an actual enzyme for a usable Ta |

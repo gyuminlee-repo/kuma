@@ -17,6 +17,7 @@ import { KURO_SCHEMA } from "@/lib/kuroSnapshot";
 import { MAME_SCHEMA } from "@/lib/mame/autosaveSnapshot";
 import { detectProjectFiles, detectFromInputDir } from "@/lib/mame/detectProjectFiles";
 import { openWorkspace } from "@/lib/workspace";
+import { resolvePolymeraseName, retiredPolymeraseNotice } from "@/lib/polymeraseAliases";
 import { useAppStore } from "@/store/appStore";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { resetMameAll } from "@/store/mame/resetAll";
@@ -158,7 +159,18 @@ export async function applyKuroSnapshot(snapshot: AutosaveSnapshot): Promise<voi
 
   // parameters
   if (typeof params?.polymerase === "string") {
-    patch.selectedPolymerase = params.polymerase;
+    // Retired profiles are remapped here rather than via setSelectedPolymerase,
+    // so the snapshot GC range and overlap mode restored below are preserved.
+    const { name, retiredFrom } = resolvePolymeraseName(params.polymerase);
+    patch.selectedPolymerase = name;
+    if (retiredFrom) {
+      patch.statusMessage = retiredPolymeraseNotice(
+        retiredFrom,
+        name,
+        typeof params?.gc_min === "number" ? params.gc_min : useAppStore.getState().gcMin,
+        typeof params?.gc_max === "number" ? params.gc_max : useAppStore.getState().gcMax,
+      );
+    }
   }
   if (isCodonStrategy(params?.codon_strategy)) {
     patch.codonStrategy = params.codon_strategy;

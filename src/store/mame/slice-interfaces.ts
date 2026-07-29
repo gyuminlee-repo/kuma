@@ -1,4 +1,5 @@
 import type { SortingState, Updater } from "@tanstack/react-table";
+import type { BuildEvolveproCompletionRecord } from "@/lib/mame/buildEvolveproFormStorage";
 export type { MamePhase, PhaseSlice } from "./slices/phaseSlice";
 import type {
   AmpliconLengthEstimate,
@@ -75,6 +76,9 @@ export interface InputSlice {
   isDetectingBarcodes: boolean;
   // Well-layout confirm flow: null = not started; non-null = show confirm dialog.
   wellLayoutDraft: WellLayoutRow[] | null;
+  // What the 96-well ceiling forced out of the current draft. A truncated draft
+  // renders as a correct full plate, so the confirm dialog has to surface this.
+  wellLayoutOverflow: { droppedMutantIds: string[]; wtOmitted: boolean } | null;
   // Confirmed well->sample mapping; passed to analyze as highest-priority source.
   wellLayout: WellLayout | null;
   clearWellLayout: () => void;
@@ -163,6 +167,7 @@ export interface AnalysisSlice {
   wells: WellEntry[];
   selectedWell: WellEntry | null;
   runHealth: RunHealthData | null;
+  buildEvolveproCompletion: BuildEvolveproCompletionRecord | null;
   setVerdicts: (verdicts: VerdictRecord[]) => void;
   setReplicates: (replicates: ReplicateResult[]) => void;
   setSummary: (summary: AnalyzeSummary | null) => void;
@@ -173,6 +178,9 @@ export interface AnalysisSlice {
   closeExport: () => void;
   setWells: (wells: WellEntry[]) => void;
   setSelectedWell: (well: WellEntry | null) => void;
+  setBuildEvolveproCompletion: (
+    completion: BuildEvolveproCompletionRecord | null,
+  ) => void;
   loadPlateData: () => Promise<void>;
   loadRunHealth: () => Promise<void>;
   clearResults: () => void;

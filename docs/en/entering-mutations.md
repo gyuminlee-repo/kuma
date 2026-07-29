@@ -18,7 +18,11 @@ E335A
 
 ## EVOLVEpro CSV
 
-Required columns: variant identifier and a score column. Variant column name is auto-detected from `variant`, `variants`, `mutation`, `mutations`, `mutant`, `mutation_list` (first match wins). Score column from `y_pred`, `activity`, `score` (and common variants). Optional: `position`, `domain`.
+Only the variant identifier column is required. Its name is auto-detected from `variant`, `variants`, `mutation`, `mutations`, `mutant`, `mutation_list` (first match wins). The score column is optional and auto-detected from `y_pred`, `property_value`, `predicted_fitness`, `fitness`, `score`, `DMS_score`; rows without a score are read as 0.0, which leaves ranking, Pareto, and diversity selection meaningless but raises no error.
+
+Header matching ignores case, surrounding spaces, and the byte-order mark Excel writes, so `Variant`, `MUTATION`, and `" variant "` all resolve.
+
+When auto-detect misses, pick the columns yourself. The column mapping panel below the file picker lists the headers found in the file; choose the mutation and ranking columns, set the ranking direction, and apply. The panel populates as soon as a file is chosen, so a failed auto-detect does not block the file.
 
 Variant notation accepted:
 - Internal form `Q232A` (`{WT}{position}{MT}`)

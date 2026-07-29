@@ -304,10 +304,10 @@
       "warningsAriaLabel": "Warnings",
       "requiredStateLabel": "Required",
       "requireGcClampAriaLabel": "Require GC clamp on 3-prime end",
-      "polymeraseQ5Title": "NEB Q5 High-Fidelity. Tm preset ~72 °C, low Mg²⁺. Default choice for high-fidelity amplification.",
-      "polymeraseTaqTitle": "Standard Taq polymerase. Tm preset ~60 °C, higher Mg²⁺. Use for routine PCR or when 3'A overhangs are desired.",
-      "polymerasePhusionTitle": "Thermo Phusion High-Fidelity. Tm preset ~72 °C, blunt-end, fast extension.",
-      "polymeraseKODTitle": "Toyobo KOD One / KOD Hot Start. Tm preset ~68 °C with Mg²⁺/dNTP correction. High-fidelity, fast.",
+      "polymeraseQ5Title": "NEB Q5 High-Fidelity. Ta ~72 °C, low Mg²⁺. Default choice for high-fidelity amplification.",
+      "polymeraseTaqTitle": "Standard Taq polymerase. Ta ~60 °C, higher Mg²⁺. Use for routine PCR or when 3'A overhangs are desired.",
+      "polymerasePhusionTitle": "Thermo Phusion High-Fidelity. Ta ~72 °C, blunt-end, fast extension.",
+      "polymeraseKODTitle": "Toyobo KOD One / KOD Hot Start. Ta ~68 °C. High-fidelity, fast.",
       "autoDetect": {
         "button": "Auto-detect from CDS",
         "success": "Detected from {{source}}",
@@ -319,7 +319,7 @@
       "cdsCandidateNoneDetected": "No CDS detected. Enter coordinates manually.",
       "cdsCandidateHelp": "CDS candidate auto-detected from the FASTA. Coordinates apply on selection.",
       "geneNameHelp": "Short gene identifier used in output filenames and labels (e.g. egfp).",
-      "polymeraseHelp": "Polymerase profile used to set default Tm/binding constraints. Q5 recommended for high-fidelity PCR.",
+      "polymeraseHelp": "Polymerase recorded for the barcode PCR protocol. This is metadata only and does not drive any Tm or primer calculation.",
       "geneStartHelp": "CDS start coordinate (0-based, inclusive).",
       "geneEndHelp": "CDS end coordinate (0-based, exclusive).",
       "flankMinHelp": "Minimum flank length (nt) around CDS for barcode primer search. Default 100.",
@@ -327,7 +327,20 @@
       "bindingMinLenHelp": "Minimum primer binding length (nt). Typical 18-22 for stable PCR priming.",
       "bindingMaxLenHelp": "Maximum primer binding length (nt). Above 35 increases secondary structure risk.",
       "flankWarningUpstream": "Primer design may fail on a linear template: needs at least {{needed}} bp upstream of gene_start, but only {{available}} bp is available (short by {{shortfall}} bp).",
-      "flankWarningDownstream": "Primer design may fail on a linear template: needs at least {{needed}} bp downstream of gene_end, but only {{available}} bp is available (short by {{shortfall}} bp)."
+      "flankWarningDownstream": "Primer design may fail on a linear template: needs at least {{needed}} bp downstream of gene_end, but only {{available}} bp is available (short by {{shortfall}} bp).",
+      "cdsTooltipLabel": "Label: {{label}}",
+      "cdsTooltipRange": "Range: {{start}}-{{end}}",
+      "cdsTooltipLength": "Length: {{length}} aa",
+      "cdsTooltipSource": "Source: {{source}}",
+      "geneStartHelper": "Gene start in the reference. 0-based, inclusive.",
+      "geneEndHelper": "Gene end in the reference. 0-based, exclusive.",
+      "generatedFileLabels": {
+        "barcodes": "Barcode table (xlsx)",
+        "amplicon": "Amplicon reference (FASTA)",
+        "sampleMapTemplate": "Sample map template (xlsx)",
+        "contextJson": "Run context (JSON)"
+      },
+      "openFolderError": "Could not open the folder."
     },
     "activity": {
       "ingest": {
@@ -354,6 +367,15 @@
         "helpText": "Wells marked here serve as the wild-type baseline for activity fold-change normalization.",
         "suggestButton": "Suggest from control wells",
         "alreadySetTooltip": "WT wells already set"
+      },
+      "route": {
+        "heading": "EVOLVEpro input route",
+        "ariaLabel": "Choose how to generate the EVOLVEpro input",
+        "genotypeLabel": "Activity + NGS genotype",
+        "genotypeDesc": "Upload long-format well activity, merge with this round's NGS verdicts, then export.",
+        "plateLayoutLabel": "Plate layout + GC data",
+        "plateLayoutDesc": "Build directly from plate layout and GC data xlsx files. No NGS genotype required.",
+        "completeCurrentRoute": "Complete the selected Activity route"
       },
       "mergeExport": {
         "contextTitle": "Activity Data — Merge and Export",
@@ -396,20 +418,20 @@
         "menuLegacy": "Legacy output (CSV)",
         "menuEvolvepro": "EVOLVEpro v0.3 format (with WT normalization)",
         "desc": "Join uploaded activity with the round genotype and normalise by WT.",
-        "heading": "Merge activity with genotype"
+        "heading": "Merge activity with genotype",
+        "evolveproDesc": "Recommended: normalises replicates against WT and applies the label-swap guard.",
+        "legacyDesc": "Legacy CSV output without WT normalization or label-swap checks."
       },
-      "tabExport": "3. Export",
-      "tabIngest": "1. Ingest",
-      "tabMerge": "2. Merge",
-      "subtitle": "Enter this phase once wet-lab activity measurements are ready (typically days to weeks after Phase 1 Barcode Setup and Phase 2 Analyze). Load measurements, merge with genotype, then export the EVOLVEpro training input.",
-      "title": "Activity data"
+      "sectionIngest": "Upload activity",
+      "sectionMerge": "Merge with genotype",
+      "sectionExport": "Export EVOLVEpro input"
     },
     "buildEvolvepro": {
       "title": "Build EVOLVEpro Input",
-      "subtitle": "Combine the plate layout, GC data, Agilent replicate report, and previous EVOLVEpro file into one EVOLVEpro input xlsx.",
+      "subtitle": "Combine one round of activity measurements into a single EVOLVEpro input xlsx.",
       "inputFiles": "Input files",
       "layoutXlsx": "Plate layout xlsx",
-      "layoutXlsxHelper": "Mutant to well position mapping (Mutant, Well Pos. columns).",
+      "layoutXlsxHelper": "Mutant to well position mapping. Accepts the plate layout format (Mutant, Well Pos. columns) or the sample map from step 1 (sample_name, well columns).",
       "gcDataXlsx": "GC data xlsx",
       "gcDataXlsxHelper": "Pre-normalised relative activity per well (Sample Name, Area columns).",
       "repBatchXlsx": "Agilent replicate report xlsx",
@@ -427,7 +449,7 @@
       "build": "Build EVOLVEpro input",
       "building": "Building...",
       "resultTitle": "Build result",
-      "emptyState": "Select the four input files and an output path, then build the EVOLVEpro input.",
+      "emptyState": "Select the input files for the chosen source and an output path, then build the EVOLVEpro input.",
       "nVariants": "Variants written",
       "nAuthoritative": "From replicate report",
       "nFallbackOnly": "From GC data only",
@@ -446,7 +468,34 @@
       "toastSuccess": "EVOLVEpro input built",
       "toastSuccessDesc": "Wrote {{count}} variants.",
       "toastError": "EVOLVEpro input build failed",
-      "openFolder": "Open output folder"
+      "openFolder": "Open output folder",
+      "routeNote": "This route reads xlsx files directly and does not use the activity upload from the genotype-linked route.",
+      "sourceModeLabel": "Activity source",
+      "sourceModeRank": "GC data sheet",
+      "sourceModeReports": "Raw Agilent reports",
+      "sourceModeRankHelper": "Pre-normalised GC data per well, mapped to variants through the plate layout.",
+      "sourceModeReportsHelper": "Raw Agilent FID1B reports; fold-change is computed against the WT blocks in each report.",
+      "round1SourceLabel": "Round-1 source",
+      "round1SourcePrev": "Previous EVOLVEpro",
+      "round1SourceRaw": "Raw GC-FID report",
+      "round1SourcePrevHelper": "Use a prior EVOLVEpro file (Variant, activity) as the full round-1 baseline.",
+      "round1SourceRawHelper": "Use a raw GC-FID report with well names; the plate layout maps wells to variants.",
+      "round1EvolveproXlsx": "Round-1 EVOLVEpro xlsx",
+      "round1EvolveproXlsxHelper": "Previous-round EVOLVEpro xlsx (Variant, activity). Re-measured variants are replaced by their means.",
+      "round1ReportXlsx": "Round-1 report xlsx (raw GC-FID)",
+      "round1ReportXlsxHelper": "Raw Agilent FID1B report; sample names are well positions (A1..H12), with WT blocks.",
+      "gcExportXlsx": "Relative activity export xlsx (GC data shape)",
+      "gcExportXlsxHelper": "Optional review artifact. Writes the round-1 well-level relative activity (area / mean WT area) as Sample Name and Area columns, matching the GC data sheet.",
+      "remeasureReportXlsx": "Re-measure report xlsx (variant-labeled)",
+      "remeasureReportXlsxHelper": "Raw Agilent FID1B report; sample names are variant labels (e.g. V5F or 5F), repeated rows are replicates.",
+      "verdictXlsx": "NGS verdict xlsx",
+      "verdictXlsxHelper": "Analyze Excel report (Final sheet: well_id + verdict). Variants whose well is not PASS are excluded. Omit to skip NGS gating.",
+      "layoutXlsxOptionalHelper": "Only used to map variant to well for NGS verdict gating.",
+      "optionalStateLabel": "Optional",
+      "nNgsExcluded": "NGS-excluded",
+      "missingInputs": "Still needed",
+      "restoredNotice": "Paths were restored on this device. Clear them if they belong to another project.",
+      "clearRestored": "Clear restored EVOLVEpro inputs"
     },
     "runHealth": {
       "panelAriaLabel": "Run health panel",
@@ -921,6 +970,8 @@
       "sampleAriaLabel": "Sample name for well {{well}}",
       "empty": "No wells generated. Check that the expected_mutations xlsx is selected.",
       "rowCount": "{{count}} well(s) in layout",
+      "droppedMutants": "{{count}} mutant(s) do not fit this 96-well plate and are missing from the draft: {{mutants}}. The barcode space is 12 fwd x 8 rev, so split the campaign across plates and build one layout per plate.",
+      "wtOmitted": "The plate is full, so no well was left for the WT control. Without a declared WT well the clean-control check is lost.",
       "confirm": "Confirm layout"
     },
     "verdictBadge": {
@@ -1010,7 +1061,9 @@
     "legendDestPartial": "Only F or R arrived",
     "mappingRange": "Mapping range",
     "rowStart": "Start row",
-    "rowEnd": "End row"
+    "rowEnd": "End row",
+    "destWell": "Dest well",
+    "missing": "missing"
   },
   "globalAppBar": {
     "navAriaLabel": "Application navigation",
@@ -1042,7 +1095,7 @@
     "strategyOption_full": "Full overlap (Q5 SDM)",
     "strategyOption_full_title": "NEB Q5 SDM kit style. Reverse primer = reverse-complement of forward; a single back-to-back primer pair covers the mutation site.",
     "polymeraseLabel": "Polymerase:",
-    "polymeraseHelp": "Selects Tm calculation preset (extension Tm target + tolerance defaults).\nChoose the polymerase used in your SDM reaction.\nUse 'Custom Polymerase' to define your own extension Tm.",
+    "polymeraseHelp": "Selects the polymerase preset: the recommended annealing temperature (Ta) rule, the GC range, and the overlap mode.\nThe design-time Tm formula is fixed (SantaLucia 1998, Benchling scale) and does not follow the polymerase.\nChanging the polymerase overwrites the GC range, so re-check it if you set it by hand.\nUse 'Custom Polymerase' to define your own Tm targets.",
     "polymeraseManufacturer": "Manufacturer: {{manufacturer}}",
     "polymeraseFidelity": "Fidelity: {{fidelity}}",
     "customPolymerase": "Custom Polymerase",
@@ -1423,7 +1476,8 @@
     "cancel": "Cancel",
     "save": "Save",
     "saving": "Saving...",
-    "nebTmNote": "Tm for this NEB polymerase uses NEB Tm Calculator calibration; salt and Tm-method values below do not affect the computed Tm."
+    "nebTmNote": "For NEB polymerases the NEB Tm Calculator calibration applies to the recommended annealing temperature (Ta) only. The design-time Tm runs on the fixed SantaLucia 1998 (Benchling) scale, so the salt and Tm-method values below do not change it.",
+    "fieldScopeNote": "Read by the design engine: Fwd/Rev/Overlap Tm targets, GC range, primer length range, overlap mode. Stored but unused: Opt Tm, Min/Max Tm, Opt/Min/Max size, Max Tm diff. Salt and Tm-method values feed Ta only, and a custom profile carries no Ta rule, so no Ta is reported for it."
   },
   "mainShell": {
     "alreadyRunning": "Already running.",
@@ -1504,7 +1558,9 @@
     "mameWorkspaceTitle": "Work in the main Mame area",
     "mameWorkspaceBody": "Load run data, inspect genotype verdicts and plate results, then merge activity measurements for export.",
     "mameInspectorTitle": "Review Mame details",
-    "mameInspectorBody": "The inspector keeps controls and context for the current Mame step alongside the results."
+    "mameInspectorBody": "The inspector keeps controls and context for the current Mame step alongside the results.",
+    "mameRouteTitle": "Choose a Mame input route",
+    "mameRouteBody": "Use the genotype-linked route after uploading activity data, or the plate-layout route when you already have GC data xlsx files."
   },
   "onboarding": {
     "titleChange": "Change projects folder",
@@ -1523,7 +1579,8 @@
     "descStart": "Choose a default folder for projects. kuma keeps every Kuro design and Mame verdict run inside its own project folder so the work survives across weeks-long sequencing turnaround.",
     "chooseFolderBtn": "Choose folder",
     "doneBtn": "Done",
-    "insideEachProject": "Inside each project"
+    "insideEachProject": "Inside each project",
+    "maximizeHint": "Maximize the window for the best fit. kuma is laid out for a wide workspace."
   },
   "appLayout": {
     "status": "Status",
@@ -1663,8 +1720,6 @@
     "mutationsFailed": "({{count}} failed)",
     "topNZeroHint": "Set top-N to 0 to load every variant from CSV",
     "mutationsHelp": "Mutations in HGVS or plain format (e.g. A123V, L45*). One per line or comma-separated.",
-    "others": "Others",
-    "othersDesc": "(custom column mapping)",
     "othersColumnMapping": "Column mapping",
     "othersVariantColumn": "Mutation column",
     "othersVariantColumnPlaceholder": "Auto-detect",
@@ -1677,7 +1732,8 @@
     "othersSheetNamePlaceholder": "First sheet",
     "othersPreviewBtn": "Preview",
     "othersPreviewLoading": "Loading preview...",
-    "othersPreviewEmpty": "No preview available. Load a file first.",
+    "othersPreviewEmpty": "No columns detected in this file. Check the file, or pick another sheet.",
+    "othersLoadFailed": "EVOLVEpro file load failed: {{message}}. Pick the mutation and ranking columns manually below, then apply them.",
     "othersPreviewError": "Preview failed: {{message}}",
     "othersApplyBtn": "Apply selected columns",
     "othersApplyError": "Column load failed: {{message}}",
@@ -2287,6 +2343,7 @@
       },
       "activity": {
         "ingest": "Activity Data",
+        "signals": "Signals & Handoff",
         "merge": "Merge",
         "export": "Export",
         "mergeExport": "Merge & Export"
@@ -2343,6 +2400,7 @@
     "mameDescriptions": {
       "activity": {
         "ingest": "Upload assay activity, then merge with verdicts and export the next-round EVOLVEpro input (single-replicate GC + triple-replicate WT-relative).",
+        "signals": "Review cross-round classification signals and hand off to the next round once the EVOLVEpro input is ready.",
         "mergeExport": "Merge activity data with genotype calls and export the merged table, then build the EVOLVEpro input by combining single-replicate (GC) and triple-replicate (WT-relative) activity."
       },
       "analyze": {
@@ -2594,5 +2652,14 @@
     "noVariants": "No candidates to display. Load EVOLVEpro results and run a design to see candidates on the structure.",
     "fallbackNote": "Showing all {{count}} ranked candidates.",
     "dispersionChartTitle": "Selection vs random (null distribution)"
+  },
+  "appShell": {
+    "sidebarResize": "Resize sidebar"
+  },
+  "artifact": {
+    "badge": {
+      "staleHint": "Older than the inputs it came from. Re-run the step to refresh it.",
+      "detected": "{{step}} output detected"
+    }
   }
 }

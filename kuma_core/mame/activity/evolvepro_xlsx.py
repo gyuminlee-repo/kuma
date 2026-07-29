@@ -916,3 +916,61 @@ def write_evolvepro_xlsx(
         "write_evolvepro_xlsx: wrote %d rows to %s", len(rows), resolved.name
     )
     return len(rows)
+
+
+# Fixed header of a pre-normalised relative-activity sheet (the 'GC data.xlsx'
+# shape). Single source of truth for both the writer below and its callers.
+RELATIVE_ACTIVITY_COLUMNS: tuple[str, str] = ("Sample Name", "Area")
+
+_RELATIVE_ACTIVITY_SHEET = "GC data"
+
+
+def write_relative_activity_xlsx(
+    rows: list[tuple[str, float]],
+    output_path: str | Path,
+    sheet_name: str = _RELATIVE_ACTIVITY_SHEET,
+) -> int:
+    """Write a relative-activity xlsx in the pre-normalised 'GC data' shape.
+
+    Fixed headers come from RELATIVE_ACTIVITY_COLUMNS ('Sample Name', 'Area'),
+    so the file round-trips through parse_relative_only. Uses openpyxl for
+    writing (calamine is read-only).
+
+    Args:
+        rows:        List of (sample_name, relative_activity) tuples, written
+                     in the given order.
+        output_path: Destination path. Parent directory must exist.
+        sheet_name:  Worksheet title.
+
+    Returns:
+        Number of data rows written (header excluded).
+
+    Raises:
+        FileNotFoundError: Parent directory of *output_path* does not exist.
+    """
+    import openpyxl  # write-only use; calamine cannot write.
+
+    resolved = Path(output_path)
+    if not resolved.parent.exists():
+        raise FileNotFoundError(
+            f"write_relative_activity_xlsx: output directory does not exist: "
+            f"{resolved.parent}"
+        )
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    if ws is None:
+        ws = wb.create_sheet()
+    ws.title = sheet_name
+    ws.append(list(RELATIVE_ACTIVITY_COLUMNS))
+
+    for sample_name, relative_activity in rows:
+        ws.append([sample_name, relative_activity])
+
+    wb.save(str(resolved))
+    logger.debug(
+        "write_relative_activity_xlsx: wrote %d rows to %s",
+        len(rows),
+        resolved.name,
+    )
+    return len(rows)

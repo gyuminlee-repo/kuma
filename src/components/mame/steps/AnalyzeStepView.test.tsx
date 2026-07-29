@@ -168,8 +168,8 @@ describe("AnalyzeStepView (Task #12 — analyze.review)", () => {
     const breakdownPanel = panels.find((panel) => panel.dataset.title === "Per-plate verdict breakdown");
     const resizablePanels = screen.getAllByTestId("resizable-panel");
 
-    expect(verdictPanel).toHaveAttribute("data-class-name", expect.stringContaining("min-h-[640px]"));
-    expect(breakdownPanel).toHaveAttribute("data-class-name", expect.stringContaining("min-h-[360px]"));
+    expect(verdictPanel).toHaveAttribute("data-class-name", expect.stringContaining("min-h-[240px]"));
+    expect(breakdownPanel).toHaveAttribute("data-class-name", expect.stringContaining("min-h-[240px]"));
     expect(resizablePanels).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ dataset: expect.objectContaining({ defaultSize: "34", minSize: "18" }) }),

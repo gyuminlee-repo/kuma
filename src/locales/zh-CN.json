@@ -286,10 +286,10 @@
       "warningsAriaLabel": "警告",
       "requiredStateLabel": "必填",
       "requireGcClampAriaLabel": "要求 3' 端 GC clamp",
-      "polymeraseQ5Title": "NEB Q5 High-Fidelity。Tm preset ~72 °C, 低 Mg²⁺。高保真扩增的默认选择。",
-      "polymeraseTaqTitle": "标准 Taq 聚合酶。Tm preset ~60 °C, 较高 Mg²⁺。用于常规 PCR 或需要 3'A 突出端时。",
-      "polymerasePhusionTitle": "Thermo Phusion High-Fidelity。Tm preset ~72 °C, 平末端, 快速延伸。",
-      "polymeraseKODTitle": "Toyobo KOD One / KOD Hot Start。Tm preset ~68 °C, 含 Mg²⁺/dNTP 校正。高保真, 速度快。",
+      "polymeraseQ5Title": "NEB Q5 High-Fidelity。Ta ~72 °C, 低 Mg²⁺。高保真扩增的默认选择。",
+      "polymeraseTaqTitle": "标准 Taq 聚合酶。Ta ~60 °C, 较高 Mg²⁺。用于常规 PCR 或需要 3'A 突出端时。",
+      "polymerasePhusionTitle": "Thermo Phusion High-Fidelity。Ta ~72 °C, 平末端, 快速延伸。",
+      "polymeraseKODTitle": "Toyobo KOD One / KOD Hot Start。Ta ~68 °C。高保真, 速度快。",
       "cdsCandidate": "CDS / ORF 候选:",
       "cdsCandidateNoneDetected": "未检测到 CDS。请手动输入坐标。",
       "autoDetect": {
@@ -301,7 +301,7 @@
       },
       "cdsCandidateHelp": "CDS candidate auto-detected from the FASTA. Coordinates apply on selection.",
       "geneNameHelp": "Short gene identifier used in output filenames and labels (e.g. egfp).",
-      "polymeraseHelp": "Polymerase profile used to set default Tm/binding constraints. Q5 recommended for high-fidelity PCR.",
+      "polymeraseHelp": "记录到条形码 PCR 方案中的聚合酶。仅为元数据，不参与任何 Tm 或引物计算。",
       "geneStartHelp": "CDS start coordinate (0-based, inclusive).",
       "geneEndHelp": "CDS end coordinate (0-based, exclusive).",
       "flankMinHelp": "Minimum flank length (nt) around CDS for barcode primer search. Default 100.",
@@ -309,14 +309,25 @@
       "bindingMinLenHelp": "Minimum primer binding length (nt). Typical 18-22 for stable PCR priming.",
       "bindingMaxLenHelp": "Maximum primer binding length (nt). Above 35 increases secondary structure risk.",
       "flankWarningUpstream": "Primer design may fail on a linear template: needs at least {{needed}} bp upstream of gene_start, but only {{available}} bp is available (short by {{shortfall}} bp).",
-      "flankWarningDownstream": "Primer design may fail on a linear template: needs at least {{needed}} bp downstream of gene_end, but only {{available}} bp is available (short by {{shortfall}} bp)."
+      "flankWarningDownstream": "Primer design may fail on a linear template: needs at least {{needed}} bp downstream of gene_end, but only {{available}} bp is available (short by {{shortfall}} bp).",
+      "cdsTooltipLabel": "标签: {{label}}",
+      "cdsTooltipRange": "范围: {{start}}-{{end}}",
+      "cdsTooltipLength": "长度: {{length}} aa",
+      "cdsTooltipSource": "来源: {{source}}",
+      "geneStartHelper": "参考序列上的 gene 起始位置。0-based，包含起点。",
+      "geneEndHelper": "参考序列上的 gene 结束位置。0-based，不含终点。",
+      "generatedFileLabels": {
+        "barcodes": "条形码表 (xlsx)",
+        "amplicon": "Amplicon 参考序列 (FASTA)",
+        "sampleMapTemplate": "Sample map 模板 (xlsx)",
+        "contextJson": "Run context (JSON)"
+      },
+      "openFolderError": "无法打开文件夹。"
     },
     "activity": {
-      "title": "Activity 数据",
-      "subtitle": "Wet-lab activity 测量就绪后(通常在 Phase 1 Barcode Setup 与 Phase 2 Analyze 之后几天到数周)进入此阶段。加载测量值,与 genotype 合并,然后导出 EVOLVEpro 训练输入。",
-      "tabIngest": "1. Ingest",
-      "tabMerge": "2. Merge",
-      "tabExport": "3. Export",
+      "sectionIngest": "上传 activity 数据",
+      "sectionMerge": "与 genotype 合并",
+      "sectionExport": "导出 EVOLVEpro 输入",
       "ingest": {
         "uploadHeading": "上传 activity 数据",
         "uploadDesc": "将 long-format CSV / Excel 文件 (well, replicate, value 列) 加载到当前 Round。",
@@ -338,6 +349,8 @@
       },
       "merge": {
         "heading": "合并 activity 与 genotype",
+        "evolveproDesc": "推荐：按 WT 对 replicate 进行归一化，并应用 label-swap 防护。",
+        "legacyDesc": "不含 WT normalization 或 label-swap 检查的 legacy CSV 输出。",
         "desc": "将已上传的 activity 与 Round genotype 连接,并按 WT 归一化。",
         "btnLegacy": "与 genotype 合并",
         "btnLegacyBusy": "合并中…",
@@ -384,6 +397,15 @@
         "helpText": "此处标记的 wells 作为 activity fold-change normalization 的 wild-type baseline。",
         "suggestButton": "从对照 wells 建议",
         "alreadySetTooltip": "WT wells 已设置"
+      },
+      "route": {
+        "heading": "EVOLVEpro 输入路径",
+        "ariaLabel": "选择生成 EVOLVEpro 输入的方式",
+        "genotypeLabel": "Activity + NGS genotype",
+        "genotypeDesc": "上传 long-format 的 well activity，与本轮 NGS verdict 合并后导出。",
+        "plateLayoutLabel": "Plate layout + GC data",
+        "plateLayoutDesc": "直接从 plate layout 和 GC data xlsx 文件生成，无需 NGS genotype。",
+        "completeCurrentRoute": "完成所选 Activity 路径"
       }
     },
     "runHealth": {
@@ -877,14 +899,16 @@
       "sampleAriaLabel": "Sample name for well {{well}}",
       "empty": "No wells generated. Check that the expected_mutations xlsx is selected.",
       "rowCount": "{{count}} well(s) in layout",
+      "droppedMutants": "{{count}} mutant(s) do not fit this 96-well plate and are missing from the draft: {{mutants}}. The barcode space is 12 fwd x 8 rev, so split the campaign across plates and build one layout per plate.",
+      "wtOmitted": "The plate is full, so no well was left for the WT control. Without a declared WT well the clean-control check is lost.",
       "confirm": "Confirm layout"
     },
     "buildEvolvepro": {
       "title": "生成 EVOLVEpro 输入",
-      "subtitle": "将板布局、GC 数据、Agilent 重复报告和上一轮 EVOLVEpro 文件合并为一个 EVOLVEpro 输入 xlsx。",
+      "subtitle": "将一轮的 activity 测量结果合并为一个 EVOLVEpro 输入 xlsx。",
       "inputFiles": "输入文件",
       "layoutXlsx": "板布局 xlsx",
-      "layoutXlsxHelper": "Mutant to well 位置映射（Mutant、Well Pos. 列）。",
+      "layoutXlsxHelper": "Mutant to well 位置映射。支持 plate layout 格式（Mutant、Well Pos. 列）或步骤 1 生成的 sample map（sample_name、well 列）。",
       "gcDataXlsx": "GC 数据 xlsx",
       "gcDataXlsxHelper": "每个 well 预先归一化的 relative activity（Sample Name、Area 列）。",
       "repBatchXlsx": "Agilent 重复报告 xlsx",
@@ -902,7 +926,7 @@
       "build": "生成 EVOLVEpro 输入",
       "building": "生成中...",
       "resultTitle": "生成结果",
-      "emptyState": "选择四个输入文件和一个输出路径，然后生成 EVOLVEpro 输入。",
+      "emptyState": "选择所选来源需要的输入文件和输出路径，然后生成 EVOLVEpro 输入。",
       "nVariants": "已写入的 variant",
       "nAuthoritative": "以重复报告为准",
       "nFallbackOnly": "仅来自 GC 数据",
@@ -921,7 +945,34 @@
       "toastSuccess": "EVOLVEpro 输入生成完成",
       "toastSuccessDesc": "已写入 {{count}} 个 variant。",
       "toastError": "EVOLVEpro 输入生成失败",
-      "openFolder": "打开输出文件夹"
+      "openFolder": "打开输出文件夹",
+      "routeNote": "此路径直接读取 xlsx 文件，不使用 genotype 关联路径的 activity 上传。",
+      "sourceModeLabel": "Activity 来源",
+      "sourceModeRank": "GC data 工作表",
+      "sourceModeReports": "Agilent 原始报告",
+      "sourceModeRankHelper": "按 well 预先归一化的 GC data，通过板布局映射到变体。",
+      "sourceModeReportsHelper": "Agilent FID1B 原始报告；fold-change 以各报告中的 WT 块为基准计算。",
+      "round1SourceLabel": "Round-1 来源",
+      "round1SourcePrev": "上一轮 EVOLVEpro",
+      "round1SourceRaw": "GC-FID 原始报告",
+      "round1SourcePrevHelper": "使用既有的 EVOLVEpro 文件（Variant、activity）作为完整的 round-1 基线。",
+      "round1SourceRawHelper": "使用以 well 命名的 GC-FID 原始报告；板布局将 well 映射到变体。",
+      "round1EvolveproXlsx": "Round-1 EVOLVEpro xlsx",
+      "round1EvolveproXlsxHelper": "上一轮的 EVOLVEpro xlsx（Variant、activity）。重测的变体将替换为其均值。",
+      "round1ReportXlsx": "Round-1 报告 xlsx（GC-FID 原始）",
+      "round1ReportXlsxHelper": "Agilent FID1B 原始报告；Sample Name 为 well 位置（A1..H12），包含 WT 块。",
+      "gcExportXlsx": "相对活性导出 xlsx（GC data 形式）",
+      "gcExportXlsxHelper": "可选的审阅产物。将 round-1 各 well 的相对活性（area / WT 平均 area）以 Sample Name 与 Area 两列写出，与 GC data 工作表形式一致。",
+      "remeasureReportXlsx": "重测报告 xlsx（按变体标注）",
+      "remeasureReportXlsxHelper": "Agilent FID1B 原始报告；Sample Name 为变体标签（如 V5F 或 5F），重复行即 replicate。",
+      "verdictXlsx": "NGS verdict xlsx",
+      "verdictXlsxHelper": "Analyze Excel 报告（Final 工作表：well_id + verdict）。well 非 PASS 的变体将被排除。留空则跳过 NGS 筛除。",
+      "layoutXlsxOptionalHelper": "仅用于在 NGS verdict 筛除时将变体映射到 well。",
+      "optionalStateLabel": "可选",
+      "nNgsExcluded": "NGS 排除",
+      "missingInputs": "仍需提供",
+      "restoredNotice": "已恢复此设备上的路径。如果它们属于其他项目，请清除。",
+      "clearRestored": "清除已恢复的 EVOLVEpro 输入"
     },
     "verdictBadge": {
       "help": {
@@ -1023,7 +1074,7 @@
     "strategyOption_full": "Full overlap (Q5 SDM)",
     "strategyOption_full_title": "NEB Q5 SDM kit 风格。Reverse primer = forward 的反向互补;单一 back-to-back primer 对覆盖突变位点。",
     "polymeraseLabel": "聚合酶:",
-    "polymeraseHelp": "选择 Tm 计算预设 (extension Tm 目标 + 容差默认值)。\n选择 SDM 反应中使用的聚合酶。\n使用 'Custom Polymerase' 自定义 extension Tm。",
+    "polymeraseHelp": "选择 polymerase 预设：推荐退火温度 (Ta) 规则、GC 范围和 overlap 模式会一并设定。\n设计时的 Tm 计算公式固定为 SantaLucia 1998 (Benchling)，更换 polymerase 不会改变它。\n更换 polymerase 会覆盖 GC 范围，若曾手动设定请重新确认。\n使用 'Custom Polymerase' 可自定义 Tm 目标。",
     "polymeraseManufacturer": "厂商: {{manufacturer}}",
     "polymeraseFidelity": "保真度: {{fidelity}}",
     "customPolymerase": "Custom Polymerase",
@@ -1404,7 +1455,8 @@
     "cancel": "取消",
     "save": "保存",
     "saving": "保存中...",
-    "nebTmNote": "Tm for this NEB polymerase uses NEB Tm Calculator calibration; salt and Tm-method values below do not affect the computed Tm."
+    "nebTmNote": "NEB polymerase 的 NEB Tm Calculator 校正仅用于推荐退火温度 (Ta)。设计时的 Tm 采用固定的 SantaLucia 1998 (Benchling) 标度，因此下方的 salt 与 Tm method 数值不会改变它。",
+    "fieldScopeNote": "设计引擎读取的值：Fwd/Rev/Overlap Tm 目标、GC 范围、引物长度范围、overlap 模式。保存但未使用：Opt Tm, Min/Max Tm, Opt/Min/Max size, Max Tm diff。salt 与 Tm method 数值仅用于 Ta 计算，而 custom 配置没有 Ta 规则，因此不会显示 Ta。"
   },
   "mainShell": {
     "alreadyRunning": "已在运行。",
@@ -1485,7 +1537,9 @@
     "mameWorkspaceTitle": "Mame 主工作区",
     "mameWorkspaceBody": "加载运行数据，检查基因型判定和孔板结果，然后合并活性测量值进行导出。",
     "mameInspectorTitle": "查看 Mame 详情",
-    "mameInspectorBody": "检查器会在结果旁显示当前 Mame 步骤的控件和上下文。"
+    "mameInspectorBody": "检查器会在结果旁显示当前 Mame 步骤的控件和上下文。",
+    "mameRouteTitle": "选择 Mame 输入路径",
+    "mameRouteBody": "上传 activity 数据后使用 genotype 关联路径；如果已有 GC data xlsx 文件，则使用 plate-layout 路径。"
   },
   "onboarding": {
     "titleChange": "更改项目文件夹",
@@ -1504,7 +1558,8 @@
     "descStart": "为项目选择默认文件夹。kuma 将每个 Kuro design 和 Mame verdict run 保存在各自的项目文件夹中,使工作在数周的测序周转期间得以保留。",
     "chooseFolderBtn": "选择文件夹",
     "doneBtn": "完成",
-    "insideEachProject": "每个项目内部"
+    "insideEachProject": "每个项目内部",
+    "maximizeHint": "将窗口最大化可获得最佳显示效果。kuma 按宽工作区布局设计。"
   },
   "appLayout": {
     "status": "状态",
@@ -1644,8 +1699,6 @@
     "mutationsFailed": "(失败 {{count}})",
     "topNZeroHint": "将 top-N 设为 0 可加载 CSV 中的所有变体",
     "mutationsHelp": "Mutations in HGVS or plain format (e.g. A123V, L45*). One per line or comma-separated.",
-    "others": "Others",
-    "othersDesc": "(custom column mapping)",
     "othersColumnMapping": "Column mapping",
     "othersVariantColumn": "Mutation column",
     "othersVariantColumnPlaceholder": "Auto-detect",
@@ -1658,7 +1711,8 @@
     "othersSheetNamePlaceholder": "First sheet",
     "othersPreviewBtn": "Preview",
     "othersPreviewLoading": "Loading preview...",
-    "othersPreviewEmpty": "No preview available. Load a file first.",
+    "othersPreviewEmpty": "未在该文件中检测到任何列。请检查文件或选择其他工作表。",
+    "othersLoadFailed": "EVOLVEpro 文件加载失败：{{message}}。请在下方手动选择 mutation 列和 ranking 列并应用。",
     "othersPreviewError": "Preview failed: {{message}}",
     "othersApplyBtn": "Apply selected columns",
     "othersApplyError": "Column load failed: {{message}}",
@@ -2256,6 +2310,7 @@
       },
       "activity": {
         "ingest": "Ingest 数据",
+        "signals": "信号与交接",
         "mergeExport": "Merge & Export",
         "export": "Export",
         "merge": "Merge"
@@ -2300,6 +2355,7 @@
       },
       "activity": {
         "ingest": "上传 activity CSV 或 Excel 文件并标注野生型。",
+        "signals": "查看跨轮次分类信号，待 EVOLVEpro 输入准备就绪后交接给下一轮。",
         "mergeExport": "将活性数据与基因型判定合并并导出表格，然后通过组合单次重复 (GC) 与三次重复 (相对 WT) 活性来构建 EVOLVEpro 输入。"
       }
     },
@@ -2472,7 +2528,9 @@
     "mappingRange": "Mapping range",
     "rowStart": "Start row",
     "rowEnd": "End row",
-    "subtitle": "Echo and Janus mapping files are independent Excel/CSV outputs."
+    "subtitle": "Echo and Janus mapping files are independent Excel/CSV outputs.",
+    "destWell": "目标 well",
+    "missing": "缺失"
   },
   "errors": {
     "sequence": {
@@ -2594,5 +2652,14 @@
     "noVariants": "No candidates to display. Load EVOLVEpro results and run a design to see candidates on the structure.",
     "fallbackNote": "Showing all {{count}} ranked candidates.",
     "dispersionChartTitle": "Selection vs random (null distribution)"
+  },
+  "appShell": {
+    "sidebarResize": "调整侧边栏宽度"
+  },
+  "artifact": {
+    "badge": {
+      "staleHint": "比其来源输入更旧。重新运行该步骤即可刷新。",
+      "detected": "检测到 {{step}} 输出"
+    }
   }
 }

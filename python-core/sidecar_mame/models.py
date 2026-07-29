@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class DemuxParamsBase(BaseModel):
@@ -296,26 +296,52 @@ class BuildWellLayoutParams(BaseModel):
 class BuildEvolveproInputParams(BaseModel):
     """Parameters for the ``mame.activity.build_evolvepro_input`` RPC method.
 
-    Assembles an EVOLVEpro input xlsx from the four xlsx files of one MAME
-    activity round: a plate layout (mutant to well), a pre-normalised GC data
-    sheet, an Agilent FID1B rep-batch report, and the previous-round EVOLVEpro
-    file (used as the rank source for the numeric-ID to variant mapping).
+    Assembles an EVOLVEpro input xlsx for one MAME activity round. Two mutually
+    exclusive input modes are accepted, enforced by ``_mode_xor``.
 
-    Required fields
+    rank-mode
+        Keyed on ``gc_data_xlsx``. ``layout_xlsx`` + ``gc_data_xlsx`` alone
+        produce a provisional build; adding ``rep_batch_xlsx`` and
+        ``prev_evolvepro_xlsx`` turns on the authoritative confirmation step
+        and the rank-based numeric-ID to variant mapping audit.
+    reports-mode
+        Keyed on ``remeasure_report_xlsx`` plus exactly one round-1 source,
+        either ``round1_report_xlsx`` (raw Agilent report, needs
+        ``layout_xlsx``) or ``round1_evolvepro_xlsx`` (round-1 already in
+        EVOLVEpro form, no layout needed).
+
+    Always required
     ---------------
-    layout_xlsx
-        Plate layout xlsx with 'Mutant' and 'Well Pos.' columns.
-    gc_data_xlsx
-        Pre-normalised GC data xlsx with 'Sample Name' (well) and 'Area'
-        (relative activity) columns.
-    rep_batch_xlsx
-        Agilent FID1B rep-batch xlsx with numeric base IDs and '-2'/'-3'
-        replicate suffixes plus WT blocks.
-    prev_evolvepro_xlsx
-        Previous-round EVOLVEpro xlsx with 'Variant' and 'activity' columns,
-        ordered by descending activity (the rank source).
     output_xlsx
         Destination xlsx. Parent directory must exist; the file may not.
+
+    Mode fields (all optional at the field level)
+    --------------------------------------------
+    layout_xlsx
+        Plate layout xlsx with 'Mutant' and 'Well Pos.' columns, or the sample
+        map xlsx with 'sample_name' and 'well' columns. Required for rank-mode
+        and for raw-report reports-mode.
+    gc_data_xlsx
+        Pre-normalised GC data xlsx with 'Sample Name' (well) and 'Area'
+        (relative activity) columns. Selects rank-mode.
+    rep_batch_xlsx
+        Agilent FID1B rep-batch xlsx with numeric base IDs and '-2'/'-3'
+        replicate suffixes plus WT blocks. Rank-mode confirmation source.
+    prev_evolvepro_xlsx
+        Previous-round EVOLVEpro xlsx with 'Variant' and 'activity' columns,
+        ordered by descending activity. Rank-mode rank source, paired with
+        ``rep_batch_xlsx``.
+    remeasure_report_xlsx
+        Variant-labeled re-measure Agilent report. Selects reports-mode.
+    round1_report_xlsx
+        Raw Agilent round-1 report. One of the two reports-mode round-1
+        sources.
+    round1_evolvepro_xlsx
+        Round-1 baseline already in EVOLVEpro form. The other reports-mode
+        round-1 source.
+    verdict_xlsx
+        NGS verdict xlsx. When provided, variants whose well carries a
+        non-PASS verdict are excluded.
 
     Optional fields
     ---------------
@@ -326,26 +352,49 @@ class BuildEvolveproInputParams(BaseModel):
     mapping_audit_path
         Where to write the ID-to-variant JSON audit artifact. Defaults to
         '<output>.mapping.json' next to ``output_xlsx`` when omitted.
+    gc_export_xlsx
+        Where to write the intermediate round-1 well-level relative activity
+        ('Sample Name', 'Area'). Reports-mode raw round-1 only; on the
+        ``round1_evolvepro_xlsx`` path the build records a warning instead.
     """
 
-    layout_xlsx: str
-    gc_data_xlsx: str
+    # Optional: required for rank-mode and raw-reports-mode, but not for
+    # prev-EVOLVEpro reports-mode (round-1 already in EVOLVEpro form).
+    layout_xlsx: str | None = None
+    output_xlsx: str
+    gc_data_xlsx: str | None = None
     rep_batch_xlsx: str | None = None
     prev_evolvepro_xlsx: str | None = None
-    output_xlsx: str
+    round1_report_xlsx: str | None = None
+    # Reports-mode round-1 baseline as a prior EVOLVEpro file (Variant, activity),
+    # an alternative to round1_report_xlsx when the full round-1 already exists in
+    # EVOLVEpro form rather than as a raw Agilent report.
+    round1_evolvepro_xlsx: str | None = None
+    remeasure_report_xlsx: str | None = None
+    # Optional NGS verdict input (reports-mode only in practice; not enforced
+    # here). When provided, variants whose well has a non-PASS verdict are
+    # excluded. Absent leaves the build unchanged (layout-trust).
+    verdict_xlsx: str | None = None
     mismatch_threshold: float = Field(default=0.1, gt=0.0)
     mapping_audit_path: str | None = None
+    # Optional reports-mode audit artifact: where to write the intermediate
+    # round-1 well-level relative activity ('Sample Name', 'Area'). Output path,
+    # so it is validated like output_xlsx and never as an existing input.
+    gc_export_xlsx: str | None = None
 
     @field_validator(
         "layout_xlsx",
         "gc_data_xlsx",
         "rep_batch_xlsx",
         "prev_evolvepro_xlsx",
+        "round1_report_xlsx",
+        "round1_evolvepro_xlsx",
+        "remeasure_report_xlsx",
+        "verdict_xlsx",
         mode="after",
     )
     @classmethod
     def _check_input_xlsx(cls, v: str | None) -> str | None:
-        # rep_batch_xlsx / prev_evolvepro_xlsx are optional (confirmation step).
         if v is None:
             return v
         p = Path(v)
@@ -357,6 +406,40 @@ class BuildEvolveproInputParams(BaseModel):
             raise ValueError(f"Input xlsx not found: {v}")
         return v
 
+    @model_validator(mode="after")
+    def _mode_xor(self) -> "BuildEvolveproInputParams":
+        # rank-mode is keyed on the GC data sheet alone: layout + GC data are
+        # enough for a provisional build, and rep_batch_xlsx /
+        # prev_evolvepro_xlsx only add the optional confirmation step.
+        rank = bool(self.gc_data_xlsx)
+        # reports-mode round-1 source: raw report (needs layout) or a prior
+        # EVOLVEpro file. Exactly one of the two must be provided.
+        n_round1 = sum(
+            1 for s in (self.round1_report_xlsx, self.round1_evolvepro_xlsx) if s
+        )
+        reports = bool(self.remeasure_report_xlsx) and n_round1 >= 1
+        if rank == reports:
+            raise ValueError(
+                "provide EITHER rank-mode "
+                "(gc_data_xlsx, optionally +rep_batch_xlsx+prev_evolvepro_xlsx) "
+                "OR reports-mode "
+                "(remeasure_report_xlsx + one of round1_report_xlsx / "
+                "round1_evolvepro_xlsx)"
+            )
+        if reports:
+            if n_round1 != 1:
+                raise ValueError(
+                    "reports-mode needs exactly one round-1 source: "
+                    "round1_report_xlsx OR round1_evolvepro_xlsx"
+                )
+            if self.round1_report_xlsx and not self.layout_xlsx:
+                raise ValueError(
+                    "raw round-1 (round1_report_xlsx) requires layout_xlsx"
+                )
+        if rank and not self.layout_xlsx:
+            raise ValueError("rank-mode requires layout_xlsx")
+        return self
+
     @field_validator("output_xlsx", mode="after")
     @classmethod
     def _check_output_xlsx(cls, v: str) -> str:
@@ -367,6 +450,20 @@ class BuildEvolveproInputParams(BaseModel):
             raise ValueError(f"output_xlsx must be an .xlsx file: {v}")
         if not p.parent.exists():
             raise ValueError(f"Parent of output_xlsx does not exist: {p.parent}")
+        return v
+
+    @field_validator("gc_export_xlsx", mode="after")
+    @classmethod
+    def _check_gc_export_xlsx(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        p = Path(v)
+        if ".." in p.parts:
+            raise ValueError(f"Path traversal not allowed: {v}")
+        if p.suffix.lower() != ".xlsx":
+            raise ValueError(f"gc_export_xlsx must be an .xlsx file: {v}")
+        if not p.parent.exists():
+            raise ValueError(f"Parent of gc_export_xlsx does not exist: {p.parent}")
         return v
 
     @field_validator("mapping_audit_path", mode="after")

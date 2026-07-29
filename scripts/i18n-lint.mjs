@@ -115,9 +115,102 @@ for (const file of walk(MAME_DIR)) {
   });
 }
 
-if (offenders.length === 0 && englishOffenders.length === 0) {
+// ---------------------------------------------------------------------------
+// Missing-key check
+//
+// i18next prints the key itself when it cannot resolve one, so a key that no
+// locale defines reaches the user as a raw string like
+// "onboarding.maximizeHint". i18n-parity only compares locale files against
+// each other, so a key that every locale is missing passes it. This walks the
+// literal t("...") call sites instead and resolves them against every locale.
+//
+// Skipped: calls that pass a defaultValue or a literal fallback, which render
+// that text rather than the key. Plural keys are matched through their CLDR
+// suffixes.
+// ---------------------------------------------------------------------------
+const PLURAL_SUFFIXES = ["", "_zero", "_one", "_two", "_few", "_many", "_other"];
+const T_CALL = /\bt\(\s*["']([A-Za-z0-9_.]+)["']\s*(,|\))/g;
+
+function loadLocales() {
+  const dir = join(SRC, "locales");
+  const out = {};
+  for (const f of readdirSync(dir)) {
+    if (!f.endsWith(".json")) continue;
+    out[f.replace(/\.json$/, "")] = JSON.parse(readFileSync(join(dir, f), "utf8"));
+  }
+  return out;
+}
+
+function resolves(bundle, key) {
+  return PLURAL_SUFFIXES.some((suffix) => {
+    let cur = bundle;
+    for (const part of (key + suffix).split(".")) {
+      if (cur == null || typeof cur !== "object" || !(part in cur)) return false;
+      cur = cur[part];
+    }
+    return typeof cur === "string";
+  });
+}
+
+/**
+ * Slice exactly one t(...) call.
+ *
+ * A fixed-width window is wrong here: it runs past the closing paren into the
+ * next call, so one neighbour carrying a defaultValue silently excuses every
+ * call around it. Balance the parens instead, skipping string and template
+ * literals so a paren inside a message does not end the scan early.
+ */
+function sliceCall(text, openParen) {
+  let depth = 0;
+  let quote = null;
+  for (let i = openParen; i < text.length; i += 1) {
+    const ch = text[i];
+    if (quote) {
+      if (ch === "\\") i += 1;
+      else if (ch === quote) quote = null;
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === "`") {
+      quote = ch;
+      continue;
+    }
+    if (ch === "(") depth += 1;
+    else if (ch === ")") {
+      depth -= 1;
+      if (depth === 0) return text.slice(openParen, i + 1);
+    }
+  }
+  return text.slice(openParen, openParen + 260);
+}
+
+const locales = loadLocales();
+const localeNames = Object.keys(locales);
+const missingKeys = [];
+
+for (const file of walk(SRC)) {
+  const rel = relative(ROOT, file).replace(/\\/g, "/");
+  const text = readFileSync(file, "utf8");
+  let m;
+  T_CALL.lastIndex = 0;
+  while ((m = T_CALL.exec(text)) !== null) {
+    const key = m[1];
+    if (!key.includes(".")) continue;
+    const call = sliceCall(text, text.indexOf("(", m.index));
+    const hasFallback =
+      /defaultValue/.test(call) ||
+      /^\(\s*["'][^"']+["']\s*,\s*["'][^"']{2,}["']\s*\)$/.test(call);
+    if (hasFallback) continue;
+    const absent = localeNames.filter((name) => !resolves(locales[name], key));
+    if (absent.length === localeNames.length) {
+      const line = text.slice(0, m.index).split("\n").length;
+      missingKeys.push(`${rel}:${line}: ${key}`);
+    }
+  }
+}
+
+if (offenders.length === 0 && englishOffenders.length === 0 && missingKeys.length === 0) {
   console.log(
-    "i18n-lint: ok (0 hardcoded Korean lines, 0 hardcoded English in MAME components)",
+    "i18n-lint: ok (0 hardcoded Korean lines, 0 hardcoded English in MAME components, 0 unresolved t() keys)",
   );
   process.exit(0);
 }
@@ -131,6 +224,12 @@ if (englishOffenders.length > 0) {
     `i18n-lint: ${englishOffenders.length} hardcoded English string(s) in MAME components:`,
   );
   for (const o of englishOffenders) console.error("  " + o);
+}
+if (missingKeys.length > 0) {
+  console.error(
+    `i18n-lint: ${missingKeys.length} t() key(s) missing from every locale (would render as the raw key):`,
+  );
+  for (const o of missingKeys) console.error("  " + o);
 }
 console.error("\nFix: extract to src/locales/{en,ko}.json and use t() / i18next.t().");
 console.error("Allowlist intentional Korean in scripts/i18n-lint.mjs ALLOWLIST.");

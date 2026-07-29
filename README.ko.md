@@ -59,7 +59,7 @@ Kuro 탭에서 프라이머를 설계하고 실험·시퀀싱 후 Mame 탭으로
 #### 코돈 & 열역학 파라미터
 
 - **코돈 전략 선택**: Min. changes (WT 대비 최소 염기 변이) 또는 Optimal (E. coli 최적 코돈)
-- **Polymerase 프로파일**: 8종 내장 (Benchling, Taq, Phusion, Q5, Q5 SDM, KOD, DreamTaq, TAKARA_GXL). 각 프로파일은 제조사 매뉴얼 기준 Tm 방법·염 농도·DNA 농도·GC 범위 보정. Custom Polymerase 다이얼로그로 사용자 정의 프로파일을 만들면 `~/.kuma/kuro/custom_polymerases.json`에 영구 저장됨
+- **Polymerase 프로파일**: 7종 내장 (Taq, Phusion, Q5, Q5 SDM, KOD, DreamTaq, TAKARA_GXL). 각 프로파일은 제조사 매뉴얼 기준 Tm 방법·염 농도·DNA 농도·GC 범위 보정. 프로파일 선택은 권장 어닐링 온도(Ta) 규칙·GC 범위·overlap 모드를 정하며, 설계 시점 Tm 스케일은 고정이라 프로파일을 따르지 않음. Custom Polymerase 다이얼로그로 사용자 정의 프로파일을 만들면 `~/.kuma/kuro/custom_polymerases.json`에 영구 저장됨
 - **Tm 계산**: SantaLucia 1998 nearest-neighbor 모델. 염/DNA/divalent 농도는 선택한 polymerase 프로파일에 따라 달라짐. 기본 Tm 타겟 Fwd 62°C, Rev 58°C, Overlap 42°C
 - **점진적 Tm tolerance**: Fwd/Rev 각각 ±0.5°C부터 시작, ±0.5씩 독립 확장 (최대 ±3.0°C)
 - **Tm tolerance 사용자 설정**: Advanced Options 에서 ±°C 직접 지정 (범위 0.5–10.0, step 0.5, 기본 3.0). Cascade rescue 단계는 이 base 값에 delta 추가. 권장 2–5°C
@@ -143,7 +143,7 @@ EVOLVEpro CSV 로드 시 어떤 mutation을 프라이머 설계 대상으로 선
 | **Structural diversity** | 전체 후보 풀을 3D Cα-centroid 공간(AlphaFold)에서 greedy farthest-point(maximin) 선택. 이전 라운드에서 이미 테스트한 변이 누적 집합을 anchor로 삼고, 예측 적합도 쪽으로 κ 블렌드 가능(κ=0 순수 다양성 → κ=1 순수 Top-N). 조합 변이는 모든 치환 위치의 centroid 사용, 구조 없으면 서열 위치 거리로 폴백. | 다라운드 epistatic 조합 캠페인의 초기·저데이터 라운드. **조건부**: 진짜 epistatic·분산형 경관에선 Top-N을 이기지만 그 외엔 무익~해로우며 라벨이 ~1 플레이트 쌓이면 사라짐(`benchmark/REPORT.md` §6.7–6.12). |
 
 **참고 문헌**
-- Ding D, Shaw AY, Sinai S, et al. Protein design using structure-predicted residue preferences and sequence-predicted fitness. *Nature Communications*, 15:6729 (2024). PMID:39080249 — MODIFY: Pareto fitness-diversity 공동 최적화
+- Ding K, Chin M, Zhao Y, Huang W, Mai BK, Wang H, Liu P, Yang Y, Luo Y. Machine learning-guided co-optimization of fitness and diversity facilitates combinatorial library design in enzyme engineering. *Nature Communications*, 15:6392 (2024). https://doi.org/10.1038/s41467-024-50698-y (PMID:39080249). MODIFY: Pareto fitness-diversity 공동 최적화. 명칭 주의: MODIFY는 expected fitness와 sequence diversity에 대한 Pareto frontier를 실제로 계산하지만, 이 표의 "Pareto 다양성" 필터는 fitness를 시드로 둔 greedy maximin 선택기이며 non-dominated front를 계산하지 않는다.
 
 > **벤치마크 caveat (`benchmark/REPORT.md` §6).** in-silico active-learning 벤치에서 **structural 다양성**만 Top-N을 이겼고, 그것도 조건부(초기·저데이터, 진짜 epistatic)였다. **도메인**·**Pareto** 다양성은 Top-N을 못 이겼고, 도메인 다양성은 단일-활성부위 단백질엔 해로울 수 있다(기능 영역 밖으로 픽 낭비). 모든 다양성 필터는 Top-N의 범용 개선이 아니라 초기-라운드 헤지로 취급하라.
 
