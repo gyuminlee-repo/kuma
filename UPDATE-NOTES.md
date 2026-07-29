@@ -4,6 +4,15 @@
 
 ---
 
+## v0.13.29 (2026-07-29)
+
+### The sample map template works as filled in
+
+- The layout parser understands `<sample>_r<n>`. Replicates of one variant collapse onto that variant, `WT_r1` counts as WT, and rows named `blank` are skipped. Names without the suffix are unaffected.
+- A variant that has no EVOLVEpro short-notation form, such as a double substitution, no longer aborts the build. It is dropped on its own and a warning names it with its wells, so the remaining variants still produce an input file.
+
+---
+
 ## v0.13.28 (2026-07-28)
 
 ### Files and columns you already have
