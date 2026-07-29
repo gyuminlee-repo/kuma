@@ -374,117 +374,43 @@ def build_evolvepro_input(
     else:
         audit_path = Path(mapping_audit_path)
 
-    warnings: list[str] = []
+    # The numeric-index confirmation axis needs both the rep-batch report and
+    # the rank source. Supplying only one degrades to a provisional build.
+    partial_confirmation = (rep_batch_xlsx is None) != (prev_evolvepro_xlsx is None)
+    if partial_confirmation:
+        rep_batch_xlsx = None
+        prev_evolvepro_xlsx = None
 
-    # 1. fallback (short variant space).
-    fallback, well_by_variant, fb_warnings = _build_fallback(
-        layout_xlsx, gc_data_xlsx
-    )
-    warnings.extend(fb_warnings)
-
-    # Confirmation sources are optional so this step runs independently: with
-    # only layout + GC (1st-round primary screen) the result is "provisional".
-    # Providing the rep-batch + previous-round EVOLVEpro files upgrades it to
-    # "confirmed" (3-replicate authoritative reps merged in).
-    has_confirmation = rep_batch_xlsx is not None and prev_evolvepro_xlsx is not None
-    if has_confirmation:
-        # 2. mapping (rank ID->variant) from previous EVOLVEpro file (ordered read).
-        block_result = parse_agilent_block_rep_batch(rep_batch_xlsx)
-        prev_ep_rows = read_evolvepro_rows(prev_evolvepro_xlsx)
-        mapping = build_id_variant_mapping(block_result, prev_ep_rows, well_by_variant)
-        warnings.extend(mapping.warnings)
-    else:
-        block_result = None
-        prev_ep_rows = []
-        mapping = IdVariantMapping(
-            rows=[],
-            prev_descending=True,
-            n_prev_variants=0,
-            warnings=[],
-        )
-        if (rep_batch_xlsx is None) != (prev_evolvepro_xlsx is None):
-            warnings.append(
-                "Only one of rep_batch_xlsx / prev_evolvepro_xlsx was supplied; "
-                "both are required for confirmation. Producing a provisional "
-                "(fallback-only) result."
-            )
-
-    # 3. authoritative (short variant space). Empty when no rep-batch source.
-    authoritative = (
-        _build_authoritative(block_result, mapping)
-        if block_result is not None
-        else {}
-    )
-
-    # 4. merge in short variant space (Variant NewType is str at runtime).
-    authoritative_v: dict[Variant, list[float]] = {
-        Variant(k): v for k, v in authoritative.items()
-    }
-    fallback_v: dict[Variant, list[float]] = {
-        Variant(k): v for k, v in fallback.items()
-    }
-    merged, replicate_stats = merge_replicates_priority(
-        authoritative_v,
-        fallback_v,
+    axes = build_evolvepro_input_axes(
+        output_path,
+        gc_data_xlsx=gc_data_xlsx,
+        layout_xlsx=layout_xlsx,
+        rep_batch_xlsx=rep_batch_xlsx,
+        rank_evolvepro_xlsx=prev_evolvepro_xlsx,
         mismatch_threshold=mismatch_threshold,
+        mapping_audit_path=audit_path,
     )
 
-    if not merged:
-        raise ValueError(
-            "No variants to write: both authoritative and fallback sources "
-            "are empty after parsing."
+    warnings = list(axes.warnings)
+    if partial_confirmation:
+        warnings.append(
+            "Only one of rep_batch_xlsx / prev_evolvepro_xlsx was supplied; "
+            "both are required for confirmation. Producing a provisional "
+            "(fallback-only) result."
         )
-
-    # QC: surface variants where the authoritative confirmation mean diverged
-    # from the fallback primary-screen mean (replicate_stats.mismatched holds
-    # the names; the merge guarantees each is in both sources with non-empty
-    # lists, so authoritative wins and merged[v] is the authoritative mean).
-    mismatched_detail: list[dict] = [
-        {
-            "variant": str(v),
-            "authoritative": merged[v],
-            "fallback": sum(fallback_v[v]) / len(fallback_v[v]),
-        }
-        for v in replicate_stats.mismatched
-    ]
-
-    # 5. sort descending by merged activity, then write.
-    rows = sorted(merged.items(), key=lambda kv: -kv[1])
-    n_variants = write_evolvepro_xlsx(
-        [(str(v), float(a)) for v, a in rows], output_path
-    )
-
-    # 6. label-swap guard (advisory): compare merged activity per well against
-    #    the previous EVOLVEpro file. Layout is (variant, well) in short space.
-    prev_ep_map = {v: a for v, a in prev_ep_rows if v.upper() != _WT_LITERAL}
-    swap_layout: list[tuple[str, str]] = []
-    swap_activity: dict[str, float] = {}
-    for variant, activity in merged.items():
-        well = well_by_variant.get(str(variant))
-        if well is None:
-            continue
-        swap_layout.append((str(variant), well))
-        swap_activity[well] = float(activity)
-    swap_warnings = detect_label_swap(swap_layout, swap_activity, prev_ep_map)
-
-    # 7. emit the mapping audit (veto artifact).
-    _write_mapping_audit(mapping, audit_path)
-
-    n_authoritative = len(authoritative)
-    n_fallback_only = sum(1 for k in fallback if k not in authoritative)
 
     return BuildEvolveproResult(
-        output_path=output_path,
+        output_path=axes.output_path,
         mapping_audit_path=audit_path,
-        n_variants=n_variants,
-        n_authoritative=n_authoritative,
-        n_fallback_only=n_fallback_only,
-        mapping=mapping,
-        replicate_stats=replicate_stats,
+        n_variants=axes.n_variants,
+        n_authoritative=axes.n_authoritative,
+        n_fallback_only=axes.n_fallback_only,
+        mapping=axes.mapping,
+        replicate_stats=axes.replicate_stats,
         warnings=warnings,
-        swap_warnings=swap_warnings,
-        confidence="confirmed" if has_confirmation else "provisional",
-        mismatched=mismatched_detail,
+        swap_warnings=axes.swap_warnings,
+        confidence=axes.confidence,
+        mismatched=axes.mismatched,
     )
 
 
@@ -706,42 +632,277 @@ def build_evolvepro_input_from_reports(
     role the mapping JSON plays in rank mode. It applies to the raw round-1
     path only; on the previous-EVOLVEpro path it records a warning instead.
     """
-    output_path = Path(output_xlsx)
-    warnings: list[str] = []
+    if prev_evolvepro_xlsx is None and (
+        layout_xlsx is None or round1_report_xlsx is None
+    ):
+        raise ValueError(
+            "raw round-1 mode requires both layout_xlsx and round1_report_xlsx; "
+            "pass prev_evolvepro_xlsx to use a previous EVOLVEpro file as round-1."
+        )
+
+    axes = build_evolvepro_input_axes(
+        output_xlsx,
+        round1_report_xlsx=(
+            None if prev_evolvepro_xlsx is not None else round1_report_xlsx
+        ),
+        round1_evolvepro_xlsx=prev_evolvepro_xlsx,
+        layout_xlsx=layout_xlsx,
+        remeasure_report_xlsx=remeasure_report_xlsx,
+        mismatch_threshold=mismatch_threshold,
+        verdict_xlsx=verdict_xlsx,
+        gc_export_xlsx=gc_export_xlsx,
+        no_variants_message=(
+            "No variants to write: both round-1 and re-measure sources are "
+            "empty after parsing."
+        ),
+    )
+
+    return BuildEvolveproReportsResult(
+        output_path=axes.output_path,
+        n_variants=axes.n_variants,
+        n_authoritative=axes.n_authoritative,
+        n_fallback_only=axes.n_fallback_only,
+        well_by_variant=axes.well_by_variant,
+        replicate_stats=axes.replicate_stats,
+        warnings=axes.warnings,
+        mismatched=axes.mismatched,
+        n_ngs_excluded=axes.n_ngs_excluded,
+        ngs_excluded=axes.ngs_excluded,
+        gc_export_path=axes.gc_export_path,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Two-axis entry point (primary screen x confirmation)
+# ---------------------------------------------------------------------------
+
+# Axis A, what carries the 1-replicate primary screen (exactly one required).
+PRIMARY_RAW_REPORT = "raw_report"           # raw Agilent report (well labels)
+PRIMARY_GC_SHEET = "gc_sheet"               # pre-normalised GC sheet (well labels)
+PRIMARY_PREV_EVOLVEPRO = "prev_evolvepro"   # previous EVOLVEpro file (variant labels)
+
+# Axis B, how the n-replicate confirmation labels its samples (at most one).
+CONFIRM_VARIANT_LABELS = "variant_labels"   # variant-labeled Agilent report
+CONFIRM_NUMERIC_INDEX = "numeric_index"     # numeric base IDs + rank source
+CONFIRM_NONE = "none"                       # provisional, no confirmation
+
+_DEFAULT_NO_VARIANTS_MESSAGE = (
+    "No variants to write: both authoritative and fallback sources "
+    "are empty after parsing."
+)
+
+_GC_EXPORT_IGNORED = (
+    "gc_export_xlsx ignored: the well-level relative activity export "
+    "needs a raw round-1 report (round1_report_xlsx); this build used "
+    "{source} as the round-1 baseline."
+)
+
+
+@dataclass
+class BuildEvolveproAxesResult:
+    """Outcome of build_evolvepro_input_axes (two-axis assembly).
+
+    primary_source / confirmation_source name the selected axis A and axis B
+    builders (see the PRIMARY_* / CONFIRM_* constants), so a caller can report
+    the combination without re-deriving it from the input paths.
+    """
+
+    output_path: Path
+    n_variants: int
+    n_authoritative: int
+    n_fallback_only: int
+    primary_source: str
+    confirmation_source: str
+    confidence: str
+    well_by_variant: dict[str, str]
+    mapping: IdVariantMapping
+    mapping_audit_path: Path | None
+    replicate_stats: MergeReplicatesStats
+    warnings: list[str]
+    swap_warnings: list  # list[SwapWarning]
+    mismatched: list[dict] = field(default_factory=list)
+    n_ngs_excluded: int = 0
+    ngs_excluded: list[str] = field(default_factory=list)
     gc_export_path: Path | None = None
 
-    if prev_evolvepro_xlsx is not None:
-        if gc_export_xlsx is not None:
-            # No raw round-1 report to project, so there is no well-level
-            # relative activity to export. Surface it instead of no-op silence.
-            warnings.append(
-                "gc_export_xlsx ignored: the well-level relative activity export "
-                "needs a raw round-1 report (round1_report_xlsx); this build used "
-                "a previous EVOLVEpro file as the round-1 baseline."
-            )
-        # Round-1 baseline from a previous-round EVOLVEpro file (Variant, activity).
-        fallback, w1 = _build_fallback_from_prev_evolvepro(prev_evolvepro_xlsx)
-        # Layout is optional here; only needed to map variant->well for NGS gating.
-        well_by_variant = (
-            _well_by_variant_from_layout(layout_xlsx) if layout_xlsx is not None else {}
+
+def build_evolvepro_input_axes(
+    output_xlsx: str | Path,
+    *,
+    # Axis A, primary screen (1 replicate). Exactly one of the three.
+    round1_report_xlsx: str | Path | None = None,
+    gc_data_xlsx: str | Path | None = None,
+    round1_evolvepro_xlsx: str | Path | None = None,
+    layout_xlsx: str | Path | None = None,
+    # Axis B, confirmation (n replicates). At most one of the two.
+    remeasure_report_xlsx: str | Path | None = None,
+    rep_batch_xlsx: str | Path | None = None,
+    rank_evolvepro_xlsx: str | Path | None = None,
+    # Shared options.
+    mismatch_threshold: float = 0.1,
+    verdict_xlsx: str | Path | None = None,
+    mapping_audit_path: str | Path | None = None,
+    gc_export_xlsx: str | Path | None = None,
+    no_variants_message: str | None = None,
+) -> BuildEvolveproAxesResult:
+    """Assemble an EVOLVEpro input xlsx from one primary screen + one confirmation.
+
+    The two axes are independent, so all six combinations are expressible, plus
+    the three provisional builds that omit axis B.
+
+    Axis A, the primary screen baseline (exactly one):
+        round1_report_xlsx    raw Agilent report, samples are well positions.
+                              Requires layout_xlsx to name the variants.
+        gc_data_xlsx          pre-normalised GC sheet, samples are well
+                              positions. Requires layout_xlsx.
+        round1_evolvepro_xlsx previous-round EVOLVEpro file, already in short
+                              variant space. layout_xlsx is optional and only
+                              feeds NGS verdict gating.
+
+    Axis B, the confirmation that overrides the baseline (at most one):
+        remeasure_report_xlsx Agilent report whose samples are variant labels.
+        rep_batch_xlsx        Agilent rep-batch report whose samples are numeric
+                              base IDs. Requires rank_evolvepro_xlsx, the
+                              previous EVOLVEpro file those IDs rank into.
+        (neither)             provisional build, baseline only.
+
+    Args:
+        output_xlsx: destination xlsx. Parent directory must exist.
+        mismatch_threshold: merge mismatch-flag threshold.
+        verdict_xlsx: optional NGS verdict xlsx. Variants whose layout well
+            carries a non-PASS verdict are dropped. Needs a variant to well
+            map, so it is skipped with a warning when no layout is available.
+        mapping_audit_path: when set, the numeric-ID to variant mapping is
+            written there as a JSON veto artifact (empty on the other axes).
+        gc_export_xlsx: when set with a raw round-1 report, the intermediate
+            well-level relative activity is written there. On the other axis A
+            sources the build records a warning instead.
+        no_variants_message: overrides the empty-result ValueError text.
+
+    Returns:
+        BuildEvolveproAxesResult.
+
+    Raises:
+        ValueError: axis selection invalid, a required companion input missing,
+            WT areas missing, or no variants left to write.
+    """
+    output_path = Path(output_xlsx)
+    warnings: list[str] = []
+
+    # --- axis A selection --------------------------------------------------
+    primary_selected = [
+        name
+        for name, src in (
+            (PRIMARY_RAW_REPORT, round1_report_xlsx),
+            (PRIMARY_GC_SHEET, gc_data_xlsx),
+            (PRIMARY_PREV_EVOLVEPRO, round1_evolvepro_xlsx),
         )
-    else:
-        if layout_xlsx is None or round1_report_xlsx is None:
+        if src is not None
+    ]
+    if len(primary_selected) != 1:
+        raise ValueError(
+            "exactly one primary screen source is required, got "
+            f"{len(primary_selected)} ({', '.join(primary_selected) or 'none'}): "
+            "pass round1_report_xlsx (raw report), gc_data_xlsx (pre-normalised "
+            "GC sheet) or round1_evolvepro_xlsx (previous EVOLVEpro file)"
+        )
+    primary_source = primary_selected[0]
+
+    # --- axis B selection --------------------------------------------------
+    confirm_selected = [
+        name
+        for name, src in (
+            (CONFIRM_VARIANT_LABELS, remeasure_report_xlsx),
+            (CONFIRM_NUMERIC_INDEX, rep_batch_xlsx),
+        )
+        if src is not None
+    ]
+    if len(confirm_selected) > 1:
+        raise ValueError(
+            "at most one confirmation source is allowed, got "
+            f"{', '.join(confirm_selected)}: pass remeasure_report_xlsx "
+            "(variant labels) or rep_batch_xlsx (numeric index), not both"
+        )
+    confirmation_source = (
+        confirm_selected[0] if confirm_selected else CONFIRM_NONE
+    )
+    if confirmation_source == CONFIRM_NUMERIC_INDEX and rank_evolvepro_xlsx is None:
+        raise ValueError(
+            "numeric-index confirmation (rep_batch_xlsx) requires "
+            "rank_evolvepro_xlsx: the numeric base IDs are ranks into a "
+            "previous EVOLVEpro file, so variant names cannot be recovered "
+            "without it"
+        )
+
+    # --- axis A build ------------------------------------------------------
+    gc_export_path: Path | None = None
+    if primary_source == PRIMARY_RAW_REPORT:
+        if layout_xlsx is None:
             raise ValueError(
-                "raw round-1 mode requires both layout_xlsx and round1_report_xlsx; "
-                "pass prev_evolvepro_xlsx to use a previous EVOLVEpro file as round-1."
+                "raw round-1 report (round1_report_xlsx) requires layout_xlsx: "
+                "its samples are well positions, so the plate layout is needed "
+                "to name the variants"
             )
-        fallback, well_by_variant, w1 = _build_fallback_from_raw_report(
+        fallback, well_by_variant, w_primary = _build_fallback_from_raw_report(
             round1_report_xlsx, layout_xlsx
         )
         if gc_export_xlsx is not None:
             gc_export_path = _export_round1_relative_activity(
                 round1_report_xlsx, gc_export_xlsx
             )
-    warnings.extend(w1)
-    authoritative, w2 = _build_authoritative_from_variant_report(remeasure_report_xlsx)
-    warnings.extend(w2)
+        warnings.extend(w_primary)
+    elif primary_source == PRIMARY_GC_SHEET:
+        if layout_xlsx is None:
+            raise ValueError(
+                "rank-mode requires layout_xlsx: pre-normalised GC data "
+                "(gc_data_xlsx) is keyed by well position, so the plate layout "
+                "is needed to name the variants"
+            )
+        if gc_export_xlsx is not None:
+            warnings.append(
+                _GC_EXPORT_IGNORED.format(source="a pre-normalised GC sheet")
+            )
+        fallback, well_by_variant, w_primary = _build_fallback(
+            layout_xlsx, gc_data_xlsx
+        )
+        warnings.extend(w_primary)
+    else:
+        if gc_export_xlsx is not None:
+            warnings.append(
+                _GC_EXPORT_IGNORED.format(source="a previous EVOLVEpro file")
+            )
+        fallback, w_primary = _build_fallback_from_prev_evolvepro(
+            round1_evolvepro_xlsx
+        )
+        # Layout is optional here and only feeds NGS verdict gating.
+        well_by_variant = (
+            _well_by_variant_from_layout(layout_xlsx)
+            if layout_xlsx is not None
+            else {}
+        )
+        warnings.extend(w_primary)
 
+    # --- axis B build ------------------------------------------------------
+    mapping = IdVariantMapping(
+        rows=[], prev_descending=True, n_prev_variants=0, warnings=[]
+    )
+    prev_ep_rows: list[tuple[str, float]] = []
+    authoritative: dict[str, list[float]] = {}
+    if confirmation_source == CONFIRM_NUMERIC_INDEX:
+        block_result = parse_agilent_block_rep_batch(rep_batch_xlsx)
+        prev_ep_rows = read_evolvepro_rows(rank_evolvepro_xlsx)
+        mapping = build_id_variant_mapping(
+            block_result, prev_ep_rows, well_by_variant
+        )
+        warnings.extend(mapping.warnings)
+        authoritative = _build_authoritative(block_result, mapping)
+    elif confirmation_source == CONFIRM_VARIANT_LABELS:
+        authoritative, w_confirm = _build_authoritative_from_variant_report(
+            remeasure_report_xlsx
+        )
+        warnings.extend(w_confirm)
+
+    # --- merge (short variant space) ---------------------------------------
     authoritative_v: dict[Variant, list[float]] = {
         Variant(k): v for k, v in authoritative.items()
     }
@@ -749,12 +910,12 @@ def build_evolvepro_input_from_reports(
         Variant(k): v for k, v in fallback.items()
     }
     merged, replicate_stats = merge_replicates_priority(
-        authoritative_v, fallback_v, mismatch_threshold=mismatch_threshold
+        authoritative_v,
+        fallback_v,
+        mismatch_threshold=mismatch_threshold,
     )
     if not merged:
-        raise ValueError(
-            "No variants to write: both round-1 and re-measure sources are empty after parsing."
-        )
+        raise ValueError(no_variants_message or _DEFAULT_NO_VARIANTS_MESSAGE)
 
     mismatched_detail: list[dict] = [
         {
@@ -765,17 +926,12 @@ def build_evolvepro_input_from_reports(
         for v in replicate_stats.mismatched
     ]
 
-    # Optional NGS verdict gating: drop variants whose layout well carries an
-    # explicit non-PASS verdict (ngs_success == verdict == PASS). A variant with
-    # no layout well, or a well absent from the verdict file, is kept (graceful,
-    # layout-trust). When no verdict file is given, behaviour is unchanged.
+    # --- optional NGS verdict gating ---------------------------------------
     ngs_excluded: list[str] = []
     if verdict_xlsx is not None:
         from kuma_core.mame.activity.verdict_ngs import parse_verdict_wells, _PASS
 
         if not well_by_variant:
-            # prev-EVOLVEpro round-1 mode without a layout: no variant->well map,
-            # so gating cannot run. Keep all variants (graceful, layout-trust).
             warnings.append(
                 "NGS verdict gating skipped: no layout to map variant->well "
                 "(prev-EVOLVEpro round-1 mode without layout_xlsx)."
@@ -801,20 +957,53 @@ def build_evolvepro_input_from_reports(
                     "Check the verdict file or omit it to use layout-trust."
                 )
 
+    # --- write -------------------------------------------------------------
     rows = sorted(merged.items(), key=lambda kv: -kv[1])
-    n_variants = write_evolvepro_xlsx([(str(v), float(a)) for v, a in rows], output_path)
+    n_variants = write_evolvepro_xlsx(
+        [(str(v), float(a)) for v, a in rows], output_path
+    )
+
+    # --- label-swap guard (numeric-index axis only, advisory) --------------
+    swap_warnings: list = []
+    if confirmation_source == CONFIRM_NUMERIC_INDEX:
+        prev_ep_map = {
+            v: a for v, a in prev_ep_rows if v.upper() != _WT_LITERAL
+        }
+        swap_layout: list[tuple[str, str]] = []
+        swap_activity: dict[str, float] = {}
+        for variant, activity in merged.items():
+            well = well_by_variant.get(str(variant))
+            if well is None:
+                continue
+            swap_layout.append((str(variant), well))
+            swap_activity[well] = float(activity)
+        swap_warnings = detect_label_swap(swap_layout, swap_activity, prev_ep_map)
+
+    # --- mapping audit artifact --------------------------------------------
+    audit_path: Path | None = None
+    if mapping_audit_path is not None:
+        audit_path = Path(mapping_audit_path)
+        _write_mapping_audit(mapping, audit_path)
 
     n_authoritative = len(authoritative)
     n_fallback_only = sum(1 for k in fallback if k not in authoritative)
 
-    return BuildEvolveproReportsResult(
+    return BuildEvolveproAxesResult(
         output_path=output_path,
         n_variants=n_variants,
         n_authoritative=n_authoritative,
         n_fallback_only=n_fallback_only,
+        primary_source=primary_source,
+        confirmation_source=confirmation_source,
+        confidence=(
+            "provisional" if confirmation_source == CONFIRM_NONE else "confirmed"
+        ),
         well_by_variant=well_by_variant,
+        mapping=mapping,
+        mapping_audit_path=audit_path,
         replicate_stats=replicate_stats,
         warnings=warnings,
+        swap_warnings=swap_warnings,
         mismatched=mismatched_detail,
         n_ngs_excluded=len(ngs_excluded),
         ngs_excluded=sorted(ngs_excluded),

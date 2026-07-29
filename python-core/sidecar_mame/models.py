@@ -296,19 +296,20 @@ class BuildWellLayoutParams(BaseModel):
 class BuildEvolveproInputParams(BaseModel):
     """Parameters for the ``mame.activity.build_evolvepro_input`` RPC method.
 
-    Assembles an EVOLVEpro input xlsx for one MAME activity round. Two mutually
-    exclusive input modes are accepted, enforced by ``_mode_xor``.
+    Assembles an EVOLVEpro input xlsx for one MAME activity round from two
+    independent axes, enforced by ``_axis_sources``.
 
-    rank-mode
-        Keyed on ``gc_data_xlsx``. ``layout_xlsx`` + ``gc_data_xlsx`` alone
-        produce a provisional build; adding ``rep_batch_xlsx`` and
-        ``prev_evolvepro_xlsx`` turns on the authoritative confirmation step
-        and the rank-based numeric-ID to variant mapping audit.
-    reports-mode
-        Keyed on ``remeasure_report_xlsx`` plus exactly one round-1 source,
-        either ``round1_report_xlsx`` (raw Agilent report, needs
-        ``layout_xlsx``) or ``round1_evolvepro_xlsx`` (round-1 already in
-        EVOLVEpro form, no layout needed).
+    Axis A, the 1-replicate primary screen (exactly one)
+        ``round1_report_xlsx`` (raw Agilent report, well labels, needs
+        ``layout_xlsx``), ``gc_data_xlsx`` (pre-normalised GC sheet, well
+        labels, needs ``layout_xlsx``) or ``round1_evolvepro_xlsx`` (previous
+        EVOLVEpro file, variant labels, no layout needed).
+    Axis B, the n-replicate confirmation (at most one)
+        ``remeasure_report_xlsx`` (variant labels) or ``rep_batch_xlsx``
+        (numeric base IDs, needs ``prev_evolvepro_xlsx`` as the rank source and
+        emits the rank mapping audit). Omitting axis B yields a provisional
+        build. The two axes do not constrain each other, so every A/B pair is
+        accepted.
 
     Always required
     ---------------
@@ -323,22 +324,20 @@ class BuildEvolveproInputParams(BaseModel):
         and for raw-report reports-mode.
     gc_data_xlsx
         Pre-normalised GC data xlsx with 'Sample Name' (well) and 'Area'
-        (relative activity) columns. Selects rank-mode.
+        (relative activity) columns. Axis A source.
     rep_batch_xlsx
         Agilent FID1B rep-batch xlsx with numeric base IDs and '-2'/'-3'
-        replicate suffixes plus WT blocks. Rank-mode confirmation source.
+        replicate suffixes plus WT blocks. Axis B numeric-index source.
     prev_evolvepro_xlsx
         Previous-round EVOLVEpro xlsx with 'Variant' and 'activity' columns,
-        ordered by descending activity. Rank-mode rank source, paired with
-        ``rep_batch_xlsx``.
+        ordered by descending activity. Axis B rank source, required by and
+        only valid with ``rep_batch_xlsx``.
     remeasure_report_xlsx
-        Variant-labeled re-measure Agilent report. Selects reports-mode.
+        Variant-labeled re-measure Agilent report. Axis B variant-label source.
     round1_report_xlsx
-        Raw Agilent round-1 report. One of the two reports-mode round-1
-        sources.
+        Raw Agilent round-1 report. Axis A source.
     round1_evolvepro_xlsx
-        Round-1 baseline already in EVOLVEpro form. The other reports-mode
-        round-1 source.
+        Round-1 baseline already in EVOLVEpro form. Axis A source.
     verdict_xlsx
         NGS verdict xlsx. When provided, variants whose well carries a
         non-PASS verdict are excluded.
@@ -354,8 +353,8 @@ class BuildEvolveproInputParams(BaseModel):
         '<output>.mapping.json' next to ``output_xlsx`` when omitted.
     gc_export_xlsx
         Where to write the intermediate round-1 well-level relative activity
-        ('Sample Name', 'Area'). Reports-mode raw round-1 only; on the
-        ``round1_evolvepro_xlsx`` path the build records a warning instead.
+        ('Sample Name', 'Area'). Raw round-1 report only; on the other axis A
+        sources the build records a warning instead.
     """
 
     # Optional: required for rank-mode and raw-reports-mode, but not for
@@ -407,37 +406,77 @@ class BuildEvolveproInputParams(BaseModel):
         return v
 
     @model_validator(mode="after")
-    def _mode_xor(self) -> "BuildEvolveproInputParams":
-        # rank-mode is keyed on the GC data sheet alone: layout + GC data are
-        # enough for a provisional build, and rep_batch_xlsx /
-        # prev_evolvepro_xlsx only add the optional confirmation step.
-        rank = bool(self.gc_data_xlsx)
-        # reports-mode round-1 source: raw report (needs layout) or a prior
-        # EVOLVEpro file. Exactly one of the two must be provided.
-        n_round1 = sum(
-            1 for s in (self.round1_report_xlsx, self.round1_evolvepro_xlsx) if s
-        )
-        reports = bool(self.remeasure_report_xlsx) and n_round1 >= 1
-        if rank == reports:
-            raise ValueError(
-                "provide EITHER rank-mode "
-                "(gc_data_xlsx, optionally +rep_batch_xlsx+prev_evolvepro_xlsx) "
-                "OR reports-mode "
-                "(remeasure_report_xlsx + one of round1_report_xlsx / "
-                "round1_evolvepro_xlsx)"
+    def _axis_sources(self) -> "BuildEvolveproInputParams":
+        """Enforce the two independent input axes.
+
+        Axis A, the primary screen (exactly one): ``round1_report_xlsx`` (raw
+        report, well-labeled), ``gc_data_xlsx`` (pre-normalised GC sheet,
+        well-labeled) or ``round1_evolvepro_xlsx`` (previous EVOLVEpro file,
+        variant-labeled). The two well-labeled sources need ``layout_xlsx`` to
+        name their variants.
+
+        Axis B, the confirmation (at most one): ``remeasure_report_xlsx``
+        (variant labels) or ``rep_batch_xlsx`` (numeric index). The numeric
+        index carries no variant names, so it needs ``prev_evolvepro_xlsx`` as
+        the rank source. Omitting axis B entirely yields a provisional build.
+        """
+        primary = [
+            name
+            for name, value in (
+                ("round1_report_xlsx", self.round1_report_xlsx),
+                ("gc_data_xlsx", self.gc_data_xlsx),
+                ("round1_evolvepro_xlsx", self.round1_evolvepro_xlsx),
             )
-        if reports:
-            if n_round1 != 1:
-                raise ValueError(
-                    "reports-mode needs exactly one round-1 source: "
-                    "round1_report_xlsx OR round1_evolvepro_xlsx"
-                )
-            if self.round1_report_xlsx and not self.layout_xlsx:
-                raise ValueError(
-                    "raw round-1 (round1_report_xlsx) requires layout_xlsx"
-                )
-        if rank and not self.layout_xlsx:
-            raise ValueError("rank-mode requires layout_xlsx")
+            if value
+        ]
+        if not primary:
+            raise ValueError(
+                "no primary screen source: provide exactly one of "
+                "round1_report_xlsx (raw report), gc_data_xlsx (pre-normalised "
+                "GC sheet) or round1_evolvepro_xlsx (previous EVOLVEpro file)"
+            )
+        if len(primary) > 1:
+            raise ValueError(
+                f"multiple primary screen sources ({', '.join(primary)}): "
+                "provide exactly one of round1_report_xlsx, gc_data_xlsx, "
+                "round1_evolvepro_xlsx"
+            )
+        if self.round1_report_xlsx and not self.layout_xlsx:
+            raise ValueError(
+                "raw round-1 (round1_report_xlsx) requires layout_xlsx"
+            )
+        if self.gc_data_xlsx and not self.layout_xlsx:
+            raise ValueError(
+                "rank-mode requires layout_xlsx: pre-normalised GC data "
+                "(gc_data_xlsx) is keyed by well position"
+            )
+
+        confirmation = [
+            name
+            for name, value in (
+                ("remeasure_report_xlsx", self.remeasure_report_xlsx),
+                ("rep_batch_xlsx", self.rep_batch_xlsx),
+            )
+            if value
+        ]
+        if len(confirmation) > 1:
+            raise ValueError(
+                f"multiple confirmation sources ({', '.join(confirmation)}): "
+                "provide at most one of remeasure_report_xlsx (variant labels) "
+                "or rep_batch_xlsx (numeric index)"
+            )
+        if self.rep_batch_xlsx and not self.prev_evolvepro_xlsx:
+            raise ValueError(
+                "numeric-index confirmation (rep_batch_xlsx) requires "
+                "prev_evolvepro_xlsx as the rank source: the numeric base IDs "
+                "are ranks into a previous EVOLVEpro file"
+            )
+        if self.prev_evolvepro_xlsx and not self.rep_batch_xlsx:
+            raise ValueError(
+                "prev_evolvepro_xlsx is the rank source for numeric-index "
+                "confirmation and needs rep_batch_xlsx; for a previous-round "
+                "baseline use round1_evolvepro_xlsx instead"
+            )
         return self
 
     @field_validator("output_xlsx", mode="after")
