@@ -355,11 +355,31 @@ def _read_table_rows(
         return rows, columns
     else:
         delimiter = "\t" if ext == ".tsv" else ","
-        with open(str(filepath), encoding="utf-8", newline="") as f:
+        with open(str(filepath), encoding="utf-8-sig", newline="") as f:
             reader = csv.DictReader(f, delimiter=delimiter)
             columns = list(reader.fieldnames or [])
             rows = [{k: (v or "") for k, v in row.items()} for row in reader]
         return rows, columns
+
+
+def _normalize_header(name: str) -> str:
+    """Normalize a column header for tolerant matching.
+
+    Strips a UTF-8 BOM, trims surrounding whitespace, and case-folds. Used
+    only for comparison; the original header string is always what gets
+    returned to callers so row lookups keep working.
+    """
+    return name.lstrip("﻿").strip().casefold()
+
+
+def _build_header_index(columns: list[str]) -> dict[str, str]:
+    """Map normalized header to the original header string (first wins)."""
+    index: dict[str, str] = {}
+    for col in columns:
+        key = _normalize_header(col)
+        if key not in index:
+            index[key] = col
+    return index
 
 
 def _resolve_evolvepro_columns(
@@ -367,13 +387,38 @@ def _resolve_evolvepro_columns(
     variant_column: str | None = None,
     score_column: str | None = None,
 ) -> tuple[str, str | None]:
-    v_col = variant_column or next((c for c in VARIANT_COLUMNS if c in columns), None)
+    """Resolve variant/score column names against the file headers.
+
+    Matching is tolerant of BOM, surrounding whitespace, and letter case,
+    but the returned names are always the original header strings so that
+    ``row[col]`` lookups succeed. Alias order (not header order) decides
+    priority when several aliases are present.
+    """
+    index = _build_header_index(columns)
+
+    if variant_column:
+        # Explicit user choice: match tolerantly, fall back to the raw value.
+        v_col = index.get(_normalize_header(variant_column), variant_column)
+    else:
+        v_col = next(
+            (index[k] for k in (_normalize_header(a) for a in VARIANT_COLUMNS) if k in index),
+            None,
+        )
     if v_col is None:
         raise ValueError(
             f"EVOLVEpro file must have a variant column. "
-            f"Supported aliases: {VARIANT_COLUMNS}. Found: {columns}"
+            f"Supported aliases: {VARIANT_COLUMNS}. Found: {columns}. "
+            f"None of the aliases matched, so pick the variant column "
+            f"(and optionally the score column) manually from the list above."
         )
-    s_col = score_column or next((c for c in SCORE_COLUMNS if c in columns), None)
+
+    if score_column:
+        s_col = index.get(_normalize_header(score_column), score_column)
+    else:
+        s_col = next(
+            (index[k] for k in (_normalize_header(a) for a in SCORE_COLUMNS) if k in index),
+            None,
+        )
     return v_col, s_col
 
 

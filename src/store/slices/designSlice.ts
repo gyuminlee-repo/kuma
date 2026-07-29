@@ -192,9 +192,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
     });
     const { sendCount, isEvolveMode } = initialPrep;
 
-    const activeEvolveproPath = state.evolveproMode === "others"
-      ? state.othersSourcePath
-      : state.evolveproCsvPath;
+    const activeEvolveproPath = state.evolveproCsvPath;
     if (isEvolveMode && activeEvolveproPath) {
       state.cancelDiversityReload();
       try {
@@ -293,9 +291,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         statusMessage: processed.statusMessage,
       });
 
-      const fillSourcePath = get().evolveproMode === "others"
-        ? get().othersSourcePath
-        : get().evolveproCsvPath;
+      const fillSourcePath = get().evolveproCsvPath;
       if (fillOnFailure && isEvolveMode && fillSourcePath) {
         await get().loadEvolveproCsv(fillSourcePath);
       }
@@ -488,9 +484,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
     // If an EVOLVEpro CSV failed to load (mutationText cleared but path retained),
     // re-trigger load so user can recover by adjusting the mutation count.
     const isEvolvepro = state.mutationInputMode === "evolvepro";
-    const activeEvolveproPath = state.evolveproMode === "others"
-      ? state.othersSourcePath
-      : state.evolveproCsvPath;
+    const activeEvolveproPath = state.evolveproCsvPath;
     const loadFailed =
       isEvolvepro && !!activeEvolveproPath && state.evolveproTotalCount === 0 &&
       !state.mutationText.trim();

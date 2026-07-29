@@ -25,6 +25,13 @@ Optional
   tm_min               (float, default 55.0)
   tm_max               (float, default 68.0)
   require_gc_clamp     (bool,  default true)
+  topology              (str,  default None -- auto-detect from fasta_path;
+                         explicit "linear" or "circular" overrides detection)
+  expected_mutations_path (str, default None) -- KURO results xlsx. When given,
+                         sample_map_template.xlsx is pre-filled with a draft
+                         well placement (one designed mutant per well in
+                         column-major order, WT control last) instead of
+                         headers only.
 
 Response schema
 ---------------
@@ -33,6 +40,10 @@ Response schema
   sample_map_template   (str) -- absolute path
   context_json          (str) -- absolute path
   warnings              (list[str]) -- non-critical messages from primer design
+  sample_map_prefilled_rows (int) -- pre-filled data rows in the template
+                         (0 = header only, or template left untouched)
+  sample_map_preserved  (bool) -- true when an existing template already held
+                         well assignments and was therefore not rewritten
 """
 
 from __future__ import annotations
@@ -105,6 +116,16 @@ def handle_generate_mame_package(params: dict) -> dict:
     else:
         require_gc_clamp = bool(require_gc_clamp_raw)
 
+    # topology: None means "auto-detect from fasta_path" (handled inside
+    # generate_mame_package). An explicit override must be one of the two
+    # recognised literal values; anything else is a client error.
+    topology_raw = params.get("topology")
+    if topology_raw is not None and topology_raw not in ("linear", "circular"):
+        raise ValueError(
+            f'topology must be "linear", "circular", or omitted; got {topology_raw!r}.'
+        )
+    topology: str | None = topology_raw
+
     # Validate input file paths (existence + extension check)
     # _validate_filepath already enforces existence by default.
     fasta_path = _validate_filepath(
@@ -115,6 +136,17 @@ def handle_generate_mame_package(params: dict) -> dict:
         barcode_seeds_str,
         allowed_extensions=_ALLOWED_EXCEL_EXTENSIONS,
     )
+
+    # Optional KURO results xlsx for sample-map pre-fill. Absent/empty means
+    # "emit a header-only template"; a supplied path must be a readable xlsx
+    # (validated here so a typo surfaces before primer design runs).
+    expected_mutations_raw = params.get("expected_mutations_path")
+    expected_mutations_path: Path | None = None
+    if expected_mutations_raw is not None and str(expected_mutations_raw).strip() != "":
+        expected_mutations_path = _validate_filepath(
+            str(expected_mutations_raw),
+            allowed_extensions=_ALLOWED_EXCEL_EXTENSIONS,
+        )
 
     # output_dir and project_root are directories that may not yet exist;
     # validate as plain paths (no extension check needed).
@@ -151,6 +183,8 @@ def handle_generate_mame_package(params: dict) -> dict:
         tm_min=tm_min,
         tm_max=tm_max,
         require_gc_clamp=require_gc_clamp,
+        topology=topology,
+        expected_mutations_path=expected_mutations_path,
     )
 
     return {
@@ -160,6 +194,8 @@ def handle_generate_mame_package(params: dict) -> dict:
         "context_json": str(result.context_json),
         "warnings": result.warnings,
         "amplicon_length": result.amplicon_length,
+        "sample_map_prefilled_rows": result.sample_map_prefilled_rows,
+        "sample_map_preserved": result.sample_map_preserved,
     }
 
 

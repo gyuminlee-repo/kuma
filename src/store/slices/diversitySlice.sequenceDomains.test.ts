@@ -35,7 +35,6 @@ function makeStore(consent = true) {
     requireNetworkConsent: vi.fn().mockResolvedValue(consent),
     loadEvolveproCsv: vi.fn().mockResolvedValue(undefined),
     evolveproCsvPath: "",
-    othersSourcePath: "",
     evolveproMode: "pipeline",
   };
   const set = (update: Record<string, unknown> | ((current: typeof state) => Record<string, unknown>)) => {

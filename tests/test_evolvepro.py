@@ -63,6 +63,117 @@ class TestLoadEvolveproCsv:
         )
 
 
+class TestColumnHeaderNormalization:
+    """Header matching tolerates case, surrounding whitespace, and a UTF-8 BOM."""
+
+    def test_mixed_case_headers_autodetect(self, tmp_path):
+        csv_file = tmp_path / "case.csv"
+        csv_file.write_text("Variant,Y_Pred\nQ10A,0.9\nQ11A,0.8\n")
+
+        result = load_evolvepro_csv(csv_file, top_n=10)
+
+        assert result["selected_count"] == 2
+        assert result["y_preds"][0] == pytest.approx(0.9)
+
+    def test_uppercase_alias_autodetect(self, tmp_path):
+        csv_file = tmp_path / "upper.csv"
+        csv_file.write_text("MUTATION,SCORE\nQ10A,0.9\n")
+
+        result = load_evolvepro_csv(csv_file, top_n=10)
+
+        assert result["variants"] == ["Q10A"]
+        assert result["y_preds"][0] == pytest.approx(0.9)
+
+    def test_padded_headers_autodetect(self, tmp_path):
+        csv_file = tmp_path / "padded.csv"
+        csv_file.write_text(" variant , y_pred \nQ10A,0.9\n")
+
+        result = load_evolvepro_csv(csv_file, top_n=10)
+
+        assert result["variants"] == ["Q10A"]
+        assert result["y_preds"][0] == pytest.approx(0.9)
+
+    def test_bom_header_autodetect(self, tmp_path):
+        """CSV written with a UTF-8 BOM (Excel default) still auto-detects."""
+        csv_file = tmp_path / "bom.csv"
+        csv_file.write_text("variant,y_pred\nQ10A,0.9\n", encoding="utf-8-sig")
+
+        result = load_evolvepro_csv(csv_file, top_n=10)
+
+        assert result["variants"] == ["Q10A"]
+        assert result["y_preds"][0] == pytest.approx(0.9)
+
+    def test_padded_xlsx_headers_autodetect(self, tmp_path):
+        """Excel headers with trailing spaces resolve to a key the reader actually uses."""
+        import openpyxl
+
+        xlsx_file = tmp_path / "padded.xlsx"
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.append([" Variant ", "Y_Pred"])
+        ws.append(["Q10A", 0.9])
+        wb.save(str(xlsx_file))
+
+        result = load_evolvepro_csv(xlsx_file, top_n=10)
+
+        assert result["variants"] == ["Q10A"]
+        assert result["y_preds"][0] == pytest.approx(0.9)
+
+    def test_resolved_names_are_original_headers(self):
+        """Resolver returns the raw header strings so row lookups keep working."""
+        from kuma_core.kuro.evolvepro import _resolve_evolvepro_columns
+
+        columns = [" Variant ", "Y_Pred"]
+        row = {" Variant ": "Q10A", "Y_Pred": "0.9"}
+
+        v_col, s_col = _resolve_evolvepro_columns(columns)
+
+        assert v_col == " Variant "
+        assert s_col == "Y_Pred"
+        assert row[v_col] == "Q10A"
+        assert row[s_col] == "0.9"
+
+    def test_alias_order_wins_over_header_order(self):
+        """Alias priority (variant before mutation) is unchanged by normalization."""
+        from kuma_core.kuro.evolvepro import _resolve_evolvepro_columns
+
+        v_col, _ = _resolve_evolvepro_columns(["Mutation", "VARIANT"])
+
+        assert v_col == "VARIANT"
+
+    def test_duplicate_normalized_headers_first_wins(self):
+        from kuma_core.kuro.evolvepro import _resolve_evolvepro_columns
+
+        v_col, _ = _resolve_evolvepro_columns(["Variant", "variant"])
+
+        assert v_col == "Variant"
+
+    def test_explicit_column_matches_case_insensitively(self, tmp_path):
+        """User-specified name matches the header in either direction of casing."""
+        from kuma_core.kuro.evolvepro import _resolve_evolvepro_columns
+
+        v_col, s_col = _resolve_evolvepro_columns(
+            ["variant", "y_pred"], variant_column="Variant", score_column="Y_PRED"
+        )
+        assert (v_col, s_col) == ("variant", "y_pred")
+
+        v_col2, s_col2 = _resolve_evolvepro_columns(
+            ["Variant ", " Y_Pred"], variant_column="variant", score_column="y_pred"
+        )
+        assert (v_col2, s_col2) == ("Variant ", " Y_Pred")
+
+    def test_explicit_column_loads_rows(self, tmp_path):
+        csv_file = tmp_path / "explicit.csv"
+        csv_file.write_text("Mutant_ID,Rank\nQ10A,0.9\n")
+
+        result = load_evolvepro_csv(
+            csv_file, top_n=10, variant_column="mutant_id", score_column="rank"
+        )
+
+        assert result["variants"] == ["Q10A"]
+        assert result["y_preds"][0] == pytest.approx(0.9)
+
+
 class TestDomainAwareSelect:
     def test_domain_quota_min_does_not_oversubscribe_top_n(self):
         rows = [

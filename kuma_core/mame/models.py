@@ -44,6 +44,11 @@ class BarcodeRecord:
     max_minor_allele_fraction: float = 0.0
     n_low_depth_positions: int = 0
     consensus_n_fraction: float = 0.0
+    # False when the source consensus FASTA predates the covered-scoped
+    # ``consensus_n_fraction`` definition and the covered-scoped value cannot be
+    # recovered from the header. ``consensus_n_fraction`` is then meaningless and
+    # the verdict N-fraction gate must not act on it.
+    consensus_n_fraction_evaluable: bool = True
     n_low_quality_bases: int = 0
     n_input_reads: int | None = None
     n_aligned_reads: int | None = None

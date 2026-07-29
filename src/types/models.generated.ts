@@ -457,6 +457,7 @@ export interface DesignSdmPrimersParams {
   tm_fwd_target?: number | null;
   tm_overlap_target?: number | null;
   tm_rev_target?: number | null;
+  tol_max?: number;
   [k: string]: unknown;
 }
 /**

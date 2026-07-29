@@ -146,7 +146,7 @@ When loading an EVOLVEpro scored CSV, Kuro applies the configured selection stra
 | **Structural diversity** | Greedy farthest-point (maximin) selection over the **full** candidate pool in 3D Cα-centroid space (AlphaFold), anchored on the cumulative set of variants already tested across prior rounds, with an optional κ blend toward predicted fitness (κ=0 pure diversity → κ=1 pure Top-N). Combination variants use the centroid of all substituted positions; falls back to sequence-position distance when no structure is available. | Early/low-data rounds of multi-round epistatic combinatorial campaigns. **Conditional**: beats Top-N on genuinely epistatic, spatially-distributed landscapes but is neutral-to-harmful otherwise and washes out once ~a plate of labels accumulates (`benchmark/REPORT.md` §6.7–6.12). |
 
 **Reference**
-- Ding D, Shaw AY, Sinai S, et al. Protein design using structure-predicted residue preferences and sequence-predicted fitness. *Nature Communications*, 15:6729 (2024). PMID:39080249 — MODIFY: Pareto fitness-diversity co-optimization
+- Ding K, Chin M, Zhao Y, Huang W, Mai BK, Wang H, Liu P, Yang Y, Luo Y. Machine learning-guided co-optimization of fitness and diversity facilitates combinatorial library design in enzyme engineering. *Nature Communications*, 15:6392 (2024). https://doi.org/10.1038/s41467-024-50698-y (PMID:39080249). MODIFY: Pareto fitness-diversity co-optimization. Note on naming: MODIFY computes an explicit Pareto frontier over expected fitness and sequence diversity, whereas the filter named "Pareto diversity" in this table is a fitness-seeded greedy maximin selector that computes no non-dominated front.
 
 > **Benchmark caveat (`benchmark/REPORT.md` §6).** In the in-silico active-learning benchmark, only **structural diversity** beat Top-N, and only conditionally (early/low-data rounds, genuinely epistatic targets). **Domain** and **Pareto** diversity did **not** beat Top-N, and domain diversity can *hurt* on single-active-site proteins (it scatters picks off the functional region). Treat every diversity filter as an early-round hedge, not a general improvement over Top-N.
 
@@ -256,11 +256,13 @@ The activity loader expects a **long format** CSV (or Excel) file with one measu
 | Column | Type | Description |
 |---|---|---|
 | `plate_id` | string | Plate identifier, e.g. `P01` |
-| `well_id` | string | Well address in A01–H12 format |
+| `well_id` | string | Well address in A01–H12 format, or a WT replicate label matching `^WT_?\d+$` |
 | `value` | float | Raw measurement value |
 | `replicate_idx` | int | Replicate index (1-based); same well × same replicate_idx = one measurement |
 
-WT wells are declared in `plate_meta.json`:
+The denominator comes from whichever WT source the plate has. Instrument exports ship their own WT replicate blocks, so rows labelled `WT_1`, `WT_2`, `WT_3` are collected as dedicated WT replicates and their mean is the plate denominator. The numeric suffix is the replicate index. These rows never join the variant well space and never reach the EVOLVEpro output.
+
+Plates carrying no such rows fall back to WT wells declared in `plate_meta.json`:
 
 ```json
 {
@@ -270,7 +272,7 @@ WT wells are declared in `plate_meta.json`:
 }
 ```
 
-Fold change and log2_fc are computed relative to the mean WT value on each plate. The log2_fc value maps directly to EVOLVEpro `y_pred`.
+The merge stats report which source was used per plate through `n_wt_replicate_rows` and `n_plates_wt_from_replicates`. Fold change and log2_fc are computed against that denominator, and log2_fc maps directly to EVOLVEpro `y_pred`.
 
 ### Round Entity
 

@@ -63,6 +63,7 @@ from kuma_core.mame.ingest.align import (
 )
 from kuma_core.mame.ingest.consensus import call_consensus_with_metrics
 from kuma_core.mame.ingest.consensus_metadata import (
+    BASIS_COVERED,
     ConsensusMetadata,
     format_consensus_fasta_record,
 )
@@ -954,7 +955,13 @@ def run_combinatorial_demux(
                 reference_fasta=reference_fasta,
                 preset="map-ont",
                 min_mapq=mapq_threshold,
-                require_full_span=(coverage_fraction >= 1.0),
+                # Apply the SAME graded coverage filter as the multi-hit path
+                # (align_reads_multi). Collapsing it to require_full_span=
+                # (coverage_fraction >= 1.0) dropped the span filter entirely for
+                # any coverage_fraction < 1.0 (e.g. the 0.98 default), admitting
+                # partial-coverage reads into wells on the chimera_split=False path.
+                require_full_span=False,
+                coverage_fraction=coverage_fraction,
                 threads=minimap2_threads,
             )
             stats.passed_coverage += len(alignments)
@@ -1127,6 +1134,7 @@ def run_combinatorial_demux(
                         n_indel_event_positions=n_indel_event_positions,
                         max_indel_event_fraction=max_indel_event_fraction,
                         max_del_run_length=max_del_run_length,
+                        consensus_n_fraction_basis=BASIS_COVERED,
                     ),
                 ),
             )

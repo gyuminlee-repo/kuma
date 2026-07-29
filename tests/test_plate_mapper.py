@@ -352,6 +352,134 @@ class TestJanusMappingExport:
                 assert float(row[8]) == 2.0
 
 
+def _shared_rev_fixture() -> tuple[list[PlateMapping], list[PlateMapping], dict[str, list[str]]]:
+    """Two mutations sharing one reverse primer, plus one unshared mutation.
+
+    Built directly from PlateMapping so sharing is guaranteed, unlike the
+    ``sdm_results`` fixture whose reverse primers happen to be all distinct.
+    """
+    shared_seq = "CCCGGGAAATTTCCCGGG"
+    solo_seq = "TTTGGGCCCAAATTTGGG"
+    fwd = [
+        PlateMapping("A1", "M1_F", "AAATTTCCCGGGAAATTT", "forward", "M1"),
+        PlateMapping("B1", "M2_F", "AAATTTCCCGGGAAAGGG", "forward", "M2"),
+        PlateMapping("C1", "M3_F", "AAATTTCCCGGGAAACCC", "forward", "M3"),
+    ]
+    rev = [
+        PlateMapping("A1", "M1_R", shared_seq, "reverse", "M1"),
+        PlateMapping("B1", "M3_R", solo_seq, "reverse", "M3"),
+    ]
+    rev_groups = {shared_seq: ["M1", "M2"], solo_seq: ["M3"]}
+    return fwd, rev, rev_groups
+
+
+class TestSharedReverseWithoutRevGroups:
+    """Regression: dedup groups missing must not silently drop reverse rows."""
+
+    def test_echo_csv_raises_when_rev_groups_missing(self, tmp_path):
+        fwd, rev, _ = _shared_rev_fixture()
+        with pytest.raises(ValueError) as exc:
+            export_echo_mapping_csv(fwd, rev, tmp_path / "echo.csv")
+        assert "M2" in str(exc.value)
+
+    def test_janus_csv_raises_when_rev_groups_missing(self, tmp_path):
+        fwd, rev, _ = _shared_rev_fixture()
+        with pytest.raises(ValueError) as exc:
+            export_janus_mapping_csv(fwd, rev, tmp_path / "janus.csv")
+        assert "M2" in str(exc.value)
+
+    def test_rev_groups_present_keeps_every_mutation(self, tmp_path):
+        fwd, rev, rev_groups = _shared_rev_fixture()
+        csv_path = tmp_path / "echo.csv"
+        export_echo_mapping_csv(fwd, rev, csv_path, rev_groups=rev_groups)
+
+        with open(csv_path, encoding="utf-8") as f:
+            rows = list(csv.reader(f))[1:]
+
+        rev_dest = [r[4] for r in rows if r[1].endswith("_R")]
+        assert sorted(rev_dest) == ["M1", "M2", "M3"]
+        assert len(rows) == len(fwd) * 2
+
+    def test_undeduplicated_rev_needs_no_rev_groups(self, tmp_path):
+        """One reverse mapping per mutation carries its own link, so no raise."""
+        fwd, _, _ = _shared_rev_fixture()
+        rev = [
+            PlateMapping("A1", "M1_R", "CCCGGGAAATTTCCCGGG", "reverse", "M1"),
+            PlateMapping("B1", "M2_R", "CCCGGGAAATTTCCCAAA", "reverse", "M2"),
+            PlateMapping("C1", "M3_R", "TTTGGGCCCAAATTTGGG", "reverse", "M3"),
+        ]
+        csv_path = tmp_path / "echo.csv"
+        export_echo_mapping_csv(fwd, rev, csv_path)
+
+        with open(csv_path, encoding="utf-8") as f:
+            rows = list(csv.reader(f))[1:]
+        rev_dest = [r[4] for r in rows if r[1].endswith("_R")]
+        assert sorted(rev_dest) == ["M1", "M2", "M3"]
+
+
+class TestRevUsageTable:
+    """layout sheet reports shared count and total transfer volume."""
+
+    def _read_usage(self, ws):
+        header_row = None
+        for row in ws.iter_rows(min_col=1, max_col=1, values_only=False):
+            if row[0].value == "Reverse primer usage":
+                header_row = row[0].row
+                break
+        assert header_row is not None, "usage table header missing"
+        rows = []
+        r = header_row + 2
+        while ws.cell(row=r, column=1).value and ws.cell(row=r, column=3).value is not None:
+            rows.append([ws.cell(row=r, column=c).value for c in range(1, 6)])
+            r += 1
+        note = ws.cell(row=r, column=1).value
+        return [c.value for c in ws[header_row + 1][:5]], rows, note
+
+    def test_echo_layout_usage_table(self, tmp_path):
+        from openpyxl import load_workbook
+        from kuma_core.kuro.plate_mapper import export_echo_mapping_xlsx
+
+        fwd, rev, rev_groups = _shared_rev_fixture()
+        path = tmp_path / "echo.xlsx"
+        export_echo_mapping_xlsx(
+            fwd, rev, path, transfer_vol=600, rev_groups=rev_groups,
+        )
+
+        ws = load_workbook(path)["layout"]
+        headers, rows, note = self._read_usage(ws)
+        assert headers == [
+            "Source Well", "Primer Name", "Shared By (reactions)",
+            "Volume Per Reaction (nL)", "Total Transfer Volume (nL)",
+        ]
+        # Shared M1/M2 well is aspirated twice; M3 once. Volume splitting
+        # (600 nL -> 500 + 100) must not change the totals.
+        assert rows == [
+            ["A1", "M1_R", 2, 600, 1200],
+            ["B1", "M3_R", 1, 600, 600],
+        ]
+        assert "dead volume" in note
+
+    def test_janus_layout_usage_table(self, tmp_path):
+        from openpyxl import load_workbook
+        from kuma_core.kuro.plate_mapper import export_janus_mapping_xlsx
+
+        fwd, rev, rev_groups = _shared_rev_fixture()
+        path = tmp_path / "janus.xlsx"
+        export_janus_mapping_xlsx(
+            fwd, rev, path, transfer_vol=2.0, rev_groups=rev_groups,
+        )
+
+        ws = load_workbook(path)["layout"]
+        headers, rows, note = self._read_usage(ws)
+        assert headers[3] == "Volume Per Reaction (µL)"
+        assert headers[4] == "Total Transfer Volume (µL)"
+        assert rows == [
+            ["A1", "M1_R", 2, 2.0, 4.0],
+            ["B1", "M3_R", 1, 2.0, 2.0],
+        ]
+        assert "dead volume" in note
+
+
 class TestExpectedMutationsSheet:
     """Tests for _write_expected_mutations_sheet and integration into export_plate_excel."""
 

@@ -88,17 +88,21 @@ def test_parse_fasta_file_quality_header_populates_low_depth_metrics(
     assert record.n_mapq_failed == 1
     assert record.n_span_failed == 1
     assert record.n_low_depth_positions == 3
-    assert record.consensus_n_fraction == 0.25
+    # No basis marker, so the stored 0.250 carries the old whole-reference
+    # denominator and is recovered against the covered positions instead:
+    # all 3 Ns are the low-depth ones, leaving 0 of 9 covered positions no-call.
+    assert record.consensus_n_fraction == 0.0
+    assert record.consensus_n_fraction_evaluable is True
     assert record.n_low_quality_bases == 7
 
 
-def test_parse_fasta_file_computes_n_fraction_without_header(tmp_path: Path) -> None:
-    """Legacy single-record consensus files still expose N fraction to compare()."""
+def test_parse_fasta_file_without_metadata_is_not_evaluable(tmp_path: Path) -> None:
+    """A bare header carries no basis for a covered-scoped N fraction."""
     fasta = tmp_path / "1_1.fasta"
     fasta.write_text(">1_1\nATGN\n", encoding="utf-8")
     record = parse_fasta_file(fasta, native_barcode="NB01")
     assert record.n_low_depth_positions == 0
-    assert record.consensus_n_fraction == 0.25
+    assert record.consensus_n_fraction_evaluable is False
 
 
 def test_load_barcode_directory_ignores_fastq_consensus_files(tmp_path: Path) -> None:

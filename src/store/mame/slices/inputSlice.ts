@@ -124,6 +124,7 @@ const mameInputInitialState = {
   sharedEvolveproCsvPath: null as string | null,
   resetEpoch: 0,
   wellLayoutDraft: null as WellLayoutRow[] | null,
+  wellLayoutOverflow: null as { droppedMutantIds: string[]; wtOmitted: boolean } | null,
   wellLayout: null as WellLayout | null,
 };
 
@@ -538,7 +539,14 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         { expected_mutations_xlsx: expectedPath },
         30_000,
       );
-      set({ wellLayoutDraft: result.draft, validationErrors: [] });
+      set({
+        wellLayoutDraft: result.draft,
+        wellLayoutOverflow: {
+          droppedMutantIds: result.dropped_mutant_ids,
+          wtOmitted: result.wt_omitted,
+        },
+        validationErrors: [],
+      });
     } catch (error) {
       set({ validationErrors: [formatError(error)] });
     }
@@ -548,10 +556,13 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     for (const r of rows) {
       layout[r.well] = r.sample;
     }
-    set({ wellLayout: layout, wellLayoutDraft: null });
+    set({ wellLayout: layout, wellLayoutDraft: null, wellLayoutOverflow: null });
   },
   cancelWellLayout: () => {
-    set({ wellLayoutDraft: null });
+    set({ wellLayoutDraft: null, wellLayoutOverflow: null });
+  },
+  clearWellLayout: () => {
+    set({ wellLayout: null, wellLayoutDraft: null, wellLayoutOverflow: null });
   },
   resetInput: () => set({ ...mameInputInitialState }),
 });

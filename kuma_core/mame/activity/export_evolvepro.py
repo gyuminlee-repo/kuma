@@ -107,8 +107,7 @@ def export_evolvepro_xlsx(
       - ``ngs_success`` is True
       - ``mutation`` is not ``"WT"`` and not ``None``
       - ``mutation`` matches the canonical ``[A-Z]\\d+[A-Z]`` pattern
-      - relative activity (``relative_activity`` or, fallback,
-        ``fold_change``) is not ``None``
+      - ``fold_change`` is not ``None``
 
     Args:
         rows: Full merged table.
@@ -139,11 +138,14 @@ def export_evolvepro_xlsx(
         if not is_canonical_internal(r.mutation):
             excluded.append((label, "non_canonical_variant"))
             continue
-        activity = r.relative_activity if r.relative_activity is not None else r.fold_change
-        if activity is None:
-            excluded.append((label, "relative_activity=None"))
+        # ``fold_change`` IS the relative activity required here:
+        # fold_change = activity_mean / wt_mean = area / mean(WT areas),
+        # which is exactly the slide-10 relative activity definition.
+        # No separate normalization step exists on the MergedRow path.
+        if r.fold_change is None:
+            excluded.append((label, "fold_change=None"))
             continue
-        kept.append((to_evolvepro(r.mutation), activity))
+        kept.append((to_evolvepro(r.mutation), r.fold_change))
 
     n_written = write_evolvepro_xlsx(kept, path)
     return n_written, excluded

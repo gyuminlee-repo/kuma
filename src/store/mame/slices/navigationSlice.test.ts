@@ -64,7 +64,10 @@ describe("MAME_SUBSTEP_ORDER", () => {
       "analyze.inputs",
       "analyze.review",
     ]);
-    expect(MAME_SUBSTEP_ORDER.activity).toEqual(["activity.ingest"]);
+    expect(MAME_SUBSTEP_ORDER.activity).toEqual([
+      "activity.ingest",
+      "activity.signals",
+    ]);
   });
 });
 

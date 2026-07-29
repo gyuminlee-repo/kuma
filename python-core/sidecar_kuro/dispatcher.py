@@ -1,6 +1,7 @@
 """JSON-RPC dispatcher: method registry, main loop, parent watchdog."""
 
 import json
+import logging
 import os
 import sys
 import threading
@@ -128,7 +129,7 @@ _METHODS = {
     # Phase 3: Settings
     "settings_load": handle_settings_load,
     "settings_save": handle_settings_save,
-    # §22 graceful shutdown — ack immediately; main() breaks on this method
+    # §22 graceful shutdown — ack immediately; main() exits on this method
     "shutdown": lambda _: {"ok": True, "message": "shutdown_acked"},
 }
 
@@ -170,10 +171,16 @@ def _dispatch_handler(req_id: int | None, method: str, handler, params: dict) ->
     except (KeyError, ValueError) as exc:
         _append_crash_log(method, str(params)[:200], traceback.format_exc())
         _error(req_id, -32602, str(exc))
-    except Exception:
+    except Exception as exc:
         logger.exception("Unhandled error in %s", method)
         _append_crash_log(method, str(params)[:200], traceback.format_exc())
-        _error(req_id, -32603, "Internal error")
+        # Surface the exception type + message instead of an opaque
+        # "Internal error". The full traceback stays in crash.log only; the
+        # short form (e.g. "ImportError: primer3 is required ...") lets the UI
+        # show an actionable cause. The -32603 code is preserved so the
+        # frontend errorClassifier still buckets this as a sidecar error.
+        # Mirrors sidecar_mame/dispatcher.py.
+        _error(req_id, -32603, f"{type(exc).__name__}: {exc}")
 
 
 def dispatch(request: dict) -> None:
@@ -197,6 +204,17 @@ def dispatch(request: dict) -> None:
     _dispatch_handler(req_id, method, handler, params)
 
 
+def _exit_after_shutdown() -> None:
+    logging.shutdown()
+    try:
+        sys.stdout.flush()
+    except BrokenPipeError:
+        pass
+    try:
+        sys.stderr.flush()
+    except BrokenPipeError:
+        pass
+    os._exit(0)
 
 
 def _start_parent_watchdog() -> None:
@@ -331,7 +349,7 @@ def main(emit_ready: bool = True) -> None:
         if request.get("method") == "shutdown":
             dispatch(request)
             logger.info("KURO sidecar shutdown requested, exiting cleanly")
-            break
+            _exit_after_shutdown()
 
         dispatch(request)
 

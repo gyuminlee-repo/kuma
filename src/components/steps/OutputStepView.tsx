@@ -164,7 +164,7 @@ export function OutputStepView() {
       ) : (
         <div
           ref={containerRef}
-          className="flex h-full min-h-0"
+          className="flex h-full min-h-[460px]"
           data-testid="output-split-container"
         >
           {/* 좌: Summary (ResultTable + 텍스트 통계) */}

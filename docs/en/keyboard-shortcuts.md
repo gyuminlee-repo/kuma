@@ -1,27 +1,34 @@
 # Keyboard Shortcuts
 
-## Global
+## File
 
-| Shortcut | Action |
-|---|---|
-| `Ctrl/Cmd+O` | Open sequence file |
-| `Ctrl/Cmd+S` | Save workspace |
-| `Ctrl/Cmd+Shift+S` | Save As |
-| `Ctrl/Cmd+E` | Export Excel |
-| `Ctrl/Cmd+R` | Open Design Report |
-| `Enter` | Design Primers (when focused outside a text input) |
-| `Esc` | Cancel current design / close dialog |
+| Shortcut | Action | Scope |
+|---|---|---|
+| `Ctrl+O` | Open Sequence | Kuro |
 
-## Result Table
+## Edit
 
-| Shortcut | Action |
-|---|---|
-| Click column header | Sort ascending / descending |
-| Click Fwd / Rev cell | Open candidate popover |
-| Click HP badge | Open hairpin / dimer breakdown |
+| Shortcut | Action | Scope |
+|---|---|---|
+| `Ctrl+,` | Preferences | Kuro and Mame |
 
-## Drag & drop
+## View
 
-Drop a `.gb` / `.dna` / `.fa` file onto the window to load it.
+| Shortcut | Action | Scope |
+|---|---|---|
+| `Ctrl+L` | Toggle Logs panel | Kuro and Mame |
+| `Ctrl+J` | Toggle Jobs panel | Kuro and Mame |
 
-*Stub — shortcut reference card coming.*
+## Run
+
+| Shortcut | Action | Scope |
+|---|---|---|
+| `Ctrl+D` | Run / Analyze | Kuro and Mame |
+| `Ctrl+Enter` | Run / Analyze (alias) | Kuro and Mame |
+| `Ctrl+Shift+R` | Reset All | Kuro and Mame |
+
+## Help
+
+| Shortcut | Action | Scope |
+|---|---|---|
+| `Ctrl+/` | Keyboard shortcuts | Kuro and Mame |

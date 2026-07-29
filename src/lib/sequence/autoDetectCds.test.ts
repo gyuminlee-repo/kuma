@@ -145,4 +145,19 @@ describe("autoDetectCdsCandidates — FASTA multi-ORF", () => {
     const results = autoDetectCdsCandidates(content);
     expect(results.every((r) => r.source === "genbank-cds")).toBe(true);
   });
+
+  it("binary-looking content (SnapGene .dna read as text) yields [] instead of junk ORFs", () => {
+    // A real SnapGene .dna file is a binary container: length-prefixed blocks,
+    // arbitrary byte values. Reading it as text produces a mojibake string
+    // that nonetheless contains ATG..stop runs in some frame, which previously
+    // fired parseFastaOrfs and filled the dropdown with dozens of fake "ORF" entries.
+    // Simulate that by embedding an ORF-shaped run inside high-byte garbage.
+    const orf = makeOrf(30);
+    const garbage = Array.from({ length: 200 }, (_, i) =>
+      String.fromCharCode(1 + (i % 254)),
+    ).join("");
+    const content = `${garbage}${orf}${garbage}`;
+    const results = autoDetectCdsCandidates(content);
+    expect(results).toEqual([]);
+  });
 });

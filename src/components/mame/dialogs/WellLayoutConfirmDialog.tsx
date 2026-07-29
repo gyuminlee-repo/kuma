@@ -28,6 +28,9 @@ import {
 export function WellLayoutConfirmDialog() {
   const { t } = useTranslation();
   const draft = useMameAppStore((s) => s.wellLayoutDraft);
+  // A draft clamped at the 96-well ceiling renders as a correct full plate, so
+  // the truncation is stated here rather than left for the operator to notice.
+  const overflow = useMameAppStore((s) => s.wellLayoutOverflow);
   const confirmWellLayout = useMameAppStore((s) => s.confirmWellLayout);
   const cancelWellLayout = useMameAppStore((s) => s.cancelWellLayout);
 
@@ -67,6 +70,20 @@ export function WellLayoutConfirmDialog() {
           <p className="text-caption text-muted-foreground">
             {t("mame.wellLayoutDialog.hint")}
           </p>
+
+          {overflow && overflow.droppedMutantIds.length > 0 && (
+            <p role="alert" className="text-caption text-destructive">
+              {t("mame.wellLayoutDialog.droppedMutants", {
+                count: overflow.droppedMutantIds.length,
+                mutants: overflow.droppedMutantIds.slice(0, 5).join(", "),
+              })}
+            </p>
+          )}
+          {overflow?.wtOmitted && (
+            <p role="alert" className="text-caption text-destructive">
+              {t("mame.wellLayoutDialog.wtOmitted")}
+            </p>
+          )}
 
           {/* Column headers */}
           <div

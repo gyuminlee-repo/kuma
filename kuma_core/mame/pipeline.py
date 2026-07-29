@@ -18,7 +18,6 @@ from kuma_core.mame.models import (
     CompareParams,
     ExpectedMutation,
     ReplicateResult,
-    VerdictClass,
     VerdictRecord,
 )
 from kuma_core.mame.select import pick_best_replicate, prefer_within_plate
@@ -56,14 +55,14 @@ def _assign_mutant_ids(
     a well is attributed to the mutant physically placed there according to the
     sample_map (ground truth), overriding observation-based heuristics.  This
     makes Final/matrix grouping coherent with the per-well verdict scoping that
-    uses the same sample_map.  Falls through to the existing 4-step heuristics
+    uses the same sample_map.  Falls through to the observation-based heuristics
     for wells with a non-R_F custom_barcode or no sample_map entry.
 
-    Strategy (observation-based fallback): iterate expected mutations and attach
-    any verdict whose observed AA set contains the expected substitution label,
-    or whose verdict class is WRONG_AA at the expected position, or whose verdict
-    is LOWDEPTH/NO_CALL/FRAMESHIFT/MANY (unknown target — still attempt assignment based
-    on file naming).
+    Strategy (observation-based fallback): attach a verdict whose observed AA set
+    contains an expected substitution label, then a verdict observing an expected
+    position (WRONG_AA / AMBIGUOUS).  A record with neither signal (LOWDEPTH,
+    NO_CALL, or a WRONG_AA at an unexpected position) is left unattributed under
+    an ``UNKNOWN_<native>_<custom>`` key rather than guessed at.
     """
 
     grouped: dict[str, list[VerdictRecord]] = defaultdict(list)
@@ -100,18 +99,16 @@ def _assign_mutant_ids(
                     matched_id = expected_by_pos[pos].mutant_id
                     break
         if matched_id is None:
-            # 3) Missing-expected (WRONG_AA with "missing expected" note) — use the
-            # first unmet expected mutant id round-robin.
-            if vr.verdict is VerdictClass.WRONG_AA and expected:
-                matched_id = expected[idx % len(expected)].mutant_id
-            elif vr.verdict in (VerdictClass.LOWDEPTH, VerdictClass.NO_CALL) and expected:
-                matched_id = expected[idx % len(expected)].mutant_id
-            else:
-                # 4) Fall back to `<native>_<custom>` to keep the record addressable.
-                matched_id = (
-                    f"UNKNOWN_{vr.translated.barcode.native_barcode}_"
-                    f"{vr.translated.barcode.custom_barcode}"
-                )
+            # 3) No placement map, no label match, no position match. The record
+            # carries no evidence of which mutant it belongs to, so it stays
+            # unattributed: attributing it (previously `expected[idx % len]`,
+            # i.e. list position deciding the mutant) reports a guess as fact and
+            # pollutes per-mutant replicate counts. Supply sample_map/well_layout
+            # to place these wells.
+            matched_id = (
+                f"UNKNOWN_{vr.translated.barcode.native_barcode}_"
+                f"{vr.translated.barcode.custom_barcode}"
+            )
         vr.mutant_id = matched_id
         grouped[matched_id].append(vr)
         assigned.add(idx)

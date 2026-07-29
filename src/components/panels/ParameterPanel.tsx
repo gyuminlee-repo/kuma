@@ -89,7 +89,7 @@ export function ParameterPanel() {
   const tmOvInput = useLocalNum(tmOv, 42, (v) => setTmTargets(tmFwd, tmRev, v));
   const tmTolerance = useAppStore((s) => s.tmTolerance);
   const setTmTolerance = useAppStore((s) => s.setTmTolerance);
-  const tmTolInput = useLocalNum(tmTolerance, 3.0, setTmTolerance);
+  const tmTolInput = useLocalNum(tmTolerance, 4.0, setTmTolerance);
   const gcMinInput = useLocalNum(gcMin, 40, (v) => setGcRange(v, gcMax));
   const gcMaxInput = useLocalNum(gcMax, 60, (v) => setGcRange(gcMin, v));
   const fwdLenMinInput = useLocalNum(fwdLenMin, 17, (v) => setPrimerLenRange(v, fwdLenMax, revLenMin, revLenMax));

@@ -137,11 +137,39 @@ def _with_note(detail: str | None, note: str | None) -> str | None:
     return detail
 
 
-def _apply_rule(tm_low: float, rule: dict) -> dict[str, Any]:
+def _effective_delta(rule: dict, len_low: int | None) -> float:
+    """Ta offset for this rule, honouring an optional short-primer branch.
+
+    NEB Phusion (E0553 section 7 / M0530 section 8): primers longer than 20 nt
+    anneal at Tm(low) + 3, but "if the primer length is less than 20
+    nucleotides, an annealing temperature equivalent to the Tm of the lower
+    primer should be used" (offset 0). The threshold and the short-primer
+    offset both live on the profile (``short_primer_len`` /
+    ``short_primer_delta``); nothing is hard-coded here.
+
+    ``len_low`` is the length of the primer that set ``tm_low`` (the lower-Tm
+    primer), matching the manual wording "the Tm of the lower primer".
+    """
+    short_len = rule.get("short_primer_len")
+    short_delta = rule.get("short_primer_delta")
+    if (
+        short_len is not None
+        and short_delta is not None
+        and len_low is not None
+        and len_low < short_len
+    ):
+        return float(short_delta)
+    return float(rule["delta"])
+
+
+def _apply_rule(tm_low: float, rule: dict, len_low: int | None = None) -> dict[str, Any]:
     """Turn the lower binding Tm into the 4-field Ta contract.
 
     Pure decision logic (no thermodynamics) so boundary behaviour is directly
-    testable at exact threshold values.
+    testable at exact threshold values. ``len_low`` is the length of the
+    lower-Tm primer; it is only consulted by rules that declare a
+    short-primer branch, so callers without a length keep the previous
+    behaviour.
     """
     note = rule.get("note")
     touchdown = rule.get("touchdown")
@@ -158,9 +186,22 @@ def _apply_rule(tm_low: float, rule: dict) -> dict[str, Any]:
         }
 
     # 3-step default, with optional 2-step promotion for high-Tm primers.
+    #
+    # The promotion is compared against whichever quantity the manufacturer
+    # states the rule on (``two_step_basis``):
+    #   "ta", NEB wording is "primers with annealing temperatures >= 72 C"
+    #          (E0553 section 10), so the computed Ta is the probe. Without
+    #          this the 3-step branch can emit an annealing temperature above
+    #          the 72 C extension step, which is not a runnable program.
+    #   "tm", Toyobo KOD One states its threshold on the primer Tm, so the
+    #          raw Tm stays the probe. This is the default when unset, which
+    #          keeps every profile that does not declare a basis unchanged.
+    ta = float(round(tm_low + _effective_delta(rule, len_low)))
+
     threshold = rule.get("two_step_threshold")
     two_temp = rule.get("two_step_temp")
-    if threshold is not None and two_temp is not None and tm_low >= threshold:
+    probe = ta if rule.get("two_step_basis") == "ta" else tm_low
+    if threshold is not None and two_temp is not None and probe >= threshold:
         return {
             "recommended_ta": float(two_temp),
             "ta_mode": "2step",
@@ -168,7 +209,6 @@ def _apply_rule(tm_low: float, rule: dict) -> dict[str, Any]:
             "ta_touchdown": touchdown,
         }
 
-    ta = float(round(tm_low + rule["delta"]))
     return {
         "recommended_ta": ta,
         "ta_mode": "3step",
@@ -203,5 +243,8 @@ def compute_annealing(
 
     tm_fwd = _binding_tm(forward_seq, profile, rule, neb_offsets)
     tm_rev = _binding_tm(reverse_seq, profile, rule, neb_offsets)
-    tm_low = min(tm_fwd, tm_rev)
-    return _apply_rule(tm_low, rule)
+    if tm_fwd <= tm_rev:
+        tm_low, len_low = tm_fwd, len(forward_seq)
+    else:
+        tm_low, len_low = tm_rev, len(reverse_seq)
+    return _apply_rule(tm_low, rule, len_low)

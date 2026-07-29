@@ -16,8 +16,6 @@ export interface KuroSnapshotState
     | "mutationText" | "mutationInputMode" | "evolveproCsvPath"
     | "evolveproMode" | "evolveproVariantColumn" | "evolveproScoreColumn"
     | "evolveproScoreOrder" | "evolveproSheetName"
-    | "othersSourcePath" | "othersVariantColumn" | "othersScoreColumn"
-    | "othersScoreOrder" | "othersSheetName"
     | "uniprotAccession" | "domains" | "disabledDomains"
     | "positionDiversityEnabled" | "maxPerPosition"
     | "domainDiversityEnabled" | "domainStrategy" | "domainOverlapPolicy"
@@ -50,11 +48,6 @@ export function buildKuroSnapshot(state: KuroSnapshotState): AutosaveSnapshot {
       evolvepro_score_column: state.evolveproScoreColumn,
       evolvepro_score_order: state.evolveproScoreOrder,
       evolvepro_sheet_name: state.evolveproSheetName,
-      others_source_path: state.othersSourcePath || null,
-      others_variant_column: state.othersVariantColumn,
-      others_score_column: state.othersScoreColumn,
-      others_score_order: state.othersScoreOrder,
-      others_sheet_name: state.othersSheetName,
       uniprot_accession: state.uniprotAccession || null,
       organism: state.organism,
     },
