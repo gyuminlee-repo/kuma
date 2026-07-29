@@ -1,5 +1,35 @@
 # Changelog
 
+## v0.13.31 (Work that survives a crash, a structure you can supply yourself, and a selector that says what it changes)
+
+Seven versions since the last tag. The theme running through them is a gap between what the app appeared to do and what it did: autosave that saved nothing for users who never made a project file, a polymerase selector named after a Tm preset it does not switch, a 3D panel reporting active while computing in one dimension, and a MAME verdict calling thin wells contaminated.
+
+### Fixed
+- v0.13.30.6: Autosave keeps work for projects that were never saved to a file. It returned early for scratch projects, so a user who had not created one had nothing saved and no save button. Scratch autosave now writes to the app data directory, gated on the KURO kind so MAME autosave is untouched. The snapshot schema also carries the nine result fields it used to drop, and schema 1 snapshots still load. (`src/lib/autosave.ts`)
+- v0.13.30.6: A moved template no longer kills the whole restore. Restore called `load_fasta` unguarded, so a template that had been moved aborted the settings, the computed output, and the UI restore together. The failure is now contained, its cause reaches the status bar, and auto-redesign is skipped.
+- v0.13.30.6: Step 2 no longer crashes on a pandas-written file. `df.to_csv(path)` writes an unnamed index column, and Radix throws on an empty `SelectItem` value from the component body, on the render right after preview and without anyone opening the dropdown. Headers map to index sentinels and the empty column stays listed, labelled unnamed.
+- v0.13.30.6: Loading a different template clears the previous protein primers. Residue numbers are CDS-relative, so keeping them across a template change showed numbers that belong to another sequence.
+- v0.13.30.6: The 3D panel stops claiming to be active while using distance in one dimension. A loaded structure file lives in a different slot than a UniProt accession, so its coordinates never reached the sidecar, and because they never arrived the frame guard never ran either.
+- v0.13.30.6: A sidecar left running during an update no longer bricks the install. A live exe holds a Windows file lock, the installer skips it, and the stale binary then fails every integrity check. KURO and MAME are stopped before the installer runs, integrity failures name a recovery step, and sidecar stderr lands in a rolled log file instead of being truncated away.
+- v0.13.30.2: A mixed MAME signal below three times the minimum read count reports LOWDEPTH rather than MIXED. At low depth a few minor-allele positions are indistinguishable from ONT error, so thin wells were published as confident contamination. (`kuma_core/mame/compare/verdict.py`)
+- v0.13.30.2: The single-hit demux path honours `coverage_fraction` instead of collapsing it to `require_full_span=(coverage_fraction >= 1.0)`, which disabled the span filter at the 0.98 default. (`kuma_core/mame/ingest/combinatorial_demux.py`)
+- v0.13.30.2: The read-length window scales with the amplicon. A fixed 30 bp window is about 1.7 percent of a 1.8 kb amplicon, far tighter than the ONT indel spread, so genuine full-length reads were discarded. On the ispS run it widens from 1765 to 1825 into 1615 to 1975. (`kuma_core/mame/ingest/quality_filter.py`)
+- v0.13.30.2: The QC panel appears for MIN114 runs. Three MinKNOW health parsers returned nothing on real MIN114 column names, so a run with valid metadata showed no panel at all. (`kuma_core/mame/health.py`)
+- v0.13.30.4: The What is New bundle is regenerated where the version bump happens. It went stale in two consecutive releases and both times the tag build would have died in quality gates, because the post-commit hook rewrites `package.json` (a generation input) and amends without regenerating. The three-stage `sync:check` also no longer short-circuits, so a later stage failing cannot hide behind an earlier stage passing. (`scripts/sync-version.sh`, `scripts/sync-check-all.mjs`)
+
+### Changed
+- v0.13.30.3: The polymerase selector states what it actually controls. The design Tm has run on one fixed SantaLucia 1998 scale for every polymerase since v0.13.19, but the selector was labelled a Tm calculation preset, so choosing KOD read as if the design Tm switched formula. NEB calibration applies to Ta only.
+- v0.13.30.3: Switching polymerase now reports the GC range or overlap mode it overwrote instead of changing them silently. Enzymes differ on both, so a switch could change which primer is selected, or the design algorithm itself.
+- v0.13.30.3: The Benchling profile is retired. It named a Tm scale rather than an enzyme, and it was both the default selection and the only profile allowing GC 30 to 70 while the other seven allow 40 to 60. The default is now KOD and seven profiles remain. A saved state carrying Benchling migrates to KOD with its stored GC range and overlap mode preserved, and reports the switch. Reproducing an older Benchling design stays possible by entering GC 30 to 70 in Advanced Options.
+- v0.13.30.6: A user-predicted structure can be loaded directly. AlphaFold DB is keyed by UniProt accession, so a construct matching no entry exactly has no structure there, and ESMFold refuses sequences over 400 residues. PDB and mmCIF are parsed with the standard library, an AlphaFold Server zip picks its best model by ranking score rather than filename order, and the frame guard verifies the file against the CDS without a network call.
+- v0.13.30.7: The dead `activity.export_evolvepro_csv` RPC layer and five unused MAME activity wrappers in `src/lib/ipc.ts` are gone, along with two orphan locale keys. Nothing changes at runtime: the store already called `sendRequest` directly, and the xlsx export path is untouched. The core `export_evolvepro_csv` function stays, since the round-trip integration test uses it to pin the column agreement between the MAME writer and the KURO reader.
+- v0.13.30.5: The rescue and consensus documents describe what ships. They claimed `tol_max` defaults to 3 degrees when the engine has used 4 since v0.13.23, and a three-pass auto-relax cascade that does not exist.
+
+### Known issues
+- Golden Gate stays out of the build pending a go or no-go decision, and the branch holding it also carries the reverted original feature.
+- Combo measurements stay out of the EVOLVEpro input, unchanged from v0.13.30.
+- `251001_report.xlsx` remains a format exemplar rather than the round-1 measurement for the IspS campaign, unchanged from v0.13.27.
+
 ## v0.13.30 (The sample map the lab fills in now works end to end)
 
 `05_mame_sample_map.xlsx` names every well `<sample>_r<n>` and marks empty wells `blank`. The layout parser read those literally, so a filled-in template produced no usable variants at all. Two independent reasons, fixed together.
