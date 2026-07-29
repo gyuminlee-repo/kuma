@@ -15,6 +15,11 @@ use std::{
     path::Path,
 };
 
+/// Advice appended to every integrity failure so the user has a concrete
+/// recovery path instead of an opaque hash dump.
+const REMEDIATION: &str = "This installation is incomplete or has been modified. \
+Uninstall the app completely, then install the latest release again to restore it.";
+
 /// Read a file in 64 KiB chunks and compute its SHA-256.
 fn sha256_file(path: &Path) -> io::Result<String> {
     let mut file = File::open(path)?;
@@ -46,15 +51,17 @@ pub fn verify_sidecar(path: &Path, expected_hash: &str) -> Result<(), String> {
             "sidecar hash check failed — cannot read {}: {}",
             path.display(),
             e
-        )
+        ) + "\n"
+            + REMEDIATION
     })?;
 
     if actual != expected_hash {
         Err(format!(
-            "sidecar binary integrity check failed for {}\n  expected: {}\n  actual:   {}",
+            "sidecar binary integrity check failed for {}\n  expected: {}\n  actual:   {}\n{}",
             path.display(),
             expected_hash,
             actual,
+            REMEDIATION,
         ))
     } else {
         Ok(())
@@ -107,5 +114,6 @@ mod tests {
         assert!(result.is_err());
         let msg = result.unwrap_err();
         assert!(msg.contains("integrity check failed"));
+        assert!(msg.contains(REMEDIATION));
     }
 }

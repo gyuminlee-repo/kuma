@@ -9,7 +9,7 @@ use std::{
     },
     time::{Duration, Instant},
 };
-use tauri::{AppHandle, Emitter, Wry};
+use tauri::{AppHandle, Emitter, Manager, Wry};
 use tauri_plugin_shell::{
     process::{CommandChild, CommandEvent},
     ShellExt,
@@ -25,6 +25,61 @@ const READY_TIMEOUT: Duration = Duration::from_secs(30);
 const RPC_TIMEOUT: Duration = Duration::from_secs(60);
 
 type PendingSender = oneshot::Sender<Result<Value, String>>;
+
+/// Rotate `sidecar.log` once it grows past this size. One rolled backup
+/// (`sidecar.log.1`) is kept, so total on-disk usage stays under 2x this value.
+///
+/// Plain truncation was wrong here: the log crosses this threshold precisely
+/// when stderr is flooding (a Python traceback loop, a crash spew), which is
+/// exactly the tail worth keeping. Rotation keeps a bounded, recent diagnostic
+/// tail instead of dropping it at the moment it matters.
+const SIDECAR_LOG_MAX_BYTES: u64 = 2 * 1024 * 1024;
+
+/// Serializes the size check + rotation + append across sidecar kinds. Without
+/// it, kuro and mame can both observe an oversized log and rotate in turn, so
+/// the second rotation overwrites `sidecar.log.1` with a freshly emptied file
+/// and the retained tail is lost.
+static SIDECAR_LOG_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+/// Append one sidecar stderr line to `<app_log_dir>/sidecar.log`.
+///
+/// Every failure path here is swallowed on purpose: this is a best-effort
+/// diagnostic sink, and a read-only or missing log directory must never break
+/// sidecar communication. That is why the usual "never silence an error" rule
+/// is relaxed for this function only. `eprintln!` at the call site keeps the
+/// line visible whenever a console is attached.
+fn append_sidecar_log(app_handle: &AppHandle<Wry>, kind: &str, line: &str) {
+    let Ok(dir) = app_handle.path().app_log_dir() else {
+        return;
+    };
+    if std::fs::create_dir_all(&dir).is_err() {
+        return;
+    }
+    let path = dir.join("sidecar.log");
+
+    // Poison-safe: a panic in another thread must not turn best-effort logging
+    // into a panic here.
+    let _guard = SIDECAR_LOG_LOCK
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+
+    let oversized = std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0) > SIDECAR_LOG_MAX_BYTES;
+    if oversized {
+        // Roll the full log aside instead of erasing it, then start a fresh
+        // file. `rename` replaces any previous backup.
+        let rolled = dir.join("sidecar.log.1");
+        let _ = std::fs::rename(&path, &rolled);
+    }
+
+    let mut options = std::fs::OpenOptions::new();
+    options.write(true).create(true).append(true);
+
+    if let Ok(mut file) = options.open(&path) {
+        use std::io::Write;
+        let stamp = chrono::Utc::now().to_rfc3339();
+        let _ = writeln!(file, "[{stamp}] [sidecar:{kind}] {}", line.trim_end());
+    }
+}
 
 #[derive(Serialize, Clone)]
 struct SidecarProgressPayload {
@@ -469,11 +524,13 @@ impl SidecarManager {
                         let line = String::from_utf8_lossy(&bytes);
                         if !line.trim().is_empty() {
                             eprintln!("[sidecar:{kind_owned}] {line}");
+                            append_sidecar_log(&app_handle, &kind_owned, &line);
                         }
                     }
                     CommandEvent::Error(error) => {
                         if !error.trim().is_empty() {
                             eprintln!("[sidecar:{kind_owned}] {error}");
+                            append_sidecar_log(&app_handle, &kind_owned, &error);
                         }
                     }
                     CommandEvent::Terminated(_) => {

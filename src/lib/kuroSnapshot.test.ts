@@ -49,6 +49,15 @@ const baseState: KuroSnapshotState = {
   revLenMax: 28,
   fillOnFailure: true,
   overlapMode: "full",
+  designResults: [],
+  successCount: 0,
+  totalCount: 0,
+  failedMutations: [],
+  plateMappings: [],
+  dedupInfo: {},
+  manuallySwapped: {},
+  customCandidates: {},
+  rescuedMutationDetails: [],
 };
 
 describe("buildKuroSnapshot", () => {

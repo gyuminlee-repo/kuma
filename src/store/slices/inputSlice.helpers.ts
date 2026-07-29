@@ -62,6 +62,7 @@ export interface EvolveproLoadStateUpdate {
   evolveproFilteredCount: number | null;
   evolveproParetoExchanges: number | null;
   evolveproStepStats: EvolveproStepStats | null;
+  structure3dState: "off" | "active" | "no_structure" | "frame_mismatch";
   statusMessage: string;
 }
 
@@ -167,8 +168,10 @@ export function buildEvolveproLoadStateUpdate(params: {
   result: EvolveproLoadResult;
   currentMode: "text" | "evolvepro";
   maxPerPosition: number;
+  threeDConsumerOn: boolean;
+  structureLoaded: boolean;
 }): EvolveproLoadStateUpdate {
-  const { result, maxPerPosition } = params;
+  const { result, maxPerPosition, threeDConsumerOn, structureLoaded } = params;
   const yPredMap: Record<string, number> = {};
   result.variants.forEach((v, i) => {
     yPredMap[v] = result.y_preds[i] ?? 0;
@@ -188,6 +191,17 @@ export function buildEvolveproLoadStateUpdate(params: {
   const structureMsg = result.structure_frame_mismatch
     ? ` | ${i18next.t("inputSlice.structureFrameMismatch")}`
     : "";
+
+  // Persist why 3D distance was or was not used, so the fallback is visible in
+  // the panel rather than only in this transient status line.
+  const structure3dState: "off" | "active" | "no_structure" | "frame_mismatch" =
+    !threeDConsumerOn
+      ? "off"
+      : result.structure_frame_mismatch
+        ? "frame_mismatch"
+        : structureLoaded
+          ? "active"
+          : "no_structure";
   const modeLabel = "EVOLVEpro";
 
   return {
@@ -199,6 +213,7 @@ export function buildEvolveproLoadStateUpdate(params: {
     evolveproFilteredCount: result.filtered_count ?? null,
     evolveproParetoExchanges: result.pareto_replaced ?? null,
     evolveproStepStats: result.step_stats ?? null,
+    structure3dState,
     statusMessage: `${modeLabel}: ${result.selected_count}/${result.total_count} variants${filteredMsg}${domainMsg}${paretoMsg}${structureMsg}`,
   };
 }

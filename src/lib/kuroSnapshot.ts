@@ -1,12 +1,17 @@
 /**
- * kuroSnapshot.ts — Phase 2: Kuro 자동 저장 스냅샷 빌더 (순수 함수)
- * 결과물 필드(designResults/failedMutations/rescueStats/benchmarkResults/rescuedMutations) 제외.
+ * kuroSnapshot.ts, Phase 2: Kuro 자동 저장 스냅샷 빌더 (순수 함수)
+ *
+ * schema 2부터 `results` 블록(designResults/successCount/totalCount/
+ * failedMutations/plateMappings/dedupInfo/manuallySwapped/customCandidates/
+ * rescuedMutationDetails)을 함께 저장한다. 필드 목록은 exportSlice
+ * getWorkspaceSnapshot의 results 블록과 1:1로 맞춘다.
+ * schema 1 스냅샷에는 results가 없으며, 복원 측이 결과물만 비운 채 읽는다.
  */
 
 import type { AutosaveSnapshot } from "./autosave";
 import type { AppState } from "@/store/types";
 
-export const KURO_SCHEMA = 1;
+export const KURO_SCHEMA = 2;
 
 /** buildKuroSnapshot에 전달하는 store 상태 부분집합 */
 export interface KuroSnapshotState
@@ -29,6 +34,9 @@ export interface KuroSnapshotState
     | "gcMin" | "gcMax" | "primerLenEnabled"
     | "fwdLenMin" | "fwdLenMax" | "revLenMin" | "revLenMax" | "fillOnFailure"
     | "overlapMode"
+    | "designResults" | "successCount" | "totalCount" | "failedMutations"
+    | "plateMappings" | "dedupInfo" | "manuallySwapped" | "customCandidates"
+    | "rescuedMutationDetails"
   > {}
 
 /** store 상태에서 직렬화 가능한 kuro 자동 저장 스냅샷을 만든다. */
@@ -90,6 +98,18 @@ export function buildKuroSnapshot(state: KuroSnapshotState): AutosaveSnapshot {
       round_size: state.roundSize,
       auto_redesign_on_load: state.autoRedesignOnLoad,
       save_cache: state.saveCache,
+    },
+    // schema 2+. exportSlice getWorkspaceSnapshot의 results 블록과 동일 필드.
+    results: {
+      designResults: state.designResults,
+      successCount: state.successCount,
+      totalCount: state.totalCount,
+      failedMutations: state.failedMutations,
+      plateMappings: state.plateMappings,
+      dedupInfo: state.dedupInfo,
+      manuallySwapped: state.manuallySwapped,
+      customCandidates: state.customCandidates,
+      rescuedMutationDetails: state.rescuedMutationDetails,
     },
   };
 }

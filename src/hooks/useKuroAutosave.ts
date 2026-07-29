@@ -17,7 +17,8 @@ import type { AppState } from "@/store/types";
 
 /**
  * 자동 저장을 트리거할 상태 슬라이스.
- * 결과물 필드(designResults 등)는 의도적으로 제외한다.
+ * schema 2부터 결과물 필드(designResults 등)도 포함해 앱 재시작 후
+ * 디자인 결과까지 그대로 이어서 작업할 수 있게 한다.
  */
 function kuroAutosaveSelector(s: AppState): readonly unknown[] {
   return [
@@ -69,6 +70,16 @@ function kuroAutosaveSelector(s: AppState): readonly unknown[] {
     s.revLenMax,
     s.fillOnFailure,
     s.overlapMode,
+    // results (schema 2+)
+    s.designResults,
+    s.successCount,
+    s.totalCount,
+    s.failedMutations,
+    s.plateMappings,
+    s.dedupInfo,
+    s.manuallySwapped,
+    s.customCandidates,
+    s.rescuedMutationDetails,
   ] as const;
 }
 
@@ -76,7 +87,8 @@ function kuroAutosaveSelector(s: AppState): readonly unknown[] {
 
 /**
  * Kuro 자동 저장 구독을 등록한다.
- * - scratch 프로젝트 또는 projectPath가 없으면 silent skip.
+ * - 프로젝트가 열려 있으면 프로젝트의 .autosave/kuro.json에 저장한다.
+ * - scratch(프로젝트 없음)이면 앱 데이터 디렉토리의 고정 파일에 저장한다.
  * - 컴포넌트 언마운트(project 변경 포함) 시 구독 해제.
  */
 export function useKuroAutosave(): void {
@@ -87,12 +99,10 @@ export function useKuroAutosave(): void {
   const scratch = project?.scratch ?? true;
 
   // target ref: subscribe 콜백 안에서 항상 최신 target을 참조하도록 보관
-  const targetRef = useRef<AutosaveTarget>({ projectPath, scratch });
-  targetRef.current = { projectPath, scratch };
+  const targetRef = useRef<AutosaveTarget>({ projectPath, scratch, scratchFallback: true });
+  targetRef.current = { projectPath, scratch, scratchFallback: true };
 
   useEffect(() => {
-    if (scratch || projectPath === null) return;
-
     // subscribeWithSelector 없이도 동작하도록 일반 subscribe 사용.
     // slice selector + shallow 비교로 불필요한 flush를 방지한다.
     let prev = kuroAutosaveSelector(useAppStore.getState());
@@ -121,10 +131,12 @@ export function useFlushKuroBeforeDesign(): () => Promise<void> {
   const targetRef = useRef<AutosaveTarget>({
     projectPath: project?.path ?? null,
     scratch: project?.scratch ?? true,
+    scratchFallback: true,
   });
   targetRef.current = {
     projectPath: project?.path ?? null,
     scratch: project?.scratch ?? true,
+    scratchFallback: true,
   };
 
   return async () => {

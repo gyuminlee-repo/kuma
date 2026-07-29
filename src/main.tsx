@@ -2,7 +2,7 @@ import React from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { App } from "./App";
 import { UpdateAvailableDialog } from "./components/dialogs/UpdateAvailableDialog";
-import { appendCrashLog } from "./lib/crashLog";
+import { appendCrashLog, getCrashLog } from "./lib/crashLog";
 import { initI18n, resolveActiveLocale } from "./lib/i18n";
 import { restorePersistedWorkspace } from "./lib/workspace";
 import "./index.css";
@@ -20,18 +20,44 @@ declare global {
   }
 }
 
+type ErrorBoundaryState = {
+  hasError: boolean;
+  message: string;
+  /** 클립보드 복사 버튼 라벨 상태. 실패를 조용히 삼키지 않는다. */
+  copyState: "idle" | "copied" | "failed";
+};
+
+// 이 화면은 i18n 초기화 전에도 뜰 수 있으므로 영어 문구를 하드코딩한다.
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode },
-  { hasError: boolean }
+  ErrorBoundaryState
 > {
   constructor(props: { children: React.ReactNode }) {
     super(props);
-    this.state = { hasError: false };
+    this.state = { hasError: false, message: "", copyState: "idle" };
   }
 
-  static getDerivedStateFromError() {
-    return { hasError: true };
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, message: error.message, copyState: "idle" as const };
   }
+
+  private handleCopy = () => {
+    const text = getCrashLog()
+      .map((entry) =>
+        [
+          `[${entry.timestamp}] ${entry.component}: ${entry.message}`,
+          entry.stack ?? "",
+        ].join("\n"),
+      )
+      .join("\n\n");
+    navigator.clipboard.writeText(text).then(
+      () => this.setState({ copyState: "copied" }),
+      (err: unknown) => {
+        console.error("[ErrorBoundary] crash log copy failed", err);
+        this.setState({ copyState: "failed" });
+      },
+    );
+  };
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     console.error("[ErrorBoundary]", error, info.componentStack);
@@ -45,14 +71,31 @@ class ErrorBoundary extends React.Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex flex-col items-center justify-center h-screen bg-muted text-muted-foreground">
-          <p className="text-lg font-semibold mb-2">Something went wrong.</p>
-          <button
-            className="px-4 py-2 bg-foreground text-background rounded-control hover:bg-foreground/90"
-            onClick={() => window.location.reload()}
-          >
-            Click to reload.
-          </button>
+        <div className="flex flex-col items-center justify-center h-screen gap-3 px-6 bg-muted text-muted-foreground">
+          <p className="text-lg font-semibold">Something went wrong.</p>
+          {this.state.message && (
+            <pre className="max-w-full max-h-48 overflow-auto whitespace-pre-wrap text-xs text-left">
+              {this.state.message}
+            </pre>
+          )}
+          <div className="flex gap-2">
+            <button
+              className="px-4 py-2 bg-foreground text-background rounded-control hover:bg-foreground/90"
+              onClick={() => window.location.reload()}
+            >
+              Click to reload.
+            </button>
+            <button
+              className="px-4 py-2 border border-foreground/40 rounded-control hover:bg-foreground/10"
+              onClick={this.handleCopy}
+            >
+              {this.state.copyState === "copied"
+                ? "Crash log copied."
+                : this.state.copyState === "failed"
+                  ? "Copy failed. See console."
+                  : "Copy crash log."}
+            </button>
+          </div>
         </div>
       );
     }
