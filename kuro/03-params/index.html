@@ -1662,12 +1662,12 @@
 <h1 id="step-3-parameters">Step 3. Parameters<a class="headerlink" href="#step-3-parameters" title="Permanent link">&para;</a></h1>
 <p>polymerase profile, codon strategy, Tm/GC 범위를 지정한다.</p>
 <h2 id="polymerase-profile">Polymerase profile<a class="headerlink" href="#polymerase-profile" title="Permanent link">&para;</a></h2>
-<p>8 종 내장 + custom:</p>
+<p>7 종 내장 + custom:</p>
 <ul>
-<li>Benchling, Taq, Phusion, Q5, Q5 SDM, KOD, DreamTaq, TAKARA_GXL</li>
+<li>Taq, Phusion, Q5, Q5 SDM, KOD, DreamTaq, TAKARA_GXL (기본값 KOD)</li>
 <li>Custom profile 은 <code>~/.kuma/kuro/custom_polymerases.json</code> 에 저장.</li>
 </ul>
-<p>profile 선택 시 Tm method · salt · DNA · GC 범위가 manufacturer manual 기준으로 즉시 갱신된다.</p>
+<p>profile 선택 시 설계에 반영되는 값은 GC 범위와 overlap 모드다. 설계 시점 Tm 은 SantaLucia 1998 (Benchling) 고정 스케일이라 profile 을 바꿔도 변하지 않는다. profile 의 Tm method · salt · DNA 값은 권장 annealing 온도(Ta) 계산에만 쓰인다.</p>
 <h2 id="codon-strategy">Codon strategy<a class="headerlink" href="#codon-strategy" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
