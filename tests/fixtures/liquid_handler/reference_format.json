@@ -1,0 +1,50 @@
+{
+  "echo": {
+    "source_file": "Project2-1. primer dispensing (Echo525).xlsx",
+    "sha256": "61664f71308d19e6966987f8f565b1d740c2bd3e6e337640d728bc47469a0efd",
+    "sheet_names": [
+      "layout",
+      "Echo mapping file"
+    ],
+    "mapping_sheet": "Echo mapping file",
+    "mapping_header": [
+      "Source Plate Name",
+      "Source Well Name",
+      "Source Well",
+      "Dest Plate Name",
+      "Dest Well Name",
+      "Dest Well",
+      "Transfer Vol"
+    ],
+    "layout_anchors": {
+      "title": "Project 2-1. Primer dispensing using Echo525",
+      "labware_label": "labware",
+      "labware_value": "Eco 384PP"
+    }
+  },
+  "janus": {
+    "source_file": "Project2-2. primer dispensing (JANUS).xlsx",
+    "sha256": "152d9cf090a3c879464f5a417a6e898f138370892c4069faf63d926ae283d68a",
+    "sheet_names": [
+      "layout",
+      "primer_mapping file"
+    ],
+    "mapping_sheet": "primer_mapping file",
+    "mapping_header": [
+      "name",
+      "type",
+      "Dsp. Rack",
+      "no",
+      "Asp. Rack",
+      "Asp. Posi",
+      "Dsp. Rack",
+      "Dsp. Posi",
+      "volume"
+    ],
+    "layout_anchors": {
+      "title": "Project 2-2. Primer dispensing using JANUS",
+      "labware_label": "lab ware",
+      "labware_value": "96 deep well"
+    }
+  }
+}
