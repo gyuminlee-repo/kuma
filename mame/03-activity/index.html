@@ -1785,7 +1785,7 @@
 <tr>
 <td><code>layout_xlsx</code></td>
 <td>필수</td>
-<td><code>Mutant</code> + <code>Well Pos.</code> (plate layout 형식) 또는 <code>sample_name</code> + <code>well</code> (step 1 에서 생성되는 sample map 형식). 두 쌍이 한 시트에 다 있으면 plate layout 쌍이 우선</td>
+<td><code>Mutant</code> + <code>Well Pos.</code> (plate layout 형식) 또는 <code>sample_name</code> + <code>well</code> (step 1 에서 생성되는 sample map 형식). 두 쌍이 한 시트에 다 있으면 plate layout 쌍이 우선. 샘플 이름 끝의 반복 접미사 <code>_r&lt;n&gt;</code> (r 대소문자 무시) 은 떼어내고 앞부분을 샘플 이름으로 쓴다 (<code>Q232A_r1</code>/<code>_r2</code>/<code>_r3</code> → 같은 변이 <code>Q232A</code> 의 세 well, <code>WT_r1</code> → WT 대조군, <code>A40P_E61Y_r1</code> → <code>A40P_E61Y</code> 로 이름 안 언더스코어 보존). 샘플 이름이 <code>blank</code> (대소문자 무시) 인 행은 빈 well 이라 결과에서 제외</td>
 </tr>
 <tr>
 <td><code>gc_data_xlsx</code></td>
@@ -1891,6 +1891,7 @@
 <li><code>ngs_success</code> 가 아닌 행 (genotype route)</li>
 <li><code>WT</code></li>
 <li>canonical <code>[A-Z]\d+[A-Z]</code> 형태가 아닌 변이</li>
+<li>EVOLVEpro 축약 표기로 변환 불가한 다중 치환 변이 (<code>A40P_E61Y</code> 처럼 위치가 둘 이상). 축약 표기는 위치를 하나만 담아 표현할 자리가 없다. 해당 변이만 빠지고 나머지는 정상 산출되며, 변이 이름과 well 목록이 경고로 남는다</li>
 <li>값이 없는 행</li>
 </ul>
 <p>CSV 는 제외된 행을 <code>&lt;path&gt;.excluded.csv</code> 로 사유와 함께 따로 남긴다.</p>
