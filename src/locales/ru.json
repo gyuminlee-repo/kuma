@@ -404,7 +404,8 @@
         "genotypeLabel": "Activity + NGS genotype",
         "genotypeDesc": "Загрузите long-format well activity, объедините с NGS verdict этого round, затем экспортируйте.",
         "plateLayoutLabel": "Plate layout + GC data",
-        "plateLayoutDesc": "Создать напрямую из xlsx-файлов plate layout и GC data. NGS genotype не требуется."
+        "plateLayoutDesc": "Создать напрямую из xlsx-файлов plate layout и GC data. NGS genotype не требуется.",
+        "completeCurrentRoute": "Завершите выбранный маршрут Activity"
       }
     },
     "runHealth": {
@@ -960,6 +961,8 @@
       "round1EvolveproXlsxHelper": "xlsx EVOLVEpro предыдущего раунда (Variant, activity). Повторно измеренные варианты заменяются своими средними.",
       "round1ReportXlsx": "xlsx отчёта round-1 (исходный GC-FID)",
       "round1ReportXlsxHelper": "Исходный отчёт Agilent FID1B; Sample Name это позиции well (A1..H12), с блоками WT.",
+      "gcExportXlsx": "xlsx экспорта относительной активности (формат GC data)",
+      "gcExportXlsxHelper": "Необязательный артефакт для проверки. Записывает относительную активность round-1 по well (Area / средняя Area WT) в столбцы Sample Name и Area, как в листе GC data.",
       "remeasureReportXlsx": "xlsx отчёта повторного измерения (с метками вариантов)",
       "remeasureReportXlsxHelper": "Исходный отчёт Agilent FID1B; Sample Name это метки вариантов (например V5F или 5F), повторяющиеся строки это реплики.",
       "verdictXlsx": "xlsx verdict NGS",
@@ -967,7 +970,9 @@
       "layoutXlsxOptionalHelper": "Используется только для сопоставления варианта с well при фильтрации по verdict NGS.",
       "optionalStateLabel": "Необязательно",
       "nNgsExcluded": "Исключено по NGS",
-      "missingInputs": "Ещё требуется"
+      "missingInputs": "Ещё требуется",
+      "restoredNotice": "Пути восстановлены на этом устройстве. Очистите их, если они относятся к другому проекту.",
+      "clearRestored": "Очистить восстановленные входы EVOLVEpro"
     },
     "verdictBadge": {
       "help": {
@@ -1531,7 +1536,9 @@
     "mameWorkspaceTitle": "Основная область Mame",
     "mameWorkspaceBody": "Загрузите данные, проверьте генотипы и планшеты, затем объедините измерения активности для экспорта.",
     "mameInspectorTitle": "Детали Mame",
-    "mameInspectorBody": "Инспектор держит элементы управления и контекст текущего шага рядом с результатами."
+    "mameInspectorBody": "Инспектор держит элементы управления и контекст текущего шага рядом с результатами.",
+    "mameRouteTitle": "Выберите входной маршрут Mame",
+    "mameRouteBody": "После загрузки данных activity используйте маршрут, связанный с genotype, или маршрут plate-layout, если xlsx-файлы GC data уже готовы."
   },
   "onboarding": {
     "titleChange": "Изменить папку проектов",

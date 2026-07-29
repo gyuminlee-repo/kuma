@@ -51,6 +51,9 @@ export interface BuildEvolveproInputParams {
   mismatch_threshold?: number
   /** Where to write the ID->variant JSON audit. Defaults next to output_xlsx. */
   mapping_audit_path?: string | null
+  /** Reports mode, raw round-1 only: where to write the intermediate well-level
+   *  relative activity (Sample Name, Area). Omit to skip the export. */
+  gc_export_xlsx?: string | null
 }
 
 /** One ID->variant assignment plus its layout well, for the audit table. */
@@ -109,6 +112,9 @@ export interface BuildEvolveproInputResult {
   n_ngs_excluded: number
   /** Short variant labels behind n_ngs_excluded. Empty in rank mode. */
   ngs_excluded: string[]
+  /** Resolved path to the well-level relative activity export. Empty string
+   *  when none was requested, and always empty in rank mode. */
+  gc_export_path?: string
   /**
    * Whether the previous EVOLVEpro file rows were in non-increasing activity
    * order. False is a veto signal that the rank assumption may not hold.

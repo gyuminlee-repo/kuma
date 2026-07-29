@@ -121,6 +121,9 @@ export function WorkflowRail({
                   className={stateRow}
                   style={{ gridTemplateColumns: "26px 1fr auto" }}
                   aria-current={step.state === "active" ? "step" : undefined}
+                  aria-label={
+                    step.state === "done" ? `${step.title} done` : step.title
+                  }
                   onClick={() => onStepClick?.(i)}
                 >
                   <StepNum state={step.state}>

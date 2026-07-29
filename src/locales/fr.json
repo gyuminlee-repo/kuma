@@ -404,7 +404,8 @@
         "genotypeLabel": "Activity + NGS genotype",
         "genotypeDesc": "Téléverser l'activity des wells au format long, fusionner avec les verdicts NGS de ce round, puis exporter.",
         "plateLayoutLabel": "Plate layout + GC data",
-        "plateLayoutDesc": "Construire directement à partir des fichiers xlsx de plate layout et de GC data. Aucun NGS genotype requis."
+        "plateLayoutDesc": "Construire directement à partir des fichiers xlsx de plate layout et de GC data. Aucun NGS genotype requis.",
+        "completeCurrentRoute": "Terminez la route Activity sélectionnée"
       }
     },
     "runHealth": {
@@ -960,6 +961,8 @@
       "round1EvolveproXlsxHelper": "xlsx EVOLVEpro du tour précédent (Variant, activity). Les variants remesurés sont remplacés par leurs moyennes.",
       "round1ReportXlsx": "xlsx du rapport round-1 (GC-FID brut)",
       "round1ReportXlsxHelper": "Rapport Agilent FID1B brut ; les Sample Name sont des positions de well (A1..H12), avec des blocs WT.",
+      "gcExportXlsx": "xlsx d'export de l'activité relative (forme GC data)",
+      "gcExportXlsxHelper": "Artefact de revue optionnel. Écrit l'activité relative par well du round-1 (Area / Area WT moyenne) dans les colonnes Sample Name et Area, au format de la feuille GC data.",
       "remeasureReportXlsx": "xlsx du rapport de remesure (étiqueté par variant)",
       "remeasureReportXlsxHelper": "Rapport Agilent FID1B brut ; les Sample Name sont des étiquettes de variant (par ex. V5F ou 5F), les lignes répétées sont des réplicats.",
       "verdictXlsx": "xlsx de verdict NGS",
@@ -967,7 +970,9 @@
       "layoutXlsxOptionalHelper": "Sert uniquement à associer chaque variant à son well pour le filtrage par verdict NGS.",
       "optionalStateLabel": "Facultatif",
       "nNgsExcluded": "Exclus par NGS",
-      "missingInputs": "Encore nécessaire"
+      "missingInputs": "Encore nécessaire",
+      "restoredNotice": "Des chemins ont été restaurés sur cet appareil. Effacez-les s’ils appartiennent à un autre projet.",
+      "clearRestored": "Effacer les entrées EVOLVEpro restaurées"
     },
     "verdictBadge": {
       "help": {
@@ -1531,7 +1536,9 @@
     "mameWorkspaceTitle": "Travailler dans la zone principale Mame",
     "mameWorkspaceBody": "Chargez les données, examinez les verdicts et plaques, puis fusionnez les mesures d’activité pour l’exportation.",
     "mameInspectorTitle": "Examiner les détails Mame",
-    "mameInspectorBody": "L’inspecteur conserve les contrôles et le contexte de l’étape Mame actuelle près des résultats."
+    "mameInspectorBody": "L’inspecteur conserve les contrôles et le contexte de l’étape Mame actuelle près des résultats.",
+    "mameRouteTitle": "Choisir une route d’entrée Mame",
+    "mameRouteBody": "Utilisez la route liée au genotype après avoir téléversé les données activity, ou la route plate-layout si vous avez déjà des fichiers xlsx GC data."
   },
   "onboarding": {
     "titleChange": "Changer de dossier de projets",

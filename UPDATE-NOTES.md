@@ -4,7 +4,7 @@
 
 ---
 
-## v0.13.29 (2026-07-29)
+## v0.13.30 (2026-07-29)
 
 ### The sample map template works as filled in
 

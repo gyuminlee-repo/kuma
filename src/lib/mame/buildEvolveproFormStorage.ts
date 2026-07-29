@@ -26,6 +26,9 @@ export interface BuildEvolveproFormState {
   remeasureReportXlsx: string;
   verdictXlsx: string;
   outputXlsx: string;
+  /** Optional reports-mode raw round-1 export path (well-level relative
+   *  activity, Sample Name / Area). Empty means no export. */
+  gcExportXlsx: string;
 }
 
 export const BUILD_EVOLVEPRO_DEFAULT_STATE: BuildEvolveproFormState = {
@@ -40,6 +43,7 @@ export const BUILD_EVOLVEPRO_DEFAULT_STATE: BuildEvolveproFormState = {
   remeasureReportXlsx: "",
   verdictXlsx: "",
   outputXlsx: "",
+  gcExportXlsx: "",
 };
 
 export function loadBuildEvolveproFromStorage(): BuildEvolveproFormState {
@@ -68,6 +72,7 @@ export function loadBuildEvolveproFromStorage(): BuildEvolveproFormState {
         typeof p.remeasureReportXlsx === "string" ? p.remeasureReportXlsx : "",
       verdictXlsx: typeof p.verdictXlsx === "string" ? p.verdictXlsx : "",
       outputXlsx: typeof p.outputXlsx === "string" ? p.outputXlsx : "",
+      gcExportXlsx: typeof p.gcExportXlsx === "string" ? p.gcExportXlsx : "",
     };
   } catch {
     return BUILD_EVOLVEPRO_DEFAULT_STATE;
@@ -85,6 +90,87 @@ export function saveBuildEvolveproToStorage(
   } catch {
     // ignore persistence failures
   }
+}
+
+export function isBuildEvolveproFormReady(
+  state: BuildEvolveproFormState,
+): boolean {
+  if (!state.outputXlsx) return false;
+  if (state.sourceMode === "rank") {
+    return Boolean(state.layoutXlsx && state.gcDataXlsx);
+  }
+  if (state.round1Source === "prev") {
+    return Boolean(state.round1EvolveproXlsx && state.remeasureReportXlsx);
+  }
+  return Boolean(
+    state.layoutXlsx &&
+      state.round1ReportXlsx &&
+      state.remeasureReportXlsx,
+  );
+}
+
+export interface BuildEvolveproCompletionRecord {
+  outputPath: string;
+  signature: string;
+}
+
+export function buildEvolveproFormSignature(
+  state: BuildEvolveproFormState,
+): string {
+  return JSON.stringify({
+    sourceMode: state.sourceMode,
+    round1Source: state.round1Source,
+    layoutXlsx: state.layoutXlsx,
+    gcDataXlsx: state.gcDataXlsx,
+    repBatchXlsx: state.repBatchXlsx,
+    prevEvolveproXlsx: state.prevEvolveproXlsx,
+    round1ReportXlsx: state.round1ReportXlsx,
+    round1EvolveproXlsx: state.round1EvolveproXlsx,
+    remeasureReportXlsx: state.remeasureReportXlsx,
+    verdictXlsx: state.verdictXlsx,
+    outputXlsx: state.outputXlsx,
+  });
+}
+
+export function createBuildEvolveproCompletion(
+  state: BuildEvolveproFormState,
+  outputPath: string,
+): BuildEvolveproCompletionRecord {
+  return {
+    outputPath,
+    signature: buildEvolveproFormSignature(state),
+  };
+}
+
+export function hasCompletedBuildEvolveproOutput(
+  state: BuildEvolveproFormState,
+  completion: BuildEvolveproCompletionRecord | null,
+): boolean {
+  if (!isBuildEvolveproFormReady(state)) return false;
+  return (
+    completion?.outputPath === state.outputXlsx &&
+    completion.signature === buildEvolveproFormSignature(state)
+  );
+}
+
+export function hasBuildEvolveproFormValues(
+  state: BuildEvolveproFormState,
+): boolean {
+  return (
+    state.sourceMode !== BUILD_EVOLVEPRO_DEFAULT_STATE.sourceMode ||
+    state.round1Source !== BUILD_EVOLVEPRO_DEFAULT_STATE.round1Source ||
+    Boolean(
+      state.layoutXlsx ||
+        state.gcDataXlsx ||
+        state.repBatchXlsx ||
+        state.prevEvolveproXlsx ||
+        state.round1ReportXlsx ||
+        state.round1EvolveproXlsx ||
+        state.remeasureReportXlsx ||
+        state.verdictXlsx ||
+        state.outputXlsx,
+    )
+  );
 }
 
 /**

@@ -34,6 +34,10 @@ import {
   saveActivityRouteToStorage,
   type ActivityRoute,
 } from "@/lib/mame/activityRouteStorage";
+import {
+  hasCompletedBuildEvolveproOutput,
+  loadBuildEvolveproFromStorage,
+} from "@/lib/mame/buildEvolveproFormStorage";
 
 const ACTIVITY_TOTAL = 2;
 
@@ -63,17 +67,16 @@ const STEP_CONFIG: Record<
   },
 };
 
-function ActivityIngestStep() {
-  const [route, setRoute] = useState<ActivityRoute>(() => loadActivityRouteFromStorage());
-
-  function handleRouteChange(next: ActivityRoute) {
-    setRoute(next);
-    saveActivityRouteToStorage(next);
-  }
-
+function ActivityIngestStep({
+  route,
+  onRouteChange,
+}: {
+  route: ActivityRoute;
+  onRouteChange: (route: ActivityRoute) => void;
+}) {
   return (
     <div className="space-y-6">
-      <ActivityRouteSelector value={route} onChange={handleRouteChange} />
+      <ActivityRouteSelector value={route} onChange={onRouteChange} />
       {route === "genotype" ? (
         <>
           <IngestSection />
@@ -100,9 +103,14 @@ export function ActivityStepView() {
   const subStep = useMameAppStore((s) => s.currentMameSubStep);
   const setMameSubStep = useMameAppStore((s) => s.setMameSubStep);
   const goToPrevStep = useMameAppStore((s) => s.goToPrevStep);
+  const buildEvolveproCompletion = useMameAppStore(
+    (s) => s.buildEvolveproCompletion,
+  );
+  const [route, setRoute] = useState<ActivityRoute>(() => loadActivityRouteFromStorage());
 
   // Auto-create a round if none exists (mirrors ActivityPanel behavior)
   const activeRoundId = useRoundStore((s) => s.active_round_id);
+  const rounds = useRoundStore((s) => s.rounds);
   const addRound = useRoundStore((s) => s.addRound);
   useEffect(() => {
     if (activeRoundId === null) {
@@ -127,6 +135,25 @@ export function ActivityStepView() {
     setMameSubStep(id);
   }
 
+  function handleRouteChange(next: ActivityRoute) {
+    setRoute(next);
+    saveActivityRouteToStorage(next);
+  }
+
+  function selectedActivityRouteIsComplete(): boolean {
+    if (route === "plateLayout") {
+      return hasCompletedBuildEvolveproOutput(
+        loadBuildEvolveproFromStorage(),
+        buildEvolveproCompletion,
+      );
+    }
+    const activeRound = rounds.find((round) => round.id === activeRoundId);
+    return Boolean(
+      activeRound?.activity ||
+        (activeRound?.merged_table && activeRound.merged_table.length > 0),
+    );
+  }
+
   return (
     <WizardContainer
       stepIndex={config.index}
@@ -137,9 +164,20 @@ export function ActivityStepView() {
       descriptionKey={config.descriptionKey}
       onPrev={subStep === "activity.signals" ? () => goToSubStep("activity.ingest") : goToPrevStep}
       onNext={subStep === "activity.ingest" ? () => goToSubStep("activity.signals") : undefined}
+      validateBeforeNext={
+        subStep === "activity.ingest"
+          ? () =>
+              selectedActivityRouteIsComplete()
+                ? { ok: true }
+                : {
+                    ok: false,
+                    missing: ["mame.activity.route.completeCurrentRoute"],
+                  }
+          : undefined
+      }
     >
       {subStep === "activity.ingest" ? (
-        <ActivityIngestStep />
+        <ActivityIngestStep route={route} onRouteChange={handleRouteChange} />
       ) : (
         <ActivitySignalsStep activeRoundId={activeRoundId} />
       )}

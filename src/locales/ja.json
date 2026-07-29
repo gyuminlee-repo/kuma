@@ -404,7 +404,8 @@
         "genotypeLabel": "Activity + NGS genotype",
         "genotypeDesc": "long-format の well activity をアップロードし、今回の round の NGS verdict とマージしてからエクスポートします。",
         "plateLayoutLabel": "Plate layout + GC data",
-        "plateLayoutDesc": "plate layout と GC data の xlsx ファイルから直接生成します。NGS genotype は不要です。"
+        "plateLayoutDesc": "plate layout と GC data の xlsx ファイルから直接生成します。NGS genotype は不要です。",
+        "completeCurrentRoute": "選択した Activity ルートを完了してください"
       }
     },
     "runHealth": {
@@ -960,6 +961,8 @@
       "round1EvolveproXlsxHelper": "前ラウンドの EVOLVEpro xlsx（Variant、activity）。再測定された variant はその平均値に置き換えられます。",
       "round1ReportXlsx": "Round-1 レポート xlsx（GC-FID raw）",
       "round1ReportXlsxHelper": "Agilent FID1B raw レポート。sample name は well 位置（A1..H12）で、WT ブロックを含みます。",
+      "gcExportXlsx": "相対活性 export xlsx（GC data 形式）",
+      "gcExportXlsxHelper": "任意のレビュー用成果物。round-1 の well ごとの相対活性（area / WT 平均 area）を Sample Name と Area 列で保存し、GC data シートと同じ形式になります。",
       "remeasureReportXlsx": "再測定レポート xlsx（variant ラベル）",
       "remeasureReportXlsxHelper": "Agilent FID1B raw レポート。sample name は variant ラベル（例: V5F または 5F）で、繰り返し行が replicate です。",
       "verdictXlsx": "NGS verdict xlsx",
@@ -967,7 +970,9 @@
       "layoutXlsxOptionalHelper": "NGS verdict ゲーティングで variant を well に対応付ける場合にのみ使用します。",
       "optionalStateLabel": "任意",
       "nNgsExcluded": "NGS 除外",
-      "missingInputs": "不足しているファイル"
+      "missingInputs": "不足しているファイル",
+      "restoredNotice": "このデバイスに保存されていたパスを復元しました。別プロジェクトのファイルならクリアしてください。",
+      "clearRestored": "復元された EVOLVEpro 入力をクリア"
     },
     "verdictBadge": {
       "help": {
@@ -1531,7 +1536,9 @@
     "mameWorkspaceTitle": "Mame のメイン領域",
     "mameWorkspaceBody": "ランデータを読み込み、遺伝子型判定とプレート結果を確認し、活性測定値を統合して出力します。",
     "mameInspectorTitle": "Mame の詳細を確認",
-    "mameInspectorBody": "現在の Mame ステップの操作とコンテキストを結果の横で確認します。"
+    "mameInspectorBody": "現在の Mame ステップの操作とコンテキストを結果の横で確認します。",
+    "mameRouteTitle": "Mame 入力ルートを選択",
+    "mameRouteBody": "activity データをアップロードした後は genotype 連携ルートを、GC data xlsx ファイルが既にある場合は plate-layout ルートを使用します。"
   },
   "onboarding": {
     "titleChange": "プロジェクトフォルダを変更",

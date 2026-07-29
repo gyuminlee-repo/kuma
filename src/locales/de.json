@@ -404,7 +404,8 @@
         "genotypeLabel": "Activity + NGS genotype",
         "genotypeDesc": "Laden Sie long-format Well-Activity hoch, mergen Sie mit den NGS-Verdicts dieser Round, dann exportieren.",
         "plateLayoutLabel": "Plate layout + GC data",
-        "plateLayoutDesc": "Direkt aus plate layout und GC-data-xlsx-Dateien erzeugen. Kein NGS genotype erforderlich."
+        "plateLayoutDesc": "Direkt aus plate layout und GC-data-xlsx-Dateien erzeugen. Kein NGS genotype erforderlich.",
+        "completeCurrentRoute": "Schließen Sie die ausgewählte Activity-Route ab"
       }
     },
     "runHealth": {
@@ -960,6 +961,8 @@
       "round1EvolveproXlsxHelper": "EVOLVEpro-xlsx der vorherigen Runde (Variant, activity). Neu gemessene Varianten werden durch ihre Mittelwerte ersetzt.",
       "round1ReportXlsx": "Round-1-Bericht-xlsx (GC-FID roh)",
       "round1ReportXlsxHelper": "Agilent-FID1B-Rohbericht; die Sample Names sind Well-Positionen (A1..H12), mit WT-Blöcken.",
+      "gcExportXlsx": "xlsx-Export der relativen Aktivität (GC-data-Form)",
+      "gcExportXlsxHelper": "Optionales Prüfartefakt. Schreibt die well-bezogene relative Aktivität von Round-1 (Area / mittlere WT-Area) als Spalten Sample Name und Area, passend zum GC-data-Blatt.",
       "remeasureReportXlsx": "Nachmessungs-Bericht-xlsx (Variant-beschriftet)",
       "remeasureReportXlsxHelper": "Agilent-FID1B-Rohbericht; die Sample Names sind Variant-Bezeichnungen (z. B. V5F oder 5F), wiederholte Zeilen sind Replikate.",
       "verdictXlsx": "NGS-verdict-xlsx",
@@ -967,7 +970,9 @@
       "layoutXlsxOptionalHelper": "Wird nur verwendet, um Varianten für das NGS-verdict-Gating Wells zuzuordnen.",
       "optionalStateLabel": "Optional",
       "nNgsExcluded": "NGS-ausgeschlossen",
-      "missingInputs": "Noch erforderlich"
+      "missingInputs": "Noch erforderlich",
+      "restoredNotice": "Pfade wurden auf diesem Gerät wiederhergestellt. Löschen Sie sie, wenn sie zu einem anderen Projekt gehören.",
+      "clearRestored": "Wiederhergestellte EVOLVEpro-Eingaben löschen"
     },
     "verdictBadge": {
       "help": {
@@ -1531,7 +1536,9 @@
     "mameWorkspaceTitle": "Im Mame-Hauptbereich arbeiten",
     "mameWorkspaceBody": "Laden Sie Laufdaten, prüfen Sie Genotypen und Platten und verbinden Sie Aktivitätsmessungen für den Export.",
     "mameInspectorTitle": "Mame-Details prüfen",
-    "mameInspectorBody": "Der Inspektor hält Steuerungen und Kontext des aktuellen Mame-Schritts neben den Ergebnissen bereit."
+    "mameInspectorBody": "Der Inspektor hält Steuerungen und Kontext des aktuellen Mame-Schritts neben den Ergebnissen bereit.",
+    "mameRouteTitle": "Mame-Eingaberoute wählen",
+    "mameRouteBody": "Verwenden Sie nach dem Hochladen von Activity-Daten die genotype-verknüpfte Route oder die Plate-layout-Route, wenn GC-data-xlsx-Dateien bereits vorliegen."
   },
   "onboarding": {
     "titleChange": "Ändern projects Ordner",

@@ -374,7 +374,8 @@
         "genotypeLabel": "Activity + NGS genotype",
         "genotypeDesc": "Upload long-format well activity, merge with this round's NGS verdicts, then export.",
         "plateLayoutLabel": "Plate layout + GC data",
-        "plateLayoutDesc": "Build directly from plate layout and GC data xlsx files. No NGS genotype required."
+        "plateLayoutDesc": "Build directly from plate layout and GC data xlsx files. No NGS genotype required.",
+        "completeCurrentRoute": "Complete the selected Activity route"
       },
       "mergeExport": {
         "contextTitle": "Activity Data — Merge and Export",
@@ -483,6 +484,8 @@
       "round1EvolveproXlsxHelper": "Previous-round EVOLVEpro xlsx (Variant, activity). Re-measured variants are replaced by their means.",
       "round1ReportXlsx": "Round-1 report xlsx (raw GC-FID)",
       "round1ReportXlsxHelper": "Raw Agilent FID1B report; sample names are well positions (A1..H12), with WT blocks.",
+      "gcExportXlsx": "Relative activity export xlsx (GC data shape)",
+      "gcExportXlsxHelper": "Optional review artifact. Writes the round-1 well-level relative activity (area / mean WT area) as Sample Name and Area columns, matching the GC data sheet.",
       "remeasureReportXlsx": "Re-measure report xlsx (variant-labeled)",
       "remeasureReportXlsxHelper": "Raw Agilent FID1B report; sample names are variant labels (e.g. V5F or 5F), repeated rows are replicates.",
       "verdictXlsx": "NGS verdict xlsx",
@@ -490,7 +493,9 @@
       "layoutXlsxOptionalHelper": "Only used to map variant to well for NGS verdict gating.",
       "optionalStateLabel": "Optional",
       "nNgsExcluded": "NGS-excluded",
-      "missingInputs": "Still needed"
+      "missingInputs": "Still needed",
+      "restoredNotice": "Paths were restored on this device. Clear them if they belong to another project.",
+      "clearRestored": "Clear restored EVOLVEpro inputs"
     },
     "runHealth": {
       "panelAriaLabel": "Run health panel",
@@ -1552,7 +1557,9 @@
     "mameWorkspaceTitle": "Work in the main Mame area",
     "mameWorkspaceBody": "Load run data, inspect genotype verdicts and plate results, then merge activity measurements for export.",
     "mameInspectorTitle": "Review Mame details",
-    "mameInspectorBody": "The inspector keeps controls and context for the current Mame step alongside the results."
+    "mameInspectorBody": "The inspector keeps controls and context for the current Mame step alongside the results.",
+    "mameRouteTitle": "Choose a Mame input route",
+    "mameRouteBody": "Use the genotype-linked route after uploading activity data, or the plate-layout route when you already have GC data xlsx files."
   },
   "onboarding": {
     "titleChange": "Change projects folder",

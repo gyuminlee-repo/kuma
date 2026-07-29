@@ -19,7 +19,7 @@
  * localStorage `kuma:mame:buildEvolvepro`.
  */
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { FolderOpen, Loader2, AlertTriangle } from "lucide-react";
@@ -30,6 +30,7 @@ import { describeRpcError, extractMissingMethod } from "@/lib/errors";
 import { revealInOSFolder } from "@/lib/openFolder";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { InlineHelp } from "@/components/ui/InlineHelp";
 import { Label } from "@/components/ui/label";
 import type {
   BuildEvolveproInputParams,
@@ -37,9 +38,12 @@ import type {
 } from "@/types/mame/build_evolvepro_input";
 import {
   type BuildEvolveproFormState as FormState,
+  buildEvolveproFormSignature,
   loadBuildEvolveproFromStorage as loadFromStorage,
   saveBuildEvolveproToStorage as saveToStorage,
   BUILD_EVOLVEPRO_DEFAULT_STATE,
+  createBuildEvolveproCompletion,
+  hasBuildEvolveproFormValues,
 } from "@/lib/mame/buildEvolveproFormStorage";
 
 function getFilename(p: string): string {
@@ -55,14 +59,28 @@ function toSinglePath(result: string | string[] | null): string | null {
 export function BuildEvolveproInputPanel() {
   const { t } = useTranslation();
   const [form, setFormRaw] = useState<FormState>(() => loadFromStorage());
+  const [showRestoredNotice, setShowRestoredNotice] = useState(() =>
+    hasBuildEvolveproFormValues(loadFromStorage()),
+  );
   const [isBuilding, setIsBuilding] = useState(false);
   const [result, setResult] = useState<BuildEvolveproInputResult | null>(null);
   const resetEpoch = useMameAppStore((s) => s.resetEpoch);
+  const setBuildEvolveproCompletion = useMameAppStore(
+    (s) => s.setBuildEvolveproCompletion,
+  );
+  const formRef = useRef(form);
+  const formGenerationRef = useRef(0);
+
+  useEffect(() => {
+    formRef.current = form;
+  }, [form]);
 
   function setForm(partial: Partial<FormState>) {
     setFormRaw((prev) => {
       const next = { ...prev, ...partial };
       saveToStorage(next);
+      formGenerationRef.current += 1;
+      setBuildEvolveproCompletion(null);
       return next;
     });
   }
@@ -82,13 +100,17 @@ export function BuildEvolveproInputPanel() {
     form.remeasureReportXlsx,
     form.verdictXlsx,
     form.outputXlsx,
+    form.gcExportXlsx,
   ]);
 
   useEffect(() => {
     if (resetEpoch === 0) return;
     setFormRaw(BUILD_EVOLVEPRO_DEFAULT_STATE);
+    formGenerationRef.current += 1;
+    setShowRestoredNotice(false);
+    setBuildEvolveproCompletion(null);
     setResult(null);
-  }, [resetEpoch]);
+  }, [resetEpoch, setBuildEvolveproCompletion]);
 
   const browseXlsx = useCallback(
     async (key: keyof FormState, title: string) => {
@@ -112,26 +134,61 @@ export function BuildEvolveproInputPanel() {
     if (selected) setForm({ outputXlsx: selected });
   }, [t]);
 
+  // Optional review artifact, so it uses a save-file dialog like the output
+  // control (never an open dialog: the file does not exist yet).
+  const browseGcExport = useCallback(async () => {
+    const selected = await save({
+      filters: [{ name: "Excel", extensions: ["xlsx"] }],
+      title: t("mame.buildEvolvepro.gcExportXlsx"),
+    });
+    if (selected) setForm({ gcExportXlsx: selected });
+  }, [t]);
+
   // Client-side gate mirroring the backend _mode_xor validator, so a build is
   // never dispatched only to come back as a ValueError. Each entry is a label
   // of a still-missing required file for the currently selected mode.
-  const missing: string[] = [];
+  const missing: { label: string; fieldId: string }[] = [];
   if (form.sourceMode === "rank") {
     // Confirmation files (rep-batch + previous EVOLVEpro) stay optional: layout
     // + GC alone yields a provisional first-round primary screen.
-    if (!form.layoutXlsx) missing.push(t("mame.buildEvolvepro.layoutXlsx"));
-    if (!form.gcDataXlsx) missing.push(t("mame.buildEvolvepro.gcDataXlsx"));
+    if (!form.layoutXlsx)
+      missing.push({
+        label: t("mame.buildEvolvepro.layoutXlsx"),
+        fieldId: "bep-layout",
+      });
+    if (!form.gcDataXlsx)
+      missing.push({
+        label: t("mame.buildEvolvepro.gcDataXlsx"),
+        fieldId: "bep-gc",
+      });
   } else if (form.round1Source === "prev") {
     if (!form.round1EvolveproXlsx)
-      missing.push(t("mame.buildEvolvepro.round1EvolveproXlsx"));
+      missing.push({
+        label: t("mame.buildEvolvepro.round1EvolveproXlsx"),
+        fieldId: "bep-round1-evolvepro",
+      });
   } else {
-    if (!form.layoutXlsx) missing.push(t("mame.buildEvolvepro.layoutXlsx"));
+    if (!form.layoutXlsx)
+      missing.push({
+        label: t("mame.buildEvolvepro.layoutXlsx"),
+        fieldId: "bep-layout",
+      });
     if (!form.round1ReportXlsx)
-      missing.push(t("mame.buildEvolvepro.round1ReportXlsx"));
+      missing.push({
+        label: t("mame.buildEvolvepro.round1ReportXlsx"),
+        fieldId: "bep-round1",
+      });
   }
   if (form.sourceMode === "reports" && !form.remeasureReportXlsx)
-    missing.push(t("mame.buildEvolvepro.remeasureReportXlsx"));
-  if (!form.outputXlsx) missing.push(t("mame.buildEvolvepro.outputXlsx"));
+    missing.push({
+      label: t("mame.buildEvolvepro.remeasureReportXlsx"),
+      fieldId: "bep-remeasure",
+    });
+  if (!form.outputXlsx)
+    missing.push({
+      label: t("mame.buildEvolvepro.outputXlsx"),
+      fieldId: "bep-output-path",
+    });
 
   const canBuild = missing.length === 0 && !isBuilding;
 
@@ -163,6 +220,7 @@ export function BuildEvolveproInputPanel() {
       remeasure_report_xlsx: form.remeasureReportXlsx,
       verdict_xlsx: form.verdictXlsx || undefined,
       output_xlsx: form.outputXlsx,
+      gc_export_xlsx: form.gcExportXlsx || undefined,
     };
   }
 
@@ -172,10 +230,21 @@ export function BuildEvolveproInputPanel() {
     setResult(null);
 
     const params = buildParams();
+    const buildGeneration = formGenerationRef.current;
+    const buildSignature = buildEvolveproFormSignature(form);
 
     try {
       const res = await buildEvolveproInput(params);
+      if (
+        formGenerationRef.current !== buildGeneration ||
+        buildEvolveproFormSignature(formRef.current) !== buildSignature
+      ) {
+        return;
+      }
       setResult(res);
+      setBuildEvolveproCompletion(
+        createBuildEvolveproCompletion(form, res.output_path),
+      );
       toast.success(t("mame.buildEvolvepro.toastSuccess"), {
         description: t("mame.buildEvolvepro.toastSuccessDesc", {
           count: res.n_variants,
@@ -200,6 +269,24 @@ export function BuildEvolveproInputPanel() {
     }
   }
 
+  function handleMissingClick(fieldId: string) {
+    const field = document.getElementById(fieldId);
+    if (!field) return;
+    if (typeof field.scrollIntoView === "function") {
+      field.scrollIntoView({ block: "center", behavior: "smooth" });
+    }
+    field.focus();
+  }
+
+  function handleClearRestored() {
+    setFormRaw(BUILD_EVOLVEPRO_DEFAULT_STATE);
+    saveToStorage(BUILD_EVOLVEPRO_DEFAULT_STATE);
+    formGenerationRef.current += 1;
+    setShowRestoredNotice(false);
+    setBuildEvolveproCompletion(null);
+    setResult(null);
+  }
+
   return (
     <section className="space-y-6">
       <header>
@@ -212,6 +299,22 @@ export function BuildEvolveproInputPanel() {
         <p className="mt-2 rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
           {t("mame.buildEvolvepro.routeNote")}
         </p>
+        {showRestoredNotice && (
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-muted/20 px-3 py-2">
+            <p className="min-w-0 flex-1 text-xs text-muted-foreground">
+              {t("mame.buildEvolvepro.restoredNotice")}
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleClearRestored}
+              className="h-7 text-xs"
+            >
+              {t("mame.buildEvolvepro.clearRestored")}
+            </Button>
+          </div>
+        )}
       </header>
 
       <section aria-labelledby="bep-input-files">
@@ -227,6 +330,11 @@ export function BuildEvolveproInputPanel() {
           <ChoiceToggle
             label={t("mame.buildEvolvepro.sourceModeLabel")}
             helperText={
+              form.sourceMode === "rank"
+                ? t("mame.buildEvolvepro.sourceModeRankHelper")
+                : t("mame.buildEvolvepro.sourceModeReportsHelper")
+            }
+            helpText={
               form.sourceMode === "rank"
                 ? t("mame.buildEvolvepro.sourceModeRankHelper")
                 : t("mame.buildEvolvepro.sourceModeReportsHelper")
@@ -255,6 +363,7 @@ export function BuildEvolveproInputPanel() {
                   browseXlsx("layoutXlsx", t("mame.buildEvolvepro.layoutXlsx"))
                 }
                 helperText={t("mame.buildEvolvepro.layoutXlsxHelper")}
+                helpText={t("mame.buildEvolvepro.layoutXlsxHelper")}
               />
               <FilePickerField
                 id="bep-gc"
@@ -265,6 +374,7 @@ export function BuildEvolveproInputPanel() {
                   browseXlsx("gcDataXlsx", t("mame.buildEvolvepro.gcDataXlsx"))
                 }
                 helperText={t("mame.buildEvolvepro.gcDataXlsxHelper")}
+                helpText={t("mame.buildEvolvepro.gcDataXlsxHelper")}
               />
               <FilePickerField
                 id="bep-rep"
@@ -279,6 +389,7 @@ export function BuildEvolveproInputPanel() {
                   )
                 }
                 helperText={t("mame.buildEvolvepro.repBatchXlsxHelper")}
+                helpText={t("mame.buildEvolvepro.repBatchXlsxHelper")}
               />
               <FilePickerField
                 id="bep-prev"
@@ -293,6 +404,7 @@ export function BuildEvolveproInputPanel() {
                   )
                 }
                 helperText={t("mame.buildEvolvepro.prevEvolveproXlsxHelper")}
+                helpText={t("mame.buildEvolvepro.prevEvolveproXlsxHelper")}
               />
             </>
           ) : (
@@ -301,6 +413,11 @@ export function BuildEvolveproInputPanel() {
               <ChoiceToggle
                 label={t("mame.buildEvolvepro.round1SourceLabel")}
                 helperText={
+                  form.round1Source === "prev"
+                    ? t("mame.buildEvolvepro.round1SourcePrevHelper")
+                    : t("mame.buildEvolvepro.round1SourceRawHelper")
+                }
+                helpText={
                   form.round1Source === "prev"
                     ? t("mame.buildEvolvepro.round1SourcePrevHelper")
                     : t("mame.buildEvolvepro.round1SourceRawHelper")
@@ -337,6 +454,9 @@ export function BuildEvolveproInputPanel() {
                     helperText={t(
                       "mame.buildEvolvepro.round1EvolveproXlsxHelper",
                     )}
+                    helpText={t(
+                      "mame.buildEvolvepro.round1EvolveproXlsxHelper",
+                    )}
                   />
                   <FilePickerField
                     id="bep-layout-optional"
@@ -351,6 +471,9 @@ export function BuildEvolveproInputPanel() {
                       )
                     }
                     helperText={t(
+                      "mame.buildEvolvepro.layoutXlsxOptionalHelper",
+                    )}
+                    helpText={t(
                       "mame.buildEvolvepro.layoutXlsxOptionalHelper",
                     )}
                   />
@@ -369,6 +492,7 @@ export function BuildEvolveproInputPanel() {
                       )
                     }
                     helperText={t("mame.buildEvolvepro.layoutXlsxHelper")}
+                    helpText={t("mame.buildEvolvepro.layoutXlsxHelper")}
                   />
                   <FilePickerField
                     id="bep-round1"
@@ -382,6 +506,16 @@ export function BuildEvolveproInputPanel() {
                       )
                     }
                     helperText={t("mame.buildEvolvepro.round1ReportXlsxHelper")}
+                    helpText={t("mame.buildEvolvepro.round1ReportXlsxHelper")}
+                  />
+                  <FilePickerField
+                    id="bep-gc-export"
+                    label={`${t("mame.buildEvolvepro.gcExportXlsx")} (${t("mame.buildEvolvepro.optionalLabel")})`}
+                    filled={Boolean(form.gcExportXlsx)}
+                    value={form.gcExportXlsx}
+                    optional
+                    onBrowse={() => browseGcExport()}
+                    helperText={t("mame.buildEvolvepro.gcExportXlsxHelper")}
                   />
                 </>
               )}
@@ -398,6 +532,7 @@ export function BuildEvolveproInputPanel() {
                   )
                 }
                 helperText={t("mame.buildEvolvepro.remeasureReportXlsxHelper")}
+                helpText={t("mame.buildEvolvepro.remeasureReportXlsxHelper")}
               />
               <FilePickerField
                 id="bep-verdict"
@@ -409,6 +544,7 @@ export function BuildEvolveproInputPanel() {
                   browseXlsx("verdictXlsx", t("mame.buildEvolvepro.verdictXlsx"))
                 }
                 helperText={t("mame.buildEvolvepro.verdictXlsxHelper")}
+                helpText={t("mame.buildEvolvepro.verdictXlsxHelper")}
               />
             </>
           )}
@@ -424,12 +560,15 @@ export function BuildEvolveproInputPanel() {
         </h3>
         <div className="space-y-1.5">
           <div className="flex items-center justify-between gap-3">
-            <Label
-              htmlFor="bep-output-path"
-              className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
-            >
-              {t("mame.buildEvolvepro.outputXlsx")}
-            </Label>
+            <span className="inline-flex items-center gap-1.5">
+              <Label
+                htmlFor="bep-output-path"
+                className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+              >
+                {t("mame.buildEvolvepro.outputXlsx")}
+              </Label>
+              <InlineHelp text={t("mame.buildEvolvepro.outputXlsxHelper")} />
+            </span>
             <span
               className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                 form.outputXlsx
@@ -469,12 +608,29 @@ export function BuildEvolveproInputPanel() {
       </section>
 
       {missing.length > 0 && (
-        <p
+        <div
           role="status"
           className="rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground"
         >
-          {t("mame.buildEvolvepro.missingInputs")}: {missing.join(", ")}
-        </p>
+          <span>
+            {t("mame.buildEvolvepro.missingInputs")}:{" "}
+            {missing.map((item) => item.label).join(", ")}
+          </span>
+          <span className="mt-2 flex flex-wrap gap-1">
+            {missing.map((item) => (
+              <Button
+                key={item.fieldId}
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => handleMissingClick(item.fieldId)}
+                className="h-6 px-2 text-xs"
+              >
+                {item.label}
+              </Button>
+            ))}
+          </span>
+        </div>
       )}
 
       <Button
@@ -712,18 +868,23 @@ function ChoiceToggle({
   selected,
   onSelect,
   helperText,
+  helpText,
 }: {
   label: string;
   options: { value: string; label: string }[];
   selected: string;
   onSelect: (value: string) => void;
   helperText?: string;
+  helpText?: string;
 }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        {label}
-      </Label>
+      <span className="inline-flex items-center gap-1.5">
+        <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          {label}
+        </Label>
+        {helpText && <InlineHelp text={helpText} />}
+      </span>
       <div className="flex gap-1.5" role="radiogroup" aria-label={label}>
         {options.map((o) => (
           <Button
@@ -754,6 +915,7 @@ function FilePickerField({
   value,
   onBrowse,
   helperText,
+  helpText,
   optional = false,
 }: {
   id: string;
@@ -762,6 +924,7 @@ function FilePickerField({
   value: string;
   onBrowse: () => Promise<void>;
   helperText?: string;
+  helpText?: string;
   optional?: boolean;
 }) {
   const { t } = useTranslation();
@@ -769,12 +932,15 @@ function FilePickerField({
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between gap-3">
-        <Label
-          htmlFor={id}
-          className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
-        >
-          {label}
-        </Label>
+        <span className="inline-flex items-center gap-1.5">
+          <Label
+            htmlFor={id}
+            className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+          >
+            {label}
+          </Label>
+          {helpText && <InlineHelp text={helpText} />}
+        </span>
         <span
           className={`rounded-full px-2 py-0.5 text-xs font-medium ${
             filled ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"

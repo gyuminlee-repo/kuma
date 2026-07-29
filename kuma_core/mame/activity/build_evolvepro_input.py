@@ -37,6 +37,7 @@ from .evolvepro_xlsx import (
     parse_relative_only,
     read_evolvepro_rows,
     write_evolvepro_xlsx,
+    write_relative_activity_xlsx,
 )
 from .merge import merge_replicates_priority
 from .models import MergeReplicatesStats, Variant
@@ -507,6 +508,10 @@ class BuildEvolveproReportsResult:
     # well carried an explicit non-PASS verdict. Empty when no verdict file given.
     n_ngs_excluded: int = 0
     ngs_excluded: list[str] = field(default_factory=list)
+    # Optional audit artifact: the intermediate well-level relative activity
+    # derived from a raw round-1 report, written in the 'GC data' shape. None
+    # when no export path was requested or the round-1 source was not raw.
+    gc_export_path: Path | None = None
 
 
 def _agilent_wt_mean(records: list) -> float:
@@ -581,6 +586,27 @@ def _build_fallback_from_raw_report(
         well_by_variant[short] = well
     warnings.extend(_unconvertible_warnings(unconvertible, "round-1 fallback source"))
     return fallback, well_by_variant, warnings
+
+
+def _export_round1_relative_activity(
+    round1_report_xlsx,
+    gc_export_xlsx,
+) -> Path:
+    """Write the round-1 well-level relative activity as a 'GC data' shaped xlsx.
+
+    A pure projection over the parsed round-1 records: every non-WT record
+    contributes one row of (sample name verbatim, area / mean WT block area),
+    in report order. No layout lookup and no well normalisation, so the row
+    count equals the non-WT record count and the file round-trips through
+    parse_relative_only. Calibration rows are already dropped by
+    parse_agilent_standard.
+    """
+    records = parse_agilent_standard(round1_report_xlsx)
+    wt_mean = _agilent_wt_mean(records)
+    rows = [(r.sample_name, r.area / wt_mean) for r in records if not r.is_wt]
+    export_path = Path(gc_export_xlsx)
+    write_relative_activity_xlsx(rows, export_path)
+    return export_path
 
 
 def _build_authoritative_from_variant_report(
@@ -663,6 +689,7 @@ def build_evolvepro_input_from_reports(
     mismatch_threshold: float = 0.1,
     verdict_xlsx: str | Path | None = None,
     prev_evolvepro_xlsx: str | Path | None = None,
+    gc_export_xlsx: str | Path | None = None,
 ) -> BuildEvolveproReportsResult:
     """Assemble an EVOLVEpro input xlsx from round-1 + a variant-labeled re-measure.
 
@@ -673,11 +700,25 @@ def build_evolvepro_input_from_reports(
     Re-measure: variant-labeled report -> n relative replicates per variant
     (authoritative). Authoritative mean replaces fallback where both define a
     variant; other variants keep their round-1 value.
+
+    ``gc_export_xlsx`` optionally writes the intermediate round-1 well-level
+    relative activity ('Sample Name', 'Area') as a review artifact, the same
+    role the mapping JSON plays in rank mode. It applies to the raw round-1
+    path only; on the previous-EVOLVEpro path it records a warning instead.
     """
     output_path = Path(output_xlsx)
     warnings: list[str] = []
+    gc_export_path: Path | None = None
 
     if prev_evolvepro_xlsx is not None:
+        if gc_export_xlsx is not None:
+            # No raw round-1 report to project, so there is no well-level
+            # relative activity to export. Surface it instead of no-op silence.
+            warnings.append(
+                "gc_export_xlsx ignored: the well-level relative activity export "
+                "needs a raw round-1 report (round1_report_xlsx); this build used "
+                "a previous EVOLVEpro file as the round-1 baseline."
+            )
         # Round-1 baseline from a previous-round EVOLVEpro file (Variant, activity).
         fallback, w1 = _build_fallback_from_prev_evolvepro(prev_evolvepro_xlsx)
         # Layout is optional here; only needed to map variant->well for NGS gating.
@@ -693,6 +734,10 @@ def build_evolvepro_input_from_reports(
         fallback, well_by_variant, w1 = _build_fallback_from_raw_report(
             round1_report_xlsx, layout_xlsx
         )
+        if gc_export_xlsx is not None:
+            gc_export_path = _export_round1_relative_activity(
+                round1_report_xlsx, gc_export_xlsx
+            )
     warnings.extend(w1)
     authoritative, w2 = _build_authoritative_from_variant_report(remeasure_report_xlsx)
     warnings.extend(w2)
@@ -773,4 +818,5 @@ def build_evolvepro_input_from_reports(
         mismatched=mismatched_detail,
         n_ngs_excluded=len(ngs_excluded),
         ngs_excluded=sorted(ngs_excluded),
+        gc_export_path=gc_export_path,
     )
