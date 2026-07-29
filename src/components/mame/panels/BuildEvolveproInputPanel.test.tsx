@@ -136,16 +136,16 @@ describe("BuildEvolveproInputPanel source-mode toggle", () => {
       7,
     );
 
-    const round1SourceHelp = helpButtonFor("Round-1 source");
+    const round1SourceHelp = helpButtonFor("Primary screen source");
     fireEvent.click(round1SourceHelp);
 
     expect(screen.getByRole("tooltip")).toHaveTextContent(
-      "Use a prior EVOLVEpro file",
+      "Use an EVOLVEpro input xlsx from KUMA",
     );
 
     fireEvent.click(round1SourceHelp);
     fireEvent.click(screen.getByRole("radio", { name: "Raw GC-FID report" }));
-    fireEvent.click(helpButtonFor("Round-1 source"));
+    fireEvent.click(helpButtonFor("Primary screen source"));
 
     expect(screen.getByRole("tooltip")).toHaveTextContent(
       "Use a raw GC-FID report with well names",
@@ -242,7 +242,7 @@ describe("BuildEvolveproInputPanel source-mode toggle", () => {
 
     expect(screen.queryByLabelText("GC data xlsx")).not.toBeInTheDocument();
     expect(
-      screen.getByLabelText("Re-measure report xlsx (variant-labeled)"),
+      screen.getByLabelText("Confirmation report xlsx (variant-labeled)"),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("radio", { name: "Previous EVOLVEpro" }),
