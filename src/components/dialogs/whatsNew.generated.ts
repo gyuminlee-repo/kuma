@@ -5,15 +5,8 @@ export interface WhatsNewItem {
   detail: string;
 }
 
-export const WHATS_NEW_VERSION = "0.13.31";
+export const WHATS_NEW_VERSION = "0.13.32";
 
 export const WHATS_NEW_ITEMS: WhatsNewItem[] = [
-  { label: "Fixed", detail: "Autosave keeps work for projects that were never saved to a file. It returned early for scratch projects, so a user who had not created one had nothing saved and no save button. Scratch autosave now writes to the app data directory, gated…" },
-  { label: "Fixed", detail: "A moved template no longer kills the whole restore. Restore called `load_fasta` unguarded, so a template that had been moved aborted the settings, the computed output, and the UI restore together. The failure is now contained, its cause re…" },
-  { label: "Fixed", detail: "Step 2 no longer crashes on a pandas-written file. `df.to_csv(path)` writes an unnamed index column, and Radix throws on an empty `SelectItem` value from the component body, on the render right after preview and without anyone opening the…" },
-  { label: "Fixed", detail: "Loading a different template clears the previous protein primers. Residue numbers are CDS-relative, so keeping them across a template change showed numbers that belong to another sequence." },
-  { label: "Fixed", detail: "The 3D panel stops claiming to be active while using distance in one dimension. A loaded structure file lives in a different slot than a UniProt accession, so its coordinates never reached the sidecar, and because they never arrived the fr…" },
-  { label: "Fixed", detail: "A sidecar left running during an update no longer bricks the install. A live exe holds a Windows file lock, the installer skips it, and the stale binary then fails every integrity check. KURO and MAME are stopped before the installer runs,…" },
-  { label: "Fixed", detail: "A mixed MAME signal below three times the minimum read count reports LOWDEPTH rather than MIXED. At low depth a few minor-allele positions are indistinguishable from ONT error, so thin wells were published as confident contamination." },
-  { label: "Fixed", detail: "The single-hit demux path honours `coverage_fraction` instead of collapsing it to `require_full_span=(coverage_fraction >= 1.0)`, which disabled the span filter at the 0.98 default." },
+  { label: "Fixed", detail: "The step 3 input labels say what each file is. `Round-1` read as the EVOLVEpro active-learning round when it meant the first pass over the whole plate, two senses the project notes already record as being confused. The panel had the right…" },
 ];

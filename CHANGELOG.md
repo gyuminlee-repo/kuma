@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.13.32 (Step 3 inputs named after what they hold)
+
+A user reading the step 3 panel could not find where the triplicate re-measurement goes, asked why a primary screen source was needed at all, and pointed out that EVOLVEpro writes CSV so a request for an xlsx looked wrong. Every one of those traces back to a label rather than to behaviour.
+
+### Fixed
+- v0.13.32: The step 3 input labels say what each file is. `Round-1` read as the EVOLVEpro active-learning round when it meant the first pass over the whole plate, two senses the project notes already record as being confused. The panel had the right vocabulary in its own mismatch hints, a 1-replicate primary screen against a 3-replicate confirmation, so the labels adopt that pair and `round` leaves this panel. Both EVOLVEpro fields now state they want the input xlsx KUMA built and that the result CSV EVOLVEpro writes is a different file, which is what made the xlsx request look wrong. The confirmation report is optional so the provisional path stays open, and its helper says it is nonetheless what the panel exists for. `confirmedLabel` and `nAuthoritative` referred to a `rep-batch` name no longer on screen and were brought along. Values only across all ten locales, no key renamed and no component logic touched. (#185)
+
 ## v0.13.31 (Work that survives a crash, a structure you can supply yourself, and a selector that says what it changes)
 
 Seven versions since the last tag. The theme running through them is a gap between what the app appeared to do and what it did: autosave that saved nothing for users who never made a project file, a polymerase selector named after a Tm preset it does not switch, a 3D panel reporting active while computing in one dimension, and a MAME verdict calling thin wells contaminated.
