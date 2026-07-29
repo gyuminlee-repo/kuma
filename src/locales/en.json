@@ -776,7 +776,14 @@
         "exportJanus": "Export Janus Mapping",
         "exporting": "Exporting…",
         "exported": "Exported successfully",
-        "exportErrorPathRequired": "Output path is required."
+        "exportErrorPathRequired": "Output path is required.",
+        "previewHeading": "Preview",
+        "previewCount": "{{count}} rows",
+        "previewLoading": "Loading preview…",
+        "previewEmpty": "No confirmed picks to export.",
+        "previewFailed": "Preview unavailable: {{message}}",
+        "previewRetry": "Retry preview",
+        "previewBlocked": "Fix the problems below before exporting."
       },
       "runReport": {
         "title": "Export Run Report",

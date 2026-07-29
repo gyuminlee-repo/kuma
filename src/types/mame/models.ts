@@ -208,6 +208,44 @@ export type JanusExportFormat = "csv" | "xlsx";
  */
 export type JanusDestLayout = "source" | "compact";
 
+/** One row of the Janus mapping, exactly as it is written to the export file. */
+export interface JanusPreviewRow {
+  name: string;
+  source_plate: string;
+  source_well: string;
+  dest_well: string;
+  priority_score: number;
+}
+
+/**
+ * Validation problem codes returned by the dry-run preview.
+ *
+ * Mirrors the ``code`` field of ``build_janus_preview_rows``
+ * (kuma_core/mame/export/janus_mapping.py).
+ */
+export type JanusPreviewErrorCode =
+  | "unresolved_well"
+  | "plate_capacity"
+  | "duplicate_dest_well";
+
+export interface JanusPreviewError {
+  code: JanusPreviewErrorCode;
+  message: string;
+  mutant_ids: string[];
+}
+
+/**
+ * Result of the ``export_janus_mapping_dry_run`` RPC.
+ *
+ * The export path fails fast on the same three problems; the preview collects
+ * them so every problem is visible before a file is written.
+ */
+export interface JanusPreviewResult {
+  rows: JanusPreviewRow[];
+  errors: JanusPreviewError[];
+  row_count: number;
+}
+
 export type RunReportFormat = "html" | "pdf";
 
 export interface RunReportResult {

@@ -15,6 +15,7 @@ import type {
   JanusDestLayout,
   JanusExportFormat,
   JanusExportResult,
+  JanusPreviewResult,
 } from "@/types/mame/models";
 
 /**
@@ -64,4 +65,26 @@ export async function handleExportMameJanusMapping(
   } finally {
     useMameAppStore.setState({ isExporting: false });
   }
+}
+
+/**
+ * Preview the Janus mapping without writing a file.
+ *
+ * Calls the sidecar `export_janus_mapping_dry_run` RPC. Unlike the export, the
+ * three plate-layout problems (unresolved well, over capacity, duplicate
+ * destination) come back inside `errors` rather than as a thrown RPC error, so
+ * the dialog can show all of them at once.
+ *
+ * `isExporting` is deliberately left alone: a preview is not an export and must
+ * not put the app into its exporting state.
+ *
+ * @param destLayout  "source" (default, dest mirrors source well) or
+ *                    "compact" (dest assigned sequentially from A1).
+ */
+export async function fetchMameJanusPreview(
+  destLayout: JanusDestLayout = "source",
+): Promise<JanusPreviewResult> {
+  return await sendRequest<JanusPreviewResult>("export_janus_mapping_dry_run", {
+    dest_layout: destLayout,
+  });
 }

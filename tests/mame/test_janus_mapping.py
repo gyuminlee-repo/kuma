@@ -15,6 +15,7 @@ import pytest
 
 from kuma_core.mame.export.janus_mapping import (
     _build_janus_rows,
+    build_janus_preview_rows,
     export_mame_janus_csv,
 )
 from kuma_core.mame.models import (
@@ -281,3 +282,134 @@ def test_csv_export_rejects_duplicate_dest(tmp_path: Path) -> None:
             ],
             out,
         )
+
+
+# ---------------------------------------------------------------------------
+# Preview (dry-run): same rows, problems collected instead of raised
+# ---------------------------------------------------------------------------
+
+
+def test_preview_matches_export_rows() -> None:
+    """The preview must show exactly what the export would write."""
+    replicates = [
+        _make_replicate("HIGH", "NB01", "5_7", size_kb=300.0),
+        _make_replicate("MID", "NB02", "1_1", size_kb=200.0),
+        _make_replicate("LOW", "NB03", "8_12", size_kb=10.0),
+    ]
+    preview = build_janus_preview_rows(replicates)
+    assert preview["rows"] == _build_janus_rows(replicates)
+    assert preview["errors"] == []
+    assert preview["row_count"] == 3
+
+
+def test_preview_compact_matches_export_rows() -> None:
+    replicates = [
+        _make_replicate("HIGH", "NB01", "5_7", size_kb=300.0),
+        _make_replicate("LOW", "NB02", "8_12", size_kb=10.0),
+    ]
+    preview = build_janus_preview_rows(replicates, dest_layout="compact")
+    assert preview["rows"] == _build_janus_rows(replicates, dest_layout="compact")
+    assert [r["dest_well"] for r in preview["rows"]] == ["A1", "B1"]
+    assert preview["errors"] == []
+
+
+def test_preview_rejects_unknown_dest_layout() -> None:
+    with pytest.raises(ValueError, match="Invalid dest_layout"):
+        build_janus_preview_rows([], dest_layout="diagonal")
+
+
+def test_preview_reports_duplicate_dest_instead_of_raising() -> None:
+    preview = build_janus_preview_rows(
+        [
+            _make_replicate("P1_A1", "NB01", "1_1", size_kb=200.0),
+            _make_replicate("P2_A1", "NB02", "1_1", size_kb=100.0),
+        ]
+    )
+    assert preview["row_count"] == 2
+    assert [e["code"] for e in preview["errors"]] == ["duplicate_dest_well"]
+    assert preview["errors"][0]["mutant_ids"] == ["P1_A1", "P2_A1"]
+    assert "duplicate dest_well" in str(preview["errors"][0]["message"])
+
+
+def test_preview_compact_clears_duplicate_dest() -> None:
+    """Compact is the documented way out of a duplicate; it must report clean."""
+    preview = build_janus_preview_rows(
+        [
+            _make_replicate("P1_A1", "NB01", "1_1", size_kb=200.0),
+            _make_replicate("P2_A1", "NB02", "1_1", size_kb=100.0),
+        ],
+        dest_layout="compact",
+    )
+    assert preview["errors"] == []
+    assert [r["dest_well"] for r in preview["rows"]] == ["A1", "B1"]
+
+
+def test_preview_reports_unresolved_well_and_keeps_the_row() -> None:
+    """A broken clone stays visible: hiding it defeats the preview."""
+    preview = build_janus_preview_rows(
+        [
+            _make_replicate("BAD", "NB01", "zz", size_kb=500.0),
+            _make_replicate("OK", "NB01", "1_1", size_kb=100.0),
+        ]
+    )
+    assert [r["name"] for r in preview["rows"]] == ["BAD", "OK"]
+    assert preview["rows"][0]["source_well"] == ""
+    assert preview["rows"][0]["dest_well"] == ""
+    assert [e["code"] for e in preview["errors"]] == ["unresolved_well"]
+    assert preview["errors"][0]["mutant_ids"] == ["BAD"]
+
+
+def test_preview_blank_wells_are_not_reported_as_duplicates() -> None:
+    """Two unresolved wells share a blank dest; that is one problem, not two."""
+    preview = build_janus_preview_rows(
+        [
+            _make_replicate("BAD1", "NB01", "zz", size_kb=500.0),
+            _make_replicate("BAD2", "NB02", "yy", size_kb=400.0),
+        ]
+    )
+    assert [e["code"] for e in preview["errors"]] == ["unresolved_well"]
+    assert preview["errors"][0]["mutant_ids"] == ["BAD1", "BAD2"]
+
+
+def test_preview_reports_plate_overflow_without_crashing() -> None:
+    """seq_to_well rejects index 97, so compaction must stop at 96."""
+    replicates = _fill_plate(96)
+    replicates.append(_make_replicate("EXTRA", "NB02", "1_1", size_kb=0.5))
+    preview = build_janus_preview_rows(replicates, dest_layout="compact")
+
+    assert preview["row_count"] == 97
+    assert [e["code"] for e in preview["errors"]] == ["plate_capacity"]
+    assert preview["errors"][0]["mutant_ids"] == ["EXTRA"]
+    assert preview["rows"][95]["dest_well"] == "H12"
+    assert preview["rows"][96]["dest_well"] == ""
+
+
+def test_preview_collects_every_problem_at_once() -> None:
+    replicates = _fill_plate(96)
+    replicates.append(_make_replicate("BAD", "NB02", "zz", size_kb=0.5))
+    replicates.append(_make_replicate("DUP", "NB03", "1_1", size_kb=0.4))
+    preview = build_janus_preview_rows(replicates)
+
+    assert sorted(str(e["code"]) for e in preview["errors"]) == [
+        "duplicate_dest_well",
+        "plate_capacity",
+        "unresolved_well",
+    ]
+    # Every entry carries the same shape so consumers never branch on presence.
+    for entry in preview["errors"]:
+        assert set(entry.keys()) == {"code", "message", "mutant_ids"}
+        assert isinstance(entry["mutant_ids"], list)
+
+
+def test_export_still_fails_fast_on_the_same_problems(tmp_path: Path) -> None:
+    """The preview is additive: the write path keeps raising."""
+    dup = [
+        _make_replicate("P1_A1", "NB01", "1_1"),
+        _make_replicate("P2_A1", "NB02", "1_1"),
+    ]
+    with pytest.raises(ValueError, match="duplicate dest_well"):
+        export_mame_janus_csv(dup, tmp_path / "dup.csv")
+    with pytest.raises(ValueError, match="unparseable custom_barcode"):
+        _build_janus_rows([_make_replicate("BAD", "NB01", "zz")])
+    with pytest.raises(ValueError, match="exceed the 96-well"):
+        _build_janus_rows(_fill_plate(96) + [_make_replicate("X", "NB02", "1_1")])
